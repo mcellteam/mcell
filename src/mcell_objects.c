@@ -49,7 +49,8 @@ MCELL_STATUS
 mcell_create_instance_object(MCELL_STATE *state, char *name,
                              struct object **new_obj) {
   // Create the symbol, if it doesn't exist yet.
-  struct object *obj_ptr = make_new_object(state, name);
+  int error_code = 0;
+  struct object *obj_ptr = make_new_object(state, name, &error_code);
   if (obj_ptr == NULL) {
     return MCELL_FAIL;
   }
@@ -84,7 +85,8 @@ mcell_create_poly_object(MCELL_STATE *state, struct object *parent,
       CHECKED_SPRINTF("%s.%s", parent->sym->name, poly_obj->obj_name);
 
   // Create the symbol, if it doesn't exist yet.
-  struct object *obj_ptr = make_new_object(state, qualified_name);
+  int error_code = 0;
+  struct object *obj_ptr = make_new_object(state, qualified_name, &error_code);
   if (obj_ptr == NULL) {
     return MCELL_FAIL;
   }
@@ -229,17 +231,20 @@ failure:
       obj_name: fully qualified object name
  Out: the newly created object
 *************************************************************************/
-struct object *make_new_object(MCELL_STATE *state, char *obj_name) {
+struct object *make_new_object(MCELL_STATE *state, char *obj_name, int *error_code) {
   if ((retrieve_sym(obj_name, state->obj_sym_table)) != NULL) {
     // mdlerror_fmt(parse_state,"Object '%s' is already defined", obj_name);
+    *error_code = 1;
     return NULL;
   }
 
-  struct sym_table *symbol;
+  struct sym_entry *symbol;
   if ((symbol = store_sym(obj_name, OBJ, state->obj_sym_table, NULL)) == NULL) {
+    *error_code = 2;
     return NULL;
   }
 
+  *error_code = 0;
   return (struct object *)symbol->value;
 }
 
@@ -1085,7 +1090,7 @@ struct region *make_new_region(MCELL_STATE *state, char *obj_name,
     return NULL;
   }
 
-  struct sym_table *sym_ptr;
+  struct sym_entry *sym_ptr;
   if ((sym_ptr = store_sym(region_name, REG, state->reg_sym_table, NULL)) ==
       NULL) {
     free(region_name);

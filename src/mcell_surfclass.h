@@ -45,14 +45,14 @@ MCELL_STATUS mcell_create_surf_class(
 
 struct sm_dat *mcell_add_mol_release_to_surf_class(
     MCELL_STATE *state,
-    struct sym_table *sc_sym,
+    struct sym_entry *sc_sym,
     struct mcell_species *sm_info,
     double quantity,
     int density_or_num,
     struct sm_dat *smd_list);
 
 MCELL_STATUS mcell_assign_surf_class_to_region(
-    struct sym_table *sc_sym,
+    struct sym_entry *sc_sym,
     struct region *rgn);
 
 #endif

@@ -21,7 +21,6 @@
   #include "mdlparse_aux.h"
   #include "util.h"
   #include "react_output.h"
-  #include "macromolecule.h"
 
   #include "mcell_misc.h"
   #include "mcell_structs.h"
@@ -72,7 +71,7 @@ int tok;
 double dbl;
 long long llival;
 char *str;
-struct sym_table *sym;
+struct sym_entry *sym;
 struct vector3 *vec3;
 struct num_expr_list_head nlist;
 struct release_evaluator *rev;
@@ -130,19 +129,6 @@ struct release_single_molecule_list rsm_list;
 struct arg *printfarg;
 struct arg_list printfargs;
 
-/* Macromolecules */
-struct macro_subunit_assignment_list mmol_subunits;
-struct macro_topology *mmol_topo;
-struct macro_subunit_spec *mmol_su_comp;
-struct macro_subunit_assignment *mmol_su_assign;
-struct macro_geometry *mmol_geom;
-struct macro_relationship *mmol_su_rel;
-struct macro_rate_ruleset *mmol_rate_ruleset;
-struct macro_rate_rule *mmol_rate_rule;
-struct macro_rate_clause *mmol_rate_clause;
-
-/* Macromolecules (after the species is built) */
-struct macro_relation_state *relation_state;
 }
 
 %pure-parser
@@ -190,10 +176,6 @@ struct macro_relation_state *relation_state;
 %token       CHECKPOINT_REPORT
 %token       CLAMP_CONCENTRATION
 %token       CLOSE_PARTITION_SPACING
-%token       COMPLEX_PLACEMENT_ATTEMPTS
-%token       COMPLEX_PLACEMENT_FAILURE
-%token       COMPLEX_PLACEMENT_FAILURE_THRESHOLD
-%token       COMPLEX_RATE
 %token       CONCENTRATION
 %token       CORNERS
 %token       COS
@@ -203,7 +185,6 @@ struct macro_relation_state *relation_state;
 %token       CUSTOM_SPACE_STEP
 %token       CUSTOM_TIME_STEP
 %token       DEFAULT
-%token       DEFINE_COMPLEX_MOLECULE
 %token       DEFINE_MOLECULE
 %token       DEFINE_MOLECULES
 %token       DEFINE_REACTIONS
@@ -217,8 +198,6 @@ struct macro_relation_state *relation_state;
 %token       DIFFUSION_CONSTANT_2D
 %token       DIFFUSION_CONSTANT_3D
 %token       DIFFUSION_CONSTANT_REPORT
-%token       DREAMM_V3
-%token       DREAMM_V3_GROUPED
 %token       EFFECTOR_GRID_DENSITY
 %token       ELEMENT_CONNECTIONS
 %token       ELLIPTIC
@@ -337,7 +316,6 @@ struct macro_relation_state *relation_state;
 %token       RATE_RULES
 %token       REACTION_DATA_OUTPUT
 %token       REACTION_OUTPUT_REPORT
-%token       REACTION_GROUP
 %token <dbl> REAL
 %token       RECTANGULAR_RELEASE_SITE
 %token       RECTANGULAR_TOKEN
@@ -419,7 +397,6 @@ struct macro_relation_state *relation_state;
 %type <str> var
 %type <str> file_name
 %type <sym> existing_object
-%type <symlist> mesh_object_or_wildcard
 %type <sym> existing_region
 %type <vec3> point
 %type <vec3> point_or_num
@@ -478,36 +455,12 @@ struct macro_relation_state *relation_state;
 %type <ival> target_def
 %type <dbl> maximum_step_length_def
 %type <ival> extern_def
-/* Complex molecule definition non-terminals */
-%type <nlist> subunit_coord
-%type <str> complex_mol_name
-%type <mmol_topo> complex_mol_topology
-%type <mmol_su_comp> complex_mol_subunit_component
-%type <mmol_su_comp> complex_mol_subunit_spec
-%type <mmol_su_assign> complex_mol_subunit_assignment
-%type <mmol_subunits> complex_mol_subunits
-%type <mmol_geom> complex_mol_geometry
-%type <mmol_geom> complex_mol_subunit_locations
-%type <mmol_geom> complex_mol_subunit_location
-%type <mmol_su_rel> complex_mol_relationships
-%type <mmol_su_rel> complex_mol_relationship_list
-%type <mmol_su_rel> complex_mol_relationship
-%type <mmol_rate_ruleset> complex_mol_rates
-%type <mmol_rate_ruleset> complex_mol_rate_list
-%type <mmol_rate_ruleset> complex_mol_rate
-%type <mmol_rate_rule> complex_mol_rate_rules
-%type <mmol_rate_rule> complex_mol_rate_rule
-%type <mmol_rate_clause> complex_mol_rate_clause_list
-%type <mmol_rate_clause> complex_mol_rate_clauses
-%type <mmol_rate_clause> complex_mol_rate_clause
-%type <ival> equal_or_not
+
 
 /* Molecule utility non-terminals */
 %type <sym> existing_molecule
 %type <mol_type> existing_surface_molecule
 %type <mol_type> existing_molecule_opt_orient
-%type <mol_type> subunit_molecule
-%type <sym> existing_macromolecule
 
 /* Surface class non-terminals */
 %type <sym> existing_surface_class
@@ -595,21 +548,15 @@ struct macro_relation_state *relation_state;
 %type <sym> existing_rxpn_or_molecule
 %type <mol_type> existing_molecule_required_orient_braces
 %type <cnt> count_syntax count_syntax_1 count_syntax_2 count_syntax_3
-%type <cnt> count_syntax_macromol count_syntax_macromol_subunit
-%type <relation_state> opt_macromol_relation_states
-%type <relation_state> macromol_relation_state_list macromol_relation_state
-%type <ival> macromol_relation_name
 %type <sym> count_location_specifier
 %type <tok> opt_hit_spec hit_spec
 %type <str> opt_custom_header
 
 /* Viz output non-terminals */
 %type <ival> viz_mode_def
-%type <ival> viz_mesh_format_def
-%type <ival> viz_molecule_format_def
 %type <ival> optional_state
 %type <frame_list> viz_frames_def
-%type <tok> viz_meshes_one_item viz_molecules_one_item
+%type <tok> viz_molecules_one_item
 %type <frame_list> viz_molecules_block_def
 %type <frame_list> list_viz_molecules_block_cmds viz_molecules_block_cmd
 %type <symlist> existing_one_or_multiple_molecules
@@ -620,13 +567,6 @@ struct macro_relation_state *relation_state;
 %type <frame_list> viz_molecules_iteration_numbers_def
 %type <frame_list> viz_molecules_iteration_numbers_cmds
 %type <frame_list> viz_molecules_iteration_numbers_one_cmd
-%type <frame_list> viz_meshes_block_def
-%type <frame_list> list_viz_meshes_block_cmds viz_meshes_block_cmd
-%type <frame_list> viz_meshes_time_points_def viz_meshes_time_points_cmds
-%type <frame_list> viz_meshes_time_points_one_cmd
-%type <frame_list> viz_meshes_iteration_numbers_def
-%type <frame_list> viz_meshes_iteration_numbers_cmds
-%type <frame_list> viz_meshes_iteration_numbers_one_cmd
 
 /* Volume output non-terminals */
 %type <str> volume_output_filename_prefix
@@ -695,10 +635,6 @@ file_name: str_expr
 existing_object: var                                  { CHECKN($$ = mdl_existing_object(parse_state, $1)); }
 ;
 
-mesh_object_or_wildcard: existing_object              { CHECKN($$ = mdl_singleton_symbol_list(parse_state, $1)); }
-                       | str_value                    { CHECKN($$ = mdl_existing_objects_wildcard(parse_state, $1)); }
-;
-
 existing_region: existing_object '[' var ']'          { CHECKN($$ = mdl_existing_region(parse_state, $1, $3)); }
 ;
 
@@ -731,7 +667,7 @@ list_orient_marks:
                                                           if ($$.orient >= 32767)
                                                           {
                                                             /* Seriously?  Wow. */
-                                                            mdlerror(parse_state, "Error: Molecule orientation must not be greater than 32767");
+                                                            mdlerror(parse_state, "molecule orientation must not be greater than 32767");
                                                             return 1;
                                                           }
                                                           ++ $$.orient;
@@ -741,7 +677,7 @@ list_orient_marks:
                                                           if ($$.orient <= -32768)
                                                           {
                                                             /* Seriously?  Wow. */
-                                                            mdlerror(parse_state, "Error: Molecule orientation must not be less than -32768");
+                                                            mdlerror(parse_state, "molecule orientation must not be less than -32768");
                                                             return 1;
                                                           }
                                                           -- $$.orient;
@@ -759,7 +695,7 @@ orient_class_number: '{' num_expr '}'                 {
                                                           $$.orient_set = 1;
                                                           if ($$.orient != $2)
                                                           {
-                                                            mdlerror(parse_state, "Molecule orientation specified inside braces must be an integer between -32768 and 32767.");
+                                                            mdlerror(parse_state, "molecule orientation specified inside braces must be an integer between -32768 and 32767.");
                                                             return 1;
                                                           }
                                                       }
@@ -957,7 +893,7 @@ list_arg: num_expr_only                               { CHECKN($$ = mdl_new_prin
                                                             case DBL: CHECKN($$ = mdl_new_printf_arg_double(*(double *) $1->value)); break;
                                                             case STR: CHECKN($$ = mdl_new_printf_arg_string((char *) $1->value)); break;
                                                             default:
-                                                              mdlerror(parse_state, "Invalid variable type referenced");
+                                                              mdlerror(parse_state, "invalid variable type referenced");
                                                               return 1;
                                                           }
                                                       }
@@ -1060,8 +996,6 @@ warning_item_def:
       | MISSED_REACTION_THRESHOLD '=' num_expr        { CHECK(mdl_set_missed_reaction_warning_threshold(parse_state, $3)); }
       | MISSING_SURFACE_ORIENTATION '=' warning_level { parse_state->vol->notify->missed_surf_orient = (byte)$3; }
       | USELESS_VOLUME_ORIENTATION '=' warning_level  { parse_state->vol->notify->useless_vol_orient = (byte)$3; }
-      | COMPLEX_PLACEMENT_FAILURE '=' warning_level   { parse_state->vol->notify->complex_placement_failure = (byte) $3; }
-      | COMPLEX_PLACEMENT_FAILURE_THRESHOLD '=' num_expr { parse_state->vol->notify->complex_placement_failure_threshold = (long long) $3; }
       | MOLECULE_PLACEMENT_FAILURE '=' warning_level  { parse_state->vol->notify->mol_placement_failure = (byte) $3; }
       | INVALID_OUTPUT_STEP_TIME '=' warning_level    { parse_state->vol->notify->invalid_output_step_time = (byte) $3; }
 ;
@@ -1115,7 +1049,6 @@ parameter_def:
         | MICROSCOPIC_REVERSIBILITY '=' boolean       { parse_state->vol->surface_reversibility=$3; parse_state->vol->volume_reversibility=$3; }
         | MICROSCOPIC_REVERSIBILITY '=' SURFACE_ONLY  { parse_state->vol->surface_reversibility=1;  parse_state->vol->volume_reversibility=0;  }
         | MICROSCOPIC_REVERSIBILITY '=' VOLUME_ONLY   { parse_state->vol->surface_reversibility=0;  parse_state->vol->volume_reversibility=1;  }
-        | COMPLEX_PLACEMENT_ATTEMPTS '=' num_expr     { CHECK(mdl_set_complex_placement_attempts(parse_state, $3)); }
 ;
 
 /* =================================================================== */
@@ -1144,7 +1077,6 @@ partition_dimension:
 molecules_def:
           define_one_molecule
         | define_multiple_molecules
-        | define_complex_molecule
 ;
 
 define_one_molecule: DEFINE_MOLECULE molecule_stmt    { mdl_print_species_summary(parse_state->vol, $2); }
@@ -1221,118 +1153,6 @@ maximum_step_length_def:
 extern_def: {$$ = 0;}
     | EXTERN     {$$ = 1;}
 ;
-define_complex_molecule:
-          DEFINE_COMPLEX_MOLECULE complex_mol_name    { parse_state->complex_name = $2; parse_state->complex_type = 0; }
-          '{'
-              complex_mol_topology                    { parse_state->complex_topo = $5; }
-              complex_mol_subunits
-              complex_mol_geometry
-              complex_mol_relationships               { parse_state->complex_relations = $9; }
-              complex_mol_rates
-          '}'                                         { CHECK(mdl_assemble_complex_species(parse_state, $2, $5, $7.assign_head, $8, $9, $11)); }
-;
-
-complex_mol_name: var                                 { $$ = $1; CHECK(mdl_valid_complex_name(parse_state, $1)); }
-;
-
-complex_mol_topology:
-          NUMBER_OF_SUBUNITS '=' array_value          { CHECKN($$ = mdl_assemble_topology(parse_state, &$3)); }
-;
-
-complex_mol_subunits:
-          complex_mol_subunit_assignment              { $$.assign_tail = $$.assign_head = $1; }
-        | complex_mol_subunits
-          complex_mol_subunit_assignment              { $$ = $1; $$.assign_tail = $$.assign_tail->next = $2; }
-;
-
-complex_mol_subunit_assignment:
-          SUBUNIT '[' complex_mol_subunit_spec ']'
-          '=' existing_molecule_opt_orient            { CHECKN($$ = mdl_assemble_complex_subunit_assignment(parse_state, $3, & $6)); }
-;
-
-complex_mol_subunit_spec:
-          complex_mol_subunit_component
-        | complex_mol_subunit_spec ','
-          complex_mol_subunit_component               { if ($3) $3->next = $1; $$ = $3; }
-;
-
-complex_mol_subunit_component: num_expr               { CHECKN($$ = mdl_assemble_subunit_spec_component($1, $1)); }
-                             | num_expr ':' num_expr  { CHECKN($$ = mdl_assemble_subunit_spec_component($1, $3)); }
-;
-
-complex_mol_geometry:
-          SHAPE '{' complex_mol_subunit_locations '}' { $$ = $3; CHECK(mdl_validate_complex_geometry(parse_state, parse_state->complex_topo, $3)); }
-;
-
-complex_mol_subunit_locations:
-          complex_mol_subunit_location
-        | complex_mol_subunit_locations
-          complex_mol_subunit_location                { if ($2) $2->next = $1; $$ = $2; }
-;
-
-subunit_coord:
-        num_expr                                      { CHECK(mcell_generate_range_singleton(&$$, $1)); }
-      | subunit_coord ',' num_expr                    { $$ = $1; CHECK(mdl_add_range_value(&$$, $3)); }
-;
-
-complex_mol_subunit_location:
-          SUBUNIT '[' subunit_coord ']' '=' point     { CHECKN($$ = mdl_assemble_complex_geometry(parse_state, parse_state->complex_topo, &$3, $6)); }
-;
-
-complex_mol_relationships:
-          SUBUNIT_RELATIONSHIPS
-          '{' complex_mol_relationship_list '}'       { $$ = $3; CHECK(mdl_validate_complex_relationships(parse_state, parse_state->complex_topo, $3)); }
-;
-
-complex_mol_relationship_list:
-          /* empty */                                 { $$ = NULL; }
-        | complex_mol_relationship_list
-          complex_mol_relationship                    {  if ($2) $2->next = $1; $$ = $2; }
-;
-
-complex_mol_relationship: var '=' array_value         { CHECKN($$ = mdl_assemble_complex_relationship(parse_state, parse_state->complex_topo, $1, &$3)); }
-;
-
-complex_mol_rates:
-          RATE_RULES '{' complex_mol_rate_list '}'    { $$ = $3; CHECK(mdl_validate_complex_rates(parse_state, $3)); }
-;
-
-complex_mol_rate_list:
-          /* empty */                                 { $$ = NULL; }
-        | complex_mol_rate_list complex_mol_rate      { if ($2) $2->next = $1; $$ = $2; }
-;
-
-complex_mol_rate: var '{' complex_mol_rate_rules '}'  { CHECKN($$ = mdl_assemble_complex_ruleset($1, $3)); }
-;
-
-complex_mol_rate_rules:
-          complex_mol_rate_rule
-        | complex_mol_rate_rules
-          complex_mol_rate_rule                       { if ($2) $2->next = $1; $$ = $2; }
-;
-
-complex_mol_rate_rule:
-          complex_mol_rate_clauses ':' num_expr       { CHECKN($$ = mdl_assemble_complex_rate_rule($1, $3)); }
-;
-
-complex_mol_rate_clauses:
-          complex_mol_rate_clause_list
-        | DEFAULT                                     { $$ = NULL; }
-;
-
-complex_mol_rate_clause_list:
-          complex_mol_rate_clause
-        | complex_mol_rate_clause_list '&'
-          complex_mol_rate_clause                     { if ($3) $3->next = $1; $$ = $3; }
-;
-
-complex_mol_rate_clause:
-     var equal_or_not existing_molecule_opt_orient    { CHECKN($$ = mdl_assemble_complex_rate_rule_clause(parse_state, parse_state->complex_relations, $1, $2, &$3)); }
-;
-
-equal_or_not: EQUAL                                   { $$ = 0; }
-            | NOT_EQUAL                               { $$ = 1; }
-;
 
 existing_molecule: var                                { CHECKN($$ = mdl_existing_molecule(parse_state, $1)); }
 ;
@@ -1350,8 +1170,6 @@ existing_molecule_opt_orient:
                                                       }
 ;
 
-existing_macromolecule: var                           { CHECKN($$ = mdl_existing_macromolecule(parse_state, $1)); }
-;
 
 /* =================================================================== */
 /* Surface class definitions */
@@ -1396,7 +1214,6 @@ list_surface_prop_stmts:
 surface_prop_stmt:
           surface_rxn_stmt
         | surface_class_mol_stmt
-        | surface_class_viz_value_stmt
 ;
 
 surface_rxn_stmt:
@@ -1406,7 +1223,7 @@ surface_rxn_stmt:
         | surface_rxn_type
           equals_or_to
           ALL_MOLECULES orientation_class {
-              struct sym_table *mol_sym = retrieve_sym("ALL_MOLECULES", parse_state->vol->mol_sym_table);
+              struct sym_entry *mol_sym = retrieve_sym("ALL_MOLECULES", parse_state->vol->mol_sym_table);
               if(!$4.orient_set) $4.orient = 0;
               CHECKN(mdl_assemble_surface_reaction(parse_state, $1, parse_state->current_surface_class, mol_sym, $4.orient));}
         | CLAMP_CONCENTRATION
@@ -1467,10 +1284,6 @@ surface_mol_quant:
           existing_surface_molecule '=' num_expr      { CHECKN($$ = mdl_new_surf_mol_data(parse_state, &$1, $3)); }
 ;
 
-surface_class_viz_value_stmt:
-          VIZ_VALUE '=' num_expr                      { parse_state->current_surface_class->region_viz_value = (int) $3; }
-;
-
 /* =================================================================== */
 /* Reaction network definitions */
 
@@ -1484,20 +1297,7 @@ list_rx_stmts: rx_stmt
              | list_rx_stmts rx_stmt
 ;
 
-rx_stmt: rx_group_def
-       | rxn
-;
-
-rx_group_def:
-          REACTION_GROUP reaction_group_name
-          '{' list_rxns '}'
-;
-
-reaction_group_name: var                              { free($1); }
-;
-
-list_rxns: rxn
-         | list_rxns rxn
+rx_stmt: rxn
 ;
 
 list_dashes: '-'
@@ -1573,7 +1373,7 @@ rx_rate_syntax:
 rx_rate1: '[' rx_dir_rate ']'                         {
                                                         if ($2.forward_rate.rate_type == RATE_UNSET)
                                                         {
-                                                          mdlerror(parse_state, "Invalid reaction rate specification: must specify a forward rate.");
+                                                          mdlerror(parse_state, "invalid reaction rate specification: must specify a forward rate.");
                                                           return 1;
                                                         }
 
@@ -1585,7 +1385,7 @@ rx_rate2: '[' rx_dir_rate ',' rx_dir_rate ']'         {
                                                         if (($2.forward_rate.rate_type  != RATE_UNSET && $4.forward_rate.rate_type  != RATE_UNSET)  ||
                                                             ($2.backward_rate.rate_type != RATE_UNSET && $4.backward_rate.rate_type != RATE_UNSET))
                                                         {
-                                                          mdlerror_fmt(parse_state, "Error: When two reaction rates are specified, one must be a forward rate, and one must be a reverse rate");
+                                                          mdlerror_fmt(parse_state, "when two reaction rates are specified, one must be a forward rate, and one must be a reverse rate");
                                                           return 1;
                                                         }
 
@@ -1607,7 +1407,6 @@ atomic_rate:
           num_expr_only                               { $$.rate_type = RATE_CONSTANT; $$.v.rate_constant = $1; }
         | str_expr_only                               { $$.rate_type = RATE_FILE; $$.v.rate_file = $1; }
         | existing_var_only                           { CHECK(mdl_reaction_rate_from_var(parse_state, & $$, $1)); }
-        | COMPLEX_RATE existing_macromolecule var     { CHECK(mdl_reaction_rate_complex(parse_state, & $$, $2, $3)); }
 ;
 
 /* =================================================================== */
@@ -1800,7 +1599,7 @@ release_site_cmd:
         | release_number_cmd                          {
                                                         if (parse_state->current_release_site->release_shape == SHAPE_LIST)
                                                         {
-                                                          mdlerror(parse_state, "Molecules are already specified in a list--cannot set number or density.");
+                                                          mdlerror(parse_state, "molecules are already specified in a list--cannot set number or density.");
                                                           return 1;
                                                         }
                                                       }
@@ -2071,7 +1870,7 @@ opt_aspect_ratio_def: /* empty */                     { $$ = 0.0; }
                                                         $$ = $3;
                                                         if ($$ < 2.0)
                                                         {
-                                                          mdlerror(parse_state, "Invalid aspect ratio requested (must be greater than or equal to 2.0)");
+                                                          mdlerror(parse_state, "invalid aspect ratio requested (must be greater than or equal to 2.0)");
                                                           return 1;
                                                         }
                                                       }
@@ -2117,15 +1916,10 @@ list_opt_surface_region_stmts:
 opt_surface_region_stmt:
           set_surface_class_stmt
         | surface_mol_stmt                            { mdl_add_surf_mol_to_region(parse_state->current_region, & $1); }
-        | surface_region_viz_value_stmt
 ;
 
 set_surface_class_stmt:
           SURFACE_CLASS '=' existing_surface_class    { mdl_set_region_surface_class(parse_state, parse_state->current_region, $3); }
-;
-
-surface_region_viz_value_stmt:
-          VIZ_VALUE '=' num_expr                      { mdl_set_region_region_viz_value(parse_state, parse_state->current_region, (int) $3); }
 ;
 
 /* =================================================================== */
@@ -2302,7 +2096,6 @@ existing_molecule_required_orient_braces:
 count_syntax: count_syntax_1
             | count_syntax_2
             | count_syntax_3
-            | count_syntax_macromol
 ;
 
 count_syntax_1:
@@ -2318,68 +2111,6 @@ count_syntax_2:
 count_syntax_3:
     str_value  ','
     count_location_specifier opt_hit_spec             { CHECKN($$ = mdl_count_syntax_3(parse_state, $1, $3, $4, parse_state->count_flags)); }
-;
-
-count_syntax_macromol:
-    count_syntax_macromol_subunit
-;
-
-subunit_molecule: existing_molecule_opt_orient        {
-                                                          if (((struct species *) $1.mol_type->value)->flags & IS_COMPLEX)
-                                                          {
-                                                            mdlerror_fmt(parse_state, "The molecule '%s' is a complex, and may not be used as a subunit type", $1.mol_type->name);
-                                                            return 1;
-                                                          }
-                                                      }
-;
-
-count_syntax_macromol_subunit:
-          SUBUNIT '{'
-            existing_macromolecule                    { parse_state->current_complex = (struct complex_species *) $3->value; }
-            orientation_class
-            ':' subunit_molecule
-            opt_macromol_relation_states
-          '}' ',' count_location_specifier            {
-                                                          parse_state->current_complex = NULL;
-                                                          struct complex_species *macromol = (struct complex_species *) $3->value;
-                                                          struct mcell_species master_orientation = $5;
-                                                          struct mcell_species subunit = $7;
-                                                          struct macro_relation_state *relation_states = $8;
-                                                          struct sym_table *location = $11;
-                                                          CHECKN($$ = mdl_count_syntax_macromol_subunit(parse_state, macromol, &master_orientation, & subunit, relation_states, location));
-                                                      }
-;
-
-opt_macromol_relation_states:
-          /* empty */                                 { $$ = NULL; }
-        | '[' macromol_relation_state_list ']'        { $$ = $2; }
-;
-
-macromol_relation_state_list:
-          macromol_relation_state
-        | macromol_relation_state_list '&'
-          macromol_relation_state                     { $3->next = $1; $$ = $3; }
-;
-
-macromol_relation_state:
-          macromol_relation_name
-            equal_or_not
-            subunit_molecule                          { CHECKN($$ = mdl_assemble_complex_relation_state(parse_state, $1, $2, & $3)); }
-;
-
-macromol_relation_name: var                           {
-                                                          int rel_idx = macro_lookup_relation(parse_state->current_complex, $1);
-                                                          if (rel_idx == -1)
-                                                          {
-                                                            mdlerror_fmt(parse_state,
-                                                                         "In subunit specification for COUNT statement, relation '%s' does not exist within the complex '%s'",
-                                                                         $1,
-                                                                         parse_state->current_complex->base.sym->name);
-                                                            return 1;
-                                                          }
-
-                                                          $$ = rel_idx;
-                                                      }
 ;
 
 count_location_specifier: WORLD                       { $$ = NULL; }
@@ -2411,10 +2142,8 @@ opt_custom_header: /* empty */                        { $$ = NULL; }
 viz_output_def:
           VIZ_OUTPUT '{'                              { CHECK(mdl_new_viz_output_block(parse_state)); }
             viz_output_maybe_mode_cmd
-            viz_mesh_format_maybe_cmd
-            viz_molecule_format_maybe_cmd
             list_viz_output_cmds
-          '}'                                         { CHECK(mdl_finish_viz_output_block(parse_state, parse_state->vol->viz_blocks)); }
+          '}'                                         { }
 ;
 
 list_viz_output_cmds:
@@ -2428,34 +2157,8 @@ viz_output_maybe_mode_cmd: /* empty */                { CHECK(mdl_set_viz_mode(p
 ;
 
 viz_mode_def: MODE '=' NONE                           { $$ = NO_VIZ_MODE; }
-            | MODE '=' DREAMM_V3                      { $$ = DREAMM_V3_MODE; }
-            | MODE '=' DREAMM_V3_GROUPED              { $$ = DREAMM_V3_GROUPED_MODE; }
             | MODE '=' ASCII                          { $$ = ASCII_MODE; }
             | MODE '=' CELLBLENDER                    { $$ = CELLBLENDER_MODE; }
-;
-
-viz_mesh_format_maybe_cmd: /* empty */                {
-                                                        if (parse_state->vol->viz_blocks->viz_mode == DREAMM_V3_MODE)
-                                                          CHECK(mdl_set_viz_mesh_format(parse_state, parse_state->vol->viz_blocks, VIZ_MESH_FORMAT_BINARY));
-                                                      }
-                         | viz_mesh_format_def        { CHECK(mdl_set_viz_mesh_format(parse_state, parse_state->vol->viz_blocks, $1)); }
-;
-
-viz_mesh_format_def: VIZ_MESH_FORMAT '=' BINARY       { $$ = VIZ_MESH_FORMAT_BINARY; }
-                   | VIZ_MESH_FORMAT '=' ASCII        { $$ = VIZ_MESH_FORMAT_ASCII; }
-;
-
-viz_molecule_format_maybe_cmd:
-          /* empty */                                 {
-                                                        if (parse_state->vol->viz_blocks->viz_mode == DREAMM_V3_MODE)
-                                                          CHECK(mdl_set_viz_molecule_format(parse_state, parse_state->vol->viz_blocks, VIZ_MOLECULE_FORMAT_BINARY));
-                                                      }
-        | viz_molecule_format_def                     { CHECK(mdl_set_viz_molecule_format(parse_state, parse_state->vol->viz_blocks, $1)); }
-;
-
-viz_molecule_format_def:
-          VIZ_MOLECULE_FORMAT '=' BINARY              { $$ = VIZ_MOLECULE_FORMAT_BINARY; }
-        | VIZ_MOLECULE_FORMAT '=' ASCII               { $$ = VIZ_MOLECULE_FORMAT_ASCII; }
 ;
 
 viz_output_cmd:
@@ -2471,7 +2174,6 @@ viz_output_cmd:
 
 viz_frames_def:
           viz_molecules_block_def
-        | viz_meshes_block_def
 ;
 
 viz_filename_prefix_def: FILENAME '=' str_expr        { CHECK(mdl_set_viz_filename_prefix(parse_state, parse_state->vol->viz_blocks, $3)); }
@@ -2604,114 +2306,6 @@ viz_molecules_one_item: ALL_DATA                      { $$ = ALL_MOL_DATA; }
                       | ORIENTATIONS                  { $$ = MOL_ORIENT; }
 ;
 
-viz_meshes_block_def:
-          MESHES '{'
-            list_viz_meshes_block_cmds
-          '}'                                         { $$ = $3; }
-;
-
-list_viz_meshes_block_cmds:
-          viz_meshes_block_cmd
-        | list_viz_meshes_block_cmds
-          viz_meshes_block_cmd                        {
-                                                        $$ = $1;
-                                                        if ($$.frame_tail)
-                                                        {
-                                                          $$.frame_tail->next = $2.frame_head;
-                                                          if ($2.frame_tail)
-                                                            $$.frame_tail = $2.frame_tail;
-                                                        }
-                                                        else
-                                                          $$ = $2;
-                                                      }
-;
-
-viz_meshes_block_cmd:
-          viz_meshes_name_list_cmd                    { $$.frame_head = $$.frame_tail = NULL; }
-        | viz_meshes_time_points_def
-        | viz_meshes_iteration_numbers_def
-;
-
-viz_meshes_name_list_cmd:
-          NAME_LIST '{'
-            viz_include_meshes_cmd_list
-          '}'
-;
-
-viz_include_meshes_cmd_list:
-          viz_include_meshes_cmd_list viz_include_meshes_cmd
-        | /* empty */
-;
-
-viz_include_meshes_cmd:
-          existing_region         optional_state      { CHECK(mdl_set_region_viz_state(parse_state, parse_state->vol->viz_blocks, (struct region *) $1->value, (int) $2)); }
-        | mesh_object_or_wildcard optional_state      { CHECK(mdl_set_viz_include_meshes(parse_state, parse_state->vol->viz_blocks, $1, $2)); }
-        | ALL_MESHES              optional_state      { CHECK(mdl_set_viz_include_all_meshes(parse_state->vol->viz_blocks, $2)); }
-;
-
-viz_meshes_time_points_def:
-          TIME_POINTS '{'
-            viz_meshes_time_points_cmds
-          '}'                                         { $$ = $3; }
-;
-
-viz_meshes_time_points_cmds:
-          viz_meshes_time_points_one_cmd
-        | viz_meshes_time_points_cmds
-          viz_meshes_time_points_one_cmd              {
-                                                        if ($1.frame_head != NULL)
-                                                        {
-                                                          $$ = $1;
-                                                          if ($2.frame_head != NULL)
-                                                          {
-                                                            $$.frame_tail->next = $2.frame_head;
-                                                            $$.frame_tail = $2.frame_tail;
-                                                          }
-                                                        }
-                                                        else if ($2.frame_head != NULL)
-                                                          $$ = $2;
-                                                      }
-;
-
-viz_meshes_time_points_one_cmd:
-          viz_meshes_one_item '@'
-          viz_time_spec                               { CHECK(mdl_new_viz_mesh_frames(parse_state, parse_state->vol->viz_blocks, & $$, OUTPUT_BY_TIME_LIST, $1, & $3)); }
-;
-
-viz_meshes_iteration_numbers_def:
-          ITERATION_NUMBERS '{'
-            viz_meshes_iteration_numbers_cmds
-          '}'                                         { $$ = $3; }
-;
-
-viz_meshes_iteration_numbers_cmds:
-          viz_meshes_iteration_numbers_one_cmd
-        | viz_meshes_iteration_numbers_cmds
-          viz_meshes_iteration_numbers_one_cmd        {
-                                                        if ($1.frame_head != NULL)
-                                                        {
-                                                          $$ = $1;
-                                                          if ($2.frame_head != NULL)
-                                                          {
-                                                            $$.frame_tail->next = $2.frame_head;
-                                                            $$.frame_tail = $2.frame_tail;
-                                                          }
-                                                        }
-                                                        else if ($2.frame_head != NULL)
-                                                          $$ = $2;
-                                                      }
-;
-
-viz_meshes_iteration_numbers_one_cmd:
-          viz_meshes_one_item '@'
-          viz_iteration_spec                          { CHECK(mdl_new_viz_mesh_frames(parse_state, parse_state->vol->viz_blocks, & $$, OUTPUT_BY_ITERATION_LIST, $1, & $3)); }
-;
-
-viz_meshes_one_item: ALL_DATA                         { $$ = ALL_MESH_DATA; }
-                   | GEOMETRY                         { $$ = MESH_GEOMETRY; }
-                   | REGION_DATA                      { $$ = REG_DATA; }
-;
-
 /* =================================================================== */
 /* Volume data output mode */
 
@@ -2751,7 +2345,7 @@ volume_output_molecule_decl:
 ;
 
 volume_output_molecule: var                           {
-                                                          struct sym_table *sp;
+                                                          struct sym_entry *sp;
                                                           struct species_list_item *ptrl;
                                                           CHECKN(sp = mdl_existing_molecule(parse_state, $1));
 
@@ -2854,7 +2448,7 @@ void mdlerror_fmt(struct mdlparse_vars *parse_state, char const *fmt, ...)
 
   /* format error message */
   va_start(arglist, fmt);
-  mcell_errorv_raw(fmt, arglist);
+  mcell_errorv_nodie(fmt, arglist);
   va_end(arglist);
 
   /* terminate error message and flush */
@@ -2957,7 +2551,6 @@ int mdlparse_init(struct volume *vol)
   mpv.vol=vol;
   mpv.include_stack_ptr=0;
   mpv.current_object = vol->root_object;
-  mpv.vol->macro_count_request_head = NULL;
 
   /* Create memory pools for parsing */
   if ((mpv.path_mem = create_mem(sizeof(struct pathway), 4096)) == NULL)
@@ -2982,7 +2575,7 @@ int mdlparse_init(struct volume *vol)
   {
     if (vol->fstream_sym_table->entries[i] != NULL)
     {
-      for (struct sym_table *symp = vol->fstream_sym_table->entries[i];
+      for (struct sym_entry *symp = vol->fstream_sym_table->entries[i];
            symp != NULL;
            symp = symp->next)
       {
@@ -3018,9 +2611,11 @@ int mdlparse_init(struct volume *vol)
     mpv.object_name_list = l;
   }
 
+  if ((mpv.header_comment != 0) || (mpv.header_comment != 0)) {
+    free(mpv.header_comment); 
+  }
+
   /* Destroy memory pools */
-
-
   delete_mem(mpv.species_list_mem);
   delete_mem(mpv.mol_data_list_mem);
   delete_mem(mpv.output_times_mem);

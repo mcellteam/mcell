@@ -91,15 +91,15 @@ int mdl_expr_string_to_double(struct mdlparse_vars *parse_state, char *str,
                               double *out);
 
 /* Add a new file handle to the symbol table. */
-struct sym_table *mdl_new_filehandle(struct mdlparse_vars *parse_state,
+struct sym_entry *mdl_new_filehandle(struct mdlparse_vars *parse_state,
                                      char *name);
 
 /* Process an fopen statement, opening a new file handle. */
-int mdl_fopen(struct mdlparse_vars *parse_state, struct sym_table *filesym,
+int mdl_fopen(struct mdlparse_vars *parse_state, struct sym_entry *filesym,
               char *name, char *mode);
 
 /* Process an fclose statement, closing an existing file handle. */
-int mdl_fclose(struct mdlparse_vars *parse_state, struct sym_table *filesym);
+int mdl_fclose(struct mdlparse_vars *parse_state, struct sym_entry *filesym);
 
 /* Create a new double argument for a printf argument list. */
 struct arg *mdl_new_printf_arg_double(double d);
@@ -123,11 +123,11 @@ char *mdl_string_format(struct mdlparse_vars *parse_state, char *fmt,
                         struct arg *arg_head);
 
 /* sprintf-like formatting of MDL arguments. */
-int mdl_sprintf(struct mdlparse_vars *parse_state, struct sym_table *assign_var,
+int mdl_sprintf(struct mdlparse_vars *parse_state, struct sym_entry *assign_var,
                 char *fmt, struct arg *arg_head);
 
 /* strtime-like formatting of current time. */
-int mdl_fprint_time(struct mdlparse_vars *parse_state, struct sym_table *filep,
+int mdl_fprint_time(struct mdlparse_vars *parse_state, struct sym_entry *filep,
                     char *fmt);
 
 /* strtime-like formatting of current time.  Prints to the defined err_file. */
@@ -160,26 +160,26 @@ struct vector3 *mdl_point(struct mdlparse_vars *parse_state,
 struct vector3 *mdl_point_scalar(double val);
 
 /* Get a named variable if it exists, or create it if it doesn't. */
-struct sym_table *mdl_get_or_create_variable(struct mdlparse_vars *parse_state,
+struct sym_entry *mdl_get_or_create_variable(struct mdlparse_vars *parse_state,
                                              char *name);
 
 /* Assign a "double" value to a variable, freeing any previous value. */
 int mdl_assign_variable_double(struct mdlparse_vars *parse_state,
-                               struct sym_table *sym, double value);
+                               struct sym_entry *sym, double value);
 
 /* Assign a string value to a variable, freeing any previous value. */
 int mdl_assign_variable_string(struct mdlparse_vars *parse_state,
-                               struct sym_table *sym, char *value);
+                               struct sym_entry *sym, char *value);
 
 /* Assign an array value to a variable, freeing any previous value. */
 int mdl_assign_variable_array(struct mdlparse_vars *parse_state,
-                              struct sym_table *sym,
+                              struct sym_entry *sym,
                               struct num_expr_list *value);
 
 /* Assign one variable value to another variable, freeing any previous value.
  */
 int mdl_assign_variable(struct mdlparse_vars *parse_state,
-                        struct sym_table *sym, struct sym_table *value);
+                        struct sym_entry *sym, struct sym_entry *value);
 
 /* Set all notification levels to a particular value. */
 void mdl_set_all_notifications(struct volume *vol, byte notify_value);
@@ -227,10 +227,6 @@ int mdl_set_interaction_radius(struct mdlparse_vars *parse_state,
 /* Set the effector grid density. */
 int mdl_set_grid_density(struct mdlparse_vars *parse_state, double density);
 
-/* Set the number of times to place any particular macromolecule. */
-int mdl_set_complex_placement_attempts(struct mdlparse_vars *parse_state,
-                                       double attempts);
-
 /* Schedule an asynchronous checkpoint. */
 int mdl_set_realtime_checkpoint(struct mdlparse_vars *parse_state,
                                 long duration, int cont_after_cp);
@@ -254,7 +250,7 @@ int mdl_set_partition(struct mdlparse_vars *parse_state, int dim,
 
 /* Starts creating a new object.  This function has side effects, and must be
  * paired with a call to mdl_finish_object(parse_state) */
-struct sym_table *mdl_start_object(struct mdlparse_vars *parse_state,
+struct sym_entry *mdl_start_object(struct mdlparse_vars *parse_state,
                                    char *name);
 
 /* "Finishes" a new object, undoing the state changes that occurred when the
@@ -270,7 +266,7 @@ void mdl_add_object_to_list(struct object_list *head, struct object *objp);
 
 /* Find an existing object or print an error message if the object isn't found.
  */
-struct sym_table *mdl_existing_object(struct mdlparse_vars *parse_state,
+struct sym_entry *mdl_existing_object(struct mdlparse_vars *parse_state,
                                       char *name);
 
 /* Find a list of existing objects matching a particular wildcard. */
@@ -279,18 +275,18 @@ mdl_existing_objects_wildcard(struct mdlparse_vars *parse_state,
                               char *wildcard);
 
 /* Find an existing region or print an error message if it isn't found. */
-struct sym_table *mdl_existing_region(struct mdlparse_vars *parse_state,
-                                      struct sym_table *obj_symp, char *name);
+struct sym_entry *mdl_existing_region(struct mdlparse_vars *parse_state,
+                                      struct sym_entry *obj_symp, char *name);
 
 /* Find an existing molecule species, or print an error message if it isn't
  * found. */
-struct sym_table *mdl_existing_molecule(struct mdlparse_vars *parse_state,
+struct sym_entry *mdl_existing_molecule(struct mdlparse_vars *parse_state,
                                         char *name);
 
 /* Turn a single symbol into a singleton symbol list. */
 struct sym_table_list *
 mdl_singleton_symbol_list(struct mdlparse_vars *parse_state,
-                          struct sym_table *sym);
+                          struct sym_entry *sym);
 
 /* Find an existing molecule species, and return it in a singleton list, or
  * print an error message if it isn't found. */
@@ -303,48 +299,43 @@ struct sym_table_list *
 mdl_existing_molecules_wildcard(struct mdlparse_vars *parse_state,
                                 char *wildcard);
 
-/* Find an existing macromolecule species, or print an error message if it
- * isn't found, or isn't a macromolecule. */
-struct sym_table *mdl_existing_macromolecule(struct mdlparse_vars *parse_state,
-                                             char *name);
-
 /* Find an existing surface molecule species, or print an error message if it
  * isn't found, or isn't a surface molecule. */
-struct sym_table *
+struct sym_entry *
 mdl_existing_surface_molecule(struct mdlparse_vars *parse_state, char *name);
 
 /* Find an existing surface class species, or print an error message if it
  * isn't found, or isn't a surface class. */
-struct sym_table *mdl_existing_surface_class(struct mdlparse_vars *parse_state,
+struct sym_entry *mdl_existing_surface_class(struct mdlparse_vars *parse_state,
                                              char *name);
 
 /* Find a named variable if it exists, or print an error if it does not. */
-struct sym_table *mdl_existing_variable(struct mdlparse_vars *parse_state,
+struct sym_entry *mdl_existing_variable(struct mdlparse_vars *parse_state,
                                         char *name);
 
 /* Find an existing array symbol, or print an error message if it isn't found.
  */
-struct sym_table *mdl_existing_array(struct mdlparse_vars *parse_state,
+struct sym_entry *mdl_existing_array(struct mdlparse_vars *parse_state,
                                      char *name);
 
 /* Find a named numeric variable if it exists, or print an error message if it
  * isn't found. */
-struct sym_table *mdl_existing_double(struct mdlparse_vars *parse_state,
+struct sym_entry *mdl_existing_double(struct mdlparse_vars *parse_state,
                                       char *name);
 
 /* Find a named string variable if it exists, or print an error message if it
  * isn't found. */
-struct sym_table *mdl_existing_string(struct mdlparse_vars *parse_state,
+struct sym_entry *mdl_existing_string(struct mdlparse_vars *parse_state,
                                       char *name);
 
 /* Get a named numeric or array variable if it exists.  Print an error message
  * if it isn't found. */
-struct sym_table *mdl_existing_num_or_array(struct mdlparse_vars *parse_state,
+struct sym_entry *mdl_existing_num_or_array(struct mdlparse_vars *parse_state,
                                             char *name);
 
 /* Find an existing named reaction pathway or molecule, or print an error
  * message if it isn't found. */
-struct sym_table *
+struct sym_entry *
 mdl_existing_rxn_pathname_or_molecule(struct mdlparse_vars *parse_state,
                                       char *name);
 
@@ -352,12 +343,12 @@ mdl_existing_rxn_pathname_or_molecule(struct mdlparse_vars *parse_state,
  * message if it isn't found, or if the name could refer to either a release
  * pattern or a reaction pathway.
  */
-struct sym_table *
+struct sym_entry *
 mdl_existing_release_pattern_or_rxn_pathname(struct mdlparse_vars *parse_state,
                                              char *name);
 
 /* Find an existing file stream or print an error message if it isn't found. */
-struct sym_table *mdl_existing_file_stream(struct mdlparse_vars *parse_state,
+struct sym_entry *mdl_existing_file_stream(struct mdlparse_vars *parse_state,
                                            char *name);
 
 /* Find all mesh objects (polygons and boxes) that match a given wildcard. */
@@ -379,7 +370,7 @@ int mdl_normalize_elements(struct mdlparse_vars *parse_state,
 
 /* Finalizes the polygonal structure of the box, normalizing all regions. */
 int mdl_triangulate_box_object(struct mdlparse_vars *parse_state,
-                               struct sym_table *box_sym,
+                               struct sym_entry *box_sym,
                                struct polygon_object *pop,
                                double box_aspect_ratio);
 
@@ -399,11 +390,11 @@ int mdl_add_to_species_list(struct parse_mcell_species_list *list,
 
 /* Start parsing the innards of a release site. */
 int mdl_start_release_site(struct mdlparse_vars *parse_state,
-                           struct sym_table *symp, int shape);
+                           struct sym_entry *symp, int shape);
 
 /* Finish parsing the innards of a release site. */
 struct object *mdl_finish_release_site(struct mdlparse_vars *parse_state,
-                                       struct sym_table *symp);
+                                       struct sym_entry *symp);
 
 /* Validate a release site. */
 int mdl_is_release_site_valid(struct mdlparse_vars *parse_state,
@@ -441,7 +432,7 @@ int mdl_set_release_site_diameter_array(struct mdlparse_vars *parse_state,
  * variable, either scalar or vector. */
 int mdl_set_release_site_diameter_var(struct mdlparse_vars *parse_state,
                                       struct release_site_obj *rsop,
-                                      double factor, struct sym_table *symp);
+                                      double factor, struct sym_entry *symp);
 
 /* Set the release probability for a release site. */
 int mdl_set_release_site_probability(struct mdlparse_vars *parse_state,
@@ -451,7 +442,7 @@ int mdl_set_release_site_probability(struct mdlparse_vars *parse_state,
 /* Set the release pattern to be used by a particular release site. */
 int mdl_set_release_site_pattern(struct mdlparse_vars *parse_state,
                                  struct release_site_obj *rsop,
-                                 struct sym_table *pattern);
+                                 struct sym_entry *pattern);
 
 /* */
 int mdl_set_release_site_graph_pattern(struct mdlparse_vars *parse_state,
@@ -521,21 +512,21 @@ int mdl_finish_polygon_list(struct mdlparse_vars *parse_state,
 
 /* Create a new voxel list object. */
 struct voxel_object *
-mdl_new_voxel_list(struct mdlparse_vars *parse_state, struct sym_table *sym,
+mdl_new_voxel_list(struct mdlparse_vars *parse_state, struct sym_entry *sym,
                    int n_vertices, struct vertex_list *vertices,
                    int n_connections,
                    struct element_connection_list *connections);
 
 /* Create a new box object, with particular corners. */
 struct polygon_object *mdl_new_box_object(struct mdlparse_vars *parse_state,
-                                          struct sym_table *sym,
+                                          struct sym_entry *sym,
                                           struct vector3 *llf,
                                           struct vector3 *urb);
 
 /* Finalize the box object, cleaning up any state updates that were made when
  * we started creating the box. */
 int mdl_finish_box_object(struct mdlparse_vars *parse_state,
-                          struct sym_table *symp);
+                          struct sym_entry *symp);
 
 /* Create a named region on an object. */
 struct region *mdl_create_region(struct mdlparse_vars *parse_state,
@@ -547,7 +538,7 @@ struct region *mdl_get_region(struct mdlparse_vars *parse_state,
 
 /* Begin construction of a region on an existing object. */
 int mdl_start_existing_obj_region_def(struct mdlparse_vars *parse_state,
-                                      struct sym_table *obj_symp);
+                                      struct sym_entry *obj_symp);
 
 /* Append elements to an element list. */
 void mdl_add_elements_to_list(struct element_list_head *list,
@@ -585,7 +576,7 @@ int mdl_set_region_elements(struct mdlparse_vars *parse_state,
                             int normalize_now);
 
 /* Create a new named reaction pathway name structure. */
-struct sym_table *mdl_new_rxn_pathname(struct mdlparse_vars *parse_state,
+struct sym_entry *mdl_new_rxn_pathname(struct mdlparse_vars *parse_state,
                                        char *name);
 
 /* Adds an effector (or list of effectors) to a region.  These effectors will
@@ -594,11 +585,7 @@ void mdl_add_surf_mol_to_region(struct region *rgn, struct sm_dat_list *lst);
 
 /* Set the surface class of this region, possibly inheriting the viz_value.  */
 void mdl_set_region_surface_class(struct mdlparse_vars *parse_state,
-                                  struct region *rgn, struct sym_table *scsymp);
-
-/* Set the VIZ_VALUE for this region. */
-void mdl_set_region_region_viz_value(struct mdlparse_vars *parse_state,
-                                     struct region *rgn, int viz_value);
+                                  struct region *rgn, struct sym_entry *scsymp);
 
 /****************************************************************
  * Reaction output
@@ -639,31 +626,24 @@ mdl_new_oexpr_constant(struct mdlparse_vars *parse_state, double value);
 /* Generates a reaction data output expression from the first count syntax form
  * (simple molecule, unquoted, no orientation). */
 struct output_expression *mdl_count_syntax_1(struct mdlparse_vars *parse_state,
-                                             struct sym_table *what,
-                                             struct sym_table *where,
+                                             struct sym_entry *what,
+                                             struct sym_entry *where,
                                              int hit_spec, int count_flags);
 
 /* Generates a reaction data output expression from the second count syntax
  * form (simple molecule, unquoted, orientation in braces). */
 struct output_expression *mdl_count_syntax_2(struct mdlparse_vars *parse_state,
-                                             struct sym_table *mol_type,
+                                             struct sym_entry *mol_type,
                                              short orient,
-                                             struct sym_table *where,
+                                             struct sym_entry *where,
                                              int hit_spec, int count_flags);
 
 /* Generates a reaction data output expression from the third count syntax form
  * (quoted string, possibly a wildcard, possibly an oriented molecule). */
 struct output_expression *mdl_count_syntax_3(struct mdlparse_vars *parse_state,
                                              char *what,
-                                             struct sym_table *where,
+                                             struct sym_entry *where,
                                              int hit_spec, int count_flags);
-
-/* Generate a reaction data output expression from the macromolecule "subunit"
- * syntax variant. */
-struct output_expression *mdl_count_syntax_macromol_subunit(
-    struct mdlparse_vars *parse_state, struct complex_species *macromol,
-    struct mcell_species *master_orientation, struct mcell_species *subunit,
-    struct macro_relation_state *relation_states, struct sym_table *location);
 
 /* Prepare a single count expression for inclusion in an output set. */
 int mdl_single_count_expr(struct mdlparse_vars *parse_state,
@@ -678,17 +658,8 @@ int mdl_single_count_expr(struct mdlparse_vars *parse_state,
  * visualization. */
 int mdl_new_viz_output_block(struct mdlparse_vars *parse_state);
 
-/* Finalize a new VIZ output block, ensuring all required parameters were set,
- * and doing any postprocessing necessary for runtime. */
-int mdl_finish_viz_output_block(struct mdlparse_vars *parse_state,
-                                struct viz_output_block *vizblk);
-
 /* Set the mode for a new VIZ output block. */
 int mdl_set_viz_mode(struct viz_output_block *vizblk, int mode);
-
-/* Set the mesh format for a new VIZ output block. */
-int mdl_set_viz_mesh_format(struct mdlparse_vars *parse_state,
-                            struct viz_output_block *vizblk, int format);
 
 /* Set the molecule format for a new VIZ output block. */
 int mdl_set_viz_molecule_format(struct mdlparse_vars *parse_state,
@@ -702,21 +673,6 @@ int mdl_set_viz_filename_prefix(struct mdlparse_vars *parse_state,
 /* Error-checking wrapper for a specified visualization state. */
 int mdl_viz_state(struct mdlparse_vars *parse_state, int *target, double value);
 
-/* Sets a flag on all of the listed objects, requesting that they be
- * visualized. */
-int mdl_set_viz_include_meshes(struct mdlparse_vars *parse_state,
-                               struct viz_output_block *vizblk,
-                               struct sym_table_list *list, int viz_state);
-
-/* Sets the viz state of a particular mesh object, indicating whether it should
- * be visualized. */
-int mdl_set_viz_include_mesh_state(struct mdlparse_vars *parse_state,
-                                   struct viz_output_block *vizblk,
-                                   struct sym_table *obj, int viz_state);
-
-/* Sets a flag on a viz block, requesting that all meshes be visualized. */
-int mdl_set_viz_include_all_meshes(struct viz_output_block *vizblk,
-                                   int viz_state);
 
 /* Sets a flag on all of the listed species, requesting that they be visualized.
  */
@@ -727,13 +683,6 @@ int mdl_set_viz_include_molecules(struct mdlparse_vars *parse_state,
 /* Sets a flag on a viz block, requesting that all species be visualized. */
 int mdl_set_viz_include_all_molecules(struct viz_output_block *vizblk,
                                       int viz_state);
-
-/* Adds some new mesh output frames to a list. */
-int mdl_new_viz_mesh_frames(struct mdlparse_vars *parse_state,
-                            struct viz_output_block *vizblk,
-                            struct frame_data_list_head *frames, int time_type,
-                            int mesh_item_type,
-                            struct num_expr_list_head *timelist);
 
 /* Adds some new molecule output frames to a list. */
 int mdl_new_viz_mol_frames(struct mdlparse_vars *parse_state,
@@ -796,24 +745,21 @@ mdl_new_output_times_time(struct mdlparse_vars *parse_state,
 
 /* Create a new release pattern.  There must not yet be a release pattern with
  * the given name. */
-struct sym_table *mdl_new_release_pattern(struct mdlparse_vars *parse_state,
+struct sym_entry *mdl_new_release_pattern(struct mdlparse_vars *parse_state,
                                           char *name);
 
 /* Fill in the details of a release pattern. */
 int mdl_set_release_pattern(struct mdlparse_vars *parse_state,
-                            struct sym_table *rpat_sym,
+                            struct sym_entry *rpat_sym,
                             struct release_pattern *rpat_data);
 
 /****************************************************************
  * Molecules
  ***************************************************************/
 
-/* Is the given name a valid macromolecule name? */
-int mdl_valid_complex_name(struct mdlparse_vars *parse_state, char *name);
-
 /* Create a new species.  There must not yet be a molecule or named reaction
  * pathway with the supplied name. */
-struct sym_table *mdl_new_mol_species(struct mdlparse_vars *parse_state,
+struct sym_entry *mdl_new_mol_species(struct mdlparse_vars *parse_state,
                                       char *name);
 
 /* Assemble a molecule species from its component pieces. */
@@ -845,12 +791,7 @@ int mdl_add_reaction_player(struct mdlparse_vars *parse_state,
 /* Set a reaction rate from a variable. */
 int mdl_reaction_rate_from_var(struct mdlparse_vars *parse_state,
                                struct reaction_rate *rate,
-                               struct sym_table *symp);
-
-/* Set a complex reaction rate. */
-int mdl_reaction_rate_complex(struct mdlparse_vars *parse_state,
-                              struct reaction_rate *rate,
-                              struct sym_table *symp, char *tbl);
+                               struct sym_entry *symp);
 
 /* Assemble a standard reaction from its component parts. */
 struct mdlparse_vars *mdl_assemble_reaction(struct mdlparse_vars *parse_state,
@@ -859,22 +800,22 @@ struct mdlparse_vars *mdl_assemble_reaction(struct mdlparse_vars *parse_state,
                                             struct reaction_arrow *react_arrow,
                                             struct mcell_species *products,
                                             struct reaction_rates *rate,
-                                            struct sym_table *pathname);
+                                            struct sym_entry *pathname);
 
 /* Assemble a surface reaction from its component parts. */
 struct mdlparse_vars *
 mdl_assemble_surface_reaction(struct mdlparse_vars *parse_state,
                               int reaction_type, struct species *surface_class,
-                              struct sym_table *reactant_sym, short orient);
+                              struct sym_entry *reactant_sym, short orient);
 
 /* Assemble a concentration clamp reaction from its component parts. */
 struct mdlparse_vars *mdl_assemble_concentration_clamp_reaction(
     struct mdlparse_vars *parse_state, struct species *surface_class,
-    struct sym_table *mol_sym, short orient, double conc);
+    struct sym_entry *mol_sym, short orient, double conc);
 
 /* Start a surface class declaration. */
 void mdl_start_surface_class(struct mdlparse_vars *parse_state,
-                             struct sym_table *symp);
+                             struct sym_entry *symp);
 
 /* Finish a surface class declaration.  Undoes side effects from
  * mdl_start_surface_class. */
@@ -884,83 +825,6 @@ void mdl_finish_surface_class(struct mdlparse_vars *parse_state);
 struct sm_dat *mdl_new_surf_mol_data(struct mdlparse_vars *parse_state,
                                      struct mcell_species *eff_info,
                                      double quant);
-
-/****************************************************************
- * Macromolecules
- ***************************************************************/
-
-/* Allocate a new relation state structure for a rule table (presently, either
- * a rate table, or a subunit counting table). */
-struct macro_relation_state *
-mdl_assemble_complex_relation_state(struct mdlparse_vars *parse_state,
-                                    int rel_idx, int invert,
-                                    struct mcell_species *mol);
-
-/* Assemble a subunit assignment for one or more subunits within a complex. */
-struct macro_subunit_assignment *
-mdl_assemble_complex_subunit_assignment(struct mdlparse_vars *parse_state,
-                                        struct macro_subunit_spec *su,
-                                        struct mcell_species *spec);
-
-/* Assemble a complex geometry structure. */
-struct macro_geometry *mdl_assemble_complex_geometry(
-    struct mdlparse_vars *parse_state, struct macro_topology *topo,
-    struct num_expr_list_head *coords, struct vector3 *pos);
-
-/* Checks the parsed relationships for errors, freeing them if errors are
- * found, and passing them on, otherwise.  rels are freed if they are invalid.
- */
-int mdl_validate_complex_relationships(struct mdlparse_vars *parse_state,
-                                       struct macro_topology *topo,
-                                       struct macro_relationship *rels);
-
-/* Assemble a complex relationship. */
-struct macro_relationship *
-mdl_assemble_complex_relationship(struct mdlparse_vars *parse_state,
-                                  struct macro_topology *topo, char *name,
-                                  struct num_expr_list_head *rel);
-
-/* Validate the rate rules, freeing them if invalid, and passing them on if
- * valid.
- */
-int mdl_validate_complex_rates(struct mdlparse_vars *parse_state,
-                               struct macro_rate_ruleset *rates);
-
-/* Assemble a macromolecular complex rate rule set. */
-struct macro_rate_ruleset *
-mdl_assemble_complex_ruleset(char *name, struct macro_rate_rule *rules);
-
-/* Assemble a macromolecular complex rate rule. */
-struct macro_rate_rule *
-mdl_assemble_complex_rate_rule(struct macro_rate_clause *clauses, double rate);
-
-/* Assemble a macromolecular rate rule clause. */
-struct macro_rate_clause *mdl_assemble_complex_rate_rule_clause(
-    struct mdlparse_vars *parse_state, struct macro_relationship *rels,
-    char *relation_name, int invert, struct mcell_species *target);
-
-/* Validate the geometry of a macromolecular complex, freeing it if it is
- * invalid. */
-int mdl_validate_complex_geometry(struct mdlparse_vars *parse_state,
-                                  struct macro_topology *topo,
-                                  struct macro_geometry *geom);
-
-/* Allocate a new topology data structure for a macromolecule. */
-struct macro_topology *mdl_assemble_topology(struct mdlparse_vars *parse_state,
-                                             struct num_expr_list_head *dims);
-
-/* Allocate and populate a new component in a subunit coordinate specification.
- */
-struct macro_subunit_spec *mdl_assemble_subunit_spec_component(int from,
-                                                               int to);
-
-/* Assemble a complex species, adding it to the symbol table.  */
-int mdl_assemble_complex_species(struct mdlparse_vars *parse_state, char *name,
-                                 struct macro_topology *topo,
-                                 struct macro_subunit_assignment *assignments,
-                                 struct macro_geometry *geom,
-                                 struct macro_relationship *rels,
-                                 struct macro_rate_ruleset *rates);
 
 int warn_about_high_rates(struct mdlparse_vars *parse_state, FILE *warn_file,
                           int rate_warn, int print_once);
@@ -1021,6 +885,8 @@ int finish_polygon_list(struct object *obj_ptr,
                         struct object_creation *obj_creation);
 
 struct object *start_object(MCELL_STATE *state,
-                            struct object_creation *obj_creation, char *name);
+                            struct object_creation *obj_creation,
+                            char *name,
+                            int *error_code);
 
 #endif

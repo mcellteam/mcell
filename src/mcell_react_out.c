@@ -72,9 +72,9 @@ get_counter_trigger_column(MCELL_STATE *state, const char *counter_name,
  Out: output request item, or NULL if an error occurred
 *************************************************************************/
 struct output_request *mcell_new_output_request(MCELL_STATE *state,
-                                                struct sym_table *target,
+                                                struct sym_entry *target,
                                                 short orientation,
-                                                struct sym_table *location,
+                                                struct sym_entry *location,
                                                 int report_flags) {
   struct output_request *orq;
   struct output_expression *oe;
@@ -122,8 +122,8 @@ struct output_request *mcell_new_output_request(MCELL_STATE *state,
  *
  *****************************************************************************/
 MCELL_STATUS
-mcell_create_count(MCELL_STATE *state, struct sym_table *target,
-                   short orientation, struct sym_table *location,
+mcell_create_count(MCELL_STATE *state, struct sym_entry *target,
+                   short orientation, struct sym_entry *location,
                    int report_flags, char *custom_header,
                    struct output_column_list *count_list) {
 
@@ -413,16 +413,14 @@ void set_reaction_output_timer_step(MCELL_STATE *state,
     output_freq = (state->iterations > 1) ? state->iterations : 1;
     obp->step_time = output_freq * state->time_unit;
     if (state->notify->invalid_output_step_time != WARN_COPE)
-      mcell_log("Output step time too long\n\tSetting output "
-                "step time to %g microseconds\n",
-                obp->step_time * 1.0e6);
+      mcell_warn("output step time too long.\n  Setting output step time to "
+                 "%g seconds.", obp->step_time);
   } else if (output_freq < 1) {
     output_freq = 1;
     obp->step_time = output_freq * state->time_unit;
     if (state->notify->invalid_output_step_time != WARN_COPE)
-      mcell_log("Output step time too short\n\tSetting output "
-                "step time to %g microseconds\n",
-                obp->step_time * 1.0e-6);
+      mcell_warn("output step time too short.\n  Setting output step time to "
+                 "%g seconds.", obp->step_time);
   }
 
   /* Pick a good buffer size */
@@ -581,7 +579,7 @@ struct output_column *get_counter_trigger_column(MCELL_STATE *state,
                                                  const char *counter_name,
                                                  int column_id) {
   // retrieve the counter for the requested counter_name
-  struct sym_table *counter_sym =
+  struct sym_entry *counter_sym =
       retrieve_sym(counter_name, state->counter_by_name);
   if (counter_sym == NULL) {
     mcell_log("Failed to retrieve symbol for counter %s.", counter_name);

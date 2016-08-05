@@ -12,7 +12,6 @@
 #include "count_util.h"
 #include "react.h"
 #include "vol_util.h"
-#include "macromolecule.h"
 #include "wall_util.h"
 #include "react_util.h"
 #include "mcell_reactions.h"
@@ -382,8 +381,8 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, void* results,
 
   //create out pathway
   if (extract_reactants(pathp, reactants, &reactant_idx, &num_vol_mols,
-                        &num_surface_mols, &num_complex_reactants, &all_3d,
-                        &oriented_count, &complex_type) != 0) {
+                        &num_surface_mols, &all_3d,
+                        &oriented_count) != 0) {
     return -1;
   }
 
@@ -395,7 +394,7 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, void* results,
   int bidirectional = 0;
   
   if (extract_products(world->notify, pathp, products, &num_surf_products,
-                       &num_complex_products, bidirectional, complex_type,
+                       bidirectional, 
                        all_3d) == MCELL_FAIL) {
     return MCELL_FAIL;
   }

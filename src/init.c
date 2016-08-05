@@ -62,11 +62,6 @@ struct reschedule_helper {
   struct release_event_queue *req;
 };
 
-
-/* Initialize the surface macromolecules on a given object */
-static int init_complex_surf_mols(struct volume *world, struct object *objp,
-                                  struct region_list *head);
-
 /* Initialize the visualization output (frame_data_lists). */
 static int init_viz_output(struct volume *world);
 
@@ -146,8 +141,6 @@ int init_notifications(struct volume *world) {
   world->notify->missed_reaction_value = 0.001;
   world->notify->missed_surf_orient = WARN_ERROR;
   world->notify->useless_vol_orient = WARN_WARN;
-  world->notify->complex_placement_failure_threshold = 25;
-  world->notify->complex_placement_failure = WARN_WARN;
   world->notify->mol_placement_failure = WARN_WARN;
   world->notify->invalid_output_step_time = WARN_WARN;
 
@@ -297,7 +290,6 @@ int init_variables(struct volume *world) {
   world->mem_part_y = 14;
   world->mem_part_z = 14;
   world->mem_part_pool = 0;
-  world->complex_placement_attempts = 100;
   world->all_vertices = NULL;
   world->walls_using_vertex = NULL;
 
@@ -439,7 +431,7 @@ int init_data_structures(struct volume *world) {
     return 1;
   }
 
-  struct sym_table *sym;
+  struct sym_entry *sym;
   if ((sym = store_sym("WORLD_OBJ", OBJ, world->obj_sym_table, NULL)) == NULL) {
     mcell_allocfailed_nodie(
         "Failed to store the world root object in the object symbol table.");
@@ -1088,80 +1080,6 @@ int reschedule_release_events(struct volume *world) {
 }
 
 /*************************************************************************
- Mark an object and all of its children for inclusion in a particular viz
- output block.
-
- In: vizblk: the viz output block in which to include the object
-     objp: the object to include
-     viz_state: the desired viz state
- Out: No return value.  vizblk is updated.
-*************************************************************************/
-static void set_viz_state_include(struct viz_output_block *vizblk,
-                                  struct object *objp, int viz_state) {
-  struct sym_table *symp;
-  struct viz_child *vcp;
-  switch (objp->object_type) {
-  case META_OBJ:
-    for (struct object *child_objp = objp->first_child; child_objp != NULL;
-         child_objp = child_objp->next)
-      set_viz_state_include(vizblk, child_objp, viz_state);
-    break;
-
-  case BOX_OBJ:
-  case POLY_OBJ:
-    symp = retrieve_sym(objp->sym->name, vizblk->viz_children);
-    if (symp == NULL) {
-      vcp =
-          CHECKED_MALLOC_STRUCT(struct viz_child, "visualization child object");
-      vcp->obj = objp;
-      vcp->viz_state = NULL;
-      vcp->next = NULL;
-      vcp->parent = NULL;
-      vcp->children = NULL;
-      if (store_sym(objp->sym->name, VIZ_CHILD, vizblk->viz_children, vcp) ==
-          NULL)
-        mcell_allocfailed("Failed to store visualization child object in the "
-                          "visualization objects table.");
-    } else
-      vcp = (struct viz_child *)symp->value;
-
-    if (vcp->viz_state == NULL) {
-      vcp->viz_state =
-          CHECKED_MALLOC_ARRAY(int, objp->n_walls, "visualization state array");
-      for (int i = 0; i < objp->n_walls; i++)
-        vcp->viz_state[i] = viz_state;
-    } else {
-      /* Do not override any specific viz states already set. */
-      for (int i = 0; i < objp->n_walls; i++)
-        if (vcp->viz_state[i] == EXCLUDE_OBJ)
-          vcp->viz_state[i] = viz_state;
-    }
-    break;
-
-  case REL_SITE_OBJ:
-    /* just do nothing */
-    break;
-
-  case VOXEL_OBJ:
-  default:
-    mcell_internal_error("Invalid object type (%d) while setting viz state.",
-                         objp->object_type);
-  }
-}
-
-/*************************************************************************
- Mark all mesh objects for inclusion in the specified viz output block.
-
- In: vizblk: the viz output block in which to include the object
-     viz_state: the desired viz state
- Out: No return value.  vizblk is updated.
-*************************************************************************/
-static void set_viz_all_meshes(struct object *root_instance,
-                               struct viz_output_block *vizblk, int viz_state) {
-  set_viz_state_include(vizblk, root_instance, viz_state);
-}
-
-/*************************************************************************
  Mark all molecule objects for inclusion in the specified viz output block.
 
  In: vizblk: the viz output block in which to include the object
@@ -1187,124 +1105,6 @@ static void set_viz_all_molecules(struct volume *world,
     /* set viz_state to INCLUDE_OBJ for the molecule we want to visualize
        but will not assign state value */
     vizblk->species_viz_states[i] = viz_state;
-  }
-}
-
-/*************************************************************************
- Free all viz_child objects which represent either meta objects, or unrendered
- mesh objects.
-
- In: vizblk: the viz output block whose children should be trimmed
- Out: No return value; parse-time viz output data structures are freed, as are
-      any excess viz_child objects.
-*************************************************************************/
-static void free_extra_viz_children(struct viz_output_block *vizblk) {
-  for (int i = 0; i < vizblk->viz_children->n_bins; ++i) {
-    for (struct sym_table *sym = vizblk->viz_children->entries[i]; sym != NULL;
-         sym = sym->next) {
-      free(sym->name);
-      struct viz_child *vcp = (struct viz_child *)sym->value;
-      vcp->next = NULL;
-      vcp->parent = NULL;
-      vcp->children = NULL;
-      if (vcp->viz_state == NULL)
-        free(vcp);
-    }
-  }
-
-  destroy_symtab(vizblk->viz_children);
-  vizblk->viz_children = NULL;
-}
-
-/*************************************************************************
- Comparison function for viz_children, suitable for use with qsort.  Used to
- order viz_child objects in ascending order of their 'obj' pointers, which
- allows us to use binary search to find if an object is included.  (DREAMM
- modes only).
-
- In: vc1: first child for comparison
-     vc2: second child for comparison
- Out: -1, 0, or 1 if first child is lt, eq, or gt the second child, resp.
-*************************************************************************/
-static int viz_child_compare(void const *vc1, void const *vc2) {
-  struct viz_child const *c1 = *(struct viz_child const **)vc1;
-  struct viz_child const *c2 = *(struct viz_child const **)vc2;
-  if (c1->obj < c2->obj)
-    return -1;
-  else if (c1->obj > c2->obj)
-    return 1;
-  else
-    return 0;
-}
-
-/*************************************************************************
- Convert the viz_child objects in the given viz_output block into an array,
- sorted in ascending order of their 'obj' pointers, excluding any viz_child
- objects which are not marked for inclusion.
-
- In: vizblk: the viz output block whose children to copy to an array.
- Out: vizblk is updated (dreamm_objects and n_dreamm_objects are set).
-*************************************************************************/
-static void convert_viz_objects_to_array(struct viz_output_block *vizblk) {
-  int count = 0;
-  for (int i = 0; i < vizblk->viz_children->n_bins; ++i) {
-    for (struct sym_table *sym = vizblk->viz_children->entries[i]; sym != NULL;
-         sym = sym->next) {
-      struct viz_child *vcp = (struct viz_child *)sym->value;
-      if (vcp->viz_state)
-        ++count;
-    }
-  }
-
-  /* Stash info in the visualization block. */
-  vizblk->n_dreamm_objects = count;
-  vizblk->dreamm_object_info =
-      CHECKED_MALLOC_ARRAY(struct viz_child *, count, "DREAMM mesh objects");
-  vizblk->dreamm_objects =
-      CHECKED_MALLOC_ARRAY(struct object *, count, "DREAMM mesh objects");
-
-  /* Now copy data in, unsorted. */
-  count = 0;
-  for (int i = 0; i < vizblk->viz_children->n_bins; ++i) {
-    for (struct sym_table *sym = vizblk->viz_children->entries[i]; sym != NULL;
-         sym = sym->next) {
-      struct viz_child *vcp = (struct viz_child *)sym->value;
-      if (vcp->viz_state)
-        vizblk->dreamm_object_info[count++] = vcp;
-    }
-  }
-  assert(count == vizblk->n_dreamm_objects);
-
-  /* Sort the data. */
-  qsort(vizblk->dreamm_object_info, vizblk->n_dreamm_objects,
-        sizeof(struct viz_child *), viz_child_compare);
-
-  /* Copy out just the objects. */
-  for (int i = 0; i < count; ++i)
-    vizblk->dreamm_objects[i] = vizblk->dreamm_object_info[i]->obj;
-}
-
-/*************************************************************************
- Expand the mesh info for all viz children on the given viz output block.
- (DREAMM/DX modes only).
-
- In: vizblk: the viz output block whose children to expand
- Out: vizblk is updated
-*************************************************************************/
-static void expand_viz_children(struct viz_output_block *vizblk) {
-  switch (vizblk->viz_mode) {
-  case DREAMM_V3_GROUPED_MODE:
-  case DREAMM_V3_MODE:
-    convert_viz_objects_to_array(vizblk);
-    free_extra_viz_children(vizblk);
-    break;
-
-  case NO_VIZ_MODE:
-  case ASCII_MODE:
-  case CELLBLENDER_MODE:
-  default:
-    /* Do nothing. */
-    break;
   }
 }
 
@@ -1356,13 +1156,8 @@ static int init_viz_output(struct volume *world) {
 
     /* If ALL_MESHES or ALL_MOLECULES were requested, mark them all for
      * inclusion. */
-    if (vizblk->viz_output_flag & VIZ_ALL_MESHES)
-      set_viz_all_meshes(world->root_instance, vizblk, vizblk->default_mesh_state);
     if (vizblk->viz_output_flag & VIZ_ALL_MOLECULES)
       set_viz_all_molecules(world, vizblk, vizblk->default_mol_state);
-
-    /* Copy viz children to the appropriate array. */
-    expand_viz_children(vizblk);
 
     /* Initialize each data frame in this block. */
     if (init_frame_data_list(world, vizblk)) {
@@ -1380,10 +1175,6 @@ init_species:
 
 *********************************************************************/
 static int init_species_defaults(struct volume *world) {
-  int i;
-  struct sym_table *sym;
-  struct species *s;
-  double speed;
 
   world->speed_limit = 0;
 
@@ -1391,10 +1182,11 @@ static int init_species_defaults(struct volume *world) {
   world->species_list =
       CHECKED_MALLOC_ARRAY(struct species *, world->n_species, "species table");
   unsigned int count = 0;
-  for (i = 0; i < world->mol_sym_table->n_bins; i++) {
-    for (sym = world->mol_sym_table->entries[i]; sym != NULL; sym = sym->next) {
+  for (int i = 0; i < world->mol_sym_table->n_bins; i++) {
+    for (struct sym_entry *sym = world->mol_sym_table->entries[i];
+         sym != NULL; sym = sym->next) {
       if (sym->sym_type == MOL) {
-        s = (struct species *)sym->value;
+        struct species *s = (struct species *)sym->value;
         world->species_list[count] = s;
         world->species_list[count]->species_id = count;
         world->species_list[count]->chkpt_species_id = UINT_MAX;
@@ -1408,7 +1200,7 @@ static int init_species_defaults(struct volume *world) {
 
         // If volume molecule, set max speed per time step.
         if ((s->flags & NOT_FREE) == 0) {
-          speed = 6.0 * s->space_step / sqrt(MY_PI);
+          double speed = 6.0 * s->space_step / sqrt(MY_PI);
           if (speed > world->speed_limit)
             world->speed_limit = speed;
         }
@@ -2049,23 +1841,19 @@ int fill_world_vertices_array_polygon_object(struct volume *world,
 int instance_release_site(struct mem_helper *magic_mem,
                           struct schedule_helper *releaser, struct object *objp,
                           double (*im)[4]) {
-  struct release_site_obj *rsop;
-  struct release_event_queue *reqp;
-  int i, j;
 
-  rsop = (struct release_site_obj *)objp->contents;
+  struct release_event_queue *reqp;
+  struct release_site_obj *rsop = (struct release_site_obj *)objp->contents;
 
   no_printf("Instancing release site object %s\n", objp->sym->name);
   if (!distinguishable(rsop->release_prob, MAGIC_PATTERN_PROBABILITY, EPS_C)) {
-    struct magic_list *ml;
-    struct rxn_pathname *rxpn;
 
-    ml = (struct magic_list *)CHECKED_MEM_GET(
+    struct magic_list *ml = (struct magic_list *)CHECKED_MEM_GET(
         magic_mem, "rxn-triggered release descriptor");
     ml->data = rsop;
     ml->type = magic_release;
 
-    rxpn = (struct rxn_pathname *)rsop->pattern;
+    struct rxn_pathname *rxpn = (struct rxn_pathname *)rsop->pattern;
     ml->next = rxpn->magic;
     rxpn->magic = ml;
 
@@ -2086,8 +1874,8 @@ int instance_release_site(struct mem_helper *magic_mem,
     reqp->event_time = rsop->pattern->delay;
     reqp->train_counter = 0;
     reqp->train_high_time = rsop->pattern->delay;
-    for (i = 0; i < 4; i++)
-      for (j = 0; j < 4; j++)
+    for (int i = 0; i < 4; i++)
+      for (int j = 0; j < 4; j++)
         reqp->t_matrix[i][j] = im[i][j];
 
     /* Schedule the release event */
@@ -2148,11 +1936,8 @@ static int compute_bb(struct volume *world, struct object *objp,
  */
 static int compute_bb_release_site(struct volume *world, struct object *objp,
                                    double (*im)[4]) {
-  struct release_site_obj *rsop;
-  double location[1][4];
-  double diam_x, diam_y, diam_z; /* diameters of the release_site */
 
-  rsop = (struct release_site_obj *)objp->contents;
+  struct release_site_obj *rsop = (struct release_site_obj *)objp->contents;
 
   if (rsop->release_shape == SHAPE_REGION)
     return 0;
@@ -2162,12 +1947,14 @@ static int compute_bb_release_site(struct volume *world, struct object *objp,
                 "site '%s'.",
                 objp->sym->name);
 
+  double location[1][4];
   location[0][0] = rsop->location->x;
   location[0][1] = rsop->location->y;
   location[0][2] = rsop->location->z;
   location[0][3] = 1.0;
   mult_matrix(location, im, location, 1, 4, 4);
 
+  double diam_x, diam_y, diam_z; /* diameters of the release_site */
   if (rsop->diameter == NULL) {
     diam_x = diam_y = diam_z = 0;
   } else {
@@ -2206,12 +1993,12 @@ static int compute_bb_release_site(struct volume *world, struct object *objp,
  */
 static int compute_bb_polygon_object(struct volume *world, struct object *objp,
                                      double (*im)[4]) {
-  struct polygon_object *pop;
-  struct vertex_list *vl;
 
-  pop = (struct polygon_object *)objp->contents;
+  struct polygon_object *pop = (struct polygon_object *)objp->contents;
 
-  for (vl = pop->parsed_vertices; vl != NULL; vl = vl->next) {
+  for (struct vertex_list *vl = pop->parsed_vertices;
+       vl != NULL;
+       vl = vl->next) {
     double p[1][4];
     p[0][0] = vl->vertex->x;
     p[0][1] = vl->vertex->y;
@@ -2244,20 +2031,17 @@ static int compute_bb_polygon_object(struct volume *world, struct object *objp,
  */
 int instance_polygon_object(enum warn_level_t degenerate_polys,
                             struct object *objp) {
-  struct polygon_object *pop;
 
-  struct wall *w, **wp;
-  double total_area;
   int index_0, index_1, index_2;
   unsigned int degenerate_count;
 
-  pop = (struct polygon_object *)objp->contents;
+  struct polygon_object *pop = (struct polygon_object *)objp->contents;
   int n_walls = pop->n_walls;
-  total_area = 0;
+  double total_area = 0;
 
   /* Allocate and initialize walls and vertices */
-  w = CHECKED_MALLOC_ARRAY(struct wall, n_walls, "polygon walls");
-  wp = CHECKED_MALLOC_ARRAY(struct wall *, n_walls, "polygon wall pointers");
+  struct wall *w = CHECKED_MALLOC_ARRAY(struct wall, n_walls, "polygon walls");
+  struct wall **wp = CHECKED_MALLOC_ARRAY(struct wall *, n_walls, "polygon wall pointers");
 
   objp->walls = w;
   objp->wall_p = wp;
@@ -2352,7 +2136,6 @@ static int init_regions_helper(struct volume *world) {
 /* After this, list is grouped by surface class. */
 /* Second part (list of objects) happens with regions. */
 void init_clamp_lists(struct ccn_clamp_data *clamp_list) {
-  struct ccn_clamp_data *ccd, *temp;
 
   /* Sort by memory order of surface_class pointer--handy way to collect like
    * classes */
@@ -2360,13 +2143,15 @@ void init_clamp_lists(struct ccn_clamp_data *clamp_list) {
       (struct void_list *)clamp_list);
 
   /* Toss other molecules in same surface class into next_mol lists */
-  for (ccd = clamp_list; ccd != NULL; ccd = ccd->next) {
+  for (struct ccn_clamp_data *ccd = clamp_list; ccd != NULL; ccd = ccd->next) {
     while (ccd->next != NULL && ccd->surf_class == ccd->next->surf_class) {
       ccd->next->next_mol = ccd->next_mol;
       ccd->next_mol = ccd->next;
       ccd->next = ccd->next->next;
     }
-    for (temp = ccd->next_mol; temp != NULL; temp = temp->next_mol) {
+    for (struct ccn_clamp_data *temp = ccd->next_mol;
+         temp != NULL;
+         temp = temp->next_mol) {
       temp->next = ccd->next;
     }
   }
@@ -2754,7 +2539,7 @@ int instance_obj_surf_mols(struct volume *world, struct object *objp) {
  *******************************************************************/
 int init_wall_surf_mols(struct volume *world, struct object *objp) {
   struct sm_dat *smdp, *dup_smdp, **sm_prop;
-  struct region_list *rlp, *rlp2, *reg_sm_num_head, *complex_head;
+  struct region_list *rlp, *rlp2, *reg_sm_num_head;
   /* byte all_region; */ /* flag that points to the region called ALL */
   struct surf_class_list *scl;
 
@@ -2772,13 +2557,9 @@ int init_wall_surf_mols(struct volume *world, struct object *objp) {
      of this object to the sm_prop list for the referenced element */
   reg_sm_num_head = NULL;
 
-  /* List of regions which need macromol processing */
-  complex_head = NULL;
-
   for (rlp = objp->regions; rlp != NULL; rlp = rlp->next) {
     struct region *rp = rlp->reg;
     byte reg_sm_num = 0;
-    byte complex_sm = 0;
 
     /* all_region = (strcmp(rp->region_last_name, "ALL") == 0); */
 
@@ -2787,9 +2568,7 @@ int init_wall_surf_mols(struct volume *world, struct object *objp) {
       if (get_bit(rp->membership, n_wall)) {
         /* prepend region sm data for this region to sm_prop for i_th wall */
         for (smdp = rp->sm_dat_head; smdp != NULL; smdp = smdp->next) {
-          if (smdp->sm->flags & IS_COMPLEX)
-            complex_sm = 1;
-          else if (smdp->quantity_type == SURFMOLDENS) {
+          if (smdp->quantity_type == SURFMOLDENS) {
             dup_smdp =
                 CHECKED_MALLOC_STRUCT(struct sm_dat, "surface molecule data");
             dup_smdp->sm = smdp->sm;
@@ -2807,17 +2586,6 @@ int init_wall_surf_mols(struct volume *world, struct object *objp) {
     if (rp->surf_class != NULL) {
       for (smdp = rp->surf_class->sm_dat_head; smdp != NULL;
            smdp = smdp->next) {
-        /* TEMPORARILY DISABLE placement of complex molecules
-           through DEFINE_SURFACE_CLASS/(MOLECULE_NUMBER/MOLECULE_DENSITY)
-           combination until a policy decision will be made */
-        if (smdp->sm->flags & IS_COMPLEX)
-          mcell_error(
-              "At present placement of complex molecules through SURFACE_CLASS/"
-              "(MOLECULE_DENSITY or MOLECULE_NUMBER) is not implemented. Please"
-              "place complex molecules through DEFINE_SURFACE_REGIONS/"
-              "((MOLECULE_DENSITY or MOLECULE_NUMBER). Error happened for the "
-              "object '%s', region '%s' and surface class '%s'.",
-              objp->sym->name, rp->region_last_name, rp->surf_class->sym->name);
 
         if (smdp->quantity_type == SURFMOLNUM) {
           reg_sm_num = 1;
@@ -2826,13 +2594,7 @@ int init_wall_surf_mols(struct volume *world, struct object *objp) {
       }
     }
 
-    if (complex_sm) {
-      rlp2 = CHECKED_MALLOC_STRUCT(
-          struct region_list, "complex surface molecule placement region list");
-      rlp2->reg = rp;
-      rlp2->next = complex_head;
-      complex_head = rlp2;
-    } else if (reg_sm_num) {
+    if (reg_sm_num) {
       rlp2 = CHECKED_MALLOC_STRUCT(struct region_list,
                                    "surface molecule placement region list");
       rlp2->reg = rp;
@@ -2850,9 +2612,7 @@ int init_wall_surf_mols(struct volume *world, struct object *objp) {
     for (scl = w->surf_class_head; scl != NULL; scl = scl->next) {
       for (smdp = scl->surf_class->sm_dat_head; smdp != NULL;
            smdp = smdp->next) {
-        if (smdp->sm->flags & IS_COMPLEX) {
-          continue;
-        } else if (smdp->quantity_type == SURFMOLDENS) {
+        if (smdp->quantity_type == SURFMOLDENS) {
           dup_smdp =
               CHECKED_MALLOC_STRUCT(struct sm_dat, "surface molecule data");
           dup_smdp->sm = smdp->sm;
@@ -2863,20 +2623,6 @@ int init_wall_surf_mols(struct volume *world, struct object *objp) {
           sm_prop[n_wall] = dup_smdp;
         }
       }
-    }
-  }
-
-  /* Place macromolecular complexes, if any */
-  if (complex_head != NULL) {
-    if (init_complex_surf_mols(world, objp, complex_head))
-      return 1;
-
-    /* free list of regions with complex surface molecules */
-    rlp = complex_head;
-    while (rlp != NULL) {
-      rlp2 = rlp;
-      rlp = rlp->next;
-      free(rlp2);
     }
   }
 
@@ -2921,213 +2667,6 @@ int init_wall_surf_mols(struct volume *world, struct object *objp) {
   return 0;
 }
 
-/********************************************************************
- init_surf_mols_place_complex:
-
-    Place a surface macromolecule on this wall.  Note that if a region is
-    specified, the release will constrain all subunits to be within the region.
-    Technically, it constrains the release to only occur if the path from the
-    macromolecule's origin to the location of each subunit does not leave the
-    region.  In practice, the distinction is unlikely to be important.
-
-    In:  struct wall *w - the wall upon which to instantiate molecule
-         struct region *rp - the region in which to instantiate molecule, or
-                    NULL if the molecule is not restricted to a single region
-         struct sm_dat const *smdp - description of what to release
-    Out: 0 on success, 1 on failure
-
-    Program state is not corrupted if this fails; either the entire
-    macromolecule is released, or none of it is.
- *******************************************************************/
-static int init_surf_mols_place_complex(struct volume *world, struct wall *w,
-                                        struct region *rp,
-                                        struct sm_dat const *smdp) {
-  struct surface_molecule *smp;
-  unsigned int grid_idx;
-  double p;
-  short orient = smdp->orientation;
-
-  /* Pick orientation */
-  if (orient == 0) {
-    orient = (rng_uint(world->rng) & 1) ? 1 : -1;
-  }
-
-  /* Pick location on wall */
-  p = rng_dbl(world->rng);
-  grid_idx = (unsigned int)(p * (double)(w->grid->n * w->grid->n));
-  if (grid_idx >= w->grid->n_tiles)
-    grid_idx = w->grid->n_tiles - 1;
-
-  smp = macro_insert_molecule_grid_2(world, smdp->sm, orient, w, grid_idx, 0.0,
-                                     rp, NULL);
-  return (smp != NULL) ? 0 : 1;
-}
-
-/********************************************************************
- init_surf_mols_place_complexes:
-
-    Place any appropriate surface macromolecules on these walls.  Note that if
-    a region is specified, the release will constrain all subunits to be within
-    the region.  Technically, it constrains each molecule release to only occur
-    if the path from the macromolecule's origin to the location of each subunit
-    within its complex lies entirely within the region.  In practice, the
-    distinction is unlikely to be important most of the time.
-
-    In:  int n_to_place - how many to release
-         int nwalls - upon how many walls do we release?
-         double *weights - array of cumulative areas for the first n walls in
-                  the walls array; used for weighted samping of the area
-         struct wall * const *walls - the walls upon which to release
-         struct region *rp - the region in which to instantiate molecules, or
-                    NULL if the molecule is not restricted to a single region
-         struct sm_dat const *smdp - description of what to release
-    Out: 0 on success, 1 on failure
-
-    Program state is not corrupted if this fails.  This may release fewer
-    macromolecules than the user intended, if, for instance, we run out of
-    space, but it will never leave partial complexes lying around.
-
-    N.B. We may need to revisit the failure criteria and the retry behavior
-         here.
- *******************************************************************/
-static int init_surf_mols_place_complexes(struct volume *world, int n_to_place,
-                                          int nwalls, double *weights,
-                                          struct wall *const *walls,
-                                          struct region *rp,
-                                          struct sm_dat const *smdp) {
-  if (nwalls <= 0)
-    return 1;
-
-  double max_weight = weights[nwalls - 1];
-  long long n_failures = 0;
-  int n_total = n_to_place;
-  while (n_to_place > 0) {
-    int num_tries = world->complex_placement_attempts;
-    int chosen_wall = 0;
-    double p = rng_dbl(world->rng) * max_weight;
-
-    /* Pick a wall */
-    chosen_wall = bisect_high(weights, nwalls, p);
-
-    /* Try to find a spot for the release */
-    while (--num_tries >= 0) {
-      if (!init_surf_mols_place_complex(world, walls[chosen_wall], rp, smdp))
-        break;
-    }
-
-    if (num_tries >= 0) {
-      --n_to_place;
-      n_failures = 0;
-    } else {
-      if (++n_failures >= world->notify->complex_placement_failure_threshold) {
-        switch (world->notify->complex_placement_failure) {
-        case WARN_COPE:
-          break;
-
-        case WARN_WARN:
-          mcell_warn("Unable to place some surface complexes of species '%s' "
-                     "(placed %d of %d).\n",
-                     smdp->sm->sym->name, n_total - n_to_place, n_total);
-          break;
-
-        case WARN_ERROR:
-          mcell_error("Error: Unable to place some surface complexes of "
-                      "species '%s' (placed %d of %d).\n",
-                      smdp->sm->sym->name, n_total - n_to_place, n_total);
-
-        default:
-          UNHANDLED_CASE(world->notify->complex_placement_failure);
-        }
-        break;
-      }
-    }
-  }
-
-  return 0;
-}
-
-/********************************************************************
- init_complex_surf_mols:
-
-    Place surface macromolecules on all walls on the specified object.
-
-    In:  int n_to_place - how many to release
-         int nwalls - upon how many walls do we release?
-         double *weights - array of cumulative areas for the first n walls in
-                  the walls array; used for weighted samping of the area
-         struct wall * const *walls - the walls upon which to release
-         struct region *rp - the region in which to instantiate molecules, or
-                    NULL if the molecule is not restricted to a single region
-         struct sm_dat const *smdp - description of what to release
-    Out: 0 on success, 1 on failure
-
-    Program state is not corrupted if this fails.  This may release fewer
-    macromolecules than the user intended, if, for instance, we run out of
-    space, but it will never leave partial complexes lying around.
-
-    N.B. We may need to revisit the failure criteria and the retry behavior
-         here.
- *******************************************************************/
-static int init_complex_surf_mols(struct volume *world, struct object *objp,
-                                  struct region_list *head) {
-  /* Do not place molecules if we're restoring from a checkpoint */
-  if (world->chkpt_init == 0)
-    return 0;
-
-  /* Now, handle each region release */
-  for (; head != NULL; head = head->next) {
-    struct wall *w = NULL;                     /* current wall */
-    struct region *rp = head->reg;             /* current region */
-    double total_area = 0.0;                   /* cumulative wall area so far */
-    struct wall *walls[rp->membership->nbits]; /* walls in region */
-    double weights[rp->membership->nbits]; /* cumulative area for walls array */
-    int num_fill = 0;                      /* num walls in array so far */
-    int avail_slots = 0;                   /* num free slots for molecules */
-
-    /* Collect all walls in this region */
-    for (int n_wall = 0; n_wall < rp->membership->nbits; ++n_wall) {
-      if (get_bit(rp->membership, n_wall)) {
-        w = objp->wall_p[n_wall];
-        if (w->grid == NULL && create_grid(world, w, NULL))
-          mcell_allocfailed("Failed to create grid for wall.");
-
-        walls[num_fill] = w;
-        weights[num_fill] = total_area += w->area;
-        avail_slots += w->grid->n_tiles - w->grid->n_occupied;
-        ++num_fill;
-      }
-    }
-
-    /* Process each mol. type to release on this region */
-    struct sm_dat *smdp;
-    for (smdp = rp->sm_dat_head; smdp != NULL; smdp = smdp->next) {
-      int n_to_place;
-
-      /* Skip it if it isn't a macromol */
-      if ((smdp->sm->flags & IS_COMPLEX) == 0)
-        continue;
-
-      /* Compute the total number to distribute in this region */
-      if (smdp->quantity_type == SURFMOLNUM)
-        n_to_place = (int)(smdp->quantity + 0.5);
-      else if (smdp->quantity_type == SURFMOLDENS) {
-        double dn_to_place =
-            (smdp->quantity * total_area) / world->grid_density;
-        n_to_place = (int)dn_to_place;
-        if (rng_dbl(world->rng) < (dn_to_place - n_to_place))
-          ++n_to_place;
-      } else
-        mcell_internal_error("Unknown surface molecule quantity type (%d).",
-                             smdp->quantity_type);
-
-      /* Place them */
-      if (init_surf_mols_place_complexes(world, n_to_place, num_fill, weights,
-                                         walls, rp, smdp))
-        return 1;
-    }
-  }
-  return 0;
-}
 
 /********************************************************************
  init_surf_mols_by_density:
@@ -7085,7 +6624,7 @@ int check_for_overlapped_walls(
           if ((are_walls_coincident(w1, w2, MESH_DISTINCTIVE) ||
                coplanar_tri_overlap(w1, w2))) {
             mcell_error(
-                "Walls are overlapped: wall %d from '%s' and wall "
+                "walls are overlapped: wall %d from '%s' and wall "
                 "%d from '%s'.",
                 w1->side, w1->parent_object->sym->name, w2->side,
                 w2->parent_object->sym->name);

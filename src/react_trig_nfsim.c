@@ -194,7 +194,7 @@ int trigger_bimolecular_nfsim(struct volume* state, struct abstract_molecule *re
 
         if(rx != NULL){
             int result = process_bimolecular(reacA, reacB, rx, orientA, orientB,
-                            matching_rxns, num_matching_rxns, 0);
+                            matching_rxns, num_matching_rxns);
 
             if(result == 1)
                 num_matching_rxns++;
@@ -257,11 +257,11 @@ int adjust_rates_nfsim(struct volume* state, struct rxn *rx, bool is_surface){
     double rate;
     for(int i =0; i < rx->n_pathways; i++){
 
-        if (!rx->rates || !rx->rates[i]) {
-          rate = pb_factor * rx->cum_probs[i];
-          mcell_log("!!%s %.10e %.10e",rx->external_reaction_data[i].reaction_name, rx->cum_probs[i],rate);
-        } else
-          rate = 0.0;
+        //if (!rx->rates || !rx->rates[i]) {
+        rate = pb_factor * rx->cum_probs[i];
+        mcell_log("!!%s %.10e %.10e",rx->external_reaction_data[i].reaction_name, rx->cum_probs[i],rate);
+        //} else
+        //  rate = 0.0;
         rx->cum_probs[i] = rate;
     }
 

@@ -174,13 +174,6 @@ double compute_pb_factor(double time_unit,
     double eff_vel_b = rx->get_reactant_space_step(rx,1) / rx->get_reactant_time_step(rx,1);
     double eff_vel;
 
-    if (rx->is_complex) {
-      if (rx->is_complex[0])
-        eff_vel_a = 0;
-      if (rx->is_complex[1])
-        eff_vel_b = 0;
-    }
-
     if (rx->players[0]->flags & rx->players[1]->flags & CANT_INITIATE)
       mcell_error(
           "Reaction between %s and %s listed, but both are marked TARGET_ONLY.",

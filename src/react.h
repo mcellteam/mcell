@@ -122,13 +122,11 @@ int which_unimolecular(struct rxn *rx, struct abstract_molecule *a,
 int binary_search_double(double *A, double match, int max, double mult);
 
 int test_bimolecular(struct rxn *rx, double scaling, double local_prob_factor,
-                     struct abstract_molecule *a1, struct abstract_molecule *a2,
                      struct rng_state *rng);
 
 int test_many_bimolecular(struct rxn **rx, double *scaling,
                           double local_prob_factor, int n, int *chosen_pathway,
-                          struct abstract_molecule **complexes,
-                          int *complex_limits, struct rng_state *rng,
+                          struct rng_state *rng,
                           int all_neighbors_flag);
 
 int test_many_reactions_all_neighbors(struct rxn **rx, double *scaling,
@@ -183,6 +181,13 @@ place_sm_product(struct volume *world, struct species *product_species, struct g
 
 int reaction_wizardry(struct volume *world, struct magic_list *incantation,
                       struct wall *surface, struct vector3 *hitpt, double t);
+
+void tiny_diffuse_3D(
+    struct volume *world,
+    struct subvolume *subvol,
+    struct vector3 *displacement,
+    struct vector3 *pos,
+    struct wall *w);
 
 struct volume_molecule *
 place_volume_product(struct volume *world, struct species *product_species, struct graph_data*,
