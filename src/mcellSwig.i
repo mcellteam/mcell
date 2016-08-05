@@ -2,8 +2,7 @@
 // Main SWIG directive file for MCELL (taken from gamer) 
 // Compile commands 
 // swig -python mcellSwig.i
-// gcc  -c -fPIC mcellSwig_wrap.c  -I/usr/include/python2.7
-// gcc -shared mcellSwig_wrap.o -o _mcellSwig.so -L/home/evancresswell/Documents/psc/mcell/src/ 
+// python setup_mcell_swig.py build_ext --inplace
 
 // ===========================================================================
 
@@ -20,8 +19,8 @@
 #include "mcell_species.h"
 #include "mcell_viz.h"
 #include "mcell_surfclass.h"
-/*need to make this general*/
-#include </home/cresswel/Documents/mcell/build/deps/config.h>
+/*assuming a build directory was made*/
+#include <../build/deps/config.h>
 #include "strfunc.h"
 #include "mcell_run.h"
 
