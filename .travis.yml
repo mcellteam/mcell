@@ -5,4 +5,8 @@ language: c
 compiler:
   - gcc
   - clang
-script: cd ./src && ./bootstrap && ./configure && make
+script: 
+  - cd build
+  - python requirement.py
+  - cmake .. && make
+
