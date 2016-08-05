@@ -13,7 +13,6 @@
 #define SWIG_FILE_WITH_INIT
 #include "mcell_init.h"
 #include "mcell_misc.h"
-/*#include "util.h"*/
 #include "mcell_objects.h"
 #include "mcell_react_out.h"
 #include "mcell_reactions.h"
@@ -21,7 +20,8 @@
 #include "mcell_species.h"
 #include "mcell_viz.h"
 #include "mcell_surfclass.h"
-#include "config.h"
+/*need to make this general*/
+#include </home/cresswel/Documents/mcell/build/deps/config.h>
 #include "strfunc.h"
 #include "mcell_run.h"
 
@@ -36,7 +36,6 @@
 
 %include "mcell_init.i"
 %include "mcell_misc.i"
-/*%include "util.i"*/
 %include "mcell_objects.i"
 %include "mcell_react_out.i"
 %include "mcell_reactions.i"
@@ -44,7 +43,7 @@
 %include "mcell_species.i"
 %include "mcell_viz.i"
 %include "mcell_surfclass.i"
-%include "config.h"
+%include </home/cresswel/Documents/mcell/build/deps/config.h>
 %include "strfunc.i"
 %include "mcell_run.i"
 
