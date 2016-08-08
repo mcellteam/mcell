@@ -145,6 +145,31 @@ set(SOURCE_FILES
     src/wall_util.c
     src/wall_util.h)
 
+FIND_PACKAGE(SWIG REQUIRED)
+INCLUDE(${SWIG_USE_FILE})
+
+FIND_PACKAGE(PythonLibs 2.7 REQUIRED)
+INCLUDE_DIRECTORIES(${PYTHON_INCLUDE_PATH})
+
+INCLUDE_DIRECTORIES("${CMAKE_CURRENT_SOURCE_DIR}/src")
+
+SET(CMAKE_SWIG_FLAGS "-v")
+
+SET_SOURCE_FILES_PROPERTIES(src/mcellSwig.i PROPERTIES C ON)
+SET_SOURCE_FILES_PROPERTIES(src/mcellSwig.i PROPERTIES SWIG_FLAGS "-includeall")
+SWIG_ADD_MODULE(mcellSwig python
+  src/mcellSwig.i src/mcell_react_out.c src/mcell_misc.c src/util.c
+  src/argparse.c src/mcell_objects.c src/mcell_reactions.c src/mcell_release.c
+  src/mcell_species.c src/mcell_viz.c src/mcell_surfclass.c src/strfunc.c
+  src/mcell_init.c src/chkpt.c src/init.c src/react_output.c src/version_info.c
+  src/sched_util.c src/wall_util.c src/mem_util.c src/react_trig.c
+  src/react_cond.c src/count_util.c src/vol_util.c src/diffuse.c src/vector.c
+  src/diffuse_util.c src/sym_table.c src/triangle_overlap.c src/logging.c
+  src/grid_util.c src/react_outc.c src/react_util.c src/react_outc_trimol.c
+  src/diffuse_trimol.c src/isaac64.c src/rng.c src/viz_output.c src/mcell_run.c
+  src/volume_output.c)
+SWIG_LINK_LIBRARIES(mcellSwig ${PYTHON_LIBRARIES})
+
 # build executable
 add_executable(mcell
   ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h

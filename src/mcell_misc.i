@@ -45,7 +45,7 @@ void mcell_free_numeric_list(struct num_expr_list *nel);
 MCELL_STATUS mcell_generate_range(struct num_expr_list_head *list, double start,
                                   double end, double step);
 
-int advance_range(struct num_expr_list_head *list, double tmp_dbl);
+/*int advance_range(struct num_expr_list_head *list, double tmp_dbl);*/
 
 int mcell_generate_range_singleton(struct num_expr_list_head *lh, double value);
 

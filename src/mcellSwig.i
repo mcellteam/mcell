@@ -19,8 +19,6 @@
 #include "mcell_species.h"
 #include "mcell_viz.h"
 #include "mcell_surfclass.h"
-/*assuming a build directory was made*/
-#include <../build/deps/config.h>
 #include "strfunc.h"
 #include "mcell_run.h"
 
@@ -42,7 +40,6 @@
 %include "mcell_species.i"
 %include "mcell_viz.i"
 %include "mcell_surfclass.i"
-%include </home/cresswel/Documents/mcell/build/deps/config.h>
 %include "strfunc.i"
 %include "mcell_run.i"
 

@@ -32,27 +32,27 @@
 */
 typedef struct sym_entry mcell_symbol;
 
-struct mcell_species_spec {
-  char *name;
-  double D;
-  int is_2d;               // 3D = 0; 2D = 1
-  double custom_time_step; // default is 0.0
-  int target_only;         // default is 0
-  double max_step_length;  // default is 0.0
-  double space_step;
-};
+/*struct mcell_species_spec {*/
+/*  char *name;*/
+/*  double D;*/
+/*  int is_2d;               // 3D = 0; 2D = 1*/
+/*  double custom_time_step; // default is 0.0*/
+/*  int target_only;         // default is 0*/
+/*  double max_step_length;  // default is 0.0*/
+/*  double space_step;*/
+/*};*/
 
-struct mcell_species {
-  struct mcell_species *next;
-  struct sym_entry *mol_type;
-  short orient_set;
-  short orient;
-};
+/*struct mcell_species {*/
+/*  struct mcell_species *next;*/
+/*  struct sym_entry *mol_type;*/
+/*  short orient_set;*/
+/*  short orient;*/
+/*};*/
 
-struct mcell_species_list {
-  struct mcell_species *mol_type_head;
-  struct mcell_species *mol_type_tail;
-};
+/*struct mcell_species_list {*/
+/*  struct mcell_species *mol_type_head;*/
+/*  struct mcell_species *mol_type_tail;*/
+/*};*/
 
 MCELL_STATUS mcell_create_species(MCELL_STATE *state,
                                   struct mcell_species_spec *species,
