@@ -22,7 +22,7 @@
 ******************************************************************************/
 
 #include "config.h"
-
+#include "logging.h"
 #include <math.h>
 #include <stdlib.h>
 
@@ -36,6 +36,12 @@ static struct species *assemble_mol_species(MCELL_STATE *state,
                                             struct mcell_species_spec *species);
 
 static int ensure_rdstep_tables_built(MCELL_STATE *state);
+
+void mcell_print_name(mcell_symbol *species){
+  mcell_log("print is working");
+
+  mcell_log("the name is %s",species->name);
+}
 
 /*************************************************************************
  mcell_create_species:

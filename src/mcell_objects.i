@@ -2,10 +2,6 @@
  *
  * Copyright (C) 2006-2015 by
  * The Salk Institute for Biological Studies and
-/******************************************************************************
- *
- * Copyright (C) 2006-2015 by
- * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
  * This program is free software; you can redistribute it and/or

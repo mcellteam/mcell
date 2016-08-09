@@ -56,6 +56,16 @@ struct mcell_species {
   short orient;
 };
 
+
+/*
+%typemap(in) mcell_symbol *species (mcell_symbol temp) {
+  $1 = &temp;
+}
+*/
+
+void mcell_print_name(mcell_symbol *species);
+
+
 struct mcell_species_list {
   struct mcell_species *mol_type_head;
   struct mcell_species *mol_type_tail;
@@ -65,9 +75,9 @@ struct mcell_species_list {
   $1 = &temp;
 }
 
-/*%typemap(argout) struct sym_entry **species_ptr {*/
-/*  %set_output(SWIG_NewPointerObj(SWIG_as_voidptr(*$1), $*1_descriptor, SWIG_POINTER_OWN));*/
-/*}*/
+%typemap(argout) struct sym_entry **species_ptr {
+  %set_output(SWIG_NewPointerObj(SWIG_as_voidptr(*$1), $*1_descriptor, SWIG_POINTER_OWN));
+}
 
 MCELL_STATUS mcell_create_species(MCELL_STATE *state,
                                   struct mcell_species_spec *species,

@@ -20,50 +20,17 @@
  * USA.
  *
 ******************************************************************************/
-/*
-#ifndef MCELL_SPECIES_H
-#define MCELL_SPECIES_H
 
-#include <stdbool.h>
+MCELL_STATUS mcell_create_viz_output(MCELL_STATE *state, char *filename,
+                                     struct mcell_species *mol_viz_list,
+                                     long long start, long long end,
+                                     long long step);
 
-//#include "mcell_engine.h"
-#include "mcell_init.h"
-#include "mcell_structs.h"
-*/
-typedef struct sym_entry mcell_symbol;
+void mcell_new_viz_output_block(struct viz_output_block *vizblk);
 
-/*struct mcell_species_spec {*/
-/*  char *name;*/
-/*  double D;*/
-/*  int is_2d;               // 3D = 0; 2D = 1*/
-/*  double custom_time_step; // default is 0.0*/
-/*  int target_only;         // default is 0*/
-/*  double max_step_length;  // default is 0.0*/
-/*  double space_step;*/
-/*};*/
+struct frame_data_list *
+mcell_create_viz_frame(int time_type, int type,
+                       struct num_expr_list *iteration_list);
 
-/*struct mcell_species {*/
-/*  struct mcell_species *next;*/
-/*  struct sym_entry *mol_type;*/
-/*  short orient_set;*/
-/*  short orient;*/
-/*};*/
-
-/*struct mcell_species_list {*/
-/*  struct mcell_species *mol_type_head;*/
-/*  struct mcell_species *mol_type_tail;*/
-/*};*/
-
-/*MCELL_STATUS mcell_create_species(MCELL_STATE *state,*/
-/*                                  struct mcell_species_spec *species,*/
-/*                                  mcell_symbol **species_ptr);*/
-
-/*struct mcell_species **/
-/*mcell_add_to_species_list(mcell_symbol *species_ptr, bool is_oriented,*/
-/*                          int orientation, struct mcell_species *species_list);*/
-
-/*void mcell_delete_species_list(struct mcell_species *species);*/
-
-/*int new_mol_species(MCELL_STATE *state, char *name, struct sym_entry **sym_ptr);*/
-
-
+int mcell_set_molecule_viz_state(struct viz_output_block *vizblk,
+                                 struct species *specp, int viz_state);
