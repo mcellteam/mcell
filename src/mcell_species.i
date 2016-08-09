@@ -30,7 +30,14 @@
 #include "mcell_init.h"
 #include "mcell_structs.h"
 */
-typedef struct sym_entry mcell_symbol;
+
+typedef struct sym_entry {
+  struct sym_entry *next; /* Chain to next symbol in this bin of the hash */
+  int sym_type;           /* Symbol Type */
+  char *name;             /* Name of symbol*/
+  void *value;            /* Stored value, cast by sym_type */
+} mcell_symbol;
+
 
 struct mcell_species_spec {
   char *name;
@@ -53,6 +60,14 @@ struct mcell_species_list {
   struct mcell_species *mol_type_head;
   struct mcell_species *mol_type_tail;
 };
+
+%typemap(in) mcell_symbol **species_ptr (mcell_symbol *temp) {
+  $1 = &temp;
+}
+
+/*%typemap(argout) struct sym_entry **species_ptr {*/
+/*  %set_output(SWIG_NewPointerObj(SWIG_as_voidptr(*$1), $*1_descriptor, SWIG_POINTER_OWN));*/
+/*}*/
 
 MCELL_STATUS mcell_create_species(MCELL_STATE *state,
                                   struct mcell_species_spec *species,
