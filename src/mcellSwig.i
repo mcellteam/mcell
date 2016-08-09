@@ -21,6 +21,7 @@
 #include "mcell_surfclass.h"
 #include "strfunc.h"
 #include "mcell_run.h"
+#include "mcell_structs.h"
 
 
 %}
@@ -42,6 +43,7 @@
 %include "mcell_surfclass.i"
 %include "strfunc.i"
 %include "mcell_run.i"
+%include "mcell_structs.i"
 
 // Generate docstrings
 %feature("autodoc", "0");

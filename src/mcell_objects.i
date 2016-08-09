@@ -37,6 +37,9 @@ struct poly_object {
 //ecc added for swig function
 //int is_region_degenerate(struct region *reg_ptr);
 
+%typemap(in) struct object **new_object (struct object *temp) {
+  $1 = &temp;
+}
 
 /* object creation */
 MCELL_STATUS mcell_create_instance_object(MCELL_STATE *state, char *name,
