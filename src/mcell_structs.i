@@ -27,3 +27,17 @@ struct object {
   bool periodic_z; // y or z direction are reflected back into the box as if they
                    // had entered the adjacent neighboring box */
 };
+
+/* Release Shape Flags */
+enum release_shape_t {
+  SHAPE_UNDEFINED = -1,  /* Not specified */
+ SHAPE_SPHERICAL,       /* Volume enclosed by a sphere */
+  SHAPE_CUBIC,           /* Volume enclosed by a cube */
+  SHAPE_ELLIPTIC,        /* Volume enclosed by an ellipsoid */
+  SHAPE_RECTANGULAR,     /* Volume enclosed by a rect. solid */
+  SHAPE_SPHERICAL_SHELL, /* Surface of a sphere */
+  SHAPE_REGION,          /* Inside/on the surface of an arbitrary region */
+  SHAPE_LIST             /* Individiaul mol. placement by list */
+};
+
+

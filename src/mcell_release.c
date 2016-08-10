@@ -55,11 +55,19 @@ MCELL_STATUS mcell_create_geometrical_release_site(
     struct mcell_species *mol, double num_molecules, double rel_prob,
     char *pattern_name, struct object **new_obj) {
 
+  mcell_log("print is working");
+
   assert(shape != SHAPE_REGION && shape != SHAPE_LIST);
   assert((((struct species *)mol->mol_type->value)->flags & NOT_FREE) == 0);
 
+
+  mcell_log("1");
   // create qualified object name
-  char *qualified_name = CHECKED_SPRINTF("%s.%s", parent->sym->name, site_name);
+// ecc removed for swig function
+//  char *qualified_name = CHECKED_SPRINTF("%s.%s", parent->sym->name, site_name);
+ char *qualified_name = site_name;
+
+  mcell_log("1");
 
   int error_code = 0;
   struct object *release_object = make_new_object(state, qualified_name, &error_code);
@@ -69,6 +77,9 @@ MCELL_STATUS mcell_create_geometrical_release_site(
   // add_child_objects is called.
   release_object->parent = parent;
   add_child_objects(parent, release_object, release_object);
+
+  mcell_log("2");
+
 
   struct object *dummy = NULL;
   mcell_start_release_site(state, release_object->sym, &dummy);
@@ -88,6 +99,9 @@ MCELL_STATUS mcell_create_geometrical_release_site(
   releaser->diameter->x = diameter->x * state->r_length_unit;
   releaser->diameter->y = diameter->y * state->r_length_unit;
   releaser->diameter->z = diameter->z * state->r_length_unit;
+
+  mcell_log("3");
+
 
   // release probability and release patterns
   if (rel_prob < 0 || rel_prob > 1) {
@@ -109,6 +123,7 @@ MCELL_STATUS mcell_create_geometrical_release_site(
   } else {
     releaser->release_prob = rel_prob;
   }
+mcell_log("4");
 
   /* molecule and molecule number */
   set_release_site_constant_number(releaser, num_molecules);
@@ -116,9 +131,15 @@ MCELL_STATUS mcell_create_geometrical_release_site(
   releaser->orientation = mol->orient;
 
   mcell_finish_release_site(release_object->sym, &dummy);
+mcell_log("5");
 
   *new_obj = release_object;
-  free(qualified_name);
+
+
+  mcell_log("6a");
+ // ecc removed for swig function
+  //free(qualified_name);
+  mcell_log("6b");
   return MCELL_SUCCESS;
 }
 

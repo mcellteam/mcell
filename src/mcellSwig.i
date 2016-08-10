@@ -22,6 +22,7 @@
 #include "strfunc.h"
 #include "mcell_run.h"
 #include "mcell_structs.h"
+#include "vector.h"
 
 
 %}
@@ -44,6 +45,7 @@
 %include "strfunc.i"
 %include "mcell_run.i"
 %include "mcell_structs.i"
+%include "vector.i"
 
 // Generate docstrings
 %feature("autodoc", "0");

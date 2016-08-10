@@ -41,6 +41,12 @@ struct poly_object {
   $1 = &temp;
 }
 
+%typemap(argout) struct object **new_object {
+  %set_output(SWIG_NewPointerObj(SWIG_as_voidptr(*$1), $*1_descriptor, SWIG_POINTER_OWN));
+}
+
+
+
 /* object creation */
 MCELL_STATUS mcell_create_instance_object(MCELL_STATE *state, char *name,
                                           struct object **new_object);

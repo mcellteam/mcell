@@ -22,5 +22,19 @@ m.mcell_print_name(mcell_sym)
 scene = m.object()
 m.mcell_create_instance_object(world, "Scene", scene)
 
+position = m.vector3()
+# { 0.0, 0.0, 0.0 };
+#struct vector3 diameter = { 0.00999, 0.00999, 0.00999 };
+
+#struct object *B_releaser = NULL;
+
+#struct mcell_species *B = mcell_add_to_species_list(molB_ptr, false, 0, NULL);
+
+#mcell_create_geometrical_release_site(state, world_object, "B_releaser", SHAPE_SPHERICAL, &position, &diameter, B, 5000, 1, NULL, &B_releaser), "could not create B_releaser");
+
+#mcell_delete_species_list(B);
+
+
+
 m.mcell_init_simulation(world)
 m.mcell_run_simulation(world)
