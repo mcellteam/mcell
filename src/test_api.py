@@ -21,7 +21,7 @@ mcell_sym = m.mcell_create_species(world, species_def, sym)
 m.mcell_print_name(mcell_sym)
 
 scene = m.object()
-m.mcell_create_instance_object(world, "Scene", scene)
+real_scene = m.mcell_create_instance_object(world, "Scene", scene)
 
 position = m.vector3()
 position.x = 0.0
@@ -43,7 +43,7 @@ print("x_foo")
 print(x_foo)
 
 rel_object = m.object()
-release_object = m.mcell_create_geometrical_release_site( world , scene, "B_releaser", m.SHAPE_SPHERICAL, position, diameter, x_foo, 5000.0, 1.0, None, rel_object)
+release_object = m.mcell_create_geometrical_release_site(world , real_scene, "B_releaser", m.SHAPE_SPHERICAL, position, diameter, x_foo, 5000, 1, None, rel_object)
 
 viz_list = m.mcell_add_to_species_list(mcell_sym, False, 0, None);
 m.mcell_create_viz_output(world, "./viz_data/test", viz_list, 0, iterations, 1)
