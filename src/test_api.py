@@ -58,6 +58,30 @@ print(x_foo)
 print("x_releaser")
 print (release_object)
 
+report_flags = m.REPORT_WORLD;
+
+
+c_list = m.output_column_list()
+# -100 is in the place of OREINT_NOT_SET (used typemap for mcell_create_count in mcell_react_out.i) because limits.h stuff does not work well with swig.......
+count_list = m.mcell_create_count(world, mcell_sym, -100, None, report_flags, None, c_list)
+print("count list")
+print(count_list)
+
+"""
+os = m.output_set()
+os = m.mcell_create_new_output_set(None, 0, count_list.column_head, m.FILE_SUBSTITUTE, "react_data/foobar.dat")
+
+outTimes = m.output_times_inlist()
+outTimes.type = OUTPUT_BY_STEP
+outTimes.step = 1e-5
+
+output = m.output_set_list()
+output.set_head = os
+output.set_tail = os
+
+m.mcell_add_reaction_output_block(world, output, 10000, outTimes)
+
+"""
 
 #mcell_create_geometrical_release_site(state, world_object, "B_releaser", SHAPE_SPHERICAL, &position, &diameter, B, 5000, 1, NULL, &B_releaser), "could not create B_releaser");
 
