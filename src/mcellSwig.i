@@ -10,6 +10,7 @@
 
 %{
 #define SWIG_FILE_WITH_INIT
+#include <limits.h>
 #include "mcell_init.h"
 #include "mcell_misc.h"
 #include "mcell_objects.h"
