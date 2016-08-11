@@ -54,6 +54,7 @@ def main():
 
     # Define a volume molecule named "x"
     x_mol_sym = create_species(world, "x", 1e-6, 0)
+    y_mol_sym = create_species(world, "y", 1e-6, 1)
 
     scene_temp = m.object()
     scene = m.mcell_create_instance_object(world, "Scene", scene_temp)
@@ -90,15 +91,28 @@ def main():
     mesh_temp = m.object()
     mesh = m.mcell_create_poly_object(world, scene, pobj, mesh_temp)
 
-    # Create surface region on box
+    # Create surface region on the box consisting of two triangles
     # XXX: Creating a region is currently required when creating mesh objects
     test_region = m.mcell_create_region(world, mesh, "reg")
     region_list = m.mcell_add_to_region_list(None, 0)
     region_list = m.mcell_add_to_region_list(region_list, 1)
     m.mcell_set_region_elements(test_region, region_list, 1)
 
+    # create surface class
+    sc_temp = m.mcell_symbol()
+    sc = m.mcell_create_surf_class(world, "SC_test", sc_temp)
+
+    # create releases using a surface class (i.e. not a release object)
+    # mdl equivalent: MOLECULE_DENSITY {A' = 1000}
+    y = m.mcell_add_to_species_list(y_mol_sym, True, 1, None);
+    smd = m.mcell_add_mol_release_to_surf_class(
+      world, sc, y, 10000, 0, None);
+    m.mcell_delete_species_list(y);
+    m.mcell_assign_surf_class_to_region(sc, test_region);
+
     # Create viz data
     viz_list = m.mcell_add_to_species_list(x_mol_sym, False, 0, None)
+    viz_list = m.mcell_add_to_species_list(y_mol_sym, False, 0, viz_list)
     m.mcell_create_viz_output(
             world, "./viz_data/test", viz_list, 0, iterations, 1)
 

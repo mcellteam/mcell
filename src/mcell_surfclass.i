@@ -38,6 +38,14 @@ MCELL_STATUS mcell_add_surf_class_properties(
     mcell_symbol *reactant_sym,
     short orient);
 
+%typemap(in) mcell_symbol **sc_sym (mcell_symbol *temp) {
+  $1 = &temp;
+}
+
+%typemap(argout) struct sym_entry **sc_sym {
+  %set_output(SWIG_NewPointerObj(SWIG_as_voidptr(*$1), $*1_descriptor, SWIG_POINTER_OWN));
+}
+
 MCELL_STATUS mcell_create_surf_class(
     MCELL_STATE *state,
     char *surf_class_name,
