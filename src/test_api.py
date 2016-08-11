@@ -38,7 +38,7 @@ def main():
     position.y = pos_value
     position.z = pos_value
     diameter = m.vector3()
-    diam_value = 0.00999
+    diam_value = 0.001
     diameter.x = diam_value
     diameter.y = diam_value
     diameter.z = diam_value
@@ -49,6 +49,46 @@ def main():
             world, scene, "X_releaser", m.SHAPE_SPHERICAL, position, diameter,
             mol_list, 5000, 1, None, rel_object)
     m.mcell_delete_species_list(mol_list)
+
+    # Create box object
+    verts = m.mcell_add_to_vertex_list(0.2, 0.2, -0.2, None);
+    verts = m.mcell_add_to_vertex_list(0.2, -0.2, -0.2, verts);
+    verts = m.mcell_add_to_vertex_list(-0.2, -0.2, -0.2, verts);
+    verts = m.mcell_add_to_vertex_list(-0.2, 0.2, -0.2, verts);
+    verts = m.mcell_add_to_vertex_list(0.2, 0.2, 0.2, verts);
+    verts = m.mcell_add_to_vertex_list(0.2, -0.2, 0.2, verts);
+    verts = m.mcell_add_to_vertex_list(-0.2, -0.2, 0.2, verts);
+    verts = m.mcell_add_to_vertex_list(-0.2, 0.2, 0.2, verts);
+
+    elems = m.mcell_add_to_connection_list(1, 2, 3, None);
+    elems = m.mcell_add_to_connection_list(7, 6, 5, elems);
+    elems = m.mcell_add_to_connection_list(0, 4, 5, elems);
+    elems = m.mcell_add_to_connection_list(1, 5, 6, elems);
+    elems = m.mcell_add_to_connection_list(6, 7, 3, elems);
+    elems = m.mcell_add_to_connection_list(0, 3, 7, elems);
+    elems = m.mcell_add_to_connection_list(0, 1, 3, elems);
+    elems = m.mcell_add_to_connection_list(4, 7, 5, elems);
+    elems = m.mcell_add_to_connection_list(1, 0, 5, elems);
+    elems = m.mcell_add_to_connection_list(2, 1, 6, elems);
+    elems = m.mcell_add_to_connection_list(2, 6, 3, elems);
+    elems = m.mcell_add_to_connection_list(4, 0, 7, elems);
+
+    pobj = m.poly_object()
+    pobj.obj_name = "aBox"
+    pobj.vertices = verts
+    pobj.num_vert = 8
+    pobj.connections = elems
+    pobj.num_conn = 12
+    
+    mesh_temp = m.object()
+    mesh = m.mcell_create_poly_object(world, scene, pobj, mesh_temp)
+
+    # Create surface region on box
+    # XXX: Creating a region is currently required when creating mesh objects
+    test_region = m.mcell_create_region(world, mesh, "reg")
+    region_list = m.mcell_add_to_region_list(None, 0)
+    region_list = m.mcell_add_to_region_list(region_list, 1)
+    m.mcell_set_region_elements(test_region, region_list, 1)
 
     # Create viz data
     viz_list = m.mcell_add_to_species_list(x_mol_sym, False, 0, None)

@@ -83,7 +83,7 @@ int mcell_set_region_elements(struct region *rgn, struct element_list *elements,
                               int normalize_now);
 
 struct element_list *mcell_add_to_region_list(struct element_list *elements,
-                                              u_int region_idx);
+                                              unsigned int region_idx);
 
 /* Adds children to a meta-object, aggregating counts of walls and vertices
  * from the children into the specified parent. The children should already
