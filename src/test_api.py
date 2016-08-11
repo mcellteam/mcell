@@ -1,5 +1,6 @@
 import mcellSwig as m
 
+
 def create_species(world, name, D, is_2d=0):
     species_def = m.mcell_species_spec()
     species_def.name = name
@@ -9,20 +10,20 @@ def create_species(world, name, D, is_2d=0):
     species_def.target_only = 0
     species_def.max_step_length = 0
 
-    species_temp_sym = m.mcell_symbol();
+    species_temp_sym = m.mcell_symbol()
     species_sym = m.mcell_create_species(world, species_def, species_temp_sym)
-    # m.mcell_print_name(species_sym)
-    
+
     return species_sym
 
-def main():
 
+def main():
     world = m.mcell_create()
     m.mcell_init_state(world)
 
+    dt = 1e-6
     iterations = 100
-    m.mcell_set_time_step(world,1e-6)
-    m.mcell_set_iterations(world,iterations)
+    m.mcell_set_time_step(world, dt)
+    m.mcell_set_iterations(world, iterations)
 
     # Define a volume molecule named "x"
     x_mol_sym = create_species(world, "x", 1e-6, 0)
@@ -32,45 +33,30 @@ def main():
 
     # Create a spherical release site
     position = m.vector3()
-    position.x = 0.0
-    position.y = 0.0
-    position.z = 0.0
-    # print("position")
-    # print position
+    pos_value = 0.0
+    position.x = pos_value
+    position.y = pos_value
+    position.z = pos_value
     diameter = m.vector3()
-    diameter.x = .00999
-    diameter.y = .00999
-    diameter.z = .00999
+    diam_value = 0.00999
+    diameter.x = diam_value
+    diameter.y = diam_value
+    diameter.z = diam_value
 
-    # x_releaser = m.object()
-    # print ("x_releaser")
-    # print x_releaser
-
-    mol_list = m.mcell_add_to_species_list(x_mol_sym, False, 0, None);
-    # print("mol_list")
-    # print(mol_list)
-
+    mol_list = m.mcell_add_to_species_list(x_mol_sym, False, 0, None)
     rel_object = m.object()
     release_object = m.mcell_create_geometrical_release_site(
             world, scene, "X_releaser", m.SHAPE_SPHERICAL, position, diameter,
             mol_list, 5000, 1, None, rel_object)
-
-    # print (mol_list)
-    # print ("deleting mol_list")
     m.mcell_delete_species_list(mol_list)
-    # print("printing whats left of mol_list")
-    # print(mol_list)
-
-    # print("x_releaser")
-    # print (release_object)
 
     # Create viz data
-    viz_list = m.mcell_add_to_species_list(x_mol_sym, False, 0, None);
-    m.mcell_create_viz_output(world, "./viz_data/test", viz_list, 0, iterations, 1)
-
+    viz_list = m.mcell_add_to_species_list(x_mol_sym, False, 0, None)
+    m.mcell_create_viz_output(
+            world, "./viz_data/test", viz_list, 0, iterations, 1)
 
     # Create reaction data
-    report_flags = m.REPORT_WORLD;
+    report_flags = m.REPORT_WORLD
     c_list = m.output_column_list()
     # -100 is in the place of ORIENT_NOT_SET (used typemap for
     # mcell_create_count in mcell_react_out.i) because limits.h stuff does not
@@ -82,7 +68,9 @@ def main():
 
     """
     os = m.output_set()
-    os = m.mcell_create_new_output_set(None, 0, count_list.column_head, m.FILE_SUBSTITUTE, "react_data/foobar.dat")
+    os = m.mcell_create_new_output_set(
+        None, 0, count_list.column_head, m.FILE_SUBSTITUTE,
+        "react_data/foobar.dat")
 
     outTimes = m.output_times_inlist()
     outTimes.type = OUTPUT_BY_STEP
