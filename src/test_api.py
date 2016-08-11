@@ -1,6 +1,13 @@
 import mcellSwig as m
 
 
+class Vector3(object):
+    def __init__(self, x=0.0, y=0.0, z=0.0):
+        self.x = x
+        self.y = y
+        self.z = z
+
+
 def create_species(world, name, D, is_2d=0):
     species_def = m.mcell_species_spec()
     species_def.name = name
@@ -16,29 +23,55 @@ def create_species(world, name, D, is_2d=0):
     return species_sym
 
 
+def create_instance_object(world, name):
+    scene_temp = m.object()
+    return m.mcell_create_instance_object(world, name, scene_temp)
+
+
+def create_release_site(world, scene, pos, diam, shape, number, mol_sym, name):
+    position = m.vector3()
+    position.x = pos.x
+    position.y = pos.y
+    position.z = pos.z
+    diameter = m.vector3()
+    diameter.x = diam.x
+    diameter.y = diam.y
+    diameter.z = diam.z
+
+    mol_list = m.mcell_add_to_species_list(mol_sym, False, 0, None)
+    rel_object = m.object()
+    # release_site_name = "X_releaser" # This should derive from the mol_sym name
+    release_site_name = name # This should derive from the mol_sym name
+    release_object = m.mcell_create_geometrical_release_site(
+            world, scene, release_site_name, shape, position, diameter,
+            mol_list, number, 1, None, rel_object)
+    m.mcell_delete_species_list(mol_list)
+    return (position, diameter, release_object)
+
+
 def create_box_verts_elems(half_length):
     hl = half_length
-    verts = m.mcell_add_to_vertex_list(hl, hl, -hl, None);
-    verts = m.mcell_add_to_vertex_list(hl, -hl, -hl, verts);
-    verts = m.mcell_add_to_vertex_list(-hl, -hl, -hl, verts);
-    verts = m.mcell_add_to_vertex_list(-hl, hl, -hl, verts);
-    verts = m.mcell_add_to_vertex_list(hl, hl, hl, verts);
-    verts = m.mcell_add_to_vertex_list(hl, -hl, hl, verts);
-    verts = m.mcell_add_to_vertex_list(-hl, -hl, hl, verts);
-    verts = m.mcell_add_to_vertex_list(-hl, hl, hl, verts);
+    verts = m.mcell_add_to_vertex_list(hl, hl, -hl, None)
+    verts = m.mcell_add_to_vertex_list(hl, -hl, -hl, verts)
+    verts = m.mcell_add_to_vertex_list(-hl, -hl, -hl, verts)
+    verts = m.mcell_add_to_vertex_list(-hl, hl, -hl, verts)
+    verts = m.mcell_add_to_vertex_list(hl, hl, hl, verts)
+    verts = m.mcell_add_to_vertex_list(hl, -hl, hl, verts)
+    verts = m.mcell_add_to_vertex_list(-hl, -hl, hl, verts)
+    verts = m.mcell_add_to_vertex_list(-hl, hl, hl, verts)
 
-    elems = m.mcell_add_to_connection_list(1, 2, 3, None);
-    elems = m.mcell_add_to_connection_list(7, 6, 5, elems);
-    elems = m.mcell_add_to_connection_list(0, 4, 5, elems);
-    elems = m.mcell_add_to_connection_list(1, 5, 6, elems);
-    elems = m.mcell_add_to_connection_list(6, 7, 3, elems);
-    elems = m.mcell_add_to_connection_list(0, 3, 7, elems);
-    elems = m.mcell_add_to_connection_list(0, 1, 3, elems);
-    elems = m.mcell_add_to_connection_list(4, 7, 5, elems);
-    elems = m.mcell_add_to_connection_list(1, 0, 5, elems);
-    elems = m.mcell_add_to_connection_list(2, 1, 6, elems);
-    elems = m.mcell_add_to_connection_list(2, 6, 3, elems);
-    elems = m.mcell_add_to_connection_list(4, 0, 7, elems);
+    elems = m.mcell_add_to_connection_list(1, 2, 3, None)
+    elems = m.mcell_add_to_connection_list(7, 6, 5, elems)
+    elems = m.mcell_add_to_connection_list(0, 4, 5, elems)
+    elems = m.mcell_add_to_connection_list(1, 5, 6, elems)
+    elems = m.mcell_add_to_connection_list(6, 7, 3, elems)
+    elems = m.mcell_add_to_connection_list(0, 3, 7, elems)
+    elems = m.mcell_add_to_connection_list(0, 1, 3, elems)
+    elems = m.mcell_add_to_connection_list(4, 7, 5, elems)
+    elems = m.mcell_add_to_connection_list(1, 0, 5, elems)
+    elems = m.mcell_add_to_connection_list(2, 1, 6, elems)
+    elems = m.mcell_add_to_connection_list(2, 6, 3, elems)
+    elems = m.mcell_add_to_connection_list(4, 0, 7, elems)
 
     return (verts, elems)
 
@@ -53,30 +86,25 @@ def main():
     m.mcell_set_iterations(world, iterations)
 
     # Define a volume molecule named "x"
-    x_mol_sym = create_species(world, "x", 1e-6, 0)
-    y_mol_sym = create_species(world, "y", 1e-6, 1)
+    x_mol_sym = create_species(world, "x", 1e-7, 0)
+    y_mol_sym = create_species(world, "y", 1e-7, 1)
 
-    scene_temp = m.object()
-    scene = m.mcell_create_instance_object(world, "Scene", scene_temp)
+    scene = create_instance_object(world, "Scene")
 
     # Create a spherical release site
-    position = m.vector3()
-    pos_value = 0.0
-    position.x = pos_value
-    position.y = pos_value
-    position.z = pos_value
-    diameter = m.vector3()
-    diam_value = 0.05
-    diameter.x = diam_value
-    diameter.y = diam_value
-    diameter.z = diam_value
-
-    mol_list = m.mcell_add_to_species_list(x_mol_sym, False, 0, None)
-    rel_object = m.object()
-    release_object = m.mcell_create_geometrical_release_site(
-            world, scene, "X_releaser", m.SHAPE_SPHERICAL, position, diameter,
-            mol_list, 5000, 1, None, rel_object)
-    m.mcell_delete_species_list(mol_list)
+    pos_vec3 = Vector3()
+    diam_vec3 = Vector3(0.015, 0.015, 0.015)
+    # XXX: It seems to be necessary to return some or all of these objects in
+    # order to have a functioning release site even though we don't use them
+    # anywhere after this call.
+    position, diameter, release_object = create_release_site(
+            world, scene, pos_vec3, diam_vec3, m.SHAPE_SPHERICAL, 500,
+            x_mol_sym, "x_relA")
+    pos_vec3b = Vector3(0.05, 0.05, 0.00)
+    diam_vec3b = Vector3(0.025, 0.025, 0.05)
+    position2, diameter2, release_object2 = create_release_site(
+            world, scene, pos_vec3b, diam_vec3b, m.SHAPE_CUBIC, 500,
+            x_mol_sym, "x_relB")
 
     # Create box object
     verts, elems = create_box_verts_elems(0.1)
@@ -104,11 +132,11 @@ def main():
 
     # create releases using a surface class (i.e. not a release object)
     # mdl equivalent: MOLECULE_DENSITY {A' = 1000}
-    y = m.mcell_add_to_species_list(y_mol_sym, True, 1, None);
+    y = m.mcell_add_to_species_list(y_mol_sym, True, 1, None)
     smd = m.mcell_add_mol_release_to_surf_class(
-      world, sc, y, 10000, 0, None);
-    m.mcell_delete_species_list(y);
-    m.mcell_assign_surf_class_to_region(sc, test_region);
+      world, sc, y, 10000, 0, None)
+    m.mcell_delete_species_list(y)
+    m.mcell_assign_surf_class_to_region(sc, test_region)
 
     # Create viz data
     viz_list = m.mcell_add_to_species_list(x_mol_sym, False, 0, None)
