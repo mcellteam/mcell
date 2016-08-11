@@ -16,6 +16,33 @@ def create_species(world, name, D, is_2d=0):
     return species_sym
 
 
+def create_box_verts_elems(half_length):
+    hl = half_length
+    verts = m.mcell_add_to_vertex_list(hl, hl, -hl, None);
+    verts = m.mcell_add_to_vertex_list(hl, -hl, -hl, verts);
+    verts = m.mcell_add_to_vertex_list(-hl, -hl, -hl, verts);
+    verts = m.mcell_add_to_vertex_list(-hl, hl, -hl, verts);
+    verts = m.mcell_add_to_vertex_list(hl, hl, hl, verts);
+    verts = m.mcell_add_to_vertex_list(hl, -hl, hl, verts);
+    verts = m.mcell_add_to_vertex_list(-hl, -hl, hl, verts);
+    verts = m.mcell_add_to_vertex_list(-hl, hl, hl, verts);
+
+    elems = m.mcell_add_to_connection_list(1, 2, 3, None);
+    elems = m.mcell_add_to_connection_list(7, 6, 5, elems);
+    elems = m.mcell_add_to_connection_list(0, 4, 5, elems);
+    elems = m.mcell_add_to_connection_list(1, 5, 6, elems);
+    elems = m.mcell_add_to_connection_list(6, 7, 3, elems);
+    elems = m.mcell_add_to_connection_list(0, 3, 7, elems);
+    elems = m.mcell_add_to_connection_list(0, 1, 3, elems);
+    elems = m.mcell_add_to_connection_list(4, 7, 5, elems);
+    elems = m.mcell_add_to_connection_list(1, 0, 5, elems);
+    elems = m.mcell_add_to_connection_list(2, 1, 6, elems);
+    elems = m.mcell_add_to_connection_list(2, 6, 3, elems);
+    elems = m.mcell_add_to_connection_list(4, 0, 7, elems);
+
+    return (verts, elems)
+
+
 def main():
     world = m.mcell_create()
     m.mcell_init_state(world)
@@ -38,7 +65,7 @@ def main():
     position.y = pos_value
     position.z = pos_value
     diameter = m.vector3()
-    diam_value = 0.001
+    diam_value = 0.05
     diameter.x = diam_value
     diameter.y = diam_value
     diameter.z = diam_value
@@ -51,27 +78,7 @@ def main():
     m.mcell_delete_species_list(mol_list)
 
     # Create box object
-    verts = m.mcell_add_to_vertex_list(0.2, 0.2, -0.2, None);
-    verts = m.mcell_add_to_vertex_list(0.2, -0.2, -0.2, verts);
-    verts = m.mcell_add_to_vertex_list(-0.2, -0.2, -0.2, verts);
-    verts = m.mcell_add_to_vertex_list(-0.2, 0.2, -0.2, verts);
-    verts = m.mcell_add_to_vertex_list(0.2, 0.2, 0.2, verts);
-    verts = m.mcell_add_to_vertex_list(0.2, -0.2, 0.2, verts);
-    verts = m.mcell_add_to_vertex_list(-0.2, -0.2, 0.2, verts);
-    verts = m.mcell_add_to_vertex_list(-0.2, 0.2, 0.2, verts);
-
-    elems = m.mcell_add_to_connection_list(1, 2, 3, None);
-    elems = m.mcell_add_to_connection_list(7, 6, 5, elems);
-    elems = m.mcell_add_to_connection_list(0, 4, 5, elems);
-    elems = m.mcell_add_to_connection_list(1, 5, 6, elems);
-    elems = m.mcell_add_to_connection_list(6, 7, 3, elems);
-    elems = m.mcell_add_to_connection_list(0, 3, 7, elems);
-    elems = m.mcell_add_to_connection_list(0, 1, 3, elems);
-    elems = m.mcell_add_to_connection_list(4, 7, 5, elems);
-    elems = m.mcell_add_to_connection_list(1, 0, 5, elems);
-    elems = m.mcell_add_to_connection_list(2, 1, 6, elems);
-    elems = m.mcell_add_to_connection_list(2, 6, 3, elems);
-    elems = m.mcell_add_to_connection_list(4, 0, 7, elems);
+    verts, elems = create_box_verts_elems(0.1)
 
     pobj = m.poly_object()
     pobj.obj_name = "aBox"
