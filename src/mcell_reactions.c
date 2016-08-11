@@ -192,6 +192,23 @@ mcell_modify_rate_constant(
   return MCELL_SUCCESS;
 }
 
+MCELL_STATUS
+mcell_add_reaction_simplified(
+    struct volume *state, 
+    struct mcell_species *reactants,
+    struct reaction_arrow *arrow,
+    struct mcell_species *surfs,
+    struct mcell_species *products,
+    struct reaction_rates *rates) {
+
+  mcell_add_reaction(state->notify, &state->r_step_release,
+                     state->rxn_sym_table, state->radial_subdivisions,
+                     state->vacancy_search_dist2, reactants, arrow, surfs,
+                     products, NULL, rates, NULL, NULL);
+
+  return MCELL_SUCCESS;
+}
+
 /*************************************************************************
  *
  * mcell_add_reaction add a single reaction described by reaction_def to
@@ -3342,9 +3359,9 @@ int build_reaction_hash_table(
  *
  *****************************************************************************/
 struct reaction_rates mcell_create_reaction_rates(int forwardRateType,
-                                                  int forwardRateConstant,
+                                                  double forwardRateConstant,
                                                   int backwardRateType,
-                                                  int backwardRateConstant) {
+                                                  double backwardRateConstant) {
   struct reaction_rate forwardRate;
   forwardRate.rate_type = forwardRateType;
   forwardRate.v.rate_constant = forwardRateConstant;

@@ -77,6 +77,15 @@ MCELL_STATUS
 mcell_modify_rate_constant(struct volume *world, char *name, double rate);
 
 MCELL_STATUS
+mcell_add_reaction_simplified(
+    struct volume *state, 
+    struct mcell_species *reactants,
+    struct reaction_arrow *arrow,
+    struct mcell_species *surfs,
+    struct mcell_species *products,
+    struct reaction_rates *rates);
+
+MCELL_STATUS
 mcell_add_reaction(struct notifications *notify,
                    double **r_step_release,
                    struct sym_table_head *rxn_sym_table,
@@ -109,8 +118,8 @@ MCELL_STATUS mcell_change_reaction_rate(MCELL_STATE *state,
                                         double new_rate);
 
 struct reaction_rates mcell_create_reaction_rates(int forwardRateType,
-                                                  int forwardRate,
+                                                  double forwardRate,
                                                   int backwardRateType,
-                                                  int backwardRate);
+                                                  double backwardRate);
 
 #endif

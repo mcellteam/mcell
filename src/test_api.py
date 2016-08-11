@@ -8,10 +8,11 @@ class Vector3(object):
         self.z = z
 
 
-def create_species(world, name, D, is_2d=0):
+def create_species(world, name, D, is_2d):
     species_def = m.mcell_species_spec()
     species_def.name = name
     species_def.D = D
+    is_2d = 1 if is_2d else 0
     species_def.is_2d = is_2d
     species_def.custom_time_step = 0
     species_def.target_only = 0
@@ -86,8 +87,25 @@ def main():
     m.mcell_set_iterations(world, iterations)
 
     # Define a volume molecule named "x"
-    x_mol_sym = create_species(world, "x", 1e-7, 0)
-    y_mol_sym = create_species(world, "y", 1e-7, 1)
+    x_mol_sym = create_species(world, "x", 1e-7, False)
+    y_mol_sym = create_species(world, "y", 1e-7, True)
+    z_mol_sym = create_species(world, "z", 1e-7, False)
+
+    # Define reactions
+    reactants = m.mcell_add_to_species_list(x_mol_sym, True, 0, None)
+    products = m.mcell_add_to_species_list(z_mol_sym, True, 0, None);
+    surfs = m.mcell_add_to_species_list(None, False, 0, None)
+    arrow = m.reaction_arrow()
+    arrow.flags = m.REGULAR_ARROW
+    arrow.catalyst = m.mcell_species()
+    arrow.catalyst.next = None
+    arrow.catalyst.mol_type = None
+    arrow.catalyst.orient_set = 0
+    arrow.catalyst.orient = 0
+    rates = m.mcell_create_reaction_rates(
+            m.RATE_CONSTANT, 1e4, m.RATE_UNSET, 0.0)
+    m.mcell_add_reaction_simplified(
+            world, reactants, arrow, surfs, products, rates)
 
     scene = create_instance_object(world, "Scene")
 
@@ -141,6 +159,7 @@ def main():
     # Create viz data
     viz_list = m.mcell_add_to_species_list(x_mol_sym, False, 0, None)
     viz_list = m.mcell_add_to_species_list(y_mol_sym, False, 0, viz_list)
+    viz_list = m.mcell_add_to_species_list(z_mol_sym, False, 0, viz_list)
     m.mcell_create_viz_output(
             world, "./viz_data/test", viz_list, 0, iterations, 1)
 
