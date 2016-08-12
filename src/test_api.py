@@ -121,14 +121,20 @@ def main():
     m.mcell_set_iterations(world, iterations)
 
     # Define a volume molecule named "x"
-    x_mol_sym = create_species(world, "x", 1e-7, False)
-    y_mol_sym = create_species(world, "y", 1e-7, True)
-    z_mol_sym = create_species(world, "z", 1e-7, False)
+    sm1_sym = create_species(world, "sm1", 1e-6, True)
+    vm1_sym = create_species(world, "vm1", 1e-6, False)
+    vm2_sym = create_species(world, "vm2", 1e-6, False)
+    vm3_sym = create_species(world, "vm3", 1e-6, False)
 
     # Define reactions
-    reactants = m.mcell_add_to_species_list(x_mol_sym, True, 0, None)
-    products = m.mcell_add_to_species_list(z_mol_sym, True, 0, None);
-    create_reaction(world, reactants, products, 1e3)
+    # vm1 + vm2 -> vm3 [1e8]
+    reactants1 = m.mcell_add_to_species_list(vm1_sym, True, 0, None)
+    reactants1 = m.mcell_add_to_species_list(vm2_sym, True, 0, reactants1)
+    products1 = m.mcell_add_to_species_list(vm3_sym, True, 0, None);
+    create_reaction(world, reactants1, products1, 1e8)
+    # vm3 -> NULL [1e5]
+    reactants2 = m.mcell_add_to_species_list(vm3_sym, True, 0, None)
+    create_reaction(world, reactants2, None, 1e5)
 
     scene = create_instance_object(world, "Scene")
 
@@ -140,12 +146,12 @@ def main():
     # anywhere after this call.
     position, diameter, release_object = create_release_site(
             world, scene, pos_vec3, diam_vec3, m.SHAPE_SPHERICAL, 500,
-            x_mol_sym, "x_relA")
+            vm1_sym, "vm1_rel")
     pos_vec3b = Vector3(0.05, 0.05, 0.00)
     diam_vec3b = Vector3(0.025, 0.025, 0.05)
     position2, diameter2, release_object2 = create_release_site(
             world, scene, pos_vec3b, diam_vec3b, m.SHAPE_CUBIC, 500,
-            x_mol_sym, "x_relB")
+            vm2_sym, "vm2_rel")
 
     # Create box object
     verts, elems = create_box_verts_elems(0.1)
@@ -168,24 +174,24 @@ def main():
     m.mcell_set_region_elements(test_region, region_list, 1)
 
     # create surface class
-    sc_y = create_surf_class(world, "sc_release_y")
-
+    sc_sm1 = create_surf_class(world, "sc_release_y")
     # create releases using a surface class (i.e. not a release object)
-    # mdl equivalent: MOLECULE_DENSITY {y' = 1000}
-    y = m.mcell_add_to_species_list(y_mol_sym, True, 1, None)
+    # mdl equivalent: MOLECULE_DENSITY {sm1' = 1000}
+    sm1 = m.mcell_add_to_species_list(sm1_sym, True, 1, None)
     smd = m.mcell_add_mol_release_to_surf_class(
-      world, sc_y, y, 10000, 0, None)
-    # create surface class that is reflective to y
-    m.mcell_add_surf_class_properties(world, m.RFLCT, sc_y, y_mol_sym, 0)
-    # m.mcell_add_surf_class_properties(world, m.SINK, sc_y, y_mol_sym, 0)
-    m.mcell_assign_surf_class_to_region(sc_y, test_region)
+      world, sc_sm1, sm1, 10000, 0, None)
+    # create surface class that is reflective to sm1
+    m.mcell_add_surf_class_properties(world, m.RFLCT, sc_sm1, sm1_sym, 0)
+    # m.mcell_add_surf_class_properties(world, m.SINK, sc_sm1, sm1_sym, 0)
+    m.mcell_assign_surf_class_to_region(sc_sm1, test_region)
 
-    m.mcell_delete_species_list(y)
+    m.mcell_delete_species_list(sm1)
 
     # Create viz data
-    viz_list = m.mcell_add_to_species_list(x_mol_sym, False, 0, None)
-    viz_list = m.mcell_add_to_species_list(y_mol_sym, False, 0, viz_list)
-    viz_list = m.mcell_add_to_species_list(z_mol_sym, False, 0, viz_list)
+    viz_list = m.mcell_add_to_species_list(vm1_sym, False, 0, None)
+    viz_list = m.mcell_add_to_species_list(vm2_sym, False, 0, viz_list)
+    viz_list = m.mcell_add_to_species_list(vm3_sym, False, 0, viz_list)
+    viz_list = m.mcell_add_to_species_list(sm1_sym, False, 0, viz_list)
     m.mcell_create_viz_output(
             world, "./viz_data/test", viz_list, 0, iterations, 1)
 
@@ -196,7 +202,7 @@ def main():
     # mcell_create_count in mcell_react_out.i) because limits.h stuff does not
     # work well with swig.......
     # count_list = m.mcell_create_count(
-    #         world, x_mol_sym, -100, None, report_flags, None, c_list)
+    #         world, vm1_sym, -100, None, report_flags, None, c_list)
     # print("count list")
     # print(count_list)
 
