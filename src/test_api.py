@@ -28,6 +28,9 @@ def create_instance_object(world, name):
     scene_temp = m.object()
     return m.mcell_create_instance_object(world, name, scene_temp)
 
+def create_surf_class(world, name):
+    sc_temp = m.mcell_symbol()
+    return m.mcell_create_surf_class(world, name, sc_temp)
 
 def create_release_site(world, scene, pos, diam, shape, number, mol_sym, name):
     position = m.vector3()
@@ -141,20 +144,23 @@ def main():
     # XXX: Creating a region is currently required when creating mesh objects
     test_region = m.mcell_create_region(world, mesh, "reg")
     region_list = m.mcell_add_to_region_list(None, 0)
-    region_list = m.mcell_add_to_region_list(region_list, 1)
+    region_list = m.mcell_add_to_region_list(region_list, 6)
     m.mcell_set_region_elements(test_region, region_list, 1)
 
     # create surface class
-    sc_temp = m.mcell_symbol()
-    sc = m.mcell_create_surf_class(world, "SC_test", sc_temp)
+    sc_y = create_surf_class(world, "sc_release_y")
 
     # create releases using a surface class (i.e. not a release object)
-    # mdl equivalent: MOLECULE_DENSITY {A' = 1000}
+    # mdl equivalent: MOLECULE_DENSITY {y' = 1000}
     y = m.mcell_add_to_species_list(y_mol_sym, True, 1, None)
     smd = m.mcell_add_mol_release_to_surf_class(
-      world, sc, y, 10000, 0, None)
+      world, sc_y, y, 10000, 0, None)
+    # create surface class that is reflective to y
+    m.mcell_add_surf_class_properties(world, m.RFLCT, sc_y, y_mol_sym, 0)
+    # m.mcell_add_surf_class_properties(world, m.SINK, sc_y, y_mol_sym, 0)
+    m.mcell_assign_surf_class_to_region(sc_y, test_region)
+
     m.mcell_delete_species_list(y)
-    m.mcell_assign_surf_class_to_region(sc, test_region)
 
     # Create viz data
     viz_list = m.mcell_add_to_species_list(x_mol_sym, False, 0, None)
