@@ -29,7 +29,7 @@ def create_reaction(
         surfs=None, name=None):
 
     if surfs:
-        pass # XXX: need to add this bit
+        pass  # XXX: need to add this bit
     else:
         surfs = m.mcell_add_to_species_list(None, False, 0, None)
 
@@ -51,17 +51,23 @@ def create_reaction(
     arrow.catalyst.orient_set = 0
     arrow.catalyst.orient = 0
 
+    if (name):
+        name_sym = m.mcell_new_rxn_pathname(world, name)
+    else:
+        name_sym = None
     m.mcell_add_reaction_simplified(
-            world, reactants, arrow, surfs, products, rate_constant)
+            world, reactants, arrow, surfs, products, rate_constant, name_sym)
 
 
 def create_instance_object(world, name):
     scene_temp = m.object()
     return m.mcell_create_instance_object(world, name, scene_temp)
 
+
 def create_surf_class(world, name):
     sc_temp = m.mcell_symbol()
     return m.mcell_create_surf_class(world, name, sc_temp)
+
 
 def create_release_site(world, scene, pos, diam, shape, number, mol_sym, name):
     position = m.vector3()
@@ -75,8 +81,7 @@ def create_release_site(world, scene, pos, diam, shape, number, mol_sym, name):
 
     mol_list = m.mcell_add_to_species_list(mol_sym, False, 0, None)
     rel_object = m.object()
-    # release_site_name = "X_releaser" # This should derive from the mol_sym name
-    release_site_name = name # This should derive from the mol_sym name
+    release_site_name = name  # This should derive from the mol_sym name
     release_object = m.mcell_create_geometrical_release_site(
             world, scene, release_site_name, shape, position, diameter,
             mol_list, number, 1, None, rel_object)
@@ -130,11 +135,11 @@ def main():
     # vm1 + vm2 -> vm3 [1e8]
     reactants1 = m.mcell_add_to_species_list(vm1_sym, True, 0, None)
     reactants1 = m.mcell_add_to_species_list(vm2_sym, True, 0, reactants1)
-    products1 = m.mcell_add_to_species_list(vm3_sym, True, 0, None);
+    products1 = m.mcell_add_to_species_list(vm3_sym, True, 0, None)
     create_reaction(world, reactants1, products1, 1e8)
     # vm3 -> NULL [1e5]
     reactants2 = m.mcell_add_to_species_list(vm3_sym, True, 0, None)
-    create_reaction(world, reactants2, None, 1e5)
+    create_reaction(world, reactants2, None, 0.01, name="rxn")
 
     scene = create_instance_object(world, "Scene")
 
@@ -162,7 +167,7 @@ def main():
     pobj.num_vert = 8
     pobj.connections = elems
     pobj.num_conn = 12
-    
+
     mesh_temp = m.object()
     mesh = m.mcell_create_poly_object(world, scene, pobj, mesh_temp)
 
@@ -225,7 +230,13 @@ def main():
 
     m.mcell_init_simulation(world)
     m.mcell_init_output(world)
-    m.mcell_run_simulation(world)
+
+    output_freq = 10
+    for i in range((iterations/2)+1):
+        m.mcell_run_iteration(world, output_freq, 0)
+    m.mcell_modify_rate_constant(world, "rxn", 1e6)
+    for i in range((iterations/2)+1):
+        m.mcell_run_iteration(world, output_freq, 0)
 
 if __name__ == "__main__":
     main()

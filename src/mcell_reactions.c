@@ -199,12 +199,13 @@ mcell_add_reaction_simplified(
     struct reaction_arrow *arrow,
     struct mcell_species *surfs,
     struct mcell_species *products,
-    struct reaction_rates *rates) {
+    struct reaction_rates *rates,
+    struct sym_entry *pathname) {
 
   mcell_add_reaction(state->notify, &state->r_step_release,
                      state->rxn_sym_table, state->radial_subdivisions,
                      state->vacancy_search_dist2, reactants, arrow, surfs,
-                     products, NULL, rates, NULL, NULL);
+                     products, pathname, rates, NULL, NULL);
 
   return MCELL_SUCCESS;
 }
@@ -3502,4 +3503,21 @@ int load_rate_file(double time_unit, struct mem_helper *tv_rxn_mem,
     fclose(f);
   }
   return 0;
+}
+
+struct sym_entry *mcell_new_rxn_pathname(struct volume *state, char *name) {
+  if ((retrieve_sym(name, state->rxpn_sym_table)) != NULL) {
+    mcell_log("Named reaction pathway already defined: %s", name);
+    return NULL;
+  } else if ((retrieve_sym(name, state->mol_sym_table)) != NULL) {
+    mcell_log("Named reaction pathway already defined as a molecule: %s", name);
+    return NULL;
+  }
+
+  struct sym_entry *symp = store_sym(name, RXPN, state->rxpn_sym_table, NULL);
+  if (symp == NULL) {
+    mcell_log("Out of memory while creating reaction name: %s", name);
+    return NULL;
+  }
+  return symp;
 }

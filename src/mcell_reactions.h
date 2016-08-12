@@ -83,7 +83,8 @@ mcell_add_reaction_simplified(
     struct reaction_arrow *arrow,
     struct mcell_species *surfs,
     struct mcell_species *products,
-    struct reaction_rates *rates);
+    struct reaction_rates *rates,
+    struct sym_entry *pathname);
 
 MCELL_STATUS
 mcell_add_reaction(struct notifications *notify,
@@ -121,5 +122,7 @@ struct reaction_rates mcell_create_reaction_rates(int forwardRateType,
                                                   double forwardRate,
                                                   int backwardRateType,
                                                   double backwardRate);
+
+struct sym_entry *mcell_new_rxn_pathname(struct volume *state, char *name);
 
 #endif
