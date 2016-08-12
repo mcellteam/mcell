@@ -24,6 +24,37 @@ def create_species(world, name, D, is_2d):
     return species_sym
 
 
+def create_reaction(
+        world, reactants, products, rate_constant, backward_rate_constant=None,
+        surfs=None, name=None):
+
+    if surfs:
+        pass # XXX: need to add this bit
+    else:
+        surfs = m.mcell_add_to_species_list(None, False, 0, None)
+
+    arrow = m.reaction_arrow()
+    # reversible reaction e.g. A<->B
+    if backward_rate_constant:
+        arrow.flags = m.ARROW_BIDIRECTIONAL
+        rate_constant = m.mcell_create_reaction_rates(
+                m.RATE_CONSTANT, rate_constant, m.RATE_CONSTANT,
+                backward_rate_constant)
+    # irreversible reaction e.g. A->B
+    else:
+        arrow.flags = m.REGULAR_ARROW
+        rate_constant = m.mcell_create_reaction_rates(
+                m.RATE_CONSTANT, rate_constant, m.RATE_UNSET, 0)
+    arrow.catalyst = m.mcell_species()
+    arrow.catalyst.next = None
+    arrow.catalyst.mol_type = None
+    arrow.catalyst.orient_set = 0
+    arrow.catalyst.orient = 0
+
+    m.mcell_add_reaction_simplified(
+            world, reactants, arrow, surfs, products, rate_constant)
+
+
 def create_instance_object(world, name):
     scene_temp = m.object()
     return m.mcell_create_instance_object(world, name, scene_temp)
@@ -97,18 +128,7 @@ def main():
     # Define reactions
     reactants = m.mcell_add_to_species_list(x_mol_sym, True, 0, None)
     products = m.mcell_add_to_species_list(z_mol_sym, True, 0, None);
-    surfs = m.mcell_add_to_species_list(None, False, 0, None)
-    arrow = m.reaction_arrow()
-    arrow.flags = m.REGULAR_ARROW
-    arrow.catalyst = m.mcell_species()
-    arrow.catalyst.next = None
-    arrow.catalyst.mol_type = None
-    arrow.catalyst.orient_set = 0
-    arrow.catalyst.orient = 0
-    rates = m.mcell_create_reaction_rates(
-            m.RATE_CONSTANT, 1e4, m.RATE_UNSET, 0.0)
-    m.mcell_add_reaction_simplified(
-            world, reactants, arrow, surfs, products, rates)
+    create_reaction(world, reactants, products, 1e3)
 
     scene = create_instance_object(world, "Scene")
 
