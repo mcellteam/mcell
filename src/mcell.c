@@ -38,6 +38,20 @@
     }                                                                          \
   }
 
+#include <unistd.h>
+#include <signal.h>
+
+
+struct volume *the_world=NULL;  // This is currently needed to communicate with the signal handler
+
+void pipe_signal_handler ( int signal_number ) {
+  fprintf ( stderr, "Caught signal %d\n", signal_number );
+  if (signal_number == SIGINT) {
+      the_world->pipe_wait = 0;
+  }
+}
+
+
 int main(int argc, char **argv) {
   u_int procnum = 0;
 
@@ -77,6 +91,16 @@ int main(int argc, char **argv) {
 
   CHECKED_CALL_EXIT(mcell_init_output(state),
                     "An error occured during setting up of output.");
+
+  if (state->pipe_mode) {
+      the_world = state; // Set up communication with the signal handler
+      signal ( SIGINT,  pipe_signal_handler );
+      fprintf ( stderr, "Signal handler set\n" );
+      while (state->pipe_wait) {
+          fprintf ( stderr, "  MCell waiting for start command...\n" );
+      }
+      fprintf ( stderr, "MCell got start command!!\n" );
+  }
 
   CHECKED_CALL_EXIT(mcell_run_simulation(state),
                     "Error running mcell simulation.");

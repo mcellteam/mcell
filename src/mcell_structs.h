@@ -1169,6 +1169,8 @@ struct volume {
 
   int procnum;          /* Processor number for a parallel run */
   int quiet_flag;       /* Quiet mode */
+  int pipe_mode;        /* Pipe mode */
+  int pipe_wait;        /* Waiting for a pipe command */
   int with_checks_flag; /* Check geometry for overlapped walls? */
 
   struct mem_helper *coll_mem;     /* Collision list */

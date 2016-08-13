@@ -62,6 +62,7 @@ static struct option long_options[] = { { "help", 0, 0, 'h' },
                                         { "errfile", 1, 0, 'e' },
                                         { "quiet", 0, 0, 'q' },
                                         { "with_checks", 1, 0, 'w' },
+                                        { "pipe", 0, 0, 'p' },
                                         { NULL, 0, 0, 0 } };
 
 /* print_usage: Write the usage message for mcell to a file handle.
@@ -76,22 +77,17 @@ void print_usage(FILE *f, char const *argv0) {
       "  options:\n"
       "     [-help]                  print this help message\n"
       "     [-version]               print the program version and exit\n"
-      "     [-fullversion]           print the detailed program version report "
-      "and exit\n"
-      "     [-seed n]                choose random sequence number "
-      "(default: 1)\n"
+      "     [-fullversion]           print the detailed program version report and exit\n"
+      "     [-seed n]                choose random sequence number (default: 1)\n"
       "     [-iterations n]          override iterations in mdl_file_name\n"
-      "     [-logfile log_file_name] send output log to file "
-      "(default: stdout)\n"
+      "     [-logfile log_file_name] send output log to file (default: stdout)\n"
       "     [-logfreq n]             output log frequency\n"
-      "     [-errfile err_file_name] send errors log to file "
-      "(default: stderr)\n"
+      "     [-errfile err_file_name] send errors log to file (default: stderr)\n"
       "     [-checkpoint_infile checkpoint_file_name]   read checkpoint file\n"
       "     [-checkpoint_outfile checkpoint_file_name]  write checkpoint file\n"
-      "     [-quiet]                 suppress all unrequested output except "
-      "for errors\n"
-      "     [-with_checks ('yes'/'no', default 'yes')]   performs check of the "
-      "geometry for coincident walls\n"
+      "     [-quiet]                 suppress all unrequested output except for errors\n"
+      "     [-pipe]                  communicate real-time data via pipes and signals\n"
+      "     [-with_checks ('yes'/'no', default 'yes')]   performs check of the geometry for coincident walls\n"
       "\n");
 }
 
@@ -115,6 +111,8 @@ static void argerror(char const *fmt, ...) {
   mcell_error_raw("%s", error_msg);
   mcell_error_raw("\n");
 }
+
+
 
 /* argparse_init: Parse the command-line arguments, imbuing the options into
  *                'vol'.
@@ -157,6 +155,13 @@ int argparse_init(int argc, char *const argv[], struct volume *vol) {
 
     case 'q': /* -quiet */
       vol->quiet_flag = 1;
+      break;
+
+    case 'p': /* -pipe */
+      fprintf ( stdout, "\nUsing pipes!!\n\n" );
+      vol->quiet_flag = 1;
+      vol->pipe_mode = 1;
+      vol->pipe_wait = 1;
       break;
 
     case 'w': /* walls coincidence check (maybe other checks in future) */
