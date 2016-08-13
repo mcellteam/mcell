@@ -268,6 +268,21 @@ static int print_molecule_collision_report(
   return 0;
 }
 
+
+#include <unistd.h>
+#include <signal.h>
+
+
+struct volume *the_world=NULL;  // This is currently needed to communicate with the signal handler
+
+void pipe_signal_handler ( int signal_number ) {
+  fprintf ( stderr, "Caught signal %d\n", signal_number );
+  if (signal_number == SIGINT) {
+      the_world->pipe_wait = 0;
+  }
+}
+
+
 /***********************************************************************
  run_sim:
 
@@ -291,14 +306,30 @@ mcell_run_simulation(MCELL_STATE *world) {
     restarted_from_checkpoint = 1;
   }
 
+  if (world->pipe_mode) {
+      the_world = world; // Set up communication with the signal handler
+      signal ( SIGINT,  pipe_signal_handler );
+      fprintf ( stderr, "Signal handler set\n" );
+  }
+
   long long frequency = mcell_determine_output_frequency(world);
   int status = 0;
   while (world->current_iterations <= world->iterations) {
+
+    if (world->pipe_mode) {
+        while (world->pipe_wait) {
+            long i = world->current_iterations;
+            fprintf ( stderr, "  MCell at iteration %ld, waiting for next command...\n", i );
+            sleep(1);
+        }
+        fprintf ( stderr, "MCell got 'go' command!!\n" );
+        world->pipe_wait = 1;
+    }
+
     // XXX: A return status of 1 from mcell_run_iterations does not
     // indicate an error but is used to break out of the loop.
     // This behavior is non-conformant and should be changed.
-    if (mcell_run_iteration(world, frequency, &restarted_from_checkpoint) ==
-        1) {
+    if (mcell_run_iteration(world, frequency, &restarted_from_checkpoint) == 1) {
       break;
     }
   }
