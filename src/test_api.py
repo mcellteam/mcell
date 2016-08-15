@@ -217,7 +217,7 @@ def main():
     os = m.output_set()
     os = m.mcell_create_new_output_set(
         None, 0, count_list.column_head, m.FILE_SUBSTITUTE,
-        "react_data/foobar.dat")
+        "react_data/vm1_cube.dat")
     print("os")
     print(os)
 
@@ -247,8 +247,8 @@ def main():
 
     osT = m.output_set()
     osT = m.mcell_create_new_output_set(
-        None, 0, count_list.column_head, m.FILE_SUBSTITUTE,
-        "react_data/foobar.dat")
+        None, 0, count_listT.column_head, m.FILE_SUBSTITUTE,
+        "react_data/sm1_reg.dat")
 
     outTimesT = m.output_times_inlist()
     outTimesT.type = m.OUTPUT_BY_STEP
@@ -270,7 +270,7 @@ def main():
     osW = m.output_set()
     osW = m.mcell_create_new_output_set(
         None, 0, count_listW.column_head, m.FILE_SUBSTITUTE,
-        "react_data/foobar.dat")
+        "react_data/vm1_world.dat")
 
     outTimesW = m.output_times_inlist()
     outTimesW.type = m.OUTPUT_BY_STEP
