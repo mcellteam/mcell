@@ -51,6 +51,12 @@ add_custom_command(
   DEPENDS ${CMAKE_SOURCE_DIR}/src/version.sh
   VERBATIM)
 
+#add_custom_command(
+#  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/deps/libmcell_test.h
+#  COMMAND ${CMAKE_SOURCE_DIR}/src/version.sh > ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h
+#  DEPENDS ${CMAKE_SOURCE_DIR}/src/version.sh
+#  VERBATIM)
+
 # check for needed libraries
 find_library(M_LIB m)
 
@@ -81,7 +87,6 @@ set(SOURCE_FILES
     src/isaac64.h
     src/logging.c
     src/logging.h
-    src/mcell.c
     src/mcell_init.c
     src/mcell_init.h
     src/mcell_misc.c
@@ -175,6 +180,16 @@ SWIG_LINK_LIBRARIES(mcellSwig ${PYTHON_LIBRARIES})
 add_executable(mcell
   ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h
   ${SOURCE_FILES}
+  src/mcell.c
   ${BISON_mdlParser_OUTPUTS}
   ${FLEX_mdlScanner_OUTPUTS})
 target_link_libraries(mcell ${M_LIB})
+
+# build little libmcell test
+add_executable(libmcell_test
+  ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h
+  ${SOURCE_FILES}
+  src/libmcell_test.c
+  ${BISON_mdlParser_OUTPUTS}
+  ${FLEX_mdlScanner_OUTPUTS})
+target_link_libraries(libmcell_test ${M_LIB})
