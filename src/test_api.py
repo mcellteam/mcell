@@ -174,8 +174,6 @@ def main():
     # Create surface region on the box consisting of two triangles
     # XXX: Creating a region is currently required when creating mesh objects
     test_region = m.mcell_create_region(world, mesh, "reg")
-    print("test_region")
-    print (test_region)
     region_list = m.mcell_add_to_region_list(None, 0)
     region_list = m.mcell_add_to_region_list(region_list, 6)
     m.mcell_set_region_elements(test_region, region_list, 1)
@@ -227,14 +225,14 @@ def main():
     outTimes = m.output_times_inlist()
     outTimes.type = m.OUTPUT_BY_STEP
     outTimes.step = 1e-5
-    print("outTimes")
-    print(outTimes)
+    # print("outTimes")
+    # print(outTimes)
 
     output = m.output_set_list()
     output.set_head = os
     output.set_tail = os
-    print("output")
-    print(output)
+    # print("output")
+    # print(output)
 
     m.mcell_add_reaction_output_block(world, output, 10000, outTimes)
 
@@ -245,70 +243,50 @@ def main():
     # mcell_create_count in mcell_react_out.i) because limits.h stuff does not
     # work well with swig.......
     whereT = m.mcell_get_reg_sym(test_region)
-    print("whereT")
-    print(whereT)
     count_listT = m.mcell_create_count(
             world, sm1_sym, -100, whereT, report_flagsT, None, c_listT)
-    # print("count list")
-    # print(count_list)
 
 
     osT = m.output_set()
     osT = m.mcell_create_new_output_set(
         None, 0, count_list.column_head, m.FILE_SUBSTITUTE,
         "react_data/foobar.dat")
-    print("osT")
-    print(osT)
 
     outTimesT = m.output_times_inlist()
     outTimesT.type = m.OUTPUT_BY_STEP
     outTimesT.step = 1e-5
-    print("outTimesT")
-    print(outTimesT)
 
     outputT = m.output_set_list()
     outputT.set_head = osT
     outputT.set_tail = osT
-    print("outputT")
-    print(outputT)
 
     m.mcell_add_reaction_output_block(world, outputT, 10000, outTimesT)
 
 
-    """
     # Create reaction data for WORLD
-    report_flags = m.REPORT_CONTENTS
+    report_flags = m.REPORT_WORLD | m.REPORT_CONTENTS
     c_list = m.output_column_list()
-    print("1")
-    whereW = m.mcell_get_obj_sym(None)
-    print("2")
-    print("whereW")
-    print(whereW)
-    print("3")
-    count_list = m.mcell_create_count(
-            world, vm1_sym, -100, whereW, report_flags, None, c_list)
-
+    
+    count_listW = m.mcell_create_count(
+            world, vm1_sym, -100, None, report_flags, None, c_list)
+    
     osW = m.output_set()
     osW = m.mcell_create_new_output_set(
-        None, 0, count_list.column_head, m.FILE_SUBSTITUTE,
+        None, 0, count_listW.column_head, m.FILE_SUBSTITUTE,
         "react_data/foobar.dat")
-    print("osW")
-    print(osW)
 
     outTimesW = m.output_times_inlist()
     outTimesW.type = m.OUTPUT_BY_STEP
     outTimesW.step = 1e-5
-    print("outTimesW")
-    print(outTimesW)
 
     outputW = m.output_set_list()
     outputW.set_head = osW
     outputW.set_tail = osW
-    print("outputW")
-    print(outputW)
 
     m.mcell_add_reaction_output_block(world, outputW, 10000, outTimesW)
-    """
+   
+
+ 
     m.mcell_init_simulation(world)
     m.mcell_init_output(world)
 
