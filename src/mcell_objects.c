@@ -1246,3 +1246,7 @@ struct sym_entry *
 mcell_get_obj_sym(struct object *obj) {
   return obj->sym;
 }
+struct sym_entry *
+mcell_get_reg_sym(struct region *reg) {
+  return reg->sym;
+}

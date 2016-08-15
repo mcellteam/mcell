@@ -121,3 +121,4 @@ int check_patch(struct subdivided_box *b, struct vector3 *p1,
                 struct vector3 *p2, double egd);
 
 struct sym_entry *mcell_get_obj_sym(struct object *obj);
+struct sym_entry *mcell_get_reg_sym(struct region *reg);
