@@ -170,6 +170,9 @@ SWIG_ADD_MODULE(mcellSwig python
   src/volume_output.c)
 SWIG_LINK_LIBRARIES(mcellSwig ${PYTHON_LIBRARIES})
 
+# copy the pyMCell test script into place
+file(COPY ${CMAKE_SOURCE_DIR}/src/test_api.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+
 # build executable
 add_executable(mcell
   ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h
