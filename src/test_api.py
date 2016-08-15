@@ -214,7 +214,6 @@ def main():
     # print("count list")
     # print(count_list)
 
-
     os = m.output_set()
     os = m.mcell_create_new_output_set(
         None, 0, count_list.column_head, m.FILE_SUBSTITUTE,
@@ -246,7 +245,6 @@ def main():
     count_listT = m.mcell_create_count(
             world, sm1_sym, -100, whereT, report_flagsT, None, c_listT)
 
-
     osT = m.output_set()
     osT = m.mcell_create_new_output_set(
         None, 0, count_list.column_head, m.FILE_SUBSTITUTE,
@@ -262,14 +260,13 @@ def main():
 
     m.mcell_add_reaction_output_block(world, outputT, 10000, outTimesT)
 
-
     # Create reaction data for WORLD
     report_flags = m.REPORT_WORLD | m.REPORT_CONTENTS
     c_list = m.output_column_list()
-    
+
     count_listW = m.mcell_create_count(
             world, vm1_sym, -100, None, report_flags, None, c_list)
-    
+
     osW = m.output_set()
     osW = m.mcell_create_new_output_set(
         None, 0, count_listW.column_head, m.FILE_SUBSTITUTE,
@@ -284,9 +281,7 @@ def main():
     outputW.set_tail = osW
 
     m.mcell_add_reaction_output_block(world, outputW, 10000, outTimesW)
-   
 
- 
     m.mcell_init_simulation(world)
     m.mcell_init_output(world)
 
