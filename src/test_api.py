@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import mcellSwig as m
 
 
@@ -7,6 +9,7 @@ class Vector3(object):
         self.y = y
         self.z = z
 
+
 def create_count(world, where, mol_sym, file_path):
     report_flags = m.REPORT_CONTENTS
     c_list = m.output_column_list()
@@ -14,7 +17,8 @@ def create_count(world, where, mol_sym, file_path):
     # mcell_create_count in mcell_react_out.i) because limits.h does not work
     # well with swig
     count_list = m.mcell_create_count(
-            world, mol_sym, m.ORIENT_NOT_SET, where, report_flags, None, c_list)
+            world, mol_sym, m.ORIENT_NOT_SET, where, report_flags, None,
+            c_list)
 
     os = m.output_set()
     os = m.mcell_create_new_output_set(
