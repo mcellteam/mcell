@@ -111,4 +111,5 @@ int cuboid_patch_to_bits(struct subdivided_box *subd_box, struct vector3 *v1,
 
 int check_patch(struct subdivided_box *b, struct vector3 *p1,
                 struct vector3 *p2, double egd);
+struct sym_entry *mcell_get_obj_sym(struct object *obj);
 #endif

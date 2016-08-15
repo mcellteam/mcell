@@ -1242,4 +1242,7 @@ int is_region_degenerate(struct region *reg_ptr) {
   return 1;
 }
 
-
+struct sym_entry *
+mcell_get_obj_sym(struct object *obj) {
+  return obj->sym;
+}

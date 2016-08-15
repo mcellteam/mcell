@@ -56,6 +56,7 @@ enum overwrite_policy_t {
 
 /* And finally we have some flags to say whether we're to count over */
 /* the entire world or the volume enclosed by a region (set only one) */
+#define REPORT_CONTENTS 1
 #define REPORT_WORLD 0x20
 #define REPORT_ENCLOSED 0x40
 #define REPORT_TRIGGER 0x80
@@ -76,4 +77,36 @@ struct output_set {
   struct output_column *column_head; /* Data for one output column */
 };
 
+/* Data Output Timing Type */
+/* Reaction and Viz data output timing */
+enum output_timer_type_t {
+  OUTPUT_BY_STEP,
+  OUTPUT_BY_TIME_LIST,
+  OUTPUT_BY_ITERATION_LIST,
+};
 
+/* Symbol hash table */
+/* Used to parse and store user defined symbols from the MDL input file */
+struct sym_table_head {
+  struct sym_entry **entries;
+  int n_entries;
+  int n_bins;
+};
+
+/* Symbol hash table entry */
+/* Used to parse and store user defined symbols from the MDL input file */
+struct sym_entry {
+  struct sym_entry *next; /* Chain to next symbol in this bin of the hash */
+  int sym_type;           /* Symbol Type */
+  char *name;             /* Name of symbol*/
+  void *value;            /* Stored value, cast by sym_type */
+};
+
+/* Linked list of symbols */
+/* Used to parse and retrieve user defined symbols having wildcards from the
+ * MDL input file */
+struct sym_table_list {
+  struct sym_table_list *next;
+  struct sym_entry *node; /* Symbol table entry matching a user input wildcard
+                             string */
+};

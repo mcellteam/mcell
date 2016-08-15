@@ -201,24 +201,24 @@ def main():
             world, "./viz_data/test", viz_list, 0, iterations, 1)
 
     # Create reaction data
-    report_flags = m.REPORT_WORLD
+    report_flags = m.REPORT_CONTENTS
     c_list = m.output_column_list()
     # -100 is in the place of ORIENT_NOT_SET (used typemap for
     # mcell_create_count in mcell_react_out.i) because limits.h stuff does not
     # work well with swig.......
-    # count_list = m.mcell_create_count(
-    #         world, vm1_sym, -100, None, report_flags, None, c_list)
+    where = m.mcell_get_obj_sym(mesh)
+    count_list = m.mcell_create_count(
+            world, vm1_sym, -100, where, report_flags, None, c_list)
     # print("count list")
     # print(count_list)
 
-    """
     os = m.output_set()
     os = m.mcell_create_new_output_set(
         None, 0, count_list.column_head, m.FILE_SUBSTITUTE,
         "react_data/foobar.dat")
 
     outTimes = m.output_times_inlist()
-    outTimes.type = OUTPUT_BY_STEP
+    outTimes.type = m.OUTPUT_BY_STEP
     outTimes.step = 1e-5
 
     output = m.output_set_list()
@@ -226,7 +226,6 @@ def main():
     output.set_tail = os
 
     m.mcell_add_reaction_output_block(world, output, 10000, outTimes)
-    """
 
     m.mcell_init_simulation(world)
     m.mcell_init_output(world)
