@@ -29,7 +29,6 @@
 #include "mcell_misc.h"
 #include "mcell_run.h"
 #include "init.h"
-//#include "api_test.h"
 
 #define CHECKED_CALL_EXIT(function, error_message)                             \
   {                                                                            \
@@ -63,9 +62,6 @@ int main(int argc, char **argv) {
     mcell_print_version();
   }
 
-  // test_api(state);
-
-  // Comment out MDL parsing when testing the API
   CHECKED_CALL_EXIT(parse_input(state),
                     "An error occured during parsing of the mdl file.");
 
