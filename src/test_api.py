@@ -7,6 +7,31 @@ class Vector3(object):
         self.y = y
         self.z = z
 
+def create_count(world, where, mol_sym, file_path):
+    report_flags = m.REPORT_CONTENTS
+    c_list = m.output_column_list()
+    # XXX: -100 is in the place of ORIENT_NOT_SET (used typemap for
+    # mcell_create_count in mcell_react_out.i) because limits.h does not work
+    # well with swig
+    count_list = m.mcell_create_count(
+            world, mol_sym, m.ORIENT_NOT_SET, where, report_flags, None, c_list)
+
+    os = m.output_set()
+    os = m.mcell_create_new_output_set(
+        None, 0, count_list.column_head, m.FILE_SUBSTITUTE, file_path)
+
+    out_times = m.output_times_inlist()
+    out_times.type = m.OUTPUT_BY_STEP
+    out_times.step = 1e-5
+
+    output = m.output_set_list()
+    output.set_head = os
+    output.set_tail = os
+
+    m.mcell_add_reaction_output_block(world, output, 10000, out_times)
+
+    return (count_list, os, out_times, output)
+
 
 def create_species(world, name, D, is_2d):
     species_def = m.mcell_species_spec()
@@ -201,86 +226,14 @@ def main():
             world, "./viz_data/test", viz_list, 0, iterations, 1)
 
     # Create reaction data
-    report_flags = m.REPORT_CONTENTS
-    c_list = m.output_column_list()
-    # -100 is in the place of ORIENT_NOT_SET (used typemap for
-    # mcell_create_count in mcell_react_out.i) because limits.h stuff does not
-    # work well with swig.......
-    where = m.mcell_get_obj_sym(mesh)
-    print("mesh")
-    print(mesh)
-    count_list = m.mcell_create_count(
-            world, vm1_sym, -100, where, report_flags, None, c_list)
-    # print("count list")
-    # print(count_list)
-
-    os = m.output_set()
-    os = m.mcell_create_new_output_set(
-        None, 0, count_list.column_head, m.FILE_SUBSTITUTE,
-        "react_data/vm1_cube.dat")
-    print("os")
-    print(os)
-
-    outTimes = m.output_times_inlist()
-    outTimes.type = m.OUTPUT_BY_STEP
-    outTimes.step = 1e-5
-    # print("outTimes")
-    # print(outTimes)
-
-    output = m.output_set_list()
-    output.set_head = os
-    output.set_tail = os
-    # print("output")
-    # print(output)
-
-    m.mcell_add_reaction_output_block(world, output, 10000, outTimes)
-
-    # Create reaction data for specific region
-    report_flagsT = m.REPORT_CONTENTS
-    c_listT = m.output_column_list()
-    # -100 is in the place of ORIENT_NOT_SET (used typemap for
-    # mcell_create_count in mcell_react_out.i) because limits.h stuff does not
-    # work well with swig.......
-    whereT = m.mcell_get_reg_sym(test_region)
-    count_listT = m.mcell_create_count(
-            world, sm1_sym, -100, whereT, report_flagsT, None, c_listT)
-
-    osT = m.output_set()
-    osT = m.mcell_create_new_output_set(
-        None, 0, count_listT.column_head, m.FILE_SUBSTITUTE,
-        "react_data/sm1_reg.dat")
-
-    outTimesT = m.output_times_inlist()
-    outTimesT.type = m.OUTPUT_BY_STEP
-    outTimesT.step = 1e-5
-
-    outputT = m.output_set_list()
-    outputT.set_head = osT
-    outputT.set_tail = osT
-
-    m.mcell_add_reaction_output_block(world, outputT, 10000, outTimesT)
-
-    # Create reaction data for WORLD
-    report_flags = m.REPORT_WORLD | m.REPORT_CONTENTS
-    c_list = m.output_column_list()
-
-    count_listW = m.mcell_create_count(
-            world, vm1_sym, -100, None, report_flags, None, c_list)
-
-    osW = m.output_set()
-    osW = m.mcell_create_new_output_set(
-        None, 0, count_listW.column_head, m.FILE_SUBSTITUTE,
-        "react_data/vm1_world.dat")
-
-    outTimesW = m.output_times_inlist()
-    outTimesW.type = m.OUTPUT_BY_STEP
-    outTimesW.step = 1e-5
-
-    outputW = m.output_set_list()
-    outputW.set_head = osW
-    outputW.set_tail = osW
-
-    m.mcell_add_reaction_output_block(world, outputW, 10000, outTimesW)
+    mesh_sym = m.mcell_get_obj_sym(mesh)
+    count_list1, os1, out_times1, output1 = create_count(
+            world, mesh_sym, vm1_sym, "react_data/vm1_cube.dat")
+    reg_sym = m.mcell_get_reg_sym(test_region)
+    count_list2, os2, out_times2, output2 = create_count(
+            world, reg_sym, sm1_sym, "react_data/sm1_reg.dat")
+    count_list3, os3, out_times3, output3 = create_count(
+            world, None, vm1_sym, "react_data/vm1_world.dat")
 
     m.mcell_init_simulation(world)
     m.mcell_init_output(world)
