@@ -23,13 +23,9 @@
 /* this function runs the whole simulations */
 MCELL_STATUS mcell_run_simulation(MCELL_STATE *state);
 
-%typemap(in) int *restarted_from_checkpoint (int temp) {
-  $1 = &temp;
-}
-
 /* this function runs a single iteration of simulations */
 MCELL_STATUS mcell_run_iteration(MCELL_STATE *state, long long output_frequency,
-                                 int *restarted_from_checkpoint);
+                                 int *INPUT);
 
 /* flush all output buffers to disk to disk after the simulation
  * run is complete */
