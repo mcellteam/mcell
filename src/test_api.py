@@ -170,7 +170,8 @@ def main():
     reactants2 = m.mcell_add_to_species_list(vm3_sym, False, 0, None)
     create_reaction(world, reactants2, None, 0.01, name="rxn")
 
-    scene = create_instance_object(world, "Scene")
+    scene_name = "Scene"
+    scene = create_instance_object(world, scene_name)
 
     # Create a spherical release site
     pos_vec3 = Vector3()
@@ -191,7 +192,8 @@ def main():
     verts, elems = create_box_verts_elems(0.1)
 
     pobj = m.poly_object()
-    pobj.obj_name = "aBox"
+    obj_name = "Cube"
+    pobj.obj_name = obj_name
     pobj.vertices = verts
     pobj.num_vert = 8
     pobj.connections = elems
@@ -238,16 +240,25 @@ def main():
             world, reg_sym, sm1_sym, "react_data/sm1_reg.dat")
     count_list3, os3, out_times3, output3 = create_count(
             world, None, vm1_sym, "react_data/vm1_world.dat")
+    count_list4, os4, out_times4, output4 = create_count(
+            world, mesh_sym, vm3_sym, "react_data/vm3_cube.dat")
 
     m.mcell_init_simulation(world)
     m.mcell_init_output(world)
 
     output_freq = 10
-    for i in range((iterations/2)+1):
+    for i in range(iterations):
+        vm3_count = m.mcell_get_count(
+                "vm3", "%s.%s,ALL" % (scene_name, obj_name), world)
+        # When vm3 hits some arbitrary threshold value (i.e. 150), ramp up the
+        # rate constant of vm3->NULL. This is just a simple test, but we'll
+        # need to do something analagous when interfacing with pyNEURON.
+        if (vm3_count > 150): 
+            m.mcell_modify_rate_constant(world, "rxn", 1e8)
         m.mcell_run_iteration(world, output_freq, 0)
-    m.mcell_modify_rate_constant(world, "rxn", 1e6)
-    for i in range((iterations/2)+1):
-        m.mcell_run_iteration(world, output_freq, 0)
+    m.mcell_flush_data(world)
+    # m.mcell_print_final_warnings(world)
+    # m.mcell_print_final_statistics(world)
 
 if __name__ == "__main__":
     main()

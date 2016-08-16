@@ -120,8 +120,8 @@ int mcell_get_count(	char *nameM,
   int mol_count_sur = world->count_hash[hash_bin]->data.move.n_at;
 
   // Print the values - DEBUGGING
-  mcell_log("molecule count in= %i\n",mol_count_vol);
-  mcell_log("molecule count on= %i\n",mol_count_sur);
+  /*mcell_log("molecule count in= %i\n",mol_count_vol);*/
+  /*mcell_log("molecule count on= %i\n",mol_count_sur);*/
 
   return mol_count_vol + mol_count_sur;
 
