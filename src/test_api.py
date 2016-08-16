@@ -162,12 +162,12 @@ def main():
 
     # Define reactions
     # vm1 + vm2 -> vm3 [1e8]
-    reactants1 = m.mcell_add_to_species_list(vm1_sym, True, 0, None)
-    reactants1 = m.mcell_add_to_species_list(vm2_sym, True, 0, reactants1)
-    products1 = m.mcell_add_to_species_list(vm3_sym, True, 0, None)
+    reactants1 = m.mcell_add_to_species_list(vm1_sym, False, 0, None)
+    reactants1 = m.mcell_add_to_species_list(vm2_sym, False, 0, reactants1)
+    products1 = m.mcell_add_to_species_list(vm3_sym, False, 0, None)
     create_reaction(world, reactants1, products1, 1e8)
     # vm3 -> NULL [1e5]
-    reactants2 = m.mcell_add_to_species_list(vm3_sym, True, 0, None)
+    reactants2 = m.mcell_add_to_species_list(vm3_sym, False, 0, None)
     create_reaction(world, reactants2, None, 0.01, name="rxn")
 
     scene = create_instance_object(world, "Scene")
