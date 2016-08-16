@@ -9,7 +9,7 @@ class Vector3(object):
         self.y = y
         self.z = z
 
-
+"""
 def create_count(world, where, mol_sym, file_path):
     report_flags = m.REPORT_CONTENTS
     c_list = m.output_column_list()
@@ -143,7 +143,7 @@ def create_box_verts_elems(half_length):
     elems = m.mcell_add_to_connection_list(4, 0, 7, elems)
 
     return (verts, elems)
-
+"""
 
 def main():
     world = m.mcell_create()
@@ -155,22 +155,22 @@ def main():
     m.mcell_set_iterations(world, iterations)
 
     # Define a volume molecule named "x"
-    sm1_sym = create_species(world, "sm1", 1e-6, True)
-    vm1_sym = create_species(world, "vm1", 1e-6, False)
-    vm2_sym = create_species(world, "vm2", 1e-6, False)
-    vm3_sym = create_species(world, "vm3", 1e-6, False)
+    sm1_sym = m.create_species(m, world, "sm1", 1e-6, True)
+    vm1_sym = m.create_species(m, world, "vm1", 1e-6, False)
+    vm2_sym = m.create_species(m, world, "vm2", 1e-6, False)
+    vm3_sym = m.create_species(m, world, "vm3", 1e-6, False)
 
     # Define reactions
     # vm1 + vm2 -> vm3 [1e8]
     reactants1 = m.mcell_add_to_species_list(vm1_sym, False, 0, None)
     reactants1 = m.mcell_add_to_species_list(vm2_sym, False, 0, reactants1)
     products1 = m.mcell_add_to_species_list(vm3_sym, False, 0, None)
-    create_reaction(world, reactants1, products1, 1e8)
+    m.create_reaction(m, world, reactants1, products1, 1e8)
     # vm3 -> NULL [1e5]
     reactants2 = m.mcell_add_to_species_list(vm3_sym, False, 0, None)
-    create_reaction(world, reactants2, None, 0.01, name="rxn")
+    m.create_reaction(m, world, reactants2, None, 0.01, name="rxn")
 
-    scene = create_instance_object(world, "Scene")
+    scene = m.create_instance_object(m, world, "Scene")
 
     # Create a spherical release site
     pos_vec3 = Vector3()
@@ -178,17 +178,17 @@ def main():
     # XXX: It seems to be necessary to return some or all of these objects in
     # order to have a functioning release site even though we don't use them
     # anywhere after this call.
-    position, diameter, release_object = create_release_site(
-            world, scene, pos_vec3, diam_vec3, m.SHAPE_SPHERICAL, 500,
+    position, diameter, release_object = m.create_release_site(
+            m, world, scene, pos_vec3, diam_vec3, m.SHAPE_SPHERICAL, 500,
             vm1_sym, "vm1_rel")
     pos_vec3b = Vector3(0.05, 0.05, 0.00)
     diam_vec3b = Vector3(0.025, 0.025, 0.05)
-    position2, diameter2, release_object2 = create_release_site(
-            world, scene, pos_vec3b, diam_vec3b, m.SHAPE_CUBIC, 500,
+    position2, diameter2, release_object2 = m.create_release_site(
+            m, world, scene, pos_vec3b, diam_vec3b, m.SHAPE_CUBIC, 500,
             vm2_sym, "vm2_rel")
 
     # Create box object
-    verts, elems = create_box_verts_elems(0.1)
+    verts, elems = m.create_box_verts_elems(m, 0.1)
 
     pobj = m.poly_object()
     pobj.obj_name = "aBox"
@@ -208,7 +208,7 @@ def main():
     m.mcell_set_region_elements(test_region, region_list, 1)
 
     # create surface class
-    sc_sm1 = create_surf_class(world, "sc_release_y")
+    sc_sm1 = m.create_surf_class(m, world, "sc_release_y")
     # create releases using a surface class (i.e. not a release object)
     # mdl equivalent: MOLECULE_DENSITY {sm1' = 1000}
     sm1 = m.mcell_add_to_species_list(sm1_sym, True, 1, None)
@@ -231,13 +231,13 @@ def main():
 
     # Create reaction data
     mesh_sym = m.mcell_get_obj_sym(mesh)
-    count_list1, os1, out_times1, output1 = create_count(
-            world, mesh_sym, vm1_sym, "react_data/vm1_cube.dat")
+    count_list1, os1, out_times1, output1 = m.create_count(
+            m, world, mesh_sym, vm1_sym, "react_data/vm1_cube.dat")
     reg_sym = m.mcell_get_reg_sym(test_region)
-    count_list2, os2, out_times2, output2 = create_count(
-            world, reg_sym, sm1_sym, "react_data/sm1_reg.dat")
-    count_list3, os3, out_times3, output3 = create_count(
-            world, None, vm1_sym, "react_data/vm1_world.dat")
+    count_list2, os2, out_times2, output2 = m.create_count(
+            m, world, reg_sym, sm1_sym, "react_data/sm1_reg.dat")
+    count_list3, os3, out_times3, output3 = m.create_count(
+            m, world, None, vm1_sym, "react_data/vm1_world.dat")
 
     m.mcell_init_simulation(world)
     m.mcell_init_output(world)
