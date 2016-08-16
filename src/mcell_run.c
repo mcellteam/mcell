@@ -318,8 +318,6 @@ mcell_run_simulation(MCELL_STATE *world) {
     /*}*/
   }
 
-//ecc commented out for swig function
-/*
   if (mcell_flush_data(world)) {
     mcell_error_nodie("Failed to flush reaction and visualization data.");
     status = 1;
@@ -334,7 +332,7 @@ mcell_run_simulation(MCELL_STATE *world) {
     mcell_error_nodie("Failed to print final statistics.");
     status = 1;
   }
-*/
+
   return status;
 }
 

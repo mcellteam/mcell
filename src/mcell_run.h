@@ -38,13 +38,13 @@ MCELL_STATUS mcell_run_iteration(MCELL_STATE *state, long long output_frequency,
 
 /* flush all output buffers to disk to disk after the simulation
  * run is complete */
-//MCELL_STATUS mcell_flush_data(MCELL_STATE *state);
+MCELL_STATUS mcell_flush_data(MCELL_STATE *state);
 
 /* print any warnings that were gererated during the simulation
  * run */
-//MCELL_STATUS mcell_print_final_warnings(MCELL_STATE *state);
+MCELL_STATUS mcell_print_final_warnings(MCELL_STATE *state);
 
 /* print the final simulation statistics */
-//MCELL_STATUS mcell_print_final_statistics(MCELL_STATE *state);
+MCELL_STATUS mcell_print_final_statistics(MCELL_STATE *state);
 
 #endif
