@@ -13,7 +13,7 @@ class Vector3(object):
 def create_count(world, where, mol_sym, file_path):
     report_flags = m.REPORT_CONTENTS
     c_list = m.output_column_list()
-    # XXX: -100 is in the place of ORIENT_NOT_SET (used typemap for
+    # XXX: m.ORIENT_NOT_SET is using -100 instead of SHRT_MIN (used typemap for
     # mcell_create_count in mcell_react_out.i) because limits.h does not work
     # well with swig
     count_list = m.mcell_create_count(

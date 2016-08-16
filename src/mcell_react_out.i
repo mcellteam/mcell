@@ -71,9 +71,9 @@ mcell_add_reaction_output_block(MCELL_STATE *state,
 
 
 
-%typemap(in) short orientation (int temp){
-  $1 = temp;
-}
+/*%typemap(in) short orientation (int temp){*/
+/*  $1 = temp;*/
+/*}*/
 %typemap(argout) struct output_column_list *count_list {
   %set_output(SWIG_NewPointerObj(SWIG_as_voidptr($1), $1_descriptor, SWIG_POINTER_OWN));
 }
