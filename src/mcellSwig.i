@@ -100,7 +100,7 @@ def create_reaction(
         surfs=None, name=None):
 
     if surfs:
-        pass  # XXX: need to add this bit
+        pass  # Do nothing, surfs has been added and a null object is not needed
     else:
         surfs = self.mcell_add_to_species_list(None, False, 0, None)
 

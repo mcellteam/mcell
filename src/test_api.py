@@ -223,11 +223,17 @@ def main():
 
     m.mcell_delete_species_list(sm1)
 
+
+    # Create reaction on sc_sm1 sm1 -> _ 
+    reactantsSurf = m.mcell_add_to_species_list(sm1_sym, True, 0, None)
+    m.create_reaction(m, world, reactantsSurf, None, 1e8, surfs=sm1, name="rxnSurf")
+
+
     # Create viz data
     viz_list = m.mcell_add_to_species_list(vm1_sym, False, 0, None)
     viz_list = m.mcell_add_to_species_list(vm2_sym, False, 0, viz_list)
     viz_list = m.mcell_add_to_species_list(vm3_sym, False, 0, viz_list)
-    viz_list = m.mcell_add_to_species_list(sm1_sym, False, 0, viz_list)
+    viz_list = m.mcell_add_to_species_list(sm1_sym, True, 0, viz_list)
     m.mcell_create_viz_output(
             world, "./viz_data/test", viz_list, 0, iterations, 1)
 
