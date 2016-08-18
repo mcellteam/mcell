@@ -234,7 +234,7 @@ struct output_set *mcell_create_new_output_set(char *comment, int exact_time,
     return NULL;
   }
 
-  os->outfile_name = outfile_name;
+  os->outfile_name = CHECKED_STRDUP(outfile_name, "count outfile_name");
   os->file_flags = file_flags;
   os->exact_time_flag = exact_time;
   os->chunk_count = 0;

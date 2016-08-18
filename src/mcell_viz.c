@@ -74,7 +74,7 @@ mcell_create_viz_output(MCELL_STATE *state, char *filename,
   vizblk->viz_mode = CELLBLENDER_MODE;
 
   // Set the viz output path and filename prefix
-  vizblk->file_prefix_name = filename;
+  vizblk->file_prefix_name = CHECKED_STRDUP(filename, "file_prefix_name");
 
   // Select which molecules will be visualized
   if (select_viz_molecules(mol_viz_list, vizblk))

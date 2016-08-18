@@ -6200,6 +6200,7 @@ struct output_set *mdl_populate_output_set(struct mdlparse_vars *parse_state,
   struct output_set *os =
       mcell_create_new_output_set(comment, exact_time,
                                   col_head, file_flags, outfile_name);
+  free(outfile_name);
 
   return os;
 }
