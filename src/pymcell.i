@@ -1,12 +1,12 @@
 // ===========================================================================
 // Main SWIG directive file for MCELL (taken from gamer) 
 // Compile commands 
-// swig -python mcellSwig.i
+// swig -python pymcell.i
 // python setup_mcell_swig.py build_ext --inplace
 
 // ===========================================================================
 
-%module  mcellSwig
+%module  pymcell
 
 %{
 #define SWIG_FILE_WITH_INIT

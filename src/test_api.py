@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import mcellSwig as m
+import pymcell as m
 
 
 class Vector3(object):
