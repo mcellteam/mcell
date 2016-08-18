@@ -210,25 +210,25 @@ def main():
     m.mcell_set_region_elements(test_region, region_list, 1)
 
     # create surface class
-    sc_sm1 = m.create_surf_class(m, world, "sc_release_y")
+    sc_sm1_sym = m.create_surf_class(m, world, "sc_release_y")
     # create releases using a surface class (i.e. not a release object)
     # mdl equivalent: MOLECULE_DENSITY {sm1' = 1000}
     sm1 = m.mcell_add_to_species_list(sm1_sym, True, 1, None)
     smd = m.mcell_add_mol_release_to_surf_class(
-      world, sc_sm1, sm1, 10000, 0, None)
+      world, sc_sm1_sym, sm1, 10000, 0, None)
     # create surface class that is reflective to sm1
-    m.mcell_add_surf_class_properties(world, m.RFLCT, sc_sm1, sm1_sym, 0)
+    m.mcell_add_surf_class_properties(world, m.RFLCT, sc_sm1_sym, sm1_sym, 0)
     # m.mcell_add_surf_class_properties(world, m.SINK, sc_sm1, sm1_sym, 0)
-    m.mcell_assign_surf_class_to_region(sc_sm1, test_region)
+    m.mcell_assign_surf_class_to_region(sc_sm1_sym, test_region)
 
     m.mcell_delete_species_list(sm1)
 
     
     # Create reaction on sc_sm1 sm1, -> sm1'
+    sc_surf = m.mcell_add_to_species_list(sc_sm1_sym,True, 1, None)
     reactantsSurf = m.mcell_add_to_species_list(sm1_sym, True, 1, None)
     productsSurf = m.mcell_add_to_species_list(sm1_sym, True, -1, None)
-    productsSurf = m.mcell_add_to_species_list(sm1_sym, True, -1, productsSurf)
-    m.create_reaction(m, world, reactantsSurf, productsSurf, .1, surfs=sm1, name="rxnSurf")
+    m.create_reaction(m, world, reactantsSurf, productsSurf, 1e8, surfs=sc_surf, name="rxnSurf")
     
 
     # Create viz data
