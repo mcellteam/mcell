@@ -1,12 +1,11 @@
 def create_count(self, world, where, mol_sym, file_path):
     report_flags = self.REPORT_CONTENTS
     c_list = self.output_column_list()
-    # XXX: self.ORIENT_NOT_SET is using -100 instead of SHRT_MIN (used typemap for
-    # mcell_create_count in mcell_react_out.i) because limits.h does not work
-    # well with swig
+    # XXX: self.ORIENT_NOT_SET is using -100 instead of SHRT_MIN (used typemap
+    # for mcell_create_count in mcell_react_out.i) because limits.h does not
+    # work well with swig
     count_list = self.mcell_create_count(
-            world, mol_sym, self.ORIENT_NOT_SET, where, report_flags, None,
-            c_list)
+        world, mol_sym, self.ORIENT_NOT_SET, where, report_flags, None, c_list)
 
     os = self.output_set()
     os = self.mcell_create_new_output_set(
@@ -36,32 +35,34 @@ def create_species(self, world, name, D, is_2d):
     species_def.max_step_length = 0
 
     species_temp_sym = self.mcell_symbol()
-    species_sym = self.mcell_create_species(world, species_def, species_temp_sym)
+    species_sym = self.mcell_create_species(
+        world, species_def, species_temp_sym)
 
     return species_sym
 
 
 def create_reaction(
-        self, world, reactants, products, rate_constant, backward_rate_constant=None,
-        surfs=None, name=None):
+        self, world, reactants, products, rate_constant,
+        backward_rate_constant=None, surf_class=None, name=None):
 
-    if surfs:
-        pass  # Do nothing, surfs has been added and a null object is not needed
+    if surf_class:
+        # Do nothing, surf_class has been added and a null object is not needed
+        pass
     else:
-        surfs = self.mcell_add_to_species_list(None, False, 0, None)
+        surf_class = self.mcell_add_to_species_list(None, False, 0, None)
 
     arrow = self.reaction_arrow()
     # reversible reaction e.g. A<->B
     if backward_rate_constant:
         arrow.flags = self.ARROW_BIDIRECTIONAL
         rate_constant = self.mcell_create_reaction_rates(
-                self.RATE_CONSTANT, rate_constant, self.RATE_CONSTANT,
-                backward_rate_constant)
+            self.RATE_CONSTANT, rate_constant, self.RATE_CONSTANT,
+            backward_rate_constant)
     # irreversible reaction e.g. A->B
     else:
         arrow.flags = self.REGULAR_ARROW
         rate_constant = self.mcell_create_reaction_rates(
-                self.RATE_CONSTANT, rate_constant, self.RATE_UNSET, 0)
+            self.RATE_CONSTANT, rate_constant, self.RATE_UNSET, 0)
     arrow.catalyst = self.mcell_species()
     arrow.catalyst.next = None
     arrow.catalyst.mol_type = None
@@ -73,7 +74,7 @@ def create_reaction(
     else:
         name_sym = None
     self.mcell_add_reaction_simplified(
-            world, reactants, arrow, surfs, products, rate_constant, name_sym)
+        world, reactants, arrow, surf_class, products, rate_constant, name_sym)
 
 
 def create_instance_object(self, world, name):
@@ -86,7 +87,8 @@ def create_surf_class(self, world, name):
     return self.mcell_create_surf_class(world, name, sc_temp)
 
 
-def create_release_site(self, world, scene, pos, diam, shape, number, mol_sym, name):
+def create_release_site(
+        self, world, scene, pos, diam, shape, number, mol_sym, name):
     position = self.vector3()
     position.x = pos.x
     position.y = pos.y
@@ -100,9 +102,10 @@ def create_release_site(self, world, scene, pos, diam, shape, number, mol_sym, n
     rel_object = self.object()
     release_site_name = name  # This should derive from the mol_sym name
     release_object = self.mcell_create_geometrical_release_site(
-            world, scene, release_site_name, shape, position, diameter,
-            mol_list, number, 1, None, rel_object)
+        world, scene, release_site_name, shape, position, diameter, mol_list,
+        number, 1, None, rel_object)
     self.mcell_delete_species_list(mol_list)
+
     return (position, diameter, release_object)
 
 
@@ -131,3 +134,22 @@ def create_box_verts_elems(self, half_length):
     elems = self.mcell_add_to_connection_list(4, 0, 7, elems)
 
     return (verts, elems)
+
+
+def create_polygon_verts_elems(self, vert_list, elem_list):
+    verts = None
+    for x, y, z in vert_list:
+        verts = self.mcell_add_to_vertex_list(x, y, z, verts)
+
+    elems = None
+    for x, y, z in elem_list:
+        elems = self.mcell_add_to_connection_list(x, y, z, elems)
+
+    return (verts, elems)
+
+
+def create_surface_region(self, surf_reg_face_list):
+    surf_reg_faces = None
+    for idx in surf_reg_face_list:
+        surf_reg_faces = self.mcell_add_to_region_list(surf_reg_faces, idx)
+    return surf_reg_faces
