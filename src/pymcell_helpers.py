@@ -100,14 +100,24 @@ def create_release_site(
 
     mol_list = self.mcell_add_to_species_list(mol_sym, False, 0, None)
     rel_object = self.object()
-    release_site_name = name  # This should derive from the mol_sym name
     release_object = self.mcell_create_geometrical_release_site(
-        world, scene, release_site_name, shape, position, diameter, mol_list,
-        number, 1, None, rel_object)
+        world, scene, name, shape, position, diameter, mol_list, number, 1,
+        None, rel_object)
     self.mcell_delete_species_list(mol_list)
 
     return (position, diameter, release_object)
 
+def create_region_release_site(
+        self, world, scene, mesh, release_name, reg_name, number, mol_sym):
+
+    mol_list = self.mcell_add_to_species_list(mol_sym, False, 0, None)
+    rel_object = self.object()
+    release_object = self.mcell_create_region_release(
+        world, scene, mesh, release_name, reg_name, mol_list, number, 1, None,
+        rel_object)
+    self.mcell_delete_species_list(mol_list)
+
+    return release_object
 
 def create_box_verts_elems(self, half_length):
     hl = half_length

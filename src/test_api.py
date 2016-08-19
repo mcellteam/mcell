@@ -20,7 +20,7 @@ def main():
     m.mcell_set_time_step(world, dt)
     m.mcell_set_iterations(world, iterations)
 
-    # Define a volume molecule named "x"
+    # Define one surface molecule and three volume molecules
     sm1_sym = m.create_species(m, world, "sm1", 1e-6, True)
     vm1_sym = m.create_species(m, world, "vm1", 1e-6, False)
     vm2_sym = m.create_species(m, world, "vm2", 1e-6, False)
@@ -45,12 +45,12 @@ def main():
     # XXX: It seems to be necessary to return some or all of these objects in
     # order to have a functioning release site even though we don't use them
     # anywhere after this call.
-    position, diameter, release_object = m.create_release_site(
+    position, diameter, sphere_release_object = m.create_release_site(
             m, world, scene, pos_vec3, diam_vec3, m.SHAPE_SPHERICAL, 500,
             vm1_sym, "vm1_rel")
     pos_vec3b = Vector3(0.05, 0.05, 0.00)
     diam_vec3b = Vector3(0.025, 0.025, 0.05)
-    position2, diameter2, release_object2 = m.create_release_site(
+    position2, diameter2, cube_release_object = m.create_release_site(
             m, world, scene, pos_vec3b, diam_vec3b, m.SHAPE_CUBIC, 500,
             vm2_sym, "vm2_rel")
 
@@ -66,6 +66,9 @@ def main():
     region_name = "half_torus"
     test_region = m.create_surface_region(
         m, world, mesh, torus.surf_reg_face_list, region_name)
+
+    region_release_object = m.create_region_release_site(
+        m, world, scene, mesh, "vm1_torus_rel", "ALL", 1000, vm1_sym)
 
     # create surface class
     sc_sm1 = m.create_surf_class(m, world, "sc_release_y")
