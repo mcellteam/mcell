@@ -158,8 +158,14 @@ def create_polygon_object(self, world, vert_list, face_list, scene, name):
     return mesh
 
 
-def create_surface_region(self, surf_reg_face_list):
+def create_surface_region(self, world, mesh, surf_reg_face_list, region_name):
+
+    surface_region = self.mcell_create_region(world, mesh, region_name)
+
     surf_reg_faces = None
     for idx in surf_reg_face_list:
         surf_reg_faces = self.mcell_add_to_region_list(surf_reg_faces, idx)
-    return surf_reg_faces
+
+    self.mcell_set_region_elements(surface_region, surf_reg_faces, 1)
+
+    return surface_region

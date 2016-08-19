@@ -63,11 +63,9 @@ def main():
 
     # Create surface region on half the torus
     # XXX: Creating a region is currently required when creating mesh objects
-    test_region = m.mcell_create_region(world, mesh, "reg")
-    region_list = m.create_surface_region(m, torus.surf_reg_face_list)
-    # region_list = m.mcell_add_to_region_list(None, 0)
-    # region_list = m.mcell_add_to_region_list(region_list, 6)
-    m.mcell_set_region_elements(test_region, region_list, 1)
+    region_name = "half_torus"
+    test_region = m.create_surface_region(
+        m, world, mesh, torus.surf_reg_face_list, region_name)
 
     # create surface class
     sc_sm1 = m.create_surf_class(m, world, "sc_release_y")
