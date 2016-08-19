@@ -56,28 +56,12 @@ def main():
 
     # Create box object
     # verts, elems = m.create_box_verts_elems(m, 0.1)
-    verts, elems = m.create_polygon_verts_elems(
-        m, torus.vert_list, torus.face_list)
 
-    pobj = m.poly_object()
     obj_name = "Torus"
-    pobj.obj_name = obj_name
-    pobj.vertices = verts
-    pobj.num_vert = len(torus.vert_list)
-    pobj.connections = elems
-    pobj.num_conn = len(torus.face_list)
+    mesh = m.create_polygon_object(
+        m, world, torus.vert_list, torus.face_list, scene, obj_name)
 
-    # obj_name = "Cube"
-    # pobj.obj_name = obj_name
-    # pobj.vertices = verts
-    # pobj.num_vert = 8
-    # pobj.connections = elems
-    # pobj.num_conn = 12
-
-    mesh_temp = m.object()
-    mesh = m.mcell_create_poly_object(world, scene, pobj, mesh_temp)
-
-    # Create surface region on the box consisting of two triangles
+    # Create surface region on half the torus
     # XXX: Creating a region is currently required when creating mesh objects
     test_region = m.mcell_create_region(world, mesh, "reg")
     region_list = m.create_surface_region(m, torus.surf_reg_face_list)

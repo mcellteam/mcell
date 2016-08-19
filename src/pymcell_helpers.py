@@ -136,16 +136,26 @@ def create_box_verts_elems(self, half_length):
     return (verts, elems)
 
 
-def create_polygon_verts_elems(self, vert_list, elem_list):
+def create_polygon_object(self, world, vert_list, face_list, scene, name):
     verts = None
     for x, y, z in vert_list:
         verts = self.mcell_add_to_vertex_list(x, y, z, verts)
 
     elems = None
-    for x, y, z in elem_list:
+    for x, y, z in face_list:
         elems = self.mcell_add_to_connection_list(x, y, z, elems)
 
-    return (verts, elems)
+    pobj = self.poly_object()
+    pobj.obj_name = name
+    pobj.vertices = verts
+    pobj.num_vert = len(vert_list)
+    pobj.connections = elems
+    pobj.num_conn = len(face_list)
+
+    mesh_temp = self.object()
+    mesh = self.mcell_create_poly_object(world, scene, pobj, mesh_temp)
+
+    return mesh
 
 
 def create_surface_region(self, surf_reg_face_list):
