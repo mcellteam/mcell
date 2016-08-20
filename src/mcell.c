@@ -63,11 +63,15 @@ int main(int argc, char **argv) {
     mcell_print_version();
   }
 
-  // test_api(state);
 
+  #if 0
+  test_api(state);
+  #else
   // Comment out MDL parsing when testing the API
   CHECKED_CALL_EXIT(mcell_parse_mdl(state),
                     "An error occured during parsing of the mdl file.");
+  #endif
+
 
   CHECKED_CALL_EXIT(mcell_init_simulation(state),
                     "An error occured during simulation creation.");
