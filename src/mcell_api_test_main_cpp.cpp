@@ -55,8 +55,163 @@ extern "C" {
     }                                                                          \
   }
 
+using namespace std;
+
+// This is the API header
+namespace MCellAPI {
+  class MCellSpeciesExpression {
+    protected:
+      string name;
+    public:
+      string getName();
+      MCellSpeciesExpression ( string name );
+      MCellSpeciesExpression operator+ (MCellSpeciesExpression);
+      MCellSpeciesExpression operator> (MCellSpeciesExpression);
+      MCellSpeciesExpression operator< (MCellSpeciesExpression);
+      MCellSpeciesExpression operator== (MCellSpeciesExpression);
+      // MCellSpeciesExpression operator<> (MCellSpeciesExpression);
+  };
+  class MCellSpecies : public MCellSpeciesExpression {
+    protected:
+      double diffusion_constant;
+    public:
+      MCellSpecies ( string name );
+      void set_diffusion_constant ( double d );
+  };
+  class MCellReaction {
+    protected:
+      string name;
+    public:
+      MCellReaction ( string name );
+      void set_rate ( double d );
+  };
+  class MCellSim {
+    protected:
+      string name;
+    public:
+      MCellSim ( string name );
+      MCellSim();
+      MCellSpecies new_species ( string name );
+      MCellReaction new_reaction ( MCellSpeciesExpression exp );
+      void run(int n);
+  };
+}
+
+// This is the API implementation
+namespace MCellAPI {
+
+  MCellSpeciesExpression::MCellSpeciesExpression ( string name ) {
+    this->name = name;
+    cout << "  SpeciesExpression Constructor for " << name << endl;
+  }
+
+  string MCellSpeciesExpression::getName() {
+    return (this->name);
+  }
+
+  MCellSpeciesExpression MCellSpeciesExpression::operator+ (MCellSpeciesExpression rhs) {
+    MCellSpeciesExpression *result = new MCellSpeciesExpression ( this->name + " + " + rhs.name );
+    cout << "  Species Expression: " << result->name << endl;
+    return (*result);
+  }
+
+  MCellSpeciesExpression MCellSpeciesExpression::operator> (MCellSpeciesExpression mce) {
+    this->name = this->name + " > " + mce.name;
+    cout << "  Species Expression: " << this->name << endl;
+    return (*this);
+  }
+
+  MCellSpeciesExpression MCellSpeciesExpression::operator< (MCellSpeciesExpression mce) {
+    this->name = this->name + " < " + mce.name;
+    cout << "  Species Expression: " << this->name << endl;
+    return (*this);
+  }
+
+  MCellSpeciesExpression MCellSpeciesExpression::operator== (MCellSpeciesExpression mce) {
+    this->name = this->name + " <==> " + mce.name;
+    cout << "  Species Expression: " << this->name << endl;
+    return (*this);
+  }
+
+  MCellSpecies::MCellSpecies ( string name ) : MCellSpeciesExpression ( name ) {
+    diffusion_constant = 0;
+    cout << "  Species Constructor for " << name << endl;
+  }
+
+  void MCellSpecies::set_diffusion_constant ( double d ) {
+    this->diffusion_constant = d;
+    cout << "Simulation is setting Diffusion Constant for " << name << " to " << d << endl;
+  }
+
+  MCellReaction::MCellReaction ( string name ) {
+    this->name = name;
+    cout << "  Creating a new reaction: " << name << endl;
+  }
+
+  void MCellReaction::set_rate ( double d ) {
+    cout << "  Setting reaction rate for " << name << " to " << d << endl;
+  }
+
+  MCellSim::MCellSim( string name ) {
+    this->name = name;
+    cout << "Creating a new Simulation: " << name << endl;
+  }
+
+  MCellSim::MCellSim() {
+    name = "Sim";
+    cout << "Creating a new Simulation: " << name << endl;
+  }
+
+  void MCellSim::run ( int n ) {
+    cout << "Running simulation \"" << this->name << "\" " << n << " steps." << endl;
+  }
+
+  MCellSpecies MCellSim::new_species ( string name ) {
+    cout << "Simulation is creating a new species: " << name << endl;
+    return ( MCellSpecies(name) );
+  }
+
+  MCellReaction MCellSim::new_reaction ( MCellSpeciesExpression exp ) {
+    cout << "Simulation is creating a new Reaction Expression: " << exp.getName() << endl;
+    return ( MCellReaction(exp.getName()) );
+  }
+
+}
+
+using namespace MCellAPI;
 
 int main(int argc, char **argv) {
+
+  // Begin code from earlier C++ prototype
+  cout << endl << endl;
+  cout << "*********************************" << endl;
+  cout << "***   Simple MCell API Demo   ***" << endl;
+  cout << "*********************************" << endl << endl;
+
+  MCellSim mysim = MCellSim ( "Demo" );
+
+  MCellSpecies species_a = mysim.new_species ( "A" );
+  MCellSpecies species_b = mysim.new_species ( "B" );
+  MCellSpecies species_c = mysim.new_species ( "C" );
+  MCellSpecies species_d = mysim.new_species ( "D" );
+
+  species_a.set_diffusion_constant ( 1e-6 );
+
+  cout << "Simulation is creating Reactions: " << endl;
+  MCellReaction forward = mysim.new_reaction ( species_a + species_b > species_c + species_d );
+  MCellReaction bidirect = mysim.new_reaction ( species_a + species_b == species_c + species_d );
+
+  forward.set_rate ( 1e8 );
+  bidirect.set_rate ( 1e7 );
+
+  mysim.run ( 10 );
+
+  cout << endl << "**********  Done!!  **********" << endl << endl << endl;
+  // End code from earlier C++ prototype
+
+
+
+
   u_int procnum = 0;
 
   // initialize the mcell simulation
@@ -78,7 +233,7 @@ int main(int argc, char **argv) {
     mcell_print_version();
   }
 
-  std::cout << "\n\n================= MCell C++ API TEST EXAMPLE =================\n\n";
+  cout << "\n\n================= MCell C++ API TEST EXAMPLE =================\n\n";
 
 
   /* set timestep and number of iterations */
