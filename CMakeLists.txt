@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8)
-project(mcell C)
+project(mcell CXX C)
 
 add_definitions(-DPACKAGE_BUGREPORT="mcell@salk.edu")
 
@@ -55,6 +55,7 @@ add_custom_command(
 find_library(M_LIB m)
 
 set(CMAKE_C_FLAGS "-Wall -Wextra -Wshadow -Wno-unused-parameter -D_GNU_SOURCE=1 -O2 -std=c99 ${CMAKE_C_FLAGS}" )
+set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wshadow -Wno-unused-parameter -O2 ${CMAKE_CXX_FLAGS}" )
 set(CMAKE_EXE_LINKER_FLAGS ${M_LIB})
 
 set(SOURCE_FILES_SHARED
@@ -150,6 +151,9 @@ set(SOURCE_FILES_MCELL
 set(SOURCE_FILES_API_MAIN
     src/mcell_api_test_main.c)
 
+set(SOURCE_FILES_API_MAIN_CPP
+    src/mcell_api_test_main_cpp.cpp)
+
 # build executables
 
 add_executable(mcell
@@ -163,6 +167,13 @@ add_executable(mcell
 add_executable(mcell_api_test_main
   ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h
   ${SOURCE_FILES_API_MAIN}
+  ${SOURCE_FILES_SHARED}
+  ${BISON_mdlParser_OUTPUTS}
+  ${FLEX_mdlScanner_OUTPUTS})
+
+add_executable(mcell_api_test_main_cpp
+  ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h
+  ${SOURCE_FILES_API_MAIN_CPP}
   ${SOURCE_FILES_SHARED}
   ${BISON_mdlParser_OUTPUTS}
   ${FLEX_mdlScanner_OUTPUTS})
