@@ -100,9 +100,9 @@ namespace MCellAPI {
 // This is the API implementation
 namespace MCellAPI {
 
-  MCellSpeciesExpression::MCellSpeciesExpression ( string name ) {
-    this->name = name;
-    cout << "  SpeciesExpression Constructor for " << name << endl;
+  MCellSpeciesExpression::MCellSpeciesExpression ( string species_name ) {
+    this->name = species_name;
+    cout << "  SpeciesExpression Constructor for " << species_name << endl;
   }
 
   string MCellSpeciesExpression::getName() {
@@ -133,9 +133,9 @@ namespace MCellAPI {
     return (*this);
   }
 
-  MCellSpecies::MCellSpecies ( string name ) : MCellSpeciesExpression ( name ) {
+  MCellSpecies::MCellSpecies ( string species_name ) : MCellSpeciesExpression ( species_name ) {
     diffusion_constant = 0;
-    cout << "  Species Constructor for " << name << endl;
+    cout << "  Species Constructor for " << species_name << endl;
   }
 
   void MCellSpecies::set_diffusion_constant ( double d ) {
@@ -143,18 +143,18 @@ namespace MCellAPI {
     cout << "Simulation is setting Diffusion Constant for " << name << " to " << d << endl;
   }
 
-  MCellReaction::MCellReaction ( string name ) {
-    this->name = name;
-    cout << "  Creating a new reaction: " << name << endl;
+  MCellReaction::MCellReaction ( string reaction_name ) {
+    this->name = reaction_name;
+    cout << "  Creating a new reaction: " << reaction_name << endl;
   }
 
   void MCellReaction::set_rate ( double d ) {
     cout << "  Setting reaction rate for " << name << " to " << d << endl;
   }
 
-  MCellSim::MCellSim( string name ) {
-    this->name = name;
-    cout << "Creating a new Simulation: " << name << endl;
+  MCellSim::MCellSim( string simulation_name ) {
+    this->name = simulation_name;
+    cout << "Creating a new Simulation: " << simulation_name << endl;
   }
 
   MCellSim::MCellSim() {
@@ -166,9 +166,9 @@ namespace MCellAPI {
     cout << "Running simulation \"" << this->name << "\" " << n << " steps." << endl;
   }
 
-  MCellSpecies MCellSim::new_species ( string name ) {
-    cout << "Simulation is creating a new species: " << name << endl;
-    return ( MCellSpecies(name) );
+  MCellSpecies MCellSim::new_species ( string species_name ) {
+    cout << "Simulation is creating a new species: " << species_name << endl;
+    return ( MCellSpecies(species_name) );
   }
 
   MCellReaction MCellSim::new_reaction ( MCellSpeciesExpression exp ) {
@@ -190,16 +190,16 @@ int main(int argc, char **argv) {
 
   MCellSim mysim = MCellSim ( "Demo" );
 
-  MCellSpecies species_a = mysim.new_species ( "A" );
-  MCellSpecies species_b = mysim.new_species ( "B" );
-  MCellSpecies species_c = mysim.new_species ( "C" );
-  MCellSpecies species_d = mysim.new_species ( "D" );
+  MCellSpecies a = mysim.new_species ( "A" );
+  MCellSpecies b = mysim.new_species ( "B" );
+  MCellSpecies c = mysim.new_species ( "C" );
+  MCellSpecies d = mysim.new_species ( "D" );
 
-  species_a.set_diffusion_constant ( 1e-6 );
+  a.set_diffusion_constant ( 1e-6 );
 
   cout << "Simulation is creating Reactions: " << endl;
-  MCellReaction forward = mysim.new_reaction ( species_a + species_b > species_c + species_d );
-  MCellReaction bidirect = mysim.new_reaction ( species_a + species_b == species_c + species_d );
+  MCellReaction forward = mysim.new_reaction ( a + b > c + d );
+  MCellReaction bidirect = mysim.new_reaction ( a + b == c + d );
 
   forward.set_rate ( 1e8 );
   bidirect.set_rate ( 1e7 );
