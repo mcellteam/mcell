@@ -78,7 +78,7 @@ int main(int argc, char **argv) {
     mcell_print_version();
   }
 
-  fprintf ( stdout, "\n\n================= MCell C API TEST EXAMPLE =================\n\n" );
+  std::cout << "\n\n================= MCell C++ API TEST EXAMPLE =================\n\n";
 
 
   /* set timestep and number of iterations */
