@@ -145,10 +145,107 @@ set(SOURCE_FILES
     src/wall_util.c
     src/wall_util.h)
 
-# build executable
+set(SOURCE_FILES_API_TEST
+    src/api_test.c
+    src/api_test.h
+    src/argparse.c
+    src/argparse.h
+    src/chkpt.c
+    src/chkpt.h
+    src/config-nix.h
+    src/config-win.h
+    src/count_util.c
+    src/count_util.h
+    src/diffuse.c
+    src/diffuse.h
+    src/diffuse_trimol.c
+    src/diffuse_util.c
+    src/diffuse_util.h
+    src/grid_util.c
+    src/grid_util.h
+    src/init.c
+    src/init.h
+    src/isaac64.c
+    src/isaac64.h
+    src/logging.c
+    src/logging.h
+    src/mcell_api_test_main.c
+    src/mcell_init.c
+    src/mcell_init.h
+    src/mcell_misc.c
+    src/mcell_misc.h
+    src/mcell_objects.c
+    src/mcell_objects.h
+    src/mcell_react_out.c
+    src/mcell_react_out.h
+    src/mcell_reactions.c
+    src/mcell_reactions.h
+    src/mcell_release.c
+    src/mcell_release.h
+    src/mcell_run.c
+    src/mcell_run.h
+    src/mcell_species.c
+    src/mcell_species.h
+    src/mcell_structs.h
+    src/mcell_surfclass.c
+    src/mcell_surfclass.h
+    src/mcell_viz.c
+    src/mcell_viz.h
+    src/mdlparse.y
+    src/mdlparse_aux.h
+    src/mdlparse_util.c
+    src/mdlparse_util.h
+    src/mem_util.c
+    src/mem_util.h
+    src/minrng.c
+    src/minrng.h
+    src/react.h
+    src/react_cond.c
+    src/react_outc.c
+    src/react_outc_trimol.c
+    src/react_output.c
+    src/react_output.h
+    src/react_trig.c
+    src/react_util.c
+    src/react_util.h
+    src/rng.c
+    src/rng.h
+    src/sched_util.c
+    src/sched_util.h
+    src/strfunc.c
+    src/strfunc.h
+    src/sym_table.c
+    src/sym_table.h
+    src/triangle_overlap.c
+    src/triangle_overlap.h
+    src/util.c
+    src/util.h
+    src/vector.c
+    src/vector.h
+    src/version_info.c
+    src/version_info.h
+    src/viz_output.c
+    src/viz_output.h
+    src/vol_util.c
+    src/vol_util.h
+    src/volume_output.c
+    src/volume_output.h
+    src/wall_util.c
+    src/wall_util.h)
+
+# build executables
+
 add_executable(mcell
   ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h
   ${SOURCE_FILES}
   ${BISON_mdlParser_OUTPUTS}
   ${FLEX_mdlScanner_OUTPUTS})
+
+add_executable(mcell_api_test_main
+  ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h
+  ${SOURCE_FILES_API_TEST}
+  ${BISON_mdlParser_OUTPUTS}
+  ${FLEX_mdlScanner_OUTPUTS})
+
 target_link_libraries(mcell ${M_LIB})
+
