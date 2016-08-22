@@ -68,7 +68,7 @@ int main(int argc, char **argv) {
   #else
   // Comment out MDL parsing when testing the API
   // New version: CHECKED_CALL_EXIT(parse_input(state),
-  CHECKED_CALL_EXIT(mcell_parse_mdl(state),
+  CHECKED_CALL_EXIT(parse_input(state),
                     "An error occured during parsing of the mdl file.");
   #endif
 
