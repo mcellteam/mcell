@@ -45,7 +45,9 @@ extern "C" {
 
 }
 
+#include <string.h>
 #include <iostream>
+#include <map>
 
 #define CHECKED_CALL_EXIT(function, error_message)                             \
   {                                                                            \
@@ -55,9 +57,12 @@ extern "C" {
     }                                                                          \
   }
 
+
+
 using namespace std;
 
-// This is the API header
+
+// This is the earlier API header
 namespace MCellAPI {
   class MCellSpeciesExpression {
     protected:
@@ -97,7 +102,9 @@ namespace MCellAPI {
   };
 }
 
-// This is the API implementation
+
+
+// This is the earlier API implementation
 namespace MCellAPI {
 
   MCellSpeciesExpression::MCellSpeciesExpression ( string species_name ) {
@@ -178,11 +185,20 @@ namespace MCellAPI {
 
 }
 
+
+
+
 using namespace MCellAPI;
 
 int main(int argc, char **argv) {
 
-  // Begin code from earlier C++ prototype
+
+
+
+
+
+  // This is an earlier C++ prototype implementation with an example dictionary (map) added
+
   cout << endl << endl;
   cout << "*********************************" << endl;
   cout << "***   Simple MCell API Demo   ***" << endl;
@@ -207,7 +223,33 @@ int main(int argc, char **argv) {
   mysim.run ( 10 );
 
   cout << endl << "**********  Done!!  **********" << endl << endl << endl;
-  // End code from earlier C++ prototype
+
+
+  // Test out an example dictionary (map)
+
+  map<string, string> molecules;
+
+  molecules["a"] = "Mol A";
+  molecules["b"] = "Mol A";
+  molecules["c"] = "Mol A";
+  molecules["d"] = "Mol A";
+  molecules["e"] = "Mol A";
+  molecules["f"] = "Mol A";
+  molecules["g"] = "Mol A";
+
+  cout << "molecules[e]=" << molecules["e"] << endl << endl;
+
+  cout << "Map size: " << molecules.size() << endl;
+
+  for( map<string,string>::iterator ii=molecules.begin(); ii!=molecules.end(); ++ii)
+  {
+    cout << (*ii).first << ": " << (*ii).second << endl;
+  }
+
+  // End of earlier C++ prototype
+
+
+
 
 
 
