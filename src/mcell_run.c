@@ -45,6 +45,10 @@
 #include "argparse.h"
 
 #include "mcell_run.h"
+#include "mcell_reactions.h"
+
+//ecc
+#include "mcell_react_out.h"
 
 // static helper functions
 static long long mcell_determine_output_frequency(MCELL_STATE *state);
@@ -332,6 +336,17 @@ mcell_run_simulation(MCELL_STATE *world) {
     if (mcell_run_iteration(world, frequency, &restarted_from_checkpoint) == 1) {
       break;
     }
+
+    //ecc
+    /*int ecc_1,ecc_2,ecc_3;*/
+    /*ecc_1 = mcell_get_count("vm", "Scene.Cube,ALL", world);*/
+    /*ecc_2 = mcell_get_count("sm", "Scene.Cube,triangle", world);*/
+    /*ecc_3 = mcell_get_count("sm", "Scene.Cube,ALL", world);*/
+
+    // Testing code. This requires there to be a reaction called "rxn"
+    /*if (world->current_iterations > 500) {*/
+    /*  mcell_modify_rate_constant(world, "rxn", 1e6);*/
+    /*}*/
   }
 
   if (mcell_flush_data(world)) {

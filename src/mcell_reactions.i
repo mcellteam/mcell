@@ -20,12 +20,12 @@
  * USA.
  *
 ******************************************************************************/
-
+/*
 #ifndef MCELL_REACTIONS_H
 #define MCELL_REACTIONS_H
 
 #include "mcell_species.h"
-
+*/
 #define REGULAR_ARROW 0x00
 #define ARROW_BIDIRECTIONAL 0x01
 #define ARROW_CATALYTIC 0x02
@@ -124,5 +124,3 @@ struct reaction_rates mcell_create_reaction_rates(int forwardRateType,
                                                   double backwardRate);
 
 struct sym_entry *mcell_new_rxn_pathname(struct volume *state, char *name);
-
-#endif

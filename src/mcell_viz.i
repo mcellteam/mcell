@@ -21,43 +21,16 @@
  *
 ******************************************************************************/
 
-#ifndef MCELL_INIT_H
-#define MCELL_INIT_H
+MCELL_STATUS mcell_create_viz_output(MCELL_STATE *state, char *filename,
+                                     struct mcell_species *mol_viz_list,
+                                     long long start, long long end,
+                                     long long step);
 
-/* status of libMCell API calls */
-typedef int MCELL_STATUS;
+void mcell_new_viz_output_block(struct viz_output_block *vizblk);
 
-#define MCELL_SUCCESS 0
-#define MCELL_FAIL 1
+struct frame_data_list *
+mcell_create_viz_frame(int time_type, int type,
+                       struct num_expr_list *iteration_list);
 
-/* state of mcell simulation */
-typedef struct volume MCELL_STATE;
-
-struct num_expr_list_head {
-  struct num_expr_list *value_head;
-  struct num_expr_list *value_tail;
-  int value_count;
-  int shared;
-};
-
-MCELL_STATE *mcell_create();
-
-MCELL_STATUS mcell_init_state(MCELL_STATE *state);
-
-//ecc removed for swig function
-//MCELL_STATUS mcell_parse_mdl(MCELL_STATE *state);
-
-MCELL_STATUS mcell_init_simulation(MCELL_STATE *state);
-
-MCELL_STATUS mcell_init_read_checkpoint(MCELL_STATE *state);
-
-MCELL_STATUS mcell_init_output(MCELL_STATE *state);
-
-MCELL_STATUS mcell_set_partition(MCELL_STATE *state, int dim,
-                                 struct num_expr_list_head *head);
-
-MCELL_STATUS mcell_set_time_step(MCELL_STATE *state, double step);
-
-MCELL_STATUS mcell_set_iterations(MCELL_STATE *state, long long iterations);
-
-#endif
+int mcell_set_molecule_viz_state(struct viz_output_block *vizblk,
+                                 struct species *specp, int viz_state);

@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.4)
 project(mcell CXX C)
 
 add_definitions(-DPACKAGE_BUGREPORT="mcell@salk.edu")
@@ -154,13 +154,14 @@ set(SOURCE_FILES_API_MAIN
 set(SOURCE_FILES_API_MAIN_CPP
     src/mcell_api_test_main_cpp.cpp)
 
-# build executables
 
+# build executables
 add_executable(mcell
   ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h
   ${SOURCE_FILES_MCELL}
   ${SOURCE_FILES_SHARED}
   ${SOURCE_FILES}
+  src/mcell.c
   ${BISON_mdlParser_OUTPUTS}
   ${FLEX_mdlScanner_OUTPUTS})
 
@@ -179,4 +180,5 @@ add_executable(mcell_api_test_main_cpp
   ${FLEX_mdlScanner_OUTPUTS})
 
 target_link_libraries(mcell ${M_LIB})
+
 

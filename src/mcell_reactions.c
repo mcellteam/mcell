@@ -33,6 +33,7 @@
 #include "logging.h"
 #include "react_util.h"
 #include "strfunc.h"
+#include "react.h"
 #include "mcell_reactions.h"
 
 /* static helper functions */
@@ -120,6 +121,94 @@ static int sort_product_list_compare(struct product *list_item,
                                      struct product *new_item);
 
 static struct product *sort_product_list(struct product *product_head);
+
+/*************************************************************************
+ *
+ * mcell_modify_rate_constant - modifies the rate constant of a reaction with a
+ * specified name. For example, if you have this: 
+ *
+ * vm + vm -> NULL [1e7] : rxn
+ *
+ * then you can change the rate constant from 1e7 to 0 like this:
+ *
+ * mcell_modify_rate_constant(world, "rxn", 0)
+ *
+ * NOTE: This needs much more extensive testing and does not currently work
+ * with unimoleculare reactions
+ *
+ *************************************************************************/
+MCELL_STATUS
+mcell_modify_rate_constant(
+    struct volume *world, char *name, double rate_constant) {
+
+  struct sym_table_head *rxpn_sym_table = world->rxpn_sym_table;
+  struct sym_entry *sym = retrieve_sym(name, rxpn_sym_table);
+  if (sym == NULL) {
+    return MCELL_FAIL;
+  }
+  else {
+    struct rxn_pathname *rxpn = sym->value;  
+    struct rxn *reaction = rxpn->rx;  
+    int num_path = reaction->n_pathways;
+    double p = rate_constant * reaction->pb_factor;
+
+    double delta_prob = 0;
+    if (num_path > 1) {
+      delta_prob = \
+        p - (reaction->cum_probs[num_path-1] - reaction->cum_probs[num_path-2]);
+    }
+    else {
+      delta_prob = p - (reaction->cum_probs[num_path-1]);
+    }
+    reaction->cum_probs[num_path-1] += delta_prob;
+    reaction->max_fixed_p += delta_prob;
+    reaction->min_noreaction_p += delta_prob;
+
+    // Need to recompute lifetimes for unimolecular reactions.
+    if (reaction->n_reactants == 1) {
+      for (struct storage_list *local = world->storage_head; local != NULL;
+           local = local->next) {
+        struct abstract_element *head_molecule = local->store->timer->current;
+        while (local->store->timer->current != NULL) {
+          struct abstract_molecule *am = \
+              (struct abstract_molecule *)schedule_peak(local->store->timer);
+          // We only want to update molecules involved in this reaction.
+          // Also, skip dead molecs (props=NULL). They'll be cleaned up later.
+          if ((am->properties != NULL) && 
+              (am->properties->species_id == reaction->players[0]->species_id)) {
+            // Setting t2=0 and ACT_CHANGE will cause the lifetime to be
+            // recomputed during the next timestep
+            am->t2 = 0.0;
+            am->flags |= ACT_CHANGE;
+          }
+        }
+        // Reset current molecule in scheduler now that we're done "peaking"
+        local->store->timer->current = head_molecule;
+      }
+    }
+    return MCELL_SUCCESS;
+
+  }
+  return MCELL_SUCCESS;
+}
+
+MCELL_STATUS
+mcell_add_reaction_simplified(
+    struct volume *state, 
+    struct mcell_species *reactants,
+    struct reaction_arrow *arrow,
+    struct mcell_species *surfs,
+    struct mcell_species *products,
+    struct reaction_rates *rates,
+    struct sym_entry *pathname) {
+
+  mcell_add_reaction(state->notify, &state->r_step_release,
+                     state->rxn_sym_table, state->radial_subdivisions,
+                     state->vacancy_search_dist2, reactants, arrow, surfs,
+                     products, pathname, rates, NULL, NULL);
+
+  return MCELL_SUCCESS;
+}
 
 /*************************************************************************
  *
@@ -3271,9 +3360,9 @@ int build_reaction_hash_table(
  *
  *****************************************************************************/
 struct reaction_rates mcell_create_reaction_rates(int forwardRateType,
-                                                  int forwardRateConstant,
+                                                  double forwardRateConstant,
                                                   int backwardRateType,
-                                                  int backwardRateConstant) {
+                                                  double backwardRateConstant) {
   struct reaction_rate forwardRate;
   forwardRate.rate_type = forwardRateType;
   forwardRate.v.rate_constant = forwardRateConstant;
@@ -3414,4 +3503,21 @@ int load_rate_file(double time_unit, struct mem_helper *tv_rxn_mem,
     fclose(f);
   }
   return 0;
+}
+
+struct sym_entry *mcell_new_rxn_pathname(struct volume *state, char *name) {
+  if ((retrieve_sym(name, state->rxpn_sym_table)) != NULL) {
+    mcell_log("Named reaction pathway already defined: %s", name);
+    return NULL;
+  } else if ((retrieve_sym(name, state->mol_sym_table)) != NULL) {
+    mcell_log("Named reaction pathway already defined as a molecule: %s", name);
+    return NULL;
+  }
+
+  struct sym_entry *symp = store_sym(name, RXPN, state->rxpn_sym_table, NULL);
+  if (symp == NULL) {
+    mcell_log("Out of memory while creating reaction name: %s", name);
+    return NULL;
+  }
+  return symp;
 }

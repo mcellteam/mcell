@@ -21,9 +21,6 @@
  *
 ******************************************************************************/
 
-#ifndef MCELL_INIT_H
-#define MCELL_INIT_H
-
 /* status of libMCell API calls */
 typedef int MCELL_STATUS;
 
@@ -40,12 +37,10 @@ struct num_expr_list_head {
   int shared;
 };
 
-MCELL_STATE *mcell_create();
+//ecc 08012016: added void as parameter for swig functionality
+MCELL_STATE *mcell_create(void);
 
 MCELL_STATUS mcell_init_state(MCELL_STATE *state);
-
-//ecc removed for swig function
-//MCELL_STATUS mcell_parse_mdl(MCELL_STATE *state);
 
 MCELL_STATUS mcell_init_simulation(MCELL_STATE *state);
 
@@ -60,4 +55,4 @@ MCELL_STATUS mcell_set_time_step(MCELL_STATE *state, double step);
 
 MCELL_STATUS mcell_set_iterations(MCELL_STATE *state, long long iterations);
 
-#endif
+

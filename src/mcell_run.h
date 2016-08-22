@@ -33,6 +33,9 @@ MCELL_STATUS mcell_run_simulation(MCELL_STATE *state);
 MCELL_STATUS mcell_run_iteration(MCELL_STATE *state, long long output_frequency,
                                  int *restarted_from_checkpoint);
 
+
+//ecc commented out for swig function
+
 /* flush all output buffers to disk to disk after the simulation
  * run is complete */
 MCELL_STATUS mcell_flush_data(MCELL_STATE *state);

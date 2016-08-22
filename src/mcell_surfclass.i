@@ -20,44 +20,47 @@
  * USA.
  *
 ******************************************************************************/
+/*
+#ifndef MCELL_SURFCLASS_H
+#define MCELL_SURFCLASS_H
 
-#ifndef MCELL_INIT_H
-#define MCELL_INIT_H
+#include "config.h"
+#include "logging.h"
+#include "sym_table.h"
+#include "mcell_species.h"
+#include "init.h"
+#include "mcell_structs.h"
+*/
+MCELL_STATUS mcell_add_surf_class_properties(
+    MCELL_STATE *state,
+    int reaction_type,
+    mcell_symbol *sc_sym,
+    mcell_symbol *reactant_sym,
+    short orient);
 
-/* status of libMCell API calls */
-typedef int MCELL_STATUS;
+%typemap(in) mcell_symbol **sc_sym (mcell_symbol *temp) {
+  $1 = &temp;
+}
 
-#define MCELL_SUCCESS 0
-#define MCELL_FAIL 1
+%typemap(argout) struct sym_entry **sc_sym {
+  %set_output(SWIG_NewPointerObj(SWIG_as_voidptr(*$1), $*1_descriptor, SWIG_POINTER_OWN));
+}
 
-/* state of mcell simulation */
-typedef struct volume MCELL_STATE;
+MCELL_STATUS mcell_create_surf_class(
+    MCELL_STATE *state,
+    char *surf_class_name,
+    mcell_symbol **sc_sym);
 
-struct num_expr_list_head {
-  struct num_expr_list *value_head;
-  struct num_expr_list *value_tail;
-  int value_count;
-  int shared;
-};
+struct sm_dat *mcell_add_mol_release_to_surf_class(
+    MCELL_STATE *state,
+    struct sym_entry *sc_sym,
+    struct mcell_species *sm_info,
+    double quantity,
+    int density_or_num,
+    struct sm_dat *smd_list);
 
-MCELL_STATE *mcell_create();
+MCELL_STATUS mcell_assign_surf_class_to_region(
+    struct sym_entry *sc_sym,
+    struct region *rgn);
 
-MCELL_STATUS mcell_init_state(MCELL_STATE *state);
 
-//ecc removed for swig function
-//MCELL_STATUS mcell_parse_mdl(MCELL_STATE *state);
-
-MCELL_STATUS mcell_init_simulation(MCELL_STATE *state);
-
-MCELL_STATUS mcell_init_read_checkpoint(MCELL_STATE *state);
-
-MCELL_STATUS mcell_init_output(MCELL_STATE *state);
-
-MCELL_STATUS mcell_set_partition(MCELL_STATE *state, int dim,
-                                 struct num_expr_list_head *head);
-
-MCELL_STATUS mcell_set_time_step(MCELL_STATE *state, double step);
-
-MCELL_STATUS mcell_set_iterations(MCELL_STATE *state, long long iterations);
-
-#endif

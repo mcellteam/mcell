@@ -271,12 +271,6 @@ static void emergency_output_signal_handler(int signo)
     __attribute__((noreturn));
 
 static void emergency_output_signal_handler(int signo) {
-  fprintf(mcell_get_error_file(),
-          "*****************************\n"
-          "MCell dying due to signal %d.\n"
-          "Please report this to the mcell developers by emailing <%s>.\n"
-          "*****************************\n",
-          signo, PACKAGE_BUGREPORT);
 
   if (emergency_output_hook_enabled) {
     emergency_output_hook_enabled = 0;

@@ -20,10 +20,6 @@
  * USA.
  *
 ******************************************************************************/
-
-#ifndef MCELL_OBJECTS_H
-#define MCELL_OBJECTS_H
-
 struct object_creation {
   struct name_list *object_name_list;
   struct name_list *object_name_list_end;
@@ -37,6 +33,18 @@ struct poly_object {
   struct element_connection_list *connections;
   int num_conn;
 };
+
+//ecc added for swig function
+//int is_region_degenerate(struct region *reg_ptr);
+
+%typemap(in) struct object **new_object (struct object *temp) {
+  $1 = &temp;
+}
+
+%typemap(argout) struct object **new_object {
+  %set_output(SWIG_NewPointerObj(SWIG_as_voidptr(*$1), $*1_descriptor, SWIG_POINTER_OWN));
+}
+
 
 
 /* object creation */
@@ -75,7 +83,7 @@ int mcell_set_region_elements(struct region *rgn, struct element_list *elements,
                               int normalize_now);
 
 struct element_list *mcell_add_to_region_list(struct element_list *elements,
-                                              u_int region_idx);
+                                              unsigned int region_idx);
 
 /* Adds children to a meta-object, aggregating counts of walls and vertices
  * from the children into the specified parent. The children should already
@@ -111,7 +119,6 @@ int cuboid_patch_to_bits(struct subdivided_box *subd_box, struct vector3 *v1,
 
 int check_patch(struct subdivided_box *b, struct vector3 *p1,
                 struct vector3 *p2, double egd);
+
 struct sym_entry *mcell_get_obj_sym(struct object *obj);
 struct sym_entry *mcell_get_reg_sym(struct region *reg);
-
-#endif

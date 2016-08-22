@@ -1,7 +1,7 @@
-#include "config.h"
-
+#include <stdio.h>
 #include <stdlib.h>
 
+#include "mcell_structs.h"
 #include "mcell_misc.h"
 #include "mcell_objects.h"
 #include "mcell_react_out.h"
@@ -10,6 +10,7 @@
 #include "mcell_species.h"
 #include "mcell_viz.h"
 #include "mcell_surfclass.h"
+#include "mcell_run.h"
 
 #define CHECKED_CALL_EXIT(function, error_message)                             \
   {                                                                            \
@@ -19,10 +20,11 @@
     }                                                                          \
   }
 
-/***************************************************************************
- * Test code for the libmcell API
- ***************************************************************************/
-void test_api(MCELL_STATE *state) {
+int main(void) {
+  struct volume *state = mcell_create();
+  CHECKED_CALL_EXIT(
+      mcell_init_state(state),
+      "An error occured during set up of the initial simulation state");
   /* set timestep and number of iterations */
   CHECKED_CALL_EXIT(mcell_set_time_step(state, 1e-6), "Failed to set timestep");
   CHECKED_CALL_EXIT(mcell_set_iterations(state, 1000),
@@ -201,11 +203,11 @@ void test_api(MCELL_STATE *state) {
   /***************************************************************************
    * begin code for creating count statements
    ***************************************************************************/
-   struct sym_entry *where = NULL;   // we count in the world
- // struct sym_entry *where = new_mesh->sym;
- //  byte report_flags = REPORT_WORLD;
-   //report_flags |= REPORT_CONTENTS;
- byte report_flags = REPORT_CONTENTS;
+  // struct sym_entry *where = NULL;   // we count in the world
+  struct sym_entry *where = new_mesh->sym;
+  // byte report_flags = REPORT_WORLD;
+  // report_flags |= REPORT_CONTENTS;
+  byte report_flags = REPORT_CONTENTS;
 
   struct output_column_list count_list;
   CHECKED_CALL_EXIT(mcell_create_count(state, molA_ptr, ORIENT_NOT_SET, where,
@@ -237,4 +239,21 @@ void test_api(MCELL_STATE *state) {
                                             mol_viz_list, 0, 1000, 2),
                     "Error setting up the viz output block");
   mcell_delete_species_list(mol_viz_list);
+  
+  CHECKED_CALL_EXIT(mcell_init_simulation(state),
+                    "An error occured during simulation creation.");
+
+  CHECKED_CALL_EXIT(
+      mcell_init_read_checkpoint(state),
+      "An error occured during initialization and reading of checkpoint.");
+
+  CHECKED_CALL_EXIT(mcell_init_output(state),
+                    "An error occured during setting up of output.");
+
+  CHECKED_CALL_EXIT(mcell_run_simulation(state),
+                    "Error running mcell simulation.");
+
+  mcell_print_stats();
+
+  return 0;
 }

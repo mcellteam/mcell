@@ -20,44 +20,37 @@
  * USA.
  *
 ******************************************************************************/
+/*
+#ifndef MCELL_MISC_H
+#define MCELL_MISC_H
 
-#ifndef MCELL_INIT_H
-#define MCELL_INIT_H
+#include "config.h"
+#include "mcell_init.h"
+#include "mcell_structs.h"
+*/
+void mcell_print_version();
 
-/* status of libMCell API calls */
-typedef int MCELL_STATUS;
+void mcell_print_usage(const char *executable_name);
 
-#define MCELL_SUCCESS 0
-#define MCELL_FAIL 1
+void mcell_print_stats();
 
-/* state of mcell simulation */
-typedef struct volume MCELL_STATE;
+int mcell_argparse(int argc, char **argv, MCELL_STATE *state);
 
-struct num_expr_list_head {
-  struct num_expr_list *value_head;
-  struct num_expr_list *value_tail;
-  int value_count;
-  int shared;
-};
+struct num_expr_list *mcell_copysort_numeric_list(struct num_expr_list *head);
 
-MCELL_STATE *mcell_create();
+void mcell_sort_numeric_list(struct num_expr_list *head);
 
-MCELL_STATUS mcell_init_state(MCELL_STATE *state);
+void mcell_free_numeric_list(struct num_expr_list *nel);
 
-//ecc removed for swig function
-//MCELL_STATUS mcell_parse_mdl(MCELL_STATE *state);
+MCELL_STATUS mcell_generate_range(struct num_expr_list_head *list, double start,
+                                  double end, double step);
 
-MCELL_STATUS mcell_init_simulation(MCELL_STATE *state);
+/*int advance_range(struct num_expr_list_head *list, double tmp_dbl);*/
 
-MCELL_STATUS mcell_init_read_checkpoint(MCELL_STATE *state);
+int mcell_generate_range_singleton(struct num_expr_list_head *lh, double value);
 
-MCELL_STATUS mcell_init_output(MCELL_STATE *state);
+// XXX this is a temporary hack to be able to print in mcell.c
+// since mcell disables regular printf
+void mcell_print(const char *message);
 
-MCELL_STATUS mcell_set_partition(MCELL_STATE *state, int dim,
-                                 struct num_expr_list_head *head);
-
-MCELL_STATUS mcell_set_time_step(MCELL_STATE *state, double step);
-
-MCELL_STATUS mcell_set_iterations(MCELL_STATE *state, long long iterations);
-
-#endif
+/*#endif*/
