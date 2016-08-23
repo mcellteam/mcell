@@ -266,7 +266,7 @@ class json_parser {
     elements = vector<json_element *>();
   }
 
-  void parse ( json_array *parent ) {	  
+  void parse ( json_array *parent ) {
 	  parse_element ( parent, 0, 0 );
   }
 
@@ -480,8 +480,8 @@ class json_array : public vector<void *> {
       this[i].print_self();
     }
     global_depth += -1;
-    
-    
+
+
     cout << "type.name = " << typeid(this).name() << endl;
     bool match = (typeid(this) == typeid(new json_array()));
     cout << "match = " << match << endl;
@@ -706,7 +706,7 @@ int json_parser::parse_string ( void *parent, int index, int depth ) {
     local_text.assign (text);
 
     string sub_string = local_text.substr(index+1,end-index);
-    
+
     json_string *val = new json_string(sub_string);
     p->push_back( (void *)val );
 
@@ -730,7 +730,7 @@ int json_parser::parse_number ( void *parent, int index, int depth ) {
     local_text.assign (text);
 
     string sub_string = local_text.substr(index,end-index);
-    
+
     json_number *val = new json_number(sub_string);
     p->push_back( (void *)val );
 
@@ -776,7 +776,7 @@ int main() {
   p.dump(90);
 
   cout << "====== While Building C++ Structures ======" << endl;
-  
+
   int index = 0;
   item_array *items = p.build_item_list(&index);
 
@@ -785,7 +785,7 @@ int main() {
   items->dump(0);
 
   cout << "====== Dump of equivalent Test ======" << endl;
-  
+
   t0->dump(0);
 
   return ( 0 );
