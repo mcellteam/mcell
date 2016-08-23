@@ -47,7 +47,9 @@ extern "C" {
 
 #include <string.h>
 #include <iostream>
-#include <map>
+#include <sstream>
+#include <iomanip>
+#include <unordered_map>
 
 #define CHECKED_CALL_EXIT(function, error_message)                             \
   {                                                                            \
@@ -68,6 +70,9 @@ namespace MCellAPI {
     protected:
       string name;
     public:
+      MCellSpeciesExpression() {
+        this->name = "";
+      }
       string getName();
       MCellSpeciesExpression ( string name );
       MCellSpeciesExpression operator+ (MCellSpeciesExpression);
@@ -80,7 +85,15 @@ namespace MCellAPI {
     protected:
       double diffusion_constant;
     public:
-      MCellSpecies ( string name );
+      MCellSpecies() {
+        this->name = "";
+        this->diffusion_constant = 0;
+      }
+      MCellSpecies ( string species_name ) {
+        this->name = species_name;
+        this->diffusion_constant = 0;
+      }
+      string to_string ();
       void set_diffusion_constant ( double d );
   };
   class MCellReaction {
@@ -140,9 +153,13 @@ namespace MCellAPI {
     return (*this);
   }
 
-  MCellSpecies::MCellSpecies ( string species_name ) : MCellSpeciesExpression ( species_name ) {
-    diffusion_constant = 0;
-    cout << "  Species Constructor for " << species_name << endl;
+  string MCellSpecies::to_string() {
+    // string s = this->name + " has dc=" + std::to_string(this->diffusion_constant);
+    // For more precision and control, use a stringstream to output the value
+    std::stringstream ss;
+    ss << std::setprecision(20) << this->diffusion_constant;
+    string s = this->name + " has dc=" + ss.str();
+    return ( s );
   }
 
   void MCellSpecies::set_diffusion_constant ( double d ) {
@@ -211,7 +228,7 @@ int main(int argc, char **argv) {
   MCellSpecies c = mysim.new_species ( "C" );
   MCellSpecies d = mysim.new_species ( "D" );
 
-  a.set_diffusion_constant ( 1e-6 );
+  a.set_diffusion_constant ( 1.2e-5 );
 
   cout << "Simulation is creating Reactions: " << endl;
   MCellReaction forward = mysim.new_reaction ( a + b > c + d );
@@ -225,25 +242,24 @@ int main(int argc, char **argv) {
   cout << endl << "**********  Done!!  **********" << endl << endl << endl;
 
 
-  // Test out an example dictionary (map)
+  // Test out an example dictionary (map or unordered_map)
 
-  map<string, string> molecules;
+  unordered_map<string, MCellSpecies*> molecules;
 
-  molecules["a"] = "Mol A";
-  molecules["b"] = "Mol A";
-  molecules["c"] = "Mol A";
-  molecules["d"] = "Mol A";
-  molecules["e"] = "Mol A";
-  molecules["f"] = "Mol A";
-  molecules["g"] = "Mol A";
+  cout << endl << "Assigning molecules to dictionary" << endl;
 
-  cout << "molecules[e]=" << molecules["e"] << endl << endl;
+  molecules["a"] = &a;
+  molecules["b"] = &b;
+  molecules["c"] = &c;
+  molecules["d"] = &d;
+
+  cout << "molecules[b]=" << molecules.at("b")->to_string() << endl << endl;
 
   cout << "Map size: " << molecules.size() << endl;
 
-  for( map<string,string>::iterator ii=molecules.begin(); ii!=molecules.end(); ++ii)
+  for( unordered_map<string,MCellSpecies*>::iterator ii=molecules.begin(); ii!=molecules.end(); ++ii)
   {
-    cout << (*ii).first << ": " << (*ii).second << endl;
+    cout << "  " << (*ii).first << ": " << (*ii).second->to_string() << endl;
   }
 
   // End of earlier C++ prototype
