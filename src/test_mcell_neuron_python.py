@@ -36,30 +36,30 @@ if __name__ == "__main__":
 	m.mcell_set_iterations(world, iterations)
 
 	# Define one surface molecule and three volume molecules
-	vm1_sym = m.create_species(m, world, "vm1", 1e-6, False)
+	vm1_sym = m.create_species(world, "vm1", 1e-6, False)
 
 	# vm1 -> NULL [1e5]
 	reactants2 = m.mcell_add_to_species_list(vm1_sym, False, 0, None)
-	m.create_reaction(m, world, reactants2, None, 0.01, name="rxn")
+	m.create_reaction(world, reactants2, None, 0.01, name="rxn")
 
 	# Create Scene for simulation
 	scene_name = "Scene"
-	scene = m.create_instance_object(m, world, scene_name)
+	scene = m.create_instance_object(world, scene_name)
 
 	# Create a spherical release site
 	pos_vec3 = Vector3()
 	diam_vec3 = Vector3(0.015, 0.015, 0.015)
 
 	position, diameter, sphere_release_object = m.create_release_site(
-		m, world, scene, pos_vec3, diam_vec3, m.SHAPE_SPHERICAL, 500,
+		world, scene, pos_vec3, diam_vec3, m.SHAPE_SPHERICAL, 500,
 		vm1_sym, "vm1_rel")
 
 	obj_name = "Torus"
 	mesh = m.create_polygon_object(
-	    m, world, torus.vert_list, torus.face_list, scene, obj_name)
+	    world, torus.vert_list, torus.face_list, scene, obj_name)
 
 	region_release_object = m.create_region_release_site(
-            m, world, scene, mesh, "vm1_torus_rel", "ALL", 1000, vm1_sym)
+            world, scene, mesh, "vm1_torus_rel", "ALL", 1000, vm1_sym)
 
 	# Create viz data
 	viz_list = m.mcell_add_to_species_list(vm1_sym, False, 0, None)
@@ -69,7 +69,7 @@ if __name__ == "__main__":
 	# Create reaction data
 	mesh_sym = m.mcell_get_obj_sym(mesh)
 	count_list1, os1, out_times1, output1 = m.create_count(
-		m, world, mesh_sym, vm1_sym, "react_data/vm1_%s.dat" % obj_name)
+		world, mesh_sym, vm1_sym, "react_data/vm1_%s.dat" % obj_name)
 	
         # Initialize simulation 
 	m.mcell_init_simulation(world)
