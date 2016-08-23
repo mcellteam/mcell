@@ -7,7 +7,6 @@ passing of information between two timescales in a biological simulation
 """
 
 
-import numpy
 import math
 
 import neuron
@@ -26,7 +25,7 @@ class Vector3(object):
 # Main
 if __name__ == "__main__":
 
-        # Create pyMcell instance       
+        # Create pyMCell instance
         world = m.mcell_create()
         m.mcell_init_state(world)
 
@@ -51,8 +50,8 @@ if __name__ == "__main__":
         diam_vec3 = Vector3(0.015, 0.015, 0.015)
 
         position, diameter, sphere_release_object = m.create_release_site(
-                world, scene, pos_vec3, diam_vec3, m.SHAPE_SPHERICAL, 500,
-                vm1_sym, "vm1_rel")
+            world, scene, pos_vec3, diam_vec3, m.SHAPE_SPHERICAL, 500, vm1_sym,
+            "vm1_rel")
 
         obj_name = "Torus"
         mesh = m.create_polygon_object(
@@ -64,22 +63,22 @@ if __name__ == "__main__":
         # Create viz data
         viz_list = m.mcell_add_to_species_list(vm1_sym, False, 0, None)
         m.mcell_create_viz_output(
-                world, "./viz_data/test", viz_list, 0, iterations, 1)
+            world, "./viz_data/test", viz_list, 0, iterations, 1)
 
         # Create reaction data
         mesh_sym = m.mcell_get_obj_sym(mesh)
         count_list1, os1, out_times1, output1 = m.create_count(
-                world, mesh_sym, vm1_sym, "react_data/vm1_%s.dat" % obj_name)
-        
-        # Initialize simulation 
+            world, mesh_sym, vm1_sym, "react_data/vm1_%s.dat" % obj_name)
+
+        # Initialize simulation
         m.mcell_init_simulation(world)
         m.mcell_init_output(world)
 
         # Define soma compartment with HH mechanisms
         soma = neuron.h.Section(name="soma")
         soma.nseg = 1
-        soma.diam=10
-        soma.L=10
+        soma.diam = 10
+        soma.L = 10
         soma.insert("hh")
         meca = soma(.5).hh
 
@@ -103,7 +102,7 @@ if __name__ == "__main__":
         neuron.h.dt = .025
 
         #neuron.run(tstop)
-        t=0.0
+        t = 0.0
         output_freq = 10
         r_rate = 20
 
@@ -111,14 +110,14 @@ if __name__ == "__main__":
 
                 # Advance neuron
                 vm1_count = m.mcell_get_count(
-                        "vm1", "%s.%s,ALL" % (scene_name, obj_name), world)
+                    "vm1", "%s.%s,ALL" % (scene_name, obj_name), world)
                 print("vm1_count is ")
                 print(vm1_count)
                 soma.gnabar_hh = vm1_count*100
                 print("soma.gnabar_hh is")
                 print(soma.gnabar_hh)
                 neuron.h.fadvance()
-                t += neuron.h.dt;
+                t += neuron.h.dt
 
                 # Advance the MCell main model to keep up
                 if t > 3:
@@ -127,7 +126,6 @@ if __name__ == "__main__":
                 print(r_rate)
                 m.mcell_modify_rate_constant(world, "rxn", r_rate)
                 m.mcell_run_iteration(world, output_freq, 0)
-        
 
         # Plot and print the results
         time = rec_t.to_python()
