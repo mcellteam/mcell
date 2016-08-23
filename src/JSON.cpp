@@ -27,12 +27,27 @@ using namespace std;
   class item {
    public:
     int type  = JSON_VAL_UNDEF;
+    virtual void dump(int n) = 0;
+    virtual void dump_nobar(int n) = 0;
+    void indent ( int n ) {
+      for (int i=0; i<n; i++) {
+        cout << "   ";
+      }
+    }
   };
 
   class item_null : public item {
    public:
     item_null() {
       this->type = JSON_VAL_NULL;\
+    }
+    void dump(int n) {
+      indent ( n );
+      cout << "|-Null: " << endl;
+    }
+    void dump_nobar(int n) {
+      indent ( n );
+      cout << "Null: " << endl;
     }
   };
 
@@ -41,12 +56,28 @@ using namespace std;
     item_true() {
       this->type = JSON_VAL_TRUE;
     }
+    void dump(int n) {
+      indent ( n );
+      cout << "|-True: " << endl;
+    }
+    void dump_nobar(int n) {
+      indent ( n );
+      cout << "True: " << endl;
+    }
   };
 
   class item_false : public item {
    public:
     item_false() {
       this->type = JSON_VAL_FALSE;
+    }
+    void dump(int n) {
+      indent ( n );
+      cout << "|-False: " << endl;
+    }
+    void dump_nobar(int n) {
+      indent ( n );
+      cout << "False: " << endl;
     }
   };
 
@@ -69,6 +100,14 @@ using namespace std;
       this->as_integer = d;
       this->as_double = d;
     }
+    void dump(int n) {
+      indent ( n );
+      cout << "|-Number: " << to_string(as_integer) << " or " << to_string(as_double) << endl;
+    }
+    void dump_nobar(int n) {
+      indent ( n );
+      cout << "Number: " << to_string(as_integer) << " or " << to_string(as_double) << endl;
+    }
   };
 
   class item_string : public item {
@@ -82,6 +121,14 @@ using namespace std;
       this->type = JSON_VAL_STRING;
       this->s = s;
     }
+    void dump(int n) {
+      indent ( n );
+      cout << "|-String: \"" << s << "\"" << endl;
+    }
+    void dump_nobar(int n) {
+      indent ( n );
+      cout << "String: \"" << s << "\"" << endl;
+    }
   };
 
   class item_array : public item {
@@ -91,13 +138,47 @@ using namespace std;
       this->type = JSON_VAL_ARRAY;
       this->items = new vector<item *>;
     }
+    void dump(int n) {
+      int len = items->size();
+      indent ( n );
+      cout << "|-Array contains " << to_string(len) << " items." << endl;
+      n += 1;
+      for (int i=0; i<len; i++) {
+        //indent ( n );
+        // cout << "|-Item " + to_string(i) << endl;
+        item *it = items->at(i);
+        it->dump(n);
+      }
+      n += -1;
+    }
+    void dump_nobar(int n) {
+      dump(n);
+    }
   };
+
 
   class item_object : public item {
    public:
     unordered_map<string, item*> items;
     item_object() {
       this->type = JSON_VAL_OBJECT;
+    }
+    void dump(int n) {
+      int len = items.size();
+      indent ( n );
+      cout << "|-Object contains " << to_string(len) << " items." << endl;
+      n += 1;
+      for ( auto it = items.begin(); it != items.end(); ++it ) {
+        //indent ( n+1 );
+        //cout << "Item[" << it->first << "] = ..." << endl;
+        indent ( n );
+        cout << "|-Object[" << it->first << "] = ";
+        it->second->dump_nobar(0);
+      }
+      n += -1;
+    }
+    void dump_nobar(int n) {
+      dump(n);
     }
   };
 
@@ -107,6 +188,13 @@ using namespace std;
     item *val;
     item_keyval() {
       this->type = JSON_VAL_KEYVAL;
+    }
+    void dump(int n) {
+      indent ( n );
+      cout << "|-KeyValue key " << key << ":" << endl;
+    }
+    void dump_nobar(int n) {
+      dump(n);
     }
   };
 
@@ -243,7 +331,9 @@ class json_parser {
       double v = strtod ( display.c_str(), NULL );
       return ( new item_number( v ) );
     } else if ( j->type == JSON_VAL_STRING ) {
-      return ( new item_string( display ) );
+      int l = display.length();
+      string unquoted = display.substr(1,l-2);
+      return ( new item_string( unquoted ) );
     } else if ( j->type == JSON_VAL_ARRAY ) {
       return ( new item_array() );
     } else if ( j->type == JSON_VAL_OBJECT ) {
@@ -274,7 +364,8 @@ class json_parser {
         item_list->items->push_back ( build_item_pair_list(index) );
       } else {
         //cout << "Got other ..." << endl;
-        item *next_item = build_next_item ( index );
+        item_list->items->push_back ( build_next_item(index) );
+        // item *next_item = build_next_item ( index );
         (*index)++;
       }
 
@@ -292,13 +383,7 @@ class json_parser {
     // cout << "Index " << std::to_string(*index) << ": Elements contains " << elements.size() << " items." << endl;
     int this_depth = elements.at(*index)->depth;
     while ( ( *index < elements.size() ) && ( (j = elements.at(*index))->type == JSON_VAL_KEYVAL ) ) {
-
-      // j = elements.at(*index);
-      // for (int d=0; d<j->depth; d++) { cout << "    "; }
-      // cout << "|-In object ... with type = " << j->get_name() << endl;
-
       (*index)++;
-
       string key = "";
 
       j = elements.at(*index);
@@ -315,86 +400,23 @@ class json_parser {
       (*index)++;
 
       j = elements.at(*index);
-      //for (int d=0; d<j->depth; d++) { cout << "    "; }
-      //cout << "|-In object ... with type = " << j->get_name() << endl;
 
       if ( j->type == JSON_VAL_ARRAY ) {
         for (int d=0; d<j->depth; d++) { cout << "    "; }
         cout << "|-Array ..." << endl;
         (*index)++;
         item_pair_list->items[key] = build_item_list(index);
-        // (*index)++;
       } else if ( j->type == JSON_VAL_OBJECT ) {
         for (int d=0; d<j->depth; d++) { cout << "    "; }
         cout << "|-Object ..." << endl;
-        // (*index)++;
         item_pair_list->items[key] = build_item_pair_list(index);
-        // item_list->items->push_back ( build_item_pair_list(index) );
       } else {
-        // for (int d=0; d<j->depth; d++) { cout << "    "; }
-        // cout << "|-In object ... with type = " << j->get_name() << endl;
-        //cout << "Got other ..." << endl;
         item_pair_list->items[key] = build_next_item ( index );
         (*index)++;
       }
-
-      // (*index)++;
-
     }
     return item_pair_list;
   }
-
-
-
-/*
-  item_object *build_item_object ( int *index ) {
-    item_object *object = new item_object();
-
-    json_element *j;
-    // cout << "Index " << std::to_string(*index) << ": Elements contains " << elements.size() << " items." << endl;
-    int this_depth = elements.at(*index)->depth;
-    while ( ( *index < elements.size() ) && ( (j = elements.at(*index))->depth == this_depth ) ) {
-      cout << " *** ";
-      // cout << " Level: " << std::to_string(this_depth) << ", Next Element Type = " + std::to_string(j->type) << endl;
-      for (int d=0; d<j->depth; d++) {
-        cout << "    ";
-      }
-      string local_text;
-      local_text.assign (text);
-      string display;
-      display = local_text.substr(j->start,j->end-j->start);
-      cout << "|-" << j->get_name() << " at depth " << j->depth << " from " << j->start << " to " << (j->end-1) << " = " << display << endl;
-      if      ( j->type == JSON_VAL_KEYVAL ) {
-        object->items->push_back ( new item_null() );
-        (*index)++;
-      } else if ( j->type == JSON_VAL_TRUE ) {
-        object->items->push_back ( new item_true() );
-        (*index)++;
-      } else if ( j->type == JSON_VAL_FALSE ) {
-        object->items->push_back ( new item_false() );
-        (*index)++;
-      } else if ( j->type == JSON_VAL_NUMBER ) {
-        double v = strtod ( display.c_str(), NULL );
-        object->items->push_back ( new item_number( v ) );
-        (*index)++;
-      } else if ( j->type == JSON_VAL_STRING ) {
-        object->items->push_back ( new item_string( display ) );
-        (*index)++;
-      } else if ( j->type == JSON_VAL_ARRAY ) {
-        (*index)++;
-        item_array *array = new item_array();
-        object->items->push_back ( build_item_object(index) );
-        (*index)++;
-      } else if ( j->type == JSON_VAL_OBJECT ) {
-        (*index)++;
-      } else if ( j->type == JSON_VAL_KEYVAL ) {
-        (*index)++;
-      }
-
-    }
-    return object;
-  }
-*/
 
 
   int skip_whitespace ( int index, int depth ) {
@@ -721,19 +743,49 @@ int json_parser::parse_number ( void *parent, int index, int depth ) {
 int main() {
   cout << "JSON C++ Parser" << endl;
 
+
+  item_array *t1 = new item_array();
+  t1->items->push_back ( new item_string ( "one" ) );
+  t1->items->push_back ( new item_number ( 2.2 ) );
+  item_array *t2 = new item_array();
+  t2->items->push_back ( new item_string ( "A" ) );
+  t2->items->push_back ( new item_true ( ) );
+  t2->items->push_back ( new item_string ( "C" ) );
+  t1->items->push_back ( t2 );
+  item_object *t3 = new item_object();
+  t3->items["q"] = new item_number ( 7 );
+  t3->items["x"] = new item_string ( "XXX" );
+  t3->items["y"] = new item_string ( "YYY" );
+  t3->items["z"] = new item_string ( "ZZZ" );
+  t1->items->push_back ( t3 );
+  t1->items->push_back ( new item_string ( "three" ) );
+
+  cout << "====== Before Parsing ======" << endl;
+
   // char *text = "{\"A\":true,\"mc\":[{\"a\":0.01},1e-5,2,true,[9,[0,3],\"a\",345],false,null,5,[1,2,3],\"xyz\"],\"x\":\"y\"}";
-  char *text = "[ 9, [0,3], [1,4], { \"a\":5, \"b\":7, \"N\":null, \"TF\":{\"F\":false,\"T\":true}, \"A\":[3] }, \"END\" ]";
+  // char *text = "[ 9, [0,3], [1,4], { \"a\":5, \"b\":7, \"N\":null, \"TF\":{\"F\":false,\"T\":true}, \"A\":[3] }, \"END\" ]";
+  char *text = "[ \"one\", 2.2, [\"A\", true, \"C\"], {\"q\":7, \"x\":\"XXX\", \"y\":\"YYY\", \"z\":\"ZZZ\"}, \"three\"]";
 
   json_array top;
   json_parser p = json_parser(text);
   p.parse ( &top );
 
+  cout << "====== After Parsing ======" << endl;
+
   p.dump(90);
 
-  cout << "============" << endl;
+  cout << "====== While Building C++ Structures ======" << endl;
   
   int index = 0;
-  p.build_item_list(&index);
+  item_array *items = p.build_item_list(&index);
+
+  cout << "====== After Building C++ Structures ======" << endl;
+
+  items->dump(0);
+
+  cout << "====== Dump of equivalent Test ======" << endl;
+  
+  t1->dump(0);
 
   return ( 0 );
   top.print_self();
