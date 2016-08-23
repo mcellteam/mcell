@@ -157,38 +157,38 @@ set(SOURCE_FILES_API_MAIN_CPP
 
 # build executables
 
-#FIND_PACKAGE(SWIG REQUIRED)
-#INCLUDE(${SWIG_USE_FILE})
-#
-#FIND_PACKAGE(PythonLibs 3 REQUIRED)
-#INCLUDE_DIRECTORIES(${PYTHON_INCLUDE_PATH})
-#
-#INCLUDE_DIRECTORIES("${CMAKE_CURRENT_SOURCE_DIR}/src")
-#
-##SET(CMAKE_SWIG_FLAGS "-debug-typemap;-debug-tmsearch;-debug-tmused;-ltypemaps")
-#SET(CMAKE_SWIG_FLAGS "-ltypemaps;-py3")
-#
-#SET_SOURCE_FILES_PROPERTIES(src/pymcell.i PROPERTIES C ON)
-#SET_SOURCE_FILES_PROPERTIES(src/pymcell.i PROPERTIES SWIG_FLAGS "-includeall")
-#SWIG_ADD_MODULE(pymcell python
-#  src/pymcell.i src/mcell_react_out.c src/mcell_misc.c src/util.c
-#  src/argparse.c src/mcell_objects.c src/mcell_reactions.c src/mcell_release.c
-#  src/mcell_species.c src/mcell_viz.c src/mcell_surfclass.c src/strfunc.c
-#  src/mcell_init.c src/chkpt.c src/init.c src/react_output.c src/version_info.c
-#  src/sched_util.c src/wall_util.c src/mem_util.c src/react_trig.c
-#  src/react_cond.c src/count_util.c src/vol_util.c src/diffuse.c src/vector.c
-#  src/diffuse_util.c src/sym_table.c src/triangle_overlap.c src/logging.c
-#  src/grid_util.c src/react_outc.c src/react_util.c src/react_outc_trimol.c
-#  src/diffuse_trimol.c src/isaac64.c src/rng.c src/viz_output.c src/mcell_run.c
-#  src/volume_output.c)
-#SWIG_LINK_LIBRARIES(pymcell ${PYTHON_LIBRARIES})
-#
-## copy the pyMCell test script into place
-#file(COPY ${CMAKE_SOURCE_DIR}/src/test_api.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-#file(COPY ${CMAKE_SOURCE_DIR}/src/torus.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-#
-## copy the mcell neuron interface test into place
-#file(COPY ${CMAKE_SOURCE_DIR}/src/test_mcell_neuron_python.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+FIND_PACKAGE(SWIG REQUIRED)
+INCLUDE(${SWIG_USE_FILE})
+
+FIND_PACKAGE(PythonLibs 3 REQUIRED)
+INCLUDE_DIRECTORIES(${PYTHON_INCLUDE_PATH})
+
+INCLUDE_DIRECTORIES("${CMAKE_CURRENT_SOURCE_DIR}/src")
+
+#SET(CMAKE_SWIG_FLAGS "-debug-typemap;-debug-tmsearch;-debug-tmused;-ltypemaps")
+SET(CMAKE_SWIG_FLAGS "-ltypemaps;-py3")
+
+SET_SOURCE_FILES_PROPERTIES(src/pymcell.i PROPERTIES C ON)
+SET_SOURCE_FILES_PROPERTIES(src/pymcell.i PROPERTIES SWIG_FLAGS "-includeall")
+SWIG_ADD_MODULE(pymcell python
+  src/pymcell.i src/mcell_react_out.c src/mcell_misc.c src/util.c
+  src/argparse.c src/mcell_objects.c src/mcell_reactions.c src/mcell_release.c
+  src/mcell_species.c src/mcell_viz.c src/mcell_surfclass.c src/strfunc.c
+  src/mcell_init.c src/chkpt.c src/init.c src/react_output.c src/version_info.c
+  src/sched_util.c src/wall_util.c src/mem_util.c src/react_trig.c
+  src/react_cond.c src/count_util.c src/vol_util.c src/diffuse.c src/vector.c
+  src/diffuse_util.c src/sym_table.c src/triangle_overlap.c src/logging.c
+  src/grid_util.c src/react_outc.c src/react_util.c src/react_outc_trimol.c
+  src/diffuse_trimol.c src/isaac64.c src/rng.c src/viz_output.c src/mcell_run.c
+  src/volume_output.c)
+SWIG_LINK_LIBRARIES(pymcell ${PYTHON_LIBRARIES})
+
+# copy the pyMCell test script into place
+file(COPY ${CMAKE_SOURCE_DIR}/src/test_api.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(COPY ${CMAKE_SOURCE_DIR}/src/torus.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+
+# copy the mcell neuron interface test into place
+file(COPY ${CMAKE_SOURCE_DIR}/src/test_mcell_neuron_python.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 add_executable(mcell
   ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h
