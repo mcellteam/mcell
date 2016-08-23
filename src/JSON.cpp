@@ -743,7 +743,7 @@ int json_parser::parse_number ( void *parent, int index, int depth ) {
 int main() {
   cout << "JSON C++ Parser" << endl;
 
-
+  item_array *t0 = new item_array();
   item_array *t1 = new item_array();
   t1->items->push_back ( new item_string ( "one" ) );
   t1->items->push_back ( new item_number ( 2.2 ) );
@@ -759,6 +759,7 @@ int main() {
   t3->items["z"] = new item_string ( "ZZZ" );
   t1->items->push_back ( t3 );
   t1->items->push_back ( new item_string ( "three" ) );
+  t0->items->push_back ( t1 );
 
   cout << "====== Before Parsing ======" << endl;
 
@@ -785,7 +786,7 @@ int main() {
 
   cout << "====== Dump of equivalent Test ======" << endl;
   
-  t1->dump(0);
+  t0->dump(0);
 
   return ( 0 );
   top.print_self();
