@@ -16,12 +16,6 @@ import torus
 
 # Define some functions fo the iteraction of mcell and neuron
 
-class Vector3(object):
-    def __init__(self, x=0.0, y=0.0, z=0.0):
-        self.x = x
-        self.y = y
-        self.z = z
-
 # Main
 if __name__ == "__main__":
 
@@ -46,8 +40,8 @@ if __name__ == "__main__":
         scene = m.create_instance_object(world, scene_name)
 
         # Create a spherical release site
-        pos_vec3 = Vector3()
-        diam_vec3 = Vector3(0.015, 0.015, 0.015)
+        pos_vec3 = m.Vector3()
+        diam_vec3 = m.Vector3(0.015, 0.015, 0.015)
 
         position, diameter, sphere_release_object = m.create_release_site(
             world, scene, pos_vec3, diam_vec3, m.SHAPE_SPHERICAL, 500, vm1_sym,
@@ -109,21 +103,19 @@ if __name__ == "__main__":
         while t < tstop:
 
                 # Advance neuron
+                print("-"*40)
                 vm1_count = m.mcell_get_count(
                     "vm1", "%s.%s,ALL" % (scene_name, obj_name), world)
-                print("vm1_count is ")
-                print(vm1_count)
+                print("vm1_count: %d" % vm1_count)
                 soma.gnabar_hh = vm1_count*100
-                print("soma.gnabar_hh is")
-                print(soma.gnabar_hh)
+                print("soma.gnabar_hh: %g" % soma.gnabar_hh)
                 neuron.h.fadvance()
                 t += neuron.h.dt
 
                 # Advance the MCell main model to keep up
                 if t > 3:
                         r_rate = rec_v[math.ceil(t)]*100
-                print("r_rate is ")
-                print(r_rate)
+                print("r_rate is %g" % r_rate)
                 m.mcell_modify_rate_constant(world, "rxn", r_rate)
                 m.mcell_run_iteration(world, output_freq, 0)
 
@@ -131,6 +123,6 @@ if __name__ == "__main__":
         time = rec_t.to_python()
         voltage = rec_v.to_python()
 
-        print(voltage)
+        # print(voltage)
 
         m.mcell_flush_data(world)

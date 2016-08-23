@@ -10,6 +10,13 @@ intuitive.
 import pymcell as m
 
 
+class Vector3(object):
+    def __init__(self, x=0.0, y=0.0, z=0.0):
+        self.x = x
+        self.y = y
+        self.z = z
+
+
 def create_count(world, where, mol_sym, file_path):
     """Creates a count for a specified molecule in a specified region
     and initializes an output block for the count data that will be

@@ -4,12 +4,6 @@ import pymcell as m
 import torus
 
 
-class Vector3(object):
-    def __init__(self, x=0.0, y=0.0, z=0.0):
-        self.x = x
-        self.y = y
-        self.z = z
-
 
 def main():
     world = m.mcell_create()
@@ -40,16 +34,16 @@ def main():
     scene = m.create_instance_object( world, scene_name)
 
     # Create a spherical release site
-    pos_vec3 = Vector3()
-    diam_vec3 = Vector3(0.015, 0.015, 0.015)
+    pos_vec3 = m.Vector3()
+    diam_vec3 = m.Vector3(0.015, 0.015, 0.015)
     # XXX: It seems to be necessary to return some or all of these objects in
     # order to have a functioning release site even though we don't use them
     # anywhere after this call.
     position, diameter, sphere_release_object = m.create_release_site(
             world, scene, pos_vec3, diam_vec3, m.SHAPE_SPHERICAL, 500,
             vm1_sym, "vm1_rel")
-    pos_vec3b = Vector3(0.05, 0.05, 0.00)
-    diam_vec3b = Vector3(0.025, 0.025, 0.05)
+    pos_vec3b = m.Vector3(0.05, 0.05, 0.00)
+    diam_vec3b = m.Vector3(0.025, 0.025, 0.05)
     position2, diameter2, cube_release_object = m.create_release_site(
             world, scene, pos_vec3b, diam_vec3b, m.SHAPE_CUBIC, 500,
             vm2_sym, "vm2_rel")
