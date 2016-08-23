@@ -1,8 +1,8 @@
 """PyMCell helper functions. 
 
-This defines functions to help pymcell interface with the user. I combines calls of the 
-low level swig wrapped c code so that the function calls for users using PyMCell is more
-intuitive.
+This defines functions to help pymcell interface with the user. It combines calls of the 
+low level swig wrapped c code so that the resulting python function calls for users using 
+PyMCell are more intuitive.
 
 """
 
