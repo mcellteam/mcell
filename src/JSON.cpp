@@ -392,7 +392,7 @@ class json_parser {
         string local_text;
         local_text.assign (text);
         string display;
-        key = local_text.substr(j->start,j->end-j->start);
+        key = local_text.substr(j->start+1,j->end-(2+j->start));
         cout << "|-In object ... with key = " << key << endl;
       } else {
         cout << "|-In object ... with unexpected key type = " << j->get_name() << endl;
