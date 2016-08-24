@@ -67,6 +67,9 @@ using namespace std;
 // This is the earlier API header
 namespace MCellAPI {
   class MCellSpeciesExpression {
+    /**
+    * This base class provides the operator overloading for C++ species expressions.
+    */
     protected:
       string name;
     public:
@@ -82,14 +85,23 @@ namespace MCellAPI {
       // MCellSpeciesExpression operator<> (MCellSpeciesExpression);
   };
   class MCellSpecies : public MCellSpeciesExpression {
+    /**
+    * This class extends to the MCellSpeciesExpression class to include a diffusion constant.
+    */
     protected:
       double diffusion_constant;
     public:
       MCellSpecies() {
+        /**
+        * Species constructor without a name.
+        */
         this->name = "";
         this->diffusion_constant = 0;
       }
       MCellSpecies ( string species_name ) {
+        /**
+        * Species constructor with a name.
+        */
         this->name = species_name;
         this->diffusion_constant = 0;
       }
@@ -121,39 +133,60 @@ namespace MCellAPI {
 namespace MCellAPI {
 
   MCellSpeciesExpression::MCellSpeciesExpression ( string species_name ) {
+    /**
+    * SpeciesExpression constructor with a name.
+    */
     this->name = species_name;
     cout << "  SpeciesExpression Constructor for " << species_name << endl;
   }
 
   string MCellSpeciesExpression::getName() {
+    /**
+    * Access function to return the name.
+    */
     return (this->name);
   }
 
   MCellSpeciesExpression MCellSpeciesExpression::operator+ (MCellSpeciesExpression rhs) {
+    /**
+    * Overload the "+" operator to combine species. Returns a species joined with "+".
+    */
     MCellSpeciesExpression *result = new MCellSpeciesExpression ( this->name + " + " + rhs.name );
     cout << "  Species Expression: " << result->name << endl;
     return (*result);
   }
 
   MCellSpeciesExpression MCellSpeciesExpression::operator> (MCellSpeciesExpression mce) {
+    /**
+    * Overload the ">" operator to be the forward reaction symbol.
+    */
     this->name = this->name + " > " + mce.name;
     cout << "  Species Expression: " << this->name << endl;
     return (*this);
   }
 
   MCellSpeciesExpression MCellSpeciesExpression::operator< (MCellSpeciesExpression mce) {
+    /**
+    * Overload the "<" operator to be the reverse reaction symbol.
+    */
     this->name = this->name + " < " + mce.name;
     cout << "  Species Expression: " << this->name << endl;
     return (*this);
   }
 
   MCellSpeciesExpression MCellSpeciesExpression::operator== (MCellSpeciesExpression mce) {
+    /**
+    * Overload the "==" operator to be the bidirectional reaction symbol.
+    */
     this->name = this->name + " <==> " + mce.name;
     cout << "  Species Expression: " << this->name << endl;
     return (*this);
   }
 
   string MCellSpecies::to_string() {
+    /**
+    * Produce a string representation of the species.
+    */
     // string s = this->name + " has dc=" + std::to_string(this->diffusion_constant);
     // For more precision and control, use a stringstream to output the value
     std::stringstream ss;

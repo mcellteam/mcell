@@ -1,4 +1,25 @@
-/* File : JSON.cpp */
+/******************************************************************************
+ *
+ * Copyright (C) 2006-2016 by
+ * The Salk Institute for Biological Studies and
+ * Pittsburgh Supercomputing Center, Carnegie Mellon University
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+ * USA.
+ *
+******************************************************************************/
 
 #include <string.h>
 #include <string>
@@ -11,19 +32,20 @@
 
 using namespace std;
 
-#define JSON_VAL_UNDEF -1
-#define JSON_VAL_NULL 0
-#define JSON_VAL_TRUE 1
-#define JSON_VAL_FALSE 2
-#define JSON_VAL_NUMBER 3
-#define JSON_VAL_STRING 4
-#define JSON_VAL_ARRAY 5
-#define JSON_VAL_OBJECT 6
-#define JSON_VAL_KEYVAL 7
+#define JSON_VAL_UNDEF -1   ///< This item holds a type that hasn't been defined yet
+#define JSON_VAL_NULL 0     ///< This item holds a JSON "null"
+#define JSON_VAL_TRUE 1     ///< This item holds a JSON "true"
+#define JSON_VAL_FALSE 2    ///< This item holds a JSON "false"
+#define JSON_VAL_NUMBER 3   ///< This item holds a JSON number (may be integer or floating point)
+#define JSON_VAL_STRING 4   ///< This item holds a JSON string
+#define JSON_VAL_ARRAY 5    ///< This item holds a JSON array (similar to a Python list)
+#define JSON_VAL_OBJECT 6   ///< This item holds a JSON object (similar to a Python dictionary)
+#define JSON_VAL_KEYVAL 7   ///< This item holds a JSON key/value pair (similar to a key/value pair in a dictionary)
 
 // Start of header
 // namespace JSON_API {
 
+  /** Base class for all JSON item types */
   class item {
    public:
     int type  = JSON_VAL_UNDEF;
@@ -36,6 +58,7 @@ using namespace std;
     }
   };
 
+  /** Class for a JSON "null" item type */
   class item_null : public item {
    public:
     item_null() {
@@ -51,6 +74,7 @@ using namespace std;
     }
   };
 
+  /** Class for a JSON "true" item type */
   class item_true : public item {
    public:
     item_true() {
@@ -66,6 +90,7 @@ using namespace std;
     }
   };
 
+  /** Class for a JSON "false" item type */
   class item_false : public item {
    public:
     item_false() {
@@ -81,6 +106,7 @@ using namespace std;
     }
   };
 
+  /** Class for a JSON "number" item type (may be integer or floating point) */
   class item_number : public item {
    public:
     int as_integer;
@@ -110,6 +136,7 @@ using namespace std;
     }
   };
 
+  /** Class for a JSON string item type */
   class item_string : public item {
    public:
     string s;
@@ -131,6 +158,7 @@ using namespace std;
     }
   };
 
+  /** Class for a JSON array item type */
   class item_array : public item {
    public:
     vector<item*> *items;
@@ -157,6 +185,7 @@ using namespace std;
   };
 
 
+  /** Class for a JSON object item type */
   class item_object : public item {
    public:
     unordered_map<string, item*> items;
@@ -182,6 +211,7 @@ using namespace std;
     }
   };
 
+  /** Class for a JSON key/value pair item type */
   class item_keyval : public item {
    public:
     string key;
@@ -203,19 +233,11 @@ using namespace std;
 
 
 
+/** This class is used during the parsing to represent a token from the original text.
+*   The class contains several integer pointers to keep track of the original text.
+*/
 class json_element {
  public:
-  /*
-  const int JSON_VAL_UNDEF=-1;
-  const int JSON_VAL_NULL=0;
-  const int JSON_VAL_TRUE=1;
-  const int JSON_VAL_FALSE=2;
-  const int JSON_VAL_NUMBER=3;
-  const int JSON_VAL_STRING=4;
-  const int JSON_VAL_ARRAY=5;
-  const int JSON_VAL_OBJECT=6;
-  const int JSON_VAL_KEYVAL=7;
-  */
   int type  = JSON_VAL_UNDEF;
   int start = 0;
   int end   = 0;
@@ -344,6 +366,7 @@ class json_parser {
     return ( NULL );
   }
 
+  /** Build an item list as represented by a C++ vector template */
   item_array *build_item_list ( int *index ) {
     item_array *item_list = new item_array();
 
@@ -374,6 +397,7 @@ class json_parser {
   }
 
 
+  /** Build a dictionary (item pair list) as represented by a C++ unordered map template */
   item_object *build_item_pair_list ( int *index ) {
     item_object *item_pair_list = new item_object();
 
@@ -739,7 +763,10 @@ int json_parser::parse_number ( void *parent, int index, int depth ) {
     return (end);
   }
 
-
+/**
+*   Main for testing.
+*   This code constructs the same JSON structure from classes and from text.
+*/
 int main() {
   cout << "JSON C++ Parser" << endl;
 
