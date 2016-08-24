@@ -77,5 +77,3 @@ int point_in_triangle_2D(struct vector2 *p, struct vector2 *a,
 
 int point_in_box(struct vector3 *low_left, struct vector3 *up_right,
                  struct vector3 *point);
-
-

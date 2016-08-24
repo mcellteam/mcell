@@ -20,12 +20,7 @@
  * USA.
  *
 ******************************************************************************/
-/*
-#ifndef MCELL_REACT_OUT_H
-#define MCELL_REACT_OUT_H
 
-#include "mcell_init.h"
-*/
 struct output_column_list {
   struct output_column *column_head;
   struct output_column *column_tail;
@@ -42,8 +37,7 @@ struct output_times_inlist {
   struct num_expr_list_head values;
 };
 
-//ecc
-int mcell_get_count(char *nameM, char *nameR, struct volume *world);
+int mcell_get_count(char *mol_name, char *reg_name, struct volume *world);
 
 struct output_request *mcell_new_output_request(MCELL_STATE *state,
                                                 struct sym_entry *target,
@@ -66,35 +60,14 @@ mcell_add_reaction_output_block(MCELL_STATE *state,
                                 struct output_set_list *osets, int buffer_size,
                                 struct output_times_inlist *otimes);
 
-
-
-
-
-
-/*%typemap(in) short orientation (int temp){*/
-/*  $1 = temp;*/
-/*}*/
 %typemap(argout) struct output_column_list *count_list {
   %set_output(SWIG_NewPointerObj(SWIG_as_voidptr($1), $1_descriptor, SWIG_POINTER_OWN));
 }
 
-//%typemap(argout) struct output_column_list *count_list {
-// $1= SWIG_NewPointerObj(SWIG_as_voidptr(*$1), $*1_descriptor, SWIG_POINTER_OWN);
-//}
-/*
-%typemap(argout) struct output_column_list *count_list {
- $result = SWIG_NewPointerObj(SWIG_as_voidptr(*$1), $*1_descriptor, SWIG_POINTER_OWN)
-}
-*/
 MCELL_STATUS mcell_create_count(MCELL_STATE *state, struct sym_entry *target,
                                 short orientation, struct sym_entry *location,
                                 int report_flags, char *custom_header,
                                 struct output_column_list *count_list);
-
-
-
-
-
 
 MCELL_STATUS mcell_get_counter_value(MCELL_STATE *state,
                                      const char *counter_name, int column,
@@ -105,5 +78,3 @@ struct output_set *mcell_create_new_output_set(char *comment, int exact_time,
                                                struct output_column *col_head,
                                                int file_flags,
                                                char *outfile_name);
-
-

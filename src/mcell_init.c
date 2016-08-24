@@ -139,21 +139,6 @@ mcell_init_state(MCELL_STATE *state) {
   return MCELL_SUCCESS;
 }
 
-//ecc removed for swig function
-/************************************************************************
- *
- * function for parsing the models underlying mdl file. The function
- * updates the state accordingly.
- *
- * Returns 0 on sucess and 1 on error
- *
- * NOTE: This is currently just a very thin wrapper around parse_input()
- *
- ************************************************************************/
-/* ecc
-MCELL_STATUS
-mcell_parse_mdl(MCELL_STATE *state) { return parse_input(state); }
-*/
 /************************************************************************
  *
  * function for setting up all the internal data structure to get the
@@ -161,14 +146,11 @@ mcell_parse_mdl(MCELL_STATE *state) { return parse_input(state); }
  *
  * NOTE: Before this function can be called the engine user code
  *       either needs to call
- *       - mcell_parse_mdl() to parse a valid MDL file or
+ *       - parse_input() to parse a valid MDL file or
  *       - the individiual API functions for adding model elements
  *         (molecules, geometry, ...)
- *         XXX: These functions don't exist yet!
  *
  * Returns 0 on sucess and 1 on error
- *
- * NOTE: This is currently just a very thin wrapper around parse_input()
  *
  ************************************************************************/
 MCELL_STATUS

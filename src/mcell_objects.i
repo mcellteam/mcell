@@ -34,9 +34,6 @@ struct poly_object {
   int num_conn;
 };
 
-//ecc added for swig function
-//int is_region_degenerate(struct region *reg_ptr);
-
 %typemap(in) struct object **new_object (struct object *temp) {
   $1 = &temp;
 }
@@ -44,8 +41,6 @@ struct poly_object {
 %typemap(argout) struct object **new_object {
   %set_output(SWIG_NewPointerObj(SWIG_as_voidptr(*$1), $*1_descriptor, SWIG_POINTER_OWN));
 }
-
-
 
 /* object creation */
 MCELL_STATUS mcell_create_instance_object(MCELL_STATE *state, char *name,

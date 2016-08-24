@@ -54,9 +54,6 @@ struct mcell_species_list {
   struct mcell_species *mol_type_tail;
 };
 
-void mcell_print_name(mcell_symbol *species);
-
-
 MCELL_STATUS mcell_create_species(MCELL_STATE *state,
                                   struct mcell_species_spec *species,
                                   mcell_symbol **species_ptr);

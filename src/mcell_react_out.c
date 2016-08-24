@@ -66,33 +66,32 @@ get_counter_trigger_column(MCELL_STATE *state, const char *counter_name,
  mcell_get_count:
   Get the count of a molecule in a certain region..
  
- In:  	char[] mol - molecule you want the count of
-	struct volume world - the instance world of the object volume.
+ In:  mol_name - molecule you want the count of
+      reg_name - region where you want the count
+      world - the instance world of the object volume.
 Out: int mol_count - count of molecule in the region
 *************************************************************************/
-int mcell_get_count(	char *nameM, 
-			char *nameR, 
-			struct volume *world) {
+int mcell_get_count(char *mol_name, char *reg_name, struct volume *world) {
   // Get the hash values for mol and reg---------------// 
 
   // Get hash value for molecule  
 
   struct sym_entry *mol_sym = NULL;  
-  mol_sym = retrieve_sym(nameM, world->mol_sym_table);
+  mol_sym = retrieve_sym(mol_name, world->mol_sym_table);
 
-  // Make sure mol_sym has been initializedv, if not return garbage
+  // Make sure mol_sym has been initialized. If not, return error code.
   if (mol_sym == NULL)
     return -5;
 
-  // Cast mol_sym (sym_entry,void pointer) to a species pointer 
+  // Cast mol_sym (sym_entry, void pointer) to a species pointer
   struct species *mol = mol_sym->value;
   // Get hash value for molecule 
-  u_int number1 = mol-> hashval;
+  u_int mol_hashval = mol->hashval;
 
   // Get hash value for region
 
   struct sym_entry *reg_sym = NULL;  
-  reg_sym = retrieve_sym(nameR, world->reg_sym_table);
+  reg_sym = retrieve_sym(reg_name, world->reg_sym_table);
 
   // Make sure reg_sym has been initialized, if not return garbage
 
@@ -102,14 +101,15 @@ int mcell_get_count(	char *nameM,
   // Cast mol_sym (sym_entry,void pointer) to a species pointer 
   struct region *reg = reg_sym->value;
   // Get hash value for region
-  u_int number2 = reg-> hashval;
+  u_int reg_hashval = reg-> hashval;
 
   //---------------------------------------------------//
 
-  // Use the hash values to get the molecule count in the region from the count hash //
+  // Use the hash values to get the molecule count in the region from the count
+  // hash //
 
   // Combine hash values for molecule in that region
-  int hash_bin = (number1 + number2) & world->count_hashmask;
+  int hash_bin = (mol_hashval + reg_hashval) & world->count_hashmask;
  
   // Make sure hash_bin exists
   if (world->count_hash[hash_bin] == NULL)
@@ -119,14 +119,8 @@ int mcell_get_count(	char *nameM,
   int mol_count_vol = world->count_hash[hash_bin]->data.move.n_enclosed;
   int mol_count_sur = world->count_hash[hash_bin]->data.move.n_at;
 
-  // Print the values - DEBUGGING
-  /*mcell_log("molecule count in= %i\n",mol_count_vol);*/
-  /*mcell_log("molecule count on= %i\n",mol_count_sur);*/
-
   return mol_count_vol + mol_count_sur;
 
-  //---------------------------------------------------------------------------------//
-  //ecc
 }
 
 
