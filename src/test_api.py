@@ -88,9 +88,8 @@ def main():
     sc_surf = m.mcell_add_to_species_list(sc_sm1_sym, True, 1, None)
     reactantsSurf = m.mcell_add_to_species_list(sm1_sym, True, 1, None)
     productsSurf = m.mcell_add_to_species_list(sm1_sym, True, -1, None)
-    productsSurf = m.mcell_add_to_species_list(sm1_sym, True, -1, productsSurf)
     m.create_reaction(
-        world, reactantsSurf, productsSurf, .1, surf_class=sm1, name="rxnSurf")
+        world, reactantsSurf, productsSurf, 1e4, surf_class=sc_surf, name="rxnSurf")
 
     # Create viz data
     viz_list = m.mcell_add_to_species_list(vm1_sym, False, 0, None)
