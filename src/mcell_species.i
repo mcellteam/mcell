@@ -20,16 +20,6 @@
  * USA.
  *
 ******************************************************************************/
-/*
-#ifndef MCELL_SPECIES_H
-#define MCELL_SPECIES_H
-
-#include <stdbool.h>
-
-//#include "mcell_engine.h"
-#include "mcell_init.h"
-#include "mcell_structs.h"
-*/
 
 typedef struct sym_entry {
   struct sym_entry *next; /* Chain to next symbol in this bin of the hash */
@@ -56,16 +46,6 @@ struct mcell_species {
   short orient;
 };
 
-
-/*
-%typemap(in) mcell_symbol *species (mcell_symbol temp) {
-  $1 = &temp;
-}
-*/
-
-void mcell_print_name(mcell_symbol *species);
-
-
 struct mcell_species_list {
   struct mcell_species *mol_type_head;
   struct mcell_species *mol_type_tail;
@@ -90,5 +70,3 @@ mcell_add_to_species_list(mcell_symbol *species_ptr, bool is_oriented,
 void mcell_delete_species_list(struct mcell_species *species);
 
 int new_mol_species(MCELL_STATE *state, char *name, struct sym_entry **sym_ptr);
-
-

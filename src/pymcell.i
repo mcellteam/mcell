@@ -57,5 +57,3 @@
 
 // No extra constructors for default arguments
 %feature("compactdefaultargs");
-
-

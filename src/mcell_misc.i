@@ -20,14 +20,7 @@
  * USA.
  *
 ******************************************************************************/
-/*
-#ifndef MCELL_MISC_H
-#define MCELL_MISC_H
 
-#include "config.h"
-#include "mcell_init.h"
-#include "mcell_structs.h"
-*/
 void mcell_print_version();
 
 void mcell_print_usage(const char *executable_name);
@@ -45,12 +38,8 @@ void mcell_free_numeric_list(struct num_expr_list *nel);
 MCELL_STATUS mcell_generate_range(struct num_expr_list_head *list, double start,
                                   double end, double step);
 
-/*int advance_range(struct num_expr_list_head *list, double tmp_dbl);*/
-
 int mcell_generate_range_singleton(struct num_expr_list_head *lh, double value);
 
 // XXX this is a temporary hack to be able to print in mcell.c
 // since mcell disables regular printf
 void mcell_print(const char *message);
-
-/*#endif*/

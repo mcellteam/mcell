@@ -44,9 +44,6 @@ MCELL_STATE *mcell_create();
 
 MCELL_STATUS mcell_init_state(MCELL_STATE *state);
 
-//ecc removed for swig function
-//MCELL_STATUS mcell_parse_mdl(MCELL_STATE *state);
-
 MCELL_STATUS mcell_init_simulation(MCELL_STATE *state);
 
 MCELL_STATUS mcell_init_read_checkpoint(MCELL_STATE *state);
