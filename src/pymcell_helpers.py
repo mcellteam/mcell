@@ -17,7 +17,7 @@ class Vector3(object):
         self.z = z
 
 
-def create_count(world, where, mol_sym, file_path):
+def create_count(world, where, mol_sym, file_path, step):
     """Creates a count for a specified molecule in a specified region
     and initializes an output block for the count data that will be
     generated.
@@ -29,6 +29,7 @@ def create_count(world, where, mol_sym, file_path):
             record
         mol_sym (sym_entry) -- symbol entry for the molecule
         file_path (dir) -- name of the file path to output the data to
+        step -- frequency of output in seconds
 
     Returns:
         The return values count list, output set, output times and
@@ -49,7 +50,7 @@ def create_count(world, where, mol_sym, file_path):
 
     out_times = m.output_times_inlist()
     out_times.type = m.OUTPUT_BY_STEP
-    out_times.step = 1e-5
+    out_times.step = step
 
     output = m.output_set_list()
     output.set_head = os
