@@ -20,17 +20,7 @@
  * USA.
  *
 ******************************************************************************/
-/*
-#ifndef MCELL_SURFCLASS_H
-#define MCELL_SURFCLASS_H
 
-#include "config.h"
-#include "logging.h"
-#include "sym_table.h"
-#include "mcell_species.h"
-#include "init.h"
-#include "mcell_structs.h"
-*/
 MCELL_STATUS mcell_add_surf_class_properties(
     MCELL_STATE *state,
     int reaction_type,
@@ -62,5 +52,3 @@ struct sm_dat *mcell_add_mol_release_to_surf_class(
 MCELL_STATUS mcell_assign_surf_class_to_region(
     struct sym_entry *sc_sym,
     struct region *rgn);
-
-
