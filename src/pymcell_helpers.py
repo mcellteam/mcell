@@ -256,7 +256,7 @@ def create_region_release_site(
     return release_object
 
 
-def create_box_verts_elems(half_length):
+def create_box(world, scene, half_length, name):
     """Creates the verteces and lines of a cube object at the origin
 
     Args:
@@ -290,7 +290,17 @@ def create_box_verts_elems(half_length):
     elems = m.mcell_add_to_connection_list(2, 6, 3, elems)
     elems = m.mcell_add_to_connection_list(4, 0, 7, elems)
 
-    return (verts, elems)
+    pobj = m.poly_object()
+    pobj.obj_name = name
+    pobj.vertices = verts
+    pobj.num_vert = 8
+    pobj.connections = elems
+    pobj.num_conn = 12
+
+    mesh_temp = m.object()
+    mesh = m.mcell_create_poly_object(world, scene, pobj, mesh_temp)
+
+    return mesh
 
 
 def create_polygon_object(world, vert_list, face_list, scene, name):

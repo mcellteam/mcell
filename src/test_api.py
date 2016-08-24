@@ -8,7 +8,7 @@ def main():
     world = m.mcell_create()
     m.mcell_init_state(world)
 
-    dt = 1e-6
+    dt = 1e-5
     iterations = 100
     m.mcell_set_time_step(world, dt)
     m.mcell_set_iterations(world, iterations)
@@ -48,20 +48,26 @@ def main():
         "vm2_rel")
 
     # Create box object
-    # verts, elems = m.create_box_verts_elems(m, 0.1)
+    box_name = "Box"
+    box_mesh = m.create_box(world, scene, 0.1, box_name)
 
-    obj_name = "Torus"
-    mesh = m.create_polygon_object(
-        world, torus.vert_list, torus.face_list, scene, obj_name)
+    box_region_name = "side"
+    box_face_list = [1,2]
+    box_region = m.create_surface_region(
+        world, box_mesh, box_face_list, box_region_name)
+
+    torus_name = "Torus"
+    torus_mesh = m.create_polygon_object(
+        world, torus.vert_list, torus.face_list, scene, torus_name)
 
     # Create surface region on half the torus
-    # XXX: Creating a region is currently required when creating mesh objects
-    region_name = "half_torus"
-    test_region = m.create_surface_region(
-        world, mesh, torus.surf_reg_face_list, region_name)
+    # XXX: Creating a region is currently required when creating torus_mesh objects
+    torus_region_name = "half_torus"
+    torus_region = m.create_surface_region(
+        world, torus_mesh, torus.surf_reg_face_list, torus_region_name)
 
     region_release_object = m.create_region_release_site(
-        world, scene, mesh, "vm1_torus_rel", "ALL", 1000, vm1_sym)
+        world, scene, torus_mesh, "vm1_torus_rel", "ALL", 1000, vm1_sym)
 
     # create surface class
     sc_sm1_sym = m.create_surf_class(world, "sc_release_y")
@@ -74,7 +80,7 @@ def main():
     # create surface class that is reflective to sm1
     m.mcell_add_surf_class_properties(world, m.RFLCT, sc_sm1_sym, sm1_sym, 0)
     # m.mcell_add_surf_class_properties(world, m.SINK, sc_sm1, sm1_sym, 0)
-    m.mcell_assign_surf_class_to_region(sc_sm1_sym, test_region)
+    m.mcell_assign_surf_class_to_region(sc_sm1_sym, torus_region)
 
     m.mcell_delete_species_list(sm1)
 
@@ -95,16 +101,16 @@ def main():
         world, "./viz_data/test", viz_list, 0, iterations, 1)
 
     # Create reaction data
-    mesh_sym = m.mcell_get_obj_sym(mesh)
+    box_sym = m.mcell_get_obj_sym(box_mesh)
     count_list1, os1, out_times1, output1 = m.create_count(
-        world, mesh_sym, vm1_sym, "react_data/vm1_%s.dat" % obj_name, dt)
-    reg_sym = m.mcell_get_reg_sym(test_region)
+        world, box_sym, vm1_sym, "react_data/vm1_%s.dat" % box_name, 1e-5)
+    torus_reg_sym = m.mcell_get_reg_sym(torus_region)
     count_list2, os2, out_times2, output2 = m.create_count(
-        world, reg_sym, sm1_sym, "react_data/sm1_reg.dat", dt)
+        world, torus_reg_sym, sm1_sym, "react_data/sm1_reg.dat", dt)
     count_list3, os3, out_times3, output3 = m.create_count(
         world, None, vm1_sym, "react_data/vm1_world.dat", dt)
     count_list4, os4, out_times4, output4 = m.create_count(
-        world, mesh_sym, vm3_sym, "react_data/vm3_%s.dat" % obj_name, dt)
+        world, box_sym, vm3_sym, "react_data/vm3_%s.dat" % box_name, 1e-5)
 
     m.mcell_init_simulation(world)
     m.mcell_init_output(world)
@@ -112,12 +118,12 @@ def main():
     output_freq = 10
     for i in range(iterations):
         vm3_count = m.mcell_get_count(
-            "vm3", "%s.%s,ALL" % (scene_name, obj_name), world)
+            "vm3", "%s.%s,ALL" % (scene_name, box_name), world)
         # print(vm3_count)
-        # When vm3 hits some arbitrary threshold value (i.e. 150), ramp up the
+        # When vm3 hits some arbitrary threshold value (i.e. 400), ramp up the
         # rate constant of vm3->NULL. This is just a simple test, but we'll
         # need to do something analagous when interfacing with pyNEURON.
-        if (vm3_count > 150):
+        if (vm3_count > 400):
             m.mcell_modify_rate_constant(world, "rxn", 1e8)
         m.mcell_run_iteration(world, output_freq, 0)
     m.mcell_flush_data(world)
