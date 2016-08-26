@@ -280,6 +280,10 @@ place_sm_product(struct volume *world, struct species *product_species,
 
   /* Add to the grid. */
   ++grid->n_occupied;
+  if (grid->sm_list[grid_index]) {
+    remove_surfmol_from_list(
+        &grid->sm_list[grid_index], grid->sm_list[grid_index]->sm);
+  }
   grid->sm_list[grid_index] = add_surfmol_with_unique_pb_to_list(
     grid->sm_list[grid_index], new_surf_mol);
 
