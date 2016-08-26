@@ -306,21 +306,23 @@ int main(int argc, char **argv) {
   u_int procnum = 0;
 
   // initialize the mcell simulation
-  MCELL_STATE *state = mcell_create();
-  CHECKED_CALL_EXIT(!state, "Failed to initialize MCell simulation.");
+  MCELL_STATE *world = mcell_create();
+  CHECKED_CALL_EXIT(!world, "Failed to initialize MCell simulation.");
 
+  /*
   // Parse the command line arguments and print out errors if necessary.
-  if (mcell_argparse(argc, argv, state)) {
+  if (mcell_argparse(argc, argv, world)) {
     if (procnum == 0) {
       mcell_print_version();
       mcell_print_usage(argv[0]);
     }
     exit(1);
   }
+  */
 
-  CHECKED_CALL_EXIT( mcell_init_state(state), "An error occured during set up of the initial simulation state");
+  CHECKED_CALL_EXIT( mcell_init_state(world), "An error occured during set up of the initial simulation state");
 
-  if (state->notify->progress_report != NOTIFY_NONE) {
+  if (world->notify->progress_report != NOTIFY_NONE) {
     mcell_print_version();
   }
 
@@ -328,8 +330,8 @@ int main(int argc, char **argv) {
 
 
   /* set timestep and number of iterations */
-  CHECKED_CALL_EXIT(mcell_set_time_step(state, 1e-6), "Failed to set timestep");
-  CHECKED_CALL_EXIT(mcell_set_iterations(state, 1000), "Failed to set iterations");
+  CHECKED_CALL_EXIT(mcell_set_time_step(world, 1e-6), "Failed to set timestep");
+  CHECKED_CALL_EXIT(mcell_set_iterations(world, 1000), "Failed to set iterations");
 
   /* create range for partitions */
   struct num_expr_list_head list = { NULL, NULL, 0, 1 };
@@ -337,26 +339,26 @@ int main(int argc, char **argv) {
   list.shared = 1;
 
   /* set partitions */
-  CHECKED_CALL_EXIT(mcell_set_partition(state, X_PARTS, &list), "Failed to set X partition");
-  CHECKED_CALL_EXIT(mcell_set_partition(state, Y_PARTS, &list), "Failed to set Y partition");
-  CHECKED_CALL_EXIT(mcell_set_partition(state, Z_PARTS, &list), "Failed to set Z partition");
+  CHECKED_CALL_EXIT(mcell_set_partition(world, X_PARTS, &list), "Failed to set X partition");
+  CHECKED_CALL_EXIT(mcell_set_partition(world, Y_PARTS, &list), "Failed to set Y partition");
+  CHECKED_CALL_EXIT(mcell_set_partition(world, Z_PARTS, &list), "Failed to set Z partition");
 
   /* create species */
   struct mcell_species_spec molA = { "A", 1e-6, 1, 0.0, 0, 0.0, 0.0 };
   mcell_symbol *molA_ptr;
-  CHECKED_CALL_EXIT(mcell_create_species(state, &molA, &molA_ptr), "Failed to create species A");
+  CHECKED_CALL_EXIT(mcell_create_species(world, &molA, &molA_ptr), "Failed to create species A");
 
   struct mcell_species_spec molB = { "B", 1e-5, 0, 0.0, 0, 0.0, 0.0 };
   mcell_symbol *molB_ptr;
-  CHECKED_CALL_EXIT(mcell_create_species(state, &molB, &molB_ptr), "Failed to create species B");
+  CHECKED_CALL_EXIT(mcell_create_species(world, &molB, &molB_ptr), "Failed to create species B");
 
   struct mcell_species_spec molC = { "C", 2e-5, 0, 0.0, 0, 0.0, 0.0 };
   mcell_symbol *molC_ptr;
-  CHECKED_CALL_EXIT(mcell_create_species(state, &molC, &molC_ptr), "Failed to create species C");
+  CHECKED_CALL_EXIT(mcell_create_species(world, &molC, &molC_ptr), "Failed to create species C");
   
   struct mcell_species_spec molD = { "D", 1e-6, 1, 0.0, 0, 0.0, 0.0 };
   mcell_symbol *molD_ptr;
-  CHECKED_CALL_EXIT(mcell_create_species(state, &molD, &molD_ptr), "Failed to create species D");
+  CHECKED_CALL_EXIT(mcell_create_species(world, &molD, &molD_ptr), "Failed to create species D");
 
   /* create reactions */
   struct mcell_species *reactants = mcell_add_to_species_list(molA_ptr, true,  1, NULL);
@@ -370,9 +372,9 @@ int main(int argc, char **argv) {
 
   struct reaction_rates rates = mcell_create_reaction_rates(RATE_CONSTANT, 1e7, RATE_UNSET, 0.0);
 
-  if (mcell_add_reaction(state->notify, &state->r_step_release,
-                         state->rxn_sym_table, state->radial_subdivisions,
-                         state->vacancy_search_dist2, reactants, &arrow, surfs,
+  if (mcell_add_reaction(world->notify, &world->r_step_release,
+                         world->rxn_sym_table, world->radial_subdivisions,
+                         world->vacancy_search_dist2, reactants, &arrow, surfs,
                          products, NULL, &rates, NULL, NULL) == MCELL_FAIL) {
     mcell_print("error ");
     exit(1);
@@ -384,25 +386,25 @@ int main(int argc, char **argv) {
 
   // create surface class
   mcell_symbol *sc_ptr;
-  CHECKED_CALL_EXIT(mcell_create_surf_class(state, "SC_test", &sc_ptr), "Failed to create surface class SC_test");
+  CHECKED_CALL_EXIT(mcell_create_surf_class(world, "SC_test", &sc_ptr), "Failed to create surface class SC_test");
 
   // create releases using a surface class (i.e. not a release object)
   
   // mdl equivalent: MOLECULE_DENSITY {A' = 1000}
   struct mcell_species *A = mcell_add_to_species_list(molA_ptr, true, 1, NULL);
-  struct sm_dat *smd = mcell_add_mol_release_to_surf_class(state, sc_ptr, A, 1000, 0, NULL);
+  struct sm_dat *smd = mcell_add_mol_release_to_surf_class(world, sc_ptr, A, 1000, 0, NULL);
 
   // mdl equivalent: MOLECULE_NUMBER {D, = 1000}
   struct mcell_species *D = mcell_add_to_species_list(molD_ptr, true, -1, NULL);
-  mcell_add_mol_release_to_surf_class(state, sc_ptr, D, 1000, 1, smd);
+  mcell_add_mol_release_to_surf_class(world, sc_ptr, D, 1000, 1, smd);
 
 
   // mdl equivalent: ABSORPTIVE = D
-  CHECKED_CALL_EXIT( mcell_add_surf_class_properties(state, SINK, sc_ptr, molD_ptr, 0), "Failed to add surface class property");
+  CHECKED_CALL_EXIT( mcell_add_surf_class_properties(world, SINK, sc_ptr, molD_ptr, 0), "Failed to add surface class property");
 
   // mdl equivalent: REFLECTIVE = D
   /*CHECKED_CALL_EXIT(*/
-  /*  mcell_add_surf_class_properties(state, RFLCT, sc_ptr, molD_ptr, 0),*/
+  /*  mcell_add_surf_class_properties(world, RFLCT, sc_ptr, molD_ptr, 0),*/
   /*  "Failed to add surface class property");*/
   
   mcell_delete_species_list(A);
@@ -413,7 +415,7 @@ int main(int argc, char **argv) {
    * create world meta object
    *****************************************************************************/
   struct object *world_object = NULL;
-  CHECKED_CALL_EXIT(mcell_create_instance_object(state, "world", &world_object), "could not create meta object");
+  CHECKED_CALL_EXIT(mcell_create_instance_object(world, "world", &world_object), "could not create meta object");
 
 
   /****************************************************************************
@@ -445,13 +447,13 @@ int main(int argc, char **argv) {
 
   struct poly_object polygon = { "aBox", verts, 8, elems, 12 };
   struct object *new_mesh = NULL;
-  CHECKED_CALL_EXIT( mcell_create_poly_object(state, world_object, &polygon, &new_mesh), "could not create polygon_object")
+  CHECKED_CALL_EXIT( mcell_create_poly_object(world, world_object, &polygon, &new_mesh), "could not create polygon_object")
 
 
   /****************************************************************************
    * begin code for creating a region
    ****************************************************************************/
-  struct region *test_region = mcell_create_region(state, new_mesh, "reg");
+  struct region *test_region = mcell_create_region(world, new_mesh, "reg");
   struct element_list *region_list = mcell_add_to_region_list(NULL, 0);
   region_list = mcell_add_to_region_list(region_list, 1);
   CHECKED_CALL_EXIT(mcell_set_region_elements(test_region, region_list, 1), "could not finish creating region");
@@ -468,7 +470,7 @@ int main(int argc, char **argv) {
   /*struct object *A_releaser = NULL;*/
   /*struct mcell_species *A =*/
   /*    mcell_add_to_species_list(molA_ptr, true, 1, 0, NULL);*/
-  /*CHECKED_CALL_EXIT(mcell_create_region_release(state, world_object, new_mesh,*/
+  /*CHECKED_CALL_EXIT(mcell_create_region_release(world, world_object, new_mesh,*/
   /*                                              "A_releaser", "reg", A, 1000, 1,*/
   /*                                              NULL, &A_releaser),*/
   /*                  "could not create A_releaser");*/
@@ -481,7 +483,7 @@ int main(int argc, char **argv) {
   struct mcell_species *B =
       mcell_add_to_species_list(molB_ptr, false, 0, NULL);
   CHECKED_CALL_EXIT(mcell_create_geometrical_release_site(
-                        state, world_object, "B_releaser", SHAPE_SPHERICAL,
+                        world, world_object, "B_releaser", SHAPE_SPHERICAL,
                         &position, &diameter, B, 3000, 1, NULL, &B_releaser),
                     "could not create B_releaser");
   mcell_delete_species_list(B);
@@ -497,13 +499,13 @@ int main(int argc, char **argv) {
   byte report_flags = REPORT_CONTENTS;
 
   struct output_column_list count_list;
-  CHECKED_CALL_EXIT(mcell_create_count(state, molA_ptr, ORIENT_NOT_SET, where,
+  CHECKED_CALL_EXIT(mcell_create_count(world, molA_ptr, ORIENT_NOT_SET, where,
                                        report_flags, NULL, &count_list),
                     "Failed to create COUNT expression");
 
   struct output_set *os =
       mcell_create_new_output_set(NULL, 0, count_list.column_head,
-                                  FILE_SUBSTITUTE, "react_data/foobar.dat");
+                                  FILE_SUBSTITUTE, "test_files/mcell/react_data/foobar.dat");
 
   struct output_times_inlist outTimes;
   outTimes.type = OUTPUT_BY_STEP;
@@ -514,14 +516,14 @@ int main(int argc, char **argv) {
   output.set_tail = os;
 
   CHECKED_CALL_EXIT(
-      mcell_add_reaction_output_block(state, &output, 10000, &outTimes),
+      mcell_add_reaction_output_block(world, &output, 10000, &outTimes),
       "Error setting up the reaction output block");
 
   struct mcell_species *mol_viz_list = mcell_add_to_species_list(molA_ptr, false, 0, NULL);
   mol_viz_list = mcell_add_to_species_list(molB_ptr, false, 0, mol_viz_list);
   mol_viz_list = mcell_add_to_species_list(molC_ptr, false, 0, mol_viz_list);
   mol_viz_list = mcell_add_to_species_list(molD_ptr, false, 0, mol_viz_list);
-  CHECKED_CALL_EXIT(mcell_create_viz_output(state, "./viz_data/test",
+  CHECKED_CALL_EXIT(mcell_create_viz_output(world, "test_files/mcell/viz_data/test",
                                             mol_viz_list, 0, 1000, 2),
                     "Error setting up the viz output block");
   mcell_delete_species_list(mol_viz_list);
@@ -529,15 +531,15 @@ int main(int argc, char **argv) {
 
 
 
-  CHECKED_CALL_EXIT(mcell_init_simulation(state), "An error occured during simulation creation.");
+  CHECKED_CALL_EXIT(mcell_init_simulation(world), "An error occured during simulation creation.");
 
-  CHECKED_CALL_EXIT(mcell_init_read_checkpoint(state), "An error occured during initialization and reading of checkpoint.");
+  CHECKED_CALL_EXIT(mcell_init_read_checkpoint(world), "An error occured during initialization and reading of checkpoint.");
 
-  CHECKED_CALL_EXIT(mcell_init_output(state), "An error occured during setting up of output.");
+  CHECKED_CALL_EXIT(mcell_init_output(world), "An error occured during setting up of output.");
 
-  CHECKED_CALL_EXIT(mcell_run_simulation(state), "Error running mcell simulation.");
+  CHECKED_CALL_EXIT(mcell_run_simulation(world), "Error running mcell simulation.");
 
-  if (state->notify->progress_report != NOTIFY_NONE) {
+  if (world->notify->progress_report != NOTIFY_NONE) {
     mcell_print("Done running.");
   }
 

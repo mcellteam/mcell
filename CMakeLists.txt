@@ -154,6 +154,9 @@ set(SOURCE_FILES_API_MAIN
 set(SOURCE_FILES_API_MAIN_CPP
     src/mcell_api_test_main_cpp.cpp)
 
+set(SOURCE_FILES_TEST_API_MAIN
+    src/test_api_main.cpp)
+
 
 # build executables
 
@@ -209,6 +212,13 @@ add_executable(mcell_api_test_main
 add_executable(mcell_api_test_main_cpp
   ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h
   ${SOURCE_FILES_API_MAIN_CPP}
+  ${SOURCE_FILES_SHARED}
+  ${BISON_mdlParser_OUTPUTS}
+  ${FLEX_mdlScanner_OUTPUTS})
+
+add_executable(test_api_main_cpp
+  ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h
+  ${SOURCE_FILES_TEST_API_MAIN}
   ${SOURCE_FILES_SHARED}
   ${BISON_mdlParser_OUTPUTS}
   ${FLEX_mdlScanner_OUTPUTS})
