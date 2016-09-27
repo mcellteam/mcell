@@ -55,14 +55,10 @@ truncate_output_file:
 
 int truncate_output_file(char *name, double start_value) {
   FILE *f = NULL;
-  struct stat fs;
-  char *buffer;
-  int i, j, lf, where, start, ran_out;
-  long long n;
-  off_t bsize;
 
   /* Check if the file exists */
-  i = stat(name, &fs);
+  struct stat fs;
+  int i = stat(name, &fs);
   if (i == -1) {
     mcell_perror(errno, "Failed to stat reaction data output file '%s' in "
                         "preparation for truncation.",
@@ -72,14 +68,15 @@ int truncate_output_file(char *name, double start_value) {
     return 0; /* File already is empty */
 
   /* Set the buffer size */
+  off_t bsize;
   if (fs.st_size < (1 << 20)) {
     bsize = fs.st_size;
   } else
     bsize = (1 << 20);
 
   /* Allocate a buffer for the file */
-  buffer = CHECKED_MALLOC_ARRAY_NODIE(char, bsize + 1,
-                                      "reaction data file scan buffer");
+  char *buffer= CHECKED_MALLOC_ARRAY_NODIE(
+    char, bsize + 1, "reaction data file scan buffer");
   if (buffer == NULL)
     goto failure;
 
@@ -93,24 +90,25 @@ int truncate_output_file(char *name, double start_value) {
   }
 
   /* Iterate over the entire file */
-  where = 0; /* Byte offset in file */
-  start = 0; /* Byte offset in buffer */
+  int where = 0; /* Byte offset in file */
+  int start = 0; /* Byte offset in buffer */
   while (ftell(f) != fs.st_size) {
     /* Refill the buffer */
-    n = (long long)fread(buffer + start, 1, bsize - start, f);
+    long long n = (long long)fread(buffer + start, 1, bsize - start, f);
 
     /* Until the current buffer runs dry */
-    ran_out = 0;
+    int ran_out = 0;
     i = 0;
     n += start;
-    lf = 0;
+    int lf = 0;
     while (!ran_out) {
       /* Skip leading horizontal whitespace */
       while (i < n && (buffer[i] == ' ' || buffer[i] == '\t'))
         i++;
 
       /* Scan over leading numeric characters */
-      for (j = i;
+      int j = i;
+      for (;
            j < n && (isdigit(buffer[j]) || strchr("eE-+.", buffer[j]) != NULL);
            j++) {
       }
@@ -140,6 +138,7 @@ int truncate_output_file(char *name, double start_value) {
             /*goto failure;*/
           }
           fclose(f);
+          free(buffer);
           return 0;
         }
       }
@@ -362,14 +361,13 @@ add_trigger_output:
 *************************************************************************/
 void add_trigger_output(struct volume *world, struct counter *c,
                         struct output_request *ear, int n, short flags) {
-  struct output_column *first_column;
-  struct output_trigger_data *otd;
-  int idx;
 
+  struct output_column *first_column;
   first_column = ear->requester->column->set->column_head;
 
-  idx = (int)first_column->initial_value;
+  int idx = (int)first_column->initial_value;
 
+  struct output_trigger_data *otd;
   otd = &(((struct output_trigger_data *)first_column->buffer)[idx]);
 
   if (first_column->set->block->timer_type == OUTPUT_BY_ITERATION_LIST)
@@ -1182,44 +1180,63 @@ char *oexpr_title(struct output_expression *root) {
 
   switch (root->oper) {
   case '=':
+    free(rstr);
     return lstr;
 
   case '@':
+    free(lstr);
+    free(rstr);
     return CHECKED_STRDUP("(complex)", NULL);
 
   case '#':
     if ((root->expr_flags & OEXPR_LEFT_MASK) != OEXPR_LEFT_REQUEST ||
-        root->left == NULL)
+        root->left == NULL) {
+      free(lstr);
+      free(rstr);
       return NULL;
+    }
     orq = (struct output_request *)root->left;
+    free(lstr);
+    free(rstr);
     return strdup(orq->count_target->name);
 
   case '_':
-    if (lstr == NULL)
+    if (lstr == NULL) {
+      free(rstr);
       return NULL;
+    }
     str = alloc_sprintf("-%s", lstr);
     free(lstr);
+    free(rstr);
     return str;
 
   case '(':
-    if (lstr == NULL)
+    if (lstr == NULL) {
+      free(rstr);
       return NULL;
+    }
     str = alloc_sprintf("(%s)", lstr);
     free(lstr);
+    free(rstr);
     return str;
 
   case '+':
   case '-':
   case '*':
   case '/':
-    if (lstr == NULL || rstr == NULL)
+    if (lstr == NULL || rstr == NULL) {
+      free(lstr);
+      free(rstr);
       return NULL;
+    }
     str = alloc_sprintf("%s%c%s", lstr, root->oper, rstr);
     free(lstr);
     free(rstr);
     return str;
 
   default:
+    free(lstr);
+    free(rstr);
     return NULL;
   }
   return NULL;

@@ -46,6 +46,7 @@ struct output_request *mcell_new_output_request(MCELL_STATE *state,
                                                 struct sym_entry *target,
                                                 short orientation,
                                                 struct sym_entry *location,
+                                                struct periodic_image *img,
                                                 int report_flags);
 
 struct output_set *mcell_create_new_output_set(char *comment, int exact_time,

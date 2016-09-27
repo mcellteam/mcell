@@ -532,7 +532,6 @@ struct volume_molecule *diffuse_3D_big_list(struct volume *world,
   struct volume_molecule *mp, *new_mp;
   struct surface_molecule *sm = NULL;
   struct abstract_molecule *am1, *am2 = NULL;
-  struct species *spec;
   double steps = 1.0;
   double t_steps = 1.0;
   double rate_factor = 1.0, r_rate_factor = 1.0, factor, factor1, factor2;
@@ -564,7 +563,8 @@ struct volume_molecule *diffuse_3D_big_list(struct volume *world,
   int col_tri_molecular_flag = 0, col_bi_molecular_flag = 0,
       col_mol_mol_grid_flag;
 
-  spec = m->properties;
+  struct species *spec = m->properties;
+  struct periodic_image *periodic_box = m->periodic_box;
   if (spec == NULL)
     mcell_internal_error(
         "Attempted to take a diffusion step for a defunct molecule.");
@@ -1008,8 +1008,7 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
         if (t_steps < EPS_C)
           t_steps = EPS_C;
 
-        nsv = traverse_subvol(sv, &(m->pos),
-                              smash->what - COLLIDE_SV_NX - COLLIDE_SUBVOL,
+        nsv = traverse_subvol(sv, smash->what - COLLIDE_SV_NX - COLLIDE_SUBVOL,
                               world->ny_parts, world->nz_parts);
         if (nsv == NULL) {
           mcell_internal_error(
@@ -1182,9 +1181,9 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
 
           if (w->grid != NULL) {
             j = xyz2grid(&(new_smash->loc), w->grid);
-            if (w->grid->mol[j] != NULL) {
+            if (w->grid->sm_list[j] && w->grid->sm_list[j]->sm) {
               if (m->index != j || m->previous_wall != w) {
-                sm = w->grid->mol[j];
+                sm = w->grid->sm_list[j]->sm;
                 num_matching_rxns = trigger_trimolecular(
                     world->reaction_hash, world->rx_hashsize,
                     smash->moving->hashval, mp->properties->hashval,
@@ -1250,9 +1249,9 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
          surface molecules */
       if (w->grid != NULL && (spec->flags & CAN_VOLSURF) != 0) {
         j = xyz2grid(&(smash->loc), w->grid);
-        if (w->grid->mol[j] != NULL) {
+        if (w->grid->sm_list[j] && w->grid->sm_list[j]->sm) {
           if (m->index != j || m->previous_wall != w) {
-            sm = w->grid->mol[j];
+            sm = w->grid->sm_list[j]->sm;
             // look for bimolecular reactions between volume and surface mols
             num_matching_rxns = trigger_bimolecular(
                 world->reaction_hash, world->rx_hashsize, spec->hashval,
@@ -1291,8 +1290,8 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
       if (moving_mol_grid_grid_flag) {
         if (w->grid != NULL) {
           j = xyz2grid(&(smash->loc), w->grid);
-          if (w->grid->mol[j] != NULL) {
-            sm = w->grid->mol[j];
+          if (w->grid->sm_list[j] && w->grid->sm_list[j]->sm) {
+            sm = w->grid->sm_list[j]->sm;
             if (m->index != j || m->previous_wall != w) {
               /* search for neighbors that can participate
                 in 3-way reaction */
@@ -1310,9 +1309,10 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
 
                 /* step through the neighbors */
                 for (curr = tile_nbr_head; curr != NULL; curr = curr->next) {
-                  smp = curr->grid->mol[curr->idx];
-                  if (smp == NULL)
+                  struct surface_molecule_list *sm_list = curr->grid->sm_list[curr->idx]; 
+                  if (sm_list == NULL || sm_list->sm == NULL)
                     continue;
+                  smp = curr->grid->sm_list[curr->idx]->sm;
 
                   /* check whether any of potential partners
                 are behind restrictive (REFLECTIVE/ABSORPTIVE) boundary */
@@ -1506,6 +1506,7 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
 
       /* XXX: Change required here to support macromol+trimol */
       i = test_bimolecular(rx, tri_smash->factor, tri_smash->local_prob_factor,
+                           NULL, NULL,
                            world->rng);
 
       if (i < RX_LEAST_VALID_PATHWAY)
@@ -1561,9 +1562,9 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
             continue;
           if (!(spec->flags & (tentative->wall->flags) & COUNT_SOME_MASK))
             continue;
-          count_region_update(world, m, spec, tentative->wall->counting_regions,
-                              tentative->orient, 0, &(tentative->loc),
-                              tentative->t);
+          count_region_update(world, m, spec, periodic_box,
+            tentative->wall->counting_regions, tentative->orient, 0,
+            &(tentative->loc), tentative->t);
           if (tentative == tri_smash)
             break;
         }
@@ -1606,9 +1607,9 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
                   continue;
                 if (!(spec->flags & (tentative->wall->flags) & COUNT_SOME_MASK))
                   continue;
-                count_region_update(
-                    world, m, spec, tentative->wall->counting_regions,
-                    tentative->orient, 1, &(tentative->loc), tentative->t);
+                count_region_update(world, m, spec, periodic_box,
+                  tentative->wall->counting_regions, tentative->orient, 1,
+                  &(tentative->loc), tentative->t);
                 if (tentative == tri_smash)
                   break;
               }
@@ -1637,9 +1638,9 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
                     if (!(spec->flags & (tentative->wall->flags) &
                           COUNT_SOME_MASK))
                       continue;
-                    count_region_update(
-                        world, m, spec, tentative->wall->counting_regions,
-                        tentative->orient, 1, &(tentative->loc), tentative->t);
+                    count_region_update(world, m, spec, periodic_box,
+                      tentative->wall->counting_regions, tentative->orient, 1,
+                      &(tentative->loc), tentative->t);
                     if (tentative == tri_smash)
                       break;
                   }
@@ -1657,9 +1658,9 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
                     if (!(spec->flags & (tentative->wall->flags) &
                           COUNT_SOME_MASK))
                       continue;
-                    count_region_update(
-                        world, m, spec, tentative->wall->counting_regions,
-                        tentative->orient, 0, &(tentative->loc), tentative->t);
+                    count_region_update(world, m, spec, periodic_box,
+                      tentative->wall->counting_regions, tentative->orient, 0,
+                      &(tentative->loc), tentative->t);
                     if (tentative == tri_smash)
                       break;
                   }
@@ -1678,9 +1679,9 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
                   continue;
                 if (!(spec->flags & (tentative->wall->flags) & COUNT_SOME_MASK))
                   continue;
-                count_region_update(
-                    world, m, spec, tentative->wall->counting_regions,
-                    tentative->orient, 0, &(tentative->loc), tentative->t);
+                count_region_update(world, m, spec, periodic_box,
+                  tentative->wall->counting_regions, tentative->orient, 0,
+                  &(tentative->loc), tentative->t);
                 if (tentative == tri_smash)
                   break;
               }
@@ -1695,9 +1696,9 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
                 continue;
               if (!(spec->flags & (tentative->wall->flags) & COUNT_SOME_MASK))
                 continue;
-              count_region_update(
-                  world, m, spec, tentative->wall->counting_regions,
-                  tentative->orient, 0, &(tentative->loc), tentative->t);
+              count_region_update(world, m, spec, periodic_box,
+                tentative->wall->counting_regions, tentative->orient, 0,
+                &(tentative->loc), tentative->t);
               if (tentative == tri_smash)
                 break;
             }
@@ -1796,9 +1797,10 @@ struct surface_molecule *react_2D_trimol_all_neighbors(
 
   /* step through the neighbors */
   for (curr_f = tile_nbr_head_f; curr_f != NULL; curr_f = curr_f->next) {
-    gm_f = curr_f->grid->mol[curr_f->idx];
-    if (gm_f == NULL)
+    struct surface_molecule_list *sm_list = curr_f->grid->sm_list[curr_f->idx]; 
+    if (sm_list == NULL || sm_list->sm == NULL)
       continue;
+    gm_f = sm_list->sm;
 
     /* check whether the neighbor molecule is behind
        the restrictive region boundary   */
@@ -1826,20 +1828,20 @@ struct surface_molecule *react_2D_trimol_all_neighbors(
     local_prob_factor_s = 1.0 / (list_length_s - 1);
 
     for (curr_s = tile_nbr_head_s; curr_s != NULL; curr_s = curr_s->next) {
-      gm_s = curr_s->grid->mol[curr_s->idx];
+      sm_list = curr_s->grid->sm_list[curr_s->idx]; 
+      if (sm_list == NULL || sm_list->sm == NULL)
+        continue;
+      gm_s = curr_s->grid->sm_list[curr_s->idx]->sm;
       if (gm_s == NULL)
         continue;
       if (gm_s == gm_f)
-        continue; /* no self reaction for
-                       trimolecular reaction */
+        continue; /* no self reaction for trimolecular reaction */
       if (gm_s == sm)
         continue;
 
-      /* Check whether there are restrictive region boundaries
-         between "sm" and "gm_s".
-         By now we know that there are no restrictive region
-         boundaries between "sm" and "gm_f".
-       */
+      /* Check whether there are restrictive region boundaries between "sm" and
+       * "gm_s". By now we know that there are no restrictive region boundaries
+       * between "sm" and "gm_f". */
 
       if ((sm->properties->flags & CAN_REGION_BORDER) ||
           (gm_f->properties->flags & CAN_REGION_BORDER) ||
@@ -1909,7 +1911,7 @@ struct surface_molecule *react_2D_trimol_all_neighbors(
     return sm; /* Nobody to react with */
   } else if (n == 1) {
     /* XXX: Change required here to support macromol+trimol */
-    i = test_bimolecular(rxn_array[0], cf[0], local_prob_factor[0], world->rng);
+    i = test_bimolecular(rxn_array[0], cf[0], local_prob_factor[0], NULL, NULL, world->rng);
     j = 0;
   } else {
     /* XXX: Change required here to support macromol+trimol */

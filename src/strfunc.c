@@ -94,6 +94,7 @@ char *alloc_vsprintf(char const *fmt, va_list args) {
   } else
     retval = strdup(stack_buffer);
 
+  va_end(saved_args);
   return retval;
 }
 

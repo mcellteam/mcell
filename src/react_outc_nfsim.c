@@ -294,13 +294,13 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, void* results,
 
   //create first reactant entry
   rx->geometries[0] = reactantOrientation1;
-  struct mcell_species *reactants = mcell_add_to_species_list(nfsim_molecule, orientation_flag1, reactantOrientation1, 0, NULL);
+  struct mcell_species *reactants = mcell_add_to_species_list(nfsim_molecule, orientation_flag1, reactantOrientation1, NULL);
 
   //second reactant entry
   if(reac2 != NULL){
       rx->geometries[1] = reactantOrientation2;
       nfsim_molecule = reac2->properties->sym;
-      reactants = mcell_add_to_species_list(nfsim_molecule, orientation_flag2, reactantOrientation2, 0, reactants);    
+      reactants = mcell_add_to_species_list(nfsim_molecule, orientation_flag2, reactantOrientation2, reactants);    
 
   }
   //we will be storing prodcut compartment information in here
@@ -342,7 +342,7 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, void* results,
   }
 
   struct mcell_species *products =
-        mcell_add_to_species_list(nfsim_molecule_template->sym, orientation_flag1, productOrientation, 0, NULL);
+        mcell_add_to_species_list(nfsim_molecule_template->sym, orientation_flag1, productOrientation, NULL);
   rx->nfsim_geometries[path][0] = productOrientation;
   //if theres more than one product
   for(int i =1; i <numOfResults; i++){
@@ -370,7 +370,7 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, void* results,
 
 
     rx->nfsim_geometries[path][i] = productOrientation;
-    products = mcell_add_to_species_list(nfsim_molecule_template->sym, orientation_flag1, productOrientation, 0, products);
+    products = mcell_add_to_species_list(nfsim_molecule_template->sym, orientation_flag1, productOrientation, products);
   }
 
   //free up compartment struct helpers

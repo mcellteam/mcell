@@ -82,6 +82,7 @@ MCELL_STATUS mcell_create_geometrical_release_site(
   releaser->diameter =
       CHECKED_MALLOC_STRUCT(struct vector3, "release site diameter");
   if (releaser->diameter == NULL) {
+    free(qualified_name);
     return MCELL_FAIL;
   }
   releaser->diameter->x = diameter->x * state->r_length_unit;
@@ -90,6 +91,7 @@ MCELL_STATUS mcell_create_geometrical_release_site(
 
   // release probability and release patterns
   if (rel_prob < 0 || rel_prob > 1) {
+    free(qualified_name);
     return MCELL_FAIL;
   }
 
@@ -98,6 +100,7 @@ MCELL_STATUS mcell_create_geometrical_release_site(
     if (symp == NULL) {
       symp = retrieve_sym(pattern_name, state->rxpn_sym_table);
       if (symp == NULL) {
+        free(qualified_name);
         return MCELL_FAIL;
       }
     }
@@ -115,6 +118,7 @@ MCELL_STATUS mcell_create_geometrical_release_site(
   mcell_finish_release_site(release_object->sym, &dummy);
 
   *new_obj = release_object;
+  free(qualified_name);
   return MCELL_SUCCESS;
 }
 
@@ -178,8 +182,8 @@ mcell_create_region_release(MCELL_STATE *state, struct object *parent,
   // create qualified release object name
   char *qualified_name = CHECKED_SPRINTF("%s.%s", parent->sym->name, site_name);
 
-  int *error_code = 0;
-  struct object *release_object = make_new_object(state, qualified_name, error_code);
+  int error_code = 0;
+  struct object *release_object = make_new_object(state, qualified_name, &error_code);
 
   // Set the parent of the object to be the root object. Not reciprocal until
   // add_child_objects is called.
@@ -200,6 +204,7 @@ mcell_create_region_release(MCELL_STATE *state, struct object *parent,
 
   // release probability and release patterns
   if (rel_prob < 0 || rel_prob > 1) {
+    free(qualified_name);
     return MCELL_FAIL;
   }
 
@@ -208,6 +213,7 @@ mcell_create_region_release(MCELL_STATE *state, struct object *parent,
     if (symp == NULL) {
       symp = retrieve_sym(pattern_name, state->rxpn_sym_table);
       if (symp == NULL) {
+        free(qualified_name);
         return MCELL_FAIL;
       }
     }
@@ -225,6 +231,7 @@ mcell_create_region_release(MCELL_STATE *state, struct object *parent,
   mcell_finish_release_site(release_object->sym, &dummy);
 
   *new_obj = release_object;
+  free(qualified_name);
   return MCELL_SUCCESS;
 }
 
@@ -524,7 +531,7 @@ struct sym_entry *existing_region(MCELL_STATE *state,
 
   struct sym_entry *symp = retrieve_sym(full_name, state->reg_sym_table);
 
-  // free(full_name);
+  free(full_name);
   return symp;
 }
 
@@ -555,6 +562,12 @@ struct release_site_obj *new_release_site(MCELL_STATE *state, char *name) {
   rel_site_obj_ptr->mol_list = NULL;
   rel_site_obj_ptr->release_prob = 1.0;
   rel_site_obj_ptr->pattern = state->default_release_pattern;
+  struct periodic_image *periodic_box = CHECKED_MALLOC_STRUCT(
+    struct periodic_image, "periodic image descriptor");
+  rel_site_obj_ptr->periodic_box = periodic_box;
+  rel_site_obj_ptr->periodic_box->x = 0;
+  rel_site_obj_ptr->periodic_box->y = 0;
+  rel_site_obj_ptr->periodic_box->z = 0;
   // if ((rel_site_obj_ptr->name = mdl_strdup(name)) == NULL)
   if ((rel_site_obj_ptr->name = strdup(name)) == NULL) {
     free(rel_site_obj_ptr);

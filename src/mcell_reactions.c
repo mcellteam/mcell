@@ -165,6 +165,7 @@ mcell_add_reaction(struct notifications *notify,
   if (extract_reactants(pathp, reactants, &reactant_idx, &num_vol_mols,
                         &num_surface_mols, &all_3d,
                         &oriented_count) == MCELL_FAIL) {
+    free(pathp);
     return MCELL_FAIL;
   }
 
@@ -174,6 +175,7 @@ mcell_add_reaction(struct notifications *notify,
     if (extract_catalytic_arrow(pathp, react_arrow, &reactant_idx,
                                 &num_vol_mols, &num_surface_mols, &all_3d,
                                 &oriented_count) == MCELL_FAIL) {
+      free(pathp);
       return MCELL_FAIL;
     }
     catalytic = reactant_idx - 1;
@@ -183,6 +185,7 @@ mcell_add_reaction(struct notifications *notify,
   if (surf_class->mol_type != NULL) {
     if (extract_surface(pathp, surf_class, &reactant_idx, &num_surfaces,
                         &oriented_count) == MCELL_FAIL) {
+      free(pathp);
       return MCELL_FAIL;
     }
     surface = reactant_idx - 1;
@@ -193,6 +196,7 @@ mcell_add_reaction(struct notifications *notify,
   /* Create a reaction name for the pathway we're creating */
   rx_name = create_rx_name(pathp);
   if (rx_name == NULL) {
+    free(pathp);
     mcell_error("Out of memory while creating reaction.");
     return MCELL_FAIL;
   }
@@ -202,6 +206,7 @@ mcell_add_reaction(struct notifications *notify,
     /* do nothing */
   } else if ((symp = store_sym(rx_name, RX, rxn_sym_table, NULL)) ==
              NULL) {
+    free(pathp);
     free(rx_name);
     mcell_error("Out of memory while creating reaction.");
     /*return MCELL_FAIL;*/
@@ -215,6 +220,7 @@ mcell_add_reaction(struct notifications *notify,
   /* Check for invalid reaction specifications */
   if (check_surface_specs(notify, rxnp->n_reactants, num_surfaces,
                           num_vol_mols, all_3d, oriented_count) == MCELL_FAIL) {
+    free(pathp);
     return MCELL_FAIL;
   }
 
@@ -228,6 +234,7 @@ mcell_add_reaction(struct notifications *notify,
   if (catalytic >= 0) {
     if (add_catalytic_species_to_products(pathp, catalytic, bidirectional,
                                           all_3d) == MCELL_FAIL) {
+      free(pathp);
       return MCELL_FAIL;
     }
   }
@@ -235,6 +242,7 @@ mcell_add_reaction(struct notifications *notify,
   /* Add in all products */
   if (extract_products(notify, pathp, products, &num_surf_products,
                        bidirectional, all_3d) == MCELL_FAIL) {
+    free(pathp);
     return MCELL_FAIL;
   }
   // mem_put_list(parse_state->mol_data_list_mem, products);
@@ -249,6 +257,7 @@ mcell_add_reaction(struct notifications *notify,
   if (pathp->product_head != NULL) {
     pathp->prod_signature = create_prod_signature(&pathp->product_head);
     if (pathp->prod_signature == NULL) {
+      free(pathp);
       mcell_error(
           "Error creating 'prod_signature' field for the reaction pathway.");
       return MCELL_FAIL;
@@ -261,6 +270,7 @@ mcell_add_reaction(struct notifications *notify,
   case RATE_UNSET:
     mcell_error_raw("File %s, Line %d: Internal error: Rate is not set",
                     __FILE__, __LINE__);
+    free(pathp);
     return MCELL_FAIL;
 
   case RATE_CONSTANT:
@@ -302,7 +312,8 @@ mcell_add_reaction(struct notifications *notify,
   /* If we're doing 3D releases, set up array so we can release reversibly */
   if (*r_step_release == NULL && all_3d && pathp->product_head != NULL) {
     *r_step_release = init_r_step_3d_release(radial_subdivisions);
-    if (r_step_release == NULL) {
+    if (*r_step_release == NULL) {
+      free(pathp);
       mcell_error("Out of memory building r_step array.");
       return MCELL_FAIL;
     }
@@ -321,6 +332,7 @@ mcell_add_reaction(struct notifications *notify,
     if (num_surface_mols == 0 && num_vol_mols == 1 && num_surf_products == 1) {
       /* do nothing */
     } else {
+      free(pathp);
       mcell_error("number of surface products exceeds number of surface "
                   "reactants, but VACANCY_SEARCH_DISTANCE is not specified or "
                   "set to zero.");
@@ -330,6 +342,7 @@ mcell_add_reaction(struct notifications *notify,
 
   /* A non-reversible reaction may not specify a reverse reaction rate */
   if (rates->backward_rate.rate_type != RATE_UNSET && !bidirectional) {
+    free(pathp);
     mcell_error("reverse rate specified but the reaction isn't reversible.");
     return MCELL_FAIL;
   }
@@ -338,6 +351,7 @@ mcell_add_reaction(struct notifications *notify,
   if (bidirectional) {
     /* A bidirectional reaction must specify a reverse rate */
     if (rates->backward_rate.rate_type == RATE_UNSET) {
+      free(pathp);
       mcell_error("reversible reaction indicated but no reverse rate "
                   "supplied.");
       return MCELL_FAIL;
@@ -366,6 +380,7 @@ mcell_add_reaction(struct notifications *notify,
                                                       "reaction product");
       if (prodp == NULL) {
         // mem_put(parse_state->prod_mem, prodp);
+        free(pathp);
         return MCELL_FAIL;
       }
 
@@ -395,6 +410,7 @@ mcell_add_reaction(struct notifications *notify,
     if (invert_current_reaction_pathway(
         rxn_sym_table, vacancy_search_dist2, pathp,
         &rates->backward_rate, backward_rate_filename)) {
+      free(pathp);
       return MCELL_FAIL;
     }
   }
@@ -414,10 +430,6 @@ mcell_add_surface_reaction(struct sym_table_head *rxn_sym_table,
                            int reaction_type, struct species *surface_class,
                            struct sym_entry *reactant_sym, short orient) {
   struct species *reactant = (struct species *)reactant_sym->value;
-  struct product *prodp;
-  struct rxn *rxnp;
-  // struct pathway *pathp;
-  struct name_orient *no;
 
   /* Make sure the other reactant isn't a surface */
   if (reactant->flags == IS_SURFACE) {
@@ -464,7 +476,7 @@ mcell_add_surface_reaction(struct sym_table_head *rxn_sym_table,
     return MCELL_FAIL;
   memset(pathp, 0, sizeof(struct pathway));
 
-  rxnp = (struct rxn *)reaction_sym->value;
+  struct rxn *rxnp = (struct rxn *)reaction_sym->value;
   rxnp->n_reactants = 2;
   ++rxnp->n_pathways;
   pathp->pathname = NULL;
@@ -484,6 +496,7 @@ mcell_add_surface_reaction(struct sym_table_head *rxn_sym_table,
     pathp->orientation2 = (orient < 0) ? -1 : 1;
   }
 
+  struct name_orient *no;
   no = CHECKED_MALLOC_STRUCT(struct name_orient, "struct name_orient");
   no->name = CHECKED_STRDUP(reactant->sym->name, "reactant name");
   if (orient == 0) {
@@ -492,12 +505,16 @@ mcell_add_surface_reaction(struct sym_table_head *rxn_sym_table,
     no->orient = (orient < 0) ? -1 : 1;
   }
 
+  struct product *prodp;
   switch (reaction_type) {
   case RFLCT:
     prodp = (struct product *)CHECKED_MALLOC_STRUCT(struct product,
                                                     "reaction product");
-    if (prodp == NULL)
+    if (prodp == NULL) {
+      free(no);
+      free(pathp);
       return MCELL_FAIL;
+    }
 
     pathp->flags |= PATHW_REFLEC;
     prodp->prod = pathp->reactant2;
@@ -509,6 +526,8 @@ mcell_add_surface_reaction(struct sym_table_head *rxn_sym_table,
       if (pathp->prod_signature == NULL) {
         // mdlerror(parse_state, "Error creating 'prod_signature' field for the
         // reaction pathway.");
+        free(no);
+        free(pathp);
         return MCELL_FAIL;
       }
     }
@@ -524,8 +543,11 @@ mcell_add_surface_reaction(struct sym_table_head *rxn_sym_table,
   case TRANSP:
     prodp = (struct product *)CHECKED_MALLOC_STRUCT(struct product,
                                                     "reaction product");
-    if (prodp == NULL)
+    if (prodp == NULL) {
+      free(no);
+      free(pathp);
       return MCELL_FAIL;
+    }
 
     pathp->flags |= PATHW_TRANSP;
     prodp->prod = pathp->reactant2;
@@ -535,8 +557,8 @@ mcell_add_surface_reaction(struct sym_table_head *rxn_sym_table,
     if (pathp->product_head != NULL) {
       pathp->prod_signature = create_prod_signature(&pathp->product_head);
       if (pathp->prod_signature == NULL) {
-        // mdlerror(parse_state, "Error creating 'prod_signature' field for the
-        // reaction pathway.");
+        free(no);
+        free(pathp);
         return MCELL_FAIL;
       }
     }
@@ -561,8 +583,9 @@ mcell_add_surface_reaction(struct sym_table_head *rxn_sym_table,
     break;
   default:
     // mdlerror(parse_state, "Unknown special surface type.");
+    free(no);
+    free(pathp);
     return MCELL_FAIL;
-    /*break;*/
   }
 
   pathp->next = rxnp->pathway_head;
@@ -1464,6 +1487,7 @@ extract_products(struct notifications *notify, struct pathway *pathp,
         mcell_error_raw("Surface_class '%s' is not allowed to be on the "
                         "product side of the reaction.",
                         prodp->prod->sym->name);
+        free(prodp);
         return MCELL_FAIL;
       }
     }
@@ -1614,13 +1638,7 @@ MCELL_STATUS invert_current_reaction_pathway(
     struct reaction_rate *reverse_rate,
     const char *rate_filename) {
 
-  struct rxn *rx;
-  struct pathway *path;
   struct product *prodp;
-  struct sym_entry *sym;
-  char *inverse_name;
-  int nprods; /* number of products */
-  int all_3d; /* flag that tells whether all products are volume_molecules */
   int num_surf_products = 0;
   int num_surface_mols = 0;
   int num_vol_mols = 0;
@@ -1629,7 +1647,8 @@ MCELL_STATUS invert_current_reaction_pathway(
      among products in the direct reaction */
   int is_surf_class = 0;
 
-  all_3d = 1;
+  int all_3d = 1; // flag that tells whether all products are volume_molecules
+  int nprods; /* number of products */
   for (nprods = 0, prodp = pathp->product_head; prodp != NULL;
        prodp = prodp->next) {
     nprods++;
@@ -1678,6 +1697,7 @@ MCELL_STATUS invert_current_reaction_pathway(
   }
 
   prodp = pathp->product_head;
+  char *inverse_name;
   if (nprods == 1) {
     inverse_name = strdup(prodp->prod->sym->name);
 
@@ -1687,16 +1707,20 @@ MCELL_STATUS invert_current_reaction_pathway(
     inverse_name =
         concat_rx_name(prodp->prod->sym->name, prodp->next->prod->sym->name);
   } else {
-    inverse_name = concat_rx_name(prodp->prod->sym->name, prodp->next->prod->sym->name);
+    char *tmp_inverse_name = concat_rx_name(
+      prodp->prod->sym->name, prodp->next->prod->sym->name);
+    if (tmp_inverse_name == NULL) {
+      return MCELL_FAIL;
+    }
     inverse_name =
-        concat_rx_name(inverse_name, prodp->next->next->prod->sym->name);
+        concat_rx_name(tmp_inverse_name, prodp->next->next->prod->sym->name);
+    free(tmp_inverse_name);
   }
   if (inverse_name == NULL) {
-    // mdlerror(parse_state, "Out of memory forming reaction name");
     return MCELL_FAIL;
   }
 
-  sym = retrieve_sym(inverse_name, rxn_sym_table);
+  struct sym_entry *sym = retrieve_sym(inverse_name, rxn_sym_table);
   if (sym == NULL) {
     sym = store_sym(inverse_name, RX, rxn_sym_table, NULL);
     if (sym == NULL) {
@@ -1707,12 +1731,12 @@ MCELL_STATUS invert_current_reaction_pathway(
     }
   }
   free(inverse_name);
-  rx = (struct rxn *)sym->value;
+  struct rxn *rx = (struct rxn *)sym->value;
   rx->n_reactants = nprods;
   rx->n_pathways++;
 
-  path = (struct pathway *)CHECKED_MALLOC_STRUCT(struct pathway,
-                                                 "reaction pathway");
+  struct pathway *path = (struct pathway *)CHECKED_MALLOC_STRUCT(
+    struct pathway, "reaction pathway");
   if (path == NULL) {
     return MCELL_FAIL;
   }
@@ -1757,6 +1781,7 @@ MCELL_STATUS invert_current_reaction_pathway(
   case RATE_UNSET:
     // mdlerror_fmt(parse_state, "File %s, Line %d: Internal error: Reverse rate
     // is not set", __FILE__, __LINE__);
+    free(path);
     return MCELL_FAIL;
 
   case RATE_CONSTANT:
@@ -1777,8 +1802,10 @@ MCELL_STATUS invert_current_reaction_pathway(
 
   path->product_head = (struct product *)CHECKED_MALLOC_STRUCT(
       struct product, "reaction product");
-  if (path->product_head == NULL)
+  if (path->product_head == NULL) {
+    free(path);
     return 1;
+  }
 
   path->product_head->orientation = pathp->orientation1;
   path->product_head->prod = pathp->reactant1;
@@ -1790,8 +1817,10 @@ MCELL_STATUS invert_current_reaction_pathway(
       ((pathp->reactant2->flags & IS_SURFACE) == 0)) {
     path->product_head->next = (struct product *)CHECKED_MALLOC_STRUCT(
         struct product, "reaction product");
-    if (path->product_head->next == NULL)
+    if (path->product_head->next == NULL) {
+      free(path);
       return 1;
+    }
     path->product_head->next->orientation = pathp->orientation2;
     path->product_head->next->prod = pathp->reactant2;
     path->product_head->next->next = NULL;
@@ -1802,8 +1831,10 @@ MCELL_STATUS invert_current_reaction_pathway(
         ((pathp->reactant3->flags & IS_SURFACE) == 0)) {
       path->product_head->next->next = (struct product *)CHECKED_MALLOC_STRUCT(
           struct product, "reaction product");
-      if (path->product_head->next->next == NULL)
+      if (path->product_head->next->next == NULL) {
+        free(path);
         return 1;
+      }
       path->product_head->next->next->orientation = pathp->orientation3;
       path->product_head->next->next->prod = pathp->reactant3;
       path->product_head->next->next->next = NULL;
@@ -1816,6 +1847,7 @@ MCELL_STATUS invert_current_reaction_pathway(
   if (path->prod_signature == NULL) {
     // mdlerror(parse_state, "Error creating 'prod_signature' field for reaction
     // pathway.");
+    free(path);
     return MCELL_FAIL;
   }
 
@@ -1827,6 +1859,7 @@ MCELL_STATUS invert_current_reaction_pathway(
       // mdlerror(parse_state, "Error: number of surface products exceeds number
       // of surface reactants, but VACANCY_SEARCH_DISTANCE is not specified or
       // set to zero.");
+      free(path);
       return MCELL_FAIL;
     }
   }
@@ -2213,7 +2246,6 @@ void alphabetize_pathway(struct pathway *path, struct rxn *reaction) {
         /* Put former reactant2 in place of reactant3 */
         path->reactant3 = temp_sp2;
         path->orientation3 = geom2;
-        /* XXX: Update to deal with macromolecules? */
 
       } else if (strcmp(path->reactant2->sym->name,
                         path->reactant3->sym->name) > 0) {
@@ -2827,8 +2859,8 @@ void check_reaction_for_duplicate_pathways(struct pathway **head) {
       *orient_players_2; /* array of orientations of players */
   int o1a, o1b, o2a, o2b;
 
-  /* extract  pathways with "prod_signature" field equal to NULL
-    into "null_result" list */
+  /* extract  pathways with "prod_signature" field equal to NULL into
+   * "null_result" list */
   current = *head;
   pprev = head;
   while (current != NULL) {
@@ -2846,10 +2878,9 @@ void check_reaction_for_duplicate_pathways(struct pathway **head) {
   /* check for duplicate pathways in null_result */
   current = null_result;
   if ((current != NULL) && (current->next != NULL)) {
-    /* From the previously called function "split_reaction()"
-       we know that reactant-reactant pairs in two pathways
-       are equivalent. Because there are no products the pathways
-       are duplicates.
+    /* From the previously called function "split_reaction()" we know that
+     * reactant-reactant pairs in two pathways are equivalent. Because there
+     * are no products the pathways are duplicates.
        RULE: There may be no more than one pathway with zero (--->NULL)
              products in the reaction->pathway_head
              after calling the function "split_reaction()"
@@ -2872,8 +2903,8 @@ void check_reaction_for_duplicate_pathways(struct pathway **head) {
                   current->reactant3->sym->name);
   }
 
-  /* now sort the remaining pathway list by "prod_signature" field
-     and check for the duplicates */
+  /* now sort the remaining pathway list by "prod_signature" field and check
+   * for the duplicates */
   current = *head;
 
   while (current != NULL) {
@@ -2899,8 +2930,8 @@ void check_reaction_for_duplicate_pathways(struct pathway **head) {
   }
 
   /* Now check for the duplicate pathways */
-  /* Since the list is sorted we can proceed down the list
-     and compare the adjacent nodes */
+  /* Since the list is sorted we can proceed down the list and compare the
+   * adjacent nodes */
 
   current = result;
 
@@ -2960,17 +2991,12 @@ void check_reaction_for_duplicate_pathways(struct pathway **head) {
           iter2 = iter2->next;
         }
 
-        /* below we will compare only reactant-product
-           and product-product combinations
-           because reactant-reactant combinations
-           were compared previously in the function
-           "equivalent_geometry()"
-           */
+        /* below we will compare only reactant-product and product-product
+         * combinations because reactant-reactant combinations were compared
+         * previously in the function "equivalent_geometry()" */
 
-        /* Initial assumption - pathways are equivalent.
-           We check whether this assumption is
-           valid by  comparing pairs as described
-           above */
+        /* Initial assumption - pathways are equivalent. We check whether this
+         * assumption is valid by comparing pairs as described above */
 
         i = 0;
         while ((i < num_players) && (pathways_equivalent)) {
@@ -3014,6 +3040,8 @@ void check_reaction_for_duplicate_pathways(struct pathway **head) {
                           current->reactant3->sym->name, current->prod_signature);
           }
         }
+        free(orient_players_1);
+        free(orient_players_2);
       }
 
       current = current->next;
@@ -3221,8 +3249,6 @@ int build_reaction_hash_table(
   for (int i = 0; i < rxn_sym_table->n_bins; i++) {
     for (struct sym_entry *sym = rxn_sym_table->entries[i]; sym != NULL;
          sym = sym->next) {
-      if (sym == NULL)
-        continue;
 
       struct rxn *rx = (struct rxn *)sym->value;
       int table_slot;
@@ -3337,6 +3363,14 @@ int load_rate_file(double time_unit, struct mem_helper *tv_rxn_mem,
           if (!strchr(RATE_SEPARATORS, buf[i]))
             break;
         }
+        // This is kind of a silly corner case, but let's check for it to keep
+        // coverity happy.
+        if (i == 2048) {
+          mcell_error(
+            "a time in the rate constant file consists of too many characters "
+            "(it uses 2048 or more characters).");
+          return(1);
+        }
         rate_constant = strtod((buf + i), &cp);
         if (cp == (buf + i))
           continue; /* Conversion error */
@@ -3358,8 +3392,10 @@ int load_rate_file(double time_unit, struct mem_helper *tv_rxn_mem,
 
         tp = CHECKED_MEM_GET(tv_rxn_mem,
                              "time-varying reaction rate constants");
-        if (tp == NULL)
+        if (tp == NULL) {
+          fclose(f);
           return 1;
+        }
         tp->next = NULL;
         tp->path = path;
         tp->time = t / time_unit;

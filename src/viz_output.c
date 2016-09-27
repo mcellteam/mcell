@@ -35,6 +35,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <errno.h>
+#include <assert.h>
 
 #include "logging.h"
 #include "mcell_structs.h"
@@ -43,6 +44,7 @@
 #include "viz_output.h"
 #include "strfunc.h"
 #include "util.h"
+#include "vol_util.h"
 
 /* Output frame types. */
 static int output_ascii_molecules(struct volume *world,
@@ -310,8 +312,6 @@ static int count_time_values(struct volume *world,
   return time_values;
 }
 
-static const struct vector3 v3_unit_z = { 0.0, 0.0, 1.0 };
-
 /************************************************************************
 output_ascii_molecules:
 In: vizblk: VIZ_OUTPUT block for this frame list
@@ -468,33 +468,16 @@ Out: 0 on success, 1 on failure.  The names and positions of molecules are
 static int output_cellblender_molecules(struct volume *world,
                                         struct viz_output_block *vizblk,
                                         struct frame_data_list *fdlp) {
-  FILE *custom_file;
-  char *cf_name;
-  struct abstract_molecule *amp;
-  struct volume_molecule *mp;
-  struct surface_molecule *gmp;
-  struct abstract_molecule ***viz_molp = NULL;
-  u_int *viz_mol_count = NULL;
-  u_int n_floats;
-  short orient = 0;
-  int ndigits;
-  long long lli;
-  struct vector3 where;
-  float pos_x = 0.0;
-  float pos_y = 0.0;
-  float pos_z = 0.0;
-  float norm_x, norm_y, norm_z;
-  byte name_len, species_type;
-  char mol_name[33];
 
   no_printf("Output in CELLBLENDER mode (molecules only)...\n");
 
   if ((fdlp->type == ALL_MOL_DATA) || (fdlp->type == MOL_POS)) {
-    lli = 10;
-    for (ndigits = 1; lli <= world->iterations && ndigits < 20;
+    long long lli = 10;
+    int ndigits = 1;
+    for (; lli <= world->iterations && ndigits < 20;
          lli *= 10, ndigits++) {
     }
-    cf_name =
+    char *cf_name =
         CHECKED_SPRINTF("%s.cellbin.%.*lld.dat", vizblk->file_prefix_name,
                         ndigits, fdlp->viz_iteration);
     if (cf_name == NULL)
@@ -505,7 +488,7 @@ static int output_cellblender_molecules(struct volume *world,
           "Failed to create parent directory for CELLBLENDER-mode VIZ output.");
       /*return 1;*/
     }
-    custom_file = open_file(cf_name, "wb");
+    FILE *custom_file = open_file(cf_name, "wb");
     if (!custom_file)
       mcell_die();
     else {
@@ -515,9 +498,14 @@ static int output_cellblender_molecules(struct volume *world,
     cf_name = NULL;
 
     /* Get a list of molecules sorted by species. */
-    if (sort_molecules_by_species(world, vizblk, &viz_molp, &viz_mol_count, 1,
-                                  1))
+    u_int *viz_mol_count = NULL;
+    struct abstract_molecule ***viz_molp = NULL;
+    if (sort_molecules_by_species(
+        world, vizblk, &viz_molp, &viz_mol_count, 1, 1)) {
+      fclose(custom_file);
+      custom_file = NULL;
       return 1;
+    }
 
     /* Write file header */
     u_int cellbin_version = 1;
@@ -537,7 +525,8 @@ static int output_cellblender_molecules(struct volume *world,
         continue;
 
       /* Write species name: */
-      amp = mols[0];
+      struct abstract_molecule *amp = mols[0];
+      char mol_name[33];
       if (id == INCLUDE_OBJ) {
         /* encode name of species as ASCII string, 32 chars max */
         snprintf(mol_name, 33, "%s", amp->properties->sym->name);
@@ -545,35 +534,66 @@ static int output_cellblender_molecules(struct volume *world,
         /* encode state value of species as ASCII string, 32 chars max */
         snprintf(mol_name, 33, "%d", id);
       }
-      name_len = strlen(mol_name);
+      byte name_len = strlen(mol_name);
       fwrite(&name_len, sizeof(name_len), 1, custom_file);
       fwrite(mol_name, sizeof(char), name_len, custom_file);
 
       /* Write species type: */
-      species_type = 0;
+      byte species_type = 0;
       if ((amp->properties->flags & ON_GRID) != 0) {
         species_type = 1;
       }
       fwrite(&species_type, sizeof(species_type), 1, custom_file);
 
       /* write number of x,y,z floats for mol positions to follow: */
-      n_floats = 3 * this_mol_count;
+      u_int n_floats = 3 * this_mol_count;
       fwrite(&n_floats, sizeof(n_floats), 1, custom_file);
 
       /* Write positions of volume and surface surface molecules: */
+      float pos_x = 0.0;
+      float pos_y = 0.0;
+      float pos_z = 0.0;
       for (unsigned int n_mol = 0; n_mol < this_mol_count; ++n_mol) {
         amp = mols[n_mol];
         if ((amp->properties->flags & NOT_FREE) == 0) {
-          mp = (struct volume_molecule *)amp;
-          pos_x = mp->pos.x;
-          pos_y = mp->pos.y;
-          pos_z = mp->pos.z;
+          struct volume_molecule *mp = (struct volume_molecule *)amp;
+          struct vector3 pos_output = {0.0, 0.0, 0.0};
+          if (!convert_relative_to_abs_PBC_coords(
+              world->periodic_box_obj,
+              mp->periodic_box,
+              world->periodic_traditional,
+              &mp->pos,
+              &pos_output)) {
+            pos_x = pos_output.x;   
+            pos_y = pos_output.y;   
+            pos_z = pos_output.z;   
+          }
+          else {
+            pos_x = mp->pos.x; 
+            pos_y = mp->pos.y; 
+            pos_z = mp->pos.z; 
+          }
+
         } else if ((amp->properties->flags & ON_GRID) != 0) {
-          gmp = (struct surface_molecule *)amp;
+          struct surface_molecule *gmp = (struct surface_molecule *)amp;
+          struct vector3 where;
           uv2xyz(&(gmp->s_pos), gmp->grid->surface, &where);
-          pos_x = where.x;
-          pos_y = where.y;
-          pos_z = where.z;
+          struct vector3 pos_output = {0.0, 0.0, 0.0};
+          if (!convert_relative_to_abs_PBC_coords(
+              world->periodic_box_obj,
+              gmp->periodic_box,
+              world->periodic_traditional,
+              &where,
+              &pos_output)) {
+            pos_x = pos_output.x;   
+            pos_y = pos_output.y;   
+            pos_z = pos_output.z;   
+          }
+          else {
+            pos_x = where.x; 
+            pos_y = where.y; 
+            pos_z = where.z; 
+          }
         }
 
         pos_x *= world->length_unit;
@@ -589,11 +609,23 @@ static int output_cellblender_molecules(struct volume *world,
       amp = mols[0];
       if ((amp->properties->flags & ON_GRID) != 0) {
         for (unsigned int n_mol = 0; n_mol < this_mol_count; ++n_mol) {
-          gmp = (struct surface_molecule *)mols[n_mol];
-          orient = gmp->orient;
-          norm_x = orient * gmp->grid->surface->normal.x;
-          norm_y = orient * gmp->grid->surface->normal.y;
-          norm_z = orient * gmp->grid->surface->normal.z;
+          struct surface_molecule *gmp = (struct surface_molecule *)mols[n_mol];
+          short orient = gmp->orient;
+          float norm_x = orient * gmp->grid->surface->normal.x;
+          float norm_y = orient * gmp->grid->surface->normal.y;
+          float norm_z = orient * gmp->grid->surface->normal.z;
+
+          if (world->periodic_box_obj && !(world->periodic_traditional)) {
+            if (gmp->periodic_box->x % 2 != 0) {
+              norm_x *= -1;
+            }
+            if (gmp->periodic_box->y % 2 != 0) {
+              norm_y *= -1;
+            }
+            if (gmp->periodic_box->z % 2 != 0) {
+              norm_z *= -1;
+            }
+          }
 
           fwrite(&norm_x, sizeof(norm_x), 1, custom_file);
           fwrite(&norm_y, sizeof(norm_y), 1, custom_file);

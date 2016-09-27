@@ -70,6 +70,15 @@ static int outcome_products_trimol_reaction_random(
     struct rxn *rx, int path, struct abstract_molecule *reacA,
     struct abstract_molecule *reacB, struct abstract_molecule *reacC,
     short orientA, short orientB, short orientC) {
+
+  if (reacA != NULL && reacB != NULL) {
+    assert(periodic_boxes_are_identical(reacA->periodic_box, reacB->periodic_box));
+  } else if (reacA != NULL && reacC != NULL) {
+    assert(periodic_boxes_are_identical(reacA->periodic_box, reacC->periodic_box));
+  } else if (reacB != NULL && reacC != NULL) {
+    assert(periodic_boxes_are_identical(reacB->periodic_box, reacC->periodic_box));
+  }
+
   bool update_dissociation_index =
       false;               /* Do we need to advance the dissociation index? */
   bool cross_wall = false; /* Did the moving molecule cross the plane? */
@@ -585,8 +594,7 @@ static int outcome_products_trimol_reaction_random(
     }
   }
 
-  /* Add the reactants (incl. any wall) to the list of players. */
-  add_players_to_list(rx, reacA, reacB, reacC, product, product_type);
+  add_reactants_to_product_list(rx, reacA, reacB, reacC, product, product_type);
 
   /* Determine whether any of the reactants can be replaced by a product. */
   if (product_type[0] == PLAYER_SURF_MOL) {
@@ -679,7 +687,8 @@ static int outcome_products_trimol_reaction_random(
       /* Create list of vacant tiles */
       for (tile_nbr = tile_nbr_head; tile_nbr != NULL;
            tile_nbr = tile_nbr->next) {
-        if (tile_nbr->grid->mol[tile_nbr->idx] == NULL) {
+        struct surface_molecule_list *sm_list = tile_nbr->grid->sm_list[tile_nbr->idx];
+        if (sm_list == NULL || sm_list->sm == NULL) {
           num_vacant_tiles++;
           push_tile_neighbor_to_list(&tile_vacant_nbr_head, tile_nbr->grid,
                                      tile_nbr->idx);
@@ -808,7 +817,8 @@ static int outcome_products_trimol_reaction_random(
                                         -1,                 /* remove count */
                                         NULL, /* Location at which to count */
                                         w,    /* Wall on which this happened */
-                                        t);   /* Time of occurrence */
+                                        t,    /* Time of occurrence */
+                                        NULL);
 
             /* Force check for the unimolecular reactions
                after changing orientation.
@@ -835,7 +845,8 @@ static int outcome_products_trimol_reaction_random(
                                         1,                  /* add count */
                                         NULL, /* Location at which to count */
                                         w,    /* Wall on which this happened */
-                                        t);   /* Time of occurrence */
+                                        t,    /* Time of occurrence */
+                                        NULL);
           }
         }
 
@@ -1661,7 +1672,7 @@ static int outcome_products_trimol_reaction_random(
       this_product = (struct abstract_molecule *)place_sm_product(
           world, product_species, 0, product_grid[n_product],
           product_grid_idx[n_product], &prod_uv_pos, product_orient[n_product],
-          t);
+          t, reacA->periodic_box);
     }
 
     /* else place the molecule in space. */
@@ -1687,7 +1698,7 @@ static int outcome_products_trimol_reaction_random(
 
       this_product = (struct abstract_molecule *)place_volume_product(
           world, product_species, 0, sm_reactant, w, product_subvol, hitpt,
-          product_orient[n_product], t);
+          product_orient[n_product], t, reacA->periodic_box);
 
       if (((struct volume_molecule *)this_product)->index < DISSOCIATION_MAX)
         update_dissociation_index = true;
@@ -1696,7 +1707,7 @@ static int outcome_products_trimol_reaction_random(
     /* Update molecule counts */
     ++product_species->population;
     if (product_species->flags & (COUNT_CONTENTS | COUNT_ENCLOSED))
-      count_region_from_scratch(world, this_product, NULL, 1, NULL, NULL, t);
+      count_region_from_scratch(world, this_product, NULL, 1, NULL, NULL, t, NULL);
   }
 
   /* If necessary, update the dissociation index. */
@@ -1711,7 +1722,7 @@ static int outcome_products_trimol_reaction_random(
      * Fix to be more efficient for WORLD-only counts? */
     if (world->place_waypoints_flag)
       count_region_from_scratch(world, NULL, rx->info[path].pathname, 1,
-                                &count_pos_xyz, w, t);
+                                &count_pos_xyz, w, t, NULL);
 
     /* Other magical stuff.  For now, can only trigger releases. */
     if (rx->info[path].pathname->magic != NULL) {
@@ -1838,8 +1849,7 @@ int outcome_trimolecular(struct volume *world, struct rxn *rx, int path,
     vm = NULL;
     if ((reacC->properties->flags & ON_GRID) != 0) {
       sm = (struct surface_molecule *)reacC;
-      if (sm->grid->mol[sm->grid_index] == sm)
-        sm->grid->mol[sm->grid_index] = NULL;
+      remove_surfmol_from_list(&sm->grid->sm_list[sm->grid_index], sm);
       sm->grid->n_occupied--;
       if (sm->flags & IN_SURFACE)
         sm->flags -= IN_SURFACE;
@@ -1856,7 +1866,7 @@ int outcome_trimolecular(struct volume *world, struct rxn *rx, int path,
     }
 
     if ((reacC->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED)) != 0) {
-      count_region_from_scratch(world, reacC, NULL, -1, NULL, NULL, t);
+      count_region_from_scratch(world, reacC, NULL, -1, NULL, NULL, t, NULL);
     }
 
     reacC->properties->n_deceased++;
@@ -1878,8 +1888,7 @@ int outcome_trimolecular(struct volume *world, struct rxn *rx, int path,
     vm = NULL;
     if ((reacB->properties->flags & ON_GRID) != 0) {
       sm = (struct surface_molecule *)reacB;
-      if (sm->grid->mol[sm->grid_index] == sm)
-        sm->grid->mol[sm->grid_index] = NULL;
+      remove_surfmol_from_list(&sm->grid->sm_list[sm->grid_index], sm);
       sm->grid->n_occupied--;
       if (sm->flags & IN_SURFACE)
         sm->flags -= IN_SURFACE;
@@ -1896,7 +1905,7 @@ int outcome_trimolecular(struct volume *world, struct rxn *rx, int path,
     }
 
     if ((reacB->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED)) != 0) {
-      count_region_from_scratch(world, reacB, NULL, -1, NULL, NULL, t);
+      count_region_from_scratch(world, reacB, NULL, -1, NULL, NULL, t, NULL);
     }
 
     reacB->properties->n_deceased++;
@@ -1918,8 +1927,7 @@ int outcome_trimolecular(struct volume *world, struct rxn *rx, int path,
     vm = NULL;
     if ((reacA->properties->flags & ON_GRID) != 0) {
       sm = (struct surface_molecule *)reacA;
-      if (sm->grid->mol[sm->grid_index] == sm)
-        sm->grid->mol[sm->grid_index] = NULL;
+      remove_surfmol_from_list(&sm->grid->sm_list[sm->grid_index], sm);
       sm->grid->n_occupied--;
       if (sm->flags & IN_SURFACE)
         sm->flags -= IN_SURFACE;
@@ -1940,7 +1948,7 @@ int outcome_trimolecular(struct volume *world, struct rxn *rx, int path,
       if (reacA->properties->flags &
           COUNT_SOME_MASK) /* If we're ever counted, try to count us now */
       {
-        count_region_from_scratch(world, reacA, NULL, -1, NULL, NULL, t);
+        count_region_from_scratch(world, reacA, NULL, -1, NULL, NULL, t, NULL);
       }
     } else if ((reacA->flags & COUNT_ME) && world->place_waypoints_flag) {
       /* Subtlety: we made it up to hitpt, but our position is wherever we were
@@ -1948,7 +1956,7 @@ int outcome_trimolecular(struct volume *world, struct rxn *rx, int path,
       if (hitpt == NULL || (reacB_is_free && reacC_is_free))
           /* Vol-vol-vol rx should be counted at hitpt */
       {
-        count_region_from_scratch(world, reacA, NULL, -1, hitpt, NULL, t);
+        count_region_from_scratch(world, reacA, NULL, -1, hitpt, NULL, t, NULL);
       } else /* reaction involving surface or surface_molecule but we don't want
                 to
                 count exactly on a wall or we might count on the wrong side */
@@ -1965,7 +1973,7 @@ int outcome_trimolecular(struct volume *world, struct rxn *rx, int path,
         fake_hitpt.y = 0.5 * hitpt->y + 0.5 * loc_okay->y;
         fake_hitpt.z = 0.5 * hitpt->z + 0.5 * loc_okay->z;
 
-        count_region_from_scratch(world, reacA, NULL, -1, &fake_hitpt, NULL, t);
+        count_region_from_scratch(world, reacA, NULL, -1, &fake_hitpt, NULL, t, NULL);
       }
     }
     reacA->properties->n_deceased++;

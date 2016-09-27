@@ -46,21 +46,16 @@
 #include "react_output.h"
 
 /* Instantiate a request to track a particular quantity */
-static int instantiate_request(struct output_request *request,
-                               int count_hashmask, struct counter **count_hash,
-                               struct mem_helper *trig_request_mem,
-                               double *elapsed_time,
-                               struct mem_helper *counter_mem);
+static int instantiate_count_request(struct output_request *request,
+  int count_hashmask, struct counter **count_hash, struct mem_helper *trig_request_mem,
+  double *elapsed_time, struct mem_helper *counter_mem);
 
 /* Create a new counter data structure */
 static struct counter *create_new_counter(struct region *where, void *who,
-                                          byte what,
-                                          struct mem_helper *counter_mem);
+  byte what, struct periodic_image *img, struct mem_helper *counter_mem);
 
 /* Pare down the region lists, annihilating any regions which appear in both
- * lists.  This code was moved out of count_region_from_scratch so that it can
- * be used in the macromolecules counting code as well.
- */
+ * lists. */
 static void clean_region_lists(struct subvolume *my_sv,
                                struct region_list **p_all_regs,
                                struct region_list **p_all_antiregs);
@@ -79,20 +74,26 @@ static int find_enclosing_regions(struct volume *world, struct vector3 *loc,
                                   struct region_list **arlp,
                                   struct mem_helper *rmem);
 
+void count_region_list(
+    struct volume *world,
+    struct region_list *regions,
+    struct surface_molecule *sm,
+    struct vector3 *where,
+    int count_hashmask,
+    int inc,
+    struct periodic_image *previous_box);
+
 /*************************************************************************
 eps_equals:
    In: two doubles
    Out: 1 if they are equal to within some small tolerance, 0 otherwise
 *************************************************************************/
 static int eps_equals(double x, double y) {
-  double mag;
-  double diff;
-
-  mag = fabs(x);
+  double mag = fabs(x);
   if (mag < fabs(y))
     mag = fabs(y);
 
-  diff = fabs(x - y);
+  double diff = fabs(x - y);
   return diff < EPS_C * (mag + 1.0);
 }
 
@@ -103,7 +104,6 @@ dup_region_list:
    Out: The duplicated list of regions, or NULL on a memory allocation
         error.
 *************************************************************************/
-
 static struct region_list *dup_region_list(struct region_list *r,
                                            struct mem_helper *mh) {
   struct region_list *nr, *rp, *r0;
@@ -135,7 +135,6 @@ region_listed:
        one specific region we're interested in
    Out: 1 if the region is in the list.  0 if not.
 *************************************************************************/
-
 int region_listed(struct region_list *rl, struct region *r) {
   while (rl != NULL) {
     if (rl->reg == r)
@@ -147,27 +146,35 @@ int region_listed(struct region_list *rl, struct region *r) {
 
 /*************************************************************************
 count_region_update:
-   In: species of thing that hit
-       region list for the wall we hit
-       direction of impact relative to surface normal for volume molecule, or
-         relative to the region border for surface molecule
-         (inside out = 1, ouside in = 0)
-       whether we crossed or not
-       scaling factor for reaction probabilities (for estimating ccn)
-       location of the hit (for triggers)
-       time of the hit (for triggers)
+   In: world: simulation state 
+       sp: species of thing that hit
+       periodic_box: periodic box of molecule being counted
+       rl: region list for the wall we hit
+       dir: direction of impact relative to surface normal for volume molecule,
+         or relative to the region border for surface molecule (inside out = 1,
+         ouside in = 0)
+       crossed: whether we crossed or not
+       loc: location of the hit (for triggers)
+       t: time of the hit (for triggers)
    Out: Returns none.
         Appropriate counters are updated, that is,
         hit counters are updated according to which side was hit,
         and crossings counters and counts within enclosed regions are
         updated if the surface was crossed.
 *************************************************************************/
-void count_region_update(struct volume *world, struct volume_molecule *vm,
-                         struct species *sp,
-                         struct region_list *rl, int direction, int crossed,
-                         struct vector3 *loc, double t) {
-  double hits_to_ccn = 0;
+void count_region_update(
+    struct volume *world,
+    struct volume_molecule *vm,
+    struct species *sp,
+    struct periodic_image *periodic_box,
+    struct region_list *rl,
+    int dir,
+    int crossed,
+    struct vector3 *loc,
+    double t) {
+
   int count_hits = 0;
+  double hits_to_ccn = 0;
   if ((sp->flags & COUNT_HITS) && ((sp->flags & NOT_FREE) == 0)) {
     count_hits = 1;
     hits_to_ccn = vm->get_time_step(vm) *
@@ -178,94 +185,117 @@ void count_region_update(struct volume *world, struct volume_molecule *vm,
 
   struct counter *hit_count = NULL;
   for (; rl != NULL; rl = rl->next) {
-    if (rl->reg->flags & COUNT_SOME_MASK) {
-      int hash_bin = (rl->reg->hashval + sp->hashval) & world->count_hashmask;
+    if (!(rl->reg->flags & COUNT_SOME_MASK)) {
+      continue;
+    }
 
-      for (hit_count = world->count_hash[hash_bin]; hit_count != NULL;
-           hit_count = hit_count->next) {
-        if (hit_count->reg_type == rl->reg && hit_count->target == sp) {
-          if (rl->reg->flags & sp->flags &
-              (COUNT_HITS | COUNT_CONTENTS | COUNT_ENCLOSED)) {
-            if (crossed) {
-              if (direction == 1) {
-                if (hit_count->counter_type & TRIG_COUNTER) {
-                  hit_count->data.trig.t_event = (double)world->current_iterations + t;
-                  hit_count->data.trig.orient = 0;
-                  if (rl->reg->flags & sp->flags & COUNT_HITS) {
-                    fire_count_event(world, hit_count, 1, loc,
-                                     REPORT_FRONT_HITS | REPORT_TRIGGER);
+    if (!(rl->reg->flags & sp->flags & (COUNT_HITS | COUNT_CONTENTS | COUNT_ENCLOSED))) {
+      continue;
+    }
 
-                    fire_count_event(world, hit_count, 1, loc,
-                                     REPORT_FRONT_CROSSINGS | REPORT_TRIGGER);
-                  }
-                  if (rl->reg->flags & sp->flags & COUNT_CONTENTS) {
-                    fire_count_event(world, hit_count, 1, loc,
-                                     REPORT_ENCLOSED | REPORT_CONTENTS |
-                                         REPORT_TRIGGER);
-                  }
-                } else {
-                  if (rl->reg->flags & sp->flags & COUNT_HITS) {
-                    hit_count->data.move.front_hits++;
-                    hit_count->data.move.front_to_back++;
-                  }
-                  if (rl->reg->flags & sp->flags & COUNT_CONTENTS) {
-                    hit_count->data.move.n_enclosed++;
-                  }
-                }
-              } else {
-                if (hit_count->counter_type & TRIG_COUNTER) {
-                  hit_count->data.trig.t_event = (double)world->current_iterations + t;
-                  hit_count->data.trig.orient = 0;
-                  if (rl->reg->flags & sp->flags & COUNT_HITS) {
-                    fire_count_event(world, hit_count, 1, loc,
-                                     REPORT_BACK_HITS | REPORT_TRIGGER);
-                    fire_count_event(world, hit_count, 1, loc,
-                                     REPORT_BACK_CROSSINGS | REPORT_TRIGGER);
-                  }
-                  if (rl->reg->flags & sp->flags & COUNT_CONTENTS) {
-                    fire_count_event(world, hit_count, -1, loc,
-                                     REPORT_ENCLOSED | REPORT_CONTENTS |
-                                         REPORT_TRIGGER);
-                  }
-                } else {
-                  if (rl->reg->flags & sp->flags & COUNT_HITS) {
-                    hit_count->data.move.back_hits++;
-                    hit_count->data.move.back_to_front++;
-                  }
-                  if (rl->reg->flags & sp->flags & COUNT_CONTENTS) {
-                    hit_count->data.move.n_enclosed--;
-                  }
-                }
-              }
-            } else if (rl->reg->flags & sp->flags &
-                       COUNT_HITS) /* Didn't cross, only hits might update */
-            {
-              if (direction == 1) {
-                if (hit_count->counter_type & TRIG_COUNTER) {
-                  hit_count->data.trig.t_event = (double)world->current_iterations + t;
-                  hit_count->data.trig.orient = 0;
-                  fire_count_event(world, hit_count, 1, loc,
-                                   REPORT_FRONT_HITS | REPORT_TRIGGER);
-                } else {
-                  hit_count->data.move.front_hits++;
-                }
-              } else {
-                if (hit_count->counter_type & TRIG_COUNTER) {
-                  hit_count->data.trig.t_event = (double)world->current_iterations + t;
-                  hit_count->data.trig.orient = 0;
-                  fire_count_event(world, hit_count, 1, loc,
-                                   REPORT_BACK_HITS | REPORT_TRIGGER);
-                } else
-                  hit_count->data.move.back_hits++;
-              }
+    int hash_bin = (rl->reg->hashval + sp->hashval) & world->count_hashmask;
+    for (hit_count = world->count_hash[hash_bin]; hit_count != NULL;
+         hit_count = hit_count->next) {
+
+      if (!(hit_count->reg_type == rl->reg && hit_count->target == sp)) {
+        continue;
+      }
+
+      // count only in the relevant periodic box
+      if (world->periodic_box_obj && !world->periodic_traditional) {
+        if (!periodic_boxes_are_identical(periodic_box, hit_count->periodic_box)) {
+          continue;
+        }
+        else {
+          struct vector3 pos_output = {0.0, 0.0, 0.0};
+          convert_relative_to_abs_PBC_coords(
+              world->periodic_box_obj,
+              periodic_box,
+              world->periodic_traditional,
+              loc,
+              &pos_output);
+          loc->x = pos_output.x;   
+          loc->y = pos_output.y;   
+          loc->z = pos_output.z;   
+        }
+      }
+
+      if (crossed) {
+        if (dir == 1) {
+          if (hit_count->counter_type & TRIG_COUNTER) {
+            hit_count->data.trig.t_event = (double)world->current_iterations + t;
+            hit_count->data.trig.orient = 0;
+            if (rl->reg->flags & sp->flags & COUNT_HITS) {
+              fire_count_event(world, hit_count, 1, loc,
+                               REPORT_FRONT_HITS | REPORT_TRIGGER);
+
+              fire_count_event(world, hit_count, 1, loc,
+                               REPORT_FRONT_CROSSINGS | REPORT_TRIGGER);
             }
-            if ((count_hits && rl->reg->area != 0.0) &&
-                ((sp->flags & NOT_FREE) == 0)) {
-              if ((hit_count->counter_type & TRIG_COUNTER) == 0) {
-                hit_count->data.move.scaled_hits += hits_to_ccn / rl->reg->area;
-              }
+            if (rl->reg->flags & sp->flags & COUNT_CONTENTS) {
+              fire_count_event(world, hit_count, 1, loc,
+                               REPORT_ENCLOSED | REPORT_CONTENTS |
+                                   REPORT_TRIGGER);
+            }
+          } else {
+            if (rl->reg->flags & sp->flags & COUNT_HITS) {
+              hit_count->data.move.front_hits++;
+              hit_count->data.move.front_to_back++;
+            }
+            if (rl->reg->flags & sp->flags & COUNT_CONTENTS) {
+              hit_count->data.move.n_enclosed++;
             }
           }
+        } else {
+          if (hit_count->counter_type & TRIG_COUNTER) {
+            hit_count->data.trig.t_event = (double)world->current_iterations + t;
+            hit_count->data.trig.orient = 0;
+            if (rl->reg->flags & sp->flags & COUNT_HITS) {
+              fire_count_event(world, hit_count, 1, loc,
+                               REPORT_BACK_HITS | REPORT_TRIGGER);
+              fire_count_event(world, hit_count, 1, loc,
+                               REPORT_BACK_CROSSINGS | REPORT_TRIGGER);
+            }
+            if (rl->reg->flags & sp->flags & COUNT_CONTENTS) {
+              fire_count_event(world, hit_count, -1, loc,
+                               REPORT_ENCLOSED | REPORT_CONTENTS |
+                                   REPORT_TRIGGER);
+            }
+          } else {
+            if (rl->reg->flags & sp->flags & COUNT_HITS) {
+              hit_count->data.move.back_hits++;
+              hit_count->data.move.back_to_front++;
+            }
+            if (rl->reg->flags & sp->flags & COUNT_CONTENTS) {
+              hit_count->data.move.n_enclosed--;
+            }
+          }
+        }
+      } else if (rl->reg->flags & sp->flags & COUNT_HITS) {
+      /* Didn't cross, only hits might update */
+        if (dir == 1) {
+          if (hit_count->counter_type & TRIG_COUNTER) {
+            hit_count->data.trig.t_event = (double)world->current_iterations + t;
+            hit_count->data.trig.orient = 0;
+            fire_count_event(world, hit_count, 1, loc,
+                             REPORT_FRONT_HITS | REPORT_TRIGGER);
+          } else {
+            hit_count->data.move.front_hits++;
+          }
+        } else {
+          if (hit_count->counter_type & TRIG_COUNTER) {
+            hit_count->data.trig.t_event = (double)world->current_iterations + t;
+            hit_count->data.trig.orient = 0;
+            fire_count_event(world, hit_count, 1, loc,
+                             REPORT_BACK_HITS | REPORT_TRIGGER);
+          } else
+            hit_count->data.move.back_hits++;
+        }
+      }
+      if ((count_hits && rl->reg->area != 0.0) &&
+          ((sp->flags & NOT_FREE) == 0)) {
+        if ((hit_count->counter_type & TRIG_COUNTER) == 0) {
+          hit_count->data.move.scaled_hits += hits_to_ccn / rl->reg->area;
         }
       }
     }
@@ -274,8 +304,9 @@ void count_region_update(struct volume *world, struct volume_molecule *vm,
 
 /**************************************************************************
 count_region_border_update:
-  In: species of thing that hit
-      information about the hit (linked list of "hit_data")
+  In: world: simulation state
+      sp: species of thing that hit
+      hd_info: information about the hit (linked list of "hit_data")
   Out: Returns none.
        Appropriate counters are updated, that is,
        hit counters are updated according to which side was hit,
@@ -286,83 +317,57 @@ count_region_border_update:
 **************************************************************************/
 void count_region_border_update(struct volume *world, struct species *sp,
                                 struct hit_data *hd_info) {
-  struct region_list *rl;
-  struct hit_data *hd;
-  int correct_orient; /* flag*/
 
-  /* This function should be used for surface molecules only */
-  if ((sp->flags & NOT_FREE) == 0)
-    mcell_internal_error("Function 'count_region_border_update()' is used with "
-                         "volume molecules.");
+  assert((sp->flags & NOT_FREE) != 0);
 
-  struct counter *hit_count = NULL;
-  for (hd = hd_info; hd != NULL; hd = hd->next) {
-    for (rl = hd->count_regions; rl != NULL; rl = rl->next) {
-      if (rl->reg->flags & COUNT_SOME_MASK) {
+  for (struct hit_data *hd = hd_info; hd != NULL; hd = hd->next) {
+    for (struct region_list *rl = hd->count_regions; rl != NULL; rl = rl->next) {
+      if ((rl->reg->flags & COUNT_SOME_MASK) &&
+          (rl->reg->flags & sp->flags & COUNT_HITS)) {
+
         int hash_bin = (rl->reg->hashval + sp->hashval) & world->count_hashmask;
 
-        for (hit_count = world->count_hash[hash_bin]; hit_count != NULL;
-             hit_count = hit_count->next) {
-          correct_orient = 0;
-          if ((hit_count->orientation == ORIENT_NOT_SET) ||
-              (hit_count->orientation == hd->orientation) ||
-              (hit_count->orientation == 0))
-            correct_orient = 1;
+        for (struct counter *hit_count = world->count_hash[hash_bin];
+          hit_count != NULL; hit_count = hit_count->next) {
 
-          if ((hit_count->reg_type == rl->reg) && (hit_count->target == sp) &&
-              correct_orient) {
-            if (rl->reg->flags & sp->flags & COUNT_HITS) {
+          if (((hit_count->reg_type != rl->reg) || (hit_count->target != sp))) {
+            continue;
+          }
+
+          if ((hit_count->orientation != ORIENT_NOT_SET) &&
+              (hit_count->orientation != hd->orientation) &&
+              (hit_count->orientation != 0)) {
+            continue;
+          }
+
+          if (hit_count->counter_type & TRIG_COUNTER) {
+            hit_count->data.trig.t_event = hd->t;
+            hit_count->data.trig.orient = 0;
+            if (hd->direction == 1) {
+              fire_count_event(world, hit_count, 1, &(hd->loc),
+                REPORT_FRONT_HITS | REPORT_TRIGGER);
               if (hd->crossed) {
-                if (hd->direction == 1) {
-                  if (hit_count->counter_type & TRIG_COUNTER) {
-                    hit_count->data.trig.t_event = hd->t;
-                    hit_count->data.trig.orient = 0;
-                    if (rl->reg->flags & sp->flags & COUNT_HITS) {
-                      fire_count_event(world, hit_count, 1, &(hd->loc),
-                                       REPORT_FRONT_HITS | REPORT_TRIGGER);
-                      fire_count_event(world, hit_count, 1, &(hd->loc),
-                                       REPORT_FRONT_CROSSINGS | REPORT_TRIGGER);
-                    }
-                  } else {
-                    hit_count->data.move.front_hits++;
-                    hit_count->data.move.front_to_back++;
-                  }
-                } else {
-                  if (hit_count->counter_type & TRIG_COUNTER) {
-                    hit_count->data.trig.t_event = hd->t;
-                    hit_count->data.trig.orient = 0;
-                    if (rl->reg->flags & sp->flags & COUNT_HITS) {
-                      fire_count_event(world, hit_count, 1, &(hd->loc),
-                                       REPORT_BACK_HITS | REPORT_TRIGGER);
-                      fire_count_event(world, hit_count, 1, &(hd->loc),
-                                       REPORT_BACK_CROSSINGS | REPORT_TRIGGER);
-                    }
-                  } else {
-                    hit_count->data.move.back_hits++;
-                    hit_count->data.move.back_to_front++;
-                  }
-                }
-              } else /* Didn't cross, only hits might update */
-              {
-                if (hd->direction == 1) {
-                  if (hit_count->counter_type & TRIG_COUNTER) {
-                    hit_count->data.trig.t_event = hd->t;
-                    hit_count->data.trig.orient = 0;
-                    fire_count_event(world, hit_count, 1, &(hd->loc),
-                                     REPORT_FRONT_HITS | REPORT_TRIGGER);
-                  } else {
-                    hit_count->data.move.front_hits++;
-                  }
-
-                } else {
-                  if (hit_count->counter_type & TRIG_COUNTER) {
-                    hit_count->data.trig.t_event = hd->t;
-                    hit_count->data.trig.orient = 0;
-                    fire_count_event(world, hit_count, 1, &(hd->loc),
-                                     REPORT_BACK_HITS | REPORT_TRIGGER);
-                  } else
-                    hit_count->data.move.back_hits++;
-                }
+                fire_count_event(world, hit_count, 1, &(hd->loc),
+                  REPORT_FRONT_CROSSINGS | REPORT_TRIGGER);
+              }
+            } else {
+              fire_count_event(world, hit_count, 1, &(hd->loc),
+                REPORT_BACK_HITS | REPORT_TRIGGER);
+              if (hd->crossed) {
+                fire_count_event(world, hit_count, 1, &(hd->loc),
+                  REPORT_BACK_CROSSINGS | REPORT_TRIGGER);
+              }
+            }
+          } else {
+            if (hd->direction == 1) {
+              hit_count->data.move.front_hits++;
+              if (hd->crossed) {
+                hit_count->data.move.front_to_back++;
+              }
+            } else {
+              hit_count->data.move.back_hits++;
+              if (hd->crossed) {
+                hit_count->data.move.back_to_front++;
               }
             }
           }
@@ -374,12 +379,14 @@ void count_region_border_update(struct volume *world, struct species *sp,
 
 /*************************************************************************
 count_region_from_scratch:
-   In: molecule to count, or NULL
-       reaction pathname to count, or NULL
-       number of these to count
-       location at which to count them (may be NULL)
-       wall at which this happened (may be NULL)
-       time of the hit (for triggers)
+   In: world: simulation state 
+       am: molecule to count, or NULL
+       rxpn: reaction pathname to count, or NULL
+       n: number of these to count
+       loc: location at which to count them (may be NULL)
+       my_wall: wall at which this happened (may be NULL)
+       t: time of the hit (for triggers)
+       periodic_box:
    Out: Returns zero on success and 1 on failure.
         Appropriate counters are updated and triggers are fired.
    Note: At least one of molecule or rxn pathname must be non-NULL; if
@@ -392,17 +399,14 @@ void count_region_from_scratch(struct volume *world,
                                struct abstract_molecule *am,
                                struct rxn_pathname *rxpn, int n,
                                struct vector3 *loc, struct wall *my_wall,
-                               double t) {
+                               double t, struct periodic_image *periodic_box) {
   struct region_list *rl, *arl, *nrl, *narl; /*a=anti p=previous n=new*/
-  struct region_list *all_regs, *all_antiregs;
-  struct wall_list *wl;
-  struct waypoint *wp;
-  struct subvolume *sv, *my_sv;
+  struct subvolume *sv;
   struct counter *c;
   void *target; /* what we're counting: am->properties or rxpn */
   int hashval;  /* Hash value of what we're counting */
   double t_hit, t_sv_hit;
-  struct vector3 here, delta, hit; /* For raytracing */
+  struct vector3 delta, hit; /* For raytracing */
   struct vector3 xyz_loc;          /* Computed location of mol if loc==NULL */
   byte count_flags;
   int pos_or_neg;        /* Sign of count (neg for antiregions) */
@@ -449,26 +453,34 @@ void count_region_from_scratch(struct volume *world,
           if (c->counter_type & TRIG_COUNTER) {
             c->data.trig.t_event = t;
             c->data.trig.orient = orient;
+            // XXX: may need to convert loc for PBCs
             fire_count_event(world, c, n, loc, count_flags | REPORT_TRIGGER);
           } else if (rxpn == NULL) {
             if (am->properties->flags & ON_GRID) {
               if ((c->orientation == ORIENT_NOT_SET) ||
                   (c->orientation == orient) || (c->orientation == 0)) {
-                c->data.move.n_at += n;
+                // count only in the relevant periodic box
+                if (periodic_boxes_are_identical(am->periodic_box, c->periodic_box)) {
+                  c->data.move.n_at += n;
+                }
               }
             } else {
               c->data.move.n_at += n;
             }
-          } else
+          } else if ((rxpn != NULL) && (periodic_boxes_are_identical(periodic_box, c->periodic_box))) {
             c->data.rx.n_rxn_at += n;
+          }
         }
       }
     }
   }
 
   /* Waypoints must have been placed in order for the following code to work. */
-  if (!world->place_waypoints_flag)
+  if (!world->place_waypoints_flag) {
+    assert (am != NULL && (am->properties->flags & COUNT_ENCLOSED) == 0 &&
+      (am->properties->flags & NOT_FREE) != 0);
     return;
+  }
 
   /* Count volume molecules, vol reactions, and surface stuff that is
    * enclosed--hard!!*/
@@ -479,15 +491,13 @@ void count_region_from_scratch(struct volume *world,
     const int pz = bisect(world->z_partitions, world->nz_parts, loc->z);
     const int this_sv =
         pz + (world->nz_parts - 1) * (py + (world->ny_parts - 1) * px);
-    wp = &(world->waypoints[this_sv]);
-    my_sv = &(world->subvol[this_sv]);
+    struct waypoint *wp = &(world->waypoints[this_sv]);
+    struct subvolume *my_sv = &(world->subvol[this_sv]);
 
-    here.x = wp->loc.x;
-    here.y = wp->loc.y;
-    here.z = wp->loc.z;
+    struct vector3 here = {.x = wp->loc.x, .y = wp->loc.y, .z = wp->loc.z};
 
-    all_regs = NULL;
-    all_antiregs = NULL;
+    struct region_list *all_regs = NULL;
+    struct region_list *all_antiregs = NULL;
 
     /* Copy all the potentially relevant regions from the nearest waypoint */
     for (rl = wp->regions; rl != NULL; rl = rl->next) {
@@ -531,7 +541,7 @@ void count_region_from_scratch(struct volume *world,
       if (t_sv_hit > 1.0)
         t_sv_hit = 1.0;
 
-      for (wl = sv->wall_head; wl != NULL; wl = wl->next) {
+      for (struct wall_list *wl = sv->wall_head; wl != NULL; wl = wl->next) {
         /* Skip wall that we are on unless we're a volume molecule */
         if (my_wall == wl->this_wall &&
             (am == NULL || (am->properties->flags & NOT_FREE))) {
@@ -542,21 +552,21 @@ void count_region_from_scratch(struct volume *world,
           int hit_code = collide_wall(&here, &delta, wl->this_wall, &t_hit,
                                       &hit, 0, world->rng, world->notify,
                                       &(world->ray_polygon_tests));
-          if (hit_code != COLLIDE_MISS)
-            world->ray_polygon_colls++;
+          if (hit_code == COLLIDE_MISS) {
+            continue;
+          }
 
-          if (hit_code != COLLIDE_MISS && t_hit <= t_sv_hit &&
-              (hit.x - loc->x) * delta.x + (hit.y - loc->y) * delta.y +
-                      (hit.z - loc->z) * delta.z <
-                  0) {
+          world->ray_polygon_colls++;
+          if (t_hit <= t_sv_hit && (hit.x - loc->x) * delta.x +
+            (hit.y - loc->y) * delta.y + (hit.z - loc->z) * delta.z < 0) {
             for (rl = wl->this_wall->counting_regions; rl != NULL;
                  rl = rl->next) {
               if ((rl->reg->flags & (COUNT_CONTENTS | COUNT_ENCLOSED)) != 0) {
                 int hash_bin =
                     (hashval + rl->reg->hashval) & world->count_hashmask;
-                if (world->count_hash[hash_bin] == NULL)
+                if (world->count_hash[hash_bin] == NULL) {
                   continue; /* Won't count on this region so ignore it */
-
+                }
                 nrl = (struct region_list *)CHECKED_MEM_GET(
                     my_sv->local_storage->regl,
                     "list of enclosing regions for count");
@@ -582,18 +592,24 @@ void count_region_from_scratch(struct volume *world,
     /* Actually check the regions here */
     count_flags |= REPORT_ENCLOSED;
 
-    for (nrl = all_regs; nrl != NULL;
-         nrl = (nrl == all_regs)
-                   ? all_antiregs
-                   : NULL) /* Trick so we don't need to duplicate this code */
-    {
-      if (nrl == all_regs)
+    for (nrl = all_regs; nrl != NULL; nrl = (nrl == all_regs) ? all_antiregs : NULL)
+    /* Trick so we don't need to duplicate this code */ {
+      if (nrl == all_regs) {
         pos_or_neg = 1;
-      else
+      } else {
         pos_or_neg = -1;
+      }
       for (rl = nrl; rl != NULL; rl = rl->next) {
         int hash_bin = (hashval + rl->reg->hashval) & world->count_hashmask;
         for (c = world->count_hash[hash_bin]; c != NULL; c = c->next) {
+          if (am != NULL
+              && !periodic_boxes_are_identical(c->periodic_box, periodic_box)) {
+            continue;
+          }
+          if (rxpn != NULL
+              && !periodic_boxes_are_identical(c->periodic_box, periodic_box)) {
+            continue;
+          }
           if (c->target == target && c->reg_type == rl->reg &&
               ((c->counter_type & ENCLOSING_COUNTER) != 0 ||
                (am != NULL && (am->properties->flags & ON_GRID) == 0)) &&
@@ -603,6 +619,7 @@ void count_region_from_scratch(struct volume *world,
             if (c->counter_type & TRIG_COUNTER) {
               c->data.trig.t_event = t;
               c->data.trig.orient = orient;
+              // XXX: may need to convert loc for PBCs
               fire_count_event(world, c, n * pos_or_neg, loc,
                                count_flags | REPORT_TRIGGER);
             } else if (rxpn == NULL) {
@@ -614,8 +631,9 @@ void count_region_from_scratch(struct volume *world,
               } else {
                 c->data.move.n_enclosed += n * pos_or_neg;
               }
-            } else
+            } else {
               c->data.rx.n_rxn_enclosed += n * pos_or_neg;
+            }
           }
         }
       }
@@ -631,69 +649,80 @@ void count_region_from_scratch(struct volume *world,
 
 /*************************************************************************
 count_moved_surface_mol:
-   In: molecule to count
-       new grid for molecule
-       new location on that grid
+   In: world: simulation state 
+       sm: molecule to count
+       sg: new grid for molecule
+       loc: new location on that grid
+       count_hashmask:
+       count_hash:
+       ray_polygon_colls:
    Out: Returns zero on success and 1 on failure.
         Appropriate counters are updated and triggers are fired.
    Note: This routine is not super-fast for enclosed counts for
          surface molecules since it raytraces without using waypoints.
 *************************************************************************/
-void count_moved_surface_mol(struct volume *world, struct surface_molecule *sm,
-                             struct surface_grid *sg, struct vector2 *loc,
-                             int count_hashmask, struct counter **count_hash,
-                             long long *ray_polygon_colls) {
-  struct region_list *rl, *prl, *nrl, *pos_regs, *neg_regs;
-  struct storage *stor;
-  struct counter *c;
+void count_moved_surface_mol(
+    struct volume *world,
+    struct surface_molecule *sm,
+    struct surface_grid *sg,
+    struct vector2 *loc,
+    int count_hashmask,
+    struct counter **count_hash,
+    long long *ray_polygon_colls,
+    struct periodic_image *previous_box) {
+
   struct vector3 origin;
   struct vector3 target;
-  struct vector3 *where = NULL;
-  int delete_me;
-  int n;
-  int origin_loaded = 0;
-  int target_loaded = 0;
-
-  pos_regs = neg_regs = NULL;
-  stor = sm->grid->surface->birthplace;
-
-  if (sm->grid != sg) /* Different grids implies different walls, so we might
-                        have changed regions */
-  {
-    delete_me = 0;
+  struct region_list *pos_regs = NULL;
+  struct region_list *neg_regs = NULL;
+  struct region_list *nrl = NULL;
+  struct region_list *prl = NULL;
+  struct region_list *rl = NULL;
+  struct region_list *rl2 = NULL;
+  struct storage *stor = sm->grid->surface->birthplace;
+  // Different grids implies different walls, so we might have changed regions 
+  /*if (sm->grid != sg) {*/
+  if ((sm->grid != sg) ||
+      (previous_box != NULL && !world->periodic_traditional)) {
+    int delete_me = 0;
     if ((sm->grid->surface->flags & COUNT_CONTENTS) != 0 &&
-        (sg->surface->flags & COUNT_CONTENTS) != 0) {
+      (sg->surface->flags & COUNT_CONTENTS) != 0) {
+
       delete_me = 1;
       nrl = sm->grid->surface->counting_regions;
       prl = sg->surface->counting_regions;
       while (prl != NULL && nrl != NULL) {
-        if (prl->reg == nrl->reg) /* Skip identical regions */
-        {
+        if (prl->reg == nrl->reg) {
+
+          rl = (struct region_list *)CHECKED_MEM_GET(stor->regl, "region list entry");
+          rl->next = pos_regs;
+          rl->reg = prl->reg;
+          pos_regs = rl;
           prl = prl->next;
+
+          rl2 = (struct region_list *)CHECKED_MEM_GET(stor->regl, "region list entry");
+          rl2->next = neg_regs;
+          rl2->reg = nrl->reg;
+          neg_regs = rl2;
           nrl = nrl->next;
+
           continue;
         }
-        while (prl != NULL && prl->reg < nrl->reg) /* Entering these regions */
-        {
-          rl = (struct region_list *)CHECKED_MEM_GET(stor->regl,
-                                                     "region list entry");
+        while (prl != NULL && prl->reg < nrl->reg) { /* Entering these regions */
+          rl = (struct region_list *)CHECKED_MEM_GET(stor->regl, "region list entry");
           rl->next = pos_regs;
           rl->reg = prl->reg;
           pos_regs = rl;
           prl = prl->next;
         }
-        while (nrl != NULL &&
-               (prl == NULL || nrl->reg < prl->reg)) /* Leaving these regions */
-        {
-          rl = (struct region_list *)CHECKED_MEM_GET(stor->regl,
-                                                     "region list entry");
+        while (nrl != NULL && (prl == NULL || nrl->reg < prl->reg)) { /* Leaving these regions */
+          rl = (struct region_list *)CHECKED_MEM_GET(stor->regl, "region list entry");
           rl->next = neg_regs;
           rl->reg = nrl->reg;
           neg_regs = rl;
           nrl = nrl->next;
         }
       }
-
       /* If we exhaust all negative regions before we've exhausted all
        * positive regions, the above loop will terminate, leaving some
        * regions uncounted. */
@@ -717,43 +746,22 @@ void count_moved_surface_mol(struct volume *world, struct surface_molecule *sm,
         neg_regs = rl;
         nrl = nrl->next;
       }
-    } else if (sm->grid->surface->flags & COUNT_CONTENTS)
+    } else if (sm->grid->surface->flags & COUNT_CONTENTS) {
       neg_regs = sm->grid->surface->counting_regions;
-    else if (sg->surface->flags & COUNT_CONTENTS)
+    } else if (sg->surface->flags & COUNT_CONTENTS) {
       pos_regs = sg->surface->counting_regions;
+    }
 
-    /* Sneaky way to go through both lists in one loop */
-    n = 1;
+    // Different walls and possibly different periodic box
     if (pos_regs != NULL) {
       uv2xyz(loc, sg->surface, &target);
-      where = &target;
-      target_loaded = 1;
+      count_region_list(
+          world, pos_regs, sm, &target, count_hashmask, 1, previous_box);
     }
-    for (rl = (pos_regs != NULL) ? pos_regs : neg_regs; rl != NULL;
-         rl = (rl->next == NULL && n > 0) ? neg_regs : rl->next) {
-      if (rl == neg_regs) {
-        uv2xyz(&(sm->s_pos), sm->grid->surface, &origin);
-        where = &origin;
-        origin_loaded = 1;
-        n = -1;
-      }
-
-      int hash_bin =
-          (sm->properties->hashval + rl->reg->hashval) & count_hashmask;
-      for (c = count_hash[hash_bin]; c != NULL; c = c->next) {
-        if (c->target == sm->properties && c->reg_type == rl->reg &&
-            (c->counter_type & ENCLOSING_COUNTER) == 0) {
-          if (c->counter_type & TRIG_COUNTER) {
-            c->data.trig.t_event = sm->t;
-            c->data.trig.orient = sm->orient;
-            fire_count_event(world, c, n, where,
-                             REPORT_CONTENTS | REPORT_TRIGGER);
-          } else if ((c->orientation == ORIENT_NOT_SET) ||
-                     (c->orientation == sm->orient) || (c->orientation == 0)) {
-            c->data.move.n_at += n;
-          }
-        }
-      }
+    if (neg_regs != NULL) {
+      uv2xyz(&(sm->s_pos), sm->grid->surface, &origin);
+      count_region_list(
+          world, neg_regs, sm, &origin, count_hashmask, -1, previous_box);
     }
 
     if (delete_me) {
@@ -764,37 +772,31 @@ void count_moved_surface_mol(struct volume *world, struct surface_molecule *sm,
     }
   }
 
-  if (sm->properties->flags & COUNT_ENCLOSED) /* Have to raytrace */
-  {
-    struct subvolume *sv;
-    struct wall_list *wl;
-    double t;
-    int j;
+  /* Have to raytrace */
+  uv2xyz(&(sm->s_pos), sm->grid->surface, &origin);
+  uv2xyz(loc, sg->surface, &target);
+  if ((sm->properties->flags & COUNT_ENCLOSED) &&
+      (periodic_boxes_are_identical(previous_box, sm->periodic_box))) {
 
     pos_regs = neg_regs = NULL;
-
-    if (!origin_loaded)
-      uv2xyz(&(sm->s_pos), sm->grid->surface, &origin);
-    if (!target_loaded)
-      uv2xyz(loc, sg->surface, &target);
-    struct vector3 delta = {target.x - origin.x, target.y - origin.y,
-      target.z - origin.z};
+    struct vector3 delta = {target.x - origin.x, target.y - origin.y, target.z - origin.z};
     struct vector3 here = origin;
 
     /* Collect all the relevant regions we pass through */
-    for (sv = find_subvolume(world, &origin, NULL); sv != NULL;
-         sv = next_subvol(&here, &delta, sv, world->x_fineparts,
-                          world->y_fineparts, world->z_fineparts,
-                          world->ny_parts, world->nz_parts)) {
+    for (struct subvolume *sv = find_subvolume(world, &origin, NULL); sv != NULL;
+         sv = next_subvol(&here, &delta, sv, world->x_fineparts, world->y_fineparts,
+          world->z_fineparts, world->ny_parts, world->nz_parts)) {
 
-      for (wl = sv->wall_head; wl != NULL; wl = wl->next) {
-        if (wl->this_wall == sm->grid->surface || wl->this_wall == sg->surface)
-          continue; /* Don't count our own wall */
+      int j = 0;
+      for (struct wall_list *wl = sv->wall_head; wl != NULL; wl = wl->next) {
+        if (wl->this_wall == sm->grid->surface || wl->this_wall == sg->surface) {
+          continue; // ignore the origin and target walls
+        }
 
         struct vector3 hit = {0.0, 0.0, 0.0};
+        double t = 0.0;
         j = collide_wall(&here, &delta, wl->this_wall, &t, &hit, 0, world->rng,
-                         world->notify, &(world->ray_polygon_tests));
-
+          world->notify, &(world->ray_polygon_tests));
 
         /* we only consider the collision if it happens in the current subvolume.
            Otherwise we may double count collision for walls that span multiple
@@ -804,25 +806,25 @@ void count_moved_surface_mol(struct volume *world, struct surface_molecule *sm,
           continue;
         }
 
-        if (j != COLLIDE_MISS)
+        if (j != COLLIDE_MISS) {
           (*ray_polygon_colls)++;
+        }
 
+        /* check that hit is encountered before we reach the target */
         if (j != COLLIDE_MISS && (hit.x - target.x) * delta.x +
           (hit.y - target.y) * delta.y + (hit.z - target.z) * delta.z < 0) {
-          for (rl = wl->this_wall->counting_regions; rl != NULL;
-               rl = rl->next) {
-            if ((rl->reg->flags & COUNT_ENCLOSED) == 0)
+          for (rl = wl->this_wall->counting_regions; rl != NULL; rl = rl->next) {
+            if ((rl->reg->flags & COUNT_ENCLOSED) == 0) {
               continue; /* Only ENCLOSED counted here */
+            }
 
             if (j == COLLIDE_FRONT) {
-              prl = (struct region_list *)CHECKED_MEM_GET(stor->regl,
-                                                          "region list entry");
+              prl = (struct region_list *)CHECKED_MEM_GET(stor->regl, "region list entry");
               prl->reg = rl->reg;
               prl->next = pos_regs;
               pos_regs = prl;
             } else if (j == COLLIDE_BACK) {
-              nrl = (struct region_list *)CHECKED_MEM_GET(stor->regl,
-                                                          "region list entry");
+              nrl = (struct region_list *)CHECKED_MEM_GET(stor->regl, "region list entry");
               nrl->reg = rl->reg;
               nrl->next = neg_regs;
               neg_regs = nrl;
@@ -833,16 +835,16 @@ void count_moved_surface_mol(struct volume *world, struct surface_molecule *sm,
     }
 
     if (pos_regs != NULL) {
-      pos_regs =
-          (struct region_list *)void_list_sort((struct void_list *)pos_regs);
+      pos_regs = (struct region_list *)void_list_sort((struct void_list *)pos_regs);
     }
     if (neg_regs != NULL) {
-      neg_regs =
-          (struct region_list *)void_list_sort((struct void_list *)neg_regs);
+      neg_regs = (struct region_list *)void_list_sort((struct void_list *)neg_regs);
     }
 
     prl = pos_regs;
     nrl = neg_regs;
+    struct vector3 *where = NULL;
+    int n;
     while (prl != NULL || nrl != NULL) {
       if (prl == NULL) {
         rl = nrl;
@@ -865,29 +867,33 @@ void count_moved_surface_mol(struct volume *world, struct surface_molecule *sm,
         n = -1;
         where = &target;
       } else {
-        n = 1; /* dummy init to silence compiler */
         rl = NULL;
         prl = prl->next;
         nrl = nrl->next;
       }
 
-      if (rl != NULL) {
-        int hash_bin =
-            (sm->properties->hashval + rl->reg->hashval) & count_hashmask;
-        for (c = count_hash[hash_bin]; c != NULL; c = c->next) {
-          if (c->target == sm->properties && c->reg_type == rl->reg &&
-              (c->counter_type & ENCLOSING_COUNTER) != 0 &&
-              !region_listed(sm->grid->surface->counting_regions, rl->reg) &&
-              !region_listed(sg->surface->counting_regions, rl->reg)) {
-            if (c->counter_type & TRIG_COUNTER) {
-              c->data.trig.t_event = sm->t;
-              c->data.trig.orient = sm->orient;
-              fire_count_event(world, c, n, where, REPORT_CONTENTS |
-                                                       REPORT_ENCLOSED |
-                                                       REPORT_TRIGGER);
-            } else if ((c->orientation == ORIENT_NOT_SET) ||
-                       (c->orientation == sm->orient) ||
-                       (c->orientation == 0)) {
+      if (rl == NULL) {
+        continue;
+      }
+
+      int hash_bin = (sm->properties->hashval + rl->reg->hashval) & count_hashmask;
+      for (struct counter *c = count_hash[hash_bin]; c != NULL; c = c->next) {
+        if (c->target == sm->properties && c->reg_type == rl->reg &&
+            (c->counter_type & ENCLOSING_COUNTER) != 0) {
+
+          assert(!region_listed(sm->grid->surface->counting_regions, rl->reg));
+          assert(!region_listed(sg->surface->counting_regions, rl->reg));
+
+          if (c->counter_type & TRIG_COUNTER) {
+            c->data.trig.t_event = sm->t;
+            c->data.trig.orient = sm->orient;
+            fire_count_event(world, c, n, where, REPORT_CONTENTS | REPORT_ENCLOSED |
+              REPORT_TRIGGER);
+          } else if ((c->orientation == ORIENT_NOT_SET) ||
+                     (c->orientation == sm->orient) ||
+                     (c->orientation == 0)) {
+            /*c->data.move.n_enclosed += n;*/
+            if (periodic_boxes_are_identical(c->periodic_box, sm->periodic_box)) {
               c->data.move.n_enclosed += n;
             }
           }
@@ -900,22 +906,28 @@ void count_moved_surface_mol(struct volume *world, struct surface_molecule *sm,
     if (neg_regs != NULL)
       mem_put_list(stor->regl, neg_regs);
   }
+  else if ((sm->properties->flags & COUNT_ENCLOSED) &&
+      (!periodic_boxes_are_identical(previous_box, sm->periodic_box))) {
+    // Increment count of where we are going now (target)
+    count_region_from_scratch(world, (struct abstract_molecule *)sm, NULL, 1, &target, NULL, 1.0, sm->periodic_box);
+    // Decrement count of where we were before (origin)
+    count_region_from_scratch(world, (struct abstract_molecule *)sm, NULL, -1, &origin, NULL, 1.0, previous_box);
+  }
 }
 
 /*************************************************************************
 fire_count_event:
-   In: counter of thing that just happened (trigger of some sort)
-       number of times that thing happened (or hit direction for triggers)
-       location where it happened
-       what happened (Report Type Flags)
+   In: world: simulation state
+       event: counter of thing that just happened (trigger of some sort)
+       n: number of times that thing happened (or hit direction for triggers)
+       where: location where it happened
+       what: what happened (Report Type Flags)
    Out: None
 *************************************************************************/
 void fire_count_event(struct volume *world, struct counter *event, int n,
                       struct vector3 *where, byte what) {
-  struct trigger_request *tr;
-  byte whatelse = what;
-  short flags;
 
+  short flags;
   if ((what & REPORT_TYPE_MASK) == REPORT_RXNS)
     flags = TRIG_IS_RXN;
   else if ((what & REPORT_TYPE_MASK) == REPORT_CONTENTS)
@@ -923,6 +935,7 @@ void fire_count_event(struct volume *world, struct counter *event, int n,
   else
     flags = TRIG_IS_HIT;
 
+  byte whatelse = what;
   if ((what & REPORT_TYPE_MASK) == REPORT_FRONT_HITS)
     whatelse = (what - REPORT_FRONT_HITS) | REPORT_ALL_HITS;
   else if ((what & REPORT_TYPE_MASK) == REPORT_BACK_HITS)
@@ -932,6 +945,7 @@ void fire_count_event(struct volume *world, struct counter *event, int n,
   else if ((what & REPORT_TYPE_MASK) == REPORT_BACK_CROSSINGS)
     whatelse = (what - REPORT_BACK_CROSSINGS) | REPORT_ALL_CROSSINGS;
 
+  struct trigger_request *tr;
   for (tr = event->data.trig.listeners; tr != NULL; tr = tr->next) {
     if (tr->ear->report_type == what) {
       memcpy(&(event->data.trig.loc), where, sizeof(struct vector3));
@@ -959,27 +973,26 @@ void fire_count_event(struct volume *world, struct counter *event, int n,
 
 /*************************************************************************
 find_enclosing_regions:
-   In: location we want to end up
-       starting position
-       list of regions we're inside at the starting position
-       list of inside-out regions we're "outside" at the starting position
-       memory handler to store lists of regions
+   In: world: simulation state 
+       loc: location we want to end up
+       start: starting position
+       rlp: list of regions we're inside at the starting position
+       arlp: list of inside-out regions we're "outside" at the starting position
+       rmem: memory handler to store lists of regions
    Out: 0 on success, 1 on memory allocation error.  The region and
         inside-out region lists are updated to be correct at the ending
         position.
 *************************************************************************/
-static int find_enclosing_regions(struct volume *world, struct vector3 *loc,
+static int find_enclosing_regions(struct volume *world,
+                                  struct vector3 *loc,
                                   struct vector3 *start,
                                   struct region_list **rlp,
                                   struct region_list **arlp,
                                   struct mem_helper *rmem) {
   struct vector3 outside, delta, hit;
-  struct subvolume *sv, *svt;
   struct wall_list *wl;
   struct region_list *rl, *arl;
   struct region_list *trl, *tarl, *xrl, *yrl, *nrl;
-  double t, t_hit_sv;
-  int traveling;
   struct wall_list dummy;
 
   rl = *rlp;
@@ -1000,14 +1013,15 @@ static int find_enclosing_regions(struct volume *world, struct vector3 *loc,
   delta.y = 0.0;
   delta.z = loc->z - outside.z;
 
-  sv = find_subvolume(world, &outside, NULL);
-  svt = find_subvolume(world, loc, NULL);
-  traveling = 1;
+  struct subvolume *sv = find_subvolume(world, &outside, NULL);
+  struct subvolume *svt = find_subvolume(world, loc, NULL);
+  int traveling = 1;
 
+  double t;
   while (traveling) {
     tarl = trl = NULL;
-    t_hit_sv = collide_sv_time(&outside, &delta, sv, world->x_fineparts,
-                               world->y_fineparts, world->z_fineparts);
+    double t_hit_sv = collide_sv_time(&outside, &delta, sv, world->x_fineparts,
+                                      world->y_fineparts, world->z_fineparts);
 
     for (wl = sv->wall_head; wl != NULL; wl = wl->next) {
       int hit_code =
@@ -1155,17 +1169,13 @@ static int find_enclosing_regions(struct volume *world, struct vector3 *loc,
 
 /*************************************************************************
 place_waypoints:
-   In: No arguments.
+   In: world: simulation state
    Out: Returns 1 if malloc fails, 0 otherwise.
         Allocates waypoints to SSVs, if any are needed.
    Note: you must have initialized SSVs before calling this routine!
 *************************************************************************/
 int place_waypoints(struct volume *world) {
   int waypoint_in_wall = 0;
-  struct waypoint *wp;
-  struct wall_list *wl;
-  struct subvolume *sv;
-  double d;
 
 /* Being exactly in the center of a subdivision can be bad. */
 /* Define "almost center" positions for X, Y, Z */
@@ -1190,9 +1200,9 @@ int place_waypoints(struct volume *world) {
       for (int pz = 0; pz < world->nz_parts - 1; pz++) {
         const int this_sv =
             pz + (world->nz_parts - 1) * (py + (world->ny_parts - 1) * px);
-        wp = &(world->waypoints[this_sv]);
+        struct waypoint *wp = &(world->waypoints[this_sv]);
 
-        sv = &(world->subvol[this_sv]);
+        struct subvolume *sv = &(world->subvol[this_sv]);
 
         /* Place waypoint near center of subvolume (W_#a=W_#b=0.5 gives center)
          */
@@ -1205,8 +1215,9 @@ int place_waypoints(struct volume *world) {
 
         do {
           waypoint_in_wall = 0;
+          struct wall_list *wl;
           for (wl = sv->wall_head; wl != NULL; wl = wl->next) {
-            d = dot_prod(&(wp->loc), &(wl->this_wall->normal));
+            double d = dot_prod(&(wp->loc), &(wl->this_wall->normal));
             if (eps_equals(d, wl->this_wall->d)) {
               waypoint_in_wall++;
               d = EPS_C * (double)((rng_uint(world->rng) & 0xF) - 8);
@@ -1265,7 +1276,7 @@ int place_waypoints(struct volume *world) {
 
 /******************************************************************
 prepare_counters:
-  In: No arguments.
+  In: world: simulation state
   Out: 0 if counter statements are correct, 1 otherwise.
   Note: A statement is incorrect if a non-closed manifold region
         tries to count a freely diffusing molecule.  Fixes up all
@@ -1343,7 +1354,7 @@ int prepare_counters(struct volume *world) {
         mcell_error("Failed to expand request to count on object.");
     }
 
-    if (instantiate_request(request, world->count_hashmask, world->count_hash,
+    if (instantiate_count_request(request, world->count_hashmask, world->count_hash,
                             world->trig_request_mem, &world->elapsed_time,
                             world->counter_mem)) {
       mcell_error("Failed to instantiate count request.");
@@ -1355,8 +1366,8 @@ int prepare_counters(struct volume *world) {
 
 /******************************************************************
 is_object_instantiated:
-  In: object
-      symbol_table entry against which the object is tested
+  In: entry: symbol table entry to check
+      root_instance: symbol_table entry against which the object is tested
   Out: 1 if the name of the object or one of its descendants matches the name
        of the symbol passed, 0 otherwise.
   Note: Checking is performed for all instantiated objects
@@ -1381,7 +1392,9 @@ int is_object_instantiated(struct sym_entry *entry,
 
 /*************************************************************************
 check_counter_geometry:
-   In: nothing
+   In: count_hashmask:
+       count_hash:
+       place_waypoints_flag:
    Out: 0 on success, 1 on failure.
         Checks all counters to make sure that if they are ENCLOSING,
         they count on closed regions.  If not, the function prints out
@@ -1419,8 +1432,8 @@ int check_counter_geometry(int count_hashmask, struct counter **count_hash,
 
 /*************************************************************************
 expand_object_output:
-   In: request for a count
-       object upon which the request is made.
+   In: request: request for a count
+       obj: object upon which the request is made.
    Out: 0 on success, 1 on failure (memory allocation only?).
         Request is split into a separate request for each BOX and POLY
         object's ALL region that is a child of this object.  The result
@@ -1522,7 +1535,7 @@ int expand_object_output(struct output_request *request, struct object *obj) {
 
 /*************************************************************************
 object_has_geometry:
-   In: object (instantiated in world)
+   In: obj: object (instantiated in world)
    Out: 0 if there are no geometrical objects within that object (and it
         is not a geometrical object itself).  1 if there are such object.
 *************************************************************************/
@@ -1551,22 +1564,26 @@ int object_has_geometry(struct object *obj) {
 }
 
 /*************************************************************************
-instantiate_request:
-   In: request for a count
+instantiate_count_request:
+   In: request: request for a count
+       count_hashmask:
+       count_hash:
+       trig_request_mem:
+       elapsed_time:
+       counter_mem:
    Out: 0 on success, 1 on failure (memory allocation only?).
         Requesting output tree gets appropriate node pointed to the
         memory location where we will be collecting data.
 *************************************************************************/
-static int instantiate_request(struct output_request *request,
-                               int count_hashmask, struct counter **count_hash,
-                               struct mem_helper *trig_request_mem,
-                               double *elapsed_time,
-                               struct mem_helper *counter_mem) {
+static int instantiate_count_request(struct output_request *request,
+  int count_hashmask, struct counter **count_hash,
+  struct mem_helper *trig_request_mem, double *elapsed_time,
+  struct mem_helper *counter_mem) {
+
   int request_hash = 0;
   struct rxn_pathname *rxpn_to_count;
   struct rxn *rx_to_count = NULL;
   struct species *mol_to_count = NULL;
-  void *to_count;
   struct region *reg_of_count;
   struct counter *count = NULL;
   struct trigger_request *trig_req;
@@ -1575,7 +1592,7 @@ static int instantiate_request(struct output_request *request,
   int is_enclosed;
 
   /* Set up and figure out hash value */
-  to_count = request->count_target->value;
+  void *to_count = request->count_target->value;
   switch (request->count_target->sym_type) {
   case MOL:
     rxpn_to_count = NULL;
@@ -1661,16 +1678,16 @@ static int instantiate_request(struct output_request *request,
       reg_of_count->flags |= COUNT_TRIGGER;
     }
 
-    /* Find or add counter */
     for (count = count_hash[request_hash]; count != NULL; count = count->next) {
       if (count->reg_type == reg_of_count && count->target == to_count &&
           count_type == count->counter_type &&
-          count->orientation == request->count_orientation)
+          count->orientation == request->count_orientation &&
+          periodic_boxes_are_identical(count->periodic_box, request->periodic_box))
         break;
     }
     if (count == NULL) {
       count = create_new_counter(reg_of_count, request->count_target->value,
-                                 count_type, counter_mem);
+                                 count_type, request->periodic_box, counter_mem);
       if (request->count_orientation != ORIENT_NOT_SET) {
         count->orientation = request->count_orientation;
       }
@@ -1680,6 +1697,9 @@ static int instantiate_request(struct output_request *request,
     }
 
     is_enclosed = ((request->report_type & REPORT_ENCLOSED) != 0);
+
+    /* set periodic box */
+    count->periodic_box = request->periodic_box;
 
     /* Point appropriately */
     if (request->report_type & REPORT_TRIGGER) {
@@ -1826,17 +1846,19 @@ static int instantiate_request(struct output_request *request,
 
 /*************************************************************************
 create_new_counter:
-   In: region upon which to count
-       target we're going to count (species or rxn pathname)
-       what to count (*_COUNTER flags)
+   In: where: region upon which to count
+       who: target we're going to count (species or rxn pathname)
+       what: what to count (*_COUNTER flags)
+       img: in what periodic image to count
+       counter_mem:
    Out: Newly allocated counter initialized with the given region and
         target, or NULL if there is a memory allocation error.
    Note: memory is allocated from world->counter_mem using mem_get,
          not from the global heap using malloc.
 *************************************************************************/
 static struct counter *create_new_counter(struct region *where, void *who,
-                                          byte what,
-                                          struct mem_helper *counter_mem) {
+  byte what, struct periodic_image *img, struct mem_helper *counter_mem) {
+
   struct counter *c;
 
   c = (struct counter *)CHECKED_MEM_GET(counter_mem, "counter");
@@ -1845,6 +1867,7 @@ static struct counter *create_new_counter(struct region *where, void *who,
   c->target = who;
   c->orientation = ORIENT_NOT_SET;
   c->counter_type = what;
+  c->periodic_box = img;
   if (what & TRIG_COUNTER) {
     c->data.trig.t_event = 0.0;
     c->data.trig.loc.x = c->data.trig.loc.y = c->data.trig.loc.z = 0.0;
@@ -1866,10 +1889,9 @@ clean_region_lists:
    Cleans the region and antiregion lists, annihilating any items which appear
    on both lists.
 
-   In:  struct subvolume *my_sv - subvolume containing waypoint
-        struct region_list **p_all_regs - pointer to receive list of regions
-        struct region_list **p_all_antiregs - pointer to receive list of
-antiregions
+   In: my_sv: subvolume containing waypoint
+       p_all_regs: pointer to receive list of regions
+       p_all_antiregs: pointer to receive list of antiregions
    Out: None
 *************************************************************************/
 static void clean_region_lists(struct subvolume *my_sv,
@@ -1967,5 +1989,43 @@ void update_hit_data(struct hit_data **hd_head, struct wall *current,
   } else {
     hd->next = *hd_head;
     *hd_head = hd;
+  }
+}
+
+
+/* count_regions_list updates COUNTS and TRIGGERS for surface_molecule sm
+ * for all regions in the provided region_list */
+void count_region_list(
+    struct volume *world,
+    struct region_list *regions,
+    struct surface_molecule *sm,
+    struct vector3 *where,
+    int count_hashmask,
+    int inc,
+    struct periodic_image *previous_box) {
+
+  struct counter **count_hash = world->count_hash;
+  for (struct region_list *rl = regions; rl != NULL; rl = rl->next) {
+    int hash_bin = (sm->properties->hashval + rl->reg->hashval) & count_hashmask;
+    for (struct counter *c = count_hash[hash_bin]; c != NULL; c = c->next) {
+      if (c->target == sm->properties && c->reg_type == rl->reg &&
+          (c->counter_type & ENCLOSING_COUNTER) == 0) {
+        if (c->counter_type & TRIG_COUNTER) {
+          c->data.trig.t_event = sm->t;
+          c->data.trig.orient = sm->orient;
+          fire_count_event(world, c, inc, where, REPORT_CONTENTS | REPORT_TRIGGER);
+        } else if ((c->orientation == ORIENT_NOT_SET) ||
+                   (c->orientation == sm->orient) || (c->orientation == 0)) {
+          if ((inc == 1) && (periodic_boxes_are_identical(
+              sm->periodic_box, c->periodic_box))) {
+            c->data.move.n_at++;
+          }
+          else if ((inc == -1) && (previous_box != NULL) &&
+                   (periodic_boxes_are_identical(previous_box, c->periodic_box))) {
+            c->data.move.n_at--;
+          }
+        }
+      }
+    }
   }
 }

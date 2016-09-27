@@ -434,6 +434,10 @@ int mdl_set_release_site_diameter_var(struct mdlparse_vars *parse_state,
                                       struct release_site_obj *rsop,
                                       double factor, struct sym_entry *symp);
 
+int mdl_set_release_site_periodic_box(struct mdlparse_vars *parse_state,
+                                      struct release_site_obj *rel_site_obj_ptr,
+                                      struct vector3 *periodic_box);
+
 /* Set the release probability for a release site. */
 int mdl_set_release_site_probability(struct mdlparse_vars *parse_state,
                                      struct release_site_obj *rsop,
@@ -516,6 +520,16 @@ mdl_new_voxel_list(struct mdlparse_vars *parse_state, struct sym_entry *sym,
                    int n_vertices, struct vertex_list *vertices,
                    int n_connections,
                    struct element_connection_list *connections);
+
+struct polygon_object *mdl_create_periodic_box(
+    struct mdlparse_vars *parse_state,
+    struct vector3 *llf,
+    struct vector3 *urb,
+    bool isPeriodicX,
+    bool isPeriodicY,
+    bool isPeriodicZ);
+
+int mdl_finish_periodic_box(struct mdlparse_vars *parse_state);
 
 /* Create a new box object, with particular corners. */
 struct polygon_object *mdl_new_box_object(struct mdlparse_vars *parse_state,
@@ -644,6 +658,28 @@ struct output_expression *mdl_count_syntax_3(struct mdlparse_vars *parse_state,
                                              char *what,
                                              struct sym_entry *where,
                                              int hit_spec, int count_flags);
+
+
+struct output_expression *mdl_count_syntax_periodic_1(struct mdlparse_vars *parse_state,
+  struct sym_entry *what, struct sym_entry *where, struct vector3 *periodicBox,
+  int hit_spec, int count_flags);
+
+struct output_expression *mdl_count_syntax_periodic_2(
+    struct mdlparse_vars *parse_state,
+    struct sym_entry *mol_type,
+    short orient,
+    struct sym_entry *where,
+    struct vector3 *periodicBox,
+    int hit_spec,
+    int count_flags); 
+
+struct output_expression *mdl_count_syntax_periodic_3(
+    struct mdlparse_vars *parse_state,
+    char *what,
+    struct sym_entry *where,
+    struct vector3 *periodicBox,
+    int hit_spec,
+    int count_flags);
 
 /* Prepare a single count expression for inclusion in an output set. */
 int mdl_single_count_expr(struct mdlparse_vars *parse_state,

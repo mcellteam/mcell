@@ -66,12 +66,8 @@ int parallel_segments(struct vector3 *A, struct vector3 *B, struct vector3 *R,
 
 int point_in_triangle(struct vector3 *p, struct vector3 *a, struct vector3 *b,
                       struct vector3 *c);
-int point_inside_triangle(struct vector3 *p, struct vector3 *a,
-                          struct vector3 *b, struct vector3 *c, double eps);
 int same_side(struct vector3 *p1, struct vector3 *p2, struct vector3 *a,
               struct vector3 *b);
-int same_side_exclusive(struct vector3 *p1, struct vector3 *p2,
-                        struct vector3 *a, struct vector3 *b);
 
 int intersect_point_segment(struct vector3 *P, struct vector3 *A,
                             struct vector3 *B);
@@ -80,4 +76,8 @@ double cross2D(struct vector2 *a, struct vector2 *b);
 void vectorize2D(struct vector2 *p1, struct vector2 *p2, struct vector2 *p3);
 int point_in_triangle_2D(struct vector2 *p, struct vector2 *a,
                          struct vector2 *b, struct vector2 *c);
+
+int point_in_box(struct vector3 *low_left, struct vector3 *up_right,
+                 struct vector3 *point);
+
 #endif

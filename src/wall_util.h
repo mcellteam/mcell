@@ -130,7 +130,10 @@ struct surface_molecule *place_single_molecule(struct volume *state,
                                                struct graph_data* graph,
                                                short flags, short orientation,
                                                double t, double t2,
-                                               double birthday);
+                                               double birthday,
+                                               struct periodic_image *periodic_box,
+                                               struct vector3 *pos3d);
+
 
 void push_wall_to_list(struct wall_list **wall_nbr_head, struct wall *w);
 void delete_wall_list(struct wall_list *wl_head);
@@ -174,9 +177,6 @@ int wall_contains_both_vertices(struct wall *w, struct vector3 *vert_A,
 int are_walls_coincident(struct wall *w1, struct wall *w2, double eps);
 
 int are_walls_coplanar(struct wall *w1, struct wall *w2, double eps);
-
-int tri_tri_overlap_test_2d(double p1[2], double q1[2], double r1[2],
-                            double p2[2], double q2[2], double r2[2]);
 
 void sorted_insert_wall_aux_list(struct wall_aux_list **headRef,
                                  struct wall_aux_list *newNode);

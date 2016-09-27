@@ -89,13 +89,12 @@ mcell_create_species(MCELL_STATE *state, struct mcell_species_spec *species,
  * the species_list to initialize a new mcell_species list with mcell_symbol.
  * On subsecquent invocations the current mcell_species list should
  * be provided as species_list to which the new mcell_symbol will be appended
- * with the appropriate flags for orientation and subunit status.
+ * with the appropriate flags for orientation status.
  *
  *****************************************************************************/
 struct mcell_species *
 mcell_add_to_species_list(mcell_symbol *species_ptr, bool is_oriented,
-                          int orientation, bool is_subunit,
-                          struct mcell_species *species_list) {
+                          int orientation, struct mcell_species *species_list) {
   struct mcell_species *species = (struct mcell_species *)CHECKED_MALLOC_STRUCT(
       struct mcell_species, "species list");
   if (species == NULL) {
@@ -106,7 +105,6 @@ mcell_add_to_species_list(mcell_symbol *species_ptr, bool is_oriented,
   species->mol_type = species_ptr;
   species->orient_set = is_oriented ? 1 : 0;
   species->orient = orientation;
-  species->is_subunit = is_subunit ? 1 : 0;
 
   if (species_list != NULL) {
     species->next = species_list;
@@ -151,7 +149,7 @@ int new_mol_species(MCELL_STATE *state, char *name, struct sym_entry **sym_ptr) 
   }
   *sym_ptr = store_sym(name, MOL, state->mol_sym_table, NULL);
   // Out of memory while creating molecule
-  if (sym_ptr == NULL) {
+  if (*sym_ptr == NULL) {
     return 4;
   }
 
@@ -247,15 +245,15 @@ struct species *assemble_mol_species(MCELL_STATE *state,
 
   // Determine the actual space step and time step
 
-  if (!distinguishable(new_spec->D, 0, EPS_C)) /* Immobile (boring) */
-  {
+  // Immobile (boring)
+  if (!distinguishable(new_spec->D, 0, EPS_C)) {
     new_spec->space_step = 0.0;
     new_spec->time_step = 1.0;
-  } else if (new_spec->time_step != 0.0) /* Custom timestep */
-  {
-    if (new_spec->time_step <
-        0) /* Hack--negative value means custom space step */
-    {
+  }
+  // Custom timestep or spacestep
+  else if (new_spec->time_step != 0.0) {
+    // Hack--negative value means custom space step
+    if (new_spec->time_step < 0) {
       double lr_bar = -new_spec->time_step;
       if (species->is_2d) {
         new_spec->time_step =
@@ -269,26 +267,30 @@ struct species *assemble_mol_species(MCELL_STATE *state,
           sqrt(4.0 * 1.0e8 * new_spec->D * new_spec->time_step *
                global_time_unit) *
           state->r_length_unit;
-    } else {
+    }
+    else {
       new_spec->space_step =
           sqrt(4.0 * 1.0e8 * new_spec->D * new_spec->time_step) *
           state->r_length_unit;
       new_spec->time_step /= global_time_unit;
     }
-  } else if (!distinguishable(state->space_step, 0, EPS_C)) // Global timestep
-  {
+  }
+  // Global timestep (this is the typical case)
+  else if (!distinguishable(state->space_step, 0, EPS_C)) { 
     new_spec->space_step =
         sqrt(4.0 * 1.0e8 * new_spec->D * global_time_unit) *
         state->r_length_unit;
     new_spec->time_step = 1.0;
-  } else /* Global spacestep */
-  {
+  }
+  // Global spacestep
+  else { 
     double space_step = state->space_step * state->length_unit;
     if (species->is_2d) {
       new_spec->time_step =
           space_step * space_step /
           (MY_PI * 1.0e8 * new_spec->D * global_time_unit);
-    } else {
+    }
+    else {
       new_spec->time_step =
           space_step * space_step * MY_PI /
           (16.0 * 1.0e8 * new_spec->D * global_time_unit);
