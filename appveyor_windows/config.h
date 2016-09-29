@@ -181,7 +181,7 @@
 #define PACKAGE_NAME "mcell"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "mcell 3.3"
+#define PACKAGE_STRING "mcell 3.4"
 
 /* Define to the one symbol short name of this package. */
 #define PACKAGE_TARNAME "mcell"
@@ -190,7 +190,7 @@
 #define PACKAGE_URL ""
 
 /* Define to the version of this package. */
-#define PACKAGE_VERSION "3.3"
+#define PACKAGE_VERSION "3.4"
 
 /* If using the C implementation of alloca, define if you know the
    direction of stack growth for your system; otherwise it will be
@@ -207,7 +207,7 @@
 /* #undef STRERROR_R_CHAR_P */
 
 /* Version number of package */
-#define VERSION "3.3"
+#define VERSION "3.4"
 
 /* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
    significant byte first (like Motorola and SPARC, unlike Intel). */
