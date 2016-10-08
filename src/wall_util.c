@@ -2209,7 +2209,7 @@ struct surface_molecule *place_single_molecule(struct volume *state,
   new_sm->s_pos.v = s_pos.v;
   new_sm->properties = spec;
   new_sm->graph_data = graph;
-  //initialize_diffusion_function((struct abstract_molecule *)new_sm);
+  initialize_diffusion_function((struct abstract_molecule *)new_sm);
   new_sm->periodic_box = CHECKED_MALLOC_STRUCT(struct periodic_image,
     "periodic image descriptor");
   new_sm->periodic_box->x = periodic_box->x;

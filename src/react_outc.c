@@ -266,7 +266,7 @@ place_sm_product(struct volume *world, struct species *product_species, struct g
   new_surf_mol->properties = product_species;
   //nfsim graph init
   new_surf_mol->graph_data = graph;
-  //initialize_diffusion_function((struct abstract_molecule*) new_surf_mol);
+  initialize_diffusion_function((struct abstract_molecule*) new_surf_mol);
   new_surf_mol->periodic_box = CHECKED_MALLOC_STRUCT(struct periodic_image,
     "periodic image descriptor");
   new_surf_mol->periodic_box->x = periodic_box->x;
