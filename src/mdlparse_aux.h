@@ -83,11 +83,6 @@ struct diffusion_constant {
   int is_2d;
 };
 
-struct object_list {
-  struct object *obj_head;
-  struct object *obj_tail;
-};
-
 struct output_times {
   enum output_timer_type_t timer_type;
   double step_time;
@@ -206,5 +201,6 @@ void mdlerror(struct mdlparse_vars *parse_state, char const *str);
 void mdlerror_fmt(struct mdlparse_vars *parse_state, char const *fmt, ...)
     PRINTF_FORMAT(2);
 int mdlparse_init(struct volume *vol);
+int mdlparse_file(struct mdlparse_vars *parse_state, char const *name);
 
 #endif

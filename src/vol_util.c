@@ -37,6 +37,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "diffuse.h"
 #include "vector.h"
 #include "logging.h"
 #include "rng.h"
@@ -382,9 +383,16 @@ int is_defunct_molecule(struct abstract_element *e) {
   return ((struct abstract_molecule *)e)->properties == NULL;
 }
 
+/*struct surface_molecule **/
+/*place_surface_molecule(struct volume *state, struct species *s,*/
+/*                       struct vector3 *loc, short orient, double search_diam,*/
+/*                       double t, struct subvolume **psv, char *mesh_name,*/
+/*                       struct string_buffer *reg_names,*/
+/*                       struct string_buffer *regions_to_ignore) {*/
 struct wall* find_closest_wall(
     struct volume *state, struct vector3 *loc, double search_diam,
-    struct vector2 *best_uv, int *grid_index) {
+    struct vector2 *best_uv, int *grid_index, struct species *s, char *mesh_name,
+    struct string_buffer *reg_names, struct string_buffer *regions_to_ignore) {
 
   double d2;
   struct vector2 s_loc;
@@ -400,12 +408,25 @@ struct wall* find_closest_wall(
 
   struct subvolume *sv = find_subvolume(state, loc, NULL);
 
+  char *species_name = s->sym->name;
+  unsigned int keyhash = (unsigned int)(intptr_t)(species_name);
+  void *key = (void *)(species_name);
+  struct mesh_transparency *mesh_transp = (
+      struct mesh_transparency *)pointer_hash_lookup(state->species_mesh_transp,
+                                                     key, keyhash);
+
   double best_d2 = search_d2 * 2 + 1;
   struct wall *best_w = NULL;
   struct wall_list *wl;
   for (wl = sv->wall_head; wl != NULL; wl = wl->next) {
+    if (verify_wall_regions_match(
+        mesh_name, reg_names, wl->this_wall, regions_to_ignore, mesh_transp,
+        species_name)) {
+      continue; 
+    }
+
     d2 = closest_interior_point(loc, wl->this_wall, &s_loc, search_d2);
-    if (d2 < search_d2 && d2 < best_d2) {
+    if (d2 <= search_d2 && d2 < best_d2) {
       best_d2 = d2;
       best_w = wl->this_wall;
       best_uv->u = s_loc.u;
@@ -492,6 +513,12 @@ struct wall* find_closest_wall(
 
             for (wl = state->subvol[this_sv].wall_head; wl != NULL;
                  wl = wl->next) {
+              if (verify_wall_regions_match(
+                  mesh_name, reg_names, wl->this_wall, regions_to_ignore,
+                  mesh_transp, species_name)) {
+                continue; 
+              }
+
               d2 =
                   closest_interior_point(loc, wl->this_wall, &s_loc, search_d2);
               if (d2 <= search_d2 && d2 < best_d2) {
@@ -516,8 +543,8 @@ struct wall* find_closest_wall(
     return NULL;
   }
 
-  d2 = search_d2 - best_d2; /* We can look this far around the surface we hit
-                               for an empty spot */
+  /* We can look this far around the surface we hit for an empty spot */
+  d2 = search_d2 - best_d2; 
 
   if (best_w->grid == NULL) {
     if (create_grid(state, best_w, sv))
@@ -527,14 +554,17 @@ struct wall* find_closest_wall(
     *grid_index = uv2grid(best_uv, best_w->grid);
     struct surface_molecule_list *sm_list = best_w->grid->sm_list[*grid_index];
     if (sm_list && sm_list->sm) {
-      if (state->periodic_box_obj || !state->periodic_traditional) {
+      // XXX: this isn't good enough. we should only return this if the PB of
+      // sm isn't represented in the PB list.
+      if (state->periodic_box_obj && !state->periodic_traditional) {
         return best_w;
       }
       if (d2 <= EPS_C * EPS_C) {
         return NULL;
       } else {
-        best_w = search_nbhd_for_free(state, best_w, best_uv, d2, grid_index,
-                                      NULL, NULL);
+        best_w = search_nbhd_for_free(
+            state, best_w, best_uv, d2, grid_index, NULL, NULL, mesh_name,
+            reg_names);
         if (best_w == NULL) {
           return NULL;
         }
@@ -568,19 +598,34 @@ place_surface_molecule
 struct surface_molecule *
 place_surface_molecule(struct volume *state, struct species *s,
                        struct vector3 *loc, short orient, double search_diam,
-                       double t, struct subvolume **psv,
+                       double t, struct subvolume **psv, char *mesh_name,
+                       struct string_buffer *reg_names,
+                       struct string_buffer *regions_to_ignore,
                        struct periodic_image *periodic_box) {
 
   struct vector2 best_uv;
   struct vector3 best_xyz;
   int grid_index = 0;
   int *grid_index_p = &grid_index;
-  struct wall *best_w = find_closest_wall(state, loc, search_diam, &best_uv, grid_index_p);
+  struct wall *best_w = find_closest_wall(
+    state, loc, search_diam, &best_uv, grid_index_p, s, mesh_name, reg_names,
+    regions_to_ignore);
   if (best_w == NULL) {
     return NULL; 
   }
+  if (state->periodic_box_obj) {
+    struct polygon_object *p = (struct polygon_object*)(state->periodic_box_obj->contents);
+    struct subdivided_box *sb = p->sb;
+    struct vector3 llf = {sb->x[0], sb->y[0], sb->z[0]};
+    struct vector3 urb = {sb->x[1], sb->y[1], sb->z[1]};
+    struct vector3 pos3d;
+    uv2xyz(&best_uv, best_w, &pos3d);
+    if (!point_in_box(&llf, &urb, &pos3d)) {
+      return NULL;
+    }
+  }
   struct surface_molecule_list *sm_list = best_w->grid->sm_list[grid_index];
-  if (periodicbox_in_surfmol_list(periodic_box, sm_list)) {
+  if (state->periodic_box_obj && periodicbox_in_surfmol_list(periodic_box, sm_list)) {
     return NULL;
   }
 
@@ -590,6 +635,7 @@ place_surface_molecule(struct volume *state, struct species *s,
 
   struct surface_molecule *sm;
   sm = CHECKED_MEM_GET(sv->local_storage->smol, "surface molecule");
+  sm->mesh_name = NULL;
   sm->birthplace = sv->local_storage->smol;
   sm->birthday = convert_iterations_to_seconds(
       state->start_iterations, state->time_unit,
@@ -649,11 +695,15 @@ double!)
 struct surface_molecule *
 insert_surface_molecule(struct volume *state, struct species *s,
                         struct vector3 *loc, short orient, double search_diam,
-                        double t, struct periodic_image *periodic_box) {
+                        double t, char *mesh_name,
+                        struct string_buffer *reg_names,
+                        struct string_buffer *regions_to_ignore,
+                        struct periodic_image *periodic_box) {
   struct subvolume *sv = NULL;
   struct surface_molecule *sm =
       place_surface_molecule(
-        state, s, loc, orient, search_diam, t, &sv, periodic_box);
+          state, s, loc, orient, search_diam, t, &sv, mesh_name, reg_names,
+          regions_to_ignore, periodic_box);
   if (sm == NULL)
     return NULL;
 
@@ -681,18 +731,19 @@ insert_volume_molecule
        passed in), or NULL if out of memory.  Molecule is placed in scheduler
        also.
 *************************************************************************/
-struct volume_molecule *insert_volume_molecule(struct volume *state,
-                                               struct volume_molecule *vm,
-                                               struct volume_molecule *guess) {
+struct volume_molecule *insert_volume_molecule(
+    struct volume *state, struct volume_molecule *vm,
+    struct volume_molecule *vm_guess) {
+
   struct subvolume *sv;
 
-  if (guess == NULL)
+  if (vm_guess == NULL)
     sv = find_subvolume(state, &(vm->pos), NULL);
-  else if (inside_subvolume(&(vm->pos), guess->subvol, state->x_fineparts,
+  else if (inside_subvolume(&(vm->pos), vm_guess->subvol, state->x_fineparts,
                             state->y_fineparts, state->z_fineparts))
-    sv = guess->subvol;
+    sv = vm_guess->subvol;
   else
-    sv = find_subvolume(state, &(vm->pos), guess->subvol);
+    sv = find_subvolume(state, &(vm->pos), vm_guess->subvol);
 
   // Make sure this molecule isn't outside of the periodic boundaries
   struct vector3 llf, urb;
@@ -711,6 +762,7 @@ struct volume_molecule *insert_volume_molecule(struct volume *state,
   struct volume_molecule *new_vm;
   new_vm = CHECKED_MEM_GET(sv->local_storage->mol, "volume molecule");
   memcpy(new_vm, vm, sizeof(struct volume_molecule));
+  new_vm->mesh_name = NULL;
   new_vm->birthplace = sv->local_storage->mol;
   new_vm->id = state->current_mol_id++;
   new_vm->prev_v = NULL;
@@ -790,6 +842,7 @@ struct volume_molecule *migrate_volume_molecule(struct volume_molecule *vm,
   new_vm = CHECKED_MEM_GET(new_sv->local_storage->mol, "volume molecule");
   memcpy(new_vm, vm, sizeof(struct volume_molecule));
   new_vm->birthplace = new_sv->local_storage->mol;
+  new_vm->mesh_name = NULL;
   new_vm->prev_v = NULL;
   new_vm->next_v = NULL;
   new_vm->next = NULL;
@@ -1231,6 +1284,7 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
   }
 
   // Set molecule characteristics.
+  vm.mesh_name = NULL;
   vm.t = req->event_time;
   vm.properties = rso->mol_type;
   vm.t2 = 0.0;
@@ -1307,14 +1361,14 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
       vm.pos.y = location[0][1];
       vm.pos.z = location[0][2];
 
-      struct volume_molecule *guess = NULL;
+      struct volume_molecule *vm_guess = NULL;
       for (int i = 0; i < number; i++) {
+        vm_guess = insert_volume_molecule(state, &vm, vm_guess);
+        if (vm_guess == NULL)
+          return 1;
         vm.periodic_box->x = rso->periodic_box->x;
         vm.periodic_box->y = rso->periodic_box->y;
         vm.periodic_box->z = rso->periodic_box->z;
-        guess = insert_volume_molecule(state, &vm, guess);
-        if (guess == NULL)
-          return 1;
       }
       if (state->notify->release_events == NOTIFY_FULL) {
         mcell_log("Released %d %s from \"%s\" at iteration %lld.", number,
@@ -1452,7 +1506,7 @@ int release_by_list(struct volume *state, struct release_event_queue *req,
     vm->pos.y = location[0][1];
     vm->pos.z = location[0][2];
 
-    struct volume_molecule *guess = NULL;
+    struct volume_molecule *vm_guess = NULL;
     if ((rsm->mol_type->flags & NOT_FREE) == 0) {
       struct abstract_molecule *ap = (struct abstract_molecule *)(vm);
       vm->properties = rsm->mol_type;
@@ -1464,12 +1518,13 @@ int release_by_list(struct volume *state, struct release_event_queue *req,
       }
       if (vm->properties->space_step > 0.0)
         ap->flags |= ACT_DIFFUSE;
-      guess = insert_volume_molecule(state, vm, guess);
-      if (guess == NULL)
+      vm_guess = insert_volume_molecule(state, vm, vm_guess);
+      i++;
+      if (vm_guess == NULL)
         return 1;
-      guess->periodic_box->x = rso->periodic_box->x;
-      guess->periodic_box->y = rso->periodic_box->y;
-      guess->periodic_box->z = rso->periodic_box->z;
+      vm_guess->periodic_box->x = rso->periodic_box->x;
+      vm_guess->periodic_box->y = rso->periodic_box->y;
+      vm_guess->periodic_box->z = rso->periodic_box->z;
       i++;
     } else {
       double diam;
@@ -1490,7 +1545,8 @@ int release_by_list(struct volume *state, struct release_event_queue *req,
       // Don't have to set flags, insert_surface_molecule takes care of it
       struct surface_molecule *sm;
       sm = insert_surface_molecule(state, rsm->mol_type, &vm->pos, orient,
-                                   diam, req->event_time, rso->periodic_box);
+                                   diam, req->event_time, NULL, NULL, NULL,
+                                   rso->periodic_box);
       if (sm == NULL) {
         mcell_warn("Molecule release is unable to find surface upon which "
                    "to place molecule %s.\n"
@@ -2346,7 +2402,6 @@ int num_vol_mols_from_conc(struct release_site_obj *rso, double length_unit,
                           0.5;
   return test_max_release(num_to_release, rso->name);
 }
-
 
 /*************************************************************************
   periodic_boxes_are_identical() tests if two periodic boxes are identical

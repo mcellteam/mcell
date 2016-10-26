@@ -34,6 +34,9 @@
 #include "mcell_react_out.h"
 #include "mdlparse_util.h"
 
+//#include "dyngeom_parse_extras.h"
+//#include "strfunc.h"
+//#include "count_util.h"
 
 /* static helper functions */
 static struct output_column *new_output_column();
@@ -165,7 +168,24 @@ struct output_request *mcell_new_output_request(MCELL_STATE *state,
   oe->left = orq;
   oe->oper = '#';
   oe->expr_flags = OEXPR_LEFT_REQUEST;
-  if (orq->report_type & REPORT_TRIGGER)
+  struct sym_entry *sym = NULL;
+  if (location) {
+    char *name = location->name;
+    // Counting in/on a region. XXX: Using strchr seems inefficient
+    if (strchr(location->name, ',')) {
+      sym = retrieve_sym(name, state->reg_sym_table);
+    }
+    // Counting in/on an object
+    else {
+      sym = retrieve_sym(name, state->obj_sym_table);
+    }
+  }
+
+  // If the object/region will exist at some point in the future, but not at
+  // the beginning of the simulation.
+  if (sym && !(is_object_instantiated(sym, state->root_instance))) 
+    oe->expr_flags = OEXPR_TYPE_UNDEF;
+  else if (orq->report_type & REPORT_TRIGGER)
     oe->expr_flags |= OEXPR_TYPE_TRIG;
   else if ((orq->report_type & REPORT_TYPE_MASK) != REPORT_CONTENTS)
     oe->expr_flags |= OEXPR_TYPE_DBL;
@@ -366,8 +386,10 @@ mcell_add_reaction_output_block(MCELL_STATE *state,
  *
  ************************************************************************/
 MCELL_STATUS
-mcell_get_counter_value(MCELL_STATE *state, const char *counter_name,
-                        int column_id, double *count_data,
+mcell_get_counter_value(MCELL_STATE *state,
+                        const char *counter_name,
+                        int column_id,
+                        double *count_data,
                         enum count_type_t *count_data_type) {
   struct output_column *column = NULL;
   if ((column = get_counter_trigger_column(state, counter_name, column_id)) ==
@@ -376,14 +398,14 @@ mcell_get_counter_value(MCELL_STATE *state, const char *counter_name,
   }
 
   // if we happen to encounter trigger data we bail
-  if (column->data_type == COUNT_TRIG_STRUCT) {
+  if (column->buffer[0].data_type == COUNT_TRIG_STRUCT) {
     return MCELL_FAIL;
   }
 
   // evaluate the expression and retrieve it
   eval_oexpr_tree(column->expr, 1);
   *count_data = (double)column->expr->value;
-  *count_data_type = column->data_type;
+  *count_data_type = column->buffer[0].data_type;
 
   return MCELL_SUCCESS;
 }
@@ -409,7 +431,6 @@ struct output_column *new_output_column() {
   if (oc == NULL)
     return NULL;
 
-  oc->data_type = COUNT_UNSET;
   oc->initial_value = 0.0;
   oc->buffer = NULL;
   oc->expr = NULL;
@@ -607,24 +628,49 @@ int output_block_finalize(struct output_block *obp) {
     /* Allocate buffers */
     struct output_column *oc;
     for (oc = os1->column_head; oc != NULL; oc = oc->next) {
+      
       switch (oc->expr->expr_flags & OEXPR_TYPE_MASK) {
-      case OEXPR_TYPE_INT:
-        oc->data_type = COUNT_INT;
-        oc->buffer = CHECKED_MALLOC_ARRAY(int, obp->buffersize,
+      // Counting on meshes that don't exist at the beginning of the sim.
+      case OEXPR_TYPE_UNDEF:
+        oc->buffer = CHECKED_MALLOC_ARRAY(struct output_buffer,
+                                          obp->buffersize,
                                           "reaction data output buffer");
+        for (u_int i = 0; i < obp->buffersize; ++i) {
+          oc->buffer[i].data_type = COUNT_UNSET;
+          oc->buffer[i].val.cval = 'X';
+        }
+        break;
+      case OEXPR_TYPE_INT:
+        oc->buffer = CHECKED_MALLOC_ARRAY(struct output_buffer,
+                                          obp->buffersize,
+                                          "reaction data output buffer");
+        for (u_int i = 0; i < obp->buffersize; ++i) {
+          oc->buffer[i].data_type = COUNT_INT;
+          oc->buffer[i].val.ival = 0;
+        }
         break;
 
       case OEXPR_TYPE_DBL:
-        oc->data_type = COUNT_DBL;
-        oc->buffer = CHECKED_MALLOC_ARRAY(double, obp->buffersize,
+        oc->buffer = CHECKED_MALLOC_ARRAY(struct output_buffer,
+                                          obp->buffersize,
                                           "reaction data output buffer");
+        for (u_int i = 0; i < obp->buffersize; ++i) {
+          oc->buffer[i].data_type = COUNT_DBL;
+          oc->buffer[i].val.dval = 0.0;
+        }
         break;
 
       case OEXPR_TYPE_TRIG:
-        oc->data_type = COUNT_TRIG_STRUCT;
-        oc->buffer =
-            CHECKED_MALLOC_ARRAY(struct output_trigger_data, obp->trig_bufsize,
-                                 "reaction data output buffer");
+        oc->buffer = CHECKED_MALLOC_ARRAY(struct output_buffer,
+                                          obp->trig_bufsize,
+                                          "reaction data output buffer");
+        for (u_int i = 0; i < obp->trig_bufsize; ++i) {
+          oc->buffer[i].data_type = COUNT_TRIG_STRUCT;
+          oc->buffer[i].val.tval = CHECKED_MALLOC_STRUCT(
+              struct output_trigger_data,
+              "reaction data output buffer");
+          oc->buffer[i].val.tval->name = NULL;
+        }
         break;
 
       default:

@@ -54,10 +54,6 @@ char *mdl_strdup(char const *s1);
 void mdl_warning(struct mdlparse_vars *parse_state, char const *fmt, ...)
     PRINTF_FORMAT(2);
 
-/* Find an include file based on the path of the currently parsed file
- */
-char *mdl_find_include_file(char const *path, char const *cur_path);
-
 /* Check that the speficied file mode string is valid for an fopen statement.
  */
 int mdl_valid_file_mode(struct mdlparse_vars *parse_state, char *mode);

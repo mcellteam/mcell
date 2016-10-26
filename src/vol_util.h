@@ -51,18 +51,24 @@ int is_defunct_molecule(struct abstract_element *e);
 
 struct wall* find_closest_wall(
     struct volume *state, struct vector3 *loc, double search_diam,
-    struct vector2 *best_uv, int *grid_index);
+    struct vector2 *best_uv, int *grid_index, struct species *s, char *mesh_name,
+    struct string_buffer *reg_names, struct string_buffer *regions_to_ignore);
 
 struct surface_molecule *
 place_surface_molecule(struct volume *state, struct species *s,
                        struct vector3 *loc, short orient, double search_diam,
-                       double t, struct subvolume **psv,
+                       double t, struct subvolume **psv, char *mesh_name,
+                       struct string_buffer *reg_names,
+                       struct string_buffer *regions_to_ignore,
                        struct periodic_image *periodic_box);
 
 struct surface_molecule *
 insert_surface_molecule(struct volume *state, struct species *s,
                         struct vector3 *loc, short orient, double search_diam,
-                        double t, struct periodic_image *periodic_box);
+                        double t, char *mesh_name,
+                        struct string_buffer *reg_names,
+                        struct string_buffer *regions_to_ignore,
+                        struct periodic_image *periodic_box);
 
 struct volume_molecule *insert_volume_molecule(struct volume *world,
                                                struct volume_molecule *vm,

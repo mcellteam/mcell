@@ -25,6 +25,7 @@
 #define INIT_H
 
 #include "mcell_structs.h"
+#include "mdlparse_aux.h"
 
 int init_notifications(struct volume *world);
 int init_variables(struct volume *world);
@@ -80,6 +81,10 @@ void cube_face(struct vector3 *corner, struct vector3 **face, int i);
 void cube_faces(struct vector3 *corner, struct vector3 *(*face)[4]);
 
 int init_releases(struct schedule_helper *releaser);
+
+int init_dynamic_geometry(struct volume *state);
+
+int schedule_dynamic_geometry(struct mdlparse_vars *parse_state);
 
 int reschedule_release_events(struct volume *world);
 

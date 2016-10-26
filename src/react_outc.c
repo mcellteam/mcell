@@ -119,8 +119,14 @@ void tiny_diffuse_3D(
     struct vector3 *displacement,
     struct vector3 *pos,
     struct wall *w) {
+
+  struct vector3 temp_displacement = {
+    .x = displacement->x,
+    .y = displacement->y,
+    .z = displacement->z
+  };
   struct collision *shead = ray_trace(
-      world, pos, NULL, subvol, displacement, w);
+      world, pos, NULL, subvol, &temp_displacement, w);
   if (shead->next != NULL) {
     shead = (struct collision *)ae_list_sort((struct abstract_element *)shead);
   }
@@ -129,7 +135,7 @@ void tiny_diffuse_3D(
   for (smash = shead; smash != NULL; smash = smash->next) {
     if ((smash->what & COLLIDE_WALL) != 0) {
       vectorize(pos, &(smash->loc), displacement);
-      scalar_prod(displacement, 1-EPS_C, displacement);
+      scalar_prod(displacement, 0.5, displacement);
       break;
     }
   }

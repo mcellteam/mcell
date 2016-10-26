@@ -336,6 +336,7 @@ struct region *new_region(void) {
   rp->area = 0.0;
   rp->flags = 0;
   rp->manifold_flag = MANIFOLD_UNCHECKED;
+  rp->volume = 0.0;
   rp->boundaries = NULL;
   rp->region_has_all_elements = 0;
   return rp;
@@ -436,6 +437,7 @@ struct sym_entry *store_sym(char const *sym, enum symbol_type_t sym_type,
     sp = CHECKED_MALLOC_STRUCT(struct sym_entry, "sym table entry");
     sp->name = CHECKED_STRDUP(sym, "symbol name");
     sp->sym_type = sym_type;
+    sp->count = 1;
     rawhash = hash(sym);
     hashval = rawhash & (hashtab->n_bins - 1);
 
@@ -573,9 +575,12 @@ void destroy_symtab(struct sym_table_head *tab) {
     for (struct sym_entry *sym = tab->entries[i]; sym != NULL; sym = next) {
       next = sym->next;
       free(sym);
+      sym = NULL;
     }
   }
 
   free(tab->entries);
+  tab->entries = NULL;
   free(tab);
+  tab = NULL;
 }

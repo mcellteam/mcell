@@ -53,6 +53,8 @@
 #include "init.h"
 #include "mdlparse_aux.h"
 #include "mcell_objects.h"
+#include "dyngeom.h"
+#include "dyngeom_parse_extras.h"
 #include "triangle_overlap.h"
 
 #define MESH_DISTINCTIVE EPS_C
@@ -143,6 +145,8 @@ int init_notifications(struct volume *world) {
   world->notify->useless_vol_orient = WARN_WARN;
   world->notify->mol_placement_failure = WARN_WARN;
   world->notify->invalid_output_step_time = WARN_WARN;
+  world->notify->large_molecular_displacement = WARN_WARN;
+  world->notify->add_remove_mesh_warning = WARN_WARN;
 
   if (world->log_freq != 0 && world->log_freq != ULONG_MAX) /* User set this */
   {
@@ -238,10 +242,12 @@ int init_variables(struct volume *world) {
   world->last_timing_iteration = 0;
 
   world->chkpt_flag = 0;
+  world->disable_polygon_objects = 0;
   world->viz_blocks = NULL;
   world->ray_voxel_tests = 0;
   world->ray_polygon_tests = 0;
   world->ray_polygon_colls = 0;
+  world->dyngeom_molec_displacements = 0;
   world->vol_vol_colls = 0;
   world->vol_surf_colls = 0;
   world->surf_surf_colls = 0;
@@ -302,6 +308,7 @@ int init_variables(struct volume *world) {
   world->volume_reversibility = 0;
   world->n_reactions = 0;
   world->current_mol_id = 0;
+  world->dynamic_geometry_molecule_placement = 0;
 
   world->rxn_flags.vol_vol_reaction_flag = 0;
   world->rxn_flags.vol_surf_reaction_flag = 0;
@@ -317,6 +324,8 @@ int init_variables(struct volume *world) {
 
   world->mcell_version = mcell_version;
   world->clamp_list = NULL;
+
+  world->dynamic_geometry_filename = NULL;
 
   return 0;
 }
@@ -389,6 +398,11 @@ int init_data_structures(struct volume *world) {
                             "reaction-triggered release lists.");
     return 1;
   }
+
+  world->dynamic_geometry_events_mem = create_mem_named(
+      sizeof(struct dg_time_filename), 100, "dynamic geometry time filename");
+  if (world->dynamic_geometry_events_mem == NULL)
+    return 1;
 
   if ((world->fstream_sym_table = init_symtab(1024)) == NULL) {
     mcell_allocfailed_nodie(
@@ -495,11 +509,15 @@ int init_data_structures(struct volume *world) {
   world->output_block_head = NULL;
   world->output_request_head = NULL;
 
+  world->dynamic_geometry_head = NULL;
+
   world->releaser = create_scheduler(1.0, 100.0, 100, 0.0);
   if (world->releaser == NULL) {
     mcell_allocfailed_nodie("Failed to create release scheduler.");
     return 1;
   }
+
+  init_dynamic_geometry(world);
 
   return 0;
 }
@@ -1855,6 +1873,7 @@ int instance_release_site(struct mem_helper *magic_mem,
           "Release pattern train duration is greater than train interval.");
   }
 
+  objp->is_closed = SHRT_MIN;
   no_printf("Done instancing release site object %s\n", objp->sym->name);
 
   return 0;
@@ -2076,6 +2095,7 @@ int instance_polygon_object(enum warn_level_t degenerate_polys,
     remove_gaps_from_regions(objp);
 
   objp->total_area = total_area;
+  objp->is_closed = SHRT_MIN;
 
 #ifdef DEBUG
   printf("n_walls = %d\n", n_walls);
@@ -2086,7 +2106,7 @@ int instance_polygon_object(enum warn_level_t degenerate_polys,
 }
 
 /********************************************************************
- init_regions:
+ init_regions_helper:
 
     Traverse the world initializing regions on each object.
 
@@ -2193,6 +2213,10 @@ int init_wall_regions(double length_unit, struct ccn_clamp_data *clamp_list,
      of this object to the sm_prop list for the referenced element */
   for (rlp = objp->regions; rlp != NULL; rlp = rlp->next) {
     rp = rlp->reg;
+    // One of the only places to set COUNT_CONTENTS is when creating a release
+    // site (mdl_set_release_site_geometry_object), which will never get called
+    // during a dynamic geometry event, so we need to do it here.
+    rp->flags |= COUNT_CONTENTS;
 
     if (rp->membership == NULL)
       mcell_internal_error("Missing region information for '%s'.",
@@ -3495,6 +3519,7 @@ static int eval_rel_region_bbox(struct release_evaluator *expr,
                                 struct vector3 *llf, struct vector3 *urb) {
   struct region *r;
 
+  int count_regions_flag = 1;
   if (expr->left != NULL) {
     if (expr->op & REXP_LEFT_REGION) {
       r = (struct region *)(expr->left);
@@ -3510,7 +3535,7 @@ static int eval_rel_region_bbox(struct release_evaluator *expr,
       urb->z = r->bbox[1].z;
 
       if (r->manifold_flag == MANIFOLD_UNCHECKED) {
-        if (is_manifold(r))
+        if (is_manifold(r, count_regions_flag))
           r->manifold_flag = IS_MANIFOLD;
         else
           mcell_error(
@@ -3540,7 +3565,7 @@ static int eval_rel_region_bbox(struct release_evaluator *expr,
       if (expr->op & REXP_RIGHT_REGION) {
         r = (struct region *)(expr->right);
         if (r->manifold_flag == MANIFOLD_UNCHECKED) {
-          if (is_manifold(r))
+          if (is_manifold(r, count_regions_flag))
             r->manifold_flag = IS_MANIFOLD;
           else
             mcell_error(
@@ -3672,6 +3697,61 @@ static void output_relreg_eval_tree(FILE *f, char *prefix, char cA, char cB,
       output_relreg_eval_tree(f, prefixA, '|', ' ', expr->right);
     }
   }
+}
+
+/***************************************************************************
+init_dynamic_geometry:
+  In: state: MCell state
+  Out: 0 on success, 1 on failure. Dynamic geometry scheduler is created.
+***************************************************************************/
+int init_dynamic_geometry(struct volume *state) {
+
+  state->dynamic_geometry_scheduler = create_scheduler(1.0, 100.0, 100, 0.0);
+  if (state->dynamic_geometry_scheduler == NULL) {
+    mcell_allocfailed_nodie("Failed to create geometry scheduler.");
+    return 1;
+  }
+  return 0;
+}
+
+/***************************************************************************
+schedule_dynamic_geometry:
+  In: state: MCell state
+  Out: 0 on success, 1 on failure. Dynamic geometry "events" that were parsed
+       are now scheduled. In other words, if the geometry was specified to
+       change in the MDL, we schedule all changes now.
+***************************************************************************/
+int schedule_dynamic_geometry(struct mdlparse_vars *parse_state) {
+  struct volume *state = parse_state->vol;
+  char *dynamic_geometry_filename = state->dynamic_geometry_filename;
+  // Process the DG text file (e.g. times and corresponding geometry) and store
+  // it in state->dynamic_geometry_events_mem. Then preliminary parse each
+  // geometry file (mainly to check for added or removed objects).
+  if ((dynamic_geometry_filename != NULL) && 
+      (add_dynamic_geometry_events(
+          parse_state,
+          dynamic_geometry_filename,
+          state->time_unit,
+          state->dynamic_geometry_events_mem,
+          &state->dynamic_geometry_head))) {
+    mcell_error("Failed to load dynamic geometry from file '%s'.",
+                dynamic_geometry_filename);
+    free(dynamic_geometry_filename);
+    return 1;     
+  }
+
+  // This is the actual scheduling.
+  struct dg_time_filename *dg_time_fname, *dg_time_fname_next;
+  for (dg_time_fname = state->dynamic_geometry_head; dg_time_fname != NULL;
+       dg_time_fname = dg_time_fname_next) {
+    dg_time_fname_next = dg_time_fname->next; /* schedule_add overwrites 'next' */
+
+    if (schedule_add(state->dynamic_geometry_scheduler, dg_time_fname)) {
+      mcell_allocfailed(
+        "Failed to add item to schedule for dynamic geometry.");
+    }
+  }
+  return 0;
 }
 
 /***************************************************************************

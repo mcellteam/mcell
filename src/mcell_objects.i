@@ -55,7 +55,11 @@ new_polygon_list(MCELL_STATE *state, struct object *obj_ptr, int n_vertices,
                  struct vertex_list *vertices, int n_connections,
                  struct element_connection_list *connections);
 
-struct object *make_new_object(MCELL_STATE *state, char *obj_name, int *error_code);
+struct object *make_new_object(
+    struct dyngeom_parse_vars *dg_parse,
+    struct sym_table_head *obj_sym_table,
+    char *obj_name,
+    int *error_code);
 
 char *push_object_name(struct object_creation *obj_creation, char *name);
 
@@ -90,8 +94,11 @@ void add_child_objects(struct object *parent, struct object *child_head,
 struct region *mcell_create_region(MCELL_STATE *state, struct object *objp,
                                    char *name);
 
-struct region *make_new_region(MCELL_STATE *state, char *obj_name,
-                               char *region_last_name);
+struct region *make_new_region(
+    struct dyngeom_parse_vars *dg_parse,
+    MCELL_STATE *state,
+    char *obj_name,
+    char *region_last_name);
 
 /* Clean up the regions on an object, eliminating any removed walls. */
 void remove_gaps_from_regions(struct object *obj_ptr);

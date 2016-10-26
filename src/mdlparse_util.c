@@ -50,6 +50,8 @@
 #include "mcell_structs.h"
 #include "mcell_viz.h"
 #include "mcell_release.h"
+#include "dyngeom_parse_extras.h"
+#include "mem_util.h"
 
 extern void chkpt_signal_handler(int sn);
 
@@ -137,40 +139,6 @@ void mdl_warning(struct mdlparse_vars *parse_state, char const *fmt, ...) {
   va_end(arglist);
 
   mcell_log_raw("\n");
-}
-
-/************************************************************************
- mdl_find_include_file:
-      Find the path for an include file.  For an absolute include path, the
-      file path is unmodified, but for a relative path, the resultant path will
-      be relative to the currently parsed file.
-
- In:  path: path from include statement
-      cur_path: path of current include file
- Out: allocated buffer containing path of the include file, or NULL if the file
-      path couldn't be allocated.  If we ever use a more complex mechanism for
-      locating include files, we may also return NULL if no file could be
-      located.
- ***********************************************************************/
-char *mdl_find_include_file(char const *path, char const *cur_path) {
-  char *candidate = NULL;
-  if (path[0] == '/')
-    candidate = mdl_strdup(path);
-  else {
-    char *last_slash = strrchr(cur_path, '/');
-#ifdef _WIN32
-    char *last_bslash = strrchr(cur_path, '\\');
-    if (last_bslash > last_slash)
-      last_slash = last_bslash;
-#endif
-    if (last_slash == NULL)
-      candidate = mdl_strdup(path);
-    else
-      candidate = CHECKED_SPRINTF("%.*s/%s", (int)(last_slash - cur_path),
-                                  cur_path, path);
-  }
-
-  return candidate;
 }
 
 /**************************************************************************
@@ -1900,6 +1868,8 @@ void mdl_set_all_warnings(struct volume *vol, byte warning_level) {
   vol->notify->missed_surf_orient = warning_level;
   vol->notify->useless_vol_orient = warning_level;
   vol->notify->invalid_output_step_time = warning_level;
+  vol->notify->large_molecular_displacement = warning_level;
+  vol->notify->add_remove_mesh_warning = warning_level;
 }
 
 /*************************************************************************
@@ -2369,13 +2339,13 @@ int mdl_keep_checkpoint_files(struct mdlparse_vars *parse_state,
 *************************************************************************/
 static struct object *mdl_make_new_object(struct mdlparse_vars *parse_state,
                                           char *obj_name) {
-  if ((retrieve_sym(obj_name, parse_state->vol->obj_sym_table)) != NULL) {
-    mdlerror_fmt(parse_state, "Object '%s' is already defined", obj_name);
-    return NULL;
-  }
 
   int error_code = 0;
-  struct object *obj_ptr = make_new_object(parse_state->vol, obj_name, &error_code);
+  struct object *obj_ptr = make_new_object(
+      parse_state->vol->dg_parse,
+      parse_state->vol->obj_sym_table,
+      obj_name,
+      &error_code);
 
   return obj_ptr;
 }
@@ -2409,7 +2379,11 @@ struct sym_entry *mdl_start_object(struct mdlparse_vars *parse_state,
 
   // Create the symbol, if it doesn't exist yet.
   int error_code = 0;
-  struct object *obj_ptr = make_new_object(parse_state->vol, new_name, &error_code);
+  struct object *obj_ptr = make_new_object(
+      parse_state->vol->dg_parse,
+      parse_state->vol->obj_sym_table,
+      new_name,
+      &error_code);
   if (error_code == 1) {
     mdlerror_fmt(parse_state,"Object '%s' is already defined", new_name);
   }
@@ -2698,8 +2672,17 @@ sort_sym_list_by_name(struct sym_table_list *unsorted) {
 *************************************************************************/
 struct sym_entry *mdl_existing_object(struct mdlparse_vars *parse_state,
                                       char *name) {
-  return mdl_existing_symbol(parse_state, name, parse_state->vol->obj_sym_table,
-                             OBJ);
+  // Check to see if it is one of the objects that will be added in
+  // the future via a dynamic geometry event.
+  struct sym_entry *symp = NULL;
+  // See if it's one of the standard instantiated objects
+  if (symp == NULL) {
+    return mdl_existing_symbol(parse_state, name,
+                               parse_state->vol->obj_sym_table, OBJ);
+  }
+  else {
+    return symp; 
+  }
 }
 
 /*************************************************************************
@@ -2728,17 +2711,23 @@ mdl_existing_objects_wildcard(struct mdlparse_vars *parse_state,
 *************************************************************************/
 struct sym_entry *mdl_existing_region(struct mdlparse_vars *parse_state,
                                       struct sym_entry *obj_symp, char *name) {
-  struct sym_entry *symp;
+  struct sym_entry *symp = NULL;
   char *region_name = CHECKED_SPRINTF("%s,%s", obj_symp->name, name);
   if (region_name == NULL) {
     free(name);
     return NULL;
   }
 
-  symp = mdl_existing_symbol(parse_state, region_name,
-                             parse_state->vol->reg_sym_table, REG);
-  free(name);
-  return symp;
+  // See if it's one of the standard instantiated objects
+  if (symp == NULL) {
+    free(name);
+    return mdl_existing_symbol(parse_state, region_name,
+                               parse_state->vol->reg_sym_table, REG);
+  }
+  else {
+    free(region_name);
+    return symp;
+  }
 }
 
 /*************************************************************************
@@ -3113,24 +3102,27 @@ int mdl_transform_rotate(struct mdlparse_vars *parse_state, double (*mat)[4],
 static struct region *mdl_make_new_region(struct mdlparse_vars *parse_state,
                                           char *obj_name,
                                           char *region_last_name) {
-  struct sym_entry *gp;
   char *region_name;
-
   region_name = CHECKED_SPRINTF("%s,%s", obj_name, region_last_name);
   if (region_name == NULL)
     return NULL;
 
-  if ((retrieve_sym(region_name, parse_state->vol->reg_sym_table)) != NULL) {
-    mdlerror_fmt(parse_state, "Region already defined: %s", region_name);
+  struct sym_entry *gp;
+  if ((gp = retrieve_sym(region_name, parse_state->vol->reg_sym_table)) != NULL) {
     free(region_name);
-    return NULL;
+    if (gp->count == 0) {
+      gp->count = 1;
+      return (struct region *)gp->value;
+    }
+    else {
+      mdlerror_fmt(parse_state, "Region already defined: %s", region_name);
+    }
   }
 
   if ((gp = store_sym(region_name, REG, parse_state->vol->reg_sym_table,
                       NULL)) == NULL) {
     free(region_name);
     mcell_allocfailed("Failed to store a region in the region symbol table.");
-    /*return NULL;*/
   }
 
   free(region_name);
@@ -3518,7 +3510,18 @@ int mdl_deep_copy_object(struct mdlparse_vars *parse_state,
 
   case BOX_OBJ:
   case POLY_OBJ:
+    if (parse_state->vol->disable_polygon_objects) {
+      mdlerror(
+          parse_state,
+          "When using dynamic geometries, polygon objects should only be "
+          "defined/instantiated through the dynamic geometry file.");
+    }
     dst_obj->contents = src_obj->contents;
+    struct polygon_object *poly_obj = \
+        (struct polygon_object *)src_obj->contents;
+    // Effectively, this tracks the instances of this object, which we need for
+    // cleaning up after dynamic geometry events.
+    poly_obj->references++;
     dst_obj->periodic_x = src_obj->periodic_x;
     dst_obj->periodic_y = src_obj->periodic_y;
     dst_obj->periodic_z = src_obj->periodic_z;
@@ -4820,8 +4823,9 @@ mdl_set_release_site_geometry_object(struct mdlparse_vars *parse_state,
     return 1;
   }
   struct sym_entry *sym_ptr;
-  if ((sym_ptr = retrieve_sym(region_name, parse_state->vol->reg_sym_table)) ==
-      NULL) {
+  if (((sym_ptr = retrieve_sym(
+      region_name, parse_state->vol->reg_sym_table)) == NULL) ||
+      sym_ptr->count == 0) {
     mdlerror_fmt(parse_state, "Undefined region: %s", region_name);
     free(region_name);
     return 1;
@@ -5430,6 +5434,12 @@ mdl_new_polygon_list(struct mdlparse_vars *parse_state, char *obj_name,
   obj_creation.object_name_list_end = parse_state->object_name_list_end;
   obj_creation.current_object = parse_state->current_object;
 
+  if (parse_state->vol->disable_polygon_objects) {
+    mdlerror(
+        parse_state,
+        "When using dynamic geometries, polygon objects should only be "
+        "defined/instantiated through the dynamic geometry file.");
+  }
   int error_code = 0;
   struct object *obj_ptr =
       start_object(parse_state->vol, &obj_creation, obj_name, &error_code);
@@ -5823,10 +5833,17 @@ struct region *mdl_create_region(struct mdlparse_vars *parse_state,
   }
   rp->region_last_name = name;
   rp->parent = objp;
-  rlp->reg = rp;
-  rlp->next = objp->regions;
-  objp->regions = rlp;
-  objp->num_regions++;
+  char *region_name = CHECKED_SPRINTF("%s,%s", objp->sym->name, name);
+  if (!mcell_check_for_region(region_name, objp)) {
+    rlp->reg = rp;
+    rlp->next = objp->regions;
+    objp->regions = rlp;
+    objp->num_regions++;
+  }
+  else {
+    free(rlp);
+  }
+  free(region_name);
   return rp;
 }
 
@@ -8059,13 +8076,13 @@ struct mdlparse_vars *mdl_assemble_reaction(struct mdlparse_vars *parse_state,
   char *backward_rate_filename = NULL;
   if (rate->forward_rate.rate_type == RATE_FILE) {
     forward_rate_filename =
-        mdl_find_include_file(rate->forward_rate.v.rate_file,
-                              parse_state->vol->curr_file);
+        mcell_find_include_file(rate->forward_rate.v.rate_file,
+                                parse_state->vol->curr_file);
   }
   if (rate->backward_rate.rate_type == RATE_FILE) {
     backward_rate_filename =
-        mdl_find_include_file(rate->backward_rate.v.rate_file,
-                              parse_state->vol->curr_file);
+        mcell_find_include_file(rate->backward_rate.v.rate_file,
+                                parse_state->vol->curr_file);
   }
 
   struct volume *state = parse_state->vol;
@@ -8403,8 +8420,13 @@ struct object *start_object(MCELL_STATE *state,
     return NULL;
   }
 
+  struct dyngeom_parse_vars *dg_parse = state->dg_parse;
   // Create the symbol, if it doesn't exist yet.
-  struct object *obj_ptr = make_new_object(state, new_name, error_code);
+  struct object *obj_ptr = make_new_object(
+      dg_parse,
+      state->obj_sym_table,
+      new_name,
+      error_code);
   if (*error_code == 1) {
     return NULL;
   }

@@ -39,6 +39,7 @@
 #include "count_util.h"
 #include "wall_util.h"
 #include "react.h"
+#include "strfunc.h"
 
 /* tetrahedralVol returns the (signed) volume of the tetrahedron spanned by
  * the vertices a, b, c, and d.
@@ -648,10 +649,14 @@ int sharpen_object(struct object *parent) {
   if (parent->object_type == POLY_OBJ || parent->object_type == BOX_OBJ) {
     int i = surface_net(parent->wall_p, parent->n_walls);
 
-    if (i == 1)
+    if (i == 1) {
       mcell_allocfailed(
           "Failed to connect walls of object %s along shared edges.",
           parent->sym->name);
+    }
+    else {
+      parent->is_closed = -i; 
+    }
   } else if (parent->object_type == META_OBJ) {
     for (struct object *o = parent->first_child; o != NULL; o = o->next) {
       if (sharpen_object(o))
@@ -710,9 +715,13 @@ double closest_interior_point(struct vector3 *pt, struct wall *w,
   int give_up = 10;
   double a1 = ip->u * w->uv_vert2.v - ip->v * w->uv_vert2.u;
   double a2 = w->uv_vert1_u * ip->v;
+  struct vector2 vert_0 = {.u = 0, .v = 0};
+  struct vector2 vert_1 = {.u = w->uv_vert1_u, .v = 0};
   while (give_up_ctr < give_up &&
-         (!distinguishable(ip->v, 0, EPS_C) || !distinguishable(a1, 0, EPS_C) ||
-          !distinguishable(a1 + a2, 2.0 * w->area, EPS_C))) {
+         (!distinguishable(ip->v, 0, EPS_C) ||
+          !distinguishable(a1, 0, EPS_C) ||
+          !distinguishable(a1 + a2, 2.0 * w->area, EPS_C) ||
+          !point_in_triangle_2D(ip, &vert_0, &vert_1, &w->uv_vert2))) {
     /* Move toward centroid. It's possible for this movement to be so small
      * that we are essentially stuck in this loop, so bail out after a set
      * number of tries. The number chosen is somewhat arbitrary. In most cases,
@@ -861,13 +870,15 @@ struct wall *traverse_surface(struct wall *here, struct vector2 *loc, int which,
 
 /***************************************************************************
 is_manifold:
-  In: a region.  This region must already be painted on walls.  The edges
-      must have already been added to the object (i.e. sharpened).
+  In: r: A region. This region must already be painted on walls. The edges must
+         have already been added to the object (i.e. sharpened).
+      count_regions_flag: This is usually set, unless we are only checking
+                          volumes for dynamic geometries.
   Out: 1 if the region is a manifold, 0 otherwise.
   Note: by "manifold" we mean "orientable compact two-dimensional
         manifold without boundaries embedded in R3"
 ***************************************************************************/
-int is_manifold(struct region *r) {
+int is_manifold(struct region *r, int count_regions_flag) {
   struct wall **wall_array = NULL, *w = NULL;
   struct region_list *rl = NULL;
 
@@ -895,19 +906,21 @@ int is_manifold(struct region *r) {
     if (!get_bit(r->membership, n_wall))
       continue; /* Skip wall not in region */
     w = wall_array[n_wall];
-    for (int nb = 0; nb < 3; nb++) {
-      if (w->nb_walls[nb] == NULL) {
-        mcell_error_nodie("BARE EDGE on wall %u edge %d.", n_wall, nb);
-        return 0; /* Bare edge--not a manifold */
-      }
+    if (count_regions_flag) {
+      for (int nb = 0; nb < 3; nb++) {
+        if (w->nb_walls[nb] == NULL) {
+          mcell_error_nodie("BARE EDGE on wall %u edge %d.", n_wall, nb);
+          return 0; /* Bare edge--not a manifold */
+        }
 
-      for (rl = w->nb_walls[nb]->counting_regions; rl != NULL; rl = rl->next) {
-        if (rl->reg == r)
-          break;
-      }
-      if (rl == NULL) {
-        mcell_error_nodie("Wall %u edge %d leaves region!", n_wall, nb);
-        return 0; /* Can leave region--not a manifold */
+        for (rl = w->nb_walls[nb]->counting_regions; rl != NULL; rl = rl->next) {
+          if (rl->reg == r)
+            break;
+        }
+        if (rl == NULL) {
+          mcell_error_nodie("Wall %u edge %d leaves region!", n_wall, nb);
+          return 0; /* Can leave region--not a manifold */
+        }
       }
     }
     // compute volume of tetrahedron with w as its face
@@ -2392,6 +2405,56 @@ struct region_list *find_region_by_wall(struct wall *this_wall) {
   return rlp_head;
 }
 
+/************************************************************************
+find_regions_names_by_wall:
+  In:  wall:
+       ignore_regs:
+  Out: linked list of wall's regions names if wall belongs to region, 
+       NULL - otherwise.  Also number of regions is set.
+  Note: regions called "ALL" or the ones that have ALL_ELEMENTS are not 
+        included in the return regions names list. This is done intentionally
+        since the function is used with dynamic geometries to place a surface
+        molecule.
+************************************************************************/
+struct name_list *find_regions_names_by_wall(
+    struct wall *w, struct string_buffer *ignore_regs)
+{
+  struct name_list *nl_head = NULL;
+  struct region_list *reg_list_ptr_head = find_region_by_wall(w);
+
+  struct region_list *reg_list_ptr;
+  for (reg_list_ptr = reg_list_ptr_head; reg_list_ptr != NULL;) {
+    struct region *reg_ptr = reg_list_ptr->reg;
+
+    // Disregard regions which were just added during a dynamic geometry event
+    if ((ignore_regs) && (is_string_present_in_string_array(
+        reg_ptr->sym->name, ignore_regs->strings, ignore_regs->n_strings))) {
+      reg_list_ptr_head = reg_list_ptr->next;
+      free(reg_list_ptr);
+      reg_list_ptr = reg_list_ptr_head;
+      continue;
+    }
+
+    struct name_list *nl = CHECKED_MALLOC_STRUCT(struct name_list, "name_list");
+    nl->name = alloc_sprintf("%s", reg_ptr->sym->name);   
+    nl->prev = NULL;
+
+    if (nl_head == NULL) {
+      nl->next = NULL;
+      nl_head = nl;
+    }
+    else {
+      nl->next = nl_head;
+      nl_head = nl;
+    }
+    reg_list_ptr_head = reg_list_ptr->next;
+    free(reg_list_ptr);
+    reg_list_ptr = reg_list_ptr_head;
+  }
+
+  return nl_head;
+}
+
 /***********************************************************************
 find_restricted_regions_by_wall:
   In: wall
@@ -3043,4 +3106,22 @@ int wall_belongs_to_any_region_in_region_list(struct wall *this_wall,
   }
 
   return 0;
+}
+
+/*********************************************************************
+* find_wall_center:
+* In: wall
+*     wall center (return value)
+* Out: the center of the wall is found and assigned to vector "center"
+**********************************************************************/
+void find_wall_center(struct wall *w, struct vector3 *center)
+{
+  if(center == NULL) {
+    mcell_internal_error("Error in function 'find_wall_center()'.");
+  }
+
+  center->x = (w->vert[0]->x + w->vert[1]->x + w->vert[2]->x) / 3;
+  center->y = (w->vert[0]->y + w->vert[1]->y + w->vert[2]->y) / 3;
+  center->z = (w->vert[0]->z + w->vert[1]->z + w->vert[2]->z) / 3;
+
 }

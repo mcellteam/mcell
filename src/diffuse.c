@@ -781,7 +781,8 @@ struct wall *ray_trace_2D(
           int *grid_index_p = &grid_index;
           struct wall *prev_wall = this_wall;
           // this_pos is also being updated here.
-          this_wall = find_closest_wall(world, &teleport_xyz, 0.0, &this_pos, grid_index_p);
+          this_wall = find_closest_wall(
+            world, &teleport_xyz, 0.0, &this_pos, grid_index_p, sm->properties, NULL, NULL, NULL);
           // Try again if we can't find a place
           if ((this_wall == NULL) ||
               (this_wall->parent_object != prev_wall->parent_object) ) {
@@ -3842,6 +3843,7 @@ void run_concentration_clamp(struct volume *world, double t_now) {
         vm.flags = IN_SCHEDULE | ACT_NEWBIE | TYPE_VOL | IN_VOLUME |
                   ACT_CLAMPED | ACT_DIFFUSE;
         vm.properties = ccdm->mol;
+        vm.mesh_name = NULL;
         vm.birthplace = NULL;
         vm.birthday = convert_iterations_to_seconds(
             world->start_iterations, world->time_unit,
@@ -4607,19 +4609,33 @@ int reflect_or_periodic_bc(
   }
 
   if (!(periodic_traditional) && (box_inc_x || box_inc_y || box_inc_z)) {
-    // remove molecule from current periodic box
-    count_region_update(world, vm->properties, vm->periodic_box,
-        w->counting_regions, -1, 1, &(smash->loc), smash->t);
-
-    vm->periodic_box->x += box_inc_x;
-    vm->periodic_box->y += box_inc_y;
-    vm->periodic_box->z += box_inc_z;
-
-    // add molecule to new periodic box
-    count_region_update(world, vm->properties, vm->periodic_box,
-        w->counting_regions, 1, 1, &(smash->loc), smash->t);
-
-    *mol = vm;
+    (*reflectee) = NULL;
+    struct subvolume *nsv = find_subvolume(world, &vm->pos, NULL);
+    if (nsv == NULL) {
+      struct species* spec = vm->properties;
+      mcell_internal_error(
+          "A %s molecule escaped the periodic box at [%.2f, %.2f, %.2f]",
+          spec->sym->name, vm->pos.x * world->length_unit,
+          vm->pos.y * world->length_unit, vm->pos.z * world->length_unit);
+    } else {
+      // decrement counts of regions we are leaving
+      if (vm->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED)) {
+        count_region_from_scratch(world, (struct abstract_molecule *)vm, NULL,
+                                  -1, &(orig_pos), NULL, reflect_t,
+                                  vm->periodic_box);
+      }
+      struct volume_molecule *new_m = migrate_volume_molecule(vm, nsv);
+      vm->periodic_box->x += box_inc_x;
+      vm->periodic_box->y += box_inc_y;
+      vm->periodic_box->z += box_inc_z;
+      // increment counts of regions we are entering
+      if (new_m->properties->flags & (COUNT_CONTENTS | COUNT_ENCLOSED)) {
+        count_region_from_scratch(world, (struct abstract_molecule *)new_m,
+                                  NULL, 1, &(new_m->pos), NULL, reflect_t,
+                                  new_m->periodic_box);
+      }
+      *mol = new_m;
+    }
     return 1;
   }
 
@@ -4668,11 +4684,6 @@ int reflect_or_periodic_bc(
     (*reflect_w) = ((struct wall *)ttv->target);
     reflect_pt = ttv->loc;
     (*reflect_t) = ttv->t * (1 - EPS_C);
-
-    /* Move back a little bit along the ray of travel. */
-    reflect_pt.x -= displacement->x * EPS_C;
-    reflect_pt.y -= displacement->y * EPS_C;
-    reflect_pt.z -= displacement->z * EPS_C;
 
     /* Now, since we're reflecting before passing through these surfaces,
      * register them as hits, but not as crossings. */

@@ -1097,7 +1097,7 @@ static int read_species_table(struct volume *world, FILE *fs) {
  In:  None
  Out: Number of non-defunct molecules in the molecule scheduler
 ***************************************************************************/
-static unsigned long long
+unsigned long long
 count_items_in_scheduler(struct storage_list *storage_head) {
   unsigned long long total_items = 0;
 
@@ -1350,7 +1350,7 @@ static int read_mol_scheduler_state_real(struct volume *world, FILE *fs,
 
       struct surface_molecule *smp = insert_surface_molecule(
           world, properties, &where, orient, CHKPT_GRID_TOLERANCE, sched_time,
-          &periodic_box);
+          NULL, NULL, NULL, &periodic_box);
 
       if (smp == NULL) {
         mcell_warn("Could not place molecule %s at (%f,%f,%f).",

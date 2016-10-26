@@ -44,10 +44,14 @@
 #include "vol_util.h"
 #include "count_util.h"
 #include "react_output.h"
+//#include "util.h"
+#include "sym_table.h"
+#include "dyngeom_parse_extras.h"
 
 /* Instantiate a request to track a particular quantity */
-static int instantiate_count_request(struct output_request *request,
-  int count_hashmask, struct counter **count_hash, struct mem_helper *trig_request_mem,
+static int instantiate_count_request(
+  int dyn_geom_flag, struct output_request *request, int count_hashmask,
+  struct counter **count_hash, struct mem_helper *trig_request_mem,
   double *elapsed_time, struct mem_helper *counter_mem);
 
 /* Create a new counter data structure */
@@ -63,8 +67,8 @@ static void clean_region_lists(struct subvolume *my_sv,
 /* Check if the object corresponding to a particular symbol has been referenced
  * directly or indirectly from one of the INSTANTIATE blocks in the model.
  */
-static int is_object_instantiated(struct sym_entry *entry,
-                                  struct object *root_instance);
+/*static int is_object_instantiated(struct sym_entry *entry,*/
+/*                                  struct object *root_instance);*/
 
 /* Find the list of regions enclosing a particular point. given a particular
  * starting point and starting region list. */
@@ -157,17 +161,16 @@ count_region_update:
        loc: location of the hit (for triggers)
        t: time of the hit (for triggers)
    Out: Returns none.
-        Appropriate counters are updated, that is,
-        hit counters are updated according to which side was hit,
-        and crossings counters and counts within enclosed regions are
-        updated if the surface was crossed.
+        Appropriate counters are updated, that is, hit counters are updated
+        according to which side was hit, and crossings counters and counts
+        within enclosed regions are updated if the surface was crossed.
 *************************************************************************/
 void count_region_update(
     struct volume *world,
     struct species *sp,
     struct periodic_image *periodic_box,
     struct region_list *rl,
-    int dir,
+    int direction,
     int crossed,
     struct vector3 *loc,
     double t) {
@@ -220,7 +223,7 @@ void count_region_update(
       }
 
       if (crossed) {
-        if (dir == 1) {
+        if (direction == 1) {
           if (hit_count->counter_type & TRIG_COUNTER) {
             hit_count->data.trig.t_event = (double)world->current_iterations + t;
             hit_count->data.trig.orient = 0;
@@ -272,7 +275,7 @@ void count_region_update(
         }
       } else if (rl->reg->flags & sp->flags & COUNT_HITS) {
       /* Didn't cross, only hits might update */
-        if (dir == 1) {
+        if (direction == 1) {
           if (hit_count->counter_type & TRIG_COUNTER) {
             hit_count->data.trig.t_event = (double)world->current_iterations + t;
             hit_count->data.trig.orient = 0;
@@ -388,19 +391,21 @@ count_region_from_scratch:
        periodic_box:
    Out: Returns zero on success and 1 on failure.
         Appropriate counters are updated and triggers are fired.
-   Note: At least one of molecule or rxn pathname must be non-NULL; if
-        other inputs are NULL, sensible values will be guessed (which
-        may themselves be NULL).  This routine is not super-fast for
-        volume counts (enclosed counts) since it has to dynamically create
-        and test lists of enclosing regions.
+   Note: At least one of molecule or rxn pathname must be non-NULL; if other
+         inputs are NULL, sensible values will be guessed (which may themselves
+         be NULL). This routine is not super-fast for volume counts (enclosed
+         counts) since it has to dynamically create and test lists of enclosing
+         regions.
 *************************************************************************/
 void count_region_from_scratch(struct volume *world,
                                struct abstract_molecule *am,
-                               struct rxn_pathname *rxpn, int n,
-                               struct vector3 *loc, struct wall *my_wall,
-                               double t, struct periodic_image *periodic_box) {
-  struct region_list *rl, *arl, *nrl, *narl; /*a=anti p=previous n=new*/
-  struct subvolume *sv;
+                               struct rxn_pathname *rxpn,
+                               int n,
+                               struct vector3 *loc,
+                               struct wall *my_wall,
+                               double t,
+                               struct periodic_image *periodic_box) {
+  struct region_list *rl, *arl, *nrl, *narl; /*a=anti n=new*/
   struct counter *c;
   void *target; /* what we're counting: am->properties or rxpn */
   int hashval;  /* Hash value of what we're counting */
@@ -409,9 +414,8 @@ void count_region_from_scratch(struct volume *world,
   struct vector3 xyz_loc;          /* Computed location of mol if loc==NULL */
   byte count_flags;
   int pos_or_neg;        /* Sign of count (neg for antiregions) */
-  int orient = SHRT_MIN; /* orientation of the molecule
-                            also serves as a flag for
-                            triggering reactions  */
+  int orient = SHRT_MIN; /* orientation of the molecule also serves as a flag
+                            for triggering reactions  */
 
   /* Set up values and fill in things the calling function left out */
   if (rxpn != NULL) {
@@ -527,7 +531,7 @@ void count_region_from_scratch(struct volume *world,
     }
 
     /* Raytrace across any walls from waypoint to us and add to region lists */
-    for (sv = &(world->subvol[this_sv]); sv != NULL;
+    for (struct subvolume *sv = &(world->subvol[this_sv]); sv != NULL;
          sv = next_subvol(&here, &delta, sv, world->x_fineparts,
                           world->y_fineparts, world->z_fineparts,
                           world->ny_parts, world->nz_parts)) {
@@ -618,9 +622,12 @@ void count_region_from_scratch(struct volume *world,
             if (c->counter_type & TRIG_COUNTER) {
               c->data.trig.t_event = t;
               c->data.trig.orient = orient;
-              // XXX: may need to convert loc for PBCs
-              fire_count_event(world, c, n * pos_or_neg, loc,
-                               count_flags | REPORT_TRIGGER);
+              // Don't count triggers after a dynamic geometry event
+              if (!world->dynamic_geometry_flag) {
+                // XXX: may need to convert loc for PBCs
+                fire_count_event(world, c, n * pos_or_neg, loc,
+                                 count_flags | REPORT_TRIGGER);
+              }
             } else if (rxpn == NULL) {
               if (am->properties->flags & ON_GRID) {
                 if ((c->orientation == ORIENT_NOT_SET) ||
@@ -1305,8 +1312,10 @@ int prepare_counters(struct volume *world) {
     /* check whether the "count_location" refers to the instantiated
        object or region */
     if (request->count_location != NULL) {
-      if (!is_object_instantiated(request->count_location,
-                                  world->root_instance))
+      if (!((is_object_instantiated(request->count_location, world->root_instance)) ||
+          (retrieve_sym(request->count_location->name, world->dg_parse->reg_sym_table) != NULL) ||
+          (retrieve_sym(request->count_location->name, world->dg_parse->obj_sym_table) != NULL)))
+
         mcell_error("The object/region name '%s' in the COUNT/TRIGGER "
                     "statement is not fully referenced.\n"
                     "  This occurs when a count is requested on an object "
@@ -1349,13 +1358,15 @@ int prepare_counters(struct volume *world) {
     if (request->count_location != NULL &&
         request->count_location->sym_type == OBJ) {
       if (expand_object_output(request,
-                               (struct object *)request->count_location->value))
+                               (struct object *)request->count_location->value,
+                               world->reg_sym_table))
         mcell_error("Failed to expand request to count on object.");
     }
 
-    if (instantiate_count_request(request, world->count_hashmask, world->count_hash,
-                            world->trig_request_mem, &world->elapsed_time,
-                            world->counter_mem)) {
+    if (instantiate_count_request(
+        world->dynamic_geometry_flag, request, world->count_hashmask,
+        world->count_hash, world->trig_request_mem, &world->elapsed_time,
+        world->counter_mem)) {
       mcell_error("Failed to instantiate count request.");
     }
   }
@@ -1374,9 +1385,17 @@ is_object_instantiated:
 int is_object_instantiated(struct sym_entry *entry,
                            struct object *root_instance) {
   struct object *obj = NULL;
-  if (entry->sym_type == REG)
+  if (entry->sym_type == REG) {
+    struct region *reg = entry->value;
     obj = ((struct region *)(entry->value))->parent;
-  else if (entry->sym_type == OBJ)
+    if (region_listed(obj->regions, reg)) {
+      return 1; 
+    }
+    else {
+      return 0; 
+    }
+  }
+  else if (entry->sym_type == OBJ && entry->count != 0)
     obj = ((struct object *)(entry->value));
   else
     return 0;
@@ -1408,7 +1427,8 @@ int check_counter_geometry(int count_hashmask, struct counter **count_hash,
         struct region *rp = cp->reg_type;
 
         if (rp->manifold_flag == MANIFOLD_UNCHECKED) {
-          if (is_manifold(rp))
+          int count_regions_flag = 1;
+          if (is_manifold(rp, count_regions_flag))
             rp->manifold_flag = IS_MANIFOLD;
           else
             rp->manifold_flag = NOT_MANIFOLD;
@@ -1444,7 +1464,10 @@ expand_object_output:
    PostNote: Checks that COUNT/TRIGGER statements are not allowed for
              metaobjects and release objects.
 *************************************************************************/
-int expand_object_output(struct output_request *request, struct object *obj) {
+int expand_object_output(
+    struct output_request *request,
+    struct object *obj,
+    struct sym_table_head *reg_sym_table) {
 #ifdef ALLOW_COUNTS_ON_METAOBJECT
   int n_expanded;
 #endif
@@ -1502,7 +1525,7 @@ int expand_object_output(struct output_request *request, struct object *obj) {
         request->next = new_request;
         request = new_request;
       }
-      if (expand_object_output(request, child))
+      if (expand_object_output(request, child, reg_sym_table))
         return 1;
       ++n_expanded;
     }
@@ -1521,6 +1544,10 @@ int expand_object_output(struct output_request *request, struct object *obj) {
         break;
       }
     }
+    char *region_name = CHECKED_SPRINTF("%s,ALL", obj->sym->name);
+    if (request->count_location == NULL)
+      request->count_location = retrieve_sym(region_name, reg_sym_table);
+    free(region_name);
     if (request->count_location == NULL)
       mcell_internal_error("ALL region missing on object %s", obj->sym->name);
     break;
@@ -1574,10 +1601,10 @@ instantiate_count_request:
         Requesting output tree gets appropriate node pointed to the
         memory location where we will be collecting data.
 *************************************************************************/
-static int instantiate_count_request(struct output_request *request,
-  int count_hashmask, struct counter **count_hash,
-  struct mem_helper *trig_request_mem, double *elapsed_time,
-  struct mem_helper *counter_mem) {
+static int instantiate_count_request(
+  int dyn_geom_flag, struct output_request *request, int count_hashmask,
+  struct counter **count_hash, struct mem_helper *trig_request_mem,
+  double *elapsed_time, struct mem_helper *counter_mem) {
 
   int request_hash = 0;
   struct rxn_pathname *rxpn_to_count;
@@ -1636,7 +1663,9 @@ static int instantiate_count_request(struct output_request *request,
 
   /* Now create count structs and set output expression to point to data */
   report_type_only = request->report_type & REPORT_TYPE_MASK;
-  request->requester->expr_flags -= OEXPR_LEFT_REQUEST;
+  if (!dyn_geom_flag) {
+    request->requester->expr_flags &= ~OEXPR_LEFT_REQUEST;
+  }
   if ((request->report_type & REPORT_TRIGGER) == 0 &&
       request->count_location == NULL) /* World count is easy! */
   {

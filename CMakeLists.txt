@@ -73,6 +73,12 @@ set(SOURCE_FILES
     src/diffuse_trimol.c
     src/diffuse_util.c
     src/diffuse_util.h
+    src/dyngeom.c
+    src/dyngeom.h
+    src/dyngeom_parse_extras.c
+    src/dyngeom_parse_extras.h
+    src/dyngeom_lex.c
+    src/dyngeom_yacc.c
     src/grid_util.c
     src/grid_util.h
     src/init.c
@@ -81,6 +87,9 @@ set(SOURCE_FILES
     src/isaac64.h
     src/logging.c
     src/logging.h
+    src/mcell.c
+    #src/mcell_dyngeom.c
+    #src/mcell_dyngeom.h
     src/mcell_init.c
     src/mcell_init.h
     src/mcell_misc.c

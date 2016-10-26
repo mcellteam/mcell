@@ -37,6 +37,7 @@ tags*
 *sublime*
 .idea
 *cscope*
+dyngeom_parse
 !windows/*
 _mcellSwig.so
 mcellSwig.py
