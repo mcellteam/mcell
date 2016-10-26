@@ -88,8 +88,8 @@ set(SOURCE_FILES
     src/logging.c
     src/logging.h
     src/mcell.c
-    #src/mcell_dyngeom.c
-    #src/mcell_dyngeom.h
+    src/mcell_dyngeom.c
+    src/mcell_dyngeom.h
     src/mcell_init.c
     src/mcell_init.h
     src/mcell_misc.c

@@ -1058,7 +1058,7 @@ parameter_def:
         | MICROSCOPIC_REVERSIBILITY '=' boolean       { parse_state->vol->surface_reversibility=$3; parse_state->vol->volume_reversibility=$3; }
         | MICROSCOPIC_REVERSIBILITY '=' SURFACE_ONLY  { parse_state->vol->surface_reversibility=1;  parse_state->vol->volume_reversibility=0;  }
         | MICROSCOPIC_REVERSIBILITY '=' VOLUME_ONLY   { parse_state->vol->surface_reversibility=0;  parse_state->vol->volume_reversibility=1;  }
-        /*| DYNAMIC_GEOMETRY '=' str_expr_only          { CHECK(mcell_add_dynamic_geometry_file($3, parse_state)); }*/
+        | DYNAMIC_GEOMETRY '=' str_expr_only          { CHECK(mcell_add_dynamic_geometry_file($3, parse_state)); }
         | DYNAMIC_GEOMETRY_MOLECULE_PLACEMENT '=' NEAREST_POINT    { parse_state->vol->dynamic_geometry_molecule_placement = 0; }
         | DYNAMIC_GEOMETRY_MOLECULE_PLACEMENT '=' NEAREST_TRIANGLE { parse_state->vol->dynamic_geometry_molecule_placement = 1; }
 ;

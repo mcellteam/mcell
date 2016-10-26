@@ -63,9 +63,9 @@ MCELL_STATUS mcell_create_geometrical_release_site(
 
   // create qualified object name
   // ecc replaced by sprintf for swig function (macros are bad)
-  //  char *qualified_name = CHECKED_SPRINTF("%s.%s", parent->sym->name, site_name);
-  char qualified_name[20];
-  sprintf(qualified_name, "Scene.%s", site_name);
+  char *qualified_name = CHECKED_SPRINTF("%s.%s", parent->sym->name, site_name);
+  /*char qualified_name[20];*/
+  /*sprintf(qualified_name, "Scene.%s", site_name);*/
 
   int error_code = 0;
   struct dyngeom_parse_vars *dg_parse = state->dg_parse;

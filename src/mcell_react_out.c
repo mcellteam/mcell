@@ -34,9 +34,9 @@
 #include "mcell_react_out.h"
 #include "mdlparse_util.h"
 
-//#include "dyngeom_parse_extras.h"
-//#include "strfunc.h"
-//#include "count_util.h"
+#include "dyngeom_parse_extras.h"
+#include "strfunc.h"
+#include "count_util.h"
 
 /* static helper functions */
 static struct output_column *new_output_column();

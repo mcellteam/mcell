@@ -43,7 +43,7 @@
 #include "init.h"
 #include "chkpt.h"
 #include "argparse.h"
-//#include "dyngeom.h"
+#include "dyngeom.h"
 
 #include "mcell_run.h"
 #include "mcell_reactions.h"
@@ -376,7 +376,7 @@ mcell_run_iteration(MCELL_STATE *world, long long frequency,
   if (!*restarted_from_checkpoint) {
 
     /* Change geometry if needed */
-    /*process_geometry_changes(world, not_yet);*/
+    process_geometry_changes(world, not_yet);
 
     /* Release molecules */
     process_molecule_releases(world, not_yet);
