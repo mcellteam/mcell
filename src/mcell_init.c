@@ -250,8 +250,8 @@ mcell_redo_geom(MCELL_STATE *state) {
   state->disable_polygon_objects = 0;
   // Reparse the geometry and instantiations. Nothing else should be included
   // in these other MDLs.
-  CHECKED_CALL(parse_input(state),
-               "An error occured during parsing of the mdl file.");
+  /*CHECKED_CALL(parse_input(state),*/
+  /*             "An error occured during parsing of the mdl file.");*/
   CHECKED_CALL(init_bounding_box(state), "Error initializing bounding box.");
   // This should ideally be in destroy_everything
   free(state->subvol);

@@ -54,7 +54,7 @@ add_custom_command(
 # check for needed libraries
 find_library(M_LIB m)
 
-set(CMAKE_C_FLAGS "-Wall -Wextra -Wshadow -Wno-unused-parameter -D_GNU_SOURCE=1 -O2 -std=c99 ${CMAKE_C_FLAGS}" )
+set(CMAKE_C_FLAGS "-Wall -Wextra -Wshadow -Wno-unused-parameter -D_GNU_SOURCE=1 -O0 -g -std=c99 ${CMAKE_C_FLAGS}" )
 set(CMAKE_EXE_LINKER_FLAGS ${M_LIB})
 
 set(SOURCE_FILES
@@ -167,7 +167,7 @@ SET(CMAKE_SWIG_FLAGS "-ltypemaps;-py3")
 SET_SOURCE_FILES_PROPERTIES(src/pymcell.i PROPERTIES C ON)
 SET_SOURCE_FILES_PROPERTIES(src/pymcell.i PROPERTIES SWIG_FLAGS "-includeall")
 SWIG_ADD_MODULE(pymcell python
-  src/pymcell.i src/mcell_react_out.c src/mcell_misc.c src/util.c
+  src/pymcell.i src/dyngeom.c src/dyngeom_yacc.c src/dyngeom_lex.c src/dyngeom_parse_extras.c src/mcell_react_out.c src/mcell_misc.c src/util.c
   src/argparse.c src/mcell_objects.c src/mcell_reactions.c src/mcell_release.c
   src/mcell_species.c src/mcell_viz.c src/mcell_surfclass.c src/strfunc.c
   src/mcell_init.c src/chkpt.c src/init.c src/react_output.c src/version_info.c

@@ -1937,11 +1937,11 @@ int add_dynamic_geometry_events(
 
     fclose(f);
     parse_state->current_object = parse_state->vol->root_object;
-    if (zero_file_name && mdlparse_file(parse_state, zero_file_name))
-    {
-      free(zero_file_name);
-      return 1;
-    }
+    /*if (zero_file_name && mdlparse_file(parse_state, zero_file_name))*/
+    /*{*/
+    /*  free(zero_file_name);*/
+    /*  return 1;*/
+    /*}*/
     free(zero_file_name);
   }
 
