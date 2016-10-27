@@ -198,8 +198,8 @@ mcell_init_simulation(MCELL_STATE *state) {
       &state->counter_by_name, state->output_block_head),
       "Error while initializing counter name hash.");
   
-  CHECKED_CALL(init_dynamic_geometry(state),
-               "Error while initializing scheduled changes in geometry.");
+  /*CHECKED_CALL(init_dynamic_geometry(state),*/
+  /*             "Error while initializing scheduled changes in geometry.");*/
 
   return MCELL_SUCCESS;
 }
@@ -250,8 +250,8 @@ mcell_redo_geom(MCELL_STATE *state) {
   state->disable_polygon_objects = 0;
   // Reparse the geometry and instantiations. Nothing else should be included
   // in these other MDLs.
-  /*CHECKED_CALL(mcell_parse_mdl(state),*/
-  /*             "An error occured during parsing of the mdl file.");*/
+  CHECKED_CALL(parse_input(state),
+               "An error occured during parsing of the mdl file.");
   CHECKED_CALL(init_bounding_box(state), "Error initializing bounding box.");
   // This should ideally be in destroy_everything
   free(state->subvol);
