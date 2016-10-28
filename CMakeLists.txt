@@ -75,9 +75,9 @@ set(SOURCE_FILES
     src/diffuse_util.h
     src/dyngeom.c
     src/dyngeom.h
+    src/dyngeom_lex.c
     src/dyngeom_parse_extras.c
     src/dyngeom_parse_extras.h
-    src/dyngeom_lex.c
     src/dyngeom_yacc.c
     src/grid_util.c
     src/grid_util.h
@@ -167,16 +167,48 @@ SET(CMAKE_SWIG_FLAGS "-ltypemaps;-py3")
 SET_SOURCE_FILES_PROPERTIES(src/pymcell.i PROPERTIES C ON)
 SET_SOURCE_FILES_PROPERTIES(src/pymcell.i PROPERTIES SWIG_FLAGS "-includeall")
 SWIG_ADD_MODULE(pymcell python
-  src/pymcell.i src/dyngeom.c src/dyngeom_yacc.c src/dyngeom_lex.c src/dyngeom_parse_extras.c src/mcell_react_out.c src/mcell_misc.c src/util.c
-  src/argparse.c src/mcell_objects.c src/mcell_reactions.c src/mcell_release.c
-  src/mcell_species.c src/mcell_viz.c src/mcell_surfclass.c src/strfunc.c
-  src/mcell_init.c src/chkpt.c src/init.c src/react_output.c src/version_info.c
-  src/sched_util.c src/wall_util.c src/mem_util.c src/react_trig.c
-  src/react_cond.c src/count_util.c src/vol_util.c src/diffuse.c src/vector.c
-  src/diffuse_util.c src/sym_table.c src/triangle_overlap.c src/logging.c
-  src/grid_util.c src/react_outc.c src/react_util.c src/react_outc_trimol.c
-  src/diffuse_trimol.c src/isaac64.c src/rng.c src/viz_output.c src/mcell_run.c
-  src/volume_output.c)
+  src/argparse.c
+  src/chkpt.c
+  src/count_util.c
+  src/diffuse.c
+  src/diffuse_trimol.c src/isaac64.c
+  src/diffuse_util.c
+  src/dyngeom.c
+  src/dyngeom_lex.c
+  src/dyngeom_parse_extras.c
+  src/dyngeom_yacc.c
+  src/grid_util.c src/react_outc.c
+  src/init.c
+  src/logging.c
+  src/mcell_init.c
+  src/mcell_misc.c
+  src/mcell_objects.c
+  src/mcell_react_out.c
+  src/mcell_reactions.c
+  src/mcell_release.c
+  src/mcell_run.c
+  src/mcell_species.c
+  src/mcell_surfclass.c
+  src/mcell_viz.c
+  src/mem_util.c
+  src/pymcell.i
+  src/react_cond.c
+  src/react_outc_trimol.c
+  src/react_output.c
+  src/react_trig.c
+  src/react_util.c
+  src/rng.c
+  src/sched_util.c
+  src/strfunc.c
+  src/sym_table.c
+  src/triangle_overlap.c
+  src/util.c
+  src/vector.c
+  src/version_info.c
+  src/viz_output.c
+  src/vol_util.c
+  src/volume_output.c
+  src/wall_util.c)
 SWIG_LINK_LIBRARIES(pymcell ${PYTHON_LIBRARIES})
 
 # copy the pyMCell test script into place
