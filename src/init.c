@@ -75,7 +75,7 @@ static int compute_bb_polygon_object(struct volume *world, struct object *objp,
 static int init_species_defaults(struct volume *world);
 static int init_regions_helper(struct volume *world);
 
-static struct ccn_clamp_data* find_clamped_object_in_list(struct ccn_clamp_data *ccd,
+static struct clamp_data* find_clamped_object_in_list(struct clamp_data *cdp,
   struct object *obj);
 
 #define MICROSEC_PER_YEAR 365.25 * 86400.0 * 1e6
@@ -2132,24 +2132,24 @@ static int init_regions_helper(struct volume *world) {
 /* First part of concentration clamp initialization. */
 /* After this, list is grouped by surface class. */
 /* Second part (list of objects) happens with regions. */
-void init_clamp_lists(struct ccn_clamp_data *clamp_list) {
+void init_clamp_lists(struct clamp_data *clamp_list) {
 
   /* Sort by memory order of surface_class pointer--handy way to collect like
    * classes */
-  clamp_list = (struct ccn_clamp_data *)void_list_sort(
+  clamp_list = (struct clamp_data *)void_list_sort(
       (struct void_list *)clamp_list);
 
   /* Toss other molecules in same surface class into next_mol lists */
-  for (struct ccn_clamp_data *ccd = clamp_list; ccd != NULL; ccd = ccd->next) {
-    while (ccd->next != NULL && ccd->surf_class == ccd->next->surf_class) {
-      ccd->next->next_mol = ccd->next_mol;
-      ccd->next_mol = ccd->next;
-      ccd->next = ccd->next->next;
+  for (struct clamp_data *cdp = clamp_list; cdp != NULL; cdp = cdp->next) {
+    while (cdp->next != NULL && cdp->surf_class == cdp->next->surf_class) {
+      cdp->next->next_mol = cdp->next_mol;
+      cdp->next_mol = cdp->next;
+      cdp->next = cdp->next->next;
     }
-    for (struct ccn_clamp_data *temp = ccd->next_mol;
+    for (struct clamp_data *temp = cdp->next_mol;
          temp != NULL;
          temp = temp->next_mol) {
-      temp->next = ccd->next;
+      temp->next = cdp->next;
     }
   }
 }
@@ -2195,7 +2195,7 @@ int instance_obj_regions(struct volume *world, struct object *objp) {
  * Populates surface molecule tiles by region.
  * Creates virtual regions on which to clamp concentration
  */
-int init_wall_regions(double length_unit, struct ccn_clamp_data *clamp_list,
+int init_wall_regions(double length_unit, struct clamp_data *clamp_list,
                       struct species **species_list, int n_species,
                       struct object *objp) {
   struct wall *w;
@@ -2387,8 +2387,8 @@ int init_wall_regions(double length_unit, struct ccn_clamp_data *clamp_list,
   /* Check to see if we need to generate virtual regions for */
   /* concentration clamps on this object */
   if (clamp_list != NULL) {
-    struct ccn_clamp_data *ccd;
-    struct ccn_clamp_data *temp;
+    struct clamp_data *cdp;
+    struct clamp_data *temp;
     int j;
     int found_something = 0;
 
@@ -2399,37 +2399,37 @@ int init_wall_regions(double length_unit, struct ccn_clamp_data *clamp_list,
 
         for (scl = objp->wall_p[n_wall]->surf_class_head; scl != NULL;
              scl = scl->next) {
-          for (ccd = clamp_list; ccd != NULL; ccd = ccd->next) {
-            if (scl->surf_class == ccd->surf_class) {
-              if (ccd->objp != objp) {
-                if (ccd->objp == NULL)
-                  ccd->objp = objp;
-                else if ((temp = find_clamped_object_in_list(ccd, objp)) != NULL)
+          for (cdp = clamp_list; cdp != NULL; cdp = cdp->next) {
+            if (scl->surf_class == cdp->surf_class) {
+              if (cdp->objp != objp) {
+                if (cdp->objp == NULL)
+                  cdp->objp = objp;
+                else if ((temp = find_clamped_object_in_list(cdp, objp)) != NULL)
                 {
-                  ccd = temp;
+                  cdp = temp;
                 }
                 else {
-                  temp = CHECKED_MALLOC_STRUCT(struct ccn_clamp_data,
-                                               "concentration clamp data");
-                  memcpy(temp, ccd, sizeof(struct ccn_clamp_data));
+                  temp = CHECKED_MALLOC_STRUCT(struct clamp_data,
+                                               "clamp data");
+                  memcpy(temp, cdp, sizeof(struct clamp_data));
                   temp->objp = objp;
                   temp->sides = NULL;
                   temp->n_sides = 0;
                   temp->side_idx = NULL;
                   temp->cum_area = NULL;
-                  ccd->next_obj = temp;
-                  ccd = temp;
+                  cdp->next_obj = temp;
+                  cdp = temp;
                 }
               }
-              if (ccd->sides == NULL) {
-                ccd->sides = new_bit_array(n_walls);
-                if (ccd->sides == NULL)
+              if (cdp->sides == NULL) {
+                cdp->sides = new_bit_array(n_walls);
+                if (cdp->sides == NULL)
                   mcell_allocfailed("Failed to allocate membership bit array "
                                     "for concentration clamp data.");
-                set_all_bits(ccd->sides, 0);
+                set_all_bits(cdp->sides, 0);
               }
-              set_bit(ccd->sides, n_wall, 1);
-              ccd->n_sides++;
+              set_bit(cdp->sides, n_wall, 1);
+              cdp->n_sides++;
               found_something = 1;
             }
           }
@@ -2438,39 +2438,39 @@ int init_wall_regions(double length_unit, struct ccn_clamp_data *clamp_list,
     }
 
     if (found_something) {
-      for (ccd = clamp_list; ccd != NULL; ccd = ccd->next) {
-        if (ccd->objp != objp) {
-          if (ccd->next_obj != NULL && ccd->next_obj->objp == objp)
-            ccd = ccd->next_obj;
+      for (cdp = clamp_list; cdp != NULL; cdp = cdp->next) {
+        if (cdp->objp != objp) {
+          if (cdp->next_obj != NULL && cdp->next_obj->objp == objp)
+            cdp = cdp->next_obj;
           else
             continue;
         }
 
-        ccd->side_idx = CHECKED_MALLOC_ARRAY(
-            int, ccd->n_sides, "concentration clamp polygon side index");
-        ccd->cum_area = CHECKED_MALLOC_ARRAY(
-            double, ccd->n_sides,
+        cdp->side_idx = CHECKED_MALLOC_ARRAY(
+            int, cdp->n_sides, "concentration clamp polygon side index");
+        cdp->cum_area = CHECKED_MALLOC_ARRAY(
+            double, cdp->n_sides,
             "concentration clamp polygon side cumulative area");
 
         j = 0;
         for (int n_wall = 0; n_wall < n_walls; n_wall++) {
-          if (get_bit(ccd->sides, n_wall)) {
-            ccd->side_idx[j] = n_wall;
-            ccd->cum_area[j] = objp->wall_p[n_wall]->area;
+          if (get_bit(cdp->sides, n_wall)) {
+            cdp->side_idx[j] = n_wall;
+            cdp->cum_area[j] = objp->wall_p[n_wall]->area;
             j++;
           }
         }
-        if (j != ccd->n_sides)
+        if (j != cdp->n_sides)
           mcell_internal_error("Miscounted the number of walls for "
                                "concentration clamp.  object=%s  surface "
                                "class=%s",
-                               objp->sym->name, ccd->surf_class->sym->name);
+                               objp->sym->name, cdp->surf_class->sym->name);
 
-        for (j = 1; j < ccd->n_sides; j++)
-          ccd->cum_area[j] += ccd->cum_area[j - 1];
+        for (j = 1; j < cdp->n_sides; j++)
+          cdp->cum_area[j] += cdp->cum_area[j - 1];
 
-        ccd->scaling_factor =
-            ccd->cum_area[ccd->n_sides - 1] * length_unit *
+        cdp->scaling_factor =
+            cdp->cum_area[cdp->n_sides - 1] * length_unit *
             length_unit * length_unit /
             2.9432976599069717358e-9; /* sqrt(MY_PI)/(1e-15*N_AV) */
       }
@@ -4598,11 +4598,11 @@ void check_for_conflicts_in_surface_class(struct volume *world,
     }
   }
 
-  for (no = sp->clamp_conc_mols; no != NULL; no = no->next) {
+  for (no = sp->clamp_mols; no != NULL; no = no->next) {
     if (absorb_mols_all_mol) {
       if ((all_mol_orient == no->orient) || (all_mol_orient == 0) ||
           (no->orient == 0)) {
-        mcell_error("CLAMP_CONCENTRATION and ABSORPTIVE properties are "
+        mcell_error("CLAMP and ABSORPTIVE properties are "
                     "simultaneously specified for molecule %s through the "
                     "use of ALL_MOLECULES within the surface class '%s'.",
                     no->name, sp->sym->name);
@@ -4618,7 +4618,7 @@ void check_for_conflicts_in_surface_class(struct volume *world,
 
       if ((all_volume_mol_orient == no->orient) ||
           (all_volume_mol_orient == 0) || (no->orient == 0)) {
-        mcell_error("CLAMP_CONCENTRATION and ABSORPTIVE properties are "
+        mcell_error("CLAMP and ABSORPTIVE properties are "
                     "simultaneously specified for molecule %s through the "
                     "use of ALL_VOLUME_MOLECULES within the surface class "
                     "'%s'.",
@@ -4629,7 +4629,7 @@ void check_for_conflicts_in_surface_class(struct volume *world,
     if (transp_mols_all_mol) {
       if ((all_mol_orient == no->orient) || (all_mol_orient == 0) ||
           (no->orient == 0)) {
-        mcell_error("CLAMP_CONCENTRATION and TRANSPARENT properties "
+        mcell_error("CLAMP and TRANSPARENT properties "
                     "are simultaneously specified for molecule %s through "
                     "the use of ALL_MOLECULES within the surface class "
                     "'%s'.",
@@ -4646,7 +4646,7 @@ void check_for_conflicts_in_surface_class(struct volume *world,
 
       if ((all_volume_mol_orient == no->orient) ||
           (all_volume_mol_orient == 0) || (no->orient == 0)) {
-        mcell_error("CLAMP_CONCENTRATION and TRANSPARENT properties are "
+        mcell_error("CLAMP and TRANSPARENT properties are "
                     "simultaneously specified for molecule %s through the "
                     "use of ALL_VOLUME_MOLECULES within the surface class "
                     "'%s'.",
@@ -4657,7 +4657,7 @@ void check_for_conflicts_in_surface_class(struct volume *world,
     if (refl_mols_all_mol) {
       if ((all_mol_orient == no->orient) || (all_mol_orient == 0) ||
           (no->orient == 0)) {
-        mcell_error("CLAMP_CONCENTRATION and REFLECTIVE properties are "
+        mcell_error("CLAMP and REFLECTIVE properties are "
                     "simultaneously specified for molecule %s through the "
                     "use of ALL_MOLECULES within the surface class '%s'.",
                     no->name, sp->sym->name);
@@ -4673,7 +4673,7 @@ void check_for_conflicts_in_surface_class(struct volume *world,
 
       if ((all_volume_mol_orient == no->orient) ||
           (all_volume_mol_orient == 0) || (no->orient == 0)) {
-        mcell_error("CLAMP_CONCENTRATION and REFLECTIVE properties are "
+        mcell_error("CLAMP and REFLECTIVE properties are "
                     "simultaneously specified for molecule %s through the "
                     "use of ALL_VOLUME_MOLECULES within the surface class "
                     "'%s'.",
@@ -4705,11 +4705,11 @@ void check_for_conflicts_in_surface_class(struct volume *world,
         }
       }
     }
-    for (no2 = sp->clamp_conc_mols; no2 != NULL; no2 = no2->next) {
+    for (no2 = sp->clamp_mols; no2 != NULL; no2 = no2->next) {
       if (strcmp(no1->name, no2->name) == 0) {
         if ((no1->orient == no2->orient) || (no1->orient == 0) ||
             (no2->orient == 0)) {
-          mcell_error("TRANSPARENT and CLAMP_CONCENTRATION properties are "
+          mcell_error("TRANSPARENT and CLAMP properties are "
                       "simultaneously specified for the same molecule %s "
                       "within the surface class '%s'.",
                       no1->name, sp->sym->name);
@@ -4731,12 +4731,12 @@ void check_for_conflicts_in_surface_class(struct volume *world,
         }
       }
     }
-    for (no2 = sp->clamp_conc_mols; no2 != NULL; no2 = no2->next) {
+    for (no2 = sp->clamp_mols; no2 != NULL; no2 = no2->next) {
       if (strcmp(no1->name, no2->name) == 0) {
         if ((no1->orient == no2->orient) || (no1->orient == 0) ||
             (no2->orient == 0)) {
           mcell_error(
-              "REFLECTIVE and CLAMP_CONCENTRATION properties are "
+              "REFLECTIVE and CLAMP properties are "
               "simultaneously specified for the same molecule %s within the "
               "surface class '%s'.",
               no1->name, sp->sym->name);
@@ -4746,12 +4746,12 @@ void check_for_conflicts_in_surface_class(struct volume *world,
   }
 
   for (no1 = sp->absorb_mols; no1 != NULL; no1 = no1->next) {
-    for (no2 = sp->clamp_conc_mols; no2 != NULL; no2 = no2->next) {
+    for (no2 = sp->clamp_mols; no2 != NULL; no2 = no2->next) {
       if (strcmp(no1->name, no2->name) == 0) {
         if ((no1->orient == no2->orient) || (no1->orient == 0) ||
             (no2->orient == 0)) {
           mcell_error(
-              "ABSORPTIVE and CLAMP_CONCENTRATION properties are "
+              "ABSORPTIVE and CLAMP properties are "
               "simultaneously specified for the same molecule %s within the "
               "surface class '%s'.",
               no1->name, sp->sym->name);
@@ -4988,8 +4988,8 @@ void check_for_conflicts_in_surface_class(struct volume *world,
     }
   }
 
-  /* Internally CLAMP_CONC reaction is implemented as regular reaction */
-  for (no = sp->clamp_conc_mols; no != NULL; no = no->next) {
+  /* Internally CLAMP reaction is implemented as regular reaction */
+  for (no = sp->clamp_mols; no != NULL; no = no->next) {
     char *mol_name = no->name;
     if (strcmp(mol_name, "ALL_MOLECULES") == 0)
       continue;
@@ -5016,7 +5016,7 @@ void check_for_conflicts_in_surface_class(struct volume *world,
     hashM = mol_sp->hashval;
     hash_value = (hashM + hashW) & (world->rx_hashsize - 1);
 
-    /* count similar oriented CLAMP_CONC and regular reactions */
+    /* count similar oriented CLAMP and regular reactions */
     count_sim_orient_rxns = 0;
     for (inter = world->reaction_hash[hash_value]; inter != NULL;
          inter = inter->next) {
@@ -5031,7 +5031,7 @@ void check_for_conflicts_in_surface_class(struct volume *world,
           i1 = inter->product_idx[1];
           if (((i1 - i0) == 2) && (inter->players[2] == NULL) &&
               (inter->players[3] == NULL)) {
-            /* this is an original CLAMP_CONC reaction */
+            /* this is an original CLAMP reaction */
             continue;
           }
         }
@@ -5051,7 +5051,7 @@ void check_for_conflicts_in_surface_class(struct volume *world,
         }
       }
       if (count_sim_orient_rxns > 0) {
-        mcell_error("Combination of similar oriented CLAMP_CONCENTRATION "
+        mcell_error("Combination of similar oriented CLAMP "
                     "reaction and regular reaction for molecule '%s' on the "
                     "same surface class '%s' is not allowed.",
                     mol_name, sp->sym->name);
@@ -5134,11 +5134,11 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
             }
           }
         }
-        for (no2 = sp2->clamp_conc_mols; no2 != NULL; no2 = no2->next) {
+        for (no2 = sp2->clamp_mols; no2 != NULL; no2 = no2->next) {
           if (strcmp(no->name, no2->name) == 0) {
             if ((no->orient == no2->orient) || (no->orient == 0) ||
                 (no2->orient == 0)) {
-              mcell_error("Conflicting TRANSPARENT and CLAMP_CONCENTRATION "
+              mcell_error("Conflicting TRANSPARENT and CLAMP "
                           "properties are simultaneously specified for the "
                           "same molecule '%s' on the same wall through the "
                           "surface classes '%s' and '%s'.",
@@ -5173,11 +5173,11 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
             }
           }
         }
-        for (no2 = sp2->clamp_conc_mols; no2 != NULL; no2 = no2->next) {
+        for (no2 = sp2->clamp_mols; no2 != NULL; no2 = no2->next) {
           if (strcmp(no->name, no2->name) == 0) {
             if ((no->orient == no2->orient) || (no->orient == 0) ||
                 (no2->orient == 0)) {
-              mcell_error("Conflicting REFLECTIVE and CLAMP_CONCENTRATION "
+              mcell_error("Conflicting REFLECTIVE and CLAMP "
                           "properties are simultaneously specified for the "
                           "same molecule '%s' on the same wall through the "
                           "surface classes '%s' and '%s'.",
@@ -5212,11 +5212,11 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
             }
           }
         }
-        for (no2 = sp2->clamp_conc_mols; no2 != NULL; no2 = no2->next) {
+        for (no2 = sp2->clamp_mols; no2 != NULL; no2 = no2->next) {
           if (strcmp(no->name, no2->name) == 0) {
             if ((no->orient == no2->orient) || (no->orient == 0) ||
                 (no2->orient == 0)) {
-              mcell_error("Conflicting ABSORPTIVE and CLAMP_CONCENTRATION "
+              mcell_error("Conflicting ABSORPTIVE and CLAMP "
                           "properties are simultaneously specified for the "
                           "same molecule '%s' on the same wall through the "
                           "surface classes '%s' and '%s'.",
@@ -5226,12 +5226,12 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
         }
       }
 
-      for (no = sp->clamp_conc_mols; no != NULL; no = no->next) {
+      for (no = sp->clamp_mols; no != NULL; no = no->next) {
         for (no2 = sp2->transp_mols; no2 != NULL; no2 = no2->next) {
           if (strcmp(no->name, no2->name) == 0) {
             if ((no->orient == no2->orient) || (no->orient == 0) ||
                 (no2->orient == 0)) {
-              mcell_error("Conflicting CLAMP_CONCENTRATION and TRANSPARENT "
+              mcell_error("Conflicting CLAMP and TRANSPARENT "
                           "properties are simultaneously specified for the "
                           "same molecule '%s' on the same wall through the "
                           "surface classes '%s' and '%s'.",
@@ -5243,7 +5243,7 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
           if (strcmp(no->name, no2->name) == 0) {
             if ((no->orient == no2->orient) || (no->orient == 0) ||
                 (no2->orient == 0)) {
-              mcell_error("Conflicting CLAMP_CONCENTRATION and REFLECTIVE "
+              mcell_error("Conflicting CLAMP and REFLECTIVE "
                           "properties are simultaneously specified for the "
                           "same molecule '%s' on the same wall through the "
                           "surface classes '%s' and '%s'.",
@@ -5255,7 +5255,7 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
           if (strcmp(no->name, no2->name) == 0) {
             if ((no->orient == no2->orient) || (no->orient == 0) ||
                 (no2->orient == 0)) {
-              mcell_error("Conflicting CLAMP_CONCENTRATION and ABSORPTIVE "
+              mcell_error("Conflicting CLAMP and ABSORPTIVE "
                           "properties are simultaneously specified for the "
                           "same molecule '%s' on the same wall through the "
                           "surface classes '%s' and '%s'.",
@@ -5813,10 +5813,10 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
                         no->name, sp->sym->name, sp2->sym->name);
           }
         }
-        for (no = sp2->clamp_conc_mols; no != NULL; no = no->next) {
+        for (no = sp2->clamp_mols; no != NULL; no = no->next) {
           if ((sp_transp_all_mols_orient == no->orient) ||
               (sp_transp_all_mols_orient == 0) || (no->orient == 0)) {
-            mcell_error("Conflicting TRANSPARENT and CLAMP_CONCENTRATION "
+            mcell_error("Conflicting TRANSPARENT and CLAMP "
                         "properties are simultaneously specified using "
                         "ALL_MOLECULES and molecule %s through the surface "
                         "classes '%s' and '%s'.",
@@ -5860,10 +5860,10 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
                         no->name, sp->sym->name, sp2->sym->name);
           }
         }
-        for (no = sp2->clamp_conc_mols; no != NULL; no = no->next) {
+        for (no = sp2->clamp_mols; no != NULL; no = no->next) {
           if ((sp_transp_all_volume_mols_orient == no->orient) ||
               (sp_transp_all_volume_mols_orient == 0) || (no->orient == 0)) {
-            mcell_error("Conflicting TRANSPARENT and CLAMP_CONCENTRATION "
+            mcell_error("Conflicting TRANSPARENT and CLAMP "
                         "properties are simultaneously specified using "
                         "ALL_VOLUME_MOLECULES and molecule %s through the "
                         "surface classes '%s' and '%s'.",
@@ -5930,10 +5930,10 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
                         no->name, sp->sym->name, sp2->sym->name);
           }
         }
-        for (no = sp->clamp_conc_mols; no != NULL; no = no->next) {
+        for (no = sp->clamp_mols; no != NULL; no = no->next) {
           if ((sp2_transp_all_mols_orient == no->orient) ||
               (sp2_transp_all_mols_orient == 0) || (no->orient == 0)) {
-            mcell_error("Conflicting TRANSPARENT and CLAMP_CONCENTRATION "
+            mcell_error("Conflicting TRANSPARENT and CLAMP "
                         "properties are simultaneously specified using "
                         "ALL_MOLECULES and molecule %s through the surface "
                         "classes '%s' and '%s'.",
@@ -5977,10 +5977,10 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
                         no->name, sp->sym->name, sp2->sym->name);
           }
         }
-        for (no = sp->clamp_conc_mols; no != NULL; no = no->next) {
+        for (no = sp->clamp_mols; no != NULL; no = no->next) {
           if ((sp2_transp_all_volume_mols_orient == no->orient) ||
               (sp2_transp_all_volume_mols_orient == 0) || (no->orient == 0)) {
-            mcell_error("Conflicting TRANSPARENT and CLAMP_CONCENTRATION "
+            mcell_error("Conflicting TRANSPARENT and CLAMP "
                         "properties are simultaneously specified using "
                         "ALL_VOLUME_MOLECULES and molecule %s through the "
                         "surface classes '%s' and '%s'.",
@@ -6047,10 +6047,10 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
                         sp->sym->name, sp2->sym->name);
           }
         }
-        for (no = sp2->clamp_conc_mols; no != NULL; no = no->next) {
+        for (no = sp2->clamp_mols; no != NULL; no = no->next) {
           if ((sp_absorb_all_mols_orient == no->orient) ||
               (sp_absorb_all_mols_orient == 0) || (no->orient == 0)) {
-            mcell_error("Conflicting ABSORPTIVE and CLAMP_CONCENTRATION "
+            mcell_error("Conflicting ABSORPTIVE and CLAMP "
                         "properties are simultaneously specified using "
                         "ALL_MOLECULES through the surface classes '%s' "
                         "and '%s'.",
@@ -6094,10 +6094,10 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
                         sp->sym->name, sp2->sym->name);
           }
         }
-        for (no = sp2->clamp_conc_mols; no != NULL; no = no->next) {
+        for (no = sp2->clamp_mols; no != NULL; no = no->next) {
           if ((sp_absorb_all_volume_mols_orient == no->orient) ||
               (sp_absorb_all_volume_mols_orient == 0) || (no->orient == 0)) {
-            mcell_error("Conflicting ABSORPTIVE and CLAMP_CONCENTRATION "
+            mcell_error("Conflicting ABSORPTIVE and CLAMP "
                         "properties are simultaneously specified using "
                         "ALL_VOLUME_MOLECULES through the surface classes "
                         "'%s' and '%s'.",
@@ -6164,10 +6164,10 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
                         no->name, sp->sym->name, sp2->sym->name);
           }
         }
-        for (no = sp->clamp_conc_mols; no != NULL; no = no->next) {
+        for (no = sp->clamp_mols; no != NULL; no = no->next) {
           if ((sp2_absorb_all_mols_orient == no->orient) ||
               (sp2_absorb_all_mols_orient == 0) || (no->orient == 0)) {
-            mcell_error("Conflicting ABSORPTIVE and CLAMP_CONCENTRATION "
+            mcell_error("Conflicting ABSORPTIVE and CLAMP "
                         "properties are simultaneously specified using "
                         "ALL_MOLECULES and molecule %s through the surface "
                         "classes '%s' and '%s'.",
@@ -6209,10 +6209,10 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
                         no->name, sp->sym->name, sp2->sym->name);
           }
         }
-        for (no = sp->clamp_conc_mols; no != NULL; no = no->next) {
+        for (no = sp->clamp_mols; no != NULL; no = no->next) {
           if ((sp2_absorb_all_volume_mols_orient == no->orient) ||
               (sp2_absorb_all_volume_mols_orient == 0) || (no->orient == 0)) {
-            mcell_error("Conflicting ABSORPTIVE and CLAMP_CONCENTRATION "
+            mcell_error("Conflicting ABSORPTIVE and CLAMP "
                         "properties are simultaneously specified using "
                         "ALL_VOLUME_MOLECULES and molecule %s through the "
                         "surface classes '%s' and '%s'.",
@@ -6277,10 +6277,10 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
                         no->name, sp->sym->name, sp2->sym->name);
           }
         }
-        for (no = sp2->clamp_conc_mols; no != NULL; no = no->next) {
+        for (no = sp2->clamp_mols; no != NULL; no = no->next) {
           if ((sp_refl_all_mols_orient == no->orient) ||
               (sp_refl_all_mols_orient == 0) || (no->orient == 0)) {
-            mcell_error("Conflicting REFLECTIVE and CLAMP_CONCENTRATION "
+            mcell_error("Conflicting REFLECTIVE and CLAMP "
                         "properties are simultaneously specified using "
                         "ALL_MOLECULES and molecule %s through the surface "
                         "classes '%s' and '%s'.",
@@ -6322,10 +6322,10 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
                         no->name, sp->sym->name, sp2->sym->name);
           }
         }
-        for (no = sp2->clamp_conc_mols; no != NULL; no = no->next) {
+        for (no = sp2->clamp_mols; no != NULL; no = no->next) {
           if ((sp_refl_all_volume_mols_orient == no->orient) ||
               (sp_refl_all_volume_mols_orient == 0) || (no->orient == 0)) {
-            mcell_error("Conflicting REFLECTIVE and CLAMP_CONCENTRATION "
+            mcell_error("Conflicting REFLECTIVE and CLAMP "
                         "properties are simultaneously specified using "
                         "ALL_VOLUME_MOLECULES and molecule %s through the "
                         "surface classes '%s' and '%s'.",
@@ -6390,10 +6390,10 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
                         no->name, sp->sym->name, sp2->sym->name);
           }
         }
-        for (no = sp->clamp_conc_mols; no != NULL; no = no->next) {
+        for (no = sp->clamp_mols; no != NULL; no = no->next) {
           if ((sp2_refl_all_mols_orient == no->orient) ||
               (sp2_refl_all_mols_orient == 0) || (no->orient == 0)) {
-            mcell_error("Conflicting REFLECTIVE and CLAMP_CONCENTRATION "
+            mcell_error("Conflicting REFLECTIVE and CLAMP "
                         "properties are simultaneously specified using "
                         "ALL_MOLECULES and molecule %s through the surface "
                         "classes '%s' and '%s'.",
@@ -6435,10 +6435,10 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
                         no->name, sp->sym->name, sp2->sym->name);
           }
         }
-        for (no = sp->clamp_conc_mols; no != NULL; no = no->next) {
+        for (no = sp->clamp_mols; no != NULL; no = no->next) {
           if ((sp2_refl_all_volume_mols_orient == no->orient) ||
               (sp2_refl_all_volume_mols_orient == 0) || (no->orient == 0)) {
-            mcell_error("Conflicting REFLECTIVE and CLAMP_CONCENTRATION "
+            mcell_error("Conflicting REFLECTIVE and CLAMP "
                         "properties are simultaneously specified using "
                         "ALL_VOLUME_MOLECULES and molecule %s through the "
                         "surface classes '%s' and '%s'.",
@@ -6655,9 +6655,9 @@ int check_for_overlapped_walls(
 
 /* this function checks if obj is contained in the linked list of objects
  * which have the passed-in concentration clamp */
-struct ccn_clamp_data* find_clamped_object_in_list(struct ccn_clamp_data *ccd,
+struct clamp_data* find_clamped_object_in_list(struct clamp_data *cdp,
   struct object *obj) {
-  struct ccn_clamp_data *c = ccd;
+  struct clamp_data *c = cdp;
   while (c->next_obj != NULL) {
     if (c->next_obj->objp == obj) {
       return c->next_obj;

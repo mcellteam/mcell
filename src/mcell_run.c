@@ -418,7 +418,7 @@ mcell_run_iteration(MCELL_STATE *world, long long frequency,
   // reset this flag to zero
   *restarted_from_checkpoint = 0;
 
-  run_concentration_clamp(world, world->current_iterations);
+  run_clamp(world, world->current_iterations);
 
   double next_release_time;
   if (!schedule_anticipate(world->releaser, &next_release_time))

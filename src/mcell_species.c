@@ -292,7 +292,7 @@ struct species *assemble_mol_species(MCELL_STATE *state,
   new_spec->refl_mols = NULL;
   new_spec->transp_mols = NULL;
   new_spec->absorb_mols = NULL;
-  new_spec->clamp_conc_mols = NULL;
+  new_spec->clamp_mols = NULL;
 
   species->custom_time_step = new_spec->time_step;
   species->space_step = new_spec->space_step;

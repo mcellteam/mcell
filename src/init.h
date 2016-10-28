@@ -53,11 +53,11 @@ int instance_release_site(struct mem_helper *magic_mem,
 int instance_polygon_object(enum warn_level_t degenerate_polys,
                             struct object *objp);
 
-void init_clamp_lists(struct ccn_clamp_data *clamp_list);
+void init_clamp_lists(struct clamp_data *clamp_list);
 
 int instance_obj_regions(struct volume *world, struct object *objp);
 
-int init_wall_regions(double length_unit, struct ccn_clamp_data *clamp_list,
+int init_wall_regions(double length_unit, struct clamp_data *clamp_list,
                       struct species **species_list, int n_species,
                       struct object *objp);
 

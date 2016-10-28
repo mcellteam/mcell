@@ -598,14 +598,15 @@ mcell_add_surface_reaction(struct sym_table_head *rxn_sym_table,
 
 /*************************************************************************
  *
- * mcell_add_concentration_clamp adds a surface clamp to the simulation
+ * mcell_add_clamp adds a surface clamp to the simulation
  *
  *************************************************************************/
 MCELL_STATUS
-mcell_add_concentration_clamp(struct sym_table_head *rxn_sym_table,
+mcell_add_clamp(struct sym_table_head *rxn_sym_table,
                               struct species *surface_class,
                               struct sym_entry *mol_sym, short orient,
-                              double conc) {
+                              int clamp_type,
+                              double clamp_value) {
   struct rxn *rxnp;
   struct pathway *pathp;
   struct sym_entry *stp3;
@@ -629,7 +630,7 @@ mcell_add_concentration_clamp(struct sym_table_head *rxn_sym_table,
     // diffusing in 3D");
     return MCELL_FAIL;
   }
-  if (conc < 0) {
+  if (clamp_value < 0) {
     // mdlerror(parse_state, "Concentration can only be clamped to positive
     // values.");
     return MCELL_FAIL;
@@ -669,9 +670,7 @@ mcell_add_concentration_clamp(struct sym_table_head *rxn_sym_table,
   pathp->reactant3 = NULL;
   pathp->flags = 0;
 
-  pathp->flags |= PATHW_CLAMP_CONC;
-
-  pathp->km = conc;
+  pathp->km = clamp_value;
   pathp->km_filename = NULL;
 
   pathp->orientation1 = 1;
@@ -682,23 +681,52 @@ mcell_add_concentration_clamp(struct sym_table_head *rxn_sym_table,
     pathp->orientation2 = (orient < 0) ? -1 : 1;
   }
 
-  pathp->product_head = NULL;
-  pathp->prod_signature = NULL;
+  if (clamp_type == CLAMP_TYPE_CONC) {
+    pathp->flags |= PATHW_CLAMP_CONC;
 
-  pathp->next = rxnp->pathway_head;
-  rxnp->pathway_head = pathp;
+    pathp->product_head = NULL;
+    pathp->prod_signature = NULL;
+  }
+  else {
+    pathp->flags |= PATHW_CLAMP_FLUX;
+
+    struct product *prodp;
+    prodp = (struct product *)CHECKED_MALLOC_STRUCT(struct product,
+                                                    "reaction product");
+    if (prodp == NULL) {
+      free(pathp);
+      return MCELL_FAIL;
+    }
+
+    prodp->prod = pathp->reactant2;
+    prodp->orientation = 1;
+    prodp->next = NULL;
+    pathp->product_head = prodp;
+    if (pathp->product_head != NULL) {
+      pathp->prod_signature = create_prod_signature(&pathp->product_head);
+      if (pathp->prod_signature == NULL) {
+        // mdlerror(parse_state, "Error creating 'prod_signature' field for the
+        // reaction pathway.");
+        free(pathp);
+        return MCELL_FAIL;
+      }
+    }
+  }
 
   no = CHECKED_MALLOC_STRUCT(struct name_orient, "struct name_orient");
   no->name = CHECKED_STRDUP(mol_sym->name, "molecule name");
   no->orient = pathp->orientation2;
 
-  if (surface_class->clamp_conc_mols == NULL) {
+  if (surface_class->clamp_mols == NULL) {
     no->next = NULL;
-    surface_class->clamp_conc_mols = no;
+    surface_class->clamp_mols = no;
   } else {
-    no->next = surface_class->clamp_conc_mols;
-    surface_class->clamp_conc_mols = no;
+    no->next = surface_class->clamp_mols;
+    surface_class->clamp_mols = no;
   }
+
+  pathp->next = rxnp->pathway_head;
+  rxnp->pathway_head = pathp;
 
   return MCELL_SUCCESS;
 }
@@ -871,42 +899,48 @@ int init_reactions(MCELL_STATE *state) {
 
           rx->product_idx[n_pathway] = 0;
 
-          /* Look for concentration clamp */
-          if (path->reactant2 != NULL &&
-              (path->reactant2->flags & IS_SURFACE) != 0 && path->km >= 0.0 &&
-              path->product_head == NULL &&
-              ((path->flags & PATHW_CLAMP_CONC) != 0)) {
-            struct ccn_clamp_data *ccd;
+          /* Look for clamp */
+          if ( path->reactant2 != NULL
+               && (path->reactant2->flags & IS_SURFACE) != 0
+               && path->km >= 0.0 && path->product_head == NULL
+               && ( ((path->flags & PATHW_CLAMP_CONC) != 0) || ((path->flags & PATHW_CLAMP_FLUX) != 0) ) ) {
+            struct clamp_data *cdp;
 
             if (n_pathway != 0 || path->next != NULL)
               mcell_warn("Mixing surface modes with other surface reactions.  "
                          "Please don't.");
 
             if (path->km > 0) {
-              ccd = CHECKED_MALLOC_STRUCT(struct ccn_clamp_data,
-                                          "concentration clamp data");
-              if (ccd == NULL)
+              cdp = CHECKED_MALLOC_STRUCT(struct clamp_data,
+                                          "clamp data");
+              if (cdp == NULL)
                 return 1;
 
-              ccd->surf_class = path->reactant2;
-              ccd->mol = path->reactant1;
-              ccd->concentration = path->km;
+              cdp->surf_class = path->reactant2;
+              cdp->mol = path->reactant1;
+              cdp->clamp_value = path->km;
+              if ((path->flags & PATHW_CLAMP_CONC) != 0) {
+                cdp->clamp_type = CLAMP_TYPE_CONC;
+              }
+              else {
+                cdp->clamp_type = CLAMP_TYPE_FLUX;
+              }
               if (path->orientation1 * path->orientation2 == 0) {
-                ccd->orient = 0;
+                cdp->orient = 0;
               } else {
-                ccd->orient =
+                cdp->orient =
                     (path->orientation1 == path->orientation2) ? 1 : -1;
               }
-              ccd->sides = NULL;
-              ccd->next_mol = NULL;
-              ccd->next_obj = NULL;
-              ccd->objp = NULL;
-              ccd->n_sides = 0;
-              ccd->side_idx = NULL;
-              ccd->cum_area = NULL;
-              ccd->scaling_factor = 0.0;
-              ccd->next = state->clamp_list;
-              state->clamp_list = ccd;
+              cdp->sides = NULL;
+              cdp->next_mol = NULL;
+              cdp->next_obj = NULL;
+              cdp->objp = NULL;
+              cdp->n_sides = 0;
+              cdp->side_idx = NULL;
+              cdp->cum_area = NULL;
+              cdp->scaling_factor = 0.0;
+              cdp->next = state->clamp_list;
+              state->clamp_list = cdp;
             }
             path->km = GIGANTIC;
           } else if ((path->flags & PATHW_TRANSP) != 0) {

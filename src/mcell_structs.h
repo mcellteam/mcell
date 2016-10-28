@@ -204,10 +204,16 @@ enum manifold_flag_t {
 // TRANSPARENT means surface reaction between the molecule and TRANSPARENT wall
 // REFLECTIVE means surface reaction between the molecule and REFLECTIVE wall
 // CLAMP_CONC means surface reaction of CLAMP_CONCENTRATION type
+// CLAMP_FLUX means surface reaction of CLAMP_FLUX type
 #define PATHW_TRANSP 0x0001
 #define PATHW_REFLEC 0x0002
 #define PATHW_ABSORP 0x0004
 #define PATHW_CLAMP_CONC 0x0008
+#define PATHW_CLAMP_FLUX 0x0010
+
+/* Clamp types */
+#define CLAMP_TYPE_CONC 0x0000
+#define CLAMP_TYPE_FLUX 0x0001
 
 #define BRANCH_X 0x04
 #define BRANCH_Y 0x08
@@ -582,8 +588,8 @@ struct species {
   struct name_orient *
   transp_mols; /* names of the mols that are TRANSPARENT for surface */
   struct name_orient *absorb_mols; // names of the mols that ABSORB at surface
-  struct name_orient *clamp_conc_mols; /* names of mols that CLAMP_CONC at
-                                          surface */
+  struct name_orient *clamp_mols; /* names of mols that CLAMP_CONC or
+                                          CLAMP_FLUX at surface */
 };
 
 /* All pathways leading away from a given intermediate */
@@ -1202,9 +1208,9 @@ struct volume {
   // XXX: Why do we allocate this on the heap rather than including it inline?
   struct notifications *notify; /* Notification/warning/output flags */
 
-  struct ccn_clamp_data *clamp_list; /* List of objects at which volume
-                                        molecule concentrations should be
-                                        clamped */
+  struct clamp_data *clamp_list; /* List of objects at which volume
+                                        molecule concentration or flux
+                                        should be clamped */
 
   /* Flags for asynchronously-triggered checkpoints */
 
@@ -1438,11 +1444,12 @@ struct notifications {
 };
 
 /* Information related to concentration clamp surfaces, by object */
-struct ccn_clamp_data {
-  struct ccn_clamp_data *next; // The next concentration clamp, by surf class
+struct clamp_data {
+  struct clamp_data *next;    // The next clamp, by surf class
   struct species *surf_class; /* Which surface class clamps? */
   struct species *mol;        /* Which molecule does it clamp? */
-  double concentration;       /* At which concentration? */
+  int clamp_type;             /* Type of clamp, CLAMP_TYPE_CONC or FLUX */
+  double clamp_value;         /* At what concentration or flux value? */
   short orient;               /* On which side? */
   struct object *objp;        /* Which object are we clamping? */
   struct bit_array *sides;    /* Which walls in that object? */
@@ -1450,8 +1457,8 @@ struct ccn_clamp_data {
   int *side_idx;              /* Indices of the walls that are clamped */
   double *cum_area;           /* Cumulative area of all the clamped walls */
   double scaling_factor;      /* Used to predict #mols/timestep */
-  struct ccn_clamp_data *next_mol; /* Next clamp, by molecule, for this class */
-  struct ccn_clamp_data *next_obj; /* Next clamp, by object, for this class */
+  struct clamp_data *next_mol; /* Next clamp, by molecule, for this class */
+  struct clamp_data *next_obj; /* Next clamp, by object, for this class */
 };
 
 /* Structure for a VOLUME_DATA_OUTPUT item */

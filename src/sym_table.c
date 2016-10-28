@@ -217,7 +217,7 @@ struct species *new_species(void) {
   specp->refl_mols = NULL;
   specp->transp_mols = NULL;
   specp->absorb_mols = NULL;
-  specp->clamp_conc_mols = NULL;
+  specp->clamp_mols = NULL;
 
   return specp;
 }
