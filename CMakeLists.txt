@@ -226,6 +226,7 @@ add_executable(mcell
   ${BISON_mdlParser_OUTPUTS}
   ${FLEX_mdlScanner_OUTPUTS})
 target_link_libraries(mcell ${M_LIB})
+TARGET_COMPILE_DEFINITIONS(mcell PRIVATE NOSWIG=1)
 
 # build little libmcell test
 #add_executable(libmcell_test
