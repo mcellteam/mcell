@@ -22,6 +22,7 @@
 #include "mcell_surfclass.h"
 #include "mcell_run.h"
 #include "mcell_structs.h"
+#include "mcell_dyngeom.h"
 #include "vector.h"
 
 
@@ -44,6 +45,7 @@
 %include "mcell_surfclass.i"
 %include "mcell_run.i"
 %include "mcell_structs.i"
+%include "mcell_dyngeom.i"
 %include "vector.i"
 
 

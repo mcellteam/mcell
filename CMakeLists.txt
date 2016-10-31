@@ -190,6 +190,7 @@ SWIG_ADD_MODULE(pymcell python
   src/mcell_species.c
   src/mcell_surfclass.c
   src/mcell_viz.c
+  src/mcell_dyngeom.c
   src/mem_util.c
   src/pymcell.i
   src/react_cond.c

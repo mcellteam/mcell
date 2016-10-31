@@ -27,6 +27,7 @@
 #include "mcell_misc.h"
 #include "init.h"
 #include "mcell_dyngeom.h"
+#include "dyngeom.h"
 
 int mcell_add_dynamic_geometry_file(char *dynamic_geometry_filepath,
                                     struct mdlparse_vars *parse_state) {
@@ -37,4 +38,8 @@ int mcell_add_dynamic_geometry_file(char *dynamic_geometry_filepath,
   schedule_dynamic_geometry(parse_state);
   free(dynamic_geometry_filepath);
   return 0;
+}
+
+int mcell_update_geometry(struct volume *state) {
+  state->all_molecules = save_all_molecules(state, state->storage_head);
 }

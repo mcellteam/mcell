@@ -124,6 +124,7 @@ def main():
         # need to do something analagous when interfacing with pyNEURON.
         if (vm3_count > 400):
             m.mcell_modify_rate_constant(world, "rxn", 1e8)
+            m.mcell_update_geometry(world)
         m.mcell_run_iteration(world, output_freq, 0)
     m.mcell_flush_data(world)
     m.mcell_print_final_warnings(world)

@@ -27,4 +27,5 @@
 int mcell_add_dynamic_geometry_file(char *dynamic_geometry_filepath,
                                     struct mdlparse_vars *parse_state);
 
+int mcell_update_geometry(struct volume *state);
 #endif
