@@ -5031,7 +5031,12 @@ void check_for_conflicts_in_surface_class(struct volume *world,
           i1 = inter->product_idx[1];
           if (((i1 - i0) == 2) && (inter->players[2] == NULL) &&
               (inter->players[3] == NULL)) {
-            /* this is an original CLAMP reaction */
+            /* this is an original CLAMP_CONC reaction */
+            continue;
+          }
+          if (((i1 - i0) == 2) && (inter->players[0] == inter->players[2]) &&
+              (inter->players[3] == NULL)) {
+            /* this is an original CLAMP_FLUX reaction */
             continue;
           }
         }

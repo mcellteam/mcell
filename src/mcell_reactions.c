@@ -699,7 +699,7 @@ mcell_add_clamp(struct sym_table_head *rxn_sym_table,
     }
 
     prodp->prod = pathp->reactant2;
-    prodp->orientation = 1;
+    prodp->orientation = pathp->orientation2;
     prodp->next = NULL;
     pathp->product_head = prodp;
     if (pathp->product_head != NULL) {
@@ -902,8 +902,12 @@ int init_reactions(MCELL_STATE *state) {
           /* Look for clamp */
           if ( path->reactant2 != NULL
                && (path->reactant2->flags & IS_SURFACE) != 0
-               && path->km >= 0.0 && path->product_head == NULL
-               && ( ((path->flags & PATHW_CLAMP_CONC) != 0) || ((path->flags & PATHW_CLAMP_FLUX) != 0) ) ) {
+               && path->km >= 0.0
+               && ( ( path->product_head == NULL && (path->flags & PATHW_CLAMP_CONC) != 0 )
+                  ||
+                  ( path->product_head != NULL && (path->flags & PATHW_CLAMP_FLUX) != 0 ) )
+             ) {
+
             struct clamp_data *cdp;
 
             if (n_pathway != 0 || path->next != NULL)
@@ -2779,7 +2783,7 @@ struct rxn *split_reaction(struct rxn *rx) {
   head->n_pathways = 1;
   while (to_place != NULL) {
     if (to_place->flags &
-        (PATHW_TRANSP | PATHW_REFLEC | PATHW_ABSORP | PATHW_CLAMP_CONC)) {
+        (PATHW_TRANSP | PATHW_REFLEC | PATHW_ABSORP | PATHW_CLAMP_CONC | PATHW_CLAMP_FLUX)) {
       reaction = create_sibling_reaction(rx);
       if (reaction == NULL)
         return NULL;
