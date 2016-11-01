@@ -115,6 +115,7 @@ def main():
     m.mcell_init_output(world)
 
     output_freq = 10
+    string_buffs = m.mesh_region_string_buffs()
     for i in range(iterations):
         vm3_count = m.mcell_get_count(
             "vm3", "%s.%s,ALL" % (scene_name, box_name), world)
@@ -122,10 +123,15 @@ def main():
         # When vm3 hits some arbitrary threshold value (i.e. 400), ramp up the
         # rate constant of vm3->NULL. This is just a simple test, but we'll
         # need to do something analagous when interfacing with pyNEURON.
-        if (vm3_count > 400):
-            m.mcell_modify_rate_constant(world, "rxn", 1e8)
+        # if (vm3_count > 400):
+        #     m.mcell_modify_rate_constant(world, "rxn", 1e8)
         if (i == 49):
-            m.mcell_update_geometry(world)
+            m.mcell_destroy_everything(world, string_buffs)
+            scene = m.create_instance_object(world, "Scene2")
+            box_mesh = m.create_box(world, scene, 0.15, box_name)
+            box_region = m.create_surface_region(
+                world, box_mesh, box_face_list, box_region_name)
+            m.mcell_reinitialize(world, string_buffs)
         m.mcell_run_iteration(world, output_freq, 0)
     m.mcell_flush_data(world)
     m.mcell_print_final_warnings(world)

@@ -24,8 +24,16 @@
 #ifndef MCELL_DYNGEOM_H
 #define MCELL_DYNGEOM_H
 
+struct mesh_region_string_buffs {
+  struct string_buffer *old_inst_mesh_names;
+  struct string_buffer *old_region_names;
+};
+
 int mcell_add_dynamic_geometry_file(char *dynamic_geometry_filepath,
                                     struct mdlparse_vars *parse_state);
 
-int mcell_update_geometry(struct volume *state);
+int mcell_destroy_everything(
+    struct volume *state,
+    struct mesh_region_string_buffs *string_buffs);
+
 #endif

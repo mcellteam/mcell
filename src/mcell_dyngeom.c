@@ -53,7 +53,9 @@ int mcell_add_dynamic_geometry_file(char *dynamic_geometry_filepath,
   return 0;
 }
 
-int mcell_update_geometry(struct volume *state) {
+int mcell_destroy_everything(
+    struct volume *state,
+    struct mesh_region_string_buffs *string_buffs) {
   state->all_molecules = save_all_molecules(state, state->storage_head);
 
   // Turn off progress reports to avoid spamming mostly useless info to stdout
@@ -65,20 +67,16 @@ int mcell_update_geometry(struct volume *state) {
   // Make list of already existing regions with fully qualified names.
   struct string_buffer *old_region_names =
       CHECKED_MALLOC_STRUCT(struct string_buffer, "string buffer");
+  string_buffs->old_region_names = old_region_names;
   initialize_string_buffer(old_region_names, MAX_NUM_OBJECTS);
-  get_reg_names_all_objects(state->root_instance, old_region_names);
+  get_reg_names_all_objects(state->root_instance, string_buffs->old_region_names);
 
   // Make list of already existing meshes with fully qualified names.
-  struct string_buffer *old_inst_mesh_names =
+  struct string_buffer *old_inst_mesh_names = 
       CHECKED_MALLOC_STRUCT(struct string_buffer, "string buffer");
+  string_buffs->old_inst_mesh_names = old_inst_mesh_names;
   initialize_string_buffer(old_inst_mesh_names, MAX_NUM_OBJECTS);
   get_mesh_instantiation_names(state->root_instance, old_inst_mesh_names);
-
-  /*state->mdl_infile_name = dyn_geom->mdl_file_path;*/
-  /*if (mcell_redo_geom(state)) {*/
-  /*  mcell_error("An error occurred while processing geometry changes.");*/
-  /*}*/
-  // FIX MCELL_REDO_GEOM
 
   // We set this mainly to take care of some issues with counting, triggers,
   // memory cleanup.
@@ -90,68 +88,38 @@ int mcell_update_geometry(struct volume *state) {
     state->count_hash),
     "Error when reseting counters.");
 
-  struct vector3 llf;
-  struct vector3 urb;
-  if (state->periodic_box_obj) {
-    struct polygon_object* p = (struct polygon_object*)(state->periodic_box_obj->contents);
-    struct subdivided_box* sb = p->sb;
-    llf.x = sb->x[0];
-    llf.y = sb->y[0];
-    llf.z = sb->z[0];
+  /*struct vector3 llf;*/
+  /*struct vector3 urb;*/
+  /*if (state->periodic_box_obj) {*/
+  /*  struct polygon_object* p = (struct polygon_object*)(state->periodic_box_obj->contents);*/
+  /*  struct subdivided_box* sb = p->sb;*/
+  /*  llf.x = sb->x[0];*/
+  /*  llf.y = sb->y[0];*/
+  /*  llf.z = sb->z[0];*/
        
-    urb.x = sb->x[1];
-    urb.y = sb->y[1];
-    urb.z = sb->z[1];
-  }
+  /*  urb.x = sb->x[1];*/
+  /*  urb.y = sb->y[1];*/
+  /*  urb.z = sb->z[1];*/
+  /*}*/
 
   CHECKED_CALL(destroy_everything(state), "Error when freeing memory.");
   // We need to reenable the ability to parse geometry
   state->disable_polygon_objects = 0;
   // Reparse the geometry and instantiations. Nothing else should be included
   // in these other MDLs.
-/*#ifdef NOSWIG*/
-/*  CHECKED_CALL(parse_input(state),*/
-/*               "An error occured during parsing of the mdl file.");*/
-/*#endif*/
-  double hl = 0.2;
-  struct vertex_list *verts = mcell_add_to_vertex_list(hl, hl, -hl, NULL);
-  verts = mcell_add_to_vertex_list(hl, -hl, -hl, verts);
-  verts = mcell_add_to_vertex_list(-hl, -hl, -hl, verts);
-  verts = mcell_add_to_vertex_list(-hl, hl, -hl, verts);
-  verts = mcell_add_to_vertex_list(hl, hl, hl, verts);
-  verts = mcell_add_to_vertex_list(hl, -hl, hl, verts);
-  verts = mcell_add_to_vertex_list(-hl, -hl, hl, verts);
-  verts = mcell_add_to_vertex_list(-hl, hl, hl, verts);
+  return 0;
+}
 
-  struct element_connection_list *elems =
-      mcell_add_to_connection_list(1, 2, 3, NULL);
-  elems = mcell_add_to_connection_list(7, 6, 5, elems);
-  elems = mcell_add_to_connection_list(0, 4, 5, elems);
-  elems = mcell_add_to_connection_list(1, 5, 6, elems);
-  elems = mcell_add_to_connection_list(6, 7, 3, elems);
-  elems = mcell_add_to_connection_list(0, 3, 7, elems);
-  elems = mcell_add_to_connection_list(0, 1, 3, elems);
-  elems = mcell_add_to_connection_list(4, 7, 5, elems);
-  elems = mcell_add_to_connection_list(1, 0, 5, elems);
-  elems = mcell_add_to_connection_list(2, 1, 6, elems);
-  elems = mcell_add_to_connection_list(2, 6, 3, elems);
-  elems = mcell_add_to_connection_list(4, 0, 7, elems);
 
-  struct poly_object polygon = { "Box", verts, 8, elems, 12 };
-  struct object *new_mesh = NULL;
-  mcell_create_poly_object(state, state->root_instance, &polygon, &new_mesh);
-
-  struct region *test_region = mcell_create_region(state, new_mesh, "side");
-  struct element_list *region_list = mcell_add_to_region_list(NULL, 0);
-  region_list = mcell_add_to_region_list(region_list, 1);
-  mcell_set_region_elements(test_region, region_list, 1);
+int mcell_reinitialize(
+    struct volume *state,
+    struct mesh_region_string_buffs *string_buffs) {
 
   CHECKED_CALL(init_bounding_box(state), "Error initializing bounding box.");
-  // This should ideally be in destroy_everything
   free(state->subvol);
-  if (state->periodic_box_obj) {
-    mcell_create_periodic_box(state, "PERIODIC_BOX_INST", &llf, &urb);
-  }
+  /*if (state->periodic_box_obj) {*/
+  /*  mcell_create_periodic_box(state, "PERIODIC_BOX_INST", &llf, &urb);*/
+  /*}*/
   CHECKED_CALL(init_partitions(state), "Error initializing partitions.");
   CHECKED_CALL(init_vertices_walls(state),
                "Error initializing vertices and walls.");
@@ -170,7 +138,6 @@ int mcell_update_geometry(struct volume *state) {
   }
   CHECKED_CALL(init_species_mesh_transp(state),
                "Error while initializing species-mesh transparency list.");
-  // END FIX MCELL_REDO_GEOM
 
   // Make NEW list of fully qualified region names.
   struct string_buffer *new_region_names =
@@ -189,7 +156,7 @@ int mcell_update_geometry(struct volume *state) {
   initialize_string_buffer(meshes_to_ignore, MAX_NUM_OBJECTS);
   // Compare old list of mesh names with new list. 
   sym_diff_string_buffers(
-    meshes_to_ignore, old_inst_mesh_names, new_inst_mesh_names,
+    meshes_to_ignore, string_buffs->old_inst_mesh_names, new_inst_mesh_names,
     state->notify->add_remove_mesh_warning);
 
   struct string_buffer *regions_to_ignore =
@@ -197,7 +164,7 @@ int mcell_update_geometry(struct volume *state) {
   initialize_string_buffer(regions_to_ignore, MAX_NUM_OBJECTS);
   // Compare old list of region names with new list. 
   sym_diff_string_buffers(
-    regions_to_ignore, old_region_names, new_region_names,
+    regions_to_ignore, string_buffs->old_region_names, new_region_names,
     state->notify->add_remove_mesh_warning);
 
   check_count_validity(
@@ -208,15 +175,15 @@ int mcell_update_geometry(struct volume *state) {
       new_inst_mesh_names);
   place_all_molecules(state, meshes_to_ignore, regions_to_ignore);
 
-  destroy_string_buffer(old_region_names);
+  destroy_string_buffer(string_buffs->old_region_names);
   destroy_string_buffer(new_region_names);
-  destroy_string_buffer(old_inst_mesh_names);
+  destroy_string_buffer(string_buffs->old_inst_mesh_names);
   destroy_string_buffer(new_inst_mesh_names);
   destroy_string_buffer(meshes_to_ignore);
   destroy_string_buffer(regions_to_ignore);
-  free(old_region_names);
+  free(string_buffs->old_region_names);
   free(new_region_names);
-  free(old_inst_mesh_names);
+  free(string_buffs->old_inst_mesh_names);
   free(new_inst_mesh_names);
   free(meshes_to_ignore);
   free(regions_to_ignore);
