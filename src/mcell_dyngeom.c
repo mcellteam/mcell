@@ -53,9 +53,7 @@ int mcell_add_dynamic_geometry_file(char *dynamic_geometry_filepath,
   return 0;
 }
 
-int mcell_destroy_everything(
-    struct volume *state,
-    struct mesh_region_string_buffs *string_buffs) {
+int mcell_do_dg(struct volume *state, struct poly_object *poly_obj) {
   state->all_molecules = save_all_molecules(state, state->storage_head);
 
   // Turn off progress reports to avoid spamming mostly useless info to stdout
@@ -67,14 +65,12 @@ int mcell_destroy_everything(
   // Make list of already existing regions with fully qualified names.
   struct string_buffer *old_region_names =
       CHECKED_MALLOC_STRUCT(struct string_buffer, "string buffer");
-  string_buffs->old_region_names = old_region_names;
   initialize_string_buffer(old_region_names, MAX_NUM_OBJECTS);
-  get_reg_names_all_objects(state->root_instance, string_buffs->old_region_names);
+  get_reg_names_all_objects(state->root_instance, old_region_names);
 
   // Make list of already existing meshes with fully qualified names.
   struct string_buffer *old_inst_mesh_names = 
       CHECKED_MALLOC_STRUCT(struct string_buffer, "string buffer");
-  string_buffs->old_inst_mesh_names = old_inst_mesh_names;
   initialize_string_buffer(old_inst_mesh_names, MAX_NUM_OBJECTS);
   get_mesh_instantiation_names(state->root_instance, old_inst_mesh_names);
 
@@ -107,13 +103,20 @@ int mcell_destroy_everything(
   state->disable_polygon_objects = 0;
   // Reparse the geometry and instantiations. Nothing else should be included
   // in these other MDLs.
-  return 0;
-}
 
+  struct object *world_object = NULL;
+  mcell_create_instance_object(state, "Scene", &world_object);
 
-int mcell_reinitialize(
-    struct volume *state,
-    struct mesh_region_string_buffs *string_buffs) {
+  struct object *new_mesh = NULL;
+  mcell_create_poly_object(state, world_object, poly_obj, &new_mesh);
+
+  /****************************************************************************
+   * begin code for creating a region
+   ****************************************************************************/
+  struct region *test_region = mcell_create_region(state, new_mesh, "half_torus");
+  struct element_list *region_list = mcell_add_to_region_list(NULL, 0);
+  region_list = mcell_add_to_region_list(region_list, 1);
+  mcell_set_region_elements(test_region, region_list, 1);
 
   CHECKED_CALL(init_bounding_box(state), "Error initializing bounding box.");
   free(state->subvol);
@@ -123,9 +126,7 @@ int mcell_reinitialize(
   CHECKED_CALL(init_partitions(state), "Error initializing partitions.");
   CHECKED_CALL(init_vertices_walls(state),
                "Error initializing vertices and walls.");
-  // FIXME: This currently causes MCell to crash, so comment out until we
-  // figure out what's going on.
-  /*CHECKED_CALL(init_regions(state), "Error initializing regions.");*/
+  CHECKED_CALL(init_regions(state), "Error initializing regions.");
 
   if (state->place_waypoints_flag) {
     CHECKED_CALL(place_waypoints(state), "Error while placing waypoints.");
@@ -156,7 +157,7 @@ int mcell_reinitialize(
   initialize_string_buffer(meshes_to_ignore, MAX_NUM_OBJECTS);
   // Compare old list of mesh names with new list. 
   sym_diff_string_buffers(
-    meshes_to_ignore, string_buffs->old_inst_mesh_names, new_inst_mesh_names,
+    meshes_to_ignore, old_inst_mesh_names, new_inst_mesh_names,
     state->notify->add_remove_mesh_warning);
 
   struct string_buffer *regions_to_ignore =
@@ -164,7 +165,7 @@ int mcell_reinitialize(
   initialize_string_buffer(regions_to_ignore, MAX_NUM_OBJECTS);
   // Compare old list of region names with new list. 
   sym_diff_string_buffers(
-    regions_to_ignore, string_buffs->old_region_names, new_region_names,
+    regions_to_ignore, old_region_names, new_region_names,
     state->notify->add_remove_mesh_warning);
 
   check_count_validity(
@@ -175,15 +176,15 @@ int mcell_reinitialize(
       new_inst_mesh_names);
   place_all_molecules(state, meshes_to_ignore, regions_to_ignore);
 
-  destroy_string_buffer(string_buffs->old_region_names);
+  destroy_string_buffer(old_region_names);
   destroy_string_buffer(new_region_names);
-  destroy_string_buffer(string_buffs->old_inst_mesh_names);
+  destroy_string_buffer(old_inst_mesh_names);
   destroy_string_buffer(new_inst_mesh_names);
   destroy_string_buffer(meshes_to_ignore);
   destroy_string_buffer(regions_to_ignore);
-  free(string_buffs->old_region_names);
+  free(old_region_names);
   free(new_region_names);
-  free(string_buffs->old_inst_mesh_names);
+  free(old_inst_mesh_names);
   free(new_inst_mesh_names);
   free(meshes_to_ignore);
   free(regions_to_ignore);

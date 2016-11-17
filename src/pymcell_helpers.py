@@ -303,6 +303,27 @@ def create_box(world, scene, half_length, name):
     return mesh
 
 
+def do_dg(world, scene_name, obj_name, reg_name, vert_list, face_list,
+                surf_reg_face_list):
+
+    verts = None
+    for x, y, z in vert_list:
+        verts = m.mcell_add_to_vertex_list(x, y, z, verts)
+
+    elems = None
+    for x, y, z in face_list:
+        elems = m.mcell_add_to_connection_list(x, y, z, elems)
+
+    pobj = m.poly_object()
+    pobj.obj_name = obj_name
+    pobj.vertices = verts
+    pobj.num_vert = len(vert_list)
+    pobj.connections = elems
+    pobj.num_conn = len(face_list)
+
+    m.mcell_do_dg(world, pobj)
+
+
 def create_polygon_object(world, vert_list, face_list, scene, name):
     """Creates a polygon object from a vertex and element lest
 

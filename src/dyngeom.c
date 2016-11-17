@@ -1379,7 +1379,8 @@ int destroy_poly_object(struct object *obj_ptr, int free_poly_flag) {
   struct region_list *regs, *next_regs;
   for (regs = obj_ptr->regions; regs != NULL;) {
     if (free_poly_flag && (strcmp(regs->reg->region_last_name, "ALL") != 0)) {
-      free(regs->reg->region_last_name);
+      //XXX: this doesn't work with dynamic geometries and pymcell...
+      /*free(regs->reg->region_last_name);*/
       regs->reg->region_last_name = NULL;
     }
     delete_void_list((struct void_list *)regs->reg->sm_dat_head);
