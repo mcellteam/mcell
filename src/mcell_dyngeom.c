@@ -53,7 +53,9 @@ int mcell_add_dynamic_geometry_file(char *dynamic_geometry_filepath,
   return 0;
 }
 
-int mcell_do_dg(struct volume *state, struct poly_object *poly_obj) {
+int mcell_do_dg(
+    struct volume *state, struct poly_object *poly_obj,
+    struct element_list *region_list) {
   state->all_molecules = save_all_molecules(state, state->storage_head);
 
   // Turn off progress reports to avoid spamming mostly useless info to stdout
@@ -114,8 +116,6 @@ int mcell_do_dg(struct volume *state, struct poly_object *poly_obj) {
    * begin code for creating a region
    ****************************************************************************/
   struct region *test_region = mcell_create_region(state, new_mesh, "half_torus");
-  struct element_list *region_list = mcell_add_to_region_list(NULL, 0);
-  region_list = mcell_add_to_region_list(region_list, 1);
   mcell_set_region_elements(test_region, region_list, 1);
 
   CHECKED_CALL(init_bounding_box(state), "Error initializing bounding box.");

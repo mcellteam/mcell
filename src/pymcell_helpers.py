@@ -321,7 +321,11 @@ def do_dg(world, scene_name, obj_name, reg_name, vert_list, face_list,
     pobj.connections = elems
     pobj.num_conn = len(face_list)
 
-    m.mcell_do_dg(world, pobj)
+    surf_reg_faces = None
+    for idx in surf_reg_face_list:
+        surf_reg_faces = m.mcell_add_to_region_list(surf_reg_faces, idx)
+
+    m.mcell_do_dg(world, pobj, surf_reg_faces)
 
 
 def create_polygon_object(world, vert_list, face_list, scene, name):

@@ -3,4 +3,6 @@ struct mesh_region_string_buffs {
   struct string_buffer *old_region_names;
 };
 
-int mcell_do_dg(struct volume *state, struct poly_object *poly_obj);
+int mcell_do_dg(
+    struct volume *state, struct poly_object *poly_obj,
+    struct element_list *region_list);

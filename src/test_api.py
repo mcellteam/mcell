@@ -70,19 +70,19 @@ def main():
     #     world, scene, torus_mesh, "vm1_torus_rel", "ALL", 1000, vm1_sym)
 
     # create surface class
-    sc_sm1_sym = m.create_surf_class(world, "sc_release_y")
+    sc_sm1_sym = m.create_surf_class(world, "sc_release_sm1")
     # create releases using a surface class (i.e. not a release object)
     # mdl equivalent: MOLECULE_DENSITY {sm1' = 1000}
-    # sm1 = m.mcell_add_to_species_list(sm1_sym, True, 1, None)
-    # smd = m.mcell_add_mol_release_to_surf_class(
-    #     world, sc_sm1_sym, sm1, 1000, 0, None)
+    sm1 = m.mcell_add_to_species_list(sm1_sym, True, 1, None)
+    smd = m.mcell_add_mol_release_to_surf_class(
+        world, sc_sm1_sym, sm1, 1000, 0, None)
 
     # create surface class that is reflective to sm1
-    # m.mcell_add_surf_class_properties(world, m.RFLCT, sc_sm1_sym, sm1_sym, 0)
+    m.mcell_add_surf_class_properties(world, m.RFLCT, sc_sm1_sym, sm1_sym, 0)
     # m.mcell_add_surf_class_properties(world, m.SINK, sc_sm1, sm1_sym, 0)
-    # m.mcell_assign_surf_class_to_region(sc_sm1_sym, torus_region)
+    m.mcell_assign_surf_class_to_region(sc_sm1_sym, torus_region)
 
-    # m.mcell_delete_species_list(sm1)
+    m.mcell_delete_species_list(sm1)
 
     # Create reaction on sc_sm1 sm1, -> sm1'
     # sc_surf = m.mcell_add_to_species_list(sc_sm1_sym, True, 1, None)
@@ -126,7 +126,7 @@ def main():
         # need to do something analagous when interfacing with pyNEURON.
         if (vm3_count > 50):
             # m.mcell_modify_rate_constant(world, "rxn", 1e8)
-            torus.vert_list = [(i[0]+0.025, i[1], i[2]) for i in torus.vert_list]
+            torus.vert_list = [(i[0]+0.01, i[1], i[2]) for i in torus.vert_list]
             m.do_dg(
                 world, "Scene", "Torus", "half_torus", torus.vert_list,
                 torus.face_list, torus.surf_reg_face_list)
