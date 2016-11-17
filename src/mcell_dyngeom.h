@@ -36,8 +36,4 @@ int mcell_add_dynamic_geometry_file(char *dynamic_geometry_filepath,
 
 int mcell_do_dg(struct volume *state, struct poly_object *poly_obj);
 
-//int mcell_destroy_everything(
-//    struct volume *state,
-//    struct mesh_region_string_buffs *string_buffs);
-
 #endif

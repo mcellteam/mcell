@@ -4,12 +4,3 @@ struct mesh_region_string_buffs {
 };
 
 int mcell_do_dg(struct volume *state, struct poly_object *poly_obj);
-
-/*int mcell_update_geometry(struct volume *state);*/
-/*int mcell_destroy_everything(*/
-/*    struct volume *state,*/
-/*    struct mesh_region_string_buffs *string_buffs);*/
-
-/*int mcell_reinitialize(*/
-/*    struct volume *state,*/
-/*    struct mesh_region_string_buffs *string_buffs);*/
