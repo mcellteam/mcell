@@ -313,7 +313,7 @@ def create_box(world, scene, half_length, name):
     return mesh
 
 
-def do_dg(world, scene_name, obj_list):
+def change_geometry(world, scene_name, obj_list):
 
     pobj_list = None
     verts = None
@@ -344,7 +344,7 @@ def do_dg(world, scene_name, obj_list):
                 pobj_list, p.obj_name, verts, len(p.vert_list), elems, 
                 len(p.face_list), surf_reg_faces, p.reg_name)
 
-    m.mcell_do_dg(world, pobj_list)
+    m.mcell_change_geometry(world, pobj_list)
 
 
 def create_polygon_object(world, vert_list, face_list, scene, name):

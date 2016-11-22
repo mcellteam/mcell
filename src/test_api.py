@@ -143,7 +143,7 @@ def main():
             box.vert_list = [(i[0], i[1], i[2]+0.01) for i in box.vert_list]
             obj_list[0].vert_list = torus.vert_list
             obj_list[1].vert_list = box.vert_list
-            m.do_dg(world, "Scene", obj_list)
+            m.change_geometry(world, "Scene", obj_list)
         m.mcell_run_iteration(world, output_freq, 0)
     m.mcell_flush_data(world)
     m.mcell_print_final_warnings(world)

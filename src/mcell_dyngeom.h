@@ -34,6 +34,6 @@ struct mesh_region_string_buffs {
 int mcell_add_dynamic_geometry_file(char *dynamic_geometry_filepath,
                                     struct mdlparse_vars *parse_state);
 
-int mcell_do_dg(struct volume *state, struct poly_object_list *pobj_list);
+int mcell_change_geometry(struct volume *state, struct poly_object_list *pobj_list);
 
 #endif

@@ -53,7 +53,7 @@ int mcell_add_dynamic_geometry_file(char *dynamic_geometry_filepath,
   return 0;
 }
 
-int mcell_do_dg(struct volume *state, struct poly_object_list *pobj_list) {
+int mcell_change_geometry(struct volume *state, struct poly_object_list *pobj_list) {
   state->all_molecules = save_all_molecules(state, state->storage_head);
 
   // Turn off progress reports to avoid spamming mostly useless info to stdout
