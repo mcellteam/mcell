@@ -58,10 +58,10 @@ def main():
     position4, diameter4, cube_release_object2 = m.create_release_site(
         world, scene, pos_vec3d, diam_vec3d, m.SHAPE_CUBIC, 500, vm2_sym,
         "vm4_rel")
-    
+
     box_name = "Box"
     box_mesh = m.create_polygon_object(
-            world, box.vert_list, box.face_list, scene, box_name)
+        world, box.vert_list, box.face_list, scene, box_name)
 
     box_region_name = "side"
     box_region = m.create_surface_region(
@@ -72,7 +72,7 @@ def main():
         world, torus.vert_list, torus.face_list, scene, torus_name)
 
     # Create surface region on half the torus
-    # XXX: Creating a region is currently required when creating torus_mesh objects
+    # XXX: Creating a region is currently required when creating mesh objects
     torus_region_name = "half_torus"
     torus_region = m.create_surface_region(
         world, torus_mesh, torus.surf_reg_face_list, torus_region_name)
@@ -100,7 +100,8 @@ def main():
     # reactantsSurf = m.mcell_add_to_species_list(sm1_sym, True, 1, None)
     # productsSurf = m.mcell_add_to_species_list(sm1_sym, True, -1, None)
     # m.create_reaction(
-    #     world, reactantsSurf, productsSurf, 1e4, surf_class=sc_surf, name="rxnSurf")
+    #     world, reactantsSurf, productsSurf, 1e4, surf_class=sc_surf,
+    #     name="rxnSurf")
 
     # Create viz data
     viz_list = m.mcell_add_to_species_list(vm1_sym, False, 0, None)
@@ -127,7 +128,6 @@ def main():
     m.mcell_init_output(world)
 
     output_freq = 10
-    string_buffs = m.mesh_region_string_buffs()
     torus_obj = m.PolyObj("Torus", "half_torus", torus.vert_list,
                           torus.face_list, torus.surf_reg_face_list)
     box_obj = m.PolyObj("Box", "side", box.vert_list,
@@ -139,7 +139,8 @@ def main():
         # print(vm3_count)
         if (vm3_count > 50):
             # m.mcell_modify_rate_constant(world, "rxn", 1e8)
-            torus.vert_list = [(i[0]+0.01, i[1], i[2]) for i in torus.vert_list]
+            torus.vert_list = [
+                (i[0]+0.01, i[1], i[2]) for i in torus.vert_list]
             box.vert_list = [(i[0], i[1], i[2]+0.01) for i in box.vert_list]
             obj_list[0].vert_list = torus.vert_list
             obj_list[1].vert_list = box.vert_list
