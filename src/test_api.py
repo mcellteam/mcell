@@ -2,6 +2,7 @@
 
 import pymcell as m
 import torus
+import box
 
 
 def main():
@@ -33,7 +34,7 @@ def main():
     scene = m.create_instance_object(world, scene_name)
 
     # Create a spherical release site
-    pos_vec3 = m.Vector3(1.0, 0.0, 0.0)
+    pos_vec3 = m.Vector3(0.0, 0.0, 0.0)
     diam_vec3 = m.Vector3(0.015, 0.015, 0.015)
     # XXX: It seems to be necessary to return some or all of these objects in
     # order to have a functioning release site even though we don't use them
@@ -41,20 +42,30 @@ def main():
     position, diameter, sphere_release_object = m.create_release_site(
         world, scene, pos_vec3, diam_vec3, m.SHAPE_SPHERICAL, 500, vm1_sym,
         "vm1_rel")
-    pos_vec3b = m.Vector3(1.05, 0.05, 0.00)
+    pos_vec3b = m.Vector3(0.05, 0.05, 0.00)
     diam_vec3b = m.Vector3(0.025, 0.025, 0.05)
     position2, diameter2, cube_release_object = m.create_release_site(
         world, scene, pos_vec3b, diam_vec3b, m.SHAPE_CUBIC, 500, vm2_sym,
         "vm2_rel")
 
-    # Create box object
-    # box_name = "Box"
-    # box_mesh = m.create_box(world, scene, 0.1, box_name)
+    pos_vec3c = m.Vector3(1.0, 0.0, 0.0)
+    diam_vec3c = m.Vector3(0.015, 0.015, 0.015)
+    position3, diameter3, sphere_release_object2 = m.create_release_site(
+        world, scene, pos_vec3c, diam_vec3c, m.SHAPE_SPHERICAL, 500, vm1_sym,
+        "vm3_rel")
+    pos_vec3d = m.Vector3(1.05, 0.05, 0.00)
+    diam_vec3d = m.Vector3(0.025, 0.025, 0.05)
+    position4, diameter4, cube_release_object2 = m.create_release_site(
+        world, scene, pos_vec3d, diam_vec3d, m.SHAPE_CUBIC, 500, vm2_sym,
+        "vm4_rel")
+    
+    box_name = "Box"
+    box_mesh = m.create_polygon_object(
+            world, box.vert_list, box.face_list, scene, box_name)
 
-    # box_region_name = "side"
-    # box_face_list = [1,2]
-    # box_region = m.create_surface_region(
-    #     world, box_mesh, box_face_list, box_region_name)
+    box_region_name = "side"
+    box_region = m.create_surface_region(
+        world, box_mesh, box.surf_reg_face_list, box_region_name)
 
     torus_name = "Torus"
     torus_mesh = m.create_polygon_object(
@@ -117,19 +128,22 @@ def main():
 
     output_freq = 10
     string_buffs = m.mesh_region_string_buffs()
+    torus_obj = m.PolyObj("Torus", "half_torus", torus.vert_list,
+                          torus.face_list, torus.surf_reg_face_list)
+    box_obj = m.PolyObj("Box", "side", box.vert_list,
+                        box.face_list, box.surf_reg_face_list)
+    obj_list = [torus_obj, box_obj]
     for i in range(iterations+1):
         vm3_count = m.mcell_get_count(
             "vm3", "%s.%s,ALL" % (scene_name, torus_name), world)
         # print(vm3_count)
-        # When vm3 hits some arbitrary threshold value (i.e. 400), ramp up the
-        # rate constant of vm3->NULL. This is just a simple test, but we'll
-        # need to do something analagous when interfacing with pyNEURON.
         if (vm3_count > 50):
             # m.mcell_modify_rate_constant(world, "rxn", 1e8)
             torus.vert_list = [(i[0]+0.01, i[1], i[2]) for i in torus.vert_list]
-            m.do_dg(
-                world, "Scene", "Torus", "half_torus", torus.vert_list,
-                torus.face_list, torus.surf_reg_face_list)
+            box.vert_list = [(i[0], i[1], i[2]+0.01) for i in box.vert_list]
+            obj_list[0].vert_list = torus.vert_list
+            obj_list[1].vert_list = box.vert_list
+            m.do_dg(world, "Scene", obj_list)
         m.mcell_run_iteration(world, output_freq, 0)
     m.mcell_flush_data(world)
     m.mcell_print_final_warnings(world)

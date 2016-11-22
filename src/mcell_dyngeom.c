@@ -53,9 +53,7 @@ int mcell_add_dynamic_geometry_file(char *dynamic_geometry_filepath,
   return 0;
 }
 
-int mcell_do_dg(
-    struct volume *state, struct poly_object *poly_obj,
-    struct element_list *region_list) {
+int mcell_do_dg(struct volume *state, struct poly_object_list *pobj_list) {
   state->all_molecules = save_all_molecules(state, state->storage_head);
 
   // Turn off progress reports to avoid spamming mostly useless info to stdout
@@ -109,14 +107,21 @@ int mcell_do_dg(
   struct object *world_object = NULL;
   mcell_create_instance_object(state, "Scene", &world_object);
 
-  struct object *new_mesh = NULL;
-  mcell_create_poly_object(state, world_object, poly_obj, &new_mesh);
+  while (pobj_list != NULL) {
+    struct poly_object polygon = {
+      pobj_list->obj_name,
+      pobj_list->vertices,
+      pobj_list->num_vert,
+      pobj_list->connections,
+      pobj_list->num_conn
+    };
+    struct object *new_mesh = NULL;
+    mcell_create_poly_object(state, world_object, &polygon, &new_mesh);
 
-  /****************************************************************************
-   * begin code for creating a region
-   ****************************************************************************/
-  struct region *test_region = mcell_create_region(state, new_mesh, "half_torus");
-  mcell_set_region_elements(test_region, region_list, 1);
+    struct region *test_region = mcell_create_region(state, new_mesh, pobj_list->reg_name);
+    mcell_set_region_elements(test_region, pobj_list->surf_reg_faces, 1);
+    pobj_list = pobj_list->next;
+  }
 
   CHECKED_CALL(init_bounding_box(state), "Error initializing bounding box.");
   free(state->subvol);

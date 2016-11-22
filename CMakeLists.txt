@@ -215,6 +215,7 @@ SWIG_LINK_LIBRARIES(pymcell ${PYTHON_LIBRARIES})
 # copy the pyMCell test script into place
 file(COPY ${CMAKE_SOURCE_DIR}/src/test_api.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 file(COPY ${CMAKE_SOURCE_DIR}/src/torus.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(COPY ${CMAKE_SOURCE_DIR}/src/box.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 # copy the mcell neuron interface test into place
 file(COPY ${CMAKE_SOURCE_DIR}/src/test_mcell_neuron_python.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR})

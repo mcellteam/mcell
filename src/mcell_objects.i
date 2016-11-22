@@ -34,6 +34,17 @@ struct poly_object {
   int num_conn;
 };
 
+struct poly_object_list {
+  char *obj_name;
+  struct vertex_list *vertices;
+  int num_vert;
+  struct element_connection_list *connections;
+  int num_conn;
+  struct element_list *surf_reg_faces;
+  char *reg_name;
+  struct poly_object_list *next;
+};
+
 %typemap(in) struct object **new_object (struct object *temp) {
   $1 = &temp;
 }
@@ -124,3 +135,13 @@ int check_patch(struct subdivided_box *b, struct vector3 *p1,
 
 struct sym_entry *mcell_get_obj_sym(struct object *obj);
 struct sym_entry *mcell_get_reg_sym(struct region *reg);
+
+struct poly_object_list* mcell_add_to_poly_obj_list(
+  struct poly_object_list* poly_obj_list,
+  char *obj_name,
+  struct vertex_list *vertices,
+  int num_vert,
+  struct element_connection_list *connections,
+  int num_conn,
+  struct element_list *surf_reg_faces,
+  char *reg_name);

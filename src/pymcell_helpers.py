@@ -10,6 +10,16 @@ intuitive.
 import pymcell as m
 
 
+class PolyObj(object):
+    def __init__(self, obj_name, reg_name, vert_list, face_list,
+                 surf_reg_face_list):
+        self.obj_name = obj_name
+        self.reg_name = reg_name
+        self.vert_list = vert_list
+        self.face_list = face_list
+        self.surf_reg_face_list = surf_reg_face_list
+
+
 class Vector3(object):
     def __init__(self, x=0.0, y=0.0, z=0.0):
         self.x = x
@@ -303,29 +313,38 @@ def create_box(world, scene, half_length, name):
     return mesh
 
 
-def do_dg(world, scene_name, obj_name, reg_name, vert_list, face_list,
-                surf_reg_face_list):
+def do_dg(world, scene_name, obj_list):
 
+    pobj_list = None
     verts = None
-    for x, y, z in vert_list:
-        verts = m.mcell_add_to_vertex_list(x, y, z, verts)
-
     elems = None
-    for x, y, z in face_list:
-        elems = m.mcell_add_to_connection_list(x, y, z, elems)
 
-    pobj = m.poly_object()
-    pobj.obj_name = obj_name
-    pobj.vertices = verts
-    pobj.num_vert = len(vert_list)
-    pobj.connections = elems
-    pobj.num_conn = len(face_list)
+    for p in obj_list:
 
-    surf_reg_faces = None
-    for idx in surf_reg_face_list:
-        surf_reg_faces = m.mcell_add_to_region_list(surf_reg_faces, idx)
+        verts = None
+        for x, y, z in p.vert_list:
+            verts = m.mcell_add_to_vertex_list(x, y, z, verts)
 
-    m.mcell_do_dg(world, pobj, surf_reg_faces)
+        elems = None
+        for x, y, z in p.face_list:
+            elems = m.mcell_add_to_connection_list(x, y, z, elems)
+
+        pobj = m.poly_object()
+        pobj.obj_name = p.obj_name
+        pobj.vertices = verts
+        pobj.num_vert = len(p.vert_list)
+        pobj.connections = elems
+        pobj.num_conn = len(p.face_list)
+
+        surf_reg_faces = None
+        for idx in p.surf_reg_face_list:
+            surf_reg_faces = m.mcell_add_to_region_list(surf_reg_faces, idx)
+
+        pobj_list = m.mcell_add_to_poly_obj_list(
+                pobj_list, p.obj_name, verts, len(p.vert_list), elems, 
+                len(p.face_list), surf_reg_faces, p.reg_name)
+
+    m.mcell_do_dg(world, pobj_list)
 
 
 def create_polygon_object(world, vert_list, face_list, scene, name):
