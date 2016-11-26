@@ -63,6 +63,14 @@ enum overwrite_policy_t {
 
 typedef unsigned char byte;
 
+/* Data structure used to build boolean combinations of regions */
+struct release_evaluator {
+  byte op;    /* Region Expression Flags: the operation used */
+  void *left; /* The left side of the expression--another evaluator or a region
+                 object depending on bitmask of op */
+  void *right; /* The right side--same thing */
+};
+
 /* Data that controls what output is written to a single file */
 struct output_set {
   struct output_set *next;            /* Next data set in this block */

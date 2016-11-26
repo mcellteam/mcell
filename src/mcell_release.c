@@ -245,6 +245,72 @@ mcell_create_region_release(MCELL_STATE *state, struct object *parent,
   return MCELL_SUCCESS;
 }
 
+/******************************************************************************
+ *
+ * mcell_create_region_release_boolean is the main API function for creating release
+ * sites on regions with boolean logic.
+ *
+ ******************************************************************************/
+MCELL_STATUS
+mcell_create_region_release_boolean(MCELL_STATE *state, struct object *parent,
+                            char *site_name, struct mcell_species *mol,
+                            double num_molecules, double rel_prob,
+                            char *pattern_name, struct release_evaluator *rel_eval,
+                            struct object **new_obj) {
+
+  // create qualified release object name
+  char *qualified_name = CHECKED_SPRINTF("%s.%s", parent->sym->name, site_name);
+
+  int error_code = 0;
+  struct object *release_object = make_new_object(state, qualified_name, &error_code);
+
+  // Set the parent of the object to be the root object. Not reciprocal until
+  // add_child_objects is called.
+  release_object->parent = parent;
+  add_child_objects(parent, release_object, release_object);
+
+  struct object *obj_ptr = NULL;
+  mcell_start_release_site(state, release_object->sym, &obj_ptr);
+
+  struct release_site_obj *releaser =
+      (struct release_site_obj *)release_object->contents;
+
+  mcell_set_release_site_geometry_region(state, releaser, obj_ptr->contents,
+                                         rel_eval);
+
+  // release probability and release patterns
+  if (rel_prob < 0 || rel_prob > 1) {
+    free(qualified_name);
+    return MCELL_FAIL;
+  }
+
+  if (pattern_name != NULL) {
+    struct sym_entry *symp = retrieve_sym(pattern_name, state->rpat_sym_table);
+    if (symp == NULL) {
+      symp = retrieve_sym(pattern_name, state->rxpn_sym_table);
+      if (symp == NULL) {
+        free(qualified_name);
+        return MCELL_FAIL;
+      }
+    }
+    releaser->pattern = (struct release_pattern *)symp->value;
+    releaser->release_prob = MAGIC_PATTERN_PROBABILITY;
+  } else {
+    releaser->release_prob = rel_prob;
+  }
+
+  /* molecule and molecule number */
+  set_release_site_constant_number(releaser, num_molecules);
+  releaser->mol_type = (struct species *)mol->mol_type->value;
+  releaser->orientation = mol->orient;
+
+  mcell_finish_release_site(release_object->sym, &obj_ptr);
+
+  *new_obj = release_object;
+  free(qualified_name);
+  return MCELL_SUCCESS;
+}
+
 /*************************************************************************
  In: state: system state
      rel_site_obj_ptr: the release site object to validate

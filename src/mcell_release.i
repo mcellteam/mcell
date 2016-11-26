@@ -46,6 +46,13 @@ mcell_create_region_release(MCELL_STATE *state, struct object *parent,
                             double num_molecules, double rel_prob,
                             char *pattern_name, struct object **new_object);
 
+MCELL_STATUS
+mcell_create_region_release_boolean(MCELL_STATE *state, struct object *parent,
+                            char *site_name, struct mcell_species *mol,
+                            double num_molecules, double rel_prob,
+                            char *pattern_name, struct release_evaluator *rel_eval,
+                            struct object **new_object);
+
 int mcell_set_release_site_geometry_region(
     MCELL_STATE *state, struct release_site_obj *rel_site_obj_ptr,
     struct object *objp, struct release_evaluator *re);
@@ -71,3 +78,7 @@ new_release_region_expr_binary(struct release_evaluator *reL,
 void set_release_site_location(MCELL_STATE *state,
                                struct release_site_obj *rel_site_obj_ptr,
                                struct vector3 *location);
+
+struct sym_entry *existing_region(MCELL_STATE *state,
+                                  struct sym_entry *obj_symp,
+                                  char *region_name);
