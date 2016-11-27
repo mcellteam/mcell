@@ -54,7 +54,7 @@ MCELL_STATUS mcell_create_geometrical_release_site(
     MCELL_STATE *state, struct object *parent, char *site_name, int shape,
     struct vector3 *position, struct vector3 *diameter,
     struct mcell_species *mol, double num_molecules, double rel_prob,
-    char *pattern_name, struct object **new_obj) {
+    struct release_pattern *rpatp, struct object **new_obj) {
 
 
   assert(shape != SHAPE_REGION && shape != SHAPE_LIST);
@@ -101,17 +101,8 @@ MCELL_STATUS mcell_create_geometrical_release_site(
     return MCELL_FAIL;
   }
 
-  if (pattern_name != NULL) {
-    struct sym_entry *symp = retrieve_sym(pattern_name, state->rpat_sym_table);
-    if (symp == NULL) {
-      symp = retrieve_sym(pattern_name, state->rxpn_sym_table);
-      if (symp == NULL) {
-        /*free(qualified_name);*/
-        return MCELL_FAIL;
-      }
-    }
-    releaser->pattern = (struct release_pattern *)symp->value;
-    releaser->release_prob = MAGIC_PATTERN_PROBABILITY;
+  if (rpatp != NULL) {
+    releaser->pattern = rpatp;
   } else {
     releaser->release_prob = rel_prob;
   }
@@ -187,7 +178,7 @@ mcell_create_region_release(MCELL_STATE *state, struct object *parent,
                             struct object *release_on_in, char *site_name,
                             char *reg_name, struct mcell_species *mol,
                             double num_molecules, double rel_prob,
-                            char *pattern_name, struct object **new_obj) {
+                            struct release_pattern *rpatp, struct object **new_obj) {
 
   // create qualified release object name
   char *qualified_name = CHECKED_SPRINTF("%s.%s", parent->sym->name, site_name);
@@ -218,17 +209,8 @@ mcell_create_region_release(MCELL_STATE *state, struct object *parent,
     return MCELL_FAIL;
   }
 
-  if (pattern_name != NULL) {
-    struct sym_entry *symp = retrieve_sym(pattern_name, state->rpat_sym_table);
-    if (symp == NULL) {
-      symp = retrieve_sym(pattern_name, state->rxpn_sym_table);
-      if (symp == NULL) {
-        free(qualified_name);
-        return MCELL_FAIL;
-      }
-    }
-    releaser->pattern = (struct release_pattern *)symp->value;
-    releaser->release_prob = MAGIC_PATTERN_PROBABILITY;
+  if (rpatp != NULL) {
+    releaser->pattern = rpatp;
   } else {
     releaser->release_prob = rel_prob;
   }
@@ -255,7 +237,7 @@ MCELL_STATUS
 mcell_create_region_release_boolean(MCELL_STATE *state, struct object *parent,
                             char *site_name, struct mcell_species *mol,
                             double num_molecules, double rel_prob,
-                            char *pattern_name, struct release_evaluator *rel_eval,
+                            struct release_pattern *rpatp, struct release_evaluator *rel_eval,
                             struct object **new_obj) {
 
   // create qualified release object name
@@ -284,17 +266,8 @@ mcell_create_region_release_boolean(MCELL_STATE *state, struct object *parent,
     return MCELL_FAIL;
   }
 
-  if (pattern_name != NULL) {
-    struct sym_entry *symp = retrieve_sym(pattern_name, state->rpat_sym_table);
-    if (symp == NULL) {
-      symp = retrieve_sym(pattern_name, state->rxpn_sym_table);
-      if (symp == NULL) {
-        free(qualified_name);
-        return MCELL_FAIL;
-      }
-    }
-    releaser->pattern = (struct release_pattern *)symp->value;
-    releaser->release_prob = MAGIC_PATTERN_PROBABILITY;
+  if (rpatp != NULL) {
+    releaser->pattern = rpatp;
   } else {
     releaser->release_prob = rel_prob;
   }
@@ -310,6 +283,111 @@ mcell_create_region_release_boolean(MCELL_STATE *state, struct object *parent,
   free(qualified_name);
   return MCELL_SUCCESS;
 }
+
+/******************************************************************************
+ *
+ * mcell_new_release_pattern is the main API function for creating a new
+ * release pattern.
+ *
+ ******************************************************************************/
+struct sym_entry *mcell_new_release_pattern(MCELL_STATE *state, char *name) {
+  struct sym_entry *st;
+  if (retrieve_sym(name, state->rpat_sym_table) != NULL) {
+    // Release pattern already defined
+    // TO-DO: Ich verlange anstaendige Meldungen, verdammt noch mal!
+    // free(name);
+    mcell_log_raw("ERROR: Release pattern already defined.");
+    return NULL;
+  } else if ((st = store_sym(name, RPAT, state->rpat_sym_table,
+                             NULL)) == NULL) {
+    // Out of memory while creating release pattern
+    // TO-DO: Ich verlange anstaendige Meldungen, verdammt noch mal!
+    // free(name);
+    mcell_log_raw("ERROR: Out of memory while creating release pattern.");
+    return NULL;
+  }
+
+  // free(name);
+  return st;
+}
+
+/**************************************************************************
+* mcell_create_release_pattern:
+*    Create a release pattern
+**************************************************************************/
+struct release_pattern *mcell_create_release_pattern(MCELL_STATE *state, char *name, double delay, 
+                                 double release_interval, double train_interval,
+                                 double train_duration, int number_of_trains) {
+  struct sym_entry *rpat_sym = mcell_new_release_pattern(state,name);
+
+  if (rpat_sym == NULL) {
+    mcell_log_raw("ERROR: Could not create release pattern.");
+    return NULL;
+  }
+
+  struct release_pattern *rpatp = (struct release_pattern *)rpat_sym->value;
+
+  if (release_interval/state->time_unit <= 0) {
+    // Release interval must be set to a positive number
+    // TO-DO: Ich verlange anstaendige Meldungen, verdammt noch mal!
+    mcell_log_raw("ERROR: Release interval must be set to a positive number.");
+    return NULL;
+  }
+  if (train_interval/state->time_unit <= 0) {
+    // Train interval must be set to a positive number
+    // TO-DO: Ich verlange anstaendige Meldungen, verdammt noch mal!
+    mcell_log_raw("ERROR: Train interval must be set to a positive number.");
+    return NULL;
+  }
+  if (train_duration/state->time_unit > train_interval/state->time_unit) {
+    // Train duration must not be longer than the train interval
+    // TO-DO: Ich verlange anstaendige Meldungen, verdammt noch mal!
+    mcell_log_raw("ERROR: Train duration must not be longer than the train interval.");
+    return NULL;
+  }
+  if (train_duration/state->time_unit <= 0) {
+    // Train duration must be set to a positive number
+    // TO-DO: Ich verlange anstaendige Meldungen, verdammt noch mal!
+    mcell_log_raw("ERROR: Train duration must be set to a positive number.");
+    return NULL;
+  }
+
+  /* Copy in release pattern */
+  if (distinguishable(delay, 0.0, EPS_C)) {
+    rpatp->delay = delay/state->time_unit;
+  } 
+  else {
+    rpatp->delay = 0;
+  }
+  if (distinguishable(release_interval, FOREVER, EPS_C)) {
+    rpatp->release_interval = release_interval/state->time_unit;
+  } 
+  else {
+    rpatp->release_interval = FOREVER;
+  }
+  if (distinguishable(train_interval, FOREVER, EPS_C)) {
+    rpatp->train_interval = train_interval/state->time_unit;
+  }
+  else {
+    rpatp->train_interval = FOREVER;
+  }
+  if (distinguishable(train_duration, FOREVER, EPS_C)) {
+    rpatp->train_duration = train_duration/state->time_unit;
+  }
+  else {
+    rpatp->train_duration = FOREVER;
+  }
+  rpatp->number_of_trains = number_of_trains;
+
+  no_printf("Release pattern %s defined:\n", rpat_sym->name);
+  no_printf("\tdelay = %f\n", rpatp->delay);
+  no_printf("\trelease_interval = %f\n", rpatp->release_interval);
+  no_printf("\ttrain_interval = %f\n", rpatp->train_interval);
+  no_printf("\ttrain_duration = %f\n", rpatp->train_duration);
+  no_printf("\tnumber_of_trains = %d\n", rpatp->number_of_trains);
+  return rpatp;
+}
+
 
 /*************************************************************************
  In: state: system state

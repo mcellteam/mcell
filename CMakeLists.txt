@@ -177,6 +177,9 @@ file(COPY ${CMAKE_SOURCE_DIR}/src/torus.py DESTINATION ${CMAKE_CURRENT_BINARY_DI
 # copy the pyMCell Boolean logic test script into place
 file(COPY ${CMAKE_SOURCE_DIR}/src/test_bool.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
+# copy the pyMCell Release pattern test script into place
+file(COPY ${CMAKE_SOURCE_DIR}/src/test_release_pattern.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+
 # copy the mcell neuron interface test into place
 file(COPY ${CMAKE_SOURCE_DIR}/src/test_mcell_neuron_python.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
