@@ -53,7 +53,7 @@ pack_release_expr(struct release_evaluator *rel_eval_L,
 MCELL_STATUS mcell_create_geometrical_release_site(
     MCELL_STATE *state, struct object *parent, char *site_name, int shape,
     struct vector3 *position, struct vector3 *diameter,
-    struct mcell_species *mol, double num_molecules, double rel_prob,
+    struct mcell_species *mol, double num, int num_type, double rel_prob,
     struct release_pattern *rpatp, struct object **new_obj) {
 
 
@@ -108,7 +108,14 @@ MCELL_STATUS mcell_create_geometrical_release_site(
   }
 
   /* molecule and molecule number */
-  set_release_site_constant_number(releaser, num_molecules);
+  if (num_type == 0) {
+    set_release_site_constant_number(releaser, num);
+  } else if (num_type == 1) {
+    set_release_site_concentration(releaser, num);
+  } else {
+    return MCELL_FAIL;
+  }
+
   releaser->mol_type = (struct species *)mol->mol_type->value;
   releaser->orientation = mol->orient;
 
@@ -177,7 +184,7 @@ MCELL_STATUS
 mcell_create_region_release(MCELL_STATE *state, struct object *parent,
                             struct object *release_on_in, char *site_name,
                             char *reg_name, struct mcell_species *mol,
-                            double num_molecules, double rel_prob,
+                            double num, int num_type, double rel_prob,
                             struct release_pattern *rpatp, struct object **new_obj) {
 
   // create qualified release object name
@@ -216,7 +223,14 @@ mcell_create_region_release(MCELL_STATE *state, struct object *parent,
   }
 
   /* molecule and molecule number */
-  set_release_site_constant_number(releaser, num_molecules);
+  if (num_type == 0) {
+    set_release_site_constant_number(releaser, num);
+  } else if (num_type == 1) {
+    set_release_site_concentration(releaser, num);
+  } else {
+    return MCELL_FAIL;
+  }
+
   releaser->mol_type = (struct species *)mol->mol_type->value;
   releaser->orientation = mol->orient;
 
@@ -236,7 +250,7 @@ mcell_create_region_release(MCELL_STATE *state, struct object *parent,
 MCELL_STATUS
 mcell_create_region_release_boolean(MCELL_STATE *state, struct object *parent,
                             char *site_name, struct mcell_species *mol,
-                            double num_molecules, double rel_prob,
+                            double num, int num_type, double rel_prob,
                             struct release_pattern *rpatp, struct release_evaluator *rel_eval,
                             struct object **new_obj) {
 
@@ -273,7 +287,14 @@ mcell_create_region_release_boolean(MCELL_STATE *state, struct object *parent,
   }
 
   /* molecule and molecule number */
-  set_release_site_constant_number(releaser, num_molecules);
+  if (num_type == 0) {
+    set_release_site_constant_number(releaser, num);
+  } else if (num_type == 1) {
+    set_release_site_concentration(releaser, num);
+  } else {
+    return MCELL_FAIL;
+  }
+
   releaser->mol_type = (struct species *)mol->mol_type->value;
   releaser->orientation = mol->orient;
 

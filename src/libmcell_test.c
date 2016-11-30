@@ -196,7 +196,7 @@ int main(void) {
       mcell_add_to_species_list(molB_ptr, false, 0, NULL);
   CHECKED_CALL_EXIT(mcell_create_geometrical_release_site(
                         state, world_object, "B_releaser", SHAPE_SPHERICAL,
-                        &position, &diameter, B, 5000, 1, NULL, &B_releaser),
+                        &position, &diameter, B, 5000, 0, 1, NULL, &B_releaser),
                     "could not create B_releaser");
   mcell_delete_species_list(B);
 

@@ -39,12 +39,12 @@ def main():
     # order to have a functioning release site even though we don't use them
     # anywhere after this call.
     position, diameter, sphere_release_object = m.create_release_site(
-        world, scene, pos_vec3, diam_vec3, m.SHAPE_SPHERICAL, 500, vm1_sym,
+        world, scene, pos_vec3, diam_vec3, m.SHAPE_SPHERICAL, 500, 0, vm1_sym,
         "vm1_rel")
     pos_vec3b = m.Vector3(0.05, 0.05, 0.00)
     diam_vec3b = m.Vector3(0.025, 0.025, 0.05)
     position2, diameter2, cube_release_object = m.create_release_site(
-        world, scene, pos_vec3b, diam_vec3b, m.SHAPE_CUBIC, 500, vm2_sym,
+        world, scene, pos_vec3b, diam_vec3b, m.SHAPE_CUBIC, 500, 0, vm2_sym,
         "vm2_rel")
 
     # Create box object
@@ -67,7 +67,7 @@ def main():
         world, torus_mesh, torus.surf_reg_face_list, torus_region_name)
 
     region_release_object = m.create_region_release_site(
-        world, scene, torus_mesh, "vm1_torus_rel", "ALL", 1000, vm1_sym)
+        world, scene, torus_mesh, "vm1_torus_rel", "ALL", 1000, 0, vm1_sym)
 
     # create surface class
     sc_sm1_sym = m.create_surf_class(world, "sc_release_y")

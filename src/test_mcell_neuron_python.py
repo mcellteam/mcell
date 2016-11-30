@@ -44,7 +44,7 @@ if __name__ == "__main__":
         diam_vec3 = m.Vector3(0.015, 0.015, 0.015)
 
         position, diameter, sphere_release_object = m.create_release_site(
-            world, scene, pos_vec3, diam_vec3, m.SHAPE_SPHERICAL, 500, vm1_sym,
+            world, scene, pos_vec3, diam_vec3, m.SHAPE_SPHERICAL, 500, 0, vm1_sym,
             "vm1_rel")
 
         obj_name = "Torus"
@@ -52,7 +52,7 @@ if __name__ == "__main__":
             world, torus.vert_list, torus.face_list, scene, obj_name)
 
         region_release_object = m.create_region_release_site(
-            world, scene, mesh, "vm1_torus_rel", "ALL", 1000, vm1_sym)
+            world, scene, mesh, "vm1_torus_rel", "ALL", 1000, 0, vm1_sym)
 
         # Create viz data
         viz_list = m.mcell_add_to_species_list(vm1_sym, False, 0, None)

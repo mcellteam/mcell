@@ -204,7 +204,7 @@ def create_surf_class(world, name):
 
 
 def create_release_site(
-        world, scene, pos, diam, shape, number, mol_sym, name):
+        world, scene, pos, diam, shape, number, number_type, mol_sym, name):
     """Creates a molecule release site
 
     Args:
@@ -213,7 +213,8 @@ def create_release_site(
         scene (instance object) -- scene for mcell simulation
         pos (vector3) -- position of release site
         diam (vector3) -- diameter of release site
-        number (int) -- number to be release at release site
+        number (int or float) -- number to be release at release site
+        number_type (int) -- 0 for NUMBER, 1 for CONCENTRATION 
         mol_sym (mcell_symbol) -- species to be released
         name (string) -- name of the release site
 
@@ -234,7 +235,7 @@ def create_release_site(
     mol_list = m.mcell_add_to_species_list(mol_sym, False, 0, None)
     rel_object = m.object()
     release_object = m.mcell_create_geometrical_release_site(
-        world, scene, name, shape, position, diameter, mol_list, number, 1,
+        world, scene, name, shape, position, diameter, mol_list, float(number), number_type, 1,
         None, rel_object)
     m.mcell_delete_species_list(mol_list)
 
@@ -242,7 +243,7 @@ def create_release_site(
 
 
 def create_region_release_site(
-        world, scene, mesh, release_name, reg_name, number, mol_sym):
+        world, scene, mesh, release_name, reg_name, number, number_type, mol_sym):
     """Creates a release site on a specific region
 
     Args:
@@ -252,7 +253,8 @@ def create_region_release_site(
         mesh (mesh object) -- scene object where the release will occur
         release_name (string) -- name of the region release site
         reg_name (string) -- name of the region for the release site
-        number (int) -- number to be released at the region release site
+        number (int or float) -- number to be released at the region release site
+        number_type (int) -- 0 for NUMBER, 1 for CONCENTRATION 
         mol_sym (mcell_symbol) -- species to be released
 
     Returns:
@@ -263,7 +265,7 @@ def create_region_release_site(
     mol_list = m.mcell_add_to_species_list(mol_sym, False, 0, None)
     rel_object = m.object()
     release_object = m.mcell_create_region_release(
-        world, scene, mesh, release_name, reg_name, mol_list, number, 1, None,
+        world, scene, mesh, release_name, reg_name, mol_list, float(number), number_type, 1, None,
         rel_object)
     m.mcell_delete_species_list(mol_list)
 

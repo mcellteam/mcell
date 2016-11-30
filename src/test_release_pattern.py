@@ -92,7 +92,7 @@ def main():
 	# Release
 	rel_object = m.object()
 	box_rel_object = m.mcell_create_region_release(
-		world, scene, box_mesh, "Box Release", "ALL", mol_list, 1000, 1, rel_pattern, rel_object)
+		world, scene, box_mesh, "Box Release", "ALL", mol_list, 1000, 0, 1, rel_pattern, rel_object)
 	m.mcell_delete_species_list(mol_list)
 
 	# Create viz data

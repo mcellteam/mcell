@@ -296,18 +296,18 @@ def main(lexer, parser):
 	# Union
 	rel_object = m.object()
 	box_union_outer_rel_object = m.mcell_create_region_release_boolean(
-		world, scene, "Box Union Outer Release", mol_list, 1000, 1, None, rel_eval_dict[s_union], rel_object)
+		world, scene, "Box Union Outer Release", mol_list, 1000, 0, 1, None, rel_eval_dict[s_union], rel_object)
 
 	# Subtraction
 	rel_object = m.object()
 	box_sub_outer_rel_object = m.mcell_create_region_release_boolean(
-		world, scene, "Box Subtraction Outer Release", mol_list, 1000, 1, None, rel_eval_dict[s_sub], rel_object)
+		world, scene, "Box Subtraction Outer Release", mol_list, 1000, 0, 1, None, rel_eval_dict[s_sub], rel_object)
 
 	# Union
 	mol_list = m.mcell_add_to_species_list(vm1_sym, False, 0, None)
 	rel_object = m.object()
 	box_inter_outer_rel_object = m.mcell_create_region_release_boolean(
-		world, scene, "Box Intersection Outer Release", mol_list, 1000, 1, None, rel_eval_dict[s_inter], rel_object)
+		world, scene, "Box Intersection Outer Release", mol_list, 1000, 0, 1, None, rel_eval_dict[s_inter], rel_object)
 
 	m.mcell_delete_species_list(mol_list)
 

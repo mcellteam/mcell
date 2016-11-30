@@ -27,7 +27,7 @@
 MCELL_STATUS mcell_create_geometrical_release_site(
     MCELL_STATE *state, struct object *parent, char *site_name, int shape,
     struct vector3 *position, struct vector3 *diameter,
-    struct mcell_species *mol, double num_molecules, double release_prob,
+    struct mcell_species *mol, double num, int num_type, double release_prob,
     struct release_pattern *rpatp, struct object **new_object);
 
 MCELL_STATUS mcell_start_release_site(MCELL_STATE *state,
@@ -46,13 +46,13 @@ MCELL_STATUS
 mcell_create_region_release(MCELL_STATE *state, struct object *parent,
                             struct object *release_on_in, char *site_name,
                             char *reg_name, struct mcell_species *mol,
-                            double num_molecules, double rel_prob,
+                            double num, int num_type, double rel_prob,
                             struct release_pattern *rpatp, struct object **new_object);
 
 MCELL_STATUS
 mcell_create_region_release_boolean(MCELL_STATE *state, struct object *parent,
                             char *site_name, struct mcell_species *mol,
-                            double num_molecules, double rel_prob,
+                            double num, int num_type, double rel_prob,
                             struct release_pattern *rpatp, struct release_evaluator *rel_eval,
                             struct object **new_object);
 
