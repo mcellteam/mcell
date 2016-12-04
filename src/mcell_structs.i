@@ -129,3 +129,10 @@ struct sym_table_list {
   struct sym_entry *node; /* Symbol table entry matching a user input wildcard
                              string */
 };
+
+/* Linked list of numerical expressions */
+/* Used for parsing MDL input file arithmetic expressions */
+struct num_expr_list {
+  struct num_expr_list *next;
+  double value; /* Value of one element of the expression */
+};
