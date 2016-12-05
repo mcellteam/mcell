@@ -335,10 +335,12 @@ def create_polygon_object(world, vert_list, face_list, scene, name):
     """
 
     verts = None
+    vert_list = vert_list[::-1]
     for x, y, z in vert_list:
         verts = m.mcell_add_to_vertex_list(x, y, z, verts)
 
     elems = None
+    face_list = face_list[::-1]
     for x, y, z in face_list:
         elems = m.mcell_add_to_connection_list(x, y, z, elems)
 
