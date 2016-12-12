@@ -40,23 +40,23 @@ def main():
     # order to have a functioning release site even though we don't use them
     # anywhere after this call.
     position, diameter, sphere_release_object = m.create_release_site(
-        world, scene, pos_vec3, diam_vec3, m.SHAPE_SPHERICAL, 500, vm1_sym,
+        world, scene, pos_vec3, diam_vec3, m.SHAPE_SPHERICAL, 500, 0, vm1_sym,
         "vm1_rel")
     pos_vec3b = m.Vector3(0.05, 0.05, 0.00)
     diam_vec3b = m.Vector3(0.025, 0.025, 0.05)
     position2, diameter2, cube_release_object = m.create_release_site(
-        world, scene, pos_vec3b, diam_vec3b, m.SHAPE_CUBIC, 500, vm2_sym,
+        world, scene, pos_vec3b, diam_vec3b, m.SHAPE_CUBIC, 500, 0, vm2_sym,
         "vm2_rel")
 
     pos_vec3c = m.Vector3(1.0, 0.0, 0.0)
     diam_vec3c = m.Vector3(0.015, 0.015, 0.015)
     position3, diameter3, sphere_release_object2 = m.create_release_site(
-        world, scene, pos_vec3c, diam_vec3c, m.SHAPE_SPHERICAL, 500, vm1_sym,
-        "vm3_rel")
+        world, scene, pos_vec3c, diam_vec3c, m.SHAPE_SPHERICAL, 500, 0,
+        vm1_sym, "vm3_rel")
     pos_vec3d = m.Vector3(1.05, 0.05, 0.00)
     diam_vec3d = m.Vector3(0.025, 0.025, 0.05)
     position4, diameter4, cube_release_object2 = m.create_release_site(
-        world, scene, pos_vec3d, diam_vec3d, m.SHAPE_CUBIC, 500, vm2_sym,
+        world, scene, pos_vec3d, diam_vec3d, m.SHAPE_CUBIC, 500, 0, vm2_sym,
         "vm4_rel")
 
     box_name = "Box"

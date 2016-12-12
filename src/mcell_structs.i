@@ -63,6 +63,25 @@ enum overwrite_policy_t {
 
 typedef unsigned char byte;
 
+/* Timing pattern for molecule release from a release site. */
+struct release_pattern {
+  struct sym_entry *sym;   /* Symbol hash table entry for the pattern */
+  double delay;            /* Delay between time 0 and first release event. */
+  double release_interval; /* Time between release events within a train. */
+  double train_interval; /* Time from the start of one train to the start of
+                            the next one. */
+  double train_duration; /* Length of the train. */
+  int number_of_trains;  /* How many trains are produced. */
+};
+
+/* Data structure used to build boolean combinations of regions */
+struct release_evaluator {
+  byte op;    /* Region Expression Flags: the operation used */
+  void *left; /* The left side of the expression--another evaluator or a region
+                 object depending on bitmask of op */
+  void *right; /* The right side--same thing */
+};
+
 /* Data that controls what output is written to a single file */
 struct output_set {
   struct output_set *next;            /* Next data set in this block */
@@ -109,4 +128,11 @@ struct sym_table_list {
   struct sym_table_list *next;
   struct sym_entry *node; /* Symbol table entry matching a user input wildcard
                              string */
+};
+
+/* Linked list of numerical expressions */
+/* Used for parsing MDL input file arithmetic expressions */
+struct num_expr_list {
+  struct num_expr_list *next;
+  double value; /* Value of one element of the expression */
 };

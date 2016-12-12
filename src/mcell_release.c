@@ -53,8 +53,8 @@ pack_release_expr(struct release_evaluator *rel_eval_L,
 MCELL_STATUS mcell_create_geometrical_release_site(
     MCELL_STATE *state, struct object *parent, char *site_name, int shape,
     struct vector3 *position, struct vector3 *diameter,
-    struct mcell_species *mol, double num_molecules, double rel_prob,
-    char *pattern_name, struct object **new_obj) {
+    struct mcell_species *mol, double num, int num_type, double rel_prob,
+    struct release_pattern *rpatp, struct object **new_obj) {
 
 
   assert(shape != SHAPE_REGION && shape != SHAPE_LIST);
@@ -106,23 +106,21 @@ MCELL_STATUS mcell_create_geometrical_release_site(
     return MCELL_FAIL;
   }
 
-  if (pattern_name != NULL) {
-    struct sym_entry *symp = retrieve_sym(pattern_name, state->rpat_sym_table);
-    if (symp == NULL) {
-      symp = retrieve_sym(pattern_name, state->rxpn_sym_table);
-      if (symp == NULL) {
-        /*free(qualified_name);*/
-        return MCELL_FAIL;
-      }
-    }
-    releaser->pattern = (struct release_pattern *)symp->value;
-    releaser->release_prob = MAGIC_PATTERN_PROBABILITY;
+  if (rpatp != NULL) {
+    releaser->pattern = rpatp;
   } else {
     releaser->release_prob = rel_prob;
   }
 
   /* molecule and molecule number */
-  set_release_site_constant_number(releaser, num_molecules);
+  if (num_type == 0) {
+    set_release_site_constant_number(releaser, num);
+  } else if (num_type == 1) {
+    set_release_site_concentration(releaser, num);
+  } else {
+    return MCELL_FAIL;
+  }
+
   releaser->mol_type = (struct species *)mol->mol_type->value;
   releaser->orientation = mol->orient;
 
@@ -191,8 +189,8 @@ MCELL_STATUS
 mcell_create_region_release(MCELL_STATE *state, struct object *parent,
                             struct object *release_on_in, char *site_name,
                             char *reg_name, struct mcell_species *mol,
-                            double num_molecules, double rel_prob,
-                            char *pattern_name, struct object **new_obj) {
+                            double num, int num_type, double rel_prob,
+                            struct release_pattern *rpatp, struct object **new_obj) {
 
   // create qualified release object name
   char *qualified_name = CHECKED_SPRINTF("%s.%s", parent->sym->name, site_name);
@@ -228,23 +226,21 @@ mcell_create_region_release(MCELL_STATE *state, struct object *parent,
     return MCELL_FAIL;
   }
 
-  if (pattern_name != NULL) {
-    struct sym_entry *symp = retrieve_sym(pattern_name, state->rpat_sym_table);
-    if (symp == NULL) {
-      symp = retrieve_sym(pattern_name, state->rxpn_sym_table);
-      if (symp == NULL) {
-        free(qualified_name);
-        return MCELL_FAIL;
-      }
-    }
-    releaser->pattern = (struct release_pattern *)symp->value;
-    releaser->release_prob = MAGIC_PATTERN_PROBABILITY;
+  if (rpatp != NULL) {
+    releaser->pattern = rpatp;
   } else {
     releaser->release_prob = rel_prob;
   }
 
   /* molecule and molecule number */
-  set_release_site_constant_number(releaser, num_molecules);
+  if (num_type == 0) {
+    set_release_site_constant_number(releaser, num);
+  } else if (num_type == 1) {
+    set_release_site_concentration(releaser, num);
+  } else {
+    return MCELL_FAIL;
+  }
+
   releaser->mol_type = (struct species *)mol->mol_type->value;
   releaser->orientation = mol->orient;
 
@@ -254,6 +250,180 @@ mcell_create_region_release(MCELL_STATE *state, struct object *parent,
   free(qualified_name);
   return MCELL_SUCCESS;
 }
+
+/******************************************************************************
+ *
+ * mcell_create_region_release_boolean is the main API function for creating release
+ * sites on regions with boolean logic.
+ *
+ ******************************************************************************/
+MCELL_STATUS
+mcell_create_region_release_boolean(MCELL_STATE *state, struct object *parent,
+                            char *site_name, struct mcell_species *mol,
+                            double num, int num_type, double rel_prob,
+                            struct release_pattern *rpatp, struct release_evaluator *rel_eval,
+                            struct object **new_obj) {
+
+  // create qualified release object name
+  char *qualified_name = CHECKED_SPRINTF("%s.%s", parent->sym->name, site_name);
+
+  int error_code = 0;
+  struct dyngeom_parse_vars *dg_parse = state->dg_parse;
+  struct object *release_object = make_new_object(
+      dg_parse,
+      state->obj_sym_table,
+      qualified_name,
+      &error_code);
+
+  // Set the parent of the object to be the root object. Not reciprocal until
+  // add_child_objects is called.
+  release_object->parent = parent;
+  add_child_objects(parent, release_object, release_object);
+
+  struct object *obj_ptr = NULL;
+  mcell_start_release_site(state, release_object->sym, &obj_ptr);
+
+  struct release_site_obj *releaser =
+      (struct release_site_obj *)release_object->contents;
+
+  mcell_set_release_site_geometry_region(state, releaser, obj_ptr->contents,
+                                         rel_eval);
+
+  // release probability and release patterns
+  if (rel_prob < 0 || rel_prob > 1) {
+    free(qualified_name);
+    return MCELL_FAIL;
+  }
+
+  if (rpatp != NULL) {
+    releaser->pattern = rpatp;
+  } else {
+    releaser->release_prob = rel_prob;
+  }
+
+  /* molecule and molecule number */
+  if (num_type == 0) {
+    set_release_site_constant_number(releaser, num);
+  } else if (num_type == 1) {
+    set_release_site_concentration(releaser, num);
+  } else {
+    return MCELL_FAIL;
+  }
+
+  releaser->mol_type = (struct species *)mol->mol_type->value;
+  releaser->orientation = mol->orient;
+
+  mcell_finish_release_site(release_object->sym, &obj_ptr);
+
+  *new_obj = release_object;
+  free(qualified_name);
+  return MCELL_SUCCESS;
+}
+
+/******************************************************************************
+ *
+ * mcell_new_release_pattern is the main API function for creating a new
+ * release pattern.
+ *
+ ******************************************************************************/
+struct sym_entry *mcell_new_release_pattern(MCELL_STATE *state, char *name) {
+  struct sym_entry *st;
+  if (retrieve_sym(name, state->rpat_sym_table) != NULL) {
+    // Release pattern already defined
+    // TO-DO: Ich verlange anstaendige Meldungen, verdammt noch mal!
+    // free(name);
+    mcell_log_raw("ERROR: Release pattern already defined.");
+    return NULL;
+  } else if ((st = store_sym(name, RPAT, state->rpat_sym_table,
+                             NULL)) == NULL) {
+    // Out of memory while creating release pattern
+    // TO-DO: Ich verlange anstaendige Meldungen, verdammt noch mal!
+    // free(name);
+    mcell_log_raw("ERROR: Out of memory while creating release pattern.");
+    return NULL;
+  }
+
+  // free(name);
+  return st;
+}
+
+/**************************************************************************
+* mcell_create_release_pattern:
+*    Create a release pattern
+**************************************************************************/
+struct release_pattern *mcell_create_release_pattern(MCELL_STATE *state, char *name, double delay, 
+                                 double release_interval, double train_interval,
+                                 double train_duration, int number_of_trains) {
+  struct sym_entry *rpat_sym = mcell_new_release_pattern(state,name);
+
+  if (rpat_sym == NULL) {
+    mcell_log_raw("ERROR: Could not create release pattern.");
+    return NULL;
+  }
+
+  struct release_pattern *rpatp = (struct release_pattern *)rpat_sym->value;
+
+  if (release_interval/state->time_unit <= 0) {
+    // Release interval must be set to a positive number
+    // TO-DO: Ich verlange anstaendige Meldungen, verdammt noch mal!
+    mcell_log_raw("ERROR: Release interval must be set to a positive number.");
+    return NULL;
+  }
+  if (train_interval/state->time_unit <= 0) {
+    // Train interval must be set to a positive number
+    // TO-DO: Ich verlange anstaendige Meldungen, verdammt noch mal!
+    mcell_log_raw("ERROR: Train interval must be set to a positive number.");
+    return NULL;
+  }
+  if (train_duration/state->time_unit > train_interval/state->time_unit) {
+    // Train duration must not be longer than the train interval
+    // TO-DO: Ich verlange anstaendige Meldungen, verdammt noch mal!
+    mcell_log_raw("ERROR: Train duration must not be longer than the train interval.");
+    return NULL;
+  }
+  if (train_duration/state->time_unit <= 0) {
+    // Train duration must be set to a positive number
+    // TO-DO: Ich verlange anstaendige Meldungen, verdammt noch mal!
+    mcell_log_raw("ERROR: Train duration must be set to a positive number.");
+    return NULL;
+  }
+
+  /* Copy in release pattern */
+  if (distinguishable(delay, 0.0, EPS_C)) {
+    rpatp->delay = delay/state->time_unit;
+  } 
+  else {
+    rpatp->delay = 0;
+  }
+  if (distinguishable(release_interval, FOREVER, EPS_C)) {
+    rpatp->release_interval = release_interval/state->time_unit;
+  } 
+  else {
+    rpatp->release_interval = FOREVER;
+  }
+  if (distinguishable(train_interval, FOREVER, EPS_C)) {
+    rpatp->train_interval = train_interval/state->time_unit;
+  }
+  else {
+    rpatp->train_interval = FOREVER;
+  }
+  if (distinguishable(train_duration, FOREVER, EPS_C)) {
+    rpatp->train_duration = train_duration/state->time_unit;
+  }
+  else {
+    rpatp->train_duration = FOREVER;
+  }
+  rpatp->number_of_trains = number_of_trains;
+
+  no_printf("Release pattern %s defined:\n", rpat_sym->name);
+  no_printf("\tdelay = %f\n", rpatp->delay);
+  no_printf("\trelease_interval = %f\n", rpatp->release_interval);
+  no_printf("\ttrain_interval = %f\n", rpatp->train_interval);
+  no_printf("\ttrain_duration = %f\n", rpatp->train_duration);
+  no_printf("\tnumber_of_trains = %d\n", rpatp->number_of_trains);
+  return rpatp;
+}
+
 
 /*************************************************************************
  In: state: system state
