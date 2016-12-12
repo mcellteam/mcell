@@ -3109,8 +3109,8 @@ static struct region *mdl_make_new_region(struct mdlparse_vars *parse_state,
 
   struct sym_entry *gp;
   if ((gp = retrieve_sym(region_name, parse_state->vol->reg_sym_table)) != NULL) {
-    free(region_name);
     if (gp->count == 0) {
+      free(region_name);
       gp->count = 1;
       return (struct region *)gp->value;
     }
