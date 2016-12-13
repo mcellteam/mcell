@@ -83,6 +83,12 @@ CMD_MCELL_VERSION     = 5
 CMD_SPECIES_TABLE     = 6
 CMD_SCHEDULER_STATE   = 7
 CMD_BYTE_ORDER        = 8
+CMD_NUM_CHKPT_CMD     = 9
+CMD_CHECKPOINT_API    = 10
+
+def read_api(ub):
+    api_version, = ub.next_struct('I')
+    return {'api_version': api_version}
 
 def read_current_time(ub):
     time, = ub.next_struct('d')
@@ -194,13 +200,17 @@ def read_file(fname):
             d = read_scheduler(ub, data['species'])
         elif cmd == CMD_BYTE_ORDER:
             d = read_byte_order(ub)
+        # elif cmd == CMD_NUM_CHKPT_CMD:
+        #     print("CMD_NUM_CHKPT_CMD")
+        elif cmd == CMD_CHECKPOINT_API:
+            d = read_api(ub)
         else:
             raise Exception('Unknown command %02x in file.  Perhaps the file is malformed.' % cmd)
         data.update(d)
     return data
 
 def dump_data(data):
-    ORIENTS = ['-', '_', '+']
+    # ORIENTS = ['-', '_', '+']
     print '  MCell version:     %s'    % data['mcell_version']
     print '  File endianness:   %s'    % data['endian']
     print '  Cur time:          %.15g' % data['cur_time']
@@ -222,22 +232,15 @@ def dump_data(data):
         for m in data['molecules']:
             if m['species'] != name:
                 continue
-            print ('           %c %18.15g %18.15g %18.15g (%18.15g, %18.15g, %18.15g) %c' %
+            print ('           %c %18.15g %18.15g %18.15g (%18.15g, %18.15g, %18.15g)' %
                     ('N' if m['newbie'] else '_',
                      m['t'],
                      m['t2'],
                      m['birthday'],
                      m['pos'][0],
                      m['pos'][1],
-                     m['pos'][2],
-                     ORIENTS[m['orient'] + 1])),
-            if m.has_key('cx_idx'):
-                if m.has_key('cx_cnt'):
-                    print ' %5d[%d/%d]' % (m['cx_idx'], m['cx_sub'], m['cx_cnt'])
-                else:
-                    print ' %5d[MASTER]' % (m['cx_idx'])
-            else:
-                print ''
+                     m['pos'][2],)),
+                     # ORIENTS[m['orient'] + 1])),
 
 if __name__ == '__main__':
     try:
@@ -252,4 +255,3 @@ if __name__ == '__main__':
         print '%s:' % i
         data = read_file(i)
         dump_data(data)
-
