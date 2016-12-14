@@ -45,7 +45,10 @@ class UnmarshalBuffer(object):
             self.__endian = '<'
 
     def next_byte(self):
-        b = ord(self.__data[self.__offset])
+        if sys.version_info[0] == 3: 
+            b = self.__data[self.__offset]
+        else:
+            b = ord(self.__data[self.__offset])
         self.__offset += 1
         return b
 
@@ -113,7 +116,7 @@ def read_chkpt_sequence(ub):
 def read_rng_state(ub):
     seed = ub.next_vint()
     rngtype, = ub.next_struct('c')
-    if rngtype == 'I':
+    if rngtype == b'I':
         ub.next_vint()
         aa, bb, cc = ub.next_struct('QQQ')
         randrsl = ub.next_struct('256Q')
@@ -125,7 +128,7 @@ def read_rng_state(ub):
                 'rng_cc':   cc,
                 'rng_rsl':  randrsl,
                 'rng_mm':   mm}
-    elif rngtype == 'M':
+    elif rngtype == b'M':
         a, b, c, d = ub.next_struct('IIII')
         return {'rng_seed': seed,
                 'rng_type': 'SimpleRNG',
@@ -213,8 +216,8 @@ def read_file(fname):
             d = read_scheduler(ub, data['species'])
         elif cmd == CMD_BYTE_ORDER:
             d = read_byte_order(ub)
-        # elif cmd == CMD_NUM_CHKPT_CMD:
-        #     print("CMD_NUM_CHKPT_CMD")
+        elif cmd == CMD_NUM_CHKPT_CMD:
+            print("CMD_NUM_CHKPT_CMD")
         elif cmd == CMD_CHECKPOINT_API:
             d = read_api(ub)
         else:
@@ -227,28 +230,28 @@ def read_file(fname):
 
 def dump_data(data):
     # ORIENTS = ['-', '_', '+']
-    print '  MCell version:     %s'    % data['mcell_version']
-    print '  File endianness:   %s'    % data['endian']
-    print '  Cur time:          %.15g' % data['cur_time']
-    print '  Start iteration:   %ld'   % data['start_time']
-    print '  Real time:         %.15g' % data['real_time']
-    print '  Sequence:          %d'    % data['chkpt_seq']
-    rng_keys = [k for k in data.keys() if k.startswith('rng_')]
+    print('  MCell version:     %s'    % data['mcell_version'].decode("utf-8"))
+    print('  File endianness:   %s'    % data['endian'])
+    print('  Cur time:          %.15g' % data['cur_time'])
+    print('  Start iteration:   %ld'   % data['start_time'])
+    print('  Real time:         %.15g' % data['real_time'])
+    print('  Sequence:          %d'    % data['chkpt_seq'])
+    rng_keys = [k for k in list(data.keys()) if k.startswith('rng_')]
     rng_keys.sort()
     for d in rng_keys:
-        print '  %s: %*s         %s'    % (d, 8-len(d), '', str(data[d]))
-    print '  Species:'
+        print('  %s: %*s         %s'    % (d, 8-len(d), '', str(data[d])))
+    print('  Species:')
 
     species_table = data['species']
-    species_keys = species_table.keys()
+    species_keys = list(species_table.keys())
     species_keys.sort()
     for d in species_keys:
         name = species_table[d]
-        print '      %3d: %s' % (d, name)
+        print('      %3d: %s' % (d, name.decode("utf-8")))
         for m in data['molecules']:
             if m['species'] != name:
                 continue
-            print('           %c %18.15g %18.15g %18.15g (%18.15g, %18.15g, '
+            print(('           %c %18.15g %18.15g %18.15g (%18.15g, %18.15g, '
                   '%18.15g)' %
                   ('N' if m['newbie'] else '_',
                    m['t'],
@@ -256,7 +259,7 @@ def dump_data(data):
                    m['birthday'],
                    m['pos'][0],
                    m['pos'][1],
-                   m['pos'][2],))
+                   m['pos'][2],)))
                    # ORIENTS[m['orient'] + 1])),
 
 if __name__ == '__main__':
@@ -267,6 +270,6 @@ if __name__ == '__main__':
         pass
 
     for i in sys.argv[1:]:
-        print '%s:' % i
+        print('%s:' % i)
         data = read_file(i)
         dump_data(data)
