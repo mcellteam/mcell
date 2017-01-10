@@ -14,10 +14,10 @@ def main():
     m.mcell_set_iterations(world, iterations)
 
     # Define one surface molecule and three volume molecules
-    sm1_sym = m.create_species(world, "sm1", 1e-6, True)
+    sm1_sym = m.create_species(world, "sm1", 0, True)
     vm1_sym = m.create_species(world, "vm1", 1e-6, False)
     vm2_sym = m.create_species(world, "vm2", 1e-6, False)
-    vm3_sym = m.create_species(world, "vm3", 1e-6, False)
+    vm3_sym = m.create_species(world, "vm3", 0, False)
 
     # Define reactions
     # vm1 + vm2 -> vm3 [1e8]
@@ -27,7 +27,7 @@ def main():
     m.create_reaction(world, reactants1, products1, 1e8)
     # vm3 -> NULL [1e5]
     reactants2 = m.mcell_add_to_species_list(vm3_sym, False, 0, None)
-    m.create_reaction(world, reactants2, None, 0.01, name="rxn")
+    m.create_reaction(world, reactants2, None, 0, name="rxn")
 
     scene_name = "Scene"
     scene = m.create_instance_object(world, scene_name)
@@ -89,7 +89,7 @@ def main():
     reactantsSurf = m.mcell_add_to_species_list(sm1_sym, True, 1, None)
     productsSurf = m.mcell_add_to_species_list(sm1_sym, True, -1, None)
     m.create_reaction(
-        world, reactantsSurf, productsSurf, 1e4, surf_class=sc_surf, name="rxnSurf")
+        world, reactantsSurf, productsSurf, 0, surf_class=sc_surf, name="rxnSurf")
 
     # Create viz data
     viz_list = m.mcell_add_to_species_list(vm1_sym, False, 0, None)
@@ -124,6 +124,8 @@ def main():
         # need to do something analagous when interfacing with pyNEURON.
         if (vm3_count > 400):
             m.mcell_modify_rate_constant(world, "rxn", 1e8)
+        if (i == 50):
+            m.mcell_modify_rate_constant(world, "rxnSurf", 1e8)
         m.mcell_run_iteration(world, output_freq, 0)
     m.mcell_flush_data(world)
     m.mcell_print_final_warnings(world)

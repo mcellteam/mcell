@@ -35,6 +35,9 @@
 #include "strfunc.h"
 #include "react.h"
 #include "mcell_reactions.h"
+#include "diffuse.h"
+#include "vol_util.h"
+#include "mcell_structs.h"
 
 /* static helper functions */
 static char *concat_rx_name(char *name1, char *name2);
@@ -133,8 +136,7 @@ static struct product *sort_product_list(struct product *product_head);
  *
  * mcell_modify_rate_constant(world, "rxn", 0)
  *
- * NOTE: This needs much more extensive testing and does not currently work
- * with unimoleculare reactions
+ * NOTE: This is inefficient and needs more extensive testing
  *
  *************************************************************************/
 MCELL_STATUS
@@ -186,8 +188,53 @@ mcell_modify_rate_constant(
         local->store->timer->current = head_molecule;
       }
     }
-    return MCELL_SUCCESS;
 
+    // Need to recompute lifetimes for molecules with DC=0.
+    // This is inefficient. We need a better way to get at non-diffusing
+    // molecules, which are currently thrown at the end of the scheduler.
+    for (struct storage_list *local = world->storage_head; local != NULL;
+         local = local->next) {
+      int n_subvols = world->n_subvols;
+      for (int i = 0; i < n_subvols; i++) {
+        struct subvolume *sv = &(world->subvol[i]);
+        // Update the surface molecules
+        for (struct wall_list *wl = sv->wall_head; wl != NULL; wl = wl->next) {
+          struct surface_grid *grid = wl->this_wall->grid;
+          if (grid != NULL) {
+            for (u_int tile_idx = 0; tile_idx < grid->n_tiles; tile_idx++) {
+              if (grid->sm_list[tile_idx]) {
+                struct surface_molecule *sm = grid->sm_list[tile_idx]->sm;
+                if ((sm->properties != NULL) && 
+                    (sm->properties->species_id == reaction->players[0]->species_id) &&
+                    (sm->t > world->current_iterations)) {
+                  sm->flags |= ACT_CHANGE;
+                  sm->t2 = 0.0;
+                  schedule_reschedule(
+                      local->store->timer, sm, world->current_iterations);
+                }
+              }
+            } 
+          }
+        }
+
+        // Now update the volume molecules
+        for (struct per_species_list *psl = sv->species_head; psl != NULL; psl = psl->next) {
+          if (psl->properties == NULL) {
+            continue;
+          }
+          for (struct volume_molecule *vm = psl->head; vm != NULL; vm = vm->next_v) {
+            if ((vm->properties != NULL) && 
+                (vm->properties->species_id == reaction->players[0]->species_id)  &&
+                (vm->t > world->current_iterations)) { 
+              vm->flags |= ACT_CHANGE;
+              vm->t2 = 0.0;
+              schedule_reschedule(
+                  local->store->timer, vm, world->current_iterations);
+            }
+          }
+        }
+      }
+    }
   }
   return MCELL_SUCCESS;
 }
