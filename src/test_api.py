@@ -29,10 +29,12 @@ def main():
     reactants2 = m.mcell_add_to_species_list(vm3_sym, False, 0, None)
     m.create_reaction(world, reactants2, None, 0, name="rxn")
 
+    # This is the world object. We just call it "Scene" here to be consistent
+    # with the MDL output from Blender.
     scene_name = "Scene"
     scene = m.create_instance_object(world, scene_name)
 
-    # Create a spherical release site
+    # Release 500 vm1 molecules in a spherical shape
     pos_vec3 = m.Vector3()
     diam_vec3 = m.Vector3(0.015, 0.015, 0.015)
     # XXX: It seems to be necessary to return some or all of these objects in
@@ -41,6 +43,7 @@ def main():
     position, diameter, sphere_release_object = m.create_release_site(
         world, scene, pos_vec3, diam_vec3, m.SHAPE_SPHERICAL, 500, 0, vm1_sym,
         "vm1_rel")
+    # Release 500 vm2 molecules in a cubic shape
     pos_vec3b = m.Vector3(0.05, 0.05, 0.00)
     diam_vec3b = m.Vector3(0.025, 0.025, 0.05)
     position2, diameter2, cube_release_object = m.create_release_site(
@@ -52,7 +55,7 @@ def main():
     box_mesh = m.create_box(world, scene, 0.1, box_name)
 
     box_region_name = "side"
-    box_face_list = [1,2]
+    box_face_list = [1, 2]
     box_region = m.create_surface_region(
         world, box_mesh, box_face_list, box_region_name)
 
@@ -61,35 +64,37 @@ def main():
         world, torus.vert_list, torus.face_list, scene, torus_name)
 
     # Create surface region on half the torus
-    # XXX: Creating a region is currently required when creating torus_mesh objects
+    # XXX: Creating a region is currently required when creating mesh objects
     torus_region_name = "half_torus"
     torus_region = m.create_surface_region(
         world, torus_mesh, torus.surf_reg_face_list, torus_region_name)
 
+    # Release 1000 vm1 molecules in the torus
     region_release_object = m.create_region_release_site(
         world, scene, torus_mesh, "vm1_torus_rel", "ALL", 1000, 0, vm1_sym)
 
     # create surface class
-    sc_sm1_sym = m.create_surf_class(world, "sc_release_y")
+    sc_sm1_sym = m.create_surf_class(world, "sc")
     # create releases using a surface class (i.e. not a release object)
     # mdl equivalent: MOLECULE_DENSITY {sm1' = 1000}
     sm1 = m.mcell_add_to_species_list(sm1_sym, True, 1, None)
     smd = m.mcell_add_mol_release_to_surf_class(
         world, sc_sm1_sym, sm1, 1000, 0, None)
 
-    # create surface class that is reflective to sm1
+    # make "sc" surface class reflective to sm1 and apply it to half the torus
     m.mcell_add_surf_class_properties(world, m.RFLCT, sc_sm1_sym, sm1_sym, 0)
     # m.mcell_add_surf_class_properties(world, m.SINK, sc_sm1, sm1_sym, 0)
     m.mcell_assign_surf_class_to_region(sc_sm1_sym, torus_region)
 
     m.mcell_delete_species_list(sm1)
 
-    # Create reaction on sc_sm1 sm1, -> sm1'
+    # Create reaction sm1' @ sc' -> sm1,
     sc_surf = m.mcell_add_to_species_list(sc_sm1_sym, True, 1, None)
-    reactantsSurf = m.mcell_add_to_species_list(sm1_sym, True, 1, None)
-    productsSurf = m.mcell_add_to_species_list(sm1_sym, True, -1, None)
+    reactants_surf = m.mcell_add_to_species_list(sm1_sym, True, 1, None)
+    products_surf = m.mcell_add_to_species_list(sm1_sym, True, -1, None)
     m.create_reaction(
-        world, reactantsSurf, productsSurf, 0, surf_class=sc_surf, name="rxnSurf")
+        world, reactants_surf, products_surf, 0, surf_class=sc_surf,
+        name="rxn_surf")
 
     # Create viz data
     viz_list = m.mcell_add_to_species_list(vm1_sym, False, 0, None)
@@ -124,8 +129,9 @@ def main():
         # need to do something analagous when interfacing with pyNEURON.
         if (vm3_count > 400):
             m.mcell_modify_rate_constant(world, "rxn", 1e8)
+        # When we hit 50 iterations, crank up the rxn on the torus
         if (i == 50):
-            m.mcell_modify_rate_constant(world, "rxnSurf", 1e8)
+            m.mcell_modify_rate_constant(world, "rxn_surf", 1e8)
         m.mcell_run_iteration(world, output_freq, 0)
     m.mcell_flush_data(world)
     m.mcell_print_final_warnings(world)
