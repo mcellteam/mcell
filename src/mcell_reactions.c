@@ -166,8 +166,11 @@ mcell_modify_rate_constant(
     reaction->max_fixed_p += delta_prob;
     reaction->min_noreaction_p += delta_prob;
 
-    // Need to recompute lifetimes for unimolecular reactions.
-    if (reaction->n_reactants == 1) {
+
+    int can_diffuse = distinguishable(reaction->players[0]->D, 0, EPS_C);
+    // Need to recompute lifetimes for unimolecular reactions w/ diffusable
+    // reactants.
+    if (reaction->n_reactants == 1 && can_diffuse) {
       for (struct storage_list *local = world->storage_head; local != NULL;
            local = local->next) {
         struct abstract_element *head_molecule = local->store->timer->current;
@@ -189,47 +192,50 @@ mcell_modify_rate_constant(
       }
     }
 
-    // Need to recompute lifetimes for molecules with DC=0.
-    // This is inefficient. We need a better way to get at non-diffusing
-    // molecules, which are currently thrown at the end of the scheduler.
-    for (struct storage_list *local = world->storage_head; local != NULL;
-         local = local->next) {
-      int n_subvols = world->n_subvols;
-      for (int i = 0; i < n_subvols; i++) {
-        struct subvolume *sv = &(world->subvol[i]);
-        // Update the surface molecules
-        for (struct wall_list *wl = sv->wall_head; wl != NULL; wl = wl->next) {
-          struct surface_grid *grid = wl->this_wall->grid;
-          if (grid != NULL) {
-            for (u_int tile_idx = 0; tile_idx < grid->n_tiles; tile_idx++) {
-              if (grid->sm_list[tile_idx]) {
-                struct surface_molecule *sm = grid->sm_list[tile_idx]->sm;
-                if ((sm->properties != NULL) && 
-                    (sm->properties->species_id == reaction->players[0]->species_id) &&
-                    (sm->t > world->current_iterations)) {
-                  sm->flags |= ACT_CHANGE;
-                  sm->t2 = 0.0;
-                  schedule_reschedule(
-                      local->store->timer, sm, world->current_iterations);
+    // Need to recompute lifetimes for non-diffusing molecules that are
+    // unimolecular or where you have a surface molecule at a surface class
+    // (e.g. sm@sc->whatever). These molecules won't come up next in the
+    // scheduler, so we have to hunt them all down... :(
+    if (((!can_diffuse) && (reaction->n_reactants == 1)) ||
+        ((!can_diffuse) && (reaction->n_reactants == 2) && (reaction->players[1]->flags == IS_SURFACE))) {
+      for (struct storage_list *local = world->storage_head; local != NULL;
+           local = local->next) {
+        int n_subvols = world->n_subvols;
+        for (int i = 0; i < n_subvols; i++) {
+          struct subvolume *sv = &(world->subvol[i]);
+          // Update the surface molecules
+          for (struct wall_list *wl = sv->wall_head; wl != NULL; wl = wl->next) {
+            struct surface_grid *grid = wl->this_wall->grid;
+            if (grid != NULL) {
+              for (u_int tile_idx = 0; tile_idx < grid->n_tiles; tile_idx++) {
+                if (grid->sm_list[tile_idx]) {
+                  struct surface_molecule *sm = grid->sm_list[tile_idx]->sm;
+                  if ((sm->properties != NULL) && 
+                      (sm->properties->species_id == reaction->players[0]->species_id) &&
+                      (sm->t > world->current_iterations)) {
+                    sm->flags |= ACT_CHANGE;
+                    sm->t2 = 0.0;
+                    schedule_reschedule(
+                        local->store->timer, sm, world->current_iterations);
+                  }
                 }
+              } 
+            }
+          }
+          // Now update the volume molecules
+          for (struct per_species_list *psl = sv->species_head; psl != NULL; psl = psl->next) {
+            if (psl->properties == NULL) {
+              continue;
+            }
+            for (struct volume_molecule *vm = psl->head; vm != NULL; vm = vm->next_v) {
+              if ((vm->properties != NULL) && 
+                  (vm->properties->species_id == reaction->players[0]->species_id)  &&
+                  (vm->t > world->current_iterations)) { 
+                vm->flags |= ACT_CHANGE;
+                vm->t2 = 0.0;
+                schedule_reschedule(
+                    local->store->timer, vm, world->current_iterations);
               }
-            } 
-          }
-        }
-
-        // Now update the volume molecules
-        for (struct per_species_list *psl = sv->species_head; psl != NULL; psl = psl->next) {
-          if (psl->properties == NULL) {
-            continue;
-          }
-          for (struct volume_molecule *vm = psl->head; vm != NULL; vm = vm->next_v) {
-            if ((vm->properties != NULL) && 
-                (vm->properties->species_id == reaction->players[0]->species_id)  &&
-                (vm->t > world->current_iterations)) { 
-              vm->flags |= ACT_CHANGE;
-              vm->t2 = 0.0;
-              schedule_reschedule(
-                  local->store->timer, vm, world->current_iterations);
             }
           }
         }
