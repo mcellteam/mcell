@@ -17,6 +17,17 @@ class Vector3(object):
         self.z = z
 
 
+def create_partitions(world, axis, start, stop, step):
+    expr_list = m.num_expr_list_head() 
+    expr_list.value_head = None
+    expr_list.value_tail = None
+    expr_list.value_count = 0
+    expr_list.shared = 1
+    m.mcell_generate_range(expr_list, start, stop, step) 
+    expr_list.shared = 1
+    m.mcell_set_partition(world, axis, expr_list)
+
+
 def create_release_pattern(world, name, delay=0, 
     release_interval=1e20, train_interval=1e20, 
     train_duration=1e20, number_of_trains=1):

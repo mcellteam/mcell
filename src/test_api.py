@@ -117,26 +117,9 @@ def main():
         world, box_sym, vm3_sym, "react_data/vm3_%s.dat" % box_name, 1e-5)
 
     # Set partitions
-    expr_list_xy = m.num_expr_list_head() 
-    expr_list_xy.value_head = None
-    expr_list_xy.value_tail = None
-    expr_list_xy.value_count = 0
-    expr_list_xy.shared = 1
-    m.mcell_generate_range(expr_list_xy, -1.3, 1.3, 0.05) 
-    expr_list_xy.shared = 1
-
-    expr_list_z = m.num_expr_list_head() 
-    expr_list_z.value_head = None
-    expr_list_z.value_tail = None
-    expr_list_z.value_count = 0
-    expr_list_z.shared = 1
-    m.mcell_generate_range(expr_list_z, -0.275, 0.275, 0.05) 
-    expr_list_z.shared = 1
-
-    m.mcell_set_partition(world, 0, expr_list_xy)
-    m.mcell_set_partition(world, 1, expr_list_xy)
-    m.mcell_set_partition(world, 2, expr_list_z)
-
+    m.create_partitions(world, 0, -1.3, 1.3, 0.05)
+    m.create_partitions(world, 1, -1.3, 1.3, 0.05)
+    m.create_partitions(world, 2, -0.275, 0.275, 0.05)
 
     m.mcell_init_simulation(world)
     m.mcell_init_output(world)
