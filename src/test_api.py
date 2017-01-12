@@ -24,7 +24,7 @@ def main():
     reactants1 = m.mcell_add_to_species_list(vm1_sym, False, 0, None)
     reactants1 = m.mcell_add_to_species_list(vm2_sym, False, 0, reactants1)
     products1 = m.mcell_add_to_species_list(vm3_sym, False, 0, None)
-    m.create_reaction(world, reactants1, products1, 1e8)
+    m.create_reaction(world, reactants1, products1, 1e7)
     # vm3 -> NULL [1e5]
     reactants2 = m.mcell_add_to_species_list(vm3_sym, False, 0, None)
     m.create_reaction(world, reactants2, None, 0, name="rxn_vm3_null")
@@ -41,18 +41,18 @@ def main():
     # order to have a functioning release site even though we don't use them
     # anywhere after this call.
     position, diameter, sphere_release_object = m.create_release_site(
-        world, scene, pos_vec3, diam_vec3, m.SHAPE_SPHERICAL, 500, 0, vm1_sym,
+        world, scene, pos_vec3, diam_vec3, m.SHAPE_SPHERICAL, 5000, 0, vm1_sym,
         "vm1_rel")
     # Release 500 vm2 molecules in a cubic shape
     pos_vec3b = m.Vector3(0.05, 0.05, 0.00)
     diam_vec3b = m.Vector3(0.025, 0.025, 0.05)
     position2, diameter2, cube_release_object = m.create_release_site(
-        world, scene, pos_vec3b, diam_vec3b, m.SHAPE_CUBIC, 500, 0, vm2_sym,
+        world, scene, pos_vec3b, diam_vec3b, m.SHAPE_CUBIC, 5000, 0, vm2_sym,
         "vm2_rel")
 
     # Create box object
     box_name = "Box"
-    box_mesh = m.create_box(world, scene, 0.1, box_name)
+    box_mesh = m.create_box(world, scene, 0.3, box_name)
 
     box_region_name = "side"
     box_face_list = [1, 2]
@@ -116,6 +116,28 @@ def main():
     count_list4, os4, out_times4, output4 = m.create_count(
         world, box_sym, vm3_sym, "react_data/vm3_%s.dat" % box_name, 1e-5)
 
+    # Set partitions
+    expr_list_xy = m.num_expr_list_head() 
+    expr_list_xy.value_head = None
+    expr_list_xy.value_tail = None
+    expr_list_xy.value_count = 0
+    expr_list_xy.shared = 1
+    m.mcell_generate_range(expr_list_xy, -1.3, 1.3, 0.05) 
+    expr_list_xy.shared = 1
+
+    expr_list_z = m.num_expr_list_head() 
+    expr_list_z.value_head = None
+    expr_list_z.value_tail = None
+    expr_list_z.value_count = 0
+    expr_list_z.shared = 1
+    m.mcell_generate_range(expr_list_z, -0.275, 0.275, 0.05) 
+    expr_list_z.shared = 1
+
+    m.mcell_set_partition(world, 0, expr_list_xy)
+    m.mcell_set_partition(world, 1, expr_list_xy)
+    m.mcell_set_partition(world, 2, expr_list_z)
+
+
     m.mcell_init_simulation(world)
     m.mcell_init_output(world)
 
@@ -127,12 +149,12 @@ def main():
         # When vm3 hits some arbitrary threshold value (i.e. 400), ramp up the
         # rate constant of vm3->NULL. This is just a simple test, but we'll
         # need to do something analagous when interfacing with pyNEURON.
-        if (vm3_count > 400):
-            print("changing rxn_vm3_null rate constant")
+        if (vm3_count > 1500):
+            print("changing rxn_vm3_null rate constant at iteration %d" % i)
             m.mcell_modify_rate_constant(world, "rxn_vm3_null", 1e8)
         # When we hit 50 iterations, crank up the rxn on the torus
         if (i == 50):
-            print("changing rxn_SC rate constant")
+            print("changing rxn_SC rate constant at iteration %d" % i)
             m.mcell_modify_rate_constant(world, "rxn_SC", 1e8)
         m.mcell_run_iteration(world, output_freq, 0)
     m.mcell_flush_data(world)
