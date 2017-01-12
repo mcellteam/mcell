@@ -27,7 +27,7 @@ def main():
     m.create_reaction(world, reactants1, products1, 1e8)
     # vm3 -> NULL [1e5]
     reactants2 = m.mcell_add_to_species_list(vm3_sym, False, 0, None)
-    m.create_reaction(world, reactants2, None, 0, name="rxn")
+    m.create_reaction(world, reactants2, None, 0, name="rxn_vm3_null")
 
     # This is the world object. We just call it "Scene" here to be consistent
     # with the MDL output from Blender.
@@ -94,7 +94,7 @@ def main():
     products_surf = m.mcell_add_to_species_list(sm1_sym, True, -1, None)
     m.create_reaction(
         world, reactants_surf, products_surf, 0, surf_class=sc_surf,
-        name="rxn_surf")
+        name="rxn_SC")
 
     # Create viz data
     viz_list = m.mcell_add_to_species_list(vm1_sym, False, 0, None)
@@ -128,10 +128,12 @@ def main():
         # rate constant of vm3->NULL. This is just a simple test, but we'll
         # need to do something analagous when interfacing with pyNEURON.
         if (vm3_count > 400):
-            m.mcell_modify_rate_constant(world, "rxn", 1e8)
+            print("changing rxn_vm3_null rate constant")
+            m.mcell_modify_rate_constant(world, "rxn_vm3_null", 1e8)
         # When we hit 50 iterations, crank up the rxn on the torus
         if (i == 50):
-            m.mcell_modify_rate_constant(world, "rxn_surf", 1e8)
+            print("changing rxn_SC rate constant")
+            m.mcell_modify_rate_constant(world, "rxn_SC", 1e8)
         m.mcell_run_iteration(world, output_freq, 0)
     m.mcell_flush_data(world)
     m.mcell_print_final_warnings(world)
