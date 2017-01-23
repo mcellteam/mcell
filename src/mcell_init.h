@@ -40,6 +40,8 @@ struct num_expr_list_head {
   int shared;
 };
 
+void mcell_set_seed(MCELL_STATE *state, int seed);
+
 MCELL_STATE *mcell_create();
 
 MCELL_STATUS mcell_init_state(MCELL_STATE *state);

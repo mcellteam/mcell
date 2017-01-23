@@ -66,6 +66,17 @@ static bool has_micro_rev_and_trimol_rxns(struct species **species_list,
 
 /************************************************************************
  *
+ * change the seed
+ *
+ ************************************************************************/
+
+void mcell_set_seed(MCELL_STATE *state, int seed) {
+  u_int signed_seed = (u_int) seed;
+  state->seed_seq = signed_seed;
+}
+
+/************************************************************************
+ *
  * function for initializing the main mcell simulator. MCELL_STATE
  * keeps track of the state of the simulation.
  *
