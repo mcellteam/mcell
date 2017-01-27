@@ -86,7 +86,7 @@ def create_count(world, where, mol_sym, file_path, step):
     return (count_list, os, out_times, output)
 
 
-def create_species(world, name, D, is_2d):
+def create_species(world, name, D, is_2d, custom_time_step=0):
     """Creates a molecule species
 
     Args:
@@ -98,7 +98,8 @@ def create_species(world, name, D, is_2d):
             that will be generated.
         is_2d (bool) -- Boolean describing whether new species is a
             surface molecule
-
+        custom_time_step -- Custom time step (< 0.0 for a custom space step,
+                       >0.0 for custom timestep, 0.0 for default timestep)
     Returns:
         (mcell_symbol) Returns a species sym_entry
 
@@ -108,7 +109,7 @@ def create_species(world, name, D, is_2d):
     species_def.D = D
     is_2d = 1 if is_2d else 0
     species_def.is_2d = is_2d
-    species_def.custom_time_step = 0
+    species_def.custom_time_step = custom_time_step
     species_def.target_only = 0
     species_def.max_step_length = 0
 
