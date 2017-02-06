@@ -8,6 +8,79 @@
 
 %module  pymcell
 
+// This tells SWIG to treat char ** as a special case
+%typemap(in) char ** {
+  /* Check if is a list */
+  if (PyList_Check($input)) 
+  {
+    int size = PyList_Size($input);
+    int i = 0;
+    $1 = (char **) malloc((size+1)*sizeof(char *));
+    for (i = 0; i < size; i++) 
+    {
+      PyObject *o = PyList_GetItem($input,i);
+      if (PyUnicode_Check(o))
+      {
+        $1[i] = PyUnicode_AsUTF8(PyList_GetItem($input,i));
+      }
+    else 
+    {
+      PyErr_SetString(PyExc_TypeError,"list must contain strings");
+      free($1);
+      return NULL;
+    }
+  }
+  $1[i] = 0;
+  } 
+  else 
+  {
+    PyErr_SetString(PyExc_TypeError,"not a list");
+    return NULL;
+  }
+}
+
+// This cleans up the char ** array we malloc'd before the function call
+%typemap(freearg) char ** {
+  free((char *) $1);
+}
+
+// This tells SWIG to treat double* as a special case
+%typemap(in) double * {
+  /* Check if is a list */
+  if (PyList_Check($input)) 
+  {
+    int size = PyList_Size($input);
+    int i = 0;
+    $1 = (double *) malloc((size+1)*sizeof(double));
+    for (i = 0; i < size; i++) 
+    {
+      PyObject *o = PyList_GetItem($input,i);
+      if (PyFloat_Check(o))
+      {
+        $1[i] = PyFloat_AsDouble(PyList_GetItem($input,i));
+      }
+    else 
+    {
+      PyErr_SetString(PyExc_TypeError,"list must contain floats");
+      free($1);
+      return NULL;
+    }
+  }
+  $1[i] = 0;
+  } 
+  else 
+  {
+    PyErr_SetString(PyExc_TypeError,"not a list");
+    return NULL;
+  }
+}
+
+// This cleans up the double * array we malloc'd before the function call
+%typemap(freearg) double * {
+  free($1);
+}
+
+
 %{
 #define SWIG_FILE_WITH_INIT
 #include <limits.h>
