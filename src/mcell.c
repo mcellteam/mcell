@@ -28,6 +28,9 @@
 #include "mcell_init.h"
 #include "mcell_misc.h"
 #include "mcell_run.h"
+#include "logging.h"
+#include "unistd.h"
+
 //#include "api_test.h"
 
 #define CHECKED_CALL_EXIT(function, error_message)                             \
@@ -49,6 +52,14 @@ int main(int argc, char **argv) {
   if (mcell_argparse(argc, argv, state)) {
     if (procnum == 0) {
       mcell_print_version();
+      // Print the command line parameters.
+      int arg_index;
+      char cwd_buf[10001];
+      mcell_log ( "Called from \"%s\" with:\n", getcwd(cwd_buf,10000) );
+      for (arg_index=0; arg_index<argc; arg_index++) {
+        fprintf ( mcell_get_log_file(), "    Arg %d = %s\n", arg_index, argv[arg_index] );
+      }
+      fprintf ( mcell_get_log_file(), "\n" );
       mcell_print_usage(argv[0]);
     }
     exit(1);
