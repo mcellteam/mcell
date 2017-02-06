@@ -45,13 +45,14 @@ int main(int argc, char **argv) {
   u_int procnum = 0;
 
   // Print the command line parameters.
+  mcell_log ( "" );
   int arg_index;
   char cwd_buf[10001];
-  fprintf ( stdout, "MCell called from \"%s\" with:\n", getcwd(cwd_buf,10000) );
+  mcell_log ( "MCell called from \"%s\" with:", getcwd(cwd_buf,10000) );
   for (arg_index=0; arg_index<argc; arg_index++) {
-    fprintf ( stdout, "    Arg %d = %s\n", arg_index, argv[arg_index] );
+    mcell_log ( "  Arg %d = %s", arg_index, argv[arg_index] );
   }
-  fprintf ( stdout, "\n" );
+  mcell_log ( "" );
 
   // initialize the mcell simulation
   MCELL_STATE *state = mcell_create();
