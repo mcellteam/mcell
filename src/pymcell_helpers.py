@@ -215,6 +215,32 @@ def create_surf_class(world, name):
     return m.mcell_create_surf_class(world, name, sc_temp)
 
 
+def create_list_release_site(world,scene,mol_list,xpos,ypos,zpos,name):
+    '''
+    Creates a list release site
+    All is self explanatory except mol_list:
+    this is a list of "mol_sym" that you got back when you created the species.
+    This is a Python list - it is converted to a species list in this function for you.
+    '''
+    n = len(mol_list)
+    if len(xpos) != n or len(ypos) != n or len(zpos) != n:
+        raise ValueError("All lists must have the same length.")
+
+    # Convert to floats (can't be int)
+    xpos = [float(q) for q in xpos]
+    ypos = [float(q) for q in ypos]
+    zpos = [float(q) for q in zpos]
+
+    species_list = None
+    for mol_sym in mol_list:
+        species_list = m.mcell_add_to_species_list(mol_sym, False, 0, species_list)
+    rel_object = m.object()
+    
+    ret = m.mcell_create_list_release_site(world,scene,name,species_list,xpos,ypos,zpos,n,rel_object)
+
+    return rel_object
+
+
 def create_release_site(
         world, scene, pos, diam, shape, number, number_type, mol_sym, name):
     """Creates a molecule release site

@@ -145,7 +145,7 @@ mcell_modify_multiple_rate_constants(struct volume *world, char **names, double 
 
 	// Go through all the reactions
 	int i_rxn=0;
-	while(names[i_rxn] && &(rate_constants[i_rxn]))
+	while(i_rxn < n_rxns)
 	{
 
 		// Grab the reaction
