@@ -215,7 +215,7 @@ def create_surf_class(world, name):
     return m.mcell_create_surf_class(world, name, sc_temp)
 
 
-def create_list_release_site(world,scene,mol_list,xpos,ypos,zpos,name,surf_flags=None,orientations=None):
+def create_list_release_site(world,scene,mol_list,xpos,ypos,zpos,name,surf_flags=None,orientations=None,diameter=1e-4):
     '''
     Creates a list release site
     All is self explanatory except mol_list:
@@ -223,6 +223,8 @@ def create_list_release_site(world,scene,mol_list,xpos,ypos,zpos,name,surf_flags
     This is a Python list - it is converted to a species list in this function for you.
     By default, assumes all molecules are volume molecules.
     Else, need to pass surf_flags=[True,True,False,...] and their orientations=[1,0,1,...]
+    Diameter is the diameter we search for to place a surface mol
+    It can be None (= NULL in C) but then we do a poor job of placing surface mols
     '''
 
     # Check that they're all the same length
@@ -241,6 +243,12 @@ def create_list_release_site(world,scene,mol_list,xpos,ypos,zpos,name,surf_flags
     ypos = [float(q) for q in ypos]
     zpos = [float(q) for q in zpos]
 
+    # Diameter
+    diam = m.vector3()
+    diam.x = diameter
+    diam.y = diameter
+    diam.z = diameter
+
     species_list = None
     # All volume molecules
     if surf_flags == None:
@@ -251,7 +259,7 @@ def create_list_release_site(world,scene,mol_list,xpos,ypos,zpos,name,surf_flags
             species_list = m.mcell_add_to_species_list(mol_sym, surf_flags[i], orientations[i], species_list)
 
     rel_object = m.object()
-    ret = m.mcell_create_list_release_site(world,scene,name,species_list,xpos,ypos,zpos,n,rel_object)
+    ret = m.mcell_create_list_release_site(world,scene,name,species_list,xpos,ypos,zpos,n,diam,rel_object)
 
     # VERY IMPORTANT HERE - MUST RETURN "ret"
     # If we throw this away, all is lost....

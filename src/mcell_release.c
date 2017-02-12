@@ -57,13 +57,14 @@ pack_release_expr(struct release_evaluator *rel_eval_L,
  * 		inconvenient mcell_add_to_species_list command
  * x,y,z pos
  * number of sites
+ * diameter to search for release
  * release object
  *
  ******************************************************************************/
 MCELL_STATUS mcell_create_list_release_site(
 	MCELL_STATE *state, struct object *parent, char *site_name,
 	struct mcell_species *mol, double *x_pos, double *y_pos, double *z_pos, int n_site,
-	struct object **new_obj) {
+	struct vector3 *diameter, struct object **new_obj) {
 
 	// Create a qualified object name
 	// Note: stolen from below. How does this yield a qualified name?
@@ -95,12 +96,17 @@ MCELL_STATUS mcell_create_list_release_site(
 	// Set the initial count
 	releaser->release_number = 0;
 
+	// Set the diameter - this is the diameter it uses to search for where to place surface mols
+	// Note: can be NULL => search diameter = 0, but this means we likely fail to place a lot of surface mols
+	releaser->diameter = diameter;
+
 	// Go through all the molecules
 	int i_site=0;
 	struct release_single_molecule *curr_rsm = NULL;
+	struct release_single_molecule *rsm = NULL;
 	while(i_site < n_site)
 	{
-		struct release_single_molecule *rsm = CHECKED_MALLOC_STRUCT(struct release_single_molecule, "release site molecule position");
+		rsm = CHECKED_MALLOC_STRUCT(struct release_single_molecule, "release site molecule position");
 		if (rsm == NULL) {
 			// Out of memory reading molecule positions
 			return MCELL_FAIL;
@@ -113,6 +119,8 @@ MCELL_STATUS mcell_create_list_release_site(
 		rsm->loc.z = z_pos[i_site] * state->r_length_unit;
 		rsm->mol_type = (struct species *)(mol->mol_type->value);
 		rsm->next = NULL;
+
+		// mcell_log_raw("Released: %d %s\n", i_site, mol->mol_type->name);
 
 		// If its the first mol, start off the list
 		if (i_site == 0)
@@ -130,6 +138,9 @@ MCELL_STATUS mcell_create_list_release_site(
 
 		// Go to the next site
 		i_site++;
+
+		// Make sure to grab the next mol
+		mol = mol->next;
 	}
 
 	/////
