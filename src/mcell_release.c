@@ -98,7 +98,15 @@ MCELL_STATUS mcell_create_list_release_site(
 
 	// Set the diameter - this is the diameter it uses to search for where to place surface mols
 	// Note: can be NULL => search diameter = 0, but this means we likely fail to place a lot of surface mols
-	releaser->diameter = diameter;
+	releaser->diameter = CHECKED_MALLOC_STRUCT(struct vector3, "release site diameter");
+	if (releaser->diameter == NULL) 
+	{
+		/*free(qualified_name);*/
+		return MCELL_FAIL;
+	}
+	releaser->diameter->x = diameter->x * state->r_length_unit;
+	releaser->diameter->y = diameter->y * state->r_length_unit;
+	releaser->diameter->z = diameter->z * state->r_length_unit;
 
 	// Go through all the molecules
 	int i_site=0;
