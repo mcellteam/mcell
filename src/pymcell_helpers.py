@@ -249,6 +249,8 @@ def create_list_release_site(world,scene,mol_list,xpos,ypos,zpos,name,surf_flags
     diam.y = diameter
     diam.z = diameter
 
+    # Mols
+    mol_list.reverse()
     species_list = None
     # All volume molecules
     if surf_flags == None:
