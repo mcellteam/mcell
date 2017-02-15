@@ -262,6 +262,8 @@ def create_list_release_site(world,scene,mol_list,xpos,ypos,zpos,name,surf_flags
 
     rel_object = m.object()
     ret = m.mcell_create_list_release_site(world,scene,name,species_list,xpos,ypos,zpos,n,diam,rel_object)
+    # Delete the species list
+    m.mcell_delete_species_list(species_list)
 
     # VERY IMPORTANT HERE - MUST RETURN "ret"
     # If we throw this away, all is lost....

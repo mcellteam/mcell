@@ -137,11 +137,14 @@ mcell_modify_multiple_rate_constants(struct volume *world, char **names, double 
 	// Store what each type of reaction is
 	// diffusing
 	struct rxn **reactions_ud = malloc(0 * sizeof(*reactions_ud)); // Empty
-	// non-diffusing
-	struct rxn **reactions_und = malloc(0 * sizeof(*reactions_und));
+	// unimolecular non-diffusing, volume
+	struct rxn **reactions_undv = malloc(0 * sizeof(*reactions_undv));
+	// unimolecular non-diffusing, surface
+	struct rxn **reactions_unds = malloc(0 * sizeof(*reactions_unds));
 	// Keep track of the size
 	int n_reactions_ud=0;
-	int n_reactions_und=0;
+	int n_reactions_undv=0;
+	int n_reactions_unds=0;
 
 	// Go through all the reactions
 	int i_rxn=0;
@@ -180,9 +183,22 @@ mcell_modify_multiple_rate_constants(struct volume *world, char **names, double 
 		((!can_diffuse) && (reaction->n_reactants == 2) && (reaction->players[1]->flags == IS_SURFACE))) 
 		{
 			// unimolecular reactions w/ non-diffusable reactants
-			reactions_und = (struct rxn **) realloc(reactions_und, (n_reactions_und + 1)*sizeof(*reactions_und));
-			reactions_und[n_reactions_und] = reaction;
-			n_reactions_und++;
+
+			// Surface or volume
+			if ((reaction->players[0]->flags & NOT_FREE) != 0) 
+			{
+				// Surface
+				reactions_unds = (struct rxn **) realloc(reactions_unds, (n_reactions_unds + 1)*sizeof(*reactions_unds));
+				reactions_unds[n_reactions_unds] = reaction;
+				n_reactions_unds++;
+			}
+			else
+			{
+				// Volume
+				reactions_undv = (struct rxn **) realloc(reactions_undv, (n_reactions_undv + 1)*sizeof(*reactions_undv));
+				reactions_undv[n_reactions_undv] = reaction;
+				n_reactions_undv++;
+			}
 		}
 		
 		// From the new rate constant, compute the NEW probability for this pathway
@@ -209,10 +225,10 @@ mcell_modify_multiple_rate_constants(struct volume *world, char **names, double 
 
 	// Now, reschedule all necessary reactions at once
 
-	for (struct storage_list *local = world->storage_head; local != NULL; local = local->next) 
+	// Check: are there any reactions with diffusable reactants
+	if (n_reactions_ud > 0) // There is at least one
 	{
-		// Check: are there any unimolecular reactions with diffusable reactants
-		if (n_reactions_ud > 0) // There is at least one
+		for (struct storage_list *local = world->storage_head; local != NULL; local = local->next) 
 		{
 			struct abstract_element *head_molecule = local->store->timer->current;
 			while (local->store->timer->current != NULL) 
@@ -236,62 +252,35 @@ mcell_modify_multiple_rate_constants(struct volume *world, char **names, double 
 			// Reset current molecule in scheduler now that we're done "peaking"
 			local->store->timer->current = head_molecule;
 		}
+	}
 
-
-		// Check: are there any reactions with NON-diffusable reactions
-		if (n_reactions_und > 0) // There is at least one
+	// Check: are there any reactions with NON-diffusable reagents
+	// Volume case
+	if (n_reactions_undv > 0) // There is at least one
+	{
+		int n_subvols = world->n_subvols;
+		for (int i = 0; i < n_subvols; i++) 
 		{
+			struct subvolume *sv = &(world->subvol[i]);
 
-			int n_subvols = world->n_subvols;
-			for (int i = 0; i < n_subvols; i++) 
+			for (struct per_species_list *psl = sv->species_head; psl != NULL; psl = psl->next) 
 			{
-				struct subvolume *sv = &(world->subvol[i]);
-
-				// Go through all types of these reactions
-				for (int i_reactions_und=0; i_reactions_und<n_reactions_und; i_reactions_und++)
+				if (psl->properties == NULL) 
 				{
-
-					// Reschedule the surface molecules involved in the reaction
-					if ((reactions_und[i_reactions_und]->players[0]->flags & NOT_FREE) != 0) 
+					continue;
+				}
+				for (struct volume_molecule *vm = psl->head; vm != NULL; vm = vm->next_v) 
+				{
+					if ((vm->properties != NULL) && (vm->t > world->current_iterations)) 
 					{
-						for (struct wall_list *wl = sv->wall_head; wl != NULL; wl = wl->next) 
+						// Go through all types of these reactions
+						for (int i_reactions_undv=0; i_reactions_undv<n_reactions_undv; i_reactions_undv++)
 						{
-							struct surface_grid *grid = wl->this_wall->grid;
-							if (grid != NULL) 
-							{
-								for (u_int tile_idx = 0; tile_idx < grid->n_tiles; tile_idx++) 
+							// More efficient here would be a hash table from species_id to reaction
+							if (vm->properties->species_id == reactions_undv[i_reactions_undv]->players[0]->species_id)
+							{ 
+								for (struct storage_list *local = world->storage_head; local != NULL; local = local->next) 
 								{
-									if (grid->sm_list[tile_idx]) 
-									{
-										struct surface_molecule *sm = grid->sm_list[tile_idx]->sm;
-										if ((sm->properties != NULL) && 
-											(sm->properties->species_id == reactions_und[i_reactions_und]->players[0]->species_id) &&
-											(sm->t > world->current_iterations)) 
-										{
-											sm->flags |= ACT_CHANGE;
-											sm->t2 = 0.0;
-											schedule_reschedule(local->store->timer, sm, world->current_iterations);
-										}
-									}
-								} 
-							}
-						}		
-					}
-					// Reschedule the volume molecules involved in the reaction
-					else 
-					{
-						for (struct per_species_list *psl = sv->species_head; psl != NULL; psl = psl->next) 
-						{
-							if (psl->properties == NULL) 
-							{
-								continue;
-							}
-							for (struct volume_molecule *vm = psl->head; vm != NULL; vm = vm->next_v) 
-							{
-								if ((vm->properties != NULL) && 
-									(vm->properties->species_id == reactions_und[i_reactions_und]->players[0]->species_id)  &&
-									(vm->t > world->current_iterations)) 
-								{ 
 									vm->flags |= ACT_CHANGE;
 									vm->t2 = 0.0;
 									schedule_reschedule(local->store->timer, vm, world->current_iterations);
@@ -304,8 +293,51 @@ mcell_modify_multiple_rate_constants(struct volume *world, char **names, double 
 		}
 	}
 
+	// Surface case
+	if (n_reactions_unds > 0) // There is at least one
+	{
+		int n_subvols = world->n_subvols;
+		for (int i = 0; i < n_subvols; i++) 
+		{
+			struct subvolume *sv = &(world->subvol[i]);
+
+			for (struct wall_list *wl = sv->wall_head; wl != NULL; wl = wl->next) 
+			{
+				struct surface_grid *grid = wl->this_wall->grid;
+				if (grid != NULL) 
+				{
+					for (u_int tile_idx = 0; tile_idx < grid->n_tiles; tile_idx++) 
+					{
+						if (grid->sm_list[tile_idx]) 
+						{
+							struct surface_molecule *sm = grid->sm_list[tile_idx]->sm;
+							if ((sm->properties != NULL) && (sm->t > world->current_iterations)) 
+							{
+								// Go through all types of these reactions
+								for (int i_reactions_unds=0; i_reactions_unds<n_reactions_unds; i_reactions_unds++)
+								{
+									// More efficient here would be a hash table from species_id to reaction
+									if (sm->properties->species_id == reactions_unds[i_reactions_unds]->players[0]->species_id)
+									{
+										for (struct storage_list *local = world->storage_head; local != NULL; local = local->next) 
+										{
+											sm->flags |= ACT_CHANGE;
+											sm->t2 = 0.0;
+											schedule_reschedule(local->store->timer, sm, world->current_iterations);
+										}
+									}
+								} 
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
 	free(reactions_ud);
-	free(reactions_und);
+	free(reactions_undv);
+	free(reactions_unds);
 
 	return MCELL_SUCCESS;
 }
