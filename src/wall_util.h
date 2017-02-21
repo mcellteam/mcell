@@ -21,8 +21,7 @@
  *
 ******************************************************************************/
 
-#ifndef MCELL_WALL_UTIL
-#define MCELL_WALL_UTIL
+#pragma once
 
 #include "mcell_structs.h"
 
@@ -193,4 +192,3 @@ int wall_belongs_to_any_region_in_region_list(struct wall *w,
                                               struct region_list *rlp_head);
 
 int region_belongs_to_region_list(struct region *rp, struct region_list *head);
-#endif

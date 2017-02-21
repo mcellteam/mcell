@@ -21,8 +21,7 @@
  *
 ******************************************************************************/
 
-#ifndef MCELL_COUNT_UTIL
-#define MCELL_COUNT_UTIL
+#pragma once
 
 #include "mcell_structs.h"
 #include "vol_util.h"
@@ -70,5 +69,3 @@ int object_has_geometry(struct object *obj);
 void update_hit_data(struct hit_data **hd_head, struct wall *current,
                      struct wall *target, struct surface_molecule *sm,
                      struct vector2 boundary_pos, int direction, int crossed);
-
-#endif

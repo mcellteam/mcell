@@ -21,8 +21,7 @@
  *
 ******************************************************************************/
 
-#ifndef MCELL_GRID
-#define MCELL_GRID
+#pragma once
 
 #include "mcell_structs.h"
 
@@ -170,4 +169,3 @@ int is_surface_molecule_behind_restrictive_boundary(struct surface_molecule *sm,
                                                     struct wall *wall,
                                                     struct rxn **reaction_hash,
                                                     int rx_hashsize);
-#endif

@@ -21,8 +21,7 @@
  *
 ******************************************************************************/
 
-#ifndef INIT_H
-#define INIT_H
+#pragma once
 
 #include "mcell_structs.h"
 
@@ -119,4 +118,3 @@ void remove_molecules_name_list(struct name_list **nlist);
 int check_for_overlapped_walls(
     struct rng_state *rng, int n_subvols, struct subvolume *subvol);
 struct vector3 *create_region_bbox(struct region *r);
-#endif

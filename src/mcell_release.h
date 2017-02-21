@@ -21,8 +21,7 @@
  *
 ******************************************************************************/
 
-#ifndef MCELL_RELEASE_H
-#define MCELL_RELEASE_H
+#pragma once
 
 MCELL_STATUS mcell_create_geometrical_release_site(
     MCELL_STATE *state, struct object *parent, char *site_name, int shape,
@@ -74,5 +73,3 @@ new_release_region_expr_binary(struct release_evaluator *reL,
 void set_release_site_location(MCELL_STATE *state,
                                struct release_site_obj *rel_site_obj_ptr,
                                struct vector3 *location);
-
-#endif

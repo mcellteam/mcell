@@ -21,8 +21,7 @@
  *
 ******************************************************************************/
 
-#ifndef MCELL_RUN_H
-#define MCELL_RUN_H
+#pragma once
 
 #include "mcell_init.h"
 
@@ -43,5 +42,3 @@ MCELL_STATUS mcell_print_final_warnings(MCELL_STATE *state);
 
 /* print the final simulation statistics */
 MCELL_STATUS mcell_print_final_statistics(MCELL_STATE *state);
-
-#endif

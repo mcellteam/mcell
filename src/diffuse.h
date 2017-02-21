@@ -21,8 +21,7 @@
  *
 ******************************************************************************/
 
-#ifndef MCELL_DIFFUSE
-#define MCELL_DIFFUSE
+#pragma once
 
 #include "mcell_structs.h"
 
@@ -131,5 +130,3 @@ double exact_disk(struct volume *world, struct vector3 *loc, struct vector3 *mv,
 bool periodicbox_in_surfmol_list(
     struct periodic_image *periodic_box,
     struct surface_molecule_list *sml);
-
-#endif

@@ -21,8 +21,7 @@
  *
 ******************************************************************************/
 
-#ifndef MCELL_REACTIONS_H
-#define MCELL_REACTIONS_H
+#pragma once
 
 #include "mcell_species.h"
 
@@ -109,5 +108,3 @@ struct reaction_rates mcell_create_reaction_rates(int forwardRateType,
                                                   int forwardRate,
                                                   int backwardRateType,
                                                   int backwardRate);
-
-#endif

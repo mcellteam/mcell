@@ -21,8 +21,7 @@
  *
 ******************************************************************************/
 
-#ifndef MDLPARSE_UTIL_H
-#define MDLPARSE_UTIL_H
+#pragma once
 
 #include "vector.h"
 #include "mcell_structs.h"
@@ -918,5 +917,3 @@ struct object *start_object(MCELL_STATE *state,
                             struct object_creation *obj_creation,
                             char *name,
                             int *error_code);
-
-#endif

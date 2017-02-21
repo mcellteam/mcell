@@ -21,8 +21,7 @@
  *
 ******************************************************************************/
 
-#ifndef MCELL_STRUCTS
-#define MCELL_STRUCTS
+#pragma once
 
 #include "config.h"
 
@@ -1865,5 +1864,3 @@ struct hit_data {
   struct vector3 loc;                /* location of the hit */
   double t;                          /* time of the hit */
 };
-
-#endif

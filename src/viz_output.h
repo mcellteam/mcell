@@ -21,8 +21,7 @@
  *
 ******************************************************************************/
 
-#ifndef VIZ_OUTPUT_H
-#define VIZ_OUTPUT_H
+#pragma once
 
 #include "mcell_structs.h"
 
@@ -34,5 +33,3 @@ int update_frame_data_list(struct volume *world,
 int init_frame_data_list(struct volume *world, struct viz_output_block *vizblk);
 
 int finalize_viz_output(struct volume *world, struct viz_output_block *vizblk);
-
-#endif

@@ -21,8 +21,7 @@
  *
 ******************************************************************************/
 
-#ifndef STRFUNC_H
-#define STRFUNC_H
+#pragma once
 
 #include <stdarg.h>
 
@@ -32,5 +31,3 @@ char *alloc_vsprintf(char const *fmt, va_list args) PRINTF_FORMAT_V(1);
 char *alloc_sprintf(char const *fmt, ...) PRINTF_FORMAT(1);
 char *my_strcat(char const *s1, char const *s2);
 char *strip_quotes(char const *s);
-
-#endif

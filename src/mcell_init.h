@@ -21,8 +21,7 @@
  *
 ******************************************************************************/
 
-#ifndef MCELL_INIT_H
-#define MCELL_INIT_H
+#pragma once
 
 /* status of libMCell API calls */
 typedef int MCELL_STATUS;
@@ -58,5 +57,3 @@ MCELL_STATUS mcell_set_partition(MCELL_STATE *state, int dim,
 MCELL_STATUS mcell_set_time_step(MCELL_STATE *state, double step);
 
 MCELL_STATUS mcell_set_iterations(MCELL_STATE *state, long long iterations);
-
-#endif

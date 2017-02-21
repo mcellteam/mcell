@@ -21,8 +21,7 @@
  *
 ******************************************************************************/
 
-#ifndef MCELL_SURFCLASS_H
-#define MCELL_SURFCLASS_H
+#pragma once
 
 #include "config.h"
 #include "logging.h"
@@ -54,5 +53,3 @@ struct sm_dat *mcell_add_mol_release_to_surf_class(
 MCELL_STATUS mcell_assign_surf_class_to_region(
     struct sym_entry *sc_sym,
     struct region *rgn);
-
-#endif

@@ -21,8 +21,7 @@
  *
 ******************************************************************************/
 
-#ifndef MCELL_OBJECTS_H
-#define MCELL_OBJECTS_H
+#pragma once
 
 struct object_creation {
   struct name_list *object_name_list;
@@ -110,5 +109,3 @@ int cuboid_patch_to_bits(struct subdivided_box *subd_box, struct vector3 *v1,
 
 int check_patch(struct subdivided_box *b, struct vector3 *p1,
                 struct vector3 *p2, double egd);
-
-#endif

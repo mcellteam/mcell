@@ -21,8 +21,7 @@
  *
 ******************************************************************************/
 
-#ifndef REACT_OUTPUT_H
-#define REACT_OUTPUT_H
+#pragma once
 
 #include "mcell_structs.h"
 
@@ -56,5 +55,3 @@ void eval_oexpr_tree(struct output_expression *root, int skip_const);
 void oexpr_flood_convert(struct output_expression *root, char old_oper,
                          char new_oper);
 char *oexpr_title(struct output_expression *root);
-
-#endif

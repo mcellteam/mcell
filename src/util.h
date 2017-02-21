@@ -21,8 +21,7 @@
  *
 ******************************************************************************/
 
-#ifndef MCELL_UTIL
-#define MCELL_UTIL
+#pragma once
 
 #include <stdio.h>
 
@@ -255,5 +254,3 @@ static inline int minNi(int *array, int N) {
   }
   return smallest;
 }
-
-#endif

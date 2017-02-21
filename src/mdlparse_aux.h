@@ -21,8 +21,7 @@
  *
 ******************************************************************************/
 
-#ifndef MDLPARSE_AUX_H
-#define MDLPARSE_AUX_H
+#pragma once
 
 #include "mcell_structs.h"
 #include "mcell_react_out.h"
@@ -206,5 +205,3 @@ void mdlerror(struct mdlparse_vars *parse_state, char const *str);
 void mdlerror_fmt(struct mdlparse_vars *parse_state, char const *fmt, ...)
     PRINTF_FORMAT(2);
 int mdlparse_init(struct volume *vol);
-
-#endif

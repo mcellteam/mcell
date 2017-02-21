@@ -21,11 +21,8 @@
  *
 ******************************************************************************/
 
-#ifndef TRIANGLE_INTERSECT_H
-#define TRIANGLE_INTERSECT_H
+#pragma once
 
 #include "mcell_structs.h"
 
 int coplanar_tri_overlap(struct wall* w1, struct wall* w2);
-
-#endif

@@ -21,8 +21,7 @@
  *
 ******************************************************************************/
 
-#ifndef MCELL_VOL_UTIL
-#define MCELL_VOL_UTIL
+#pragma once
 
 #include "mcell_structs.h"
 
@@ -134,5 +133,3 @@ struct surface_molecule_list* add_surfmol_with_unique_pb_to_list(
 void remove_surfmol_from_list(
     struct surface_molecule_list **sm_head,
     struct surface_molecule *sm);
-
-#endif

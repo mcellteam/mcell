@@ -21,8 +21,7 @@
  *
 ******************************************************************************/
 
-#ifndef SYM_TABLE_H
-#define SYM_TABLE_H
+#pragma once
 
 #include "mcell_structs.h"
 
@@ -47,5 +46,3 @@ struct sym_entry *store_sym(char const *sym, enum symbol_type_t sym_type,
                             struct sym_table_head *hashtab, void *data);
 struct sym_table_head *init_symtab(int size);
 void destroy_symtab(struct sym_table_head *tab);
-
-#endif

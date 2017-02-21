@@ -21,8 +21,7 @@
  *
 ******************************************************************************/
 
-#ifndef CHKPT_H
-#define CHKPT_H
+#pragma once
 
 #include <stdio.h>
 
@@ -36,5 +35,3 @@ int read_chkpt(struct volume *world, FILE *fs);
 void chkpt_signal_handler(int signo);
 
 int set_checkpoint_state(struct volume *world);
-
-#endif

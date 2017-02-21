@@ -21,8 +21,7 @@
  *
 ******************************************************************************/
 
-#ifndef INCLUDED_VERSION_INFO_H
-#define INCLUDED_VERSION_INFO_H
+#pragma once
 
 #include <stdio.h>
 
@@ -37,5 +36,3 @@ void print_version(FILE *f);
 
 /* Write the version info to a file handle */
 void print_full_version(FILE *f);
-
-#endif /* INCLUDED_VERSION_INFO_H */

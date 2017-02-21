@@ -21,8 +21,7 @@
  *
 ******************************************************************************/
 
-#ifndef MCELL_REACT
-#define MCELL_REACT
+#pragma once
 
 #include <stdbool.h>
 
@@ -237,5 +236,3 @@ bool product_tile_can_be_reached(struct wall *target,
                                  struct region_list *rlp_head_obj_1,
                                  struct region_list *rlp_head_obj_2,
                                  int sm_bitmask, bool is_unimol);
-
-#endif
