@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 ###############################################################################
 #                                                                             #
 # Copyright (C) 2006-2016 by                                                  #
@@ -23,6 +25,7 @@
 
 import sys
 import struct
+import argparse
 
 
 class UnmarshalBuffer(object):
@@ -228,7 +231,7 @@ def read_file(fname):
     return data
 
 
-def dump_data(data):
+def dump_data(data, annotate):
     # ORIENTS = ['-', '_', '+']
     print('  MCell version:     %s'    % data['mcell_version'].decode("utf-8"))
     print('  File endianness:   %s'    % data['endian'])
@@ -251,25 +254,47 @@ def dump_data(data):
         for m in data['molecules']:
             if m['species'] != name:
                 continue
-            print(('           %c %18.15g %18.15g %18.15g (%18.15g, %18.15g, '
-                  '%18.15g)' %
-                  ('N' if m['newbie'] else '_',
-                   m['t'],
-                   m['t2'],
-                   m['birthday'],
-                   m['pos'][0],
-                   m['pos'][1],
-                   m['pos'][2],)))
-                   # ORIENTS[m['orient'] + 1])),
+            if annotate:
+                print(('           %s, t: %18.15g, t2: %18.15g, bday: %18.15g '
+                       'pos: (%18.15g, %18.15g, %18.15g)' %
+                      ('new' if m['newbie'] else 'old',
+                       m['t'],
+                       m['t2'],
+                       m['birthday'],
+                       m['pos'][0],
+                       m['pos'][1],
+                       m['pos'][2],)))
+                       # ORIENTS[m['orient'] + 1])),
+            else:
+                print(('           %c %18.15g %18.15g %18.15g (%18.15g, %18.15g, '
+                      '%18.15g)' %
+                      ('N' if m['newbie'] else '_',
+                       m['t'],
+                       m['t2'],
+                       m['birthday'],
+                       m['pos'][0],
+                       m['pos'][1],
+                       m['pos'][2],)))
+                       # ORIENTS[m['orient'] + 1])),
+
+
+def setup_argparser():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-a", "--annotate", action='store_true',
+        help="annotate checkpoint output")
+    parser.add_argument("chkpt_file", help="name of checkpoint file")
+    return parser.parse_args()
 
 if __name__ == '__main__':
+
+    args = setup_argparser()
+
     try:
         import psyco
         psyco.full()
     except ImportError:
         pass
 
-    for i in sys.argv[1:]:
-        print('%s:' % i)
-        data = read_file(i)
-        dump_data(data)
+    data = read_file(args.chkpt_file)
+    dump_data(data, args.annotate)
