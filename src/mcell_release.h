@@ -24,6 +24,11 @@
 #ifndef MCELL_RELEASE_H
 #define MCELL_RELEASE_H
 
+MCELL_STATUS mcell_create_list_release_site(
+  MCELL_STATE *state, struct object *parent, char *site_name,
+  struct mcell_species *mol, double *x_pos, double *y_pos, double *z_pos, int n_site,
+  struct vector3 *diameter, struct object **new_object);
+
 MCELL_STATUS mcell_create_geometrical_release_site(
     MCELL_STATE *state, struct object *parent, char *site_name, int shape,
     struct vector3 *position, struct vector3 *diameter,

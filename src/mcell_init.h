@@ -35,6 +35,8 @@ typedef int MCELL_STATUS;
 /* state of mcell simulation */
 typedef struct volume MCELL_STATE;
 
+void mcell_set_seed(MCELL_STATE *state, int seed);
+
 MCELL_STATE *mcell_create();
 
 MCELL_STATUS mcell_init_state(MCELL_STATE *state);

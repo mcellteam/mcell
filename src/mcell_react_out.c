@@ -99,7 +99,7 @@ int mcell_get_count(char *mol_name, char *reg_name, struct volume *world) {
   // Make sure reg_sym has been initialized, if not return garbage
 
   if (reg_sym == NULL)
-    return -5;  
+    return -6;  
  
   // Cast mol_sym (sym_entry,void pointer) to a species pointer 
   struct region *reg = reg_sym->value;
@@ -116,7 +116,7 @@ int mcell_get_count(char *mol_name, char *reg_name, struct volume *world) {
  
   // Make sure hash_bin exists
   if (world->count_hash[hash_bin] == NULL)
-    return -5;
+    return -7;
 
   // Get the count of molecule in and on the region  
   int mol_count_vol = world->count_hash[hash_bin]->data.move.n_enclosed;

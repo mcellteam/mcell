@@ -27,6 +27,17 @@ class Vector3(object):
         self.z = z
 
 
+def create_partitions(world, axis, start, stop, step):
+    expr_list = m.num_expr_list_head() 
+    expr_list.value_head = None
+    expr_list.value_tail = None
+    expr_list.value_count = 0
+    expr_list.shared = 1
+    m.mcell_generate_range(expr_list, start, stop, step) 
+    expr_list.shared = 1
+    m.mcell_set_partition(world, axis, expr_list)
+
+
 def create_release_pattern(world, name, delay=0, 
     release_interval=1e20, train_interval=1e20, 
     train_duration=1e20, number_of_trains=1):
@@ -85,7 +96,7 @@ def create_count(world, where, mol_sym, file_path, step):
     return (count_list, os, out_times, output)
 
 
-def create_species(world, name, D, is_2d):
+def create_species(world, name, D, is_2d, custom_time_step=0):
     """Creates a molecule species
 
     Args:
@@ -97,7 +108,8 @@ def create_species(world, name, D, is_2d):
             that will be generated.
         is_2d (bool) -- Boolean describing whether new species is a
             surface molecule
-
+        custom_time_step -- Custom time step (< 0.0 for a custom space step,
+                       >0.0 for custom timestep, 0.0 for default timestep)
     Returns:
         (mcell_symbol) Returns a species sym_entry
 
@@ -107,7 +119,7 @@ def create_species(world, name, D, is_2d):
     species_def.D = D
     is_2d = 1 if is_2d else 0
     species_def.is_2d = is_2d
-    species_def.custom_time_step = 0
+    species_def.custom_time_step = custom_time_step
     species_def.target_only = 0
     species_def.max_step_length = 0
 
@@ -211,6 +223,61 @@ def create_surf_class(world, name):
 
     sc_temp = m.mcell_symbol()
     return m.mcell_create_surf_class(world, name, sc_temp)
+
+
+def create_list_release_site(world,scene,mol_list,xpos,ypos,zpos,name,surf_flags=None,orientations=None,diameter=1e-4):
+    '''
+    Creates a list release site
+    All is self explanatory except mol_list:
+    this is a list of "mol_sym" that you got back when you created the species.
+    This is a Python list - it is converted to a species list in this function for you.
+    By default, assumes all molecules are volume molecules.
+    Else, need to pass surf_flags=[True,True,False,...] and their orientations=[1,0,1,...]
+    Diameter is the diameter we search for to place a surface mol
+    It can be None (= NULL in C) but then we do a poor job of placing surface mols
+    '''
+
+    # Check that they're all the same length
+    n = len(mol_list)
+    if len(xpos) != n or len(ypos) != n or len(zpos) != n:
+        raise ValueError("All lists must have the same length.")
+
+    # Check that if there are surface molecules
+    if surf_flags != None:
+        # Check that there are enough
+        if len(surf_flags) != n or len(orientations) != n:
+            raise ValueError("surf_flags and orientations lists must have the same lengths as the others.")
+
+    # Convert to floats (can't be int)
+    xpos = [float(q) for q in xpos]
+    ypos = [float(q) for q in ypos]
+    zpos = [float(q) for q in zpos]
+
+    # Diameter
+    diam = m.vector3()
+    diam.x = diameter
+    diam.y = diameter
+    diam.z = diameter
+
+    # Mols
+    mol_list.reverse()
+    species_list = None
+    # All volume molecules
+    if surf_flags == None:
+        for mol_sym in mol_list:
+            species_list = m.mcell_add_to_species_list(mol_sym, False, 0, species_list)
+    else:
+        for i,mol_sym in enumerate(mol_list):
+            species_list = m.mcell_add_to_species_list(mol_sym, surf_flags[i], orientations[i], species_list)
+
+    rel_object = m.object()
+    ret = m.mcell_create_list_release_site(world,scene,name,species_list,xpos,ypos,zpos,n,diam,rel_object)
+    # Delete the species list
+    m.mcell_delete_species_list(species_list)
+
+    # VERY IMPORTANT HERE - MUST RETURN "ret"
+    # If we throw this away, all is lost....
+    return (rel_object, ret)
 
 
 def create_release_site(
