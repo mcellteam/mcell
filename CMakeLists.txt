@@ -190,6 +190,9 @@ file(COPY ${CMAKE_SOURCE_DIR}/src/test_release_pattern.py DESTINATION ${CMAKE_CU
 # copy the mcell neuron interface test into place
 file(COPY ${CMAKE_SOURCE_DIR}/src/test_mcell_neuron_python.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python/)
 
+# copy the Jupyter notebook into place
+file(COPY ${CMAKE_SOURCE_DIR}/src/pymcell_test.ipynb DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python/)
+
 # build executable
 add_executable(mcell
   ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h
