@@ -155,6 +155,10 @@ INCLUDE_DIRECTORIES("${CMAKE_CURRENT_SOURCE_DIR}/src")
 #SET(CMAKE_SWIG_FLAGS "-debug-typemap;-debug-tmsearch;-debug-tmused;-ltypemaps")
 SET(CMAKE_SWIG_FLAGS "-ltypemaps;-py3")
 
+SET(CMAKE_SWIG_OUTDIR "${CMAKE_BINARY_DIR}/python")
+SET(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/python")
+
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/python)
 SET_SOURCE_FILES_PROPERTIES(src/pymcell.i PROPERTIES C ON)
 SET_SOURCE_FILES_PROPERTIES(src/pymcell.i PROPERTIES SWIG_FLAGS "-includeall")
 SWIG_ADD_MODULE(pymcell python
@@ -171,20 +175,20 @@ SWIG_ADD_MODULE(pymcell python
 SWIG_LINK_LIBRARIES(pymcell ${PYTHON_LIBRARIES})
 
 # copy the pyMCell test script into place
-file(COPY ${CMAKE_SOURCE_DIR}/src/test_api.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-file(COPY ${CMAKE_SOURCE_DIR}/src/torus.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(COPY ${CMAKE_SOURCE_DIR}/src/test_api.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python/)
+file(COPY ${CMAKE_SOURCE_DIR}/src/torus.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python)
 
 # copy the pyMCell Boolean logic test script into place
-file(COPY ${CMAKE_SOURCE_DIR}/src/test_bool.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(COPY ${CMAKE_SOURCE_DIR}/src/test_bool.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python/)
 
 # copy the pyMCell list release test script into place
-file(COPY ${CMAKE_SOURCE_DIR}/src/test_release_list.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(COPY ${CMAKE_SOURCE_DIR}/src/test_release_list.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python/)
 
 # copy the pyMCell Release pattern test script into place
-file(COPY ${CMAKE_SOURCE_DIR}/src/test_release_pattern.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(COPY ${CMAKE_SOURCE_DIR}/src/test_release_pattern.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python/)
 
 # copy the mcell neuron interface test into place
-file(COPY ${CMAKE_SOURCE_DIR}/src/test_mcell_neuron_python.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(COPY ${CMAKE_SOURCE_DIR}/src/test_mcell_neuron_python.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python/)
 
 # build executable
 add_executable(mcell
