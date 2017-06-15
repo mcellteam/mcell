@@ -5821,6 +5821,9 @@ static int output_cellblender_molecules(struct volume *world,
       /* Write positions of volume and surface surface molecules: */
       for (unsigned int n_mol = 0; n_mol < this_mol_count; ++n_mol) {
         amp = mols[n_mol];
+        // if ((amp->properties->flags & EXTERNAL_SPECIES) != 0) {
+        //   fprintf ( stdout, "External Species: %s\n", amp->graph_data->graph_pattern );
+        // }
         if ((amp->properties->flags & NOT_FREE) == 0) {
           mp = (struct volume_molecule *)amp;
           pos_x = mp->pos.x;
