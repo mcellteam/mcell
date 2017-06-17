@@ -5723,6 +5723,47 @@ Out: 0 on success, 1 on failure.  The names and positions of molecules are
          Note that the end of the file is indicated by the usual EOF only.
 
 *************************************************************************/
+
+typedef struct external_mol_viz_struct {
+  char mol_type;  /* s = surface, v = volume, n = none (don't display) */
+  float pos_x, pos_y, pos_z;
+  float norm_x, norm_y, norm_z;
+  struct external_mol_viz_struct *next_mol;
+} external_mol_viz;
+
+static external_mol_viz *new_ext_mol_viz() {
+  external_mol_viz *mol_viz_list = (external_mol_viz *) malloc ( sizeof(external_mol_viz) );
+  mol_viz_list->mol_type = 'n';
+  mol_viz_list->pos_x = 0.0;
+  mol_viz_list->pos_y = 0.0;
+  mol_viz_list->pos_z = 0.0;
+  mol_viz_list->norm_x = 0.0;
+  mol_viz_list->norm_y = 0.0;
+  mol_viz_list->norm_z = 0.0;
+  mol_viz_list->next_mol = NULL;
+  return ( mol_viz_list );
+}
+
+typedef struct external_mol_viz_by_name_struct {
+  char *mol_name;
+  external_mol_viz *mol_list;
+  struct external_mol_viz_by_name_struct *next_name;
+} external_mol_viz_by_name;
+
+
+static void print_list ( external_mol_viz_by_name *nl ) {
+  while (nl != NULL) {
+    fprintf ( stdout, "Molecule %s:\n", nl->mol_name );
+    external_mol_viz *mv;
+    mv = nl->mol_list;
+    while (mv != NULL) {
+      /* fprintf ( stdout, "   (%c) at (%g,%g,%g)\n", mv->mol_type, mv->pos_x, mv->pos_y, mv->pos_z ); */
+      mv = mv->next_mol;
+    }
+    nl = nl->next_name;
+  }
+}
+
 static int output_cellblender_molecules(struct volume *world,
                                         struct viz_output_block *vizblk,
                                         struct frame_data_list *fdlp) {
@@ -5742,6 +5783,7 @@ static int output_cellblender_molecules(struct volume *world,
   float pos_y = 0.0;
   float pos_z = 0.0;
   float norm_x, norm_y, norm_z;
+  char mol_type = 'n';
   byte name_len, species_type;
   char mol_name[33];
 
@@ -5773,16 +5815,18 @@ static int output_cellblender_molecules(struct volume *world,
     cf_name = NULL;
 
     /* Get a list of molecules sorted by species. */
-    if (sort_molecules_by_species(world, vizblk, &viz_molp, &viz_mol_count, 1,
-                                  1))
+    if (sort_molecules_by_species(world, vizblk, &viz_molp, &viz_mol_count, 1, 1))
       return 1;
 
     /* Write file header */
     u_int cellbin_version = 1;
     fwrite(&cellbin_version, sizeof(cellbin_version), 1, custom_file);
 
+    /* Write all the molecules whether EXTERNAL_SPECIES or not (for now) */
+
     for (int species_idx = 0; species_idx < world->n_species; species_idx++) {
       const unsigned int this_mol_count = viz_mol_count[species_idx];
+
       if (this_mol_count == 0)
         continue;
 
@@ -5818,12 +5862,10 @@ static int output_cellblender_molecules(struct volume *world,
       n_floats = 3 * this_mol_count;
       fwrite(&n_floats, sizeof(n_floats), 1, custom_file);
 
-      /* Write positions of volume and surface surface molecules: */
+      /* Write positions of volume and surface molecules: */
       for (unsigned int n_mol = 0; n_mol < this_mol_count; ++n_mol) {
         amp = mols[n_mol];
-        // if ((amp->properties->flags & EXTERNAL_SPECIES) != 0) {
-        //   fprintf ( stdout, "External Species: %s\n", amp->graph_data->graph_pattern );
-        // }
+
         if ((amp->properties->flags & NOT_FREE) == 0) {
           mp = (struct volume_molecule *)amp;
           pos_x = mp->pos.x;
@@ -5862,6 +5904,213 @@ static int output_cellblender_molecules(struct volume *world,
         }
       }
     }
+
+
+    /* Add additional Viz blocks for all EXTERNAL_SPECIES molecules */
+    /* Note that this could be done while processing normal molecules, but separating makes code clearer. */
+
+    fprintf ( stdout, "==================================================================\n" );
+    fprintf ( stdout, "======================== EXTERNAL SPECIES ========================\n" );
+    fprintf ( stdout, "==================================================================\n" );
+
+    external_mol_viz_by_name *mol_name_list = NULL;
+
+    for (int species_idx = 0; species_idx < world->n_species; species_idx++) {
+      const unsigned int this_mol_count = viz_mol_count[species_idx];
+
+      fprintf ( stdout, "======================== Species Index: %d ========================\n", species_idx );
+
+      if (this_mol_count == 0)
+        continue;
+
+      const int id = vizblk->species_viz_states[species_idx];
+      if (id == EXCLUDE_OBJ)
+        continue;
+
+      struct abstract_molecule **const mols = viz_molp[species_idx];
+      if (mols == NULL)
+        continue;
+
+      /* Get species name: */
+      amp = mols[0];
+      if (id == INCLUDE_OBJ) {
+        /* encode name of species as ASCII string, 32 chars max */
+        snprintf(mol_name, 33, "%s", amp->properties->sym->name);
+      } else {
+        /* encode state value of species as ASCII string, 32 chars max */
+        snprintf(mol_name, 33, "%d", id);
+      }
+
+      /* Get species type: */
+      species_type = 0;
+      if ((amp->properties->flags & ON_GRID) != 0) {
+        species_type = 1;
+      }
+
+      /* Get and save positions of EXTERNAL_SPECIES volume and surface molecules: */
+      for (unsigned int n_mol = 0; n_mol < this_mol_count; ++n_mol) {
+        amp = mols[n_mol];
+
+        if ((amp->properties->flags & NOT_FREE) == 0) {
+          mp = (struct volume_molecule *)amp;
+          pos_x = mp->pos.x;
+          pos_y = mp->pos.y;
+          pos_z = mp->pos.z;
+        } else if ((amp->properties->flags & ON_GRID) != 0) {
+          gmp = (struct surface_molecule *)amp;
+          uv2xyz(&(gmp->s_pos), gmp->grid->surface, &where);
+          pos_x = where.x;
+          pos_y = where.y;
+          pos_z = where.z;
+        }
+
+        pos_x *= world->length_unit;
+        pos_y *= world->length_unit;
+        pos_z *= world->length_unit;
+
+        mol_type = 'v';
+        if ((amp->properties->flags & ON_GRID) != 0) {
+          mol_type = 's';
+          gmp = (struct surface_molecule *)mols[n_mol];
+          orient = gmp->orient;
+          norm_x = orient * gmp->grid->surface->normal.x;
+          norm_y = orient * gmp->grid->surface->normal.y;
+          norm_z = orient * gmp->grid->surface->normal.z;
+        }
+
+
+        if ((amp->properties->flags & EXTERNAL_SPECIES) != 0) {
+          /* This is complex molecule, so add a new viz molecule for each molecule in the complex */
+          /* The graph pattern will be something like: */
+          /*    c:SH2~NO_STATE!5,c:U~NO_STATE!5!3,c:a~NO_STATE!6,c:b~Y!6!1,c:g~Y!6,m:Lyn@PM!0!1,m:Rec@PM!2!3!4, */
+          char *next_mol = amp->graph_data->graph_pattern;
+          while ( (next_mol = strstr(next_mol,"m:")) != '\0' ) {
+            /* Pull the next actual molecule name out of the graph pattern */
+            char *end_mol = strpbrk ( next_mol, "@!,(~" );
+            if (end_mol == NULL) {
+              end_mol = next_mol + strlen(next_mol);
+            }
+            int ext_name_len = end_mol - next_mol;
+            char *ext_name = (char *) malloc ( ext_name_len + 1 );
+            strncpy ( ext_name, next_mol+2, ext_name_len-2 );
+            ext_name[ext_name_len-2] = '\0';
+            /* fprintf ( stdout, "   mol %d is \"%s\" from graph \"%s\"", n_mol, ext_name, amp->graph_data->graph_pattern ); */
+
+            /* Check to see if this name is already in the list */
+            external_mol_viz_by_name *next_mol_name = mol_name_list;
+            int found = 0;
+            do {
+              if (next_mol_name == NULL) {
+                break;
+              }
+              /* fprintf ( stdout, "  Comparing \"%s\" to \"%s\"", ext_name, next_mol_name->mol_name ); */
+              if (strcmp(ext_name, next_mol_name->mol_name) == 0) {
+                found = 1;
+                break;
+              }
+              next_mol_name = next_mol_name->next_name;
+            } while ( found == 0 );
+
+            if (found == 0) {
+              /* This molecule name is not in the list, so add a new name to the front */
+              next_mol_name = (external_mol_viz_by_name *) malloc ( sizeof(external_mol_viz_by_name) );
+              fprintf ( stdout, "   Adding new mol \"%s\"", ext_name );
+              next_mol_name->mol_name = ext_name;  /* This takes "ownership" of the allocated name memory */
+              next_mol_name->mol_list = NULL;
+              next_mol_name->next_name = mol_name_list;
+              mol_name_list = next_mol_name;
+            } else {
+              /* This molecule name is already in the list and next_mol_name points to it, so just free the name. */
+              free ( ext_name );
+            }
+
+            /* next_mol_name now points to the list of molecules by this name */
+
+            /* Make a new molecule viz item to store this location */
+            external_mol_viz *new_mol_viz_item = new_ext_mol_viz();
+
+            /* Set its values */
+            new_mol_viz_item->mol_type = mol_type;
+
+            new_mol_viz_item->pos_x = pos_x;
+            new_mol_viz_item->pos_y = pos_y;
+            new_mol_viz_item->pos_z = pos_z;
+
+            new_mol_viz_item->norm_x = norm_x;
+            new_mol_viz_item->norm_y = norm_y;
+            new_mol_viz_item->norm_z = norm_z;
+
+            /* Add it to the top of the molecule list */
+            new_mol_viz_item->next_mol = next_mol_name->mol_list;
+            next_mol_name->mol_list = new_mol_viz_item;
+
+            next_mol += 1;
+          }
+          /* fprintf ( stdout, "\n" ); */
+        }
+      }
+
+    }
+
+    fprintf ( stdout, "\nBefore print_list\n" );
+    print_list ( mol_name_list );
+    fprintf ( stdout, "\nAfter print_list\n" );
+
+    /* Write out the molecules with their proper names */
+    external_mol_viz_by_name *nl = mol_name_list;
+    while (nl != NULL) {
+
+      /* Write the name length and name */
+      name_len = strlen(nl->mol_name);
+      fwrite(&name_len, sizeof(name_len), 1, custom_file);
+      fwrite(nl->mol_name, sizeof(char), name_len, custom_file);
+      external_mol_viz *mv;
+
+      /* Write species type: */
+      species_type = 0;
+      if (nl->mol_list != NULL) {
+        if (nl->mol_list->mol_type == 's') {
+          species_type = 1;
+        }
+      }
+      fwrite(&species_type, sizeof(species_type), 1, custom_file);
+
+      /* write number of x,y,z floats for mol positions to follow: */
+      n_floats = 0;
+      mv = nl->mol_list;
+      while (mv != NULL) {
+        n_floats += 3;
+        mv = mv->next_mol;
+      }
+      fwrite(&n_floats, sizeof(n_floats), 1, custom_file);
+
+      /* Write positions of volume and surface molecules: */
+      mv = nl->mol_list;
+      while (mv != NULL) {
+        pos_x = mv->pos_x;
+        pos_y = mv->pos_y;
+        pos_z = mv->pos_z;
+        fwrite(&pos_x, sizeof(pos_x), 1, custom_file);
+        fwrite(&pos_y, sizeof(pos_y), 1, custom_file);
+        fwrite(&pos_z, sizeof(pos_z), 1, custom_file);
+        mv = mv->next_mol;
+      }
+      /* Write orientations of surface surface molecules: */
+      mv = nl->mol_list;
+      if (mv->mol_type == 's') {
+        while (mv != NULL) {
+          norm_x = mv->norm_x;
+          norm_y = mv->norm_y;
+          norm_z = mv->norm_z;
+          fwrite(&norm_x, sizeof(norm_x), 1, custom_file);
+          fwrite(&norm_y, sizeof(norm_y), 1, custom_file);
+          fwrite(&norm_z, sizeof(norm_z), 1, custom_file);
+          mv = mv->next_mol;
+        }
+      }
+      nl = nl->next_name;
+    }
+
     fclose(custom_file);
     custom_file = NULL;
 
@@ -5902,7 +6151,7 @@ int init_frame_data_list(struct volume *world,
     if (reset_time_values(world, vizblk->frame_data_head, world->start_iterations))
       return 1;
     break;
-  //      return 0;
+  /*      return 0; */
 
   case DREAMM_V3_MODE:
     if (dreamm_v3_generic_preprocess_frame_data(world,
