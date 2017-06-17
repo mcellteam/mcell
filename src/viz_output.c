@@ -5738,20 +5738,6 @@ typedef struct external_mol_viz_by_name_struct {
 } external_mol_viz_by_name;
 
 
-/* Commented out because unused functions are flagged with warnings
-static void print_list ( external_mol_viz_by_name *nl ) {
-  while (nl != NULL) {
-    fprintf ( stdout, "Molecule %s:\n", nl->mol_name );
-    external_mol_viz *mv;
-    mv = nl->mol_list;
-    while (mv != NULL) {
-      mv = mv->next_mol;
-    }
-    nl = nl->next_name;
-  }
-}
-*/
-
 static int output_cellblender_molecules(struct volume *world,
                                         struct viz_output_block *vizblk,
                                         struct frame_data_list *fdlp) {
@@ -5902,8 +5888,6 @@ static int output_cellblender_molecules(struct volume *world,
     for (int species_idx = 0; species_idx < world->n_species; species_idx++) {
       const unsigned int this_mol_count = viz_mol_count[species_idx];
 
-      fprintf ( stdout, "======================== External Species Index: %d ========================\n", species_idx );
-
       if (this_mol_count == 0)
         continue;
 
@@ -5978,7 +5962,6 @@ static int output_cellblender_molecules(struct volume *world,
             char *ext_name = (char *) malloc ( ext_name_len + 1 );
             strncpy ( ext_name, next_mol+2, ext_name_len-2 );
             ext_name[ext_name_len-2] = '\0';
-            /* fprintf ( stdout, "   mol %d is \"%s\" from graph \"%s\"", n_mol, ext_name, amp->graph_data->graph_pattern ); */
 
             /* Check to see if this name is already in the list */
             external_mol_viz_by_name *next_mol_name = mol_name_list;
@@ -5987,7 +5970,6 @@ static int output_cellblender_molecules(struct volume *world,
               if (next_mol_name == NULL) {
                 break;
               }
-              /* fprintf ( stdout, "  Comparing \"%s\" to \"%s\"", ext_name, next_mol_name->mol_name ); */
               if (strcmp(ext_name, next_mol_name->mol_name) == 0) {
                 found = 1;
                 break;
@@ -5998,7 +5980,6 @@ static int output_cellblender_molecules(struct volume *world,
             if (found == 0) {
               /* This molecule name is not in the list, so add a new name to the front */
               next_mol_name = (external_mol_viz_by_name *) malloc ( sizeof(external_mol_viz_by_name) );
-              fprintf ( stdout, "   Adding new mol \"%s\"", ext_name );
               next_mol_name->mol_name = ext_name;  /* This takes "ownership" of the allocated name memory */
               next_mol_name->mol_list = NULL;
               next_mol_name->next_name = mol_name_list;
@@ -6030,17 +6011,10 @@ static int output_cellblender_molecules(struct volume *world,
 
             next_mol += 1;
           }
-          /* fprintf ( stdout, "\n" ); */
         }
       }
 
     }
-
-    /*
-    fprintf ( stdout, "\nBefore print_list\n" );
-    print_list ( mol_name_list );
-    fprintf ( stdout, "\nAfter print_list\n" );
-    */
 
     /* Write out the molecules with their proper names */
     external_mol_viz_by_name *nl = mol_name_list;
