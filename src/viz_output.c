@@ -5725,7 +5725,7 @@ Out: 0 on success, 1 on failure.  The names and positions of molecules are
 *************************************************************************/
 
 typedef struct external_mol_viz_struct {
-  char mol_type;  /* s = surface, v = volume, n = none (don't display) */
+  char mol_type;  /* s = surface, v = volume, n = none (don't display?) */
   float pos_x, pos_y, pos_z;
   float norm_x, norm_y, norm_z;
   struct external_mol_viz_struct *next_mol;
@@ -5738,7 +5738,7 @@ typedef struct external_mol_viz_by_name_struct {
 } external_mol_viz_by_name;
 
 
-/*
+/* Commented out because unused functions are flagged with warnings
 static void print_list ( external_mol_viz_by_name *nl ) {
   while (nl != NULL) {
     fprintf ( stdout, "Molecule %s:\n", nl->mol_name );
@@ -5895,18 +5895,14 @@ static int output_cellblender_molecules(struct volume *world,
 
 
     /* Add additional Viz blocks for all EXTERNAL_SPECIES molecules */
-    /* Note that this could be done while processing normal molecules, but separating makes code clearer. */
-
-    fprintf ( stdout, "==================================================================\n" );
-    fprintf ( stdout, "======================== EXTERNAL SPECIES ========================\n" );
-    fprintf ( stdout, "==================================================================\n" );
+    /* Note that this could be done while processing normal molecules, but separating makes the code clearer. */
 
     external_mol_viz_by_name *mol_name_list = NULL;
 
     for (int species_idx = 0; species_idx < world->n_species; species_idx++) {
       const unsigned int this_mol_count = viz_mol_count[species_idx];
 
-      fprintf ( stdout, "======================== Species Index: %d ========================\n", species_idx );
+      fprintf ( stdout, "======================== External Species Index: %d ========================\n", species_idx );
 
       if (this_mol_count == 0)
         continue;
@@ -6048,13 +6044,14 @@ static int output_cellblender_molecules(struct volume *world,
 
     /* Write out the molecules with their proper names */
     external_mol_viz_by_name *nl = mol_name_list;
+    external_mol_viz *mv;
+
     while (nl != NULL) {
 
       /* Write the name length and name */
       name_len = strlen(nl->mol_name);
       fwrite(&name_len, sizeof(name_len), 1, custom_file);
       fwrite(nl->mol_name, sizeof(char), name_len, custom_file);
-      external_mol_viz *mv;
 
       /* Write species type: */
       species_type = 0;
@@ -6099,6 +6096,21 @@ static int output_cellblender_molecules(struct volume *world,
         }
       }
       nl = nl->next_name;
+    }
+
+    /* Free the structures used to build the molecule lists from the complexes */
+    while (mol_name_list != NULL) {
+      nl = mol_name_list;
+      /* Free the name block */
+      free ( nl->mol_name );
+      /* Free the list of molecule instances */
+      while (nl->mol_list != NULL) {
+        mv = nl->mol_list;
+        nl->mol_list = mv->next_mol;
+        free ( mv );
+      }
+      mol_name_list = nl->next_name;
+      free ( nl );
     }
 
     fclose(custom_file);
