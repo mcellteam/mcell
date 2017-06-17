@@ -5731,19 +5731,6 @@ typedef struct external_mol_viz_struct {
   struct external_mol_viz_struct *next_mol;
 } external_mol_viz;
 
-static external_mol_viz *new_ext_mol_viz() {
-  external_mol_viz *mol_viz_list = (external_mol_viz *) malloc ( sizeof(external_mol_viz) );
-  mol_viz_list->mol_type = 'n';
-  mol_viz_list->pos_x = 0.0;
-  mol_viz_list->pos_y = 0.0;
-  mol_viz_list->pos_z = 0.0;
-  mol_viz_list->norm_x = 0.0;
-  mol_viz_list->norm_y = 0.0;
-  mol_viz_list->norm_z = 0.0;
-  mol_viz_list->next_mol = NULL;
-  return ( mol_viz_list );
-}
-
 typedef struct external_mol_viz_by_name_struct {
   char *mol_name;
   external_mol_viz *mol_list;
@@ -5751,18 +5738,19 @@ typedef struct external_mol_viz_by_name_struct {
 } external_mol_viz_by_name;
 
 
+/*
 static void print_list ( external_mol_viz_by_name *nl ) {
   while (nl != NULL) {
     fprintf ( stdout, "Molecule %s:\n", nl->mol_name );
     external_mol_viz *mv;
     mv = nl->mol_list;
     while (mv != NULL) {
-      /* fprintf ( stdout, "   (%c) at (%g,%g,%g)\n", mv->mol_type, mv->pos_x, mv->pos_y, mv->pos_z ); */
       mv = mv->next_mol;
     }
     nl = nl->next_name;
   }
 }
+*/
 
 static int output_cellblender_molecules(struct volume *world,
                                         struct viz_output_block *vizblk,
@@ -6027,7 +6015,7 @@ static int output_cellblender_molecules(struct volume *world,
             /* next_mol_name now points to the list of molecules by this name */
 
             /* Make a new molecule viz item to store this location */
-            external_mol_viz *new_mol_viz_item = new_ext_mol_viz();
+            external_mol_viz *new_mol_viz_item = (external_mol_viz *) malloc ( sizeof(external_mol_viz) );
 
             /* Set its values */
             new_mol_viz_item->mol_type = mol_type;
@@ -6052,9 +6040,11 @@ static int output_cellblender_molecules(struct volume *world,
 
     }
 
+    /*
     fprintf ( stdout, "\nBefore print_list\n" );
     print_list ( mol_name_list );
     fprintf ( stdout, "\nAfter print_list\n" );
+    */
 
     /* Write out the molecules with their proper names */
     external_mol_viz_by_name *nl = mol_name_list;
