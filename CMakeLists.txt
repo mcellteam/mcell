@@ -54,7 +54,7 @@ add_custom_command(
 # check for needed libraries
 find_library(M_LIB m)
 
-set(CMAKE_C_FLAGS "-Wall -Wextra -Wshadow -Wno-unused-parameter -D_GNU_SOURCE=1 -O2 -std=c11 ${CMAKE_C_FLAGS}" )
+set(CMAKE_C_FLAGS "-Wall -Wextra -Wshadow -Wno-unused-parameter -D_GNU_SOURCE=1 -O0 -g -std=c11 ${CMAKE_C_FLAGS}" )
 set(CMAKE_EXE_LINKER_FLAGS ${M_LIB})
 
 set(SOURCE_FILES
@@ -73,6 +73,12 @@ set(SOURCE_FILES
     src/diffuse_trimol.c
     src/diffuse_util.c
     src/diffuse_util.h
+    src/dyngeom.c
+    src/dyngeom.h
+    src/dyngeom_parse_extras.c
+    src/dyngeom_parse_extras.h
+    src/dyngeom_lex.c
+    src/dyngeom_yacc.c
     src/grid_util.c
     src/grid_util.h
     src/init.c
@@ -82,6 +88,8 @@ set(SOURCE_FILES
     src/logging.c
     src/logging.h
     src/mcell.c
+    src/mcell_dyngeom.c
+    src/mcell_dyngeom.h
     src/mcell_init.c
     src/mcell_init.h
     src/mcell_misc.c

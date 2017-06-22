@@ -23,11 +23,16 @@
 
 #pragma once
 
+#include "mcell_init.h"
+#include "mcell_structs.h"
+
 struct object_creation {
   struct name_list *object_name_list;
   struct name_list *object_name_list_end;
   struct object *current_object;
 };
+
+#include "dyngeom_parse_extras.h"
 
 struct poly_object {
   char *obj_name;
@@ -41,6 +46,12 @@ struct poly_object {
 MCELL_STATUS mcell_create_instance_object(MCELL_STATE *state, char *name,
                                           struct object **new_object);
 
+MCELL_STATUS mcell_create_periodic_box(
+    struct volume *state,
+    char *box_name,
+    struct vector3 *llf,
+    struct vector3 *urb);
+
 MCELL_STATUS mcell_create_poly_object(MCELL_STATE *state, struct object *parent,
                                       struct poly_object *poly_obj,
                                       struct object **new_object);
@@ -50,7 +61,11 @@ new_polygon_list(MCELL_STATE *state, struct object *obj_ptr, int n_vertices,
                  struct vertex_list *vertices, int n_connections,
                  struct element_connection_list *connections);
 
-struct object *make_new_object(MCELL_STATE *state, char *obj_name, int *error_code);
+struct object *make_new_object(
+    struct dyngeom_parse_vars *dg_parse,
+    struct sym_table_head *obj_sym_table,
+    char *obj_name,
+    int *error_code);
 
 char *push_object_name(struct object_creation *obj_creation, char *name);
 
@@ -81,12 +96,17 @@ struct element_list *mcell_add_to_region_list(struct element_list *elements,
 void add_child_objects(struct object *parent, struct object *child_head,
                        struct object *child_tail);
 
+int mcell_check_for_region(char *region_name, struct object *obj_ptr);
+
 /* create regions */
 struct region *mcell_create_region(MCELL_STATE *state, struct object *objp,
                                    char *name);
 
-struct region *make_new_region(MCELL_STATE *state, char *obj_name,
-                               char *region_last_name);
+struct region *make_new_region(
+    struct dyngeom_parse_vars *dg_parse,
+    MCELL_STATE *state,
+    char *obj_name,
+    char *region_last_name);
 
 /* Clean up the regions on an object, eliminating any removed walls. */
 void remove_gaps_from_regions(struct object *obj_ptr);

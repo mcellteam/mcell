@@ -84,7 +84,7 @@ int find_edge_point(struct wall *here, struct vector2 *loc,
                     struct vector2 *disp, struct vector2 *edgept);
 struct wall *traverse_surface(struct wall *here, struct vector2 *loc, int which,
                               struct vector2 *newloc);
-int is_manifold(struct region *r);
+int is_manifold(struct region *r, int count_regions_flag);
 
 void jump_away_line(struct vector3 *p, struct vector3 *v, double k,
                     struct vector3 *A, struct vector3 *B, struct vector3 *n,
@@ -144,6 +144,9 @@ int walls_share_full_edge(struct wall *w1, struct wall *w2);
 
 struct region_list *find_region_by_wall(struct wall *this_wall);
 
+struct name_list *find_regions_names_by_wall(
+    struct wall *w, struct string_buffer *ignore_regs);
+
 struct region_list *
 find_restricted_regions_by_wall(struct volume *world, struct wall *this_wall,
                                 struct surface_molecule *sm);
@@ -192,3 +195,5 @@ int wall_belongs_to_any_region_in_region_list(struct wall *w,
                                               struct region_list *rlp_head);
 
 int region_belongs_to_region_list(struct region *rp, struct region_list *head);
+
+void find_wall_center(struct wall *w, struct vector3 *center);

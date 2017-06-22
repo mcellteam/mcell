@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2017 by
+ * Copyright (C) 2006-2014 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -19,24 +19,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
  * USA.
  *
-******************************************************************************/
+ *****************************************************************************/
 
-#pragma once
+#ifndef MCELL_DYNGEOM_H
+#define MCELL_DYNGEOM_H
 
-#include <stdio.h>
+int mcell_add_dynamic_geometry_file(char *dynamic_geometry_filepath,
+                                    struct mdlparse_vars *parse_state);
 
-#include "mcell_structs.h"
-
-/* header file for chkpt.c, MCell checkpointing functions */
-
-int create_chkpt(struct volume *world, char const *filename);
-int write_chkpt(struct volume *world, FILE *fs);
-int read_chkpt(struct volume *world, FILE *fs);
-void chkpt_signal_handler(int signo);
-
-int set_checkpoint_state(struct volume *world);
-
-double compute_scaled_time(struct volume *world, double real_time);
-
-unsigned long long
-count_items_in_scheduler(struct storage_list *storage_head);
+#endif

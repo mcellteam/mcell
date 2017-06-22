@@ -1,0 +1,21 @@
+LEX    = lex
+YACC   = yacc
+#YFLAGS = -d --debug --verbose
+YFLAGS = -d
+CC     = clang
+CFLAGS = -lm
+#LFLAGS = -d
+
+all: dyngeom_parse
+
+dyngeom_parse: dyngeom_parse_extras.c dyngeom_lex.c dyngeom_yacc.c sym_table.c mem_util.c logging.c vector.c strfunc.c util.c mcell_objects.c util.c
+	$(CC) $(CFLAGS) $^ -o $@
+
+dyngeom_lex.c: dyngeom_lex.l
+	$(LEX) $(LFLAGS) -o $@ $^
+
+dyngeom_yacc.c: dyngeom_parse.y
+	$(YACC) $(YFLAGS) -o $@ $^
+
+clean:
+	$(RM) *.o dyngeom_yacc.h dyngeom_yacc.c dyngeom_lex.c dyngeom_parse

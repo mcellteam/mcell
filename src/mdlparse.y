@@ -27,6 +27,7 @@
   #include "mcell_viz.h"
   #include "mcell_release.h"
   #include "mcell_objects.h"
+  #include "mcell_dyngeom.h"
 
   /* make sure to declare yyscan_t before including mdlparse.h */
   typedef void *yyscan_t;
@@ -36,8 +37,6 @@
   int mdllex_destroy(yyscan_t yyscanner);
   void mdlrestart(FILE *infile, yyscan_t scanner);
   int mdllex(YYSTYPE *yylval, struct mdlparse_vars *parse_state, yyscan_t scanner);
-
-  static int mdlparse_file(struct mdlparse_vars *parse_state, char const *name);
 
 
 #ifdef DEBUG_MDL_PARSER
@@ -195,6 +194,8 @@ struct arg_list printfargs;
 %token       DIFFUSION_CONSTANT_2D
 %token       DIFFUSION_CONSTANT_3D
 %token       DIFFUSION_CONSTANT_REPORT
+%token       DYNAMIC_GEOMETRY
+%token       DYNAMIC_GEOMETRY_MOLECULE_PLACEMENT
 %token       EFFECTOR_GRID_DENSITY
 %token       ELEMENT_CONNECTIONS
 %token       ELLIPTIC
@@ -272,6 +273,8 @@ struct arg_list printfargs;
 %token       MOLECULES
 %token       MOLECULE_PLACEMENT_FAILURE
 %token       NAME_LIST
+%token       NEAREST_POINT
+%token       NEAREST_TRIANGLE
 %token       NEGATIVE_DIFFUSION_CONSTANT
 %token       NEGATIVE_REACTION_RATE
 %token       NO
@@ -289,6 +292,8 @@ struct arg_list printfargs;
 %token       ORIENTATIONS
 %token       OUTPUT_BUFFER_SIZE
 %token       INVALID_OUTPUT_STEP_TIME
+%token       LARGE_MOLECULAR_DISPLACEMENT
+%token       ADD_REMOVE_MESH
 %token       OVERWRITTEN_OUTPUT_FILE
 %token       PARTITION_LOCATION_REPORT
 %token       PARTITION_X
@@ -726,7 +731,7 @@ range_spec: num_expr                                  { CHECK(mcell_generate_ran
 /* =================================================================== */
 /* Include files */
 include_stmt: INCLUDE_FILE '=' str_expr               {
-                                                          char *include_path = mdl_find_include_file($3, parse_state->vol->curr_file);
+                                                          char *include_path = mcell_find_include_file($3, parse_state->vol->curr_file);
                                                           if (include_path == NULL)
                                                           {
                                                             mdlerror_fmt(parse_state, "Out of memory while trying to open include file '%s'", $3);
@@ -1000,6 +1005,8 @@ warning_item_def:
       | USELESS_VOLUME_ORIENTATION '=' warning_level  { parse_state->vol->notify->useless_vol_orient = (byte)$3; }
       | MOLECULE_PLACEMENT_FAILURE '=' warning_level  { parse_state->vol->notify->mol_placement_failure = (byte) $3; }
       | INVALID_OUTPUT_STEP_TIME '=' warning_level    { parse_state->vol->notify->invalid_output_step_time = (byte) $3; }
+      | LARGE_MOLECULAR_DISPLACEMENT '=' warning_level { parse_state->vol->notify->large_molecular_displacement = (byte) $3; }
+      | ADD_REMOVE_MESH '=' warning_level { parse_state->vol->notify->add_remove_mesh_warning = (byte) $3; }
 ;
 
 warning_level:
@@ -1051,6 +1058,9 @@ parameter_def:
         | MICROSCOPIC_REVERSIBILITY '=' boolean       { parse_state->vol->surface_reversibility=$3; parse_state->vol->volume_reversibility=$3; }
         | MICROSCOPIC_REVERSIBILITY '=' SURFACE_ONLY  { parse_state->vol->surface_reversibility=1;  parse_state->vol->volume_reversibility=0;  }
         | MICROSCOPIC_REVERSIBILITY '=' VOLUME_ONLY   { parse_state->vol->surface_reversibility=0;  parse_state->vol->volume_reversibility=1;  }
+        | DYNAMIC_GEOMETRY '=' str_expr_only          { CHECK(mcell_add_dynamic_geometry_file($3, parse_state)); }
+        | DYNAMIC_GEOMETRY_MOLECULE_PLACEMENT '=' NEAREST_POINT    { parse_state->vol->dynamic_geometry_molecule_placement = 0; }
+        | DYNAMIC_GEOMETRY_MOLECULE_PLACEMENT '=' NEAREST_TRIANGLE { parse_state->vol->dynamic_geometry_molecule_placement = 1; }
 ;
 
 /* =================================================================== */
@@ -2500,7 +2510,7 @@ void mdlerror_fmt(struct mdlparse_vars *parse_state, char const *fmt, ...)
  *   parse_state: the parser state variables
  *   name: the path to the MDL file
  */
-static int mdlparse_file(struct mdlparse_vars *parse_state, char const *name)
+int mdlparse_file(struct mdlparse_vars *parse_state, char const *name)
 {
   int failure;
   int cur_stack = parse_state->include_stack_ptr ++;
