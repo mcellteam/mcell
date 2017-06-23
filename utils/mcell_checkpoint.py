@@ -1,30 +1,36 @@
-###################################################################################
-#                                                                                 #
-# Copyright (C) 2006-2013 by                                                      #
-# The Salk Institute for Biological Studies and                                   #
-# Pittsburgh Supercomputing Center, Carnegie Mellon University                    #
-#                                                                                 #
-# This program is free software; you can redistribute it and/or                   #
-# modify it under the terms of the GNU General Public License                     #
-# as published by the Free Software Foundation; either version 2                  #
-# of the License, or (at your option) any later version.                          #
-#                                                                                 #
-# This program is distributed in the hope that it will be useful,                 #
-# but WITHOUT ANY WARRANTY; without even the implied warranty of                  #
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                   #
-# GNU General Public License for more details.                                    #
-#                                                                                 #
-# You should have received a copy of the GNU General Public License               #
-# along with this program; if not, write to the Free Software                     #
-# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA. #
-#                                                                                 #
-###################################################################################
+#!/usr/bin/env python3
 
+###############################################################################
+#                                                                             #
+# Copyright (C) 2006-2017 by                                                  #
+# The Salk Institute for Biological Studies and                               #
+# Pittsburgh Supercomputing Center, Carnegie Mellon University                #
+#                                                                             #
+# This program is free software; you can redistribute it and/or               #
+# modify it under the terms of the GNU General Public License                 #
+# as published by the Free Software Foundation; either version 2              #
+# of the License, or (at your option) any later version.                      #
+#                                                                             #
+# This program is distributed in the hope that it will be useful,             #
+# but WITHOUT ANY WARRANTY; without even the implied warranty of              #
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the               #
+# GNU General Public License for more details.                                #
+#                                                                             #
+# You should have received a copy of the GNU General Public License           #
+# along with this program; if not, write to the Free Software                 #
+# Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,  #
+# USA.                                                                        #
+#                                                                             #
+###############################################################################
+
+import sys
 import struct
+import argparse
+
 
 class UnmarshalBuffer(object):
     def __init__(self, data):
-        self.__data   = data
+        self.__data = data
         self.__offset = 0
         self.__endian = '<'
 
@@ -42,7 +48,10 @@ class UnmarshalBuffer(object):
             self.__endian = '<'
 
     def next_byte(self):
-        b = ord(self.__data[self.__offset])
+        if sys.version_info[0] == 3: 
+            b = self.__data[self.__offset]
+        else:
+            b = ord(self.__data[self.__offset])
         self.__offset += 1
         return b
 
@@ -60,8 +69,7 @@ class UnmarshalBuffer(object):
         if val & 1:
             return -(val >> 1)
         else:
-            return  (val >> 1)
-        return accum
+            return (val >> 1)
 
     def next_string(self):
         l = self.next_vint()
@@ -71,7 +79,8 @@ class UnmarshalBuffer(object):
         return self.next_struct('%ds' % l)[0]
 
     def next_struct(self, tmpl):
-        vals = struct.unpack_from(self.__endian + tmpl, self.__data, self.__offset)
+        vals = struct.unpack_from(
+            self.__endian + tmpl, self.__data, self.__offset)
         self.__offset += struct.calcsize(tmpl)
         return vals
 
@@ -83,24 +92,35 @@ CMD_MCELL_VERSION     = 5
 CMD_SPECIES_TABLE     = 6
 CMD_SCHEDULER_STATE   = 7
 CMD_BYTE_ORDER        = 8
+CMD_NUM_CHKPT_CMD     = 9
+CMD_CHECKPOINT_API    = 10
+
+
+def read_api(ub):
+    api_version, = ub.next_struct('I')
+    return {'api_version': api_version}
+
 
 def read_current_time(ub):
     time, = ub.next_struct('d')
     return {'cur_time': time}
 
+
 def read_current_iteration(ub):
     start_time, real_time = ub.next_struct('qd')
     return {'start_time': start_time, 'real_time': real_time}
+
 
 def read_chkpt_sequence(ub):
     seq, = ub.next_struct('I')
     return {'chkpt_seq': seq}
 
+
 def read_rng_state(ub):
     seed = ub.next_vint()
     rngtype, = ub.next_struct('c')
-    if rngtype == 'I':
-        randcnt = ub.next_vint()
+    if rngtype == b'I':
+        ub.next_vint()
         aa, bb, cc = ub.next_struct('QQQ')
         randrsl = ub.next_struct('256Q')
         mm      = ub.next_struct('256Q')
@@ -111,16 +131,17 @@ def read_rng_state(ub):
                 'rng_cc':   cc,
                 'rng_rsl':  randrsl,
                 'rng_mm':   mm}
-    elif rngtype == 'M':
+    elif rngtype == b'M':
         a, b, c, d = ub.next_struct('IIII')
         return {'rng_seed': seed,
                 'rng_type': 'SimpleRNG',
                 'rng_a':  a,
                 'rng_b':  b,
                 'rng_c':  c,
-                'rng_d':  d }
+                'rng_d':  d}
     else:
         raise Exception('Sorry -- this file seems to be malformed.')
+
 
 def read_byte_order(ub):
     bo, = ub.next_struct('I')
@@ -133,10 +154,12 @@ def read_byte_order(ub):
     else:
         raise Exception('Unknown byte order %d' % bo)
 
+
 def read_mcell_version(ub):
     ver_len, = ub.next_struct('I')
     ver = ub.next_cstring(ver_len)
     return {'mcell_version': ver}
+
 
 def read_species(ub):
     nsp = ub.next_vint()
@@ -146,6 +169,7 @@ def read_species(ub):
         species_id   = ub.next_vint()
         species[species_id] = species_name
     return {'species': species}
+
 
 def read_scheduler(ub, spec):
     num_molecules = ub.next_vint()
@@ -173,6 +197,7 @@ def read_scheduler(ub, spec):
         molecules.append(m)
     return {'molecules': molecules}
 
+
 def read_file(fname):
     ub = UnmarshalBuffer(open(fname, 'rb').read())
     data = {}
@@ -194,62 +219,82 @@ def read_file(fname):
             d = read_scheduler(ub, data['species'])
         elif cmd == CMD_BYTE_ORDER:
             d = read_byte_order(ub)
+        elif cmd == CMD_NUM_CHKPT_CMD:
+            print("CMD_NUM_CHKPT_CMD")
+        elif cmd == CMD_CHECKPOINT_API:
+            d = read_api(ub)
         else:
-            raise Exception('Unknown command %02x in file.  Perhaps the file is malformed.' % cmd)
+            raise Exception(
+                'Unknown command %02x in file. Perhaps the file is malformed.'
+                % cmd)
         data.update(d)
     return data
 
-def dump_data(data):
-    ORIENTS = ['-', '_', '+']
-    print '  MCell version:     %s'    % data['mcell_version']
-    print '  File endianness:   %s'    % data['endian']
-    print '  Cur time:          %.15g' % data['cur_time']
-    print '  Start iteration:   %ld'   % data['start_time']
-    print '  Real time:         %.15g' % data['real_time']
-    print '  Sequence:          %d'    % data['chkpt_seq']
-    rng_keys = [k for k in data.keys() if k.startswith('rng_')]
+
+def dump_data(data, annotate):
+    # ORIENTS = ['-', '_', '+']
+    print('  MCell version:     %s'    % data['mcell_version'].decode("utf-8"))
+    print('  File endianness:   %s'    % data['endian'])
+    print('  Cur time:          %.15g' % data['cur_time'])
+    print('  Start iteration:   %ld'   % data['start_time'])
+    print('  Real time:         %.15g' % data['real_time'])
+    print('  Sequence:          %d'    % data['chkpt_seq'])
+    rng_keys = [k for k in list(data.keys()) if k.startswith('rng_')]
     rng_keys.sort()
     for d in rng_keys:
-        print '  %s: %*s         %s'    % (d, 8-len(d), '', str(data[d]))
-    print '  Species:'
+        print('  %s: %*s         %s'    % (d, 8-len(d), '', str(data[d])))
+    print('  Species:')
 
     species_table = data['species']
-    species_keys = species_table.keys()
+    species_keys = list(species_table.keys())
     species_keys.sort()
     for d in species_keys:
         name = species_table[d]
-        print '      %3d: %s' % (d, name)
+        print('      %3d: %s' % (d, name.decode("utf-8")))
         for m in data['molecules']:
             if m['species'] != name:
                 continue
-            print ('           %c %18.15g %18.15g %18.15g (%18.15g, %18.15g, %18.15g) %c' %
-                    ('N' if m['newbie'] else '_',
-                     m['t'],
-                     m['t2'],
-                     m['birthday'],
-                     m['pos'][0],
-                     m['pos'][1],
-                     m['pos'][2],
-                     ORIENTS[m['orient'] + 1])),
-            if m.has_key('cx_idx'):
-                if m.has_key('cx_cnt'):
-                    print ' %5d[%d/%d]' % (m['cx_idx'], m['cx_sub'], m['cx_cnt'])
-                else:
-                    print ' %5d[MASTER]' % (m['cx_idx'])
+            if annotate:
+                print(('           %s, t: %18.15g, t2: %18.15g, bday: %18.15g '
+                       'pos: (%18.15g, %18.15g, %18.15g)' %
+                      ('new' if m['newbie'] else 'old',
+                       m['t'],
+                       m['t2'],
+                       m['birthday'],
+                       m['pos'][0],
+                       m['pos'][1],
+                       m['pos'][2],)))
+                       # ORIENTS[m['orient'] + 1])),
             else:
-                print ''
+                print(('           %c %18.15g %18.15g %18.15g (%18.15g, %18.15g, '
+                      '%18.15g)' %
+                      ('N' if m['newbie'] else '_',
+                       m['t'],
+                       m['t2'],
+                       m['birthday'],
+                       m['pos'][0],
+                       m['pos'][1],
+                       m['pos'][2],)))
+                       # ORIENTS[m['orient'] + 1])),
+
+
+def setup_argparser():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "-a", "--annotate", action='store_true',
+        help="annotate checkpoint output")
+    parser.add_argument("chkpt_file", help="name of checkpoint file")
+    return parser.parse_args()
 
 if __name__ == '__main__':
+
+    args = setup_argparser()
+
     try:
         import psyco
         psyco.full()
     except ImportError:
         pass
 
-    import sys
-
-    for i in sys.argv[1:]:
-        print '%s:' % i
-        data = read_file(i)
-        dump_data(data)
-
+    data = read_file(args.chkpt_file)
+    dump_data(data, args.annotate)

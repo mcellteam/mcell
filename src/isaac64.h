@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2015 by
+ * Copyright (C) 2006-2017 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -29,8 +29,8 @@ Bob Jenkins, 1996, Public Domain
 Modified for modularity by Tom Bartol and Rex Kerr
 ------------------------------------------------------------------------------
 */
-#ifndef ISAAC64_H
-#define ISAAC64_H
+
+#pragma once
 
 #include <inttypes.h>
 
@@ -99,5 +99,3 @@ Macros to get individual random numbers
        ? (DBL64 *(*((ub8 *)(((ub4 *)(rng->randrsl)) + (rng->randcnt -= 2)))))  \
        : (isaac64_generate(rng), rng->randcnt = RANDMAX - 2,                   \
           DBL64 * (*((ub8 *)(((ub4 *)(rng->randrsl)) + rng->randcnt)))))
-
-#endif /* ISAAC64_H */

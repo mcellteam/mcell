@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2015 by
+ * Copyright (C) 2006-2017 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -21,8 +21,7 @@
  *
 ******************************************************************************/
 
-#ifndef MCELL_COUNT_UTIL
-#define MCELL_COUNT_UTIL
+#pragma once
 
 #include "mcell_structs.h"
 #include "dyngeom_parse_extras.h"
@@ -73,8 +72,5 @@ int object_has_geometry(struct object *obj);
 void update_hit_data(struct hit_data **hd_head, struct wall *current,
                      struct wall *target, struct surface_molecule *sm,
                      struct vector2 boundary_pos, int direction, int crossed);
-
 int is_object_instantiated(struct sym_entry *entry,
                            struct object *root_instance);
-
-#endif

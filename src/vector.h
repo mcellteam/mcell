@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2015 by
+ * Copyright (C) 2006-2017 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -21,8 +21,7 @@
  *
 ******************************************************************************/
 
-#ifndef VECTOR_H
-#define VECTOR_H
+#pragma once
 
 /* Header file for 3D vector routines */
 
@@ -79,5 +78,3 @@ int point_in_triangle_2D(struct vector2 *p, struct vector2 *a,
 
 int point_in_box(struct vector3 *low_left, struct vector3 *up_right,
                  struct vector3 *point);
-
-#endif

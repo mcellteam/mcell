@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2015 by
+ * Copyright (C) 2006-2017 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -314,6 +314,12 @@ int create_chkpt(struct volume *world, char const *filename) {
   /* Write checkpoint */
   world->current_time_seconds = world->current_time_seconds +
       (world->current_iterations - world->start_iterations) * world->time_unit;
+  // These are normally set when reading a checkpoint. They need to be set here
+  // in case we checkpoint without exiting (i.e. using NOEXIT). Otherwise,
+  // world->current_time_seconds will be set incorrectly upon subsequent calls
+  // to create_chkpt
+  world->start_iterations = world->current_iterations;
+  world->simulation_start_seconds = world->current_time_seconds;
   if (write_chkpt(world, outfs))
     mcell_error("Failed to write checkpoint file %s\n", filename);
   fclose(outfs);

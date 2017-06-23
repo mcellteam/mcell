@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2015 by
+ * Copyright (C) 2006-2017 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -21,8 +21,7 @@
  *
 ******************************************************************************/
 
-#ifndef MINRNG_H
-#define MINRNG_H
+#pragma once
 
 #include <inttypes.h>
 
@@ -42,5 +41,3 @@ void mrng_init(struct mrng_state *x, ub4 seed);
 #define mrng_uint32(rng) (mrng_generate(rng))
 
 #define mrng_dbl32(rng) (DBL32 *(double)mrng_uint32(rng))
-
-#endif

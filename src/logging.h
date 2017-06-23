@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2015 by
+ * Copyright (C) 2006-2017 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -21,8 +21,7 @@
  *
 ******************************************************************************/
 
-#ifndef INCLUDED_LOGGING_H
-#define INCLUDED_LOGGING_H
+#pragma once
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -152,5 +151,3 @@ void mcell_allocfailedv(char const *fmt, va_list args) PRINTF_FORMAT_V(1)
 
 /* Terminate program execution due to an error. */
 void mcell_die(void) __attribute__((noreturn));
-
-#endif

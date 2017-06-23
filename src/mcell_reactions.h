@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2015 by
+ * Copyright (C) 2006-2017 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -21,8 +21,7 @@
  *
 ******************************************************************************/
 
-#ifndef MCELL_REACTIONS_H
-#define MCELL_REACTIONS_H
+#pragma once
 
 #include "mcell_species.h"
 
@@ -127,5 +126,3 @@ struct reaction_rates mcell_create_reaction_rates(int forwardRateType,
                                                   double backwardRate);
 
 struct sym_entry *mcell_new_rxn_pathname(struct volume *state, char *name);
-
-#endif

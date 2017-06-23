@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2015 by
+ * Copyright (C) 2006-2017 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -21,8 +21,7 @@
  *
 ******************************************************************************/
 
-#ifndef MCELL_VIZ_H
-#define MCELL_VIZ_H
+#pragma once
 
 MCELL_STATUS mcell_create_viz_output(MCELL_STATE *state, char *filename,
                                      struct mcell_species *mol_viz_list,
@@ -37,5 +36,3 @@ mcell_create_viz_frame(int time_type, int type,
 
 int mcell_set_molecule_viz_state(struct viz_output_block *vizblk,
                                  struct species *specp, int viz_state);
-
-#endif

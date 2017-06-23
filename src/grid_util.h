@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2015 by
+ * Copyright (C) 2006-2017 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -21,8 +21,7 @@
  *
 ******************************************************************************/
 
-#ifndef MCELL_GRID
-#define MCELL_GRID
+#pragma once
 
 #include "mcell_structs.h"
 #include "dyngeom.h"
@@ -177,4 +176,3 @@ int is_surface_molecule_behind_restrictive_boundary(struct surface_molecule *sm,
                                                     struct wall *wall,
                                                     struct rxn **reaction_hash,
                                                     int rx_hashsize);
-#endif

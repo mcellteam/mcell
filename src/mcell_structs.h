@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2015 by
+ * Copyright (C) 2006-2017 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -21,8 +21,7 @@
  *
 ******************************************************************************/
 
-#ifndef MCELL_STRUCTS
-#define MCELL_STRUCTS
+#pragma once
 
 #include "config.h"
 
@@ -1164,7 +1163,8 @@ struct volume {
   double chkpt_start_time_seconds; /* start of the simulation time (in sec)
                                       for new checkpoint */
   double current_time_seconds;     /* current simulation time in seconds */
-  double simulation_start_seconds; /* simulation start time (in seconds) */
+  /* simulation start time (in seconds) or time of most recent checkpoint */
+  double simulation_start_seconds; 
 
   long long diffusion_number; /* Total number of times molecules have had their
                                  positions updated */
@@ -1198,8 +1198,9 @@ struct volume {
   u_int init_seed; /* Initial seed value for random number generator */
 
   long long current_iterations; /* How many iterations have been run so far */
-  long long start_iterations; // Starting iteration number for the current run
-
+  // Starting iteration number for current run or iteration of most recent
+  // checkpoint
+  long long start_iterations; 
   struct timeval last_timing_time; /* time and iteration of last timing event */
   long long last_timing_iteration; /* during the main run_iteration loop */
 
@@ -1937,5 +1938,3 @@ struct object_list {
   struct object *obj_head;
   struct object *obj_tail;
 };
-
-#endif

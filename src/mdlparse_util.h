@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2015 by
+ * Copyright (C) 2006-2017 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -21,8 +21,7 @@
  *
 ******************************************************************************/
 
-#ifndef MDLPARSE_UTIL_H
-#define MDLPARSE_UTIL_H
+#pragma once
 
 #include "vector.h"
 #include "mcell_structs.h"
@@ -914,5 +913,3 @@ struct object *start_object(MCELL_STATE *state,
                             struct object_creation *obj_creation,
                             char *name,
                             int *error_code);
-
-#endif

@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2015 by
+ * Copyright (C) 2006-2017 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -21,8 +21,7 @@
  *
 ******************************************************************************/
 
-#ifndef MCELL_INIT_H
-#define MCELL_INIT_H
+#pragma once
 
 #include "mcell_structs.h"
 
@@ -55,5 +54,3 @@ MCELL_STATUS mcell_set_partition(MCELL_STATE *state, int dim,
 MCELL_STATUS mcell_set_time_step(MCELL_STATE *state, double step);
 
 MCELL_STATUS mcell_set_iterations(MCELL_STATE *state, long long iterations);
-
-#endif

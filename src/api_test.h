@@ -1,5 +1,4 @@
-#ifndef MCELL_APITEST_H
-#define MCELL_APITEST_H
+#pragma once
 
 #include "mcell_misc.h"
 #include "mcell_objects.h"
@@ -10,5 +9,3 @@
 #include "mcell_viz.h"
 
 void test_api(MCELL_STATE *state);
-
-#endif

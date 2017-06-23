@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2015 by
+ * Copyright (C) 2006-2017 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -3112,11 +3112,13 @@ static struct region *mdl_make_new_region(struct mdlparse_vars *parse_state,
     if (gp->count == 0) {
       free(region_name);
       gp->count = 1;
+      free(region_name);
       return (struct region *)gp->value;
     }
     else {
       mdlerror_fmt(parse_state, "Region already defined: %s", region_name);
     }
+    free(region_name);
   }
 
   if ((gp = store_sym(region_name, REG, parse_state->vol->reg_sym_table,

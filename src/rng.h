@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2015 by
+ * Copyright (C) 2006-2017 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -21,8 +21,7 @@
  *
 ******************************************************************************/
 
-#ifndef RNG_H
-#define RNG_H
+#pragma once
 
 #define ONE_OVER_2_TO_THE_33RD 1.16415321826934814453125e-10
 
@@ -52,5 +51,3 @@
 #define rng_open_dbl(x) (rng_dbl(x) + ONE_OVER_2_TO_THE_33RD)
 
 double rng_gauss(struct rng_state *rng);
-
-#endif

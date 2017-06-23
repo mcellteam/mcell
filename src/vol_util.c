@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2015 by
+ * Copyright (C) 2006-2017 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -179,17 +179,17 @@ double collide_sv_time(struct vector3 *here, struct vector3 *move,
   }
 
   tx = GIGANTIC;
-  if (move->x != 0.0) {
+  if (distinguishable(move->x, 0, EPS_C)) {
     tx = dx / move->x;
   }
 
   ty = GIGANTIC;
-  if (move->y != 0.0) {
+  if (distinguishable(move->y, 0, EPS_C)) {
     ty = dy / move->y;
   }
 
   tz = GIGANTIC;
-  if (move->z != 0.0) {
+  if (distinguishable(move->z, 0, EPS_C)) {
     tz = dz / move->z;
   }
 
@@ -2477,10 +2477,10 @@ int convert_relative_to_abs_PBC_coords(
       pos_output->x = pos->x; 
     }
     else if (periodic_box->x % 2 == 0) {
-      pos_output->x = pos->x + pos_or_neg * (fabs(periodic_box->x) * x_box_length);
+      pos_output->x = pos->x + pos_or_neg * (abs(periodic_box->x) * x_box_length);
     }
     else {
-      pos_output->x = pos->x + pos_or_neg * ((fabs(periodic_box->x) - 1) * x_box_length + 2 * difference);
+      pos_output->x = pos->x + pos_or_neg * ((abs(periodic_box->x) - 1) * x_box_length + 2 * difference);
     }
 
     // translate Y
@@ -2490,10 +2490,10 @@ int convert_relative_to_abs_PBC_coords(
       pos_output->y = pos->y; 
     }
     else if (periodic_box->y % 2 == 0) {
-      pos_output->y = pos->y + pos_or_neg * (fabs(periodic_box->y) * y_box_length);
+      pos_output->y = pos->y + pos_or_neg * (abs(periodic_box->y) * y_box_length);
     }
     else {
-      pos_output->y = pos->y + pos_or_neg * ((fabs(periodic_box->y) - 1) * y_box_length + 2 * difference);
+      pos_output->y = pos->y + pos_or_neg * ((abs(periodic_box->y) - 1) * y_box_length + 2 * difference);
     }
 
     // translate Z
@@ -2503,10 +2503,10 @@ int convert_relative_to_abs_PBC_coords(
       pos_output->z = pos->z; 
     }
     else if (periodic_box->z % 2 == 0) {
-      pos_output->z = pos->z + pos_or_neg * (fabs(periodic_box->z) * z_box_length);
+      pos_output->z = pos->z + pos_or_neg * (abs(periodic_box->z) * z_box_length);
     }
     else {
-      pos_output->z = pos->z + pos_or_neg * ((fabs(periodic_box->z) - 1) * z_box_length + 2 * difference);
+      pos_output->z = pos->z + pos_or_neg * ((abs(periodic_box->z) - 1) * z_box_length + 2 * difference);
     }
 
     return 0;

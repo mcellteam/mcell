@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2015 by
+ * Copyright (C) 2006-2017 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -21,8 +21,7 @@
  *
 ******************************************************************************/
 
-#ifndef INIT_H
-#define INIT_H
+#pragma once
 
 #include "mcell_structs.h"
 #include "mdlparse_aux.h"
@@ -125,4 +124,3 @@ void remove_molecules_name_list(struct name_list **nlist);
 int check_for_overlapped_walls(
     struct rng_state *rng, int n_subvols, struct subvolume *subvol);
 struct vector3 *create_region_bbox(struct region *r);
-#endif

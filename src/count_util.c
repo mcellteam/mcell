@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2015 by
+ * Copyright (C) 2006-2017 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -1312,17 +1312,18 @@ int prepare_counters(struct volume *world) {
     /* check whether the "count_location" refers to the instantiated
        object or region */
     if (request->count_location != NULL) {
+      char *name = request->count_location->name;
       if (!((is_object_instantiated(request->count_location, world->root_instance)) ||
-          (retrieve_sym(request->count_location->name, world->dg_parse->reg_sym_table) != NULL) ||
-          (retrieve_sym(request->count_location->name, world->dg_parse->obj_sym_table) != NULL)))
+          ((world->dg_parse != NULL ) &&
+          ((retrieve_sym(name, world->dg_parse->reg_sym_table) != NULL) ||
+          (retrieve_sym(name, world->dg_parse->obj_sym_table) != NULL)))))
 
         mcell_error("The object/region name '%s' in the COUNT/TRIGGER "
                     "statement is not fully referenced.\n"
                     "  This occurs when a count is requested on an object "
                     "which has not been referenced\n"
                     "  (directly or indirectly) from an INSTANTIATE block in "
-                    "the MDL file.",
-                    request->count_location->name);
+                    "the MDL file.", name);
     }
 
     if (request->count_target->sym_type == MOL) {

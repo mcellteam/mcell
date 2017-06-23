@@ -1,8 +1,8 @@
-/* A Bison parser, made by GNU Bison 3.0.2.  */
+/* A Bison parser, made by GNU Bison 3.0.4.  */
 
 /* Bison implementation for Yacc-like parsers in C
 
-   Copyright (C) 1984, 1989-1990, 2000-2013 Free Software Foundation, Inc.
+   Copyright (C) 1984, 1989-1990, 2000-2015 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -44,7 +44,7 @@
 #define YYBISON 1
 
 /* Bison version.  */
-#define YYBISON_VERSION "3.0.2"
+#define YYBISON_VERSION "3.0.4"
 
 /* Skeleton name.  */
 #define YYSKELETON_NAME "yacc.c"
@@ -682,7 +682,7 @@ extern int mdldebug;
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
-typedef union YYSTYPE YYSTYPE;
+
 union YYSTYPE
 {
 #line 67 "../src/../src/mdlparse.y" /* yacc.c:355  */
@@ -753,6 +753,8 @@ struct arg_list printfargs;
 
 #line 755 "mdlparse.c" /* yacc.c:355  */
 };
+
+typedef union YYSTYPE YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1
 #endif
@@ -765,7 +767,7 @@ int mdlparse (struct mdlparse_vars *parse_state, yyscan_t scanner);
 
 /* Copy the second part of user declarations.  */
 
-#line 769 "mdlparse.c" /* yacc.c:358  */
+#line 771 "mdlparse.c" /* yacc.c:358  */
 
 #ifdef short
 # undef short
@@ -3149,85 +3151,85 @@ yyreduce:
         case 29:
 #line 642 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.sym) = mdl_existing_object(parse_state, (yyvsp[0].str))); }
-#line 3153 "mdlparse.c" /* yacc.c:1646  */
+#line 3155 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 30:
 #line 645 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.sym) = mdl_existing_region(parse_state, (yyvsp[-3].sym), (yyvsp[-1].str))); }
-#line 3159 "mdlparse.c" /* yacc.c:1646  */
+#line 3161 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 31:
 #line 648 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.vec3) = mdl_point(parse_state, &(yyvsp[0].nlist))); }
-#line 3165 "mdlparse.c" /* yacc.c:1646  */
+#line 3167 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 33:
 #line 652 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.vec3) = mdl_point_scalar((yyvsp[0].dbl))); }
-#line 3171 "mdlparse.c" /* yacc.c:1646  */
+#line 3173 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 34:
 #line 655 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = 1; }
-#line 3177 "mdlparse.c" /* yacc.c:1646  */
+#line 3179 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 35:
 #line 656 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = 0; }
-#line 3183 "mdlparse.c" /* yacc.c:1646  */
+#line 3185 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 36:
 #line 657 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = 1; }
-#line 3189 "mdlparse.c" /* yacc.c:1646  */
+#line 3191 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 37:
 #line 658 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = 0; }
-#line 3195 "mdlparse.c" /* yacc.c:1646  */
+#line 3197 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 38:
 #line 659 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = 1; }
-#line 3201 "mdlparse.c" /* yacc.c:1646  */
+#line 3203 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 39:
 #line 660 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = 0; }
-#line 3207 "mdlparse.c" /* yacc.c:1646  */
+#line 3209 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 40:
 #line 663 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.mol_type).orient_set = 0; }
-#line 3213 "mdlparse.c" /* yacc.c:1646  */
+#line 3215 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 43:
 #line 666 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.mol_type).orient_set = 1; (yyval.mol_type).orient = 0; }
-#line 3219 "mdlparse.c" /* yacc.c:1646  */
+#line 3221 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 44:
 #line 670 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.mol_type).orient = 1; (yyval.mol_type).orient_set = 1; }
-#line 3225 "mdlparse.c" /* yacc.c:1646  */
+#line 3227 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 45:
 #line 671 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.mol_type).orient = -1; (yyval.mol_type).orient_set = 1; }
-#line 3231 "mdlparse.c" /* yacc.c:1646  */
+#line 3233 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 46:
@@ -3242,7 +3244,7 @@ yyreduce:
                                                           }
                                                           ++ (yyval.mol_type).orient;
                                                       }
-#line 3246 "mdlparse.c" /* yacc.c:1646  */
+#line 3248 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 47:
@@ -3257,7 +3259,7 @@ yyreduce:
                                                           }
                                                           -- (yyval.mol_type).orient;
                                                       }
-#line 3261 "mdlparse.c" /* yacc.c:1646  */
+#line 3263 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 50:
@@ -3271,7 +3273,7 @@ yyreduce:
                                                             return 1;
                                                           }
                                                       }
-#line 3275 "mdlparse.c" /* yacc.c:1646  */
+#line 3277 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 52:
@@ -3287,19 +3289,19 @@ yyreduce:
                                                           else
                                                             (yyval.nlist) = (yyvsp[0].nlist);
                                                       }
-#line 3291 "mdlparse.c" /* yacc.c:1646  */
+#line 3293 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 53:
 #line 726 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mcell_generate_range_singleton(&(yyval.nlist), (yyvsp[0].dbl))); }
-#line 3297 "mdlparse.c" /* yacc.c:1646  */
+#line 3299 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 54:
 #line 727 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_generate_range(parse_state, &(yyval.nlist), (yyvsp[-5].dbl), (yyvsp[-3].dbl), (yyvsp[-1].dbl))); }
-#line 3303 "mdlparse.c" /* yacc.c:1646  */
+#line 3305 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 55:
@@ -3321,43 +3323,43 @@ yyreduce:
                                                           free(include_path);
                                                           free((yyvsp[0].str));
                                                       }
-#line 3325 "mdlparse.c" /* yacc.c:1646  */
+#line 3327 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 56:
 #line 756 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_assign_variable_double(parse_state, (yyvsp[-2].sym), (yyvsp[0].dbl))); }
-#line 3331 "mdlparse.c" /* yacc.c:1646  */
+#line 3333 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 57:
 #line 757 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_assign_variable_string(parse_state, (yyvsp[-2].sym), (yyvsp[0].str))); }
-#line 3337 "mdlparse.c" /* yacc.c:1646  */
+#line 3339 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 58:
 #line 758 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_assign_variable(parse_state, (yyvsp[-2].sym), (yyvsp[0].sym))); }
-#line 3343 "mdlparse.c" /* yacc.c:1646  */
+#line 3345 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 59:
 #line 759 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_assign_variable_array(parse_state, (yyvsp[-2].sym), (yyvsp[0].nlist).value_head)); }
-#line 3349 "mdlparse.c" /* yacc.c:1646  */
+#line 3351 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 60:
 #line 762 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.sym) = mdl_get_or_create_variable(parse_state, (yyvsp[0].str))); }
-#line 3355 "mdlparse.c" /* yacc.c:1646  */
+#line 3357 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 61:
 #line 765 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.sym) = mdl_existing_variable(parse_state, (yyvsp[0].str))); }
-#line 3361 "mdlparse.c" /* yacc.c:1646  */
+#line 3363 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 63:
@@ -3371,295 +3373,295 @@ yyreduce:
                                                           (yyval.nlist).value_tail = elp;
                                                           (yyval.nlist).shared = 1;
                                                       }
-#line 3375 "mdlparse.c" /* yacc.c:1646  */
+#line 3377 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 64:
 #line 780 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { mdl_debug_dump_array((yyvsp[-1].nlist).value_head); (yyval.nlist) = (yyvsp[-1].nlist); }
-#line 3381 "mdlparse.c" /* yacc.c:1646  */
+#line 3383 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 65:
 #line 783 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.sym) = mdl_existing_array(parse_state, (yyvsp[0].str))); }
-#line 3387 "mdlparse.c" /* yacc.c:1646  */
+#line 3389 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 69:
 #line 791 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.dbl) = *(double *) (yyvsp[0].sym)->value; }
-#line 3393 "mdlparse.c" /* yacc.c:1646  */
+#line 3395 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 70:
 #line 794 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.dbl) = (yyvsp[0].llival); }
-#line 3399 "mdlparse.c" /* yacc.c:1646  */
+#line 3401 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 74:
 #line 802 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.sym) = mdl_existing_double(parse_state, (yyvsp[0].str))); }
-#line 3405 "mdlparse.c" /* yacc.c:1646  */
+#line 3407 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 75:
 #line 806 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.dbl) = (yyvsp[-1].dbl); }
-#line 3411 "mdlparse.c" /* yacc.c:1646  */
+#line 3413 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 76:
 #line 807 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKF((yyval.dbl) = exp((yyvsp[-1].dbl))); }
-#line 3417 "mdlparse.c" /* yacc.c:1646  */
+#line 3419 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 77:
 #line 808 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_expr_log(parse_state, (yyvsp[-1].dbl), &(yyval.dbl))); }
-#line 3423 "mdlparse.c" /* yacc.c:1646  */
+#line 3425 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 78:
 #line 809 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_expr_log10(parse_state, (yyvsp[-1].dbl), &(yyval.dbl))); }
-#line 3429 "mdlparse.c" /* yacc.c:1646  */
+#line 3431 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 79:
 #line 810 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.dbl) = max2d((yyvsp[-3].dbl), (yyvsp[-1].dbl)); }
-#line 3435 "mdlparse.c" /* yacc.c:1646  */
+#line 3437 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 80:
 #line 811 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.dbl) = min2d((yyvsp[-3].dbl), (yyvsp[-1].dbl)); }
-#line 3441 "mdlparse.c" /* yacc.c:1646  */
+#line 3443 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 81:
 #line 812 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.dbl) = mdl_expr_roundoff((yyvsp[-1].dbl), (int) (yyvsp[-3].dbl)); }
-#line 3447 "mdlparse.c" /* yacc.c:1646  */
+#line 3449 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 82:
 #line 813 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.dbl) = floor((yyvsp[-1].dbl)); }
-#line 3453 "mdlparse.c" /* yacc.c:1646  */
+#line 3455 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 83:
 #line 814 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.dbl) = ceil((yyvsp[-1].dbl)); }
-#line 3459 "mdlparse.c" /* yacc.c:1646  */
+#line 3461 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 84:
 #line 815 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.dbl) = sin((yyvsp[-1].dbl)); }
-#line 3465 "mdlparse.c" /* yacc.c:1646  */
+#line 3467 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 85:
 #line 816 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.dbl) = cos((yyvsp[-1].dbl)); }
-#line 3471 "mdlparse.c" /* yacc.c:1646  */
+#line 3473 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 86:
 #line 817 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKF((yyval.dbl) = tan((yyvsp[-1].dbl))); }
-#line 3477 "mdlparse.c" /* yacc.c:1646  */
+#line 3479 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 87:
 #line 818 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKF((yyval.dbl) = asin((yyvsp[-1].dbl))); }
-#line 3483 "mdlparse.c" /* yacc.c:1646  */
+#line 3485 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 88:
 #line 819 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKF((yyval.dbl) = acos((yyvsp[-1].dbl))); }
-#line 3489 "mdlparse.c" /* yacc.c:1646  */
+#line 3491 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 89:
 #line 820 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.dbl) = atan((yyvsp[-1].dbl)); }
-#line 3495 "mdlparse.c" /* yacc.c:1646  */
+#line 3497 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 90:
 #line 821 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKF((yyval.dbl) = sqrt((yyvsp[-1].dbl))); }
-#line 3501 "mdlparse.c" /* yacc.c:1646  */
+#line 3503 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 91:
 #line 822 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.dbl) = fabs((yyvsp[-1].dbl)); }
-#line 3507 "mdlparse.c" /* yacc.c:1646  */
+#line 3509 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 92:
 #line 823 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_expr_mod(parse_state, (yyvsp[-3].dbl), (yyvsp[-1].dbl), &(yyval.dbl))); }
-#line 3513 "mdlparse.c" /* yacc.c:1646  */
+#line 3515 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 93:
 #line 824 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.dbl) = MY_PI; }
-#line 3519 "mdlparse.c" /* yacc.c:1646  */
+#line 3521 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 94:
 #line 825 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.dbl) = mdl_expr_rng_uniform(parse_state); }
-#line 3525 "mdlparse.c" /* yacc.c:1646  */
+#line 3527 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 95:
 #line 826 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.dbl) = rng_gauss(parse_state->vol->rng); }
-#line 3531 "mdlparse.c" /* yacc.c:1646  */
+#line 3533 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 96:
 #line 827 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.dbl) = parse_state->vol->seed_seq; }
-#line 3537 "mdlparse.c" /* yacc.c:1646  */
+#line 3539 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 97:
 #line 828 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_expr_string_to_double(parse_state, (yyvsp[-1].str), &(yyval.dbl))); }
-#line 3543 "mdlparse.c" /* yacc.c:1646  */
+#line 3545 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 98:
 #line 829 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKF((yyval.dbl) = (yyvsp[-2].dbl) + (yyvsp[0].dbl)); }
-#line 3549 "mdlparse.c" /* yacc.c:1646  */
+#line 3551 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 99:
 #line 830 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKF((yyval.dbl) = (yyvsp[-2].dbl) - (yyvsp[0].dbl)); }
-#line 3555 "mdlparse.c" /* yacc.c:1646  */
+#line 3557 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 100:
 #line 831 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKF((yyval.dbl) = (yyvsp[-2].dbl) * (yyvsp[0].dbl)); }
-#line 3561 "mdlparse.c" /* yacc.c:1646  */
+#line 3563 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 101:
 #line 832 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_expr_div(parse_state, (yyvsp[-2].dbl), (yyvsp[0].dbl), &(yyval.dbl))); }
-#line 3567 "mdlparse.c" /* yacc.c:1646  */
+#line 3569 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 102:
 #line 833 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_expr_pow(parse_state, (yyvsp[-2].dbl), (yyvsp[0].dbl), &(yyval.dbl))); }
-#line 3573 "mdlparse.c" /* yacc.c:1646  */
+#line 3575 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 103:
 #line 834 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.dbl) = -(yyvsp[0].dbl); }
-#line 3579 "mdlparse.c" /* yacc.c:1646  */
+#line 3581 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 104:
 #line 835 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.dbl) = (yyvsp[0].dbl); }
-#line 3585 "mdlparse.c" /* yacc.c:1646  */
+#line 3587 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 106:
 #line 840 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.str) = mdl_strdup((char const *) (yyvsp[0].sym)->value)); }
-#line 3591 "mdlparse.c" /* yacc.c:1646  */
+#line 3593 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 107:
 #line 844 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.str) = mdl_strip_quotes((yyvsp[0].str))); }
-#line 3597 "mdlparse.c" /* yacc.c:1646  */
+#line 3599 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 108:
 #line 845 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.str) = mdl_strdup(parse_state->vol->mdl_infile_name)); }
-#line 3603 "mdlparse.c" /* yacc.c:1646  */
+#line 3605 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 109:
 #line 846 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.str) = mdl_strcat((yyvsp[-2].str), (yyvsp[0].str))); }
-#line 3609 "mdlparse.c" /* yacc.c:1646  */
+#line 3611 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 110:
 #line 847 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.str) = mdl_string_format(parse_state, (yyvsp[-2].str), (yyvsp[-1].printfargs).arg_head)); }
-#line 3615 "mdlparse.c" /* yacc.c:1646  */
+#line 3617 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 111:
 #line 850 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.sym) = mdl_existing_string(parse_state, (yyvsp[0].str))); }
-#line 3621 "mdlparse.c" /* yacc.c:1646  */
+#line 3623 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 119:
 #line 866 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_fopen(parse_state, (yyvsp[-6].sym), (yyvsp[-3].str), (yyvsp[-1].str))); }
-#line 3627 "mdlparse.c" /* yacc.c:1646  */
+#line 3629 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 120:
 #line 869 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.sym) = mdl_new_filehandle(parse_state, (yyvsp[0].str))); }
-#line 3633 "mdlparse.c" /* yacc.c:1646  */
+#line 3635 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 121:
 #line 872 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.str) = (yyvsp[0].str); CHECK(mdl_valid_file_mode(parse_state, (yyvsp[0].str))); }
-#line 3639 "mdlparse.c" /* yacc.c:1646  */
+#line 3641 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 122:
 #line 875 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_fclose(parse_state, (yyvsp[-1].sym))); }
-#line 3645 "mdlparse.c" /* yacc.c:1646  */
+#line 3647 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 123:
 #line 878 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.sym) = mdl_existing_file_stream(parse_state, (yyvsp[0].str))); }
-#line 3651 "mdlparse.c" /* yacc.c:1646  */
+#line 3653 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 124:
 #line 881 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.str) = mdl_expand_string_escapes((yyvsp[0].str))); }
-#line 3657 "mdlparse.c" /* yacc.c:1646  */
+#line 3659 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 125:
 #line 884 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.printfargs).arg_head = (yyval.printfargs).arg_tail = NULL; }
-#line 3663 "mdlparse.c" /* yacc.c:1646  */
+#line 3665 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 126:
@@ -3672,19 +3674,19 @@ yyreduce:
                                                           (yyval.printfargs).arg_tail = (yyval.printfargs).arg_head = (yyvsp[0].printfarg);
                                                         (yyvsp[0].printfarg)->next = NULL;
                                                       }
-#line 3676 "mdlparse.c" /* yacc.c:1646  */
+#line 3678 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 127:
 #line 895 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.printfarg) = mdl_new_printf_arg_double((yyvsp[0].dbl))); }
-#line 3682 "mdlparse.c" /* yacc.c:1646  */
+#line 3684 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 128:
 #line 896 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.printfarg) = mdl_new_printf_arg_string((yyvsp[0].str))); }
-#line 3688 "mdlparse.c" /* yacc.c:1646  */
+#line 3690 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 129:
@@ -3699,133 +3701,133 @@ yyreduce:
                                                               return 1;
                                                           }
                                                       }
-#line 3703 "mdlparse.c" /* yacc.c:1646  */
+#line 3705 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 130:
 #line 909 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_printf(parse_state, (yyvsp[-2].str), (yyvsp[-1].printfargs).arg_head)); }
-#line 3709 "mdlparse.c" /* yacc.c:1646  */
+#line 3711 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 131:
 #line 915 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_fprintf(parse_state, (struct file_stream *) (yyvsp[-4].sym)->value, (yyvsp[-2].str), (yyvsp[-1].printfargs).arg_head)); }
-#line 3715 "mdlparse.c" /* yacc.c:1646  */
+#line 3717 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 132:
 #line 921 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_sprintf(parse_state, (yyvsp[-4].sym), (yyvsp[-2].str), (yyvsp[-1].printfargs).arg_head)); }
-#line 3721 "mdlparse.c" /* yacc.c:1646  */
+#line 3723 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 133:
 #line 924 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { mdl_print_time(parse_state, (yyvsp[-1].str)); }
-#line 3727 "mdlparse.c" /* yacc.c:1646  */
+#line 3729 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 134:
 #line 930 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_fprint_time(parse_state, (yyvsp[-3].sym), (yyvsp[-1].str))); }
-#line 3733 "mdlparse.c" /* yacc.c:1646  */
+#line 3735 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 138:
 #line 946 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { if (!parse_state->vol->quiet_flag) mdl_set_all_notifications(parse_state->vol, (yyvsp[0].tok)); }
-#line 3739 "mdlparse.c" /* yacc.c:1646  */
+#line 3741 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 139:
 #line 947 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { if (!parse_state->vol->quiet_flag) parse_state->vol->notify->progress_report        = (yyvsp[0].tok); }
-#line 3745 "mdlparse.c" /* yacc.c:1646  */
+#line 3747 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 140:
 #line 948 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { if (!parse_state->vol->quiet_flag) parse_state->vol->notify->diffusion_constants    = (yyvsp[0].tok); }
-#line 3751 "mdlparse.c" /* yacc.c:1646  */
+#line 3753 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 141:
 #line 949 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { if (!parse_state->vol->quiet_flag) parse_state->vol->notify->reaction_probabilities = (yyvsp[0].tok); }
-#line 3757 "mdlparse.c" /* yacc.c:1646  */
+#line 3759 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 142:
 #line 950 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { if (!parse_state->vol->quiet_flag) parse_state->vol->notify->time_varying_reactions = (yyvsp[0].tok); }
-#line 3763 "mdlparse.c" /* yacc.c:1646  */
+#line 3765 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 143:
 #line 951 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { if (!parse_state->vol->quiet_flag) parse_state->vol->notify->reaction_prob_notify   = (yyvsp[0].dbl); }
-#line 3769 "mdlparse.c" /* yacc.c:1646  */
+#line 3771 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 144:
 #line 952 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { if (!parse_state->vol->quiet_flag) parse_state->vol->notify->partition_location     = (yyvsp[0].tok); }
-#line 3775 "mdlparse.c" /* yacc.c:1646  */
+#line 3777 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 145:
 #line 953 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { if (!parse_state->vol->quiet_flag) parse_state->vol->notify->box_triangulation      = (yyvsp[0].tok); }
-#line 3781 "mdlparse.c" /* yacc.c:1646  */
+#line 3783 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 146:
 #line 954 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { if (!parse_state->vol->quiet_flag) parse_state->vol->notify->release_events         = (yyvsp[0].tok); }
-#line 3787 "mdlparse.c" /* yacc.c:1646  */
+#line 3789 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 147:
 #line 955 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { if (!parse_state->vol->quiet_flag) parse_state->vol->notify->file_writes            = (yyvsp[0].tok); }
-#line 3793 "mdlparse.c" /* yacc.c:1646  */
+#line 3795 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 148:
 #line 956 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { if (!parse_state->vol->quiet_flag) parse_state->vol->notify->final_summary          = (yyvsp[0].tok); }
-#line 3799 "mdlparse.c" /* yacc.c:1646  */
+#line 3801 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 149:
 #line 957 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { if (!parse_state->vol->quiet_flag) parse_state->vol->notify->throughput_report      = (yyvsp[0].tok); }
-#line 3805 "mdlparse.c" /* yacc.c:1646  */
+#line 3807 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 150:
 #line 958 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { if (!parse_state->vol->quiet_flag) parse_state->vol->notify->reaction_output_report = (yyvsp[0].tok); }
-#line 3811 "mdlparse.c" /* yacc.c:1646  */
+#line 3813 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 151:
 #line 959 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { if (!parse_state->vol->quiet_flag) parse_state->vol->notify->volume_output_report   = (yyvsp[0].tok); }
-#line 3817 "mdlparse.c" /* yacc.c:1646  */
+#line 3819 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 152:
 #line 960 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { if (!parse_state->vol->quiet_flag) parse_state->vol->notify->viz_output_report      = (yyvsp[0].tok); }
-#line 3823 "mdlparse.c" /* yacc.c:1646  */
+#line 3825 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 153:
 #line 961 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { if (!parse_state->vol->quiet_flag) parse_state->vol->notify->checkpoint_report      = (yyvsp[0].tok); }
-#line 3829 "mdlparse.c" /* yacc.c:1646  */
+#line 3831 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 154:
@@ -3834,445 +3836,445 @@ yyreduce:
                                                           if (!parse_state->vol->quiet_flag && parse_state->vol->log_freq == ULONG_MAX)
                                                             parse_state->vol->notify->iteration_report = (yyvsp[0].tok);
                                                       }
-#line 3838 "mdlparse.c" /* yacc.c:1646  */
+#line 3840 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 155:
 #line 966 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { if (!parse_state->vol->quiet_flag) CHECK(mdl_set_iteration_report_freq(parse_state, (long long) (yyvsp[0].dbl))); }
-#line 3844 "mdlparse.c" /* yacc.c:1646  */
+#line 3846 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 156:
 #line 967 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { if (!parse_state->vol->quiet_flag) parse_state->vol->notify->molecule_collision_report    = (yyvsp[0].tok); }
-#line 3850 "mdlparse.c" /* yacc.c:1646  */
+#line 3852 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 157:
 #line 971 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = ((yyvsp[0].tok) ? NOTIFY_FULL : NOTIFY_NONE); }
-#line 3856 "mdlparse.c" /* yacc.c:1646  */
+#line 3858 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 158:
 #line 975 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = ((yyvsp[0].tok) ? NOTIFY_FULL : NOTIFY_NONE); }
-#line 3862 "mdlparse.c" /* yacc.c:1646  */
+#line 3864 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 159:
 #line 976 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = NOTIFY_BRIEF; }
-#line 3868 "mdlparse.c" /* yacc.c:1646  */
+#line 3870 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 163:
 #line 992 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { mdl_set_all_warnings(parse_state->vol, (byte) (yyvsp[0].tok)); }
-#line 3874 "mdlparse.c" /* yacc.c:1646  */
+#line 3876 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 164:
 #line 993 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { parse_state->vol->notify->neg_diffusion = (byte)(yyvsp[0].tok); }
-#line 3880 "mdlparse.c" /* yacc.c:1646  */
+#line 3882 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 165:
 #line 994 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { parse_state->vol->notify->neg_reaction = (byte)(yyvsp[0].tok); }
-#line 3886 "mdlparse.c" /* yacc.c:1646  */
+#line 3888 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 166:
 #line 995 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { parse_state->vol->notify->high_reaction_prob = (byte)(yyvsp[0].tok); }
-#line 3892 "mdlparse.c" /* yacc.c:1646  */
+#line 3894 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 167:
 #line 996 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { parse_state->vol->notify->reaction_prob_warn = (yyvsp[0].dbl); }
-#line 3898 "mdlparse.c" /* yacc.c:1646  */
+#line 3900 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 168:
 #line 997 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { parse_state->vol->notify->close_partitions = (byte)(yyvsp[0].tok); }
-#line 3904 "mdlparse.c" /* yacc.c:1646  */
+#line 3906 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 169:
 #line 998 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { parse_state->vol->notify->degenerate_polys = (byte)(yyvsp[0].tok); }
-#line 3910 "mdlparse.c" /* yacc.c:1646  */
+#line 3912 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 170:
 #line 999 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { parse_state->vol->notify->overwritten_file = (byte)(yyvsp[0].tok); }
-#line 3916 "mdlparse.c" /* yacc.c:1646  */
+#line 3918 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 171:
 #line 1000 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { parse_state->vol->notify->short_lifetime = (byte)(yyvsp[0].tok); }
-#line 3922 "mdlparse.c" /* yacc.c:1646  */
+#line 3924 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 172:
 #line 1001 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_set_lifetime_warning_threshold(parse_state, (long long) (yyvsp[0].dbl))); }
-#line 3928 "mdlparse.c" /* yacc.c:1646  */
+#line 3930 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 173:
 #line 1002 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { parse_state->vol->notify->missed_reactions = (byte)(yyvsp[0].tok); }
-#line 3934 "mdlparse.c" /* yacc.c:1646  */
+#line 3936 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 174:
 #line 1003 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_set_missed_reaction_warning_threshold(parse_state, (yyvsp[0].dbl))); }
-#line 3940 "mdlparse.c" /* yacc.c:1646  */
+#line 3942 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 175:
 #line 1004 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { parse_state->vol->notify->missed_surf_orient = (byte)(yyvsp[0].tok); }
-#line 3946 "mdlparse.c" /* yacc.c:1646  */
+#line 3948 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 176:
 #line 1005 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { parse_state->vol->notify->useless_vol_orient = (byte)(yyvsp[0].tok); }
-#line 3952 "mdlparse.c" /* yacc.c:1646  */
+#line 3954 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 177:
 #line 1006 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { parse_state->vol->notify->mol_placement_failure = (byte) (yyvsp[0].tok); }
-#line 3958 "mdlparse.c" /* yacc.c:1646  */
+#line 3960 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 178:
 #line 1007 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { parse_state->vol->notify->invalid_output_step_time = (byte) (yyvsp[0].tok); }
-#line 3964 "mdlparse.c" /* yacc.c:1646  */
+#line 3966 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 179:
 #line 1008 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { parse_state->vol->notify->large_molecular_displacement = (byte) (yyvsp[0].tok); }
-#line 3970 "mdlparse.c" /* yacc.c:1646  */
+#line 3972 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 180:
 #line 1009 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { parse_state->vol->notify->add_remove_mesh_warning = (byte) (yyvsp[0].tok); }
-#line 3976 "mdlparse.c" /* yacc.c:1646  */
+#line 3978 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 181:
 #line 1013 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = WARN_COPE;  }
-#line 3982 "mdlparse.c" /* yacc.c:1646  */
+#line 3984 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 182:
 #line 1014 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = WARN_WARN;  }
-#line 3988 "mdlparse.c" /* yacc.c:1646  */
+#line 3990 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 183:
 #line 1015 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = WARN_ERROR; }
-#line 3994 "mdlparse.c" /* yacc.c:1646  */
+#line 3996 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 184:
 #line 1021 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_set_checkpoint_infile(parse_state, (yyvsp[0].str))); }
-#line 4000 "mdlparse.c" /* yacc.c:1646  */
+#line 4002 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 185:
 #line 1022 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_set_checkpoint_outfile(parse_state, (yyvsp[0].str))); }
-#line 4006 "mdlparse.c" /* yacc.c:1646  */
+#line 4008 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 186:
 #line 1023 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_set_checkpoint_interval(parse_state, (yyvsp[-1].dbl), (yyvsp[0].tok))); }
-#line 4012 "mdlparse.c" /* yacc.c:1646  */
+#line 4014 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 187:
 #line 1024 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_keep_checkpoint_files(parse_state, (yyvsp[0].tok))); }
-#line 4018 "mdlparse.c" /* yacc.c:1646  */
+#line 4020 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 188:
 #line 1026 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_set_realtime_checkpoint(parse_state, (long) (yyvsp[-1].dbl), (yyvsp[0].tok))); }
-#line 4024 "mdlparse.c" /* yacc.c:1646  */
+#line 4026 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 189:
 #line 1029 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = 0; }
-#line 4030 "mdlparse.c" /* yacc.c:1646  */
+#line 4032 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 190:
 #line 1030 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = 1; }
-#line 4036 "mdlparse.c" /* yacc.c:1646  */
+#line 4038 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 191:
 #line 1031 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = 0; }
-#line 4042 "mdlparse.c" /* yacc.c:1646  */
+#line 4044 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 192:
 #line 1035 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { /* seconds */     (yyval.dbl) = (yyvsp[0].dbl); }
-#line 4048 "mdlparse.c" /* yacc.c:1646  */
+#line 4050 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 193:
 #line 1036 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { /* mm:ss */       (yyval.dbl) = (yyvsp[-2].dbl) * 60 + (yyvsp[0].dbl); }
-#line 4054 "mdlparse.c" /* yacc.c:1646  */
+#line 4056 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 194:
 #line 1037 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { /* hh:mm:ss */    (yyval.dbl) = (yyvsp[-4].dbl) * 3600 + (yyvsp[-2].dbl) * 60 + (yyvsp[0].dbl); }
-#line 4060 "mdlparse.c" /* yacc.c:1646  */
+#line 4062 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 195:
 #line 1039 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { /* dd:hh:mm:ss */ (yyval.dbl) = (yyvsp[-6].dbl) * 86400 + (yyvsp[-4].dbl) * 3600 + (yyvsp[-2].dbl) * 60 + (yyvsp[0].dbl); }
-#line 4066 "mdlparse.c" /* yacc.c:1646  */
+#line 4068 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 196:
 #line 1046 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_set_time_step(parse_state, (yyvsp[0].dbl))); }
-#line 4072 "mdlparse.c" /* yacc.c:1646  */
+#line 4074 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 197:
 #line 1047 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_set_space_step(parse_state, (yyvsp[0].dbl))); }
-#line 4078 "mdlparse.c" /* yacc.c:1646  */
+#line 4080 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 198:
 #line 1048 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_set_max_time_step(parse_state, (yyvsp[0].dbl))); }
-#line 4084 "mdlparse.c" /* yacc.c:1646  */
+#line 4086 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 199:
 #line 1049 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_set_num_iterations(parse_state, (long long) (yyvsp[0].dbl))); }
-#line 4090 "mdlparse.c" /* yacc.c:1646  */
+#line 4092 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 200:
 #line 1050 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { parse_state->vol->randomize_smol_pos = !((yyvsp[0].tok)); }
-#line 4096 "mdlparse.c" /* yacc.c:1646  */
+#line 4098 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 201:
 #line 1051 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { parse_state->vol->use_expanded_list = (yyvsp[0].tok); }
-#line 4102 "mdlparse.c" /* yacc.c:1646  */
+#line 4104 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 202:
 #line 1052 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { parse_state->vol->vacancy_search_dist2 = max2d((yyvsp[0].dbl), 0.0); }
-#line 4108 "mdlparse.c" /* yacc.c:1646  */
+#line 4110 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 203:
 #line 1053 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_set_num_radial_directions(parse_state, (int) (yyvsp[0].dbl))); }
-#line 4114 "mdlparse.c" /* yacc.c:1646  */
+#line 4116 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 204:
 #line 1054 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { parse_state->vol->fully_random = 1; }
-#line 4120 "mdlparse.c" /* yacc.c:1646  */
+#line 4122 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 205:
 #line 1055 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_set_num_radial_subdivisions(parse_state, (int) (yyvsp[0].dbl))); }
-#line 4126 "mdlparse.c" /* yacc.c:1646  */
+#line 4128 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 206:
 #line 1056 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_set_grid_density(parse_state, (yyvsp[0].dbl))); }
-#line 4132 "mdlparse.c" /* yacc.c:1646  */
+#line 4134 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 207:
 #line 1057 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_set_interaction_radius(parse_state, (yyvsp[0].dbl))); }
-#line 4138 "mdlparse.c" /* yacc.c:1646  */
+#line 4140 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 208:
 #line 1058 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { parse_state->vol->surface_reversibility=(yyvsp[0].tok); parse_state->vol->volume_reversibility=(yyvsp[0].tok); }
-#line 4144 "mdlparse.c" /* yacc.c:1646  */
+#line 4146 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 209:
 #line 1059 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { parse_state->vol->surface_reversibility=1;  parse_state->vol->volume_reversibility=0;  }
-#line 4150 "mdlparse.c" /* yacc.c:1646  */
+#line 4152 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 210:
 #line 1060 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { parse_state->vol->surface_reversibility=0;  parse_state->vol->volume_reversibility=1;  }
-#line 4156 "mdlparse.c" /* yacc.c:1646  */
+#line 4158 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 211:
 #line 1061 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mcell_add_dynamic_geometry_file((yyvsp[0].str), parse_state)); }
-#line 4162 "mdlparse.c" /* yacc.c:1646  */
+#line 4164 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 212:
 #line 1062 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { parse_state->vol->dynamic_geometry_molecule_placement = 0; }
-#line 4168 "mdlparse.c" /* yacc.c:1646  */
+#line 4170 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 213:
 #line 1063 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { parse_state->vol->dynamic_geometry_molecule_placement = 1; }
-#line 4174 "mdlparse.c" /* yacc.c:1646  */
+#line 4176 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 214:
 #line 1070 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { parse_state->vol->mem_part_x = (int) (yyvsp[0].dbl); }
-#line 4180 "mdlparse.c" /* yacc.c:1646  */
+#line 4182 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 215:
 #line 1071 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { parse_state->vol->mem_part_y = (int) (yyvsp[0].dbl); }
-#line 4186 "mdlparse.c" /* yacc.c:1646  */
+#line 4188 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 216:
 #line 1072 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { parse_state->vol->mem_part_z = (int) (yyvsp[0].dbl); }
-#line 4192 "mdlparse.c" /* yacc.c:1646  */
+#line 4194 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 217:
 #line 1073 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { parse_state->vol->mem_part_pool = (int) (yyvsp[0].dbl); }
-#line 4198 "mdlparse.c" /* yacc.c:1646  */
+#line 4200 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 218:
 #line 1077 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mcell_set_partition(parse_state->vol, (yyvsp[-2].tok), & (yyvsp[0].nlist))); }
-#line 4204 "mdlparse.c" /* yacc.c:1646  */
+#line 4206 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 219:
 #line 1081 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = X_PARTS; }
-#line 4210 "mdlparse.c" /* yacc.c:1646  */
+#line 4212 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 220:
 #line 1082 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = Y_PARTS; }
-#line 4216 "mdlparse.c" /* yacc.c:1646  */
+#line 4218 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 221:
 #line 1083 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = Z_PARTS; }
-#line 4222 "mdlparse.c" /* yacc.c:1646  */
+#line 4224 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 224:
 #line 1094 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { mdl_print_species_summary(parse_state->vol, (yyvsp[0].mcell_mol_spec)); }
-#line 4228 "mdlparse.c" /* yacc.c:1646  */
+#line 4230 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 225:
 #line 1098 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { mdl_print_species_summaries(parse_state->vol, (yyvsp[-1].mcell_species_lst).species_head); }
-#line 4234 "mdlparse.c" /* yacc.c:1646  */
+#line 4236 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 226:
 #line 1102 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.mcell_species_lst).species_count = 0; CHECK(mdl_add_to_species_list(&(yyval.mcell_species_lst), (yyvsp[0].mcell_mol_spec))); }
-#line 4240 "mdlparse.c" /* yacc.c:1646  */
+#line 4242 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 227:
 #line 1103 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.mcell_species_lst) = (yyvsp[-1].mcell_species_lst); CHECK(mdl_add_to_species_list(&(yyval.mcell_species_lst), (yyvsp[0].mcell_mol_spec))); }
-#line 4246 "mdlparse.c" /* yacc.c:1646  */
+#line 4248 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 228:
 #line 1112 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.mcell_mol_spec) = mdl_create_species(parse_state, (yyvsp[-6].str), (yyvsp[-4].diff_const).D, (yyvsp[-4].diff_const).is_2d, (yyvsp[-3].dbl), (yyvsp[-2].ival), (yyvsp[-1].dbl) )); }
-#line 4252 "mdlparse.c" /* yacc.c:1646  */
+#line 4254 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 230:
 #line 1118 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.sym) = mdl_new_mol_species(parse_state, (yyvsp[0].str))); }
-#line 4258 "mdlparse.c" /* yacc.c:1646  */
+#line 4260 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 231:
 #line 1122 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.diff_const).is_2d = 0; (yyval.diff_const).D = (yyvsp[0].dbl); CHECK(mdl_check_diffusion_constant(parse_state, & (yyval.diff_const).D)); }
-#line 4264 "mdlparse.c" /* yacc.c:1646  */
+#line 4266 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 232:
 #line 1123 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.diff_const).is_2d = 1; (yyval.diff_const).D = (yyvsp[0].dbl); CHECK(mdl_check_diffusion_constant(parse_state, & (yyval.diff_const).D)); }
-#line 4270 "mdlparse.c" /* yacc.c:1646  */
+#line 4272 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 233:
 #line 1127 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.dbl) = 0.0; }
-#line 4276 "mdlparse.c" /* yacc.c:1646  */
+#line 4278 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 234:
@@ -4286,7 +4288,7 @@ yyreduce:
 
                                                           (yyval.dbl) = (yyvsp[0].dbl);
                                                       }
-#line 4290 "mdlparse.c" /* yacc.c:1646  */
+#line 4292 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 235:
@@ -4300,25 +4302,25 @@ yyreduce:
 
                                                           (yyval.dbl) = -(yyvsp[0].dbl);
                                                       }
-#line 4304 "mdlparse.c" /* yacc.c:1646  */
+#line 4306 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 236:
 #line 1148 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.ival) = 0; }
-#line 4310 "mdlparse.c" /* yacc.c:1646  */
+#line 4312 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 237:
 #line 1149 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.ival) = 1; }
-#line 4316 "mdlparse.c" /* yacc.c:1646  */
+#line 4318 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 238:
 #line 1153 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.dbl) = 0; }
-#line 4322 "mdlparse.c" /* yacc.c:1646  */
+#line 4324 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 239:
@@ -4331,19 +4333,19 @@ yyreduce:
                                                         }
                                                         (yyval.dbl) = (yyvsp[0].dbl);
                                                       }
-#line 4335 "mdlparse.c" /* yacc.c:1646  */
+#line 4337 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 240:
 #line 1164 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.sym) = mdl_existing_molecule(parse_state, (yyvsp[0].str))); }
-#line 4341 "mdlparse.c" /* yacc.c:1646  */
+#line 4343 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 241:
 #line 1168 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.mol_type) = (yyvsp[0].mol_type); CHECKN((yyval.mol_type).mol_type = mdl_existing_surface_molecule(parse_state, (yyvsp[-1].str))); }
-#line 4347 "mdlparse.c" /* yacc.c:1646  */
+#line 4349 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 242:
@@ -4354,31 +4356,31 @@ yyreduce:
                                                           (yyval.mol_type).orient = 0;
                                                         (yyval.mol_type).mol_type = (yyvsp[-1].sym);
                                                       }
-#line 4358 "mdlparse.c" /* yacc.c:1646  */
+#line 4360 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 249:
 #line 1207 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { mdl_start_surface_class(parse_state, (yyvsp[-1].sym)); }
-#line 4364 "mdlparse.c" /* yacc.c:1646  */
+#line 4366 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 250:
 #line 1209 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { mdl_finish_surface_class(parse_state); }
-#line 4370 "mdlparse.c" /* yacc.c:1646  */
+#line 4372 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 251:
 #line 1212 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.sym) = mdl_existing_surface_class(parse_state, (yyvsp[0].str))); }
-#line 4376 "mdlparse.c" /* yacc.c:1646  */
+#line 4378 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 256:
 #line 1229 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN(mdl_assemble_surface_reaction(parse_state, (yyvsp[-2].tok), parse_state->current_surface_class, (yyvsp[0].mol_type).mol_type, (yyvsp[0].mol_type).orient)); }
-#line 4382 "mdlparse.c" /* yacc.c:1646  */
+#line 4384 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 257:
@@ -4387,49 +4389,49 @@ yyreduce:
               struct sym_entry *mol_sym = retrieve_sym("ALL_MOLECULES", parse_state->vol->mol_sym_table);
               if(!(yyvsp[0].mol_type).orient_set) (yyvsp[0].mol_type).orient = 0;
               CHECKN(mdl_assemble_surface_reaction(parse_state, (yyvsp[-3].tok), parse_state->current_surface_class, mol_sym, (yyvsp[0].mol_type).orient));}
-#line 4391 "mdlparse.c" /* yacc.c:1646  */
+#line 4393 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 258:
 #line 1238 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN(mdl_assemble_concentration_clamp_reaction(parse_state, parse_state->current_surface_class, (yyvsp[-2].mol_type).mol_type, (yyvsp[-2].mol_type).orient, (yyvsp[0].dbl))); }
-#line 4397 "mdlparse.c" /* yacc.c:1646  */
+#line 4399 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 259:
 #line 1241 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = RFLCT; }
-#line 4403 "mdlparse.c" /* yacc.c:1646  */
+#line 4405 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 260:
 #line 1242 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = TRANSP; }
-#line 4409 "mdlparse.c" /* yacc.c:1646  */
+#line 4411 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 261:
 #line 1243 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = SINK; }
-#line 4415 "mdlparse.c" /* yacc.c:1646  */
+#line 4417 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 264:
 #line 1250 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { parse_state->current_surface_class->sm_dat_head = (yyvsp[0].surf_mol_dat_list).sm_head; }
-#line 4421 "mdlparse.c" /* yacc.c:1646  */
+#line 4423 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 265:
 #line 1257 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.surf_mol_dat_list) = (yyvsp[-1].surf_mol_dat_list); }
-#line 4427 "mdlparse.c" /* yacc.c:1646  */
+#line 4429 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 266:
 #line 1261 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.surf_mol_dat_list) = (yyvsp[-1].surf_mol_dat_list); }
-#line 4433 "mdlparse.c" /* yacc.c:1646  */
+#line 4435 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 267:
@@ -4438,7 +4440,7 @@ yyreduce:
                                                           (yyvsp[0].surf_mol_dat)->quantity_type = SURFMOLDENS;
                                                           (yyval.surf_mol_dat_list).sm_tail = (yyval.surf_mol_dat_list).sm_head = (yyvsp[0].surf_mol_dat);
                                                       }
-#line 4442 "mdlparse.c" /* yacc.c:1646  */
+#line 4444 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 268:
@@ -4448,7 +4450,7 @@ yyreduce:
                                                           (yyvsp[0].surf_mol_dat)->quantity_type = SURFMOLDENS;
                                                           (yyval.surf_mol_dat_list).sm_tail = (yyval.surf_mol_dat_list).sm_tail->next = (yyvsp[0].surf_mol_dat);
                                                       }
-#line 4452 "mdlparse.c" /* yacc.c:1646  */
+#line 4454 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 269:
@@ -4457,7 +4459,7 @@ yyreduce:
                                                           (yyvsp[0].surf_mol_dat)->quantity_type = SURFMOLNUM;
                                                           (yyval.surf_mol_dat_list).sm_tail = (yyval.surf_mol_dat_list).sm_head = (yyvsp[0].surf_mol_dat);
                                                       }
-#line 4461 "mdlparse.c" /* yacc.c:1646  */
+#line 4463 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 270:
@@ -4467,103 +4469,103 @@ yyreduce:
                                                           (yyvsp[0].surf_mol_dat)->quantity_type = SURFMOLNUM;
                                                           (yyval.surf_mol_dat_list).sm_tail = (yyval.surf_mol_dat_list).sm_tail->next = (yyvsp[0].surf_mol_dat);
                                                       }
-#line 4471 "mdlparse.c" /* yacc.c:1646  */
+#line 4473 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 271:
 #line 1291 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.surf_mol_dat) = mdl_new_surf_mol_data(parse_state, &(yyvsp[-2].mol_type), (yyvsp[0].dbl))); }
-#line 4477 "mdlparse.c" /* yacc.c:1646  */
+#line 4479 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 281:
 #line 1320 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.react_arrow).catalyst = (yyvsp[-1].mol_type); (yyval.react_arrow).flags = ARROW_CATALYTIC; }
-#line 4483 "mdlparse.c" /* yacc.c:1646  */
+#line 4485 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 282:
 #line 1325 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.react_arrow).catalyst = (yyvsp[-1].mol_type); (yyval.react_arrow).flags = ARROW_CATALYTIC | ARROW_BIDIRECTIONAL; }
-#line 4489 "mdlparse.c" /* yacc.c:1646  */
+#line 4491 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 283:
 #line 1330 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.react_arrow).catalyst.mol_type = NULL; (yyval.react_arrow).flags = 0; }
-#line 4495 "mdlparse.c" /* yacc.c:1646  */
+#line 4497 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 285:
 #line 1332 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.react_arrow).catalyst.mol_type = NULL; (yyval.react_arrow).flags = ARROW_BIDIRECTIONAL; }
-#line 4501 "mdlparse.c" /* yacc.c:1646  */
+#line 4503 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 287:
 #line 1336 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.sym) = NULL; }
-#line 4507 "mdlparse.c" /* yacc.c:1646  */
+#line 4509 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 288:
 #line 1337 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.sym) = mdl_new_rxn_pathname(parse_state, (yyvsp[0].str))); }
-#line 4513 "mdlparse.c" /* yacc.c:1646  */
+#line 4515 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 289:
 #line 1343 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN(mdl_assemble_reaction(parse_state, (yyvsp[-5].mol_type_list).mol_type_head, &(yyvsp[-4].mol_type), &(yyvsp[-3].react_arrow), (yyvsp[-2].mol_type_list).mol_type_head, &(yyvsp[-1].react_rates), (yyvsp[0].sym))); }
-#line 4519 "mdlparse.c" /* yacc.c:1646  */
+#line 4521 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 290:
 #line 1346 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_reaction_player_singleton(parse_state, & (yyval.mol_type_list), & (yyvsp[0].mol_type))); }
-#line 4525 "mdlparse.c" /* yacc.c:1646  */
+#line 4527 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 291:
 #line 1347 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.mol_type_list) = (yyvsp[-2].mol_type_list); CHECK(mdl_add_reaction_player(parse_state, & (yyval.mol_type_list), & (yyvsp[0].mol_type))); }
-#line 4531 "mdlparse.c" /* yacc.c:1646  */
+#line 4533 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 293:
 #line 1354 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.mol_type).mol_type = NULL; }
-#line 4537 "mdlparse.c" /* yacc.c:1646  */
+#line 4539 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 294:
 #line 1355 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.mol_type) = (yyvsp[0].mol_type); }
-#line 4543 "mdlparse.c" /* yacc.c:1646  */
+#line 4545 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 295:
 #line 1359 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.mol_type) = (yyvsp[0].mol_type); (yyval.mol_type).mol_type = (yyvsp[-1].sym); }
-#line 4549 "mdlparse.c" /* yacc.c:1646  */
+#line 4551 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 296:
 #line 1362 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_reaction_player_singleton(parse_state, & (yyval.mol_type_list), & (yyvsp[0].mol_type))); }
-#line 4555 "mdlparse.c" /* yacc.c:1646  */
+#line 4557 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 297:
 #line 1363 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.mol_type_list) = (yyvsp[-2].mol_type_list); CHECK(mdl_add_reaction_player(parse_state, & (yyval.mol_type_list), & (yyvsp[0].mol_type))); }
-#line 4561 "mdlparse.c" /* yacc.c:1646  */
+#line 4563 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 298:
 #line 1366 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.mol_type).mol_type = NULL; (yyval.mol_type).orient_set = 0; }
-#line 4567 "mdlparse.c" /* yacc.c:1646  */
+#line 4569 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 302:
@@ -4577,7 +4579,7 @@ yyreduce:
 
                                                         (yyval.react_rates) = (yyvsp[-1].react_rates);
                                                       }
-#line 4581 "mdlparse.c" /* yacc.c:1646  */
+#line 4583 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 303:
@@ -4596,61 +4598,61 @@ yyreduce:
                                                         else
                                                           (yyval.react_rates).backward_rate = (yyvsp[-1].react_rates).backward_rate;
                                                       }
-#line 4600 "mdlparse.c" /* yacc.c:1646  */
+#line 4602 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 304:
 #line 1403 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.react_rates).forward_rate = (yyvsp[0].react_rate); (yyval.react_rates).backward_rate.rate_type = RATE_UNSET; CHECK(mdl_valid_rate(parse_state, &(yyvsp[0].react_rate))); }
-#line 4606 "mdlparse.c" /* yacc.c:1646  */
+#line 4608 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 305:
 #line 1404 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.react_rates).forward_rate = (yyvsp[0].react_rate); (yyval.react_rates).backward_rate.rate_type = RATE_UNSET; CHECK(mdl_valid_rate(parse_state, &(yyvsp[0].react_rate))); }
-#line 4612 "mdlparse.c" /* yacc.c:1646  */
+#line 4614 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 306:
 #line 1405 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.react_rates).backward_rate = (yyvsp[0].react_rate); (yyval.react_rates).forward_rate.rate_type = RATE_UNSET; CHECK(mdl_valid_rate(parse_state, &(yyvsp[0].react_rate))); }
-#line 4618 "mdlparse.c" /* yacc.c:1646  */
+#line 4620 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 307:
 #line 1409 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.react_rate).rate_type = RATE_CONSTANT; (yyval.react_rate).v.rate_constant = (yyvsp[0].dbl); }
-#line 4624 "mdlparse.c" /* yacc.c:1646  */
+#line 4626 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 308:
 #line 1410 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.react_rate).rate_type = RATE_FILE; (yyval.react_rate).v.rate_file = (yyvsp[0].str); }
-#line 4630 "mdlparse.c" /* yacc.c:1646  */
+#line 4632 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 309:
 #line 1411 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_reaction_rate_from_var(parse_state, & (yyval.react_rate), (yyvsp[0].sym))); }
-#line 4636 "mdlparse.c" /* yacc.c:1646  */
+#line 4638 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 310:
 #line 1422 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_set_release_pattern(parse_state, (yyvsp[-3].sym), &(yyvsp[-1].rpat))); }
-#line 4642 "mdlparse.c" /* yacc.c:1646  */
+#line 4644 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 311:
 #line 1425 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.sym) = mdl_new_release_pattern(parse_state, (yyvsp[0].str))); }
-#line 4648 "mdlparse.c" /* yacc.c:1646  */
+#line 4650 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 312:
 #line 1428 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.sym) = mdl_existing_release_pattern_or_rxn_pathname(parse_state, (yyvsp[0].str))); }
-#line 4654 "mdlparse.c" /* yacc.c:1646  */
+#line 4656 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 313:
@@ -4662,55 +4664,55 @@ yyreduce:
                                                         (yyval.rpat).train_duration = FOREVER;
                                                         (yyval.rpat).number_of_trains = 1;
                                                       }
-#line 4666 "mdlparse.c" /* yacc.c:1646  */
+#line 4668 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 314:
 #line 1440 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.rpat) = (yyvsp[-3].rpat); (yyval.rpat).delay = (yyvsp[0].dbl) / parse_state->vol->time_unit; }
-#line 4672 "mdlparse.c" /* yacc.c:1646  */
+#line 4674 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 315:
 #line 1442 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.rpat) = (yyvsp[-3].rpat); (yyval.rpat).release_interval = (yyvsp[0].dbl) / parse_state->vol->time_unit; }
-#line 4678 "mdlparse.c" /* yacc.c:1646  */
+#line 4680 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 316:
 #line 1444 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.rpat) = (yyvsp[-3].rpat); (yyval.rpat).train_interval = (yyvsp[0].dbl) / parse_state->vol->time_unit; }
-#line 4684 "mdlparse.c" /* yacc.c:1646  */
+#line 4686 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 317:
 #line 1446 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.rpat) = (yyvsp[-3].rpat); (yyval.rpat).train_duration = (yyvsp[0].dbl) / parse_state->vol->time_unit; }
-#line 4690 "mdlparse.c" /* yacc.c:1646  */
+#line 4692 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 318:
 #line 1448 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.rpat) = (yyvsp[-3].rpat); (yyval.rpat).number_of_trains = (yyvsp[0].ival); }
-#line 4696 "mdlparse.c" /* yacc.c:1646  */
+#line 4698 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 319:
 #line 1451 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.ival) = (int) (yyvsp[0].dbl); }
-#line 4702 "mdlparse.c" /* yacc.c:1646  */
+#line 4704 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 320:
 #line 1452 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.ival) = INT_MAX; }
-#line 4708 "mdlparse.c" /* yacc.c:1646  */
+#line 4710 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 321:
 #line 1459 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { parse_state->current_object = parse_state->vol->root_instance; }
-#line 4714 "mdlparse.c" /* yacc.c:1646  */
+#line 4716 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 322:
@@ -4720,43 +4722,43 @@ yyreduce:
                                                         add_child_objects(parse_state->vol->root_instance, (yyvsp[0].obj), (yyvsp[0].obj));
                                                         parse_state->current_object = parse_state->vol->root_object;
                                                       }
-#line 4724 "mdlparse.c" /* yacc.c:1646  */
+#line 4726 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 323:
 #line 1470 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { add_child_objects(parse_state->vol->root_object, (yyvsp[0].obj), (yyvsp[0].obj)); }
-#line 4730 "mdlparse.c" /* yacc.c:1646  */
+#line 4732 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 329:
 #line 1486 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.sym) = mdl_start_object(parse_state, (yyvsp[0].str))); }
-#line 4736 "mdlparse.c" /* yacc.c:1646  */
+#line 4738 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 331:
 #line 1492 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { mdl_finish_object(parse_state); }
-#line 4742 "mdlparse.c" /* yacc.c:1646  */
+#line 4744 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 335:
 #line 1505 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { transform_translate(parse_state->vol, parse_state->current_object->t_matrix, (yyvsp[0].vec3)); }
-#line 4748 "mdlparse.c" /* yacc.c:1646  */
+#line 4750 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 336:
 #line 1506 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { transform_scale(parse_state->current_object->t_matrix, (yyvsp[0].vec3)); }
-#line 4754 "mdlparse.c" /* yacc.c:1646  */
+#line 4756 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 337:
 #line 1507 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_transform_rotate(parse_state, parse_state->current_object->t_matrix, (yyvsp[-2].vec3), (yyvsp[0].dbl))); }
-#line 4760 "mdlparse.c" /* yacc.c:1646  */
+#line 4762 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 338:
@@ -4767,85 +4769,85 @@ yyreduce:
                                                           add_child_objects(the_object, (yyvsp[-2].obj_list).obj_head, (yyvsp[-2].obj_list).obj_tail);
                                                           (yyval.obj) = the_object;
                                                       }
-#line 4771 "mdlparse.c" /* yacc.c:1646  */
+#line 4773 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 339:
 #line 1525 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { mdl_object_list_singleton(& (yyval.obj_list), (yyvsp[0].obj)); }
-#line 4777 "mdlparse.c" /* yacc.c:1646  */
+#line 4779 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 340:
 #line 1526 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.obj_list) = (yyvsp[-1].obj_list); mdl_add_object_to_list(& (yyval.obj_list), (yyvsp[0].obj)); }
-#line 4783 "mdlparse.c" /* yacc.c:1646  */
+#line 4785 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 343:
 #line 1535 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_deep_copy_object(parse_state, (struct object *) (yyvsp[-3].sym)->value, (struct object *) (yyvsp[-1].sym)->value)); }
-#line 4789 "mdlparse.c" /* yacc.c:1646  */
+#line 4791 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 344:
 #line 1537 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.obj) = (struct object *) (yyvsp[-6].sym)->value; }
-#line 4795 "mdlparse.c" /* yacc.c:1646  */
+#line 4797 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 347:
 #line 1547 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_start_release_site(parse_state, (yyvsp[-2].sym), SHAPE_UNDEFINED)); }
-#line 4801 "mdlparse.c" /* yacc.c:1646  */
+#line 4803 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 348:
 #line 1551 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.obj) = mdl_finish_release_site(parse_state, (yyvsp[-7].sym))); }
-#line 4807 "mdlparse.c" /* yacc.c:1646  */
+#line 4809 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 349:
 #line 1554 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_set_release_site_geometry_region(parse_state, parse_state->current_release_site, parse_state->current_object, (yyvsp[0].rev))); }
-#line 4813 "mdlparse.c" /* yacc.c:1646  */
+#line 4815 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 350:
 #line 1555 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_set_release_site_geometry_object(parse_state, parse_state->current_release_site, (struct object *) (yyvsp[0].sym)->value)); }
-#line 4819 "mdlparse.c" /* yacc.c:1646  */
+#line 4821 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 351:
 #line 1556 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { parse_state->current_release_site->release_shape = SHAPE_SPHERICAL; }
-#line 4825 "mdlparse.c" /* yacc.c:1646  */
+#line 4827 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 352:
 #line 1557 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { parse_state->current_release_site->release_shape = SHAPE_CUBIC; }
-#line 4831 "mdlparse.c" /* yacc.c:1646  */
+#line 4833 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 353:
 #line 1558 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { parse_state->current_release_site->release_shape = SHAPE_ELLIPTIC; }
-#line 4837 "mdlparse.c" /* yacc.c:1646  */
+#line 4839 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 354:
 #line 1559 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { parse_state->current_release_site->release_shape = SHAPE_RECTANGULAR; }
-#line 4843 "mdlparse.c" /* yacc.c:1646  */
+#line 4845 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 355:
 #line 1560 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { parse_state->current_release_site->release_shape = SHAPE_SPHERICAL_SHELL; }
-#line 4849 "mdlparse.c" /* yacc.c:1646  */
+#line 4851 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 356:
@@ -4854,97 +4856,97 @@ yyreduce:
                                                           parse_state->current_release_site->release_shape = SHAPE_LIST;
                                                           parse_state->current_release_site->release_number_method = CONSTNUM;
                                                       }
-#line 4858 "mdlparse.c" /* yacc.c:1646  */
+#line 4860 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 357:
 #line 1568 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.rev) = new_release_region_expr_term((yyvsp[0].sym))); }
-#line 4864 "mdlparse.c" /* yacc.c:1646  */
+#line 4866 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 358:
 #line 1569 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.rev) = (yyvsp[-1].rev); }
-#line 4870 "mdlparse.c" /* yacc.c:1646  */
+#line 4872 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 359:
 #line 1570 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.rev) = new_release_region_expr_binary((yyvsp[-2].rev), (yyvsp[0].rev), REXP_UNION)); }
-#line 4876 "mdlparse.c" /* yacc.c:1646  */
+#line 4878 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 360:
 #line 1571 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.rev) = new_release_region_expr_binary((yyvsp[-2].rev), (yyvsp[0].rev), REXP_SUBTRACTION)); }
-#line 4882 "mdlparse.c" /* yacc.c:1646  */
+#line 4884 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 361:
 #line 1572 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.rev) = new_release_region_expr_binary((yyvsp[-2].rev), (yyvsp[0].rev), REXP_INTERSECTION)); }
-#line 4888 "mdlparse.c" /* yacc.c:1646  */
+#line 4890 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 362:
 #line 1577 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_start_release_site(parse_state, (yyvsp[-2].sym), (yyvsp[-1].tok))); }
-#line 4894 "mdlparse.c" /* yacc.c:1646  */
+#line 4896 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 363:
 #line 1580 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.obj) = mdl_finish_release_site(parse_state, (yyvsp[-6].sym))); }
-#line 4900 "mdlparse.c" /* yacc.c:1646  */
+#line 4902 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 364:
 #line 1583 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = SHAPE_SPHERICAL; }
-#line 4906 "mdlparse.c" /* yacc.c:1646  */
+#line 4908 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 365:
 #line 1584 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = SHAPE_CUBIC; }
-#line 4912 "mdlparse.c" /* yacc.c:1646  */
+#line 4914 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 366:
 #line 1585 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = SHAPE_ELLIPTIC; }
-#line 4918 "mdlparse.c" /* yacc.c:1646  */
+#line 4920 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 367:
 #line 1586 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = SHAPE_RECTANGULAR; }
-#line 4924 "mdlparse.c" /* yacc.c:1646  */
+#line 4926 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 368:
 #line 1587 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = SHAPE_SPHERICAL_SHELL; }
-#line 4930 "mdlparse.c" /* yacc.c:1646  */
+#line 4932 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 371:
 #line 1595 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.sym) = mdl_existing_num_or_array(parse_state, (yyvsp[0].str))); }
-#line 4936 "mdlparse.c" /* yacc.c:1646  */
+#line 4938 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 372:
 #line 1599 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { set_release_site_location(parse_state->vol, parse_state->current_release_site, (yyvsp[0].vec3)); }
-#line 4942 "mdlparse.c" /* yacc.c:1646  */
+#line 4944 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 373:
 #line 1600 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_set_release_site_molecule(parse_state, parse_state->current_release_site, & (yyvsp[0].mol_type))); }
-#line 4948 "mdlparse.c" /* yacc.c:1646  */
+#line 4950 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 374:
@@ -4956,115 +4958,115 @@ yyreduce:
                                                           return 1;
                                                         }
                                                       }
-#line 4960 "mdlparse.c" /* yacc.c:1646  */
+#line 4962 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 375:
 #line 1608 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_set_release_site_diameter(parse_state, parse_state->current_release_site, (yyvsp[0].dbl) * (((yyvsp[-2].tok) == SITE_RADIUS) ? 2.0 : 1.0))); }
-#line 4966 "mdlparse.c" /* yacc.c:1646  */
+#line 4968 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 376:
 #line 1609 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_set_release_site_diameter_array(parse_state, parse_state->current_release_site, (yyvsp[0].nlist).value_count, (yyvsp[0].nlist).value_head, ((yyvsp[-2].tok) == SITE_RADIUS) ? 2.0 : 1.0)); }
-#line 4972 "mdlparse.c" /* yacc.c:1646  */
+#line 4974 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 377:
 #line 1610 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_set_release_site_diameter_var(parse_state, parse_state->current_release_site, ((yyvsp[-2].tok) == SITE_RADIUS) ? 2.0 : 1.0, (yyvsp[0].sym))); }
-#line 4978 "mdlparse.c" /* yacc.c:1646  */
+#line 4980 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 378:
 #line 1611 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_set_release_site_periodic_box(parse_state, parse_state->current_release_site, (yyvsp[0].vec3))); }
-#line 4984 "mdlparse.c" /* yacc.c:1646  */
+#line 4986 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 379:
 #line 1612 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_set_release_site_probability(parse_state, parse_state->current_release_site, (yyvsp[0].dbl))); }
-#line 4990 "mdlparse.c" /* yacc.c:1646  */
+#line 4992 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 380:
 #line 1614 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_set_release_site_pattern(parse_state, parse_state->current_release_site, (yyvsp[0].sym))); }
-#line 4996 "mdlparse.c" /* yacc.c:1646  */
+#line 4998 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 381:
 #line 1616 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_set_release_site_molecule_positions(parse_state, parse_state->current_release_site, & (yyvsp[-1].rsm_list))); }
-#line 5002 "mdlparse.c" /* yacc.c:1646  */
+#line 5004 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 382:
 #line 1620 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = SITE_DIAMETER; }
-#line 5008 "mdlparse.c" /* yacc.c:1646  */
+#line 5010 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 383:
 #line 1621 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = SITE_RADIUS; }
-#line 5014 "mdlparse.c" /* yacc.c:1646  */
+#line 5016 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 388:
 #line 1633 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { set_release_site_constant_number(parse_state->current_release_site, (yyvsp[0].dbl)); }
-#line 5020 "mdlparse.c" /* yacc.c:1646  */
+#line 5022 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 389:
 #line 1636 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { set_release_site_constant_number(parse_state->current_release_site, (yyvsp[-1].dbl)); }
-#line 5026 "mdlparse.c" /* yacc.c:1646  */
+#line 5028 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 390:
 #line 1643 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { set_release_site_gaussian_number(parse_state->current_release_site, (yyvsp[-4].dbl), (yyvsp[-1].dbl)); }
-#line 5032 "mdlparse.c" /* yacc.c:1646  */
+#line 5034 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 391:
 #line 1651 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { set_release_site_volume_dependent_number(parse_state->current_release_site, (yyvsp[-7].dbl), (yyvsp[-4].dbl), (yyvsp[-1].dbl)); }
-#line 5038 "mdlparse.c" /* yacc.c:1646  */
+#line 5040 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 392:
 #line 1655 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_set_release_site_concentration(parse_state, parse_state->current_release_site, (yyvsp[0].dbl))); }
-#line 5044 "mdlparse.c" /* yacc.c:1646  */
+#line 5046 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 393:
 #line 1656 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(set_release_site_density(parse_state->current_release_site, (yyvsp[0].dbl))); }
-#line 5050 "mdlparse.c" /* yacc.c:1646  */
+#line 5052 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 394:
 #line 1660 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { release_single_molecule_singleton(& (yyval.rsm_list), (yyvsp[0].rsm)); }
-#line 5056 "mdlparse.c" /* yacc.c:1646  */
+#line 5058 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 395:
 #line 1662 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.rsm_list) = (yyvsp[-1].rsm_list); add_release_single_molecule_to_list(& (yyval.rsm_list), (yyvsp[0].rsm)); }
-#line 5062 "mdlparse.c" /* yacc.c:1646  */
+#line 5064 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 396:
 #line 1666 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.rsm) = mdl_new_release_single_molecule(parse_state, &(yyvsp[-1].mol_type), (yyvsp[0].vec3))); }
-#line 5068 "mdlparse.c" /* yacc.c:1646  */
+#line 5070 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 398:
@@ -5074,7 +5076,7 @@ yyreduce:
                                                           parse_state, (yyvsp[-4].str), (yyvsp[-1].vertlist).vertex_count, (yyvsp[-1].vertlist).vertex_head,
                                                           (yyvsp[0].ecl).connection_count, (yyvsp[0].ecl).connection_head));
                                                       }
-#line 5078 "mdlparse.c" /* yacc.c:1646  */
+#line 5080 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 399:
@@ -5083,61 +5085,61 @@ yyreduce:
                                                           (yyval.obj) = (struct object *) (yyvsp[-3].obj);
                                                           CHECK(mdl_finish_polygon_list(parse_state, (yyval.obj)));
                                                       }
-#line 5087 "mdlparse.c" /* yacc.c:1646  */
+#line 5089 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 400:
 #line 1692 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.vertlist) = (yyvsp[-1].vertlist); }
-#line 5093 "mdlparse.c" /* yacc.c:1646  */
+#line 5095 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 401:
 #line 1695 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.vertlistitem) = mdl_new_vertex_list_item((yyvsp[0].vec3))); }
-#line 5099 "mdlparse.c" /* yacc.c:1646  */
+#line 5101 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 402:
 #line 1698 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { mdl_vertex_list_singleton(& (yyval.vertlist), (yyvsp[0].vertlistitem)); }
-#line 5105 "mdlparse.c" /* yacc.c:1646  */
+#line 5107 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 403:
 #line 1699 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.vertlist) = (yyvsp[-1].vertlist); mdl_add_vertex_to_list(& (yyval.vertlist), (yyvsp[0].vertlistitem)); }
-#line 5111 "mdlparse.c" /* yacc.c:1646  */
+#line 5113 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 404:
 #line 1704 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.ecl) = (yyvsp[-1].ecl); }
-#line 5117 "mdlparse.c" /* yacc.c:1646  */
+#line 5119 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 405:
 #line 1708 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { mdl_element_connection_list_singleton(& (yyval.ecl), (yyvsp[0].elem_conn)); }
-#line 5123 "mdlparse.c" /* yacc.c:1646  */
+#line 5125 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 406:
 #line 1710 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.ecl) = (yyvsp[-1].ecl); mdl_add_element_connection_to_list(& (yyval.ecl), (yyvsp[0].elem_conn)); }
-#line 5129 "mdlparse.c" /* yacc.c:1646  */
+#line 5131 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 407:
 #line 1713 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.elem_conn) = mdl_new_element_connection(parse_state, & (yyvsp[0].nlist))); }
-#line 5135 "mdlparse.c" /* yacc.c:1646  */
+#line 5137 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 412:
 #line 1729 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN(parse_state->current_region = mdl_get_region(parse_state, parse_state->current_object, "REMOVED")); }
-#line 5141 "mdlparse.c" /* yacc.c:1646  */
+#line 5143 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 413:
@@ -5149,163 +5151,163 @@ yyreduce:
                                                             CHECK(mdl_normalize_elements(parse_state, parse_state->current_region,0));
                                                           }
                                                       }
-#line 5153 "mdlparse.c" /* yacc.c:1646  */
+#line 5155 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 416:
 #line 1745 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = Z_POS; }
-#line 5159 "mdlparse.c" /* yacc.c:1646  */
+#line 5161 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 417:
 #line 1746 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = Z_NEG; }
-#line 5165 "mdlparse.c" /* yacc.c:1646  */
+#line 5167 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 418:
 #line 1747 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = Y_NEG; }
-#line 5171 "mdlparse.c" /* yacc.c:1646  */
+#line 5173 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 419:
 #line 1748 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = Y_POS; }
-#line 5177 "mdlparse.c" /* yacc.c:1646  */
+#line 5179 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 420:
 #line 1749 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = X_NEG; }
-#line 5183 "mdlparse.c" /* yacc.c:1646  */
+#line 5185 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 421:
 #line 1750 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = X_POS; }
-#line 5189 "mdlparse.c" /* yacc.c:1646  */
+#line 5191 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 422:
 #line 1751 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = ALL_SIDES; }
-#line 5195 "mdlparse.c" /* yacc.c:1646  */
+#line 5197 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 424:
 #line 1757 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.elem_list) = (yyvsp[-1].elem_list); mdl_add_elements_to_list(& (yyval.elem_list), (yyvsp[0].elem_list).elml_head, (yyvsp[0].elem_list).elml_tail); }
-#line 5201 "mdlparse.c" /* yacc.c:1646  */
+#line 5203 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 427:
 #line 1763 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.elem_list).elml_tail = (yyval.elem_list).elml_head = (yyvsp[0].elem_list_item); }
-#line 5207 "mdlparse.c" /* yacc.c:1646  */
+#line 5209 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 428:
 #line 1764 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.elem_list).elml_tail = (yyval.elem_list).elml_head = (yyvsp[0].elem_list_item); }
-#line 5213 "mdlparse.c" /* yacc.c:1646  */
+#line 5215 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 429:
 #line 1769 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.elem_list) = (yyvsp[-1].elem_list); }
-#line 5219 "mdlparse.c" /* yacc.c:1646  */
+#line 5221 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 430:
 #line 1774 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.elem_list) = (yyvsp[-1].elem_list); mdl_set_elements_to_exclude((yyval.elem_list).elml_head); }
-#line 5225 "mdlparse.c" /* yacc.c:1646  */
+#line 5227 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 432:
 #line 1781 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.elem_list).elml_tail = (yyval.elem_list).elml_head = (yyvsp[0].elem_list_item); }
-#line 5231 "mdlparse.c" /* yacc.c:1646  */
+#line 5233 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 433:
 #line 1782 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.elem_list) = (yyvsp[-2].elem_list); mdl_add_elements_to_list(& (yyval.elem_list), (yyvsp[0].elem_list_item), (yyvsp[0].elem_list_item)); }
-#line 5237 "mdlparse.c" /* yacc.c:1646  */
+#line 5239 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 434:
 #line 1785 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.elem_list_item) = new_element_list((unsigned int) (yyvsp[0].dbl), (unsigned int) (yyvsp[0].dbl))); }
-#line 5243 "mdlparse.c" /* yacc.c:1646  */
+#line 5245 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 435:
 #line 1786 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.elem_list_item) = new_element_list((unsigned int) (yyvsp[-2].dbl), (unsigned int) (yyvsp[0].dbl))); }
-#line 5249 "mdlparse.c" /* yacc.c:1646  */
+#line 5251 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 436:
 #line 1787 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.elem_list_item) = mdl_new_element_side(parse_state, (yyvsp[0].tok))); }
-#line 5255 "mdlparse.c" /* yacc.c:1646  */
+#line 5257 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 437:
 #line 1790 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.elem_list_item) = mdl_new_element_previous_region(parse_state, parse_state->current_object, parse_state->current_region, (yyvsp[0].str), (yyvsp[-2].tok))); }
-#line 5261 "mdlparse.c" /* yacc.c:1646  */
+#line 5263 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 438:
 #line 1793 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = 0; }
-#line 5267 "mdlparse.c" /* yacc.c:1646  */
+#line 5269 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 439:
 #line 1794 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = 1; }
-#line 5273 "mdlparse.c" /* yacc.c:1646  */
+#line 5275 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 440:
 #line 1797 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.elem_list_item) = mdl_new_element_patch(parse_state, parse_state->current_polygon, (yyvsp[-2].vec3), (yyvsp[0].vec3), (yyvsp[-4].tok))); }
-#line 5279 "mdlparse.c" /* yacc.c:1646  */
+#line 5281 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 441:
 #line 1800 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = 0; }
-#line 5285 "mdlparse.c" /* yacc.c:1646  */
+#line 5287 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 442:
 #line 1801 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = 1; }
-#line 5291 "mdlparse.c" /* yacc.c:1646  */
+#line 5293 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 446:
 #line 1817 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { parse_state->current_region = (yyvsp[-1].reg); }
-#line 5297 "mdlparse.c" /* yacc.c:1646  */
+#line 5299 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 447:
 #line 1818 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_set_region_elements(parse_state, (yyvsp[-3].reg), (yyvsp[0].elem_list).elml_head, (yyvsp[-3].reg)->parent->object_type == POLY_OBJ)); }
-#line 5303 "mdlparse.c" /* yacc.c:1646  */
+#line 5305 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 448:
 #line 1820 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { parse_state->current_region = NULL; }
-#line 5309 "mdlparse.c" /* yacc.c:1646  */
+#line 5311 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 449:
@@ -5315,25 +5317,25 @@ yyreduce:
                                                                                   (yyvsp[-1].vertlist).vertex_count, (yyvsp[-1].vertlist).vertex_head,
                                                                                   (yyvsp[0].ecl).connection_count, (yyvsp[0].ecl).connection_head));
                                                       }
-#line 5319 "mdlparse.c" /* yacc.c:1646  */
+#line 5321 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 450:
 #line 1834 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.obj) = (struct object *) (yyvsp[-7].sym)->value; }
-#line 5325 "mdlparse.c" /* yacc.c:1646  */
+#line 5327 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 451:
 #line 1839 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.ecl) = (yyvsp[-1].ecl); }
-#line 5331 "mdlparse.c" /* yacc.c:1646  */
+#line 5333 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 452:
 #line 1842 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.elem_conn) = mdl_new_tet_element_connection(parse_state, & (yyvsp[0].nlist))); }
-#line 5337 "mdlparse.c" /* yacc.c:1646  */
+#line 5339 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 453:
@@ -5342,7 +5344,7 @@ yyreduce:
                                                           (yyval.ecl).connection_head = (yyval.ecl).connection_tail = (yyvsp[0].elem_conn);
                                                           (yyval.ecl).connection_count = 1;
                                                       }
-#line 5346 "mdlparse.c" /* yacc.c:1646  */
+#line 5348 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 454:
@@ -5352,37 +5354,37 @@ yyreduce:
                                                           (yyval.ecl).connection_tail = (yyval.ecl).connection_tail->next = (yyvsp[0].elem_conn);
                                                           ++ (yyval.ecl).connection_count;
                                                       }
-#line 5356 "mdlparse.c" /* yacc.c:1646  */
+#line 5358 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 455:
 #line 1860 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { parse_state->vol->periodic_traditional = (yyvsp[0].tok); }
-#line 5362 "mdlparse.c" /* yacc.c:1646  */
+#line 5364 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 456:
 #line 1863 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN(mdl_create_periodic_box(parse_state, (yyvsp[-7].vec3), (yyvsp[-5].vec3), (yyvsp[-2].tok), (yyvsp[-1].tok), (yyvsp[0].tok))); }
-#line 5368 "mdlparse.c" /* yacc.c:1646  */
+#line 5370 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 457:
 #line 1864 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_finish_periodic_box(parse_state)); }
-#line 5374 "mdlparse.c" /* yacc.c:1646  */
+#line 5376 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 458:
 #line 1870 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN(mdl_new_box_object(parse_state, (yyvsp[-8].sym), (yyvsp[-3].vec3), (yyvsp[-1].vec3))); }
-#line 5380 "mdlparse.c" /* yacc.c:1646  */
+#line 5382 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 459:
 #line 1871 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_triangulate_box_object(parse_state, (yyvsp[-10].sym), parse_state->current_polygon, (yyvsp[-2].dbl))); }
-#line 5386 "mdlparse.c" /* yacc.c:1646  */
+#line 5388 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 460:
@@ -5391,61 +5393,61 @@ yyreduce:
                                                           CHECK(mdl_finish_box_object(parse_state, (yyvsp[-13].sym)));
                                                           (yyval.obj) = (struct object *) (yyvsp[-13].sym)->value;
                                                       }
-#line 5395 "mdlparse.c" /* yacc.c:1646  */
+#line 5397 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 461:
 #line 1880 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = 0; }
-#line 5401 "mdlparse.c" /* yacc.c:1646  */
+#line 5403 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 462:
 #line 1881 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = (yyvsp[0].tok); }
-#line 5407 "mdlparse.c" /* yacc.c:1646  */
+#line 5409 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 463:
 #line 1885 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = 0; }
-#line 5413 "mdlparse.c" /* yacc.c:1646  */
+#line 5415 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 464:
 #line 1886 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = (yyvsp[0].tok); }
-#line 5419 "mdlparse.c" /* yacc.c:1646  */
+#line 5421 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 465:
 #line 1890 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = 0; }
-#line 5425 "mdlparse.c" /* yacc.c:1646  */
+#line 5427 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 466:
 #line 1891 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = (yyvsp[0].tok); }
-#line 5431 "mdlparse.c" /* yacc.c:1646  */
+#line 5433 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 467:
 #line 1895 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = 0; }
-#line 5437 "mdlparse.c" /* yacc.c:1646  */
+#line 5439 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 468:
 #line 1896 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = (yyvsp[0].tok); }
-#line 5443 "mdlparse.c" /* yacc.c:1646  */
+#line 5445 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 469:
 #line 1899 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.dbl) = 0.0; }
-#line 5449 "mdlparse.c" /* yacc.c:1646  */
+#line 5451 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 470:
@@ -5458,25 +5460,25 @@ yyreduce:
                                                           return 1;
                                                         }
                                                       }
-#line 5462 "mdlparse.c" /* yacc.c:1646  */
+#line 5464 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 474:
 #line 1926 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_start_existing_obj_region_def(parse_state, (yyvsp[0].sym))); }
-#line 5468 "mdlparse.c" /* yacc.c:1646  */
+#line 5470 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 475:
 #line 1927 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { parse_state->current_region = (yyvsp[-1].reg); }
-#line 5474 "mdlparse.c" /* yacc.c:1646  */
+#line 5476 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 476:
 #line 1929 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { mdl_set_region_elements(parse_state, (yyvsp[-4].reg), (yyvsp[0].elem_list).elml_head, 1); }
-#line 5480 "mdlparse.c" /* yacc.c:1646  */
+#line 5482 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 477:
@@ -5486,37 +5488,37 @@ yyreduce:
                                                           parse_state->current_polygon = NULL;
                                                           parse_state->current_object = parse_state->vol->root_object;
                                                       }
-#line 5490 "mdlparse.c" /* yacc.c:1646  */
+#line 5492 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 478:
 #line 1938 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.reg) = mdl_create_region(parse_state, parse_state->current_object, (yyvsp[0].str))); }
-#line 5496 "mdlparse.c" /* yacc.c:1646  */
+#line 5498 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 482:
 #line 1949 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { mdl_add_surf_mol_to_region(parse_state->current_region, & (yyvsp[0].surf_mol_dat_list)); }
-#line 5502 "mdlparse.c" /* yacc.c:1646  */
+#line 5504 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 483:
 #line 1953 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { mdl_set_region_surface_class(parse_state, parse_state->current_region, (yyvsp[0].sym)); }
-#line 5508 "mdlparse.c" /* yacc.c:1646  */
+#line 5510 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 487:
 #line 1972 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { parse_state->current_region = (struct region *) (yyvsp[-1].sym)->value; }
-#line 5514 "mdlparse.c" /* yacc.c:1646  */
+#line 5516 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 488:
 #line 1974 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { parse_state->current_region = NULL; }
-#line 5520 "mdlparse.c" /* yacc.c:1646  */
+#line 5522 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 489:
@@ -5525,19 +5527,19 @@ yyreduce:
                                                           parse_state->header_comment = NULL;  /* No header by default */
                                                           parse_state->exact_time_flag = 1;    /* Print exact_time column in TRIGGER output by default */
                                                       }
-#line 5529 "mdlparse.c" /* yacc.c:1646  */
+#line 5531 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 490:
 #line 1988 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_add_reaction_output_block_to_world(parse_state, (int) (yyvsp[-4].dbl), & (yyvsp[-2].ro_otimes), & (yyvsp[-1].ro_sets))); }
-#line 5535 "mdlparse.c" /* yacc.c:1646  */
+#line 5537 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 491:
 #line 1992 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.dbl) = COUNTBUFFERSIZE; }
-#line 5541 "mdlparse.c" /* yacc.c:1646  */
+#line 5543 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 492:
@@ -5551,13 +5553,13 @@ yyreduce:
                                                           }
                                                           (yyval.dbl) = (yyvsp[0].dbl);
                                                       }
-#line 5555 "mdlparse.c" /* yacc.c:1646  */
+#line 5557 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 496:
 #line 2009 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.ro_otimes).type = OUTPUT_BY_STEP; (yyval.ro_otimes).step = (yyvsp[0].dbl); }
-#line 5561 "mdlparse.c" /* yacc.c:1646  */
+#line 5563 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 497:
@@ -5566,7 +5568,7 @@ yyreduce:
                                                         (yyval.ro_otimes).type = OUTPUT_BY_ITERATION_LIST;
                                                         (yyval.ro_otimes).values = (yyvsp[0].nlist);
                                                       }
-#line 5570 "mdlparse.c" /* yacc.c:1646  */
+#line 5572 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 498:
@@ -5575,13 +5577,13 @@ yyreduce:
                                                         (yyval.ro_otimes).type = OUTPUT_BY_TIME_LIST;
                                                         (yyval.ro_otimes).values = (yyvsp[0].nlist);
                                                       }
-#line 5579 "mdlparse.c" /* yacc.c:1646  */
+#line 5581 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 499:
 #line 2028 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.ro_sets).set_head = (yyval.ro_sets).set_tail = (yyvsp[0].ro_set); }
-#line 5585 "mdlparse.c" /* yacc.c:1646  */
+#line 5587 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 500:
@@ -5596,61 +5598,61 @@ yyreduce:
                                                             (yyval.ro_sets).set_tail = (yyval.ro_sets).set_head = (yyvsp[0].ro_set);
                                                         }
                                                       }
-#line 5600 "mdlparse.c" /* yacc.c:1646  */
+#line 5602 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 502:
 #line 2044 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.ro_set) = NULL; }
-#line 5606 "mdlparse.c" /* yacc.c:1646  */
+#line 5608 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 503:
 #line 2045 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.ro_set) = NULL; }
-#line 5612 "mdlparse.c" /* yacc.c:1646  */
+#line 5614 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 504:
 #line 2049 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     {  parse_state->count_flags = 0; }
-#line 5618 "mdlparse.c" /* yacc.c:1646  */
+#line 5620 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 505:
 #line 2051 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.ro_set) = mdl_populate_output_set(parse_state, parse_state->header_comment, parse_state->exact_time_flag, (yyvsp[-3].ro_cols).column_head, (yyvsp[-1].tok), (yyvsp[0].str))); }
-#line 5624 "mdlparse.c" /* yacc.c:1646  */
+#line 5626 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 506:
 #line 2055 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.str) = NULL; }
-#line 5630 "mdlparse.c" /* yacc.c:1646  */
+#line 5632 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 507:
 #line 2056 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.str) = ((yyvsp[0].tok) ? "" : NULL); }
-#line 5636 "mdlparse.c" /* yacc.c:1646  */
+#line 5638 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 508:
 #line 2057 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.str) = (yyvsp[0].str); }
-#line 5642 "mdlparse.c" /* yacc.c:1646  */
+#line 5644 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 509:
 #line 2061 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { parse_state->header_comment = (yyvsp[0].str); }
-#line 5648 "mdlparse.c" /* yacc.c:1646  */
+#line 5650 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 510:
 #line 2065 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { parse_state->exact_time_flag = (yyvsp[0].tok); }
-#line 5654 "mdlparse.c" /* yacc.c:1646  */
+#line 5656 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 512:
@@ -5660,127 +5662,127 @@ yyreduce:
                                                           (yyval.ro_cols).column_tail->next = (yyvsp[0].ro_cols).column_head;
                                                           (yyval.ro_cols).column_tail = (yyvsp[0].ro_cols).column_tail;
                                                       }
-#line 5664 "mdlparse.c" /* yacc.c:1646  */
+#line 5666 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 513:
 #line 2079 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_single_count_expr(parse_state, & (yyval.ro_cols), (yyvsp[-1].cnt), (yyvsp[0].str))); }
-#line 5670 "mdlparse.c" /* yacc.c:1646  */
+#line 5672 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 514:
 #line 2083 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.cnt) = mdl_new_oexpr_constant(parse_state, (yyvsp[0].dbl))); }
-#line 5676 "mdlparse.c" /* yacc.c:1646  */
+#line 5678 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 516:
 #line 2085 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.cnt) = mdl_join_oexpr_tree(parse_state, (yyvsp[-1].cnt), NULL, '(')); }
-#line 5682 "mdlparse.c" /* yacc.c:1646  */
+#line 5684 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 517:
 #line 2086 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.cnt) = mdl_join_oexpr_tree(parse_state, (yyvsp[-2].cnt),   (yyvsp[0].cnt), '+')); }
-#line 5688 "mdlparse.c" /* yacc.c:1646  */
+#line 5690 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 518:
 #line 2087 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.cnt) = mdl_join_oexpr_tree(parse_state, (yyvsp[-2].cnt),   (yyvsp[0].cnt), '-')); }
-#line 5694 "mdlparse.c" /* yacc.c:1646  */
+#line 5696 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 519:
 #line 2088 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.cnt) = mdl_join_oexpr_tree(parse_state, (yyvsp[-2].cnt),   (yyvsp[0].cnt), '*')); }
-#line 5700 "mdlparse.c" /* yacc.c:1646  */
+#line 5702 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 520:
 #line 2089 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.cnt) = mdl_join_oexpr_tree(parse_state, (yyvsp[-2].cnt),   (yyvsp[0].cnt), '/')); }
-#line 5706 "mdlparse.c" /* yacc.c:1646  */
+#line 5708 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 521:
 #line 2090 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.cnt) = mdl_join_oexpr_tree(parse_state, (yyvsp[0].cnt), NULL, '_')); }
-#line 5712 "mdlparse.c" /* yacc.c:1646  */
+#line 5714 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 522:
 #line 2091 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.cnt) = mdl_sum_oexpr((yyvsp[-1].cnt))); }
-#line 5718 "mdlparse.c" /* yacc.c:1646  */
+#line 5720 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 523:
 #line 2096 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { parse_state->count_flags |= COUNT_PRESENT; }
-#line 5724 "mdlparse.c" /* yacc.c:1646  */
+#line 5726 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 524:
 #line 2097 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.cnt) = (yyvsp[-1].cnt); }
-#line 5730 "mdlparse.c" /* yacc.c:1646  */
+#line 5732 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 525:
 #line 2098 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.cnt) = mdl_new_oexpr_constant(parse_state, (yyvsp[-1].dbl))); }
-#line 5736 "mdlparse.c" /* yacc.c:1646  */
+#line 5738 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 526:
 #line 2099 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { parse_state->count_flags |= TRIGGER_PRESENT; }
-#line 5742 "mdlparse.c" /* yacc.c:1646  */
+#line 5744 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 527:
 #line 2100 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.cnt) = (yyvsp[-1].cnt); }
-#line 5748 "mdlparse.c" /* yacc.c:1646  */
+#line 5750 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 528:
 #line 2103 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = FILE_OVERWRITE; }
-#line 5754 "mdlparse.c" /* yacc.c:1646  */
+#line 5756 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 529:
 #line 2104 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = FILE_SUBSTITUTE; }
-#line 5760 "mdlparse.c" /* yacc.c:1646  */
+#line 5762 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 530:
 #line 2105 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = FILE_APPEND; }
-#line 5766 "mdlparse.c" /* yacc.c:1646  */
+#line 5768 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 531:
 #line 2106 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = FILE_APPEND_HEADER; }
-#line 5772 "mdlparse.c" /* yacc.c:1646  */
+#line 5774 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 532:
 #line 2107 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = FILE_CREATE; }
-#line 5778 "mdlparse.c" /* yacc.c:1646  */
+#line 5780 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 534:
 #line 2113 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.sym) = mdl_existing_rxn_pathname_or_molecule(parse_state, (yyvsp[0].str))); }
-#line 5784 "mdlparse.c" /* yacc.c:1646  */
+#line 5786 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 535:
@@ -5793,175 +5795,175 @@ yyreduce:
                                                           (yyval.mol_type).orient = -1;
                                                         CHECKN((yyval.mol_type).mol_type = mdl_existing_molecule(parse_state, (yyvsp[-1].str)));
                                                       }
-#line 5797 "mdlparse.c" /* yacc.c:1646  */
+#line 5799 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 542:
 #line 2137 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.cnt) = mdl_count_syntax_1(parse_state, (yyvsp[-3].sym), (yyvsp[-1].sym), (yyvsp[0].tok), parse_state->count_flags)); }
-#line 5803 "mdlparse.c" /* yacc.c:1646  */
+#line 5805 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 543:
 #line 2142 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.cnt) = mdl_count_syntax_2(parse_state, (yyvsp[-3].mol_type).mol_type, (yyvsp[-3].mol_type).orient, (yyvsp[-1].sym), (yyvsp[0].tok), parse_state->count_flags)); }
-#line 5809 "mdlparse.c" /* yacc.c:1646  */
+#line 5811 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 544:
 #line 2147 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.cnt) = mdl_count_syntax_3(parse_state, (yyvsp[-3].str), (yyvsp[-1].sym), (yyvsp[0].tok), parse_state->count_flags)); }
-#line 5815 "mdlparse.c" /* yacc.c:1646  */
+#line 5817 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 545:
 #line 2153 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.cnt) = mdl_count_syntax_periodic_1(parse_state, (yyvsp[-5].sym), (yyvsp[-3].sym), (yyvsp[-1].vec3), (yyvsp[0].tok), parse_state->count_flags)); }
-#line 5821 "mdlparse.c" /* yacc.c:1646  */
+#line 5823 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 546:
 #line 2157 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.cnt) = mdl_count_syntax_periodic_2(parse_state, (yyvsp[-5].mol_type).mol_type, (yyvsp[-5].mol_type).orient, (yyvsp[-3].sym), (yyvsp[-1].vec3), (yyvsp[0].tok), parse_state->count_flags)); }
-#line 5827 "mdlparse.c" /* yacc.c:1646  */
+#line 5829 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 547:
 #line 2162 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.cnt) = mdl_count_syntax_periodic_3(parse_state, (yyvsp[-5].str), (yyvsp[-3].sym), (yyvsp[-1].vec3), (yyvsp[0].tok), parse_state->count_flags)); }
-#line 5833 "mdlparse.c" /* yacc.c:1646  */
+#line 5835 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 548:
 #line 2165 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.sym) = NULL; }
-#line 5839 "mdlparse.c" /* yacc.c:1646  */
+#line 5841 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 549:
 #line 2166 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.sym) = (yyvsp[0].sym); }
-#line 5845 "mdlparse.c" /* yacc.c:1646  */
+#line 5847 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 550:
 #line 2167 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.sym) = (yyvsp[0].sym); }
-#line 5851 "mdlparse.c" /* yacc.c:1646  */
+#line 5853 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 551:
 #line 2170 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = REPORT_NOTHING; }
-#line 5857 "mdlparse.c" /* yacc.c:1646  */
+#line 5859 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 552:
 #line 2171 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = (yyvsp[0].tok); }
-#line 5863 "mdlparse.c" /* yacc.c:1646  */
+#line 5865 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 553:
 #line 2174 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = REPORT_FRONT_HITS; }
-#line 5869 "mdlparse.c" /* yacc.c:1646  */
+#line 5871 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 554:
 #line 2175 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = REPORT_BACK_HITS; }
-#line 5875 "mdlparse.c" /* yacc.c:1646  */
+#line 5877 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 555:
 #line 2176 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = REPORT_ALL_HITS; }
-#line 5881 "mdlparse.c" /* yacc.c:1646  */
+#line 5883 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 556:
 #line 2177 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = REPORT_FRONT_CROSSINGS; }
-#line 5887 "mdlparse.c" /* yacc.c:1646  */
+#line 5889 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 557:
 #line 2178 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = REPORT_BACK_CROSSINGS; }
-#line 5893 "mdlparse.c" /* yacc.c:1646  */
+#line 5895 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 558:
 #line 2179 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = REPORT_ALL_CROSSINGS; }
-#line 5899 "mdlparse.c" /* yacc.c:1646  */
+#line 5901 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 559:
 #line 2180 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = REPORT_CONCENTRATION; }
-#line 5905 "mdlparse.c" /* yacc.c:1646  */
+#line 5907 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 560:
 #line 2181 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = REPORT_ENCLOSED; }
-#line 5911 "mdlparse.c" /* yacc.c:1646  */
+#line 5913 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 561:
 #line 2184 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.str) = NULL; }
-#line 5917 "mdlparse.c" /* yacc.c:1646  */
+#line 5919 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 562:
 #line 2185 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.str) = (yyvsp[0].str); }
-#line 5923 "mdlparse.c" /* yacc.c:1646  */
+#line 5925 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 563:
 #line 2192 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_new_viz_output_block(parse_state)); }
-#line 5929 "mdlparse.c" /* yacc.c:1646  */
+#line 5931 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 564:
 #line 2195 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { }
-#line 5935 "mdlparse.c" /* yacc.c:1646  */
+#line 5937 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 567:
 #line 2204 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_set_viz_mode(parse_state->vol->viz_blocks, CELLBLENDER_MODE)); }
-#line 5941 "mdlparse.c" /* yacc.c:1646  */
+#line 5943 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 568:
 #line 2205 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_set_viz_mode(parse_state->vol->viz_blocks, (yyvsp[0].ival))); }
-#line 5947 "mdlparse.c" /* yacc.c:1646  */
+#line 5949 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 569:
 #line 2208 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.ival) = NO_VIZ_MODE; }
-#line 5953 "mdlparse.c" /* yacc.c:1646  */
+#line 5955 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 570:
 #line 2209 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.ival) = ASCII_MODE; }
-#line 5959 "mdlparse.c" /* yacc.c:1646  */
+#line 5961 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 571:
 #line 2210 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.ival) = CELLBLENDER_MODE; }
-#line 5965 "mdlparse.c" /* yacc.c:1646  */
+#line 5967 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 573:
@@ -5973,19 +5975,19 @@ yyreduce:
                                                           parse_state->vol->viz_blocks->frame_data_head = (yyvsp[0].frame_list).frame_head;
                                                         }
                                                       }
-#line 5977 "mdlparse.c" /* yacc.c:1646  */
+#line 5979 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 575:
 #line 2228 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_set_viz_filename_prefix(parse_state, parse_state->vol->viz_blocks, (yyvsp[0].str))); }
-#line 5983 "mdlparse.c" /* yacc.c:1646  */
+#line 5985 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 576:
 #line 2234 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.frame_list) = (yyvsp[-1].frame_list); }
-#line 5989 "mdlparse.c" /* yacc.c:1646  */
+#line 5991 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 578:
@@ -6001,61 +6003,61 @@ yyreduce:
                                                         else
                                                           (yyval.frame_list) = (yyvsp[0].frame_list);
                                                       }
-#line 6005 "mdlparse.c" /* yacc.c:1646  */
+#line 6007 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 579:
 #line 2254 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.frame_list).frame_head = (yyval.frame_list).frame_tail = NULL; }
-#line 6011 "mdlparse.c" /* yacc.c:1646  */
+#line 6013 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 583:
 #line 2266 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_viz_state(parse_state, & (yyval.ival), (yyvsp[0].dbl))); }
-#line 6017 "mdlparse.c" /* yacc.c:1646  */
+#line 6019 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 584:
 #line 2267 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.ival) = INCLUDE_OBJ; }
-#line 6023 "mdlparse.c" /* yacc.c:1646  */
+#line 6025 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 587:
 #line 2277 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_set_viz_include_molecules(parse_state, parse_state->vol->viz_blocks, (yyvsp[-1].symlist), (yyvsp[0].ival))); }
-#line 6029 "mdlparse.c" /* yacc.c:1646  */
+#line 6031 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 588:
 #line 2278 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_set_viz_include_all_molecules(parse_state->vol->viz_blocks, (yyvsp[0].ival))); }
-#line 6035 "mdlparse.c" /* yacc.c:1646  */
+#line 6037 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 589:
 #line 2282 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.symlist) = mdl_existing_molecule_list(parse_state, (yyvsp[0].str))); }
-#line 6041 "mdlparse.c" /* yacc.c:1646  */
+#line 6043 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 590:
 #line 2283 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.symlist) = mdl_existing_molecules_wildcard(parse_state, (yyvsp[0].str))); }
-#line 6047 "mdlparse.c" /* yacc.c:1646  */
+#line 6049 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 591:
 #line 2287 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_new_viz_all_times(parse_state, & (yyval.nlist))); }
-#line 6053 "mdlparse.c" /* yacc.c:1646  */
+#line 6055 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 593:
 #line 2293 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.frame_list) = (yyvsp[-1].frame_list); }
-#line 6059 "mdlparse.c" /* yacc.c:1646  */
+#line 6061 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 595:
@@ -6073,25 +6075,25 @@ yyreduce:
                                                         else if ((yyvsp[0].frame_list).frame_head != NULL)
                                                           (yyval.frame_list) = (yyvsp[0].frame_list);
                                                       }
-#line 6077 "mdlparse.c" /* yacc.c:1646  */
+#line 6079 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 596:
 #line 2316 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_new_viz_mol_frames(parse_state, parse_state->vol->viz_blocks, & (yyval.frame_list), OUTPUT_BY_TIME_LIST, (yyvsp[-2].tok), & (yyvsp[0].nlist))); }
-#line 6083 "mdlparse.c" /* yacc.c:1646  */
+#line 6085 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 597:
 #line 2320 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_new_viz_all_iterations(parse_state, & (yyval.nlist))); }
-#line 6089 "mdlparse.c" /* yacc.c:1646  */
+#line 6091 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 599:
 #line 2327 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.frame_list) = (yyvsp[-1].frame_list); }
-#line 6095 "mdlparse.c" /* yacc.c:1646  */
+#line 6097 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 601:
@@ -6109,31 +6111,31 @@ yyreduce:
                                                         else if ((yyvsp[0].frame_list).frame_head != NULL)
                                                           (yyval.frame_list) = (yyvsp[0].frame_list);
                                                       }
-#line 6113 "mdlparse.c" /* yacc.c:1646  */
+#line 6115 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 602:
 #line 2350 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECK(mdl_new_viz_mol_frames(parse_state, parse_state->vol->viz_blocks, & (yyval.frame_list), OUTPUT_BY_ITERATION_LIST, (yyvsp[-2].tok), & (yyvsp[0].nlist))); }
-#line 6119 "mdlparse.c" /* yacc.c:1646  */
+#line 6121 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 603:
 #line 2353 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = ALL_MOL_DATA; }
-#line 6125 "mdlparse.c" /* yacc.c:1646  */
+#line 6127 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 604:
 #line 2354 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = MOL_POS; }
-#line 6131 "mdlparse.c" /* yacc.c:1646  */
+#line 6133 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 605:
 #line 2355 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.tok) = MOL_ORIENT; }
-#line 6137 "mdlparse.c" /* yacc.c:1646  */
+#line 6139 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 606:
@@ -6144,13 +6146,13 @@ yyreduce:
                                                           vo->next = parse_state->vol->volume_output_head;
                                                           parse_state->vol->volume_output_head = vo;
                                                       }
-#line 6148 "mdlparse.c" /* yacc.c:1646  */
+#line 6150 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 607:
 #line 2378 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.str) = (yyvsp[0].str); }
-#line 6154 "mdlparse.c" /* yacc.c:1646  */
+#line 6156 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 609:
@@ -6161,13 +6163,13 @@ yyreduce:
                                                           (yyval.species_lst).species_tail->next = (yyvsp[0].species_lst).species_head;
                                                           (yyval.species_lst).species_tail = (yyvsp[0].species_lst).species_tail;
                                                       }
-#line 6165 "mdlparse.c" /* yacc.c:1646  */
+#line 6167 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 610:
 #line 2393 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.species_lst) = (yyvsp[0].species_lst); }
-#line 6171 "mdlparse.c" /* yacc.c:1646  */
+#line 6173 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 611:
@@ -6187,13 +6189,13 @@ yyreduce:
                                                           ptrl->next = NULL;
                                                           (yyval.species_lst_item) = ptrl;
                                                       }
-#line 6191 "mdlparse.c" /* yacc.c:1646  */
+#line 6193 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 612:
 #line 2414 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.species_lst).species_tail = (yyval.species_lst).species_head = (yyvsp[0].species_lst_item); (yyval.species_lst).species_count = 1; }
-#line 6197 "mdlparse.c" /* yacc.c:1646  */
+#line 6199 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 613:
@@ -6203,19 +6205,19 @@ yyreduce:
                                                         (yyval.species_lst).species_tail = (yyval.species_lst).species_tail->next = (yyvsp[0].species_lst_item);
                                                         ++ (yyval.species_lst).species_count;
                                                       }
-#line 6207 "mdlparse.c" /* yacc.c:1646  */
+#line 6209 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 614:
 #line 2424 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.vec3) = (yyvsp[0].vec3); }
-#line 6213 "mdlparse.c" /* yacc.c:1646  */
+#line 6215 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 615:
 #line 2428 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { (yyval.vec3) = (yyvsp[0].vec3); }
-#line 6219 "mdlparse.c" /* yacc.c:1646  */
+#line 6221 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 616:
@@ -6238,35 +6240,35 @@ yyreduce:
                                                           }
                                                           (yyval.vec3) = (yyvsp[0].vec3);
                                                       }
-#line 6242 "mdlparse.c" /* yacc.c:1646  */
+#line 6244 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 617:
 #line 2453 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.otimes) = mdl_new_output_times_default(parse_state)); }
-#line 6248 "mdlparse.c" /* yacc.c:1646  */
+#line 6250 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 618:
 #line 2454 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.otimes) = mdl_new_output_times_step(parse_state, (yyvsp[0].dbl))); }
-#line 6254 "mdlparse.c" /* yacc.c:1646  */
+#line 6256 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 619:
 #line 2455 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.otimes) = mdl_new_output_times_iterations(parse_state, & (yyvsp[0].nlist))); }
-#line 6260 "mdlparse.c" /* yacc.c:1646  */
+#line 6262 "mdlparse.c" /* yacc.c:1646  */
     break;
 
   case 620:
 #line 2456 "../src/../src/mdlparse.y" /* yacc.c:1646  */
     { CHECKN((yyval.otimes) = mdl_new_output_times_time(parse_state, & (yyvsp[0].nlist))); }
-#line 6266 "mdlparse.c" /* yacc.c:1646  */
+#line 6268 "mdlparse.c" /* yacc.c:1646  */
     break;
 
 
-#line 6270 "mdlparse.c" /* yacc.c:1646  */
+#line 6272 "mdlparse.c" /* yacc.c:1646  */
       default: break;
     }
   /* User semantic actions sometimes alter yychar, and that requires

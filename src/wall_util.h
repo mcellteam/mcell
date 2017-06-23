@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2015 by
+ * Copyright (C) 2006-2017 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -21,8 +21,7 @@
  *
 ******************************************************************************/
 
-#ifndef MCELL_WALL_UTIL
-#define MCELL_WALL_UTIL
+#pragma once
 
 #include "mcell_structs.h"
 
@@ -198,4 +197,3 @@ int wall_belongs_to_any_region_in_region_list(struct wall *w,
 int region_belongs_to_region_list(struct region *rp, struct region_list *head);
 
 void find_wall_center(struct wall *w, struct vector3 *center);
-#endif

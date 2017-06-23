@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2015 by
+ * Copyright (C) 2006-2017 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -21,8 +21,7 @@
  *
 ******************************************************************************/
 
-#ifndef REACT_UTIL_H
-#define REACT_UTIL_H
+#pragma once
 
 #include "mcell_structs.h"
 
@@ -44,5 +43,3 @@ int change_reaction_probability(byte *reaction_prob_limit_flag,
 
 void issue_reaction_probability_warnings(struct notifications *notify,
                                          struct rxn *rx);
-
-#endif

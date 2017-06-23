@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2015 by
+ * Copyright (C) 2006-2017 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -21,8 +21,7 @@
  *
 ******************************************************************************/
 
-#ifndef MCELL_MISC_H
-#define MCELL_MISC_H
+#pragma once
 
 #include "config.h"
 #include "mcell_init.h"
@@ -53,5 +52,3 @@ char *mcell_find_include_file(char const *path, char const *cur_path);
 // XXX this is a temporary hack to be able to print in mcell.c
 // since mcell disables regular printf
 void mcell_print(const char *message);
-
-#endif

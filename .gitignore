@@ -42,3 +42,4 @@ dyngeom_parse
 _mcellSwig.so
 mcellSwig.py
 mcellSwig_wrap.c
+docs/doxygen

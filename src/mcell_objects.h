@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2015 by
+ * Copyright (C) 2006-2017 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -21,8 +21,7 @@
  *
 ******************************************************************************/
 
-#ifndef MCELL_OBJECTS_H
-#define MCELL_OBJECTS_H
+#pragma once
 
 #include "mcell_init.h"
 #include "mcell_structs.h"
@@ -141,6 +140,7 @@ int cuboid_patch_to_bits(struct subdivided_box *subd_box, struct vector3 *v1,
 
 int check_patch(struct subdivided_box *b, struct vector3 *p1,
                 struct vector3 *p2, double egd);
+
 struct sym_entry *mcell_get_obj_sym(struct object *obj);
 struct sym_entry *mcell_get_reg_sym(struct region *reg);
 
@@ -153,5 +153,3 @@ struct poly_object_list* mcell_add_to_poly_obj_list(
   int num_conn,
   struct element_list *surf_reg_faces,
   char *reg_name);
-
-#endif

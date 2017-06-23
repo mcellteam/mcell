@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2015 by
+ * Copyright (C) 2006-2017 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -4817,6 +4817,11 @@ void check_for_conflicts_in_surface_class(struct volume *world,
     since special reactions with surface molecules
     have a meaning as reactions on the region border
     and should be allowed. */
+  // JAC: The wording is a little odd here, but I'm assuming this means we are
+  // checking for something like this:
+  // sc { TRANSPARENT = ALL_MOLECULES; }
+  // combined with this:
+  // a; @ sc; -> b; [1e6]
 
   u_int hash_value, hashW, hashM;
   struct species *mol_sp;
@@ -4854,41 +4859,49 @@ void check_for_conflicts_in_surface_class(struct volume *world,
       if (transp_mols_all_mol) {
         if ((all_mol_orient == inter->geometries[0]) || (all_mol_orient == 0) ||
             (inter->geometries[0] == 0)) {
-          mcell_error(
-              "Combination of similar oriented TRANSPARENT reaction "
-              "using ALL_MOLECULES and regular reaction for molecule '%s' "
-              "for the same surface class '%s' is not allowed.",
-              inter->players[0]->sym->name, sp->sym->name);
+          if ((inter->n_reactants == 2) && (strcmp(inter->players[1]->sym->name, sp->sym->name) == 0)) {
+            mcell_error(
+                "Combination of similarly oriented TRANSPARENT reaction "
+                "using ALL_MOLECULES and regular reaction for molecule '%s' "
+                "for the same surface class '%s' is not allowed.",
+                inter->players[0]->sym->name, sp->sym->name);
+          }
         }
       }
       if (absorb_mols_all_mol) {
         if ((all_mol_orient == inter->geometries[0]) || (all_mol_orient == 0) ||
             (inter->geometries[0] == 0)) {
-          mcell_error(
-              "Combination of similar oriented ABSORPTIVE reaction "
-              "using ALL_MOLECULES and regular reaction for molecule '%s' "
-              "for the same surface class '%s' is not allowed.",
-              inter->players[0]->sym->name, sp->sym->name);
+          if ((inter->n_reactants == 2) && (strcmp(inter->players[1]->sym->name, sp->sym->name) == 0)) {
+            mcell_error(
+                "Combination of similarly oriented ABSORPTIVE reaction "
+                "using ALL_MOLECULES and regular reaction for molecule '%s' "
+                "for the same surface class '%s' is not allowed.",
+                inter->players[0]->sym->name, sp->sym->name);
+          }
         }
       }
       if (transp_mols_all_volume_mol) {
         if ((all_volume_mol_orient == inter->geometries[0]) ||
             (all_volume_mol_orient == 0) || (inter->geometries[0] == 0)) {
-          mcell_error(
-              "Combination of similar oriented TRANSPARENT reaction "
-              "using ALL_VOLUME_MOLECULES and regular reaction for molecule "
-              "'%s' for the same surface class '%s' is not allowed.",
-              inter->players[0]->sym->name, sp->sym->name);
+          if ((inter->n_reactants == 2) && (strcmp(inter->players[1]->sym->name, sp->sym->name) == 0)) {
+            mcell_error(
+                "Combination of similarly oriented TRANSPARENT reaction "
+                "using ALL_VOLUME_MOLECULES and regular reaction for molecule "
+                "'%s' for the same surface class '%s' is not allowed.",
+                inter->players[0]->sym->name, sp->sym->name);
+          }
         }
       }
       if (absorb_mols_all_volume_mol) {
         if ((all_volume_mol_orient == inter->geometries[0]) ||
             (all_volume_mol_orient == 0) || (inter->geometries[0] == 0)) {
-          mcell_error(
-              "Combination of similar oriented ABSORPTIVE reaction "
-              "using ALL_VOLUME_MOLECULES and regular reaction for molecule "
-              "'%s' for the same surface class '%s' is not allowed.",
-              inter->players[0]->sym->name, sp->sym->name);
+          if ((inter->n_reactants == 2) && (strcmp(inter->players[1]->sym->name, sp->sym->name) == 0)) {
+            mcell_error(
+                "Combination of similarly oriented ABSORPTIVE reaction "
+                "using ALL_VOLUME_MOLECULES and regular reaction for molecule "
+                "'%s' for the same surface class '%s' is not allowed.",
+                inter->players[0]->sym->name, sp->sym->name);
+          }
         }
       }
     }
@@ -4943,21 +4956,21 @@ void check_for_conflicts_in_surface_class(struct volume *world,
           regular_rx_same_orient = 0;
         }
         if ((no->orient == 0) || (inter->geometries[0] == 0)) {
-          mcell_error("Combination of similar oriented TRANSPARENT and regular "
-                      "reactions for molecule '%s' on the same surface class "
-                      "'%s' is not allowed.",
+          mcell_error("Combination of similarly oriented TRANSPARENT and "
+                      "regular reactions for molecule '%s' on the same "
+                      "surface class '%s' is not allowed.",
                       mol_sp->sym->name, sp->sym->name);
         }
         if (special_rx_same_orient && regular_rx_same_orient) {
-          mcell_error("Combination of similar oriented TRANSPARENT and regular "
-                      "reactions for molecule '%s' on the same surface class "
-                      "'%s' is not allowed.",
+          mcell_error("Combination of similarly oriented TRANSPARENT and "
+                      "regular reactions for molecule '%s' on the same "
+                      "surface class '%s' is not allowed.",
                       mol_sp->sym->name, sp->sym->name);
         }
         if (!special_rx_same_orient && !regular_rx_same_orient) {
-          mcell_error("Combination of similar oriented TRANSPARENT and regular "
-                      "reactions for molecule '%s' on the same surface class "
-                      "'%s' is not allowed.",
+          mcell_error("Combination of similarly oriented TRANSPARENT and "
+                      "regular reactions for molecule '%s' on the same "
+                      "surface class '%s' is not allowed.",
                       mol_sp->sym->name, sp->sym->name);
         }
       }
@@ -5031,9 +5044,9 @@ void check_for_conflicts_in_surface_class(struct volume *world,
         }
       }
       if (count_sim_orient_rxns > 0) {
-        mcell_error("Combination of similar oriented ABSORPTIVE reaction and "
-                    "regular reaction for molecule '%s' on the same surface "
-                    "class '%s' is not allowed.",
+        mcell_error("Combination of similarly oriented ABSORPTIVE reaction "
+                    "and regular reaction for molecule '%s' on the same "
+                    "surface class '%s' is not allowed.",
                     mol_name, sp->sym->name);
       }
     }
@@ -5102,7 +5115,7 @@ void check_for_conflicts_in_surface_class(struct volume *world,
         }
       }
       if (count_sim_orient_rxns > 0) {
-        mcell_error("Combination of similar oriented CLAMP_CONCENTRATION "
+        mcell_error("Combination of similarly oriented CLAMP_CONCENTRATION "
                     "reaction and regular reaction for molecule '%s' on the "
                     "same surface class '%s' is not allowed.",
                     mol_name, sp->sym->name);
