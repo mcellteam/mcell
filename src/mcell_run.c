@@ -352,6 +352,29 @@ mcell_run_simulation(MCELL_STATE *world) {
 }
 
 /**************************************************************************
+*
+* Run multiple iterations at once
+*
+ *************************************************************************/
+MCELL_STATUS
+mcell_run_n_iterations(MCELL_STATE *world, long long frequency,
+                    int *restarted_from_checkpoint, int n_iter) {
+
+  int i_iter = 0;
+  while (i_iter < n_iter) {
+    // XXX: A return status of 1 from mcell_run_iterations does not
+    // indicate an error but is used to break out of the loop.
+    // This behavior is non-conformant and should be changed.
+    if (mcell_run_iteration(world, frequency, restarted_from_checkpoint) == 1) {
+      break;
+    }
+    i_iter += 1;
+  }
+
+  return 0;
+}
+
+/**************************************************************************
  *
  * this function runs a single mcell iteration
  *
