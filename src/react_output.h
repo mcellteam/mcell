@@ -34,7 +34,8 @@ void install_emergency_output_hooks(struct volume *world);
 int truncate_output_file(char *name, double start_value);
 
 void add_trigger_output(struct volume *world, struct counter *c,
-                        struct output_request *ear, int n, short flags);
+                        struct output_request *ear, int n, short flags,
+                        u_long id);
 
 int flush_reaction_output(struct volume *world);
 

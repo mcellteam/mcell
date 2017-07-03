@@ -168,6 +168,7 @@ count_region_update:
 void count_region_update(
     struct volume *world,
     struct species *sp,
+    u_long id,
     struct periodic_image *periodic_box,
     struct region_list *rl,
     int direction,
@@ -229,15 +230,15 @@ void count_region_update(
             hit_count->data.trig.orient = 0;
             if (rl->reg->flags & sp->flags & COUNT_HITS) {
               fire_count_event(world, hit_count, 1, loc,
-                               REPORT_FRONT_HITS | REPORT_TRIGGER);
+                               REPORT_FRONT_HITS | REPORT_TRIGGER, id);
 
               fire_count_event(world, hit_count, 1, loc,
-                               REPORT_FRONT_CROSSINGS | REPORT_TRIGGER);
+                               REPORT_FRONT_CROSSINGS | REPORT_TRIGGER, id);
             }
             if (rl->reg->flags & sp->flags & COUNT_CONTENTS) {
               fire_count_event(world, hit_count, 1, loc,
                                REPORT_ENCLOSED | REPORT_CONTENTS |
-                                   REPORT_TRIGGER);
+                                   REPORT_TRIGGER, id);
             }
           } else {
             if (rl->reg->flags & sp->flags & COUNT_HITS) {
@@ -254,14 +255,14 @@ void count_region_update(
             hit_count->data.trig.orient = 0;
             if (rl->reg->flags & sp->flags & COUNT_HITS) {
               fire_count_event(world, hit_count, 1, loc,
-                               REPORT_BACK_HITS | REPORT_TRIGGER);
+                               REPORT_BACK_HITS | REPORT_TRIGGER, id);
               fire_count_event(world, hit_count, 1, loc,
-                               REPORT_BACK_CROSSINGS | REPORT_TRIGGER);
+                               REPORT_BACK_CROSSINGS | REPORT_TRIGGER, id);
             }
             if (rl->reg->flags & sp->flags & COUNT_CONTENTS) {
-              fire_count_event(world, hit_count, -1, loc,
-                               REPORT_ENCLOSED | REPORT_CONTENTS |
-                                   REPORT_TRIGGER);
+              fire_count_event(
+                  world, hit_count, -1, loc,
+                  REPORT_ENCLOSED | REPORT_CONTENTS | REPORT_TRIGGER, id);
             }
           } else {
             if (rl->reg->flags & sp->flags & COUNT_HITS) {
@@ -280,7 +281,7 @@ void count_region_update(
             hit_count->data.trig.t_event = (double)world->current_iterations + t;
             hit_count->data.trig.orient = 0;
             fire_count_event(world, hit_count, 1, loc,
-                             REPORT_FRONT_HITS | REPORT_TRIGGER);
+                             REPORT_FRONT_HITS | REPORT_TRIGGER, id);
           } else {
             hit_count->data.move.front_hits++;
           }
@@ -289,7 +290,7 @@ void count_region_update(
             hit_count->data.trig.t_event = (double)world->current_iterations + t;
             hit_count->data.trig.orient = 0;
             fire_count_event(world, hit_count, 1, loc,
-                             REPORT_BACK_HITS | REPORT_TRIGGER);
+                             REPORT_BACK_HITS | REPORT_TRIGGER, id);
           } else
             hit_count->data.move.back_hits++;
         }
@@ -318,7 +319,7 @@ count_region_border_update:
        when the molecule hits region border "outside in".
 **************************************************************************/
 void count_region_border_update(struct volume *world, struct species *sp,
-                                struct hit_data *hd_info) {
+                                struct hit_data *hd_info, u_long id) {
 
   assert((sp->flags & NOT_FREE) != 0);
 
@@ -347,17 +348,17 @@ void count_region_border_update(struct volume *world, struct species *sp,
             hit_count->data.trig.orient = 0;
             if (hd->direction == 1) {
               fire_count_event(world, hit_count, 1, &(hd->loc),
-                REPORT_FRONT_HITS | REPORT_TRIGGER);
+                REPORT_FRONT_HITS | REPORT_TRIGGER, id);
               if (hd->crossed) {
                 fire_count_event(world, hit_count, 1, &(hd->loc),
-                  REPORT_FRONT_CROSSINGS | REPORT_TRIGGER);
+                  REPORT_FRONT_CROSSINGS | REPORT_TRIGGER, id);
               }
             } else {
               fire_count_event(world, hit_count, 1, &(hd->loc),
-                REPORT_BACK_HITS | REPORT_TRIGGER);
+                REPORT_BACK_HITS | REPORT_TRIGGER, id);
               if (hd->crossed) {
                 fire_count_event(world, hit_count, 1, &(hd->loc),
-                  REPORT_BACK_CROSSINGS | REPORT_TRIGGER);
+                  REPORT_BACK_CROSSINGS | REPORT_TRIGGER, id);
               }
             }
           } else {
@@ -457,7 +458,7 @@ void count_region_from_scratch(struct volume *world,
             c->data.trig.t_event = t;
             c->data.trig.orient = orient;
             // XXX: may need to convert loc for PBCs
-            fire_count_event(world, c, n, loc, count_flags | REPORT_TRIGGER);
+            fire_count_event(world, c, n, loc, count_flags | REPORT_TRIGGER, am->id);
           } else if (rxpn == NULL) {
             if (am->properties->flags & ON_GRID) {
               if ((c->orientation == ORIENT_NOT_SET) ||
@@ -625,8 +626,12 @@ void count_region_from_scratch(struct volume *world,
               // Don't count triggers after a dynamic geometry event
               if (!world->dynamic_geometry_flag) {
                 // XXX: may need to convert loc for PBCs
+                u_long id = -1;
+                if (am != NULL) {
+                  id = am->id;
+                }
                 fire_count_event(world, c, n * pos_or_neg, loc,
-                                 count_flags | REPORT_TRIGGER);
+                                 count_flags | REPORT_TRIGGER, id);
               }
             } else if (rxpn == NULL) {
               if (am->properties->flags & ON_GRID) {
@@ -894,7 +899,7 @@ void count_moved_surface_mol(
             c->data.trig.t_event = sm->t;
             c->data.trig.orient = sm->orient;
             fire_count_event(world, c, n, where, REPORT_CONTENTS | REPORT_ENCLOSED |
-              REPORT_TRIGGER);
+              REPORT_TRIGGER, sm->id);
           } else if ((c->orientation == ORIENT_NOT_SET) ||
                      (c->orientation == sm->orient) ||
                      (c->orientation == 0)) {
@@ -931,7 +936,7 @@ fire_count_event:
    Out: None
 *************************************************************************/
 void fire_count_event(struct volume *world, struct counter *event, int n,
-                      struct vector3 *where, byte what) {
+                      struct vector3 *where, byte what, u_long id) {
 
   short flags;
   if ((what & REPORT_TYPE_MASK) == REPORT_RXNS)
@@ -957,21 +962,21 @@ void fire_count_event(struct volume *world, struct counter *event, int n,
       memcpy(&(event->data.trig.loc), where, sizeof(struct vector3));
       if ((what & REPORT_TYPE_MASK) == REPORT_FRONT_HITS ||
           (what & REPORT_TYPE_MASK) == REPORT_FRONT_CROSSINGS) {
-        add_trigger_output(world, event, tr->ear, n, flags);
+        add_trigger_output(world, event, tr->ear, n, flags, id);
       } else if ((what & REPORT_TYPE_MASK) == REPORT_BACK_HITS ||
                  (what & REPORT_TYPE_MASK) == REPORT_BACK_CROSSINGS) {
-        add_trigger_output(world, event, tr->ear, -n, flags);
+        add_trigger_output(world, event, tr->ear, -n, flags, id);
       } else {
-        add_trigger_output(world, event, tr->ear, n, flags);
+        add_trigger_output(world, event, tr->ear, n, flags, id);
       }
 
     } else if (tr->ear->report_type == whatelse) {
       memcpy(&(event->data.trig.loc), where, sizeof(struct vector3));
       if ((what & REPORT_TYPE_MASK) == REPORT_FRONT_HITS ||
           (what & REPORT_TYPE_MASK) == REPORT_FRONT_CROSSINGS) {
-        add_trigger_output(world, event, tr->ear, n, flags);
+        add_trigger_output(world, event, tr->ear, n, flags, id);
       } else {
-        add_trigger_output(world, event, tr->ear, -n, flags);
+        add_trigger_output(world, event, tr->ear, -n, flags, id);
       }
     }
   }
@@ -2042,7 +2047,7 @@ void count_region_list(
         if (c->counter_type & TRIG_COUNTER) {
           c->data.trig.t_event = sm->t;
           c->data.trig.orient = sm->orient;
-          fire_count_event(world, c, inc, where, REPORT_CONTENTS | REPORT_TRIGGER);
+          fire_count_event(world, c, inc, where, REPORT_CONTENTS | REPORT_TRIGGER, sm->id);
         } else if ((c->orientation == ORIENT_NOT_SET) ||
                    (c->orientation == sm->orient) || (c->orientation == 0)) {
           if ((inc == 1) && (periodic_boxes_are_identical(

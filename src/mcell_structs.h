@@ -1633,6 +1633,7 @@ struct output_trigger_data {
   short orient;       /* Orientation information */
   short flags;        /* Output Trigger Flags */
   char *name;         /* Name to give event */
+  u_long id;
 };
 
 /******************************************************************/

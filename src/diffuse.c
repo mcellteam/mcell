@@ -128,7 +128,7 @@ void register_hits(
 void count_tentative_collisions(
   struct volume *world, struct collision **tc, struct collision *smash,
   struct species *spec, double t_confident, int destroy_flag,
-  struct periodic_image *box);
+  struct periodic_image *box, u_long id);
 
 void change_boxes_2D(
     bool periodic_traditional,
@@ -3339,7 +3339,7 @@ struct surface_molecule *diffuse_2D(
                                "ABSORPTIVE region border.");
         }
         if (hd_info != NULL) {
-          count_region_border_update(world, sm->properties, hd_info);
+          count_region_border_update(world, sm->properties, hd_info, sm->id);
         }
         int result = outcome_unimolecular(world, rxp, 0,
                                       (struct abstract_molecule *)sm, sm->t);
@@ -3375,7 +3375,7 @@ struct surface_molecule *diffuse_2D(
   }
 
   if (hd_info != NULL) {
-    count_region_border_update(world, sm->properties, hd_info);
+    count_region_border_update(world, sm->properties, hd_info, sm->id);
     delete_void_list((struct void_list *)hd_info);
     hd_info = NULL;
   }
@@ -3990,9 +3990,9 @@ void redo_collision_list(struct volume* world, struct collision** shead,
  *
  ******************************************************************************/
 static int collide_and_react_with_vol_mol(struct volume* world,
-  struct collision* smash, struct volume_molecule* m, struct collision** tentative,
-  struct vector3* displacement, struct vector3* loc_certain, double t_steps,
-  double r_rate_factor) {
+  struct collision* smash, struct volume_molecule* m, struct collision**
+  tentative, struct vector3* displacement, struct vector3* loc_certain, double
+  t_steps, double r_rate_factor) {
 
   struct abstract_molecule* am = (struct abstract_molecule *)smash->target;
   double factor = exact_disk(
@@ -4038,7 +4038,7 @@ static int collide_and_react_with_vol_mol(struct volume* world,
             COUNT_SOME_MASK)) {
         continue;
       }
-      count_region_update(world, spec, periodic_box,
+      count_region_update(world, spec, m->id, periodic_box,
         ((struct wall *)ttv->target)->counting_regions,
         ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 0, &(ttv->loc), ttv->t);
       if (ttv == smash) {
@@ -4142,7 +4142,7 @@ int collide_and_react_with_surf_mol(struct volume* world, struct collision* smas
             int destroy_flag = 0;
             count_tentative_collisions(
               world, &ttv, smash, spec, t_confident, destroy_flag,
-              periodic_box);
+              periodic_box, m->id);
           }
           *tentative = ttv;
           *loc_certain = &(ttv->loc);
@@ -4153,7 +4153,7 @@ int collide_and_react_with_surf_mol(struct volume* world, struct collision* smas
             int destroy_flag = 0;
             count_tentative_collisions(
               world, &ttv, smash, spec, t_confident, destroy_flag,
-              periodic_box);
+              periodic_box, m->id);
           }
           *tentative = ttv;
           return 1;
@@ -4275,7 +4275,7 @@ int collide_and_react_with_surf_mol(struct volume* world, struct collision* smas
             int destroy_flag = 0;
             count_tentative_collisions(
               world, &ttv, smash, spec, t_confident, destroy_flag,
-              periodic_box);
+              periodic_box, m->id);
           }
           *loc_certain = &(ttv->loc);
           *tentative = ttv;
@@ -4286,7 +4286,7 @@ int collide_and_react_with_surf_mol(struct volume* world, struct collision* smas
             int destroy_flag = 0;
             count_tentative_collisions(
               world, &ttv, smash, spec, t_confident, destroy_flag,
-              periodic_box);
+              periodic_box, m->id);
           }
           *tentative = ttv;
           return 1;
@@ -4371,7 +4371,8 @@ int collide_and_react_with_walls(struct volume* world, struct collision* smash,
       /* Count as far up as we can unambiguously */
       int destroy_flag = 0;
       count_tentative_collisions(
-        world, tentative, smash, spec, smash->t, destroy_flag, periodic_box);
+        world, tentative, smash, spec, smash->t, destroy_flag, periodic_box,
+        m->id);
       // XXX: RX_FLIP case below should probably be handled this way too.
       for (; ttv != NULL && ttv->t <= t_confident; ttv = ttv->next) {
         *loc_certain = &(ttv->loc);
@@ -4408,7 +4409,8 @@ int collide_and_react_with_walls(struct volume* world, struct collision* smash,
           /* Count as far up as we can unambiguously */
           int destroy_flag = 0;
           count_tentative_collisions(
-            world, &ttv, smash, spec, t_confident, destroy_flag, periodic_box);
+            world, &ttv, smash, spec, t_confident, destroy_flag, periodic_box,
+            m->id);
         }
         *loc_certain = &(ttv->loc);
         *tentative = ttv;
@@ -4419,7 +4421,7 @@ int collide_and_react_with_walls(struct volume* world, struct collision* smash,
           int destroy_flag = 1;
           count_tentative_collisions(
             world, tentative, smash, spec, smash->t, destroy_flag,
-            periodic_box);
+            periodic_box, m->id);
         }
         return 1;
       }
@@ -4695,7 +4697,7 @@ int reflect_or_periodic_bc(
             COUNT_SOME_MASK)) {
         continue;
       }
-      count_region_update(world, m->properties, m->periodic_box,
+      count_region_update(world, m->properties, m->id, m->periodic_box,
         ((struct wall *)ttv->target)->counting_regions,
         ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 0, &(ttv->loc), ttv->t);
       if (ttv == smash)
@@ -4741,7 +4743,7 @@ void collide_and_react_with_subvol(struct volume* world, struct collision *smash
       if (!(spec->flags & ((struct wall *)ttv->target)->flags & COUNT_SOME_MASK)) {
         continue;
       }
-      count_region_update(world, spec, m->periodic_box,
+      count_region_update(world, spec, m->id, m->periodic_box,
           ((struct wall *)ttv->target)->counting_regions,
           ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 1, &(ttv->loc), ttv->t);
     }
@@ -4996,7 +4998,7 @@ void set_inertness_and_maxtime(
 void count_tentative_collisions(
   struct volume *world, struct collision **tc, struct collision *smash,
   struct species *spec, double t_confident, int destroy_flag,
-  struct periodic_image *box) {
+  struct periodic_image *box, u_long id) {
 
   int crossed_flag = 1;
   if (destroy_flag == 1) {
@@ -5012,7 +5014,7 @@ void count_tentative_collisions(
       continue;
     }
     count_region_update(
-      world, spec, box, ((struct wall *)ttv->target)->counting_regions,
+      world, spec, id, box, ((struct wall *)ttv->target)->counting_regions,
       ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, crossed_flag,
       &(ttv->loc), ttv->t);
     if ((destroy_flag) && (ttv == smash)) {

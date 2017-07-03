@@ -360,7 +360,8 @@ add_trigger_output:
         This is reported as orientation instead.
 *************************************************************************/
 void add_trigger_output(struct volume *world, struct counter *c,
-                        struct output_request *ear, int n, short flags) {
+                        struct output_request *ear, int n, short flags,
+                        u_long id) {
 
   struct output_column *first_column;
   first_column = ear->requester->column->set->column_head;
@@ -391,6 +392,7 @@ void add_trigger_output(struct volume *world, struct counter *c,
   }
   otd->flags = flags;
   otd->name = ear->requester->column->expr->title;
+  otd->id = id;
 
   first_column->initial_value += 1.0;
   idx = (int)first_column->initial_value;
@@ -882,20 +884,35 @@ int write_reaction_output(struct volume *world, struct output_set *set) {
 
       if (trig->flags & TRIG_IS_RXN) /* Just need time, pos, name */
       {
-        fprintf(fp, "%.15g %s%.9g %.9g %.9g %s\n", trig->t_iteration,
-                event_time_string, trig->loc.x, trig->loc.y, trig->loc.z,
+        fprintf(fp, "%.15g %s%.9g %.9g %.9g %s\n",
+                trig->t_iteration,
+                event_time_string,
+                trig->loc.x,
+                trig->loc.y,
+                trig->loc.z,
                 (trig->name == NULL) ? "" : trig->name);
       } else if (trig->flags & TRIG_IS_HIT) /* Need orientation also */
       {
-        fprintf(fp, "%.15g %s%.9g %.9g %.9g %d %s\n", trig->t_iteration,
-                event_time_string, trig->loc.x, trig->loc.y, trig->loc.z,
-                trig->orient, (trig->name == NULL) ? "" : trig->name);
+        fprintf(fp, "%.15g %s%.9g %.9g %.9g %d %s\n",
+                trig->t_iteration,
+                event_time_string,
+                trig->loc.x,
+                trig->loc.y,
+                trig->loc.z,
+                trig->orient,
+                (trig->name == NULL) ? "" : trig->name);
       } else /* Molecule count -- need both number and orientation */
       {
-        fprintf(fp, "%.15g %s%.9g %.9g %.9g %d %d %s\n", trig->t_iteration,
-                event_time_string, trig->loc.x, trig->loc.y, trig->loc.z,
-                trig->orient, trig->how_many,
-                (trig->name == NULL) ? "" : trig->name);
+        fprintf(fp, "%.15g %s%.9g %.9g %.9g %d %d %s %lu\n",
+                trig->t_iteration,
+                event_time_string,
+                trig->loc.x,
+                trig->loc.y,
+                trig->loc.z,
+                trig->orient,
+                trig->how_many,
+                (trig->name == NULL) ? "" : trig->name,
+                trig->id);
       }
     }
   }

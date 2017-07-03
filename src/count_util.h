@@ -32,6 +32,7 @@ int region_listed(struct region_list *rl, struct region *r);
 void count_region_update(
     struct volume *world,
     struct species *sp,
+    u_long id,
     struct periodic_image *img,
     struct region_list *rl,
     int dir,
@@ -40,7 +41,7 @@ void count_region_update(
     double t);
 
 void count_region_border_update(struct volume *world, struct species *sp,
-                                struct hit_data *hd_info);
+                                struct hit_data *hd_info, u_long id);
 
 void count_region_from_scratch(struct volume *world,
                                struct abstract_molecule *am,
@@ -54,7 +55,7 @@ void count_moved_surface_mol(struct volume *world, struct surface_molecule *sm,
   struct periodic_image *previous_box);
 
 void fire_count_event(struct volume *world, struct counter *event, int n,
-                      struct vector3 *where, byte what);
+                      struct vector3 *where, byte what, u_long id);
 
 int place_waypoints(struct volume *world);
 
