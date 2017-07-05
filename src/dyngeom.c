@@ -935,6 +935,7 @@ struct string_buffer *find_enclosing_meshes(
 
   } while (smash != NULL);
 
+  free(mesh_names);
   return NULL;
 }
 
