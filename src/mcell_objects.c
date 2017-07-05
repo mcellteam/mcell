@@ -117,11 +117,11 @@ MCELL_STATUS mcell_create_periodic_box(
 
   struct subdivided_box *b = CHECKED_MALLOC_STRUCT(
       struct subdivided_box, "subdivided box");
-  if (b == NULL)
+  if (b == NULL) {
     free(verts);
     free(elems);
     return MCELL_FAIL;
-
+  }
   b->nx = b->ny = b->nz = 2;
   if ((b->x = CHECKED_MALLOC_ARRAY(
       double, b->nx, "subdivided box X partitions")) == NULL) {
