@@ -6983,6 +6983,7 @@ struct output_expression *mdl_count_syntax_periodic_3(
     mem_put_list(parse_state->sym_list_mem, stl);
   }
 
+  free(what_to_count);
   return oe;
 }
 
