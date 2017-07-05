@@ -1891,6 +1891,12 @@ int add_dynamic_geometry_events(
           if (!strchr(SEPARATORS, buf[i]))
             break;
         }
+        if (i == 2048) {
+          mcell_error(
+            "an entry in the dynamic geometry file consists of too many "
+            "characters (it uses 2048 or more characters).");
+          return(1);
+        }
 
         // Grab mdl filename. This could probably be cleaned up
         char *line_ending = strchr(buf + i, '\n');
@@ -1916,8 +1922,10 @@ int add_dynamic_geometry_events(
           struct dg_time_filename *dyn_geom;
           dyn_geom = CHECKED_MEM_GET(dynamic_geometry_events_mem,
                                      "time-varying dynamic geometry");
-          if (dyn_geom == NULL)
+          if (dyn_geom == NULL) {
+            free(zero_file_name);
             return 1;
+          }
 
           dyn_geom->event_time = round(time / timestep);
           dyn_geom->mdl_file_path = full_file_name;

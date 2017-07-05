@@ -2672,17 +2672,8 @@ sort_sym_list_by_name(struct sym_table_list *unsorted) {
 *************************************************************************/
 struct sym_entry *mdl_existing_object(struct mdlparse_vars *parse_state,
                                       char *name) {
-  // Check to see if it is one of the objects that will be added in
-  // the future via a dynamic geometry event.
-  struct sym_entry *symp = NULL;
-  // See if it's one of the standard instantiated objects
-  if (symp == NULL) {
-    return mdl_existing_symbol(parse_state, name,
-                               parse_state->vol->obj_sym_table, OBJ);
-  }
-  else {
-    return symp; 
-  }
+  return mdl_existing_symbol(
+      parse_state, name, parse_state->vol->obj_sym_table, OBJ);
 }
 
 /*************************************************************************
@@ -3117,7 +3108,6 @@ static struct region *mdl_make_new_region(struct mdlparse_vars *parse_state,
     else {
       mdlerror_fmt(parse_state, "Region already defined: %s", region_name);
     }
-    free(region_name);
   }
 
   if ((gp = store_sym(region_name, REG, parse_state->vol->reg_sym_table,
