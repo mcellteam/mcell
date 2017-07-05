@@ -1910,6 +1910,9 @@ int add_dynamic_geometry_events(
           file_name, dynamic_geometry_filepath);
         // Treat time 0 as if it were an include file.
         if (!distinguishable(time, 0, EPS_C)) {
+          if (zero_file_name) {
+            free(zero_file_name);
+          }
           zero_file_name = full_file_name;
           continue;
         }
@@ -1924,6 +1927,7 @@ int add_dynamic_geometry_events(
                                      "time-varying dynamic geometry");
           if (dyn_geom == NULL) {
             free(zero_file_name);
+            fclose(f);
             return 1;
           }
 

@@ -2702,23 +2702,15 @@ mdl_existing_objects_wildcard(struct mdlparse_vars *parse_state,
 *************************************************************************/
 struct sym_entry *mdl_existing_region(struct mdlparse_vars *parse_state,
                                       struct sym_entry *obj_symp, char *name) {
-  struct sym_entry *symp = NULL;
   char *region_name = CHECKED_SPRINTF("%s,%s", obj_symp->name, name);
   if (region_name == NULL) {
     free(name);
     return NULL;
   }
 
-  // See if it's one of the standard instantiated objects
-  if (symp == NULL) {
-    free(name);
-    return mdl_existing_symbol(parse_state, region_name,
-                               parse_state->vol->reg_sym_table, REG);
-  }
-  else {
-    free(region_name);
-    return symp;
-  }
+  free(name);
+  return mdl_existing_symbol(
+      parse_state, region_name, parse_state->vol->reg_sym_table, REG);
 }
 
 /*************************************************************************

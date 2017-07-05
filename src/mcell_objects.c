@@ -124,16 +124,22 @@ MCELL_STATUS mcell_create_periodic_box(
   if ((b->x = CHECKED_MALLOC_ARRAY(
       double, b->nx, "subdivided box X partitions")) == NULL) {
     free(b);
+    free(verts);
+    free(elems);
     return MCELL_FAIL;
   }
   if ((b->y = CHECKED_MALLOC_ARRAY(
       double, b->ny, "subdivided box Y partitions")) == NULL) {
     free(b);
+    free(verts);
+    free(elems);
     return MCELL_FAIL;
   }
   if ((b->z = CHECKED_MALLOC_ARRAY(
       double, b->nz, "subdivided box Z partitions")) == NULL) {
     free(b);
+    free(verts);
+    free(elems);
     return MCELL_FAIL;
   }
 

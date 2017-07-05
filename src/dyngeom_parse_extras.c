@@ -22,9 +22,15 @@ void setup_root_obj_inst(
   dg_parse_vars->reg_sym_table = state->reg_sym_table;
 
   sym = retrieve_sym("WORLD_OBJ", state->obj_sym_table);
+  if (sym == NULL) {
+    mcell_error("Cannot create WORLD_OBJ for dynamic geometry.");
+  }
   dg_parse_vars->root_object = (struct object *)sym->value;
 
   sym = retrieve_sym("WORLD_INSTANCE", state->obj_sym_table);
+  if (sym == NULL) {
+    mcell_error("Cannot create WORLD_INSTANCE for dynamic geometry.");
+  }
   dg_parse_vars->root_instance = (struct object *)sym->value;
 
   dg_parse_vars->current_object = dg_parse_vars->root_object;
@@ -306,7 +312,13 @@ int dg_deep_copy_object(
     return 1;
 
   struct sym_entry *src_sym = retrieve_sym(src_obj->sym->name, dg_parse_vars->obj_sym_table);
+  if (src_sym == NULL) {
+    mcell_error("Cannot retrieve %s", src_obj->sym->name);
+  }
   struct sym_entry *dst_sym = retrieve_sym(dst_obj->sym->name, dg_parse_vars->obj_sym_table);
+  if (dst_sym == NULL) {
+    mcell_error("Cannot retrieve %s", dst_obj->sym->name);
+  }
   src_sym->value = src_obj;
   dst_sym->value = dst_obj;
 
