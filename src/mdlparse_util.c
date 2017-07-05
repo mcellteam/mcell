@@ -7876,24 +7876,31 @@ struct mcell_species_spec *mdl_create_species(struct mdlparse_vars *parse_state,
   switch (error_code) {
   case 2:
     mdlerror_fmt(parse_state, "Molecule already defined: %s", name);
+    break;
   case 3:
     mdlerror_fmt(parse_state,
                  "Molecule already defined as a named reaction pathway: %s",
                  name);
+    break;
   case 4:
     mdlerror_fmt(parse_state, "Out of memory while creating molecule: %s",
                  name);
+    break;
   case 5:
     mdlerror(parse_state,
              "Out of memory while creating r_step data for molecule");
+    break;
   case 6:
     mdlerror(parse_state, "Cannot store r_step_surface data.");
+    break;
   case 7:
     mdlerror(parse_state,
              "Out of memory while creating d_step data for molecule");
+    break;
   case 8:
     mdlerror(parse_state, "Internal error: bad number of default "
                           "RADIAL_DIRECTIONS (max 131072).");
+    break;
   }
 
   return species;
