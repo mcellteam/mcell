@@ -60,5 +60,6 @@ setup (name = 'pymcell',
        description = """Python bindings to libmcell""",
        author_email = "mcell-devel@salk.edu",
        ext_modules = [mcell_module],
+       license = 'GPL v2',
        py_modules = ["pymcell"],
        )
