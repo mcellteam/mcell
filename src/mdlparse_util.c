@@ -5650,6 +5650,9 @@ struct polygon_object *mdl_create_periodic_box(
 
 int mdl_finish_periodic_box(struct mdlparse_vars *parse_state) {
   struct sym_entry *symp = retrieve_sym("PERIODIC_BOX_OBJ", parse_state->vol->obj_sym_table);
+  if (symp == NULL) {
+    mcell_error("Cannot create PERIODIC_BOX_OBJ.");
+  }
   struct object *objp = (struct object *)symp->value;
   remove_gaps_from_regions(objp);
   objp->n_walls = parse_state->current_polygon->n_walls;
