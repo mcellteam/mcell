@@ -6928,6 +6928,7 @@ struct output_expression *mdl_count_syntax_periodic_3(
     orientation = mdl_get_orientation_from_string(what_to_count);
     if ((sp = mdl_existing_molecule(parse_state, what_to_count)) == NULL)
       return NULL;
+    what_to_count = NULL;
 
     if ((hit_spec & REPORT_TYPE_MASK) == REPORT_NOTHING)
       report_flags |= REPORT_CONTENTS;
