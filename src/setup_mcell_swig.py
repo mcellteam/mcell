@@ -4,7 +4,7 @@
 # swig -python pymcell.i  
 
 """
-setup.py file for SWIG example
+setup.py file for pyMCell
 """
 
 from distutils.core import setup, Extension
@@ -17,8 +17,9 @@ mcell_module = Extension('_pymcell',
 
 setup (name = 'pymcell',
        version = '0.1',
-       author      = "SWIG Docs",
-       description = """Simple swig example from docs""",
+       author      = "The MCell team",
+       description = """Python bindings to libmcell""",
+       author_email = "mcell-devel@salk.edu",
        ext_modules = [mcell_module],
        py_modules = ["pymcell"],
        )
