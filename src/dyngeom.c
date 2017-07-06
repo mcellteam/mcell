@@ -96,6 +96,7 @@ struct molecule_info **save_all_molecules(struct volume *state,
             if (save_surface_molecule(mol_info, am_ptr, &reg_names, &mesh_name))
               return NULL;
           } else {
+            destroy_string_buffer(reg_names);
             continue;
           }
 
