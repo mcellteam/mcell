@@ -2029,36 +2029,37 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
       if (i)
         A -= rrd->cum_area_list[i - 1];
       grid_index = (unsigned int)((w->grid->n * w->grid->n) * (A / w->area));
-      if (grid_index >= w->grid->n_tiles)
+      if (grid_index >= w->grid->n_tiles) {
         grid_index = w->grid->n_tiles - 1;
+      }
 
-        struct surface_molecule_list *sm_list = w->grid->sm_list[grid_index];
-        if (sm_list && sm_list->sm) {
-          failure++;
-        }
-        else {
-          struct vector3 pos3d = {.x = 0, .y = 0, .z = 0};
-          if (place_single_molecule(world, w, grid_index, sm->properties,
-                                    sm->flags, rso->orientation, sm->t, sm->t2,
-                                    sm->birthday, sm->periodic_box, &pos3d) == NULL) {
-            struct vector3 llf, urb;
-            if (world->periodic_box_obj) {
-              struct polygon_object *p = (struct polygon_object*)(world->periodic_box_obj->contents);
-              struct subdivided_box *sb = p->sb;
-              llf = (struct vector3) {sb->x[0], sb->y[0], sb->z[0]};
-              urb = (struct vector3) {sb->x[1], sb->y[1], sb->z[1]};
-            }
-            if (world->periodic_box_obj && !point_in_box(&llf, &urb, &pos3d)) {
-              mcell_log("Cannot release '%s' outside of periodic boundaries.",
-                        sm->properties->sym->name);
-              failure++;
-              continue;
-            }
-            return 1;
+      struct surface_molecule_list *sm_list = w->grid->sm_list[grid_index];
+      if (sm_list && sm_list->sm) {
+        failure++;
+      }
+      else {
+        struct vector3 pos3d = {.x = 0, .y = 0, .z = 0};
+        if (place_single_molecule(world, w, grid_index, sm->properties,
+                                  sm->flags, rso->orientation, sm->t, sm->t2,
+                                  sm->birthday, sm->periodic_box, &pos3d) == NULL) {
+          struct vector3 llf, urb;
+          if (world->periodic_box_obj) {
+            struct polygon_object *p = (struct polygon_object*)(world->periodic_box_obj->contents);
+            struct subdivided_box *sb = p->sb;
+            llf = (struct vector3) {sb->x[0], sb->y[0], sb->z[0]};
+            urb = (struct vector3) {sb->x[1], sb->y[1], sb->z[1]};
           }
-          success++;
-          n--;
+          if (world->periodic_box_obj && !point_in_box(&llf, &urb, &pos3d)) {
+            mcell_log("Cannot release '%s' outside of periodic boundaries.",
+                      sm->properties->sym->name);
+            failure++;
+            continue;
+          }
+          return 1;
         }
+        success++;
+        n--;
+      }
     } else {
       if (world->periodic_box_obj) {
         return 1;
