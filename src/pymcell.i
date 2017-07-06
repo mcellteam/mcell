@@ -107,6 +107,9 @@
 //import_array();
 //%}
 
+/*Add functions for user interfacing */
+%pythoncode "pymcell_helpers.py"
+
 %include "mcell_init.i"
 %include "mcell_misc.i"
 %include "mcell_objects.i"
@@ -120,10 +123,6 @@
 %include "mcell_structs.i"
 %include "mcell_dyngeom.i"
 %include "vector.i"
-
-
-/*Add functions for user interfacing */
-%pythoncode "pymcell_helpers.py"
 
 // Generate docstrings
 %feature("autodoc", "0");
