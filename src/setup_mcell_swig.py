@@ -8,6 +8,17 @@ setup.py file for pyMCell
 """
 
 from distutils.core import setup, Extension
+from distutils.command.build import build
+
+
+class CustomBuild(build):
+    sub_commands = [
+        ('build_ext', build.has_ext_modules),
+        ('build_py', build.has_pure_modules),
+        ('build_clib', build.has_c_libraries),
+        ('build_scripts', build.has_scripts),
+    ]
+
 
 
 mcell_module = Extension(
@@ -52,14 +63,16 @@ mcell_module = Extension(
         'rng.c',
         'viz_output.c',
         'mcell_run.c',
-        'volume_output.c'])                           
+        'volume_output.c'],
+    swig_opts=['-py3'])                           
 
 setup (name = 'pymcell',
        version = '0.1',
-       author      = "The MCell team",
+       author = "The MCell team",
        description = """Python bindings to libmcell""",
        author_email = "mcell-devel@salk.edu",
        ext_modules = [mcell_module],
        license = 'GPL v2',
        py_modules = ["pymcell"],
+       cmdclass={'build': CustomBuild},
        )
