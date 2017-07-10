@@ -27,11 +27,11 @@
 #include "mcell_init.h"
 #include "mcell_structs.h"
 
-void mcell_print_version();
+void mcell_print_version(void);
 
 void mcell_print_usage(const char *executable_name);
 
-void mcell_print_stats();
+void mcell_print_stats(void);
 
 int mcell_argparse(int argc, char **argv, MCELL_STATE *state);
 

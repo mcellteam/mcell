@@ -39,7 +39,7 @@
 #include "count_util.h"
 
 /* static helper functions */
-static struct output_column *new_output_column();
+static struct output_column *new_output_column(void);
 
 static struct output_block *new_output_block(int buffersize);
 
