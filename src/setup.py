@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
 # commands to run setup of swig files 
-# swig -python pymcell.i  
+# swig -python -py3 -ltypemaps pymcell.i  
+# python setup.py build_ext --inplace
 
 """
 setup.py file for pyMCell
