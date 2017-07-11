@@ -10,7 +10,14 @@ setup.py file for pyMCell
 
 from distutils.core import setup, Extension
 from distutils.command.build import build
+import os
 
+
+class CustomBuild(build):
+    def run(self):
+        os.system("swig -python -py3 -ltypemaps pymcell.i")
+        self.run_command('build_ext')
+        build.run(self)
 
 # class CustomBuild(build):
 #     sub_commands = [
@@ -53,7 +60,7 @@ mcell_module = Extension(
         'mcell_viz.c',
         'mcell_dyngeom.c',
         'mem_util.c',
-        # 'pymcell.i',
+        # 'pymcell_main.i',
         'react_cond.c',
         'react_outc_trimol.c',
         'react_output.c',
@@ -82,6 +89,6 @@ setup (name = 'pymcell',
        author_email = "mcell-devel@salk.edu",
        ext_modules = [mcell_module],
        license = 'GPL v2',
-       py_modules = ["pymcell2"],
-       # cmdclass={'build': CustomBuild},
+       py_modules = ["pymcell"],
+       cmdclass={'build': CustomBuild},
        )
