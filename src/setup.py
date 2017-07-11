@@ -10,14 +10,15 @@ setup.py file for pyMCell
 
 from distutils.core import setup, Extension
 from distutils.command.build import build
-import os
+import shutil
 
 
-# class CustomBuild(build):
-#     def run(self):
-#         os.system("swig -python -py3 -ltypemaps pymcell.i")
-#         self.run_command('build_ext')
-#         build.run(self)
+class CustomBuild(build):
+    def run(self):
+        shutil.copy("../appveyor_windows/config.h", ".")
+        shutil.copy("../appveyor_windows/version.h", ".")
+        self.run_command('build_ext')
+        build.run(self)
 
 # class CustomBuild(build):
 #     sub_commands = [
@@ -32,7 +33,6 @@ import os
 mcell_module = Extension(
     '_pymcell',
     sources=[
-        # 'pymcell_wrap.c',
         'argparse.c',
         'chkpt.c',
         'count_util.c',
@@ -90,5 +90,5 @@ setup (name = 'pymcell',
        ext_modules = [mcell_module],
        license = 'GPL v2',
        py_modules = ["pymcell"],
-       # cmdclass={'build': CustomBuild},
+       cmdclass={'build': CustomBuild},
        )
