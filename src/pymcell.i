@@ -101,12 +101,6 @@
 
 %}
 
-// Code included verbatim into the generated wrapper where the Python module
-//  gets initialized
-//%init%{
-//import_array();
-//%}
-
 /*Add functions for user interfacing */
 %pythoncode "pymcell_helpers.py"
 
