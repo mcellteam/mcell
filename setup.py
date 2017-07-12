@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 
-# commands to run setup of swig files 
-# swig -python -py3 -ltypemaps pymcell.i  
-# python setup.py build_ext --inplace
+# command to build pymcell 
+# python setup.py build
+# command to create pymcell tarball
+# python setup.py sdist
 
 """
 setup.py file for pyMCell
@@ -89,7 +90,6 @@ mcell_module = Extension(
     extra_compile_args=['-O2'])                           
 
 setup (name = 'pymcell',
-       # packages = ['src'],
        version = '0.1',
        author = "The MCell team",
        description = """Python bindings to libmcell""",
