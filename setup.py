@@ -12,24 +12,28 @@ from distutils.core import setup, Extension
 from distutils.command.build import build
 from distutils.command.sdist import sdist
 import shutil
+import sys
+
+
+def disallow_python2():
+    if sys.version_info[0] == 2:
+        sys.exit("Sorry, Python 2 is not supported.")
 
 
 class CustomBuild(build):
     def run(self):
+        disallow_python2()
         shutil.copy("./appveyor_windows/config.h", "./src")
         shutil.copy("./appveyor_windows/version.h", "./src")
         self.run_command('build_ext')
         shutil.copy("./src/pymcell.py", ".")
         build.run(self)
 
-# class CustomBuild(build):
-#     sub_commands = [
-#         ('build_ext', build.has_ext_modules),
-#         ('build_py', build.has_pure_modules),
-#         ('build_clib', build.has_c_libraries),
-#         ('build_scripts', build.has_scripts),
-#     ]
 
+class CustomSDist(sdist):
+    def run(self):
+        disallow_python2()
+        sdist.run(self)
 
 
 mcell_module = Extension(
@@ -95,5 +99,6 @@ setup (name = 'pymcell',
        ext_modules = [mcell_module],
        license = 'GPL v2',
        py_modules = ["pymcell"],
-       cmdclass={'build': CustomBuild},
+       cmdclass={'build': CustomBuild, 'sdist': CustomSDist},
        )
+
