@@ -1,0 +1,3 @@
+recursive-include src *.c *.h *.i
+recursive-include appveyor_windows *.h
+include *.py

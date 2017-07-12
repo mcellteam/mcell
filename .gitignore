@@ -46,3 +46,5 @@ docs/doxygen
 pymcell.py
 pymcell_wrap.c
 _pymcell*.so
+MANIFEST
+dist

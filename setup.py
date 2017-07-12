@@ -10,13 +10,14 @@ setup.py file for pyMCell
 
 from distutils.core import setup, Extension
 from distutils.command.build import build
+from distutils.command.sdist import sdist
 import shutil
 
 
 class CustomBuild(build):
     def run(self):
-        shutil.copy("./appveyor_windows/config.h", ".")
-        shutil.copy("./appveyor_windows/version.h", ".")
+        shutil.copy("./appveyor_windows/config.h", "./src")
+        shutil.copy("./appveyor_windows/version.h", "./src")
         self.run_command('build_ext')
         shutil.copy("./src/pymcell.py", ".")
         build.run(self)
