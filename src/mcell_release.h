@@ -89,3 +89,7 @@ new_release_region_expr_binary(struct release_evaluator *reL,
 void set_release_site_location(MCELL_STATE *state,
                                struct release_site_obj *rel_site_obj_ptr,
                                struct vector3 *location);
+
+struct sym_entry *existing_region(MCELL_STATE *state,
+								  struct sym_entry *obj_symp,
+								  char *region_name);

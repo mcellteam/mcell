@@ -33,10 +33,6 @@
 #include "mcell_objects.h"
 
 /* static helper functions */
-struct sym_entry *existing_region(MCELL_STATE *state,
-								  struct sym_entry *obj_symp,
-								  char *region_name);
-
 static struct release_site_obj *new_release_site(MCELL_STATE *state,
 												 char *name);
 
