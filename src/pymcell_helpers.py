@@ -32,6 +32,7 @@ class MCellSim(object):
         self._world = m.mcell_create()
         self._species = {}
         self._objects = {}
+        self._releases = {}
         self._iterations = 0
         m.mcell_init_state(self._world)
         # This is the world object. We just call it "Scene" here to be consistent
@@ -64,7 +65,6 @@ class MCellSim(object):
 
 
     def add_geometry(self, geom):
-
         mesh = m.create_polygon_object(
             self._world,
             geom.vert_list,
@@ -75,6 +75,24 @@ class MCellSim(object):
             self._world, mesh, geom.surf_reg_face_list, geom.reg_name)
         if geom.obj_name not in self._objects:
             self._objects[geom.obj_name] = mesh
+
+
+    def add_viz(self, species):
+        viz_list = None
+        for spec in species:
+            viz_list = m.mcell_add_to_species_list(
+                self._species[spec.name], False, 0, viz_list)
+        m.mcell_create_viz_output(
+            self._world, "./viz_data/test", viz_list, 0, self._iterations, 1)
+
+
+    def release_into_obj(self, geom, mol):
+        rel_name = "%s_%s_rel" % (mol.name, geom.obj_name)
+        release_object = m.create_region_release_site(
+            self._world, self._scene, self._objects[geom.obj_name],
+            "vm1_torus_rel", "ALL", 1000, 0, self._species[mol.name])
+        if rel_name not in self._releases:
+            self._releases[rel_name] = release_object
 
 
     def run_iteration(self):

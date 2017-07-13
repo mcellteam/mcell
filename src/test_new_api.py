@@ -9,17 +9,24 @@ def main():
     world.set_time_step(1e-5)
     world.set_iterations(100)
 
+    # define species
     vm1 = m.Species("vm1", 1e-6)
     vm2 = m.Species("vm2", 1e-6)
     vm3 = m.Species("vm3", 1e-6)
 
+    # define reaction
     rxn = m.Reaction((vm1, vm2), (vm3, ), 1e6)
+    world.add_reaction(rxn)
 
+    # create torus object
     torus_obj = m.PolyObj("Torus", "half", torus.vert_list,
-                        torus.face_list, torus.surf_reg_face_list)
+                          torus.face_list, torus.surf_reg_face_list)
     world.add_geometry(torus_obj)
 
-    world.add_reaction(rxn)
+    world.release_into_obj(torus_obj, vm1)
+
+    world.add_viz((vm1, vm2, vm3))
+
     world.run_sim()
 
     # # Define one surface molecule and three volume molecules
