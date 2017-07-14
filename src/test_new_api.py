@@ -25,7 +25,7 @@ def main():
                           torus.face_list, torus.surf_reg_face_list)
     world.add_geometry(torus_obj)
 
-    #release molecules into torus
+    # release molecules into torus
     world.release_into_obj(torus_obj, vm1, 1000)
     world.release_into_obj(torus_obj, vm2, 1000)
 
@@ -45,6 +45,7 @@ def main():
     #     world.run_iteration()
     # world.end_sim()
     world.run_sim()
+
 
 if __name__ == "__main__":
     main()
