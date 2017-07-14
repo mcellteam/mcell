@@ -23,20 +23,22 @@ def main():
                           torus.face_list, torus.surf_reg_face_list)
     world.add_geometry(torus_obj)
 
+    #release molecules into torus
     world.release_into_obj(torus_obj, vm1, 1000)
     world.release_into_obj(torus_obj, vm2, 1000)
 
+    # viz and reaction data
     world.add_viz((vm1, vm2, vm3))
-
     world.add_count(vm1, torus_obj)
     world.add_count(vm2, torus_obj)
     world.add_count(vm3, torus_obj)
 
-    # Set partitions
+    # set partitions
     world.add_partitions('x', -1.3, 1.3, 0.05)
     world.add_partitions('y', -1.3, 1.3, 0.05)
     world.add_partitions('z', -0.275, 0.275, 0.05)
 
+    # run the simulation! :)
     world.run_sim()
 
 if __name__ == "__main__":
