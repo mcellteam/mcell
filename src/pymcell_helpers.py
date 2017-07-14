@@ -86,11 +86,11 @@ class MCellSim(object):
             self._world, "./viz_data/test", viz_list, 0, self._iterations, 1)
 
 
-    def release_into_obj(self, geom, mol):
+    def release_into_obj(self, geom, mol, count):
         rel_name = "%s_%s_rel" % (mol.name, geom.obj_name)
         release_object = m.create_region_release_site(
             self._world, self._scene, self._objects[geom.obj_name],
-            "vm1_torus_rel", "ALL", 1000, 0, self._species[mol.name])
+            rel_name, "ALL", count, 0, self._species[mol.name])
         if rel_name not in self._releases:
             self._releases[rel_name] = release_object
 
