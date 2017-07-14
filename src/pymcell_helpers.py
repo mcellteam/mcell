@@ -33,6 +33,7 @@ class MCellSim(object):
         self._species = {}
         self._objects = {}
         self._releases = {}
+        self._counts = {}
         self._iterations = 0
         m.mcell_init_state(self._world)
         # This is the world object. We just call it "Scene" here to be consistent
@@ -103,6 +104,17 @@ class MCellSim(object):
         elif axis == "z":
             axis_num = 2
         m.create_partitions(self._world, axis_num, start, stop, step)
+
+
+    def add_count(self, species, geom):
+        species_sym = self._species[species.name]
+        mesh = self._objects[geom.obj_name]
+        mesh_sym = m.mcell_get_obj_sym(mesh)
+        count_str = "%s_%s" % (species.name, geom.obj_name)
+        count_list, os, out_times, output = m.create_count(
+            self._world, mesh_sym, species_sym,
+            "react_data/%s.dat" % count_str, 1e-5)
+        self._counts[count_str] = (count_list, os, out_times, output)
 
 
     def run_iteration(self):
