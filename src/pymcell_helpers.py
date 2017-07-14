@@ -40,8 +40,8 @@ class MCellSim(object):
         self._finished = False
         self._output_freq = 10
         m.mcell_init_state(self._world)
-        # This is the world object. We just call it "Scene" here to be consistent
-        # with the MDL output from Blender.
+        # This is the top level instance object. We just call it "Scene" here
+        # to be consistent with the MDL output from Blender.
         self._scene = m.create_instance_object(self._world, "Scene")
 
     def __del__(self):
@@ -52,7 +52,7 @@ class MCellSim(object):
 
     def set_time_step(self, dt):
         m.mcell_set_time_step(self._world, dt)
-        
+
     def set_iterations(self, iterations):
         m.mcell_set_iterations(self._world, iterations)
         self._iterations = iterations
@@ -65,15 +65,16 @@ class MCellSim(object):
                 self._world, r.name, r.diffusion_constant, r.surface)
             if r.name not in self._species:
                 self._species[r.name] = r_sym
-            r_spec_list = m.mcell_add_to_species_list(r_sym, False, 0, r_spec_list)
+            r_spec_list = m.mcell_add_to_species_list(
+                r_sym, False, 0, r_spec_list)
         for p in rxn.products:
             p_sym = m.create_species(
                 self._world, p.name, p.diffusion_constant, p.surface)
             if p.name not in self._species:
                 self._species[p.name] = p_sym
-            p_spec_list = m.mcell_add_to_species_list(p_sym, False, 0, p_spec_list)
+            p_spec_list = m.mcell_add_to_species_list(
+                p_sym, False, 0, p_spec_list)
         m.create_reaction(self._world, r_spec_list, p_spec_list, rxn.rate)
-
 
     def add_geometry(self, geom):
         mesh = m.create_polygon_object(
@@ -87,7 +88,6 @@ class MCellSim(object):
         if geom.obj_name not in self._objects:
             self._objects[geom.obj_name] = mesh
 
-
     def add_viz(self, species):
         viz_list = None
         for spec in species:
@@ -96,7 +96,6 @@ class MCellSim(object):
         m.mcell_create_viz_output(
             self._world, "./viz_data/test", viz_list, 0, self._iterations, 1)
 
-
     def release_into_obj(self, geom, mol, count):
         rel_name = "%s_%s_rel" % (mol.name, geom.obj_name)
         release_object = m.create_region_release_site(
@@ -104,7 +103,6 @@ class MCellSim(object):
             rel_name, "ALL", count, 0, self._species[mol.name])
         if rel_name not in self._releases:
             self._releases[rel_name] = release_object
-
 
     def add_partitions(self, axis, start, stop, step):
         if axis == "x":
@@ -115,7 +113,6 @@ class MCellSim(object):
             axis_num = 2
         m.create_partitions(self._world, axis_num, start, stop, step)
 
-
     def add_count(self, species, geom):
         species_sym = self._species[species.name]
         mesh = self._objects[geom.obj_name]
@@ -125,7 +122,6 @@ class MCellSim(object):
             self._world, mesh_sym, species_sym,
             "react_data/%s.dat" % count_str, 1e-5)
         self._counts[count_str] = (count_list, os, out_times, output)
-
 
     def run_iteration(self):
         if self._finished:
@@ -146,7 +142,6 @@ class MCellSim(object):
             self._finished = True
         self._current_iteration += 1
 
-
     def run_sim(self):
         if self._finished:
             print("The simulation is done running")
@@ -161,7 +156,6 @@ class MCellSim(object):
         m.mcell_print_final_warnings(self._world)
         m.mcell_print_final_statistics(self._world)
         self._finished = True
-
 
     def end_sim(self):
         # Call this if we end the simulation early
@@ -188,19 +182,19 @@ class Reaction(object):
 
 
 def create_partitions(world, axis, start, stop, step):
-    expr_list = m.num_expr_list_head() 
+    expr_list = m.num_expr_list_head()
     expr_list.value_head = None
     expr_list.value_tail = None
     expr_list.value_count = 0
     expr_list.shared = 1
-    m.mcell_generate_range(expr_list, start, stop, step) 
+    m.mcell_generate_range(expr_list, start, stop, step)
     expr_list.shared = 1
     m.mcell_set_partition(world, axis, expr_list)
 
 
-def create_release_pattern(world, name, delay=0, 
-    release_interval=1e20, train_interval=1e20, 
-    train_duration=1e20, number_of_trains=1):
+def create_release_pattern(
+    world, name, delay=0, release_interval=1e20, train_interval=1e20,
+        train_duration=1e20, number_of_trains=1):
     """Create a release pattern
 
     Args:
@@ -210,7 +204,10 @@ def create_release_pattern(world, name, delay=0,
         other arguments -- as listed
     """
 
-    return m.mcell_create_release_pattern(world,name,delay,release_interval,train_interval,train_duration,number_of_trains)
+    return m.mcell_create_release_pattern(
+        world, name, delay, release_interval, train_interval, train_duration,
+        number_of_trains)
+
 
 def create_count(world, where, mol_sym, file_path, step):
     """Creates a count for a specified molecule in a specified region
@@ -288,48 +285,6 @@ def create_species(world, name, D, is_2d, custom_time_step=0):
         world, species_def, species_temp_sym)
 
     return species_sym
-
-
-# def create_reaction_pythonic(
-#         world, py_reactants, py_products, rate_constant,
-#         backward_rate_constant=0.0, surf_class=None, name=None):
-
-#     """Creates a molecular reaction
-
-#     Args:
-#         world (object) -- the world object which has been generated by
-#             mcell create_instance_object
-#         reactants (python list) -- list of species that are the
-#             reactants for the reaction.
-#         products (python list) -- list of species that are the
-#             products for the reaction
-
-#     """
-
-#     arrow = m.reaction_arrow()
-#     arrow.flags = m.REGULAR_ARROW
-#     rate_constant = m.mcell_create_reaction_rates(
-#         m.RATE_CONSTANT, rate_constant, m.RATE_UNSET, 0)
-#     arrow.catalyst = m.mcell_species()
-#     arrow.catalyst.next = None
-#     arrow.catalyst.mol_type = None
-#     arrow.catalyst.orient_set = 0
-#     arrow.catalyst.orient = 0
-
-#     if (name):
-#         name_sym = m.mcell_new_rxn_pathname(world, name)
-#     else:
-#         name_sym = None
-
-#     for reactant in py_reactants:
-#         pass
-#         # add reactant to list
-#     for product in py_products:
-#         pass
-#         # add reactant to list
-
-#     m.mcell_add_reaction_simplified(
-#         world, reactants, arrow, surf_class, products, rate_constant, name_sym)
 
 
 def create_reaction(
@@ -427,16 +382,19 @@ def create_surf_class(world, name):
     return m.mcell_create_surf_class(world, name, sc_temp)
 
 
-def create_list_release_site(world,scene,mol_list,xpos,ypos,zpos,name,surf_flags=None,orientations=None,diameter=1e-4):
+def create_list_release_site(
+    world, scene, mol_list, xpos, ypos, zpos, name, surf_flags=None,
+        orientations=None, diameter=1e-4):
     '''
     Creates a list release site
     All is self explanatory except mol_list:
-    this is a list of "mol_sym" that you got back when you created the species.
-    This is a Python list - it is converted to a species list in this function for you.
-    By default, assumes all molecules are volume molecules.
-    Else, need to pass surf_flags=[True,True,False,...] and their orientations=[1,0,1,...]
-    Diameter is the diameter we search for to place a surface mol
-    It can be None (= NULL in C) but then we do a poor job of placing surface mols
+    This is a list of "mol_sym" that you get back when you create the species.
+    This is a Python list - it is converted to a species list in this function
+    for you. By default, assumes all molecules are volume molecules. Else, need
+    to pass surf_flags=[True,True,False,...] and their orientations =
+    [1,0,1,...] Diameter is the diameter we search for to place a surface mol
+    It can be None (= NULL in C) but then we do a poor job of placing surface
+    mols
     '''
 
     # Check that they're all the same length
@@ -445,10 +403,12 @@ def create_list_release_site(world,scene,mol_list,xpos,ypos,zpos,name,surf_flags
         raise ValueError("All lists must have the same length.")
 
     # Check that if there are surface molecules
-    if surf_flags != None:
+    if surf_flags is not None:
         # Check that there are enough
         if len(surf_flags) != n or len(orientations) != n:
-            raise ValueError("surf_flags and orientations lists must have the same lengths as the others.")
+            raise ValueError(
+                "surf_flags and orientations lists must have the same lengths "
+                "as the others.")
 
     # Convert to floats (can't be int)
     xpos = [float(q) for q in xpos]
@@ -465,15 +425,19 @@ def create_list_release_site(world,scene,mol_list,xpos,ypos,zpos,name,surf_flags
     mol_list.reverse()
     species_list = None
     # All volume molecules
-    if surf_flags == None:
+    if surf_flags is None:
         for mol_sym in mol_list:
-            species_list = m.mcell_add_to_species_list(mol_sym, False, 0, species_list)
+            species_list = m.mcell_add_to_species_list(
+                mol_sym, False, 0, species_list)
     else:
-        for i,mol_sym in enumerate(mol_list):
-            species_list = m.mcell_add_to_species_list(mol_sym, surf_flags[i], orientations[i], species_list)
+        for i, mol_sym in enumerate(mol_list):
+            species_list = m.mcell_add_to_species_list(
+                mol_sym, surf_flags[i], orientations[i], species_list)
 
     rel_object = m.object()
-    ret = m.mcell_create_list_release_site(world,scene,name,species_list,xpos,ypos,zpos,n,diam,rel_object)
+    ret = m.mcell_create_list_release_site(
+        world, scene, name, species_list, xpos, ypos, zpos, n, diam,
+        rel_object)
     # Delete the species list
     m.mcell_delete_species_list(species_list)
 
@@ -493,7 +457,7 @@ def create_release_site(
         pos (vector3) -- position of release site
         diam (vector3) -- diameter of release site
         number (int or float) -- number to be release at release site
-        number_type (int) -- 0 for NUMBER, 1 for CONCENTRATION 
+        number_type (int) -- 0 for NUMBER, 1 for CONCENTRATION
         mol_sym (mcell_symbol) -- species to be released
         name (string) -- name of the release site
 
@@ -514,15 +478,16 @@ def create_release_site(
     mol_list = m.mcell_add_to_species_list(mol_sym, False, 0, None)
     rel_object = m.object()
     release_object = m.mcell_create_geometrical_release_site(
-        world, scene, name, shape, position, diameter, mol_list, float(number), number_type, 1,
-        None, rel_object)
+        world, scene, name, shape, position, diameter, mol_list, float(number),
+        number_type, 1, None, rel_object)
     m.mcell_delete_species_list(mol_list)
 
     return (position, diameter, release_object)
 
 
 def create_region_release_site(
-        world, scene, mesh, release_name, reg_name, number, number_type, mol_sym):
+        world, scene, mesh, release_name, reg_name, number, number_type,
+        mol_sym):
     """Creates a release site on a specific region
 
     Args:
@@ -532,8 +497,9 @@ def create_region_release_site(
         mesh (mesh object) -- scene object where the release will occur
         release_name (string) -- name of the region release site
         reg_name (string) -- name of the region for the release site
-        number (int or float) -- number to be released at the region release site
-        number_type (int) -- 0 for NUMBER, 1 for CONCENTRATION 
+        number (int or float) -- number to be released at the region release
+            site
+        number_type (int) -- 0 for NUMBER, 1 for CONCENTRATION
         mol_sym (mcell_symbol) -- species to be released
 
     Returns:
@@ -544,8 +510,8 @@ def create_region_release_site(
     mol_list = m.mcell_add_to_species_list(mol_sym, False, 0, None)
     rel_object = m.object()
     release_object = m.mcell_create_region_release(
-        world, scene, mesh, release_name, reg_name, mol_list, float(number), number_type, 1, None,
-        rel_object)
+        world, scene, mesh, release_name, reg_name, mol_list, float(number),
+        number_type, 1, None, rel_object)
     m.mcell_delete_species_list(mol_list)
 
     return release_object
@@ -626,7 +592,7 @@ def change_geometry(world, scene_name, obj_list):
             surf_reg_faces = m.mcell_add_to_region_list(surf_reg_faces, idx)
 
         pobj_list = m.mcell_add_to_poly_obj_list(
-                pobj_list, p.obj_name, verts, len(p.vert_list), elems, 
+                pobj_list, p.obj_name, verts, len(p.vert_list), elems,
                 len(p.face_list), surf_reg_faces, p.reg_name)
 
     m.mcell_change_geometry(world, pobj_list)
