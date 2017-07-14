@@ -44,6 +44,9 @@ class MCellSim(object):
         # with the MDL output from Blender.
         self._scene = m.create_instance_object(self._world, "Scene")
 
+    def __del__(self):
+        self.end_sim()
+
     def set_output_freq(self, output_freq):
         self._output_freq = output_freq
 
