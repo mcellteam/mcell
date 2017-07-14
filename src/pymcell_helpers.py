@@ -30,15 +30,22 @@ class Vector3(object):
 class MCellSim(object):
     def __init__(self):
         self._world = m.mcell_create()
+        self._started = False
         self._species = {}
         self._objects = {}
         self._releases = {}
         self._counts = {}
         self._iterations = 0
+        self._current_iteration = 0
+        self._finished = False
+        self._output_freq = 10
         m.mcell_init_state(self._world)
         # This is the world object. We just call it "Scene" here to be consistent
         # with the MDL output from Blender.
         self._scene = m.create_instance_object(self._world, "Scene")
+
+    def set_output_freq(self, output_freq):
+        self._output_freq = output_freq
 
     def set_time_step(self, dt):
         m.mcell_set_time_step(self._world, dt)
@@ -118,19 +125,48 @@ class MCellSim(object):
 
 
     def run_iteration(self):
-        pass
+        if self._finished:
+            print("The simulation is done running")
+            return
+
+        if not self._started:
+            m.mcell_init_simulation(self._world)
+            m.mcell_init_output(self._world)
+            self._started = True
+        if self._current_iteration <= self._iterations:
+            m.mcell_run_iteration(self._world, self._output_freq, 0)
+        # You have to kill it now or it will hang
+        if self._current_iteration == self._iterations:
+            m.mcell_flush_data(self._world)
+            m.mcell_print_final_warnings(self._world)
+            m.mcell_print_final_statistics(self._world)
+            self._finished = True
+        self._current_iteration += 1
 
 
     def run_sim(self):
+        if self._finished:
+            print("The simulation is done running")
+            return
+
         m.mcell_init_simulation(self._world)
         m.mcell_init_output(self._world)
 
-        output_freq = 10
         for i in range(self._iterations+1):
-            m.mcell_run_iteration(self._world, output_freq, 0)
+            m.mcell_run_iteration(self._world, self._output_freq, 0)
         m.mcell_flush_data(self._world)
         m.mcell_print_final_warnings(self._world)
         m.mcell_print_final_statistics(self._world)
+        self._finished = True
+
+
+    def end_sim(self):
+        # Call this if we end the simulation early
+        if self._started and not self._finished:
+            m.mcell_flush_data(self._world)
+            m.mcell_print_final_warnings(self._world)
+            m.mcell_print_final_statistics(self._world)
+            self._finished = True
 
 
 class Species(object):

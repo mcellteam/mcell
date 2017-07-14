@@ -5,9 +5,11 @@ import torus
 
 
 def main():
+    iterations = 100
     world = m.MCellSim()
     world.set_time_step(1e-5)
-    world.set_iterations(100)
+    world.set_iterations(iterations)
+    world.set_output_freq(1)
 
     # define species
     vm1 = m.Species("vm1", 1e-6)
@@ -39,6 +41,9 @@ def main():
     world.add_partitions('z', -0.275, 0.275, 0.05)
 
     # run the simulation! :)
+    # for i in range(iterations+1):
+    #     world.run_iteration()
+    # world.end_sim()
     world.run_sim()
 
 if __name__ == "__main__":
