@@ -95,6 +95,16 @@ class MCellSim(object):
             self._releases[rel_name] = release_object
 
 
+    def add_partitions(self, axis, start, stop, step):
+        if axis == "x":
+            axis_num = 0
+        elif axis == "y":
+            axis_num = 1
+        elif axis == "z":
+            axis_num = 2
+        m.create_partitions(self._world, axis_num, start, stop, step)
+
+
     def run_iteration(self):
         pass
 

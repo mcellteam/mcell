@@ -28,12 +28,12 @@ def main():
 
     world.add_viz((vm1, vm2, vm3))
 
-    world.run_sim()
+    # Set partitions
+    world.add_partitions('x', -1.3, 1.3, 0.05)
+    world.add_partitions('y', -1.3, 1.3, 0.05)
+    world.add_partitions('z', -0.275, 0.275, 0.05)
 
-    # # Set partitions
-    # m.create_partitions(world, 0, -1.3, 1.3, 0.05)
-    # m.create_partitions(world, 1, -1.3, 1.3, 0.05)
-    # m.create_partitions(world, 2, -0.275, 0.275, 0.05)
+    world.run_sim()
 
 if __name__ == "__main__":
     main()
