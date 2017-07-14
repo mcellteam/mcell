@@ -27,12 +27,22 @@ class Vector3(object):
         self.z = z
 
 
+class SurfaceClass(object):
+    def __init__(self, sc_name, sc_type, species, orient=0):
+        self.sc_name = sc_name
+        self.sc_type = sc_type
+        self.species = species
+        self.orient = orient
+
+
 class MCellSim(object):
     def __init__(self):
         self._world = m.mcell_create()
         self._started = False
         self._species = {}
+        self._surface_classes = {}
         self._objects = {}
+        self._regions = {}
         self._releases = {}
         self._counts = {}
         self._iterations = 0
@@ -83,10 +93,13 @@ class MCellSim(object):
             geom.face_list,
             self._scene,
             geom.obj_name)
-        region_sym = m.create_surface_region(
+        region = m.create_surface_region(
             self._world, mesh, geom.surf_reg_face_list, geom.reg_name)
         if geom.obj_name not in self._objects:
             self._objects[geom.obj_name] = mesh
+        full_reg_name = "%s[%s]" % (geom.obj_name, geom.reg_name)
+        if geom.reg_name not in self._regions:
+            self._regions[full_reg_name] = region
 
     def add_viz(self, species):
         viz_list = None
@@ -122,6 +135,24 @@ class MCellSim(object):
             self._world, mesh_sym, species_sym,
             "react_data/%s.dat" % count_str, 1e-5)
         self._counts[count_str] = (count_list, os, out_times, output)
+
+    def assign_surf_class(self, sc, region_name):
+
+        if sc.sc_type == "reflect":
+            sc_type = m.RFLCT
+        elif sc.sc_type == "transparent":
+            sc_type = m.TRANSP
+        elif sc.sc_type == "absorptive":
+            sc_type = m.SINK
+        else:
+            print("Surface class '%s' is not a valid option" % sc_type)
+        sc_sym = m.create_surf_class(self._world, sc.sc_name)
+        self._surface_classes[sc.sc_name] = sc_sym
+        spec_sym = self._species[sc.species.name]
+        m.mcell_add_surf_class_properties(
+            self._world, sc_type, sc_sym, spec_sym, sc.orient)
+        region = self._regions[region_name]
+        m.mcell_assign_surf_class_to_region(sc_sym, region)
 
     def run_iteration(self):
         if self._finished:

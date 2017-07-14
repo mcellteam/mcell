@@ -25,6 +25,11 @@ def main():
                           torus.face_list, torus.surf_reg_face_list)
     world.add_geometry(torus_obj)
 
+    # world.add_surf_class('sc', 'absorptive', vm1)
+    sc = m.SurfaceClass('sc', 'absorptive', vm1)
+    # XXX: we should use an object to get the region, not a string
+    world.assign_surf_class(sc, 'Torus[half]')
+
     # release molecules into torus
     world.release_into_obj(torus_obj, vm1, 1000)
     world.release_into_obj(torus_obj, vm2, 1000)
