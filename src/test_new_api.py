@@ -17,7 +17,7 @@ def main():
     vm3 = m.Species("vm3", 1e-6)
 
     # define reaction
-    rxn = m.Reaction((vm1, vm2), (vm3, ), 1e8)
+    rxn = m.Reaction((vm1, vm2), (vm3, ), 1e8, "create_vm3")
     world.add_reaction(rxn)
 
     # create torus object
@@ -25,8 +25,9 @@ def main():
     torus_reg = m.SurfaceRegion(torus_obj, 'half', torus.surf_reg_face_list)
     world.add_geometry(torus_obj)
 
-    sc = m.SurfaceClass('sc', 'absorptive', vm1)
-    world.assign_surf_class(sc, torus_reg)
+    # Create surface class to absorb vm1
+    # sc = m.SurfaceClass('sc', 'absorptive', vm1)
+    # world.assign_surf_class(sc, torus_reg)
 
     # release molecules into torus
     world.release_into_obj(torus_obj, vm1, 1000)
@@ -44,10 +45,13 @@ def main():
     world.add_partitions('z', -0.275, 0.275, 0.05)
 
     # run the simulation! :)
-    # for i in range(iterations+1):
-    #     world.run_iteration()
+    for i in range(iterations+1):
+        vm3_count = world.get_molecule_count(vm3, torus_obj)
+        if (vm3_count > 50):
+            world.modify_rate_constant(rxn, 1e12)
+        world.run_iteration()
+    # world.run_sim()
     # world.end_sim()
-    world.run_sim()
 
 
 if __name__ == "__main__":

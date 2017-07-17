@@ -93,7 +93,8 @@ class MCellSim(object):
                 self._species[p.name] = p_sym
             p_spec_list = m.mcell_add_to_species_list(
                 p_sym, False, 0, p_spec_list)
-        m.create_reaction(self._world, r_spec_list, p_spec_list, rxn.rate)
+        m.create_reaction(
+            self._world, r_spec_list, p_spec_list, rxn.rate, name=rxn.name)
 
     def add_geometry(self, geom):
         mesh = m.create_polygon_object(
@@ -163,6 +164,17 @@ class MCellSim(object):
             self._world, sc_type, sc_sym, spec_sym, sc.orient)
         region_swig_obj = self._regions[region.full_reg_name]
         m.mcell_assign_surf_class_to_region(sc_sym, region_swig_obj)
+
+    def get_molecule_count(self, molecule, geom):
+        return m.mcell_get_count(
+            molecule.name, "Scene.%s,ALL" % geom.obj_name, self._world)
+
+    def modify_rate_constant(self, rxn, new_rate_constant):
+        if not rxn.name:
+            print("You can only change a named reaction.")
+        else:
+            m.mcell_modify_rate_constant(
+                self._world, rxn.name, new_rate_constant)
 
     def run_iteration(self):
         if self._finished:
