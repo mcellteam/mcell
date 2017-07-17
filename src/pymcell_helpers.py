@@ -45,7 +45,7 @@ class SurfaceClass(object):
 
 
 class MCellSim(object):
-    def __init__(self):
+    def __init__(self, seed):
         self._world = m.mcell_create()
         self._started = False
         self._species = {}
@@ -58,6 +58,8 @@ class MCellSim(object):
         self._current_iteration = 0
         self._finished = False
         self._output_freq = 10
+        self._seed = seed
+        m.mcell_set_seed(self._world, seed)
         m.mcell_init_state(self._world)
         # This is the top level instance object. We just call it "Scene" here
         # to be consistent with the MDL output from Blender.
@@ -75,6 +77,10 @@ class MCellSim(object):
     def set_iterations(self, iterations):
         m.mcell_set_iterations(self._world, iterations)
         self._iterations = iterations
+
+    # def set_seed(self, seed):
+    #     self._seed = seed
+    #     m.mcell_set_seed(self._world, seed)
 
     def add_reaction(self, rxn):
         r_spec_list = None
@@ -118,7 +124,7 @@ class MCellSim(object):
             viz_list = m.mcell_add_to_species_list(
                 self._species[spec.name], False, 0, viz_list)
         m.mcell_create_viz_output(
-            self._world, "./viz_data/test", viz_list, 0, self._iterations, 1)
+            self._world, "./viz_data/seed_%04i/Scene" % self._seed, viz_list, 0, self._iterations, 1)
 
     def release_into_obj(self, geom, mol, count):
         rel_name = "%s_%s_rel" % (mol.name, geom.obj_name)
@@ -141,10 +147,9 @@ class MCellSim(object):
         species_sym = self._species[species.name]
         mesh = self._objects[geom.obj_name]
         mesh_sym = m.mcell_get_obj_sym(mesh)
-        count_str = "%s_%s" % (species.name, geom.obj_name)
+        count_str = "react_data/seed_%04d/%s_%s" % (self._seed, species.name, geom.obj_name)
         count_list, os, out_times, output = m.create_count(
-            self._world, mesh_sym, species_sym,
-            "react_data/%s.dat" % count_str, 1e-5)
+            self._world, mesh_sym, species_sym, count_str, 1e-5)
         self._counts[count_str] = (count_list, os, out_times, output)
 
     def assign_surf_class(self, sc, region):

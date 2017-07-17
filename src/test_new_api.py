@@ -6,8 +6,10 @@ import torus
 
 def main():
     iterations = 100
-    world = m.MCellSim()
-    world.set_time_step(1e-5)
+    time_step = 1e-5
+    seed = 1
+    world = m.MCellSim(seed)
+    world.set_time_step(time_step)
     world.set_iterations(iterations)
     world.set_output_freq(1)
 
@@ -45,13 +47,13 @@ def main():
     world.add_partitions('z', -0.275, 0.275, 0.05)
 
     # run the simulation! :)
-    for i in range(iterations+1):
-        vm3_count = world.get_molecule_count(vm3, torus_obj)
-        if (vm3_count > 50):
-            world.modify_rate_constant(rxn, 1e12)
-        world.run_iteration()
-    # world.run_sim()
-    # world.end_sim()
+    # for i in range(iterations+1):
+    #     vm3_count = world.get_molecule_count(vm3, torus_obj)
+    #     if (vm3_count > 50):
+    #         world.modify_rate_constant(rxn, 1e12)
+    #     world.run_iteration()
+    world.run_sim()
+    world.end_sim()
 
 
 if __name__ == "__main__":
