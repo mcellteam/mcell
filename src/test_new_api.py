@@ -34,6 +34,9 @@ def main():
     # release molecules into torus
     world.release_into_obj(torus_obj, vm1, 1000)
     world.release_into_obj(torus_obj, vm2, 1000)
+    pos_vec3 = m.Vector3()
+    diam_vec3 = m.Vector3(0.015, 0.015, 0.015)
+    world.create_release_site(vm1, 100, "spherical", diam_vec3=diam_vec3)
 
     # viz and reaction data
     world.add_viz((vm1, vm2, vm3))

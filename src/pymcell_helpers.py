@@ -134,6 +134,24 @@ class MCellSim(object):
         if rel_name not in self._releases:
             self._releases[rel_name] = release_object
 
+    def create_release_site(
+            self, species, count, shape, pos_vec3=None, diam_vec3=None):
+        if pos_vec3 == None:
+            pos_vec3 = m.Vector3()
+        if diam_vec3 == None:
+            diam_vec3 = m.Vector3()
+        species_sym = self._species[species.name]
+        rel_name = "%s_%s_rel" % (species.name, shape)
+        if shape == "spherical":
+            shape = m.SHAPE_SPHERICAL
+        elif shape == "cubic":
+            shape = m.SHAPE_CUBIC
+        position, diameter, release_object = m.create_release_site(
+            self._world, self._scene, pos_vec3, diam_vec3, shape,
+            count, 0, species_sym, rel_name)
+        if rel_name not in self._releases:
+            self._releases[rel_name] = (position, diameter, release_object)
+
     def add_partitions(self, axis, start, stop, step):
         if axis == "x":
             axis_num = 0
