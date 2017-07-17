@@ -11,13 +11,22 @@ import pymcell as m
 
 
 class PolyObj(object):
-    def __init__(self, obj_name, reg_name, vert_list, face_list,
-                 surf_reg_face_list):
+    def __init__(self, obj_name, vert_list, face_list):
         self.obj_name = obj_name
-        self.reg_name = reg_name
         self.vert_list = vert_list
         self.face_list = face_list
+        self.regions = []
+
+
+class SurfaceRegion(object):
+    def __init__(self, obj, reg_name, surf_reg_face_list):
+        self.reg_name = reg_name
+        self.full_reg_name= "%s[%s]" % (obj.obj_name, reg_name)
         self.surf_reg_face_list = surf_reg_face_list
+        # Relationship is symmetrical. Every region knows its object. Object
+        # knows its regions.
+        self.obj = obj
+        obj.regions.append(self)
 
 
 class Vector3(object):
@@ -93,13 +102,14 @@ class MCellSim(object):
             geom.face_list,
             self._scene,
             geom.obj_name)
-        region = m.create_surface_region(
-            self._world, mesh, geom.surf_reg_face_list, geom.reg_name)
         if geom.obj_name not in self._objects:
             self._objects[geom.obj_name] = mesh
-        full_reg_name = "%s[%s]" % (geom.obj_name, geom.reg_name)
-        if geom.reg_name not in self._regions:
-            self._regions[full_reg_name] = region
+        for reg in geom.regions:
+            region_swig_obj = m.create_surface_region(
+                self._world, mesh, reg.surf_reg_face_list, reg.reg_name)
+            full_reg_name = "%s[%s]" % (geom.obj_name, reg.reg_name)
+            if reg.reg_name not in self._regions:
+                self._regions[full_reg_name] = region_swig_obj
 
     def add_viz(self, species):
         viz_list = None
@@ -136,7 +146,7 @@ class MCellSim(object):
             "react_data/%s.dat" % count_str, 1e-5)
         self._counts[count_str] = (count_list, os, out_times, output)
 
-    def assign_surf_class(self, sc, region_name):
+    def assign_surf_class(self, sc, region):
 
         if sc.sc_type == "reflect":
             sc_type = m.RFLCT
@@ -151,8 +161,8 @@ class MCellSim(object):
         spec_sym = self._species[sc.species.name]
         m.mcell_add_surf_class_properties(
             self._world, sc_type, sc_sym, spec_sym, sc.orient)
-        region = self._regions[region_name]
-        m.mcell_assign_surf_class_to_region(sc_sym, region)
+        region_swig_obj = self._regions[region.full_reg_name]
+        m.mcell_assign_surf_class_to_region(sc_sym, region_swig_obj)
 
     def run_iteration(self):
         if self._finished:

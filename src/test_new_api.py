@@ -21,14 +21,12 @@ def main():
     world.add_reaction(rxn)
 
     # create torus object
-    torus_obj = m.PolyObj("Torus", "half", torus.vert_list,
-                          torus.face_list, torus.surf_reg_face_list)
+    torus_obj = m.PolyObj("Torus", torus.vert_list, torus.face_list)
+    torus_reg = m.SurfaceRegion(torus_obj, 'half', torus.surf_reg_face_list)
     world.add_geometry(torus_obj)
 
-    # world.add_surf_class('sc', 'absorptive', vm1)
     sc = m.SurfaceClass('sc', 'absorptive', vm1)
-    # XXX: we should use an object to get the region, not a string
-    world.assign_surf_class(sc, 'Torus[half]')
+    world.assign_surf_class(sc, torus_reg)
 
     # release molecules into torus
     world.release_into_obj(torus_obj, vm1, 1000)
