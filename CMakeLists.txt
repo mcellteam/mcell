@@ -58,8 +58,8 @@ set(CMAKE_C_FLAGS "-Wall -Wextra -Wshadow -Wno-unused-parameter -D_GNU_SOURCE=1 
 set(CMAKE_EXE_LINKER_FLAGS ${M_LIB})
 
 set(SOURCE_FILES
-    src/api_test.c
-    src/api_test.h
+    src/test_api.c
+    src/test_api.h
     src/argparse.c
     src/argparse.h
     src/chkpt.c
