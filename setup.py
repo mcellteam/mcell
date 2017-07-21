@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# command to build pymcell 
+# command to build pymcell
 # python setup.py build
 # command to create pymcell tarball
 # python setup.py sdist
@@ -88,18 +88,17 @@ mcell_module = Extension(
         './src/wall_util.c',
         ],
     swig_opts=['-ltypemaps', '-py3'],
-    extra_compile_args=['-O2'])                           
+    extra_compile_args=['-O2'])
 
-setup (name = 'pymcell',
-       version = '0.1',
-       author = "The MCell team",
-       description = """Python bindings to libmcell""",
-       author_email = "mcell-devel@salk.edu",
-       url = "https://github.com/mcellteam/mcell",
-       download_url = "https://github.com/mcellteam/mcell/archive/pymcell_0.1.tar.gz",
-       ext_modules = [mcell_module],
-       license = 'GPL v2',
-       py_modules = ["pymcell"],
-       cmdclass={'build': CustomBuild, 'sdist': CustomSDist},
-       )
-
+setup(name='pymcell',
+      version='0.1',
+      author="The MCell team",
+      description="""Python bindings to libmcell""",
+      author_email="mcell-devel@salk.edu",
+      url="https://github.com/mcellteam/mcell",
+      download_url="https://github.com/mcellteam/mcell/archive/pymcell_0.1.tar.gz",
+      ext_modules=[mcell_module],
+      license='GPL v2',
+      py_modules=["pymcell"],
+      cmdclass={'build': CustomBuild, 'sdist': CustomSDist},
+      )

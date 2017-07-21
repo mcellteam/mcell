@@ -20,13 +20,13 @@ class PolyObj(object):
 
 
 class SurfaceRegion(object):
-    """ Subsets of a surface. 
+    """ Subsets of a surface.
     Examples of uses: molecules can be released on to these and surface classes
     can be assigned to them.
     """
     def __init__(self, obj, reg_name, surf_reg_face_list):
         self.reg_name = reg_name
-        self.full_reg_name= "%s[%s]" % (obj.obj_name, reg_name)
+        self.full_reg_name = "%s[%s]" % (obj.obj_name, reg_name)
         self.surf_reg_face_list = surf_reg_face_list
         # Relationship is symmetrical. Every region knows its object. Object
         # knows its regions.
@@ -140,7 +140,8 @@ class MCellSim(object):
             viz_list = m.mcell_add_to_species_list(
                 self._species[spec.name], False, 0, viz_list)
         m.mcell_create_viz_output(
-            self._world, "./viz_data/seed_%04i/Scene" % self._seed, viz_list, 0, self._iterations, 1)
+            self._world, "./viz_data/seed_%04i/Scene" % self._seed, viz_list,
+            0, self._iterations, 1)
 
     def release_into_obj(self, geom, mol, count):
         """ Release the specified amount of molecules into an object. """
@@ -154,9 +155,9 @@ class MCellSim(object):
     def create_release_site(
             self, species, count, shape, pos_vec3=None, diam_vec3=None):
         """ Create a spherical/cubic release shape. """
-        if pos_vec3 == None:
+        if pos_vec3 is None:
             pos_vec3 = m.Vector3()
-        if diam_vec3 == None:
+        if diam_vec3 is None:
             diam_vec3 = m.Vector3()
         species_sym = self._species[species.name]
         rel_name = "%s_%s_rel" % (species.name, shape)
@@ -185,7 +186,8 @@ class MCellSim(object):
         species_sym = self._species[species.name]
         mesh = self._objects[geom.obj_name]
         mesh_sym = m.mcell_get_obj_sym(mesh)
-        count_str = "react_data/seed_%04d/%s_%s" % (self._seed, species.name, geom.obj_name)
+        count_str = "react_data/seed_%04d/%s_%s" % (
+                self._seed, species.name, geom.obj_name)
         count_list, os, out_times, output = m.create_count(
             self._world, mesh_sym, species_sym, count_str, 1e-5)
         self._counts[count_str] = (count_list, os, out_times, output)
@@ -278,7 +280,7 @@ class Species(object):
 class Reaction(object):
     """ A reaction involving one or more molecules.
     ex: vm1 -> vm2 + vm3
-    - Can be unimolecular or bimolecular. 
+    - Can be unimolecular or bimolecular.
     - Involves surface and/or volume molecules.
     """
     def __init__(self, reactants, products, rate, name=None):
