@@ -8,7 +8,8 @@ intuitive.
 """
 
 import pymcell as m
-from typing import List
+from typing import List, Dict
+import json
 
 
 class MeshObj(object):
@@ -300,6 +301,27 @@ class MCellSim(object):
             m.mcell_print_final_warnings(self._world)
             m.mcell_print_final_statistics(self._world)
             self._finished = True
+
+
+def read_json_data_model(file_name: str):
+    with open(file_name, 'r') as f:
+        json_model = f.read()
+        data_model = json.loads(json_model)
+    return data_model
+
+def create_species_from_dm(data_model: Dict) -> List[Species]:
+    species_dm_list = data_model['mcell']['define_molecules']['molecule_list']
+    species_list = []
+    for species_dm in species_dm_list:
+        species_name = species_dm['mol_name']
+        dc = float(species_dm['diffusion_constant'])
+        species_type = species_dm['mol_type']
+        surface = False
+        if species_type == '2D':
+            surface = True
+        species_dm = m.Species(species_name, dc, surface)
+        species_list.append(species_dm)
+    return species_list
 
 
 def create_partitions(world, axis, start, stop, step):
