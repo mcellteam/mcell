@@ -21,6 +21,9 @@ class MeshObj(object):
         self.face_list = face_list
         self.regions = []  # type: List[SurfaceRegion]
 
+    def __str__(self):
+        return self.name
+
 
 class Species(object):
     """ A type of molecule. """
@@ -29,6 +32,9 @@ class Species(object):
         self.name = name
         self.diffusion_constant = diffusion_constant
         self.surface = surface
+
+    def __str__(self):
+        return self.name
 
 
 class Reaction(object):
@@ -42,6 +48,9 @@ class Reaction(object):
         self.products = products
         self.rate = rate
         self.name = name
+
+    def __str__(self):
+        return self.name
 
 
 class SurfaceRegion(object):
@@ -60,6 +69,9 @@ class SurfaceRegion(object):
         self.mesh_obj = mesh_obj
         mesh_obj.regions.append(self)
 
+    def __str__(self):
+        return self.reg_name
+
 
 class Vector3(object):
     """ Just a generic 3d  vector to be used for positions and whatnot. """
@@ -68,18 +80,24 @@ class Vector3(object):
         self.y = y
         self.z = z
 
+    def __str__(self):
+        return "({}, {}, {})".format(self.x, self.y, self.z)
+
 
 class SurfaceClass(object):
     """ These describe how species interact with various surfaces/meshes.
     ex: Species x are absorbed when they hit the front of a surface.
     """
     def __init__(
-            self, sc_name: str, sc_type: str, species: Species,
+            self, name: str, sc_type: str, species: Species,
             orient: int = 0) -> None:
-        self.sc_name = sc_name
+        self.name = name
         self.sc_type = sc_type
         self.species = species
         self.orient = orient
+
+    def __str__(self):
+        return self.name
 
 
 class MCellSim(object):
@@ -102,7 +120,11 @@ class MCellSim(object):
         m.mcell_init_state(self._world)
         # This is the top level instance object. We just call it "Scene" here
         # to be consistent with the MDL output from Blender.
-        self._scene = m.create_instance_object(self._world, "Scene")
+        self.scene_name = "Scene"
+        self._scene = m.create_instance_object(self._world, self.scene_name)
+
+    def __str__(self):
+        return self.scene_name
 
     def __del__(self):
         self.end_sim()
@@ -236,8 +258,8 @@ class MCellSim(object):
             sc_type = m.SINK
         else:
             print("Surface class '%s' is not a valid option" % sc_type)
-        sc_sym = m.create_surf_class(self._world, sc.sc_name)
-        self._surface_classes[sc.sc_name] = sc_sym
+        sc_sym = m.create_surf_class(self._world, sc.name)
+        self._surface_classes[sc.name] = sc_sym
         spec_sym = self._species[sc.species.name]
         m.mcell_add_surf_class_properties(
             self._world, sc_type, sc_sym, spec_sym, sc.orient)
