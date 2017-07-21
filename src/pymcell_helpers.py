@@ -11,11 +11,11 @@ import pymcell as m
 from typing import List
 
 
-class PolyObj(object):
+class MeshObj(object):
     """ An entire polygon object and its associated surface regions. """
     def __init__(
-            self, obj_name: str, vert_list: List, face_list: List) -> None:
-        self.obj_name = obj_name
+            self, name: str, vert_list: List, face_list: List) -> None:
+        self.name = name
         self.vert_list = vert_list
         self.face_list = face_list
         self.regions = []  # type: List[SurfaceRegion]
@@ -48,16 +48,16 @@ class SurfaceRegion(object):
     Examples of uses: molecules can be released on to these and surface classes
     can be assigned to them.
     """
-    def __init__(self, obj: PolyObj,
+    def __init__(self, mesh_obj: MeshObj,
                  reg_name: str,
                  surf_reg_face_list: List) -> None:
         self.reg_name = reg_name
-        self.full_reg_name = "%s[%s]" % (obj.obj_name, reg_name)
+        self.full_reg_name = "%s[%s]" % (mesh_obj.name, reg_name)
         self.surf_reg_face_list = surf_reg_face_list
         # Relationship is symmetrical. Every region knows its object. Object
         # knows its regions.
-        self.obj = obj
-        obj.regions.append(self)
+        self.mesh_obj = mesh_obj
+        mesh_obj.regions.append(self)
 
 
 class Vector3(object):
@@ -69,8 +69,8 @@ class Vector3(object):
 
 
 class SurfaceClass(object):
-    """ These describe how molecules interact with various surfaces/meshes.
-    ex: X molecules are absorbed when they hit the front of a surface.
+    """ These describe how species interact with various surfaces/meshes.
+    ex: Species x are absorbed when they hit the front of a surface.
     """
     def __init__(
             self, sc_name: str, sc_type: str, species: Species,
@@ -88,7 +88,7 @@ class MCellSim(object):
         self._started = False
         self._species = {}
         self._surface_classes = {}
-        self._objects = {}
+        self._mesh_objects = {}
         self._regions = {}
         self._releases = {}
         self._counts = {}
@@ -144,20 +144,20 @@ class MCellSim(object):
         m.create_reaction(
             self._world, r_spec_list, p_spec_list, rxn.rate, name=rxn.name)
 
-    def add_geometry(self, geom: PolyObj) -> None:
-        """ Add a polygon object. """
+    def add_geometry(self, mesh_obj: MeshObj) -> None:
+        """ Add a mesh object. """
         mesh = m.create_polygon_object(
             self._world,
-            geom.vert_list,
-            geom.face_list,
+            mesh_obj.vert_list,
+            mesh_obj.face_list,
             self._scene,
-            geom.obj_name)
-        if geom.obj_name not in self._objects:
-            self._objects[geom.obj_name] = mesh
-        for reg in geom.regions:
+            mesh_obj.name)
+        if mesh_obj.name not in self._mesh_objects:
+            self._mesh_objects[mesh_obj.name] = mesh
+        for reg in mesh_obj.regions:
             region_swig_obj = m.create_surface_region(
                 self._world, mesh, reg.surf_reg_face_list, reg.reg_name)
-            full_reg_name = "%s[%s]" % (geom.obj_name, reg.reg_name)
+            full_reg_name = "%s[%s]" % (mesh_obj.name, reg.reg_name)
             if reg.reg_name not in self._regions:
                 self._regions[full_reg_name] = region_swig_obj
 
@@ -171,13 +171,13 @@ class MCellSim(object):
             self._world, "./viz_data/seed_%04i/Scene" % self._seed, viz_list,
             0, self._iterations, 1)
 
-    def release_into_obj(
-            self, geom: PolyObj, mol: Species, count: int) -> None:
-        """ Release the specified amount of molecules into an object. """
-        rel_name = "%s_%s_rel" % (mol.name, geom.obj_name)
+    def release_into_meshobj(
+            self, mesh_obj: MeshObj, species: Species, count: int) -> None:
+        """ Release the specified amount of species into an object. """
+        rel_name = "%s_%s_rel" % (species.name, mesh_obj.name)
         release_object = m.create_region_release_site(
-            self._world, self._scene, self._objects[geom.obj_name],
-            rel_name, "ALL", count, 0, self._species[mol.name])
+            self._world, self._scene, self._mesh_objects[mesh_obj.name],
+            rel_name, "ALL", count, 0, self._species[species.name])
         if rel_name not in self._releases:
             self._releases[rel_name] = release_object
 
@@ -212,13 +212,13 @@ class MCellSim(object):
             axis_num = 2
         m.create_partitions(self._world, axis_num, start, stop, step)
 
-    def add_count(self, species: Species, geom: PolyObj) -> None:
+    def add_count(self, species: Species, mesh_obj: MeshObj) -> None:
         """ Add this to the list of species to be counted. """
         species_sym = self._species[species.name]
-        mesh = self._objects[geom.obj_name]
+        mesh = self._mesh_objects[mesh_obj.name]
         mesh_sym = m.mcell_get_obj_sym(mesh)
         count_str = "react_data/seed_%04d/%s_%s" % (
-                self._seed, species.name, geom.obj_name)
+                self._seed, species.name, mesh_obj.name)
         count_list, os, out_times, output = m.create_count(
             self._world, mesh_sym, species_sym, count_str, 1e-5)
         self._counts[count_str] = (count_list, os, out_times, output)
@@ -243,10 +243,10 @@ class MCellSim(object):
         region_swig_obj = self._regions[region.full_reg_name]
         m.mcell_assign_surf_class_to_region(sc_sym, region_swig_obj)
 
-    def get_molecule_count(self, molecule: Species, geom: PolyObj) -> int:
-        """ Get the current count of a molecule. """
+    def get_species_count(self, species: Species, mesh_obj: MeshObj) -> int:
+        """ Get the current count of a molecule species. """
         return m.mcell_get_count(
-            molecule.name, "Scene.%s,ALL" % geom.obj_name, self._world)
+            species.name, "Scene.%s,ALL" % mesh_obj.name, self._world)
 
     def modify_rate_constant(
             self, rxn: Reaction, new_rate_constant: float) -> None:
@@ -294,7 +294,7 @@ class MCellSim(object):
         self._finished = True
 
     def end_sim(self) -> None:
-        # Call this if we end the simulation early
+        """ Call this if we end the simulation early """
         if self._started and not self._finished:
             m.mcell_flush_data(self._world)
             m.mcell_print_final_warnings(self._world)

@@ -23,7 +23,7 @@ def main():
     world.add_reaction(rxn)
 
     # create torus object
-    torus_obj = m.PolyObj("Torus", torus.vert_list, torus.face_list)
+    torus_obj = m.MeshObj("Torus", torus.vert_list, torus.face_list)
     torus_reg = m.SurfaceRegion(torus_obj, 'half', torus.surf_reg_face_list)
     world.add_geometry(torus_obj)
 
@@ -32,8 +32,8 @@ def main():
     # world.assign_surf_class(sc, torus_reg)
 
     # release molecules into torus
-    world.release_into_obj(torus_obj, vm1, 1000)
-    world.release_into_obj(torus_obj, vm2, 1000)
+    world.release_into_meshobj(torus_obj, vm1, 1000)
+    world.release_into_meshobj(torus_obj, vm2, 1000)
     pos_vec3 = m.Vector3()
     diam_vec3 = m.Vector3(0.015, 0.015, 0.015)
     world.create_release_site(vm1, 100, "spherical", diam_vec3=diam_vec3)
@@ -51,7 +51,7 @@ def main():
 
     # run the simulation! :)
     # for i in range(iterations+1):
-    #     vm3_count = world.get_molecule_count(vm3, torus_obj)
+    #     vm3_count = world.get_species_count(vm3, torus_obj)
     #     if (vm3_count > 50):
     #         world.modify_rate_constant(rxn, 1e12)
     #     world.run_iteration()
