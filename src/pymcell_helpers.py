@@ -18,7 +18,29 @@ class PolyObj(object):
         self.obj_name = obj_name
         self.vert_list = vert_list
         self.face_list = face_list
-        self.regions = [] # type: List[SurfaceRegion]
+        self.regions = []  # type: List[SurfaceRegion]
+
+
+class Species(object):
+    """ A type of molecule. """
+    def __init__(
+            self, name: str, diffusion_constant: float, surface: bool = False):
+        self.name = name
+        self.diffusion_constant = diffusion_constant
+        self.surface = surface
+
+
+class Reaction(object):
+    """ A reaction involving one or more molecules.
+    ex: vm1 -> vm2 + vm3
+    - Can be unimolecular or bimolecular.
+    - Involves surface and/or volume molecules.
+    """
+    def __init__(self, reactants: List[int], products, rate, name=None):
+        self.reactants = reactants
+        self.products = products
+        self.rate = rate
+        self.name = name
 
 
 class SurfaceRegion(object):
@@ -278,28 +300,6 @@ class MCellSim(object):
             m.mcell_print_final_warnings(self._world)
             m.mcell_print_final_statistics(self._world)
             self._finished = True
-
-
-class Species(object):
-    """ A type of molecule. """
-    def __init__(
-            self, name: str, diffusion_constant: float, surface: bool = False):
-        self.name = name
-        self.diffusion_constant = diffusion_constant
-        self.surface = surface
-
-
-class Reaction(object):
-    """ A reaction involving one or more molecules.
-    ex: vm1 -> vm2 + vm3
-    - Can be unimolecular or bimolecular.
-    - Involves surface and/or volume molecules.
-    """
-    def __init__(self, reactants: List[int], products, rate, name=None):
-        self.reactants = reactants
-        self.products = products
-        self.rate = rate
-        self.name = name
 
 
 def create_partitions(world, axis, start, stop, step):
