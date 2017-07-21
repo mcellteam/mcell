@@ -11,6 +11,7 @@ import pymcell as m
 
 
 class PolyObj(object):
+    """ An entire polygon object and its associated surface regions. """
     def __init__(self, obj_name, vert_list, face_list):
         self.obj_name = obj_name
         self.vert_list = vert_list
@@ -19,6 +20,10 @@ class PolyObj(object):
 
 
 class SurfaceRegion(object):
+    """ Subsets of a surface. 
+    Examples of uses: molecules can be released on to these and surface classes
+    can be assigned to them.
+    """
     def __init__(self, obj, reg_name, surf_reg_face_list):
         self.reg_name = reg_name
         self.full_reg_name= "%s[%s]" % (obj.obj_name, reg_name)
@@ -30,6 +35,7 @@ class SurfaceRegion(object):
 
 
 class Vector3(object):
+    """ Just a generic 3d  vector to be used for positions and whatnot. """
     def __init__(self, x=0.0, y=0.0, z=0.0):
         self.x = x
         self.y = y
@@ -37,6 +43,9 @@ class Vector3(object):
 
 
 class SurfaceClass(object):
+    """ These describe how molecules interact with various surfaces/meshes.
+    ex: X molecules are absorbed when they hit the front of a surface.
+    """
     def __init__(self, sc_name, sc_type, species, orient=0):
         self.sc_name = sc_name
         self.sc_type = sc_type
@@ -45,6 +54,7 @@ class SurfaceClass(object):
 
 
 class MCellSim(object):
+    """ Everything needed to run a pyMCell simulation. """
     def __init__(self, seed):
         self._world = m.mcell_create()
         self._started = False
@@ -69,12 +79,15 @@ class MCellSim(object):
         self.end_sim()
 
     def set_output_freq(self, output_freq):
+        """ How often do we output reaction data. """
         self._output_freq = output_freq
 
     def set_time_step(self, dt):
+        """ Set time step in seconds. """
         m.mcell_set_time_step(self._world, dt)
 
     def set_iterations(self, iterations):
+        """ Set number of iterations """
         m.mcell_set_iterations(self._world, iterations)
         self._iterations = iterations
 
@@ -83,6 +96,7 @@ class MCellSim(object):
     #     m.mcell_set_seed(self._world, seed)
 
     def add_reaction(self, rxn):
+        """ Add a reaction object. """
         r_spec_list = None
         p_spec_list = None
         for r in rxn.reactants:
@@ -103,6 +117,7 @@ class MCellSim(object):
             self._world, r_spec_list, p_spec_list, rxn.rate, name=rxn.name)
 
     def add_geometry(self, geom):
+        """ Add a polygon object. """
         mesh = m.create_polygon_object(
             self._world,
             geom.vert_list,
@@ -119,6 +134,7 @@ class MCellSim(object):
                 self._regions[full_reg_name] = region_swig_obj
 
     def add_viz(self, species):
+        """ Add this to the list of species to be visualized. """
         viz_list = None
         for spec in species:
             viz_list = m.mcell_add_to_species_list(
@@ -127,6 +143,7 @@ class MCellSim(object):
             self._world, "./viz_data/seed_%04i/Scene" % self._seed, viz_list, 0, self._iterations, 1)
 
     def release_into_obj(self, geom, mol, count):
+        """ Release the specified amount of molecules into an object. """
         rel_name = "%s_%s_rel" % (mol.name, geom.obj_name)
         release_object = m.create_region_release_site(
             self._world, self._scene, self._objects[geom.obj_name],
@@ -136,6 +153,7 @@ class MCellSim(object):
 
     def create_release_site(
             self, species, count, shape, pos_vec3=None, diam_vec3=None):
+        """ Create a spherical/cubic release shape. """
         if pos_vec3 == None:
             pos_vec3 = m.Vector3()
         if diam_vec3 == None:
@@ -153,6 +171,7 @@ class MCellSim(object):
             self._releases[rel_name] = (position, diameter, release_object)
 
     def add_partitions(self, axis, start, stop, step):
+        """ Add partitions to speed up the simulation. """
         if axis == "x":
             axis_num = 0
         elif axis == "y":
@@ -162,6 +181,7 @@ class MCellSim(object):
         m.create_partitions(self._world, axis_num, start, stop, step)
 
     def add_count(self, species, geom):
+        """ Add this to the list of species to be counted. """
         species_sym = self._species[species.name]
         mesh = self._objects[geom.obj_name]
         mesh_sym = m.mcell_get_obj_sym(mesh)
@@ -171,6 +191,7 @@ class MCellSim(object):
         self._counts[count_str] = (count_list, os, out_times, output)
 
     def assign_surf_class(self, sc, region):
+        """ Assign a surface class to a region. """
 
         if sc.sc_type == "reflect":
             sc_type = m.RFLCT
@@ -189,10 +210,12 @@ class MCellSim(object):
         m.mcell_assign_surf_class_to_region(sc_sym, region_swig_obj)
 
     def get_molecule_count(self, molecule, geom):
+        """ Get the current count of a molecule. """
         return m.mcell_get_count(
             molecule.name, "Scene.%s,ALL" % geom.obj_name, self._world)
 
     def modify_rate_constant(self, rxn, new_rate_constant):
+        """ Modify the rate constant of the specified reaction. """
         if not rxn.name:
             print("You can only change a named reaction.")
         else:
@@ -200,6 +223,7 @@ class MCellSim(object):
                 self._world, rxn.name, new_rate_constant)
 
     def run_iteration(self):
+        """ Run a single iteration. """
         if self._finished:
             print("The simulation is done running")
             return
@@ -219,6 +243,7 @@ class MCellSim(object):
         self._current_iteration += 1
 
     def run_sim(self):
+        """ Run the entire simulation without interruption. """
         if self._finished:
             print("The simulation is done running")
             return
@@ -243,6 +268,7 @@ class MCellSim(object):
 
 
 class Species(object):
+    """ A type of molecule. """
     def __init__(self, name, diffusion_constant, surface=False):
         self.name = name
         self.diffusion_constant = diffusion_constant
@@ -250,6 +276,11 @@ class Species(object):
 
 
 class Reaction(object):
+    """ A reaction involving one or more molecules.
+    ex: vm1 -> vm2 + vm3
+    - Can be unimolecular or bimolecular. 
+    - Involves surface and/or volume molecules.
+    """
     def __init__(self, reactants, products, rate, name=None):
         self.reactants = reactants
         self.products = products
