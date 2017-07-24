@@ -8,7 +8,7 @@ intuitive.
 """
 
 import pymcell as m
-from typing import List, Dict, Iterable
+from typing import List, Dict, Iterable, Any
 import json
 
 
@@ -113,12 +113,15 @@ class MCellSim(object):
     def __init__(self, seed: int) -> None:
         self._world = m.mcell_create()
         self._started = False
-        self._species = {}
-        self._surface_classes = {}
-        self._mesh_objects = {}
-        self._regions = {}
-        self._releases = {}
-        self._counts = {}
+        # the value for _species & _surface_classes is a swig wrapped sym_entry
+        self._species = {}  # type: Dict[str, Any]
+        self._surface_classes = {}  # type: Dict[str, Any]
+        # the value for _mesh_objects is a swig wrapped "object"
+        self._mesh_objects = {}  # type: Dict[str, Any]
+        # the value for _mesh_objects is a swig wrapped "region"
+        self._regions = {}  # type: Dict[str, Any]
+        self._releases = {}  # type: Dict[str, Any]
+        self._counts = {}  # type: Dict[str, Any]
         self._iterations = 0
         self._current_iteration = 0
         self._finished = False
