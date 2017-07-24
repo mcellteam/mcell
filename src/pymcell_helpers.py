@@ -8,7 +8,7 @@ intuitive.
 """
 
 import pymcell as m
-from typing import List, Dict
+from typing import List, Dict, Iterable
 import json
 
 
@@ -28,7 +28,10 @@ class MeshObj(object):
 class Species(object):
     """ A type of molecule. """
     def __init__(
-            self, name: str, diffusion_constant: float, surface: bool = False):
+            self,
+            name: str,
+            diffusion_constant: float,
+            surface: bool = False) -> None:
         self.name = name
         self.diffusion_constant = diffusion_constant
         self.surface = surface
@@ -43,7 +46,12 @@ class Reaction(object):
     - Can be unimolecular or bimolecular.
     - Involves surface and/or volume molecules.
     """
-    def __init__(self, reactants: List[int], products, rate, name=None):
+    def __init__(
+            self,
+            reactants: List[Species],
+            products: List[Species],
+            rate: float,
+            name=None) -> None:
         self.reactants = reactants
         self.products = products
         self.rate = rate
@@ -102,7 +110,7 @@ class SurfaceClass(object):
 
 class MCellSim(object):
     """ Everything needed to run a pyMCell simulation. """
-    def __init__(self, seed: int):
+    def __init__(self, seed: int) -> None:
         self._world = m.mcell_create()
         self._started = False
         self._species = {}
@@ -184,7 +192,7 @@ class MCellSim(object):
             if reg.reg_name not in self._regions:
                 self._regions[full_reg_name] = region_swig_obj
 
-    def add_viz(self, species: Species) -> None:
+    def add_viz(self, species: Iterable[Species]) -> None:
         """ Add this to the list of species to be visualized. """
         viz_list = None
         for spec in species:
@@ -330,6 +338,7 @@ def read_json_data_model(file_name: str):
         json_model = f.read()
         data_model = json.loads(json_model)
     return data_model
+
 
 def create_species_from_dm(data_model: Dict) -> List[Species]:
     species_dm_list = data_model['mcell']['define_molecules']['molecule_list']
