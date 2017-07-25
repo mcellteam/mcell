@@ -48,3 +48,4 @@ pymcell_wrap.c
 _pymcell*.so
 MANIFEST
 dist
+.mypy_cache
