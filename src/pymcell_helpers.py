@@ -406,7 +406,8 @@ def read_json_data_model(file_name: str):
 
 def create_species_from_dm(data_model: Dict) -> List[Species]:
     species_dm_list = data_model['mcell']['define_molecules']['molecule_list']
-    species_list = []
+    # species_list = []
+    species_dict = {}
     for species_dm in species_dm_list:
         species_name = species_dm['mol_name']
         dc = float(species_dm['diffusion_constant'])
@@ -415,8 +416,53 @@ def create_species_from_dm(data_model: Dict) -> List[Species]:
         if species_type == '2D':
             surface = True
         species_dm = m.Species(species_name, dc, surface)
-        species_list.append(species_dm)
-    return species_list
+        species_dict[species_name] = species_dm
+        # species_list.append(species_dm)
+    return species_dict
+    # return species_list
+
+def make_spec_orient_list(mol_str_list, species):
+    # mol_str_list = reactant_products.split(" + ")
+    spec_orient_list = []
+    for r in mol_str_list:
+        if r.endswith("'") or r.endswith(","):
+            r_str = r[:-1]
+            r_orient = r[-1]
+            if r_orient == "'":
+                orient = m.Orient.up
+            elif r_orient == ",":
+                orient = m.Orient.down
+            else:
+                orient = m.Orient.mix
+        else:
+            r_str = r
+            orient = m.Orient.mix
+            # r_orient = ""
+        spec = species[r_str]
+        spec_orient = (spec, orient)
+        spec_orient_list.append(spec_orient)
+    return spec_orient_list
+
+
+def create_reactions_from_dm(
+        data_model: Dict, species: Dict[str, Species]) -> List[Reaction]:
+    rxn_dm_list = data_model['mcell']['define_reactions']['reaction_list']
+    rxn_list = []
+    for rxn_dm in rxn_dm_list:
+        rxn_name = rxn_dm['rxn_name']
+        fwd_rate = float(rxn_dm['fwd_rate'])
+        try:
+            bkwd_rate = float(rxn_dm['bkwd_rate'])
+        except ValueError:
+            pass
+        reactants_str_list = rxn_dm['reactants'].split(" + ")
+        products_str_list = rxn_dm['products'].split(" + ")
+        r_list = make_spec_orient_list(reactants_str_list, species)
+        p_list = make_spec_orient_list(products_str_list, species)
+        rxn_type = rxn_dm['rxn_type']
+        rxn_dm = m.Reaction(r_list, p_list, fwd_rate)
+        rxn_list.append(rxn_dm)
+    return rxn_list
 
 
 def create_partitions(world, axis, start, stop, step):
