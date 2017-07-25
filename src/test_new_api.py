@@ -15,11 +15,16 @@ def main():
 
     # define species
     vm1 = m.Species("vm1", 1e-6)
+    vm1_mix = (vm1, m.Orient.up)
+
+    sm1 = m.Species("sm1", 1e-6, surface=True)
+    sm1_mix = (sm1, m.Orient.down)
+
     vm2 = m.Species("vm2", 1e-6)
-    vm3 = m.Species("vm3", 1e-6)
+    vm2_mix = (vm2, m.Orient.down)
 
     # define reaction
-    rxn = m.Reaction((vm1, vm2), (vm3, ), 1e8, "create_vm3")
+    rxn = m.Reaction((vm1_mix, sm1_mix), (vm2_mix, ), 1e8, name="create_vm2")
     world.add_reaction(rxn)
 
     # create torus object
@@ -33,16 +38,16 @@ def main():
 
     # release molecules into torus
     world.release_into_meshobj(torus_obj, vm1, 1000)
-    world.release_into_meshobj(torus_obj, vm2, 1000)
-    pos_vec3 = m.Vector3()
-    diam_vec3 = m.Vector3(0.015, 0.015, 0.015)
-    world.create_release_site(vm1, 100, "spherical", diam_vec3=diam_vec3)
+    world.release_into_meshobj(torus_obj, sm1, 1000, 1)
+    # pos_vec3 = m.Vector3()
+    # diam_vec3 = m.Vector3(0.015, 0.015, 0.015)
+    # world.create_release_site(vm1, 100, "spherical", diam_vec3=diam_vec3)
 
     # viz and reaction data
-    world.add_viz((vm1, vm2, vm3))
+    world.add_viz((vm1, vm2, sm1))
     world.add_count(vm1, torus_obj)
     world.add_count(vm2, torus_obj)
-    world.add_count(vm3, torus_obj)
+    world.add_count(sm1, torus_obj)
 
     # set partitions
     world.add_partitions('x', -1.3, 1.3, 0.05)

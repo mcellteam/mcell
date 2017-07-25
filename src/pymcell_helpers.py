@@ -10,6 +10,21 @@ intuitive.
 import pymcell as m
 from typing import List, Dict, Iterable, Any
 import json
+import logging
+from enum import Enum
+
+
+logging.basicConfig(format='%(message)s', level=logging.DEBUG)
+
+
+class Orient(Enum):
+    up = 1
+    down = 2
+    mix = 3
+
+
+odict_sym = {Orient.up: "'", Orient.down: ",", Orient.mix: ";"}
+odict_num = {Orient.up: 1, Orient.down: -1, Orient.mix: 0}
 
 
 class MeshObj(object):
@@ -20,6 +35,7 @@ class MeshObj(object):
         self.vert_list = vert_list
         self.face_list = face_list
         self.regions = []  # type: List[SurfaceRegion]
+        logging.info("Creating mesh object '%s'" % name)
 
     def __str__(self):
         return self.name
@@ -35,6 +51,8 @@ class Species(object):
         self.name = name
         self.diffusion_constant = diffusion_constant
         self.surface = surface
+        vol_surf = "surface" if surface else "volume"
+        logging.info("Creating %s species '%s'" % (vol_surf, name))
 
     def __str__(self):
         return self.name
@@ -50,12 +68,28 @@ class Reaction(object):
             self,
             reactants: List[Species],
             products: List[Species],
-            rate: float,
+            rate_constant: float,
+            bkwd_rate_constant=None,
             name=None) -> None:
         self.reactants = reactants
         self.products = products
-        self.rate = rate
+        self.rate_constant = rate_constant
+        self.bkwd_rate_constant = bkwd_rate_constant
         self.name = name
+        reactant_names = [r[0].name+odict_sym[r[1]] for r in reactants]
+        reactants_str = " + ".join(reactant_names)
+        if products:
+            product_names = [p[0].name+odict_sym[p[1]] for p in products]
+            products_str = " + ".join(product_names)
+        else:
+            products_str = "NULL"
+        # arrow = "<->" if bkwd_rate_constant else "->"
+        if bkwd_rate_constant:
+            logging.info("Creating reaction %s <-> %s [%.2E, %.2E]" % (
+                reactants_str, products_str, rate_constant, bkwd_rate_constant))
+        else:
+            logging.info("Creating reaction %s -> %s [%.2E]" % (
+                reactants_str, products_str, rate_constant))
 
     def __str__(self):
         return self.name
@@ -76,6 +110,7 @@ class SurfaceRegion(object):
         # knows its regions.
         self.mesh_obj = mesh_obj
         mesh_obj.regions.append(self)
+        logging.info("Creating region '%s'" % self.reg_name)
 
     def __str__(self):
         return self.reg_name
@@ -103,6 +138,7 @@ class SurfaceClass(object):
         self.sc_type = sc_type
         self.species = species
         self.orient = orient
+        logging.info("Creating surface class '%s'" % name)
 
     def __str__(self):
         return self.name
@@ -161,22 +197,28 @@ class MCellSim(object):
         """ Add a reaction object. """
         r_spec_list = None
         p_spec_list = None
-        for r in rxn.reactants:
+        # import ipdb
+        # ipdb.set_trace()
+        for r, orient in rxn.reactants:
             r_sym = m.create_species(
                 self._world, r.name, r.diffusion_constant, r.surface)
             if r.name not in self._species:
                 self._species[r.name] = r_sym
             r_spec_list = m.mcell_add_to_species_list(
-                r_sym, False, 0, r_spec_list)
-        for p in rxn.products:
+                r_sym, True, odict_num[orient], r_spec_list)
+        for p, orient in rxn.products:
             p_sym = m.create_species(
                 self._world, p.name, p.diffusion_constant, p.surface)
             if p.name not in self._species:
                 self._species[p.name] = p_sym
             p_spec_list = m.mcell_add_to_species_list(
-                p_sym, False, 0, p_spec_list)
+                p_sym, True, odict_num[orient], p_spec_list)
         m.create_reaction(
-            self._world, r_spec_list, p_spec_list, rxn.rate, name=rxn.name)
+            self._world,
+            r_spec_list,
+            p_spec_list,
+            rxn.rate_constant,
+            name=rxn.name)
 
     def add_geometry(self, mesh_obj: MeshObj) -> None:
         """ Add a mesh object. """
@@ -205,15 +247,33 @@ class MCellSim(object):
             self._world, "./viz_data/seed_%04i/Scene" % self._seed, viz_list,
             0, self._iterations, 1)
 
+
     def release_into_meshobj(
-            self, mesh_obj: MeshObj, species: Species, count: int) -> None:
+            self,
+            mesh_obj: MeshObj,
+            species: Species,
+            count: int,
+            orient: int = None) -> None:
         """ Release the specified amount of species into an object. """
         rel_name = "%s_%s_rel" % (species.name, mesh_obj.name)
-        release_object = m.create_region_release_site(
+
+        mol_sym = self._species[species.name]
+        if orient:
+            mol_list = m.mcell_add_to_species_list(mol_sym, True, orient, None)
+        else:
+            mol_list = m.mcell_add_to_species_list(mol_sym, False, 0, None)
+        rel_object = m.object()
+        number_type = 0
+        release_object = m.mcell_create_region_release(
             self._world, self._scene, self._mesh_objects[mesh_obj.name],
-            rel_name, "ALL", count, 0, self._species[species.name])
+            rel_name, "ALL", mol_list, float(count),
+            number_type, 1, None, rel_object)
         if rel_name not in self._releases:
             self._releases[rel_name] = release_object
+        m.mcell_delete_species_list(mol_list)
+
+        return release_object
+
 
     def create_release_site(
             self, species: Species, count: int, shape: str,
