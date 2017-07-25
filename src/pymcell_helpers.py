@@ -465,6 +465,17 @@ def create_reactions_from_dm(
     return rxn_list
 
 
+def create_meshobjs_from_dm(dm: Dict):
+    meshobj_dm_list = dm['mcell']['geometrical_objects']['object_list']
+    meshobj_list = []
+    for meshobj in meshobj_dm_list:
+        name = meshobj['name']
+        vert_list = meshobj['vertex_list']
+        face_list = meshobj['element_connections']
+        meshobj_list.append(m.MeshObj(name, vert_list, face_list))
+    return meshobj_list
+
+
 def create_partitions(world, axis, start, stop, step):
     expr_list = m.num_expr_list_head()
     expr_list.value_head = None
