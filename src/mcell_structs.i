@@ -33,13 +33,27 @@ struct object {
 /* Release Shape Flags */
 enum release_shape_t {
   SHAPE_UNDEFINED = -1,  /* Not specified */
- SHAPE_SPHERICAL,       /* Volume enclosed by a sphere */
+  SHAPE_SPHERICAL,       /* Volume enclosed by a sphere */
   SHAPE_CUBIC,           /* Volume enclosed by a cube */
   SHAPE_ELLIPTIC,        /* Volume enclosed by an ellipsoid */
   SHAPE_RECTANGULAR,     /* Volume enclosed by a rect. solid */
   SHAPE_SPHERICAL_SHELL, /* Surface of a sphere */
   SHAPE_REGION,          /* Inside/on the surface of an arbitrary region */
   SHAPE_LIST             /* Individiaul mol. placement by list */
+};
+
+/* Constants for notification levels */
+enum notify_level_t {
+  NOTIFY_NONE,  /* no output */
+  NOTIFY_BRIEF, /* give a brief description (only used for a few types) */
+  NOTIFY_FULL,  /* give a (possibly verbose) description */
+};
+
+/* Constants for warning levels */
+enum warn_level_t {
+  WARN_COPE, /* do something sensible and continue silently */
+  WARN_WARN, /* do something sensible but emit a warning message */
+  WARN_ERROR /* treat the warning and an error and stop */
 };
 
 enum overwrite_policy_t {

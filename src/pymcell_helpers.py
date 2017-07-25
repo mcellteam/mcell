@@ -164,6 +164,7 @@ class MCellSim(object):
         self._output_freq = 10
         self._seed = seed
         m.mcell_set_seed(self._world, seed)
+        m.mcell_silence_notifications(self._world)
         m.mcell_init_state(self._world)
         # This is the top level instance object. We just call it "Scene" here
         # to be consistent with the MDL output from Blender.

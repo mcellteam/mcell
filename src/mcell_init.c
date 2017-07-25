@@ -462,6 +462,20 @@ mcell_set_time_step(MCELL_STATE *state, double step) {
   return MCELL_SUCCESS;
 }
 
+/*************************************************************************
+ mcell_silence_notifications:
+
+    Silence notifications
+
+ In: state: the simulation state
+ Out: 0 on success; any other integer value is a failure.
+*************************************************************************/
+MCELL_STATUS
+mcell_silence_notifications(MCELL_STATE *state) {
+  state->quiet_flag = 1;
+  return MCELL_SUCCESS;
+}
+
 /*****************************************************************************
  *
  * static helper functions
