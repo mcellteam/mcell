@@ -27,6 +27,7 @@ class CustomBuild(build):
         shutil.copy("./appveyor_windows/config.h", "./src")
         shutil.copy("./appveyor_windows/version.h", "./src")
         shutil.copy("./src/pymcell_helpers.py", ".")
+        shutil.copy("./src/data_model_import.py", ".")
         self.run_command('build_ext')
         shutil.copy("./src/pymcell.py", ".")
         build.run(self)
