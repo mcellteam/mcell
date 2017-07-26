@@ -1,4 +1,6 @@
 import pymcell as m
+import json
+from typing import List, Dict
 
 
 def read_json_data_model(file_name: str):
@@ -8,9 +10,8 @@ def read_json_data_model(file_name: str):
     return data_model
 
 
-def create_species_from_dm(data_model: Dict) -> List[Species]:
+def create_species_from_dm(data_model: Dict) -> List[m.Species]:
     species_dm_list = data_model['mcell']['define_molecules']['molecule_list']
-    # species_list = []
     species_dict = {}
     for species_dm in species_dm_list:
         species_name = species_dm['mol_name']
@@ -21,12 +22,10 @@ def create_species_from_dm(data_model: Dict) -> List[Species]:
             surface = True
         species_dm = m.Species(species_name, dc, surface)
         species_dict[species_name] = species_dm
-        # species_list.append(species_dm)
     return species_dict
-    # return species_list
+
 
 def make_spec_orient_list(mol_str_list, species):
-    # mol_str_list = reactant_products.split(" + ")
     spec_orient_list = []
     for r in mol_str_list:
         if r.endswith("'") or r.endswith(","):
@@ -41,7 +40,6 @@ def make_spec_orient_list(mol_str_list, species):
         else:
             r_str = r
             orient = m.Orient.mix
-            # r_orient = ""
         spec = species[r_str]
         spec_orient = (spec, orient)
         spec_orient_list.append(spec_orient)
@@ -49,7 +47,7 @@ def make_spec_orient_list(mol_str_list, species):
 
 
 def create_reactions_from_dm(
-        data_model: Dict, species: Dict[str, Species]) -> List[Reaction]:
+        data_model: Dict, species: Dict[str, m.Species]) -> List[m.Reaction]:
     rxn_dm_list = data_model['mcell']['define_reactions']['reaction_list']
     rxn_list = []
     for rxn_dm in rxn_dm_list:
