@@ -15,12 +15,15 @@ def main():
 
     # define species
     vm1 = m.Species("vm1", 1e-6)
+    world.add_species(vm1)
     vm1_mix = (vm1, m.Orient.up)
 
     sm1 = m.Species("sm1", 1e-6, surface=True)
+    world.add_species(sm1)
     sm1_mix = (sm1, m.Orient.down)
 
     vm2 = m.Species("vm2", 1e-6)
+    world.add_species(vm2)
     vm2_mix = (vm2, m.Orient.down)
 
     # define reaction
@@ -38,7 +41,7 @@ def main():
 
     # release molecules into torus
     world.release_into_meshobj(torus_obj, vm1, 1000)
-    world.release_into_meshobj(torus_obj, sm1, 1000, 1)
+    world.release_into_meshobj(torus_obj, sm1, 1000, region=torus_reg, orient=1)
     # pos_vec3 = m.Vector3()
     # diam_vec3 = m.Vector3(0.015, 0.015, 0.015)
     # world.create_release_site(vm1, 100, "spherical", diam_vec3=diam_vec3)

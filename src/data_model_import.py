@@ -69,10 +69,51 @@ def create_reactions_from_dm(
 
 def create_meshobjs_from_dm(dm: Dict):
     meshobj_dm_list = dm['mcell']['geometrical_objects']['object_list']
-    meshobj_list = []
-    for meshobj in meshobj_dm_list:
-        name = meshobj['name']
-        vert_list = meshobj['vertex_list']
-        face_list = meshobj['element_connections']
-        meshobj_list.append(m.MeshObj(name, vert_list, face_list))
-    return meshobj_list
+    meshobj_dict = {}
+    for meshobj_dm in meshobj_dm_list:
+        name = meshobj_dm['name']
+        vert_list = meshobj_dm['vertex_list']
+        face_list = meshobj_dm['element_connections']
+        meshobj = m.MeshObj(name, vert_list, face_list)
+        for reg_dm in meshobj_dm['define_surface_regions']:
+            reg_name = reg_dm['name']
+            face_list = reg_dm['include_elements']
+            m.SurfaceRegion(meshobj, reg_name, face_list)
+        meshobj_dict[name] = meshobj 
+    return meshobj_dict
+
+
+def create_release_sites_from_dm(
+        data_model: Dict,
+        world,
+        meshobjs,
+        species: Dict[str, m.Species]):
+    rel_site_dm_list = data_model['mcell']['release_sites']['release_site_list']
+    rel_site_list = []
+    for rel_site_dm in rel_site_dm_list:
+        rel_site_name = rel_site_dm['name']
+        object_expr = rel_site_dm['object_expr']
+        idx = object_expr.find("[")
+        if idx > 0:
+            object_name = object_expr[:idx]
+            reg_name = object_expr[idx+1:-1]
+        else:
+            object_name = object_expr
+            reg_name = ""
+        meshobj = meshobjs[object_name]
+        spec_name = rel_site_dm['molecule']
+        spec = species[spec_name]
+        quantity = int(rel_site_dm['quantity'])
+        orient = rel_site_dm['orient']
+        # XXX: this is really clunky.
+        reg = None
+        for r in meshobj.regions:
+            if r.reg_name == reg_name:
+                reg = r
+                break
+        if orient:
+            world.release_into_meshobj(meshobj, spec, quantity, orient=1, region=reg)
+        else:
+            world.release_into_meshobj(meshobj, spec, quantity, region=reg)
+
+    return rel_site_list

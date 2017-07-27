@@ -164,7 +164,7 @@ class MCellSim(object):
         self._output_freq = 10
         self._seed = seed
         m.mcell_set_seed(self._world, seed)
-        m.mcell_silence_notifications(self._world)
+        #m.mcell_silence_notifications(self._world)
         m.mcell_init_state(self._world)
         # This is the top level instance object. We just call it "Scene" here
         # to be consistent with the MDL output from Blender.
@@ -194,24 +194,30 @@ class MCellSim(object):
     #     self._seed = seed
     #     m.mcell_set_seed(self._world, seed)
 
+    def add_species(self, spec: Species):
+        if spec.name not in self._species:
+            spec_sym = m.create_species(
+                self._world, spec.name, spec.diffusion_constant, spec.surface)
+            self._species[spec.name] = spec_sym
+
     def add_reaction(self, rxn: Reaction) -> None:
         """ Add a reaction object. """
         r_spec_list = None
         p_spec_list = None
-        # import ipdb
-        # ipdb.set_trace()
         for r, orient in rxn.reactants:
-            r_sym = m.create_species(
-                self._world, r.name, r.diffusion_constant, r.surface)
-            if r.name not in self._species:
-                self._species[r.name] = r_sym
+            # r_sym = m.create_species(
+            #     self._world, r.name, r.diffusion_constant, r.surface)
+            # if r.name not in self._species:
+            #     self._species[r.name] = r_sym
+            r_sym = self._species[r.name]
             r_spec_list = m.mcell_add_to_species_list(
                 r_sym, True, odict_num[orient], r_spec_list)
         for p, orient in rxn.products:
-            p_sym = m.create_species(
-                self._world, p.name, p.diffusion_constant, p.surface)
-            if p.name not in self._species:
-                self._species[p.name] = p_sym
+            # p_sym = m.create_species(
+            #     self._world, p.name, p.diffusion_constant, p.surface)
+            # if p.name not in self._species:
+            #     self._species[p.name] = p_sym
+            p_sym = self._species[p.name]
             p_spec_list = m.mcell_add_to_species_list(
                 p_sym, True, odict_num[orient], p_spec_list)
         m.create_reaction(
@@ -254,9 +260,17 @@ class MCellSim(object):
             mesh_obj: MeshObj,
             species: Species,
             count: int,
+            region: SurfaceRegion = None,
             orient: int = None) -> None:
         """ Release the specified amount of species into an object. """
-        rel_name = "%s_%s_rel" % (species.name, mesh_obj.name)
+        if species.surface and orient is None:
+            logging.info(
+                "Error: must specify orientation when releasing surface "
+                "molecule")
+        if region:
+            rel_name = "%s_%s_%s_rel" % (species.name, mesh_obj.name, region.reg_name)
+        else:
+            rel_name = "%s_%s_rel" % (species.name, mesh_obj.name)
 
         mol_sym = self._species[species.name]
         if orient:
@@ -265,15 +279,18 @@ class MCellSim(object):
             mol_list = m.mcell_add_to_species_list(mol_sym, False, 0, None)
         rel_object = m.object()
         number_type = 0
+        if region:
+            reg_name = region.reg_name
+        else:
+            reg_name = "ALL"
         release_object = m.mcell_create_region_release(
             self._world, self._scene, self._mesh_objects[mesh_obj.name],
-            rel_name, "ALL", mol_list, float(count),
+            rel_name, reg_name, mol_list, float(count),
             number_type, 1, None, rel_object)
         if rel_name not in self._releases:
             self._releases[rel_name] = release_object
         m.mcell_delete_species_list(mol_list)
-
-        return release_object
+        logging.info("Creating release site '%s'" % rel_name)
 
 
     def create_release_site(
