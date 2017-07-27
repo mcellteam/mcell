@@ -13,10 +13,11 @@ spec_dict = m.create_species_from_dm(dm)
 for spec in spec_dict.values():
     world.add_species(spec)
 rxn_list = m.create_reactions_from_dm(dm, spec_dict)
-# for rxn in rxn_list:
-#     world.add_reaction(rxn)
+for rxn in rxn_list:
+    world.add_reaction(rxn)
 meshobj_dict = m.create_meshobjs_from_dm(dm)
 for meshobj_name in meshobj_dict:
     world.add_geometry(meshobj_dict[meshobj_name])
 m.create_release_sites_from_dm(dm, world, meshobj_dict, spec_dict)
+m.create_reaction_data_from_dm(dm, world, meshobj_dict, spec_dict)
 world.run_sim()

@@ -316,15 +316,21 @@ class MCellSim(object):
             axis_num = 2
         m.create_partitions(self._world, axis_num, start, stop, step)
 
-    def add_count(self, species: Species, mesh_obj: MeshObj) -> None:
+    def add_count(self, species: Species, mesh_obj: MeshObj = None) -> None:
         """ Add this to the list of species to be counted. """
         species_sym = self._species[species.name]
-        mesh = self._mesh_objects[mesh_obj.name]
-        mesh_sym = m.mcell_get_obj_sym(mesh)
-        count_str = "react_data/seed_%04d/%s_%s" % (
-                self._seed, species.name, mesh_obj.name)
-        count_list, os, out_times, output = m.create_count(
-            self._world, mesh_sym, species_sym, count_str, 1e-5)
+        if mesh_obj:
+            mesh = self._mesh_objects[mesh_obj.name]
+            mesh_sym = m.mcell_get_obj_sym(mesh)
+            count_str = "react_data/seed_%04d/%s_%s" % (
+                    self._seed, species.name, mesh_obj.name)
+            count_list, os, out_times, output = m.create_count(
+                self._world, mesh_sym, species_sym, count_str, 1e-5)
+        else:
+            count_str = "react_data/seed_%04d/%s_WORLD" % (
+                    self._seed, species.name)
+            count_list, os, out_times, output = m.create_count(
+                self._world, None, species_sym, count_str, 1e-5)
         self._counts[count_str] = (count_list, os, out_times, output)
 
     def assign_surf_class(

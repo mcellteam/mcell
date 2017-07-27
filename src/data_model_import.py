@@ -122,3 +122,20 @@ def create_release_sites_from_dm(
                     rel_site_name=rel_site_name)
 
     return rel_site_list
+
+def create_reaction_data_from_dm(
+        data_model: Dict,
+        world,
+        meshobjs,
+        species: Dict[str, m.Species]):
+    rxn_out_dm_list = \
+            data_model['mcell']['reaction_data_output']['reaction_output_list']
+    for rxn_out_dm in rxn_out_dm_list:
+        molecule_name = rxn_out_dm['molecule_name']
+        spec = species[molecule_name]
+        object_name = rxn_out_dm['object_name']
+        if object_name:
+            meshobj = meshobjs[object_name]
+            world.add_count(spec, meshobj)
+        else:
+            world.add_count(spec)
