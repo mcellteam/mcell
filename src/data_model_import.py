@@ -51,17 +51,17 @@ def create_reactions_from_dm(
     rxn_dm_list = data_model['mcell']['define_reactions']['reaction_list']
     rxn_list = []
     for rxn_dm in rxn_dm_list:
-        rxn_name = rxn_dm['rxn_name']
+        # rxn_name = rxn_dm['rxn_name']
         fwd_rate = float(rxn_dm['fwd_rate'])
-        try:
-            bkwd_rate = float(rxn_dm['bkwd_rate'])
-        except ValueError:
-            pass
+        # try:
+        #     bkwd_rate = float(rxn_dm['bkwd_rate'])
+        # except ValueError:
+        #     pass
         reactants_str_list = rxn_dm['reactants'].split(" + ")
         products_str_list = rxn_dm['products'].split(" + ")
         r_list = make_spec_orient_list(reactants_str_list, species)
         p_list = make_spec_orient_list(products_str_list, species)
-        rxn_type = rxn_dm['rxn_type']
+        # rxn_type = rxn_dm['rxn_type']
         rxn_dm = m.Reaction(r_list, p_list, fwd_rate)
         rxn_list.append(rxn_dm)
     return rxn_list
@@ -79,7 +79,7 @@ def create_meshobjs_from_dm(dm: Dict):
             reg_name = reg_dm['name']
             face_list = reg_dm['include_elements']
             m.SurfaceRegion(meshobj, reg_name, face_list)
-        meshobj_dict[name] = meshobj 
+        meshobj_dict[name] = meshobj
     return meshobj_dict
 
 
@@ -88,7 +88,8 @@ def create_release_sites_from_dm(
         world,
         meshobjs,
         species: Dict[str, m.Species]):
-    rel_site_dm_list = data_model['mcell']['release_sites']['release_site_list']
+    rel_site_dm_list = \
+            data_model['mcell']['release_sites']['release_site_list']
     rel_site_list = []
     for rel_site_dm in rel_site_dm_list:
         rel_site_name = rel_site_dm['name']
@@ -112,8 +113,12 @@ def create_release_sites_from_dm(
                 reg = r
                 break
         if orient:
-            world.release_into_meshobj(meshobj, spec, quantity, orient=1, region=reg)
+            world.release_into_meshobj(
+                    meshobj, spec, quantity, orient=1, region=reg,
+                    rel_site_name=rel_site_name)
         else:
-            world.release_into_meshobj(meshobj, spec, quantity, region=reg)
+            world.release_into_meshobj(
+                    meshobj, spec, quantity, region=reg,
+                    rel_site_name=rel_site_name)
 
     return rel_site_list
