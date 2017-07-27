@@ -251,6 +251,7 @@ class MCellSim(object):
             mesh_obj: MeshObj,
             species: Species,
             count: int,
+            rel_site_name: str = "",
             region: SurfaceRegion = None,
             orient: int = None) -> None:
         """ Release the specified amount of species into an object. """
