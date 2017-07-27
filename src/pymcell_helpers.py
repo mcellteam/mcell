@@ -9,7 +9,6 @@ intuitive.
 
 import pymcell as m
 from typing import List, Dict, Iterable, Any
-import json
 import logging
 from enum import Enum
 
@@ -86,7 +85,8 @@ class Reaction(object):
         # arrow = "<->" if bkwd_rate_constant else "->"
         if bkwd_rate_constant:
             logging.info("Creating reaction %s <-> %s [%.2E, %.2E]" % (
-                reactants_str, products_str, rate_constant, bkwd_rate_constant))
+                reactants_str, products_str, rate_constant,
+                bkwd_rate_constant))
         else:
             logging.info("Creating reaction %s -> %s [%.2E]" % (
                 reactants_str, products_str, rate_constant))
@@ -164,7 +164,7 @@ class MCellSim(object):
         self._output_freq = 10
         self._seed = seed
         m.mcell_set_seed(self._world, seed)
-        #m.mcell_silence_notifications(self._world)
+        # m.mcell_silence_notifications(self._world)
         m.mcell_init_state(self._world)
         # This is the top level instance object. We just call it "Scene" here
         # to be consistent with the MDL output from Blender.
@@ -205,18 +205,10 @@ class MCellSim(object):
         r_spec_list = None
         p_spec_list = None
         for r, orient in rxn.reactants:
-            # r_sym = m.create_species(
-            #     self._world, r.name, r.diffusion_constant, r.surface)
-            # if r.name not in self._species:
-            #     self._species[r.name] = r_sym
             r_sym = self._species[r.name]
             r_spec_list = m.mcell_add_to_species_list(
                 r_sym, True, odict_num[orient], r_spec_list)
         for p, orient in rxn.products:
-            # p_sym = m.create_species(
-            #     self._world, p.name, p.diffusion_constant, p.surface)
-            # if p.name not in self._species:
-            #     self._species[p.name] = p_sym
             p_sym = self._species[p.name]
             p_spec_list = m.mcell_add_to_species_list(
                 p_sym, True, odict_num[orient], p_spec_list)
@@ -254,7 +246,6 @@ class MCellSim(object):
             self._world, "./viz_data/seed_%04i/Scene" % self._seed, viz_list,
             0, self._iterations, 1)
 
-
     def release_into_meshobj(
             self,
             mesh_obj: MeshObj,
@@ -268,7 +259,8 @@ class MCellSim(object):
                 "Error: must specify orientation when releasing surface "
                 "molecule")
         if region:
-            rel_name = "%s_%s_%s_rel" % (species.name, mesh_obj.name, region.reg_name)
+            rel_name = "%s_%s_%s_rel" % (
+                    species.name, mesh_obj.name, region.reg_name)
         else:
             rel_name = "%s_%s_rel" % (species.name, mesh_obj.name)
 
@@ -291,7 +283,6 @@ class MCellSim(object):
             self._releases[rel_name] = release_object
         m.mcell_delete_species_list(mol_list)
         logging.info("Creating release site '%s'" % rel_name)
-
 
     def create_release_site(
             self, species: Species, count: int, shape: str,
