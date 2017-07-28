@@ -20,4 +20,5 @@ for meshobj_name in meshobj_dict:
     world.add_geometry(meshobj_dict[meshobj_name])
 m.create_release_sites_from_dm(dm, world, meshobj_dict, spec_dict)
 m.create_reaction_data_from_dm(dm, world, meshobj_dict, spec_dict)
+m.create_viz_data_from_dm(dm, world, spec_dict)
 world.run_sim()

@@ -139,3 +139,17 @@ def create_reaction_data_from_dm(
             world.add_count(spec, meshobj)
         else:
             world.add_count(spec)
+
+def create_viz_data_from_dm(
+        data_model: Dict,
+        world,
+        species: Dict[str, m.Species]):
+    species_dm_list = data_model['mcell']['define_molecules']['molecule_list']
+    species_list = []
+    for species_dm in species_dm_list:
+        if species_dm['export_viz']:
+            species_name = species_dm['mol_name']
+            spec = species[species_name]
+            species_list.append(spec)
+    world.add_viz(species_list)
+
