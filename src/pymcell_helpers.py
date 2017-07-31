@@ -242,6 +242,7 @@ class MCellSim(object):
         for spec in species:
             viz_list = m.mcell_add_to_species_list(
                 self._species[spec.name], False, 0, viz_list)
+            logging.info("Output '%s' for viz data." % spec.name)
         m.mcell_create_viz_output(
             self._world, "./viz_data/seed_%04i/Scene" % self._seed, viz_list,
             0, self._iterations, 1)
@@ -316,7 +317,7 @@ class MCellSim(object):
             axis_num = 2
         m.create_partitions(self._world, axis_num, start, stop, step)
 
-    def add_count(self, species: Species, mesh_obj: MeshObj = None) -> None:
+    def add_count(self, species: Species, mesh_obj: MeshObj = None,  reg: SurfaceRegion = None) -> None:
         """ Add this to the list of species to be counted. """
         species_sym = self._species[species.name]
         if mesh_obj:
@@ -326,6 +327,13 @@ class MCellSim(object):
                     self._seed, species.name, mesh_obj.name)
             count_list, os, out_times, output = m.create_count(
                 self._world, mesh_sym, species_sym, count_str, 1e-5)
+        elif reg:
+            reg_swig_obj = self._regions[reg.full_reg_name]
+            reg_sym = m.mcell_get_reg_sym(reg_swig_obj)
+            count_str = "react_data/seed_%04d/%s_%s_%s" % (
+                    self._seed, species.name, reg.mesh_obj.name, reg.reg_name)
+            count_list, os, out_times, output = m.create_count(
+                self._world, reg_sym, species_sym, count_str, 1e-5)
         else:
             count_str = "react_data/seed_%04d/%s_WORLD" % (
                     self._seed, species.name)

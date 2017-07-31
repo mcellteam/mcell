@@ -28,13 +28,15 @@ def create_species_from_dm(data_model: Dict) -> List[m.Species]:
 def make_spec_orient_list(mol_str_list, species):
     spec_orient_list = []
     for r in mol_str_list:
-        if r.endswith("'") or r.endswith(","):
+        if r.endswith("'") or r.endswith(",") or r.endswith(";"):
             r_str = r[:-1]
             r_orient = r[-1]
             if r_orient == "'":
                 orient = m.Orient.up
             elif r_orient == ",":
                 orient = m.Orient.down
+            elif r_orient == ";":
+                orient = m.Orient.mix
             else:
                 orient = m.Orient.mix
         else:
@@ -133,10 +135,18 @@ def create_reaction_data_from_dm(
     for rxn_out_dm in rxn_out_dm_list:
         molecule_name = rxn_out_dm['molecule_name']
         spec = species[molecule_name]
-        object_name = rxn_out_dm['object_name']
-        if object_name:
+        count_location = rxn_out_dm['count_location']
+        if count_location == "Object":
+            object_name = rxn_out_dm['object_name']
             meshobj = meshobjs[object_name]
-            world.add_count(spec, meshobj)
+            world.add_count(spec, mesh_obj=meshobj)
+        elif count_location == "Region":
+            region_name = rxn_out_dm['region_name']
+            object_name = rxn_out_dm['object_name']
+            meshobj = meshobjs[object_name]
+            for reg in meshobj.regions:
+                if reg.reg_name == region_name:
+                    world.add_count(spec, reg=reg)
         else:
             world.add_count(spec)
 
@@ -145,9 +155,10 @@ def create_viz_data_from_dm(
         world,
         species: Dict[str, m.Species]):
     species_dm_list = data_model['mcell']['define_molecules']['molecule_list']
+    export_all = data_model['mcell']['viz_output']['export_all']
     species_list = []
     for species_dm in species_dm_list:
-        if species_dm['export_viz']:
+        if export_all or species_dm['export_viz']:
             species_name = species_dm['mol_name']
             spec = species[species_name]
             species_list.append(spec)

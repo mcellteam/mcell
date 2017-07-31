@@ -1,14 +1,14 @@
 import pymcell as m
 
-iterations = 100
-time_step = 1e-5
+iterations = 10
+time_step = 1e-6
 seed = 1
 world = m.MCellSim(seed)
 world.set_time_step(time_step)
 world.set_iterations(iterations)
 world.set_output_freq(1)
 
-dm = m.read_json_data_model("./lipidraft.json")
+dm = m.read_json_data_model("./test.json")
 spec_dict = m.create_species_from_dm(dm)
 for spec in spec_dict.values():
     world.add_species(spec)
