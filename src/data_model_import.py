@@ -164,3 +164,11 @@ def create_viz_data_from_dm(
             species_list.append(spec)
     world.add_viz(species_list)
 
+def create_initializations_from_dm(
+        data_model: Dict,
+        world):
+    initialization = data_model['mcell']['initialization']
+    iterations = int(initialization['iterations'])
+    time_step = float(initialization['time_step'])
+    world.set_iterations(iterations)
+    world.set_time_step(iterations)
