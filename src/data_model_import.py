@@ -125,6 +125,7 @@ def create_release_sites_from_dm(
 
     return rel_site_list
 
+
 def create_reaction_data_from_dm(
         data_model: Dict,
         world,
@@ -150,6 +151,7 @@ def create_reaction_data_from_dm(
         else:
             world.add_count(spec)
 
+
 def create_viz_data_from_dm(
         data_model: Dict,
         world,
@@ -164,6 +166,7 @@ def create_viz_data_from_dm(
             species_list.append(spec)
     world.add_viz(species_list)
 
+
 def create_initializations_from_dm(
         data_model: Dict,
         world):
@@ -171,4 +174,4 @@ def create_initializations_from_dm(
     iterations = int(initialization['iterations'])
     time_step = float(initialization['time_step'])
     world.set_iterations(iterations)
-    world.set_time_step(iterations)
+    world.set_time_step(time_step)
