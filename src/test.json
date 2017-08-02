@@ -47,7 +47,23 @@
         },
         "define_surface_classes": {
             "data_model_version": "DM_2014_10_24_1638",
-            "surface_class_list": []
+            "surface_class_list": [
+                {
+                    "data_model_version": "DM_2014_10_24_1638",
+                    "name": "Surface_Class",
+                    "surface_class_prop_list": [
+                        {
+                            "affected_mols": "SINGLE",
+                            "clamp_value": "0",
+                            "data_model_version": "DM_2015_11_08_1756",
+                            "molecule": "Molecule_1",
+                            "name": "Molec.: Molecule_1   Orient.: Ignore   Type: Absorptive",
+                            "surf_class_orient": ";",
+                            "surf_class_type": "ABSORPTIVE"
+                        }
+                    ]
+                }
+            ]
         },
         "geometrical_objects": {
             "object_list": [
@@ -55,7 +71,8 @@
                     "define_surface_regions": [
                         {
                             "include_elements": [
-                                5
+                                5,
+                                11
                             ],
                             "name": "top"
                         }
@@ -130,44 +147,44 @@
                     "name": "Cube",
                     "vertex_list": [
                         [
-                            -1.0,
-                            -1.0,
-                            -1.0
+                            -0.20000004768371582,
+                            -0.20000004768371582,
+                            -0.20000004768371582
                         ],
                         [
-                            -1.0,
-                            -1.0,
-                            1.0
+                            -0.20000004768371582,
+                            -0.20000004768371582,
+                            0.20000004768371582
                         ],
                         [
-                            -1.0,
-                            1.0,
-                            -1.0
+                            -0.20000004768371582,
+                            0.20000004768371582,
+                            -0.20000004768371582
                         ],
                         [
-                            -1.0,
-                            1.0,
-                            1.0
+                            -0.20000004768371582,
+                            0.20000004768371582,
+                            0.20000004768371582
                         ],
                         [
-                            1.0,
-                            -1.0,
-                            -1.0
+                            0.20000004768371582,
+                            -0.20000004768371582,
+                            -0.20000004768371582
                         ],
                         [
-                            1.0,
-                            -1.0,
-                            1.0
+                            0.20000004768371582,
+                            -0.20000004768371582,
+                            0.20000004768371582
                         ],
                         [
-                            1.0,
-                            1.0,
-                            -1.0
+                            0.20000004768371582,
+                            0.20000004768371582,
+                            -0.20000004768371582
                         ],
                         [
-                            1.0,
-                            1.0,
-                            1.0
+                            0.20000004768371582,
+                            0.20000004768371582,
+                            0.20000004768371582
                         ]
                     ]
                 }
@@ -179,7 +196,7 @@
             "data_model_version": "DM_2014_10_24_1638",
             "export_all_ascii": false,
             "interaction_radius": "",
-            "iterations": "1000",
+            "iterations": "200",
             "microscopic_reversibility": "OFF",
             "notifications": {
                 "all_notifications": "INDIVIDUAL",
@@ -251,7 +268,16 @@
         },
         "modify_surface_regions": {
             "data_model_version": "DM_2014_10_24_1638",
-            "modify_surface_regions_list": []
+            "modify_surface_regions_list": [
+                {
+                    "data_model_version": "DM_2015_11_06_1732",
+                    "name": "Surface Class: Surface_Class   Object: Cube   Region: top",
+                    "object_name": "Cube",
+                    "region_name": "top",
+                    "region_selection": "SEL",
+                    "surf_class_name": "Surface_Class"
+                }
+            ]
         },
         "mol_viz": {
             "active_seed_index": 0,
@@ -299,18 +325,22 @@
                 ]
             ],
             "data_model_version": "DM_2015_04_13_1700",
-            "file_dir": "/home/jczech/mcell/source/mcell/build/python/viz_data/seed_0001/",
-            "file_index": 9,
-            "file_name": "Scene.cellbin.09.dat",
-            "file_num": 11,
+            "file_dir": "mcell/test/073117/073117_files/mcell/output_data/viz_data/seed_00001",
+            "file_index": 7,
+            "file_name": "Scene.cellbin.007.dat",
+            "file_num": 201,
             "file_start_index": 0,
             "file_step_index": 1,
-            "file_stop_index": 10,
-            "manual_select_viz_dir": true,
+            "file_stop_index": 200,
+            "manual_select_viz_dir": false,
             "render_and_save": false,
-            "seed_list": [],
+            "seed_list": [
+                "seed_00001"
+            ],
             "viz_enable": true,
-            "viz_list": []
+            "viz_list": [
+                "mol_Molecule_1"
+            ]
         },
         "parameter_system": {
             "_extras": {
@@ -354,7 +384,7 @@
                     "location_z": "0",
                     "molecule": "Molecule_1",
                     "name": "Release_Site_1",
-                    "object_expr": "Cube",
+                    "object_expr": "Cube[top]",
                     "orient": "'",
                     "pattern": "",
                     "points_list": [],
@@ -381,16 +411,7 @@
             "data_model_version": "DM_2016_10_27_1642",
             "end_seed": "1",
             "name": "",
-            "processes_list": [
-                {
-                    "data_model_version": "DM_2015_04_23_1753",
-                    "name": "PID: 10414, Seed: 1, 100%"
-                },
-                {
-                    "data_model_version": "DM_2015_04_23_1753",
-                    "name": "PID: 10555, Seed: 1, 100%"
-                }
-            ],
+            "processes_list": [],
             "run_limit": "-1",
             "start_seed": "1"
         },

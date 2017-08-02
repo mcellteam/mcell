@@ -15,6 +15,8 @@ for rxn in rxn_list:
 meshobj_dict = m.create_meshobjs_from_dm(dm)
 for meshobj_name in meshobj_dict:
     world.add_geometry(meshobj_dict[meshobj_name])
+sc_dict = m.create_surface_classes_from_dm(dm, world, spec_dict)
+m.create_mod_surf_reg_from_dm(dm, world, sc_dict, meshobj_dict)
 m.create_release_sites_from_dm(dm, world, meshobj_dict, spec_dict)
 m.create_reaction_data_from_dm(dm, world, meshobj_dict, spec_dict)
 m.create_viz_data_from_dm(dm, world, spec_dict)

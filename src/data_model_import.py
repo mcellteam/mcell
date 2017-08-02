@@ -85,6 +85,39 @@ def create_meshobjs_from_dm(dm: Dict):
     return meshobj_dict
 
 
+def create_surface_classes_from_dm(dm: Dict, world, spec_dict):
+    sc_dm_list = dm['mcell']['define_surface_classes']['surface_class_list']
+    sc_dict = {}
+    for sc_dm in sc_dm_list:
+        sc_name = sc_dm['name']
+        for sc_prop_dm in sc_dm['surface_class_prop_list']:
+            if sc_prop_dm['affected_mols'] == 'SINGLE':
+                spec_name = sc_prop_dm['molecule']
+            else:
+                # XXX: Need to add in case for ALL_MOLECULES,
+                # ALL_SURFACE_MOLECULES, etc.
+                pass
+            spec = spec_dict[spec_name]
+            surf_class_type = sc_prop_dm['surf_class_type'].lower()
+            sc = m.SurfaceClass(sc_name, surf_class_type, spec)
+            sc_dict[sc_name] = sc
+    return sc_dict
+
+
+def create_mod_surf_reg_from_dm(dm: Dict, world, sc_dict: Dict, meshobj_dict: Dict):
+    mod_sr_list = dm['mcell']['modify_surface_regions']['modify_surface_regions_list']
+    for mod_sr in mod_sr_list:
+        object_name = mod_sr['object_name']
+        region_name = mod_sr['region_name']
+        surf_class_name = mod_sr['surf_class_name']
+        sc = sc_dict[surf_class_name]
+        meshobj = meshobj_dict[object_name]
+        for reg in meshobj.regions:
+            if reg.reg_name == region_name:
+                world.assign_surf_class(sc, reg)
+            break
+
+
 def create_release_sites_from_dm(
         data_model: Dict,
         world,
