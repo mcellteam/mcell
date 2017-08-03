@@ -22,14 +22,15 @@ class Orient(Enum):
     mix = 3
 
 
-odict_sym = {Orient.up: "'", Orient.down: ",", Orient.mix: ";"}
-odict_num = {Orient.up: 1, Orient.down: -1, Orient.mix: 0}
 
 
 class MeshObj(object):
     """ An entire polygon object and its associated surface regions. """
     def __init__(
-            self, name: str, vert_list: List, face_list: List) -> None:
+            self,
+            name: str,
+            vert_list: List[Tuple[float, float, float]],
+            face_list: List[Tuple[int, int, int]]) -> None:
         self.name = name
         self.vert_list = vert_list
         self.face_list = face_list
@@ -57,6 +58,24 @@ class Species(object):
         return self.name
 
 
+class OrientedSpecies(object):
+    """ A type of molecule. """
+    def __init__(
+            self,
+            spec: Species,
+            orient: Orient) -> None:
+        self.spec = spec
+        odict_str = {Orient.up: "'", Orient.down: ",", Orient.mix: ";"}
+        odict_num = {Orient.up: 1, Orient.down: -1, Orient.mix: 0}
+        self.orient = orient
+        self.orient_num = odict_num[orient]
+        self.orient_str = odict_str[orient]
+        self.name = self.spec.name + self.orient_str
+
+    def __str__(self):
+        return self.name
+
+
 class Reaction(object):
     """ A reaction involving one or more molecules.
     ex: vm1 -> vm2 + vm3
@@ -65,8 +84,8 @@ class Reaction(object):
     """
     def __init__(
             self,
-            reactants: List[Tuple[Species, Orient]],
-            products: List[Tuple[Species, Orient]],
+            reactants: List[Any],  # List of Species or OrientedSpecies
+            products: List[Any],  # List of Species or OrientedSpecies
             rate_constant: float,
             bkwd_rate_constant=None,
             name=None) -> None:
@@ -75,14 +94,27 @@ class Reaction(object):
         self.rate_constant = rate_constant
         self.bkwd_rate_constant = bkwd_rate_constant
         self.name = name
-        reactant_names = [r[0].name+odict_sym[r[1]] for r in reactants]
+        # These variable names are terrible...
+        reactants_so = all(isinstance(r, m.OrientedSpecies) for r in reactants)
+        products_so = all(isinstance(p, m.OrientedSpecies) for p in products)
+        reactants_s = all(isinstance(r, m.Species) for r in reactants)
+        products_s = all(isinstance(p, m.Species) for p in products)
+        if (reactants_so and (products_so or not products)) or (reactants_s and products_s):
+            # make sure either everything is oriented (aside from possible NULL
+            # product) or nothing is.
+            pass
+        else:
+            logging.info(
+                "Mixing oriented with non oriented species in reaction")
+        reactant_names = [r.name for r in reactants]
         reactants_str = " + ".join(reactant_names)
         if products:
-            product_names = [p[0].name+odict_sym[p[1]] for p in products]
+            product_names = [p.name for p in products]
             products_str = " + ".join(product_names)
         else:
             products_str = "NULL"
-        # arrow = "<->" if bkwd_rate_constant else "->"
+        arrow = "<->" if bkwd_rate_constant else "->"
+
         if bkwd_rate_constant:
             logging.info("Creating reaction %s <-> %s [%.2E, %.2E]" % (
                 reactants_str, products_str, rate_constant,
@@ -204,14 +236,24 @@ class MCellSim(object):
         """ Add a reaction object. """
         r_spec_list = None
         p_spec_list = None
-        for r, orient in rxn.reactants:
-            r_sym = self._species[r.name]
-            r_spec_list = m.mcell_add_to_species_list(
-                r_sym, True, odict_num[orient], r_spec_list)
-        for p, orient in rxn.products:
-            p_sym = self._species[p.name]
-            p_spec_list = m.mcell_add_to_species_list(
-                p_sym, True, odict_num[orient], p_spec_list)
+        for r in rxn.reactants:
+            if isinstance(r, m.OrientedSpecies):
+                r_sym = self._species[r.spec.name]
+                r_spec_list = m.mcell_add_to_species_list(
+                    r_sym, True, r.orient_num, r_spec_list)
+            else:
+                r_sym = self._species[r.name]
+                r_spec_list = m.mcell_add_to_species_list(
+                    r_sym, False, 0, r_spec_list)
+        for p in rxn.products:
+            if isinstance(r, m.OrientedSpecies):
+                p_sym = self._species[p.spec.name]
+                p_spec_list = m.mcell_add_to_species_list(
+                    p_sym, True, p.orient_num, p_spec_list)
+            else:
+                p_sym = self._species[p.name]
+                p_spec_list = m.mcell_add_to_species_list(
+                    p_sym, False, 0, p_spec_list)
         m.create_reaction(
             self._world,
             r_spec_list,
