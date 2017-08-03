@@ -8,7 +8,7 @@ intuitive.
 """
 
 import pymcell as m
-from typing import List, Dict, Iterable, Any
+from typing import List, Dict, Iterable, Tuple, Any
 import logging
 from enum import Enum
 
@@ -65,8 +65,8 @@ class Reaction(object):
     """
     def __init__(
             self,
-            reactants: List[Species],
-            products: List[Species],
+            reactants: List[Tuple[Species, Orient]],
+            products: List[Tuple[Species, Orient]],
             rate_constant: float,
             bkwd_rate_constant=None,
             name=None) -> None:

@@ -1,16 +1,17 @@
 import pymcell as m
 import json
-from typing import List, Dict
+from typing import List, Dict, Tuple, Any
 
 
-def read_json_data_model(file_name: str):
+def read_json_data_model(file_name: str) -> Dict[str, Any]:
     with open(file_name, 'r') as f:
         json_model = f.read()
         data_model = json.loads(json_model)
     return data_model
 
 
-def create_species_from_dm(data_model: Dict) -> List[m.Species]:
+def create_species_from_dm(
+        data_model: Dict[str, Any]) -> Dict[str, m.Species]:
     species_dm_list = data_model['mcell']['define_molecules']['molecule_list']
     species_dict = {}
     for species_dm in species_dm_list:
@@ -25,7 +26,9 @@ def create_species_from_dm(data_model: Dict) -> List[m.Species]:
     return species_dict
 
 
-def make_spec_orient_list(mol_str_list, species):
+def make_spec_orient_list(
+        mol_str_list: List[str],
+        species: Dict[str, m.Species]) -> List[Tuple[m.Species, m.Orient]]:
     spec_orient_list = []
     for r in mol_str_list:
         if r.endswith("'") or r.endswith(",") or r.endswith(";"):
@@ -49,7 +52,8 @@ def make_spec_orient_list(mol_str_list, species):
 
 
 def create_reactions_from_dm(
-        data_model: Dict, species: Dict[str, m.Species]) -> List[m.Reaction]:
+        data_model: Dict[str, Any],
+        species: Dict[str, m.Species]) -> List[m.Reaction]:
     rxn_dm_list = data_model['mcell']['define_reactions']['reaction_list']
     rxn_list = []
     for rxn_dm in rxn_dm_list:
@@ -69,7 +73,8 @@ def create_reactions_from_dm(
     return rxn_list
 
 
-def create_meshobjs_from_dm(dm: Dict):
+def create_meshobjs_from_dm(
+        dm: Dict[str, Any]) -> Dict[str, m.MeshObj]:
     meshobj_dm_list = dm['mcell']['geometrical_objects']['object_list']
     meshobj_dict = {}
     for meshobj_dm in meshobj_dm_list:
@@ -85,7 +90,10 @@ def create_meshobjs_from_dm(dm: Dict):
     return meshobj_dict
 
 
-def create_surface_classes_from_dm(dm: Dict, world, spec_dict):
+def create_surface_classes_from_dm(
+        dm: Dict[str, Any],
+        world: m.MCellSim,
+        spec_dict: Dict[str, m.Species]) -> Dict[str, m.SurfaceClass]:
     sc_dm_list = dm['mcell']['define_surface_classes']['surface_class_list']
     sc_dict = {}
     for sc_dm in sc_dm_list:
@@ -104,7 +112,11 @@ def create_surface_classes_from_dm(dm: Dict, world, spec_dict):
     return sc_dict
 
 
-def create_mod_surf_reg_from_dm(dm: Dict, world, sc_dict: Dict, meshobj_dict: Dict):
+def create_mod_surf_reg_from_dm(
+        dm: Dict[str, Any],
+        world: m.MCellSim,
+        sc_dict: Dict[str, m.SurfaceClass],
+        meshobj_dict: Dict[str, m.MeshObj]) -> None:
     mod_sr_list = dm['mcell']['modify_surface_regions']['modify_surface_regions_list']
     for mod_sr in mod_sr_list:
         object_name = mod_sr['object_name']
@@ -119,13 +131,12 @@ def create_mod_surf_reg_from_dm(dm: Dict, world, sc_dict: Dict, meshobj_dict: Di
 
 
 def create_release_sites_from_dm(
-        data_model: Dict,
-        world,
-        meshobjs,
-        species: Dict[str, m.Species]):
+        data_model: Dict[str, Any],
+        world: m.MCellSim,
+        meshobjs: Dict[str, m.MeshObj],
+        species: Dict[str, m.Species]) -> None:
     rel_site_dm_list = \
             data_model['mcell']['release_sites']['release_site_list']
-    rel_site_list = []
     for rel_site_dm in rel_site_dm_list:
         rel_site_name = rel_site_dm['name']
         object_expr = rel_site_dm['object_expr']
@@ -156,14 +167,12 @@ def create_release_sites_from_dm(
                     meshobj, spec, quantity, region=reg,
                     rel_site_name=rel_site_name)
 
-    return rel_site_list
-
 
 def create_reaction_data_from_dm(
-        data_model: Dict,
-        world,
-        meshobjs,
-        species: Dict[str, m.Species]):
+        data_model: Dict[str, Any],
+        world: m.MCellSim,
+        meshobjs: Dict[str, m.MeshObj],
+        species: Dict[str, m.Species]) -> None:
     rxn_out_dm_list = \
             data_model['mcell']['reaction_data_output']['reaction_output_list']
     for rxn_out_dm in rxn_out_dm_list:
@@ -187,8 +196,8 @@ def create_reaction_data_from_dm(
 
 def create_viz_data_from_dm(
         data_model: Dict,
-        world,
-        species: Dict[str, m.Species]):
+        world: m.MCellSim,
+        species: Dict[str, m.Species]) -> None:
     species_dm_list = data_model['mcell']['define_molecules']['molecule_list']
     export_all = data_model['mcell']['viz_output']['export_all']
     species_list = []
@@ -202,7 +211,7 @@ def create_viz_data_from_dm(
 
 def create_initializations_from_dm(
         data_model: Dict,
-        world):
+        world: m.MCellSim) -> None:
     initialization = data_model['mcell']['initialization']
     iterations = int(initialization['iterations'])
     time_step = float(initialization['time_step'])
