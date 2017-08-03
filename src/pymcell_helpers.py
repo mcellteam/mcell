@@ -51,6 +51,15 @@ class Species(object):
         vol_surf = "surface" if surface else "volume"
         logging.info("Creating %s species '%s'" % (vol_surf, name))
 
+    def up(self):
+        return OrientedSpecies(self, Orient.up)
+
+    def down(self):
+        return OrientedSpecies(self, Orient.down)
+
+    def mix(self):
+        return OrientedSpecies(self, Orient.mix)
+
     def __str__(self):
         return self.name
 

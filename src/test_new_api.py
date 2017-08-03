@@ -17,18 +17,15 @@ def main():
     # define species
     vm1 = m.Species("vm1", 1e-6)
     world.add_species(vm1)
-    vm1_down = m.OrientedSpecies(vm1, m.Orient.down)
 
     sm1 = m.Species("sm1", 1e-6, surface=True)
     world.add_species(sm1)
-    sm1_up = m.OrientedSpecies(sm1, m.Orient.up)
 
     vm2 = m.Species("vm2", 1e-6)
     world.add_species(vm2)
-    vm2_down = m.OrientedSpecies(vm2, m.Orient.down)
 
     # define reaction
-    rxn = m.Reaction((vm1_down, sm1_up), (vm2_down, ), 1e8, name="create_vm2")
+    rxn = m.Reaction((vm1.down(), sm1.up()), (vm2.down(), ), 1e8, name="create_vm2")
     world.add_reaction(rxn)
 
     # create torus object
