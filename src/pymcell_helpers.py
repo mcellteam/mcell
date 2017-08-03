@@ -206,6 +206,15 @@ class MCellSim(object):
     def __del__(self):
         self.end_sim()
 
+    def silence_warnings(self):
+        m.mcell_silence_warnings(self._world)
+
+    def silence_notifications(self):
+        m.mcell_silence_notifications(self._world)
+
+    def enable_logging(self):
+        logging.basicConfig(format='%(message)s', level=logging.DEBUG)
+
     def set_output_freq(self, output_freq: int) -> None:
         """ How often do we output reaction data. """
         self._output_freq = output_freq

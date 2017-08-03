@@ -57,3 +57,6 @@ MCELL_STATUS mcell_set_time_step(MCELL_STATE *state, double step);
 MCELL_STATUS mcell_set_iterations(MCELL_STATE *state, long long iterations);
 
 MCELL_STATUS mcell_silence_notifications(MCELL_STATE *state);
+MCELL_STATUS mcell_enable_notifications(MCELL_STATE *state);
+MCELL_STATUS mcell_silence_warnings(MCELL_STATE *state);
+MCELL_STATUS mcell_enable_warnings(MCELL_STATE *state);

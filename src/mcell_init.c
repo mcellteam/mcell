@@ -472,9 +472,117 @@ mcell_set_time_step(MCELL_STATE *state, double step) {
 *************************************************************************/
 MCELL_STATUS
 mcell_silence_notifications(MCELL_STATE *state) {
-  state->quiet_flag = 1;
+  /*state->quiet_flag = 1;*/
+  state->notify->progress_report = NOTIFY_NONE;
+  state->notify->diffusion_constants = NOTIFY_NONE;
+  state->notify->reaction_probabilities = NOTIFY_NONE;
+  state->notify->time_varying_reactions = NOTIFY_NONE;
+  state->notify->reaction_prob_notify = 0.0;
+  state->notify->partition_location = NOTIFY_NONE;
+  state->notify->box_triangulation = NOTIFY_NONE;
+  state->notify->iteration_report = NOTIFY_NONE;
+  state->notify->custom_iteration_value = 0;
+  state->notify->release_events = NOTIFY_NONE;
+  state->notify->file_writes = NOTIFY_NONE;
+  state->notify->final_summary = NOTIFY_NONE;
+  state->notify->throughput_report = NOTIFY_NONE;
+  state->notify->checkpoint_report = NOTIFY_NONE;
+  state->notify->reaction_output_report = NOTIFY_NONE;
+  state->notify->volume_output_report = NOTIFY_NONE;
+  state->notify->viz_output_report = NOTIFY_NONE;
+  state->notify->molecule_collision_report = NOTIFY_NONE;
   return MCELL_SUCCESS;
 }
+
+/*************************************************************************
+ mcell_enable_notifications:
+
+    Enable notifications
+
+ In: state: the simulation state
+ Out: 0 on success; any other integer value is a failure.
+*************************************************************************/
+MCELL_STATUS
+mcell_enable_notifications(MCELL_STATE *state) {
+  state->notify->progress_report = NOTIFY_FULL;
+  state->notify->diffusion_constants = NOTIFY_BRIEF;
+  state->notify->reaction_probabilities = NOTIFY_FULL;
+  state->notify->time_varying_reactions = NOTIFY_FULL;
+  state->notify->reaction_prob_notify = 0.0;
+  state->notify->partition_location = NOTIFY_NONE;
+  state->notify->box_triangulation = NOTIFY_NONE;
+  state->notify->iteration_report = NOTIFY_FULL;
+  state->notify->custom_iteration_value = 0;
+  state->notify->release_events = NOTIFY_FULL;
+  state->notify->file_writes = NOTIFY_NONE;
+  state->notify->final_summary = NOTIFY_FULL;
+  state->notify->throughput_report = NOTIFY_FULL;
+  state->notify->checkpoint_report = NOTIFY_FULL;
+  state->notify->reaction_output_report = NOTIFY_NONE;
+  state->notify->volume_output_report = NOTIFY_NONE;
+  state->notify->viz_output_report = NOTIFY_NONE;
+  state->notify->molecule_collision_report = NOTIFY_NONE;
+  return MCELL_SUCCESS;
+}
+
+
+/*************************************************************************
+ mcell_enable_warnings:
+
+    Enable warnings
+
+ In: state: the simulation state
+ Out: 0 on success; any other integer value is a failure.
+*************************************************************************/
+MCELL_STATUS
+mcell_enable_warnings(MCELL_STATE *state) {
+  state->notify->neg_diffusion = WARN_WARN;
+  state->notify->neg_reaction = WARN_WARN;
+  state->notify->high_reaction_prob = WARN_COPE;
+  state->notify->reaction_prob_warn = 1.0;
+  state->notify->close_partitions = WARN_WARN;
+  state->notify->degenerate_polys = WARN_WARN;
+  state->notify->overwritten_file = WARN_COPE;
+  state->notify->short_lifetime = WARN_WARN;
+  state->notify->short_lifetime_value = 50;
+  state->notify->missed_reactions = WARN_WARN;
+  state->notify->missed_reaction_value = 0.001;
+  state->notify->missed_surf_orient = WARN_ERROR;
+  state->notify->useless_vol_orient = WARN_WARN;
+  state->notify->mol_placement_failure = WARN_WARN;
+  state->notify->invalid_output_step_time = WARN_WARN;
+  state->notify->large_molecular_displacement = WARN_WARN;
+  state->notify->add_remove_mesh_warning = WARN_WARN;
+  return MCELL_SUCCESS;
+}
+
+/*************************************************************************
+ mcell_silence_warnings:
+
+    Silence warnings
+
+ In: state: the simulation state
+ Out: 0 on success; any other integer value is a failure.
+*************************************************************************/
+MCELL_STATUS
+mcell_silence_warnings(MCELL_STATE *state) {
+  state->notify->neg_diffusion = WARN_COPE;
+  state->notify->neg_reaction = WARN_COPE;
+  state->notify->high_reaction_prob = WARN_COPE;
+  state->notify->close_partitions = WARN_COPE;
+  state->notify->degenerate_polys = WARN_COPE;
+  state->notify->overwritten_file = WARN_COPE;
+  state->notify->short_lifetime = WARN_COPE;
+  state->notify->missed_reactions = WARN_COPE;
+  state->notify->missed_surf_orient = WARN_ERROR;
+  state->notify->useless_vol_orient = WARN_COPE;
+  state->notify->mol_placement_failure = WARN_COPE;
+  state->notify->invalid_output_step_time = WARN_COPE;
+  state->notify->large_molecular_displacement = WARN_COPE;
+  state->notify->add_remove_mesh_warning = WARN_COPE;
+  return MCELL_SUCCESS;
+}
+
 
 /*****************************************************************************
  *

@@ -5,9 +5,6 @@ import torus
 import logging
 
 
-logging.basicConfig(format='%(message)s', level=logging.DEBUG)
-
-
 def main():
     iterations = 100
     time_step = 1e-5
