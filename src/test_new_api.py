@@ -16,13 +16,9 @@ def main():
 
     # define species
     vm1 = m.Species("vm1", 1e-6)
-    world.add_species(vm1)
-
     sm1 = m.Species("sm1", 1e-6, surface=True)
-    world.add_species(sm1)
-
     vm2 = m.Species("vm2", 1e-6)
-    world.add_species(vm2)
+    world.add_species((vm1, sm1, vm2))
 
     # define reaction
     rxn = m.Reaction((vm1.down(), sm1.up()), (vm2.down(), ), 1e8, name="create_vm2")

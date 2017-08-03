@@ -241,11 +241,18 @@ class MCellSim(object):
     #     self._seed = seed
     #     m.mcell_set_seed(self._world, seed)
 
-    def add_species(self, spec: Species):
+    def add_single_species(self, spec):
         if spec.name not in self._species:
             spec_sym = m.create_species(
                 self._world, spec.name, spec.diffusion_constant, spec.surface)
             self._species[spec.name] = spec_sym
+
+    def add_species(self, spec):
+        if isinstance(spec, m.Species):
+            self.add_single_species(spec)
+        else:
+            for s in spec:
+                self.add_single_species(s)
 
     def add_reaction(self, rxn: Reaction) -> None:
         """ Add a reaction object. """
