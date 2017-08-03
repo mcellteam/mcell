@@ -13,9 +13,6 @@ import logging
 from enum import Enum
 
 
-logging.basicConfig(format='%(message)s', level=logging.DEBUG)
-
-
 class Orient(Enum):
     up = 1
     down = 2
