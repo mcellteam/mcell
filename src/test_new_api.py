@@ -12,6 +12,8 @@ def main():
     world = m.MCellSim(seed)
     world.set_time_step(time_step)
     world.set_iterations(iterations)
+    world.enable_logging()
+    # world.silence_notifications()
     world.set_output_freq(1)
 
     # define species
@@ -30,12 +32,14 @@ def main():
     world.add_geometry(torus_obj)
 
     # Create surface class to absorb vm1
-    # sc = m.SurfaceClass('sc', 'absorptive', vm1)
-    # world.assign_surf_class(sc, torus_reg)
+    sc = m.SurfaceClass('sc', 'absorptive', sm1)
+    world.assign_surf_class(sc, torus_reg)
 
     # release molecules into torus
-    world.release_into_meshobj(torus_obj, vm1, 1000)
-    world.release_into_meshobj(torus_obj, sm1, 1000, region=torus_reg, orient=1)
+    sm1_torus_rel = m.ObjectRelease(sm1.up(), number=1000, meshobj=torus_obj, region=torus_reg)
+    world.release(sm1_torus_rel)
+    vm1_torus_rel = m.ObjectRelease(vm1, number=1000, meshobj=torus_obj)
+    world.release(vm1_torus_rel)
     # pos_vec3 = m.Vector3()
     # diam_vec3 = m.Vector3(0.015, 0.015, 0.015)
     # world.create_release_site(vm1, 100, "spherical", diam_vec3=diam_vec3)

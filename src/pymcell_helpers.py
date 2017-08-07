@@ -19,6 +19,9 @@ class Orient(Enum):
     mix = 3
 
 
+def single_true(iterable):
+    i = iter(iterable)
+    return any(i) and not any(i)
 
 
 class MeshObj(object):
@@ -138,7 +141,8 @@ class SurfaceRegion(object):
     Examples of uses: molecules can be released on to these and surface classes
     can be assigned to them.
     """
-    def __init__(self, mesh_obj: MeshObj,
+    def __init__(self,
+                 mesh_obj: MeshObj,
                  reg_name: str,
                  surf_reg_face_list: List) -> None:
         self.reg_name = reg_name
@@ -152,6 +156,27 @@ class SurfaceRegion(object):
 
     def __str__(self):
         return self.reg_name
+
+
+class ObjectRelease(object):
+    """ An entire polygon object and its associated surface regions. """
+    def __init__(
+            self,
+            spec,
+            number: int = None,
+            conc: float = None,
+            density: float = None,
+            meshobj: MeshObj = None,
+            region: SurfaceRegion = None) -> None:
+        if not single_true((number, conc, density)):
+            raise Exception(
+                "Multiple release methods (e.g. number and conc) specified")
+        self.spec = spec
+        self.number = number
+        self.conc = conc
+        self.density = density
+        self.meshobj = meshobj
+        self.region = region
 
 
 class Vector3(object):
@@ -311,15 +336,22 @@ class MCellSim(object):
             self._world, "./viz_data/seed_%04i/Scene" % self._seed, viz_list,
             0, self._iterations, 1)
 
+    def release(self, relobj):
+        self.release_into_meshobj(relobj.meshobj, relobj.spec, relobj.number, relobj.region)
+
     def release_into_meshobj(
             self,
             mesh_obj: MeshObj,
             species: Species,
             count: int,
-            rel_site_name: str = "",
-            region: SurfaceRegion = None,
-            orient: int = None) -> None:
+            region: SurfaceRegion = None) -> None:
         """ Release the specified amount of species into an object. """
+
+        if isinstance(species, m.OrientedSpecies):
+            orient = species.orient_num
+            species = species.spec
+        else:
+            orient = None
         if species.surface and orient is None:
             logging.info(
                 "Error: must specify orientation when releasing surface "
