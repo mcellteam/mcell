@@ -7,12 +7,9 @@ import logging
 
 
 def main():
-    iterations = 100
-    time_step = 1e-5
-    seed = 1
-    world = m.MCellSim(seed)
-    world.set_time_step(time_step)
-    world.set_iterations(iterations)
+    world = m.MCellSim(seed=1)
+    world.set_time_step(time_step=1e-5)
+    world.set_iterations(iterations=100)
     world.enable_logging()
     # world.silence_notifications()
     world.set_output_freq(1)
@@ -37,9 +34,9 @@ def main():
     world.assign_surf_class(sc, torus_reg)
 
     # release molecules into torus
-    sm1_torus_rel = m.ObjectRelease(sm1.up(), number=1000, meshobj=torus_obj, region=torus_reg)
+    sm1_torus_rel = m.ObjectRelease(sm1.up(), number=1000, region=torus_reg)
     world.release(sm1_torus_rel)
-    vm1_torus_rel = m.ObjectRelease(vm1, number=1000, meshobj=torus_obj)
+    vm1_torus_rel = m.ObjectRelease(vm1, number=1000, mesh_obj=torus_obj)
     world.release(vm1_torus_rel)
     # pos_vec3 = m.Vector3()
     # diam_vec3 = m.Vector3(0.015, 0.015, 0.015)

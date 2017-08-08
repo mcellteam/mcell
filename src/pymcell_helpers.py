@@ -173,7 +173,7 @@ class ObjectRelease(object):
             number: int = None,
             conc: float = None,
             density: float = None,
-            meshobj: MeshObj = None,
+            mesh_obj: MeshObj = None,
             region: SurfaceRegion = None) -> None:
         if not single_true((number, conc, density)):
             raise Exception(
@@ -182,8 +182,11 @@ class ObjectRelease(object):
         self.number = number
         self.conc = conc
         self.density = density
-        self.meshobj = meshobj
         self.region = region
+        if self.region:
+            self.mesh_obj = self.region.mesh_obj
+        else:
+            self.mesh_obj = mesh_obj
 
 
 class Vector3(object):
@@ -260,9 +263,9 @@ class MCellSim(object):
         """ How often do we output reaction data. """
         self._output_freq = output_freq
 
-    def set_time_step(self, dt: float) -> None:
+    def set_time_step(self, time_step: float) -> None:
         """ Set time step in seconds. """
-        m.mcell_set_time_step(self._world, dt)
+        m.mcell_set_time_step(self._world, time_step)
 
     def set_iterations(self, iterations: int) -> None:
         """ Set number of iterations """
@@ -344,9 +347,9 @@ class MCellSim(object):
             0, self._iterations, 1)
 
     def release(self, relobj):
-        self.release_into_meshobj(relobj.meshobj, relobj.spec, relobj.number, relobj.region)
+        self.release_into_mesh_obj(relobj.mesh_obj, relobj.spec, relobj.number, relobj.region)
 
-    def release_into_meshobj(
+    def release_into_mesh_obj(
             self,
             mesh_obj: MeshObj,
             species: Species,
