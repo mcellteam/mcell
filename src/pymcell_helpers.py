@@ -19,6 +19,13 @@ class Orient(Enum):
     mix = 3
 
 
+class SC(Enum):
+    reflect = 1
+    transp = 2
+    absorb = 3
+    conc_clamp = 3
+
+
 def single_true(iterable):
     i = iter(iterable)
     return any(i) and not any(i)
@@ -195,13 +202,13 @@ class SurfaceClass(object):
     ex: Species x are absorbed when they hit the front of a surface.
     """
     def __init__(
-            self, name: str, sc_type: str, species: Species,
-            orient: int = 0) -> None:
-        self.name = name
+            self, sc_type: SC, species) -> None:
         self.sc_type = sc_type
         self.species = species
-        self.orient = orient
-        logging.info("Creating surface class '%s'" % name)
+        sc_dict = {SC.transp: "transparent", SC.reflect: "reflective",  SC.absorb: "absorptive" }
+        self.name = "{}_{}".format(sc_dict[sc_type], species.name)
+        logging.info(
+            "Creating surface class that is {} to {}".format(sc_dict[sc_type], species.name))
 
     def __str__(self):
         return self.name
@@ -441,19 +448,24 @@ class MCellSim(object):
             self, sc: SurfaceClass, region: SurfaceRegion) -> None:
         """ Assign a surface class to a region. """
 
-        if sc.sc_type == "reflect":
+        if sc.sc_type == SC.reflect:
             sc_type = m.RFLCT
-        elif sc.sc_type == "transparent":
+        elif sc.sc_type == SC.transp:
             sc_type = m.TRANSP
-        elif sc.sc_type == "absorptive":
+        elif sc.sc_type == SC.absorb:
             sc_type = m.SINK
+
+        if isinstance(sc.species, m.OrientedSpecies):
+            orient = sc.species.orient_num
+            spec_name = sc.species.spec.name
         else:
-            print("Surface class '%s' is not a valid option" % sc_type)
+            orient = 0
+            spec_name = sc.species.name
         sc_sym = m.create_surf_class(self._world, sc.name)
         self._surface_classes[sc.name] = sc_sym
-        spec_sym = self._species[sc.species.name]
+        spec_sym = self._species[spec_name]
         m.mcell_add_surf_class_properties(
-            self._world, sc_type, sc_sym, spec_sym, sc.orient)
+            self._world, sc_type, sc_sym, spec_sym, orient)
         region_swig_obj = self._regions[region.full_reg_name]
         m.mcell_assign_surf_class_to_region(sc_sym, region_swig_obj)
 

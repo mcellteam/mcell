@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import pymcell as m
+from pymcell import SC
 import torus
 import logging
 
@@ -32,7 +33,7 @@ def main():
     world.add_geometry(torus_obj)
 
     # Create surface class to absorb vm1
-    sc = m.SurfaceClass('sc', 'absorptive', sm1)
+    sc = m.SurfaceClass(SC.absorb, sm1.mix())
     world.assign_surf_class(sc, torus_reg)
 
     # release molecules into torus
