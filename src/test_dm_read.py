@@ -4,7 +4,7 @@ seed = 1
 world = m.MCellSim(seed)
 world.set_output_freq(1)
 
-dm = m.read_json_data_model("./test.json")
+dm = m.read_json_data_model("./lipidraft.json")
 m.create_initializations_from_dm(dm, world)
 spec_dict = m.create_species_from_dm(dm)
 for spec in spec_dict.values():

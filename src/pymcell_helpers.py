@@ -37,11 +37,13 @@ class MeshObj(object):
             self,
             name: str,
             vert_list: List[Tuple[float, float, float]],
-            face_list: List[Tuple[int, int, int]]) -> None:
+            face_list: List[Tuple[int, int, int]],
+            translation: Tuple[float, float, float] = None) -> None:
         self.name = name
         self.vert_list = vert_list
         self.face_list = face_list
         self.regions = []  # type: List[SurfaceRegion]
+        self.translation = translation
         logging.info("Creating mesh object '%s'" % name)
 
     def __str__(self):
@@ -205,11 +207,14 @@ class SurfaceClass(object):
     ex: Species x are absorbed when they hit the front of a surface.
     """
     def __init__(
-            self, sc_type: SC, species) -> None:
+            self, sc_type: SC, species, name=None) -> None:
         self.sc_type = sc_type
         self.species = species
         sc_dict = {SC.transp: "transparent", SC.reflect: "reflective",  SC.absorb: "absorptive" }
-        self.name = "{}_{}".format(sc_dict[sc_type], species.name)
+        if name:
+            self.name = name
+        else:
+            self.name = "{}_{}".format(sc_dict[sc_type], species.name)
         logging.info(
             "Creating surface class that is {} to {}".format(sc_dict[sc_type], species.name))
 
@@ -325,7 +330,8 @@ class MCellSim(object):
             mesh_obj.vert_list,
             mesh_obj.face_list,
             self._scene,
-            mesh_obj.name)
+            mesh_obj.name,
+            mesh_obj.translation)
         if mesh_obj.name not in self._mesh_objects:
             self._mesh_objects[mesh_obj.name] = mesh
         for reg in mesh_obj.regions:
@@ -464,11 +470,14 @@ class MCellSim(object):
         else:
             orient = 0
             spec_name = sc.species.name
-        sc_sym = m.create_surf_class(self._world, sc.name)
-        self._surface_classes[sc.name] = sc_sym
-        spec_sym = self._species[spec_name]
-        m.mcell_add_surf_class_properties(
-            self._world, sc_type, sc_sym, spec_sym, orient)
+        try:
+            sc_sym = self._surface_classes[sc.name]
+        except KeyError:
+            sc_sym = m.create_surf_class(self._world, sc.name)
+            self._surface_classes[sc.name] = sc_sym
+            spec_sym = self._species[spec_name]
+            m.mcell_add_surf_class_properties(
+                self._world, sc_type, sc_sym, spec_sym, orient)
         region_swig_obj = self._regions[region.full_reg_name]
         m.mcell_assign_surf_class_to_region(sc_sym, region_swig_obj)
 
@@ -948,7 +957,7 @@ def change_geometry(world, scene_name, obj_list):
     m.mcell_change_geometry(world, pobj_list)
 
 
-def create_polygon_object(world, vert_list, face_list, scene, name):
+def create_polygon_object(world, vert_list, face_list, scene, name, translation=None):
     """Creates a polygon object from a vertex and element lest
 
     Args:
@@ -965,8 +974,13 @@ def create_polygon_object(world, vert_list, face_list, scene, name):
 
     verts = None
     vert_list = vert_list[::-1]
-    for x, y, z in vert_list:
-        verts = m.mcell_add_to_vertex_list(x, y, z, verts)
+    t = translation
+    if t:
+        for x, y, z in vert_list:
+            verts = m.mcell_add_to_vertex_list(x+t[0], y+t[1], z+t[2], verts)
+    else:
+        for x, y, z in vert_list:
+            verts = m.mcell_add_to_vertex_list(x, y, z, verts)
 
     elems = None
     face_list = face_list[::-1]

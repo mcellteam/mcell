@@ -2,7 +2,7 @@
 
 import pymcell as m
 from pymcell import SC
-import torus
+import torus as t
 import logging
 
 
@@ -25,8 +25,9 @@ def main():
     world.add_reaction(rxn)
 
     # create torus object
-    torus_obj = m.MeshObj("Torus", torus.vert_list, torus.face_list)
-    torus_reg = m.SurfaceRegion(torus_obj, 'half', torus.surf_reg_face_list)
+    torus_obj = m.MeshObj(
+        "Torus", t.vert_list, t.face_list, translation=(0, 1, 0))
+    torus_reg = m.SurfaceRegion(torus_obj, 'half', t.surf_reg_face_list)
     world.add_geometry(torus_obj)
 
     # Create surface class to absorb vm1

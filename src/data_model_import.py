@@ -42,12 +42,11 @@ def make_spec_orient_list(
                 orient = m.Orient.mix
             else:
                 orient = m.Orient.mix
+            spec = species[r_str]
+            spec_orient_list.append(m.OrientedSpecies(spec, orient))
         else:
-            r_str = r
-            orient = m.Orient.mix
-        spec = species[r_str]
-        spec_orient = (spec, orient)
-        spec_orient_list.append(spec_orient)
+            spec = species[r]
+            spec_orient_list.append(spec)
     return spec_orient_list
 
 
@@ -106,8 +105,12 @@ def create_surface_classes_from_dm(
                 # ALL_SURFACE_MOLECULES, etc.
                 pass
             spec = spec_dict[spec_name]
-            surf_class_type = sc_prop_dm['surf_class_type'].lower()
-            sc = m.SurfaceClass(sc_name, surf_class_type, spec)
+            sc_enums = {"TRANSPARENT": m.SC.transp , "REFLECTIVE": m.SC.reflect,  "ABSORPTIVE": m.SC.absorb }
+            surf_class_type = sc_enums[sc_prop_dm['surf_class_type']]
+            odict = {"'": Orient.up, ",": Orient.down, ";": Orient.mix}
+            orient = odict[sc_prop_dm['surf_class_orient']]
+            spec_orient = OrientedSpecies(spec, orient)
+            sc = m.SurfaceClass(surf_class_type, spec_orient, name=sc_name)
             sc_dict[sc_name] = sc
     return sc_dict
 
@@ -127,7 +130,7 @@ def create_mod_surf_reg_from_dm(
         for reg in meshobj.regions:
             if reg.reg_name == region_name:
                 world.assign_surf_class(sc, reg)
-            break
+                break
 
 
 def create_release_sites_from_dm(
@@ -152,6 +155,8 @@ def create_release_sites_from_dm(
         spec = species[spec_name]
         quantity = int(rel_site_dm['quantity'])
         orient = rel_site_dm['orient']
+        odict = {"'": Orient.up, ",": Orient.down, ";": Orient.mix}
+        spec_orient = OrientedSpecies(spec, odict[orient])
         # XXX: this is really clunky.
         reg = None
         for r in meshobj.regions:
@@ -159,13 +164,11 @@ def create_release_sites_from_dm(
                 reg = r
                 break
         if orient:
-            world.release_into_meshobj(
-                    meshobj, spec, quantity, orient=1, region=reg,
-                    rel_site_name=rel_site_name)
+            world.release_into_mesh_obj(
+                    meshobj, spec, quantity, region=reg)
         else:
-            world.release_into_meshobj(
-                    meshobj, spec, quantity, region=reg,
-                    rel_site_name=rel_site_name)
+            world.release_into_mesh_obj(
+                    meshobj, spec, quantity, region=reg)
 
 
 def create_reaction_data_from_dm(
