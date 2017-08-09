@@ -175,7 +175,7 @@ class ListRelease(object):
             pos_list: Iterable[Tuple[float, float, float]])-> None:
         self.spec = spec
         self.pos_list = pos_list
-        logging.info("Creating list release of '%s'" % self.spec.name)
+        # logging.info("Creating list release of '%s'" % self.spec.name)
 
 
 class ObjectRelease(object):
@@ -367,24 +367,39 @@ class MCellSim(object):
         if isinstance(relobj, ObjectRelease):
             self.release_into_mesh_obj(relobj.mesh_obj, relobj.spec, relobj.number, relobj.region)
         elif isinstance(relobj, ListRelease):
-            print("do list release")
             self.release_as_list(relobj.spec, relobj.pos_list)
         else:
-            print("shouldn't get here")
+            raise ValueError("Invalid release site type")
 
     def release_as_list(self, spec, pos_list):
-        print("inside release_as_list")
         length_pos_list = len(pos_list)
-        if isinstance(spec, OrientedSpecies):
-            spec_sym = self._species[spec.spec.name]
+        try:
+            spec_list = []
+            surf_flags = []
+            orient = []
+            for s in spec:
+                if isinstance(spec, OrientedSpecies):
+                    spec_list.append(self._species[s.spec.name])
+                    surf_flags.append(True)
+                    orient.append(s.orient_num)
+                else:
+                    spec_list.append(self._species[s.spec.name])
+                    surf_flags.append(False)
+                    orient.append(0)
+            rel_name = "list_rel"
+
+        except TypeError:
+            if isinstance(spec, OrientedSpecies):
+                spec_sym = self._species[spec.spec.name]
+                spec_list = [spec_sym] * length_pos_list
+                surf_flags = [True] * length_pos_list
+                orient = [spec.orient_num] * length_pos_list
+            else:
+                spec_sym = self._species[spec.name]
+                surf_flags = None
+                orient = None
             spec_list = [spec_sym] * length_pos_list
-            surf_flags = [True] * length_pos_list
-            orient = [spec.orient_num] * length_pos_list
-        else:
-            spec_sym = self._species[spec.name]
-            surf_flags = None
-            orient = None
-        spec_list = [spec_sym] * length_pos_list
+            rel_name = "{}_list_rel".format(spec.name)
         x_pos = []
         y_pos = []
         z_pos = []
@@ -392,7 +407,6 @@ class MCellSim(object):
             x_pos.append(pos[0])
             y_pos.append(pos[1])
             z_pos.append(pos[2])
-        rel_name = "{}_list_rel".format(spec.name)
         (rel_obj, return_status) = m.create_list_release_site(
                 self._world, self._scene, spec_list, x_pos, y_pos, z_pos,
                 rel_name, surf_flags=surf_flags, orientations=orient)
