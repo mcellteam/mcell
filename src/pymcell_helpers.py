@@ -367,7 +367,7 @@ class MCellSim(object):
 
     def release(self, relobj):
         if isinstance(relobj, ObjectRelease):
-            self.release_into_mesh_obj(relobj.mesh_obj, relobj.spec, relobj.number, relobj.region)
+            self.release_into_mesh_obj(relobj)
         elif isinstance(relobj, ListRelease):
             self.release_as_list(relobj.spec, relobj.pos_list)
         else:
@@ -416,14 +416,13 @@ class MCellSim(object):
                 rel_name, surf_flags=surf_flags, orientations=orient)
         if rel_name not in self._releases:
             self._releases[rel_name] = (rel_obj, return_status)
-        
-    def release_into_mesh_obj(
-            self,
-            mesh_obj: MeshObj,
-            species: Species,
-            count: int,
-            region: SurfaceRegion = None) -> None:
+
+    def release_into_mesh_obj(self, relobj) -> None:
         """ Release the specified amount of species into an object. """
+ 
+        mesh_obj = relobj.mesh_obj
+        species = relobj.spec
+        region = relobj.region
 
         if isinstance(species, m.OrientedSpecies):
             orient = species.orient_num
@@ -446,14 +445,19 @@ class MCellSim(object):
         else:
             mol_list = m.mcell_add_to_species_list(mol_sym, False, 0, None)
         rel_object = m.object()
-        number_type = 0
+        if relobj.number:
+            number_type = 0
+            rel_amt = relobj.number
+        elif relobj.conc:
+            number_type = 1
+            rel_amt = relobj.conc
         if region:
             reg_name = region.reg_name
         else:
             reg_name = "ALL"
         release_object = m.mcell_create_region_release(
             self._world, self._scene, self._mesh_objects[mesh_obj.name],
-            rel_name, reg_name, mol_list, float(count),
+            rel_name, reg_name, mol_list, float(rel_amt),
             number_type, 1, None, rel_object)
         if rel_name not in self._releases:
             self._releases[rel_name] = release_object
