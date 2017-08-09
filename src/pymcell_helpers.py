@@ -11,6 +11,8 @@ import pymcell as m
 from typing import List, Dict, Iterable, Tuple, Any
 import logging
 from enum import Enum
+import uuid
+import random
 
 
 class Orient(Enum):
@@ -386,7 +388,6 @@ class MCellSim(object):
                     spec_list.append(self._species[s.spec.name])
                     surf_flags.append(False)
                     orient.append(0)
-            rel_name = "list_rel"
 
         except TypeError:
             if isinstance(spec, OrientedSpecies):
@@ -399,7 +400,10 @@ class MCellSim(object):
                 surf_flags = None
                 orient = None
             spec_list = [spec_sym] * length_pos_list
-            rel_name = "{}_list_rel".format(spec.name)
+        # XXX: HACK. This is definitely not guaranteed to be unique, but I
+        # can't UUID to work for some reason
+        rel_name = "rel_{}".format(random.randint(1,1000))
+        # rel_name = "rel_{}".format(uuid.uuid1())
         x_pos = []
         y_pos = []
         z_pos = []
