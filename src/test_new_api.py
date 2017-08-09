@@ -3,6 +3,7 @@
 import pymcell as m
 from pymcell import SC
 import torus as t
+import box as b
 import logging
 
 
@@ -11,7 +12,7 @@ def main():
     world.set_time_step(time_step=1e-5)
     world.set_iterations(iterations=100)
     world.enable_logging()
-    # world.silence_notifications()
+    world.silence_notifications()
     world.set_output_freq(1)
 
     # define species
@@ -26,9 +27,14 @@ def main():
 
     # create torus object
     torus_obj = m.MeshObj(
-        "Torus", t.vert_list, t.face_list, translation=(0, 1, 0))
+        "Torus", t.vert_list, t.face_list, translation=(0, 0, 0))
     torus_reg = m.SurfaceRegion(torus_obj, 'half', t.surf_reg_face_list)
     world.add_geometry(torus_obj)
+
+    box_obj = m.MeshObj(
+        "Box", b.vert_list, b.face_list, translation=(0, 0, 0))
+    box_reg = m.SurfaceRegion(box_obj, 'top', b.surf_reg_face_list)
+    world.add_geometry(box_obj)
 
     # Create surface class to absorb vm1
     sc = m.SurfaceClass(SC.absorb, sm1.mix())
@@ -39,6 +45,14 @@ def main():
     world.release(sm1_torus_rel)
     vm1_torus_rel = m.ObjectRelease(vm1, number=1000, mesh_obj=torus_obj)
     world.release(vm1_torus_rel)
+
+    vm1_pos = [(x*0.01, 0, 0) for x in range(-10, 10)]
+    vm1_list_release = m.ListRelease(vm1, vm1_pos)
+    world.release(vm1_list_release)
+
+    sm1_pos = [(x*0.01, 0, 0.1) for x in range(-10, 10)]
+    sm1_list_release = m.ListRelease(sm1.up(), sm1_pos)
+    world.release(sm1_list_release)
     # pos_vec3 = m.Vector3()
     # diam_vec3 = m.Vector3(0.015, 0.015, 0.015)
     # world.create_release_site(vm1, 100, "spherical", diam_vec3=diam_vec3)

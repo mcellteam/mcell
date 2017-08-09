@@ -167,6 +167,17 @@ class SurfaceRegion(object):
         return self.reg_name
 
 
+class ListRelease(object):
+    """ An entire polygon object and its associated surface regions. """
+    def __init__(
+            self,
+            spec,
+            pos_list: Iterable[Tuple[float, float, float]])-> None:
+        self.spec = spec
+        self.pos_list = pos_list
+        logging.info("Creating list release of '%s'" % self.spec.name)
+
+
 class ObjectRelease(object):
     """ An entire polygon object and its associated surface regions. """
     def __init__(
@@ -353,8 +364,41 @@ class MCellSim(object):
             0, self._iterations, 1)
 
     def release(self, relobj):
-        self.release_into_mesh_obj(relobj.mesh_obj, relobj.spec, relobj.number, relobj.region)
+        if isinstance(relobj, ObjectRelease):
+            self.release_into_mesh_obj(relobj.mesh_obj, relobj.spec, relobj.number, relobj.region)
+        elif isinstance(relobj, ListRelease):
+            print("do list release")
+            self.release_as_list(relobj.spec, relobj.pos_list)
+        else:
+            print("shouldn't get here")
 
+    def release_as_list(self, spec, pos_list):
+        print("inside release_as_list")
+        length_pos_list = len(pos_list)
+        if isinstance(spec, OrientedSpecies):
+            spec_sym = self._species[spec.spec.name]
+            spec_list = [spec_sym] * length_pos_list
+            surf_flags = [True] * length_pos_list
+            orient = [spec.orient_num] * length_pos_list
+        else:
+            spec_sym = self._species[spec.name]
+            surf_flags = None
+            orient = None
+        spec_list = [spec_sym] * length_pos_list
+        x_pos = []
+        y_pos = []
+        z_pos = []
+        for pos in pos_list:
+            x_pos.append(pos[0])
+            y_pos.append(pos[1])
+            z_pos.append(pos[2])
+        rel_name = "{}_list_rel".format(spec.name)
+        (rel_obj, return_status) = m.create_list_release_site(
+                self._world, self._scene, spec_list, x_pos, y_pos, z_pos,
+                rel_name, surf_flags=surf_flags, orientations=orient)
+        if rel_name not in self._releases:
+            self._releases[rel_name] = (rel_obj, return_status)
+        
     def release_into_mesh_obj(
             self,
             mesh_obj: MeshObj,

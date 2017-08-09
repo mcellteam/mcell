@@ -81,10 +81,13 @@ def create_meshobjs_from_dm(
         vert_list = meshobj_dm['vertex_list']
         face_list = meshobj_dm['element_connections']
         meshobj = m.MeshObj(name, vert_list, face_list)
-        for reg_dm in meshobj_dm['define_surface_regions']:
-            reg_name = reg_dm['name']
-            face_list = reg_dm['include_elements']
-            m.SurfaceRegion(meshobj, reg_name, face_list)
+        try:
+            for reg_dm in meshobj_dm['define_surface_regions']:
+                reg_name = reg_dm['name']
+                face_list = reg_dm['include_elements']
+                m.SurfaceRegion(meshobj, reg_name, face_list)
+        except KeyError:
+            pass
         meshobj_dict[name] = meshobj
     return meshobj_dict
 
