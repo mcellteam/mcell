@@ -18,8 +18,14 @@ class SimpleSpeciesTestCase(unittest.TestCase):
 
 
 class SimpleReactionTestCase(SimpleSpeciesTestCase):
-    def test_rxn(self):
-        rxn = m.Reaction((self.vm1.down(), self.sm1.up()), (self.vm2.down(), ), 1e8, name="create_vm2")
+    def test_vm1_to_null(self):
+        rxn = m.Reaction(self.vm1.down(), None, 1e8)
+
+    def test_vm1_to_vm2(self):
+        rxn = m.Reaction(self.vm1, self.vm2, 1e8)
+
+    def test_vm1sm1_to_vm2(self):
+        rxn = m.Reaction((self.vm1.down(), self.sm1.up()), self.vm2.down(), 1e8)
 
 
 if __name__ == "__main__":
