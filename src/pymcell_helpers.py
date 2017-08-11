@@ -115,24 +115,32 @@ class Reaction(object):
         self.bkwd_rate_constant = bkwd_rate_constant
         self.name = name
         # These variable names are terrible...
-        reactants_so = all(isinstance(r, m.OrientedSpecies) for r in reactants)
-        products_so = all(isinstance(p, m.OrientedSpecies) for p in products)
-        reactants_s = all(isinstance(r, m.Species) for r in reactants)
-        products_s = all(isinstance(p, m.Species) for p in products)
-        if (reactants_so and (products_so or not products)) or (reactants_s and products_s):
-            # make sure either everything is oriented (aside from possible NULL
-            # product) or nothing is.
-            pass
-        else:
-            logging.info(
-                "Mixing oriented with non oriented species in reaction")
-        reactant_names = [r.name for r in reactants]
-        reactants_str = " + ".join(reactant_names)
-        if products:
-            product_names = [p.name for p in products]
-            products_str = " + ".join(product_names)
-        else:
-            products_str = "NULL"
+        # reactants_so = all(isinstance(r, m.OrientedSpecies) for r in reactants)
+        # products_so = all(isinstance(p, m.OrientedSpecies) for p in products)
+        # reactants_s = all(isinstance(r, m.Species) for r in reactants)
+        # products_s = all(isinstance(p, m.Species) for p in products)
+        # if (reactants_so and (products_so or not products)) or (reactants_s and products_s):
+        #     # make sure either everything is oriented (aside from possible NULL
+        #     # product) or nothing is.
+        #     pass
+        # else:
+        #     logging.info(
+        #         "Mixing oriented with non oriented species in reaction")
+        try:
+            reactant_names = [r.name for r in reactants]
+            reactants_str = " + ".join(reactant_names)
+        except TypeError:
+            # must be unimolecular
+            reactants_str = reactants.name
+        try:
+            if products:
+                product_names = [p.name for p in products]
+                products_str = " + ".join(product_names)
+            else:
+                products_str = "NULL"
+        except TypeError:
+            products_str = products.name
+
         arrow = "<->" if bkwd_rate_constant else "->"
 
         if bkwd_rate_constant:
@@ -311,7 +319,19 @@ class MCellSim(object):
         """ Add a reaction object. """
         r_spec_list = None
         p_spec_list = None
-        for r in rxn.reactants:
+        # Figure out if it's an iterable of reactants or a single reactant
+        try:
+            for r in rxn.reactants:
+                if isinstance(r, m.OrientedSpecies):
+                    r_sym = self._species[r.spec.name]
+                    r_spec_list = m.mcell_add_to_species_list(
+                        r_sym, True, r.orient_num, r_spec_list)
+                else:
+                    r_sym = self._species[r.name]
+                    r_spec_list = m.mcell_add_to_species_list(
+                        r_sym, False, 0, r_spec_list)
+        except TypeError:
+            r = rxn.reactants
             if isinstance(r, m.OrientedSpecies):
                 r_sym = self._species[r.spec.name]
                 r_spec_list = m.mcell_add_to_species_list(
@@ -320,7 +340,18 @@ class MCellSim(object):
                 r_sym = self._species[r.name]
                 r_spec_list = m.mcell_add_to_species_list(
                     r_sym, False, 0, r_spec_list)
-        for p in rxn.products:
+        try:
+            for p in rxn.products:
+                if isinstance(r, m.OrientedSpecies):
+                    p_sym = self._species[p.spec.name]
+                    p_spec_list = m.mcell_add_to_species_list(
+                        p_sym, True, p.orient_num, p_spec_list)
+                else:
+                    p_sym = self._species[p.name]
+                    p_spec_list = m.mcell_add_to_species_list(
+                        p_sym, False, 0, p_spec_list)
+        except TypeError:
+            p = rxn.products
             if isinstance(r, m.OrientedSpecies):
                 p_sym = self._species[p.spec.name]
                 p_spec_list = m.mcell_add_to_species_list(
@@ -334,6 +365,7 @@ class MCellSim(object):
             r_spec_list,
             p_spec_list,
             rxn.rate_constant,
+            rxn.bkwd_rate_constant,
             name=rxn.name)
 
     def add_geometry(self, mesh_obj: MeshObj) -> None:

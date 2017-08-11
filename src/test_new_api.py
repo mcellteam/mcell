@@ -30,7 +30,7 @@ def main():
     world.add_species(all_mols)
 
     # define reaction
-    rxn = m.Reaction((vm1.down(), sm1.up()), (vm2.down(), ), 1e8, name="create_vm2")
+    rxn = m.Reaction((vm1.down(), sm1.up()), vm2.down(), 1e8, name="create_vm2")
     world.add_reaction(rxn)
 
     # create torus object
