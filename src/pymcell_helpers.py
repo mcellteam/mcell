@@ -185,7 +185,7 @@ class ListRelease(object):
             pos_list: Iterable[Tuple[float, float, float]])-> None:
         self.spec = spec
         self.pos_list = pos_list
-        # logging.info("Creating list release of '%s'" % self.spec.name)
+        logging.info("Creating list release")
 
 
 class ObjectRelease(object):
@@ -208,8 +208,10 @@ class ObjectRelease(object):
         self.region = region
         if self.region:
             self.mesh_obj = self.region.mesh_obj
+            logging.info("Creating release of {} in/on {}".format(self.spec.name, self.region.reg_name))
         else:
             self.mesh_obj = mesh_obj
+            logging.info("Creating release of {} in/on {}".format(self.spec.name, self.mesh_obj.name))
 
 
 class Vector3(object):
@@ -494,7 +496,7 @@ class MCellSim(object):
         if rel_name not in self._releases:
             self._releases[rel_name] = release_object
         m.mcell_delete_species_list(mol_list)
-        logging.info("Creating release site '%s'" % rel_name)
+        # logging.info("Creating release site '%s'" % rel_name)
 
     def create_release_site(
             self, species: Species, count: int, shape: str,
