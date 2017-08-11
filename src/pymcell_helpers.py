@@ -272,6 +272,10 @@ class MCellSim(object):
         self.scene_name = "Scene"
         self._scene = m.create_instance_object(self._world, self.scene_name)
 
+        # this is different than _species. instead of swig wrapped sym_entry,
+        # this contains Species objects
+        self.species = {}
+
     def __str__(self):
         return self.scene_name
 
@@ -309,6 +313,7 @@ class MCellSim(object):
             spec_sym = m.create_species(
                 self._world, spec.name, spec.diffusion_constant, spec.surface)
             self._species[spec.name] = spec_sym
+            self.species[spec.name] = spec
 
     def add_species(self, spec):
         if isinstance(spec, m.Species):
