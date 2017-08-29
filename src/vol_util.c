@@ -47,7 +47,7 @@
 #include "wall_util.h"
 #include "grid_util.h"
 #include "nfsim_func.h"
-//#include "mcell_reactions.h"
+#include "mcell_reactions.h"
 #include "diffuse.h"
 
 static int test_max_release(double num_to_release, char *name);

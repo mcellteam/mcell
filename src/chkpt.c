@@ -39,6 +39,7 @@
 #include <string.h>
 
 #include "mcell_structs.h"
+#include "mcell_reactions.h"
 #include "nfsim_func.h"
 #include "logging.h"
 #include "vol_util.h"

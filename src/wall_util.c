@@ -39,6 +39,7 @@
 #include "count_util.h"
 #include "wall_util.h"
 #include "react.h"
+#include "nfsim_func.h"
 
 /* tetrahedralVol returns the (signed) volume of the tetrahedron spanned by
  * the vertices a, b, c, and d.

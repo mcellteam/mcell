@@ -37,6 +37,7 @@
 #include "vol_util.h"
 #include "wall_util.h"
 #include "nfsim_func.h"
+#include "mcell_reactions.h"
 
 #include "diffuse.h"
 

@@ -281,7 +281,7 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, void* results,
   int num_vol_mols = 0;
   int num_surface_mols = 0;
   int all_3d = 1;
-  int complex_type = 0;
+  /*int complex_type = 0;*/
   int reactant_idx = 0;
   int oriented_count = 0;
   int num_complex_reactants = 0;
@@ -390,7 +390,7 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, void* results,
 
 
   int num_surf_products = 0;
-  int num_complex_products = 0;
+  /*int num_complex_products = 0;*/
   int bidirectional = 0;
   
   if (extract_products(world->notify, pathp, products, &num_surf_products,

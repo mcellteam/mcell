@@ -65,6 +65,14 @@ int trigger_bimolecular_preliminary(struct rxn **reaction_hash, int hashsize,
                                     struct species *reacA,
                                     struct species *reacB);
 
+int process_bimolecular(struct abstract_molecule *reacA,
+                        struct abstract_molecule *reacB,
+                        struct rxn* inter,
+                        short orientA,
+                        short orientB,
+                        struct rxn **matching_rxns,
+                        int num_matching_rxns);
+
 int trigger_bimolecular(struct rxn **reaction_hash, int rx_hashsize,
                         u_int hashA, u_int hashB,
                         struct abstract_molecule *reacA,

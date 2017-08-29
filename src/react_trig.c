@@ -137,17 +137,14 @@ int process_bimolecular(struct abstract_molecule *reacA,
                         short orientB,
                         struct rxn **matching_rxns,
                         int num_matching_rxns){
-  u_int hash;                /* index in the reaction hash table */
+  //u_int hash;                /* index in the reaction hash table */
   int test_wall;             /* flag */
   short geomA, geomB;
-  struct surf_class_list *scl, *scl2;
-  int right_walls_surf_classes; /* flag to check whether SURFACE_CLASSES
-                                   of the walls for one or both reactants
-                                   match the SURFACE_CLASS of the reaction
-                                   (if needed) */
-
-
-  right_walls_surf_classes = 0;
+  struct surf_class_list *scl;
+  //int right_walls_surf_classes; 
+  /* flag to check whether SURFACE_CLASSES of the walls for one or both
+   * reactants match the SURFACE_CLASS of the reaction (if needed) */
+  /*right_walls_surf_classes = 0;*/
 
 
   /* Right number of reactants? */
@@ -205,7 +202,7 @@ int process_bimolecular(struct abstract_molecule *reacA,
   /* See if we need to check a wall (fails if we're in free space) */
   if (test_wall && orientA != 0) {
     struct wall *w_A = NULL, *w_B = NULL;
-    short geomW;
+    /*short geomW;*/
     /* short orientW = 1;  Walls always have orientation 1 */
 
     /* If we are oriented, one of us is a surface mol. */
@@ -225,7 +222,7 @@ int process_bimolecular(struct abstract_molecule *reacA,
       /* Right wall type--either this type or generic type? */
       for (scl = w_B->surf_class_head; scl != NULL; scl = scl->next) {
         if (inter->players[2] == scl->surf_class) {
-          right_walls_surf_classes = 1;
+          /*right_walls_surf_classes = 1;*/
           break;
         }
       }

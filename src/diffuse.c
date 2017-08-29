@@ -36,7 +36,8 @@
 #include "vol_util.h"
 #include "wall_util.h"
 #include "react.h"
-//#include "react_nfsim.h"
+#include "react_nfsim.h"
+#include "nfsim_func.h"
 
 
 #define FREE_COLLISION_LISTS()                                                 \

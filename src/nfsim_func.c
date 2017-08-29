@@ -3,7 +3,6 @@
 
 static map_t graph_reaction_map = NULL;
 
-void initialize_diffusion_function(struct abstract_molecule* this);
 void initialize_rxn_diffusion_functions(struct rxn* this);
 
 double get_standard_diffusion(struct abstract_molecule* self);

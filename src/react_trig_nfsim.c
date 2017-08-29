@@ -7,6 +7,9 @@
 #include "react.h"
 #include "hashmap.h"
 #include "react_util.h"
+#include "react_nfsim.h"
+#include "nfsim_func.h"
+#include "sym_table.h"
 //#include "lru.h"
 
 map_t reaction_map = NULL;
@@ -214,8 +217,10 @@ int trigger_bimolecular_nfsim(struct volume* state, struct abstract_molecule *re
         rx = new_reaction();
         initializeNFSimReaction(state, rx, 2, results, reacA, reacB);
 
+        /*int result = process_bimolecular(reacA, reacB, rx, orientA, orientB,*/
+        /*                matching_rxns, num_matching_rxns, 0);*/
         int result = process_bimolecular(reacA, reacB, rx, orientA, orientB,
-                        matching_rxns, num_matching_rxns, 0);
+                        matching_rxns, num_matching_rxns);
 
         if(result == 1)
             num_matching_rxns++;
