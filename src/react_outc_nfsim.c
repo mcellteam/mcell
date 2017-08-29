@@ -275,7 +275,7 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, void* results,
   if (pathp == NULL) {
     return -1;
   }
-  memset(pathp, 0, sizeof(pathp));
+  memset(pathp, 0, sizeof(struct pathway));
 
   /* Scan reactants, copying into the new pathway */
   int num_vol_mols = 0;
@@ -284,13 +284,13 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, void* results,
   /*int complex_type = 0;*/
   int reactant_idx = 0;
   int oriented_count = 0;
-  int num_complex_reactants = 0;
+  /*int num_complex_reactants = 0;*/
   bool orientation_flag1 =0, orientation_flag2 = 0;
   int reactantOrientation1, reactantOrientation2, productOrientation;
   
   //obtain orientation information
   calculate_reactant_orientation(reac, reac2,&orientation_flag1, &orientation_flag2, &reactantOrientation1, &reactantOrientation2);
-  struct sym_table* nfsim_molecule = reac->properties->sym;
+  struct sym_entry* nfsim_molecule = reac->properties->sym;
 
   //create first reactant entry
   rx->geometries[0] = reactantOrientation1;
@@ -482,7 +482,7 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn* rx, void* results,
 
 } 
 
-int free_reaction_nfsim(struct rxn* rx, int path){
+void free_reaction_nfsim(struct rxn* rx, int path){
   free(rx->nfsim_players[path]);
   free(rx->nfsim_geometries[path]);
 

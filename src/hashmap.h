@@ -86,4 +86,4 @@ extern int hashmap_length(map_t in);
 int hashmap_put_nohash(map_t in, unsigned long key, unsigned long key_hash, any_t value);
 int hashmap_get_nohash(map_t in, unsigned long key, unsigned long key_hash, any_t *arg);
 unsigned long crc32(const unsigned char *s, unsigned int len);
-#endif __HASHMAP_H__
+#endif
