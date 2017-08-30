@@ -142,8 +142,8 @@ int scale_rxn_probabilities(byte *reaction_prob_limit_flag,
 
 //nfsim stuff
 //initialize reaction objects given a set of reactants
-int outcome_unimolecular_nfsim(struct volume *world, struct rxn *rx, int path,
-                         struct abstract_molecule *reac, double t);
+//int outcome_unimolecular_nfsim(struct volume *world, struct rxn *rx, int path,
+//                         struct abstract_molecule *reac, double t);
 int outcome_nfsim(struct volume *world, struct rxn *rx, int path,
                          struct abstract_molecule *reac, struct abstract_molecule *reac2, double t);
 //get the graph properties for a given graph object

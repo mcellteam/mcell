@@ -494,27 +494,27 @@ void free_reaction_nfsim(struct rxn *rx, int path) {
   rx->product_graph_data[path] = NULL;
 }
 
-int outcome_unimolecular_nfsim(struct volume *world, struct rxn *rx, int path,
-                               struct abstract_molecule *reac, double t) {
-  int result = RX_A_OK;
-
-  if (rx->product_idx_aux[path] == -1) {
-    mcell_log("uni restart %s\n", reac->graph_data->graph_pattern);
-    queryOptions options = initializeNFSimQueryforUnimolecularFiring(
-        reac, rx->external_reaction_data[path].reaction_name);
-
-    void *results = mapvector_create();
-
-    initAndQuerySystemStatus_c(options, results);
-
-    constructNauty_c(reac->graph_data->graph_pattern, -1);
-
-    // fill in the rxn react structure with the appropiate information
-    world->n_NFSimReactions += 1;
-    prepare_reaction_nfsim(world, rx, results, path, reac, NULL);
-  }
-  return result;
-}
+//int outcome_unimolecular_nfsim(struct volume *world, struct rxn *rx, int path,
+//                               struct abstract_molecule *reac, double t) {
+//  int result = RX_A_OK;
+//
+//  if (rx->product_idx_aux[path] == -1) {
+//    mcell_log("uni restart %s\n", reac->graph_data->graph_pattern);
+//    queryOptions options = initializeNFSimQueryforUnimolecularFiring(
+//        reac, rx->external_reaction_data[path].reaction_name);
+//
+//    void *results = mapvector_create();
+//
+//    initAndQuerySystemStatus_c(options, results);
+//
+//    constructNauty_c(reac->graph_data->graph_pattern, -1);
+//
+//    // fill in the rxn react structure with the appropiate information
+//    world->n_NFSimReactions += 1;
+//    prepare_reaction_nfsim(world, rx, results, path, reac, NULL);
+//  }
+//  return result;
+//}
 
 /*
 Calculate the space_Step and time_step associated to this molecule based on
