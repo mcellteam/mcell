@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2015 by
+ * Copyright (C) 2006-2017 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -21,8 +21,7 @@
  *
 ******************************************************************************/
 
-#ifndef REACT_OUTPUT_H
-#define REACT_OUTPUT_H
+#pragma once
 
 #include "mcell_structs.h"
 
@@ -35,7 +34,8 @@ void install_emergency_output_hooks(struct volume *world);
 int truncate_output_file(char *name, double start_value);
 
 void add_trigger_output(struct volume *world, struct counter *c,
-                        struct output_request *ear, int n, short flags);
+                        struct output_request *ear, int n, short flags,
+                        u_long id);
 
 int flush_reaction_output(struct volume *world);
 
@@ -56,5 +56,3 @@ void eval_oexpr_tree(struct output_expression *root, int skip_const);
 void oexpr_flood_convert(struct output_expression *root, char old_oper,
                          char new_oper);
 char *oexpr_title(struct output_expression *root);
-
-#endif

@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2015 by
+ * Copyright (C) 2006-2017 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -21,18 +21,32 @@
  *
 ******************************************************************************/
 
-#ifndef MCELL_UTIL
-#define MCELL_UTIL
+#pragma once
 
 #include <stdio.h>
 
 #define COUNT_OF(arr) (sizeof((arr)) / sizeof((arr[0])))
+
+#define BLOCK_SIZE 10000
+
+struct num_expr_list_head {
+  struct num_expr_list *value_head;
+  struct num_expr_list *value_tail;
+  int value_count;
+  int shared;
+};
 
 struct iteration_counter {
   long long *iterations; /* array of iteration numbers, should be
                             memory allocated */
   int max_iterations; /* size of the above array */
   int n_iterations;   /* number of the filled positions in an above array */
+};
+
+struct string_buffer {
+  char **strings;  /* array of strings, should be memory allocated */
+  int max_strings; /* size of the above array */
+  int n_strings;   /* number of the filled positions in an above array */
 };
 
 struct bit_array {
@@ -96,6 +110,10 @@ int feral_strlenn(char *feral, int n);
 int is_feral_nabbrev(char *feral, int n, char *tame);
 char *feral_strstrn(char *tame_haystack, char *feral_needle, int n);
 int is_wildcard_match(char *wild, char *tame);
+
+int initialize_string_buffer(struct string_buffer *sb, int maxstr);
+int destroy_string_buffer(struct string_buffer *sb);
+int add_string_to_buffer(struct string_buffer *sb, char *str);
 
 double convert_seconds_to_iterations(
     long long start_iterations,
@@ -198,6 +216,15 @@ int pointer_hash_remove(struct pointer_hash *ht, void const *key,
 
 int double_cmp(void const *i1, void const *i2);
 
+int is_string_present_in_string_array(char * str, char ** strings, int length);
+
+int generate_range(struct num_expr_list_head *list, double start, double end,
+                   double step);
+
+int advance_range(struct num_expr_list_head *list, double tmp_dbl);
+
+void free_numeric_list(struct num_expr_list *nel);
+
 /*******************************************************************
  Inline min/max functions
 *******************************************************************/
@@ -255,5 +282,3 @@ static inline int minNi(int *array, int N) {
   }
   return smallest;
 }
-
-#endif

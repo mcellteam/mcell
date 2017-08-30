@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2015 by
+ * Copyright (C) 2006-2017 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -21,8 +21,7 @@
  *
 ******************************************************************************/
 
-#ifndef MCELL_REACTIONS_H
-#define MCELL_REACTIONS_H
+#pragma once
 
 #include "mcell_species.h"
 
@@ -109,7 +108,6 @@ struct reaction_rates mcell_create_reaction_rates(int forwardRateType,
                                                   int forwardRate,
                                                   int backwardRateType,
                                                   int backwardRate);
-
 //helper functions for initializing a reaction structure
 
 MCELL_STATUS extract_reactants(struct pathway *path,
@@ -150,5 +148,3 @@ int outcome_nfsim(struct volume *world, struct rxn *rx, int path,
                          struct abstract_molecule *reac, struct abstract_molecule *reac2, double t);
 //get the graph properties for a given graph object
 void properties_nfsim(struct volume*, struct abstract_molecule *reac);
-
-#endif

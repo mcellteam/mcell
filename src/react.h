@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2015 by
+ * Copyright (C) 2006-2017 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -21,8 +21,7 @@
  *
 ******************************************************************************/
 
-#ifndef MCELL_REACT
-#define MCELL_REACT
+#pragma once
 
 //#include "sym_table.h"
 #include <stdbool.h>
@@ -261,5 +260,3 @@ int trigger_bimolecular_nfsim(struct volume* state, struct abstract_molecule *,
                         short,  struct rxn **);
 
 unsigned long lhash(const char *str);
-
-#endif

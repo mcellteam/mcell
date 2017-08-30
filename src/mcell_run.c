@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2015 by
+ * Copyright (C) 2006-2017 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -43,6 +43,7 @@
 #include "init.h"
 #include "chkpt.h"
 #include "argparse.h"
+#include "dyngeom.h"
 
 #include "mcell_run.h"
 #include <nfsim_c.h>
@@ -128,6 +129,33 @@ void process_molecule_releases(struct volume *wrld, double not_yet) {
   if (wrld->releaser->error)
     mcell_internal_error("Scheduler reported an out-of-memory error while "
                          "retrieving next scheduled release event, but this "
+                         "should never happen.");
+}
+
+/***********************************************************************
+ process_geometry_changes:
+
+    Produce this round's geometry changes, if any.
+
+ In: state: MCell state 
+     not_yet: earliest time which should not yet be processed
+ Out: Nothing. Save molecules (with their positions, etc), trash the old
+      geometry, initialize new geometry, place all the molecules (moving them
+      if necessary to keep them in/out of the appropriate compartments).
+ ***********************************************************************/
+void process_geometry_changes(struct volume *state, double not_yet) {
+  for (struct dg_time_filename *dg_time_fname = schedule_next(
+       state->dynamic_geometry_scheduler);
+       dg_time_fname != NULL || not_yet >= state->dynamic_geometry_scheduler->now;
+       dg_time_fname = schedule_next(state->dynamic_geometry_scheduler)) {
+
+    if (dg_time_fname == NULL)
+      continue;
+    update_geometry(state, dg_time_fname);
+  }
+  if (state->dynamic_geometry_scheduler->error)
+    mcell_internal_error("Scheduler reported an out-of-memory error while "
+                         "retrieving next scheduled geometry change, but this "
                          "should never happen.");
 }
 
@@ -361,6 +389,9 @@ mcell_run_iteration(MCELL_STATE *world, long long frequency,
     world->elapsed_time = 1.0;
 
   if (!*restarted_from_checkpoint) {
+
+    /* Change geometry if needed */
+    process_geometry_changes(world, not_yet);
 
     /* Release molecules */
     process_molecule_releases(world, not_yet);
@@ -668,6 +699,8 @@ mcell_print_final_statistics(MCELL_STATE *world) {
               world->ray_polygon_tests);
     mcell_log("Total number of ray-polygon intersections: %lld",
               world->ray_polygon_colls);
+    mcell_log("Total number of dynamic geometry molecule displacements: %lld",
+              world->dyngeom_molec_displacements);
     print_molecule_collision_report(
         world->notify->molecule_collision_report,
         world->vol_vol_colls,

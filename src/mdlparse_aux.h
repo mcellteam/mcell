@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2015 by
+ * Copyright (C) 2006-2017 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -21,8 +21,7 @@
  *
 ******************************************************************************/
 
-#ifndef MDLPARSE_AUX_H
-#define MDLPARSE_AUX_H
+#pragma once
 
 #include "mcell_structs.h"
 #include "mcell_react_out.h"
@@ -81,11 +80,6 @@ struct output_times_inlist {
 struct diffusion_constant {
   double D;
   int is_2d;
-};
-
-struct object_list {
-  struct object *obj_head;
-  struct object *obj_tail;
 };
 
 struct output_times {
@@ -206,5 +200,4 @@ void mdlerror(struct mdlparse_vars *parse_state, char const *str);
 void mdlerror_fmt(struct mdlparse_vars *parse_state, char const *fmt, ...)
     PRINTF_FORMAT(2);
 int mdlparse_init(struct volume *vol);
-
-#endif
+int mdlparse_file(struct mdlparse_vars *parse_state, char const *name);

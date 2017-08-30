@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2015 by
+ * Copyright (C) 2006-2017 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -21,8 +21,7 @@
  *
 ******************************************************************************/
 
-#ifndef ARGPARSE_H
-#define ARGPARSE_H
+#pragma once
 
 #include <stdio.h>
 
@@ -31,5 +30,3 @@ struct volume;
 void print_usage(FILE *f, char const *argv0);
 
 int argparse_init(int argc, char *const argv[], struct volume *vol);
-
-#endif

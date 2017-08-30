@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2015 by
+ * Copyright (C) 2006-2017 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -139,28 +139,28 @@ ub4 jenkins_hash(ub1 *k, ub4 length) {
   switch (len) /* all the case statements fall through */
   {
   case 11:
-    c += ((ub4)k[10] << 24);
+    c += ((ub4)k[10] << 24); /* fallthrough */
   case 10:
-    c += ((ub4)k[9] << 16);
+    c += ((ub4)k[9] << 16); /* fallthrough */
   case 9:
-    c += ((ub4)k[8] << 8);
+    c += ((ub4)k[8] << 8); /* fallthrough */
   /* the first byte of c is reserved for the length */
   case 8:
-    b += ((ub4)k[7] << 24);
+    b += ((ub4)k[7] << 24); /* fallthrough */
   case 7:
-    b += ((ub4)k[6] << 16);
+    b += ((ub4)k[6] << 16); /* fallthrough */
   case 6:
-    b += ((ub4)k[5] << 8);
+    b += ((ub4)k[5] << 8); /* fallthrough */
   case 5:
-    b += k[4];
+    b += k[4]; /* fallthrough */
   case 4:
-    a += ((ub4)k[3] << 24);
+    a += ((ub4)k[3] << 24); /* fallthrough */
   case 3:
-    a += ((ub4)k[2] << 16);
+    a += ((ub4)k[2] << 16); /* fallthrough */
   case 2:
-    a += ((ub4)k[1] << 8);
+    a += ((ub4)k[1] << 8); /* fallthrough */
   case 1:
-    a += k[0];
+    a += k[0]; /* fallthrough */
     /* case 0: nothing left to add */
   }
   mix(a, b, c);
@@ -337,6 +337,7 @@ struct region *new_region(void) {
   rp->area = 0.0;
   rp->flags = 0;
   rp->manifold_flag = MANIFOLD_UNCHECKED;
+  rp->volume = 0.0;
   rp->boundaries = NULL;
   rp->region_has_all_elements = 0;
   return rp;
@@ -437,6 +438,7 @@ struct sym_entry *store_sym(char const *sym, enum symbol_type_t sym_type,
     sp = CHECKED_MALLOC_STRUCT(struct sym_entry, "sym table entry");
     sp->name = CHECKED_STRDUP(sym, "symbol name");
     sp->sym_type = sym_type;
+    sp->count = 1;
     rawhash = hash(sym);
     hashval = rawhash & (hashtab->n_bins - 1);
 
@@ -574,9 +576,12 @@ void destroy_symtab(struct sym_table_head *tab) {
     for (struct sym_entry *sym = tab->entries[i]; sym != NULL; sym = next) {
       next = sym->next;
       free(sym);
+      sym = NULL;
     }
   }
 
   free(tab->entries);
+  tab->entries = NULL;
   free(tab);
+  tab = NULL;
 }

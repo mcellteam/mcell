@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2015 by
+ * Copyright (C) 2006-2017 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -21,8 +21,7 @@
  *
 ******************************************************************************/
 
-#ifndef MEM_UTIL
-#define MEM_UTIL
+#pragma once
 
 #ifdef MEM_UTIL_KEEP_STATS
 #include <stdio.h>
@@ -113,5 +112,3 @@ void mem_put_list(struct mem_helper *mh, void *defunct);
 void delete_mem(struct mem_helper *mh);
 
 #define stack_nonempty(sh) ((sh)->index > 0 || (sh)->next != NULL)
-
-#endif

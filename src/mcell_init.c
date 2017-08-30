@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2015 by
+ * Copyright (C) 2006-2017 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -47,6 +47,8 @@
 #include "mcell_init.h"
 #include "mcell_misc.h"
 #include "mcell_reactions.h"
+#include "dyngeom.h"
+#include "chkpt.h"
 
 //for nfsim initialization 
 #include "nfsim_func.h"
@@ -209,14 +211,96 @@ mcell_init_simulation(MCELL_STATE *state) {
 
   CHECKED_CALL(init_releases(state->releaser), "Error while initializing release sites.");
 
+  CHECKED_CALL(init_species_mesh_transp(state),
+               "Error while initializing species-mesh transparency list.");
+
   CHECKED_CALL(init_counter_name_hash(
       &state->counter_by_name, state->output_block_head),
       "Error while initializing counter name hash.");
+  
+  /*CHECKED_CALL(init_dynamic_geometry(state),*/
+  /*             "Error while initializing scheduled changes in geometry.");*/
 
   //hashmap where nfsim struct graph_data is stored
   if(state->nfsim_flag){
     initialize_graph_hashmap();
   }
+
+  return MCELL_SUCCESS;
+}
+
+/************************************************************************
+ *
+ * Function for recreating the geometry when using dynamic meshes.
+ *
+ * NOTE: This entails destroying the existing geometry (and a number of related
+ *       dependencies), reparsing the appropriate MDLs, and re-initializing the
+ *       partitions, geometry, etc.
+ *
+ * Returns 1 on error and 0 on success
+ *
+ * NOTE: This is doing a little more than just destroying and reinitializing
+ * geometry, so it probably makes sense to rename this and/or split it up into
+ * multiple functions.
+ *
+ ************************************************************************/
+MCELL_STATUS
+mcell_redo_geom(MCELL_STATE *state) {
+  // We set this mainly to take care of some issues with counting, triggers,
+  // memory cleanup.
+  state->dynamic_geometry_flag = 1;
+
+  CHECKED_CALL(reset_current_counts(
+    state->mol_sym_table,
+    state->count_hashmask,
+    state->count_hash),
+    "Error when reseting counters.");
+
+  struct vector3 llf;
+  struct vector3 urb;
+  if (state->periodic_box_obj) {
+    struct polygon_object* p = (struct polygon_object*)(state->periodic_box_obj->contents);
+    struct subdivided_box* sb = p->sb;
+    llf.x = sb->x[0];
+    llf.y = sb->y[0];
+    llf.z = sb->z[0];
+       
+    urb.x = sb->x[1];
+    urb.y = sb->y[1];
+    urb.z = sb->z[1];
+  }
+
+  CHECKED_CALL(destroy_everything(state), "Error when freeing memory.");
+  // We need to reenable the ability to parse geometry
+  state->disable_polygon_objects = 0;
+  // Reparse the geometry and instantiations. Nothing else should be included
+  // in these other MDLs.
+  CHECKED_CALL(mcell_parse_mdl(state),
+               "An error occured during parsing of the mdl file.");
+  CHECKED_CALL(init_bounding_box(state), "Error initializing bounding box.");
+  // This should ideally be in destroy_everything
+  free(state->subvol);
+  if (state->periodic_box_obj) {
+    mcell_create_periodic_box(state, "PERIODIC_BOX_INST", &llf, &urb);
+  }
+  CHECKED_CALL(init_partitions(state), "Error initializing partitions.");
+  CHECKED_CALL(init_vertices_walls(state),
+               "Error initializing vertices and walls.");
+  CHECKED_CALL(init_regions(state), "Error initializing regions.");
+
+
+  if (state->place_waypoints_flag) {
+    CHECKED_CALL(place_waypoints(state), "Error while placing waypoints.");
+  }
+
+  if (state->with_checks_flag) {
+    CHECKED_CALL(check_for_overlapped_walls(
+        state->rng, state->n_subvols, state->subvol),
+        "Error while checking for overlapped walls.");
+  }
+  CHECKED_CALL(init_species_mesh_transp(state),
+               "Error while initializing species-mesh transparency list.");
+
   return MCELL_SUCCESS;
 }
 

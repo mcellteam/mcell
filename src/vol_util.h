@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2015 by
+ * Copyright (C) 2006-2017 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -21,8 +21,7 @@
  *
 ******************************************************************************/
 
-#ifndef MCELL_VOL_UTIL
-#define MCELL_VOL_UTIL
+#pragma once
 
 #include "mcell_structs.h"
 
@@ -51,18 +50,24 @@ int is_defunct_molecule(struct abstract_element *e);
 
 struct wall* find_closest_wall(
     struct volume *state, struct vector3 *loc, double search_diam,
-    struct vector2 *best_uv, int *grid_index);
+    struct vector2 *best_uv, int *grid_index, struct species *s, char *mesh_name,
+    struct string_buffer *reg_names, struct string_buffer *regions_to_ignore);
 
 struct surface_molecule *
 place_surface_molecule(struct volume *state, struct species *s,
                        struct vector3 *loc, short orient, double search_diam,
-                       double t, struct subvolume **psv,
+                       double t, struct subvolume **psv, char *mesh_name,
+                       struct string_buffer *reg_names,
+                       struct string_buffer *regions_to_ignore,
                        struct periodic_image *periodic_box);
 
 struct surface_molecule *
 insert_surface_molecule(struct volume *state, struct species *s,
                         struct vector3 *loc, short orient, double search_diam,
-                        double t, struct periodic_image *periodic_box);
+                        double t, char *mesh_name,
+                        struct string_buffer *reg_names,
+                        struct string_buffer *regions_to_ignore,
+                        struct periodic_image *periodic_box);
 
 struct volume_molecule *insert_volume_molecule(struct volume *world,
                                                struct volume_molecule *vm,
@@ -134,5 +139,3 @@ struct surface_molecule_list* add_surfmol_with_unique_pb_to_list(
 void remove_surfmol_from_list(
     struct surface_molecule_list **sm_head,
     struct surface_molecule *sm);
-
-#endif

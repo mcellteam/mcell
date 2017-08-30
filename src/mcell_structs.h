@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2015 by
+ * Copyright (C) 2006-2017 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -21,8 +21,7 @@
  *
 ******************************************************************************/
 
-#ifndef MCELL_STRUCTS
-#define MCELL_STRUCTS
+#pragma once
 
 #include "config.h"
 
@@ -279,6 +278,7 @@ enum manifold_flag_t {
 #define SQRT_EPS_C 1e-6
 #define GIGANTIC (double)1e140
 #define FOREVER (double)1e20
+#define MESH_DISTINCTIVE EPS_C
 
 /* How big will we let the reaction table get? */
 /* 0x400000 = 8 million */
@@ -720,6 +720,14 @@ struct t_func {
   int path;     /* Which rxn pathway is this for? */
 };
 
+// Used for dynamic geometry.
+struct molecule_info {
+  struct abstract_molecule *molecule;
+  struct string_buffer *reg_names;   /* Region names */
+  struct string_buffer *mesh_names;  /* Mesh names that molec is nested in */
+  struct vector3 pos;                /* Position in space */
+  short orient;                      /* Which way do we point? */
+};
 
 /* periodic_image tracks the periodic box a molecule is in in the presence
  * of periodic boundary conditions along one or several coordinate axes.
@@ -751,6 +759,8 @@ struct abstract_molecule {
   double (*get_time_step)();        /* function pointer to a method that returns the time step */
   double (*get_space_step)();       /* function pointer to a method that returns the space step */
   /* end structs used by the nfsim integration */
+  char *mesh_name;                // Name of mesh that molecule is either in
+                                  // (volume molecule) or on (surface molecule)
 };
 
 /* Volume molecules: freely diffusing or fixed in solution */
@@ -771,6 +781,7 @@ struct volume_molecule {
   double (*get_time_step)();        /* returns the diffusion value */
   double (*get_space_step)();        /* returns the diffusion value */
 
+  char *mesh_name;                // Name of mesh that the molecule is in
   struct vector3 pos;       /* Position in space */
   struct subvolume *subvol; /* Partition we are in */
 
@@ -799,6 +810,7 @@ struct surface_molecule {
   double (*get_time_step)();        /* returns the diffusion value */
   double (*get_space_step)();        /* returns the diffusion value */
 
+  char *mesh_name;                // Name of mesh that the molecule is on 
   unsigned int grid_index;   /* Which gridpoint do we occupy? */
   short orient;              /* Which way do we point? */
   struct surface_grid *grid; /* Our grid (which tells us our surface) */
@@ -1045,6 +1057,14 @@ struct reaction_flags {
 
 /* All data about the world */
 struct volume {
+
+  // These are only used with dynamic geometry
+  struct dyngeom_parse_vars *dg_parse;
+  char *dynamic_geometry_filename;
+  struct molecule_info **all_molecules;
+  int num_all_molecules;
+  struct string_buffer *names_to_ignore;
+
   /* Coarse partitions are input by the user */
   /* They may also be generated automagically */
   /* They mark the positions of initial partition boundaries */
@@ -1106,7 +1126,20 @@ struct volume {
   int n_NFSimPReactions; /* number of potential reactions found in the reaction network (not necessarely triggered) */
 
   struct species **species_list; /* Array of all species (molecules). */
+ 
+  // This is used to skip over certain sections in the parser when using
+  // dynamic geometries.
+  int dynamic_geometry_flag;  
+  int disable_polygon_objects;  
 
+  // List of all the dynamic geometry events that need to be scheduled
+  struct dg_time_filename *dynamic_geometry_head;
+
+  // Memory to store time and MDL names for dynamic geometry
+  struct mem_helper *dynamic_geometry_events_mem; 
+
+  // Scheduler for dynamic geometry
+  struct schedule_helper *dynamic_geometry_scheduler;
   struct schedule_helper *releaser; /* Scheduler for release events */
 
   struct mem_helper *storage_allocator; /* Memory for storage list */
@@ -1206,7 +1239,8 @@ struct volume {
   double chkpt_start_time_seconds; /* start of the simulation time (in sec)
                                       for new checkpoint */
   double current_time_seconds;     /* current simulation time in seconds */
-  double simulation_start_seconds; /* simulation start time (in seconds) */
+  /* simulation start time (in seconds) or time of most recent checkpoint */
+  double simulation_start_seconds; 
 
   long long diffusion_number; /* Total number of times molecules have had their
                                  positions updated */
@@ -1217,6 +1251,8 @@ struct volume {
                                   we performed */
   long long ray_polygon_colls; /* How many ray-polygon intersections have
                                   occured */
+  long long dyngeom_molec_displacements; /* Total number of dynamic geometry
+                                            molecule displacements */
   /* below "vol" means volume molecule, "surf" means surface molecule */
   long long vol_vol_colls;     /* How many vol-vol collisions have occured */
   long long vol_surf_colls;    /* How many vol-surf collisions have occured */
@@ -1238,8 +1274,9 @@ struct volume {
   u_int init_seed; /* Initial seed value for random number generator */
 
   long long current_iterations; /* How many iterations have been run so far */
-  long long start_iterations; // Starting iteration number for the current run
-
+  // Starting iteration number for current run or iteration of most recent
+  // checkpoint
+  long long start_iterations; 
   struct timeval last_timing_time; /* time and iteration of last timing event */
   long long last_timing_iteration; /* during the main run_iteration loop */
 
@@ -1266,6 +1303,12 @@ struct volume {
                                  to binding distribution at surface */
   byte volume_reversibility; /* If set, match unbinding diffusion distribution
                                 to binding distribution in volume */
+
+  /* If set to NEAREST_TRIANGLE, molecules are moved to a random location
+   * slightly offset from the enclosing wall. If set to NEAREST_POINT, then
+   * they are moved to the closest point on that wall (still slightly offset).
+   * */
+  int dynamic_geometry_molecule_placement; 
 
   /* MCell startup command line arguments */
   u_int seed_seq;         /* Seed for random number generator */
@@ -1310,6 +1353,8 @@ struct volume {
   int nfsim_flag;
   struct species* global_nfsim_volume;
   struct species* global_nfsim_surface;
+
+  struct pointer_hash *species_mesh_transp; 
 };
 
 /* Data structure to store information about collisions. */
@@ -1373,6 +1418,12 @@ struct exd_vertex {
   struct exd_vertex *e;    /* Edge to next vertex */
   struct exd_vertex *span; /* List of edges spanning this point */
   int role;                /* Exact Disk Flags: Head, tail, whatever */
+};
+
+struct dg_time_filename {
+  struct dg_time_filename *next;
+  double event_time;                     // Time to switch geometry
+  char *mdl_file_path;                   // Name of mdl containg new geometry
 };
 
 /* Data structures to describe release events */
@@ -1518,6 +1569,10 @@ struct notifications {
   enum warn_level_t useless_vol_orient;        /* USELESS_VOLUME_ORIENTATION */
   enum warn_level_t mol_placement_failure;    /* MOLECULE_PLACEMENT_FAILURE */
   enum warn_level_t invalid_output_step_time; /* INVALID_OUTPUT_STEP_TIME */
+  /* LARGE_MOLECULAR_DISPLACEMENT (for dynamic geometry) */
+  enum warn_level_t large_molecular_displacement; 
+  /* ADD_REMOVE_MESH (for dynamic geometry) */
+  enum warn_level_t add_remove_mesh_warning;  
 };
 
 /* Information related to concentration clamp surfaces, by object */
@@ -1601,17 +1656,26 @@ struct output_set {
   struct output_column *column_head; /* Data for one output column */
 };
 
+struct output_buffer {
+  enum count_type_t data_type;
+  union {
+    char cval;
+    double dval;
+    int ival;
+    struct output_trigger_data *tval;
+  } val;
+};
+
 /* Data that controls what data is written to one column of output file */
 struct output_column {
   struct output_column *next;  /* Next column in this set */
   struct output_set *set;      /* Which set do we belong to? */
-  enum count_type_t data_type; /* Type of data in this column. */
   double initial_value;        /* To continue existing cumulative counts--not
                                   implemented yet--and keep track of triggered
                                   data */
-  void *buffer; /* Output buffer array (cast based on data_type) */
-  struct output_expression *expr; /* Evaluate this to calculate our value
-                                   * (NULL if trigger) */
+  struct output_buffer *buffer; /* Output buffer array (cast based on data_type) */
+  /* Evaluate this to calculate our value (NULL if trigger) */
+  struct output_expression *expr; 
 };
 
 /* Expression evaluation tree to compute output value for one column */
@@ -1652,6 +1716,7 @@ struct output_trigger_data {
   short orient;       /* Orientation information */
   short flags;        /* Output Trigger Flags */
   char *name;         /* Name to give event */
+  u_long id;
 };
 
 /******************************************************************/
@@ -1667,6 +1732,8 @@ struct polygon_object {
                                           connectivity of each triangle */
   struct subdivided_box *sb;           /* Holds corners of box if necessary */
   struct bit_array *side_removed; // Bit array; if bit is set, side is removed
+  int references;                 // The number of instances of this poly obj 
+                                  // Need this for cleaning up after dyngeoms
 };
 
 /* Data structure used to build one triangular polygon according to the
@@ -1793,6 +1860,9 @@ struct object {
   u_int n_tiles;          /* Number of surface grid tiles on object */
   u_int n_occupied_tiles; /* Number of occupied tiles on object */
   double t_matrix[4][4];  /* Transformation matrix for object */
+  short is_closed;              /* Flag that describes the geometry
+                                   of the polygon object (e.g. for sphere
+                                   is_closed = 1 and for plane is 0) */
 
   bool periodic_x; // This flag only applies to box objects BOX_OBJ. If set
   bool periodic_y; // any volume molecules encountering the box surface in the x,
@@ -1906,6 +1976,7 @@ struct sym_entry {
   int sym_type;           /* Symbol Type */
   char *name;             /* Name of symbol*/
   void *value;            /* Stored value, cast by sym_type */
+  int count;
 };
 
 /* Linked list of symbols */
@@ -1947,7 +2018,10 @@ struct hit_data {
   double t;                          /* time of the hit */
 };
 
+struct object_list {
+  struct object *obj_head;
+  struct object *obj_tail;
+};
+
 double rxn_get_nfsim_diffusion(struct rxn*, int);
 double rxn_get_standard_diffusion(struct rxn*, int);
-
-#endif

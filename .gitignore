@@ -37,4 +37,6 @@ tags*
 *sublime*
 .idea
 *cscope*
+dyngeom_parse
 !windows/*
+docs/doxygen

@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2015 by
+ * Copyright (C) 2006-2017 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -21,8 +21,7 @@
  *
 ******************************************************************************/
 
-#ifndef MDLPARSE_UTIL_H
-#define MDLPARSE_UTIL_H
+#pragma once
 
 #include "vector.h"
 #include "mcell_structs.h"
@@ -53,10 +52,6 @@ char *mdl_strdup(char const *s1);
  * parse process. */
 void mdl_warning(struct mdlparse_vars *parse_state, char const *fmt, ...)
     PRINTF_FORMAT(2);
-
-/* Find an include file based on the path of the currently parsed file
- */
-char *mdl_find_include_file(char const *path, char const *cur_path);
 
 /* Check that the speficied file mode string is valid for an fopen statement.
  */
@@ -924,5 +919,3 @@ struct object *start_object(MCELL_STATE *state,
                             struct object_creation *obj_creation,
                             char *name,
                             int *error_code);
-
-#endif

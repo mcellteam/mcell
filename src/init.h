@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2015 by
+ * Copyright (C) 2006-2017 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -21,10 +21,10 @@
  *
 ******************************************************************************/
 
-#ifndef INIT_H
-#define INIT_H
+#pragma once
 
 #include "mcell_structs.h"
+#include "mdlparse_aux.h"
 
 int init_notifications(struct volume *world);
 int init_variables(struct volume *world);
@@ -80,6 +80,10 @@ void cube_faces(struct vector3 *corner, struct vector3 *(*face)[4]);
 
 int init_releases(struct schedule_helper *releaser);
 
+int init_dynamic_geometry(struct volume *state);
+
+int schedule_dynamic_geometry(struct mdlparse_vars *parse_state);
+
 int reschedule_release_events(struct volume *world);
 
 void publish_special_reactions_report(struct species *sp,
@@ -119,4 +123,3 @@ void remove_molecules_name_list(struct name_list **nlist);
 int check_for_overlapped_walls(
     struct rng_state *rng, int n_subvols, struct subvolume *subvol);
 struct vector3 *create_region_bbox(struct region *r);
-#endif

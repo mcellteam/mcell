@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2015 by
+ * Copyright (C) 2006-2017 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -21,8 +21,7 @@
  *
 ******************************************************************************/
 
-#ifndef MCELL_SPECIES_H
-#define MCELL_SPECIES_H
+#pragma once
 
 #include <stdbool.h>
 
@@ -70,5 +69,3 @@ mcell_add_to_species_list(mcell_symbol *species_ptr, bool is_oriented,
 void mcell_delete_species_list(struct mcell_species *species);
 
 int new_mol_species(MCELL_STATE *state, char *name, struct sym_entry **sym_ptr);
-
-#endif

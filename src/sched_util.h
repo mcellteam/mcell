@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2015 by
+ * Copyright (C) 2006-2017 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -21,8 +21,7 @@
  *
 ******************************************************************************/
 
-#ifndef SCHED_UTIL
-#define SCHED_UTIL
+#pragma once
 
 /* Everything managed by scheduler must begin as if it were derived from
  * abstract_element */
@@ -83,5 +82,3 @@ schedule_cleanup(struct schedule_helper *sh,
                  int (*is_defunct)(struct abstract_element *e));
 
 void delete_scheduler(struct schedule_helper *sh);
-
-#endif

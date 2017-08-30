@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2015 by
+ * Copyright (C) 2006-2017 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -1488,6 +1488,66 @@ int is_wildcard_match(char *wild, char *tame) {
                     End Rex's string matching code
 \************************************************************************/
 
+/*************************************************************************
+initialize_string_buffer:
+  Initialize the state of a string buffer.
+
+  In: struct string_buffer *sb - the string buffer
+      int maxstr - the maximum number of strings to add to this buffer
+  Out: 0 on success; 1 if allocation fails.  All fields in the buffer are
+       filled in.
+**************************************************************************/
+int initialize_string_buffer(struct string_buffer *sb, int maxstr) {
+  if (maxstr > 0) {
+    if ((sb->strings = (char **)allocate_ptr_array(maxstr)) == NULL)
+      mcell_allocfailed("Failed to allocate buffer of %d strings.", maxstr);
+  }
+
+  sb->max_strings = maxstr;
+  sb->n_strings = 0;
+  return 0;
+}
+
+/*************************************************************************
+destroy_string_buffer:
+  Destroy the state of a string buffer.
+
+  In: struct string_buffer *sb - the string buffer
+  Out: The fields of the string buffer are freed, as are all strings
+       added to the string buffer.  The string buffer itself is not freed.
+**************************************************************************/
+int destroy_string_buffer(struct string_buffer *sb) {
+  if (sb->strings) {
+    free_ptr_array((void **)sb->strings, sb->max_strings);
+  }
+  sb->strings = NULL;
+  sb->max_strings = 0;
+  sb->n_strings = 0;
+  return 0;
+}
+
+/*************************************************************************
+add_string_to_buffer:
+    Add a string to the string buffer.  The string becomes "owned" by the
+    buffer if this function is successful.  If this function fails, it is the
+    caller's responsibility to free it.
+
+        In: struct string_buffer *sb - the string buffer
+            char *str - the string to add
+        Out: 0 on success; 1 if the string is not stored because the buffer is
+             full already.
+**************************************************************************/
+int add_string_to_buffer(struct string_buffer *sb, char *str) {
+  if (sb->n_strings >= sb->max_strings) {
+    mcell_internal_error("Attempt to overrun string buffer (max fill is %d).",
+                         sb->max_strings);
+    /*return 1;*/
+  }
+
+  sb->strings[sb->n_strings++] = str;
+  return 0;
+}
+
 /*******************************************************************
  Pointer hashes implementation
 *******************************************************************/
@@ -1884,6 +1944,28 @@ int double_cmp(void const *i1, void const *i2) {
     return 0;
 }
 
+/**************************************************************************
+is_string_present_in_string_array:
+  In: string "str"
+      array of strings "strings"
+      length of the array of strings "length"
+  Out: Return 1 if string "str" is present in the array of strings "strings",
+       and 0 otherwise.
+**************************************************************************/
+int is_string_present_in_string_array(char * str, char ** strings, int length)
+{
+  int found = 0, i;
+
+  for (i = 0; i < length; i++) {
+    if (strcmp(str, strings[i]) == 0) {
+      found = 1;
+      break;
+    }
+  }
+
+  return found;
+}
+
 /******************************************************************************
  convert_seconds_to_iterations:
 
@@ -1924,3 +2006,86 @@ double convert_iterations_to_seconds(
   double delta_time = (iterations - start_iterations) * time_step_seconds;
   return (simulation_start_seconds + delta_time);
 }
+
+/*************************************************************************
+ generate_range:
+    Generate a num_expr_list containing the numeric values from start to end,
+    incrementing by step.
+
+ In:  state: the simulation state
+      list:  destination to receive list of values
+      start: start of range
+      end:   end of range
+      step:  increment
+ Out: 0 on success, 1 on failure.  On success, list is filled in.
+*************************************************************************/
+int generate_range(struct num_expr_list_head *list, double start, double end,
+                   double step) {
+  list->value_head = NULL;
+  list->value_tail = NULL;
+  list->value_count = 0;
+  list->shared = 0;
+
+  if (step > 0) {
+    /* JW 2008-03-31: In the guard on the loop below, it seems to me that
+     * the third condition is redundant with the second.
+     */
+    for (double tmp_dbl = start;
+         tmp_dbl < end || !distinguishable(tmp_dbl, end, EPS_C) ||
+             fabs(end - tmp_dbl) <= EPS_C;
+         tmp_dbl += step) {
+      if (advance_range(list, tmp_dbl))
+        return 1;
+    }
+  } else /* if (step < 0) */
+  {
+    /* JW 2008-03-31: In the guard on the loop below, it seems to me that
+     * the third condition is redundant with the second.
+     */
+    for (double tmp_dbl = start;
+         tmp_dbl > end || !distinguishable(tmp_dbl, end, EPS_C) ||
+             fabs(end - tmp_dbl) <= EPS_C;
+         tmp_dbl += step) {
+      if (advance_range(list, tmp_dbl))
+        return 1;
+    }
+  }
+  return 0;
+}
+
+// Maybe move this somewhere else
+int advance_range(struct num_expr_list_head *list, double tmp_dbl) {
+  struct num_expr_list *nel;
+  nel = CHECKED_MALLOC_STRUCT(struct num_expr_list, "numeric list");
+  if (nel == NULL) {
+    free_numeric_list(list->value_head);
+    list->value_head = list->value_tail = NULL;
+    return 1;
+  }
+  nel->value = tmp_dbl;
+  nel->next = NULL;
+
+  ++list->value_count;
+  if (list->value_tail != NULL)
+    list->value_tail->next = nel;
+  else
+    list->value_head = nel;
+  list->value_tail = nel;
+  return 0;
+}
+
+/*************************************************************************
+ free_numeric_list:
+    Free a num_expr_list.
+
+ In:  nel:  the list to free
+ Out: all elements are freed
+*************************************************************************/
+void free_numeric_list(struct num_expr_list *nel) {
+  while (nel != NULL) {
+    struct num_expr_list *n = nel;
+    nel = nel->next;
+    free(n);
+  }
+}
+

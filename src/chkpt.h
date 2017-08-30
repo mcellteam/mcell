@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2015 by
+ * Copyright (C) 2006-2017 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -21,8 +21,7 @@
  *
 ******************************************************************************/
 
-#ifndef CHKPT_H
-#define CHKPT_H
+#pragma once
 
 #include <stdio.h>
 
@@ -37,4 +36,7 @@ void chkpt_signal_handler(int signo);
 
 int set_checkpoint_state(struct volume *world);
 
-#endif
+double compute_scaled_time(struct volume *world, double real_time);
+
+unsigned long long
+count_items_in_scheduler(struct storage_list *storage_head);

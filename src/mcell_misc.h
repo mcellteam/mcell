@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2015 by
+ * Copyright (C) 2006-2017 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -21,8 +21,7 @@
  *
 ******************************************************************************/
 
-#ifndef MCELL_MISC_H
-#define MCELL_MISC_H
+#pragma once
 
 #include "config.h"
 #include "mcell_init.h"
@@ -45,12 +44,11 @@ void mcell_free_numeric_list(struct num_expr_list *nel);
 MCELL_STATUS mcell_generate_range(struct num_expr_list_head *list, double start,
                                   double end, double step);
 
-int advance_range(struct num_expr_list_head *list, double tmp_dbl);
-
 int mcell_generate_range_singleton(struct num_expr_list_head *lh, double value);
+
+// Find an include file based on the path of the currently parsed file
+char *mcell_find_include_file(char const *path, char const *cur_path);
 
 // XXX this is a temporary hack to be able to print in mcell.c
 // since mcell disables regular printf
 void mcell_print(const char *message);
-
-#endif

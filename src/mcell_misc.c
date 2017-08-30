@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2015 by
+ * Copyright (C) 2006-2017 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -23,12 +23,15 @@
 
 #include <stdlib.h>
 #include <math.h>
+#include <string.h>
 
 #include "config.h"
+#include "mcell_structs.h"
 
 #include "argparse.h"
 #include "version_info.h"
 #include "logging.h"
+#include "version_info.h"
 #include "mcell_misc.h"
 
 
@@ -155,11 +158,7 @@ void mcell_sort_numeric_list(struct num_expr_list *head) {
  Out: all elements are freed
 *************************************************************************/
 void mcell_free_numeric_list(struct num_expr_list *nel) {
-  while (nel != NULL) {
-    struct num_expr_list *n = nel;
-    nel = nel->next;
-    free(n);
-  }
+  free_numeric_list(nel);
 }
 
 /*************************************************************************
@@ -176,57 +175,11 @@ void mcell_free_numeric_list(struct num_expr_list *nel) {
 *************************************************************************/
 MCELL_STATUS mcell_generate_range(struct num_expr_list_head *list, double start,
                                   double end, double step) {
-  list->value_head = NULL;
-  list->value_tail = NULL;
-  list->value_count = 0;
-  list->shared = 0;
-
-  if (step > 0) {
-    /* JW 2008-03-31: In the guard on the loop below, it seems to me that
-     * the third condition is redundant with the second.
-     */
-    for (double tmp_dbl = start;
-         tmp_dbl < end || !distinguishable(tmp_dbl, end, EPS_C) ||
-             fabs(end - tmp_dbl) <= EPS_C;
-         tmp_dbl += step) {
-      if (advance_range(list, tmp_dbl))
-        return MCELL_FAIL;
-    }
-  } else /* if (step < 0) */
-  {
-    /* JW 2008-03-31: In the guard on the loop below, it seems to me that
-     * the third condition is redundant with the second.
-     */
-    for (double tmp_dbl = start;
-         tmp_dbl > end || !distinguishable(tmp_dbl, end, EPS_C) ||
-             fabs(end - tmp_dbl) <= EPS_C;
-         tmp_dbl += step) {
-      if (advance_range(list, tmp_dbl))
-        return MCELL_FAIL;
-    }
+  if (generate_range(list, start, end, step)) {
+    return MCELL_FAIL; 
+  } else {
+    return MCELL_SUCCESS; 
   }
-  return MCELL_SUCCESS;
-}
-
-// Maybe move this somewhere else
-int advance_range(struct num_expr_list_head *list, double tmp_dbl) {
-  struct num_expr_list *nel;
-  nel = CHECKED_MALLOC_STRUCT(struct num_expr_list, "numeric list");
-  if (nel == NULL) {
-    mcell_free_numeric_list(list->value_head);
-    list->value_head = list->value_tail = NULL;
-    return MCELL_FAIL;
-  }
-  nel->value = tmp_dbl;
-  nel->next = NULL;
-
-  ++list->value_count;
-  if (list->value_tail != NULL)
-    list->value_tail->next = nel;
-  else
-    list->value_head = nel;
-  list->value_tail = nel;
-  return MCELL_SUCCESS;
 }
 
 /*************************************************************************
@@ -263,4 +216,38 @@ void swap_double(double *x, double *y) {
   temp = *x;
   *x = *y;
   *y = temp;
+}
+
+/************************************************************************
+ mcell_find_include_file:
+      Find the path for an include file.  For an absolute include path, the
+      file path is unmodified, but for a relative path, the resultant path will
+      be relative to the currently parsed file.
+
+ In:  path: path from include statement
+      cur_path: path of current include file
+ Out: allocated buffer containing path of the include file, or NULL if the file
+      path couldn't be allocated.  If we ever use a more complex mechanism for
+      locating include files, we may also return NULL if no file could be
+      located.
+ ***********************************************************************/
+char *mcell_find_include_file(char const *path, char const *cur_path) {
+  char *candidate = NULL;
+  if (path[0] == '/')
+    candidate = strdup(path);
+  else {
+    char *last_slash = strrchr(cur_path, '/');
+#ifdef _WIN32
+    char *last_bslash = strrchr(cur_path, '\\');
+    if (last_bslash > last_slash)
+      last_slash = last_bslash;
+#endif
+    if (last_slash == NULL)
+      candidate = strdup(path);
+    else
+      candidate = CHECKED_SPRINTF("%.*s/%s", (int)(last_slash - cur_path),
+                                  cur_path, path);
+  }
+
+  return candidate;
 }

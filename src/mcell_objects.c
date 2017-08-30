@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2015 by
+ * Copyright (C) 2006-2017 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -31,7 +31,11 @@
 #include "logging.h"
 #include "sym_table.h"
 #include "mcell_species.h"
+#include "mcell_release.h"
+#include "mcell_init.h"
 #include "mcell_objects.h"
+#include "dyngeom_parse_extras.h"
+#include "mem_util.h"
 
 /* static helper functions */
 static int is_region_degenerate(struct region *reg_ptr);
@@ -50,7 +54,12 @@ mcell_create_instance_object(MCELL_STATE *state, char *name,
                              struct object **new_obj) {
   // Create the symbol, if it doesn't exist yet.
   int error_code = 0;
-  struct object *obj_ptr = make_new_object(state, name, &error_code);
+  struct object *obj_ptr = make_new_object(
+      state->dg_parse, // Need to test that dg_parse actually works here
+      state->obj_sym_table,
+      name,
+      &error_code);
+  /*struct object *obj_ptr = make_new_object(state, name, &error_code);*/
   if (obj_ptr == NULL) {
     return MCELL_FAIL;
   }
@@ -62,6 +71,100 @@ mcell_create_instance_object(MCELL_STATE *state, char *name,
   add_child_objects(state->root_instance, obj_ptr, obj_ptr);
 
   *new_obj = obj_ptr;
+
+  return MCELL_SUCCESS;
+}
+
+MCELL_STATUS mcell_create_periodic_box(
+    struct volume *state,
+    char *box_name,
+    struct vector3 *llf,
+    struct vector3 *urb) {
+  
+  double sf = 100.0; // scaling factor
+  struct vector3 llf_sm = { .x=llf->x/sf,
+                            .y=llf->y/sf,
+                            .z=llf->z/sf,
+  };
+  struct vector3 urb_sm = { .x=urb->x/sf,
+                            .y=urb->y/sf,
+                            .z=urb->z/sf,
+  };
+
+  struct vertex_list *verts = mcell_add_to_vertex_list(
+      urb_sm.x, urb_sm.y, llf_sm.z, NULL);
+  verts = mcell_add_to_vertex_list(urb_sm.x, llf_sm.y, llf_sm.z, verts);
+  verts = mcell_add_to_vertex_list(llf_sm.x, llf_sm.y, llf_sm.z, verts);
+  verts = mcell_add_to_vertex_list(llf_sm.x, urb_sm.y, llf_sm.z, verts);
+  verts = mcell_add_to_vertex_list(urb_sm.x, urb_sm.y, urb_sm.z, verts);
+  verts = mcell_add_to_vertex_list(urb_sm.x, llf_sm.y, urb_sm.z, verts);
+  verts = mcell_add_to_vertex_list(llf_sm.x, llf_sm.y, urb_sm.z, verts);
+  verts = mcell_add_to_vertex_list(llf_sm.x, urb_sm.y, urb_sm.z, verts);
+
+  struct element_connection_list *elems =
+      mcell_add_to_connection_list(1, 2, 3, NULL);
+  elems = mcell_add_to_connection_list(7, 6, 5, elems);
+  elems = mcell_add_to_connection_list(0, 4, 5, elems);
+  elems = mcell_add_to_connection_list(1, 5, 6, elems);
+  elems = mcell_add_to_connection_list(6, 7, 3, elems);
+  elems = mcell_add_to_connection_list(0, 3, 7, elems);
+  elems = mcell_add_to_connection_list(0, 1, 3, elems);
+  elems = mcell_add_to_connection_list(4, 7, 5, elems);
+  elems = mcell_add_to_connection_list(1, 0, 5, elems);
+  elems = mcell_add_to_connection_list(2, 1, 6, elems);
+  elems = mcell_add_to_connection_list(2, 6, 3, elems);
+  elems = mcell_add_to_connection_list(4, 0, 7, elems);
+
+  struct subdivided_box *b = CHECKED_MALLOC_STRUCT(
+      struct subdivided_box, "subdivided box");
+  if (b == NULL) {
+    free(verts);
+    free(elems);
+    return MCELL_FAIL;
+  }
+  b->nx = b->ny = b->nz = 2;
+  if ((b->x = CHECKED_MALLOC_ARRAY(
+      double, b->nx, "subdivided box X partitions")) == NULL) {
+    free(b);
+    free(verts);
+    free(elems);
+    return MCELL_FAIL;
+  }
+  if ((b->y = CHECKED_MALLOC_ARRAY(
+      double, b->ny, "subdivided box Y partitions")) == NULL) {
+    free(b);
+    free(verts);
+    free(elems);
+    return MCELL_FAIL;
+  }
+  if ((b->z = CHECKED_MALLOC_ARRAY(
+      double, b->nz, "subdivided box Z partitions")) == NULL) {
+    free(b);
+    free(verts);
+    free(elems);
+    return MCELL_FAIL;
+  }
+
+  b->x[0] = llf->x;
+  b->x[1] = urb->x;
+  b->y[0] = llf->y;
+  b->y[1] = urb->y;
+  b->z[0] = llf->z;
+  b->z[1] = urb->z;
+  
+  struct object *meta_box = NULL;
+  mcell_create_instance_object(state, "PERIODIC_META_BOX", &meta_box);
+
+  struct poly_object polygon = { box_name, verts, 8, elems, 12 };
+  struct object *new_mesh = NULL;
+  mcell_create_poly_object(state, meta_box, &polygon, &new_mesh);
+  new_mesh->periodic_x = true;
+  new_mesh->periodic_y = true;
+  new_mesh->periodic_z = true;
+  new_mesh->object_type = BOX_OBJ;
+  state->periodic_box_obj = new_mesh;
+  struct polygon_object* p = (struct polygon_object*)(new_mesh->contents);
+  p->sb = b;
 
   return MCELL_SUCCESS;
 }
@@ -86,7 +189,12 @@ mcell_create_poly_object(MCELL_STATE *state, struct object *parent,
 
   // Create the symbol, if it doesn't exist yet.
   int error_code = 0;
-  struct object *obj_ptr = make_new_object(state, qualified_name, &error_code);
+  struct object *obj_ptr = make_new_object(
+      state->dg_parse, // Need to test that dg_parse actually works here
+      state->obj_sym_table,
+      qualified_name,
+      &error_code);
+  /*struct object *obj_ptr = make_new_object(state, qualified_name, &error_code);*/
   if (obj_ptr == NULL) {
     free(qualified_name);
     return MCELL_FAIL;
@@ -232,15 +340,25 @@ failure:
       obj_name: fully qualified object name
  Out: the newly created object
 *************************************************************************/
-struct object *make_new_object(MCELL_STATE *state, char *obj_name, int *error_code) {
-  if ((retrieve_sym(obj_name, state->obj_sym_table)) != NULL) {
-    // mdlerror_fmt(parse_state,"Object '%s' is already defined", obj_name);
-    *error_code = 1;
-    return NULL;
+struct object *make_new_object(
+    struct dyngeom_parse_vars *dg_parse,
+    struct sym_table_head *obj_sym_table,
+    char *obj_name,
+    int *error_code) {
+
+  struct sym_entry *symbol = retrieve_sym(obj_name, obj_sym_table);
+  if (symbol != NULL) {
+    if (symbol->count == 0) {
+      symbol->count = 1;
+      return (struct object *)symbol->value;
+    }
+    else {
+      *error_code = 1;
+      return NULL; 
+    }
   }
 
-  struct sym_entry *symbol;
-  if ((symbol = store_sym(obj_name, OBJ, state->obj_sym_table, NULL)) == NULL) {
+  if ((symbol = store_sym(obj_name, OBJ, obj_sym_table, NULL)) == NULL) {
     *error_code = 2;
     return NULL;
   }
@@ -483,6 +601,7 @@ struct polygon_object *allocate_polygon_object(char const *desc) {
   poly_obj_ptr->element = NULL;
   poly_obj_ptr->sb = NULL;
   poly_obj_ptr->side_removed = NULL;
+  poly_obj_ptr->references = 0;
   return poly_obj_ptr;
 }
 
@@ -1034,6 +1153,17 @@ int cuboid_patch_to_bits(struct subdivided_box *subd_box, struct vector3 *v1,
   return 0;
 }
 
+int mcell_check_for_region(char *region_name, struct object *obj_ptr) {
+  struct region_list *reg_list;
+  for (reg_list = obj_ptr->regions; reg_list != NULL;
+       reg_list = reg_list->next) {
+    if (strcmp(region_name, reg_list->reg->sym->name) == 0) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
 /**************************************************************************
  mcell_create_region:
     Create a named region on an object.
@@ -1050,7 +1180,7 @@ struct region *mcell_create_region(MCELL_STATE *state, struct object *obj_ptr,
   struct region *reg_ptr;
   struct region_list *reg_list_ptr;
   no_printf("Creating new region: %s\n", name);
-  if ((reg_ptr = make_new_region(state, obj_ptr->sym->name, name)) == NULL) {
+  if ((reg_ptr = make_new_region(state->dg_parse, state, obj_ptr->sym->name, name)) == NULL) {
     return NULL;
   }
   if ((reg_list_ptr =
@@ -1062,10 +1192,17 @@ struct region *mcell_create_region(MCELL_STATE *state, struct object *obj_ptr,
   }
   reg_ptr->region_last_name = name;
   reg_ptr->parent = obj_ptr;
-  reg_list_ptr->reg = reg_ptr;
-  reg_list_ptr->next = obj_ptr->regions;
-  obj_ptr->regions = reg_list_ptr;
-  obj_ptr->num_regions++;
+  char *region_name = CHECKED_SPRINTF("%s,%s", obj_ptr->sym->name, name);
+  if (!mcell_check_for_region(region_name, obj_ptr)) {
+    reg_list_ptr->reg = reg_ptr;
+    reg_list_ptr->next = obj_ptr->regions;
+    obj_ptr->regions = reg_list_ptr;
+    obj_ptr->num_regions++;
+  }
+  else {
+    free(reg_list_ptr);
+  }
+  free(region_name);
   return reg_ptr;
 }
 
@@ -1085,8 +1222,12 @@ struct region *mcell_create_region(MCELL_STATE *state, struct object *obj_ptr,
  Out: The newly created region
  NOTE: This is similar to mdl_make_new_region
 *************************************************************************/
-struct region *make_new_region(MCELL_STATE *state, char *obj_name,
-                               char *region_last_name) {
+struct region *make_new_region(
+    struct dyngeom_parse_vars *dg_parse,
+    MCELL_STATE *state,
+    char *obj_name,
+    char *region_last_name) {
+
   char *region_name;
   region_name = CHECKED_SPRINTF("%s,%s", obj_name, region_last_name);
   if (region_name == NULL) {
@@ -1094,6 +1235,17 @@ struct region *make_new_region(MCELL_STATE *state, char *obj_name,
   }
 
   struct sym_entry *sym_ptr;
+  if (((sym_ptr = retrieve_sym(region_name, state->reg_sym_table)) != NULL) && (sym_ptr->count == 0)) {
+    free(region_name);
+    if (sym_ptr->count == 0) {
+      sym_ptr->count = 1;
+      return (struct region *)sym_ptr->value;
+    }
+    else {
+      return NULL; 
+    }
+  }
+
   if ((sym_ptr = store_sym(region_name, REG, state->reg_sym_table, NULL)) ==
       NULL) {
     free(region_name);

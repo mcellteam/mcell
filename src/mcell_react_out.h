@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2015 by
+ * Copyright (C) 2006-2017 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -21,8 +21,7 @@
  *
 ******************************************************************************/
 
-#ifndef MCELL_REACT_OUT_H
-#define MCELL_REACT_OUT_H
+#pragma once
 
 #include "mcell_init.h"
 
@@ -72,5 +71,3 @@ MCELL_STATUS mcell_get_counter_value(MCELL_STATE *state,
                                      const char *counter_name, int column,
                                      double *count_data,
                                      enum count_type_t *count_data_type);
-
-#endif

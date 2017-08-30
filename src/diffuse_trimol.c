@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2015 by
+ * Copyright (C) 2006-2017 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -1562,7 +1562,7 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
             continue;
           if (!(spec->flags & (tentative->wall->flags) & COUNT_SOME_MASK))
             continue;
-          count_region_update(world, m, spec, periodic_box,
+          count_region_update(world, m, spec, m->id, periodic_box,
             tentative->wall->counting_regions, tentative->orient, 0,
             &(tentative->loc), tentative->t);
           if (tentative == tri_smash)
@@ -1607,7 +1607,7 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
                   continue;
                 if (!(spec->flags & (tentative->wall->flags) & COUNT_SOME_MASK))
                   continue;
-                count_region_update(world, m, spec, periodic_box,
+                count_region_update(world, m, spec, m->id, periodic_box,
                   tentative->wall->counting_regions, tentative->orient, 1,
                   &(tentative->loc), tentative->t);
                 if (tentative == tri_smash)
@@ -1638,7 +1638,7 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
                     if (!(spec->flags & (tentative->wall->flags) &
                           COUNT_SOME_MASK))
                       continue;
-                    count_region_update(world, m, spec, periodic_box,
+                    count_region_update(world, m, spec, m->id, periodic_box,
                       tentative->wall->counting_regions, tentative->orient, 1,
                       &(tentative->loc), tentative->t);
                     if (tentative == tri_smash)
@@ -1658,7 +1658,7 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
                     if (!(spec->flags & (tentative->wall->flags) &
                           COUNT_SOME_MASK))
                       continue;
-                    count_region_update(world, m, spec, periodic_box,
+                    count_region_update(world, m, spec, m->id, periodic_box,
                       tentative->wall->counting_regions, tentative->orient, 0,
                       &(tentative->loc), tentative->t);
                     if (tentative == tri_smash)
@@ -1679,7 +1679,7 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
                   continue;
                 if (!(spec->flags & (tentative->wall->flags) & COUNT_SOME_MASK))
                   continue;
-                count_region_update(world, m, spec, periodic_box,
+                count_region_update(world, m, spec, m->id, periodic_box,
                   tentative->wall->counting_regions, tentative->orient, 0,
                   &(tentative->loc), tentative->t);
                 if (tentative == tri_smash)
@@ -1696,7 +1696,7 @@ pretend_to_call_diffuse_3D_big_list: /* Label to allow fake recursion */
                 continue;
               if (!(spec->flags & (tentative->wall->flags) & COUNT_SOME_MASK))
                 continue;
-              count_region_update(world, m, spec, periodic_box,
+              count_region_update(world, m, spec, m->id, periodic_box,
                 tentative->wall->counting_regions, tentative->orient, 0,
                 &(tentative->loc), tentative->t);
               if (tentative == tri_smash)
