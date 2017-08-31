@@ -40,6 +40,7 @@
 #include "dyngeom_parse_extras.h"
 #include "mdlparse_aux.h"
 #include "react.h"
+#include "nfsim_func.h"
 
 #define NO_MESH "\0"
 
@@ -267,6 +268,7 @@ int place_all_molecules(
 
     struct molecule_info *mol_info = state->all_molecules[n_mol];
     struct abstract_molecule *am_ptr = mol_info->molecule;
+    initialize_diffusion_function(am_ptr);
     // Insert volume molecule into world.
     if ((am_ptr->properties->flags & NOT_FREE) == 0) {
       vm_ptr->t = am_ptr->t;
@@ -279,6 +281,7 @@ int place_all_molecules(
       vm_ptr->pos.y = mol_info->pos.y;
       vm_ptr->pos.z = mol_info->pos.z;
       vm_ptr->periodic_box = am_ptr->periodic_box;
+      initialize_diffusion_function((struct abstract_molecule*)vm_ptr);
 
       vm_guess = insert_volume_molecule_encl_mesh(
           state, vm_ptr, vm_guess, mol_info->mesh_names, meshes_to_ignore);

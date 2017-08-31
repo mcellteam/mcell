@@ -2149,7 +2149,7 @@ void collect_molecule(struct volume_molecule *vm) {
   vm->next_v = NULL;
 
   /* Dispose of the molecule */
-  vm->properties = NULL;
+  //vm->properties = NULL;
   vm->flags &= ~IN_VOLUME;
   if ((vm->flags & IN_MASK) == 0)
     mem_put(vm->birthplace, vm);
