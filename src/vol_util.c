@@ -1309,7 +1309,7 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
   struct abstract_molecule *ap = (struct abstract_molecule *)(&vm);
 
   
-  if(ap->properties->flags & EXTERNAL_SPECIES){
+  if(ap->properties && (ap->properties->flags & EXTERNAL_SPECIES)){
     //TODO: i should check against a hashmap storing rso->graph_pattern data instead of reacting this object
     int error = get_graph_data(lhash(rso->graph_pattern), &ap->graph_data);
     if(error != 0){
@@ -1330,11 +1330,9 @@ int release_molecules(struct volume *state, struct release_event_queue *req) {
     //ap->graph_pattern_hash = 0;
   }
 
-  initialize_diffusion_function(ap);
-  
-
   // All molecules are the same, so we can set flags
   if (rso->mol_list == NULL) {
+    initialize_diffusion_function(ap);
     if (trigger_unimolecular(state->reaction_hash, state->rx_hashsize,
                              rso->mol_type->hashval, ap) != NULL ||
         (rso->mol_type->flags & CAN_SURFWALL) != 0)
@@ -1557,6 +1555,7 @@ int release_by_list(struct volume *state, struct release_event_queue *req,
     if ((rsm->mol_type->flags & NOT_FREE) == 0) {
       struct abstract_molecule *ap = (struct abstract_molecule *)(vm);
       vm->properties = rsm->mol_type;
+      initialize_diffusion_function(ap);
       // Have to set flags, since insert_volume_molecule doesn't
       if (trigger_unimolecular(state->reaction_hash, state->rx_hashsize,
                                ap->properties->hashval, ap) != NULL ||
@@ -2149,7 +2148,7 @@ void collect_molecule(struct volume_molecule *vm) {
   vm->next_v = NULL;
 
   /* Dispose of the molecule */
-  //vm->properties = NULL;
+  vm->properties = NULL;
   vm->flags &= ~IN_VOLUME;
   if ((vm->flags & IN_MASK) == 0)
     mem_put(vm->birthplace, vm);

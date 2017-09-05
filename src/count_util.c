@@ -181,9 +181,11 @@ void count_region_update(
   double hits_to_ccn = 0;
   if ((sp->flags & COUNT_HITS) && ((sp->flags & NOT_FREE) == 0)) {
     count_hits = 1;
-    hits_to_ccn = vm->get_time_step(vm) *
+    /*hits_to_ccn = vm->get_time_step(vm) **/
+    hits_to_ccn = sp->time_step *
                   2.9432976599069717358e-3 / /* 1e6*sqrt(MY_PI)/(1e-15*N_AV) */
-                  (vm->get_space_step(vm) * world->length_unit * world->length_unit *
+                  /*(vm->get_space_step(vm) * world->length_unit * world->length_unit **/
+                  (sp->space_step * world->length_unit * world->length_unit *
                    world->length_unit);
   }
 

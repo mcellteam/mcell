@@ -1267,6 +1267,7 @@ int outcome_bimolecular(struct volume *world, struct rxn *rx, int path,
     }
 
     free(reacB->periodic_box);
+    reacB->periodic_box = NULL;
     reacB->properties->n_deceased++;
     double t_time = convert_iterations_to_seconds(
         world->start_iterations, world->time_unit,
@@ -1334,6 +1335,7 @@ int outcome_bimolecular(struct volume *world, struct rxn *rx, int path,
     }
 
     free(reacA->periodic_box);
+    reacA->periodic_box = NULL;
     reacA->properties->n_deceased++;
     double t_time = convert_iterations_to_seconds(
         world->start_iterations, world->time_unit,
