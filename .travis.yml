@@ -5,13 +5,11 @@ language: c
 compiler:
   - gcc
   - clang
-<<<<<<< HEAD
 script: 
   - cd build
   - python requirement.py
   - cmake .. && make
 
-=======
 notifications:
   slack:
     secure: oaI4oLUKgpsDD9vfzUTKgMForYaIqUpU3I5ZsyJmDqGQbVp/GABjZfT5/NtLy9LTp9XahVrDQtDFjAJLXL55PqPYH8wIq8hX+KDSL3gIQkHd3E33niPzFU6UDbsl1rm5o49p1boCKgFC8W9sbSKxxS/z3j2jh440Lt842vKQh0U=
@@ -58,4 +56,3 @@ addons:
     build_command_prepend: "cd ./src && ./bootstrap && ./configure"
     build_command:   "make"
     branch_pattern: coverity_scan
->>>>>>> master

@@ -71,6 +71,17 @@ static bool has_micro_rev_and_trimol_rxns(struct species **species_list,
 
 /************************************************************************
  *
+ * change the seed
+ *
+ ************************************************************************/
+
+void mcell_set_seed(MCELL_STATE *state, int seed) {
+  u_int signed_seed = (u_int) seed;
+  state->seed_seq = signed_seed;
+}
+
+/************************************************************************
+ *
  * function for initializing the main mcell simulator. MCELL_STATE
  * keeps track of the state of the simulation.
  *
@@ -147,32 +158,16 @@ mcell_init_state(MCELL_STATE *state) {
 
 /************************************************************************
  *
- * function for parsing the models underlying mdl file. The function
- * updates the state accordingly.
- *
- * Returns 0 on sucess and 1 on error
- *
- * NOTE: This is currently just a very thin wrapper around parse_input()
- *
- ************************************************************************/
-MCELL_STATUS
-mcell_parse_mdl(MCELL_STATE *state) { return parse_input(state); }
-
-/************************************************************************
- *
  * function for setting up all the internal data structure to get the
  * simulation into a runnable state.
  *
  * NOTE: Before this function can be called the engine user code
  *       either needs to call
- *       - mcell_parse_mdl() to parse a valid MDL file or
+ *       - parse_input() to parse a valid MDL file or
  *       - the individiual API functions for adding model elements
  *         (molecules, geometry, ...)
- *         XXX: These functions don't exist yet!
  *
  * Returns 0 on sucess and 1 on error
- *
- * NOTE: This is currently just a very thin wrapper around parse_input()
  *
  ************************************************************************/
 MCELL_STATUS
@@ -275,8 +270,10 @@ mcell_redo_geom(MCELL_STATE *state) {
   state->disable_polygon_objects = 0;
   // Reparse the geometry and instantiations. Nothing else should be included
   // in these other MDLs.
-  CHECKED_CALL(mcell_parse_mdl(state),
+#ifdef NOSWIG
+  CHECKED_CALL(parse_input(state),
                "An error occured during parsing of the mdl file.");
+#endif
   CHECKED_CALL(init_bounding_box(state), "Error initializing bounding box.");
   // This should ideally be in destroy_everything
   free(state->subvol);
@@ -474,6 +471,128 @@ mcell_set_time_step(MCELL_STATE *state, double step) {
   state->time_unit = step;
   return MCELL_SUCCESS;
 }
+
+/*************************************************************************
+ mcell_silence_notifications:
+
+    Silence notifications
+
+ In: state: the simulation state
+ Out: 0 on success; any other integer value is a failure.
+*************************************************************************/
+MCELL_STATUS
+mcell_silence_notifications(MCELL_STATE *state) {
+  /*state->quiet_flag = 1;*/
+  state->notify->progress_report = NOTIFY_NONE;
+  state->notify->diffusion_constants = NOTIFY_NONE;
+  state->notify->reaction_probabilities = NOTIFY_NONE;
+  state->notify->time_varying_reactions = NOTIFY_NONE;
+  state->notify->reaction_prob_notify = 0.0;
+  state->notify->partition_location = NOTIFY_NONE;
+  state->notify->box_triangulation = NOTIFY_NONE;
+  state->notify->iteration_report = NOTIFY_NONE;
+  state->notify->custom_iteration_value = 0;
+  state->notify->release_events = NOTIFY_NONE;
+  state->notify->file_writes = NOTIFY_NONE;
+  state->notify->final_summary = NOTIFY_NONE;
+  state->notify->throughput_report = NOTIFY_NONE;
+  state->notify->checkpoint_report = NOTIFY_NONE;
+  state->notify->reaction_output_report = NOTIFY_NONE;
+  state->notify->volume_output_report = NOTIFY_NONE;
+  state->notify->viz_output_report = NOTIFY_NONE;
+  state->notify->molecule_collision_report = NOTIFY_NONE;
+  return MCELL_SUCCESS;
+}
+
+/*************************************************************************
+ mcell_enable_notifications:
+
+    Enable notifications
+
+ In: state: the simulation state
+ Out: 0 on success; any other integer value is a failure.
+*************************************************************************/
+MCELL_STATUS
+mcell_enable_notifications(MCELL_STATE *state) {
+  state->notify->progress_report = NOTIFY_FULL;
+  state->notify->diffusion_constants = NOTIFY_BRIEF;
+  state->notify->reaction_probabilities = NOTIFY_FULL;
+  state->notify->time_varying_reactions = NOTIFY_FULL;
+  state->notify->reaction_prob_notify = 0.0;
+  state->notify->partition_location = NOTIFY_NONE;
+  state->notify->box_triangulation = NOTIFY_NONE;
+  state->notify->iteration_report = NOTIFY_FULL;
+  state->notify->custom_iteration_value = 0;
+  state->notify->release_events = NOTIFY_FULL;
+  state->notify->file_writes = NOTIFY_NONE;
+  state->notify->final_summary = NOTIFY_FULL;
+  state->notify->throughput_report = NOTIFY_FULL;
+  state->notify->checkpoint_report = NOTIFY_FULL;
+  state->notify->reaction_output_report = NOTIFY_NONE;
+  state->notify->volume_output_report = NOTIFY_NONE;
+  state->notify->viz_output_report = NOTIFY_NONE;
+  state->notify->molecule_collision_report = NOTIFY_NONE;
+  return MCELL_SUCCESS;
+}
+
+
+/*************************************************************************
+ mcell_enable_warnings:
+
+    Enable warnings
+
+ In: state: the simulation state
+ Out: 0 on success; any other integer value is a failure.
+*************************************************************************/
+MCELL_STATUS
+mcell_enable_warnings(MCELL_STATE *state) {
+  state->notify->neg_diffusion = WARN_WARN;
+  state->notify->neg_reaction = WARN_WARN;
+  state->notify->high_reaction_prob = WARN_COPE;
+  state->notify->reaction_prob_warn = 1.0;
+  state->notify->close_partitions = WARN_WARN;
+  state->notify->degenerate_polys = WARN_WARN;
+  state->notify->overwritten_file = WARN_COPE;
+  state->notify->short_lifetime = WARN_WARN;
+  state->notify->short_lifetime_value = 50;
+  state->notify->missed_reactions = WARN_WARN;
+  state->notify->missed_reaction_value = 0.001;
+  state->notify->missed_surf_orient = WARN_ERROR;
+  state->notify->useless_vol_orient = WARN_WARN;
+  state->notify->mol_placement_failure = WARN_WARN;
+  state->notify->invalid_output_step_time = WARN_WARN;
+  state->notify->large_molecular_displacement = WARN_WARN;
+  state->notify->add_remove_mesh_warning = WARN_WARN;
+  return MCELL_SUCCESS;
+}
+
+/*************************************************************************
+ mcell_silence_warnings:
+
+    Silence warnings
+
+ In: state: the simulation state
+ Out: 0 on success; any other integer value is a failure.
+*************************************************************************/
+MCELL_STATUS
+mcell_silence_warnings(MCELL_STATE *state) {
+  state->notify->neg_diffusion = WARN_COPE;
+  state->notify->neg_reaction = WARN_COPE;
+  state->notify->high_reaction_prob = WARN_COPE;
+  state->notify->close_partitions = WARN_COPE;
+  state->notify->degenerate_polys = WARN_COPE;
+  state->notify->overwritten_file = WARN_COPE;
+  state->notify->short_lifetime = WARN_COPE;
+  state->notify->missed_reactions = WARN_COPE;
+  state->notify->missed_surf_orient = WARN_ERROR;
+  state->notify->useless_vol_orient = WARN_COPE;
+  state->notify->mol_placement_failure = WARN_COPE;
+  state->notify->invalid_output_step_time = WARN_COPE;
+  state->notify->large_molecular_displacement = WARN_COPE;
+  state->notify->add_remove_mesh_warning = WARN_COPE;
+  return MCELL_SUCCESS;
+}
+
 
 /*****************************************************************************
  *

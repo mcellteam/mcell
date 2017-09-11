@@ -42,7 +42,7 @@
 /**  Brand new constants created for use in MCell3  **/
 /*****************************************************/
 
-#define ORIENT_NOT_SET SHRT_MIN
+#define ORIENT_NOT_SET -100
 
 /* Species flags */
 /* Surface classes have IS_SURFACE set, molecules do not. */

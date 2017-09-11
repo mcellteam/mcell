@@ -34,11 +34,11 @@ typedef int MCELL_STATUS;
 /* state of mcell simulation */
 typedef struct volume MCELL_STATE;
 
-MCELL_STATE *mcell_create();
+void mcell_set_seed(MCELL_STATE *state, int seed);
+
+MCELL_STATE *mcell_create(void);
 
 MCELL_STATUS mcell_init_state(MCELL_STATE *state);
-
-MCELL_STATUS mcell_parse_mdl(MCELL_STATE *state);
 
 MCELL_STATUS mcell_init_simulation(MCELL_STATE *state);
 
@@ -54,3 +54,8 @@ MCELL_STATUS mcell_set_partition(MCELL_STATE *state, int dim,
 MCELL_STATUS mcell_set_time_step(MCELL_STATE *state, double step);
 
 MCELL_STATUS mcell_set_iterations(MCELL_STATE *state, long long iterations);
+
+MCELL_STATUS mcell_silence_notifications(MCELL_STATE *state);
+MCELL_STATUS mcell_enable_notifications(MCELL_STATE *state);
+MCELL_STATUS mcell_silence_warnings(MCELL_STATE *state);
+MCELL_STATUS mcell_enable_warnings(MCELL_STATE *state);

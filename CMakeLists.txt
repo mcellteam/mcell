@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.4)
 project(mcell C)
 
 add_definitions(-DPACKAGE_BUGREPORT="mcell@salk.edu")
@@ -60,8 +60,8 @@ set(CMAKE_C_FLAGS "-Wall -Wextra -Wshadow -Wno-unused-parameter -D_GNU_SOURCE=1 
 set(CMAKE_EXE_LINKER_FLAGS ${M_LIB})
 
 set(SOURCE_FILES
-    src/api_test.c
-    src/api_test.h
+    src/test_api.c
+    src/test_api.h
     src/argparse.c
     src/argparse.h
     src/chkpt.c
@@ -77,9 +77,9 @@ set(SOURCE_FILES
     src/diffuse_util.h
     src/dyngeom.c
     src/dyngeom.h
+    src/dyngeom_lex.c
     src/dyngeom_parse_extras.c
     src/dyngeom_parse_extras.h
-    src/dyngeom_lex.c
     src/dyngeom_yacc.c
     src/grid_util.c
     src/grid_util.h
@@ -164,11 +164,99 @@ set(SOURCE_FILES
     src/wall_util.h)
 
 link_directories(${CMAKE_SOURCE_DIR}/lib)
+FIND_PACKAGE(SWIG REQUIRED)
+INCLUDE(${SWIG_USE_FILE})
+
+FIND_PACKAGE(PythonLibs 3 REQUIRED)
+INCLUDE_DIRECTORIES(${PYTHON_INCLUDE_PATH})
+
+INCLUDE_DIRECTORIES("${CMAKE_CURRENT_SOURCE_DIR}/src")
+
+#SET(CMAKE_SWIG_FLAGS "-debug-typemap;-debug-tmsearch;-debug-tmused;-ltypemaps")
+SET(CMAKE_SWIG_FLAGS "-ltypemaps;-py3")
+
+SET(CMAKE_SWIG_OUTDIR "${CMAKE_BINARY_DIR}/python")
+SET(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/python")
+
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/python)
+SET_SOURCE_FILES_PROPERTIES(src/pymcell.i PROPERTIES C ON)
+SET_SOURCE_FILES_PROPERTIES(src/pymcell.i PROPERTIES SWIG_FLAGS "-includeall")
+SWIG_ADD_MODULE(pymcell python
+  src/argparse.c
+  src/chkpt.c
+  src/count_util.c
+  src/diffuse.c
+  src/diffuse_trimol.c src/isaac64.c
+  src/diffuse_util.c
+  src/dyngeom.c
+  src/dyngeom_lex.c
+  src/dyngeom_parse_extras.c
+  src/dyngeom_yacc.c
+  src/grid_util.c src/react_outc.c
+  src/init.c
+  src/logging.c
+  src/mcell_init.c
+  src/mcell_misc.c
+  src/mcell_objects.c
+  src/mcell_react_out.c
+  src/mcell_reactions.c
+  src/mcell_release.c
+  src/mcell_run.c
+  src/mcell_species.c
+  src/mcell_surfclass.c
+  src/mcell_viz.c
+  src/mcell_dyngeom.c
+  src/mem_util.c
+  src/pymcell.i
+  src/react_cond.c
+  src/react_outc_trimol.c
+  src/react_output.c
+  src/react_trig.c
+  src/react_util.c
+  src/rng.c
+  src/sched_util.c
+  src/strfunc.c
+  src/sym_table.c
+  src/triangle_overlap.c
+  src/util.c
+  src/vector.c
+  src/version_info.c
+  src/viz_output.c
+  src/vol_util.c
+  src/volume_output.c
+  src/wall_util.c)
+SWIG_LINK_LIBRARIES(pymcell ${PYTHON_LIBRARIES})
+
+# copy the pyMCell test script into place
+file(COPY ${CMAKE_SOURCE_DIR}/src/test.json DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python/)
+file(COPY ${CMAKE_SOURCE_DIR}/src/lipidraft.json DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python/)
+file(COPY ${CMAKE_SOURCE_DIR}/src/pymcell_unittests.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python/)
+file(COPY ${CMAKE_SOURCE_DIR}/src/test_dm_read.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python/)
+file(COPY ${CMAKE_SOURCE_DIR}/src/test_new_api.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python/)
+file(COPY ${CMAKE_SOURCE_DIR}/src/test_api.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python/)
+file(COPY ${CMAKE_SOURCE_DIR}/src/torus.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python)
+file(COPY ${CMAKE_SOURCE_DIR}/src/box.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python)
+
+# copy the pyMCell Boolean logic test script into place
+file(COPY ${CMAKE_SOURCE_DIR}/src/test_bool.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python/)
+
+# copy the pyMCell list release test script into place
+file(COPY ${CMAKE_SOURCE_DIR}/src/test_release_list.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python/)
+
+# copy the pyMCell Release pattern test script into place
+file(COPY ${CMAKE_SOURCE_DIR}/src/test_release_pattern.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python/)
+
+# copy the mcell neuron interface test into place
+file(COPY ${CMAKE_SOURCE_DIR}/src/test_mcell_neuron_python.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python/)
+
+# copy the Jupyter notebook into place
+file(COPY ${CMAKE_SOURCE_DIR}/src/pymcell_test.ipynb DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python/)
 
 # build executable
 add_executable(mcell
   ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h
   ${SOURCE_FILES}
+  src/mcell.c
   ${BISON_mdlParser_OUTPUTS}
   ${FLEX_mdlScanner_OUTPUTS})
 target_link_libraries(mcell ${M_LIB} nfsim_c NFsim)
@@ -182,3 +270,14 @@ target_link_libraries(mcell ${M_LIB} nfsim_c NFsim)
 #  ${FLEX_mdlScanner_OUTPUTS})
 #target_link_libraries(mcell_static ${M_LIB} ${CMAKE_SOURCE_DIR}/lib/libnfsim_c_static.a ${CMAKE_SOURCE_DIR}/lib/libNFsim_static.a)
 
+target_link_libraries(mcell ${M_LIB})
+TARGET_COMPILE_DEFINITIONS(mcell PRIVATE NOSWIG=1)
+
+# build little libmcell test
+#add_executable(libmcell_test
+#  ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h
+#  ${SOURCE_FILES}
+#  src/libmcell_test.c
+#  ${BISON_mdlParser_OUTPUTS}
+#  ${FLEX_mdlScanner_OUTPUTS})
+#target_link_libraries(libmcell_test ${M_LIB})

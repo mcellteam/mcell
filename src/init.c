@@ -529,35 +529,6 @@ int init_data_structures(struct volume *world) {
 
 /***********************************************************************
  *
- * parse the model's mdl files and update our global state
- *
- ***********************************************************************/
-int parse_input(struct volume *world) {
-  /* Parse the MDL file: */
-  no_printf("Node %d parsing MDL file %s\n", world->procnum,
-            world->mdl_infile_name);
-  if (mdlparse_init(world)) {
-    return (1);
-  }
-  no_printf("Done parsing MDL file: %s\n", world->mdl_infile_name);
-
-  /* we do not want to count collisions if the policy is not to print */
-  if (world->notify->final_summary == NOTIFY_NONE)
-    world->notify->molecule_collision_report = NOTIFY_NONE;
-
-  if (world->iterations == INT_MIN) {
-    mcell_error_nodie(
-        "Total number of iterations is not specified either "
-        "through the ITERATIONS keyword or through the command line option "
-        "'-iterations'.");
-    return 1;
-  }
-
-  return 0;
-}
-
-/***********************************************************************
- *
  * initialize the models' species table
  *
  ***********************************************************************/

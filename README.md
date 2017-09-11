@@ -23,7 +23,7 @@ Run the following command:
 
     sudo apt-get install cmake build-essential bison flex
 
-## Building from Source:
+## Building MCell executable from Source:
 
 ### CMake
 
@@ -55,6 +55,13 @@ build options slightly.
 See the [Windows
 Development](https://github.com/mcellteam/mcell/wiki/Windows-Development) page
 on the github wiki for information about building MCell on Windows.
+
+## Building pyMCell (MCell Python library):
+
+You will need swig and some version of Python 3 (preferably 3.5) Run the
+following command:
+
+  python setupy.py build
 
 ## How To Test:
 

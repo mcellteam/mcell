@@ -73,6 +73,22 @@ struct reaction_rates {
 };
 
 MCELL_STATUS
+mcell_modify_multiple_rate_constants(struct volume *world, char **names, double *rate_constants, int n_rxns);
+
+MCELL_STATUS
+mcell_modify_rate_constant(struct volume *world, char *name, double rate);
+
+MCELL_STATUS
+mcell_add_reaction_simplified(
+    struct volume *state, 
+    struct mcell_species *reactants,
+    struct reaction_arrow *arrow,
+    struct mcell_species *surfs,
+    struct mcell_species *products,
+    struct reaction_rates *rates,
+    struct sym_entry *pathname);
+
+MCELL_STATUS
 mcell_add_reaction(struct notifications *notify,
                    double **r_step_release,
                    struct sym_table_head *rxn_sym_table,
@@ -105,9 +121,9 @@ MCELL_STATUS mcell_change_reaction_rate(MCELL_STATE *state,
                                         double new_rate);
 
 struct reaction_rates mcell_create_reaction_rates(int forwardRateType,
-                                                  int forwardRate,
+                                                  double forwardRateConstant,
                                                   int backwardRateType,
-                                                  int backwardRate);
+                                                  double backwardRateConstant);
 //helper functions for initializing a reaction structure
 
 MCELL_STATUS extract_reactants(struct pathway *path,
@@ -148,3 +164,5 @@ int outcome_nfsim(struct volume *world, struct rxn *rx, int path,
                          struct abstract_molecule *reac, struct abstract_molecule *reac2, double t);
 //get the graph properties for a given graph object
 void properties_nfsim(struct volume*, struct abstract_molecule *reac);
+
+struct sym_entry *mcell_new_rxn_pathname(struct volume *state, char *name);

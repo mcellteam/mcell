@@ -41,6 +41,8 @@ struct output_times_inlist {
   struct num_expr_list_head values;
 };
 
+int mcell_get_count(char *mol_name, char *reg_name, struct volume *world);
+
 struct output_request *mcell_new_output_request(MCELL_STATE *state,
                                                 struct sym_entry *target,
                                                 short orientation,

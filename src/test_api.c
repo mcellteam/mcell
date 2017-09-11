@@ -194,18 +194,18 @@ void test_api(MCELL_STATE *state) {
       mcell_add_to_species_list(molB_ptr, false, 0, NULL);
   CHECKED_CALL_EXIT(mcell_create_geometrical_release_site(
                         state, world_object, "B_releaser", SHAPE_SPHERICAL,
-                        &position, &diameter, B, 5000, 1, NULL, &B_releaser),
+                        &position, &diameter, B, 5000, 0, 1, NULL, &B_releaser),
                     "could not create B_releaser");
   mcell_delete_species_list(B);
 
   /***************************************************************************
    * begin code for creating count statements
    ***************************************************************************/
-  // struct sym_entry *where = NULL;   // we count in the world
-  struct sym_entry *where = new_mesh->sym;
-  // byte report_flags = REPORT_WORLD;
-  // report_flags |= REPORT_CONTENTS;
-  byte report_flags = REPORT_CONTENTS;
+   struct sym_entry *where = NULL;   // we count in the world
+ // struct sym_entry *where = new_mesh->sym;
+ //  byte report_flags = REPORT_WORLD;
+   //report_flags |= REPORT_CONTENTS;
+ byte report_flags = REPORT_CONTENTS;
 
   struct output_column_list count_list;
   CHECKED_CALL_EXIT(mcell_create_count(state, molA_ptr, ORIENT_NOT_SET, where,

@@ -1393,3 +1393,42 @@ int is_region_degenerate(struct region *reg_ptr) {
   }
   return 1;
 }
+
+struct sym_entry *
+mcell_get_obj_sym(struct object *obj) {
+  return obj->sym;
+}
+struct sym_entry *
+mcell_get_reg_sym(struct region *reg) {
+  return reg->sym;
+}
+
+struct poly_object_list* mcell_add_to_poly_obj_list(
+  struct poly_object_list* poly_obj_list,
+  char *obj_name,
+  struct vertex_list *vertices,
+  int num_vert,
+  struct element_connection_list *connections,
+  int num_conn,
+  struct element_list *surf_reg_faces,
+  char *reg_name) {
+
+  struct poly_object_list *pobj_list = (struct poly_object_list *)CHECKED_MALLOC_STRUCT(
+      struct poly_object_list, "poly obj list");
+  if (pobj_list == NULL) {
+    return NULL;
+  }
+  char *object_name = CHECKED_STRDUP(obj_name, "object name");
+  char *region_name = CHECKED_STRDUP(reg_name, "object name");
+
+  pobj_list->vertices = vertices;
+  pobj_list->num_vert = num_vert;
+  pobj_list->connections = connections;
+  pobj_list->num_conn = num_conn;
+  pobj_list->surf_reg_faces = surf_reg_faces;
+  pobj_list->reg_name = region_name;
+  pobj_list->obj_name = object_name;
+  pobj_list->next = poly_obj_list;
+
+  return pobj_list;
+}

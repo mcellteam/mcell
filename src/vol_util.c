@@ -612,6 +612,7 @@ place_surface_molecule(struct volume *state, struct species *s,
   struct wall *best_w = find_closest_wall(
     state, loc, search_diam, &best_uv, grid_index_p, s, mesh_name, reg_names,
     regions_to_ignore);
+
   if (best_w == NULL) {
     return NULL; 
   }

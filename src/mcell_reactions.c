@@ -34,7 +34,11 @@
 #include "logging.h"
 #include "react_util.h"
 #include "strfunc.h"
+#include "react.h"
 #include "mcell_reactions.h"
+#include "diffuse.h"
+#include "vol_util.h"
+#include "mcell_structs.h"
 
 /* static helper functions */
 static char *concat_rx_name(char *name1, char *name2);
@@ -113,6 +117,455 @@ static int sort_product_list_compare(struct product *list_item,
                                      struct product *new_item);
 
 static struct product *sort_product_list(struct product *product_head);
+
+/*************************************************************************
+ *
+ * mcell_modify_multiple_rate_constants - modifies the rate constant of multiple reactions with
+ * names.
+ *
+ *************************************************************************/
+MCELL_STATUS
+mcell_modify_multiple_rate_constants(struct volume *world, char **names, double *rate_constants, int n_rxns) {
+
+  // Store what each type of reaction is
+  // diffusing
+  struct rxn **reactions_ud = malloc(0 * sizeof(*reactions_ud)); // Empty
+  // unimolecular non-diffusing, volume
+  struct rxn **reactions_undv = malloc(0 * sizeof(*reactions_undv));
+  // unimolecular non-diffusing, surface
+  struct rxn **reactions_unds = malloc(0 * sizeof(*reactions_unds));
+  // Keep track of the size
+  int n_reactions_ud=0;
+  int n_reactions_undv=0;
+  int n_reactions_unds=0;
+
+  // Go through all the reactions
+  int i_rxn=0;
+  while(i_rxn < n_rxns)
+  {
+
+    // Grab the reaction
+    struct sym_table_head *rxpn_sym_table = world->rxpn_sym_table;
+    struct sym_entry *sym = retrieve_sym(names[i_rxn], rxpn_sym_table);
+
+    // If the reaction couldn't be found by name, return fail
+    if (sym == NULL) 
+    {
+      return MCELL_FAIL;
+    }
+
+    // Found the reaction, now do the changing
+
+    // What is the pathway that needs to be changed?
+    struct rxn_pathname *rxpn = sym->value;  
+    // The reaction that owns this pathway
+    struct rxn *reaction = rxpn->rx;  
+    // The index of the pathway in this reaction
+    int j = rxpn->path_num;
+
+    // Check what type of reaction this is; store this to update the scheduler later
+    int can_diffuse = distinguishable(reaction->players[0]->D, 0, EPS_C);
+    if (reaction->n_reactants == 1 && can_diffuse)
+    {
+      // unimolecular reactions w/ diffusable reactants
+      reactions_ud = (struct rxn **) realloc(reactions_ud, (n_reactions_ud + 1)*sizeof(*reactions_ud));
+      reactions_ud[n_reactions_ud] = reaction;
+      n_reactions_ud++;
+    }
+    else if (((!can_diffuse) && (reaction->n_reactants == 1)) || 
+    ((!can_diffuse) && (reaction->n_reactants == 2) && (reaction->players[1]->flags == IS_SURFACE))) 
+    {
+      // unimolecular reactions w/ non-diffusable reactants
+
+      // Surface or volume
+      if ((reaction->players[0]->flags & NOT_FREE) != 0) 
+      {
+        // Surface
+        reactions_unds = (struct rxn **) realloc(reactions_unds, (n_reactions_unds + 1)*sizeof(*reactions_unds));
+        reactions_unds[n_reactions_unds] = reaction;
+        n_reactions_unds++;
+      }
+      else
+      {
+        // Volume
+        reactions_undv = (struct rxn **) realloc(reactions_undv, (n_reactions_undv + 1)*sizeof(*reactions_undv));
+        reactions_undv[n_reactions_undv] = reaction;
+        n_reactions_undv++;
+      }
+    }
+    
+    // From the new rate constant, compute the NEW probability for this pathway
+    double p = rate_constants[i_rxn] * reaction->pb_factor;
+
+    // Find the delta_prob for this pathway
+    double delta_prob;
+    if (j == 0)
+      delta_prob = p - reaction->cum_probs[0];
+    else
+      delta_prob = p - (reaction->cum_probs[j] - reaction->cum_probs[j - 1]);
+
+    // Update the prob for this pathway, but ALSO all other pathways above it
+    for (int k = j; k < reaction->n_pathways; k++) 
+    {
+      reaction->cum_probs[k] += delta_prob;
+    }
+    reaction->max_fixed_p += delta_prob;
+    reaction->min_noreaction_p += delta_prob;
+
+    // Go to the next reaction that needs to be changed
+    i_rxn++;
+  }
+
+  // Now, reschedule all necessary reactions at once
+
+  // Check: are there any reactions with diffusable reactants
+  if (n_reactions_ud > 0) // There is at least one
+  {
+    for (struct storage_list *local = world->storage_head; local != NULL; local = local->next) 
+    {
+      struct abstract_element *head_molecule = local->store->timer->current;
+      while (local->store->timer->current != NULL) 
+      {
+        struct abstract_molecule *am = (struct abstract_molecule *)schedule_peak(local->store->timer);
+
+        // Go through all types of these reactions
+        for (int i_reactions_ud=0; i_reactions_ud<n_reactions_ud; i_reactions_ud++)
+        {
+          // We only want to update molecules involved in this reaction.
+          // Also, skip dead molecs (props=NULL). They'll be cleaned up later.
+          if ((am->properties != NULL) && (am->properties->species_id == reactions_ud[i_reactions_ud]->players[0]->species_id)) 
+          {
+            // Setting t2=0 and ACT_CHANGE will cause the lifetime to be
+            // recomputed during the next timestep
+            am->t2 = 0.0;
+            am->flags |= ACT_CHANGE;
+          }
+        }
+      }
+      // Reset current molecule in scheduler now that we're done "peaking"
+      local->store->timer->current = head_molecule;
+    }
+  }
+
+  // Check: are there any reactions with NON-diffusable reagents
+  // Volume case
+  if (n_reactions_undv > 0) // There is at least one
+  {
+    int n_subvols = world->n_subvols;
+    for (int i = 0; i < n_subvols; i++) 
+    {
+      struct subvolume *sv = &(world->subvol[i]);
+
+      for (struct per_species_list *psl = sv->species_head; psl != NULL; psl = psl->next) 
+      {
+        if (psl->properties == NULL) 
+        {
+          continue;
+        }
+        for (struct volume_molecule *vm = psl->head; vm != NULL; vm = vm->next_v) 
+        {
+          if ((vm->properties != NULL) && (vm->t > world->current_iterations)) 
+          {
+            // Go through all types of these reactions
+            for (int i_reactions_undv=0; i_reactions_undv<n_reactions_undv; i_reactions_undv++)
+            {
+              // More efficient here would be a hash table from species_id to reaction
+              if (vm->properties->species_id == reactions_undv[i_reactions_undv]->players[0]->species_id)
+              { 
+                for (struct storage_list *local = world->storage_head; local != NULL; local = local->next) 
+                {
+                  vm->flags |= ACT_CHANGE;
+                  vm->t2 = 0.0;
+                  schedule_reschedule(local->store->timer, vm, world->current_iterations);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Surface case
+  if (n_reactions_unds > 0) // There is at least one
+  {
+    int n_subvols = world->n_subvols;
+    for (int i = 0; i < n_subvols; i++) 
+    {
+      struct subvolume *sv = &(world->subvol[i]);
+
+      for (struct wall_list *wl = sv->wall_head; wl != NULL; wl = wl->next) 
+      {
+        struct surface_grid *grid = wl->this_wall->grid;
+        if (grid != NULL) 
+        {
+          for (u_int tile_idx = 0; tile_idx < grid->n_tiles; tile_idx++) 
+          {
+            if (grid->sm_list[tile_idx]) 
+            {
+              struct surface_molecule *sm = grid->sm_list[tile_idx]->sm;
+              if ((sm->properties != NULL) && (sm->t > world->current_iterations)) 
+              {
+                // Go through all types of these reactions
+                for (int i_reactions_unds=0; i_reactions_unds<n_reactions_unds; i_reactions_unds++)
+                {
+                  // More efficient here would be a hash table from species_id to reaction
+                  if (sm->properties->species_id == reactions_unds[i_reactions_unds]->players[0]->species_id)
+                  {
+                    for (struct storage_list *local = world->storage_head; local != NULL; local = local->next) 
+                    {
+                      sm->flags |= ACT_CHANGE;
+                      sm->t2 = 0.0;
+                      schedule_reschedule(local->store->timer, sm, world->current_iterations);
+                    }
+                  }
+                } 
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  free(reactions_ud);
+  free(reactions_undv);
+  free(reactions_unds);
+
+  return MCELL_SUCCESS;
+}
+
+/*************************************************************************
+ *
+ * mcell_modify_rate_constant - modifies the rate constant of a reaction with a
+ * specified name. For example, if you have this: 
+ *
+ * vm + vm -> NULL [1e7] : rxn
+ *
+ * then you can change the rate constant from 1e7 to 0 like this:
+ *
+ * mcell_modify_rate_constant(world, "rxn", 0)
+ *
+ * NOTE: This is inefficient and needs more extensive testing
+ *
+ *************************************************************************/
+MCELL_STATUS
+mcell_modify_rate_constant(struct volume *world, char *name, double rate_constant) {
+
+  struct sym_table_head *rxpn_sym_table = world->rxpn_sym_table;
+  struct sym_entry *sym = retrieve_sym(name, rxpn_sym_table);
+  if (sym == NULL) 
+  {
+    return MCELL_FAIL;
+  }
+  else 
+  {
+    
+    // What is the pathway that needs to be changed?
+    struct rxn_pathname *rxpn = sym->value;  
+    // The reaction that owns this pathway
+    struct rxn *reaction = rxpn->rx;  
+    // The index of the pathway in this reaction
+    int j = rxpn->path_num;
+
+    // From the new rate constant, compute the NEW probability for this pathway
+    double p = rate_constant * reaction->pb_factor;
+
+    // Find the delta_prob for this pathway
+    double delta_prob;
+    if (j == 0)
+      delta_prob = p - reaction->cum_probs[0];
+    else
+      delta_prob = p - (reaction->cum_probs[j] - reaction->cum_probs[j - 1]);
+
+    // Update the prob for this pathway, but ALSO all other pathways above it
+    for (int k = j; k < reaction->n_pathways; k++) 
+    {
+      reaction->cum_probs[k] += delta_prob;
+    }
+    reaction->max_fixed_p += delta_prob;
+    reaction->min_noreaction_p += delta_prob;
+ 
+    // Print if the flags are set
+    /*
+    if (world->notify->time_varying_reactions == NOTIFY_FULL &&
+        reaction->cum_probs[j] >= world->notify->reaction_prob_notify) {
+
+      // Print the reaction probabilities
+      double new_prob;
+      if (j == 0)
+      {
+          new_prob = reaction->cum_probs[0];
+      }
+      else
+      {
+          new_prob = reaction->cum_probs[j] - reaction->cum_probs[j - 1];
+      }
+      // Print the new_prob
+      if (reaction->n_reactants == 1) 
+      {
+        mcell_log_raw("Probability %.4e set for %s[%d] -> ", new_prob,
+          reaction->players[0]->sym->name, reaction->geometries[0]);
+      } 
+      else if (reaction->n_reactants == 2) 
+      {
+        mcell_log_raw("Probability %.4e set for %s[%d] + %s[%d] -> ", new_prob,
+          reaction->players[0]->sym->name, reaction->geometries[0],
+          reaction->players[1]->sym->name, reaction->geometries[1]);
+      } 
+      else 
+      {
+        mcell_log_raw("Probability %.4e set for %s[%d] + %s[%d] + %s[%d] -> ",
+          new_prob, reaction->players[0]->sym->name, reaction->geometries[0],
+          reaction->players[1]->sym->name, reaction->geometries[1],
+          reaction->players[2]->sym->name, reaction->geometries[2]);
+      }
+      for (unsigned int n_product = reaction->product_idx[j]; 
+        n_product < reaction->product_idx[j + 1]; n_product++) 
+      {
+          if (reaction->players[n_product] != NULL)
+          {
+            mcell_log_raw("%s[%d] ", reaction->players[n_product]->sym->name,
+                          reaction->geometries[n_product]);
+          }
+      }
+      mcell_log_raw("\n");
+    }
+    */
+
+    // This is the old code as of 01.27.2017. Fixed based on react_cond.c
+    /*
+    int num_path = reaction->n_pathways;
+    double p = rate_constant * reaction->pb_factor;
+
+    double delta_prob = 0;
+    if (num_path > 1) {
+      delta_prob = \
+      p - (reaction->cum_probs[num_path-1] - reaction->cum_probs[num_path-2]);
+    }
+    else {
+      delta_prob = p - (reaction->cum_probs[num_path-1]);
+    }
+    reaction->cum_probs[num_path-1] += delta_prob;
+    reaction->max_fixed_p += delta_prob;
+    reaction->min_noreaction_p += delta_prob;
+    */
+
+    // Now reschedule all the necessary reactions
+
+    int can_diffuse = distinguishable(reaction->players[0]->D, 0, EPS_C);
+    // Need to recompute lifetimes for unimolecular reactions w/ diffusable
+    // reactants.
+    if (reaction->n_reactants == 1 && can_diffuse) 
+    {
+      for (struct storage_list *local = world->storage_head; local != NULL; local = local->next) 
+      {
+        struct abstract_element *head_molecule = local->store->timer->current;
+        while (local->store->timer->current != NULL) 
+        {
+          struct abstract_molecule *am = (struct abstract_molecule *)schedule_peak(local->store->timer);
+          // We only want to update molecules involved in this reaction.
+          // Also, skip dead molecs (props=NULL). They'll be cleaned up later.
+          if ((am->properties != NULL) && (am->properties->species_id == reaction->players[0]->species_id)) 
+          {
+            // Setting t2=0 and ACT_CHANGE will cause the lifetime to be
+            // recomputed during the next timestep
+            am->t2 = 0.0;
+          am->flags |= ACT_CHANGE;
+          }
+        }
+        // Reset current molecule in scheduler now that we're done "peaking"
+        local->store->timer->current = head_molecule;
+      }
+    }
+
+    // Need to recompute lifetimes for non-diffusing molecules that are
+    // unimolecular or where you have a surface molecule at a surface class
+    // (e.g. sm@sc->whatever). These molecules won't come up next in the
+    // scheduler, so we have to hunt them all down... :(
+    if (((!can_diffuse) && (reaction->n_reactants == 1)) || 
+      ((!can_diffuse) && (reaction->n_reactants == 2) && (reaction->players[1]->flags == IS_SURFACE))) 
+    {
+      for (struct storage_list *local = world->storage_head; local != NULL; local = local->next) 
+      {
+        int n_subvols = world->n_subvols;
+        for (int i = 0; i < n_subvols; i++) 
+        {
+          struct subvolume *sv = &(world->subvol[i]);
+
+          // Reschedule the surface molecules involved in the reaction
+          if ((reaction->players[0]->flags & NOT_FREE) != 0) 
+          {
+            for (struct wall_list *wl = sv->wall_head; wl != NULL; wl = wl->next) 
+            {
+              struct surface_grid *grid = wl->this_wall->grid;
+              if (grid != NULL) 
+              {
+                for (u_int tile_idx = 0; tile_idx < grid->n_tiles; tile_idx++) 
+                {
+                  if (grid->sm_list[tile_idx]) 
+                  {
+                    struct surface_molecule *sm = grid->sm_list[tile_idx]->sm;
+                    if ((sm->properties != NULL) && 
+                      (sm->properties->species_id == reaction->players[0]->species_id) &&
+                      (sm->t > world->current_iterations)) 
+                    {
+                      sm->flags |= ACT_CHANGE;
+                      sm->t2 = 0.0;
+                      schedule_reschedule(local->store->timer, sm, world->current_iterations);
+                    }
+                  }
+                } 
+              }
+            }   
+          }
+          // Reschedule the volume molecules involved in the reaction
+          else 
+          {
+            for (struct per_species_list *psl = sv->species_head; psl != NULL; psl = psl->next) 
+            {
+              if (psl->properties == NULL) 
+              {
+                continue;
+              }
+              for (struct volume_molecule *vm = psl->head; vm != NULL; vm = vm->next_v) 
+              {
+                if ((vm->properties != NULL) && 
+                  (vm->properties->species_id == reaction->players[0]->species_id)  &&
+                  (vm->t > world->current_iterations)) 
+                { 
+                  vm->flags |= ACT_CHANGE;
+                  vm->t2 = 0.0;
+                  schedule_reschedule(local->store->timer, vm, world->current_iterations);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return MCELL_SUCCESS;
+}
+
+MCELL_STATUS
+mcell_add_reaction_simplified(
+    struct volume *state, 
+    struct mcell_species *reactants,
+    struct reaction_arrow *arrow,
+    struct mcell_species *surfs,
+    struct mcell_species *products,
+    struct reaction_rates *rates,
+    struct sym_entry *pathname) {
+
+  mcell_add_reaction(state->notify, &state->r_step_release,
+                     state->rxn_sym_table, state->radial_subdivisions,
+                     state->vacancy_search_dist2, reactants, arrow, surfs,
+                     products, pathname, rates, NULL, NULL);
+
+  return MCELL_SUCCESS;
+}
 
 /*************************************************************************
  *
@@ -3289,9 +3742,9 @@ int build_reaction_hash_table(
  *
  *****************************************************************************/
 struct reaction_rates mcell_create_reaction_rates(int forwardRateType,
-                                                  int forwardRateConstant,
+                                                  double forwardRateConstant,
                                                   int backwardRateType,
-                                                  int backwardRateConstant) {
+                                                  double backwardRateConstant) {
   struct reaction_rate forwardRate;
   forwardRate.rate_type = forwardRateType;
   forwardRate.v.rate_constant = forwardRateConstant;
@@ -3432,4 +3885,21 @@ int load_rate_file(double time_unit, struct mem_helper *tv_rxn_mem,
     fclose(f);
   }
   return 0;
+}
+
+struct sym_entry *mcell_new_rxn_pathname(struct volume *state, char *name) {
+  if ((retrieve_sym(name, state->rxpn_sym_table)) != NULL) {
+    mcell_log("Named reaction pathway already defined: %s", name);
+    return NULL;
+  } else if ((retrieve_sym(name, state->mol_sym_table)) != NULL) {
+    mcell_log("Named reaction pathway already defined as a molecule: %s", name);
+    return NULL;
+  }
+
+  struct sym_entry *symp = store_sym(name, RXPN, state->rxpn_sym_table, NULL);
+  if (symp == NULL) {
+    mcell_log("Out of memory while creating reaction name: %s", name);
+    return NULL;
+  }
+  return symp;
 }

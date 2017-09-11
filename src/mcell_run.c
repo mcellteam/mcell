@@ -44,9 +44,10 @@
 #include "chkpt.h"
 #include "argparse.h"
 #include "dyngeom.h"
-
 #include "mcell_run.h"
 #include <nfsim_c.h>
+#include "mcell_reactions.h"
+#include "mcell_react_out.h"
 
 // static helper functions
 static long long mcell_determine_output_frequency(MCELL_STATE *state);
@@ -364,6 +365,29 @@ mcell_run_simulation(MCELL_STATE *world) {
     deleteNFSimSystem_c();
   }
   return status;
+}
+
+/**************************************************************************
+*
+* Run multiple iterations at once
+*
+ *************************************************************************/
+MCELL_STATUS
+mcell_run_n_iterations(MCELL_STATE *world, long long frequency,
+                    int *restarted_from_checkpoint, int n_iter) {
+
+  int i_iter = 0;
+  while (i_iter < n_iter) {
+    // XXX: A return status of 1 from mcell_run_iterations does not
+    // indicate an error but is used to break out of the loop.
+    // This behavior is non-conformant and should be changed.
+    if (mcell_run_iteration(world, frequency, restarted_from_checkpoint) == 1) {
+      break;
+    }
+    i_iter += 1;
+  }
+
+  return 0;
 }
 
 /**************************************************************************

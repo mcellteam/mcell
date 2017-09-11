@@ -39,4 +39,14 @@ tags*
 *cscope*
 dyngeom_parse
 !windows/*
+_mcellSwig.so
+mcellSwig.py
+mcellSwig_wrap.c
 docs/doxygen
+pymcell.py
+pymcell_wrap.c
+_pymcell*.so
+MANIFEST
+dist
+.mypy_cache
+.ipynb_checkpoints

@@ -22,13 +22,14 @@
 ******************************************************************************/
 
 #include "config.h"
-
+#include "logging.h"
 #include <math.h>
 #include <stdlib.h>
 
 #include "diffuse_util.h"
 #include "sym_table.h"
 #include "mcell_species.h"
+#include "logging.h"
 
 /* static helper functions */
 static struct species *assemble_mol_species(MCELL_STATE *state,
