@@ -57,8 +57,6 @@ def create_links():
     os.chdir('build')
 
 if __name__ == "__main__":
-    os.mkdir("build")
-    os.chdir("build")
     nfsim()
     nfsim_lib()
     create_links()

@@ -288,3 +288,9 @@ TARGET_COMPILE_DEFINITIONS(mcell PRIVATE NOSWIG=1)
 #  ${BISON_mdlParser_OUTPUTS}
 #  ${FLEX_mdlScanner_OUTPUTS})
 #target_link_libraries(libmcell_test ${M_LIB})
+
+# build nfsim and nfsimCInterface before trying to build MCell
+add_custom_target(
+  build_nfsim
+  COMMAND python ${CMAKE_SOURCE_DIR}/requirements.py) 
+add_dependencies(mcell build_nfsim)
