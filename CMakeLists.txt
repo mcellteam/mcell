@@ -182,17 +182,23 @@ file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/python)
 SET_SOURCE_FILES_PROPERTIES(src/pymcell.i PROPERTIES C ON)
 SET_SOURCE_FILES_PROPERTIES(src/pymcell.i PROPERTIES SWIG_FLAGS "-includeall")
 SWIG_ADD_MODULE(pymcell python
+  #build/nfsimCInterface/src/nfsim_c.cpp
+  #build/nfsimCInterface/src/nfsim_c_structs.cpp
+  #include/nfsim_c_structs.h
   src/argparse.c
   src/chkpt.c
   src/count_util.c
   src/diffuse.c
-  src/diffuse_trimol.c src/isaac64.c
+  src/diffuse_trimol.c
+  src/isaac64.c
   src/diffuse_util.c
   src/dyngeom.c
   src/dyngeom_lex.c
   src/dyngeom_parse_extras.c
   src/dyngeom_yacc.c
-  src/grid_util.c src/react_outc.c
+  src/grid_util.c
+  src/hashmap.c
+  src/react_outc.c
   src/init.c
   src/logging.c
   src/mcell_init.c
@@ -207,12 +213,16 @@ SWIG_ADD_MODULE(pymcell python
   src/mcell_viz.c
   src/mcell_dyngeom.c
   src/mem_util.c
+  src/nfsim_func.c
   src/pymcell.i
   src/react_cond.c
+  src/react_outc_nfsim.c
   src/react_outc_trimol.c
   src/react_output.c
   src/react_trig.c
+  src/react_trig_nfsim.c
   src/react_util.c
+  src/react_util_nfsim.c
   src/rng.c
   src/sched_util.c
   src/strfunc.c
@@ -225,7 +235,7 @@ SWIG_ADD_MODULE(pymcell python
   src/vol_util.c
   src/volume_output.c
   src/wall_util.c)
-SWIG_LINK_LIBRARIES(pymcell ${PYTHON_LIBRARIES})
+SWIG_LINK_LIBRARIES(pymcell ${CMAKE_SOURCE_DIR}/lib/libnfsim_c.so ${CMAKE_SOURCE_DIR}/lib/libNFsim.so ${PYTHON_LIBRARIES})
 
 # copy the pyMCell test script into place
 file(COPY ${CMAKE_SOURCE_DIR}/src/test.json DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python/)
