@@ -60,8 +60,6 @@ set(CMAKE_C_FLAGS "-Wall -Wextra -Wshadow -Wno-unused-parameter -D_GNU_SOURCE=1 
 set(CMAKE_EXE_LINKER_FLAGS ${M_LIB})
 
 set(SOURCE_FILES
-    src/test_api.c
-    src/test_api.h
     src/argparse.c
     src/argparse.h
     src/chkpt.c
@@ -83,8 +81,8 @@ set(SOURCE_FILES
     src/dyngeom_yacc.c
     src/grid_util.c
     src/grid_util.h
-    src/hashmap.h
     src/hashmap.c
+    src/hashmap.h
     src/init.c
     src/init.h
     src/isaac64.c
@@ -123,10 +121,11 @@ set(SOURCE_FILES
     src/mem_util.h
     src/minrng.c
     src/minrng.h
-    src/nfsim_func.h
     src/nfsim_func.c
+    src/nfsim_func.h
     src/react.h
     src/react_cond.c
+    src/react_nfsim.h
     src/react_outc.c
     src/react_outc_nfsim.c
     src/react_outc_trimol.c
@@ -134,10 +133,9 @@ set(SOURCE_FILES
     src/react_output.h
     src/react_trig.c
     src/react_trig_nfsim.c
-    src/react_nfsim.h
-    src/react_util_nfsim.c
-    src/react_util.h
     src/react_util.c
+    src/react_util.h
+    src/react_util_nfsim.c
     src/rng.c
     src/rng.h
     src/sched_util.c
@@ -146,6 +144,8 @@ set(SOURCE_FILES
     src/strfunc.h
     src/sym_table.c
     src/sym_table.h
+    src/test_api.c
+    src/test_api.h
     src/triangle_overlap.c
     src/triangle_overlap.h
     src/util.c
@@ -187,7 +187,6 @@ SWIG_ADD_MODULE(pymcell python
   src/count_util.c
   src/diffuse.c
   src/diffuse_trimol.c
-  src/isaac64.c
   src/diffuse_util.c
   src/dyngeom.c
   src/dyngeom_lex.c
@@ -195,9 +194,10 @@ SWIG_ADD_MODULE(pymcell python
   src/dyngeom_yacc.c
   src/grid_util.c
   src/hashmap.c
-  src/react_outc.c
   src/init.c
+  src/isaac64.c
   src/logging.c
+  src/mcell_dyngeom.c
   src/mcell_init.c
   src/mcell_misc.c
   src/mcell_objects.c
@@ -208,11 +208,11 @@ SWIG_ADD_MODULE(pymcell python
   src/mcell_species.c
   src/mcell_surfclass.c
   src/mcell_viz.c
-  src/mcell_dyngeom.c
   src/mem_util.c
   src/nfsim_func.c
   src/pymcell.i
   src/react_cond.c
+  src/react_outc.c
   src/react_outc_nfsim.c
   src/react_outc_trimol.c
   src/react_output.c
