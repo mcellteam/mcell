@@ -182,9 +182,6 @@ file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/python)
 SET_SOURCE_FILES_PROPERTIES(src/pymcell.i PROPERTIES C ON)
 SET_SOURCE_FILES_PROPERTIES(src/pymcell.i PROPERTIES SWIG_FLAGS "-includeall")
 SWIG_ADD_MODULE(pymcell python
-  #build/nfsimCInterface/src/nfsim_c.cpp
-  #build/nfsimCInterface/src/nfsim_c_structs.cpp
-  #include/nfsim_c_structs.h
   src/argparse.c
   src/chkpt.c
   src/count_util.c
