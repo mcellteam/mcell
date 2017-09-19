@@ -694,7 +694,7 @@ void count_moved_surface_mol(
   // Different grids implies different walls, so we might have changed regions 
   /*if (sm->grid != sg) {*/
   if ((sm->grid != sg) ||
-      (previous_box != NULL && !world->periodic_traditional)) {
+      (world->periodic_box_obj && !world->periodic_traditional)) {
     int delete_me = 0;
     if ((sm->grid->surface->flags & COUNT_CONTENTS) != 0 &&
       (sg->surface->flags & COUNT_CONTENTS) != 0) {
