@@ -2045,11 +2045,13 @@ void count_region_list(
       if (c->target == sm->properties && c->reg_type == rl->reg &&
           (c->counter_type & ENCLOSING_COUNTER) == 0) {
         if (c->counter_type & TRIG_COUNTER) {
-          c->data.trig.t_event = sm->t;
-          c->data.trig.orient = sm->orient;
-          fire_count_event(world, c, inc, where, REPORT_CONTENTS | REPORT_TRIGGER, sm->id);
-        } else if ((c->orientation == ORIENT_NOT_SET) ||
-                   (c->orientation == sm->orient) || (c->orientation == 0)) {
+          // pass
+          /*c->data.trig.t_event = sm->t;*/
+          /*c->data.trig.orient = sm->orient;*/
+          /*fire_count_event(world, c, inc, where, REPORT_CONTENTS | REPORT_TRIGGER, sm->id); */
+        }
+        else if ((c->orientation == ORIENT_NOT_SET) ||
+                 (c->orientation == sm->orient) || (c->orientation == 0)) {
           if ((inc == 1) && (periodic_boxes_are_identical(
               sm->periodic_box, c->periodic_box))) {
             c->data.move.n_at++;
