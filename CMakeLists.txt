@@ -293,4 +293,4 @@ TARGET_COMPILE_DEFINITIONS(mcell PRIVATE NOSWIG=1)
 add_custom_target(
   build_nfsim
   COMMAND python ${CMAKE_SOURCE_DIR}/requirements.py) 
-add_dependencies(mcell build_nfsim)
+add_dependencies(_pymcell mcell build_nfsim)
