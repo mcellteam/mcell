@@ -447,6 +447,12 @@ void count_region_from_scratch(struct volume *world,
     }
   }
 
+  // We do this, because fire_count_event needs a molecule id
+  u_long mol_id = -1;
+  if (am != NULL) {
+    mol_id = am->id;
+  }
+
   /* Count surface molecules and reactions on surfaces--easy */
   if (my_wall != NULL && (my_wall->flags & COUNT_CONTENTS) != 0) {
     for (rl = my_wall->counting_regions; rl != NULL; rl = rl->next) {
@@ -458,7 +464,7 @@ void count_region_from_scratch(struct volume *world,
             c->data.trig.t_event = t;
             c->data.trig.orient = orient;
             // XXX: may need to convert loc for PBCs
-            fire_count_event(world, c, n, loc, count_flags | REPORT_TRIGGER, am->id);
+            fire_count_event(world, c, n, loc, count_flags | REPORT_TRIGGER, mol_id);
           } else if (rxpn == NULL) {
             if (am->properties->flags & ON_GRID) {
               if ((c->orientation == ORIENT_NOT_SET) ||
@@ -626,12 +632,8 @@ void count_region_from_scratch(struct volume *world,
               // Don't count triggers after a dynamic geometry event
               if (!world->dynamic_geometry_flag) {
                 // XXX: may need to convert loc for PBCs
-                u_long id = -1;
-                if (am != NULL) {
-                  id = am->id;
-                }
                 fire_count_event(world, c, n * pos_or_neg, loc,
-                                 count_flags | REPORT_TRIGGER, id);
+                                 count_flags | REPORT_TRIGGER, mol_id);
               }
             } else if (rxpn == NULL) {
               if (am->properties->flags & ON_GRID) {
