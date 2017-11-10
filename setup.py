@@ -92,12 +92,12 @@ mcell_module = Extension(
     extra_compile_args=['-O2'])
 
 setup(name='pymcell',
-      version='0.1',
+      version='0.2',
       author="The MCell team",
       description="""Python bindings to libmcell""",
       author_email="mcell-devel@salk.edu",
       url="https://github.com/mcellteam/mcell",
-      download_url="https://github.com/mcellteam/mcell/archive/pymcell_0.1.tar.gz",
+      download_url="https://github.com/mcellteam/mcell/archive/pymcell_0.2.tar.gz",
       ext_modules=[mcell_module],
       license='GPL v2',
       py_modules=["pymcell"],
