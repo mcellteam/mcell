@@ -163,7 +163,7 @@ set(SOURCE_FILES
     src/wall_util.c
     src/wall_util.h)
 
-link_directories(${CMAKE_SOURCE_DIR}/lib)
+link_directories(${CMAKE_BINARY_DIR}/lib)
 FIND_PACKAGE(SWIG REQUIRED)
 INCLUDE(${SWIG_USE_FILE})
 
@@ -232,7 +232,7 @@ SWIG_ADD_MODULE(pymcell python
   src/vol_util.c
   src/volume_output.c
   src/wall_util.c)
-SWIG_LINK_LIBRARIES(pymcell ${CMAKE_SOURCE_DIR}/lib/libnfsim_c.so ${CMAKE_SOURCE_DIR}/lib/libNFsim.so ${PYTHON_LIBRARIES})
+SWIG_LINK_LIBRARIES(pymcell ${CMAKE_CURRENT_BINARY_DIR}/lib/libnfsim_c.so ${CMAKE_CURRENT_BINARY_DIR}/lib/libNFsim.so ${PYTHON_LIBRARIES})
 
 # copy the pyMCell test script into place
 file(COPY ${CMAKE_SOURCE_DIR}/src/test.json DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python/)
@@ -258,6 +258,9 @@ file(COPY ${CMAKE_SOURCE_DIR}/src/test_mcell_neuron_python.py DESTINATION ${CMAK
 
 # copy the Jupyter notebook into place
 file(COPY ${CMAKE_SOURCE_DIR}/src/pymcell_test.ipynb DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python/)
+
+# copy tools for MDLr to MDL
+file(COPY ${CMAKE_SOURCE_DIR}/src/rules_py/ DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 # build executable
 add_executable(mcell
@@ -293,4 +296,5 @@ TARGET_COMPILE_DEFINITIONS(mcell PRIVATE NOSWIG=1)
 add_custom_target(
   build_nfsim
   COMMAND python ${CMAKE_SOURCE_DIR}/requirements.py) 
-add_dependencies(_pymcell mcell build_nfsim)
+add_dependencies(_pymcell build_nfsim)
+add_dependencies(mcell build_nfsim)

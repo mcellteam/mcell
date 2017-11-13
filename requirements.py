@@ -44,19 +44,23 @@ def nfsim_lib():
     os.chdir('..')
     os.chdir('..')
 
+def bng():
+    subprocess.call(['git', 'clone', 'https://github.com/RuleWorld/bionetgen'])
+
 def create_links():
-    os.chdir('..')
+    # os.chdir('..')
     try:
         os.mkdir('lib')
     except OSError:
         pass
     os.chdir('lib')
-    subprocess.call(['ln','-s',os.path.join('..','build','nfsim','lib','libNFsim.so')])
-    subprocess.call(['ln','-s',os.path.join('..','build','nfsimCInterface','build','libnfsim_c.so')])
-    os.chdir('..')
-    os.chdir('build')
+    subprocess.call(['ln','-s',os.path.join('..','nfsim','lib','libNFsim.so')])
+    subprocess.call(['ln','-s',os.path.join('..','nfsimCInterface','build','libnfsim_c.so')])
+    # os.chdir('..')
+    # os.chdir('build')
 
 if __name__ == "__main__":
     nfsim()
     nfsim_lib()
+    bng()
     create_links()
