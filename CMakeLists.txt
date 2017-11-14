@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.4)
-project(mcell C)
+project(mcell)
 
 add_definitions(-DPACKAGE_BUGREPORT="mcell@salk.edu")
 
@@ -47,8 +47,8 @@ FLEX_TARGET(mdlScanner ${CMAKE_CURRENT_BINARY_DIR}/deps/mdllex.l
 ADD_FLEX_BISON_DEPENDENCY(mdlScanner mdlParser mdllex_l)
 
 # create version.h target
-add_custom_command(
-  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h
+add_custom_target(
+  version_h
   COMMAND ${CMAKE_SOURCE_DIR}/src/version.sh > ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h
   DEPENDS ${CMAKE_SOURCE_DIR}/src/version.sh
   VERBATIM)
@@ -181,7 +181,9 @@ SET(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/python")
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/python)
 SET_SOURCE_FILES_PROPERTIES(src/pymcell.i PROPERTIES C ON)
 SET_SOURCE_FILES_PROPERTIES(src/pymcell.i PROPERTIES SWIG_FLAGS "-includeall")
-SWIG_ADD_MODULE(pymcell python
+SWIG_ADD_LIBRARY(pymcell 
+  LANGUAGE python
+  SOURCES
   src/argparse.c
   src/chkpt.c
   src/count_util.c
@@ -264,7 +266,6 @@ file(COPY ${CMAKE_SOURCE_DIR}/src/rules_py/ DESTINATION ${CMAKE_CURRENT_BINARY_D
 
 # build executable
 add_executable(mcell
-  ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h
   ${SOURCE_FILES}
   src/mcell.c
   ${BISON_mdlParser_OUTPUTS}
@@ -296,5 +297,6 @@ TARGET_COMPILE_DEFINITIONS(mcell PRIVATE NOSWIG=1)
 add_custom_target(
   build_nfsim
   COMMAND python ${CMAKE_SOURCE_DIR}/requirements.py) 
-add_dependencies(_pymcell build_nfsim)
 add_dependencies(mcell build_nfsim)
+add_dependencies(_pymcell build_nfsim)
+add_dependencies(mcell version_h)
