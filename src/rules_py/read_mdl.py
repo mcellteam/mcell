@@ -68,7 +68,7 @@ def process_molecules(molecules):
     mstr.write('begin molecule types\n')
     for idx, molecule in enumerate(molecules):
         tmp_molecule = create_molecule_from_pattern(molecule[0], idx)
-        molecule_list.append((tmp_molecule.name,str(tmp_molecule)))
+        molecule_list.append((tmp_molecule.name, str(tmp_molecule)))
         mstr.write('\t{0}\n'.format(tmp_molecule.str2()))
     mstr.write('end molecule types\n')
     return mstr.getvalue(), molecule_list
@@ -81,7 +81,7 @@ def process_init_compartments(initializations):
     cstr.write('begin compartments\n')
 
     for initialization in initializations:
-        #print initialization.keys()
+        # print initialization.keys()
         if 'name' in initialization.keys():
             tmp_species = None
             initialConditions = 0
@@ -91,13 +91,13 @@ def process_init_compartments(initializations):
                     tmp_species = create_species_from_pattern(pattern[0])
                 elif entry[0] in ['NUMBER_TO_RELEASE', 'CONCENTRATION']:
                     initialConditions = entry[1]
-            sstr.write('\t {0} {1}\n'.format(str(tmp_species),initialConditions))
+            sstr.write('\t {0} {1}\n'.format(str(tmp_species), initialConditions))
         else:
             optionDict = {'parent': '', 'name': initialization['compartmentName']}
             for option in initialization['compartmentOptions'][0]:
                 if len(option) > 0:
                     if option[0] == 'MEMBRANE':
-                        
+
                         tmp = option[1].strip()
                         optionDict['membrane'] = tmp.split(' ')[0]
                     elif option[0] == 'PARENT':
@@ -126,7 +126,7 @@ def process_observables(observables):
             patternList = []
             for pattern in observable['patterns']:
                 patternList.append(str(create_species_from_pattern(pattern['speciesPattern'])))
-            tmpObservable +=  ', '.join(patternList)
+            tmpObservable += ', '.join(patternList)
             ostr.write(tmpObservable + '\n')
         elif 'obskey' in observable.keys():
             tmpObservable = '\t{0} '.format(observable['obskey'])
@@ -134,7 +134,7 @@ def process_observables(observables):
             patternList = []
             for pattern in observable['obspatterns']:
                 patternList.append(str(create_species_from_pattern(pattern)))
-            tmpObservable +=  ', '.join(patternList)
+            tmpObservable += ', '.join(patternList)
             ostr.write(tmpObservable + '\n')
 
     ostr.write('end observables\n')
@@ -152,7 +152,6 @@ def process_mtobservables(moleculeTypes):
     for moleculeType in moleculeTypes:
         ostr.write('\t Species {0} {1}\n'.format(moleculeType[0], moleculeType[1]))
     ostr.write('end observables\n')
-
 
     return ostr.getvalue()
 
@@ -178,7 +177,7 @@ def process_diffussion_elements(parameters, extendedData):
     '''
     extract the list of properties associated to molecule types and compartment
     objects. right now this information will be encoded into the bng-exml spec.
-    It also extracts some predetermined model properties. 
+    It also extracts some predetermined model properties.
     '''
     modelProperties = {}
     moleculeProperties = defaultdict(list)
@@ -186,17 +185,16 @@ def process_diffussion_elements(parameters, extendedData):
 
     for parameter in extendedData['system']:
         modelProperties[parameter[0].strip()] = parameter[1].strip()
-    
+
     for molecule in extendedData['molecules']:
         if 'moleculeParameters' in molecule[1]:
             for propertyValue in molecule[1]['moleculeParameters']:
-                data = {'name':propertyValue[1].strip(), 'parameters': []}
+                data = {'name': propertyValue[1].strip(), 'parameters': []}
                 moleculeProperties[molecule[0][0]].append((propertyValue[0], data))
         if 'diffusionFunction' in molecule[1]:
             if 'function' in molecule[1]['diffusionFunction'].keys():
                 parameters = molecule[1]['diffusionFunction'][1]['parameters']
-                data = {'name': '"{0}"'.format(molecule[1]['diffusionFunction'][1]['functionName']), 
-                'parameters': [(x['key'], x['value']) for x in parameters]}
+                data = {'name': '"{0}"'.format(molecule[1]['diffusionFunction'][1]['functionName']), 'parameters': [(x['key'], x['value']) for x in parameters]}
             else:
                 data = {'name': molecule[1]['diffusionFunction'][1].strip(), 'parameters': []}
             if '3D' in molecule[1]['diffusionFunction'].keys():

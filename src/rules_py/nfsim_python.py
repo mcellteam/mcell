@@ -12,7 +12,7 @@ class NFSim:
 
     def init_nfsim(self, fileName, verbose):
         """
-        inits an nfsim object with a given xml file and a verbosity setting 
+        inits an nfsim object with a given xml file and a verbosity setting
         """
         self.lib.setupNFSim_c(fileName.encode("ascii"), verbose)
 
@@ -21,7 +21,6 @@ class NFSim:
         Resets an nfsim system to having no seeds species
         """
         return self.lib.resetSystem_c()
-
 
     def init_system_nauty(self, initDict):
         """
@@ -32,9 +31,8 @@ class NFSim:
 
         CArray = c_char_p * len(initDict)
         speciesCArray = CArray(*species)
-        seedCArray = CArray(*seeds) 
+        seedCArray = CArray(*seeds)
         return self.lib.initSystemNauty_c(speciesCArray, seedCArray, len(initDict))
-
 
     def init_system_xml(self, initXML):
         """
@@ -42,30 +40,28 @@ class NFSim:
         """
         return self.lib.initSystemXML_c(initXML.encode("ascii"))
 
-
     def querySystemStatus(self, option):
         """
         returns all species that participate in active reactions with numReactants reactants
         """
-        #self.lib.querySystemStatus_c.restype = QueryResultsStruct
+        # self.lib.querySystemStatus_c.restype = QueryResultsStruct
         
         mem = self.lib.mapvector_create()
-        #queryResults = self.lib.querySystemStatus_c(option, mem)
+        # queryResults = self.lib.querySystemStatus_c(option, mem)
         self.lib.querySystemStatus_c.argtypes = [c_char_p, c_void_p]
         self.lib.map_get.restype = c_char_p
 
         key = c_char_p(option.encode("ascii"))
-        self.lib.querySystemStatus_c(key,mem)
-        #results = [queryResults.results[i] for i in range(0, queryResults.numOfResults)]
+        self.lib.querySystemStatus_c(key, mem)
+        # results = [queryResults.results[i] for i in range(0, queryResults.numOfResults)]
         results = []
         for idx in range(0, self.lib.mapvector_size(mem)):
-            #XXX:ideally i would like to returns all key values but that will require a lil more work on teh wrapper side
+            # XXX:ideally i would like to returns all key values but that will
+            # require a lil more work on teh wrapper side
             partialResults = self.lib.mapvector_get(mem, idx)
             results.append(self.lib.map_get(partialResults, b"label"))
         self.lib.mapvector_delete(mem)
         return sorted(results, key=len)
-
-
 
 
 if __name__ == "__main__":
@@ -73,13 +69,12 @@ if __name__ == "__main__":
 
     nfsim.init_nfsim("cbngl_test_empty.xml", 0)
     nfsim.reset_system()
-    #nfsim.init_system_nauty({"c:a~NO_STATE!4!2,c:l~NO_STATE!3,c:l~NO_STATE!3!0,m:Lig!2!1,m:Rec!0":1})
-    #nfsim.init_system_nauty({"c:a~NO_STATE!4!2,c:l~NO_STATE!3,c:l~NO_STATE!3!0,m:Lig!1!2,m:Rec!0,":1})
-    #print '---', nfsim.querySystemStatus("observables")
-    nfsim.init_system_nauty({"c:l~NO_STATE!3!1,c:r~NO_STATE!2!0,m:L@EC!1,m:R@PM!0,":1})
+    # nfsim.init_system_nauty({"c:a~NO_STATE!4!2,c:l~NO_STATE!3,c:l~NO_STATE!3!0,m:Lig!2!1,m:Rec!0":1})
+    # nfsim.init_system_nauty({"c:a~NO_STATE!4!2,c:l~NO_STATE!3,c:l~NO_STATE!3!0,m:Lig!1!2,m:Rec!0,":1})
+    # print '---', nfsim.querySystemStatus("observables")
+    nfsim.init_system_nauty({"c:l~NO_STATE!3!1,c:r~NO_STATE!2!0,m:L@EC!1,m:R@PM!0,": 1})
     print('----', nfsim.querySystemStatus("complex"))
-    
-    
+
     """
     nfsim.initSystemXML('''<Model><ListOfSpecies><Species id="S1"  concentration="1" name="@PM::Lig(l!1,l).Rec(a!1)" compartment="PM">
         <ListOfMolecules>

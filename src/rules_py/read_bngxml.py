@@ -16,12 +16,12 @@ except ImportError:
 
 def findBond(bondDefinitions, component):
     '''
-    Returns an appropiate bond number when veryfying how 
-    to molecules connect in a species
+    Returns an appropiate bond number when verifying how to molecules connect
+    in a species
     '''
     for idx, bond in enumerate(bondDefinitions.getchildren()):
         if component in [bond.get('site1'), bond.get('site2')]:
-            return str(idx+1)
+            return str(idx + 1)
 
 
 def createMolecule(molecule, bonds):
@@ -39,7 +39,7 @@ def createMolecule(molecule, bonds):
                 component.addBond(element.get('numberOfBonds'))
             elif element.get('numberOfBonds') != '0':
                 component.addBond(findBond(bonds, element.get('id')))
-            state = element.get('state') if element.get('state') != None else ''
+            state = element.get('state') if element.get('state') is not None else ''
             component.states.append(state)
             component.activeState = state
             mol.addComponent(component)
@@ -52,7 +52,7 @@ def createSpecies(pattern):
     species.idx = pattern.get('id')
     species.trueName = pattern.get('name')
     compartment = pattern.get('compartment')
-    if compartment != None:
+    if compartment is not None:
         species.compartment = compartment
     mol = pattern.find('.//{http://www.sbml.org/sbml/level3}ListOfMolecules')
     bonds = pattern.find('.//{http://www.sbml.org/sbml/level3}ListOfBonds')
@@ -60,7 +60,7 @@ def createSpecies(pattern):
         molecule, nameDict = createMolecule(molecule, bonds)
         tmpDict.update(nameDict)
         species.addMolecule(molecule)
-        if bonds != None:
+        if bonds is not None:
             species.bonds = [(bond.get('site1'), bond.get('site2')) for bond in bonds]
         tmpDict.update(nameDict)
     return species, tmpDict
@@ -105,7 +105,7 @@ def parseRule(rule, parameterDict):
         action = st.Action()
         tag = operation.tag
         tag = tag.replace('{http://www.sbml.org/sbml/level3}', '')
-        if operation.get('site1') != None:
+        if operation.get('site1') is not None:
             action.setAction(tag, operation.get('site1'), operation.get('site2'))
         else:
             action.setAction(tag, operation.get('site'), None)
@@ -114,14 +114,14 @@ def parseRule(rule, parameterDict):
         tmpMap = (mapping.get('sourceID'), mapping.get('targetID'))
         mappings.append(tmpMap)
     rateConstants = rt.find('.//{http://www.sbml.org/sbml/level3}ListOfRateConstants')
-    if rateConstants == None:
+    if rateConstants is None:
         rateConstants = rt.get('name')
     else:
         for constant in rateConstants:
             tmp = constant.get('value')
         rateConstants = tmp
     rateConstantsValue = parameterDict[rateConstants] if rateConstants in parameterDict else rateConstants
-    #rule = st.Rule()
+    # rule = st.Rule()
     label = rule.get('name')
     label = label.replace('(', '_').replace(')', '_')
     rule = st.Rule(label)
@@ -144,7 +144,7 @@ def parseMolecules(molecules):
     mol = st.Molecule(molecules.get('id'), molecules.get('id'))
     components = \
         molecules.find('.//{http://www.sbml.org/sbml/level3}ListOfComponentTypes')
-    if components != None:
+    if components is not None:
         for component in components.getchildren():
             comp = parseComponent(component)
             mol.addComponent(comp)
@@ -157,14 +157,13 @@ def parseComponent(component):
     '''
     comp = st.Component(component.get('id'), component.get('id'))
     states = component.find('.//{http://www.sbml.org/sbml/level3}ListOfAllowedStates')
-    if states != None:
+    if states is not None:
         for state in states.getchildren():
             comp.addState(state.get('id'))
     return comp
 
 
 def parseObservable(observable):
-    nameDict = {}
     name = observable.get('name')
     otype = observable.get('type')
     rp = observable.find('.//{http://www.sbml.org/sbml/level3}ListOfPatterns')
@@ -188,7 +187,7 @@ def parseObservables(observables):
 def parseFunction(function):
     referenceList = []
     name = function.get('id')
-    #expression = function.find('.//{http://www.sbml.org/sbml/level3}Expression')
+    # expression = function.find('.//{http://www.sbml.org/sbml/level3}Expression')
     expression = function.findtext('.//{http://www.sbml.org/sbml/level3}Expression')
 
     references = function.find('.//{http://www.sbml.org/sbml/level3}ListOfReferences')
@@ -296,10 +295,10 @@ def parseXMLFromString(xmlString):
     return parseXMLStruct(doc)
 
 
-
 def parseXML(xmlFile):
     doc = etree.parse(xmlFile)
     return parseXMLStruct(doc)
+
 
 def getNumObservablesXML(xmlFile):
     doc = etree.parse(xmlFile)
@@ -338,7 +337,7 @@ def createBNGLFromDescription(namespace):
     # seed species
     bnglString.write('begin seed species\n')
     for seedspecies in namespace['seedspecies']:
-        if seedspecies['concentration'] not in [0, '0','0.0']:
+        if seedspecies['concentration'] not in [0, '0', '0.0']:
             bnglString.write('\t{0} {1}\n'.format(seedspecies['structure'], seedspecies['concentration']))
     bnglString.write('end seed species\n')
 
@@ -364,11 +363,11 @@ def createBNGLFromDescription(namespace):
 
     return bnglString.getvalue()
 
+
 if __name__ == "__main__":
-    #mol,rule,par = parseXML("output19.xml")
+    # mol,rule,par = parseXML("output19.xml")
     # print [str(x) for x in mol]
-    with open('output19.xml','r') as f:
+    with open('output19.xml', 'r') as f:
         s = f.read()
     print(parseXMLFromString(s))
-    #print getNumObservablesXML('output19.xml')
-
+    # print getNumObservablesXML('output19.xml')
