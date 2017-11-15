@@ -12,6 +12,7 @@ setup.py file for pyMCell
 from distutils.core import setup, Extension
 from distutils.command.build import build
 from distutils.command.sdist import sdist
+import os
 import shutil
 import sys
 
@@ -24,6 +25,9 @@ def disallow_python2():
 class CustomBuild(build):
     def run(self):
         disallow_python2()
+        os.system("mkdir build")
+        shutil.copy("./requirements.py", "./build")
+        os.system("cd build; python requirements.py; cd ..")
         shutil.copy("./appveyor_windows/config.h", "./src")
         shutil.copy("./appveyor_windows/version.h", "./src")
         shutil.copy("./src/pymcell_helpers.py", ".")
@@ -43,7 +47,7 @@ mcell_module = Extension(
     '_pymcell',
     include_dirs=['./include'],
     libraries=['nfsim_c', 'NFsim'],
-    library_dirs=['./lib'],
+    library_dirs=['./build/lib'],
     sources=[
         './src/argparse.c',
         './src/chkpt.c',

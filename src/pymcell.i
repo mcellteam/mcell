@@ -101,6 +101,12 @@
 
 %}
 
+%pythonbegin %{
+from ctypes import *                                                            
+lib1 = cdll.LoadLibrary('../lib/libNFsim.so')                                        
+lib2 = cdll.LoadLibrary('../lib/libnfsim_c.so')
+%}
+
 /*Add functions for user interfacing */
 %pythoncode "pymcell_helpers.py"
 %pythoncode "data_model_import.py"
