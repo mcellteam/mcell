@@ -1098,6 +1098,7 @@ int poisson_dist(double lambda, double p) {
 
   /* should never get here */
   assert(false);
+  return -1;
 }
 
 /*************************************************************************

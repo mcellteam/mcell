@@ -26,7 +26,7 @@ double rxn_get_standard_time_step(struct rxn *, int);
 double rxn_get_nfsim_time_step(struct rxn *, int);
 double rxn_get_standard_space_step(struct rxn *, int);
 
-void initialize_graph_hashmap();
+void initialize_graph_hashmap(void);
 int get_graph_data(unsigned long graph_pattern_hash,
                    struct graph_data **graph_data);
 int store_graph_data(unsigned long graph_pattern_hash,

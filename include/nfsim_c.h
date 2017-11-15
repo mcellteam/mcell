@@ -84,10 +84,10 @@ extern "C" {
     int setupNFSim_c(const char*,int);
 
     //restores the nfsim system before molecule seeding
-    int resetSystem_c();
+    int resetSystem_c(void);
 
     //calls destructors
-    int deleteNFSimSystem_c();
+    int deleteNFSimSystem_c(void);
 
     //seeds the nfsim system with an xml string
     int initSystemXML_c(const char*);
@@ -104,13 +104,13 @@ extern "C" {
     int constructNauty_c(const char*, const int);
 
     //init a system from the incremental list mantained through constructNauty
-    int initFromConstruct_c();
+    int initFromConstruct_c(void);
 
     //store the current observable set in a list
     int logNFSimObservables_c(double time);
     int logNFSimReactions_c(const char*);
     //stream observableSet to file
-    int outputNFSimObservables_c();
+    int outputNFSimObservables_c(void);
     int outputNFSimObservablesF_c(const char*);
     int outputNFSimReactionsF_c(const char* outputfilename);
     
@@ -131,10 +131,10 @@ extern "C" {
     //returns all possible complexes in the current system
     void querySystemStatus_c(const char* option, void*);
 
-    observableResults queryObservables_c();
+    observableResults queryObservables_c(void);
 
     //perform one simulation step
-    int stepSimulation_c();
+    int stepSimulation_c(void);
     //performs exactly one simulation step by firying reaction rxn
     int stepSimulationRxn_c(const char* rxn);
 

@@ -754,10 +754,10 @@ struct abstract_molecule {
 
   /* structs used by the nfsim integration */
   struct graph_data* graph_data; /* nfsim graph structure data */
-  u_int (*get_flags)(); /* returns the reactivity flags associated with this particle */
-  double (*get_diffusion)();        /* returns the diffusion value */
-  double (*get_time_step)();        /* function pointer to a method that returns the time step */
-  double (*get_space_step)();       /* function pointer to a method that returns the space step */
+  u_int (*get_flags)(void *); /* returns the reactivity flags associated with this particle */
+  double (*get_diffusion)(void *);        /* returns the diffusion value */
+  double (*get_time_step)(void *);        /* function pointer to a method that returns the time step */
+  double (*get_space_step)(void *);       /* function pointer to a method that returns the space step */
   /* end structs used by the nfsim integration */
   char *mesh_name;                // Name of mesh that molecule is either in
                                   // (volume molecule) or on (surface molecule)
@@ -776,10 +776,10 @@ struct volume_molecule {
   struct periodic_image* periodic_box;  /* track the periodic box a molecule is in */
 
   struct graph_data* graph_data;
-  u_int (*get_flags)(); /* returns the reactivity flags associated with this particle */
-  double (*get_diffusion)();        /* returns the diffusion value */
-  double (*get_time_step)();        /* returns the diffusion value */
-  double (*get_space_step)();        /* returns the diffusion value */
+  u_int (*get_flags)(void *); /* returns the reactivity flags associated with this particle */
+  double (*get_diffusion)(void *);        /* returns the diffusion value */
+  double (*get_time_step)(void *);        /* returns the diffusion value */
+  double (*get_space_step)(void *);        /* returns the diffusion value */
 
   char *mesh_name;                // Name of mesh that the molecule is in
   struct vector3 pos;       /* Position in space */
@@ -805,10 +805,10 @@ struct surface_molecule {
   struct periodic_image* periodic_box;  /* track the periodic box a molecule is in */
 
   struct graph_data* graph_data;
-  u_int (*get_flags)(); /* returns the reactivity flags associated with this particle */
-  double (*get_diffusion)();        /* returns the diffusion value */
-  double (*get_time_step)();        /* returns the diffusion value */
-  double (*get_space_step)();        /* returns the diffusion value */
+  u_int (*get_flags)(void *); /* returns the reactivity flags associated with this particle */
+  double (*get_diffusion)(void *);        /* returns the diffusion value */
+  double (*get_time_step)(void *);        /* returns the diffusion value */
+  double (*get_space_step)(void *);        /* returns the diffusion value */
 
   char *mesh_name;                // Name of mesh that the molecule is on 
   unsigned int grid_index;   /* Which gridpoint do we occupy? */
