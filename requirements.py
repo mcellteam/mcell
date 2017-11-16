@@ -1,5 +1,6 @@
 import subprocess
 import os
+import shutil
 
 def nfsim():
     subprocess.call(['git', 'clone', 'https://github.com/RuleWorld/nfsim.git'])
@@ -54,8 +55,10 @@ def create_links():
     except OSError:
         pass
     os.chdir('lib')
-    subprocess.call(['ln','-s',os.path.join('..','nfsim','lib','libNFsim.so')])
-    subprocess.call(['ln','-s',os.path.join('..','nfsimCInterface','build','libnfsim_c.so')])
+    shutil.copy(os.path.join('..','nfsim','lib','libNFsim.so'), ".")
+    shutil.copy(os.path.join('..','nfsimCInterface','build','libnfsim_c.so'), ".")
+    # subprocess.call(['ln','-s',os.path.join('..','nfsim','lib','libNFsim.so')])
+    # subprocess.call(['ln','-s',os.path.join('..','nfsimCInterface','build','libnfsim_c.so')])
     # os.chdir('..')
     # os.chdir('build')
 
