@@ -164,6 +164,8 @@ set(SOURCE_FILES
     src/wall_util.h)
 
 link_directories(${CMAKE_BINARY_DIR}/lib)
+SET(CMAKE_INSTALL_RPATH "$ORIGIN/./lib")
+SET(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
 FIND_PACKAGE(SWIG REQUIRED)
 INCLUDE(${SWIG_USE_FILE})
 
@@ -181,9 +183,7 @@ SET(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/python")
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/python)
 SET_SOURCE_FILES_PROPERTIES(src/pymcell.i PROPERTIES C ON)
 SET_SOURCE_FILES_PROPERTIES(src/pymcell.i PROPERTIES SWIG_FLAGS "-includeall")
-SWIG_ADD_LIBRARY(pymcell 
-  LANGUAGE python
-  SOURCES
+SWIG_ADD_MODULE(pymcell python
   src/argparse.c
   src/chkpt.c
   src/count_util.c
@@ -300,3 +300,4 @@ add_custom_target(
 add_dependencies(mcell build_nfsim)
 add_dependencies(_pymcell build_nfsim)
 add_dependencies(mcell version_h)
+add_dependencies(_pymcell version_h)
