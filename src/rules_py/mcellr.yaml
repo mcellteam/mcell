@@ -1,3 +1,3 @@
-bionetgen: './bionetgen/bng2/BNG2.pl'
+bionetgen: './bng2/BNG2.pl'
 libpath: './lib/'
 mcell: './mcell'

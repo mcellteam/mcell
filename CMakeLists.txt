@@ -264,6 +264,9 @@ file(COPY ${CMAKE_SOURCE_DIR}/src/pymcell_test.ipynb DESTINATION ${CMAKE_CURRENT
 # copy tools for MDLr to MDL
 file(COPY ${CMAKE_SOURCE_DIR}/src/rules_py/ DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
+# copy tools for MDLr to MDL
+file(COPY ${CMAKE_SOURCE_DIR}/bionetgen/bng2/ DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/bng2/)
+
 # build executable
 add_executable(mcell
   ${SOURCE_FILES}
