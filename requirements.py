@@ -2,11 +2,9 @@ import subprocess
 import os
 import shutil
 
+
 def nfsim():
-    subprocess.call(['git', 'clone', 'https://github.com/RuleWorld/nfsim.git'])
     os.chdir('nfsim')
-    subprocess.call(['git', 'checkout', 'nfsim_lib_shared_ptr'])
-    subprocess.call(['git', 'pull'])
 
     try:
         os.mkdir('lib')
@@ -18,10 +16,9 @@ def nfsim():
     os.chdir('..')
     os.chdir('..')
 
+
 def nfsim_lib():
-    subprocess.call(['git', 'clone', 'https://github.com/jjtapia/nfsimCInterface'])
     os.chdir('nfsimCInterface')
-    subprocess.call(['git', 'pull'])
 
     try:
         os.mkdir('lib')
@@ -29,11 +26,10 @@ def nfsim_lib():
         pass
 
     os.chdir('lib')
-    subprocess.call(['ln','-s',os.path.join('..','..','nfsim','lib','libNFsim.so')])
+    subprocess.call(['ln', '-s', os.path.join('..', '..', 'nfsim', 'lib', 'libNFsim.so')])
     os.chdir('..')
 
-    subprocess.call(['ln','-s',os.path.join('..','nfsim','include')])
-
+    subprocess.call(['ln', '-s', os.path.join('..', 'nfsim', 'include')])
 
     try:
         os.mkdir('build')
@@ -45,25 +41,21 @@ def nfsim_lib():
     os.chdir('..')
     os.chdir('..')
 
-def bng():
-    subprocess.call(['git', 'clone', 'https://github.com/RuleWorld/bionetgen'])
 
-def create_links():
-    # os.chdir('..')
+def copy_library_files():
     try:
-        os.mkdir('lib')
+        os.mkdir('build/lib')
     except OSError:
         pass
-    os.chdir('lib')
-    shutil.copy(os.path.join('..','nfsim','lib','libNFsim.so'), ".")
-    shutil.copy(os.path.join('..','nfsimCInterface','build','libnfsim_c.so'), ".")
-    # subprocess.call(['ln','-s',os.path.join('..','nfsim','lib','libNFsim.so')])
-    # subprocess.call(['ln','-s',os.path.join('..','nfsimCInterface','build','libnfsim_c.so')])
-    # os.chdir('..')
-    # os.chdir('build')
+    os.chdir('build/lib')
+    shutil.copy(os.path.join('..', '..', 'nfsim', 'lib', 'libNFsim.so'), ".")
+    shutil.copy(os.path.join('..', '..', 'nfsimCInterface', 'build', 'libnfsim_c.so'), ".")
+
 
 if __name__ == "__main__":
+    subprocess.call(['git', 'submodule', 'init'])
+    subprocess.call(['git', 'submodule', 'update'])
+    os.chdir("..")
     nfsim()
     nfsim_lib()
-    bng()
-    create_links()
+    copy_library_files()
