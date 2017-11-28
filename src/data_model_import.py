@@ -166,12 +166,11 @@ def create_release_sites_from_dm(
             if r.reg_name == reg_name:
                 reg = r
                 break
-        if orient:
-            world.release_into_mesh_obj(
-                    meshobj, spec, quantity, region=reg)
+        if reg:
+            rel = m.ObjectRelease(spec_orient, number=quantity, region=reg)
         else:
-            world.release_into_mesh_obj(
-                    meshobj, spec, quantity, region=reg)
+            rel = m.ObjectRelease(spec_orient, number=quantity, mesh_obj=meshobj)
+        world.release(rel)
 
 
 def create_reaction_data_from_dm(
