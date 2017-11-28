@@ -419,7 +419,7 @@ class MCellSim(object):
             surf_flags = []
             orient = []
             for s in spec:
-                if isinstance(spec, OrientedSpecies):
+                if isinstance(s, OrientedSpecies):
                     spec_list.append(self._species[s.spec.name])
                     surf_flags.append(True)
                     orient.append(s.orient_num)
