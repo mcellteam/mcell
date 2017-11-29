@@ -2,6 +2,7 @@
 
 import pymcell as m
 from pymcell import SC
+from pymcell import MolType
 import torus as t
 import box as b
 import logging
@@ -50,7 +51,8 @@ def main():
     # sc = m.SurfaceClass(SC.absorb, sm1.mix())
     # world.assign_surf_class(sc, torus_reg)
     # world.assign_surf_class_to_all_surface_mols("abs_all_surfs", SC.absorb, torus_reg)
-    world.assign_surf_class_to_all_volume_mols("abs_all_vols", SC.absorb, torus_reg)
+    world.assign_surface_property_to_all_mols(
+        "abs_all_vols", SC.absorb, torus_reg, moltype=MolType.surface_mols)
 
     # release vm1, vm2, and sm1 molecules into/onto torus
     vm1_torus_rel = m.ObjectRelease(vm1, number=1000, mesh_obj=torus_obj)
