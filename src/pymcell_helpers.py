@@ -276,6 +276,15 @@ class MCellSim(object):
         # this contains Species objects
         self.species = {}
 
+        self._all_mol_sym = m.mcell_get_all_mol_sym(self._world)
+        self._species['ALL_MOLECULES'] = self._all_mol_sym
+
+        self._all_volume_mol_sym = m.mcell_get_all_volume_mol_sym(self._world)
+        self._species['ALL_VOLUME_MOLECULES'] = self._all_volume_mol_sym
+
+        self._all_surface_mol_sym = m.mcell_get_all_mol_sym(self._world)
+        self._species['ALL_SURFACE_MOLECULES'] = self._all_surface_mol_sym
+
     def __str__(self):
         return self.scene_name
 
@@ -557,6 +566,46 @@ class MCellSim(object):
             count_list, os, out_times, output = m.create_count(
                 self._world, None, species_sym, count_str, 1e-5)
         self._counts[count_str] = (count_list, os, out_times, output)
+
+    # XXX: need to refactor this mess and compbine with
+    # assign_surf_class_to_all_volume_mols
+    def assign_surf_class_to_all_surface_mols(self, sc_name, sc_type, region):
+        if sc_type == SC.reflect:
+            sc_type = m.RFLCT
+        elif sc_type == SC.transp:
+            sc_type = m.TRANSP
+        elif sc_type == SC.absorb:
+            sc_type = m.SINK
+
+        try:
+            sc_sym = self._surface_classes[sc_name]
+        except KeyError:
+            sc_sym = m.create_surf_class(self._world, sc_name)
+            self._surface_classes[sc_name] = sc_sym
+            spec_sym = self._species['ALL_SURFACE_MOLECULES']
+            m.mcell_add_surf_class_properties(
+                self._world, sc_type, sc_sym, spec_sym, 0)
+        region_swig_obj = self._regions[region.full_reg_name]
+        m.mcell_assign_surf_class_to_region(sc_sym, region_swig_obj)
+
+    def assign_surf_class_to_all_volume_mols(self, sc_name, sc_type, region):
+        if sc_type == SC.reflect:
+            sc_type = m.RFLCT
+        elif sc_type == SC.transp:
+            sc_type = m.TRANSP
+        elif sc_type == SC.absorb:
+            sc_type = m.SINK
+
+        try:
+            sc_sym = self._surface_classes[sc_name]
+        except KeyError:
+            sc_sym = m.create_surf_class(self._world, sc_name)
+            self._surface_classes[sc_name] = sc_sym
+            spec_sym = self._species['ALL_VOLUME_MOLECULES']
+            m.mcell_add_surf_class_properties(
+                self._world, sc_type, sc_sym, spec_sym, 0)
+        region_swig_obj = self._regions[region.full_reg_name]
+        m.mcell_assign_surf_class_to_region(sc_sym, region_swig_obj)
 
     def assign_surf_class(
             self, sc: SurfaceClass, region: SurfaceRegion) -> None:

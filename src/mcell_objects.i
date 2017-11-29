@@ -135,6 +135,9 @@ int check_patch(struct subdivided_box *b, struct vector3 *p1,
 
 struct sym_entry *mcell_get_obj_sym(struct object *obj);
 struct sym_entry *mcell_get_reg_sym(struct region *reg);
+struct sym_entry * mcell_get_all_mol_sym(MCELL_STATE *state);
+struct sym_entry * mcell_get_all_volume_mol_sym(MCELL_STATE *state);
+struct sym_entry * mcell_get_all_surface_mol_sym(MCELL_STATE *state);
 
 struct poly_object_list* mcell_add_to_poly_obj_list(
   struct poly_object_list* poly_obj_list,

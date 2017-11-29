@@ -1398,9 +1398,25 @@ struct sym_entry *
 mcell_get_obj_sym(struct object *obj) {
   return obj->sym;
 }
+
 struct sym_entry *
 mcell_get_reg_sym(struct region *reg) {
   return reg->sym;
+}
+
+struct sym_entry *
+mcell_get_all_mol_sym(MCELL_STATE *state) {
+  return state->all_mols->sym;
+}
+
+struct sym_entry *
+mcell_get_all_volume_mol_sym(MCELL_STATE *state) {
+  return state->all_volume_mols->sym;
+}
+
+struct sym_entry *
+mcell_get_all_surface_mol_sym(MCELL_STATE *state) {
+  return state->all_surface_mols->sym;
 }
 
 struct poly_object_list* mcell_add_to_poly_obj_list(

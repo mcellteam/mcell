@@ -10,27 +10,28 @@ import logging
 def main():
     world = m.MCellSim(seed=1)
     world.set_time_step(time_step=1e-5)
-    world.set_iterations(iterations=100)
+    world.set_iterations(iterations=1000)
     world.enable_logging()
     world.silence_notifications()
     world.set_output_freq(1)
 
     slow_dc = 1e-9
-    fast_dc = 1e-6
+    fast_dc = 1e-5
     # define species
     vm1 = m.Species("vm1", fast_dc)
     vm2 = m.Species("vm2", fast_dc)
     vm3 = m.Species("vm3", slow_dc)
     sm_list = []
     for i in range(1, 11):
-        sm_list.append(m.Species("sm{}".format(i), slow_dc, surface=True))
+        sm_list.append(m.Species("sm{}".format(i), fast_dc, surface=True))
     sm1 = sm_list[0]
+    sm2 = sm_list[1]
     spec_orient_list = [sm.up() for sm in sm_list]
     all_mols = sm_list + [vm1, vm2, vm3]
     world.add_species(all_mols)
 
     # define reaction
-    rxn = m.Reaction((vm1.down(), sm1.up()), vm2.down(), 1e8, name="create_vm2")
+    rxn = m.Reaction(sm1.up(), sm2.down(), 1e3, name="create_sm2")
     world.add_reaction(rxn)
 
     # create torus object
@@ -46,14 +47,18 @@ def main():
     world.add_geometry(box_obj)
 
     # create surface class to absorb vm1
-    sc = m.SurfaceClass(SC.absorb, sm1.mix())
-    world.assign_surf_class(sc, torus_reg)
+    # sc = m.SurfaceClass(SC.absorb, sm1.mix())
+    # world.assign_surf_class(sc, torus_reg)
+    # world.assign_surf_class_to_all_surface_mols("abs_all_surfs", SC.absorb, torus_reg)
+    world.assign_surf_class_to_all_volume_mols("abs_all_vols", SC.absorb, torus_reg)
 
-    # release sm1 molecules into torus
-    sm1_torus_rel = m.ObjectRelease(sm1.up(), number=1000, region=torus_reg)
-    world.release(sm1_torus_rel)
+    # release vm1, vm2, and sm1 molecules into/onto torus
     vm1_torus_rel = m.ObjectRelease(vm1, number=1000, mesh_obj=torus_obj)
     world.release(vm1_torus_rel)
+    vm2_torus_rel = m.ObjectRelease(vm2, number=1000, mesh_obj=torus_obj)
+    world.release(vm2_torus_rel)
+    sm1_torus_rel = m.ObjectRelease(sm1.up(), number=1000, region=torus_reg)
+    world.release(sm1_torus_rel)
 
     # release vm3 molecules in a line (list based release)
     vm3_pos = [(x*0.01, 0, 0) for x in range(-5, 5)]
