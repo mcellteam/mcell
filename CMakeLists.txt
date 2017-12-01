@@ -239,6 +239,7 @@ SWIG_LINK_LIBRARIES(pymcell ${CMAKE_CURRENT_BINARY_DIR}/lib/libnfsim_c.so ${CMAK
 # copy the pyMCell test script into place
 file(COPY ${CMAKE_SOURCE_DIR}/src/test.json DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python/)
 file(COPY ${CMAKE_SOURCE_DIR}/src/lipidraft.json DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python/)
+file(COPY ${CMAKE_SOURCE_DIR}/src/lipidraft.txt DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python/)
 file(COPY ${CMAKE_SOURCE_DIR}/src/pymcell_unittests.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python/)
 file(COPY ${CMAKE_SOURCE_DIR}/src/test_dm_read.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python/)
 file(COPY ${CMAKE_SOURCE_DIR}/src/test_new_api.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python/)
