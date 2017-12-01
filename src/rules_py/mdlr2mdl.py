@@ -198,7 +198,7 @@ if __name__ == "__main__":
         print("Cannot open MCell. Please check mcell in mcellr.yaml")
         sys.exit(0)
     # Generate a list of the commands to run MCell
-    cmd = [mcell_path, mdl_name, "-n", xml_name]
+    cmd = [mcell_path, mdl_name, "-r", xml_name]
     # Print the command to run MCell
     print("\n====> Running MCell with: " + " ".join(cmd) + "\n")
     # Actually run MCell (if desired)
