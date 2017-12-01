@@ -11,7 +11,7 @@ import pymcell as m
 from typing import List, Dict, Iterable, Tuple, Any
 import logging
 from enum import Enum
-import uuid
+# import uuid
 import random
 
 
@@ -149,13 +149,12 @@ class Reaction(object):
 
         arrow = "<->" if bkwd_rate_constant else "->"
 
+        self.print_friendly_repr = ""
         if bkwd_rate_constant:
-            logging.info("Creating reaction %s <-> %s [%.2E, %.2E]" % (
-                reactants_str, products_str, rate_constant,
-                bkwd_rate_constant))
+            self.print_friendly_repr = "%s <-> %s [%.2E, %.2E]" % (reactants_str, products_str, rate_constant, bkwd_rate_constant)
         else:
-            logging.info("Creating reaction %s -> %s [%.2E]" % (
-                reactants_str, products_str, rate_constant))
+            self.print_friendly_repr = "%s -> %s [%.2E]" % (reactants_str, products_str, rate_constant)
+        logging.info("Creating reaction %s" % self.print_friendly_repr)
 
     def __str__(self):
         return self.name
@@ -212,12 +211,14 @@ class ObjectRelease(object):
         self.conc = conc
         self.density = density
         self.region = region
+        self.what_in_where = ""
         if self.region:
             self.mesh_obj = self.region.mesh_obj
-            logging.info("Creating release of {} in/on {}".format(self.spec.name, self.region.reg_name))
+            self.what_in_where = "{} in/on {}".format(self.spec.name, self.region.reg_name)
         else:
             self.mesh_obj = mesh_obj
-            logging.info("Creating release of {} in/on {}".format(self.spec.name, self.mesh_obj.name))
+            self.what_in_where = "{} in/on {}".format(self.spec.name, self.mesh_obj.name)
+        logging.info("Creating release of {}".format(self.what_in_where))
 
 
 class Vector3(object):
@@ -282,12 +283,11 @@ class MCellSim(object):
         # this contains Species objects
         self.species = {}
 
+        # These allow you to have surface properties affect all molecules.
         self._all_mol_sym = m.mcell_get_all_mol_sym(self._world)
         self._species['ALL_MOLECULES'] = self._all_mol_sym
-
         self._all_volume_mol_sym = m.mcell_get_all_volume_mol_sym(self._world)
         self._species['ALL_VOLUME_MOLECULES'] = self._all_volume_mol_sym
-
         self._all_surface_mol_sym = m.mcell_get_all_mol_sym(self._world)
         self._species['ALL_SURFACE_MOLECULES'] = self._all_surface_mol_sym
 
@@ -329,6 +329,7 @@ class MCellSim(object):
                 self._world, spec.name, spec.diffusion_constant, spec.surface)
             self._species[spec.name] = spec_sym
             self.species[spec.name] = spec
+            logging.info("Add species '%s' to simulation" % spec.name)
 
     def add_species(self, spec):
         if isinstance(spec, m.Species):
@@ -382,6 +383,7 @@ class MCellSim(object):
                 p_sym = self._species[p.name]
                 p_spec_list = m.mcell_add_to_species_list(
                     p_sym, False, 0, p_spec_list)
+        logging.info("Add reaction '%s' to simulation" % rxn.print_friendly_repr)
         m.create_reaction(
             self._world,
             r_spec_list,
@@ -407,6 +409,7 @@ class MCellSim(object):
             full_reg_name = "%s[%s]" % (mesh_obj.name, reg.reg_name)
             if reg.reg_name not in self._regions:
                 self._regions[full_reg_name] = region_swig_obj
+        logging.info("Add geometry '%s' to simulation" % mesh_obj.name)
 
     def add_viz(self, species: Iterable[Species]) -> None:
         """ Add this to the list of species to be visualized. """
@@ -422,8 +425,10 @@ class MCellSim(object):
     def release(self, relobj):
         if isinstance(relobj, ObjectRelease):
             self.release_into_mesh_obj(relobj)
+            logging.info("Add release of '%s' to simulation" % relobj.what_in_where)
         elif isinstance(relobj, ListRelease):
             self.release_as_list(relobj.spec, relobj.pos_list)
+            logging.info("Add list release to simulation")
         else:
             raise ValueError("Invalid release site type")
 
