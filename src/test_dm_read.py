@@ -2,6 +2,7 @@ import pymcell as m
 
 seed = 1
 world = m.MCellSim(seed)
+world.enable_logging()
 world.set_output_freq(1)
 
 dm = m.read_json_data_model("./lipidraft.json")
