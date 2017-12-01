@@ -1,5 +1,6 @@
 import pymcell as m
 import json
+import pickle
 import logging
 from typing import List, Dict, Tuple, Any
 
@@ -10,6 +11,12 @@ def read_json_data_model(file_name: str) -> Dict[str, Any]:
         data_model = json.loads(json_model)
     logging.info("Reading data model {}".format(file_name))
     return data_model
+
+
+def read_pickle_data_model(file_name) -> Dict[str, Any]:
+    pickle_model = pickle.load( open( file_name, "rb" ) )
+    logging.info("Reading data model {}".format(file_name))
+    return pickle_model
 
 
 def create_species_from_dm(
