@@ -9,8 +9,8 @@ except ImportError:
 
 def read_bngljson(bngljson):
     with open(bngljson, 'r') as f:
-        jsonDict = json.load(f)
-    return jsonDict
+        json_dict = json.load(f)
+    return json_dict
 
 
 def write_raw_section(original_mdl, buffer, tab):
@@ -44,12 +44,12 @@ def write_raw_section(original_mdl, buffer, tab):
 
 
 def write_section(original_mdl):
-    finalSection = StringIO()
+    final_section = StringIO()
     if original_mdl[0] == 'DEFINE_MOLECULES':
         pass
 
     else:
-        return write_raw_section(original_mdl.asList(), finalSection, '') + '\n'
+        return write_raw_section(original_mdl.asList(), final_section, '') + '\n'
 
 
 def read_mdlr(mdlrfile):
@@ -58,14 +58,14 @@ def read_mdlr(mdlrfile):
     return mdlr
 
 
-def construct_mcell(xmlStructs, mdlrPath, outputFileName, nautyDict):
+def construct_mcell(xml_structs, mdlr_path, output_file_name, nauty_dict):
     '''
     uses information from the bngxml and the original mdl to create a plain mdl
     file. this is mainly important to assign the right surface/volume
     compartment to the seed species.
     '''
     # load up data structures
-    mdlr = read_mdlr(mdlrPath)
+    mdlr = read_mdlr(mdlr_path)
     section_mdlr = gd.nonhashedgrammar.parseString(mdlr)
     statement_mdlr = gd.statementGrammar.parseString(mdlr)
     hashed_mdlr = gd.grammar.parseString(mdlr)
@@ -84,25 +84,25 @@ def construct_mcell(xmlStructs, mdlrPath, outputFileName, nautyDict):
         final_mdl.write('{0} = {1}\n'.format(element[0], element[1]))
 
     final_mdl.write('\n')
-    final_mdl.write('INCLUDE_FILE = "{0}.molecules.mdl"\n'.format(outputFileName))
-    final_mdl.write('INCLUDE_FILE = "{0}.reactions.mdl"\n'.format(outputFileName))
-    final_mdl.write('INCLUDE_FILE = "{0}.seed.mdl"\n\n'.format(outputFileName))
-    final_mdl.write('INCLUDE_FILE = "{0}.surface_classes.mdl"\n\n'.format(outputFileName))
-    final_mdl.write('INCLUDE_FILE = "{0}.mod_surf_reg.mdl"\n\n'.format(outputFileName))
-    final_mdl.write('INCLUDE_FILE = "{0}.output.mdl"\n\n'.format(outputFileName))
+    final_mdl.write('INCLUDE_FILE = "{0}.molecules.mdl"\n'.format(output_file_name))
+    final_mdl.write('INCLUDE_FILE = "{0}.reactions.mdl"\n'.format(output_file_name))
+    final_mdl.write('INCLUDE_FILE = "{0}.seed.mdl"\n'.format(output_file_name))
+    final_mdl.write('INCLUDE_FILE = "{0}.surface_classes.mdl"\n'.format(output_file_name))
+    final_mdl.write('INCLUDE_FILE = "{0}.mod_surf_reg.mdl"\n'.format(output_file_name))
+    final_mdl.write('INCLUDE_FILE = "{0}.output.mdl"\n'.format(output_file_name))
 
     # output sections using json information
-    sectionOrder = {'DEFINE_SURFACE_CLASSES': surface_classes__mdl,
+    section_order = {'DEFINE_SURFACE_CLASSES': surface_classes__mdl,
                     'MODIFY_SURFACE_REGIONS': mod_surf_reg__mdl,
                     'DEFINE_MOLECULES': molecule_mdl,
                     'DEFINE_REACTIONS': reaction_mdl,
                     'REACTION_DATA_OUTPUT': output_mdl,
                     'INSTANTIATE': seed_mdl}
     for element in section_mdlr:
-        if element[0] not in sectionOrder:
+        if element[0] not in section_order:
             final_mdl.write(write_section(element))
 
-    dimensionalityDict = {}
+    dimensionality_dict = {}
     bngLabel = {}
     # molecules
     molecule_mdl.write('DEFINE_MOLECULES\n{\n')
@@ -110,13 +110,13 @@ def construct_mcell(xmlStructs, mdlrPath, outputFileName, nautyDict):
         for element in section_mdlr['DEFINE_MOLECULES']:
             write_raw_section(element, molecule_mdl, '\t')
 
-    dimensionalityDict['volume_proxy'] = '3D'
+    dimensionality_dict['volume_proxy'] = '3D'
     molecule_mdl.write('\t{0} //{1}\n\t{{ \n'.format('volume_proxy', 'proxy molecule type. the instance contains the actual information'))
     molecule_mdl.write('\t\tDIFFUSION_CONSTANT_{0}D = {1}\n'.format(3, 1))
     molecule_mdl.write('\t\tEXTERN\n')
     molecule_mdl.write('\t}\n')
 
-    dimensionalityDict['surface_proxy'] = '2D'
+    dimensionality_dict['surface_proxy'] = '2D'
     molecule_mdl.write('\t{0} //{1}\n\t{{ \n'.format('surface_proxy', 'proxy surface type. the instance contains the actual information'))
     molecule_mdl.write('\t\tDIFFUSION_CONSTANT_{0}D = {1}\n'.format(2, 1))
     molecule_mdl.write('\t\tEXTERN\n')
@@ -124,16 +124,16 @@ def construct_mcell(xmlStructs, mdlrPath, outputFileName, nautyDict):
     molecule_mdl.write('}\n')
 
     # extract bng name
-    # for molecule in jsonDict['mol_list']:
-    #     dimensionalityDict[molecule['name']] = molecule['type']
+    # for molecule in json_dict['mol_list']:
+    #     dimensionality_dict[molecule['name']] = molecule['type']
     #     bngLabel[molecule['name']] = molecule['extendedName']
 
     compartmentDict = {}
 
-    for molecule in xmlStructs['molecules']:
+    for molecule in xml_structs['molecules']:
         bngLabel[molecule.name] = molecule.str2()
 
-    for compartment in xmlStructs['compartments']:
+    for compartment in xml_structs['compartments']:
         compartmentDict[compartment['identifier']] = compartment
 
     # reactions
@@ -181,7 +181,7 @@ def construct_mcell(xmlStructs, mdlrPath, outputFileName, nautyDict):
         else:
             mdlrseeds.append(entries)
 
-    for bngseed, mdlrseed in zip(xmlStructs['seedspecies'], mdlrseeds):
+    for bngseed, mdlrseed in zip(xml_structs['seedspecies'], mdlrseeds):
 
         seed_mdl.write('\t{0} {1} //{2}\n'.format(mdlrseed[0], mdlrseed[1], str(bngseed['structure'])))
         seed_mdl.write('\t{\n')
@@ -199,7 +199,7 @@ def construct_mcell(xmlStructs, mdlrPath, outputFileName, nautyDict):
                 seed_mdl.write('\t\t{0} = {1}\n'.format(element[0].strip(), element[1].strip()))
             else:
                 pass
-        seed_mdl.write('\t\tGRAPH_PATTERN = "{0}"\n'.format(nautyDict[bngseed['structure'].trueName].decode("ascii")))
+        seed_mdl.write('\t\tGRAPH_PATTERN = "{0}"\n'.format(nauty_dict[bngseed['structure'].trueName].decode("ascii")))
 
         seed_mdl.write('\t}\n')
     seed_mdl.write('}\n')
@@ -221,25 +221,25 @@ def construct_mcell(xmlStructs, mdlrPath, outputFileName, nautyDict):
             'reactions': reaction_mdl,
             'mod_surf_reg': mod_surf_reg__mdl,
             'surface_classes': surface_classes__mdl,
-            'rxnOutput': output_mdl,
+            'rxn_output': output_mdl,
             'seeding': seed_mdl}
 
 
-def construct_mdl(jsonPath, mdlrPath, outputFileName):
+def construct_mdl(jsonPath, mdlr_path, output_file_name):
     """
     Create an _mdl readable by standard mcell.
 
     Keyword arguments:
-    jsonPath -- A json dictionary containing structures and parameters extracted from the mdlr input
-    mdlrPath -- An mdlr file. In this method we will be mainly extracting the non RBM sections
+    json_path -- A json dictionary containing structures and parameters extracted from the mdlr input
+    mdlr_path -- An mdlr file. In this method we will be mainly extracting the non RBM sections
 
     Returns:
     A dictionary containing the different _mdl sections
     """
 
     # load up data structures
-    jsonDict = read_bngljson(jsonPath)
-    mdlr = read_mdlr(mdlrPath)
+    json_dict = read_bngljson(jsonPath)
+    mdlr = read_mdlr(mdlr_path)
     # print mdlr
     section_mdlr = gd.nonhashedgrammar.parseString(mdlr)
     statement_mdlr = gd.statementGrammar.parseString(mdlr)
@@ -256,27 +256,27 @@ def construct_mdl(jsonPath, mdlrPath, outputFileName):
         final_mdl.write('{0} = {1}\n'.format(element[0], element[1]))
 
     final_mdl.write('\n')
-    final_mdl.write('INCLUDE_FILE = "{0}.molecules.mdl"\n'.format(outputFileName))
-    final_mdl.write('INCLUDE_FILE = "{0}.reactions.mdl"\n'.format(outputFileName))
-    final_mdl.write('INCLUDE_FILE = "{0}.seed.mdl"\n\n'.format(outputFileName))
+    final_mdl.write('INCLUDE_FILE = "{0}.molecules.mdl"\n'.format(output_file_name))
+    final_mdl.write('INCLUDE_FILE = "{0}.reactions.mdl"\n'.format(output_file_name))
+    final_mdl.write('INCLUDE_FILE = "{0}.seed.mdl"\n\n'.format(output_file_name))
 
     # output sections using json information
-    sectionOrder = {'DEFINE_MOLECULES': molecule_mdl, 'DEFINE_REACTIONS': reaction_mdl, 'REACTION_DATA_OUTPUT': output_mdl, 'INSTANTIATE': seed_mdl}
+    section_order = {'DEFINE_MOLECULES': molecule_mdl, 'DEFINE_REACTIONS': reaction_mdl, 'REACTION_DATA_OUTPUT': output_mdl, 'INSTANTIATE': seed_mdl}
     for element in section_mdlr:
-        if element[0] not in sectionOrder:
+        if element[0] not in section_order:
             final_mdl.write(write_section(element))
 
-    final_mdl.write('INCLUDE_FILE = "{0}.output.mdl"\n'.format(outputFileName))
+    final_mdl.write('INCLUDE_FILE = "{0}.output.mdl"\n'.format(output_file_name))
 
-    dimensionalityDict = {}
+    dimensionality_dict = {}
     # molecules
     molecule_mdl.write('DEFINE_MOLECULES\n{\n')
     if 'DEFINE_MOLECULES' in section_mdlr.keys():
         for element in section_mdlr['DEFINE_MOLECULES']:
             write_raw_section(element, molecule_mdl, '\t')
 
-    for molecule in jsonDict['mol_list']:
-        dimensionalityDict[molecule['name']] = molecule['type']
+    for molecule in json_dict['mol_list']:
+        dimensionality_dict[molecule['name']] = molecule['type']
         molecule_mdl.write('\t{0} //{1}\n\t{{ \n'.format(molecule['name'], molecule['extendedName']))
         molecule_mdl.write('\t\tDIFFUSION_CONSTANT_{0} = {1}\n'.format(molecule['type'], molecule['dif']))
         molecule_mdl.write('\t}\n')
@@ -288,7 +288,7 @@ def construct_mdl(jsonPath, mdlrPath, outputFileName):
         for element in section_mdlr['DEFINE_REACTIONS']:
             write_raw_section(element, reaction_mdl, '\t')
 
-    for reaction in jsonDict['rxn_list']:
+    for reaction in json_dict['rxn_list']:
         reaction_mdl.write('\t{0} -> {1} [{2}]\n'.format(reaction['reactants'], reaction['products'], reaction['fwd_rate']))
     reaction_mdl.write('}\n')
 
@@ -299,13 +299,13 @@ def construct_mdl(jsonPath, mdlrPath, outputFileName):
             seed_mdl.write('\t' + ' '.join(element[:-1]))
             seed_mdl.write(write_raw_section(element[-1], seed_mdl, '') + '\n')
             #
-    for seed in jsonDict['rel_list']:
+    for seed in json_dict['rel_list']:
         seed_mdl.write('\t{0} RELEASE_SITE\n\t{{\n'.format(seed['name']))
         seed_mdl.write('\t\tSHAPE = Scene.{0}\n'.format(seed['object_expr']))
-        orientation = seed['orient'] if dimensionalityDict[seed['molecule']] == '2D' else ''
+        orientation = seed['orient'] if dimensionality_dict[seed['molecule']] == '2D' else ''
         seed_mdl.write('\t\tMOLECULE = {0}{1}\n'.format(seed['molecule'], orientation))
         if seed['quantity_type'] == 'DENSITY':
-            quantity_type = 'DENSITY' if dimensionalityDict[seed['molecule']] == '2D' else 'CONCENTRATION'
+            quantity_type = 'DENSITY' if dimensionality_dict[seed['molecule']] == '2D' else 'CONCENTRATION'
         else:
             quantity_type = seed['quantity_type']
         seed_mdl.write('\t\t{0} = {1}\n'.format(quantity_type, seed['quantity_expr']))
@@ -321,7 +321,7 @@ def construct_mdl(jsonPath, mdlrPath, outputFileName):
         for element in section_mdlr['REACTION_DATA_OUTPUT']:
             write_raw_section(element, output_mdl, '\t')
 
-    for obs in jsonDict['obs_list']:
+    for obs in json_dict['obs_list']:
         if any([x != ['0'] for x in obs['value']]):
             output_mdl.write('\t{')
 
@@ -333,7 +333,7 @@ def construct_mdl(jsonPath, mdlrPath, outputFileName):
     return {'main': final_mdl,
             'molecules': molecule_mdl,
             'reactions': reaction_mdl,
-            'rxnOutput': output_mdl,
+            'rxn_output': output_mdl,
             'seeding': seed_mdl}
 
 
@@ -355,28 +355,28 @@ def define_console():
     return parser
 
 
-def write_mdl(mdl_dict, outputFileName):
-    with open('{0}.main.mdl'.format(outputFileName), 'w') as f:
+def write_mdl(mdl_dict, output_file_name):
+    with open('{0}.main.mdl'.format(output_file_name), 'w') as f:
         f.write(mdl_dict['main'].getvalue())
-    with open('{0}.molecules.mdl'.format(outputFileName), 'w') as f:
+    with open('{0}.molecules.mdl'.format(output_file_name), 'w') as f:
         f.write(mdl_dict['molecules'].getvalue())
-    with open('{0}.reactions.mdl'.format(outputFileName), 'w') as f:
+    with open('{0}.reactions.mdl'.format(output_file_name), 'w') as f:
         f.write(mdl_dict['reactions'].getvalue())
-    with open('{0}.surface_classes.mdl'.format(outputFileName), 'w') as f:
+    with open('{0}.surface_classes.mdl'.format(output_file_name), 'w') as f:
         f.write(mdl_dict['surface_classes'].getvalue())
-    with open('{0}.mod_surf_reg.mdl'.format(outputFileName), 'w') as f:
+    with open('{0}.mod_surf_reg.mdl'.format(output_file_name), 'w') as f:
         f.write(mdl_dict['mod_surf_reg'].getvalue())
-    with open('{0}.seed.mdl'.format(outputFileName), 'w') as f:
+    with open('{0}.seed.mdl'.format(output_file_name), 'w') as f:
         f.write(mdl_dict['seeding'].getvalue())
-    with open('{0}.output.mdl'.format(outputFileName), 'w') as f:
-        f.write(mdl_dict['rxnOutput'].getvalue())
+    with open('{0}.output.mdl'.format(output_file_name), 'w') as f:
+        f.write(mdl_dict['rxn_output'].getvalue())
 
 
 if __name__ == "__main__":
     parser = define_console()
     namespace = parser.parse_args()
 
-    finalName = namespace.output if namespace.output else 'example_expanded'
+    final_name = namespace.output if namespace.output else 'example_expanded'
     mdl_dict = construct_mdl(
-        namespace.input_json, namespace.input_mdl, finalName)
+        namespace.input_json, namespace.input_mdl, final_name)
     write_mdl(mdl_dict)
