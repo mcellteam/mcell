@@ -87,14 +87,14 @@ static void process_volume_output(struct volume *wrld, double not_yet) {
 static void process_reaction_output(struct volume *wrld, double not_yet) {
   struct output_block *obp;
   
-  //nfsim observables update
-  if(wrld->nfsim_flag && wrld->current_iterations % 100 == 0)
-    logNFSimObservables_c(wrld->current_iterations * wrld->time_unit);
   for (obp = schedule_next(wrld->count_scheduler);
        obp != NULL || not_yet >= wrld->count_scheduler->now;
        obp = schedule_next(wrld->count_scheduler)) {
     if (obp == NULL)
       continue;
+    //nfsim observables update
+    if(wrld->nfsim_flag)
+      logNFSimObservables_c(wrld->current_iterations * wrld->time_unit);
     if (update_reaction_output(wrld, obp))
       mcell_error("Failed to update reaction output.");
   }

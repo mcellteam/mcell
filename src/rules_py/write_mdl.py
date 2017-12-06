@@ -89,6 +89,7 @@ def construct_mcell(xmlStructs, mdlrPath, outputFileName, nautyDict):
     final_mdl.write('INCLUDE_FILE = "{0}.seed.mdl"\n\n'.format(outputFileName))
     final_mdl.write('INCLUDE_FILE = "{0}.surface_classes.mdl"\n\n'.format(outputFileName))
     final_mdl.write('INCLUDE_FILE = "{0}.mod_surf_reg.mdl"\n\n'.format(outputFileName))
+    final_mdl.write('INCLUDE_FILE = "{0}.output.mdl"\n\n'.format(outputFileName))
 
     # output sections using json information
     sectionOrder = {'DEFINE_SURFACE_CLASSES': surface_classes__mdl,

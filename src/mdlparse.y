@@ -2035,7 +2035,8 @@ real_time_def:
 ;
 
 list_count_cmds:
-          count_cmd                                   { $$.set_head = $$.set_tail = $1; }
+        /*empty*/                                     { $$.set_head = $$.set_tail = NULL; }
+        | count_cmd                                   { $$.set_head = $$.set_tail = $1; }
         | list_count_cmds
           count_cmd                                   {
                                                         $$ = $1;
