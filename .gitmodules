@@ -4,7 +4,7 @@
 	branch = nfsim_lib_shared_ptr
 [submodule "nfsimCInterface"]
 	path = nfsimCInterface
-	url = https://github.com/jjtapia/nfsimCInterface
+	url = https://github.com/mcellteam/nfsimCInterface
 [submodule "bionetgen"]
 	path = bionetgen
 	url = https://github.com/RuleWorld/bionetgen
