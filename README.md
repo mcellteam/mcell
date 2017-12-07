@@ -17,15 +17,20 @@ molecules within and between cells—cellular microphysiology.
 
 ## Build Requirements:
 
-### Ubuntu 14.04:
+### Ubuntu 16.04:
 
 Run the following command:
 
-    sudo apt-get install cmake build-essential bison flex
+    sudo apt-get install cmake build-essential bison flex python3-dev
 
 ## Building MCell executable from Source:
 
 ### CMake
+
+If this is your first time cloning the repo, you'll want to do this first:
+
+    git submodule init
+    git submodule udpate
 
 To build MCell for Macs or Linux, run the following commands from the main
 mcell directory:
@@ -34,23 +39,6 @@ mcell directory:
     cd build
     cmake ..
     make
-
-### Autoconf and Automake (Deprecated)
-
-The old build system is still available and can be used by issuing the 
-following commands:
-
-    cd ./src
-    ./bootstrap
-    cd ..
-    mkdir build
-    cd build
-    ../src/configure CC=gcc CFLAGS='-O2 -Wall' 
-    make
-
-You only need to bootstrap (first three steps) when starting from a fresh
-branch or checkout. Depending on your needs, you may have to change the
-build options slightly.
 
 See the [Windows
 Development](https://github.com/mcellteam/mcell/wiki/Windows-Development) page
