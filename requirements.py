@@ -30,7 +30,7 @@ def nfsim_lib():
     extension = "so"
     if (sys.platform == 'darwin'):
         extension = "dylib"
-    subprocess.call(['ln', '-s', os.path.join('..', '..', 'nfsim', 'lib', 'libNFsim.{}'.format(extension))])
+    subprocess.call(['ln', '-s', os.path.join('..', '..', 'nfsim', 'lib', 'libNFsim.{0}'.format(extension))])
     os.chdir('..')
 
     subprocess.call(['ln', '-s', os.path.join('..', 'nfsim', 'include')])
@@ -55,8 +55,8 @@ def copy_library_files():
     extension = "so"
     if (sys.platform == 'darwin'):
         extension = "dylib"
-    shutil.copy(os.path.join('..', '..', 'nfsim', 'lib', 'libNFsim.{}'.format(extension)), ".")
-    shutil.copy(os.path.join('..', '..', 'nfsimCInterface', 'build', 'libnfsim_c.{}'.format(extension)), ".")
+    shutil.copy(os.path.join('..', '..', 'nfsim', 'lib', 'libNFsim.{0}'.format(extension)), ".")
+    shutil.copy(os.path.join('..', '..', 'nfsimCInterface', 'build', 'libnfsim_c.{0}'.format(extension)), ".")
 
 
 if __name__ == "__main__":
