@@ -1,14 +1,20 @@
 from ctypes import Structure, c_int, c_char_p, c_void_p, cdll, POINTER
 
 
-class QueryResultsStruct(Structure):
-    _fields_ = [("numOfResults", c_int),
-                ("results", POINTER(c_char_p))]
-
-
 class NFSim:
     def __init__(self, libPath):
         self.lib = cdll.LoadLibrary(libPath.encode("ascii"))
+        self.lib.setupNFSim_c.argtypes = [c_char_p, c_int]
+        self.lib.initSystemXML_c.argtypes = [c_char_p]
+        self.lib.querySystemStatus_c.argtypes = [c_char_p, c_void_p]
+        self.lib.mapvector_create.restype = c_void_p
+        self.lib.map_get.restype = c_char_p
+        self.lib.mapvector_size.argtypes = [c_void_p]
+        self.lib.mapvector_get.argtypes = [c_void_p, c_int]
+        self.lib.mapvector_get.restype = c_void_p
+        self.lib.map_get.argtypes = [c_void_p, c_char_p]
+        self.lib.map_get.restype = c_char_p
+        self.lib.mapvector_delete.argtypes = [c_void_p]
 
     def init_nfsim(self, fileName, verbose):
         """
@@ -44,18 +50,14 @@ class NFSim:
         """
         returns all species that participate in active reactions with numReactants reactants
         """
-        # self.lib.querySystemStatus_c.restype = QueryResultsStruct
         
         mem = self.lib.mapvector_create()
-        # queryResults = self.lib.querySystemStatus_c(option, mem)
-        self.lib.querySystemStatus_c.argtypes = [c_char_p, c_void_p]
-        self.lib.map_get.restype = c_char_p
 
         key = c_char_p(option.encode("ascii"))
         self.lib.querySystemStatus_c(key, mem)
-        # results = [queryResults.results[i] for i in range(0, queryResults.numOfResults)]
         results = []
-        for idx in range(0, self.lib.mapvector_size(mem)):
+        n = self.lib.mapvector_size(mem)
+        for idx in range(0, n):
             # XXX:ideally i would like to returns all key values but that will
             # require a lil more work on teh wrapper side
             partialResults = self.lib.mapvector_get(mem, idx)

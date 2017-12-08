@@ -37,11 +37,15 @@ class MDLR2MDL(object):
         with open(configpath, 'r') as f:
             self.config = yaml.load(f.read())
         try:
+            if (sys.platform == 'darwin'):
+              libname = 'libnfsim_c.dylib'
+            else:
+              libname = 'libnfsim_c.so'
             self.nfsim = NFSim(
-                os.path.join(self.config['libpath'], 'libnfsim_c.so'))
+                os.path.join(self.config['libpath'], libname))
         except OSError:
-            print("Cannot open libnfsim_c.so. Please check libpath in "
-                  "mcellr.yaml")
+            print("Cannot open {}. Please check libpath in "
+                  "mcellr.yaml".format(libname))
             sys.exit(0)
 
     def process_mdlr(self, mdlrPath):
@@ -118,9 +122,11 @@ class MDLR2MDL(object):
         seed, rest = split_bngxml.extractSeedBNG(inputMDLRFile + '.xml')
 
         # store xml with non-seed sections and load up nfsim library
+        print("\nStore xml with non-seed sections and load up nfsim library\n")
         with open(namespace.input + '_total.xml', 'w') as f:
             f.write(rest)
         # load up nfsim library
+        print("Initializing NFSim using: " + namespace.input + '_total.xml')
         self.nfsim.init_nfsim(namespace.input + '_total.xml', 0)
 
         # remove encapsulating tags

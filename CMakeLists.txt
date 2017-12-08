@@ -164,8 +164,10 @@ set(SOURCE_FILES
     src/wall_util.h)
 
 link_directories(${CMAKE_BINARY_DIR}/lib)
-SET(CMAKE_INSTALL_RPATH "$ORIGIN/./lib")
-SET(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
+if (UNIX)
+  SET(CMAKE_INSTALL_RPATH "$ORIGIN/./lib")
+  SET(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
+endif()
 FIND_PACKAGE(SWIG REQUIRED)
 INCLUDE(${SWIG_USE_FILE})
 
@@ -234,7 +236,11 @@ SWIG_ADD_MODULE(pymcell python
   src/vol_util.c
   src/volume_output.c
   src/wall_util.c)
-SWIG_LINK_LIBRARIES(pymcell ${CMAKE_CURRENT_BINARY_DIR}/lib/libnfsim_c.so ${CMAKE_CURRENT_BINARY_DIR}/lib/libNFsim.so ${PYTHON_LIBRARIES})
+if (APPLE)
+  SWIG_LINK_LIBRARIES(pymcell ${CMAKE_CURRENT_BINARY_DIR}/lib/libnfsim_c.dylib ${CMAKE_CURRENT_BINARY_DIR}/lib/libNFsim.dylib ${PYTHON_LIBRARIES})
+else()
+  SWIG_LINK_LIBRARIES(pymcell ${CMAKE_CURRENT_BINARY_DIR}/lib/libnfsim_c.so ${CMAKE_CURRENT_BINARY_DIR}/lib/libNFsim.so ${PYTHON_LIBRARIES})
+endif()
 
 # copy the pyMCell test script into place
 file(COPY ${CMAKE_SOURCE_DIR}/src/test.json DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python/)

@@ -1,6 +1,7 @@
 import subprocess
 import os
 import shutil
+import sys
 
 
 def nfsim():
@@ -26,7 +27,10 @@ def nfsim_lib():
         pass
 
     os.chdir('lib')
-    subprocess.call(['ln', '-s', os.path.join('..', '..', 'nfsim', 'lib', 'libNFsim.so')])
+    extension = "so"
+    if (sys.platform == 'darwin'):
+        extension = "dylib"
+    subprocess.call(['ln', '-s', os.path.join('..', '..', 'nfsim', 'lib', 'libNFsim.{}'.format(extension))])
     os.chdir('..')
 
     subprocess.call(['ln', '-s', os.path.join('..', 'nfsim', 'include')])
@@ -48,8 +52,11 @@ def copy_library_files():
     except OSError:
         pass
     os.chdir('build/lib')
-    shutil.copy(os.path.join('..', '..', 'nfsim', 'lib', 'libNFsim.so'), ".")
-    shutil.copy(os.path.join('..', '..', 'nfsimCInterface', 'build', 'libnfsim_c.so'), ".")
+    extension = "so"
+    if (sys.platform == 'darwin'):
+        extension = "dylib"
+    shutil.copy(os.path.join('..', '..', 'nfsim', 'lib', 'libNFsim.{}'.format(extension)), ".")
+    shutil.copy(os.path.join('..', '..', 'nfsimCInterface', 'build', 'libnfsim_c.{}'.format(extension)), ".")
 
 
 if __name__ == "__main__":

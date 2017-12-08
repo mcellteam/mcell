@@ -1,5 +1,5 @@
 #ifndef NFSIM_C_STRUCTS_H 
-#define NFSIM_C_STRCTS_H 
+#define NFSIM_C_STRUCTS_H 
 
 
 
