@@ -10,7 +10,6 @@ from nfsim_python import NFSim
 import os
 import read_bngxml
 import write_bngxmle as writeBXe
-import yaml
 import sys
 
 
@@ -25,7 +24,8 @@ def define_console():
 
 
 def get_script_path():
-    return os.path.dirname(os.path.realpath(sys.argv[0]))
+#    return os.path.dirname(os.path.realpath(sys.argv[0]))
+    return os.path.dirname(os.path.realpath(__file__))
 
 
 class MDLR2MDL(object):
@@ -34,19 +34,15 @@ class MDLR2MDL(object):
     with an nfsim bng-xml definition
     '''
     def __init__(self, configpath):
-        with open(configpath, 'r') as f:
-            self.config = yaml.load(f.read())
-        try:
-            if (sys.platform == 'darwin'):
-              libname = 'libnfsim_c.dylib'
-            else:
-              libname = 'libnfsim_c.so'
-            self.nfsim = NFSim(
-                os.path.join(self.config['libpath'], libname))
-        except OSError:
-            print("Cannot open {}. Please check libpath in "
-                  "mcellr.yaml".format(libname))
-            sys.exit(0)
+        self.config = {}
+        self.config['bionetgen'] = os.path.join(configpath,'bng2','BNG2.pl')
+        self.config['mcell'] = os.path.join(configpath,'mcell')
+        self.config['libpath'] = os.path.join(configpath,'lib')
+        if (sys.platform == 'darwin'):
+          libname = 'libnfsim_c.dylib'
+        else:
+          libname = 'libnfsim_c.so'
+        self.nfsim = NFSim(os.path.join(self.config['libpath'], libname))
 
     def process_mdlr(self, mdlrPath):
         '''
@@ -56,7 +52,7 @@ class MDLR2MDL(object):
         try:
             nauty_dict = self.xml2hnauty_species_definitions(mdlrPath)
         except OSError:
-            print("Cannot open BNG2.pl. Please check bionetgen in mcellr.yaml")
+            print('Cannot open BNG2.pl. Please check BioNetGen is installed at:  %s' % (self.config['bionetgen']))
             sys.exit(0)
 
         # append extended bng-xml to the bng-xml definition (the one that
@@ -156,6 +152,8 @@ class MDLR2MDL(object):
 
 
 if __name__ == "__main__":
+    mdlr2mdl = MDLR2MDL(os.path.join(get_script_path()))
+
     parser = define_console()
     namespace = parser.parse_args()
     bngl_path = namespace.input + '.bngl'
@@ -178,7 +176,6 @@ if __name__ == "__main__":
 
     if not namespace.nfsim:
         # bngl 2 sbml 2 json
-
         read_mdl.bngl2json(namespace.input + '.bngl')
         # json 2 plain mdl
         mdl_dict = write_mdl.constructMDL(
@@ -186,25 +183,17 @@ if __name__ == "__main__":
         # create an mdl with nfsim-species and nfsim-reactions
         write_mdl.write_mdl(mdl_dict, final_name)
     else:
-        try:
-            mdlr2mdl = MDLR2MDL(os.path.join(get_script_path(), 'mcellr.yaml'))
-            mdlr2mdl.process_mdlr(namespace.input)
-        except IOError:
-            print("Please create mcellr.yaml in the mcellRules directory. Use "
-                  "mcellr.yaml.template as a reference.")
-        # get the species definitions
+        mdlr2mdl.process_mdlr(namespace.input)
+
+    # get the species definitions
     noext = os.path.splitext(namespace.input)[0]
     xml_name = "{0}.mdlr_total.xml".format(noext)
+
+    # Generate command to run MCell
+    mcell_path = mdlr2mdl.config['mcell']
     mdl_name = "{0}.main.mdl".format(namespace.output)
-    with open("mcellr.yaml", 'r') as f:
-        config = yaml.load(f.read())
-    try:
-        mcell_path = config['mcell']
-    except OSError:
-        print("Cannot open MCell. Please check mcell in mcellr.yaml")
-        sys.exit(0)
-    # Generate a list of the commands to run MCell
     cmd = [mcell_path, mdl_name, "-r", xml_name]
+
     # Print the command to run MCell
     print("\n====> Running MCell with: " + " ".join(cmd) + "\n")
     # Actually run MCell (if desired)

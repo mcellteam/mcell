@@ -1,3 +1,0 @@
-bionetgen: './bng2/BNG2.pl'
-libpath: './lib/'
-mcell: './mcell'
