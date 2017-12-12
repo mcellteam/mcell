@@ -361,7 +361,7 @@ mcell_run_simulation(MCELL_STATE *world) {
     memset(buffer, 0, 1000*sizeof(char));
     sprintf(buffer, "mdlr_%d.gdat", world->seed_seq);
     //outputNFSimObservablesF_c(buffer);
-    outputNFSimObservables_c();
+    outputNFSimObservables_c(world->seed_seq);
     deleteNFSimSystem_c();
   }
   return status;
