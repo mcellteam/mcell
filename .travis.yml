@@ -6,43 +6,15 @@ compiler:
   - gcc
   - clang
 script: 
+  - git submodule init
+  - git submodule update
+  - mkdir build
   - cd build
-  - python requirement.py
   - cmake .. && make
 
 notifications:
   slack:
     secure: oaI4oLUKgpsDD9vfzUTKgMForYaIqUpU3I5ZsyJmDqGQbVp/GABjZfT5/NtLy9LTp9XahVrDQtDFjAJLXL55PqPYH8wIq8hX+KDSL3gIQkHd3E33niPzFU6UDbsl1rm5o49p1boCKgFC8W9sbSKxxS/z3j2jh440Lt842vKQh0U=
-install:
-  # This is just for building and setting up nutmeg
-  - mkdir go
-  - export GOPATH=$HOME
-  - echo $GOPATH
-  - wget https://github.com/mcellteam/nutmeg/archive/master.zip
-  - unzip master.zip
-  - mv nutmeg-master nutmeg
-  - cd nutmeg
-  - go get github.com/mcellteam/nutmeg/src/engine
-  - go get github.com/mcellteam/nutmeg/src/misc
-  - go get github.com/mcellteam/nutmeg/src/tomlParser
-  - go build
-  - echo "testDir = \"${TRAVIS_BUILD_DIR}/nutmeg/tests\"" > nutmeg.conf
-  - echo "includeDir = \"${TRAVIS_BUILD_DIR}/nutmeg/toml_includes\"" >> nutmeg.conf
-  - echo "mcellPath = \"${TRAVIS_BUILD_DIR}/src/mcell\"" >> nutmeg.conf
-  - cd ${TRAVIS_BUILD_DIR}
-script: 
-  # This first line is what builds MCell. The rest is for nutmeg
-  - cd ./src && ./bootstrap && ./configure && make
-  - cd ${TRAVIS_BUILD_DIR}/nutmeg
-  # Need to find a better way to deal with nutmeg. It currently takes too long
-  # to run the full testsuite for travis. For now, I'm just going to have it
-  # run the first test as a proof of concept.
-  - ./nutmeg -r=1
-
-  ## Grab the number of tests in nutmeg testsuite
-  #- end=$(./nutmeg -l | tail -n 1 | grep --color=never -o "[1-9]*")
-  ## We need to use travis_wait since some of these tests take a long time
-  #- for i in $(seq 1 $end); do travis_wait ./nutmeg -r=$i; done
 env:
   global:
     secure: VPWYKTuN++NylNQFML3gEVi5GEy9AWCXPy0fS0ZJRJxz1oMt7roE9suZCUI5Q66hS2rwH+Zn/cOaphc/rSTg/wN8K2AGVpZ2p9IPQeCYnxy/HOh7wxZ/eR140sIoAZr68xRXP4KGpHsWduCDAzMAHQVk27u9Gp91bZeaPDv0eoE=
