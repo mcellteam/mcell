@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import argparse
 import read_mdl
@@ -20,6 +20,7 @@ def define_console():
     parser.add_argument('-o', '--output',           type=str,            help='output MDL file')
     parser.add_argument('-b', '--bng-executable',   type=str,            help='file path pointing to the BNG2.pl file')
     parser.add_argument('-m', '--mcell-executable', type=str,            help='file path pointing to the MCell binary')
+    parser.add_argument('-r', '--run', action='store_true',        help='run generated model with mcell')
     return parser
 
 
@@ -57,8 +58,8 @@ class MDLR2MDL(object):
         # append extended bng-xml to the bng-xml definition (the one that
         # doesn't include seed information)
         bngxmlestr = writeBXe.merge_bxbxe(
-            namespace.input + '_total.xml', namespace.input + '_extended.xml')
-        with open(mdlrPath + '_total.xml', 'w') as f:
+            namespace.input + '_rules.xml', namespace.input + '_extended_bng.xml')
+        with open(mdlrPath + '_rules.xml', 'w') as f:
             f.write(bngxmlestr)
 
         xmlspec = read_bngxml.parseFullXML(namespace.input + '.xml')
@@ -118,11 +119,11 @@ class MDLR2MDL(object):
 
         # store xml with non-seed sections and load up nfsim library
         print("\nStore xml with non-seed sections and load up nfsim library\n")
-        with open(namespace.input + '_total.xml', 'w') as f:
+        with open(namespace.input + '_rules.xml', 'w') as f:
             f.write(rest)
         # load up nfsim library
-        print("Initializing NFSim using: " + namespace.input + '_total.xml')
-        self.nfsim.init_nfsim(namespace.input + '_total.xml', 0)
+        print("Initializing NFSim using: " + namespace.input + '_rules.xml')
+        self.nfsim.init_nfsim(namespace.input + '_rules.xml', 0)
 
         # remove encapsulating tags
         seed = seed[30:-30]
@@ -168,7 +169,7 @@ if __name__ == "__main__":
 
     # temporarily store bng-xml information in a separate file for display
     # purposes
-    with open(namespace.input + '_extended.xml', 'wb') as f:
+    with open(namespace.input + '_extended_bng.xml', 'wb') as f:
         f.write(result_dict['bngxmlestr'])
 
     # get canonical label -bngl label dictionary
@@ -186,14 +187,16 @@ if __name__ == "__main__":
 
     # get the species definitions
     noext = os.path.splitext(namespace.input)[0]
-    xml_name = "{0}.mdlr_total.xml".format(noext)
+    xml_name = "{0}.mdlr_rules.xml".format(noext)
 
-    # Generate command to run MCell
-    mcell_path = mdlr2mdl.config['mcell']
-    mdl_name = "{0}.main.mdl".format(namespace.output)
-    cmd = [mcell_path, mdl_name, "-r", xml_name]
 
-    # Print the command to run MCell
-    print("\n====> Running MCell with: " + " ".join(cmd) + "\n")
-    # Actually run MCell (if desired)
-    call(cmd)
+    if namespace.run:
+      # Generate command to run MCell
+      mcell_path = mdlr2mdl.config['mcell']
+      mdl_name = "{0}.main.mdl".format(namespace.output)
+      cmd = [mcell_path, mdl_name, "-r", xml_name]
+
+      # Print the command to run MCell
+      print("\n====> Running MCell with: " + " ".join(cmd) + "\n")
+      # Actually run MCell (if desired)
+      call(cmd)

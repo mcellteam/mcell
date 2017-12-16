@@ -28,5 +28,5 @@ if __name__ == "__main__":
     namespace = parser.parse_args()
 
     seed, rest = extractSeedBNG(namespace.input)
-    with open(namespace.input + '_total.xml', 'w') as f:
+    with open(namespace.input + '_rules.xml', 'w') as f:
         f.write(rest)
