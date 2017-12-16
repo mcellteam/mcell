@@ -19,21 +19,22 @@ molecules within and between cells—cellular microphysiology.
 
 ### Ubuntu 16.04:
 
-Run the following command:
+Run the following commands:
 
-    sudo apt-get install cmake build-essential bison flex python3-dev
+    sudo apt-get update
+    sudo apt-get install cmake build-essential bison flex python3-dev swig libboost-all-dev
 
-## Building MCell executable from Source:
+## Building MCell Executable from Source:
 
 ### CMake
 
 If this is your first time cloning the repo, you'll want to do this first:
 
     git submodule init
-    git submodule udpate
+    git submodule update
 
-To build MCell for Macs or Linux, run the following commands from the main
-mcell directory:
+To build MCell and pyMCell for Macs or Linux, run the following commands from
+the main mcell directory:
 
     mkdir build
     cd build
@@ -44,14 +45,16 @@ See the [Windows
 Development](https://github.com/mcellteam/mcell/wiki/Windows-Development) page
 on the github wiki for information about building MCell on Windows.
 
-## Building pyMCell (MCell Python library):
+## Alternative (non-CMake) Method to Build pyMCell:
 
-You will need swig and some version of Python 3 (preferably 3.5) Run the
+PyMCell is an experimental MCell-Python library. You can build it using the
+traditional CMake method above or this distutils based method, which requires
+swig and a newer version of Python 3 (preferably 3.5 or greater). Run the
 following command:
 
-  python setupy.py build
+  python3 setupy.py build
 
-## How To Test:
+## How to Test:
 
 [nutmeg](https://github.com/mcellteam/nutmeg) is a regression test
 framework for MCell. Installation and usage instructions are listed on the

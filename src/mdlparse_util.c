@@ -6239,8 +6239,13 @@ int mdl_add_reaction_output_block_to_world(struct mdlparse_vars *parse_state,
                                            struct output_times_inlist *otimes,
                                            struct output_set_list *osets) {
 
-  return mcell_add_reaction_output_block(parse_state->vol, osets, buffer_size,
-                                         otimes);
+  int return_state = mcell_add_reaction_output_block(
+      parse_state->vol, osets, buffer_size, otimes);
+  if (parse_state->header_comment && strcmp(parse_state->header_comment, "")) {
+    free(parse_state->header_comment);
+    parse_state->header_comment = NULL;
+  }
+  return return_state;
 }
 
 /**************************************************************************
