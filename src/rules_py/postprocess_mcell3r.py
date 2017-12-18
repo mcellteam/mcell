@@ -29,8 +29,11 @@ def postprocess(mcellr_react_filename, run_seed):
   mcellr_react_file = open (mcellr_react_filename,'r')
   all_react_data = mcellr_react_file.read()
   react_data_all = [ [t.strip() for t in s.split(',') if len(t.strip()) > 0] for s in all_react_data.split('\n') if len(s) > 0 ]
-  react_data_header = react_data_all[0]
-  react_data_rows = react_data_all[1:]
+  react_data_header = []
+  react_data_rows = []
+  if len(react_data_all) > 0:
+    react_data_header = react_data_all[0]
+    react_data_rows = react_data_all[1:]
 
   for col in range(1,len(react_data_header)):
     out_file_name = os.path.join ( react_seed_dir, react_data_header[col] + '.dat' )
