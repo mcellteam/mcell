@@ -23,20 +23,20 @@ void initialize_diffusion_function(struct abstract_molecule *this) {
   // if nfsim provides spatial parameters...
   if (this->properties->flags & EXTERNAL_SPECIES &&
       this->graph_data->graph_diffusion != -1.0) {
-    this->get_diffusion = get_nfsim_diffusion;
-    this->get_space_step = get_nfsim_space_step;
-    this->get_time_step = get_nfsim_time_step;
+    this->get_diffusion = &get_nfsim_diffusion;
+    this->get_space_step = &get_nfsim_space_step;
+    this->get_time_step = &get_nfsim_time_step;
   } else {
-    this->get_diffusion = get_standard_diffusion;
-    this->get_space_step = get_standard_space_step;
-    this->get_time_step = get_standard_time_step;
+    this->get_diffusion = &get_standard_diffusion;
+    this->get_space_step = &get_standard_space_step;
+    this->get_time_step = &get_standard_time_step;
   }
 
   if (this->properties->flags & EXTERNAL_SPECIES &&
       this->graph_data->flags >= 0) {
-    this->get_flags = get_nfsim_flags;
+    this->get_flags = &get_nfsim_flags;
   } else {
-    this->get_flags = get_standard_flags;
+    this->get_flags = &get_standard_flags;
   }
 }
 
