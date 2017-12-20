@@ -2,8 +2,10 @@ from ctypes import Structure, c_int, c_char_p, c_void_p, cdll, POINTER
 
 
 class NFSim:
-    def __init__(self, libPath):
-        self.lib = cdll.LoadLibrary(libPath)
+    def __init__(self, libnfsim_c_path, libNFsim_path=None):
+        if libNFsim_path!=None: 
+          libNFsim = cdll.LoadLibrary(libNFsim_path)
+        self.lib = cdll.LoadLibrary(libnfsim_c_path)
         self.lib.setupNFSim_c.argtypes = [c_char_p, c_int]
         self.lib.initSystemXML_c.argtypes = [c_char_p]
         self.lib.querySystemStatus_c.argtypes = [c_char_p, c_void_p]

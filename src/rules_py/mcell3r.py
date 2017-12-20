@@ -1,8 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-import argparse
 import os
 import sys
+import subprocess
+import argparse
 
 def define_console():
     parser = argparse.ArgumentParser(description='MCellR runner/postprocessor')
@@ -59,18 +60,31 @@ if __name__ == "__main__":
     if args.mdl_infile:
        cmd_args = cmd_args + ' %s' % (args.mdl_infile)
 
+
     print(cmd_args)
 
     script_path = os.path.dirname(os.path.realpath(__file__))
 
-    mcell_cmd = os.path.join(script_path, 'mcell')
+    my_env = {}
+    if (sys.platform == 'darwin'):
+      my_env['DYLD_LIBRARY_PATH']=os.path.join(script_path,'lib')
+    else:
+      my_env['LD_LIBRARY_PATH']=os.path.join(script_path,'lib')
 
+
+    mcell_cmd = os.path.join(script_path, 'mcell')
     mcell_cmd = mcell_cmd + ' ' + cmd_args
+    mcell_args = mcell_cmd.split()
 
     postproc_cmd = os.path.join(script_path, 'postprocess_mcell3r.py')
+    postproc_cmd = sys.executable + ' ' + postproc_cmd + ' ' + args.seed + ' ' + args.rules
+    postproc_args = postproc_cmd.split()
 
-    postproc_cmd = postproc_cmd + ' ' + args.seed + ' ' + args.rules
+    mcellproc = subprocess.Popen(mcell_args, env=my_env)
+    mcellproc.wait()
+    postproc = subprocess.Popen(postproc_args)
+    postproc.wait()
 
-    os.system(mcell_cmd)
-    os.system(postproc_cmd)
+#    os.system(mcell_cmd)
+#    os.system(postproc_cmd)
 

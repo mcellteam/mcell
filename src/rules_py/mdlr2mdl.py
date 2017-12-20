@@ -39,10 +39,12 @@ class MDLR2MDL(object):
         self.config['mcell'] = os.path.join(configpath,'mcell')
         self.config['libpath'] = os.path.join(configpath,'lib')
         if (sys.platform == 'darwin'):
-          libname = 'libnfsim_c.dylib'
+          libNFsim_path = os.path.join(self.config['libpath'], 'libNFsim.dylib')
+          libnfsim_c_path = os.path.join(self.config['libpath'], 'libnfsim_c.dylib')
         else:
-          libname = 'libnfsim_c.so'
-        self.nfsim = NFSim(os.path.join(self.config['libpath'], libname))
+          libNFsim_path = os.path.join(self.config['libpath'], 'libNFsim.so')
+          libnfsim_c_path = os.path.join(self.config['libpath'], 'libnfsim_c.so')
+        self.nfsim = NFSim(libnfsim_c_path,libNFsim_path=libNFsim_path)
 
     def process_mdlr(self, mdlrPath):
         '''
