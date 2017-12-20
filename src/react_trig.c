@@ -543,7 +543,7 @@ int trigger_trimolecular(struct rxn **reaction_hash, int rx_hashsize,
         /* different orientation classes for all 3 reactants */
         if (((geomA + geomC) * (geomA - geomC) != 0) &&
             ((geomA + geomB) * (geomA - geomB) != 0) &&
-            ((geomB + geomC) * (geomB - geomC))) {
+            ((geomB + geomC) * (geomB - geomC) != 0)) {
           correct_orientation_flag = 1;
         }
         /*  two reactants in the zero orientation class */
