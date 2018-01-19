@@ -65,11 +65,18 @@ if __name__ == "__main__":
 
     script_path = os.path.dirname(os.path.realpath(__file__))
 
-    my_env = {}
+#    my_env = {}
+    my_env = os.environ.copy()
     if (sys.platform == 'darwin'):
-      my_env['DYLD_LIBRARY_PATH']=os.path.join(script_path,'lib')
+      if my_env.get('DYLD_LIBRARY_PATH'):
+        my_env['DYLD_LIBRARY_PATH']=os.path.join(script_path,'lib') + ':' + my_env['DYLD_LIBRARY_PATH']
+      else:
+        my_env['DYLD_LIBRARY_PATH']=os.path.join(script_path,'lib')
     else:
-      my_env['LD_LIBRARY_PATH']=os.path.join(script_path,'lib')
+      if my_env.get('LD_LIBRARY_PATH'):
+        my_env['LD_LIBRARY_PATH']=os.path.join(script_path,'lib') + ':' + my_env['LD_LIBRARY_PATH']
+      else:
+        my_env['LD_LIBRARY_PATH']=os.path.join(script_path,'lib')
 
 
     mcell_cmd = os.path.join(script_path, 'mcell')
