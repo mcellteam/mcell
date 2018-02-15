@@ -89,7 +89,7 @@ if __name__ == "__main__":
 
 
     """
-    nfsim.initSystemXML('''<Model><ListOfSpecies><Species id="S1"  concentration="1" name="@PM::Lig(l!1,l).Rec(a!1)" compartment="PM">
+    nfsim.initSystemXML('''<Model><ListOfSpecies><Species id="S1"  concentration="1" name="@PM:Lig(l!1,l).Rec(a!1)" compartment="PM">
         <ListOfMolecules>
           <Molecule id="S1_M1" name="Lig" compartment="PM">
             <ListOfComponents>

@@ -95,7 +95,7 @@ molecule_definition = Group(identifier.setResultsName('moleculeName') +
 molecule_instance = Group(identifier.setResultsName('moleculeName') +
                           Optional((lparen + Optional(delimitedList(component_statement, delim=',').setResultsName('components')) + rparen)) +
                           Optional(Group('@' + Word(alphanums + '_-')).setResultsName('moleculeCompartment')))
-species_definition = Group(Optional(Group('@' + Word(alphanums + '_')).setResultsName('speciesCompartment') + Suppress('::')) +
+species_definition = Group(Optional(Group('@' + Word(alphanums + '_')).setResultsName('speciesCompartment') + Suppress(':')) +
                            delimitedList(molecule_instance, delim='.').setResultsName('speciesPattern'))
 reaction_definition = Group(Group(delimitedList(species_definition, delim='+')).setResultsName('reactants') + (uni_arrow | bi_arrow) +
                             Group(delimitedList(species_definition, delim='+')).setResultsName('products') +

@@ -272,7 +272,7 @@ class Species:
 
         moleculeStrings = [x.toString() for x in self.molecules]
         if self.compartment != '':
-            name += '@{0}::'.format(self.compartment)
+            name += '@{0}:'.format(self.compartment)
             #name += '.'.join(moleculeStrings)
             moleculeStrings = [x if '@{0}'.format(self.compartment) not in x else x[:-len('@{0}'.format(self.compartment))] for x in moleculeStrings ]
             name += '.'.join(moleculeStrings)
