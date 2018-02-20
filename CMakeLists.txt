@@ -242,31 +242,11 @@ else()
   SWIG_LINK_LIBRARIES(pymcell ${CMAKE_CURRENT_BINARY_DIR}/lib/libnfsim_c.so ${CMAKE_CURRENT_BINARY_DIR}/lib/libNFsim.so ${PYTHON_LIBRARIES})
 endif()
 
-# copy the pyMCell test script into place
-file(COPY ${CMAKE_SOURCE_DIR}/src/test.json DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python/)
-file(COPY ${CMAKE_SOURCE_DIR}/src/lipidraft.json DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python/)
-file(COPY ${CMAKE_SOURCE_DIR}/src/lipidraft.txt DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python/)
+# copy the pyMCell test scripts into place
+file(GLOB PYMCELL_EXAMPLES "${CMAKE_SOURCE_DIR}/src/pymcell_examples/*")
+file(COPY ${PYMCELL_EXAMPLES} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python/)
+
 file(COPY ${CMAKE_SOURCE_DIR}/src/pymcell_unittests.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python/)
-file(COPY ${CMAKE_SOURCE_DIR}/src/test_dm_read.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python/)
-file(COPY ${CMAKE_SOURCE_DIR}/src/test_new_api.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python/)
-file(COPY ${CMAKE_SOURCE_DIR}/src/test_api.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python/)
-file(COPY ${CMAKE_SOURCE_DIR}/src/torus.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python)
-file(COPY ${CMAKE_SOURCE_DIR}/src/box.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python)
-
-# copy the pyMCell Boolean logic test script into place
-file(COPY ${CMAKE_SOURCE_DIR}/src/test_bool.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python/)
-
-# copy the pyMCell list release test script into place
-file(COPY ${CMAKE_SOURCE_DIR}/src/test_release_list.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python/)
-
-# copy the pyMCell Release pattern test script into place
-file(COPY ${CMAKE_SOURCE_DIR}/src/test_release_pattern.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python/)
-
-# copy the mcell neuron interface test into place
-file(COPY ${CMAKE_SOURCE_DIR}/src/test_mcell_neuron_python.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python/)
-
-# copy the Jupyter notebook into place
-file(COPY ${CMAKE_SOURCE_DIR}/src/pymcell_test.ipynb DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python/)
 
 # copy tools for MDLr to MDL
 file(COPY ${CMAKE_SOURCE_DIR}/src/rules_py/ DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
