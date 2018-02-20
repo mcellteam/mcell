@@ -2,9 +2,11 @@
 	path = nfsim
 	url = https://github.com/RuleWorld/nfsim.git
 	branch = nfsim_lib_shared_ptr
+  ignore = dirty
 [submodule "nfsimCInterface"]
 	path = nfsimCInterface
 	url = https://github.com/mcellteam/nfsimCInterface
+  ignore = dirty
 [submodule "bionetgen"]
 	path = bionetgen
 	url = https://github.com/RuleWorld/bionetgen
