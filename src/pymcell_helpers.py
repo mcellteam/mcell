@@ -39,7 +39,7 @@ def single_true(iterable):
     return any(i) and not any(i)
 
 
-class MeshObj(object):
+class MeshObj:
     """ An entire polygon object and its associated surface regions. """
     def __init__(
             self,
@@ -58,7 +58,7 @@ class MeshObj(object):
         return self.name
 
 
-class Species(object):
+class Species:
     """ A type of molecule. """
     def __init__(
             self,
@@ -84,7 +84,7 @@ class Species(object):
         return self.name
 
 
-class OrientedSpecies(object):
+class OrientedSpecies:
     """ A type of molecule. """
     def __init__(
             self,
@@ -102,7 +102,7 @@ class OrientedSpecies(object):
         return self.name
 
 
-class Reaction(object):
+class Reaction:
     """ A reaction involving one or more molecules.
     ex: vm1 -> vm2 + vm3
     - Can be unimolecular or bimolecular.
@@ -160,7 +160,7 @@ class Reaction(object):
         return self.name
 
 
-class SurfaceRegion(object):
+class SurfaceRegion:
     """ Subsets of a surface.
     Examples of uses: molecules can be released on to these and surface classes
     can be assigned to them.
@@ -182,8 +182,8 @@ class SurfaceRegion(object):
         return self.reg_name
 
 
-class ListRelease(object):
-    """ An entire polygon object and its associated surface regions. """
+class ListRelease:
+    """ A release as a series of XYZ coordinates. """
     def __init__(
             self,
             spec,
@@ -193,7 +193,7 @@ class ListRelease(object):
         logging.info("Creating list release")
 
 
-class ObjectRelease(object):
+class ObjectRelease:
     """ An entire polygon object and its associated surface regions. """
     def __init__(
             self,
@@ -221,7 +221,7 @@ class ObjectRelease(object):
         logging.info("Creating release of {}".format(self.what_in_where))
 
 
-class Vector3(object):
+class Vector3:
     """ Just a generic 3d  vector to be used for positions and whatnot. """
     def __init__(self, x: float = 0.0, y: float = 0.0, z: float = 0.0) -> None:
         self.x = x
@@ -232,7 +232,7 @@ class Vector3(object):
         return "({}, {}, {})".format(self.x, self.y, self.z)
 
 
-class SurfaceClass(object):
+class SurfaceClass:
     """ These describe how species interact with various surfaces/meshes.
     ex: Species x are absorbed when they hit the front of a surface.
     """
@@ -252,7 +252,7 @@ class SurfaceClass(object):
         return self.name
 
 
-class MCellSim(object):
+class MCellSim:
     """ Everything needed to run a pyMCell simulation. """
     def __init__(self, seed: int) -> None:
         self._world = m.mcell_create()
