@@ -7,7 +7,7 @@ intuitive.
 
 """
 
-import pymcell as m
+# import pymcell as m
 from typing import List, Dict, Iterable, Tuple, Any
 import logging
 from enum import Enum
@@ -59,7 +59,15 @@ class MeshObj:
 
 
 class Species:
-    """ A type of molecule. """
+    """ A type of molecule.
+
+    Surface molecules have names, diffusion constants , and can either be a
+    surface molecule (embedded in a membrane) or a volume molecule (e.g. free
+    in the cytocol). The units for the diffusion constant is cm2/s.  An
+    instance of Species is still a *type* of molecule, not an individual
+    molecule. For example, an instance of Species could be the ACh Species, but
+    it would not be an individual ACh molecule.
+    """
     def __init__(
             self,
             name: str,
@@ -85,7 +93,12 @@ class Species:
 
 
 class OrientedSpecies:
-    """ A type of molecule. """
+    """ A type of molecule with an orientation.
+    
+    This is like a normal Species object, but it also contains information
+    about its relative orientation (up, down, or mixed) with respect to a
+    surface membrane.
+    """
     def __init__(
             self,
             spec: Species,
@@ -104,9 +117,12 @@ class OrientedSpecies:
 
 class Reaction:
     """ A reaction involving one or more molecules.
-    ex: vm1 -> vm2 + vm3
+
+    ex: vm1 -> vm2 + vm3 [1e3]
     - Can be unimolecular or bimolecular.
     - Involves surface and/or volume molecules.
+    - If a single surface molecule is involved, then all species in the
+      reaction must be OrientedSpecies.
     """
     def __init__(
             self,
@@ -162,6 +178,7 @@ class Reaction:
 
 class SurfaceRegion:
     """ Subsets of a surface.
+
     Examples of uses: molecules can be released on to these and surface classes
     can be assigned to them.
     """
@@ -183,7 +200,7 @@ class SurfaceRegion:
 
 
 class ListRelease:
-    """ A release as a series of XYZ coordinates. """
+    """ A release of molecules specified as a series of XYZ coordinates. """
     def __init__(
             self,
             spec,
@@ -222,7 +239,7 @@ class ObjectRelease:
 
 
 class Vector3:
-    """ Just a generic 3d  vector to be used for positions and whatnot. """
+    """ Just a generic 3d vector to be used for positions and whatnot. """
     def __init__(self, x: float = 0.0, y: float = 0.0, z: float = 0.0) -> None:
         self.x = x
         self.y = y
@@ -233,7 +250,8 @@ class Vector3:
 
 
 class SurfaceClass:
-    """ These describe how species interact with various surfaces/meshes.
+    """ A SurfaceClass describes how species interact with various surfaces.
+
     ex: Species x are absorbed when they hit the front of a surface.
     """
     def __init__(
@@ -253,7 +271,7 @@ class SurfaceClass:
 
 
 class MCellSim:
-    """ Everything needed to run a pyMCell simulation. """
+    """ The main class required to run a pyMCell simulation. """
     def __init__(self, seed: int) -> None:
         self._world = m.mcell_create()
         self._started = False
@@ -307,7 +325,11 @@ class MCellSim:
         logging.basicConfig(format='%(message)s', level=logging.DEBUG)
 
     def set_output_freq(self, output_freq: int) -> None:
-        """ How often do we output reaction data. """
+        """ The interval of iterations to create reaction data output. 
+        
+        For example, if you set this to 10, reaction data would be created at
+        every 10th iteration.
+        """
         self._output_freq = output_freq
 
     def set_time_step(self, time_step: float) -> None:
@@ -339,7 +361,7 @@ class MCellSim:
                 self.add_single_species(s)
 
     def add_reaction(self, rxn: Reaction) -> None:
-        """ Add a reaction object. """
+        """ Add a Reaction object to the simulation. """
         r_spec_list = None
         p_spec_list = None
         # Figure out if it's an iterable of reactants or a single reactant
@@ -393,7 +415,7 @@ class MCellSim:
             name=rxn.name)
 
     def add_geometry(self, mesh_obj: MeshObj) -> None:
-        """ Add a mesh object. """
+        """ Add a mesh object to the simulation. """
         mesh = m.create_polygon_object(
             self._world,
             mesh_obj.vert_list,
@@ -412,7 +434,7 @@ class MCellSim:
         logging.info("Add geometry '%s' to simulation" % mesh_obj.name)
 
     def add_viz(self, species: Iterable[Species]) -> None:
-        """ Add this to the list of species to be visualized. """
+        """ Set all the species in an Iterable to be visualized. """
         viz_list = None
         for spec in species:
             viz_list = m.mcell_add_to_species_list(
@@ -423,6 +445,7 @@ class MCellSim:
             0, self._iterations, 1)
 
     def release(self, relobj):
+        """ Release molecules in/on an object or as a ListRelease. """
         if isinstance(relobj, ObjectRelease):
             self.release_into_mesh_obj(relobj)
             logging.info("Add release of '%s' to simulation" % relobj.what_in_where)
@@ -526,7 +549,7 @@ class MCellSim:
     def create_release_site(
             self, species: Species, count: int, shape: str,
             pos_vec3: Vector3 = None, diam_vec3=None) -> None:
-        """ Create a spherical/cubic release shape. """
+        """ Create a spherical/cubic release site. """
         if pos_vec3 is None:
             pos_vec3 = m.Vector3()
         if diam_vec3 is None:
@@ -555,7 +578,7 @@ class MCellSim:
         m.create_partitions(self._world, axis_num, start, stop, step)
 
     def add_count(self, species: Species, mesh_obj: MeshObj = None,  reg: SurfaceRegion = None) -> None:
-        """ Add this to the list of species to be counted. """
+        """ Set a species (possibly in/on a surface) to be counted. """
         species_sym = self._species[species.name]
         if mesh_obj:
             mesh = self._mesh_objects[mesh_obj.name]
