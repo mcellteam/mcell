@@ -49,3 +49,4 @@ MANIFEST
 dist
 .mypy_cache
 .ipynb_checkpoints
+sphinx_env
