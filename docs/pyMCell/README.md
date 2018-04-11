@@ -6,6 +6,7 @@ docstrings using Sphinx.
 To build the HTML, you'll want to activate a python virtual environment:
 
     python3 -m venv sphinx_env
+    source sphinx_env/bin/activate
 
 Then install the requirements:
 
@@ -13,7 +14,7 @@ Then install the requirements:
 
 Run make:
 
-    make
+    make html
 
 View docs:
 

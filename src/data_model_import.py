@@ -6,6 +6,7 @@ from typing import List, Dict, Tuple, Any
 
 
 def read_json_data_model(file_name: str) -> Dict[str, Any]:
+    """ Read a CellBlender data model in JSON format """
     with open(file_name, 'r') as f:
         json_model = f.read()
         data_model = json.loads(json_model)
@@ -14,6 +15,7 @@ def read_json_data_model(file_name: str) -> Dict[str, Any]:
 
 
 def read_pickle_data_model(file_name) -> Dict[str, Any]:
+    """ Read a pickled CellBlender data model """
     pickle_model = pickle.load( open( file_name, "rb" ) )
     logging.info("Reading data model {}".format(file_name))
     return pickle_model
@@ -21,6 +23,7 @@ def read_pickle_data_model(file_name) -> Dict[str, Any]:
 
 def create_species_from_dm(
         data_model: Dict[str, Any]) -> Dict[str, m.Species]:
+    """ Create a dictionary of Species from a CB data model """
     logging.info("Creating species from data model")
     species_dm_list = data_model['mcell']['define_molecules']['molecule_list']
     species_dict = {}
@@ -63,6 +66,7 @@ def make_spec_orient_list(
 def create_reactions_from_dm(
         data_model: Dict[str, Any],
         species: Dict[str, m.Species]) -> List[m.Reaction]:
+    """ Create a dictionary of Reactions from a CB data model """
     logging.info("Creating reactions from data model")
     rxn_dm_list = data_model['mcell']['define_reactions']['reaction_list']
     rxn_list = []
@@ -85,6 +89,7 @@ def create_reactions_from_dm(
 
 def create_meshobjs_from_dm(
         dm: Dict[str, Any]) -> Dict[str, m.MeshObj]:
+    """ Create a dictionary of MeshObj objects from a CB data model """
     logging.info("Creating mesh objects from data model")
     meshobj_dm_list = dm['mcell']['geometrical_objects']['object_list']
     meshobj_dict = {}
@@ -108,6 +113,7 @@ def create_surface_classes_from_dm(
         dm: Dict[str, Any],
         world: m.MCellSim,
         spec_dict: Dict[str, m.Species]) -> Dict[str, m.SurfaceClass]:
+    """ Create a dictionary of SurfaceClass objects from a CB data model """
     logging.info("Creating surface classes from data model")
     sc_dm_list = dm['mcell']['define_surface_classes']['surface_class_list']
     sc_dict = {}

@@ -1,13 +1,13 @@
 """pyMCell helper functions.
 
-This defines functions to help pyMCell interface with the user. It
-combines calls of the low level swig wrapped c code so that the
-resulting python function calls for users using pyMCell are more
-intuitive.
+Currently, this contains a mix of the original pyMCell functions and classes
+and a set of more refined intuitive functions and classes. Future versions will
+provide a cleaner separation between these two with the aim of eventually
+deprecating or removing the original ones.
 
 """
 
-# import pymcell as m
+import pymcell as m
 from typing import List, Dict, Iterable, Tuple, Any
 import logging
 from enum import Enum
@@ -578,7 +578,7 @@ class MCellSim:
         m.create_partitions(self._world, axis_num, start, stop, step)
 
     def add_count(self, species: Species, mesh_obj: MeshObj = None,  reg: SurfaceRegion = None) -> None:
-        """ Set a species (possibly in/on a surface) to be counted. """
+        """ Set a species (possibly in/on a surface) to be counted """
         species_sym = self._species[species.name]
         if mesh_obj:
             mesh = self._mesh_objects[mesh_obj.name]
