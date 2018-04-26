@@ -65,8 +65,8 @@ class CMakeBuild(build_ext):
         if not os.path.exists("include"):
             os.makedirs("include")
         subprocess.call(['ln', '-s', os.path.join('..', self.build_lib), 'lib'])
-        subprocess.call(['ln', '-s', os.path.join('..', 'nfsim', 'include/nfsim')])
-        subprocess.call(['ln', '-s', os.path.join('..', 'nfsimCInterface', 'include/nfsimCInterface')])
+        subprocess.call(['ln', '-s', os.path.join('..', '..', 'nfsim', 'include'), 'include/nfsim'])
+        subprocess.call(['ln', '-s', os.path.join('..', '..', 'nfsimCInterface', 'src'), 'include/nfsimCInterface'])
 
         os.chdir('..')
 
