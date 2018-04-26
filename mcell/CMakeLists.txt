@@ -248,13 +248,13 @@ endif()
 file(GLOB PYMCELL_EXAMPLES "${CMAKE_SOURCE_DIR}/src/pymcell_examples/*")
 file(COPY ${PYMCELL_EXAMPLES} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python/)
 
-file(COPY ${CMAKE_SOURCE_DIR}/src/pymcell_unittests.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python/)
+# file(COPY ${CMAKE_SOURCE_DIR}/src/pymcell_unittests.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python/)
 
 # copy tools for MDLr to MDL
-file(COPY ${CMAKE_SOURCE_DIR}/src/rules_py/ DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(COPY ${CMAKE_SOURCE_DIR}/../pymcell/rules_py/ DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 # copy tools for MDLr to MDL
-file(COPY ${CMAKE_SOURCE_DIR}/bionetgen/bng2/ DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/bng2/)
+file(COPY ${CMAKE_SOURCE_DIR}/../bionetgen/bng2/ DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/bng2/)
 
 # build executable
 link_directories(${CMAKE_SOURCE_DIR}/lib)
@@ -289,10 +289,10 @@ TARGET_COMPILE_DEFINITIONS(mcell PRIVATE NOSWIG=1)
 #target_link_libraries(libmcell_test ${M_LIB})
 
 # build nfsim and nfsimCInterface before trying to build MCell
-add_custom_target(
- build_nfsim
- COMMAND python ${CMAKE_SOURCE_DIR}/requirements.py)
-add_dependencies(mcell build_nfsim)
-add_dependencies(_pymcell build_nfsim)
-add_dependencies(mcell version_h)
-add_dependencies(_pymcell version_h)
+#add_custom_target(
+# build_nfsim
+# COMMAND python ${CMAKE_SOURCE_DIR}/requirements.py)
+#add_dependencies(mcell build_nfsim)
+#add_dependencies(_pymcell build_nfsim)
+#add_dependencies(mcell version_h)
+#add_dependencies(_pymcell version_h)

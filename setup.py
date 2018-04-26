@@ -51,11 +51,23 @@ class CMakeBuild(build_ext):
             if cmake_version < '3.1.0':
                 raise RuntimeError("CMake >= 3.1.0 is required on Windows")
 
-        subprocess.call(['ln', '-s', self.build_lib, 'lib'])
+        # subprocess.call(['ln', '-s', self.build_lib, 'lib'])
+        if not os.path.exists(self.build_lib):
+            os.makedirs(self.build_lib)
 
         os.chdir('nfsimCInterface')
+        print(self.build_lib)
         subprocess.call(['ln', '-s', os.path.join('..', self.build_lib), 'lib'])
         subprocess.call(['ln', '-s', os.path.join('..', 'nfsim', 'include')])
+        os.chdir('..')
+
+        os.chdir('mcell')
+        if not os.path.exists("include"):
+            os.makedirs("include")
+        subprocess.call(['ln', '-s', os.path.join('..', self.build_lib), 'lib'])
+        subprocess.call(['ln', '-s', os.path.join('..', 'nfsim', 'include/nfsim')])
+        subprocess.call(['ln', '-s', os.path.join('..', 'nfsimCInterface', 'include/nfsimCInterface')])
+
         os.chdir('..')
 
         for ext in self.extensions:
@@ -99,12 +111,12 @@ class CustomBuild(build):
     def run(self):
         # TODO: some of these lines can be trimmed down eventually
         disallow_python2()
-        if not os.path.exists("build"):
-            os.makedirs("build")
-        shutil.copy("./appveyor_windows/config.h", "./src")
-        shutil.copy("./appveyor_windows/version.h", "./src")
-        shutil.copy("./src/pymcell_helpers.py", ".")
-        shutil.copy("./src/data_model_import.py", ".")
+        # if not os.path.exists("build"):
+        #     os.makedirs("build")
+        # shutil.copy("./appveyor_windows/config.h", "./src")
+        # shutil.copy("./appveyor_windows/version.h", "./src")
+        # shutil.copy("./src/pymcell_helpers.py", ".")
+        # shutil.copy("./src/data_model_import.py", ".")
 
         self.run_command('build_ext')
         # shutil.copy("./src/pymcell.py", ".")
@@ -176,7 +188,7 @@ class CustomSDist(sdist):
 #     extra_compile_args=['-O2'])
 
 
-# TODO: Might be better to rename _pymcell to just mcell, but I do not want
+# NOTE: Might be better to rename _pymcell to just mcell, but I do not want
 # to break backwards compatibility.
 ext_modules = [CMakeExtension('nfsim', sourcedir='nfsim'),
                CMakeExtension('nfsimCInterface', sourcedir='nfsimCInterface'),
