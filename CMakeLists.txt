@@ -163,7 +163,7 @@ set(SOURCE_FILES
     src/wall_util.c
     src/wall_util.h)
 
-link_directories(${CMAKE_BINARY_DIR}/lib)
+link_directories(${CMAKE_SOURCE_DIR}/lib)
 if (UNIX)
   SET(CMAKE_INSTALL_RPATH "$ORIGIN/./lib")
   SET(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
@@ -284,9 +284,9 @@ TARGET_COMPILE_DEFINITIONS(mcell PRIVATE NOSWIG=1)
 #target_link_libraries(libmcell_test ${M_LIB})
 
 # build nfsim and nfsimCInterface before trying to build MCell
-add_custom_target(
-  build_nfsim
-  COMMAND python ${CMAKE_SOURCE_DIR}/requirements.py) 
+# add_custom_target(
+#  build_nfsim
+#  COMMAND python ${CMAKE_SOURCE_DIR}/requirements.py)
 add_dependencies(mcell build_nfsim)
 add_dependencies(_pymcell build_nfsim)
 add_dependencies(mcell version_h)
