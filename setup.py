@@ -30,10 +30,9 @@ from setuptools.command.build_ext import build_ext
 # https://github.com/pybind/cmake_example/blob/master/setup.py
 
 class CMakeExtension(Extension):
-    def __init__(self, name, sourcedir='', extra_cxx_flags=[], *args, **kw):
-        Extension.__init__(self, name, sources=[], *args, **kw)
+    def __init__(self, name, sourcedir='', sources=[], *args, **kw):
+        Extension.__init__(self, name, sources=sources, *args, **kw)
         self.sourcedir = os.path.abspath(sourcedir)
-        self.extra_cxx_flags = extra_cxx_flags
 
 
 class CMakeBuild(build_ext):
@@ -61,6 +60,8 @@ class CMakeBuild(build_ext):
 
         for ext in self.extensions:
             self.build_extension(ext)
+
+
 
     def build_extension(self, ext):
         print("building", ext.name)
@@ -107,15 +108,13 @@ class CustomBuild(build):
         self.run_command('build_ext')
         shutil.copy("./src/pymcell.py", ".")
         build.run(self)
-        print("ran successfully!")
-
 
 class CustomSDist(sdist):
     def run(self):
         # disallow_python2()
         sdist.run(self)
 
-# mcell_module = Extension(
+# mcell_module = CMakeExtension(
 #     '_pymcell',
 #     include_dirs=['./include'],
 #     libraries=['nfsim_c', 'NFsim'],

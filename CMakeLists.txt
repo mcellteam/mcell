@@ -22,6 +22,10 @@ elseif (WIN32)
     ${CMAKE_CURRENT_BINARY_DIR}/deps/config.h)
 endif()
 
+message("message to display balle")
+asdas
+
+
 # check for bison/flex and set up code gen
 find_package(BISON)
 find_package(FLEX)
@@ -35,6 +39,8 @@ find_program (SED_TOOL NAMES sed)
 if (NOT SED_TOOL)
   message( FATAL_ERROR "sed not found" )
 endif (NOT SED_TOOL)
+
+
 
 add_custom_command(
   OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/deps/mdllex.l
@@ -284,10 +290,13 @@ TARGET_COMPILE_DEFINITIONS(mcell PRIVATE NOSWIG=1)
 #target_link_libraries(libmcell_test ${M_LIB})
 
 # build nfsim and nfsimCInterface before trying to build MCell
-# add_custom_target(
-#  build_nfsim
-#  COMMAND python ${CMAKE_SOURCE_DIR}/requirements.py)
+add_custom_target(
+ build_nfsim
+ COMMAND python ${CMAKE_SOURCE_DIR}/requirements.py)
 add_dependencies(mcell build_nfsim)
+message("message to display")
 add_dependencies(_pymcell build_nfsim)
+message("message to display1")
 add_dependencies(mcell version_h)
+message("message to display2")
 add_dependencies(_pymcell version_h)
