@@ -175,9 +175,12 @@ class CustomSDist(sdist):
 #     swig_opts=['-ltypemaps', '-py3'],
 #     extra_compile_args=['-O2'])
 
+
+# TODO: Might be better to rename _pymcell to just mcell, but I do not want
+# to break backwards compatibility.
 ext_modules = [CMakeExtension('nfsim', sourcedir='nfsim'),
                CMakeExtension('nfsimCInterface', sourcedir='nfsimCInterface'),
-               CMakeExtension('_pymcell')]
+               CMakeExtension('_pymcell', sourcedir='mcell')]
 
 setup(name='pymcell',
       py_modules=['pymcell'],
