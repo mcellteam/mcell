@@ -21,9 +21,9 @@ from distutils.command.sdist import sdist
 from distutils.version import LooseVersion
 from setuptools.command.build_ext import build_ext
 
-# def disallow_python2():
-#     if sys.version_info[0] == 2:
-#         sys.exit("Sorry, Python 2 is not supported.")
+def disallow_python2():
+    if sys.version_info[0] == 2:
+        sys.exit("Sorry, Python 2 is not supported.")
 
 # Code for cmake extensions from (c45488d  on Jun 10, 2016), with minor
 # modifications:
@@ -98,6 +98,7 @@ class CMakeBuild(build_ext):
 class CustomBuild(build):
     def run(self):
         # TODO: some of these lines can be trimmed down eventually
+        disallow_python2()
         if not os.path.exists("build"):
             os.makedirs("build")
         shutil.copy("./appveyor_windows/config.h", "./src")
@@ -106,12 +107,12 @@ class CustomBuild(build):
         shutil.copy("./src/data_model_import.py", ".")
 
         self.run_command('build_ext')
-        shutil.copy("./src/pymcell.py", ".")
+        # shutil.copy("./src/pymcell.py", ".")
         build.run(self)
 
 class CustomSDist(sdist):
     def run(self):
-        # disallow_python2()
+        disallow_python2()
         sdist.run(self)
 
 # mcell_module = CMakeExtension(
@@ -182,13 +183,11 @@ setup(name='pymcell',
       py_modules=['pymcell'],
       version='0.1',
       author="The MCell team",
-      python_requires='>=3',
       description="""Python bindings to libmcell""",
       author_email="mcell-devel@salk.edu",
       url="https://github.com/mcellteam/mcell",
       download_url="https://github.com/mcellteam/mcell/archive/pymcell_0.1.tar.gz",
       ext_modules=ext_modules,
       license='GPL v2',
-      packages=find_packages(),
-      cmdclass={'build_ext': CMakeBuild, 'build': CustomBuild, 'sdist': CustomSDist},
+      cmdclass={'build_ext': CMakeBuild, 'sdist': CustomSDist},
       )

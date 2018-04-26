@@ -22,10 +22,6 @@ elseif (WIN32)
     ${CMAKE_CURRENT_BINARY_DIR}/deps/config.h)
 endif()
 
-message("message to display balle")
-asdas
-
-
 # check for bison/flex and set up code gen
 find_package(BISON)
 find_package(FLEX)
@@ -243,9 +239,9 @@ SWIG_ADD_MODULE(pymcell python
   src/volume_output.c
   src/wall_util.c)
 if (APPLE)
-  SWIG_LINK_LIBRARIES(pymcell ${CMAKE_CURRENT_BINARY_DIR}/lib/libnfsim_c.dylib ${CMAKE_CURRENT_BINARY_DIR}/lib/libNFsim.dylib ${PYTHON_LIBRARIES})
+  SWIG_LINK_LIBRARIES(pymcell ${CMAKE_SOURCE_DIR}/lib/libnfsim_c.dylib ${CMAKE_SOURCE_DIR}/lib/libNFsim.dylib ${PYTHON_LIBRARIES})
 else()
-  SWIG_LINK_LIBRARIES(pymcell ${CMAKE_CURRENT_BINARY_DIR}/lib/libnfsim_c.so ${CMAKE_CURRENT_BINARY_DIR}/lib/libNFsim.so ${PYTHON_LIBRARIES})
+  SWIG_LINK_LIBRARIES(pymcell ${CMAKE_SOURCE_DIR}/lib/libnfsim_c.so ${CMAKE_SOURCE_DIR}/lib/libNFsim.so ${PYTHON_LIBRARIES})
 endif()
 
 # copy the pyMCell test scripts into place
@@ -261,12 +257,15 @@ file(COPY ${CMAKE_SOURCE_DIR}/src/rules_py/ DESTINATION ${CMAKE_CURRENT_BINARY_D
 file(COPY ${CMAKE_SOURCE_DIR}/bionetgen/bng2/ DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/bng2/)
 
 # build executable
+link_directories(${CMAKE_SOURCE_DIR}/lib)
 add_executable(mcell
   ${SOURCE_FILES}
   src/mcell.c
   ${BISON_mdlParser_OUTPUTS}
   ${FLEX_mdlScanner_OUTPUTS})
 target_link_libraries(mcell ${M_LIB} nfsim_c NFsim)
+
+
 
 #set(CMAKE_EXE_LINKER_FLAGS "${M_LIB} -static-libgcc -static-libstdc++")
 
@@ -294,9 +293,6 @@ add_custom_target(
  build_nfsim
  COMMAND python ${CMAKE_SOURCE_DIR}/requirements.py)
 add_dependencies(mcell build_nfsim)
-message("message to display")
 add_dependencies(_pymcell build_nfsim)
-message("message to display1")
 add_dependencies(mcell version_h)
-message("message to display2")
 add_dependencies(_pymcell version_h)
