@@ -7,7 +7,7 @@ SET(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0")
 
 # directories holding flex/bison files and out of source includes.
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/deps)
-include_directories("${CMAKE_SOURCE_DIR}/src" "${CMAKE_CURRENT_BINARY_DIR}/deps" "${CMAKE_SOURCE_DIR}/include/nsfim" "${CMAKE_SOURCE_DIR}/include/nfsimCInterface")
+include_directories("${CMAKE_SOURCE_DIR}/src" "${CMAKE_CURRENT_BINARY_DIR}/deps" "${CMAKE_SOURCE_DIR}/../nfsim/include" "${CMAKE_SOURCE_DIR}/../nfsimCInterface/src")
 
 # move config.h into place. Unix and Windows have different header files
 if (UNIX)
@@ -187,7 +187,7 @@ SET(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/python")
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/python)
 SET_SOURCE_FILES_PROPERTIES(src/pymcell.i PROPERTIES C ON)
 SET_SOURCE_FILES_PROPERTIES(src/pymcell.i PROPERTIES SWIG_FLAGS "-includeall")
-SWIG_ADD_MODULE(pymcell python
+swig_add_library(pymcell LANGUAGE python SOURCES src/pymcell.i
   src/argparse.c
   src/chkpt.c
   src/count_util.c
@@ -289,10 +289,11 @@ TARGET_COMPILE_DEFINITIONS(mcell PRIVATE NOSWIG=1)
 #target_link_libraries(libmcell_test ${M_LIB})
 
 # build nfsim and nfsimCInterface before trying to build MCell
-#add_custom_target(
-# build_nfsim
-# COMMAND python ${CMAKE_SOURCE_DIR}/requirements.py)
-#add_dependencies(mcell build_nfsim)
-#add_dependencies(_pymcell build_nfsim)
-#add_dependencies(mcell version_h)
-#add_dependencies(_pymcell version_h)
+# add_custom_target(
+#   build_nfsim
+# #  COMMAND python ${CMAKE_SOURCE_DIR}/requirements.py
+# )
+# add_dependencies(mcell build_nfsim)
+# add_dependencies(_pymcell build_nfsim)
+# add_dependencies(mcell version_h)
+# add_dependencies(_pymcell version_h)

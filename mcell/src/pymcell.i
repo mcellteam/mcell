@@ -1,6 +1,6 @@
 // ===========================================================================
-// Main SWIG directive file for MCELL (taken from gamer) 
-// Compile commands 
+// Main SWIG directive file for MCELL (taken from gamer)
+// Compile commands
 // swig -python pymcell.i
 // python setup_mcell_swig.py build_ext --inplace
 
@@ -11,19 +11,19 @@
 // This tells SWIG to treat char ** as a special case
 %typemap(in) char ** {
   /* Check if is a list */
-  if (PyList_Check($input)) 
+  if (PyList_Check($input))
   {
     int size = PyList_Size($input);
     int i = 0;
     $1 = (char **) malloc((size+1)*sizeof(char *));
-    for (i = 0; i < size; i++) 
+    for (i = 0; i < size; i++)
     {
       PyObject *o = PyList_GetItem($input,i);
       if (PyUnicode_Check(o))
       {
         $1[i] = PyUnicode_AsUTF8(PyList_GetItem($input,i));
       }
-    else 
+    else
     {
       PyErr_SetString(PyExc_TypeError,"list must contain strings");
       free($1);
@@ -31,8 +31,8 @@
     }
   }
   $1[i] = 0;
-  } 
-  else 
+  }
+  else
   {
     PyErr_SetString(PyExc_TypeError,"not a list");
     return NULL;
@@ -47,19 +47,19 @@
 // This tells SWIG to treat double* as a special case
 %typemap(in) double * {
   /* Check if is a list */
-  if (PyList_Check($input)) 
+  if (PyList_Check($input))
   {
     int size = PyList_Size($input);
     int i = 0;
     $1 = (double *) malloc((size+1)*sizeof(double));
-    for (i = 0; i < size; i++) 
+    for (i = 0; i < size; i++)
     {
       PyObject *o = PyList_GetItem($input,i);
       if (PyFloat_Check(o))
       {
         $1[i] = PyFloat_AsDouble(PyList_GetItem($input,i));
       }
-    else 
+    else
     {
       PyErr_SetString(PyExc_TypeError,"list must contain floats");
       free($1);
@@ -67,8 +67,8 @@
     }
   }
   $1[i] = 0;
-  } 
-  else 
+  }
+  else
   {
     PyErr_SetString(PyExc_TypeError,"not a list");
     return NULL;
@@ -102,14 +102,14 @@
 %}
 
 %pythonbegin %{
-from ctypes import *                                                            
-lib1 = cdll.LoadLibrary('../lib/libNFsim.so')                                        
+from ctypes import *
+lib1 = cdll.LoadLibrary('../lib/libNFsim.so')
 lib2 = cdll.LoadLibrary('../lib/libnfsim_c.so')
 %}
 
 /*Add functions for user interfacing */
-%pythoncode "pymcell_helpers.py"
-%pythoncode "data_model_import.py"
+#%pythoncode "pymcell_helpers.py"
+#%pythoncode "data_model_import.py"
 
 %include "mcell_init.i"
 %include "mcell_misc.i"
