@@ -190,12 +190,12 @@ class CustomSDist(sdist):
 
 # NOTE: Might be better to rename _pymcell to just mcell, but I do not want
 # to break backwards compatibility.
-ext_modules = [CMakeExtension('nfsim', sourcedir='nfsim'),
+ext_modules = [CMakeExtension('nfsimparty', sourcedir='nfsim'),
                CMakeExtension('nfsimCInterface', sourcedir='nfsimCInterface'),
                CMakeExtension('_pymcell', sourcedir='mcell')]
 
 setup(name='pymcell',
-      py_modules=['pymcell'],
+      packages=find_packages(),
       version='0.1',
       author="The MCell team",
       description="""Python bindings to libmcell""",
@@ -204,5 +204,5 @@ setup(name='pymcell',
       download_url="https://github.com/mcellteam/mcell/archive/pymcell_0.1.tar.gz",
       ext_modules=ext_modules,
       license='GPL v2',
-      cmdclass={'build_ext': CMakeBuild, 'sdist': CustomSDist},
+      cmdclass={'build_ext': CMakeBuild, 'build':CustomBuild, 'sdist': CustomSDist},
       )

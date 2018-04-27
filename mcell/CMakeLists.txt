@@ -181,8 +181,8 @@ INCLUDE_DIRECTORIES("${CMAKE_CURRENT_SOURCE_DIR}/src")
 #SET(CMAKE_SWIG_FLAGS "-debug-typemap;-debug-tmsearch;-debug-tmused;-ltypemaps")
 SET(CMAKE_SWIG_FLAGS "-ltypemaps;-py3")
 
-SET(CMAKE_SWIG_OUTDIR "${CMAKE_BINARY_DIR}/python")
-SET(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/python")
+SET(CMAKE_SWIG_OUTDIR "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/pymcell")
+SET(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/pymcell")
 
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/python)
 SET_SOURCE_FILES_PROPERTIES(src/pymcell.i PROPERTIES C ON)
@@ -237,7 +237,8 @@ swig_add_library(pymcell LANGUAGE python SOURCES src/pymcell.i
   src/viz_output.c
   src/vol_util.c
   src/volume_output.c
-  src/wall_util.c)
+  src/wall_util.c
+)
 if (APPLE)
   SWIG_LINK_LIBRARIES(pymcell ${CMAKE_SOURCE_DIR}/lib/libnfsim_c.dylib ${CMAKE_SOURCE_DIR}/lib/libNFsim.dylib ${PYTHON_LIBRARIES})
 else()
@@ -245,13 +246,14 @@ else()
 endif()
 
 # copy the pyMCell test scripts into place
-file(GLOB PYMCELL_EXAMPLES "${CMAKE_SOURCE_DIR}/src/pymcell_examples/*")
-file(COPY ${PYMCELL_EXAMPLES} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python/)
+# file(GLOB PYMCELL_EXAMPLES "${CMAKE_SOURCE_DIR}/src/pymcell_examples/*")
+# file(COPY ${PYMCELL_EXAMPLES} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python/)
 
 # file(COPY ${CMAKE_SOURCE_DIR}/src/pymcell_unittests.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python/)
 
 # copy tools for MDLr to MDL
-file(COPY ${CMAKE_SOURCE_DIR}/../pymcell/rules_py/ DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+# NOTE: this should be in pymcell/__init__.py now
+# file(COPY ${CMAKE_SOURCE_DIR}/../pymcell/rules_py/ DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 # copy tools for MDLr to MDL
 file(COPY ${CMAKE_SOURCE_DIR}/../bionetgen/bng2/ DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/bng2/)

@@ -108,8 +108,8 @@ lib2 = cdll.LoadLibrary('../lib/libnfsim_c.so')
 %}
 
 /*Add functions for user interfacing */
-#%pythoncode "pymcell_helpers.py"
-#%pythoncode "data_model_import.py"
+// %pythoncode "pymcell_helpers.py"
+// %pythoncode "data_model_import.py"
 
 %include "mcell_init.i"
 %include "mcell_misc.i"

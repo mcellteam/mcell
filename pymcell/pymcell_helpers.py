@@ -94,7 +94,7 @@ class Species:
 
 class OrientedSpecies:
     """ A type of molecule with an orientation.
-    
+
     This is like a normal Species object, but it also contains information
     about its relative orientation (up, down, or mixed) with respect to a
     surface membrane.
@@ -325,8 +325,8 @@ class MCellSim:
         logging.basicConfig(format='%(message)s', level=logging.DEBUG)
 
     def set_output_freq(self, output_freq: int) -> None:
-        """ The interval of iterations to create reaction data output. 
-        
+        """ The interval of iterations to create reaction data output.
+
         For example, if you set this to 10, reaction data would be created at
         every 10th iteration.
         """
@@ -501,7 +501,7 @@ class MCellSim:
 
     def release_into_mesh_obj(self, relobj) -> None:
         """ Release the specified amount of species into an object. """
- 
+
         mesh_obj = relobj.mesh_obj
         species = relobj.spec
         region = relobj.region
