@@ -1,4 +1,4 @@
-import .pymcell_helpers as m
+from . import pymcell_helpers as m
 import json
 import pickle
 import logging

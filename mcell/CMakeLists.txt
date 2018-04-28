@@ -165,18 +165,18 @@ set(SOURCE_FILES
     src/wall_util.c
     src/wall_util.h)
 
-link_directories(${CMAKE_SOURCE_DIR}/lib)
-if (UNIX)
-  SET(CMAKE_INSTALL_RPATH "$ORIGIN/./lib")
-  SET(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
-endif()
+link_directories(${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
+# if (UNIX)
+#   SET(CMAKE_INSTALL_RPATH "$ORIGIN/./lib")
+#   SET(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
+# endif()
 FIND_PACKAGE(SWIG REQUIRED)
 INCLUDE(${SWIG_USE_FILE})
 
 FIND_PACKAGE(PythonLibs 3 REQUIRED)
 INCLUDE_DIRECTORIES(${PYTHON_INCLUDE_PATH})
 
-INCLUDE_DIRECTORIES("${CMAKE_CURRENT_SOURCE_DIR}/src")
+# INCLUDE_DIRECTORIES("${CMAKE_CURRENT_SOURCE_DIR}/src")
 
 #SET(CMAKE_SWIG_FLAGS "-debug-typemap;-debug-tmsearch;-debug-tmused;-ltypemaps")
 SET(CMAKE_SWIG_FLAGS "-ltypemaps;-py3")
@@ -216,7 +216,6 @@ swig_add_library(pymcell LANGUAGE python SOURCES src/pymcell.i
   src/mcell_viz.c
   src/mem_util.c
   src/nfsim_func.c
-  src/pymcell.i
   src/react_cond.c
   src/react_outc.c
   src/react_outc_nfsim.c
@@ -240,9 +239,9 @@ swig_add_library(pymcell LANGUAGE python SOURCES src/pymcell.i
   src/wall_util.c
 )
 if (APPLE)
-  SWIG_LINK_LIBRARIES(pymcell ${CMAKE_SOURCE_DIR}/lib/libnfsim_c.dylib ${CMAKE_SOURCE_DIR}/lib/libNFsim.dylib ${PYTHON_LIBRARIES})
+  SWIG_LINK_LIBRARIES(pymcell ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/../libnfsim_c.dylib ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/../libNFsim.dylib ${PYTHON_LIBRARIES})
 else()
-  SWIG_LINK_LIBRARIES(pymcell ${CMAKE_SOURCE_DIR}/lib/libnfsim_c.so ${CMAKE_SOURCE_DIR}/lib/libNFsim.so ${PYTHON_LIBRARIES})
+  SWIG_LINK_LIBRARIES(pymcell ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/../libnfsim_c.so ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/../libNFsim.so ${PYTHON_LIBRARIES})
 endif()
 
 # copy the pyMCell test scripts into place
@@ -259,7 +258,7 @@ endif()
 file(COPY ${CMAKE_SOURCE_DIR}/../bionetgen/bng2/ DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/bng2/)
 
 # build executable
-link_directories(${CMAKE_SOURCE_DIR}/lib)
+link_directories(${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 add_executable(mcell
   ${SOURCE_FILES}
   src/mcell.c

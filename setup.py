@@ -51,23 +51,16 @@ class CMakeBuild(build_ext):
             if cmake_version < '3.1.0':
                 raise RuntimeError("CMake >= 3.1.0 is required on Windows")
 
-        # subprocess.call(['ln', '-s', self.build_lib, 'lib'])
         if not os.path.exists(self.build_lib):
             os.makedirs(self.build_lib)
 
         os.chdir('nfsimCInterface')
-        print(self.build_lib)
-        subprocess.call(['ln', '-s', os.path.join('..', self.build_lib), 'lib'])
         subprocess.call(['ln', '-s', os.path.join('..', 'nfsim', 'include')])
+        subprocess.call(['ln', '-s', os.path.join('..', self.build_lib), 'lib'])
         os.chdir('..')
 
         os.chdir('mcell')
-        if not os.path.exists("include"):
-            os.makedirs("include")
-        subprocess.call(['ln', '-s', os.path.join('..', self.build_lib), 'lib'])
-        subprocess.call(['ln', '-s', os.path.join('..', '..', 'nfsim', 'include'), 'include/nfsim'])
-        subprocess.call(['ln', '-s', os.path.join('..', '..', 'nfsimCInterface', 'src'), 'include/nfsimCInterface'])
-
+        # subprocess.call(['ln', '-s', os.path.join('..', self.build_lib), 'lib'])
         os.chdir('..')
 
         for ext in self.extensions:
@@ -109,17 +102,11 @@ class CMakeBuild(build_ext):
 
 class CustomBuild(build):
     def run(self):
-        # TODO: some of these lines can be trimmed down eventually
         disallow_python2()
-        # if not os.path.exists("build"):
-        #     os.makedirs("build")
-        # shutil.copy("./appveyor_windows/config.h", "./src")
-        # shutil.copy("./appveyor_windows/version.h", "./src")
-        # shutil.copy("./src/pymcell_helpers.py", ".")
-        # shutil.copy("./src/data_model_import.py", ".")
-
+        if subprocess.call(["git", "branch"], stderr=subprocess.STDOUT, stdout=open(os.devnull, 'w')) == 0:
+            subprocess.call(['git', 'submodule', 'init'])
+            subprocess.call(['git', 'submodule', 'update'])
         self.run_command('build_ext')
-        # shutil.copy("./src/pymcell.py", ".")
         build.run(self)
 
 class CustomSDist(sdist):
@@ -127,75 +114,15 @@ class CustomSDist(sdist):
         disallow_python2()
         sdist.run(self)
 
-# mcell_module = CMakeExtension(
-#     '_pymcell',
-#     include_dirs=['./include'],
-#     libraries=['nfsim_c', 'NFsim'],
-#     library_dirs=['./build/lib'],
-#     sources=[
-#         './src/argparse.c',
-#         './src/chkpt.c',
-#         './src/count_util.c',
-#         './src/diffuse.c',
-#         './src/diffuse_trimol.c',
-#         './src/diffuse_util.c',
-#         './src/dyngeom.c',
-#         './src/dyngeom_lex.c',
-#         './src/dyngeom_parse_extras.c',
-#         './src/dyngeom_yacc.c',
-#         './src/grid_util.c',
-#         './src/hashmap.c',
-#         './src/init.c',
-#         './src/isaac64.c',
-#         './src/logging.c',
-#         './src/mcell_dyngeom.c',
-#         './src/mcell_init.c',
-#         './src/mcell_misc.c',
-#         './src/mcell_objects.c',
-#         './src/mcell_react_out.c',
-#         './src/mcell_reactions.c',
-#         './src/mcell_release.c',
-#         './src/mcell_run.c',
-#         './src/mcell_species.c',
-#         './src/mcell_surfclass.c',
-#         './src/mcell_viz.c',
-#         './src/mem_util.c',
-#         './src/nfsim_func.c',
-#         './src/pymcell.i',
-#         './src/react_cond.c',
-#         './src/react_outc.c',
-#         './src/react_outc_nfsim.c',
-#         './src/react_outc_trimol.c',
-#         './src/react_output.c',
-#         './src/react_trig.c',
-#         './src/react_trig_nfsim.c',
-#         './src/react_util.c',
-#         './src/react_util_nfsim.c',
-#         './src/rng.c',
-#         './src/sched_util.c',
-#         './src/strfunc.c',
-#         './src/sym_table.c',
-#         './src/triangle_overlap.c',
-#         './src/util.c',
-#         './src/vector.c',
-#         './src/version_info.c',
-#         './src/viz_output.c',
-#         './src/vol_util.c',
-#         './src/volume_output.c',
-#         './src/wall_util.c',
-#         ],
-#     swig_opts=['-ltypemaps', '-py3'],
-#     extra_compile_args=['-O2'])
-
 
 # NOTE: Might be better to rename _pymcell to just mcell, but I do not want
 # to break backwards compatibility.
-ext_modules = [CMakeExtension('nfsimparty', sourcedir='nfsim'),
+ext_modules = [CMakeExtension('nfsim', sourcedir='nfsim'),
                CMakeExtension('nfsimCInterface', sourcedir='nfsimCInterface'),
                CMakeExtension('_pymcell', sourcedir='mcell')]
 
 setup(name='pymcell',
-      packages=find_packages(),
+      packages=['pymcell'],
       version='0.1',
       author="The MCell team",
       description="""Python bindings to libmcell""",
@@ -205,4 +132,5 @@ setup(name='pymcell',
       ext_modules=ext_modules,
       license='GPL v2',
       cmdclass={'build_ext': CMakeBuild, 'build':CustomBuild, 'sdist': CustomSDist},
+      provides=['pymcell']
       )
