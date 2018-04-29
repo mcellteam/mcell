@@ -39,11 +39,9 @@ class CMakeBuild(build_ext):
     def __init__(self, dist, *args, **kw):
         build_ext.__init__(self, dist, *args, **kw)
 
-
     def run(self):
         if subprocess.call(["git", "branch"], stderr=subprocess.STDOUT, stdout=open(os.devnull, 'w')) == 0:
-            subprocess.call(['git', 'submodule', 'init'])
-            subprocess.call(['git', 'submodule', 'update'])
+            subprocess.call(['git', 'submodule', 'update', '--init'])
         try:
             out = subprocess.check_output(['cmake', '--version'])
         except OSError:
