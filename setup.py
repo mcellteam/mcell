@@ -104,13 +104,14 @@ class CMakeBuild(build_ext):
 class CustomBuild(build):
     def run(self):
         disallow_python2()
-
         self.run_command('build_ext')
         build.run(self)
 
 class CustomSDist(sdist):
     def run(self):
         disallow_python2()
+        if subprocess.call(["git", "branch"], stderr=subprocess.STDOUT, stdout=open(os.devnull, 'w')) == 0:
+            subprocess.call(['git', 'submodule', 'update', '--init'])
         sdist.run(self)
 
 
