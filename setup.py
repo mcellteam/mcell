@@ -25,7 +25,7 @@ def disallow_python2():
     if sys.version_info[0] == 2:
         sys.exit("Sorry, Python 2 is not supported.")
 
-# Code for cmake extensions from (c45488d  on Jun 10, 2016), with minor
+# Code for cmake extensions from (c45488d on Apr 25th, 2018), with minor
 # modifications:
 # https://github.com/pybind/cmake_example/blob/master/setup.py
 
@@ -68,7 +68,6 @@ class CMakeBuild(build_ext):
             self.build_extension(ext)
 
 
-
     def build_extension(self, ext):
         print("building", ext.name)
         extdir = os.path.abspath(os.path.dirname(self.get_ext_fullpath(ext.name)))
@@ -101,11 +100,13 @@ class CMakeBuild(build_ext):
         subprocess.check_call(['cmake', ext.sourcedir] + cmake_args, cwd=self.build_temp_lib, env=env)
         subprocess.check_call(['cmake', '--build', '.'] + build_args, cwd=self.build_temp_lib)
 
+
 class CustomBuild(build):
     def run(self):
         disallow_python2()
         self.run_command('build_ext')
         build.run(self)
+
 
 class CustomSDist(sdist):
     def run(self):
@@ -121,6 +122,7 @@ class CustomSDist(sdist):
 ext_modules = [CMakeExtension('nfsim', sourcedir='nfsim'),
                CMakeExtension('nfsimCInterface', sourcedir='nfsimCInterface'),
                CMakeExtension('_pymcell', sourcedir='mcell')]
+
 
 setup(name='pymcell',
       packages=['pymcell'],
