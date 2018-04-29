@@ -54,14 +54,18 @@ class CMakeBuild(build_ext):
         if not os.path.exists(self.build_lib):
             os.makedirs(self.build_lib)
 
+        ext = self.extensions[0]
+        extdir = os.path.abspath(os.path.dirname(self.get_ext_fullpath(ext.name)))
+
         os.chdir('nfsimCInterface')
         subprocess.call(['ln', '-s', os.path.join('..', 'nfsim', 'include')])
-        subprocess.call(['ln', '-s', os.path.join('..', self.build_lib), 'lib'])
+        subprocess.call(['ln', '-s', os.path.join('..', extdir), 'lib'])
         os.chdir('..')
 
         os.chdir('mcell')
         # subprocess.call(['ln', '-s', os.path.join('..', self.build_lib), 'lib'])
         os.chdir('..')
+
 
         for ext in self.extensions:
             self.build_extension(ext)
