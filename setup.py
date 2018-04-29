@@ -67,6 +67,9 @@ class CMakeBuild(build_ext):
         for ext in self.extensions:
             self.build_extension(ext)
 
+        subprocess.call(['unlink', os.path.join('nfsimCInterface', 'lib')])
+
+
 
     def build_extension(self, ext):
         print("building", ext.name)
@@ -104,7 +107,7 @@ class CMakeBuild(build_ext):
 class CustomBuild(build):
     def run(self):
         disallow_python2()
-        self.run_command('build_ext')
+        # self.run_command('build_ext')
         build.run(self)
 
 
