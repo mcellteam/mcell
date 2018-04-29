@@ -39,7 +39,11 @@ class CMakeBuild(build_ext):
     def __init__(self, dist, *args, **kw):
         build_ext.__init__(self, dist, *args, **kw)
 
+
     def run(self):
+        if subprocess.call(["git", "branch"], stderr=subprocess.STDOUT, stdout=open(os.devnull, 'w')) == 0:
+            subprocess.call(['git', 'submodule', 'init'])
+            subprocess.call(['git', 'submodule', 'update'])
         try:
             out = subprocess.check_output(['cmake', '--version'])
         except OSError:
@@ -61,11 +65,6 @@ class CMakeBuild(build_ext):
         subprocess.call(['ln', '-s', os.path.join('..', 'nfsim', 'include')])
         subprocess.call(['ln', '-s', os.path.join('..', extdir), 'lib'])
         os.chdir('..')
-
-        os.chdir('mcell')
-        # subprocess.call(['ln', '-s', os.path.join('..', self.build_lib), 'lib'])
-        os.chdir('..')
-
 
         for ext in self.extensions:
             self.build_extension(ext)
@@ -107,9 +106,7 @@ class CMakeBuild(build_ext):
 class CustomBuild(build):
     def run(self):
         disallow_python2()
-        if subprocess.call(["git", "branch"], stderr=subprocess.STDOUT, stdout=open(os.devnull, 'w')) == 0:
-            subprocess.call(['git', 'submodule', 'init'])
-            subprocess.call(['git', 'submodule', 'update'])
+
         self.run_command('build_ext')
         build.run(self)
 
