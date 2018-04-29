@@ -110,6 +110,7 @@ class CustomBuild(build):
 class CustomSDist(sdist):
     def run(self):
         disallow_python2()
+        # clone submodules if this is a git repo:
         if subprocess.call(["git", "branch"], stderr=subprocess.STDOUT, stdout=open(os.devnull, 'w')) == 0:
             subprocess.call(['git', 'submodule', 'update', '--init'])
         sdist.run(self)
