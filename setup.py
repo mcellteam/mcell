@@ -40,6 +40,7 @@ class CMakeBuild(build_ext):
         build_ext.__init__(self, dist, *args, **kw)
 
     def run(self):
+        # clone submodules if this is a git repo:
         if subprocess.call(["git", "branch"], stderr=subprocess.STDOUT, stdout=open(os.devnull, 'w')) == 0:
             subprocess.call(['git', 'submodule', 'update', '--init'])
         try:
@@ -56,9 +57,9 @@ class CMakeBuild(build_ext):
         if not os.path.exists(self.build_lib):
             os.makedirs(self.build_lib)
 
+        # Set up links for nfsimCInterface (this is clunky)
         ext = self.extensions[0]
         extdir = os.path.abspath(os.path.dirname(self.get_ext_fullpath(ext.name)))
-
         os.chdir('nfsimCInterface')
         subprocess.call(['ln', '-s', os.path.join('..', 'nfsim', 'include')])
         subprocess.call(['ln', '-s', os.path.join('..', extdir), 'lib'])
@@ -67,6 +68,7 @@ class CMakeBuild(build_ext):
         for ext in self.extensions:
             self.build_extension(ext)
 
+        # remove symlink in nfsimCInterface as this will mess up the next build
         subprocess.call(['unlink', os.path.join('nfsimCInterface', 'lib')])
 
 
@@ -107,7 +109,6 @@ class CMakeBuild(build_ext):
 class CustomBuild(build):
     def run(self):
         disallow_python2()
-        # self.run_command('build_ext')
         build.run(self)
 
 
