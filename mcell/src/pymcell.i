@@ -97,6 +97,7 @@
 #include "mcell_structs.h"
 #include "mcell_dyngeom.h"
 #include "vector.h"
+#include "diffuse.h"
 
 
 %}
