@@ -1,0 +1,30 @@
+{
+    "package": {
+        "name": "mcell",
+        "repo": "mcell",
+        "subject": "jczech",
+        "desc": "I was pushed completely automatically",
+        "website_url": "www.mcell.org",
+        "issue_tracker_url": "https://github.com/mcellteam/mcell/issues",
+        "licenses": ["GPL-2.0"],
+        "vcs_url": "https://github.com/mcellteam/mcell.git",
+        "public_download_numbers": false,
+        "public_stats": false
+    },
+
+    "version": {
+      "name": "1.0",
+      "desc": "The latest release of mcell",
+      "gpgSign": false
+    },
+
+		"files":
+				[
+        {"includePattern": "build/mcell*.tgz)", "uploadPattern": "/$1",
+				"matrixParams": {
+						"override": 1 }
+				}
+		],
+
+    "publish": true
+}

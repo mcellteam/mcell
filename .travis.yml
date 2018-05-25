@@ -19,10 +19,12 @@ script:
   - mkdir build
   - cd build
   - cmake .. && make
+  - "tar czf mcell-${TRAVIS_OS_NAME}.tgz"
 
 notifications:
   slack:
     secure: oaI4oLUKgpsDD9vfzUTKgMForYaIqUpU3I5ZsyJmDqGQbVp/GABjZfT5/NtLy9LTp9XahVrDQtDFjAJLXL55PqPYH8wIq8hX+KDSL3gIQkHd3E33niPzFU6UDbsl1rm5o49p1boCKgFC8W9sbSKxxS/z3j2jh440Lt842vKQh0U=
+
 env:
   global:
     secure: VPWYKTuN++NylNQFML3gEVi5GEy9AWCXPy0fS0ZJRJxz1oMt7roE9suZCUI5Q66hS2rwH+Zn/cOaphc/rSTg/wN8K2AGVpZ2p9IPQeCYnxy/HOh7wxZ/eR140sIoAZr68xRXP4KGpHsWduCDAzMAHQVk27u9Gp91bZeaPDv0eoE=
@@ -30,9 +32,19 @@ env:
 addons:
   coverity_scan:
     project:
-      name: "mcellteam/mcell"
-      description: "Build submitted via Travis CI"
+      name: mcellteam/mcell
+      description: Build submitted via Travis CI
     notification_email: czech.jacob@gmail.com
-    build_command_prepend: "cd ./src && ./bootstrap && ./configure"
-    build_command:   "make"
+    build_command_prepend: cd ./src && ./bootstrap && ./configure
+    build_command: make
     branch_pattern: coverity_scan
+
+deploy:
+  provider: bintray
+  file: "./bintray.json"
+  user: jczech
+  key:
+    secure: PIaDd9+HTh2R5yMr1V7Cbpry4NB5cefY9j6jQpPJ+tJ73kP4oMOs+fZ288pgiYYskc8clYzVE00pixVmAXIpnzCpTYx7yWTGRA7USwfuFUvUtvu/U2bw0+PJpDyhfO4L3EV5NKuFZCxl+Spr6YrYnFUJtqfPOve5117G8R5dke8=
+  skip_cleanup: true
+  on:
+    all_branches: true
