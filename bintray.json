@@ -20,7 +20,7 @@
 
 		"files":
 				[
-        {"includePattern": "build/mcell*.tgz)", "uploadPattern": "/$1",
+        {"includePattern": "build/(mcell*.tgz)", "uploadPattern": "/$1",
 				"matrixParams": {
 						"override": 1 }
 				}
