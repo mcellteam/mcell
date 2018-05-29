@@ -15,6 +15,14 @@ molecules within and between cells—cellular microphysiology.
        src="https://scan.coverity.com/projects/8521/badge.svg"/>
 </a>
 
+## Download Latest Test Builds
+
+These builds are the from the head of this branch and are not guaranteed to be
+stable. Use at your own risk.
+
+* [Linux](https://bintray.com/jczech/mcell/download_file?file_path=mcell-linux-gcc.tgz)
+* [OSX](https://bintray.com/jczech/mcell/download_file?file_path=mcell-osx-gcc.tgz)
+
 ## Build Requirements:
 
 ### Ubuntu 16.04:
