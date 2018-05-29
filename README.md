@@ -62,7 +62,7 @@ traditional CMake method above or this distutils based method, which requires
 swig and a newer version of Python 3 (preferably 3.5 or greater). Run the
 following command:
 
-  python3 setupy.py build
+    python3 setupy.py build
 
 ## How to Test:
 
