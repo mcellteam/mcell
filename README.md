@@ -1,5 +1,7 @@
 # MCell
 
+## Overview
+
 MCell (Monte Carlo Cell) development is supported by the NIGMS-funded
 (P41GM103712) National Center for Multiscale Modeling of Biological Systems
 (MMBioS).
@@ -64,6 +66,20 @@ following command:
 
 ## How to Test:
 
+### Testing with nutmeg
+
 [nutmeg](https://github.com/mcellteam/nutmeg) is a regression test
 framework for MCell. Installation and usage instructions are listed on the
 nutmeg project page.
+
+### Testing MCellR
+
+MCellR testing hasn't been incorporated into nutmeg yet, but you can test
+MCellR functionality directly after building MCell. Simply run the following
+commands (starting at the top level of the "mcell" project directory):
+
+    python3 -m venv mcell_venv
+    source mcell_venv/bin/activate
+    pip install -r requirements.txt
+    cd build
+    python mdlr2mdl.py -ni ./fceri_files/fceri.mdlr -o ./fceri_files/fceri -r
