@@ -26,8 +26,11 @@ install:
   - echo "mcellPath = \"${TRAVIS_BUILD_DIR}/src/mcell\"" >> nutmeg.conf
   - cd ${TRAVIS_BUILD_DIR}
 script: 
-  # This first line is what builds MCell. The rest is for nutmeg
-  - cd ./src && ./bootstrap && ./configure && make
+  - mkdir build
+  - cd build
+  - cmake ..
+  - make
+  # The rest of this is for testing MCell with nutmeg
   - cd ${TRAVIS_BUILD_DIR}/nutmeg
   # Need to find a better way to deal with nutmeg. It currently takes too long
   # to run the full testsuite for travis. For now, I'm just going to have it
