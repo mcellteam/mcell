@@ -15,42 +15,57 @@ molecules within and between cells—cellular microphysiology.
        src="https://scan.coverity.com/projects/8521/badge.svg"/>
 </a>
 
+## Download Latest Test Builds
+
+These builds are the from the head of this branch and are not guaranteed to be
+stable. Use at your own risk.
+
+* [Linux](https://bintray.com/jczech/mcell/download_file?file_path=mcell-linux-gcc.tgz)
+* [OSX](https://bintray.com/jczech/mcell/download_file?file_path=mcell-osx-gcc.tgz)
+
 ## Build Requirements:
 
-### Ubuntu 14.04:
+### Ubuntu 16.04:
 
-Run the following command:
+Run the following commands:
 
-    sudo apt-get install cmake build-essential bison flex
+    sudo apt-get update
+    sudo apt-get install cmake build-essential bison flex python3-dev swig libboost-all-dev
+    
+### Windows
+
+It's easiest to get all the dependencies using [chocolatey](https://chocolatey.org/). Once that's installed, open up a powershell terminal, and run the following commands:
+
+    choco install cmake
+    choco install ninja
+    choco install msys2
+    choco install winflexbison
+    
+Once you have msys2 installed, run the msys2 command (which will open a different non-Powershell terminal) and execute the following commands:
+
+    pacman -Syuu
+    pacman -S --needed base-devel mingw-w64-i686-toolchain mingw-w64-x86_64-toolchain \
+                    git subversion mercurial \
+                    mingw-w64-i686-cmake mingw-w64-x86_64-cmake
+    pacman -Sy mingw-w64-i686-boost mingw-w64-x86_64-boost
+
+You may have to explicitly add some of the executables to your path.
 
 ## Building from Source:
 
-### CMake
-
-To build MCell for Macs or Linux, run the following commands from the main
+To build MCell, run the following commands from the main
 mcell directory:
 
     mkdir build
     cd build
     cmake ..
     make
+    
+If you're building on Windows with Ninja, change the last two steps to this:
 
-### Autoconf and Automake (Deprecated)
+    cmake -G Ninja ..
+    ninja
 
-The old build system is still available and can be used by issuing the 
-following commands:
-
-    cd ./src
-    ./bootstrap
-    cd ..
-    mkdir build
-    cd build
-    ../src/configure CC=gcc CFLAGS='-O2 -Wall' 
-    make
-
-You only need to bootstrap (first three steps) when starting from a fresh
-branch or checkout. Depending on your needs, you may have to change the
-build options slightly.
 
 See the [Windows
 Development](https://github.com/mcellteam/mcell/wiki/Windows-Development) page
