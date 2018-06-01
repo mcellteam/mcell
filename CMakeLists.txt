@@ -26,36 +26,33 @@ find_package(FLEX)
 BISON_TARGET(mdlParser ${CMAKE_SOURCE_DIR}/src/mdlparse.y
   ${CMAKE_CURRENT_BINARY_DIR}/deps/mdlparse.c)
 
-# we need to hack around the current mdllex.l using sed which is targeted
-# toward autotools' ylwrap and won't work with flex proper
-#set_source_files_properties(mdllex_l PROPERTIES GENERATED true)
-find_program (SED_TOOL NAMES sed)
-if (NOT SED_TOOL)
-  message( FATAL_ERROR "sed not found" )
-endif (NOT SED_TOOL)
-
-add_custom_command(
-  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/deps/mdllex.l
-  COMMAND ${SED_TOOL} -e "/^%option outfile/ d" ${CMAKE_SOURCE_DIR}/src/mdllex.l > ${CMAKE_CURRENT_BINARY_DIR}/deps/mdllex.l
-  DEPENDS ${CMAKE_SOURCE_DIR}/src/mdllex.l
-  VERBATIM)
-
-FLEX_TARGET(mdlScanner ${CMAKE_CURRENT_BINARY_DIR}/deps/mdllex.l
-  ${CMAKE_CURRENT_BINARY_DIR}/deps/mdlex.c COMPILE_FLAGS -Crema)
+FLEX_TARGET(mdlScanner ${CMAKE_SOURCE_DIR}/src/mdllex.l
+  ${CMAKE_CURRENT_BINARY_DIR}/deps/mdllex.c COMPILE_FLAGS -Crema)
 ADD_FLEX_BISON_DEPENDENCY(mdlScanner mdlParser mdllex_l)
 
 # create version.h target
-add_custom_command(
-  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h
-  COMMAND ${CMAKE_SOURCE_DIR}/src/version.sh > ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h
-  DEPENDS ${CMAKE_SOURCE_DIR}/src/version.sh
-  VERBATIM)
+# XXX: we should replace this shell script with a python script, so we can run
+# it on Windows. Right now, we're just using a file pre-generated from Linux
+if (UNIX)
+  add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h
+    COMMAND ${CMAKE_SOURCE_DIR}/src/version.sh > ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h
+    DEPENDS ${CMAKE_SOURCE_DIR}/src/version.sh
+    VERBATIM)
+elseif (WIN32)
+  file(COPY ${CMAKE_SOURCE_DIR}/appveyor_windows/version.h DESTINATION
+    ${CMAKE_CURRENT_BINARY_DIR}/deps)
+endif()
 
 # check for needed libraries
-find_library(M_LIB m)
 
 set(CMAKE_C_FLAGS "-Wall -Wextra -Wshadow -Wno-unused-parameter -D_GNU_SOURCE=1 -O2 -std=c11 ${CMAKE_C_FLAGS}" )
-set(CMAKE_EXE_LINKER_FLAGS ${M_LIB})
+if (UNIX)
+  find_library(M_LIB m)
+  set(CMAKE_EXE_LINKER_FLAGS ${M_LIB})
+elseif (WIN32)
+  set(CMAKE_EXE_LINKER_FLAGS "-lm")
+endif()
 
 set(SOURCE_FILES
     src/api_test.c
@@ -159,4 +156,6 @@ add_executable(mcell
   ${SOURCE_FILES}
   ${BISON_mdlParser_OUTPUTS}
   ${FLEX_mdlScanner_OUTPUTS})
-target_link_libraries(mcell ${M_LIB})
+if (UNIX)
+  target_link_libraries(mcell ${M_LIB})
+endif()
