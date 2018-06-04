@@ -3,6 +3,24 @@ import os
 import shutil
 import sys
 
+def compile_it():
+    if (sys.platform == 'win32'):
+        subprocess.call(['cmake', '-G', 'Ninja', '..'])
+        subprocess.call(['ninja'])
+    else:
+        subprocess.call(['cmake', '..'])
+        subprocess.call(['make'])
+
+
+def get_extension():
+    if (sys.platform == 'linux'):
+        extension = "so"
+    elif (sys.platform == 'darwin'):
+        extension = "dylib"
+    elif (sys.platform == 'win32'):
+        extension = "dll"
+    return extension
+
 
 def nfsim():
     os.chdir('nfsim')
@@ -12,8 +30,7 @@ def nfsim():
     except OSError:
         pass
     os.chdir('lib')
-    subprocess.call(['cmake', '-G', 'Ninja', '..'])
-    subprocess.call(['ninja'])
+    compile_it()
     os.chdir('..')
     os.chdir('..')
 
@@ -27,23 +44,24 @@ def nfsim_lib():
         pass
 
     os.chdir('lib')
-    extension = "so"
-    if (sys.platform == 'darwin'):
-        extension = "dylib"
-    elif (sys.platform == 'win32'):
-        extension = "dll"
-    subprocess.call(['cmd', '/c', 'mklink', '.\libNFsim.{0}'.format(extension), os.path.join('..', '..', 'nfsim', 'lib', 'libNFsim.{0}'.format(extension))])
-    os.chdir('..')
+    extension = get_extension()
 
-    subprocess.call(['cmd', '/c', 'mklink', '/D', '.\include', os.path.join('..', 'nfsim', 'include')])
+    if (sys.platform == 'win32'):
+        subprocess.call(['cmd', '/c', 'mklink', '.\libNFsim.{0}'.format(extension), os.path.join('..', '..', 'nfsim', 'lib', 'libNFsim.{0}'.format(extension))])
+        os.chdir('..')
+        subprocess.call(['cmd', '/c', 'mklink', '/D', '.\include', os.path.join('..', 'nfsim', 'include')])
+    else:
+        subprocess.call(['ln', '-s', os.path.join('..', '..', 'nfsim', 'lib', 'libNFsim.{0}'.format(extension))])
+        os.chdir('..')
+        subprocess.call(['ln', '-s', os.path.join('..', 'nfsim', 'include')])
+
 
     try:
         os.mkdir('build')
     except OSError:
         pass
     os.chdir('build')
-    subprocess.call(['cmake', '-G', 'Ninja', '..'])
-    subprocess.call(['ninja'])
+    compile_it()
     os.chdir('..')
     os.chdir('..')
 
@@ -55,12 +73,7 @@ def copy_library_files():
         pass
     os.chdir('build')
 
-    if (sys.platform == 'linux'):
-        extension = "so"
-    elif (sys.platform == 'darwin'):
-        extension = "dylib"
-    elif (sys.platform == 'win32'):
-        extension = "dll"
+    extension = get_extension()
 
     # XXX: For some reason, Windows will build MCell with the files in
     # ./build/lib but will fail at runtime if they aren't in the same directory
