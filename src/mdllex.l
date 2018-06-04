@@ -55,7 +55,6 @@ void mdlfree (void * ptr, yyscan_t yyscanner)
 
 /* Set up function name prefixes and output file name */
 %option prefix="mdl"
-%option outfile="lex.yy.c"
 
 /* Enable condition state stack */
 %option stack
