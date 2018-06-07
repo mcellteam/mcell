@@ -20,6 +20,7 @@
  * USA.
  *
 ******************************************************************************/
+%include "typemaps.i"
 
 typedef struct sym_entry {
   struct sym_entry *next; /* Chain to next symbol in this bin of the hash */

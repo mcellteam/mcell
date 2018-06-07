@@ -20,6 +20,7 @@
  * USA.
  *
 ******************************************************************************/
+%include "typemaps.i"
 
 struct output_column_list {
   struct output_column *column_head;
