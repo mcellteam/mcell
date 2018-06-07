@@ -100,7 +100,7 @@ mcell_module = Extension(
         './src/volume_output.c',
         './src/wall_util.c',
         ],
-    swig_opts=['-ltypemaps', '-py3'],
+    swig_opts=['-py3'],
     extra_compile_args=['-O2'])
 
 setup(name='pymcell',
