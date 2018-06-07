@@ -350,6 +350,9 @@ __attribute__((__format__(
     case 'y':
     case 'Y':
       is_numeric = 1;
+      fbuf[1] = *f2;
+      count = strftime(buf, ARRAYSIZE(buf), fbuf, timeptr);
+      break;
     default:
       fbuf[1] = *f2;
       count = strftime(buf, ARRAYSIZE(buf), fbuf, timeptr);
