@@ -38,12 +38,14 @@ class MDLR2MDL(object):
         self.config['bionetgen'] = os.path.join(configpath,'bng2','BNG2.pl')
         self.config['mcell'] = os.path.join(configpath,'mcell')
         self.config['libpath'] = os.path.join(configpath,'lib')
-        if (sys.platform == 'darwin'):
-            extension = 'dylib'
-        if (sys.platform == 'linux'):
-            extension = 'so'
-        if (sys.platform == 'win32'):
-            extension = 'dll'
+        if (sys.platform == 'linux') or (sys.platform == 'linux2'):
+            extension = "so"
+        elif (sys.platform == 'darwin'):
+            extension = "dylib"
+        elif (sys.platform == 'win32'):
+            extension = "dll"
+        else:
+            raise Exception("Unexpected platform: {0}".format(sys.platform))
         libNFsim_path = os.path.join(self.config['libpath'], 'libNFsim.{0}'.format(extension))
         libnfsim_c_path = os.path.join(self.config['libpath'], 'libnfsim_c.{0}'.format(extension))
         self.nfsim = NFSim(libnfsim_c_path, libNFsim_path=libNFsim_path)

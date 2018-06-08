@@ -13,12 +13,14 @@ def compile_it():
 
 
 def get_extension():
-    if (sys.platform == 'linux'):
+    if (sys.platform == 'linux') or (sys.platform == 'linux2'):
         extension = "so"
     elif (sys.platform == 'darwin'):
         extension = "dylib"
     elif (sys.platform == 'win32'):
         extension = "dll"
+    else:
+        raise Exception("Unexpected platform: {0}".format(sys.platform))
     return extension
 
 
