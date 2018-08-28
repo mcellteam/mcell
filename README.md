@@ -34,6 +34,27 @@ Run the following commands:
     sudo apt-get update
     sudo apt-get install cmake build-essential bison flex python3-dev swig libboost-all-dev
 
+### Windows
+
+It's easiest to get all the dependencies using
+[chocolatey](https://chocolatey.org/). Once chocolatey is installed, open up a
+powershell terminal, and run the following commands:
+
+    choco install cmake
+    choco install ninja
+    choco install msys2
+    choco install winflexbison
+    
+Once you have msys2 installed, run the msys2 command (which will open a different non-Powershell terminal) and execute the following commands:
+
+    pacman -Syuu
+    pacman -S --needed base-devel mingw-w64-i686-toolchain mingw-w64-x86_64-toolchain \
+                    git subversion mercurial \
+                    mingw-w64-i686-cmake mingw-w64-x86_64-cmake
+    pacman -Sy mingw-w64-i686-boost mingw-w64-x86_64-boost
+
+You may have to explicitly add some of the executables to your path.
+
 ## Building MCell Executable from Source:
 
 ### CMake
@@ -43,7 +64,7 @@ If this is your first time cloning the repo, you'll want to do this first:
     git submodule init
     git submodule update
 
-To build MCell and pyMCell for Macs or Linux, run the following commands from
+To build MCell and pyMCell for Mac or Linux, run the following commands from
 the main mcell directory:
 
     mkdir build
@@ -51,9 +72,12 @@ the main mcell directory:
     cmake ..
     make
 
-See the [Windows
-Development](https://github.com/mcellteam/mcell/wiki/Windows-Development) page
-on the github wiki for information about building MCell on Windows.
+If you're building on Windows with Ninja, change the last two steps to this:
+
+    cmake -G Ninja ..
+    ninja
+
+Note: pyMCell does not currently build on Windows.
 
 ## Alternative (non-CMake) Method to Build pyMCell:
 
