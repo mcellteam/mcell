@@ -5,7 +5,14 @@ environment:
 
 install:
   - choco install -y mingw
+  - choco install -r -y ninja
   - "SET PATH=C:\\tools\\mingw64\\bin;%PATH%"
 
 build_script:
-  - python appveyor_build.py
+  - git submodule init
+  - git submodule update
+  - mkdir build
+  - cd build
+  - cmake -G Ninja ..
+  - ninja
+
