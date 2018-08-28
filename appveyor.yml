@@ -9,6 +9,7 @@ install:
   - choco install -y winflexbison
   - choco install -y swig
   - "SET PATH=C:\\tools\\mingw64\\bin;%PATH%"
+  - bash -lc "pacman -Sy mingw-w64-i686-boost mingw-w64-x86_64-boost"
 
 build_script:
   - git submodule init
