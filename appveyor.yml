@@ -13,9 +13,9 @@ install:
   - choco install -r -y ninja
   - choco install -y winflexbison
   - choco install -y swig
-	- set PATH=%BOOST_LIBRARYDIR%;%PATH%
-	- set PATH=%MINGW_ROOT%\bin;C:\msys64\usr\bin\;%PATH%
-	- bash -lc "pacman --needed --noconfirm -S mingw-w64-%MINGW_ARCH%-boost"
+  - set PATH=%BOOST_LIBRARYDIR%;%PATH%
+  - set PATH=%MINGW_ROOT%\bin;C:\msys64\usr\bin\;%PATH%
+  - bash -lc "pacman --needed --noconfirm -S mingw-w64-%MINGW_ARCH%-boost"
 
 build_script:
   - git submodule init
