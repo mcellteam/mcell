@@ -6,6 +6,7 @@ environment:
 install:
   - choco install -y mingw
   - choco install -r -y ninja
+  - choco install -y winflexbison
   - "SET PATH=C:\\tools\\mingw64\\bin;%PATH%"
 
 build_script:
@@ -15,4 +16,3 @@ build_script:
   - cd build
   - cmake -G Ninja ..
   - ninja
-
