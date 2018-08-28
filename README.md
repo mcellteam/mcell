@@ -40,10 +40,11 @@ It's easiest to get all the dependencies using
 [chocolatey](https://chocolatey.org/). Once chocolatey is installed, open up a
 powershell terminal, and run the following commands:
 
-    choco install cmake
-    choco install ninja
-    choco install msys2
-    choco install winflexbison
+    choco install -y cmake
+    choco install -y ninja
+    choco install -y msys2
+    choco install -y winflexbison
+    choco install -y swig
     
 Once you have msys2 installed, run the msys2 command (which will open a different non-Powershell terminal) and execute the following commands:
 
