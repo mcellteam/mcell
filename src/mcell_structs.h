@@ -469,6 +469,8 @@ enum symbol_type_t {
   RX,            /* chemical reaction */
   RXPN,          /* name of chemical reaction */
   MOL,           /* molecule or surface class type (i.e. species) */
+  MOL_SS     /* spatially structured molecule */
+  MOL_COMP_SS /* spatially structured component of molecule */
   OBJ,           /* meta-object */
   RPAT,          /* release pattern */
   REG,           /* object region */
@@ -817,6 +819,18 @@ struct surface_molecule {
   struct vector2 s_pos;      /* Where are we in surface coordinates? */
 };
 
+struct mol_ss {
+  struct sym_table_head *mol_comp_ss_sym_table;
+};
+
+struct mol_comp_ss {
+//  struct vector3 loc;
+//  struct vector3 axis;
+//  double angle;
+  double t_matrix[4][4];
+};
+
+
 /* Used to transform coordinates of surface molecules diffusing between
  * adjacent walls */
 struct edge {
@@ -1160,6 +1174,7 @@ struct volume {
   struct sym_table_head *mol_sym_table;  /* Molecule type symbol hash table */
   struct sym_table_head *rpat_sym_table; /* Release pattern hash table */
   struct sym_table_head *rxpn_sym_table; /* Named reaction pathway hash table */
+  struct sym_table_head *mol_ss_sym_table; /* Spatially structured molecule symbol hash table */
 
   struct object *root_object;   /* Root of the object template tree */
   struct object *root_instance; /* Root of the instantiated object tree */
