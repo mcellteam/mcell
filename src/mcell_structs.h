@@ -469,8 +469,8 @@ enum symbol_type_t {
   RX,            /* chemical reaction */
   RXPN,          /* name of chemical reaction */
   MOL,           /* molecule or surface class type (i.e. species) */
-  MOL_SS     /* spatially structured molecule */
-  MOL_COMP_SS /* spatially structured component of molecule */
+  MOL_SS,        /* spatially structured molecule */
+  MOL_COMP_SS,   /* spatially structured component of molecule */
   OBJ,           /* meta-object */
   RPAT,          /* release pattern */
   REG,           /* object region */
