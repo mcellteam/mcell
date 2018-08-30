@@ -44,6 +44,7 @@ Once chocolatey is installed, open up a new PowerShell terminal as an
 Administrator, and run the following commands:
 
     choco install -y git
+    choco install -y python3
     choco install -y cmake
     choco install -y ninja
     choco install -y msys2
@@ -63,7 +64,14 @@ MSYS2 terminal, enter the following commands:
                     mingw-w64-i686-cmake mingw-w64-x86_64-cmake
     pacman -Sy mingw-w64-i686-boost mingw-w64-x86_64-boost
 
-You may have to explicitly add some of the executables to your path.
+Add CMake and MinGW64 to your [Windows PATH Environment
+Variable](https://helpdeskgeek.com/windows-10/add-windows-path-environment-variable/).
+If you have installed these dependencies with Chocolatey and your top level
+drive is named `C:`, you can append (or prepend) the following paths into your
+Windows PATH:
+
+    C:\tools\msys64\mingw64\bin
+    C:\Program Files\CMake\bin
 
 ## Building MCell Executable from Source (OSX, Linux, Windows)
 
