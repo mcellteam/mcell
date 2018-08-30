@@ -87,7 +87,6 @@ set(SOURCE_FILES
     src/isaac64.h
     src/logging.c
     src/logging.h
-    src/mcell.c
     src/mcell_dyngeom.c
     src/mcell_dyngeom.h
     src/mcell_init.c
@@ -275,13 +274,13 @@ target_link_libraries(mcell ${M_LIB})
 TARGET_COMPILE_DEFINITIONS(mcell PRIVATE NOSWIG=1)
 
 # build little libmcell test
-#add_executable(libmcell_test
-#  ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h
-#  ${SOURCE_FILES}
-#  src/libmcell_test.c
-#  ${BISON_mdlParser_OUTPUTS}
-#  ${FLEX_mdlScanner_OUTPUTS})
-#target_link_libraries(libmcell_test ${M_LIB})
+add_executable(libmcell_test
+  ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h
+  ${SOURCE_FILES}
+  src/libmcell_test.c
+  ${BISON_mdlParser_OUTPUTS}
+  ${FLEX_mdlScanner_OUTPUTS})
+target_link_libraries(libmcell_test ${M_LIB} nfsim_c NFsim)
 
 # build nfsim and nfsimCInterface before trying to build MCell
 add_custom_target(
