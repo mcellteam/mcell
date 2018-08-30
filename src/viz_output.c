@@ -437,6 +437,15 @@ typedef struct external_mol_viz_by_name_struct {
   struct external_mol_viz_by_name_struct *next_name;
 } external_mol_viz_by_name;
 
+/* BEGIN TEMP - TODO: REMOVE */
+typedef struct saved_graph_pattern_struct {
+  char *pattern;
+  struct saved_graph_pattern_struct *next_pattern;
+} saved_graph_pattern;
+
+static saved_graph_pattern* saved_pattern_list = NULL;
+/* END TEMP - TODO: REMOVE */
+
 
 /************************************************************************
 output_cellblender_molecules:
@@ -732,6 +741,45 @@ static int output_cellblender_molecules(struct volume *world,
           /* The graph pattern will be something like: */
           /*    c:SH2~NO_STATE!5,c:U~NO_STATE!5!3,c:a~NO_STATE!6,c:b~Y!6!1,c:g~Y!6,m:Lyn@PM!0!1,m:Rec@PM!2!3!4, */
           char *next_mol = amp->graph_data->graph_pattern;
+
+/* BEGIN TEST - TODO: REMOVE */
+          int saved = 0;
+          saved_graph_pattern *next_saved_pattern;
+          next_saved_pattern = saved_pattern_list;
+          while (next_saved_pattern != NULL) {
+            if (strcmp(next_mol,next_saved_pattern->pattern)==0) {
+              saved = 1;
+              break;
+            }
+            next_saved_pattern = next_saved_pattern->next_pattern;
+          }
+          if (saved == 0) {
+            // This pattern has not been saved yet, so print it and save it
+            saved_graph_pattern *new_saved_pattern;
+            new_saved_pattern = (saved_graph_pattern *) malloc ( sizeof(saved_graph_pattern) );
+            new_saved_pattern->pattern = (char *) malloc ( strlen(next_mol)+1 );
+            strcpy ( new_saved_pattern->pattern, next_mol );
+            new_saved_pattern->next_pattern = saved_pattern_list;
+            saved_pattern_list = new_saved_pattern;
+            fprintf ( stdout, "#=# Graph Pattern: %s\n", next_mol );
+            // Parse the graph pattern
+            
+            // This code assumes that the graph pattern ends with a comma
+            char *first, *last;
+            first = next_mol;
+            last = strchr ( first, ',' );
+            int part_num = 0;
+            while (last != NULL) {
+              *last = '\0';
+              fprintf ( stdout, "  Graph Part %d: %s\n", part_num, first );
+              *last = ',';
+              first = last+1;
+              last = strchr ( first, ',' );
+              part_num++;
+            }
+          }
+/* END TEST - TODO: REMOVE */
+
           while ((next_mol = strstr(next_mol,"m:")) != NULL ) {
             /* Pull the next actual molecule name out of the graph pattern */
             char *end_mol = strpbrk ( next_mol, "@!,(~" );
