@@ -67,13 +67,12 @@ You may have to explicitly add some of the executables to your path.
 
 ## Building MCell Executable from Source (OSX, Linux, Windows)
 
-Open a terminal (PowerShell for Windows users) and clone the repo and checkout
-the appropriate branch:
+Open a terminal (non-Administrator PowerShell for Windows users), clone the
+repo and checkout the appropriate branch:
 
     git clone https://github.com/mcellteam/mcell
     cd mcell
     git checkout nfsim_dynamic_meshes_pymcell
-
 
 ### CMake
 
@@ -82,15 +81,17 @@ If this is your first time cloning the repo, you'll want to do this first:
     git submodule init
     git submodule update
 
-To build MCell and pyMCell for Mac or Linux, run the following commands from
-the main mcell directory:
+Next create your build directory and change into it:
 
     mkdir build
     cd build
+
+#### OSX and Linux
+
     cmake ..
     make
 
-If you're building on Windows with Ninja, change the last two steps to this:
+#### Windows
 
     cmake -G Ninja ..
     ninja
