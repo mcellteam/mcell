@@ -40,8 +40,6 @@ Install the package manager chocolatey from https://chocolatey.org/install.
 Follow the instructions listed on that page, which will have you copy a command
 into PowerShell as an Administrator.
 
-#It's easiest to get all the dependencies using [chocolatey](https://chocolatey.org/).
-
 Once chocolatey is installed, open up a new PowerShell terminal as an
 Administrator, and run the following commands:
 
@@ -56,7 +54,7 @@ Open a new PowerShell Administrator terminal and enter the following:
 
     msys2
 
-This will open a different MSY2 terminal (not a PowerShell terminal). In this
+This will open a different MSYS2 terminal (not a PowerShell terminal). In this
 MSYS2 terminal, enter the following commands:
 
     pacman -Syuu
@@ -67,7 +65,15 @@ MSYS2 terminal, enter the following commands:
 
 You may have to explicitly add some of the executables to your path.
 
-## Building MCell Executable from Source:
+## Building MCell Executable from Source (OSX, Linux, Windows)
+
+Open a terminal (PowerShell for Windows users) and clone the repo and checkout
+the appropriate branch:
+
+    git clone https://github.com/mcellteam/mcell
+    cd mcell
+    git checkout nfsim_dynamic_meshes_pymcell
+
 
 ### CMake
 
