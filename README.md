@@ -36,17 +36,28 @@ Run the following commands:
 
 ### Windows
 
-It's easiest to get all the dependencies using
-[chocolatey](https://chocolatey.org/). Once chocolatey is installed, open up a
-powershell terminal, and run the following commands:
+Install the package manager chocolatey from https://chocolatey.org/install.
+Follow the instructions listed on that page, which will have you copy a command
+into PowerShell as an Administrator.
 
+#It's easiest to get all the dependencies using [chocolatey](https://chocolatey.org/).
+
+Once chocolatey is installed, open up a new PowerShell terminal as an
+Administrator, and run the following commands:
+
+    choco install -y git
     choco install -y cmake
     choco install -y ninja
     choco install -y msys2
     choco install -y winflexbison
     choco install -y swig
     
-Once you have msys2 installed, run the msys2 command (which will open a different non-Powershell terminal) and execute the following commands:
+Open a new PowerShell Administrator terminal and enter the following:
+
+    msys2
+
+This will open a different MSY2 terminal (not a PowerShell terminal). In this
+MSYS2 terminal, enter the following commands:
 
     pacman -Syuu
     pacman -S --needed base-devel mingw-w64-i686-toolchain mingw-w64-x86_64-toolchain \
