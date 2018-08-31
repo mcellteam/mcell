@@ -72,8 +72,8 @@ queryOptions initializeNFSimQueryForBimolecularReactions(
 
 /**********************************************************************
  *
- * This function creates a queryOptions object for designing an NFSim experiment
- *query
+ * This function creates a queryOptions object for designing an NFSim
+ * experiment query
  *
  * In: The abstract molecule whose nfsim status we are going to verify
  *

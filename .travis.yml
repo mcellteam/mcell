@@ -5,6 +5,10 @@ language: c
 compiler:
   - gcc
   - clang
+# we will end up with four builds from the permutations of the OSes and
+# compilers (i.e. linux w/ gcc, linux w/ clang, osx w/ gcc, osx w/ clang)
+
+# install dependencies (swig, boost, python dev headers)
 before_install: 
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get update; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]]; then sudo apt-get install swig; fi
@@ -14,21 +18,21 @@ before_install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew upgrade python; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew install swig; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew upgrade boost; fi
+
+# build mcell itself
 script: 
   - git submodule init
   - git submodule update
   - mkdir build
   - cd build
   - cmake .. && make
+  # tar up mcell and libraries for distribution via bintray
   - "tar czf mcell-${TRAVIS_OS_NAME}-$CC.tgz mcell lib"
   - cd ..
 
-notifications:
-  slack:
-    secure: oaI4oLUKgpsDD9vfzUTKgMForYaIqUpU3I5ZsyJmDqGQbVp/GABjZfT5/NtLy9LTp9XahVrDQtDFjAJLXL55PqPYH8wIq8hX+KDSL3gIQkHd3E33niPzFU6UDbsl1rm5o49p1boCKgFC8W9sbSKxxS/z3j2jh440Lt842vKQh0U=
-
 env:
   global:
+    # this hashed key is used by coverity, a tool for doing static analysis
     secure: VPWYKTuN++NylNQFML3gEVi5GEy9AWCXPy0fS0ZJRJxz1oMt7roE9suZCUI5Q66hS2rwH+Zn/cOaphc/rSTg/wN8K2AGVpZ2p9IPQeCYnxy/HOh7wxZ/eR140sIoAZr68xRXP4KGpHsWduCDAzMAHQVk27u9Gp91bZeaPDv0eoE=
 
 addons:
@@ -46,6 +50,9 @@ deploy:
   file: "./bintray.json"
   user: jczech
   key:
+    # If you need to regenrate this for some reason, here's what you do:
+    # travis encrypt <YOUR BINTRAY API KEY> --add deploy.key
+    # Get BINTRAY API KEY from https://bintray.com/profile/edit under "API Key" section
     secure: PIaDd9+HTh2R5yMr1V7Cbpry4NB5cefY9j6jQpPJ+tJ73kP4oMOs+fZ288pgiYYskc8clYzVE00pixVmAXIpnzCpTYx7yWTGRA7USwfuFUvUtvu/U2bw0+PJpDyhfO4L3EV5NKuFZCxl+Spr6YrYnFUJtqfPOve5117G8R5dke8=
   skip_cleanup: true
   on:
