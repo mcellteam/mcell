@@ -144,7 +144,7 @@ double compute_pb_factor(double time_unit,
       double t_step = 0.0;
       if ((rx->players[0]->flags & NOT_FREE) == 0) {
         D_tot = rx->get_reactant_diffusion(rx, 0);
-        t_step = rx->get_reactant_time_step(rx,1) * time_unit;
+        t_step = rx->get_reactant_time_step(rx,0) * time_unit;
       } else if ((rx->players[1]->flags & NOT_FREE) == 0) {
         D_tot = rx->get_reactant_diffusion(rx, 1);
         t_step = rx->get_reactant_time_step(rx,1) * time_unit;

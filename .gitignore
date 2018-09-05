@@ -50,3 +50,4 @@ dist
 .mypy_cache
 .ipynb_checkpoints
 sphinx_env
+mcell_venv

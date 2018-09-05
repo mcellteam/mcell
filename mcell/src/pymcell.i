@@ -7,6 +7,7 @@
 // ===========================================================================
 
 %module  pymcell
+%include "typemaps.i"
 
 // This tells SWIG to treat char ** as a special case
 %typemap(in) char ** {
@@ -104,9 +105,21 @@
 
 %pythonbegin %{
 from ctypes import *
+<<<<<<< HEAD:mcell/src/pymcell.i
 from os.path import dirname
 lib1 = cdll.LoadLibrary(dirname(__file__) + '/../libNFsim.so')
 lib2 = cdll.LoadLibrary(dirname(__file__) + '/../libnfsim_c.so')
+=======
+import sys
+if (sys.platform == 'linux'):
+    extension = "so"
+elif (sys.platform == 'darwin'):
+    extension = "dylib"
+elif (sys.platform == 'win32'):
+    extension = "dll"
+lib1 = cdll.LoadLibrary(dirname(__file__) + '/../libNFsim.{0}'.format(extension))
+lib2 = cdll.LoadLibrary(dirname(__file__) + '/../libnfsim_c.{0}'.format(extension))
+>>>>>>> d0f83f69648617018f6769f7851a0ced04a4cfc8:src/pymcell.i
 %}
 
 /*Add functions for user interfacing */

@@ -20,6 +20,7 @@
  * USA.
  *
 ******************************************************************************/
+%include "typemaps.i"
 
 MCELL_STATUS mcell_add_surf_class_properties(
     MCELL_STATE *state,

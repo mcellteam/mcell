@@ -1,5 +1,7 @@
 # MCell
 
+## Overview
+
 MCell (Monte Carlo Cell) development is supported by the NIGMS-funded
 (P41GM103712) National Center for Multiscale Modeling of Biological Systems
 (MMBioS).
@@ -15,6 +17,14 @@ molecules within and between cells—cellular microphysiology.
        src="https://scan.coverity.com/projects/8521/badge.svg"/>
 </a>
 
+## Download Latest Test Builds
+
+These builds are the from the head of this branch and are not guaranteed to be
+stable. Use at your own risk.
+
+* [Linux](https://bintray.com/jczech/mcell/download_file?file_path=mcell-linux-gcc.tgz)
+* [OSX](https://bintray.com/jczech/mcell/download_file?file_path=mcell-osx-gcc.tgz)
+
 ## Build Requirements:
 
 ### Ubuntu 16.04:
@@ -24,7 +34,53 @@ Run the following commands:
     sudo apt-get update
     sudo apt-get install cmake build-essential bison flex python3-dev swig libboost-all-dev
 
-## Building MCell Executable from Source:
+### Windows
+
+Install the package manager chocolatey from https://chocolatey.org/install.
+Follow the instructions listed on that page, which will have you copy a command
+into PowerShell as an Administrator.
+
+Once chocolatey is installed, open up a new PowerShell terminal as an
+Administrator, and run the following commands:
+
+    choco install -y git
+    choco install -y python3
+    choco install -y cmake
+    choco install -y ninja
+    choco install -y msys2
+    choco install -y winflexbison
+    choco install -y swig
+    
+Open a new PowerShell Administrator terminal and enter the following:
+
+    msys2
+
+This will open a different MSYS2 terminal (not a PowerShell terminal). In this
+MSYS2 terminal, enter the following commands:
+
+    pacman -Syuu
+    pacman -S --needed base-devel mingw-w64-i686-toolchain mingw-w64-x86_64-toolchain \
+                    git subversion mercurial \
+                    mingw-w64-i686-cmake mingw-w64-x86_64-cmake
+    pacman -Sy mingw-w64-i686-boost mingw-w64-x86_64-boost
+
+Add CMake and MinGW64 to your [Windows PATH Environment
+Variable](https://helpdeskgeek.com/windows-10/add-windows-path-environment-variable/).
+If you have installed these dependencies with Chocolatey and your top level
+drive is named `C:`, you can append (or prepend) the following paths into your
+Windows PATH:
+
+    C:\tools\msys64\mingw64\bin
+    C:\Program Files\CMake\bin
+
+## Building MCell Executable from Source (OSX, Linux, Windows)
+
+Open a terminal (non-Administrator PowerShell for Windows users), clone the
+repo and checkout the appropriate branch:
+
+    git clone https://github.com/mcellteam/mcell
+    cd mcell
+    git checkout nfsim_dynamic_meshes_pymcell
 
 ### CMake
 
@@ -33,17 +89,22 @@ If this is your first time cloning the repo, you'll want to do this first:
     git submodule init
     git submodule update
 
-To build MCell and pyMCell for Macs or Linux, run the following commands from
-the main mcell directory:
+Next create your build directory and change into it:
 
     mkdir build
     cd build
+
+#### OSX and Linux
+
     cmake ..
     make
 
-See the [Windows
-Development](https://github.com/mcellteam/mcell/wiki/Windows-Development) page
-on the github wiki for information about building MCell on Windows.
+#### Windows
+
+    cmake -G Ninja ..
+    ninja
+
+Note: pyMCell does not currently build on Windows.
 
 ## Alternative (non-CMake) Method to Build pyMCell:
 
@@ -52,10 +113,24 @@ traditional CMake method above or this distutils based method, which requires
 swig and a newer version of Python 3 (preferably 3.5 or greater). Run the
 following command:
 
-  python3 setupy.py build
+    python3 setupy.py build
 
 ## How to Test:
+
+### Testing with nutmeg
 
 [nutmeg](https://github.com/mcellteam/nutmeg) is a regression test
 framework for MCell. Installation and usage instructions are listed on the
 nutmeg project page.
+
+### Testing MCellR
+
+MCellR testing hasn't been incorporated into nutmeg yet, but you can test
+MCellR functionality directly after building MCell. Simply run the following
+commands (starting at the top level of the "mcell" project directory):
+
+    python3 -m venv mcell_venv
+    source mcell_venv/bin/activate
+    pip install -r requirements.txt
+    cd build
+    python mdlr2mdl.py -ni ./fceri_files/fceri.mdlr -o ./fceri_files/fceri -r

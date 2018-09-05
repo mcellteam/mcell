@@ -20,6 +20,8 @@
  * USA.
  *
 ******************************************************************************/
+%include "typemaps.i"
+
 struct object_creation {
   struct name_list *object_name_list;
   struct name_list *object_name_list_end;

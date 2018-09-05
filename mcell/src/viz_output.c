@@ -732,6 +732,7 @@ static int output_cellblender_molecules(struct volume *world,
           /* The graph pattern will be something like: */
           /*    c:SH2~NO_STATE!5,c:U~NO_STATE!5!3,c:a~NO_STATE!6,c:b~Y!6!1,c:g~Y!6,m:Lyn@PM!0!1,m:Rec@PM!2!3!4, */
           char *next_mol = amp->graph_data->graph_pattern;
+          /* fprintf ( stdout, "### Graph Pattern: %s\n", next_mol ); */
           while ((next_mol = strstr(next_mol,"m:")) != NULL ) {
             /* Pull the next actual molecule name out of the graph pattern */
             char *end_mol = strpbrk ( next_mol, "@!,(~" );

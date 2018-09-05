@@ -206,6 +206,7 @@ mcell_init_simulation(MCELL_STATE *state) {
 
   CHECKED_CALL(init_releases(state->releaser), "Error while initializing release sites.");
 
+  // Only used with dynamic geometries
   CHECKED_CALL(init_species_mesh_transp(state),
                "Error while initializing species-mesh transparency list.");
 

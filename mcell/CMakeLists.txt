@@ -49,17 +49,26 @@ FLEX_TARGET(mdlScanner ${CMAKE_CURRENT_BINARY_DIR}/deps/mdllex.l
 ADD_FLEX_BISON_DEPENDENCY(mdlScanner mdlParser mdllex_l)
 
 # create version.h target
-add_custom_target(
-  version_h
-  COMMAND ${CMAKE_SOURCE_DIR}/src/version.sh > ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h
-  DEPENDS ${CMAKE_SOURCE_DIR}/src/version.sh
-  VERBATIM)
-
-# check for needed libraries
-find_library(M_LIB m)
+if (NOT WIN32)
+  add_custom_target(
+    version_h
+    COMMAND ${CMAKE_SOURCE_DIR}/src/version.sh > ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h
+    DEPENDS ${CMAKE_SOURCE_DIR}/src/version.sh
+    VERBATIM)
+elseif (WIN32)
+  add_custom_target(version_h)
+  add_custom_command(TARGET version_h COMMAND ${CMAKE_COMMAND} -E
+                     copy ${CMAKE_SOURCE_DIR}/appveyor_windows/version.h ${CMAKE_CURRENT_BINARY_DIR}/deps )
+endif()
 
 set(CMAKE_C_FLAGS "-Wall -Wextra -Wshadow -Wno-unused-parameter -D_GNU_SOURCE=1 -O2 -std=c11 ${CMAKE_C_FLAGS}" )
-set(CMAKE_EXE_LINKER_FLAGS ${M_LIB})
+if (NOT WIN32)
+  # check for needed libraries
+  find_library(M_LIB m)
+  set(CMAKE_EXE_LINKER_FLAGS ${M_LIB})
+elseif (WIN32)
+  set(CMAKE_EXE_LINKER_FLAGS "-lm")
+endif()
 
 set(SOURCE_FILES
     src/argparse.c
@@ -91,7 +100,6 @@ set(SOURCE_FILES
     src/isaac64.h
     src/logging.c
     src/logging.h
-    src/mcell.c
     src/mcell_dyngeom.c
     src/mcell_dyngeom.h
     src/mcell_init.c
@@ -178,8 +186,9 @@ INCLUDE_DIRECTORIES(${PYTHON_INCLUDE_PATH})
 
 # INCLUDE_DIRECTORIES("${CMAKE_CURRENT_SOURCE_DIR}/src")
 
-#SET(CMAKE_SWIG_FLAGS "-debug-typemap;-debug-tmsearch;-debug-tmused;-ltypemaps")
-SET(CMAKE_SWIG_FLAGS "-ltypemaps;-py3")
+if (NOT WIN32)
+  FIND_PACKAGE(PythonLibs 3 REQUIRED)
+  INCLUDE_DIRECTORIES(${PYTHON_INCLUDE_PATH})
 
 SET(CMAKE_SWIG_OUTDIR "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/pymcell")
 SET(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/pymcell")
@@ -281,13 +290,13 @@ target_link_libraries(mcell ${M_LIB})
 TARGET_COMPILE_DEFINITIONS(mcell PRIVATE NOSWIG=1)
 
 # build little libmcell test
-#add_executable(libmcell_test
-#  ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h
-#  ${SOURCE_FILES}
-#  src/libmcell_test.c
-#  ${BISON_mdlParser_OUTPUTS}
-#  ${FLEX_mdlScanner_OUTPUTS})
-#target_link_libraries(libmcell_test ${M_LIB})
+add_executable(libmcell_test
+  ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h
+  ${SOURCE_FILES}
+  src/libmcell_test.c
+  ${BISON_mdlParser_OUTPUTS}
+  ${FLEX_mdlScanner_OUTPUTS})
+target_link_libraries(libmcell_test ${M_LIB} nfsim_c NFsim)
 
 # build nfsim and nfsimCInterface before trying to build MCell
 # add_custom_target(

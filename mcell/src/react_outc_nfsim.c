@@ -81,9 +81,9 @@ queryOptions initializeNFSimQueryNoFiring(struct abstract_molecule *am) {
 
 /**********************************************************************
  *
- * This function creates a queryOptions object for designing an NFSim experiment
- *query after a
- * unimolecular reaction fires
+ * This function creates a queryOptions object for designing an NFSim
+ * experiment query after a unimolecular reaction fires.
+ *
  * In: The abstract molecule whose nfsim status we are going to verify
  *
  * Out: the queryOptions object we will use to interact with nfsim
@@ -253,10 +253,8 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn *rx, void *results,
   rx->product_idx[kk] = num_players;
 
   // we will be recreating the players and geometries arrays. this might not be
-  // the most efficient approach
-  // but this is because we don't know the total number of products before each
-  // path is fire individually
-  // in nfsim
+  // the most efficient approach but this is because we don't know the total
+  // number of products before each path is fired individually in nfsim
   // XXX: maybe fire them manually and just get the number of products per path
   // even if we don't store path information?
   if (rx->players != NULL)
@@ -442,7 +440,7 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn *rx, void *results,
     k = rx->product_idx[n_pathway] + rx->n_reactants;
     counter = 0;
     for (counter = 0; counter < rx->product_idx_aux[n_pathway]; counter++) {
-      // XXX: right now we are ignoring recycled species which is inneficient
+      // XXX: right now we are ignoring recycled species which is inefficient
 
       // if (recycled1 == 0 && prod->prod == pathp->reactant1) {
       //  recycled1 = 1;
@@ -669,8 +667,8 @@ int outcome_nfsim(struct volume *world, struct rxn *rx, int path,
     free_reaction_nfsim(rx, path);
     rx->product_idx_aux[path] = -1;
   }
-  // if we don't have previous information about this path then build up the rxn
-  // structure
+  // if we don't have previous information about this path then build up the
+  // rxn structure
 
   if (rx->product_idx_aux[path] == -1) {
 
