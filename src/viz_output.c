@@ -735,7 +735,8 @@ static int output_cellblender_molecules(struct volume *world,
           norm_z = orient * gmp->grid->surface->normal.z;
         }
 
-  
+        float x_offset = 0.0;
+
         if ((amp->properties->flags & EXTERNAL_SPECIES) != 0) {
           /* This is complex molecule, so add a new viz molecule for each molecule in the complex */
           /* The graph pattern will be something like: */
@@ -825,7 +826,7 @@ static int output_cellblender_molecules(struct volume *world,
             /* Set its values */
             new_mol_viz_item->mol_type = mol_type;
 
-            new_mol_viz_item->pos_x = pos_x;
+            new_mol_viz_item->pos_x = pos_x + x_offset;  x_offset += 0.008;
             new_mol_viz_item->pos_y = pos_y;
             new_mol_viz_item->pos_z = pos_z;
 
