@@ -50,11 +50,15 @@ ADD_FLEX_BISON_DEPENDENCY(mdlScanner mdlParser mdllex_l)
 
 # create version.h target
 if (NOT WIN32)
+  add_custom_command(
+      DEPENDS ${CMAKE_SOURCE_DIR}/src/version.sh
+      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h
+      COMMAND ${CMAKE_SOURCE_DIR}/src/version.sh > ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h)
+
   add_custom_target(
-    version_h
-    COMMAND ${CMAKE_SOURCE_DIR}/src/version.sh > ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h
-    DEPENDS ${CMAKE_SOURCE_DIR}/src/version.sh
-    VERBATIM)
+    generateheader ALL
+    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h
+  )
 elseif (WIN32)
   add_custom_target(version_h)
   add_custom_command(TARGET version_h COMMAND ${CMAKE_COMMAND} -E
@@ -251,6 +255,7 @@ if (APPLE)
   SWIG_LINK_LIBRARIES(pymcell ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/../libnfsim_c.dylib ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/../libNFsim.dylib ${PYTHON_LIBRARIES})
 else()
   SWIG_LINK_LIBRARIES(pymcell ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/../libnfsim_c.so ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/../libNFsim.so ${PYTHON_LIBRARIES})
+endif()
 endif()
 
 # copy the pyMCell test scripts into place
