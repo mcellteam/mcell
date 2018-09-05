@@ -1,4 +1,4 @@
-import pymcell as m
+from . import pymcell_helpers as m
 import json
 import pickle
 import logging
@@ -129,9 +129,9 @@ def create_surface_classes_from_dm(
             spec = spec_dict[spec_name]
             sc_enums = {"TRANSPARENT": m.SC.transp , "REFLECTIVE": m.SC.reflect,  "ABSORPTIVE": m.SC.absorb }
             surf_class_type = sc_enums[sc_prop_dm['surf_class_type']]
-            odict = {"'": Orient.up, ",": Orient.down, ";": Orient.mix}
+            odict = {"'": m.Orient.up, ",": m.Orient.down, ";": m.Orient.mix}
             orient = odict[sc_prop_dm['surf_class_orient']]
-            spec_orient = OrientedSpecies(spec, orient)
+            spec_orient = m.OrientedSpecies(spec, orient)
             sc = m.SurfaceClass(surf_class_type, spec_orient, name=sc_name)
             sc_dict[sc_name] = sc
     return sc_dict
@@ -179,8 +179,8 @@ def create_release_sites_from_dm(
         spec = species[spec_name]
         quantity = int(rel_site_dm['quantity'])
         orient = rel_site_dm['orient']
-        odict = {"'": Orient.up, ",": Orient.down, ";": Orient.mix}
-        spec_orient = OrientedSpecies(spec, odict[orient])
+        odict = {"'": m.Orient.up, ",": m.Orient.down, ";": m.Orient.mix}
+        spec_orient = m.OrientedSpecies(spec, odict[orient])
         # XXX: this is really clunky.
         reg = None
         for r in meshobj.regions:

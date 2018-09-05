@@ -7,7 +7,7 @@ SET(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0")
 
 # directories holding flex/bison files and out of source includes.
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/deps)
-include_directories("${CMAKE_SOURCE_DIR}/src" "${CMAKE_CURRENT_BINARY_DIR}/deps" "${CMAKE_SOURCE_DIR}/include")
+include_directories("${CMAKE_SOURCE_DIR}/src" "${CMAKE_CURRENT_BINARY_DIR}/deps" "${CMAKE_SOURCE_DIR}/../nfsim/include" "${CMAKE_SOURCE_DIR}/../nfsimCInterface/src")
 
 # move config.h into place. Unix and Windows have different header files
 if (UNIX)
@@ -28,8 +28,21 @@ find_package(FLEX)
 BISON_TARGET(mdlParser ${CMAKE_SOURCE_DIR}/src/mdlparse.y
   ${CMAKE_CURRENT_BINARY_DIR}/deps/mdlparse.c)
 
-file(COPY ${CMAKE_SOURCE_DIR}/src/mdllex.l DESTINATION
-  ${CMAKE_CURRENT_BINARY_DIR}/deps)
+# we need to hack around the current mdllex.l using sed which is targeted
+# toward autotools' ylwrap and won't work with flex proper
+#set_source_files_properties(mdllex_l PROPERTIES GENERATED true)
+find_program (SED_TOOL NAMES sed)
+if (NOT SED_TOOL)
+  message( FATAL_ERROR "sed not found" )
+endif (NOT SED_TOOL)
+
+
+
+add_custom_command(
+  OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/deps/mdllex.l
+  COMMAND ${SED_TOOL} -e "/^%option outfile/ d" ${CMAKE_SOURCE_DIR}/src/mdllex.l > ${CMAKE_CURRENT_BINARY_DIR}/deps/mdllex.l
+  DEPENDS ${CMAKE_SOURCE_DIR}/src/mdllex.l
+  VERBATIM)
 
 FLEX_TARGET(mdlScanner ${CMAKE_CURRENT_BINARY_DIR}/deps/mdllex.l
   ${CMAKE_CURRENT_BINARY_DIR}/deps/mdlex.c COMPILE_FLAGS -Crema)
@@ -37,11 +50,15 @@ ADD_FLEX_BISON_DEPENDENCY(mdlScanner mdlParser mdllex_l)
 
 # create version.h target
 if (NOT WIN32)
+  add_custom_command(
+      DEPENDS ${CMAKE_SOURCE_DIR}/src/version.sh
+      OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h
+      COMMAND ${CMAKE_SOURCE_DIR}/src/version.sh > ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h)
+
   add_custom_target(
-    version_h
-    COMMAND ${CMAKE_SOURCE_DIR}/src/version.sh > ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h
-    DEPENDS ${CMAKE_SOURCE_DIR}/src/version.sh
-    VERBATIM)
+    generateheader ALL
+    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h
+  )
 elseif (WIN32)
   add_custom_target(version_h)
   add_custom_command(TARGET version_h COMMAND ${CMAKE_COMMAND} -E
@@ -160,106 +177,110 @@ set(SOURCE_FILES
     src/wall_util.c
     src/wall_util.h)
 
-link_directories(${CMAKE_BINARY_DIR}/lib)
-if (UNIX)
-  SET(CMAKE_INSTALL_RPATH "$ORIGIN/./lib")
-  SET(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
-endif()
+link_directories(${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
+# if (UNIX)
+#   SET(CMAKE_INSTALL_RPATH "$ORIGIN/./lib")
+#   SET(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
+# endif()
 FIND_PACKAGE(SWIG REQUIRED)
 INCLUDE(${SWIG_USE_FILE})
 
-INCLUDE_DIRECTORIES("${CMAKE_CURRENT_SOURCE_DIR}/src")
+FIND_PACKAGE(PythonLibs 3 REQUIRED)
+INCLUDE_DIRECTORIES(${PYTHON_INCLUDE_PATH})
+
+# INCLUDE_DIRECTORIES("${CMAKE_CURRENT_SOURCE_DIR}/src")
 
 if (NOT WIN32)
   FIND_PACKAGE(PythonLibs 3 REQUIRED)
   INCLUDE_DIRECTORIES(${PYTHON_INCLUDE_PATH})
 
-  #SET(CMAKE_SWIG_FLAGS "-debug-typemap;-debug-tmsearch;-debug-tmused;-ltypemaps")
-  SET(CMAKE_SWIG_FLAGS "-ltypemaps;-py3")
+SET(CMAKE_SWIG_OUTDIR "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/pymcell")
+SET(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/pymcell")
 
-  SET(CMAKE_SWIG_OUTDIR "${CMAKE_BINARY_DIR}/python")
-  SET(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/python")
-
-  file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/python)
-  SET_SOURCE_FILES_PROPERTIES(src/pymcell.i PROPERTIES C ON)
-  SET_SOURCE_FILES_PROPERTIES(src/pymcell.i PROPERTIES SWIG_FLAGS "-includeall")
-  SWIG_ADD_MODULE(pymcell python
-    src/argparse.c
-    src/chkpt.c
-    src/count_util.c
-    src/diffuse.c
-    src/diffuse_trimol.c
-    src/diffuse_util.c
-    src/dyngeom.c
-    src/dyngeom_lex.c
-    src/dyngeom_parse_extras.c
-    src/dyngeom_yacc.c
-    src/grid_util.c
-    src/hashmap.c
-    src/init.c
-    src/isaac64.c
-    src/logging.c
-    src/mcell_dyngeom.c
-    src/mcell_init.c
-    src/mcell_misc.c
-    src/mcell_objects.c
-    src/mcell_react_out.c
-    src/mcell_reactions.c
-    src/mcell_release.c
-    src/mcell_run.c
-    src/mcell_species.c
-    src/mcell_surfclass.c
-    src/mcell_viz.c
-    src/mem_util.c
-    src/nfsim_func.c
-    src/pymcell.i
-    src/react_cond.c
-    src/react_outc.c
-    src/react_outc_nfsim.c
-    src/react_outc_trimol.c
-    src/react_output.c
-    src/react_trig.c
-    src/react_trig_nfsim.c
-    src/react_util.c
-    src/react_util_nfsim.c
-    src/rng.c
-    src/sched_util.c
-    src/strfunc.c
-    src/sym_table.c
-    src/triangle_overlap.c
-    src/util.c
-    src/vector.c
-    src/version_info.c
-    src/viz_output.c
-    src/vol_util.c
-    src/volume_output.c
-    src/wall_util.c)
-  if (APPLE)
-    SWIG_LINK_LIBRARIES(pymcell ${CMAKE_CURRENT_BINARY_DIR}/lib/libnfsim_c.dylib ${CMAKE_CURRENT_BINARY_DIR}/lib/libNFsim.dylib ${PYTHON_LIBRARIES})
-  else()
-    SWIG_LINK_LIBRARIES(pymcell ${CMAKE_CURRENT_BINARY_DIR}/lib/libnfsim_c.so ${CMAKE_CURRENT_BINARY_DIR}/lib/libNFsim.so ${PYTHON_LIBRARIES})
-  endif()
-
-  # copy the pyMCell test scripts into place
-  file(GLOB PYMCELL_EXAMPLES "${CMAKE_SOURCE_DIR}/src/pymcell_examples/*")
-  file(COPY ${PYMCELL_EXAMPLES} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python/)
-
-  file(COPY ${CMAKE_SOURCE_DIR}/src/pymcell_unittests.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python/)
+file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/python)
+SET_SOURCE_FILES_PROPERTIES(src/pymcell.i PROPERTIES C ON)
+SET_SOURCE_FILES_PROPERTIES(src/pymcell.i PROPERTIES SWIG_FLAGS "-includeall")
+swig_add_library(pymcell LANGUAGE python SOURCES src/pymcell.i
+  src/argparse.c
+  src/chkpt.c
+  src/count_util.c
+  src/diffuse.c
+  src/diffuse_trimol.c
+  src/diffuse_util.c
+  src/dyngeom.c
+  src/dyngeom_lex.c
+  src/dyngeom_parse_extras.c
+  src/dyngeom_yacc.c
+  src/grid_util.c
+  src/hashmap.c
+  src/init.c
+  src/isaac64.c
+  src/logging.c
+  src/mcell_dyngeom.c
+  src/mcell_init.c
+  src/mcell_misc.c
+  src/mcell_objects.c
+  src/mcell_react_out.c
+  src/mcell_reactions.c
+  src/mcell_release.c
+  src/mcell_run.c
+  src/mcell_species.c
+  src/mcell_surfclass.c
+  src/mcell_viz.c
+  src/mem_util.c
+  src/nfsim_func.c
+  src/react_cond.c
+  src/react_outc.c
+  src/react_outc_nfsim.c
+  src/react_outc_trimol.c
+  src/react_output.c
+  src/react_trig.c
+  src/react_trig_nfsim.c
+  src/react_util.c
+  src/react_util_nfsim.c
+  src/rng.c
+  src/sched_util.c
+  src/strfunc.c
+  src/sym_table.c
+  src/triangle_overlap.c
+  src/util.c
+  src/vector.c
+  src/version_info.c
+  src/viz_output.c
+  src/vol_util.c
+  src/volume_output.c
+  src/wall_util.c
+)
+if (APPLE)
+  SWIG_LINK_LIBRARIES(pymcell ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/../libnfsim_c.dylib ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/../libNFsim.dylib ${PYTHON_LIBRARIES})
+else()
+  SWIG_LINK_LIBRARIES(pymcell ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/../libnfsim_c.so ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/../libNFsim.so ${PYTHON_LIBRARIES})
+endif()
 endif()
 
-# copy tools for MDLr to MDL
-file(COPY ${CMAKE_SOURCE_DIR}/src/rules_py/ DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+# copy the pyMCell test scripts into place
+# file(GLOB PYMCELL_EXAMPLES "${CMAKE_SOURCE_DIR}/src/pymcell_examples/*")
+# file(COPY ${PYMCELL_EXAMPLES} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python/)
+
+# file(COPY ${CMAKE_SOURCE_DIR}/src/pymcell_unittests.py DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python/)
 
 # copy tools for MDLr to MDL
-file(COPY ${CMAKE_SOURCE_DIR}/bionetgen/bng2/ DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/bng2/)
+# NOTE: this should be in pymcell/__init__.py now
+# file(COPY ${CMAKE_SOURCE_DIR}/../pymcell/rules_py/ DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+
+# copy tools for MDLr to MDL
+file(COPY ${CMAKE_SOURCE_DIR}/../bionetgen/bng2/ DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/bng2/)
 
 # build executable
+link_directories(${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 add_executable(mcell
   ${SOURCE_FILES}
   src/mcell.c
   ${BISON_mdlParser_OUTPUTS}
   ${FLEX_mdlScanner_OUTPUTS})
 target_link_libraries(mcell ${M_LIB} nfsim_c NFsim)
+
+
 
 #set(CMAKE_EXE_LINKER_FLAGS "${M_LIB} -static-libgcc -static-libstdc++")
 
@@ -283,12 +304,11 @@ add_executable(libmcell_test
 target_link_libraries(libmcell_test ${M_LIB} nfsim_c NFsim)
 
 # build nfsim and nfsimCInterface before trying to build MCell
-add_custom_target(
-  build_nfsim
-  COMMAND python ${CMAKE_SOURCE_DIR}/requirements.py)
-add_dependencies(mcell build_nfsim)
-add_dependencies(mcell version_h)
-if (NOT WIN32)
-  add_dependencies(_pymcell build_nfsim)
-  add_dependencies(_pymcell version_h)
-endif()
+# add_custom_target(
+#   build_nfsim
+# #  COMMAND python ${CMAKE_SOURCE_DIR}/requirements.py
+# )
+# add_dependencies(mcell build_nfsim)
+# add_dependencies(_pymcell build_nfsim)
+# add_dependencies(mcell version_h)
+# add_dependencies(_pymcell version_h)

@@ -98,6 +98,7 @@
 #include "mcell_structs.h"
 #include "mcell_dyngeom.h"
 #include "vector.h"
+#include "diffuse.h"
 
 
 %}
@@ -111,13 +112,15 @@ elif (sys.platform == 'darwin'):
     extension = "dylib"
 elif (sys.platform == 'win32'):
     extension = "dll"
-lib1 = cdll.LoadLibrary('../lib/libNFsim.{0}'.format(extension))
-lib2 = cdll.LoadLibrary('../lib/libnfsim_c.{0}'.format(extension))
+from os.path import dirname
+lib1 = cdll.LoadLibrary(dirname(__file__) + '/../libNFsim.{0}'.format(extension))
+lib2 = cdll.LoadLibrary(dirname(__file__) + '/../libnfsim_c.{0}'.format(extension))
 %}
 
 /*Add functions for user interfacing */
-%pythoncode "pymcell_helpers.py"
-%pythoncode "data_model_import.py"
+// moved to separate files
+// %pythoncode "pymcell_helpers.py"
+// %pythoncode "data_model_import.py"
 
 %include "mcell_init.i"
 %include "mcell_misc.i"

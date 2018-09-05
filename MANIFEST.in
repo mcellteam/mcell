@@ -1,4 +1,10 @@
-recursive-include src *.c *.h *.i *.py
+recursive-include mcell/src *
 recursive-include appveyor_windows *.h
-recursive-include include *.h 
-include *.py
+recursive-include include *.h
+
+# make sure to grab everything
+recursive-include nfsim *
+recursive-include nfsimCInterface *
+recursive-include bionetgen/bng2 *
+
+global-include CMakeLists.txt *.cmake
