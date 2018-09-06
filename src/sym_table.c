@@ -523,6 +523,10 @@ struct sym_entry *store_sym(char const *sym, enum symbol_type_t sym_type,
       sp->value = data;
       return sp;
 
+    case VOID_PTR:
+      sp->value = data;
+      return (sp);
+
     default:
       mcell_internal_error("unknown symbol type in symbol table (%d)",
                            sym_type);

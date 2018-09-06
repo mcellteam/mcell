@@ -480,6 +480,7 @@ enum symbol_type_t {
   FSTRM,         /* file stream type for "C"-style file-io in MDL file */
   TMP,           /* temporary place-holder type for assignment statements */
   COUNT_OBJ_PTR, /* a pointer to an output block of given name */
+  VOID_PTR,      /* a void pointer to be managed by code */
 };
 
 /* Count column data types */
