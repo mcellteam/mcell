@@ -37,6 +37,11 @@
 #include <errno.h>
 #include <assert.h>
 
+/*
+#include "isaac64.h"
+#include "rng.h"
+*/
+
 #include "logging.h"
 #include "mcell_structs.h"
 #include "grid_util.h"
@@ -447,7 +452,6 @@ typedef struct external_mol_viz_entry_struct {
 
 static struct sym_table_head *graph_pattern_table = NULL;
 
-
 typedef struct external_molcomp_loc_struct {
   bool is_mol;
   double x, y, z;
@@ -469,13 +473,20 @@ static void dump_molcomp_array ( external_molcomp_loc *molcomp_array, int num_pa
     for (j=0; j<molcomp_array[i].num_peers; j++) {
       fprintf ( stdout, "   [%d]", molcomp_array[i].peers[j] );
     }
-    fprintf ( stdout, "\n" );
+    fprintf ( stdout, "  (%g, %g, %g)\n", molcomp_array[i].x, molcomp_array[i].y, molcomp_array[i].z );
   }
 }
 
 static external_molcomp_loc *build_molcomp_array ( char **graph_strings ) {
   int part_num;
   char *next_part;
+
+  /*
+  if (rng == NULL) {
+    rng = (rng_state *) malloc ( sizeof (struct rng_state) );
+    rng_init ( rng, 12345 );
+  }
+  */
 
   part_num = 0;
   next_part = graph_strings[part_num];
@@ -491,9 +502,10 @@ static external_molcomp_loc *build_molcomp_array ( char **graph_strings ) {
   part_num = 0;
   next_part = graph_strings[part_num];
   while (next_part != NULL) {
-    molcomp_loc_array[part_num].x = 0;
-    molcomp_loc_array[part_num].y = 0;
-    molcomp_loc_array[part_num].z = 0;
+    double scale = 0.008;
+    molcomp_loc_array[part_num].x = scale * (drand48()-0.5) * .70710678118654752440;
+    molcomp_loc_array[part_num].y = scale * (drand48()-0.5) * .70710678118654752440;
+    molcomp_loc_array[part_num].z = scale * (drand48()-0.5) * .70710678118654752440;
     molcomp_loc_array[part_num].graph_string = (char *) malloc ( 1 + strlen(next_part) );
     strcpy ( molcomp_loc_array[part_num].graph_string, next_part );
     if (strstr(next_part,"m:") == next_part) {
@@ -509,6 +521,17 @@ static external_molcomp_loc *build_molcomp_array ( char **graph_strings ) {
         molcomp_loc_array[part_num].name = (char *) malloc ( 1 + strlen(next_part) - 2 );
         strcpy ( molcomp_loc_array[part_num].name, &next_part[2] );
         *end_point = '!';
+      }
+      // Remove any @ portions if they exist
+      char *at_sign = index(molcomp_loc_array[part_num].name, '@');
+      if (at_sign != NULL) {
+        // Make a copy up to that point
+        *at_sign = '\0';
+        char *shorter_name = (char *) malloc ( 1 + strlen(molcomp_loc_array[part_num].name) );
+        strcpy ( shorter_name, molcomp_loc_array[part_num].name );
+        *at_sign = '@';
+        free ( molcomp_loc_array[part_num].name );
+        molcomp_loc_array[part_num].name = shorter_name;
       }
       // Get the molecule's neighbors which should all be components
       molcomp_loc_array[part_num].num_peers = 0;
@@ -969,19 +992,25 @@ static int output_cellblender_molecules(struct volume *world,
               next_part = graph_parts[part_num];
             }
 
-            struct sym_entry *stored_mol = store_sym ( next_mol, VOID_PTR, graph_pattern_table, NULL );
-
-            fprintf ( stdout, "=============== graph_pattern_table ===============\n" );
-            dump_symtab ( graph_pattern_table );
-            fprintf ( stdout, "===================================================\n" );
-
             external_molcomp_loc *molcomp_array = build_molcomp_array ( graph_parts );
 
             fprintf ( stdout, "=============== molcomp_array ===============\n" );
             dump_molcomp_array ( molcomp_array, part_num );
             fprintf ( stdout, "=============================================\n" );
 
+            sp = store_sym ( next_mol, VOID_PTR, graph_pattern_table, molcomp_array );
+
+            fprintf ( stdout, "=============== graph_pattern_table ===============\n" );
+            dump_symtab ( graph_pattern_table );
+            fprintf ( stdout, "===================================================\n" );
+
             free_graph_parts ( graph_parts );
+          }
+
+          external_molcomp_loc *mcl = NULL;
+          if (sp != NULL) {
+            mcl = (external_molcomp_loc *) sp->value;
+            // fprintf ( stdout, "     sp: %s\n", mcl->name );
           }
 
 /* END NEW PROCESSING */
