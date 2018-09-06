@@ -45,6 +45,7 @@
 #include "strfunc.h"
 #include "util.h"
 #include "vol_util.h"
+#include "sym_table.h"
 
 /* Output frame types. */
 static int output_ascii_molecules(struct volume *world,
@@ -437,14 +438,15 @@ typedef struct external_mol_viz_by_name_struct {
   struct external_mol_viz_by_name_struct *next_name;
 } external_mol_viz_by_name;
 
-/* BEGIN TEMP - TODO: REMOVE */
-typedef struct saved_graph_pattern_struct {
-  char *pattern;
-  struct saved_graph_pattern_struct *next_pattern;
-} saved_graph_pattern;
 
-static saved_graph_pattern* saved_pattern_list = NULL;
-/* END TEMP - TODO: REMOVE */
+
+typedef struct external_mol_viz_entry_struct {
+  char *mol_id_string;  /* Typically the NAUTY string (although that will be the key) */
+} external_mol_viz_entry;
+
+
+static struct sym_table_head *graph_pattern_table = NULL;
+
 
 
 /************************************************************************
@@ -744,27 +746,19 @@ static int output_cellblender_molecules(struct volume *world,
           char *next_mol = amp->graph_data->graph_pattern;
 
 /* BEGIN TEST - TODO: REMOVE */
-          int saved = 0;
-          saved_graph_pattern *next_saved_pattern;
-          next_saved_pattern = saved_pattern_list;
-          while (next_saved_pattern != NULL) {
-            if (strcmp(next_mol,next_saved_pattern->pattern)==0) {
-              saved = 1;
-              break;
-            }
-            next_saved_pattern = next_saved_pattern->next_pattern;
+          if (graph_pattern_table == NULL) {
+            graph_pattern_table = init_symtab ( 10 );
           }
-          if (saved == 0) {
-            // This pattern has not been saved yet, so print it and save it
-            saved_graph_pattern *new_saved_pattern;
-            new_saved_pattern = (saved_graph_pattern *) malloc ( sizeof(saved_graph_pattern) );
-            new_saved_pattern->pattern = (char *) malloc ( strlen(next_mol)+1 );
-            strcpy ( new_saved_pattern->pattern, next_mol );
-            new_saved_pattern->next_pattern = saved_pattern_list;
-            saved_pattern_list = new_saved_pattern;
+
+          struct sym_entry *sp;
+          sp = retrieve_sym(next_mol, graph_pattern_table);
+          if (sp == NULL) {
+
+            // This pattern has not been saved yet, so print it, parse it, and save it
+
             fprintf ( stdout, "#=# Graph Pattern: %s\n", next_mol );
+
             // Parse the graph pattern
-            
             // This code assumes that the graph pattern ends with a comma
             char *first, *last;
             first = next_mol;
@@ -778,6 +772,12 @@ static int output_cellblender_molecules(struct volume *world,
               last = strchr ( first, ',' );
               part_num++;
             }
+
+            struct sym_entry *stored_mol = store_sym ( next_mol, VOID_PTR, graph_pattern_table, NULL );
+
+            fprintf ( stdout, "=============== graph_pattern_table ===============\n" );
+            dump_symtab ( graph_pattern_table );
+            fprintf ( stdout, "===================================================\n" );
           }
 /* END TEST - TODO: REMOVE */
 

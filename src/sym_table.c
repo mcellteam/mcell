@@ -404,6 +404,32 @@ static int resize_symtab(struct sym_table_head *hashtab, int size) {
   return 0;
 }
 
+
+/**
+ * dump_symtab:
+ *      Dump the symbol table
+ *
+ *      In:  hashtab: the symbol table
+ *      Out: number of symbols found
+ */
+int dump_symtab(struct sym_table_head *hashtab) {
+  struct sym_entry **entries = hashtab->entries;
+  int n_bins = hashtab->n_bins;
+  int num_total_entries;
+  num_total_entries = 0;
+  for (int i = 0; i < n_bins; ++i) {
+    struct sym_entry *entry;
+    entry = entries[i];
+    while (entry != NULL) {
+      num_total_entries += 1;
+      fprintf ( stdout, "  symtab entry: %s\n", entry->name );
+      entry = entry->next;
+    }
+  }
+  return num_total_entries;
+}
+
+
 /**
  * maybe_grow_symtab:
  *      Possibly grow the symbol table.
