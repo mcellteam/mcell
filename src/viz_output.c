@@ -448,7 +448,96 @@ typedef struct external_mol_viz_entry_struct {
 static struct sym_table_head *graph_pattern_table = NULL;
 
 
-static char **get_graph_parts ( char *nauty_string ) {
+typedef struct external_molcomp_loc_struct {
+  bool is_mol;
+  double x, y, z;
+  char *name;
+  char *graph_string;
+  int num_peers;
+  int *peers;
+} external_molcomp_loc;
+
+static void dump_molcomp_array ( external_molcomp_loc *molcomp_array, int num_parts ) {
+  int i;
+  for (i=0; i<num_parts; i++) {
+    fprintf ( stdout, "molcomp[%d]: %s\n", i, molcomp_array[i].name );
+  }
+}
+
+static external_molcomp_loc *build_molcomp_array ( char **graph_strings ) {
+  int part_num;
+  char *next_part;
+
+  part_num = 0;
+  next_part = graph_strings[part_num];
+  while (next_part != NULL) {
+    part_num++;
+    next_part = graph_strings[part_num];
+  }
+  // Allocate the entire block at once ...
+  external_molcomp_loc *molcomp_loc_array = (external_molcomp_loc *) malloc ( part_num * sizeof(external_molcomp_loc) );
+
+  // Copy the data into the block
+  part_num = 0;
+  next_part = graph_strings[part_num];
+  while (next_part != NULL) {
+    molcomp_loc_array[part_num].x = 0;
+    molcomp_loc_array[part_num].y = 0;
+    molcomp_loc_array[part_num].z = 0;
+    molcomp_loc_array[part_num].graph_string = (char *) malloc ( 1 + strlen(next_part) );
+    strcpy ( molcomp_loc_array[part_num].graph_string, next_part );
+    if (strstr(next_part,"m:") == next_part) {
+      // This is a molecule
+      molcomp_loc_array[part_num].is_mol = 1;
+      // For molecules, the name ends with ! or possibly the end of the string
+      if (index(next_part,'!') == NULL) {
+        molcomp_loc_array[part_num].name = (char *) malloc ( 1 + strlen(next_part) - 2 );
+        strcpy ( molcomp_loc_array[part_num].name, &next_part[2] );
+      } else {
+        char *end_point = index(next_part,'!');
+        *end_point = '\0';
+        molcomp_loc_array[part_num].name = (char *) malloc ( 1 + strlen(next_part) - 2 );
+        strcpy ( molcomp_loc_array[part_num].name, &next_part[2] );
+        *end_point = '!';
+      }
+    } else {
+      // This is a component
+      molcomp_loc_array[part_num].is_mol = 0;
+      // For components, the name ends with ~ or ! or possibly the end of the string
+      char *first_exc = index(next_part,'!');
+      char *first_til = index(next_part,'~');
+      char *end_point;
+      if ( (first_exc != NULL) && (first_til != NULL) ) {
+        // Use whichever comes first
+        if (first_exc < first_til) {
+          end_point = first_exc;
+        } else {
+          end_point = first_til;
+        }
+      } else if (first_exc != NULL) {
+        // Name ends at exc
+        end_point = first_exc;
+      } else if (first_til != NULL) {
+        // Name ends at til
+        end_point = first_til;
+      } else {
+        // Name ends at end of string
+        end_point = index(next_part,'\0');
+      }
+      char previous_end = *end_point;
+      *end_point = '\0';
+      molcomp_loc_array[part_num].name = (char *) malloc ( 1 + strlen(next_part) - 2 );
+      strcpy ( molcomp_loc_array[part_num].name, &next_part[2] );
+      *end_point = previous_end;
+    }
+    part_num++;
+    next_part = graph_strings[part_num];
+  }
+  return molcomp_loc_array;
+}
+
+
+static char **get_graph_strings ( char *nauty_string ) {
   // Parse the graph pattern
   // This code assumes that the graph pattern ends with a comma!!
   int num_parts;
@@ -488,6 +577,8 @@ static char **get_graph_parts ( char *nauty_string ) {
 
   return graph_parts;
 }
+
+
 
 static void free_graph_parts ( char **graph_parts ) {
   if (graph_parts != NULL) {
@@ -798,38 +889,47 @@ static int output_cellblender_molecules(struct volume *world,
           /*    c:SH2~NO_STATE!5,c:U~NO_STATE!5!3,c:a~NO_STATE!6,c:b~Y!6!1,c:g~Y!6,m:Lyn@PM!0!1,m:Rec@PM!2!3!4, */
           char *next_mol = amp->graph_data->graph_pattern;
 
-/* BEGIN TEST - TODO: REMOVE */
+/* BEGIN NEW PROCESSING */
+
           if (graph_pattern_table == NULL) {
             graph_pattern_table = init_symtab ( 10 );
           }
 
           struct sym_entry *sp;
           sp = retrieve_sym(next_mol, graph_pattern_table);
+
           if (sp == NULL) {
 
-            // This pattern has not been saved yet, so print it, parse it, and save it
+            // This pattern has not been saved yet, so parse it, print it, and save it
+
+            char **graph_parts = get_graph_strings ( next_mol );
 
             fprintf ( stdout, "#=# Graph Pattern: %s\n", next_mol );
-
-            char **graph_parts = get_graph_parts ( next_mol );
 
             int part_num = 0;
             char *next_part = graph_parts[part_num];
             while (next_part != NULL) {
-              fprintf ( stdout, "    Graph Part %d: %s\n", part_num, next_part );
+              fprintf ( stdout, "  Graph Part %d: %s\n", part_num, next_part );
               part_num++;
               next_part = graph_parts[part_num];
             }
-
-            free_graph_parts ( graph_parts );
 
             struct sym_entry *stored_mol = store_sym ( next_mol, VOID_PTR, graph_pattern_table, NULL );
 
             fprintf ( stdout, "=============== graph_pattern_table ===============\n" );
             dump_symtab ( graph_pattern_table );
             fprintf ( stdout, "===================================================\n" );
+
+            external_molcomp_loc *molcomp_array = build_molcomp_array ( graph_parts );
+
+            fprintf ( stdout, "=============== molcomp_array ===============\n" );
+            dump_molcomp_array ( molcomp_array, part_num );
+            fprintf ( stdout, "=============================================\n" );
+
+            free_graph_parts ( graph_parts );
           }
-/* END TEST - TODO: REMOVE */
+
+/* END NEW PROCESSING */
 
           while ((next_mol = strstr(next_mol,"m:")) != NULL ) {
             /* Pull the next actual molecule name out of the graph pattern */
