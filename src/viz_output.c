@@ -458,9 +458,18 @@ typedef struct external_molcomp_loc_struct {
 } external_molcomp_loc;
 
 static void dump_molcomp_array ( external_molcomp_loc *molcomp_array, int num_parts ) {
-  int i;
+  int i, j;
   for (i=0; i<num_parts; i++) {
-    fprintf ( stdout, "molcomp[%d]: %s\n", i, molcomp_array[i].name );
+    if (molcomp_array[i].is_mol) {
+      fprintf ( stdout, "m" );
+    } else {
+      fprintf ( stdout, "c" );
+    }
+    fprintf ( stdout, "[%d]: %s", i, molcomp_array[i].name );
+    for (j=0; j<molcomp_array[i].num_peers; j++) {
+      fprintf ( stdout, "   [%d]", molcomp_array[i].peers[j] );
+    }
+    fprintf ( stdout, "\n" );
   }
 }
 
@@ -474,6 +483,7 @@ static external_molcomp_loc *build_molcomp_array ( char **graph_strings ) {
     part_num++;
     next_part = graph_strings[part_num];
   }
+
   // Allocate the entire block at once ...
   external_molcomp_loc *molcomp_loc_array = (external_molcomp_loc *) malloc ( part_num * sizeof(external_molcomp_loc) );
 
@@ -499,6 +509,28 @@ static external_molcomp_loc *build_molcomp_array ( char **graph_strings ) {
         molcomp_loc_array[part_num].name = (char *) malloc ( 1 + strlen(next_part) - 2 );
         strcpy ( molcomp_loc_array[part_num].name, &next_part[2] );
         *end_point = '!';
+      }
+      // Get the molecule's neighbors which should all be components
+      molcomp_loc_array[part_num].num_peers = 0;
+      molcomp_loc_array[part_num].peers = NULL;
+      char *next_excl = index(next_part,'!');
+      while (next_excl != NULL) {
+        molcomp_loc_array[part_num].num_peers++;
+        next_excl++;
+        next_excl = index(next_excl,'!');
+      }
+      if (molcomp_loc_array[part_num].num_peers > 0) {
+        molcomp_loc_array[part_num].peers = (int *) malloc ( molcomp_loc_array[part_num].num_peers * sizeof(int) );
+        next_excl = index(next_part,'!');
+        int peer_num = 0;
+        int comp_index;
+        while (next_excl != NULL) {
+          next_excl++;
+          comp_index = atoi(next_excl);
+          molcomp_loc_array[part_num].peers[peer_num] = comp_index;
+          peer_num++;
+          next_excl = index(next_excl,'!');
+        }
       }
     } else {
       // This is a component
@@ -529,6 +561,29 @@ static external_molcomp_loc *build_molcomp_array ( char **graph_strings ) {
       molcomp_loc_array[part_num].name = (char *) malloc ( 1 + strlen(next_part) - 2 );
       strcpy ( molcomp_loc_array[part_num].name, &next_part[2] );
       *end_point = previous_end;
+
+      // Get the component's neighbors (the first will be the molecule)
+      molcomp_loc_array[part_num].num_peers = 0;
+      molcomp_loc_array[part_num].peers = NULL;
+      char *next_excl = index(next_part,'!');
+      while (next_excl != NULL) {
+        molcomp_loc_array[part_num].num_peers++;
+        next_excl++;
+        next_excl = index(next_excl,'!');
+      }
+      if (molcomp_loc_array[part_num].num_peers > 0) {
+        molcomp_loc_array[part_num].peers = (int *) malloc ( molcomp_loc_array[part_num].num_peers * sizeof(int) );
+        next_excl = index(next_part,'!');
+        int peer_num = 0;
+        int comp_index;
+        while (next_excl != NULL) {
+          next_excl++;
+          comp_index = atoi(next_excl);
+          molcomp_loc_array[part_num].peers[peer_num] = comp_index;
+          peer_num++;
+          next_excl = index(next_excl,'!');
+        }
+      }
     }
     part_num++;
     next_part = graph_strings[part_num];
