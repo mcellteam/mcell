@@ -448,6 +448,59 @@ typedef struct external_mol_viz_entry_struct {
 static struct sym_table_head *graph_pattern_table = NULL;
 
 
+static char **get_graph_parts ( char *nauty_string ) {
+  // Parse the graph pattern
+  // This code assumes that the graph pattern ends with a comma!!
+  int num_parts;
+  int part_num;
+  char **graph_parts;
+  char *first, *last;
+
+  // Start by just counting the parts
+  part_num = 0;
+  first = nauty_string;
+  last = strchr ( first, ',' );
+  while (last != NULL) {
+    first = last+1;
+    last = strchr ( first, ',' );
+    part_num++;
+  }
+  num_parts = part_num;
+
+  // Allocate the array and mark the end
+  graph_parts = (char **) malloc ( (num_parts+1) * sizeof(char *) );
+  graph_parts[num_parts] = NULL; // Marks the end of the "list"
+
+  // Copy the parts into the array of strings
+  part_num = 0;
+  first = nauty_string;
+  last = strchr ( first, ',' );
+  while (last != NULL) {
+    *last = '\0';
+    char *s = (char *) malloc ( strlen(first) + 1 );
+    strcpy ( s, first );
+    graph_parts[part_num] = s;
+    *last = ',';
+    first = last+1;
+    last = strchr ( first, ',' );
+    part_num++;
+  }
+
+  return graph_parts;
+}
+
+static void free_graph_parts ( char **graph_parts ) {
+  if (graph_parts != NULL) {
+    int part_num = 0;
+    char *next_part = graph_parts[part_num];
+    while (next_part != NULL) {
+      free ( next_part );
+      part_num++;
+      next_part = graph_parts[part_num];
+    }
+    free ( graph_parts );
+  }
+}
 
 /************************************************************************
 output_cellblender_molecules:
@@ -758,20 +811,17 @@ static int output_cellblender_molecules(struct volume *world,
 
             fprintf ( stdout, "#=# Graph Pattern: %s\n", next_mol );
 
-            // Parse the graph pattern
-            // This code assumes that the graph pattern ends with a comma
-            char *first, *last;
-            first = next_mol;
-            last = strchr ( first, ',' );
+            char **graph_parts = get_graph_parts ( next_mol );
+
             int part_num = 0;
-            while (last != NULL) {
-              *last = '\0';
-              fprintf ( stdout, "  Graph Part %d: %s\n", part_num, first );
-              *last = ',';
-              first = last+1;
-              last = strchr ( first, ',' );
+            char *next_part = graph_parts[part_num];
+            while (next_part != NULL) {
+              fprintf ( stdout, "    Graph Part %d: %s\n", part_num, next_part );
               part_num++;
+              next_part = graph_parts[part_num];
             }
+
+            free_graph_parts ( graph_parts );
 
             struct sym_entry *stored_mol = store_sym ( next_mol, VOID_PTR, graph_pattern_table, NULL );
 
