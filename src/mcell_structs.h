@@ -469,8 +469,8 @@ enum symbol_type_t {
   RX,            /* chemical reaction */
   RXPN,          /* name of chemical reaction */
   MOL,           /* molecule or surface class type (i.e. species) */
-  MOL_SS     /* spatially structured molecule */
-  MOL_COMP_SS /* spatially structured component of molecule */
+  MOL_SS,        /* spatially structured molecule */
+  MOL_COMP_SS,   /* spatially structured component of molecule */
   OBJ,           /* meta-object */
   RPAT,          /* release pattern */
   REG,           /* object region */
@@ -481,6 +481,8 @@ enum symbol_type_t {
   TMP,           /* temporary place-holder type for assignment statements */
   COUNT_OBJ_PTR, /* a pointer to an output block of given name */
 };
+
+#define MOL_COMP_SS_SYM_TABLE_SIZE 8
 
 /* Count column data types */
 enum count_type_t {
@@ -820,6 +822,7 @@ struct surface_molecule {
 };
 
 struct mol_ss {
+  struct sym_entry *sym;
   struct sym_table_head *mol_comp_ss_sym_table;
 };
 
@@ -827,6 +830,7 @@ struct mol_comp_ss {
 //  struct vector3 loc;
 //  struct vector3 axis;
 //  double angle;
+  struct sym_entry *sym;
   double t_matrix[4][4];
 };
 

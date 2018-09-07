@@ -420,6 +420,11 @@ int init_data_structures(struct volume *world) {
     return 1;
   }
 
+  if ((world->mol_ss_sym_table = init_symtab(1024)) == NULL) {
+    mcell_allocfailed_nodie("Failed to initialize symbol table for spatially structured molecules.");
+    return 1;
+  }
+
   if ((world->rxn_sym_table = init_symtab(1024)) == NULL) {
     mcell_allocfailed_nodie("Failed to initialize symbol table for reactions.");
     return 1;

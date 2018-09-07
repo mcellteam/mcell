@@ -801,6 +801,35 @@ struct mcell_species_spec *mdl_create_species(struct mdlparse_vars *parse_state,
                                               double max_step_length,
                                               int external_molecule);
 
+
+/****************************************************************
+ * BNGL Molecule Spatial Structure
+ ***************************************************************/
+
+/* Create a new BNGL molecule symbol.  There must not yet be a BNGL molecule
+ * with the supplied name. */
+struct sym_entry *mdl_new_bngl_molecule(struct mdlparse_vars *parse_state,
+                                      char *name);
+
+/* Create a new BNGL component symbol.  There must not yet be a BNGL component
+ * with the supplied name associated with the BNGL molecule. */
+struct sym_entry *mdl_new_bngl_component(struct mdlparse_vars *parse_state,
+                                      struct sym_entry *bngl_mol_sym,
+                                      char *component_name);
+
+
+/* Set Transformation Matrix of BNGL component. */
+void mdl_set_bngl_component_tform(struct mdlparse_vars *parse_state,
+                                      struct sym_entry *bngl_comp_sym,
+                                      double loc_x,
+                                      double loc_y,
+                                      double loc_z,
+                                      double rot_axis_x,
+                                      double rot_axis_y,
+                                      double rot_axis_z,
+                                      double rot_angle);
+
+
 /****************************************************************
  * Reactions, surface classes
  ***************************************************************/

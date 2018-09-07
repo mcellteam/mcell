@@ -165,6 +165,12 @@ struct mdlparse_vars {
   /* Current region object being created or modified */
   struct region *current_region;
 
+  /* Current bngl_molecule being created or modified */
+  struct sym_entry *current_bngl_molecule;
+
+  /* Current bngl_component being created or modified */
+  struct sym_entry *current_bngl_component;
+
   /* --------------------------------------------- */
   /* Intermediate state for counting */
 
