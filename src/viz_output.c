@@ -37,6 +37,11 @@
 #include <errno.h>
 #include <assert.h>
 
+/*
+#include "isaac64.h"
+#include "rng.h"
+*/
+
 #include "logging.h"
 #include "mcell_structs.h"
 #include "grid_util.h"
@@ -45,6 +50,7 @@
 #include "strfunc.h"
 #include "util.h"
 #include "vol_util.h"
+#include "sym_table.h"
 
 /* Output frame types. */
 static int output_ascii_molecules(struct volume *world,
@@ -438,6 +444,252 @@ typedef struct external_mol_viz_by_name_struct {
 } external_mol_viz_by_name;
 
 
+
+typedef struct external_mol_viz_entry_struct {
+  char *mol_id_string;  /* Typically the NAUTY string (although that will be the key) */
+} external_mol_viz_entry;
+
+
+static struct sym_table_head *graph_pattern_table = NULL;
+
+typedef struct external_molcomp_loc_struct {
+  bool is_mol;
+  double x, y, z;
+  char *name;
+  char *graph_string;
+  int num_peers;
+  int *peers;
+} external_molcomp_loc;
+
+typedef struct molcomp_list_struct {
+  external_molcomp_loc *molcomp_array;
+  int num_molcomp_items;
+} molcomp_list;
+
+static void dump_molcomp_array ( external_molcomp_loc *molcomp_array, int num_parts ) {
+  int i, j;
+  for (i=0; i<num_parts; i++) {
+    if (molcomp_array[i].is_mol) {
+      fprintf ( stdout, "m" );
+    } else {
+      fprintf ( stdout, "c" );
+    }
+    fprintf ( stdout, "[%d]: %s", i, molcomp_array[i].name );
+    for (j=0; j<molcomp_array[i].num_peers; j++) {
+      fprintf ( stdout, "   [%d]", molcomp_array[i].peers[j] );
+    }
+    fprintf ( stdout, "  (%g, %g, %g)\n", molcomp_array[i].x, molcomp_array[i].y, molcomp_array[i].z );
+  }
+}
+
+static void dump_molcomp_list ( molcomp_list *mcl ) {\
+  dump_molcomp_array ( mcl->molcomp_array, mcl->num_molcomp_items );
+}
+
+static void set_molcomp_positions ( external_molcomp_loc *molcomp_array, int num_parts ) {
+  // Compute positions for all molecules/components in a molcomp_array
+  int i;
+  for (i=0; i<num_parts; i++) {
+    double scale = 0.048;
+    // Temporarily assign random values
+    molcomp_array[i].x = scale * (drand48()-0.5) * .70710678118654752440;
+    molcomp_array[i].y = scale * (drand48()-0.5) * .70710678118654752440;
+    molcomp_array[i].z = scale * (drand48()-0.5) * .70710678118654752440;
+  }
+}
+
+
+static external_molcomp_loc *build_molcomp_array ( char **graph_strings ) {
+  int part_num;
+  char *next_part;
+
+  /* Had trouble using the rng_state mechanism, skip for now
+  if (rng == NULL) {
+    rng = (rng_state *) malloc ( sizeof (struct rng_state) );
+    rng_init ( rng, 12345 );
+  }
+  */
+
+  part_num = 0;
+  next_part = graph_strings[part_num];
+  while (next_part != NULL) {
+    part_num++;
+    next_part = graph_strings[part_num];
+  }
+
+  // Allocate the entire block at once ...
+  external_molcomp_loc *molcomp_loc_array = (external_molcomp_loc *) malloc ( part_num * sizeof(external_molcomp_loc) );
+
+  // Copy the data into the block
+  part_num = 0;
+  next_part = graph_strings[part_num];
+  while (next_part != NULL) {
+    molcomp_loc_array[part_num].graph_string = (char *) malloc ( 1 + strlen(next_part) );
+    strcpy ( molcomp_loc_array[part_num].graph_string, next_part );
+    if (strstr(next_part,"m:") == next_part) {
+      // This is a molecule
+      molcomp_loc_array[part_num].is_mol = 1;
+      // For molecules, the name ends with ! or possibly the end of the string
+      if (index(next_part,'!') == NULL) {
+        molcomp_loc_array[part_num].name = (char *) malloc ( 1 + strlen(next_part) - 2 );
+        strcpy ( molcomp_loc_array[part_num].name, &next_part[2] );
+      } else {
+        char *end_point = index(next_part,'!');
+        *end_point = '\0';
+        molcomp_loc_array[part_num].name = (char *) malloc ( 1 + strlen(next_part) - 2 );
+        strcpy ( molcomp_loc_array[part_num].name, &next_part[2] );
+        *end_point = '!';
+      }
+      // Remove any @ portions if they exist
+      char *at_sign = index(molcomp_loc_array[part_num].name, '@');
+      if (at_sign != NULL) {
+        // Make a copy up to that point
+        *at_sign = '\0';
+        char *shorter_name = (char *) malloc ( 1 + strlen(molcomp_loc_array[part_num].name) );
+        strcpy ( shorter_name, molcomp_loc_array[part_num].name );
+        *at_sign = '@';
+        free ( molcomp_loc_array[part_num].name );
+        molcomp_loc_array[part_num].name = shorter_name;
+      }
+      // Get the molecule's neighbors which should all be components
+      molcomp_loc_array[part_num].num_peers = 0;
+      molcomp_loc_array[part_num].peers = NULL;
+      char *next_excl = index(next_part,'!');
+      while (next_excl != NULL) {
+        molcomp_loc_array[part_num].num_peers++;
+        next_excl++;
+        next_excl = index(next_excl,'!');
+      }
+      if (molcomp_loc_array[part_num].num_peers > 0) {
+        molcomp_loc_array[part_num].peers = (int *) malloc ( molcomp_loc_array[part_num].num_peers * sizeof(int) );
+        next_excl = index(next_part,'!');
+        int peer_num = 0;
+        int comp_index;
+        while (next_excl != NULL) {
+          next_excl++;
+          comp_index = atoi(next_excl);
+          molcomp_loc_array[part_num].peers[peer_num] = comp_index;
+          peer_num++;
+          next_excl = index(next_excl,'!');
+        }
+      }
+    } else {
+      // This is a component
+      molcomp_loc_array[part_num].is_mol = 0;
+      // For components, the name ends with ~ or ! or possibly the end of the string
+      char *first_exc = index(next_part,'!');
+      char *first_til = index(next_part,'~');
+      char *end_point;
+      if ( (first_exc != NULL) && (first_til != NULL) ) {
+        // Use whichever comes first
+        if (first_exc < first_til) {
+          end_point = first_exc;
+        } else {
+          end_point = first_til;
+        }
+      } else if (first_exc != NULL) {
+        // Name ends at exc
+        end_point = first_exc;
+      } else if (first_til != NULL) {
+        // Name ends at til
+        end_point = first_til;
+      } else {
+        // Name ends at end of string
+        end_point = index(next_part,'\0');
+      }
+      char previous_end = *end_point;
+      *end_point = '\0';
+      molcomp_loc_array[part_num].name = (char *) malloc ( 1 + strlen(next_part) - 2 );
+      strcpy ( molcomp_loc_array[part_num].name, &next_part[2] );
+      *end_point = previous_end;
+
+      // Get the component's neighbors (the first will be the molecule)
+      molcomp_loc_array[part_num].num_peers = 0;
+      molcomp_loc_array[part_num].peers = NULL;
+      char *next_excl = index(next_part,'!');
+      while (next_excl != NULL) {
+        molcomp_loc_array[part_num].num_peers++;
+        next_excl++;
+        next_excl = index(next_excl,'!');
+      }
+      if (molcomp_loc_array[part_num].num_peers > 0) {
+        molcomp_loc_array[part_num].peers = (int *) malloc ( molcomp_loc_array[part_num].num_peers * sizeof(int) );
+        next_excl = index(next_part,'!');
+        int peer_num = 0;
+        int comp_index;
+        while (next_excl != NULL) {
+          next_excl++;
+          comp_index = atoi(next_excl);
+          molcomp_loc_array[part_num].peers[peer_num] = comp_index;
+          peer_num++;
+          next_excl = index(next_excl,'!');
+        }
+      }
+    }
+    part_num++;
+    next_part = graph_strings[part_num];
+  }
+  set_molcomp_positions ( molcomp_loc_array, part_num );
+  return molcomp_loc_array;
+}
+
+
+static char **get_graph_strings ( char *nauty_string ) {
+  // Parse the graph pattern
+  // This code assumes that the graph pattern ends with a comma!!
+  int num_parts;
+  int part_num;
+  char **graph_parts;
+  char *first, *last;
+
+  // Start by just counting the parts
+  part_num = 0;
+  first = nauty_string;
+  last = strchr ( first, ',' );
+  while (last != NULL) {
+    first = last+1;
+    last = strchr ( first, ',' );
+    part_num++;
+  }
+  num_parts = part_num;
+
+  // Allocate the array and mark the end
+  graph_parts = (char **) malloc ( (num_parts+1) * sizeof(char *) );
+  graph_parts[num_parts] = NULL; // Marks the end of the "list"
+
+  // Copy the parts into the array of strings
+  part_num = 0;
+  first = nauty_string;
+  last = strchr ( first, ',' );
+  while (last != NULL) {
+    *last = '\0';
+    char *s = (char *) malloc ( strlen(first) + 1 );
+    strcpy ( s, first );
+    graph_parts[part_num] = s;
+    *last = ',';
+    first = last+1;
+    last = strchr ( first, ',' );
+    part_num++;
+  }
+
+  return graph_parts;
+}
+
+
+
+static void free_graph_parts ( char **graph_parts ) {
+  if (graph_parts != NULL) {
+    int part_num = 0;
+    char *next_part = graph_parts[part_num];
+    while (next_part != NULL) {
+      free ( next_part );
+      part_num++;
+      next_part = graph_parts[part_num];
+    }
+    free ( graph_parts );
+  }
+}
+
 /************************************************************************
 output_cellblender_molecules:
 In: vizblk: VIZ_OUTPUT block for this frame list
@@ -726,71 +978,196 @@ static int output_cellblender_molecules(struct volume *world,
           norm_z = orient * gmp->grid->surface->normal.z;
         }
 
-  
+        float x_offset = 0.0;
+
         if ((amp->properties->flags & EXTERNAL_SPECIES) != 0) {
           /* This is complex molecule, so add a new viz molecule for each molecule in the complex */
           /* The graph pattern will be something like: */
           /*    c:SH2~NO_STATE!5,c:U~NO_STATE!5!3,c:a~NO_STATE!6,c:b~Y!6!1,c:g~Y!6,m:Lyn@PM!0!1,m:Rec@PM!2!3!4, */
           char *next_mol = amp->graph_data->graph_pattern;
-          while ((next_mol = strstr(next_mol,"m:")) != NULL ) {
-            /* Pull the next actual molecule name out of the graph pattern */
-            char *end_mol = strpbrk ( next_mol, "@!,(~" );
-            if (end_mol == NULL) {
-              end_mol = next_mol + strlen(next_mol);
-            }
-            int ext_name_len = end_mol - next_mol;
-            char *ext_name = (char *) malloc ( ext_name_len + 1 );
-            strncpy ( ext_name, next_mol+2, ext_name_len-2 );
-            ext_name[ext_name_len-2] = '\0';
 
-            /* Check to see if this name is already in the list */
-            external_mol_viz_by_name *next_mol_name = mol_name_list;
-            int found = 0;
-            do {
-              if (next_mol_name == NULL) {
-                break;
-              }
-              if (strcmp(ext_name, next_mol_name->mol_name) == 0) {
-                found = 1;
-                break;
-              }
-              next_mol_name = next_mol_name->next_name;
-            } while ( found == 0 );
+/* BEGIN NEW PROCESSING */
 
-            if (found == 0) {
-              /* This molecule name is not in the list, so add a new name to the front */
-              next_mol_name = (external_mol_viz_by_name *) malloc ( sizeof(external_mol_viz_by_name) );
-              next_mol_name->mol_name = ext_name;  /* This takes "ownership" of the allocated name memory */
-              next_mol_name->mol_list = NULL;
-              next_mol_name->next_name = mol_name_list;
-              mol_name_list = next_mol_name;
-            } else {
-              /* This molecule name is already in the list and next_mol_name points to it, so just free the name. */
-              free ( ext_name );
-            }
-
-            /* next_mol_name now points to the list of molecules by this name */
-
-            /* Make a new molecule viz item to store this location */
-						external_mol_viz *new_mol_viz_item = (external_mol_viz *) malloc ( sizeof(external_mol_viz) );
-
-            /* Set its values */
-            new_mol_viz_item->mol_type = mol_type;
-
-            new_mol_viz_item->pos_x = pos_x;
-            new_mol_viz_item->pos_y = pos_y;
-            new_mol_viz_item->pos_z = pos_z;
-
-            new_mol_viz_item->norm_x = norm_x;
-            new_mol_viz_item->norm_y = norm_y;
-            new_mol_viz_item->norm_z = norm_z;
-
-            /* Add it to the top of the molecule list */
-            new_mol_viz_item->next_mol = next_mol_name->mol_list;
-            next_mol_name->mol_list = new_mol_viz_item;
-
-            next_mol += 1;
+          if (graph_pattern_table == NULL) {
+            graph_pattern_table = init_symtab ( 10 );
           }
+
+          struct sym_entry *sp;
+          sp = retrieve_sym(next_mol, graph_pattern_table);
+
+          if (sp == NULL) {
+
+            // This pattern has not been saved yet, so parse it, save it, and print it.
+
+            char **graph_parts = get_graph_strings ( next_mol );
+
+            fprintf ( stdout, "#=# Graph Pattern: %s\n", next_mol );
+
+            int part_num = 0;
+            char *next_part = graph_parts[part_num];
+            while (next_part != NULL) {
+              fprintf ( stdout, "  Graph Part %d: %s\n", part_num, next_part );
+              part_num++;
+              next_part = graph_parts[part_num];
+            }
+
+            external_molcomp_loc *molcomp_array = build_molcomp_array ( graph_parts );
+
+            fprintf ( stdout, "=============== molcomp_array ===============\n" );
+            dump_molcomp_array ( molcomp_array, part_num );
+            fprintf ( stdout, "=============================================\n" );
+
+            molcomp_list *mcl = (molcomp_list *) malloc ( sizeof(molcomp_list) );
+            mcl->molcomp_array = molcomp_array;
+            mcl->num_molcomp_items = part_num;
+
+            fprintf ( stdout, "=============== molcomp_list ===============\n" );
+            dump_molcomp_list ( mcl );
+            fprintf ( stdout, "=============================================\n" );
+
+            sp = store_sym ( next_mol, VOID_PTR, graph_pattern_table, mcl );
+
+            fprintf ( stdout, "=============== graph_pattern_table ===============\n" );
+            dump_symtab ( graph_pattern_table );
+            fprintf ( stdout, "===================================================\n" );
+
+            free_graph_parts ( graph_parts );
+          }
+
+          molcomp_list *mcl = NULL;
+          if (sp != NULL) {
+            mcl = (molcomp_list *) sp->value;
+            // fprintf ( stdout, "     sp: %s\n", mcl->name );
+          }
+
+          if (mcl != NULL) {
+
+            // This should be the normal path
+
+            int part_num;
+
+            for (part_num = 0; part_num<mcl->num_molcomp_items; part_num++) {
+              if (mcl->molcomp_array[part_num].is_mol) {
+                // fprintf ( stdout, "    mcl %s\n", mcl->molcomp_array[part_num].name );
+
+                /* Check to see if this name is already in the mol_name_list */
+                external_mol_viz_by_name *next_mol_name = mol_name_list;
+                int found = 0;
+                do {
+                  if (next_mol_name == NULL) {
+                    break;
+                  }
+                  if (strcmp(mcl->molcomp_array[part_num].name, next_mol_name->mol_name) == 0) {
+                    found = 1;
+                    break;
+                  }
+                  next_mol_name = next_mol_name->next_name;
+                } while ( found == 0 );
+
+                if (found == 0) {
+                  /* This molecule name is not in the list, so add a new name to the front */
+                  char *ext_name = (char *) malloc ( strlen(mcl->molcomp_array[part_num].name) + 1 );
+                  strcpy ( ext_name, mcl->molcomp_array[part_num].name );
+                  next_mol_name = (external_mol_viz_by_name *) malloc ( sizeof(external_mol_viz_by_name) );
+                  next_mol_name->mol_name = ext_name;  /* This takes "ownership" of the allocated name memory */
+                  next_mol_name->mol_list = NULL;
+                  next_mol_name->next_name = mol_name_list;
+                  mol_name_list = next_mol_name;
+                }
+
+                /* next_mol_name now points to the list of molecules by this name */
+
+                /* Make a new molecule viz item to store this location */
+						    external_mol_viz *new_mol_viz_item = (external_mol_viz *) malloc ( sizeof(external_mol_viz) );
+
+                /* Set its values */
+                new_mol_viz_item->mol_type = mol_type;
+
+                new_mol_viz_item->pos_x = pos_x + mcl->molcomp_array[part_num].x;
+                new_mol_viz_item->pos_y = pos_y + mcl->molcomp_array[part_num].y;
+                new_mol_viz_item->pos_z = pos_z + mcl->molcomp_array[part_num].z;
+
+                new_mol_viz_item->norm_x = norm_x;
+                new_mol_viz_item->norm_y = norm_y;
+                new_mol_viz_item->norm_z = norm_z;
+
+                /* Add it to the top of the molecule list */
+                new_mol_viz_item->next_mol = next_mol_name->mol_list;
+                next_mol_name->mol_list = new_mol_viz_item;
+
+                next_mol += 1;
+
+              }
+            }
+
+/* END NEW PROCESSING */
+
+          } else {
+
+            // This should not generally get executed (this was the old way of making mols directly from the NAUTY strings)
+
+            while ((next_mol = strstr(next_mol,"m:")) != NULL ) {
+              /* Pull the next actual molecule name out of the graph pattern */
+              char *end_mol = strpbrk ( next_mol, "@!,(~" );
+              if (end_mol == NULL) {
+                end_mol = next_mol + strlen(next_mol);
+              }
+              int ext_name_len = end_mol - next_mol;
+              char *ext_name = (char *) malloc ( ext_name_len + 1 );
+              strncpy ( ext_name, next_mol+2, ext_name_len-2 );
+              ext_name[ext_name_len-2] = '\0';
+
+              /* Check to see if this name is already in the list */
+              external_mol_viz_by_name *next_mol_name = mol_name_list;
+              int found = 0;
+              do {
+                if (next_mol_name == NULL) {
+                  break;
+                }
+                if (strcmp(ext_name, next_mol_name->mol_name) == 0) {
+                  found = 1;
+                  break;
+                }
+                next_mol_name = next_mol_name->next_name;
+              } while ( found == 0 );
+
+              if (found == 0) {
+                /* This molecule name is not in the list, so add a new name to the front */
+                next_mol_name = (external_mol_viz_by_name *) malloc ( sizeof(external_mol_viz_by_name) );
+                next_mol_name->mol_name = ext_name;  /* This takes "ownership" of the allocated name memory */
+                next_mol_name->mol_list = NULL;
+                next_mol_name->next_name = mol_name_list;
+                mol_name_list = next_mol_name;
+              } else {
+                /* This molecule name is already in the list and next_mol_name points to it, so just free the name. */
+                free ( ext_name );
+              }
+
+              /* next_mol_name now points to the list of molecules by this name */
+
+              /* Make a new molecule viz item to store this location */
+						  external_mol_viz *new_mol_viz_item = (external_mol_viz *) malloc ( sizeof(external_mol_viz) );
+
+              /* Set its values */
+              new_mol_viz_item->mol_type = mol_type;
+
+              new_mol_viz_item->pos_x = pos_x + x_offset;  x_offset += 0.008;
+              new_mol_viz_item->pos_y = pos_y;
+              new_mol_viz_item->pos_z = pos_z;
+
+              new_mol_viz_item->norm_x = norm_x;
+              new_mol_viz_item->norm_y = norm_y;
+              new_mol_viz_item->norm_z = norm_z;
+
+              /* Add it to the top of the molecule list */
+              new_mol_viz_item->next_mol = next_mol_name->mol_list;
+              next_mol_name->mol_list = new_mol_viz_item;
+
+              next_mol += 1;
+            }
+
+          }
+
         }
       }
     }

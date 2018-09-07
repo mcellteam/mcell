@@ -39,6 +39,8 @@ struct rxn_pathname *new_reaction_pathname(void);
 struct region *new_region(void);
 struct file_stream *new_filestream(void);
 
+int dump_symtab(struct sym_table_head *hashtab);
+
 ub4 jenkins_hash(ub1 *sym, ub4 length);
 unsigned long hash(char const *sym);
 struct sym_entry *retrieve_sym(char const *sym, struct sym_table_head *hashtab);
