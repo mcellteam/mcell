@@ -486,11 +486,24 @@ static void dump_molcomp_list ( molcomp_list *mcl ) {\
   dump_molcomp_array ( mcl->molcomp_array, mcl->num_molcomp_items );
 }
 
+static void set_molcomp_positions ( external_molcomp_loc *molcomp_array, int num_parts ) {
+  // Compute positions for all molecules/components in a molcomp_array
+  int i;
+  for (i=0; i<num_parts; i++) {
+    double scale = 0.048;
+    // Temporarily assign random values
+    molcomp_array[i].x = scale * (drand48()-0.5) * .70710678118654752440;
+    molcomp_array[i].y = scale * (drand48()-0.5) * .70710678118654752440;
+    molcomp_array[i].z = scale * (drand48()-0.5) * .70710678118654752440;
+  }
+}
+
+
 static external_molcomp_loc *build_molcomp_array ( char **graph_strings ) {
   int part_num;
   char *next_part;
 
-  /*
+  /* Had trouble using the rng_state mechanism, skip for now
   if (rng == NULL) {
     rng = (rng_state *) malloc ( sizeof (struct rng_state) );
     rng_init ( rng, 12345 );
@@ -511,10 +524,6 @@ static external_molcomp_loc *build_molcomp_array ( char **graph_strings ) {
   part_num = 0;
   next_part = graph_strings[part_num];
   while (next_part != NULL) {
-    double scale = 0.048;
-    molcomp_loc_array[part_num].x = scale * (drand48()-0.5) * .70710678118654752440;
-    molcomp_loc_array[part_num].y = scale * (drand48()-0.5) * .70710678118654752440;
-    molcomp_loc_array[part_num].z = scale * (drand48()-0.5) * .70710678118654752440;
     molcomp_loc_array[part_num].graph_string = (char *) malloc ( 1 + strlen(next_part) );
     strcpy ( molcomp_loc_array[part_num].graph_string, next_part );
     if (strstr(next_part,"m:") == next_part) {
@@ -620,6 +629,7 @@ static external_molcomp_loc *build_molcomp_array ( char **graph_strings ) {
     part_num++;
     next_part = graph_strings[part_num];
   }
+  set_molcomp_positions ( molcomp_loc_array, part_num );
   return molcomp_loc_array;
 }
 
