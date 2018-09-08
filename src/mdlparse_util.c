@@ -7936,6 +7936,112 @@ struct mcell_species_spec *mdl_create_species(struct mdlparse_vars *parse_state,
   return species;
 }
 
+
+/****************************************************************
+ * BNGL Molecules with Spatial Structure
+ ***************************************************************/
+
+/**************************************************************************
+ mdl_new_bngl_molecule:
+   Create a new BNGL molecule symbol.  There must not yet be a BNGL molecule
+    with the supplied name.
+
+ In: parse_state: parser state
+     name: name for the new species
+ Out: symbol for the BNGL molecule, or NULL if an error occurred
+**************************************************************************/
+struct sym_entry *mdl_new_bngl_molecule(struct mdlparse_vars *parse_state,
+                                      char *name)
+{
+
+  struct sym_entry *sym = NULL;
+  if (retrieve_sym(name, parse_state->vol->mol_ss_sym_table) != NULL) {
+    mdlerror_fmt(parse_state, "BNGL Molecule already defined: %s", name);
+    free(name);
+    return NULL;
+  } else if ((sym = store_sym(name, MOL_SS, parse_state->vol->mol_ss_sym_table,
+                              NULL)) == NULL) {
+    mdlerror_fmt(parse_state, "Out of memory while creating molecule: %s",
+                 name);
+    free(name);
+    return NULL;
+  }
+
+  free(name);
+  return sym;
+}
+
+
+/**************************************************************************
+ mdl_new_bngl_component:
+   Create a new BNGL component symbol.  There must not yet be a BNGL component
+    with the supplied name associated with the BNGL molecule.
+
+ In: parse_state: parser state
+     bngl_mol_sym: ptr to symbol entry for a BNGL molecule 
+     component_name: name for the new component to associate with the BNGL molecule
+ Out: symbol for the BNGL component, or NULL if an error occurred
+**************************************************************************/
+struct sym_entry *mdl_new_bngl_component(struct mdlparse_vars *parse_state,
+                                      struct sym_entry *bngl_mol_sym,
+                                      char *component_name)
+{
+  struct sym_entry *sym = NULL;
+  if (retrieve_sym(component_name, ((struct mol_ss *)(bngl_mol_sym->value))->mol_comp_ss_sym_table) != NULL) {
+    mdlerror_fmt(parse_state, "BNGL Molecule component already defined: %s(%s)", bngl_mol_sym->name, component_name);
+    free(component_name);
+    return NULL;
+  } else if ((sym = store_sym(component_name, MOL_COMP_SS, ((struct mol_ss *)(bngl_mol_sym->value))->mol_comp_ss_sym_table, NULL)) == NULL) {
+    mdlerror_fmt(parse_state, "Out of memory while creating BNGL molecule component: %s(%s)", bngl_mol_sym->name, component_name);
+    free(component_name);
+    return NULL;
+  }
+
+  free(component_name);
+  return sym;
+}
+
+
+/**************************************************************************
+ mdl_new_bngl_component:
+   Create a new BNGL component symbol.  There must not yet be a BNGL component
+    with the supplied name associated with the BNGL molecule.
+
+ In: parse_state: parser state
+     bngl_mol_sym: ptr to symbol entry for a BNGL molecule 
+     component_name: name for the new component to associate with the BNGL molecule
+ Out: symbol for the BNGL component, or NULL if an error occurred
+**************************************************************************/
+void mdl_set_bngl_component_tform(struct mdlparse_vars *parse_state,
+                                 struct sym_entry *bngl_comp_sym,
+                                 double loc_x,
+                                 double loc_y,
+                                 double loc_z,
+                                 double rot_axis_x,
+                                 double rot_axis_y,
+                                 double rot_axis_z,
+                                 double rot_angle)
+{
+  struct mol_comp_ss *mol_comp_ssp;
+  struct vector3 scale, translate, axis;
+  double (*tm)[4];
+
+  mol_comp_ssp = (struct mol_comp_ss *)bngl_comp_sym->value;
+  tm = mol_comp_ssp->t_matrix;
+  scale.x = 1.0;
+  scale.y = 1.0;
+  scale.z = 1.0;
+  translate.x = loc_x;
+  translate.y = loc_y;
+  translate.z = loc_z;
+  axis.x = rot_axis_x;
+  axis.y = rot_axis_y;
+  axis.z = rot_axis_z;
+  
+  tform_matrix(&scale, &translate, &axis, rot_angle, tm);
+}
+
+
 /****************************************************************
  * Reactions, surface classes
  ***************************************************************/

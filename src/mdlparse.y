@@ -183,6 +183,7 @@ struct arg_list printfargs;
 %token       CUSTOM_TIME_STEP
 %token       DEFINE_MOLECULE
 %token       DEFINE_MOLECULES
+%token       DEFINE_MOLECULE_STRUCTURES
 %token       DEFINE_REACTIONS
 %token       DEFINE_RELEASE_PATTERN
 %token       DEFINE_SURFACE_CLASS
@@ -250,6 +251,8 @@ struct arg_list printfargs;
 %token       LIFETIME_TOO_SHORT
 %token       LIST
 %token       LOCATION
+%token       COMPONENT_LOCATION
+%token       COMPONENT_ROTATION
 %token       LOG
 %token       LOG10
 %token       MAX_TOK
@@ -459,6 +462,9 @@ struct arg_list printfargs;
 %type <dbl> maximum_step_length_def
 %type <ival> extern_def
 
+/* BNGL Molecule spatial structure non-terminals */
+%type <sym> new_bngl_molecule_name
+%type <sym> new_bngl_component_name
 
 /* Molecule utility non-terminals */
 %type <sym> existing_molecule
@@ -620,6 +626,7 @@ mdl_stmt:
       | periodic_box_def
       | memory_partition_def
       | molecules_def
+      | molecule_structures_def
       | surface_classes_def
       | rx_net_def
       | release_pattern_def
@@ -1184,6 +1191,80 @@ existing_molecule_opt_orient:
                                                           $$.orient = 0;
                                                         $$.mol_type = $1;
                                                       }
+;
+
+
+/* =================================================================== */
+/* Definition of Spatially Structured BNGL Molecules */
+
+molecule_structures_def:
+        /* empty */
+	| DEFINE_MOLECULE_STRUCTURES '{'
+            list_bngl_molecules
+        '}'
+;
+
+
+list_bngl_molecules:
+        bngl_molecule
+        | list_bngl_molecules bngl_molecule
+;
+
+
+/* Example Syntax for a BNGL Molecule: */
+/* Lig(l~U~P{loc=[x,y,z],rot=[x,y,z,ang]},l~U~P{loc=[x,y,z],rot=[x,y,z,ang]}) */
+
+bngl_molecule:
+        new_bngl_molecule_name
+        {
+          parse_state->current_bngl_molecule = $1;
+        }
+        '(' list_bngl_components ')'
+;
+
+
+new_bngl_molecule_name: var { CHECKN($$ = mdl_new_bngl_molecule(parse_state, $1)); }
+;
+
+
+list_bngl_components:
+        bngl_component
+        | list_bngl_components ',' bngl_component
+;
+
+
+bngl_component:
+        new_bngl_component_name
+        {
+          parse_state->current_bngl_component = $1;
+        }
+        list_bngl_component_states bngl_component_structure_spec
+;
+
+
+new_bngl_component_name: var { CHECKN($$ = mdl_new_bngl_component(parse_state, parse_state->current_bngl_molecule, $1)); }
+;
+
+
+list_bngl_component_states:
+        /* empty */
+        | list_bngl_component_states bngl_component_state
+;
+
+bngl_component_state:
+        '~' var
+;
+
+
+bngl_component_structure_spec:
+        '{' 
+         COMPONENT_LOCATION '=' '[' num_expr ',' num_expr ',' num_expr ']'
+         ','
+         COMPONENT_ROTATION '=' '[' num_expr ',' num_expr ',' num_expr ',' num_expr ']'
+        '}'
+        {
+          mdl_set_bngl_component_tform(parse_state, parse_state->current_bngl_component, $5, $7, $9, $15, $17, $19, $21);
+        }
 ;
 
 

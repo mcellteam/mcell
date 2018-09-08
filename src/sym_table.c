@@ -223,6 +223,32 @@ struct species *new_species(void) {
 }
 
 /**
+ * new_mol_ss:
+ *      Allocates a new mol_ss, initializing all values.
+ *
+ *      In:  none
+ *      Out: the newly allocated mol_ss
+ */
+struct mol_ss *new_mol_ss(void) {
+  struct mol_ss *mol_ssp = CHECKED_MALLOC_STRUCT(struct mol_ss, "mol_ss");
+  mol_ssp->mol_comp_ss_sym_table = init_symtab(MOL_COMP_SS_SYM_TABLE_SIZE);
+  return mol_ssp;
+}
+
+/**
+ * new_mol_comp_ss:
+ *      Allocates a new mol_comp_ss, initializing all values.
+ *
+ *      In:  none
+ *      Out: the newly allocated mol_comp_ss
+ */
+struct mol_comp_ss *new_mol_comp_ss(void) {
+  struct mol_comp_ss *mol_comp_ssp = CHECKED_MALLOC_STRUCT(struct mol_comp_ss, "mol_comp_ss");
+  init_matrix(mol_comp_ssp->t_matrix);
+  return mol_comp_ssp;
+}
+
+/**
  * new_object:
  *      Allocates a new object, initializing all values.
  *
@@ -495,6 +521,22 @@ struct sym_entry *store_sym(char const *sym, enum symbol_type_t sym_type,
         vp = data;
       ((struct species *)vp)->sym = sp;
       ((struct species *)vp)->hashval = rawhash;
+      break;
+
+    case MOL_SS:
+      if (data == NULL)
+        vp = new_mol_ss();
+      else
+        vp = data;
+      ((struct mol_ss *)vp)->sym = sp;
+      break;
+
+    case MOL_COMP_SS:
+      if (data == NULL)
+        vp = new_mol_comp_ss();
+      else
+        vp = data;
+      ((struct mol_comp_ss *)vp)->sym = sp;
       break;
 
     case OBJ:
