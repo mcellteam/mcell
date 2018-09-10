@@ -455,6 +455,7 @@ static struct sym_table_head *graph_pattern_table = NULL;
 typedef struct external_molcomp_loc_struct {
   bool is_mol;
   bool has_coords;
+  bool is_final;
   double x, y, z;
   char *name;
   char *graph_string;
@@ -499,9 +500,64 @@ double clipped_sin ( double angle ) {
   return ( v );
 }
 
-static void set_molcomp_positions ( external_molcomp_loc *molcomp_array, int num_parts ) {
+
+static void set_molcomp_positions_2D ( external_molcomp_loc *molcomp_array, int num_parts ) {
+  // Compute positions for all molecules/components in a molcomp_array
+  // St
+  fprintf ( stdout, "Begin Building molcomp_positions for:\n" );
+  dump_molcomp_array ( molcomp_array, num_parts );
+
+  double scale = 0.02;
+
+  int i, j;
+
+  // Start by initializing all molecules and components to defaults
+  for (i=0; i<num_parts; i++) {
+    molcomp_array[i].x = 0;
+    molcomp_array[i].y = 0;
+    molcomp_array[i].z = 0;
+    molcomp_array[i].has_coords = 1;
+    molcomp_array[i].is_final = 0;
+  }
+
+  // Next assign default locations for binding sites around each molecule
+  for (i=0; i<num_parts; i++) {
+    if (molcomp_array[i].is_mol) {
+      // This is a molecule
+      int num_peers = molcomp_array[i].num_peers;
+      for (j=0; j<num_peers; j++) {
+        double angle = j * 2 * MY_PI / num_peers;
+        molcomp_array[molcomp_array[i].peers[j]].x = scale * clipped_cos(angle);
+        molcomp_array[molcomp_array[i].peers[j]].y = scale * clipped_sin(angle);
+        molcomp_array[molcomp_array[i].peers[j]].z = 0;
+      }
+    }
+  }
+
+  // Start by setting all molecules at the origin and assigning default binding site locations
+  for (i=0; i<num_parts; i++) {
+    if (molcomp_array[i].has_coords == 0) {
+      molcomp_array[i].x = 0;
+      molcomp_array[i].y = 0;
+      molcomp_array[i].z = 0;
+      molcomp_array[i].has_coords = 1;
+    }
+    molcomp_array[i].is_final = 0;
+  }
+
+  fprintf ( stdout, "Finished assigning molecule-centric coordinates:\n" );
+  dump_molcomp_array ( molcomp_array, num_parts );
+
+
+  fprintf ( stdout, "Done Building molcomp_positions for:\n" );
+  dump_molcomp_array ( molcomp_array, num_parts );
+}
+
+
+static void set_molcomp_positions_2D_first_try ( external_molcomp_loc *molcomp_array, int num_parts ) {
   // Compute positions for all molecules/components in a molcomp_array
   // This might be done recursively, but it's being done iteratively here first.
+  // Note that this procedure does not work properly
   fprintf ( stdout, "Begin Building molcomp_positions for:\n" );
   dump_molcomp_array ( molcomp_array, num_parts );
 
@@ -591,7 +647,6 @@ static void set_molcomp_positions ( external_molcomp_loc *molcomp_array, int num
   fprintf ( stdout, "Done Building molcomp_positions for:\n" );
   dump_molcomp_array ( molcomp_array, num_parts );
 }
-
 
 static external_molcomp_loc *build_molcomp_array ( char **graph_strings ) {
   int part_num;
@@ -727,7 +782,7 @@ static external_molcomp_loc *build_molcomp_array ( char **graph_strings ) {
     part_num++;
     next_part = graph_strings[part_num];
   }
-  set_molcomp_positions ( molcomp_loc_array, part_num );
+  set_molcomp_positions_2D_first_try ( molcomp_loc_array, part_num );
   return molcomp_loc_array;
 }
 
@@ -1147,7 +1202,7 @@ static int output_cellblender_molecules(struct volume *world,
             int part_num;
 
             for (part_num = 0; part_num<mcl->num_molcomp_items; part_num++) {
-              if (mcl->molcomp_array[part_num].is_mol) {
+              if (0 /* Force output of components */ || (mcl->molcomp_array[part_num].is_mol)) {
                 // fprintf ( stdout, "    mcl %s\n", mcl->molcomp_array[part_num].name );
 
                 /* Check to see if this name is already in the mol_name_list */
@@ -1166,8 +1221,14 @@ static int output_cellblender_molecules(struct volume *world,
 
                 if (found == 0) {
                   /* This molecule name is not in the list, so add a new name to the front */
-                  char *ext_name = (char *) malloc ( strlen(mcl->molcomp_array[part_num].name) + 1 );
-                  strcpy ( ext_name, mcl->molcomp_array[part_num].name );
+                  char *ext_name;
+                  if (mcl->molcomp_array[part_num].is_mol) {
+                    ext_name = (char *) malloc ( strlen(mcl->molcomp_array[part_num].name) + 1 );
+                    strcpy ( ext_name, mcl->molcomp_array[part_num].name );
+                  } else {
+                    ext_name = (char *) malloc ( strlen("component") + 1 );
+                    strcpy ( ext_name, "component" );
+                  }
                   next_mol_name = (external_mol_viz_by_name *) malloc ( sizeof(external_mol_viz_by_name) );
                   next_mol_name->mol_name = ext_name;  /* This takes "ownership" of the allocated name memory */
                   next_mol_name->mol_list = NULL;
