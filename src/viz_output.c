@@ -470,6 +470,7 @@ typedef struct molcomp_list_struct {
 
 static void dump_molcomp_array ( external_molcomp_loc *molcomp_array, int num_parts ) {
   int i, j;
+  fprintf ( stdout, "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n" );
   for (i=0; i<num_parts; i++) {
     if (molcomp_array[i].is_mol) {
       fprintf ( stdout, "m" );
@@ -482,6 +483,7 @@ static void dump_molcomp_array ( external_molcomp_loc *molcomp_array, int num_pa
     }
     fprintf ( stdout, "  (%g, %g, %g)\n", molcomp_array[i].x, molcomp_array[i].y, molcomp_array[i].z );
   }
+  fprintf ( stdout, "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n" );
 }
 
 static void dump_molcomp_list ( molcomp_list *mcl ) {\
@@ -553,6 +555,151 @@ static void set_molcomp_positions_2D ( external_molcomp_loc *molcomp_array, int 
   dump_molcomp_array ( molcomp_array, num_parts );
 }
 
+
+static void bind_molecules_2D_at_components ( external_molcomp_loc *mc, int num_parts, int fixed_comp_index, int var_comp_index ) {
+  // Bind these two molecules by aligning their axes and shifting to align their components
+  fprintf ( stdout, "########## Binding %s to %s\n", mc[fixed_comp_index].name, mc[var_comp_index].name );
+  dump_molcomp_array(mc,num_parts);
+
+  int fixed_mol_index = mc[fixed_comp_index].peers[0];
+  int var_mol_index = mc[var_comp_index].peers[0];
+
+  double fixed_vec[2];
+  double   var_vec[2];
+  fixed_vec[0] = mc[fixed_comp_index].x - mc[fixed_mol_index].x;
+  fixed_vec[1] = mc[fixed_comp_index].y - mc[fixed_mol_index].y;
+  var_vec[0]   = mc[  var_comp_index].x - mc[  var_mol_index].x;
+  var_vec[1]   = mc[  var_comp_index].y - mc[  var_mol_index].y;
+
+  double fixed_mag = sqrt ( (fixed_vec[0]*fixed_vec[0]) + (fixed_vec[1]*fixed_vec[1]) );
+  double   var_mag = sqrt ( (  var_vec[0]*  var_vec[0]) + (  var_vec[1]*  var_vec[1]) );
+
+  double dot_prod = (fixed_vec[0] * var_vec[0]) + (fixed_vec[1] * var_vec[1]);
+
+  // In general, the magnitudes should be checked for 0. However, in this case, they were generated as non-zero.
+  double norm_dot_prod = dot_prod / ( fixed_mag * var_mag );
+
+  // Ensure that the dot product is a legal argument for the "acos" function:
+  if (norm_dot_prod >  1) { norm_dot_prod =  1; }
+  if (norm_dot_prod < -1) { norm_dot_prod = -1; }
+
+  double angle = acos ( norm_dot_prod );
+  fprintf ( stdout, "Angle (from acos) = %g\n", angle );
+
+  // Try using the cross product to fix the direction issue
+  //fprintf ( stdout, "Cross of (" + fixed_vec[0] + "," + fixed_vec[1] + ") X (" + var_vec[0] + "," + var_vec[1] + ") = " + ( (fixed_vec[0] * var_vec[1]) - (fixed_vec[1] * var_vec[0]) ) );
+  if ( ( (fixed_vec[0] * var_vec[1]) - (fixed_vec[1] * var_vec[0]) ) > 0 ) {
+    angle = -angle;
+  }
+
+  // Reverse the direction since we want the components attached to each other
+  angle = MY_PI + angle;
+
+  // Normalize between -PI and PI
+  while (angle > MY_PI) {
+    angle = angle - (2 * MY_PI);
+  }
+  while (angle <= -MY_PI) {
+    angle = angle + (2 * MY_PI);
+  }
+
+  //angle = -angle;
+
+  //fprintf ( stdout, "Binding between f(" + mc[fixed_comp_index].name + ": " + global.fmt.format(fixed_vec[0]) + "," + global.fmt.format(fixed_vec[1]) + ") and v(" + mc[var_comp_index].name + ": " + global.fmt.format(var_vec[0]) + "," + global.fmt.format(var_vec[1]) + ") is at angle " + global.fmt.format(180*angle/Math.PI) + " deg" );
+
+  // Rotate all of the components of the var_mol_index by the angle
+  double cos_angle = cos(angle);
+  double sin_angle = sin(angle);
+
+  //fprintf ( stdout, "Rotating component positions for " + mc[var_mol_index].name + " by " + global.fmt.format(180*angle/Math.PI) );
+  for (int ci=0; ci<mc[var_mol_index].num_peers; ci++) {
+    //fprintf ( stdout, "  Component " + mc[mc[var_mol_index].peers[ci]].name + " before is at (" + global.fmt.format(mc[mc[var_mol_index].peers[ci]].x) + "," + global.fmt.format(mc[mc[var_mol_index].peers[ci]].y) + ")" );
+    double x = mc[mc[var_mol_index].peers[ci]].x;
+    double y = mc[mc[var_mol_index].peers[ci]].y;
+    mc[mc[var_mol_index].peers[ci]].x = (x * cos_angle) - (y * sin_angle);
+    mc[mc[var_mol_index].peers[ci]].y = (x * sin_angle) + (y * cos_angle);
+    //fprintf ( stdout, "  Component " + mc[mc[var_mol_index].peers[ci]].name + " after  is at (" + global.fmt.format(mc[mc[var_mol_index].peers[ci]].x) + "," + global.fmt.format(mc[mc[var_mol_index].peers[ci]].y) + ")" );
+  }
+
+  dump_molcomp_array(mc,num_parts);
+
+  // Shift the var molecule location and the locations of all of its components by the difference of the binding components
+
+  double dx = mc[fixed_comp_index].x - mc[var_comp_index].x;
+  double dy = mc[fixed_comp_index].y - mc[var_comp_index].y;
+
+  //fprintf ( stdout, "Shifting molecule and component positions for " + mc[var_mol_index].name );
+  mc[var_mol_index].x += dx;
+  mc[var_mol_index].y += dy;
+  for (int ci=0; ci<mc[var_mol_index].num_peers; ci++) {
+    mc[mc[var_mol_index].peers[ci]].x += dx;
+    mc[mc[var_mol_index].peers[ci]].y += dy;
+    //fprintf ( stdout, "  Component " + mc[mc[var_mol_index].peers[ci]].name + " is at (" + global.fmt.format(mc[mc[var_mol_index].peers[ci]].x) + "," + global.fmt.format(mc[mc[var_mol_index].peers[ci]].y) + ")" );
+  }
+
+  dump_molcomp_array(mc,num_parts);
+
+  fprintf ( stdout, "########## Done Binding %s to %s\n", mc[fixed_comp_index].name, mc[var_comp_index].name );
+}
+
+
+static void bind_all_molecules_2D ( external_molcomp_loc *molcomp_array, int num_parts ) {
+  // Compute positions for all molecules/components in a molcomp_array
+  int mi=0;
+  int pi=0;
+
+  // Find first molecule
+  for (mi=0; mi<num_parts; mi++) {
+    if (molcomp_array[mi].is_mol) break;
+  }
+  if (molcomp_array[mi].is_mol) {
+    // Set this first molecule and all of its components to final
+    molcomp_array[mi].is_final = true;
+    for (int ci=0; ci<molcomp_array[mi].num_peers; ci++) {
+      molcomp_array[molcomp_array[mi].peers[ci]].is_final = true;
+    }
+    int done = 0;
+    while (done == 0) {
+      // Look for a bond between a non-final and a final component
+      done = 1;
+      for (mi=0; mi<num_parts; mi++) {
+        if (!molcomp_array[mi].is_mol) {
+          // Only search components for bonds
+          if (molcomp_array[mi].num_peers > 1) {
+            // This component has bonds, so search them
+            for (int ci=1; ci<molcomp_array[mi].num_peers; ci++) {
+              pi = molcomp_array[mi].peers[ci];  // Peer index
+              if (molcomp_array[mi].is_final != molcomp_array[pi].is_final) {
+                done = 0;
+                // One of these is final and the other is not so join them and make them all final
+                int fci, vci;  // Fixed comp index and Variable comp index
+                int vmi;  // Fixed mol index and Variable mol index
+                // Figure out which is fixed and which is not
+                if (molcomp_array[mi].is_final) {
+                  fci = mi;
+                  vci = pi;
+                } else {
+                  fci = pi;
+                  vci = mi;
+                }
+                // Set the molecule index values for the bond
+                vmi = molcomp_array[vci].peers[0];
+                // Perform the bond (changes the locations)
+                bind_molecules_2D_at_components ( molcomp_array, num_parts, fci, vci );
+                // Set the variable molecule and its components to final
+                molcomp_array[vmi].is_final = true;
+                for (int vmici=0; vmici<molcomp_array[vmi].num_peers; vmici++) {
+                  molcomp_array[molcomp_array[vmi].peers[vmici]].is_final = true;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+}
 
 static void set_molcomp_positions_2D_first_try ( external_molcomp_loc *molcomp_array, int num_parts ) {
   // Compute positions for all molecules/components in a molcomp_array
@@ -782,7 +929,8 @@ static external_molcomp_loc *build_molcomp_array ( char **graph_strings ) {
     part_num++;
     next_part = graph_strings[part_num];
   }
-  set_molcomp_positions_2D_first_try ( molcomp_loc_array, part_num );
+  // set_molcomp_positions_2D_first_try ( molcomp_loc_array, part_num );
+  bind_all_molecules_2D ( molcomp_loc_array, part_num );
   return molcomp_loc_array;
 }
 
