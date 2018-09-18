@@ -1,6 +1,7 @@
 import json
 import grammar_definition as gd
 import argparse
+import read_mdl
 try:
     from StringIO import StringIO
 except ImportError:
@@ -47,7 +48,6 @@ def write_section(original_mdl):
     final_section = StringIO()
     if original_mdl[0] == 'DEFINE_MOLECULES':
         pass
-
     else:
         return write_raw_section(original_mdl.asList(), final_section, '') + '\n'
 
@@ -121,7 +121,16 @@ def construct_mcell(xml_structs, mdlr_path, output_file_name, nauty_dict):
     molecule_mdl.write('\t\tDIFFUSION_CONSTANT_{0}D = {1}\n'.format(2, 1))
     molecule_mdl.write('\t\tEXTERN\n')
     molecule_mdl.write('\t}\n')
-    molecule_mdl.write('}\n')
+    molecule_mdl.write('}\n\n')
+
+    try:
+        molecule_str = read_mdl.process_molecules_for_final_mdl(hashed_mdlr['molecules'])
+        molecule_mdl.write('DEFINE_MOLECULE_STRUCTURES {\n')
+        molecule_mdl.write(molecule_str)
+        molecule_mdl.write('}\n')
+    except 'KeyError':
+        eprint('There is an issue with the molecules section in the mdlr file')
+
 
     # extract bng name
     # for molecule in json_dict['mol_list']:
@@ -134,7 +143,7 @@ def construct_mcell(xml_structs, mdlr_path, output_file_name, nauty_dict):
         bngLabel[molecule.name] = molecule.str2()
 
     for compartment in xml_structs['compartments']:
-        compartmentDict[compartment['identifier']] = compartment
+       compartmentDict[compartment['identifier']] = compartment
 
     # reactions
     reaction_mdl.write('DEFINE_REACTIONS\n{\n')

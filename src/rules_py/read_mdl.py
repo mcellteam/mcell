@@ -62,6 +62,33 @@ def create_species_from_pattern(speciesPattern):
     return tmp_species
 
 
+def process_molecules_for_final_mdl(molecules):
+    """ grab molecule defintions from mdlr for final mdl. """
+    molecule_str = ""
+    for idx, molecule in enumerate(molecules):
+        diffusion_list = molecule[1]['diffusionFunction']
+        molecule_name = molecule[0][0]
+        component_str = ""
+        component_list = molecule[0][1:]
+        for c_idx, component in enumerate(component_list):
+            if c_idx > 0:
+                component_str += ", "
+            c_name = component['componentName']
+            try:
+                c_loc = component['componentLoc']
+                x1, y1, z1 = c_loc[0], c_loc[1], c_loc[2]
+                c_rot = component['componentRot']
+                x2, y2, z2, angle = c_rot[0], c_rot[1], c_rot[2], c_rot[3]
+                component_str += "{}{{loc=[{}, {}, {}], rot=[{}, {}, {}, {}]}}".format(c_name, x1, y1, z1, x2, y2, z2, angle)
+            except KeyError:
+                component_str += c_name
+        molecule_str += "\t{}({})\n".format(molecule_name, component_str)
+        molecule_str += "\t{\n"
+        molecule_str += "\t\t{} = {}\n".format(diffusion_list[0], diffusion_list[1])
+        molecule_str += "\t}\n"
+    return molecule_str
+
+
 def process_molecules(molecules):
     mstr = StringIO()
     molecule_list = []

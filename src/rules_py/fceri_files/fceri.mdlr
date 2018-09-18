@@ -76,12 +76,29 @@ DEFINE_SURFACE_CLASSES
    mu_EC = 1e-9      /* Viscosity in compartment EC, kg/um.s */
    mu_PM = 1e-9      /* Viscosity in compartment PM, kg/um.s */
    mu_CP = 1e-9      /* Viscosity in compartment CP, kg/um.s */
- 
+   xl1 = -1
+   yl1 =  0
+   zl1 =  0
+   xr1 =  0
+   yr1 =  0
+   zr1 =  0
+   angle = 0
+
+   xl2 =  1
+   yl2 =  0
+   zl2 =  0
+   xr2 =  0
+   yr2 =  0
+   zr2 =  0
+   angle1 = 0
 
 
 #DEFINE_MOLECULES
 {
-  Lig(l,l)
+  Lig(
+    l{loc=[xl1, yl1, zl1],rot=[xr1, yr1, zr1, angle1]},
+    l{loc=[xl2, yl2, zl2],rot=[xr2, yr2, zr2, angle2]}
+  )
   {
       DIFFUSION_CONSTANT_3D = 8.51e-7 
   }
