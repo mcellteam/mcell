@@ -470,6 +470,7 @@ typedef struct molcomp_list_struct {
 
 static void dump_molcomp_array ( external_molcomp_loc *molcomp_array, int num_parts ) {
   int i, j;
+  /*
   fprintf ( stdout, "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n" );
   for (i=0; i<num_parts; i++) {
     fprintf ( stdout, "[%d] = %s (", i, molcomp_array[i].name );
@@ -488,6 +489,7 @@ static void dump_molcomp_array ( external_molcomp_loc *molcomp_array, int num_pa
     fprintf ( stdout, "]\n" );
   }
   fprintf ( stdout, "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n" );
+  */
 }
 
 static void dump_molcomp_list ( molcomp_list *mcl ) {\
@@ -510,8 +512,8 @@ double clipped_sin ( double angle ) {
 static void set_molcomp_positions_2D ( external_molcomp_loc *molcomp_array, int num_parts ) {
   // Compute positions for all molecules/components in a molcomp_array
   // St
-  fprintf ( stdout, "Begin Building molcomp_positions for:\n" );
-  dump_molcomp_array ( molcomp_array, num_parts );
+  //#### fprintf ( stdout, "Begin Building molcomp_positions for:\n" );
+  //#### dump_molcomp_array ( molcomp_array, num_parts );
 
   double scale = 0.02;
 
@@ -551,12 +553,12 @@ static void set_molcomp_positions_2D ( external_molcomp_loc *molcomp_array, int 
     molcomp_array[i].is_final = 0;
   }
 
-  fprintf ( stdout, "Finished assigning molecule-centric coordinates:\n" );
-  dump_molcomp_array ( molcomp_array, num_parts );
+  //#### fprintf ( stdout, "Finished assigning molecule-centric coordinates:\n" );
+  //#### dump_molcomp_array ( molcomp_array, num_parts );
 
 
-  fprintf ( stdout, "Done Building molcomp_positions for:\n" );
-  dump_molcomp_array ( molcomp_array, num_parts );
+  //#### fprintf ( stdout, "Done Building molcomp_positions for:\n" );
+  //#### dump_molcomp_array ( molcomp_array, num_parts );
 }
 
 
@@ -565,12 +567,12 @@ static void set_component_positions_2D ( external_molcomp_loc *mc, int num_parts
   int mi;
   for (mi=0; mi<num_parts; mi++) {
     if (mc[mi].is_mol) {
-      fprintf ( stdout, "Setting component positions for %s\n", mc[mi].name );
+      //#### fprintf ( stdout, "Setting component positions for %s\n", mc[mi].name );
       for (int ci=0; ci<mc[mi].num_peers; ci++) {
         double angle = 2 * MY_PI * ci / mc[mi].num_peers;
         mc[mc[mi].peers[ci]].x = scale * cos(angle);
         mc[mc[mi].peers[ci]].y = scale * sin(angle);
-        fprintf ( stdout, "  Component %s is at (%g,%g)\n", mc[mc[mi].peers[ci]].name, mc[mc[mi].peers[ci]].x, mc[mc[mi].peers[ci]].y );
+        //#### fprintf ( stdout, "  Component %s is at (%g,%g)\n", mc[mc[mi].peers[ci]].name, mc[mc[mi].peers[ci]].x, mc[mc[mi].peers[ci]].y );
       }
     }
   }
@@ -579,8 +581,8 @@ static void set_component_positions_2D ( external_molcomp_loc *mc, int num_parts
 
 static void bind_molecules_2D_at_components ( external_molcomp_loc *mc, int num_parts, int fixed_comp_index, int var_comp_index ) {
   // Bind these two molecules by aligning their axes and shifting to align their components
-  fprintf ( stdout, "########## Binding %s to %s\n", mc[fixed_comp_index].name, mc[var_comp_index].name );
-  dump_molcomp_array(mc,num_parts);
+  //#### fprintf ( stdout, "########## Binding %s to %s\n", mc[fixed_comp_index].name, mc[var_comp_index].name );
+  //#### dump_molcomp_array(mc,num_parts);
 
   int fixed_mol_index = mc[fixed_comp_index].peers[0];
   int var_mol_index = mc[var_comp_index].peers[0];
@@ -604,12 +606,12 @@ static void bind_molecules_2D_at_components ( external_molcomp_loc *mc, int num_
   if (norm_dot_prod >  1) { norm_dot_prod =  1; }
   if (norm_dot_prod < -1) { norm_dot_prod = -1; }
 
-  fprintf ( stdout, "norm_dot_prod = %g\n", norm_dot_prod );
+  //#### fprintf ( stdout, "norm_dot_prod = %g\n", norm_dot_prod );
   double angle = acos ( norm_dot_prod );
-  fprintf ( stdout, "Angle (from acos) = %g\n", angle );
+  //#### fprintf ( stdout, "Angle (from acos) = %g\n", angle );
 
   // Try using the cross product to fix the direction issue
-  fprintf ( stdout, "Cross of (%g,%g) X (%g,%g) = %g\n", fixed_vec[0], fixed_vec[1], var_vec[0], var_vec[1], (fixed_vec[0] * var_vec[1]) - (fixed_vec[1] * var_vec[0]) );
+  //#### fprintf ( stdout, "Cross of (%g,%g) X (%g,%g) = %g\n", fixed_vec[0], fixed_vec[1], var_vec[0], var_vec[1], (fixed_vec[0] * var_vec[1]) - (fixed_vec[1] * var_vec[0]) );
   if ( ( (fixed_vec[0] * var_vec[1]) - (fixed_vec[1] * var_vec[0]) ) > 0 ) {
     angle = -angle;
   }
@@ -627,43 +629,43 @@ static void bind_molecules_2D_at_components ( external_molcomp_loc *mc, int num_
 
   //angle = -angle;
 
-  fprintf ( stdout, "Final corrected angle = %g\n", angle );
+  //#### fprintf ( stdout, "Final corrected angle = %g\n", angle );
 
-  fprintf ( stdout, "Binding between f(%s: %g,%g) and v(%s: %g,%g) is at angle %g deg\n", mc[fixed_comp_index].name, fixed_vec[0], fixed_vec[1], mc[var_comp_index].name, var_vec[0], var_vec[1], 180*angle/MY_PI );
+  //#### fprintf ( stdout, "Binding between f(%s: %g,%g) and v(%s: %g,%g) is at angle %g deg\n", mc[fixed_comp_index].name, fixed_vec[0], fixed_vec[1], mc[var_comp_index].name, var_vec[0], var_vec[1], 180*angle/MY_PI );
 
   // Rotate all of the components of the var_mol_index by the angle
   double cos_angle = cos(angle);
   double sin_angle = sin(angle);
 
-  fprintf ( stdout, "Rotating component positions for %s by %g\n", mc[var_mol_index].name, 180*angle/MY_PI );
+  //#### fprintf ( stdout, "Rotating component positions for %s by %g\n", mc[var_mol_index].name, 180*angle/MY_PI );
   for (int ci=0; ci<mc[var_mol_index].num_peers; ci++) {
-    fprintf ( stdout, "  Component %s before is at (%g,%g)\n", mc[mc[var_mol_index].peers[ci]].name, mc[mc[var_mol_index].peers[ci]].x, mc[mc[var_mol_index].peers[ci]].y );
+    //#### fprintf ( stdout, "  Component %s before is at (%g,%g)\n", mc[mc[var_mol_index].peers[ci]].name, mc[mc[var_mol_index].peers[ci]].x, mc[mc[var_mol_index].peers[ci]].y );
     double x = mc[mc[var_mol_index].peers[ci]].x;
     double y = mc[mc[var_mol_index].peers[ci]].y;
     mc[mc[var_mol_index].peers[ci]].x = (x * cos_angle) - (y * sin_angle);
     mc[mc[var_mol_index].peers[ci]].y = (x * sin_angle) + (y * cos_angle);
-    fprintf ( stdout, "  Component %s after  is at (%g,%g)\n", mc[mc[var_mol_index].peers[ci]].name, mc[mc[var_mol_index].peers[ci]].x, mc[mc[var_mol_index].peers[ci]].y );
+    //#### fprintf ( stdout, "  Component %s after  is at (%g,%g)\n", mc[mc[var_mol_index].peers[ci]].name, mc[mc[var_mol_index].peers[ci]].x, mc[mc[var_mol_index].peers[ci]].y );
   }
 
-  dump_molcomp_array(mc,num_parts);
+  //#### dump_molcomp_array(mc,num_parts);
 
   // Shift the var molecule location and the locations of all of its components by the difference of the binding components
 
   double dx = mc[fixed_comp_index].x - mc[var_comp_index].x;
   double dy = mc[fixed_comp_index].y - mc[var_comp_index].y;
 
-  fprintf ( stdout, "Shifting molecule and component positions for %s\n", mc[var_mol_index].name );
+  //#### fprintf ( stdout, "Shifting molecule and component positions for %s\n", mc[var_mol_index].name );
   mc[var_mol_index].x += dx;
   mc[var_mol_index].y += dy;
   for (int ci=0; ci<mc[var_mol_index].num_peers; ci++) {
     mc[mc[var_mol_index].peers[ci]].x += dx;
     mc[mc[var_mol_index].peers[ci]].y += dy;
-    fprintf ( stdout, "  Component %s is at (%g,%g)\n", mc[mc[var_mol_index].peers[ci]].name, mc[mc[var_mol_index].peers[ci]].x, mc[mc[var_mol_index].peers[ci]].y );
+    //#### fprintf ( stdout, "  Component %s is at (%g,%g)\n", mc[mc[var_mol_index].peers[ci]].name, mc[mc[var_mol_index].peers[ci]].x, mc[mc[var_mol_index].peers[ci]].y );
   }
 
-  dump_molcomp_array(mc,num_parts);
+  //#### dump_molcomp_array(mc,num_parts);
 
-  fprintf ( stdout, "########## Done Binding %s to %s\n", mc[fixed_comp_index].name, mc[var_comp_index].name );
+  //#### fprintf ( stdout, "########## Done Binding %s to %s\n", mc[fixed_comp_index].name, mc[var_comp_index].name );
 }
 
 
@@ -735,8 +737,8 @@ static void set_molcomp_positions_2D_first_try ( external_molcomp_loc *molcomp_a
   // Compute positions for all molecules/components in a molcomp_array
   // This might be done recursively, but it's being done iteratively here first.
   // Note that this procedure does not work properly
-  fprintf ( stdout, "Begin Building molcomp_positions for:\n" );
-  dump_molcomp_array ( molcomp_array, num_parts );
+  //#### fprintf ( stdout, "Begin Building molcomp_positions for:\n" );
+  //#### dump_molcomp_array ( molcomp_array, num_parts );
 
   int all_done = 0;
   if (num_parts > 0) {
@@ -751,19 +753,19 @@ static void set_molcomp_positions_2D_first_try ( external_molcomp_loc *molcomp_a
     double scale = 0.02;
     int i, j;
     all_done = 1;
-    fprintf ( stdout, "Top of loop through all molcomps\n" );
+    //#### fprintf ( stdout, "Top of loop through all molcomps\n" );
     for (i=0; i<num_parts; i++) {
-      fprintf ( stdout, "  Working on index %d named %s\n", i, molcomp_array[i].name );
-      if (molcomp_array[i].has_coords != 0) fprintf ( stdout, "    Index %d named %s has coordinates (%g,%g,%g).\n", i, molcomp_array[i].name, molcomp_array[i].x, molcomp_array[i].y, molcomp_array[i].z );
+      //#### fprintf ( stdout, "  Working on index %d named %s\n", i, molcomp_array[i].name );
+      //#### if (molcomp_array[i].has_coords != 0) fprintf ( stdout, "    Index %d named %s has coordinates (%g,%g,%g).\n", i, molcomp_array[i].name, molcomp_array[i].x, molcomp_array[i].y, molcomp_array[i].z );
       if (molcomp_array[i].has_coords == 0) {
         // This molecule or component does NOT have any coordinates.
         // If it's a component, check to see if its molecule has coordinates
         // If it's a molecule, check to see if any of its components have coordinates
         if (molcomp_array[i].is_mol == 0) {
-          fprintf ( stdout, "    Index %d named %s has no coordinates.\n", i, molcomp_array[i].name );
+          //#### fprintf ( stdout, "    Index %d named %s has no coordinates.\n", i, molcomp_array[i].name );
           // This is a component. Components can only have 1 (mol) or 2 (mol,bond) peer entries
           if (molcomp_array[molcomp_array[i].peers[0]].has_coords != 0) {
-            fprintf ( stdout, "      Index %d named %s has a molecule with coordinates.\n", i, molcomp_array[i].name );
+            //#### fprintf ( stdout, "      Index %d named %s has a molecule with coordinates.\n", i, molcomp_array[i].name );
             // The molecule associated with this component has coordinates so use them first
             // Find out which "spoke" of the molecule contains this component
             int parent_mol_index = molcomp_array[i].peers[0];
@@ -776,12 +778,12 @@ static void set_molcomp_positions_2D_first_try ( external_molcomp_loc *molcomp_a
             molcomp_array[i].y = molcomp_array[parent_mol_index].y + (scale * clipped_sin(angle));
             molcomp_array[i].z = molcomp_array[parent_mol_index].z;
             molcomp_array[i].has_coords = 1;
-            fprintf ( stdout, "        Index %d comp named %s is now at coordinates (%g,%g,%g)\n", i, molcomp_array[i].name, molcomp_array[i].x, molcomp_array[i].y, molcomp_array[i].z );
+            //#### fprintf ( stdout, "        Index %d comp named %s is now at coordinates (%g,%g,%g)\n", i, molcomp_array[i].name, molcomp_array[i].x, molcomp_array[i].y, molcomp_array[i].z );
           } else if (molcomp_array[i].num_peers > 1) {
             // This component is bound to another, so check if those coordinates are defined
-            fprintf ( stdout, "      Index %d named %s is bound to a peer.\n", i, molcomp_array[i].name );
+            //#### fprintf ( stdout, "      Index %d named %s is bound to a peer.\n", i, molcomp_array[i].name );
             if (molcomp_array[molcomp_array[i].peers[1]].has_coords != 0) {
-              fprintf ( stdout, "        Index %d named %s is bound to a peer with coordinates (%g,%g,%g).\n", i, molcomp_array[i].name, molcomp_array[molcomp_array[i].peers[1]].x, molcomp_array[molcomp_array[i].peers[1]].y, molcomp_array[molcomp_array[i].peers[1]].z );
+              //#### fprintf ( stdout, "        Index %d named %s is bound to a peer with coordinates (%g,%g,%g).\n", i, molcomp_array[i].name, molcomp_array[molcomp_array[i].peers[1]].x, molcomp_array[molcomp_array[i].peers[1]].y, molcomp_array[molcomp_array[i].peers[1]].z );
               // The bound component has coordinates, so use those same coords for this component
               molcomp_array[i].x = molcomp_array[molcomp_array[i].peers[1]].x;
               molcomp_array[i].y = molcomp_array[molcomp_array[i].peers[1]].y;
@@ -791,19 +793,19 @@ static void set_molcomp_positions_2D_first_try ( external_molcomp_loc *molcomp_a
           }
         } else {
           // This is a molecule. Molecules can have any number of peer entries which are all components
-          fprintf ( stdout, "    Index %d named %s is a molecule with %d components.\n", i, molcomp_array[i].name, molcomp_array[i].num_peers );
+          //#### fprintf ( stdout, "    Index %d named %s is a molecule with %d components.\n", i, molcomp_array[i].name, molcomp_array[i].num_peers );
           for (j=0; j<molcomp_array[i].num_peers; j++) {
             if (molcomp_array[molcomp_array[i].peers[j]].has_coords != 0) {
               // The jth component of this molecule has coordinates so use them
               int child_comp_index = molcomp_array[i].peers[j];
-              fprintf ( stdout, "      Index %d named %s has a %dth component with coordinates (%g,%g,%g).\n", i, molcomp_array[i].name, j, molcomp_array[child_comp_index].x, molcomp_array[child_comp_index].y, molcomp_array[child_comp_index].z );
+              //#### fprintf ( stdout, "      Index %d named %s has a %dth component with coordinates (%g,%g,%g).\n", i, molcomp_array[i].name, j, molcomp_array[child_comp_index].x, molcomp_array[child_comp_index].y, molcomp_array[child_comp_index].z );
               double angle = j * 2 * MY_PI / molcomp_array[i].num_peers;
               // Use the negative of the offset to locate this molecule relative to its component
               molcomp_array[i].x = molcomp_array[child_comp_index].x - (scale * clipped_cos(angle));
               molcomp_array[i].y = molcomp_array[child_comp_index].y - (scale * clipped_sin(angle));
               molcomp_array[i].z = molcomp_array[child_comp_index].z;
               molcomp_array[i].has_coords = 1;
-              fprintf ( stdout, "      Index %d mol named %s is now at coordinates (%g,%g,%g).\n", i, molcomp_array[i].name, molcomp_array[i].x, molcomp_array[i].y, molcomp_array[i].z );
+              //#### fprintf ( stdout, "      Index %d mol named %s is now at coordinates (%g,%g,%g).\n", i, molcomp_array[i].name, molcomp_array[i].x, molcomp_array[i].y, molcomp_array[i].z );
               break;
             }
           }
@@ -821,8 +823,8 @@ static void set_molcomp_positions_2D_first_try ( external_molcomp_loc *molcomp_a
     }
   }
 
-  fprintf ( stdout, "Done Building molcomp_positions for:\n" );
-  dump_molcomp_array ( molcomp_array, num_parts );
+  //#### fprintf ( stdout, "Done Building molcomp_positions for:\n" );
+  //#### dump_molcomp_array ( molcomp_array, num_parts );
 }
 
 static external_molcomp_loc *build_molcomp_array ( char **graph_strings ) {
@@ -1334,12 +1336,12 @@ static int output_cellblender_molecules(struct volume *world,
 
             char **graph_parts = get_graph_strings ( next_mol );
 
-            fprintf ( stdout, "#=# Graph Pattern: %s\n", next_mol );
+            //#### fprintf ( stdout, "#=# Graph Pattern: %s\n", next_mol );
 
             int part_num = 0;
             char *next_part = graph_parts[part_num];
             while (next_part != NULL) {
-              fprintf ( stdout, "  Graph Part %d: %s\n", part_num, next_part );
+              //#### fprintf ( stdout, "  Graph Part %d: %s\n", part_num, next_part );
               part_num++;
               next_part = graph_parts[part_num];
             }
@@ -1348,7 +1350,7 @@ static int output_cellblender_molecules(struct volume *world,
 
             /*
             fprintf ( stdout, "=============== molcomp_array ===============\n" );
-            dump_molcomp_array ( molcomp_array, part_num );
+            //#### dump_molcomp_array ( molcomp_array, part_num );
             fprintf ( stdout, "=============================================\n" );
             */
 
@@ -1356,15 +1358,15 @@ static int output_cellblender_molecules(struct volume *world,
             mcl->molcomp_array = molcomp_array;
             mcl->num_molcomp_items = part_num;
 
-            fprintf ( stdout, "=============== molcomp_list ===============\n" );
-            dump_molcomp_list ( mcl );
-            fprintf ( stdout, "=============================================\n" );
+            //#### fprintf ( stdout, "=============== molcomp_list ===============\n" );
+            //#### dump_molcomp_list ( mcl );
+            //#### fprintf ( stdout, "=============================================\n" );
 
             sp = store_sym ( next_mol, VOID_PTR, graph_pattern_table, mcl );
 
-            fprintf ( stdout, "=============== graph_pattern_table ===============\n" );
-            dump_symtab ( graph_pattern_table );
-            fprintf ( stdout, "===================================================\n" );
+            //#### fprintf ( stdout, "=============== graph_pattern_table ===============\n" );
+            //#### dump_symtab ( graph_pattern_table );
+            //#### fprintf ( stdout, "===================================================\n" );
 
             free_graph_parts ( graph_parts );
           }
