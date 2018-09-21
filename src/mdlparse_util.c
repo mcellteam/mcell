@@ -7973,19 +7973,22 @@ struct sym_entry *mdl_new_bngl_molecule(struct mdlparse_vars *parse_state,
 
 
 /**************************************************************************
- mdl_new_bngl_component:
+ mdl_add_bngl_component:
    Create a new BNGL component symbol.  There must not yet be a BNGL component
     with the supplied name associated with the BNGL molecule.
 
  In: parse_state: parser state
      bngl_mol_sym: ptr to symbol entry for a BNGL molecule 
      component_name: name for the new component to associate with the BNGL molecule
- Out: symbol for the BNGL component, or NULL if an error occurred
+ Out: pointer to the new BNGL component, or NULL if an error occurred
 **************************************************************************/
-struct sym_entry *mdl_new_bngl_component(struct mdlparse_vars *parse_state,
+struct mol_comp_ss *mdl_add_bngl_component(struct mdlparse_vars *parse_state,
                                       struct sym_entry *bngl_mol_sym,
                                       char *component_name)
 {
+  struct mol_ss *mol_ssp = NULL;
+  struct mol_comp_ss *mol_comp_ssp = NULL;
+/*
   struct sym_entry *sym = NULL;
   if (retrieve_sym(component_name, ((struct mol_ss *)(bngl_mol_sym->value))->mol_comp_ss_sym_table) != NULL) {
     mdlerror_fmt(parse_state, "BNGL Molecule component already defined: %s(%s)", bngl_mol_sym->name, component_name);
@@ -7993,27 +7996,46 @@ struct sym_entry *mdl_new_bngl_component(struct mdlparse_vars *parse_state,
     return NULL;
   } else if ((sym = store_sym(component_name, MOL_COMP_SS, ((struct mol_ss *)(bngl_mol_sym->value))->mol_comp_ss_sym_table, NULL)) == NULL) {
     mdlerror_fmt(parse_state, "Out of memory while creating BNGL molecule component: %s(%s)", bngl_mol_sym->name, component_name);
-    free(component_name);
-    return NULL;
+*/
+    
+  mol_comp_ssp = CHECKED_MALLOC_STRUCT(struct mol_comp_ss, "BNGL molecule component");
+  if (mol_comp_ssp != NULL) {
+    mol_comp_ssp->name = component_name;
+    mol_ssp = (struct mol_ss *)bngl_mol_sym->value;
+
+    if (mol_ssp->mol_comp_ss_head == NULL) {
+       mol_ssp->mol_comp_ss_head = mol_comp_ssp;
+       mol_ssp->mol_comp_ss_tail = mol_comp_ssp;
+    }
+    else {
+      mol_ssp->mol_comp_ss_tail->next = mol_comp_ssp;
+    }
+    
+    mol_ssp->mol_comp_ss_tail = mol_comp_ssp;
+
+    mol_comp_ssp->next = NULL;
   }
 
-  free(component_name);
-  return sym;
+  return mol_comp_ssp;
 }
 
 
 /**************************************************************************
- mdl_new_bngl_component:
-   Create a new BNGL component symbol.  There must not yet be a BNGL component
-    with the supplied name associated with the BNGL molecule.
+ mdl_set_bngl_component_tform:
+   Set the transfomation matrix of a BNGL component.
 
  In: parse_state: parser state
-     bngl_mol_sym: ptr to symbol entry for a BNGL molecule 
-     component_name: name for the new component to associate with the BNGL molecule
- Out: symbol for the BNGL component, or NULL if an error occurred
+     mol_comp_ssp: ptr to the BNGL component 
+     loc_x: x location of the component
+     loc_y: y location of the component
+     loc_z: z location of the component
+     rot_axis_x: x part of rotation axis of the component
+     rot_axis_y: y part of rotation axis of the component
+     rot_axis_z: z part of rotation axis of the component
+     rot_angle:  angle of rotation about the rotation axis for the component
 **************************************************************************/
 void mdl_set_bngl_component_tform(struct mdlparse_vars *parse_state,
-                                 struct sym_entry *bngl_comp_sym,
+                                 struct mol_comp_ss *mol_comp_ssp,
                                  double loc_x,
                                  double loc_y,
                                  double loc_z,
@@ -8022,11 +8044,9 @@ void mdl_set_bngl_component_tform(struct mdlparse_vars *parse_state,
                                  double rot_axis_z,
                                  double rot_angle)
 {
-  struct mol_comp_ss *mol_comp_ssp;
   struct vector3 scale, translate, axis;
   double (*tm)[4];
 
-  mol_comp_ssp = (struct mol_comp_ss *)bngl_comp_sym->value;
   tm = mol_comp_ssp->t_matrix;
   scale.x = 1.0;
   scale.y = 1.0;

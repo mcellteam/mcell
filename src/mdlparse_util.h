@@ -813,14 +813,14 @@ struct sym_entry *mdl_new_bngl_molecule(struct mdlparse_vars *parse_state,
 
 /* Create a new BNGL component symbol.  There must not yet be a BNGL component
  * with the supplied name associated with the BNGL molecule. */
-struct sym_entry *mdl_new_bngl_component(struct mdlparse_vars *parse_state,
+struct mol_comp_ss *mdl_add_bngl_component(struct mdlparse_vars *parse_state,
                                       struct sym_entry *bngl_mol_sym,
                                       char *component_name);
 
 
 /* Set Transformation Matrix of BNGL component. */
 void mdl_set_bngl_component_tform(struct mdlparse_vars *parse_state,
-                                      struct sym_entry *bngl_comp_sym,
+                                      struct mol_comp_ss *mol_comp_ssp,
                                       double loc_x,
                                       double loc_y,
                                       double loc_z,
