@@ -824,15 +824,19 @@ struct surface_molecule {
 
 struct mol_ss {
   struct sym_entry *sym;
-  struct sym_table_head *mol_comp_ss_sym_table;
+//  struct sym_table_head *mol_comp_ss_sym_table;
+  struct mol_comp_ss *mol_comp_ss_head;
+  struct mol_comp_ss *mol_comp_ss_tail;
 };
 
 struct mol_comp_ss {
 //  struct vector3 loc;
 //  struct vector3 axis;
 //  double angle;
-  struct sym_entry *sym;
+//  struct sym_entry *sym;
+  char *name;
   double t_matrix[4][4];
+  struct mol_comp_ss *next;
 };
 
 

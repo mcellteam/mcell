@@ -75,6 +75,7 @@ struct vector3 *vec3;
 struct num_expr_list_head nlist;
 struct release_evaluator *rev;
 struct sym_table_list *symlist;
+struct mol_comp_ss *mcomp_ss;
 struct output_times *otimes;
 
 /* Reaction output */
@@ -464,7 +465,7 @@ struct arg_list printfargs;
 
 /* BNGL Molecule spatial structure non-terminals */
 %type <sym> new_bngl_molecule_name
-%type <sym> new_bngl_component_name
+%type <mcomp_ss> bngl_component_name
 
 /* Molecule utility non-terminals */
 %type <sym> existing_molecule
@@ -1234,7 +1235,7 @@ list_bngl_components:
 
 
 bngl_component:
-        new_bngl_component_name
+        bngl_component_name
         {
           parse_state->current_bngl_component = $1;
         }
@@ -1242,7 +1243,7 @@ bngl_component:
 ;
 
 
-new_bngl_component_name: var { CHECKN($$ = mdl_new_bngl_component(parse_state, parse_state->current_bngl_molecule, $1)); }
+bngl_component_name: var { CHECKN($$ = mdl_add_bngl_component(parse_state, parse_state->current_bngl_molecule, $1)); }
 ;
 
 

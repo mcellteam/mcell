@@ -231,7 +231,9 @@ struct species *new_species(void) {
  */
 struct mol_ss *new_mol_ss(void) {
   struct mol_ss *mol_ssp = CHECKED_MALLOC_STRUCT(struct mol_ss, "mol_ss");
-  mol_ssp->mol_comp_ss_sym_table = init_symtab(MOL_COMP_SS_SYM_TABLE_SIZE);
+//  mol_ssp->mol_comp_ss_sym_table = init_symtab(MOL_COMP_SS_SYM_TABLE_SIZE);
+  mol_ssp->mol_comp_ss_head = NULL;
+  mol_ssp->mol_comp_ss_tail = NULL;
   return mol_ssp;
 }
 
@@ -531,6 +533,7 @@ struct sym_entry *store_sym(char const *sym, enum symbol_type_t sym_type,
       ((struct mol_ss *)vp)->sym = sp;
       break;
 
+/*
     case MOL_COMP_SS:
       if (data == NULL)
         vp = new_mol_comp_ss();
@@ -538,6 +541,7 @@ struct sym_entry *store_sym(char const *sym, enum symbol_type_t sym_type,
         vp = data;
       ((struct mol_comp_ss *)vp)->sym = sp;
       break;
+*/
 
     case OBJ:
       if (data == NULL)
