@@ -83,9 +83,9 @@ def process_molecules_for_final_mdl(molecules):
             except KeyError:
                 component_str += c_name
         molecule_str += "\t{}({})\n".format(molecule_name, component_str)
-        molecule_str += "\t{\n"
-        molecule_str += "\t\t{} = {}\n".format(diffusion_list[0], diffusion_list[1])
-        molecule_str += "\t}\n"
+#        molecule_str += "\t{\n"
+#        molecule_str += "\t\t{} = {}\n".format(diffusion_list[0], diffusion_list[1])
+#        molecule_str += "\t}\n"
     return molecule_str
 
 
