@@ -364,7 +364,7 @@ def define_console():
     return parser
 
 
-def write_mdl(mdl_dict, output_file_name):
+def broken_write_mdl(mdl_dict, output_file_name):
     with open('{0}.main.mdl'.format(output_file_name), 'w') as f:
         f.write(mdl_dict['main'].getvalue())
     with open('{0}.molecules.mdl'.format(output_file_name), 'w') as f:
@@ -379,6 +379,62 @@ def write_mdl(mdl_dict, output_file_name):
         f.write(mdl_dict['seeding'].getvalue())
     with open('{0}.output.mdl'.format(output_file_name), 'w') as f:
         f.write(mdl_dict['rxn_output'].getvalue())
+
+
+def write_mdl(mdl_dict, output_file_name):
+
+    print ( "\n\n\nBegin Really Writing!!\n\n\n" )
+    full_output = None
+
+    full_output = mdl_dict['main'].getvalue();
+    print ( "\n\n\nFile: main:\n\n" + full_output + "\n\n\n" )
+    f = open('{0}.main.mdl'.format(output_file_name), 'w')
+    f.write(full_output)
+    f.flush()
+    f.close()
+
+    full_output = mdl_dict['molecules'].getvalue();
+    print ( "\n\n\nFile: molecules:\n\n" + full_output + "\n\n\n" )
+    f = open('{0}.molecules.mdl'.format(output_file_name), 'w')
+    f.write(full_output)
+    f.flush()
+    f.close()
+
+    full_output = mdl_dict['reactions'].getvalue();
+    print ( "\n\n\nFile: reactions:\n\n" + full_output + "\n\n\n" )
+    f = open('{0}.reactions.mdl'.format(output_file_name), 'w')
+    f.write(full_output)
+    f.flush()
+    f.close()
+
+    full_output = mdl_dict['surface_classes'].getvalue();
+    print ( "\n\n\nFile: surface_classes:\n\n" + full_output + "\n\n\n" )
+    f = open('{0}.surface_classes.mdl'.format(output_file_name), 'w')
+    f.write(full_output)
+    f.flush()
+    f.close()
+
+    full_output = mdl_dict['mod_surf_reg'].getvalue();
+    print ( "\n\n\nFile: mod_surf_reg:\n\n" + full_output + "\n\n\n" )
+    f = open('{0}.mod_surf_reg.mdl'.format(output_file_name), 'w')
+    f.write(full_output)
+    f.flush()
+    f.close()
+
+    full_output = mdl_dict['seeding'].getvalue();
+    print ( "\n\n\nFile: seed:\n\n" + full_output + "\n\n\n" )
+    f = open('{0}.seed.mdl'.format(output_file_name), 'w')
+    f.write(full_output)
+    f.flush()
+    f.close()
+
+    full_output = mdl_dict['rxn_output'].getvalue();
+    print ( "\n\n\nFile: output:\n\n" + full_output + "\n\n\n" )
+    f = open('{0}.output.mdl'.format(output_file_name), 'w')
+    f.write(full_output)
+    f.flush()
+    f.close()
+    print ( "\n\n\nDone Really Writing!!\n\n\n" )
 
 
 if __name__ == "__main__":

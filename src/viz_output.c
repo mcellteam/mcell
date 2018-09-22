@@ -1336,7 +1336,7 @@ static int output_cellblender_molecules(struct volume *world,
 
             char **graph_parts = get_graph_strings ( next_mol );
 
-            //#### fprintf ( stdout, "#=# Graph Pattern: %s\n", next_mol );
+            fprintf ( stdout, "=#= New Graph Pattern: %s\n", next_mol );
 
             int part_num = 0;
             char *next_part = graph_parts[part_num];
