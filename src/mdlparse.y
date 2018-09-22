@@ -1258,6 +1258,8 @@ bngl_component_state:
 
 
 bngl_component_structure_spec:
+        /* empty */
+        |
         '{' 
          COMPONENT_LOCATION '=' '[' num_expr ',' num_expr ',' num_expr ']'
          ','

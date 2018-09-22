@@ -169,7 +169,7 @@ struct mdlparse_vars {
   struct sym_entry *current_bngl_molecule;
 
   /* Current bngl_component being created or modified */
-  struct sym_entry *current_bngl_component;
+  struct mol_comp_ss *current_bngl_component;
 
   /* --------------------------------------------- */
   /* Intermediate state for counting */
