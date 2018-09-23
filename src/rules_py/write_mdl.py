@@ -364,7 +364,7 @@ def define_console():
     return parser
 
 
-def broken_write_mdl(mdl_dict, output_file_name):
+def write_mdl(mdl_dict, output_file_name):
     with open('{0}.main.mdl'.format(output_file_name), 'w') as f:
         f.write(mdl_dict['main'].getvalue())
     with open('{0}.molecules.mdl'.format(output_file_name), 'w') as f:
@@ -381,7 +381,7 @@ def broken_write_mdl(mdl_dict, output_file_name):
         f.write(mdl_dict['rxn_output'].getvalue())
 
 
-def write_mdl(mdl_dict, output_file_name):
+def verbose_write_mdl(mdl_dict, output_file_name):
 
     print ( "\n\n\nBegin Really Writing!!\n\n\n" )
     full_output = None
