@@ -8047,6 +8047,15 @@ void mdl_set_bngl_component_tform(struct mdlparse_vars *parse_state,
   struct vector3 scale, translate, axis;
   double (*tm)[4];
 
+  init_matrix(mol_comp_ssp->t_matrix);
+  mol_comp_ssp->loc_x = loc_x;
+  mol_comp_ssp->loc_y = loc_y;
+  mol_comp_ssp->loc_z = loc_z;
+  mol_comp_ssp->rot_axis_x = rot_axis_x;
+  mol_comp_ssp->rot_axis_y = rot_axis_y;
+  mol_comp_ssp->rot_axis_z = rot_axis_z;
+  mol_comp_ssp->rot_angle = rot_angle;
+  /*
   tm = mol_comp_ssp->t_matrix;
   scale.x = 1.0;
   scale.y = 1.0;
@@ -8059,6 +8068,7 @@ void mdl_set_bngl_component_tform(struct mdlparse_vars *parse_state,
   axis.z = rot_axis_z;
   
   tform_matrix(&scale, &translate, &axis, rot_angle, tm);
+  */
 }
 
 
