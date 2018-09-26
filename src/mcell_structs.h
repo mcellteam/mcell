@@ -835,6 +835,13 @@ struct mol_comp_ss {
 //  double angle;
 //  struct sym_entry *sym;
   char *name;
+  double loc_x;
+  double loc_y;
+  double loc_z;
+  double rot_axis_x;
+  double rot_axis_y;
+  double rot_axis_z;
+  double rot_angle;
   double t_matrix[4][4];
   struct mol_comp_ss *next;
 };
