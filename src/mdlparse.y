@@ -1260,7 +1260,7 @@ bngl_component_state:
 bngl_component_structure_spec:
         /* empty */
         {
-          mdl_set_bngl_component_tform(parse_state, parse_state->current_bngl_component, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+          mdl_set_bngl_component_layout(parse_state, parse_state->current_bngl_component, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
         }
         |
         '{' 
@@ -1269,7 +1269,7 @@ bngl_component_structure_spec:
          COMPONENT_ROTATION '=' '[' num_expr ',' num_expr ',' num_expr ',' num_expr ']'
         '}'
         {
-          mdl_set_bngl_component_tform(parse_state, parse_state->current_bngl_component, $5, $7, $9, $15, $17, $19, $21);
+          mdl_set_bngl_component_layout(parse_state, parse_state->current_bngl_component, $5, $7, $9, $15, $17, $19, $21);
         }
 ;
 

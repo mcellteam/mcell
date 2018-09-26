@@ -819,7 +819,7 @@ struct mol_comp_ss *mdl_add_bngl_component(struct mdlparse_vars *parse_state,
 
 
 /* Set Transformation Matrix of BNGL component. */
-void mdl_set_bngl_component_tform(struct mdlparse_vars *parse_state,
+void mdl_set_bngl_component_layout(struct mdlparse_vars *parse_state,
                                       struct mol_comp_ss *mol_comp_ssp,
                                       double loc_x,
                                       double loc_y,

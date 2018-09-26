@@ -493,6 +493,11 @@ enum count_type_t {
   COUNT_TRIG_STRUCT, /* trigger_struct data type (for TRIGGER statements) */
 };
 
+#define NONSPATIAL 0
+#define XYZ 1
+#define XYZA 2
+#define XYZVA 3
+
 /* Object Type Flags */
 enum object_type_t {
   META_OBJ,     /* Meta-object: aggregation of other objects */
@@ -835,6 +840,7 @@ struct mol_comp_ss {
 //  double angle;
 //  struct sym_entry *sym;
   char *name;
+  byte spatial_type;
   double loc_x;
   double loc_y;
   double loc_z;

@@ -8021,7 +8021,7 @@ struct mol_comp_ss *mdl_add_bngl_component(struct mdlparse_vars *parse_state,
 
 
 /**************************************************************************
- mdl_set_bngl_component_tform:
+ mdl_set_bngl_component_layout:
    Set the transfomation matrix of a BNGL component.
 
  In: parse_state: parser state
@@ -8034,7 +8034,7 @@ struct mol_comp_ss *mdl_add_bngl_component(struct mdlparse_vars *parse_state,
      rot_axis_z: z part of rotation axis of the component
      rot_angle:  angle of rotation about the rotation axis for the component
 **************************************************************************/
-void mdl_set_bngl_component_tform(struct mdlparse_vars *parse_state,
+void mdl_set_bngl_component_layout(struct mdlparse_vars *parse_state,
                                  struct mol_comp_ss *mol_comp_ssp,
                                  double loc_x,
                                  double loc_y,
@@ -8048,6 +8048,21 @@ void mdl_set_bngl_component_tform(struct mdlparse_vars *parse_state,
   double (*tm)[4];
 
   init_matrix(mol_comp_ssp->t_matrix);
+  if ((rot_axis_x == 0.0) && (rot_axis_y == 0.0) && (rot_axis_z == 0.0)) {
+    if ((loc_x == 0.0) && (loc_y == 0.0) && (loc_z == 0.0) && (rot_angle == 0.0)) {
+      mol_comp_ssp->spatial_type=NONSPATIAL;
+    }
+    else if ((rot_angle != 0.0)) { 
+      mol_comp_ssp->spatial_type=XYZA;
+    }
+    else {
+      mol_comp_ssp->spatial_type=XYZ;
+    }
+  }
+  else {
+    mol_comp_ssp->spatial_type=XYZVA;
+  }
+
   mol_comp_ssp->loc_x = loc_x;
   mol_comp_ssp->loc_y = loc_y;
   mol_comp_ssp->loc_z = loc_z;
@@ -8055,6 +8070,7 @@ void mdl_set_bngl_component_tform(struct mdlparse_vars *parse_state,
   mol_comp_ssp->rot_axis_y = rot_axis_y;
   mol_comp_ssp->rot_axis_z = rot_axis_z;
   mol_comp_ssp->rot_angle = rot_angle;
+
   /*
   tm = mol_comp_ssp->t_matrix;
   scale.x = 1.0;
