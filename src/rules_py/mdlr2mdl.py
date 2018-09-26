@@ -36,8 +36,8 @@ class MDLR2MDL(object):
     def __init__(self, configpath):
         self.config = {}
         self.config['bionetgen'] = os.path.join(configpath,'bng2','BNG2.pl')
-        self.config['mcell'] = os.path.join(configpath,'mcell')
-        self.config['libpath'] = os.path.join(configpath,'lib')
+        self.config['mcell'] = os.path.join(configpath,'mcell','mcell')
+        self.config['libpath'] = os.path.join(configpath,'mcell','lib')
         if (sys.platform == 'linux') or (sys.platform == 'linux2'):
             extension = "so"
         elif (sys.platform == 'darwin'):
@@ -158,7 +158,7 @@ class MDLR2MDL(object):
 
 
 if __name__ == "__main__":
-    mdlr2mdl = MDLR2MDL(os.path.join(get_script_path()))
+    mdlr2mdl = MDLR2MDL(os.path.dirname(get_script_path()))
 
     parser = define_console()
     namespace = parser.parse_args()
