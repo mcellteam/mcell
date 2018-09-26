@@ -614,7 +614,7 @@ static void set_component_positions_by_table ( struct volume *world, external_mo
       }
 
 
-      ///// Continue previous set_component_positions_2D processing for now to make it at least run until the data can be figured out.
+      ///// Continue previous set_component_positions_2D processing for now to make it run until the data can be figured out.
 
 
       for (int ci=0; ci<mc[mi].num_peers; ci++) {
@@ -627,60 +627,6 @@ static void set_component_positions_by_table ( struct volume *world, external_mo
   }
 
   fprintf ( stdout, "==============================================\n" );
-
-
-/*
-
-          if (graph_pattern_table == NULL) {
-            graph_pattern_table = init_symtab ( 10 );
-          }
-
-          struct sym_entry *sp;
-          sp = retrieve_sym(next_mol, graph_pattern_table);
-
-          if (sp == NULL) {
-
-            // This pattern has not been saved yet, so parse it, save it, and print it.
-
-            char **graph_parts = get_graph_strings ( next_mol );
-
-            fprintf ( stdout, "=#= New Graph Pattern: %s\n", next_mol );
-
-            int part_num = 0;
-            char *next_part = graph_parts[part_num];
-            while (next_part != NULL) {
-              //#### fprintf ( stdout, "  Graph Part %d: %s\n", part_num, next_part );
-              part_num++;
-              next_part = graph_parts[part_num];
-            }
-
-            external_molcomp_loc *molcomp_array = build_molcomp_array ( world, graph_parts );
-
-            molcomp_list *mcl = (molcomp_list *) malloc ( sizeof(molcomp_list) );
-            mcl->molcomp_array = molcomp_array;
-            mcl->num_molcomp_items = part_num;
-
-            //#### fprintf ( stdout, "=============== molcomp_list ===============\n" );
-            //#### dump_molcomp_list ( mcl );
-            //#### fprintf ( stdout, "=============================================\n" );
-
-            sp = store_sym ( next_mol, VOID_PTR, graph_pattern_table, mcl );
-
-            //#### fprintf ( stdout, "=============== graph_pattern_table ===============\n" );
-            //#### dump_symtab ( graph_pattern_table );
-            //#### fprintf ( stdout, "===================================================\n" );
-
-            free_graph_parts ( graph_parts );
-          }
-
-
-*/
-
-
-
-
-
-
 
   for (mi=0; mi<num_parts; mi++) {
     if (mc[mi].is_mol) {
