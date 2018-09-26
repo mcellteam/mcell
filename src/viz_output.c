@@ -579,6 +579,123 @@ static void set_component_positions_2D ( external_molcomp_loc *mc, int num_parts
 }
 
 
+static void set_component_positions_by_table ( struct volume *world, external_molcomp_loc *mc, int num_parts ) {
+  double scale = 0.02;
+  int mi;
+  fprintf ( stdout, "Setting positions by table.\n" );
+  // Dump the table just to verify how to read it
+  //fprintf ( stdout, "==============================================\n" );
+  //dump_symtab(world->mol_ss_sym_table);
+  fprintf ( stdout, "==============================================\n" );
+
+  for (mi=0; mi<num_parts; mi++) {
+    if (mc[mi].is_mol) {
+      // Look up this molecule in the table
+      fprintf ( stdout, "  Looking up component positions for %s\n", mc[mi].name );
+      struct sym_entry *sp;
+      sp = retrieve_sym(mc[mi].name, world->mol_ss_sym_table);
+      fprintf ( stdout, "    Got an entry with symbol type %d and name %s\n", sp->sym_type, sp->name );
+      if (sp->sym_type == MOL_SS) {
+        fprintf ( stdout, "       It's a Spatially Structured Molecule!!\n" );
+        struct mol_ss *mol_ss_ptr = (struct mol_ss *)(sp->value);
+        struct mol_comp_ss *mc_ptr = mol_ss_ptr->mol_comp_ss_head;
+        int comp_count = 0;
+        fprintf ( stdout, "       This molecule has %d components.\n", comp_count );
+        while (mc_ptr != NULL) {
+          /* Try stuffing normal values for now to get legitimate output. This produces what's expected.
+          mc_ptr->t_matrix[3][0] = 111.111;
+          mc_ptr->t_matrix[3][1] = 222.222;
+          mc_ptr->t_matrix[3][2] = 333.333;
+          */
+          fprintf ( stdout, "         Component %d is \"%s\" at (%g,%g,%g).\n", comp_count, mc_ptr->name, mc_ptr->t_matrix[3][0], mc_ptr->t_matrix[3][1], mc_ptr->t_matrix[3][2] );
+          comp_count += 1;
+          mc_ptr = mc_ptr->next;
+        }
+      }
+
+
+      ///// Continue previous set_component_positions_2D processing for now to make it at least run until the data can be figured out.
+
+
+      for (int ci=0; ci<mc[mi].num_peers; ci++) {
+        double angle = 2 * MY_PI * ci / mc[mi].num_peers;
+        mc[mc[mi].peers[ci]].x = scale * cos(angle);
+        mc[mc[mi].peers[ci]].y = scale * sin(angle);
+        //#### fprintf ( stdout, "  Component %s is at (%g,%g)\n", mc[mc[mi].peers[ci]].name, mc[mc[mi].peers[ci]].x, mc[mc[mi].peers[ci]].y );
+      }
+    }
+  }
+
+  fprintf ( stdout, "==============================================\n" );
+
+
+/*
+
+          if (graph_pattern_table == NULL) {
+            graph_pattern_table = init_symtab ( 10 );
+          }
+
+          struct sym_entry *sp;
+          sp = retrieve_sym(next_mol, graph_pattern_table);
+
+          if (sp == NULL) {
+
+            // This pattern has not been saved yet, so parse it, save it, and print it.
+
+            char **graph_parts = get_graph_strings ( next_mol );
+
+            fprintf ( stdout, "=#= New Graph Pattern: %s\n", next_mol );
+
+            int part_num = 0;
+            char *next_part = graph_parts[part_num];
+            while (next_part != NULL) {
+              //#### fprintf ( stdout, "  Graph Part %d: %s\n", part_num, next_part );
+              part_num++;
+              next_part = graph_parts[part_num];
+            }
+
+            external_molcomp_loc *molcomp_array = build_molcomp_array ( world, graph_parts );
+
+            molcomp_list *mcl = (molcomp_list *) malloc ( sizeof(molcomp_list) );
+            mcl->molcomp_array = molcomp_array;
+            mcl->num_molcomp_items = part_num;
+
+            //#### fprintf ( stdout, "=============== molcomp_list ===============\n" );
+            //#### dump_molcomp_list ( mcl );
+            //#### fprintf ( stdout, "=============================================\n" );
+
+            sp = store_sym ( next_mol, VOID_PTR, graph_pattern_table, mcl );
+
+            //#### fprintf ( stdout, "=============== graph_pattern_table ===============\n" );
+            //#### dump_symtab ( graph_pattern_table );
+            //#### fprintf ( stdout, "===================================================\n" );
+
+            free_graph_parts ( graph_parts );
+          }
+
+
+*/
+
+
+
+
+
+
+
+  for (mi=0; mi<num_parts; mi++) {
+    if (mc[mi].is_mol) {
+      //#### fprintf ( stdout, "Setting component positions for %s\n", mc[mi].name );
+      for (int ci=0; ci<mc[mi].num_peers; ci++) {
+        double angle = 2 * MY_PI * ci / mc[mi].num_peers;
+        mc[mc[mi].peers[ci]].x = scale * cos(angle);
+        mc[mc[mi].peers[ci]].y = scale * sin(angle);
+        //#### fprintf ( stdout, "  Component %s is at (%g,%g)\n", mc[mc[mi].peers[ci]].name, mc[mc[mi].peers[ci]].x, mc[mc[mi].peers[ci]].y );
+      }
+    }
+  }
+}
+
+
 static void bind_molecules_2D_at_components ( external_molcomp_loc *mc, int num_parts, int fixed_comp_index, int var_comp_index ) {
   // Bind these two molecules by aligning their axes and shifting to align their components
   //#### fprintf ( stdout, "########## Binding %s to %s\n", mc[fixed_comp_index].name, mc[var_comp_index].name );
@@ -827,7 +944,7 @@ static void set_molcomp_positions_2D_first_try ( external_molcomp_loc *molcomp_a
   //#### dump_molcomp_array ( molcomp_array, num_parts );
 }
 
-static external_molcomp_loc *build_molcomp_array ( char **graph_strings ) {
+static external_molcomp_loc *build_molcomp_array ( struct volume *world, char **graph_strings ) {
   int part_num;
   char *next_part;
 
@@ -963,7 +1080,8 @@ static external_molcomp_loc *build_molcomp_array ( char **graph_strings ) {
   }
   // set_molcomp_positions_2D_first_try ( molcomp_loc_array, part_num );
   // Set the initial (relative) positions of the components with each molecule at (0,0)
-  set_component_positions_2D ( molcomp_loc_array, part_num );
+  //  set_component_positions_2D ( molcomp_loc_array, part_num );
+  set_component_positions_by_table ( world, molcomp_loc_array, part_num );
   bind_all_molecules_2D ( molcomp_loc_array, part_num );
   return molcomp_loc_array;
 }
@@ -1346,7 +1464,7 @@ static int output_cellblender_molecules(struct volume *world,
               next_part = graph_parts[part_num];
             }
 
-            external_molcomp_loc *molcomp_array = build_molcomp_array ( graph_parts );
+            external_molcomp_loc *molcomp_array = build_molcomp_array ( world, graph_parts );
 
             /*
             fprintf ( stdout, "=============== molcomp_array ===============\n" );
