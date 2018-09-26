@@ -1259,6 +1259,9 @@ bngl_component_state:
 
 bngl_component_structure_spec:
         /* empty */
+        {
+          mdl_set_bngl_component_tform(parse_state, parse_state->current_bngl_component, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+        }
         |
         '{' 
          COMPONENT_LOCATION '=' '[' num_expr ',' num_expr ',' num_expr ']'
