@@ -609,7 +609,7 @@ static void set_component_positions_by_table ( struct volume *world, external_mo
           struct mol_ss *mol_ss_ptr = (struct mol_ss *)(sp->value);
           struct mol_comp_ss *mc_ptr = mol_ss_ptr->mol_comp_ss_head;
           int comp_count = 0;
-          char *translations[4] = { "non-spatial", "XYZ", "XYZA", "XYZVA" };
+          char *translations[4] = { "COINCIDENT", "XYZ", "XYZA", "XYZVA" };
           while (mc_ptr != NULL) {
             //fprintf ( stdout, "         Component %d is \"%s\" of type %s at (%g,%g,%g).\n", comp_count, mc_ptr->name, translations[mc_ptr->spatial_type], mc_ptr->loc_x, mc_ptr->loc_y, mc_ptr->loc_z );
             for (int ci=0; ci<mc[mi].num_peers; ci++) {
@@ -677,7 +677,7 @@ static void set_component_positions_by_table_duplicate ( struct volume *world, e
           struct mol_ss *mol_ss_ptr = (struct mol_ss *)(sp->value);
           struct mol_comp_ss *mc_ptr = mol_ss_ptr->mol_comp_ss_head;
           int comp_count = 0;
-          char *translations[4] = { "non-spatial", "XYZ", "XYZA", "XYZVA" };
+          char *translations[4] = { "COINCIDENT", "XYZ", "XYZA", "XYZVA" };
           while (mc_ptr != NULL) {
             //fprintf ( stdout, "         Component %d is \"%s\" of type %s at (%g,%g,%g).\n", comp_count, mc_ptr->name, translations[mc_ptr->spatial_type], mc_ptr->loc_x, mc_ptr->loc_y, mc_ptr->loc_z );
             for (int ci=0; ci<mc[mi].num_peers; ci++) {

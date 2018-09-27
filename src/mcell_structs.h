@@ -493,7 +493,7 @@ enum count_type_t {
   COUNT_TRIG_STRUCT, /* trigger_struct data type (for TRIGGER statements) */
 };
 
-#define NONSPATIAL 0
+#define COINCIDENT 0
 #define XYZ 1
 #define XYZA 2
 #define XYZVA 3
