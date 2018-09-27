@@ -470,7 +470,6 @@ typedef struct molcomp_list_struct {
 
 static void dump_molcomp_array ( external_molcomp_loc *molcomp_array, int num_parts ) {
   int i, j;
-  /*
   fprintf ( stdout, "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n" );
   for (i=0; i<num_parts; i++) {
     fprintf ( stdout, "[%d] = %s (", i, molcomp_array[i].name );
@@ -489,7 +488,6 @@ static void dump_molcomp_array ( external_molcomp_loc *molcomp_array, int num_pa
     fprintf ( stdout, "]\n" );
   }
   fprintf ( stdout, "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n" );
-  */
 }
 
 static void dump_molcomp_list ( molcomp_list *mcl ) {\
@@ -508,10 +506,9 @@ double clipped_sin ( double angle ) {
   return ( v );
 }
 
-
+/*
 static void set_molcomp_positions_2D ( external_molcomp_loc *molcomp_array, int num_parts ) {
   // Compute positions for all molecules/components in a molcomp_array
-  // St
   //#### fprintf ( stdout, "Begin Building molcomp_positions for:\n" );
   //#### dump_molcomp_array ( molcomp_array, num_parts );
 
@@ -560,7 +557,7 @@ static void set_molcomp_positions_2D ( external_molcomp_loc *molcomp_array, int 
   //#### fprintf ( stdout, "Done Building molcomp_positions for:\n" );
   //#### dump_molcomp_array ( molcomp_array, num_parts );
 }
-
+*/
 
 static void set_component_positions_2D ( external_molcomp_loc *mc, int num_parts ) {
   double scale = 0.02;
@@ -594,48 +591,116 @@ static void set_component_positions_by_table ( struct volume *world, external_mo
       fprintf ( stdout, "  Looking up component positions for %s\n", mc[mi].name );
       struct sym_entry *sp;
       sp = retrieve_sym(mc[mi].name, world->mol_ss_sym_table);
-      fprintf ( stdout, "    Got an entry with symbol type %d and name %s\n", sp->sym_type, sp->name );
-      if (sp->sym_type == MOL_SS) {
-        fprintf ( stdout, "       It's a Spatially Structured Molecule!!\n" );
-        struct mol_ss *mol_ss_ptr = (struct mol_ss *)(sp->value);
-        struct mol_comp_ss *mc_ptr = mol_ss_ptr->mol_comp_ss_head;
-        int comp_count = 0;
-        fprintf ( stdout, "       This molecule has %d components.\n", comp_count );
-        while (mc_ptr != NULL) {
-          /* Try stuffing normal values for now to get legitimate output. This produces what's expected.
-          mc_ptr->t_matrix[3][0] = 111.111;
-          mc_ptr->t_matrix[3][1] = 222.222;
-          mc_ptr->t_matrix[3][2] = 333.333;
-          */
-          fprintf ( stdout, "         Component %d is \"%s\" at (%g,%g,%g).\n", comp_count, mc_ptr->name, mc_ptr->t_matrix[3][0], mc_ptr->t_matrix[3][1], mc_ptr->t_matrix[3][2] );
-          comp_count += 1;
-          mc_ptr = mc_ptr->next;
+      if (sp != NULL) {
+        fprintf ( stdout, "    Got an entry with symbol type %d and name %s\n", sp->sym_type, sp->name );
+        // Fill in all of the component positions in this molecule from the list
+        if (sp->sym_type == MOL_SS) {
+          fprintf ( stdout, "       It's a Spatially Structured Molecule!!\n" );
+
+          // Set the has_coords flag to false on each component of this molecule
+          for (int ci=0; ci<mc[mi].num_peers; ci++) {
+            mc[mc[mi].peers[ci]].has_coords = false;
+          }
+
+          // Walk through the list of component positions and for each one, find a matching mol_comp entry without coordinates
+
+          struct mol_ss *mol_ss_ptr = (struct mol_ss *)(sp->value);
+          struct mol_comp_ss *mc_ptr = mol_ss_ptr->mol_comp_ss_head;
+          int comp_count = 0;
+          char *translations[4] = { "non-spatial", "XYZ", "XYZA", "XYZVA" };
+          while (mc_ptr != NULL) {
+            fprintf ( stdout, "         Component %d is \"%s\" of type %s at (%g,%g,%g).\n", comp_count, mc_ptr->name, translations[mc_ptr->spatial_type], mc_ptr->loc_x, mc_ptr->loc_y, mc_ptr->loc_z );
+            for (int ci=0; ci<mc[mi].num_peers; ci++) {
+              if ( (!mc[mc[mi].peers[ci]].has_coords) && (strcmp(mc[mc[mi].peers[ci]].name, mc_ptr->name) == 0) ) {
+                mc[mc[mi].peers[ci]].x = mc_ptr->loc_x;
+                mc[mc[mi].peers[ci]].y = mc_ptr->loc_y;
+                mc[mc[mi].peers[ci]].z = mc_ptr->loc_z;
+                mc[mc[mi].peers[ci]].has_coords = true;
+                fprintf ( stdout, "             Component %s is at (%g,%g,%g)\n", mc[mc[mi].peers[ci]].name, mc[mc[mi].peers[ci]].x, mc[mc[mi].peers[ci]].y, mc[mc[mi].peers[ci]].z );
+                break;
+              }
+            }
+            comp_count += 1;
+            mc_ptr = mc_ptr->next;
+          }
+
+          fprintf ( stdout, "       This molecule has %d components.\n", comp_count );
+
+          // Just to be sure, set any unset coordinates to 0
+
+          for (int ci=0; ci<mc[mi].num_peers; ci++) {
+            if (!mc[mc[mi].peers[ci]].has_coords) {
+              mc[mc[mi].peers[ci]].x = 0.0;
+              mc[mc[mi].peers[ci]].y = 0.0;
+              mc[mc[mi].peers[ci]].z = 0.0;
+              mc[mc[mi].peers[ci]].has_coords = true;
+            }
+          }
+
         }
-      }
-
-
-      ///// Continue previous set_component_positions_2D processing for now to make it run until the data can be figured out.
-
-
-      for (int ci=0; ci<mc[mi].num_peers; ci++) {
-        double angle = 2 * MY_PI * ci / mc[mi].num_peers;
-        mc[mc[mi].peers[ci]].x = scale * cos(angle);
-        mc[mc[mi].peers[ci]].y = scale * sin(angle);
-        //#### fprintf ( stdout, "  Component %s is at (%g,%g)\n", mc[mc[mi].peers[ci]].name, mc[mc[mi].peers[ci]].x, mc[mc[mi].peers[ci]].y );
+      } else {
+        fprintf ( stdout, "    No entry found for %s, using default. This is unexpected!!\n", mc[mi].name );
+        for (int ci=0; ci<mc[mi].num_peers; ci++) {
+          double angle = 2 * MY_PI * ci / mc[mi].num_peers;
+          mc[mc[mi].peers[ci]].x = scale * cos(angle);
+          mc[mc[mi].peers[ci]].y = scale * sin(angle);
+          mc[mc[mi].peers[ci]].z = 0.0;
+          //#### fprintf ( stdout, "  Component %s is at (%g,%g)\n", mc[mc[mi].peers[ci]].name, mc[mc[mi].peers[ci]].x, mc[mc[mi].peers[ci]].y );
+        }
       }
     }
   }
+}
 
+
+static void set_component_positions_by_table_duplicate ( struct volume *world, external_molcomp_loc *mc, int num_parts ) {
+  double scale = 0.02;
+  int mi;
+  fprintf ( stdout, "Setting positions by table.\n" );
+  // Dump the table just to verify how to read it
+  //fprintf ( stdout, "==============================================\n" );
+  //dump_symtab(world->mol_ss_sym_table);
   fprintf ( stdout, "==============================================\n" );
 
   for (mi=0; mi<num_parts; mi++) {
     if (mc[mi].is_mol) {
-      //#### fprintf ( stdout, "Setting component positions for %s\n", mc[mi].name );
-      for (int ci=0; ci<mc[mi].num_peers; ci++) {
-        double angle = 2 * MY_PI * ci / mc[mi].num_peers;
-        mc[mc[mi].peers[ci]].x = scale * cos(angle);
-        mc[mc[mi].peers[ci]].y = scale * sin(angle);
-        //#### fprintf ( stdout, "  Component %s is at (%g,%g)\n", mc[mc[mi].peers[ci]].name, mc[mc[mi].peers[ci]].x, mc[mc[mi].peers[ci]].y );
+      // Look up this molecule in the table
+      fprintf ( stdout, "  Looking up component positions for %s\n", mc[mi].name );
+      struct sym_entry *sp;
+      sp = retrieve_sym(mc[mi].name, world->mol_ss_sym_table);
+      if (sp != NULL) {
+        fprintf ( stdout, "    Got an entry with symbol type %d and name %s\n", sp->sym_type, sp->name );
+        if (sp->sym_type == MOL_SS) {
+          fprintf ( stdout, "       It's a Spatially Structured Molecule!!\n" );
+          struct mol_ss *mol_ss_ptr = (struct mol_ss *)(sp->value);
+          struct mol_comp_ss *mc_ptr = mol_ss_ptr->mol_comp_ss_head;
+          int comp_count = 0;
+          char *translations[4] = { "non-spatial", "XYZ", "XYZA", "XYZVA" };
+          while (mc_ptr != NULL) {
+            fprintf ( stdout, "         Component %d is \"%s\" of type %s at (%g,%g,%g).\n", comp_count, mc_ptr->name, translations[mc_ptr->spatial_type], mc_ptr->loc_x, mc_ptr->loc_y, mc_ptr->loc_z );
+            for (int ci=0; ci<mc[mi].num_peers; ci++) {
+              if (strcmp(mc[mc[mi].peers[ci]].name, mc_ptr->name) == 0) {
+                mc[mc[mi].peers[ci]].x = mc_ptr->loc_x;
+                mc[mc[mi].peers[ci]].y = mc_ptr->loc_y;
+                mc[mc[mi].peers[ci]].z = mc_ptr->loc_z;
+                // mc[mc[mi].peers[ci]].has_coords = true;
+                fprintf ( stdout, "             Component %s is at (%g,%g,%g)\n", mc[mc[mi].peers[ci]].name, mc[mc[mi].peers[ci]].x, mc[mc[mi].peers[ci]].y, mc[mc[mi].peers[ci]].z );
+              }
+            }
+            comp_count += 1;
+            mc_ptr = mc_ptr->next;
+          }
+          fprintf ( stdout, "       This molecule has %d components.\n", comp_count );
+        }
+      } else {
+        fprintf ( stdout, "    No entry found for %s, using default. This is unexpected!!\n", mc[mi].name );
+        for (int ci=0; ci<mc[mi].num_peers; ci++) {
+          double angle = 2 * MY_PI * ci / mc[mi].num_peers;
+          mc[mc[mi].peers[ci]].x = scale * cos(angle);
+          mc[mc[mi].peers[ci]].y = scale * sin(angle);
+          mc[mc[mi].peers[ci]].z = 0.0;
+          //#### fprintf ( stdout, "  Component %s is at (%g,%g)\n", mc[mc[mi].peers[ci]].name, mc[mc[mi].peers[ci]].x, mc[mc[mi].peers[ci]].y );
+        }
       }
     }
   }
@@ -1026,9 +1091,16 @@ static external_molcomp_loc *build_molcomp_array ( struct volume *world, char **
   }
   // set_molcomp_positions_2D_first_try ( molcomp_loc_array, part_num );
   // Set the initial (relative) positions of the components with each molecule at (0,0)
-  //  set_component_positions_2D ( molcomp_loc_array, part_num );
+
+  // set_component_positions_2D ( molcomp_loc_array, part_num );
   set_component_positions_by_table ( world, molcomp_loc_array, part_num );
+
   bind_all_molecules_2D ( molcomp_loc_array, part_num );
+
+  fprintf ( stdout, ">>>>>>>>>>>>>>>>>>>>>>> Final molcomp_loc_array <<<<<<<<<<<<<<<<<<<\n" );
+  dump_molcomp_array ( molcomp_loc_array, part_num );
+  fprintf ( stdout, ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n" );
+
   return molcomp_loc_array;
 }
 
