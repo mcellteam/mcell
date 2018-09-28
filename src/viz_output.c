@@ -470,8 +470,7 @@ typedef struct molcomp_list_struct {
 
 static void dump_molcomp_array ( external_molcomp_loc *molcomp_array, int num_parts ) {
   int i, j;
-  /*
-  fprintf ( stdout, "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n" );
+  fprintf ( stdout, "%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%\n" );
   for (i=0; i<num_parts; i++) {
     fprintf ( stdout, "[%d] = %s (", i, molcomp_array[i].name );
     if (molcomp_array[i].is_mol) {
@@ -488,11 +487,10 @@ static void dump_molcomp_array ( external_molcomp_loc *molcomp_array, int num_pa
     }
     fprintf ( stdout, "]\n" );
   }
-  fprintf ( stdout, "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%\n" );
-  */
+  fprintf ( stdout, "%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%\n" );
 }
 
-static void dump_molcomp_list ( molcomp_list *mcl ) {\
+static void dump_molcomp_list ( molcomp_list *mcl ) {
   dump_molcomp_array ( mcl->molcomp_array, mcl->num_molcomp_items );
 }
 
@@ -654,59 +652,6 @@ static void set_component_positions_by_table ( struct volume *world, external_mo
   }
 }
 
-
-static void set_component_positions_by_table_duplicate ( struct volume *world, external_molcomp_loc *mc, int num_parts ) {
-  double scale = 0.02;
-  int mi;
-  //fprintf ( stdout, "Setting positions by table.\n" );
-  // Dump the table just to verify how to read it
-  //fprintf ( stdout, "==============================================\n" );
-  //dump_symtab(world->mol_ss_sym_table);
-  //fprintf ( stdout, "==============================================\n" );
-
-  for (mi=0; mi<num_parts; mi++) {
-    if (mc[mi].is_mol) {
-      // Look up this molecule in the table
-      //fprintf ( stdout, "  Looking up component positions for %s\n", mc[mi].name );
-      struct sym_entry *sp;
-      sp = retrieve_sym(mc[mi].name, world->mol_ss_sym_table);
-      if (sp != NULL) {
-        //fprintf ( stdout, "    Got an entry with symbol type %d and name %s\n", sp->sym_type, sp->name );
-        if (sp->sym_type == MOL_SS) {
-          //fprintf ( stdout, "       It's a Spatially Structured Molecule!!\n" );
-          struct mol_ss *mol_ss_ptr = (struct mol_ss *)(sp->value);
-          struct mol_comp_ss *mc_ptr = mol_ss_ptr->mol_comp_ss_head;
-          int comp_count = 0;
-          char *translations[4] = { "non-spatial", "XYZ", "XYZA", "XYZVA" };
-          while (mc_ptr != NULL) {
-            //fprintf ( stdout, "         Component %d is \"%s\" of type %s at (%g,%g,%g).\n", comp_count, mc_ptr->name, translations[mc_ptr->spatial_type], mc_ptr->loc_x, mc_ptr->loc_y, mc_ptr->loc_z );
-            for (int ci=0; ci<mc[mi].num_peers; ci++) {
-              if (strcmp(mc[mc[mi].peers[ci]].name, mc_ptr->name) == 0) {
-                mc[mc[mi].peers[ci]].x = mc_ptr->loc_x;
-                mc[mc[mi].peers[ci]].y = mc_ptr->loc_y;
-                mc[mc[mi].peers[ci]].z = mc_ptr->loc_z;
-                // mc[mc[mi].peers[ci]].has_coords = true;
-                //fprintf ( stdout, "             Component %s is at (%g,%g,%g)\n", mc[mc[mi].peers[ci]].name, mc[mc[mi].peers[ci]].x, mc[mc[mi].peers[ci]].y, mc[mc[mi].peers[ci]].z );
-              }
-            }
-            comp_count += 1;
-            mc_ptr = mc_ptr->next;
-          }
-          //fprintf ( stdout, "       This molecule has %d components.\n", comp_count );
-        }
-      } else {
-        //fprintf ( stdout, "    No entry found for %s, using default. This is unexpected!!\n", mc[mi].name );
-        for (int ci=0; ci<mc[mi].num_peers; ci++) {
-          double angle = 2 * MY_PI * ci / mc[mi].num_peers;
-          mc[mc[mi].peers[ci]].x = scale * cos(angle);
-          mc[mc[mi].peers[ci]].y = scale * sin(angle);
-          mc[mc[mi].peers[ci]].z = 0.0;
-          //#### fprintf ( stdout, "  Component %s is at (%g,%g)\n", mc[mc[mi].peers[ci]].name, mc[mc[mi].peers[ci]].x, mc[mc[mi].peers[ci]].y );
-        }
-      }
-    }
-  }
-}
 
 
 static void bind_molecules_2D_at_components ( external_molcomp_loc *mc, int num_parts, int fixed_comp_index, int var_comp_index ) {
@@ -1099,9 +1044,9 @@ static external_molcomp_loc *build_molcomp_array ( struct volume *world, char **
 
   bind_all_molecules_2D ( molcomp_loc_array, part_num );
 
-  //fprintf ( stdout, ">>>>>>>>>>>>>>>>>>>>>>> Final molcomp_loc_array <<<<<<<<<<<<<<<<<<<\n" );
-  //dump_molcomp_array ( molcomp_loc_array, part_num );
-  //fprintf ( stdout, ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n" );
+  fprintf ( stdout, ">>>>>>>>>>>>>>>>>>>>>>> Final molcomp_loc_array <<<<<<<<<<<<<<<<<<<\n" );
+  dump_molcomp_array ( molcomp_loc_array, part_num );
+  fprintf ( stdout, ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n" );
 
   return molcomp_loc_array;
 }
@@ -1474,7 +1419,8 @@ static int output_cellblender_molecules(struct volume *world,
 
             char **graph_parts = get_graph_strings ( next_mol );
 
-            //fprintf ( stdout, "=#= New Graph Pattern: %s\n", next_mol );
+            // Print for use with external tools like the SpatialMols2D.java
+            fprintf ( stdout, "=#= New Graph Pattern: %s\n", next_mol );
 
             int part_num = 0;
             char *next_part = graph_parts[part_num];
