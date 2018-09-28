@@ -8050,7 +8050,7 @@ void mdl_set_bngl_component_layout(struct mdlparse_vars *parse_state,
   init_matrix(mol_comp_ssp->t_matrix);
   if ((rot_axis_x == 0.0) && (rot_axis_y == 0.0) && (rot_axis_z == 0.0)) {
     if ((loc_x == 0.0) && (loc_y == 0.0) && (loc_z == 0.0) && (rot_angle == 0.0)) {
-      mol_comp_ssp->spatial_type=NONSPATIAL;
+      mol_comp_ssp->spatial_type=COINCIDENT;
     }
     else if ((rot_angle != 0.0)) { 
       mol_comp_ssp->spatial_type=XYZA;
