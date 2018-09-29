@@ -63,6 +63,7 @@ static struct option long_options[] = { { "help", 0, 0, 'h' },
                                         { "logfile", 1, 0, 'l' },
                                         { "logfreq", 1, 0, 'f' },
                                         { "errfile", 1, 0, 'e' },
+                                        { "dump", 1, 0, 'd'},
                                         { "quiet", 0, 0, 'q' },
                                         { "with_checks", 1, 0, 'w' },
                                         { "rules", 1, 0, 'r'},
@@ -88,6 +89,7 @@ void print_usage(FILE *f, char const *argv0) {
       "     [-errfile err_file_name] send errors log to file (default: stderr)\n"
       "     [-checkpoint_infile checkpoint_file_name]   read checkpoint file\n"
       "     [-checkpoint_outfile checkpoint_file_name]  write checkpoint file\n"
+      "     [-dump level]            print additional information based on level (0 is none, >0 is more)\n"
       "     [-quiet]                 suppress all unrequested output except for errors\n"
       "     [-with_checks ('yes'/'no', default 'yes')]   performs check of the geometry for coincident walls\n"
       "     [-rules rules_file_name] run in MCell-R mode\n"
@@ -156,6 +158,23 @@ int argparse_init(int argc, char *const argv[], struct volume *vol) {
 
     case 'q': /* -quiet */
       vol->quiet_flag = 1;
+      break;
+
+    case 'd': /* -dump */
+      vol->dump_level = (int)strtol(optarg, &endptr, 0);
+      if (endptr == optarg || *endptr != '\0') {
+        argerror("Dump level must be an integer: %s", optarg);
+        return 1;
+      }
+
+      if (vol->dump_level < 0) {
+        argerror("Dump level %d is less than 0", (int)vol->dump_level);
+        return 1;
+      }
+
+      if (vol->dump_level > 0) {
+        fprintf(stdout, "Dump level has been set to %d\n", vol->dump_level);
+      }
       break;
 
     case 'w': /* walls coincidence check (maybe other checks in future) */
