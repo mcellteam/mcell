@@ -1043,9 +1043,11 @@ static external_molcomp_loc *build_molcomp_array ( struct volume *world, char **
 
   bind_all_molecules_2D ( world, molcomp_loc_array, part_num );
 
-  fprintf ( stdout, ">>>>>>>>>>>>>>>>>>>>>>> Final molcomp_loc_array <<<<<<<<<<<<<<<<<<<\n" );
-  dump_molcomp_array ( molcomp_loc_array, part_num );
-  fprintf ( stdout, ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n" );
+  if (world->dump_level > 0) {
+    fprintf ( stdout, ">>>>>>>>>>>>>>>>>>>>>>> Final molcomp_loc_array <<<<<<<<<<<<<<<<<<<\n" );
+    dump_molcomp_array ( molcomp_loc_array, part_num );
+    fprintf ( stdout, ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n" );
+  }
 
   return molcomp_loc_array;
 }
@@ -1419,7 +1421,9 @@ static int output_cellblender_molecules(struct volume *world,
             char **graph_parts = get_graph_strings ( next_mol );
 
             // Print for use with external tools like the SpatialMols2D.java
-            fprintf ( stdout, "=#= New Graph Pattern: %s\n", next_mol );
+            if (world->dump_level > 0) {
+              fprintf ( stdout, "=#= New Graph Pattern: %s\n", next_mol );
+            }
 
             int part_num = 0;
             char *next_part = graph_parts[part_num];
