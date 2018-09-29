@@ -1094,7 +1094,7 @@ struct reaction_flags {
 /* All data about the world */
 struct volume {
 
-  int dump_level; /* Requests additional text output. 0 for no additional, >0 implies more. */
+  long int dump_level; /* Requests additional text output. 0 for no additional, >0 implies more. */
 
   // These are only used with dynamic geometry
   struct dyngeom_parse_vars *dg_parse;

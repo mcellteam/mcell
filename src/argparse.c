@@ -161,19 +161,19 @@ int argparse_init(int argc, char *const argv[], struct volume *vol) {
       break;
 
     case 'd': /* -dump */
-      vol->dump_level = (int)strtol(optarg, &endptr, 0);
+      vol->dump_level = strtol(optarg, &endptr, 0);
       if (endptr == optarg || *endptr != '\0') {
         argerror("Dump level must be an integer: %s", optarg);
         return 1;
       }
 
       if (vol->dump_level < 0) {
-        argerror("Dump level %d is less than 0", (int)vol->dump_level);
+        argerror("Dump level %ld is less than 0", vol->dump_level);
         return 1;
       }
 
       if (vol->dump_level > 0) {
-        fprintf(stdout, "Dump level has been set to %d\n", vol->dump_level);
+        fprintf(stdout, "Dump level has been set to %ld\n", vol->dump_level);
       }
       break;
 

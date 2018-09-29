@@ -54,9 +54,14 @@ int main(int argc, char **argv) {
     exit(1);
   }
 
+  // Somehow the state.dump_level is correct here, but becomes 0 in mcell_init_state, so save it and restore it.
+  long saved_dump_level = state->dump_level;
+
   CHECKED_CALL_EXIT(
       mcell_init_state(state),
       "An error occured during set up of the initial simulation state");
+
+  state->dump_level = saved_dump_level;
 
   if (state->notify->progress_report != NOTIFY_NONE) {
     mcell_print_version();

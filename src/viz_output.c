@@ -1043,7 +1043,7 @@ static external_molcomp_loc *build_molcomp_array ( struct volume *world, char **
 
   bind_all_molecules_2D ( world, molcomp_loc_array, part_num );
 
-  if (world->dump_level > 0) {
+  if (world->dump_level >= 20) {
     fprintf ( stdout, ">>>>>>>>>>>>>>>>>>>>>>> Final molcomp_loc_array <<<<<<<<<<<<<<<<<<<\n" );
     dump_molcomp_array ( molcomp_loc_array, part_num );
     fprintf ( stdout, ">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n" );
@@ -1156,6 +1156,10 @@ static int output_cellblender_molecules(struct volume *world,
                                         struct frame_data_list *fdlp) {
 
   no_printf("Output in CELLBLENDER mode (molecules only)...\n");
+
+  if (world->dump_level >= 50) {
+    fprintf ( stdout, ">>>>>>>>>>>>>>>>>>>>>>> Top of MolViz Output <<<<<<<<<<<<<<<<<<<\n" );
+  }
 
   if ((fdlp->type == ALL_MOL_DATA) || (fdlp->type == MOL_POS)) {
     long long lli = 10;
@@ -1421,7 +1425,7 @@ static int output_cellblender_molecules(struct volume *world,
             char **graph_parts = get_graph_strings ( next_mol );
 
             // Print for use with external tools like the SpatialMols2D.java
-            if (world->dump_level > 0) {
+            if (world->dump_level >= 10) {
               fprintf ( stdout, "=#= New Graph Pattern: %s\n", next_mol );
             }
 
@@ -1680,6 +1684,10 @@ static int output_cellblender_molecules(struct volume *world,
     viz_molp = NULL;
     free(viz_mol_count);
     viz_mol_count = NULL;
+  }
+
+  if (world->dump_level >= 50) {
+    fprintf ( stdout, ">>>>>>>>>>>>>>>>>>>>>>> Bottom of MolViz Output <<<<<<<<<<<<<<<<<<<\n" );
   }
 
   return 0;
