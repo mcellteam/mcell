@@ -38,6 +38,7 @@ class MDLR2MDL(object):
         self.config['bionetgen'] = os.path.join(configpath,'bng2','BNG2.pl')
         self.config['mcell'] = os.path.join(configpath,'mcell')
         self.config['libpath'] = os.path.join(configpath,'lib')
+        self.config['scriptpath'] = configpath
         if (sys.platform == 'linux') or (sys.platform == 'linux2'):
             extension = "so"
         elif (sys.platform == 'darwin'):
@@ -46,6 +47,7 @@ class MDLR2MDL(object):
             extension = "dll"
         else:
             raise Exception("Unexpected platform: {0}".format(sys.platform))
+
         libNFsim_path = os.path.join(self.config['libpath'], 'libNFsim.{0}'.format(extension))
         libnfsim_c_path = os.path.join(self.config['libpath'], 'libnfsim_c.{0}'.format(extension))
         self.nfsim = NFSim(libnfsim_c_path, libNFsim_path=libNFsim_path)
@@ -195,6 +197,19 @@ if __name__ == "__main__":
     noext = os.path.splitext(namespace.input)[0]
     xml_name = "{0}.mdlr_rules.xml".format(noext)
 
+#    my_env = {}
+    script_path = mdlr2mdl.config['scriptpath']
+    my_env = os.environ.copy()
+    if (sys.platform == 'darwin'):
+      if my_env.get('DYLD_LIBRARY_PATH'):
+        my_env['DYLD_LIBRARY_PATH']=os.path.join(script_path,'lib') + os.pathsep + my_env['DYLD_LIBRARY_PATH']
+      else:
+        my_env['DYLD_LIBRARY_PATH']=os.path.join(script_path,'lib')
+    else:
+      if my_env.get('LD_LIBRARY_PATH'):
+        my_env['LD_LIBRARY_PATH']=os.path.join(script_path,'lib') + os.pathsep + my_env['LD_LIBRARY_PATH']
+      else:
+        my_env['LD_LIBRARY_PATH']=os.path.join(script_path,'lib')
 
     if namespace.run:
       # Generate command to run MCell
@@ -205,4 +220,4 @@ if __name__ == "__main__":
       # Print the command to run MCell
       print("\n====> Running MCell with: " + " ".join(cmd) + "\n")
       # Actually run MCell (if desired)
-      call(cmd)
+      call(cmd,env=my_env)
