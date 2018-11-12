@@ -1421,7 +1421,7 @@ static int output_cellblender_molecules(struct volume *world,
 
           if (sp == NULL) {
 
-            // This pattern has not been saved yet, so parse it, save it, and print it.
+            // This pattern has not been saved yet, so parse it, save it, and possibly print it.
 
             char **graph_parts = get_graph_strings ( next_mol );
 
@@ -1430,25 +1430,26 @@ static int output_cellblender_molecules(struct volume *world,
               fprintf ( stdout, "=#= New Graph Pattern: %s\n", next_mol );
             }
 
-            int part_num = 0;
-            char *next_part = graph_parts[part_num];
+            // Count the number of parts in graph_parts linked list
+            int num_parts = 0;
+            char *next_part = graph_parts[num_parts];
             while (next_part != NULL) {
-              //#### fprintf ( stdout, "  Graph Part %d: %s\n", part_num, next_part );
-              part_num++;
-              next_part = graph_parts[part_num];
+              //#### fprintf ( stdout, "  Graph Part %d: %s\n", num_parts, next_part );
+              num_parts++;
+              next_part = graph_parts[num_parts];
             }
 
             external_molcomp_loc *molcomp_array = build_molcomp_array ( world, graph_parts );
 
             /*
             fprintf ( stdout, "=============== molcomp_array ===============\n" );
-            //#### dump_molcomp_array ( molcomp_array, part_num );
+            //#### dump_molcomp_array ( molcomp_array, num_parts );
             fprintf ( stdout, "=============================================\n" );
             */
 
             molcomp_list *mcl = (molcomp_list *) malloc ( sizeof(molcomp_list) );
             mcl->molcomp_array = molcomp_array;
-            mcl->num_molcomp_items = part_num;
+            mcl->num_molcomp_items = num_parts;
 
             //#### fprintf ( stdout, "=============== molcomp_list ===============\n" );
             //#### dump_molcomp_list ( mcl );
@@ -1539,7 +1540,11 @@ static int output_cellblender_molecules(struct volume *world,
 
           } else {
 
-            // This should not generally get executed (this was the old way of making mols directly from the NAUTY strings)
+            // This was the old way of making mols directly from the NAUTY strings.
+            // This code either placed all molecule parts at the same location or
+            //   spaced them evenly along the "x" axis (see x_offset below).
+            // This should not generally get executed since the previous processing was added.
+            // It's being kept here because it is computationally simpler and may be useful.
 
             while ((next_mol = strstr(next_mol,"m:")) != NULL ) {
               /* Pull the next actual molecule name out of the graph pattern */
