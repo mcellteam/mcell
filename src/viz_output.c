@@ -607,7 +607,7 @@ static void set_component_positions_by_table ( struct volume *world, external_mo
           struct mol_ss *mol_ss_ptr = (struct mol_ss *)(sp->value);
           struct mol_comp_ss *mc_ptr = mol_ss_ptr->mol_comp_ss_head;
           int comp_count = 0;
-          char *translations[4] = { "COINCIDENT", "XYZ", "XYZA", "XYZRef", "XYZVA" };
+          char *translations[5] = { "COINCIDENT", "XYZ", "XYZA", "XYZRef", "XYZVA" };
           while (mc_ptr != NULL) {
             //fprintf ( stdout, "         Component %d is \"%s\" of type %s at (%g,%g,%g).\n", comp_count, mc_ptr->name, translations[mc_ptr->spatial_type], mc_ptr->loc_x, mc_ptr->loc_y, mc_ptr->loc_z );
             for (int ci=0; ci<mc[mi].num_peers; ci++) {
@@ -654,7 +654,7 @@ static void set_component_positions_by_table ( struct volume *world, external_mo
 }
 
 
-static void bind_molecules_2D_at_components ( struct volume *world, external_molcomp_loc *mc, int num_parts, int fixed_comp_index, int var_comp_index ) {
+static void bind_molecules_2D_at_components ( struct volume *world, external_molcomp_loc *mc, int num_parts, int fixed_comp_index, int var_comp_index, bool as3D, bool with_rot ) {
   // Bind these two molecules by aligning their axes and shifting to align their components
   //#### fprintf ( stdout, "########## Binding %s to %s\n", mc[fixed_comp_index].name, mc[var_comp_index].name );
   //#### dump_molcomp_array(mc,num_parts);
@@ -744,7 +744,7 @@ static void bind_molecules_2D_at_components ( struct volume *world, external_mol
 }
 
 
-static void bind_all_molecules_2D ( struct volume *world, external_molcomp_loc *molcomp_array, int num_parts ) {
+static void bind_all_molecules_2D ( struct volume *world, external_molcomp_loc *molcomp_array, int num_parts, bool as3D, bool with_rot ) {
   // Compute positions for all molecules/components in a molcomp_array
   int mi=0;
   int pi=0;
@@ -790,7 +790,7 @@ static void bind_all_molecules_2D ( struct volume *world, external_molcomp_loc *
                 // set_component_positions_2D ( world, molcomp_array, num_parts );
 
                 // Perform the bond (changes the locations)
-                bind_molecules_2D_at_components ( world, molcomp_array, num_parts, fci, vci );
+                bind_molecules_2D_at_components ( world, molcomp_array, num_parts, fci, vci, as3D, with_rot );
 
                 // Set the variable molecule and its components to final
                 molcomp_array[vmi].is_final = true;
@@ -1042,7 +1042,7 @@ static external_molcomp_loc *build_molcomp_array ( struct volume *world, char **
   // set_component_positions_2D ( world, molcomp_loc_array, part_num );
   set_component_positions_by_table ( world, molcomp_loc_array, part_num );
 
-  bind_all_molecules_2D ( world, molcomp_loc_array, part_num );
+  bind_all_molecules_2D ( world, molcomp_loc_array, part_num, false, false );
 
   if (world->dump_level >= 20) {
     fprintf ( stdout, ">>>>>>>>>>>>>>>>>>>>>>> Final molcomp_loc_array <<<<<<<<<<<<<<<<<<<\n" );
