@@ -640,7 +640,7 @@ static void set_component_positions_by_table ( struct volume *world, external_mo
 
         }
       } else {
-        //fprintf ( stdout, "    No entry found for %s, using default. This is unexpected!!\n", mc[mi].name );
+        fprintf ( stdout, "    No entry found for %s, using default. This is unexpected!!\n", mc[mi].name );
         for (int ci=0; ci<mc[mi].num_peers; ci++) {
           double angle = 2 * MY_PI * ci / mc[mi].num_peers;
           mc[mc[mi].peers[ci]].x = scale * cos(angle);
@@ -654,7 +654,7 @@ static void set_component_positions_by_table ( struct volume *world, external_mo
 }
 
 
-static void bind_molecules_2D_at_components ( struct volume *world, external_molcomp_loc *mc, int num_parts, int fixed_comp_index, int var_comp_index, bool as3D, bool with_rot ) {
+static void bind_molecules_at_components ( struct volume *world, external_molcomp_loc *mc, int num_parts, int fixed_comp_index, int var_comp_index, bool as3D, bool with_rot ) {
   // Bind these two molecules by aligning their axes and shifting to align their components
   //#### fprintf ( stdout, "########## Binding %s to %s\n", mc[fixed_comp_index].name, mc[var_comp_index].name );
   //#### dump_molcomp_array(mc,num_parts);
@@ -662,17 +662,33 @@ static void bind_molecules_2D_at_components ( struct volume *world, external_mol
   int fixed_mol_index = mc[fixed_comp_index].peers[0];
   int var_mol_index = mc[var_comp_index].peers[0];
 
-  double fixed_vec[2];
-  double   var_vec[2];
+  double fixed_vec[3];  // This will either hold 2 or 3 values, but since it's temporary, the allocation difference doesn't accumulate.
+  double   var_vec[3];
   fixed_vec[0] = mc[fixed_comp_index].x - mc[fixed_mol_index].x;
   fixed_vec[1] = mc[fixed_comp_index].y - mc[fixed_mol_index].y;
   var_vec[0]   = mc[  var_comp_index].x - mc[  var_mol_index].x;
   var_vec[1]   = mc[  var_comp_index].y - mc[  var_mol_index].y;
+  if (as3D) {
+    fixed_vec[2] = mc[fixed_comp_index].z - mc[fixed_mol_index].z;
+    var_vec[2]   = mc[  var_comp_index].z - mc[  var_mol_index].z;
+  }
 
-  double fixed_mag = sqrt ( (fixed_vec[0]*fixed_vec[0]) + (fixed_vec[1]*fixed_vec[1]) );
-  double   var_mag = sqrt ( (  var_vec[0]*  var_vec[0]) + (  var_vec[1]*  var_vec[1]) );
+  double fixed_mag;
+  double   var_mag;
+  if (as3D) {
+    fixed_mag = sqrt ( (fixed_vec[0]*fixed_vec[0]) + (fixed_vec[1]*fixed_vec[1]) + (fixed_vec[2]*fixed_vec[2]) );
+      var_mag = sqrt ( (  var_vec[0]*  var_vec[0]) + (  var_vec[1]*  var_vec[1]) + (  var_vec[2]*  var_vec[2]) );
+  } else {
+    fixed_mag = sqrt ( (fixed_vec[0]*fixed_vec[0]) + (fixed_vec[1]*fixed_vec[1]) );
+      var_mag = sqrt ( (  var_vec[0]*  var_vec[0]) + (  var_vec[1]*  var_vec[1]) );
+  }
 
-  double dot_prod = (fixed_vec[0] * var_vec[0]) + (fixed_vec[1] * var_vec[1]);
+  double dot_prod;
+  if (as3D) {
+    dot_prod = (fixed_vec[0] * var_vec[0]) + (fixed_vec[1] * var_vec[1]) + (fixed_vec[2] * var_vec[2]);
+  } else {
+    dot_prod = (fixed_vec[0] * var_vec[0]) + (fixed_vec[1] * var_vec[1]);
+  }
 
   // In general, the magnitudes should be checked for 0. However, in this case, they were generated as non-zero.
   double norm_dot_prod = dot_prod / ( fixed_mag * var_mag );
@@ -685,10 +701,15 @@ static void bind_molecules_2D_at_components ( struct volume *world, external_mol
   double angle = acos ( norm_dot_prod );
   //#### fprintf ( stdout, "Angle (from acos) = %g\n", angle );
 
-  // Try using the cross product to fix the direction issue
-  //#### fprintf ( stdout, "Cross of (%g,%g) X (%g,%g) = %g\n", fixed_vec[0], fixed_vec[1], var_vec[0], var_vec[1], (fixed_vec[0] * var_vec[1]) - (fixed_vec[1] * var_vec[0]) );
-  if ( ( (fixed_vec[0] * var_vec[1]) - (fixed_vec[1] * var_vec[0]) ) > 0 ) {
+  if (as3D) {
+    // This seems to be required to get everything right:
     angle = -angle;
+  } else {
+    // Try using the cross product to fix the direction issue
+    //#### fprintf ( stdout, "Cross of (%g,%g) X (%g,%g) = %g\n", fixed_vec[0], fixed_vec[1], var_vec[0], var_vec[1], (fixed_vec[0] * var_vec[1]) - (fixed_vec[1] * var_vec[0]) );
+    if ( ( (fixed_vec[0] * var_vec[1]) - (fixed_vec[1] * var_vec[0]) ) > 0 ) {
+      angle = -angle;
+    }
   }
 
   // Reverse the direction since we want the components attached to each other
@@ -712,14 +733,82 @@ static void bind_molecules_2D_at_components ( struct volume *world, external_mol
   double cos_angle = cos(angle);
   double sin_angle = sin(angle);
 
-  //#### fprintf ( stdout, "Rotating component positions for %s by %g\n", mc[var_mol_index].name, 180*angle/MY_PI );
-  for (int ci=0; ci<mc[var_mol_index].num_peers; ci++) {
-    //#### fprintf ( stdout, "  Component %s before is at (%g,%g)\n", mc[mc[var_mol_index].peers[ci]].name, mc[mc[var_mol_index].peers[ci]].x, mc[mc[var_mol_index].peers[ci]].y );
-    double x = mc[mc[var_mol_index].peers[ci]].x;
-    double y = mc[mc[var_mol_index].peers[ci]].y;
-    mc[mc[var_mol_index].peers[ci]].x = (x * cos_angle) - (y * sin_angle);
-    mc[mc[var_mol_index].peers[ci]].y = (x * sin_angle) + (y * cos_angle);
-    //#### fprintf ( stdout, "  Component %s after  is at (%g,%g)\n", mc[mc[var_mol_index].peers[ci]].name, mc[mc[var_mol_index].peers[ci]].x, mc[mc[var_mol_index].peers[ci]].y );
+  if (as3D) {
+    double cross_prod[3];
+    cross_prod[0] = (fixed_vec[1] * var_vec[2]) - (fixed_vec[2] * var_vec[1]);
+    cross_prod[1] = (fixed_vec[2] * var_vec[0]) - (fixed_vec[0] * var_vec[2]);
+    cross_prod[2] = (fixed_vec[0] * var_vec[1]) - (fixed_vec[1] * var_vec[0]);
+
+    double xpx, xpy, xpz;
+    xpx = cross_prod[0] / (fixed_mag * var_mag);
+    xpy = cross_prod[1] / (fixed_mag * var_mag);
+    xpz = cross_prod[2] / (fixed_mag * var_mag);
+
+    double axis_length = sqrt ( (xpx*xpx) + (xpy*xpy) + (xpz*xpz) );
+
+    double R[3][3] = { { 1, 0, 0 },
+                       { 0, 1, 0 },
+                       { 0, 0, 1 } };
+    if (axis_length < 1e-30) {
+      // Can't compute a meaningful unit vector for the rotation matrix ... make it identity
+      if (norm_dot_prod < 0) {
+        // R is fine as defined
+      } else {
+        // Change the sign on the diagonal of R
+        for (int i=0; i<3; i++) {
+          R[i][i] = -1;
+        }
+      }
+    } else {
+      // Build the rotation matrix R
+      double ux = xpx / axis_length;
+      double uy = xpy / axis_length;
+      double uz = xpz / axis_length;
+      double omca = 1 - cos_angle;
+
+      R[0][0] = cos_angle + (ux*ux*omca);
+      R[0][1] = (ux*uy*omca) - (uz*sin_angle);
+      R[0][2] = (ux*uz*omca) + (uy*sin_angle);
+
+      R[1][0] = (uy*ux*omca) + (uz*sin_angle);
+      R[1][1] = cos_angle + (uy*uy*omca);
+      R[1][2] = (uy*uz*omca) - (ux*sin_angle);
+                
+      R[2][0] = (uz*ux*omca) - (uy*sin_angle);
+      R[2][1] = (uz*uy*omca) + (ux*sin_angle);
+      R[2][2] = cos_angle + (uz*uz*omca);
+    }
+
+    for (int ci=0; ci<mc[var_mol_index].num_peers; ci++) {
+      double x = mc[mc[var_mol_index].peers[ci]].x;
+      double y = mc[mc[var_mol_index].peers[ci]].y;
+      double z = mc[mc[var_mol_index].peers[ci]].z;
+      mc[mc[var_mol_index].peers[ci]].x = (R[0][0]*x) + (R[0][1]*y) + (R[0][2]*z);
+      mc[mc[var_mol_index].peers[ci]].y = (R[1][0]*x) + (R[1][1]*y) + (R[1][2]*z);
+      mc[mc[var_mol_index].peers[ci]].z = (R[2][0]*x) + (R[2][1]*y) + (R[2][2]*z);
+    }
+
+    /* Should rotate the keys also? Does this version differentiate between components and keys? */
+
+
+  } else {
+    //#### fprintf ( stdout, "Rotating component positions for %s by %g\n", mc[var_mol_index].name, 180*angle/MY_PI );
+    for (int ci=0; ci<mc[var_mol_index].num_peers; ci++) {
+      //#### fprintf ( stdout, "  Component %s before is at (%g,%g)\n", mc[mc[var_mol_index].peers[ci]].name, mc[mc[var_mol_index].peers[ci]].x, mc[mc[var_mol_index].peers[ci]].y );
+      double x = mc[mc[var_mol_index].peers[ci]].x;
+      double y = mc[mc[var_mol_index].peers[ci]].y;
+      mc[mc[var_mol_index].peers[ci]].x = (x * cos_angle) - (y * sin_angle);
+      mc[mc[var_mol_index].peers[ci]].y = (x * sin_angle) + (y * cos_angle);
+      //#### fprintf ( stdout, "  Component %s after  is at (%g,%g)\n", mc[mc[var_mol_index].peers[ci]].name, mc[mc[var_mol_index].peers[ci]].x, mc[mc[var_mol_index].peers[ci]].y );
+    }
+  }
+
+
+  // Now the molecules are aligned as they should be except for rotation along their bonding axis
+
+  if ( as3D && with_rot) {
+    // Perform the axial rotation to align the key planes
+
   }
 
   //#### dump_molcomp_array(mc,num_parts);
@@ -728,13 +817,16 @@ static void bind_molecules_2D_at_components ( struct volume *world, external_mol
 
   double dx = mc[fixed_comp_index].x - mc[var_comp_index].x;
   double dy = mc[fixed_comp_index].y - mc[var_comp_index].y;
+  double dz = mc[fixed_comp_index].z - mc[var_comp_index].z;
 
   //#### fprintf ( stdout, "Shifting molecule and component positions for %s\n", mc[var_mol_index].name );
   mc[var_mol_index].x += dx;
   mc[var_mol_index].y += dy;
+  mc[var_mol_index].z += dz;
   for (int ci=0; ci<mc[var_mol_index].num_peers; ci++) {
     mc[mc[var_mol_index].peers[ci]].x += dx;
     mc[mc[var_mol_index].peers[ci]].y += dy;
+    mc[mc[var_mol_index].peers[ci]].z += dz;
     //#### fprintf ( stdout, "  Component %s is at (%g,%g)\n", mc[mc[var_mol_index].peers[ci]].name, mc[mc[var_mol_index].peers[ci]].x, mc[mc[var_mol_index].peers[ci]].y );
   }
 
@@ -744,7 +836,7 @@ static void bind_molecules_2D_at_components ( struct volume *world, external_mol
 }
 
 
-static void bind_all_molecules_2D ( struct volume *world, external_molcomp_loc *molcomp_array, int num_parts, bool as3D, bool with_rot ) {
+static void bind_all_molecules ( struct volume *world, external_molcomp_loc *molcomp_array, int num_parts, bool as3D, bool with_rot ) {
   // Compute positions for all molecules/components in a molcomp_array
   int mi=0;
   int pi=0;
@@ -790,7 +882,7 @@ static void bind_all_molecules_2D ( struct volume *world, external_molcomp_loc *
                 // set_component_positions_2D ( world, molcomp_array, num_parts );
 
                 // Perform the bond (changes the locations)
-                bind_molecules_2D_at_components ( world, molcomp_array, num_parts, fci, vci, as3D, with_rot );
+                bind_molecules_at_components ( world, molcomp_array, num_parts, fci, vci, as3D, with_rot );
 
                 // Set the variable molecule and its components to final
                 molcomp_array[vmi].is_final = true;
@@ -1042,7 +1134,7 @@ static external_molcomp_loc *build_molcomp_array ( struct volume *world, char **
   // set_component_positions_2D ( world, molcomp_loc_array, part_num );
   set_component_positions_by_table ( world, molcomp_loc_array, part_num );
 
-  bind_all_molecules_2D ( world, molcomp_loc_array, part_num, false, false );
+  bind_all_molecules ( world, molcomp_loc_array, part_num, true, false );
 
   if (world->dump_level >= 20) {
     fprintf ( stdout, ">>>>>>>>>>>>>>>>>>>>>>> Final molcomp_loc_array <<<<<<<<<<<<<<<<<<<\n" );
@@ -1441,11 +1533,9 @@ static int output_cellblender_molecules(struct volume *world,
 
             external_molcomp_loc *molcomp_array = build_molcomp_array ( world, graph_parts );
 
-            /*
             fprintf ( stdout, "=============== molcomp_array ===============\n" );
-            //#### dump_molcomp_array ( molcomp_array, num_parts );
+            dump_molcomp_array ( molcomp_array, num_parts );
             fprintf ( stdout, "=============================================\n" );
-            */
 
             molcomp_list *mcl = (molcomp_list *) malloc ( sizeof(molcomp_list) );
             mcl->molcomp_array = molcomp_array;
@@ -1522,6 +1612,8 @@ static int output_cellblender_molecules(struct volume *world,
                 new_mol_viz_item->pos_x = pos_x + mcl->molcomp_array[part_num].x;
                 new_mol_viz_item->pos_y = pos_y + mcl->molcomp_array[part_num].y;
                 new_mol_viz_item->pos_z = pos_z + mcl->molcomp_array[part_num].z;
+
+                // fprintf ( stdout, "=MVM= Mol Viz Mol at: (%g,%g,%g)\n", new_mol_viz_item->pos_x, new_mol_viz_item->pos_y, new_mol_viz_item->pos_z );
 
                 new_mol_viz_item->norm_x = norm_x;
                 new_mol_viz_item->norm_y = norm_y;
