@@ -37,9 +37,9 @@ ac_cv_have_decl_strerror_r=yes
 ac_cv_func_strerror_r=yes
 ac_cv_func_strerror_r_char_p=no
 ac_cv_func_gethostname=yes
-MCELL_LDADD="-lm"
+MCELL_LDADD="-lm -lpthread"
 ]],[[
-MCELL_LDADD="-lm"
+MCELL_LDADD="-lm -lpthread"
 ]])
 AC_SUBST(MCELL_LDADD)
 

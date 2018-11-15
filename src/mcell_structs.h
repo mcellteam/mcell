@@ -1539,6 +1539,7 @@ struct notifications {
   complex_placement_failure_threshold; /* COMPLEX_PLACEMENT_FAILURE_THRESHOLD */
   enum warn_level_t mol_placement_failure;    /* MOLECULE_PLACEMENT_FAILURE */
   enum warn_level_t invalid_output_step_time; /* INVALID_OUTPUT_STEP_TIME */
+  enum warn_level_t large_molecular_displacement; /* Stub to work with MDL from CellBlender */
 };
 
 /* Information related to concentration clamp surfaces, by object */

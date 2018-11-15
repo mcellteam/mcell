@@ -266,6 +266,7 @@ struct macro_relation_state *relation_state;
 %token       ITERATION_REPORT
 %token       ITERATIONS
 %token       KEEP_CHECKPOINT_FILES
+%token       LARGE_MOLECULAR_DISPLACEMENT
 %token       LEFT
 %token       LIFETIME_THRESHOLD
 %token       LIFETIME_TOO_SHORT
@@ -1045,6 +1046,7 @@ warning_list:
 
 warning_item_def:
         ALL_WARNINGS '=' warning_level                { mdl_set_all_warnings(parse_state->vol, (byte) $3); }
+      | LARGE_MOLECULAR_DISPLACEMENT '=' warning_level { parse_state->vol->notify->large_molecular_displacement = (byte)$3; }
       | NEGATIVE_DIFFUSION_CONSTANT '=' warning_level { parse_state->vol->notify->neg_diffusion = (byte)$3; }
       | NEGATIVE_REACTION_RATE '=' warning_level      { parse_state->vol->notify->neg_reaction = (byte)$3; }
       | HIGH_REACTION_PROBABILITY '=' warning_level   { parse_state->vol->notify->high_reaction_prob = (byte)$3; }
