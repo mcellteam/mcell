@@ -457,6 +457,7 @@ typedef struct external_molcomp_loc_struct {
   bool has_coords;
   bool is_final;
   double x, y, z;
+  double kx, ky, kz;
   char *name;
   char *graph_string;
   int num_peers;
@@ -615,9 +616,12 @@ static void set_component_positions_by_table ( struct volume *world, external_mo
                 mc[mc[mi].peers[ci]].x = mc_ptr->loc_x;
                 mc[mc[mi].peers[ci]].y = mc_ptr->loc_y;
                 mc[mc[mi].peers[ci]].z = mc_ptr->loc_z;
+                mc[mc[mi].peers[ci]].kx = mc_ptr->rot_axis_x;  // These are currently key locations rather than rotation axis locations
+                mc[mc[mi].peers[ci]].ky = mc_ptr->rot_axis_y;  // These are currently key locations rather than rotation axis locations
+                mc[mc[mi].peers[ci]].kz = mc_ptr->rot_axis_z;  // These are currently key locations rather than rotation axis locations
                 mc[mc[mi].peers[ci]].has_coords = true;
                 fprintf ( stdout, "    Component %s is at (%g,%g,%g)\n", mc[mc[mi].peers[ci]].name, mc[mc[mi].peers[ci]].x, mc[mc[mi].peers[ci]].y, mc[mc[mi].peers[ci]].z );
-                fprintf ( stdout, "       Ref for %s is at (%g,%g,%g)\n", mc[mc[mi].peers[ci]].name, mc_ptr->rot_axis_x, mc_ptr->rot_axis_y, mc_ptr->rot_axis_z );
+                fprintf ( stdout, "       Ref key for %s is at (%g,%g,%g)\n", mc[mc[mi].peers[ci]].name, mc[mc[mi].peers[ci]].kx, mc[mc[mi].peers[ci]].ky, mc[mc[mi].peers[ci]].kz );
                 break;
               }
             }
@@ -634,6 +638,9 @@ static void set_component_positions_by_table ( struct volume *world, external_mo
               mc[mc[mi].peers[ci]].x = 0.0;
               mc[mc[mi].peers[ci]].y = 0.0;
               mc[mc[mi].peers[ci]].z = 0.0;
+              mc[mc[mi].peers[ci]].kx = 0.0;
+              mc[mc[mi].peers[ci]].ky = 0.0;
+              mc[mc[mi].peers[ci]].kz = 0.0;
               mc[mc[mi].peers[ci]].has_coords = true;
             }
           }
@@ -646,6 +653,9 @@ static void set_component_positions_by_table ( struct volume *world, external_mo
           mc[mc[mi].peers[ci]].x = scale * cos(angle);
           mc[mc[mi].peers[ci]].y = scale * sin(angle);
           mc[mc[mi].peers[ci]].z = 0.0;
+          mc[mc[mi].peers[ci]].kx = 0.0;
+          mc[mc[mi].peers[ci]].ky = 0.0;
+          mc[mc[mi].peers[ci]].kz = scale;
           //#### fprintf ( stdout, "  Component %s is at (%g,%g)\n", mc[mc[mi].peers[ci]].name, mc[mc[mi].peers[ci]].x, mc[mc[mi].peers[ci]].y );
         }
       }
@@ -780,16 +790,22 @@ static void bind_molecules_at_components ( struct volume *world, external_molcom
     }
 
     for (int ci=0; ci<mc[var_mol_index].num_peers; ci++) {
+      // Rotate the component locations
       double x = mc[mc[var_mol_index].peers[ci]].x;
       double y = mc[mc[var_mol_index].peers[ci]].y;
       double z = mc[mc[var_mol_index].peers[ci]].z;
       mc[mc[var_mol_index].peers[ci]].x = (R[0][0]*x) + (R[0][1]*y) + (R[0][2]*z);
       mc[mc[var_mol_index].peers[ci]].y = (R[1][0]*x) + (R[1][1]*y) + (R[1][2]*z);
       mc[mc[var_mol_index].peers[ci]].z = (R[2][0]*x) + (R[2][1]*y) + (R[2][2]*z);
+
+      // Rotate the rotation key locations
+      x = mc[mc[var_mol_index].peers[ci]].kx;
+      y = mc[mc[var_mol_index].peers[ci]].ky;
+      z = mc[mc[var_mol_index].peers[ci]].kz;
+      mc[mc[var_mol_index].peers[ci]].kx = (R[0][0]*x) + (R[0][1]*y) + (R[0][2]*z);
+      mc[mc[var_mol_index].peers[ci]].ky = (R[1][0]*x) + (R[1][1]*y) + (R[1][2]*z);
+      mc[mc[var_mol_index].peers[ci]].kz = (R[2][0]*x) + (R[2][1]*y) + (R[2][2]*z);
     }
-
-    /* Should rotate the keys also? Does this version differentiate between components and keys? */
-
 
   } else {
     //#### fprintf ( stdout, "Rotating component positions for %s by %g\n", mc[var_mol_index].name, 180*angle/MY_PI );
@@ -824,9 +840,14 @@ static void bind_molecules_at_components ( struct volume *world, external_molcom
   mc[var_mol_index].y += dy;
   mc[var_mol_index].z += dz;
   for (int ci=0; ci<mc[var_mol_index].num_peers; ci++) {
+    // Shift the component locations
     mc[mc[var_mol_index].peers[ci]].x += dx;
     mc[mc[var_mol_index].peers[ci]].y += dy;
     mc[mc[var_mol_index].peers[ci]].z += dz;
+    // Shift the rotation key locations
+    mc[mc[var_mol_index].peers[ci]].kx += dx;
+    mc[mc[var_mol_index].peers[ci]].ky += dy;
+    mc[mc[var_mol_index].peers[ci]].kz += dz;
     //#### fprintf ( stdout, "  Component %s is at (%g,%g)\n", mc[mc[var_mol_index].peers[ci]].name, mc[mc[var_mol_index].peers[ci]].x, mc[mc[var_mol_index].peers[ci]].y );
   }
 
