@@ -808,6 +808,8 @@ static void bind_molecules_at_components ( struct volume *world, external_molcom
     }
 
   } else {
+    // Note that the 2D branch is not expected to be used in MCell, so it may be out of date.
+
     //#### fprintf ( stdout, "Rotating component positions for %s by %g\n", mc[var_mol_index].name, 180*angle/MY_PI );
     for (int ci=0; ci<mc[var_mol_index].num_peers; ci++) {
       //#### fprintf ( stdout, "  Component %s before is at (%g,%g)\n", mc[mc[var_mol_index].peers[ci]].name, mc[mc[var_mol_index].peers[ci]].x, mc[mc[var_mol_index].peers[ci]].y );
@@ -823,7 +825,180 @@ static void bind_molecules_at_components ( struct volume *world, external_molcom
   // Now the molecules are aligned as they should be except for rotation along their bonding axis
 
   if ( as3D && with_rot) {
-    // Perform the axial rotation to align the key planes
+    // Rotate the variable molecule along its bonding axis to align based on the rotation key angle
+
+
+
+    ////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////
+    double fixed_req_bond_angle = 0.2; // Radians ... should be a function of the bond!!
+    double var_req_bond_angle = 0.2;   // Radians ... should be a function of the bond!!
+    ////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////
+
+
+
+
+
+    // fixed_vcomp (fvc) will be the vector from the fixed molecule to the fixed component
+    double fvc[3];
+    fvc[0] = mc[fixed_comp_index].x - mc[fixed_mol_index].x;
+    fvc[1] = mc[fixed_comp_index].y - mc[fixed_mol_index].y;
+    fvc[2] = mc[fixed_comp_index].z - mc[fixed_mol_index].z;
+
+    // var_vcomp (vvc) will be the vector from the var molecule to the var component
+    double vvc[3];
+    vvc[0] = mc[var_comp_index].x - mc[var_mol_index].x;
+    vvc[1] = mc[var_comp_index].y - mc[var_mol_index].y;
+    vvc[2] = mc[var_comp_index].z - mc[var_mol_index].z;
+
+
+    // fixed_vkey (fvk) will be the vector from the fixed molecule to the fixed key
+    double fvk[3];
+    fvk[0] = mc[fixed_comp_index].kx - mc[fixed_mol_index].x;
+    fvk[1] = mc[fixed_comp_index].ky - mc[fixed_mol_index].y;
+    fvk[2] = mc[fixed_comp_index].kz - mc[fixed_mol_index].z;
+
+    // var_vkey (vvk) will be the vector from the var molecule to the var key
+    double vvk[3];
+    vvk[0] = mc[var_comp_index].kx - mc[var_mol_index].x;
+    vvk[1] = mc[var_comp_index].ky - mc[var_mol_index].y;
+    vvk[2] = mc[var_comp_index].kz - mc[var_mol_index].z;
+
+    fprintf ( stdout, "  Fixed vcomp = [ %g %g %g ]\n", fvc[0], fvc[1], fvc[2] );
+    fprintf ( stdout, "  Var   vcomp = [ %g %g %g ]\n", vvc[0], vvc[1], vvc[2] );
+    fprintf ( stdout, "  Fixed vkey  = [ %g %g %g ]\n", fvk[0], fvk[1], fvk[2] );
+    fprintf ( stdout, "  Var vkey    = [ %g %g %g ]\n", vvk[0], vvk[1], vvk[2] );
+
+    // Use the cross product to get the normal to the fixed molecule-component-key plane
+    double fixed_normal[3];
+    fixed_normal[0] = (fvc[1] * fvk[2]) - (fvc[2] * fvk[1]);
+    fixed_normal[1] = (fvc[2] * fvk[0]) - (fvc[0] * fvk[2]);
+    fixed_normal[2] = (fvc[0] * fvk[1]) - (fvc[1] * fvk[0]);
+
+    // Use the cross product to get the normal to the variable molecule-component-key plane
+    double var_normal[3];
+    var_normal[0] = (vvc[1] * vvk[2]) - (vvc[2] * vvk[1]);
+    var_normal[1] = (vvc[2] * vvk[0]) - (vvc[0] * vvk[2]);
+    var_normal[2] = (vvc[0] * vvk[1]) - (vvc[1] * vvk[0]);
+
+    // Get the magnitudes of the two vectors for normalization
+    double fixed_norm_mag = sqrt ( (fixed_normal[0]*fixed_normal[0]) + (fixed_normal[1]*fixed_normal[1]) + (fixed_normal[2]*fixed_normal[2]) );
+    double var_norm_mag   = sqrt ( (  var_normal[0]*  var_normal[0]) + (  var_normal[1]*  var_normal[1]) + (  var_normal[2]*  var_normal[2]) );
+
+    // Calculate unit vectors
+    double fixed_unit[3];
+    fixed_unit[0] = fixed_normal[0] / fixed_norm_mag;
+    fixed_unit[1] = fixed_normal[1] / fixed_norm_mag;
+    fixed_unit[2] = fixed_normal[2] / fixed_norm_mag;
+    double var_unit[3];
+    var_unit[0] = var_normal[0] / var_norm_mag;
+    var_unit[1] = var_normal[1] / var_norm_mag;
+    var_unit[2] = var_normal[2] / var_norm_mag;
+
+    fprintf ( stdout, "  Fixed unit = [ %g %g %g ]\n", fixed_unit[0], fixed_unit[1], fixed_unit[2] );
+    fprintf ( stdout, "  Var unit = [ %g %g %g ]\n", var_unit[0], var_unit[1], var_unit[2] );
+
+    double norm_dot_prod;
+    norm_dot_prod = (fixed_unit[0] * var_unit[0]) + (fixed_unit[1] * var_unit[1]) + (fixed_unit[2] * var_unit[2]);
+
+    // Ensure that the dot product is a legal argument for the "acos" function:
+    if (norm_dot_prod >  1) {
+      fprintf ( stdout, "Numerical Warning: normalized dot product %g was greater than 1\n", norm_dot_prod );
+      norm_dot_prod =  1;
+    }
+    if (norm_dot_prod < -1) {
+      fprintf ( stdout, "Numerical Warning: normalized dot product %g was less than -1\n", norm_dot_prod );
+      norm_dot_prod = -1;
+    }
+    fprintf ( stdout, "  Normalized Dot Product between fixed and var is %g\n", norm_dot_prod );
+
+    // Compute the amount of rotation to bring the planes into alignment offset by the requested bond angles
+    double cur_key_plane_angle = acos ( norm_dot_prod );
+
+    fprintf ( stdout, "Current key plane angle = %g\n", (180*cur_key_plane_angle/MY_PI) );
+
+    double cross_prod[3];
+
+    cross_prod[0] = (fixed_unit[1] * var_unit[2]) - (fixed_unit[2] * var_unit[1]);
+    cross_prod[1] = (fixed_unit[2] * var_unit[0]) - (fixed_unit[0] * var_unit[2]);
+    cross_prod[2] = (fixed_unit[0] * var_unit[1]) - (fixed_unit[1] * var_unit[0]);
+
+    double dot_cross_rot = (cross_prod[0] * vvc[0]) + (cross_prod[1] * vvc[1]) + (cross_prod[2] * vvc[2]);
+    if (dot_cross_rot > 0) {
+      cur_key_plane_angle = (2*MY_PI) - cur_key_plane_angle;
+    }
+
+    fprintf ( stdout, "Current key plane angle = %g,  dot_cross_rot = %g\n", (180*cur_key_plane_angle/MY_PI), dot_cross_rot );
+
+    double composite_rot_angle = MY_PI + (var_req_bond_angle+fixed_req_bond_angle) + cur_key_plane_angle;  // The "MY_PI" adds 180 degrees to make the components "line up"
+
+    fprintf ( stdout, "  Fixed angle                is = %g degrees\n", 180 * fixed_req_bond_angle / MY_PI );
+    fprintf ( stdout, "  Var angle                  is = %g degrees\n", 180 * var_req_bond_angle / MY_PI );
+    fprintf ( stdout, "  Current angle between keys is = %g degrees\n", 180 * cur_key_plane_angle / MY_PI );
+    fprintf ( stdout, "  Composite rotation angle   is = %g degrees\n", 180 * composite_rot_angle / MY_PI );
+
+    // Build a 3D rotation matrix along the axis of the molecule to the component
+    double var_vcomp_mag = sqrt ( (vvc[0]*vvc[0]) + (vvc[1]*vvc[1]) + (vvc[2]*vvc[2]) );
+
+    double var_rot_unit[3];
+    var_rot_unit[0] = vvc[0] / var_vcomp_mag;
+    var_rot_unit[1] = vvc[1] / var_vcomp_mag;
+    var_rot_unit[2] = vvc[2] / var_vcomp_mag;
+
+    double ux = var_rot_unit[0];
+    double uy = var_rot_unit[1];
+    double uz = var_rot_unit[2];
+
+    // Build the rotation matrix directly
+
+    double cca = cos(composite_rot_angle);
+    double sca = sin(composite_rot_angle);
+    double omcca = 1 - cca;
+
+    double R[3][3] = { { 1, 0, 0 },
+                       { 0, 1, 0 },
+                       { 0, 0, 1 } };
+
+    R[0][0] = cca + (ux*ux*omcca);
+    R[0][1] = (ux*uy*omcca) - (uz*sca);
+    R[0][2] = (ux*uz*omcca) + (uy*sca);
+
+    R[1][0] = (uy*ux*omcca) + (uz*sca);
+    R[1][1] = cca + (uy*uy*omcca);
+    R[1][2] = (uy*uz*omcca) - (ux*sca);
+
+    R[2][0] = (uz*ux*omcca) - (uy*sca);
+    R[2][1] = (uz*uy*omcca) + (ux*sca);
+    R[2][2] = cca + (uz*uz*omcca);
+
+    // Apply the rotation matrix after subtracting the molecule center location from all components and keys
+
+    for (int ci=0; ci<mc[var_mol_index].num_peers; ci++) {
+      // Rotate the component locations
+      double x = mc[mc[var_mol_index].peers[ci]].x - mc[var_mol_index].x;
+      double y = mc[mc[var_mol_index].peers[ci]].y - mc[var_mol_index].y;
+      double z = mc[mc[var_mol_index].peers[ci]].z - mc[var_mol_index].z;
+      mc[mc[var_mol_index].peers[ci]].x = (R[0][0]*x) + (R[0][1]*y) + (R[0][2]*z) + mc[var_mol_index].x;
+      mc[mc[var_mol_index].peers[ci]].y = (R[1][0]*x) + (R[1][1]*y) + (R[1][2]*z) + mc[var_mol_index].y;
+      mc[mc[var_mol_index].peers[ci]].z = (R[2][0]*x) + (R[2][1]*y) + (R[2][2]*z) + mc[var_mol_index].z;
+
+      // Rotate the rotation key locations
+      x = mc[mc[var_mol_index].peers[ci]].kx - mc[var_mol_index].x;
+      y = mc[mc[var_mol_index].peers[ci]].ky - mc[var_mol_index].y;
+      z = mc[mc[var_mol_index].peers[ci]].kz - mc[var_mol_index].z;
+      mc[mc[var_mol_index].peers[ci]].kx = (R[0][0]*x) + (R[0][1]*y) + (R[0][2]*z) + mc[var_mol_index].x;
+      mc[mc[var_mol_index].peers[ci]].ky = (R[1][0]*x) + (R[1][1]*y) + (R[1][2]*z) + mc[var_mol_index].y;
+      mc[mc[var_mol_index].peers[ci]].kz = (R[2][0]*x) + (R[2][1]*y) + (R[2][2]*z) + mc[var_mol_index].z;
+    }
 
   }
 
@@ -1155,7 +1330,7 @@ static external_molcomp_loc *build_molcomp_array ( struct volume *world, char **
   // set_component_positions_2D ( world, molcomp_loc_array, part_num );
   set_component_positions_by_table ( world, molcomp_loc_array, part_num );
 
-  bind_all_molecules ( world, molcomp_loc_array, part_num, true, false );
+  bind_all_molecules ( world, molcomp_loc_array, part_num, true, true );
 
   if (world->dump_level >= 20) {
     fprintf ( stdout, ">>>>>>>>>>>>>>>>>>>>>>> Final molcomp_loc_array <<<<<<<<<<<<<<<<<<<\n" );
