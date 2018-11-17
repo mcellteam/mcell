@@ -63,6 +63,7 @@ static struct option long_options[] = { { "help", 0, 0, 'h' },
                                         { "logfile", 1, 0, 'l' },
                                         { "logfreq", 1, 0, 'f' },
                                         { "errfile", 1, 0, 'e' },
+                                        { "bond_angle", 1, 0, 'b'},
                                         { "dump", 1, 0, 'd'},
                                         { "quiet", 0, 0, 'q' },
                                         { "with_checks", 1, 0, 'w' },
@@ -89,6 +90,7 @@ void print_usage(FILE *f, char const *argv0) {
       "     [-errfile err_file_name] send errors log to file (default: stderr)\n"
       "     [-checkpoint_infile checkpoint_file_name]   read checkpoint file\n"
       "     [-checkpoint_outfile checkpoint_file_name]  write checkpoint file\n"
+      "     [-bond_angle angle]      bond angle to use for all bonds (defaults to 0)\n"
       "     [-dump level]            print additional information based on level (0 is none, >0 is more)\n"
       "     [-quiet]                 suppress all unrequested output except for errors\n"
       "     [-with_checks ('yes'/'no', default 'yes')]   performs check of the geometry for coincident walls\n"
@@ -174,6 +176,14 @@ int argparse_init(int argc, char *const argv[], struct volume *vol) {
 
       if (vol->dump_level > 0) {
         fprintf(stdout, "Dump level has been set to %ld\n", vol->dump_level);
+      }
+      break;
+
+    case 'b': /* -bond_angle */
+      vol->bond_angle = (double)strtod(optarg, &endptr);
+      if (endptr == optarg || *endptr != '\0') {
+        argerror("Bond angle must be a double: %s", optarg);
+        return 1;
       }
       break;
 

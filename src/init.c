@@ -225,6 +225,8 @@ int init_variables(struct volume *world) {
 
   world->dump_level = 0;
 
+  world->bond_angle = 0.0;
+
   world->t_start = time(NULL);
 
   if (world->notify->progress_report != NOTIFY_NONE)

@@ -1096,6 +1096,8 @@ struct volume {
 
   long int dump_level; /* Requests additional text output. 0 for no additional, >0 implies more. */
 
+  double bond_angle; /* Defines the default bond rotation angle between molecules. Default is 0. */
+
   // These are only used with dynamic geometry
   struct dyngeom_parse_vars *dg_parse;
   char *dynamic_geometry_filename;
