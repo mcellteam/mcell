@@ -223,6 +223,34 @@ struct species *new_species(void) {
 }
 
 /**
+ * new_mol_ss:
+ *      Allocates a new mol_ss, initializing all values.
+ *
+ *      In:  none
+ *      Out: the newly allocated mol_ss
+ */
+struct mol_ss *new_mol_ss(void) {
+  struct mol_ss *mol_ssp = CHECKED_MALLOC_STRUCT(struct mol_ss, "mol_ss");
+//  mol_ssp->mol_comp_ss_sym_table = init_symtab(MOL_COMP_SS_SYM_TABLE_SIZE);
+  mol_ssp->mol_comp_ss_head = NULL;
+  mol_ssp->mol_comp_ss_tail = NULL;
+  return mol_ssp;
+}
+
+/**
+ * new_mol_comp_ss:
+ *      Allocates a new mol_comp_ss, initializing all values.
+ *
+ *      In:  none
+ *      Out: the newly allocated mol_comp_ss
+ */
+struct mol_comp_ss *new_mol_comp_ss(void) {
+  struct mol_comp_ss *mol_comp_ssp = CHECKED_MALLOC_STRUCT(struct mol_comp_ss, "mol_comp_ss");
+  init_matrix(mol_comp_ssp->t_matrix);
+  return mol_comp_ssp;
+}
+
+/**
  * new_object:
  *      Allocates a new object, initializing all values.
  *
@@ -404,6 +432,32 @@ static int resize_symtab(struct sym_table_head *hashtab, int size) {
   return 0;
 }
 
+
+/**
+ * dump_symtab:
+ *      Dump the symbol table
+ *
+ *      In:  hashtab: the symbol table
+ *      Out: number of symbols found
+ */
+int dump_symtab(struct sym_table_head *hashtab) {
+  struct sym_entry **entries = hashtab->entries;
+  int n_bins = hashtab->n_bins;
+  int num_total_entries;
+  num_total_entries = 0;
+  for (int i = 0; i < n_bins; ++i) {
+    struct sym_entry *entry;
+    entry = entries[i];
+    while (entry != NULL) {
+      num_total_entries += 1;
+      fprintf ( stdout, "  symtab entry: %s\n", entry->name );
+      entry = entry->next;
+    }
+  }
+  return num_total_entries;
+}
+
+
 /**
  * maybe_grow_symtab:
  *      Possibly grow the symbol table.
@@ -471,6 +525,24 @@ struct sym_entry *store_sym(char const *sym, enum symbol_type_t sym_type,
       ((struct species *)vp)->hashval = rawhash;
       break;
 
+    case MOL_SS:
+      if (data == NULL)
+        vp = new_mol_ss();
+      else
+        vp = data;
+      ((struct mol_ss *)vp)->sym = sp;
+      break;
+
+/*
+    case MOL_COMP_SS:
+      if (data == NULL)
+        vp = new_mol_comp_ss();
+      else
+        vp = data;
+      ((struct mol_comp_ss *)vp)->sym = sp;
+      break;
+*/
+
     case OBJ:
       if (data == NULL)
         vp = new_object();
@@ -522,6 +594,10 @@ struct sym_entry *store_sym(char const *sym, enum symbol_type_t sym_type,
     case COUNT_OBJ_PTR:
       sp->value = data;
       return sp;
+
+    case VOID_PTR:
+      sp->value = data;
+      return (sp);
 
     default:
       mcell_internal_error("unknown symbol type in symbol table (%d)",

@@ -222,6 +222,11 @@ static void init_volume_data_output(struct volume *wrld) {
  *
  ***********************************************************************/
 int init_variables(struct volume *world) {
+
+  world->dump_level = 0;
+
+  world->bond_angle = 0.0;
+
   world->t_start = time(NULL);
 
   if (world->notify->progress_report != NOTIFY_NONE)
@@ -417,6 +422,11 @@ int init_data_structures(struct volume *world) {
 
   if ((world->mol_sym_table = init_symtab(1024)) == NULL) {
     mcell_allocfailed_nodie("Failed to initialize symbol table for molecules.");
+    return 1;
+  }
+
+  if ((world->mol_ss_sym_table = init_symtab(1024)) == NULL) {
+    mcell_allocfailed_nodie("Failed to initialize symbol table for spatially structured molecules.");
     return 1;
   }
 

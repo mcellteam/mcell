@@ -35,6 +35,10 @@ diffusion_function_ = Keyword("DIFFUSION_FUNCTION")
 # reaction keywords
 define_reactions_ = Keyword("DEFINE_REACTIONS")
 
+# spatial component keywords
+location = Keyword("loc")
+rotation = Keyword("rot")
+
 # seed species keywords
 instantiate_ = Keyword("INSTANTIATE")
 object_ = Keyword("OBJECT")
@@ -85,13 +89,24 @@ species = Suppress('()') + Optional(Suppress('@' + Word(alphanums + '_-'))) + \
     ZeroOrMore(Suppress('+') + Word(alphanums + "_" + ":#-") + Suppress("()") + Optional(Suppress('@' + Word(alphanums + '_-'))))
 
 # bng pattern definition
-component_definition = Group(identifier.setResultsName('componentName') + Optional(Group(Suppress(tilde) + delimitedList(identifier | integer, delim='~')).setResultsName('state')))
-component_statement = Group(identifier.setResultsName('componentName') + Optional(Group(Suppress(tilde) + (identifier | integer)).setResultsName('state')) +
+component_definition = Group(identifier.setResultsName('componentName') +
+                             Optional(Group(Suppress(tilde) + delimitedList(identifier | integer, delim='~')).setResultsName('state')) +
+                             Optional(lbrace + 
+                             # loc=[x1,y1,z1]
+                             location + equal + Group(lbracket + (numarg | identifier) + comma + (numarg | identifier) + comma + (numarg | identifier) + rbracket).setResultsName('componentLoc') +
+                             comma + 
+                             # rot=[x2,y2,z2,A]
+                             rotation + equal + Group(lbracket + (numarg | identifier) + comma + (numarg | identifier) + comma + (numarg | identifier) + comma + (numarg | identifier) + rbracket).setResultsName('componentRot') +
+                             rbrace))
+
+component_statement = Group(identifier.setResultsName('componentName') +
+                            Optional(Group(Suppress(tilde) + (identifier | integer)).setResultsName('state')) +
                             Optional(Group(Suppress(bang) + (numarg | '+' | '?')).setResultsName('bond')))
 
 molecule_definition = Group(identifier.setResultsName('moleculeName') +
                             Optional((lparen + Optional(delimitedList(component_definition, delim=',').setResultsName('components')) + rparen)) +
                             Optional(Group('@' + Word(alphanums + '_-')).setResultsName('moleculeCompartment')))
+
 molecule_instance = Group(identifier.setResultsName('moleculeName') +
                           Optional((lparen + Optional(delimitedList(component_statement, delim=',').setResultsName('components')) + rparen)) +
                           Optional(Group('@' + Word(alphanums + '_-')).setResultsName('moleculeCompartment')))

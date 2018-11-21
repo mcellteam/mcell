@@ -1,6 +1,7 @@
 import json
 import grammar_definition as gd
 import argparse
+import read_mdl
 try:
     from StringIO import StringIO
 except ImportError:
@@ -47,7 +48,6 @@ def write_section(original_mdl):
     final_section = StringIO()
     if original_mdl[0] == 'DEFINE_MOLECULES':
         pass
-
     else:
         return write_raw_section(original_mdl.asList(), final_section, '') + '\n'
 
@@ -121,7 +121,16 @@ def construct_mcell(xml_structs, mdlr_path, output_file_name, nauty_dict):
     molecule_mdl.write('\t\tDIFFUSION_CONSTANT_{0}D = {1}\n'.format(2, 1))
     molecule_mdl.write('\t\tEXTERN\n')
     molecule_mdl.write('\t}\n')
-    molecule_mdl.write('}\n')
+    molecule_mdl.write('}\n\n')
+
+    try:
+        molecule_str = read_mdl.process_molecules_for_final_mdl(hashed_mdlr['molecules'])
+        molecule_mdl.write('DEFINE_MOLECULE_STRUCTURES {\n')
+        molecule_mdl.write(molecule_str)
+        molecule_mdl.write('}\n')
+    except 'KeyError':
+        eprint('There is an issue with the molecules section in the mdlr file')
+
 
     # extract bng name
     # for molecule in json_dict['mol_list']:
@@ -134,7 +143,7 @@ def construct_mcell(xml_structs, mdlr_path, output_file_name, nauty_dict):
         bngLabel[molecule.name] = molecule.str2()
 
     for compartment in xml_structs['compartments']:
-        compartmentDict[compartment['identifier']] = compartment
+       compartmentDict[compartment['identifier']] = compartment
 
     # reactions
     reaction_mdl.write('DEFINE_REACTIONS\n{\n')
@@ -370,6 +379,62 @@ def write_mdl(mdl_dict, output_file_name):
         f.write(mdl_dict['seeding'].getvalue())
     with open('{0}.output.mdl'.format(output_file_name), 'w') as f:
         f.write(mdl_dict['rxn_output'].getvalue())
+
+
+def verbose_write_mdl(mdl_dict, output_file_name):
+
+    print ( "\n\n\nBegin Really Writing!!\n\n\n" )
+    full_output = None
+
+    full_output = mdl_dict['main'].getvalue();
+    print ( "\n\n\nFile: main:\n\n" + full_output + "\n\n\n" )
+    f = open('{0}.main.mdl'.format(output_file_name), 'w')
+    f.write(full_output)
+    f.flush()
+    f.close()
+
+    full_output = mdl_dict['molecules'].getvalue();
+    print ( "\n\n\nFile: molecules:\n\n" + full_output + "\n\n\n" )
+    f = open('{0}.molecules.mdl'.format(output_file_name), 'w')
+    f.write(full_output)
+    f.flush()
+    f.close()
+
+    full_output = mdl_dict['reactions'].getvalue();
+    print ( "\n\n\nFile: reactions:\n\n" + full_output + "\n\n\n" )
+    f = open('{0}.reactions.mdl'.format(output_file_name), 'w')
+    f.write(full_output)
+    f.flush()
+    f.close()
+
+    full_output = mdl_dict['surface_classes'].getvalue();
+    print ( "\n\n\nFile: surface_classes:\n\n" + full_output + "\n\n\n" )
+    f = open('{0}.surface_classes.mdl'.format(output_file_name), 'w')
+    f.write(full_output)
+    f.flush()
+    f.close()
+
+    full_output = mdl_dict['mod_surf_reg'].getvalue();
+    print ( "\n\n\nFile: mod_surf_reg:\n\n" + full_output + "\n\n\n" )
+    f = open('{0}.mod_surf_reg.mdl'.format(output_file_name), 'w')
+    f.write(full_output)
+    f.flush()
+    f.close()
+
+    full_output = mdl_dict['seeding'].getvalue();
+    print ( "\n\n\nFile: seed:\n\n" + full_output + "\n\n\n" )
+    f = open('{0}.seed.mdl'.format(output_file_name), 'w')
+    f.write(full_output)
+    f.flush()
+    f.close()
+
+    full_output = mdl_dict['rxn_output'].getvalue();
+    print ( "\n\n\nFile: output:\n\n" + full_output + "\n\n\n" )
+    f = open('{0}.output.mdl'.format(output_file_name), 'w')
+    f.write(full_output)
+    f.flush()
+    f.close()
+    print ( "\n\n\nDone Really Writing!!\n\n\n" )
 
 
 if __name__ == "__main__":

@@ -316,6 +316,9 @@ static int print_molecule_collision_report(
 MCELL_STATUS
 mcell_run_simulation(MCELL_STATE *world) {
 
+  if (world->dump_level > 0) {
+    fprintf ( stdout, "\n\nIn mcell_run_simulation: dump_level = %ld\n\n", world->dump_level );
+  }
 
   if (world->notify->progress_report != NOTIFY_NONE)
     mcell_log("Running simulation.");

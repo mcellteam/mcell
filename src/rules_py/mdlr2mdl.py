@@ -160,7 +160,7 @@ class MDLR2MDL(object):
 
 
 if __name__ == "__main__":
-    mdlr2mdl = MDLR2MDL(os.path.join(get_script_path()))
+    mdlr2mdl = MDLR2MDL(get_script_path())
 
     parser = define_console()
     namespace = parser.parse_args()

@@ -67,7 +67,8 @@ class NFSim:
         results = []
         n = self.lib.mapvector_size(mem)
         for idx in range(0, n):
-            #XXX:ideally i would like to returns all key values but that will require a lil more work on the wrapper side
+            # XXX:ideally i would like to returns all key values but that will
+            # require a lil more work on the wrapper side
             partialResults = self.lib.mapvector_get(mem, idx)
             retval = self.lib.map_get(partialResults,b"label")
             results.append(retval.decode('ASCII'))

@@ -7936,6 +7936,158 @@ struct mcell_species_spec *mdl_create_species(struct mdlparse_vars *parse_state,
   return species;
 }
 
+
+/****************************************************************
+ * BNGL Molecules with Spatial Structure
+ ***************************************************************/
+
+/**************************************************************************
+ mdl_new_bngl_molecule:
+   Create a new BNGL molecule symbol.  There must not yet be a BNGL molecule
+    with the supplied name.
+
+ In: parse_state: parser state
+     name: name for the new species
+ Out: symbol for the BNGL molecule, or NULL if an error occurred
+**************************************************************************/
+struct sym_entry *mdl_new_bngl_molecule(struct mdlparse_vars *parse_state,
+                                      char *name)
+{
+
+  struct sym_entry *sym = NULL;
+  if (retrieve_sym(name, parse_state->vol->mol_ss_sym_table) != NULL) {
+    mdlerror_fmt(parse_state, "BNGL Molecule already defined: %s", name);
+    free(name);
+    return NULL;
+  } else if ((sym = store_sym(name, MOL_SS, parse_state->vol->mol_ss_sym_table,
+                              NULL)) == NULL) {
+    mdlerror_fmt(parse_state, "Out of memory while creating molecule: %s",
+                 name);
+    free(name);
+    return NULL;
+  }
+
+  free(name);
+  return sym;
+}
+
+
+/**************************************************************************
+ mdl_add_bngl_component:
+   Create a new BNGL component symbol.  There must not yet be a BNGL component
+    with the supplied name associated with the BNGL molecule.
+
+ In: parse_state: parser state
+     bngl_mol_sym: ptr to symbol entry for a BNGL molecule 
+     component_name: name for the new component to associate with the BNGL molecule
+ Out: pointer to the new BNGL component, or NULL if an error occurred
+**************************************************************************/
+struct mol_comp_ss *mdl_add_bngl_component(struct mdlparse_vars *parse_state,
+                                      struct sym_entry *bngl_mol_sym,
+                                      char *component_name)
+{
+  struct mol_ss *mol_ssp = NULL;
+  struct mol_comp_ss *mol_comp_ssp = NULL;
+/*
+  struct sym_entry *sym = NULL;
+  if (retrieve_sym(component_name, ((struct mol_ss *)(bngl_mol_sym->value))->mol_comp_ss_sym_table) != NULL) {
+    mdlerror_fmt(parse_state, "BNGL Molecule component already defined: %s(%s)", bngl_mol_sym->name, component_name);
+    free(component_name);
+    return NULL;
+  } else if ((sym = store_sym(component_name, MOL_COMP_SS, ((struct mol_ss *)(bngl_mol_sym->value))->mol_comp_ss_sym_table, NULL)) == NULL) {
+    mdlerror_fmt(parse_state, "Out of memory while creating BNGL molecule component: %s(%s)", bngl_mol_sym->name, component_name);
+*/
+    
+  mol_comp_ssp = CHECKED_MALLOC_STRUCT(struct mol_comp_ss, "BNGL molecule component");
+  if (mol_comp_ssp != NULL) {
+    mol_comp_ssp->name = component_name;
+    mol_ssp = (struct mol_ss *)bngl_mol_sym->value;
+
+    if (mol_ssp->mol_comp_ss_head == NULL) {
+       mol_ssp->mol_comp_ss_head = mol_comp_ssp;
+       mol_ssp->mol_comp_ss_tail = mol_comp_ssp;
+    }
+    else {
+      mol_ssp->mol_comp_ss_tail->next = mol_comp_ssp;
+    }
+    
+    mol_ssp->mol_comp_ss_tail = mol_comp_ssp;
+
+    mol_comp_ssp->next = NULL;
+  }
+
+  return mol_comp_ssp;
+}
+
+
+/**************************************************************************
+ mdl_set_bngl_component_layout:
+   Set the transfomation matrix of a BNGL component.
+
+ In: parse_state: parser state
+     mol_comp_ssp: ptr to the BNGL component 
+     loc_x: x location of the component
+     loc_y: y location of the component
+     loc_z: z location of the component
+     rot_axis_x: x part of rotation axis of the component
+     rot_axis_y: y part of rotation axis of the component
+     rot_axis_z: z part of rotation axis of the component
+     rot_angle:  angle of rotation about the rotation axis for the component
+**************************************************************************/
+void mdl_set_bngl_component_layout(struct mdlparse_vars *parse_state,
+                                 struct mol_comp_ss *mol_comp_ssp,
+                                 double loc_x,
+                                 double loc_y,
+                                 double loc_z,
+                                 double rot_axis_x,
+                                 double rot_axis_y,
+                                 double rot_axis_z,
+                                 double rot_angle)
+{
+  struct vector3 scale, translate, axis;
+  double (*tm)[4];
+
+  init_matrix(mol_comp_ssp->t_matrix);
+  if ((rot_axis_x == 0.0) && (rot_axis_y == 0.0) && (rot_axis_z == 0.0)) {
+    if ((loc_x == 0.0) && (loc_y == 0.0) && (loc_z == 0.0) && (rot_angle == 0.0)) {
+      mol_comp_ssp->spatial_type=COINCIDENT;
+    }
+    else if ((rot_angle != 0.0)) { 
+      mol_comp_ssp->spatial_type=XYZA;
+    }
+    else {
+      mol_comp_ssp->spatial_type=XYZ;
+    }
+  }
+  else {
+    mol_comp_ssp->spatial_type=XYZVA;
+  }
+
+  mol_comp_ssp->loc_x = loc_x;
+  mol_comp_ssp->loc_y = loc_y;
+  mol_comp_ssp->loc_z = loc_z;
+  mol_comp_ssp->rot_axis_x = rot_axis_x;
+  mol_comp_ssp->rot_axis_y = rot_axis_y;
+  mol_comp_ssp->rot_axis_z = rot_axis_z;
+  mol_comp_ssp->rot_angle = rot_angle;
+
+  /*
+  tm = mol_comp_ssp->t_matrix;
+  scale.x = 1.0;
+  scale.y = 1.0;
+  scale.z = 1.0;
+  translate.x = loc_x;
+  translate.y = loc_y;
+  translate.z = loc_z;
+  axis.x = rot_axis_x;
+  axis.y = rot_axis_y;
+  axis.z = rot_axis_z;
+  
+  tform_matrix(&scale, &translate, &axis, rot_angle, tm);
+  */
+}
+
+
 /****************************************************************
  * Reactions, surface classes
  ***************************************************************/

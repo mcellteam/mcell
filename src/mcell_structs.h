@@ -469,6 +469,8 @@ enum symbol_type_t {
   RX,            /* chemical reaction */
   RXPN,          /* name of chemical reaction */
   MOL,           /* molecule or surface class type (i.e. species) */
+  MOL_SS,        /* spatially structured molecule */
+  MOL_COMP_SS,   /* spatially structured component of molecule */
   OBJ,           /* meta-object */
   RPAT,          /* release pattern */
   REG,           /* object region */
@@ -478,7 +480,10 @@ enum symbol_type_t {
   FSTRM,         /* file stream type for "C"-style file-io in MDL file */
   TMP,           /* temporary place-holder type for assignment statements */
   COUNT_OBJ_PTR, /* a pointer to an output block of given name */
+  VOID_PTR,      /* a void pointer to be managed by code */
 };
+
+#define MOL_COMP_SS_SYM_TABLE_SIZE 8
 
 /* Count column data types */
 enum count_type_t {
@@ -487,6 +492,11 @@ enum count_type_t {
   COUNT_INT,         /* integer type */
   COUNT_TRIG_STRUCT, /* trigger_struct data type (for TRIGGER statements) */
 };
+
+#define COINCIDENT 0
+#define XYZ 1
+#define XYZA 2
+#define XYZVA 3
 
 /* Object Type Flags */
 enum object_type_t {
@@ -817,6 +827,32 @@ struct surface_molecule {
   struct vector2 s_pos;      /* Where are we in surface coordinates? */
 };
 
+struct mol_ss {
+  struct sym_entry *sym;
+//  struct sym_table_head *mol_comp_ss_sym_table;
+  struct mol_comp_ss *mol_comp_ss_head;
+  struct mol_comp_ss *mol_comp_ss_tail;
+};
+
+struct mol_comp_ss {
+//  struct vector3 loc;
+//  struct vector3 axis;
+//  double angle;
+//  struct sym_entry *sym;
+  char *name;
+  byte spatial_type;
+  double loc_x;
+  double loc_y;
+  double loc_z;
+  double rot_axis_x;
+  double rot_axis_y;
+  double rot_axis_z;
+  double rot_angle;
+  double t_matrix[4][4];
+  struct mol_comp_ss *next;
+};
+
+
 /* Used to transform coordinates of surface molecules diffusing between
  * adjacent walls */
 struct edge {
@@ -1058,6 +1094,10 @@ struct reaction_flags {
 /* All data about the world */
 struct volume {
 
+  long int dump_level; /* Requests additional text output. 0 for no additional, >0 implies more. */
+
+  double bond_angle; /* Defines the default bond rotation angle between molecules. Default is 0. */
+
   // These are only used with dynamic geometry
   struct dyngeom_parse_vars *dg_parse;
   char *dynamic_geometry_filename;
@@ -1160,6 +1200,7 @@ struct volume {
   struct sym_table_head *mol_sym_table;  /* Molecule type symbol hash table */
   struct sym_table_head *rpat_sym_table; /* Release pattern hash table */
   struct sym_table_head *rxpn_sym_table; /* Named reaction pathway hash table */
+  struct sym_table_head *mol_ss_sym_table; /* Spatially structured molecule symbol hash table */
 
   struct object *root_object;   /* Root of the object template tree */
   struct object *root_instance; /* Root of the instantiated object tree */
