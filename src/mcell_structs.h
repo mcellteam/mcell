@@ -1095,6 +1095,7 @@ struct reaction_flags {
 struct volume {
 
   long int dump_level; /* Requests additional text output. 0 for no additional, >0 implies more. */
+  long int viz_options; /* Defines requested additional viz output options. */
 
   double bond_angle; /* Defines the default bond rotation angle between molecules. Default is 0. */
 

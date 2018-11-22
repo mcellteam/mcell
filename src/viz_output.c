@@ -1440,6 +1440,9 @@ static int output_cellblender_molecules(struct volume *world,
 
   no_printf("Output in CELLBLENDER mode (molecules only)...\n");
 
+  if (world->viz_options > 0) {
+    fprintf ( stdout, "Visualization Options = %lx\n", world->viz_options );
+  }
   if (world->dump_level >= 50) {
     fprintf ( stdout, ">>>>>>>>>>>>>>>>>>>>>>> Top of MolViz Output <<<<<<<<<<<<<<<<<<<\n" );
   }

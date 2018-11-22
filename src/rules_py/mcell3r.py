@@ -21,6 +21,7 @@ def define_console():
     parser.add_argument('-r', '--rules',            type=str,            help='rules file',              required=True)
     parser.add_argument('-m', '--mdl_infile',            type=str,            help='MDL main input file',              required=True)
     parser.add_argument('-b', '--bond_angle',            type=str,            help='Default Bond Angle',   required=False)
+    parser.add_argument('-z', '--z_options',            type=str,            help='Visualization Options',   required=False)
     parser.add_argument('-d', '--dump_level',            type=str,            help='Dump Level for text output',   required=False)
     return parser
 
@@ -53,6 +54,8 @@ if __name__ == "__main__":
        cmd_args = cmd_args + ' -checkpoint_infile %s' % (args.checkpoint_infile)
     if args.checkpoint_outfile:
        cmd_args = cmd_args + ' -checkpoint_outfile %s' % (args.checkpoint_outfile)
+    if args.z_options:
+       cmd_args = cmd_args + ' -z %s' % (args.z_options)
     if args.bond_angle:
        cmd_args = cmd_args + ' -b %s' % (args.bond_angle)
     if args.dump_level:

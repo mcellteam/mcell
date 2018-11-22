@@ -48,22 +48,26 @@ int main(int argc, char **argv) {
   // Parse the command line arguments and print out errors if necessary.
   if (mcell_argparse(argc, argv, state)) {
     if (procnum == 0) {
+      mcell_print("\n\n***************\nArgument error.\n***************\n\n");
       mcell_print_version();
       mcell_print_usage(argv[0]);
     }
     exit(1);
   }
 
-  // Somehow the state.dump_level is correct here, but becomes 0 in mcell_init_state, so save it and restore it.
+  // Somehow these variables are correct here, but become 0 in mcell_init_state, so save and restore.
   long saved_dump_level = state->dump_level;
+  long saved_viz_options = state->viz_options;
   double saved_bond_angle = state->bond_angle; // Might as well do the same for the bond angle!!
 
   CHECKED_CALL_EXIT(
       mcell_init_state(state),
       "An error occured during set up of the initial simulation state");
 
+  // Restore variables that were set to 0 by mcell_init_state.
   state->dump_level = saved_dump_level;
-  state->bond_angle = saved_bond_angle; // Might as well do the same for the bond angle!!
+  state->viz_options = saved_viz_options;
+  state->bond_angle = saved_bond_angle;
 
   if (state->notify->progress_report != NOTIFY_NONE) {
     mcell_print_version();

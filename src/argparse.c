@@ -64,6 +64,7 @@ static struct option long_options[] = { { "help", 0, 0, 'h' },
                                         { "logfreq", 1, 0, 'f' },
                                         { "errfile", 1, 0, 'e' },
                                         { "bond_angle", 1, 0, 'b'},
+                                        { "z_options", 1, 0, 'z' },
                                         { "dump", 1, 0, 'd'},
                                         { "quiet", 0, 0, 'q' },
                                         { "with_checks", 1, 0, 'w' },
@@ -90,6 +91,7 @@ void print_usage(FILE *f, char const *argv0) {
       "     [-errfile err_file_name] send errors log to file (default: stderr)\n"
       "     [-checkpoint_infile checkpoint_file_name]   read checkpoint file\n"
       "     [-checkpoint_outfile checkpoint_file_name]  write checkpoint file\n"
+      "     [-z_options opt_int]     additional visualization options (defaults to 0 which is none)\n"
       "     [-bond_angle angle]      bond angle to use for all bonds (defaults to 0)\n"
       "     [-dump level]            print additional information based on level (0 is none, >0 is more)\n"
       "     [-quiet]                 suppress all unrequested output except for errors\n"
@@ -183,6 +185,15 @@ int argparse_init(int argc, char *const argv[], struct volume *vol) {
       vol->bond_angle = (double)strtod(optarg, &endptr);
       if (endptr == optarg || *endptr != '\0') {
         argerror("Bond angle must be a double: %s", optarg);
+        return 1;
+      }
+      break;
+
+    case 'z': /* -viz_options */
+      vol->viz_options = strtol(optarg, &endptr, 0);
+      fprintf ( stdout, "Parsed Visualization Options = %lx\n", vol->viz_options );
+      if (endptr == optarg || *endptr != '\0') {
+        argerror("viz_options must be an integer: %s", optarg);
         return 1;
       }
       break;
