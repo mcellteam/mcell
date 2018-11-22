@@ -1810,26 +1810,50 @@ static int output_cellblender_molecules(struct volume *world,
 
             // This should be the normal path
 
+            // Note that this logic assumes that each part is either a molecule or a component
+            // That's fine at the time of this design, but be aware that adding anything else
+            //   that's other than a molecule or component may break this logic!!
+
+            int viz_components = 0;
+            if (world->dump_level > 0) {
+              viz_components = 1;
+            }
+
             int part_num;
 
             for (part_num = 0; part_num<mcl->num_molcomp_items; part_num++) {
               // fprintf ( stdout, "    Mol Viz part_num %d\n", part_num );
-              if (0 /* Force output of components */ || (mcl->molcomp_array[part_num].is_mol)) {
+              if (viz_components || (mcl->molcomp_array[part_num].is_mol)) {
                 // fprintf ( stdout, "    mcl %s\n", mcl->molcomp_array[part_num].name );
 
                 /* Check to see if this name is already in the mol_name_list */
                 external_mol_viz_by_name *next_mol_name = mol_name_list;
                 int found = 0;
-                do {
-                  if (next_mol_name == NULL) {
-                    break;
-                  }
-                  if (strcmp(mcl->molcomp_array[part_num].name, next_mol_name->mol_name) == 0) {
-                    found = 1;
-                    break;
-                  }
-                  next_mol_name = next_mol_name->next_name;
-                } while ( found == 0 );
+                if (mcl->molcomp_array[part_num].is_mol) {
+                  // Check for the actual mol name being in the list
+                  do {
+                    if (next_mol_name == NULL) {
+                      break;
+                    }
+                    if (strcmp(mcl->molcomp_array[part_num].name, next_mol_name->mol_name) == 0) {
+                      found = 1;
+                      break;
+                    }
+                    next_mol_name = next_mol_name->next_name;
+                  } while ( found == 0 );
+                } else if (viz_components) {
+                  // Check for the special name "component" being in the list
+                  do {
+                    if (next_mol_name == NULL) {
+                      break;
+                    }
+                    if (strcmp("component", next_mol_name->mol_name) == 0) {
+                      found = 1;
+                      break;
+                    }
+                    next_mol_name = next_mol_name->next_name;
+                  } while ( found == 0 );
+                }
 
                 if (found == 0) {
                   /* This molecule name is not in the list, so add a new name to the front */
