@@ -36,17 +36,27 @@ Run the following commands:
 
 ### Windows
 
-It's easiest to get all the dependencies using
-[chocolatey](https://chocolatey.org/). Once chocolatey is installed, open up a
-powershell terminal, and run the following commands:
+Install the package manager chocolatey from https://chocolatey.org/install.
+Follow the instructions listed on that page, which will have you copy a command
+into PowerShell as an Administrator.
 
+Once chocolatey is installed, open up a new PowerShell terminal as an
+Administrator, and run the following commands:
+
+    choco install -y git
+    choco install -y python3
     choco install -y cmake
     choco install -y ninja
     choco install -y msys2
     choco install -y winflexbison
     choco install -y swig
     
-Once you have msys2 installed, run the msys2 command (which will open a different non-Powershell terminal) and execute the following commands:
+Open a new PowerShell Administrator terminal and enter the following:
+
+    msys2
+
+This will open a different MSYS2 terminal (not a PowerShell terminal). In this
+MSYS2 terminal, enter the following commands:
 
     pacman -Syuu
     pacman -S --needed base-devel mingw-w64-i686-toolchain mingw-w64-x86_64-toolchain \
@@ -54,9 +64,23 @@ Once you have msys2 installed, run the msys2 command (which will open a differen
                     mingw-w64-i686-cmake mingw-w64-x86_64-cmake
     pacman -Sy mingw-w64-i686-boost mingw-w64-x86_64-boost
 
-You may have to explicitly add some of the executables to your path.
+Add CMake and MinGW64 to your [Windows PATH Environment
+Variable](https://helpdeskgeek.com/windows-10/add-windows-path-environment-variable/).
+If you have installed these dependencies with Chocolatey and your top level
+drive is named `C:`, you can append (or prepend) the following paths into your
+Windows PATH:
 
-## Building MCell Executable from Source:
+    C:\tools\msys64\mingw64\bin
+    C:\Program Files\CMake\bin
+
+## Building MCell Executable from Source (OSX, Linux, Windows)
+
+Open a terminal (non-Administrator PowerShell for Windows users), clone the
+repo and checkout the appropriate branch:
+
+    git clone https://github.com/mcellteam/mcell
+    cd mcell
+    git checkout nfsim_dynamic_meshes_pymcell
 
 ### CMake
 
@@ -65,15 +89,17 @@ If this is your first time cloning the repo, you'll want to do this first:
     git submodule init
     git submodule update
 
-To build MCell and pyMCell for Mac or Linux, run the following commands from
-the main mcell directory:
+Next create your build directory and change into it:
 
     mkdir build
     cd build
+
+#### OSX and Linux
+
     cmake ..
     make
 
-If you're building on Windows with Ninja, change the last two steps to this:
+#### Windows
 
     cmake -G Ninja ..
     ninja

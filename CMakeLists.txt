@@ -281,7 +281,7 @@ TARGET_COMPILE_DEFINITIONS(mcell PRIVATE NOSWIG=1)
 #  src/libmcell_test.c
 #  ${BISON_mdlParser_OUTPUTS}
 #  ${FLEX_mdlScanner_OUTPUTS})
-#target_link_libraries(libmcell_test ${M_LIB})
+#target_link_libraries(libmcell_test ${M_LIB} nfsim_c NFsim)
 
 # build nfsim and nfsimCInterface before trying to build MCell
 add_custom_target(
