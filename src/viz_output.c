@@ -451,6 +451,8 @@ typedef struct external_mol_viz_entry_struct {
 
 
 static struct sym_table_head *graph_pattern_table = NULL;
+static long next_molcomp_id = 0L;
+static FILE *space_struct_dict_file = NULL;
 
 typedef struct external_molcomp_loc_struct {
   bool is_mol;
@@ -467,6 +469,7 @@ typedef struct external_molcomp_loc_struct {
 typedef struct molcomp_list_struct {
   external_molcomp_loc *molcomp_array;
   int num_molcomp_items;
+  long molcomp_id;
 } molcomp_list;
 
 static void dump_molcomp_array ( external_molcomp_loc *molcomp_array, int num_parts ) {
@@ -1440,8 +1443,8 @@ static int output_cellblender_molecules(struct volume *world,
 
   no_printf("Output in CELLBLENDER mode (molecules only)...\n");
 
-  if (world->viz_options > 0) {
-    fprintf ( stdout, "Visualization Options = %lx\n", world->viz_options );
+  if (world->viz_options != 0) {
+    fprintf ( stdout, "Visualization Options = 0x%lx\n", world->viz_options );
   }
   if (world->dump_level >= 50) {
     fprintf ( stdout, ">>>>>>>>>>>>>>>>>>>>>>> Top of MolViz Output <<<<<<<<<<<<<<<<<<<\n" );
@@ -1472,6 +1475,48 @@ static int output_cellblender_molecules(struct volume *world,
     }
     free(cf_name);
     cf_name = NULL;
+
+    FILE *space_struct_file = NULL;
+    if (world->viz_options & 0x01L) {
+      fprintf ( stdout, "Spatially Structured Option = 0x%lx\n", world->viz_options & 0x01L );
+
+      if (space_struct_dict_file == NULL) {
+        // Create the pattern file to hold the definitions
+        cf_name =
+            CHECKED_SPRINTF("%s_spatial/cellssd.dat", vizblk->file_prefix_name);
+        if (cf_name == NULL)
+          return 1;
+        if (make_parent_dir(cf_name)) {
+          free(cf_name);
+          mcell_error(
+              "Failed to create parent directory for SPATIAL-mode VIZ output.");
+          /*return 1;*/
+        }
+        space_struct_dict_file = open_file(cf_name, "wb");
+        if (!space_struct_dict_file) {
+          mcell_die();
+        } else {
+          no_printf("Writing to file %s\n", cf_name);
+        }
+        free(cf_name);
+        cf_name = NULL;
+      }
+
+      // Create the spatially structured mol file to hold the instances
+      cf_name =
+          CHECKED_SPRINTF("%s_spatial/cellss.%.*lld.dat", vizblk->file_prefix_name,
+                          ndigits, fdlp->viz_iteration);
+      if (cf_name == NULL)
+        return 1;
+      space_struct_file = open_file(cf_name, "wb");
+      if (!space_struct_file) {
+        mcell_die();
+      } else {
+        no_printf("Writing to file %s\n", cf_name);
+      }
+      free(cf_name);
+      cf_name = NULL;
+    }
 
     /* Get a list of molecules sorted by species. */
     u_int *viz_mol_count = NULL;
@@ -1730,9 +1775,17 @@ static int output_cellblender_molecules(struct volume *world,
             dump_molcomp_array ( molcomp_array, num_parts );
             fprintf ( stdout, "=============================================\n" );
 
+            next_molcomp_id += 1;
+
             molcomp_list *mcl = (molcomp_list *) malloc ( sizeof(molcomp_list) );
             mcl->molcomp_array = molcomp_array;
             mcl->num_molcomp_items = num_parts;
+            mcl->molcomp_id = next_molcomp_id;
+
+            if (space_struct_dict_file) {
+              fprintf ( space_struct_dict_file, "mol_def[%ld]: %s\n\n", mcl->molcomp_id, next_mol );
+            }
+
 
             //#### fprintf ( stdout, "=============== molcomp_list ===============\n" );
             //#### dump_molcomp_list ( mcl );
