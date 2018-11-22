@@ -1757,6 +1757,7 @@ static int output_cellblender_molecules(struct volume *world,
             int part_num;
 
             for (part_num = 0; part_num<mcl->num_molcomp_items; part_num++) {
+              // fprintf ( stdout, "    Mol Viz part_num %d\n", part_num );
               if (0 /* Force output of components */ || (mcl->molcomp_array[part_num].is_mol)) {
                 // fprintf ( stdout, "    mcl %s\n", mcl->molcomp_array[part_num].name );
 
