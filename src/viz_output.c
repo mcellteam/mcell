@@ -1741,6 +1741,7 @@ static int output_cellblender_molecules(struct volume *world,
           char *next_mol = amp->graph_data->graph_pattern;
 
 /* BEGIN NEW PROCESSING */
+// fprintf ( stdout, "=============== BEGIN NEW PROCESSING ===============\n" );
 
           if (graph_pattern_table == NULL) {
             graph_pattern_table = init_symtab ( 10 );
@@ -1814,59 +1815,81 @@ static int output_cellblender_molecules(struct volume *world,
             // That's fine at the time of this design, but be aware that adding anything else
             //   that's other than a molecule or component may break this logic!!
 
-            int viz_components = 0;
-            if (world->dump_level > 0) {
-              viz_components = 1;
-            }
-
             int part_num;
 
             for (part_num = 0; part_num<mcl->num_molcomp_items; part_num++) {
               // fprintf ( stdout, "    Mol Viz part_num %d\n", part_num );
-              if (viz_components || (mcl->molcomp_array[part_num].is_mol)) {
+              if ((world->viz_options>0) || (mcl->molcomp_array[part_num].is_mol)) {
                 // fprintf ( stdout, "    mcl %s\n", mcl->molcomp_array[part_num].name );
+
+                // Choose the name based on the type of item and the viz flags
+                char *name_to_find_or_add = NULL;
+
+                if (mcl->molcomp_array[part_num].is_mol) {
+
+                  // Handle Molecule Viz
+
+                  name_to_find_or_add = (char *) malloc (1+strlen(mcl->molcomp_array[part_num].name));
+                  strcpy ( name_to_find_or_add, mcl->molcomp_array[part_num].name );
+
+                } else {
+
+                  // Handle Component Viz
+
+                  int name_bits = world->viz_options & 0xf;
+                  if (name_bits == 1) {
+                    // Build a global component name alone (same glyph for all components and all molecules)
+                    name_to_find_or_add = (char *) malloc (1+strlen("component"));
+                    strcpy ( name_to_find_or_add, "component" );
+                  } else if (name_bits == 2) {
+                    // Build the name from the component name alone (same glyph for all components with this name across all molecules)
+                    name_to_find_or_add = (char *) malloc (1+strlen("comp_")+strlen(mcl->molcomp_array[part_num].name));
+                    strcpy ( name_to_find_or_add, "comp_" );
+                    strcpy ( &name_to_find_or_add[strlen("comp_")], mcl->molcomp_array[part_num].name );
+                  } else if (name_bits == 3) {
+                    // Build the name from the molecule name and the component name (glyph only applies to this mol/comp combination)
+                    char *last_mol_name = NULL;
+                    if (mcl->molcomp_array[part_num].num_peers < 1) {
+                      // This shouldn't happen ...
+                      last_mol_name = (char *) malloc (1+strlen("unknown_"));
+                      strcpy ( last_mol_name, "unknown_" );
+                    } else {
+                      // Copy the molecule name
+                      char *name_ptr = mcl->molcomp_array[mcl->molcomp_array[part_num].peers[0]].name;
+                      last_mol_name = (char *) malloc (1+strlen(name_ptr));
+                      strcpy ( last_mol_name, name_ptr );
+                    }
+                    name_to_find_or_add = (char *) malloc (1+strlen(last_mol_name)+strlen("_comp_")+strlen(mcl->molcomp_array[part_num].name));
+                    strcpy ( name_to_find_or_add,                               last_mol_name );
+                    strcpy ( &name_to_find_or_add[strlen(name_to_find_or_add)], "_comp_" );
+                    strcpy ( &name_to_find_or_add[strlen(name_to_find_or_add)], mcl->molcomp_array[part_num].name );
+
+                    if (last_mol_name != NULL) {
+                      free ( last_mol_name );
+                    }
+                  }
+
+                }
 
                 /* Check to see if this name is already in the mol_name_list */
                 external_mol_viz_by_name *next_mol_name = mol_name_list;
                 int found = 0;
-                if (mcl->molcomp_array[part_num].is_mol) {
-                  // Check for the actual mol name being in the list
-                  do {
-                    if (next_mol_name == NULL) {
-                      break;
-                    }
-                    if (strcmp(mcl->molcomp_array[part_num].name, next_mol_name->mol_name) == 0) {
-                      found = 1;
-                      break;
-                    }
-                    next_mol_name = next_mol_name->next_name;
-                  } while ( found == 0 );
-                } else if (viz_components) {
-                  // Check for the special name "component" being in the list
-                  do {
-                    if (next_mol_name == NULL) {
-                      break;
-                    }
-                    if (strcmp("component", next_mol_name->mol_name) == 0) {
-                      found = 1;
-                      break;
-                    }
-                    next_mol_name = next_mol_name->next_name;
-                  } while ( found == 0 );
-                }
+                // Check for the actual mol name being in the list
+                do {
+                  if (next_mol_name == NULL) {
+                    break;
+                  }
+                  if (strcmp(name_to_find_or_add, next_mol_name->mol_name) == 0) {
+                    found = 1;
+                    break;
+                  }
+                  next_mol_name = next_mol_name->next_name;
+                } while ( found == 0 );
 
                 if (found == 0) {
-                  /* This molecule name is not in the list, so add a new name to the front */
-                  char *ext_name;
-                  if (mcl->molcomp_array[part_num].is_mol) {
-                    ext_name = (char *) malloc ( strlen(mcl->molcomp_array[part_num].name) + 1 );
-                    strcpy ( ext_name, mcl->molcomp_array[part_num].name );
-                  } else {
-                    ext_name = (char *) malloc ( strlen("component") + 1 );
-                    strcpy ( ext_name, "component" );
-                  }
+                  /* This molecule or component name is not in the list, so add a new name to the front */
                   next_mol_name = (external_mol_viz_by_name *) malloc ( sizeof(external_mol_viz_by_name) );
-                  next_mol_name->mol_name = ext_name;  /* This takes "ownership" of the allocated name memory */
+                  next_mol_name->mol_name = name_to_find_or_add;  /* This takes "ownership" of the allocated "name_to_find_or_add" memory */
                   next_mol_name->mol_list = NULL;
                   next_mol_name->next_name = mol_name_list;
                   mol_name_list = next_mol_name;
@@ -1898,6 +1921,8 @@ static int output_cellblender_molecules(struct volume *world,
 
               }
             }
+
+// fprintf ( stdout, "=============== END NEW PROCESSING ===============\n" );
 
 /* END NEW PROCESSING */
 
