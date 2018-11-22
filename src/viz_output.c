@@ -1443,7 +1443,7 @@ static int output_cellblender_molecules(struct volume *world,
 
   no_printf("Output in CELLBLENDER mode (molecules only)...\n");
 
-  if (world->viz_options != 0) {
+  if ( (world->dump_level >= 0) && (world->viz_options != 0) ) {
     fprintf ( stdout, "Visualization Options = 0x%lx\n", world->viz_options );
   }
   if (world->dump_level >= 50) {
@@ -1477,8 +1477,8 @@ static int output_cellblender_molecules(struct volume *world,
     cf_name = NULL;
 
     FILE *space_struct_file = NULL;
-    if (world->viz_options & 0x01L) {
-      fprintf ( stdout, "Spatially Structured Option = 0x%lx\n", world->viz_options & 0x01L );
+    if (world->viz_options & 0x10L) {
+      fprintf ( stdout, "Spatially Structured Option = 0x%lx\n", world->viz_options & 0x10L );
 
       if (space_struct_dict_file == NULL) {
         // Create the pattern file to hold the definitions
@@ -1819,7 +1819,7 @@ static int output_cellblender_molecules(struct volume *world,
 
             for (part_num = 0; part_num<mcl->num_molcomp_items; part_num++) {
               // fprintf ( stdout, "    Mol Viz part_num %d\n", part_num );
-              if ((world->viz_options>0) || (mcl->molcomp_array[part_num].is_mol)) {
+              if ( mcl->molcomp_array[part_num].is_mol || (world->viz_options>0) ) {
                 // fprintf ( stdout, "    mcl %s\n", mcl->molcomp_array[part_num].name );
 
                 // Choose the name based on the type of item and the viz flags
