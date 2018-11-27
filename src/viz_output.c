@@ -471,33 +471,41 @@ typedef struct molcomp_list_struct {
   long molcomp_id;
 } molcomp_list;
 
-static void dump_molcomp_array ( external_molcomp_loc *molcomp_array, int num_parts ) {
+static void dump_molcomp_array_to ( FILE *out_file, external_molcomp_loc *molcomp_array, int num_parts ) {
   int i, j;
-  fprintf ( stdout, "%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%\n" );
+  fprintf ( out_file, "%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%\n" );
   for (i=0; i<num_parts; i++) {
-    fprintf ( stdout, "[%d] = %s (", i, molcomp_array[i].name );
+    fprintf ( out_file, "[%d] = %s (", i, molcomp_array[i].name );
     if (molcomp_array[i].is_mol) {
-      fprintf ( stdout, "m" );
+      fprintf ( out_file, "m" );
     } else {
-      fprintf ( stdout, "c" );
+      fprintf ( out_file, "c" );
     }
-    fprintf ( stdout, ") at  (%g, %g, %g) with peers [", molcomp_array[i].x, molcomp_array[i].y, molcomp_array[i].z );
+    fprintf ( out_file, ") at  (%g, %g, %g) with peers [", molcomp_array[i].x, molcomp_array[i].y, molcomp_array[i].z );
     for (j=0; j<molcomp_array[i].num_peers; j++) {
-      fprintf ( stdout, "%d", molcomp_array[i].peers[j] );
+      fprintf ( out_file, "%d", molcomp_array[i].peers[j] );
       if (j < molcomp_array[i].num_peers - 1) {
-        fprintf ( stdout, "," );
+        fprintf ( out_file, "," );
       }
     }
-    fprintf ( stdout, "]\n" );
+    fprintf ( out_file, "]\n" );
   }
-  fprintf ( stdout, "%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%\n" );
+  fprintf ( out_file, "%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%\n" );
 }
 
-/*
-static void dump_molcomp_list ( molcomp_list *mcl ) {
-  dump_molcomp_array ( mcl->molcomp_array, mcl->num_molcomp_items );
+static void dump_molcomp_list_to ( FILE *out_file, molcomp_list *mcl ) {
+  fprintf ( out_file, "ID=%ld\n", mcl->molcomp_id );
+  dump_molcomp_array_to ( out_file, mcl->molcomp_array, mcl->num_molcomp_items );
 }
-*/
+
+static void dump_molcomp_array ( external_molcomp_loc *molcomp_array, int num_parts ) {
+  dump_molcomp_array_to ( stdout, molcomp_array, num_parts );
+}
+
+static void dump_molcomp_list ( molcomp_list *mcl ) {
+  dump_molcomp_list_to ( stdout, mcl );
+}
+
 
 double clipped_cos ( double angle ) {
   double v = cos(angle);
@@ -1464,7 +1472,7 @@ static int output_cellblender_molecules(struct volume *world,
 
   no_printf("Output in CELLBLENDER mode (molecules only)...\n");
 
-  if ( (world->dump_level >= 0) && (world->viz_options != 0) ) {
+  if ( (world->dump_level >= 20) && (world->viz_options != 0) ) {
     fprintf ( stdout, "vizblk->file_prefix_name = \"%s\"\n", vizblk->file_prefix_name );
   }
   if ( (world->dump_level >= 50) && (world->viz_options != 0) ) {
@@ -1500,8 +1508,8 @@ static int output_cellblender_molecules(struct volume *world,
   file_prefix_usually_Scene = Scene
   */
 
-fprintf ( stdout, "path without file = %s\n", file_prefix_no_Scene );
-fprintf ( stdout, "file without path = %s\n", file_prefix_usually_Scene );
+  //fprintf ( stdout, "path without file = %s\n", file_prefix_no_Scene );
+  //fprintf ( stdout, "file without path = %s\n", file_prefix_usually_Scene );
 
   if ((fdlp->type == ALL_MOL_DATA) || (fdlp->type == MOL_POS)) {
     long long lli = 10;
@@ -1570,10 +1578,6 @@ fprintf ( stdout, "file without path = %s\n", file_prefix_usually_Scene );
     u_int cellbin_version = 1;
     fwrite(&cellbin_version, sizeof(cellbin_version), 1, custom_file);
 
-    if (space_struct_file != NULL) {
-      u_int ss_version = 2;
-      fwrite(&ss_version, sizeof(ss_version), 1, space_struct_file );
-    }
 
     /* Write all the molecules whether EXTERNAL_SPECIES or not (for now) */
 
@@ -1833,6 +1837,7 @@ fprintf ( stdout, "file without path = %s\n", file_prefix_usually_Scene );
             //#### dump_molcomp_list ( mcl );
             //#### fprintf ( stdout, "=============================================\n" );
 
+            /*   store_sym ( symbol,   sym_type, symbol_table,       data )  */
             sp = store_sym ( next_mol, VOID_PTR, graph_pattern_table, mcl );
 
             //#### fprintf ( stdout, "=============== graph_pattern_table ===============\n" );
@@ -2096,6 +2101,140 @@ fprintf ( stdout, "file without path = %s\n", file_prefix_usually_Scene );
       }
       nl = nl->next_name;
     }
+
+
+    /*****************************************************/
+    /******** Write the new BNGL Viz format files ********/
+    /*****************************************************/
+
+    if (space_struct_file != NULL) {
+      u_int ss_version = 2;
+
+      // fwrite(&ss_version, sizeof(ss_version), 1, space_struct_file );
+      fprintf ( space_struct_file, "%d\n", ss_version );
+
+      if (graph_pattern_table != NULL) {
+        // Traverse the symbol table to build a dictionary of molecule types
+        // A sym_table_head has: sym_entry **entries
+        //   First dimension is n_bins
+        //   Second dimension is a linked list
+        // fprintf ( stdout, "] ] ] ] ] ] ] ] graph pattern table has %d entries in %d bins\n", graph_pattern_table->n_entries, graph_pattern_table->n_bins );
+
+        for (int bin=0; bin<graph_pattern_table->n_bins; bin++) {
+          if (graph_pattern_table->entries[bin] != NULL) {
+            // fprintf ( stdout, "  bin %d is non-empty\n", bin );
+            struct sym_entry *se = graph_pattern_table->entries[bin];
+            while (se != NULL) {
+              // fprintf ( stdout, "   entry: %.200s\n", se->name );
+              fprintf ( space_struct_file, "Entry: %s\n", se->name );
+              molcomp_list *mcl = (molcomp_list *) se->value;
+              // fprintf ( stdout, "=============== MOL From graph_pattern_table ===============\n" );
+              dump_molcomp_list_to ( space_struct_file, mcl );
+              se = se->next;
+            }
+          }
+        }
+      }
+
+      /* Start with a simple output format */
+      for (int species_idx = 0; species_idx < world->n_species; species_idx++) {
+
+        const unsigned int this_mol_count = viz_mol_count[species_idx];
+
+        if (this_mol_count == 0)
+          continue;
+
+        const int id = vizblk->species_viz_states[species_idx];
+        if (id == EXCLUDE_OBJ)
+          continue;
+
+        struct abstract_molecule **const mols = viz_molp[species_idx];
+        if (mols == NULL)
+          continue;
+
+        /* Get and save positions of EXTERNAL_SPECIES volume and surface molecules: */
+        struct abstract_molecule *amp;
+
+        for (unsigned int n_mol = 0; n_mol < this_mol_count; ++n_mol) {
+
+          amp = mols[n_mol];
+
+          if ((amp->properties->flags & EXTERNAL_SPECIES) != 0) {
+
+            /* This is complex molecule */
+            /* The graph pattern will be something like: */
+            /*    c:SH2~NO_STATE!5,c:U~NO_STATE!5!3,c:a~NO_STATE!6,c:b~Y!6!1,c:g~Y!6,m:Lyn@PM!0!1,m:Rec@PM!2!3!4, */
+
+            char *gp = amp->graph_data->graph_pattern;
+
+            // Write out text for now
+
+            // fprintf ( space_struct_file, "Mol Instance %d, name: %.80s\n", n_mol, gp );
+
+            long mol_class = -1;
+
+            if (graph_pattern_table != NULL) {
+
+              struct sym_entry *sp;
+              sp = retrieve_sym(gp, graph_pattern_table);
+
+              if (sp != NULL) {
+                molcomp_list *mcl = NULL;
+                mcl = (molcomp_list *) sp->value;
+                mol_class = mcl->molcomp_id;
+                // fprintf ( stdout, "=============== MOL From graph_pattern_table ===============\n" );
+                // dump_molcomp_list_to ( space_struct_file, mcl );
+              }
+            }
+
+            // fprintf ( space_struct_file, "  Mol Class = %ld\n", mcl->molcomp_id );
+
+            float pos_x = 0.0;
+            float pos_y = 0.0;
+            float pos_z = 0.0;
+            float norm_x = 0.0;
+            float norm_y = 0.0;
+            float norm_z = 0.0;
+            if ((amp->properties->flags & NOT_FREE) == 0) {
+              struct volume_molecule *mp = (struct volume_molecule *)amp;
+              pos_x = mp->pos.x;
+              pos_y = mp->pos.y;
+              pos_z = mp->pos.z;
+            } else if ((amp->properties->flags & ON_GRID) != 0) {
+              struct surface_molecule *gmp = (struct surface_molecule *)amp;
+              struct vector3 where;
+              uv2xyz(&(gmp->s_pos), gmp->grid->surface, &where);
+              pos_x = where.x;
+              pos_y = where.y;
+              pos_z = where.z;
+            }
+
+            pos_x *= world->length_unit;
+            pos_y *= world->length_unit;
+            pos_z *= world->length_unit;
+
+            char mol_type = 'v';
+            if ((amp->properties->flags & ON_GRID) != 0) {
+              mol_type = 's';
+              struct surface_molecule *gmp = (struct surface_molecule *)mols[n_mol];
+              short orient = gmp->orient;
+              norm_x = orient * gmp->grid->surface->normal.x;
+              norm_y = orient * gmp->grid->surface->normal.y;
+              norm_z = orient * gmp->grid->surface->normal.z;
+            }
+
+            fprintf ( space_struct_file, "Mol %d:  Class=%ld  Position=(%g %g %g)  Orientation=(%g %g %g)\n", n_mol, mol_class, pos_x, pos_y, pos_z, norm_x, norm_y, norm_z );
+          }
+        }
+      }
+      fflush ( space_struct_file );
+      fclose ( space_struct_file );
+    }
+
+
+
+
+
 
     /* Free the structures used to build the molecule lists from the complexes */
     while (mol_name_list != NULL) {
