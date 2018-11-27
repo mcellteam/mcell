@@ -494,9 +494,11 @@ static void dump_molcomp_array ( external_molcomp_loc *molcomp_array, int num_pa
   fprintf ( stdout, "%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%=%%\n" );
 }
 
+/*
 static void dump_molcomp_list ( molcomp_list *mcl ) {
   dump_molcomp_array ( mcl->molcomp_array, mcl->num_molcomp_items );
 }
+*/
 
 double clipped_cos ( double angle ) {
   double v = cos(angle);
@@ -563,6 +565,7 @@ static void set_molcomp_positions_2D ( external_molcomp_loc *molcomp_array, int 
 }
 */
 
+/*
 static void set_component_positions_2D ( struct volume *world, external_molcomp_loc *mc, int num_parts ) {
   double scale = 0.02;
   int mi;
@@ -578,7 +581,7 @@ static void set_component_positions_2D ( struct volume *world, external_molcomp_
     }
   }
 }
-
+*/
 
 static void set_component_positions_by_table ( struct volume *world, external_molcomp_loc *mc, int num_parts ) {
   double scale = 0.02;
@@ -611,7 +614,7 @@ static void set_component_positions_by_table ( struct volume *world, external_mo
           struct mol_ss *mol_ss_ptr = (struct mol_ss *)(sp->value);
           struct mol_comp_ss *mc_ptr = mol_ss_ptr->mol_comp_ss_head;
           int comp_count = 0;
-          char *translations[5] = { "COINCIDENT", "XYZ", "XYZA", "XYZRef", "XYZVA" };
+          // char *translations[5] = { "COINCIDENT", "XYZ", "XYZA", "XYZRef", "XYZVA" };
           while (mc_ptr != NULL) {
             //fprintf ( stdout, "         Component %d is \"%s\" of type %s at (%g,%g,%g).\n", comp_count, mc_ptr->name, translations[mc_ptr->spatial_type], mc_ptr->loc_x, mc_ptr->loc_y, mc_ptr->loc_z );
             for (int ci=0; ci<mc[mi].num_peers; ci++) {
@@ -623,8 +626,10 @@ static void set_component_positions_by_table ( struct volume *world, external_mo
                 mc[mc[mi].peers[ci]].ky = mc_ptr->rot_axis_y;  // These are currently key locations rather than rotation axis locations
                 mc[mc[mi].peers[ci]].kz = mc_ptr->rot_axis_z;  // These are currently key locations rather than rotation axis locations
                 mc[mc[mi].peers[ci]].has_coords = true;
-                fprintf ( stdout, "    Component %s is at (%g,%g,%g)\n", mc[mc[mi].peers[ci]].name, mc[mc[mi].peers[ci]].x, mc[mc[mi].peers[ci]].y, mc[mc[mi].peers[ci]].z );
-                fprintf ( stdout, "       Ref key for %s is at (%g,%g,%g)\n", mc[mc[mi].peers[ci]].name, mc[mc[mi].peers[ci]].kx, mc[mc[mi].peers[ci]].ky, mc[mc[mi].peers[ci]].kz );
+                if (world->dump_level >= 20) {
+                  fprintf ( stdout, "    Component %s is at (%g,%g,%g)\n", mc[mc[mi].peers[ci]].name, mc[mc[mi].peers[ci]].x, mc[mc[mi].peers[ci]].y, mc[mc[mi].peers[ci]].z );
+                  fprintf ( stdout, "       Ref key for %s is at (%g,%g,%g)\n", mc[mc[mi].peers[ci]].name, mc[mc[mi].peers[ci]].kx, mc[mc[mi].peers[ci]].ky, mc[mc[mi].peers[ci]].kz );
+                }
                 break;
               }
             }
@@ -870,10 +875,12 @@ static void bind_molecules_at_components ( struct volume *world, external_molcom
     vvk[1] = mc[var_comp_index].ky - mc[var_mol_index].y;
     vvk[2] = mc[var_comp_index].kz - mc[var_mol_index].z;
 
-    fprintf ( stdout, "  Fixed vcomp = [ %g %g %g ]\n", fvc[0], fvc[1], fvc[2] );
-    fprintf ( stdout, "  Var   vcomp = [ %g %g %g ]\n", vvc[0], vvc[1], vvc[2] );
-    fprintf ( stdout, "  Fixed vkey  = [ %g %g %g ]\n", fvk[0], fvk[1], fvk[2] );
-    fprintf ( stdout, "  Var vkey    = [ %g %g %g ]\n", vvk[0], vvk[1], vvk[2] );
+    if (world->dump_level >= 20) {
+      fprintf ( stdout, "  Fixed vcomp = [ %g %g %g ]\n", fvc[0], fvc[1], fvc[2] );
+      fprintf ( stdout, "  Var   vcomp = [ %g %g %g ]\n", vvc[0], vvc[1], vvc[2] );
+      fprintf ( stdout, "  Fixed vkey  = [ %g %g %g ]\n", fvk[0], fvk[1], fvk[2] );
+      fprintf ( stdout, "  Var vkey    = [ %g %g %g ]\n", vvk[0], vvk[1], vvk[2] );
+    }
 
     // Use the cross product to get the normal to the fixed molecule-component-key plane
     double fixed_normal[3];
@@ -901,27 +908,37 @@ static void bind_molecules_at_components ( struct volume *world, external_molcom
     var_unit[1] = var_normal[1] / var_norm_mag;
     var_unit[2] = var_normal[2] / var_norm_mag;
 
-    fprintf ( stdout, "  Fixed unit = [ %g %g %g ]\n", fixed_unit[0], fixed_unit[1], fixed_unit[2] );
-    fprintf ( stdout, "  Var unit = [ %g %g %g ]\n", var_unit[0], var_unit[1], var_unit[2] );
+    if (world->dump_level >= 20) {
+      fprintf ( stdout, "  Fixed unit = [ %g %g %g ]\n", fixed_unit[0], fixed_unit[1], fixed_unit[2] );
+      fprintf ( stdout, "  Var unit = [ %g %g %g ]\n", var_unit[0], var_unit[1], var_unit[2] );
+    }
 
-    double norm_dot_prod;
-    norm_dot_prod = (fixed_unit[0] * var_unit[0]) + (fixed_unit[1] * var_unit[1]) + (fixed_unit[2] * var_unit[2]);
+    double norm_dot_prod_again;
+    norm_dot_prod_again = (fixed_unit[0] * var_unit[0]) + (fixed_unit[1] * var_unit[1]) + (fixed_unit[2] * var_unit[2]);
 
     // Ensure that the dot product is a legal argument for the "acos" function:
-    if (norm_dot_prod >  1) {
-      fprintf ( stdout, "Numerical Warning: normalized dot product %g was greater than 1\n", norm_dot_prod );
-      norm_dot_prod =  1;
+    if (norm_dot_prod_again >  1) {
+      if (world->dump_level >= 20) {
+        fprintf ( stdout, "Numerical Warning: normalized dot product %g was greater than 1\n", norm_dot_prod_again );
+      }
+      norm_dot_prod_again =  1;
     }
-    if (norm_dot_prod < -1) {
-      fprintf ( stdout, "Numerical Warning: normalized dot product %g was less than -1\n", norm_dot_prod );
-      norm_dot_prod = -1;
+    if (norm_dot_prod_again < -1) {
+      if (world->dump_level >= 20) {
+        fprintf ( stdout, "Numerical Warning: normalized dot product %g was less than -1\n", norm_dot_prod_again );
+      }
+      norm_dot_prod_again = -1;
     }
-    fprintf ( stdout, "  Normalized Dot Product between fixed and var is %g\n", norm_dot_prod );
+    if (world->dump_level >= 20) {
+      fprintf ( stdout, "  Normalized Dot Product between fixed and var is %g\n", norm_dot_prod_again );
+    }
 
     // Compute the amount of rotation to bring the planes into alignment offset by the requested bond angles
-    double cur_key_plane_angle = acos ( norm_dot_prod );
+    double cur_key_plane_angle = acos ( norm_dot_prod_again );
 
-    fprintf ( stdout, "Current key plane angle = %g\n", (180*cur_key_plane_angle/MY_PI) );
+    if (world->dump_level >= 20) {
+      fprintf ( stdout, "Current key plane angle = %g\n", (180*cur_key_plane_angle/MY_PI) );
+    }
 
     double cross_prod[3];
 
@@ -934,14 +951,18 @@ static void bind_molecules_at_components ( struct volume *world, external_molcom
       cur_key_plane_angle = (2*MY_PI) - cur_key_plane_angle;
     }
 
-    fprintf ( stdout, "Current key plane angle = %g,  dot_cross_rot = %g\n", (180*cur_key_plane_angle/MY_PI), dot_cross_rot );
+    if (world->dump_level >= 20) {
+      fprintf ( stdout, "Current key plane angle = %g,  dot_cross_rot = %g\n", (180*cur_key_plane_angle/MY_PI), dot_cross_rot );
+    }
 
     double composite_rot_angle = MY_PI + (var_req_bond_angle+fixed_req_bond_angle) + cur_key_plane_angle;  // The "MY_PI" adds 180 degrees to make the components "line up"
 
-    fprintf ( stdout, "  Fixed angle                is = %g degrees\n", 180 * fixed_req_bond_angle / MY_PI );
-    fprintf ( stdout, "  Var angle                  is = %g degrees\n", 180 * var_req_bond_angle / MY_PI );
-    fprintf ( stdout, "  Current angle between keys is = %g degrees\n", 180 * cur_key_plane_angle / MY_PI );
-    fprintf ( stdout, "  Composite rotation angle   is = %g degrees\n", 180 * composite_rot_angle / MY_PI );
+    if (world->dump_level >= 20) {
+      fprintf ( stdout, "  Fixed angle                is = %g degrees\n", 180 * fixed_req_bond_angle / MY_PI );
+      fprintf ( stdout, "  Var angle                  is = %g degrees\n", 180 * var_req_bond_angle / MY_PI );
+      fprintf ( stdout, "  Current angle between keys is = %g degrees\n", 180 * cur_key_plane_angle / MY_PI );
+      fprintf ( stdout, "  Composite rotation angle   is = %g degrees\n", 180 * composite_rot_angle / MY_PI );
+    }
 
     // Build a 3D rotation matrix along the axis of the molecule to the component
     double var_vcomp_mag = sqrt ( (vvc[0]*vvc[0]) + (vvc[1]*vvc[1]) + (vvc[2]*vvc[2]) );
@@ -1093,6 +1114,7 @@ static void bind_all_molecules ( struct volume *world, external_molcomp_loc *mol
 
 }
 
+/*
 static void set_molcomp_positions_2D_first_try ( struct volume *world, external_molcomp_loc *molcomp_array, int num_parts ) {
   // Compute positions for all molecules/components in a molcomp_array
   // This might be done recursively, but it's being done iteratively here first.
@@ -1171,14 +1193,13 @@ static void set_molcomp_positions_2D_first_try ( struct volume *world, external_
           }
         }
         all_done = false;
-        /*
-        double scale = 0.048;
+
+        //double scale = 0.048;
         // Temporarily assign random values
-        molcomp_array[i].x = scale * (drand48()-0.5) * .70710678118654752440;
-        molcomp_array[i].y = scale * (drand48()-0.5) * .70710678118654752440;
-        molcomp_array[i].z = scale * (drand48()-0.5) * .70710678118654752440;
-        molcomp_array[i].has_coords = 1;
-        */
+        //molcomp_array[i].x = scale * (drand48()-0.5) * .70710678118654752440;
+        //molcomp_array[i].y = scale * (drand48()-0.5) * .70710678118654752440;
+        //molcomp_array[i].z = scale * (drand48()-0.5) * .70710678118654752440;
+        //molcomp_array[i].has_coords = 1;
       }
     }
   }
@@ -1186,6 +1207,7 @@ static void set_molcomp_positions_2D_first_try ( struct volume *world, external_
   //#### fprintf ( stdout, "Done Building molcomp_positions for:\n" );
   //#### dump_molcomp_array ( molcomp_array, num_parts );
 }
+*/
 
 static external_molcomp_loc *build_molcomp_array ( struct volume *world, char **graph_strings ) {
   int part_num;
@@ -1444,11 +1466,43 @@ static int output_cellblender_molecules(struct volume *world,
   no_printf("Output in CELLBLENDER mode (molecules only)...\n");
 
   if ( (world->dump_level >= 0) && (world->viz_options != 0) ) {
+    fprintf ( stdout, "vizblk->file_prefix_name = \"%s\"\n", vizblk->file_prefix_name );
+  }
+  if ( (world->dump_level >= 50) && (world->viz_options != 0) ) {
     fprintf ( stdout, "Visualization Options = 0x%lx\n", world->viz_options );
   }
   if (world->dump_level >= 50) {
     fprintf ( stdout, ">>>>>>>>>>>>>>>>>>>>>>> Top of MolViz Output <<<<<<<<<<<<<<<<<<<\n" );
   }
+
+  // Unfortunately, the file name in vizblk->file_prefix_name has the "Scene" attached to the end.
+  // This makes it difficult to use to build other paths that don't have a "Scene" in them.
+  // For example: vizblk->file_prefix_name = "./viz_data/seed_00001/Scene"
+  // So this will take some string "monkey business" to fix
+  // We want "./viz_data/seed_#..#/ without the "Scene" attached
+  char *file_prefix_no_Scene = NULL;
+  char *file_prefix_usually_Scene = NULL;
+
+  // Get the location of the last separator
+  char *last_sep = strrchr ( vizblk->file_prefix_name, '/' );
+  // Use the last_sep to copy the file part (usually Scene)
+  file_prefix_usually_Scene = my_strcat ( last_sep+1, NULL );
+  // Also use the last sep to copy the path part
+  // Set it to \0 to mark the end of the string
+  *last_sep = '\0';
+  // Copy it with the desired prefix
+  file_prefix_no_Scene = my_strcat ( vizblk->file_prefix_name, NULL );
+  // Restore the vizblk->file_prefix_name
+  *last_sep = '/';
+
+  /*
+  vizblk->file_prefix_name = "./viz_data/seed_00001/Scene"
+  file_prefix_no_Scene = ./viz_data/seed_00001
+  file_prefix_usually_Scene = Scene
+  */
+
+fprintf ( stdout, "path without file = %s\n", file_prefix_no_Scene );
+fprintf ( stdout, "file without path = %s\n", file_prefix_usually_Scene );
 
   if ((fdlp->type == ALL_MOL_DATA) || (fdlp->type == MOL_POS)) {
     long long lli = 10;
@@ -1478,12 +1532,13 @@ static int output_cellblender_molecules(struct volume *world,
 
     FILE *space_struct_file = NULL;
     if (world->viz_options & 0x10L) {
-      fprintf ( stdout, "Spatially Structured Option = 0x%lx\n", world->viz_options & 0x10L );
-
+      if (world->dump_level >= 20) {
+        fprintf ( stdout, "Spatially Structured Option = 0x%lx\n", world->viz_options & 0x10L );
+      }
       if (space_struct_dict_file == NULL) {
         // Create the pattern file to hold the definitions
         cf_name =
-            CHECKED_SPRINTF("%s_spatial/cellssd.dat", vizblk->file_prefix_name);
+            CHECKED_SPRINTF("%s/viz_bngl/cellssd.dat", file_prefix_no_Scene);
         if (cf_name == NULL)
           return 1;
         if (make_parent_dir(cf_name)) {
@@ -1504,7 +1559,7 @@ static int output_cellblender_molecules(struct volume *world,
 
       // Create the spatially structured mol file to hold the instances
       cf_name =
-          CHECKED_SPRINTF("%s_spatial/cellss.%.*lld.dat", vizblk->file_prefix_name,
+          CHECKED_SPRINTF("%s/viz_bngl/%s.bnglviz.%.*lld.dat", file_prefix_no_Scene, file_prefix_usually_Scene,
                           ndigits, fdlp->viz_iteration);
       if (cf_name == NULL)
         return 1;
@@ -1772,9 +1827,11 @@ static int output_cellblender_molecules(struct volume *world,
 
             external_molcomp_loc *molcomp_array = build_molcomp_array ( world, graph_parts );
 
-            fprintf ( stdout, "=============== molcomp_array ===============\n" );
-            dump_molcomp_array ( molcomp_array, num_parts );
-            fprintf ( stdout, "=============================================\n" );
+            if (world->dump_level >= 10) {
+              fprintf ( stdout, "=============== molcomp_array ===============\n" );
+              dump_molcomp_array ( molcomp_array, num_parts );
+              fprintf ( stdout, "=============================================\n" );
+            }
 
             next_molcomp_id += 1;
 
@@ -2079,6 +2136,9 @@ static int output_cellblender_molecules(struct volume *world,
     free(viz_mol_count);
     viz_mol_count = NULL;
   }
+
+  free ( file_prefix_no_Scene );
+  free ( file_prefix_usually_Scene );
 
   if (world->dump_level >= 50) {
     fprintf ( stdout, ">>>>>>>>>>>>>>>>>>>>>>> Bottom of MolViz Output <<<<<<<<<<<<<<<<<<<\n" );
