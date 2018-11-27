@@ -1530,7 +1530,7 @@ fprintf ( stdout, "file without path = %s\n", file_prefix_usually_Scene );
     cf_name = NULL;
 
     FILE *space_struct_file = NULL;
-    if (world->viz_options & 0x10L) {
+    if (world->viz_options & 0xF0L) {
       if (world->dump_level >= 20) {
         fprintf ( stdout, "Spatially Structured Option = 0x%lx\n", world->viz_options & 0x10L );
       }
@@ -1566,9 +1566,14 @@ fprintf ( stdout, "file without path = %s\n", file_prefix_usually_Scene );
       return 1;
     }
 
-    /* Write file header */
+    /* Write file header(s) */
     u_int cellbin_version = 1;
     fwrite(&cellbin_version, sizeof(cellbin_version), 1, custom_file);
+
+    if (space_struct_file != NULL) {
+      u_int ss_version = 2;
+      fwrite(&ss_version, sizeof(ss_version), 1, space_struct_file );
+    }
 
     /* Write all the molecules whether EXTERNAL_SPECIES or not (for now) */
 
