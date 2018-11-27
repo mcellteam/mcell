@@ -452,7 +452,6 @@ typedef struct external_mol_viz_entry_struct {
 
 static struct sym_table_head *graph_pattern_table = NULL;
 static long next_molcomp_id = 0L;
-static FILE *space_struct_dict_file = NULL;
 
 typedef struct external_molcomp_loc_struct {
   bool is_mol;
@@ -1535,34 +1534,18 @@ fprintf ( stdout, "file without path = %s\n", file_prefix_usually_Scene );
       if (world->dump_level >= 20) {
         fprintf ( stdout, "Spatially Structured Option = 0x%lx\n", world->viz_options & 0x10L );
       }
-      if (space_struct_dict_file == NULL) {
-        // Create the pattern file to hold the definitions
-        cf_name =
-            CHECKED_SPRINTF("%s/viz_bngl/cellssd.dat", file_prefix_no_Scene);
-        if (cf_name == NULL)
-          return 1;
-        if (make_parent_dir(cf_name)) {
-          free(cf_name);
-          mcell_error(
-              "Failed to create parent directory for SPATIAL-mode VIZ output.");
-          /*return 1;*/
-        }
-        space_struct_dict_file = open_file(cf_name, "wb");
-        if (!space_struct_dict_file) {
-          mcell_die();
-        } else {
-          no_printf("Writing to file %s\n", cf_name);
-        }
-        free(cf_name);
-        cf_name = NULL;
-      }
-
       // Create the spatially structured mol file to hold the instances
       cf_name =
           CHECKED_SPRINTF("%s/viz_bngl/%s.bnglviz.%.*lld.dat", file_prefix_no_Scene, file_prefix_usually_Scene,
                           ndigits, fdlp->viz_iteration);
       if (cf_name == NULL)
         return 1;
+      if (make_parent_dir(cf_name)) {
+        free(cf_name);
+        mcell_error(
+            "Failed to create parent directory for SPATIAL-mode VIZ output.");
+        /*return 1;*/
+      }
       space_struct_file = open_file(cf_name, "wb");
       if (!space_struct_file) {
         mcell_die();
@@ -1839,10 +1822,6 @@ fprintf ( stdout, "file without path = %s\n", file_prefix_usually_Scene );
             mcl->molcomp_array = molcomp_array;
             mcl->num_molcomp_items = num_parts;
             mcl->molcomp_id = next_molcomp_id;
-
-            if (space_struct_dict_file) {
-              fprintf ( space_struct_dict_file, "mol_def[%ld]: %s\n\n", mcl->molcomp_id, next_mol );
-            }
 
 
             //#### fprintf ( stdout, "=============== molcomp_list ===============\n" );
