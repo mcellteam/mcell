@@ -708,6 +708,14 @@ static void bind_molecules_at_components ( struct volume *world, external_molcom
       var_mag = sqrt ( (  var_vec[0]*  var_vec[0]) + (  var_vec[1]*  var_vec[1]) );
   }
 
+  // Check to see if either are zero which indicates that it's not possible to bind them
+  if ((fixed_mag * var_mag) == 0) {
+    if (world->dump_level >= 10) {
+      fprintf ( stdout, "Molecules %s and %s are nonspatially bound.\n", mc[fixed_comp_index].name, mc[var_comp_index].name );
+    }
+    return;
+  }
+
   double dot_prod;
   if (as3D) {
     dot_prod = (fixed_vec[0] * var_vec[0]) + (fixed_vec[1] * var_vec[1]) + (fixed_vec[2] * var_vec[2]);
@@ -1851,11 +1859,24 @@ static int output_cellblender_molecules(struct volume *world,
           if (sp != NULL) {
             mcl = (molcomp_list *) sp->value;
             // fprintf ( stdout, "     sp: %s\n", mcl->name );
+            // Look for component locations of all zero which indicates a non-spatial molecule
+            int part_num;
+            for (part_num = 0; part_num<mcl->num_molcomp_items; part_num++) {
+              // fprintf ( stdout, "    Mol Viz part_num %d\n", part_num );
+              if ( mcl->molcomp_array[part_num].is_mol == false ) {
+                // Check component location
+                if ((mcl->molcomp_array[part_num].x==0) && (mcl->molcomp_array[part_num].y==0) && (mcl->molcomp_array[part_num].z==0) ) {
+                  // A component cannot be at the origin
+                  mcl = NULL;
+                  break;
+                }
+              }
+            }
           }
 
           if (mcl != NULL) {
 
-            // This should be the normal path
+            // This is the normal path for spatially structured molecules
 
             // Note that this logic assumes that each part is either a molecule or a component
             // That's fine at the time of this design, but be aware that adding anything else
@@ -1974,11 +1995,7 @@ static int output_cellblender_molecules(struct volume *world,
 
           } else {
 
-            // This was the old way of making mols directly from the NAUTY strings.
-            // This code either placed all molecule parts at the same location or
-            //   spaced them evenly along the "x" axis (see x_offset below).
-            // This should not generally get executed since the previous processing was added.
-            // It's being kept here because it is computationally simpler and may be useful.
+            // Arriving here means that the molecules are non-spatial (at least one component is at the origin)
 
             while ((next_mol = strstr(next_mol,"m:")) != NULL ) {
               /* Pull the next actual molecule name out of the graph pattern */
@@ -2025,7 +2042,7 @@ static int output_cellblender_molecules(struct volume *world,
               /* Set its values */
               new_mol_viz_item->mol_type = mol_type;
 
-              new_mol_viz_item->pos_x = pos_x + x_offset;  x_offset += 0.008;
+              new_mol_viz_item->pos_x = pos_x + x_offset; //   x_offset += 0.008;
               new_mol_viz_item->pos_y = pos_y;
               new_mol_viz_item->pos_z = pos_z;
 
