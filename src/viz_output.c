@@ -2312,11 +2312,11 @@ static int output_cellblender_molecules(struct volume *world,
                   for (i=0; i<num_parts; i++) {
                     fprintf ( space_struct_file, "   [ " );  // Start of a molecule or component
                     if (mca[i].is_mol) {
-                      fprintf ( space_struct_file, "'m'" );
+                      fprintf ( space_struct_file, "\"m\"" );
                     } else {
-                      fprintf ( space_struct_file, "'c'" );
+                      fprintf ( space_struct_file, "\"c\"" );
                     }
-                    fprintf ( space_struct_file, ", '%s'", mca[i].name );
+                    fprintf ( space_struct_file, ", \"%s\"", mca[i].name );
                     fprintf ( space_struct_file, ", [%g, %g, %g], [", mca[i].x, mca[i].y, mca[i].z );
                     for (j=0; j<mca[i].num_peers; j++) {
                       fprintf ( space_struct_file, "%d", mca[i].peers[j] );
