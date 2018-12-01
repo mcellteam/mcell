@@ -534,76 +534,6 @@ double clipped_sin ( double angle ) {
   return ( v );
 }
 
-/*
-static void set_molcomp_positions_2D ( external_molcomp_loc *molcomp_array, int num_parts ) {
-  // Compute positions for all molecules/components in a molcomp_array
-  //#### fprintf ( stdout, "Begin Building molcomp_positions for:\n" );
-  //#### dump_molcomp_array ( molcomp_array, num_parts );
-
-  double scale = 0.02;
-
-  int i, j;
-
-  // Start by initializing all molecules and components to defaults
-  for (i=0; i<num_parts; i++) {
-    molcomp_array[i].x = 0;
-    molcomp_array[i].y = 0;
-    molcomp_array[i].z = 0;
-    molcomp_array[i].has_coords = 1;
-    molcomp_array[i].is_final = 0;
-  }
-
-  // Next assign default locations for binding sites around each molecule
-  for (i=0; i<num_parts; i++) {
-    if (molcomp_array[i].is_mol) {
-      // This is a molecule
-      int num_peers = molcomp_array[i].num_peers;
-      for (j=0; j<num_peers; j++) {
-        double angle = j * 2 * MY_PI / num_peers;
-        molcomp_array[molcomp_array[i].peers[j]].x = scale * clipped_cos(angle);
-        molcomp_array[molcomp_array[i].peers[j]].y = scale * clipped_sin(angle);
-        molcomp_array[molcomp_array[i].peers[j]].z = 0;
-      }
-    }
-  }
-
-  // Start by setting all molecules at the origin and assigning default binding site locations
-  for (i=0; i<num_parts; i++) {
-    if (molcomp_array[i].has_coords == 0) {
-      molcomp_array[i].x = 0;
-      molcomp_array[i].y = 0;
-      molcomp_array[i].z = 0;
-      molcomp_array[i].has_coords = 1;
-    }
-    molcomp_array[i].is_final = 0;
-  }
-
-  //#### fprintf ( stdout, "Finished assigning molecule-centric coordinates:\n" );
-  //#### dump_molcomp_array ( molcomp_array, num_parts );
-
-
-  //#### fprintf ( stdout, "Done Building molcomp_positions for:\n" );
-  //#### dump_molcomp_array ( molcomp_array, num_parts );
-}
-*/
-
-/*
-static void set_component_positions_2D ( struct volume *world, external_molcomp_loc *mc, int num_parts ) {
-  double scale = 0.02;
-  int mi;
-  for (mi=0; mi<num_parts; mi++) {
-    if (mc[mi].is_mol) {
-      //#### fprintf ( stdout, "Setting component positions for %s\n", mc[mi].name );
-      for (int ci=0; ci<mc[mi].num_peers; ci++) {
-        double angle = 2 * MY_PI * ci / mc[mi].num_peers;
-        mc[mc[mi].peers[ci]].x = scale * cos(angle);
-        mc[mc[mi].peers[ci]].y = scale * sin(angle);
-        //#### fprintf ( stdout, "  Component %s is at (%g,%g)\n", mc[mc[mi].peers[ci]].name, mc[mc[mi].peers[ci]].x, mc[mc[mi].peers[ci]].y );
-      }
-    }
-  }
-}
-*/
 
 static void set_component_positions_by_table ( struct volume *world, external_molcomp_loc *mc, int num_parts ) {
   double scale = 0.02;
@@ -1144,100 +1074,6 @@ static void bind_all_molecules ( struct volume *world, external_molcomp_loc *mol
 
 }
 
-/*
-static void set_molcomp_positions_2D_first_try ( struct volume *world, external_molcomp_loc *molcomp_array, int num_parts ) {
-  // Compute positions for all molecules/components in a molcomp_array
-  // This might be done recursively, but it's being done iteratively here first.
-  // Note that this procedure does not work properly
-  //#### fprintf ( stdout, "Begin Building molcomp_positions for:\n" );
-  //#### dump_molcomp_array ( molcomp_array, num_parts );
-
-  int all_done = 0;
-  if (num_parts > 0) {
-    // Note that a simple molecule will fall in this case and be at the origin
-    molcomp_array[0].x = 0;
-    molcomp_array[0].y = 0;
-    molcomp_array[0].z = 0;
-    molcomp_array[0].has_coords = 1;
-  }
-  while (all_done == 0) {
-    // Continually go through the list and try to assign coordinates to each part
-    double scale = 0.02;
-    int i, j;
-    all_done = 1;
-    //#### fprintf ( stdout, "Top of loop through all molcomps\n" );
-    for (i=0; i<num_parts; i++) {
-      //#### fprintf ( stdout, "  Working on index %d named %s\n", i, molcomp_array[i].name );
-      //#### if (molcomp_array[i].has_coords != 0) fprintf ( stdout, "    Index %d named %s has coordinates (%g,%g,%g).\n", i, molcomp_array[i].name, molcomp_array[i].x, molcomp_array[i].y, molcomp_array[i].z );
-      if (molcomp_array[i].has_coords == 0) {
-        // This molecule or component does NOT have any coordinates.
-        // If it's a component, check to see if its molecule has coordinates
-        // If it's a molecule, check to see if any of its components have coordinates
-        if (molcomp_array[i].is_mol == 0) {
-          //#### fprintf ( stdout, "    Index %d named %s has no coordinates.\n", i, molcomp_array[i].name );
-          // This is a component. Components can only have 1 (mol) or 2 (mol,bond) peer entries
-          if (molcomp_array[molcomp_array[i].peers[0]].has_coords != 0) {
-            //#### fprintf ( stdout, "      Index %d named %s has a molecule with coordinates.\n", i, molcomp_array[i].name );
-            // The molecule associated with this component has coordinates so use them first
-            // Find out which "spoke" of the molecule contains this component
-            int parent_mol_index = molcomp_array[i].peers[0];
-            int comp_num_in_mol = 0;
-            while (molcomp_array[parent_mol_index].peers[comp_num_in_mol] != i) {
-              comp_num_in_mol += 1;
-            }
-            double angle = comp_num_in_mol * 2 * MY_PI / molcomp_array[parent_mol_index].num_peers;
-            molcomp_array[i].x = molcomp_array[parent_mol_index].x + (scale * clipped_cos(angle));
-            molcomp_array[i].y = molcomp_array[parent_mol_index].y + (scale * clipped_sin(angle));
-            molcomp_array[i].z = molcomp_array[parent_mol_index].z;
-            molcomp_array[i].has_coords = 1;
-            //#### fprintf ( stdout, "        Index %d comp named %s is now at coordinates (%g,%g,%g)\n", i, molcomp_array[i].name, molcomp_array[i].x, molcomp_array[i].y, molcomp_array[i].z );
-          } else if (molcomp_array[i].num_peers > 1) {
-            // This component is bound to another, so check if those coordinates are defined
-            //#### fprintf ( stdout, "      Index %d named %s is bound to a peer.\n", i, molcomp_array[i].name );
-            if (molcomp_array[molcomp_array[i].peers[1]].has_coords != 0) {
-              //#### fprintf ( stdout, "        Index %d named %s is bound to a peer with coordinates (%g,%g,%g).\n", i, molcomp_array[i].name, molcomp_array[molcomp_array[i].peers[1]].x, molcomp_array[molcomp_array[i].peers[1]].y, molcomp_array[molcomp_array[i].peers[1]].z );
-              // The bound component has coordinates, so use those same coords for this component
-              molcomp_array[i].x = molcomp_array[molcomp_array[i].peers[1]].x;
-              molcomp_array[i].y = molcomp_array[molcomp_array[i].peers[1]].y;
-              molcomp_array[i].z = molcomp_array[molcomp_array[i].peers[1]].z;
-              molcomp_array[i].has_coords = 1;
-            }
-          }
-        } else {
-          // This is a molecule. Molecules can have any number of peer entries which are all components
-          //#### fprintf ( stdout, "    Index %d named %s is a molecule with %d components.\n", i, molcomp_array[i].name, molcomp_array[i].num_peers );
-          for (j=0; j<molcomp_array[i].num_peers; j++) {
-            if (molcomp_array[molcomp_array[i].peers[j]].has_coords != 0) {
-              // The jth component of this molecule has coordinates so use them
-              int child_comp_index = molcomp_array[i].peers[j];
-              //#### fprintf ( stdout, "      Index %d named %s has a %dth component with coordinates (%g,%g,%g).\n", i, molcomp_array[i].name, j, molcomp_array[child_comp_index].x, molcomp_array[child_comp_index].y, molcomp_array[child_comp_index].z );
-              double angle = j * 2 * MY_PI / molcomp_array[i].num_peers;
-              // Use the negative of the offset to locate this molecule relative to its component
-              molcomp_array[i].x = molcomp_array[child_comp_index].x - (scale * clipped_cos(angle));
-              molcomp_array[i].y = molcomp_array[child_comp_index].y - (scale * clipped_sin(angle));
-              molcomp_array[i].z = molcomp_array[child_comp_index].z;
-              molcomp_array[i].has_coords = 1;
-              //#### fprintf ( stdout, "      Index %d mol named %s is now at coordinates (%g,%g,%g).\n", i, molcomp_array[i].name, molcomp_array[i].x, molcomp_array[i].y, molcomp_array[i].z );
-              break;
-            }
-          }
-        }
-        all_done = false;
-
-        //double scale = 0.048;
-        // Temporarily assign random values
-        //molcomp_array[i].x = scale * (drand48()-0.5) * .70710678118654752440;
-        //molcomp_array[i].y = scale * (drand48()-0.5) * .70710678118654752440;
-        //molcomp_array[i].z = scale * (drand48()-0.5) * .70710678118654752440;
-        //molcomp_array[i].has_coords = 1;
-      }
-    }
-  }
-
-  //#### fprintf ( stdout, "Done Building molcomp_positions for:\n" );
-  //#### dump_molcomp_array ( molcomp_array, num_parts );
-}
-*/
 
 static external_molcomp_loc *build_molcomp_array ( struct volume *world, char **graph_strings ) {
   int part_num;
@@ -1532,12 +1368,6 @@ static int output_cellblender_molecules(struct volume *world,
   file_prefix_no_Scene = my_strcat ( vizblk->file_prefix_name, NULL );
   // Restore the vizblk->file_prefix_name
   *last_sep = '/';
-
-  /*
-  vizblk->file_prefix_name = "./viz_data/seed_00001/Scene"
-  file_prefix_no_Scene = ./viz_data/seed_00001
-  file_prefix_usually_Scene = Scene
-  */
 
   //fprintf ( stdout, "path without file = %s\n", file_prefix_no_Scene );
   //fprintf ( stdout, "file without path = %s\n", file_prefix_usually_Scene );
