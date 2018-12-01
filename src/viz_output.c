@@ -60,6 +60,7 @@
 #define VIZ_COMP_ALL_SAME    0x01L /* Name all component "molecules" with the same name */
 #define VIZ_COMP_NAME_GLOBAL 0x02L /* Name all component "molecules" by their global component name */
 #define VIZ_COMP_MOL_LOCAL   0x03L /* Name all component "molecules" by their molecule and component name */
+#define VIZ_PROXY_OUTPUT     0x08L /* Force output of proxy molecules */
 
 #define VIZ_ALT_FILES_MASK   0xF0L /* Second lowest hex digit */
 #define VIZ_ALT_DUMP_FMT     0x10L /* Text format for human reading */
@@ -1342,8 +1343,9 @@ static int output_cellblender_molecules(struct volume *world,
   if ( (world->dump_level >= 20) && (world->viz_options != VIZ_OPTS_NONE) ) {
     fprintf ( stdout, "vizblk->file_prefix_name = \"%s\"\n", vizblk->file_prefix_name );
   }
-  if ( (world->dump_level >= 50) && (world->viz_options != VIZ_OPTS_NONE) ) {
+  if ( (world->dump_level >= 5) && (world->viz_options != VIZ_OPTS_NONE) ) {
     fprintf ( stdout, "Visualization Options = 0x%lx\n", world->viz_options );
+    fprintf ( stdout, "Proxy = 0x%lx\n", world->viz_options & VIZ_PROXY_OUTPUT );
   }
   if (world->dump_level >= 50) {
     fprintf ( stdout, ">>>>>>>>>>>>>>>>>>>>>>> Top of MolViz Output <<<<<<<<<<<<<<<<<<<\n" );
@@ -1488,81 +1490,87 @@ static int output_cellblender_molecules(struct volume *world,
       float pos_z = 0.0;
       for (unsigned int n_mol = 0; n_mol < this_mol_count; ++n_mol) {
         amp = mols[n_mol];
-        if ((amp->properties->flags & NOT_FREE) == 0) {
-          struct volume_molecule *mp = (struct volume_molecule *)amp;
-          struct vector3 pos_output = {0.0, 0.0, 0.0};
-          if (!convert_relative_to_abs_PBC_coords(
-              world->periodic_box_obj,
-              mp->periodic_box,
-              world->periodic_traditional,
-              &mp->pos,
-              &pos_output)) {
-            pos_x = pos_output.x;   
-            pos_y = pos_output.y;   
-            pos_z = pos_output.z;   
-          }
-          else {
-            pos_x = mp->pos.x; 
-            pos_y = mp->pos.y; 
-            pos_z = mp->pos.z; 
+        if ( (world->viz_options & VIZ_PROXY_OUTPUT) || ((amp->properties->flags & EXTERNAL_SPECIES) == 0) ) {
+          /* This is a normal molecule so write it out. EXTERNAL_SPECIES will be written later */
+          if ((amp->properties->flags & NOT_FREE) == 0) {
+            struct volume_molecule *mp = (struct volume_molecule *)amp;
+            struct vector3 pos_output = {0.0, 0.0, 0.0};
+            if (!convert_relative_to_abs_PBC_coords(
+                world->periodic_box_obj,
+                mp->periodic_box,
+                world->periodic_traditional,
+                &mp->pos,
+                &pos_output)) {
+              pos_x = pos_output.x;
+              pos_y = pos_output.y;
+              pos_z = pos_output.z;
+            }
+            else {
+              pos_x = mp->pos.x;
+              pos_y = mp->pos.y;
+              pos_z = mp->pos.z;
+            }
+
+          } else if ((amp->properties->flags & ON_GRID) != 0) {
+            struct surface_molecule *gmp = (struct surface_molecule *)amp;
+            struct vector3 where;
+            uv2xyz(&(gmp->s_pos), gmp->grid->surface, &where);
+            struct vector3 pos_output = {0.0, 0.0, 0.0};
+            if (!convert_relative_to_abs_PBC_coords(
+                world->periodic_box_obj,
+                gmp->periodic_box,
+                world->periodic_traditional,
+                &where,
+                &pos_output)) {
+              pos_x = pos_output.x;
+              pos_y = pos_output.y;
+              pos_z = pos_output.z;
+            }
+            else {
+              pos_x = where.x;
+              pos_y = where.y;
+              pos_z = where.z;
+            }
           }
 
-        } else if ((amp->properties->flags & ON_GRID) != 0) {
-          struct surface_molecule *gmp = (struct surface_molecule *)amp;
-          struct vector3 where;
-          uv2xyz(&(gmp->s_pos), gmp->grid->surface, &where);
-          struct vector3 pos_output = {0.0, 0.0, 0.0};
-          if (!convert_relative_to_abs_PBC_coords(
-              world->periodic_box_obj,
-              gmp->periodic_box,
-              world->periodic_traditional,
-              &where,
-              &pos_output)) {
-            pos_x = pos_output.x;   
-            pos_y = pos_output.y;   
-            pos_z = pos_output.z;   
-          }
-          else {
-            pos_x = where.x; 
-            pos_y = where.y; 
-            pos_z = where.z; 
-          }
+          pos_x *= world->length_unit;
+          pos_y *= world->length_unit;
+          pos_z *= world->length_unit;
+
+          fwrite(&pos_x, sizeof(pos_x), 1, custom_file);
+          fwrite(&pos_y, sizeof(pos_y), 1, custom_file);
+          fwrite(&pos_z, sizeof(pos_z), 1, custom_file);
         }
-
-        pos_x *= world->length_unit;
-        pos_y *= world->length_unit;
-        pos_z *= world->length_unit;
-
-        fwrite(&pos_x, sizeof(pos_x), 1, custom_file);
-        fwrite(&pos_y, sizeof(pos_y), 1, custom_file);
-        fwrite(&pos_z, sizeof(pos_z), 1, custom_file);
       }
 
       /* Write orientations of surface surface molecules: */
       amp = mols[0];
-      if ((amp->properties->flags & ON_GRID) != 0) {
-        for (unsigned int n_mol = 0; n_mol < this_mol_count; ++n_mol) {
-          struct surface_molecule *gmp = (struct surface_molecule *)mols[n_mol];
-          short orient = gmp->orient;
-          float norm_x = orient * gmp->grid->surface->normal.x;
-          float norm_y = orient * gmp->grid->surface->normal.y;
-          float norm_z = orient * gmp->grid->surface->normal.z;
+      if ( (world->viz_options & VIZ_PROXY_OUTPUT) || ((amp->properties->flags & EXTERNAL_SPECIES) == 0) ) {
+        /* This is a normal molecule so write as needed. EXTERNAL_SPECIES will be written later */
+        if ((amp->properties->flags & ON_GRID) != 0) {
+          for (unsigned int n_mol = 0; n_mol < this_mol_count; ++n_mol) {
+            struct surface_molecule *gmp = (struct surface_molecule *)mols[n_mol];
+            short orient = gmp->orient;
+            float norm_x = orient * gmp->grid->surface->normal.x;
+            float norm_y = orient * gmp->grid->surface->normal.y;
+            float norm_z = orient * gmp->grid->surface->normal.z;
 
-          if (world->periodic_box_obj && !(world->periodic_traditional)) {
-            if (gmp->periodic_box->x % 2 != 0) {
-              norm_x *= -1;
+            if (world->periodic_box_obj && !(world->periodic_traditional)) {
+              if (gmp->periodic_box->x % 2 != 0) {
+                norm_x *= -1;
+              }
+              if (gmp->periodic_box->y % 2 != 0) {
+                norm_y *= -1;
+              }
+              if (gmp->periodic_box->z % 2 != 0) {
+                norm_z *= -1;
+              }
             }
-            if (gmp->periodic_box->y % 2 != 0) {
-              norm_y *= -1;
-            }
-            if (gmp->periodic_box->z % 2 != 0) {
-              norm_z *= -1;
-            }
+
+            fwrite(&norm_x, sizeof(norm_x), 1, custom_file);
+            fwrite(&norm_y, sizeof(norm_y), 1, custom_file);
+            fwrite(&norm_z, sizeof(norm_z), 1, custom_file);
           }
-
-          fwrite(&norm_x, sizeof(norm_x), 1, custom_file);
-          fwrite(&norm_y, sizeof(norm_y), 1, custom_file);
-          fwrite(&norm_z, sizeof(norm_z), 1, custom_file);
         }
       }
     }
