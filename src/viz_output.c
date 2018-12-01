@@ -1375,6 +1375,7 @@ static int output_cellblender_molecules(struct volume *world,
   //fprintf ( stdout, "file without path = %s\n", file_prefix_usually_Scene );
 
   if ((fdlp->type == ALL_MOL_DATA) || (fdlp->type == MOL_POS)) {
+
     long long lli = 10;
     int ndigits = 1;
     for (; lli <= world->iterations && ndigits < 20;
@@ -1459,38 +1460,39 @@ static int output_cellblender_molecules(struct volume *world,
       if (mols == NULL)
         continue;
 
-      /* Write species name: */
-      struct abstract_molecule *amp = mols[0];
-      char mol_name[33];
-      if (id == INCLUDE_OBJ) {
-        /* encode name of species as ASCII string, 32 chars max */
-        snprintf(mol_name, 33, "%s", amp->properties->sym->name);
-      } else {
-        /* encode state value of species as ASCII string, 32 chars max */
-        snprintf(mol_name, 33, "%d", id);
-      }
-      byte name_len = strlen(mol_name);
-      fwrite(&name_len, sizeof(name_len), 1, custom_file);
-      fwrite(mol_name, sizeof(char), name_len, custom_file);
+      struct abstract_molecule *amp = mols[0]; // Need to use one of the mols to get the flags
+      if ( (world->viz_options & VIZ_PROXY_OUTPUT) || ((amp->properties->flags & EXTERNAL_SPECIES) == 0) ) {
 
-      /* Write species type: */
-      byte species_type = 0;
-      if ((amp->properties->flags & ON_GRID) != 0) {
-        species_type = 1;
-      }
-      fwrite(&species_type, sizeof(species_type), 1, custom_file);
+        /* Write species name: */
+        char mol_name[33];
+        if (id == INCLUDE_OBJ) {
+          /* encode name of species as ASCII string, 32 chars max */
+          snprintf(mol_name, 33, "%s", amp->properties->sym->name);
+        } else {
+          /* encode state value of species as ASCII string, 32 chars max */
+          snprintf(mol_name, 33, "%d", id);
+        }
+        byte name_len = strlen(mol_name);
+        fwrite(&name_len, sizeof(name_len), 1, custom_file);
+        fwrite(mol_name, sizeof(char), name_len, custom_file);
 
-      /* write number of x,y,z floats for mol positions to follow: */
-      u_int n_floats = 3 * this_mol_count;
-      fwrite(&n_floats, sizeof(n_floats), 1, custom_file);
+        /* Write species type: */
+        byte species_type = 0;
+        if ((amp->properties->flags & ON_GRID) != 0) {
+          species_type = 1;
+        }
+        fwrite(&species_type, sizeof(species_type), 1, custom_file);
 
-      /* Write positions of volume and surface molecules: */
-      float pos_x = 0.0;
-      float pos_y = 0.0;
-      float pos_z = 0.0;
-      for (unsigned int n_mol = 0; n_mol < this_mol_count; ++n_mol) {
-        amp = mols[n_mol];
-        if ( (world->viz_options & VIZ_PROXY_OUTPUT) || ((amp->properties->flags & EXTERNAL_SPECIES) == 0) ) {
+        /* write number of x,y,z floats for mol positions to follow: */
+        u_int n_floats = 3 * this_mol_count;
+        fwrite(&n_floats, sizeof(n_floats), 1, custom_file);
+
+        /* Write positions of volume and surface molecules: */
+        float pos_x = 0.0;
+        float pos_y = 0.0;
+        float pos_z = 0.0;
+        for (unsigned int n_mol = 0; n_mol < this_mol_count; ++n_mol) {
+          amp = mols[n_mol];
           /* This is a normal molecule so write it out. EXTERNAL_SPECIES will be written later */
           if ((amp->properties->flags & NOT_FREE) == 0) {
             struct volume_molecule *mp = (struct volume_molecule *)amp;
@@ -1541,11 +1543,9 @@ static int output_cellblender_molecules(struct volume *world,
           fwrite(&pos_y, sizeof(pos_y), 1, custom_file);
           fwrite(&pos_z, sizeof(pos_z), 1, custom_file);
         }
-      }
 
-      /* Write orientations of surface surface molecules: */
-      amp = mols[0];
-      if ( (world->viz_options & VIZ_PROXY_OUTPUT) || ((amp->properties->flags & EXTERNAL_SPECIES) == 0) ) {
+        /* Write orientations of surface surface molecules: */
+        amp = mols[0];
         /* This is a normal molecule so write as needed. EXTERNAL_SPECIES will be written later */
         if ((amp->properties->flags & ON_GRID) != 0) {
           for (unsigned int n_mol = 0; n_mol < this_mol_count; ++n_mol) {
@@ -1573,7 +1573,8 @@ static int output_cellblender_molecules(struct volume *world,
           }
         }
       }
-    }
+
+    } // for (int species_idx = 0; species_idx < world->n_species; species_idx++) {
 
     /* Add additional Viz blocks for all EXTERNAL_SPECIES molecules */
     /* Note that this could be done while processing normal molecules, but separating makes code clearer. */
@@ -1933,54 +1934,59 @@ static int output_cellblender_molecules(struct volume *world,
 
     while (nl != NULL) {
 
-      /* Write the name length and name */
-      byte name_len = strlen(nl->mol_name);
-      fwrite(&name_len, sizeof(name_len), 1, custom_file);
-      fwrite(nl->mol_name, sizeof(char), name_len, custom_file);
+      if ( (world->viz_options & VIZ_PROXY_OUTPUT) || (strcmp(nl->mol_name,"volume_proxy")!=0) && (strcmp(nl->mol_name,"volume_proxy")!=0) ) {
 
-      /* Write species type: */
-      byte species_type = 0;
-      if (nl->mol_list != NULL) {
-        if (nl->mol_list->mol_type == 's') {
-          species_type = 1;
+        /* Write the name length and name */
+        byte name_len = strlen(nl->mol_name);
+        fwrite(&name_len, sizeof(name_len), 1, custom_file);
+        fwrite(nl->mol_name, sizeof(char), name_len, custom_file);
+
+        /* Write species type: */
+        byte species_type = 0;
+        if (nl->mol_list != NULL) {
+          if (nl->mol_list->mol_type == 's') {
+            species_type = 1;
+          }
         }
-      }
-      fwrite(&species_type, sizeof(species_type), 1, custom_file);
+        fwrite(&species_type, sizeof(species_type), 1, custom_file);
 
-      /* write number of x,y,z floats for mol positions to follow: */
-      u_int n_floats = 0;
-      mv = nl->mol_list;
-      while (mv != NULL) {
-        n_floats += 3;
-        mv = mv->next_mol;
-      }
-      fwrite(&n_floats, sizeof(n_floats), 1, custom_file);
-
-      /* Write positions of volume and surface molecules: */
-      mv = nl->mol_list;
-      while (mv != NULL) {
-        float pos_x = mv->pos_x;
-        float pos_y = mv->pos_y;
-        float pos_z = mv->pos_z;
-        fwrite(&pos_x, sizeof(pos_x), 1, custom_file);
-        fwrite(&pos_y, sizeof(pos_y), 1, custom_file);
-        fwrite(&pos_z, sizeof(pos_z), 1, custom_file);
-        mv = mv->next_mol;
-      }
-      /* Write orientations of surface surface molecules: */
-      mv = nl->mol_list;
-      if (mv->mol_type == 's') {
+        /* write number of x,y,z floats for mol positions to follow: */
+        u_int n_floats = 0;
+        mv = nl->mol_list;
         while (mv != NULL) {
-          float norm_x = mv->norm_x;
-          float norm_y = mv->norm_y;
-          float norm_z = mv->norm_z;
-          fwrite(&norm_x, sizeof(norm_x), 1, custom_file);
-          fwrite(&norm_y, sizeof(norm_y), 1, custom_file);
-          fwrite(&norm_z, sizeof(norm_z), 1, custom_file);
+          n_floats += 3;
           mv = mv->next_mol;
         }
+        fwrite(&n_floats, sizeof(n_floats), 1, custom_file);
+
+        /* Write positions of volume and surface molecules: */
+        mv = nl->mol_list;
+        while (mv != NULL) {
+          float pos_x = mv->pos_x;
+          float pos_y = mv->pos_y;
+          float pos_z = mv->pos_z;
+          fwrite(&pos_x, sizeof(pos_x), 1, custom_file);
+          fwrite(&pos_y, sizeof(pos_y), 1, custom_file);
+          fwrite(&pos_z, sizeof(pos_z), 1, custom_file);
+          mv = mv->next_mol;
+        }
+        /* Write orientations of surface surface molecules: */
+        mv = nl->mol_list;
+        if (mv->mol_type == 's') {
+          while (mv != NULL) {
+            float norm_x = mv->norm_x;
+            float norm_y = mv->norm_y;
+            float norm_z = mv->norm_z;
+            fwrite(&norm_x, sizeof(norm_x), 1, custom_file);
+            fwrite(&norm_y, sizeof(norm_y), 1, custom_file);
+            fwrite(&norm_z, sizeof(norm_z), 1, custom_file);
+            mv = mv->next_mol;
+          }
+        }
+        nl = nl->next_name;
+
       }
-      nl = nl->next_name;
+
     }
 
 
@@ -2309,7 +2315,8 @@ static int output_cellblender_molecules(struct volume *world,
     viz_molp = NULL;
     free(viz_mol_count);
     viz_mol_count = NULL;
-  }
+
+  } // if ((fdlp->type == ALL_MOL_DATA) || (fdlp->type == MOL_POS)) {
 
   free ( file_prefix_no_Scene );
   free ( file_prefix_usually_Scene );
