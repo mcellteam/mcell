@@ -2188,7 +2188,8 @@ static int output_cellblender_molecules(struct volume *world,
 
         /* Write the molecule instances */
 
-        fprintf ( space_struct_file, " [\n" );  // Start of instances
+        fprintf ( space_struct_file, " [" );  // Start of instances - newlines will be added as new elements are added to handle commas
+        int first_pass = 1;
 
         for (int species_idx = 0; species_idx < world->n_species; species_idx++) {
 
@@ -2276,15 +2277,22 @@ static int output_cellblender_molecules(struct volume *world,
                 norm_z = orient * gmp->grid->surface->normal.z;
               }
 
+              if ( first_pass ) {
+                fprintf ( space_struct_file, "\n" );  // End the previous line without a comma
+                first_pass = 0;
+              } else {
+                fprintf ( space_struct_file, ",\n" );  // End the previous line with a comma
+              }
+
               // fprintf ( space_struct_file, "  Mol %d:  Class=%ld  Position=(%g %g %g)  Orientation=(%g %g %g)\n", n_mol, mol_class, pos_x, pos_y, pos_z, norm_x, norm_y, norm_z );
               fprintf ( space_struct_file, "  [%ld,[%g,%g,%g],[%g,%g,%g]]", mol_class-1, pos_x, pos_y, pos_z, norm_x, norm_y, norm_z );
               // It's not clear why this should be (species_idx<(world->n_species-2). Why -2 and not -1? Is there an extra species?
-              end_line_opt_comma ( space_struct_file, (species_idx<(world->n_species-2)) || (n_mol < (this_mol_count-1)) );
+              // end_line_opt_comma ( space_struct_file, (species_idx<(world->n_species-2)) || (n_mol < (this_mol_count-1)) );
             }
           }
         }
 
-        fprintf ( space_struct_file, " ]\n" );  // End of instances
+        fprintf ( space_struct_file, "\n ]\n" );  // End of instances
 
         fprintf ( space_struct_file, "]\n" );  // End of entire file as a single list
 
