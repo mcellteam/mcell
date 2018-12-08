@@ -518,10 +518,11 @@ static void dump_molcomp_array ( external_molcomp_loc *molcomp_array, int num_pa
   dump_molcomp_array_to ( stdout, molcomp_array, num_parts );
 }
 
+/* Currently unused except in commented code
 static void dump_molcomp_list ( molcomp_list *mcl ) {
   dump_molcomp_list_to ( stdout, mcl );
 }
-
+*/
 
 double clipped_cos ( double angle ) {
   double v = cos(angle);
@@ -1697,12 +1698,12 @@ static int output_cellblender_molecules(struct volume *world,
               fprintf ( stdout, "=============================================\n" );
             }
 
-            next_molcomp_id += 1;
 
             molcomp_list *mcl = (molcomp_list *) malloc ( sizeof(molcomp_list) );
             mcl->molcomp_array = molcomp_array;
             mcl->num_molcomp_items = num_parts;
             mcl->molcomp_id = next_molcomp_id;
+            next_molcomp_id += 1;
 
 
             //#### fprintf ( stdout, "=============== molcomp_list ===============\n" );
@@ -1934,7 +1935,7 @@ static int output_cellblender_molecules(struct volume *world,
 
     while (nl != NULL) {
 
-      if ( (world->viz_options & VIZ_PROXY_OUTPUT) || (strcmp(nl->mol_name,"volume_proxy")!=0) && (strcmp(nl->mol_name,"volume_proxy")!=0) ) {
+      if ( (world->viz_options & VIZ_PROXY_OUTPUT) || ( (strcmp(nl->mol_name,"volume_proxy")!=0) && (strcmp(nl->mol_name,"volume_proxy")!=0) ) ) {
 
         /* Write the name length and name */
         byte name_len = strlen(nl->mol_name);
@@ -2072,7 +2073,7 @@ static int output_cellblender_molecules(struct volume *world,
                 if (sp != NULL) {
                   molcomp_list *mcl = NULL;
                   mcl = (molcomp_list *) sp->value;
-                  mol_class = mcl->molcomp_id;
+                  mol_class = -1 * mcl->molcomp_id;  // The code to handle this is only implemented in the JSON branch at this time
                   // fprintf ( stdout, "=============== MOL From graph_pattern_table ===============\n" );
                   // dump_molcomp_list_to ( space_struct_file, mcl );
                 }
@@ -2104,9 +2105,7 @@ static int output_cellblender_molecules(struct volume *world,
               pos_y *= world->length_unit;
               pos_z *= world->length_unit;
 
-              char mol_type = 'v';
               if ((amp->properties->flags & ON_GRID) != 0) {
-                mol_type = 's';
                 struct surface_molecule *gmp = (struct surface_molecule *)mols[n_mol];
                 short orient = gmp->orient;
                 norm_x = orient * gmp->grid->surface->normal.x;
@@ -2125,6 +2124,8 @@ static int output_cellblender_molecules(struct volume *world,
 
         // Write the data as a JSON MOLCOMP format (list of lists)
 
+        int *gp_entry_for_id = NULL;
+
         fprintf ( space_struct_file, "[\n" );    // Start of entire file as a single list
         fprintf ( space_struct_file, " 2,\n" );  // File format number
         fprintf ( space_struct_file, " [\n" );   // Start of molecule definitions
@@ -2139,6 +2140,8 @@ static int output_cellblender_molecules(struct volume *world,
           int n_gp_entries = graph_pattern_table->n_entries;
           int gp_entry_num = 0;
 
+          gp_entry_for_id = (int *) malloc ( n_gp_entries * sizeof(int) ); // This is the mapping from ids to index in the table
+
           for (int bin=0; bin<graph_pattern_table->n_bins; bin++) {
             if (graph_pattern_table->entries[bin] != NULL) {
               // fprintf ( stdout, "  bin %d is non-empty\n", bin );
@@ -2147,6 +2150,7 @@ static int output_cellblender_molecules(struct volume *world,
                 // fprintf ( stdout, "   entry: %.200s\n", se->name );
                 // fprintf ( space_struct_file, "Entry: %s\n", se->name );
                 molcomp_list *mcl = (molcomp_list *) se->value;
+                gp_entry_for_id[mcl->molcomp_id] = gp_entry_num;  // Set the table entry for this id
                 external_molcomp_loc *mca = mcl->molcomp_array;
                 int num_parts = mcl->num_molcomp_items;
                 // fprintf ( stdout, "=============== MOL From graph_pattern_table ===============\n" );
@@ -2182,6 +2186,7 @@ static int output_cellblender_molecules(struct volume *world,
               }
             }
           }
+
         }
 
         fprintf ( space_struct_file, " ],\n" );  // End of molecule definitions
@@ -2235,7 +2240,7 @@ static int output_cellblender_molecules(struct volume *world,
                 if (sp != NULL) {
                   molcomp_list *mcl = NULL;
                   mcl = (molcomp_list *) sp->value;
-                  mol_class = mcl->molcomp_id;
+                  mol_class = gp_entry_for_id[mcl->molcomp_id];
                   // fprintf ( stdout, "=============== MOL From graph_pattern_table ===============\n" );
                   // dump_molcomp_list_to ( space_struct_file, mcl );
                 }
@@ -2267,9 +2272,7 @@ static int output_cellblender_molecules(struct volume *world,
               pos_y *= world->length_unit;
               pos_z *= world->length_unit;
 
-              char mol_type = 'v';
               if ((amp->properties->flags & ON_GRID) != 0) {
-                mol_type = 's';
                 struct surface_molecule *gmp = (struct surface_molecule *)mols[n_mol];
                 short orient = gmp->orient;
                 norm_x = orient * gmp->grid->surface->normal.x;
@@ -2285,7 +2288,7 @@ static int output_cellblender_molecules(struct volume *world,
               }
 
               // fprintf ( space_struct_file, "  Mol %d:  Class=%ld  Position=(%g %g %g)  Orientation=(%g %g %g)\n", n_mol, mol_class, pos_x, pos_y, pos_z, norm_x, norm_y, norm_z );
-              fprintf ( space_struct_file, "  [%ld,[%g,%g,%g],[%g,%g,%g]]", mol_class-1, pos_x, pos_y, pos_z, norm_x, norm_y, norm_z );
+              fprintf ( space_struct_file, "  [%ld,[%g,%g,%g],[%g,%g,%g]]", mol_class, pos_x, pos_y, pos_z, norm_x, norm_y, norm_z );
               // It's not clear why this should be (species_idx<(world->n_species-2). Why -2 and not -1? Is there an extra species?
               // end_line_opt_comma ( space_struct_file, (species_idx<(world->n_species-2)) || (n_mol < (this_mol_count-1)) );
             }
@@ -2298,6 +2301,11 @@ static int output_cellblender_molecules(struct volume *world,
 
         fflush ( space_struct_file );
         fclose ( space_struct_file );
+
+        if ( gp_entry_for_id != NULL ) {
+          free ( gp_entry_for_id );
+        }
+
       }
     }
 
