@@ -85,7 +85,13 @@ class MDLR2MDL(object):
         seedList = seed.split('</Species>')
         seedList = [x.strip() for x in seedList if x != '']
         seedList = [x + '</Species>' for x in seedList]
-        seedList = [re.sub('"S[0-9]+"', "S1", x) for x in seedList]
+#       Jose's code here seems to go overboard and also rename components named S[0-9]+
+#       The intent seems to be to rename Species id's from "S[0-9]+" to S1, with double quotes dropped
+#
+#        seedList = [re.sub('"S[0-9]+"', "S1", x) for x in seedList]
+#
+#       Attempt to fix this by parsing the full context of 'Species id=...'
+        seedList = [re.sub('Species id="S[0-9]+"', 'Species id=S1', x) for x in seedList]
         seedList = [re.sub('concentration="[0-9a-zA-Z_]+"', 'concentration="1"', x) for x in seedList]
 
         seedList = ['<Model><ListOfSpecies>{0}</ListOfSpecies></Model>'.format(x) for x in seedList]
@@ -136,15 +142,19 @@ class MDLR2MDL(object):
         # remove encapsulating tags
         seed = seed[30:-30]
         # get the seed species definitions as a list
+#        print(">>>>>>>>>> THE SEED LIST: \n", str(seed))
         seed_dict = self.tokenize_seed_elements(seed)
 
         nauty_dict = {}
+#        print(">>>>>>>>>> SEED DICT: \n", seed_dict)
         for seed in seed_dict:
             # initialize nfsim with each species definition and get back a
             # dirty list where one of the entries is the one we want
             #
             # XXX: i think i've solved it on the nfsim side, double check
             tmpList = self.get_nauty_string(seed_dict[seed])
+#            print('>>>>>>>> SEED_DICT[SEED]: ' + str(seed_dict[seed]))
+#            print('>>>>>>>> tmpList: ' + str(tmpList))
             # and now filter it out...
             # get species names from species definition string
             species_names = self.get_names_from_definition_string(seed)
