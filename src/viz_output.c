@@ -479,6 +479,7 @@ typedef struct external_molcomp_loc_struct {
   char *graph_string;
   int num_peers;
   int *peers;
+  char *states;
 } external_molcomp_loc;
 
 typedef struct molcomp_list_struct {
@@ -1108,6 +1109,7 @@ static external_molcomp_loc *build_molcomp_array ( struct volume *world, char **
     molcomp_loc_array[part_num].x = 0;
     molcomp_loc_array[part_num].y = 0;
     molcomp_loc_array[part_num].z = 0;
+    molcomp_loc_array[part_num].states = NULL;
     if (strstr(next_part,"m:") == next_part) {
       // This is a molecule
       molcomp_loc_array[part_num].is_mol = 1;
@@ -1158,10 +1160,12 @@ static external_molcomp_loc *build_molcomp_array ( struct volume *world, char **
     } else {
       // This is a component
       molcomp_loc_array[part_num].is_mol = 0;
-      // For components, the name ends with ~ or ! or possibly the end of the string
       char *first_exc = index(next_part,'!');
       char *first_til = index(next_part,'~');
       char *end_point;
+      char previous_end;
+
+      // For components, the name ends with ~ or ! or possibly the end of the string
       if ( (first_exc != NULL) && (first_til != NULL) ) {
         // Use whichever comes first
         if (first_exc < first_til) {
@@ -1179,11 +1183,28 @@ static external_molcomp_loc *build_molcomp_array ( struct volume *world, char **
         // Name ends at end of string
         end_point = index(next_part,'\0');
       }
-      char previous_end = *end_point;
+      previous_end = *end_point;
       *end_point = '\0';
       molcomp_loc_array[part_num].name = (char *) malloc ( 1 + strlen(next_part) - 2 );
       strcpy ( molcomp_loc_array[part_num].name, &next_part[2] );
       *end_point = previous_end;
+
+      // For components, the state starts with ~ and ends with ! or possibly the end of the string
+      if (first_til != NULL) {
+        // There are states on this component
+        if (first_exc != NULL) {
+          // The states are bounded between first_til and first_exc
+          end_point = first_exc;
+        } else {
+          // The states are bounded between first_til and the end of the string
+          end_point = index(next_part,'\0');
+        }
+        previous_end = *end_point;
+        *end_point = '\0';
+        molcomp_loc_array[part_num].states = (char *) malloc ( 1 + strlen(first_til) );
+        strcpy ( molcomp_loc_array[part_num].states, first_til );
+        *end_point = previous_end;
+      }
 
       // Get the component's neighbors (the first will be the molecule)
       molcomp_loc_array[part_num].num_peers = 0;
@@ -1685,7 +1706,9 @@ static int output_cellblender_molecules(struct volume *world,
             int num_parts = 0;
             char *next_part = graph_parts[num_parts];
             while (next_part != NULL) {
-              //#### fprintf ( stdout, "  Graph Part %d: %s\n", num_parts, next_part );
+              if (world->dump_level >= 20) {
+                fprintf ( stdout, "  Graph Part %d: %s\n", num_parts, next_part );
+              }
               num_parts++;
               next_part = graph_parts[num_parts];
             }
@@ -2172,7 +2195,13 @@ static int output_cellblender_molecules(struct volume *world,
                         fprintf ( space_struct_file, "," );
                       }
                     }
-                    fprintf ( space_struct_file, "], [] ]" );  // End of a molecule or component
+                    if (mca[i].states == NULL) {
+                      fprintf ( space_struct_file, "], \"\" ]" );  // End of a molecule or component with no states
+                    } else if (strcmp(mca[i].states,"~NO_STATE")==0) {
+                      fprintf ( space_struct_file, "], \"\" ]" );  // End of a molecule or component with no states
+                    } else {
+                      fprintf ( space_struct_file, "], \"%s\" ]", mca[i].states );  // End of a molecule or component with states
+                    }
                     end_line_opt_comma ( space_struct_file, i < (num_parts-1) );
                   }
                   fprintf ( space_struct_file, "  ]" );  // End of a complex
