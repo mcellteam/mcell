@@ -1694,6 +1694,8 @@ static int output_cellblender_molecules(struct volume *world,
           if (sp == NULL) {
 
             // This pattern has not been saved yet, so parse it, save it, and possibly print it.
+            // Note that patterns stored in the graph_pattern_table are never purged.
+            // These patterns remain throughout the life of the simulation.
 
             char **graph_parts = get_graph_strings ( next_mol );
 
@@ -1849,6 +1851,12 @@ static int output_cellblender_molecules(struct volume *world,
                   next_mol_name->mol_list = NULL;
                   next_mol_name->next_name = mol_name_list;
                   mol_name_list = next_mol_name;
+                } else {
+                  /* The name was already in the list so free the memory */
+                  if (name_to_find_or_add != NULL) {
+                    free ( name_to_find_or_add );
+                    name_to_find_or_add = NULL;
+                  }
                 }
 
                 /* next_mol_name now points to the list of molecules by this name */
@@ -1869,7 +1877,7 @@ static int output_cellblender_molecules(struct volume *world,
                 new_mol_viz_item->norm_y = norm_y;
                 new_mol_viz_item->norm_z = norm_z;
 
-                /* Add it to the top of the molecule list */
+                /* Add it to the top of the molecule list. This takes ownership of the allocated memory. */
                 new_mol_viz_item->next_mol = next_mol_name->mol_list;
                 next_mol_name->mol_list = new_mol_viz_item;
 
@@ -2147,7 +2155,7 @@ static int output_cellblender_molecules(struct volume *world,
 
         // Write the data as a JSON MOLCOMP format (list of lists)
 
-        int *gp_entry_for_id = NULL;
+        int *gp_entry_for_id = NULL;  // Graph Pattern Entry: Mapping from IDs to the index in the table
 
         fprintf ( space_struct_file, "[\n" );    // Start of entire file as a single list
         fprintf ( space_struct_file, " 2,\n" );  // File format number
