@@ -112,6 +112,7 @@ set(SOURCE_FILES
     src/mcell_viz.c
     src/mcell_viz.h
     src/mdlparse.y
+    src/dump_state.cpp
     src/mdlparse_aux.h
     src/mdlparse_util.c
     src/mdlparse_util.h

@@ -30,6 +30,8 @@
 #include "mcell_run.h"
 #include "init.h"
 
+#include "dump_state.h"
+
 #define CHECKED_CALL_EXIT(function, error_message)                             \
   {                                                                            \
     if (function) {                                                            \
@@ -81,6 +83,8 @@ int main(int argc, char **argv) {
 
   CHECKED_CALL_EXIT(mcell_init_output(state),
                     "An error occured during setting up of output.");
+
+  dump_volume(state);
 
   CHECKED_CALL_EXIT(mcell_run_simulation(state),
                     "Error running mcell simulation.");

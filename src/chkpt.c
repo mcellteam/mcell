@@ -1121,7 +1121,7 @@ count_items_in_scheduler(struct storage_list *storage_head) {
             continue;
 
           /* There should never be a surface class in the scheduler... */
-          assert(!(amp->properties->flags & IS_SURFACE));
+          assert(!(amp->properties->flags & IS_SURFACE)); // CHECK: IS_SURFACE is species flags
           ++total_items;
         }
       }
