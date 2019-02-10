@@ -10,11 +10,17 @@
 #define DUMP_ARRAY_NEWLINE_COUNT 8
 
 #define IND_ADD2(ind) (std::string(ind) + "  ").c_str()
+#define DECL_IND2(ind) std::string inds = ind; inds += "  ";	const char* ind2 = inds.c_str();
 
 using namespace std;
 
 std::ostream & operator<<(std::ostream &out, const timeval &a) {
     out << a.tv_sec << "s, " << a.tv_usec << "us";
+    return out;
+}
+
+std::ostream & operator<<(std::ostream &out, const vector2 &a) {
+    out << "(" << a.u << ", " << a.v << ")";
     return out;
 }
 
@@ -35,6 +41,16 @@ std::ostream & operator<<(std::ostream &out, const pointer_hash &a) {
   return out;
 }
 
+std::ostream & operator<<(std::ostream &out, const sym_entry *s) {
+	if (s != NULL) {
+		// TODO: sym_type - see store_sym
+		out << "sym_entry(next:" << (void*)s->next << ", sym_type:" << s->sym_type << ", name:" << s->name << ", value:" << (void*)s->value << ", count:" << s->count << ")";
+	}
+	else {
+		out << "sym_entry(NULL)";
+	}
+  return out;
+}
 
 std::ostream & operator<<(std::ostream &out, const reaction_flags &a) {
 
@@ -67,6 +83,22 @@ void dump_double_array(int num, const char* num_name, double* values, const char
 	cout << "\n";
 }
 
+
+void dump_int_array(int num, const char* num_name, int* values, const char* values_name, const char* comment, const char* ind) {
+  cout << ind << values_name << "[" << num_name << "]: \t\t" << values << "[" << num << "]" << " [int[]] \t\t" << comment;
+  for (int i = 0; i < num && i < MAX_ARRAY_ITEMS; i++) {
+  	if (i % DUMP_ARRAY_NEWLINE_COUNT == 0) {
+  		cout << "\n" << ind << "  ";
+  	}
+  	cout << i << ":" << values[i] << ", ";
+  }
+  if (num >= MAX_ARRAY_ITEMS) {
+  	cout << "...";
+  }
+	cout << "\n";
+}
+
+
 void dump_vector3_array(int num, const char* num_name, vector3* values, const char* values_name, const char* comment, const char* ind) {
   cout << ind << values_name << "[" << num_name << "]: \t\t" << values << "[" << num << "]" << " [vector3[]] \t\t" << comment;
   for (int i = 0; i < num && i < MAX_ARRAY_ITEMS; i++) {
@@ -80,6 +112,83 @@ void dump_vector3_array(int num, const char* num_name, vector3* values, const ch
   }
   cout << "\n";
 }
+
+
+void dump_wall(wall* w, const char* ind) {
+
+		cout << "this wall: " << (void*)w << "\n";
+	  cout << "next: *\t\t" << (void*)w->next << " [wall] \t\t/* Next wall in the universe */\n";
+
+	  cout << "surf_class_head: *\t\t" << (void*)w->surf_class_head << " [surf_class_list] \t\t/* linked list of surface classes for this wall (multiple surface classes may come from the overlapping regions */\n";
+	  cout << "num_surf_classes: \t\t" << w->num_surf_classes << " [int] \t\t/* number of attached surface classes */\n";
+
+	  cout << "side: \t\t" << w->side << " [int] \t\t/* index of this wall in its parent object */\n";
+
+	  if (w->vert != NULL)
+	  	dump_vector3_array(3, "always 3", *w->vert, "vector[3]", "/* Array of pointers to vertices TODO: can there be more of them?*/", ind);
+	  else
+		  cout << "vert: \t\t" << (void*)w->vert << " [vector[3]] \t\t/* Array of pointers to vertices */\n";
+
+
+	  cout << "uv_vert1_u: \t\t" << w->uv_vert1_u << " [double] \t\t/* Surface u-coord of 2nd corner (v=0) */\n";
+	  cout << "uv_vert2: \t\t" << w->uv_vert2 << " [vector2] \t\t/* Surface coords of third corner */\n";
+
+	  cout << "edges[3]: *\t\t" << (void*)w->edges[3] << " [*edges[3]] \t\t/*  /* Array of pointers to each edge. */ // TODO */\n";
+
+	  cout << "nb_walls[0]: *\t\t" << (void*)w->nb_walls[0] << " [wall] \t\t/* Array of pointers to walls that share an edge*/ // TODO\n";
+	  cout << "nb_walls[1]: *\t\t" << (void*)w->nb_walls[1] << " [wall] \t\t/* Array of pointers to walls that share an edge*/ // TODO\n";
+	  cout << "nb_walls[2]: *\t\t" << (void*)w->nb_walls[2] << " [wall] \t\t/* Array of pointers to walls that share an edge*/ // TODO\n";
+
+	  cout << "area: \t\t" << w->area << " [double] \t\t/* Area of this element */\n";
+
+	  cout << "normal: \t\t" << w->normal << " [vector3] \t\t/* Normal vector for this wall */\n";
+	  cout << "unit_u: \t\t" << w->unit_u << " [vector3] \t\t/* U basis vector for this wall */\n";
+	  cout << "unit_v: \t\t" << w->unit_v << " [vector3] \t\t/* V basis vector for this wall */\n";
+	  cout << "d: \t\t" << w->d << " [double] \t\t/* Distance to origin (point normal form) */\n";
+
+	  cout << "grid: *\t\t" << w->grid << " [surface_grid] \t\t/* Grid of effectors for this wall */\n";
+
+	  cout << "flags: \t\t" << w->flags << " [u_short] \t\t/* Count Flags: flags for whether and what we need to count */\n";
+
+	  cout << "parent_object: *\t\t" << w->parent_object << " [object] \t\t/* The object we are a part of */\n";
+	  cout << "birthplace: *\t\t" << w->birthplace << " [storage] \t\t/* Where we live in memory */\n";
+
+	  cout << "counting_regions: *\t\t" << w->counting_regions << " [region_list] \t\t/* Counted-on regions containing this wall */\n";
+}
+
+
+void dump_wall_list(wall_list* list, const char* ind) {
+	wall_list* curr = list;
+	int i = 0;
+	while (curr != NULL) {
+		cout << ind << i << ":\n";
+		dump_wall(curr->this_wall, IND_ADD2(ind));
+		i++;
+		curr = curr->next;
+	}
+
+}
+
+
+void dump_wall_list_array(int num, const char* num_name, wall_list** values, const char* values_name, const char* comment, const char* ind) {
+  cout << ind << values_name << "[" << num_name << "]: \t\t" << values << "[" << num << "]" << " [wall_list*] \t\t" << comment;
+  if (values == NULL) {
+  	cout << "\n";
+  	return;
+  }
+  for (int i = 0; i < num && i < MAX_ARRAY_ITEMS; i++) {
+  	if (i % DUMP_ARRAY_NEWLINE_COUNT == 0) {
+  		cout << "\n" << ind << "  ";
+  	}
+  	cout << ind << i << ":\n";
+  	dump_wall_list(values[i], IND_ADD2(ind));
+  }
+  if (num >= MAX_ARRAY_ITEMS) {
+  	cout << "...";
+  }
+  cout << "\n";
+}
+
 
 void dump_molecule_flags(short flags, const char* ind) {
 	cout << ind << "flags: \t\t" << flags << " [short] \t\t /* Abstract Molecule Flags: Who am I, what am I doing, etc. */\n";
@@ -101,6 +210,7 @@ void dump_molecule_flags(short flags, const char* ind) {
 }
 
 void dump_abstract_molecule(abstract_molecule* amp, const char* ind) {
+	cout << ind << "this: *\t\t" << (void*)amp << " [abstract_molecule] \t\t /* Current molecule */ //???\n";
   cout << ind << "next: *\t\t" << (void*)amp->next << " [abstract_molecule] \t\t /* Next molecule in scheduling queue */ //???\n";
   cout << ind << "t: \t\t" << amp->t << " [double] \t\t                      /* Scheduling time. */\n";
   cout << ind << "t2: \t\t" << amp->t2 << " [double] \t\t                     /* Time of next unimolecular reaction */\n";
@@ -163,7 +273,7 @@ void dump_molecules(int num_all_molecules, molecule_info **all_molecules) {
 void dump_region(region* reg, const char* ind) {
 	// TODO
 	cout << ind << "reg: *\t\t" << (void*)reg << " [region] \t\t\n";
-  cout << ind << "  " << "sym: *\t\t" << (void*)reg->sym << " [sym_entry] \t\t  /* Symbol hash table entry for this region */\n";
+  cout << ind << "  " << "sym: *\t\t" << reg->sym << " [sym_entry] \t\t  /* Symbol hash table entry for this region */\n";
   cout << ind << "  " << "hashval: \t\t" << reg->hashval << " [u_int] \t\t          /* Hash value for counter hash table */\n";
   cout << ind << "  " << "region_last_name: *\t\t" << reg->region_last_name << " [char] \t\t /* Name of region without prepended object name */\n";
   cout << ind << "  " << "parent: *\t\t" << (void*)reg->parent << " [object] \t\t  /* Parent of this region */\n";
@@ -182,7 +292,7 @@ void dump_region(region* reg, const char* ind) {
 
 void dump_region_list(region_list *rl, const char* regions_name, const char* comment, const char* ind) {
   cout << ind << regions_name << ": *\t\t" << rl << " [region_list] \t\t " << comment << "\n";
-  for (struct region_list *r = rl; rl != NULL; rl = rl->next) {
+  for (region_list *r = rl; rl != NULL; rl = rl->next) {
   	dump_region(r->reg, ind);
   }
 }
@@ -233,9 +343,205 @@ void dump_subvolumes(int n_subvols, const char* num_name, const char* num_commen
 	}
 }
 
-extern "C" void dump_volume(struct volume* s) {
+void dump_rxn(rxn* rx, const char* ind) {
 
-  cout << "********* volume dump **************\n";
+  cout << ind << "sym: *\t\t" << rx->sym << " [sym_entry] \t\t/* Ptr to symbol table entry for this rxn */\n";
+
+  cout << ind << "n_reactants: \t\t" << rx->n_reactants << " [u_int] \t\t/* How many reactants? (At least 1.) */\n";
+  cout << ind << "n_pathways: \t\t" << rx->n_pathways << " [int] \t\t/* How many pathways lead away? (Negative = special reaction, i.e. transparent etc...) */\n";
+
+#if 0
+  for (int j = 0; j < rx->n_pathways; ++j) {
+    struct rxn_pathname *path = rx->info[j].pathname;
+
+    if (path != NULL && strcmp(path->sym->name, rx_name) == 0) {
+      *found_rx = rx;
+      // XXX below we convert from u_int to int which is bad
+      // unfortunately MCell internally mixes u_int and int for
+      // the pathway id.
+      *path_id = path->path_num;
+      cout << "0: \t\t" << s->0 << " [return] \t\t\n";
+    }
+  }
+#endif
+
+
+  dump_double_array(rx->n_pathways, "n_pathways", rx->cum_probs, "cum_probs", "/* Cumulative probabilities for (entering) all pathways */", ind);
+
+  cout << ind << "max_fixed_p: \t\t" << rx->max_fixed_p << " [double] \t\t/* Maximum 'p' for region of p-space for all  non-cooperative pathways */\n";
+  cout << ind << "min_noreaction_p: \t\t" << rx->min_noreaction_p << " [double] \t\t/* Minimum 'p' for region of p-space which is always in the non-reacting pathway. (note that cooperativity may mean that some values of p less than this still do not produce a reaction) */\n";
+  cout << ind << "pb_factor: \t\t" << rx->pb_factor << " [double] \t\t/* Conversion factor from rxn rate to rxn probability (used for cooperativity) */\n";
+
+  cout << ind << "product_idx_aux: *\t\t" << (void*)rx->product_idx_aux << " [int] \t\t/* Number of unique players in each pathway. Used for on-the fly calculation of product_idx indexes TODO: nfsim*/\n";
+  //wrong: dump_int_array(rx->n_pathways, "n_pathways", rx->product_idx_aux, "product_idx_aux", "/* Number of unique players in each pathway. Used for on-the fly calculation of product_idx indexes */", ind);
+
+  cout << ind << "product_idx: *\t\t" << rx->product_idx << " [u_int] \t\t/* Index of 1st player for products of each pathway TODO: nfsim */\n";
+  //wrong: dump_int_array(rx->n_pathways, "n_pathways", (int*)rx->product_idx, "product_idx", "/* Index of 1st player for products of each pathway */", ind);
+
+  cout << ind << "players: **\t\t" << (void**)rx->players << " [species] \t\t/* Identities of reactants/products */\n";
+
+  /* this information is kept in a separate array because with nfsim we dont know ahead of time how many paths/products per path are there, we only know when it fires*/
+  cout << ind << "nfsim_players: ***\t\t" << (void***)rx->nfsim_players << " [species] \t\t/* a matrix of the nfsim elements associated with each path */\n";
+  cout << ind << "geometries: *\t\t" << (void*)rx->geometries << " [short] \t\t/* Geometries of reactants/products */\n";
+  cout << ind << "nfsim_geometries: **\t\t" << (void**)rx->nfsim_geometries << " [short] \t\t/* geometries of the nfsim geometries associated with each path */\n";
+
+  cout << ind << "n_occurred: \t\t" << rx->n_occurred << " [long long] \t\t/* How many times has this reaction occurred? */\n";
+  cout << ind << "n_skipped: \t\t" << rx->n_skipped << " [double] \t\t/* How many reactions were skipped due to probability overflow? */\n";
+
+
+  cout << ind << "prob_t: *\t\t" << (void*)rx->prob_t << " [t_func] \t\t/* List of probabilities changing over time, by pathway */\n";
+
+  cout << ind << "pathway_head: *\t\t" << rx->pathway_head << " [pathway] \t\t/* List of pathways built at parse-time */\n";
+  cout << ind << "info: *\t\t" << (void*)rx->info << " [pathway_info] \t\t/* Counts and names for each pathway */\n";
+
+  cout << ind << "TODO: NFSIM callbacks\n";
+#if 0
+  //char** external_reaction_names; /* Stores reaction results stored from an external program (like nfsim)*/
+  external_reaction_datastruct* external_reaction_data; /* Stores reaction results stored from an external program (like nfsim)*/
+  graph_data** reactant_graph_data; /* stores the graph patterns associated with the reactants for every path */
+  graph_data*** product_graph_data; /* Stores the graph patterns associated with our products for each path*/
+  double (*get_reactant_diffusion)(rxn*, int);  /* returns the diffusion value associated with its reactants*/
+  double (*get_reactant_time_step)(rxn*, int);  /* returns the diffusion value associated with its reactants*/
+  double (*get_reactant_space_step)(rxn*, int);  /* returns the diffusion value associated with its reactants*/
+#endif
+
+
+}
+
+void dump_reaction_hash_table(int rx_hashsize, const char* num_name, rxn **reaction_hash, const char* reaction_hash_name, const char* comment, const char* ind) {
+  cout << ind << reaction_hash_name << "[" << num_name << "]: \t\t" << (void*)reaction_hash << "[" << rx_hashsize << "]" << " [wall_list*] \t\t" << comment << "\n";
+  // used code from get_rxn_by_name
+  for (int i = 0; i < rx_hashsize; ++i) {
+    struct rxn *rx = NULL;
+    struct rxn *rx_array = reaction_hash[i];
+    cout << IND_ADD2(ind) << i << ": " << (void*)rx_array << "\n";
+    int k = 0;
+    for (rx = rx_array; rx != NULL; rx = rx->next) { // go over linked list
+      cout << IND_ADD2(IND_ADD2(ind)) << k << ":\n";
+    	dump_rxn(rx, IND_ADD2(IND_ADD2(ind)));
+    }
+  }
+}
+
+
+
+void dump_schedule_helper(schedule_helper* shp, const char* name, const char* comment, const char* ind) {
+	std::string inds = ind;
+	inds += "  ";
+	const char* ind2 = inds.c_str();
+  cout << ind << name << ": *\t\t" << (void*)shp << " [schedule_helper] \t\t" << comment << "\n";
+
+  cout << ind2 <<"next_scale: *\t\t" << (void*)shp->next_scale << " [schedule_helper] \t\t/* Next coarser time scale */\n";
+
+  cout << ind2 <<"dt: \t\t" << shp->dt << " [double] \t\t/* Timestep per slot */\n";
+  cout << ind2 <<"dt_1: \t\t" << shp->dt_1 << " [double] \t\t/* dt_1 = 1/dt */\n";
+  cout << ind2 <<"now: \t\t" << shp->now << " [double] \t\t/* Start time of the scheduler */\n";
+
+  /* Items scheduled now or after now */
+  cout << ind2 <<"count: \t\t" << shp->count << " [int] \t\t/* Total number of items scheduled now or after */\n";
+  cout << ind2 <<"buf_len: \t\t" << shp->buf_len << " [int] \t\t/* Number of slots in the scheduler */\n";
+  cout << ind2 <<"index: \t\t" << shp->index << " [int] \t\t/* index of the next time block */\n";
+
+  if (shp->circ_buf_count != NULL) {
+  	cout << ind2 <<"circ_buf_count: \t\t" << *shp->circ_buf_count << " [int] \t\t/* How many items are scheduled in each slot */\n";
+  }
+  else {
+  	cout << ind2 <<"circ_buf_count: \t\t" << "NULL" << " [int*] \t\t/* How many items are scheduled in each slot */\n";
+  }
+
+  cout << ind2 <<"circ_buf_head: **\t\t" << (void**)shp->circ_buf_head << " [abstract_element] \t\t// Array of linked lists of scheduled items for each slot\n";
+  cout << ind2 <<"circ_buf_tail: **\t\t" << (void**)shp->circ_buf_tail << " [abstract_element] \t\t// Array of tails of the linked lists\n";
+
+  cout << ind2 <<"contents (current, circ_buf_head):\n";
+  for (int i = -1; i < shp->buf_len; i++) {
+  	int k = 0;
+    for (struct abstract_element *aep = (i < 0) ? shp->current
+                                                : shp->circ_buf_head[i];
+         aep != NULL; aep = aep->next) {
+      struct abstract_molecule *amp = (struct abstract_molecule *)aep;
+      if (amp->properties == NULL) {
+      	cout << ind2 << "  " << i << "." << k << ": " << (void*)amp << ", properties: " << (void*)amp->properties << "\n";
+      	k++;
+        continue;
+      }
+      else {
+      	k++;
+      }
+
+      cout << ind2 << "  " << i << ":\n";
+      dump_abstract_molecule(amp, IND_ADD2(ind2));
+    }
+  }
+
+  /* Items scheduled before now */
+  /* These events must be serviced before simulation can advance to now */
+  cout << ind2 <<"current_count: \t\t" << shp->current_count << " [int] \t\t/* Number of current items */\n";
+  cout << ind2 <<"current: *\t\t" << (void*)shp->current << " [abstract_element] \t\t/* List of items scheduled now */\n";
+  cout << ind2 <<"current_tail: *\t\t" << shp->current_tail << " [abstract_element] \t\t/* Tail of list of items */\n";
+
+  cout << ind2 <<"defunct_count: \t\t" << shp->defunct_count << " [int] \t\t/* Number of defunct items (set by user)*/\n";
+  cout << ind2 <<"error: \t\t" << shp->error << " [int] \t\t/* Error code (1 - on error, 0 - no errors) */\n";
+  cout << ind2 <<"depth: \t\t" << shp->depth << " [int] \t\t/* Tier of scheduler in timescale hierarchy, 0-based */\n";
+
+}
+
+
+
+void dump_species_item(species* spec, const char* ind) {
+	DECL_IND2(ind);
+
+  cout << ind2 <<"species_id: \t\t" << spec->species_id << " [u_int] \t\t/* Unique ID for this species */\n";
+  cout << ind2 <<"chkpt_species_id: \t\t" << spec->chkpt_species_id << " [u_int] \t\t/* Unique ID for this species from the checkpoint file */\n";
+  cout << ind2 <<"hashval: \t\t" << spec->hashval << " [u_int] \t\t/* Hash value (may be nonunique) */\n";
+  cout << ind2 <<"sym: *\t\t" << spec->sym << " [sym_entry] \t\t/* Symbol table entry (name) */\n";
+  cout << ind2 <<"sm_dat_head: *\t\t" << spec->sm_dat_head << " [sm_dat] \t\t/* If IS_SURFACE this points to head of effector data list associated with surface class */\n";
+
+  cout << ind2 <<"population: \t\t" << spec->population << " [u_int] \t\t/* How many of this species exist? */\n";
+
+  cout << ind2 <<"D: \t\t" << spec->D << " [double] \t\t/* Diffusion constant */\n";
+  cout << ind2 <<"space_step: \t\t" << spec->space_step << " [double] \t\t/* Characteristic step length */\n";
+  cout << ind2 <<"time_step: \t\t" << spec->time_step << " [double] \t\t/* Minimum (maximum?) sensible timestep */\n";
+  cout << ind2 <<"max_step_length: \t\t" << spec->max_step_length << " [double] \t\t/* maximum allowed random walk step */\n";
+
+  //TODO: dump_species_flags(spec->flags, ind);
+  cout << ind2 <<"flags: \t\t" << spec->flags << " [u_int] \t\t/* Species Flags:  Vol Molecule? Surface Molecule? Surface Class? Counting stuff, etc... */\n";
+
+  cout << ind2 <<"n_deceased: \t\t" << spec->n_deceased << " [long long] \t\t/* Total number that have been destroyed. */\n";
+  cout << ind2 <<"cum_lifetime_seconds: \t\t" << spec->cum_lifetime_seconds << " [double] \t\t/* Seconds lived by now-destroyed molecules */\n";
+
+  /* if species s a surface_class (IS_SURFACE) below there are linked lists of
+   * molecule names/orientations that may be present in special reactions for
+   * this surface class */
+  cout << ind2 <<"refl_mols: *\t\t" << spec->refl_mols << " [name_orient] \t\t// names of the mols that REFLECT from surface\n";
+  cout << ind2 <<"transp_mols: *\t\t" << spec->transp_mols << " [name_orient] \t\t/* names of the mols that are TRANSPARENT for surface */\n";
+  cout << ind2 <<"absorb_mols: *\t\t" << spec->absorb_mols << " [name_orient] \t\t// names of the mols that ABSORB at surface\n";
+  cout << ind2 <<"clamp_conc_mols: *\t\t" << spec->clamp_conc_mols << " [name_orient] \t\t/* names of mols that CLAMP_CONC at surface */\n";
+}
+
+
+void dump_species(species* spec, const char* name, const char* comment, const char* ind) {
+  cout << name << ": *\t\t" << (void*)spec << " [species] \t\t" << comment << "\n";
+  dump_species_item(spec, "");
+}
+
+
+
+void dump_species_list(int n_species, const char* num_name, species** species_list, const char* name, const char* comment, const char* ind) {
+	DECL_IND2(ind);
+
+  cout << ind2 << name << "[" << num_name << "]: \t\t" << (void**)species_list << "[" << n_species << "]" << " [species*[]] \t\t" << comment << "\n";
+
+  for (int i = 0; i < n_species; i++) {
+  	species* spec = species_list[i];
+		cout << ind2 << "  " << i << ": " << (void*)spec << "\n";
+		dump_species_item(spec, IND_ADD2(ind2));
+  }
+}
+
+extern "C" void dump_volume(struct volume* s, const char* comment, unsigned int selected_details /* mask */) {
+
+  cout << "********* volume dump :" << comment << "************ (START)\n";
+  cout << comment << "\n";
 
   cout << "bond_angle: \t\t" << s->bond_angle << " [double] \t\t/* Defines the default bond rotation angle between molecules. Default is 0. */\n";
 
@@ -274,21 +580,26 @@ extern "C" void dump_volume(struct volume* s) {
 
   cout << "n_walls: \t\t" << s->n_walls << " [int] \t\t/* Total number of walls */\n";
   dump_vector3_array(s->n_walls, "n_walls", s->all_vertices, "all_vertices", "/* Central repository of vertices with a partial order imposed by natural ordering of storages*/", "");
-return;
-  /* Array of linked lists of walls using a vertex (has the size of
-   * "all_vertices" array */
-  cout << "walls_using_vertex: **\t\t" << (void**)s->walls_using_vertex << " [wall_list] \n";
+
+
+  dump_wall_list_array(s->n_walls, "n_walls", s->walls_using_vertex, "all_vertices", "/* Array of linked lists of walls using a vertex (has the size of all_vertices array) */", "");
+
   cout << "rx_hashsize: \t\t" << s->rx_hashsize << " [int] \t\t/* How many slots in our reaction hash table? */\n";
   cout << "n_reactions: \t\t" << s->n_reactions << " [int] \t\t/* How many reactions are there, total? */\n";
+
+
   cout << "reaction_hash: **\t\t" << (void**)s->reaction_hash << " [rxn] \t\t/* A hash table of all reactions. */\n";
+  dump_reaction_hash_table(s->rx_hashsize, "rx_hashsize", s->reaction_hash, "reaction_hash", "/* A hash table of all reactions. */", "");
+
   cout << "tv_rxn_mem: *\t\t" << (void*)s->tv_rxn_mem << " [mem_helper] \t\t/* Memory to store time-varying reactions */\n";
 
   cout << "count_hashmask: \t\t" << s->count_hashmask << " [int] \t\t/* Mask for looking up count hash table */\n";
   cout << "count_hash: **\t\t" << (void**)s->count_hash << " [counter] \t\t/* Count hash table */\n";
-  cout << "count_scheduler: *\t\t" << (void*)s->count_scheduler << " [schedule_helper] // When to generate reaction output\n";
+  dump_schedule_helper(s->count_scheduler, "count_scheduler", "// When to generate reaction output", "");
   cout << "counter_by_name: *\t\t" << (void*)s->counter_by_name << " [sym_table_head] \n";
 
-  cout << "volume_output_scheduler: *\t\t" << (void*)s->volume_output_scheduler << " [schedule_helper] \t\t/* When to generate volume output\n";
+  dump_schedule_helper(s->volume_output_scheduler, "volume_output_scheduler", "/* When to generate volume output */", "");
+
 
   cout << "n_species: \t\t" << s->n_species << " [int] \t\t/* How many different species (molecules)? */\n";
 
@@ -298,21 +609,16 @@ return;
   cout << "n_NFSimPReactions: \t\t" << s->n_NFSimPReactions << " [int] \t\t/* number of potential reactions found in the reaction network (not necessarely triggered) */\n";
 
   cout << "species_list: **\t\t" << (void**)s->species_list << " [species] \t\t/* Array of all species (molecules). */\n";
+  dump_species_list(s->n_species, "n_species", s->species_list, "species_list", "/* Array of all species (molecules). */", "");
 
-  // This is used to skip over certain sections in the parser when using
-  // dynamic geometries.
-  cout << "dynamic_geometry_flag: \t\t" << s->dynamic_geometry_flag << " [int] \n";
-  cout << "disable_polygon_objects: \t\t" << s->disable_polygon_objects << " [int] \n";
+  // dynamic geometry, not so important for now
+  cout << "dynamic_geometry_flag: \t\t" << s->dynamic_geometry_flag << " [int] \t\t/* This is used to skip over certain sections in the parser when using dynamic geometries.*/ \n";
+  cout << "disable_polygon_objects: \t\t" << s->disable_polygon_objects << " [int] \t\t/* This is used to skip over certain sections in the parser when using dynamic geometries.*/\n";
+  cout << "dynamic_geometry_head: *\t\t" << (void*)s->dynamic_geometry_head << " [dg_time_filename] \t\t/*List of all the dynamic geometry events that need to be scheduled*/\n";
+  cout << "dynamic_geometry_events_mem: *\t\t" << (void*)s->dynamic_geometry_events_mem << " [mem_helper] \t\t/*Memory to store time and MDL names for dynamic geometry*/\n";
+  cout << "dynamic_geometry_scheduler: *\t\t" << (void*)s->dynamic_geometry_scheduler << " [schedule_helper] \t\t/*Scheduler for dynamic geometry (LATER)*/\n";
 
-  // List of all the dynamic geometry events that need to be scheduled
-  cout << "dynamic_geometry_head: *\t\t" << (void*)s->dynamic_geometry_head << " [dg_time_filename] \n";
-
-  // Memory to store time and MDL names for dynamic geometry
-  cout << "dynamic_geometry_events_mem: *\t\t" << (void*)s->dynamic_geometry_events_mem << " [mem_helper] \n";
-
-  // Scheduler for dynamic geometry
-  cout << "dynamic_geometry_scheduler: *\t\t" << (void*)s->dynamic_geometry_scheduler << " [schedule_helper] \n";
-  cout << "releaser: *\t\t" << (void*)s->releaser << " [schedule_helper] \t\t/* Scheduler for release events */\n";
+  dump_schedule_helper(s->releaser, "releaser", "/* Scheduler for release events */", "");
 
   cout << "storage_allocator: *\t\t" << (void*)s->storage_allocator << " [mem_helper] \t\t/* Memory for storage list */\n";
   cout << "storage_head: *\t\t" << (void*)s->storage_head << " [storage_list] \t\t/* Linked list of all local  memory/schedulers\n";
@@ -321,10 +627,9 @@ return;
 
   cout << "speed_limit: \t\t" << s->speed_limit << " [double] // How far can the fastest particle get in one timestep?\n";
 
+  // symbol tables
   cout << "fstream_sym_table: *\t\t" << (void*)s->fstream_sym_table << " [sym_table_head] \t\t/* Global MDL file stream symbol hash table */\n";
-
   cout << "var_sym_table: *\t\t" << (void*)s->var_sym_table << " [sym_table_head] \t\t/* Global MDL variables symbol hash table */\n";
-
   cout << "rxn_sym_table: *\t\t" << (void*)s->rxn_sym_table << " [sym_table_head] \t\t/* RXN symbol hash table */\n";
   cout << "obj_sym_table: *\t\t" << (void*)s->obj_sym_table << " [sym_table_head] \t\t/* Objects symbol hash table */\n";
   cout << "reg_sym_table: *\t\t" << (void*)s->reg_sym_table << " [sym_table_head] \t\t/* Regions symbol hash table */\n";
@@ -333,37 +638,40 @@ return;
   cout << "rxpn_sym_table: *\t\t" << (void*)s->rxpn_sym_table << " [sym_table_head] \t\t/* Named reaction pathway hash table */\n";
   cout << "mol_ss_sym_table: *\t\t" << (void*)s->mol_ss_sym_table << " [sym_table_head] \t\t/* Spatially structured molecule symbol hash table */\n";
 
+  // ???
   cout << "root_object: *\t\t" << (void*)s->root_object << " [object] \t\t/* Root of the object template tree */\n";
   cout << "root_instance: *\t\t" << (void*)s->root_instance << " [object] \t\t/* Root of the instantiated object tree */\n";
   cout << "periodic_box_obj: *\t\t" << (void*)s->periodic_box_obj << " [object] \n";
 
+
+  // TODO3
   cout << "default_release_pattern: *\t\t" << (void*)s->default_release_pattern << " [release_pattern] \t\t/* release once at t=0 */\n";
 
+  // ???
   cout << "volume_output_head: *\t\t" << (void*)s->volume_output_head << " [volume_output_item] \t\t/* List of all volume data output items */\n";
 
 
   cout << "output_block_head: *\t\t" << (void*)s->output_block_head << " [output_block] \t\t/* Global list of reaction data output blocks */\n";
   cout << "output_request_head: *\t\t" << (void*)s->output_request_head << " [output_request] \t\t/* Global list linking COUNT statements to internal variables \n";
 
-
+  // some memories
   cout << "oexpr_mem: *\t\t" << (void*)s->oexpr_mem << " [mem_helper] \t\t/* Memory to store output_expressions */\n";
   cout << "outp_request_mem: *\t\t" << (void*)s->outp_request_mem << " [mem_helper] \t\t/* Memory to store output_requests */\n";
   cout << "counter_mem: *\t\t" << (void*)s->counter_mem << " [mem_helper] \t\t/* Memory to store counters (for counting molecules/reactions on regions)\n";
-
   cout << "trig_request_mem: *\t\t" << (void*)s->trig_request_mem << " [mem_helper] \t\t/* Memory to store listeners for trigger events */\n";
   cout << "magic_mem: *\t\t" << (void*)s->magic_mem << " [mem_helper] \t\t/* Memory used to store magic lists for reaction-triggered releases and such \n";
 
+  //
   cout << "elapsed_time: \t\t" << s->elapsed_time << " [double] \t\t/* Used for concentration measurement */\n";
 
   /* Visualization state */
   cout << "viz_blocks: *\t\t" << (void*)s->viz_blocks << " [viz_output_block] \t\t/* VIZ_OUTPUT blocks from file */\n";
 
-  cout << "all_mols: *\t\t" << (void*)s->all_mols << " [species] \t\t/* Refers to ALL_MOLECULES keyword */\n";
-  cout << "all_volume_mols: *\t\t" << (void*)s->all_volume_mols << " [species] // Refers to ALL_VOLUME_MOLECULES keyword\n";
-  cout << "all_surface_mols: *\t\t" << (void*)s->all_surface_mols << " [species] // Refers to ALL_SURFACE_MOLECULES keyword\n";
+  dump_species(s->all_mols, "all_mols", "/* Refers to ALL_MOLECULES keyword */", "");
+  dump_species(s->all_volume_mols, "all_volume_mols", "/* Refers to ALL_VOLUME_MOLECULES keyword */", "");
+  dump_species(s->all_surface_mols, "all_surface_mols", "/* Refers to ALL_SURFACE_MOLECULES keyword */", "");
 
-  cout << "time_unit: \t\t" << s->time_unit << " [double] \t\t/* Duration of one global time step in real time */\n";
-					/* Used to convert between real time and internal time */
+  cout << "time_unit: \t\t" << s->time_unit << " [double] \t\t/* Duration of one global time step in real time, Used to convert between real time and internal time */\n";
   cout << "time_step_max: \t\t" << s->time_step_max << " [double] \t\t/* Maximum internal time that a molecule may diffuse */\n";
 
   cout << "grid_density: \t\t" << s->grid_density << " [[double] \t\t/* Density of grid for surface molecules, number per um^2 */";
@@ -371,7 +679,6 @@ return;
 
   cout << "r_length_unit: \t\t" << s->r_length_unit << " [double] \t\t/* Reciprocal of length_unit to avoid division */\n";
   cout << "rx_radius_3d: \t\t" << s->rx_radius_3d << " [double] \t\t/* Interaction radius for reactions between volume molecules \n";
-
 
   cout << "space_step: \t\t" << s->space_step << " [double] \t\t/* User-supplied desired average diffusion distance for volume molecules\n";
 
@@ -387,14 +694,12 @@ return;
 
   cout << "dissociation_index: \t\t" << s->dissociation_index << " [int] \t\t/* Used to keep 3D products from reacting with each  other too soon \n";
 
+  // chkpt
   cout << "chkpt_iterations: \t\t" << s->chkpt_iterations << " [long long] \t\t/* Number of iterations to advance before checkpointing\n";
-
   cout << "chkpt_init: \t\t" << s->chkpt_init << " [u_int] \t\t/* Set if this is the initial run of a simulation with no previous checkpoints\n";
-
   cout << "chkpt_flag: \t\t" << s->chkpt_flag << " [u_int] \t\t/* Set if there are any CHECKPOINT statements in mdl file */\n";
   cout << "chkpt_seq_num: \t\t" << s->chkpt_seq_num << " [u_int] \t\t/* Number of current run in checkpoint sequence */\n";
   cout << "keep_chkpts: \t\t" << s->keep_chkpts << " [int] \t\t/* flag to indicate if checkpoints should be kept */\n";
-
   cout << "chkpt_infile: *\t\t" << (void*)s->chkpt_infile << " [char] \t\t/* Name of checkpoint file to read from */\n";
   cout << "chkpt_outfile: *\t\t" << (void*)s->chkpt_outfile << " [char] \t\t/* Name of checkpoint file to write to */\n";
   cout << "chkpt_byte_order_mismatch: \t\t" << s->chkpt_byte_order_mismatch << " [u_int] \t\t/* Flag that defines whether mismatch in byte order exists between the saved checkpoint file and the machine reading it\n";
@@ -514,4 +819,6 @@ return;
   cout << "global_nfsim_surface: *\t\t" << (void*)s->global_nfsim_surface << " [species] \n";
 
   cout << "species_mesh_transp: *\t\t" << (void*)s->species_mesh_transp << " [pointer_hash] \n";
+
+  cout << "********* volume dump :" << comment << "************ (END)\n";
 }

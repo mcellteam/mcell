@@ -160,7 +160,19 @@ set(SOURCE_FILES
     src/volume_output.c
     src/volume_output.h
     src/wall_util.c
-    src/wall_util.h)
+    src/wall_util.h
+    
+    src4/base_event.cpp
+    src4/diffuse_react_event.cpp
+    src4/mcell3_world_converter.cpp
+    src4/molecule.cpp
+    src4/release_event.cpp
+    src4/scheduler.cpp
+    src4/species.cpp
+    src4/world.cpp
+
+    
+    )
 
 link_directories(${CMAKE_BINARY_DIR}/lib)
 if (UNIX)

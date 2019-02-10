@@ -49,6 +49,8 @@
 #include "mcell_reactions.h"
 #include "mcell_react_out.h"
 
+#include "dump_state.h"
+
 // static helper functions
 static long long mcell_determine_output_frequency(MCELL_STATE *state);
 
@@ -422,6 +424,8 @@ mcell_run_iteration(MCELL_STATE *world, long long frequency,
 
     /* Release molecules */
     process_molecule_releases(world, not_yet);
+
+    dump_volume(world, "after release", DUMP_EVERYTHING);
 
     /* Produce output */
     process_reaction_output(world, not_yet);
