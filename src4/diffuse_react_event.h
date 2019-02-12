@@ -12,7 +12,7 @@
 
 namespace mcell {
 
-class diffuse_react_event: public base_event {
+class diffuse_react_event_t : public base_event_t {
 };
 
 } // namespace mcell

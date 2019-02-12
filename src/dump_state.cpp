@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 #include <cassert>
+#include <string.h>
 
 #define MAX_ARRAY_ITEMS 16
 #define MAX_SUBVOLUMES 4
@@ -13,6 +14,9 @@
 #define DECL_IND2(ind) std::string inds = ind; inds += "  ";	const char* ind2 = inds.c_str();
 
 using namespace std;
+
+void dump_species(species* spec, const char* name, const char* comment, const char* ind);
+
 
 std::ostream & operator<<(std::ostream &out, const timeval &a) {
     out << a.tv_sec << "s, " << a.tv_usec << "us";
@@ -34,6 +38,22 @@ std::ostream & operator<<(std::ostream &out, const int3D &a) {
     return out;
 }
 
+
+std::ostream & operator<<(std::ostream &out, const double a[4][4]) {
+	out << "(";
+	for (int x = 0; x < 4; x++) {
+		out << "(";
+		for (int y = 0; y < 4; y++) {
+			out << a[x][y];
+			if (y != 3)
+				out << ",";
+		}
+		out << ")";
+		if (x != 3)
+			out << ",";
+	}
+  return out;
+}
 
 std::ostream & operator<<(std::ostream &out, const pointer_hash &a) {
     //out << "(" << a.x << ", " << a.y << ", " << a.z << ")";
@@ -423,7 +443,54 @@ void dump_reaction_hash_table(int rx_hashsize, const char* num_name, rxn **react
   }
 }
 
+void dump_release_site_obj(release_site_obj* rel_site, const char* ind) {
+	DECL_IND2(ind);
 
+  cout << ind2 << "location: *\t\t" << *rel_site->location << " [vector3] \t\t/* location of release site */\n";
+  cout << ind2 << "mol_type: *\t\t" << (void*)rel_site->mol_type << " [species] \t\t/* species to be released */\n";
+  //dump_species(rel_site->mol_type, "mol_type", "/* species to be released */", ind2);
+
+  cout << ind2 << "release_number_method: \t\t" << (unsigned)rel_site->release_number_method << " [byte] \t\t/* Release Number Flags: controls how release_number is used (enum release_number_type_t) */\n";
+  cout << ind2 << "release_shape: \t\t" << (int)rel_site->release_shape << " [int8_t] \t\t/* Release Shape Flags: controls shape over which to release (enum release_shape_t) */\n";
+  cout << ind2 << "orientation: \t\t" << rel_site->orientation << " [short] \t\t/* Orientation of released surface molecules */\n";
+  cout << ind2 << "release_number: \t\t" << rel_site->release_number << " [double] \t\t/* Number to release */\n";
+  cout << ind2 << "mean_diameter: \t\t" << rel_site->mean_diameter << " [double] \t\t/* Diameter for symmetric releases */\n";
+  cout << ind2 << "concentration: \t\t" << rel_site->concentration << " [double] \t\t/* Concentration of molecules to release. Units are Molar for volume molecules, and number per um^2 for surface molecules. */\n";
+  cout << ind2 << "standard_deviation: \t\t" << rel_site->standard_deviation << " [double] \t\t/* Standard deviation of release_number for GAUSSNUM, or of mean_diameter for VOLNUM */\n";
+  cout << ind2 << "diameter: *\t\t" << *rel_site->diameter << " [vector3] \t\t/* x,y,z diameter for geometrical release shapes */\n";
+
+  cout << ind2 << "region_data: *\t\t" << (void*)rel_site->region_data << " [release_region_data] \t\t/* Information related to release on regions */\n";
+
+  cout << ind2 << "mol_list: *\t\t" << (void*)rel_site->mol_list << " [release_single_molecule] \t\t/* Information related to release by list */\n";
+
+  cout << ind2 << "release_prob: \t\t" << rel_site->release_prob << " [double] \t\t/* Probability of releasing at scheduled time */\n";
+
+  cout << ind2 << "periodic_box: *\t\t" << (void*)rel_site->periodic_box << " [periodic_image] \t\t\n";
+
+  cout << ind2 << "pattern: *\t\t" << (void*)rel_site->pattern << " [release_pattern] \t\t/* Timing of releases by virtual function generator */\n";
+
+  cout << ind2 << "name: *\t\t" << rel_site->name << " [char] \t\t/* Fully referenced name of the instantiated release_site */\n";
+
+  cout << ind2 << "graph_pattern: *\t\t" << (void*)rel_site->graph_pattern << " [char] \t\t/* JJT: Graph definition of the structured molecules being released in this site*/\n";
+
+}
+
+void dump_release_event_queue(release_event_queue* req, const char* ind) {
+
+	DECL_IND2(ind);
+	cout << ind << "release_event_queue:\n";
+  cout << ind2 << "event_time: \t\t" << req->event_time << " [double] \t\t/* Time of the release */\n";
+  cout << ind2 << "release_site: *\t\t" << (void*)req->release_site << " [release_site_obj] \t\t/* What to release, where to release it, etc */\n";
+  dump_release_site_obj(req->release_site, ind);
+  cout << ind2 << "t_matrix: *\t\t" << req->t_matrix << " [double[4][4]] \t\t // transformation matrix for location of release site\n";
+  cout << ind2 << "train_counter: \t\t" << req->train_counter << " [int] \t\t/* counts executed trains */\n";
+  cout << ind2 << "train_high_time: \t\t" << req->train_high_time << " [double] \t\t/* time of the train's start */\n";
+
+  cout << ind2 << "next: \t\t" << (void*)req->next << "\n";
+
+  if (req->next != NULL)
+  	dump_release_event_queue(req->next, ind);
+}
 
 void dump_schedule_helper(schedule_helper* shp, const char* name, const char* comment, const char* ind) {
 	std::string inds = ind;
@@ -458,18 +525,26 @@ void dump_schedule_helper(schedule_helper* shp, const char* name, const char* co
     for (struct abstract_element *aep = (i < 0) ? shp->current
                                                 : shp->circ_buf_head[i];
          aep != NULL; aep = aep->next) {
-      struct abstract_molecule *amp = (struct abstract_molecule *)aep;
-      if (amp->properties == NULL) {
-      	cout << ind2 << "  " << i << "." << k << ": " << (void*)amp << ", properties: " << (void*)amp->properties << "\n";
-      	k++;
-        continue;
-      }
-      else {
-      	k++;
-      }
 
       cout << ind2 << "  " << i << ":\n";
-      dump_abstract_molecule(amp, IND_ADD2(ind2));
+    	if (strcmp(name, "releaser") == 0) {
+    		struct release_event_queue *req = (struct release_event_queue *)aep;
+    		dump_release_event_queue(req, ind2);
+
+    	}
+    	else {
+				struct abstract_molecule *amp = (struct abstract_molecule *)aep;
+				if (amp->properties == NULL) {
+					cout << ind2 << "  " << i << "." << k << ": " << (void*)amp << ", properties: " << (void*)amp->properties << "\n";
+					k++;
+					continue;
+				}
+				else {
+					k++;
+				}
+
+				dump_abstract_molecule(amp, IND_ADD2(ind2));
+    	}
     }
   }
 

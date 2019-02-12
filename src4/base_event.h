@@ -13,9 +13,9 @@ namespace mcell {
 /**
  * Base class for all events.
  */
-class base_event {
+class base_event_t {
 public:
-	virtual ~base_event();
+	virtual ~base_event_t();
 	virtual void step() = 0;
 };
 

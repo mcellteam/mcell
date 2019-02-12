@@ -13,10 +13,17 @@
 
 namespace mcell {
 
-class species {
+class species_t {
+public:
 	uint16_t species_id;
+
+	uint32_t mcell3_species_id;
 	float_t D; // diffusion constant
 	std::string name;
+	float_t space_step;
+	float_t time_step;
+
+	void dump(const std::string ind);
 };
 
 } /* namespace mcell */

@@ -8,14 +8,10 @@
 #ifndef SRC4_RELEASE_EVENT_H_
 #define SRC4_RELEASE_EVENT_H_
 
-#include "base_event.h"
+#include "release_event.h"
 
 namespace mcell {
 
-class release_event_t: public base_event_t {
-
-	virtual void step();
-};
 
 } // namespace mcell
 

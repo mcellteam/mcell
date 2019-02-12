@@ -12,16 +12,16 @@
 
 namespace mcell {
 
-class base_molecule {
+class base_molecule_t {
 public:
-	base_molecule();
+	base_molecule_t();
 
 	uint16_t flags; // defunct by default, use bitfield instead?
 	uint16_t species_index;
 };
 
 
-class volume_molecule : public base_molecule {
+class volume_molecule_t : public base_molecule_t {
 	vec3_t pos;
 };
 

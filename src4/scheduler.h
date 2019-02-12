@@ -10,7 +10,7 @@
 
 namespace mcell {
 
-class scheduler {
+class scheduler_t {
 };
 
 } // namespace mcell

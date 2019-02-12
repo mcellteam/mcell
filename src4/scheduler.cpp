@@ -5,7 +5,7 @@
  *      Author: adam
  */
 
-#include "../src4/scheduler.h"
+#include "scheduler.h"
 
 namespace mcell {
 

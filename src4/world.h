@@ -8,12 +8,21 @@
 #ifndef SRC4_WORLD_H_
 #define SRC4_WORLD_H_
 
+#include <vector>
+
+#include "partition.h"
+#include "scheduler.h"
+#include "species.h"
+
 namespace mcell {
 
-class world {
+class world_t {
+public:
+  std::vector<partition_t> partitions;
 
+  scheduler_t scheduler;
 
-
+  std::vector<species_t> species;
 };
 
 } /* namespace mcell4 */
