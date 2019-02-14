@@ -87,16 +87,22 @@ int main(int argc, char **argv) {
 
   dump_volume(state, "initial", DUMP_EVERYTHING);
 
-  convert_mcell3_volume_to_mcell3_world(state);
+  if (state->use_mcell4) {
+    mcell4_convert_mcell3_volume(state);
 
-  CHECKED_CALL_EXIT(mcell_run_simulation(state),
-                    "Error running mcell simulation.");
+    mcell4_run_simulation();
 
-  if (state->notify->progress_report != NOTIFY_NONE) {
-    mcell_print("Done running.");
+    mcell4_delete_world();
   }
+  else {
+		CHECKED_CALL_EXIT(mcell_run_simulation(state),
+											"Error running mcell simulation.");
 
-  mcell_print_stats();
+		if (state->notify->progress_report != NOTIFY_NONE) {
+			mcell_print("Done running.");
+		}
 
+		mcell_print_stats();
+  }
   exit(0);
 }

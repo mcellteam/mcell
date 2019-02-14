@@ -20,6 +20,7 @@ namespace mcell {
 
 typedef double float_t; // soon to be changed to float
 const float_t TIME_INVALID = NAN;
+const float_t TIME_SIMULATION_START = 0;
 
 struct vec3_t {
 	float_t x;
@@ -40,10 +41,12 @@ std::ostream & operator<<(std::ostream &out, const vec3_t &a);
 
 const int MAX_MOLECULES_PER_PARTITION = 32*32*32 /*32k*/; //temporary, must work dynamically
 
-typedef std::bitset<MAX_MOLECULES_PER_PARTITION> subpartition_mask_t;
+//typedef std::bitset<MAX_MOLECULES_PER_PARTITION> subpartition_mask_t;
 
 
 typedef uint16_t species_id_t;
+typedef uint32_t molecule_index_t;
+
 const int SPECIES_ID_INVALID = USHRT_MAX;
 
 

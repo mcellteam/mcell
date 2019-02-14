@@ -18,13 +18,16 @@ class partition_t {
 	// left, bottom, closest (lowest z) point of the partition
   vec3_t origin;
 
-  std::vector< /* diffusion time step index */ double > diffusion_time_steps;
+  // vector containing all volume molecules in this partition
+  std::vector< /* molecule index*/ volume_molecule_t> volume_molecules;
 
+  // arrays of indices to the volume_molecules array where each array corresponds to a given time step
   std::vector< /* diffusion time step index */
-		std::vector< /* molecule index*/ volume_molecule_t> > volume_molecules;
+		std::pair< float_t, std::vector< molecule_index_t > > > volume_molecule_indices_per_time_step;
 
-  std::vector< /* subpartition index */
-		std::vector < /* diffusion time step index */ subpartition_mask_t > > volume_molecules_subpartition_masks;
+  // TBD
+  //std::vector< /* subpartition index */
+  //std::vector < /* diffusion time step index */ subpartition_mask_t > > volume_molecules_subpartition_masks;
 
   //TBD: std::vector< /* surface molecule index */ surface_molecule> surface_molecules;
   //TBD: std::vector< /* subpartition index */ subpartition_mask > surface_molecules_subpatition_masks;

@@ -31,8 +31,16 @@ extern "C" {
 // holds global class
 mcell::mcell3_world_converter g_converter;
 
-bool convert_mcell3_volume_to_mcell3_world(volume* s) {
+bool mcell4_convert_mcell3_volume(volume* s) {
 	return g_converter.convert(s);
+}
+
+bool mcell4_run_simulation() {
+	return g_converter.world->run_simulation();
+}
+
+void mcell4_delete_world() {
+	return g_converter.reset();
 }
 
 void mcell_log_conv_warning(char const *fmt, ...) {
@@ -73,24 +81,34 @@ static mat4x4 t_matrix_to_mat4x4(const double src[4][4]) {
 }
 
 
+void mcell3_world_converter::reset() {
+	delete world;
+	world = nullptr;
+	mcell3_species_id_map.clear();
+}
 
 bool mcell3_world_converter::convert(volume* s) {
 
 	world = new world_t();
 
-	// 1) species
+	CHECK(convert_simulation_setup(s));
+
 	CHECK(convert_species(s));
 
-  // 2) release events
 	CHECK(convert_release_events(s));
 
 
 	return true;
 }
 
-
+bool mcell3_world_converter::convert_simulation_setup(volume* s) {
+	// TODO: many items are not checked
+	world->iterations = s->iterations;
+	world->time_unit = s->time_unit;
+	return true;
+}
 bool mcell3_world_converter::convert_species(volume* s) {
-
+	// TODO: many items are not checked
   for (int i = 0; i < s->n_species; i++) {
   	species* spec = s->species_list[i];
   	// not sure what to do with these superclasses
@@ -137,7 +155,7 @@ bool mcell3_world_converter::convert_release_events(volume* s) {
                                                 : releaser->circ_buf_head[i];
          aep != NULL; aep = aep->next) {
 
-    	release_event_t* event = new release_event_t();
+    	release_event_t* event = new release_event_t(world);
 
     	// -- release_event_queue --
 			release_event_queue *req = (release_event_queue *)aep;

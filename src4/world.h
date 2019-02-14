@@ -18,11 +18,17 @@ namespace mcell {
 
 class world_t {
 public:
+	bool run_simulation();
+
   std::vector<partition_t> partitions;
 
   scheduler_t scheduler;
 
   std::vector<species_t> species;
+
+
+  float_t time_unit;
+  uint64_t iterations;
 };
 
 } /* namespace mcell4 */

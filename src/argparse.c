@@ -266,7 +266,7 @@ int argparse_init(int argc, char *const argv[], struct volume *vol) {
       break;
 
     case 'r': /* nfsim */
-      vol->nfsim_flag = 1;
+			vol->nfsim_flag = 1;
       //int nfsimStatus = setupNFSim_c("example.mdlr_total.xml", 0);
       int nfsimStatus = setupNFSim_c(optarg, 0);
       if (nfsimStatus != 0){
@@ -330,6 +330,10 @@ int argparse_init(int argc, char *const argv[], struct volume *vol) {
         mcell_set_error_file(fhandle);
         err_file_specified = 1;
       }
+      break;
+
+    case 'n': /* -new */
+      vol->use_mcell4 = 1;
       break;
 
     default:

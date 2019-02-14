@@ -119,6 +119,7 @@ MCELL_STATE *mcell_create() {
   state->seed_seq = 1;
   state->with_checks_flag = 1;
   state->nfsim_flag = 0; //JJT: NFsim flag
+  state->use_mcell4 = 0;
 
   time_t begin_time_of_day;
   time(&begin_time_of_day);

@@ -13,7 +13,18 @@
 #ifdef __cplusplus
 extern "C"
 #endif
-bool convert_mcell3_volume_to_mcell3_world(struct volume* s);
+bool mcell4_convert_mcell3_volume(struct volume* s);
+
+#ifdef __cplusplus
+extern "C"
+#endif
+bool mcell4_run_simulation();
+
+#ifdef __cplusplus
+extern "C"
+#endif
+void mcell4_delete_world();
+
 
 // following code is only for C++
 #ifdef __cplusplus
@@ -33,13 +44,14 @@ public:
 		delete world;
 	}
 
-
+	void reset();
 
 	bool convert(volume* s);
+	bool convert_simulation_setup(volume* s);
 	bool convert_species(volume* s);
 	bool convert_release_events(volume* s);
 
-	// global object
+	// contained world object
 	world_t* world;
 
 private:
