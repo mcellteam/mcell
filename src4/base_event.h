@@ -8,6 +8,9 @@
 #ifndef _EVENT_H_
 #define _EVENT_H_
 
+
+#include "defines.h"
+
 namespace mcell {
 
 /**
@@ -15,8 +18,14 @@ namespace mcell {
  */
 class base_event_t {
 public:
-	virtual ~base_event_t();
+	base_event_t() :
+		event_time(TIME_INVALID) {
+	}
+	virtual ~base_event_t() {};
 	virtual void step() = 0;
+	virtual void dump(const std::string ind) = 0;
+
+	float_t event_time;
 };
 
 }

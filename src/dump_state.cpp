@@ -481,7 +481,7 @@ void dump_release_event_queue(release_event_queue* req, const char* ind) {
 	cout << ind << "release_event_queue:\n";
   cout << ind2 << "event_time: \t\t" << req->event_time << " [double] \t\t/* Time of the release */\n";
   cout << ind2 << "release_site: *\t\t" << (void*)req->release_site << " [release_site_obj] \t\t/* What to release, where to release it, etc */\n";
-  dump_release_site_obj(req->release_site, ind);
+  dump_release_site_obj(req->release_site, ind2);
   cout << ind2 << "t_matrix: *\t\t" << req->t_matrix << " [double[4][4]] \t\t // transformation matrix for location of release site\n";
   cout << ind2 << "train_counter: \t\t" << req->train_counter << " [int] \t\t/* counts executed trains */\n";
   cout << ind2 << "train_high_time: \t\t" << req->train_high_time << " [double] \t\t/* time of the train's start */\n";

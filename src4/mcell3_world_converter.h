@@ -8,15 +8,18 @@
 #ifndef SRC4_MCELL3_WORLD_CONVERTER_H_
 #define SRC4_MCELL3_WORLD_CONVERTER_H_
 
-#include "world.h"
-
-struct volume; // in mcell_structs.h
+#include "mcell_structs.h"
 
 #ifdef __cplusplus
 extern "C"
 #endif
-bool convert_mcell3_volume_to_mcell3_world(volume* s);
+bool convert_mcell3_volume_to_mcell3_world(struct volume* s);
 
+// following code is only for C++
+#ifdef __cplusplus
+
+#include "world.h"
+#include <map>
 
 namespace mcell {
 
@@ -38,11 +41,20 @@ public:
 
 	// global object
 	world_t* world;
-};
 
+private:
+	species_id_t get_new_species_id(u_int mcell3_id) {
+		auto it = mcell3_species_id_map.find(mcell3_id);
+		assert(it != mcell3_species_id_map.end());
+		return it->second;
+	}
+
+	std::map<u_int, species_id_t> mcell3_species_id_map;
+};
 
 
 } // namespace mcell
 
+#endif // #ifdef __cplusplus
 
 #endif /* SRC4_MCELL3_WORLD_CONVERTER_H_ */

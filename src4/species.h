@@ -15,7 +15,7 @@ namespace mcell {
 
 class species_t {
 public:
-	uint16_t species_id;
+	species_id_t species_id;
 
 	uint32_t mcell3_species_id;
 	float_t D; // diffusion constant

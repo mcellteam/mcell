@@ -7,7 +7,7 @@ SET(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0")
 
 # directories holding flex/bison files and out of source includes.
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/deps)
-include_directories("${CMAKE_SOURCE_DIR}/src" "${CMAKE_CURRENT_BINARY_DIR}/deps" "${CMAKE_SOURCE_DIR}/include")
+include_directories("${CMAKE_SOURCE_DIR}/src" "${CMAKE_CURRENT_BINARY_DIR}/deps" "${CMAKE_SOURCE_DIR}/include" "${CMAKE_SOURCE_DIR}/src4")
 
 # move config.h into place. Unix and Windows have different header files
 if (UNIX)
@@ -170,6 +170,7 @@ set(SOURCE_FILES
     src4/scheduler.cpp
     src4/species.cpp
     src4/world.cpp
+    src4/defines.cpp
 
     
     )

@@ -31,6 +31,7 @@
 #include "init.h"
 
 #include "dump_state.h"
+#include "mcell3_world_converter.h"
 
 #define CHECKED_CALL_EXIT(function, error_message)                             \
   {                                                                            \
@@ -85,6 +86,8 @@ int main(int argc, char **argv) {
                     "An error occured during setting up of output.");
 
   dump_volume(state, "initial", DUMP_EVERYTHING);
+
+  convert_mcell3_volume_to_mcell3_world(state);
 
   CHECKED_CALL_EXIT(mcell_run_simulation(state),
                     "Error running mcell simulation.");
