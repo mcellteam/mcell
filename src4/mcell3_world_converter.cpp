@@ -1,12 +1,34 @@
-/*
- * mcell3_world_converter.cpp
+/******************************************************************************
  *
- *  Created on: Jan 30, 2019
- *      Author: adam
- */
+ * Copyright (C) 2019 by
+ * The Salk Institute for Biological Studies and
+ * Pittsburgh Supercomputing Center, Carnegie Mellon University
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+ * USA.
+ *
+******************************************************************************/
 
 #include <stdarg.h>
 #include <stdlib.h>
+
+#include <set>
+
+extern "C" {
+#include "logging.h"
+}
 
 #include "mcell_structs.h"
 
@@ -14,10 +36,11 @@
 
 #include "world.h"
 #include "release_event.h"
+#include "diffuse_react_event.h"
 
-extern "C" {
-#include "logging.h"
-}
+
+using namespace std;
+
 
 // checking major converstion blocks
 #define CHECK(a) do { if(!(a)) return false; } while (0)
@@ -93,7 +116,7 @@ bool mcell3_world_converter::convert(volume* s) {
 
 	CHECK(convert_simulation_setup(s));
 
-	CHECK(convert_species(s));
+	CHECK(convert_species_and_create_diffusion_events(s));
 
 	CHECK(convert_release_events(s));
 
@@ -107,7 +130,24 @@ bool mcell3_world_converter::convert_simulation_setup(volume* s) {
 	world->time_unit = s->time_unit;
 	return true;
 }
-bool mcell3_world_converter::convert_species(volume* s) {
+
+// cannot fail
+void mcell3_world_converter::create_diffusion_events() {
+	assert(~world->species.empty() && "There must be at least 1 species");
+
+	set<float_t> time_steps_set;
+	for (auto &species : world->species ) {
+		time_steps_set.insert(species.time_step);
+	}
+
+	for (float_t time_step : time_steps_set) {
+		diffuse_react_event_t* event = new diffuse_react_event_t(world, time_step);
+		event->event_time = TIME_SIMULATION_START;
+		world->scheduler.schedule_event(event);
+	}
+}
+
+bool mcell3_world_converter::convert_species_and_create_diffusion_events(volume* s) {
 	// TODO: many items are not checked
   for (int i = 0; i < s->n_species; i++) {
   	species* spec = s->species_list[i];
@@ -133,6 +173,8 @@ bool mcell3_world_converter::convert_species(volume* s) {
 
 		mcell3_species_id_map[new_species.mcell3_species_id] = new_species.species_id;
   }
+
+  create_diffusion_events();
 
 	return true;
 }
