@@ -113,7 +113,7 @@ float_t scheduler_t::handle_next_event(bool &end_simulation) {
 		delete event;
 	}
 
-	end_simulation = event->type == TYPE_END_SIMULATION_EVENT;
+	end_simulation = event->type == EVENT_TYPE_END_SIMULATION;
 	return event_time;
 }
 

@@ -45,18 +45,19 @@ typedef double float_t; // soon to be changed to float
 const float_t TIME_INVALID = NAN;
 const float_t TIME_SIMULATION_START = 0;
 
-struct vec3_t {
-	float_t x;
-	float_t y;
-	float_t z;
+const float_t PARTITION_EDGE_LENGTH_DEFAULT = 1e-4;
 
-	vec3_t() : x(0), y(0), z(0) {}
+struct vec3_t: public glm::dvec3 {
+
+	vec3_t() : glm::dvec3(0) {}
+	vec3_t(const glm::dvec3& a) { x = a.x; y = a.y; z = a.z; }
 	vec3_t(const vec3_t& a) { x = a.x; y = a.y; z = a.z; }
 	vec3_t(const vector3& a) { x = a.x; y = a.y; z = a.z; }
 	vec3_t(const float_t x_, const float_t y_, const float_t z_) { x = x_; y = y_; z = z_; }
+	vec3_t(const float_t xyz) { x = xyz; y = xyz; z = xyz; }
 
 	// exact match
-	bool operator == (const vec3_t& a) { return x == a.x && y == a.y && z == a.z; }
+	//bool operator == (const vec3_t& a) { return x == a.x && y == a.y && z == a.z; }
 };
 
 std::ostream & operator<<(std::ostream &out, const vec3_t &a);
@@ -68,12 +69,26 @@ const int MAX_MOLECULES_PER_PARTITION = 32*32*32 /*32k*/; //temporary, must work
 
 
 typedef uint16_t species_id_t;
-typedef uint32_t molecule_index_t;
-
 const int SPECIES_ID_INVALID = USHRT_MAX;
 
+typedef uint32_t molecule_index_t;
+
+// for now, this is the partition that contains point 0,0,0
+// in its center
+const int PARTITION_INDEX_INITIAL = 0;
+
+const int PARTITION_INDEX_INVALID = UINT32_MAX;
 
 typedef glm::dmat4x4 mat4x4;
+
+
+static inline float_t floor_to_multiple(const float_t val, float_t multiple) {
+	return (float_t)((int)(val / multiple)) * multiple;
+}
+
+static inline vec3_t floor_to_multiple(const vec3_t& val, float_t multiple) {
+	return (vec3_t)((glm::ivec3)(val / multiple)) * multiple;
+}
 
 } /* namespace mcell */
 

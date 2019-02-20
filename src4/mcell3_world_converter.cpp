@@ -26,9 +26,6 @@
 
 #include <set>
 
-extern "C" {
-#include "logging.h"
-}
 
 #include "mcell_structs.h"
 
@@ -37,6 +34,11 @@ extern "C" {
 #include "world.h"
 #include "release_event.h"
 #include "diffuse_react_event.h"
+
+// must be included as the last one due to include collisions
+extern "C" {
+#include "logging.h"
+}
 
 
 using namespace std;
@@ -128,6 +130,7 @@ bool mcell3_world_converter::convert_simulation_setup(volume* s) {
 	// TODO: many items are not checked
 	world->iterations = s->iterations;
 	world->time_unit = s->time_unit;
+	world->seed_seq = s->seed_seq;
 	return true;
 }
 

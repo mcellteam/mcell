@@ -21,23 +21,70 @@
  *
 ******************************************************************************/
 
+extern "C" {
+#include "rng.h" // MCell 3
+}
+
 #include "diffuse_react_event.h"
+#include "world.h"
+#include "partition.h"
+
 
 namespace mcell {
 
 void diffuse_react_event_t::step() {
 	// for each partition
-	for (const partition_t& p:world->partitions)
-
-	// 1) select the right list of molecules from volume_molecule_indices_per_time_step
-
-	// 2) diffuse
-
-	// 3) check and collect possible reactions
-
-	// 4) evaluate and possible execute reactions
-
+	for (partition_t& p: world->partitions) {
+		// 1) select the right list of molecules from volume_molecule_indices_per_time_step
+		uint32_t list_index = p.get_molecule_list_index_for_time_step(diffusion_time_step);
+		diffuse_molecules(p, p.volume_molecule_indices_per_time_step[list_index].second);
+	}
 }
+
+
+void diffuse_react_event_t::diffuse_molecules(partition_t& p, std::vector< molecule_index_t >& indices) {
+	for (molecule_index_t i: indices) {
+		volume_molecule_t& m = p.volume_molecules[i];
+		if (m.is_defunct())
+			continue;
+		species_t& sp = world->species[m.species_id];
+
+		// 2) diffuse each molecule
+		// TBD: reflections
+		vec3_t displacement;
+		compute_displacement(sp, displacement);
+
+		vec3_t new_pos = m.pos + displacement;
+
+		// 3) detect collisions with other molecules
+		// TODO
+
+		// 4) evaluate and possible execute reactions
+		// TODO
+
+		// are we still in the same partition or do we need to move?
+		bool move_to_another_partition = !p.in_this_partition(new_pos);
+		assert(!move_to_another_partition && "TODO");
+
+		// for now, and also to be able to compare with MCell 3,
+		// let's move the particle right away
+		// later, all particles will be moved after reactions were resolved
+		m.pos = new_pos;
+	}
+}
+
+
+void diffuse_react_event_t::pick_displacement(float_t scale /*space step*/, vec3_t& displacement) {
+	displacement.x = scale * rng_gauss(&(world->rng)) * .70710678118654752440;
+	displacement.y = scale * rng_gauss(&(world->rng)) * .70710678118654752440;
+	displacement.z = scale * rng_gauss(&(world->rng)) * .70710678118654752440;
+}
+
+
+void diffuse_react_event_t::compute_displacement(species_t& sp, vec3_t& displacement) {
+	pick_displacement(sp.space_step, displacement);
+}
+
 
 
 } /* namespace mcell */

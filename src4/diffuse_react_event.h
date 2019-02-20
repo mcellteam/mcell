@@ -24,15 +24,22 @@
 #ifndef SRC4_DIFFUSE_REACT_EVENT_H_
 #define SRC4_DIFFUSE_REACT_EVENT_H_
 
+#include <vector>
 #include "base_event.h"
 
+
 namespace mcell {
+
+class partition_t;
+class volume_molecule_t;
+class species_t;
 
 // created in mcell3_world_converter::create_diffusion_events() before any other events,
 // so even if release is created for time 0, this event is scheduled to occur as first one
 class diffuse_react_event_t : public base_event_t {
+public:
 	diffuse_react_event_t(world_t* world_, float_t diffusion_time_step_) :
-		base_event_t(TYPE_DIFFUSE_REACT_EVENT),
+		base_event_t(EVENT_TYPE_DIFFUSE_REACT),
 		world(world_),
 		diffusion_time_step(diffusion_time_step_) {
 
@@ -48,6 +55,12 @@ class diffuse_react_event_t : public base_event_t {
 
 	// this event diffuses all molecules that have this diffusion time_step
 	float_t diffusion_time_step;
+
+private:
+	void diffuse_molecules(partition_t& p, std::vector< molecule_index_t >& indices);
+	void pick_displacement(float_t scale /*space step*/, vec3_t& displacement);
+	void compute_displacement(species_t& sp, vec3_t& displacement);
+
 };
 
 } // namespace mcell

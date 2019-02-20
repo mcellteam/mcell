@@ -763,6 +763,7 @@ extern "C" void dump_volume(struct volume* s, const char* comment, unsigned int 
 
   /* Visualization state */
   cout << "viz_blocks: *\t\t" << (void*)s->viz_blocks << " [viz_output_block] \t\t/* VIZ_OUTPUT blocks from file */\n";
+  dump_viz_output_block(s->viz_blocks, "viz_blocks", "/* VIZ_OUTPUT blocks from file */");
 
   dump_species(s->all_mols, "all_mols", "/* Refers to ALL_MOLECULES keyword */", "");
   dump_species(s->all_volume_mols, "all_volume_mols", "/* Refers to ALL_VOLUME_MOLECULES keyword */", "");

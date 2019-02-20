@@ -20,11 +20,26 @@
  * USA.
  *
 ******************************************************************************/
+extern "C" {
+#include "rng.h" // MCell 3
+}
 
 #include "world.h"
 #include "end_simulation_event.h"
 
 namespace mcell {
+
+void world_t::init() {
+	rng_init(&rng, seed_seq);
+
+	partition_edge_length = PARTITION_EDGE_LENGTH_DEFAULT;
+
+	// create initial partition with center at 0,0,0 - we woud like to have the partitions all the same,
+	// not depend on some random initialization
+	uint32_t index = add_partition(vec3_t(0, 0, 0));
+	assert(index == PARTITION_INDEX_INITIAL);
+}
+
 
 bool world_t::run_simulation() {
 

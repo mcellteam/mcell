@@ -28,16 +28,33 @@
 
 namespace mcell {
 
+
+enum molecule_flags_e {
+	MOLECULE_FLAG_DEFUNCT = 1 << 0,
+};
+
 class base_molecule_t {
 public:
-	base_molecule_t();
+	base_molecule_t(const species_id_t species_id_)
+		: flags(0), species_id(species_id_) {
+	}
 
 	uint16_t flags; // defunct by default, use bitfield instead?
-	uint16_t species_index;
+	species_id_t species_id;
+
+	bool is_defunct() {
+		return flags & MOLECULE_FLAG_DEFUNCT;
+	}
+
 };
 
 
 class volume_molecule_t : public base_molecule_t {
+public:
+	volume_molecule_t(const species_id_t species_id_, const vec3_t& pos_)
+		: base_molecule_t(species_id_), pos(pos_) {
+	}
+
 	vec3_t pos;
 };
 

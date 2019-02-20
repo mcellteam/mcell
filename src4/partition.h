@@ -31,15 +31,59 @@
 namespace mcell {
 
 class partition_t {
+public:
+	partition_t(const vec3_t origin_, const float_t& partition_edge_length)
+		: origin_corner(origin_) {
+		opposite_corner = origin_corner + partition_edge_length;
+		// TODO: preaallocate volume_molecules arrays and
+		// also volume_molecule_indices_per_time_step
+	}
+
+	uint32_t get_molecule_list_index_for_time_step(const float_t time_step) {
+		// TODO: memoization
+		for (uint32_t i = 0; i < volume_molecule_indices_per_time_step.size(); i++) {
+			if (volume_molecule_indices_per_time_step[i].first == time_step) {
+				return i;
+			}
+		}
+		return PARTITION_INDEX_INVALID;
+	}
+
+	uint32_t get_or_add_molecule_list_index_for_time_step(const float_t time_step) {
+		uint32_t res;
+		res = get_molecule_list_index_for_time_step(time_step);
+		if (res == PARTITION_INDEX_INVALID) {
+			volume_molecule_indices_per_time_step.push_back(
+				pair_time_step_volume_molecules_t(time_step, std::vector< molecule_index_t >()));
+			res = volume_molecule_indices_per_time_step.size() - 1;
+		}
+	}
+
+	bool in_this_partition(const vec3_t& pos) {
+		return glm::all(glm::greaterThanEqual(pos, origin_corner))
+			&& glm::all(glm::lessThan(pos, opposite_corner));
+	}
+
+
+	void add_volume_molecule(const volume_molecule_t& m, const uint32_t time_step_index) {
+		// store the new molecule
+		volume_molecules.push_back(m);
+		// and also its index
+		assert(time_step_index <= volume_molecule_indices_per_time_step.size());
+		volume_molecule_indices_per_time_step[time_step_index].second.push_back(volume_molecules.size() - 1);
+	}
+
 	// left, bottom, closest (lowest z) point of the partition
-  vec3_t origin;
+  vec3_t origin_corner;
+  vec3_t opposite_corner;
 
   // vector containing all volume molecules in this partition
   std::vector< /* molecule index*/ volume_molecule_t> volume_molecules;
 
   // arrays of indices to the volume_molecules array where each array corresponds to a given time step
-  std::vector< /* diffusion time step index */
-		std::pair< float_t, std::vector< molecule_index_t > > > volume_molecule_indices_per_time_step;
+  typedef std::pair< float_t, std::vector< molecule_index_t > > pair_time_step_volume_molecules_t;
+  // indexed by diffusion time step index
+  std::vector< pair_time_step_volume_molecules_t > volume_molecule_indices_per_time_step;
 
   // TBD
   //std::vector< /* subpartition index */

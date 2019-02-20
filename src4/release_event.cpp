@@ -24,6 +24,8 @@
 #include <iostream>
 
 #include "release_event.h"
+#include "world.h"
+#include "partition.h"
 
 using namespace std;
 
@@ -34,6 +36,22 @@ void release_event_t::dump(const std::string ind) {
 	cout << ind << "species_id: \t\t" << species_id << " [species_id_t] \t\t\n";
 	cout << ind << "release_number: \t\t" << release_number << " [uint32_t] \t\t\n";
 	std::cout << ind << "name: \t\t" << name << " [string] \t\t\n";
+}
+
+
+void release_event_t::step() {
+	// for now, let's simply release 'release_number' of molecules of 'species_id'
+	// at 'location'
+
+	partition_t& p = world->partitions[world->get_or_add_partition_index(location)];
+	volume_molecule_t m(species_id, location);
+	float_t time_step = world->species[species_id].time_step;
+	uint32_t time_step_index = p.get_or_add_molecule_list_index_for_time_step(time_step);
+
+	for (uint32_t i = 0; i < release_number; i++) {
+		p.add_volume_molecule(m, time_step_index);
+	}
+
 }
 
 } // namespace mcell
