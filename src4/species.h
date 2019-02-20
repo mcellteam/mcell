@@ -37,7 +37,7 @@ public:
 	float_t D; // diffusion constant
 	std::string name;
 	float_t space_step;
-	float_t time_step;
+	float_t time_step; // in standard time
 
 	void dump(const std::string ind);
 };

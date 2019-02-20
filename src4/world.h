@@ -25,6 +25,8 @@
 #define SRC4_WORLD_H_
 
 #include <vector>
+#include <string>
+#include <set>
 
 #include "partition.h"
 #include "scheduler.h"
@@ -34,8 +36,9 @@ namespace mcell {
 
 
 class world_t {
-public:
+private:
 	void init();
+public:
 	bool run_simulation();
 
 	uint32_t get_partition_index(const vec3_t& pos) {
@@ -78,7 +81,9 @@ public:
   std::vector<species_t> species;
 
   float_t time_unit;
-  uint64_t iterations;
+  uint64_t iterations; // number of iterations to simulate
+
+  float_t length_unit;
 
   uint32_t seed_seq;
 
@@ -86,6 +91,13 @@ public:
 
   // single state for the random number generator
   rng_state rng;
+
+  // in case when there would be many copies of a string, this constant pool can be used
+  const char* add_const_string_to_pool(const std::string str) {
+  	return const_string_pool.insert(str).first->c_str();
+  }
+private:
+  std::set<std::string> const_string_pool;
 };
 
 } /* namespace mcell4 */

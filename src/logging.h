@@ -26,6 +26,8 @@
 #include <stdarg.h>
 #include <stdio.h>
 
+#include "config.h"
+
 #ifdef DEBUG
 #define no_printf(fmt, ...) printf(fmt, ##__VA_ARGS__)
 #else

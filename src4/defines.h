@@ -39,13 +39,22 @@
 // warning: do not use directly, we need to be able to control the precision
 #include "../libs/glm/glm.hpp"
 
+
+// diverse debug macros
+#define DEBUG_SCHEDULER
+
+
 namespace mcell {
 
 typedef double float_t; // soon to be changed to float
+#define FLOAT_T_BYTES 8
+
 const float_t TIME_INVALID = NAN;
 const float_t TIME_SIMULATION_START = 0;
 
-const float_t PARTITION_EDGE_LENGTH_DEFAULT = 1e-4;
+const float_t PARTITION_EDGE_LENGTH_DEFAULT = 10; // maybe too large for now
+
+const float_t SCHEDULER_COMPARISON_EPS = 1e-10;
 
 struct vec3_t: public glm::dvec3 {
 
@@ -88,6 +97,14 @@ static inline float_t floor_to_multiple(const float_t val, float_t multiple) {
 
 static inline vec3_t floor_to_multiple(const vec3_t& val, float_t multiple) {
 	return (vec3_t)((glm::ivec3)(val / multiple)) * multiple;
+}
+
+static inline bool cmp_eq(const float_t a, const float_t b, const float_t eps) {
+	return fabs(a - b) < eps;
+}
+
+static inline bool cmp_lt(const float_t a, const float_t b, const float_t eps) {
+	return a < b && !cmp_eq(a, b, eps);
 }
 
 } /* namespace mcell */

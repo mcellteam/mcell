@@ -34,6 +34,7 @@
 #include "world.h"
 #include "release_event.h"
 #include "diffuse_react_event.h"
+#include "viz_output_event.h"
 
 // must be included as the last one due to include collisions
 extern "C" {
@@ -123,6 +124,9 @@ bool mcell3_world_converter::convert(volume* s) {
 	CHECK(convert_release_events(s));
 
 
+	CHECK(convert_viz_output_events(s));
+
+
 	return true;
 }
 
@@ -130,6 +134,7 @@ bool mcell3_world_converter::convert_simulation_setup(volume* s) {
 	// TODO: many items are not checked
 	world->iterations = s->iterations;
 	world->time_unit = s->time_unit;
+	world->length_unit = s->length_unit;
 	world->seed_seq = s->seed_seq;
 	return true;
 }
@@ -155,7 +160,7 @@ bool mcell3_world_converter::convert_species_and_create_diffusion_events(volume*
   for (int i = 0; i < s->n_species; i++) {
   	species* spec = s->species_list[i];
   	// not sure what to do with these superclasses
-  	if (spec == s->all_mols || spec == s->all_surface_mols || spec == s->all_surface_mols)
+  	if (spec == s->all_mols || spec == s->all_volume_mols || spec == s->all_surface_mols)
   		continue;
 
   	if (spec->flags != 0) {
@@ -169,8 +174,8 @@ bool mcell3_world_converter::convert_species_and_create_diffusion_events(volume*
 		new_species.mcell3_species_id = spec->species_id;
 		new_species.D = spec->D;
 		new_species.name = get_sym_name(spec->sym);
-		new_species.space_step = spec->space_step;
-		new_species.time_step = spec->time_step;
+		new_species.space_step = spec->space_step * world->length_unit;
+		new_species.time_step = spec->time_step * world->time_unit;
 
 		world->species.push_back(new_species);
 
@@ -251,6 +256,48 @@ bool mcell3_world_converter::convert_release_events(volume* s) {
   CHECK_PROPERTY(releaser->defunct_count == 0);
   CHECK_PROPERTY(releaser->error == 0);
   CHECK_PROPERTY(releaser->depth == 0);
+
+	return true;
+}
+
+bool mcell3_world_converter::convert_viz_output_events(volume* s) {
+
+
+	// -- viz_output_block --
+	viz_output_block* viz_blocks = s->viz_blocks;
+  CHECK_PROPERTY(viz_blocks->next == nullptr);
+  CHECK_PROPERTY(viz_blocks->viz_mode == NO_VIZ_MODE || viz_blocks->viz_mode  == ASCII_MODE || viz_blocks->viz_mode == CELLBLENDER_MODE); // just checking valid values
+  viz_mode_t viz_mode = viz_blocks->viz_mode;
+  const char* file_prefix_name = world->add_const_string_to_pool(viz_blocks->file_prefix_name);
+  CHECK_PROPERTY(viz_blocks->viz_output_flag == VIZ_ALL_MOLECULES); // limited for now, TODO
+  CHECK_PROPERTY(viz_blocks->species_viz_states != nullptr && *viz_blocks->species_viz_states == 0x80000000); // not sure what this means
+  CHECK_PROPERTY(viz_blocks->default_mol_state == 0x7FFFFFFF); // not sure what this means
+
+  // -- frame_data_head --
+  frame_data_list* frame_data_head = viz_blocks->frame_data_head;
+  CHECK_PROPERTY(frame_data_head->next == nullptr);
+  CHECK_PROPERTY(frame_data_head->list_type == OUTPUT_BY_ITERATION_LIST); // limited for now
+  CHECK_PROPERTY(frame_data_head->type == ALL_MOL_DATA); // limited for now
+  CHECK_PROPERTY(frame_data_head->viz_iteration == 0); // must be zero at sim. start
+
+  num_expr_list* iteration_ptr = frame_data_head->iteration_list;
+  num_expr_list* curr_viz_iteration_ptr = frame_data_head->curr_viz_iteration;
+  for (long long i = 0; i < frame_data_head->n_viz_iterations; i++) {
+  	assert(iteration_ptr != nullptr);
+  	assert(curr_viz_iteration_ptr != nullptr);
+  	assert(iteration_ptr->value == curr_viz_iteration_ptr->value);
+
+  	// create an event for each iteration
+  	viz_output_event_t* event = new viz_output_event_t(world);
+  	event->event_time = iteration_ptr->value * world->time_unit;
+  	event->viz_mode = viz_mode;
+  	event->file_prefix_name = file_prefix_name;
+
+  	world->scheduler.schedule_event(event);
+
+  	iteration_ptr = iteration_ptr->next;
+  	curr_viz_iteration_ptr = curr_viz_iteration_ptr->next;
+  }
 
 	return true;
 }

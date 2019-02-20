@@ -43,6 +43,8 @@ void world_t::init() {
 
 bool world_t::run_simulation() {
 
+	init();
+
 	float_t time = TIME_SIMULATION_START;
 
 	// create event that will terminate our simulation

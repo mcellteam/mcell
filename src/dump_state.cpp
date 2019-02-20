@@ -41,23 +41,66 @@ void dump_species(species* spec, const char* name, const char* comment, const ch
 
 
 std::ostream & operator<<(std::ostream &out, const timeval &a) {
-    out << a.tv_sec << "s, " << a.tv_usec << "us";
-    return out;
+	out << a.tv_sec << "s, " << a.tv_usec << "us";
+	return out;
 }
 
 std::ostream & operator<<(std::ostream &out, const vector2 &a) {
-    out << "(" << a.u << ", " << a.v << ")";
-    return out;
+	out << "(" << a.u << ", " << a.v << ")";
+	return out;
 }
 
 std::ostream & operator<<(std::ostream &out, const vector3 &a) {
-    out << "(" << a.x << ", " << a.y << ", " << a.z << ")";
-    return out;
+	out << "(" << a.x << ", " << a.y << ", " << a.z << ")";
+	return out;
 }
 
 std::ostream & operator<<(std::ostream &out, const int3D &a) {
-    out << "(" << a.x << ", " << a.y << ", " << a.z << ")";
-    return out;
+	out << "(" << a.x << ", " << a.y << ", " << a.z << ")";
+	return out;
+}
+
+std::ostream & operator<<(std::ostream &out, const viz_mode_t &a) {
+  switch (a) {
+		case NO_VIZ_MODE: out << "NO_VIZ_MODE"; break;
+		case ASCII_MODE: out << "ASCII_MODE"; break;
+		case CELLBLENDER_MODE: out << "CELLBLENDER_MODE"; break;
+		default: assert(false);
+  }
+  return out;
+}
+
+std::ostream & operator<<(std::ostream &out, const output_timer_type_t &a) {
+  switch (a) {
+		case OUTPUT_BY_STEP: out << "OUTPUT_BY_STEP"; break;
+		case OUTPUT_BY_TIME_LIST: out << "OUTPUT_BY_TIME_LIST"; break;
+		case OUTPUT_BY_ITERATION_LIST: out << "OUTPUT_BY_ITERATION_LIST"; break;
+		default: assert(false);
+  }
+  return out;
+}
+
+std::ostream & operator<<(std::ostream &out, const viz_frame_type_t &a) {
+  switch (a) {
+		case MOL_POS: out << "MOL_POS"; break;
+		case MOL_ORIENT: out << "MOL_ORIENT"; break;
+		case ALL_MOL_DATA: out << "ALL_MOL_DATA"; break;
+		case NUM_FRAME_TYPES: out << "NUM_FRAME_TYPES"; break;
+		default: assert(false);
+  }
+  return out;
+}
+
+
+std::ostream & operator<<(std::ostream &out, const num_expr_list* a) {
+	out << "(";
+	const num_expr_list* p = a;
+	while (p != nullptr) {
+		out << p->value << ", ";
+		p = p->next;
+	}
+	out << ")";
+  return out;
 }
 
 
@@ -635,6 +678,73 @@ void dump_species_list(int n_species, const char* num_name, species** species_li
   }
 }
 
+
+
+string viz_output_flag_to_str(u_short flag) {
+	string res = "";
+
+	if (flag & VIZ_ALL_MOLECULES) {
+		res += "VIZ_ALL_MOLECULES";
+	}
+	if (flag & VIZ_MOLECULES_STATES) {
+		res += "VIZ_MOLECULES_STATES";
+	}
+	if (flag & VIZ_SURFACE_STATES) {
+		res += "VIZ_SURFACE_STATES";
+	}
+
+	if (res == "") {
+		res = "NONE";
+	}
+	return res;
+}
+
+
+
+void dump_frame_data_list(frame_data_list* frame_data_head, const char* name, const char* comment, const char* ind) {
+	DECL_IND2(ind);
+  cout << ind << name << ": *\t\t" << frame_data_head << " [frame_data_list] \t\t" << comment << "\n";
+
+  cout << ind2 << "next: *\t\t" << frame_data_head->next << " [frame_data_list] \t\t\n";
+
+  cout << ind2 << "list_type: \t\t" << frame_data_head->list_type << " [output_timer_type_t] \t\t/* Data Output Timing Type (OUTPUT_BY_TIME_LIST, etc) */\n";
+  cout << ind2 << "type: \t\t" << frame_data_head->type << " [viz_frame_type_t] \t\t/* Visualization Frame Data Type (ALL_FRAME_DATA, etc) */\n";
+  cout << ind2 << "viz_iteration: \t\t" << frame_data_head->viz_iteration << " [long long] \t\t/* Value of the current iteration step. */\n";
+  cout << ind2 << "n_viz_iterations: \t\t" << frame_data_head->n_viz_iterations << " [long long] \t\t/* Number of iterations in the iteration_list. */\n";
+
+  cout << ind2 << "iteration_list: *\t\t" << frame_data_head->iteration_list << " [num_expr_list] \t\t/* Linked list of iteration steps values */\n";
+  cout << ind2 << "curr_viz_iteration: *\t\t" << frame_data_head->curr_viz_iteration << " [num_expr_list] \t\t/* Points to the current iteration in the linked list */\n";
+}
+
+void dump_viz_output_block(viz_output_block* viz_blocks, const char* name, const char* comment, const char* ind) {
+	DECL_IND2(ind);
+	cout << ind << name << ": *\t\t" << (void*)viz_blocks << " [viz_output_block] \t\t" << comment << "\n";
+
+  cout << ind2 << "next: *\t\t" << viz_blocks->next << " [viz_output_block] \t\t/* Link to next block */\n";
+
+  dump_frame_data_list(viz_blocks->frame_data_head, "frame_data_head", "/* head of the linked list of viz frames to output */", ind2);
+
+
+  cout << ind2 << "viz_mode: \t\t" << viz_blocks->viz_mode << " [viz_mode_t] \t\t\n";
+  cout << ind2 << "file_prefix_name: *\t\t" << viz_blocks->file_prefix_name << " [char] \t\t\n";
+
+  cout << ind2 << "viz_output_flag: \t\t" << viz_output_flag_to_str(viz_blocks->viz_output_flag) << " [u_short] \t\t/* Takes VIZ_ALL_MOLECULES, VIZ_MOLECULES_STATES, etc. */\n";
+
+
+  if (viz_blocks->species_viz_states == nullptr) {
+  	cout << ind2 << "species_viz_states: *\t\t" << viz_blocks->species_viz_states << " [int (ptr)] \t\t\n";
+  }
+  else {
+  	cout << ind2 << "species_viz_states: \t\t" << *viz_blocks->species_viz_states << " [int] \t\t\n";
+  }
+
+  cout << ind2 << "default_mol_state: \t\t" << viz_blocks->default_mol_state << " [int] \t\t// Only set if (viz_output_flag & VIZ_ALL_MOLECULES)\n";
+
+  /* Parse-time only: Tables to hold temporary information. */
+  //struct pointer_hash parser_species_viz_states;
+
+}
+
 extern "C" void dump_volume(struct volume* s, const char* comment, unsigned int selected_details /* mask */) {
 
   cout << "********* volume dump :" << comment << "************ (START)\n";
@@ -762,8 +872,7 @@ extern "C" void dump_volume(struct volume* s, const char* comment, unsigned int 
   cout << "elapsed_time: \t\t" << s->elapsed_time << " [double] \t\t/* Used for concentration measurement */\n";
 
   /* Visualization state */
-  cout << "viz_blocks: *\t\t" << (void*)s->viz_blocks << " [viz_output_block] \t\t/* VIZ_OUTPUT blocks from file */\n";
-  dump_viz_output_block(s->viz_blocks, "viz_blocks", "/* VIZ_OUTPUT blocks from file */");
+  dump_viz_output_block(s->viz_blocks, "viz_blocks", "/* VIZ_OUTPUT blocks from file */", "");
 
   dump_species(s->all_mols, "all_mols", "/* Refers to ALL_MOLECULES keyword */", "");
   dump_species(s->all_volume_mols, "all_volume_mols", "/* Refers to ALL_VOLUME_MOLECULES keyword */", "");
@@ -772,7 +881,7 @@ extern "C" void dump_volume(struct volume* s, const char* comment, unsigned int 
   cout << "time_unit: \t\t" << s->time_unit << " [double] \t\t/* Duration of one global time step in real time, Used to convert between real time and internal time */\n";
   cout << "time_step_max: \t\t" << s->time_step_max << " [double] \t\t/* Maximum internal time that a molecule may diffuse */\n";
 
-  cout << "grid_density: \t\t" << s->grid_density << " [[double] \t\t/* Density of grid for surface molecules, number per um^2 */";
+  cout << "grid_density: \t\t" << s->grid_density << " [[double] \t\t/* Density of grid for surface molecules, number per um^2 */\n";
   cout << "length_unit: \t\t" << s->length_unit << " [double] \t\t/* Internal unit of distance, 1/sqrt(grid_density), in microns\n";
 
   cout << "r_length_unit: \t\t" << s->r_length_unit << " [double] \t\t/* Reciprocal of length_unit to avoid division */\n";

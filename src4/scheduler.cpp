@@ -28,16 +28,27 @@ namespace mcell {
 
 
 void bucket_t::insert(base_event_t* event) {
+	// TODO: order by time dependence - enum value sets the ordering when the time of event is the same
+
 	// check right away if it does not belong to the end
-	if (events.empty() || events.back()->event_time <= event->event_time) {
+	if (events.empty() || cmp_lt(events.back()->event_time, event->event_time, SCHEDULER_COMPARISON_EPS)) {
 		events.push_back(event);
 	}
 	else {
-		// simply go through the list and put our item to the right time
+		// simply go through the list and put our item to the right time and right order
 		auto it = events.begin();
-		while (it != events.end() && (*it)->event_time <= event->event_time) {
+
+		// eps - 10-8
+		// find the right time
+		while (it != events.end() && cmp_lt((*it)->event_time, event->event_time, SCHEDULER_COMPARISON_EPS)) {
 			it++;
 		}
+		// find the right ordering
+		while (it != events.end() && cmp_eq((*it)->event_time, event->event_time, SCHEDULER_COMPARISON_EPS)
+				&& (*it)->type_index < event->type_index) {
+			it++;
+		}
+
 		events.insert(it, event);
 	}
 }
@@ -75,6 +86,8 @@ void calendar_t::insert(base_event_t* event) {
 				queue.push_back(bucket_t(next_time));
 				next_time += BUCKET_TIME_INTERVAL;
 			}
+			assert(buckets_from_first < queue.size());
+			queue[buckets_from_first].insert(event);
 		}
 
 	}
@@ -102,6 +115,9 @@ float_t scheduler_t::handle_next_event(bool &end_simulation) {
 	assert(event != NULL && "Empty event queue - at least end simulation event should be present");
 	float_t event_time = event->event_time;
 
+#ifdef DEBUG_SCHEDULER
+	event->dump("");
+#endif
 	event->step();
 
 	// schedule itself for the next period or just delete
@@ -113,7 +129,7 @@ float_t scheduler_t::handle_next_event(bool &end_simulation) {
 		delete event;
 	}
 
-	end_simulation = event->type == EVENT_TYPE_END_SIMULATION;
+	end_simulation = event->type_index == EVENT_TYPE_INDEX_END_SIMULATION;
 	return event_time;
 }
 

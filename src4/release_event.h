@@ -31,7 +31,7 @@ namespace mcell {
 class release_event_t: public base_event_t {
 public:
 	release_event_t(world_t* world_) :
-		base_event_t(EVENT_TYPE_RELEASE),
+		base_event_t(EVENT_TYPE_INDEX_RELEASE),
 		species_id(SPECIES_ID_INVALID),
 		release_number(0),
 		world(world_) {

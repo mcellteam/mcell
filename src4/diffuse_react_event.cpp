@@ -25,19 +25,33 @@ extern "C" {
 #include "rng.h" // MCell 3
 }
 
+#include <iostream>
+
 #include "diffuse_react_event.h"
 #include "world.h"
 #include "partition.h"
 
 
+using namespace std;
+
 namespace mcell {
+
+void diffuse_react_event_t::dump(const std::string indent) {
+	cout << indent << "Diffuse-react event:\n";
+	std::string ind2 = indent + "  ";
+	base_event_t::dump(ind2);
+	cout << ind2 << "diffusion_time_step: \t\t" << diffusion_time_step << " [float_t] \t\t\n";
+}
+
 
 void diffuse_react_event_t::step() {
 	// for each partition
 	for (partition_t& p: world->partitions) {
 		// 1) select the right list of molecules from volume_molecule_indices_per_time_step
 		uint32_t list_index = p.get_molecule_list_index_for_time_step(diffusion_time_step);
-		diffuse_molecules(p, p.volume_molecule_indices_per_time_step[list_index].second);
+		if (list_index != PARTITION_INDEX_INVALID) {
+			diffuse_molecules(p, p.volume_molecule_indices_per_time_step[list_index].second);
+		}
 	}
 }
 

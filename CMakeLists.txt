@@ -171,7 +171,7 @@ set(SOURCE_FILES
     src4/species.cpp
     src4/world.cpp
     src4/defines.cpp
-
+    src4/viz_output_event.cpp
     
     )
 

@@ -39,7 +39,7 @@ class species_t;
 class diffuse_react_event_t : public base_event_t {
 public:
 	diffuse_react_event_t(world_t* world_, float_t diffusion_time_step_) :
-		base_event_t(EVENT_TYPE_DIFFUSE_REACT),
+		base_event_t(EVENT_TYPE_INDEX_DIFFUSE_REACT),
 		world(world_),
 		diffusion_time_step(diffusion_time_step_) {
 
@@ -47,9 +47,7 @@ public:
 		periodicity_interval = diffusion_time_step;
 	}
 	void step();
-	void dump(const std::string indent) {
-		// TODO
-	}
+	void dump(const std::string indent);
 
 	world_t* world;
 

@@ -70,6 +70,8 @@ public:
 
 	bool convert_release_events(volume* s);
 
+	bool convert_viz_output_events(volume* s);
+
 	// contained world object
 	world_t* world;
 

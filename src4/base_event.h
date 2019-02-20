@@ -31,13 +31,15 @@ namespace mcell {
 
 class world_t;
 
-enum event_type_t {
-	EVENT_TYPE_INVALID,
-	EVENT_TYPE_END_SIMULATION,
-	EVENT_TYPE_RELEASE,
-	EVENT_TYPE_DIFFUSE_REACT,
-	EVENT_TYPE_VIZ_OUTPUT
-};
+typedef int event_type_index_t;
+
+// Value specifies ordering when two events are scheduled for exactly the same time
+// The 'holes' are there on purpose for ordering of external events
+const event_type_index_t EVENT_TYPE_INDEX_INVALID = -1;
+const event_type_index_t EVENT_TYPE_INDEX_DIFFUSE_REACT = 100;
+const event_type_index_t EVENT_TYPE_INDEX_RELEASE = 200;
+const event_type_index_t EVENT_TYPE_INDEX_VIZ_OUTPUT = 300;
+const event_type_index_t EVENT_TYPE_INDEX_END_SIMULATION = 400;
 
 /**
  * Base class for all events.
@@ -46,12 +48,12 @@ enum event_type_t {
  */
 class base_event_t {
 public:
-	base_event_t(const event_type_t t) :
-		event_time(TIME_INVALID), periodicity_interval(0), type(t) {
+	base_event_t(const event_type_index_t t) :
+		event_time(TIME_INVALID), periodicity_interval(0), type_index(t) {
 	}
 	virtual ~base_event_t() {};
 	virtual void step() = 0;
-	virtual void dump(const std::string indent) = 0;
+	virtual void dump(const std::string indent);
 
 	float_t event_time;
 
@@ -59,10 +61,9 @@ public:
 	// do not schedule if the value is 0
 	float_t periodicity_interval;
 
-	// we do not want to use C++ RTTI (runtime type identification),
-	// instead each superclass sets its own type
-	event_type_t type;
-
+	// this value specifies both id of the event and ordering when multiple
+	// events of a different type are sheduled for the same time
+	event_type_index_t type_index;
 };
 
 }

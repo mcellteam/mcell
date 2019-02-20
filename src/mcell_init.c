@@ -89,10 +89,12 @@ void mcell_set_seed(MCELL_STATE *state, int seed) {
  *
  ************************************************************************/
 MCELL_STATE *mcell_create() {
+#ifdef _NDEBUG
   // signal handlers
   if (install_usr_signal_handlers()) {
     return NULL;
   }
+#endif
 
   // logging
   mcell_set_log_file(stdout);
