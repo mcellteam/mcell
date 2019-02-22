@@ -57,6 +57,7 @@ public:
 				pair_time_step_volume_molecules_t(time_step, std::vector< molecule_index_t >()));
 			res = volume_molecule_indices_per_time_step.size() - 1;
 		}
+		return res;
 	}
 
 	bool in_this_partition(const vec3_t& pos) {

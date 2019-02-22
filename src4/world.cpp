@@ -30,7 +30,7 @@ extern "C" {
 namespace mcell {
 
 void world_t::init() {
-	rng_init(&rng, seed_seq);
+	//rng_init(&rng, seed_seq); - already called in mcell3
 
 	partition_edge_length = PARTITION_EDGE_LENGTH_DEFAULT;
 

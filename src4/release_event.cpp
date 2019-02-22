@@ -20,6 +20,9 @@
  * USA.
  *
 ******************************************************************************/
+extern "C" {
+#include "rng.h" // MCell 3
+}
 
 #include <iostream>
 
@@ -47,11 +50,50 @@ void release_event_t::step() {
 	// at 'location'
 
 	partition_t& p = world->partitions[world->get_or_add_partition_index(location)];
-	volume_molecule_t m(species_id, location);
 	float_t time_step = world->species[species_id].time_step;
 	uint32_t time_step_index = p.get_or_add_molecule_list_index_for_time_step(time_step);
 
+  const int is_spheroidal = (release_shape == SHAPE_SPHERICAL ||
+                             release_shape == SHAPE_ELLIPTIC ||
+                             release_shape == SHAPE_SPHERICAL_SHELL);
+
 	for (uint32_t i = 0; i < release_number; i++) {
+		// TODO: this might use some refactoring
+		vec3_t pos;
+		do /* Pick values in unit square, toss if not in unit circle */
+		{
+			pos.x = (rng_dbl(&world->rng) - 0.5);
+			pos.y = (rng_dbl(&world->rng) - 0.5);
+			pos.z = (rng_dbl(&world->rng) - 0.5);
+		} while (is_spheroidal &&
+						 pos.x * pos.x + pos.y * pos.y + pos.z * pos.z >= 0.25);
+
+    if (release_shape == SHAPE_SPHERICAL_SHELL) {
+      float_t r = sqrt(pos.x * pos.x + pos.y * pos.y + pos.z * pos.z) * 2.0;
+      if (r == 0.0) {
+        pos.x = 0.0;
+        pos.y = 0.0;
+        pos.z = 0.5;
+      } else {
+        pos /= r;
+      }
+    }
+
+    float_t base_location[1][4];
+    base_location[0][0] = pos.x * diameter.x + location.x;
+    base_location[0][1] = pos.y * diameter.y + location.y;
+    base_location[0][2] = pos.z * diameter.z + location.z;
+    base_location[0][3] = 1;
+
+    //TODO: t_matrix can be only identyty matrix for now, also use glm matrix mult.
+    // mult_matrix(location, req->t_matrix, location, 1, 4, 4);
+
+    vec3_t molecule_location;
+    molecule_location.x = base_location[0][0];
+    molecule_location.y = base_location[0][1];
+    molecule_location.z = base_location[0][2];
+
+		volume_molecule_t m(species_id, molecule_location);
 		p.add_volume_molecule(m, time_step_index);
 	}
 

@@ -68,6 +68,7 @@ static struct option long_options[] = { { "help", 0, 0, 'h' },
                                         { "quiet", 0, 0, 'q' },
                                         { "with_checks", 1, 0, 'w' },
                                         { "rules", 1, 0, 'r'},
+																				{ "mcell4", 0, 0, 'n'},
                                         { NULL, 0, 0, 0 } };
 
 /* print_usage: Write the usage message for mcell to a file handle.

@@ -136,6 +136,7 @@ bool mcell3_world_converter::convert_simulation_setup(volume* s) {
 	world->time_unit = s->time_unit;
 	world->length_unit = s->length_unit;
 	world->seed_seq = s->seed_seq;
+	world->rng = *s->rng;
 	return true;
 }
 
@@ -221,7 +222,7 @@ bool mcell3_world_converter::convert_release_events(volume* s) {
 			event->species_id = get_new_species_id(rel_site->mol_type->species_id);
 
 			CHECK_PROPERTY(rel_site->release_number_method == 0);
-			CHECK_PROPERTY(rel_site->release_shape == 0);
+			event->release_shape = rel_site->release_shape;
 			CHECK_PROPERTY(rel_site->orientation == 0);
 
 			event->release_number = rel_site->release_number;
@@ -230,7 +231,7 @@ bool mcell3_world_converter::convert_release_events(volume* s) {
 			CHECK_PROPERTY(rel_site->concentration == 0); // temporary
 			CHECK_PROPERTY(rel_site->standard_deviation == 0); // temporary
 			assert(rel_site->diameter != nullptr);
-			CHECK_PROPERTY(vec3_t(*rel_site->diameter) == vec3_t(0,0,0)); // temporary
+			event->diameter = *rel_site->diameter; // temporary
 			CHECK_PROPERTY(rel_site->region_data == nullptr); // temporary?
 			CHECK_PROPERTY(rel_site->mol_list == nullptr);
 			CHECK_PROPERTY(rel_site->release_prob == 1); // temporary
