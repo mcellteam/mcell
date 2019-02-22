@@ -59,7 +59,8 @@ static int digits_for_file_suffix(uint64_t iterations) {
 
 FILE* viz_output_event_t::create_and_open_output_file_name() {
 	int ndigits = digits_for_file_suffix(world->iterations);
-	long long current_iteration = event_time / world->time_unit;
+	long long current_iteration = round(event_time / world->time_unit); // FIXME: usage of round might be a little shaky here, maybe we will need a better way how to get the iteration index
+  fprintf(stderr, "***dumps: %lld\n", current_iteration);
 	const char* type_name = (viz_mode == ASCII_MODE) ? "ascii" : "cellbin";
   char* cf_name =
   		CHECKED_SPRINTF("%s.%s.%.*lld.dat", file_prefix_name, type_name, ndigits, current_iteration);
@@ -79,6 +80,7 @@ FILE* viz_output_event_t::create_and_open_output_file_name() {
   return custom_file;
 }
 
+
 void viz_output_event_t::output_ascii_molecules() {
 	// assuming that fdlp->type == ALL_MOL_DATA
 	FILE *custom_file = create_and_open_output_file_name();
@@ -90,9 +92,11 @@ void viz_output_event_t::output_ascii_molecules() {
 			std::string species_name = world->species[m.species_id].name;
 #if FLOAT_T_BYTES == 8
 			// TODO: norm
+			errno = 0;
       fprintf(custom_file, "%s %lu %.9g %.9g %.9g %.9g %.9g %.9g\n",
       		species_name.c_str(), id, m.pos.x, m.pos.y, m.pos.z, 0.0, 0.0, 0.0
 			);
+      assert(errno == 0);
 #else
 #error "Marker for float type"
 #endif
@@ -100,7 +104,9 @@ void viz_output_event_t::output_ascii_molecules() {
 		}
 	}
 
+	errno = 0;
   fclose(custom_file);
+  assert(errno == 0);
 }
 
 void viz_output_event_t::output_cellblender_molecules() {
