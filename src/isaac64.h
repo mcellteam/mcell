@@ -60,8 +60,39 @@ struct isaac64_state {
 
 void isaac64_init(struct isaac64_state *rng, ub4 seed);
 
-void isaac64_generate(struct isaac64_state *rng);
+#define ind(mm, x) (*(ub8 *)((ub1 *)(mm) + ((x) & ((RANDSIZ - 1) << 3))))
 
+#define rngstep(mix, a, b, mm, m, m2, r, x)                                    \
+  {                                                                            \
+    x = *m;                                                                    \
+    a = (mix) + *(m2++);                                                       \
+    *(m++) = y = ind(mm, x) + a + b;                                           \
+    *(r++) = b = ind(mm, y >> RANDSIZL) + x;                                   \
+  }
+
+static inline void isaac64_generate(struct isaac64_state *rng) {
+  register ub8 a, b, x, y, *m, *m2, *r, *mend;
+
+  m = rng->mm;
+  r = rng->randrsl;
+  a = rng->aa;
+  b = rng->bb + (++rng->cc);
+  for (m = rng->mm, mend = m2 = m + (RANDSIZ / 2); m < mend;) {
+    rngstep(~(a ^ (a << 21)), a, b, rng->mm, m, m2, r, x);
+    rngstep(a ^ (a >> 5), a, b, rng->mm, m, m2, r, x);
+    rngstep(a ^ (a << 12), a, b, rng->mm, m, m2, r, x);
+    rngstep(a ^ (a >> 33), a, b, rng->mm, m, m2, r, x);
+  }
+  for (m2 = rng->mm; m2 < mend;) {
+    rngstep(~(a ^ (a << 21)), a, b, rng->mm, m, m2, r, x);
+    rngstep(a ^ (a >> 5), a, b, rng->mm, m, m2, r, x);
+    rngstep(a ^ (a << 12), a, b, rng->mm, m, m2, r, x);
+    rngstep(a ^ (a >> 33), a, b, rng->mm, m, m2, r, x);
+  }
+  rng->bb = b;
+  rng->aa = a;
+  ++rng->rngblocks;
+}
 /*
 ------------------------------------------------------------------------------
 Macros to get individual random numbers

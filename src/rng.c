@@ -55,12 +55,9 @@
  *    The Ziggurat method for generating random variables -
  *        Marsaglia, Tsang - 2000
  *************************************************************************/
-#define R_VALUE (3.442619855899)
-static const double SCALE_FACTOR = R_VALUE;
-static const double RECIP_SCALE_FACTOR = 1.0 / R_VALUE;
 
 /* Tabulated PDF at ends of strips */
-static const double YTAB[128] = {
+const double YTAB[128] = {
   1.0000000000000, 0.96359862301100, 0.93628081335300, 0.91304110425300,
   0.8922785066960, 0.87323935691900, 0.85549640763400, 0.83877892834900,
   0.8229020836990, 0.80773273823400, 0.79317104551900, 0.77913972650500,
@@ -97,7 +94,7 @@ static const double YTAB[128] = {
 
 /* Tabulated 'K' for quick out on strips (strip #0 at bottom, strips
  * 1...127 counting down from the top */
-static const unsigned long KTAB[128] = {
+const unsigned long KTAB[128] = {
   3961069056u, 0u,          3223204864u, 3653799168u, 3837168384u, 3938453504u,
   4002562304u, 4046735616u, 4078995712u, 4103576064u, 4122919680u, 4138533632u,
   4151398144u, 4162178048u, 4171339520u, 4179219968u, 4186068736u, 4192074496u,
@@ -124,7 +121,7 @@ static const unsigned long KTAB[128] = {
 
 /* Tabulated 'W' - scale for output values which aren't in the tails.
  */
-static const double WTAB[128] = {
+const double WTAB[128] = {
   8.6953453083203121e-10, 6.3405591725390621e-11, 8.4488869224218753e-11,
   9.9314962924609369e-11, 1.1116387731953125e-10, 1.2122657128203126e-10,
   1.3008270556367187e-10, 1.3806213294726563e-10, 1.4537213775703125e-10,
@@ -170,50 +167,3 @@ static const double WTAB[128] = {
   7.5064859720703123e-10, 8.0193543731249999e-10,
 };
 
-/*************************************************************************
-rng_gauss:
-  In:  struct rng_state *rng - uniform RNG state
-  Out: Returns a Gaussian variate (mean 0, variance 1)
- *************************************************************************/
-double rng_gauss(struct rng_state *rng) {
-  double x, y;
-  double sign = 1.0;
-
-  int npasses = 0;
-  do {
-    unsigned long bits = rng_uint(rng);
-    unsigned long region, pos_within_region;
-    ++npasses;
-
-    /* Partition bits:
-     *    - Bits 0...7: select a region under the curve
-     *    - Bit 8:      sign bit
-     *    - Bits 9...31 pick a point within the region
-     * */
-    sign = (bits & 0x80) ? -1.0 : 1.0;
-    region = bits & 0x0000007f;
-    pos_within_region = bits & 0xffffff00;
-
-    /* Compute our X, and check if the X value lies entirely under the
-     * curve for the chosen region */
-    x = pos_within_region * WTAB[region];
-    if (pos_within_region < KTAB[region])
-      break;
-
-    /* If we're in one of the 127 cheap regions */
-    if (region != 0) {
-      double yR, yB;
-      yB = YTAB[region];
-      yR = YTAB[region - 1] - yB;
-      y = yB + yR * rng_dbl(rng);
-    }
-
-    /* If we're in the expensive region */
-    else {
-      x = SCALE_FACTOR - log1p(-rng_dbl(rng)) * RECIP_SCALE_FACTOR;
-      y = exp(-SCALE_FACTOR * (x - 0.5 * SCALE_FACTOR)) * rng_dbl(rng);
-    }
-  } while (y >= exp(-0.5 * x * x));
-
-  return sign * x;
-}
