@@ -48,13 +48,22 @@ elseif (WIN32)
                      copy ${CMAKE_SOURCE_DIR}/appveyor_windows/version.h ${CMAKE_CURRENT_BINARY_DIR}/deps )
 endif()
 
-set(CMAKE_C_FLAGS "-Wall -Wextra -Wshadow -Wno-unused-parameter -D_GNU_SOURCE=1 -O2 -std=c11 ${CMAKE_C_FLAGS}" )
+set(OPTIMIZATION_FLAGS "-march=core2 -O2")
+set(CMAKE_C_FLAGS "-Wall -Wextra -Wshadow -Wno-unused-parameter -D_GNU_SOURCE=1 ${OPTIMIZATION_FLAGS} -std=c11 ${CMAKE_C_FLAGS}" )
+set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wshadow -Wno-unused-parameter -D_GNU_SOURCE=1 ${OPTIMIZATION_FLAGS} ${CMAKE_CXX_FLAGS}" )
+
 if (NOT WIN32)
   # check for needed libraries
   find_library(M_LIB m)
   set(CMAKE_EXE_LINKER_FLAGS ${M_LIB})
 elseif (WIN32)
   set(CMAKE_EXE_LINKER_FLAGS "-lm")
+endif()
+
+if (PROFILING STREQUAL "ON")
+  set(CMAKE_C_FLAGS "-pg ${CMAKE_C_FLAGS}")
+  set(CMAKE_CXX_FLAGS "-pg ${CMAKE_CXX_FLAGS}")
+  set(CMAKE_EXE_LINKER_FLAGS "-pg ${CMAKE_EXE_LINKER_FLAGS}")
 endif()
 
 set(SOURCE_FILES
