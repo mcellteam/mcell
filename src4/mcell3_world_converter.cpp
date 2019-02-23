@@ -49,7 +49,7 @@ using namespace std;
 #define CHECK(a) do { if(!(a)) return false; } while (0)
 
 // checking assumptions
-#define CHECK_PROPERTY(cond) do { if(!(cond)) { mcell_log_conv_error("Expected '%s' is false. (%s:%d)", #cond, __FILE__, __LINE__); return false; } } while (0)
+#define CHECK_PROPERTY(cond) do { if(!(cond)) { mcell_log_conv_error("Expected '%s' is false. (%s - %s:%d)\n", #cond, __FUNCTION__, __FILE__, __LINE__); return false; } } while (0)
 
 // asserts - things that can never occur and will 'never' be supported
 
@@ -161,12 +161,8 @@ bool mcell3_world_converter::convert_species_and_create_diffusion_events(volume*
   for (int i = 0; i < s->n_species; i++) {
   	species* spec = s->species_list[i];
   	// not sure what to do with these superclasses
-  	if (spec == s->all_mols || spec == s->all_volume_mols || spec == s->all_surface_mols)
+  	if (spec == s->all_mols || spec == s->all_volume_mols || spec == s->all_surface_mols) {
   		continue;
-
-  	if (spec->flags != 0) {
-  		mcell_log_conv_error("Species with index %d: only flags == 0 are supported");
-  		return false;
   	}
 
 		species_t new_species;
@@ -177,6 +173,9 @@ bool mcell3_world_converter::convert_species_and_create_diffusion_events(volume*
 		new_species.name = get_sym_name(spec->sym);
 		new_species.space_step = spec->space_step * world->length_unit;
 		new_species.time_step = spec->time_step * world->time_unit;
+
+		CHECK_PROPERTY(spec->flags == 0 || spec->flags == SPECIES_FLAG_CAN_VOLVOL);
+		new_species.flags = spec->flags;
 
 		world->species.push_back(new_species);
 
@@ -201,7 +200,6 @@ bool mcell3_world_converter::convert_release_events(volume* s) {
 	CHECK_PROPERTY(releaser->index == 0);
 
   for (int i = -1; i < releaser->buf_len; i++) {
-  	int k = 0;
     for (abstract_element *aep = (i < 0) ? releaser->current
                                                 : releaser->circ_buf_head[i];
          aep != NULL; aep = aep->next) {
@@ -266,12 +264,15 @@ bool mcell3_world_converter::convert_viz_output_events(volume* s) {
 
 	// -- viz_output_block --
 	viz_output_block* viz_blocks = s->viz_blocks;
+	if (viz_blocks == nullptr) {
+		return true; // no visualization data
+	}
   CHECK_PROPERTY(viz_blocks->next == nullptr);
   CHECK_PROPERTY(viz_blocks->viz_mode == NO_VIZ_MODE || viz_blocks->viz_mode  == ASCII_MODE || viz_blocks->viz_mode == CELLBLENDER_MODE); // just checking valid values
   viz_mode_t viz_mode = viz_blocks->viz_mode;
   const char* file_prefix_name = world->add_const_string_to_pool(viz_blocks->file_prefix_name);
   CHECK_PROPERTY(viz_blocks->viz_output_flag == VIZ_ALL_MOLECULES); // limited for now, TODO
-  CHECK_PROPERTY(viz_blocks->species_viz_states != nullptr && *viz_blocks->species_viz_states == 0x80000000); // not sure what this means
+  CHECK_PROPERTY(viz_blocks->species_viz_states != nullptr && *viz_blocks->species_viz_states == (int)0x80000000); // not sure what this means
   CHECK_PROPERTY(viz_blocks->default_mol_state == 0x7FFFFFFF); // not sure what this means
 
   // -- frame_data_head --

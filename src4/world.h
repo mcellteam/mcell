@@ -69,7 +69,6 @@ public:
 		vec3_t origin = floor_to_multiple(pos, partition_edge_length) - vec3_t(partition_edge_length/2);
 
 		partitions.push_back(partition_t(origin, partition_edge_length));
-		partition_t& new_partition = partitions.back();
 
 		return partitions.size() - 1;
 	}

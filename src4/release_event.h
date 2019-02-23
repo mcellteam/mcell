@@ -34,8 +34,9 @@ public:
 		base_event_t(EVENT_TYPE_INDEX_RELEASE),
 		species_id(SPECIES_ID_INVALID),
 		release_number(0),
-		world(world_),
-		release_shape(SHAPE_SPHERICAL) {
+		name(NAME_INVALID),
+		release_shape(SHAPE_SPHERICAL),
+		world(world_) {
 	}
 	virtual ~release_event_t() {}
 
