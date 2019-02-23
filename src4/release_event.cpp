@@ -22,6 +22,7 @@
 ******************************************************************************/
 extern "C" {
 #include "rng.h" // MCell 3
+#include "isaac64.h"
 }
 
 #include <iostream>

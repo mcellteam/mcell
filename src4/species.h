@@ -29,6 +29,9 @@
 
 namespace mcell {
 
+// same as in mcell_structs but renamed to make sure it is used correctly
+#define SPECIES_FLAG_CAN_VOLVOL CAN_VOLVOL
+
 class species_t {
 public:
 	species_id_t species_id;
@@ -38,6 +41,8 @@ public:
 	std::string name;
 	float_t space_step;
 	float_t time_step; // in standard time
+
+	uint32_t flags; // replace with some bitfield?
 
 	void dump(const std::string ind);
 };

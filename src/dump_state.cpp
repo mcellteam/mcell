@@ -514,6 +514,7 @@ void dump_release_site_obj(release_site_obj* rel_site, const char* ind) {
   cout << ind2 << "location: *\t\t" << *rel_site->location << " [vector3] \t\t/* location of release site */\n";
   cout << ind2 << "mol_type: *\t\t" << (void*)rel_site->mol_type << " [species] \t\t/* species to be released */\n";
   //dump_species(rel_site->mol_type, "mol_type", "/* species to be released */", ind2);
+  cout << ind2 << "  mol_type (name): *\t\t" << rel_site->mol_type->sym->name << "\n";
 
   cout << ind2 << "release_number_method: \t\t" << (unsigned)rel_site->release_number_method << " [byte] \t\t/* Release Number Flags: controls how release_number is used (enum release_number_type_t) */\n";
   cout << ind2 << "release_shape: \t\t" << (int)rel_site->release_shape << " [int8_t] \t\t/* Release Shape Flags: controls shape over which to release (enum release_shape_t) */\n";
@@ -525,25 +526,18 @@ void dump_release_site_obj(release_site_obj* rel_site, const char* ind) {
   cout << ind2 << "diameter: *\t\t" << *rel_site->diameter << " [vector3] \t\t/* x,y,z diameter for geometrical release shapes */\n";
 
   cout << ind2 << "region_data: *\t\t" << (void*)rel_site->region_data << " [release_region_data] \t\t/* Information related to release on regions */\n";
-
   cout << ind2 << "mol_list: *\t\t" << (void*)rel_site->mol_list << " [release_single_molecule] \t\t/* Information related to release by list */\n";
-
   cout << ind2 << "release_prob: \t\t" << rel_site->release_prob << " [double] \t\t/* Probability of releasing at scheduled time */\n";
-
   cout << ind2 << "periodic_box: *\t\t" << (void*)rel_site->periodic_box << " [periodic_image] \t\t\n";
-
   cout << ind2 << "pattern: *\t\t" << (void*)rel_site->pattern << " [release_pattern] \t\t/* Timing of releases by virtual function generator */\n";
-
   cout << ind2 << "name: *\t\t" << rel_site->name << " [char] \t\t/* Fully referenced name of the instantiated release_site */\n";
-
   cout << ind2 << "graph_pattern: *\t\t" << (void*)rel_site->graph_pattern << " [char] \t\t/* JJT: Graph definition of the structured molecules being released in this site*/\n";
-
 }
 
 void dump_release_event_queue(release_event_queue* req, const char* ind) {
 
 	DECL_IND2(ind);
-	cout << ind << "release_event_queue:\n";
+	cout << ind << "release_event_queue :" << (void*)req << "\n";
   cout << ind2 << "event_time: \t\t" << req->event_time << " [double] \t\t/* Time of the release */\n";
   cout << ind2 << "release_site: *\t\t" << (void*)req->release_site << " [release_site_obj] \t\t/* What to release, where to release it, etc */\n";
   dump_release_site_obj(req->release_site, ind2);
@@ -553,8 +547,8 @@ void dump_release_event_queue(release_event_queue* req, const char* ind) {
 
   cout << ind2 << "next: \t\t" << (void*)req->next << "\n";
 
-  if (req->next != NULL)
-  	dump_release_event_queue(req->next, ind);
+  //if (req->next != NULL)
+  //	dump_release_event_queue(req->next, ind);
 }
 
 void dump_schedule_helper(schedule_helper* shp, const char* name, const char* comment, const char* ind) {
@@ -719,6 +713,9 @@ void dump_frame_data_list(frame_data_list* frame_data_head, const char* name, co
 void dump_viz_output_block(viz_output_block* viz_blocks, const char* name, const char* comment, const char* ind) {
 	DECL_IND2(ind);
 	cout << ind << name << ": *\t\t" << (void*)viz_blocks << " [viz_output_block] \t\t" << comment << "\n";
+	if (viz_blocks == nullptr) {
+		return;
+	}
 
   cout << ind2 << "next: *\t\t" << viz_blocks->next << " [viz_output_block] \t\t/* Link to next block */\n";
 

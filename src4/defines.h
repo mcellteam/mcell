@@ -41,7 +41,7 @@
 
 
 // diverse debug macros
-#define DEBUG_SCHEDULER
+//#define DEBUG_SCHEDULER
 
 
 namespace mcell {
@@ -60,7 +60,7 @@ struct vec3_t: public glm::dvec3 {
 
 	vec3_t() : glm::dvec3(0) {}
 	vec3_t(const glm::dvec3& a) { x = a.x; y = a.y; z = a.z; }
-	vec3_t(const vec3_t& a) { x = a.x; y = a.y; z = a.z; }
+	vec3_t(const vec3_t& a) : glm::dvec3(a.x, a.y, a.z) { /*x = a.x; y = a.y; z = a.z;*/ }
 	vec3_t(const vector3& a) { x = a.x; y = a.y; z = a.z; }
 	vec3_t(const float_t x_, const float_t y_, const float_t z_) { x = x_; y = y_; z = z_; }
 	vec3_t(const float_t xyz) { x = xyz; y = xyz; z = xyz; }
@@ -84,12 +84,13 @@ typedef uint32_t molecule_index_t;
 
 // for now, this is the partition that contains point 0,0,0
 // in its center
-const int PARTITION_INDEX_INITIAL = 0;
+const uint32_t PARTITION_INDEX_INITIAL = 0;
 
-const int PARTITION_INDEX_INVALID = UINT32_MAX;
+const uint32_t PARTITION_INDEX_INVALID = UINT32_MAX;
 
 typedef glm::dmat4x4 mat4x4;
 
+const char* const NAME_INVALID = "invalid_name";
 
 static inline float_t floor_to_multiple(const float_t val, float_t multiple) {
 	return (float_t)((int)(val / multiple)) * multiple;

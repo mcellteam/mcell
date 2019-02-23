@@ -1398,6 +1398,7 @@ struct volume {
   struct pointer_hash *species_mesh_transp; 
 
   int use_mcell4;
+  int dump_mcell4;
 };
 
 /* Data structure to store information about collisions. */
