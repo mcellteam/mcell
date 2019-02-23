@@ -85,12 +85,15 @@ int main(int argc, char **argv) {
   CHECKED_CALL_EXIT(mcell_init_output(state),
                     "An error occured during setting up of output.");
 
-  dump_volume(state, "initial", DUMP_EVERYTHING);
-
+  if (state->dump_mcell4) {
+  	dump_volume(state, "initial", DUMP_EVERYTHING);
+  }
   //state->use_mcell4 = 1;
 
   if (state->use_mcell4) {
-    mcell4_convert_mcell3_volume(state);
+    if (!mcell4_convert_mcell3_volume(state)) {
+    	exit(EXIT_FAILURE);
+    }
 
     mcell4_run_simulation();
 
