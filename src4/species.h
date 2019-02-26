@@ -27,6 +27,8 @@
 #include <string>
 #include "defines.h"
 
+#include "mcell_structs.h"
+
 namespace mcell {
 
 // same as in mcell_structs but renamed to make sure it is used correctly

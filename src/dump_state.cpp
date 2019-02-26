@@ -38,6 +38,8 @@
 using namespace std;
 
 void dump_species(species* spec, const char* name, const char* comment, const char* ind);
+void dump_species_list(int n_species, const char* num_name, species** species_list, const char* name, const char* comment, const char* ind);
+void dump_species_item(species* spec, const char* ind);
 
 
 std::ostream & operator<<(std::ostream &out, const timeval &a) {
@@ -170,7 +172,7 @@ void dump_double_array(int num, const char* num_name, double* values, const char
 
 
 void dump_int_array(int num, const char* num_name, int* values, const char* values_name, const char* comment, const char* ind) {
-  cout << ind << values_name << "[" << num_name << "]: \t\t" << values << "[" << num << "]" << " [int[]] \t\t" << comment;
+  cout << ind << values_name << "[" << num_name << "]: \t\t" << values << "[" << num << "]" << " [int[]] \t\t" << comment << "\n";
   for (int i = 0; i < num && i < MAX_ARRAY_ITEMS; i++) {
   	if (i % DUMP_ARRAY_NEWLINE_COUNT == 0) {
   		cout << "\n" << ind << "  ";
@@ -218,7 +220,7 @@ void dump_wall(wall* w, const char* ind) {
 	  cout << "uv_vert1_u: \t\t" << w->uv_vert1_u << " [double] \t\t/* Surface u-coord of 2nd corner (v=0) */\n";
 	  cout << "uv_vert2: \t\t" << w->uv_vert2 << " [vector2] \t\t/* Surface coords of third corner */\n";
 
-	  cout << "edges[3]: *\t\t" << (void*)w->edges[3] << " [*edges[3]] \t\t/*  /* Array of pointers to each edge. */ // TODO */\n";
+	  cout << "edges[3]: *\t\t" << (void*)w->edges << " [*edges[3]] \t\t/*  /* Array of pointers to each edge. */ // TODO */\n";
 
 	  cout << "nb_walls[0]: *\t\t" << (void*)w->nb_walls[0] << " [wall] \t\t/* Array of pointers to walls that share an edge*/ // TODO\n";
 	  cout << "nb_walls[1]: *\t\t" << (void*)w->nb_walls[1] << " [wall] \t\t/* Array of pointers to walls that share an edge*/ // TODO\n";
@@ -279,7 +281,7 @@ void dump_molecule_flags(short flags, const char* ind) {
 	cout << ind << "flags: \t\t" << flags << " [short] \t\t /* Abstract Molecule Flags: Who am I, what am I doing, etc. */\n";
 
 	cout << ind << "  ";
-#define DUMP_FLAG(f, mask) if (f & mask != 0) cout << #mask << "(0x" << hex << mask << "), ";
+#define DUMP_FLAG(f, mask) if (((f) & (mask)) != 0) cout << #mask << "(0x" << hex << (mask) << "), ";
 	DUMP_FLAG(flags, TYPE_SURF)
 	DUMP_FLAG(flags, TYPE_VOL)
 	DUMP_FLAG(flags, ACT_DIFFUSE)
@@ -428,6 +430,91 @@ void dump_subvolumes(int n_subvols, const char* num_name, const char* num_commen
 	}
 }
 
+
+void dump_product_list(product* prod, const char* ind) {
+	DECL_IND2(ind);
+	product* prod_ptr = prod;
+	int i = 0;
+	while (prod_ptr != nullptr) {
+		cout << ind << i << ":\n";
+	  cout << ind2 << "orientation: \t\t" << prod_ptr->orientation << " [short] \t\t/* Orientation to place molecule */\n";
+	  dump_species(prod_ptr->prod, "product", "", ind2);
+		prod_ptr = prod_ptr->next;
+	}
+
+
+}
+
+void dump_pathway(pathway* pathway_ptr, const char* ind) {
+	assert(pathway_ptr != nullptr);
+	DECL_IND2(ind);
+
+  cout << ind << "next: *\t\t" << (void*)pathway_ptr->next << " [pathway] \t\t/* Next pathway for this reaction */\n";
+  cout << ind << "pathname: *\t\t" << (void*)pathway_ptr->pathname << " [rxn_pathname] \t\t/* Data for named reaction pathway or NULL */\n";
+
+  //cout << ind << "reactant1: *\t\t" << pathway_ptr->reactant1 << " [species] \t\t/* First reactant in reaction pathway */\n";
+  dump_species(pathway_ptr->reactant1, "reactant1", "/* First reactant in reaction pathway */", ind);
+  //cout << ind << "reactant2: *\t\t" << pathway_ptr->reactant2 << " [species] \t\t/* Second reactant (NULL if none) */\n";
+  dump_species(pathway_ptr->reactant2, "reactant2", "/* Second reactant in reaction pathway */", ind);
+  //cout << ind << "reactant3: *\t\t" << pathway_ptr->reactant3 << " [species] \t\t/* Third reactant (NULL if none) */\n";
+  dump_species(pathway_ptr->reactant3, "reactant3", "/* Third reactant in reaction pathway */", ind);
+
+  cout << ind << "km: \t\t" << pathway_ptr->km << " [double] \t\t/* Rate constant */\n";
+  cout << ind << "km_filename: *\t\t" << ((pathway_ptr->km_filename == nullptr) ? "NULL" : pathway_ptr->km_filename) << " [char] \t\t/* Filename for time-varying rates */\n";
+  cout << ind << "orientation1: \t\t" << pathway_ptr->orientation1 << " [short] \t\t/* Orientation of first reactant */\n";
+  cout << ind << "orientation2: \t\t" << pathway_ptr->orientation2 << " [short] \t\t/* Orientation of second reactant */\n";
+  cout << ind << "orientation3: \t\t" << pathway_ptr->orientation3 << " [short] \t\t/* Orientation of third reactant */\n";
+
+  cout << ind << "product_head: *\t\t" << (void*)pathway_ptr->product_head << " [product] \t\t/* Linked lists of species created */\n";
+  dump_product_list(pathway_ptr->product_head, ind);
+
+  cout << ind << "prod_signature: *\t\t" << pathway_ptr->prod_signature << " [char] \t\t/* string created from the names of products put in alphabetical order */\n";
+  cout << ind << "flags: \t\t" << pathway_ptr->flags << " [short] \t\t/* flags describing special reactions - REFLECTIVE, TRANSPARENT, CLAMP_CONCENTRATION */\n";
+}
+
+void dump_pathway_list(pathway* pathway_head, const char* name,  const char* comment, const char* ind) {
+	DECL_IND2(ind);
+	if (pathway_head == nullptr) {
+		cout << ind << name << ": *\t\t" << (void*)pathway_head << " [pathway*] \t\t" << comment << "\n";
+	}
+	pathway* pathway_ptr = pathway_head;
+	int idx = 0;
+	while (pathway_ptr != nullptr) {
+		cout << ind << name << "[" << idx << "]" << ": *\t\t" << (void*)pathway_ptr << " [pathway*] \t\t" << comment << "\n";
+		dump_pathway(pathway_ptr, ind2);
+		pathway_ptr = pathway_ptr->next;
+	}
+}
+
+void dump_rxn_pathname(rxn_pathname* pathname, const char* ind) {
+	DECL_IND2(ind);
+	cout << ind << "pathname: *\t\t" << (void*)pathname << " [rxn_pathname]\n";
+	if (pathname == nullptr) {
+		return;
+	}
+
+  cout << ind2 << "sym: *\t\t" << pathname->sym << " [sym_entry] \t\t/* Ptr to symbol table entry for this rxn name */\n";
+  cout << ind2 << "hashval: \t\t" << pathname->hashval << " [u_int] \t\t/* Hash value for counting named rxns on regions */\n";
+  cout << ind2 << "path_num: \t\t" << pathname->path_num << " [u_int] \t\t/* Pathway number in rxn */\n";
+  cout << ind2 << "rx: *\t\t" << (void*)pathname->rx << " [rxn] \t\t/* The rxn associated with this name */\n";
+  cout << ind2 << "magic: *\t\t" << (void*)pathname->magic << " [magic_list] \t\t/* A list of stuff that magically happens when the reaction happens */\n";
+}
+
+void dump_pathway_infos(int n_pathways, const char* count_name, pathway_info* pathway_info_array, const char* name,  const char* comment, const char* ind) {
+	DECL_IND2(ind);
+	if (pathway_info_array == nullptr) {
+		cout << ind << name << ": *\t\t" << (void*)pathway_info_array << " [pathway*] \t\t" << comment << "\n";
+	}
+
+	for (int i = 0; i < n_pathways; i++) {
+		cout << ind << name << "[" << i << "]" << ":\n";
+		cout << ind2 << "count: *\t\t" << pathway_info_array[i].count << " [double] \t\t/* How many times the pathway has been taken */\n";
+		//dump_pathway(&pathway_info_array[n_pathways], ind2);
+		dump_rxn_pathname(pathway_info_array[i].pathname, ind2);
+	}
+}
+
+
 void dump_rxn(rxn* rx, const char* ind) {
 
   cout << ind << "sym: *\t\t" << rx->sym << " [sym_entry] \t\t/* Ptr to symbol table entry for this rxn */\n";
@@ -458,12 +545,14 @@ void dump_rxn(rxn* rx, const char* ind) {
   cout << ind << "pb_factor: \t\t" << rx->pb_factor << " [double] \t\t/* Conversion factor from rxn rate to rxn probability (used for cooperativity) */\n";
 
   cout << ind << "product_idx_aux: *\t\t" << (void*)rx->product_idx_aux << " [int] \t\t/* Number of unique players in each pathway. Used for on-the fly calculation of product_idx indexes TODO: nfsim*/\n";
-  //wrong: dump_int_array(rx->n_pathways, "n_pathways", rx->product_idx_aux, "product_idx_aux", "/* Number of unique players in each pathway. Used for on-the fly calculation of product_idx indexes */", ind);
+  //dump_int_array(rx->n_pathways, "n_pathways", rx->product_idx_aux, "product_idx_aux", "/* Number of unique players in each pathway. Used for on-the fly calculation of product_idx indexes */", ind);
 
   cout << ind << "product_idx: *\t\t" << rx->product_idx << " [u_int] \t\t/* Index of 1st player for products of each pathway TODO: nfsim */\n";
-  //wrong: dump_int_array(rx->n_pathways, "n_pathways", (int*)rx->product_idx, "product_idx", "/* Index of 1st player for products of each pathway */", ind);
+  //dump_int_array(rx->n_pathways, "n_pathways", (int*)rx->product_idx, "product_idx", "/* Index of 1st player for products of each pathway */", ind);
 
   cout << ind << "players: **\t\t" << (void**)rx->players << " [species] \t\t/* Identities of reactants/products */\n";
+  dump_species_list(rx->n_reactants/*might be *n_pathways*/, "n_reactants", rx->players, "players", "/* Identities of reactants/products */", "    ");
+
 
   /* this information is kept in a separate array because with nfsim we dont know ahead of time how many paths/products per path are there, we only know when it fires*/
   cout << ind << "nfsim_players: ***\t\t" << (void***)rx->nfsim_players << " [species] \t\t/* a matrix of the nfsim elements associated with each path */\n";
@@ -477,7 +566,12 @@ void dump_rxn(rxn* rx, const char* ind) {
   cout << ind << "prob_t: *\t\t" << (void*)rx->prob_t << " [t_func] \t\t/* List of probabilities changing over time, by pathway */\n";
 
   cout << ind << "pathway_head: *\t\t" << rx->pathway_head << " [pathway] \t\t/* List of pathways built at parse-time */\n";
+
+  dump_pathway_list(rx->pathway_head, "pathway_head", "/* List of pathways built at parse-time */", "    ");
+
   cout << ind << "info: *\t\t" << (void*)rx->info << " [pathway_info] \t\t/* Counts and names for each pathway */\n";
+
+  dump_pathway_infos(rx->n_pathways, "n_pathways", rx->info, "info", "/* Counts and names for each pathway */", "    ");
 
   cout << ind << "TODO: NFSIM callbacks\n";
 #if 0
@@ -654,8 +748,10 @@ void dump_species_item(species* spec, const char* ind) {
 
 
 void dump_species(species* spec, const char* name, const char* comment, const char* ind) {
-  cout << name << ": *\t\t" << (void*)spec << " [species] \t\t" << comment << "\n";
-  dump_species_item(spec, "");
+  cout << ind << name << ": *\t\t" << (void*)spec << " [species] \t\t" << comment << "\n";
+  if (spec != nullptr) {
+  	dump_species_item(spec, ind);
+  }
 }
 
 

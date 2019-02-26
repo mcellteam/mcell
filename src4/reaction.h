@@ -21,35 +21,42 @@
  *
 ******************************************************************************/
 
-#ifndef SRC4_VIZ_OUTPUT_EVENT_H_
-#define SRC4_VIZ_OUTPUT_EVENT_H_
 
-#include "base_event.h"
+#ifndef SRC4_REACTION_H_
+#define SRC4_REACTION_H_
+
+#include "defines.h"
 
 namespace mcell {
 
-class viz_output_event_t: public base_event_t {
-public:
-	viz_output_event_t(world_t* world_)
-		: base_event_t(EVENT_TYPE_INDEX_VIZ_OUTPUT),
-			viz_mode(NO_VIZ_MODE), file_prefix_name(nullptr),
-			world(world_) {
+typedef int16_t orientation_t;
+// TODO: choose correct names
+const orientation_t ORIENTATION_DOWN = -1;
+const orientation_t ORIENTATION_NONE = 0;
+const orientation_t ORIENTATION_UP = 1;
+
+struct species_with_orientation_t {
+	species_with_orientation_t()
+		: species_id(SPECIES_ID_INVALID), orientation(ORIENTATION_NONE) {
 	}
-	virtual ~viz_output_event_t() {}
+	species_with_orientation_t(
+			const species_id_t species_id_,
+			const orientation_t orientation_)
+		: species_id(species_id_), orientation(orientation_) {
+	}
 
-	virtual void step();
-	virtual void dump(const std::string indent);
+	species_id_t species_id;
+	orientation_t orientation;
+};
 
-	viz_mode_t viz_mode;
-	const char* file_prefix_name; // in const pool
-
-	world_t* world;
-private:
-	FILE* create_and_open_output_file_name();
-	void output_ascii_molecules();
-	void output_cellblender_molecules();
+class reaction_t {
+public:
+	std::string name;
+	float_t rate_constant;
+	std::vector<species_with_orientation_t> reactants;
+	std::vector<species_with_orientation_t> products;
 };
 
 } /* namespace mcell */
 
-#endif /* SRC4_VIZ_OUTPUT_EVENT_H_ */
+#endif /* SRC4_REACTION_H_ */

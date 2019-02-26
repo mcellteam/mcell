@@ -31,6 +31,7 @@
 #include "partition.h"
 #include "scheduler.h"
 #include "species.h"
+#include "reaction.h"
 
 namespace mcell {
 
@@ -41,6 +42,7 @@ private:
 public:
 	bool run_simulation();
 
+	// -------------- parition manipulation methods --------------
 	uint32_t get_partition_index(const vec3_t& pos) {
 		// for now a slow approach, later some hashing/memoization might be needed
 		for (uint32_t i = 0; i < partitions.size(); i++) {
@@ -65,19 +67,28 @@ public:
 	uint32_t add_partition(const vec3_t& pos) {
 		// TODO: some check on validity of pos?
 		assert(get_partition_index(pos) == PARTITION_INDEX_INVALID && "Parition must not exist");
-
 		vec3_t origin = floor_to_multiple(pos, partition_edge_length) - vec3_t(partition_edge_length/2);
-
 		partitions.push_back(partition_t(origin, partition_edge_length));
-
 		return partitions.size() - 1;
 	}
 
+	// -------------- reaction utility methods --------------
+	bool can_react(species_id_t spec_a, species_id_t spec_b) {
+
+		// simply return true for now
+		// TODO: pre-compute this information
+		return true;
+	}
+
+
+	// -------------- world data --------------
   std::vector<partition_t> partitions;
 
   scheduler_t scheduler;
 
   std::vector<species_t> species;
+
+  std::vector<reaction_t> reactions; // we might need faster searching or reference from species to reactions here but let's keep it simple for now
 
   float_t time_unit;
   uint64_t iterations; // number of iterations to simulate

@@ -121,6 +121,8 @@ bool mcell3_world_converter::convert(volume* s) {
 
 	CHECK(convert_species_and_create_diffusion_events(s));
 
+	CHECK(convert_reactions(s));
+
 	CHECK(convert_release_events(s));
 
 
@@ -142,7 +144,7 @@ bool mcell3_world_converter::convert_simulation_setup(volume* s) {
 
 // cannot fail
 void mcell3_world_converter::create_diffusion_events() {
-	assert(~world->species.empty() && "There must be at least 1 species");
+	assert(!world->species.empty() && "There must be at least 1 species");
 
 	set<float_t> time_steps_set;
 	for (auto &species : world->species ) {
@@ -187,6 +189,107 @@ bool mcell3_world_converter::convert_species_and_create_diffusion_events(volume*
 	return true;
 }
 
+bool mcell3_world_converter::convert_single_reaction(rxn *rx) {
+	world->reactions.push_back(reaction_t());
+	reaction_t& reaction = world->reactions.back();
+
+  // rx->next - handled in convert_reactions
+  // rx->sym->name - ignored, name obtained from pathway
+
+  //?? u_int n_reactants - obtained from pthways, might check it
+
+  CHECK_PROPERTY(rx->n_pathways == 1); // limited for now
+  assert(rx->cum_probs != nullptr);
+  // ?? reaction.cum_prob = rx->cum_probs[0]; - what is this good for?
+
+  CHECK_PROPERTY(rx->cum_probs[0] == rx->max_fixed_p); // limited for now
+  CHECK_PROPERTY(rx->cum_probs[0] == rx->min_noreaction_p); // limited for now
+
+  // ?? double pb_factor; /* Conversion factor from rxn rate to rxn probability (used for cooperativity) */
+
+  // int *product_idx_aux - ignored, post-processing information
+  // u_int *product_idx - ignored, post-processing information
+  // struct species **players - ignored, might check it but will contain the same info as pathways
+
+  // NFSIM struct species ***nfsim_players; /* a matrix of the nfsim elements associated with each path */
+  // NFSIM short *geometries;         /* Geometries of reactants/products */
+  // NFSIM short **nfsim_geometries;   /* geometries of the nfsim geometries associated with each path */
+
+  CHECK(rx->n_occurred == 0);
+  CHECK(rx->n_skipped == 0);
+  CHECK(rx->prob_t == nullptr);
+
+  // TODO: pathway_info *info - magic_list, also some checks might be useful
+
+  // --- pathway ---
+  pathway *pathway_head = rx->pathway_head;
+  CHECK(pathway_head->next == nullptr); // only 1 supported now
+
+  reaction.name = pathway_head->pathname->sym->name;
+  reaction.rate_constant = pathway_head->km;
+
+  CHECK(pathway_head->orientation1 == 0 || pathway_head->orientation1 == 1 || pathway_head->orientation1 == -1);
+  CHECK(pathway_head->orientation2 == 0 || pathway_head->orientation2 == 1 || pathway_head->orientation2 == -1);
+  CHECK(pathway_head->orientation3 == 0 || pathway_head->orientation3 == 1 || pathway_head->orientation3 == -1);
+
+  if (pathway_head->reactant1 != nullptr) {
+  	species_id_t reactant1_id = get_mcell4_species_id(pathway_head->reactant1->species_id);
+  	reaction.reactants.push_back(species_with_orientation_t(reactant1_id, pathway_head->orientation1));
+
+    if (pathway_head->reactant2 != nullptr) {
+    	species_id_t reactant2_id = get_mcell4_species_id(pathway_head->reactant2->species_id);
+    	reaction.reactants.push_back(species_with_orientation_t(reactant2_id, pathway_head->orientation2));
+
+      if (pathway_head->reactant3 != nullptr) {
+      	species_id_t reactant3_id = get_mcell4_species_id(pathway_head->reactant3->species_id);
+      	reaction.reactants.push_back(species_with_orientation_t(reactant3_id, pathway_head->orientation3));
+      }
+    }
+    else {
+    	// reactant3 must be null if reactant2 is null
+    	assert(pathway_head->reactant3 == nullptr);
+    }
+  }
+  else {
+  	assert(false && "No reactants?");
+  }
+
+  CHECK(pathway_head->km_filename == nullptr);
+
+  // products
+  product *product_ptr = pathway_head->product_head;
+  while (product_ptr != nullptr) {
+  	species_id_t product_id = get_mcell4_species_id(product_ptr->prod->species_id);
+    CHECK(product_ptr->orientation == 0 || product_ptr->orientation == 1 || product_ptr->orientation == -1);
+
+  	reaction.products.push_back(species_with_orientation_t(product_id, product_ptr->orientation));
+
+  	product_ptr = product_ptr->next;
+  }
+
+  CHECK(pathway_head->flags == 0);
+
+  return true;
+}
+
+
+bool mcell3_world_converter::convert_reactions(volume* s) {
+
+	rxn** reaction_hash = s->reaction_hash;
+	int count = s->rx_hashsize;
+
+
+  for (int i = 0; i < count; ++i) {
+    rxn *rx = reaction_hash[i];
+    while (rx != nullptr) {
+    	convert_single_reaction(rx);
+    	rx = rx->next;
+    }
+  }
+
+	return true;
+}
+
 bool mcell3_world_converter::convert_release_events(volume* s) {
 
 	// -- schedule_helper -- (as volume.releaser)
@@ -196,7 +299,7 @@ bool mcell3_world_converter::convert_release_events(volume* s) {
 	CHECK_PROPERTY(releaser->dt == 1);
 	CHECK_PROPERTY(releaser->dt_1 == 1);
 	CHECK_PROPERTY(releaser->now == 0);
-	CHECK_PROPERTY(releaser->count == 1);
+	//ok now: CHECK_PROPERTY(releaser->count == 1);
 	CHECK_PROPERTY(releaser->index == 0);
 
   for (int i = -1; i < releaser->buf_len; i++) {
@@ -216,8 +319,8 @@ bool mcell3_world_converter::convert_release_events(volume* s) {
 			release_site_obj* rel_site = req->release_site;
 
 			assert(rel_site->location != nullptr);
-			event->location = *rel_site->location;
-			event->species_id = get_new_species_id(rel_site->mol_type->species_id);
+			event->location = vec3_t(*rel_site->location) * world->length_unit;
+			event->species_id = get_mcell4_species_id(rel_site->mol_type->species_id);
 
 			CHECK_PROPERTY(rel_site->release_number_method == 0);
 			event->release_shape = rel_site->release_shape;
@@ -242,7 +345,6 @@ bool mcell3_world_converter::convert_release_events(volume* s) {
 			CHECK_PROPERTY(t_matrix_to_mat4x4(req->t_matrix) == mat4x4(1) && "only identity matrix for now");
 			CHECK_PROPERTY(req->train_counter == 0);
 	    CHECK_PROPERTY(req->train_high_time == 0);
-			CHECK_PROPERTY(req->next == nullptr);
 
 			world->scheduler.schedule_event(event);
     }
@@ -272,7 +374,7 @@ bool mcell3_world_converter::convert_viz_output_events(volume* s) {
   viz_mode_t viz_mode = viz_blocks->viz_mode;
   const char* file_prefix_name = world->add_const_string_to_pool(viz_blocks->file_prefix_name);
   CHECK_PROPERTY(viz_blocks->viz_output_flag == VIZ_ALL_MOLECULES); // limited for now, TODO
-  CHECK_PROPERTY(viz_blocks->species_viz_states != nullptr && *viz_blocks->species_viz_states == (int)0x80000000); // not sure what this means
+  CHECK_PROPERTY(viz_blocks->species_viz_states != nullptr && (*viz_blocks->species_viz_states == (int)0x80000000 || *viz_blocks->species_viz_states == 0x7FFFFFFF)); // TODO: not sure what this means
   CHECK_PROPERTY(viz_blocks->default_mol_state == 0x7FFFFFFF); // not sure what this means
 
   // -- frame_data_head --

@@ -34,6 +34,15 @@ class partition_t;
 class volume_molecule_t;
 class species_t;
 
+
+class collision_t {
+public:
+	collision_t(volume_molecule_t& colliding_molecule_)
+		: colliding_molecule(colliding_molecule_) {
+	}
+	volume_molecule_t& colliding_molecule;
+};
+
 // created in mcell3_world_converter::create_diffusion_events() before any other events,
 // so even if release is created for time 0, this event is scheduled to occur as first one
 class diffuse_react_event_t : public base_event_t {
@@ -58,6 +67,21 @@ private:
 	void diffuse_molecules(partition_t& p, std::vector< molecule_index_t >& indices);
 	void pick_displacement(float_t scale /*space step*/, vec3_t& displacement);
 	void compute_displacement(species_t& sp, vec3_t& displacement);
+
+	int trigger_bimolecular(
+			volume_molecule_t& diffused_mol,
+			volume_molecule_t& colliding_mol,
+			std::vector<collision_t>& possible_collisions);
+
+	void determine_mol_mol_reactions(
+			volume_molecule_t& vm,
+			partition_t& p,
+			std::vector<collision_t>& possible_collisions);
+
+	void ray_trace(
+			volume_molecule& diffused_mol,
+			vec3_t& displacement,
+			std::vector<collision_t>& possible_collisions);
 
 };
 

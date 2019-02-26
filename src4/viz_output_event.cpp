@@ -1,9 +1,26 @@
-/*
- * viz_output_event.cpp
+/******************************************************************************
  *
- *  Created on: Feb 19, 2019
- *      Author: adam
- */
+ * Copyright (C) 2019 by
+ * The Salk Institute for Biological Studies and
+ * Pittsburgh Supercomputing Center, Carnegie Mellon University
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+ * USA.
+ *
+******************************************************************************/
+
 
 #include <iostream>
 #include <stdio.h>
@@ -60,7 +77,7 @@ static int digits_for_file_suffix(uint64_t iterations) {
 FILE* viz_output_event_t::create_and_open_output_file_name() {
 	int ndigits = digits_for_file_suffix(world->iterations);
 	long long current_iteration = round(event_time / world->time_unit); // FIXME: usage of round might be a little shaky here, maybe we will need a better way how to get the iteration index
-  fprintf(stderr, "***dumps: %lld\n", current_iteration);
+  //fprintf(stderr, "***dumps: %lld\n", current_iteration);
 	const char* type_name = (viz_mode == ASCII_MODE) ? "ascii" : "cellbin";
   char* cf_name =
   		CHECKED_SPRINTF("%s.%s.%.*lld.dat", file_prefix_name, type_name, ndigits, current_iteration);

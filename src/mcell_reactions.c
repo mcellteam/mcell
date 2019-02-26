@@ -1578,6 +1578,9 @@ int init_reactions(MCELL_STATE *state) {
 
   state->rx_radius_3d *= state->r_length_unit; /* Convert into length units */
 
+#if 0
+  // TODO: move this to a separate functio nand call after mcell4 conversion
+  // because pathway_head is used there
   for (int n_rxn_bin = 0; n_rxn_bin < state->rx_hashsize; n_rxn_bin++) {
     for (struct rxn *this_rx = state->reaction_hash[n_rxn_bin]; this_rx != NULL;
          this_rx = this_rx->next) {
@@ -1606,6 +1609,7 @@ int init_reactions(MCELL_STATE *state) {
       this_rx->pathway_head = NULL;
     }
   }
+#endif
 
   add_surface_reaction_flags(state->mol_sym_table, state->all_mols, state->all_surface_mols,
                              state->all_volume_mols);

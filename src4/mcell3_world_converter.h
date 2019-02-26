@@ -68,6 +68,9 @@ public:
 	void create_diffusion_events();
 	bool convert_species_and_create_diffusion_events(volume* s);
 
+	bool convert_single_reaction(rxn *rx);
+	bool convert_reactions(volume* s);
+
 	bool convert_release_events(volume* s);
 
 	bool convert_viz_output_events(volume* s);
@@ -76,7 +79,7 @@ public:
 	world_t* world;
 
 private:
-	species_id_t get_new_species_id(u_int mcell3_id) {
+	species_id_t get_mcell4_species_id(u_int mcell3_id) {
 		auto it = mcell3_species_id_map.find(mcell3_id);
 		assert(it != mcell3_species_id_map.end());
 		return it->second;

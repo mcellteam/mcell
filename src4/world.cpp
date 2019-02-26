@@ -45,7 +45,7 @@ bool world_t::run_simulation() {
 
 	init();
 
-	float_t time = TIME_SIMULATION_START;
+	//float_t time = TIME_SIMULATION_START;
 
 	// create event that will terminate our simulation
 	end_simulation_event_t* end_event = new end_simulation_event_t();
@@ -54,7 +54,7 @@ bool world_t::run_simulation() {
 
 	bool end_simulation = false;
 	do {
-		time = scheduler.handle_next_event(end_simulation);
+		/*time = */scheduler.handle_next_event(end_simulation);
 	} while (!end_simulation);
 
 	return true;
