@@ -173,16 +173,28 @@ set(SOURCE_FILES
     src/wall_util.h
     
     src4/base_event.cpp
-    src4/diffuse_react_event.cpp
-    src4/mcell3_world_converter.cpp
-    src4/molecule.cpp
-    src4/release_event.cpp
-    src4/scheduler.cpp
-    src4/species.cpp
-    src4/world.cpp
+    src4/base_event.h
     src4/defines.cpp
+    src4/defines.h
+    src4/diffuse_react_event.cpp
+    src4/diffuse_react_event.h
+    src4/end_simulation_event.h
+    src4/mcell3_world_converter.cpp
+    src4/mcell3_world_converter.h
+    src4/molecule.h
+    src4/partition.h
+    src4/reaction.h
+    src4/release_event.cpp
+    src4/release_event.h
+    src4/scheduler.cpp
+    src4/scheduler.h
+    src4/species.cpp
+    src4/species.h
     src4/viz_output_event.cpp
-    
+    src4/viz_output_event.h
+    src4/world.cpp
+    src4/world.h
+
     )
 
 link_directories(${CMAKE_BINARY_DIR}/lib)
