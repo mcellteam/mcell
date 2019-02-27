@@ -135,10 +135,20 @@ bool mcell3_world_converter::convert(volume* s) {
 bool mcell3_world_converter::convert_simulation_setup(volume* s) {
 	// TODO: many items are not checked
 	world->iterations = s->iterations;
-	world->time_unit = s->time_unit;
-	world->length_unit = s->length_unit;
+	world->world_constants.time_unit = s->time_unit;
+	world->world_constants.length_unit = s->length_unit;
 	world->seed_seq = s->seed_seq;
 	world->rng = *s->rng;
+
+	CHECK_PROPERTY(s->nx_parts == s->ny_parts);
+	CHECK_PROPERTY(s->ny_parts == s->nz_parts);
+	// n_subvols - computed from s->n[xyz]_parts
+
+	assert(world->world_constants.partition_edge_length != 0);
+	world->world_constants.subpartitions_in_partition = s->nx_parts;
+	world->world_constants.subpartition_edge_length =
+			world->world_constants.partition_edge_length / (float_t)s->nx_parts;
+
 	return true;
 }
 
@@ -173,8 +183,8 @@ bool mcell3_world_converter::convert_species_and_create_diffusion_events(volume*
 		new_species.mcell3_species_id = spec->species_id;
 		new_species.D = spec->D;
 		new_species.name = get_sym_name(spec->sym);
-		new_species.space_step = spec->space_step * world->length_unit;
-		new_species.time_step = spec->time_step * world->time_unit;
+		new_species.space_step = spec->space_step * world->world_constants.length_unit;
+		new_species.time_step = spec->time_step * world->world_constants.time_unit;
 
 		CHECK_PROPERTY(spec->flags == 0 || spec->flags == SPECIES_FLAG_CAN_VOLVOL);
 		new_species.flags = spec->flags;
@@ -319,7 +329,7 @@ bool mcell3_world_converter::convert_release_events(volume* s) {
 			release_site_obj* rel_site = req->release_site;
 
 			assert(rel_site->location != nullptr);
-			event->location = vec3_t(*rel_site->location) * world->length_unit;
+			event->location = vec3_t(*rel_site->location) * world->world_constants.length_unit;
 			event->species_id = get_mcell4_species_id(rel_site->mol_type->species_id);
 
 			CHECK_PROPERTY(rel_site->release_number_method == 0);
@@ -393,7 +403,7 @@ bool mcell3_world_converter::convert_viz_output_events(volume* s) {
 
   	// create an event for each iteration
   	viz_output_event_t* event = new viz_output_event_t(world);
-  	event->event_time = iteration_ptr->value * world->time_unit;
+  	event->event_time = iteration_ptr->value * world->world_constants.time_unit;
   	event->viz_mode = viz_mode;
   	event->file_prefix_name = file_prefix_name;
 

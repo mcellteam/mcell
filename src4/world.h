@@ -38,8 +38,9 @@ namespace mcell {
 
 class world_t {
 private:
-	void init();
+	void init_simulation();
 public:
+	world_t();
 	bool run_simulation();
 
 	// -------------- parition manipulation methods --------------
@@ -66,9 +67,12 @@ public:
 	// add a partition in a predefined 'lattice' that contains point pos
 	uint32_t add_partition(const vec3_t& pos) {
 		// TODO: some check on validity of pos?
-		assert(get_partition_index(pos) == PARTITION_INDEX_INVALID && "Parition must not exist");
-		vec3_t origin = floor_to_multiple(pos, partition_edge_length) - vec3_t(partition_edge_length/2);
-		partitions.push_back(partition_t(origin, partition_edge_length));
+		assert(world_constants.partition_edge_length != 0);
+		assert(get_partition_index(pos) == PARTITION_INDEX_INVALID && "Partition must not exist");
+		vec3_t origin =
+				floor_to_multiple(pos, world_constants.partition_edge_length)
+				- vec3_t(world_constants.partition_edge_length/2);
+		partitions.push_back(partition_t(origin, world_constants));
 		return partitions.size() - 1;
 	}
 
@@ -90,14 +94,12 @@ public:
 
   std::vector<reaction_t> reactions; // we might need faster searching or reference from species to reactions here but let's keep it simple for now
 
-  float_t time_unit;
   uint64_t iterations; // number of iterations to simulate
 
-  float_t length_unit;
 
   uint32_t seed_seq;
 
-  float_t partition_edge_length;
+  world_constants_t world_constants;
 
   // single state for the random number generator
   rng_state rng;

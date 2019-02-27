@@ -28,7 +28,6 @@
 
 #include <vector>
 #include <string>
-#include <bitset>
 #include <cassert>
 #include <climits>
 #include <cmath>
@@ -39,9 +38,11 @@
 // warning: do not use directly, we need to be able to control the precision
 #include "../libs/glm/glm.hpp"
 
+// this file must not depend on any other from mcell4 otherwise there
+// might be some nasty include dependencies
 
 // diverse debug macros
-//#define DEBUG_SCHEDULER
+#define DEBUG_SCHEDULER
 
 
 namespace mcell {
@@ -69,12 +70,24 @@ struct vec3_t: public glm::dvec3 {
 	//bool operator == (const vec3_t& a) { return x == a.x && y == a.y && z == a.z; }
 };
 
+typedef glm::ivec3 ivec3_t;
+
 std::ostream & operator<<(std::ostream &out, const vec3_t &a);
 
+// constants useful for all classes, single objectis owned by world
+struct world_constants_t {
+  float_t time_unit;
+  float_t length_unit;
+  float_t partition_edge_length;
+  uint32_t subpartitions_in_partition;
+  float_t subpartition_edge_length; // == partition_edge_length / subpartitions_in_partition
+
+
+};
 
 const int MAX_MOLECULES_PER_PARTITION = 32*32*32 /*32k*/; //temporary, must work dynamically
 
-//typedef std::bitset<MAX_MOLECULES_PER_PARTITION> subpartition_mask_t;
+
 
 
 typedef uint16_t species_id_t;
@@ -87,6 +100,7 @@ typedef uint32_t molecule_index_t;
 const uint32_t PARTITION_INDEX_INITIAL = 0;
 
 const uint32_t PARTITION_INDEX_INVALID = UINT32_MAX;
+const uint32_t SUBPARTITION_INDEX_INVALID = UINT32_MAX;
 
 typedef glm::dmat4x4 mat4x4;
 

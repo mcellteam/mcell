@@ -52,10 +52,13 @@ public:
 class volume_molecule_t : public base_molecule_t {
 public:
 	volume_molecule_t(const species_id_t species_id_, const vec3_t& pos_)
-		: base_molecule_t(species_id_), pos(pos_) {
+		: base_molecule_t(species_id_),
+			pos(pos_),
+			subpartition_index(SUBPARTITION_INDEX_INVALID) {
 	}
 
 	vec3_t pos;
+	uint32_t subpartition_index;
 };
 
 } // namespace mcell

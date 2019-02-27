@@ -29,11 +29,12 @@ extern "C" {
 
 namespace mcell {
 
-void world_t::init() {
-	//rng_init(&rng, seed_seq); - already called in mcell3
+world_t::world_t() {
+	// TODO: initialize rest of members
+	world_constants.partition_edge_length = PARTITION_EDGE_LENGTH_DEFAULT;
+}
 
-	partition_edge_length = PARTITION_EDGE_LENGTH_DEFAULT;
-
+void world_t::init_simulation() {
 	// create initial partition with center at 0,0,0 - we woud like to have the partitions all the same,
 	// not depend on some random initialization
 	uint32_t index = add_partition(vec3_t(0, 0, 0));
@@ -43,13 +44,12 @@ void world_t::init() {
 
 bool world_t::run_simulation() {
 
-	init();
-
 	//float_t time = TIME_SIMULATION_START;
+	init_simulation();
 
 	// create event that will terminate our simulation
 	end_simulation_event_t* end_event = new end_simulation_event_t();
-	end_event->event_time = time_unit * iterations; // TODO: check against MCELL - we need to execute the same nr of iterations, not one less
+	end_event->event_time = world_constants.time_unit * iterations; // TODO: check against MCELL - we need to execute the same nr of iterations, not one less
 	scheduler.schedule_event(end_event);
 
 	bool end_simulation = false;
