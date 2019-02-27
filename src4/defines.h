@@ -55,6 +55,8 @@ const float_t TIME_SIMULATION_START = 0;
 
 const float_t PARTITION_EDGE_LENGTH_DEFAULT = 10; // maybe too large for now
 
+const float_t SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT = 20; // mcell3 uses logarithmic scaling, this is not useful here
+
 const float_t SCHEDULER_COMPARISON_EPS = 1e-10;
 
 struct vec3_t: public glm::dvec3 {
@@ -79,9 +81,12 @@ struct world_constants_t {
   float_t time_unit;
   float_t length_unit;
   float_t partition_edge_length;
-  uint32_t subpartitions_in_partition;
-  float_t subpartition_edge_length; // == partition_edge_length / subpartitions_in_partition
+  uint32_t subpartitions_per_partition_dimension;
+  float_t subpartition_edge_length; // ==
 
+  void init_subpartition_edge_length() {
+  	subpartition_edge_length = partition_edge_length / (float_t)subpartitions_per_partition_dimension;
+  }
 
 };
 
@@ -121,6 +126,15 @@ static inline bool cmp_eq(const float_t a, const float_t b, const float_t eps) {
 static inline bool cmp_lt(const float_t a, const float_t b, const float_t eps) {
 	return a < b && !cmp_eq(a, b, eps);
 }
+
+static inline uint32_t powu(const uint32_t a, const uint32_t n) {
+	uint32_t res = a;
+	for (uint32_t i = 1; i < n; i++) {
+		res *= a;
+	}
+	return res;
+}
+
 
 } /* namespace mcell */
 

@@ -47,10 +47,8 @@ public:
 		: origin_corner(origin_),
 			world_constants(world_constants_) {
 		opposite_corner = origin_corner + world_constants.partition_edge_length;
-		// TODO: preaallocate volume_molecules arrays and
-		// also volume_molecule_indices_per_time_step
-		uint32_t dim = world_constants.subpartitions_in_partition;
-		volume_molecules_subpartition_masks.resize(dim * dim * dim);
+		// preaallocate volume_molecules arrays and also volume_molecule_indices_per_time_step
+		volume_molecules_subpartition_masks.resize(powu(world_constants.subpartitions_per_partition_dimension, 3));
 	}
 
 	uint32_t get_molecule_list_index_for_time_step(const float_t time_step) {
@@ -80,9 +78,9 @@ public:
 	}
 
 	uint32_t get_subpartition_index_from_indices(const ivec3_t& indices) {
-		uint32_t dim = world_constants.subpartitions_in_partition;
+		uint32_t dim = world_constants.subpartitions_per_partition_dimension;
 		// volume_molecules_subpartition_masks is a flattened cube of dimension dim
-		return indices.x + indices.y * dim + indices.z * dim * dim;
+		return indices.x + indices.y * dim + indices.z * powu(dim, 2);
 	}
 
 	uint32_t get_subpartition_index(const vec3_t& pos) {

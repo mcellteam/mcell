@@ -32,6 +32,8 @@ namespace mcell {
 world_t::world_t() {
 	// TODO: initialize rest of members
 	world_constants.partition_edge_length = PARTITION_EDGE_LENGTH_DEFAULT;
+	world_constants.subpartitions_per_partition_dimension = SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT;
+	world_constants.init_subpartition_edge_length();
 }
 
 void world_t::init_simulation() {

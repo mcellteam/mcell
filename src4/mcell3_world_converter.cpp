@@ -140,14 +140,8 @@ bool mcell3_world_converter::convert_simulation_setup(volume* s) {
 	world->seed_seq = s->seed_seq;
 	world->rng = *s->rng;
 
-	CHECK_PROPERTY(s->nx_parts == s->ny_parts);
+	CHECK_PROPERTY(s->nx_parts == s->ny_parts); // mcell3's subparitions are ignored, they are logarithmic
 	CHECK_PROPERTY(s->ny_parts == s->nz_parts);
-	// n_subvols - computed from s->n[xyz]_parts
-
-	assert(world->world_constants.partition_edge_length != 0);
-	world->world_constants.subpartitions_in_partition = s->nx_parts;
-	world->world_constants.subpartition_edge_length =
-			world->world_constants.partition_edge_length / (float_t)s->nx_parts;
 
 	return true;
 }
