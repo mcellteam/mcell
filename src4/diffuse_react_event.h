@@ -35,12 +35,31 @@ class volume_molecule_t;
 class species_t;
 
 
-class collision_t {
+enum ray_trace_state_t {
+	RAY_TRACE_HIT_UNDEFINED,
+	RAY_TRACE_HIT_SUBPARTITION,
+	RAY_TRACE_HIT_WALL,
+	RAY_TRACE_FINISHED
+};
+
+
+class molecules_collision_t {
 public:
-	collision_t(volume_molecule_t& colliding_molecule_)
-		: colliding_molecule(colliding_molecule_) {
+	molecules_collision_t(
+			volume_molecule_t& diffused_molecule_ref,
+			volume_molecule_t& colliding_molecule_ref,
+			float_t& time_,
+			vec3_t& position_)
+		: diffused_molecule(diffused_molecule_ref),
+			colliding_molecule(colliding_molecule_ref),
+			time(time_),
+			position(position_)
+			{
 	}
+	volume_molecule_t& diffused_molecule;
 	volume_molecule_t& colliding_molecule;
+	float_t time;
+	vec3_t position;
 };
 
 // created in mcell3_world_converter::create_diffusion_events() before any other events,
@@ -68,20 +87,39 @@ private:
 	void pick_displacement(float_t scale /*space step*/, vec3_t& displacement);
 	void compute_displacement(species_t& sp, vec3_t& displacement);
 
-	int trigger_bimolecular(
+	/*int trigger_bimolecular(
 			volume_molecule_t& diffused_mol,
 			volume_molecule_t& colliding_mol,
-			std::vector<collision_t>& possible_collisions);
+			std::vector<molecules_collision_t>& possible_collisions);
 
 	void determine_mol_mol_reactions(
 			volume_molecule_t& vm,
 			partition_t& p,
-			std::vector<collision_t>& possible_collisions);
+			std::vector<molecules_collision_t>& possible_collisions);
+*/
+	void collect_crossed_subpartitions(
+		const partition_t& p,
+		volume_molecule_t& vm, // molecule that we are diffusing, we are changing its pos  and possibly also subvolume
+		vec3_t& remaining_displacement, // in/out - recomputed if there was a reflection
+		std::vector<uint32_t>& crossed_subparition_indices
+	);
 
-	void ray_trace(
-			volume_molecule& diffused_mol,
-			vec3_t& displacement,
-			std::vector<collision_t>& possible_collisions);
+	bool collide_mol(
+			volume_molecule_t& diffused_vm,
+			vec3_t& move,
+	    volume_molecule_t& colliding_vm,
+			float_t& rel_collision_time,
+			vec3_t& rel_collision_pos,
+	    float_t rx_radius_3d
+	);
+
+	ray_trace_state_t ray_trace(
+			partition_t& p,
+			volume_molecule_t& vm, // molecule that we are diffusing, we are changing its pos  and possibly also subvolume
+			vec3_t& remaining_displacement, // in/out - recomputed if there was a reflection
+			std::vector<molecules_collision_t>& molecule_collisions, // possible reactions in this part of way marching, ordered by time
+			uint32_t& new_subpartition_index
+	);
 
 };
 

@@ -21,6 +21,9 @@
  *
 ******************************************************************************/
 
+// NOTES:
+// rename partition to part?
+
 #ifndef SRC4_DEFINES_H_
 #define SRC4_DEFINES_H_
 
@@ -43,6 +46,7 @@
 
 // diverse debug macros
 #define DEBUG_SCHEDULER
+#define DEBUG_PARTITION
 
 
 namespace mcell {
@@ -59,7 +63,9 @@ const float_t SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT = 20; // mcell3 uses
 
 const float_t SCHEDULER_COMPARISON_EPS = 1e-10;
 
-struct vec3_t: public glm::dvec3 {
+typedef glm::dvec3 glm_vec3_t;
+
+struct vec3_t: public glm_vec3_t{
 
 	vec3_t() : glm::dvec3(0) {}
 	vec3_t(const glm::dvec3& a) { x = a.x; y = a.y; z = a.z; }
@@ -73,16 +79,21 @@ struct vec3_t: public glm::dvec3 {
 };
 
 typedef glm::ivec3 ivec3_t;
+typedef glm::bvec3 bvec3_t;
 
 std::ostream & operator<<(std::ostream &out, const vec3_t &a);
 
 // constants useful for all classes, single objectis owned by world
 struct world_constants_t {
-  float_t time_unit;
-  float_t length_unit;
+  float_t time_unit; // used only for initialization
+  float_t length_unit; // used only for initialization
+
+  float_t rx_radius_3d;
+
   float_t partition_edge_length;
   uint32_t subpartitions_per_partition_dimension;
   float_t subpartition_edge_length; // ==
+
 
   void init_subpartition_edge_length() {
   	subpartition_edge_length = partition_edge_length / (float_t)subpartitions_per_partition_dimension;
@@ -99,6 +110,7 @@ typedef uint16_t species_id_t;
 const int SPECIES_ID_INVALID = USHRT_MAX;
 
 typedef uint32_t molecule_index_t;
+const uint32_t MOLECULE_INDEX_INVALID = UINT32_MAX;
 
 // for now, this is the partition that contains point 0,0,0
 // in its center
