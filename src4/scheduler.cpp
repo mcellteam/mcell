@@ -45,7 +45,7 @@ void bucket_t::insert(base_event_t* event) {
 		}
 		// find the right ordering
 		while (it != events.end() && cmp_eq((*it)->event_time, event->event_time, SCHEDULER_COMPARISON_EPS)
-				&& (*it)->type_index < event->type_index) {
+				&& (*it)->type_index <= event->type_index) {
 			it++;
 		}
 

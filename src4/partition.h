@@ -24,7 +24,7 @@
 #ifndef SRC4_PARTITION_H_
 #define SRC4_PARTITION_H_
 
-#include <bitset>
+#include <unordered_set>
 
 #include "defines.h"
 #include "molecule.h"
@@ -34,7 +34,7 @@ namespace mcell {
 // do not call set() directly, maybe there is a way how to forbid this
 // TODO: use a different representation, maybe a set for now
 
-class subpartition_mask_t: public std::set<uint32_t> {
+class subpartition_mask_t: public std::unordered_set<uint32_t> {
 public:
 	void set_contains_molecule(uint32_t index, bool value = true) {
 		if (value) {
@@ -172,7 +172,7 @@ public:
 		}
 		uint32_t molecule_index = get_molecule_index(m);
 #ifdef DEBUG_PARTITION
-		std::cout << "Molecule " << molecule_index << " changed partition from "
+		std::cout << "Molecule " << molecule_index << " changed subpartition from "
 				<<  m.subpartition_index << " to " << new_subpartition_index << ".\n";
 #endif
 		// clear old position and set a new one

@@ -46,9 +46,15 @@ public:
 
 	uint32_t flags; // replace with some bitfield?
 
-	void dump(const std::string ind);
+	bool has_flag(uint32_t flag) {
+		return flags & SPECIES_FLAG_CAN_VOLVOL;
+	}
+
+	void dump(const std::string ind) const;
+	static void dump_array(const std::vector<species_t>& vec);
 };
 
 } /* namespace mcell */
 
 #endif /* SRC4_SPECIES_H_ */
+

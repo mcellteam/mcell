@@ -38,15 +38,14 @@
 
 #include "mcell_structs.h"
 
+#include "debug_config.h"
+
 // warning: do not use directly, we need to be able to control the precision
 #include "../libs/glm/glm.hpp"
 
 // this file must not depend on any other from mcell4 otherwise there
 // might be some nasty include dependencies
 
-// diverse debug macros
-#define DEBUG_SCHEDULER
-#define DEBUG_PARTITION
 
 
 namespace mcell {
@@ -54,12 +53,19 @@ namespace mcell {
 typedef double float_t; // soon to be changed to float
 #define FLOAT_T_BYTES 8
 
+#if FLOAT_T_BYTES == 8
+#define EPS 1e-12 // same as EPS_C
+#else
+#error "TODO: float32"
+#endif
+
 const float_t TIME_INVALID = NAN;
 const float_t TIME_SIMULATION_START = 0;
 
 const float_t PARTITION_EDGE_LENGTH_DEFAULT = 10; // maybe too large for now
 
-const float_t SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT = 20; // mcell3 uses logarithmic scaling, this is not useful here
+//const float_t SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT = 20; // mcell3 uses logarithmic scaling, this is not useful here
+const float_t SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT = 1;
 
 const float_t SCHEDULER_COMPARISON_EPS = 1e-10;
 
@@ -106,7 +112,8 @@ const int MAX_MOLECULES_PER_PARTITION = 32*32*32 /*32k*/; //temporary, must work
 
 
 
-typedef uint16_t species_id_t;
+//typedef uint16_t species_id_t; - slower
+typedef uint32_t species_id_t;
 const int SPECIES_ID_INVALID = USHRT_MAX;
 
 typedef uint32_t molecule_index_t;

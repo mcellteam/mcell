@@ -21,23 +21,25 @@
  *
 ******************************************************************************/
 
-#ifndef __DUMP_STATE_H__
-#define __DUMP_STATE_H__
+#include <iostream>
 
-#include "mcell_structs.h"
+#include "molecule.h"
 
+using namespace std;
 
-#define DUMP_EVERYTHING 0xFFFFFFFF
-
-#ifdef __cplusplus
-extern "C"
-#endif
-void dump_volume(struct volume* s, const char* comment, unsigned int selected_details);
-
-#ifdef __cplusplus
-extern "C"
-#endif
-void dump_collisions(struct collision* shead);
+namespace mcell {
 
 
-#endif
+void base_molecule_t::dump_base(const std::string ind) const {
+  cout << ind <<"flags: \t\t" << flags << "[uint16_t]\n";
+  cout << ind <<"species_id: \t\t" << species_id << " [species_id_t]\n";
+}
+
+void volume_molecule_t::dump(const std::string ind) const {
+  cout << ind <<"pos: \t\t" << pos << "[vec3_t]\n";
+  cout << ind <<"subpartition_index: \t\t" << subpartition_index << " [uint32_t]\n";
+  dump_base(ind);
+}
+
+
+} /* namespace mcell */

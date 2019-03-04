@@ -41,13 +41,32 @@ void world_t::init_simulation() {
 	// not depend on some random initialization
 	uint32_t index = add_partition(vec3_t(0, 0, 0));
 	assert(index == PARTITION_INDEX_INITIAL);
+
+	// create map for fast reaction searches
+	for (reaction_t& r: reactions) {
+		assert(r.reactants.size() == 2); // only bimolecular reactions are supported now
+
+		// TODO check - for now we only support one outcome of a reaction
+		if (bimolecular_reactions_map.count(r.reactants[0].species_id) != 0) {
+			assert(bimolecular_reactions_map[r.reactants[0].species_id].count(r.reactants[1].species_id) == 0);
+		}
+
+		bimolecular_reactions_map[r.reactants[0].species_id][r.reactants[1].species_id] = &r;
+		bimolecular_reactions_map[r.reactants[1].species_id][r.reactants[0].species_id] = &r;
+	}
 }
 
 
+void world_t::dump() {
+	// species
+	species_t::dump_array(species);
+}
+
 bool world_t::run_simulation() {
 
-	//float_t time = TIME_SIMULATION_START;
 	init_simulation();
+
+	dump();
 
 	// create event that will terminate our simulation
 	end_simulation_event_t* end_event = new end_simulation_event_t();
@@ -55,9 +74,22 @@ bool world_t::run_simulation() {
 	scheduler.schedule_event(end_event);
 
 	bool end_simulation = false;
+	float_t time = TIME_SIMULATION_START;
+	float_t previous_time;
+	uint32_t iteration = 0;
 	do {
-		/*time = */scheduler.handle_next_event(end_simulation);
+		previous_time = time;
+		time = scheduler.handle_next_event(end_simulation);
+
+		if (time > previous_time) {
+			if (iteration % 100 == 0) {
+				std::cout << "Iteration " << iteration << "\n";
+			}
+			iteration++;
+		}
 	} while (!end_simulation);
+
+	std::cout << "Iteration " << iteration << ", simulation finished successfully\n";
 
 	return true;
 }

@@ -25,7 +25,9 @@
 #define SRC4_DIFFUSE_REACT_EVENT_H_
 
 #include <vector>
+#include <unordered_map>
 #include "base_event.h"
+#include "partition.h"
 
 
 namespace mcell {
@@ -60,6 +62,11 @@ public:
 	volume_molecule_t& colliding_molecule;
 	float_t time;
 	vec3_t position;
+
+
+  void dump(const std::string ind) const;
+  static void dump_array(const std::vector<molecules_collision_t>& vec);
+
 };
 
 // created in mcell3_world_converter::create_diffusion_events() before any other events,
@@ -87,16 +94,6 @@ private:
 	void pick_displacement(float_t scale /*space step*/, vec3_t& displacement);
 	void compute_displacement(species_t& sp, vec3_t& displacement);
 
-	/*int trigger_bimolecular(
-			volume_molecule_t& diffused_mol,
-			volume_molecule_t& colliding_mol,
-			std::vector<molecules_collision_t>& possible_collisions);
-
-	void determine_mol_mol_reactions(
-			volume_molecule_t& vm,
-			partition_t& p,
-			std::vector<molecules_collision_t>& possible_collisions);
-*/
 	void collect_crossed_subpartitions(
 		const partition_t& p,
 		volume_molecule_t& vm, // molecule that we are diffusing, we are changing its pos  and possibly also subvolume
@@ -121,6 +118,11 @@ private:
 			uint32_t& new_subpartition_index
 	);
 
+	subpartition_mask_t& get_sp_species_reacting_mols_cached_data(
+			uint32_t sp_index, volume_molecule_t& vm, partition_t& p);
+
+	// cache for possible reactions, reset every time step() is called
+	std::unordered_map<uint32_t, std::unordered_map<species_id_t, subpartition_mask_t> > cache_sp_species_reacting_mols;
 };
 
 } // namespace mcell

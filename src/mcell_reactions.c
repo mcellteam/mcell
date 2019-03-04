@@ -1578,9 +1578,16 @@ int init_reactions(MCELL_STATE *state) {
 
   state->rx_radius_3d *= state->r_length_unit; /* Convert into length units */
 
+  for (int n_rxn_bin = 0; n_rxn_bin < state->rx_hashsize; n_rxn_bin++) {
+    for (struct rxn *this_rx = state->reaction_hash[n_rxn_bin]; this_rx != NULL;
+         this_rx = this_rx->next) {
+      set_reaction_player_flags(this_rx);
+    }
+  }
+
 #if 0
-  // TODO: move this to a separate functio nand call after mcell4 conversion
-  // because pathway_head is used there
+  // TODO: move this to a separate function and call after mcell4 conversion
+  // pathway_head is used there - this is sued in mcell4's init
   for (int n_rxn_bin = 0; n_rxn_bin < state->rx_hashsize; n_rxn_bin++) {
     for (struct rxn *this_rx = state->reaction_hash[n_rxn_bin]; this_rx != NULL;
          this_rx = this_rx->next) {
@@ -1605,7 +1612,7 @@ int init_reactions(MCELL_STATE *state) {
         path = next_path;
       }
 
-      set_reaction_player_flags(this_rx);
+      //set_reaction_player_flags(this_rx);
       this_rx->pathway_head = NULL;
     }
   }

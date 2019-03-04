@@ -31,6 +31,7 @@ extern "C" {
 #include "world.h"
 #include "partition.h"
 
+#include "debug_config.h"
 
 using namespace std;
 
@@ -45,6 +46,9 @@ void diffuse_react_event_t::dump(const std::string indent) {
 
 
 void diffuse_react_event_t::step() {
+	assert(world->partitions.size() == 1 && "Must extend cache to handle multiple partitions");
+	cache_sp_species_reacting_mols.clear();
+
 	// for each partition
 	for (partition_t& p: world->partitions) {
 		// 1) select the right list of molecules from volume_molecule_indices_per_time_step
@@ -57,6 +61,12 @@ void diffuse_react_event_t::step() {
 
 
 void diffuse_react_event_t::diffuse_molecules(partition_t& p, std::vector< molecule_index_t >& indices) {
+
+	// Possible optimization:
+	// GPU version - can make sets of possible collisions for a given species before
+	// the whole diffuse is run
+	// ! CPU version - compute sets of possible colilisions for a given species and "cache" it
+
 	for (molecule_index_t i: indices) {
 		volume_molecule_t& vm = p.volume_molecules[i];
 		if (vm.is_defunct())
@@ -64,29 +74,16 @@ void diffuse_react_event_t::diffuse_molecules(partition_t& p, std::vector< molec
 		species_t& spec = world->species[vm.species_id];
 
 
+/*	  double steps = 1.0;
+	  double t_steps = 1.0;
+	  double rate_factor = 1.0;
+	  double r_rate_factor = 1.0;
+*/
+
 		// 2) diffuse each molecule - get information on position change
 		// TBD: reflections
 		vec3_t displacement;
 		compute_displacement(spec, displacement);
-
-
-		// ray_trace
-		// - which subpartitions are crossed?
-
-
-		// "housekeeping"
-
-		// inertness?
-
-
-	  /* scan subvolume for possible mol-mol reactions with vm */
-		// for now, just collect all molecules
-		// this is filtering out, do it later
-/*		vector<collision_t> collisions;
-	  if (spec.flags & SPECIES_FLAG_CAN_VOLVOL) {
-	    determine_mol_mol_reactions(vm, p, collisions); <- this might belong to ray_trace
-	  }*/
-
 
 		// 3) detect collisions with other molecule
 		//vec3_t orig_pos = vm.pos;
@@ -101,10 +98,53 @@ void diffuse_react_event_t::diffuse_molecules(partition_t& p, std::vector< molec
 							remaining_displacement,
 							molecule_collisions, new_subpartition_index);
 
+#ifdef DEBUG_COLLISIONS
+			molecules_collision_t::dump_array(molecule_collisions);
+#endif
+
 		} while (state != RAY_TRACE_FINISHED);
 
 		// 4) evaluate and possible execute reactions
+		// are they sorted by time?
+		for (molecules_collision_t& collision: molecule_collisions) {
+			// reactions with time 0 are ignored
+
+
+			assert(collision.time > 0 && collision.time <= 1);
+
+			// mol-mol collision
+			if (collision.time < EPS) {
+					continue;
+			}
+
+			/*// ??
+	    struct vector3* loc_certain = NULL;
+	    struct collision *tentative = shead2; // pointer to the first collision
+
+		  //double t_steps = 1.0;
+		  //double r_rate_factor = 1.0;
+
+			collide_and_react_with_vol_mol(
+					collision,
+			*/
+
+		}
+
 		// TODO
+		/*
+		 *       if ((smash->what & COLLIDE_VOL) != 0) {
+        if (smash->t < EPS_C) {
+          continue;
+        }
+        if (collide_and_react_with_vol_mol(world, smash, vm, &tentative,
+          &displacement, loc_certain, t_steps, r_rate_factor) == 1) {
+          FREE_COLLISION_LISTS();
+          return NULL;
+        } else {
+          continue;
+        }
+      } else if ((smash->what & COLLIDE_WALL) != 0) {
+		 */
 
 		// are we still in the same partition or do we need to move?
 		bool move_to_another_partition = !p.in_this_partition(vm.pos);
@@ -127,13 +167,6 @@ void diffuse_react_event_t::compute_displacement(species_t& sp, vec3_t& displace
 	pick_displacement(sp.space_step, displacement);
 }
 
-/*
-bool ray_trace_subpartition_boundary(
-		volume_molecule& vm, // molecule that we are diffusing, we are changing its pos  and possibly also subvolume
-		vec3_t& remaining_displacement, // in/out - recomputed if there was a reflection
-
-)
-*/
 
 // collect subpartition indices that we are crossing
 void diffuse_react_event_t::collect_crossed_subpartitions(
@@ -277,6 +310,37 @@ bool diffuse_react_event_t::collide_mol(
   return COLLIDE_VOL_M;
 }
 
+// TODO: optimize
+subpartition_mask_t& diffuse_react_event_t::get_sp_species_reacting_mols_cached_data(
+		uint32_t sp_index, volume_molecule_t& vm, partition_t& p) {
+
+	auto it_per_species = cache_sp_species_reacting_mols.find(sp_index);
+	if (it_per_species != cache_sp_species_reacting_mols.end()) {
+		auto it_per_sp_mask = it_per_species->second.find(vm.species_id);
+		if (it_per_sp_mask != it_per_species->second.end()) {
+			return it_per_sp_mask->second;
+		}
+
+	}
+
+	// not found
+	std::pair<species_id_t, subpartition_mask_t> new_cache_item(vm.species_id, subpartition_mask_t());
+	auto it_cached = cache_sp_species_reacting_mols[sp_index].insert(new_cache_item);
+	subpartition_mask_t& mask_to_init = it_cached.first->second;
+
+	subpartition_mask_t& full_sp_mask = p.volume_molecules_subpartition_masks[sp_index];
+
+	for (uint32_t vm_index: full_sp_mask) {
+				volume_molecule_t& colliding_vm = p.volume_molecules[vm_index];
+
+				// can we react?
+				if (world->can_react_vol_vol(vm, colliding_vm)) {
+					mask_to_init.insert(vm_index);
+				}
+	}
+	return mask_to_init;
+}
+
 // collect possible collisions until a wall is hit
 ray_trace_state_t diffuse_react_event_t::ray_trace(
 		partition_t& p,
@@ -296,17 +360,19 @@ ray_trace_state_t diffuse_react_event_t::ray_trace(
 
 	// for each SP
 	for (uint32_t sp_index: crossed_subparition_indices) {
-		subpartition_mask_t& sp_mask = p.volume_molecules_subpartition_masks[sp_index];
+
+
+		// get cached reacting molecules for this SP
+		subpartition_mask_t& sp_cached_mask = get_sp_species_reacting_mols_cached_data(sp_index, vm, p);
+
 		// for each molecule in this SP
-		for (uint32_t vm_index: sp_mask) {
-
+		for (uint32_t vm_index: sp_cached_mask) {
 			volume_molecule_t& colliding_vm = p.volume_molecules[vm_index];
-			if (colliding_vm.is_defunct()) {
-				continue;
-			}
 
-			// can we react?
-			// TODO: filter out molecules that cannot react right away
+			// can we react? - already pre-cached
+			//if (!world->can_react_vol_vol(vm, colliding_vm)) {
+			//	continue;
+			//}
 
 			// we would like to compute everything that's needed just once
 			float_t time;
@@ -327,64 +393,101 @@ ray_trace_state_t diffuse_react_event_t::ray_trace(
   return RAY_TRACE_FINISHED; // no wall was hit
 }
 
-
+/******************************************************************************
+ *
+ * collide_and_react_with_vol_mol is a helper function used in diffuse_3D to
+ * handle collision of a diffusing molecule with a molecular target.
+ *
+ * Returns 1 if reaction does happen and 0 otherwise.
+ *
+ ******************************************************************************/
 #if 0
-int diffuse_react_event_t::trigger_bimolecular(
-		volume_molecule_t& diffused_mol,
-		volume_molecule_t& colliding_mol,
-		std::vector<molecules_collision_t>& possible_collisions
-) {
-  //int num_matching_rxns = 0; /* number of matching reactions */
+static int collide_and_react_with_vol_mol(
+	struct volume* world,
+  struct collision* smash,
+	struct volume_molecule* m,
+	struct collision** tentative,
+	struct vector3* displacement,
+	struct vector3* loc_certain, double  t_steps, double r_rate_factor) {
 
-  // seems to only check whether there can be a reaction
-  // TODO: for now, we consider all molecules
-  possible_collisions.push_back(molecules_collision_t(colliding_mol));
+  struct abstract_molecule* am = (struct abstract_molecule *)smash->target;
+  double factor = exact_disk(
+      world, &(smash->loc), displacement, world->rx_radius_3d, m->subvol,
+      m, (struct volume_molecule *)am, world->use_expanded_list,
+      world->x_fineparts, world->y_fineparts, world->z_fineparts);
+
+  if (factor < 0) { /* Probably hit a wall, might have run out of memory */
+    return 0; /* Reaction blocked by a wall */
+  }
+
+  double scaling = factor * r_rate_factor;
+  struct rxn* rx = smash->intermediate;
+  if ((rx != NULL) && (rx->prob_t != NULL)) {
+    update_probs(world, rx, m->t);
+  }
+
+  struct species *spec = m->properties;
+  struct periodic_image *periodic_box = m->periodic_box;
+  int i = test_bimolecular(
+    rx, scaling, 0, am, (struct abstract_molecule *)m, world->rng);
+
+  if (i < RX_LEAST_VALID_PATHWAY) {
+    return 0;
+  }
+
+  int j = outcome_bimolecular(world, rx, i, (struct abstract_molecule *)m, am,
+    0, 0, m->t + t_steps * smash->t, &(smash->loc), loc_certain);
+
+  if (j != RX_DESTROY) {
+    return 0;
+  } else {
+    /* Count the hits up until we were destroyed */
+    struct collision* ttv = *tentative;
+    for (; ttv != NULL && ttv->t <= smash->t; ttv = ttv->next) {
+      if (!(ttv->what & COLLIDE_WALL)) {
+        continue;
+      }
+      if (m->properties == NULL) {
+        continue;
+      }
+      if (!(m->properties->flags & ((struct wall *)ttv->target)->flags &
+            COUNT_SOME_MASK)) {
+        continue;
+      }
+
+      count_region_update(world, m, spec, m->id, periodic_box,
+        ((struct wall *)ttv->target)->counting_regions,
+        ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 0, &(ttv->loc), ttv->t);
+      if (ttv == smash) {
+        break;
+      }
+    }
+    *tentative = ttv;
+  }
   return 1;
 }
-
-/******************************************************************************
- * the determine_mol_mol_reactions helper function is used in diffuse_3D to
- * compute all possible molecule molecule reactions between the diffusing
- * molecule m and all other volume molecules in the subvolume.
- ******************************************************************************/
-void diffuse_react_event_t::determine_mol_mol_reactions(
-		volume_molecule_t& diffused_mol,
-		partition_t& p,
-		std::vector<molecules_collision_t>& possible_collisions) {
-
-	// note: this for loop goes over species in MCell 3
-	// go through all items (volume molecules for now) in a subpartition
-	subpartition_mask_t& volume_molecules_mask =
-			p.volume_molecules_subpartition_masks[diffused_mol.subpartition_index];
-
-	for (uint32_t i = 0; i < volume_molecules_mask.size(); i++) {
-		// FIXME: this is a not very efficient way how to iterate through a bitset
-		// need a different bitset implementation
-		if (!volume_molecules_mask.test(i)) {
-			continue;
-		}
-		volume_molecule_t& colliding_mol = p.volume_molecules[i];
-
-		if (colliding_mol.is_defunct()) {
-			continue;
-		}
-
-		// same molecule?
-		if (&diffused_mol == &colliding_mol) {
-			continue;
-		}
-
-		// are there possible reactions between these species?
-		// TODO: cache this result somewhere
-		if (!world->can_react(diffused_mol.species_id, colliding_mol.species_id)) {
-			continue;
-		}
-
-		// check collisions
-		trigger_bimolecular(diffused_mol, colliding_mol, possible_collisions);
-	}
-
-}
 #endif
+
+
+void molecules_collision_t::dump(const std::string ind) const {
+	cout << ind << "diffused_molecule:";
+	diffused_molecule.dump(ind + "  ");
+	cout << ind << "colliding_molecule:";
+	colliding_molecule.dump(ind + "  ");
+
+	cout << "time: \t\t" << time << " [float_t] \t\t\n";
+	cout << "position: \t\t" << position << " [vec3_t] \t\t\n";
+}
+
+void molecules_collision_t::dump_array(const std::vector<molecules_collision_t>& vec) {
+	cout << "Collision array: " << (vec.empty() ? "EMPTY" : "") << "\n";
+
+	for (size_t i = 0; i < vec.size(); i++) {
+		cout << i << ":\n";
+		vec[i].dump("  ");
+	}
+}
+
+
 
 } /* namespace mcell */

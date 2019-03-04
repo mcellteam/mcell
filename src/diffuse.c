@@ -39,6 +39,9 @@
 #include "react_nfsim.h"
 #include "nfsim_func.h"
 
+// debug
+#include "debug_config.h"
+#include "dump_state.h"
 
 #define FREE_COLLISION_LISTS()                                                 \
   do {                                                                         \
@@ -3001,8 +3004,18 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
     if (world->use_expanded_list && redo_expand_collision_list_flag) {
       redo_collision_list(world, &shead, &stail, &shead_exp, vm, &displacement, sv);
     }
-
+#ifdef DEBUG_COLLISIONS
+    // what are the possible collissions?
+    //dump_collisions(shead);
+#endif
     struct collision* shead2 = ray_trace(world, &(vm->pos), shead, sv, &displacement, reflectee);
+#ifdef DEBUG_COLLISIONS
+    // first check that we are getting correct result here
+    if (shead2->what & COLLIDE_VOL) {
+    	dump_collisions(shead2);
+    }
+#endif
+
     if (shead2 == NULL) {
       mcell_internal_error("ray_trace returned NULL.");
     }

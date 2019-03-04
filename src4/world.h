@@ -27,6 +27,7 @@
 #include <vector>
 #include <string>
 #include <set>
+#include <unordered_map>
 
 #include "partition.h"
 #include "scheduler.h"
@@ -77,13 +78,43 @@ public:
 	}
 
 	// -------------- reaction utility methods --------------
-	bool can_react(species_id_t spec_a, species_id_t spec_b) {
 
-		// simply return true for now
-		// TODO: pre-compute this information
+	// should be inlined
+	// use some caching
+	bool can_react_vol_vol(volume_molecule_t& a, volume_molecule_t& b) {
+		// must not be the same molecule
+		if (&a == &b) {
+			return false;
+		}
+
+		// not be defunct
+		if (a.is_defunct() || b.is_defunct()) {
+			return false;
+		}
+		// is there even any reaction
+		species_t& sa = species[a.species_id];
+		if (!sa.has_flag(SPECIES_FLAG_CAN_VOLVOL)) {
+			return false;
+		}
+		species_t& sb = species[b.species_id];
+		if (!sb.has_flag(SPECIES_FLAG_CAN_VOLVOL)) {
+			return false;
+		}
+
+		// is there a reaction between these two species?
+		auto it_first_species = bimolecular_reactions_map.find(a.species_id);
+		if (it_first_species == bimolecular_reactions_map.end()) {
+			return false;
+		}
+		auto it_second_species = it_first_species->second.find(b.species_id);
+		if (it_second_species == it_first_species->second.end()) {
+			return false;
+		}
+
 		return true;
 	}
 
+	void dump();
 
 	// -------------- world data --------------
   std::vector<partition_t> partitions;
@@ -93,6 +124,9 @@ public:
   std::vector<species_t> species;
 
   std::vector<reaction_t> reactions; // we might need faster searching or reference from species to reactions here but let's keep it simple for now
+  // FIXME: there might be multiple reactions for 2 reactants
+  std::unordered_map< species_id_t, std::unordered_map<species_id_t, reaction_t*> > bimolecular_reactions_map; // created from reactions in init_simulation
+
 
   uint64_t iterations; // number of iterations to simulate
 

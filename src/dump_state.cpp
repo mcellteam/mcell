@@ -447,7 +447,7 @@ void dump_product_list(product* prod, const char* ind) {
 
 void dump_pathway(pathway* pathway_ptr, const char* ind) {
 	assert(pathway_ptr != nullptr);
-	DECL_IND2(ind);
+	//DECL_IND2(ind);
 
   cout << ind << "next: *\t\t" << (void*)pathway_ptr->next << " [pathway] \t\t/* Next pathway for this reaction */\n";
   cout << ind << "pathname: *\t\t" << (void*)pathway_ptr->pathname << " [rxn_pathname] \t\t/* Data for named reaction pathway or NULL */\n";
@@ -1122,3 +1122,68 @@ extern "C" void dump_volume(struct volume* s, const char* comment, unsigned int 
 
   cout << "********* volume dump :" << comment << "************ (END)\n";
 }
+
+
+// ----------- other debug functions -------
+
+string collision_flags_to_str(int flags) {
+	string res;
+	if (flags == COLLIDE_MISS) {
+		res = "COLLIDE_MISS";
+		return res;
+	}
+	if (flags == COLLIDE_REDO) {
+		res = "COLLIDE_REDO";
+		return res;
+	}
+
+#define CHECK_FLAG(F) if (flags & F) res += #F ","
+
+  CHECK_FLAG(COLLIDE_FRONT);
+  CHECK_FLAG(COLLIDE_BACK);
+  CHECK_FLAG(COLLIDE_VOL_M);
+  CHECK_FLAG(COLLIDE_SV_NX);
+  CHECK_FLAG(COLLIDE_SV_PX);
+  CHECK_FLAG(COLLIDE_SV_NY);
+  CHECK_FLAG(COLLIDE_SV_PY);
+  CHECK_FLAG(COLLIDE_SV_NZ);
+  CHECK_FLAG(COLLIDE_SV_PZ);
+  CHECK_FLAG(COLLIDE_MASK);
+  CHECK_FLAG(COLLIDE_WALL);
+  CHECK_FLAG(COLLIDE_VOL);
+  CHECK_FLAG(COLLIDE_SUBVOL);
+  CHECK_FLAG(COLLIDE_VOL_VOL);
+  CHECK_FLAG(COLLIDE_VOL_SURF);
+  CHECK_FLAG(COLLIDE_SURF_SURF);
+  CHECK_FLAG(COLLIDE_SURF);
+
+#undef CHECK_FLAG
+	return res;
+}
+
+void dump_one_collision(collision* col) {
+  cout << "next: *\t\t" << col->next << " [collision] \t\t\n";
+  cout << "t: \t\t" << col->t << " [double] \t\t/* Time of collision (may be slightly early) */\n";
+
+  cout << "target: *\t\t" << (void*)col->target << " [void] \t\t/* Thing that we hit: wall, molecule, subvol etc */\n";
+  cout << "what: \t\t" << collision_flags_to_str(col->what) << " [int] \t\t/* Target-type Flags: what kind of thing did we hit? */\n";
+  cout << "intermediate: *\t\t" << col->intermediate << " [rxn] \t\t/* Reaction that told us we could hit it */\n";
+  if (col->intermediate != nullptr) {
+  	cout << "intermediate->sym->name: *\t\t" << col->intermediate->sym->name << "\n";
+  }
+  cout << "loc: \t\t" << col->loc << " [vector3] \t\t/* Location of impact */\n";
+}
+
+void dump_collisions(collision* shead) {
+	cout << "Collision list: " << ((shead == nullptr) ? "EMPTY" : "") << "\n";
+
+	int i = 0;
+	collision* ptr = shead;
+	while (ptr != NULL) {
+		cout << i << ":\n";
+		dump_one_collision(ptr);
+		ptr = ptr->next;
+		i++;
+	}
+}
+

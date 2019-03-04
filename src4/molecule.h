@@ -46,6 +46,8 @@ public:
 		return flags & MOLECULE_FLAG_DEFUNCT;
 	}
 
+	// not using virtual methods, we do not want virtual methods table to be created for this object
+	void dump_base(const std::string ind) const;
 };
 
 
@@ -59,6 +61,8 @@ public:
 
 	vec3_t pos;
 	uint32_t subpartition_index;
+
+	void dump(const std::string ind) const;
 };
 
 } // namespace mcell
