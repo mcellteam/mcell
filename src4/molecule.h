@@ -46,6 +46,11 @@ public:
 		return flags & MOLECULE_FLAG_DEFUNCT;
 	}
 
+	void set_is_defunct() {
+		assert(!is_defunct() && "We really should not be defuncting one molecule multiple times");
+		flags |= MOLECULE_FLAG_DEFUNCT;
+	}
+
 	// not using virtual methods, we do not want virtual methods table to be created for this object
 	void dump_base(const std::string ind) const;
 };

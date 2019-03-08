@@ -21,6 +21,9 @@
  *
 ******************************************************************************/
 
+// WARNING: do not forget about unit coversion length_unit & time_unit!
+
+
 #include <stdarg.h>
 #include <stdlib.h>
 
@@ -137,7 +140,7 @@ bool mcell3_world_converter::convert_simulation_setup(volume* s) {
 	world->iterations = s->iterations;
 	world->world_constants.time_unit = s->time_unit;
 	world->world_constants.length_unit = s->length_unit;
-	world->world_constants.rx_radius_3d = s->rx_radius_3d;
+	world->world_constants.rx_radius_3d = s->rx_radius_3d * s->length_unit;
 	world->seed_seq = s->seed_seq;
 	world->rng = *s->rng;
 
@@ -153,7 +156,8 @@ void mcell3_world_converter::create_diffusion_events() {
 
 	set<float_t> time_steps_set;
 	for (auto &species : world->species ) {
-		time_steps_set.insert(species.time_step);
+		time_steps_set.insert(species.time_step * world->world_constants.time_unit);
+		//time_steps_set.insert(species.time_step); // FIXME:
 	}
 
 	for (float_t time_step : time_steps_set) {
@@ -209,6 +213,7 @@ bool mcell3_world_converter::convert_single_reaction(rxn *rx) {
 
   CHECK_PROPERTY(rx->cum_probs[0] == rx->max_fixed_p); // limited for now
   CHECK_PROPERTY(rx->cum_probs[0] == rx->min_noreaction_p); // limited for now
+  reaction.min_noreaction_p = rx->min_noreaction_p;
 
   // ?? double pb_factor; /* Conversion factor from rxn rate to rxn probability (used for cooperativity) */
 
@@ -318,6 +323,7 @@ bool mcell3_world_converter::convert_release_events(volume* s) {
 			release_event_queue *req = (release_event_queue *)aep;
 
 
+			//event->event_time = req->event_time * s->time_unit;
 			event->event_time = req->event_time;
 
 			// -- release_site --

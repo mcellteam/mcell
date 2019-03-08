@@ -41,6 +41,10 @@
 
 #include "diffuse.h"
 
+#include "debug_config.h"
+#include "dump_state.h"
+
+
 static int outcome_products_random(struct volume *world, struct wall *w,
                                    struct vector3 *hitpt, double t,
                                    struct rxn *rx, int path,
@@ -351,6 +355,12 @@ static int outcome_products_random(struct volume *world, struct wall *w,
                                    struct abstract_molecule *reacB,
                                    short orientA, short orientB) {
 
+#ifdef DEBUG_REACTIONS
+	// TODO: not checking type of molecule
+	dump_volume_molecule((struct volume_molecule*)reacA, "", true);
+	dump_volume_molecule((struct volume_molecule*)reacB, "", true);
+#endif
+
   /* Did the moving molecule cross the plane? */
   bool cross_wall = false; 
 
@@ -409,7 +419,7 @@ static int outcome_products_random(struct volume *world, struct wall *w,
   int sm_bitmask = determine_molecule_region_topology(
       world, sm_1, sm_2, &rlp_head_wall_1, &rlp_head_wall_2, &rlp_head_obj_1,
       &rlp_head_obj_2, is_unimol);
-
+  assert(sm_bitmask == 0 && "MCell4 check");
   /* reacA is the molecule which initiated the reaction. */
   struct abstract_molecule *const initiator = reacA;
   short const initiatorOrient = orientA;
@@ -435,7 +445,7 @@ static int outcome_products_random(struct volume *world, struct wall *w,
   int replace_p1 = (product_type[0] == PLAYER_SURF_MOL && rx_players[0] == NULL);
   int replace_p2 = rx->n_reactants > 1 && (product_type[1] == PLAYER_SURF_MOL &&
                                            rx_players[1] == NULL);
-
+  assert(replace_p1 == 0 && replace_p2 == 0 && "MCell4 check");
   /* Determine the point of reaction on the surface. */
   struct vector2 rxn_uv_pos; // position of reaction on wall
   int rxn_uv_idx = -1;       // tile index of where reaction occurred
@@ -464,7 +474,7 @@ static int outcome_products_random(struct volume *world, struct wall *w,
       num_surface_static_reactants++;
     }
   }
-
+  assert(!is_orientable && "MCell4 check");
   /* find out number of surface products */
   int num_surface_products = 0;
   int num_surface_static_products = 0; // number of products with (D_2D == 0)
@@ -473,7 +483,7 @@ static int outcome_products_random(struct volume *world, struct wall *w,
       continue;
     }
     if (rx_players[n_product]->flags & ON_GRID) {
-      num_surface_products++;
+      num_surface_products++; assert(false && "MCell4 check");
       if (!distinguishable(rx_players[n_product]->D, 0, EPS_C))
         num_surface_static_products++;
     }
@@ -895,9 +905,9 @@ static int outcome_products_random(struct volume *world, struct wall *w,
   if (hitpt != NULL) {
     count_pos_xyz = *hitpt;
   } else if (sm_reactant) {
-    uv2xyz(&sm_reactant->s_pos, sm_reactant->grid->surface, &count_pos_xyz);
+    uv2xyz(&sm_reactant->s_pos, sm_reactant->grid->surface, &count_pos_xyz); assert(false && "MCell4 check");
   } else {
-    count_pos_xyz = ((struct volume_molecule *)reacA)->pos;
+    count_pos_xyz = ((struct volume_molecule *)reacA)->pos; assert(false && "MCell4 check");
   }
 
   /* Create and place each product. */
@@ -1019,7 +1029,7 @@ static int outcome_products_random(struct volume *world, struct wall *w,
   }
 
   /* If necessary, update the dissociation index. */
-  if (update_dissociation_index) {
+  if (update_dissociation_index) { assert(false && "MCell4 check");
     if (--world->dissociation_index < DISSOCIATION_MIN)
       world->dissociation_index = DISSOCIATION_MAX;
   }

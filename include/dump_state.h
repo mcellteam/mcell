@@ -39,5 +39,9 @@ extern "C"
 #endif
 void dump_collisions(struct collision* shead);
 
+#ifdef __cplusplus
+extern "C"
+#endif
+void dump_volume_molecule(struct volume_molecule* amp, const char* ind, bool limited_info);
 
 #endif

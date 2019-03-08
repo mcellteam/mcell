@@ -181,7 +181,14 @@ public:
 		m.subpartition_index = new_subpartition_index;
 	}
 
-	void add_volume_molecule(const volume_molecule_t& m, const uint32_t time_step_index) {
+	// version that computes the right time_step_index each time it is called
+	void add_volume_molecule(const volume_molecule_t& vm_copy, const float_t time_step) {
+		uint32_t time_step_index = get_or_add_molecule_list_index_for_time_step(time_step);
+		add_volume_molecule(vm_copy, time_step_index);
+	}
+
+
+	void add_volume_molecule(const volume_molecule_t& vm_copy, const uint32_t time_step_index) {
 		uint32_t molecule_index = volume_molecules.size();
 		// and its index to the list sorted by time step
 		// this is an array that changes only when molecule leaves this partition
@@ -190,13 +197,25 @@ public:
 
 		// compute subpartition and set it, this might change often, therefore we are using bitfield that
 		// can be easily changed
-		uint32_t subpartition_index = get_subpartition_index(m.pos);
+		uint32_t subpartition_index = get_subpartition_index(vm_copy.pos);
 		assert(subpartition_index < volume_molecules_subpartition_masks.size());
 		volume_molecules_subpartition_masks[subpartition_index].set_contains_molecule(molecule_index, true);
 
 		// and finally store (copy) the new molecule and set its subpartition index
-		volume_molecules.push_back(m);
+		volume_molecules.push_back(vm_copy);
 		volume_molecules.back().subpartition_index = subpartition_index;
+	}
+
+	void set_molecule_as_defunct(volume_molecule_t& vm) {
+		// set that this molecule does not exist anymore
+		vm.set_is_defunct();
+
+		// we will keep it in diffusion arrays (volume_molecule_indices_per_time_step)
+		// but we should remove it from subpartition mask (although there are check in the collision detection code for that)
+		uint32_t molecule_index = get_molecule_index(vm);
+		uint32_t subpartition_index = get_subpartition_index(vm.pos);
+		assert(subpartition_index < volume_molecules_subpartition_masks.size());
+		volume_molecules_subpartition_masks[subpartition_index].set_contains_molecule(molecule_index, false);
 	}
 
 	// left, bottom, closest (lowest z) point of the partition
@@ -209,7 +228,7 @@ public:
   // arrays of indices to the volume_molecules array where each array corresponds to a given time step
   typedef std::pair< float_t, std::vector< molecule_index_t > > pair_time_step_volume_molecules_t;
   // indexed by diffusion time step index
-  std::vector< pair_time_step_volume_molecules_t > volume_molecule_indices_per_time_step;
+  std::vector< pair_time_step_volume_molecules_t > volume_molecule_indices_per_time_step; // TODO: rename so that the name has something to do with diffusion? diffusion list?
 
   // indexed by subpartition index, size is world->subpartition_edge_length^3
   std::vector < subpartition_mask_t > volume_molecules_subpartition_masks;

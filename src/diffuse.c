@@ -2979,6 +2979,16 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
       &rate_factor, &r_rate_factor, &steps, &t_steps, max_time);
   }
 
+  // check for mcell4 -assuming that r_rate_factor and t_steps is still 1
+  assert(abs(r_rate_factor - 1.0) < EPS_C && "mcell4 temporary check");
+  assert(abs(t_steps - 1.0) < EPS_C && "mcell4 temporary check");
+
+#ifdef DEBUG_COLLISIONS
+	mcell_log("Diffusing molecule:");
+	mcell_log("  displacement: %f, %f, %f\n", displacement.x, displacement.y, displacement.z);
+	dump_volume_molecule(vm, "  ", true);
+#endif
+
   if (world->use_expanded_list &&
       ((vm->properties->flags & (CAN_VOLVOL | CANT_INITIATE)) == CAN_VOLVOL) &&
       !inertness) {
@@ -3011,8 +3021,11 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
     struct collision* shead2 = ray_trace(world, &(vm->pos), shead, sv, &displacement, reflectee);
 #ifdef DEBUG_COLLISIONS
     // first check that we are getting correct result here
-    if (shead2->what & COLLIDE_VOL) {
+    if (shead2->what & COLLIDE_VOL) { // FIXME: checking only 1st item
     	dump_collisions(shead2);
+    }
+    else {
+    	dump_collisions(NULL);
     }
 #endif
 
@@ -4058,7 +4071,7 @@ static int collide_and_react_with_vol_mol(struct volume* world,
   if ((rx != NULL) && (rx->prob_t != NULL)) {
     update_probs(world, rx, m->t);
   }
-
+  assert(abs(scaling - 1.0) < EPS_C && "mcell4 temporary check");
   struct species *spec = m->properties;
   struct periodic_image *periodic_box = m->periodic_box;
   int i = test_bimolecular(
@@ -4067,7 +4080,10 @@ static int collide_and_react_with_vol_mol(struct volume* world,
   if (i < RX_LEAST_VALID_PATHWAY) {
     return 0;
   }
-
+  assert(abs(m->t - 1.0) < EPS_C && "mcell4 temporary check");
+  assert(abs(t_steps - 1.0) < EPS_C && "mcell4 temporary check");
+  if (loc_certain != NULL)
+  	assert(loc_certain->x == 0 && loc_certain->y == 0 && loc_certain->z == 0 && "mcell4 temporary check");
   int j = outcome_bimolecular(world, rx, i, (struct abstract_molecule *)m, am,
     0, 0, m->t + t_steps * smash->t, &(smash->loc), loc_certain);
 

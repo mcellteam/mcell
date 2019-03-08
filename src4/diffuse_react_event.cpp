@@ -67,28 +67,30 @@ void diffuse_react_event_t::diffuse_molecules(partition_t& p, std::vector< molec
 	// the whole diffuse is run
 	// ! CPU version - compute sets of possible colilisions for a given species and "cache" it
 
-	for (molecule_index_t i: indices) {
-		volume_molecule_t& vm = p.volume_molecules[i];
+	for (molecule_index_t molecule_idx: indices) {
+		volume_molecule_t& vm = p.volume_molecules[molecule_idx];
+
+
 		if (vm.is_defunct())
 			continue;
 		species_t& spec = world->species[vm.species_id];
 
-
-/*	  double steps = 1.0;
-	  double t_steps = 1.0;
-	  double rate_factor = 1.0;
-	  double r_rate_factor = 1.0;
-*/
-
-		// 2) diffuse each molecule - get information on position change
+		// diffuse each molecule - get information on position change
 		// TBD: reflections
 		vec3_t displacement;
 		compute_displacement(spec, displacement);
+
+#ifdef DEBUG_COLLISIONS
+		cout << "** Diffusing molecule " << p.get_molecule_index(vm) << "\n";
+		cout << "  displacement " << displacement << "\n";
+		vm.dump("  ");
+#endif
 
 		// 3) detect collisions with other molecule
 		//vec3_t orig_pos = vm.pos;
 		vec3_t remaining_displacement = displacement;
 		uint32_t new_subpartition_index;
+		vec3_t new_position;
 		ray_trace_state_t state;
 		std::vector<molecules_collision_t> molecule_collisions;
 		do {
@@ -96,7 +98,10 @@ void diffuse_react_event_t::diffuse_molecules(partition_t& p, std::vector< molec
 					ray_trace(
 							p, vm /* changes position */,
 							remaining_displacement,
-							molecule_collisions, new_subpartition_index);
+							molecule_collisions,
+							new_position,
+							new_subpartition_index
+					);
 
 #ifdef DEBUG_COLLISIONS
 			molecules_collision_t::dump_array(molecule_collisions);
@@ -105,8 +110,14 @@ void diffuse_react_event_t::diffuse_molecules(partition_t& p, std::vector< molec
 		} while (state != RAY_TRACE_FINISHED);
 
 		// 4) evaluate and possible execute reactions
-		// are they sorted by time?
-		for (molecules_collision_t& collision: molecule_collisions) {
+		// they are supposed to be sorted in reverse by time
+		for (int collision_idx = molecule_collisions.size() - 1; collision_idx >= 0; collision_idx--) {
+			molecules_collision_t& collision = molecule_collisions[collision_idx];
+
+			if ((size_t)collision_idx != molecule_collisions.size() - 1) {
+				assert(collision.time >= molecule_collisions[collision_idx + 1].time);
+			}
+
 			// reactions with time 0 are ignored
 
 
@@ -116,6 +127,13 @@ void diffuse_react_event_t::diffuse_molecules(partition_t& p, std::vector< molec
 			if (collision.time < EPS) {
 					continue;
 			}
+
+			// for now. do the change right away, but we will need to
+			// cache these changes and do them right away
+			if (collide_and_react_with_vol_mol(p, collision, displacement)) {
+				// molecule was destroyed
+			}
+
 
 			/*// ??
 	    struct vector3* loc_certain = NULL;
@@ -130,21 +148,8 @@ void diffuse_react_event_t::diffuse_molecules(partition_t& p, std::vector< molec
 
 		}
 
-		// TODO
-		/*
-		 *       if ((smash->what & COLLIDE_VOL) != 0) {
-        if (smash->t < EPS_C) {
-          continue;
-        }
-        if (collide_and_react_with_vol_mol(world, smash, vm, &tentative,
-          &displacement, loc_certain, t_steps, r_rate_factor) == 1) {
-          FREE_COLLISION_LISTS();
-          return NULL;
-        } else {
-          continue;
-        }
-      } else if ((smash->what & COLLIDE_WALL) != 0) {
-		 */
+		// finally move molecule to its destination
+		vm.pos = new_position;
 
 		// are we still in the same partition or do we need to move?
 		bool move_to_another_partition = !p.in_this_partition(vm.pos);
@@ -347,6 +352,7 @@ ray_trace_state_t diffuse_react_event_t::ray_trace(
 		volume_molecule_t& vm, // molecule that we are diffusing, we are changing its pos  and possibly also subvolume
 		vec3_t& remaining_displacement, // in/out - recomputed if there was a reflection
 		std::vector<molecules_collision_t>& molecule_collisions, // possible reactions in this part of way marching, ordered by time
+		vec3_t& new_position,
 		uint32_t& new_subpartition_index
 		) {
 
@@ -379,8 +385,10 @@ ray_trace_state_t diffuse_react_event_t::ray_trace(
 			vec3_t position;
 			// collide_mol must be inlined because many things are computed all over there
 			if (collide_mol(vm, remaining_displacement, colliding_vm, time, position, world->world_constants.rx_radius_3d)) {
+				reaction_t* rx = world->get_reaction(vm, colliding_vm);
+				assert(rx != nullptr);
 				molecule_collisions.push_back(
-						molecules_collision_t(vm, colliding_vm, time, position)
+						molecules_collision_t(p, vm, colliding_vm, *rx, time, position)
 				);
 			}
 		}
@@ -388,7 +396,7 @@ ray_trace_state_t diffuse_react_event_t::ray_trace(
 
 	// the value is valid only when RAY_TRACE_FINISHED is returned
 	new_subpartition_index = crossed_subparition_indices.back();
-	vm.pos = vm.pos + remaining_displacement;
+	new_position = vm.pos + remaining_displacement;
 
   return RAY_TRACE_FINISHED; // no wall was hit
 }
@@ -401,79 +409,124 @@ ray_trace_state_t diffuse_react_event_t::ray_trace(
  * Returns 1 if reaction does happen and 0 otherwise.
  *
  ******************************************************************************/
-#if 0
-static int collide_and_react_with_vol_mol(
-	struct volume* world,
-  struct collision* smash,
-	struct volume_molecule* m,
-	struct collision** tentative,
-	struct vector3* displacement,
-	struct vector3* loc_certain, double  t_steps, double r_rate_factor) {
+bool diffuse_react_event_t::collide_and_react_with_vol_mol(
+		partition_t& p,
+		molecules_collision_t& collision,
+		vec3_t& displacement
+)	{
 
-  struct abstract_molecule* am = (struct abstract_molecule *)smash->target;
-  double factor = exact_disk(
-      world, &(smash->loc), displacement, world->rx_radius_3d, m->subvol,
-      m, (struct volume_molecule *)am, world->use_expanded_list,
-      world->x_fineparts, world->y_fineparts, world->z_fineparts);
+  volume_molecule_t& colliding_molecule = collision.colliding_molecule; // am
+  volume_molecule_t& diffused_molecule = collision.diffused_molecule; // m
 
-  if (factor < 0) { /* Probably hit a wall, might have run out of memory */
-    return 0; /* Reaction blocked by a wall */
-  }
+  // returns 1 when there are no walls at all
+  //TBD: double factor = exact_disk(
 
-  double scaling = factor * r_rate_factor;
-  struct rxn* rx = smash->intermediate;
-  if ((rx != NULL) && (rx->prob_t != NULL)) {
-    update_probs(world, rx, m->t);
-  }
-
-  struct species *spec = m->properties;
-  struct periodic_image *periodic_box = m->periodic_box;
+  reaction_t& rx = collision.rx;
+  //  rx->prob_t is always NULL in out case update_probs(world, rx, m->t);
+  // returns which reaction pathway to take
   int i = test_bimolecular(
-    rx, scaling, 0, am, (struct abstract_molecule *)m, world->rng);
+    rx, /*scaling, 0,*/ colliding_molecule, diffused_molecule/*, world->rng*/);
 
   if (i < RX_LEAST_VALID_PATHWAY) {
-    return 0;
+  	return false;
   }
-
-  int j = outcome_bimolecular(world, rx, i, (struct abstract_molecule *)m, am,
-    0, 0, m->t + t_steps * smash->t, &(smash->loc), loc_certain);
-
-  if (j != RX_DESTROY) {
-    return 0;
-  } else {
-    /* Count the hits up until we were destroyed */
-    struct collision* ttv = *tentative;
-    for (; ttv != NULL && ttv->t <= smash->t; ttv = ttv->next) {
-      if (!(ttv->what & COLLIDE_WALL)) {
-        continue;
-      }
-      if (m->properties == NULL) {
-        continue;
-      }
-      if (!(m->properties->flags & ((struct wall *)ttv->target)->flags &
-            COUNT_SOME_MASK)) {
-        continue;
-      }
-
-      count_region_update(world, m, spec, m->id, periodic_box,
-        ((struct wall *)ttv->target)->counting_regions,
-        ((ttv->what & COLLIDE_MASK) == COLLIDE_FRONT) ? 1 : -1, 0, &(ttv->loc), ttv->t);
-      if (ttv == smash) {
-        break;
-      }
-    }
-    *tentative = ttv;
+  else {
+  	int j = outcome_bimolecular(p, collision, i);
+  	assert(j == RX_DESTROY);
+  	return true;
   }
-  return 1;
 }
-#endif
 
+
+/*************************************************************************
+test_bimolecular
+  In: the reaction we're testing
+      a scaling coefficient depending on how many timesteps we've
+        moved at once (1.0 means one timestep) and/or missing interaction area
+      local probability factor (positive only for the reaction between two
+        surface molecules, otherwise equal to zero)
+      reaction partners
+  Out: RX_NO_RX if no reaction occurs
+       int containing which reaction pathway to take if one does occur
+  Note: If this reaction does not return RX_NO_RX, then we update
+        counters appropriately assuming that the reaction does take place.
+*************************************************************************/
+/*, double scaling - 1, double local_prob_factor = 0,*/
+int diffuse_react_event_t::test_bimolecular(
+		reaction_t& rx,
+		volume_molecule_t& a1,
+		volume_molecule_t& a2
+) {
+	assert(a1.subpartition_index == a2.subpartition_index && "Subpartitions must be identical");
+
+  /* rescale probabilities for the case of the reaction
+     between two surface molecules */
+  float_t min_noreaction_p = rx.min_noreaction_p; // local_prob_factor == 0
+
+	/* Instead of scaling rx->cum_probs array we scale random probability */
+  float_t p = rng_dbl(&(world->rng));
+
+	if (p >= min_noreaction_p)
+		return RX_NO_RX;
+	else
+		return 0; // we have just one pathwayy
+}
+
+int diffuse_react_event_t::outcome_bimolecular(
+		partition_t& p,
+		molecules_collision_t& collision,
+		int path
+) {
+	volume_molecule_t& reacA = collision.diffused_molecule;
+	volume_molecule_t& reacB = collision.colliding_molecule;
+
+	assert(reacA.subpartition_index == reacB.subpartition_index && "Subpartitions must be identical");
+
+	int result = outcome_products_random(p, collision, path);
+
+	if (result == RX_A_OK) {
+		// always for now
+		// we used the reactants - remove them
+		p.set_molecule_as_defunct(collision.diffused_molecule);
+		p.set_molecule_as_defunct(collision.colliding_molecule);
+
+		return RX_DESTROY;
+	}
+
+
+  return result;
+}
+
+// why is this called "random"? - check if reaction occurs is in test_bimolecular
+// mcell3 version returns  cross_wall ? RX_FLIP : RX_A_OK;
+int diffuse_react_event_t::outcome_products_random(
+		partition_t& p,
+		molecules_collision_t& collision,
+		int path
+) {
+#ifdef DEBUG_REACTIONS
+	collision.dump("");
+#endif
+	// we can have just one product for now and no walls
+
+	// create and place each product
+	assert(collision.rx.products.size() == 1);
+	volume_molecule_t vm(collision.rx.products[0].species_id, collision.position);
+
+	p.add_volume_molecule(vm, world->species[vm.species_id].time_step);
+
+
+	// schedule new product for diffusion - where?
+	return RX_A_OK; // ?
+}
 
 void molecules_collision_t::dump(const std::string ind) const {
-	cout << ind << "diffused_molecule:";
+	cout << ind << "diffused_molecule:\n";
 	diffused_molecule.dump(ind + "  ");
-	cout << ind << "colliding_molecule:";
+	cout << ind << "colliding_molecule:\n";
 	colliding_molecule.dump(ind + "  ");
+	cout << ind << "reaction:";
+	rx.dump(ind + "  ");
 
 	cout << "time: \t\t" << time << " [float_t] \t\t\n";
 	cout << "position: \t\t" << position << " [vec3_t] \t\t\n";

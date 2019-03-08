@@ -320,8 +320,12 @@ void dump_abstract_molecule(abstract_molecule* amp, const char* ind) {
   cout << ind << "mesh_name: *\t\t" << amp->mesh_name << " [char] \t\t                /* Name of mesh that molecule is either in (volume molecule) or on (surface molecule) */\n";
 }
 
-void dump_volume_molecule(volume_molecule* amp, const char* ind) {
-	cout << "***TODO!\n";
+void dump_volume_molecule(volume_molecule* amp, const char* ind, bool limited_info) {
+	assert(limited_info && "not supported yet");
+  cout << ind << "id: \t\t" << amp->id << " [u_long] \t\t\n";
+  cout << ind << "pos: \t\t" << amp->pos << " [vector3] \t\t/* Position in space */\n";
+  cout << ind << "properties: *\t\t" << amp->properties << " [species] \t\t\n";
+  cout << ind << "  species name: *\t\t" << amp->properties->sym->name << " [char] \t\t\n";
 }
 
 void dump_surface_molecule(surface_molecule* amp, const char* ind) {
@@ -340,7 +344,7 @@ void dump_molecules(int num_all_molecules, molecule_info **all_molecules) {
 
     if ((amp->properties->flags & NOT_FREE) == 0) {
       volume_molecule *vmp = (volume_molecule *)amp;
-      dump_volume_molecule(vmp, "  ");
+      dump_volume_molecule(vmp, "  ", true);
     } else if ((amp->properties->flags & ON_GRID) != 0) {
       surface_molecule *smp = (surface_molecule *)amp;
       dump_surface_molecule(smp, "  ");
@@ -1185,5 +1189,9 @@ void dump_collisions(collision* shead) {
 		ptr = ptr->next;
 		i++;
 	}
+}
+
+void dump_molecules() {
+	// TODO
 }
 

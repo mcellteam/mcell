@@ -28,7 +28,7 @@
 #include <unordered_map>
 #include "base_event.h"
 #include "partition.h"
-
+#include "reaction.h"
 
 namespace mcell {
 
@@ -48,21 +48,28 @@ enum ray_trace_state_t {
 class molecules_collision_t {
 public:
 	molecules_collision_t(
+			partition_t& partition_ref,
 			volume_molecule_t& diffused_molecule_ref,
 			volume_molecule_t& colliding_molecule_ref,
+			reaction_t& rx_ref,
 			float_t& time_,
 			vec3_t& position_)
-		: diffused_molecule(diffused_molecule_ref),
+		:
+			partition(partition_ref),
+			diffused_molecule(diffused_molecule_ref),
 			colliding_molecule(colliding_molecule_ref),
+			rx(rx_ref),
 			time(time_),
 			position(position_)
 			{
 	}
+
+	partition_t& partition;
 	volume_molecule_t& diffused_molecule;
 	volume_molecule_t& colliding_molecule;
+	reaction_t rx;
 	float_t time;
 	vec3_t position;
-
 
   void dump(const std::string ind) const;
   static void dump_array(const std::vector<molecules_collision_t>& vec);
@@ -115,7 +122,33 @@ private:
 			volume_molecule_t& vm, // molecule that we are diffusing, we are changing its pos  and possibly also subvolume
 			vec3_t& remaining_displacement, // in/out - recomputed if there was a reflection
 			std::vector<molecules_collision_t>& molecule_collisions, // possible reactions in this part of way marching, ordered by time
+			vec3_t& new_position,
 			uint32_t& new_subpartition_index
+	);
+
+	bool collide_and_react_with_vol_mol(
+			partition_t& p,
+			molecules_collision_t& collision,
+			vec3_t& displacement
+	);
+
+
+	int test_bimolecular(
+			reaction_t& rx,
+			volume_molecule_t& a1,
+			volume_molecule_t& a2
+	);
+
+	int outcome_bimolecular(
+			partition_t& p,
+			molecules_collision_t& collision,
+			int path
+	);
+
+	int outcome_products_random(
+			partition_t& p,
+			molecules_collision_t& collision,
+			int path
 	);
 
 	subpartition_mask_t& get_sp_species_reacting_mols_cached_data(

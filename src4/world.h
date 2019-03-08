@@ -114,6 +114,12 @@ public:
 		return true;
 	}
 
+	// must return result, asserts otherwise
+	reaction_t* get_reaction(volume_molecule_t& a, volume_molecule_t& b) {
+		assert(can_react_vol_vol(a, b));
+		return bimolecular_reactions_map[a.species_id][b.species_id];
+	}
+
 	void dump();
 
 	// -------------- world data --------------

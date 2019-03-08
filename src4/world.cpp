@@ -77,15 +77,19 @@ bool world_t::run_simulation() {
 	float_t time = TIME_SIMULATION_START;
 	float_t previous_time;
 	uint32_t iteration = 0;
+	uint32_t how_often_to_report = 1;
+
+	std::cout << "Iterations: " << iteration << " of " << iterations << "\n";
+
 	do {
 		previous_time = time;
 		time = scheduler.handle_next_event(end_simulation);
 
 		if (time > previous_time) {
-			if (iteration % 100 == 0) {
-				std::cout << "Iteration " << iteration << "\n";
-			}
 			iteration++;
+			if (iteration % how_often_to_report == 0) {
+				std::cout << "Iterations: " << iteration << " of " << iterations << "\n";
+			}
 		}
 	} while (!end_simulation);
 

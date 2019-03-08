@@ -53,8 +53,11 @@ class reaction_t {
 public:
 	std::string name;
 	float_t rate_constant;
+	float_t min_noreaction_p;
 	std::vector<species_with_orientation_t> reactants;
 	std::vector<species_with_orientation_t> products;
+
+	void dump(const std::string ind) const;
 };
 
 } /* namespace mcell */

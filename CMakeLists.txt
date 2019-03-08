@@ -183,7 +183,9 @@ set(SOURCE_FILES
     src4/mcell3_world_converter.h
     src4/molecule.cpp
     src4/molecule.h
+    src4/partition.cpp
     src4/partition.h
+    src4/reaction.cpp
     src4/reaction.h
     src4/release_event.cpp
     src4/release_event.h

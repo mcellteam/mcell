@@ -6,5 +6,6 @@
 
 
 #define DEBUG_COLLISIONS
+#define DEBUG_REACTIONS
 
 #endif
