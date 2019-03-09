@@ -23,6 +23,7 @@
 
 extern "C" {
 #include "rng.h" // MCell 3
+#include "mcell_structs.h"
 }
 
 #include <iostream>
@@ -68,89 +69,97 @@ void diffuse_react_event_t::diffuse_molecules(partition_t& p, std::vector< molec
 	// ! CPU version - compute sets of possible colilisions for a given species and "cache" it
 
 	for (molecule_index_t molecule_idx: indices) {
-		volume_molecule_t& vm = p.volume_molecules[molecule_idx];
+		// existing molecules - simulate whole time step
+		diffuse_single_molecule(p, p.volume_molecules[molecule_idx], diffusion_time_step);
+	}
 
+	// need to call .size() each iteration because the size can increase
+	for (uint32_t i = 0; i < new_molecules_to_diffuse.size(); i++) {
+		// new molecules created with reactions - simulate remaining time
+		diffuse_single_molecule(p, new_molecules_to_diffuse[i].diffused_molecule, new_molecules_to_diffuse[i].remaining_time_step);
+	}
 
-		if (vm.is_defunct())
-			continue;
-		species_t& spec = world->species[vm.species_id];
+	new_molecules_to_diffuse.clear();
+}
 
-		//float_t max_time = ;
+void diffuse_react_event_t::diffuse_single_molecule(partition_t& p, volume_molecule_t& vm, float_t remaining_time_step) {
 
+	if (vm.is_defunct())
+		return;
 
-		// diffuse each molecule - get information on position change
-		// TBD: reflections
-		vec3_t displacement;
-		compute_displacement(spec, displacement);
+	species_t& spec = world->species[vm.species_id];
 
-#ifdef DEBUG_COLLISIONS
-		cout << "** Diffusing molecule " << p.get_molecule_index(vm) << "\n";
-		cout << "  displacement " << displacement << "\n";
-		vm.dump("  ");
-#endif
-
-		// 3) detect collisions with other molecule
-		//vec3_t orig_pos = vm.pos;
-		vec3_t remaining_displacement = displacement;
-		uint32_t new_subpartition_index;
-		vec3_t new_position;
-		ray_trace_state_t state;
-		std::vector<molecules_collision_t> molecule_collisions;
-		do {
-			state =
-					ray_trace(
-							p, vm /* changes position */,
-							remaining_displacement,
-							molecule_collisions,
-							new_position,
-							new_subpartition_index
-					);
+	// diffuse each molecule - get information on position change
+	// TBD: reflections
+	vec3_t displacement;
+	compute_displacement(spec, displacement, remaining_time_step);
 
 #ifdef DEBUG_COLLISIONS
-			molecules_collision_t::dump_array(molecule_collisions);
+	cout << "** Diffusing molecule " << p.get_molecule_index(vm) << "\n";
+	cout << "  displacement " << displacement << "\n";
+	vm.dump("  ");
 #endif
 
-		} while (state != RAY_TRACE_FINISHED);
+	// 3) detect collisions with other molecule
+	//vec3_t orig_pos = vm.pos;
+	vec3_t remaining_displacement = displacement;
+	uint32_t new_subpartition_index;
+	vec3_t new_position;
+	ray_trace_state_t state;
+	std::vector<molecules_collision_t> molecule_collisions;
+	do {
+		state =
+				ray_trace(
+						p, vm /* changes position */,
+						remaining_displacement,
+						molecule_collisions,
+						new_position,
+						new_subpartition_index
+				);
 
-		// 4) evaluate and possible execute reactions
-		// they are supposed to be sorted in reverse by time
-		for (int collision_idx = molecule_collisions.size() - 1; collision_idx >= 0; collision_idx--) {
-			molecules_collision_t& collision = molecule_collisions[collision_idx];
+#ifdef DEBUG_COLLISIONS
+		molecules_collision_t::dump_array(molecule_collisions);
+#endif
 
-			if ((size_t)collision_idx != molecule_collisions.size() - 1) {
-				assert(collision.time >= molecule_collisions[collision_idx + 1].time);
-			}
+	} while (state != RAY_TRACE_FINISHED);
 
-			// reactions with time 0 are ignored
+	// 4) evaluate and possible execute reactions
+	// they are supposed to be sorted in reverse by time
+	for (int collision_idx = molecule_collisions.size() - 1; collision_idx >= 0; collision_idx--) {
+		molecules_collision_t& collision = molecule_collisions[collision_idx];
 
-
-			assert(collision.time > 0 && collision.time <= 1);
-
-			// mol-mol collision
-			if (collision.time < EPS) {
-					continue;
-			}
-
-			// for now. do the change right away, but we will need to
-			// cache these changes and do them right away
-			if (collide_and_react_with_vol_mol(p, collision, displacement)) {
-				// molecule was destroyed
-				break;
-			}
-
+		if ((size_t)collision_idx != molecule_collisions.size() - 1) {
+			assert(collision.time >= molecule_collisions[collision_idx + 1].time);
 		}
 
-		// finally move molecule to its destination
-		vm.pos = new_position;
+		// reactions with time 0 are ignored
 
-		// are we still in the same partition or do we need to move?
-		bool move_to_another_partition = !p.in_this_partition(vm.pos);
-		assert(!move_to_another_partition && "TODO");
 
-		// change subpartition
-		p.change_molecule_subpartition(vm, new_subpartition_index);
+		assert(collision.time > 0 && collision.time <= 1);
+
+		// mol-mol collision
+		if (collision.time < EPS) {
+				continue;
+		}
+
+		// for now. do the change right away, but we will need to
+		// cache these changes and do them right away
+		if (collide_and_react_with_vol_mol(p, collision, displacement, remaining_time_step)) {
+			// molecule was destroyed
+			break;
+		}
 
 	}
+
+	// finally move molecule to its destination
+	vm.pos = new_position;
+
+	// are we still in the same partition or do we need to move?
+	bool move_to_another_partition = !p.in_this_partition(vm.pos);
+	assert(!move_to_another_partition && "TODO");
+
+	// change subpartition
+	p.change_molecule_subpartition(vm, new_subpartition_index);
 }
 
 void diffuse_react_event_t::pick_displacement(float_t scale /*space step*/, vec3_t& displacement) {
@@ -159,8 +168,10 @@ void diffuse_react_event_t::pick_displacement(float_t scale /*space step*/, vec3
 	displacement.z = scale * rng_gauss(&(world->rng)) * .70710678118654752440;
 }
 
-void diffuse_react_event_t::compute_displacement(species_t& sp, vec3_t& displacement) {
-	pick_displacement(sp.space_step, displacement);
+
+void diffuse_react_event_t::compute_displacement(species_t& sp, vec3_t& displacement, float_t remaining_time_step) {
+  float_t rate_factor = (remaining_time_step == 1.0) ? 1.0 : sqrt(remaining_time_step);
+	pick_displacement(sp.space_step * rate_factor, displacement);
 }
 
 
@@ -300,7 +311,7 @@ bool diffuse_react_event_t::collide_mol(
   if (movelen2 * dirlen2 - d * d > movelen2 * sigma2)
     return false;
 
-  rel_collision_time = d / movelen2; // not exact time, only for comparision, exact time should be d/sqrt(movelen2*dirlen2);
+  rel_collision_time = d / movelen2;
 
   rel_collision_pos = diffused_vm.pos + rel_collision_time * move;
   return COLLIDE_VOL_M;
@@ -403,7 +414,8 @@ ray_trace_state_t diffuse_react_event_t::ray_trace(
 bool diffuse_react_event_t::collide_and_react_with_vol_mol(
 		partition_t& p,
 		molecules_collision_t& collision,
-		vec3_t& displacement
+		vec3_t& displacement,
+		float_t remaining_time_step
 )	{
 
   volume_molecule_t& colliding_molecule = collision.colliding_molecule; // am
@@ -422,7 +434,7 @@ bool diffuse_react_event_t::collide_and_react_with_vol_mol(
   	return false;
   }
   else {
-  	int j = outcome_bimolecular(p, collision, i);
+  	int j = outcome_bimolecular(p, collision, i, remaining_time_step);
   	assert(j == RX_DESTROY);
   	return true;
   }
@@ -466,14 +478,15 @@ int diffuse_react_event_t::test_bimolecular(
 int diffuse_react_event_t::outcome_bimolecular(
 		partition_t& p,
 		molecules_collision_t& collision,
-		int path
+		int path,
+		float_t remaining_time_step
 ) {
 	volume_molecule_t& reacA = collision.diffused_molecule;
 	volume_molecule_t& reacB = collision.colliding_molecule;
 
 	assert(reacA.subpartition_index == reacB.subpartition_index && "Subpartitions must be identical");
 
-	int result = outcome_products_random(p, collision, path);
+	int result = outcome_products_random(p, collision, path, remaining_time_step);
 
 	if (result == RX_A_OK) {
 		// always for now
@@ -493,7 +506,8 @@ int diffuse_react_event_t::outcome_bimolecular(
 int diffuse_react_event_t::outcome_products_random(
 		partition_t& p,
 		molecules_collision_t& collision,
-		int path
+		int path,
+		float_t remaining_time_step
 ) {
 #ifdef DEBUG_REACTIONS
 	collision.dump("");
@@ -504,8 +518,11 @@ int diffuse_react_event_t::outcome_products_random(
 	assert(collision.rx.products.size() == 1);
 	volume_molecule_t vm(collision.rx.products[0].species_id, collision.position);
 
-	p.add_volume_molecule(vm, world->species[vm.species_id].time_step);
+	volume_molecule_t& new_vm = p.add_volume_molecule(vm, world->species[vm.species_id].time_step);
 
+
+	new_molecules_to_diffuse.push_back(
+			molecule_to_diffuse_t(new_vm, remaining_time_step - collision.time));
 
 	// schedule new product for diffusion - where?
 	return RX_A_OK; // ?

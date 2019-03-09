@@ -76,6 +76,21 @@ public:
 
 };
 
+
+class molecule_to_diffuse_t {
+public:
+	molecule_to_diffuse_t(
+			volume_molecule_t& diffused_molecule_ref,
+			float_t remaining_time_step_)
+		:
+			diffused_molecule(diffused_molecule_ref),
+			remaining_time_step(remaining_time_step_)
+			{
+	}
+	volume_molecule_t& diffused_molecule;
+	float_t remaining_time_step;
+};
+
 // created in mcell3_world_converter::create_diffusion_events() before any other events,
 // so even if release is created for time 0, this event is scheduled to occur as first one
 class diffuse_react_event_t : public base_event_t {
@@ -96,10 +111,14 @@ public:
 	// this event diffuses all molecules that have this diffusion time_step
 	float_t diffusion_time_step;
 
+
+	std::vector<molecule_to_diffuse_t> new_molecules_to_diffuse;
+
 private:
 	void diffuse_molecules(partition_t& p, std::vector< molecule_index_t >& indices);
+	void diffuse_single_molecule(partition_t& p, volume_molecule_t& vm, float_t curr_time_step);
 	void pick_displacement(float_t scale /*space step*/, vec3_t& displacement);
-	void compute_displacement(species_t& sp, vec3_t& displacement);
+	void compute_displacement(species_t& sp, vec3_t& displacement, float_t remaining_time_step);
 
 	void collect_crossed_subpartitions(
 		const partition_t& p,
@@ -129,7 +148,8 @@ private:
 	bool collide_and_react_with_vol_mol(
 			partition_t& p,
 			molecules_collision_t& collision,
-			vec3_t& displacement
+			vec3_t& displacement,
+			float_t remaining_time_step
 	);
 
 
@@ -142,13 +162,15 @@ private:
 	int outcome_bimolecular(
 			partition_t& p,
 			molecules_collision_t& collision,
-			int path
+			int path,
+			float_t remaining_time_step
 	);
 
 	int outcome_products_random(
 			partition_t& p,
 			molecules_collision_t& collision,
-			int path
+			int path,
+			float_t remaining_time_step
 	);
 
 	subpartition_mask_t& get_sp_species_reacting_mols_cached_data(

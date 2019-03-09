@@ -182,13 +182,13 @@ public:
 	}
 
 	// version that computes the right time_step_index each time it is called
-	void add_volume_molecule(const volume_molecule_t& vm_copy, const float_t time_step) {
+	volume_molecule_t& add_volume_molecule(const volume_molecule_t& vm_copy, const float_t time_step) {
 		uint32_t time_step_index = get_or_add_molecule_list_index_for_time_step(time_step);
-		add_volume_molecule(vm_copy, time_step_index);
+		return add_volume_molecule(vm_copy, time_step_index);
 	}
 
 
-	void add_volume_molecule(const volume_molecule_t& vm_copy, const uint32_t time_step_index) {
+	volume_molecule_t& add_volume_molecule(const volume_molecule_t& vm_copy, const uint32_t time_step_index) {
 		uint32_t molecule_index = volume_molecules.size();
 		// and its index to the list sorted by time step
 		// this is an array that changes only when molecule leaves this partition
@@ -204,6 +204,7 @@ public:
 		// and finally store (copy) the new molecule and set its subpartition index
 		volume_molecules.push_back(vm_copy);
 		volume_molecules.back().subpartition_index = subpartition_index;
+		return volume_molecules.back();
 	}
 
 	void set_molecule_as_defunct(volume_molecule_t& vm) {
