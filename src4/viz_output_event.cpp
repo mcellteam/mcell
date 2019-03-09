@@ -76,7 +76,7 @@ static int digits_for_file_suffix(uint64_t iterations) {
 
 FILE* viz_output_event_t::create_and_open_output_file_name() {
 	int ndigits = digits_for_file_suffix(world->iterations);
-	long long current_iteration = round(event_time / world->world_constants.time_unit); // FIXME: usage of round might be a little shaky here, maybe we will need a better way how to get the iteration index
+	long long current_iteration = round(event_time); // FIXME: usage of round might be a little shaky here, maybe we will need a better way how to get the iteration index
   //fprintf(stderr, "***dumps: %lld\n", current_iteration);
 	const char* type_name = (viz_mode == ASCII_MODE) ? "ascii" : "cellbin";
   char* cf_name =
@@ -101,17 +101,24 @@ FILE* viz_output_event_t::create_and_open_output_file_name() {
 void viz_output_event_t::output_ascii_molecules() {
 	// assuming that fdlp->type == ALL_MOL_DATA
 	FILE *custom_file = create_and_open_output_file_name();
+	float_t length_unit = world->world_constants.length_unit;
 
 	// simply go through all partitions and dump all molecules
 	uint64_t id = 0;
 	for (partition_t& p: world->partitions) {
 		for (volume_molecule_t& m: p.volume_molecules) {
+			if (m.is_defunct()) {
+				continue;
+			}
+
 			std::string species_name = world->species[m.species_id].name;
 #if FLOAT_T_BYTES == 8
 			// TODO: norm
 			errno = 0;
       fprintf(custom_file, "%s %lu %.9g %.9g %.9g %.9g %.9g %.9g\n",
-      		species_name.c_str(), id, m.pos.x, m.pos.y, m.pos.z, 0.0, 0.0, 0.0
+      		species_name.c_str(), id,
+					m.pos.x * length_unit, m.pos.y * length_unit, m.pos.z * length_unit,
+					0.0, 0.0, 0.0
 			);
       assert(errno == 0);
 #else
@@ -129,6 +136,7 @@ void viz_output_event_t::output_ascii_molecules() {
 void viz_output_event_t::output_cellblender_molecules() {
 	// assuming that fdlp->type == ALL_MOL_DATA
 	FILE *custom_file = create_and_open_output_file_name();
+	float_t length_unit = world->world_constants.length_unit;
 
 	// sort all molecules by species
 	uint32_t species_count = world->species.size();
@@ -138,6 +146,9 @@ void viz_output_event_t::output_cellblender_molecules() {
 
 	for (partition_t& p: world->partitions) {
 		for (volume_molecule_t& m: p.volume_molecules) {
+			if (m.is_defunct()) {
+				continue;
+			}
 			volume_molecules_by_species[m.species_id].push_back(&m);
 		}
 	}
@@ -178,9 +189,9 @@ void viz_output_event_t::output_cellblender_molecules() {
      float pos_z = 0.0;
      for (volume_molecule_t* mp : species_molecules) {
     	 // TODO: many specific variants missing
-			 pos_x = mp->pos.x;
-			 pos_y = mp->pos.y;
-			 pos_z = mp->pos.z;
+			 pos_x = mp->pos.x * length_unit;
+			 pos_y = mp->pos.y * length_unit;
+			 pos_z = mp->pos.z * length_unit;
 
 			 // this scould be already incorporated
        /*pos_x *= world->length_unit;

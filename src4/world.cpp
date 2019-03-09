@@ -70,7 +70,7 @@ bool world_t::run_simulation() {
 
 	// create event that will terminate our simulation
 	end_simulation_event_t* end_event = new end_simulation_event_t();
-	end_event->event_time = world_constants.time_unit * iterations; // TODO: check against MCELL - we need to execute the same nr of iterations, not one less
+	end_event->event_time = iterations; // TODO: check against MCELL - we need to execute the same nr of iterations, not one less
 	scheduler.schedule_event(end_event);
 
 	bool end_simulation = false;

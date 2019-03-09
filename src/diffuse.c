@@ -2942,6 +2942,11 @@ struct volume_molecule *diffuse_3D(
     return vm;
   }
 
+#ifdef DEBUG_COLLISIONS
+	mcell_log("Diffusing molecule:");
+	dump_volume_molecule(vm, "  ", true);
+#endif
+
   int inertness = 0;
   set_inertness_and_maxtime(world, vm, &max_time, &inertness);
 
@@ -2984,9 +2989,7 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
   assert(abs(t_steps - 1.0) < EPS_C && "mcell4 temporary check");
 
 #ifdef DEBUG_COLLISIONS
-	mcell_log("Diffusing molecule:");
 	mcell_log("  displacement: %f, %f, %f\n", displacement.x, displacement.y, displacement.z);
-	dump_volume_molecule(vm, "  ", true);
 #endif
 
   if (world->use_expanded_list &&

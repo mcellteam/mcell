@@ -75,6 +75,9 @@ void diffuse_react_event_t::diffuse_molecules(partition_t& p, std::vector< molec
 			continue;
 		species_t& spec = world->species[vm.species_id];
 
+		//float_t max_time = ;
+
+
 		// diffuse each molecule - get information on position change
 		// TBD: reflections
 		vec3_t displacement;
@@ -132,19 +135,8 @@ void diffuse_react_event_t::diffuse_molecules(partition_t& p, std::vector< molec
 			// cache these changes and do them right away
 			if (collide_and_react_with_vol_mol(p, collision, displacement)) {
 				// molecule was destroyed
+				break;
 			}
-
-
-			/*// ??
-	    struct vector3* loc_certain = NULL;
-	    struct collision *tentative = shead2; // pointer to the first collision
-
-		  //double t_steps = 1.0;
-		  //double r_rate_factor = 1.0;
-
-			collide_and_react_with_vol_mol(
-					collision,
-			*/
 
 		}
 
@@ -160,7 +152,6 @@ void diffuse_react_event_t::diffuse_molecules(partition_t& p, std::vector< molec
 
 	}
 }
-
 
 void diffuse_react_event_t::pick_displacement(float_t scale /*space step*/, vec3_t& displacement) {
 	displacement.x = scale * rng_gauss(&(world->rng)) * .70710678118654752440;

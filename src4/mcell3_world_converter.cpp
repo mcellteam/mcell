@@ -21,9 +21,6 @@
  *
 ******************************************************************************/
 
-// WARNING: do not forget about unit coversion length_unit & time_unit!
-
-
 #include <stdarg.h>
 #include <stdlib.h>
 
@@ -140,7 +137,7 @@ bool mcell3_world_converter::convert_simulation_setup(volume* s) {
 	world->iterations = s->iterations;
 	world->world_constants.time_unit = s->time_unit;
 	world->world_constants.length_unit = s->length_unit;
-	world->world_constants.rx_radius_3d = s->rx_radius_3d * s->length_unit;
+	world->world_constants.rx_radius_3d = s->rx_radius_3d;
 	world->seed_seq = s->seed_seq;
 	world->rng = *s->rng;
 
@@ -156,8 +153,7 @@ void mcell3_world_converter::create_diffusion_events() {
 
 	set<float_t> time_steps_set;
 	for (auto &species : world->species ) {
-		time_steps_set.insert(species.time_step * world->world_constants.time_unit);
-		//time_steps_set.insert(species.time_step); // FIXME:
+		time_steps_set.insert(species.time_step);
 	}
 
 	for (float_t time_step : time_steps_set) {
@@ -182,8 +178,8 @@ bool mcell3_world_converter::convert_species_and_create_diffusion_events(volume*
 		new_species.mcell3_species_id = spec->species_id;
 		new_species.D = spec->D;
 		new_species.name = get_sym_name(spec->sym);
-		new_species.space_step = spec->space_step * world->world_constants.length_unit;
-		new_species.time_step = spec->time_step * world->world_constants.time_unit;
+		new_species.space_step = spec->space_step;
+		new_species.time_step = spec->time_step;
 
 		CHECK_PROPERTY(spec->flags == 0 || spec->flags == SPECIES_FLAG_CAN_VOLVOL);
 		new_species.flags = spec->flags;
@@ -322,15 +318,13 @@ bool mcell3_world_converter::convert_release_events(volume* s) {
     	// -- release_event_queue --
 			release_event_queue *req = (release_event_queue *)aep;
 
-
-			//event->event_time = req->event_time * s->time_unit;
 			event->event_time = req->event_time;
 
 			// -- release_site --
 			release_site_obj* rel_site = req->release_site;
 
 			assert(rel_site->location != nullptr);
-			event->location = vec3_t(*rel_site->location) * world->world_constants.length_unit;
+			event->location = vec3_t(*rel_site->location);
 			event->species_id = get_mcell4_species_id(rel_site->mol_type->species_id);
 
 			CHECK_PROPERTY(rel_site->release_number_method == 0);
@@ -404,7 +398,7 @@ bool mcell3_world_converter::convert_viz_output_events(volume* s) {
 
   	// create an event for each iteration
   	viz_output_event_t* event = new viz_output_event_t(world);
-  	event->event_time = iteration_ptr->value * world->world_constants.time_unit;
+  	event->event_time = iteration_ptr->value;
   	event->viz_mode = viz_mode;
   	event->file_prefix_name = file_prefix_name;
 

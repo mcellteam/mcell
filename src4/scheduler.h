@@ -33,8 +33,7 @@ namespace mcell {
 
 // TODO: what about rounding?
 // prefferably, we should represent the time interval precisely
-const float_t BUCKET_TIME_INTERVAL = 1e-6; // time step - 1e-6
-
+const float_t BUCKET_TIME_INTERVAL = 1;
 
 class bucket_t {
 public:

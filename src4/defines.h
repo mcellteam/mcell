@@ -62,7 +62,7 @@ typedef double float_t; // soon to be changed to float
 const float_t TIME_INVALID = NAN;
 const float_t TIME_SIMULATION_START = 0;
 
-const float_t PARTITION_EDGE_LENGTH_DEFAULT = 10; // maybe too large for now
+const float_t PARTITION_EDGE_LENGTH_DEFAULT = 10 * 100 /*1/length unit*/; // maybe too large for now
 
 //const float_t SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT = 20; // mcell3 uses logarithmic scaling, this is not useful here
 const float_t SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT = 1;
@@ -91,8 +91,8 @@ std::ostream & operator<<(std::ostream &out, const vec3_t &a);
 
 // constants useful for all classes, single objectis owned by world
 struct world_constants_t {
-  float_t time_unit; // used only for initialization
-  float_t length_unit; // used only for initialization
+  float_t time_unit;
+  float_t length_unit;
 
   float_t rx_radius_3d;
 
