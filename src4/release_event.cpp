@@ -23,6 +23,7 @@
 extern "C" {
 #include "rng.h" // MCell 3
 #include "isaac64.h"
+#include "mcell_structs.h"
 }
 
 #include <iostream>
@@ -94,7 +95,7 @@ void release_event_t::step() {
     molecule_location.y = base_location[0][1];
     molecule_location.z = base_location[0][2];
 
-		volume_molecule_t m(species_id, molecule_location);
+		volume_molecule_t m(MOLECULE_IDX_INVALID, species_id, molecule_location);
 		p.add_volume_molecule(m, time_step_index);
 	}
 

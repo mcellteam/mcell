@@ -116,8 +116,8 @@ const int MAX_MOLECULES_PER_PARTITION = 32*32*32 /*32k*/; //temporary, must work
 typedef uint32_t species_id_t;
 const int SPECIES_ID_INVALID = USHRT_MAX;
 
-typedef uint32_t molecule_index_t;
-const uint32_t MOLECULE_INDEX_INVALID = UINT32_MAX;
+typedef uint32_t molecule_idx_t;
+const uint32_t MOLECULE_IDX_INVALID = UINT32_MAX;
 
 // for now, this is the partition that contains point 0,0,0
 // in its center

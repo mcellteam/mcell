@@ -49,15 +49,15 @@ class molecules_collision_t {
 public:
 	molecules_collision_t(
 			partition_t& partition_ref,
-			volume_molecule_t& diffused_molecule_ref,
-			volume_molecule_t& colliding_molecule_ref,
+			const molecule_idx_t diffused_molecule_idx_,
+			const molecule_idx_t colliding_molecule_idx_,
 			reaction_t& rx_ref,
-			float_t& time_,
-			vec3_t& position_)
+			const float_t& time_,
+			const vec3_t& position_)
 		:
 			partition(partition_ref),
-			diffused_molecule(diffused_molecule_ref),
-			colliding_molecule(colliding_molecule_ref),
+			diffused_molecule_idx(diffused_molecule_idx_),
+			colliding_molecule_idx(colliding_molecule_idx_),
 			rx(rx_ref),
 			time(time_),
 			position(position_)
@@ -65,14 +65,14 @@ public:
 	}
 
 	partition_t& partition;
-	volume_molecule_t& diffused_molecule;
-	volume_molecule_t& colliding_molecule;
+	molecule_idx_t diffused_molecule_idx;
+	molecule_idx_t colliding_molecule_idx;
 	reaction_t rx;
 	float_t time;
 	vec3_t position;
 
-  void dump(const std::string ind) const;
-  static void dump_array(const std::vector<molecules_collision_t>& vec);
+  void dump(partition_t& p, const std::string ind) const;
+  static void dump_array(partition_t& p, const std::vector<molecules_collision_t>& vec);
 
 };
 
@@ -80,14 +80,14 @@ public:
 class molecule_to_diffuse_t {
 public:
 	molecule_to_diffuse_t(
-			volume_molecule_t& diffused_molecule_ref,
-			float_t remaining_time_step_)
+			const molecule_idx_t idx_,
+			const float_t remaining_time_step_)
 		:
-			diffused_molecule(diffused_molecule_ref),
+			idx(idx_),
 			remaining_time_step(remaining_time_step_)
 			{
 	}
-	volume_molecule_t& diffused_molecule;
+	molecule_idx_t idx;
 	float_t remaining_time_step;
 };
 
@@ -95,7 +95,7 @@ public:
 // so even if release is created for time 0, this event is scheduled to occur as first one
 class diffuse_react_event_t : public base_event_t {
 public:
-	diffuse_react_event_t(world_t* world_, float_t diffusion_time_step_) :
+	diffuse_react_event_t(world_t* world_, const float_t diffusion_time_step_) :
 		base_event_t(EVENT_TYPE_INDEX_DIFFUSE_REACT),
 		world(world_),
 		diffusion_time_step(diffusion_time_step_) {
@@ -115,7 +115,7 @@ public:
 	std::vector<molecule_to_diffuse_t> new_molecules_to_diffuse;
 
 private:
-	void diffuse_molecules(partition_t& p, std::vector< molecule_index_t >& indices);
+	void diffuse_molecules(partition_t& p, std::vector< molecule_idx_t >& indices);
 	void diffuse_single_molecule(partition_t& p, volume_molecule_t& vm, float_t curr_time_step);
 	void pick_displacement(float_t scale /*space step*/, vec3_t& displacement);
 	void compute_displacement(species_t& sp, vec3_t& displacement, float_t remaining_time_step);

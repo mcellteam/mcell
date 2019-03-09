@@ -2932,6 +2932,10 @@ struct volume_molecule *diffuse_3D(
         "Attempted to take a diffusion step for a defunct molecule.");
   }
 
+  if (max_time < 0.069) {
+  	mcell_log("  max_time: %f\n", max_time);
+  }
+
   /* flags related to the possible reaction between volume molecule
      and one or two surface molecules */
   int mol_grid_flag = ((spec->flags & CAN_VOLSURF) == CAN_VOLSURF);
@@ -2984,9 +2988,6 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
       &rate_factor, &r_rate_factor, &steps, &t_steps, max_time);
   }
 
-  // check for mcell4 -assuming that r_rate_factor and t_steps is still 1
-  assert(abs(r_rate_factor - 1.0) < EPS_C && "mcell4 temporary check");
-  assert(abs(t_steps - 1.0) < EPS_C && "mcell4 temporary check");
 
 #ifdef DEBUG_COLLISIONS
 	mcell_log("  displacement: %f, %f, %f\n", displacement.x, displacement.y, displacement.z);
@@ -3069,6 +3070,14 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
         if (smash->t < EPS_C) {
           continue;
         }
+
+        // check for mcell4 -assuming that r_rate_factor and t_steps is still 1
+        if (abs(r_rate_factor - 1.0) > EPS_C) {
+        	mcell_log("  r_rate_factor: %f, t_steps: %f\n", r_rate_factor, t_steps);
+        }
+
+        //assert(abs(r_rate_factor - 1.0) < EPS_C && "mcell4 temporary check");
+        //assert(abs(t_steps - 1.0) < EPS_C && "mcell4 temporary check");
         if (collide_and_react_with_vol_mol(world, smash, vm, &tentative,
           &displacement, loc_certain, t_steps, r_rate_factor) == 1) {
           FREE_COLLISION_LISTS();
@@ -4083,8 +4092,8 @@ static int collide_and_react_with_vol_mol(struct volume* world,
   if (i < RX_LEAST_VALID_PATHWAY) {
     return 0;
   }
-  assert(abs(m->t - 1.0) < EPS_C && "mcell4 temporary check");
-  assert(abs(t_steps - 1.0) < EPS_C && "mcell4 temporary check");
+  //assert(abs(m->t - 1.0) < EPS_C && "mcell4 temporary check");
+  //assert(abs(t_steps - 1.0) < EPS_C && "mcell4 temporary check");
   if (loc_certain != NULL)
   	assert(loc_certain->x == 0 && loc_certain->y == 0 && loc_certain->z == 0 && "mcell4 temporary check");
   int j = outcome_bimolecular(world, rx, i, (struct abstract_molecule *)m, am,

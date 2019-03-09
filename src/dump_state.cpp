@@ -1172,9 +1172,9 @@ void dump_one_collision(collision* col) {
   cout << "target: *\t\t" << (void*)col->target << " [void] \t\t/* Thing that we hit: wall, molecule, subvol etc */\n";
   cout << "what: \t\t" << collision_flags_to_str(col->what) << " [int] \t\t/* Target-type Flags: what kind of thing did we hit? */\n";
   cout << "intermediate: *\t\t" << col->intermediate << " [rxn] \t\t/* Reaction that told us we could hit it */\n";
-  if (col->intermediate != nullptr) {
-  	cout << "intermediate->sym->name: *\t\t" << col->intermediate->sym->name << "\n";
-  }
+  //if (col->intermediate != nullptr && col->intermediate->sym != nullptr && col->intermediate->sym->name != nullptr) {
+  //	cout << "intermediate->sym->name: *\t\t" << col->intermediate->sym->name << "\n";
+  //}
   cout << "loc: \t\t" << col->loc << " [vector3] \t\t/* Location of impact */\n";
 }
 

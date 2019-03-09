@@ -104,7 +104,6 @@ void viz_output_event_t::output_ascii_molecules() {
 	float_t length_unit = world->world_constants.length_unit;
 
 	// simply go through all partitions and dump all molecules
-	uint64_t id = 0;
 	for (partition_t& p: world->partitions) {
 		for (volume_molecule_t& m: p.volume_molecules) {
 			if (m.is_defunct()) {
@@ -115,8 +114,8 @@ void viz_output_event_t::output_ascii_molecules() {
 #if FLOAT_T_BYTES == 8
 			// TODO: norm
 			errno = 0;
-      fprintf(custom_file, "%s %lu %.9g %.9g %.9g %.9g %.9g %.9g\n",
-      		species_name.c_str(), id,
+      fprintf(custom_file, "%s %u %.9g %.9g %.9g %.9g %.9g %.9g\n",
+      		species_name.c_str(), m.idx,
 					m.pos.x * length_unit, m.pos.y * length_unit, m.pos.z * length_unit,
 					0.0, 0.0, 0.0
 			);
@@ -124,7 +123,6 @@ void viz_output_event_t::output_ascii_molecules() {
 #else
 #error "Marker for float type"
 #endif
-			id++;
 		}
 	}
 

@@ -61,14 +61,14 @@ void diffuse_react_event_t::step() {
 }
 
 
-void diffuse_react_event_t::diffuse_molecules(partition_t& p, std::vector< molecule_index_t >& indices) {
+void diffuse_react_event_t::diffuse_molecules(partition_t& p, std::vector< molecule_idx_t >& indices) {
 
 	// Possible optimization:
 	// GPU version - can make sets of possible collisions for a given species before
 	// the whole diffuse is run
 	// ! CPU version - compute sets of possible colilisions for a given species and "cache" it
 
-	for (molecule_index_t molecule_idx: indices) {
+	for (molecule_idx_t molecule_idx: indices) {
 		// existing molecules - simulate whole time step
 		diffuse_single_molecule(p, p.volume_molecules[molecule_idx], diffusion_time_step);
 	}
@@ -76,7 +76,7 @@ void diffuse_react_event_t::diffuse_molecules(partition_t& p, std::vector< molec
 	// need to call .size() each iteration because the size can increase
 	for (uint32_t i = 0; i < new_molecules_to_diffuse.size(); i++) {
 		// new molecules created with reactions - simulate remaining time
-		diffuse_single_molecule(p, new_molecules_to_diffuse[i].diffused_molecule, new_molecules_to_diffuse[i].remaining_time_step);
+		diffuse_single_molecule(p, p.get_vm(new_molecules_to_diffuse[i].idx), new_molecules_to_diffuse[i].remaining_time_step);
 	}
 
 	new_molecules_to_diffuse.clear();
@@ -118,7 +118,7 @@ void diffuse_react_event_t::diffuse_single_molecule(partition_t& p, volume_molec
 				);
 
 #ifdef DEBUG_COLLISIONS
-		molecules_collision_t::dump_array(molecule_collisions);
+		molecules_collision_t::dump_array(p, molecule_collisions);
 #endif
 
 	} while (state != RAY_TRACE_FINISHED);
@@ -129,7 +129,10 @@ void diffuse_react_event_t::diffuse_single_molecule(partition_t& p, volume_molec
 		molecules_collision_t& collision = molecule_collisions[collision_idx];
 
 		if ((size_t)collision_idx != molecule_collisions.size() - 1) {
-			assert(collision.time >= molecule_collisions[collision_idx + 1].time);
+			// TODO_ASK: shouln'd this be sorted?
+			//assuming that this is ok since we use the same ordeassert(collision.time >= molecule_collisions[collision_idx + 1].time);rign as in MCCell3
+			//assert(collision.time >= molecule_collisions[collision_idx + 1].time);
+			//assert(collision.time + 0.01 >= molecule_collisions[collision_idx + 1].time);
 		}
 
 		// reactions with time 0 are ignored
@@ -377,6 +380,10 @@ ray_trace_state_t diffuse_react_event_t::ray_trace(
 		for (uint32_t vm_index: sp_cached_mask) {
 			volume_molecule_t& colliding_vm = p.volume_molecules[vm_index];
 
+			if (colliding_vm.is_defunct()) {
+				continue;
+			}
+
 			// can we react? - already pre-cached
 			//if (!world->can_react_vol_vol(vm, colliding_vm)) {
 			//	continue;
@@ -390,7 +397,7 @@ ray_trace_state_t diffuse_react_event_t::ray_trace(
 				reaction_t* rx = world->get_reaction(vm, colliding_vm);
 				assert(rx != nullptr);
 				molecule_collisions.push_back(
-						molecules_collision_t(p, vm, colliding_vm, *rx, time, position)
+						molecules_collision_t(p, vm.idx, colliding_vm.idx, *rx, time, position)
 				);
 			}
 		}
@@ -418,8 +425,8 @@ bool diffuse_react_event_t::collide_and_react_with_vol_mol(
 		float_t remaining_time_step
 )	{
 
-  volume_molecule_t& colliding_molecule = collision.colliding_molecule; // am
-  volume_molecule_t& diffused_molecule = collision.diffused_molecule; // m
+  volume_molecule_t& colliding_molecule = p.get_vm(collision.colliding_molecule_idx); // am
+  volume_molecule_t& diffused_molecule = p.get_vm(collision.diffused_molecule_idx); // m
 
   // returns 1 when there are no walls at all
   //TBD: double factor = exact_disk(
@@ -481,8 +488,8 @@ int diffuse_react_event_t::outcome_bimolecular(
 		int path,
 		float_t remaining_time_step
 ) {
-	volume_molecule_t& reacA = collision.diffused_molecule;
-	volume_molecule_t& reacB = collision.colliding_molecule;
+	volume_molecule_t& reacA = p.get_vm(collision.diffused_molecule_idx);
+	volume_molecule_t& reacB = p.get_vm(collision.colliding_molecule_idx);
 
 	assert(reacA.subpartition_index == reacB.subpartition_index && "Subpartitions must be identical");
 
@@ -491,8 +498,8 @@ int diffuse_react_event_t::outcome_bimolecular(
 	if (result == RX_A_OK) {
 		// always for now
 		// we used the reactants - remove them
-		p.set_molecule_as_defunct(collision.diffused_molecule);
-		p.set_molecule_as_defunct(collision.colliding_molecule);
+		p.set_molecule_as_defunct(reacA);
+		p.set_molecule_as_defunct(reacB);
 
 		return RX_DESTROY;
 	}
@@ -510,29 +517,29 @@ int diffuse_react_event_t::outcome_products_random(
 		float_t remaining_time_step
 ) {
 #ifdef DEBUG_REACTIONS
-	collision.dump("");
+	collision.dump(p, "");
 #endif
 	// we can have just one product for now and no walls
 
 	// create and place each product
 	assert(collision.rx.products.size() == 1);
-	volume_molecule_t vm(collision.rx.products[0].species_id, collision.position);
+	volume_molecule_t vm(MOLECULE_IDX_INVALID, collision.rx.products[0].species_id, collision.position);
 
 	volume_molecule_t& new_vm = p.add_volume_molecule(vm, world->species[vm.species_id].time_step);
 
 
 	new_molecules_to_diffuse.push_back(
-			molecule_to_diffuse_t(new_vm, remaining_time_step - collision.time));
+			molecule_to_diffuse_t(new_vm.idx, remaining_time_step - collision.time));
 
 	// schedule new product for diffusion - where?
 	return RX_A_OK; // ?
 }
 
-void molecules_collision_t::dump(const std::string ind) const {
+void molecules_collision_t::dump(partition_t& p, const std::string ind) const {
 	cout << ind << "diffused_molecule:\n";
-	diffused_molecule.dump(ind + "  ");
+	p.get_vm(diffused_molecule_idx).dump(ind + "  ");
 	cout << ind << "colliding_molecule:\n";
-	colliding_molecule.dump(ind + "  ");
+	p.get_vm(colliding_molecule_idx).dump(ind + "  ");
 	cout << ind << "reaction:";
 	rx.dump(ind + "  ");
 
@@ -540,12 +547,12 @@ void molecules_collision_t::dump(const std::string ind) const {
 	cout << "position: \t\t" << position << " [vec3_t] \t\t\n";
 }
 
-void molecules_collision_t::dump_array(const std::vector<molecules_collision_t>& vec) {
+void molecules_collision_t::dump_array(partition_t& p, const std::vector<molecules_collision_t>& vec) {
 	cout << "Collision array: " << (vec.empty() ? "EMPTY" : "") << "\n";
 
 	for (size_t i = 0; i < vec.size(); i++) {
 		cout << i << ":\n";
-		vec[i].dump("  ");
+		vec[i].dump(p, "  ");
 	}
 }
 

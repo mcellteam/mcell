@@ -35,10 +35,11 @@ enum molecule_flags_e {
 
 class base_molecule_t {
 public:
-	base_molecule_t(const species_id_t species_id_)
-		: flags(0), species_id(species_id_) {
+	base_molecule_t(const molecule_idx_t idx_, const species_id_t species_id_)
+		: idx(idx_), flags(0), species_id(species_id_) {
 	}
 
+	molecule_idx_t idx; // necessary, index to partition's volume_molecules array
 	uint16_t flags; // defunct by default, use bitfield instead?
 	species_id_t species_id;
 
@@ -58,8 +59,8 @@ public:
 
 class volume_molecule_t : public base_molecule_t {
 public:
-	volume_molecule_t(const species_id_t species_id_, const vec3_t& pos_)
-		: base_molecule_t(species_id_),
+	volume_molecule_t(const molecule_idx_t idx_, const species_id_t species_id_, const vec3_t& pos_)
+		: base_molecule_t(idx_, species_id_),
 			pos(pos_),
 			subpartition_index(SUBPARTITION_INDEX_INVALID) {
 	}

@@ -68,8 +68,8 @@ public:
 				return i;
 			}
 		}
-		last_returned_index = MOLECULE_INDEX_INVALID;
-		return MOLECULE_INDEX_INVALID;
+		last_returned_index = MOLECULE_IDX_INVALID;
+		return MOLECULE_IDX_INVALID;
 	}
 
 	uint32_t get_next_index() {
@@ -81,8 +81,8 @@ public:
 				return i;
 			}
 		}
-		last_returned_index = MOLECULE_INDEX_INVALID;
-		return MOLECULE_INDEX_INVALID;
+		last_returned_index = MOLECULE_IDX_INVALID;
+		return MOLECULE_IDX_INVALID;
 	}
 
 private:
@@ -104,10 +104,16 @@ public:
 
 	void dump();
 
-	uint32_t get_molecule_index(const volume_molecule_t& m) {
+	volume_molecule_t& get_vm(const molecule_idx_t idx) {
+		assert(idx != MOLECULE_IDX_INVALID && idx < volume_molecules.size());
+		return volume_molecules[idx];
+	}
+
+
+	molecule_idx_t get_molecule_index(const volume_molecule_t& m) {
 		// simply use pointer arithmetic to compute the molecule's index
-		int res = &m - &volume_molecules[0];
-		assert(res >= 0);
+		molecule_idx_t res = m.idx;
+		assert(res != MOLECULE_IDX_INVALID);
 		return res;
 	}
 
@@ -126,7 +132,7 @@ public:
 		res = get_molecule_list_index_for_time_step(time_step);
 		if (res == PARTITION_INDEX_INVALID) {
 			volume_molecule_indices_per_time_step.push_back(
-				pair_time_step_volume_molecules_t(time_step, std::vector< molecule_index_t >()));
+				pair_time_step_volume_molecules_t(time_step, std::vector< molecule_idx_t >()));
 			res = volume_molecule_indices_per_time_step.size() - 1;
 		}
 		return res;
@@ -203,6 +209,7 @@ public:
 
 		// and finally store (copy) the new molecule and set its subpartition index
 		volume_molecules.push_back(vm_copy);
+		volume_molecules.back().idx = molecule_index;
 		volume_molecules.back().subpartition_index = subpartition_index;
 		return volume_molecules.back();
 	}
@@ -227,7 +234,7 @@ public:
   std::vector< /* molecule index*/ volume_molecule_t> volume_molecules;
 
   // arrays of indices to the volume_molecules array where each array corresponds to a given time step
-  typedef std::pair< float_t, std::vector< molecule_index_t > > pair_time_step_volume_molecules_t;
+  typedef std::pair< float_t, std::vector< molecule_idx_t > > pair_time_step_volume_molecules_t;
   // indexed by diffusion time step index
   std::vector< pair_time_step_volume_molecules_t > volume_molecule_indices_per_time_step; // TODO: rename so that the name has something to do with diffusion? diffusion list?
 
