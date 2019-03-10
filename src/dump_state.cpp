@@ -1177,15 +1177,22 @@ void dump_one_collision(collision* col) {
 }
 
 void dump_collisions(collision* shead) {
-	cout << "Collision list: " << ((shead == nullptr) ? "EMPTY" : "") << "\n";
-
+	/*cout << "Collision list: " << ((shead == nullptr) ? "EMPTY" : "") << "\n";
+*/
 	int i = 0;
 	collision* ptr = shead;
 	while (ptr != NULL) {
-		cout << i << ":\n";
-		dump_one_collision(ptr);
+		if (ptr->what & COLLIDE_VOL /* != 0 && ptr->t < 1.0 && ptr->t >= 0.0*/) {
+			cout << "  " << "collision " << i << ": "
+					//<< "diff_idx: " << ptr-> diffused_molecule_idx
+					<< "coll_idx: " << ((volume_molecule*)ptr->target)->id
+					<< ", time: " << ptr->t
+					<< ", pos: " << ptr->loc
+					<< "\n";
+			i++;
+		}
+
 		ptr = ptr->next;
-		i++;
 	}
 }
 

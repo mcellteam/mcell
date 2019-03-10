@@ -1406,7 +1406,7 @@ struct collision {
   struct collision *next;
   double t; /* Time of collision (may be slightly early) */
 
-  void *target; /* Thing that we hit: wall, molecule, subvol etc */
+	void *target; /* Thing that we hit: wall, molecule, subvol etc */
   int what;     /* Target-type Flags: what kind of thing did we hit? */
   struct rxn *intermediate; /* Reaction that told us we could hit it */
   struct vector3 loc;       /* Location of impact */

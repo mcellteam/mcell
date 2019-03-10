@@ -47,31 +47,53 @@ enum ray_trace_state_t {
 
 class molecules_collision_t {
 public:
+	/*molecules_collision_t(
+			const molecules_collision_t& a)
+		:
+			partition(a.partition),
+			diffused_molecule_idx(a.diffused_molecule_idx),
+			colliding_molecule_idx(a.colliding_molecule_idx),
+			rx(a.rx),
+			time(a.time),
+			position(a.position)
+		{
+	}
+	molecules_collision_t& operator =(const molecules_collision_t& a) {
+		partition = a.partition;
+		diffused_molecule_idx = a.diffused_molecule_idx;
+		colliding_molecule_idx = a.colliding_molecule_idx;
+		rx = a.rx;
+		time = a.time;
+		position = a.position;
+		return *this;
+	}*/
+
 	molecules_collision_t(
-			partition_t& partition_ref,
+			partition_t* partition_ptr,
 			const molecule_idx_t diffused_molecule_idx_,
 			const molecule_idx_t colliding_molecule_idx_,
-			reaction_t& rx_ref,
+			reaction_t* rx_ptr,
 			const float_t& time_,
 			const vec3_t& position_)
 		:
-			partition(partition_ref),
+			partition(partition_ptr),
 			diffused_molecule_idx(diffused_molecule_idx_),
 			colliding_molecule_idx(colliding_molecule_idx_),
-			rx(rx_ref),
+			rx(rx_ptr),
 			time(time_),
 			position(position_)
 			{
 	}
 
-	partition_t& partition;
+	partition_t* partition;
 	molecule_idx_t diffused_molecule_idx;
 	molecule_idx_t colliding_molecule_idx;
-	reaction_t rx;
+	reaction_t* rx;
 	float_t time;
 	vec3_t position;
 
   void dump(partition_t& p, const std::string ind) const;
+  std::string to_string() const;
   static void dump_array(partition_t& p, const std::vector<molecules_collision_t>& vec);
 
 };
@@ -116,7 +138,7 @@ public:
 
 private:
 	void diffuse_molecules(partition_t& p, std::vector< molecule_idx_t >& indices);
-	void diffuse_single_molecule(partition_t& p, volume_molecule_t& vm, float_t curr_time_step);
+	void diffuse_single_molecule(partition_t& p, const molecule_idx_t vm, const float_t curr_time_step);
 	void pick_displacement(float_t scale /*space step*/, vec3_t& displacement);
 	void compute_displacement(species_t& sp, vec3_t& displacement, float_t remaining_time_step);
 

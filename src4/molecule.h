@@ -30,8 +30,33 @@ namespace mcell {
 
 class world_t;
 
+#if 0
+#define TYPE_SURF 0x001
+#define TYPE_VOL 0x002
+#define TYPE_MASK 0x003
+
+#define ACT_DIFFUSE 0x008
+#define ACT_REACT 0x020
+#define ACT_NEWBIE 0x040
+#define ACT_CHANGE 0x080
+#define ACT_CLAMPED 0x1000
+
+/* Flags telling us which linked lists the molecule appears in. */
+#define IN_SCHEDULE 0x100
+#define IN_SURFACE 0x200
+#define IN_VOLUME 0x400
+/* And a mask to pick off all three IN_ flags */
+#define IN_MASK 0x700
+
+/* Flags telling us what our counting status is */
+#define COUNT_ME 0x800
+
+/* Flag indicating that a molecule is old enough to take the maximum timestep */
+#define MATURE_MOLECULE 0x2000
+#endif
+
 enum molecule_flags_e {
-	MOLECULE_FLAG_DEFUNCT = 1 << 0,
+	MOLECULE_FLAG_DEFUNCT = 1 << 15,
 };
 
 class base_molecule_t {

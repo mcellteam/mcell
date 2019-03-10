@@ -27,6 +27,8 @@ extern "C" {
 }
 
 #include <iostream>
+#include <sstream>
+#include <algorithm>
 
 #include "diffuse_react_event.h"
 #include "world.h"
@@ -73,19 +75,21 @@ void diffuse_react_event_t::diffuse_molecules(partition_t& p, std::vector< molec
 	for (uint32_t i = 0; i < existing_mols_count; i++) {
 		molecule_idx_t idx = indices[i];
 		// existing molecules - simulate whole time step
-		diffuse_single_molecule(p, p.volume_molecules[idx], diffusion_time_step);
+		diffuse_single_molecule(p, idx, diffusion_time_step);
 	}
 
 	// need to call .size() each iteration because the size can increase
 	for (uint32_t i = 0; i < new_molecules_to_diffuse.size(); i++) {
 		// new molecules created with reactions - simulate remaining time
-		diffuse_single_molecule(p, p.get_vm(new_molecules_to_diffuse[i].idx), new_molecules_to_diffuse[i].remaining_time_step);
+		diffuse_single_molecule(p, new_molecules_to_diffuse[i].idx, new_molecules_to_diffuse[i].remaining_time_step);
 	}
 
 	new_molecules_to_diffuse.clear();
 }
 
-void diffuse_react_event_t::diffuse_single_molecule(partition_t& p, volume_molecule_t& vm, float_t remaining_time_step) {
+void diffuse_react_event_t::diffuse_single_molecule(partition_t& p, const molecule_idx_t vm_idx, const float_t remaining_time_step) {
+
+	volume_molecule_t& vm = p.volume_molecules[vm_idx];
 
 	if (vm.is_defunct())
 		return;
@@ -122,6 +126,13 @@ void diffuse_react_event_t::diffuse_single_molecule(partition_t& p, volume_molec
 						new_subpartition_index
 				);
 
+		// sort collisions by time
+		// note: it will suffice to sort them once, this is here mainly because of the dump
+		std::sort( molecule_collisions.begin(), molecule_collisions.end(), [ ]( const auto& lhs, const auto& rhs )
+		{
+		   return lhs.time < rhs.time;
+		});
+
 #ifdef DEBUG_COLLISIONS
 		molecules_collision_t::dump_array(p, molecule_collisions);
 #endif
@@ -130,7 +141,8 @@ void diffuse_react_event_t::diffuse_single_molecule(partition_t& p, volume_molec
 
 	// 4) evaluate and possible execute reactions
 	// they are supposed to be sorted in reverse by time
-	for (int collision_idx = molecule_collisions.size() - 1; collision_idx >= 0; collision_idx--) {
+	//for (int collision_idx = molecule_collisions.size() - 1; collision_idx >= 0; collision_idx--) {
+	for (size_t collision_idx = 0; collision_idx < molecule_collisions.size(); collision_idx++) {
 		molecules_collision_t& collision = molecule_collisions[collision_idx];
 
 		if ((size_t)collision_idx != molecule_collisions.size() - 1) {
@@ -152,6 +164,7 @@ void diffuse_react_event_t::diffuse_single_molecule(partition_t& p, volume_molec
 
 		// for now. do the change right away, but we will need to
 		// cache these changes and do them right away
+		// might invalidate references!
 		if (collide_and_react_with_vol_mol(p, collision, displacement, remaining_time_step)) {
 			// molecule was destroyed
 			break;
@@ -159,15 +172,18 @@ void diffuse_react_event_t::diffuse_single_molecule(partition_t& p, volume_molec
 
 	}
 
+	// need to get a new reference
+	volume_molecule_t& vm_refresh = p.volume_molecules[vm_idx];
+
 	// finally move molecule to its destination
-	vm.pos = new_position;
+	vm_refresh.pos = new_position;
 
 	// are we still in the same partition or do we need to move?
-	bool move_to_another_partition = !p.in_this_partition(vm.pos);
+	bool move_to_another_partition = !p.in_this_partition(vm_refresh.pos);
 	assert(!move_to_another_partition && "TODO");
 
 	// change subpartition
-	p.change_molecule_subpartition(vm, new_subpartition_index);
+	p.change_molecule_subpartition(vm_refresh, new_subpartition_index);
 }
 
 void diffuse_react_event_t::pick_displacement(float_t scale /*space step*/, vec3_t& displacement) {
@@ -402,7 +418,7 @@ ray_trace_state_t diffuse_react_event_t::ray_trace(
 				reaction_t* rx = world->get_reaction(vm, colliding_vm);
 				assert(rx != nullptr);
 				molecule_collisions.push_back(
-						molecules_collision_t(p, vm.idx, colliding_vm.idx, *rx, time, position)
+						molecules_collision_t(&p, vm.idx, colliding_vm.idx, rx, time, position)
 				);
 			}
 		}
@@ -436,7 +452,7 @@ bool diffuse_react_event_t::collide_and_react_with_vol_mol(
   // returns 1 when there are no walls at all
   //TBD: double factor = exact_disk(
 
-  reaction_t& rx = collision.rx;
+  reaction_t& rx = *collision.rx;
   //  rx->prob_t is always NULL in out case update_probs(world, rx, m->t);
   // returns which reaction pathway to take
   int i = test_bimolecular(
@@ -446,6 +462,7 @@ bool diffuse_react_event_t::collide_and_react_with_vol_mol(
   	return false;
   }
   else {
+  	// might invalidate references
   	int j = outcome_bimolecular(p, collision, i, remaining_time_step);
   	assert(j == RX_DESTROY);
   	return true;
@@ -487,20 +504,34 @@ int diffuse_react_event_t::test_bimolecular(
 		return 0; // we have just one pathwayy
 }
 
+/*
+ *
+#ifdef DEBUG_DIFFUSION
+      dump_volume_molecule((struct volume_molecule*)this_product, "", true, "  created vm:", world->current_iterations);
+#endif
+ */
+
 int diffuse_react_event_t::outcome_bimolecular(
 		partition_t& p,
 		molecules_collision_t& collision,
 		int path,
 		float_t remaining_time_step
 ) {
-	volume_molecule_t& reacA = p.get_vm(collision.diffused_molecule_idx);
-	volume_molecule_t& reacB = p.get_vm(collision.colliding_molecule_idx);
 
-	assert(reacA.subpartition_index == reacB.subpartition_index && "Subpartitions must be identical");
-
+	// might invalidate references
 	int result = outcome_products_random(p, collision, path, remaining_time_step);
 
 	if (result == RX_A_OK) {
+		volume_molecule_t& reacA = p.get_vm(collision.diffused_molecule_idx);
+		volume_molecule_t& reacB = p.get_vm(collision.colliding_molecule_idx);
+
+		assert(reacA.subpartition_index == reacB.subpartition_index && "Subpartitions must be identical");
+#ifdef DEBUG_REACTIONS
+		// ref. printout first destroys B then A
+		reacB.dump(world, "", "  defunct vm:", world->current_iteration);
+		reacA.dump(world, "", "  defunct vm:", world->current_iteration);
+#endif
+
 		// always for now
 		// we used the reactants - remove them
 		p.set_molecule_as_defunct(reacA);
@@ -515,24 +546,25 @@ int diffuse_react_event_t::outcome_bimolecular(
 
 // why is this called "random"? - check if reaction occurs is in test_bimolecular
 // mcell3 version returns  cross_wall ? RX_FLIP : RX_A_OK;
+// ! might invalidate references
 int diffuse_react_event_t::outcome_products_random(
 		partition_t& p,
 		molecules_collision_t& collision,
 		int path,
 		float_t remaining_time_step
 ) {
-#ifdef DEBUG_REACTIONS
-	collision.dump(p, "");
-#endif
 	// we can have just one product for now and no walls
 
 	// create and place each product
-	assert(collision.rx.products.size() == 1);
-	volume_molecule_t vm(MOLECULE_IDX_INVALID, collision.rx.products[0].species_id, collision.position);
+	assert(collision.rx->products.size() == 1);
+	volume_molecule_t vm(MOLECULE_IDX_INVALID, collision.rx->products[0].species_id, collision.position);
 
 	volume_molecule_t& new_vm = p.add_volume_molecule(vm, world->species[vm.species_id].time_step);
 	new_vm.flags =  TYPE_VOL | IN_VOLUME | ACT_DIFFUSE;
 
+#ifdef DEBUG_REACTIONS
+	new_vm.dump(world, "", "  created vm:", world->current_iteration);
+#endif
 
 	new_molecules_to_diffuse.push_back(
 			molecule_to_diffuse_t(new_vm.idx, remaining_time_step - collision.time));
@@ -547,18 +579,26 @@ void molecules_collision_t::dump(partition_t& p, const std::string ind) const {
 	cout << ind << "colliding_molecule:\n";
 	p.get_vm(colliding_molecule_idx).dump(ind + "  ");
 	cout << ind << "reaction:";
-	rx.dump(ind + "  ");
+	rx->dump(ind + "  ");
 
 	cout << "time: \t\t" << time << " [float_t] \t\t\n";
 	cout << "position: \t\t" << position << " [vec3_t] \t\t\n";
 }
 
-void molecules_collision_t::dump_array(partition_t& p, const std::vector<molecules_collision_t>& vec) {
-	cout << "Collision array: " << (vec.empty() ? "EMPTY" : "") << "\n";
+string molecules_collision_t::to_string() const {
+	stringstream ss;
+	ss
+		//	<< "diff_idx: " << diffused_molecule_idx
+			<< "coll_idx: " << colliding_molecule_idx
+			<< ", time: " << time
+			<< ", pos: " << position;
+	return ss.str();
+}
 
+void molecules_collision_t::dump_array(partition_t& p, const std::vector<molecules_collision_t>& vec) {
+	// printed in resverse - same as
 	for (size_t i = 0; i < vec.size(); i++) {
-		cout << i << ":\n";
-		vec[i].dump(p, "  ");
+		cout << "  " << "collision " << i << ": " << vec[i].to_string() << "\n";
 	}
 }
 

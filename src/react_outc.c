@@ -355,12 +355,6 @@ static int outcome_products_random(struct volume *world, struct wall *w,
                                    struct abstract_molecule *reacB,
                                    short orientA, short orientB) {
 
-#ifdef DEBUG_REACTIONS
-	// TODO: not checking type of molecule
-	dump_volume_molecule((struct volume_molecule*)reacA, "", true);
-	dump_volume_molecule((struct volume_molecule*)reacB, "", true);
-#endif
-
   /* Did the moving molecule cross the plane? */
   bool cross_wall = false; 
 
@@ -999,6 +993,10 @@ static int outcome_products_random(struct volume *world, struct wall *w,
           world, product_species, g_data, sm_reactant, w, product_subvol, hitpt,
           product_orient[n_product], t, reacA->periodic_box);
 
+#ifdef DEBUG_DIFFUSION
+      dump_volume_molecule((struct volume_molecule*)this_product, "", true, "  created vm:", world->current_iterations);
+#endif
+
       if (((struct volume_molecule *)this_product)->index < DISSOCIATION_MAX)
         update_dissociation_index = true;
     }
@@ -1252,6 +1250,10 @@ int outcome_bimolecular(struct volume *world, struct rxn *rx, int path,
   }
 
   if (killB) {
+#ifdef DEBUG_DIFFUSION
+      dump_volume_molecule((struct volume_molecule*)reacB, "", true, "  defunct vm:", world->current_iterations);
+#endif
+
     vm = NULL;
     if ((reacB->properties->flags & ON_GRID) != 0) {
       sm = (struct surface_molecule *)reacB;
@@ -1292,6 +1294,10 @@ int outcome_bimolecular(struct volume *world, struct rxn *rx, int path,
   }
 
   if (killA) {
+#ifdef DEBUG_DIFFUSION
+      dump_volume_molecule((struct volume_molecule*)reacA, "", true, "  defunct vm:", world->current_iterations);
+#endif
+
     vm = NULL;
     if ((reacA->properties->flags & ON_GRID) != 0) {
       sm = (struct surface_molecule *)reacA;

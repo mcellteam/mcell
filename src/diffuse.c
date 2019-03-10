@@ -3017,15 +3017,6 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
     //dump_collisions(shead);
 #endif
     struct collision* shead2 = ray_trace(world, &(vm->pos), shead, sv, &displacement, reflectee);
-#ifdef DEBUG_COLLISIONS
-    // first check that we are getting correct result here
-    if (shead2->what & COLLIDE_VOL) { // FIXME: checking only 1st item
-    	dump_collisions(shead2);
-    }
-    else {
-    	dump_collisions(NULL);
-    }
-#endif
 
     if (shead2 == NULL) {
       mcell_internal_error("ray_trace returned NULL.");
@@ -3035,6 +3026,10 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
       shead2 =
           (struct collision *)ae_list_sort((struct abstract_element *)shead2);
     }
+
+#ifdef DEBUG_COLLISIONS
+   	dump_collisions(shead2);
+#endif
 
     struct vector3* loc_certain = NULL;
     struct collision *tentative = shead2;

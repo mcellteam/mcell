@@ -35,13 +35,15 @@ extern "C"
 #endif
 void dump_volume(struct volume* s, const char* comment, unsigned int selected_details);
 
+
+
+// the functions below are used to generate log that can be diffed with mcell4's log
+
 #ifdef __cplusplus
 extern "C"
 #endif
 void dump_collisions(struct collision* shead);
 
-
-// the functions below are used to generate log that can be diffed with mcell4's log
 
 #ifdef __cplusplus
 extern "C"
