@@ -82,6 +82,7 @@ struct vec3_t: public glm_vec3_t{
 
 	// exact match
 	//bool operator == (const vec3_t& a) { return x == a.x && y == a.y && z == a.z; }
+	void dump(const std::string extra_comment, const std::string ind);
 };
 
 typedef glm::ivec3 ivec3_t;

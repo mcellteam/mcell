@@ -2932,10 +2932,6 @@ struct volume_molecule *diffuse_3D(
         "Attempted to take a diffusion step for a defunct molecule.");
   }
 
-  if (max_time < 0.069) {
-  	mcell_log("  max_time: %f\n", max_time);
-  }
-
   /* flags related to the possible reaction between volume molecule
      and one or two surface molecules */
   int mol_grid_flag = ((spec->flags & CAN_VOLSURF) == CAN_VOLSURF);
@@ -2946,9 +2942,8 @@ struct volume_molecule *diffuse_3D(
     return vm;
   }
 
-#ifdef DEBUG_COLLISIONS
-	mcell_log("Diffusing molecule:");
-	dump_volume_molecule(vm, "  ", true);
+#ifdef DEBUG_DIFFUSION
+	dump_volume_molecule(vm, "", true, "Diffusing vm:", world->current_iterations);
 #endif
 
   int inertness = 0;
@@ -2988,9 +2983,8 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
       &rate_factor, &r_rate_factor, &steps, &t_steps, max_time);
   }
 
-
-#ifdef DEBUG_COLLISIONS
-	mcell_log("  displacement: %f, %f, %f\n", displacement.x, displacement.y, displacement.z);
+#ifdef DEBUG_DIFFUSION
+  dump_vector3(displacement, "  displacement:");
 #endif
 
   if (world->use_expanded_list &&

@@ -68,9 +68,12 @@ void diffuse_react_event_t::diffuse_molecules(partition_t& p, std::vector< molec
 	// the whole diffuse is run
 	// ! CPU version - compute sets of possible colilisions for a given species and "cache" it
 
-	for (molecule_idx_t molecule_idx: indices) {
+	// first diffuse already existing molecules
+	uint32_t existing_mols_count = indices.size();
+	for (uint32_t i = 0; i < existing_mols_count; i++) {
+		molecule_idx_t idx = indices[i];
 		// existing molecules - simulate whole time step
-		diffuse_single_molecule(p, p.volume_molecules[molecule_idx], diffusion_time_step);
+		diffuse_single_molecule(p, p.volume_molecules[idx], diffusion_time_step);
 	}
 
 	// need to call .size() each iteration because the size can increase
@@ -89,15 +92,17 @@ void diffuse_react_event_t::diffuse_single_molecule(partition_t& p, volume_molec
 
 	species_t& spec = world->species[vm.species_id];
 
+#ifdef DEBUG_DIFFUSION
+	vm.dump(world, "", "Diffusing vm:", world->current_iteration);
+#endif
+
 	// diffuse each molecule - get information on position change
 	// TBD: reflections
 	vec3_t displacement;
 	compute_displacement(spec, displacement, remaining_time_step);
 
-#ifdef DEBUG_COLLISIONS
-	cout << "** Diffusing molecule " << p.get_molecule_index(vm) << "\n";
-	cout << "  displacement " << displacement << "\n";
-	vm.dump("  ");
+#ifdef DEBUG_DIFFUSION
+	displacement.dump("  displacement:", "");
 #endif
 
 	// 3) detect collisions with other molecule
@@ -526,6 +531,7 @@ int diffuse_react_event_t::outcome_products_random(
 	volume_molecule_t vm(MOLECULE_IDX_INVALID, collision.rx.products[0].species_id, collision.position);
 
 	volume_molecule_t& new_vm = p.add_volume_molecule(vm, world->species[vm.species_id].time_step);
+	new_vm.flags =  TYPE_VOL | IN_VOLUME | ACT_DIFFUSE;
 
 
 	new_molecules_to_diffuse.push_back(

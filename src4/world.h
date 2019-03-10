@@ -133,7 +133,7 @@ public:
   // FIXME: there might be multiple reactions for 2 reactants
   std::unordered_map< species_id_t, std::unordered_map<species_id_t, reaction_t*> > bimolecular_reactions_map; // created from reactions in init_simulation
 
-
+  uint64_t current_iteration;
   uint64_t iterations; // number of iterations to simulate
 
 

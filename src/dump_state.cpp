@@ -28,6 +28,7 @@
 #include <cassert>
 #include <string.h>
 
+
 #define MAX_ARRAY_ITEMS 16
 #define MAX_SUBVOLUMES 4
 #define DUMP_ARRAY_NEWLINE_COUNT 8
@@ -277,11 +278,9 @@ void dump_wall_list_array(int num, const char* num_name, wall_list** values, con
 }
 
 
-void dump_molecule_flags(short flags, const char* ind) {
-	cout << ind << "flags: \t\t" << flags << " [short] \t\t /* Abstract Molecule Flags: Who am I, what am I doing, etc. */\n";
-
-	cout << ind << "  ";
-#define DUMP_FLAG(f, mask) if (((f) & (mask)) != 0) cout << #mask << "(0x" << hex << (mask) << "), ";
+string get_molecule_flags_string(short flags) {
+	string res;
+#define DUMP_FLAG(f, mask) if (((f) & (mask)) != 0) res += string(#mask) + ", ";
 	DUMP_FLAG(flags, TYPE_SURF)
 	DUMP_FLAG(flags, TYPE_VOL)
 	DUMP_FLAG(flags, ACT_DIFFUSE)
@@ -293,7 +292,13 @@ void dump_molecule_flags(short flags, const char* ind) {
 	DUMP_FLAG(flags, IN_SURFACE)
 	DUMP_FLAG(flags, IN_VOLUME)
 #undef DUMP_FLAG
-	cout << "\n";
+	return res;
+}
+
+void dump_molecule_flags(short flags, const char* ind) {
+	cout << ind << "flags: \t\t" << flags << " [short] \t\t /* Abstract Molecule Flags: Who am I, what am I doing, etc. */\n";
+
+	cout << ind << "  " << get_molecule_flags_string(flags) << "\n";
 }
 
 void dump_abstract_molecule(abstract_molecule* amp, const char* ind) {
@@ -320,13 +325,6 @@ void dump_abstract_molecule(abstract_molecule* amp, const char* ind) {
   cout << ind << "mesh_name: *\t\t" << amp->mesh_name << " [char] \t\t                /* Name of mesh that molecule is either in (volume molecule) or on (surface molecule) */\n";
 }
 
-void dump_volume_molecule(volume_molecule* amp, const char* ind, bool limited_info) {
-	assert(limited_info && "not supported yet");
-  cout << ind << "id: \t\t" << amp->id << " [u_long] \t\t\n";
-  cout << ind << "pos: \t\t" << amp->pos << " [vector3] \t\t/* Position in space */\n";
-  cout << ind << "properties: *\t\t" << amp->properties << " [species] \t\t\n";
-  cout << ind << "  species name: *\t\t" << amp->properties->sym->name << " [char] \t\t\n";
-}
 
 void dump_surface_molecule(surface_molecule* amp, const char* ind) {
 	cout << "***TODO!\n";
@@ -344,7 +342,7 @@ void dump_molecules(int num_all_molecules, molecule_info **all_molecules) {
 
     if ((amp->properties->flags & NOT_FREE) == 0) {
       volume_molecule *vmp = (volume_molecule *)amp;
-      dump_volume_molecule(vmp, "  ", true);
+      dump_volume_molecule(vmp, "  ", true, "", 0);
     } else if ((amp->properties->flags & ON_GRID) != 0) {
       surface_molecule *smp = (surface_molecule *)amp;
       dump_surface_molecule(smp, "  ");
@@ -1191,7 +1189,34 @@ void dump_collisions(collision* shead) {
 	}
 }
 
-void dump_molecules() {
-	// TODO
+// -----------  differential dumps ---------------
+
+string get_species_name(volume_molecule* vm) {
+	return vm->properties->sym->name;
 }
 
+void dump_volume_molecule(
+		volume_molecule* vm,
+		const char* ind,
+		bool for_diff,
+		const char* extra_comment,
+		unsigned long long iteration
+) {
+	if (!for_diff) {
+		cout << ind << "id: \t\t" << vm->id << " [u_long] \t\t\n";
+		cout << ind << "pos: \t\t" << vm->pos << " [vector3] \t\t/* Position in space */\n";
+		cout << ind << "properties: *\t\t" << vm->properties << " [species] \t\t\n";
+		cout << ind << "  species name: *\t\t" << vm->properties->sym->name << " [char] \t\t\n";
+	}
+	else {
+		cout << extra_comment << "it:" << iteration << ", idx:" << vm->id << ", species " << get_species_name(vm) << ", pos:" << vm->pos << ", flags:" << get_molecule_flags_string(vm->flags) << "\n";
+	}
+}
+
+void dump_vector3(struct vector3 vec, const char* extra_comment) {
+	cout << extra_comment << vec << "\n";
+}
+
+void dump_rng_call_info(struct isaac64_state* rng, const char* extra_comment) {
+	cout << "  " << extra_comment << "randcnt:" << rng->randcnt << ", aa:" << (unsigned)rng->aa << ", bb:" << (unsigned)rng->bb << ", cc:" << (unsigned)rng->cc << "\n";
+}

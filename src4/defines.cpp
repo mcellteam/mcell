@@ -23,11 +23,18 @@
 
 #include "defines.h"
 
+using namespace std;
+
 namespace mcell {
 
 std::ostream & operator<<(std::ostream &out, const vec3_t &a) {
-    out << "(" << a.x << ", " << a.y << ", " << a.z << ")";
-    return out;
+  out << "(" << a.x << ", " << a.y << ", " << a.z << ")";
+  return out;
 }
+
+void vec3_t::dump(const std::string extra_comment, const std::string ind) {
+	cout << ind << extra_comment << *this << "\n";
+}
+
 
 } // namespace mcell

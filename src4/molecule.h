@@ -28,6 +28,7 @@
 
 namespace mcell {
 
+class world_t;
 
 enum molecule_flags_e {
 	MOLECULE_FLAG_DEFUNCT = 1 << 0,
@@ -69,6 +70,13 @@ public:
 	uint32_t subpartition_index;
 
 	void dump(const std::string ind) const;
+	void dump(
+			world_t* world,
+			const std::string extra_comment,
+			const std::string ind,
+			const uint64_t iteration
+	) const;
+
 };
 
 } // namespace mcell

@@ -23,6 +23,7 @@
 
 #pragma once
 
+
 #define ONE_OVER_2_TO_THE_33RD 1.16415321826934814453125e-10
 
 #if defined(USE_MINIMAL_RNG)
@@ -42,7 +43,18 @@
 #define rng_uses(x)                                                            \
   ((RANDMAX *((x)->rngblocks - 1)) + (long long)(RANDMAX - (x)->randcnt))
 #define rng_init(x, y) isaac64_init((x), (y))
+
+#ifdef NDEBUG
 #define rng_dbl(x) isaac64_dbl32((x))
+#else 
+// for some reason I could not include dump9ing function here, so
+// the function had to be moved to rng.cpp file
+double rng_dbl(struct rng_state *rng);
+#endif
+// dump for release build
+
+
+
 #define rng_uint(x) isaac64_uint32((x))
 /***********************************************/
 

@@ -26,6 +26,7 @@
 
 #include "mcell_structs.h"
 
+#include "rng.h"
 
 #define DUMP_EVERYTHING 0xFFFFFFFF
 
@@ -39,9 +40,28 @@ extern "C"
 #endif
 void dump_collisions(struct collision* shead);
 
+
+// the functions below are used to generate log that can be diffed with mcell4's log
+
 #ifdef __cplusplus
 extern "C"
 #endif
-void dump_volume_molecule(struct volume_molecule* amp, const char* ind, bool limited_info);
+void dump_volume_molecule(
+		struct volume_molecule* amp,
+		const char* ind,
+		bool for_diff,
+		const char* extra_comment,
+		unsigned long long iteration
+);
+
+#ifdef __cplusplus
+extern "C"
+#endif
+void dump_vector3(struct vector3 vec, const char* extra_comment);
+
+#ifdef __cplusplus
+extern "C"
+#endif
+void dump_rng_call_info(struct isaac64_state* rng, const char* extra_comment);
 
 #endif

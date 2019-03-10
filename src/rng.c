@@ -28,6 +28,9 @@
 #include "rng.h"
 #include "mcell_structs.h"
 
+#include "dump_state.h"
+#include "debug_config.h"
+
 /*************************************************************************
  * Ziggurat Gaussian generator
  *
@@ -179,6 +182,10 @@ double rng_gauss(struct rng_state *rng) {
   double x, y;
   double sign = 1.0;
 
+#ifdef DEBUG_RNG_CALLS
+  dump_rng_call_info(rng, "rng_gauss");
+#endif
+
   int npasses = 0;
   do {
     unsigned long bits = rng_uint(rng);
@@ -217,3 +224,13 @@ double rng_gauss(struct rng_state *rng) {
 
   return sign * x;
 }
+
+
+double rng_dbl(struct rng_state *rng) {
+
+#ifdef DEBUG_RNG_CALLS
+  dump_rng_call_info(rng, "");
+#endif
+  return isaac64_dbl32(rng);
+}
+
