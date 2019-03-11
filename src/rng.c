@@ -225,7 +225,7 @@ double rng_gauss(struct rng_state *rng) {
   return sign * x;
 }
 
-
+#ifndef NDEBUG
 double rng_dbl(struct rng_state *rng) {
 
 #ifdef DEBUG_RNG_CALLS
@@ -233,4 +233,4 @@ double rng_dbl(struct rng_state *rng) {
 #endif
   return isaac64_dbl32(rng);
 }
-
+#endif
