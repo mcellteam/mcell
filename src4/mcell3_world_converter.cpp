@@ -141,8 +141,11 @@ bool mcell3_world_converter::convert_simulation_setup(volume* s) {
 	world->seed_seq = s->seed_seq;
 	world->rng = *s->rng;
 
-	CHECK_PROPERTY(s->nx_parts == s->ny_parts); // mcell3's subparitions are ignored, they are logarithmic
+	CHECK_PROPERTY(s->nx_parts == s->ny_parts);
 	CHECK_PROPERTY(s->ny_parts == s->nz_parts);
+	// this number counts the number of boundaries, not subvolumes, also, there are always 2 extra subvolumes on the sides
+	world->world_constants.subpartitions_per_partition_dimension = s->nx_parts - 3;
+	world->world_constants.init_subpartition_edge_length(); // maybe change ionto some general init of values
 
 	return true;
 }

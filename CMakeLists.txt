@@ -49,9 +49,11 @@ elseif (WIN32)
                      copy ${CMAKE_SOURCE_DIR}/appveyor_windows/version.h ${CMAKE_CURRENT_BINARY_DIR}/deps )
 endif()
 
-set(OPTIMIZATION_FLAGS "-march=core2 -O2")
-set(CMAKE_C_FLAGS "-g -Wall -Wextra -Wshadow -Wno-unused-parameter -D_GNU_SOURCE=1 ${OPTIMIZATION_FLAGS} -std=c11 ${CMAKE_C_FLAGS}" )
-set(CMAKE_CXX_FLAGS "-g -Wall -Wextra -Wshadow -Wno-unused-parameter -D_GNU_SOURCE=1 ${OPTIMIZATION_FLAGS} ${CMAKE_CXX_FLAGS}" )
+set(OPTIMIZATION_FLAGS "-mavx2 -O3")
+set(WARNING_FLAGS "-Wall -Wextra -Wshadow -Wno-unused-parameter -Wno-unused-function -Wno-unused-variable")
+
+set(CMAKE_C_FLAGS "-g3  -D_GNU_SOURCE=1 ${WARNING_FLAGS} ${OPTIMIZATION_FLAGS} -std=c11 ${CMAKE_C_FLAGS}" )
+set(CMAKE_CXX_FLAGS "-g3 -D_GNU_SOURCE=1 -faligned-new ${WARNING_FLAGS} ${OPTIMIZATION_FLAGS} ${CMAKE_CXX_FLAGS}" )
 
 if (NOT WIN32)
   # check for needed libraries
@@ -197,7 +199,6 @@ set(SOURCE_FILES
     src4/viz_output_event.h
     src4/world.cpp
     src4/world.h
-
     )
 
 link_directories(${CMAKE_BINARY_DIR}/lib)

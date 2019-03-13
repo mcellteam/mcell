@@ -27,6 +27,8 @@ extern "C" {
 #include "world.h"
 #include "end_simulation_event.h"
 
+using namespace std;
+
 namespace mcell {
 
 world_t::world_t() {
@@ -37,6 +39,9 @@ world_t::world_t() {
 }
 
 void world_t::init_simulation() {
+
+	cout << "Creating initial partition with " <<  world_constants.subpartitions_per_partition_dimension << "^3 subvolumes.";
+
 	// create initial partition with center at 0,0,0 - we woud like to have the partitions all the same,
 	// not depend on some random initialization
 	uint32_t index = add_partition(vec3_t(0, 0, 0));
@@ -58,8 +63,10 @@ void world_t::init_simulation() {
 
 
 void world_t::dump() {
+	world_constants.dump();
 	// species
 	species_t::dump_array(species);
+
 }
 
 bool world_t::run_simulation() {
@@ -70,16 +77,16 @@ bool world_t::run_simulation() {
 
 	// create event that will terminate our simulation
 	end_simulation_event_t* end_event = new end_simulation_event_t();
-	end_event->event_time = iterations; // TODO: check against MCELL - we need to execute the same nr of iterations, not one less
+	end_event->event_time = iterations;
 	scheduler.schedule_event(end_event);
 
 	bool end_simulation = false;
 	float_t time = TIME_SIMULATION_START;
 	float_t previous_time;
 	current_iteration = 0;
-	uint32_t how_often_to_report = 1;
+	uint32_t how_often_to_report = 10;
 
-	std::cout << "Iterations: " << current_iteration << " of " << iterations << "\n";
+	cout << "Iterations: " << current_iteration << " of " << iterations << "\n";
 
 	do {
 		previous_time = time;
@@ -88,12 +95,12 @@ bool world_t::run_simulation() {
 		if (time > previous_time) {
 			current_iteration++;
 			if (current_iteration % how_often_to_report == 0) {
-				std::cout << "Iterations: " << current_iteration << " of " << iterations << "\n";
+				cout << "Iterations: " << current_iteration << " of " << iterations << "\n";
 			}
 		}
 	} while (!end_simulation);
 
-	std::cout << "Iteration " << current_iteration << ", simulation finished successfully\n";
+	cout << "Iteration " << current_iteration << ", simulation finished successfully\n";
 
 	return true;
 }

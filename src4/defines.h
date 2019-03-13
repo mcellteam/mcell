@@ -40,6 +40,10 @@
 
 #include "debug_config.h"
 
+#define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
+#define GLM_FORCE_AVX2
+//#define GLM_FORCE_PURE
+
 // warning: do not use directly, we need to be able to control the precision
 #include "../libs/glm/glm.hpp"
 
@@ -106,6 +110,7 @@ struct world_constants_t {
   	subpartition_edge_length = partition_edge_length / (float_t)subpartitions_per_partition_dimension;
   }
 
+  void dump();
 };
 
 const int MAX_MOLECULES_PER_PARTITION = 32*32*32 /*32k*/; //temporary, must work dynamically

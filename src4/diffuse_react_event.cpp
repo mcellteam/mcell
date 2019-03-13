@@ -316,7 +316,6 @@ bool diffuse_react_event_t::collide_mol(
   vec3_t dir = pos - diffused_vm.pos;  /* From starting point of moving molecule to target */
 
   float_t d = glm::dot((glm_vec3_t)dir, (glm_vec3_t)move);        /* Dot product of movement vector and vector to target */
-  float_t sigma2 = rx_radius_3d * rx_radius_3d;   /* Square of interaction radius */
 
   /* Miss the molecule if it's behind us */
   if (d < 0)
@@ -328,10 +327,11 @@ bool diffuse_react_event_t::collide_mol(
   if (d > movelen2)
     return false;
 
-  float_t dirlen2 = glm::dot((glm_vec3_t)dir, (glm_vec3_t)dir);
 
   /* check whether the moving molecule will miss interaction disk of the
      test molecule.*/
+  float_t dirlen2 = glm::dot((glm_vec3_t)dir, (glm_vec3_t)dir);
+  float_t sigma2 = rx_radius_3d * rx_radius_3d;   /* Square of interaction radius */
   if (movelen2 * dirlen2 - d * d > movelen2 * sigma2)
     return false;
 
