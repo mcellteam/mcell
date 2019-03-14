@@ -219,36 +219,72 @@ void diffuse_react_event_t::collect_neigboring_subparitions(
 	// also,
 	// x subpart boundaries
 	// left (x)
+	int x_dir_used = 0;
 	if (rel_pos.x - r < sp_indices.x * sp_len) {
 		crossed_subparition_indices.insert(
 				p.get_subpartition_index_from_3d_indices(sp_indices.x - 1, sp_indices.y, sp_indices.z));
+		x_dir_used = -1;
 	}
 	// right (x)
-	if (rel_pos.x + r > (sp_indices.x + 1) * sp_len) {
+	else if (rel_pos.x + r > (sp_indices.x + 1) * sp_len) { // assuming that subpartitions are larger than radius
 		crossed_subparition_indices.insert(
 				p.get_subpartition_index_from_3d_indices(sp_indices.x + 1, sp_indices.y, sp_indices.z));
+		x_dir_used = +1;
 	}
+
 	// upper (y)
+	int y_dir_used = 0;
 	if (rel_pos.y - r < sp_indices.y * sp_len) {
 		crossed_subparition_indices.insert(
 				p.get_subpartition_index_from_3d_indices(sp_indices.x, sp_indices.y - 1, sp_indices.z));
+		y_dir_used = -1;
 	}
 	// right (y)
-	if (rel_pos.y + r > (sp_indices.y + 1) * sp_len) {
+	else if (rel_pos.y + r > (sp_indices.y + 1) * sp_len) {
 		crossed_subparition_indices.insert(
 				p.get_subpartition_index_from_3d_indices(sp_indices.x, sp_indices.y + 1, sp_indices.z));
+		y_dir_used = +1;
 	}
+
 	// front (z)
+	int z_dir_used = 0;
 	if (rel_pos.z - r < sp_indices.z * sp_len) {
 		crossed_subparition_indices.insert(
 				p.get_subpartition_index_from_3d_indices(sp_indices.x, sp_indices.y, sp_indices.z - 1));
+		z_dir_used = -1;
 	}
 	// back (z)
-	if (rel_pos.z + r > (sp_indices.z + 1) * sp_len) {
+	else if (rel_pos.z + r > (sp_indices.z + 1) * sp_len) {
 		crossed_subparition_indices.insert(
 				p.get_subpartition_index_from_3d_indices(sp_indices.x, sp_indices.y, sp_indices.z + 1));
+		z_dir_used = +1;
 	}
 
+	// we also have to count with movement in multiple dimensions
+
+	// xy
+	if (x_dir_used != 0 && y_dir_used != 0) {
+		crossed_subparition_indices.insert(
+				p.get_subpartition_index_from_3d_indices(sp_indices.x + x_dir_used, sp_indices.y + y_dir_used, sp_indices.z));
+	}
+
+	// xz
+	if (x_dir_used != 0 && z_dir_used != 0) {
+		crossed_subparition_indices.insert(
+				p.get_subpartition_index_from_3d_indices(sp_indices.x + x_dir_used, sp_indices.y, sp_indices.z + z_dir_used));
+	}
+
+	// yz
+	if (y_dir_used != 0 && z_dir_used != 0) {
+		crossed_subparition_indices.insert(
+				p.get_subpartition_index_from_3d_indices(sp_indices.x, sp_indices.y + y_dir_used, sp_indices.z + z_dir_used));
+	}
+
+	// xyz
+	if (x_dir_used != 0 && y_dir_used != 0 && z_dir_used != 0) {
+		crossed_subparition_indices.insert(
+				p.get_subpartition_index_from_3d_indices(sp_indices.x + x_dir_used, sp_indices.y + y_dir_used, sp_indices.z + z_dir_used));
+	}
 }
 
 
