@@ -74,6 +74,8 @@ const float_t SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT = 1;
 const float_t SCHEDULER_COMPARISON_EPS = 1e-10;
 
 typedef glm::dvec3 glm_vec3_t;
+typedef glm::ivec3 ivec3_t;
+typedef glm::bvec3 bvec3_t;
 
 struct vec3_t: public glm_vec3_t{
 
@@ -84,13 +86,21 @@ struct vec3_t: public glm_vec3_t{
 	vec3_t(const float_t x_, const float_t y_, const float_t z_) { x = x_; y = y_; z = z_; }
 	vec3_t(const float_t xyz) { x = xyz; y = xyz; z = xyz; }
 
+
+	/*ivec3_t get_direction_vec() {
+		ivec3_t res;
+		// maybe I do not need the 0 value
+		res.x = (x == 0) ? 0 : ((x > 0) ? 1 : -1);
+		res.y = (y == 0) ? 0 : ((y > 0) ? 1 : -1);
+		res.z = (z == 0) ? 0 : ((z > 0) ? 1 : -1);
+		return res;
+	}*/
+
 	// exact match
 	//bool operator == (const vec3_t& a) { return x == a.x && y == a.y && z == a.z; }
 	void dump(const std::string extra_comment, const std::string ind);
 };
 
-typedef glm::ivec3 ivec3_t;
-typedef glm::bvec3 bvec3_t;
 
 std::ostream & operator<<(std::ostream &out, const vec3_t &a);
 

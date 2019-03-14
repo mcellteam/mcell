@@ -26,6 +26,7 @@
 
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
 #include "base_event.h"
 #include "partition.h"
 #include "reaction.h"
@@ -47,27 +48,6 @@ enum ray_trace_state_t {
 
 class molecules_collision_t {
 public:
-	/*molecules_collision_t(
-			const molecules_collision_t& a)
-		:
-			partition(a.partition),
-			diffused_molecule_idx(a.diffused_molecule_idx),
-			colliding_molecule_idx(a.colliding_molecule_idx),
-			rx(a.rx),
-			time(a.time),
-			position(a.position)
-		{
-	}
-	molecules_collision_t& operator =(const molecules_collision_t& a) {
-		partition = a.partition;
-		diffused_molecule_idx = a.diffused_molecule_idx;
-		colliding_molecule_idx = a.colliding_molecule_idx;
-		rx = a.rx;
-		time = a.time;
-		position = a.position;
-		return *this;
-	}*/
-
 	molecules_collision_t(
 			partition_t* partition_ptr,
 			const molecule_idx_t diffused_molecule_idx_,
@@ -142,11 +122,19 @@ private:
 	void pick_displacement(float_t scale /*space step*/, vec3_t& displacement);
 	void compute_displacement(species_t& sp, vec3_t& displacement, float_t remaining_time_step);
 
+	void collect_neigboring_subparitions(
+			const partition_t& p,
+			vec3_t& pos,
+			ivec3_t& sp_indices,
+			std::unordered_set<uint32_t>& crossed_subparition_indices
+	);
+
 	void collect_crossed_subpartitions(
 		const partition_t& p,
 		volume_molecule_t& vm, // molecule that we are diffusing, we are changing its pos  and possibly also subvolume
 		vec3_t& remaining_displacement, // in/out - recomputed if there was a reflection
-		std::vector<uint32_t>& crossed_subparition_indices
+		std::unordered_set<uint32_t>& crossed_subparition_indices,
+		uint32_t& last_subpartition_index
 	);
 
 	bool collide_mol(

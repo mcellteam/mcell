@@ -162,6 +162,19 @@ public:
 		return indices.x + indices.y * dim + indices.z * powu(dim, 2);
 	}
 
+	uint32_t get_subpartition_index_from_3d_indices(const int x, const int y, const int z) const {
+		uint32_t dim = world_constants.subpartitions_per_partition_dimension;
+		// volume_molecules_subpartition_masks is a flattened cube of dimension dim
+		// example: dim: 5x5x5,  (1, 2, 3) -> 1 + 2*5 + 3*5*5 = 86
+
+		// check for calls from collect_neigboring_subparitions, can occur, must be fixed
+		assert(x >= 0);
+		assert(y >= 0);
+		assert(z >= 0);
+
+		return x + y * dim + z * powu(dim, 2);
+	}
+
 	void get_subpartition_3d_indices_from_index(const uint32_t index, ivec3_t& indices) const {
 		uint32_t dim = world_constants.subpartitions_per_partition_dimension;
 		// example: dim: 5x5x5,  86 -> (86%5, (86/5)%5, (86/(5*5))%5) = (1, 2, 3)

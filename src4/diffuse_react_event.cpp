@@ -116,6 +116,7 @@ void diffuse_react_event_t::diffuse_single_molecule(partition_t& p, const molecu
 	vec3_t new_position;
 	ray_trace_state_t state;
 	std::vector<molecules_collision_t> molecule_collisions;
+	bool was_defunct = false;
 	do {
 		state =
 				ray_trace(
@@ -167,23 +168,26 @@ void diffuse_react_event_t::diffuse_single_molecule(partition_t& p, const molecu
 		// might invalidate references!
 		if (collide_and_react_with_vol_mol(p, collision, displacement, remaining_time_step)) {
 			// molecule was destroyed
+   		was_defunct = true;
 			break;
 		}
 
 	}
 
-	// need to get a new reference
-	volume_molecule_t& vm_refresh = p.volume_molecules[vm_idx];
+	if (!was_defunct) {
+		// need to get a new reference
+		volume_molecule_t& vm_refresh = p.volume_molecules[vm_idx];
 
-	// finally move molecule to its destination
-	vm_refresh.pos = new_position;
+		// finally move molecule to its destination
+		vm_refresh.pos = new_position;
 
-	// are we still in the same partition or do we need to move?
-	bool move_to_another_partition = !p.in_this_partition(vm_refresh.pos);
-	assert(!move_to_another_partition && "TODO");
+		// are we still in the same partition or do we need to move?
+		bool move_to_another_partition = !p.in_this_partition(vm_refresh.pos);
+		assert(!move_to_another_partition && "TODO");
 
-	// change subpartition
-	p.change_molecule_subpartition(vm_refresh, new_subpartition_index);
+		// change subpartition
+		p.change_molecule_subpartition(vm_refresh, new_subpartition_index);
+	}
 }
 
 void diffuse_react_event_t::pick_displacement(float_t scale /*space step*/, vec3_t& displacement) {
@@ -199,16 +203,67 @@ void diffuse_react_event_t::compute_displacement(species_t& sp, vec3_t& displace
 }
 
 
+void diffuse_react_event_t::collect_neigboring_subparitions(
+		const partition_t& p,
+		vec3_t& pos,
+		ivec3_t& sp_indices,
+		std::unordered_set<uint32_t>& crossed_subparition_indices
+) {
+	float_t r = world->world_constants.rx_radius_3d;
+	float_t sp_len = world->world_constants.subpartition_edge_length;
+
+	vec3_t rel_pos = pos - p.origin_corner;
+
+	// check neighbors
+	// TODO: boundaries must be precomputed
+	// also,
+	// x subpart boundaries
+	// left (x)
+	if (rel_pos.x - r < sp_indices.x * sp_len) {
+		crossed_subparition_indices.insert(
+				p.get_subpartition_index_from_3d_indices(sp_indices.x - 1, sp_indices.y, sp_indices.z));
+	}
+	// right (x)
+	if (rel_pos.x + r > (sp_indices.x + 1) * sp_len) {
+		crossed_subparition_indices.insert(
+				p.get_subpartition_index_from_3d_indices(sp_indices.x + 1, sp_indices.y, sp_indices.z));
+	}
+	// upper (y)
+	if (rel_pos.y - r < sp_indices.y * sp_len) {
+		crossed_subparition_indices.insert(
+				p.get_subpartition_index_from_3d_indices(sp_indices.x, sp_indices.y - 1, sp_indices.z));
+	}
+	// right (y)
+	if (rel_pos.y + r > (sp_indices.y + 1) * sp_len) {
+		crossed_subparition_indices.insert(
+				p.get_subpartition_index_from_3d_indices(sp_indices.x, sp_indices.y + 1, sp_indices.z));
+	}
+	// front (z)
+	if (rel_pos.z - r < sp_indices.z * sp_len) {
+		crossed_subparition_indices.insert(
+				p.get_subpartition_index_from_3d_indices(sp_indices.x, sp_indices.y, sp_indices.z - 1));
+	}
+	// back (z)
+	if (rel_pos.z + r > (sp_indices.z + 1) * sp_len) {
+		crossed_subparition_indices.insert(
+				p.get_subpartition_index_from_3d_indices(sp_indices.x, sp_indices.y, sp_indices.z + 1));
+	}
+
+}
+
+
 // collect subpartition indices that we are crossing
 void diffuse_react_event_t::collect_crossed_subpartitions(
 	const partition_t& p,
 	volume_molecule_t& vm, // molecule that we are diffusing, we are changing its pos  and possibly also subvolume
 	vec3_t& displacement, // in/out - recomputed if there was a reflection
-	std::vector<uint32_t>& crossed_subparition_indices) {
+	std::unordered_set<uint32_t>& crossed_subparition_indices,
+	uint32_t& last_subpartition_index
+) {
 
 	crossed_subparition_indices.clear();
 	// remeber the starting subpartition
-	crossed_subparition_indices.push_back(vm.subpartition_index);
+	crossed_subparition_indices.insert(vm.subpartition_index);
 
 	// destination
 	vec3_t dest_pos = vm.pos + displacement;
@@ -218,17 +273,23 @@ void diffuse_react_event_t::collect_crossed_subpartitions(
 	p.get_subpartition_3d_indices_from_index(vm.subpartition_index, src_sp_indices);
 	p.get_subpartition_3d_indices(dest_pos, dest_sp_indices);
 
+	// first check what's around
+	collect_neigboring_subparitions(p, vm.pos, src_sp_indices, crossed_subparition_indices);
+
 	// collect subpartitions on the way
 	ivec3_t sp_indices_abs = glm::abs(dest_sp_indices - src_sp_indices);
 	int sp_indices_sum = sp_indices_abs.x + sp_indices_abs.y + sp_indices_abs.z;
 	if (sp_indices_sum > 0) {
 
 		uint32_t dest_sp_index = p.get_subpartition_index_from_3d_indices(dest_sp_indices);
-		uint32_t curr_sp_index;
+		last_subpartition_index = dest_sp_index;
 
 		if (sp_indices_sum == 1) {
 			// crossing just one boundary, simply add destination index
-			crossed_subparition_indices.push_back(dest_sp_index);
+			crossed_subparition_indices.insert(dest_sp_index);
+
+			// and check also neighbors
+			collect_neigboring_subparitions(p, dest_pos, dest_sp_indices, crossed_subparition_indices);
 		}
 		else {
 			// directions - 0/1 for multiplication
@@ -244,6 +305,8 @@ void diffuse_react_event_t::collect_crossed_subpartitions(
 
 			vec3_t curr_pos = vm.pos;
 			ivec3_t curr_sp_indices = src_sp_indices;
+
+			uint32_t curr_sp_index;
 
 			do {
 				// subpartition edges
@@ -283,9 +346,21 @@ void diffuse_react_event_t::collect_crossed_subpartitions(
 
 				curr_sp_index = p.get_subpartition_index_from_3d_indices(curr_sp_indices);
 
-				crossed_subparition_indices.push_back(curr_sp_index);
+				crossed_subparition_indices.insert(curr_sp_index);
+
+				// also neighbors
+				collect_neigboring_subparitions(p, curr_pos, curr_sp_indices, crossed_subparition_indices);
+
 			} while (curr_sp_index != dest_sp_index);
 		}
+	}
+	else {
+		// did not change
+		last_subpartition_index = vm.subpartition_index;
+
+		// and check also neighbors in destination
+		collect_neigboring_subparitions(p, dest_pos, dest_sp_indices, crossed_subparition_indices);
+
 	}
 }
 
@@ -383,8 +458,9 @@ ray_trace_state_t diffuse_react_event_t::ray_trace(
 		) {
 
   // first get what subpartitions might be relevant
-	std::vector<uint32_t> crossed_subparition_indices;
-	collect_crossed_subpartitions(p, vm, remaining_displacement, crossed_subparition_indices);
+	std::unordered_set<uint32_t> crossed_subparition_indices;
+	uint32_t last_subpartition_index;
+	collect_crossed_subpartitions(p, vm, remaining_displacement, crossed_subparition_indices, last_subpartition_index);
 
 
 	// TBD: check wall collisions
@@ -425,7 +501,7 @@ ray_trace_state_t diffuse_react_event_t::ray_trace(
 	}
 
 	// the value is valid only when RAY_TRACE_FINISHED is returned
-	new_subpartition_index = crossed_subparition_indices.back();
+	new_subpartition_index = last_subpartition_index;
 	new_position = vm.pos + remaining_displacement;
 
   return RAY_TRACE_FINISHED; // no wall was hit
@@ -489,7 +565,7 @@ int diffuse_react_event_t::test_bimolecular(
 		volume_molecule_t& a1,
 		volume_molecule_t& a2
 ) {
-	assert(a1.subpartition_index == a2.subpartition_index && "Subpartitions must be identical");
+	//not true assert(a1.subpartition_index == a2.subpartition_index && "Subpartitions must be identical");
 
   /* rescale probabilities for the case of the reaction
      between two surface molecules */
@@ -525,7 +601,7 @@ int diffuse_react_event_t::outcome_bimolecular(
 		volume_molecule_t& reacA = p.get_vm(collision.diffused_molecule_idx);
 		volume_molecule_t& reacB = p.get_vm(collision.colliding_molecule_idx);
 
-		assert(reacA.subpartition_index == reacB.subpartition_index && "Subpartitions must be identical");
+		//assert(reacA.subpartition_index == reacB.subpartition_index && "Subpartitions must be identical");
 #ifdef DEBUG_REACTIONS
 		// ref. printout first destroys B then A
 		reacB.dump(world, "", "  defunct vm:", world->current_iteration);
