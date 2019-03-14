@@ -2964,6 +2964,8 @@ struct volume_molecule *diffuse_3D(
   struct vector3 displacement;  /* Molecule moves along this vector */
   struct vector3 displacement2; /* Used for 3D mol-mol unbinding */
 
+  bool displacement_printed = false; // mcell4
+
 pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
 
   struct subvolume *sv = vm->subvol;
@@ -2984,7 +2986,10 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
   }
 
 #ifdef DEBUG_DIFFUSION
-  dump_vector3(displacement, "  displacement:");
+  if (!displacement_printed) {
+  	dump_vector3(displacement, "  displacement:");
+  	displacement_printed = true;
+  }
 #endif
 
   if (world->use_expanded_list &&

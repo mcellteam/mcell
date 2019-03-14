@@ -68,7 +68,11 @@ void volume_molecule_t::dump(
 ) const {
 	cout << ind << extra_comment << "it:" << iteration << ", idx:" << idx
 			<< ", species " << world->species[species_id].name << ", pos:" << pos
-			<< ", flags:" << get_molecule_flags_string(flags) << "\n";
+			<< ", flags:" << get_molecule_flags_string(flags)
+#ifdef DEBUG_SUBPARTITIONS
+			<< ", subpartition:" << subpartition_index
+#endif
+			<< "\n";
 }
 
 

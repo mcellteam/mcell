@@ -25,6 +25,7 @@
 #define SRC4_PARTITION_H_
 
 #include <unordered_set>
+#include <set>
 
 #include "defines.h"
 #include "molecule.h"
@@ -34,7 +35,10 @@ namespace mcell {
 // do not call set() directly, maybe there is a way how to forbid this
 // TODO: use a different representation, maybe a set for now
 
-class subpartition_mask_t: public std::unordered_set<uint32_t> {
+// FIXME: use molecule_idx_t
+class subpartition_mask_t: public std::set<uint32_t>
+		//public std::unordered_set<uint32_t>
+		{
 public:
 	void set_contains_molecule(uint32_t index, bool value = true) {
 		if (value) {
@@ -46,6 +50,8 @@ public:
 			erase(index);
 		}
 	}
+
+	void dump();
 };
 
 #if 0
@@ -146,7 +152,7 @@ public:
 	void get_subpartition_3d_indices(const vec3_t& pos, ivec3_t& res) const {
 		assert(in_this_partition(pos));
 		vec3_t relative_position = pos - origin_corner;
-		res = relative_position / world_constants.subpartition_edge_length;
+		res = relative_position / world_constants.subpartition_edge_length; // FIXME - change to multiplication
 	}
 
 	uint32_t get_subpartition_index_from_3d_indices(const ivec3_t& indices) const {
@@ -177,7 +183,7 @@ public:
 			return; // nothing to do
 		}
 		uint32_t molecule_index = get_molecule_index(m);
-#ifdef DEBUG_PARTITION
+#ifdef DEBUG_SUBPARTITIONS
 		std::cout << "Molecule " << molecule_index << " changed subpartition from "
 				<<  m.subpartition_index << " to " << new_subpartition_index << ".\n";
 #endif

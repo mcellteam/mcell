@@ -157,15 +157,15 @@ std::ostream & operator<<(std::ostream &out, const reaction_flags &a) {
   return out;
 }
 
-void dump_double_array(int num, const char* num_name, double* values, const char* values_name, const char* comment, const char* ind) {
+void dump_double_array(int num, const char* num_name, double* values, const char* values_name, const char* comment, const char* ind, const int max = MAX_ARRAY_ITEMS) {
   cout << ind << values_name << "[" << num_name << "]: \t\t" << values << "[" << num << "]" << " [double[]] \t\t" << comment;
-  for (int i = 0; i < num && i < MAX_ARRAY_ITEMS; i++) {
+  for (int i = 0; i < num && i < max; i++) {
   	if (i % DUMP_ARRAY_NEWLINE_COUNT == 0) {
   		cout << "\n" << ind << "  ";
   	}
   	cout << i << ":" << values[i] << ", ";
   }
-  if (num >= MAX_ARRAY_ITEMS) {
+  if (num >= max) {
   	cout << "...";
   }
 	cout << "\n";
@@ -857,9 +857,9 @@ extern "C" void dump_volume(struct volume* s, const char* comment, unsigned int 
   /* Coarse partitions are input by the user */
   /* They may also be generated automagically */
   /* They mark the positions of initial partition boundaries */
-  dump_double_array(s->nx_parts, "nx_parts", s->x_partitions, "x_partitions", "/* Coarse X partition boundaries */", "");
-  dump_double_array(s->ny_parts, "ny_parts", s->y_partitions, "y_partitions", "/* Coarse Y partition boundaries */", "");
-  dump_double_array(s->nz_parts, "nz_parts", s->z_partitions, "z_partitions", "/* Coarse Z partition boundaries */", "");
+  dump_double_array(s->nx_parts, "nx_parts", s->x_partitions, "x_partitions", "/* Coarse X partition boundaries */", "", 1000);
+  dump_double_array(s->ny_parts, "ny_parts", s->y_partitions, "y_partitions", "/* Coarse Y partition boundaries */", "", 1000);
+  dump_double_array(s->nz_parts, "nz_parts", s->z_partitions, "z_partitions", "/* Coarse Z partition boundaries */", "", 1000);
 
   cout << "mem_part_x: \t\t" << s->mem_part_x << " [int] \t\t/* Granularity of memory-partition binning for the X-axis */\n";
   cout << "mem_part_y: \t\t" << s->mem_part_y << " [int] \t\t/* Granularity of memory-partition binning for the Y-axis */\n";
