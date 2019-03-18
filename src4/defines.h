@@ -35,13 +35,14 @@
 #include <climits>
 #include <cmath>
 #include <iostream>
+#include <unordered_map>
 
 #include "mcell_structs.h"
 
 #include "debug_config.h"
 
-#define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
-#define GLM_FORCE_AVX2
+//#define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
+//#define GLM_FORCE_AVX2
 //#define GLM_FORCE_PURE
 
 // warning: do not use directly, we need to be able to control the precision
@@ -104,26 +105,7 @@ struct vec3_t: public glm_vec3_t{
 
 std::ostream & operator<<(std::ostream &out, const vec3_t &a);
 
-// constants useful for all classes, single objectis owned by world
-struct world_constants_t {
-  float_t time_unit;
-  float_t length_unit;
-
-  float_t rx_radius_3d;
-
-  float_t partition_edge_length;
-  uint32_t subpartitions_per_partition_dimension;
-  float_t subpartition_edge_length; // ==
-
-
-  void init_subpartition_edge_length() {
-  	subpartition_edge_length = partition_edge_length / (float_t)subpartitions_per_partition_dimension;
-  }
-
-  void dump();
-};
-
-const int MAX_MOLECULES_PER_PARTITION = 32*32*32 /*32k*/; //temporary, must work dynamically
+//const int MAX_MOLECULES_PER_PARTITION = 32*32*32 /*32k*/; //temporary, must work dynamically
 
 
 
@@ -169,6 +151,40 @@ static inline uint32_t powu(const uint32_t a, const uint32_t n) {
 	}
 	return res;
 }
+
+class reaction_t;
+typedef std::unordered_map<species_id_t, reaction_t*> species_reaction_map_t;
+typedef std::unordered_map< species_id_t, species_reaction_map_t > bimolecular_reactions_map_t;
+
+// constants useful for all classes, single objectis owned by world
+struct world_constants_t {
+  float_t time_unit;
+  float_t length_unit;
+
+  float_t rx_radius_3d;
+
+  float_t partition_edge_length;
+  uint32_t subpartitions_per_partition_dimension;
+  float_t subpartition_edge_length; // == partition_edge_length / subpartitions_per_partition_dimension
+  float_t subpartition_edge_length_rcp; // == 1/subpartition_edge_length
+
+  const bimolecular_reactions_map_t* bimolecular_reactions_map; // owned by world
+
+
+  void init_subpartition_edge_length() {
+  	if (partition_edge_length != 0) {
+			subpartition_edge_length = partition_edge_length / (float_t)subpartitions_per_partition_dimension;
+			subpartition_edge_length_rcp = 1.0/subpartition_edge_length;
+  	}
+  }
+
+  void init(bimolecular_reactions_map_t* bimolecular_reactions_map_) {
+  	bimolecular_reactions_map = bimolecular_reactions_map_;
+  	init_subpartition_edge_length();
+  }
+
+  void dump();
+};
 
 
 } /* namespace mcell */

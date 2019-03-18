@@ -95,7 +95,7 @@ void release_event_t::step() {
     molecule_location.y = base_location[0][1];
     molecule_location.z = base_location[0][2];
 
-    volume_molecule_t& new_vm = p.add_volume_molecule(
+    volume_molecule_t& new_vm = p.add_volume_molecule_with_time_step_index(
     		volume_molecule_t(MOLECULE_IDX_INVALID, species_id, molecule_location), time_step_index
 		);
     new_vm.flags = TYPE_VOL | IN_VOLUME | ACT_DIFFUSE;

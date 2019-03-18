@@ -50,7 +50,7 @@ void diffuse_react_event_t::dump(const std::string indent) {
 
 void diffuse_react_event_t::step() {
 	assert(world->partitions.size() == 1 && "Must extend cache to handle multiple partitions");
-	cache_sp_species_reacting_mols.clear();
+	//cache_sp_species_reacting_mols.clear();
 
 	// for each partition
 	for (partition_t& p: world->partitions) {
@@ -215,18 +215,18 @@ void diffuse_react_event_t::collect_neigboring_subparitions(
 	vec3_t rel_pos = pos - p.origin_corner;
 
 	// check neighbors
-	// TODO: boundaries must be precomputed
-	// also,
+	// TODO: boundaries must be precomputed - would ireally help? it's just a few multiplications
 	// x subpart boundaries
 	// left (x)
 	int x_dir_used = 0;
-	if (rel_pos.x - r < sp_indices.x * sp_len) {
+	float_t x_boundary = sp_indices.x * sp_len;
+	if (rel_pos.x - r < x_boundary) {
 		crossed_subparition_indices.insert(
 				p.get_subpartition_index_from_3d_indices(sp_indices.x - 1, sp_indices.y, sp_indices.z));
 		x_dir_used = -1;
 	}
 	// right (x)
-	else if (rel_pos.x + r > (sp_indices.x + 1) * sp_len) { // assuming that subpartitions are larger than radius
+	else if (rel_pos.x + r > x_boundary + sp_len) { // assuming that subpartitions are larger than radius
 		crossed_subparition_indices.insert(
 				p.get_subpartition_index_from_3d_indices(sp_indices.x + 1, sp_indices.y, sp_indices.z));
 		x_dir_used = +1;
@@ -234,13 +234,14 @@ void diffuse_react_event_t::collect_neigboring_subparitions(
 
 	// upper (y)
 	int y_dir_used = 0;
-	if (rel_pos.y - r < sp_indices.y * sp_len) {
+	float_t y_boundary = sp_indices.y * sp_len;
+	if (rel_pos.y - r < y_boundary) {
 		crossed_subparition_indices.insert(
 				p.get_subpartition_index_from_3d_indices(sp_indices.x, sp_indices.y - 1, sp_indices.z));
 		y_dir_used = -1;
 	}
 	// right (y)
-	else if (rel_pos.y + r > (sp_indices.y + 1) * sp_len) {
+	else if (rel_pos.y + r > y_boundary + sp_len) {
 		crossed_subparition_indices.insert(
 				p.get_subpartition_index_from_3d_indices(sp_indices.x, sp_indices.y + 1, sp_indices.z));
 		y_dir_used = +1;
@@ -248,13 +249,14 @@ void diffuse_react_event_t::collect_neigboring_subparitions(
 
 	// front (z)
 	int z_dir_used = 0;
-	if (rel_pos.z - r < sp_indices.z * sp_len) {
+	float_t z_boundary = sp_indices.z * sp_len;
+	if (rel_pos.z - r < z_boundary) {
 		crossed_subparition_indices.insert(
 				p.get_subpartition_index_from_3d_indices(sp_indices.x, sp_indices.y, sp_indices.z - 1));
 		z_dir_used = -1;
 	}
 	// back (z)
-	else if (rel_pos.z + r > (sp_indices.z + 1) * sp_len) {
+	else if (rel_pos.z + r > z_boundary + sp_len) {
 		crossed_subparition_indices.insert(
 				p.get_subpartition_index_from_3d_indices(sp_indices.x, sp_indices.y, sp_indices.z + 1));
 		z_dir_used = +1;
@@ -309,7 +311,7 @@ void diffuse_react_event_t::collect_crossed_subpartitions(
 	p.get_subpartition_3d_indices_from_index(vm.subpartition_index, src_sp_indices);
 	p.get_subpartition_3d_indices(dest_pos, dest_sp_indices);
 
-	// first check what's around
+	// first check what's around the starting point
 	collect_neigboring_subparitions(p, vm.pos, src_sp_indices, crossed_subparition_indices);
 
 	// collect subpartitions on the way
@@ -438,6 +440,9 @@ bool diffuse_react_event_t::collide_mol(
   if (d > movelen2)
     return false;
 
+  /* reject collisions with itself */
+  if (diffused_vm.idx == colliding_vm.idx)
+  	return false;
 
   /* check whether the moving molecule will miss interaction disk of the
      test molecule.*/
@@ -450,37 +455,6 @@ bool diffuse_react_event_t::collide_mol(
 
   rel_collision_pos = diffused_vm.pos + rel_collision_time * move;
   return COLLIDE_VOL_M;
-}
-
-// TODO: optimize
-subpartition_mask_t& diffuse_react_event_t::get_sp_species_reacting_mols_cached_data(
-		uint32_t sp_index, volume_molecule_t& vm, partition_t& p) {
-
-	auto it_per_species = cache_sp_species_reacting_mols.find(sp_index);
-	if (it_per_species != cache_sp_species_reacting_mols.end()) {
-		auto it_per_sp_mask = it_per_species->second.find(vm.species_id);
-		if (it_per_sp_mask != it_per_species->second.end()) {
-			return it_per_sp_mask->second;
-		}
-
-	}
-
-	// not found
-	std::pair<species_id_t, subpartition_mask_t> new_cache_item(vm.species_id, subpartition_mask_t());
-	auto it_cached = cache_sp_species_reacting_mols[sp_index].insert(new_cache_item);
-	subpartition_mask_t& mask_to_init = it_cached.first->second;
-
-	subpartition_mask_t& full_sp_mask = p.volume_molecules_subpartition_masks[sp_index];
-
-	for (uint32_t vm_index: full_sp_mask) {
-				volume_molecule_t& colliding_vm = p.volume_molecules[vm_index];
-
-				// can we react?
-				if (world->can_react_vol_vol(vm, colliding_vm)) {
-					mask_to_init.insert(vm_index);
-				}
-	}
-	return mask_to_init;
 }
 
 // collect possible collisions until a wall is hit
@@ -507,20 +481,17 @@ ray_trace_state_t diffuse_react_event_t::ray_trace(
 
 
 		// get cached reacting molecules for this SP
-		subpartition_mask_t& sp_cached_mask = get_sp_species_reacting_mols_cached_data(sp_index, vm, p);
+		subpartition_mask_t& sp_reactants = p.volume_molecule_reactants[sp_index][vm.species_id]; //get_sp_species_reacting_mols_cached_data(sp_index, vm, p);
 
 		// for each molecule in this SP
-		for (uint32_t vm_index: sp_cached_mask) {
+		//uint32_t indices[4];
+		//uint32_t pos;
+		for (uint32_t vm_index: sp_reactants) {
 			volume_molecule_t& colliding_vm = p.volume_molecules[vm_index];
 
 			if (colliding_vm.is_defunct()) {
 				continue;
 			}
-
-			// can we react? - already pre-cached
-			//if (!world->can_react_vol_vol(vm, colliding_vm)) {
-			//	continue;
-			//}
 
 			// we would like to compute everything that's needed just once
 			float_t time;

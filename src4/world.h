@@ -27,7 +27,8 @@
 #include <vector>
 #include <string>
 #include <set>
-#include <unordered_map>
+#include <map>
+
 
 #include "partition.h"
 #include "scheduler.h"
@@ -127,11 +128,11 @@ public:
 
   scheduler_t scheduler;
 
-  std::vector<species_t> species;
+  std::vector<species_t> species; // owner
 
   std::vector<reaction_t> reactions; // we might need faster searching or reference from species to reactions here but let's keep it simple for now
   // FIXME: there might be multiple reactions for 2 reactants
-  std::unordered_map< species_id_t, std::unordered_map<species_id_t, reaction_t*> > bimolecular_reactions_map; // created from reactions in init_simulation
+  bimolecular_reactions_map_t bimolecular_reactions_map; // created from reactions in init_simulation
 
   uint64_t current_iteration;
   uint64_t iterations; // number of iterations to simulate

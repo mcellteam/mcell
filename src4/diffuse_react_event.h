@@ -187,7 +187,7 @@ private:
 			uint32_t sp_index, volume_molecule_t& vm, partition_t& p);
 
 	// cache for possible reactions, reset every time step() is called
-	std::unordered_map<uint32_t, std::unordered_map<species_id_t, subpartition_mask_t> > cache_sp_species_reacting_mols;
+	//std::unordered_map<uint32_t, std::unordered_map<species_id_t, subpartition_mask_t> > cache_sp_species_reacting_mols;
 };
 
 } // namespace mcell

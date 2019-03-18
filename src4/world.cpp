@@ -35,17 +35,9 @@ world_t::world_t() {
 	// TODO: initialize rest of members
 	world_constants.partition_edge_length = PARTITION_EDGE_LENGTH_DEFAULT;
 	world_constants.subpartitions_per_partition_dimension = SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT;
-	world_constants.init_subpartition_edge_length();
 }
 
 void world_t::init_simulation() {
-
-	cout << "Creating initial partition with " <<  world_constants.subpartitions_per_partition_dimension << "^3 subvolumes.";
-
-	// create initial partition with center at 0,0,0 - we woud like to have the partitions all the same,
-	// not depend on some random initialization
-	uint32_t index = add_partition(vec3_t(0, 0, 0));
-	assert(index == PARTITION_INDEX_INITIAL);
 
 	// create map for fast reaction searches
 	for (reaction_t& r: reactions) {
@@ -59,6 +51,23 @@ void world_t::init_simulation() {
 		bimolecular_reactions_map[r.reactants[0].species_id][r.reactants[1].species_id] = &r;
 		bimolecular_reactions_map[r.reactants[1].species_id][r.reactants[0].species_id] = &r;
 	}
+
+	// just to make sure that we have an item for all the species
+	for (species_t& s: species) {
+		bimolecular_reactions_map.insert( std::make_pair(s.species_id, species_reaction_map_t()) );
+	}
+	assert(bimolecular_reactions_map.size() == species.size());
+
+	world_constants.init(&bimolecular_reactions_map);
+
+	cout << "Creating initial partition with " <<  world_constants.subpartitions_per_partition_dimension << "^3 subvolumes.";
+
+	// create initial partition with center at 0,0,0 - we woud like to have the partitions all the same,
+	// not depend on some random initialization
+	uint32_t index = add_partition(vec3_t(0, 0, 0));
+	assert(index == PARTITION_INDEX_INITIAL);
+
+
 }
 
 
@@ -69,9 +78,28 @@ void world_t::dump() {
 
 }
 
+static uint64_t determine_output_frequency(uint64_t iterations) {
+	uint64_t frequency;
+
+	if (iterations < 10)
+		frequency = 1;
+	else if (iterations < 1000)
+		frequency = 10;
+	else if (iterations < 100000)
+		frequency = 100;
+	else if (iterations < 10000000)
+		frequency = 1000;
+	else if (iterations < 1000000000)
+		frequency = 10000;
+	else
+		frequency = 100000;
+
+  return frequency;
+}
+
 bool world_t::run_simulation() {
 
-	init_simulation();
+	init_simulation(); // must be the first one
 
 	dump();
 
@@ -84,7 +112,7 @@ bool world_t::run_simulation() {
 	float_t time = TIME_SIMULATION_START;
 	float_t previous_time;
 	current_iteration = 0;
-	uint32_t how_often_to_report = 10;
+	uint32_t how_often_to_report = determine_output_frequency(iterations);
 
 	cout << "Iterations: " << current_iteration << " of " << iterations << "\n";
 

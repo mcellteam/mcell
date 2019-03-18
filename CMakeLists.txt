@@ -71,134 +71,73 @@ endif()
 
 set(SOURCE_FILES
     src/argparse.c
-    src/argparse.h
     src/chkpt.c
-    src/chkpt.h
-    src/config-nix.h
-    src/config-win.h
     src/count_util.c
-    src/count_util.h
     src/diffuse.c
-    src/diffuse.h
     src/diffuse_trimol.c
     src/diffuse_util.c
-    src/diffuse_util.h
     src/dyngeom.c
-    src/dyngeom.h
     src/dyngeom_lex.c
     src/dyngeom_parse_extras.c
-    src/dyngeom_parse_extras.h
     src/dyngeom_yacc.c
     src/grid_util.c
-    src/grid_util.h
     src/hashmap.c
-    src/hashmap.h
     src/init.c
-    src/init.h
     src/isaac64.c
-    src/isaac64.h
     src/logging.c
-    src/logging.h
     src/mcell.c
     src/mcell_dyngeom.c
-    src/mcell_dyngeom.h
     src/mcell_init.c
-    src/mcell_init.h
     src/mcell_misc.c
-    src/mcell_misc.h
     src/mcell_objects.c
-    src/mcell_objects.h
     src/mcell_react_out.c
-    src/mcell_react_out.h
     src/mcell_reactions.c
-    src/mcell_reactions.h
     src/mcell_release.c
-    src/mcell_release.h
     src/mcell_run.c
-    src/mcell_run.h
     src/mcell_species.c
-    src/mcell_species.h
-    src/mcell_structs.h
     src/mcell_surfclass.c
-    src/mcell_surfclass.h
     src/mcell_viz.c
-    src/mcell_viz.h
     src/mdlparse.y
     src/dump_state.cpp
-    src/mdlparse_aux.h
     src/mdlparse_util.c
-    src/mdlparse_util.h
     src/mem_util.c
-    src/mem_util.h
     src/minrng.c
-    src/minrng.h
     src/nfsim_func.c
-    src/nfsim_func.h
-    src/react.h
     src/react_cond.c
-    src/react_nfsim.h
     src/react_outc.c
     src/react_outc_nfsim.c
     src/react_outc_trimol.c
     src/react_output.c
-    src/react_output.h
     src/react_trig.c
     src/react_trig_nfsim.c
     src/react_util.c
-    src/react_util.h
     src/react_util_nfsim.c
     src/rng.c
-    src/rng.h
     src/sched_util.c
-    src/sched_util.h
     src/strfunc.c
-    src/strfunc.h
     src/sym_table.c
-    src/sym_table.h
     src/test_api.c
-    src/test_api.h
     src/triangle_overlap.c
-    src/triangle_overlap.h
     src/util.c
-    src/util.h
     src/vector.c
-    src/vector.h
     src/version_info.c
-    src/version_info.h
     src/viz_output.c
-    src/viz_output.h
     src/vol_util.c
-    src/vol_util.h
     src/volume_output.c
-    src/volume_output.h
     src/wall_util.c
-    src/wall_util.h
     
     src4/base_event.cpp
-    src4/base_event.h
     src4/defines.cpp
-    src4/defines.h
     src4/diffuse_react_event.cpp
-    src4/diffuse_react_event.h
-    src4/end_simulation_event.h
     src4/mcell3_world_converter.cpp
-    src4/mcell3_world_converter.h
     src4/molecule.cpp
-    src4/molecule.h
     src4/partition.cpp
-    src4/partition.h
     src4/reaction.cpp
-    src4/reaction.h
     src4/release_event.cpp
-    src4/release_event.h
     src4/scheduler.cpp
-    src4/scheduler.h
     src4/species.cpp
-    src4/species.h
     src4/viz_output_event.cpp
-    src4/viz_output_event.h
     src4/world.cpp
-    src4/world.h
     )
 
 link_directories(${CMAKE_BINARY_DIR}/lib)

@@ -36,8 +36,7 @@ namespace mcell {
 // TODO: use a different representation, maybe a set for now
 
 // FIXME: use molecule_idx_t
-class subpartition_mask_t: public std::set<uint32_t>
-		//public std::unordered_set<uint32_t>
+class subpartition_mask_t: public std::set<uint32_t>  // set is faster than unordered_set
 		{
 public:
 	void set_contains_molecule(uint32_t index, bool value = true) {
@@ -54,49 +53,6 @@ public:
 	void dump();
 };
 
-#if 0
-class subpartition_mask_t: public std::bitset<MAX_MOLECULES_PER_PARTITION> {
-public:
-	// only adding a check to the inherited set method
-	void set_contains_molecule(uint32_t index, bool value = true) {
-		assert(index < size());
-		set(index, value);
-		indexing_initialized = false;
-	}
-
-	// note: maybe change into iterators
-	uint32_t get_first_index() {
-		indexing_initialized = true;
-
-		for (uint32_t i = 0; i < size(); i++) {
-			if (this->operator [](i)) {
-				last_returned_index = i;
-				return i;
-			}
-		}
-		last_returned_index = MOLECULE_IDX_INVALID;
-		return MOLECULE_IDX_INVALID;
-	}
-
-	uint32_t get_next_index() {
-		assert(indexing_initialized);
-
-		for (uint32_t i = last_returned_index + 1; i < size(); i++) {
-			if (this->operator [](i)) {
-				last_returned_index = i;
-				return i;
-			}
-		}
-		last_returned_index = MOLECULE_IDX_INVALID;
-		return MOLECULE_IDX_INVALID;
-	}
-
-private:
-	bool indexing_initialized;
-	uint32_t last_returned_index;
-};
-#endif
-
 class partition_t {
 public:
 	partition_t(const vec3_t origin_, const world_constants_t& world_constants_)
@@ -104,7 +60,17 @@ public:
 			world_constants(world_constants_) {
 		opposite_corner = origin_corner + world_constants.partition_edge_length;
 		// preaallocate volume_molecules arrays and also volume_molecule_indices_per_time_step
-		volume_molecules_subpartition_masks.resize(powu(world_constants.subpartitions_per_partition_dimension, 3));
+
+		//volume_molecules_subpartition_masks.resize(powu(world_constants.subpartitions_per_partition_dimension, 3));
+
+		uint32_t num_subparts = powu(world_constants.subpartitions_per_partition_dimension, 3);
+		volume_molecule_reactants.resize(num_subparts);
+
+		size_t num_species = world_constants.bimolecular_reactions_map->size();
+		for (auto& reactants : volume_molecule_reactants) {
+			reactants.resize(num_species);
+		}
+
 	}
 
 
@@ -152,19 +118,18 @@ public:
 	void get_subpartition_3d_indices(const vec3_t& pos, ivec3_t& res) const {
 		assert(in_this_partition(pos));
 		vec3_t relative_position = pos - origin_corner;
-		res = relative_position / world_constants.subpartition_edge_length; // FIXME - change to multiplication
+		//res = relative_position / world_constants.subpartition_edge_length;
+		res = relative_position * world_constants.subpartition_edge_length_rcp;
 	}
 
 	uint32_t get_subpartition_index_from_3d_indices(const ivec3_t& indices) const {
 		uint32_t dim = world_constants.subpartitions_per_partition_dimension;
-		// volume_molecules_subpartition_masks is a flattened cube of dimension dim
 		// example: dim: 5x5x5,  (1, 2, 3) -> 1 + 2*5 + 3*5*5 = 86
 		return indices.x + indices.y * dim + indices.z * powu(dim, 2);
 	}
 
 	uint32_t get_subpartition_index_from_3d_indices(const int x, const int y, const int z) const {
 		uint32_t dim = world_constants.subpartitions_per_partition_dimension;
-		// volume_molecules_subpartition_masks is a flattened cube of dimension dim
 		// example: dim: 5x5x5,  (1, 2, 3) -> 1 + 2*5 + 3*5*5 = 86
 
 		// check for calls from collect_neigboring_subparitions, can occur, must be fixed
@@ -189,48 +154,67 @@ public:
 		return get_subpartition_index_from_3d_indices(indices);
 	}
 
-	void change_molecule_subpartition(volume_molecule_t& m, const uint32_t new_subpartition_index) {
-		assert(m.subpartition_index < volume_molecules_subpartition_masks.size());
-		assert(new_subpartition_index < volume_molecules_subpartition_masks.size());
-		if (m.subpartition_index == new_subpartition_index) {
+public:
+	void change_reactants_map(volume_molecule_t& vm, const uint32_t new_subpartition_index, bool adding, bool removing) {
+		assert(world_constants.bimolecular_reactions_map->find(vm.species_id) != world_constants.bimolecular_reactions_map->end());
+
+		// these are all the sets of indices of reactants for this particular subpartition
+		species_reactants_map_t& subpart_reactants_orig_sp = volume_molecule_reactants[vm.subpartition_index];
+		species_reactants_map_t& subpart_reactants_new_sp = volume_molecule_reactants[new_subpartition_index];
+
+		// and these are indices of possible reactants with our reactant_species_id
+		const species_reaction_map_t& reactions_map = world_constants.bimolecular_reactions_map->find(vm.species_id)->second;
+
+		// we need to set/clear flag that says that second_reactant_info.first can react with reactant_species_id
+		for (const auto& second_reactant_info : reactions_map) {
+			if (removing) {
+				subpart_reactants_orig_sp[second_reactant_info.first].set_contains_molecule(vm.idx, false);
+			}
+			if (adding) {
+				subpart_reactants_new_sp[second_reactant_info.first].set_contains_molecule(vm.idx, true);
+			}
+		}
+	}
+
+	void change_molecule_subpartition(volume_molecule_t& vm, const uint32_t new_subpartition_index) {
+		assert(vm.subpartition_index < volume_molecule_reactants.size());
+		assert(new_subpartition_index < volume_molecule_reactants.size());
+		if (vm.subpartition_index == new_subpartition_index) {
 			return; // nothing to do
 		}
-		uint32_t molecule_index = get_molecule_index(m);
 #ifdef DEBUG_SUBPARTITIONS
-		std::cout << "Molecule " << molecule_index << " changed subpartition from "
-				<<  m.subpartition_index << " to " << new_subpartition_index << ".\n";
+		std::cout << "Molecule " << molecule_idx << " changed subpartition from "
+				<<  vm.subpartition_index << " to " << new_subpartition_index << ".\n";
 #endif
-		// clear old position and set a new one
-		volume_molecules_subpartition_masks[m.subpartition_index].set_contains_molecule(molecule_index, false);
-		volume_molecules_subpartition_masks[new_subpartition_index].set_contains_molecule(molecule_index, true);
-		m.subpartition_index = new_subpartition_index;
+
+
+		change_reactants_map(vm, new_subpartition_index, true, true);
+		vm.subpartition_index = new_subpartition_index;
 	}
 
 	// version that computes the right time_step_index each time it is called
 	volume_molecule_t& add_volume_molecule(const volume_molecule_t& vm_copy, const float_t time_step) {
 		uint32_t time_step_index = get_or_add_molecule_list_index_for_time_step(time_step);
-		return add_volume_molecule(vm_copy, time_step_index);
+		return add_volume_molecule_with_time_step_index(vm_copy, time_step_index);
 	}
 
 
-	volume_molecule_t& add_volume_molecule(const volume_molecule_t& vm_copy, const uint32_t time_step_index) {
+	volume_molecule_t& add_volume_molecule_with_time_step_index(volume_molecule_t vm_copy, const uint32_t time_step_index) {
 		uint32_t molecule_index = volume_molecules.size();
 		// and its index to the list sorted by time step
 		// this is an array that changes only when molecule leaves this partition
 		assert(time_step_index <= volume_molecule_indices_per_time_step.size());
 		volume_molecule_indices_per_time_step[time_step_index].second.push_back(molecule_index);
 
-		// compute subpartition and set it, this might change often, therefore we are using bitfield that
-		// can be easily changed
-		uint32_t subpartition_index = get_subpartition_index(vm_copy.pos);
-		assert(subpartition_index < volume_molecules_subpartition_masks.size());
-		volume_molecules_subpartition_masks[subpartition_index].set_contains_molecule(molecule_index, true);
-
-		// and finally store (copy) the new molecule and set its subpartition index
 		volume_molecules.push_back(vm_copy);
-		volume_molecules.back().idx = molecule_index;
-		volume_molecules.back().subpartition_index = subpartition_index;
-		return volume_molecules.back();
+		volume_molecule_t& new_vm = volume_molecules.back();
+
+		new_vm.idx = molecule_index;
+		new_vm.subpartition_index = get_subpartition_index(vm_copy.pos);
+
+		change_reactants_map(new_vm, new_vm.subpartition_index, true, false);
+
+		return new_vm;
 	}
 
 	void set_molecule_as_defunct(volume_molecule_t& vm) {
@@ -240,9 +224,8 @@ public:
 		// we will keep it in diffusion arrays (volume_molecule_indices_per_time_step)
 		// but we should remove it from subpartition mask (although there are check in the collision detection code for that)
 		uint32_t molecule_index = get_molecule_index(vm);
-		uint32_t subpartition_index = get_subpartition_index(vm.pos);
-		assert(subpartition_index < volume_molecules_subpartition_masks.size());
-		volume_molecules_subpartition_masks[subpartition_index].set_contains_molecule(molecule_index, false);
+
+		change_reactants_map(vm, 0/*unused*/, false, true);
 	}
 
 	// left, bottom, closest (lowest z) point of the partition
@@ -258,7 +241,10 @@ public:
   std::vector< pair_time_step_volume_molecules_t > volume_molecule_indices_per_time_step; // TODO: rename so that the name has something to do with diffusion? diffusion list?
 
   // indexed by subpartition index, size is world->subpartition_edge_length^3
-  std::vector < subpartition_mask_t > volume_molecules_subpartition_masks;
+  //std::vector < subpartition_mask_t > volume_molecules_subpartition_masks;
+
+  typedef std::vector < /* indexed with species_id_t, we might need some hash later*/ subpartition_mask_t > species_reactants_map_t;
+  std::vector < /*subpartition index*/species_reactants_map_t > volume_molecule_reactants;
 
   //TBD: std::vector< /* surface molecule index */ surface_molecule> surface_molecules;
   //TBD: std::vector< /* subpartition index */ subpartition_mask > surface_molecules_subpatition_masks;
