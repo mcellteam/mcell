@@ -993,8 +993,10 @@ static int outcome_products_random(struct volume *world, struct wall *w,
           world, product_species, g_data, sm_reactant, w, product_subvol, hitpt,
           product_orient[n_product], t, reacA->periodic_box);
 
-#ifdef DEBUG_DIFFUSION
-      dump_volume_molecule((struct volume_molecule*)this_product, "", true, "  created vm:", world->current_iterations);
+#ifdef DEBUG_REACTIONS
+      DUMP_CONDITION3(
+      		dump_volume_molecule((struct volume_molecule*)this_product, "", true, "  created vm:", world->current_iterations);
+      );
 #endif
 
       if (((struct volume_molecule *)this_product)->index < DISSOCIATION_MAX)
@@ -1250,8 +1252,10 @@ int outcome_bimolecular(struct volume *world, struct rxn *rx, int path,
   }
 
   if (killB) {
-#ifdef DEBUG_DIFFUSION
+#ifdef DEBUG_REACTIONS
+    DUMP_CONDITION3(
       dump_volume_molecule((struct volume_molecule*)reacB, "", true, "  defunct vm:", world->current_iterations);
+    );
 #endif
 
     vm = NULL;
@@ -1294,8 +1298,10 @@ int outcome_bimolecular(struct volume *world, struct rxn *rx, int path,
   }
 
   if (killA) {
-#ifdef DEBUG_DIFFUSION
+#ifdef DEBUG_REACTIONS
+    DUMP_CONDITION3(
       dump_volume_molecule((struct volume_molecule*)reacA, "", true, "  defunct vm:", world->current_iterations);
+    );
 #endif
 
     vm = NULL;

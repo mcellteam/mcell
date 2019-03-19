@@ -2943,7 +2943,9 @@ struct volume_molecule *diffuse_3D(
   }
 
 #ifdef DEBUG_DIFFUSION
-	dump_volume_molecule(vm, "", true, "Diffusing vm:", world->current_iterations);
+  DUMP_CONDITION3(
+  		dump_volume_molecule(vm, "", true, "Diffusing vm:", world->current_iterations);
+  );
 #endif
 
   int inertness = 0;
@@ -2986,10 +2988,12 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
   }
 
 #ifdef DEBUG_DIFFUSION
-  if (!displacement_printed) {
-  	dump_vector3(displacement, "  displacement:");
-  	displacement_printed = true;
-  }
+  DUMP_CONDITION3(
+		if (!displacement_printed) {
+			dump_vector3(displacement, "  displacement:");
+			displacement_printed = true;
+		}
+  );
 #endif
 
   if (world->use_expanded_list &&
@@ -3017,10 +3021,6 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
     if (world->use_expanded_list && redo_expand_collision_list_flag) {
       redo_collision_list(world, &shead, &stail, &shead_exp, vm, &displacement, sv);
     }
-#ifdef DEBUG_COLLISIONS
-    // what are the possible collissions?
-    //dump_collisions(shead);
-#endif
     struct collision* shead2 = ray_trace(world, &(vm->pos), shead, sv, &displacement, reflectee);
 
     if (shead2 == NULL) {
@@ -3033,7 +3033,9 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
     }
 
 #ifdef DEBUG_COLLISIONS
-   	dump_collisions(shead2);
+    DUMP_CONDITION3(
+    		dump_collisions(shead2);
+    );
 #endif
 
     struct vector3* loc_certain = NULL;
@@ -3066,9 +3068,9 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
         }
 
         // check for mcell4 -assuming that r_rate_factor and t_steps is still 1
-        if (abs(r_rate_factor - 1.0) > EPS_C) {
+        /*if (abs(r_rate_factor - 1.0) > EPS_C) {
         	mcell_log("  r_rate_factor: %f, t_steps: %f\n", r_rate_factor, t_steps);
-        }
+        }*/
 
         //assert(abs(r_rate_factor - 1.0) < EPS_C && "mcell4 temporary check");
         //assert(abs(t_steps - 1.0) < EPS_C && "mcell4 temporary check");
