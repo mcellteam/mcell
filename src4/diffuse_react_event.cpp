@@ -97,7 +97,9 @@ void diffuse_react_event_t::diffuse_single_molecule(partition_t& p, const molecu
 	species_t& spec = world->species[vm.species_id];
 
 #ifdef DEBUG_DIFFUSION
-	vm.dump(world, "", "Diffusing vm:", world->current_iteration);
+	DUMP_CONDITION4(
+		vm.dump(world, "", "Diffusing vm:", world->current_iteration);
+	);
 #endif
 
 	// diffuse each molecule - get information on position change
@@ -106,7 +108,9 @@ void diffuse_react_event_t::diffuse_single_molecule(partition_t& p, const molecu
 	compute_displacement(spec, displacement, remaining_time_step);
 
 #ifdef DEBUG_DIFFUSION
-	displacement.dump("  displacement:", "");
+	DUMP_CONDITION4(
+		displacement.dump("  displacement:", "");
+	);
 #endif
 
 	// 3) detect collisions with other molecule
@@ -131,11 +135,13 @@ void diffuse_react_event_t::diffuse_single_molecule(partition_t& p, const molecu
 		// note: it will suffice to sort them once, this is here mainly because of the dump
 		std::sort( molecule_collisions.begin(), molecule_collisions.end(), [ ]( const auto& lhs, const auto& rhs )
 		{
-		   return lhs.time < rhs.time;
+		  return lhs.time < rhs.time;
 		});
 
 #ifdef DEBUG_COLLISIONS
-		molecules_collision_t::dump_array(p, molecule_collisions);
+		DUMP_CONDITION4(
+			molecules_collision_t::dump_array(p, molecule_collisions);
+		);
 #endif
 
 	} while (state != RAY_TRACE_FINISHED);
@@ -314,92 +320,82 @@ void diffuse_react_event_t::collect_crossed_subpartitions(
 	// first check what's around the starting point
 	collect_neigboring_subparitions(p, vm.pos, src_sp_indices, crossed_subparition_indices);
 
-	// collect subpartitions on the way
-	ivec3_t sp_indices_abs = glm::abs(dest_sp_indices - src_sp_indices);
-	int sp_indices_sum = sp_indices_abs.x + sp_indices_abs.y + sp_indices_abs.z;
-	if (sp_indices_sum > 0) {
+	// collect subpartitions on the way by always finding the point where a subpartition boundary is hit
+	// we must do it eve when we are crossing just one subpartition because we might hit others while
+	// moving along them
+	if ( !glm::all( glm::equal(dest_sp_indices, src_sp_indices) ) ) {
 
 		uint32_t dest_sp_index = p.get_subpartition_index_from_3d_indices(dest_sp_indices);
 		last_subpartition_index = dest_sp_index;
 
-		if (sp_indices_sum == 1) {
-			// crossing just one boundary, simply add destination index
-			crossed_subparition_indices.insert(dest_sp_index);
+		// urb - upper, right, bottom
+		ivec3_t dir_urb_multiplier = ivec3_t(glm::greaterThan(displacement, vec3_t(0)));
+		assert(dir_urb_multiplier.x == 0 || dir_urb_multiplier.x == 1);
+		assert(dir_urb_multiplier.y == 0 || dir_urb_multiplier.y == 1);
+		assert(dir_urb_multiplier.z == 0 || dir_urb_multiplier.z == 1);
 
-			// and check also neighbors
-			collect_neigboring_subparitions(p, dest_pos, dest_sp_indices, crossed_subparition_indices);
-		}
-		else {
-			// directions - 0/1 for multiplication
-			ivec3_t dir_urb_multiplier = ivec3_t(glm::greaterThan(displacement, vec3_t(0)));
-			assert(dir_urb_multiplier.x == 0 || dir_urb_multiplier.x == 1);
-			assert(dir_urb_multiplier.y == 0 || dir_urb_multiplier.y == 1);
-			assert(dir_urb_multiplier.z == 0 || dir_urb_multiplier.z == 1);
+		ivec3_t dir_urb_addend;
+		dir_urb_addend.x = (dir_urb_multiplier.x == 0) ? -1 : 1;
+		dir_urb_addend.y = (dir_urb_multiplier.y == 0) ? -1 : 1;
+		dir_urb_addend.z = (dir_urb_multiplier.z == 0) ? -1 : 1;
 
-			ivec3_t dir_urb_addend;
-			dir_urb_addend.x = (dir_urb_multiplier.x == 0) ? -1 : 1;
-			dir_urb_addend.y = (dir_urb_multiplier.y == 0) ? -1 : 1;
-			dir_urb_addend.z = (dir_urb_multiplier.z == 0) ? -1 : 1;
+		vec3_t curr_pos = vm.pos;
+		ivec3_t curr_sp_indices = src_sp_indices;
 
-			vec3_t curr_pos = vm.pos;
-			ivec3_t curr_sp_indices = src_sp_indices;
+		uint32_t curr_sp_index;
 
-			uint32_t curr_sp_index;
+		do {
+			// subpartition edges
+			// = origin + subparition index * length + is_urb * length
+			vec3_t sp_edges =
+					p.origin_corner
+					+	vec3_t(curr_sp_indices) * vec3_t(world->world_constants.subpartition_edge_length) // llf edge
+					+ vec3_t(dir_urb_multiplier) * vec3_t(world->world_constants.subpartition_edge_length); // move if we go urb
 
-			do {
-				// subpartition edges
-				// = origin + subparition index * length + is_urb * length
-				vec3_t sp_edges =
-						p.origin_corner
-						+	vec3_t(curr_sp_indices) * vec3_t(world->world_constants.subpartition_edge_length) // llf edge
-						+ vec3_t(dir_urb_multiplier) * vec3_t(world->world_constants.subpartition_edge_length); // move if we go urb
+			// compute time for the next subpartition collision, let's assume that displacemnt
+			// is our speed vector and the total time to travel is 1
+			//
+			// pos(time) = pos + displacement * time, therefore
+			// time = (pos(time) - vm.pos) / displacement
+			// =>
+			// time_to_subpart_edge = (subpart_edge - vm.pos) / displacement_speed
+			assert(displacement.x != 0 && displacement.y != 0 && displacement.z != 0);
+			vec3_t coll_times = (sp_edges - curr_pos) / displacement; // TODO: what if displacement is 0
 
-				// compute time for the next subpartition collision, let's assume that displacemnt
-				// is our speed vector and the total time to travel is 1
-				//
-				// pos(time) = pos + displacement * time, therefore
-				// time = (pos(time) - vm.pos) / displacement
-				// =>
-				// time_to_subpart_edge = (subpart_edge - vm.pos) / displacement_speed
-				vec3_t coll_times =
-						(sp_edges - curr_pos) / displacement; // TODO: what if displacement is 0
+			// which of the times is the smallest? - i.e. which boundary we hit first
+			if (coll_times.x < coll_times.y && coll_times.x <= coll_times.z) {
+				// new position on the edge of the subpartition
+				curr_pos += displacement * coll_times.x;
+				// and also update the xyz subpartition index
+				curr_sp_indices.x += dir_urb_addend.x;
+			}
+			else if (coll_times.y <= coll_times.z) {
+				// y
+				curr_pos += displacement * coll_times.y;
+				curr_sp_indices.y += dir_urb_addend.y;
+			}
+			else {
+				// z
+				curr_pos += displacement * coll_times.z;
+				curr_sp_indices.z += dir_urb_addend.z;
+			}
 
-				// which of the times is the smallest? - i.e. which boundary we hit first
-				if (coll_times.x < coll_times.y && coll_times.x <= coll_times.z) {
-					// new position on the edge of the subpartition
-					curr_pos += displacement * coll_times.x;
-					// and also update the xyz subpartition index
-					curr_sp_indices.x += dir_urb_addend.x;
-				}
-				else if (coll_times.y <= coll_times.z) {
-					// y
-					curr_pos += displacement * coll_times.y;
-					curr_sp_indices.y += dir_urb_addend.y;
-				}
-				else {
-					// z
-					curr_pos += displacement * coll_times.z;
-					curr_sp_indices.z += dir_urb_addend.z;
-				}
+			curr_sp_index = p.get_subpartition_index_from_3d_indices(curr_sp_indices);
 
-				curr_sp_index = p.get_subpartition_index_from_3d_indices(curr_sp_indices);
+			crossed_subparition_indices.insert(curr_sp_index);
 
-				crossed_subparition_indices.insert(curr_sp_index);
+			// also neighbors
+			collect_neigboring_subparitions(p, curr_pos, curr_sp_indices, crossed_subparition_indices);
 
-				// also neighbors
-				collect_neigboring_subparitions(p, curr_pos, curr_sp_indices, crossed_subparition_indices);
-
-			} while (curr_sp_index != dest_sp_index);
-		}
+		} while (curr_sp_index != dest_sp_index);
 	}
 	else {
-		// did not change
+		// subpartition index did not change
 		last_subpartition_index = vm.subpartition_index;
-
-		// and check also neighbors in destination
-		collect_neigboring_subparitions(p, dest_pos, dest_sp_indices, crossed_subparition_indices);
-
 	}
+
+	// finally check also neighbors in destination
+	collect_neigboring_subparitions(p, dest_pos, dest_sp_indices, crossed_subparition_indices);
 }
 
 
@@ -587,12 +583,6 @@ int diffuse_react_event_t::test_bimolecular(
 		return 0; // we have just one pathwayy
 }
 
-/*
- *
-#ifdef DEBUG_DIFFUSION
-      dump_volume_molecule((struct volume_molecule*)this_product, "", true, "  created vm:", world->current_iterations);
-#endif
- */
 
 int diffuse_react_event_t::outcome_bimolecular(
 		partition_t& p,
@@ -611,8 +601,10 @@ int diffuse_react_event_t::outcome_bimolecular(
 		//assert(reacA.subpartition_index == reacB.subpartition_index && "Subpartitions must be identical");
 #ifdef DEBUG_REACTIONS
 		// ref. printout first destroys B then A
-		reacB.dump(world, "", "  defunct vm:", world->current_iteration);
-		reacA.dump(world, "", "  defunct vm:", world->current_iteration);
+		DUMP_CONDITION4(
+			reacB.dump(world, "", "  defunct vm:", world->current_iteration);
+			reacA.dump(world, "", "  defunct vm:", world->current_iteration);
+		);
 #endif
 
 		// always for now
@@ -646,7 +638,9 @@ int diffuse_react_event_t::outcome_products_random(
 	new_vm.flags =  TYPE_VOL | IN_VOLUME | ACT_DIFFUSE;
 
 #ifdef DEBUG_REACTIONS
-	new_vm.dump(world, "", "  created vm:", world->current_iteration);
+	DUMP_CONDITION4(
+		new_vm.dump(world, "", "  created vm:", world->current_iteration);
+	);
 #endif
 
 	new_molecules_to_diffuse.push_back(
