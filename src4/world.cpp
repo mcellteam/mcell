@@ -20,6 +20,10 @@
  * USA.
  *
 ******************************************************************************/
+#include <time.h>
+#include <sys/time.h> // Linux include
+#include <sys/resource.h> // Linux include
+
 extern "C" {
 #include "rng.h" // MCell 3
 }
@@ -97,6 +101,16 @@ static uint64_t determine_output_frequency(uint64_t iterations) {
   return frequency;
 }
 
+const double USEC_IN_SEC = 1000000.0;
+
+static double tousecs(timeval& t) {
+	return (double)t.tv_sec * USEC_IN_SEC + (double)t.tv_usec;
+}
+
+static double tosecs(timeval& t) {
+	return (double)t.tv_sec + (double)t.tv_usec/USEC_IN_SEC;
+}
+
 bool world_t::run_simulation() {
 
 	init_simulation(); // must be the first one
@@ -113,22 +127,49 @@ bool world_t::run_simulation() {
 	float_t previous_time;
 	current_iteration = 0;
 	uint32_t how_often_to_report = determine_output_frequency(iterations);
+	timeval last_timing_time = {0, 0};
 
 	cout << "Iterations: " << current_iteration << " of " << iterations << "\n";
+
+  rusage sim_start_time;
+  getrusage(RUSAGE_SELF, &sim_start_time);
 
 	do {
 		previous_time = time;
 		time = scheduler.handle_next_event(end_simulation);
 
+
+		// report progress
 		if (time > previous_time) {
 			current_iteration++;
+
 			if (current_iteration % how_often_to_report == 0) {
-				cout << "Iterations: " << current_iteration << " of " << iterations << "\n";
+
+				cout << "Iterations: " << current_iteration << " of " << iterations;
+
+				timeval curr_timing_time;
+				gettimeofday(&curr_timing_time, NULL);
+				if (last_timing_time.tv_usec > 0) {
+          double time_diff = tousecs(curr_timing_time) - tousecs(last_timing_time);
+          time_diff /= (double)how_often_to_report;
+          cout << " (" << 1000000.0/time_diff << " iter/sec)";
+				}
+        last_timing_time = curr_timing_time;
+
+				cout << "\n";
 			}
 		}
+
 	} while (!end_simulation);
 
 	cout << "Iteration " << current_iteration << ", simulation finished successfully\n";
+
+	// report final time
+  rusage run_time;
+  getrusage(RUSAGE_SELF, &run_time);
+  cout << "Simulation CPU time = "
+  	<< tosecs(run_time.ru_utime) - tosecs(sim_start_time.ru_utime) <<  "(user) and "
+		<< tosecs(run_time.ru_stime) - tosecs(sim_start_time.ru_stime) <<  "(system)\n";
 
 	return true;
 }
