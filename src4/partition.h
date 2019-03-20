@@ -60,9 +60,6 @@ public:
 			world_constants(world_constants_) {
 		opposite_corner = origin_corner + world_constants.partition_edge_length;
 		// preaallocate volume_molecules arrays and also volume_molecule_indices_per_time_step
-
-		//volume_molecules_subpartition_masks.resize(powu(world_constants.subpartitions_per_partition_dimension, 3));
-
 		uint32_t num_subparts = powu(world_constants.subpartitions_per_partition_dimension, 3);
 		volume_molecule_reactants.resize(num_subparts);
 
@@ -186,7 +183,6 @@ public:
 		std::cout << "Molecule " << molecule_idx << " changed subpartition from "
 				<<  vm.subpartition_index << " to " << new_subpartition_index << ".\n";
 #endif
-
 
 		change_reactants_map(vm, new_subpartition_index, true, true);
 		vm.subpartition_index = new_subpartition_index;

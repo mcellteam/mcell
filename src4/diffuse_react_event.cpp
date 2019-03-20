@@ -50,7 +50,6 @@ void diffuse_react_event_t::dump(const std::string indent) {
 
 void diffuse_react_event_t::step() {
 	assert(world->partitions.size() == 1 && "Must extend cache to handle multiple partitions");
-	//cache_sp_species_reacting_mols.clear();
 
 	// for each partition
 	for (partition_t& p: world->partitions) {
@@ -152,16 +151,6 @@ void diffuse_react_event_t::diffuse_single_molecule(partition_t& p, const molecu
 	for (size_t collision_idx = 0; collision_idx < molecule_collisions.size(); collision_idx++) {
 		molecules_collision_t& collision = molecule_collisions[collision_idx];
 
-		if ((size_t)collision_idx != molecule_collisions.size() - 1) {
-			// TODO_ASK: shouln'd this be sorted?
-			//assuming that this is ok since we use the same ordeassert(collision.time >= molecule_collisions[collision_idx + 1].time);rign as in MCCell3
-			//assert(collision.time >= molecule_collisions[collision_idx + 1].time);
-			//assert(collision.time + 0.01 >= molecule_collisions[collision_idx + 1].time);
-		}
-
-		// reactions with time 0 are ignored
-
-
 		assert(collision.time > 0 && collision.time <= 1);
 
 		// mol-mol collision
@@ -213,7 +202,7 @@ void diffuse_react_event_t::collect_neigboring_subparitions(
 		const partition_t& p,
 		vec3_t& pos,
 		ivec3_t& sp_indices,
-		std::unordered_set<uint32_t>& crossed_subparition_indices
+		std::set<uint32_t>& crossed_subparition_indices
 ) {
 	float_t r = world->world_constants.rx_radius_3d;
 	float_t sp_len = world->world_constants.subpartition_edge_length;
@@ -301,7 +290,7 @@ void diffuse_react_event_t::collect_crossed_subpartitions(
 	const partition_t& p,
 	volume_molecule_t& vm, // molecule that we are diffusing, we are changing its pos  and possibly also subvolume
 	vec3_t& displacement, // in/out - recomputed if there was a reflection
-	std::unordered_set<uint32_t>& crossed_subparition_indices,
+	std::set<uint32_t>& crossed_subparition_indices,
 	uint32_t& last_subpartition_index
 ) {
 
@@ -311,6 +300,12 @@ void diffuse_react_event_t::collect_crossed_subpartitions(
 
 	// destination
 	vec3_t dest_pos = vm.pos + displacement;
+
+	// urb - upper, right, bottom
+	ivec3_t dir_urb_direction = ivec3_t(glm::greaterThan(displacement, vec3_t(0)));
+	assert(dir_urb_direction.x == 0 || dir_urb_direction.x == 1);
+	assert(dir_urb_direction.y == 0 || dir_urb_direction.y == 1);
+	assert(dir_urb_direction.z == 0 || dir_urb_direction.z == 1);
 
 	// get 3d indices of start and end subpartitions
 	ivec3_t src_sp_indices, dest_sp_indices;
@@ -328,21 +323,17 @@ void diffuse_react_event_t::collect_crossed_subpartitions(
 		uint32_t dest_sp_index = p.get_subpartition_index_from_3d_indices(dest_sp_indices);
 		last_subpartition_index = dest_sp_index;
 
-		// urb - upper, right, bottom
-		ivec3_t dir_urb_multiplier = ivec3_t(glm::greaterThan(displacement, vec3_t(0)));
-		assert(dir_urb_multiplier.x == 0 || dir_urb_multiplier.x == 1);
-		assert(dir_urb_multiplier.y == 0 || dir_urb_multiplier.y == 1);
-		assert(dir_urb_multiplier.z == 0 || dir_urb_multiplier.z == 1);
-
 		ivec3_t dir_urb_addend;
-		dir_urb_addend.x = (dir_urb_multiplier.x == 0) ? -1 : 1;
-		dir_urb_addend.y = (dir_urb_multiplier.y == 0) ? -1 : 1;
-		dir_urb_addend.z = (dir_urb_multiplier.z == 0) ? -1 : 1;
+		dir_urb_addend.x = (dir_urb_direction.x == 0) ? -1 : 1;
+		dir_urb_addend.y = (dir_urb_direction.y == 0) ? -1 : 1;
+		dir_urb_addend.z = (dir_urb_direction.z == 0) ? -1 : 1;
 
 		vec3_t curr_pos = vm.pos;
 		ivec3_t curr_sp_indices = src_sp_indices;
 
 		uint32_t curr_sp_index;
+
+		vec3_t displacement_rcp = 1.0/displacement; // TODO: what if displacement is 0
 
 		do {
 			// subpartition edges
@@ -350,7 +341,7 @@ void diffuse_react_event_t::collect_crossed_subpartitions(
 			vec3_t sp_edges =
 					p.origin_corner
 					+	vec3_t(curr_sp_indices) * vec3_t(world->world_constants.subpartition_edge_length) // llf edge
-					+ vec3_t(dir_urb_multiplier) * vec3_t(world->world_constants.subpartition_edge_length); // move if we go urb
+					+ vec3_t(dir_urb_direction) * vec3_t(world->world_constants.subpartition_edge_length); // move if we go urb
 
 			// compute time for the next subpartition collision, let's assume that displacemnt
 			// is our speed vector and the total time to travel is 1
@@ -360,7 +351,7 @@ void diffuse_react_event_t::collect_crossed_subpartitions(
 			// =>
 			// time_to_subpart_edge = (subpart_edge - vm.pos) / displacement_speed
 			assert(displacement.x != 0 && displacement.y != 0 && displacement.z != 0);
-			vec3_t coll_times = (sp_edges - curr_pos) / displacement; // TODO: what if displacement is 0
+			vec3_t coll_times = (sp_edges - curr_pos) * displacement_rcp;
 
 			// which of the times is the smallest? - i.e. which boundary we hit first
 			if (coll_times.x < coll_times.y && coll_times.x <= coll_times.z) {
@@ -427,25 +418,34 @@ bool diffuse_react_event_t::collide_mol(
   float_t d = glm::dot((glm_vec3_t)dir, (glm_vec3_t)move);        /* Dot product of movement vector and vector to target */
 
   /* Miss the molecule if it's behind us */
-  if (d < 0)
+  if (d < 0) {
     return false;
+  }
 
   float_t movelen2 = glm::dot((glm_vec3_t)move, (glm_vec3_t)move); /* Square of distance the moving molecule travels */
 
   /* check whether the test molecule is further than the displacement. */
-  if (d > movelen2)
+  if (d > movelen2) {
     return false;
-
-  /* reject collisions with itself */
-  if (diffused_vm.idx == colliding_vm.idx)
-  	return false;
+  }
 
   /* check whether the moving molecule will miss interaction disk of the
      test molecule.*/
   float_t dirlen2 = glm::dot((glm_vec3_t)dir, (glm_vec3_t)dir);
   float_t sigma2 = rx_radius_3d * rx_radius_3d;   /* Square of interaction radius */
-  if (movelen2 * dirlen2 - d * d > movelen2 * sigma2)
+  if (movelen2 * dirlen2 - d * d > movelen2 * sigma2) {
     return false;
+  }
+
+  /* reject collisions with itself */
+  if (diffused_vm.idx == colliding_vm.idx) {
+  	return false;
+  }
+
+  /* defunct - not probable */
+	if (colliding_vm.is_defunct()) {
+  	return false;
+	}
 
   rel_collision_time = d / movelen2;
 
@@ -464,7 +464,7 @@ ray_trace_state_t diffuse_react_event_t::ray_trace(
 		) {
 
   // first get what subpartitions might be relevant
-	std::unordered_set<uint32_t> crossed_subparition_indices;
+	std::set<uint32_t> crossed_subparition_indices;
 	uint32_t last_subpartition_index;
 	collect_crossed_subpartitions(p, vm, remaining_displacement, crossed_subparition_indices, last_subpartition_index);
 
@@ -484,10 +484,6 @@ ray_trace_state_t diffuse_react_event_t::ray_trace(
 		//uint32_t pos;
 		for (uint32_t vm_index: sp_reactants) {
 			volume_molecule_t& colliding_vm = p.volume_molecules[vm_index];
-
-			if (colliding_vm.is_defunct()) {
-				continue;
-			}
 
 			// we would like to compute everything that's needed just once
 			float_t time;
