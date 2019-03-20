@@ -427,25 +427,34 @@ bool diffuse_react_event_t::collide_mol(
   float_t d = glm::dot((glm_vec3_t)dir, (glm_vec3_t)move);        /* Dot product of movement vector and vector to target */
 
   /* Miss the molecule if it's behind us */
-  if (d < 0)
+  if (d < 0) {
     return false;
+  }
 
   float_t movelen2 = glm::dot((glm_vec3_t)move, (glm_vec3_t)move); /* Square of distance the moving molecule travels */
 
   /* check whether the test molecule is further than the displacement. */
-  if (d > movelen2)
+  if (d > movelen2) {
     return false;
-
-  /* reject collisions with itself */
-  if (diffused_vm.idx == colliding_vm.idx)
-  	return false;
+  }
 
   /* check whether the moving molecule will miss interaction disk of the
      test molecule.*/
   float_t dirlen2 = glm::dot((glm_vec3_t)dir, (glm_vec3_t)dir);
   float_t sigma2 = rx_radius_3d * rx_radius_3d;   /* Square of interaction radius */
-  if (movelen2 * dirlen2 - d * d > movelen2 * sigma2)
+  if (movelen2 * dirlen2 - d * d > movelen2 * sigma2) {
     return false;
+  }
+
+  /* reject collisions with itself */
+  if (diffused_vm.idx == colliding_vm.idx) {
+  	return false;
+  }
+
+  /* defunct - not probable */
+	if (colliding_vm.is_defunct()) {
+  	return false;
+	}
 
   rel_collision_time = d / movelen2;
 
@@ -473,6 +482,7 @@ ray_trace_state_t diffuse_react_event_t::ray_trace(
 	// here we can return RAY_TRACE_HIT_WALL
 
 	// for each SP
+	//int num_defunct = 0;
 	for (uint32_t sp_index: crossed_subparition_indices) {
 
 
@@ -484,10 +494,6 @@ ray_trace_state_t diffuse_react_event_t::ray_trace(
 		//uint32_t pos;
 		for (uint32_t vm_index: sp_reactants) {
 			volume_molecule_t& colliding_vm = p.volume_molecules[vm_index];
-
-			if (colliding_vm.is_defunct()) {
-				continue;
-			}
 
 			// we would like to compute everything that's needed just once
 			float_t time;
@@ -502,6 +508,7 @@ ray_trace_state_t diffuse_react_event_t::ray_trace(
 			}
 		}
 	}
+	//cout << "num_defunct " << num_defunct << "\n";
 
 	// the value is valid only when RAY_TRACE_FINISHED is returned
 	new_subpartition_index = last_subpartition_index;

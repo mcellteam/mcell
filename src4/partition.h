@@ -57,7 +57,9 @@ class partition_t {
 public:
 	partition_t(const vec3_t origin_, const world_constants_t& world_constants_)
 		: origin_corner(origin_),
+			next_molecule_idx(0),
 			world_constants(world_constants_) {
+
 		opposite_corner = origin_corner + world_constants.partition_edge_length;
 		// preaallocate volume_molecules arrays and also volume_molecule_indices_per_time_step
 
@@ -200,7 +202,8 @@ public:
 
 
 	volume_molecule_t& add_volume_molecule_with_time_step_index(volume_molecule_t vm_copy, const uint32_t time_step_index) {
-		uint32_t molecule_index = volume_molecules.size();
+		uint32_t molecule_index = next_molecule_idx;
+		next_molecule_idx++;
 		// and its index to the list sorted by time step
 		// this is an array that changes only when molecule leaves this partition
 		assert(time_step_index <= volume_molecule_indices_per_time_step.size());
@@ -233,7 +236,8 @@ public:
   vec3_t opposite_corner;
 
   // vector containing all volume molecules in this partition
-  std::vector< /* molecule index*/ volume_molecule_t> volume_molecules;
+  std::vector< /* molecule idx*/ volume_molecule_t> volume_molecules;
+  molecule_idx_t next_molecule_idx;
 
   // arrays of indices to the volume_molecules array where each array corresponds to a given time step
   typedef std::pair< float_t, std::vector< molecule_idx_t > > pair_time_step_volume_molecules_t;
