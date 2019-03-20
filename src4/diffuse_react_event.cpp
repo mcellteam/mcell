@@ -401,7 +401,7 @@ collide_mol:
   Note: collision_time and/or collision_pos may be modified even if there is no collision
         Not highly optimized yet.
 ***************************************************************************/
-bool diffuse_react_event_t::collide_mol(
+static bool collide_mol(
 		volume_molecule_t& diffused_vm,
 		vec3_t& move,
     volume_molecule_t& colliding_vm, //a
@@ -453,6 +453,32 @@ bool diffuse_react_event_t::collide_mol(
   return COLLIDE_VOL_M;
 }
 
+
+static void ray_trace_loop_body(
+		partition_t& p,
+		volume_molecule_t& vm,
+		molecule_idx_t colliding_vm_index,
+		vec3_t& remaining_displacement,
+		std::vector<molecules_collision_t>& molecule_collisions,
+		world_t* world,
+		float_t radius
+		) {
+
+	volume_molecule_t& colliding_vm = p.volume_molecules[colliding_vm_index];
+
+	// we would like to compute everything that's needed just once
+	float_t time;
+	vec3_t position;
+	// collide_mol must be inlined because many things are computed all over there
+	if (collide_mol(vm, remaining_displacement, colliding_vm, time, position, radius)) {
+		reaction_t* rx = world->get_reaction(vm, colliding_vm);
+		assert(rx != nullptr);
+		molecule_collisions.push_back(
+				molecules_collision_t(&p, vm.idx, colliding_vm.idx, rx, time, position)
+		);
+	}
+}
+
 // collect possible collisions until a wall is hit
 ray_trace_state_t diffuse_react_event_t::ray_trace(
 		partition_t& p,
@@ -468,6 +494,7 @@ ray_trace_state_t diffuse_react_event_t::ray_trace(
 	uint32_t last_subpartition_index;
 	collect_crossed_subpartitions(p, vm, remaining_displacement, crossed_subparition_indices, last_subpartition_index);
 
+	float_t radius = world->world_constants.rx_radius_3d;
 
 	// TBD: check wall collisions
 	// here we can return RAY_TRACE_HIT_WALL
@@ -482,21 +509,20 @@ ray_trace_state_t diffuse_react_event_t::ray_trace(
 		// for each molecule in this SP
 		//uint32_t indices[4];
 		//uint32_t pos;
-		for (uint32_t vm_index: sp_reactants) {
-			volume_molecule_t& colliding_vm = p.volume_molecules[vm_index];
+		//size_t count = sp_reactants.size();
+		for (uint32_t colliding_vm_index: sp_reactants) {
+			ray_trace_loop_body(
+					p,
+					vm,
+					colliding_vm_index,
+					remaining_displacement,
+					molecule_collisions,
+					world,
+					radius
+			);
 
-			// we would like to compute everything that's needed just once
-			float_t time;
-			vec3_t position;
-			// collide_mol must be inlined because many things are computed all over there
-			if (collide_mol(vm, remaining_displacement, colliding_vm, time, position, world->world_constants.rx_radius_3d)) {
-				reaction_t* rx = world->get_reaction(vm, colliding_vm);
-				assert(rx != nullptr);
-				molecule_collisions.push_back(
-						molecules_collision_t(&p, vm.idx, colliding_vm.idx, rx, time, position)
-				);
-			}
 		}
+
 	}
 
 	// the value is valid only when RAY_TRACE_FINISHED is returned

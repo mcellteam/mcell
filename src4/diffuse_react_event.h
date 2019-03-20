@@ -137,15 +137,6 @@ private:
 		uint32_t& last_subpartition_index
 	);
 
-	bool collide_mol(
-			volume_molecule_t& diffused_vm,
-			vec3_t& move,
-	    volume_molecule_t& colliding_vm,
-			float_t& rel_collision_time,
-			vec3_t& rel_collision_pos,
-	    float_t rx_radius_3d
-	);
-
 	ray_trace_state_t ray_trace(
 			partition_t& p,
 			volume_molecule_t& vm, // molecule that we are diffusing, we are changing its pos  and possibly also subvolume
