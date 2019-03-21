@@ -122,30 +122,6 @@ private:
 	void pick_displacement(float_t scale /*space step*/, vec3_t& displacement);
 	void compute_displacement(species_t& sp, vec3_t& displacement, float_t remaining_time_step);
 
-	void collect_neigboring_subparitions(
-			const partition_t& p,
-			vec3_t& pos,
-			ivec3_t& sp_indices,
-			std::unordered_set<uint32_t>& crossed_subparition_indices
-	);
-
-	void collect_crossed_subpartitions(
-		const partition_t& p,
-		volume_molecule_t& vm, // molecule that we are diffusing, we are changing its pos  and possibly also subvolume
-		vec3_t& remaining_displacement, // in/out - recomputed if there was a reflection
-		std::unordered_set<uint32_t>& crossed_subparition_indices,
-		uint32_t& last_subpartition_index
-	);
-
-	bool collide_mol(
-			volume_molecule_t& diffused_vm,
-			vec3_t& move,
-	    volume_molecule_t& colliding_vm,
-			float_t& rel_collision_time,
-			vec3_t& rel_collision_pos,
-	    float_t rx_radius_3d
-	);
-
 	ray_trace_state_t ray_trace(
 			partition_t& p,
 			volume_molecule_t& vm, // molecule that we are diffusing, we are changing its pos  and possibly also subvolume

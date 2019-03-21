@@ -50,7 +50,6 @@ void diffuse_react_event_t::dump(const std::string indent) {
 
 void diffuse_react_event_t::step() {
 	assert(world->partitions.size() == 1 && "Must extend cache to handle multiple partitions");
-	//cache_sp_species_reacting_mols.clear();
 
 	// for each partition
 	for (partition_t& p: world->partitions) {
@@ -152,16 +151,6 @@ void diffuse_react_event_t::diffuse_single_molecule(partition_t& p, const molecu
 	for (size_t collision_idx = 0; collision_idx < molecule_collisions.size(); collision_idx++) {
 		molecules_collision_t& collision = molecule_collisions[collision_idx];
 
-		if ((size_t)collision_idx != molecule_collisions.size() - 1) {
-			// TODO_ASK: shouln'd this be sorted?
-			//assuming that this is ok since we use the same ordeassert(collision.time >= molecule_collisions[collision_idx + 1].time);rign as in MCCell3
-			//assert(collision.time >= molecule_collisions[collision_idx + 1].time);
-			//assert(collision.time + 0.01 >= molecule_collisions[collision_idx + 1].time);
-		}
-
-		// reactions with time 0 are ignored
-
-
 		assert(collision.time > 0 && collision.time <= 1);
 
 		// mol-mol collision
@@ -209,14 +198,14 @@ void diffuse_react_event_t::compute_displacement(species_t& sp, vec3_t& displace
 }
 
 
-void diffuse_react_event_t::collect_neigboring_subparitions(
+static void collect_neigboring_subparitions(
 		const partition_t& p,
 		vec3_t& pos,
 		ivec3_t& sp_indices,
-		std::unordered_set<uint32_t>& crossed_subparition_indices
+		std::set<uint32_t>& crossed_subparition_indices,
+		float_t r,
+		float_t sp_len
 ) {
-	float_t r = world->world_constants.rx_radius_3d;
-	float_t sp_len = world->world_constants.subpartition_edge_length;
 
 	vec3_t rel_pos = pos - p.origin_corner;
 
@@ -297,12 +286,14 @@ void diffuse_react_event_t::collect_neigboring_subparitions(
 
 
 // collect subpartition indices that we are crossing
-void diffuse_react_event_t::collect_crossed_subpartitions(
+static void collect_crossed_subpartitions(
 	const partition_t& p,
 	volume_molecule_t& vm, // molecule that we are diffusing, we are changing its pos  and possibly also subvolume
 	vec3_t& displacement, // in/out - recomputed if there was a reflection
-	std::unordered_set<uint32_t>& crossed_subparition_indices,
-	uint32_t& last_subpartition_index
+	std::set<uint32_t>& crossed_subparition_indices,
+	uint32_t& last_subpartition_index,
+	float_t radius,
+	float_t subpartition_edge_length
 ) {
 
 	crossed_subparition_indices.clear();
@@ -312,13 +303,19 @@ void diffuse_react_event_t::collect_crossed_subpartitions(
 	// destination
 	vec3_t dest_pos = vm.pos + displacement;
 
+	// urb - upper, right, bottom
+	ivec3_t dir_urb_direction = ivec3_t(glm::greaterThan(displacement, vec3_t(0)));
+	assert(dir_urb_direction.x == 0 || dir_urb_direction.x == 1);
+	assert(dir_urb_direction.y == 0 || dir_urb_direction.y == 1);
+	assert(dir_urb_direction.z == 0 || dir_urb_direction.z == 1);
+
 	// get 3d indices of start and end subpartitions
 	ivec3_t src_sp_indices, dest_sp_indices;
 	p.get_subpartition_3d_indices_from_index(vm.subpartition_index, src_sp_indices);
 	p.get_subpartition_3d_indices(dest_pos, dest_sp_indices);
 
 	// first check what's around the starting point
-	collect_neigboring_subparitions(p, vm.pos, src_sp_indices, crossed_subparition_indices);
+	collect_neigboring_subparitions(p, vm.pos, src_sp_indices, crossed_subparition_indices, radius, subpartition_edge_length);
 
 	// collect subpartitions on the way by always finding the point where a subpartition boundary is hit
 	// we must do it eve when we are crossing just one subpartition because we might hit others while
@@ -328,29 +325,26 @@ void diffuse_react_event_t::collect_crossed_subpartitions(
 		uint32_t dest_sp_index = p.get_subpartition_index_from_3d_indices(dest_sp_indices);
 		last_subpartition_index = dest_sp_index;
 
-		// urb - upper, right, bottom
-		ivec3_t dir_urb_multiplier = ivec3_t(glm::greaterThan(displacement, vec3_t(0)));
-		assert(dir_urb_multiplier.x == 0 || dir_urb_multiplier.x == 1);
-		assert(dir_urb_multiplier.y == 0 || dir_urb_multiplier.y == 1);
-		assert(dir_urb_multiplier.z == 0 || dir_urb_multiplier.z == 1);
-
 		ivec3_t dir_urb_addend;
-		dir_urb_addend.x = (dir_urb_multiplier.x == 0) ? -1 : 1;
-		dir_urb_addend.y = (dir_urb_multiplier.y == 0) ? -1 : 1;
-		dir_urb_addend.z = (dir_urb_multiplier.z == 0) ? -1 : 1;
+		dir_urb_addend.x = (dir_urb_direction.x == 0) ? -1 : 1;
+		dir_urb_addend.y = (dir_urb_direction.y == 0) ? -1 : 1;
+		dir_urb_addend.z = (dir_urb_direction.z == 0) ? -1 : 1;
 
 		vec3_t curr_pos = vm.pos;
 		ivec3_t curr_sp_indices = src_sp_indices;
 
 		uint32_t curr_sp_index;
 
+		vec3_t displacement_rcp = 1.0/displacement; // TODO: what if displacement is 0
+
 		do {
 			// subpartition edges
 			// = origin + subparition index * length + is_urb * length
+			vec3_t sp_len_as_vec3 = vec3_t(subpartition_edge_length);
 			vec3_t sp_edges =
 					p.origin_corner
-					+	vec3_t(curr_sp_indices) * vec3_t(world->world_constants.subpartition_edge_length) // llf edge
-					+ vec3_t(dir_urb_multiplier) * vec3_t(world->world_constants.subpartition_edge_length); // move if we go urb
+					+	vec3_t(curr_sp_indices) * sp_len_as_vec3 // llf edge
+					+ vec3_t(dir_urb_direction) * sp_len_as_vec3; // move if we go urb
 
 			// compute time for the next subpartition collision, let's assume that displacemnt
 			// is our speed vector and the total time to travel is 1
@@ -360,7 +354,7 @@ void diffuse_react_event_t::collect_crossed_subpartitions(
 			// =>
 			// time_to_subpart_edge = (subpart_edge - vm.pos) / displacement_speed
 			assert(displacement.x != 0 && displacement.y != 0 && displacement.z != 0);
-			vec3_t coll_times = (sp_edges - curr_pos) / displacement; // TODO: what if displacement is 0
+			vec3_t coll_times = (sp_edges - curr_pos) * displacement_rcp;
 
 			// which of the times is the smallest? - i.e. which boundary we hit first
 			if (coll_times.x < coll_times.y && coll_times.x <= coll_times.z) {
@@ -385,7 +379,7 @@ void diffuse_react_event_t::collect_crossed_subpartitions(
 			crossed_subparition_indices.insert(curr_sp_index);
 
 			// also neighbors
-			collect_neigboring_subparitions(p, curr_pos, curr_sp_indices, crossed_subparition_indices);
+			collect_neigboring_subparitions(p, curr_pos, curr_sp_indices, crossed_subparition_indices, radius, subpartition_edge_length);
 
 		} while (curr_sp_index != dest_sp_index);
 	}
@@ -395,7 +389,7 @@ void diffuse_react_event_t::collect_crossed_subpartitions(
 	}
 
 	// finally check also neighbors in destination
-	collect_neigboring_subparitions(p, dest_pos, dest_sp_indices, crossed_subparition_indices);
+	collect_neigboring_subparitions(p, dest_pos, dest_sp_indices, crossed_subparition_indices, radius, subpartition_edge_length);
 }
 
 
@@ -410,7 +404,7 @@ collide_mol:
   Note: collision_time and/or collision_pos may be modified even if there is no collision
         Not highly optimized yet.
 ***************************************************************************/
-bool diffuse_react_event_t::collide_mol(
+static bool collide_mol(
 		volume_molecule_t& diffused_vm,
 		vec3_t& move,
     volume_molecule_t& colliding_vm, //a
@@ -462,6 +456,32 @@ bool diffuse_react_event_t::collide_mol(
   return COLLIDE_VOL_M;
 }
 
+
+static void ray_trace_loop_body(
+		partition_t& p,
+		volume_molecule_t& vm,
+		molecule_idx_t colliding_vm_index,
+		vec3_t& remaining_displacement,
+		std::vector<molecules_collision_t>& molecule_collisions,
+		world_t* world,
+		float_t radius
+		) {
+
+	volume_molecule_t& colliding_vm = p.volume_molecules[colliding_vm_index];
+
+	// we would like to compute everything that's needed just once
+	float_t time;
+	vec3_t position;
+	// collide_mol must be inlined because many things are computed all over there
+	if (collide_mol(vm, remaining_displacement, colliding_vm, time, position, radius)) {
+		reaction_t* rx = world->get_reaction(vm, colliding_vm);
+		assert(rx != nullptr);
+		molecule_collisions.push_back(
+				molecules_collision_t(&p, vm.idx, colliding_vm.idx, rx, time, position)
+		);
+	}
+}
+
 // collect possible collisions until a wall is hit
 ray_trace_state_t diffuse_react_event_t::ray_trace(
 		partition_t& p,
@@ -473,42 +493,40 @@ ray_trace_state_t diffuse_react_event_t::ray_trace(
 		) {
 
   // first get what subpartitions might be relevant
-	std::unordered_set<uint32_t> crossed_subparition_indices;
+	std::set<uint32_t> crossed_subparition_indices;
 	uint32_t last_subpartition_index;
-	collect_crossed_subpartitions(p, vm, remaining_displacement, crossed_subparition_indices, last_subpartition_index);
+	collect_crossed_subpartitions(
+			p, vm, remaining_displacement,
+			crossed_subparition_indices, last_subpartition_index,
+			world->world_constants.rx_radius_3d,
+			world->world_constants.subpartition_edge_length
+	);
 
+	float_t radius = world->world_constants.rx_radius_3d;
 
 	// TBD: check wall collisions
 	// here we can return RAY_TRACE_HIT_WALL
 
 	// for each SP
-	//int num_defunct = 0;
 	for (uint32_t sp_index: crossed_subparition_indices) {
-
-
 		// get cached reacting molecules for this SP
 		subpartition_mask_t& sp_reactants = p.volume_molecule_reactants[sp_index][vm.species_id]; //get_sp_species_reacting_mols_cached_data(sp_index, vm, p);
 
 		// for each molecule in this SP
-		//uint32_t indices[4];
-		//uint32_t pos;
-		for (uint32_t vm_index: sp_reactants) {
-			volume_molecule_t& colliding_vm = p.volume_molecules[vm_index];
+		for (uint32_t colliding_vm_index: sp_reactants) {
+			ray_trace_loop_body(
+					p,
+					vm,
+					colliding_vm_index,
+					remaining_displacement,
+					molecule_collisions,
+					world,
+					radius
+			);
 
-			// we would like to compute everything that's needed just once
-			float_t time;
-			vec3_t position;
-			// collide_mol must be inlined because many things are computed all over there
-			if (collide_mol(vm, remaining_displacement, colliding_vm, time, position, world->world_constants.rx_radius_3d)) {
-				reaction_t* rx = world->get_reaction(vm, colliding_vm);
-				assert(rx != nullptr);
-				molecule_collisions.push_back(
-						molecules_collision_t(&p, vm.idx, colliding_vm.idx, rx, time, position)
-				);
-			}
 		}
+
 	}
-	//cout << "num_defunct " << num_defunct << "\n";
 
 	// the value is valid only when RAY_TRACE_FINISHED is returned
 	new_subpartition_index = last_subpartition_index;
