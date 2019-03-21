@@ -198,14 +198,14 @@ void diffuse_react_event_t::compute_displacement(species_t& sp, vec3_t& displace
 }
 
 
-void diffuse_react_event_t::collect_neigboring_subparitions(
+static void collect_neigboring_subparitions(
 		const partition_t& p,
 		vec3_t& pos,
 		ivec3_t& sp_indices,
-		std::set<uint32_t>& crossed_subparition_indices
+		std::set<uint32_t>& crossed_subparition_indices,
+		float_t r,
+		float_t sp_len
 ) {
-	float_t r = world->world_constants.rx_radius_3d;
-	float_t sp_len = world->world_constants.subpartition_edge_length;
 
 	vec3_t rel_pos = pos - p.origin_corner;
 
@@ -286,12 +286,14 @@ void diffuse_react_event_t::collect_neigboring_subparitions(
 
 
 // collect subpartition indices that we are crossing
-void diffuse_react_event_t::collect_crossed_subpartitions(
+static void collect_crossed_subpartitions(
 	const partition_t& p,
 	volume_molecule_t& vm, // molecule that we are diffusing, we are changing its pos  and possibly also subvolume
 	vec3_t& displacement, // in/out - recomputed if there was a reflection
 	std::set<uint32_t>& crossed_subparition_indices,
-	uint32_t& last_subpartition_index
+	uint32_t& last_subpartition_index,
+	float_t radius,
+	float_t subpartition_edge_length
 ) {
 
 	crossed_subparition_indices.clear();
@@ -313,7 +315,7 @@ void diffuse_react_event_t::collect_crossed_subpartitions(
 	p.get_subpartition_3d_indices(dest_pos, dest_sp_indices);
 
 	// first check what's around the starting point
-	collect_neigboring_subparitions(p, vm.pos, src_sp_indices, crossed_subparition_indices);
+	collect_neigboring_subparitions(p, vm.pos, src_sp_indices, crossed_subparition_indices, radius, subpartition_edge_length);
 
 	// collect subpartitions on the way by always finding the point where a subpartition boundary is hit
 	// we must do it eve when we are crossing just one subpartition because we might hit others while
@@ -338,10 +340,11 @@ void diffuse_react_event_t::collect_crossed_subpartitions(
 		do {
 			// subpartition edges
 			// = origin + subparition index * length + is_urb * length
+			vec3_t sp_len_as_vec3 = vec3_t(subpartition_edge_length);
 			vec3_t sp_edges =
 					p.origin_corner
-					+	vec3_t(curr_sp_indices) * vec3_t(world->world_constants.subpartition_edge_length) // llf edge
-					+ vec3_t(dir_urb_direction) * vec3_t(world->world_constants.subpartition_edge_length); // move if we go urb
+					+	vec3_t(curr_sp_indices) * sp_len_as_vec3 // llf edge
+					+ vec3_t(dir_urb_direction) * sp_len_as_vec3; // move if we go urb
 
 			// compute time for the next subpartition collision, let's assume that displacemnt
 			// is our speed vector and the total time to travel is 1
@@ -376,7 +379,7 @@ void diffuse_react_event_t::collect_crossed_subpartitions(
 			crossed_subparition_indices.insert(curr_sp_index);
 
 			// also neighbors
-			collect_neigboring_subparitions(p, curr_pos, curr_sp_indices, crossed_subparition_indices);
+			collect_neigboring_subparitions(p, curr_pos, curr_sp_indices, crossed_subparition_indices, radius, subpartition_edge_length);
 
 		} while (curr_sp_index != dest_sp_index);
 	}
@@ -386,7 +389,7 @@ void diffuse_react_event_t::collect_crossed_subpartitions(
 	}
 
 	// finally check also neighbors in destination
-	collect_neigboring_subparitions(p, dest_pos, dest_sp_indices, crossed_subparition_indices);
+	collect_neigboring_subparitions(p, dest_pos, dest_sp_indices, crossed_subparition_indices, radius, subpartition_edge_length);
 }
 
 
@@ -492,7 +495,12 @@ ray_trace_state_t diffuse_react_event_t::ray_trace(
   // first get what subpartitions might be relevant
 	std::set<uint32_t> crossed_subparition_indices;
 	uint32_t last_subpartition_index;
-	collect_crossed_subpartitions(p, vm, remaining_displacement, crossed_subparition_indices, last_subpartition_index);
+	collect_crossed_subpartitions(
+			p, vm, remaining_displacement,
+			crossed_subparition_indices, last_subpartition_index,
+			world->world_constants.rx_radius_3d,
+			world->world_constants.subpartition_edge_length
+	);
 
 	float_t radius = world->world_constants.rx_radius_3d;
 
@@ -501,15 +509,10 @@ ray_trace_state_t diffuse_react_event_t::ray_trace(
 
 	// for each SP
 	for (uint32_t sp_index: crossed_subparition_indices) {
-
-
 		// get cached reacting molecules for this SP
 		subpartition_mask_t& sp_reactants = p.volume_molecule_reactants[sp_index][vm.species_id]; //get_sp_species_reacting_mols_cached_data(sp_index, vm, p);
 
 		// for each molecule in this SP
-		//uint32_t indices[4];
-		//uint32_t pos;
-		//size_t count = sp_reactants.size();
 		for (uint32_t colliding_vm_index: sp_reactants) {
 			ray_trace_loop_body(
 					p,
