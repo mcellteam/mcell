@@ -105,7 +105,7 @@ void viz_output_event_t::output_ascii_molecules() {
 
 	// simply go through all partitions and dump all molecules
 	for (partition_t& p: world->partitions) {
-		for (volume_molecule_t& m: p.volume_molecules) {
+		for (const volume_molecule_t& m: p.get_volume_molecules()) {
 			if (m.is_defunct()) {
 				continue;
 			}
@@ -139,11 +139,11 @@ void viz_output_event_t::output_cellblender_molecules() {
 	// sort all molecules by species
 	uint32_t species_count = world->species.size();
 
-	vector< vector<volume_molecule_t*> > volume_molecules_by_species;
+	vector< vector<const volume_molecule_t*> > volume_molecules_by_species;
 	volume_molecules_by_species.resize(species_count);
 
 	for (partition_t& p: world->partitions) {
-		for (volume_molecule_t& m: p.volume_molecules) {
+		for (const volume_molecule_t& m: p.get_volume_molecules()) {
 			if (m.is_defunct()) {
 				continue;
 			}
@@ -159,7 +159,7 @@ void viz_output_event_t::output_cellblender_molecules() {
   /* Write all the molecules whether EXTERNAL_SPECIES or not (for now) */
   for (species_id_t species_idx = 0; species_idx < world->species.size(); species_idx++) {
   	// count of molecules for this species
-  	vector<volume_molecule_t*>& species_molecules = volume_molecules_by_species[species_idx];
+  	vector<const volume_molecule_t*>& species_molecules = volume_molecules_by_species[species_idx];
   	if (species_molecules.empty()) {
   		continue;
   	}
@@ -185,7 +185,7 @@ void viz_output_event_t::output_cellblender_molecules() {
      float pos_x = 0.0;
      float pos_y = 0.0;
      float pos_z = 0.0;
-     for (volume_molecule_t* mp : species_molecules) {
+     for (const volume_molecule_t* mp : species_molecules) {
     	 // TODO: many specific variants missing
 			 pos_x = mp->pos.x * length_unit;
 			 pos_y = mp->pos.y * length_unit;

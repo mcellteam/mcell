@@ -124,6 +124,8 @@ const uint32_t PARTITION_INDEX_INITIAL = 0;
 const uint32_t PARTITION_INDEX_INVALID = UINT32_MAX;
 const uint32_t SUBPARTITION_INDEX_INVALID = UINT32_MAX;
 
+const uint32_t TIME_STEP_INDEX_INVALID = UINT32_MAX;
+
 typedef glm::dmat4x4 mat4x4;
 
 const char* const NAME_INVALID = "invalid_name";

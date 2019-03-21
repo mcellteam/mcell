@@ -57,7 +57,7 @@ class partition_t {
 public:
 	partition_t(const vec3_t origin_, const world_constants_t& world_constants_)
 		: origin_corner(origin_),
-			next_molecule_idx(0),
+			next_molecule_id(0),
 			world_constants(world_constants_) {
 
 		opposite_corner = origin_corner + world_constants.partition_edge_length;
@@ -77,7 +77,11 @@ public:
 
 	volume_molecule_t& get_vm(const molecule_idx_t idx) {
 		assert(idx != MOLECULE_IDX_INVALID && idx < volume_molecules.size());
-		return volume_molecules[idx];
+
+		// code works with molecule ids, but they need to be converted to indices to the volume_molecules vector
+		// because we need to defragment the contents
+		uint32_t vm_vec_index = volume_molecules_id_to_index_mapping[idx];
+		return volume_molecules[vm_vec_index];
 	}
 
 
@@ -95,13 +99,13 @@ public:
 				return i;
 			}
 		}
-		return PARTITION_INDEX_INVALID;
+		return TIME_STEP_INDEX_INVALID;
 	}
 
 	uint32_t get_or_add_molecule_list_index_for_time_step(const float_t time_step) {
 		uint32_t res;
 		res = get_molecule_list_index_for_time_step(time_step);
-		if (res == PARTITION_INDEX_INVALID) {
+		if (res == TIME_STEP_INDEX_INVALID) {
 			volume_molecule_indices_per_time_step.push_back(
 				pair_time_step_volume_molecules_t(time_step, std::vector< molecule_idx_t >()));
 			res = volume_molecule_indices_per_time_step.size() - 1;
@@ -198,17 +202,30 @@ public:
 
 
 	volume_molecule_t& add_volume_molecule_with_time_step_index(volume_molecule_t vm_copy, const uint32_t time_step_index) {
-		uint32_t molecule_index = next_molecule_idx;
-		next_molecule_idx++;
+		molecule_idx_t molecule_id = next_molecule_id;
+		next_molecule_id++;
 		// and its index to the list sorted by time step
 		// this is an array that changes only when molecule leaves this partition
 		assert(time_step_index <= volume_molecule_indices_per_time_step.size());
-		volume_molecule_indices_per_time_step[time_step_index].second.push_back(molecule_index);
+		volume_molecule_indices_per_time_step[time_step_index].second.push_back(molecule_id);
 
+
+		// We always have to increase the size of the mappping array - its size is
+		// large enough to hold indices for all molecules that were ever created,
+		// we will need to reuse ids or compress it later
+		uint32_t next_molecule_array_index = volume_molecules.size(); // get the index of the molecule we aregoing to store
+		volume_molecules_id_to_index_mapping.push_back(next_molecule_array_index);
+		assert(
+				volume_molecules_id_to_index_mapping.size() == next_molecule_id
+				&& "Mapping array must have value for every molecule index"
+		);
+
+		// This is the only place where we insert molecules into volume_molecules,
+		// although this array size can be decreased in defragmentation
 		volume_molecules.push_back(vm_copy);
 		volume_molecule_t& new_vm = volume_molecules.back();
 
-		new_vm.idx = molecule_index;
+		new_vm.idx = molecule_id;
 		new_vm.subpartition_index = get_subpartition_index(vm_copy.pos);
 
 		change_reactants_map(new_vm, new_vm.subpartition_index, true, false);
@@ -227,27 +244,48 @@ public:
 		change_reactants_map(vm, 0/*unused*/, false, true);
 	}
 
+	// ---- getters ----
+	const std::vector< molecule_idx_t >& get_volume_molecule_indices_per_time_step(uint32_t time_step_index) {
+		return volume_molecule_indices_per_time_step[time_step_index].second;
+	}
+
+	const vec3_t& get_origin_corner() const {
+		return origin_corner;
+	}
+
+	subpartition_mask_t& get_volume_molecule_reactants(uint32_t sp_idx, species_id_t species_id) {
+		return volume_molecule_reactants[sp_idx][species_id];
+	}
+
+	const std::vector<volume_molecule_t>& get_volume_molecules() {
+		return volume_molecules;
+	}
+
+private:
 	// left, bottom, closest (lowest z) point of the partition
   vec3_t origin_corner;
   vec3_t opposite_corner;
 
   // vector containing all volume molecules in this partition
-  std::vector< /* molecule idx*/ volume_molecule_t> volume_molecules;
-  molecule_idx_t next_molecule_idx;
+  std::vector< volume_molecule_t> volume_molecules;
+
+  // contains mapping of molecule ids to indices to the volume_molecules array
+  std::vector<uint32_t> volume_molecules_id_to_index_mapping;
+
+  // id of the next molecule to be created
+  molecule_idx_t next_molecule_id;
 
   // arrays of indices to the volume_molecules array where each array corresponds to a given time step
   typedef std::pair< float_t, std::vector< molecule_idx_t > > pair_time_step_volume_molecules_t;
+
   // indexed by diffusion time step index
   std::vector< pair_time_step_volume_molecules_t > volume_molecule_indices_per_time_step; // TODO: rename so that the name has something to do with diffusion? diffusion list?
 
-  // indexed by subpartition index, size is world->subpartition_edge_length^3
-  //std::vector < subpartition_mask_t > volume_molecules_subpartition_masks;
+  // indexed with species_id_t
+  typedef std::vector< subpartition_mask_t > species_reactants_map_t;
 
-  typedef std::vector < /* indexed with species_id_t, we might need some hash later*/ subpartition_mask_t > species_reactants_map_t;
-  std::vector < /*subpartition index*/species_reactants_map_t > volume_molecule_reactants;
-
-  //TBD: std::vector< /* surface molecule index */ surface_molecule> surface_molecules;
-  //TBD: std::vector< /* subpartition index */ subpartition_mask > surface_molecules_subpatition_masks;
+  // indexed with subpartition index
+  std::vector < species_reactants_map_t > volume_molecule_reactants;
 
   const world_constants_t& world_constants;
 };

@@ -69,7 +69,7 @@ public:
 	uint16_t flags; // defunct by default, use bitfield instead?
 	species_id_t species_id;
 
-	bool is_defunct() {
+	bool is_defunct() const {
 		return flags & MOLECULE_FLAG_DEFUNCT;
 	}
 

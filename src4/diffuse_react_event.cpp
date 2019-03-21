@@ -54,15 +54,15 @@ void diffuse_react_event_t::step() {
 	// for each partition
 	for (partition_t& p: world->partitions) {
 		// 1) select the right list of molecules from volume_molecule_indices_per_time_step
-		uint32_t list_index = p.get_molecule_list_index_for_time_step(diffusion_time_step);
-		if (list_index != PARTITION_INDEX_INVALID) {
-			diffuse_molecules(p, p.volume_molecule_indices_per_time_step[list_index].second);
+		uint32_t time_step_index = p.get_molecule_list_index_for_time_step(diffusion_time_step);
+		if (time_step_index != TIME_STEP_INDEX_INVALID) {
+			diffuse_molecules(p, p.get_volume_molecule_indices_per_time_step(time_step_index));
 		}
 	}
 }
 
 
-void diffuse_react_event_t::diffuse_molecules(partition_t& p, std::vector< molecule_idx_t >& indices) {
+void diffuse_react_event_t::diffuse_molecules(partition_t& p, const std::vector< molecule_idx_t >& indices) {
 
 	// Possible optimization:
 	// GPU version - can make sets of possible collisions for a given species before
@@ -88,7 +88,7 @@ void diffuse_react_event_t::diffuse_molecules(partition_t& p, std::vector< molec
 
 void diffuse_react_event_t::diffuse_single_molecule(partition_t& p, const molecule_idx_t vm_idx, const float_t remaining_time_step) {
 
-	volume_molecule_t& vm = p.volume_molecules[vm_idx];
+	volume_molecule_t& vm = p.get_vm(vm_idx);
 
 	if (vm.is_defunct())
 		return;
@@ -171,7 +171,7 @@ void diffuse_react_event_t::diffuse_single_molecule(partition_t& p, const molecu
 
 	if (!was_defunct) {
 		// need to get a new reference
-		volume_molecule_t& vm_refresh = p.volume_molecules[vm_idx];
+		volume_molecule_t& vm_refresh = p.get_vm(vm_idx);
 
 		// finally move molecule to its destination
 		vm_refresh.pos = new_position;
@@ -207,7 +207,7 @@ static void collect_neigboring_subparitions(
 		float_t sp_len
 ) {
 
-	vec3_t rel_pos = pos - p.origin_corner;
+	vec3_t rel_pos = pos - p.get_origin_corner();
 
 	// check neighbors
 	// TODO: boundaries must be precomputed - would ireally help? it's just a few multiplications
@@ -342,7 +342,7 @@ static void collect_crossed_subpartitions(
 			// = origin + subparition index * length + is_urb * length
 			vec3_t sp_len_as_vec3 = vec3_t(subpartition_edge_length);
 			vec3_t sp_edges =
-					p.origin_corner
+					p.get_origin_corner()
 					+	vec3_t(curr_sp_indices) * sp_len_as_vec3 // llf edge
 					+ vec3_t(dir_urb_direction) * sp_len_as_vec3; // move if we go urb
 
@@ -467,7 +467,7 @@ static void ray_trace_loop_body(
 		float_t radius
 		) {
 
-	volume_molecule_t& colliding_vm = p.volume_molecules[colliding_vm_index];
+	volume_molecule_t& colliding_vm = p.get_vm(colliding_vm_index);
 
 	// we would like to compute everything that's needed just once
 	float_t time;
@@ -510,7 +510,7 @@ ray_trace_state_t diffuse_react_event_t::ray_trace(
 	// for each SP
 	for (uint32_t sp_index: crossed_subparition_indices) {
 		// get cached reacting molecules for this SP
-		subpartition_mask_t& sp_reactants = p.volume_molecule_reactants[sp_index][vm.species_id]; //get_sp_species_reacting_mols_cached_data(sp_index, vm, p);
+		subpartition_mask_t& sp_reactants = p.get_volume_molecule_reactants(sp_index, vm.species_id); //get_sp_species_reacting_mols_cached_data(sp_index, vm, p);
 
 		// for each molecule in this SP
 		for (uint32_t colliding_vm_index: sp_reactants) {
