@@ -26,6 +26,7 @@
 
 #include <unordered_set>
 #include <set>
+#include <boost/container/flat_set.hpp>
 
 #include "defines.h"
 #include "molecule.h"
@@ -36,7 +37,7 @@ namespace mcell {
 // TODO: use a different representation, maybe a set for now
 
 // FIXME: use molecule_idx_t
-class subpartition_mask_t: public std::set<uint32_t>  // set is faster than unordered_set
+class subpartition_mask_t: public boost::container::flat_set<uint32_t> //public std::set<uint32_t>  // set is faster than unordered_set
 		{
 public:
 	void set_contains_molecule(uint32_t index, bool value = true) {

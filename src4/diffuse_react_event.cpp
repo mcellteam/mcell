@@ -29,12 +29,17 @@ extern "C" {
 #include <iostream>
 #include <sstream>
 #include <algorithm>
+#include <boost/container/flat_set.hpp>
 
 #include "diffuse_react_event.h"
 #include "world.h"
 #include "partition.h"
 
 #include "debug_config.h"
+
+typedef boost::container::flat_set<uint32_t> small_subpart_set_t;
+//typedef std::set<uint32_t> small_subpart_set_t;
+
 
 using namespace std;
 
@@ -202,7 +207,7 @@ static void collect_neigboring_subparitions(
 		const partition_t& p,
 		vec3_t& pos,
 		ivec3_t& sp_indices,
-		std::set<uint32_t>& crossed_subparition_indices,
+		small_subpart_set_t& crossed_subparition_indices,
 		float_t r,
 		float_t sp_len
 ) {
@@ -290,7 +295,7 @@ static void collect_crossed_subpartitions(
 	const partition_t& p,
 	volume_molecule_t& vm, // molecule that we are diffusing, we are changing its pos  and possibly also subvolume
 	vec3_t& displacement, // in/out - recomputed if there was a reflection
-	std::set<uint32_t>& crossed_subparition_indices,
+	small_subpart_set_t& crossed_subparition_indices,
 	uint32_t& last_subpartition_index,
 	float_t radius,
 	float_t subpartition_edge_length
@@ -493,7 +498,7 @@ ray_trace_state_t diffuse_react_event_t::ray_trace(
 		) {
 
   // first get what subpartitions might be relevant
-	std::set<uint32_t> crossed_subparition_indices;
+	small_subpart_set_t crossed_subparition_indices;
 	uint32_t last_subpartition_index;
 	collect_crossed_subpartitions(
 			p, vm, remaining_displacement,
