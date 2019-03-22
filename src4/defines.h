@@ -67,7 +67,7 @@ typedef double float_t; // soon to be changed to float
 const float_t TIME_INVALID = NAN;
 const float_t TIME_SIMULATION_START = 0;
 
-const uint32_t DEFRAGMENTATION_PERIODICITY = 100;
+const uint32_t DEFRAGMENTATION_PERIODICITY = 500;
 
 const float_t PARTITION_EDGE_LENGTH_DEFAULT = 10 * 100 /*1/length unit*/; // maybe too large for now
 
