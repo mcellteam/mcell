@@ -30,6 +30,7 @@ extern "C" {
 
 #include "world.h"
 #include "end_simulation_event.h"
+#include "defragmentation_event.h"
 
 using namespace std;
 
@@ -116,6 +117,13 @@ bool world_t::run_simulation() {
 	init_simulation(); // must be the first one
 
 	dump();
+
+	// create defragmentation events  FIXME: use periodicity
+	defragmentation_event_t* defragmentation_event = new defragmentation_event_t(this);
+	defragmentation_event->event_time = DEFRAGMENTATION_PERIODICITY;
+	defragmentation_event->periodicity_interval = DEFRAGMENTATION_PERIODICITY;
+	scheduler.schedule_event(defragmentation_event);
+
 
 	// create event that will terminate our simulation
 	end_simulation_event_t* end_event = new end_simulation_event_t();

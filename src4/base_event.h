@@ -39,7 +39,7 @@ const event_type_index_t EVENT_TYPE_INDEX_INVALID = -1;
 const event_type_index_t EVENT_TYPE_INDEX_DIFFUSE_REACT = 100;
 const event_type_index_t EVENT_TYPE_INDEX_RELEASE = 200;
 const event_type_index_t EVENT_TYPE_INDEX_VIZ_OUTPUT = 300;
-const event_type_index_t EVENT_TYPE_INDEX_END_DEFRAGMENTATION = 1000;
+const event_type_index_t EVENT_TYPE_INDEX_DEFRAGMENTATION = 900;
 const event_type_index_t EVENT_TYPE_INDEX_END_SIMULATION = 1000;
 
 /**

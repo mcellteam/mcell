@@ -75,12 +75,13 @@ public:
 
 	void dump();
 
-	volume_molecule_t& get_vm(const molecule_idx_t idx) {
-		assert(idx != MOLECULE_IDX_INVALID && idx < volume_molecules.size());
+	volume_molecule_t& get_vm(const molecule_idx_t idx) { // should be ID
+		assert(idx < volume_molecules_id_to_index_mapping.size());
 
 		// code works with molecule ids, but they need to be converted to indices to the volume_molecules vector
 		// because we need to defragment the contents
 		uint32_t vm_vec_index = volume_molecules_id_to_index_mapping[idx];
+		assert(vm_vec_index != MOLECULE_INDEX_INVALID);
 		return volume_molecules[vm_vec_index];
 	}
 
@@ -244,7 +245,20 @@ public:
 		change_reactants_map(vm, 0/*unused*/, false, true);
 	}
 
+	// --- typedefs -----
+
+  // arrays of indices to the volume_molecules array where each array corresponds to a given time step
+  typedef std::pair< float_t, std::vector< molecule_idx_t > > pair_time_step_volume_molecules_t;
+
+  // indexed with species_id_t
+  typedef std::vector< subpartition_mask_t > species_reactants_map_t;
+
+
 	// ---- getters ----
+	std::vector< pair_time_step_volume_molecules_t >& get_volume_molecule_indices_per_time_step_vec() {
+		return volume_molecule_indices_per_time_step;
+	}
+
 	const std::vector< molecule_idx_t >& get_volume_molecule_indices_per_time_step(uint32_t time_step_index) {
 		return volume_molecule_indices_per_time_step[time_step_index].second;
 	}
@@ -257,8 +271,16 @@ public:
 		return volume_molecule_reactants[sp_idx][species_id];
 	}
 
-	const std::vector<volume_molecule_t>& get_volume_molecules() {
+	const std::vector<volume_molecule_t>& get_volume_molecules() const {
 		return volume_molecules;
+	}
+
+	std::vector<volume_molecule_t>& get_volume_molecules() {
+		return volume_molecules;
+	}
+
+	std::vector<uint32_t>& get_volume_molecules_id_to_index_mapping() {
+		return volume_molecules_id_to_index_mapping;
 	}
 
 private:
@@ -275,14 +297,8 @@ private:
   // id of the next molecule to be created
   molecule_idx_t next_molecule_id;
 
-  // arrays of indices to the volume_molecules array where each array corresponds to a given time step
-  typedef std::pair< float_t, std::vector< molecule_idx_t > > pair_time_step_volume_molecules_t;
-
   // indexed by diffusion time step index
   std::vector< pair_time_step_volume_molecules_t > volume_molecule_indices_per_time_step; // TODO: rename so that the name has something to do with diffusion? diffusion list?
-
-  // indexed with species_id_t
-  typedef std::vector< subpartition_mask_t > species_reactants_map_t;
 
   // indexed with subpartition index
   std::vector < species_reactants_map_t > volume_molecule_reactants;

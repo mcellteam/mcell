@@ -23,6 +23,7 @@
 
 #include <iostream>
 #include <string>
+#include <sstream>
 
 #include "molecule.h"
 #include "world.h"
@@ -32,7 +33,7 @@ using namespace std;
 namespace mcell {
 
 // TODO: same as in dump_state.cpp, remove one of the copies
-string get_molecule_flags_string(short flags) {
+string get_molecule_flags_string(uint32_t flags) {
 	string res;
 #define DUMP_FLAG(f, mask) if (((f) & (mask)) != 0) res += string(#mask) + ", ";
 	DUMP_FLAG(flags, TYPE_SURF)
@@ -45,6 +46,7 @@ string get_molecule_flags_string(short flags) {
 	DUMP_FLAG(flags, IN_SCHEDULE)
 	DUMP_FLAG(flags, IN_SURFACE)
 	DUMP_FLAG(flags, IN_VOLUME)
+	DUMP_FLAG(flags, MOLECULE_FLAG_DEFUNCT)
 #undef DUMP_FLAG
 	return res;
 }
@@ -53,6 +55,7 @@ void base_molecule_t::dump_base(const std::string ind) const {
   cout << ind <<"flags: \t\t" << flags << "[uint16_t]\n";
   cout << ind <<"species_id: \t\t" << species_id << " [species_id_t]\n";
 }
+
 
 void volume_molecule_t::dump(const std::string ind) const {
   cout << ind <<"pos: \t\t" << pos << "[vec3_t]\n";
@@ -73,6 +76,22 @@ void volume_molecule_t::dump(
 			<< ", subpartition:" << subpartition_index
 #endif
 			<< "\n";
+}
+
+string volume_molecule_t::to_string() const {
+	stringstream ss;
+	ss <<
+			"id: " << idx <<
+			", species: " << species_id <<
+			", pos: " << pos <<
+			", flags:" << get_molecule_flags_string(flags);
+	return ss.str();
+}
+
+void volume_molecule_t::dump_array(const std::vector<volume_molecule_t>& vec) {
+	for (size_t i = 0; i < vec.size(); i++) {
+		cout << "  vm " << i << ": " << vec[i].to_string() << "\n";
+	}
 }
 
 

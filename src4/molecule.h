@@ -56,7 +56,7 @@ class world_t;
 #endif
 
 enum molecule_flags_e {
-	MOLECULE_FLAG_DEFUNCT = 1 << 15,
+	MOLECULE_FLAG_DEFUNCT = 1 << /*15*/31,
 };
 
 class base_molecule_t {
@@ -66,7 +66,7 @@ public:
 	}
 
 	molecule_idx_t idx; // necessary, index to partition's volume_molecules array
-	uint16_t flags; // defunct by default, use bitfield instead?
+	/*uint16_t*/ uint32_t flags; // defunct by default, use bitfield instead?
 	species_id_t species_id;
 
 	bool is_defunct() const {
@@ -85,6 +85,12 @@ public:
 
 class volume_molecule_t : public base_molecule_t {
 public:
+	volume_molecule_t()
+		: base_molecule_t(MOLECULE_IDX_INVALID, SPECIES_ID_INVALID),
+			pos(0),
+			subpartition_index(SUBPARTITION_INDEX_INVALID) {
+		// needed for std::sort
+	}
 	volume_molecule_t(const molecule_idx_t idx_, const species_id_t species_id_, const vec3_t& pos_)
 		: base_molecule_t(idx_, species_id_),
 			pos(pos_),
@@ -101,6 +107,8 @@ public:
 			const std::string ind,
 			const uint64_t iteration
 	) const;
+  std::string to_string() const;
+	static void dump_array(const std::vector<volume_molecule_t>& vec);
 
 };
 

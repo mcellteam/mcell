@@ -41,6 +41,7 @@ namespace mcell {
 class world_t {
 private:
 	void init_simulation();
+	void create_defragmentation_events();
 public:
 	world_t();
 	bool run_simulation();

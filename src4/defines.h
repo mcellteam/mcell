@@ -67,6 +67,8 @@ typedef double float_t; // soon to be changed to float
 const float_t TIME_INVALID = NAN;
 const float_t TIME_SIMULATION_START = 0;
 
+const uint32_t DEFRAGMENTATION_PERIODICITY = 100;
+
 const float_t PARTITION_EDGE_LENGTH_DEFAULT = 10 * 100 /*1/length unit*/; // maybe too large for now
 
 //const float_t SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT = 20; // mcell3 uses logarithmic scaling, this is not useful here
@@ -116,6 +118,8 @@ const int SPECIES_ID_INVALID = USHRT_MAX;
 
 typedef uint32_t molecule_idx_t;
 const uint32_t MOLECULE_IDX_INVALID = UINT32_MAX;
+
+const uint32_t MOLECULE_INDEX_INVALID = UINT32_MAX;
 
 // for now, this is the partition that contains point 0,0,0
 // in its center
