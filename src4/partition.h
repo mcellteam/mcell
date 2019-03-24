@@ -62,6 +62,7 @@ public:
 			world_constants(world_constants_) {
 
 		opposite_corner = origin_corner + world_constants.partition_edge_length;
+
 		// preaallocate volume_molecules arrays and also volume_molecule_indices_per_time_step
 		uint32_t num_subparts = powu(world_constants.subpartitions_per_partition_dimension, 3);
 		volume_molecule_reactants.resize(num_subparts);
@@ -70,7 +71,6 @@ public:
 		for (auto& reactants : volume_molecule_reactants) {
 			reactants.resize(num_species);
 		}
-
 	}
 
 
@@ -130,19 +130,14 @@ public:
 	uint32_t get_subpartition_index_from_3d_indices(const ivec3_t& indices) const {
 		uint32_t dim = world_constants.subpartitions_per_partition_dimension;
 		// example: dim: 5x5x5,  (1, 2, 3) -> 1 + 2*5 + 3*5*5 = 86
-		return indices.x + indices.y * dim + indices.z * powu(dim, 2);
+		return
+				indices.x +
+				indices.y * world_constants.subpartitions_per_partition_dimension +
+				indices.z * world_constants.subpartitions_per_partition_dimension_squared;
 	}
 
 	uint32_t get_subpartition_index_from_3d_indices(const int x, const int y, const int z) const {
-		uint32_t dim = world_constants.subpartitions_per_partition_dimension;
-		// example: dim: 5x5x5,  (1, 2, 3) -> 1 + 2*5 + 3*5*5 = 86
-
-		// check for calls from collect_neigboring_subparitions, can occur, must be fixed
-		assert(x >= 0);
-		assert(y >= 0);
-		assert(z >= 0);
-
-		return x + y * dim + z * powu(dim, 2);
+		return get_subpartition_index_from_3d_indices(ivec3_t(x, y, z));
 	}
 
 	void get_subpartition_3d_indices_from_index(const uint32_t index, ivec3_t& indices) const {
@@ -150,7 +145,7 @@ public:
 		// example: dim: 5x5x5,  86 -> (86%5, (86/5)%5, (86/(5*5))%5) = (1, 2, 3)
 		indices.x = index % dim;
 		indices.y = (index / dim) % dim;
-		indices.z = (index / powu(dim, 2)) % dim;
+		indices.z = (index / world_constants.subpartitions_per_partition_dimension_squared) % dim;
 	}
 
 	uint32_t get_subpartition_index(const vec3_t& pos) {
@@ -299,7 +294,7 @@ private:
   molecule_idx_t next_molecule_id;
 
   // indexed by diffusion time step index
-  std::vector< pair_time_step_volume_molecules_t > volume_molecule_indices_per_time_step; // TODO: rename so that the name has something to do with diffusion? diffusion list?
+  std::vector<pair_time_step_volume_molecules_t> volume_molecule_indices_per_time_step; // TODO: rename so that the name has something to do with diffusion? diffusion list?
 
   // indexed with subpartition index
   std::vector < species_reactants_map_t > volume_molecule_reactants;

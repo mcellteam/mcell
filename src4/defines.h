@@ -171,6 +171,7 @@ struct world_constants_t {
 
   float_t partition_edge_length;
   uint32_t subpartitions_per_partition_dimension;
+  uint32_t subpartitions_per_partition_dimension_squared;
   float_t subpartition_edge_length; // == partition_edge_length / subpartitions_per_partition_dimension
   float_t subpartition_edge_length_rcp; // == 1/subpartition_edge_length
 
@@ -182,6 +183,7 @@ struct world_constants_t {
 			subpartition_edge_length = partition_edge_length / (float_t)subpartitions_per_partition_dimension;
 			subpartition_edge_length_rcp = 1.0/subpartition_edge_length;
   	}
+  	subpartitions_per_partition_dimension_squared = powu(subpartitions_per_partition_dimension, 2);
   }
 
   void init(bimolecular_reactions_map_t* bimolecular_reactions_map_) {

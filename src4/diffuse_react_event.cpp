@@ -137,10 +137,8 @@ void diffuse_react_event_t::diffuse_single_molecule(partition_t& p, const molecu
 
 		// sort collisions by time
 		// note: it will suffice to sort them once, this is here mainly because of the dump
-		std::sort( molecule_collisions.begin(), molecule_collisions.end(), [ ]( const auto& lhs, const auto& rhs )
-		{
-		  return lhs.time < rhs.time;
-		});
+		std::sort( molecule_collisions.begin(), molecule_collisions.end(),
+				[ ]( const auto& lhs, const auto& rhs )	{ return lhs.time < rhs.time;	});
 
 #ifdef DEBUG_COLLISIONS
 		DUMP_CONDITION4(
@@ -151,8 +149,6 @@ void diffuse_react_event_t::diffuse_single_molecule(partition_t& p, const molecu
 	} while (state != RAY_TRACE_FINISHED);
 
 	// 4) evaluate and possible execute reactions
-	// they are supposed to be sorted in reverse by time
-	//for (int collision_idx = molecule_collisions.size() - 1; collision_idx >= 0; collision_idx--) {
 	for (size_t collision_idx = 0; collision_idx < molecule_collisions.size(); collision_idx++) {
 		molecules_collision_t& collision = molecule_collisions[collision_idx];
 
