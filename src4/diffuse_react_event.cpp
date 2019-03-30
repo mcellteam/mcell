@@ -639,22 +639,22 @@ int diffuse_react_event_t::outcome_products_random(
   // we can have just one product for now and no walls
 
   // create and place each product
-  assert(collision.rx->products.size() == 1);
-  volume_molecule_t vm(MOLECULE_ID_INVALID, collision.rx->products[0].species_id, collision.position);
+  for (species_with_orientation_t& product: collision.rx->products) {
+    volume_molecule_t vm(MOLECULE_ID_INVALID, product.species_id, collision.position);
 
-  volume_molecule_t& new_vm = p.add_volume_molecule(vm, world->species[vm.species_id].time_step);
-  new_vm.flags =  TYPE_VOL | IN_VOLUME | ACT_DIFFUSE;
+    volume_molecule_t& new_vm = p.add_volume_molecule(vm, world->species[vm.species_id].time_step);
+    new_vm.flags =  TYPE_VOL | IN_VOLUME | ACT_DIFFUSE;
 
-#ifdef DEBUG_REACTIONS
-  DUMP_CONDITION4(
-    new_vm.dump(world, "", "  created vm:", world->current_iteration);
-  );
-#endif
+  #ifdef DEBUG_REACTIONS
+    DUMP_CONDITION4(
+      new_vm.dump(world, "", "  created vm:", world->current_iteration);
+    );
+  #endif
 
-  // schedule new product for diffusion
-  new_molecules_to_diffuse.push_back(
-      molecule_to_diffuse_t(new_vm.id, remaining_time_step - collision.time));
-
+    // schedule new product for diffusion
+    new_molecules_to_diffuse.push_back(
+        molecule_to_diffuse_t(new_vm.id, remaining_time_step - collision.time));
+  }
   return RX_A_OK;
 }
 
