@@ -28,6 +28,9 @@
 
 namespace mcell {
 
+/**
+ * Dumps world state either in a textual or cellblender format.
+ */
 class viz_output_event_t: public base_event_t {
 public:
 	viz_output_event_t(world_t* world_)
@@ -44,12 +47,13 @@ public:
 	const char* file_prefix_name; // in const pool
 
 	world_t* world;
+
 private:
 	FILE* create_and_open_output_file_name();
 	void output_ascii_molecules();
 	void output_cellblender_molecules();
 };
 
-} /* namespace mcell */
+} // namespace mcell
 
-#endif /* SRC4_VIZ_OUTPUT_EVENT_H_ */
+#endif // SRC4_VIZ_OUTPUT_EVENT_H_

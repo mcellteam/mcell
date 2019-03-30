@@ -154,6 +154,7 @@ private:
   std::set<std::string> const_string_pool;
 };
 
-} /* namespace mcell4 */
+} // namespace mcell
 
-#endif /* SRC4_WORLD_H_ */
+#endif // SRC4_WORLD_H_
+

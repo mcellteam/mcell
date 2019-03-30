@@ -34,6 +34,9 @@ namespace mcell {
 // same as in mcell_structs but renamed to make sure it is used correctly
 #define SPECIES_FLAG_CAN_VOLVOL CAN_VOLVOL
 
+/**
+ * Holds information on one species type.
+ */
 class species_t {
 public:
 	species_id_t species_id;
@@ -54,7 +57,7 @@ public:
 	static void dump_array(const std::vector<species_t>& vec);
 };
 
-} /* namespace mcell */
+} // namespace mcell
 
-#endif /* SRC4_SPECIES_H_ */
+#endif // SRC4_SPECIES_H_
 

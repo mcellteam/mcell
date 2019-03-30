@@ -40,7 +40,6 @@ void subpartition_mask_t::dump() {
 		}
 		cnt++;
 	}
-
 	cout << "\n";
 }
 

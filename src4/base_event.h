@@ -21,8 +21,8 @@
  *
 ******************************************************************************/
 
-#ifndef _EVENT_H_
-#define _EVENT_H_
+#ifndef SRC4_BASE_EVENT_H_
+#define SRC4_BASE_EVENT_H_
 
 
 #include "defines.h"
@@ -56,6 +56,7 @@ public:
 	virtual void step() = 0;
 	virtual void dump(const std::string indent);
 
+	// time when this object;s step() method will be callled
 	float_t event_time;
 
 	// once this event is executed, schedule next one after this interval
@@ -69,4 +70,4 @@ public:
 
 }
 
-#endif /* V4SRC_EVENT_H_ */
+#endif // SRC4_BASE_EVENT_H_

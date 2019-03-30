@@ -25,25 +25,20 @@
 
 namespace mcell {
 
-
-
 void bucket_t::insert(base_event_t* event) {
-	// TODO: order by time dependence - enum value sets the ordering when the time of event is the same
-
-	// check right away if it does not belong to the end
+	// check right away if the event belongs to the end
 	if (events.empty() || cmp_lt(events.back()->event_time, event->event_time, SCHEDULER_COMPARISON_EPS)) {
 		events.push_back(event);
 	}
 	else {
-		// simply go through the list and put our item to the right time and right order
+		// go through the list and put our item to the right time and right order
 		auto it = events.begin();
 
-		// eps - 10-8
 		// find the right time
 		while (it != events.end() && cmp_lt((*it)->event_time, event->event_time, SCHEDULER_COMPARISON_EPS)) {
 			it++;
 		}
-		// find the right ordering
+		// find the right ordering among events with the same event_time
 		while (it != events.end() && cmp_eq((*it)->event_time, event->event_time, SCHEDULER_COMPARISON_EPS)
 				&& (*it)->type_index <= event->type_index) {
 			it++;
@@ -53,13 +48,16 @@ void bucket_t::insert(base_event_t* event) {
 	}
 }
 
+
 bucket_t::~bucket_t() {
   for (auto it = events.begin(); it != events.end(); it++) {
+  	// delete remaining events, usually there should be none
     delete *it;
   }
 }
 
 
+// insert a new item with time event->event_time, create bucket if needed
 void calendar_t::insert(base_event_t* event) {
 	float_t bucket_start_time = event_time_to_bucket_start_time(event->event_time);
 	if (queue.empty()) {
@@ -79,7 +77,6 @@ void calendar_t::insert(base_event_t* event) {
 		}
 		else {
 			// we need to create new buckets
-			// note: MCell 3 uses logarithmic scale
 			size_t missing_buckets = buckets_from_first - queue.size() + 1;
 			float_t next_time = queue.back().start_time + BUCKET_TIME_INTERVAL;
 			for (size_t i = 0; i < missing_buckets; i++) {
@@ -89,7 +86,6 @@ void calendar_t::insert(base_event_t* event) {
 			assert(buckets_from_first < queue.size());
 			queue[buckets_from_first].insert(event);
 		}
-
 	}
 }
 
@@ -109,6 +105,7 @@ void scheduler_t::schedule_event(base_event_t* event) {
 }
 
 
+// pop next scheduled event and run its step method
 float_t scheduler_t::handle_next_event(bool &end_simulation) {
 
 	base_event_t* event = calendar.pop_next();
@@ -133,5 +130,4 @@ float_t scheduler_t::handle_next_event(bool &end_simulation) {
 	return event_time;
 }
 
-
-} /* namespace mcell */
+} // namespace mcell

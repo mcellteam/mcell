@@ -28,6 +28,9 @@
 
 namespace mcell {
 
+/**
+ * Release molecules according to the settings.
+ */
 class release_event_t: public base_event_t {
 public:
 	release_event_t(world_t* world_) :
@@ -58,4 +61,4 @@ public:
 } // namespace mcell
 
 
-#endif /* SRC4_RELEASE_EVENT_H_ */
+#endif // SRC4_RELEASE_EVENT_H_

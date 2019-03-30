@@ -28,18 +28,16 @@
 extern "C" {
 #include "logging.h"
 #include "mem_util.h"
-#include "util.h" // MCell 3
+#include "util.h"
 #include "mcell_structs.h"
 }
 
 #include "viz_output_event.h"
 #include "world.h"
 
-
 using namespace std;
 
 namespace mcell {
-
 
 void viz_output_event_t::dump(const std::string indent) {
 	cout << indent << "Viz output event:\n";
@@ -65,6 +63,7 @@ void viz_output_event_t::step() {
 	}
 }
 
+
 static int digits_for_file_suffix(uint64_t iterations) {
 	uint64_t lli = 10;
 	int ndigits;
@@ -73,6 +72,7 @@ static int digits_for_file_suffix(uint64_t iterations) {
   }
   return ndigits;
 }
+
 
 FILE* viz_output_event_t::create_and_open_output_file_name() {
 	int ndigits = digits_for_file_suffix(world->iterations);
@@ -115,7 +115,7 @@ void viz_output_event_t::output_ascii_molecules() {
 			// TODO: norm
 			errno = 0;
       fprintf(custom_file, "%s %u %.9g %.9g %.9g %.9g %.9g %.9g\n",
-      		species_name.c_str(), m.idx,
+      		species_name.c_str(), m.id,
 					m.pos.x * length_unit, m.pos.y * length_unit, m.pos.z * length_unit,
 					0.0, 0.0, 0.0
 			);
@@ -130,6 +130,7 @@ void viz_output_event_t::output_ascii_molecules() {
   fclose(custom_file);
   assert(errno == 0);
 }
+
 
 void viz_output_event_t::output_cellblender_molecules() {
 	// assuming that fdlp->type == ALL_MOL_DATA
@@ -191,11 +192,6 @@ void viz_output_event_t::output_cellblender_molecules() {
 			 pos_y = mp->pos.y * length_unit;
 			 pos_z = mp->pos.z * length_unit;
 
-			 // this scould be already incorporated
-       /*pos_x *= world->length_unit;
-       pos_y *= world->length_unit;
-       pos_z *= world->length_unit;*/
-
        fwrite(&pos_x, sizeof(pos_x), 1, custom_file);
        fwrite(&pos_y, sizeof(pos_y), 1, custom_file);
        fwrite(&pos_z, sizeof(pos_z), 1, custom_file);
@@ -203,7 +199,6 @@ void viz_output_event_t::output_cellblender_molecules() {
    }
 
   fclose(custom_file);
-
 }
 
-} /* namespace mcell */
+} // namespace mcell

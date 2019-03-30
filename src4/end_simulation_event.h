@@ -43,4 +43,4 @@ public:
 
 } // namespace mcell
 
-#endif /* SRC4_END_SIMULATION_EVENT_H_ */
+#endif // SRC4_END_SIMULATION_EVENT_H_

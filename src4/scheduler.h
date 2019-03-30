@@ -88,12 +88,13 @@ public:
 	// scheduler becomes owner of the base_event object
 	void schedule_event(base_event_t* event);
 
-	// returns new time
+	// returns time of the event that was handled
 	float_t handle_next_event(bool &end_simulation);
 
+private:
 	calendar_t calendar;
 };
 
 } // namespace mcell
 
-#endif /* SRC4_SCHEDULER_H_ */
+#endif // SRC4_SCHEDULER_H_

@@ -64,15 +64,11 @@ public:
 
 	bool convert(volume* s);
 	bool convert_simulation_setup(volume* s);
-
 	void create_diffusion_events();
 	bool convert_species_and_create_diffusion_events(volume* s);
-
 	bool convert_single_reaction(rxn *rx);
 	bool convert_reactions(volume* s);
-
 	bool convert_release_events(volume* s);
-
 	bool convert_viz_output_events(volume* s);
 
 	// contained world object
@@ -85,6 +81,7 @@ private:
 		return it->second;
 	}
 
+	// mapping from mcell3 species id to mcell4 species id
 	std::map<u_int, species_id_t> mcell3_species_id_map;
 };
 
@@ -93,4 +90,4 @@ private:
 
 #endif // #ifdef __cplusplus
 
-#endif /* SRC4_MCELL3_WORLD_CONVERTER_H_ */
+#endif // SRC4_MCELL3_WORLD_CONVERTER_H_

@@ -35,4 +35,4 @@ void base_event_t::dump(const std::string indent) {
 	cout << indent << "type_index: \t\t" << type_index << " [event_type_index_t] \t\t\n";
 }
 
-} /* namespace mcell */
+} // namespace mcell

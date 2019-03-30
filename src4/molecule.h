@@ -31,6 +31,7 @@ namespace mcell {
 class world_t;
 
 #if 0
+// from mcell3, copied for reference
 #define TYPE_SURF 0x001
 #define TYPE_VOL 0x002
 #define TYPE_MASK 0x003
@@ -55,18 +56,22 @@ class world_t;
 #define MATURE_MOLECULE 0x2000
 #endif
 
+
 enum molecule_flags_e {
-	MOLECULE_FLAG_DEFUNCT = 1 << /*15*/31,
+	MOLECULE_FLAG_DEFUNCT = 1 << 31,
 };
 
+/**
+ * Base class for all molecules.
+ */
 class base_molecule_t {
 public:
-	base_molecule_t(const molecule_idx_t idx_, const species_id_t species_id_)
-		: idx(idx_), flags(0), species_id(species_id_) {
+	base_molecule_t(const molecule_id_t id_, const species_id_t species_id_)
+		: id(id_), flags(0), species_id(species_id_) {
 	}
 
-	molecule_idx_t idx; // necessary, index to partition's volume_molecules array
-	/*uint16_t*/ uint32_t flags; // defunct by default, use bitfield instead?
+	molecule_id_t id; // unique molecule id
+	uint32_t flags;
 	species_id_t species_id;
 
 	bool is_defunct() const {
@@ -82,23 +87,25 @@ public:
 	void dump_base(const std::string ind) const;
 };
 
-
+/**
+ * Volume molecule class.
+ */
 class volume_molecule_t : public base_molecule_t {
 public:
 	volume_molecule_t()
-		: base_molecule_t(MOLECULE_IDX_INVALID, SPECIES_ID_INVALID),
+		: base_molecule_t(MOLECULE_ID_INVALID, SPECIES_ID_INVALID),
 			pos(0),
-			subpartition_index(SUBPARTITION_INDEX_INVALID) {
+			subpart_index(SUBPART_INDEX_INVALID) {
 		// needed for std::sort
 	}
-	volume_molecule_t(const molecule_idx_t idx_, const species_id_t species_id_, const vec3_t& pos_)
+	volume_molecule_t(const molecule_id_t idx_, const species_id_t species_id_, const vec3_t& pos_)
 		: base_molecule_t(idx_, species_id_),
 			pos(pos_),
-			subpartition_index(SUBPARTITION_INDEX_INVALID) {
+			subpart_index(SUBPART_INDEX_INVALID) {
 	}
 
 	vec3_t pos;
-	uint32_t subpartition_index;
+	uint32_t subpart_index;
 
 	void dump(const std::string ind) const;
 	void dump(
@@ -109,9 +116,8 @@ public:
 	) const;
   std::string to_string() const;
 	static void dump_array(const std::vector<volume_molecule_t>& vec);
-
 };
 
 } // namespace mcell
 
-#endif /* SRC4_MOLECULE_H_ */
+#endif // SRC4_MOLECULE_H_

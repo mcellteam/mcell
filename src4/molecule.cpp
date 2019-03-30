@@ -51,42 +51,46 @@ string get_molecule_flags_string(uint32_t flags) {
 	return res;
 }
 
-void base_molecule_t::dump_base(const std::string ind) const {
+
+void base_molecule_t::dump_base(const string ind) const {
   cout << ind <<"flags: \t\t" << flags << "[uint16_t]\n";
   cout << ind <<"species_id: \t\t" << species_id << " [species_id_t]\n";
 }
 
 
-void volume_molecule_t::dump(const std::string ind) const {
+void volume_molecule_t::dump(const string ind) const {
   cout << ind <<"pos: \t\t" << pos << "[vec3_t]\n";
-  cout << ind <<"subpartition_index: \t\t" << subpartition_index << " [uint32_t]\n";
+  cout << ind <<"subpartition_index: \t\t" << subpart_index << " [uint32_t]\n";
   dump_base(ind);
 }
 
+
 void volume_molecule_t::dump(
 		world_t* world,
-		const std::string extra_comment,
-		const std::string ind,
+		const string extra_comment,
+		const string ind,
 		const uint64_t iteration
 ) const {
-	cout << ind << extra_comment << "it:" << iteration << ", idx:" << idx
+	cout << ind << extra_comment << "it:" << iteration << ", idx:" << id
 			<< ", species " << world->species[species_id].name << ", pos:" << pos
 			<< ", flags:" << get_molecule_flags_string(flags)
 #ifdef DEBUG_SUBPARTITIONS
-			<< ", subpartition:" << subpartition_index
+			<< ", subpartition:" << subpart_index
 #endif
 			<< "\n";
 }
 
+
 string volume_molecule_t::to_string() const {
 	stringstream ss;
 	ss <<
-			"id: " << idx <<
+			"id: " << id <<
 			", species: " << species_id <<
 			", pos: " << pos <<
 			", flags:" << get_molecule_flags_string(flags);
 	return ss.str();
 }
+
 
 void volume_molecule_t::dump_array(const std::vector<volume_molecule_t>& vec) {
 	for (size_t i = 0; i < vec.size(); i++) {
@@ -94,5 +98,4 @@ void volume_molecule_t::dump_array(const std::vector<volume_molecule_t>& vec) {
 	}
 }
 
-
-} /* namespace mcell */
+} // namespace mcell

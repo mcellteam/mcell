@@ -48,13 +48,15 @@ enum ray_trace_state_t {
 	RAY_TRACE_FINISHED
 };
 
-
+/**
+ * Information about collision of 2 volume molecules.
+ */
 class molecules_collision_t {
 public:
 	molecules_collision_t(
 			partition_t* partition_ptr,
-			const molecule_idx_t diffused_molecule_idx_,
-			const molecule_idx_t colliding_molecule_idx_,
+			const molecule_id_t diffused_molecule_idx_,
+			const molecule_id_t colliding_molecule_idx_,
 			reaction_t* rx_ptr,
 			const float_t& time_,
 			const vec3_t& position_)
@@ -69,8 +71,8 @@ public:
 	}
 
 	partition_t* partition;
-	molecule_idx_t diffused_molecule_idx;
-	molecule_idx_t colliding_molecule_idx;
+	molecule_id_t diffused_molecule_idx;
+	molecule_id_t colliding_molecule_idx;
 	reaction_t* rx;
 	float_t time;
 	vec3_t position;
@@ -78,26 +80,31 @@ public:
   void dump(partition_t& p, const std::string ind) const;
   std::string to_string() const;
   static void dump_array(partition_t& p, const std::vector<molecules_collision_t>& vec);
-
 };
 
 
+/**
+ * Used as a pair molecule id, remaining timestep for molecules newly created in diffusion.
+ */
 class molecule_to_diffuse_t {
 public:
 	molecule_to_diffuse_t(
-			const molecule_idx_t idx_,
+			const molecule_id_t id_,
 			const float_t remaining_time_step_)
 		:
-			idx(idx_),
-			remaining_time_step(remaining_time_step_)
-			{
+			id(id_),
+			remaining_time_step(remaining_time_step_)	{
 	}
-	molecule_idx_t idx;
+	molecule_id_t id;
 	float_t remaining_time_step;
 };
 
-// created in mcell3_world_converter::create_diffusion_events() before any other events,
-// so even if release is created for time 0, this event is scheduled to occur as first one
+/**
+ * Diffuse all molecules with a given time step.
+ * When a molecule is diffused, it is checked for collisions and reactions
+ * are evaluated. Molecules newly created in reactions and diffused with their
+ * remaining time.
+ */
 class diffuse_react_event_t : public base_event_t {
 public:
 	diffuse_react_event_t(world_t* world_, const float_t diffusion_time_step_) :
@@ -105,7 +112,7 @@ public:
 		world(world_),
 		diffusion_time_step(diffusion_time_step_) {
 
-		// repeat this event each
+		// repeat this event each time step
 		periodicity_interval = diffusion_time_step;
 	}
 	void step();
@@ -116,12 +123,12 @@ public:
 	// this event diffuses all molecules that have this diffusion time_step
 	float_t diffusion_time_step;
 
-
+private:
+	// molecules newly created in reactions
 	std::vector<molecule_to_diffuse_t> new_molecules_to_diffuse;
 
-private:
-	void diffuse_molecules(partition_t& p, const std::vector< molecule_idx_t >& indices);
-	void diffuse_single_molecule(partition_t& p, const molecule_idx_t vm, const float_t curr_time_step);
+	void diffuse_molecules(partition_t& p, const std::vector< molecule_id_t >& indices);
+	void diffuse_single_molecule(partition_t& p, const molecule_id_t vm, const float_t curr_time_step);
 	void pick_displacement(float_t scale /*space step*/, vec3_t& displacement);
 	void compute_displacement(species_t& sp, vec3_t& displacement, float_t remaining_time_step);
 
@@ -140,7 +147,6 @@ private:
 			vec3_t& displacement,
 			float_t remaining_time_step
 	);
-
 
 	int test_bimolecular(
 			reaction_t& rx,
@@ -161,14 +167,8 @@ private:
 			int path,
 			float_t remaining_time_step
 	);
-
-	subpartition_mask_t& get_sp_species_reacting_mols_cached_data(
-			uint32_t sp_index, volume_molecule_t& vm, partition_t& p);
-
-	// cache for possible reactions, reset every time step() is called
-	//std::unordered_map<uint32_t, std::unordered_map<species_id_t, subpartition_mask_t> > cache_sp_species_reacting_mols;
 };
 
 } // namespace mcell
 
-#endif /* SRC4_DIFFUSE_REACT_EVENT_H_ */
+#endif // SRC4_DIFFUSE_REACT_EVENT_H_

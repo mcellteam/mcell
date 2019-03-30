@@ -23,12 +23,12 @@
 
 #include <stdarg.h>
 #include <stdlib.h>
-
 #include <set>
 
-
+extern "C" {
+#include "logging.h"
+}
 #include "mcell_structs.h"
-
 #include "mcell3_world_converter.h"
 
 #include "world.h"
@@ -36,14 +36,7 @@
 #include "diffuse_react_event.h"
 #include "viz_output_event.h"
 
-// must be included as the last one due to include collisions
-extern "C" {
-#include "logging.h"
-}
-
-
 using namespace std;
-
 
 // checking major converstion blocks
 #define CHECK(a) do { if(!(a)) return false; } while (0)
@@ -57,33 +50,39 @@ using namespace std;
 // holds global class
 mcell::mcell3_world_converter g_converter;
 
+
 bool mcell4_convert_mcell3_volume(volume* s) {
 	return g_converter.convert(s);
 }
+
 
 bool mcell4_run_simulation() {
 	return g_converter.world->run_simulation();
 }
 
+
 void mcell4_delete_world() {
 	return g_converter.reset();
 }
 
+
 void mcell_log_conv_warning(char const *fmt, ...) {
   va_list args;
   va_start(args, fmt);
-  std::string fmt_w_warning = std::string ("Conversion warning: ") + fmt;
+  string fmt_w_warning = string ("Conversion warning: ") + fmt;
   mcell_logv_raw(fmt_w_warning.c_str(), args);
   va_end(args);
 }
 
+
 void mcell_log_conv_error(char const *fmt, ...) {
   va_list args;
   va_start(args, fmt);
-  std::string fmt_w_warning = std::string ("Conversion error: ") + fmt;
+  string fmt_w_warning = string ("Conversion error: ") + fmt;
   mcell_logv_raw(fmt_w_warning.c_str(), args);
   va_end(args);
 }
+
 
 namespace mcell {
 
@@ -113,24 +112,20 @@ void mcell3_world_converter::reset() {
 	mcell3_species_id_map.clear();
 }
 
+
 bool mcell3_world_converter::convert(volume* s) {
 
 	world = new world_t();
 
 	CHECK(convert_simulation_setup(s));
-
 	CHECK(convert_species_and_create_diffusion_events(s));
-
 	CHECK(convert_reactions(s));
-
 	CHECK(convert_release_events(s));
-
-
 	CHECK(convert_viz_output_events(s));
-
 
 	return true;
 }
+
 
 bool mcell3_world_converter::convert_simulation_setup(volume* s) {
 	// TODO: many items are not checked
@@ -150,6 +145,7 @@ bool mcell3_world_converter::convert_simulation_setup(volume* s) {
 	return true;
 }
 
+
 // cannot fail
 void mcell3_world_converter::create_diffusion_events() {
 	assert(!world->species.empty() && "There must be at least 1 species");
@@ -165,6 +161,7 @@ void mcell3_world_converter::create_diffusion_events() {
 		world->scheduler.schedule_event(event);
 	}
 }
+
 
 bool mcell3_world_converter::convert_species_and_create_diffusion_events(volume* s) {
 	// TODO: many items are not checked
@@ -183,7 +180,6 @@ bool mcell3_world_converter::convert_species_and_create_diffusion_events(volume*
 		new_species.name = get_sym_name(spec->sym);
 		new_species.space_step = spec->space_step;
 		new_species.time_step = spec->time_step;
-
 		CHECK_PROPERTY(spec->flags == 0 || spec->flags == SPECIES_FLAG_CAN_VOLVOL);
 		new_species.flags = spec->flags;
 
@@ -196,6 +192,7 @@ bool mcell3_world_converter::convert_species_and_create_diffusion_events(volume*
 
 	return true;
 }
+
 
 bool mcell3_world_converter::convert_single_reaction(rxn *rx) {
 	world->reactions.push_back(reaction_t());
@@ -287,7 +284,6 @@ bool mcell3_world_converter::convert_reactions(volume* s) {
 	rxn** reaction_hash = s->reaction_hash;
 	int count = s->rx_hashsize;
 
-
   for (int i = 0; i < count; ++i) {
     rxn *rx = reaction_hash[i];
     while (rx != nullptr) {
@@ -298,6 +294,7 @@ bool mcell3_world_converter::convert_reactions(volume* s) {
 
 	return true;
 }
+
 
 bool mcell3_world_converter::convert_release_events(volume* s) {
 
@@ -312,8 +309,7 @@ bool mcell3_world_converter::convert_release_events(volume* s) {
 	CHECK_PROPERTY(releaser->index == 0);
 
   for (int i = -1; i < releaser->buf_len; i++) {
-    for (abstract_element *aep = (i < 0) ? releaser->current
-                                                : releaser->circ_buf_head[i];
+    for (abstract_element *aep = (i < 0) ? releaser->current : releaser->circ_buf_head[i];
          aep != NULL; aep = aep->next) {
 
     	release_event_t* event = new release_event_t(world);
@@ -369,8 +365,8 @@ bool mcell3_world_converter::convert_release_events(volume* s) {
 	return true;
 }
 
-bool mcell3_world_converter::convert_viz_output_events(volume* s) {
 
+bool mcell3_world_converter::convert_viz_output_events(volume* s) {
 
 	// -- viz_output_block --
 	viz_output_block* viz_blocks = s->viz_blocks;
@@ -415,4 +411,4 @@ bool mcell3_world_converter::convert_viz_output_events(volume* s) {
 }
 
 
-} /* namespace mcell */
+} // namespace mcell

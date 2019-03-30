@@ -20,6 +20,7 @@
  * USA.
  *
 ******************************************************************************/
+
 #include <time.h>
 #include <sys/time.h> // Linux include
 #include <sys/resource.h> // Linux include
@@ -34,16 +35,20 @@ extern "C" {
 
 using namespace std;
 
+const double USEC_IN_SEC = 1000000.0;
+
 namespace mcell {
 
-world_t::world_t() {
+world_t::world_t()
+	: current_iteration(0), iterations(0), seed_seq(0)
+{
 	// TODO: initialize rest of members
 	world_constants.partition_edge_length = PARTITION_EDGE_LENGTH_DEFAULT;
 	world_constants.subpartitions_per_partition_dimension = SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT;
 }
 
-void world_t::init_simulation() {
 
+void world_t::init_simulation() {
 	// create map for fast reaction searches
 	for (reaction_t& r: reactions) {
 		assert(r.reactants.size() == 2); // only bimolecular reactions are supported now
@@ -71,17 +76,8 @@ void world_t::init_simulation() {
 	// not depend on some random initialization
 	uint32_t index = add_partition(vec3_t(0, 0, 0));
 	assert(index == PARTITION_INDEX_INITIAL);
-
-
 }
 
-
-void world_t::dump() {
-	world_constants.dump();
-	// species
-	species_t::dump_array(species);
-
-}
 
 static uint64_t determine_output_frequency(uint64_t iterations) {
 	uint64_t frequency;
@@ -102,15 +98,16 @@ static uint64_t determine_output_frequency(uint64_t iterations) {
   return frequency;
 }
 
-const double USEC_IN_SEC = 1000000.0;
 
 static double tousecs(timeval& t) {
 	return (double)t.tv_sec * USEC_IN_SEC + (double)t.tv_usec;
 }
 
+
 static double tosecs(timeval& t) {
 	return (double)t.tv_sec + (double)t.tv_usec/USEC_IN_SEC;
 }
+
 
 bool world_t::run_simulation() {
 
@@ -118,12 +115,11 @@ bool world_t::run_simulation() {
 
 	dump();
 
-	// create defragmentation events  FIXME: use periodicity
+	// create defragmentation events
 	defragmentation_event_t* defragmentation_event = new defragmentation_event_t(this);
 	defragmentation_event->event_time = DEFRAGMENTATION_PERIODICITY;
 	defragmentation_event->periodicity_interval = DEFRAGMENTATION_PERIODICITY;
 	scheduler.schedule_event(defragmentation_event);
-
 
 	// create event that will terminate our simulation
 	end_simulation_event_t* end_event = new end_simulation_event_t();
@@ -134,7 +130,7 @@ bool world_t::run_simulation() {
 	float_t time = TIME_SIMULATION_START;
 	float_t previous_time;
 	current_iteration = 0;
-	uint32_t how_often_to_report = determine_output_frequency(iterations);
+	uint32_t output_frequency = determine_output_frequency(iterations);
 	timeval last_timing_time = {0, 0};
 
 	cout << "Iterations: " << current_iteration << " of " << iterations << "\n";
@@ -144,14 +140,13 @@ bool world_t::run_simulation() {
 
 	do {
 		previous_time = time;
+		// this is where events get executed
 		time = scheduler.handle_next_event(end_simulation);
-
 
 		// report progress
 		if (time > previous_time) {
 			current_iteration++;
-
-			if (current_iteration % how_often_to_report == 0) {
+			if (current_iteration % output_frequency == 0) {
 
 				cout << "Iterations: " << current_iteration << " of " << iterations;
 
@@ -159,7 +154,7 @@ bool world_t::run_simulation() {
 				gettimeofday(&curr_timing_time, NULL);
 				if (last_timing_time.tv_usec > 0) {
           double time_diff = tousecs(curr_timing_time) - tousecs(last_timing_time);
-          time_diff /= (double)how_often_to_report;
+          time_diff /= (double)output_frequency;
           cout << " (" << 1000000.0/time_diff << " iter/sec)";
 				}
         last_timing_time = curr_timing_time;
@@ -182,4 +177,12 @@ bool world_t::run_simulation() {
 	return true;
 }
 
-} /* namespace mcell */
+
+void world_t::dump() {
+	world_constants.dump();
+	// species
+	species_t::dump_array(species);
+}
+
+} // namespace mcell
+

@@ -29,8 +29,7 @@
 
 namespace mcell {
 
-typedef int16_t orientation_t;
-// TODO: choose correct names
+typedef int32_t orientation_t;
 const orientation_t ORIENTATION_DOWN = -1;
 const orientation_t ORIENTATION_NONE = 0;
 const orientation_t ORIENTATION_UP = 1;
@@ -49,6 +48,7 @@ struct species_with_orientation_t {
 	orientation_t orientation;
 };
 
+
 class reaction_t {
 public:
 	std::string name;
@@ -60,6 +60,6 @@ public:
 	void dump(const std::string ind) const;
 };
 
-} /* namespace mcell */
+} // namespace mcell
 
-#endif /* SRC4_REACTION_H_ */
+#endif // SRC4_REACTION_H_

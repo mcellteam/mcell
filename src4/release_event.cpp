@@ -36,9 +36,9 @@ using namespace std;
 
 namespace mcell {
 
-void release_event_t::dump(const std::string ind) {
+void release_event_t::dump(const string ind) {
 	cout << "Release event:\n";
-	std::string ind2 = ind + "  ";
+	string ind2 = ind + "  ";
 	base_event_t::dump(ind2);
 	cout << ind2 << "location: \t\t" << location << " [vec3_t] \t\t\n";
 	cout << ind2 << "species_id: \t\t" << species_id << " [species_id_t] \t\t\n";
@@ -50,7 +50,6 @@ void release_event_t::dump(const std::string ind) {
 void release_event_t::step() {
 	// for now, let's simply release 'release_number' of molecules of 'species_id'
 	// at 'location'
-
 	partition_t& p = world->partitions[world->get_or_add_partition_index(location)];
 	float_t time_step = world->species[species_id].time_step;
 	uint32_t time_step_index = p.get_or_add_molecule_list_index_for_time_step(time_step);
@@ -96,11 +95,10 @@ void release_event_t::step() {
     molecule_location.z = base_location[0][2];
 
     volume_molecule_t& new_vm = p.add_volume_molecule_with_time_step_index(
-    		volume_molecule_t(MOLECULE_IDX_INVALID, species_id, molecule_location), time_step_index
+    		volume_molecule_t(MOLECULE_ID_INVALID, species_id, molecule_location), time_step_index
 		);
     new_vm.flags = TYPE_VOL | IN_VOLUME | ACT_DIFFUSE;
 	}
-
 }
 
 } // namespace mcell

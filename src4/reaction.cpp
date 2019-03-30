@@ -28,12 +28,10 @@ using namespace std;
 
 namespace mcell {
 
-void reaction_t::dump(const std::string ind) const {
+void reaction_t::dump(const string ind) const {
 	cout << ind << "name: \t\t" << name << " [string] \t\t\n";
 	cout << ind << "rate_constant: \t\t" << rate_constant << " [float_t] \t\t\n";
 	cout << ind << "min_noreaction_p: \t\t" << min_noreaction_p << " [float_t] \t\t\n";
 }
 
-
-
-}
+} // namespace mcell

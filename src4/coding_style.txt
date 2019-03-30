@@ -1,0 +1,52 @@
+Includes ordering:
+
+Mcell3 if under extern "C"
+
+C++
+MCell
+
+
+Naming:
+
+molecule, mol, m
+volume molecule, vm
+reaction, rx
+index, indices - not abbreviated as idx
+id
+partition, p for variables
+subpartition, subpart - not sp
+species
+displacement
+interation
+pos, not position
+
+rx_radius
+len - distance, not length
+ind, ind2 - local; indent - in parameter
+rel - relative
+
+urb - up, right, back
+llf - low, left, front
+
+rcp - reciprocal ( = 1/x)
+no spaces like this: < a >, use this <a> instead
+
+comments start with lowercase
+
+using namespace std; - in C++ files, not in headers
+
+
+blocks are marked like this:
+
+// ---------------------------------- dumping methods ----------------------------------
+
+there are two newlines between functions
+
+dump methods are always at the end of a file
+
+Includes:
+system, mcell3, mcell4
+
+Optimization notes:
+
+diffuse - make some of the methods static?
