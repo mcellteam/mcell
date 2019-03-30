@@ -33,29 +33,29 @@ namespace mcell {
  */
 class release_event_t: public base_event_t {
 public:
-	release_event_t(world_t* world_) :
-		base_event_t(EVENT_TYPE_INDEX_RELEASE),
-		species_id(SPECIES_ID_INVALID),
-		release_number(0),
-		name(NAME_INVALID),
-		release_shape(SHAPE_SPHERICAL),
-		world(world_) {
-	}
-	virtual ~release_event_t() {}
+  release_event_t(world_t* world_) :
+    base_event_t(EVENT_TYPE_INDEX_RELEASE),
+    species_id(SPECIES_ID_INVALID),
+    release_number(0),
+    name(NAME_INVALID),
+    release_shape(SHAPE_SPHERICAL),
+    world(world_) {
+  }
+  virtual ~release_event_t() {}
 
-	virtual void step();
-	virtual void dump(const std::string indent);
+  virtual void step();
+  virtual void dump(const std::string indent);
 
-	vec3_t location;
-	species_id_t species_id;
-	uint32_t release_number; // number of molecules to release
-	std::string name;
+  vec3_t location;
+  species_id_t species_id;
+  uint32_t release_number; // number of molecules to release
+  std::string name;
 
   int8_t release_shape; /* Release Shape Flags: controls shape over which to
                            release (enum release_shape_t) */
   vec3_t diameter; /* x,y,z diameter for geometrical release shapes */
 
-	world_t* world;
+  world_t* world;
 };
 
 } // namespace mcell

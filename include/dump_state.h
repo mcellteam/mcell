@@ -49,11 +49,11 @@ void dump_collisions(struct collision* shead);
 extern "C"
 #endif
 void dump_volume_molecule(
-		struct volume_molecule* amp,
-		const char* ind,
-		bool for_diff,
-		const char* extra_comment,
-		unsigned long long iteration
+    struct volume_molecule* amp,
+    const char* ind,
+    bool for_diff,
+    const char* extra_comment,
+    unsigned long long iteration
 );
 
 #ifdef __cplusplus

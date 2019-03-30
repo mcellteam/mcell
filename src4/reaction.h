@@ -35,29 +35,29 @@ const orientation_t ORIENTATION_NONE = 0;
 const orientation_t ORIENTATION_UP = 1;
 
 struct species_with_orientation_t {
-	species_with_orientation_t()
-		: species_id(SPECIES_ID_INVALID), orientation(ORIENTATION_NONE) {
-	}
-	species_with_orientation_t(
-			const species_id_t species_id_,
-			const orientation_t orientation_)
-		: species_id(species_id_), orientation(orientation_) {
-	}
+  species_with_orientation_t()
+    : species_id(SPECIES_ID_INVALID), orientation(ORIENTATION_NONE) {
+  }
+  species_with_orientation_t(
+      const species_id_t species_id_,
+      const orientation_t orientation_)
+    : species_id(species_id_), orientation(orientation_) {
+  }
 
-	species_id_t species_id;
-	orientation_t orientation;
+  species_id_t species_id;
+  orientation_t orientation;
 };
 
 
 class reaction_t {
 public:
-	std::string name;
-	float_t rate_constant;
-	float_t min_noreaction_p;
-	std::vector<species_with_orientation_t> reactants;
-	std::vector<species_with_orientation_t> products;
+  std::string name;
+  float_t rate_constant;
+  float_t min_noreaction_p;
+  std::vector<species_with_orientation_t> reactants;
+  std::vector<species_with_orientation_t> products;
 
-	void dump(const std::string ind) const;
+  void dump(const std::string ind) const;
 };
 
 } // namespace mcell

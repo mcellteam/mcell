@@ -30,15 +30,15 @@ namespace mcell {
 
 class end_simulation_event_t: public mcell::base_event_t {
 public:
-	end_simulation_event_t() :
-		base_event_t(EVENT_TYPE_INDEX_END_SIMULATION) {
-	}
-	void step() {
-		// does nothing, this type of event is detected in the scheduler
-	}
-	void dump(const std::string indent) {
-		// TODO
-	}
+  end_simulation_event_t() :
+    base_event_t(EVENT_TYPE_INDEX_END_SIMULATION) {
+  }
+  void step() {
+    // does nothing, this type of event is detected in the scheduler
+  }
+  void dump(const std::string indent) {
+    // TODO
+  }
 };
 
 } // namespace mcell

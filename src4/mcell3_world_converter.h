@@ -52,37 +52,37 @@ namespace mcell {
 
 class mcell3_world_converter {
 public:
-	mcell3_world_converter() :
-		world(nullptr) {
-	}
+  mcell3_world_converter() :
+    world(nullptr) {
+  }
 
-	~mcell3_world_converter() {
-		delete world;
-	}
+  ~mcell3_world_converter() {
+    delete world;
+  }
 
-	void reset();
+  void reset();
 
-	bool convert(volume* s);
-	bool convert_simulation_setup(volume* s);
-	void create_diffusion_events();
-	bool convert_species_and_create_diffusion_events(volume* s);
-	bool convert_single_reaction(rxn *rx);
-	bool convert_reactions(volume* s);
-	bool convert_release_events(volume* s);
-	bool convert_viz_output_events(volume* s);
+  bool convert(volume* s);
+  bool convert_simulation_setup(volume* s);
+  void create_diffusion_events();
+  bool convert_species_and_create_diffusion_events(volume* s);
+  bool convert_single_reaction(rxn *rx);
+  bool convert_reactions(volume* s);
+  bool convert_release_events(volume* s);
+  bool convert_viz_output_events(volume* s);
 
-	// contained world object
-	world_t* world;
+  // contained world object
+  world_t* world;
 
 private:
-	species_id_t get_mcell4_species_id(u_int mcell3_id) {
-		auto it = mcell3_species_id_map.find(mcell3_id);
-		assert(it != mcell3_species_id_map.end());
-		return it->second;
-	}
+  species_id_t get_mcell4_species_id(u_int mcell3_id) {
+    auto it = mcell3_species_id_map.find(mcell3_id);
+    assert(it != mcell3_species_id_map.end());
+    return it->second;
+  }
 
-	// mapping from mcell3 species id to mcell4 species id
-	std::map<u_int, species_id_t> mcell3_species_id_map;
+  // mapping from mcell3 species id to mcell4 species id
+  std::map<u_int, species_id_t> mcell3_species_id_map;
 };
 
 

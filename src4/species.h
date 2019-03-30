@@ -39,22 +39,22 @@ namespace mcell {
  */
 class species_t {
 public:
-	species_id_t species_id;
+  species_id_t species_id;
 
-	uint32_t mcell3_species_id;
-	float_t D; // diffusion constant
-	std::string name;
-	float_t space_step;
-	float_t time_step; // in standard time
+  uint32_t mcell3_species_id;
+  float_t D; // diffusion constant
+  std::string name;
+  float_t space_step;
+  float_t time_step; // in standard time
 
-	uint32_t flags; // replace with some bitfield?
+  uint32_t flags; // replace with some bitfield?
 
-	bool has_flag(uint32_t flag) {
-		return flags & SPECIES_FLAG_CAN_VOLVOL;
-	}
+  bool has_flag(uint32_t flag) {
+    return flags & SPECIES_FLAG_CAN_VOLVOL;
+  }
 
-	void dump(const std::string ind) const;
-	static void dump_array(const std::vector<species_t>& vec);
+  void dump(const std::string ind) const;
+  static void dump_array(const std::vector<species_t>& vec);
 };
 
 } // namespace mcell

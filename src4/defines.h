@@ -64,14 +64,14 @@ typedef glm::bvec3 bvec3_t;
 typedef glm::dmat4x4 mat4x4;
 
 struct vec3_t: public glm_vec3_t{
-	vec3_t() : glm::dvec3(0) {}
-	vec3_t(const glm::dvec3& a) { x = a.x; y = a.y; z = a.z; }
-	vec3_t(const vec3_t& a) : glm::dvec3(a.x, a.y, a.z) { /*x = a.x; y = a.y; z = a.z;*/ }
-	vec3_t(const vector3& a) { x = a.x; y = a.y; z = a.z; }
-	vec3_t(const float_t x_, const float_t y_, const float_t z_) { x = x_; y = y_; z = z_; }
-	vec3_t(const float_t xyz) { x = xyz; y = xyz; z = xyz; }
+  vec3_t() : glm::dvec3(0) {}
+  vec3_t(const glm::dvec3& a) { x = a.x; y = a.y; z = a.z; }
+  vec3_t(const vec3_t& a) : glm::dvec3(a.x, a.y, a.z) { /*x = a.x; y = a.y; z = a.z;*/ }
+  vec3_t(const vector3& a) { x = a.x; y = a.y; z = a.z; }
+  vec3_t(const float_t x_, const float_t y_, const float_t z_) { x = x_; y = y_; z = z_; }
+  vec3_t(const float_t xyz) { x = xyz; y = xyz; z = xyz; }
 
-	void dump(const std::string extra_comment, const std::string ind);
+  void dump(const std::string extra_comment, const std::string ind);
 };
 
 std::ostream & operator<<(std::ostream &out, const vec3_t &a);
@@ -118,27 +118,27 @@ const char* const NAME_INVALID = "invalid_name";
 // ---------------------------------- auxiliary functions ----------------------------------
 
 static inline float_t floor_to_multiple(const float_t val, float_t multiple) {
-	return (float_t)((int)(val / multiple)) * multiple;
+  return (float_t)((int)(val / multiple)) * multiple;
 }
 
 static inline vec3_t floor_to_multiple(const vec3_t& val, float_t multiple) {
-	return (vec3_t)((glm::ivec3)(val / multiple)) * multiple;
+  return (vec3_t)((glm::ivec3)(val / multiple)) * multiple;
 }
 
 static inline bool cmp_eq(const float_t a, const float_t b, const float_t eps) {
-	return fabs(a - b) < eps;
+  return fabs(a - b) < eps;
 }
 
 static inline bool cmp_lt(const float_t a, const float_t b, const float_t eps) {
-	return a < b && !cmp_eq(a, b, eps);
+  return a < b && !cmp_eq(a, b, eps);
 }
 
 static inline uint32_t powu(const uint32_t a, const uint32_t n) {
-	uint32_t res = a;
-	for (uint32_t i = 1; i < n; i++) {
-		res *= a;
-	}
-	return res;
+  uint32_t res = a;
+  for (uint32_t i = 1; i < n; i++) {
+    res *= a;
+  }
+  return res;
 }
 
 
@@ -164,16 +164,16 @@ struct world_constants_t {
   const bimolecular_reactions_map_t* bimolecular_reactions_map; // owned by world
 
   void init_subpartition_edge_length() {
-  	if (partition_edge_length != 0) {
-			subpartition_edge_length = partition_edge_length / (float_t)subpartitions_per_partition_dimension;
-			subpartition_edge_length_rcp = 1.0/subpartition_edge_length;
-  	}
-  	subpartitions_per_partition_dimension_squared = powu(subpartitions_per_partition_dimension, 2);
+    if (partition_edge_length != 0) {
+      subpartition_edge_length = partition_edge_length / (float_t)subpartitions_per_partition_dimension;
+      subpartition_edge_length_rcp = 1.0/subpartition_edge_length;
+    }
+    subpartitions_per_partition_dimension_squared = powu(subpartitions_per_partition_dimension, 2);
   }
 
   void init(bimolecular_reactions_map_t* bimolecular_reactions_map_) {
-  	bimolecular_reactions_map = bimolecular_reactions_map_;
-  	init_subpartition_edge_length();
+    bimolecular_reactions_map = bimolecular_reactions_map_;
+    init_subpartition_edge_length();
   }
 
   void dump();

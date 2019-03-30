@@ -49,23 +49,23 @@ const event_type_index_t EVENT_TYPE_INDEX_END_SIMULATION = 1000;
  */
 class base_event_t {
 public:
-	base_event_t(const event_type_index_t t) :
-		event_time(TIME_INVALID), periodicity_interval(0), type_index(t) {
-	}
-	virtual ~base_event_t() {};
-	virtual void step() = 0;
-	virtual void dump(const std::string indent);
+  base_event_t(const event_type_index_t t) :
+    event_time(TIME_INVALID), periodicity_interval(0), type_index(t) {
+  }
+  virtual ~base_event_t() {};
+  virtual void step() = 0;
+  virtual void dump(const std::string indent);
 
-	// time when this object;s step() method will be callled
-	float_t event_time;
+  // time when this object;s step() method will be callled
+  float_t event_time;
 
-	// once this event is executed, schedule next one after this interval
-	// do not schedule if the value is 0
-	float_t periodicity_interval;
+  // once this event is executed, schedule next one after this interval
+  // do not schedule if the value is 0
+  float_t periodicity_interval;
 
-	// this value specifies both id of the event and ordering when multiple
-	// events of a different type are sheduled for the same time
-	event_type_index_t type_index;
+  // this value specifies both id of the event and ordering when multiple
+  // events of a different type are sheduled for the same time
+  event_type_index_t type_index;
 };
 
 }

@@ -58,7 +58,7 @@ class world_t;
 
 
 enum molecule_flags_e {
-	MOLECULE_FLAG_DEFUNCT = 1 << 31,
+  MOLECULE_FLAG_DEFUNCT = 1 << 31,
 };
 
 /**
@@ -66,25 +66,25 @@ enum molecule_flags_e {
  */
 class base_molecule_t {
 public:
-	base_molecule_t(const molecule_id_t id_, const species_id_t species_id_)
-		: id(id_), flags(0), species_id(species_id_) {
-	}
+  base_molecule_t(const molecule_id_t id_, const species_id_t species_id_)
+    : id(id_), flags(0), species_id(species_id_) {
+  }
 
-	molecule_id_t id; // unique molecule id
-	uint32_t flags;
-	species_id_t species_id;
+  molecule_id_t id; // unique molecule id
+  uint32_t flags;
+  species_id_t species_id;
 
-	bool is_defunct() const {
-		return flags & MOLECULE_FLAG_DEFUNCT;
-	}
+  bool is_defunct() const {
+    return flags & MOLECULE_FLAG_DEFUNCT;
+  }
 
-	void set_is_defunct() {
-		assert(!is_defunct() && "We really should not be defuncting one molecule multiple times");
-		flags |= MOLECULE_FLAG_DEFUNCT;
-	}
+  void set_is_defunct() {
+    assert(!is_defunct() && "We really should not be defuncting one molecule multiple times");
+    flags |= MOLECULE_FLAG_DEFUNCT;
+  }
 
-	// not using virtual methods, we do not want virtual methods table to be created for this object
-	void dump_base(const std::string ind) const;
+  // not using virtual methods, we do not want virtual methods table to be created for this object
+  void dump_base(const std::string ind) const;
 };
 
 /**
@@ -92,30 +92,30 @@ public:
  */
 class volume_molecule_t : public base_molecule_t {
 public:
-	volume_molecule_t()
-		: base_molecule_t(MOLECULE_ID_INVALID, SPECIES_ID_INVALID),
-			pos(0),
-			subpart_index(SUBPART_INDEX_INVALID) {
-		// needed for std::sort
-	}
-	volume_molecule_t(const molecule_id_t idx_, const species_id_t species_id_, const vec3_t& pos_)
-		: base_molecule_t(idx_, species_id_),
-			pos(pos_),
-			subpart_index(SUBPART_INDEX_INVALID) {
-	}
+  volume_molecule_t()
+    : base_molecule_t(MOLECULE_ID_INVALID, SPECIES_ID_INVALID),
+      pos(0),
+      subpart_index(SUBPART_INDEX_INVALID) {
+    // needed for std::sort
+  }
+  volume_molecule_t(const molecule_id_t idx_, const species_id_t species_id_, const vec3_t& pos_)
+    : base_molecule_t(idx_, species_id_),
+      pos(pos_),
+      subpart_index(SUBPART_INDEX_INVALID) {
+  }
 
-	vec3_t pos;
-	uint32_t subpart_index;
+  vec3_t pos;
+  uint32_t subpart_index;
 
-	void dump(const std::string ind) const;
-	void dump(
-			world_t* world,
-			const std::string extra_comment,
-			const std::string ind,
-			const uint64_t iteration
-	) const;
+  void dump(const std::string ind) const;
+  void dump(
+      world_t* world,
+      const std::string extra_comment,
+      const std::string ind,
+      const uint64_t iteration
+  ) const;
   std::string to_string() const;
-	static void dump_array(const std::vector<volume_molecule_t>& vec);
+  static void dump_array(const std::vector<volume_molecule_t>& vec);
 };
 
 } // namespace mcell

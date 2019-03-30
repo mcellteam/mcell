@@ -30,17 +30,17 @@ using namespace std;
 namespace mcell {
 
 void subpartition_mask_t::dump() {
-	cout << "Indices of molecules contained in a subpartition: ";
-	int cnt = 0;
-	for (uint32_t idx: *this) {
-		cout << idx << ", ";
+  cout << "Indices of molecules contained in a subpartition: ";
+  int cnt = 0;
+  for (uint32_t idx: *this) {
+    cout << idx << ", ";
 
-		if (cnt %20 == 0) {
-			cout << "\n";
-		}
-		cnt++;
-	}
-	cout << "\n";
+    if (cnt %20 == 0) {
+      cout << "\n";
+    }
+    cnt++;
+  }
+  cout << "\n";
 }
 
 }

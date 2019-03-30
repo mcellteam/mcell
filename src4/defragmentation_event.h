@@ -35,15 +35,15 @@ namespace mcell {
  */
 class defragmentation_event_t: public base_event_t {
 public:
-	defragmentation_event_t(world_t* world_)
-		: base_event_t(EVENT_TYPE_INDEX_DEFRAGMENTATION),
-			world(world_) {
-	}
+  defragmentation_event_t(world_t* world_)
+    : base_event_t(EVENT_TYPE_INDEX_DEFRAGMENTATION),
+      world(world_) {
+  }
 
-	virtual void step();
-	virtual void dump(const std::string indent);
+  virtual void step();
+  virtual void dump(const std::string indent);
 private:
-	world_t* world;
+  world_t* world;
 };
 
 } // namespace mcell

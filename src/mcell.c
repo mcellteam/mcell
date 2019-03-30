@@ -86,13 +86,13 @@ int main(int argc, char **argv) {
                     "An error occured during setting up of output.");
 
   if (state->dump_mcell4) {
-  	dump_volume(state, "initial", DUMP_EVERYTHING);
+    dump_volume(state, "initial", DUMP_EVERYTHING);
   }
   //state->use_mcell4 = 1;
 
   if (state->use_mcell4) {
     if (!mcell4_convert_mcell3_volume(state)) {
-    	exit(EXIT_FAILURE);
+      exit(EXIT_FAILURE);
     }
 
     mcell4_run_simulation();
@@ -100,14 +100,14 @@ int main(int argc, char **argv) {
     mcell4_delete_world();
   }
   else {
-		CHECKED_CALL_EXIT(mcell_run_simulation(state),
-											"Error running mcell simulation.");
+    CHECKED_CALL_EXIT(mcell_run_simulation(state),
+                      "Error running mcell simulation.");
 
-		if (state->notify->progress_report != NOTIFY_NONE) {
-			mcell_print("Done running.");
-		}
+    if (state->notify->progress_report != NOTIFY_NONE) {
+      mcell_print("Done running.");
+    }
 
-		mcell_print_stats();
+    mcell_print_stats();
   }
   exit(0);
 }

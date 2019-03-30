@@ -39,12 +39,12 @@ void species_t::dump(const string ind) const {
 }
 
 void species_t::dump_array(const vector<species_t>& vec) {
-	cout << "Species array: " << (vec.empty() ? "EMPTY" : "") << "\n";
+  cout << "Species array: " << (vec.empty() ? "EMPTY" : "") << "\n";
 
-	for (size_t i = 0; i < vec.size(); i++) {
-		cout << i << ":\n";
-		vec[i].dump("  ");
-	}
+  for (size_t i = 0; i < vec.size(); i++) {
+    cout << i << ":\n";
+    vec[i].dump("  ");
+  }
 }
 
 } // namespace mcell

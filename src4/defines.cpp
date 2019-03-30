@@ -33,7 +33,7 @@ std::ostream & operator<<(std::ostream &out, const vec3_t &a) {
 }
 
 void vec3_t::dump(const std::string extra_comment, const std::string ind) {
-	cout << ind << extra_comment << *this << "\n";
+  cout << ind << extra_comment << *this << "\n";
 }
 
 void world_constants_t::dump() {

@@ -34,21 +34,21 @@ namespace mcell {
 
 // TODO: same as in dump_state.cpp, remove one of the copies
 string get_molecule_flags_string(uint32_t flags) {
-	string res;
+  string res;
 #define DUMP_FLAG(f, mask) if (((f) & (mask)) != 0) res += string(#mask) + ", ";
-	DUMP_FLAG(flags, TYPE_SURF)
-	DUMP_FLAG(flags, TYPE_VOL)
-	DUMP_FLAG(flags, ACT_DIFFUSE)
-	DUMP_FLAG(flags, ACT_REACT)
-	DUMP_FLAG(flags, ACT_NEWBIE)
-	DUMP_FLAG(flags, ACT_CHANGE)
-	DUMP_FLAG(flags, ACT_CLAMPED)
-	DUMP_FLAG(flags, IN_SCHEDULE)
-	DUMP_FLAG(flags, IN_SURFACE)
-	DUMP_FLAG(flags, IN_VOLUME)
-	DUMP_FLAG(flags, MOLECULE_FLAG_DEFUNCT)
+  DUMP_FLAG(flags, TYPE_SURF)
+  DUMP_FLAG(flags, TYPE_VOL)
+  DUMP_FLAG(flags, ACT_DIFFUSE)
+  DUMP_FLAG(flags, ACT_REACT)
+  DUMP_FLAG(flags, ACT_NEWBIE)
+  DUMP_FLAG(flags, ACT_CHANGE)
+  DUMP_FLAG(flags, ACT_CLAMPED)
+  DUMP_FLAG(flags, IN_SCHEDULE)
+  DUMP_FLAG(flags, IN_SURFACE)
+  DUMP_FLAG(flags, IN_VOLUME)
+  DUMP_FLAG(flags, MOLECULE_FLAG_DEFUNCT)
 #undef DUMP_FLAG
-	return res;
+  return res;
 }
 
 
@@ -66,36 +66,36 @@ void volume_molecule_t::dump(const string ind) const {
 
 
 void volume_molecule_t::dump(
-		world_t* world,
-		const string extra_comment,
-		const string ind,
-		const uint64_t iteration
+    world_t* world,
+    const string extra_comment,
+    const string ind,
+    const uint64_t iteration
 ) const {
-	cout << ind << extra_comment << "it:" << iteration << ", idx:" << id
-			<< ", species " << world->species[species_id].name << ", pos:" << pos
-			<< ", flags:" << get_molecule_flags_string(flags)
+  cout << ind << extra_comment << "it:" << iteration << ", idx:" << id
+      << ", species " << world->species[species_id].name << ", pos:" << pos
+      << ", flags:" << get_molecule_flags_string(flags)
 #ifdef DEBUG_SUBPARTITIONS
-			<< ", subpartition:" << subpart_index
+      << ", subpartition:" << subpart_index
 #endif
-			<< "\n";
+      << "\n";
 }
 
 
 string volume_molecule_t::to_string() const {
-	stringstream ss;
-	ss <<
-			"id: " << id <<
-			", species: " << species_id <<
-			", pos: " << pos <<
-			", flags:" << get_molecule_flags_string(flags);
-	return ss.str();
+  stringstream ss;
+  ss <<
+      "id: " << id <<
+      ", species: " << species_id <<
+      ", pos: " << pos <<
+      ", flags:" << get_molecule_flags_string(flags);
+  return ss.str();
 }
 
 
 void volume_molecule_t::dump_array(const std::vector<volume_molecule_t>& vec) {
-	for (size_t i = 0; i < vec.size(); i++) {
-		cout << "  vm " << i << ": " << vec[i].to_string() << "\n";
-	}
+  for (size_t i = 0; i < vec.size(); i++) {
+    cout << "  vm " << i << ": " << vec[i].to_string() << "\n";
+  }
 }
 
 } // namespace mcell

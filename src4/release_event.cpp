@@ -37,37 +37,37 @@ using namespace std;
 namespace mcell {
 
 void release_event_t::dump(const string ind) {
-	cout << "Release event:\n";
-	string ind2 = ind + "  ";
-	base_event_t::dump(ind2);
-	cout << ind2 << "location: \t\t" << location << " [vec3_t] \t\t\n";
-	cout << ind2 << "species_id: \t\t" << species_id << " [species_id_t] \t\t\n";
-	cout << ind2 << "release_number: \t\t" << release_number << " [uint32_t] \t\t\n";
-	cout << ind2 << "name: \t\t" << name << " [string] \t\t\n";
+  cout << "Release event:\n";
+  string ind2 = ind + "  ";
+  base_event_t::dump(ind2);
+  cout << ind2 << "location: \t\t" << location << " [vec3_t] \t\t\n";
+  cout << ind2 << "species_id: \t\t" << species_id << " [species_id_t] \t\t\n";
+  cout << ind2 << "release_number: \t\t" << release_number << " [uint32_t] \t\t\n";
+  cout << ind2 << "name: \t\t" << name << " [string] \t\t\n";
 }
 
 
 void release_event_t::step() {
-	// for now, let's simply release 'release_number' of molecules of 'species_id'
-	// at 'location'
-	partition_t& p = world->partitions[world->get_or_add_partition_index(location)];
-	float_t time_step = world->species[species_id].time_step;
-	uint32_t time_step_index = p.get_or_add_molecule_list_index_for_time_step(time_step);
+  // for now, let's simply release 'release_number' of molecules of 'species_id'
+  // at 'location'
+  partition_t& p = world->partitions[world->get_or_add_partition_index(location)];
+  float_t time_step = world->species[species_id].time_step;
+  uint32_t time_step_index = p.get_or_add_molecule_list_index_for_time_step(time_step);
 
   const int is_spheroidal = (release_shape == SHAPE_SPHERICAL ||
                              release_shape == SHAPE_ELLIPTIC ||
                              release_shape == SHAPE_SPHERICAL_SHELL);
 
-	for (uint32_t i = 0; i < release_number; i++) {
-		// TODO: this might use some refactoring
-		vec3_t pos;
-		do /* Pick values in unit square, toss if not in unit circle */
-		{
-			pos.x = (rng_dbl(&world->rng) - 0.5);
-			pos.y = (rng_dbl(&world->rng) - 0.5);
-			pos.z = (rng_dbl(&world->rng) - 0.5);
-		} while (is_spheroidal &&
-						 pos.x * pos.x + pos.y * pos.y + pos.z * pos.z >= 0.25);
+  for (uint32_t i = 0; i < release_number; i++) {
+    // TODO: this might use some refactoring
+    vec3_t pos;
+    do /* Pick values in unit square, toss if not in unit circle */
+    {
+      pos.x = (rng_dbl(&world->rng) - 0.5);
+      pos.y = (rng_dbl(&world->rng) - 0.5);
+      pos.z = (rng_dbl(&world->rng) - 0.5);
+    } while (is_spheroidal &&
+             pos.x * pos.x + pos.y * pos.y + pos.z * pos.z >= 0.25);
 
     if (release_shape == SHAPE_SPHERICAL_SHELL) {
       float_t r = sqrt(pos.x * pos.x + pos.y * pos.y + pos.z * pos.z) * 2.0;
@@ -95,10 +95,10 @@ void release_event_t::step() {
     molecule_location.z = base_location[0][2];
 
     volume_molecule_t& new_vm = p.add_volume_molecule_with_time_step_index(
-    		volume_molecule_t(MOLECULE_ID_INVALID, species_id, molecule_location), time_step_index
-		);
+        volume_molecule_t(MOLECULE_ID_INVALID, species_id, molecule_location), time_step_index
+    );
     new_vm.flags = TYPE_VOL | IN_VOLUME | ACT_DIFFUSE;
-	}
+  }
 }
 
 } // namespace mcell

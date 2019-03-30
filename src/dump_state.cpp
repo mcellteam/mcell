@@ -34,7 +34,7 @@
 #define DUMP_ARRAY_NEWLINE_COUNT 8
 
 #define IND_ADD2(ind) (std::string(ind) + "  ").c_str()
-#define DECL_IND2(ind) std::string inds = ind; inds += "  ";	const char* ind2 = inds.c_str();
+#define DECL_IND2(ind) std::string inds = ind; inds += "  ";  const char* ind2 = inds.c_str();
 
 using namespace std;
 
@@ -44,115 +44,115 @@ void dump_species_item(species* spec, const char* ind);
 
 
 std::ostream & operator<<(std::ostream &out, const timeval &a) {
-	out << a.tv_sec << "s, " << a.tv_usec << "us";
-	return out;
+  out << a.tv_sec << "s, " << a.tv_usec << "us";
+  return out;
 }
 
 std::ostream & operator<<(std::ostream &out, const vector2 &a) {
-	out << "(" << a.u << ", " << a.v << ")";
-	return out;
+  out << "(" << a.u << ", " << a.v << ")";
+  return out;
 }
 
 std::ostream & operator<<(std::ostream &out, const vector3 &a) {
-	out << "(" << a.x << ", " << a.y << ", " << a.z << ")";
-	return out;
+  out << "(" << a.x << ", " << a.y << ", " << a.z << ")";
+  return out;
 }
 
 std::ostream & operator<<(std::ostream &out, const int3D &a) {
-	out << "(" << a.x << ", " << a.y << ", " << a.z << ")";
-	return out;
+  out << "(" << a.x << ", " << a.y << ", " << a.z << ")";
+  return out;
 }
 
 std::ostream & operator<<(std::ostream &out, const viz_mode_t &a) {
   switch (a) {
-		case NO_VIZ_MODE: out << "NO_VIZ_MODE"; break;
-		case ASCII_MODE: out << "ASCII_MODE"; break;
-		case CELLBLENDER_MODE: out << "CELLBLENDER_MODE"; break;
-		default: assert(false);
+    case NO_VIZ_MODE: out << "NO_VIZ_MODE"; break;
+    case ASCII_MODE: out << "ASCII_MODE"; break;
+    case CELLBLENDER_MODE: out << "CELLBLENDER_MODE"; break;
+    default: assert(false);
   }
   return out;
 }
 
 std::ostream & operator<<(std::ostream &out, const output_timer_type_t &a) {
   switch (a) {
-		case OUTPUT_BY_STEP: out << "OUTPUT_BY_STEP"; break;
-		case OUTPUT_BY_TIME_LIST: out << "OUTPUT_BY_TIME_LIST"; break;
-		case OUTPUT_BY_ITERATION_LIST: out << "OUTPUT_BY_ITERATION_LIST"; break;
-		default: assert(false);
+    case OUTPUT_BY_STEP: out << "OUTPUT_BY_STEP"; break;
+    case OUTPUT_BY_TIME_LIST: out << "OUTPUT_BY_TIME_LIST"; break;
+    case OUTPUT_BY_ITERATION_LIST: out << "OUTPUT_BY_ITERATION_LIST"; break;
+    default: assert(false);
   }
   return out;
 }
 
 std::ostream & operator<<(std::ostream &out, const viz_frame_type_t &a) {
   switch (a) {
-		case MOL_POS: out << "MOL_POS"; break;
-		case MOL_ORIENT: out << "MOL_ORIENT"; break;
-		case ALL_MOL_DATA: out << "ALL_MOL_DATA"; break;
-		case NUM_FRAME_TYPES: out << "NUM_FRAME_TYPES"; break;
-		default: assert(false);
+    case MOL_POS: out << "MOL_POS"; break;
+    case MOL_ORIENT: out << "MOL_ORIENT"; break;
+    case ALL_MOL_DATA: out << "ALL_MOL_DATA"; break;
+    case NUM_FRAME_TYPES: out << "NUM_FRAME_TYPES"; break;
+    default: assert(false);
   }
   return out;
 }
 
 
 std::ostream & operator<<(std::ostream &out, const num_expr_list* a) {
-	out << "(";
-	const num_expr_list* p = a;
-	while (p != nullptr) {
-		out << p->value << ", ";
-		p = p->next;
-	}
-	out << ")";
+  out << "(";
+  const num_expr_list* p = a;
+  while (p != nullptr) {
+    out << p->value << ", ";
+    p = p->next;
+  }
+  out << ")";
   return out;
 }
 
 
 std::ostream & operator<<(std::ostream &out, const double a[4][4]) {
-	out << "(";
-	for (int x = 0; x < 4; x++) {
-		out << "(";
-		for (int y = 0; y < 4; y++) {
-			out << a[x][y];
-			if (y != 3)
-				out << ",";
-		}
-		out << ")";
-		if (x != 3)
-			out << ",";
-	}
+  out << "(";
+  for (int x = 0; x < 4; x++) {
+    out << "(";
+    for (int y = 0; y < 4; y++) {
+      out << a[x][y];
+      if (y != 3)
+        out << ",";
+    }
+    out << ")";
+    if (x != 3)
+      out << ",";
+  }
   return out;
 }
 
 std::ostream & operator<<(std::ostream &out, const pointer_hash &a) {
     //out << "(" << a.x << ", " << a.y << ", " << a.z << ")";
-	out << "(pointer_hash - TODO)";
+  out << "(pointer_hash - TODO)";
   return out;
 }
 
 std::ostream & operator<<(std::ostream &out, const sym_entry *s) {
-	if (s != NULL) {
-		// TODO: sym_type - see store_sym
-		out << "sym_entry(next:" << (void*)s->next << ", sym_type:" << s->sym_type << ", name:" << s->name << ", value:" << (void*)s->value << ", count:" << s->count << ")";
-	}
-	else {
-		out << "sym_entry(NULL)";
-	}
+  if (s != NULL) {
+    // TODO: sym_type - see store_sym
+    out << "sym_entry(next:" << (void*)s->next << ", sym_type:" << s->sym_type << ", name:" << s->name << ", value:" << (void*)s->value << ", count:" << s->count << ")";
+  }
+  else {
+    out << "sym_entry(NULL)";
+  }
   return out;
 }
 
 std::ostream & operator<<(std::ostream &out, const reaction_flags &a) {
 
 #define DUMP_ITEM(name) #name << "=" << a.name << ", "
-	out
-		<< DUMP_ITEM(vol_vol_reaction_flag)
-		<< DUMP_ITEM(vol_surf_reaction_flag)
-		<< DUMP_ITEM(surf_surf_reaction_flag)
-		<< DUMP_ITEM(vol_wall_reaction_flag)
-		<< DUMP_ITEM(vol_vol_vol_reaction_flag)
-		<< DUMP_ITEM(vol_vol_surf_reaction_flag)
-		<< DUMP_ITEM(vol_surf_surf_reaction_flag)
-		<< DUMP_ITEM(vol_surf_surf_reaction_flag)
-	;
+  out
+    << DUMP_ITEM(vol_vol_reaction_flag)
+    << DUMP_ITEM(vol_surf_reaction_flag)
+    << DUMP_ITEM(surf_surf_reaction_flag)
+    << DUMP_ITEM(vol_wall_reaction_flag)
+    << DUMP_ITEM(vol_vol_vol_reaction_flag)
+    << DUMP_ITEM(vol_vol_surf_reaction_flag)
+    << DUMP_ITEM(vol_surf_surf_reaction_flag)
+    << DUMP_ITEM(vol_surf_surf_reaction_flag)
+  ;
 #undef DUMP_ITEM
   return out;
 }
@@ -160,43 +160,43 @@ std::ostream & operator<<(std::ostream &out, const reaction_flags &a) {
 void dump_double_array(int num, const char* num_name, double* values, const char* values_name, const char* comment, const char* ind, const int max = MAX_ARRAY_ITEMS) {
   cout << ind << values_name << "[" << num_name << "]: \t\t" << values << "[" << num << "]" << " [double[]] \t\t" << comment;
   for (int i = 0; i < num && i < max; i++) {
-  	if (i % DUMP_ARRAY_NEWLINE_COUNT == 0) {
-  		cout << "\n" << ind << "  ";
-  	}
-  	cout << i << ":" << values[i] << ", ";
+    if (i % DUMP_ARRAY_NEWLINE_COUNT == 0) {
+      cout << "\n" << ind << "  ";
+    }
+    cout << i << ":" << values[i] << ", ";
   }
   if (num >= max) {
-  	cout << "...";
+    cout << "...";
   }
-	cout << "\n";
+  cout << "\n";
 }
 
 
 void dump_int_array(int num, const char* num_name, int* values, const char* values_name, const char* comment, const char* ind) {
   cout << ind << values_name << "[" << num_name << "]: \t\t" << values << "[" << num << "]" << " [int[]] \t\t" << comment << "\n";
   for (int i = 0; i < num && i < MAX_ARRAY_ITEMS; i++) {
-  	if (i % DUMP_ARRAY_NEWLINE_COUNT == 0) {
-  		cout << "\n" << ind << "  ";
-  	}
-  	cout << i << ":" << values[i] << ", ";
+    if (i % DUMP_ARRAY_NEWLINE_COUNT == 0) {
+      cout << "\n" << ind << "  ";
+    }
+    cout << i << ":" << values[i] << ", ";
   }
   if (num >= MAX_ARRAY_ITEMS) {
-  	cout << "...";
+    cout << "...";
   }
-	cout << "\n";
+  cout << "\n";
 }
 
 
 void dump_vector3_array(int num, const char* num_name, vector3* values, const char* values_name, const char* comment, const char* ind) {
   cout << ind << values_name << "[" << num_name << "]: \t\t" << values << "[" << num << "]" << " [vector3[]] \t\t" << comment;
   for (int i = 0; i < num && i < MAX_ARRAY_ITEMS; i++) {
-  	if (i % DUMP_ARRAY_NEWLINE_COUNT == 0) {
-  		cout << "\n" << ind << "  ";
-  	}
-  	cout << i << ":" << values[i] << ", ";
+    if (i % DUMP_ARRAY_NEWLINE_COUNT == 0) {
+      cout << "\n" << ind << "  ";
+    }
+    cout << i << ":" << values[i] << ", ";
   }
   if (num >= MAX_ARRAY_ITEMS) {
-  	cout << "...";
+    cout << "...";
   }
   cout << "\n";
 }
@@ -204,56 +204,56 @@ void dump_vector3_array(int num, const char* num_name, vector3* values, const ch
 
 void dump_wall(wall* w, const char* ind) {
 
-		cout << "this wall: " << (void*)w << "\n";
-	  cout << "next: *\t\t" << (void*)w->next << " [wall] \t\t/* Next wall in the universe */\n";
+    cout << "this wall: " << (void*)w << "\n";
+    cout << "next: *\t\t" << (void*)w->next << " [wall] \t\t/* Next wall in the universe */\n";
 
-	  cout << "surf_class_head: *\t\t" << (void*)w->surf_class_head << " [surf_class_list] \t\t/* linked list of surface classes for this wall (multiple surface classes may come from the overlapping regions */\n";
-	  cout << "num_surf_classes: \t\t" << w->num_surf_classes << " [int] \t\t/* number of attached surface classes */\n";
+    cout << "surf_class_head: *\t\t" << (void*)w->surf_class_head << " [surf_class_list] \t\t/* linked list of surface classes for this wall (multiple surface classes may come from the overlapping regions */\n";
+    cout << "num_surf_classes: \t\t" << w->num_surf_classes << " [int] \t\t/* number of attached surface classes */\n";
 
-	  cout << "side: \t\t" << w->side << " [int] \t\t/* index of this wall in its parent object */\n";
+    cout << "side: \t\t" << w->side << " [int] \t\t/* index of this wall in its parent object */\n";
 
-	  if (w->vert != NULL)
-	  	dump_vector3_array(3, "always 3", *w->vert, "vector[3]", "/* Array of pointers to vertices TODO: can there be more of them?*/", ind);
-	  else
-		  cout << "vert: \t\t" << (void*)w->vert << " [vector[3]] \t\t/* Array of pointers to vertices */\n";
+    if (w->vert != NULL)
+      dump_vector3_array(3, "always 3", *w->vert, "vector[3]", "/* Array of pointers to vertices TODO: can there be more of them?*/", ind);
+    else
+      cout << "vert: \t\t" << (void*)w->vert << " [vector[3]] \t\t/* Array of pointers to vertices */\n";
 
 
-	  cout << "uv_vert1_u: \t\t" << w->uv_vert1_u << " [double] \t\t/* Surface u-coord of 2nd corner (v=0) */\n";
-	  cout << "uv_vert2: \t\t" << w->uv_vert2 << " [vector2] \t\t/* Surface coords of third corner */\n";
+    cout << "uv_vert1_u: \t\t" << w->uv_vert1_u << " [double] \t\t/* Surface u-coord of 2nd corner (v=0) */\n";
+    cout << "uv_vert2: \t\t" << w->uv_vert2 << " [vector2] \t\t/* Surface coords of third corner */\n";
 
-	  cout << "edges[3]: *\t\t" << (void*)w->edges << " [*edges[3]] \t\t/*  /* Array of pointers to each edge. */ // TODO */\n";
+    cout << "edges[3]: *\t\t" << (void*)w->edges << " [*edges[3]] \t\t/*  /* Array of pointers to each edge. */ // TODO */\n";
 
-	  cout << "nb_walls[0]: *\t\t" << (void*)w->nb_walls[0] << " [wall] \t\t/* Array of pointers to walls that share an edge*/ // TODO\n";
-	  cout << "nb_walls[1]: *\t\t" << (void*)w->nb_walls[1] << " [wall] \t\t/* Array of pointers to walls that share an edge*/ // TODO\n";
-	  cout << "nb_walls[2]: *\t\t" << (void*)w->nb_walls[2] << " [wall] \t\t/* Array of pointers to walls that share an edge*/ // TODO\n";
+    cout << "nb_walls[0]: *\t\t" << (void*)w->nb_walls[0] << " [wall] \t\t/* Array of pointers to walls that share an edge*/ // TODO\n";
+    cout << "nb_walls[1]: *\t\t" << (void*)w->nb_walls[1] << " [wall] \t\t/* Array of pointers to walls that share an edge*/ // TODO\n";
+    cout << "nb_walls[2]: *\t\t" << (void*)w->nb_walls[2] << " [wall] \t\t/* Array of pointers to walls that share an edge*/ // TODO\n";
 
-	  cout << "area: \t\t" << w->area << " [double] \t\t/* Area of this element */\n";
+    cout << "area: \t\t" << w->area << " [double] \t\t/* Area of this element */\n";
 
-	  cout << "normal: \t\t" << w->normal << " [vector3] \t\t/* Normal vector for this wall */\n";
-	  cout << "unit_u: \t\t" << w->unit_u << " [vector3] \t\t/* U basis vector for this wall */\n";
-	  cout << "unit_v: \t\t" << w->unit_v << " [vector3] \t\t/* V basis vector for this wall */\n";
-	  cout << "d: \t\t" << w->d << " [double] \t\t/* Distance to origin (point normal form) */\n";
+    cout << "normal: \t\t" << w->normal << " [vector3] \t\t/* Normal vector for this wall */\n";
+    cout << "unit_u: \t\t" << w->unit_u << " [vector3] \t\t/* U basis vector for this wall */\n";
+    cout << "unit_v: \t\t" << w->unit_v << " [vector3] \t\t/* V basis vector for this wall */\n";
+    cout << "d: \t\t" << w->d << " [double] \t\t/* Distance to origin (point normal form) */\n";
 
-	  cout << "grid: *\t\t" << w->grid << " [surface_grid] \t\t/* Grid of effectors for this wall */\n";
+    cout << "grid: *\t\t" << w->grid << " [surface_grid] \t\t/* Grid of effectors for this wall */\n";
 
-	  cout << "flags: \t\t" << w->flags << " [u_short] \t\t/* Count Flags: flags for whether and what we need to count */\n";
+    cout << "flags: \t\t" << w->flags << " [u_short] \t\t/* Count Flags: flags for whether and what we need to count */\n";
 
-	  cout << "parent_object: *\t\t" << w->parent_object << " [object] \t\t/* The object we are a part of */\n";
-	  cout << "birthplace: *\t\t" << w->birthplace << " [storage] \t\t/* Where we live in memory */\n";
+    cout << "parent_object: *\t\t" << w->parent_object << " [object] \t\t/* The object we are a part of */\n";
+    cout << "birthplace: *\t\t" << w->birthplace << " [storage] \t\t/* Where we live in memory */\n";
 
-	  cout << "counting_regions: *\t\t" << w->counting_regions << " [region_list] \t\t/* Counted-on regions containing this wall */\n";
+    cout << "counting_regions: *\t\t" << w->counting_regions << " [region_list] \t\t/* Counted-on regions containing this wall */\n";
 }
 
 
 void dump_wall_list(wall_list* list, const char* ind) {
-	wall_list* curr = list;
-	int i = 0;
-	while (curr != NULL) {
-		cout << ind << i << ":\n";
-		dump_wall(curr->this_wall, IND_ADD2(ind));
-		i++;
-		curr = curr->next;
-	}
+  wall_list* curr = list;
+  int i = 0;
+  while (curr != NULL) {
+    cout << ind << i << ":\n";
+    dump_wall(curr->this_wall, IND_ADD2(ind));
+    i++;
+    curr = curr->next;
+  }
 
 }
 
@@ -261,48 +261,48 @@ void dump_wall_list(wall_list* list, const char* ind) {
 void dump_wall_list_array(int num, const char* num_name, wall_list** values, const char* values_name, const char* comment, const char* ind) {
   cout << ind << values_name << "[" << num_name << "]: \t\t" << values << "[" << num << "]" << " [wall_list*] \t\t" << comment;
   if (values == NULL) {
-  	cout << "\n";
-  	return;
+    cout << "\n";
+    return;
   }
   for (int i = 0; i < num && i < MAX_ARRAY_ITEMS; i++) {
-  	if (i % DUMP_ARRAY_NEWLINE_COUNT == 0) {
-  		cout << "\n" << ind << "  ";
-  	}
-  	cout << ind << i << ":\n";
-  	dump_wall_list(values[i], IND_ADD2(ind));
+    if (i % DUMP_ARRAY_NEWLINE_COUNT == 0) {
+      cout << "\n" << ind << "  ";
+    }
+    cout << ind << i << ":\n";
+    dump_wall_list(values[i], IND_ADD2(ind));
   }
   if (num >= MAX_ARRAY_ITEMS) {
-  	cout << "...";
+    cout << "...";
   }
   cout << "\n";
 }
 
 
 string get_molecule_flags_string(short flags) {
-	string res;
+  string res;
 #define DUMP_FLAG(f, mask) if (((f) & (mask)) != 0) res += string(#mask) + ", ";
-	DUMP_FLAG(flags, TYPE_SURF)
-	DUMP_FLAG(flags, TYPE_VOL)
-	DUMP_FLAG(flags, ACT_DIFFUSE)
-	DUMP_FLAG(flags, ACT_REACT)
-	DUMP_FLAG(flags, ACT_NEWBIE)
-	DUMP_FLAG(flags, ACT_CHANGE)
-	DUMP_FLAG(flags, ACT_CLAMPED)
-	DUMP_FLAG(flags, IN_SCHEDULE)
-	DUMP_FLAG(flags, IN_SURFACE)
-	DUMP_FLAG(flags, IN_VOLUME)
+  DUMP_FLAG(flags, TYPE_SURF)
+  DUMP_FLAG(flags, TYPE_VOL)
+  DUMP_FLAG(flags, ACT_DIFFUSE)
+  DUMP_FLAG(flags, ACT_REACT)
+  DUMP_FLAG(flags, ACT_NEWBIE)
+  DUMP_FLAG(flags, ACT_CHANGE)
+  DUMP_FLAG(flags, ACT_CLAMPED)
+  DUMP_FLAG(flags, IN_SCHEDULE)
+  DUMP_FLAG(flags, IN_SURFACE)
+  DUMP_FLAG(flags, IN_VOLUME)
 #undef DUMP_FLAG
-	return res;
+  return res;
 }
 
 void dump_molecule_flags(short flags, const char* ind) {
-	cout << ind << "flags: \t\t" << flags << " [short] \t\t /* Abstract Molecule Flags: Who am I, what am I doing, etc. */\n";
+  cout << ind << "flags: \t\t" << flags << " [short] \t\t /* Abstract Molecule Flags: Who am I, what am I doing, etc. */\n";
 
-	cout << ind << "  " << get_molecule_flags_string(flags) << "\n";
+  cout << ind << "  " << get_molecule_flags_string(flags) << "\n";
 }
 
 void dump_abstract_molecule(abstract_molecule* amp, const char* ind) {
-	cout << ind << "this: *\t\t" << (void*)amp << " [abstract_molecule] \t\t /* Current molecule */ //???\n";
+  cout << ind << "this: *\t\t" << (void*)amp << " [abstract_molecule] \t\t /* Current molecule */ //???\n";
   cout << ind << "next: *\t\t" << (void*)amp->next << " [abstract_molecule] \t\t /* Next molecule in scheduling queue */ //???\n";
   cout << ind << "t: \t\t" << amp->t << " [double] \t\t                      /* Scheduling time. */\n";
   cout << ind << "t2: \t\t" << amp->t2 << " [double] \t\t                     /* Time of next unimolecular reaction */\n";
@@ -327,18 +327,18 @@ void dump_abstract_molecule(abstract_molecule* amp, const char* ind) {
 
 
 void dump_surface_molecule(surface_molecule* amp, const char* ind) {
-	cout << "***TODO!\n";
+  cout << "***TODO!\n";
 }
 
 void dump_molecules(int num_all_molecules, molecule_info **all_molecules) {
   cout << "all_molecules: **\t\t" << (void**)all_molecules << " [molecule_info] \n";
   cout << "num_all_molecules: \t\t" << num_all_molecules << " [int] \n";
-	for (int i = 0; i < num_all_molecules; i++) {
-		molecule_info *curr = all_molecules[i];
-		assert(curr != NULL);
+  for (int i = 0; i < num_all_molecules; i++) {
+    molecule_info *curr = all_molecules[i];
+    assert(curr != NULL);
 
-		abstract_molecule *amp = curr->molecule;
-		assert(amp != NULL);
+    abstract_molecule *amp = curr->molecule;
+    assert(amp != NULL);
 
     if ((amp->properties->flags & NOT_FREE) == 0) {
       volume_molecule *vmp = (volume_molecule *)amp;
@@ -347,21 +347,21 @@ void dump_molecules(int num_all_molecules, molecule_info **all_molecules) {
       surface_molecule *smp = (surface_molecule *)amp;
       dump_surface_molecule(smp, "  ");
     } else {
-    	dump_abstract_molecule(amp, "  ");
+      dump_abstract_molecule(amp, "  ");
     }
 
-	  cout << "reg_names: *\t\t" << curr->reg_names << " [string_buffer] \t\t   /* Region names */\n";
-	  cout << "mesh_names: *\t\t" << curr->mesh_names << " [string_buffer] \t\t  /* Mesh names that molec is nested in */\n";
-	  cout << "pos: \t\t" << curr->pos << " [vector3] \t\t /* Position in space */\n";
-	  cout << "orient: \t\t" << curr->orient << " [short] \t\t /* Which way do we point? */\n";
-	}
+    cout << "reg_names: *\t\t" << curr->reg_names << " [string_buffer] \t\t   /* Region names */\n";
+    cout << "mesh_names: *\t\t" << curr->mesh_names << " [string_buffer] \t\t  /* Mesh names that molec is nested in */\n";
+    cout << "pos: \t\t" << curr->pos << " [vector3] \t\t /* Position in space */\n";
+    cout << "orient: \t\t" << curr->orient << " [short] \t\t /* Which way do we point? */\n";
+  }
 
 }
 
 
 void dump_region(region* reg, const char* ind) {
-	// TODO
-	cout << ind << "reg: *\t\t" << (void*)reg << " [region] \t\t\n";
+  // TODO
+  cout << ind << "reg: *\t\t" << (void*)reg << " [region] \t\t\n";
   cout << ind << "  " << "sym: *\t\t" << reg->sym << " [sym_entry] \t\t  /* Symbol hash table entry for this region */\n";
   cout << ind << "  " << "hashval: \t\t" << reg->hashval << " [u_int] \t\t          /* Hash value for counter hash table */\n";
   cout << ind << "  " << "region_last_name: *\t\t" << reg->region_last_name << " [char] \t\t /* Name of region without prepended object name */\n";
@@ -382,14 +382,14 @@ void dump_region(region* reg, const char* ind) {
 void dump_region_list(region_list *rl, const char* regions_name, const char* comment, const char* ind) {
   cout << ind << regions_name << ": *\t\t" << rl << " [region_list] \t\t " << comment << "\n";
   for (region_list *r = rl; rl != NULL; rl = rl->next) {
-  	dump_region(r->reg, ind);
+    dump_region(r->reg, ind);
   }
 }
 
 
 void dump_one_waypoint(waypoint* wp, const char* ind) {
-	assert(wp != NULL);
-	cout << ind << "waypoint: *\t\t" << (void*)wp << " [waypoint] \t\t\n";
+  assert(wp != NULL);
+  cout << ind << "waypoint: *\t\t" << (void*)wp << " [waypoint] \t\t\n";
   cout << ind << "  " << "loc: \t\t" << wp->loc << " [vector3] \t\t          /* This is where the waypoint is */\n";
   dump_region_list(wp->regions, "regions", "/* We are inside these regions */", IND_ADD2(ind));
   dump_region_list(wp->antiregions, "antiregions", "/* We are outside of (but hit) these regions */", IND_ADD2(ind));
@@ -400,15 +400,15 @@ void dump_waypoints(int n_waypoints, waypoint* waypoints) {
   cout << "n_waypoints: \t\t" << n_waypoints << " [int] \t\t/* How many waypoints (one per subvol) */\n";
   cout << "waypoints: *\t\t" << (void*)waypoints << " [waypoint] \t\t/* Waypoints contain fully-closed region information */\n";
 
-	for (int i = 0; i < n_waypoints; i++) {
-		dump_one_waypoint(&waypoints[i], "  ");
-	}
+  for (int i = 0; i < n_waypoints; i++) {
+    dump_one_waypoint(&waypoints[i], "  ");
+  }
 }
 
 
 void dump_one_subvolume(subvolume* sv, const char* ind) {
-	assert(sv != NULL);
-	cout << ind << "subvolume: *\t\t" << (void*)sv << " [subvolume] \t\t\n";
+  assert(sv != NULL);
+  cout << ind << "subvolume: *\t\t" << (void*)sv << " [subvolume] \t\t\n";
   cout << ind << "  " << "wall_head: *\t\t" << (void*)sv->wall_head << " [wall_list] \t\t /* Head of linked list of intersecting walls */\n";
   cout << ind << "  " << "mol_by_species: \t\t" << sv->mol_by_species << " [pointer_hash] \t\t /* table of speciesv->molecule list */\n";
   cout << ind << "  " << "species_head: *\t\t" << (void*)sv->species_head << " [per_species_list] \t\t\n";
@@ -421,35 +421,35 @@ void dump_one_subvolume(subvolume* sv, const char* ind) {
 
 
 void dump_subvolumes(int n_subvols, const char* num_name, const char* num_comment, subvolume* subvols, const char* subvols_name, const char* name_comment, const char* ind) {
-	cout << ind << num_name << ": \t\t" << n_subvols << " [int] \t\t" << num_comment << "\n";
-	cout << ind << subvols_name << ": *\t\t" << (void*)subvols << " [subvolume] \t\t" << name_comment << "\n";
+  cout << ind << num_name << ": \t\t" << n_subvols << " [int] \t\t" << num_comment << "\n";
+  cout << ind << subvols_name << ": *\t\t" << (void*)subvols << " [subvolume] \t\t" << name_comment << "\n";
 
-	for (int i = 0; i < n_subvols && i < MAX_SUBVOLUMES; i++) {
-		dump_one_subvolume(&subvols[i], "  ");
-	}
-	if (n_subvols >= MAX_SUBVOLUMES) {
-		cout << ind << "  " << "... (total " << n_subvols << ")\n";
-	}
+  for (int i = 0; i < n_subvols && i < MAX_SUBVOLUMES; i++) {
+    dump_one_subvolume(&subvols[i], "  ");
+  }
+  if (n_subvols >= MAX_SUBVOLUMES) {
+    cout << ind << "  " << "... (total " << n_subvols << ")\n";
+  }
 }
 
 
 void dump_product_list(product* prod, const char* ind) {
-	DECL_IND2(ind);
-	product* prod_ptr = prod;
-	int i = 0;
-	while (prod_ptr != nullptr) {
-		cout << ind << i << ":\n";
-	  cout << ind2 << "orientation: \t\t" << prod_ptr->orientation << " [short] \t\t/* Orientation to place molecule */\n";
-	  dump_species(prod_ptr->prod, "product", "", ind2);
-		prod_ptr = prod_ptr->next;
-	}
+  DECL_IND2(ind);
+  product* prod_ptr = prod;
+  int i = 0;
+  while (prod_ptr != nullptr) {
+    cout << ind << i << ":\n";
+    cout << ind2 << "orientation: \t\t" << prod_ptr->orientation << " [short] \t\t/* Orientation to place molecule */\n";
+    dump_species(prod_ptr->prod, "product", "", ind2);
+    prod_ptr = prod_ptr->next;
+  }
 
 
 }
 
 void dump_pathway(pathway* pathway_ptr, const char* ind) {
-	assert(pathway_ptr != nullptr);
-	//DECL_IND2(ind);
+  assert(pathway_ptr != nullptr);
+  //DECL_IND2(ind);
 
   cout << ind << "next: *\t\t" << (void*)pathway_ptr->next << " [pathway] \t\t/* Next pathway for this reaction */\n";
   cout << ind << "pathname: *\t\t" << (void*)pathway_ptr->pathname << " [rxn_pathname] \t\t/* Data for named reaction pathway or NULL */\n";
@@ -475,25 +475,25 @@ void dump_pathway(pathway* pathway_ptr, const char* ind) {
 }
 
 void dump_pathway_list(pathway* pathway_head, const char* name,  const char* comment, const char* ind) {
-	DECL_IND2(ind);
-	if (pathway_head == nullptr) {
-		cout << ind << name << ": *\t\t" << (void*)pathway_head << " [pathway*] \t\t" << comment << "\n";
-	}
-	pathway* pathway_ptr = pathway_head;
-	int idx = 0;
-	while (pathway_ptr != nullptr) {
-		cout << ind << name << "[" << idx << "]" << ": *\t\t" << (void*)pathway_ptr << " [pathway*] \t\t" << comment << "\n";
-		dump_pathway(pathway_ptr, ind2);
-		pathway_ptr = pathway_ptr->next;
-	}
+  DECL_IND2(ind);
+  if (pathway_head == nullptr) {
+    cout << ind << name << ": *\t\t" << (void*)pathway_head << " [pathway*] \t\t" << comment << "\n";
+  }
+  pathway* pathway_ptr = pathway_head;
+  int idx = 0;
+  while (pathway_ptr != nullptr) {
+    cout << ind << name << "[" << idx << "]" << ": *\t\t" << (void*)pathway_ptr << " [pathway*] \t\t" << comment << "\n";
+    dump_pathway(pathway_ptr, ind2);
+    pathway_ptr = pathway_ptr->next;
+  }
 }
 
 void dump_rxn_pathname(rxn_pathname* pathname, const char* ind) {
-	DECL_IND2(ind);
-	cout << ind << "pathname: *\t\t" << (void*)pathname << " [rxn_pathname]\n";
-	if (pathname == nullptr) {
-		return;
-	}
+  DECL_IND2(ind);
+  cout << ind << "pathname: *\t\t" << (void*)pathname << " [rxn_pathname]\n";
+  if (pathname == nullptr) {
+    return;
+  }
 
   cout << ind2 << "sym: *\t\t" << pathname->sym << " [sym_entry] \t\t/* Ptr to symbol table entry for this rxn name */\n";
   cout << ind2 << "hashval: \t\t" << pathname->hashval << " [u_int] \t\t/* Hash value for counting named rxns on regions */\n";
@@ -503,17 +503,17 @@ void dump_rxn_pathname(rxn_pathname* pathname, const char* ind) {
 }
 
 void dump_pathway_infos(int n_pathways, const char* count_name, pathway_info* pathway_info_array, const char* name,  const char* comment, const char* ind) {
-	DECL_IND2(ind);
-	if (pathway_info_array == nullptr) {
-		cout << ind << name << ": *\t\t" << (void*)pathway_info_array << " [pathway*] \t\t" << comment << "\n";
-	}
+  DECL_IND2(ind);
+  if (pathway_info_array == nullptr) {
+    cout << ind << name << ": *\t\t" << (void*)pathway_info_array << " [pathway*] \t\t" << comment << "\n";
+  }
 
-	for (int i = 0; i < n_pathways; i++) {
-		cout << ind << name << "[" << i << "]" << ":\n";
-		cout << ind2 << "count: *\t\t" << pathway_info_array[i].count << " [double] \t\t/* How many times the pathway has been taken */\n";
-		//dump_pathway(&pathway_info_array[n_pathways], ind2);
-		dump_rxn_pathname(pathway_info_array[i].pathname, ind2);
-	}
+  for (int i = 0; i < n_pathways; i++) {
+    cout << ind << name << "[" << i << "]" << ":\n";
+    cout << ind2 << "count: *\t\t" << pathway_info_array[i].count << " [double] \t\t/* How many times the pathway has been taken */\n";
+    //dump_pathway(&pathway_info_array[n_pathways], ind2);
+    dump_rxn_pathname(pathway_info_array[i].pathname, ind2);
+  }
 }
 
 
@@ -599,13 +599,13 @@ void dump_reaction_hash_table(int rx_hashsize, const char* num_name, rxn **react
     int k = 0;
     for (rx = rx_array; rx != NULL; rx = rx->next) { // go over linked list
       cout << IND_ADD2(IND_ADD2(ind)) << k << ":\n";
-    	dump_rxn(rx, IND_ADD2(IND_ADD2(ind)));
+      dump_rxn(rx, IND_ADD2(IND_ADD2(ind)));
     }
   }
 }
 
 void dump_release_site_obj(release_site_obj* rel_site, const char* ind) {
-	DECL_IND2(ind);
+  DECL_IND2(ind);
 
   cout << ind2 << "location: *\t\t" << *rel_site->location << " [vector3] \t\t/* location of release site */\n";
   cout << ind2 << "mol_type: *\t\t" << (void*)rel_site->mol_type << " [species] \t\t/* species to be released */\n";
@@ -632,8 +632,8 @@ void dump_release_site_obj(release_site_obj* rel_site, const char* ind) {
 
 void dump_release_event_queue(release_event_queue* req, const char* ind) {
 
-	DECL_IND2(ind);
-	cout << ind << "release_event_queue :" << (void*)req << "\n";
+  DECL_IND2(ind);
+  cout << ind << "release_event_queue :" << (void*)req << "\n";
   cout << ind2 << "event_time: \t\t" << req->event_time << " [double] \t\t/* Time of the release */\n";
   cout << ind2 << "release_site: *\t\t" << (void*)req->release_site << " [release_site_obj] \t\t/* What to release, where to release it, etc */\n";
   dump_release_site_obj(req->release_site, ind2);
@@ -644,13 +644,13 @@ void dump_release_event_queue(release_event_queue* req, const char* ind) {
   cout << ind2 << "next: \t\t" << (void*)req->next << "\n";
 
   //if (req->next != NULL)
-  //	dump_release_event_queue(req->next, ind);
+  //  dump_release_event_queue(req->next, ind);
 }
 
 void dump_schedule_helper(schedule_helper* shp, const char* name, const char* comment, const char* ind) {
-	std::string inds = ind;
-	inds += "  ";
-	const char* ind2 = inds.c_str();
+  std::string inds = ind;
+  inds += "  ";
+  const char* ind2 = inds.c_str();
   cout << ind << name << ": *\t\t" << (void*)shp << " [schedule_helper] \t\t" << comment << "\n";
 
   cout << ind2 <<"next_scale: *\t\t" << (void*)shp->next_scale << " [schedule_helper] \t\t/* Next coarser time scale */\n";
@@ -665,10 +665,10 @@ void dump_schedule_helper(schedule_helper* shp, const char* name, const char* co
   cout << ind2 <<"index: \t\t" << shp->index << " [int] \t\t/* index of the next time block */\n";
 
   if (shp->circ_buf_count != NULL) {
-  	cout << ind2 <<"circ_buf_count: \t\t" << *shp->circ_buf_count << " [int] \t\t/* How many items are scheduled in each slot */\n";
+    cout << ind2 <<"circ_buf_count: \t\t" << *shp->circ_buf_count << " [int] \t\t/* How many items are scheduled in each slot */\n";
   }
   else {
-  	cout << ind2 <<"circ_buf_count: \t\t" << "NULL" << " [int*] \t\t/* How many items are scheduled in each slot */\n";
+    cout << ind2 <<"circ_buf_count: \t\t" << "NULL" << " [int*] \t\t/* How many items are scheduled in each slot */\n";
   }
 
   cout << ind2 <<"circ_buf_head: **\t\t" << (void**)shp->circ_buf_head << " [abstract_element] \t\t// Array of linked lists of scheduled items for each slot\n";
@@ -676,30 +676,30 @@ void dump_schedule_helper(schedule_helper* shp, const char* name, const char* co
 
   cout << ind2 <<"contents (current, circ_buf_head):\n";
   for (int i = -1; i < shp->buf_len; i++) {
-  	int k = 0;
+    int k = 0;
     for (struct abstract_element *aep = (i < 0) ? shp->current
                                                 : shp->circ_buf_head[i];
          aep != NULL; aep = aep->next) {
 
       cout << ind2 << "  " << i << ":\n";
-    	if (strcmp(name, "releaser") == 0) {
-    		struct release_event_queue *req = (struct release_event_queue *)aep;
-    		dump_release_event_queue(req, ind2);
+      if (strcmp(name, "releaser") == 0) {
+        struct release_event_queue *req = (struct release_event_queue *)aep;
+        dump_release_event_queue(req, ind2);
 
-    	}
-    	else {
-				struct abstract_molecule *amp = (struct abstract_molecule *)aep;
-				if (amp->properties == NULL) {
-					cout << ind2 << "  " << i << "." << k << ": " << (void*)amp << ", properties: " << (void*)amp->properties << "\n";
-					k++;
-					continue;
-				}
-				else {
-					k++;
-				}
+      }
+      else {
+        struct abstract_molecule *amp = (struct abstract_molecule *)aep;
+        if (amp->properties == NULL) {
+          cout << ind2 << "  " << i << "." << k << ": " << (void*)amp << ", properties: " << (void*)amp->properties << "\n";
+          k++;
+          continue;
+        }
+        else {
+          k++;
+        }
 
-				dump_abstract_molecule(amp, IND_ADD2(ind2));
-    	}
+        dump_abstract_molecule(amp, IND_ADD2(ind2));
+      }
     }
   }
 
@@ -718,7 +718,7 @@ void dump_schedule_helper(schedule_helper* shp, const char* name, const char* co
 
 
 void dump_species_item(species* spec, const char* ind) {
-	DECL_IND2(ind);
+  DECL_IND2(ind);
 
   cout << ind2 <<"species_id: \t\t" << spec->species_id << " [u_int] \t\t/* Unique ID for this species */\n";
   cout << ind2 <<"chkpt_species_id: \t\t" << spec->chkpt_species_id << " [u_int] \t\t/* Unique ID for this species from the checkpoint file */\n";
@@ -752,49 +752,49 @@ void dump_species_item(species* spec, const char* ind) {
 void dump_species(species* spec, const char* name, const char* comment, const char* ind) {
   cout << ind << name << ": *\t\t" << (void*)spec << " [species] \t\t" << comment << "\n";
   if (spec != nullptr) {
-  	dump_species_item(spec, ind);
+    dump_species_item(spec, ind);
   }
 }
 
 
 
 void dump_species_list(int n_species, const char* num_name, species** species_list, const char* name, const char* comment, const char* ind) {
-	DECL_IND2(ind);
+  DECL_IND2(ind);
 
   cout << ind2 << name << "[" << num_name << "]: \t\t" << (void**)species_list << "[" << n_species << "]" << " [species*[]] \t\t" << comment << "\n";
 
   for (int i = 0; i < n_species; i++) {
-  	species* spec = species_list[i];
-		cout << ind2 << "  " << i << ": " << (void*)spec << "\n";
-		dump_species_item(spec, IND_ADD2(ind2));
+    species* spec = species_list[i];
+    cout << ind2 << "  " << i << ": " << (void*)spec << "\n";
+    dump_species_item(spec, IND_ADD2(ind2));
   }
 }
 
 
 
 string viz_output_flag_to_str(u_short flag) {
-	string res = "";
+  string res = "";
 
-	if (flag & VIZ_ALL_MOLECULES) {
-		res += "VIZ_ALL_MOLECULES";
-	}
-	if (flag & VIZ_MOLECULES_STATES) {
-		res += "VIZ_MOLECULES_STATES";
-	}
-	if (flag & VIZ_SURFACE_STATES) {
-		res += "VIZ_SURFACE_STATES";
-	}
+  if (flag & VIZ_ALL_MOLECULES) {
+    res += "VIZ_ALL_MOLECULES";
+  }
+  if (flag & VIZ_MOLECULES_STATES) {
+    res += "VIZ_MOLECULES_STATES";
+  }
+  if (flag & VIZ_SURFACE_STATES) {
+    res += "VIZ_SURFACE_STATES";
+  }
 
-	if (res == "") {
-		res = "NONE";
-	}
-	return res;
+  if (res == "") {
+    res = "NONE";
+  }
+  return res;
 }
 
 
 
 void dump_frame_data_list(frame_data_list* frame_data_head, const char* name, const char* comment, const char* ind) {
-	DECL_IND2(ind);
+  DECL_IND2(ind);
   cout << ind << name << ": *\t\t" << frame_data_head << " [frame_data_list] \t\t" << comment << "\n";
 
   cout << ind2 << "next: *\t\t" << frame_data_head->next << " [frame_data_list] \t\t\n";
@@ -809,11 +809,11 @@ void dump_frame_data_list(frame_data_list* frame_data_head, const char* name, co
 }
 
 void dump_viz_output_block(viz_output_block* viz_blocks, const char* name, const char* comment, const char* ind) {
-	DECL_IND2(ind);
-	cout << ind << name << ": *\t\t" << (void*)viz_blocks << " [viz_output_block] \t\t" << comment << "\n";
-	if (viz_blocks == nullptr) {
-		return;
-	}
+  DECL_IND2(ind);
+  cout << ind << name << ": *\t\t" << (void*)viz_blocks << " [viz_output_block] \t\t" << comment << "\n";
+  if (viz_blocks == nullptr) {
+    return;
+  }
 
   cout << ind2 << "next: *\t\t" << viz_blocks->next << " [viz_output_block] \t\t/* Link to next block */\n";
 
@@ -827,10 +827,10 @@ void dump_viz_output_block(viz_output_block* viz_blocks, const char* name, const
 
 
   if (viz_blocks->species_viz_states == nullptr) {
-  	cout << ind2 << "species_viz_states: *\t\t" << viz_blocks->species_viz_states << " [int (ptr)] \t\t\n";
+    cout << ind2 << "species_viz_states: *\t\t" << viz_blocks->species_viz_states << " [int (ptr)] \t\t\n";
   }
   else {
-  	cout << ind2 << "species_viz_states: \t\t" << *viz_blocks->species_viz_states << " [int] \t\t\n";
+    cout << ind2 << "species_viz_states: \t\t" << *viz_blocks->species_viz_states << " [int] \t\t\n";
   }
 
   cout << ind2 << "default_mol_state: \t\t" << viz_blocks->default_mol_state << " [int] \t\t// Only set if (viz_output_flag & VIZ_ALL_MOLECULES)\n";
@@ -1104,11 +1104,11 @@ extern "C" void dump_volume(struct volume* s, const char* comment, unsigned int 
   cout << "initialization_state: *\t\t" << (void*)s->initialization_state << " [char] \t\t/* NULL after initialization completes */\n";
   cout << "rxn_flags: \t\t" << s->rxn_flags << " [reaction_flags] \n";
   /* shared walls information per mesh vertex is created when there are
-	 reactions present with more than one surface reactant or more than one
-	 surface product */
+   reactions present with more than one surface reactant or more than one
+   surface product */
   cout << "create_shared_walls_info_flag: \t\t" << s->create_shared_walls_info_flag << " [int] \n";
   /* resource usage during initialization */
-	cout << "u_init_time: \t\t" << s->u_init_time << " [timeval] \t\t/* user time */\n";
+  cout << "u_init_time: \t\t" << s->u_init_time << " [timeval] \t\t/* user time */\n";
   cout << "s_init_time: \t\t" << s->s_init_time << " [timeval] \t\t/* system time */\n";
   cout << "t_start: \t\t" << s->t_start << " [time_t] \t\t/* global start time */\n";
   cout << "reaction_prob_limit_flag: \t\t" << s->reaction_prob_limit_flag << " [byte] \t\t/* checks whether there is at least one reaction with probability greater than 1 including variable rate reactions */\n";
@@ -1129,15 +1129,15 @@ extern "C" void dump_volume(struct volume* s, const char* comment, unsigned int 
 // ----------- other debug functions -------
 
 string collision_flags_to_str(int flags) {
-	string res;
-	if (flags == COLLIDE_MISS) {
-		res = "COLLIDE_MISS";
-		return res;
-	}
-	if (flags == COLLIDE_REDO) {
-		res = "COLLIDE_REDO";
-		return res;
-	}
+  string res;
+  if (flags == COLLIDE_MISS) {
+    res = "COLLIDE_MISS";
+    return res;
+  }
+  if (flags == COLLIDE_REDO) {
+    res = "COLLIDE_REDO";
+    return res;
+  }
 
 #define CHECK_FLAG(F) if (flags & F) res += #F ","
 
@@ -1160,7 +1160,7 @@ string collision_flags_to_str(int flags) {
   CHECK_FLAG(COLLIDE_SURF);
 
 #undef CHECK_FLAG
-	return res;
+  return res;
 }
 
 void dump_one_collision(collision* col) {
@@ -1171,59 +1171,59 @@ void dump_one_collision(collision* col) {
   cout << "what: \t\t" << collision_flags_to_str(col->what) << " [int] \t\t/* Target-type Flags: what kind of thing did we hit? */\n";
   cout << "intermediate: *\t\t" << col->intermediate << " [rxn] \t\t/* Reaction that told us we could hit it */\n";
   //if (col->intermediate != nullptr && col->intermediate->sym != nullptr && col->intermediate->sym->name != nullptr) {
-  //	cout << "intermediate->sym->name: *\t\t" << col->intermediate->sym->name << "\n";
+  //  cout << "intermediate->sym->name: *\t\t" << col->intermediate->sym->name << "\n";
   //}
   cout << "loc: \t\t" << col->loc << " [vector3] \t\t/* Location of impact */\n";
 }
 
 void dump_collisions(collision* shead) {
-	/*cout << "Collision list: " << ((shead == nullptr) ? "EMPTY" : "") << "\n";
+  /*cout << "Collision list: " << ((shead == nullptr) ? "EMPTY" : "") << "\n";
 */
-	int i = 0;
-	collision* ptr = shead;
-	while (ptr != NULL) {
-		if (ptr->what & COLLIDE_VOL /* != 0 && ptr->t < 1.0 && ptr->t >= 0.0*/) {
-			cout << "  " << "collision " << i << ": "
-					//<< "diff_idx: " << ptr-> diffused_molecule_idx
-					<< "coll_idx: " << ((volume_molecule*)ptr->target)->id
-					<< ", time: " << ptr->t
-					<< ", pos: " << ptr->loc
-					<< "\n";
-			i++;
-		}
+  int i = 0;
+  collision* ptr = shead;
+  while (ptr != NULL) {
+    if (ptr->what & COLLIDE_VOL /* != 0 && ptr->t < 1.0 && ptr->t >= 0.0*/) {
+      cout << "  " << "collision " << i << ": "
+          //<< "diff_idx: " << ptr-> diffused_molecule_idx
+          << "coll_idx: " << ((volume_molecule*)ptr->target)->id
+          << ", time: " << ptr->t
+          << ", pos: " << ptr->loc
+          << "\n";
+      i++;
+    }
 
-		ptr = ptr->next;
-	}
+    ptr = ptr->next;
+  }
 }
 
 // -----------  differential dumps ---------------
 
 string get_species_name(volume_molecule* vm) {
-	return vm->properties->sym->name;
+  return vm->properties->sym->name;
 }
 
 void dump_volume_molecule(
-		volume_molecule* vm,
-		const char* ind,
-		bool for_diff,
-		const char* extra_comment,
-		unsigned long long iteration
+    volume_molecule* vm,
+    const char* ind,
+    bool for_diff,
+    const char* extra_comment,
+    unsigned long long iteration
 ) {
-	if (!for_diff) {
-		cout << ind << "id: \t\t" << vm->id << " [u_long] \t\t\n";
-		cout << ind << "pos: \t\t" << vm->pos << " [vector3] \t\t/* Position in space */\n";
-		cout << ind << "properties: *\t\t" << vm->properties << " [species] \t\t\n";
-		cout << ind << "  species name: *\t\t" << vm->properties->sym->name << " [char] \t\t\n";
-	}
-	else {
-		cout << extra_comment << "it:" << iteration << ", idx:" << vm->id << ", species " << get_species_name(vm) << ", pos:" << vm->pos << ", flags:" << get_molecule_flags_string(vm->flags) << "\n";
-	}
+  if (!for_diff) {
+    cout << ind << "id: \t\t" << vm->id << " [u_long] \t\t\n";
+    cout << ind << "pos: \t\t" << vm->pos << " [vector3] \t\t/* Position in space */\n";
+    cout << ind << "properties: *\t\t" << vm->properties << " [species] \t\t\n";
+    cout << ind << "  species name: *\t\t" << vm->properties->sym->name << " [char] \t\t\n";
+  }
+  else {
+    cout << extra_comment << "it:" << iteration << ", idx:" << vm->id << ", species " << get_species_name(vm) << ", pos:" << vm->pos << ", flags:" << get_molecule_flags_string(vm->flags) << "\n";
+  }
 }
 
 void dump_vector3(struct vector3 vec, const char* extra_comment) {
-	cout << extra_comment << vec << "\n";
+  cout << extra_comment << vec << "\n";
 }
 
 void dump_rng_call_info(struct isaac64_state* rng, const char* extra_comment) {
-	cout << "  " << extra_comment << "randcnt:" << rng->randcnt << ", aa:" << (unsigned)rng->aa << ", bb:" << (unsigned)rng->bb << ", cc:" << (unsigned)rng->cc << "\n";
+  cout << "  " << extra_comment << "randcnt:" << rng->randcnt << ", aa:" << (unsigned)rng->aa << ", bb:" << (unsigned)rng->bb << ", cc:" << (unsigned)rng->cc << "\n";
 }
