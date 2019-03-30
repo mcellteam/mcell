@@ -4079,7 +4079,6 @@ static int collide_and_react_with_vol_mol(struct volume* world,
   if ((rx != NULL) && (rx->prob_t != NULL)) {
     update_probs(world, rx, m->t);
   }
-  assert(abs(scaling - 1.0) < EPS_C && "mcell4 temporary check");
   struct species *spec = m->properties;
   struct periodic_image *periodic_box = m->periodic_box;
   int i = test_bimolecular(
@@ -4088,8 +4087,6 @@ static int collide_and_react_with_vol_mol(struct volume* world,
   if (i < RX_LEAST_VALID_PATHWAY) {
     return 0;
   }
-  //assert(abs(m->t - 1.0) < EPS_C && "mcell4 temporary check");
-  //assert(abs(t_steps - 1.0) < EPS_C && "mcell4 temporary check");
   if (loc_certain != NULL)
   	assert(loc_certain->x == 0 && loc_certain->y == 0 && loc_certain->z == 0 && "mcell4 temporary check");
   int j = outcome_bimolecular(world, rx, i, (struct abstract_molecule *)m, am,

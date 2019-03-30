@@ -145,7 +145,7 @@ void diffuse_react_event_t::diffuse_single_molecule(partition_t& p, const molecu
   for (size_t collision_index = 0; collision_index < molecule_collisions.size(); collision_index++) {
     molecules_collision_t& collision = molecule_collisions[collision_index];
 
-    assert(collision.time > 0 && collision.time <= 1);
+    assert(collision.time >= 0 && collision.time <= 1);
 
     // ignoring immediate collisions
     if (collision.time < EPS) {
