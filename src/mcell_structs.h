@@ -1404,6 +1404,7 @@ struct volume {
   // min and max values from PARTITION_X|Y|Z settings,
   // these are processed already in parser and are not accessible through other variables
   // during conversion, index is dimension
+  bool partitions_initialized;
   double partition_llf[3];
   double partition_urb[3];
 };

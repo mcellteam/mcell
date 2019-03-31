@@ -339,6 +339,9 @@ int init_variables(struct volume *world) {
 
   world->dynamic_geometry_filename = NULL;
 
+  // mcell4
+  world->partitions_initialized = false;
+
   return 0;
 }
 
