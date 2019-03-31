@@ -102,7 +102,8 @@ void diffuse_react_event_t::diffuse_single_molecule(partition_t& p, const molecu
   // diffuse each molecule - get information on position change
   // TBD: reflections
   vec3_t displacement;
-  compute_displacement(species, displacement, remaining_time_step);
+  float_t r_rate_factor;
+  compute_displacement(species, displacement, r_rate_factor, remaining_time_step);
 
 #ifdef DEBUG_DIFFUSION
   DUMP_CONDITION4(
@@ -156,7 +157,7 @@ void diffuse_react_event_t::diffuse_single_molecule(partition_t& p, const molecu
     // for now, do the change right away, but we might need to cache these changes and
     // do them after all diffusions were finnished
     // warning: might invalidate references to p.volume_molecules array!
-    if (collide_and_react_with_vol_mol(p, collision, displacement, remaining_time_step)) {
+    if (collide_and_react_with_vol_mol(p, collision, displacement, remaining_time_step, r_rate_factor)) {
       // molecule was destroyed
        was_defunct = true;
       break;
@@ -190,8 +191,14 @@ void diffuse_react_event_t::pick_displacement(float_t scale /*== space step*/, v
 
 
 // determine how far will our diffused molecule move
-void diffuse_react_event_t::compute_displacement(species_t& sp, vec3_t& displacement, float_t remaining_time_step) {
+void diffuse_react_event_t::compute_displacement(
+    species_t& sp,
+    vec3_t& displacement,
+    float_t& r_rate_factor,
+    float_t remaining_time_step) {
+
   float_t rate_factor = (remaining_time_step == 1.0) ? 1.0 : sqrt(remaining_time_step);
+  r_rate_factor = 1.0 / rate_factor;
   pick_displacement(sp.space_step * rate_factor, displacement);
 }
 
@@ -529,7 +536,8 @@ bool diffuse_react_event_t::collide_and_react_with_vol_mol(
     partition_t& p,
     molecules_collision_t& collision,
     vec3_t& displacement,
-    float_t remaining_time_step
+    float_t remaining_time_step,
+    float_t r_rate_factor
 )  {
 
   volume_molecule_t& colliding_molecule = p.get_vm(collision.colliding_molecule_idx); // am
@@ -541,8 +549,9 @@ bool diffuse_react_event_t::collide_and_react_with_vol_mol(
   reaction_t& rx = *collision.rx;
   //  rx->prob_t is always NULL in out case update_probs(world, rx, m->t);
   // returns which reaction pathway to take
+  float_t scaling = /*factor - 1.0*/ r_rate_factor;
   int i = test_bimolecular(
-    rx, colliding_molecule, diffused_molecule);
+    rx, colliding_molecule, diffused_molecule, scaling);
 
   if (i < RX_LEAST_VALID_PATHWAY) {
     return false;
@@ -573,19 +582,23 @@ test_bimolecular
 int diffuse_react_event_t::test_bimolecular(
     reaction_t& rx,
     volume_molecule_t& a1,
-    volume_molecule_t& a2
+    volume_molecule_t& a2,
+    float_t scaling
 ) {
   /* rescale probabilities for the case of the reaction
      between two surface molecules */
   float_t min_noreaction_p = rx.min_noreaction_p; // local_prob_factor == 0
 
+  assert(min_noreaction_p < scaling);
   /* Instead of scaling rx->cum_probs array we scale random probability */
-  float_t p = rng_dbl(&(world->rng));
+  float_t p = rng_dbl(&(world->rng)) * scaling;
 
-  if (p >= min_noreaction_p)
+  if (p >= min_noreaction_p) {
     return RX_NO_RX;
-  else
+  }
+  else {
     return 0; // we have just one pathwayy
+  }
 }
 
 
@@ -652,8 +665,11 @@ int diffuse_react_event_t::outcome_products_random(
   #endif
 
     // schedule new product for diffusion
-    new_molecules_to_diffuse.push_back(
-        molecule_to_diffuse_t(new_vm.id, remaining_time_step - collision.time));
+    //assert(remaining_time_step - collision.time >= 0);
+    if (remaining_time_step - collision.time >= 0) {
+      new_molecules_to_diffuse.push_back(
+          molecule_to_diffuse_t(new_vm.id, remaining_time_step - collision.time));
+    }
   }
   return RX_A_OK;
 }
