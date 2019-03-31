@@ -43,14 +43,6 @@ using namespace std;
 
 namespace mcell {
 
-void diffuse_react_event_t::dump(const std::string indent) {
-  cout << indent << "Diffuse-react event:\n";
-  std::string ind2 = indent + "  ";
-  base_event_t::dump(ind2);
-  cout << ind2 << "diffusion_time_step: \t\t" << diffusion_time_step << " [float_t] \t\t\n";
-}
-
-
 void diffuse_react_event_t::step() {
   assert(world->partitions.size() == 1 && "Must extend cache to handle multiple partitions");
 
@@ -85,6 +77,28 @@ void diffuse_react_event_t::diffuse_molecules(partition_t& p, const std::vector<
 }
 
 
+// get displacement based on scale (related to diffusion constant) and gauss random number
+static void pick_displacement(float_t scale, rng_state& rng, vec3_t& displacement) {
+  displacement.x = scale * rng_gauss(&rng) * .70710678118654752440;
+  displacement.y = scale * rng_gauss(&rng) * .70710678118654752440;
+  displacement.z = scale * rng_gauss(&rng) * .70710678118654752440;
+}
+
+
+// determine how far will our diffused molecule move
+static void compute_displacement(
+    species_t& sp,
+    rng_state& rng,
+    float_t remaining_time_step,
+    vec3_t& displacement,
+    float_t& r_rate_factor) {
+
+  float_t rate_factor = (remaining_time_step == 1.0) ? 1.0 : sqrt(remaining_time_step);
+  r_rate_factor = 1.0 / rate_factor;
+  pick_displacement(sp.space_step * rate_factor, rng, displacement);
+}
+
+
 void diffuse_react_event_t::diffuse_single_molecule(partition_t& p, const molecule_id_t vm_id, const float_t remaining_time_step) {
 
   volume_molecule_t& vm = p.get_vm(vm_id);
@@ -104,7 +118,7 @@ void diffuse_react_event_t::diffuse_single_molecule(partition_t& p, const molecu
   // TBD: reflections
   vec3_t displacement;
   float_t r_rate_factor;
-  compute_displacement(species, displacement, r_rate_factor, remaining_time_step);
+  compute_displacement(species, world->rng, remaining_time_step, displacement, r_rate_factor);
 
 #ifdef DEBUG_DIFFUSION
   DUMP_CONDITION4(
@@ -184,28 +198,6 @@ void diffuse_react_event_t::diffuse_single_molecule(partition_t& p, const molecu
     p.change_molecule_subpartition(vm_new_ref, new_subpart_index);
   }
 }
-
-
-// get displacement based on scale (related to diffusion constant) and gauss random number
-void diffuse_react_event_t::pick_displacement(float_t scale /*== space step*/, vec3_t& displacement) {
-  displacement.x = scale * rng_gauss(&(world->rng)) * .70710678118654752440;
-  displacement.y = scale * rng_gauss(&(world->rng)) * .70710678118654752440;
-  displacement.z = scale * rng_gauss(&(world->rng)) * .70710678118654752440;
-}
-
-
-// determine how far will our diffused molecule move
-void diffuse_react_event_t::compute_displacement(
-    species_t& sp,
-    vec3_t& displacement,
-    float_t& r_rate_factor,
-    float_t remaining_time_step) {
-
-  float_t rate_factor = (remaining_time_step == 1.0) ? 1.0 : sqrt(remaining_time_step);
-  r_rate_factor = 1.0 / rate_factor;
-  pick_displacement(sp.space_step * rate_factor, displacement);
-}
-
 
 // This function checks if any of the neighboring subpartitions are within radius
 // from pos and inserts them into crossed_subparition_indices
@@ -678,6 +670,14 @@ int diffuse_react_event_t::outcome_products_random(
 
 
 // ---------------------------------- dumping methods ----------------------------------
+
+void diffuse_react_event_t::dump(const std::string indent) {
+  cout << indent << "Diffuse-react event:\n";
+  std::string ind2 = indent + "  ";
+  base_event_t::dump(ind2);
+  cout << ind2 << "diffusion_time_step: \t\t" << diffusion_time_step << " [float_t] \t\t\n";
+}
+
 
 void molecules_collision_t::dump(partition_t& p, const std::string ind) const {
   cout << ind << "diffused_molecule:\n";

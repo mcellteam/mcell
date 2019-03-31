@@ -129,14 +129,6 @@ private:
 
   void diffuse_molecules(partition_t& p, const std::vector< molecule_id_t >& indices);
   void diffuse_single_molecule(partition_t& p, const molecule_id_t vm, const float_t curr_time_step);
-  void pick_displacement(float_t scale /*space step*/, vec3_t& displacement);
-
-  void compute_displacement(
-      species_t& sp,
-      vec3_t& displacement,
-      float_t& r_rate_factor,
-      float_t remaining_time_step
-  );
 
   ray_trace_state_t ray_trace(
       partition_t& p,
