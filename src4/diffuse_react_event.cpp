@@ -665,11 +665,9 @@ int diffuse_react_event_t::outcome_products_random(
   #endif
 
     // schedule new product for diffusion
-    //assert(remaining_time_step - collision.time >= 0);
-    if (remaining_time_step - collision.time >= 0) {
-      new_molecules_to_diffuse.push_back(
-          molecule_to_diffuse_t(new_vm.id, remaining_time_step - collision.time));
-    }
+    // collision.time is relative to the part that this molecule travels this diffusion step
+    float_t new_vm_remaining_time_step = remaining_time_step - collision.time*remaining_time_step;
+    new_molecules_to_diffuse.push_back(molecule_to_diffuse_t(new_vm.id, new_vm_remaining_time_step));
   }
   return RX_A_OK;
 }
