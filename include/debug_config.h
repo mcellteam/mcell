@@ -1,8 +1,14 @@
 // diverse debug macros
 
-//#define DUMP_ALWAYS
+// for mcell3 - crossing memory partitions causes reordering in diffusion and it is not possible to
+// copare results anymore
+#define MCELL3_ONLY_ONE_MEMPART
 
-#if !defined(NDEBUG) || defined(DUMP_ALWAYS)
+//#define DUMP_ALWAYS
+//#define DUMP_NEVER
+
+#if (!defined(NDEBUG) || defined(DUMP_ALWAYS)) && !defined(DUMP_NEVER)
+
 #define DEBUG_SCHEDULER
 
 #define DEBUG_DEFRAGMENTATION
@@ -18,7 +24,7 @@
 #define DEBUG_REACTIONS
 
 
-#define FROM_ITERATION 0
+#define FROM_ITERATION 112
 
 #define DUMP_CONDITION3(code) do { if ((int)world->current_iterations >= (int)FROM_ITERATION) { code; } } while (0)
 #define DUMP_CONDITION4(code) do { if ((int)world->current_iteration >= (int)FROM_ITERATION) { code; } } while (0)

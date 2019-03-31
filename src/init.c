@@ -57,6 +57,8 @@
 #include "dyngeom_parse_extras.h"
 #include "triangle_overlap.h"
 
+#include "debug_config.h"
+
 #define MESH_DISTINCTIVE EPS_C
 
 struct reschedule_helper {
@@ -1431,9 +1433,19 @@ int init_partitions(struct volume *world) {
         "Failed to create memory pool for exact disk calculation vertices.");
 
   /* How many storage subdivisions along each axis? */
+#ifdef MCELL3_ONLY_ONE_MEMPART
+  world->mem_part_x = 1;
+  world->mem_part_y = 1;
+  world->mem_part_z = 1;
+  int nx = 1; 
+  int ny = 1; 
+  int nz = 1; 
+#else
   int nx = (world->nx_parts + (world->mem_part_x) - 2) / (world->mem_part_x);
   int ny = (world->ny_parts + (world->mem_part_y) - 2) / (world->mem_part_y);
   int nz = (world->nz_parts + (world->mem_part_z) - 2) / (world->mem_part_z);
+#endif
+
   if (world->notify->progress_report != NOTIFY_NONE)
     mcell_log("Creating %d memory partitions (%d,%d,%d per axis).",
               nx * ny * nz, nx, ny, nz);
@@ -1449,6 +1461,11 @@ int init_partitions(struct volume *world) {
   int cx = 0, cy = 0, cz = 0;
   for (int i = 0; i < nx * ny * nz; ++i) {
     /* Determine the number of subvolumes included in this subdivision */
+#ifdef MCELL3_ONLY_ONE_MEMPART
+    int xd = world->nx_parts;
+    int yd = world->ny_parts;
+    int zd = world->nz_parts;
+#else
     int xd = world->mem_part_x, yd = world->mem_part_y, zd = world->mem_part_z;
     if (cx == nx - 1)
       xd = (world->nx_parts - 1) % world->mem_part_x;
@@ -1463,6 +1480,7 @@ int init_partitions(struct volume *world) {
         ++cz;
       }
     }
+#endif
 
     /* Allocate this storage */
     if ((shared_mem[i] = create_storage(world, xd * yd * zd)) == NULL)
@@ -1518,9 +1536,13 @@ int init_partitions(struct volume *world) {
           sv->world_edge |= Z_POS_BIT;
 
         /* Bind this subvolume to the appropriate storage */
+#ifdef MCELL3_ONLY_ONE_MEMPART  
+        int shidx = 0;
+#else
         int shidx =
             (i / (world->mem_part_x)) +
             nx * (j / (world->mem_part_y) + ny * (k / (world->mem_part_z)));
+#endif            
         sv->local_storage = shared_mem[shidx];
       }
   return 0;
