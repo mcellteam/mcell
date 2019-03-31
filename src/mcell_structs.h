@@ -1397,8 +1397,15 @@ struct volume {
 
   struct pointer_hash *species_mesh_transp; 
 
+  // mcell4 -specific items
   int use_mcell4;
   int dump_mcell4;
+
+  // min and max values from PARTITION_X|Y|Z settings,
+  // these are processed already in parser and are not accessible through other variables
+  // during conversion, index is dimension
+  double partition_llf[3];
+  double partition_urb[3];
 };
 
 /* Data structure to store information about collisions. */

@@ -136,9 +136,17 @@ bool mcell3_world_converter::convert_simulation_setup(volume* s) {
   world->seed_seq = s->seed_seq;
   world->rng = *s->rng;
 
+  // there seems to be just one partition in MCell but we interpret it as mcell4 partition size
+  CHECK_PROPERTY(s->partition_llf[0] == s->partition_llf[1]);
+  CHECK_PROPERTY(s->partition_llf[1] == s->partition_llf[2]);
+  CHECK_PROPERTY(s->partition_urb[0] == s->partition_urb[1]);
+  CHECK_PROPERTY(s->partition_urb[1] == s->partition_urb[2]);
+  assert(s->partition_urb[0] > s->partition_llf[0]);
+  world->world_constants.partition_edge_length = (s->partition_urb[0] - s->partition_llf[0]) / s->length_unit;
+
   CHECK_PROPERTY(s->nx_parts == s->ny_parts);
   CHECK_PROPERTY(s->ny_parts == s->nz_parts);
-  // this number counts the number of boundaries, not subvolumes, also, there are always 2 extra subvolumes on the sides
+  // this number counts the number of boundaries, not subvolumes, also, there are always 2 extra subvolumes on the sides in mcell3
   world->world_constants.subpartitions_per_partition_dimension = s->nx_parts - 3;
   world->world_constants.init_subpartition_edge_length(); // maybe change ionto some general init of values
 

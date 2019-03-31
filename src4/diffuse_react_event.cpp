@@ -29,6 +29,7 @@
 extern "C" {
 #include "rng.h"
 #include "mcell_structs.h"
+#include "logging.h"
 }
 
 #include "diffuse_react_event.h"
@@ -174,7 +175,10 @@ void diffuse_react_event_t::diffuse_single_molecule(partition_t& p, const molecu
 
     // are we still in the same partition or do we need to move?
     bool move_to_another_partition = !p.in_this_partition(vm_new_ref.pos);
-    assert(!move_to_another_partition && "TODO");
+    if (move_to_another_partition) {
+      mcell_log("Error: Crossing partitions is not supported yet.\n");
+      exit(1);
+    }
 
     // change subpartition
     p.change_molecule_subpartition(vm_new_ref, new_subpart_index);

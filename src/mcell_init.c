@@ -393,6 +393,10 @@ MCELL_STATUS mcell_set_partition(MCELL_STATE *state, int dim,
   if (dblp == NULL)
     return MCELL_FAIL;
 
+  /* mcell4 */
+  state->partition_llf[dim] = head->value_head->value;
+  state->partition_urb[dim] = head->value_tail->value;
+
   /* Copy partitions in sorted order to the array */
   unsigned int num_values = 0;
   dblp[num_values++] = -GIGANTIC;
