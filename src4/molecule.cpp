@@ -66,10 +66,11 @@ void volume_molecule_t::dump(const string ind) const {
 
 
 void volume_molecule_t::dump(
-    world_t* world,
+    const world_t* world,
     const string extra_comment,
     const string ind,
-    const uint64_t iteration
+    const uint64_t iteration,
+    const float_t time
 ) const {
   cout << ind << extra_comment << "it:" << iteration << ", idx:" << id
       << ", species " << world->species[species_id].name << ", pos:" << pos
@@ -77,6 +78,7 @@ void volume_molecule_t::dump(
 #ifdef DEBUG_SUBPARTITIONS
       << ", subpartition:" << subpart_index
 #endif
+      << ", time: " << time
       << "\n";
 }
 

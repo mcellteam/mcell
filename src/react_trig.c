@@ -39,6 +39,9 @@
 #include "react_nfsim.h"
 #include "vol_util.h"
 
+#include "dump_state.h"
+#include "debug_config.h"
+
 /*************************************************************************
 trigger_unimolecular:
    In: hash value of molecule's species
@@ -1019,6 +1022,16 @@ void compute_lifetime(struct volume *state,
     double tt = FOREVER;
 
     am->t2 = timeof_unimolecular(r, am, state->rng);
+
+#ifdef DEBUG_REACTIONS
+    struct volume *world = state;
+    DUMP_CONDITION3(
+        // calling rng for unimolecular
+        struct volume_molecule* vm = (struct volume_molecule*)am;
+        dump_volume_molecule(vm, "", true, "Assigned unimolecular time (prev rng):", state->current_iterations, vm->t2);
+    );
+#endif
+
     if (r->prob_t != NULL) {
       tt = r->prob_t->time;
     }

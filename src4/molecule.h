@@ -38,7 +38,7 @@ class world_t;
 
 #define ACT_DIFFUSE 0x008
 #define ACT_REACT 0x020
-#define ACT_NEWBIE 0x040
+#define ACT_NEWBIE 0x040  // does not have unimolecular time specified
 #define ACT_CHANGE 0x080
 #define ACT_CLAMPED 0x1000
 
@@ -95,24 +95,28 @@ public:
   volume_molecule_t()
     : base_molecule_t(MOLECULE_ID_INVALID, SPECIES_ID_INVALID),
       pos(0),
-      subpart_index(SUBPART_INDEX_INVALID) {
+      subpart_index(SUBPART_INDEX_INVALID),
+      unimol_rx_time(TIME_FOREVER) {
     // needed for std::sort
   }
   volume_molecule_t(const molecule_id_t idx_, const species_id_t species_id_, const vec3_t& pos_)
     : base_molecule_t(idx_, species_id_),
       pos(pos_),
-      subpart_index(SUBPART_INDEX_INVALID) {
+      subpart_index(SUBPART_INDEX_INVALID),
+      unimol_rx_time(TIME_FOREVER) {
   }
 
   vec3_t pos;
   uint32_t subpart_index;
+  float_t unimol_rx_time;
 
   void dump(const std::string ind) const;
   void dump(
-      world_t* world,
+      const world_t* world,
       const std::string extra_comment,
       const std::string ind,
-      const uint64_t iteration
+      const uint64_t iteration,
+      const float_t time = 0
   ) const;
   std::string to_string() const;
   static void dump_array(const std::vector<volume_molecule_t>& vec);

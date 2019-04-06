@@ -29,16 +29,17 @@
 
 #include "defines.h"
 #include "molecule.h"
+#include "scheduler.h"
+#include "reaction.h"
 
 namespace mcell {
 
 /**
  * Class used to hold sets of molecule ids
  */
-class subpartition_mask_t: public boost::container::flat_set<molecule_id_t>
-    {
+class subpartition_mask_t: public boost::container::flat_set<molecule_id_t> {
 public:
-  void set_contains_molecule(molecule_id_t id, bool value = true) {
+  void set_contains_molecule(const molecule_id_t id, const bool value = true) {
     if (value) {
       assert(count(id) == 0);
       insert(id);
@@ -51,6 +52,7 @@ public:
 
   void dump();
 };
+
 
 /**
  * Parition class contains all molecules and other data contained in
@@ -96,8 +98,8 @@ public:
 
 
   uint32_t get_molecule_list_index_for_time_step(const float_t time_step) {
-    for (uint32_t i = 0; i < volume_molecule_indices_per_time_step.size(); i++) {
-      if (volume_molecule_indices_per_time_step[i].first == time_step) {
+    for (uint32_t i = 0; i < volume_molecules_data_per_time_step_array.size(); i++) {
+      if (volume_molecules_data_per_time_step_array[i].time_step == time_step) {
         return i;
       }
     }
@@ -109,9 +111,9 @@ public:
     uint32_t res;
     res = get_molecule_list_index_for_time_step(time_step);
     if (res == TIME_STEP_INDEX_INVALID) {
-      volume_molecule_indices_per_time_step.push_back(
-        pair_time_step_volume_molecules_t(time_step, std::vector< molecule_id_t >()));
-      res = volume_molecule_indices_per_time_step.size() - 1;
+      volume_molecules_data_per_time_step_array.push_back(
+        time_step_volume_molecules_data_t(time_step, std::vector<molecule_id_t>()));
+      res = volume_molecules_data_per_time_step_array.size() - 1;
     }
     return res;
   }
@@ -206,13 +208,14 @@ public:
   }
 
 
+  // any molecule flags are set by caller after the molecule is created by this method
   volume_molecule_t& add_volume_molecule_with_time_step_index(volume_molecule_t vm_copy, const uint32_t time_step_index) {
     molecule_id_t molecule_id = next_molecule_id;
     next_molecule_id++;
     // and its index to the list sorted by time step
     // this is an array that changes only when molecule leaves this partition
-    assert(time_step_index <= volume_molecule_indices_per_time_step.size());
-    volume_molecule_indices_per_time_step[time_step_index].second.push_back(molecule_id);
+    assert(time_step_index <= volume_molecules_data_per_time_step_array.size());
+    volume_molecules_data_per_time_step_array[time_step_index].molecule_ids.push_back(molecule_id);
 
     // We always have to increase the size of the mappping array - its size is
     // large enough to hold indices for all molecules that were ever created,
@@ -249,10 +252,33 @@ public:
   }
 
 
-  // ---------------------------------- typedefs ----------------------------------
+  void add_unimolecular_action(float_t diffusion_time_step, const diffuse_or_unimol_react_action_t& unimol_react_action) {
+    uint32_t time_step_index = get_or_add_molecule_list_index_for_time_step(diffusion_time_step);
+    volume_molecules_data_per_time_step_array[time_step_index].calendar_for_unimol_rxs.insert(unimol_react_action, unimol_react_action.scheduled_time);
+  }
 
-  // arrays of indices to the volume_molecules array where each array corresponds to a given time step
-  typedef std::pair< float_t, std::vector< molecule_id_t > > pair_time_step_volume_molecules_t;
+  // ---------------------------------- typedefs and internal structs ----------------------------------
+
+
+  // calendar type for internal action scheduling, one bucket corresponds to a single diffusion time step (diffuse_and_react_event)
+  typedef calendar_t<fifo_bucket_t<diffuse_or_unimol_react_action_t>, diffuse_or_unimol_react_action_t> calendar_for_unimol_rxs_t;
+  
+  // this structure contains all data associated with a given diffusion time step.
+  struct time_step_volume_molecules_data_t {
+    // usually initialized with empty molecule_ids_ array
+    time_step_volume_molecules_data_t(float_t time_step_, const std::vector< molecule_id_t > molecule_ids_)
+      : time_step(time_step_), molecule_ids(molecule_ids_), calendar_for_unimol_rxs(time_step_) {
+    }
+
+		// diffusion time step value 
+    float_t time_step;
+    // molecule ids with this diffusion time step 
+    std::vector<molecule_id_t> molecule_ids;
+    // and unimolecular reactions scheduled while diffusing  molecules with this diffusion time step;
+    // these unimolecular reactions can be associated with a molecule with a different time step, 
+    // what is important is how they were created 
+    calendar_for_unimol_rxs_t calendar_for_unimol_rxs;
+  };
 
   // indexed with species_id_t
   typedef std::vector< subpartition_mask_t > species_reactants_map_t;
@@ -260,33 +286,49 @@ public:
 
   // ---------------------------------- getters ----------------------------------
 
-  std::vector< pair_time_step_volume_molecules_t >& get_volume_molecule_indices_per_time_step_vec() {
-    return volume_molecule_indices_per_time_step;
+  // usually used as constant
+  std::vector< time_step_volume_molecules_data_t >& get_volume_molecule_data_per_time_step_array() {
+    return volume_molecules_data_per_time_step_array;
   }
+  
 
-  const std::vector< molecule_id_t >& get_volume_molecule_ids_for_time_step(uint32_t time_step_index) {
-    return volume_molecule_indices_per_time_step[time_step_index].second;
+  const std::vector<molecule_id_t>& get_volume_molecule_ids_for_time_step_index(uint32_t time_step_index) {
+    assert(time_step_index < volume_molecules_data_per_time_step_array.size());
+    return volume_molecules_data_per_time_step_array[time_step_index].molecule_ids;
   }
+  
+
+  // calendar is usually modified by the caller
+  calendar_for_unimol_rxs_t& get_unimolecular_actions_calendar_for_time_step_index(uint32_t time_step_index) {
+    assert(time_step_index < volume_molecules_data_per_time_step_array.size());
+    return volume_molecules_data_per_time_step_array[time_step_index].calendar_for_unimol_rxs;
+  }
+  
 
   const vec3_t& get_origin_corner() const {
     return origin_corner;
   }
+  
 
   subpartition_mask_t& get_volume_molecule_reactants(uint32_t sp_idx, species_id_t species_id) {
     return volume_molecule_reactants[sp_idx][species_id];
   }
 
+
   const std::vector<volume_molecule_t>& get_volume_molecules() const {
     return volume_molecules;
   }
 
+
   std::vector<volume_molecule_t>& get_volume_molecules() {
     return volume_molecules;
   }
+  
 
   std::vector<uint32_t>& get_volume_molecules_id_to_index_mapping() {
     return volume_molecules_id_to_index_mapping;
   }
+  
 
   void dump();
 
@@ -296,7 +338,7 @@ private:
   vec3_t opposite_corner;
 
   // vector containing all volume molecules in this partition
-  std::vector< volume_molecule_t> volume_molecules;
+  std::vector<volume_molecule_t> volume_molecules;
 
   // contains mapping of molecule ids to indices to the volume_molecules array
   std::vector<uint32_t> volume_molecules_id_to_index_mapping;
@@ -305,10 +347,10 @@ private:
   molecule_id_t next_molecule_id;
 
   // indexed by diffusion time step index
-  std::vector<pair_time_step_volume_molecules_t> volume_molecule_indices_per_time_step; // TODO: rename so that the name has something to do with diffusion? diffusion list?
+  std::vector<time_step_volume_molecules_data_t> volume_molecules_data_per_time_step_array;
 
   // indexed with subpartition index
-  std::vector < species_reactants_map_t > volume_molecule_reactants;
+  std::vector <species_reactants_map_t> volume_molecule_reactants;
 
   const world_constants_t& world_constants;
 };

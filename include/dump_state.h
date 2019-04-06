@@ -53,7 +53,8 @@ void dump_volume_molecule(
     const char* ind,
     bool for_diff,
     const char* extra_comment,
-    unsigned long long iteration
+    unsigned long long iteration,
+    double time
 );
 
 #ifdef __cplusplus
@@ -65,5 +66,16 @@ void dump_vector3(struct vector3 vec, const char* extra_comment);
 extern "C"
 #endif
 void dump_rng_call_info(struct isaac64_state* rng, const char* extra_comment);
+
+
+#ifdef __cplusplus
+extern "C"
+#endif
+void dump_schedule_helper(
+    struct schedule_helper* shp,
+    const char* name,
+    const char* comment,
+    const char* ind,
+    bool simplified_for_vm);
 
 #endif

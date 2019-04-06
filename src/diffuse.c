@@ -2944,7 +2944,7 @@ struct volume_molecule *diffuse_3D(
 
 #ifdef DEBUG_DIFFUSION
   DUMP_CONDITION3(
-  		dump_volume_molecule(vm, "", true, "Diffusing vm:", world->current_iterations);
+  		dump_volume_molecule(vm, "", true, "Diffusing vm:", world->current_iterations, vm->t);
   );
 #endif
 
@@ -3694,6 +3694,9 @@ void run_timestep(struct volume *state, struct storage *local,
   /* Do not trigger the scheduler to advance!  This will be done
    * by the main loop. */
   while (local->timer->current != NULL) {
+#ifdef DUMP_LOCAL_SCHEDULE_HELPER
+    dump_schedule_helper(local->timer, "local", "", "", true);
+#endif
     am = (struct abstract_molecule *)schedule_next(local->timer);
     if (am->properties == NULL) /* Defunct!  Remove molecule. */
     {
@@ -3707,6 +3710,13 @@ void run_timestep(struct volume *state, struct storage *local,
 
       continue;
     }
+#ifdef DEBUG_SCHEDULER
+    struct volume *world = state;
+    DUMP_CONDITION3(
+        struct volume_molecule* vm = (struct volume_molecule*)am;
+        dump_volume_molecule(vm, "", true, "\n* Scheduled action: ", world->current_iterations, vm->t);
+    );
+#endif
 
     am->flags &= ~IN_SCHEDULE;
 

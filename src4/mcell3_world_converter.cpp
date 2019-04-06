@@ -221,6 +221,7 @@ bool mcell3_world_converter::convert_single_reaction(rxn *rx) {
 
   CHECK_PROPERTY(rx->cum_probs[0] == rx->max_fixed_p); // limited for now
   CHECK_PROPERTY(rx->cum_probs[0] == rx->min_noreaction_p); // limited for now
+  reaction.max_fixed_p = rx->max_fixed_p;
   reaction.min_noreaction_p = rx->min_noreaction_p;
 
   // ?? double pb_factor; /* Conversion factor from rxn rate to rxn probability (used for cooperativity) */

@@ -86,7 +86,7 @@ void release_event_t::step() {
     base_location[0][2] = pos.z * diameter.z + location.z;
     base_location[0][3] = 1;
 
-    //TODO: t_matrix can be only identyty matrix for now, also use glm matrix mult.
+    //TODO: t_matrix can be only identity matrix for now, also use glm matrix mult.
     // mult_matrix(location, req->t_matrix, location, 1, 4, 4);
 
     vec3_t molecule_location;
@@ -97,7 +97,7 @@ void release_event_t::step() {
     volume_molecule_t& new_vm = p.add_volume_molecule_with_time_step_index(
         volume_molecule_t(MOLECULE_ID_INVALID, species_id, molecule_location), time_step_index
     );
-    new_vm.flags = TYPE_VOL | IN_VOLUME | ACT_DIFFUSE;
+    new_vm.flags = ACT_NEWBIE | TYPE_VOL | IN_VOLUME | ACT_DIFFUSE;
   }
 }
 

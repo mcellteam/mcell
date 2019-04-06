@@ -901,7 +901,7 @@ static int outcome_products_random(struct volume *world, struct wall *w,
   } else if (sm_reactant) {
     uv2xyz(&sm_reactant->s_pos, sm_reactant->grid->surface, &count_pos_xyz); assert(false && "MCell4 check");
   } else {
-    count_pos_xyz = ((struct volume_molecule *)reacA)->pos; assert(false && "MCell4 check");
+    count_pos_xyz = ((struct volume_molecule *)reacA)->pos;
   }
 
   /* Create and place each product. */
@@ -995,7 +995,7 @@ static int outcome_products_random(struct volume *world, struct wall *w,
 
 #ifdef DEBUG_REACTIONS
       DUMP_CONDITION3(
-      		dump_volume_molecule((struct volume_molecule*)this_product, "", true, "  created vm:", world->current_iterations);
+      		dump_volume_molecule((struct volume_molecule*)this_product, "", true, "  created vm:", world->current_iterations, 0.0);
       );
 #endif
 
@@ -1162,16 +1162,28 @@ int outcome_unimolecular(struct volume *world, struct rxn *rx, int path,
     who_was_i->cum_lifetime_seconds += t_time - reac->birthday;
 
     who_was_i->population--;
-    if (vm != NULL)
+    if (vm != NULL) {
+#ifdef DEBUG_REACTIONS
+      DUMP_CONDITION3(
+        dump_volume_molecule(vm, "", true, "Unimolecular vm defunct:", world->current_iterations, vm->t);
+      );
+#endif
       collect_molecule(vm);
+    }
     else {
       reac->properties = NULL;
       mem_put(reac->birthplace, reac);
     }
     return RX_DESTROY;
   } else if (who_am_i != who_was_i) {
-    if (vm != NULL)
+    if (vm != NULL) {
+#ifdef DEBUG_REACTIONS
+      DUMP_CONDITION3(
+        dump_volume_molecule(vm, "", true, "Unimolecular vm defunct:", world->current_iterations, vm->t);
+      );
+#endif
       collect_molecule(vm);
+    }
     else
       reac->properties = NULL;
     return RX_DESTROY;
@@ -1254,7 +1266,7 @@ int outcome_bimolecular(struct volume *world, struct rxn *rx, int path,
   if (killB) {
 #ifdef DEBUG_REACTIONS
     DUMP_CONDITION3(
-      dump_volume_molecule((struct volume_molecule*)reacB, "", true, "  defunct vm:", world->current_iterations);
+      dump_volume_molecule((struct volume_molecule*)reacB, "", true, "  defunct vm:", world->current_iterations, 0.0);
     );
 #endif
 
@@ -1300,7 +1312,7 @@ int outcome_bimolecular(struct volume *world, struct rxn *rx, int path,
   if (killA) {
 #ifdef DEBUG_REACTIONS
     DUMP_CONDITION3(
-      dump_volume_molecule((struct volume_molecule*)reacA, "", true, "  defunct vm:", world->current_iterations);
+      dump_volume_molecule((struct volume_molecule*)reacA, "", true, "  defunct vm:", world->current_iterations, 0.0);
     );
 #endif
 

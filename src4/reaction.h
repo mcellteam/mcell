@@ -51,13 +51,56 @@ struct species_with_orientation_t {
 
 class reaction_t {
 public:
+	// TODO: add comments
   std::string name;
   float_t rate_constant;
+  float_t max_fixed_p;
   float_t min_noreaction_p;
   std::vector<species_with_orientation_t> reactants;
   std::vector<species_with_orientation_t> products;
 
   void dump(const std::string ind) const;
+};
+
+
+/**
+ * Used as a pair molecule id, remaining timestep for molecules newly created in diffusion.
+ * Using name action instead of event because events are handled by scheduler and are ordered by time.
+ * These actions are simply processes in a queue (FIFO) manner.
+ *
+ * Used in diffuse_react _event_t and in partition_t.
+ */
+class diffuse_or_unimol_react_action_t {
+public:
+  enum type_t {
+    DIFFUSE,
+    UNIMOL_REACT
+  };
+
+  diffuse_or_unimol_react_action_t(
+      const molecule_id_t id_,
+      const float_t scheduled_time_,
+      const type_t type_,
+      const reaction_t* unimol_rx_ = nullptr)
+    :
+      id(id_),
+      scheduled_time(scheduled_time_),
+      type(type_),
+      unimol_rx(unimol_rx_) {
+    if (type == UNIMOL_REACT) {
+      assert(unimol_rx_ != nullptr);
+    }
+  }
+
+  // defined because of usage in calendar_t
+  const diffuse_or_unimol_react_action_t& operator->() const {
+     return *this;
+  }
+
+  molecule_id_t id;
+  float_t scheduled_time; // this is the scheduled time
+  type_t type;
+  const reaction_t* unimol_rx; // when type is UNIMOL_REACT
 };
 
 } // namespace mcell

@@ -44,10 +44,10 @@ void defragmentation_event_t::step() {
     vector<volume_molecule_t>& volume_molecules = p.get_volume_molecules();
     vector<uint32_t>& volume_molecules_id_to_index_mapping = p.get_volume_molecules_id_to_index_mapping();
 
-    vector<partition_t::pair_time_step_volume_molecules_t>& mols_per_time_step = p.get_volume_molecule_indices_per_time_step_vec();
-    assert(mols_per_time_step.size() == 1 && mols_per_time_step[0].second.size() == volume_molecules.size()
+    vector<partition_t::time_step_volume_molecules_data_t>& mols_per_time_step = p.get_volume_molecule_data_per_time_step_array();
+    assert(mols_per_time_step.size() == 1 && mols_per_time_step[0].molecule_ids.size() == volume_molecules.size()
         && "For now, volume_molecule_indices_per_time_step[0] must be identical to volume_molecules");
-    vector<uint32_t>& volume_molecule_ids_per_time_step = mols_per_time_step[0].second;
+    vector<uint32_t>& volume_molecule_ids_per_time_step = mols_per_time_step[0].molecule_ids;
 
 #ifdef DEBUG_DEFRAGMENTATION
     cout << "Defragmentation before sort:\n";

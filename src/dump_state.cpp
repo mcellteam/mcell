@@ -342,7 +342,7 @@ void dump_molecules(int num_all_molecules, molecule_info **all_molecules) {
 
     if ((amp->properties->flags & NOT_FREE) == 0) {
       volume_molecule *vmp = (volume_molecule *)amp;
-      dump_volume_molecule(vmp, "  ", true, "", 0);
+      dump_volume_molecule(vmp, "  ", true, "", 0, 0.0);
     } else if ((amp->properties->flags & ON_GRID) != 0) {
       surface_molecule *smp = (surface_molecule *)amp;
       dump_surface_molecule(smp, "  ");
@@ -647,72 +647,88 @@ void dump_release_event_queue(release_event_queue* req, const char* ind) {
   //  dump_release_event_queue(req->next, ind);
 }
 
-void dump_schedule_helper(schedule_helper* shp, const char* name, const char* comment, const char* ind) {
-  std::string inds = ind;
-  inds += "  ";
-  const char* ind2 = inds.c_str();
-  cout << ind << name << ": *\t\t" << (void*)shp << " [schedule_helper] \t\t" << comment << "\n";
-
-  cout << ind2 <<"next_scale: *\t\t" << (void*)shp->next_scale << " [schedule_helper] \t\t/* Next coarser time scale */\n";
-
-  cout << ind2 <<"dt: \t\t" << shp->dt << " [double] \t\t/* Timestep per slot */\n";
-  cout << ind2 <<"dt_1: \t\t" << shp->dt_1 << " [double] \t\t/* dt_1 = 1/dt */\n";
-  cout << ind2 <<"now: \t\t" << shp->now << " [double] \t\t/* Start time of the scheduler */\n";
-
-  /* Items scheduled now or after now */
-  cout << ind2 <<"count: \t\t" << shp->count << " [int] \t\t/* Total number of items scheduled now or after */\n";
-  cout << ind2 <<"buf_len: \t\t" << shp->buf_len << " [int] \t\t/* Number of slots in the scheduler */\n";
-  cout << ind2 <<"index: \t\t" << shp->index << " [int] \t\t/* index of the next time block */\n";
-
-  if (shp->circ_buf_count != NULL) {
-    cout << ind2 <<"circ_buf_count: \t\t" << *shp->circ_buf_count << " [int] \t\t/* How many items are scheduled in each slot */\n";
-  }
-  else {
-    cout << ind2 <<"circ_buf_count: \t\t" << "NULL" << " [int*] \t\t/* How many items are scheduled in each slot */\n";
-  }
-
-  cout << ind2 <<"circ_buf_head: **\t\t" << (void**)shp->circ_buf_head << " [abstract_element] \t\t// Array of linked lists of scheduled items for each slot\n";
-  cout << ind2 <<"circ_buf_tail: **\t\t" << (void**)shp->circ_buf_tail << " [abstract_element] \t\t// Array of tails of the linked lists\n";
-
-  cout << ind2 <<"contents (current, circ_buf_head):\n";
-  for (int i = -1; i < shp->buf_len; i++) {
-    int k = 0;
-    for (struct abstract_element *aep = (i < 0) ? shp->current
-                                                : shp->circ_buf_head[i];
-         aep != NULL; aep = aep->next) {
-
-      cout << ind2 << "  " << i << ":\n";
-      if (strcmp(name, "releaser") == 0) {
-        struct release_event_queue *req = (struct release_event_queue *)aep;
-        dump_release_event_queue(req, ind2);
-
+void dump_schedule_helper(schedule_helper* shp, const char* name, const char* comment, const char* ind, bool simplified_for_vm) {
+  if (simplified_for_vm) {
+    cout << "Scheduler '" << name << "', now: " << shp->now << "\n    ";
+    abstract_molecule* am = (abstract_molecule*)shp->current;
+    assert(shp->next_scale == NULL);
+    while (am != NULL) {
+      if (am->properties == NULL) {
+        cout << "!NULL properties!,";
       }
       else {
-        struct abstract_molecule *amp = (struct abstract_molecule *)aep;
-        if (amp->properties == NULL) {
-          cout << ind2 << "  " << i << "." << k << ": " << (void*)amp << ", properties: " << (void*)amp->properties << "\n";
-          k++;
-          continue;
-        }
-        else {
-          k++;
-        }
-
-        dump_abstract_molecule(amp, IND_ADD2(ind2));
+        volume_molecule* vm = (volume_molecule*)am;
+        cout << "(t: " << vm->t << ", t2: " << vm->t2 << ", id: " << vm->id << "), ";
       }
+      am = am->next;
     }
   }
+  else {
+    std::string inds = ind;
+    inds += "  ";
+    const char* ind2 = inds.c_str();
+    cout << ind << name << ": *\t\t" << (void*)shp << " [schedule_helper] \t\t" << comment << "\n";
 
-  /* Items scheduled before now */
-  /* These events must be serviced before simulation can advance to now */
-  cout << ind2 <<"current_count: \t\t" << shp->current_count << " [int] \t\t/* Number of current items */\n";
-  cout << ind2 <<"current: *\t\t" << (void*)shp->current << " [abstract_element] \t\t/* List of items scheduled now */\n";
-  cout << ind2 <<"current_tail: *\t\t" << shp->current_tail << " [abstract_element] \t\t/* Tail of list of items */\n";
+    cout << ind2 <<"next_scale: *\t\t" << (void*)shp->next_scale << " [schedule_helper] \t\t/* Next coarser time scale */\n";
 
-  cout << ind2 <<"defunct_count: \t\t" << shp->defunct_count << " [int] \t\t/* Number of defunct items (set by user)*/\n";
-  cout << ind2 <<"error: \t\t" << shp->error << " [int] \t\t/* Error code (1 - on error, 0 - no errors) */\n";
-  cout << ind2 <<"depth: \t\t" << shp->depth << " [int] \t\t/* Tier of scheduler in timescale hierarchy, 0-based */\n";
+    cout << ind2 <<"dt: \t\t" << shp->dt << " [double] \t\t/* Timestep per slot */\n";
+    cout << ind2 <<"dt_1: \t\t" << shp->dt_1 << " [double] \t\t/* dt_1 = 1/dt */\n";
+    cout << ind2 <<"now: \t\t" << shp->now << " [double] \t\t/* Start time of the scheduler */\n";
 
+    /* Items scheduled now or after now */
+    cout << ind2 <<"count: \t\t" << shp->count << " [int] \t\t/* Total number of items scheduled now or after */\n";
+    cout << ind2 <<"buf_len: \t\t" << shp->buf_len << " [int] \t\t/* Number of slots in the scheduler */\n";
+    cout << ind2 <<"index: \t\t" << shp->index << " [int] \t\t/* index of the next time block */\n";
+
+    if (shp->circ_buf_count != NULL) {
+      cout << ind2 <<"circ_buf_count: \t\t" << *shp->circ_buf_count << " [int] \t\t/* How many items are scheduled in each slot */\n";
+    }
+    else {
+      cout << ind2 <<"circ_buf_count: \t\t" << "NULL" << " [int*] \t\t/* How many items are scheduled in each slot */\n";
+    }
+
+    cout << ind2 <<"circ_buf_head: **\t\t" << (void**)shp->circ_buf_head << " [abstract_element] \t\t// Array of linked lists of scheduled items for each slot\n";
+    cout << ind2 <<"circ_buf_tail: **\t\t" << (void**)shp->circ_buf_tail << " [abstract_element] \t\t// Array of tails of the linked lists\n";
+
+    cout << ind2 <<"contents (current, circ_buf_head):\n";
+    for (int i = -1; i < shp->buf_len; i++) {
+      int k = 0;
+      for (struct abstract_element *aep = (i < 0) ? shp->current
+                                                  : shp->circ_buf_head[i];
+           aep != NULL; aep = aep->next) {
+
+        cout << ind2 << "  " << i << ":\n";
+        if (strcmp(name, "releaser") == 0) {
+          struct release_event_queue *req = (struct release_event_queue *)aep;
+          dump_release_event_queue(req, ind2);
+
+        }
+        else {
+          struct abstract_molecule *amp = (struct abstract_molecule *)aep;
+          if (amp->properties == NULL) {
+            cout << ind2 << "  " << i << "." << k << ": " << (void*)amp << ", properties: " << (void*)amp->properties << "\n";
+            k++;
+            continue;
+          }
+          else {
+            k++;
+          }
+
+          dump_abstract_molecule(amp, IND_ADD2(ind2));
+        }
+      }
+    }
+
+    /* Items scheduled before now */
+    /* These events must be serviced before simulation can advance to now */
+    cout << ind2 <<"current_count: \t\t" << shp->current_count << " [int] \t\t/* Number of current items */\n";
+    cout << ind2 <<"current: *\t\t" << (void*)shp->current << " [abstract_element] \t\t/* List of items scheduled now */\n";
+    cout << ind2 <<"current_tail: *\t\t" << shp->current_tail << " [abstract_element] \t\t/* Tail of list of items */\n";
+
+    cout << ind2 <<"defunct_count: \t\t" << shp->defunct_count << " [int] \t\t/* Number of defunct items (set by user)*/\n";
+    cout << ind2 <<"error: \t\t" << shp->error << " [int] \t\t/* Error code (1 - on error, 0 - no errors) */\n";
+    cout << ind2 <<"depth: \t\t" << shp->depth << " [int] \t\t/* Tier of scheduler in timescale hierarchy, 0-based */\n";
+  }
 }
 
 
@@ -897,10 +913,10 @@ extern "C" void dump_volume(struct volume* s, const char* comment, unsigned int 
 
   cout << "count_hashmask: \t\t" << s->count_hashmask << " [int] \t\t/* Mask for looking up count hash table */\n";
   cout << "count_hash: **\t\t" << (void**)s->count_hash << " [counter] \t\t/* Count hash table */\n";
-  dump_schedule_helper(s->count_scheduler, "count_scheduler", "// When to generate reaction output", "");
+  dump_schedule_helper(s->count_scheduler, "count_scheduler", "// When to generate reaction output", "", false);
   cout << "counter_by_name: *\t\t" << (void*)s->counter_by_name << " [sym_table_head] \n";
 
-  dump_schedule_helper(s->volume_output_scheduler, "volume_output_scheduler", "/* When to generate volume output */", "");
+  dump_schedule_helper(s->volume_output_scheduler, "volume_output_scheduler", "/* When to generate volume output */", "", false);
 
 
   cout << "n_species: \t\t" << s->n_species << " [int] \t\t/* How many different species (molecules)? */\n";
@@ -920,7 +936,7 @@ extern "C" void dump_volume(struct volume* s, const char* comment, unsigned int 
   cout << "dynamic_geometry_events_mem: *\t\t" << (void*)s->dynamic_geometry_events_mem << " [mem_helper] \t\t/*Memory to store time and MDL names for dynamic geometry*/\n";
   cout << "dynamic_geometry_scheduler: *\t\t" << (void*)s->dynamic_geometry_scheduler << " [schedule_helper] \t\t/*Scheduler for dynamic geometry (LATER)*/\n";
 
-  dump_schedule_helper(s->releaser, "releaser", "/* Scheduler for release events */", "");
+  dump_schedule_helper(s->releaser, "releaser", "/* Scheduler for release events */", "", false);
 
   cout << "storage_allocator: *\t\t" << (void*)s->storage_allocator << " [mem_helper] \t\t/* Memory for storage list */\n";
   cout << "storage_head: *\t\t" << (void*)s->storage_head << " [storage_list] \t\t/* Linked list of all local  memory/schedulers\n";
@@ -1207,7 +1223,8 @@ void dump_volume_molecule(
     const char* ind,
     bool for_diff,
     const char* extra_comment,
-    unsigned long long iteration
+    unsigned long long iteration,
+    double time
 ) {
   if (!for_diff) {
     cout << ind << "id: \t\t" << vm->id << " [u_long] \t\t\n";
@@ -1216,7 +1233,9 @@ void dump_volume_molecule(
     cout << ind << "  species name: *\t\t" << vm->properties->sym->name << " [char] \t\t\n";
   }
   else {
-    cout << extra_comment << "it:" << iteration << ", idx:" << vm->id << ", species " << get_species_name(vm) << ", pos:" << vm->pos << ", flags:" << get_molecule_flags_string(vm->flags) << "\n";
+    cout << extra_comment << "it:" << iteration << ", idx:" << vm->id
+        << ", species " << get_species_name(vm) << ", pos:" << vm->pos
+        << ", flags:" << get_molecule_flags_string(vm->flags) << ", time: " << time << "\n";
   }
 }
 

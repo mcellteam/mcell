@@ -51,15 +51,21 @@ world_t::world_t()
 void world_t::init_simulation() {
   // create map for fast reaction searches
   for (reaction_t& r: reactions) {
-    assert(r.reactants.size() == 2); // only bimolecular reactions are supported now
+    assert(r.reactants.size() == 1 || r.reactants.size() == 2); // only bimolecular reactions are supported now
 
-    // TODO check - for now we only support one outcome of a reaction
-    if (bimolecular_reactions_map.count(r.reactants[0].species_id) != 0) {
-      assert(bimolecular_reactions_map[r.reactants[0].species_id].count(r.reactants[1].species_id) == 0);
+    if (r.reactants.size() == 1) {
+      // for now we only support only one outcome of a bimolecular reaction
+      assert(unimolecular_reactions_map.count(r.reactants[0].species_id) == 0);
+      unimolecular_reactions_map[r.reactants[0].species_id] = &r;
     }
-
-    bimolecular_reactions_map[r.reactants[0].species_id][r.reactants[1].species_id] = &r;
-    bimolecular_reactions_map[r.reactants[1].species_id][r.reactants[0].species_id] = &r;
+    else {
+      // check - for now we only support only one outcome of a bimolecular reaction
+      if (bimolecular_reactions_map.count(r.reactants[0].species_id) != 0) {
+        assert(bimolecular_reactions_map[r.reactants[0].species_id].count(r.reactants[1].species_id) == 0);
+      }
+      bimolecular_reactions_map[r.reactants[0].species_id][r.reactants[1].species_id] = &r;
+      bimolecular_reactions_map[r.reactants[1].species_id][r.reactants[0].species_id] = &r;
+    }
   }
 
   // just to make sure that we have an item for all the species
@@ -68,7 +74,7 @@ void world_t::init_simulation() {
   }
   assert(bimolecular_reactions_map.size() == species.size());
 
-  world_constants.init(&bimolecular_reactions_map);
+  world_constants.init(&unimolecular_reactions_map, &bimolecular_reactions_map);
 
   cout << "Creating initial partition with " <<  world_constants.subpartitions_per_partition_dimension << "^3 subvolumes.";
 
@@ -140,6 +146,7 @@ bool world_t::run_simulation() {
 
   do {
     previous_time = time;
+
     // this is where events get executed
     time = scheduler.handle_next_event(end_simulation);
 

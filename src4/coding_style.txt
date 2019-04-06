@@ -31,9 +31,9 @@ llf - low, left, front
 rcp - reciprocal ( = 1/x)
 no spaces like this: < a >, use this <a> instead
 
-comments start with lowercase
+comments start with lowercase except for /* ... */ spanning multiple lines
 
-using namespace std; - in C++ files, not in headers
+using namespace std; - in all C++ files where needed, not in headers
 
 
 blocks are marked like this:

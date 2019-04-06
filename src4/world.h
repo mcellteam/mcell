@@ -82,7 +82,6 @@ public:
   // -------------- reaction utility methods --------------
 
   // should be inlined
-  // use some caching
   bool can_react_vol_vol(volume_molecule_t& a, volume_molecule_t& b) {
     // must not be the same molecule
     if (&a == &b) {
@@ -132,7 +131,9 @@ public:
   std::vector<species_t> species; // owner
 
   std::vector<reaction_t> reactions; // we might need faster searching or reference from species to reactions here but let's keep it simple for now
-  // FIXME: there might be multiple reactions for 2 reactants
+
+  // FIXME: there might be multiple reactions for 1 or 2 reactants (multiple pathways)
+  unimolecular_reactions_map_t unimolecular_reactions_map; // created from reactions in init_simulation
   bimolecular_reactions_map_t bimolecular_reactions_map; // created from reactions in init_simulation
 
   uint64_t current_iteration;

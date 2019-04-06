@@ -87,6 +87,7 @@ const float_t SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT = 1;
 // ---------------------------------- fixed costants and specific typedefs -------------------
 
 const float_t TIME_INVALID = NAN;
+const float_t TIME_FOREVER = FLT_MAX; // this max is sufficient for both float and double
 const float_t TIME_SIMULATION_START = 0;
 
 // unique species id
@@ -114,6 +115,7 @@ const uint32_t TIME_STEP_INDEX_INVALID = UINT32_MAX;
 
 const char* const NAME_INVALID = "invalid_name";
 
+const uint64_t BUCKET_INDEX_INVALID = UINT64_MAX;
 
 // ---------------------------------- auxiliary functions ----------------------------------
 
@@ -146,6 +148,7 @@ static inline uint32_t powu(const uint32_t a, const uint32_t n) {
 
 class reaction_t;
 typedef std::unordered_map<species_id_t, reaction_t*> species_reaction_map_t;
+typedef species_reaction_map_t unimolecular_reactions_map_t;
 typedef std::unordered_map< species_id_t, species_reaction_map_t > bimolecular_reactions_map_t;
 
 /*
@@ -161,6 +164,7 @@ struct world_constants_t {
   float_t subpartition_edge_length; // == partition_edge_length / subpartitions_per_partition_dimension
   float_t subpartition_edge_length_rcp; // == 1/subpartition_edge_length
 
+  const unimolecular_reactions_map_t* unimolecular_reactions_map; // owned by world
   const bimolecular_reactions_map_t* bimolecular_reactions_map; // owned by world
 
   void init_subpartition_edge_length() {
@@ -171,7 +175,12 @@ struct world_constants_t {
     subpartitions_per_partition_dimension_squared = powu(subpartitions_per_partition_dimension, 2);
   }
 
-  void init(bimolecular_reactions_map_t* bimolecular_reactions_map_) {
+  // called from world::init_simulation()
+  void init(
+      unimolecular_reactions_map_t* unimolecular_reactions_map_,
+      bimolecular_reactions_map_t* bimolecular_reactions_map_
+      ) {
+    unimolecular_reactions_map = unimolecular_reactions_map_;
     bimolecular_reactions_map = bimolecular_reactions_map_;
     init_subpartition_edge_length();
   }

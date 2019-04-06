@@ -25,9 +25,6 @@
 #define SRC4_DIFFUSE_REACT_EVENT_H_
 
 #include <vector>
-#include <unordered_map>
-#include <unordered_set>
-
 
 #include "base_event.h"
 #include "partition.h"
@@ -49,7 +46,8 @@ enum ray_trace_state_t {
 };
 
 /**
- * Information about collision of 2 volume molecules.
+ * Information about collision of 2 volume molecules,
+ * used in diffuse_react and in partition.
  */
 class molecules_collision_t {
 public:
@@ -59,14 +57,14 @@ public:
       const molecule_id_t colliding_molecule_idx_,
       reaction_t* rx_ptr,
       const float_t& time_,
-      const vec3_t& position_)
+      const vec3_t& pos_)
     :
       partition(partition_ptr),
       diffused_molecule_idx(diffused_molecule_idx_),
       colliding_molecule_idx(colliding_molecule_idx_),
       rx(rx_ptr),
       time(time_),
-      position(position_)
+      pos(pos_)
       {
   }
 
@@ -75,29 +73,13 @@ public:
   molecule_id_t colliding_molecule_idx;
   reaction_t* rx;
   float_t time;
-  vec3_t position;
+  vec3_t pos;
 
   void dump(partition_t& p, const std::string ind) const;
   std::string to_string() const;
   static void dump_array(partition_t& p, const std::vector<molecules_collision_t>& vec);
 };
 
-
-/**
- * Used as a pair molecule id, remaining timestep for molecules newly created in diffusion.
- */
-class molecule_to_diffuse_t {
-public:
-  molecule_to_diffuse_t(
-      const molecule_id_t id_,
-      const float_t remaining_time_step_)
-    :
-      id(id_),
-      remaining_time_step(remaining_time_step_)  {
-  }
-  molecule_id_t id;
-  float_t remaining_time_step;
-};
 
 /**
  * Diffuse all molecules with a given time step.
@@ -125,10 +107,16 @@ public:
 
 private:
   // molecules newly created in reactions
-  std::vector<molecule_to_diffuse_t> new_molecules_to_diffuse;
+  std::vector<diffuse_or_unimol_react_action_t> new_diffuse_or_unimol_react_actions;
 
   void diffuse_molecules(partition_t& p, const std::vector< molecule_id_t >& indices);
-  void diffuse_single_molecule(partition_t& p, const molecule_id_t vm, const float_t curr_time_step);
+
+  void diffuse_single_molecule(
+      partition_t& p,
+      const molecule_id_t vm_id,
+      const float_t time_up_to_event_end,
+      const float_t event_time_end
+  );
 
   ray_trace_state_t ray_trace(
       partition_t& p,
@@ -161,11 +149,33 @@ private:
       float_t remaining_time_step
   );
 
+  int outcome_unimolecular(
+      partition_t& p,
+      volume_molecule_t& vm,
+      const float_t scheduled_time,
+      const reaction_t* unimol_rx
+  );
+
   int outcome_products_random(
       partition_t& p,
-      molecules_collision_t& collision,
-      int path,
+      const reaction_t* rx,
+      const vec3_t& pos,
+      float_t reaction_time,
+      float_t remaining_time_step,
+      int path
+  );
+
+  void create_unimol_rx_action(
+      partition_t& p,
+      volume_molecule_t& vm,
       float_t remaining_time_step
+  );
+
+  void react_unimol_single_molecule(
+      partition_t& p,
+      const molecule_id_t vm_id,
+      const float_t scheduled_time,
+      const reaction_t* unimol_rx
   );
 };
 
