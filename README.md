@@ -68,7 +68,8 @@ Add CMake and MinGW64 to your [Windows PATH Environment
 Variable](https://helpdeskgeek.com/windows-10/add-windows-path-environment-variable/).
 If you have installed these dependencies with Chocolatey and your top level
 drive is named `C:`, you can append (or prepend) the following paths into your
-Windows PATH:
+Windows PATH (Search "Control Panel"; View by small icons; System; Advanced System Settings;
+              Environment Variables; User Variables; Path; Edit):
 
     C:\tools\msys64\mingw64\bin
     C:\Program Files\CMake\bin
