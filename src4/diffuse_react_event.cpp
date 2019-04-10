@@ -405,7 +405,7 @@ static void collect_crossed_subparts(
     vec3_t curr_pos = vm.pos;
     ivec3_t curr_subpart_indices = src_subpart_indices;
 
-    uint32_t curr_sp_index;
+    uint32_t curr_subpart_index;
 
     vec3_t displacement_rcp = 1.0/displacement; // POSSIBLE ZERO DIV
 
@@ -418,42 +418,57 @@ static void collect_crossed_subparts(
           +  vec3_t(curr_subpart_indices) * sp_len_as_vec3 // llf edge
           + vec3_t(dir_urb_direction) * sp_len_as_vec3; // move if we go urb
 
-      // compute time for the next subpartition collision, let's assume that displacemnt
-      // is our speed vector and the total time to travel is 1
-      //
-      // pos(time) = pos + displacement * time, therefore
-      // time = (pos(time) - vm.pos) / displacement
-      // =>
-      // time_to_subpart_edge = (subpart_edge - vm.pos) / displacement_speed
-      vec3_t coll_times = (sp_edges - curr_pos) * displacement_rcp;
-      assert(coll_times.x >= 0 && coll_times.y >= 0 && coll_times.z >= 0 && "Edges must be computed from direction");
+      vec3_t diff = sp_edges - curr_pos;
 
-      // which of the times is the smallest? - i.e. which boundary we hit first
-      if (coll_times.x >= 0 && coll_times.x < coll_times.y && coll_times.x <= coll_times.z) {
-        // new position on the edge of the subpartition
-        curr_pos += displacement * coll_times.x;
-        // and also update the xyz subpartition index
+      // first check whether we are not in fact touching one of the boundaries
+      if (abs(diff.x) < EPS) {
+        // only update the xyz subpartition index
         curr_subpart_indices.x += dir_urb_addend.x;
       }
-      else if (coll_times.y >= 0 && coll_times.y <= coll_times.z) {
-        curr_pos += displacement * coll_times.y;
+      else if (abs(diff.y) < EPS) {
         curr_subpart_indices.y += dir_urb_addend.y;
       }
-      else if (coll_times.z >= 0) {
-        curr_pos += displacement * coll_times.z;
+      else if (abs(diff.z) < EPS) {
         curr_subpart_indices.z += dir_urb_addend.z;
       }
       else {
-        break;
+        // compute time for the next subpartition collision, let's assume that displacemnt
+        // is our speed vector and the total time to travel is 1
+        //
+        // pos(time) = pos + displacement * time, therefore
+        // time = (pos(time) - vm.pos) / displacement
+        // =>
+        // time_to_subpart_edge = (subpart_edge - vm.pos) / displacement_speed
+        vec3_t coll_times = diff * displacement_rcp;
+        assert(coll_times.x >= 0 && coll_times.y >= 0 && coll_times.z >= 0 && "Edges must be computed from direction");
+
+        // which of the times is the smallest? - i.e. which boundary we hit first
+        if (coll_times.x >= 0 && coll_times.x < coll_times.y && coll_times.x <= coll_times.z) {
+          // new position on the edge of the subpartition
+          curr_pos += displacement * coll_times.x;
+          // and also update the xyz subpartition index
+          curr_subpart_indices.x += dir_urb_addend.x;
+        }
+        else if (coll_times.y >= 0 && coll_times.y <= coll_times.z) {
+          curr_pos += displacement * coll_times.y;
+          curr_subpart_indices.y += dir_urb_addend.y;
+        }
+        else if (coll_times.z >= 0) {
+          curr_pos += displacement * coll_times.z;
+          curr_subpart_indices.z += dir_urb_addend.z;
+        }
+        else {
+          break;
+        }
       }
 
-      curr_sp_index = p.get_subpartition_index_from_3d_indices(curr_subpart_indices);
-      crossed_subpart_indices.insert(curr_sp_index);
+      curr_subpart_index = p.get_subpartition_index_from_3d_indices(curr_subpart_indices);
+      crossed_subpart_indices.insert(curr_subpart_index);
 
       // also neighbors
       collect_neighboring_subparts(p, curr_pos, curr_subpart_indices, crossed_subpart_indices, rx_radius, sp_edge_length);
 
-    } while (curr_sp_index != dest_subpart_index);
+    } while (curr_subpart_index != dest_subpart_index);
   }
   else {
     // subpartition index did not change
