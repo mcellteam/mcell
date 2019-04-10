@@ -375,6 +375,7 @@ static void collect_crossed_subparts(
   vec3_t dest_pos = vm.pos + displacement;
 
   // urb - upper, right, bottom
+  debug_guard_zero_div(displacement);
   ivec3_t dir_urb_direction = ivec3_t(glm::greaterThan(displacement, vec3_t(0)));
   assert(dir_urb_direction.x == 0 || dir_urb_direction.x == 1);
   assert(dir_urb_direction.y == 0 || dir_urb_direction.y == 1);
@@ -406,12 +407,12 @@ static void collect_crossed_subparts(
 
     uint32_t curr_sp_index;
 
-    vec3_t displacement_rcp = 1.0/displacement; // TODO: what if displacement is 0
+    vec3_t displacement_rcp = 1.0/displacement; // POSSIBLE ZERO DIV
 
     do {
       // subpartition edges
       // = origin + subparition index * length + is_urb * length
-      vec3_t sp_len_as_vec3 = vec3_t(sp_edge_length);
+      vec3_t sp_len_as_vec3 = vec3_t(sp_edge_length); // FIXME: some of this computation can be moved out of the loop
       vec3_t sp_edges =
           p.get_origin_corner()
           +  vec3_t(curr_subpart_indices) * sp_len_as_vec3 // llf edge
@@ -424,23 +425,26 @@ static void collect_crossed_subparts(
       // time = (pos(time) - vm.pos) / displacement
       // =>
       // time_to_subpart_edge = (subpart_edge - vm.pos) / displacement_speed
-      assert(displacement.x != 0 && displacement.y != 0 && displacement.z != 0);
       vec3_t coll_times = (sp_edges - curr_pos) * displacement_rcp;
+      assert(coll_times.x >= 0 && coll_times.y >= 0 && coll_times.z >= 0 && "Edges must be computed from direction");
 
       // which of the times is the smallest? - i.e. which boundary we hit first
-      if (coll_times.x < coll_times.y && coll_times.x <= coll_times.z) {
+      if (coll_times.x >= 0 && coll_times.x < coll_times.y && coll_times.x <= coll_times.z) {
         // new position on the edge of the subpartition
         curr_pos += displacement * coll_times.x;
         // and also update the xyz subpartition index
         curr_subpart_indices.x += dir_urb_addend.x;
       }
-      else if (coll_times.y <= coll_times.z) {
+      else if (coll_times.y >= 0 && coll_times.y <= coll_times.z) {
         curr_pos += displacement * coll_times.y;
         curr_subpart_indices.y += dir_urb_addend.y;
       }
-      else {
+      else if (coll_times.z >= 0) {
         curr_pos += displacement * coll_times.z;
         curr_subpart_indices.z += dir_urb_addend.z;
+      }
+      else {
+        break;
       }
 
       curr_sp_index = p.get_subpartition_index_from_3d_indices(curr_subpart_indices);

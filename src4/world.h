@@ -40,6 +40,7 @@ namespace mcell {
 
 class world_t {
 private:
+  void init_fpu();
   void init_simulation();
   void create_defragmentation_events();
 public:

@@ -144,6 +144,30 @@ static inline uint32_t powu(const uint32_t a, const uint32_t n) {
 }
 
 
+static inline void debug_guard_zero_div(float_t& val) {
+#ifndef NDEBUG
+  // if we divide by such a small number, result is practically the same as
+  // if we would return inf during division
+  if (val == 0) {
+    val = FLT_MIN;
+  }
+#endif
+}
+
+static inline void debug_guard_zero_div(vec3_t& val) {
+#ifndef NDEBUG
+  if (val.x == 0) {
+    val.x = FLT_MIN;
+  }
+  if (val.y == 0) {
+    val.y = FLT_MIN;
+  }
+  if (val.z == 0) {
+    val.z = FLT_MIN;
+  }
+#endif
+}
+
 // ---------------------------------- world_constants_t ----------------------------------
 
 class reaction_t;

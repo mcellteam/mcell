@@ -24,6 +24,7 @@
 #include <time.h>
 #include <sys/time.h> // Linux include
 #include <sys/resource.h> // Linux include
+#include <fenv.h> // Linux include
 
 extern "C" {
 #include "rng.h" // MCell 3
@@ -48,7 +49,22 @@ world_t::world_t()
 }
 
 
+void world_t::init_fpu() {
+#ifdef NDEBUG
+  // we do not want to be making extra checks for division by zero
+  // all places where such a case can occur is marked with comment POSSIBLE ZERO DIV
+  fedisableexcept(FE_DIVBYZERO);
+
+  static float_t a = 1;
+  static float_t b = 0;
+  assert(a/b == INFINITY);
+#endif
+}
+
 void world_t::init_simulation() {
+
+  init_fpu();
+
   // create map for fast reaction searches
   for (reaction_t& r: reactions) {
     assert(r.reactants.size() == 1 || r.reactants.size() == 2); // only bimolecular reactions are supported now
