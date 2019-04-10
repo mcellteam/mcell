@@ -394,6 +394,7 @@ MCELL_STATUS mcell_set_partition(MCELL_STATE *state, int dim,
     return MCELL_FAIL;
 
   /* mcell4 */
+  state->partitions_initialized = true; // setting for all dimensions, expecting that all partition dims are set
   state->partition_llf[dim] = head->value_head->value;
   state->partition_urb[dim] = head->value_tail->value;
 
