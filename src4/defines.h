@@ -45,6 +45,14 @@
 
 namespace mcell {
 
+// ---------------------------------- optimization macros ----------------------------------
+#if defined(likely) or defined(unlikely)
+#error "Macros 'likely' or 'unlikely' are already defined"
+#endif
+
+#define likely(x)       __builtin_expect((x),1)
+#define unlikely(x)     __builtin_expect((x),0)
+
 // ---------------------------------- float types ----------------------------------
 
 typedef double float_t; // will be changed to float
