@@ -1114,18 +1114,18 @@ static external_molcomp_loc *build_molcomp_array ( struct volume *world, char **
       // This is a molecule
       molcomp_loc_array[part_num].is_mol = 1;
       // For molecules, the name ends with ! or possibly the end of the string
-      if (index(next_part,'!') == NULL) {
+      if (strchr(next_part,'!') == NULL) {
         molcomp_loc_array[part_num].name = (char *) malloc ( 1 + strlen(next_part) - 2 );
         strcpy ( molcomp_loc_array[part_num].name, &next_part[2] );
       } else {
-        char *end_point = index(next_part,'!');
+        char *end_point = strchr(next_part,'!');
         *end_point = '\0';
         molcomp_loc_array[part_num].name = (char *) malloc ( 1 + strlen(next_part) - 2 );
         strcpy ( molcomp_loc_array[part_num].name, &next_part[2] );
         *end_point = '!';
       }
       // Remove any @ portions if they exist
-      char *at_sign = index(molcomp_loc_array[part_num].name, '@');
+      char *at_sign = strchr(molcomp_loc_array[part_num].name, '@');
       if (at_sign != NULL) {
         // Make a copy up to that point
         *at_sign = '\0';
@@ -1138,15 +1138,15 @@ static external_molcomp_loc *build_molcomp_array ( struct volume *world, char **
       // Get the molecule's neighbors which should all be components
       molcomp_loc_array[part_num].num_peers = 0;
       molcomp_loc_array[part_num].peers = NULL;
-      char *next_excl = index(next_part,'!');
+      char *next_excl = strchr(next_part,'!');
       while (next_excl != NULL) {
         molcomp_loc_array[part_num].num_peers++;
         next_excl++;
-        next_excl = index(next_excl,'!');
+        next_excl = strchr(next_excl,'!');
       }
       if (molcomp_loc_array[part_num].num_peers > 0) {
         molcomp_loc_array[part_num].peers = (int *) malloc ( molcomp_loc_array[part_num].num_peers * sizeof(int) );
-        next_excl = index(next_part,'!');
+        next_excl = strchr(next_part,'!');
         int peer_num = 0;
         int comp_index;
         while (next_excl != NULL) {
@@ -1154,14 +1154,14 @@ static external_molcomp_loc *build_molcomp_array ( struct volume *world, char **
           comp_index = atoi(next_excl);
           molcomp_loc_array[part_num].peers[peer_num] = comp_index;
           peer_num++;
-          next_excl = index(next_excl,'!');
+          next_excl = strchr(next_excl,'!');
         }
       }
     } else {
       // This is a component
       molcomp_loc_array[part_num].is_mol = 0;
-      char *first_exc = index(next_part,'!');
-      char *first_til = index(next_part,'~');
+      char *first_exc = strchr(next_part,'!');
+      char *first_til = strchr(next_part,'~');
       char *end_point;
       char previous_end;
 
@@ -1181,7 +1181,7 @@ static external_molcomp_loc *build_molcomp_array ( struct volume *world, char **
         end_point = first_til;
       } else {
         // Name ends at end of string
-        end_point = index(next_part,'\0');
+        end_point = strchr(next_part,'\0');
       }
       previous_end = *end_point;
       *end_point = '\0';
@@ -1197,7 +1197,7 @@ static external_molcomp_loc *build_molcomp_array ( struct volume *world, char **
           end_point = first_exc;
         } else {
           // The states are bounded between first_til and the end of the string
-          end_point = index(next_part,'\0');
+          end_point = strchr(next_part,'\0');
         }
         previous_end = *end_point;
         *end_point = '\0';
@@ -1209,15 +1209,15 @@ static external_molcomp_loc *build_molcomp_array ( struct volume *world, char **
       // Get the component's neighbors (the first will be the molecule)
       molcomp_loc_array[part_num].num_peers = 0;
       molcomp_loc_array[part_num].peers = NULL;
-      char *next_excl = index(next_part,'!');
+      char *next_excl = strchr(next_part,'!');
       while (next_excl != NULL) {
         molcomp_loc_array[part_num].num_peers++;
         next_excl++;
-        next_excl = index(next_excl,'!');
+        next_excl = strchr(next_excl,'!');
       }
       if (molcomp_loc_array[part_num].num_peers > 0) {
         molcomp_loc_array[part_num].peers = (int *) malloc ( molcomp_loc_array[part_num].num_peers * sizeof(int) );
-        next_excl = index(next_part,'!');
+        next_excl = strchr(next_part,'!');
         int peer_num = 0;
         int comp_index;
         while (next_excl != NULL) {
@@ -1225,7 +1225,7 @@ static external_molcomp_loc *build_molcomp_array ( struct volume *world, char **
           comp_index = atoi(next_excl);
           molcomp_loc_array[part_num].peers[peer_num] = comp_index;
           peer_num++;
-          next_excl = index(next_excl,'!');
+          next_excl = strchr(next_excl,'!');
         }
       }
     }
