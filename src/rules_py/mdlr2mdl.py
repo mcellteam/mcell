@@ -121,12 +121,12 @@ class MDLR2MDL(object):
         creation mechanism locally
         """
 
-        command = [self.config['bionetgen'], '-xml', '-check', inputMDLRFile + '.bngl']
+        command = ['perl', self.config['bionetgen'], '-xml', '-check', inputMDLRFile + '.bngl']
         output_dir = os.path.dirname(inputMDLRFile)
         if output_dir:
             command.extend(['--outdir', output_dir])
         # get a bng-xml file
-        print("\n====> Running BioNetGen with: " + " ".join(command) + "\n")
+        print("\n====> Running BioNetGen with explicit \"perl\": " + " ".join(command) + "\n")
         call(command)
         # extract seed species definition
         seed, rest = split_bngxml.extractSeedBNG(inputMDLRFile + '.xml')
