@@ -25,8 +25,9 @@ len - distance, not length
 ind, ind2 - local; indent - in parameter
 rel - relative
 
-urb - up, right, back
 llf - low, left, front
+urb - up, right, back
+
 
 rcp - reciprocal ( = 1/x)
 no spaces like this: < a >, use this <a> instead
@@ -35,6 +36,22 @@ comments start with lowercase except for /* ... */ spanning multiple lines
 
 using namespace std; - in all C++ files where needed, not in headers
 
+
+Parameters:
+outputs are always as the last arguments (unless there are some that really need to have default values)
+
+order
+world
+parition
+vm
+...
+contants
+...
+rng
+...
+outputs
+
+use const whenever possible to explicitly specify that it is an input
 
 blocks are marked like this:
 

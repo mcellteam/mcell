@@ -25,6 +25,7 @@
 #define SRC4_DIFFUSE_REACT_EVENT_H_
 
 #include <vector>
+#include <boost/container/small_vector.hpp>
 
 #include "base_event.h"
 #include "partition.h"
@@ -45,40 +46,93 @@ enum ray_trace_state_t {
   RAY_TRACE_FINISHED
 };
 
+
+enum collision_type_t {
+  COLLISION_VOLMOL_VOLMOL,
+  COLLISION_WALL_REDO,
+  COLLISION_WALL_MISS,
+  COLLISION_WALL_FRONT,
+  COLLISION_WALL_BACK
+};
+
+
+class collision_t;
+typedef boost::container::small_vector<collision_t, 16> collision_vector_t;
+
+
+typedef boost::container::flat_set<subpart_index_t> subpart_indices_set_t;
+
+
 /**
- * Information about collision of 2 volume molecules,
+ * Information about collision of 2 volume molecules or a of a wall collision,
  * used in diffuse_react and in partition.
  */
-class molecules_collision_t {
+class collision_t {
 public:
-  molecules_collision_t(
+  collision_t(
+      const collision_type_t type_,
       partition_t* partition_ptr,
-      const molecule_id_t diffused_molecule_idx_,
-      const molecule_id_t colliding_molecule_idx_,
-      reaction_t* rx_ptr,
-      const float_t& time_,
-      const vec3_t& pos_)
+      const molecule_id_t diffused_molecule_id_,
+      const float_t time_,
+      const vec3_t& pos_,
+      const molecule_id_t colliding_molecule_id_,
+      const reaction_t* rx_ptr
+      )
     :
+      type(type_),
       partition(partition_ptr),
-      diffused_molecule_idx(diffused_molecule_idx_),
-      colliding_molecule_idx(colliding_molecule_idx_),
-      rx(rx_ptr),
+      diffused_molecule_id(diffused_molecule_id_),
       time(time_),
-      pos(pos_)
-      {
+      pos(pos_),
+      colliding_molecule_id(colliding_molecule_id_),
+      rx(rx_ptr),
+      colliding_wall_index(WALL_INDEX_INVALID) {
+    assert(type == COLLISION_VOLMOL_VOLMOL && "This constructor must be used only for volmol collisions");
   }
 
+  collision_t(
+      const collision_type_t type_,
+      partition_t* partition_ptr,
+      const molecule_id_t diffused_molecule_id_,
+      const float_t time_,
+      const vec3_t& pos_,
+      const wall_index_t colliding_wall_index_
+      )
+    :
+      type(type_),
+      partition(partition_ptr),
+      diffused_molecule_id(diffused_molecule_id_),
+      time(time_),
+      pos(pos_),
+      colliding_molecule_id(MOLECULE_ID_INVALID),
+      rx(nullptr),
+      colliding_wall_index(colliding_wall_index_) {
+    assert(type != COLLISION_VOLMOL_VOLMOL && "This constructor must be used only for wall collisions");
+  }
+
+  collision_type_t type;
   partition_t* partition;
-  molecule_id_t diffused_molecule_idx;
-  molecule_id_t colliding_molecule_idx;
-  reaction_t* rx;
+  molecule_id_t diffused_molecule_id;
   float_t time;
   vec3_t pos;
 
+  // valid only for COLLISION_VOLMOL_VOLMOL
+  molecule_id_t colliding_molecule_id;
+  const reaction_t* rx;
+
+  // valid only for COLLISION_WALL*
+  wall_index_t colliding_wall_index;
+
+  bool is_wall_collision() const {
+    assert(type != COLLISION_WALL_REDO && "Not sure yet what to do with redo");
+    return type == COLLISION_WALL_FRONT || type == COLLISION_WALL_BACK;
+  }
+
   void dump(partition_t& p, const std::string ind) const;
   std::string to_string() const;
-  static void dump_array(partition_t& p, const std::vector<molecules_collision_t>& vec);
+  static void dump_array(partition_t& p, const collision_vector_t& vec);
 };
+
 
 
 /**
@@ -121,30 +175,24 @@ private:
   ray_trace_state_t ray_trace(
       partition_t& p,
       volume_molecule_t& vm, // molecule that we are diffusing, we are changing its pos  and possibly also subvolume
+      const wall_index_t previous_reflected_wall, // is WALL_INDEX_INVALID when our molecule did not replect from anything this iddfusion step yet
       vec3_t& remaining_displacement, // in/out - recomputed if there was a reflection
-      std::vector<molecules_collision_t>& molecule_collisions, // possible reactions in this part of way marching, ordered by time
+      collision_vector_t& molecule_collisions, // possible reactions in this part of way marching, ordered by time
       vec3_t& new_position,
       uint32_t& new_subpartition_index
   );
 
   bool collide_and_react_with_vol_mol(
       partition_t& p,
-      molecules_collision_t& collision,
+      collision_t& collision,
       vec3_t& displacement,
       float_t remaining_time_step,
       float_t r_rate_factor
   );
 
-  int test_bimolecular(
-      reaction_t& rx,
-      volume_molecule_t& a1,
-      volume_molecule_t& a2,
-      float_t scaling
-  );
-
   int outcome_bimolecular(
       partition_t& p,
-      molecules_collision_t& collision,
+      collision_t& collision,
       int path,
       float_t remaining_time_step
   );

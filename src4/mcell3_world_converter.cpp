@@ -93,6 +93,7 @@ static const char* get_sym_name(const sym_entry *s) {
 }
 
 
+
 static mat4x4 t_matrix_to_mat4x4(const double src[4][4]) {
   mat4x4 res;
 
@@ -118,10 +119,23 @@ bool mcell3_world_converter::convert(volume* s) {
   world = new world_t();
 
   CHECK(convert_simulation_setup(s));
+
   CHECK(convert_species_and_create_diffusion_events(s));
   CHECK(convert_reactions(s));
+
+  world->init_world_constants();
+
   CHECK(convert_release_events(s));
   CHECK(convert_viz_output_events(s));
+
+  // at this point, we need to create the first (and for now the only) partition
+  // create initial partition with center at 0,0,0 - we woud like to have the partitions all the same,
+  // not depend on some random initialization
+  uint32_t index = world->add_partition(vec3_t(0, 0, 0));
+  assert(index == PARTITION_INDEX_INITIAL);
+
+  // convert geometry already puts geometry objects into partitions
+  CHECK(convert_geometry_objects(s));
 
   return true;
 }
@@ -150,13 +164,172 @@ bool mcell3_world_converter::convert_simulation_setup(volume* s) {
   }
   CHECK_PROPERTY(s->nx_parts == s->ny_parts);
   CHECK_PROPERTY(s->ny_parts == s->nz_parts);
+
+  world->world_constants.use_expanded_list = s->use_expanded_list;
+
   // this number counts the number of boundaries, not subvolumes, also, there are always 2 extra subvolumes on the sides in mcell3
   world->world_constants.subpartitions_per_partition_dimension = s->nx_parts - 3;
-  world->world_constants.init_subpartition_edge_length(); // maybe change ionto some general init of values
 
   return true;
 }
 
+
+bool check_meta_object(object* o, string expected_name) {
+  assert(o != nullptr);
+  CHECK_PROPERTY(o->next == nullptr);
+  CHECK_PROPERTY(get_sym_name(o->sym) == expected_name);
+  // root->last_name - not checked, contains some nonsense anyway
+  CHECK_PROPERTY(o->object_type == META_OBJ);
+  CHECK_PROPERTY(o->contents == nullptr);
+  CHECK_PROPERTY(o->num_regions == 0);
+  CHECK_PROPERTY(o->regions == nullptr);
+  CHECK_PROPERTY(o->walls == nullptr);
+  CHECK_PROPERTY(o->wall_p == nullptr);
+  CHECK_PROPERTY(o->vertices == nullptr);
+  CHECK_PROPERTY(o->total_area == 0);
+  CHECK_PROPERTY(o->n_tiles == 0);
+  CHECK_PROPERTY(o->n_occupied_tiles == 0);
+  CHECK_PROPERTY(o->n_occupied_tiles == 0);
+  CHECK_PROPERTY(t_matrix_to_mat4x4(o->t_matrix) == mat4x4(1) && "only identity matrix for now");
+  // root->is_closed - not checked
+  CHECK_PROPERTY(o->periodic_x == false);
+  CHECK_PROPERTY(o->periodic_y == false);
+  CHECK_PROPERTY(o->periodic_z == false);
+  return true;
+}
+
+bool mcell3_world_converter::convert_geometry_objects(volume* s) {
+
+  object* root = s->root_instance;
+  CHECK_PROPERTY(check_meta_object(root, "WORLD_INSTANCE"));
+  CHECK_PROPERTY(root->first_child == root->last_child && "Only one scene expected");
+  object* scene = root->first_child;
+  CHECK_PROPERTY(check_meta_object(scene, "Scene"));
+
+  object* curr_obj = scene->first_child;
+  while (curr_obj != nullptr) {
+    if (curr_obj->object_type == POLY_OBJ) {
+      convert_polygonal_object(curr_obj);
+    }
+    else if (curr_obj->object_type == REL_SITE_OBJ) {
+      // ignored
+    }
+    else {
+      CHECK_PROPERTY(false && "Unexpected type of object");
+    }
+
+    curr_obj = curr_obj->next;
+  }
+
+  return true;
+}
+
+
+bool mcell3_world_converter::convert_wall(
+    wall* w,
+    wall_t& res_wall,
+    std::vector<partition_vertex_index_pair_t>& res_vertices
+) {
+  CHECK_PROPERTY(w->surf_class_head == nullptr); // for now
+  CHECK_PROPERTY(w->num_surf_classes == 0); // for now
+
+  res_wall.side = w->side;
+
+  for (int i = 0; i < 3; i++) {
+    // this vertex was inserted into the same partition as the whole object
+    res_vertices[i] =  get_mcell4_vertex_index(w->vert[i]);
+  }
+  res_wall.uv_vert1_u = w->uv_vert1_u;
+  res_wall.uv_vert2 = w->uv_vert2;
+  // struct edge *edges[3]; - ignored
+  // struct wall *nb_walls[3]; - ignored
+  // double area; - ignored
+  res_wall.normal = w->normal;
+  res_wall.unit_u = w->unit_u;
+  res_wall.unit_v = w->unit_v;
+  res_wall.distance_to_origin = w->d;
+  CHECK_PROPERTY(w->grid == nullptr); // for now
+  CHECK_PROPERTY(w->flags == 4096); // not sure yet what flags are there for walls
+  struct object *parent_object; // set when this object is added
+  // struct storage *birthplace; - ignored
+  // struct region_list *counting_regions; // TODO, not sure
+
+  return true;
+}
+
+
+bool mcell3_world_converter::convert_polygonal_object(object* o) {
+  geometry_object_t obj;
+
+  // --- object ---
+
+  // o->next - ignored
+  // o->parent - ignored
+  CHECK_PROPERTY(o->first_child == nullptr);
+  CHECK_PROPERTY(o->last_child == nullptr);
+  obj.name = get_sym_name(o->sym);
+  // o->last_name - ignored
+  CHECK_PROPERTY(o->object_type == POLY_OBJ);
+  CHECK_PROPERTY(o->contents != nullptr); // ignored for now, not sure what is contained
+  CHECK_PROPERTY(o->num_regions == 1); // for now
+
+  //TODO: o->regions // this probably contains some flags and other data
+
+  CHECK_PROPERTY(o->n_walls == o->n_walls_actual); // ignored
+  CHECK_PROPERTY(o->walls == nullptr); // this is null for some reason
+  CHECK_PROPERTY(o->wall_p != nullptr);
+
+  // --- vertices ---
+  // to stay identical to mcell3, will use the exact number of vertices as in mcell3, for this to work,
+  // vector_ptr_to_vertex_index_map is a 'global' map for the whole conversion process
+  // one of the reasons to not to copy vertex coordinates is that they are shared among triangles of an object
+  // and when we move one vertex of the object, we transform all the triangles (walls) that use it
+  for (int i = 0; i < o->n_verts; i++) {
+    // insert vertex into the right parition and returns partition index and vertex index
+    partition_vertex_index_pair_t vertex_info = world->add_geometry_vertex(*o->vertices[i]);
+
+    // check that if we are adding a vertex, it is exactly the same as there was before
+    auto it = vector_ptr_to_vertex_index_map.find(o->vertices[i]);
+    if (it != vector_ptr_to_vertex_index_map.end()) {
+      // note: this check probably doesn't make sense because the mcell3 vertices
+      // would have to change during conversion
+      assert(it->second == vertex_info);
+    }
+    else {
+      vector_ptr_to_vertex_index_map[o->vertices[i]] = vertex_info;
+    }
+  }
+
+  // --- walls ---
+  vector<wall_t> walls;
+  // vertex info contains also partition indices when it is inserted into the
+  // world geometry
+  vector< vector<partition_vertex_index_pair_t> > walls_vertices;
+
+  walls.resize(o->n_walls);
+  walls_vertices.resize(o->n_walls);
+  for (int i = 0; i < o->n_walls; i++) {
+    walls_vertices[i].resize(VERTICES_IN_TRIANGLE);
+    // uses precomputed map vector_ptr_to_vertex_index_map to transfrom vertices
+    convert_wall(o->wall_p[i], walls[i], walls_vertices[i]);
+  }
+
+  // --- back to object ---
+
+  CHECK_PROPERTY(o->n_tiles == 0);
+  CHECK_PROPERTY(o->n_occupied_tiles == 0);
+  CHECK_PROPERTY(o->n_occupied_tiles == 0);
+  CHECK_PROPERTY(t_matrix_to_mat4x4(o->t_matrix) == mat4x4(1) && "only identity matrix for now");
+  // root->is_closed - not checked
+  CHECK_PROPERTY(o->periodic_x == false);
+  CHECK_PROPERTY(o->periodic_y == false);
+  CHECK_PROPERTY(o->periodic_z == false);
+
+  // sets all ids and also wall_indices for the object
+  world->add_geometry_object(obj, walls, walls_vertices);
+
+  return true;
+}
 
 // cannot fail
 void mcell3_world_converter::create_diffusion_events() {

@@ -49,7 +49,7 @@ public:
 
   uint32_t flags; // replace with some bitfield?
 
-  bool has_flag(uint32_t flag) {
+  bool has_flag(uint32_t flag) const {
     return flags & SPECIES_FLAG_CAN_VOLVOL;
   }
 

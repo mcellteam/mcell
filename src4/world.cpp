@@ -28,6 +28,7 @@
 
 extern "C" {
 #include "rng.h" // MCell 3
+#include "logging.h"
 }
 
 #include "world.h"
@@ -41,7 +42,11 @@ const double USEC_IN_SEC = 1000000.0;
 namespace mcell {
 
 world_t::world_t()
-  : current_iteration(0), iterations(0), seed_seq(0)
+  : current_iteration(0),
+    iterations(0),
+    seed_seq(0),
+    next_wall_id(0),
+    next_geometry_object_id(0)
 {
   // TODO: initialize rest of members
   world_constants.partition_edge_length = PARTITION_EDGE_LENGTH_DEFAULT;
@@ -61,9 +66,13 @@ void world_t::init_fpu() {
 #endif
 }
 
-void world_t::init_simulation() {
+void world_t::init_world_constants() {
 
-  init_fpu();
+  if (species.empty()) {
+    // for developers: init_world_constants must be called after species and reactions conversion
+    mcell_log("Error: there must be at lease one species!");
+    exit(1);
+  }
 
   // create map for fast reaction searches
   for (reaction_t& r: reactions) {
@@ -91,13 +100,15 @@ void world_t::init_simulation() {
   assert(bimolecular_reactions_map.size() == species.size());
 
   world_constants.init(&unimolecular_reactions_map, &bimolecular_reactions_map);
+}
 
-  cout << "Creating initial partition with " <<  world_constants.subpartitions_per_partition_dimension << "^3 subvolumes.";
 
-  // create initial partition with center at 0,0,0 - we woud like to have the partitions all the same,
-  // not depend on some random initialization
-  uint32_t index = add_partition(vec3_t(0, 0, 0));
-  assert(index == PARTITION_INDEX_INITIAL);
+void world_t::init_simulation() {
+
+  init_fpu();
+
+  cout << "Partitions contain " <<  world_constants.subpartitions_per_partition_dimension << "^3 subvolumes.";
+  assert(partitions.size() == 1 && "Initial parition must have been created, only 1 for now");
 }
 
 
@@ -201,10 +212,90 @@ bool world_t::run_simulation() {
 }
 
 
+partition_index_t world_t::get_partition_index_for_pos(const vec3_t& pos) {
+  // for now very simply search all partitions
+  // we expect that parittion boundaries are precise
+  partition_index_t found_index = PARTITION_INDEX_INVALID;
+  for (partition_index_t i = 0; i < partitions.size(); i++) {
+    const partition_t& p = partitions[i];
+    if ( glm::all( glm::greaterThanEqual(pos, p.get_origin_corner() )) &&
+        glm::all( glm::lessThan(pos, p.get_opposite_corner()) ) ) {
+      assert(found_index == PARTITION_INDEX_INVALID && "Single point can be in just one partition");
+      found_index = i;
+#ifdef NDEBUG
+      break; // we found our partition
+#endif
+    }
+  }
+  return found_index;
+}
+
+
+partition_vertex_index_pair_t world_t::add_geometry_vertex(const vec3_t& pos) {
+  // to which partition it belongs
+  partition_index_t partition_index = get_partition_index_for_pos(pos);
+  if (partition_index == PARTITION_INDEX_INVALID) {
+    mcell_log("Error: only a single partition is supported for now, vertex %s is out of bounds", pos.to_string().c_str());
+  }
+
+  vertex_index_t vertex_index = partitions[partition_index].add_geometry_vertex(pos);
+
+  return partition_vertex_index_pair_t(partition_index, vertex_index);
+}
+
+
+// adds a new geometry object with its walls, sets unique ids for the walls and objects
+// note: there is a lot of potentially uncenecssary copying of walls, can be optimized
+void world_t::add_geometry_object(
+    const geometry_object_t& obj,
+    const vector<wall_t>& walls, // the vertices for walls are contained in walls_vertices
+    const vector<vector<partition_vertex_index_pair_t>>& walls_vertices
+) {
+  assert(!walls.empty());
+  assert(walls.size() == walls_vertices.size());
+
+  partition_index_t partition_index = walls_vertices[0][0].first;
+  partition_t& p = partitions[partition_index];
+
+  geometry_object_t& new_obj = p.add_geometry_object(obj, next_geometry_object_id);
+
+  for (uint32_t i = 0; i < walls.size(); i++) {
+    wall_t new_wall = walls[i];
+
+    // check that all vertices are in the same partition (the previous code assumes this)
+    assert(walls_vertices[i].size() == VERTICES_IN_TRIANGLE);
+    for (uint32_t k = 0; k < VERTICES_IN_TRIANGLE; k++) {
+      vertex_index_t vertex_index = walls_vertices[i][k].second;
+
+      // check that we fit int the parition
+      if (walls_vertices[i][k].first != partition_index) {
+        vec3_t pos = p.get_geometry_vertex(vertex_index);
+        mcell_log("Error: only a single partition is supported for now, vertex %s is out of bounds", pos.to_string().c_str());
+      }
+
+      // set walls to the object
+      new_wall.vertex_indices[k] = vertex_index;
+    }
+
+    // add wall to partition
+    wall_index_t new_wall_index; // !!! FIXME: the ordering is wrong,  p.add_wall needs vertices!
+    p.add_wall(new_wall, next_wall_id, new_wall_index);
+
+    // set index of the contained wall
+    new_obj.wall_indices.push_back(new_wall_index);
+  }
+}
+
+
 void world_t::dump() {
   world_constants.dump();
   // species
   species_t::dump_array(species);
+
+  // paritions
+  for (partition_t& p: partitions) {
+    p.dump();
+  }
 }
 
 } // namespace mcell

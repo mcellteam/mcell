@@ -23,6 +23,8 @@
 
 #include "defines.h"
 
+#include <sstream>
+
 using namespace std;
 
 namespace mcell {
@@ -32,7 +34,13 @@ std::ostream & operator<<(std::ostream &out, const vec3_t &a) {
   return out;
 }
 
-void vec3_t::dump(const std::string extra_comment, const std::string ind) {
+string vec3_t::to_string() const {
+  stringstream ss;
+  ss << *this;
+  return ss.str();
+}
+
+void vec3_t::dump(const std::string extra_comment, const std::string ind) const {
   cout << ind << extra_comment << *this << "\n";
 }
 

@@ -26,6 +26,7 @@
 #include <math.h>
 #include <string.h>
 #include <stdlib.h>
+#include <assert.h>
 
 #include "rng.h"
 #include "logging.h"
@@ -947,6 +948,8 @@ jump_away_line:
 void jump_away_line(struct vector3 *p, struct vector3 *v, double k,
                     struct vector3 *A, struct vector3 *B, struct vector3 *n,
                     struct rng_state *rng) {
+  assert(false && "Called jump_away_line TODO: fix ordering/rng calls");
+
   struct vector3 e, f;
   double le_1, tiny;
 
@@ -1044,6 +1047,7 @@ int collide_wall(struct vector3 *point, struct vector3 *move, struct wall *face,
 
     if (update_move) {
       a = (abs_max_2vec(point, move) + 1.0) * EPS_C;
+      assert(false && "Used rng in collide_wallm TODO: fix ordering");
       if ((rng_uint(rng) & 1) == 0)
         a = -a;
       if (dd == 0.0) {

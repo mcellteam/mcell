@@ -32,6 +32,7 @@
 #include <cmath>
 #include <iostream>
 #include <unordered_map>
+#include <boost/container/small_vector.hpp>
 
 #include "mcell_structs.h"
 #include "debug_config.h"
@@ -39,6 +40,8 @@
 // warning: do not use floating point types from directly,
 // we need to be able to control the precision
 #include "../libs/glm/glm.hpp"
+#define GLM_ENABLE_EXPERIMENTAL
+#include "../libs/glm/gtx/component_wise.hpp"
 
 // this file must not depend on any other from mcell4 otherwise there
 // might be some nasty cyclic include dependencies
@@ -67,19 +70,39 @@ typedef double float_t; // will be changed to float
 const float_t SCHEDULER_COMPARISON_EPS = 1e-10;
 
 typedef glm::dvec3 glm_vec3_t;
+typedef glm::dvec2 glm_vec2_t;
 typedef glm::ivec3 ivec3_t;
+typedef glm::uvec3 uvec3_t;
 typedef glm::bvec3 bvec3_t;
 typedef glm::dmat4x4 mat4x4;
 
 struct vec3_t: public glm_vec3_t{
-  vec3_t() : glm::dvec3(0) {}
-  vec3_t(const glm::dvec3& a) { x = a.x; y = a.y; z = a.z; }
-  vec3_t(const vec3_t& a) : glm::dvec3(a.x, a.y, a.z) { /*x = a.x; y = a.y; z = a.z;*/ }
+  vec3_t() : glm_vec3_t(0) {}
+  vec3_t(const glm_vec3_t& a) { x = a.x; y = a.y; z = a.z; }
+  vec3_t(const vec3_t& a) : glm_vec3_t(a.x, a.y, a.z) { }
   vec3_t(const vector3& a) { x = a.x; y = a.y; z = a.z; }
   vec3_t(const float_t x_, const float_t y_, const float_t z_) { x = x_; y = y_; z = z_; }
   vec3_t(const float_t xyz) { x = xyz; y = xyz; z = xyz; }
 
-  void dump(const std::string extra_comment, const std::string ind);
+  std::string to_string() const;
+  void dump(const std::string extra_comment, const std::string ind) const;
+};
+
+// usually are .u and .v used to access cotained values
+struct vec2_t: public glm_vec2_t{
+  vec2_t() : glm_vec2_t(0) {}
+  vec2_t(const glm_vec2_t& a) { x = a.x; y = a.y; }
+  vec2_t(const vec2_t& a) : glm_vec2_t(a.x, a.y) { }
+  vec2_t(const vector2& a) { x = a.u; y = a.v; }
+  vec2_t(const float_t x_, const float_t y_) { x = x_; y = y_; }
+  vec2_t(const float_t xy) { x = xy; y = xy; }
+
+  //TODO: std::string to_string() const;
+  //TODO: void dump(const std::string extra_comment, const std::string ind) const;
+
+  float_t u() const { return x; }
+  float_t v() const { return y; }
+
 };
 
 std::ostream & operator<<(std::ostream &out, const vec3_t &a);
@@ -112,10 +135,12 @@ const uint32_t MOLECULE_ID_INVALID = UINT32_MAX;
 const uint32_t MOLECULE_INDEX_INVALID = UINT32_MAX;
 
 // for now, this is the partition that contains point 0,0,0 in its center
-const uint32_t PARTITION_INDEX_INITIAL = 0;
+typedef uint32_t partition_index_t;
+const partition_index_t PARTITION_INDEX_INITIAL = 0;
+const partition_index_t PARTITION_INDEX_INVALID = UINT32_MAX;
 
-const uint32_t PARTITION_INDEX_INVALID = UINT32_MAX;
-const uint32_t SUBPART_INDEX_INVALID = UINT32_MAX;
+typedef uint32_t subpart_index_t;
+const subpart_index_t SUBPART_INDEX_INVALID = UINT32_MAX;
 
 // time step is used in parition to make sets of molecules that can be diffused with
 // different periodicity
@@ -124,6 +149,27 @@ const uint32_t TIME_STEP_INDEX_INVALID = UINT32_MAX;
 const char* const NAME_INVALID = "invalid_name";
 
 const uint64_t BUCKET_INDEX_INVALID = UINT64_MAX;
+
+const uint32_t VERTICES_IN_TRIANGLE = 3;
+
+typedef uint32_t vertex_index_t; // index in partition's vertices
+typedef uint32_t wall_index_t; // index in partition's walls
+const wall_index_t WALL_INDEX_INVALID = UINT32_MAX;
+
+typedef uint32_t wall_id_t; // world-unique wall id
+//typedef uint32_t wall_class_index_t; // index in world's wall classes
+typedef uint32_t geometry_object_index_t;
+typedef uint32_t geometry_object_id_t; // world-unique unique geometry object id
+
+/*
+struct partition_vertex_index_pair_t {
+  partition_index_t first;
+  vertex_index_t second;
+};
+*/
+typedef std::pair<partition_index_t, vertex_index_t> partition_vertex_index_pair_t;
+
+typedef boost::container::small_vector<subpart_index_t, 8>  subpart_indices_vector_t;
 
 // ---------------------------------- auxiliary functions ----------------------------------
 
@@ -151,6 +197,35 @@ static inline uint32_t powu(const uint32_t a, const uint32_t n) {
   return res;
 }
 
+static inline float_t max3d(const vec3_t& v) {
+  return glm::compMax((glm_vec3_t)v);
+}
+
+/* abs_max_2vec picks out the largest (absolute) value found among two vectors
+ * (useful for properly handling floating-point rounding error). */
+static inline float_t abs_max_2vec(const vec3_t& v1, const vec3_t& v2) {
+  glm_vec3_t v1abs = glm::abs((glm_vec3_t)v1);
+  glm_vec3_t v2abs = glm::abs((glm_vec3_t)v2);
+  vec3_t vmax = glm::max(v1abs, v2abs);
+  return mcell::max3d(vmax);
+}
+
+// returns true when whether two values are measurably different
+inline bool distinguishable(float_t a, float_t b, float_t eps) {
+  float_t c = fabs(a - b);
+  a = fabs(a);
+  if (a < 1) {
+    a = 1;
+  }
+  b = fabs(b);
+
+  if (b < a) {
+    eps *= a;
+  } else {
+    eps *= b;
+  }
+  return (c > eps);
+}
 
 static inline void debug_guard_zero_div(float_t& val) {
 #ifndef NDEBUG
@@ -177,6 +252,24 @@ static inline void debug_guard_zero_div(vec3_t& val) {
 }
 
 // ---------------------------------- world_constants_t ----------------------------------
+// TODO: maybe move to a separate header
+// TODO: move reactions to be owned by world constants
+
+#if 0
+//not used yet
+/**.
+ * Class of a wall.
+ * Although usually an object has the same properties, some of it regions might act differently.
+ * This class serves to store this constant type of information for all items in the world.
+ */
+class wall_class_t {
+public:
+  // absobtive, ...
+  // what else could I need here?
+  uint32_t flags;
+};
+#endif
+
 
 class reaction_t;
 typedef std::unordered_map<species_id_t, reaction_t*> species_reaction_map_t;
@@ -187,6 +280,7 @@ typedef std::unordered_map< species_id_t, species_reaction_map_t > bimolecular_r
  * Constant data set in initialization useful for all classes, single object is owned by world
  */
 struct world_constants_t {
+  // configuration
   float_t time_unit;
   float_t length_unit;
   float_t rx_radius_3d;
@@ -196,9 +290,14 @@ struct world_constants_t {
   float_t subpartition_edge_length; // == partition_edge_length / subpartitions_per_partition_dimension
   float_t subpartition_edge_length_rcp; // == 1/subpartition_edge_length
 
+  // other options
+  bool use_expanded_list;
+
+
   const unimolecular_reactions_map_t* unimolecular_reactions_map; // owned by world
   const bimolecular_reactions_map_t* bimolecular_reactions_map; // owned by world
 
+private:
   void init_subpartition_edge_length() {
     if (partition_edge_length != 0) {
       subpartition_edge_length = partition_edge_length / (float_t)subpartitions_per_partition_dimension;
@@ -207,6 +306,7 @@ struct world_constants_t {
     subpartitions_per_partition_dimension_squared = powu(subpartitions_per_partition_dimension, 2);
   }
 
+public:
   // called from world::init_simulation()
   void init(
       unimolecular_reactions_map_t* unimolecular_reactions_map_,
@@ -218,6 +318,8 @@ struct world_constants_t {
   }
 
   void dump();
+
+  // TODO: maybe add: bool fully_initialized;
 };
 
 

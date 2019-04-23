@@ -63,7 +63,16 @@ public:
   void reset();
 
   bool convert(volume* s);
+
   bool convert_simulation_setup(volume* s);
+
+  bool convert_wall(
+      wall* w,
+      wall_t& res_wall,
+      std::vector<partition_vertex_index_pair_t>& res_vertices);
+  bool convert_polygonal_object(object* o);
+  bool convert_geometry_objects(volume* s);
+
   void create_diffusion_events();
   bool convert_species_and_create_diffusion_events(volume* s);
   bool convert_single_reaction(rxn *rx);
@@ -83,6 +92,14 @@ private:
 
   // mapping from mcell3 species id to mcell4 species id
   std::map<u_int, species_id_t> mcell3_species_id_map;
+
+  partition_vertex_index_pair_t get_mcell4_vertex_index(vector3* mcell3_vertex) {
+    auto it = vector_ptr_to_vertex_index_map.find(mcell3_vertex);
+    assert(it != vector_ptr_to_vertex_index_map.end());
+    return it->second;
+  }
+
+  std::map<vector3*, partition_vertex_index_pair_t> vector_ptr_to_vertex_index_map;
 };
 
 

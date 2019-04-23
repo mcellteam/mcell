@@ -70,7 +70,7 @@ public:
     : id(id_), flags(0), species_id(species_id_) {
   }
 
-  molecule_id_t id; // unique molecule id
+  molecule_id_t id; // unique molecule id (for now it is unique per partition but should be world-wide unique)
   uint32_t flags;
   species_id_t species_id;
 

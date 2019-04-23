@@ -34,6 +34,7 @@
 #include "scheduler.h"
 #include "species.h"
 #include "reaction.h"
+#include "geometry.h"
 
 namespace mcell {
 
@@ -43,8 +44,10 @@ private:
   void init_fpu();
   void init_simulation();
   void create_defragmentation_events();
+
 public:
   world_t();
+  void init_world_constants();
   bool run_simulation();
 
   // -------------- parition manipulation methods --------------
@@ -83,7 +86,7 @@ public:
   // -------------- reaction utility methods --------------
 
   // should be inlined
-  bool can_react_vol_vol(volume_molecule_t& a, volume_molecule_t& b) {
+  bool can_react_vol_vol(const volume_molecule_t& a, const volume_molecule_t& b) const {
     // must not be the same molecule
     if (&a == &b) {
       return false;
@@ -94,11 +97,11 @@ public:
       return false;
     }
     // is there even any reaction
-    species_t& sa = species[a.species_id];
+    const species_t& sa = species[a.species_id];
     if (!sa.has_flag(SPECIES_FLAG_CAN_VOLVOL)) {
       return false;
     }
-    species_t& sb = species[b.species_id];
+    const species_t& sb = species[b.species_id];
     if (!sb.has_flag(SPECIES_FLAG_CAN_VOLVOL)) {
       return false;
     }
@@ -117,10 +120,29 @@ public:
   }
 
   // must return result, asserts otherwise
-  reaction_t* get_reaction(volume_molecule_t& a, volume_molecule_t& b) {
-    assert(can_react_vol_vol(a, b));
-    return bimolecular_reactions_map[a.species_id][b.species_id];
+  const reaction_t* get_reaction(const volume_molecule_t& a, const volume_molecule_t& b) const {
+    const auto& it_map_for_species = bimolecular_reactions_map.find(a.species_id);
+    assert(it_map_for_species != bimolecular_reactions_map.end());
+    const auto& it_res = it_map_for_species->second.find(b.species_id);
+    assert(it_res != it_map_for_species->second.end());
+    return it_res->second;
   }
+
+  // -------------- geometry utility methods --------------
+
+  partition_index_t get_partition_index_for_pos(const vec3_t& pos);
+
+  // adds vertex to a given partition and returns pair partition index and the index of the
+  // vertex in that partition
+  partition_vertex_index_pair_t add_geometry_vertex(const vec3_t& pos);
+
+  // adds a new geometry object with its walls, sets unique ids for the walls and objects
+  void add_geometry_object(
+      const geometry_object_t& obj,
+      const std::vector<wall_t>& walls,
+      const std::vector<std::vector<partition_vertex_index_pair_t>>& walls_vertices
+  );
+
 
   void dump();
 
@@ -154,6 +176,9 @@ public:
   }
 private:
   std::set<std::string> const_string_pool;
+
+  wall_id_t next_wall_id;
+  geometry_object_id_t next_geometry_object_id;
 };
 
 } // namespace mcell

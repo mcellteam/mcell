@@ -969,6 +969,7 @@ ray_trace:
 struct collision *ray_trace(struct volume *world, struct vector3 *init_pos,
                             struct collision *c, struct subvolume *sv,
                             struct vector3 *v, struct wall *reflectee) {
+
   /* time, in units of of the molecule's time step, at which molecule
      will cross the x,y,z partitions, respectively. */
   double tx, ty, tz;
@@ -2950,7 +2951,7 @@ struct volume_molecule *diffuse_3D(
 
   int inertness = 0;
   set_inertness_and_maxtime(world, vm, &max_time, &inertness);
-
+  assert(inertness == 0 && "mcell4 check");
   /* Done housekeeping, now let's do something fun! */
   int calculate_displacement = 1;
 
@@ -4539,7 +4540,7 @@ int reflect_or_periodic_bc(
   struct wall *reflect_w = w;
   double reflect_t = smash->t;
   struct volume_molecule* vm = *mol;
-  bool periodic_traditional = world->periodic_traditional;
+  bool periodic_traditional = world->periodic_traditional;   assert(!periodic_traditional && "mcell4 todo");
   register_hits(world, vm, tentative, &reflect_w, &reflect_t, displacement,
     smash, t_steps);
   struct vector3 orig_pos = {vm->pos.x, vm->pos.y, vm->pos.z};

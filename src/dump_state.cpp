@@ -21,6 +21,8 @@
  *
 ******************************************************************************/
 
+//#define DUMP_SCHEDULERS
+
 #include "dump_state.h"
 
 #include <iostream>
@@ -30,7 +32,7 @@
 
 
 #define MAX_ARRAY_ITEMS 16
-#define MAX_SUBVOLUMES 4
+#define MAX_SUBVOLUMES 27
 #define DUMP_ARRAY_NEWLINE_COUNT 8
 
 #define IND_ADD2(ind) (std::string(ind) + "  ").c_str()
@@ -41,7 +43,9 @@ using namespace std;
 void dump_species(species* spec, const char* name, const char* comment, const char* ind);
 void dump_species_list(int n_species, const char* num_name, species** species_list, const char* name, const char* comment, const char* ind);
 void dump_species_item(species* spec, const char* ind);
-
+void dump_object_list(object* obj, const char* ind);
+void dump_wall_list(wall_list* list, const char* ind);
+void dump_wall_array(int num, wall** wall_array, const char* ind);
 
 std::ostream & operator<<(std::ostream &out, const timeval &a) {
   out << a.tv_sec << "s, " << a.tv_usec << "us";
@@ -89,6 +93,18 @@ std::ostream & operator<<(std::ostream &out, const viz_frame_type_t &a) {
     case MOL_ORIENT: out << "MOL_ORIENT"; break;
     case ALL_MOL_DATA: out << "ALL_MOL_DATA"; break;
     case NUM_FRAME_TYPES: out << "NUM_FRAME_TYPES"; break;
+    default: assert(false);
+  }
+  return out;
+}
+
+std::ostream & operator<<(std::ostream &out, const object_type_t &a) {
+  switch (a) {
+    case META_OBJ: out << "META_OBJ"; break;
+    case BOX_OBJ: out << "BOX_OBJ"; break;
+    case POLY_OBJ: out << "POLY_OBJ"; break;
+    case REL_SITE_OBJ: out << "REL_SITE_OBJ"; break;
+    case VOXEL_OBJ: out << "VOXEL_OBJ"; break;
     default: assert(false);
   }
   return out;
@@ -202,46 +218,115 @@ void dump_vector3_array(int num, const char* num_name, vector3* values, const ch
 }
 
 
+void dump_object(object* o, const char* ind) {
+  if (o == nullptr) {
+    return;
+  }
+
+  cout << ind << "next: *\t\t" << o->next << " [object] \t\t/* Next sibling object */\n";
+  cout << ind << "parent: *\t\t" << o->parent << " [object] \t\t/* Parent meta object */\n";
+  cout << ind << "first_child: *\t\t" << o->first_child << " [object] \t\t/* First child object */\n";
+  dump_object_list(o->first_child, IND_ADD2(ind));
+  cout << ind << "last_child: *\t\t" << o->last_child << " [object] \t\t/* Last child object */\n";
+  cout << ind << "sym: *\t\t" << o->sym << " [sym_entry] \t\t/* Symbol hash table entry for this object */\n";
+  cout << ind << "last_name: *\t\t" << o->last_name << " [char] \t\t/* Name of object without pre-pended parent object name */\n";
+  cout << ind << "object_type: \t\t" << o->object_type << " [object_type_flags_t] \t\t/* Object Type Flags */\n";
+  cout << ind << "contents: *\t\t" << o->contents << " [void] \t\t/* Actual physical object, cast according to object_type */\n";
+  cout << ind << "num_regions: \t\t" << o->num_regions << " [u_int] \t\t/* Number of regions defined on object */\n";
+  cout << ind << "regions: *\t\t" << o->regions << " [region_list] \t\t/* List of regions for this object */\n";
+  cout << ind << "n_walls: \t\t" << o->n_walls << " [int] \t\t/* Total number of walls in object */\n";
+  cout << ind << "n_walls_actual: \t\t" << o->n_walls_actual << " [int] \t\t/* Number of non-null walls in object */\n";
+  cout << ind << "walls: *\t\t" << o->walls << " [wall] \t\t/* Array of walls in object */\n";
+  cout << ind << "wall_p: **\t\t" << o->wall_p << " [wall] \t\t// Array of ptrs to walls in object (used at run-time)\n";
+  dump_wall_array(o->n_walls, o->wall_p, IND_ADD2(ind));
+  cout << ind << "n_verts: \t\t" << o->n_verts << " [int] \t\t/* Total number of vertices in object */\n";
+  cout << ind << "vertices: **\t\t" << o->vertices << " [vector3] \t\t/* Array of pointers to vertices (linked to all_vertices array) */\n";
+  cout << ind << "total_area: \t\t" << o->total_area << " [double] \t\t/* Area of object in length units */\n";
+  cout << ind << "n_tiles: \t\t" << o->n_tiles << " [u_int] \t\t/* Number of surface grid tiles on object */\n";
+  cout << ind << "n_occupied_tiles: \t\t" << o->n_occupied_tiles << " [u_int] \t\t/* Number of occupied tiles on object */\n";
+  cout << ind << "t_matrix: *\t\t" << o->t_matrix << " [double[4][4]] \t\t /* Transformation matrix for object */\n";
+  cout << ind << "is_closed: \t\t" << o->is_closed << " [short] \t\t/* Flag that describes the geometry of the polygon object (e.g. for sphere is_closed = 1 and for plane is 0) */\n";
+  cout << ind << "periodic_x: \t\t" << o->periodic_x << " [bool] \t\t// This flag only applies to box objects BOX_OBJ. If set\n";
+  cout << ind << "periodic_y: \t\t" << o->periodic_y << " [bool] \t\t// any volume molecules encountering the box surface in the x,\n";
+  cout << ind << "periodic_z: \t\t" << o->periodic_z << " [bool] \t\t// y or z direction are reflected back into the box as if they  had entered the adjacent neighboring box */\n";
+}
+
+
+void dump_object_list(object* obj, const char* ind) {
+  object* curr = obj;
+  int i = 0;
+  while (curr != NULL) {
+    cout << ind << i << ":\n";
+    dump_object(curr, IND_ADD2(ind));
+    i++;
+    curr = curr->next;
+  }
+}
+
 void dump_wall(wall* w, const char* ind) {
+  if (w == nullptr) {
+    return;
+  }
 
-    cout << "this wall: " << (void*)w << "\n";
-    cout << "next: *\t\t" << (void*)w->next << " [wall] \t\t/* Next wall in the universe */\n";
+  DECL_IND2(ind);
 
-    cout << "surf_class_head: *\t\t" << (void*)w->surf_class_head << " [surf_class_list] \t\t/* linked list of surface classes for this wall (multiple surface classes may come from the overlapping regions */\n";
-    cout << "num_surf_classes: \t\t" << w->num_surf_classes << " [int] \t\t/* number of attached surface classes */\n";
+  cout << ind << "this wall: " << (void*)w << "\n";
+  cout << ind << "next: *\t\t" << (void*)w->next << " [wall] \t\t/* Next wall in the universe */\n";
 
-    cout << "side: \t\t" << w->side << " [int] \t\t/* index of this wall in its parent object */\n";
+  cout << ind << "surf_class_head: *\t\t" << (void*)w->surf_class_head << " [surf_class_list] \t\t/* linked list of surface classes for this wall (multiple surface classes may come from the overlapping regions */\n";
+  cout << ind << "num_surf_classes: \t\t" << w->num_surf_classes << " [int] \t\t/* number of attached surface classes */\n";
 
-    if (w->vert != NULL)
-      dump_vector3_array(3, "always 3", *w->vert, "vector[3]", "/* Array of pointers to vertices TODO: can there be more of them?*/", ind);
-    else
-      cout << "vert: \t\t" << (void*)w->vert << " [vector[3]] \t\t/* Array of pointers to vertices */\n";
+  cout << ind << "side: \t\t" << w->side << " [int] \t\t/* index of this wall in its parent object */\n";
+
+  if (w->vert != NULL) {
+    dump_vector3_array(3, "vert", *w->vert, "vector[3]", "/* Array of pointers to vertices TODO: can there be more of them?*/", ind);
+  }
+  else {
+    cout << ind << "vert: \t\t" << (void*)w->vert << " [vector[3]] \t\t/* Array of pointers to vertices */\n";
+  }
 
 
-    cout << "uv_vert1_u: \t\t" << w->uv_vert1_u << " [double] \t\t/* Surface u-coord of 2nd corner (v=0) */\n";
-    cout << "uv_vert2: \t\t" << w->uv_vert2 << " [vector2] \t\t/* Surface coords of third corner */\n";
+  cout << ind << "uv_vert1_u: \t\t" << w->uv_vert1_u << " [double] \t\t/* Surface u-coord of 2nd corner (v=0) */\n";
+  cout << ind << "uv_vert2: \t\t" << w->uv_vert2 << " [vector2] \t\t/* Surface coords of third corner */\n";
 
-    cout << "edges[3]: *\t\t" << (void*)w->edges << " [*edges[3]] \t\t/*  /* Array of pointers to each edge. */ // TODO */\n";
+  cout << ind << "edges[3]: *\t\t" << (void*)w->edges << " [*edges[3]] \t\t/*  /* Array of pointers to each edge. */ // TODO */\n";
 
-    cout << "nb_walls[0]: *\t\t" << (void*)w->nb_walls[0] << " [wall] \t\t/* Array of pointers to walls that share an edge*/ // TODO\n";
-    cout << "nb_walls[1]: *\t\t" << (void*)w->nb_walls[1] << " [wall] \t\t/* Array of pointers to walls that share an edge*/ // TODO\n";
-    cout << "nb_walls[2]: *\t\t" << (void*)w->nb_walls[2] << " [wall] \t\t/* Array of pointers to walls that share an edge*/ // TODO\n";
+  cout << ind << "nb_walls[0]: *\t\t" << (void*)w->nb_walls[0] << " [wall] \t\t/* Array of pointers to walls that share an edge*/ // TODO\n";
+  cout << ind << "nb_walls[1]: *\t\t" << (void*)w->nb_walls[1] << " [wall] \t\t/* Array of pointers to walls that share an edge*/ // TODO\n";
+  cout << ind << "nb_walls[2]: *\t\t" << (void*)w->nb_walls[2] << " [wall] \t\t/* Array of pointers to walls that share an edge*/ // TODO\n";
 
-    cout << "area: \t\t" << w->area << " [double] \t\t/* Area of this element */\n";
+  cout << ind << "area: \t\t" << w->area << " [double] \t\t/* Area of this element */\n";
 
-    cout << "normal: \t\t" << w->normal << " [vector3] \t\t/* Normal vector for this wall */\n";
-    cout << "unit_u: \t\t" << w->unit_u << " [vector3] \t\t/* U basis vector for this wall */\n";
-    cout << "unit_v: \t\t" << w->unit_v << " [vector3] \t\t/* V basis vector for this wall */\n";
-    cout << "d: \t\t" << w->d << " [double] \t\t/* Distance to origin (point normal form) */\n";
+  cout << ind << "normal: \t\t" << w->normal << " [vector3] \t\t/* Normal vector for this wall */\n";
+  cout << ind << "unit_u: \t\t" << w->unit_u << " [vector3] \t\t/* U basis vector for this wall */\n";
+  cout << ind << "unit_v: \t\t" << w->unit_v << " [vector3] \t\t/* V basis vector for this wall */\n";
+  cout << ind << "d: \t\t" << w->d << " [double] \t\t/* Distance to origin (point normal form) */\n";
 
-    cout << "grid: *\t\t" << w->grid << " [surface_grid] \t\t/* Grid of effectors for this wall */\n";
+  cout << ind << "grid: *\t\t" << w->grid << " [surface_grid] \t\t/* Grid of effectors for this wall */\n";
 
-    cout << "flags: \t\t" << w->flags << " [u_short] \t\t/* Count Flags: flags for whether and what we need to count */\n";
+  cout << ind << "flags: \t\t" << w->flags << " [u_short] \t\t/* Count Flags: flags for whether and what we need to count */\n";
 
-    cout << "parent_object: *\t\t" << w->parent_object << " [object] \t\t/* The object we are a part of */\n";
-    cout << "birthplace: *\t\t" << w->birthplace << " [storage] \t\t/* Where we live in memory */\n";
+  cout << ind << "parent_object: *\t\t" << w->parent_object << " [object] \t\t/* The object we are a part of */\n";
+  //dump_object(w->parent_object, ind2);
 
-    cout << "counting_regions: *\t\t" << w->counting_regions << " [region_list] \t\t/* Counted-on regions containing this wall */\n";
+  cout << ind << "birthplace: *\t\t" << w->birthplace << " [storage] \t\t/* Where we live in memory */\n";
+
+  cout << ind << "counting_regions: *\t\t" << w->counting_regions << " [region_list] \t\t/* Counted-on regions containing this wall */\n";
+}
+
+
+void dump_wall_array(int num, wall** wall_array, const char* ind) {
+  if (wall_array == NULL) {
+    cout << "\n";
+    return;
+  }
+  for (int i = 0; i < num && i < MAX_ARRAY_ITEMS; i++) {
+    if (i % DUMP_ARRAY_NEWLINE_COUNT == 0) {
+      cout << "\n" << ind << "  ";
+    }
+    cout << ind << i << ":\n";
+    dump_wall(wall_array[i], IND_ADD2(ind));
+  }
 }
 
 
@@ -254,7 +339,6 @@ void dump_wall_list(wall_list* list, const char* ind) {
     i++;
     curr = curr->next;
   }
-
 }
 
 
@@ -408,8 +492,12 @@ void dump_waypoints(int n_waypoints, waypoint* waypoints) {
 
 void dump_one_subvolume(subvolume* sv, const char* ind) {
   assert(sv != NULL);
+  DECL_IND2(ind);
   cout << ind << "subvolume: *\t\t" << (void*)sv << " [subvolume] \t\t\n";
+
   cout << ind << "  " << "wall_head: *\t\t" << (void*)sv->wall_head << " [wall_list] \t\t /* Head of linked list of intersecting walls */\n";
+  dump_wall_list(sv->wall_head, ind2);
+
   cout << ind << "  " << "mol_by_species: \t\t" << sv->mol_by_species << " [pointer_hash] \t\t /* table of speciesv->molecule list */\n";
   cout << ind << "  " << "species_head: *\t\t" << (void*)sv->species_head << " [per_species_list] \t\t\n";
   cout << ind << "  " << "mol_count: \t\t" << sv->mol_count << " [int] \t\t /* How many molecules are here? */\n";
@@ -590,7 +678,7 @@ void dump_rxn(rxn* rx, const char* ind) {
 }
 
 void dump_reaction_hash_table(int rx_hashsize, const char* num_name, rxn **reaction_hash, const char* reaction_hash_name, const char* comment, const char* ind) {
-  cout << ind << reaction_hash_name << "[" << num_name << "]: \t\t" << (void*)reaction_hash << "[" << rx_hashsize << "]" << " [wall_list*] \t\t" << comment << "\n";
+  cout << ind << reaction_hash_name << "[" << num_name << "]: \t\t" << (void*)reaction_hash << "[" << rx_hashsize << "]" << " [reaction_hash*] \t\t" << comment << "\n";
   // used code from get_rxn_by_name
   for (int i = 0; i < rx_hashsize; ++i) {
     struct rxn *rx = NULL;
@@ -668,7 +756,7 @@ void dump_schedule_helper(schedule_helper* shp, const char* name, const char* co
     inds += "  ";
     const char* ind2 = inds.c_str();
     cout << ind << name << ": *\t\t" << (void*)shp << " [schedule_helper] \t\t" << comment << "\n";
-
+#ifdef DUMP_SCHEDULERS
     cout << ind2 <<"next_scale: *\t\t" << (void*)shp->next_scale << " [schedule_helper] \t\t/* Next coarser time scale */\n";
 
     cout << ind2 <<"dt: \t\t" << shp->dt << " [double] \t\t/* Timestep per slot */\n";
@@ -728,6 +816,7 @@ void dump_schedule_helper(schedule_helper* shp, const char* name, const char* co
     cout << ind2 <<"defunct_count: \t\t" << shp->defunct_count << " [int] \t\t/* Number of defunct items (set by user)*/\n";
     cout << ind2 <<"error: \t\t" << shp->error << " [int] \t\t/* Error code (1 - on error, 0 - no errors) */\n";
     cout << ind2 <<"depth: \t\t" << shp->depth << " [int] \t\t/* Tier of scheduler in timescale hierarchy, 0-based */\n";
+#endif
   }
 }
 
@@ -900,7 +989,7 @@ extern "C" void dump_volume(struct volume* s, const char* comment, unsigned int 
   dump_vector3_array(s->n_walls, "n_walls", s->all_vertices, "all_vertices", "/* Central repository of vertices with a partial order imposed by natural ordering of storages*/", "");
 
 
-  dump_wall_list_array(s->n_walls, "n_walls", s->walls_using_vertex, "all_vertices", "/* Array of linked lists of walls using a vertex (has the size of all_vertices array) */", "");
+  dump_wall_list_array(s->n_walls, "n_walls", s->walls_using_vertex, "walls_using_vertex", "/* Array of linked lists of walls using a vertex (has the size of all_vertices array) */", "");
 
   cout << "rx_hashsize: \t\t" << s->rx_hashsize << " [int] \t\t/* How many slots in our reaction hash table? */\n";
   cout << "n_reactions: \t\t" << s->n_reactions << " [int] \t\t/* How many reactions are there, total? */\n";
@@ -958,7 +1047,11 @@ extern "C" void dump_volume(struct volume* s, const char* comment, unsigned int 
 
   // ???
   cout << "root_object: *\t\t" << (void*)s->root_object << " [object] \t\t/* Root of the object template tree */\n";
+  dump_object_list(s->root_object, "  ");
+
   cout << "root_instance: *\t\t" << (void*)s->root_instance << " [object] \t\t/* Root of the instantiated object tree */\n";
+  dump_object_list(s->root_instance, "  ");
+
   cout << "periodic_box_obj: *\t\t" << (void*)s->periodic_box_obj << " [object] \n";
 
 
@@ -1199,7 +1292,7 @@ void dump_collisions(collision* shead) {
   collision* ptr = shead;
   while (ptr != NULL) {
     if (ptr->what & COLLIDE_VOL /* != 0 && ptr->t < 1.0 && ptr->t >= 0.0*/) {
-      cout << "  " << "collision " << i << ": "
+      cout << "  " << "mol collision " << i << ": "
           //<< "diff_idx: " << ptr-> diffused_molecule_idx
           << "coll_idx: " << ((volume_molecule*)ptr->target)->id
           << ", time: " << ptr->t
@@ -1207,7 +1300,21 @@ void dump_collisions(collision* shead) {
           << "\n";
       i++;
     }
-
+    else if (
+        (ptr->what & COLLIDE_SUBVOL) == 0
+        && (ptr->what == COLLIDE_REDO
+            || (ptr->what & COLLIDE_FRONT) != 0
+            || (ptr->what & COLLIDE_BACK) != 0
+           )
+    ) {
+      cout << "  " << "wall collision " << i << ": "
+          //<< "diff_idx: " << ptr-> diffused_molecule_idx
+          //<< "wall_idx: " << ((wall*)ptr->target)->
+          << ", time: " << ptr->t
+          << ", pos: " << ptr->loc
+          << "\n";
+      i++;
+    }
     ptr = ptr->next;
   }
 }
