@@ -222,8 +222,25 @@ void diffuse_react_event_t::diffuse_single_molecule(
         );
 
     // sort current collisions by time
-    std::sort( molecule_collisions.begin(), molecule_collisions.end(),
-        [ ]( const auto& lhs, const auto& rhs )  { return lhs.time < rhs.time;  });
+    sort( molecule_collisions.begin(), molecule_collisions.end(),
+        [ ]( const auto& lhs, const auto& rhs )
+        {
+          if (lhs.time < rhs.time) {
+            return true;
+          }
+          else if (lhs.time > rhs.time) {
+            return false;
+          }
+          else if (lhs.type == COLLISION_VOLMOL_VOLMOL && rhs.type == COLLISION_VOLMOL_VOLMOL) {
+            // mcell3 returns collisions with molecules ordered descending by the molecule index
+            // we need to maintain this behavior (needed only for identical results)
+            return lhs.colliding_molecule_id > rhs.colliding_molecule_id;
+          }
+          else {
+            return false;
+          }
+        }
+    );
 
   #ifdef DEBUG_COLLISIONS
     DUMP_CONDITION4(
