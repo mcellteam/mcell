@@ -126,7 +126,7 @@ void geometry::wall_subparts_collision_test(
   p.get_subpart_3d_indices(urb, max_subpart_indices);
 
   // do we fit into just one subparition?
-  if (max_subpart_indices - min_subpart_indices == ivec3_t(1)) {
+  if (max_subpart_indices == min_subpart_indices) {
     colliding_subparts.push_back(
         p.get_subpartition_index_from_3d_indices(min_subpart_indices)
     );
