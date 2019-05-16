@@ -136,7 +136,6 @@ public:
 
 
   uint32_t get_subpartition_index_from_3d_indices(const ivec3_t& indices) const {
-    uint32_t dim = world_constants.subpartitions_per_partition_dimension;
     // example: dim: 5x5x5,  (1, 2, 3) -> 1 + 2*5 + 3*5*5 = 86
     return
         indices.x +
@@ -169,9 +168,12 @@ public:
   void get_subpart_llf_point(const subpart_index_t subpart_index, vec3_t& llf) const {
     ivec3_t indices;
     get_subpart_3d_indices_from_index(subpart_index, indices);
-    llf = origin_corner + vec3_t(indices) * vec3_t(world_constants.subpartition_edge_length_rcp);
+    llf = origin_corner + vec3_t(indices) * vec3_t(world_constants.subpartition_edge_length);
   }
 
+  void get_subpart_urb_point_from_llf(const vec3_t& llf, vec3_t& urb) const {
+    urb = llf + vec3_t(world_constants.subpartition_edge_length);
+  }
 
   void change_reactants_map(volume_molecule_t& vm, const uint32_t new_subpartition_index, bool adding, bool removing) {
     assert(world_constants.bimolecular_reactions_map->find(vm.species_id) != world_constants.bimolecular_reactions_map->end());
@@ -253,10 +255,6 @@ public:
   void set_molecule_as_defunct(volume_molecule_t& vm) {
     // set that this molecule does not exist anymore
     vm.set_is_defunct();
-
-    // we will keep it in diffusion arrays (volume_molecule_indices_per_time_step)
-    // but we should remove it from subpartition mask (although there are check in the collision detection code for that)
-    uint32_t molecule_index = get_molecule_index(vm);
 
     change_reactants_map(vm, 0/*unused*/, false, true);
   }

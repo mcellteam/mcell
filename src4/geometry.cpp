@@ -27,53 +27,13 @@
 #include "geometry.h"
 
 
+
+#include "geometry_utils.inc" // uses get_wall_bounding_box, maybe not include this file
+
 using namespace std;
 
 namespace mcell {
 
-/***************************************************************************
-wall_bounding_box:
-  In: a wall
-      vector to store one corner of the bounding box for that wall
-      vector to store the opposite corner
-  Out: No return value.  The vectors are set to define the smallest box
-       that contains the wall.
-***************************************************************************/
-void geometry::get_wall_bounding_box(
-    const vec3_t w_vert[VERTICES_IN_TRIANGLE],
-    vec3_t& llf, vec3_t& urb
-) {
-  llf.x = urb.x = w_vert[0].x;
-  llf.y = urb.y = w_vert[0].y;
-  llf.z = urb.z = w_vert[0].z;
-
-  if (w_vert[1].x < llf.x)
-    llf.x = w_vert[1].x;
-  else if (w_vert[1].x > urb.x)
-    urb.x = w_vert[1].x;
-  if (w_vert[2].x < llf.x)
-    llf.x = w_vert[2].x;
-  else if (w_vert[2].x > urb.x)
-    urb.x = w_vert[2].x;
-
-  if (w_vert[1].y < llf.y)
-    llf.y = w_vert[1].y;
-  else if (w_vert[1].y > urb.y)
-    urb.y = w_vert[1].y;
-  if (w_vert[2].y < llf.y)
-    llf.y = w_vert[2].y;
-  else if (w_vert[2].y > urb.y)
-    urb.y = w_vert[2].y;
-
-  if (w_vert[1].z < llf.z)
-    llf.z = w_vert[1].z;
-  else if (w_vert[1].z > urb.z)
-    urb.z = w_vert[1].z;
-  if (w_vert[2].z < llf.z)
-    llf.z = w_vert[2].z;
-  else if (w_vert[2].z > urb.z)
-    urb.z = w_vert[2].z;
-}
 
 /***************************************************************************
 distribute_wall:
@@ -94,7 +54,7 @@ void geometry::wall_subparts_collision_test(
   w_vert[1] = p.get_geometry_vertex(w.vertex_indices[1]);
   w_vert[2] = p.get_geometry_vertex(w.vertex_indices[2]);
 
-  get_wall_bounding_box(w_vert, llf, urb);
+  geom_util::get_wall_bounding_box(w_vert, llf, urb);
 
   // min
   if (llf.x < -leeway)

@@ -1468,6 +1468,7 @@ double exact_disk(struct volume *world, struct vector3 *loc, struct vector3 *mv,
 
     /* Reject those that the moving particle can travel through */
     if ((moving->properties->flags & CAN_VOLWALL) != 0) {
+      assert(false && "mcell4 todo");
       num_matching_rxns = trigger_intersect(
           world->reaction_hash, world->rx_hashsize, world->all_mols,
           world->all_volume_mols, world->all_surface_mols,

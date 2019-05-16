@@ -62,7 +62,10 @@ void world_t::init_fpu() {
 
   static float_t a = 1;
   static float_t b = 0;
-  assert(a/b == INFINITY);
+  if (a/b != INFINITY) {
+    mcell_error("Error: division by zero is expected to return INFINITY but does not!");
+    exit(1);
+  }
 #endif
 }
 

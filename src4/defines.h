@@ -62,7 +62,8 @@ typedef double float_t; // will be changed to float
 #define FLOAT_T_BYTES 8
 
 #if FLOAT_T_BYTES == 8
-#define EPS 1e-12 // same as EPS_C
+const float_t EPS = 1e-12; // same as EPS_C
+const float_t SQRT_EPS = 1e-6;
 #else
 #error "TODO: float32"
 #endif
@@ -86,6 +87,15 @@ struct vec3_t: public glm_vec3_t{
 
   std::string to_string() const;
   void dump(const std::string extra_comment, const std::string ind) const;
+
+  // for exd_vector3
+  float_t& m() { return x; }
+  float_t& u() { return y; }
+  float_t& v() { return z; }
+
+  const float_t& m() const { return x; }
+  const float_t& u() const { return y; }
+  const float_t& v() const { return z; }
 };
 
 // usually are .u and .v used to access cotained values
@@ -100,9 +110,11 @@ struct vec2_t: public glm_vec2_t{
   //TODO: std::string to_string() const;
   //TODO: void dump(const std::string extra_comment, const std::string ind) const;
 
-  float_t u() const { return x; }
-  float_t v() const { return y; }
+  float_t& u() { return x; }
+  float_t& v() { return y; }
 
+  const float_t& u() const { return x; }
+  const float_t& v() const { return y; }
 };
 
 std::ostream & operator<<(std::ostream &out, const vec3_t &a);
@@ -116,6 +128,7 @@ const float_t SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT = 1;
 
 
 // ---------------------------------- fixed costants and specific typedefs -------------------
+const float_t POS_INVALID = NAN;
 
 const float_t TIME_INVALID = NAN;
 const float_t TIME_FOREVER = FLT_MAX; // this max is sufficient for both float and double
@@ -210,7 +223,24 @@ static inline float_t abs_max_2vec(const vec3_t& v1, const vec3_t& v2) {
   return mcell::max3d(vmax);
 }
 
+static inline float_t dot2(const vec2_t& v1, const vec2_t& v2) {
+  return glm::dot((glm_vec2_t)v1, (glm_vec2_t)v2);
+}
+
+static inline float_t determinant2(const vec2_t& v1, const vec2_t& v2) {
+  return v1.x * v2.y - v1.y * v2.x;
+}
+
+static inline float_t len2_squared(const vec2_t& v) {
+  return v.x * v.x + v.y * v.y;
+}
+
+static inline float_t dot(const vec3_t& v1, const vec3_t& v2) {
+  return glm::dot((glm_vec3_t)v1, (glm_vec3_t)v2);
+}
+
 // returns true when whether two values are measurably different
+// FIXME: has the same signature as mcell3 version
 inline bool distinguishable(float_t a, float_t b, float_t eps) {
   float_t c = fabs(a - b);
   a = fabs(a);
@@ -226,6 +256,52 @@ inline bool distinguishable(float_t a, float_t b, float_t eps) {
   }
   return (c > eps);
 }
+
+
+static inline bool distinguishable_vec3(const vec3_t& a, const vec3_t& b, float_t eps) {
+  float_t c, cc, d;
+
+  /* Find largest coordinate */
+  c = fabs(a.x);
+
+  d = fabs(a.y);
+  if (d > c)
+    c = d;
+
+  d = fabs(a.z);
+  if (d > c)
+    c = d;
+
+  d = fabs(b.x);
+  if (d > c)
+    c = d;
+
+  d = fabs(b.y);
+  if (d > c)
+    c = d;
+
+  d = fabs(b.z);
+  if (d > c)
+    c = d;
+
+  /* Find largest difference */
+  cc = fabs(a.x - b.x);
+
+  d = fabs(a.y - b.y);
+  if (d > cc)
+    cc = d;
+
+  d = fabs(a.z - b.z);
+  if (d > cc)
+    cc = d;
+
+  /* Make sure fractional difference is at least eps and absolute difference is
+   * at least (eps*eps) */
+  if (c < eps)
+    c = eps;
+  return (c * eps < cc);
+}
+
 
 static inline void debug_guard_zero_div(float_t& val) {
 #ifndef NDEBUG

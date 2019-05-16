@@ -107,7 +107,7 @@ public:
   }
 
   vec3_t pos;
-  uint32_t subpart_index;
+  subpart_index_t subpart_index;
   float_t unimol_rx_time;
 
   void dump(const std::string ind) const;

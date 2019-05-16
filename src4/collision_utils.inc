@@ -26,6 +26,7 @@
  * The reason why this is not a standard .cpp + .h file is to gove the compiler
  * the opportunity to inline these functions into methods of diffuse&react event.
  */
+#include <vector>
 
 #include "diffuse_react_event.h"
 #include "defines.h"
@@ -33,6 +34,8 @@
 #include "partition.h"
 #include "geometry.h"
 #include "debug_config.h"
+
+#include "geometry_utils.inc"
 
 using namespace std;
 
@@ -649,6 +652,7 @@ static int reflect_or_periodic_bc(
 
   return 0;
 }
+
 
 } // namespace coll_util
 

@@ -42,6 +42,7 @@ extern "C" {
 // include implementations of utility functions
 #include "reaction_utils.inc"
 #include "collision_utils.inc"
+#include "exact_disk_utils.inc"
 
 using namespace std;
 
@@ -431,11 +432,20 @@ bool diffuse_react_event_t::collide_and_react_with_vol_mol(
 
   // returns 1 when there are no walls at all
   //TBD: double factor = exact_disk(
+  float_t factor = exact_disk_util::exact_disk(
+      p, collision.pos, displacement, p.get_world_constants().rx_radius_3d,
+      diffused_molecule, colliding_molecule,
+      p.get_world_constants().use_expanded_list
+  );
+
+  if (factor < 0) { /* Probably hit a wall, might have run out of memory */
+    return 0; /* Reaction blocked by a wall */
+  }
 
   const reaction_t& rx = *collision.rx;
   //  rx->prob_t is always NULL in out case update_probs(world, rx, m->t);
   // returns which reaction pathway to take
-  float_t scaling = /*factor - 1.0*/ r_rate_factor;
+  float_t scaling = factor * r_rate_factor;
   int i = rx_util::test_bimolecular(
     rx, world->rng, colliding_molecule, diffused_molecule, scaling);
 
