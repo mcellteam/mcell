@@ -432,17 +432,15 @@ static collision_type_t collide_wall(
     vec3_t& move,
     float_t& collision_time, vec3_t& collision_pos
 ) {
+  p.get_simulation_stats().inc_ray_polygon_tests();
+
   float_t dp, dv, dd;
-  float_t a, b, c;
-  float_t f, g, h;
   float_t d_eps;
-  vec3_t local;
 
   const vec3_t& normal = face.normal;
 
-  dp = glm::dot((glm_vec3_t)normal, (glm_vec3_t)pos);
-  dv = glm::dot((glm_vec3_t)normal, (glm_vec3_t)move);
-  assert(face.distance_to_origin != 0 && "Not sure yet where this is computed");
+  dp = dot(normal, pos);
+  dv = dot(normal, move);
   dd = dp - face.distance_to_origin;
 
   if (dd > 0) {
@@ -465,6 +463,8 @@ static collision_type_t collide_wall(
       return COLLISION_WALL_MISS;
     }
   }
+
+  float_t a;
 
   if (dd == 0.0) {
     /* Start beside plane, end above or below */
@@ -500,11 +500,12 @@ static collision_type_t collide_wall(
   face_vert[1] = p.get_geometry_vertex(face.vertex_indices[1]);
   face_vert[2] = p.get_geometry_vertex(face.vertex_indices[2]);
 
-  local = collision_pos - face_vert[0];
+  vec3_t local = collision_pos - face_vert[0];
 
-  b = glm::dot((glm_vec3_t)local, (glm_vec3_t)face.unit_u);
-  c = glm::dot((glm_vec3_t)local, (glm_vec3_t)face.unit_v);
+  float_t b = dot(local, face.unit_u);
+  float_t c = dot(local, face.unit_v);
 
+  float_t f;
   if (face.uv_vert2.v() < 0.0) {
     c = -c;
     f = -face.uv_vert2.v();
@@ -514,6 +515,7 @@ static collision_type_t collide_wall(
   }
 
   if (c > 0) {
+    float_t g, h;
     g = b * f;
     h = c * face.uv_vert2.u();
     if (g > h) {
@@ -599,6 +601,7 @@ static void collect_wall_collisions(
       exit(1);
     }
     else if (collision_type != COLLISION_WALL_MISS) {
+      p.get_simulation_stats().inc_ray_polygon_colls();
       wall_collisions.push_back(
           collision_t(collision_type, &p, vm.id, collision_time, collision_pos, wall_index)
       );

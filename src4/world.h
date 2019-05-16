@@ -79,7 +79,7 @@ public:
     vec3_t origin =
         floor_to_multiple(pos, world_constants.partition_edge_length)
         - vec3_t(world_constants.partition_edge_length/2);
-    partitions.push_back(partition_t(origin, world_constants));
+    partitions.push_back(partition_t(origin, world_constants, simulation_stats));
     return partitions.size() - 1;
   }
 
@@ -166,6 +166,7 @@ public:
   uint32_t seed_seq;
 
   world_constants_t world_constants;
+  simulation_stats_t simulation_stats;
 
   // single state for the random number generator
   rng_state rng;

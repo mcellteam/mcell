@@ -839,9 +839,9 @@ exact_disk:
        geometry, or TARGET_OCCLUDED if the path to the target molecule is
        blocked.
 *************************************************************************/
-// FIXME: use vector arithmetics
 // FIXME: get rid of linked lists
-static float_t exact_disk(
+// inlining leads to lower performance
+static float_t __attribute__((noinline)) exact_disk(
     partition_t& p,
     vec3_t& loc, // point of collision
     vec3_t& mv, // displacement

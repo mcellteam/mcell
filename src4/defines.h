@@ -398,6 +398,29 @@ public:
   // TODO: maybe add: bool fully_initialized;
 };
 
+/*
+ * Constant data set in initialization useful for all classes, single object is owned by world
+ */
+struct simulation_stats_t {
+  simulation_stats_t()
+    : ray_voxel_tests(0), ray_polygon_tests(0), ray_polygon_colls(0) {
+  }
+  void inc_ray_voxel_tests() {
+    ray_voxel_tests++;
+  }
+  void inc_ray_polygon_tests() {
+    ray_polygon_tests++;
+  }
+  void inc_ray_polygon_colls() {
+    ray_polygon_colls++;
+  }
+
+  void dump();
+private:
+  uint64_t ray_voxel_tests;
+  uint64_t ray_polygon_tests;
+  uint64_t ray_polygon_colls;
+};
 
 } // namespace mcell
 

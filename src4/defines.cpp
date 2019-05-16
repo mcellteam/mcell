@@ -23,6 +23,7 @@
 
 #include "defines.h"
 
+#include <iostream>
 #include <sstream>
 
 using namespace std;
@@ -34,15 +35,18 @@ std::ostream & operator<<(std::ostream &out, const vec3_t &a) {
   return out;
 }
 
+
 string vec3_t::to_string() const {
   stringstream ss;
   ss << *this;
   return ss.str();
 }
 
+
 void vec3_t::dump(const std::string extra_comment, const std::string ind) const {
   cout << ind << extra_comment << *this << "\n";
 }
+
 
 void world_constants_t::dump() {
   cout << "time_unit: \t\t" << time_unit << " [float_t] \t\t\n";
@@ -51,6 +55,13 @@ void world_constants_t::dump() {
   cout << "partition_edge_length: \t\t" << partition_edge_length << " [float_t] \t\t\n";
   cout << "subpartitions_per_partition_dimension: \t\t" << subpartitions_per_partition_dimension << " [uint32_t] \t\t\n";
   cout << "subpartition_edge_length: \t\t" << subpartition_edge_length << " [float_t] \t\t\n";
+}
+
+
+void simulation_stats_t::dump() {
+  cout << "Total number of ray-subvolume intersection tests (number of ray_trace calls): " << ray_voxel_tests << "\n";
+  cout << "Total number of ray-polygon intersection tests: " << ray_polygon_tests << "\n";
+  cout << "Total number of ray-polygon intersections: " << ray_polygon_colls << "\n";
 }
 
 } // namespace mcell

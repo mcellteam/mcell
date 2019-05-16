@@ -323,6 +323,8 @@ ray_trace_state_t diffuse_react_event_t::ray_trace(
     vec3_t& new_pos,
     uint32_t& new_subpart_index
     ) {
+  p.get_simulation_stats().inc_ray_voxel_tests();
+
   ray_trace_state_t res_state = RAY_TRACE_FINISHED;
   collisions.clear();
 
@@ -357,21 +359,10 @@ ray_trace_state_t diffuse_react_event_t::ray_trace(
           collisions
       );
 
-      // hits are simply mixed with reactions... -
-      // TODO: use the same structure, also might cache walls that can collide
-  /*
       if (!collisions.empty()) {
         res_state = RAY_TRACE_HIT_WALL;
-
-        // TODO: optimization?
-        // displacement_up_to_wall_collision -
-
-        // we do not care about wall collisions in following subvolumes
         break;
-      }*/
-    }
-    if (!collisions.empty()) {
-      res_state = RAY_TRACE_HIT_WALL;
+      }
     }
   }
 

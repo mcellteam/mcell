@@ -149,7 +149,7 @@ bool world_t::run_simulation() {
 
   init_simulation(); // must be the first one
 
-  dump();
+  //dump();
 
   // create defragmentation events
   defragmentation_event_t* defragmentation_event = new defragmentation_event_t(this);
@@ -203,6 +203,8 @@ bool world_t::run_simulation() {
   } while (!end_simulation);
 
   cout << "Iteration " << current_iteration << ", simulation finished successfully\n";
+
+  simulation_stats.dump();
 
   // report final time
   rusage run_time;

@@ -62,10 +62,15 @@ public:
  */
 class partition_t {
 public:
-  partition_t(const vec3_t origin_, const world_constants_t& world_constants_)
+  partition_t(
+      const vec3_t origin_,
+      const world_constants_t& world_constants_,
+      simulation_stats_t& simulation_stats_
+  )
     : origin_corner(origin_),
       next_molecule_id(0),
-      world_constants(world_constants_) {
+      world_constants(world_constants_),
+      simulation_stats(simulation_stats_) {
 
     opposite_corner = origin_corner + world_constants.partition_edge_length;
 
@@ -405,6 +410,10 @@ public:
     return world_constants;
   }
 
+  simulation_stats_t& get_simulation_stats() const {
+    return simulation_stats;
+  }
+
   void dump();
 
 private:
@@ -440,7 +449,8 @@ private:
 
   std::vector<subpartition_mask_t> walls_per_subpart;
 
-  const world_constants_t& world_constants;
+  const world_constants_t& world_constants; // owned by world
+  simulation_stats_t& simulation_stats; // owned by world
 };
 
 } // namespace mcell
