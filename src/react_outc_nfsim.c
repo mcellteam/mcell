@@ -165,6 +165,42 @@ initializeNFSimQueryforBimolecularFiring(struct abstract_molecule *am,
   return options;
 }
 
+static void find_objects(struct object* current_parent,
+                  const char* name1, struct object** obj1,
+                  const char* name2, struct object** obj2) {
+
+  struct object* curr = current_parent;
+  int i = 0;
+  while (curr != NULL) {
+    // did we find our object?
+    if (*obj1 == NULL && curr->last_name != NULL && strcmp(curr->last_name, name1) == 0) {
+      *obj1 = curr;
+    }
+    if (*obj2 == NULL && curr->last_name != NULL && strcmp(curr->last_name, name2) == 0) {
+      *obj2 = curr;
+    }
+    if (*obj1 != NULL && *obj2 != NULL) {
+      // terminate search
+      return;
+    }
+    // check children
+    find_objects(curr->first_child, name1, obj1, name2, obj2);
+
+    // next object in list
+    curr = curr->next;
+  }
+}
+
+static bool has_region(struct object* obj, const char* reg_name) {
+
+  for (struct region_list *r = obj->regions; r != NULL; r = r->next) {
+    if (r->reg != NULL && strcmp(r->reg->region_last_name, reg_name) == 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
 int prepare_reaction_nfsim(struct volume *world, struct rxn *rx, void *results,
                            int path, struct abstract_molecule *reac,
                            struct abstract_molecule *reac2) {
@@ -331,10 +367,68 @@ int prepare_reaction_nfsim(struct volume *world, struct rxn *rx, void *results,
   if (orientation_flag2) {
     orientation_flag1 = true;
     individualResult = mapvector_get(results, 0);
-    if (strcmp(compartmentInfoArray[0].outside,
-               map_get(individualResult, "originalCompartment")) == 0) {
+    const char* outside = compartmentInfoArray[0].outside;
+    // originalCompartment is in fact the taget compartment where we should place out product
+    const char* originalCompartment = map_get(individualResult, "originalCompartment");
+
+    bool originalCompartmentEmpty = strcmp(originalCompartment, "") == 0;
+
+    if (!originalCompartmentEmpty && strcmp(outside, originalCompartment) == 0) {
+      // outside and original are the same, not completely sure what to do here,
+      // keeping original implementation
       productOrientation = -1;
+    }
+    else if (!originalCompartmentEmpty && strcmp(outside, "") != 0) {
+      // 1) find object with "outside or "originalCompartment" name in world->root_instance,
+      // then check its regions
+      // 2) a region of its object is either "ALL" or its surface
+      // 3) if we go from surface into the object -> orientation == -1,
+      //    all other cases are kept as they were implemented originally because we
+      //    do not have other information about the hierarchy of objects
+      struct object* objOutside = NULL;
+      struct object* objOrigCompartment = NULL;
+      find_objects(world->root_instance, outside, &objOutside, originalCompartment, &objOrigCompartment);
+
+      // if we found only one of these objects, check its regions
+      if (objOutside != NULL && objOrigCompartment != NULL) {
+        // both are objects, default behavior should be ok
+        mcell_warn(
+            "Handling orientation of NFsim reaction where both compartents %s (orig) and %s (outside) are objects is not supported yet, "
+            "using default orientation 1 (outside)", originalCompartment, outside);
+        productOrientation = 1;
+      } else if (objOutside == NULL && objOrigCompartment == NULL) {
+        mcell_error(
+            "NFsim reaction returned compartments %s (orig) and %s (outside) that were not identified as object, this is not supported yet.",
+            originalCompartment, outside
+        );
+        exit(1);
+      } else {
+        if (objOrigCompartment != NULL) {
+          if (has_region(objOrigCompartment, outside)) {
+            // we go from outside (e.g. PM) inside (e.g. CP)
+            productOrientation = -1;
+          } else {
+            // relationship is not known...
+            mcell_warn(
+                "Handling orientation of NFsim reaction where both compartent %s (orig) and %s (outside) are not in object-region relationship is not supported yet, "
+                "using default orientation 1 (outside)", originalCompartment, outside);
+            productOrientation = 1;
+          }
+        } else {
+          if (has_region(objOutside, originalCompartment)) {
+            // we go from inside (e.g. CP) outside (e.g. PM)
+            productOrientation = 1;
+          } else {
+            // relationship is not known but we can assume that we go onto surface because the original compartment object is NULL,
+            // therefore it is a region not an object,
+            // selecting 1 because we need to stay on the 'outside' side of the surface
+            productOrientation = 1;
+          }
+        }
+      }
     } else {
+      // outside is empty, we get this type of information from reactions like this:
+      // MemA@PM -> Mem@PM+A@EC  -  we need to go outside from membrane PM to EC
       productOrientation = 1;
     }
 
