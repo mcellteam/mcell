@@ -198,7 +198,12 @@ struct exd_vertex_t {
   }
 
   exd_vertex_t *next;
-  float_t x, y;             /* x,y style coordinates */
+
+  union
+  {
+    struct{ float_t x, y; };
+    struct{ float_t u, v; };
+  };
   float_t r2, zeta;         /* r,theta style coordinates */
 
   exd_vertex_t* e;    /* Edge to next vertex */
@@ -210,13 +215,6 @@ struct exd_vertex_t {
   // note: ignores other data
   operator vec2_t() { return vec2_t(x, y); }
   operator const vec2_t() const { return vec2_t(x, y); }
-
-  // access methods to use the same names as in vec2_t
-  float_t& u() { return x; }
-  float_t& v() { return y; }
-
-  const float_t& u() const { return x; }
-  const float_t& v() const { return y; }
 };
 
 
@@ -236,10 +234,10 @@ static inline void compute_intersect_w_m0(
 {
   float_t t;
 
-  t = p0muv.m() / (p0muv.m() - p1muv.m());
+  t = p0muv.m / (p0muv.m - p1muv.m);
 
-  intersect_uv.u() = p0muv.u() + t * (p1muv.u() - p0muv.u());
-  intersect_uv.v() = p0muv.v() + t * (p1muv.v() - p0muv.v());
+  intersect_uv.u = p0muv.u + t * (p1muv.u - p0muv.u);
+  intersect_uv.v = p0muv.v + t * (p1muv.v - p0muv.v);
 }
 
 
@@ -262,8 +260,8 @@ static inline intersect_result_t test_intersect_line_with_circle(
           distinguishable(sm.r2, pa.r2, EPS)) {
         return INTERSECT_SKIP_THIS_WALL;
       }
-      if (!distinguishable(sm.u() * pa.v(), sm.v() * pa.u(), SQRT_EPS) ||
-          !distinguishable(sm.u() * pb.v(), sm.v() * pb.u(), SQRT_EPS)) {
+      if (!distinguishable(sm.u * pa.v, sm.v * pa.u, SQRT_EPS) ||
+          !distinguishable(sm.u * pb.v, sm.v * pb.u, SQRT_EPS)) {
 
         return INTERSECT_TARGET_OCCLUDED;
       }
@@ -307,15 +305,15 @@ static inline exd_vertex_t* construct_final_endpoint(
   }
 
   if (cond) {
-    res->u() = pa.u() + ti_or_si * (pb.u() - pa.u());
-    res->v() = pa.v() + ti_or_si * (pb.v() - pa.v());
+    res->u = pa.u + ti_or_si * (pb.u - pa.u);
+    res->v = pa.v + ti_or_si * (pb.v - pa.v);
     res->r2 = len2_squared(*res);
-    res->zeta = exd_zetize(res->v(), res->u());
+    res->zeta = exd_zetize(res->v, res->u);
   } else {
-    res->u() = pa.u();
-    res->v() = pa.v();
+    res->u = pa.u;
+    res->v = pa.v;
     res->r2 = pa.r2;
-    res->zeta = exd_zetize(pa.v(), pa.u());
+    res->zeta = exd_zetize(pa.v, pa.u);
   }
   return res;
 }
@@ -433,10 +431,10 @@ static void find_boundaries_occluding_disk(
             /*continue;*/
           }
           float_t t = sqrt(R2 - s * s);
-          pa.u() = t;
-          pa.v() = s;
-          pb.u() = -t;
-          pb.v() = s;
+          pa.u = t;
+          pa.v = s;
+          pb.u = -t;
+          pb.v = s;
         } else if (!distinguishable(b, 0, EPS)) {
           float_t t = d / a;
           if (t * t > R2) {
@@ -446,10 +444,10 @@ static void find_boundaries_occluding_disk(
             /*continue;*/
           }
           s = sqrt(R2 - t * t);
-          pa.u() = t;
-          pa.v() = s;
-          pb.u() = t;
-          pb.v() = -s;
+          pa.u = t;
+          pa.v = s;
+          pb.u = t;
+          pb.v = -s;
         } else {
           c = a * a + b * b;
           s = d * b;
@@ -462,37 +460,37 @@ static void find_boundaries_occluding_disk(
           float_t t = sqrt(R2 * c - d * d);
           c = 1.0 / c;
           float_t r = 1.0 / a;
-          pa.v() = c * (s + t * a);
-          pa.u() = (d - b * pa.v()) * r;
-          pb.v() = c * (s - t * a);
-          pb.u() = (d - b * pb.v()) * r;
+          pa.v = c * (s + t * a);
+          pa.u = (d - b * pa.v) * r;
+          pb.v = c * (s - t * a);
+          pb.u = (d - b * pb.v) * r;
         }
 
         /* Create memory for the pair of vertices */
         exd_vertex_t* ppa = new exd_vertex_t();
         exd_vertex_t* ppb = new exd_vertex_t();
 
-        a = exd_zetize(pa.v(), pa.u());
-        b = exd_zetize(pb.v(), pb.u());
+        a = exd_zetize(pa.v, pa.u);
+        b = exd_zetize(pb.v, pb.u);
         c = b - a;
         if (c < 0)
           c += 4;
         if (c < 2) {
-          ppa->u() = pa.u();
-          ppa->v() = pa.v();
+          ppa->u = pa.u;
+          ppa->v = pa.v;
           ppa->r2 = len2_squared(pa);
           ppa->zeta = a;
-          ppb->u() = pb.u();
-          ppb->v() = pb.v();
+          ppb->u = pb.u;
+          ppb->v = pb.v;
           ppb->r2 = len2_squared(pb);
           ppb->zeta = b;
         } else {
-          ppb->u() = pa.u();
-          ppb->v() = pa.v();
+          ppb->u = pa.u;
+          ppb->v = pa.v;
           ppb->r2 = len2_squared(pa);
           ppb->zeta = a;
-          ppa->u() = pb.u();
-          ppa->v() = pb.v();
+          ppa->u = pb.u;
+          ppa->v = pb.v;
           ppa->r2 = len2_squared(pb);
           ppa->zeta = b;
         }
@@ -514,14 +512,14 @@ static void find_boundaries_occluding_disk(
 
 
 static inline float_t calculate_exd_span(const exd_vertex_t* v1, const exd_vertex_t* v2, const exd_vertex_t* p) {
-  return (v1->u() - p->u()) * (v2->v() - p->v()) -
-        (v2->u() - p->u()) * (v1->v() - p->v());
+  return (v1->u - p->u) * (v2->v - p->v) -
+        (v2->u - p->u) * (v1->v - p->v);
 }
 
 
 static inline float_t calculate_time_span(const exd_vertex_t* v1, const exd_vertex_t* v2, const exd_vertex_t* p) {
-  return   (p->u() * v1->v() - p->v() * v1->u()) /
-      (p->v() * (v2->u() - v1->u()) - p->u() * (v2->v() - v1->v()));
+  return   (p->u * v1->v - p->v * v1->u) /
+      (p->v * (v2->u - v1->u) - p->u * (v2->v - v1->v));
 }
 
 
@@ -579,15 +577,15 @@ static float_t calculate_area_for_multiple_edges(
       exd_vertex_t* pqb = pqa->e;
 
       /* Create displacement vectors */
-      pa.u() = ppb->u() - ppa->u();
-      pa.v() = ppb->v() - ppa->v();
-      pb.u() = pqb->u() - pqa->u();
-      pb.v() = pqb->v() - pqa->v();
-      float_t r = pb.u() * pa.v() - pa.u() * pb.v();
+      pa.u = ppb->u - ppa->u;
+      pa.v = ppb->v - ppa->v;
+      pb.u = pqb->u - pqa->u;
+      pb.v = pqb->v - pqa->v;
+      float_t r = pb.u * pa.v - pa.u * pb.v;
 
       /* Check if lines are parallel--combine if so */
       if (r * r <
-          EPS_C * (pa.u() * pa.u() + pa.v() * pa.v()) * (pb.u() * pb.u() + pb.v() * pb.v())) {
+          EPS_C * (pa.u * pa.u + pa.v * pa.v) * (pb.u * pb.u + pb.v * pb.v)) {
         pqa->e = NULL;
         pqa->role = EXD_ROLE_OTHER;
 
@@ -609,28 +607,28 @@ static float_t calculate_area_for_multiple_edges(
       }
 
       /* Check if these lines cross and find times at which they do */
-      float_t s = (ppa->u() - pqa->u()) * pa.v() - (ppa->v() - pqa->v()) * pa.u();
+      float_t s = (ppa->u - pqa->u) * pa.v - (ppa->v - pqa->v) * pa.u;
       if (s * r <= EPS * R2 * R2)
         continue;
       float_t t = s / r;
       if (t >= 1 - EPS)
         continue;
-      if (pa.u() * pa.u() > pa.v() * pa.v()) {
-        s = (pqa->u() - ppa->u() + t * pb.u()) * pa.u();
-        if (s <= EPS * R2 || s >= pa.u() * pa.u() * (1.0 - EPS))
+      if (pa.u * pa.u > pa.v * pa.v) {
+        s = (pqa->u - ppa->u + t * pb.u) * pa.u;
+        if (s <= EPS * R2 || s >= pa.u * pa.u * (1.0 - EPS))
           continue;
       } else {
-        s = (pqa->v() - ppa->v() + t * pb.v()) * pa.v();
-        if (s <= EPS * R2 || s >= pa.v() * pa.v() * (1.0 - EPS))
+        s = (pqa->v - ppa->v + t * pb.v) * pa.v;
+        if (s <= EPS * R2 || s >= pa.v * pa.v * (1.0 - EPS))
           continue;
       }
 
       /* Create intersection point */
       exd_vertex_t* vq = new exd_vertex_t();
-      vq->u() = pqa->u() + t * pb.u();
-      vq->v() = pqa->v() + t * pb.v();
-      vq->r2 = vq->u() * vq->u() + vq->v() * vq->v();
-      vq->zeta = exd_zetize(vq->v(), vq->u());
+      vq->u = pqa->u + t * pb.u;
+      vq->v = pqa->v + t * pb.v;
+      vq->r2 = vq->u * vq->u + vq->v * vq->v;
+      vq->zeta = exd_zetize(vq->v, vq->u);
       vq->e = ppb;
       vq->span = NULL;
       vq->role = EXD_ROLE_CROSS;
@@ -715,8 +713,8 @@ static float_t calculate_area_for_multiple_edges(
       vr = &pb;
     else
       vr = &pa;
-    vr->u() = vp->u();
-    vr->v() = vp->v();
+    vr->u = vp->u;
+    vr->v = vp->v;
     vr->zeta = vp->zeta;
     if (vp->role == EXD_ROLE_TAIL) {
       vr->r2 = R2 * (1.0 + EPS);
@@ -731,8 +729,8 @@ static float_t calculate_area_for_multiple_edges(
          vq = vq->next) {
       if (vq->role == EXD_ROLE_HEAD) {
         if (vq->r2 < vp->r2 || vr->e == NULL) {
-          vr->u() = vq->u();
-          vr->v() = vq->v();
+          vr->u = vq->u;
+          vr->v = vq->v;
           vr->r2 = vq->r2;
           vr->e = vq->e;
         } else if (!distinguishable(vq->r2, vr->r2, EPS)) {
@@ -752,7 +750,7 @@ static float_t calculate_area_for_multiple_edges(
       if (c < R2 * R2 * EPS) /* Span crosses the point */
       {
         if (vr->e == NULL) {
-          vr->r2 = vr->u() * vr->u() + vr->v() * vr->v();
+          vr->r2 = vr->u * vr->u + vr->v * vr->v;
           vr->e = ppb;
         } else {
           b = calculate_exd_span(vr, vr->e, ppb);
@@ -763,9 +761,9 @@ static float_t calculate_area_for_multiple_edges(
                  vr->e == NULL) /* Span is inside the point or spans tail */
       {
         float_t t = calculate_time_span(ppa, ppb, vp);
-        vr->u() = ppa->u() + t * (ppb->u() - ppa->u());
-        vr->v() = ppa->v() + t * (ppb->v() - ppa->v());
-        vr->r2 = vr->u() * vr->u() + vr->v() * vr->v();
+        vr->u = ppa->u + t * (ppb->u - ppa->u);
+        vr->v = ppa->v + t * (ppb->v - ppa->v);
+        vr->r2 = vr->u * vr->u + vr->v * vr->v;
         vr->e = ppb;
       }
     }
@@ -785,12 +783,12 @@ static float_t calculate_area_for_multiple_edges(
                 EPS * EPS) {
           if (c >= 2.0) /* More than pi */
           {
-            vs->u() = -vs->u();
-            vs->v() = -vs->v();
+            vs->u = -vs->u;
+            vs->v = -vs->v;
             A += 0.5 * MY_PI * R2;
           }
-          float_t a = vs->u() * vr->u() + vs->v() * vr->v();
-          float_t b = vs->u() * vr->v() - vs->v() * vr->u();
+          float_t a = vs->u * vr->u + vs->v * vr->v;
+          float_t b = vs->u * vr->v - vs->v * vr->u;
           float_t s;
           if (a <= 0) /* More than pi/2 */
           {
@@ -801,12 +799,12 @@ static float_t calculate_area_for_multiple_edges(
           A += 0.5 * s * R2;
         } else {
           if (!distinguishable(vs->e->zeta, vr->zeta, EPS)) {
-            A += 0.5 * (vs->u() * vs->e->v() - vs->v() * vs->e->u());
+            A += 0.5 * (vs->u * vs->e->v - vs->v * vs->e->u);
           } else {
             float_t t = calculate_time_span(vs, vs->e, vr);
-            float_t b2 = vs->u() + (vs->e->u() - vs->u()) * t;
-            float_t c2 = vs->v() + (vs->e->v() - vs->v()) * t;
-            A += 0.5 * (vs->u() * c2 - vs->v() * b2);
+            float_t b2 = vs->u + (vs->e->u - vs->u) * t;
+            float_t c2 = vs->v + (vs->e->v - vs->v) * t;
+            A += 0.5 * (vs->u * c2 - vs->v * b2);
           }
         }
         vs = vr;
@@ -864,20 +862,20 @@ static float_t __attribute__((noinline)) exact_disk(
   exd_coordize(mv, m, u, v);
 
   vec3_t Lmuv;
-  Lmuv.m() = dot(loc, m);
-  Lmuv.u() = dot(loc, u);
-  Lmuv.v() = dot(loc, v);
+  Lmuv.m = dot(loc, m);
+  Lmuv.u = dot(loc, u);
+  Lmuv.v = dot(loc, v);
 
   exd_vertex_t sm;
   if (!distinguishable_vec3(loc, target.pos, EPS)) { /* Hit target exactly! */
-    sm.u() = sm.v() = sm.r2 = sm.zeta = 0.0;
+    sm.u = sm.v = sm.r2 = sm.zeta = 0.0;
   }
   else { /* Find location of target in moving-molecule-centric coords */
     vec3_t target_distance = target.pos - loc;
-    sm.u() = dot(target_distance, u);
-    sm.v() = dot(target_distance, v);
+    sm.u = dot(target_distance, u);
+    sm.v = dot(target_distance, v);
     sm.r2 = len2_squared(sm);
-    sm.zeta = exd_zetize(sm.v(), sm.u());
+    sm.zeta = exd_zetize(sm.v, sm.u);
   }
   /* Find walls that occlude the interaction disk (or block the reaction) */
   const subpartition_mask_t& wall_indices = p.get_subpart_wall_indices(moving.subpart_index);
@@ -966,15 +964,15 @@ static float_t __attribute__((noinline)) exact_disk(
 
     exd_vertex_t pa, pb;
     /* Draw lines between points and pick intersections with plane of m=0 */
-    if ((v0muv.m() < 0) == (v1muv.m() < 0)) { /* v0,v1 on same side */
-      if ((v2muv.m() < 0) == (v1muv.m() < 0)) {
+    if ((v0muv.m < 0) == (v1muv.m < 0)) { /* v0,v1 on same side */
+      if ((v2muv.m < 0) == (v1muv.m < 0)) {
         continue;
       }
 
       compute_intersect_w_m0(v0muv, v2muv, pa);
       compute_intersect_w_m0(v1muv, v2muv, pb);
     }
-    else if ((v0muv.m() < 0) == (v2muv.m() < 0)) { /* v0,v2 on same side */
+    else if ((v0muv.m < 0) == (v2muv.m < 0)) { /* v0,v2 on same side */
       compute_intersect_w_m0(v0muv, v1muv, pa);
       compute_intersect_w_m0(v2muv, v1muv, pb);
     }
@@ -992,7 +990,7 @@ static float_t __attribute__((noinline)) exact_disk(
         delete_list(vertex_head);
       return TARGET_OCCLUDED;
     }
-    if (!distinguishable(pa.u() * pb.v(), pb.u() * pa.v(), EPS) &&
+    if (!distinguishable(pa.u * pb.v, pb.u * pa.v, EPS) &&
         dot2(pa, pb) < 0) /* Antiparallel, can't tell which side of wall origin is on */
     {
       if (vertex_head != nullptr)
@@ -1045,10 +1043,10 @@ static float_t __attribute__((noinline)) exact_disk(
       vec2_t ppa_minus_sm = vec2_t(*ppa) - vec2_t(sm);
       vec2_t ppb_minus_sm = vec2_t(*ppb) - vec2_t(sm);
 
-      float_t c = ppa_minus_sm.u() * ppb_minus_sm.v() - ppa_minus_sm.v() * ppb_minus_sm.u();
+      float_t c = ppa_minus_sm.u * ppb_minus_sm.v - ppa_minus_sm.v * ppb_minus_sm.u;
 
-      if (c < 0 || !distinguishable(ppa_minus_sm.u() * ppb_minus_sm.v(),
-                                    ppa_minus_sm.v() * ppb_minus_sm.u(),
+      if (c < 0 || !distinguishable(ppa_minus_sm.u * ppb_minus_sm.v,
+                                    ppa_minus_sm.v * ppb_minus_sm.u,
                                     EPS)) /* Blocked! */
       {
         ppa->next = ppb;

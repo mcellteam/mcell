@@ -87,15 +87,6 @@ struct vec3_t: public glm_vec3_t{
 
   std::string to_string() const;
   void dump(const std::string extra_comment, const std::string ind) const;
-
-  // for exd_vector3
-  float_t& m() { return x; }
-  float_t& u() { return y; }
-  float_t& v() { return z; }
-
-  const float_t& m() const { return x; }
-  const float_t& u() const { return y; }
-  const float_t& v() const { return z; }
 };
 
 // usually are .u and .v used to access cotained values
@@ -109,12 +100,6 @@ struct vec2_t: public glm_vec2_t{
 
   //TODO: std::string to_string() const;
   //TODO: void dump(const std::string extra_comment, const std::string ind) const;
-
-  float_t& u() { return x; }
-  float_t& v() { return y; }
-
-  const float_t& u() const { return x; }
-  const float_t& v() const { return y; }
 };
 
 std::ostream & operator<<(std::ostream &out, const vec3_t &a);

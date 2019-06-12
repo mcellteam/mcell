@@ -506,20 +506,20 @@ static collision_type_t collide_wall(
   float_t c = dot(local, face.unit_v);
 
   float_t f;
-  if (face.uv_vert2.v() < 0.0) {
+  if (face.uv_vert2.v < 0.0) {
     c = -c;
-    f = -face.uv_vert2.v();
+    f = -face.uv_vert2.v;
   }
   else {
-    f = face.uv_vert2.v();
+    f = face.uv_vert2.v;
   }
 
   if (c > 0) {
     float_t g, h;
     g = b * f;
-    h = c * face.uv_vert2.u();
+    h = c * face.uv_vert2.u;
     if (g > h) {
-      if (c * face.uv_vert1_u + g < h + face.uv_vert1_u * face.uv_vert2.v()) {
+      if (c * face.uv_vert1_u + g < h + face.uv_vert1_u * face.uv_vert2.v) {
         if (dv > 0) {
           return COLLISION_WALL_BACK;
         }
@@ -529,7 +529,7 @@ static collision_type_t collide_wall(
       }
       else if ((!mcell::distinguishable(
           c * face.uv_vert1_u + g,
-          h + face.uv_vert1_u * face.uv_vert2.v(),
+          h + face.uv_vert1_u * face.uv_vert2.v,
           EPS_C))) {
         if (update_move) {
           jump_away_line(pos, a, face_vert[1], face_vert[2], face.normal, rng, move);
