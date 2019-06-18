@@ -49,7 +49,7 @@ namespace glm
 				struct{ T x, y, z; };
 				struct{ T r, g, b; };
 				struct{ T s, t, p; };
-        struct{ T m, u, v; }; // for mcell
+				struct{ T m, u, v; }; // for mcell
 
 				typename detail::storage<3, T, detail::is_aligned<Q>::value>::type data;
 
@@ -66,9 +66,9 @@ namespace glm
 #				endif
 			};
 #		else
-			union { T x, r, s; };
-			union { T y, g, t; };
-			union { T z, b, p; };
+			union { T x, r, s, m; }; // m, u & v added for mcell4
+			union { T y, g, t, u; };
+			union { T z, b, p, v; };
 
 #			if GLM_CONFIG_SWIZZLE == GLM_SWIZZLE_FUNCTION
 				GLM_SWIZZLE_GEN_VEC_FROM_VEC3(T, Q)

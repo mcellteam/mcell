@@ -63,8 +63,8 @@ namespace glm
 #				endif
 			};
 #		else
-			union {T x, r, s;};
-			union {T y, g, t;};
+			union {T x, r, s, u;}; // u & v added for mcell4
+			union {T y, g, t, v;};
 
 #			if GLM_CONFIG_SWIZZLE == GLM_SWIZZLE_FUNCTION
 				GLM_SWIZZLE_GEN_VEC_FROM_VEC2(T, Q)
