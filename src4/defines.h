@@ -39,9 +39,9 @@
 
 // warning: do not use floating point types from directly,
 // we need to be able to control the precision
-#include "../libs/glm/glm.hpp"
+#include <glm/glm.hpp>
 #define GLM_ENABLE_EXPERIMENTAL
-#include "../libs/glm/gtx/component_wise.hpp"
+#include <glm/gtx/component_wise.hpp>
 
 // this file must not depend on any other from mcell4 otherwise there
 // might be some nasty cyclic include dependencies
