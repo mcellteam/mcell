@@ -32,7 +32,8 @@
 namespace mcell {
 
 // same as in mcell_structs but renamed to make sure it is used correctly
-#define SPECIES_FLAG_CAN_VOLVOL CAN_VOLVOL
+#define SPECIES_FLAG_ON_GRID ON_GRID // 0x01
+#define SPECIES_FLAG_CAN_VOLVOL CAN_VOLVOL // 0x10
 
 /**
  * Holds information on one species type.
@@ -50,7 +51,11 @@ public:
   uint32_t flags; // replace with some bitfield?
 
   bool has_flag(uint32_t flag) const {
-    return flags & SPECIES_FLAG_CAN_VOLVOL;
+    return flags & flag;
+  }
+
+  bool is_surf() const {
+    return has_flag(SPECIES_FLAG_ON_GRID);
   }
 
   void dump(const std::string ind) const;

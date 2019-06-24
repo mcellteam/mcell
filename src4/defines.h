@@ -32,14 +32,14 @@
 #include <cmath>
 #include <iostream>
 #include <unordered_map>
-#include <boost/container/small_vector.hpp>
+#include "../libs/boost/container/small_vector.hpp"
 
 #include "mcell_structs.h"
 #include "debug_config.h"
 
 // warning: do not use floating point types from directly,
 // we need to be able to control the precision
-#include <glm/glm.hpp>
+#include "../libs/glm/glm.hpp"
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/component_wise.hpp>
 
@@ -69,41 +69,6 @@ const float_t SQRT_EPS = 1e-6;
 #endif
 
 const float_t SCHEDULER_COMPARISON_EPS = 1e-10;
-
-typedef glm::dvec3 glm_vec3_t;
-typedef glm::dvec2 glm_vec2_t;
-typedef glm::ivec3 ivec3_t;
-typedef glm::uvec3 uvec3_t;
-typedef glm::bvec3 bvec3_t;
-typedef glm::dmat4x4 mat4x4;
-
-struct vec3_t: public glm_vec3_t{
-  vec3_t() : glm_vec3_t(0) {}
-  vec3_t(const glm_vec3_t& a) { x = a.x; y = a.y; z = a.z; }
-  vec3_t(const vec3_t& a) : glm_vec3_t(a.x, a.y, a.z) { }
-  vec3_t(const vector3& a) { x = a.x; y = a.y; z = a.z; }
-  vec3_t(const float_t x_, const float_t y_, const float_t z_) { x = x_; y = y_; z = z_; }
-  vec3_t(const float_t xyz) { x = xyz; y = xyz; z = xyz; }
-
-  std::string to_string() const;
-  void dump(const std::string extra_comment, const std::string ind) const;
-};
-
-// usually are .u and .v used to access cotained values
-struct vec2_t: public glm_vec2_t{
-  vec2_t() : glm_vec2_t(0) {}
-  vec2_t(const glm_vec2_t& a) { x = a.x; y = a.y; }
-  vec2_t(const vec2_t& a) : glm_vec2_t(a.x, a.y) { }
-  vec2_t(const vector2& a) { x = a.u; y = a.v; }
-  vec2_t(const float_t x_, const float_t y_) { x = x_; y = y_; }
-  vec2_t(const float_t xy) { x = xy; y = xy; }
-
-  //TODO: std::string to_string() const;
-  //TODO: void dump(const std::string extra_comment, const std::string ind) const;
-};
-
-std::ostream & operator<<(std::ostream &out, const vec3_t &a);
-
 
 // ---------------------------------- configurable constants----------------------------------
 
@@ -140,7 +105,7 @@ const partition_index_t PARTITION_INDEX_INVALID = UINT32_MAX;
 typedef uint32_t subpart_index_t;
 const subpart_index_t SUBPART_INDEX_INVALID = UINT32_MAX;
 
-// time step is used in parition to make sets of molecules that can be diffused with
+// time step is used in partition to make sets of molecules that can be diffused with
 // different periodicity
 const uint32_t TIME_STEP_INDEX_INVALID = UINT32_MAX;
 
@@ -151,23 +116,78 @@ const uint64_t BUCKET_INDEX_INVALID = UINT64_MAX;
 const uint32_t VERTICES_IN_TRIANGLE = 3;
 
 typedef uint32_t vertex_index_t; // index in partition's vertices
+
+typedef uint32_t grid_index_t; // index in partition's walls
+const grid_index_t GRID_INDEX_INVALID = UINT32_MAX;
+
 typedef uint32_t wall_index_t; // index in partition's walls
 const wall_index_t WALL_INDEX_INVALID = UINT32_MAX;
 
 typedef uint32_t wall_id_t; // world-unique wall id
-//typedef uint32_t wall_class_index_t; // index in world's wall classes
-typedef uint32_t geometry_object_index_t;
-typedef uint32_t geometry_object_id_t; // world-unique unique geometry object id
+const wall_id_t WALL_ID_INVALID = UINT32_MAX;
 
-/*
-struct partition_vertex_index_pair_t {
-  partition_index_t first;
-  vertex_index_t second;
-};
-*/
+//typedef uint32_t wall_class_index_t; // index in world's wall classes
+
+typedef uint32_t geometry_object_index_t;
+const geometry_object_index_t GEOMETRY_OBJECT_INDEX_INVALID = UINT32_MAX;
+
+typedef uint32_t geometry_object_id_t; // world-unique unique geometry object id
+const geometry_object_id_t GEOMETRY_OBJECT_ID_INVALID = UINT32_MAX;
+
+typedef int32_t orientation_t;
+const orientation_t ORIENTATION_DOWN = -1;
+const orientation_t ORIENTATION_NONE = 0;
+const orientation_t ORIENTATION_UP = 1;
+
+typedef std::pair<partition_index_t, wall_index_t> partition_wall_index_pair_t;
 typedef std::pair<partition_index_t, vertex_index_t> partition_vertex_index_pair_t;
 
+typedef std::pair<float_t, partition_wall_index_pair_t> cum_area_pwall_index_pair_t;
+
 typedef boost::container::small_vector<subpart_index_t, 8>  subpart_indices_vector_t;
+
+// ---------------------------------- vector types ----------------------------------
+
+typedef glm::dvec3 glm_vec3_t;
+typedef glm::dvec2 glm_vec2_t;
+typedef glm::ivec3 ivec3_t;
+typedef glm::uvec3 uvec3_t;
+typedef glm::bvec3 bvec3_t;
+typedef glm::dmat4x4 mat4x4;
+
+struct vec3_t: public glm_vec3_t{
+  vec3_t() = default;
+  vec3_t(const glm_vec3_t& a) { x = a.x; y = a.y; z = a.z; }
+  vec3_t(const vec3_t& a) : glm_vec3_t(a.x, a.y, a.z) { }
+  vec3_t(const ivec3_t& a) : glm_vec3_t(a.x, a.y, a.z) { }
+  vec3_t(const vector3& a) { x = a.x; y = a.y; z = a.z; }
+  vec3_t(const float_t x_, const float_t y_, const float_t z_) { x = x_; y = y_; z = z_; }
+  vec3_t(const float_t xyz) { x = xyz; y = xyz; z = xyz; }
+
+  bool is_valid() const { return !(x == POS_INVALID || y == POS_INVALID || z == POS_INVALID); }
+
+  std::string to_string() const;
+  void dump(const std::string extra_comment, const std::string ind) const;
+};
+
+// usually are .u and .v used to access cotained values
+struct vec2_t: public glm_vec2_t{
+  vec2_t() = default;
+  vec2_t(const glm_vec2_t& a) { x = a.x; y = a.y; }
+  vec2_t(const vec2_t& a) : glm_vec2_t(a.x, a.y) { }
+  vec2_t(const vector2& a) { x = a.u; y = a.v; }
+  vec2_t(const float_t x_, const float_t y_) { x = x_; y = y_; }
+  vec2_t(const float_t xy) { x = xy; y = xy; }
+
+  bool is_valid() const { return !(x == POS_INVALID || y == POS_INVALID); }
+
+  //TODO: std::string to_string() const;
+  //TODO: void dump(const std::string extra_comment, const std::string ind) const;
+};
+
+std::ostream & operator<<(std::ostream &out, const vec3_t &a);
+std::ostream & operator<<(std::ostream &out, const vec2_t &a);
+
 
 // ---------------------------------- auxiliary functions ----------------------------------
 
@@ -208,20 +228,24 @@ static inline float_t abs_max_2vec(const vec3_t& v1, const vec3_t& v2) {
   return mcell::max3d(vmax);
 }
 
+static inline float_t determinant2(const vec2_t& v1, const vec2_t& v2) {
+  return v1.u * v2.v - v1.v * v2.u;
+}
+
 static inline float_t dot2(const vec2_t& v1, const vec2_t& v2) {
   return glm::dot((glm_vec2_t)v1, (glm_vec2_t)v2);
 }
 
-static inline float_t determinant2(const vec2_t& v1, const vec2_t& v2) {
-  return v1.x * v2.y - v1.y * v2.x;
-}
-
-static inline float_t len2_squared(const vec2_t& v) {
-  return v.x * v.x + v.y * v.y;
+static inline float_t len2_squared(const vec2_t& v1) {
+  return v1.u * v1.u + v1.v * v1.v;
 }
 
 static inline float_t dot(const vec3_t& v1, const vec3_t& v2) {
   return glm::dot((glm_vec3_t)v1, (glm_vec3_t)v2);
+}
+
+static inline float_t len3_squared(const vec3_t& v1) {
+  return v1.x * v1.x + v1.y * v1.y + v1.z * v1.z;
 }
 
 // returns true when whether two values are measurably different
@@ -240,6 +264,40 @@ inline bool distinguishable(float_t a, float_t b, float_t eps) {
     eps *= b;
   }
   return (c > eps);
+}
+
+
+
+static inline int distinguishable_vec2(const vec2_t& a, const vec2_t& b, float_t eps) {
+  float_t c, cc, d;
+
+  /* Find largest coordinate */
+  c = fabs(a.u);
+
+  d = fabs(a.v);
+  if (d > c)
+    c = d;
+
+  d = fabs(b.u);
+  if (d > c)
+    c = d;
+
+  d = fabs(b.v);
+  if (d > c)
+    c = d;
+
+  /* Find largest difference */
+  cc = fabs(a.u - b.u);
+
+  d = fabs(a.v - b.v);
+  if (d > cc)
+    cc = d;
+
+  /* Make sure fractional difference is at least eps and absolute difference is
+   * at least (eps*eps) */
+  if (c < eps)
+    c = eps;
+  return (c * eps < cc);
 }
 
 
@@ -311,6 +369,24 @@ static inline void debug_guard_zero_div(vec3_t& val) {
   }
 #endif
 }
+
+static inline float_t sqrt_f(const float_t x) {
+#if FLOAT_T_BYTES == 8
+  return sqrt(x);
+#else
+  return sqrtf(x);
+#endif
+}
+
+static inline float_t log_f(const float_t x) {
+#if FLOAT_T_BYTES == 8
+  return log(x);
+#else
+  return logf(x);
+#endif
+}
+
+// TODO: fabs
 
 // ---------------------------------- world_constants_t ----------------------------------
 // TODO: maybe move to a separate header

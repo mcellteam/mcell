@@ -30,10 +30,11 @@
 
 using namespace std;
 
+
 namespace mcell {
 
 // TODO: same as in dump_state.cpp, remove one of the copies
-string get_molecule_flags_string(uint32_t flags) {
+static string get_molecule_flags_string(uint32_t flags) {
   string res;
 #define DUMP_FLAG(f, mask) if (((f) & (mask)) != 0) res += string(#mask) + ", ";
   DUMP_FLAG(flags, TYPE_SURF)
@@ -52,51 +53,76 @@ string get_molecule_flags_string(uint32_t flags) {
 }
 
 
-void base_molecule_t::dump_base(const string ind) const {
-  cout << ind <<"flags: \t\t" << flags << "[uint16_t]\n";
-  cout << ind <<"species_id: \t\t" << species_id << " [species_id_t]\n";
+void molecule_t::dump(const string ind) const {
+  if (is_vol()) {
+    cout << ind << "pos: \t\t" << v.pos << " [vec3_t]\n";
+    cout << ind << "subpartition_index: \t\t" << v.subpart_index << " [uint32_t]\n";
+  }
+  else if (is_surf()) {
+    cout << ind << "pos: \t\t" << s.pos << " [vec2_t]\n";
+  }
+  cout << ind << "flags: \t\t" << flags << " [uint32_t]\n";
+  cout << ind << "species_id: \t\t" << species_id << " [species_id_t]\n";
 }
 
 
-void volume_molecule_t::dump(const string ind) const {
-  cout << ind <<"pos: \t\t" << pos << "[vec3_t]\n";
-  cout << ind <<"subpartition_index: \t\t" << subpart_index << " [uint32_t]\n";
-  dump_base(ind);
-}
-
-
-void volume_molecule_t::dump(
+void molecule_t::dump(
     const world_t* world,
     const string extra_comment,
     const string ind,
     const uint64_t iteration,
     const float_t time
 ) const {
-  cout << ind << extra_comment << "it:" << iteration << ", idx:" << id
-      << ", species " << world->species[species_id].name << ", pos:" << pos
-      << ", flags:" << get_molecule_flags_string(flags)
+  cout
+    << ind << extra_comment << "it:" << iteration << ", idx:" << id
+    << ", species " << world->species[species_id].name << ", pos:";
+
+  if (is_vol()) {
+    cout << v.pos;
+  }
+  else if (is_surf()) {
+    cout << s.pos;
+  }
+  cout
+    << ", flags:" << get_molecule_flags_string(flags);
 #ifdef DEBUG_SUBPARTITIONS
-      << ", subpartition:" << subpart_index
+  if (is_vol()) {
+    cout << ", subpartition:" << subpart_index;
+  }
 #endif
+
+  cout
       << ", time: " << time
       << "\n";
 }
 
 
-string volume_molecule_t::to_string() const {
+string molecule_t::to_string() const {
   stringstream ss;
-  ss <<
-      "id: " << id <<
-      ", species: " << species_id <<
-      ", pos: " << pos <<
-      ", flags:" << get_molecule_flags_string(flags);
+  ss
+    << "id: " << id
+    << ", species: " << species_id
+    << ", pos: ";
+  if (is_vol()) {
+    cout << v.pos;
+  }
+  else if (is_surf()) {
+    cout << s.pos;
+  }
+  ss << ", flags:" << get_molecule_flags_string(flags);
   return ss.str();
 }
 
 
-void volume_molecule_t::dump_array(const std::vector<volume_molecule_t>& vec) {
+void molecule_t::dump_array(const std::vector<molecule_t>& vec) {
   for (size_t i = 0; i < vec.size(); i++) {
-    cout << "  vm " << i << ": " << vec[i].to_string() << "\n";
+    if (vec[i].is_vol()) {
+      cout << "  vm ";
+    }
+    else if (vec[i].is_surf()) {
+      cout << "  sm ";
+    }
+    cout << i << ": " << vec[i].to_string() << "\n";
   }
 }
 

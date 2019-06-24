@@ -844,8 +844,8 @@ static float_t __attribute__((noinline)) exact_disk(
     vec3_t& loc, // point of collision
     vec3_t& mv, // displacement
     float_t R, // radius_3d
-    volume_molecule_t& moving, // molecule being diffused, we care about walls in its subparition
-    volume_molecule_t& target, // molecule that we can potentionally hit
+    molecule_t& moving, // molecule being diffused, we care about walls in its subparition
+    molecule_t& target, // molecule that we can potentionally hit
     bool use_expanded_list // option from world
 ) {
   /* Initialize */
@@ -867,18 +867,18 @@ static float_t __attribute__((noinline)) exact_disk(
   Lmuv.v = dot(loc, v);
 
   exd_vertex_t sm;
-  if (!distinguishable_vec3(loc, target.pos, EPS)) { /* Hit target exactly! */
+  if (!distinguishable_vec3(loc, target.v.pos, EPS)) { /* Hit target exactly! */
     sm.u = sm.v = sm.r2 = sm.zeta = 0.0;
   }
   else { /* Find location of target in moving-molecule-centric coords */
-    vec3_t target_distance = target.pos - loc;
+    vec3_t target_distance = target.v.pos - loc;
     sm.u = dot(target_distance, u);
     sm.v = dot(target_distance, v);
     sm.r2 = len2_squared(sm);
     sm.zeta = exd_zetize(sm.v, sm.u);
   }
   /* Find walls that occlude the interaction disk (or block the reaction) */
-  const subpartition_mask_t& wall_indices = p.get_subpart_wall_indices(moving.subpart_index);
+  const subpartition_mask_t& wall_indices = p.get_subpart_wall_indices(moving.v.subpart_index);
 
   // TODO: move this to a separate function?
   for (wall_index_t wall_index: wall_indices) {
@@ -1078,7 +1078,7 @@ static float_t __attribute__((noinline)) exact_disk(
         p,
         loc, mv,
         u, v,
-        moving.subpart_index,
+        moving.v.subpart_index,
         R, R2, m2_i,
         vertex_head,
         n_verts,

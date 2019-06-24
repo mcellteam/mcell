@@ -43,6 +43,7 @@ extern "C" {
 #include "reaction_utils.inc"
 #include "collision_utils.inc"
 #include "exact_disk_utils.inc"
+#include "diffusion_utils.inc"
 
 using namespace std;
 
@@ -56,7 +57,7 @@ void diffuse_react_event_t::step() {
     // diffuse molecules from volume_molecule_indices_per_time_step that have the current diffusion_time_step
     uint32_t time_step_index = p.get_molecule_list_index_for_time_step(diffusion_time_step);
     if (time_step_index != TIME_STEP_INDEX_INVALID) {
-      diffuse_molecules(p, p.get_volume_molecule_ids_for_time_step_index(time_step_index));
+      diffuse_molecules(p, p.get_molecule_ids_for_time_step_index(time_step_index));
     }
   }
 }
@@ -65,7 +66,7 @@ void diffuse_react_event_t::step() {
 void diffuse_react_event_t::diffuse_molecules(partition_t& p, const std::vector<molecule_id_t>& molecule_ids) {
   float_t event_time_end = event_time + diffusion_time_step;
 
-  // we need to stricly follow the ordering in mcell3, therefore steps 2) and 3) do not use the time
+  // we need to strictly follow the ordering in mcell3, therefore steps 2) and 3) do not use the time
   // for which they were scheduled but rather simply the order in which these "microevents" were created
 
   // 1) first diffuse already existing molecules
@@ -79,7 +80,7 @@ void diffuse_react_event_t::diffuse_molecules(partition_t& p, const std::vector<
   // 2) we need to take care of unimolecular reactions that were scheduled for this time step
   // in the previous time steps; these unimolecular reaction microevents are handled like they are in a queue
 
-  // first get the calndar owned by partition that contains actions that are scheduled
+  // first get the calendar owned by partition that contains actions that are scheduled
   uint32_t time_step_index = p.get_or_add_molecule_list_index_for_time_step(diffusion_time_step);
   partition_t::calendar_for_unimol_rxs_t& calendar_for_unimol_rxs =
       p.get_unimolecular_actions_calendar_for_time_step_index(time_step_index);
@@ -122,44 +123,22 @@ void diffuse_react_event_t::diffuse_molecules(partition_t& p, const std::vector<
 }
 
 
-// get displacement based on scale (related to diffusion constant) and gauss random number
-static void pick_displacement(float_t scale, rng_state& rng, vec3_t& displacement) {
-  displacement.x = scale * rng_gauss(&rng) * .70710678118654752440;
-  displacement.y = scale * rng_gauss(&rng) * .70710678118654752440;
-  displacement.z = scale * rng_gauss(&rng) * .70710678118654752440;
-}
-
-
-// determine how far will our diffused molecule move
-static void compute_displacement(
-    species_t& sp,
-    rng_state& rng,
-    float_t remaining_time_step,
-    vec3_t& displacement,
-    float_t& r_rate_factor) {
-
-  float_t rate_factor = (remaining_time_step == 1.0) ? 1.0 : sqrt(remaining_time_step);
-  r_rate_factor = 1.0 / rate_factor;
-  pick_displacement(sp.space_step * rate_factor, rng, displacement);
-}
-
-
 void diffuse_react_event_t::diffuse_single_molecule(
     partition_t& p,
-    const molecule_id_t vm_id,
+    const molecule_id_t m_id,
     const float_t time_up_to_event_end,
     const float_t event_time_end
 ) {
 
-  volume_molecule_t& vm = p.get_vm(vm_id);
+  molecule_t& m = p.get_m(m_id);
 
-  if (vm.is_defunct())
+  if (m.is_defunct())
     return;
 
   // if the molecule is a "newbie", its unimolecular reaction was not yet scheduled
-  if ((vm.flags & ACT_NEWBIE) != 0) {
-    create_unimol_rx_action(p, vm, time_up_to_event_end);
-    vm.flags &= ~ACT_NEWBIE;
+  if ((m.flags & ACT_NEWBIE) != 0) {
+    create_unimol_rx_action(p, m, time_up_to_event_end);
+    m.flags &= ~ACT_NEWBIE;
   }
 
 
@@ -167,19 +146,19 @@ void diffuse_react_event_t::diffuse_single_molecule(
   DUMP_CONDITION4(
     // the subtraction of diffusion_time_step doesn't make much sense but is needed to make the dump the same as in mcell3
     // need to check it further
-    vm.dump(world, "", "Diffusing vm:", world->current_iteration, event_time_end - time_up_to_event_end - diffusion_time_step);
+    m.dump(world, "", "Diffusing vm:", world->current_iteration, event_time_end - time_up_to_event_end - diffusion_time_step);
   );
 #endif
 
   // we might need to adjust remaining time step if this molecule has a unimolecular reaction
   // within this event's time step range
   float_t remaining_time_step;
-  if (vm.unimol_rx_time < event_time_end) { // unlikely
-    assert(vm.unimol_rx_time >= event_time && "Missed unimol rx");
+  if (m.unimol_rx_time < event_time_end) { // unlikely
+    assert(m.unimol_rx_time >= event_time && "Missed unimol rx");
 
     // the value of remaining_time_step passed as argument is time up to event_time_end
     float_t prev_time_from_event_start = diffusion_time_step - time_up_to_event_end;
-    float_t new_time_from_event_start = vm.unimol_rx_time - event_time;
+    float_t new_time_from_event_start = m.unimol_rx_time - event_time;
     assert(new_time_from_event_start >= prev_time_from_event_start && "Unimol rx cannot be scheduled to the past");
 
     remaining_time_step = new_time_from_event_start - prev_time_from_event_start;
@@ -188,33 +167,99 @@ void diffuse_react_event_t::diffuse_single_molecule(
     remaining_time_step = time_up_to_event_end;
   }
 
-  species_t& species = world->species[vm.species_id];
+  bool was_defunct;
+  vec3_t new_vpos;
+  vec2_t new_spos;
+  subpart_index_t new_subpart_index;
+  wall_index_t new_wall_index;
+  if (m.is_vol()) {
+    diffuse_vol_molecule(
+        p, m_id, remaining_time_step,
+        was_defunct, new_vpos, new_subpart_index
+    );
+  }
+  else {
+    float_t advance_time;
+    diffuse_surf_molecule(
+        p, m_id, remaining_time_step,
+        was_defunct, new_spos, new_wall_index,
+        advance_time
+    );
+  }
+
+  if (!was_defunct) {
+    // need to get a new reference
+    molecule_t& m_new_ref = p.get_m(m_id);
+
+    if (m.is_vol()) {
+      // finally move molecule to its destination
+      m_new_ref.v.pos = new_vpos;
+
+      // are we still in the same partition or do we need to move?
+      bool move_to_another_partition = !p.in_this_partition(m_new_ref.v.pos);
+      if (move_to_another_partition) {
+        mcell_log("Error: Crossing partitions is not supported yet.\n");
+        exit(1);
+      }
+
+      // change subpartition
+      // TODO: check me, want's this already done? - probably not, but just to be sure
+      p.change_molecule_subpartition(m_new_ref, new_subpart_index);
+    }
+    else {
+      // ???
+      // finally move molecule to its destination
+      //m_new_ref.s.pos = new_spos;
+
+      // no need to check that we crossed partition because
+      // so far all the walls must be contained in a single partition
+
+      // TODO: changing subvolume? - is this really needed for surf mols? ->
+      // triangle already specifies this
+      // maybe change the triangle here, istead of moving it multiple times?
+    }
+
+  }
+}
+
+// ---------------------------------- volume diffusion ----------------------------------
+
+void diffuse_react_event_t::diffuse_vol_molecule(
+    partition_t& p,
+    const molecule_id_t vm_id,
+    const float_t remaining_time_step,
+    bool& was_defunct,
+    vec3_t& new_pos,
+    subpart_index_t& new_subpart_index
+) {
+  molecule_t& m = p.get_m(vm_id);
+  species_t& species = world->species[m.species_id];
 
   // diffuse each molecule - get information on position change
-  // TBD: reflections
   vec3_t displacement;
   float_t r_rate_factor;
-  compute_displacement(species, world->rng, remaining_time_step, displacement, r_rate_factor);
+  diffusion_util::compute_vol_displacement(
+      species, remaining_time_step, world->rng, displacement, r_rate_factor);
 
 #ifdef DEBUG_DIFFUSION
   DUMP_CONDITION4(
-    displacement.dump("  displacement:", "");
+      displacement.dump("  displacement:", "");
   );
 #endif
   // note: we are ignoring use_expanded_list setting compared to mcell3
 
   // detect collisions with other molecules
   vec3_t remaining_displacement = displacement;
-  uint32_t new_subpart_index;
-  vec3_t new_pos;
+
   ray_trace_state_t state;
   collision_vector_t molecule_collisions;
-  bool was_defunct = false;
+  was_defunct = false;
   wall_index_t reflected_wall_index = WALL_INDEX_INVALID;
+  float_t updated_remaining_time_step = remaining_time_step;
   do {
     state =
-        ray_trace(
-            p, vm /* changes position */,
+        ray_trace_vol(
+            p, m /* changes position */,
             reflected_wall_index,
             remaining_displacement,
             molecule_collisions,
@@ -226,28 +271,28 @@ void diffuse_react_event_t::diffuse_single_molecule(
     sort( molecule_collisions.begin(), molecule_collisions.end(),
         [ ]( const auto& lhs, const auto& rhs )
         {
-          if (lhs.time < rhs.time) {
-            return true;
-          }
-          else if (lhs.time > rhs.time) {
-            return false;
-          }
-          else if (lhs.type == COLLISION_VOLMOL_VOLMOL && rhs.type == COLLISION_VOLMOL_VOLMOL) {
-            // mcell3 returns collisions with molecules ordered descending by the molecule index
-            // we need to maintain this behavior (needed only for identical results)
-            return lhs.colliding_molecule_id > rhs.colliding_molecule_id;
-          }
-          else {
-            return false;
-          }
+      if (lhs.time < rhs.time) {
+        return true;
+      }
+      else if (lhs.time > rhs.time) {
+        return false;
+      }
+      else if (lhs.type == COLLISION_VOLMOL_VOLMOL && rhs.type == COLLISION_VOLMOL_VOLMOL) {
+        // mcell3 returns collisions with molecules ordered descending by the molecule index
+        // we need to maintain this behavior (needed only for identical results)
+        return lhs.colliding_molecule_id > rhs.colliding_molecule_id;
+      }
+      else {
+        return false;
+      }
         }
     );
 
-  #ifdef DEBUG_COLLISIONS
+#ifdef DEBUG_COLLISIONS
     DUMP_CONDITION4(
-      collision_t::dump_array(p, molecule_collisions);
+        collision_t::dump_array(p, molecule_collisions);
     );
-  #endif
+#endif
 
     // evaluate and possible execute collisions and reactions
     for (size_t collision_index = 0; collision_index < molecule_collisions.size(); collision_index++) {
@@ -258,26 +303,32 @@ void diffuse_react_event_t::diffuse_single_molecule(
       if (collision.type == COLLISION_VOLMOL_VOLMOL) {
         // ignoring immediate collisions
         if (collision.time < EPS) {
-            continue;
+          continue;
         }
 
         // evaluate reaction associated with this collision
         // for now, do the change right away, but we might need to cache these changes and
-        // do them after all diffusions were finnished
+        // do them after all diffusions were finished
         // warning: might invalidate references to p.volume_molecules array! returns true in that case
-        if (collide_and_react_with_vol_mol(p, collision, remaining_displacement, remaining_time_step, r_rate_factor)) {
+        if (collide_and_react_with_vol_mol(
+              p, collision, remaining_displacement,
+              updated_remaining_time_step, r_rate_factor)
+        ) {
           // molecule was destroyed
-           was_defunct = true;
+          was_defunct = true;
           break;
         }
       }
       else if (collision.is_wall_collision()) {
-        volume_molecule_t& vm_new_ref = p.get_vm(vm_id);
-        int res = coll_util::reflect_or_periodic_bc(p, collision, vm_new_ref, remaining_displacement, remaining_time_step, reflected_wall_index);
+        molecule_t& vm_new_ref = p.get_m(vm_id);
+        int res = coll_util::reflect_or_periodic_bc(
+            p, collision,
+            vm_new_ref, remaining_displacement, updated_remaining_time_step, reflected_wall_index
+        );
         assert(res == 0 && "Periodic box BCs are not supported yet");
 
         // molecule could have been moved
-        subpart_index_t subpart_after_wall_hit = p.get_subpartition_index(vm_new_ref.pos);
+        subpart_index_t subpart_after_wall_hit = p.get_subpartition_index(vm_new_ref.v.pos);
         // change subpartition if needed
         p.change_molecule_subpartition(vm_new_ref, subpart_after_wall_hit);
 
@@ -287,25 +338,6 @@ void diffuse_react_event_t::diffuse_single_molecule(
     }
 
   } while (unlikely(state != RAY_TRACE_FINISHED && !was_defunct));
-
-
-  if (!was_defunct) {
-    // need to get a new reference
-    volume_molecule_t& vm_new_ref = p.get_vm(vm_id);
-
-    // finally move molecule to its destination
-    vm_new_ref.pos = new_pos;
-
-    // are we still in the same partition or do we need to move?
-    bool move_to_another_partition = !p.in_this_partition(vm_new_ref.pos);
-    if (move_to_another_partition) {
-      mcell_log("Error: Crossing partitions is not supported yet.\n");
-      exit(1);
-    }
-
-    // change subpartition
-    p.change_molecule_subpartition(vm_new_ref, new_subpart_index);
-  }
 }
 
 
@@ -314,9 +346,9 @@ void diffuse_react_event_t::diffuse_single_molecule(
 // index of the new subparition in new_subpart_index
 // later, this will check collisions until a wall is hit
 // we assume that wall collisions do not occur so often
-ray_trace_state_t diffuse_react_event_t::ray_trace(
+ray_trace_state_t diffuse_react_event_t::ray_trace_vol(
     partition_t& p,
-    volume_molecule_t& vm, // molecule that we are diffusing, we are changing its pos  and possibly also subvolume
+    molecule_t& vm, // molecule that we are diffusing, we are changing its pos  and possibly also subvolume
     const wall_index_t previous_reflected_wall, // is WALL_INDEX_INVALID when our molecule did not replect from anything this iddfusion step yet
     vec3_t& remaining_displacement, // in/out - recomputed if there was a reflection
     collision_vector_t& collisions, // both mol mol and wall collisions
@@ -401,7 +433,7 @@ ray_trace_state_t diffuse_react_event_t::ray_trace(
 
   // the value is valid only when RAY_TRACE_FINISHED is returned
   new_subpart_index = last_subpartition_index; // FIXME: this is valid only when there was no collision
-  new_pos = vm.pos + remaining_displacement; // FIXME: this i overwritten in case of a collision, should I do somthing about it?
+  new_pos = vm.v.pos + remaining_displacement; // FIXME: this i overwritten in case of a collision, should I do somthing about it?
 
   return res_state; // no wall was hit
 }
@@ -418,8 +450,8 @@ bool diffuse_react_event_t::collide_and_react_with_vol_mol(
     float_t r_rate_factor
 )  {
 
-  volume_molecule_t& colliding_molecule = p.get_vm(collision.colliding_molecule_id); // am
-  volume_molecule_t& diffused_molecule = p.get_vm(collision.diffused_molecule_id); // m
+  molecule_t& colliding_molecule = p.get_m(collision.colliding_molecule_id); // am
+  molecule_t& diffused_molecule = p.get_m(collision.diffused_molecule_id); // m
 
   // returns 1 when there are no walls at all
   //TBD: double factor = exact_disk(
@@ -451,10 +483,215 @@ bool diffuse_react_event_t::collide_and_react_with_vol_mol(
   }
 }
 
+// ---------------------------------- surface diffusion ----------------------------------
+
+void diffuse_react_event_t::diffuse_surf_molecule(
+    partition_t& p,
+    const molecule_id_t sm_id,
+    const float_t remaining_time_step,
+    bool& was_defunct,
+    vec2_t& new_loc,
+    wall_index_t& new_wall_index,
+    float_t& advance_time
+) {
+  molecule_t& sm = p.get_m(sm_id);
+  species_t& species = world->species[sm.species_id];
+
+  float_t steps = 0.0;
+  float_t t_steps = 0.0;
+  float_t space_factor = 0.0;
+  /* Where are we going? */
+  if (species.time_step > remaining_time_step) {
+    t_steps = remaining_time_step;
+    steps = remaining_time_step / species.time_step ;
+  }
+  else {
+    t_steps = species.time_step;
+    steps = 1.0;
+  }
+  if (steps < EPS) {
+    t_steps = EPS * species.time_step;
+    steps = EPS;
+  }
+
+  if (steps == 1.0) {
+    space_factor = species.space_step;
+  }
+  else {
+    space_factor = species.space_step * sqrt_f(steps);
+  }
+
+  for (int find_new_position = (SURFACE_DIFFUSION_RETRIES + 1);
+       find_new_position > 0; find_new_position--) {
+
+    vec2_t displacement;
+    diffusion_util::pick_surf_displacement(displacement, space_factor, world->rng);
+
+    // TODO: dump
+
+    assert(!species.has_flag(SET_MAX_STEP_LENGTH) && "not supported yet");
+
+    // ray_trace does the movement and all other stuff
+    new_wall_index =
+        ray_trace_surf(p, species, sm, displacement, new_loc, was_defunct/*, &rxp, &hd_info*/);
+
+    // Either something ambiguous happened or we hit absorptive border
+    if (new_wall_index == WALL_INDEX_INVALID) {
+#if 0
+      if (kill_me == 1) {
+        /* molecule hit ABSORPTIVE region border */
+        if (rxp == NULL) {
+          mcell_internal_error("Error in 'ray_trace_2D()' after hitting "
+                               "ABSORPTIVE region border.");
+        }
+        if (hd_info != NULL) {
+          count_region_border_update(world, sm->properties, hd_info, sm->id);
+        }
+        int result = outcome_unimolecular(world, rxp, 0,
+                                      (struct abstract_molecule *)sm, sm->t);
+        if (result != RX_DESTROY) {
+          mcell_internal_error("Molecule should disappear after hitting "
+                               "ABSORPTIVE region border.");
+        }
+        delete_void_list((struct void_list *)hd_info);
+        hd_info = NULL;
+        return NULL;
+      }
+
+      if (hd_info != NULL) {
+        delete_void_list((struct void_list *)hd_info);
+        hd_info = NULL;
+      }
+#endif
+      continue; /* Something went wrong--try again */
+    }
+
+    // After diffusing, are we still on the SAME triangle?
+    if (new_wall_index == sm.s.wall_index) {
+      if (diffusion_util::move_sm_on_same_triangle(p, sm, new_loc)) {
+        continue;
+      }
+    }
+    // After diffusing, we ended up on a NEW triangle.
+    else {
+      if (diffusion_util::move_sm_to_new_triangle(p, sm, new_loc, new_wall_index)) {
+        continue;
+      }
+    }
+    find_new_position = 0;
+  }
+
+  advance_time = t_steps;
+
+}
+
+
+/*************************************************************************
+ray_trace_2D:
+  In: world: simulation state
+      sm: molecule that is moving
+      disp: displacement vector from current to new location
+      pos: place to store new coordinate (in coord system of new wall)
+      kill_me: flag that tells that molecule hits ABSORPTIVE region border
+           (value = 1)
+      rxp: reaction object (valid only in case of hitting ABSORPTIVE region
+         border)
+      hit_data_info: region border hit data information
+  Out: Return wall at endpoint of movement vector. Otherwise NULL if we hit
+       ambiguous location or if SM was absorbed.
+       pos: location of that endpoint in the coordinate system of the new wall.
+       kill_me, rxp, and hit_data_info will all be updated if we hit absorptive
+       boundary.
+*************************************************************************/
+wall_index_t diffuse_react_event_t::ray_trace_surf(
+    partition_t& p,
+    const species_t& species,
+    molecule_t& sm,
+    vec2_t& remaining_displacement,
+    vec2_t& new_pos,
+    bool& was_defunct
+    /*struct rxn **rxp,
+    struct hit_data **hit_data_info*/
+) {
+  wall_t& this_wall = p.get_wall(sm.s.wall_index);
+
+  vec2_t orig_pos = sm.s.pos;
+  vec2_t this_pos = sm.s.pos;
+  vec2_t this_disp = remaining_displacement;
+
+  // FIXME: simplify calls to geometry::uv2xyz
+  //vec3_t origin_xyz = geometry::uv2xyz(this_pos, this_wall, p.get_geometry_vertex(this_wall.vertex_indices[0]));
+
+  /* Will break out with return or break when we're done traversing walls */
+  while (1) {
+
+    int this_wall_edge_region_border = 0;
+    //bool absorb_now = 0;
+
+    /* Index of the wall edge that the SM hits */
+    vec2_t boundary_pos;
+    // FIXME: enum for index_edge_was_hit?
+    int index_edge_was_hit =
+        geom_util::find_edge_point(this_wall, this_pos, this_disp, boundary_pos);
+
+    // TODO: periodic box
+
+    // Ambiguous edge collision. Give up and try again from diffuse_2D.
+    if (index_edge_was_hit == -2) {
+      sm.s.pos = orig_pos;
+      // hit_data_info = hit_data_head;
+      return WALL_INDEX_INVALID;
+    }
+
+    // We didn't hit the edge. Stay inside this wall. We're done!
+    else if (index_edge_was_hit == -1) {
+      new_pos = this_pos + this_disp;
+
+      // ???
+      sm.s.pos = orig_pos;
+      // *hit_data_info = hit_data_head;
+      return this_wall.index;
+    }
+
+
+    // Not ambiguous (-2) or inside wall (-1), must have hit edge (0, 1, 2)
+    vec2_t old_pos = this_pos;
+
+    /* We hit the edge - check for the reflection/absorption from the
+       edges of the wall if they are region borders
+       Note - here we test for potential collisions with the region
+       border while moving INSIDE OUT */
+    //TODO: struct rxn *matching_rxns[MAX_MATCHING_RXNS];
+    assert(!species.has_flag(CAN_REGION_BORDER) && "TODO");
+
+    /* no reflection - keep going */
+
+    // !!!!
+    vec2_t new_disp;
+    wall_index_t target_wall_index =
+        geom_util::traverse_surface(this_wall, old_pos, index_edge_was_hit, this_pos);
+
+    if (target_wall_index != WALL_INDEX_INVALID) {
+      assert(!species.has_flag(CAN_REGION_BORDER) && "TODO");
+
+      this_disp = old_pos + this_disp;
+      geom_util::traverse_surface(this_wall, this_disp, index_edge_was_hit, new_disp);
+      this_disp = new_disp + this_pos;
+      this_wall = p.get_wall(target_wall_index); // FIXME, probably cannot redirect a reference
+
+      continue;
+    }
+
+  } // while
+}
+
+
+// ---------------------------------- other ----------------------------------
+
 
 void diffuse_react_event_t::create_unimol_rx_action(
     partition_t& p,
-    volume_molecule_t& vm,
+    molecule_t& vm,
     float_t remaining_time_step
 ) {
   float_t curr_time = event_time + diffusion_time_step - remaining_time_step;
@@ -499,7 +736,7 @@ void diffuse_react_event_t::react_unimol_single_molecule(
   assert(unimol_rx != nullptr);
   // the unimolecular reaction was already selected
   // FIXME: if there is more of them, mcell3 uses rng to select which to execute...
-  volume_molecule_t& vm = p.get_vm(vm_id);
+  molecule_t& vm = p.get_m(vm_id);
   if (vm.is_defunct()) {
     return;
   }
@@ -532,8 +769,8 @@ int diffuse_react_event_t::outcome_bimolecular(
       );
 
   if (result == RX_A_OK) {
-    volume_molecule_t& reacA = p.get_vm(collision.diffused_molecule_id);
-    volume_molecule_t& reacB = p.get_vm(collision.colliding_molecule_id);
+    molecule_t& reacA = p.get_m(collision.diffused_molecule_id);
+    molecule_t& reacB = p.get_m(collision.colliding_molecule_id);
 
 #ifdef DEBUG_REACTIONS
     // reference printout first destroys B then A
@@ -572,9 +809,9 @@ int diffuse_react_event_t::outcome_products_random(
 
   // create and place each product
   for (const species_with_orientation_t& product: rx->products) {
-    volume_molecule_t vm(MOLECULE_ID_INVALID, product.species_id, pos);
+    molecule_t vm(MOLECULE_ID_INVALID, product.species_id, pos);
 
-    volume_molecule_t& new_vm = p.add_volume_molecule(vm, world->species[vm.species_id].time_step);
+    molecule_t& new_vm = p.add_volume_molecule(vm, world->species[vm.species_id].time_step);
     new_vm.flags =  ACT_NEWBIE | TYPE_VOL | IN_VOLUME | ACT_DIFFUSE;
 
   #ifdef DEBUG_REACTIONS
@@ -611,7 +848,7 @@ int diffuse_react_event_t::outcome_products_random(
 
 int diffuse_react_event_t::outcome_unimolecular(
     partition_t& p,
-    volume_molecule_t& vm,
+    molecule_t& vm,
     const float_t time_from_event_start,
     const reaction_t* unimol_rx
 ) {
@@ -619,11 +856,11 @@ int diffuse_react_event_t::outcome_unimolecular(
 
   // creates new molecule(s) as output of the unimolecular reaction
   // !! might invalidate references (we might reorder defuncting and outcome call later)
-  int outcome_res = outcome_products_random(p, unimol_rx, vm.pos, time_from_event_start, TIME_INVALID, 0);
+  int outcome_res = outcome_products_random(p, unimol_rx, vm.v.pos, time_from_event_start, TIME_INVALID, 0);
   assert(outcome_res == RX_A_OK);
 
   // and defunct this molecule
-  volume_molecule_t& vm_new_ref = p.get_vm(id);
+  molecule_t& vm_new_ref = p.get_m(id);
 #ifdef DEBUG_REACTIONS
   DUMP_CONDITION4(
     vm_new_ref.dump(world, "", "Unimolecular vm defunct:", world->current_iteration, time_from_event_start);
@@ -647,10 +884,10 @@ void diffuse_react_event_t::dump(const std::string indent) {
 
 void collision_t::dump(partition_t& p, const std::string ind) const {
   cout << ind << "diffused_molecule:\n";
-  p.get_vm(diffused_molecule_id).dump(ind + "  ");
+  p.get_m(diffused_molecule_id).dump(ind + "  ");
   if (type == COLLISION_VOLMOL_VOLMOL) {
     cout << ind << "colliding_molecule:\n";
-    p.get_vm(colliding_molecule_id).dump(ind + "  ");
+    p.get_m(colliding_molecule_id).dump(ind + "  ");
     cout << ind << "reaction:";
     rx->dump(ind + "  ");
   }

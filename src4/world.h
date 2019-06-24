@@ -48,12 +48,12 @@ private:
 public:
   world_t();
   void init_world_constants();
-  bool run_simulation();
+  bool run_simulation(const bool dump_initial_state);
 
-  // -------------- parition manipulation methods --------------
-  uint32_t get_partition_index(const vec3_t& pos) {
+  // -------------- partition manipulation methods --------------
+  partition_index_t get_partition_index(const vec3_t& pos) {
     // for now a slow approach, later some hashing/memoization might be needed
-    for (uint32_t i = 0; i < partitions.size(); i++) {
+    for (partition_index_t i = 0; i < partitions.size(); i++) {
       if (partitions[i].in_this_partition(pos)) {
         return i;
       }
@@ -61,18 +61,19 @@ public:
     return PARTITION_INDEX_INVALID;
   }
 
-  uint32_t get_or_add_partition_index(const vec3_t& pos) {
-    uint32_t res;
-    res = get_partition_index(pos);
+  partition_index_t get_or_add_partition_index(const vec3_t& pos) {
+
+    partition_index_t res = get_partition_index(pos);
+    // not found - add a new partition
     if (res == PARTITION_INDEX_INVALID) {
       res = add_partition(pos);
     }
-    // not found - add a new partition
+
     return res;
   }
 
   // add a partition in a predefined 'lattice' that contains point pos
-  uint32_t add_partition(const vec3_t& pos) {
+  partition_index_t add_partition(const vec3_t& pos) {
     // TODO: some check on validity of pos?
     assert(world_constants.partition_edge_length != 0);
     assert(get_partition_index(pos) == PARTITION_INDEX_INVALID && "Partition must not exist");
@@ -83,10 +84,16 @@ public:
     return partitions.size() - 1;
   }
 
+  partition_t& get_partition(partition_index_t i) {
+    assert(i < partitions.size());
+    return partitions[i];
+  }
+
+
   // -------------- reaction utility methods --------------
 
   // should be inlined
-  bool can_react_vol_vol(const volume_molecule_t& a, const volume_molecule_t& b) const {
+  bool can_react_vol_vol(const molecule_t& a, const molecule_t& b) const {
     // must not be the same molecule
     if (&a == &b) {
       return false;
@@ -120,7 +127,7 @@ public:
   }
 
   // must return result, asserts otherwise
-  const reaction_t* get_reaction(const volume_molecule_t& a, const volume_molecule_t& b) const {
+  const reaction_t* get_reaction(const molecule_t& a, const molecule_t& b) const {
     const auto& it_map_for_species = bimolecular_reactions_map.find(a.species_id);
     assert(it_map_for_species != bimolecular_reactions_map.end());
     const auto& it_res = it_map_for_species->second.find(b.species_id);
@@ -130,27 +137,47 @@ public:
 
   // -------------- geometry utility methods --------------
 
-  partition_index_t get_partition_index_for_pos(const vec3_t& pos);
+  // partition_index_t get_partition_index_for_pos(const vec3_t& pos);
+
+  //partition_wall_index_pair_t add_uninitialized_wall()
 
   // adds vertex to a given partition and returns pair partition index and the index of the
   // vertex in that partition
-  partition_vertex_index_pair_t add_geometry_vertex(const vec3_t& pos);
+  //partition_vertex_index_pair_t add_geometry_vertex(const vec3_t& pos);
 
   // adds a new geometry object with its walls, sets unique ids for the walls and objects
-  void add_geometry_object(
+  /*partition_index_t add_geometry_object(
       const geometry_object_t& obj,
-      const std::vector<wall_t>& walls,
+      std::vector<wall_t>& walls,
       const std::vector<std::vector<partition_vertex_index_pair_t>>& walls_vertices
-  );
+  );*/
 
+
+  // -------------- object id counters --------------
+  wall_id_t get_next_wall_id() {
+    wall_id_t res = next_wall_id;
+    next_wall_id++;
+    return res;
+  }
+
+  geometry_object_id_t get_next_geometry_object_id() {
+    geometry_object_id_t res = next_geometry_object_id;
+    next_geometry_object_id++;
+    return res;
+  }
 
   void dump();
 
   // -------------- world data --------------
+
+//TODO: make priv
+//private:
   std::vector<partition_t> partitions;
 
+public:
   scheduler_t scheduler;
 
+  // TODO: make private (?)
   std::vector<species_t> species; // owner
 
   std::vector<reaction_t> reactions; // we might need faster searching or reference from species to reactions here but let's keep it simple for now

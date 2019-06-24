@@ -25,7 +25,7 @@
 #define SRC4_DIFFUSE_REACT_EVENT_H_
 
 #include <vector>
-#include <boost/container/small_vector.hpp>
+#include "../libs/boost/container/small_vector.hpp"
 
 #include "base_event.h"
 #include "partition.h"
@@ -35,7 +35,7 @@
 namespace mcell {
 
 class partition_t;
-class volume_molecule_t;
+class molecule_t;
 class species_t;
 
 
@@ -58,8 +58,6 @@ enum collision_type_t {
 
 class collision_t;
 typedef boost::container::small_vector<collision_t, 16> collision_vector_t;
-
-
 typedef boost::container::flat_set<subpart_index_t> subpart_indices_set_t;
 
 
@@ -172,9 +170,18 @@ private:
       const float_t event_time_end
   );
 
-  ray_trace_state_t ray_trace(
+  void diffuse_vol_molecule(
       partition_t& p,
-      volume_molecule_t& vm, // molecule that we are diffusing, we are changing its pos  and possibly also subvolume
+      const molecule_id_t vm_id,
+      const float_t remaining_time_step,
+      bool& was_defunct,
+      vec3_t& new_pos,
+      subpart_index_t& new_subpart_index
+  );
+
+  ray_trace_state_t ray_trace_vol(
+      partition_t& p,
+      molecule_t& vm, // molecule that we are diffusing, we are changing its pos  and possibly also subvolume
       const wall_index_t previous_reflected_wall, // is WALL_INDEX_INVALID when our molecule did not replect from anything this iddfusion step yet
       vec3_t& remaining_displacement, // in/out - recomputed if there was a reflection
       collision_vector_t& molecule_collisions, // possible reactions in this part of way marching, ordered by time
@@ -190,6 +197,25 @@ private:
       float_t r_rate_factor
   );
 
+  void diffuse_surf_molecule(
+      partition_t& p,
+      const molecule_id_t sm_id,
+      const float_t remaining_time_step,
+      bool& was_defunct,
+      vec2_t& new_loc,
+      wall_index_t& new_wall_index,
+      float_t& advance_time
+  );
+
+  wall_index_t ray_trace_surf(
+      partition_t& p,
+      const species_t& species,
+      molecule_t& sm,
+      vec2_t& remaining_displacement,
+      vec2_t& new_pos,
+      bool& was_defunct
+  );
+
   int outcome_bimolecular(
       partition_t& p,
       collision_t& collision,
@@ -199,7 +225,7 @@ private:
 
   int outcome_unimolecular(
       partition_t& p,
-      volume_molecule_t& vm,
+      molecule_t& vm,
       const float_t scheduled_time,
       const reaction_t* unimol_rx
   );
@@ -215,7 +241,7 @@ private:
 
   void create_unimol_rx_action(
       partition_t& p,
-      volume_molecule_t& vm,
+      molecule_t& vm,
       float_t remaining_time_step
   );
 

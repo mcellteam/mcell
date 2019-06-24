@@ -58,57 +58,106 @@ class world_t;
 
 
 enum molecule_flags_e {
+  MOLECULE_FLAG_SURF = 1 << 0,
+  MOLECULE_FLAG_VOL = 1 << 1,
   MOLECULE_FLAG_DEFUNCT = 1 << 31,
 };
 
 /**
  * Base class for all molecules.
  */
-class base_molecule_t {
+class molecule_t {
 public:
-  base_molecule_t(const molecule_id_t id_, const species_id_t species_id_)
-    : id(id_), flags(0), species_id(species_id_) {
+  molecule_t()
+    : id(MOLECULE_ID_INVALID), flags(0), species_id(SPECIES_ID_INVALID), unimol_rx_time(TIME_FOREVER) {
+  }
+
+  molecule_t(const molecule_t& m) {
+    *this = m;
+  }
+
+  molecule_t(const molecule_id_t id_, const species_id_t species_id_)
+    : id(id_), flags(0), species_id(species_id_), unimol_rx_time(TIME_FOREVER)
+      /*subpart_index(SUBPART_INDEX_INVALID)*/ {
+  }
+
+  molecule_t(const molecule_id_t id_, const species_id_t species_id_, const vec3_t& pos_)
+    : id(id_), flags(MOLECULE_FLAG_VOL), species_id(species_id_), unimol_rx_time(TIME_FOREVER) {
+    v.pos = pos_;
+    v.subpart_index = SUBPART_INDEX_INVALID;
+  }
+
+  molecule_t(const molecule_id_t id_, const species_id_t species_id_, const vec2_t& pos2d)
+    : id(id_), flags(MOLECULE_FLAG_SURF), species_id(species_id_), unimol_rx_time(TIME_FOREVER) {
+    s.pos = pos2d;
+    //s.subpart_index = SUBPART_INDEX_INVALID;
+    s.orientation = ORIENTATION_NONE;
+    s.wall_index = WALL_INDEX_INVALID;
+  }
+
+  void operator = (const molecule_t& m) {
+    id = m.id;
+    flags = m.flags;
+    species_id = m.species_id;
+    unimol_rx_time = m.unimol_rx_time;
+
+    if (m.is_vol()) {
+      v.pos = m.v.pos;
+      v.subpart_index = m.v.subpart_index;
+    }
+    else if (m.is_surf()) {
+      s.pos = m.s.pos;
+    }
   }
 
   molecule_id_t id; // unique molecule id (for now it is unique per partition but should be world-wide unique)
   uint32_t flags;
   species_id_t species_id;
+  float_t unimol_rx_time;
+
+  union {
+    // volume molecule data
+    struct {
+      vec3_t pos;
+      subpart_index_t subpart_index;
+    } v;
+
+    // surface molecule data
+    struct {
+      vec2_t pos;
+      // we probably do not want subpart index, wall index serves this purpose
+      //subpart_index_t subpart_index;
+      orientation_t orientation;
+      wall_index_t wall_index;
+      uint32_t grid_tile_index; // datatype for this?
+    } s;
+  };
+
+
+  bool is_vol() const {
+    bool res = ((flags & MOLECULE_FLAG_VOL) != 0);
+    if (res) {
+      assert(!is_surf());
+    }
+    return res;
+  }
+
+  bool is_surf() const {
+    bool res = ((flags & MOLECULE_FLAG_SURF) != 0);
+    if (res) {
+      assert(!is_vol());
+    }
+    return res;
+  }
 
   bool is_defunct() const {
-    return flags & MOLECULE_FLAG_DEFUNCT;
+    return (flags & MOLECULE_FLAG_DEFUNCT) != 0;
   }
 
   void set_is_defunct() {
     assert(!is_defunct() && "We really should not be defuncting one molecule multiple times");
     flags |= MOLECULE_FLAG_DEFUNCT;
   }
-
-  // not using virtual methods, we do not want virtual methods table to be created for this object
-  void dump_base(const std::string ind) const;
-};
-
-/**
- * Volume molecule class.
- */
-class volume_molecule_t : public base_molecule_t {
-public:
-  volume_molecule_t()
-    : base_molecule_t(MOLECULE_ID_INVALID, SPECIES_ID_INVALID),
-      pos(0),
-      subpart_index(SUBPART_INDEX_INVALID),
-      unimol_rx_time(TIME_FOREVER) {
-    // needed for std::sort
-  }
-  volume_molecule_t(const molecule_id_t idx_, const species_id_t species_id_, const vec3_t& pos_)
-    : base_molecule_t(idx_, species_id_),
-      pos(pos_),
-      subpart_index(SUBPART_INDEX_INVALID),
-      unimol_rx_time(TIME_FOREVER) {
-  }
-
-  vec3_t pos;
-  subpart_index_t subpart_index;
-  float_t unimol_rx_time;
 
   void dump(const std::string ind) const;
   void dump(
@@ -119,7 +168,7 @@ public:
       const float_t time = 0
   ) const;
   std::string to_string() const;
-  static void dump_array(const std::vector<volume_molecule_t>& vec);
+  static void dump_array(const std::vector<molecule_t>& vec);
 };
 
 } // namespace mcell

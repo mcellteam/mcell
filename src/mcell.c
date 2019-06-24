@@ -95,7 +95,7 @@ int main(int argc, char **argv) {
       exit(EXIT_FAILURE);
     }
 
-    mcell4_run_simulation();
+    mcell4_run_simulation(state->dump_mcell4);
 
     mcell4_delete_world();
   }

@@ -21,7 +21,7 @@
  *
 ******************************************************************************/
 
-//#define DUMP_SCHEDULERS
+#define DUMP_SCHEDULERS
 
 #include "dump_state.h"
 
@@ -46,6 +46,16 @@ void dump_species_item(species* spec, const char* ind);
 void dump_object_list(object* obj, const char* ind);
 void dump_wall_list(wall_list* list, const char* ind);
 void dump_wall_array(int num, wall** wall_array, const char* ind);
+void dump_object(object* o, const char* ind);
+
+static const char* get_sym_name(const sym_entry *s) {
+  if (s == nullptr) {
+    return "NULL SYMBOL";
+  }
+  else {
+    return s->name;
+  }
+}
 
 std::ostream & operator<<(std::ostream &out, const timeval &a) {
   out << a.tv_sec << "s, " << a.tv_usec << "us";
@@ -58,6 +68,11 @@ std::ostream & operator<<(std::ostream &out, const vector2 &a) {
 }
 
 std::ostream & operator<<(std::ostream &out, const vector3 &a) {
+  out << "(" << a.x << ", " << a.y << ", " << a.z << ")";
+  return out;
+}
+
+std::ostream & operator<<(std::ostream &out, const periodic_image &a) {
   out << "(" << a.x << ", " << a.y << ", " << a.z << ")";
   return out;
 }
@@ -189,7 +204,7 @@ void dump_double_array(int num, const char* num_name, double* values, const char
 
 
 void dump_int_array(int num, const char* num_name, int* values, const char* values_name, const char* comment, const char* ind) {
-  cout << ind << values_name << "[" << num_name << "]: \t\t" << values << "[" << num << "]" << " [int[]] \t\t" << comment << "\n";
+  cout << ind << values_name << "[" << num_name << "]: \t\t" << values << "[" << num << "]" << " [int[]] \t\t" << comment;
   for (int i = 0; i < num && i < MAX_ARRAY_ITEMS; i++) {
     if (i % DUMP_ARRAY_NEWLINE_COUNT == 0) {
       cout << "\n" << ind << "  ";
@@ -379,6 +394,24 @@ string get_molecule_flags_string(short flags) {
   return res;
 }
 
+string get_release_shape_name(int8_t release_shape) {
+  string res;
+#define CASE_ITEM(n) case n: res = #n; break;
+  switch (release_shape) {
+    CASE_ITEM(SHAPE_UNDEFINED)
+    CASE_ITEM(SHAPE_SPHERICAL)
+    CASE_ITEM(SHAPE_CUBIC)
+    CASE_ITEM(SHAPE_ELLIPTIC)
+    CASE_ITEM(SHAPE_RECTANGULAR)
+    CASE_ITEM(SHAPE_SPHERICAL_SHELL)
+    CASE_ITEM(SHAPE_REGION)
+    CASE_ITEM(SHAPE_LIST)
+    default: res = "unknown!"; break;
+  }
+#undef CASE_ITEM
+  return res;
+}
+
 void dump_molecule_flags(short flags, const char* ind) {
   cout << ind << "flags: \t\t" << flags << " [short] \t\t /* Abstract Molecule Flags: Who am I, what am I doing, etc. */\n";
 
@@ -466,7 +499,7 @@ void dump_region(region* reg, const char* ind) {
 void dump_region_list(region_list *rl, const char* regions_name, const char* comment, const char* ind) {
   cout << ind << regions_name << ": *\t\t" << rl << " [region_list] \t\t " << comment << "\n";
   for (region_list *r = rl; rl != NULL; rl = rl->next) {
-    dump_region(r->reg, ind);
+    dump_region(r->reg, IND_ADD2(ind) );
   }
 }
 
@@ -692,28 +725,125 @@ void dump_reaction_hash_table(int rx_hashsize, const char* num_name, rxn **react
   }
 }
 
+
+void dump_region_data_owners(
+    int n_objects, int* obj_index, object** owners, const char* name, const char* comments, const char* ind
+) {
+  cout << ind << "owners: **\t\t" << owners << " [object] \t\t/* Array of pointers to each object */\n";
+
+  if (owners == nullptr) {
+    return;
+  }
+  DECL_IND2(ind);
+
+  // get max index for owners array
+  int max_idx = -1;
+  for (int i = 0; i < n_objects; i++) {
+    if (obj_index[i] > max_idx) {
+      max_idx = obj_index[i];
+    }
+  }
+
+
+  for (int i = 0; i <= max_idx; i++) {
+    cout << ind2 << i << ":";
+    dump_object(owners[i], ind2);
+  }
+}
+
+
+
+void dump_release_region_data(release_region_data* region_data, const char* name, const char* comment, const char* ind) {
+  DECL_IND2(ind);
+
+  cout << ind << name << ": *\t\t" << (void*)region_data << " [release_region_data] \t\t" << comment << "\n";
+  if (region_data != nullptr) {
+    cout << ind2 << "llf: \t\t" << region_data->llf << " [vector3] \t\t/* One corner of bounding box for release volume */\n";
+    cout << ind2 << "urb: \t\t" << region_data->urb << " [vector3] \t\t/* Opposite corner */\n";
+
+    //cout << ind2 << "n_walls_included: \t\t" << region_data->n_walls_included << " [int] \t\t/* How many walls total */\n";
+    //cout << ind2 << "cum_area_list: *\t\t" << region_data->cum_area_list << " [double] \t\t/* Cumulative area of all walls */\n";
+    dump_double_array(region_data->n_walls_included, "n_walls_included", region_data->cum_area_list, "cum_area_list", "/* Cumulative area of all walls */", ind2);
+
+    //cout << ind2 << "wall_index: *\t\t" << region_data->wall_index << " [int] \t\t/* Indices of each wall (by object) */\n";
+    dump_int_array(region_data->n_walls_included, "n_walls_included", region_data->wall_index, "wall_index", "/* Indices of each wall (by object) */", ind2);
+
+    cout << ind2 << "n_objects: \t\t" << region_data->n_objects << " [int] \t\t/* How many objects are there total */\n";
+    //cout << ind2 << "obj_index: *\t\t" << region_data->obj_index << " [int] \t\t/* Indices for objects (in owners array) */\n";
+    dump_int_array(region_data->n_walls_included, "n_walls_included", region_data->obj_index, "obj_index", "/* count: n_objects Indices for objects (in owners array) */", ind2);
+
+    // TODO - dump
+    dump_region_data_owners(region_data->n_objects, region_data->obj_index, region_data->owners, "owners", "Array of pointers to each object", ind2);
+
+    // TODO - dump
+    cout << ind2 << "in_release: **\t\t" << region_data->in_release << " [bit_array] \t\t/* Array of bit arrays; each bit array says which walls are in release for an object */\n";
+    // TODO - dump
+    cout << ind2 << "walls_per_obj: *\t\t" << region_data->walls_per_obj << " [int] \t\t/* Number of walls in release for each object */\n";
+    // TODO - ???
+    cout << ind2 << "self: *\t\t" << region_data->self << " [object] \t\t/* A pointer to our own release site object */\n";
+    cout << ind2 << "expression: *\t\t" << region_data->expression << " [release_evaluator] \t\t/* A set-construction expression combining regions to form this release site */\n";
+  }
+
+}
+
+
+void dump_release_pattern(release_pattern* pattern, const char* name, const char* comment, const char* ind) {
+  DECL_IND2(ind);
+
+  cout << ind << name << ": *\t\t" << (void*)pattern << " [release_pattern] \t\t" << comment << "\n";
+  if (pattern != nullptr) {
+    //cout << ind2 << "sym: *\t\t" << pattern->sym << " [sym_entry] \t\t/* Symbol hash table entry for the pattern */\n";
+    cout << ind2 << "sym.name: \t\t" << get_sym_name(pattern->sym) << " [sym_entry.name] \t\t/* Symbol hash table entry for the pattern */\n";
+    cout << ind2 << "delay: \t\t" << pattern->delay << " [double] \t\t/* Delay between time 0 and first release event. */\n";
+    cout << ind2 << "release_interval: \t\t" << pattern->release_interval << " [double] \t\t/* Time between release events within a train. */\n";
+    cout << ind2 << "train_interval: \t\t" << pattern->train_interval << " [double] \t\t/* Time from the start of one train to the start of the next one. */\n";
+    cout << ind2 << "train_duration: \t\t" << pattern->train_duration << " [double] \t\t/* Length of the train. */\n";
+    cout << ind2 << "number_of_trains: \t\t" << pattern->number_of_trains << " [int] \t\t/* How many trains are produced. */\n";
+  }
+}
+
+
 void dump_release_site_obj(release_site_obj* rel_site, const char* ind) {
   DECL_IND2(ind);
 
-  cout << ind2 << "location: *\t\t" << *rel_site->location << " [vector3] \t\t/* location of release site */\n";
+  if (rel_site->location != nullptr) {
+    cout << ind2 << "location: *\t\t" << *rel_site->location << " [vector3] \t\t/* location of release site */\n";
+  }
+  else {
+    cout << ind2 << "location: *\t\t" << (void*)rel_site->location << " [vector3*] \t\t/* location of release site */\n";
+  }
   cout << ind2 << "mol_type: *\t\t" << (void*)rel_site->mol_type << " [species] \t\t/* species to be released */\n";
   //dump_species(rel_site->mol_type, "mol_type", "/* species to be released */", ind2);
   cout << ind2 << "  mol_type (name): *\t\t" << rel_site->mol_type->sym->name << "\n";
 
   cout << ind2 << "release_number_method: \t\t" << (unsigned)rel_site->release_number_method << " [byte] \t\t/* Release Number Flags: controls how release_number is used (enum release_number_type_t) */\n";
-  cout << ind2 << "release_shape: \t\t" << (int)rel_site->release_shape << " [int8_t] \t\t/* Release Shape Flags: controls shape over which to release (enum release_shape_t) */\n";
+  cout << ind2 << "release_shape: \t\t" << get_release_shape_name(rel_site->release_shape) << " [int8_t] \t\t/* Release Shape Flags: controls shape over which to release (enum release_shape_t) */\n";
   cout << ind2 << "orientation: \t\t" << rel_site->orientation << " [short] \t\t/* Orientation of released surface molecules */\n";
   cout << ind2 << "release_number: \t\t" << rel_site->release_number << " [double] \t\t/* Number to release */\n";
   cout << ind2 << "mean_diameter: \t\t" << rel_site->mean_diameter << " [double] \t\t/* Diameter for symmetric releases */\n";
   cout << ind2 << "concentration: \t\t" << rel_site->concentration << " [double] \t\t/* Concentration of molecules to release. Units are Molar for volume molecules, and number per um^2 for surface molecules. */\n";
   cout << ind2 << "standard_deviation: \t\t" << rel_site->standard_deviation << " [double] \t\t/* Standard deviation of release_number for GAUSSNUM, or of mean_diameter for VOLNUM */\n";
-  cout << ind2 << "diameter: *\t\t" << *rel_site->diameter << " [vector3] \t\t/* x,y,z diameter for geometrical release shapes */\n";
+  if (rel_site->diameter != nullptr) {
+    cout << ind2 << "diameter: *\t\t" << *rel_site->diameter << " [vector3] \t\t/* x,y,z diameter for geometrical release shapes */\n";
+  }
+  else {
+    cout << ind2 << "diameter: *\t\t" << (void*)rel_site->diameter << " [vector3*] \t\t/* x,y,z diameter for geometrical release shapes */\n";
+  }
 
-  cout << ind2 << "region_data: *\t\t" << (void*)rel_site->region_data << " [release_region_data] \t\t/* Information related to release on regions */\n";
+  dump_release_region_data(rel_site->region_data, "region_data", "/* Information related to release on regions */", ind2);
+
   cout << ind2 << "mol_list: *\t\t" << (void*)rel_site->mol_list << " [release_single_molecule] \t\t/* Information related to release by list */\n";
   cout << ind2 << "release_prob: \t\t" << rel_site->release_prob << " [double] \t\t/* Probability of releasing at scheduled time */\n";
-  cout << ind2 << "periodic_box: *\t\t" << (void*)rel_site->periodic_box << " [periodic_image] \t\t\n";
-  cout << ind2 << "pattern: *\t\t" << (void*)rel_site->pattern << " [release_pattern] \t\t/* Timing of releases by virtual function generator */\n";
+
+  if (rel_site->periodic_box != nullptr) {
+    cout << ind2 << "periodic_box: *\t\t" << *rel_site->periodic_box << " [periodic_image] \t\t\n";
+  }
+  else {
+    cout << ind2 << "periodic_box: *\t\t" << (void*)rel_site->periodic_box << " [periodic_image] \t\t\n";
+  }
+
+  dump_release_pattern(rel_site->pattern, "pattern", "/* Timing of releases by virtual function generator */", ind2);
+
   cout << ind2 << "name: *\t\t" << rel_site->name << " [char] \t\t/* Fully referenced name of the instantiated release_site */\n";
   cout << ind2 << "graph_pattern: *\t\t" << (void*)rel_site->graph_pattern << " [char] \t\t/* JJT: Graph definition of the structured molecules being released in this site*/\n";
 }

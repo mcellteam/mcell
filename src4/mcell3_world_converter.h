@@ -34,7 +34,7 @@ bool mcell4_convert_mcell3_volume(struct volume* s);
 #ifdef __cplusplus
 extern "C"
 #endif
-bool mcell4_run_simulation();
+bool mcell4_run_simulation(const bool dump_initial_state);
 
 #ifdef __cplusplus
 extern "C"
@@ -66,16 +66,16 @@ public:
 
   bool convert_simulation_setup(volume* s);
 
-  bool convert_wall(
-      wall* w,
-      wall_t& res_wall,
-      std::vector<partition_vertex_index_pair_t>& res_vertices);
-  bool convert_polygonal_object(object* o);
+
+  void create_uninitialized_walls_for_polygonal_object(const object* o);
+
+  bool convert_wall(const wall* w, geometry_object_t& object);
+  bool convert_polygonal_object(const object* o);
   bool convert_geometry_objects(volume* s);
 
   void create_diffusion_events();
   bool convert_species_and_create_diffusion_events(volume* s);
-  bool convert_single_reaction(rxn *rx);
+  bool convert_single_reaction(const rxn *rx);
   bool convert_reactions(volume* s);
   bool convert_release_events(volume* s);
   bool convert_viz_output_events(volume* s);
@@ -93,13 +93,41 @@ private:
   // mapping from mcell3 species id to mcell4 species id
   std::map<u_int, species_id_t> mcell3_species_id_map;
 
-  partition_vertex_index_pair_t get_mcell4_vertex_index(vector3* mcell3_vertex) {
+
+  void add_mcell4_vertex_index_mapping(const vector3* mcell3_vertex, partition_vertex_index_pair_t pindex) {
+    // check that if we are adding a vertex, it is exactly the same as there was before
+    auto it = vector_ptr_to_vertex_index_map.find(mcell3_vertex);
+    if (it != vector_ptr_to_vertex_index_map.end()) {
+      // note: this check probably doesn't make sense because the mcell3 vertices
+      // would have to change during conversion
+      assert(it->second == pindex);
+    }
+    else {
+      vector_ptr_to_vertex_index_map[mcell3_vertex] = pindex;
+    }
+  }
+
+  partition_vertex_index_pair_t get_mcell4_vertex_index(const vector3* mcell3_vertex) {
     auto it = vector_ptr_to_vertex_index_map.find(mcell3_vertex);
     assert(it != vector_ptr_to_vertex_index_map.end());
     return it->second;
   }
 
-  std::map<vector3*, partition_vertex_index_pair_t> vector_ptr_to_vertex_index_map;
+  std::map<const vector3*, partition_vertex_index_pair_t> vector_ptr_to_vertex_index_map;
+
+  void add_mcell4_wall_index_mapping(const wall* mcell3_wall, partition_wall_index_pair_t pindex) {
+    assert(wall_ptr_to_vertex_index_map.find(mcell3_wall) == wall_ptr_to_vertex_index_map.end() && "Wall mapping for this wall already exists");
+    wall_ptr_to_vertex_index_map[mcell3_wall] = pindex;
+  }
+
+  partition_wall_index_pair_t get_mcell4_wall_index(const wall* mcell3_wall) {
+    auto it = wall_ptr_to_vertex_index_map.find(mcell3_wall);
+    assert(it != wall_ptr_to_vertex_index_map.end());
+    return it->second;
+  }
+
+  // use only through add_mcell4_wall_index_mapping, get_mcell4_wall_index
+  std::map<const wall*, partition_wall_index_pair_t> wall_ptr_to_vertex_index_map;
 };
 
 

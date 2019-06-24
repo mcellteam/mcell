@@ -28,6 +28,9 @@
 
 namespace mcell {
 
+class partition_t;
+class molecule_t;
+
 /**
  * Dumps world state either in a textual or cellblender format.
  */
@@ -49,6 +52,12 @@ public:
   world_t* world;
 
 private:
+  void compute_where_and_norm(
+      const partition_t& p, const molecule_t& m,
+      vec3_t& where, vec3_t& norm
+  );
+
+
   FILE* create_and_open_output_file_name();
   void output_ascii_molecules();
   void output_cellblender_molecules();

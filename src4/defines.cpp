@@ -36,6 +36,12 @@ std::ostream & operator<<(std::ostream &out, const vec3_t &a) {
 }
 
 
+std::ostream & operator<<(std::ostream &out, const vec2_t &a) {
+  out << "(" << a.u << ", " << a.v << ")";
+  return out;
+}
+
+
 string vec3_t::to_string() const {
   stringstream ss;
   ss << *this;

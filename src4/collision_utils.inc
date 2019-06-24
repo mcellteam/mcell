@@ -134,7 +134,7 @@ static void collect_neighboring_subparts(
 // of vm that moves by displacement
 static inline void __attribute__((always_inline)) collect_crossed_subparts(
   const partition_t& p,
-  const volume_molecule_t& vm, // molecule that we are diffusing
+  const molecule_t& vm, // molecule that we are diffusing
   const vec3_t& displacement,
   const float_t rx_radius,
   const float_t sp_edge_length,
@@ -150,12 +150,12 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
 
   // remeber the starting subpartition
   if (collect_for_walls) {
-    crossed_subparts_for_walls.push_back(vm.subpart_index);
+    crossed_subparts_for_walls.push_back(vm.v.subpart_index);
   }
-  crossed_subparts_for_molecules.insert(vm.subpart_index);
+  crossed_subparts_for_molecules.insert(vm.v.subpart_index);
 
   // destination
-  vec3_t dest_pos = vm.pos + displacement;
+  vec3_t dest_pos = vm.v.pos + displacement;
 
   // urb - upper, right, bottom
   vec3_t displacement_nonzero = displacement;
@@ -167,12 +167,12 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
 
   // get 3d indices of start and end subpartitions
   ivec3_t src_subpart_indices, dest_subpart_indices;
-  p.get_subpart_3d_indices_from_index(vm.subpart_index, src_subpart_indices);
+  p.get_subpart_3d_indices_from_index(vm.v.subpart_index, src_subpart_indices);
   p.get_subpart_3d_indices(dest_pos, dest_subpart_indices);
 
   // first check what's around the starting point
   collect_neighboring_subparts(
-      p, vm.pos, src_subpart_indices, rx_radius, sp_edge_length,
+      p, vm.v.pos, src_subpart_indices, rx_radius, sp_edge_length,
       crossed_subparts_for_molecules
   );
 
@@ -189,7 +189,7 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
     dir_urb_addend.y = (dir_urb_direction.y == 0) ? -1 : 1;
     dir_urb_addend.z = (dir_urb_direction.z == 0) ? -1 : 1;
 
-    vec3_t curr_pos = vm.pos;
+    vec3_t curr_pos = vm.v.pos;
     ivec3_t curr_subpart_indices = src_subpart_indices;
 
     uint32_t curr_subpart_index;
@@ -223,9 +223,9 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
         // is our speed vector and the total time to travel is 1
         //
         // pos(time) = pos + displacement * time, therefore
-        // time = (pos(time) - vm.pos) / displacement
+        // time = (pos(time) - vm.v.pos) / displacement
         // =>
-        // time_to_subpart_edge = (subpart_edge - vm.pos) / displacement_speed
+        // time_to_subpart_edge = (subpart_edge - vm.v.pos) / displacement_speed
         vec3_t coll_times = diff * displacement_rcp;
         assert(coll_times.x >= 0 && coll_times.y >= 0 && coll_times.z >= 0 && "Edges must be computed from direction");
 
@@ -265,7 +265,7 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
   }
   else {
     // subpartition index did not change
-    last_subpart_index = vm.subpart_index;
+    last_subpart_index = vm.v.subpart_index;
   }
 
   // finally check also neighbors in destination
@@ -282,16 +282,16 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
 // with colliding_vm; returns true if there can be a collision and returns relative collision
 // time and relative position
 static bool collide_mol(
-    const volume_molecule_t& diffused_vm,
+    const molecule_t& diffused_vm,
     const vec3_t& displacement,
-    const volume_molecule_t& colliding_vm,
+    const molecule_t& colliding_vm,
     const float_t rx_radius_3d,
     float_t& rel_collision_time,
     vec3_t& rel_collision_pos
 ) {
 
-  const vec3_t& pos = colliding_vm.pos; /* Position of target molecule */
-  vec3_t dir = pos - diffused_vm.pos;  /* From starting point of moving molecule to target */
+  const vec3_t& pos = colliding_vm.v.pos; /* Position of target molecule */
+  vec3_t dir = pos - diffused_vm.v.pos;  /* From starting point of moving molecule to target */
 
   float_t d = glm::dot((glm_vec3_t)dir, (glm_vec3_t)displacement);        /* Dot product of movement vector and vector to target */
 
@@ -327,7 +327,7 @@ static bool collide_mol(
 
   rel_collision_time = d / movelen2;
 
-  rel_collision_pos = diffused_vm.pos + rel_collision_time * displacement;
+  rel_collision_pos = diffused_vm.v.pos + rel_collision_time * displacement;
   return true;
 }
 
@@ -337,14 +337,14 @@ static bool collide_mol(
 static void collide_mol_loop_body(
     const world_t* world,
     partition_t& p,
-    const volume_molecule_t& vm,
+    const molecule_t& vm,
     const molecule_id_t colliding_vm_id,
     const vec3_t& remaining_displacement,
     const float_t radius,
     collision_vector_t& molecule_collisions
 ) {
 
-  volume_molecule_t& colliding_vm = p.get_vm(colliding_vm_id);
+  molecule_t& colliding_vm = p.get_m(colliding_vm_id);
 
   // we would like to compute everything that's needed just once
   float_t time;
@@ -573,7 +573,7 @@ static collision_type_t collide_wall(
 
 static void collect_wall_collisions(
     partition_t& p,
-    const volume_molecule_t& vm, // molecule that we are diffusing, we are changing its pos  and possibly also subvolume
+    const molecule_t& vm, // molecule that we are diffusing, we are changing its pos  and possibly also subvolume
     const subpart_index_t subpart_index,
     const wall_index_t previous_reflected_wall,
     rng_state& rng,
@@ -592,7 +592,7 @@ static void collect_wall_collisions(
     vec3_t collision_pos;
 
     collision_type_t collision_type =
-        collide_wall(p, vm.pos, w, rng, true, displacement, collision_time, collision_pos);
+        collide_wall(p, vm.v.pos, w, rng, true, displacement, collision_time, collision_pos);
 
     if (collision_type == COLLISION_WALL_REDO) {
       // run the same thing again? not sure, need to find such case
@@ -629,7 +629,7 @@ static void collect_wall_collisions(
 static int reflect_or_periodic_bc(
     const partition_t& p,
     const collision_t& collision,
-    volume_molecule_t& vm, // moves vm to the reflection point
+    molecule_t& vm, // moves vm to the reflection point
     vec3_t& displacement,
     float_t& remaining_time_step, // same as t_steps
     wall_index_t& reflected_wall_index // TODO: rename somehow?
@@ -640,7 +640,7 @@ static int reflect_or_periodic_bc(
   float_t reflect_t = collision.time;
 
   /* Update molecule location to the point of reflection (originally in register_hits) */
-  vm.pos = collision.pos;
+  vm.v.pos = collision.pos;
 
   /* Reduce our remaining available time. */
   remaining_time_step *= (1.0 - reflect_t);

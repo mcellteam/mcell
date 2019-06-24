@@ -3380,6 +3380,8 @@ struct surface_molecule *diffuse_2D(
     struct vector2 displacement;
     pick_2D_displacement(&displacement, space_factor, world->rng);
 
+    // TODO: dump
+
     if (sm->properties->flags & SET_MAX_STEP_LENGTH) {
       double disp_length = sqrt(displacement.u * displacement.u +
                          displacement.v * displacement.v);

@@ -56,8 +56,8 @@ bool mcell4_convert_mcell3_volume(volume* s) {
 }
 
 
-bool mcell4_run_simulation() {
-  return g_converter.world->run_simulation();
+bool mcell4_run_simulation(const bool dump_initial_state) {
+  return g_converter.world->run_simulation(dump_initial_state);
 }
 
 
@@ -93,7 +93,6 @@ static const char* get_sym_name(const sym_entry *s) {
 }
 
 
-
 static mat4x4 t_matrix_to_mat4x4(const double src[4][4]) {
   mat4x4 res;
 
@@ -125,9 +124,6 @@ bool mcell3_world_converter::convert(volume* s) {
 
   world->init_world_constants();
 
-  CHECK(convert_release_events(s));
-  CHECK(convert_viz_output_events(s));
-
   // at this point, we need to create the first (and for now the only) partition
   // create initial partition with center at 0,0,0 - we woud like to have the partitions all the same,
   // not depend on some random initialization
@@ -136,6 +132,12 @@ bool mcell3_world_converter::convert(volume* s) {
 
   // convert geometry already puts geometry objects into partitions
   CHECK(convert_geometry_objects(s));
+
+  // release events require wall information
+  CHECK(convert_release_events(s));
+  CHECK(convert_viz_output_events(s));
+
+
 
   return true;
 }
@@ -164,6 +166,8 @@ bool mcell3_world_converter::convert_simulation_setup(volume* s) {
   }
   CHECK_PROPERTY(s->nx_parts == s->ny_parts);
   CHECK_PROPERTY(s->ny_parts == s->nz_parts);
+
+  CHECK_PROPERTY(s->randomize_smol_pos == 1);
 
   world->world_constants.use_expanded_list = s->use_expanded_list;
 
@@ -198,6 +202,7 @@ bool check_meta_object(object* o, string expected_name) {
   return true;
 }
 
+
 bool mcell3_world_converter::convert_geometry_objects(volume* s) {
 
   object* root = s->root_instance;
@@ -206,7 +211,20 @@ bool mcell3_world_converter::convert_geometry_objects(volume* s) {
   object* scene = root->first_child;
   CHECK_PROPERTY(check_meta_object(scene, "Scene"));
 
+  // walls reference each other, therefore we must first create
+  // empty wall objects in partitions,
   object* curr_obj = scene->first_child;
+  while (curr_obj != nullptr) {
+    if (curr_obj->object_type == POLY_OBJ) {
+      create_uninitialized_walls_for_polygonal_object(curr_obj);
+    }
+
+    curr_obj = curr_obj->next;
+  }
+
+  // once all wall were created and mapping established,
+  // we can fill-in all objects
+  curr_obj = scene->first_child;
   while (curr_obj != nullptr) {
     if (curr_obj->object_type == POLY_OBJ) {
       convert_polygonal_object(curr_obj);
@@ -225,43 +243,119 @@ bool mcell3_world_converter::convert_geometry_objects(volume* s) {
 }
 
 
-bool mcell3_world_converter::convert_wall(
-    wall* w,
-    wall_t& res_wall,
-    std::vector<partition_vertex_index_pair_t>& res_vertices
-) {
+// we do not check anything that might not be supported fro mthe mcell3 side,
+// the actual checks are in convert_polygonal_object
+void mcell3_world_converter::create_uninitialized_walls_for_polygonal_object(const object* o) {
+  geometry_object_t obj;
+
+  // create objects for each wall
+  for (int i = 0; i < o->n_walls; i++) {
+    wall* w = o->wall_p[i];
+
+    // which partition?
+    partition_index_t partition_index = world->get_partition_index(*w->vert[0]);
+
+    // check that the remaining vertices are in the same partition
+    for (uint32_t k = 1; k < VERTICES_IN_TRIANGLE; k++) {
+      partition_index_t curr_partition_index = world->get_partition_index(*w->vert[k]);
+
+      if (partition_index != curr_partition_index) {
+        vec3_t pos(*w->vert[k]);
+        mcell_log("Error: whole walls must be in a single partition is for now, vertex %s is out of bounds", pos.to_string().c_str());
+      }
+    }
+
+    // create the wall in that partition but do not set anything else yet
+    partition_t& p = world->get_partition(partition_index);
+    wall_t& new_wall = p.add_uninitialized_wall(world->get_next_wall_id());
+
+    // remember mapping
+    add_mcell4_wall_index_mapping(w, partition_wall_index_pair_t(partition_index, new_wall.index));
+  }
+}
+
+
+bool mcell3_world_converter::convert_wall(const wall* w, geometry_object_t& object) {
+
+  partition_wall_index_pair_t wall_pindex = get_mcell4_wall_index(w);
+  partition_t& p = world->get_partition(wall_pindex.first);
+  wall_t& wall = p.get_wall(wall_pindex.second);
+
+  // bidirectional mapping
+  wall.object_id = object.id;
+  object.wall_indices.push_back(wall.index);
+
   CHECK_PROPERTY(w->surf_class_head == nullptr); // for now
   CHECK_PROPERTY(w->num_surf_classes == 0); // for now
 
-  res_wall.side = w->side;
+  wall.side = w->side;
 
-  for (int i = 0; i < 3; i++) {
+  for (uint32_t i = 0; i < VERTICES_IN_TRIANGLE; i++) {
     // this vertex was inserted into the same partition as the whole object
-    res_vertices[i] =  get_mcell4_vertex_index(w->vert[i]);
+    partition_vertex_index_pair_t vert_pindex = get_mcell4_vertex_index(w->vert[i]);
+    assert(wall_pindex.first == vert_pindex.first);
+    wall.vertex_indices[i] = vert_pindex.second;
   }
-  res_wall.uv_vert1_u = w->uv_vert1_u;
-  res_wall.uv_vert2 = w->uv_vert2;
-  // struct edge *edges[3]; - ignored
-  // struct wall *nb_walls[3]; - ignored
-  // double area; - ignored
-  res_wall.normal = w->normal;
-  res_wall.unit_u = w->unit_u;
-  res_wall.unit_v = w->unit_v;
-  res_wall.distance_to_origin = w->d;
+
+  wall.uv_vert1_u = w->uv_vert1_u;
+  wall.uv_vert2 = w->uv_vert2;
+
+  for (uint32_t i = 0; i < VERTICES_IN_TRIANGLE; i++) {
+    edge* e = w->edges[i];
+    assert(e != nullptr);
+
+    edge_t& edge = wall.edges[i];
+
+    if (e->forward != nullptr) {
+      edge.forward_index = get_mcell4_wall_index(e->forward).second;
+    }
+    else {
+      edge.forward_index = WALL_INDEX_INVALID;
+    }
+    if (e->backward != nullptr) {
+      edge.backward_index = get_mcell4_wall_index(e->backward).second;
+    }
+    else {
+      edge.backward_index = WALL_INDEX_INVALID;
+    }
+    edge.translate = e->translate;
+    edge.cos_theta = e->cos_theta;
+    edge.sin_theta = e->sin_theta;
+    /*edge.length = e->length;
+    edge.length_rcp = e->length_1;
+    assert(abs(1.0 / edge.length - edge.length_rcp) < EPS);*/
+  }
+
+
+  // struct wall *nb_walls[3]; - ignored for now
+  wall.area = w->area;
+  wall.normal = w->normal;
+  wall.unit_u = w->unit_u;
+  wall.unit_v = w->unit_v;
+  wall.distance_to_origin = w->d;
   CHECK_PROPERTY(w->grid == nullptr); // for now
   CHECK_PROPERTY(w->flags == 4096); // not sure yet what flags are there for walls
-  struct object *parent_object; // set when this object is added
-  // struct storage *birthplace; - ignored
-  // struct region_list *counting_regions; // TODO, not sure
+
+
+  // finally, we must let the partition know that
+  // we initialized the wall
+  p.register_wall_into_supartitions(wall.index);
 
   return true;
 }
 
 
-bool mcell3_world_converter::convert_polygonal_object(object* o) {
-  geometry_object_t obj;
+bool mcell3_world_converter::convert_polygonal_object(const object* o) {
 
   // --- object ---
+
+  // we already checked in create_uninitialized_walls_for_polygonal_object
+  // that the specific walls of this fit into a single partition
+  // TODO: improve this check for the whole object
+  partition_index_t partition_index = world->get_partition_index(*o->vertices[0]);
+  partition_t& p = world->get_partition(partition_index);
+
+  geometry_object_t& obj = p.add_uninitialized_geometry_object(world->get_next_geometry_object_id());
 
   // o->next - ignored
   // o->parent - ignored
@@ -279,39 +373,28 @@ bool mcell3_world_converter::convert_polygonal_object(object* o) {
   CHECK_PROPERTY(o->walls == nullptr); // this is null for some reason
   CHECK_PROPERTY(o->wall_p != nullptr);
 
+
   // --- vertices ---
   // to stay identical to mcell3, will use the exact number of vertices as in mcell3, for this to work,
   // vector_ptr_to_vertex_index_map is a 'global' map for the whole conversion process
   // one of the reasons to not to copy vertex coordinates is that they are shared among triangles of an object
   // and when we move one vertex of the object, we transform all the triangles (walls) that use it
   for (int i = 0; i < o->n_verts; i++) {
-    // insert vertex into the right parition and returns partition index and vertex index
-    partition_vertex_index_pair_t vertex_info = world->add_geometry_vertex(*o->vertices[i]);
-
-    // check that if we are adding a vertex, it is exactly the same as there was before
-    auto it = vector_ptr_to_vertex_index_map.find(o->vertices[i]);
-    if (it != vector_ptr_to_vertex_index_map.end()) {
-      // note: this check probably doesn't make sense because the mcell3 vertices
-      // would have to change during conversion
-      assert(it->second == vertex_info);
-    }
-    else {
-      vector_ptr_to_vertex_index_map[o->vertices[i]] = vertex_info;
-    }
+    // insert vertex into the right partition and returns partition index and vertex index
+    vertex_index_t new_vertex_index = p.add_geometry_vertex(*o->vertices[i]);
+    add_mcell4_vertex_index_mapping(o->vertices[i], partition_vertex_index_pair_t(partition_index, new_vertex_index));
   }
 
   // --- walls ---
-  vector<wall_t> walls;
+
   // vertex info contains also partition indices when it is inserted into the
   // world geometry
-  vector< vector<partition_vertex_index_pair_t> > walls_vertices;
 
-  walls.resize(o->n_walls);
-  walls_vertices.resize(o->n_walls);
+  //walls_vertices.resize(o->n_walls);
   for (int i = 0; i < o->n_walls; i++) {
-    walls_vertices[i].resize(VERTICES_IN_TRIANGLE);
-    // uses precomputed map vector_ptr_to_vertex_index_map to transfrom vertices
-    convert_wall(o->wall_p[i], walls[i], walls_vertices[i]);
+    //walls_vertices[i].resize(VERTICES_IN_TRIANGLE);
+    // uses precomputed map vector_ptr_to_vertex_index_map to transform vertices
+    convert_wall(o->wall_p[i], obj);
   }
 
   // --- back to object ---
@@ -325,11 +408,9 @@ bool mcell3_world_converter::convert_polygonal_object(object* o) {
   CHECK_PROPERTY(o->periodic_y == false);
   CHECK_PROPERTY(o->periodic_z == false);
 
-  // sets all ids and also wall_indices for the object
-  world->add_geometry_object(obj, walls, walls_vertices);
-
   return true;
 }
+
 
 // cannot fail
 void mcell3_world_converter::create_diffusion_events() {
@@ -365,8 +446,18 @@ bool mcell3_world_converter::convert_species_and_create_diffusion_events(volume*
     new_species.name = get_sym_name(spec->sym);
     new_species.space_step = spec->space_step;
     new_species.time_step = spec->time_step;
-    CHECK_PROPERTY(spec->flags == 0 || spec->flags == SPECIES_FLAG_CAN_VOLVOL);
+    CHECK_PROPERTY(
+        spec->flags == 0
+        || spec->flags == SPECIES_FLAG_CAN_VOLVOL
+        || spec->flags == SPECIES_FLAG_ON_GRID);
     new_species.flags = spec->flags;
+
+    CHECK_PROPERTY(spec->n_deceased == 0);
+    CHECK_PROPERTY(spec->cum_lifetime_seconds == 0);
+    CHECK_PROPERTY(spec->refl_mols == nullptr);
+    CHECK_PROPERTY(spec->transp_mols == nullptr);
+    CHECK_PROPERTY(spec->absorb_mols == nullptr);
+    CHECK_PROPERTY(spec->clamp_conc_mols == nullptr);
 
     world->species.push_back(new_species);
 
@@ -379,7 +470,7 @@ bool mcell3_world_converter::convert_species_and_create_diffusion_events(volume*
 }
 
 
-bool mcell3_world_converter::convert_single_reaction(rxn *rx) {
+bool mcell3_world_converter::convert_single_reaction(const rxn *rx) {
   world->reactions.push_back(reaction_t());
   reaction_t& reaction = world->reactions.back();
 
@@ -508,28 +599,65 @@ bool mcell3_world_converter::convert_release_events(volume* s) {
       // -- release_site --
       release_site_obj* rel_site = req->release_site;
 
-      assert(rel_site->location != nullptr);
-      event->location = vec3_t(*rel_site->location);
+      bool surface_release;
+      if (rel_site->region_data == nullptr) {
+        assert(rel_site->location != nullptr);
+        event->location = vec3_t(*rel_site->location); // might be NULL
+        surface_release = false;
+      }
+      else if (rel_site->location == nullptr) {
+        assert(rel_site->region_data != nullptr);
+        event->location = vec3_t(POS_INVALID);
+        surface_release = true;
+      }
+      else {
+        CHECK_PROPERTY(
+            false
+            && "So far supporting location for volume molecules and region for surface molecules"
+        );
+      }
+
       event->species_id = get_mcell4_species_id(rel_site->mol_type->species_id);
 
       CHECK_PROPERTY(rel_site->release_number_method == 0);
       event->release_shape = rel_site->release_shape;
-      CHECK_PROPERTY(rel_site->orientation == 0);
+      CHECK_PROPERTY(surface_release || rel_site->orientation == 0);
+      event->orientation = rel_site->orientation;
 
       event->release_number = rel_site->release_number;
 
       CHECK_PROPERTY(rel_site->mean_diameter == 0); // temporary
       CHECK_PROPERTY(rel_site->concentration == 0); // temporary
       CHECK_PROPERTY(rel_site->standard_deviation == 0); // temporary
-      assert(rel_site->diameter != nullptr);
-      event->diameter = *rel_site->diameter; // temporary
-      CHECK_PROPERTY(rel_site->region_data == nullptr); // temporary?
+      CHECK_PROPERTY(surface_release || rel_site->diameter != nullptr);
+      if (rel_site->diameter != nullptr) {
+        event->diameter = *rel_site->diameter; // ignored for now
+      }
+      else {
+        event->diameter = vec3_t(POS_INVALID);
+      }
+
+      //region_data
+      if (rel_site->region_data != nullptr) {
+        release_region_data* region_data = rel_site->region_data;
+        for (int wall_i = 0; wall_i < region_data->n_walls_included; wall_i++) {
+
+          wall* w = region_data->owners[region_data->obj_index[wall_i]]->wall_p[region_data->wall_index[wall_i]];
+
+          partition_wall_index_pair_t wall_index = get_mcell4_wall_index(w);
+
+          event->cum_area_and_pwall_index_pairs.push_back(
+              cum_area_pwall_index_pair_t(region_data->cum_area_list[wall_i], wall_index)
+          );
+        }
+      }
+
       CHECK_PROPERTY(rel_site->mol_list == nullptr);
       CHECK_PROPERTY(rel_site->release_prob == 1); // temporary
       // rel_site->periodic_box - ignoring?
       // rel_site->pattern - TODO - is not null
-      event->name = rel_site->name;
-      // rel_site->graph_pattern - TODO - is not null - NFSim?
+      event->release_site_name = rel_site->name;
+      // rel_site->graph_pattern - ignored
 
       // -- release_event_queue -- (again)
       CHECK_PROPERTY(t_matrix_to_mat4x4(req->t_matrix) == mat4x4(1) && "only identity matrix for now");

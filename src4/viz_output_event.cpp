@@ -33,6 +33,7 @@ extern "C" {
 }
 
 #include "viz_output_event.h"
+#include "geometry.h"
 #include "world.h"
 
 using namespace std;
@@ -98,26 +99,59 @@ FILE* viz_output_event_t::create_and_open_output_file_name() {
 }
 
 
+void viz_output_event_t::compute_where_and_norm(
+    const partition_t& p, const molecule_t& m,
+    vec3_t& where, vec3_t& norm
+) {
+  const species_t& species = world->species[m.species_id];
+
+  if ((species.flags & NOT_FREE) == 0) {
+    // neither surface nor on grid
+    where = m.v.pos;
+    norm = vec3_t(0);
+  }
+  else if ((species.flags & ON_GRID) != 0) {
+    const wall_t& wall = p.get_wall(m.s.wall_index);
+    const vec3_t& wall_vert0 = p.get_geometry_vertex(wall.vertex_indices[0]);
+    where = geometry::uv2xyz(m.s.pos, wall, wall_vert0);
+
+    norm = vec3_t(m.s.orientation) * wall.normal;
+  }
+  else {
+    assert(false && "Unexpected molecule type");
+    where = vec3_t(0); // to silence compiler warnings
+    norm = vec3_t(0);
+  }
+
+  where *= world->world_constants.length_unit;
+}
+
+
 void viz_output_event_t::output_ascii_molecules() {
   // assuming that fdlp->type == ALL_MOL_DATA
   FILE *custom_file = create_and_open_output_file_name();
-  float_t length_unit = world->world_constants.length_unit;
 
   // simply go through all partitions and dump all molecules
   for (partition_t& p: world->partitions) {
-    for (const volume_molecule_t& m: p.get_volume_molecules()) {
+    for (const molecule_t& m: p.get_molecules()) {
       if (m.is_defunct()) {
         continue;
       }
 
-      std::string species_name = world->species[m.species_id].name;
+
+      vec3_t where;
+      vec3_t norm;
+      compute_where_and_norm(p, m, where, norm);
+
+      const species_t& species = world->species[m.species_id];
+
 #if FLOAT_T_BYTES == 8
       // TODO: norm
       errno = 0;
       fprintf(custom_file, "%s %u %.9g %.9g %.9g %.9g %.9g %.9g\n",
-          species_name.c_str(), m.id,
-          m.pos.x * length_unit, m.pos.y * length_unit, m.pos.z * length_unit,
-          0.0, 0.0, 0.0
+          species.name.c_str(), m.id,
+          where.x, where.y, where.z,
+          norm.x, norm.y, norm.z
       );
       assert(errno == 0);
 #else
@@ -140,15 +174,17 @@ void viz_output_event_t::output_cellblender_molecules() {
   // sort all molecules by species
   uint32_t species_count = world->species.size();
 
-  vector< vector<const volume_molecule_t*> > volume_molecules_by_species;
+  // FIXME: rather change to partition and molecule indices
+  typedef pair<const partition_t*, const molecule_t*> partition_molecule_ptr_pair_t;
+  vector< vector<partition_molecule_ptr_pair_t> > volume_molecules_by_species;
   volume_molecules_by_species.resize(species_count);
 
   for (partition_t& p: world->partitions) {
-    for (const volume_molecule_t& m: p.get_volume_molecules()) {
+    for (const molecule_t& m: p.get_molecules()) {
       if (m.is_defunct()) {
         continue;
       }
-      volume_molecules_by_species[m.species_id].push_back(&m);
+      volume_molecules_by_species[m.species_id].push_back(partition_molecule_ptr_pair_t(&p, &m));
     }
   }
 
@@ -160,7 +196,7 @@ void viz_output_event_t::output_cellblender_molecules() {
   /* Write all the molecules whether EXTERNAL_SPECIES or not (for now) */
   for (species_id_t species_idx = 0; species_idx < world->species.size(); species_idx++) {
     // count of molecules for this species
-    vector<const volume_molecule_t*>& species_molecules = volume_molecules_by_species[species_idx];
+    vector<partition_molecule_ptr_pair_t>& species_molecules = volume_molecules_by_species[species_idx];
     if (species_molecules.empty()) {
       continue;
     }
@@ -183,19 +219,26 @@ void viz_output_event_t::output_cellblender_molecules() {
     fwrite(&n_floats, sizeof(n_floats), 1, custom_file);
 
      /* Write positions of volume and surface molecules: */
-     float pos_x = 0.0;
-     float pos_y = 0.0;
-     float pos_z = 0.0;
-     for (const volume_molecule_t* mp : species_molecules) {
-       // TODO: many specific variants missing
-       pos_x = mp->pos.x * length_unit;
-       pos_y = mp->pos.y * length_unit;
-       pos_z = mp->pos.z * length_unit;
+     for (const partition_molecule_ptr_pair_t& partition_molecule_ptr_pair :species_molecules) {
 
-       fwrite(&pos_x, sizeof(pos_x), 1, custom_file);
-       fwrite(&pos_y, sizeof(pos_y), 1, custom_file);
-       fwrite(&pos_z, sizeof(pos_z), 1, custom_file);
+       assert(partition_molecule_ptr_pair.second->is_vol() && "TODO - dump norm for surface molecules");
+
+       vec3_t where;
+       vec3_t norm;
+       compute_where_and_norm(
+           *partition_molecule_ptr_pair.first, *partition_molecule_ptr_pair.second,
+           where, norm
+       );
+
+#if FLOAT_T_BYTES == 8
+       fwrite(&where.x, sizeof(float_t), 1, custom_file);
+       fwrite(&where.y, sizeof(float_t), 1, custom_file);
+       fwrite(&where.z, sizeof(float_t), 1, custom_file);
+#else
+#error "Marker for float type"
+#endif
      }
+
    }
 
   fclose(custom_file);

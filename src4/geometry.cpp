@@ -21,12 +21,17 @@
  *
 ******************************************************************************/
 
+extern "C" {
+#include "rng.h" // MCell 3
+#include "isaac64.h"
+#include "mcell_structs.h"
+#include "logging.h"
+}
+
 #include <iostream>
 
 #include "partition.h"
 #include "geometry.h"
-
-
 
 #include "geometry_utils.inc" // uses get_wall_bounding_box, maybe not include this file
 
@@ -139,6 +144,56 @@ void geometry::wall_subparts_collision_test(
 }
 
 
+vec2_t geometry::grid2uv_random(
+    const wall_t& w, const grid_t& g, const uint32_t tile_index,
+    rng_state& rng
+) {
+  int root;
+  int rootrem;
+  int k, j, i;
+  float_t over_n;
+  float_t u_ran, v_ran;
+
+  root = (int)(sqrt((float_t)tile_index));
+  rootrem = tile_index - root * root;
+  k = g.num_tiles_along_axis - root - 1;
+  j = rootrem / 2;
+  i = rootrem - 2 * j;
+
+  over_n = 1.0 / (float_t)(g.num_tiles_along_axis);
+
+  u_ran = rng_dbl(&rng);
+  v_ran = 1.0 - sqrt(rng_dbl(&rng));
+
+  vec2_t res;
+  res.u =
+      ((float_t)(j + i) + (1 - 2 * i) * (1.0 - v_ran) * u_ran) * over_n *
+          w.uv_vert1_u +
+      ((float_t)(k + i) + (1 - 2 * i) * v_ran) * over_n * w.uv_vert2.u;
+  res.v =
+      ((float_t)(k + i) + (1 - 2 * i) * v_ran) * over_n * w.uv_vert2.v;
+
+  return res;
+}
+
+
+void grid_t::initialize(const float_t area) {
+
+
+  num_tiles_along_axis = (int)ceil(sqrt(area));
+  if (num_tiles_along_axis < 1) {
+    num_tiles_along_axis = 1;
+  }
+
+  num_tiles = num_tiles_along_axis * num_tiles_along_axis;
+
+  // sg->binding_factor = ((double)sg->n_tiles) / w->area; ??
+  // TODO: init_grid_geometry(sg);
+
+  molecules_per_tile.resize(num_tiles, MOLECULE_ID_INVALID);
+}
+
+
 void geometry_object_t::dump(const partition_t& p, const std::string ind) const {
   cout << ind << "geometry_object_t: id:" << id << ", name:" << name << "\n";
   for (wall_index_t i: wall_indices) {
@@ -149,15 +204,19 @@ void geometry_object_t::dump(const partition_t& p, const std::string ind) const 
 
 
 void wall_t::dump(const partition_t& p, const std::string ind) const {
-  cout << "id: " << id << ", side: " << side << ", object_index: " << object_index;
+  cout << "id: " << id << ", side: " << side << ", object_id: " << object_id;
 
   for (uint32_t i = 0; i < VERTICES_IN_TRIANGLE; i++) {
-    vertex_index_t index = vertex_indices[i];
-    vec3_t pos = p.get_geometry_vertex(index);
-    cout << ", vert_index: " << index << ":" << pos;
+    vertex_index_t vertex_index = vertex_indices[i];
+    vec3_t pos = p.get_geometry_vertex(vertex_index);
+    cout << ", vert_index: " << vertex_index << ":" << pos;
   }
 
-  cout << ", normal " << normal << "\n";
+  cout
+    << ", normal " << normal
+    << ", unit_u " << unit_u
+    << ", unit_v " << unit_v
+    << "\n";
 }
 
 

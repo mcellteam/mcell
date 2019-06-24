@@ -145,11 +145,13 @@ static double tosecs(timeval& t) {
 }
 
 
-bool world_t::run_simulation() {
+bool world_t::run_simulation(const bool dump_initial_state) {
 
   init_simulation(); // must be the first one
 
-  //dump();
+  if (dump_initial_state) {
+    dump();
+  }
 
   // create defragmentation events
   defragmentation_event_t* defragmentation_event = new defragmentation_event_t(this);
@@ -216,7 +218,7 @@ bool world_t::run_simulation() {
   return true;
 }
 
-
+#if 0
 partition_index_t world_t::get_partition_index_for_pos(const vec3_t& pos) {
   // for now very simply search all partitions
   // we expect that parittion boundaries are precise
@@ -234,11 +236,11 @@ partition_index_t world_t::get_partition_index_for_pos(const vec3_t& pos) {
   }
   return found_index;
 }
-
-
+#endif
+#if 0
 partition_vertex_index_pair_t world_t::add_geometry_vertex(const vec3_t& pos) {
   // to which partition it belongs
-  partition_index_t partition_index = get_partition_index_for_pos(pos);
+  partition_index_t partition_index = get_partition_index(pos);
   if (partition_index == PARTITION_INDEX_INVALID) {
     mcell_log("Error: only a single partition is supported for now, vertex %s is out of bounds", pos.to_string().c_str());
   }
@@ -247,13 +249,17 @@ partition_vertex_index_pair_t world_t::add_geometry_vertex(const vec3_t& pos) {
 
   return partition_vertex_index_pair_t(partition_index, vertex_index);
 }
+#endif
 
-
+#if 0
 // adds a new geometry object with its walls, sets unique ids for the walls and objects
-// note: there is a lot of potentially uncenecssary copying of walls, can be optimized
-void world_t::add_geometry_object(
+// note: there is a lot of potentially unnecessary copying of walls, can be optimized
+// returns index of partition where the object was created
+// FIXME: this copying of wall objects is quite a mess, clean it up
+partition_index_t world_t::add_geometry_object(
     const geometry_object_t& obj,
-    const vector<wall_t>& walls, // the vertices for walls are contained in walls_vertices
+    vector<wall_t>& walls, // the vertices for walls are contained in walls_vertices,
+                           // although temporary, its ids and indices are set
     const vector<vector<partition_vertex_index_pair_t>>& walls_vertices
 ) {
   assert(!walls.empty());
@@ -265,14 +271,16 @@ void world_t::add_geometry_object(
   geometry_object_t& new_obj = p.add_geometry_object(obj, next_geometry_object_id);
 
   for (uint32_t i = 0; i < walls.size(); i++) {
-    wall_t new_wall = walls[i];
+    wall_t& new_wall = walls[i];
+
+    new_wall.object_id = new_obj.id;
 
     // check that all vertices are in the same partition (the previous code assumes this)
     assert(walls_vertices[i].size() == VERTICES_IN_TRIANGLE);
     for (uint32_t k = 0; k < VERTICES_IN_TRIANGLE; k++) {
       vertex_index_t vertex_index = walls_vertices[i][k].second;
 
-      // check that we fit int the parition
+      // check that we fit into the partition
       if (walls_vertices[i][k].first != partition_index) {
         vec3_t pos = p.get_geometry_vertex(vertex_index);
         mcell_log("Error: only a single partition is supported for now, vertex %s is out of bounds", pos.to_string().c_str());
@@ -282,22 +290,23 @@ void world_t::add_geometry_object(
       new_wall.vertex_indices[k] = vertex_index;
     }
 
-    // add wall to partition
-    wall_index_t new_wall_index; // !!! FIXME: the ordering is wrong,  p.add_wall needs vertices!
-    p.add_wall(new_wall, next_wall_id, new_wall_index);
+    // add wall to partition and overwrite our local copy
+    new_wall = p.add_wall(new_wall, next_wall_id);
 
     // set index of the contained wall
-    new_obj.wall_indices.push_back(new_wall_index);
+    new_obj.wall_indices.push_back(new_wall.index);
   }
-}
 
+  return partition_index;
+}
+#endif
 
 void world_t::dump() {
   world_constants.dump();
   // species
   species_t::dump_array(species);
 
-  // paritions
+  // partitions
   for (partition_t& p: partitions) {
     p.dump();
   }

@@ -29,11 +29,6 @@
 
 namespace mcell {
 
-typedef int32_t orientation_t;
-const orientation_t ORIENTATION_DOWN = -1;
-const orientation_t ORIENTATION_NONE = 0;
-const orientation_t ORIENTATION_UP = 1;
-
 struct species_with_orientation_t {
   species_with_orientation_t()
     : species_id(SPECIES_ID_INVALID), orientation(ORIENTATION_NONE) {

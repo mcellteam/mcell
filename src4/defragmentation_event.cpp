@@ -41,25 +41,25 @@ void defragmentation_event_t::dump(const string indent) {
 
 void defragmentation_event_t::step() {
   for (partition_t& p: world->partitions) {
-    vector<volume_molecule_t>& volume_molecules = p.get_volume_molecules();
-    vector<uint32_t>& volume_molecules_id_to_index_mapping = p.get_volume_molecules_id_to_index_mapping();
+    vector<molecule_t>& volume_molecules = p.get_molecules();
+    vector<uint32_t>& volume_molecules_id_to_index_mapping = p.get_molecule_id_to_index_mapping();
 
-    vector<partition_t::time_step_volume_molecules_data_t>& mols_per_time_step = p.get_volume_molecule_data_per_time_step_array();
+    vector<partition_t::time_step_molecules_data_t>& mols_per_time_step = p.get_molecule_data_per_time_step_array();
     assert(mols_per_time_step.size() == 1 && mols_per_time_step[0].molecule_ids.size() == volume_molecules.size()
         && "For now, volume_molecule_indices_per_time_step[0] must be identical to volume_molecules");
     vector<uint32_t>& volume_molecule_ids_per_time_step = mols_per_time_step[0].molecule_ids;
 
 #ifdef DEBUG_DEFRAGMENTATION
     cout << "Defragmentation before sort:\n";
-    volume_molecule_t::dump_array(volume_molecules);
+    molecule_t::dump_array(volume_molecules);
 #endif
 
-    typedef vector<volume_molecule_t>::iterator vmit_t;
+    typedef vector<molecule_t>::iterator vmit_t;
     vmit_t it_begin = volume_molecules.begin();
     vmit_t it_end = volume_molecules.end();
 
     // find first defunct molecule
-    vmit_t it_first_defunct =  find_if(volume_molecules.begin(), it_end, [](const volume_molecule_t & m) -> bool { return m.is_defunct(); });
+    vmit_t it_first_defunct =  find_if(volume_molecules.begin(), it_end, [](const molecule_t & m) -> bool { return m.is_defunct(); });
     vmit_t it_copy_destination = it_first_defunct;
     size_t removed = 0;
 
@@ -68,7 +68,7 @@ void defragmentation_event_t::step() {
     while (it_first_defunct != it_end) {
 
       // then find the next one that is not defunct
-      vmit_t it_next_funct = find_if(it_first_defunct, it_end, [](const volume_molecule_t & m) -> bool { return !m.is_defunct(); });
+      vmit_t it_next_funct = find_if(it_first_defunct, it_end, [](const molecule_t & m) -> bool { return !m.is_defunct(); });
 
       if (it_next_funct == it_end) {
         // are we finished?
@@ -76,13 +76,13 @@ void defragmentation_event_t::step() {
       }
 
       // then again, find following defunct molecule
-      vmit_t it_second_defunct = find_if(it_next_funct, it_end, [](const volume_molecule_t & m) -> bool { return m.is_defunct(); });
+      vmit_t it_second_defunct = find_if(it_next_funct, it_end, [](const molecule_t & m) -> bool { return m.is_defunct(); });
 
       // items between it_first_defunct and it_next_funct will be removed
       // for debug mode, we will set their ids in volume_molecules_id_to_index_mapping as invalid
 #ifndef NDEBUG
       for (vmit_t it_update_mapping = it_first_defunct; it_update_mapping != it_next_funct; it_update_mapping++) {
-        const volume_molecule_t& vm = *it_update_mapping;
+        const molecule_t& vm = *it_update_mapping;
         assert(vm.is_defunct());
         volume_molecules_id_to_index_mapping[vm.id] = MOLECULE_INDEX_INVALID;
       }
@@ -113,13 +113,13 @@ void defragmentation_event_t::step() {
 
 #ifdef DEBUG_DEFRAGMENTATION
     cout << "Defragmentation after defunct removal:\n";
-    volume_molecule_t::dump_array(volume_molecules);
+    molecule_t::dump_array(volume_molecules);
 #endif
 
     // update mapping
     size_t new_count = volume_molecules.size();
     for (size_t i = 0; i < new_count; i++) {
-      const volume_molecule_t& vm = volume_molecules[i];
+      const molecule_t& vm = volume_molecules[i];
       if (vm.is_defunct()) {
         break;
       }

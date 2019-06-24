@@ -63,8 +63,8 @@ test_bimolecular
 static int test_bimolecular(
     const reaction_t& rx,
     rng_state& rng,
-    const volume_molecule_t& a1, // unused for now
-    const volume_molecule_t& a2, // unused for now
+    const molecule_t& a1, // unused for now
+    const molecule_t& a2, // unused for now
     const float_t scaling
 ) {
   /* rescale probabilities for the case of the reaction
@@ -115,7 +115,7 @@ static float_t time_of_unimol(const reaction_t* rx, rng_state& rng) {
 // based on compute_lifetime
 static float_t compute_unimol_lifetime(
     world_t* world,
-    const volume_molecule_t& vm,
+    const molecule_t& vm,
     const reaction_t* rx
 ) {
   assert(rx != nullptr);
