@@ -26,7 +26,7 @@
 MCELL_STATUS mcell_create_viz_output(MCELL_STATE *state, char *filename,
                                      struct mcell_species *mol_viz_list,
                                      long long start, long long end,
-                                     long long step);
+                                     long long step, bool ascii_output);
 
 void mcell_new_viz_output_block(struct viz_output_block *vizblk);
 

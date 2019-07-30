@@ -97,7 +97,7 @@ def main():
 
 	# Create viz data
 	viz_list = m.mcell_add_to_species_list(vm1_sym, False, 0, None)
-	m.mcell_create_viz_output(world, "./viz_data/test", viz_list, 0, iterations, 1)
+	m.mcell_create_viz_output(world, "./viz_data/test", viz_list, 0, iterations, 1, False)
 
 	m.mcell_init_simulation(world)
 	m.mcell_init_output(world)

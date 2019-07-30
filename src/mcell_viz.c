@@ -57,7 +57,7 @@ static struct frame_data_list *create_viz_frame(long long iterations,
 MCELL_STATUS
 mcell_create_viz_output(MCELL_STATE *state, char *filename,
                         struct mcell_species *mol_viz_list, long long start,
-                        long long end, long long step) {
+                        long long end, long long step, bool ascii_output) {
 
   struct viz_output_block *vizblk = CHECKED_MALLOC_STRUCT(
       struct viz_output_block, "visualization data output parameters");
@@ -71,7 +71,7 @@ mcell_create_viz_output(MCELL_STATE *state, char *filename,
   state->viz_blocks = vizblk;
 
   // Only CELLBLENDER mode is supported right now
-  vizblk->viz_mode = CELLBLENDER_MODE;
+  vizblk->viz_mode = ascii_output ? ASCII_MODE : CELLBLENDER_MODE;
 
   // Set the viz output path and filename prefix
   vizblk->file_prefix_name = CHECKED_STRDUP(filename, "file_prefix_name");

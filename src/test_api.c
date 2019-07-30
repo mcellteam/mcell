@@ -234,7 +234,7 @@ void test_api(MCELL_STATE *state) {
   mol_viz_list = mcell_add_to_species_list(molC_ptr, false, 0, mol_viz_list);
   mol_viz_list = mcell_add_to_species_list(molD_ptr, false, 0, mol_viz_list);
   CHECKED_CALL_EXIT(mcell_create_viz_output(state, "./viz_data/test",
-                                            mol_viz_list, 0, 1000, 2),
+                                            mol_viz_list, 0, 1000, 2, false),
                     "Error setting up the viz output block");
   mcell_delete_species_list(mol_viz_list);
 }

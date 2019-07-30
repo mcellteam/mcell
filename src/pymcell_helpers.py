@@ -442,7 +442,7 @@ class MCellSim:
             logging.info("Output '%s' for viz data." % spec.name)
         m.mcell_create_viz_output(
             self._world, "./viz_data/seed_%04i/Scene" % self._seed, viz_list,
-            0, self._iterations, 1)
+            0, self._iterations, 1, False)
 
     def release(self, relobj):
         """ Release molecules in/on an object or as a ListRelease. """
