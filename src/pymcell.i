@@ -105,14 +105,20 @@
 %pythonbegin %{
 from ctypes import *
 import sys
+import os
 if (sys.platform == 'linux'):
     extension = "so"
 elif (sys.platform == 'darwin'):
     extension = "dylib"
 elif (sys.platform == 'win32'):
     extension = "dll"
-lib1 = cdll.LoadLibrary('../lib/libNFsim.{0}'.format(extension))
-lib2 = cdll.LoadLibrary('../lib/libnfsim_c.{0}'.format(extension))
+mcell_dir = os.environ.get('MCELL_DIR', '')
+if mcell_dir:
+    base_dir = os.path.join(mcell_dir, 'lib')
+else:
+    base_dir = os.path.join('..', 'lib')
+lib1 = cdll.LoadLibrary(os.path.join(base_dir, 'libNFsim.{0}'.format(extension)))
+lib2 = cdll.LoadLibrary(os.path.join(base_dir, 'libnfsim_c.{0}'.format(extension)))
 %}
 
 /*Add functions for user interfacing */
