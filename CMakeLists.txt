@@ -48,7 +48,15 @@ elseif (WIN32)
                      copy ${CMAKE_SOURCE_DIR}/appveyor_windows/version.h ${CMAKE_CURRENT_BINARY_DIR}/deps )
 endif()
 
-set(CMAKE_C_FLAGS "-Wall -Wextra -Wshadow -Wno-unused-parameter -D_GNU_SOURCE=1 -O2 -std=c11 ${CMAKE_C_FLAGS}" )
+set(OPTIMIZATION_FLAGS " -march=native -O3")
+set(WARNING_FLAGS "-Wall -Wextra -Wshadow -Wno-unused-parameter -Wno-unused-function -Wno-unused-variable")
+
+set(INCLUDE_DIRS " -isystem ${CMAKE_SOURCE_DIR}/libs/")
+
+# -faligned-new - only for gcc >= 5.x
+set(CMAKE_C_FLAGS "-g3  -D_GNU_SOURCE=1 ${WARNING_FLAGS} ${OPTIMIZATION_FLAGS} -std=c11 ${CMAKE_C_FLAGS}" )
+set(CMAKE_CXX_FLAGS "-g3 -D_GNU_SOURCE=1 -std=c++14 ${INCLUDE_DIRS} ${WARNING_FLAGS} ${OPTIMIZATION_FLAGS} ${CMAKE_CXX_FLAGS}" )
+
 if (NOT WIN32)
   # check for needed libraries
   find_library(M_LIB m)
@@ -112,6 +120,7 @@ set(SOURCE_FILES
     src/mcell_viz.c
     src/mcell_viz.h
     src/mdlparse.y
+    src/dump_state.cpp    
     src/mdlparse_aux.h
     src/mdlparse_util.c
     src/mdlparse_util.h
@@ -211,6 +220,7 @@ if (NOT WIN32)
     src/mcell_species.c
     src/mcell_surfclass.c
     src/mcell_viz.c
+    src/dump_state.cpp        
     src/mem_util.c
     src/nfsim_func.c
     src/pymcell.i

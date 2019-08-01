@@ -315,6 +315,9 @@ class MCellSim:
     def __del__(self):
         self.end_sim()
 
+    def dump(self):
+        mcell_dump_state(self._world)
+
     def silence_warnings(self):
         m.mcell_silence_warnings(self._world)
 
@@ -433,7 +436,7 @@ class MCellSim:
                 self._regions[full_reg_name] = region_swig_obj
         logging.info("Add geometry '%s' to simulation" % mesh_obj.name)
 
-    def add_viz(self, species: Iterable[Species]) -> None:
+    def add_viz(self, species: Iterable[Species], ascii_output = False) -> None:
         """ Set all the species in an Iterable to be visualized. """
         viz_list = None
         for spec in species:
@@ -442,7 +445,7 @@ class MCellSim:
             logging.info("Output '%s' for viz data." % spec.name)
         m.mcell_create_viz_output(
             self._world, "./viz_data/seed_%04i/Scene" % self._seed, viz_list,
-            0, self._iterations, 1, False)
+            0, self._iterations, 1, ascii_output)
 
     def release(self, relobj):
         """ Release molecules in/on an object or as a ListRelease. """
