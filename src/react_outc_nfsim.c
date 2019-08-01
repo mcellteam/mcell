@@ -523,10 +523,12 @@ void calculate_nfsim_diffusion_derived_data(struct volume *state,
 
   double global_time_unit = state->time_unit;
 
-  const char *compartment1 =
+  char *compartment1 =
       extractSpeciesCompartmentFromNauty_c(data->graph_pattern);
   compartmentStruct reactantCompartmentInfo1 =
       getCompartmentInformation_c(compartment1);
+  // free string allocated in extractSpeciesCompartmentFromNauty_c
+  free(compartment1);
 
   if (!distinguishable(state->space_step, 0, EPS_C)) // Global timestep
   {
@@ -550,6 +552,10 @@ void calculate_nfsim_diffusion_derived_data(struct volume *state,
                             data->time_step * global_time_unit) *
                        state->r_length_unit;
   }
+
+  // free strings allocated in getCompartmentInformation_c
+  free(reactantCompartmentInfo1.name);
+  free(reactantCompartmentInfo1.outside);
 }
 
 bool calculate_nfsim_reactivity(struct graph_data *graph) {
