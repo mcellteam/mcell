@@ -244,7 +244,12 @@ void dump_object(object* o, const char* ind) {
   dump_object_list(o->first_child, IND_ADD2(ind));
   cout << ind << "last_child: *\t\t" << o->last_child << " [object] \t\t/* Last child object */\n";
   cout << ind << "sym: *\t\t" << o->sym << " [sym_entry] \t\t/* Symbol hash table entry for this object */\n";
-  cout << ind << "last_name: *\t\t" << o->last_name << " [char] \t\t/* Name of object without pre-pended parent object name */\n";
+  if (o->last_name != nullptr) {
+    cout << ind << "last_name: *\t\t" << o->last_name << " [char] \t\t/* Name of object without pre-pended parent object name */\n";
+  }
+  else {
+    cout << ind << "last_name: *\t\t" << (void*)o->last_name << " [char] \t\t/* Name of object without pre-pended parent object name */\n";
+  }
   cout << ind << "object_type: \t\t" << o->object_type << " [object_type_flags_t] \t\t/* Object Type Flags */\n";
   cout << ind << "contents: *\t\t" << o->contents << " [void] \t\t/* Actual physical object, cast according to object_type */\n";
   cout << ind << "num_regions: \t\t" << o->num_regions << " [u_int] \t\t/* Number of regions defined on object */\n";
@@ -890,66 +895,68 @@ void dump_schedule_helper(schedule_helper* shp, const char* name, const char* co
     inds += "  ";
     const char* ind2 = inds.c_str();
     cout << ind << name << ": *\t\t" << (void*)shp << " [schedule_helper] \t\t" << comment << "\n";
+    if (shp != nullptr) {
 #ifdef DUMP_SCHEDULERS
-    cout << ind2 <<"next_scale: *\t\t" << (void*)shp->next_scale << " [schedule_helper] \t\t/* Next coarser time scale */\n";
+      cout << ind2 <<"next_scale: *\t\t" << (void*)shp->next_scale << " [schedule_helper] \t\t/* Next coarser time scale */\n";
 
-    cout << ind2 <<"dt: \t\t" << shp->dt << " [double] \t\t/* Timestep per slot */\n";
-    cout << ind2 <<"dt_1: \t\t" << shp->dt_1 << " [double] \t\t/* dt_1 = 1/dt */\n";
-    cout << ind2 <<"now: \t\t" << shp->now << " [double] \t\t/* Start time of the scheduler */\n";
+      cout << ind2 <<"dt: \t\t" << shp->dt << " [double] \t\t/* Timestep per slot */\n";
+      cout << ind2 <<"dt_1: \t\t" << shp->dt_1 << " [double] \t\t/* dt_1 = 1/dt */\n";
+      cout << ind2 <<"now: \t\t" << shp->now << " [double] \t\t/* Start time of the scheduler */\n";
 
-    /* Items scheduled now or after now */
-    cout << ind2 <<"count: \t\t" << shp->count << " [int] \t\t/* Total number of items scheduled now or after */\n";
-    cout << ind2 <<"buf_len: \t\t" << shp->buf_len << " [int] \t\t/* Number of slots in the scheduler */\n";
-    cout << ind2 <<"index: \t\t" << shp->index << " [int] \t\t/* index of the next time block */\n";
+      /* Items scheduled now or after now */
+      cout << ind2 <<"count: \t\t" << shp->count << " [int] \t\t/* Total number of items scheduled now or after */\n";
+      cout << ind2 <<"buf_len: \t\t" << shp->buf_len << " [int] \t\t/* Number of slots in the scheduler */\n";
+      cout << ind2 <<"index: \t\t" << shp->index << " [int] \t\t/* index of the next time block */\n";
 
-    if (shp->circ_buf_count != NULL) {
-      cout << ind2 <<"circ_buf_count: \t\t" << *shp->circ_buf_count << " [int] \t\t/* How many items are scheduled in each slot */\n";
-    }
-    else {
-      cout << ind2 <<"circ_buf_count: \t\t" << "NULL" << " [int*] \t\t/* How many items are scheduled in each slot */\n";
-    }
+      if (shp->circ_buf_count != NULL) {
+        cout << ind2 <<"circ_buf_count: \t\t" << *shp->circ_buf_count << " [int] \t\t/* How many items are scheduled in each slot */\n";
+      }
+      else {
+        cout << ind2 <<"circ_buf_count: \t\t" << "NULL" << " [int*] \t\t/* How many items are scheduled in each slot */\n";
+      }
 
-    cout << ind2 <<"circ_buf_head: **\t\t" << (void**)shp->circ_buf_head << " [abstract_element] \t\t// Array of linked lists of scheduled items for each slot\n";
-    cout << ind2 <<"circ_buf_tail: **\t\t" << (void**)shp->circ_buf_tail << " [abstract_element] \t\t// Array of tails of the linked lists\n";
+      cout << ind2 <<"circ_buf_head: **\t\t" << (void**)shp->circ_buf_head << " [abstract_element] \t\t// Array of linked lists of scheduled items for each slot\n";
+      cout << ind2 <<"circ_buf_tail: **\t\t" << (void**)shp->circ_buf_tail << " [abstract_element] \t\t// Array of tails of the linked lists\n";
 
-    cout << ind2 <<"contents (current, circ_buf_head):\n";
-    for (int i = -1; i < shp->buf_len; i++) {
-      int k = 0;
-      for (struct abstract_element *aep = (i < 0) ? shp->current
-                                                  : shp->circ_buf_head[i];
-           aep != NULL; aep = aep->next) {
+      cout << ind2 <<"contents (current, circ_buf_head):\n";
+      for (int i = -1; i < shp->buf_len; i++) {
+        int k = 0;
+        for (struct abstract_element *aep = (i < 0) ? shp->current
+                                                    : shp->circ_buf_head[i];
+             aep != NULL; aep = aep->next) {
 
-        cout << ind2 << "  " << i << ":\n";
-        if (strcmp(name, "releaser") == 0) {
-          struct release_event_queue *req = (struct release_event_queue *)aep;
-          dump_release_event_queue(req, ind2);
+          cout << ind2 << "  " << i << ":\n";
+          if (strcmp(name, "releaser") == 0) {
+            struct release_event_queue *req = (struct release_event_queue *)aep;
+            dump_release_event_queue(req, ind2);
 
-        }
-        else {
-          struct abstract_molecule *amp = (struct abstract_molecule *)aep;
-          if (amp->properties == NULL) {
-            cout << ind2 << "  " << i << "." << k << ": " << (void*)amp << ", properties: " << (void*)amp->properties << "\n";
-            k++;
-            continue;
           }
           else {
-            k++;
-          }
+            struct abstract_molecule *amp = (struct abstract_molecule *)aep;
+            if (amp->properties == NULL) {
+              cout << ind2 << "  " << i << "." << k << ": " << (void*)amp << ", properties: " << (void*)amp->properties << "\n";
+              k++;
+              continue;
+            }
+            else {
+              k++;
+            }
 
-          dump_abstract_molecule(amp, IND_ADD2(ind2));
+            dump_abstract_molecule(amp, IND_ADD2(ind2));
+          }
         }
       }
+
+      /* Items scheduled before now */
+      /* These events must be serviced before simulation can advance to now */
+      cout << ind2 <<"current_count: \t\t" << shp->current_count << " [int] \t\t/* Number of current items */\n";
+      cout << ind2 <<"current: *\t\t" << (void*)shp->current << " [abstract_element] \t\t/* List of items scheduled now */\n";
+      cout << ind2 <<"current_tail: *\t\t" << shp->current_tail << " [abstract_element] \t\t/* Tail of list of items */\n";
+
+      cout << ind2 <<"defunct_count: \t\t" << shp->defunct_count << " [int] \t\t/* Number of defunct items (set by user)*/\n";
+      cout << ind2 <<"error: \t\t" << shp->error << " [int] \t\t/* Error code (1 - on error, 0 - no errors) */\n";
+      cout << ind2 <<"depth: \t\t" << shp->depth << " [int] \t\t/* Tier of scheduler in timescale hierarchy, 0-based */\n";
     }
-
-    /* Items scheduled before now */
-    /* These events must be serviced before simulation can advance to now */
-    cout << ind2 <<"current_count: \t\t" << shp->current_count << " [int] \t\t/* Number of current items */\n";
-    cout << ind2 <<"current: *\t\t" << (void*)shp->current << " [abstract_element] \t\t/* List of items scheduled now */\n";
-    cout << ind2 <<"current_tail: *\t\t" << shp->current_tail << " [abstract_element] \t\t/* Tail of list of items */\n";
-
-    cout << ind2 <<"defunct_count: \t\t" << shp->defunct_count << " [int] \t\t/* Number of defunct items (set by user)*/\n";
-    cout << ind2 <<"error: \t\t" << shp->error << " [int] \t\t/* Error code (1 - on error, 0 - no errors) */\n";
-    cout << ind2 <<"depth: \t\t" << shp->depth << " [int] \t\t/* Tier of scheduler in timescale hierarchy, 0-based */\n";
 #endif
   }
 }
