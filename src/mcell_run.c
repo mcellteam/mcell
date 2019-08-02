@@ -94,7 +94,7 @@ static void process_reaction_output(struct volume *wrld, double not_yet) {
       continue;
     //nfsim observables update
     if(wrld->nfsim_flag)
-      logNFSimObservables_c(wrld->current_iterations * wrld->time_unit);
+      logNFSimObservables_c(wrld->current_iterations * wrld->time_unit, wrld->seed_seq);
     if (update_reaction_output(wrld, obp))
       mcell_error("Failed to update reaction output.");
   }
