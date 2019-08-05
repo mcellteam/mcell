@@ -7,7 +7,10 @@ SET(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0")
 
 # directories holding flex/bison files and out of source includes.
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/deps)
-include_directories("${CMAKE_SOURCE_DIR}/src" "${CMAKE_CURRENT_BINARY_DIR}/deps" "${CMAKE_SOURCE_DIR}/include")
+include_directories(
+  "${CMAKE_SOURCE_DIR}/src" 
+  "${CMAKE_CURRENT_BINARY_DIR}/deps" 
+  "${CMAKE_SOURCE_DIR}/nfsimCInterface/src/")
 
 # move config.h into place. Unix and Windows have different header files
 if (UNIX)
@@ -49,15 +52,12 @@ elseif (WIN32)
 endif()
 
 set(CMAKE_C_FLAGS "-Wall -Wextra -Wshadow -Wno-unused-parameter -D_GNU_SOURCE=1 -O2 -std=c11 ${CMAKE_C_FLAGS}" )
-if (NOT WIN32)
-  # check for needed libraries
-  find_library(M_LIB m)
-  set(CMAKE_EXE_LINKER_FLAGS ${M_LIB})
-elseif (WIN32)
-  set(CMAKE_EXE_LINKER_FLAGS "-lm")
-endif()
+set(CMAKE_EXE_LINKER_FLAGS "-lm")
 
-set(SOURCE_FILES
+add_subdirectory(nfsim)
+add_subdirectory(nfsimCInterface)
+
+set(SRC_FILES
     src/argparse.c
     src/argparse.h
     src/chkpt.c
@@ -235,11 +235,7 @@ if (NOT WIN32)
     src/vol_util.c
     src/volume_output.c
     src/wall_util.c)
-  if (APPLE)
-    SWIG_LINK_LIBRARIES(pymcell ${CMAKE_CURRENT_BINARY_DIR}/lib/libnfsim_c.dylib ${CMAKE_CURRENT_BINARY_DIR}/lib/libNFsim.dylib ${PYTHON_LIBRARIES})
-  else()
-    SWIG_LINK_LIBRARIES(pymcell ${CMAKE_CURRENT_BINARY_DIR}/lib/libnfsim_c.so ${CMAKE_CURRENT_BINARY_DIR}/lib/libNFsim.so ${PYTHON_LIBRARIES})
-  endif()
+    SWIG_LINK_LIBRARIES(pymcell nfsim_c NFsim ${PYTHON_LIBRARIES})
 
   # copy the pyMCell test scripts into place
   file(GLOB PYMCELL_EXAMPLES "${CMAKE_SOURCE_DIR}/src/pymcell_examples/*")
@@ -256,40 +252,12 @@ file(COPY ${CMAKE_SOURCE_DIR}/bionetgen/bng2/ DESTINATION ${CMAKE_CURRENT_BINARY
 
 # build executable
 add_executable(mcell
-  ${SOURCE_FILES}
+  ${SRC_FILES}
   src/mcell.c
   ${BISON_mdlParser_OUTPUTS}
   ${FLEX_mdlScanner_OUTPUTS})
-target_link_libraries(mcell ${M_LIB} nfsim_c NFsim)
 
-#set(CMAKE_EXE_LINKER_FLAGS "${M_LIB} -static-libgcc -static-libstdc++")
-
-#add_executable(mcell_static
-#  ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h
-#  ${SOURCE_FILES}
-#  ${BISON_mdlParser_OUTPUTS}
-#  ${FLEX_mdlScanner_OUTPUTS})
-#target_link_libraries(mcell_static ${M_LIB} ${CMAKE_SOURCE_DIR}/lib/libnfsim_c_static.a ${CMAKE_SOURCE_DIR}/lib/libNFsim_static.a)
-
-target_link_libraries(mcell ${M_LIB})
-TARGET_COMPILE_DEFINITIONS(mcell PRIVATE NOSWIG=1)
-
-# build little libmcell test
-#add_executable(libmcell_test
-#  ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h
-#  ${SOURCE_FILES}
-#  src/libmcell_test.c
-#  ${BISON_mdlParser_OUTPUTS}
-#  ${FLEX_mdlScanner_OUTPUTS})
-#target_link_libraries(libmcell_test ${M_LIB} nfsim_c NFsim)
-
-# build nfsim and nfsimCInterface before trying to build MCell
-add_custom_target(
-  build_nfsim
-  COMMAND python ${CMAKE_SOURCE_DIR}/requirements.py)
-add_dependencies(mcell build_nfsim)
 add_dependencies(mcell version_h)
-if (NOT WIN32)
-  add_dependencies(_pymcell build_nfsim)
-  add_dependencies(_pymcell version_h)
-endif()
+  
+target_link_libraries(mcell nfsim_c_static NFsim_static)
+TARGET_COMPILE_DEFINITIONS(mcell PRIVATE NOSWIG=1)
