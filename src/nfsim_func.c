@@ -1,5 +1,5 @@
 #include "nfsim_func.h"
-#include "hashmap.h"
+#include "map_c.h"
 
 static map_t graph_reaction_map = NULL;
 

@@ -1,6 +1,7 @@
 #include "config.h"
 
-#include "hashmap.h"
+//#include "hashmap.h"
+#include "map_c.h"
 #include "logging.h"
 #include "mcell_structs.h"
 #include "nfsim_func.h"
