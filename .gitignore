@@ -51,3 +51,6 @@ dist
 .ipynb_checkpoints
 sphinx_env
 mcell_venv
+/.cproject
+/.project
+/.pydevproject
