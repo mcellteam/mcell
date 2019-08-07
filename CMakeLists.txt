@@ -5,11 +5,17 @@ add_definitions(-DPACKAGE_BUGREPORT="mcell@salk.edu")
 
 SET(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0")
 
-SET(OPTIMIZATION_FLAGS "-O3 -march=core2")
+SET(OPTIMIZATION_FLAGS "-O3 -march=core2 -finline-limit=1000 ")
+
 #SET(OPTIMIZATION_FLAGS "-O3")
 #SET(OPTIMIZATION_FLAGS "-O2")
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OPTIMIZATION_FLAGS}")
-SET(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c++11 ${OPTIMIZATION_FLAGS}")
+
+#set(INCLUDE_DIRS " -isystem ${CMAKE_SOURCE_DIR}/libs/")
+#set(INCLUDE_DIRS " -isystem /nadata/cnl/home/ahusar/src/mcell3-dev/sparsehash/install/include")
+set(INCLUDE_DIRS " -isystem /nadata/cnl/home/ahusar/src/mcell3-dev/mcell/libs/")
+
+SET(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c++11 ${OPTIMIZATION_FLAGS} ${INCLUDE_DIRS}")
 
 option(USE_PROFILING "Use gprof profiling" OFF) 
 option(USE_LTO "Use link-time optimization" OFF)
@@ -39,6 +45,7 @@ include_directories(
   "${CMAKE_SOURCE_DIR}/src" 
   "${CMAKE_CURRENT_BINARY_DIR}/deps" 
   "${CMAKE_SOURCE_DIR}/nfsimCInterface/src/")
+
 
 # move config.h into place. Unix and Windows have different header files
 if (UNIX)
