@@ -1,13 +1,83 @@
 
 
 #include <unordered_map>
-#include <assert.h>
+#include <boost/container/small_vector.hpp>
+
+#include <iostream>
+#include <vector>
 
 #include "map_c.h"
 
+#include <assert.h>
+
 using namespace std;
 
-typedef unordered_map<unsigned long, any_t> cpp_map_t;
+const unsigned long INITIAL_SIZE = 0x4;
+
+const unsigned long BASE_ITEMS = 0x100; // this value might need to be tweaked
+const unsigned long MASK = (BASE_ITEMS -1);
+
+typedef boost::container::small_vector<boost::container::small_vector<pair<unsigned long, any_t>, INITIAL_SIZE>, BASE_ITEMS> cpp_map_t;
+
+/*
+ * Return an empty hashmap, or NULL on failure.
+ */
+map_t hashmap_new() {
+  // TODO: free
+  cpp_map_t* vec = new cpp_map_t();
+  vec->resize(BASE_ITEMS);
+  return vec;
+}
+
+// TODO: free after simulation terminates
+void hashmap_clear(map_t in) {
+  // TODO: free
+  //delete ((cpp_map_t*)in);
+  ((cpp_map_t*)in)->clear();
+}
+
+int hashmap_put_nohash(map_t in, unsigned long key, unsigned long key_hash, any_t value) {
+  assert(in != nullptr);
+  assert(key == key_hash);
+
+  cpp_map_t* m = (cpp_map_t*)in;
+
+  ((*m)[key_hash & MASK]).push_back( pair<unsigned long, any_t>(key_hash, value));
+
+  return 0; // ignored
+}
+
+int hashmap_get_nohash(map_t in, unsigned long key, unsigned long key_hash, any_t* value) {
+  assert(in != nullptr);
+  assert(key == key_hash);
+  cpp_map_t* m = (cpp_map_t*)in;
+
+  const auto& internal_vec = ((*m)[key_hash & MASK]);
+
+  size_t sz = internal_vec.size();
+
+  if (sz == 1 && internal_vec[0].first == key_hash) {
+    *value = internal_vec[0].second;
+    return MAP_OK;
+  }
+  else if (sz == 0) {
+    return MAP_MISSING;
+  }
+  else {
+    for (const auto& item: internal_vec) {
+      if (item.first == key_hash) {
+        *value = item.second;
+        return MAP_OK;
+      }
+    }
+    return MAP_MISSING;
+  }
+}
+
+#if 0
+// the most versatile solution with also good performance
+typedef boost::container::flat_map<unsigned long, any_t> cpp_map_t;
+//typedef boost::container::map<unsigned long, any_t> cpp_map_t;
 
 /*
  * Return an empty hashmap, or NULL on failure.
@@ -17,11 +87,18 @@ map_t hashmap_new() {
   return (map_t) new cpp_map_t();
 }
 
+void hashmap_clear(map_t in) {
+  // TODO: free
+  //delete ((cpp_map_t*)in);
+  ((cpp_map_t*)in)->clear();
+}
 
 int hashmap_put_nohash(map_t in, unsigned long key, unsigned long key_hash, any_t value) {
   assert(in != nullptr);
   assert(key == key_hash);
+  cout << "INS 0x" << hex << key_hash << "\n";
   ((cpp_map_t*)in)->insert( pair<unsigned long, any_t>(key_hash, value));
+  return 0; // ignored
 }
 
 int hashmap_get_nohash(map_t in, unsigned long key, unsigned long key_hash, any_t* value) {
@@ -39,7 +116,7 @@ int hashmap_get_nohash(map_t in, unsigned long key, unsigned long key_hash, any_
   }
 }
 
-
+#endif
 
 
 /* The implementation here was originally done by Gary S. Brown.  I have

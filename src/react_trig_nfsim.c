@@ -16,6 +16,12 @@
 map_t reaction_map = NULL;
 map_t reaction_preliminary_map = NULL;
 
+
+void clear_maps() {
+  hashmap_clear(reaction_map);
+  hashmap_clear(reaction_preliminary_map);
+}
+
 // struct rxn *rx;
 
 unsigned long lhash(const char *keystring) {
@@ -115,6 +121,11 @@ initializeNFSimQueryForUnimolecularReactions(struct abstract_molecule *am) {
    Note: This is a quick test used to determine which per-species lists to
    traverse when checking for mol-mol collisions.
 *************************************************************************/
+
+long rxnfound = 0;
+long rxnmissed = 0;
+
+
 int trigger_bimolecular_preliminary_nfsim(struct abstract_molecule *reacA,
                                           struct abstract_molecule *reacB) {
 
@@ -130,12 +141,16 @@ int trigger_bimolecular_preliminary_nfsim(struct abstract_molecule *reacA,
 
   // XXX: it might be worth it to return the rx object since we already queried
   // it
-
   if (error == MAP_OK) {
     if (isValidReaction != NULL)
       return 1;
+
+    rxnfound++;
+
     return 0;
   }
+
+  rxnmissed++;
 
   queryOptions options = initializeNFSimQueryForBimolecularReactions(
       reacA->graph_data, reacB->graph_data, "1");

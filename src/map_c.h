@@ -58,6 +58,8 @@ extern "C" {
 */
 map_t hashmap_new(void);
 
+void hashmap_clear(map_t in);
+
 
 //JJT: simplified functions without hash calculation (it is precalculated)
 int hashmap_put_nohash(map_t in, unsigned long key, unsigned long key_hash, any_t value);
