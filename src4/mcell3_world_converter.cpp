@@ -127,7 +127,7 @@ bool mcell3_world_converter::convert(volume* s) {
   // at this point, we need to create the first (and for now the only) partition
   // create initial partition with center at 0,0,0 - we woud like to have the partitions all the same,
   // not depend on some random initialization
-  uint32_t index = world->add_partition(vec3_t(0, 0, 0));
+  partition_index_t index = world->add_partition(vec3_t(0, 0, 0));
   assert(index == PARTITION_INDEX_INITIAL);
 
   // convert geometry already puts geometry objects into partitions
@@ -144,7 +144,7 @@ bool mcell3_world_converter::convert(volume* s) {
 
 
 bool mcell3_world_converter::convert_simulation_setup(volume* s) {
-  // TODO: many items are not checked
+  // TODO_CONVERSION: many items are not checked
   world->iterations = s->iterations;
   world->world_constants.time_unit = s->time_unit;
   world->world_constants.length_unit = s->length_unit;
@@ -173,6 +173,9 @@ bool mcell3_world_converter::convert_simulation_setup(volume* s) {
 
   // this number counts the number of boundaries, not subvolumes, also, there are always 2 extra subvolumes on the sides in mcell3
   world->world_constants.subpartitions_per_partition_dimension = s->nx_parts - 3;
+
+
+  CHECK_PROPERTY(s->randomize_smol_pos == 1);
 
   return true;
 }
@@ -256,7 +259,7 @@ void mcell3_world_converter::create_uninitialized_walls_for_polygonal_object(con
     partition_index_t partition_index = world->get_partition_index(*w->vert[0]);
 
     // check that the remaining vertices are in the same partition
-    for (uint32_t k = 1; k < VERTICES_IN_TRIANGLE; k++) {
+    for (uint k = 1; k < VERTICES_IN_TRIANGLE; k++) {
       partition_index_t curr_partition_index = world->get_partition_index(*w->vert[k]);
 
       if (partition_index != curr_partition_index) {
@@ -290,7 +293,7 @@ bool mcell3_world_converter::convert_wall(const wall* w, geometry_object_t& obje
 
   wall.side = w->side;
 
-  for (uint32_t i = 0; i < VERTICES_IN_TRIANGLE; i++) {
+  for (uint i = 0; i < VERTICES_IN_TRIANGLE; i++) {
     // this vertex was inserted into the same partition as the whole object
     partition_vertex_index_pair_t vert_pindex = get_mcell4_vertex_index(w->vert[i]);
     assert(wall_pindex.first == vert_pindex.first);
@@ -300,7 +303,7 @@ bool mcell3_world_converter::convert_wall(const wall* w, geometry_object_t& obje
   wall.uv_vert1_u = w->uv_vert1_u;
   wall.uv_vert2 = w->uv_vert2;
 
-  for (uint32_t i = 0; i < VERTICES_IN_TRIANGLE; i++) {
+  for (uint i = 0; i < EDGES_IN_TRIANGLE; i++) {
     edge* e = w->edges[i];
     assert(e != nullptr);
 
@@ -321,11 +324,20 @@ bool mcell3_world_converter::convert_wall(const wall* w, geometry_object_t& obje
     edge.translate = e->translate;
     edge.cos_theta = e->cos_theta;
     edge.sin_theta = e->sin_theta;
-    /*edge.length = e->length;
-    edge.length_rcp = e->length_1;
-    assert(abs(1.0 / edge.length - edge.length_rcp) < EPS);*/
   }
 
+  for (uint i = 0; i < EDGES_IN_TRIANGLE; i++) {
+    if (w->nb_walls[i] != nullptr) {
+#ifndef NDEBUG
+      partition_wall_index_pair_t pindex = get_mcell4_wall_index(w->nb_walls[i]);
+      assert(pindex.first == wall_pindex.first && "Neighbors must be in the same partition for now");
+#endif
+      wall.nb_walls[i] = get_mcell4_wall_index(w->nb_walls[i]).second;
+    }
+    else {
+      wall.nb_walls[i] = WALL_INDEX_INVALID;
+    }
+  }
 
   // struct wall *nb_walls[3]; - ignored for now
   wall.area = w->area;
@@ -339,7 +351,7 @@ bool mcell3_world_converter::convert_wall(const wall* w, geometry_object_t& obje
 
   // finally, we must let the partition know that
   // we initialized the wall
-  p.register_wall_into_supartitions(wall.index);
+  p.finalize_wall_creation(wall.index);
 
   return true;
 }
@@ -351,7 +363,7 @@ bool mcell3_world_converter::convert_polygonal_object(const object* o) {
 
   // we already checked in create_uninitialized_walls_for_polygonal_object
   // that the specific walls of this fit into a single partition
-  // TODO: improve this check for the whole object
+  // TODO_CONVERSION: improve this check for the whole object
   partition_index_t partition_index = world->get_partition_index(*o->vertices[0]);
   partition_t& p = world->get_partition(partition_index);
 
@@ -367,7 +379,7 @@ bool mcell3_world_converter::convert_polygonal_object(const object* o) {
   CHECK_PROPERTY(o->contents != nullptr); // ignored for now, not sure what is contained
   CHECK_PROPERTY(o->num_regions == 1); // for now
 
-  //TODO: o->regions // this probably contains some flags and other data
+  //TODO_CONVERSION: o->regions // this probably contains some flags and other data
 
   CHECK_PROPERTY(o->n_walls == o->n_walls_actual); // ignored
   CHECK_PROPERTY(o->walls == nullptr); // this is null for some reason
@@ -414,10 +426,10 @@ bool mcell3_world_converter::convert_polygonal_object(const object* o) {
 
 // cannot fail
 void mcell3_world_converter::create_diffusion_events() {
-  assert(!world->species.empty() && "There must be at least 1 species");
+  assert(!world->get_species().empty() && "There must be at least 1 species");
 
   set<float_t> time_steps_set;
-  for (auto &species : world->species ) {
+  for (auto &species : world->get_species() ) {
     time_steps_set.insert(species.time_step);
   }
 
@@ -430,7 +442,7 @@ void mcell3_world_converter::create_diffusion_events() {
 
 
 bool mcell3_world_converter::convert_species_and_create_diffusion_events(volume* s) {
-  // TODO: many items are not checked
+  // TODO_CONVERSION: many items are not checked
   for (int i = 0; i < s->n_species; i++) {
     species* spec = s->species_list[i];
     // not sure what to do with these superclasses
@@ -440,7 +452,7 @@ bool mcell3_world_converter::convert_species_and_create_diffusion_events(volume*
 
     species_t new_species;
 
-    new_species.species_id = world->species.size(); // id corresponds to the index in the species array
+    new_species.species_id = world->get_species().size(); // id corresponds to the index in the species array
     new_species.mcell3_species_id = spec->species_id;
     new_species.D = spec->D;
     new_species.name = get_sym_name(spec->sym);
@@ -449,7 +461,10 @@ bool mcell3_world_converter::convert_species_and_create_diffusion_events(volume*
     CHECK_PROPERTY(
         spec->flags == 0
         || spec->flags == SPECIES_FLAG_CAN_VOLVOL
-        || spec->flags == SPECIES_FLAG_ON_GRID);
+        || spec->flags == SPECIES_FLAG_ON_GRID
+        || spec->flags == (SPECIES_FLAG_ON_GRID | CAN_SURFSURF)
+        || spec->flags == SPECIES_FLAG_CAN_VOLSURF
+    );
     new_species.flags = spec->flags;
 
     CHECK_PROPERTY(spec->n_deceased == 0);
@@ -459,7 +474,7 @@ bool mcell3_world_converter::convert_species_and_create_diffusion_events(volume*
     CHECK_PROPERTY(spec->absorb_mols == nullptr);
     CHECK_PROPERTY(spec->clamp_conc_mols == nullptr);
 
-    world->species.push_back(new_species);
+    world->add_species(new_species);
 
     mcell3_species_id_map[new_species.mcell3_species_id] = new_species.species_id;
   }
@@ -502,13 +517,20 @@ bool mcell3_world_converter::convert_single_reaction(const rxn *rx) {
   CHECK(rx->n_skipped == 0);
   CHECK(rx->prob_t == nullptr);
 
-  // TODO: pathway_info *info - magic_list, also some checks might be useful
+  // TODO_CONVERSION: pathway_info *info - magic_list, also some checks might be useful
 
   // --- pathway ---
   pathway *pathway_head = rx->pathway_head;
   CHECK(pathway_head->next == nullptr); // only 1 supported now
 
-  reaction.name = pathway_head->pathname->sym->name;
+  if (pathway_head->pathname != nullptr) {
+    assert(pathway_head->pathname->sym != nullptr);
+    reaction.name = pathway_head->pathname->sym->name;
+  }
+  else {
+    reaction.name = NAME_NOT_SET;
+  }
+
   reaction.rate_constant = pathway_head->km;
 
   CHECK(pathway_head->orientation1 == 0 || pathway_head->orientation1 == 1 || pathway_head->orientation1 == -1);
@@ -524,6 +546,7 @@ bool mcell3_world_converter::convert_single_reaction(const rxn *rx) {
       reaction.reactants.push_back(species_with_orientation_t(reactant2_id, pathway_head->orientation2));
 
       if (pathway_head->reactant3 != nullptr) {
+        mcell_error("TODO_CONVERSION: reactions with 3 reactants are not fully supported");
         species_id_t reactant3_id = get_mcell4_species_id(pathway_head->reactant3->species_id);
         reaction.reactants.push_back(species_with_orientation_t(reactant3_id, pathway_head->orientation3));
       }
@@ -589,12 +612,12 @@ bool mcell3_world_converter::convert_release_events(volume* s) {
     for (abstract_element *aep = (i < 0) ? releaser->current : releaser->circ_buf_head[i];
          aep != NULL; aep = aep->next) {
 
-      release_event_t* event = new release_event_t(world);
+      release_event_t event_data(world); // used only locally to capture the information
 
       // -- release_event_queue --
       release_event_queue *req = (release_event_queue *)aep;
 
-      event->event_time = req->event_time;
+      event_data.event_time = req->event_time;
 
       // -- release_site --
       release_site_obj* rel_site = req->release_site;
@@ -602,12 +625,12 @@ bool mcell3_world_converter::convert_release_events(volume* s) {
       bool surface_release;
       if (rel_site->region_data == nullptr) {
         assert(rel_site->location != nullptr);
-        event->location = vec3_t(*rel_site->location); // might be NULL
+        event_data.location = vec3_t(*rel_site->location); // might be NULL
         surface_release = false;
       }
       else if (rel_site->location == nullptr) {
         assert(rel_site->region_data != nullptr);
-        event->location = vec3_t(POS_INVALID);
+        event_data.location = vec3_t(POS_INVALID);
         surface_release = true;
       }
       else {
@@ -617,24 +640,24 @@ bool mcell3_world_converter::convert_release_events(volume* s) {
         );
       }
 
-      event->species_id = get_mcell4_species_id(rel_site->mol_type->species_id);
+      event_data.species_id = get_mcell4_species_id(rel_site->mol_type->species_id);
 
       CHECK_PROPERTY(rel_site->release_number_method == 0);
-      event->release_shape = rel_site->release_shape;
+      event_data.release_shape = rel_site->release_shape;
       CHECK_PROPERTY(surface_release || rel_site->orientation == 0);
-      event->orientation = rel_site->orientation;
+      event_data.orientation = rel_site->orientation;
 
-      event->release_number = rel_site->release_number;
+      event_data.release_number = rel_site->release_number;
 
       CHECK_PROPERTY(rel_site->mean_diameter == 0); // temporary
       CHECK_PROPERTY(rel_site->concentration == 0); // temporary
       CHECK_PROPERTY(rel_site->standard_deviation == 0); // temporary
       CHECK_PROPERTY(surface_release || rel_site->diameter != nullptr);
       if (rel_site->diameter != nullptr) {
-        event->diameter = *rel_site->diameter; // ignored for now
+        event_data.diameter = *rel_site->diameter; // ignored for now
       }
       else {
-        event->diameter = vec3_t(POS_INVALID);
+        event_data.diameter = vec3_t(POS_INVALID);
       }
 
       //region_data
@@ -646,7 +669,7 @@ bool mcell3_world_converter::convert_release_events(volume* s) {
 
           partition_wall_index_pair_t wall_index = get_mcell4_wall_index(w);
 
-          event->cum_area_and_pwall_index_pairs.push_back(
+          event_data.cum_area_and_pwall_index_pairs.push_back(
               cum_area_pwall_index_pair_t(region_data->cum_area_list[wall_i], wall_index)
           );
         }
@@ -655,16 +678,47 @@ bool mcell3_world_converter::convert_release_events(volume* s) {
       CHECK_PROPERTY(rel_site->mol_list == nullptr);
       CHECK_PROPERTY(rel_site->release_prob == 1); // temporary
       // rel_site->periodic_box - ignoring?
-      // rel_site->pattern - TODO - is not null
-      event->release_site_name = rel_site->name;
+
+      event_data.release_site_name = rel_site->name;
       // rel_site->graph_pattern - ignored
 
       // -- release_event_queue -- (again)
       CHECK_PROPERTY(t_matrix_to_mat4x4(req->t_matrix) == mat4x4(1) && "only identity matrix for now");
       CHECK_PROPERTY(req->train_counter == 0);
-      CHECK_PROPERTY(req->train_high_time == 0);
 
-      world->scheduler.schedule_event(event);
+      //release_pattern
+      assert(rel_site->pattern != nullptr);
+      release_pattern* rp = rel_site->pattern;
+      if (rp->sym != nullptr) {
+        event_data.release_pattern_name = get_sym_name(rp->sym);
+      }
+      else {
+        event_data.release_pattern_name = NAME_NOT_SET;
+      }
+
+      assert(rp->delay == req->event_time && "Release pattern must specify the same delay as for which the event is scheduled");
+      assert(rp->delay == req->train_high_time && "Initial train_high_time must be the same as delay");
+
+      // schedule all the needed release events based on release pattern
+      // note: there might be many of them but for now, we assume that not so many
+      // maybe we will need to change it in a way so that the event schedules itself, but this was
+      // a simpler solution for now
+      float_t next_time = rp->delay;
+      for (int train = 0; train < rp->number_of_trains; train++) {
+
+        float_t train_start = rp->delay + train * rp->train_interval;
+        float_t train_end = train_start + rp->train_duration;
+        float_t current_time = train_start;
+        while (current_time < train_end) {
+          release_event_t* event_to_schedule = new release_event_t(world);
+          *event_to_schedule = event_data;
+
+          event_to_schedule->event_time = current_time;
+          world->scheduler.schedule_event(event_to_schedule); // we always need to schedule a new instance
+
+          current_time += rp->release_interval;
+        }
+      }
     }
   }
 
@@ -691,8 +745,8 @@ bool mcell3_world_converter::convert_viz_output_events(volume* s) {
   CHECK_PROPERTY(viz_blocks->viz_mode == NO_VIZ_MODE || viz_blocks->viz_mode  == ASCII_MODE || viz_blocks->viz_mode == CELLBLENDER_MODE); // just checking valid values
   viz_mode_t viz_mode = viz_blocks->viz_mode;
   const char* file_prefix_name = world->add_const_string_to_pool(viz_blocks->file_prefix_name);
-  CHECK_PROPERTY(viz_blocks->viz_output_flag == VIZ_ALL_MOLECULES); // limited for now, TODO
-  CHECK_PROPERTY(viz_blocks->species_viz_states != nullptr && (*viz_blocks->species_viz_states == (int)0x80000000 || *viz_blocks->species_viz_states == 0x7FFFFFFF)); // TODO: not sure what this means
+  CHECK_PROPERTY(viz_blocks->viz_output_flag == VIZ_ALL_MOLECULES); // limited for now
+  CHECK_PROPERTY(viz_blocks->species_viz_states != nullptr && (*viz_blocks->species_viz_states == (int)0x80000000 || *viz_blocks->species_viz_states == 0x7FFFFFFF)); // NOTE: not sure what this means
   CHECK_PROPERTY(viz_blocks->default_mol_state == 0x7FFFFFFF); // not sure what this means
 
   // -- frame_data_head --

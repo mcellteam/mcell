@@ -24,6 +24,7 @@
 
 #include <iostream>
 #include <stdio.h>
+#include <errno.h>
 
 extern "C" {
 #include "logging.h"
@@ -35,6 +36,9 @@ extern "C" {
 #include "viz_output_event.h"
 #include "geometry.h"
 #include "world.h"
+
+
+#include "geometry_utils.inc"
 
 using namespace std;
 
@@ -77,7 +81,7 @@ static int digits_for_file_suffix(uint64_t iterations) {
 
 FILE* viz_output_event_t::create_and_open_output_file_name() {
   int ndigits = digits_for_file_suffix(world->iterations);
-  long long current_iteration = round(event_time); // FIXME: usage of round might be a little shaky here, maybe we will need a better way how to get the iteration index
+  long long current_iteration = round(event_time); // NOTE: usage of round might be a little shaky here, maybe we will need a better way how to get the iteration index
   //fprintf(stderr, "***dumps: %lld\n", current_iteration);
   const char* type_name = (viz_mode == ASCII_MODE) ? "ascii" : "cellbin";
   char* cf_name =
@@ -103,7 +107,7 @@ void viz_output_event_t::compute_where_and_norm(
     const partition_t& p, const molecule_t& m,
     vec3_t& where, vec3_t& norm
 ) {
-  const species_t& species = world->species[m.species_id];
+  const species_t& species = world->get_species(m.species_id);
 
   if ((species.flags & NOT_FREE) == 0) {
     // neither surface nor on grid
@@ -113,7 +117,7 @@ void viz_output_event_t::compute_where_and_norm(
   else if ((species.flags & ON_GRID) != 0) {
     const wall_t& wall = p.get_wall(m.s.wall_index);
     const vec3_t& wall_vert0 = p.get_geometry_vertex(wall.vertex_indices[0]);
-    where = geometry::uv2xyz(m.s.pos, wall, wall_vert0);
+    where = geom_util::uv2xyz(m.s.pos, wall, wall_vert0);
 
     norm = vec3_t(m.s.orientation) * wall.normal;
   }
@@ -132,7 +136,7 @@ void viz_output_event_t::output_ascii_molecules() {
   FILE *custom_file = create_and_open_output_file_name();
 
   // simply go through all partitions and dump all molecules
-  for (partition_t& p: world->partitions) {
+  for (partition_t& p: world->get_partitions()) {
     for (const molecule_t& m: p.get_molecules()) {
       if (m.is_defunct()) {
         continue;
@@ -143,10 +147,11 @@ void viz_output_event_t::output_ascii_molecules() {
       vec3_t norm;
       compute_where_and_norm(p, m, where, norm);
 
-      const species_t& species = world->species[m.species_id];
+      const species_t& species = world->get_species(m.species_id);
 
 #if FLOAT_T_BYTES == 8
       // TODO: norm
+      // also some test that the output is correct is needed
       errno = 0;
       fprintf(custom_file, "%s %u %.9g %.9g %.9g %.9g %.9g %.9g\n",
           species.name.c_str(), m.id,
@@ -172,14 +177,14 @@ void viz_output_event_t::output_cellblender_molecules() {
   float_t length_unit = world->world_constants.length_unit;
 
   // sort all molecules by species
-  uint32_t species_count = world->species.size();
+  uint species_count = world->get_species().size();
 
   // FIXME: rather change to partition and molecule indices
   typedef pair<const partition_t*, const molecule_t*> partition_molecule_ptr_pair_t;
   vector< vector<partition_molecule_ptr_pair_t> > volume_molecules_by_species;
   volume_molecules_by_species.resize(species_count);
 
-  for (partition_t& p: world->partitions) {
+  for (partition_t& p: world->get_partitions()) {
     for (const molecule_t& m: p.get_molecules()) {
       if (m.is_defunct()) {
         continue;
@@ -189,12 +194,12 @@ void viz_output_event_t::output_cellblender_molecules() {
   }
 
   /* Write file header */
-  assert(sizeof(u_int) == sizeof(uint32_t));
-  uint32_t cellbin_version = 1;
+  assert(sizeof(u_int) == sizeof(uint));
+  uint cellbin_version = 1;
   fwrite(&cellbin_version, sizeof(cellbin_version), 1, custom_file);
 
   /* Write all the molecules whether EXTERNAL_SPECIES or not (for now) */
-  for (species_id_t species_idx = 0; species_idx < world->species.size(); species_idx++) {
+  for (species_id_t species_idx = 0; species_idx < world->get_species().size(); species_idx++) {
     // count of molecules for this species
     vector<partition_molecule_ptr_pair_t>& species_molecules = volume_molecules_by_species[species_idx];
     if (species_molecules.empty()) {
@@ -202,7 +207,7 @@ void viz_output_event_t::output_cellblender_molecules() {
     }
 
     /* Write species name: */
-    string mol_name = world->species[species_idx].name;
+    string mol_name = world->get_species(species_idx).name;
     byte name_len = mol_name.length();
      fwrite(&name_len, sizeof(byte), 1, custom_file);
     fwrite(mol_name.c_str(), sizeof(char), name_len, custom_file);
@@ -215,7 +220,7 @@ void viz_output_event_t::output_cellblender_molecules() {
     fwrite(&species_type, sizeof(species_type), 1, custom_file);
 
     /* write number of x,y,z floats for mol positions to follow: */
-    uint32_t n_floats = 3 * species_molecules.size();
+    uint n_floats = 3 * species_molecules.size();
     fwrite(&n_floats, sizeof(n_floats), 1, custom_file);
 
      /* Write positions of volume and surface molecules: */

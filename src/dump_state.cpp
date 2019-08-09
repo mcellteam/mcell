@@ -377,18 +377,22 @@ void dump_wall_list_array(int num, const char* num_name, wall_list** values, con
 }
 
 
-string get_molecule_flags_string(short flags) {
+string get_molecule_flags_string(short flags, bool full_dump = true) {
   string res;
 #define DUMP_FLAG(f, mask) if (((f) & (mask)) != 0) res += string(#mask) + ", ";
   DUMP_FLAG(flags, TYPE_SURF)
   DUMP_FLAG(flags, TYPE_VOL)
   DUMP_FLAG(flags, ACT_DIFFUSE)
-  DUMP_FLAG(flags, ACT_REACT)
-  DUMP_FLAG(flags, ACT_NEWBIE)
-  DUMP_FLAG(flags, ACT_CHANGE)
+  if (full_dump) {
+    DUMP_FLAG(flags, ACT_REACT)
+    DUMP_FLAG(flags, ACT_NEWBIE)
+    DUMP_FLAG(flags, ACT_CHANGE)
+  }
   DUMP_FLAG(flags, ACT_CLAMPED)
-  DUMP_FLAG(flags, IN_SCHEDULE)
-  DUMP_FLAG(flags, IN_SURFACE)
+  if (full_dump) {
+    DUMP_FLAG(flags, IN_SCHEDULE)
+    DUMP_FLAG(flags, IN_SURFACE)
+  }
   DUMP_FLAG(flags, IN_VOLUME)
 #undef DUMP_FLAG
   return res;
@@ -459,7 +463,7 @@ void dump_molecules(int num_all_molecules, molecule_info **all_molecules) {
 
     if ((amp->properties->flags & NOT_FREE) == 0) {
       volume_molecule *vmp = (volume_molecule *)amp;
-      dump_volume_molecule(vmp, "  ", true, "", 0, 0.0);
+      dump_volume_molecule(vmp, "  ", true, "", 0, 0.0, true);
     } else if ((amp->properties->flags & ON_GRID) != 0) {
       surface_molecule *smp = (surface_molecule *)amp;
       dump_surface_molecule(smp, "  ");
@@ -1116,10 +1120,12 @@ extern "C" void dump_volume(struct volume* s, const char* comment, unsigned int 
   dump_subvolumes(s->n_subvols, "n_subvols", "/* How many coarse subvolumes? */", s->subvol, "subvol", "/* Array containing all subvolumes */", "");
 
   cout << "n_walls: \t\t" << s->n_walls << " [int] \t\t/* Total number of walls */\n";
-  dump_vector3_array(s->n_walls, "n_walls", s->all_vertices, "all_vertices", "/* Central repository of vertices with a partial order imposed by natural ordering of storages*/", "");
 
+  cout << "n_verts: \t\t" << s->n_verts << " [int] \t\t/* Total number of vertices */\n";
 
-  dump_wall_list_array(s->n_walls, "n_walls", s->walls_using_vertex, "walls_using_vertex", "/* Array of linked lists of walls using a vertex (has the size of all_vertices array) */", "");
+  dump_vector3_array(s->n_verts, "n_verts", s->all_vertices, "all_vertices", "/* Central repository of vertices with a partial order imposed by natural ordering of storages*/", "");
+
+  dump_wall_list_array(s->n_verts, "n_verts", s->walls_using_vertex, "walls_using_vertex", "/* Array of linked lists of walls using a vertex (has the size of all_vertices array) */", "");
 
   cout << "rx_hashsize: \t\t" << s->rx_hashsize << " [int] \t\t/* How many slots in our reaction hash table? */\n";
   cout << "n_reactions: \t\t" << s->n_reactions << " [int] \t\t/* How many reactions are there, total? */\n";
@@ -1455,13 +1461,18 @@ string get_species_name(volume_molecule* vm) {
   return vm->properties->sym->name;
 }
 
+string get_species_name(surface_molecule* sm) {
+  return sm->properties->sym->name;
+}
+
 void dump_volume_molecule(
     volume_molecule* vm,
     const char* ind,
     bool for_diff,
     const char* extra_comment,
     unsigned long long iteration,
-    double time
+    double time,
+    bool print_position
 ) {
   if (!for_diff) {
     cout << ind << "id: \t\t" << vm->id << " [u_long] \t\t\n";
@@ -1471,9 +1482,42 @@ void dump_volume_molecule(
   }
   else {
     cout << extra_comment << "it:" << iteration << ", idx:" << vm->id
-        << ", species " << get_species_name(vm) << ", pos:" << vm->pos
-        << ", flags:" << get_molecule_flags_string(vm->flags) << ", time: " << time << "\n";
+        << ", species: " << get_species_name(vm);
+    if (print_position) {
+      cout << ", pos:" << vm->pos;
+    }
+    cout << ", flags:" << get_molecule_flags_string(vm->flags, false) << ", time: " << time << "\n";
   }
+}
+
+void dump_surface_molecule(
+    surface_molecule* sm,
+    const char* ind,
+    bool for_diff,
+    const char* extra_comment,
+    unsigned long long iteration,
+    double time,
+    bool print_position
+) {
+  if (!for_diff) {
+    cout << ind << "id: \t\t" << sm->id << " [u_long] \t\t\n";
+    cout << ind << "pos: \t\t" << sm->s_pos << " [vector2] \t\t/* Position in space */\n";
+    cout << ind << "properties: *\t\t" << sm->properties << " [species] \t\t\n";
+    cout << ind << "  species name: *\t\t" << sm->properties->sym->name << " [char] \t\t\n";
+  }
+  else {
+    cout << extra_comment << "it:" << iteration << ", idx:" << sm->id
+        << ", species: " << get_species_name(sm);
+    if (print_position) {
+        cout << ", pos:" << sm->s_pos
+        << ", grid index: " << sm->grid_index;
+    }
+    cout << ", flags:" << get_molecule_flags_string(sm->flags, false) << ", time: " << time << "\n";
+  }
+}
+
+void dump_vector2(struct vector2 vec, const char* extra_comment) {
+  cout << extra_comment << vec << "\n";
 }
 
 void dump_vector3(struct vector3 vec, const char* extra_comment) {
@@ -1483,3 +1527,15 @@ void dump_vector3(struct vector3 vec, const char* extra_comment) {
 void dump_rng_call_info(struct isaac64_state* rng, const char* extra_comment) {
   cout << "  " << extra_comment << "randcnt:" << rng->randcnt << ", aa:" << (unsigned)rng->aa << ", bb:" << (unsigned)rng->bb << ", cc:" << (unsigned)rng->cc << "\n";
 }
+
+void dump_tile_neighbors_list(struct tile_neighbor *tile_nbr_head, const char* extra_comment, const char* ind) {
+  struct tile_neighbor *curr = tile_nbr_head;
+  int i = 0;
+  std::cout << ind << extra_comment << "\n";
+  while (curr != nullptr) {
+    std::cout << ind << i << ": " << curr->idx << "\n";
+    curr = curr->next;
+    i++;
+  }
+}
+

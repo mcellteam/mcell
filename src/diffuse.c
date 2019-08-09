@@ -2946,7 +2946,7 @@ struct volume_molecule *diffuse_3D(
 
 #ifdef DEBUG_DIFFUSION
   DUMP_CONDITION3(
-  		dump_volume_molecule(vm, "", true, "Diffusing vm:", world->current_iterations, vm->t);
+  		dump_volume_molecule(vm, "", true, "Diffusing vm:", world->current_iterations, vm->t, true);
   );
 #endif
 
@@ -3323,6 +3323,12 @@ struct surface_molecule *diffuse_2D(
         "Attempted to take a 2-D diffusion step for a defunct molecule.");
   }
 
+#ifdef DEBUG_DIFFUSION
+  DUMP_CONDITION3(
+      dump_surface_molecule(sm, "", true, "Diffusing sm:", world->current_iterations, sm->t, true);
+  );
+#endif
+
   // XXX: When would this ever happen, and shouldn't it just be an error?
   if (sm->get_space_step(sm) <= 0.0) {
     sm->t += max_time;
@@ -3380,7 +3386,12 @@ struct surface_molecule *diffuse_2D(
     struct vector2 displacement;
     pick_2D_displacement(&displacement, space_factor, world->rng);
 
-    // TODO: dump
+#ifdef DEBUG_DIFFUSION
+    DUMP_CONDITION3(
+        dump_vector2(displacement, "  displacement:")
+    );
+#endif
+
 
     if (sm->properties->flags & SET_MAX_STEP_LENGTH) {
       double disp_length = sqrt(displacement.u * displacement.u +
@@ -3515,7 +3526,7 @@ react_2D_all_neighbors(struct volume *world, struct surface_molecule *sm,
 
   local_prob_factor = 3.0 / num_nbrs;
 
-  for (int kk = 0; kk < max_size; kk++) {
+  for (int kk = 0; kk < max_size; kk++) { // NOTE: this is done every call..
     rxn_array[kk] = NULL;
     smol[kk] = NULL;
     cf[kk] = 0;
@@ -3528,6 +3539,12 @@ react_2D_all_neighbors(struct volume *world, struct surface_molecule *sm,
     if (sm_list == NULL || sm_list->sm == NULL)
       continue;
     struct surface_molecule *smp = curr->grid->sm_list[curr->idx]->sm;
+
+#ifdef DEBUG_REACTIONS
+    DUMP_CONDITION3(
+        dump_surface_molecule(smp, "", true, "  checking in react_2D_all_neighbors: ", world->current_iterations, 0.0, true);
+    );
+#endif
 
     /* check whether the neighbor molecule is behind
        the restrictive region boundary   */
@@ -3715,11 +3732,13 @@ void run_timestep(struct volume *state, struct storage *local,
       continue;
     }
 #ifdef DEBUG_SCHEDULER
-    struct volume *world = state;
-    DUMP_CONDITION3(
-        struct volume_molecule* vm = (struct volume_molecule*)am;
-        dump_volume_molecule(vm, "", true, "\n* Scheduled action: ", world->current_iterations, vm->t);
-    );
+    {
+      struct volume *world = state;
+      DUMP_CONDITION3(
+          struct volume_molecule* vm = (struct volume_molecule*)am;
+          dump_volume_molecule(vm, "", true, "\n* Scheduled action: ", world->current_iterations, vm->t, true);
+      );
+    }
 #endif
 
     am->flags &= ~IN_SCHEDULE;
@@ -3781,6 +3800,22 @@ void run_timestep(struct volume *state, struct storage *local,
           continue;
         }
       }
+    }
+    else {
+     // DUMP
+#ifdef DEBUG_DIFFUSION
+      struct volume *world = state;
+      if ((am->flags & TYPE_VOL) != 0) {
+        DUMP_CONDITION3(
+            dump_volume_molecule((struct volume_molecule *)am, "", true, "Not diffusing vm:", world->current_iterations, am->t, true);
+        );
+      }
+      else {
+        DUMP_CONDITION3(
+            dump_surface_molecule((struct surface_molecule *)am, "", true, "Not diffusing sm:", world->current_iterations, am->t, true);
+        );
+      }
+#endif
     }
 
     //int can_surface_mol_react =
@@ -4152,7 +4187,7 @@ int collide_and_react_with_surf_mol(struct volume* world, struct collision* smas
   struct volume_molecule* m, struct collision** tentative,
   struct vector3** loc_certain, double t_steps, int mol_grid_flag,
   int mol_grid_grid_flag, double r_rate_factor) {
-
+  assert(mol_grid_flag == 1 && "mcell4 todo");
   struct collision* ttv = *tentative;
   struct vector3* loc = *loc_certain;
   struct wall* w = (struct wall *)smash->target;
@@ -4163,12 +4198,12 @@ int collide_and_react_with_surf_mol(struct volume* world, struct collision* smas
   } else if (smash->next->t * (1.0 - EPS_C) > smash->t) {
     t_confident = smash->t;
   } else {
-    t_confident = smash->t * (1.0 - EPS_C);
+    t_confident = smash->t * (1.0 - EPS_C); assert(false && "mcell4 todo");
   }
 
   int k = -1;
   if ((smash->what & COLLIDE_MASK) == COLLIDE_FRONT) {
-    k = 1;
+    k = 1; assert(false && "mcell4 todo");
   }
 
   int j = xyz2grid(&(smash->loc), w->grid);
@@ -4177,7 +4212,7 @@ int collide_and_react_with_surf_mol(struct volume* world, struct collision* smas
     return -1;
   }
   struct surface_molecule* sm = w->grid->sm_list[j]->sm;
-  if (m->index == j && m->previous_wall == w) {
+  if (m->index == j && m->previous_wall == w) { assert(false && "mcell4 todo");
     m->index = -1; // Avoided rebinding, but next time it's OK
     return -1;
   }
@@ -4206,8 +4241,8 @@ int collide_and_react_with_surf_mol(struct volume* world, struct collision* smas
       }
 
       for (int l = 0; l < num_matching_rxns; l++) {
-        if (matching_rxns[l]->prob_t != NULL)
-          update_probs(world, matching_rxns[l], m->t);
+        if (matching_rxns[l]->prob_t != NULL) { assert(false && "mcell4 todo");
+          update_probs(world, matching_rxns[l], m->t); }
         scaling_coef[l] = r_rate_factor / w->grid->binding_factor;
       }
 
@@ -4216,7 +4251,7 @@ int collide_and_react_with_surf_mol(struct volume* world, struct collision* smas
           (struct abstract_molecule *)m, (struct abstract_molecule *)sm,
           world->rng);
         jj = 0;
-      } else {
+      } else { assert(false && "mcell4 todo");
         jj = test_many_bimolecular(matching_rxns, scaling_coef, 0,
           num_matching_rxns, &(ii), world->rng, 0);
       }
@@ -4227,7 +4262,7 @@ int collide_and_react_with_surf_mol(struct volume* world, struct collision* smas
           (struct abstract_molecule *)m, (struct abstract_molecule *)sm,
           k, sm->orient, m->t + t_steps * smash->t, &(smash->loc), loc);
 
-        if (l == RX_FLIP) {
+        if (l == RX_FLIP) { assert(false && "mcell4 todo");
           if ((m->flags & COUNT_ME) != 0 && (spec->flags & COUNT_SOME_MASK) != 0) {
             /* Count as far up as we can unambiguously */
             int destroy_flag = 0;

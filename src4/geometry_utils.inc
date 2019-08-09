@@ -31,6 +31,10 @@
  */
 #include <vector>
 
+extern "C" {
+#include "logging.h"
+}
+
 #include "diffuse_react_event.h"
 #include "defines.h"
 #include "world.h"
@@ -41,6 +45,33 @@
 namespace mcell {
 
 namespace geom_util {
+
+// several commonly used geometry utilities,
+// rest of these utilities is in
+static vec3_t uv2xyz(const vec2_t& a, const wall_t& w, const vec3_t& wall_vert0) {
+  return vec3_t(a.u) * w.unit_u + vec3_t(a.v) * w.unit_v + wall_vert0;
+}
+
+
+static vec2_t xyz2uv(const partition_t& p, const vec3_t& a, const wall_t& w) {
+  vec2_t res;
+
+  if (w.has_initialized_grid()) {
+    const grid_t& g = w.grid;
+
+    res.u = a.x * w.unit_u.x + a.y * w.unit_u.y + a.z * w.unit_u.z -
+           g.vert0.u;
+    res.v = a.x * w.unit_v.x + a.y * w.unit_v.y + a.z * w.unit_v.z -
+           g.vert0.v;
+  }
+  else {
+    vec3_t pos = a - p.get_wall_vertex(w, 0);
+    res.u = dot(pos, w.unit_u);
+    res.u = dot(pos, w.unit_v);
+  }
+  return res;
+}
+
 
 /***************************************************************************
 wall_bounding_box:
@@ -88,6 +119,111 @@ static inline void get_wall_bounding_box(
 
 
 /***************************************************************************
+distribute_wall:
+  In: a wall 'w' that fully fits into patrition 'p'
+  Out: colliding_subparts - indices of all the subparitions in a given partition
+        where the wall is located
+***************************************************************************/
+// original name: distribute_wall
+static void wall_subparts_collision_test(
+    const partition_t& p, const wall_t& w,
+    subpart_indices_vector_t& colliding_subparts
+) {
+  vec3_t llf, urb; /* Bounding box for wall */
+  float_t leeway = 1.0; /* Margin of error */
+
+  vec3_t w_vert[VERTICES_IN_TRIANGLE];
+  w_vert[0] = p.get_geometry_vertex(w.vertex_indices[0]);
+  w_vert[1] = p.get_geometry_vertex(w.vertex_indices[1]);
+  w_vert[2] = p.get_geometry_vertex(w.vertex_indices[2]);
+
+  get_wall_bounding_box(w_vert, llf, urb);
+
+  // min
+  if (llf.x < -leeway)
+    leeway = -llf.x;
+  if (llf.y < -leeway)
+    leeway = -llf.y;
+  if (llf.z < -leeway)
+    leeway = -llf.z;
+
+  // max
+  if (urb.x > leeway)
+    leeway = urb.x;
+  if (urb.y > leeway)
+    leeway = urb.y;
+  if (urb.z > leeway)
+    leeway = urb.z;
+  leeway = EPS + leeway * EPS;
+  if (p.get_world_constants().use_expanded_list) {
+    leeway += p.get_world_constants().rx_radius_3d;
+  }
+
+  llf = llf - vec3_t(leeway);
+  urb = urb + vec3_t(leeway);
+
+  // let's assume for now that we are placing a cube with corners llf and urb,
+  // fing what are the min and max parition indices
+  ivec3_t min_subpart_indices, max_subpart_indices;
+  p.get_subpart_3d_indices(llf, min_subpart_indices);
+  p.get_subpart_3d_indices(urb, max_subpart_indices);
+
+  // do we fit into just one subparition?
+  if (max_subpart_indices == min_subpart_indices) {
+    colliding_subparts.push_back(
+        p.get_subpartition_index_from_3d_indices(min_subpart_indices)
+    );
+    return;
+  }
+
+#if 0
+  // don't know yet what is this doing, somehow it is trying to find some subvolume
+  // but don't know which one
+
+  // this is needed for the following code (if enabled, fix loop afterwards)
+  max_subpart_indices += ivec3_t(1); // max is incremented by 1 in each dimension
+
+  cent.x = 0.33333333333 * (w_vert[0].x + w_vert[1].x + w_vert[2].x);
+  cent.y = 0.33333333333 * (w_vert[0].y + w_vert[1].y + w_vert[2].y);
+  cent.z = 0.33333333333 * (w_vert[0].z + w_vert[1].z + w_vert[2].z);
+
+
+  for (i = x_min; i < x_max; i++) {
+    if (cent.x < world->x_partitions[i])
+      break;
+  }
+  for (j = y_min; j < y_max; j++) {
+    if (cent.y < world->y_partitions[j])
+      break;
+  }
+  for (k = z_min; k < z_max; k++) {
+    if (cent.z < world->z_partitions[k])
+      break;
+  }
+
+  h = (k - 1) +
+      (world->nz_parts - 1) * ((j - 1) + (world->ny_parts - 1) * (i - 1));
+  where_am_i = localize_wall(w, world->subvol[h].local_storage);
+  if (where_am_i == NULL)
+    return NULL;
+#endif
+
+  // simply insert to all subparts that cross the expanded cube for this wall
+  // NOTE: can be optimized, the wall is a 3D triangle, not a cube...
+  for (int x = min_subpart_indices.x; x <= max_subpart_indices.x; x++) {
+    for (int y = min_subpart_indices.y; y <= max_subpart_indices.y; y++) {
+      for (int z = min_subpart_indices.z; z <= max_subpart_indices.z; z++) {
+        colliding_subparts.push_back(
+            p.get_subpart_index_from_3d_indices(x, y, z)
+        );
+      }
+    }
+  }
+}
+
+
+
+/***************************************************************************
 find_edge_point:
   In: here: a wall
       loc: a point in the coordinate system of that wall where we are now
@@ -104,8 +240,6 @@ static int find_edge_point(
     const vec2_t& disp,
     vec2_t& edgept
 ) {
-  // TODO: cleanup
-
   float_t lxd = determinant2(loc, disp);
 
   float_t lxc1 = -loc.v * here.uv_vert1_u;
@@ -183,7 +317,7 @@ traverse_surface:
        direction if it is shared. newloc is set to loc in the coordinate system
        of the new wall (after flattening the walls along their shared edge)
 ***************************************************************************/
-static wall_index_t traverse_surface(wall_t& here, const vec2_t& loc, int which_edge,
+static wall_index_t traverse_surface(const wall_t& here, const vec2_t& loc, int which_edge,
   vec2_t& newloc) {
 
   wall_index_t there;
@@ -223,6 +357,61 @@ static wall_index_t traverse_surface(wall_t& here, const vec2_t& loc, int which_
 }
 
 
+/**************************************************************************
+same_side:
+        In: two points p1 and p2
+            line defined by the points a and b
+        Out: returns 1 if points p1 and p2 are on the same side of the line
+             defined by the points a and b
+**************************************************************************/
+static int same_side(const vec3_t& p1, const vec3_t& p2, const vec3_t& a, const vec3_t& b) {
+  vec3_t cp1, cp2, b_a, p1_a, p2_a;
+  b_a = b - a;
+  p1_a = p1 - a;
+  p2_a = p2 - a;
+
+  cp1 = cross(b_a, p1_a);
+  cp2 = cross(b_a, p2_a);
+
+  if (dot(cp1, cp2) >= 0) {
+    return 1;
+  }
+  else {
+    return 0;
+  }
+}
+
+
+/************************************************************************
+point_in_triangle:
+        In: point p
+            triangle defined by points a,b,c
+        Out: returns 1 if point p is in the triangle defined by
+             points (a,b,c) or lies on edges (a,b), (b,c) or (a,c).
+        Note: If point p coincides with vertices (a,b,c) we consider that p
+              is in the triangle.
+************************************************************************/
+static bool point_in_triangle(const vec3_t& p, const vec3_t& a, const vec3_t& b, const vec3_t& c) {
+
+  if (same_side(p, a, b, c) && same_side(p, b, a, c) && same_side(p, c, a, b)) {
+    return 1;
+  }
+
+  if (((!distinguishable_f(p.x, a.x, EPS)) &&
+       (!distinguishable_f(p.y, a.y, EPS)) &&
+       (!distinguishable_f(p.z, a.z, EPS))) ||
+      ((!distinguishable_f(p.x, b.x, EPS)) &&
+       (!distinguishable_f(p.y, b.y, EPS)) &&
+       (!distinguishable_f(p.z, b.z, EPS))) ||
+      ((!distinguishable_f(p.x, c.x, EPS)) &&
+       (!distinguishable_f(p.y, c.y, EPS)) &&
+       (!distinguishable_f(p.z, c.z, EPS)))) {
+    return 1;
+  }
+
+  return 0;
+}
+
 
 /*******************************************************************
 cross2D:
@@ -232,19 +421,8 @@ cross2D:
               Christer Ericson, p.205
 
 *******************************************************************/
-// FIXME - replace with determinant2
 static float_t cross2D(const vec2_t& a, const vec2_t& b) {
   return ((a.v) * (b.u) - (a.u) * (b.v));
-}
-
-/*************************************************************************
-vectorize2D:
-   In: 2D vectors p1 and p2
-   Out: Subtracts vector p1 from p2 and places result into p3
-*************************************************************************/
-static void vectorize2D(const vec2_t& p1, const vec2_t& p2, vec2_t& p3) {
-  p3.u = p2.u - p1.u;
-  p3.v = p2.v - p1.v;
 }
 
 /*********************************************************************
@@ -256,110 +434,186 @@ point_in_triangle_2D:
         Note: The code adapted from "Real-Time Collision Detection" by
               Christer Ericson, p.206
 ***********************************************************************/
-static int point_in_triangle_2D(const vec2_t& p, const vec2_t& a,
+static bool point_in_triangle_2D(const vec2_t& p, const vec2_t& a,
                          const vec2_t& b, const vec2_t& c) {
-  vec2_t p_minus_a, b_minus_a, p_minus_b, c_minus_b, p_minus_c,
-      a_minus_c;
   float_t pab, pbc, pca;
 
-  vectorize2D(a, p, p_minus_a);
-  vectorize2D(a, b, b_minus_a);
-  vectorize2D(b, p, p_minus_b);
-  vectorize2D(b, c, c_minus_b);
-  vectorize2D(c, p, p_minus_c);
-  vectorize2D(c, a, a_minus_c);
-
-  pab = cross2D(p_minus_a, b_minus_a);
-  pbc = cross2D(p_minus_b, c_minus_b);
+  pab = cross2D(p - a, b - a);
+  pbc = cross2D(p - b, c - b);
   /* if P left of one of AB and BC and right of the other, not inside triangle
      - (pab and pbc have different signs */
   if (((pab > 0) && (pbc < 0)) || ((pab < 0) && (pbc > 0))) {
-    return 0;
+    return false;
   }
 
-  pca = cross2D(p_minus_c, a_minus_c);
+  pca = cross2D(p - c, a - c);
   /* if P left of one of AB and CA and right of the other, not inside triangle
    * - pab and pca have different signs */
   if (((pab > 0) && (pca < 0)) || ((pab < 0) && (pca > 0))) {
-    return 0;
+    return false;
   }
 
   /* if P left or right of all edges, so must be in (or on) the triangle */
-  return 1;
+  return true;
 }
 
 
+/***************************************************************************
+closest_pt_point_triangle:
+  In:  p - point
+       a,b,c - vectors defining the vertices of the triangle.
+  Out: final_result - closest point on triangle ABC to a point p.
+       The code is adapted from "Real-time Collision Detection" by Christer
+Ericson, ISBN 1-55860-732-3, p.141.
 
-static int uv2grid(
-    const vec2_t& v,
-    const wall_t& w,
-    const grid_t& g
+***************************************************************************/
+static void closest_pt_point_triangle(
+    const vec3_t& p, const vec3_t& a,
+    const vec3_t& b, const vec3_t& c,
+    vec3_t& final_result
 ) {
-  float_t i, j;
-  float_t u0, u1_u0;
-  float_t striploc, striprem, stripeloc, striperem;
-  int strip, stripe, flip, idx;
-  vec2_t vert_0, vert_1;
-  int tile_idx_0, tile_idx_mid, tile_idx_last;
 
-  if (g.num_tiles == 1) {
-    return 0;
+  /* Check if P in vertex region outside A */
+  vec3_t ab, ac, ap;
+  ab = b - a;
+  ac = c - a;
+  ap = p - a;
+
+  float_t d1, d2;
+  d1 = dot(ab, ap);
+  d2 = dot(ac, ap);
+
+  if (d1 <= 0.0 && d2 <= 0.0) {
+    final_result = a;
+    return;
   }
 
-  /* find tile indices of the corner tiles */
-  tile_idx_0 = 0;
-  /* see function "move_strip_up()" */
-  tile_idx_mid = g.num_tiles - 2 * g.num_tiles_along_axis + 1;
-  tile_idx_last = g.num_tiles - 1;
-
-  vert_0.u = vert_0.v = 0;
-  vert_1.u = w.uv_vert1_u;
-  vert_1.v = 0;
-
-  if (!distinguishable_vec2(v, vert_0, EPS)) {
-    return tile_idx_mid;
-  }
-  if (!distinguishable_vec2(v, vert_1, EPS)) {
-    return tile_idx_0;
-  }
-  if (!distinguishable_vec2(v, w.uv_vert2, EPS)) {
-    return tile_idx_last;
+  /* Check if P in vertex region outside B */
+  vec3_t bp = p - b;
+  float_t d3, d4;
+  d3 = dot(ab, bp);
+  d4 = dot(ac, bp);
+  if (d3 >= 0.0 && d4 <= d3) {
+    final_result = b;
+    return;
   }
 
-  // TODO: just for debug?
-  if (!(point_in_triangle_2D(v, vert_0, vert_1, w.uv_vert2))) {
-    mcell_internal_error("Error in function 'uv2grid()': point is outside wall.");
+  /* Check if P in edge region of AB, if so return projection of P onto AB */
+  float_t v, w;
+  vec3_t result1;
+  float_t vc = d1 * d4 - d3 * d2;
+  if (vc <= 0.0 && d1 >= 0.0 && d3 <= 0.0) {
+    v = d1 / (d1 - d3);
+    result1 = ab * vec3_t(v);
+    final_result = a + result1;
+    return; /* barycentric coordinates (1-v,v,0) */
   }
 
-  i = v.u;
-  j = v.v;
-
-  striploc = j * g.inv_strip_wid;
-  strip = (int)striploc;
-  striprem = striploc - strip;
-
-  strip = g.num_tiles_along_axis - strip - 1;
-
-  u0 = j * g.vert2_slope;
-  u1_u0 = w.uv_vert1_u - j * g.fullslope;
-
-  stripeloc = ((i - u0) / u1_u0) * (((double)strip) + (1.0 - striprem));
-  stripe = (int)(stripeloc);
-  striperem = stripeloc - stripe;
-
-  flip = (striperem < 1.0 - striprem) ? 0 : 1;
-  idx = strip * strip + 2 * stripe + flip;
-
-  if ((u_int)idx >= g.num_tiles) {
-    mcell_internal_error(
-        "Error in function 'xyz2grid()': returning tile index "
-        "%d while wall has %u tiles",
-        idx, g.num_tiles
-    );
+  /* Check if P in vertex region outside C */
+  vec3_t cp = p - c;
+  float_t d5, d6;
+  d5 = dot(ab, cp);
+  d6 = dot(ac, cp);
+  if (d6 >= 0.0 && d5 <= d6) {
+    final_result = c;
+    return;
   }
 
-  return idx;
+  /* Check if P in edge region of AC, if so return projection of P onto AC */
+  float_t vb = d5 * d2 - d1 * d6;
+  if (vb <= 0.0f && d2 >= 0.0f && d6 <= 0.0f) {
+    w = d2 / (d2 - d6);
+    result1 = ac * vec3_t(w);
+    final_result = a + result1;
+    return; /* barycentric coordinates (0, 1-w,w) */
+  }
+
+  /* Check if P in edge region of BC, if so return projection of P onto BC */
+  float_t va = d3 * d6 - d5 * d4;
+  if (va <= 0.0f && (d4 - d3) >= 0.0f && (d5 - d6) >= 0.0f) {
+    w = (d4 - d3) / ((d4 - d3) + (d5 - d6));
+    result1 = (c - b) * vec3_t(w);
+    final_result = b + result1;
+    return; /*barycentric coordinates (0,1-w, w) */
+  }
+
+  /* P inside face region. Compute Q through its barycentric
+     coordinates (u,v,w) */
+  float_t denom = 1.0f / (va + vb + vc);
+  v = vb * denom;
+  w = vc * denom;
+  ab = ab * vec3_t(v);
+  ac = ac * vec3_t(w);
+  result1 = ab + ac;
+  final_result = a + result1;
+  return; /* = u*a + v*b + w*c, u = va * denom = 1.0f - v -w */
 }
+
+
+/***************************************************************************
+closest_interior_point:
+  In: a point in 3D
+      a wall
+      the surface coordinates of the closest interior point on the wall
+      how far away the point can be before we give up
+  Out: return the distance^2 between the input point and closest point.
+       Sets closest interior point.
+  Note: the search distance currently isn't used.  This function is just
+        a wrapper for closest_pt_point_triangle.  If the closest point is
+        on an edge or corner, we scoot the point towards the centroid of
+        the triangle so we're contained fully within the triangle.
+***************************************************************************/
+
+static float_t closest_interior_point(
+    partition_t& p,
+    const vec3_t& pt,
+    const wall_t& w,
+    vec2_t& ip) {
+
+  vec3_t v;
+  const vec3_t& w_vert0 = p.get_wall_vertex(w, 0);
+  const vec3_t& w_vert1 = p.get_wall_vertex(w, 1);
+  const vec3_t& w_vert2 = p.get_wall_vertex(w, 2);
+
+  closest_pt_point_triangle(pt, w_vert0, w_vert1, w_vert2, v);
+
+  ip = xyz2uv(p, v, w);
+
+  /* Check to see if we're lying on an edge; if so, scoot towards centroid. */
+  /* ip lies on edge of wall if cross products are zero */
+
+  int give_up_ctr = 0;
+  int give_up = 10;
+  float_t a1 = ip.u * w.uv_vert2.v - ip.v * w.uv_vert2.u;
+  float_t a2 = w.uv_vert1_u * ip.v;
+  vec2_t vert_0(0.0);
+  vec2_t vert_1(w.uv_vert1_u, 0.0);
+
+  while (
+      give_up_ctr < give_up
+      && (!distinguishable_f(ip.v, 0, EPS)
+          || !distinguishable_f(a1, 0, EPS)
+          || !distinguishable_f(a1 + a2, 2.0 * w.area, EPS)
+          || !point_in_triangle_2D(ip, vert_0, vert_1, w.uv_vert2))
+   ) {
+    /* Move toward centroid. It's possible for this movement to be so small
+     * that we are essentially stuck in this loop, so bail out after a set
+     * number of tries. The number chosen is somewhat arbitrary. In most cases,
+     * one try is sufficent. */
+    ip.u = (1.0 - 5 * EPS) * ip.u +
+            5 * EPS * 0.333333333333333 * (w.uv_vert1_u + w.uv_vert2.u);
+    ip.v = (1.0 - 5 * EPS) * ip.v +
+            5 * EPS * 0.333333333333333 * w.uv_vert2.v;
+
+    a1 = ip.u * w.uv_vert2.v - ip.v * w.uv_vert2.u;
+    a2 = w.uv_vert1_u * ip.v;
+
+    give_up_ctr++;
+  }
+
+  return len3_squared(v - pt);
+}
+
 
 } // namespace geom_util
 

@@ -37,6 +37,8 @@
 #include <errno.h>
 #include <assert.h>
 
+#include "c_vector.h"
+
 /*
 #include "isaac64.h"
 #include "rng.h"
@@ -370,6 +372,8 @@ static int output_ascii_molecules(struct volume *world,
     free(cf_name);
     cf_name = NULL;
 
+    c_vector_t *vec = vector_create();
+
     for (slp = world->storage_head; slp != NULL; slp = slp->next) {
       for (shp = slp->store->timer; shp != NULL; shp = shp->next_scale) {
         for (i = -1; i < shp->buf_len; i++) {
@@ -379,50 +383,67 @@ static int output_ascii_molecules(struct volume *world,
             if (amp->properties == NULL)
               continue;
 
-            int id = vizblk->species_viz_states[amp->properties->species_id];
-            if (id == EXCLUDE_OBJ)
-              continue;
-
-            if ((amp->properties->flags & NOT_FREE) == 0) {
-              mp = (struct volume_molecule *)amp;
-              where.x = mp->pos.x;
-              where.y = mp->pos.y;
-              where.z = mp->pos.z;
-              norm.x = 0;
-              norm.y = 0;
-              norm.z = 0;
-            } else if ((amp->properties->flags & ON_GRID) != 0) {
-              gmp = (struct surface_molecule *)amp;
-              uv2xyz(&(gmp->s_pos), gmp->grid->surface, &where);
-              orient = gmp->orient;
-              norm.x = orient * gmp->grid->surface->normal.x;
-              norm.y = orient * gmp->grid->surface->normal.y;
-              norm.z = orient * gmp->grid->surface->normal.z;
-            } else
-              continue;
-
-            where.x *= world->length_unit;
-            where.y *= world->length_unit;
-            where.z *= world->length_unit;
-            /*
-                        fprintf(custom_file,"%d %15.8e %15.8e %15.8e
-               %2d\n",id,where.x,where.y,where.z,orient);
-            */
-            if (id == INCLUDE_OBJ) {
-              /* write name of molecule */
-              fprintf(custom_file, "%s %lu %.9g %.9g %.9g %.9g %.9g %.9g\n",
-                      amp->properties->sym->name, amp->id, where.x, where.y,
-                      where.z, norm.x, norm.y, norm.z);
-            } else {
-              /* write state value of molecule */
-              fprintf(custom_file, "%d %lu %.9g %.9g %.9g %.9g %.9g %.9g\n", id,
-                      amp->id, where.x, where.y, where.z, norm.x, norm.y,
-                      norm.z);
-            }
+            // remember
+            vector_push_back(vec, amp);
           }
         }
       }
     }
+
+    // sort - necessary for comparison with mcell4 because
+    // molecules with diffusion constant zero are printed out in some "random" order
+    vector_sort_by_mol_id(vec);
+
+    // print
+    size_t sz = vector_get_size(vec);
+    for (size_t k = 0; k < sz; k++) {
+      amp = vector_at(vec, k);
+
+      int id = vizblk->species_viz_states[amp->properties->species_id];
+      if (id == EXCLUDE_OBJ)
+        continue;
+
+      if ((amp->properties->flags & NOT_FREE) == 0) {
+        mp = (struct volume_molecule *)amp;
+        where.x = mp->pos.x;
+        where.y = mp->pos.y;
+        where.z = mp->pos.z;
+        norm.x = 0;
+        norm.y = 0;
+        norm.z = 0;
+      } else if ((amp->properties->flags & ON_GRID) != 0) {
+        gmp = (struct surface_molecule *)amp;
+        uv2xyz(&(gmp->s_pos), gmp->grid->surface, &where);
+        orient = gmp->orient;
+        norm.x = orient * gmp->grid->surface->normal.x;
+        norm.y = orient * gmp->grid->surface->normal.y;
+        norm.z = orient * gmp->grid->surface->normal.z;
+      } else
+        continue;
+
+      where.x *= world->length_unit;
+      where.y *= world->length_unit;
+      where.z *= world->length_unit;
+      /*
+                  fprintf(custom_file,"%d %15.8e %15.8e %15.8e
+         %2d\n",id,where.x,where.y,where.z,orient);
+      */
+      if (id == INCLUDE_OBJ) {
+        /* write name of molecule */
+        fprintf(custom_file, "%s %lu %.9g %.9g %.9g %.9g %.9g %.9g\n",
+                amp->properties->sym->name, amp->id, where.x, where.y,
+                where.z, norm.x, norm.y, norm.z);
+      } else {
+        /* write state value of molecule */
+        fprintf(custom_file, "%d %lu %.9g %.9g %.9g %.9g %.9g %.9g\n", id,
+                amp->id, where.x, where.y, where.z, norm.x, norm.y,
+                norm.z);
+      }
+
+    }
+
+    vector_delete(vec);
+
     fclose(custom_file);
   }
 

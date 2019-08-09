@@ -39,6 +39,18 @@ struct species_with_orientation_t {
     : species_id(species_id_), orientation(orientation_) {
   }
 
+  bool operator == (const species_with_orientation_t& a) const {
+    return species_id == a.species_id && orientation == a.orientation;
+  }
+  bool operator != (const species_with_orientation_t& a) const {
+    return !(*this == a);
+  }
+  bool is_same_tolerate_orientation_none(const species_id_t species_id_, const orientation_t orientation_) const {
+    return
+        species_id == species_id_ &&
+        (orientation == ORIENTATION_NONE || orientation_ == ORIENTATION_NONE || orientation == orientation_);
+  }
+
   species_id_t species_id;
   orientation_t orientation;
 };
@@ -46,13 +58,23 @@ struct species_with_orientation_t {
 
 class reaction_t {
 public:
-	// TODO: add comments
   std::string name;
+
+  /* Rate constant of this pathway */
   float_t rate_constant;
+
+  /* Maximum 'p' for region of p-space for all non-cooperative pathways */
   float_t max_fixed_p;
+
+  /* Minimum 'p' for region of p-space which is always in the non-reacting "pathway". (note that
+     cooperativity may mean that some values of p less than this still do not produce a reaction) */
   float_t min_noreaction_p;
   std::vector<species_with_orientation_t> reactants;
   std::vector<species_with_orientation_t> products;
+
+  uint get_num_players() const {
+    return reactants.size() + products.size();
+  }
 
   void dump(const std::string ind) const;
 };
@@ -82,6 +104,7 @@ public:
       scheduled_time(scheduled_time_),
       type(type_),
       unimol_rx(unimol_rx_) {
+    assert(scheduled_time >= 0.0);
     if (type == UNIMOL_REACT) {
       assert(unimol_rx_ != nullptr);
     }

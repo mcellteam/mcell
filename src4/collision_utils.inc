@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2017 by
+ * Copyright (C) 2019 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -55,7 +55,6 @@ static void collect_neighboring_subparts(
     const float_t subpart_edge_len,
     subpart_indices_set_t& crossed_subpart_indices
 ) {
-  // TODO: use get_subpart_llf_point
   vec3_t rel_pos = pos - p.get_origin_corner();
 
   // left (x)
@@ -138,17 +137,17 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
   const vec3_t& displacement,
   const float_t rx_radius,
   const float_t sp_edge_length,
-  const bool collect_for_walls, // if not inlined, maybe we will need to specialize this functiona manually or through template
+  const bool collect_for_walls,
   subpart_indices_vector_t& crossed_subparts_for_walls, // crossed subparts considered for wall collision
   subpart_indices_set_t& crossed_subparts_for_molecules, // crossed subparts considered for molecule collisions
-  uint32_t& last_subpart_index
+  subpart_index_t& last_subpart_index
 ) {
   if (collect_for_walls) {
     assert(crossed_subparts_for_walls.empty());
   }
   assert(crossed_subparts_for_molecules.empty());
 
-  // remeber the starting subpartition
+  // remember the starting subpartition
   if (collect_for_walls) {
     crossed_subparts_for_walls.push_back(vm.v.subpart_index);
   }
@@ -181,7 +180,7 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
   // moving along them
   if ( !glm::all( glm::equal(dest_subpart_indices, src_subpart_indices) ) ) {
 
-    uint32_t dest_subpart_index = p.get_subpartition_index_from_3d_indices(dest_subpart_indices);
+    subpart_index_t dest_subpart_index = p.get_subpartition_index_from_3d_indices(dest_subpart_indices);
     last_subpart_index = dest_subpart_index;
 
     ivec3_t dir_urb_addend;
@@ -192,14 +191,16 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
     vec3_t curr_pos = vm.v.pos;
     ivec3_t curr_subpart_indices = src_subpart_indices;
 
-    uint32_t curr_subpart_index;
+    subpart_index_t curr_subpart_index;
 
     vec3_t displacement_rcp = 1.0/displacement_nonzero; // POSSIBLE ZERO DIV
 
     do {
       // subpartition edges
       // = origin + subparition index * length + is_urb * length
-      vec3_t sp_len_as_vec3 = vec3_t(sp_edge_length); // FIXME: some of this computation can be moved out of the loop
+
+      // NOTE: some of these computation can be moved out of the loop, not sure if it will improve performance
+      vec3_t sp_len_as_vec3 = vec3_t(sp_edge_length);
       vec3_t sp_edges =
           p.get_origin_corner()
           +  vec3_t(curr_subpart_indices) * sp_len_as_vec3 // llf edge
@@ -471,7 +472,7 @@ static collision_type_t collide_wall(
     if (dv != 0.0)
       return COLLISION_WALL_MISS;
 
-    // TODO: what is this doing???
+    // NOTE: what is this doing?
     if (update_move) {
       a = (mcell::abs_max_2vec(pos, move) + 1.0) * EPS_C;
       if ((rng_uint(&rng) & 1) == 0)
@@ -527,7 +528,7 @@ static collision_type_t collide_wall(
           return COLLISION_WALL_FRONT;
         }
       }
-      else if ((!mcell::distinguishable(
+      else if ((!distinguishable_f(
           c * face.uv_vert1_u + g,
           h + face.uv_vert1_u * face.uv_vert2.v,
           EPS_C))) {
@@ -543,7 +544,7 @@ static collision_type_t collide_wall(
         return COLLISION_WALL_MISS;
       }
     }
-    else if (!mcell::distinguishable(g, h, EPS)) {
+    else if (!distinguishable_f(g, h, EPS)) {
       if (update_move) {
         jump_away_line(pos, a, face_vert[2], face_vert[0], face.normal, rng, move);
         return COLLISION_WALL_REDO;
@@ -556,7 +557,7 @@ static collision_type_t collide_wall(
       return COLLISION_WALL_MISS;
     }
   }
-  else if (!mcell::distinguishable(c, 0, EPS)) /* Hit first edge! */
+  else if (!distinguishable_f(c, 0, EPS)) /* Hit first edge! */
   {
     if (update_move) {
       jump_away_line(pos, a, face_vert[0], face_vert[1], face.normal, rng, move);
@@ -581,7 +582,7 @@ static void collect_wall_collisions(
     collision_vector_t& wall_collisions
 ) {
   // check each wall in this subpartition
-  const subpartition_mask_t& wall_indices = p.get_subpart_wall_indices(subpart_index);
+  const uint_set_t& wall_indices = p.get_subpart_wall_indices(subpart_index);
 
   for (wall_index_t wall_index: wall_indices) {
     if (wall_index == previous_reflected_wall)
@@ -596,9 +597,7 @@ static void collect_wall_collisions(
 
     if (collision_type == COLLISION_WALL_REDO) {
       // run the same thing again? not sure, need to find such case
-      assert(false && "collision redo");
-      mcell_log("TODO: collision redo");
-      exit(1);
+      mcell_error("collision redo - not supported yet");
     }
     else if (collision_type != COLLISION_WALL_MISS) {
       p.get_simulation_stats().inc_ray_polygon_colls();
@@ -625,14 +624,13 @@ static void collect_wall_collisions(
  *      position in the neighboring image
  *
  ******************************************************************************/
-
 static int reflect_or_periodic_bc(
     const partition_t& p,
     const collision_t& collision,
     molecule_t& vm, // moves vm to the reflection point
     vec3_t& displacement,
     float_t& remaining_time_step, // same as t_steps
-    wall_index_t& reflected_wall_index // TODO: rename somehow?
+    wall_index_t& reflected_wall_index
 ) {
 
   const wall_t& w = p.get_wall(collision.colliding_wall_index);

@@ -1405,6 +1405,8 @@ int init_partitions(struct volume *world) {
   world->n_waypoints = 1;
   world->waypoints = CHECKED_MALLOC_ARRAY(struct waypoint, world->n_waypoints,
                                           "dummy waypoint");
+  /* Waypoints are not used in all cases, bnee to clear them first */
+  memset(world->waypoints, 0, sizeof(*world->waypoints));
 
   /* Allocate the subvolumes */
   world->n_subvols =

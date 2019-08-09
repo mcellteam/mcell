@@ -25,39 +25,20 @@
 #define SRC4_PARTITION_H_
 
 #include <set>
-#include <boost/container/flat_set.hpp>
 
 #include "defines.h"
+#include "world_constants.h"
 #include "molecule.h"
 #include "scheduler.h"
 #include "reaction.h"
 #include "geometry.h"
+#include "species.h"
 
 namespace mcell {
 
-/**
- * Class used to hold sets of ids or indices of molecules or other items
- */
-// TODO: rename to subpart_mask_t
-class subpartition_mask_t: public boost::container::flat_set<uint32_t> {
-public:
-  void set_contains_id(const uint32_t id, const bool value = true) {
-    if (value) {
-      assert(count(id) == 0);
-      insert(id);
-    }
-    else {
-      assert(count(id) == 1);
-      erase(id);
-    }
-  }
-
-  void dump();
-};
-
 
 /**
- * Parition class contains all molecules and other data contained in
+ * Partition class contains all molecules and other data contained in
  * one simulation block.
  */
 class partition_t {
@@ -74,7 +55,7 @@ public:
 
     opposite_corner = origin_corner + world_constants.partition_edge_length;
 
-    // preaallocate volume_molecules arrays and also volume_molecule_indices_per_time_step
+    // pre-allocate volume_molecules arrays and also volume_molecule_indices_per_time_step
     uint32_t num_subparts = powu(world_constants.subpartitions_per_partition_dimension, 3);
     volume_molecule_reactants_per_subpart.resize(num_subparts);
     walls_per_subpart.resize(num_subparts);
@@ -86,12 +67,13 @@ public:
   }
 
 
-  molecule_t& get_m(const molecule_id_t idx) { // should be ID
-    assert(idx < molecule_id_to_index_mapping.size());
+  molecule_t& get_m(const molecule_id_t id) { // should be ID
+    assert(id != MOLECULE_ID_INVALID);
+    assert(id < molecule_id_to_index_mapping.size());
 
     // code works with molecule ids, but they need to be converted to indices to the volume_molecules vector
     // because we need to defragment the contents
-    uint32_t vm_vec_index = molecule_id_to_index_mapping[idx];
+    uint32_t vm_vec_index = molecule_id_to_index_mapping[id];
     assert(vm_vec_index != MOLECULE_INDEX_INVALID);
     return molecules[vm_vec_index];
   }
@@ -181,6 +163,11 @@ public:
   }
 
   void change_reactants_map(molecule_t& vm, const uint32_t new_subpartition_index, bool adding, bool removing) {
+    if (vm.is_surf()) {
+      // nothing to do
+      return;
+    }
+    assert(vm.is_vol() && "This function is applicable only to volume mols and ignored for surface mols");
     assert(world_constants.bimolecular_reactions_map->find(vm.species_id) != world_constants.bimolecular_reactions_map->end());
 
     // these are all the sets of indices of reactants for this particular subpartition
@@ -218,57 +205,26 @@ public:
   }
 
 
-  // version that computes the right time_step_index each time it is called
-  molecule_t& add_volume_molecule(const molecule_t& vm_copy, const float_t time_step) {
-    uint32_t time_step_index = get_or_add_molecule_list_index_for_time_step(time_step);
-    return add_volume_molecule_with_time_step_index(vm_copy, time_step_index);
+  void add_molecule_to_diffusion_list(const molecule_t& m, const uint32_t time_step_index) {
+
+    // and its index to the list sorted by time step
+    // this is an array that changes only when molecule leaves this partition or is defunct
+    assert(time_step_index <= molecules_data_per_time_step_array.size());
+    molecules_data_per_time_step_array[time_step_index].molecule_ids.push_back(m.id);
   }
 
 
-  // any molecule flags are set by caller after the molecule is created by this method
-  molecule_t& add_volume_molecule_with_time_step_index(molecule_t vm_copy, const uint32_t time_step_index) {
-    molecule_id_t molecule_id = next_molecule_id;
-    next_molecule_id++;
-    // and its index to the list sorted by time step
-    // this is an array that changes only when molecule leaves this partition
-    assert(time_step_index <= molecules_data_per_time_step_array.size());
-    molecules_data_per_time_step_array[time_step_index].molecule_ids.push_back(molecule_id);
+private:
+  // internal methods that sets molecule's id and
+  // adds it to all relevant structures
+  molecule_t& add_molecule(const molecule_t& vm_copy, const bool is_vol) {
 
-    // We always have to increase the size of the mappping array - its size is
-    // large enough to hold indices for all molecules that were ever created,
-    // we will need to reuse ids or compress it later
-    uint32_t next_molecule_array_index = molecules.size(); // get the index of the molecule we aregoing to store
-    molecule_id_to_index_mapping.push_back(next_molecule_array_index);
-    assert(
-        molecule_id_to_index_mapping.size() == next_molecule_id
-        && "Mapping array must have value for every molecule index"
-    );
-
-    // This is the only place where we insert molecules into volume_molecules,
-    // although this array size can be decreased in defragmentation
-    molecules.push_back(vm_copy);
-    molecule_t& new_vm = molecules.back();
-
-    new_vm.id = molecule_id;
-    new_vm.v.subpart_index = get_subpartition_index(vm_copy.v.pos);
-    change_reactants_map(new_vm, new_vm.v.subpart_index, true, false);
-
-    return new_vm;
-  }
-
-
-  molecule_t& add_surface_molecule(const molecule_t& sm_copy, const vec3_t& pos3d, const float_t time_step) {
-
-    uint32_t time_step_index = get_or_add_molecule_list_index_for_time_step(time_step);
+    const species_t& species = world_constants.get_species(vm_copy.species_id);
+    assert((is_vol && species.is_vol()) || (!is_vol && species.is_surf()));
+    uint32_t time_step_index = get_or_add_molecule_list_index_for_time_step(species.time_step);
 
     molecule_id_t molecule_id = next_molecule_id;
     next_molecule_id++;
-
-    // TODO: merge with surface molecules
-    // and its index to the list sorted by time step
-    // this is an array that changes only when molecule leaves this partition
-    assert(time_step_index <= molecules_data_per_time_step_array.size());
-    molecules_data_per_time_step_array[time_step_index].molecule_ids.push_back(molecule_id);
 
     // We always have to increase the size of the mapping array - its size is
     // large enough to hold indices for all molecules that were ever created,
@@ -282,56 +238,66 @@ public:
 
     // This is the only place where we insert molecules into volume_molecules,
     // although this array size can be decreased in defragmentation
-    molecules.push_back(sm_copy);
-    molecule_t& new_sm = molecules.back();
+    molecules.push_back(vm_copy);
+    molecule_t& new_m = molecules.back();
+    new_m.id = molecule_id;
 
-    new_sm.id = molecule_id;
-    // new_sm.s.subpart_index = get_subpartition_index(pos3d);
-    //    change_reactants_map(new_vm, new_sm.s.subpart_index, true, false);
+    add_molecule_to_diffusion_list(new_m, time_step_index);
 
+    return new_m;
+  }
+
+public:
+  // any molecule flags are set by caller after the molecule is created by this method
+  molecule_t& add_volume_molecule(const molecule_t& vm_copy) {
+
+    molecule_t& new_vm = add_molecule(vm_copy, true);
+
+    new_vm.v.subpart_index = get_subpartition_index(vm_copy.v.pos);
+    change_reactants_map(new_vm, new_vm.v.subpart_index, true, false);
+
+    return new_vm;
+  }
+
+
+  molecule_t& add_surface_molecule(const molecule_t& sm_copy) {
+
+    molecule_t& new_sm = add_molecule(sm_copy, false);
     return new_sm;
   }
 
 
-
-  void set_molecule_as_defunct(molecule_t& vm) {
+  void set_molecule_as_defunct(molecule_t& m) {
     // set that this molecule does not exist anymore
-    vm.set_is_defunct();
+    m.set_is_defunct();
 
-    change_reactants_map(vm, 0/*unused*/, false, true);
+    change_reactants_map(m, 0/*unused*/, false, true);
+
+    // remove from grid if it was not already removed
+    if (m.is_surf() && m.s.grid_tile_index != TILE_INDEX_INVALID) {
+      grid_t& g = get_wall(m.s.wall_index).grid;
+      g.reset_molecule_tile(m.s.grid_tile_index);
+    }
   }
 
-
-  void add_unimolecular_action(float_t diffusion_time_step, const diffuse_or_unimol_react_action_t& unimol_react_action) {
-    uint32_t time_step_index = get_or_add_molecule_list_index_for_time_step(diffusion_time_step);
-    molecules_data_per_time_step_array[time_step_index].calendar_for_unimol_rxs.insert(unimol_react_action, unimol_react_action.scheduled_time);
-  }
 
   // ---------------------------------- typedefs and internal structs ----------------------------------
 
-
-  // calendar type for internal action scheduling, one bucket corresponds to a single diffusion time step (diffuse_and_react_event)
-  typedef calendar_t<fifo_bucket_t<diffuse_or_unimol_react_action_t>, diffuse_or_unimol_react_action_t> calendar_for_unimol_rxs_t;
-  
   // this structure contains all data associated with a given diffusion time step.
   struct time_step_molecules_data_t {
     // usually initialized with empty molecule_ids_ array
     time_step_molecules_data_t(float_t time_step_, const std::vector< molecule_id_t > molecule_ids_)
-      : time_step(time_step_), molecule_ids(molecule_ids_), calendar_for_unimol_rxs(time_step_) {
+      : time_step(time_step_), molecule_ids(molecule_ids_) {
     }
 
 		// diffusion time step value 
     float_t time_step;
     // molecule ids with this diffusion time step 
     std::vector<molecule_id_t> molecule_ids;
-    // and unimolecular reactions scheduled while diffusing  molecules with this diffusion time step;
-    // these unimolecular reactions can be associated with a molecule with a different time step, 
-    // what is important is how they were created 
-    calendar_for_unimol_rxs_t calendar_for_unimol_rxs;
   };
 
   // indexed with species_id_t
-  typedef std::vector< subpartition_mask_t > species_reactants_map_t;
+  typedef std::vector< uint_set_t > species_reactants_map_t;
 
 
   // ---------------------------------- molecule getters ----------------------------------
@@ -340,20 +306,13 @@ public:
   std::vector< time_step_molecules_data_t >& get_molecule_data_per_time_step_array() {
     return molecules_data_per_time_step_array;
   }
-  
+
 
   const std::vector<molecule_id_t>& get_molecule_ids_for_time_step_index(uint32_t time_step_index) {
     assert(time_step_index < molecules_data_per_time_step_array.size());
     return molecules_data_per_time_step_array[time_step_index].molecule_ids;
   }
-  
 
-  // calendar is usually modified by the caller
-  calendar_for_unimol_rxs_t& get_unimolecular_actions_calendar_for_time_step_index(uint32_t time_step_index) {
-    assert(time_step_index < molecules_data_per_time_step_array.size());
-    return molecules_data_per_time_step_array[time_step_index].calendar_for_unimol_rxs;
-  }
-  
 
   const vec3_t& get_origin_corner() const {
     return origin_corner;
@@ -363,7 +322,7 @@ public:
     return opposite_corner;
   }
 
-  subpartition_mask_t& get_volume_molecule_reactants(subpart_index_t subpart_index, species_id_t species_id) {
+  uint_set_t& get_volume_molecule_reactants(subpart_index_t subpart_index, species_id_t species_id) {
     return volume_molecule_reactants_per_subpart[subpart_index][species_id];
   }
 
@@ -389,13 +348,20 @@ public:
     return index;
   }
 
-  const vec3_t get_geometry_vertex(vertex_index_t i) const {
+  const vec3_t& get_geometry_vertex(vertex_index_t i) const {
     assert(i < geometry_vertices.size());
     return geometry_vertices[i];
   }
 
+  const vec3_t& get_wall_vertex(const wall_t& w, uint32_t wall_vertex_index) const {
+    assert(wall_vertex_index < VERTICES_IN_TRIANGLE);
+    vertex_index_t i = w.vertex_indices[wall_vertex_index];
+    assert(i < geometry_vertices.size());
+    return get_geometry_vertex(i);
+  }
+
   // returns reference to the new wall, only sets id and index
-  // register_wall must be called
+  // register_wall must be called after the wall is initialized
   wall_t& add_uninitialized_wall(const wall_id_t id) {
     wall_index_t index = walls.size();
     walls.push_back(wall_t());
@@ -407,22 +373,10 @@ public:
     return new_wall;
   }
 
-  // when a wall is  added with add_uninitialized_wall,
+  // when a wall is added with add_uninitialized_wall,
   // its type and vertices are not know yet, we must include the walls
-  // into subvolumes
-  // TODO: some better name?, do this per object?
-  // does not have to be in .h
-  void register_wall_into_supartitions(const wall_index_t wall_index) {
-    wall_t& w = get_wall(wall_index);
-
-    // also insert this triangle into walls per subparition
-    subpart_indices_vector_t colliding_subparts;
-    geometry::wall_subparts_collision_test(*this, w, colliding_subparts);
-    for (subpart_index_t subpart_index: colliding_subparts) {
-      assert(subpart_index < walls_per_subpart.size());
-      walls_per_subpart[subpart_index].set_contains_id(wall_index);
-    }
-  }
+  // into subvolumes and also for other purposes
+  void finalize_wall_creation(const wall_index_t wall_index);
 
   // returns reference to the new object, only sets id
   geometry_object_t& add_uninitialized_geometry_object(const geometry_object_id_t id) {
@@ -437,35 +391,62 @@ public:
 
   const wall_t& get_wall(wall_index_t i) const {
     assert(i < walls.size());
-    return walls[i];
+    const wall_t& res = walls[i];
+    assert(res.index == i && "Index of a wall must correspond to its position");
+    return res;
   }
 
   wall_t& get_wall(wall_index_t i) {
     assert(i < walls.size());
-    return walls[i];
+    wall_t& res = walls[i];
+    assert(res.index == i && "Index of a wall must correspond to its position");
+    return res;
+  }
+
+  wall_t* get_wall_if_exists(wall_index_t i) {
+    if (i == WALL_INDEX_INVALID) {
+      return nullptr;
+    }
+    assert(i < walls.size());
+    wall_t& res = walls[i];
+    assert(res.index == i && "Index of a wall must correspond to its position");
+    return &res;
   }
 
   // maybe we will need to filter out, e.g. just reflective surfaces
-  const subpartition_mask_t& get_subpart_wall_indices(subpart_index_t subpart_index) const {
+  const uint_set_t& get_subpart_wall_indices(subpart_index_t subpart_index) const {
     return walls_per_subpart[subpart_index];
   }
 
-  // used to create uninitialized grid object that can be initialized with
-  // grid_t::initialize, sets wall's index
-  // TODO: check all this geometry creation and come up with some more systematic way
-  grid_t& add_grid_for_wall(wall_t& w) {
-    // TODO: check that this wall belongs to this partition
-    w.grid_index = grids.size();
-    grids.push_back(grid_t());
-    grids.back().initialize(w.area);
-    return grids.back();
+  // returns nullptr if either the wall does not exist or the wall's grid was not initialized
+  const grid_t* get_wall_grid_if_exists(wall_index_t wall_index) const {
+    if (wall_index == WALL_INDEX_INVALID) {
+      return nullptr;
+    }
+
+    const wall_t& w = get_wall(wall_index);
+    if (!w.has_initialized_grid()) {
+      return nullptr;
+    }
+
+    return &w.grid;
   }
 
-  grid_t& get_grid(const grid_index_t grid_index) {
-    assert(grid_index < grids.size());
-    return grids[grid_index];
+  const std::vector<wall_index_t>& get_walls_using_vertex(vertex_index_t vertex_index) const {
+    assert(vertex_index != VERTEX_INDEX_INVALID);
+    assert(vertex_index < walls_using_vertex_mapping.size());
+    return walls_using_vertex_mapping[vertex_index];
   }
 
+private:
+  // automatically enlarges walls_using_vertex array
+  void add_wall_using_vertex_mapping(vertex_index_t vertex_index, wall_index_t wall_index) {
+    if (vertex_index >= walls_using_vertex_mapping.size()) {
+      walls_using_vertex_mapping.resize(vertex_index + 1);
+    }
+    walls_using_vertex_mapping[vertex_index].push_back(wall_index);
+  }
+public:
   // ---------------------------------- other ----------------------------------
 
   const world_constants_t& get_world_constants() const {
@@ -489,7 +470,7 @@ private:
   std::vector<molecule_t> molecules;
 
   // contains mapping of molecule ids to indices to the molecules array
-  std::vector<uint32_t> molecule_id_to_index_mapping;
+  std::vector<molecule_index_t> molecule_id_to_index_mapping;
 
   // id of the next molecule to be created
   molecule_id_t next_molecule_id;
@@ -508,9 +489,12 @@ private:
   std::vector<geometry_object_t> geometry_objects;
 
   std::vector<wall_t> walls;
-  std::vector<grid_t> grids; // not every wall has a grid
+  //std::vector<grid_t> grids; // not every wall has a grid
 
-  std::vector<subpartition_mask_t> walls_per_subpart;
+  // indexed by vertex_index_t
+  std::vector< std::vector<wall_index_t>> walls_using_vertex_mapping;
+
+  std::vector<uint_set_t> walls_per_subpart;
 
   const world_constants_t& world_constants; // owned by world
   simulation_stats_t& simulation_stats; // owned by world

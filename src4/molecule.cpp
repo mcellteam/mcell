@@ -25,6 +25,8 @@
 #include <string>
 #include <sstream>
 
+#include "mcell_structs.h"
+
 #include "molecule.h"
 #include "world.h"
 
@@ -33,19 +35,24 @@ using namespace std;
 
 namespace mcell {
 
-// TODO: same as in dump_state.cpp, remove one of the copies
-static string get_molecule_flags_string(uint32_t flags) {
+// TODO_LATER: same as in dump_state.cpp, remove one of the copies
+// for now, dump_state might be useful also without mcell4
+string get_molecule_flags_string(uint flags, bool full_dump = true) {
   string res;
 #define DUMP_FLAG(f, mask) if (((f) & (mask)) != 0) res += string(#mask) + ", ";
   DUMP_FLAG(flags, TYPE_SURF)
   DUMP_FLAG(flags, TYPE_VOL)
   DUMP_FLAG(flags, ACT_DIFFUSE)
-  DUMP_FLAG(flags, ACT_REACT)
-  DUMP_FLAG(flags, ACT_NEWBIE)
-  DUMP_FLAG(flags, ACT_CHANGE)
+  if (full_dump) {
+    DUMP_FLAG(flags, ACT_REACT)
+    DUMP_FLAG(flags, ACT_NEWBIE)
+    DUMP_FLAG(flags, ACT_CHANGE)
+  }
   DUMP_FLAG(flags, ACT_CLAMPED)
-  DUMP_FLAG(flags, IN_SCHEDULE)
-  DUMP_FLAG(flags, IN_SURFACE)
+  if (full_dump) {
+    DUMP_FLAG(flags, IN_SCHEDULE)
+    DUMP_FLAG(flags, IN_SURFACE)
+  }
   DUMP_FLAG(flags, IN_VOLUME)
   DUMP_FLAG(flags, MOLECULE_FLAG_DEFUNCT)
 #undef DUMP_FLAG
@@ -56,12 +63,12 @@ static string get_molecule_flags_string(uint32_t flags) {
 void molecule_t::dump(const string ind) const {
   if (is_vol()) {
     cout << ind << "pos: \t\t" << v.pos << " [vec3_t]\n";
-    cout << ind << "subpartition_index: \t\t" << v.subpart_index << " [uint32_t]\n";
+    cout << ind << "subpartition_index: \t\t" << v.subpart_index << " [uint]\n";
   }
   else if (is_surf()) {
     cout << ind << "pos: \t\t" << s.pos << " [vec2_t]\n";
   }
-  cout << ind << "flags: \t\t" << flags << " [uint32_t]\n";
+  cout << ind << "flags: \t\t" << flags << " [uint]\n";
   cout << ind << "species_id: \t\t" << species_id << " [species_id_t]\n";
 }
 
@@ -71,20 +78,26 @@ void molecule_t::dump(
     const string extra_comment,
     const string ind,
     const uint64_t iteration,
-    const float_t time
+    const float_t time,
+    const bool print_position
 ) const {
   cout
     << ind << extra_comment << "it:" << iteration << ", idx:" << id
-    << ", species " << world->species[species_id].name << ", pos:";
+    << ", species: " << world->get_species(species_id).name;
 
-  if (is_vol()) {
-    cout << v.pos;
-  }
-  else if (is_surf()) {
-    cout << s.pos;
+  if (print_position) {
+    cout << ", pos:";
+
+    if (is_vol()) {
+      cout << v.pos;
+    }
+    else if (is_surf()) {
+      cout << s.pos;
+      cout << ", grid index: " << s.grid_tile_index;
+    }
   }
   cout
-    << ", flags:" << get_molecule_flags_string(flags);
+    << ", flags:" << get_molecule_flags_string(flags, false);
 #ifdef DEBUG_SUBPARTITIONS
   if (is_vol()) {
     cout << ", subpartition:" << subpart_index;
@@ -109,7 +122,7 @@ string molecule_t::to_string() const {
   else if (is_surf()) {
     cout << s.pos;
   }
-  ss << ", flags:" << get_molecule_flags_string(flags);
+  ss << ", flags:" << get_molecule_flags_string(flags, false);
   return ss.str();
 }
 

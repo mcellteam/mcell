@@ -21,32 +21,31 @@
  *
 ******************************************************************************/
 
-#ifndef SRC4_END_SIMULATION_EVENT_H_
-#define SRC4_END_SIMULATION_EVENT_H_
+// this is an auxiliary file that provides std::vector functionality that contains pointers as elements
+// used in viz_output.c
 
-#include <iostream>
+#ifndef C_VECTOR_H
+#define C_VECTOR_H
 
-#include "base_event.h"
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-namespace mcell {
+typedef void c_vector_t;
 
-class end_simulation_event_t: public mcell::base_event_t {
-public:
-  end_simulation_event_t() :
-    base_event_t(EVENT_TYPE_INDEX_END_SIMULATION) {
-  }
+c_vector_t* vector_create();
+void vector_push_back(c_vector_t* v, void* a);
+unsigned long long vector_get_size(c_vector_t* v);
+void* vector_at(c_vector_t* v, unsigned long long i);
+void vector_delete(c_vector_t* v);
 
-  void step() {
-    // does nothing, this type of event is detected in the scheduler
-  }
 
-  void dump(const std::string indent) {
-    std::cout << indent << "End simulation event:\n";
-    std::string ind2 = indent + "  ";
-    base_event_t::dump(ind2);
-  }
-};
+void vector_sort_by_mol_id(c_vector_t* v);
 
-} // namespace mcell
 
-#endif // SRC4_END_SIMULATION_EVENT_H_
+#ifdef __cplusplus
+}
+#endif
+
+#endif // C_VECTOR_H
+

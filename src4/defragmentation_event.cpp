@@ -40,14 +40,14 @@ void defragmentation_event_t::dump(const string indent) {
 
 
 void defragmentation_event_t::step() {
-  for (partition_t& p: world->partitions) {
+  for (partition_t& p: world->get_partitions()) {
     vector<molecule_t>& volume_molecules = p.get_molecules();
-    vector<uint32_t>& volume_molecules_id_to_index_mapping = p.get_molecule_id_to_index_mapping();
+    vector<molecule_index_t>& volume_molecules_id_to_index_mapping = p.get_molecule_id_to_index_mapping();
 
     vector<partition_t::time_step_molecules_data_t>& mols_per_time_step = p.get_molecule_data_per_time_step_array();
     assert(mols_per_time_step.size() == 1 && mols_per_time_step[0].molecule_ids.size() == volume_molecules.size()
         && "For now, volume_molecule_indices_per_time_step[0] must be identical to volume_molecules");
-    vector<uint32_t>& volume_molecule_ids_per_time_step = mols_per_time_step[0].molecule_ids;
+    vector<molecule_id_t>& volume_molecule_ids_per_time_step = mols_per_time_step[0].molecule_ids;
 
 #ifdef DEBUG_DEFRAGMENTATION
     cout << "Defragmentation before sort:\n";
@@ -63,7 +63,7 @@ void defragmentation_event_t::step() {
     vmit_t it_copy_destination = it_first_defunct;
     size_t removed = 0;
 
-    vector<uint32_t>::iterator it_indices_begin = volume_molecule_ids_per_time_step.begin();
+    vector<molecule_id_t>::iterator it_indices_begin = volume_molecule_ids_per_time_step.begin();
 
     while (it_first_defunct != it_end) {
 

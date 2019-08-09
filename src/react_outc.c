@@ -439,7 +439,7 @@ static int outcome_products_random(struct volume *world, struct wall *w,
   int replace_p1 = (product_type[0] == PLAYER_SURF_MOL && rx_players[0] == NULL);
   int replace_p2 = rx->n_reactants > 1 && (product_type[1] == PLAYER_SURF_MOL &&
                                            rx_players[1] == NULL);
-  assert(replace_p1 == 0 && replace_p2 == 0 && "MCell4 check");
+  //assert(replace_p1 == 0 && replace_p2 == 0 && "MCell4 check"); // do I want to keep it here? - maybe not, just remove the old molecule first
   /* Determine the point of reaction on the surface. */
   struct vector2 rxn_uv_pos; // position of reaction on wall
   int rxn_uv_idx = -1;       // tile index of where reaction occurred
@@ -468,7 +468,7 @@ static int outcome_products_random(struct volume *world, struct wall *w,
       num_surface_static_reactants++;
     }
   }
-  assert(!is_orientable && "MCell4 check");
+  //assert(!is_orientable && "MCell4 check");
   /* find out number of surface products */
   int num_surface_products = 0;
   int num_surface_static_products = 0; // number of products with (D_2D == 0)
@@ -477,7 +477,7 @@ static int outcome_products_random(struct volume *world, struct wall *w,
       continue;
     }
     if (rx_players[n_product]->flags & ON_GRID) {
-      num_surface_products++; assert(false && "MCell4 check");
+      num_surface_products++; //assert(false && "MCell4 check");
       if (!distinguishable(rx_players[n_product]->D, 0, EPS_C))
         num_surface_static_products++;
     }
@@ -899,7 +899,7 @@ static int outcome_products_random(struct volume *world, struct wall *w,
   if (hitpt != NULL) {
     count_pos_xyz = *hitpt;
   } else if (sm_reactant) {
-    uv2xyz(&sm_reactant->s_pos, sm_reactant->grid->surface, &count_pos_xyz); assert(false && "MCell4 check");
+    uv2xyz(&sm_reactant->s_pos, sm_reactant->grid->surface, &count_pos_xyz); //assert(false && "MCell4 check");
   } else {
     count_pos_xyz = ((struct volume_molecule *)reacA)->pos;
   }
@@ -968,6 +968,13 @@ static int outcome_products_random(struct volume *world, struct wall *w,
           world, product_species, g_data, product_grid[n_product],
           product_grid_idx[n_product], &prod_uv_pos, product_orient[n_product],
           t, reacA->periodic_box);
+
+#ifdef DEBUG_REACTIONS
+      DUMP_CONDITION3(
+          dump_surface_molecule((struct surface_molecule*)this_product, "", true, "  created sm:", world->current_iterations, this_product->t, true);
+      );
+#endif
+
     } else { /* else place the molecule in space. */
       /* For either a unimolecular reaction, or a reaction between two surface
          molecules we don't have a hitpoint. */
@@ -995,7 +1002,7 @@ static int outcome_products_random(struct volume *world, struct wall *w,
 
 #ifdef DEBUG_REACTIONS
       DUMP_CONDITION3(
-      		dump_volume_molecule((struct volume_molecule*)this_product, "", true, "  created vm:", world->current_iterations, 0.0);
+      		dump_volume_molecule((struct volume_molecule*)this_product, "", true, "  created vm:", world->current_iterations, this_product->t, true);
       );
 #endif
 
@@ -1143,6 +1150,11 @@ int outcome_unimolecular(struct volume *world, struct rxn *rx, int path,
                                   -1, &(vm->pos), NULL, vm->t, vm->periodic_box);
       }
     } else {
+#ifdef DEBUG_REACTIONS
+      DUMP_CONDITION3(
+        dump_surface_molecule(sm, "", true, "Unimolecular sm defunct:", world->current_iterations, sm->t, false);
+      );
+#endif
       remove_surfmol_from_list(&sm->grid->sm_list[sm->grid_index], sm);
       sm->grid->n_occupied--;
       if (sm->flags & IN_SCHEDULE) {
@@ -1165,7 +1177,7 @@ int outcome_unimolecular(struct volume *world, struct rxn *rx, int path,
     if (vm != NULL) {
 #ifdef DEBUG_REACTIONS
       DUMP_CONDITION3(
-        dump_volume_molecule(vm, "", true, "Unimolecular vm defunct:", world->current_iterations, vm->t);
+        dump_volume_molecule(vm, "", true, "Unimolecular vm defunct:", world->current_iterations, vm->t, true);
       );
 #endif
       collect_molecule(vm);
@@ -1179,7 +1191,7 @@ int outcome_unimolecular(struct volume *world, struct rxn *rx, int path,
     if (vm != NULL) {
 #ifdef DEBUG_REACTIONS
       DUMP_CONDITION3(
-        dump_volume_molecule(vm, "", true, "Unimolecular vm defunct:", world->current_iterations, vm->t);
+        dump_volume_molecule(vm, "", true, "Unimolecular vm defunct:", world->current_iterations, vm->t, true);
       );
 #endif
       collect_molecule(vm);
@@ -1266,7 +1278,7 @@ int outcome_bimolecular(struct volume *world, struct rxn *rx, int path,
   if (killB) {
 #ifdef DEBUG_REACTIONS
     DUMP_CONDITION3(
-      dump_volume_molecule((struct volume_molecule*)reacB, "", true, "  defunct vm:", world->current_iterations, 0.0);
+      dump_volume_molecule((struct volume_molecule*)reacB, "", true, "  defunct m:", world->current_iterations, 0.0, false);
     );
 #endif
 
@@ -1312,7 +1324,7 @@ int outcome_bimolecular(struct volume *world, struct rxn *rx, int path,
   if (killA) {
 #ifdef DEBUG_REACTIONS
     DUMP_CONDITION3(
-      dump_volume_molecule((struct volume_molecule*)reacA, "", true, "  defunct vm:", world->current_iterations, 0.0);
+      dump_volume_molecule((struct volume_molecule*)reacA, "", true, "  defunct m:", world->current_iterations, 0.0, false);
     );
 #endif
 

@@ -36,12 +36,6 @@ std::ostream & operator<<(std::ostream &out, const vec3_t &a) {
 }
 
 
-std::ostream & operator<<(std::ostream &out, const vec2_t &a) {
-  out << "(" << a.u << ", " << a.v << ")";
-  return out;
-}
-
-
 string vec3_t::to_string() const {
   stringstream ss;
   ss << *this;
@@ -54,13 +48,36 @@ void vec3_t::dump(const std::string extra_comment, const std::string ind) const 
 }
 
 
-void world_constants_t::dump() {
-  cout << "time_unit: \t\t" << time_unit << " [float_t] \t\t\n";
-  cout << "length_unit: \t\t" << length_unit << " [float_t] \t\t\n";
-  cout << "rx_radius_3d: \t\t" << rx_radius_3d << " [float_t] \t\t\n";
-  cout << "partition_edge_length: \t\t" << partition_edge_length << " [float_t] \t\t\n";
-  cout << "subpartitions_per_partition_dimension: \t\t" << subpartitions_per_partition_dimension << " [uint32_t] \t\t\n";
-  cout << "subpartition_edge_length: \t\t" << subpartition_edge_length << " [float_t] \t\t\n";
+std::ostream & operator<<(std::ostream &out, const vec2_t &a) {
+  out << "(" << a.u << ", " << a.v << ")";
+  return out;
+}
+
+
+string vec2_t::to_string() const {
+  stringstream ss;
+  ss << *this;
+  return ss.str();
+}
+
+
+void vec2_t::dump(const std::string extra_comment, const std::string ind) const {
+  cout << ind << extra_comment << *this << "\n";
+}
+
+
+void uint_set_t::dump() {
+  cout << "Indices contained in a subpartition: ";
+  int cnt = 0;
+  for (uint idx: *this) {
+    cout << idx << ", ";
+
+    if (cnt %20 == 0 && cnt != 0) {
+      cout << "\n";
+    }
+    cnt++;
+  }
+  cout << "\n";
 }
 
 

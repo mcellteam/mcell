@@ -36,11 +36,12 @@ typedef int event_type_index_t;
 // Value specifies ordering when two events are scheduled for exactly the same time
 // The 'holes' are there on purpose for ordering of external events
 const event_type_index_t EVENT_TYPE_INDEX_INVALID = -1;
-const event_type_index_t EVENT_TYPE_INDEX_DIFFUSE_REACT = 100;
 const event_type_index_t EVENT_TYPE_INDEX_RELEASE = 200;
-const event_type_index_t EVENT_TYPE_INDEX_VIZ_OUTPUT = 300;
+const event_type_index_t EVENT_TYPE_INDEX_VIZ_OUTPUT = 300;     // first visualization output is done after release
+const event_type_index_t EVENT_TYPE_INDEX_END_SIMULATION = 400; // we terminate simulation as soon as we hit the time
+const event_type_index_t EVENT_TYPE_INDEX_DIFFUSE_REACT = 500;  // this event spans the whole time step
 const event_type_index_t EVENT_TYPE_INDEX_DEFRAGMENTATION = 900;
-const event_type_index_t EVENT_TYPE_INDEX_END_SIMULATION = 1000;
+
 
 /**
  * Base class for all events.

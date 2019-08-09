@@ -33,6 +33,9 @@ extern "C" {
 #include "world.h"
 #include "partition.h"
 
+#include "geometry_utils.inc"
+#include "grid_utils.inc"
+
 using namespace std;
 
 namespace mcell {
@@ -43,19 +46,19 @@ void release_event_t::dump(const string ind) {
   base_event_t::dump(ind2);
   cout << ind2 << "location: \t\t" << location << " [vec3_t] \t\t\n";
   cout << ind2 << "species_id: \t\t" << species_id << " [species_id_t] \t\t\n";
-  cout << ind2 << "release_number: \t\t" << release_number << " [uint32_t] \t\t\n";
+  cout << ind2 << "release_number: \t\t" << release_number << " [uint] \t\t\n";
   cout << ind2 << "name: \t\t" << release_site_name << " [string] \t\t\n";
 }
 
 
-uint32_t release_event_t::calculate_number_to_release() {
+uint release_event_t::calculate_number_to_release() {
   // release_number_method - only 0 allowed now
   // case CONSTNUM:
   return release_number;
 }
 
 
-// FIXME: maybe a template will be needed for this function, used a lot in mcell3
+// NOTE: maybe a template will be needed for this function, used a lot in mcell3
 static size_t cum_area_bisect_high(const vector<cum_area_pwall_index_pair_t>& array, float_t val) {
   size_t low = 0;
   size_t hi = array.size() - 1;
@@ -80,35 +83,29 @@ static size_t cum_area_bisect_high(const vector<cum_area_pwall_index_pair_t>& ar
 }
 
 
-void release_event_t::place_single_molecule_onto_grid(partition_t& p, wall_t& wall, grid_t& grid, uint32_t tile_index) {
+void release_event_t::place_single_molecule_onto_grid(partition_t& p, wall_t& wall, tile_index_t tile_index) {
 
-  vec2_t pos_on_wall = geometry::grid2uv_random(wall, grid, tile_index, world->rng);
+  vec2_t pos_on_wall = grid_util::grid2uv_random(wall, tile_index, world->rng);
 
-  vec3_t wall_vert0 = p.get_geometry_vertex(wall.vertex_indices[0]);
-  vec3_t pos3d = geometry::uv2xyz(pos_on_wall, wall, wall_vert0);
-
-  //  TODO wall_util.c - 2215
   molecule_t& new_sm = p.add_surface_molecule(
-      molecule_t(MOLECULE_ID_INVALID, species_id, pos_on_wall),
-      pos3d,
-      world->species[species_id].time_step
+      molecule_t(MOLECULE_ID_INVALID, species_id, pos_on_wall)
   );
 
   new_sm.s.wall_index = wall.index;
   new_sm.s.orientation = orientation;
 
   new_sm.s.grid_tile_index = tile_index;
-  grid.set_molecule_tile(tile_index, new_sm.id);
+  wall.grid.set_molecule_tile(tile_index, new_sm.id);
 
-  new_sm.flags = ACT_NEWBIE | TYPE_SURF | ACT_DIFFUSE;
+  new_sm.flags = ACT_NEWBIE | TYPE_SURF | ACT_DIFFUSE | IN_SURFACE;
 }
 
 
-void release_event_t::release_onto_regions(uint32_t computed_release_number) {
+void release_event_t::release_onto_regions(uint computed_release_number) {
   int success = 0, failure = 0;
   float_t seek_cost = 0;
 
-  // TODO: for now we are assuming that we have just a single partition
+  // TODO_LATER: for now we are assuming that we have just a single partition
   // and releases do not cross partition boundary
 
   assert(!cum_area_and_pwall_index_pairs.empty());
@@ -117,7 +114,7 @@ void release_event_t::release_onto_regions(uint32_t computed_release_number) {
   const float_t rel_list_gen_cost = 10.0; /* Just a guess */
   float_t pick_cost = rel_list_gen_cost * est_sites_avail;
 
-  uint32_t n = computed_release_number;
+  uint n = computed_release_number;
 
   const int too_many_failures = 10; /* Just a guess */
   while (n > 0) {
@@ -130,21 +127,21 @@ void release_event_t::release_onto_regions(uint32_t computed_release_number) {
       float_t A = rng_dbl(&world->rng) * total_area;
       size_t cum_area_index = cum_area_bisect_high(cum_area_and_pwall_index_pairs, A);
       partition_wall_index_pair_t pw = cum_area_and_pwall_index_pairs[cum_area_index].second;
-      partition_t& p = world->partitions[pw.first];
+      partition_t& p = world->get_partition(pw.first);
       wall_t& wall = p.get_wall(pw.second);
 
-      if (!wall.has_grid()) {
-        p.add_grid_for_wall(wall); // sets wall's grid_index
+      if (!wall.has_initialized_grid()) {
+        wall.initialize_grid(p); // sets wall's grid_index
       }
 
-      grid_t& grid = p.get_grid(wall.grid_index);
+      grid_t& grid = wall.grid;
 
       // get the random number for the current wall
       if (cum_area_index != 0) {
         A -= cum_area_and_pwall_index_pairs[cum_area_index - 1].first;
       }
 
-      uint32_t tile_index = (grid.num_tiles_along_axis * grid.num_tiles_along_axis) * (A / wall.area);
+      tile_index_t tile_index = (grid.num_tiles_along_axis * grid.num_tiles_along_axis) * (A / wall.area);
       if (tile_index >= grid.num_tiles) {
         tile_index = grid.num_tiles - 1;
       }
@@ -154,7 +151,7 @@ void release_event_t::release_onto_regions(uint32_t computed_release_number) {
         continue;
       }
 
-      place_single_molecule_onto_grid(p, wall, grid, tile_index);
+      place_single_molecule_onto_grid(p, wall, tile_index);
 
       success++;
       n--;
@@ -166,17 +163,16 @@ void release_event_t::release_onto_regions(uint32_t computed_release_number) {
 }
 
 
-void release_event_t::release_ellipsoid_or_rectcuboid(uint32_t computed_release_number) {
+void release_event_t::release_ellipsoid_or_rectcuboid(uint computed_release_number) {
 
-  partition_t& p = world->partitions[world->get_or_add_partition_index(location)];
-  float_t time_step = world->species[species_id].time_step;
-  uint32_t time_step_index = p.get_or_add_molecule_list_index_for_time_step(time_step);
+  partition_t& p = world->get_partition(world->get_or_add_partition_index(location));
+  float_t time_step = world->get_species(species_id).time_step;
 
   const int is_spheroidal = (release_shape == SHAPE_SPHERICAL ||
                              release_shape == SHAPE_ELLIPTIC ||
                              release_shape == SHAPE_SPHERICAL_SHELL);
 
-  for (uint32_t i = 0; i < computed_release_number; i++) {
+  for (uint i = 0; i < computed_release_number; i++) {
     vec3_t pos;
     do /* Pick values in unit square, toss if not in unit circle */
     {
@@ -200,7 +196,7 @@ void release_event_t::release_ellipsoid_or_rectcuboid(uint32_t computed_release_
     base_location[0][2] = pos.z * diameter.z + location.z;
     base_location[0][3] = 1;
 
-    //TODO: t_matrix can be only identity matrix for now, also use glm matrix mult.
+    // TODO_LATER: t_matrix can be only identity matrix for now, also use glm matrix mult.
     // mult_matrix(location, req->t_matrix, location, 1, 4, 4);
 
     vec3_t molecule_location;
@@ -208,10 +204,9 @@ void release_event_t::release_ellipsoid_or_rectcuboid(uint32_t computed_release_
     molecule_location.y = base_location[0][1];
     molecule_location.z = base_location[0][2];
 
-    // TODO: location can be close to a partition boundary, we might need to release to a different partition
-    // FIXME: remove the add_volume_molecule_with_time_step_index method
-    molecule_t& new_vm = p.add_volume_molecule_with_time_step_index(
-        molecule_t(MOLECULE_ID_INVALID, species_id, molecule_location), time_step_index
+    // TODO_LATER: location can be close to a partition boundary, we might need to release to a different partition
+    molecule_t& new_vm = p.add_volume_molecule(
+        molecule_t(MOLECULE_ID_INVALID, species_id, molecule_location)
     );
     new_vm.flags = ACT_NEWBIE | TYPE_VOL | IN_VOLUME | ACT_DIFFUSE;
   }
@@ -222,9 +217,9 @@ void release_event_t::step() {
   // for now, let's simply release 'release_number' of molecules of 'species_id'
   // at 'location'
 
-  uint32_t number = calculate_number_to_release();
+  uint number = calculate_number_to_release();
 
-  const species_t& species = world->species[species_id];
+  const species_t& species = world->get_species(species_id);
 
   if (release_shape == SHAPE_REGION) {
     if (species.is_surf()) {
@@ -243,6 +238,7 @@ void release_event_t::step() {
     << "Released " << number << " " << species.name << " from \"" << release_site_name << "\""
     << " at iteration " << world->current_iteration << ".\n";
 }
+
 
 } // namespace mcell
 

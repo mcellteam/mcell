@@ -35,6 +35,9 @@
 #include "geometry.h"
 #include "debug_config.h"
 
+
+#include "grid_utils.inc"
+
 using namespace std;
 
 namespace mcell {
@@ -63,10 +66,17 @@ static void compute_vol_displacement(
 
   float_t rate_factor = (remaining_time_step == 1.0) ? 1.0 : sqrt(remaining_time_step);
   r_rate_factor = 1.0 / rate_factor;
-  pick_vol_displacement(sp.space_step * rate_factor, rng, displacement);
+
+  if (sp.can_diffuse()) {
+    pick_vol_displacement(sp.space_step * rate_factor, rng, displacement);
+  }
+  else {
+    displacement = vec3_t(0);
+  }
 }
 
 // ---------------------------------- surface mol diffusion ----------------------------------
+
 
 /*************************************************************************
 pick_2D_displacement:
@@ -112,6 +122,20 @@ static void pick_surf_displacement(vec2_t& v, const float_t scale, rng_state& rn
 }
 
 
+static void compute_surf_displacement(
+    const species_t& sp,
+    const float_t scale,
+    rng_state& rng,
+    vec2_t& v
+) {
+  if (sp.can_diffuse()) {
+    pick_surf_displacement(v, scale, rng);
+  }
+  else {
+    v = vec2_t(0);
+  }
+}
+
 
 /*************************************************************************
 move_sm_on_same_triangle:
@@ -133,10 +157,10 @@ static int move_sm_on_same_triangle(
     vec2_t& new_loc
 ) {
   wall_t& wall = p.get_wall(sm.s.wall_index);
-  grid_t& grid = p.get_grid(wall.grid_index);
+  grid_t& grid = wall.grid;
   assert(grid.get_molecule_on_tile(sm.s.grid_tile_index) == sm.id);
 
-  unsigned int new_tile_index = geom_util::uv2grid(new_loc, wall, grid);
+  unsigned int new_tile_index = grid_util::uv2grid_tile_index(new_loc, wall);
 
   if (new_tile_index >= grid.num_tiles) {
     mcell_internal_error("After ray_trace_2D, selected u, v coordinates "
@@ -183,20 +207,20 @@ static int move_sm_to_new_triangle(
     const wall_index_t new_wall_index
 ) {
   wall_t& wall = p.get_wall(sm.s.wall_index);
-  grid_t& grid = p.get_grid(wall.grid_index);
+  grid_t& grid = wall.grid;
   assert(grid.get_molecule_on_tile(sm.s.grid_tile_index) == sm.id);
 
   wall_t& new_wall = p.get_wall(new_wall_index);
 
   // No SM has been here before, so we need to make a grid on this wall.
-  if (new_wall.grid_index == GRID_INDEX_INVALID) {
-    p.add_grid_for_wall(new_wall);
+  if (!new_wall.has_initialized_grid()) {
+    new_wall.initialize_grid(p);
   }
 
-  grid_t& new_grid = p.get_grid(wall.grid_index);
+  grid_t& new_grid = new_wall.grid;
 
   /* Move to new tile */
-  unsigned int new_tile_index = geom_util::uv2grid(new_loc, new_wall, new_grid);
+  unsigned int new_tile_index = grid_util::uv2grid_tile_index(new_loc, new_wall);
 
   if (new_tile_index >= new_grid.num_tiles) {
     mcell_internal_error(
@@ -213,6 +237,7 @@ static int move_sm_to_new_triangle(
   grid.reset_molecule_tile(sm.s.grid_tile_index);
   new_grid.set_molecule_tile(new_tile_index, sm.id);
   sm.s.grid_tile_index = new_tile_index;
+  sm.s.wall_index = new_wall_index;
 
   sm.s.pos = new_loc;
 

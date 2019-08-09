@@ -28,7 +28,7 @@
  */
 
 /**
- * TODOs: exact_disk uses dynamic allocation of exd_vertex_t,
+ * TODO_LATER: exact_disk uses dynamic allocation of exd_vertex_t,
  * we will need to get rid of that in order to execute on GPUs,
  * however, it will be quite time consuming to make this right,
  * so this change was postponed.
@@ -251,17 +251,17 @@ static inline intersect_result_t test_intersect_line_with_circle(
   s = 1;
   if (pa.r2 > R2 || pb.r2 > R2) {
     float_t pa_pb = dot2(pa, pb);
-    if (!distinguishable(pa.r2 + pb.r2, 2 * pa_pb,  EPS)) { /* Wall endpoints are basically on top of each other */
+    if (!distinguishable_f(pa.r2 + pb.r2, 2 * pa_pb,  EPS)) { /* Wall endpoints are basically on top of each other */
       /* Might this tiny bit of wall block the target?  If not, continue, otherwise return TARGET_OCCLUDED */
       /* Safe if we're clearly closer; in danger if we're even remotely parallel, otherwise surely safe */
       /* Note: use SQRT_EPS_C for cross products since previous test vs. EPS_C was on squared values (linear difference term cancels) */
       if (sm.r2 < pa.r2 && sm.r2 < pb.r2 &&
-          distinguishable(sm.r2, pa.r2, EPS) &&
-          distinguishable(sm.r2, pa.r2, EPS)) {
+          distinguishable_f(sm.r2, pa.r2, EPS) &&
+          distinguishable_f(sm.r2, pa.r2, EPS)) {
         return INTERSECT_SKIP_THIS_WALL;
       }
-      if (!distinguishable(sm.u * pa.v, sm.v * pa.u, SQRT_EPS) ||
-          !distinguishable(sm.u * pb.v, sm.v * pb.u, SQRT_EPS)) {
+      if (!distinguishable_f(sm.u * pa.v, sm.v * pa.u, SQRT_EPS) ||
+          !distinguishable_f(sm.u * pb.v, sm.v * pb.u, SQRT_EPS)) {
 
         return INTERSECT_TARGET_OCCLUDED;
       }
@@ -422,7 +422,7 @@ static void find_boundaries_occluding_disk(
 
         float_t s;
         vec2_t pa, pb;
-        if (!distinguishable(a, 0, EPS)) {
+        if (!distinguishable_f(a, 0, EPS)) {
           s = d / b;
           if (s * s > R2) {
             mcell_internal_error(
@@ -435,7 +435,7 @@ static void find_boundaries_occluding_disk(
           pa.v = s;
           pb.u = -t;
           pb.v = s;
-        } else if (!distinguishable(b, 0, EPS)) {
+        } else if (!distinguishable_f(b, 0, EPS)) {
           float_t t = d / a;
           if (t * t > R2) {
             mcell_internal_error(
@@ -678,9 +678,9 @@ static float_t calculate_area_for_multiple_edges(
       continue;
 
     for (vq = vp->next; vq != vp->e; vq = vq->next) {
-      if (!distinguishable(vq->zeta, vp->zeta, EPS))
+      if (!distinguishable_f(vq->zeta, vp->zeta, EPS))
         continue;
-      if (!distinguishable(vq->zeta, vp->e->zeta, EPS))
+      if (!distinguishable_f(vq->zeta, vp->e->zeta, EPS))
         break;
       if (vq->role == EXD_ROLE_OTHER)
         continue;
@@ -703,7 +703,7 @@ static float_t calculate_area_for_multiple_edges(
   for (vp = vertex_head; zeta < 4.0 - EPS; vp = vp->next) {
     if (vp->role == EXD_ROLE_OTHER)
       continue;
-    if (!distinguishable(vp->zeta, last_zeta, EPS))
+    if (!distinguishable_f(vp->zeta, last_zeta, EPS))
       continue;
     last_zeta = vp->zeta;
 
@@ -725,7 +725,7 @@ static float_t calculate_area_for_multiple_edges(
     }
 
     /* Check head points at same place to see if they're closer */
-    for (vq = vp->next; (!distinguishable(vq->zeta, last_zeta, EPS));
+    for (vq = vp->next; (!distinguishable_f(vq->zeta, last_zeta, EPS));
          vq = vq->next) {
       if (vq->role == EXD_ROLE_HEAD) {
         if (vq->r2 < vp->r2 || vr->e == NULL) {
@@ -733,7 +733,7 @@ static float_t calculate_area_for_multiple_edges(
           vr->v = vq->v;
           vr->r2 = vq->r2;
           vr->e = vq->e;
-        } else if (!distinguishable(vq->r2, vr->r2, EPS)) {
+        } else if (!distinguishable_f(vq->r2, vr->r2, EPS)) {
           float_t b = calculate_exd_span(vr, vr->e, vq->e);
           if (b > 0)
             vr->e = vq->e;
@@ -798,7 +798,7 @@ static float_t calculate_area_for_multiple_edges(
           }
           A += 0.5 * s * R2;
         } else {
-          if (!distinguishable(vs->e->zeta, vr->zeta, EPS)) {
+          if (!distinguishable_f(vs->e->zeta, vr->zeta, EPS)) {
             A += 0.5 * (vs->u * vs->e->v - vs->v * vs->e->u);
           } else {
             float_t t = calculate_time_span(vs, vs->e, vr);
@@ -837,7 +837,7 @@ exact_disk:
        geometry, or TARGET_OCCLUDED if the path to the target molecule is
        blocked.
 *************************************************************************/
-// FIXME: get rid of linked lists
+// TODO_LATER: get rid of linked lists
 // inlining leads to lower performance
 static float_t __attribute__((noinline)) exact_disk(
     partition_t& p,
@@ -878,9 +878,9 @@ static float_t __attribute__((noinline)) exact_disk(
     sm.zeta = exd_zetize(sm.v, sm.u);
   }
   /* Find walls that occlude the interaction disk (or block the reaction) */
-  const subpartition_mask_t& wall_indices = p.get_subpart_wall_indices(moving.v.subpart_index);
+  const uint_set_t& wall_indices = p.get_subpart_wall_indices(moving.v.subpart_index);
 
-  // TODO: move this to a separate function?
+  // TODO_LATER: move this to a separate function - only after we got rid of linked lists
   for (wall_index_t wall_index: wall_indices) {
     const wall_t& w = p.get_wall(wall_index);
     vec3_t w_vert[VERTICES_IN_TRIANGLE];
@@ -935,7 +935,7 @@ static float_t __attribute__((noinline)) exact_disk(
 
     /* Reject those that the moving particle can travel through */
 #if 0
-    // TODO: checked with assert in mcell3 that it does not occur
+    // TODO_LATER: checked with assert in mcell3 that it does not occur
     if ((moving->properties->flags & CAN_VOLWALL) != 0) {
       num_matching_rxns = trigger_intersect(
           world->reaction_hash, world->rx_hashsize, world->all_mols,
@@ -990,7 +990,7 @@ static float_t __attribute__((noinline)) exact_disk(
         delete_list(vertex_head);
       return TARGET_OCCLUDED;
     }
-    if (!distinguishable(pa.u * pb.v, pb.u * pa.v, EPS) &&
+    if (!distinguishable_f(pa.u * pb.v, pb.u * pa.v, EPS) &&
         dot2(pa, pb) < 0) /* Antiparallel, can't tell which side of wall origin is on */
     {
       if (vertex_head != nullptr)
@@ -1045,7 +1045,7 @@ static float_t __attribute__((noinline)) exact_disk(
 
       float_t c = ppa_minus_sm.u * ppb_minus_sm.v - ppa_minus_sm.v * ppb_minus_sm.u;
 
-      if (c < 0 || !distinguishable(ppa_minus_sm.u * ppb_minus_sm.v,
+      if (c < 0 || !distinguishable_f(ppa_minus_sm.u * ppb_minus_sm.v,
                                     ppa_minus_sm.v * ppb_minus_sm.u,
                                     EPS)) /* Blocked! */
       {

@@ -21,32 +21,47 @@
  *
 ******************************************************************************/
 
-#ifndef SRC4_END_SIMULATION_EVENT_H_
-#define SRC4_END_SIMULATION_EVENT_H_
+// this is an auxiliary file that provides std::vector functionality, used in viz_output.c
 
-#include <iostream>
+#include <vector>
+#include <algorithm>
 
-#include "base_event.h"
+#include "c_vector.h"
+#include "mcell_structs.h"
 
-namespace mcell {
 
-class end_simulation_event_t: public mcell::base_event_t {
-public:
-  end_simulation_event_t() :
-    base_event_t(EVENT_TYPE_INDEX_END_SIMULATION) {
-  }
+using namespace std;
 
-  void step() {
-    // does nothing, this type of event is detected in the scheduler
-  }
 
-  void dump(const std::string indent) {
-    std::cout << indent << "End simulation event:\n";
-    std::string ind2 = indent + "  ";
-    base_event_t::dump(ind2);
-  }
-};
+typedef vector<void*> stl_vector_t;
 
-} // namespace mcell
+c_vector_t* vector_create() {
+  return new stl_vector_t();
+}
 
-#endif // SRC4_END_SIMULATION_EVENT_H_
+void vector_push_back(c_vector_t* v, void* a) {
+  ((stl_vector_t*)v)->push_back(a);
+}
+
+unsigned long long vector_get_size(c_vector_t* v) {
+  return ((stl_vector_t*)v)->size();
+}
+
+void* vector_at(c_vector_t* v, unsigned long long i) {
+  return ((stl_vector_t*)v)->at(i);
+}
+
+void vector_delete(c_vector_t* v) {
+  delete (stl_vector_t*)v;
+}
+
+void vector_sort_by_mol_id(c_vector_t* v) {
+  stl_vector_t& vec = *(stl_vector_t*)v;
+
+  sort(vec.begin(), vec.end(),
+      [](const void* a, const void* b) -> bool
+  {
+      return ((abstract_molecule*)a)->id < ((abstract_molecule*)b)->id;
+  });
+}
+

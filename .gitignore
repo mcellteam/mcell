@@ -55,3 +55,4 @@ mcell_venv
 /.cproject
 /.project
 /.pydevproject
+/build-ref/

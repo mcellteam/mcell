@@ -34,6 +34,7 @@ class partition_t;
 class wall_t;
 class grid_t;
 
+
 /**
  * Release molecules according to the settings.
  */
@@ -56,14 +57,18 @@ public:
 public:
   vec3_t location;
   species_id_t species_id;
-  uint32_t release_number; // number of molecules to release
+  uint release_number; // number of molecules to release
+
+  std::string release_pattern_name;
+
+  // ---------------------------------- release location ----------------------------------
+
   std::string release_site_name;
   orientation_t orientation;
-
-  int8_t release_shape; /* Release Shape Flags: controls shape over which to
-                           release (enum release_shape_t) */
-
+  int8_t release_shape; /* Release Shape Flags: controls shape over which to release (enum release_shape_t) */
   vec3_t diameter; /* x,y,z diameter for geometrical release shapes */
+
+  // ---------------------------------- surface release info ----------------------------------
 
   // for surface molecule releases
   std::vector<cum_area_pwall_index_pair_t> cum_area_and_pwall_index_pairs;
@@ -72,15 +77,16 @@ public:
   // walls?
   std::vector<wall_index_t> wall_indices_t; // need to find the correct partition?
 
+
   world_t* world;
 
 private:
-  uint32_t calculate_number_to_release();
+  uint calculate_number_to_release();
 
-  void place_single_molecule_onto_grid(partition_t& p, wall_t& wall, grid_t& grid, uint32_t tile_index);
-  void release_onto_regions(uint32_t computed_release_number);
+  void place_single_molecule_onto_grid(partition_t& p, wall_t& wall, uint tile_index);
+  void release_onto_regions(uint computed_release_number);
 
-  void release_ellipsoid_or_rectcuboid(uint32_t computed_release_number);
+  void release_ellipsoid_or_rectcuboid(uint computed_release_number);
 
 };
 

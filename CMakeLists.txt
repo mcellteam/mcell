@@ -128,6 +128,8 @@ set(SOURCE_FILES
     src/vol_util.c
     src/volume_output.c
     src/wall_util.c
+
+    src/c_vector.cpp
     
     src4/base_event.cpp
     src4/defines.cpp
@@ -143,6 +145,7 @@ set(SOURCE_FILES
     src4/defragmentation_event.cpp
     src4/geometry.cpp
     src4/world.cpp
+    src4/world_constants.cpp
     )
 
 link_directories(${CMAKE_BINARY_DIR}/lib)

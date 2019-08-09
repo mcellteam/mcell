@@ -1025,11 +1025,16 @@ void compute_lifetime(struct volume *state,
 
 #ifdef DEBUG_REACTIONS
     struct volume *world = state;
-    DUMP_CONDITION3(
-        // calling rng for unimolecular
-        struct volume_molecule* vm = (struct volume_molecule*)am;
-        dump_volume_molecule(vm, "", true, "Assigned unimolecular time (prev rng):", state->current_iterations, vm->t2);
-    );
+    if ((am->flags & TYPE_VOL) != 0) {
+      DUMP_CONDITION3(
+          dump_volume_molecule((struct volume_molecule *)am, "", true, "Assigned unimolecular time (prev rng):", world->current_iterations, am->t2, true);
+      );
+    }
+    else {
+      DUMP_CONDITION3(
+          dump_surface_molecule((struct surface_molecule *)am, "", true, "Assigned unimolecular time (prev rng):", world->current_iterations, am->t2, true);
+      );
+    }
 #endif
 
     if (r->prob_t != NULL) {

@@ -24,6 +24,14 @@
 #ifndef SRC4_DEFINES_H_
 #define SRC4_DEFINES_H_
 
+#ifndef NDEBUG
+#define INDEXER_WA // Don't know yet how to convince Eclipse to correctly index boost containers
+#endif
+
+#if defined(NDEBUG) && defined(INDEXER_WA)
+#warning "INDEXER_WA is enabled and this will lead to lower performance"
+#endif
+
 #include <stdint.h>
 #include <vector>
 #include <string>
@@ -31,8 +39,10 @@
 #include <climits>
 #include <cmath>
 #include <iostream>
+#include <map>
 #include <unordered_map>
 #include "../libs/boost/container/small_vector.hpp"
+#include "../libs/boost/container/flat_set.hpp"
 
 #include "mcell_structs.h"
 #include "debug_config.h"
@@ -41,10 +51,11 @@
 // we need to be able to control the precision
 #include "../libs/glm/glm.hpp"
 #define GLM_ENABLE_EXPERIMENTAL
-#include <glm/gtx/component_wise.hpp>
+#include "../libs/glm/gtx/component_wise.hpp"
 
 // this file must not depend on any other from mcell4 otherwise there
 // might be some nasty cyclic include dependencies
+
 
 namespace mcell {
 
@@ -64,74 +75,86 @@ typedef double float_t; // will be changed to float
 #if FLOAT_T_BYTES == 8
 const float_t EPS = 1e-12; // same as EPS_C
 const float_t SQRT_EPS = 1e-6;
+const float_t GIGANTIC4 = 1e140;
 #else
-#error "TODO: float32"
+#error "Base type float32 is not supported yet"
 #endif
 
 const float_t SCHEDULER_COMPARISON_EPS = 1e-10;
 
 // ---------------------------------- configurable constants----------------------------------
 
-const uint32_t DEFRAGMENTATION_PERIODICITY = 500;
+const uint DEFRAGMENTATION_PERIODICITY = 500;
 const float_t PARTITION_EDGE_LENGTH_DEFAULT = 10 * 100 /*100 = 1/length unit*/; // large for now because we have just one partition
 const float_t SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT = 1;
 
 
 // ---------------------------------- fixed costants and specific typedefs -------------------
-const float_t POS_INVALID = NAN;
+const float_t POS_INVALID = FLT_MAX; // cannot be NAN because we cannot do any comparison with NANs
 
-const float_t TIME_INVALID = NAN;
+const float_t TIME_INVALID = -1;
 const float_t TIME_FOREVER = FLT_MAX; // this max is sufficient for both float and double
 const float_t TIME_SIMULATION_START = 0;
 
+const float_t DIFFUSION_CONSTANT_ZER0 = 0;
+
+const uint INDEX_INVALID = UINT32_MAX;
+
 // unique species id
-typedef uint32_t species_id_t;
-const uint32_t SPECIES_ID_INVALID = UINT32_MAX;
+typedef uint species_id_t;
+const species_id_t SPECIES_ID_INVALID = UINT32_MAX;
 
 // molecule id is a unique identifier of a molecule,
 // no 2 molecules may have the same ID in the course of a simulation (at least for now)
-typedef uint32_t molecule_id_t;
-const uint32_t MOLECULE_ID_INVALID = UINT32_MAX;
+typedef uint molecule_id_t;
+const molecule_id_t MOLECULE_ID_INVALID = UINT32_MAX;
 
 // molecule index is index into partition's molecules array, indices and ids are
 // identical until the first defragmentation that shuffles molecules in the molecules array
-const uint32_t MOLECULE_INDEX_INVALID = UINT32_MAX;
+typedef uint molecule_index_t;
+const molecule_index_t MOLECULE_INDEX_INVALID = UINT32_MAX;
 
 // for now, this is the partition that contains point 0,0,0 in its center
-typedef uint32_t partition_index_t;
+typedef uint partition_index_t;
 const partition_index_t PARTITION_INDEX_INITIAL = 0;
 const partition_index_t PARTITION_INDEX_INVALID = UINT32_MAX;
 
-typedef uint32_t subpart_index_t;
+typedef uint subpart_index_t;
 const subpart_index_t SUBPART_INDEX_INVALID = UINT32_MAX;
 
 // time step is used in partition to make sets of molecules that can be diffused with
 // different periodicity
-const uint32_t TIME_STEP_INDEX_INVALID = UINT32_MAX;
+const uint TIME_STEP_INDEX_INVALID = UINT32_MAX;
 
-const char* const NAME_INVALID = "invalid_name";
+const char* const NAME_INVALID = "name_invalid";
+const char* const NAME_NOT_SET = "name_not_set";
 
 const uint64_t BUCKET_INDEX_INVALID = UINT64_MAX;
 
-const uint32_t VERTICES_IN_TRIANGLE = 3;
+const uint VERTICES_IN_TRIANGLE = 3;
+const uint EDGES_IN_TRIANGLE = VERTICES_IN_TRIANGLE; // same of course as above, but different name to specify what we are counting
 
-typedef uint32_t vertex_index_t; // index in partition's vertices
+typedef uint vertex_index_t; // index in partition's vertices
+const vertex_index_t VERTEX_INDEX_INVALID = UINT32_MAX;
 
-typedef uint32_t grid_index_t; // index in partition's walls
-const grid_index_t GRID_INDEX_INVALID = UINT32_MAX;
+//typedef uint grid_index_t; // index in partition's walls
+//const grid_index_t GRID_INDEX_INVALID = UINT32_MAX;
 
-typedef uint32_t wall_index_t; // index in partition's walls
+typedef uint tile_index_t; // index of a tile in a grid
+const tile_index_t TILE_INDEX_INVALID = UINT32_MAX;
+
+typedef uint wall_index_t; // index in partition's walls
 const wall_index_t WALL_INDEX_INVALID = UINT32_MAX;
 
-typedef uint32_t wall_id_t; // world-unique wall id
+typedef uint wall_id_t; // world-unique wall id
 const wall_id_t WALL_ID_INVALID = UINT32_MAX;
 
-//typedef uint32_t wall_class_index_t; // index in world's wall classes
+//typedef uint wall_class_index_t; // index in world's wall classes
 
-typedef uint32_t geometry_object_index_t;
+typedef uint geometry_object_index_t;
 const geometry_object_index_t GEOMETRY_OBJECT_INDEX_INVALID = UINT32_MAX;
 
-typedef uint32_t geometry_object_id_t; // world-unique unique geometry object id
+typedef uint geometry_object_id_t; // world-unique unique geometry object id
 const geometry_object_id_t GEOMETRY_OBJECT_ID_INVALID = UINT32_MAX;
 
 typedef int32_t orientation_t;
@@ -144,7 +167,41 @@ typedef std::pair<partition_index_t, vertex_index_t> partition_vertex_index_pair
 
 typedef std::pair<float_t, partition_wall_index_pair_t> cum_area_pwall_index_pair_t;
 
+
+class reaction_t;
+#ifndef INDEXER_WA
+template<class T, class Allocator=boost::container::new_allocator<T>>
+using small_vector = boost::container::small_vector<T, 8, Allocator>;
+
 typedef boost::container::small_vector<subpart_index_t, 8>  subpart_indices_vector_t;
+typedef boost::container::small_vector<const reaction_t*, 8>  reactions_vector_t;
+#else
+template<typename T, typename _Alloc = std::allocator<T>  >
+using small_vector = std::vector<T, _Alloc>;
+
+typedef std::vector<subpart_index_t> subpart_indices_vector_t;
+typedef std::vector<const reaction_t*> reactions_vector_t;
+#endif
+
+
+/**
+ * Class used to hold sets of ids or indices of molecules or other items
+ */
+class uint_set_t: public boost::container::flat_set<uint> {
+public:
+  void set_contains_id(const uint id, const bool value = true) {
+    if (value) {
+      assert(count(id) == 0);
+      insert(id);
+    }
+    else {
+      assert(count(id) == 1);
+      erase(id);
+    }
+  }
+
+  void dump();
+};
 
 // ---------------------------------- vector types ----------------------------------
 
@@ -170,7 +227,7 @@ struct vec3_t: public glm_vec3_t{
   void dump(const std::string extra_comment, const std::string ind) const;
 };
 
-// usually are .u and .v used to access cotained values
+// usually are .u and .v used to access contained values
 struct vec2_t: public glm_vec2_t{
   vec2_t() = default;
   vec2_t(const glm_vec2_t& a) { x = a.x; y = a.y; }
@@ -181,8 +238,8 @@ struct vec2_t: public glm_vec2_t{
 
   bool is_valid() const { return !(x == POS_INVALID || y == POS_INVALID); }
 
-  //TODO: std::string to_string() const;
-  //TODO: void dump(const std::string extra_comment, const std::string ind) const;
+  std::string to_string() const;
+  void dump(const std::string extra_comment, const std::string ind) const;
 };
 
 std::ostream & operator<<(std::ostream &out, const vec3_t &a);
@@ -190,6 +247,39 @@ std::ostream & operator<<(std::ostream &out, const vec2_t &a);
 
 
 // ---------------------------------- auxiliary functions ----------------------------------
+
+static inline float_t sqrt_f(const float_t x) {
+#if FLOAT_T_BYTES == 8
+  return sqrt(x);
+#else
+  return sqrtf(x);
+#endif
+}
+
+static inline float_t log_f(const float_t x) {
+#if FLOAT_T_BYTES == 8
+  return log(x);
+#else
+  return logf(x);
+#endif
+}
+
+static inline float_t ceil_f(const float_t x) {
+#if FLOAT_T_BYTES == 8
+  return ceil(x);
+#else
+  return ceilf(x);
+#endif
+}
+
+static inline float_t fabs_f(const float_t x) {
+#if FLOAT_T_BYTES == 8
+  return fabs(x);
+#else
+  return fabsf(x);
+#endif
+}
+
 
 static inline float_t floor_to_multiple(const float_t val, float_t multiple) {
   return (float_t)((int)(val / multiple)) * multiple;
@@ -200,16 +290,25 @@ static inline vec3_t floor_to_multiple(const vec3_t& val, float_t multiple) {
 }
 
 static inline bool cmp_eq(const float_t a, const float_t b, const float_t eps) {
-  return fabs(a - b) < eps;
+  return fabs_f(a - b) < eps;
+}
+
+inline bool cmp_eq(float_t a, float_t b) {
+  return cmp_eq(a, b, EPS);
 }
 
 static inline bool cmp_lt(const float_t a, const float_t b, const float_t eps) {
   return a < b && !cmp_eq(a, b, eps);
 }
 
-static inline uint32_t powu(const uint32_t a, const uint32_t n) {
-  uint32_t res = a;
-  for (uint32_t i = 1; i < n; i++) {
+static inline bool cmp_gt(const float_t a, const float_t b, const float_t eps) {
+  return a > b && !cmp_eq(a, b, eps);
+}
+
+
+static inline uint powu(const uint a, const uint n) {
+  uint res = a;
+  for (uint i = 1; i < n; i++) {
     res *= a;
   }
   return res;
@@ -248,15 +347,27 @@ static inline float_t len3_squared(const vec3_t& v1) {
   return v1.x * v1.x + v1.y * v1.y + v1.z * v1.z;
 }
 
+static inline float_t distance3(const vec3_t& v1, const vec3_t& v2) {
+  return sqrt_f( len3_squared(v1 - v2) );
+}
+
+/**
+ * Performs vector cross product.
+ * Computes the cross product of two vector3's v1 and v2 storing the result
+ * in vector3 v3.
+ */
+static inline vec3_t cross(const vec3_t& v1, const vec3_t& v2) {
+  return glm::cross((glm_vec3_t)v1, (glm_vec3_t)v2);
+}
+
 // returns true when whether two values are measurably different
-// FIXME: has the same signature as mcell3 version
-inline bool distinguishable(float_t a, float_t b, float_t eps) {
-  float_t c = fabs(a - b);
-  a = fabs(a);
+inline bool distinguishable_f(float_t a, float_t b, float_t eps) {
+  float_t c = fabs_f(a - b);
+  a = fabs_f(a);
   if (a < 1) {
     a = 1;
   }
-  b = fabs(b);
+  b = fabs_f(b);
 
   if (b < a) {
     eps *= a;
@@ -272,24 +383,24 @@ static inline int distinguishable_vec2(const vec2_t& a, const vec2_t& b, float_t
   float_t c, cc, d;
 
   /* Find largest coordinate */
-  c = fabs(a.u);
+  c = fabs_f(a.u);
 
-  d = fabs(a.v);
+  d = fabs_f(a.v);
   if (d > c)
     c = d;
 
-  d = fabs(b.u);
+  d = fabs_f(b.u);
   if (d > c)
     c = d;
 
-  d = fabs(b.v);
+  d = fabs_f(b.v);
   if (d > c)
     c = d;
 
   /* Find largest difference */
-  cc = fabs(a.u - b.u);
+  cc = fabs_f(a.u - b.u);
 
-  d = fabs(a.v - b.v);
+  d = fabs_f(a.v - b.v);
   if (d > cc)
     cc = d;
 
@@ -305,36 +416,36 @@ static inline bool distinguishable_vec3(const vec3_t& a, const vec3_t& b, float_
   float_t c, cc, d;
 
   /* Find largest coordinate */
-  c = fabs(a.x);
+  c = fabs_f(a.x);
 
-  d = fabs(a.y);
+  d = fabs_f(a.y);
   if (d > c)
     c = d;
 
-  d = fabs(a.z);
+  d = fabs_f(a.z);
   if (d > c)
     c = d;
 
-  d = fabs(b.x);
+  d = fabs_f(b.x);
   if (d > c)
     c = d;
 
-  d = fabs(b.y);
+  d = fabs_f(b.y);
   if (d > c)
     c = d;
 
-  d = fabs(b.z);
+  d = fabs_f(b.z);
   if (d > c)
     c = d;
 
   /* Find largest difference */
-  cc = fabs(a.x - b.x);
+  cc = fabs_f(a.x - b.x);
 
-  d = fabs(a.y - b.y);
+  d = fabs_f(a.y - b.y);
   if (d > cc)
     cc = d;
 
-  d = fabs(a.z - b.z);
+  d = fabs_f(a.z - b.z);
   if (d > cc)
     cc = d;
 
@@ -370,94 +481,17 @@ static inline void debug_guard_zero_div(vec3_t& val) {
 #endif
 }
 
-static inline float_t sqrt_f(const float_t x) {
-#if FLOAT_T_BYTES == 8
-  return sqrt(x);
-#else
-  return sqrtf(x);
-#endif
-}
-
-static inline float_t log_f(const float_t x) {
-#if FLOAT_T_BYTES == 8
-  return log(x);
-#else
-  return logf(x);
-#endif
-}
-
-// TODO: fabs
-
-// ---------------------------------- world_constants_t ----------------------------------
-// TODO: maybe move to a separate header
-// TODO: move reactions to be owned by world constants
-
-#if 0
-//not used yet
-/**.
- * Class of a wall.
- * Although usually an object has the same properties, some of it regions might act differently.
- * This class serves to store this constant type of information for all items in the world.
- */
-class wall_class_t {
-public:
-  // absobtive, ...
-  // what else could I need here?
-  uint32_t flags;
-};
-#endif
-
 
 class reaction_t;
+#ifndef INDEXER_WA
 typedef std::unordered_map<species_id_t, reaction_t*> species_reaction_map_t;
 typedef species_reaction_map_t unimolecular_reactions_map_t;
 typedef std::unordered_map< species_id_t, species_reaction_map_t > bimolecular_reactions_map_t;
-
-/*
- * Constant data set in initialization useful for all classes, single object is owned by world
- */
-struct world_constants_t {
-  // configuration
-  float_t time_unit;
-  float_t length_unit;
-  float_t rx_radius_3d;
-  float_t partition_edge_length;
-  uint32_t subpartitions_per_partition_dimension;
-  uint32_t subpartitions_per_partition_dimension_squared;
-  float_t subpartition_edge_length; // == partition_edge_length / subpartitions_per_partition_dimension
-  float_t subpartition_edge_length_rcp; // == 1/subpartition_edge_length
-
-  // other options
-  bool use_expanded_list;
-
-
-  const unimolecular_reactions_map_t* unimolecular_reactions_map; // owned by world
-  const bimolecular_reactions_map_t* bimolecular_reactions_map; // owned by world
-
-private:
-  void init_subpartition_edge_length() {
-    if (partition_edge_length != 0) {
-      subpartition_edge_length = partition_edge_length / (float_t)subpartitions_per_partition_dimension;
-      subpartition_edge_length_rcp = 1.0/subpartition_edge_length;
-    }
-    subpartitions_per_partition_dimension_squared = powu(subpartitions_per_partition_dimension, 2);
-  }
-
-public:
-  // called from world::init_simulation()
-  void init(
-      unimolecular_reactions_map_t* unimolecular_reactions_map_,
-      bimolecular_reactions_map_t* bimolecular_reactions_map_
-      ) {
-    unimolecular_reactions_map = unimolecular_reactions_map_;
-    bimolecular_reactions_map = bimolecular_reactions_map_;
-    init_subpartition_edge_length();
-  }
-
-  void dump();
-
-  // TODO: maybe add: bool fully_initialized;
-};
+#else
+typedef std::map<species_id_t, reaction_t*> species_reaction_map_t;
+typedef species_reaction_map_t unimolecular_reactions_map_t;
+typedef std::map<species_id_t, species_reaction_map_t> bimolecular_reactions_map_t;
+#endif
 
 /*
  * Constant data set in initialization useful for all classes, single object is owned by world

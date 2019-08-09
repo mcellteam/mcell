@@ -46,16 +46,12 @@
 
 #ifdef NDEBUG
 #define rng_dbl(x) isaac64_dbl32((x))
-#else 
-// for some reason I could not include dump9ing function here, so
-// the function had to be moved to rng.cpp file
-double rng_dbl(struct rng_state *rng);
-#endif
-// dump for release build
-
-
-
 #define rng_uint(x) isaac64_uint32((x))
+#else 
+// we need functions to be able to dump the random number gen. info
+double rng_dbl(struct rng_state *rng);
+unsigned int rng_uint(struct rng_state *rng);
+#endif
 /***********************************************/
 
 #endif

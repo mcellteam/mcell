@@ -69,7 +69,7 @@ enum molecule_flags_e {
 class molecule_t {
 public:
   molecule_t()
-    : id(MOLECULE_ID_INVALID), flags(0), species_id(SPECIES_ID_INVALID), unimol_rx_time(TIME_FOREVER) {
+    : id(MOLECULE_ID_INVALID), flags(0), unimol_rx_time(TIME_FOREVER), unimol_rx(nullptr), species_id(SPECIES_ID_INVALID) {
   }
 
   molecule_t(const molecule_t& m) {
@@ -77,29 +77,34 @@ public:
   }
 
   molecule_t(const molecule_id_t id_, const species_id_t species_id_)
-    : id(id_), flags(0), species_id(species_id_), unimol_rx_time(TIME_FOREVER)
+    : id(id_), flags(0), unimol_rx_time(TIME_FOREVER), unimol_rx(nullptr), species_id(species_id_)
       /*subpart_index(SUBPART_INDEX_INVALID)*/ {
   }
 
+  // volume molecule
   molecule_t(const molecule_id_t id_, const species_id_t species_id_, const vec3_t& pos_)
-    : id(id_), flags(MOLECULE_FLAG_VOL), species_id(species_id_), unimol_rx_time(TIME_FOREVER) {
+    : id(id_), flags(MOLECULE_FLAG_VOL), unimol_rx_time(TIME_FOREVER), unimol_rx(nullptr), species_id(species_id_) {
     v.pos = pos_;
     v.subpart_index = SUBPART_INDEX_INVALID;
   }
 
+  // surface molecule
   molecule_t(const molecule_id_t id_, const species_id_t species_id_, const vec2_t& pos2d)
-    : id(id_), flags(MOLECULE_FLAG_SURF), species_id(species_id_), unimol_rx_time(TIME_FOREVER) {
+    : id(id_), flags(MOLECULE_FLAG_SURF), unimol_rx_time(TIME_FOREVER), unimol_rx(nullptr), species_id(species_id_) {
     s.pos = pos2d;
     //s.subpart_index = SUBPART_INDEX_INVALID;
     s.orientation = ORIENTATION_NONE;
     s.wall_index = WALL_INDEX_INVALID;
+    s.grid_tile_index = TILE_INDEX_INVALID;
   }
 
+  // WARNING: this method must be updated when a new attribute is added
   void operator = (const molecule_t& m) {
     id = m.id;
     flags = m.flags;
     species_id = m.species_id;
     unimol_rx_time = m.unimol_rx_time;
+    unimol_rx = m.unimol_rx;
 
     if (m.is_vol()) {
       v.pos = m.v.pos;
@@ -107,14 +112,21 @@ public:
     }
     else if (m.is_surf()) {
       s.pos = m.s.pos;
+      s.orientation = m.s.orientation;
+      s.wall_index = m.s.wall_index;
+      s.grid_tile_index = m.s.grid_tile_index;
     }
   }
 
+  // data is ordered to avoid alignment holes (for 64-bit floats)
   molecule_id_t id; // unique molecule id (for now it is unique per partition but should be world-wide unique)
-  uint32_t flags;
-  species_id_t species_id;
+  uint flags;
+
   float_t unimol_rx_time;
 
+  const reaction_t* unimol_rx;
+
+  // update assignment operator when modifying this
   union {
     // volume molecule data
     struct {
@@ -129,13 +141,22 @@ public:
       //subpart_index_t subpart_index;
       orientation_t orientation;
       wall_index_t wall_index;
-      uint32_t grid_tile_index; // datatype for this?
+      tile_index_t grid_tile_index;
     } s;
   };
 
+  species_id_t species_id;
+
+  bool has_flag(uint flag) const {
+    return (flags & flag) != 0;
+  }
+
+  void set_flag(uint flag) {
+    flags = flags | flag;
+  }
 
   bool is_vol() const {
-    bool res = ((flags & MOLECULE_FLAG_VOL) != 0);
+    bool res = has_flag(MOLECULE_FLAG_VOL);
     if (res) {
       assert(!is_surf());
     }
@@ -143,12 +164,13 @@ public:
   }
 
   bool is_surf() const {
-    bool res = ((flags & MOLECULE_FLAG_SURF) != 0);
+    bool res = has_flag(MOLECULE_FLAG_SURF);
     if (res) {
       assert(!is_vol());
     }
     return res;
   }
+
 
   bool is_defunct() const {
     return (flags & MOLECULE_FLAG_DEFUNCT) != 0;
@@ -159,13 +181,23 @@ public:
     flags |= MOLECULE_FLAG_DEFUNCT;
   }
 
+  orientation_t get_orientation() const {
+    if (is_surf()) {
+      return s.orientation;
+    }
+    else {
+      return ORIENTATION_NONE; // or not set?
+    }
+  }
+
   void dump(const std::string ind) const;
   void dump(
       const world_t* world,
       const std::string extra_comment,
       const std::string ind,
       const uint64_t iteration,
-      const float_t time = 0
+      const float_t time = 0,
+      const bool print_position = true
   ) const;
   std::string to_string() const;
   static void dump_array(const std::vector<molecule_t>& vec);

@@ -29,7 +29,7 @@
 #include <set>
 #include <map>
 
-
+#include "world_constants.h"
 #include "partition.h"
 #include "scheduler.h"
 #include "species.h"
@@ -74,12 +74,13 @@ public:
 
   // add a partition in a predefined 'lattice' that contains point pos
   partition_index_t add_partition(const vec3_t& pos) {
-    // TODO: some check on validity of pos?
     assert(world_constants.partition_edge_length != 0);
     assert(get_partition_index(pos) == PARTITION_INDEX_INVALID && "Partition must not exist");
+
     vec3_t origin =
         floor_to_multiple(pos, world_constants.partition_edge_length)
         - vec3_t(world_constants.partition_edge_length/2);
+
     partitions.push_back(partition_t(origin, world_constants, simulation_stats));
     return partitions.size() - 1;
   }
@@ -89,6 +90,9 @@ public:
     return partitions[i];
   }
 
+  std::vector<partition_t>& get_partitions() {
+      return partitions;
+  }
 
   // -------------- reaction utility methods --------------
 
@@ -135,24 +139,19 @@ public:
     return it_res->second;
   }
 
-  // -------------- geometry utility methods --------------
+  const species_t& get_species(const species_id_t species_id) const {
+    assert(species_id < species.size());
+    return species[species_id];
+  }
 
-  // partition_index_t get_partition_index_for_pos(const vec3_t& pos);
+  const std::vector<species_t>& get_species() const {
+    return species;
+  }
 
-  //partition_wall_index_pair_t add_uninitialized_wall()
-
-  // adds vertex to a given partition and returns pair partition index and the index of the
-  // vertex in that partition
-  //partition_vertex_index_pair_t add_geometry_vertex(const vec3_t& pos);
-
-  // adds a new geometry object with its walls, sets unique ids for the walls and objects
-  /*partition_index_t add_geometry_object(
-      const geometry_object_t& obj,
-      std::vector<wall_t>& walls,
-      const std::vector<std::vector<partition_vertex_index_pair_t>>& walls_vertices
-  );*/
-
-
+  void add_species(const species_t& new_species) {
+    assert(new_species.species_id == species.size());
+    species.push_back(new_species);
+  }
   // -------------- object id counters --------------
   wall_id_t get_next_wall_id() {
     wall_id_t res = next_wall_id;
@@ -168,43 +167,38 @@ public:
 
   void dump();
 
-  // -------------- world data --------------
-
-//TODO: make priv
-//private:
+private:
   std::vector<partition_t> partitions;
+  std::vector<species_t> species;
 
 public:
   scheduler_t scheduler;
 
-  // TODO: make private (?)
-  std::vector<species_t> species; // owner
-
   std::vector<reaction_t> reactions; // we might need faster searching or reference from species to reactions here but let's keep it simple for now
 
-  // FIXME: there might be multiple reactions for 1 or 2 reactants (multiple pathways)
+  // TODO_PATHWAYS: there might be multiple reactions for 1 or 2 reactants (multiple pathways)
   unimolecular_reactions_map_t unimolecular_reactions_map; // created from reactions in init_simulation
   bimolecular_reactions_map_t bimolecular_reactions_map; // created from reactions in init_simulation
 
   uint64_t current_iteration;
   uint64_t iterations; // number of iterations to simulate
 
-
-  uint32_t seed_seq;
+  uint seed_seq; // initial seed passed to mcell as argument
 
   world_constants_t world_constants;
   simulation_stats_t simulation_stats;
 
-  // single state for the random number generator
-  rng_state rng;
+  rng_state rng; // single state for the random number generator
 
   // in case when there would be many copies of a string, this constant pool can be used
   const char* add_const_string_to_pool(const std::string str) {
     return const_string_pool.insert(str).first->c_str();
   }
+
 private:
   std::set<std::string> const_string_pool;
 
+  // global ID counters
   wall_id_t next_wall_id;
   geometry_object_id_t next_geometry_object_id;
 };

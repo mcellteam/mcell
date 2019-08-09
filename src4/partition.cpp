@@ -25,23 +25,31 @@
 
 #include "partition.h"
 
+#include "geometry_utils.inc"
+
 using namespace std;
 
 namespace mcell {
 
-void subpartition_mask_t::dump() {
-  cout << "Indices contained in a subpartition: ";
-  int cnt = 0;
-  for (uint32_t idx: *this) {
-    cout << idx << ", ";
+// when a wall is added with add_uninitialized_wall,
+// its type and vertices are not know yet, we must include the walls
+// into subvolumes and also for other purposes
+void partition_t::finalize_wall_creation(const wall_index_t wall_index) {
+  wall_t& w = get_wall(wall_index);
 
-    if (cnt %20 == 0 && cnt != 0) {
-      cout << "\n";
-    }
-    cnt++;
+  for (vertex_index_t vi: w.vertex_indices) {
+    add_wall_using_vertex_mapping(vi, wall_index);
   }
-  cout << "\n";
+
+  // also insert this triangle into walls per subpartition
+  subpart_indices_vector_t colliding_subparts;
+  geom_util::wall_subparts_collision_test(*this, w, colliding_subparts);
+  for (subpart_index_t subpart_index: colliding_subparts) {
+    assert(subpart_index < walls_per_subpart.size());
+    walls_per_subpart[subpart_index].set_contains_id(wall_index);
+  }
 }
+
 
 void partition_t::dump() {
   for (geometry_object_t& obj:geometry_objects) {

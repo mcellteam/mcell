@@ -25,6 +25,7 @@
 #define __DUMP_STATE_H__
 
 #include "mcell_structs.h"
+#include "grid_util.h"
 
 #include "rng.h"
 
@@ -44,6 +45,18 @@ extern "C"
 #endif
 void dump_collisions(struct collision* shead);
 
+#ifdef __cplusplus
+extern "C"
+#endif
+void dump_surface_molecule(
+    struct surface_molecule* amp,
+    const char* ind,
+    bool for_diff,
+    const char* extra_comment,
+    unsigned long long iteration,
+    double time,
+    bool print_position
+);
 
 #ifdef __cplusplus
 extern "C"
@@ -54,8 +67,14 @@ void dump_volume_molecule(
     bool for_diff,
     const char* extra_comment,
     unsigned long long iteration,
-    double time
+    double time,
+    bool print_position
 );
+
+#ifdef __cplusplus
+extern "C"
+#endif
+void dump_vector2(struct vector2 vec, const char* extra_comment);
 
 #ifdef __cplusplus
 extern "C"
@@ -66,6 +85,11 @@ void dump_vector3(struct vector3 vec, const char* extra_comment);
 extern "C"
 #endif
 void dump_rng_call_info(struct isaac64_state* rng, const char* extra_comment);
+
+#ifdef __cplusplus
+extern "C"
+#endif
+void dump_tile_neighbors_list(struct tile_neighbor *tile_nbr_head, const char* extra_comment, const char* ind);
 
 
 #ifdef __cplusplus

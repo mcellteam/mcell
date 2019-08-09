@@ -48,7 +48,6 @@ world_t::world_t()
     next_wall_id(0),
     next_geometry_object_id(0)
 {
-  // TODO: initialize rest of members
   world_constants.partition_edge_length = PARTITION_EDGE_LENGTH_DEFAULT;
   world_constants.subpartitions_per_partition_dimension = SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT;
 }
@@ -102,7 +101,7 @@ void world_t::init_world_constants() {
   }
   assert(bimolecular_reactions_map.size() == species.size());
 
-  world_constants.init(&unimolecular_reactions_map, &bimolecular_reactions_map);
+  world_constants.init(&unimolecular_reactions_map, &bimolecular_reactions_map, &species);
 }
 
 
@@ -111,7 +110,7 @@ void world_t::init_simulation() {
   init_fpu();
 
   cout << "Partitions contain " <<  world_constants.subpartitions_per_partition_dimension << "^3 subvolumes.";
-  assert(partitions.size() == 1 && "Initial parition must have been created, only 1 for now");
+  assert(partitions.size() == 1 && "Initial partition must have been created, only 1 for now");
 }
 
 
@@ -168,7 +167,7 @@ bool world_t::run_simulation(const bool dump_initial_state) {
   float_t time = TIME_SIMULATION_START;
   float_t previous_time;
   current_iteration = 0;
-  uint32_t output_frequency = determine_output_frequency(iterations);
+  uint output_frequency = determine_output_frequency(iterations);
   timeval last_timing_time = {0, 0};
 
   cout << "Iterations: " << current_iteration << " of " << iterations << "\n";
@@ -179,12 +178,16 @@ bool world_t::run_simulation(const bool dump_initial_state) {
   do {
     previous_time = time;
 
+#ifdef DEBUG_SCHEDULER
+    cout << "Before it: " << current_iteration << ", time: " << time << "\n";
+#endif
+
     // this is where events get executed
     time = scheduler.handle_next_event(end_simulation);
 
     // report progress
-    if (time > previous_time) {
-      current_iteration++;
+    if (cmp_gt(time, previous_time, SCHEDULER_COMPARISON_EPS)) {
+      current_iteration++; // NOTE: we should rather determine iteration from time or from the number of diffusion events that were executed
       if (current_iteration % output_frequency == 0) {
 
         cout << "Iterations: " << current_iteration << " of " << iterations;
@@ -202,6 +205,10 @@ bool world_t::run_simulation(const bool dump_initial_state) {
       }
     }
 
+#ifdef DEBUG_SCHEDULER
+    cout << "After it: " << current_iteration << ", time: " << time << "\n";
+#endif
+
   } while (!end_simulation);
 
   cout << "Iteration " << current_iteration << ", simulation finished successfully\n";
@@ -218,88 +225,6 @@ bool world_t::run_simulation(const bool dump_initial_state) {
   return true;
 }
 
-#if 0
-partition_index_t world_t::get_partition_index_for_pos(const vec3_t& pos) {
-  // for now very simply search all partitions
-  // we expect that parittion boundaries are precise
-  partition_index_t found_index = PARTITION_INDEX_INVALID;
-  for (partition_index_t i = 0; i < partitions.size(); i++) {
-    const partition_t& p = partitions[i];
-    if ( glm::all( glm::greaterThanEqual(pos, p.get_origin_corner() )) &&
-        glm::all( glm::lessThan(pos, p.get_opposite_corner()) ) ) {
-      assert(found_index == PARTITION_INDEX_INVALID && "Single point can be in just one partition");
-      found_index = i;
-#ifdef NDEBUG
-      break; // we found our partition
-#endif
-    }
-  }
-  return found_index;
-}
-#endif
-#if 0
-partition_vertex_index_pair_t world_t::add_geometry_vertex(const vec3_t& pos) {
-  // to which partition it belongs
-  partition_index_t partition_index = get_partition_index(pos);
-  if (partition_index == PARTITION_INDEX_INVALID) {
-    mcell_log("Error: only a single partition is supported for now, vertex %s is out of bounds", pos.to_string().c_str());
-  }
-
-  vertex_index_t vertex_index = partitions[partition_index].add_geometry_vertex(pos);
-
-  return partition_vertex_index_pair_t(partition_index, vertex_index);
-}
-#endif
-
-#if 0
-// adds a new geometry object with its walls, sets unique ids for the walls and objects
-// note: there is a lot of potentially unnecessary copying of walls, can be optimized
-// returns index of partition where the object was created
-// FIXME: this copying of wall objects is quite a mess, clean it up
-partition_index_t world_t::add_geometry_object(
-    const geometry_object_t& obj,
-    vector<wall_t>& walls, // the vertices for walls are contained in walls_vertices,
-                           // although temporary, its ids and indices are set
-    const vector<vector<partition_vertex_index_pair_t>>& walls_vertices
-) {
-  assert(!walls.empty());
-  assert(walls.size() == walls_vertices.size());
-
-  partition_index_t partition_index = walls_vertices[0][0].first;
-  partition_t& p = partitions[partition_index];
-
-  geometry_object_t& new_obj = p.add_geometry_object(obj, next_geometry_object_id);
-
-  for (uint32_t i = 0; i < walls.size(); i++) {
-    wall_t& new_wall = walls[i];
-
-    new_wall.object_id = new_obj.id;
-
-    // check that all vertices are in the same partition (the previous code assumes this)
-    assert(walls_vertices[i].size() == VERTICES_IN_TRIANGLE);
-    for (uint32_t k = 0; k < VERTICES_IN_TRIANGLE; k++) {
-      vertex_index_t vertex_index = walls_vertices[i][k].second;
-
-      // check that we fit into the partition
-      if (walls_vertices[i][k].first != partition_index) {
-        vec3_t pos = p.get_geometry_vertex(vertex_index);
-        mcell_log("Error: only a single partition is supported for now, vertex %s is out of bounds", pos.to_string().c_str());
-      }
-
-      // set walls to the object
-      new_wall.vertex_indices[k] = vertex_index;
-    }
-
-    // add wall to partition and overwrite our local copy
-    new_wall = p.add_wall(new_wall, next_wall_id);
-
-    // set index of the contained wall
-    new_obj.wall_indices.push_back(new_wall.index);
-  }
-
-  return partition_index;
-}
-#endif
 
 void world_t::dump() {
   world_constants.dump();

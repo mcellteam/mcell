@@ -43,6 +43,9 @@
 #include "react.h"
 #include "init.h"
 
+#include "debug_config.h"
+#include "dump_state.h"
+
 /*************************************************************************
 xyz2uv and uv2xyz:
   In: 2D and 3D vectors and a wall
@@ -3062,6 +3065,10 @@ void find_neighbor_tiles(struct volume *world, struct surface_molecule *sm,
 
   *tile_nbr_head = tmp_head;
   *list_length = tmp_list_length;
+
+#ifdef DEBUG_GRIDS
+  dump_tile_neighbors_list(*tile_nbr_head, __FUNCTION__, "  ");
+#endif
 }
 
 

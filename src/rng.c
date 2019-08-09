@@ -234,3 +234,13 @@ double rng_dbl(struct rng_state *rng) {
   return isaac64_dbl32(rng);
 }
 #endif
+
+#ifndef NDEBUG
+unsigned int rng_uint(struct rng_state *rng) {
+
+#ifdef DEBUG_RNG_CALLS
+  dump_rng_call_info(rng, "");
+#endif
+  return isaac64_uint32(rng);
+}
+#endif
