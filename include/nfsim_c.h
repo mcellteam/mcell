@@ -107,7 +107,7 @@ extern "C" {
     int initFromConstruct_c(void);
 
     //store the current observable set in a list
-    int logNFSimObservables_c(double time);
+    int logNFSimObservables_c(double time, int seed);
     int logNFSimReactions_c(const char*);
     //stream observableSet to file
     int outputNFSimObservables_c(int);
