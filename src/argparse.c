@@ -69,6 +69,7 @@ static struct option long_options[] = { { "help", 0, 0, 'h' },
                                         { "quiet", 0, 0, 'q' },
                                         { "with_checks", 1, 0, 'w' },
                                         { "rules", 1, 0, 'r'},
+																				{ "dump_mcell4", 0, 0, 'o'},
                                         { NULL, 0, 0, 0 } };
 
 /* print_usage: Write the usage message for mcell to a file handle.
@@ -97,6 +98,7 @@ void print_usage(FILE *f, char const *argv0) {
       "     [-quiet]                 suppress all unrequested output except for errors\n"
       "     [-with_checks ('yes'/'no', default 'yes')]   performs check of the geometry for coincident walls\n"
       "     [-rules rules_file_name] run in MCell-R mode\n"
+			"     [-dump_mcell4]           dump Mcell 3 state for MCell 4 development\n"
       "\n");
 }
 
@@ -341,6 +343,10 @@ int argparse_init(int argc, char *const argv[], struct volume *vol) {
         mcell_set_error_file(fhandle);
         err_file_specified = 1;
       }
+      break;
+
+    case 'o':
+      vol->dump_mcell4 = 1;
       break;
 
     default:

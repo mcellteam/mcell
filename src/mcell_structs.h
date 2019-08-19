@@ -1397,6 +1397,8 @@ struct volume {
   struct species* global_nfsim_surface;
 
   struct pointer_hash *species_mesh_transp; 
+  
+  int dump_mcell4;
 };
 
 /* Data structure to store information about collisions. */
