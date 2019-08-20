@@ -222,6 +222,129 @@ std::ostream & operator<<(std::ostream &out, const reaction_flags &a) {
   return out;
 }
 
+
+void dump_oexpr_element(std::ostream &out, const int flags, void* child, bool left) {
+
+  int specific_flags = flags & ((left) ? OEXPR_LEFT_MASK : OEXPR_RIGHT_MASK);
+
+  if (specific_flags & (OEXPR_LEFT_INT | OEXPR_RIGHT_INT)) {
+    out << *(int*)child;
+  }
+  else if (specific_flags & (OEXPR_LEFT_DBL | OEXPR_RIGHT_DBL)) {
+    out << *(double*)child;
+  }
+  else if (specific_flags & (OEXPR_LEFT_OEXPR | OEXPR_RIGHT_OEXPR)) {
+    out << (output_expression*)child;
+  }
+  else if (specific_flags & (OEXPR_LEFT_CONST | OEXPR_RIGHT_CONST)) {
+    out << "TODO const";
+  }
+  else if (specific_flags & (OEXPR_LEFT_REQUEST | OEXPR_RIGHT_REQUEST)) {
+    out << "TODO request";
+  }
+  else if (specific_flags & (OEXPR_LEFT_TRIG | OEXPR_RIGHT_TRIG)) {
+    out << "TODO request";
+  }
+  else {
+    out << ""; /*no children*/
+  }
+
+}
+
+
+std::ostream & operator<<(std::ostream &out, const output_expression *e) {
+  if (e != NULL) {
+    out <<
+        "("
+        "[" << ( (e->title != nullptr) ? e->title : "") << ", v:" << e->value << "] ";
+
+    dump_oexpr_element(out, e->expr_flags, e->left, true);
+    out << e->oper << " ";
+    dump_oexpr_element(out, e->expr_flags, e->right, false);
+    out << ")";
+
+  }
+  else {
+    out << "(NULL)";
+  }
+  return out;
+}
+
+
+
+
+#define DUMP_FLAG(f, mask) if (((f) & (mask)) != 0) res += string(#mask) + ", ";
+
+string get_molecule_flags_string(short flags, bool full_dump = true) {
+  string res;
+  DUMP_FLAG(flags, TYPE_SURF)
+  DUMP_FLAG(flags, TYPE_VOL)
+  DUMP_FLAG(flags, ACT_DIFFUSE)
+  if (full_dump) {
+    DUMP_FLAG(flags, ACT_REACT)
+    DUMP_FLAG(flags, ACT_NEWBIE)
+    DUMP_FLAG(flags, ACT_CHANGE)
+  }
+  DUMP_FLAG(flags, ACT_CLAMPED)
+  if (full_dump) {
+    DUMP_FLAG(flags, IN_SCHEDULE)
+    DUMP_FLAG(flags, IN_SURFACE)
+  }
+  DUMP_FLAG(flags, IN_VOLUME)
+  return res;
+}
+
+string get_report_type_flags_string(char report_type) {
+
+  string res;
+#define DUMP_MASKED_VALUE(f, val) if ( ((f) & REPORT_TYPE_MASK) == val) res += string(#val) + ", ";
+
+
+  DUMP_MASKED_VALUE(report_type, REPORT_NOTHING)
+  DUMP_MASKED_VALUE(report_type, REPORT_CONTENTS)
+  DUMP_MASKED_VALUE(report_type, REPORT_RXNS)
+  DUMP_MASKED_VALUE(report_type, REPORT_FRONT_HITS)
+  DUMP_MASKED_VALUE(report_type, REPORT_BACK_HITS)
+  DUMP_MASKED_VALUE(report_type, REPORT_FRONT_CROSSINGS)
+  DUMP_MASKED_VALUE(report_type, REPORT_BACK_CROSSINGS)
+  DUMP_MASKED_VALUE(report_type, REPORT_ALL_HITS)
+  DUMP_MASKED_VALUE(report_type, REPORT_ALL_CROSSINGS)
+  DUMP_MASKED_VALUE(report_type, REPORT_CONCENTRATION)
+  DUMP_MASKED_VALUE(report_type, REPORT_ELAPSED_TIME)
+
+  DUMP_FLAG(report_type, REPORT_WORLD)
+  DUMP_FLAG(report_type, REPORT_ENCLOSED)
+  DUMP_FLAG(report_type, REPORT_TRIGGER)
+
+  return res;
+
+}
+
+
+#undef DUMP_FLAG
+
+
+
+string get_release_shape_name(int8_t release_shape) {
+  string res;
+#define CASE_ITEM(n) case n: res = #n; break;
+  switch (release_shape) {
+    CASE_ITEM(SHAPE_UNDEFINED)
+    CASE_ITEM(SHAPE_SPHERICAL)
+    CASE_ITEM(SHAPE_CUBIC)
+    CASE_ITEM(SHAPE_ELLIPTIC)
+    CASE_ITEM(SHAPE_RECTANGULAR)
+    CASE_ITEM(SHAPE_SPHERICAL_SHELL)
+    CASE_ITEM(SHAPE_REGION)
+    CASE_ITEM(SHAPE_LIST)
+    default: res = "unknown!"; break;
+  }
+#undef CASE_ITEM
+  return res;
+}
+
+
+
 void dump_double_array(int num, const char* num_name, double* values, const char* values_name, const char* comment, const char* ind, const int max = MAX_ARRAY_ITEMS) {
   cout << ind << values_name << "[" << num_name << "]: \t\t" << values << "[" << num << "]" << " [double[]] \t\t" << comment;
   for (int i = 0; i < num && i < max; i++) {
@@ -410,45 +533,6 @@ void dump_wall_list_array(int num, const char* num_name, wall_list** values, con
   cout << "\n";
 }
 
-
-string get_molecule_flags_string(short flags, bool full_dump = true) {
-  string res;
-#define DUMP_FLAG(f, mask) if (((f) & (mask)) != 0) res += string(#mask) + ", ";
-  DUMP_FLAG(flags, TYPE_SURF)
-  DUMP_FLAG(flags, TYPE_VOL)
-  DUMP_FLAG(flags, ACT_DIFFUSE)
-  if (full_dump) {
-    DUMP_FLAG(flags, ACT_REACT)
-    DUMP_FLAG(flags, ACT_NEWBIE)
-    DUMP_FLAG(flags, ACT_CHANGE)
-  }
-  DUMP_FLAG(flags, ACT_CLAMPED)
-  if (full_dump) {
-    DUMP_FLAG(flags, IN_SCHEDULE)
-    DUMP_FLAG(flags, IN_SURFACE)
-  }
-  DUMP_FLAG(flags, IN_VOLUME)
-#undef DUMP_FLAG
-  return res;
-}
-
-string get_release_shape_name(int8_t release_shape) {
-  string res;
-#define CASE_ITEM(n) case n: res = #n; break;
-  switch (release_shape) {
-    CASE_ITEM(SHAPE_UNDEFINED)
-    CASE_ITEM(SHAPE_SPHERICAL)
-    CASE_ITEM(SHAPE_CUBIC)
-    CASE_ITEM(SHAPE_ELLIPTIC)
-    CASE_ITEM(SHAPE_RECTANGULAR)
-    CASE_ITEM(SHAPE_SPHERICAL_SHELL)
-    CASE_ITEM(SHAPE_REGION)
-    CASE_ITEM(SHAPE_LIST)
-    default: res = "unknown!"; break;
-  }
-#undef CASE_ITEM
-  return res;
-}
 
 void dump_molecule_flags(short flags, const char* ind) {
   cout << ind << "flags: \t\t" << flags << " [short] \t\t /* Abstract Molecule Flags: Who am I, what am I doing, etc. */\n";
@@ -1260,13 +1344,13 @@ void dump_output_blocks(output_block* output_block_head, const char* name, const
 
 
 void dump_one_output_request(output_request* req, const char* ind) {
-  cout << ind << "next: \t\t" << req->next << " [output_request*] \t\t         /* Next request in global list */\n";
+  cout << ind << "next: \t\t" << (void*)req->next << " [output_request*] \t\t         /* Next request in global list */\n";
   cout << ind << "requester: \t\t" << req->requester << " [output_expression*] \t\t /* Expression in which we appear */\n";
   cout << ind << "count_target: \t\t" << req->count_target << " [sym_entry*] \t\t      /* Mol/rxn we're supposed to count */\n";
   cout << ind << "count_orientation: \t\t" << req->count_orientation << " [short] \t\t             /* orientation of the molecule we are supposed to count */\n";
   cout << ind << "count_location: \t\t" << req->count_location << " [sym_entry*] \t\t    /* Object or region on which we're supposed to count it */\n";
-  cout << ind << "report_type: \t\t" << req->report_type << " [byte] \t\t                    /* Output Report Flags telling us how to count */\n";
-  cout << ind << "periodic_box: \t\t" << req->periodic_box << " [periodic_image*] \t\t /* periodic box we are counting in; NULL means that we don't care and count everywhere */\n";
+  cout << ind << "report_type: \t\t" << get_report_type_flags_string(req->report_type) << " [byte] \t\t                    /* Output Report Flags telling us how to count */\n";
+  cout << ind << "periodic_box: \t\t" << (void*)req->periodic_box << " [periodic_image*] \t\t /* periodic box we are counting in; NULL means that we don't care and count everywhere */\n";
 }
 
 
@@ -1407,7 +1491,7 @@ extern "C" void dump_volume(struct volume* s, const char* comment, unsigned int 
 
   cout << "output_request_head: *\t\t" << (void*)s->output_request_head << " [output_request] \t\t/* Global list linking COUNT statements to internal variables \n";
 
-  dump_output_requests(s->output_request_head, "output_request_head", /* Global list linking COUNT statements to internal variables*/, "");
+  dump_output_requests(s->output_request_head, "output_request_head", "/* Global list linking COUNT statements to internal variables*/", "");
 
   // some memories
   cout << "oexpr_mem: *\t\t" << (void*)s->oexpr_mem << " [mem_helper] \t\t/* Memory to store output_expressions */\n";
