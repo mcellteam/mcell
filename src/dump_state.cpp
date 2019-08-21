@@ -401,7 +401,12 @@ void dump_object(object* o, const char* ind) {
   dump_object_list(o->first_child, IND_ADD2(ind));
   cout << ind << "last_child: *\t\t" << o->last_child << " [object] \t\t/* Last child object */\n";
   cout << ind << "sym: *\t\t" << o->sym << " [sym_entry] \t\t/* Symbol hash table entry for this object */\n";
-  cout << ind << "last_name: *\t\t" << o->last_name << " [char] \t\t/* Name of object without pre-pended parent object name */\n";
+  if (o->last_name != nullptr) {
+    cout << ind << "last_name: *\t\t" << o->last_name << " [char] \t\t/* Name of object without pre-pended parent object name */\n";
+  }
+  else {
+    cout << ind << "last_name: *\t\t" << (void*)o->last_name << " [char] \t\t/* Name of object without pre-pended parent object name */\n";
+  }
   cout << ind << "object_type: \t\t" << o->object_type << " [object_type_flags_t] \t\t/* Object Type Flags */\n";
   cout << ind << "contents: *\t\t" << o->contents << " [void] \t\t/* Actual physical object, cast according to object_type */\n";
   cout << ind << "num_regions: \t\t" << o->num_regions << " [u_int] \t\t/* Number of regions defined on object */\n";
@@ -1008,6 +1013,9 @@ void dump_schedule_helper(schedule_helper* shp, const char* name, const char* co
     inds += "  ";
     const char* ind2 = inds.c_str();
     cout << ind << name << ": *\t\t" << (void*)shp << " [schedule_helper] \t\t" << comment << "\n";
+    if (shp == nullptr) {
+      return;
+    }
 #ifdef DUMP_SCHEDULERS
     cout << ind2 <<"next_scale: *\t\t" << (void*)shp->next_scale << " [schedule_helper] \t\t/* Next coarser time scale */\n";
 
@@ -1366,6 +1374,28 @@ void dump_output_requests(output_request* output_request_head, const char* name,
 }
 
 
+void dump_sym_table(sym_table_head* t, const char* name, const char* comment, const char* ind) {
+  cout << ind << name << ": *\t\t" << t << " [sym_table_head] \t\t" << comment << "\n";
+  if (t == nullptr) {
+    return;
+  }
+
+  DECL_IND2(ind);
+  cout << ind2 << "n_bins: \t\t" << t->n_bins << " [int] \t\t /**/\n";
+  cout << ind2 << "n_entries: \t\t" << t->n_entries << " [int] \t\t /**/\n";
+
+  int dumped_symbols = 0;
+  for (int i = 0; i < t->n_bins; i++) {
+
+    if (t->entries[i] != nullptr) {
+      cout << ind2 << "[" << i << "]:" <<  t->entries[i] << "\n";
+      dumped_symbols++;
+    }
+  }
+
+  assert(dumped_symbols == t->n_entries);
+}
+
 
 extern "C" void dump_volume(struct volume* s, const char* comment, unsigned int selected_details /* mask */) {
 
@@ -1427,7 +1457,9 @@ extern "C" void dump_volume(struct volume* s, const char* comment, unsigned int 
   cout << "count_hashmask: \t\t" << s->count_hashmask << " [int] \t\t/* Mask for looking up count hash table */\n";
   cout << "count_hash: **\t\t" << (void**)s->count_hash << " [counter] \t\t/* Count hash table */\n";
   dump_schedule_helper(s->count_scheduler, "count_scheduler", "// When to generate reaction output", "", false);
-  cout << "counter_by_name: *\t\t" << (void*)s->counter_by_name << " [sym_table_head] \n";
+
+  //cout << "counter_by_name: *\t\t" << (void*)s->counter_by_name << " [sym_table_head] \n";
+  dump_sym_table(s->counter_by_name, "counter_by_name", "", "");
 
   dump_schedule_helper(s->volume_output_scheduler, "volume_output_scheduler", "/* When to generate volume output */", "", false);
 
@@ -1489,8 +1521,7 @@ extern "C" void dump_volume(struct volume* s, const char* comment, unsigned int 
   //cout << "output_block_head: *\t\t" << (void*)s->output_block_head << " [output_block] \t\t/* Global list of reaction data output blocks */\n";
   dump_output_blocks(s->output_block_head, "output_block_head", "/* Global list of reaction data output blocks */", "");
 
-  cout << "output_request_head: *\t\t" << (void*)s->output_request_head << " [output_request] \t\t/* Global list linking COUNT statements to internal variables \n";
-
+  //cout << "output_request_head: *\t\t" << (void*)s->output_request_head << " [output_request] \t\t/* Global list linking COUNT statements to internal variables \n";
   dump_output_requests(s->output_request_head, "output_request_head", "/* Global list linking COUNT statements to internal variables*/", "");
 
   // some memories

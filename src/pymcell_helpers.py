@@ -745,7 +745,7 @@ def create_release_pattern(
         number_of_trains)
 
 
-def create_count(world, where, mol_sym, file_path, step):
+def create_count(world, where, mol_sym, file_path, step, report_flags=0, exact_time=0, buffer_size=10000):
     """Creates a count for a specified molecule in a specified region
     and initializes an output block for the count data that will be
     generated.
@@ -764,7 +764,12 @@ def create_count(world, where, mol_sym, file_path, step):
         output structure
 
     """
-    report_flags = m.REPORT_CONTENTS
+    
+    # REPORT_CONTENTS are defined later and the identifier cannot be used as 
+    # default arg value  
+    if report_flags == 0:
+        report_flags = m.REPORT_CONTENTS
+    
     c_list = m.output_column_list()
     # XXX: m.ORIENT_NOT_SET is using -100 instead of SHRT_MIN (used typemap
     # for mcell_create_count in mcell_react_out.i) because limits.h does not
@@ -774,7 +779,7 @@ def create_count(world, where, mol_sym, file_path, step):
 
     os = m.output_set()
     os = m.mcell_create_new_output_set(
-        None, 0, count_list.column_head, m.FILE_SUBSTITUTE, file_path)
+        None, exact_time, count_list.column_head, m.FILE_SUBSTITUTE, file_path)
 
     out_times = m.output_times_inlist()
     out_times.type = m.OUTPUT_BY_STEP
@@ -784,7 +789,7 @@ def create_count(world, where, mol_sym, file_path, step):
     output.set_head = os
     output.set_tail = os
 
-    m.mcell_add_reaction_output_block(world, output, 10000, out_times)
+    m.mcell_add_reaction_output_block(world, output, buffer_size, out_times)
 
     return (count_list, os, out_times, output)
 
