@@ -9,13 +9,11 @@ SET(OPTIMIZATION_FLAGS "-O3 -march=core2 -finline-limit=1000 ")
 
 #SET(OPTIMIZATION_FLAGS "-O3")
 #SET(OPTIMIZATION_FLAGS "-O2")
-SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OPTIMIZATION_FLAGS}")
 
-#set(INCLUDE_DIRS " -isystem ${CMAKE_SOURCE_DIR}/libs/")
-#set(INCLUDE_DIRS " -isystem /nadata/cnl/home/ahusar/src/mcell3-dev/sparsehash/install/include")
-set(INCLUDE_DIRS " -isystem /nadata/cnl/home/ahusar/src/mcell3-dev/mcell/libs/")
+set(INCLUDE_DIRS " -isystem ${CMAKE_SOURCE_DIR}/libs/")
 
-SET(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c++11 ${OPTIMIZATION_FLAGS} ${INCLUDE_DIRS}")
+SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OPTIMIZATION_FLAGS} ${OPTIMIZATION_FLAGS} ${INCLUDE_DIRS} ")
+SET(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c++11 ")
 
 option(USE_PROFILING "Use gprof profiling" OFF) 
 option(USE_LTO "Use link-time optimization" OFF)
@@ -23,18 +21,18 @@ option(PYMCELL "Build also pyMCell" ON)
 
 
 if (USE_PROFILING)
-  SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pg")
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
-  SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg")
+  SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pg ")
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg ")
+  SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg ")
 endif()
 
 if (USE_LTO)
   SET(CMAKE_AR "gcc-ar")
   SET(CMAKE_LD "gcc-ld")
   SET(CMAKE_RANLIB "gcc-ranlib")
-  SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -flto")
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto")
-  SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -flto")
+  SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -flto ")
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto ")
+  SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -flto ")
 endif()
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
