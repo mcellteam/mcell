@@ -138,6 +138,7 @@ int argparse_init(int argc, char *const argv[], struct volume *vol) {
   int log_file_specified = 0, err_file_specified = 0;
   FILE *fhandle = NULL;
   char *with_checks_option;
+  char *rules_xml_file = NULL; // for nfsim
   //argerror('whats up');
   /* Loop over all arguments */
   while (1) {
@@ -221,7 +222,7 @@ int argparse_init(int argc, char *const argv[], struct volume *vol) {
       break;
 
     case 's': /* -seed */
-      vol->seed_seq = (int)strtol(optarg, &endptr, 0);
+      vol->seed_seq = (int)strtol(optarg, &endptr, 0); // initialized to '1'
       if (endptr == optarg || *endptr != '\0') {
         argerror("Random seed must be an integer: %s", optarg);
         return 1;
@@ -278,13 +279,7 @@ int argparse_init(int argc, char *const argv[], struct volume *vol) {
 
     case 'r': /* nfsim */
       vol->nfsim_flag = 1;
-      //int nfsimStatus = setupNFSim_c("example.mdlr_total.xml", 0);
-      int nfsimStatus = setupNFSim_c(optarg, 0);
-      if (nfsimStatus != 0){
-        argerror("nfsim model could not be properly initialized: %s", optarg);
-        return 1;
-
-      }
+      rules_xml_file = strdup(optarg);
       break;
 
     case 'l': /* -logfile */
@@ -376,6 +371,16 @@ int argparse_init(int argc, char *const argv[], struct volume *vol) {
   } else {
     argerror("No MDL file name specified");
     return 1;
+  }
+
+  /* Initialize NFSim if requested */
+  if (vol->nfsim_flag) {
+    int nfsimStatus = setupNFSim_c(rules_xml_file, vol->seed_seq, 0);
+    free(rules_xml_file);
+    if (nfsimStatus != 0){
+      argerror("nfsim model could not be properly initialized: %s", optarg);
+      return 1;
+    }
   }
 
   return 0;

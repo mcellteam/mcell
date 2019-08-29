@@ -3,7 +3,10 @@ project(mcell)
 
 add_definitions(-DPACKAGE_BUGREPORT="mcell@salk.edu")
 
-SET(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0")
+SET(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0 -fsanitize=address ")
+SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -fsanitize=address ")
+
+SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lasan ")
 
 SET(OPTIMIZATION_FLAGS "-O3 -march=core2 -finline-limit=1000 ")
 
@@ -42,7 +45,9 @@ file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/deps)
 include_directories(
   "${CMAKE_SOURCE_DIR}/src" 
   "${CMAKE_CURRENT_BINARY_DIR}/deps" 
-  "${CMAKE_SOURCE_DIR}/nfsimCInterface/src/")
+  "${CMAKE_SOURCE_DIR}/nfsimCInterface/src/"
+  "${CMAKE_SOURCE_DIR}/include"
+)
 
 
 # move config.h into place. Unix and Windows have different header files
@@ -116,6 +121,7 @@ set(SRC_FILES
     #src/hashmap.h
     src/map_c.cpp
     src/map_c.h
+    src/dump_state.cpp
     src/init.c
     src/init.h
     src/isaac64.c
@@ -233,6 +239,7 @@ if (NOT WIN32)
     src/grid_util.c
     #src/hashmap.c
     src/map_c.cpp
+    src/dump_state.cpp
     src/init.c
     src/isaac64.c
     src/logging.c
