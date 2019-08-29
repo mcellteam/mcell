@@ -448,9 +448,14 @@ char *push_object_name(struct object_creation *obj_creation, char *name) {
  Out: object name stack is updated
 *************************************************************************/
 void pop_object_name(struct object_creation *obj_creation) {
+  /*
+   original code, possibly a memory leak that this free() was commented out,
+   but it does not match the comment and causes issues with address sanitizer...
   if (obj_creation->object_name_list_end->name != NULL) {
     free(obj_creation->object_name_list_end->name);
+    //obj_creation->object_name_list_end->name = NULL;
   }
+*/
   if (obj_creation->object_name_list_end->prev != NULL) {
     obj_creation->object_name_list_end =
         obj_creation->object_name_list_end->prev;

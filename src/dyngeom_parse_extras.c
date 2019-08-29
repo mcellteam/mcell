@@ -344,6 +344,7 @@ int dg_deep_copy_object(
       /* Copy in last name */
       dst_child->last_name = strdup(src_child->last_name);
       free(src_child->last_name);
+      src_child->last_name = NULL;
       if (dst_child->last_name == NULL)
         return 1;
 
