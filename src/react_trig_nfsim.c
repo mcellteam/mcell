@@ -47,12 +47,12 @@ queryOptions initializeNFSimQueryForBimolecularReactions(
   // constant settings
 
   static const char *optionKeys[2] = {"numReactants", "onlyActive"};
-  static char **optionValues[2];
-  optionValues[0] = "2";
+  static char *optionValues[2];
+  optionValues[0] = (char *)"2";
   optionValues[1] = onlyActive;
 
   static const int optionSeeds[2] = {1, 1};
-  static char **speciesArray[2];
+  static char *speciesArray[2];
   // initialize speciesArray with the string we are going to query
   speciesArray[0] = graph1->graph_pattern;
 
@@ -91,9 +91,9 @@ queryOptions
 initializeNFSimQueryForUnimolecularReactions(struct abstract_molecule *am) {
   // constant settings
   static const char *optionKeys[1] = {"numReactants"};
-  static const char *optionValues[1] = {"1"};
+  static char *optionValues[1] = {"1"};
   static const int optionSeeds[1] = {1};
-  static char **speciesArray[1];
+  static char *speciesArray[1];
   // initialize speciesArray with the string we are going to query
   // const char** speciesArray = CHECKED_MALLOC_ARRAY(char*, 1, "string array of
   // patterns");

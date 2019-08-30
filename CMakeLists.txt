@@ -117,11 +117,8 @@ set(SRC_FILES
     src/dyngeom_yacc.c
     src/grid_util.c
     src/grid_util.h
-    #src/hashmap.c
-    #src/hashmap.h
     src/map_c.cpp
     src/map_c.h
-    src/dump_state.cpp
     src/init.c
     src/init.h
     src/isaac64.c
@@ -237,9 +234,7 @@ if (NOT WIN32)
     src/dyngeom_parse_extras.c
     src/dyngeom_yacc.c
     src/grid_util.c
-    #src/hashmap.c
     src/map_c.cpp
-    src/dump_state.cpp
     src/init.c
     src/isaac64.c
     src/logging.c
