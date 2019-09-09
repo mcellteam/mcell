@@ -18,10 +18,16 @@ set(INCLUDE_DIRS " -isystem ${CMAKE_SOURCE_DIR}/libs/")
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OPTIMIZATION_FLAGS} ${OPTIMIZATION_FLAGS} ${INCLUDE_DIRS} ")
 SET(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c++11 ")
 
+option(USE_GCOV "Use gcc coverage" OFF) 
 option(USE_PROFILING "Use gprof profiling" OFF) 
 option(USE_LTO "Use link-time optimization" OFF)
 option(PYMCELL "Build also pyMCell" ON) 
 
+
+if (USE_GCOV)
+  SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fprofile-arcs -ftest-coverage ")
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-arcs -ftest-coverage ")
+endif()
 
 if (USE_PROFILING)
   SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pg ")
