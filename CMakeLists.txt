@@ -130,8 +130,6 @@ set(SOURCE_FILES
     src/mdlparse.y
     src/dump_state.cpp    
     src/mdlparse_aux.h
-    src/mdlparse_util.c
-    src/mdlparse_util.h
     src/mem_util.c
     src/mem_util.h
     src/minrng.c
@@ -176,7 +174,13 @@ set(SOURCE_FILES
     src/volume_output.c
     src/volume_output.h
     src/wall_util.c
-    src/wall_util.h)
+    src/wall_util.h
+)
+
+set(SOURCE_FILES_ONLY_MCELL
+    src/mdlparse_util.c
+    src/mdlparse_util.h
+)    
 
 link_directories(${CMAKE_BINARY_DIR}/lib)
 if (UNIX)
@@ -240,6 +244,7 @@ file(COPY ${CMAKE_SOURCE_DIR}/bionetgen/bng2/ DESTINATION ${CMAKE_CURRENT_BINARY
 # build executable
 add_executable(mcell
   ${SOURCE_FILES}
+  ${SOURCE_FILES_ONLY_MCELL}
   src/mcell.c
   ${BISON_mdlParser_OUTPUTS}
   ${FLEX_mdlScanner_OUTPUTS})
