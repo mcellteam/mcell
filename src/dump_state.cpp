@@ -30,7 +30,9 @@ Regex to replace struct member definition by dumping code:
 
  */
 
-#define DUMP_SCHEDULERS
+//#define DUMP_SCHEDULERS
+//#define DUMP_WAYPOINTS
+//#define DUMP_SUBVOLUMES
 
 #include "dump_state.h"
 
@@ -398,7 +400,6 @@ void dump_object(object* o, const char* ind) {
   cout << ind << "next: *\t\t" << o->next << " [object] \t\t/* Next sibling object */\n";
   cout << ind << "parent: *\t\t" << o->parent << " [object] \t\t/* Parent meta object */\n";
   cout << ind << "first_child: *\t\t" << o->first_child << " [object] \t\t/* First child object */\n";
-  dump_object_list(o->first_child, IND_ADD2(ind));
   cout << ind << "last_child: *\t\t" << o->last_child << " [object] \t\t/* Last child object */\n";
   cout << ind << "sym: *\t\t" << o->sym << " [sym_entry] \t\t/* Symbol hash table entry for this object */\n";
   if (o->last_name != nullptr) {
@@ -413,9 +414,6 @@ void dump_object(object* o, const char* ind) {
   cout << ind << "regions: *\t\t" << o->regions << " [region_list] \t\t/* List of regions for this object */\n";
   cout << ind << "n_walls: \t\t" << o->n_walls << " [int] \t\t/* Total number of walls in object */\n";
   cout << ind << "n_walls_actual: \t\t" << o->n_walls_actual << " [int] \t\t/* Number of non-null walls in object */\n";
-  cout << ind << "walls: *\t\t" << o->walls << " [wall] \t\t/* Array of walls in object */\n";
-  cout << ind << "wall_p: **\t\t" << o->wall_p << " [wall] \t\t// Array of ptrs to walls in object (used at run-time)\n";
-  dump_wall_array(o->n_walls, o->wall_p, IND_ADD2(ind));
   cout << ind << "n_verts: \t\t" << o->n_verts << " [int] \t\t/* Total number of vertices in object */\n";
   cout << ind << "vertices: **\t\t" << o->vertices << " [vector3] \t\t/* Array of pointers to vertices (linked to all_vertices array) */\n";
   cout << ind << "total_area: \t\t" << o->total_area << " [double] \t\t/* Area of object in length units */\n";
@@ -426,6 +424,12 @@ void dump_object(object* o, const char* ind) {
   cout << ind << "periodic_x: \t\t" << o->periodic_x << " [bool] \t\t// This flag only applies to box objects BOX_OBJ. If set\n";
   cout << ind << "periodic_y: \t\t" << o->periodic_y << " [bool] \t\t// any volume molecules encountering the box surface in the x,\n";
   cout << ind << "periodic_z: \t\t" << o->periodic_z << " [bool] \t\t// y or z direction are reflected back into the box as if they  had entered the adjacent neighboring box */\n";
+
+  dump_object_list(o->first_child, IND_ADD2(ind));
+
+  cout << ind << "walls: *\t\t" << o->walls << " [wall] \t\t/* Array of walls in object */\n";
+  cout << ind << "wall_p: **\t\t" << o->wall_p << " [wall] \t\t// Array of ptrs to walls in object (used at run-time)\n";
+  dump_wall_array(o->n_walls, o->wall_p, IND_ADD2(ind));
 }
 
 
@@ -1431,11 +1435,15 @@ extern "C" void dump_volume(struct volume* s, const char* comment, unsigned int 
 
   cout << "periodic_traditional: \t\t" << s->periodic_traditional << " [bool] \n";
 
+#ifdef DUMP_WAYPOINTS
   dump_waypoints(s->n_waypoints, s->waypoints);
+#endif
 
   cout << "place_waypoints_flag: \t\t" << (int)s->place_waypoints_flag << " [byte] \t\t/* Used to save memory if waypoints not needed */\n";
 
+#ifdef DUMP_SUBVOLUMES
   dump_subvolumes(s->n_subvols, "n_subvols", "/* How many coarse subvolumes? */", s->subvol, "subvol", "/* Array containing all subvolumes */", "");
+#endif
 
   cout << "n_walls: \t\t" << s->n_walls << " [int] \t\t/* Total number of walls */\n";
 

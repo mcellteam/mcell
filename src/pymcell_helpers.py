@@ -1026,9 +1026,9 @@ def create_release_site(
     return (position, diameter, release_object)
 
 
-def create_region_release_site(
+def create_region_release_site( # lala
         world, scene, mesh, release_name, reg_name, number, number_type,
-        mol_sym):
+        mol_sym, is_oriented=True, orientation=0): 
     """Creates a release site on a specific region
 
     Args:
@@ -1042,13 +1042,15 @@ def create_region_release_site(
             site
         number_type (int) -- 0 for NUMBER, 1 for CONCENTRATION
         mol_sym (mcell_symbol) -- species to be released
+        is_oriented -- True if the orientation holds a valid value
+        orientation -- used if is_oriented is True, -1 - down, 1 - up
 
     Returns:
         release object (object)
 
     """
 
-    mol_list = m.mcell_add_to_species_list(mol_sym, False, 0, None)
+    mol_list = m.mcell_add_to_species_list(mol_sym, is_oriented, orientation, None)
     rel_object = m.object()
     release_object = m.mcell_create_region_release(
         world, scene, mesh, release_name, reg_name, mol_list, float(number),
