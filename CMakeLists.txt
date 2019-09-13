@@ -173,8 +173,6 @@ set(SOURCE_FILES
     src/mcell_viz.h
     src/mdlparse.y
     src/mdlparse_aux.h
-    src/mdlparse_util.c
-    src/mdlparse_util.h
     src/mem_util.c
     src/mem_util.h
     src/minrng.c
@@ -219,7 +217,13 @@ set(SOURCE_FILES
     src/volume_output.c
     src/volume_output.h
     src/wall_util.c
-    src/wall_util.h)
+    src/wall_util.h
+)
+
+set(SOURCE_FILES_ONLY_MCELL
+    src/mdlparse_util.c
+    src/mdlparse_util.h
+)    
 
 link_directories(${CMAKE_BINARY_DIR}/lib)
 if (UNIX)
@@ -282,6 +286,7 @@ file(COPY ${CMAKE_SOURCE_DIR}/src/rules_py/ DESTINATION ${CMAKE_CURRENT_BINARY_D
 # build executable
 add_executable(mcell
   ${SOURCE_FILES}
+  ${SOURCE_FILES_ONLY_MCELL}
   src/mcell.c
   ${BISON_mdlParser_OUTPUTS}
   ${FLEX_mdlScanner_OUTPUTS})
