@@ -119,11 +119,11 @@ else:
     base_dir = os.path.join('..', 'lib')
 lib1 = cdll.LoadLibrary(os.path.join(base_dir, 'libNFsim.{0}'.format(extension)))
 lib2 = cdll.LoadLibrary(os.path.join(base_dir, 'libnfsim_c.{0}'.format(extension)))
-%}
 
-/*Add functions for user interfacing */
-%pythoncode "pymcell_helpers.py"
-%pythoncode "data_model_import.py"
+# import all auxiliary classes
+from pymcell_helpers import *
+from data_model_import import *
+%}
 
 %include "mcell_init.i"
 %include "mcell_misc.i"
