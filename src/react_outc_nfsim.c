@@ -61,8 +61,8 @@ queryOptions initializeNFSimQueryNoFiring(struct abstract_molecule *am) {
   options.optionValues[0] = strdup("complex");
 
   // initialize speciesArray with the string we are going to query
-  const char **speciesArray =
-      CHECKED_MALLOC_ARRAY(const char *, 1, "string array of patterns");
+  char **speciesArray =
+      CHECKED_MALLOC_ARRAY(char *, 1, "string array of patterns");
   speciesArray[0] = am->graph_data->graph_pattern;
 
   static const int optionSeeds[1] = {1};
@@ -103,8 +103,8 @@ initializeNFSimQueryforUnimolecularFiring(struct abstract_molecule *am,
   options.optionValues[1] = strdup(external_path);
 
   // initialize speciesArray with the string we are going to query
-  const char **speciesArray =
-      CHECKED_MALLOC_ARRAY(const char *, 1, "string array of patterns");
+  char **speciesArray =
+      CHECKED_MALLOC_ARRAY(char *, 1, "string array of patterns");
   speciesArray[0] = am->graph_data->graph_pattern;
 
   static const int optionSeeds[1] = {1};
@@ -146,8 +146,8 @@ initializeNFSimQueryforBimolecularFiring(struct abstract_molecule *am,
   options.optionValues[1] = strdup(external_path);
 
   // initialize speciesArray with the string we are going to query
-  const char **speciesArray =
-      CHECKED_MALLOC_ARRAY(const char *, 2, "string array of patterns");
+  char **speciesArray =
+      CHECKED_MALLOC_ARRAY(char *, 2, "string array of patterns");
   speciesArray[0] = am->graph_data->graph_pattern;
   speciesArray[1] = am2->graph_data->graph_pattern;
 
@@ -170,7 +170,6 @@ static void find_objects(struct object* current_parent,
                   const char* name2, struct object** obj2) {
 
   struct object* curr = current_parent;
-  int i = 0;
   while (curr != NULL) {
     // did we find our object?
     if (*obj1 == NULL && curr->last_name != NULL && strcmp(curr->last_name, name1) == 0) {

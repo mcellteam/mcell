@@ -12,11 +12,58 @@ endif()
 
 add_definitions(-DPACKAGE_BUGREPORT="mcell@salk.edu")
 
-SET(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0")
+SET(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0 -fsanitize=address ")
+SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -fsanitize=address ")
+
+SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lasan ")
+
+SET(OPTIMIZATION_FLAGS "-O3 -march=core2 -finline-limit=1000 ")
+
+#SET(OPTIMIZATION_FLAGS "-O3")
+#SET(OPTIMIZATION_FLAGS "-O2")
+
+set(INCLUDE_DIRS " -isystem ${CMAKE_SOURCE_DIR}/libs/")
+
+SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OPTIMIZATION_FLAGS} ${OPTIMIZATION_FLAGS} ${INCLUDE_DIRS} ")
+SET(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c++11 ")
+
+option(USE_GCOV "Use gcc coverage" OFF) 
+option(USE_PROFILING "Use gprof profiling" OFF) 
+option(USE_LTO "Use link-time optimization" OFF)
+option(PYMCELL "Build also pyMCell" ON) 
+
+
+if (USE_GCOV)
+  SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fprofile-arcs -ftest-coverage ")
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-arcs -ftest-coverage ")
+endif()
+
+if (USE_PROFILING)
+  SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pg ")
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg ")
+  SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg ")
+endif()
+
+if (USE_LTO)
+  SET(CMAKE_AR "gcc-ar")
+  SET(CMAKE_LD "gcc-ld")
+  SET(CMAKE_RANLIB "gcc-ranlib")
+  SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -flto ")
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto ")
+  SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -flto ")
+endif()
+
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
 
 # directories holding flex/bison files and out of source includes.
 file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/deps)
-include_directories("${CMAKE_SOURCE_DIR}/src" "${CMAKE_CURRENT_BINARY_DIR}/deps" "${CMAKE_SOURCE_DIR}/include")
+include_directories(
+  "${CMAKE_SOURCE_DIR}/src" 
+  "${CMAKE_CURRENT_BINARY_DIR}/deps" 
+  "${CMAKE_SOURCE_DIR}/nfsimCInterface/src/"
+  "${CMAKE_SOURCE_DIR}/include"
+)
+
 
 # move config.h into place. Unix and Windows have different header files
 if (UNIX)
@@ -62,19 +109,15 @@ set(WARNING_FLAGS "-Wall -Wextra -Wshadow -Wno-unused-parameter -Wno-unused-func
 
 set(INCLUDE_DIRS " -isystem ${CMAKE_SOURCE_DIR}/libs/")
 
-# -faligned-new - only for gcc >= 5.x
 set(CMAKE_C_FLAGS "-g3  -D_GNU_SOURCE=1 ${WARNING_FLAGS} ${OPTIMIZATION_FLAGS} -std=c11 ${CMAKE_C_FLAGS}" )
 set(CMAKE_CXX_FLAGS "-g3 -D_GNU_SOURCE=1 -std=c++14 ${INCLUDE_DIRS} ${WARNING_FLAGS} ${OPTIMIZATION_FLAGS} ${CMAKE_CXX_FLAGS}" )
 
-if (NOT WIN32)
-  # check for needed libraries
-  find_library(M_LIB m)
-  set(CMAKE_EXE_LINKER_FLAGS ${M_LIB})
-elseif (WIN32)
-  set(CMAKE_EXE_LINKER_FLAGS "-lm")
-endif()
+set(CMAKE_EXE_LINKER_FLAGS "-lm")
 
-set(SOURCE_FILES
+add_subdirectory(nfsim)
+add_subdirectory(nfsimCInterface)
+
+set(SRC_FILES
     src/argparse.c
     src/argparse.h
     src/chkpt.c
@@ -96,8 +139,8 @@ set(SOURCE_FILES
     src/dyngeom_yacc.c
     src/grid_util.c
     src/grid_util.h
-    src/hashmap.c
-    src/hashmap.h
+    src/map_c.cpp
+    src/map_c.h
     src/init.c
     src/init.h
     src/isaac64.c
@@ -219,11 +262,7 @@ if (NOT WIN32)
       ${SOURCE_FILES})
   endif()
     
-  if (APPLE)
-    SWIG_LINK_LIBRARIES(pymcell ${CMAKE_CURRENT_BINARY_DIR}/lib/libnfsim_c.dylib ${CMAKE_CURRENT_BINARY_DIR}/lib/libNFsim.dylib ${PYTHON_LIBRARIES})
-  else()
-    SWIG_LINK_LIBRARIES(pymcell ${CMAKE_CURRENT_BINARY_DIR}/lib/libnfsim_c.so ${CMAKE_CURRENT_BINARY_DIR}/lib/libNFsim.so ${PYTHON_LIBRARIES})
-  endif()
+    SWIG_LINK_LIBRARIES(pymcell nfsim_c NFsim ${PYTHON_LIBRARIES})
 
   # copy the pyMCell test scripts into place
   file(GLOB PYMCELL_EXAMPLES "${CMAKE_SOURCE_DIR}/src/pymcell_examples/*")
@@ -243,41 +282,13 @@ file(COPY ${CMAKE_SOURCE_DIR}/bionetgen/bng2/ DESTINATION ${CMAKE_CURRENT_BINARY
 
 # build executable
 add_executable(mcell
-  ${SOURCE_FILES}
+  ${SRC_FILES}
   ${SOURCE_FILES_ONLY_MCELL}
   src/mcell.c
   ${BISON_mdlParser_OUTPUTS}
   ${FLEX_mdlScanner_OUTPUTS})
-target_link_libraries(mcell ${M_LIB} nfsim_c NFsim)
 
-#set(CMAKE_EXE_LINKER_FLAGS "${M_LIB} -static-libgcc -static-libstdc++")
-
-#add_executable(mcell_static
-#  ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h
-#  ${SOURCE_FILES}
-#  ${BISON_mdlParser_OUTPUTS}
-#  ${FLEX_mdlScanner_OUTPUTS})
-#target_link_libraries(mcell_static ${M_LIB} ${CMAKE_SOURCE_DIR}/lib/libnfsim_c_static.a ${CMAKE_SOURCE_DIR}/lib/libNFsim_static.a)
-
-target_link_libraries(mcell ${M_LIB})
-TARGET_COMPILE_DEFINITIONS(mcell PRIVATE NOSWIG=1)
-
-# build little libmcell test
-#add_executable(libmcell_test
-#  ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h
-#  ${SOURCE_FILES}
-#  src/libmcell_test.c
-#  ${BISON_mdlParser_OUTPUTS}
-#  ${FLEX_mdlScanner_OUTPUTS})
-#target_link_libraries(libmcell_test ${M_LIB} nfsim_c NFsim)
-
-# build nfsim and nfsimCInterface before trying to build MCell
-add_custom_target(
-  build_nfsim
-  COMMAND python ${CMAKE_SOURCE_DIR}/requirements.py)
-add_dependencies(mcell build_nfsim)
 add_dependencies(mcell version_h)
-if (NOT WIN32)
-  add_dependencies(pymcell build_nfsim)
-  add_dependencies(pymcell version_h)
-endif()
+  
+target_link_libraries(mcell nfsim_c_static NFsim_static)
+TARGET_COMPILE_DEFINITIONS(mcell PRIVATE NOSWIG=1)
