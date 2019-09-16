@@ -48,6 +48,15 @@ void dump_wall_list(wall_list* list, const char* ind);
 void dump_wall_array(int num, wall** wall_array, const char* ind);
 void dump_object(object* o, const char* ind);
 
+const char* str(const char* ptr) {
+  if (ptr != nullptr) {
+    return ptr;
+  }
+  else {
+    return "0";
+  }
+}
+
 static const char* get_sym_name(const sym_entry *s) {
   if (s == nullptr) {
     return "NULL SYMBOL";
@@ -1079,6 +1088,29 @@ void dump_viz_output_block(viz_output_block* viz_blocks, const char* name, const
 
 }
 
+
+void dump_dyngeom_parse_vars(struct dyngeom_parse_vars* dg_parse, const char* name, const char* comment, const char* ind) {
+  cout << ind << name << ": *\t\t" << (void*)dg_parse << " [dyngeom_parse_vars] \t\t" << comment << "\n";
+  if (dg_parse == nullptr) {
+    return;
+  }
+
+  sym_table_head *reg_sym_table;
+  sym_table_head *obj_sym_table;
+  object *root_object;
+  object *root_instance;
+  object *current_object;
+  region *current_region;
+  name_list *object_name_list;
+  name_list *object_name_list_end;
+  char *curr_file; /* Name of MDL file currently being parsed */
+  u_int line_num[MAX_INCLUDE_DEPTH]; /* Line numbers and filenames for all of the currently parsing files */
+  char *include_filename[MAX_INCLUDE_DEPTH]; /* Line numbers and filenames for all of the currently parsing files */
+  u_int include_stack_ptr; /* Stack pointer for filename/line number stack */
+  int comment_started; /* Line number where last top-level (i.e. non-nested) multi-line (C-style) comment was started in the current MDL file. */
+}
+
+
 extern "C" void dump_volume(struct volume* s, const char* comment, unsigned int selected_details /* mask */) {
 
   cout << "********* volume dump :" << comment << "************ (START)\n";
@@ -1087,8 +1119,10 @@ extern "C" void dump_volume(struct volume* s, const char* comment, unsigned int 
   cout << "bond_angle: \t\t" << s->bond_angle << " [double] \t\t/* Defines the default bond rotation angle between molecules. Default is 0. */\n";
 
   // These are only used with dynamic geometry
-  cout << "dg_parse: *\t\t" << (void*)s->dg_parse << " [dyngeom_parse_vars] \n";
-  cout << "dynamic_geometry_filename: *\t\t" << (void*)s->dynamic_geometry_filename << " [char] \n";
+  //cout << "dg_parse: *\t\t" << (void*)s->dg_parse << " [dyngeom_parse_vars] \n";
+  dump_dyngeom_parse_vars(s->dg_parse, "dg_parse", "", "");
+
+  cout << "dynamic_geometry_filename: *\t\t" << str(s->dynamic_geometry_filename) << " [char] \n";
   dump_molecules(s->num_all_molecules, s->all_molecules);
 
   cout << "names_to_ignore: *\t\t" << (void*)s->names_to_ignore << " [string_buffer] \n";
