@@ -92,8 +92,7 @@ int main(int argc, char **argv) {
   if (state->dump_mcell4) {
     dump_volume(state, "initial", DUMP_EVERYTHING);
   }
-  //state->use_mcell4 = 1;
-
+  
   if (state->use_mcell4) {
     if (!mcell4_convert_mcell3_volume(state)) {
       exit(EXIT_FAILURE);

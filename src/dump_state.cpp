@@ -21,7 +21,18 @@
  *
 ******************************************************************************/
 
-#define DUMP_SCHEDULERS
+/*
+Regex to replace struct member definition by dumping code:
+
+^[ \t]+([^ ]+) ([\*]?)([^ ]+);[^ \t]*(.*)
+
+  cout << ind2 << "\3: \\t\\t" << block->\3 << " [\1\2] \\t\\t\4\\n";
+
+ */
+
+//#define DUMP_SCHEDULERS
+//#define DUMP_WAYPOINTS
+//#define DUMP_SUBVOLUMES
 
 #include "dump_state.h"
 
@@ -134,6 +145,31 @@ std::ostream & operator<<(std::ostream &out, const object_type_t &a) {
   return out;
 }
 
+std::ostream & operator<<(std::ostream &out, const overwrite_policy_t &a) {
+  switch (a) {
+    case FILE_UNDEFINED: out << "FILE_UNDEFINED"; break;
+    case FILE_OVERWRITE: out << "FILE_OVERWRITE"; break;
+    case FILE_SUBSTITUTE: out << "FILE_SUBSTITUTE"; break;
+    case FILE_APPEND: out << "FILE_APPEND"; break;
+    case FILE_APPEND_HEADER: out << "FILE_APPEND_HEADER"; break;
+    case FILE_CREATE: out << "FILE_CREATE"; break;
+    default: assert(false);
+  }
+  return out;
+}
+
+
+
+std::ostream & operator<<(std::ostream &out, const count_type_t &a) {
+  switch (a) {
+    case COUNT_UNSET: out << "COUNT_UNSET"; break;
+    case COUNT_DBL: out << "COUNT_DBL"; break;
+    case COUNT_INT: out << "COUNT_INT"; break;
+    case COUNT_TRIG_STRUCT: out << "COUNT_TRIG_STRUCT"; break;
+    default: assert(false);
+  }
+  return out;
+}
 
 std::ostream & operator<<(std::ostream &out, const num_expr_list* a) {
   out << "(";
@@ -197,6 +233,126 @@ std::ostream & operator<<(std::ostream &out, const reaction_flags &a) {
   return out;
 }
 
+
+void dump_oexpr_element(std::ostream &out, const int flags, void* child, bool left) {
+
+  int specific_flags = flags & ((left) ? OEXPR_LEFT_MASK : OEXPR_RIGHT_MASK);
+
+  if (specific_flags & (OEXPR_LEFT_INT | OEXPR_RIGHT_INT)) {
+    out << *(int*)child;
+  }
+  else if (specific_flags & (OEXPR_LEFT_DBL | OEXPR_RIGHT_DBL)) {
+    out << *(double*)child;
+  }
+  else if (specific_flags & (OEXPR_LEFT_OEXPR | OEXPR_RIGHT_OEXPR)) {
+    out << (output_expression*)child;
+  }
+  else if (specific_flags & (OEXPR_LEFT_CONST | OEXPR_RIGHT_CONST)) {
+    out << "TODO const";
+  }
+  else if (specific_flags & (OEXPR_LEFT_REQUEST | OEXPR_RIGHT_REQUEST)) {
+    out << "TODO request";
+  }
+  else if (specific_flags & (OEXPR_LEFT_TRIG | OEXPR_RIGHT_TRIG)) {
+    out << "TODO request";
+  }
+  else {
+    out << ""; /*no children*/
+  }
+
+}
+
+
+std::ostream & operator<<(std::ostream &out, const output_expression *e) {
+  if (e != NULL) {
+    out <<
+        "("
+        "[" << ( (e->title != nullptr) ? e->title : "") << ", v:" << e->value << "] ";
+
+    dump_oexpr_element(out, e->expr_flags, e->left, true);
+    out << e->oper << " ";
+    dump_oexpr_element(out, e->expr_flags, e->right, false);
+    out << ")";
+
+  }
+  else {
+    out << "(NULL)";
+  }
+  return out;
+}
+
+
+
+
+#define DUMP_FLAG(f, mask) if (((f) & (mask)) != 0) res += string(#mask) + ", ";
+
+string get_molecule_flags_string(short flags, bool full_dump = true) {
+  string res;
+  DUMP_FLAG(flags, TYPE_SURF)
+  DUMP_FLAG(flags, TYPE_VOL)
+  DUMP_FLAG(flags, ACT_DIFFUSE)
+  if (full_dump) {
+    DUMP_FLAG(flags, ACT_REACT)
+    DUMP_FLAG(flags, ACT_NEWBIE)
+    DUMP_FLAG(flags, ACT_CHANGE)
+  }
+  DUMP_FLAG(flags, ACT_CLAMPED)
+  if (full_dump) {
+    DUMP_FLAG(flags, IN_SCHEDULE)
+    DUMP_FLAG(flags, IN_SURFACE)
+  }
+  DUMP_FLAG(flags, IN_VOLUME)
+  return res;
+}
+
+string get_report_type_flags_string(char report_type) {
+
+  string res;
+#define DUMP_MASKED_VALUE(f, val) if ( ((f) & REPORT_TYPE_MASK) == val) res += string(#val) + ", ";
+
+
+  DUMP_MASKED_VALUE(report_type, REPORT_NOTHING)
+  DUMP_MASKED_VALUE(report_type, REPORT_CONTENTS)
+  DUMP_MASKED_VALUE(report_type, REPORT_RXNS)
+  DUMP_MASKED_VALUE(report_type, REPORT_FRONT_HITS)
+  DUMP_MASKED_VALUE(report_type, REPORT_BACK_HITS)
+  DUMP_MASKED_VALUE(report_type, REPORT_FRONT_CROSSINGS)
+  DUMP_MASKED_VALUE(report_type, REPORT_BACK_CROSSINGS)
+  DUMP_MASKED_VALUE(report_type, REPORT_ALL_HITS)
+  DUMP_MASKED_VALUE(report_type, REPORT_ALL_CROSSINGS)
+  DUMP_MASKED_VALUE(report_type, REPORT_CONCENTRATION)
+  DUMP_MASKED_VALUE(report_type, REPORT_ELAPSED_TIME)
+
+  DUMP_FLAG(report_type, REPORT_WORLD)
+  DUMP_FLAG(report_type, REPORT_ENCLOSED)
+  DUMP_FLAG(report_type, REPORT_TRIGGER)
+
+  return res;
+
+}
+
+#undef DUMP_FLAG
+
+string get_release_shape_name(int8_t release_shape) {
+  string res;
+#define CASE_ITEM(n) case n: res = #n; break;
+  switch (release_shape) {
+    CASE_ITEM(SHAPE_UNDEFINED)
+    CASE_ITEM(SHAPE_SPHERICAL)
+    CASE_ITEM(SHAPE_CUBIC)
+    CASE_ITEM(SHAPE_ELLIPTIC)
+    CASE_ITEM(SHAPE_RECTANGULAR)
+    CASE_ITEM(SHAPE_SPHERICAL_SHELL)
+    CASE_ITEM(SHAPE_REGION)
+    CASE_ITEM(SHAPE_LIST)
+    default: res = "unknown!"; break;
+  }
+#undef CASE_ITEM
+  return res;
+}
+
+
+
 void dump_double_array(int num, const char* num_name, double* values, const char* values_name, const char* comment, const char* ind, const int max = MAX_ARRAY_ITEMS) {
   cout << ind << values_name << "[" << num_name << "]: \t\t" << values << "[" << num << "]" << " [double[]] \t\t" << comment;
   for (int i = 0; i < num && i < max; i++) {
@@ -250,19 +406,20 @@ void dump_object(object* o, const char* ind) {
   cout << ind << "next: *\t\t" << o->next << " [object] \t\t/* Next sibling object */\n";
   cout << ind << "parent: *\t\t" << o->parent << " [object] \t\t/* Parent meta object */\n";
   cout << ind << "first_child: *\t\t" << o->first_child << " [object] \t\t/* First child object */\n";
-  dump_object_list(o->first_child, IND_ADD2(ind));
   cout << ind << "last_child: *\t\t" << o->last_child << " [object] \t\t/* Last child object */\n";
   cout << ind << "sym: *\t\t" << o->sym << " [sym_entry] \t\t/* Symbol hash table entry for this object */\n";
-  cout << ind << "last_name: *\t\t" << o->last_name << " [char] \t\t/* Name of object without pre-pended parent object name */\n";
+  if (o->last_name != nullptr) {
+    cout << ind << "last_name: *\t\t" << o->last_name << " [char] \t\t/* Name of object without pre-pended parent object name */\n";
+  }
+  else {
+    cout << ind << "last_name: *\t\t" << (void*)o->last_name << " [char] \t\t/* Name of object without pre-pended parent object name */\n";
+  }
   cout << ind << "object_type: \t\t" << o->object_type << " [object_type_flags_t] \t\t/* Object Type Flags */\n";
   cout << ind << "contents: *\t\t" << o->contents << " [void] \t\t/* Actual physical object, cast according to object_type */\n";
   cout << ind << "num_regions: \t\t" << o->num_regions << " [u_int] \t\t/* Number of regions defined on object */\n";
   cout << ind << "regions: *\t\t" << o->regions << " [region_list] \t\t/* List of regions for this object */\n";
   cout << ind << "n_walls: \t\t" << o->n_walls << " [int] \t\t/* Total number of walls in object */\n";
   cout << ind << "n_walls_actual: \t\t" << o->n_walls_actual << " [int] \t\t/* Number of non-null walls in object */\n";
-  cout << ind << "walls: *\t\t" << o->walls << " [wall] \t\t/* Array of walls in object */\n";
-  cout << ind << "wall_p: **\t\t" << o->wall_p << " [wall] \t\t// Array of ptrs to walls in object (used at run-time)\n";
-  dump_wall_array(o->n_walls, o->wall_p, IND_ADD2(ind));
   cout << ind << "n_verts: \t\t" << o->n_verts << " [int] \t\t/* Total number of vertices in object */\n";
   cout << ind << "vertices: **\t\t" << o->vertices << " [vector3] \t\t/* Array of pointers to vertices (linked to all_vertices array) */\n";
   cout << ind << "total_area: \t\t" << o->total_area << " [double] \t\t/* Area of object in length units */\n";
@@ -273,6 +430,12 @@ void dump_object(object* o, const char* ind) {
   cout << ind << "periodic_x: \t\t" << o->periodic_x << " [bool] \t\t// This flag only applies to box objects BOX_OBJ. If set\n";
   cout << ind << "periodic_y: \t\t" << o->periodic_y << " [bool] \t\t// any volume molecules encountering the box surface in the x,\n";
   cout << ind << "periodic_z: \t\t" << o->periodic_z << " [bool] \t\t// y or z direction are reflected back into the box as if they  had entered the adjacent neighboring box */\n";
+
+  dump_object_list(o->first_child, IND_ADD2(ind));
+
+  cout << ind << "walls: *\t\t" << o->walls << " [wall] \t\t/* Array of walls in object */\n";
+  cout << ind << "wall_p: **\t\t" << o->wall_p << " [wall] \t\t// Array of ptrs to walls in object (used at run-time)\n";
+  dump_wall_array(o->n_walls, o->wall_p, IND_ADD2(ind));
 }
 
 
@@ -386,44 +549,6 @@ void dump_wall_list_array(int num, const char* num_name, wall_list** values, con
 }
 
 
-string get_molecule_flags_string(short flags, bool full_dump = true) {
-  string res;
-#define DUMP_FLAG(f, mask) if (((f) & (mask)) != 0) res += string(#mask) + ", ";
-  DUMP_FLAG(flags, TYPE_SURF)
-  DUMP_FLAG(flags, TYPE_VOL)
-  DUMP_FLAG(flags, ACT_DIFFUSE)
-  if (full_dump) {
-    DUMP_FLAG(flags, ACT_REACT)
-    DUMP_FLAG(flags, ACT_NEWBIE)
-    DUMP_FLAG(flags, ACT_CHANGE)
-  }
-  DUMP_FLAG(flags, ACT_CLAMPED)
-  if (full_dump) {
-    DUMP_FLAG(flags, IN_SCHEDULE)
-    DUMP_FLAG(flags, IN_SURFACE)
-  }
-  DUMP_FLAG(flags, IN_VOLUME)
-#undef DUMP_FLAG
-  return res;
-}
-
-string get_release_shape_name(int8_t release_shape) {
-  string res;
-#define CASE_ITEM(n) case n: res = #n; break;
-  switch (release_shape) {
-    CASE_ITEM(SHAPE_UNDEFINED)
-    CASE_ITEM(SHAPE_SPHERICAL)
-    CASE_ITEM(SHAPE_CUBIC)
-    CASE_ITEM(SHAPE_ELLIPTIC)
-    CASE_ITEM(SHAPE_RECTANGULAR)
-    CASE_ITEM(SHAPE_SPHERICAL_SHELL)
-    CASE_ITEM(SHAPE_REGION)
-    CASE_ITEM(SHAPE_LIST)
-    default: res = "unknown!"; break;
-  }
-#undef CASE_ITEM
-  return res;
-}
 
 void dump_molecule_flags(short flags, const char* ind) {
   cout << ind << "flags: \t\t" << flags << " [short] \t\t /* Abstract Molecule Flags: Who am I, what am I doing, etc. */\n";
@@ -899,6 +1024,9 @@ void dump_schedule_helper(schedule_helper* shp, const char* name, const char* co
     inds += "  ";
     const char* ind2 = inds.c_str();
     cout << ind << name << ": *\t\t" << (void*)shp << " [schedule_helper] \t\t" << comment << "\n";
+    if (shp == nullptr) {
+      return;
+    }
 #ifdef DUMP_SCHEDULERS
     cout << ind2 <<"next_scale: *\t\t" << (void*)shp->next_scale << " [schedule_helper] \t\t/* Next coarser time scale */\n";
 
@@ -1089,6 +1217,196 @@ void dump_viz_output_block(viz_output_block* viz_blocks, const char* name, const
 }
 
 
+void dump_output_trigger_data(output_trigger_data* otd, const char* name, const char* comment, const char* ind) {
+  cout << ind << name << ": *\t\t" << otd << " [output_trigger_data] \t\t" << comment << "\n";
+  if (otd == nullptr) {
+    return;
+  }
+  DECL_IND2(ind);
+
+  cout << ind2 << "t_iteration: \t\t" << otd->t_iteration << " [double] \t\t /* Iteration time of the triggering event (in sec) */\n";
+  cout << ind2 << "event_time: \t\t" << otd->event_time << " [double] \t\t  /* Exact time of the  event */\n";
+  cout << ind2 << "loc: \t\t" << otd->loc << " [vector3] \t\t /* Position of event */\n";
+  cout << ind2 << "how_many: \t\t" << otd->how_many << " [int] \t\t       /* Number of events */\n";
+  cout << ind2 << "orient: \t\t" << otd->orient << " [short] \t\t       /* Orientation information */\n";
+  // TODO: dump flags
+  cout << ind2 << "flags: \t\t" << otd->flags << " [short] \t\t        /* Output Trigger Flags */\n";
+  if (otd->name != nullptr) {
+    cout << ind2 << "name: \t\t" << otd->name << " [char*] \t\t         /* Name to give event */\n";
+  }
+  else {
+    cout << ind2 << "name: \t\t" << (void*)otd->name << " [char*] \t\t         /* Name to give event */\n";
+  }
+  cout << ind2 << "id: \t\t" << otd->id << " [u_long] \t\t /**/\n";
+
+}
+
+
+void dump_output_buffer(output_buffer* obuf, const char* name, const char* comment, const char* ind) {
+  cout << ind << name << ": *\t\t" << obuf << " [output_buffer] \t\t" << comment << "\n";
+  if (obuf == nullptr) {
+    return;
+  }
+  DECL_IND2(ind);
+
+  cout << ind2 << "data_type: \t\t" << obuf->data_type << " [count_type_t] \t\t /**/\n";
+
+  switch(obuf->data_type) {
+  case COUNT_UNSET: // probably wrong
+    cout << ind2 << "cval: \t\t" << obuf->val.cval << " [char] \t\t  /**/\n";
+    break;
+  case COUNT_DBL:
+    cout << ind2 << "dval: \t\t" << obuf->val.dval << " [double] \t\t  /**/\n";
+    break;
+  case COUNT_INT:
+    cout << ind2 << "ival: \t\t" << obuf->val.ival << " [int] \t\t  /**/\n";
+    break;
+  case COUNT_TRIG_STRUCT:
+    //cout << ind2 << "tval: \t\t" << obuf->val.tval << " [output_trigger_data*] \t\t  /**/\n";
+    dump_output_trigger_data(obuf->val.tval, "val.tval", "", ind2);
+    break;
+  default:
+    assert(false);
+  }
+
+}
+
+void dump_one_output_column(output_column* column, const char* ind) {
+  cout << ind << "next: \t\t" << (void*)column->next << " [output_column*] \t\t  /* Next column in this set */\n";
+  cout << ind << "set: \t\t" << (void*)column->set << " [output_set*] \t\t      /* Which set do we belong to? */\n";
+  cout << ind << "initial_value: \t\t" << column->initial_value << " [double] \t\t        /* To continue existing cumulative counts--not implemented yet--and keep track of triggered data */\n";
+
+  //cout << ind << "buffer: \t\t" << column->buffer << " [output_buffer*] \t\t /* Output buffer array (cast based on data_type) */\n";
+  dump_output_buffer(column->buffer, "output_column", "/* Data for one output column *", ind);
+
+  // todo
+  cout << ind << "expr: \t\t" << column->expr << " [output_expression*] \t\t /* Evaluate this to calculate our value (NULL if trigger) */\n";
+}
+
+void dump_output_column(output_column* ocol, const char* name, const char* comment, const char* ind) {
+  cout << ind << name << ": *\t\t" << ocol << " [output_column] \t\t" << comment << "\n";
+
+  DECL_IND2(ind);
+  output_column* curr = ocol;
+  while (curr != nullptr) {
+    dump_one_output_column(curr, ind2);
+    curr = curr->next;
+  }
+}
+
+
+void dump_one_output_set(output_set* block, const char* ind) {
+  cout << ind << "next: \t\t" << (void*)block->next << " [output_set*] \t\t            /* Next data set in this block */\n";
+  cout << ind << "block: \t\t" << (void*)block->block << " [output_block*] \t\t         /* Which block do we belong to? */\n";
+  cout << ind << "outfile_name: \t\t" << block->outfile_name << " [char*] \t\t                 /* Filename */\n";
+  cout << ind << "file_flags: \t\t" << block->file_flags << " [overwrite_policy_t] \t\t /* Overwrite Policy Flags: tells us how to handle existing files */\n";
+  cout << ind << "chunk_count: \t\t" << block->chunk_count << " [u_int] \t\t    /* Number of buffered output chunks processed */\n";
+
+  if (block->header_comment != nullptr) {
+    cout << ind << "header_comment: \t\t" << block->header_comment << " [char*] \t\t /* Comment character(s) for header */\n";
+  }
+  else {
+    cout << ind << "header_comment: \t\t" << (void*)block->header_comment << " [char*] \t\t /* Comment character(s) for header */\n";
+  }
+  cout << ind << "exact_time_flag: \t\t" << block->exact_time_flag << " [int] \t\t  /* Boolean value; nonzero means print exact time in TRIGGER statements */\n";
+
+  //cout << ind << "column_head: \t\t" << block->column_head << " [output_column*] \t\t /* Data for one output column */\n";
+  dump_output_column(block->column_head, "output_column", "/* Data for one output column */", ind);
+
+}
+
+
+void dump_output_set(output_set* oset, const char* name, const char* comment, const char* ind) {
+  cout << ind << name << ": *\t\t" << oset << " [output_set] \t\t" << comment << "\n";
+
+  DECL_IND2(ind);
+  output_set* curr = oset;
+  while (curr != nullptr) {
+    dump_one_output_set(curr, ind2);
+    curr = curr->next;
+  }
+}
+
+void dump_one_output_block(output_block* block, const char* ind) {
+
+  cout << ind << "next: \t\t" << (void*)block->next << " [output_block*] \t\t /* Next in world or scheduler */\n";
+  cout << ind << "t: \t\t" << block->t << " [double] \t\t                  /* Scheduled time to update counters */\n";
+
+  cout << ind << "timer_type: \t\t" << block->timer_type << " [output_timer_type_t] \t\t /* Data Output Timing Type (OUTPUT_BY_STEP, etc) */\n";
+
+  cout << ind << "step_time: \t\t" << block->step_time << " [double] \t\t     /* Output interval (seconds) */\n";
+
+  cout << ind << "time_list_head: \t\t" << block->time_list_head << " [num_expr_list*] \t\t /* List of output times/iteration numbers */\n";
+  cout << ind << "time_now: \t\t" << block->time_now << " [num_expr_list*] \t\t /* Current entry in list */\n";
+
+  cout << ind << "buffersize: \t\t" << block->buffersize << " [u_int] \t\t   /* Size of output buffer */\n";
+  cout << ind << "trig_bufsize: \t\t" << block->trig_bufsize << " [u_int] \t\t /* Size of output buffer for triggers */\n";
+  cout << ind << "buf_index: \t\t" << block->buf_index << " [u_int] \t\t    /* Index into buffer (for non-triggers) */\n";
+
+  dump_double_array(block->buffersize, "buffersize", block->time_array, "time_array", "/* Array of output times (for non-triggers) */", ind);
+
+  dump_output_set(block->data_set_head, "data_set_head", "/* Linked list of data sets (separate files) */", ind);
+}
+
+
+void dump_output_blocks(output_block* output_block_head, const char* name, const char* comment, const char* ind) {
+  cout << ind << name << ": *\t\t" << output_block_head << " [output_block] \t\t" << comment << "\n";
+
+  DECL_IND2(ind);
+  output_block* curr = output_block_head;
+  while (curr != nullptr) {
+    dump_one_output_block(curr, ind2);
+    curr = curr->next;
+  }
+}
+
+
+
+void dump_one_output_request(output_request* req, const char* ind) {
+  cout << ind << "next: \t\t" << (void*)req->next << " [output_request*] \t\t         /* Next request in global list */\n";
+  cout << ind << "requester: \t\t" << req->requester << " [output_expression*] \t\t /* Expression in which we appear */\n";
+  cout << ind << "count_target: \t\t" << req->count_target << " [sym_entry*] \t\t      /* Mol/rxn we're supposed to count */\n";
+  cout << ind << "count_orientation: \t\t" << req->count_orientation << " [short] \t\t             /* orientation of the molecule we are supposed to count */\n";
+  cout << ind << "count_location: \t\t" << req->count_location << " [sym_entry*] \t\t    /* Object or region on which we're supposed to count it */\n";
+  cout << ind << "report_type: \t\t" << get_report_type_flags_string(req->report_type) << " [byte] \t\t                    /* Output Report Flags telling us how to count */\n";
+  cout << ind << "periodic_box: \t\t" << (void*)req->periodic_box << " [periodic_image*] \t\t /* periodic box we are counting in; NULL means that we don't care and count everywhere */\n";
+}
+
+
+void dump_output_requests(output_request* output_request_head, const char* name, const char* comment, const char* ind) {
+  cout << ind << name << ": *\t\t" << output_request_head << " [output_request] \t\t" << comment << "\n";
+
+  DECL_IND2(ind);
+  output_request* curr = output_request_head;
+  while (curr != nullptr) {
+    dump_one_output_request(curr, ind2);
+    curr = curr->next;
+  }
+}
+
+
+void dump_sym_table(sym_table_head* t, const char* name, const char* comment, const char* ind) {
+  cout << ind << name << ": *\t\t" << t << " [sym_table_head] \t\t" << comment << "\n";
+  if (t == nullptr) {
+    return;
+  }
+
+  DECL_IND2(ind);
+  cout << ind2 << "n_bins: \t\t" << t->n_bins << " [int] \t\t /**/\n";
+  cout << ind2 << "n_entries: \t\t" << t->n_entries << " [int] \t\t /**/\n";
+
+  int dumped_symbols = 0;
+  for (int i = 0; i < t->n_bins; i++) {
+
+    if (t->entries[i] != nullptr) {
+      cout << ind2 << "[" << i << "]:" <<  t->entries[i] << "\n";
+      dumped_symbols++;
+    }
+  }
+
+  assert(dumped_symbols == t->n_entries);
+}
+
 void dump_dyngeom_parse_vars(struct dyngeom_parse_vars* dg_parse, const char* name, const char* comment, const char* ind) {
   cout << ind << name << ": *\t\t" << (void*)dg_parse << " [dyngeom_parse_vars] \t\t" << comment << "\n";
   if (dg_parse == nullptr) {
@@ -1147,11 +1465,15 @@ extern "C" void dump_volume(struct volume* s, const char* comment, unsigned int 
 
   cout << "periodic_traditional: \t\t" << s->periodic_traditional << " [bool] \n";
 
+#ifdef DUMP_WAYPOINTS
   dump_waypoints(s->n_waypoints, s->waypoints);
+#endif
 
   cout << "place_waypoints_flag: \t\t" << (int)s->place_waypoints_flag << " [byte] \t\t/* Used to save memory if waypoints not needed */\n";
 
+#ifdef DUMP_SUBVOLUMES
   dump_subvolumes(s->n_subvols, "n_subvols", "/* How many coarse subvolumes? */", s->subvol, "subvol", "/* Array containing all subvolumes */", "");
+#endif
 
   cout << "n_walls: \t\t" << s->n_walls << " [int] \t\t/* Total number of walls */\n";
 
@@ -1173,7 +1495,9 @@ extern "C" void dump_volume(struct volume* s, const char* comment, unsigned int 
   cout << "count_hashmask: \t\t" << s->count_hashmask << " [int] \t\t/* Mask for looking up count hash table */\n";
   cout << "count_hash: **\t\t" << (void**)s->count_hash << " [counter] \t\t/* Count hash table */\n";
   dump_schedule_helper(s->count_scheduler, "count_scheduler", "// When to generate reaction output", "", false);
-  cout << "counter_by_name: *\t\t" << (void*)s->counter_by_name << " [sym_table_head] \n";
+
+  //cout << "counter_by_name: *\t\t" << (void*)s->counter_by_name << " [sym_table_head] \n";
+  dump_sym_table(s->counter_by_name, "counter_by_name", "", "");
 
   dump_schedule_helper(s->volume_output_scheduler, "volume_output_scheduler", "/* When to generate volume output */", "", false);
 
@@ -1232,8 +1556,11 @@ extern "C" void dump_volume(struct volume* s, const char* comment, unsigned int 
   cout << "volume_output_head: *\t\t" << (void*)s->volume_output_head << " [volume_output_item] \t\t/* List of all volume data output items */\n";
 
 
-  cout << "output_block_head: *\t\t" << (void*)s->output_block_head << " [output_block] \t\t/* Global list of reaction data output blocks */\n";
-  cout << "output_request_head: *\t\t" << (void*)s->output_request_head << " [output_request] \t\t/* Global list linking COUNT statements to internal variables \n";
+  //cout << "output_block_head: *\t\t" << (void*)s->output_block_head << " [output_block] \t\t/* Global list of reaction data output blocks */\n";
+  dump_output_blocks(s->output_block_head, "output_block_head", "/* Global list of reaction data output blocks */", "");
+
+  //cout << "output_request_head: *\t\t" << (void*)s->output_request_head << " [output_request] \t\t/* Global list linking COUNT statements to internal variables \n";
+  dump_output_requests(s->output_request_head, "output_request_head", "/* Global list linking COUNT statements to internal variables*/", "");
 
   // some memories
   cout << "oexpr_mem: *\t\t" << (void*)s->oexpr_mem << " [mem_helper] \t\t/* Memory to store output_expressions */\n";

@@ -71,6 +71,22 @@ enum overwrite_policy_t {
 /* And finally we have some flags to say whether we're to count over */
 /* the entire world or the volume enclosed by a region (set only one) */
 #define REPORT_CONTENTS 1
+#define REPORT_RXNS 2
+#define REPORT_FRONT_HITS 3
+#define REPORT_BACK_HITS 4
+#define REPORT_FRONT_CROSSINGS 5
+#define REPORT_BACK_CROSSINGS 6
+/* Anything >= REPORT_MULTIPLE reports some combination of the above */
+#define REPORT_MULTIPLE 7
+#define REPORT_ALL_HITS 8
+#define REPORT_ALL_CROSSINGS 9
+/* Concentration is kind of special. */
+#define REPORT_CONCENTRATION 10
+#define REPORT_ELAPSED_TIME 11
+/* All basic report types can be masked with this value */
+#define REPORT_TYPE_MASK 0x0F
+/* And finally we have some flags to say whether we're to count over */
+/* the entire world or the volume enclosed by a region (set only one) */
 #define REPORT_WORLD 0x20
 #define REPORT_ENCLOSED 0x40
 #define REPORT_TRIGGER 0x80

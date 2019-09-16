@@ -34,7 +34,7 @@ def main():
     viz_list = m.mcell_add_to_species_list(vm1_sym, False, 0, None)
     viz_list = m.mcell_add_to_species_list(sm1_sym, True, 1, viz_list)
     m.mcell_create_viz_output(
-        world, "./test_release_list_viz/test", viz_list, 0, iterations, 1)
+        world, "./test_release_list_viz/test", viz_list, 0, iterations, 1, False)
 
     m.mcell_init_simulation(world)
     m.mcell_init_output(world)

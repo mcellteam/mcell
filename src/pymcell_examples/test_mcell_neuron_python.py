@@ -57,7 +57,7 @@ if __name__ == "__main__":
         # Create viz data
         viz_list = m.mcell_add_to_species_list(vm1_sym, False, 0, None)
         m.mcell_create_viz_output(
-            world, "./viz_data/test", viz_list, 0, iterations, 1)
+            world, "./viz_data/test", viz_list, 0, iterations, 1, False)
 
         # Create reaction data
         mesh_sym = m.mcell_get_obj_sym(mesh)

@@ -33,6 +33,7 @@
 #include "logging.h"
 #include "version_info.h"
 #include "mcell_misc.h"
+#include "dump_state.h"
 
 
 /* declaration of static functions */
@@ -70,6 +71,12 @@ void mcell_print_stats() { mem_dump_stats(mcell_get_log_file()); }
  *
  ************************************************************************/
 void mcell_print(const char *message) { mcell_log("%s", message); }
+
+
+void mcell_dump_state(MCELL_STATE *state) {
+  dump_volume(state, "", DUMP_EVERYTHING);
+}
+
 
 /************************************************************************
  *

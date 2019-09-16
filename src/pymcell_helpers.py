@@ -315,6 +315,9 @@ class MCellSim:
     def __del__(self):
         self.end_sim()
 
+    def dump(self):
+        mcell_dump_state(self._world)
+
     def silence_warnings(self):
         m.mcell_silence_warnings(self._world)
 
@@ -433,7 +436,7 @@ class MCellSim:
                 self._regions[full_reg_name] = region_swig_obj
         logging.info("Add geometry '%s' to simulation" % mesh_obj.name)
 
-    def add_viz(self, species: Iterable[Species]) -> None:
+    def add_viz(self, species: Iterable[Species], ascii_output = False) -> None:
         """ Set all the species in an Iterable to be visualized. """
         viz_list = None
         for spec in species:
@@ -442,7 +445,7 @@ class MCellSim:
             logging.info("Output '%s' for viz data." % spec.name)
         m.mcell_create_viz_output(
             self._world, "./viz_data/seed_%04i/Scene" % self._seed, viz_list,
-            0, self._iterations, 1)
+            0, self._iterations, 1, ascii_output)
 
     def release(self, relobj):
         """ Release molecules in/on an object or as a ListRelease. """
@@ -742,7 +745,7 @@ def create_release_pattern(
         number_of_trains)
 
 
-def create_count(world, where, mol_sym, file_path, step):
+def create_count(world, where, mol_sym, file_path, step, report_flags=0, exact_time=0, buffer_size=10000):
     """Creates a count for a specified molecule in a specified region
     and initializes an output block for the count data that will be
     generated.
@@ -761,7 +764,12 @@ def create_count(world, where, mol_sym, file_path, step):
         output structure
 
     """
-    report_flags = m.REPORT_CONTENTS
+    
+    # REPORT_CONTENTS are defined later and the identifier cannot be used as 
+    # default arg value  
+    if report_flags == 0:
+        report_flags = m.REPORT_CONTENTS
+    
     c_list = m.output_column_list()
     # XXX: m.ORIENT_NOT_SET is using -100 instead of SHRT_MIN (used typemap
     # for mcell_create_count in mcell_react_out.i) because limits.h does not
@@ -771,7 +779,7 @@ def create_count(world, where, mol_sym, file_path, step):
 
     os = m.output_set()
     os = m.mcell_create_new_output_set(
-        None, 0, count_list.column_head, m.FILE_SUBSTITUTE, file_path)
+        None, exact_time, count_list.column_head, m.FILE_SUBSTITUTE, file_path)
 
     out_times = m.output_times_inlist()
     out_times.type = m.OUTPUT_BY_STEP
@@ -781,7 +789,7 @@ def create_count(world, where, mol_sym, file_path, step):
     output.set_head = os
     output.set_tail = os
 
-    m.mcell_add_reaction_output_block(world, output, 10000, out_times)
+    m.mcell_add_reaction_output_block(world, output, buffer_size, out_times)
 
     return (count_list, os, out_times, output)
 
@@ -1018,9 +1026,9 @@ def create_release_site(
     return (position, diameter, release_object)
 
 
-def create_region_release_site(
+def create_region_release_site( # lala
         world, scene, mesh, release_name, reg_name, number, number_type,
-        mol_sym):
+        mol_sym, is_oriented=True, orientation=0): 
     """Creates a release site on a specific region
 
     Args:
@@ -1034,13 +1042,15 @@ def create_region_release_site(
             site
         number_type (int) -- 0 for NUMBER, 1 for CONCENTRATION
         mol_sym (mcell_symbol) -- species to be released
+        is_oriented -- True if the orientation holds a valid value
+        orientation -- used if is_oriented is True, -1 - down, 1 - up
 
     Returns:
         release object (object)
 
     """
 
-    mol_list = m.mcell_add_to_species_list(mol_sym, False, 0, None)
+    mol_list = m.mcell_add_to_species_list(mol_sym, is_oriented, orientation, None)
     rel_object = m.object()
     release_object = m.mcell_create_region_release(
         world, scene, mesh, release_name, reg_name, mol_list, float(number),

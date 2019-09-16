@@ -27,6 +27,8 @@ void mcell_print_usage(const char *executable_name);
 
 void mcell_print_stats();
 
+void mcell_dump_state(MCELL_STATE *state);
+
 int mcell_argparse(int argc, char **argv, MCELL_STATE *state);
 
 struct num_expr_list *mcell_copysort_numeric_list(struct num_expr_list *head);
