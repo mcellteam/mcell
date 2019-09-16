@@ -450,6 +450,12 @@ void count_region_from_scratch(struct volume *world,
     }
   }
 
+  // We do this, because fire_count_event needs a molecule id
+  u_long mol_id = -1;
+  if (am != NULL) {
+    mol_id = am->id;
+  }
+
   /* Count surface molecules and reactions on surfaces--easy */
   if (my_wall != NULL && (my_wall->flags & COUNT_CONTENTS) != 0) {
     for (rl = my_wall->counting_regions; rl != NULL; rl = rl->next) {
@@ -461,7 +467,7 @@ void count_region_from_scratch(struct volume *world,
             c->data.trig.t_event = t;
             c->data.trig.orient = orient;
             // XXX: may need to convert loc for PBCs
-            fire_count_event(world, c, n, loc, count_flags | REPORT_TRIGGER, am->id);
+            fire_count_event(world, c, n, loc, count_flags | REPORT_TRIGGER, mol_id);
           } else if (rxpn == NULL) {
             if (am->properties->flags & ON_GRID) {
               if ((c->orientation == ORIENT_NOT_SET) ||
@@ -629,12 +635,8 @@ void count_region_from_scratch(struct volume *world,
               // Don't count triggers after a dynamic geometry event
               if (!world->dynamic_geometry_flag) {
                 // XXX: may need to convert loc for PBCs
-                u_long id = -1;
-                if (am != NULL) {
-                  id = am->id;
-                }
                 fire_count_event(world, c, n * pos_or_neg, loc,
-                                 count_flags | REPORT_TRIGGER, id);
+                                 count_flags | REPORT_TRIGGER, mol_id);
               }
             } else if (rxpn == NULL) {
               if (am->properties->flags & ON_GRID) {
@@ -697,7 +699,7 @@ void count_moved_surface_mol(
   // Different grids implies different walls, so we might have changed regions 
   /*if (sm->grid != sg) {*/
   if ((sm->grid != sg) ||
-      (previous_box != NULL && !world->periodic_traditional)) {
+      (world->periodic_box_obj && !world->periodic_traditional)) {
     int delete_me = 0;
     if ((sm->grid->surface->flags & COUNT_CONTENTS) != 0 &&
       (sg->surface->flags & COUNT_CONTENTS) != 0) {
@@ -2048,11 +2050,13 @@ void count_region_list(
       if (c->target == sm->properties && c->reg_type == rl->reg &&
           (c->counter_type & ENCLOSING_COUNTER) == 0) {
         if (c->counter_type & TRIG_COUNTER) {
-          c->data.trig.t_event = sm->t;
-          c->data.trig.orient = sm->orient;
-          fire_count_event(world, c, inc, where, REPORT_CONTENTS | REPORT_TRIGGER, sm->id);
-        } else if ((c->orientation == ORIENT_NOT_SET) ||
-                   (c->orientation == sm->orient) || (c->orientation == 0)) {
+          // pass
+          /*c->data.trig.t_event = sm->t;*/
+          /*c->data.trig.orient = sm->orient;*/
+          /*fire_count_event(world, c, inc, where, REPORT_CONTENTS | REPORT_TRIGGER, sm->id); */
+        }
+        else if ((c->orientation == ORIENT_NOT_SET) ||
+                 (c->orientation == sm->orient) || (c->orientation == 0)) {
           if ((inc == 1) && (periodic_boxes_are_identical(
               sm->periodic_box, c->periodic_box))) {
             c->data.move.n_at++;

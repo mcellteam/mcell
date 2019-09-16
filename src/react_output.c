@@ -250,7 +250,7 @@ static void emergency_output_hook(void) {
 
     int n_errors = emergency_output(global_state);
     if (n_errors == 0)
-      mcell_warn("Reaction output was successfully flushed to disk.");
+      mcell_warn("Emergency output hook triggered:\n    Reaction output was successfully flushed to disk.");
     else if (n_errors == 1)
       mcell_warn("An error occurred while flushing reaction output to disk.");
     else
@@ -277,7 +277,7 @@ static void emergency_output_signal_handler(int signo) {
 
     int n_errors = flush_reaction_output(global_state);
     if (n_errors == 0)
-      mcell_error_raw("Reaction output was successfully flushed to disk.\n");
+      mcell_error_raw("Emergency output signal handler triggered by signal %d:\n    Reaction output was successfully flushed to disk.\n", signo);
     else if (n_errors == 1)
       mcell_error_raw(
           "An error occurred while flushing reaction output to disk.\n");

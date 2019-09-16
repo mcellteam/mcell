@@ -226,6 +226,7 @@ static void init_volume_data_output(struct volume *wrld) {
 int init_variables(struct volume *world) {
 
   world->dump_level = 0;
+  world->viz_options = 0;
 
   world->bond_angle = 0.0;
 

@@ -5,6 +5,8 @@ import sys
 import subprocess
 import argparse
 
+from pathlib import Path
+
 def define_console():
     parser = argparse.ArgumentParser(description='MCellR runner/postprocessor')
     parser.add_argument('-v', '--version',            action='store_true',            help='print program version and exit')
@@ -21,10 +23,15 @@ def define_console():
     parser.add_argument('-r', '--rules',            type=str,            help='rules file',              required=True)
     parser.add_argument('-m', '--mdl_infile',            type=str,            help='MDL main input file',              required=True)
     parser.add_argument('-b', '--bond_angle',            type=str,            help='Default Bond Angle',   required=False)
+    parser.add_argument('-z', '--z_options',            type=str,            help='Visualization Options',   required=False)
     parser.add_argument('-d', '--dump_level',            type=str,            help='Dump Level for text output',   required=False)
     return parser
 
 if __name__ == "__main__":
+    print ( "Top of mcell3r.py/main" )
+    sys.stdout.flush()
+
+
     parser = define_console()
     args = parser.parse_args()
   
@@ -53,6 +60,8 @@ if __name__ == "__main__":
        cmd_args = cmd_args + ' -checkpoint_infile %s' % (args.checkpoint_infile)
     if args.checkpoint_outfile:
        cmd_args = cmd_args + ' -checkpoint_outfile %s' % (args.checkpoint_outfile)
+    if args.z_options:
+       cmd_args = cmd_args + ' -z %s' % (args.z_options)
     if args.bond_angle:
        cmd_args = cmd_args + ' -b %s' % (args.bond_angle)
     if args.dump_level:
@@ -71,7 +80,6 @@ if __name__ == "__main__":
 
     script_path = os.path.dirname(os.path.realpath(__file__))
 
-#    my_env = {}
     my_env = os.environ.copy()
     if (sys.platform == 'darwin'):
       if my_env.get('DYLD_LIBRARY_PATH'):
@@ -86,18 +94,25 @@ if __name__ == "__main__":
 
 
     mcell_cmd = os.path.join(script_path, 'mcell')
-    mcell_cmd = mcell_cmd + ' ' + cmd_args
-    mcell_args = mcell_cmd.split()
+    mcell_args = [ mcell_cmd ]
+    mcell_args.extend ( cmd_args.split() )
 
     postproc_cmd = os.path.join(script_path, 'postprocess_mcell3r.py')
-    postproc_cmd = sys.executable + ' ' + postproc_cmd + ' ' + args.seed + ' ' + args.rules
-    postproc_args = postproc_cmd.split()
+    pp_cmd = [ sys.executable, postproc_cmd ]
+    pp_cmd.extend ( [args.seed, args.rules] )
 
+    print ( "Start mcell itself" )
+    sys.stdout.flush()
     mcellproc = subprocess.Popen(mcell_args, env=my_env)
     mcellproc.wait()
-    postproc = subprocess.Popen(postproc_args)
+    print ( "Done with mcell itself" )
+    print ( "Begin postprocessing with " + str(pp_cmd) )
+    sys.stdout.flush()
+
+    postproc = subprocess.Popen(pp_cmd)
     postproc.wait()
 
-#    os.system(mcell_cmd)
-#    os.system(postproc_cmd)
+    print ( "Done with postprocessing" )
+    print ( "Bottom of mcell3r.py/main" )
+    sys.stdout.flush()
 

@@ -1229,7 +1229,8 @@ new_bngl_molecule_name: var { CHECKN($$ = mdl_new_bngl_molecule(parse_state, $1)
 
 
 list_bngl_components:
-        bngl_component
+        /* empty */
+        | bngl_component
         | list_bngl_components ',' bngl_component
 ;
 

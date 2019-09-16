@@ -64,6 +64,7 @@ static struct option long_options[] = { { "help", 0, 0, 'h' },
                                         { "logfreq", 1, 0, 'f' },
                                         { "errfile", 1, 0, 'e' },
                                         { "bond_angle", 1, 0, 'b'},
+                                        { "z_options", 1, 0, 'z' },
                                         { "dump", 1, 0, 'd'},
                                         { "quiet", 0, 0, 'q' },
                                         { "with_checks", 1, 0, 'w' },
@@ -92,6 +93,7 @@ void print_usage(FILE *f, char const *argv0) {
       "     [-errfile err_file_name] send errors log to file (default: stderr)\n"
       "     [-checkpoint_infile checkpoint_file_name]   read checkpoint file\n"
       "     [-checkpoint_outfile checkpoint_file_name]  write checkpoint file\n"
+      "     [-z_options opt_int]     additional visualization options (defaults to 0 which is none)\n"
       "     [-bond_angle angle]      bond angle to use for all bonds (defaults to 0)\n"
       "     [-dump level]            print additional information based on level (0 is none, >0 is more)\n"
       "     [-quiet]                 suppress all unrequested output except for errors\n"
@@ -140,6 +142,7 @@ int argparse_init(int argc, char *const argv[], struct volume *vol) {
   int log_file_specified = 0, err_file_specified = 0;
   FILE *fhandle = NULL;
   char *with_checks_option;
+  char *rules_xml_file = NULL; // for nfsim
   //argerror('whats up');
   /* Loop over all arguments */
   while (1) {
@@ -191,6 +194,15 @@ int argparse_init(int argc, char *const argv[], struct volume *vol) {
       }
       break;
 
+    case 'z': /* -viz_options */
+      vol->viz_options = strtol(optarg, &endptr, 0);
+      fprintf ( stdout, "Parsed Visualization Options = %lx\n", vol->viz_options );
+      if (endptr == optarg || *endptr != '\0') {
+        argerror("viz_options must be an integer: %s", optarg);
+        return 1;
+      }
+      break;
+
     case 'w': /* walls coincidence check (maybe other checks in future) */
       with_checks_option = strdup(optarg);
       if (with_checks_option == NULL) {
@@ -214,7 +226,7 @@ int argparse_init(int argc, char *const argv[], struct volume *vol) {
       break;
 
     case 's': /* -seed */
-      vol->seed_seq = (int)strtol(optarg, &endptr, 0);
+      vol->seed_seq = (int)strtol(optarg, &endptr, 0); // initialized to '1'
       if (endptr == optarg || *endptr != '\0') {
         argerror("Random seed must be an integer: %s", optarg);
         return 1;
@@ -271,13 +283,7 @@ int argparse_init(int argc, char *const argv[], struct volume *vol) {
 
     case 'r': /* nfsim */
 			vol->nfsim_flag = 1;
-      //int nfsimStatus = setupNFSim_c("example.mdlr_total.xml", 0);
-      int nfsimStatus = setupNFSim_c(optarg, 0);
-      if (nfsimStatus != 0){
-        argerror("nfsim model could not be properly initialized: %s", optarg);
-        return 1;
-
-      }
+      rules_xml_file = strdup(optarg);
       break;
 
     case 'l': /* -logfile */
@@ -377,6 +383,16 @@ int argparse_init(int argc, char *const argv[], struct volume *vol) {
   } else {
     argerror("No MDL file name specified");
     return 1;
+  }
+
+  /* Initialize NFSim if requested */
+  if (vol->nfsim_flag) {
+    int nfsimStatus = setupNFSim_c(rules_xml_file, vol->seed_seq, 0);
+    free(rules_xml_file);
+    if (nfsimStatus != 0){
+      argerror("nfsim model could not be properly initialized: %s", optarg);
+      return 1;
+    }
   }
 
   return 0;

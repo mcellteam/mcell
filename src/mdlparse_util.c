@@ -8044,9 +8044,6 @@ void mdl_set_bngl_component_layout(struct mdlparse_vars *parse_state,
                                  double rot_axis_z,
                                  double rot_angle)
 {
-  struct vector3 scale, translate, axis;
-  double (*tm)[4];
-
   init_matrix(mol_comp_ssp->t_matrix);
   if ((rot_axis_x == 0.0) && (rot_axis_y == 0.0) && (rot_axis_z == 0.0)) {
     if ((loc_x == 0.0) && (loc_y == 0.0) && (loc_z == 0.0) && (rot_angle == 0.0)) {
@@ -8072,6 +8069,8 @@ void mdl_set_bngl_component_layout(struct mdlparse_vars *parse_state,
   mol_comp_ssp->rot_angle = rot_angle;
 
   /*
+  struct vector3 scale, translate, axis;
+  double (*tm)[4];
   tm = mol_comp_ssp->t_matrix;
   scale.x = 1.0;
   scale.y = 1.0;
