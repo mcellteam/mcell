@@ -29,7 +29,7 @@
 namespace MCell {
 
 class Partition;
-class uint_set_t;
+class UintSet;
 
 /**
  * A single geometrical object composed of multiple walls.

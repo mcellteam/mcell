@@ -164,23 +164,23 @@ static void exd_coordize(const vec3_t& mv, vec3_t& m,
 
 /* Exact Disk Flags */
 /* Flags for the exact disk computation */
-enum exd_role_t {
-  EXD_ROLE_UNDEFINED,
-  EXD_ROLE_HEAD,
-  EXD_ROLE_TAIL,
-  EXD_ROLE_CROSS,
-  EXD_ROLE_SPAN,
-  EXD_ROLE_OTHER
+enum class ExdRole {
+  UNDEFINED,
+  HEAD,
+  TAIL,
+  CROSS,
+  SPAN,
+  OTHER
 };
 
-/* Negative numbers used as flags for reaction disks */
-/* Note: TARGET_OCCLUDED is assumed for any negative number not defined here */
-#define TARGET_OCCLUDED -1
+/* Negative numbers used as flags for reaction disks, used as result of exact_disk */
+/* Note: TARGET_OCCLUDED_RES is assumed for any negative number not defined here */
+#define TARGET_OCCLUDED_RES -1
 
-enum intersect_result_t {
-  INTERSECT_TARGET_OCCLUDED,
-  INTERSECT_SKIP_THIS_WALL,
-  INTERSECT_CONTINUE_WITH_THIS_WALL
+enum class IntersectResult {
+  TARGET_OCCLUDED,
+  SKIP_THIS_WALL,
+  CONTINUE_WITH_THIS_WALL
 };
 
 /* Data structures to store information about exact interaction disk geometry */
@@ -194,7 +194,7 @@ struct exd_vertex_t {
       x(POS_INVALID), y(POS_INVALID),
       r2(NAN), zeta(NAN),
       e(nullptr), span(nullptr),
-      role(EXD_ROLE_UNDEFINED) {
+      role(ExdRole::UNDEFINED) {
   }
 
   exd_vertex_t *next;
@@ -210,7 +210,7 @@ struct exd_vertex_t {
   //vector<exd_vertex_t*> span; /* List of edges spanning this point */
   exd_vertex_t* span;
 
-  exd_role_t role;                /* Exact Disk Flags: Head, tail, whatever */
+  ExdRole role;                /* Exact Disk Flags: Head, tail, whatever */
 
   // note: ignores other data
   operator vec2_t() { return vec2_t(x, y); }
@@ -241,7 +241,7 @@ static inline void compute_intersect_w_m0(
 }
 
 
-static inline intersect_result_t test_intersect_line_with_circle(
+static inline IntersectResult test_intersect_line_with_circle(
     const exd_vertex_t& pa, const exd_vertex_t& pb,
     const exd_vertex_t& sm,
     const float R2,
@@ -258,14 +258,14 @@ static inline intersect_result_t test_intersect_line_with_circle(
       if (sm.r2 < pa.r2 && sm.r2 < pb.r2 &&
           distinguishable_f(sm.r2, pa.r2, EPS) &&
           distinguishable_f(sm.r2, pa.r2, EPS)) {
-        return INTERSECT_SKIP_THIS_WALL;
+        return IntersectResult::SKIP_THIS_WALL;
       }
       if (!distinguishable_f(sm.u * pa.v, sm.v * pa.u, SQRT_EPS) ||
           !distinguishable_f(sm.u * pb.v, sm.v * pb.u, SQRT_EPS)) {
 
-        return INTERSECT_TARGET_OCCLUDED;
+        return IntersectResult::TARGET_OCCLUDED;
       }
-      return INTERSECT_SKIP_THIS_WALL;
+      return IntersectResult::SKIP_THIS_WALL;
     }
 
     float_t a = 1.0 / (pa.r2 + pb.r2 - 2 * pa_pb);
@@ -273,20 +273,20 @@ static inline intersect_result_t test_intersect_line_with_circle(
     float_t c = (R2 - pa.r2) * a;
     float_t d = b * b + c;
     if (d <= 0)
-      return INTERSECT_SKIP_THIS_WALL;
+      return IntersectResult::SKIP_THIS_WALL;
     d = sqrt(d);
     t = -b - d;
     if (t >= 1)
-      return INTERSECT_SKIP_THIS_WALL;
+      return IntersectResult::SKIP_THIS_WALL;
     if (t < 0)
       t = 0;
     s = -b + d;
     if (s <= 0)
-      return INTERSECT_SKIP_THIS_WALL;
+      return IntersectResult::SKIP_THIS_WALL;
     if (s > 1)
       s = 1;
   }
-  return INTERSECT_CONTINUE_WITH_THIS_WALL;
+  return IntersectResult::CONTINUE_WITH_THIS_WALL;
 }
 
 
@@ -495,8 +495,8 @@ static void find_boundaries_occluding_disk(
           ppa->zeta = b;
         }
 
-        ppa->role = EXD_ROLE_HEAD;
-        ppb->role = EXD_ROLE_TAIL;
+        ppa->role = ExdRole::HEAD;
+        ppb->role = ExdRole::TAIL;
         ppa->e = ppb;
         ppb->e = NULL;
 
@@ -566,13 +566,13 @@ static float_t calculate_area_for_multiple_edges(
   exd_vertex_t pa, pb;
   ppb = NULL;
   for (ppa = vertex_head; ppa != vertex_head || ppb == NULL; ppa = ppa->next) { // go through all points
-    if (ppa->role != EXD_ROLE_HEAD)
+    if (ppa->role != ExdRole::HEAD)
       continue;
     ppb = ppa->e;
 
     exd_vertex_t* pqa;
     for (pqa = ppa->next; pqa != ppb; pqa = pqa->next) {
-      if (pqa->role != EXD_ROLE_HEAD)
+      if (pqa->role != ExdRole::HEAD)
         continue;
       exd_vertex_t* pqb = pqa->e;
 
@@ -587,7 +587,7 @@ static float_t calculate_area_for_multiple_edges(
       if (r * r <
           EPS_C * (pa.u * pa.u + pa.v * pa.v) * (pb.u * pb.u + pb.v * pb.v)) {
         pqa->e = NULL;
-        pqa->role = EXD_ROLE_OTHER;
+        pqa->role = ExdRole::OTHER;
 
         float_t a = pqb->zeta - ppb->zeta;
         if (a < 0)
@@ -595,11 +595,11 @@ static float_t calculate_area_for_multiple_edges(
 
         if (a > 2) /* Other line is completely contained inside us */
         {
-          pqb->role = EXD_ROLE_OTHER;
+          pqb->role = ExdRole::OTHER;
         } else /* We have a new endpoint, so we need to check crosses again */
         {
           ppa->e = pqb;
-          ppb->role = EXD_ROLE_OTHER;
+          ppb->role = ExdRole::OTHER;
           ppb = pqb;
           pqa = ppa;
         }
@@ -631,7 +631,7 @@ static float_t calculate_area_for_multiple_edges(
       vq->zeta = exd_zetize(vq->v, vq->u);
       vq->e = ppb;
       vq->span = NULL;
-      vq->role = EXD_ROLE_CROSS;
+      vq->role = ExdRole::CROSS;
 
       /* Insert new point into the list */
       for (vp = ppa; vp != ppb; vp = vp->next) {
@@ -661,10 +661,10 @@ static float_t calculate_area_for_multiple_edges(
         if (-EPS < vq->r2 - vp->r2 && EPS > vq->r2 - vp->r2) {
           vq->r2 = vp->r2;
           /* Mark crosses that occur multiple times--only need one */
-          //          if (vq->role==EXD_ROLE_CROSS && vp->role != EXD_ROLE_OTHER) vq->role
-          // = EXD_ROLE_OTHER;
-          //          else if (vp->role==EXD_ROLE_CROSS && vq->role != EXD_ROLE_OTHER)
-          // vp->role = EXD_ROLE_OTHER;
+          //          if (vq->role==ExdRole::CROSS && vp->role != ExdRole::OTHER) vq->role
+          // = ExdRole::OTHER;
+          //          else if (vp->role==ExdRole::CROSS && vq->role != ExdRole::OTHER)
+          // vp->role = ExdRole::OTHER;
         }
       } else
         break;
@@ -674,7 +674,7 @@ static float_t calculate_area_for_multiple_edges(
   /* Register all spanning line segments */ // cannot ignore
   vq = NULL;
   for (vp = vertex_head; vp != vertex_head || vq == NULL; vp = vp->next) {
-    if (vp->role != EXD_ROLE_HEAD)
+    if (vp->role != ExdRole::HEAD)
       continue;
 
     for (vq = vp->next; vq != vp->e; vq = vq->next) {
@@ -682,7 +682,7 @@ static float_t calculate_area_for_multiple_edges(
         continue;
       if (!distinguishable_f(vq->zeta, vp->e->zeta, EPS))
         break;
-      if (vq->role == EXD_ROLE_OTHER)
+      if (vq->role == ExdRole::OTHER)
         continue;
 
       exd_vertex_t* vr = new exd_vertex_t();
@@ -691,7 +691,7 @@ static float_t calculate_area_for_multiple_edges(
       vq->span = vr;
       vr->e = vp;
       vr->zeta = vq->zeta;
-      vr->role = EXD_ROLE_SPAN;
+      vr->role = ExdRole::SPAN;
     }
   }
 
@@ -701,7 +701,7 @@ static float_t calculate_area_for_multiple_edges(
   float_t last_zeta = -1;
   exd_vertex_t* vs = NULL;
   for (vp = vertex_head; zeta < 4.0 - EPS; vp = vp->next) {
-    if (vp->role == EXD_ROLE_OTHER)
+    if (vp->role == ExdRole::OTHER)
       continue;
     if (!distinguishable_f(vp->zeta, last_zeta, EPS))
       continue;
@@ -716,7 +716,7 @@ static float_t calculate_area_for_multiple_edges(
     vr->u = vp->u;
     vr->v = vp->v;
     vr->zeta = vp->zeta;
-    if (vp->role == EXD_ROLE_TAIL) {
+    if (vp->role == ExdRole::TAIL) {
       vr->r2 = R2 * (1.0 + EPS);
       vr->e = NULL;
     } else {
@@ -727,7 +727,7 @@ static float_t calculate_area_for_multiple_edges(
     /* Check head points at same place to see if they're closer */
     for (vq = vp->next; (!distinguishable_f(vq->zeta, last_zeta, EPS));
          vq = vq->next) {
-      if (vq->role == EXD_ROLE_HEAD) {
+      if (vq->role == ExdRole::HEAD) {
         if (vq->r2 < vp->r2 || vr->e == NULL) {
           vr->u = vq->u;
           vr->v = vq->v;
@@ -834,7 +834,7 @@ exact_disk:
       z_fineparts:
   Out: The fraction of a full interaction disk that is actually
        accessible to the moving molecule, computed exactly from the
-       geometry, or TARGET_OCCLUDED if the path to the target molecule is
+       geometry, or TARGET_OCCLUDED_RES if the path to the target molecule is
        blocked.
 *************************************************************************/
 // TODO_LATER: get rid of linked lists
@@ -878,7 +878,7 @@ static float_t __attribute__((noinline)) exact_disk(
     sm.zeta = exd_zetize(sm.v, sm.u);
   }
   /* Find walls that occlude the interaction disk (or block the reaction) */
-  const uint_set_t& wall_indices = p.get_subpart_wall_indices(moving.v.subpart_index);
+  const UintSet& wall_indices = p.get_subpart_wall_indices(moving.v.subpart_index);
 
   // TODO_LATER: move this to a separate function - only after we got rid of linked lists
   for (wall_index_t wall_index: wall_indices) {
@@ -988,31 +988,31 @@ static float_t __attribute__((noinline)) exact_disk(
     {
       if (vertex_head != nullptr)
         delete_list(vertex_head);
-      return TARGET_OCCLUDED;
+      return TARGET_OCCLUDED_RES;
     }
     if (!distinguishable_f(pa.u * pb.v, pb.u * pa.v, EPS) &&
         dot2(pa, pb) < 0) /* Antiparallel, can't tell which side of wall origin is on */
     {
       if (vertex_head != nullptr)
         delete_list(vertex_head);
-      return TARGET_OCCLUDED;
+      return TARGET_OCCLUDED_RES;
     }
 
     /* Intersect line with circle; skip this wall if no intersection */
     float_t ti, si;
-    intersect_result_t circle_res = test_intersect_line_with_circle(
+    IntersectResult circle_res = test_intersect_line_with_circle(
         pa, pb, sm, R2,
         ti, si
     );
-    if (circle_res == INTERSECT_TARGET_OCCLUDED) {
+    if (circle_res == IntersectResult::TARGET_OCCLUDED) {
       if (vertex_head != nullptr)
         delete_list(vertex_head);
-      return TARGET_OCCLUDED;
+      return TARGET_OCCLUDED_RES;
     }
-    else if (circle_res == INTERSECT_SKIP_THIS_WALL) {
+    else if (circle_res == IntersectResult::SKIP_THIS_WALL) {
       continue;
     }
-    assert(circle_res == INTERSECT_CONTINUE_WITH_THIS_WALL);
+    assert(circle_res == IntersectResult::CONTINUE_WITH_THIS_WALL);
 
     /* Add this edge to the growing list, or return -1 if edge blocks target */
 
@@ -1056,12 +1056,12 @@ static float_t __attribute__((noinline)) exact_disk(
         if (vertex_head != nullptr)
           delete_list(ppa);
 
-        return TARGET_OCCLUDED;
+        return TARGET_OCCLUDED_RES;
       }
     }
 
-    ppa->role = EXD_ROLE_HEAD;
-    ppb->role = EXD_ROLE_TAIL;
+    ppa->role = ExdRole::HEAD;
+    ppb->role = ExdRole::TAIL;
     ppa->e = ppb;
     ppb->e = NULL;
 

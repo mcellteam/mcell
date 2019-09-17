@@ -34,14 +34,14 @@ class Molecule;
 /**
  * Dumps world state either in a textual or cellblender format.
  */
-class viz_output_event_t: public BaseEvent {
+class VizOutputEvent: public BaseEvent {
 public:
-  viz_output_event_t(World* world_)
+  VizOutputEvent(World* world_)
     : BaseEvent(EVENT_TYPE_INDEX_VIZ_OUTPUT),
       viz_mode(NO_VIZ_MODE), file_prefix_name(nullptr),
       world(world_) {
   }
-  virtual ~viz_output_event_t() {}
+  virtual ~VizOutputEvent() {}
 
   virtual void step();
   virtual void dump(const std::string indent);

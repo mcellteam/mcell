@@ -108,11 +108,11 @@ public:
       return false;
     }
     // is there even any reaction
-    const species_t& sa = species[a.species_id];
+    const Species& sa = species[a.species_id];
     if (!sa.has_flag(SPECIES_FLAG_CAN_VOLVOL)) {
       return false;
     }
-    const species_t& sb = species[b.species_id];
+    const Species& sb = species[b.species_id];
     if (!sb.has_flag(SPECIES_FLAG_CAN_VOLVOL)) {
       return false;
     }
@@ -131,7 +131,7 @@ public:
   }
 
   // must return result, asserts otherwise
-  const reaction_t* get_reaction(const Molecule& a, const Molecule& b) const {
+  const Reaction* get_reaction(const Molecule& a, const Molecule& b) const {
     const auto& it_map_for_species = bimolecular_reactions_map.find(a.species_id);
     assert(it_map_for_species != bimolecular_reactions_map.end());
     const auto& it_res = it_map_for_species->second.find(b.species_id);
@@ -139,16 +139,16 @@ public:
     return it_res->second;
   }
 
-  const species_t& get_species(const species_id_t species_id) const {
+  const Species& get_species(const species_id_t species_id) const {
     assert(species_id < species.size());
     return species[species_id];
   }
 
-  const std::vector<species_t>& get_species() const {
+  const std::vector<Species>& get_species() const {
     return species;
   }
 
-  void add_species(const species_t& new_species) {
+  void add_species(const Species& new_species) {
     assert(new_species.species_id == species.size());
     species.push_back(new_species);
   }
@@ -169,24 +169,24 @@ public:
 
 private:
   std::vector<Partition> partitions;
-  std::vector<species_t> species;
+  std::vector<Species> species;
 
 public:
-  scheduler_t scheduler;
+  Scheduler scheduler;
 
-  std::vector<reaction_t> reactions; // we might need faster searching or reference from species to reactions here but let's keep it simple for now
+  std::vector<Reaction> reactions; // we might need faster searching or reference from species to reactions here but let's keep it simple for now
 
   // TODO_PATHWAYS: there might be multiple reactions for 1 or 2 reactants (multiple pathways)
-  unimolecular_reactions_map_t unimolecular_reactions_map; // created from reactions in init_simulation
-  bimolecular_reactions_map_t bimolecular_reactions_map; // created from reactions in init_simulation
+  UnimolecularReactionsMap unimolecular_reactions_map; // created from reactions in init_simulation
+  BimolecularReactionsMap bimolecular_reactions_map; // created from reactions in init_simulation
 
   uint64_t current_iteration;
   uint64_t iterations; // number of iterations to simulate
 
   uint seed_seq; // initial seed passed to mcell as argument
 
-  world_constants_t world_constants;
-  simulation_stats_t simulation_stats;
+  WorldConstants world_constants;
+  SimulationStats simulation_stats;
 
   rng_state rng; // single state for the random number generator
 

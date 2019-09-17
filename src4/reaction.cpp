@@ -29,7 +29,7 @@ using namespace std;
 
 namespace MCell {
 
-void reaction_t::dump(const string ind) const {
+void Reaction::dump(const string ind) const {
   cout << ind << "name: \t\t" << name << " [string] \t\t\n";
   cout << ind << "rate_constant: \t\t" << rate_constant << " [float_t] \t\t\n";
   cout << ind << "max_fixed_p: \t\t" << max_fixed_p << " [float_t] \t\t\n";

@@ -154,25 +154,25 @@ const orientation_t ORIENTATION_DOWN = -1;
 const orientation_t ORIENTATION_NONE = 0;
 const orientation_t ORIENTATION_UP = 1;
 
-typedef std::pair<partition_index_t, wall_index_t> partition_wall_index_pair_t;
-typedef std::pair<partition_index_t, vertex_index_t> partition_vertex_index_pair_t;
+typedef std::pair<partition_index_t, wall_index_t> PartitionWallIndexPair;
+typedef std::pair<partition_index_t, vertex_index_t> PartitionVertexIndexPair;
 
-typedef std::pair<float_t, partition_wall_index_pair_t> cum_area_pwall_index_pair_t;
+typedef std::pair<float_t, PartitionWallIndexPair> CummAreaPWallIndexPair;
 
 
-class reaction_t;
+class Reaction;
 
 template<class T, class Allocator=boost::container::new_allocator<T>>
 using small_vector = boost::container::small_vector<T, 8, Allocator>;
 
-typedef boost::container::small_vector<subpart_index_t, 8>  subpart_indices_vector_t;
-typedef boost::container::small_vector<const reaction_t*, 8>  reactions_vector_t;
+typedef boost::container::small_vector<subpart_index_t, 8>  SubpartIndicesVector;
+typedef boost::container::small_vector<const Reaction*, 8>  ReactionsVector;
 
 
 /**
  * Class used to hold sets of ids or indices of molecules or other items
  */
-class uint_set_t: public boost::container::flat_set<uint> {
+class UintSet: public boost::container::flat_set<uint> {
 public:
   void set_contains_id(const uint id, const bool value = true) {
     if (value) {
@@ -197,7 +197,7 @@ typedef glm::uvec3 uvec3_t;
 typedef glm::bvec3 bvec3_t;
 typedef glm::dmat4x4 mat4x4;
 
-struct vec3_t: public glm_vec3_t{
+struct vec3_t: public glm_vec3_t {
   vec3_t() = default;
   vec3_t(const glm_vec3_t& a) { x = a.x; y = a.y; z = a.z; }
   vec3_t(const vec3_t& a) : glm_vec3_t(a.x, a.y, a.z) { }
@@ -213,7 +213,7 @@ struct vec3_t: public glm_vec3_t{
 };
 
 // usually are .u and .v used to access contained values
-struct vec2_t: public glm_vec2_t{
+struct vec2_t: public glm_vec2_t {
   vec2_t() = default;
   vec2_t(const glm_vec2_t& a) { x = a.x; y = a.y; }
   vec2_t(const vec2_t& a) : glm_vec2_t(a.x, a.y) { }
@@ -467,17 +467,18 @@ static inline void debug_guard_zero_div(vec3_t& val) {
 }
 
 
-class reaction_t;
+class Reaction;
 
-typedef std::unordered_map<species_id_t, reaction_t*> species_reaction_map_t;
-typedef species_reaction_map_t unimolecular_reactions_map_t;
-typedef std::unordered_map< species_id_t, species_reaction_map_t > bimolecular_reactions_map_t;
+typedef std::unordered_map<species_id_t, Reaction*> SpeciesReactionMap;
+typedef SpeciesReactionMap UnimolecularReactionsMap;
+typedef std::unordered_map< species_id_t, SpeciesReactionMap > BimolecularReactionsMap;
 
 /*
  * Constant data set in initialization useful for all classes, single object is owned by world
  */
-struct simulation_stats_t {
-  simulation_stats_t()
+class SimulationStats {
+public:
+  SimulationStats()
     : ray_voxel_tests(0), ray_polygon_tests(0), ray_polygon_colls(0) {
   }
   void inc_ray_voxel_tests() {

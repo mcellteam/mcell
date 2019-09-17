@@ -94,7 +94,7 @@ private:
   std::map<u_int, species_id_t> mcell3_species_id_map;
 
 
-  void add_mcell4_vertex_index_mapping(const vector3* mcell3_vertex, partition_vertex_index_pair_t pindex) {
+  void add_mcell4_vertex_index_mapping(const vector3* mcell3_vertex, PartitionVertexIndexPair pindex) {
     // check that if we are adding a vertex, it is exactly the same as there was before
     auto it = vector_ptr_to_vertex_index_map.find(mcell3_vertex);
     if (it != vector_ptr_to_vertex_index_map.end()) {
@@ -107,27 +107,27 @@ private:
     }
   }
 
-  partition_vertex_index_pair_t get_mcell4_vertex_index(const vector3* mcell3_vertex) {
+  PartitionVertexIndexPair get_mcell4_vertex_index(const vector3* mcell3_vertex) {
     auto it = vector_ptr_to_vertex_index_map.find(mcell3_vertex);
     assert(it != vector_ptr_to_vertex_index_map.end());
     return it->second;
   }
 
-  std::map<const vector3*, partition_vertex_index_pair_t> vector_ptr_to_vertex_index_map;
+  std::map<const vector3*, PartitionVertexIndexPair> vector_ptr_to_vertex_index_map;
 
-  void add_mcell4_wall_index_mapping(const wall* mcell3_wall, partition_wall_index_pair_t pindex) {
+  void add_mcell4_wall_index_mapping(const wall* mcell3_wall, PartitionWallIndexPair pindex) {
     assert(wall_ptr_to_vertex_index_map.find(mcell3_wall) == wall_ptr_to_vertex_index_map.end() && "Wall mapping for this wall already exists");
     wall_ptr_to_vertex_index_map[mcell3_wall] = pindex;
   }
 
-  partition_wall_index_pair_t get_mcell4_wall_index(const wall* mcell3_wall) {
+  PartitionWallIndexPair get_mcell4_wall_index(const wall* mcell3_wall) {
     auto it = wall_ptr_to_vertex_index_map.find(mcell3_wall);
     assert(it != wall_ptr_to_vertex_index_map.end());
     return it->second;
   }
 
   // use only through add_mcell4_wall_index_mapping, get_mcell4_wall_index
-  std::map<const wall*, partition_wall_index_pair_t> wall_ptr_to_vertex_index_map;
+  std::map<const wall*, PartitionWallIndexPair> wall_ptr_to_vertex_index_map;
 };
 
 

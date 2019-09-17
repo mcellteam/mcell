@@ -25,7 +25,7 @@
 
 namespace MCell {
 
-void bucket_t::insert(BaseEvent* event) {
+void Bucket::insert(BaseEvent* event) {
   // check right away if the event belongs to the end
   if (events.empty() || cmp_lt(events.back()->event_time, event->event_time, SCHEDULER_COMPARISON_EPS)) {
     events.push_back(event);
@@ -49,7 +49,7 @@ void bucket_t::insert(BaseEvent* event) {
 }
 
 
-bucket_t::~bucket_t() {
+Bucket::~Bucket() {
   for (auto it = events.begin(); it != events.end(); it++) {
     // delete remaining events, usually there should be none
     delete *it;
@@ -58,11 +58,11 @@ bucket_t::~bucket_t() {
 
 
 // insert a new item with time event->event_time, create bucket if needed
-void calendar_t::insert(BaseEvent* event) {
+void Calendar::insert(BaseEvent* event) {
   float_t bucket_start_time = event_time_to_bucket_start_time(event->event_time);
   if (queue.empty()) {
     // no items yet - simply create new bucket and insert our event there
-    queue.push_back( bucket_t(bucket_start_time) );
+    queue.push_back( Bucket(bucket_start_time) );
     queue.front().insert(event);
   }
   else {
@@ -80,7 +80,7 @@ void calendar_t::insert(BaseEvent* event) {
       size_t missing_buckets = buckets_from_first - queue.size() + 1;
       float_t next_time = queue.back().start_time + BUCKET_TIME_INTERVAL;
       for (size_t i = 0; i < missing_buckets; i++) {
-        queue.push_back(bucket_t(next_time));
+        queue.push_back(Bucket(next_time));
         next_time += BUCKET_TIME_INTERVAL;
       }
       assert(buckets_from_first < queue.size());
@@ -90,7 +90,7 @@ void calendar_t::insert(BaseEvent* event) {
 }
 
 
-BaseEvent* calendar_t::pop_next() {
+BaseEvent* Calendar::pop_next() {
   while (queue.front().events.empty()) {
     queue.pop_front();
   }
@@ -100,13 +100,13 @@ BaseEvent* calendar_t::pop_next() {
 }
 
 
-void scheduler_t::schedule_event(BaseEvent* event) {
+void Scheduler::schedule_event(BaseEvent* event) {
   calendar.insert(event);
 }
 
 
 // pop next scheduled event and run its step method
-float_t scheduler_t::handle_next_event(bool &end_simulation) {
+float_t Scheduler::handle_next_event(bool &end_simulation) {
 
   BaseEvent* event = calendar.pop_next();
   assert(event != NULL && "Empty event queue - at least end simulation event should be present");

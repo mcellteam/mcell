@@ -29,7 +29,7 @@ using namespace std;
 
 namespace MCell {
 
-void species_t::dump(const string ind) const {
+void Species::dump(const string ind) const {
   cout << ind <<"species_id: \t\t" << species_id << " [uint16_t] \t\t/* Unique ID for this species */\n";
   cout << ind <<"mcell_species_id: \t\t" << mcell3_species_id << " [uint] \t\t/* Unique ID for this species from mcell3 representation*/\n";
   cout << ind <<"name: *\t\t" << name << " [string] \t\t/* Symbol table entry (name) */\n";
@@ -38,7 +38,7 @@ void species_t::dump(const string ind) const {
   cout << ind <<"time_step: \t\t" << time_step << " [float_t] \t\t/* Minimum (maximum?) sensible timestep */\n";
 }
 
-void species_t::dump_array(const vector<species_t>& vec) {
+void Species::dump_array(const vector<Species>& vec) {
   cout << "Species array: " << (vec.empty() ? "EMPTY" : "") << "\n";
 
   for (size_t i = 0; i < vec.size(); i++) {

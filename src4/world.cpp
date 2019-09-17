@@ -77,7 +77,7 @@ void World::init_world_constants() {
   }
 
   // create map for fast reaction searches
-  for (reaction_t& r: reactions) {
+  for (Reaction& r: reactions) {
     assert(r.reactants.size() == 1 || r.reactants.size() == 2); // only bimolecular reactions are supported now
 
     if (r.reactants.size() == 1) {
@@ -96,8 +96,8 @@ void World::init_world_constants() {
   }
 
   // just to make sure that we have an item for all the species
-  for (species_t& s: species) {
-    bimolecular_reactions_map.insert( std::make_pair(s.species_id, species_reaction_map_t()) );
+  for (Species& s: species) {
+    bimolecular_reactions_map.insert( std::make_pair(s.species_id, SpeciesReactionMap()) );
   }
   assert(bimolecular_reactions_map.size() == species.size());
 
@@ -229,7 +229,7 @@ bool World::run_simulation(const bool dump_initial_state) {
 void World::dump() {
   world_constants.dump();
   // species
-  species_t::dump_array(species);
+  Species::dump_array(species);
 
   // partitions
   for (Partition& p: partitions) {

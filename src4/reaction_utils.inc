@@ -64,28 +64,28 @@ trigger_bimolecular:
          the moving molecule is not inert!
 *************************************************************************/
 static void trigger_bimolecular(
-    const bimolecular_reactions_map_t& reactions,
+    const BimolecularReactionsMap& reactions,
     const Molecule& reacA, const Molecule& reacB,
     orientation_t orientA, orientation_t orientB,
-    reactions_vector_t& matching_rxns // items are appended
+    ReactionsVector& matching_rxns // items are appended
 ) {
 
   // for all reactions applicable to reacA and reacB
-  bimolecular_reactions_map_t::const_iterator reactions_reacA_it
+  BimolecularReactionsMap::const_iterator reactions_reacA_it
     = reactions.find(reacA.species_id);
   if (reactions_reacA_it == reactions.end()) {
     // no reactions at all for reacA
     return;
   }
 
-  species_reaction_map_t::const_iterator reactions_reacA_and_reacB_it
+  SpeciesReactionMap::const_iterator reactions_reacA_and_reacB_it
     = reactions_reacA_it->second.find(reacB.species_id);
   if (reactions_reacA_and_reacB_it == reactions_reacA_it->second.end()) {
     return;
   }
 
   // for now we can have just one reaction, TODO_PATHWAYS: allow multiple reactions..
-  const reaction_t* inter = reactions_reacA_and_reacB_it->second;
+  const Reaction* inter = reactions_reacA_and_reacB_it->second;
 
   /*for (struct rxn *inter = reaction_hash[hash]; inter != NULL; inter = inter->next)*/ {
 
@@ -116,9 +116,9 @@ static void trigger_bimolecular(
 }
 
 static void trigger_bimolecular_orientation_from_mols(
-    const bimolecular_reactions_map_t& reactions,
+    const BimolecularReactionsMap& reactions,
     const Molecule& reacA, const Molecule& reacB,
-    reactions_vector_t& matching_rxns // items are appended
+    ReactionsVector& matching_rxns // items are appended
 ) {
   trigger_bimolecular(
       reactions,
@@ -177,7 +177,7 @@ test_bimolecular
 *************************************************************************/
 /*, double scaling - 1, double local_prob_factor = 0,*/
 static int test_bimolecular(
-    const reaction_t& rx,
+    const Reaction& rx,
     rng_state& rng,
     const Molecule& a1, // unused for now
     const Molecule& a2, // unused for now
@@ -261,7 +261,7 @@ test_many_bimolecular:
         such reactions local_prob_factor > 0.
 *************************************************************************/
 static int test_many_bimolecular(
-    const reactions_vector_t& rx,
+    const ReactionsVector& rx,
     const small_vector<float_t>& scaling,
     float_t local_prob_factor,
     //TODO_PATHWAYS: int& chosen_pathway - always 0 for now?
@@ -274,7 +274,7 @@ static int test_many_bimolecular(
   small_vector<float_t> rxp;  /* array of cumulative rxn probabilities */
   rxp.resize(2 * n, 0.0);
 
-  const reaction_t* my_rx;
+  const Reaction* my_rx;
   int m, M;
   float_t p, f;
 
@@ -363,11 +363,11 @@ static int test_many_bimolecular(
 
 // might return nullptr if there is no unimolecular reaction for this species
 // based on pick_unimolecular_reaction
-static const reaction_t* pick_unimol_rx(
+static const Reaction* pick_unimol_rx(
     const World* world,
     const species_id_t species_id
 ) {
-  const unimolecular_reactions_map_t* unimol_rxs = world->world_constants.unimolecular_reactions_map;
+  const UnimolecularReactionsMap* unimol_rxs = world->world_constants.unimolecular_reactions_map;
   auto it = unimol_rxs->find(species_id);
   if (it == unimol_rxs->end()) {
     return nullptr;
@@ -379,7 +379,7 @@ static const reaction_t* pick_unimol_rx(
 
 
 // based on timeof_unimolecular
-static float_t time_of_unimol(const reaction_t* rx, rng_state& rng) {
+static float_t time_of_unimol(const Reaction* rx, rng_state& rng) {
   double k_tot = rx->max_fixed_p;
   double p = rng_dbl(&rng);
 
@@ -393,7 +393,7 @@ static float_t time_of_unimol(const reaction_t* rx, rng_state& rng) {
 static float_t compute_unimol_lifetime(
     World* world,
     const Molecule& vm,
-    const reaction_t* rx
+    const Reaction* rx
 ) {
   assert(rx != nullptr);
 
@@ -411,10 +411,10 @@ static float_t compute_unimol_lifetime(
 
 
 // note: this might be precomputed
-static uint get_num_surface_products(const World* world, const reaction_t* rx) {
+static uint get_num_surface_products(const World* world, const Reaction* rx) {
   uint res = 0;
-  for (const species_with_orientation_t& product: rx->products) {
-    const species_t& species = world->get_species(product.species_id);
+  for (const SpeciesWithOrientation& product: rx->products) {
+    const Species& species = world->get_species(product.species_id);
     if (species.is_surf()) {
       res++;
     }

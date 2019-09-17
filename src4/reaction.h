@@ -29,20 +29,21 @@
 
 namespace MCell {
 
-struct species_with_orientation_t {
-  species_with_orientation_t()
+class SpeciesWithOrientation {
+public:
+  SpeciesWithOrientation()
     : species_id(SPECIES_ID_INVALID), orientation(ORIENTATION_NONE) {
   }
-  species_with_orientation_t(
+  SpeciesWithOrientation(
       const species_id_t species_id_,
       const orientation_t orientation_)
     : species_id(species_id_), orientation(orientation_) {
   }
 
-  bool operator == (const species_with_orientation_t& a) const {
+  bool operator == (const SpeciesWithOrientation& a) const {
     return species_id == a.species_id && orientation == a.orientation;
   }
-  bool operator != (const species_with_orientation_t& a) const {
+  bool operator != (const SpeciesWithOrientation& a) const {
     return !(*this == a);
   }
   bool is_same_tolerate_orientation_none(const species_id_t species_id_, const orientation_t orientation_) const {
@@ -56,7 +57,7 @@ struct species_with_orientation_t {
 };
 
 
-class reaction_t {
+class Reaction {
 public:
   std::string name;
 
@@ -69,8 +70,8 @@ public:
   /* Minimum 'p' for region of p-space which is always in the non-reacting "pathway". (note that
      cooperativity may mean that some values of p less than this still do not produce a reaction) */
   float_t min_noreaction_p;
-  std::vector<species_with_orientation_t> reactants;
-  std::vector<species_with_orientation_t> products;
+  std::vector<SpeciesWithOrientation> reactants;
+  std::vector<SpeciesWithOrientation> products;
 
   uint get_num_players() const {
     return reactants.size() + products.size();
@@ -87,38 +88,38 @@ public:
  *
  * Used in diffuse_react _event_t and in partition_t.
  */
-class diffuse_or_unimol_react_action_t {
+class DiffuseOrUnimolReactionAction {
 public:
-  enum type_t {
+  enum class Type {
     DIFFUSE,
     UNIMOL_REACT
   };
 
-  diffuse_or_unimol_react_action_t(
+  DiffuseOrUnimolReactionAction(
       const molecule_id_t id_,
       const float_t scheduled_time_,
-      const type_t type_,
-      const reaction_t* unimol_rx_ = nullptr)
+      const DiffuseOrUnimolReactionAction::Type type_,
+      const Reaction* unimol_rx_ = nullptr)
     :
       id(id_),
       scheduled_time(scheduled_time_),
       type(type_),
       unimol_rx(unimol_rx_) {
     assert(scheduled_time >= 0.0);
-    if (type == UNIMOL_REACT) {
+    if (type == Type::UNIMOL_REACT) {
       assert(unimol_rx_ != nullptr);
     }
   }
 
   // defined because of usage in calendar_t
-  const diffuse_or_unimol_react_action_t& operator->() const {
+  const DiffuseOrUnimolReactionAction& operator->() const {
      return *this;
   }
 
   molecule_id_t id;
   float_t scheduled_time; // this is the scheduled time
-  type_t type;
-  const reaction_t* unimol_rx; // when type is UNIMOL_REACT
+  Type type;
+  const Reaction* unimol_rx; // when type is UNIMOL_REACT
 };
 
 } // namespace mcell

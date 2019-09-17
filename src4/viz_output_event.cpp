@@ -44,7 +44,7 @@ using namespace std;
 
 namespace MCell {
 
-void viz_output_event_t::dump(const std::string indent) {
+void VizOutputEvent::dump(const std::string indent) {
   cout << indent << "Viz output event:\n";
   std::string ind2 = indent + "  ";
   BaseEvent::dump(ind2);
@@ -53,7 +53,7 @@ void viz_output_event_t::dump(const std::string indent) {
 }
 
 
-void viz_output_event_t::step() {
+void VizOutputEvent::step() {
   switch (viz_mode) {
   case NO_VIZ_MODE:
     break;
@@ -79,7 +79,7 @@ static int digits_for_file_suffix(uint64_t iterations) {
 }
 
 
-FILE* viz_output_event_t::create_and_open_output_file_name() {
+FILE* VizOutputEvent::create_and_open_output_file_name() {
   int ndigits = digits_for_file_suffix(world->iterations);
   long long current_iteration = round(event_time); // NOTE: usage of round might be a little shaky here, maybe we will need a better way how to get the iteration index
   //fprintf(stderr, "***dumps: %lld\n", current_iteration);
@@ -103,11 +103,11 @@ FILE* viz_output_event_t::create_and_open_output_file_name() {
 }
 
 
-void viz_output_event_t::compute_where_and_norm(
+void VizOutputEvent::compute_where_and_norm(
     const Partition& p, const Molecule& m,
     vec3_t& where, vec3_t& norm
 ) {
-  const species_t& species = world->get_species(m.species_id);
+  const Species& species = world->get_species(m.species_id);
 
   if ((species.flags & NOT_FREE) == 0) {
     // neither surface nor on grid
@@ -131,7 +131,7 @@ void viz_output_event_t::compute_where_and_norm(
 }
 
 
-void viz_output_event_t::output_ascii_molecules() {
+void VizOutputEvent::output_ascii_molecules() {
   // assuming that fdlp->type == ALL_MOL_DATA
   FILE *custom_file = create_and_open_output_file_name();
 
@@ -147,7 +147,7 @@ void viz_output_event_t::output_ascii_molecules() {
       vec3_t norm;
       compute_where_and_norm(p, m, where, norm);
 
-      const species_t& species = world->get_species(m.species_id);
+      const Species& species = world->get_species(m.species_id);
 
 #if FLOAT_T_BYTES == 8
       // TODO: norm
@@ -171,7 +171,7 @@ void viz_output_event_t::output_ascii_molecules() {
 }
 
 
-void viz_output_event_t::output_cellblender_molecules() {
+void VizOutputEvent::output_cellblender_molecules() {
   // assuming that fdlp->type == ALL_MOL_DATA
   FILE *custom_file = create_and_open_output_file_name();
   float_t length_unit = world->world_constants.length_unit;

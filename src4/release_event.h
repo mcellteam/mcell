@@ -38,9 +38,9 @@ class Grid;
 /**
  * Release molecules according to the settings.
  */
-class release_event_t: public BaseEvent {
+class ReleaseEvent: public BaseEvent {
 public:
-  release_event_t(World* world_) :
+  ReleaseEvent(World* world_) :
     BaseEvent(EVENT_TYPE_INDEX_RELEASE),
     species_id(SPECIES_ID_INVALID),
     release_number(0),
@@ -49,7 +49,7 @@ public:
     release_shape(SHAPE_SPHERICAL),
     world(world_) {
   }
-  virtual ~release_event_t() {}
+  virtual ~ReleaseEvent() {}
 
   virtual void step();
   virtual void dump(const std::string indent);
@@ -71,7 +71,7 @@ public:
   // ---------------------------------- surface release info ----------------------------------
 
   // for surface molecule releases
-  std::vector<cum_area_pwall_index_pair_t> cum_area_and_pwall_index_pairs;
+  std::vector<CummAreaPWallIndexPair> cum_area_and_pwall_index_pairs;
 
   // do I need objects?
   // walls?

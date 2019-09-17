@@ -40,7 +40,7 @@ using namespace std;
 
 namespace MCell {
 
-void release_event_t::dump(const string ind) {
+void ReleaseEvent::dump(const string ind) {
   cout << "Release event:\n";
   string ind2 = ind + "  ";
   BaseEvent::dump(ind2);
@@ -51,7 +51,7 @@ void release_event_t::dump(const string ind) {
 }
 
 
-uint release_event_t::calculate_number_to_release() {
+uint ReleaseEvent::calculate_number_to_release() {
   // release_number_method - only 0 allowed now
   // case CONSTNUM:
   return release_number;
@@ -59,7 +59,7 @@ uint release_event_t::calculate_number_to_release() {
 
 
 // NOTE: maybe a template will be needed for this function, used a lot in mcell3
-static size_t cum_area_bisect_high(const vector<cum_area_pwall_index_pair_t>& array, float_t val) {
+static size_t cum_area_bisect_high(const vector<CummAreaPWallIndexPair>& array, float_t val) {
   size_t low = 0;
   size_t hi = array.size() - 1;
   size_t mid = 0;
@@ -83,7 +83,7 @@ static size_t cum_area_bisect_high(const vector<cum_area_pwall_index_pair_t>& ar
 }
 
 
-void release_event_t::place_single_molecule_onto_grid(Partition& p, Wall& wall, tile_index_t tile_index) {
+void ReleaseEvent::place_single_molecule_onto_grid(Partition& p, Wall& wall, tile_index_t tile_index) {
 
   vec2_t pos_on_wall = GridUtil::grid2uv_random(wall, tile_index, world->rng);
 
@@ -101,7 +101,7 @@ void release_event_t::place_single_molecule_onto_grid(Partition& p, Wall& wall, 
 }
 
 
-void release_event_t::release_onto_regions(uint computed_release_number) {
+void ReleaseEvent::release_onto_regions(uint computed_release_number) {
   int success = 0, failure = 0;
   float_t seek_cost = 0;
 
@@ -126,7 +126,7 @@ void release_event_t::release_onto_regions(uint computed_release_number) {
     if (seek_cost < pick_cost) {
       float_t A = rng_dbl(&world->rng) * total_area;
       size_t cum_area_index = cum_area_bisect_high(cum_area_and_pwall_index_pairs, A);
-      partition_wall_index_pair_t pw = cum_area_and_pwall_index_pairs[cum_area_index].second;
+      PartitionWallIndexPair pw = cum_area_and_pwall_index_pairs[cum_area_index].second;
       Partition& p = world->get_partition(pw.first);
       Wall& wall = p.get_wall(pw.second);
 
@@ -163,7 +163,7 @@ void release_event_t::release_onto_regions(uint computed_release_number) {
 }
 
 
-void release_event_t::release_ellipsoid_or_rectcuboid(uint computed_release_number) {
+void ReleaseEvent::release_ellipsoid_or_rectcuboid(uint computed_release_number) {
 
   Partition& p = world->get_partition(world->get_or_add_partition_index(location));
   float_t time_step = world->get_species(species_id).time_step;
@@ -213,13 +213,13 @@ void release_event_t::release_ellipsoid_or_rectcuboid(uint computed_release_numb
 }
 
 
-void release_event_t::step() {
+void ReleaseEvent::step() {
   // for now, let's simply release 'release_number' of molecules of 'species_id'
   // at 'location'
 
   uint number = calculate_number_to_release();
 
-  const species_t& species = world->get_species(species_id);
+  const Species& species = world->get_species(species_id);
 
   if (release_shape == SHAPE_REGION) {
     if (species.is_surf()) {

@@ -47,7 +47,7 @@ enum species_flag_t {
 /**
  * Holds information on one species type.
  */
-class species_t {
+class Species {
 public:
   species_id_t species_id;
 
@@ -76,7 +76,7 @@ public:
   }
 
   void dump(const std::string ind) const;
-  static void dump_array(const std::vector<species_t>& vec);
+  static void dump_array(const std::vector<Species>& vec);
 };
 
 } // namespace mcell

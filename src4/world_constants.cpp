@@ -9,7 +9,7 @@ using namespace std;
 
 namespace MCell {
 
-void world_constants_t::dump() {
+void WorldConstants::dump() {
   cout << "time_unit: \t\t" << time_unit << " [float_t] \t\t\n";
   cout << "length_unit: \t\t" << length_unit << " [float_t] \t\t\n";
   cout << "rx_radius_3d: \t\t" << rx_radius_3d << " [float_t] \t\t\n";

@@ -45,8 +45,8 @@ class Partition {
 public:
   Partition(
       const vec3_t origin_,
-      const world_constants_t& world_constants_,
-      simulation_stats_t& simulation_stats_
+      const WorldConstants& world_constants_,
+      SimulationStats& simulation_stats_
   )
     : origin_corner(origin_),
       next_molecule_id(0),
@@ -102,7 +102,7 @@ public:
     res = get_molecule_list_index_for_time_step(time_step);
     if (res == TIME_STEP_INDEX_INVALID) {
       molecules_data_per_time_step_array.push_back(
-        time_step_molecules_data_t(time_step, std::vector<molecule_id_t>()));
+        TimeStepMoleculesData(time_step, std::vector<molecule_id_t>()));
       res = molecules_data_per_time_step_array.size() - 1;
     }
     return res;
@@ -175,7 +175,7 @@ public:
     species_reactants_map_t& subpart_reactants_new_sp = volume_molecule_reactants_per_subpart[new_subpartition_index];
 
     // and these are indices of possible reactants with our reactant_species_id
-    const species_reaction_map_t& reactions_map = world_constants.bimolecular_reactions_map->find(vm.species_id)->second;
+    const SpeciesReactionMap& reactions_map = world_constants.bimolecular_reactions_map->find(vm.species_id)->second;
 
     // we need to set/clear flag that says that second_reactant_info.first can react with reactant_species_id
     for (const auto& second_reactant_info : reactions_map) {
@@ -219,7 +219,7 @@ private:
   // adds it to all relevant structures
   Molecule& add_molecule(const Molecule& vm_copy, const bool is_vol) {
 
-    const species_t& species = world_constants.get_species(vm_copy.species_id);
+    const Species& species = world_constants.get_species(vm_copy.species_id);
     assert((is_vol && species.is_vol()) || (!is_vol && species.is_surf()));
     uint32_t time_step_index = get_or_add_molecule_list_index_for_time_step(species.time_step);
 
@@ -284,9 +284,10 @@ public:
   // ---------------------------------- typedefs and internal structs ----------------------------------
 
   // this structure contains all data associated with a given diffusion time step.
-  struct time_step_molecules_data_t {
+  class TimeStepMoleculesData {
+  public:
     // usually initialized with empty molecule_ids_ array
-    time_step_molecules_data_t(float_t time_step_, const std::vector< molecule_id_t > molecule_ids_)
+    TimeStepMoleculesData(float_t time_step_, const std::vector< molecule_id_t > molecule_ids_)
       : time_step(time_step_), molecule_ids(molecule_ids_) {
     }
 
@@ -297,13 +298,13 @@ public:
   };
 
   // indexed with species_id_t
-  typedef std::vector< uint_set_t > species_reactants_map_t;
+  typedef std::vector< UintSet > species_reactants_map_t;
 
 
   // ---------------------------------- molecule getters ----------------------------------
 
   // usually used as constant
-  std::vector< time_step_molecules_data_t >& get_molecule_data_per_time_step_array() {
+  std::vector< TimeStepMoleculesData >& get_molecule_data_per_time_step_array() {
     return molecules_data_per_time_step_array;
   }
 
@@ -322,7 +323,7 @@ public:
     return opposite_corner;
   }
 
-  uint_set_t& get_volume_molecule_reactants(subpart_index_t subpart_index, species_id_t species_id) {
+  UintSet& get_volume_molecule_reactants(subpart_index_t subpart_index, species_id_t species_id) {
     return volume_molecule_reactants_per_subpart[subpart_index][species_id];
   }
 
@@ -337,7 +338,7 @@ public:
   }
   
 
-  std::vector<uint32_t>& get_molecule_id_to_index_mapping() {
+  std::vector<molecule_index_t>& get_molecule_id_to_index_mapping() {
     return molecule_id_to_index_mapping;
   }
   
@@ -353,9 +354,9 @@ public:
     return geometry_vertices[i];
   }
 
-  const vec3_t& get_wall_vertex(const Wall& w, uint32_t wall_vertex_index) const {
-    assert(wall_vertex_index < VERTICES_IN_TRIANGLE);
-    vertex_index_t i = w.vertex_indices[wall_vertex_index];
+  const vec3_t& get_wall_vertex(const Wall& w, uint vertex_in_wall_index) const {
+    assert(vertex_in_wall_index < VERTICES_IN_TRIANGLE);
+    vertex_index_t i = w.vertex_indices[vertex_in_wall_index];
     assert(i < geometry_vertices.size());
     return get_geometry_vertex(i);
   }
@@ -414,7 +415,7 @@ public:
   }
 
   // maybe we will need to filter out, e.g. just reflective surfaces
-  const uint_set_t& get_subpart_wall_indices(subpart_index_t subpart_index) const {
+  const UintSet& get_subpart_wall_indices(subpart_index_t subpart_index) const {
     return walls_per_subpart[subpart_index];
   }
 
@@ -449,11 +450,11 @@ private:
 public:
   // ---------------------------------- other ----------------------------------
 
-  const world_constants_t& get_world_constants() const {
+  const WorldConstants& get_world_constants() const {
     return world_constants;
   }
 
-  simulation_stats_t& get_simulation_stats() const {
+  SimulationStats& get_simulation_stats() const {
     return simulation_stats;
   }
 
@@ -476,7 +477,7 @@ private:
   molecule_id_t next_molecule_id;
 
   // indexed by diffusion time step index
-  std::vector<time_step_molecules_data_t> molecules_data_per_time_step_array;
+  std::vector<TimeStepMoleculesData> molecules_data_per_time_step_array;
 
   // indexed with subpartition index, only for vol-vol reactions
   std::vector<species_reactants_map_t> volume_molecule_reactants_per_subpart;
@@ -494,10 +495,10 @@ private:
   // indexed by vertex_index_t
   std::vector< std::vector<wall_index_t>> walls_using_vertex_mapping;
 
-  std::vector<uint_set_t> walls_per_subpart;
+  std::vector<UintSet> walls_per_subpart;
 
-  const world_constants_t& world_constants; // owned by world
-  simulation_stats_t& simulation_stats; // owned by world
+  const WorldConstants& world_constants; // owned by world
+  SimulationStats& simulation_stats; // owned by world
 };
 
 } // namespace mcell

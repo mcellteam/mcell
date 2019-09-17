@@ -35,12 +35,12 @@ namespace MCell {
 // represented floating point value
 const float_t BUCKET_TIME_INTERVAL = 1;
 
-class bucket_t {
+class Bucket {
 public:
-  bucket_t(float_t start_time_) :
+  Bucket(float_t start_time_) :
     start_time(start_time_) {
   }
-  ~bucket_t();
+  ~Bucket();
   void insert(BaseEvent* event);
 
   float_t start_time;
@@ -48,16 +48,16 @@ public:
 };
 
 
-typedef std::deque<bucket_t> bucket_deque_t;
+typedef std::deque<Bucket> BucketDeque;
 
 
-class calendar_t {
+class Calendar {
 public:
-  calendar_t() {
+  Calendar() {
     // create at least one item?
-    queue.push_back(bucket_t(TIME_SIMULATION_START));
+    queue.push_back(Bucket(TIME_SIMULATION_START));
   }
-  ~calendar_t() {
+  ~Calendar() {
     // implicitly calls destructors of items in queue and
     // deletes all events
   }
@@ -76,14 +76,14 @@ private:
     return floor_to_multiple(time, BUCKET_TIME_INTERVAL);
   }
 
-  bucket_deque_t::iterator get_or_create_bucket(const float_t time);
+  BucketDeque::iterator get_or_create_bucket(const float_t time);
 
   // queue might be empty
-  bucket_deque_t queue;
+  BucketDeque queue;
 };
 
 
-class scheduler_t {
+class Scheduler {
 public:
   // scheduler becomes owner of the base_event object
   void schedule_event(BaseEvent* event);
@@ -92,7 +92,7 @@ public:
   float_t handle_next_event(bool &end_simulation);
 
 private:
-  calendar_t calendar;
+  Calendar calendar;
 };
 
 } // namespace mcell

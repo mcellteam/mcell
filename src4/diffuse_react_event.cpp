@@ -88,9 +88,9 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const std::vector<molecu
   // again, we are using it as a queue and we do not follow the time when
   // they were created
   for (uint i = 0; i < new_diffuse_or_unimol_react_actions.size(); i++) {
-    const diffuse_or_unimol_react_action_t& action = new_diffuse_or_unimol_react_actions[i];
+    const DiffuseOrUnimolReactionAction& action = new_diffuse_or_unimol_react_actions[i];
 
-    if (action.type == diffuse_or_unimol_react_action_t::DIFFUSE) {
+    if (action.type == DiffuseOrUnimolReactionAction::Type::DIFFUSE) {
       diffuse_single_molecule(p, action.id, event_time + diffusion_time_step - action.scheduled_time);
     }
     else {
@@ -125,8 +125,8 @@ void DiffuseReactEvent::diffuse_single_molecule(
 
     // now, there are two queues - local for this timestep
     // and global in partition for the following timesteps
-    diffuse_or_unimol_react_action_t unimol_react_action(
-        m.id, m.unimol_rx_time, diffuse_or_unimol_react_action_t::UNIMOL_REACT, m.unimol_rx /*temporary*/);
+    DiffuseOrUnimolReactionAction unimol_react_action(
+        m.id, m.unimol_rx_time, DiffuseOrUnimolReactionAction::Type::UNIMOL_REACT, m.unimol_rx /*temporary*/);
     // handle this iteration
     new_diffuse_or_unimol_react_actions.push_back(unimol_react_action);
   }
@@ -136,7 +136,7 @@ void DiffuseReactEvent::diffuse_single_molecule(
 
 
 #ifdef DEBUG_DIFFUSION
-  const species_t& debug_species = world->get_species(m.species_id);
+  const Species& debug_species = world->get_species(m.species_id);
   DUMP_CONDITION4(
     // the subtraction of diffusion_time_step doesn't make much sense but is needed to make the dump the same as in mcell3
     // need to check it further
@@ -218,7 +218,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
     subpart_index_t& new_subpart_index
 ) {
   Molecule& m = p.get_m(vm_id);
-  const species_t& species = world->get_species(m.species_id);
+  const Species& species = world->get_species(m.species_id);
 
   // diffuse each molecule - get information on position change
   vec3_t displacement;
@@ -366,7 +366,7 @@ RayTraceState DiffuseReactEvent::ray_trace_vol(
   collisions.clear();
 
   // first get what subpartitions might be relevant
-  subpart_indices_vector_t crossed_subparts_for_walls;
+  SubpartIndicesVector crossed_subparts_for_walls;
   subpart_indices_set_t crossed_subparts_for_molecules;
   subpart_index_t last_subpartition_index;
   CollisionUtil::collect_crossed_subparts(
@@ -420,7 +420,7 @@ RayTraceState DiffuseReactEvent::ray_trace_vol(
   // check molecule collisions for each SP
   for (subpart_index_t subpart_index: crossed_subparts_for_molecules) {
     // get cached reacting molecules for this SP
-    uint_set_t& sp_reactants = p.get_volume_molecule_reactants(subpart_index, vm.species_id);
+    UintSet& sp_reactants = p.get_volume_molecule_reactants(subpart_index, vm.species_id);
 
     // for each molecule in this SP
     for (molecule_id_t colliding_vm_id: sp_reactants) {
@@ -469,7 +469,7 @@ bool DiffuseReactEvent::collide_and_react_with_vol_mol(
     return 0; /* Reaction blocked by a wall */
   }
 
-  const reaction_t& rx = *collision.rx;
+  const Reaction& rx = *collision.rx;
   //  rx->prob_t is always NULL in out case update_probs(world, rx, m->t);
   // returns which reaction pathway to take
   float_t scaling = factor * r_rate_factor;
@@ -527,7 +527,7 @@ int DiffuseReactEvent::collide_and_react_with_surf_mol(
 
   Molecule& diffused_molecule = p.get_m(collision.diffused_molecule_id); // m
 
-  reactions_vector_t matching_rxns;
+  ReactionsVector matching_rxns;
   rx_util::trigger_bimolecular(
     *p.get_world_constants().bimolecular_reactions_map,
     diffused_molecule, colliding_molecule,
@@ -542,7 +542,7 @@ int DiffuseReactEvent::collide_and_react_with_surf_mol(
   // FIXME: this code is very similar to code in react_2D_neighbors
   small_vector<float_t> scaling_coefs;
   for (size_t i = 0; i < matching_rxns.size(); i++) {
-    const reaction_t* rxn = matching_rxns[i];
+    const Reaction* rxn = matching_rxns[i];
     assert(rxn != nullptr);
 
     scaling_coefs.push_back(r_rate_factor / grid.binding_factor);
@@ -572,7 +572,7 @@ int DiffuseReactEvent::collide_and_react_with_surf_mol(
 
   /* run the reaction */
   Collision rx_collision = Collision(
-      VOLMOL_SURFMOL,
+      CollisionType::VOLMOL_SURFMOL,
       &p,
       collision.diffused_molecule_id,
       elapsed_molecule_time + remaining_time_step * collision.time,
@@ -607,7 +607,7 @@ void DiffuseReactEvent::diffuse_surf_molecule(
     float_t& advance_time
 ) {
   Molecule& sm = p.get_m(sm_id);
-  const species_t& species = world->get_species(sm.species_id);
+  const Species& species = world->get_species(sm.species_id);
 
   float_t steps = 0.0;
   float_t t_steps = 0.0;
@@ -760,14 +760,14 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
     return true;
   }
 
-  const species_t& sm_species = world->get_species(sm.species_id);
+  const Species& sm_species = world->get_species(sm.species_id);
 
 
   size_t l = 0;
   // array, each item corresponds to one potential reaction
   small_vector<float_t> correction_factors;
   small_vector<molecule_id_t> reactant_molecule_ids;
-  reactions_vector_t matching_rxns;
+  ReactionsVector matching_rxns;
 
   /* step through the neighbors */
   for (const WallTileIndexPair& neighbor: neighbors) {
@@ -781,7 +781,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
     }
 
     Molecule& nsm = p.get_m(nid);
-    const species_t& nsm_species = world->get_species(nsm.species_id);
+    const Species& nsm_species = world->get_species(nsm.species_id);
 
 #ifdef DEBUG_REACTIONS
     DUMP_CONDITION4(
@@ -808,7 +808,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
     // extend arrays holding additional information
     // FIXME: the same code is in collide_and_react_with_surf_mol
     for (size_t i = orig_num_rxsn; i < matching_rxns.size(); i++) {
-      const reaction_t* rxn = matching_rxns[i];
+      const Reaction* rxn = matching_rxns[i];
       assert(rxn != nullptr);
 
       correction_factors.push_back(remaining_time_step / ngrid.binding_factor);
@@ -884,7 +884,7 @@ ray_trace_2D:
 *************************************************************************/
 wall_index_t DiffuseReactEvent::ray_trace_surf(
     Partition& p,
-    const species_t& species,
+    const Species& species,
     Molecule& sm,
     vec2_t& remaining_displacement,
     vec2_t& new_pos,
@@ -1009,7 +1009,7 @@ void DiffuseReactEvent::create_unimol_rx_action(
   float_t curr_time = event_time + diffusion_time_step - remaining_time_step;
   assert(curr_time >= 0);
 
-  const reaction_t* rx = rx_util::pick_unimol_rx(world, m.species_id);
+  const Reaction* rx = rx_util::pick_unimol_rx(world, m.species_id);
   if (rx == nullptr) {
     return;
   }
@@ -1031,10 +1031,10 @@ void DiffuseReactEvent::react_unimol_single_molecule(
     Partition& p,
     const molecule_id_t m_id,
     const float_t scheduled_time,
-    const reaction_t* unimol_rx
+    const Reaction* unimol_rx
 ) {
   assert(unimol_rx != nullptr);
-  assert(unimol_rx != (const reaction_t*)-1);
+  assert(unimol_rx != (const Reaction*)-1);
   // the unimolecular reaction was already selected
   // FIXME: if there is more of them, mcell3 uses rng to select which to execute...
   Molecule& m = p.get_m(m_id);
@@ -1111,7 +1111,7 @@ int DiffuseReactEvent::outcome_products_random(
 ) {
   assert(path == 0 && "Only single pathway is supported now");
 
-  const reaction_t* rx = collision.rx;
+  const Reaction* rx = collision.rx;
   assert(rx->reactants.size() == 1 || rx->reactants.size() == 2);
 
   Molecule* reacA = &p.get_m(collision.diffused_molecule_id);
@@ -1126,7 +1126,7 @@ int DiffuseReactEvent::outcome_products_random(
 
     /* Ensure that reacA and reacB are sorted in the same order as the rxn players. */
     /* Needed to maintain the same behavior as in mcell3 */
-    if (species_with_orientation_t(reacA->species_id, reacA->get_orientation()) != rx->reactants[0]) {
+    if (SpeciesWithOrientation(reacA->species_id, reacA->get_orientation()) != rx->reactants[0]) {
       Molecule* tmp_mol = reacA;
       reacA = reacB;
       reacB = tmp_mol;
@@ -1293,8 +1293,8 @@ int DiffuseReactEvent::outcome_products_random(
 
   // create and place each product
   for (uint product_index = 0; product_index < rx->products.size(); product_index++) {
-    const species_with_orientation_t& product = rx->products[product_index];
-    const species_t& species = world->get_species(product.species_id);
+    const SpeciesWithOrientation& product = rx->products[product_index];
+    const Species& species = world->get_species(product.species_id);
 
     molecule_id_t new_m_id;
 
@@ -1376,7 +1376,7 @@ int DiffuseReactEvent::outcome_products_random(
     // particular product
     // we always create diffuse events, unimol react events are created elsewhere
     new_diffuse_or_unimol_react_actions.push_back(
-        diffuse_or_unimol_react_action_t(new_m_id, scheduled_time, diffuse_or_unimol_react_action_t::DIFFUSE));
+        DiffuseOrUnimolReactionAction(new_m_id, scheduled_time, DiffuseOrUnimolReactionAction::Type::DIFFUSE));
 
   } // end for - product creation
 
@@ -1390,13 +1390,13 @@ int DiffuseReactEvent::outcome_unimolecular(
     Partition& p,
     Molecule& m,
     const float_t time_from_event_start,
-    const reaction_t* unimol_rx
+    const Reaction* unimol_rx
 ) {
   molecule_id_t id = m.id;
 
   // creates new molecule(s) as output of the unimolecular reaction
   // !! might invalidate references (we might reorder defuncting and outcome call later)
-  Collision collision(UNIMOLECULAR_VOLMOL, &p, m.id, time_from_event_start, m.v.pos, unimol_rx);
+  Collision collision(CollisionType::UNIMOLECULAR_VOLMOL, &p, m.id, time_from_event_start, m.v.pos, unimol_rx);
   //int outcome_res = outcome_products_random(p, unimol_rx, vm.v.pos, time_from_event_start, TIME_INVALID, 0);
   int outcome_res = outcome_products_random(p, collision, TIME_INVALID, 0);
   assert(outcome_res == RX_A_OK);

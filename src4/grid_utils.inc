@@ -638,8 +638,6 @@ static void find_shared_vertices_corner_tile_parent_wall(
     vertex_index_t shared_verts[VERTICES_IN_TRIANGLE] // res
 ) {
   vertex_index_t global_vert_index;
-  struct vector3 *v;
-
 
   /* check if we are at vertex 0 */
   if (tile_index == (g.num_tiles - 2 * g.num_tiles_along_axis + 1)) {
@@ -1196,16 +1194,16 @@ static void grid_all_neighbors_across_walls_through_edges(
   tile_index_t temp_index;
 
   /* list of restricted regions */
-  struct region_list *rlp_head_own_wall = NULL;
-  struct region_list *rlp_head_nbr_wall_0 = NULL;
-  struct region_list *rlp_head_nbr_wall_1 = NULL;
-  struct region_list *rlp_head_nbr_wall_2 = NULL;
+  region_list *rlp_head_own_wall = NULL;
+  region_list *rlp_head_nbr_wall_0 = NULL;
+  region_list *rlp_head_nbr_wall_1 = NULL;
+  region_list *rlp_head_nbr_wall_2 = NULL;
   /* flags */
   bool move_thru_border_0 = true;
   bool move_thru_border_1 = true;
   bool move_thru_border_2 = true;
 
-  const species_t& species = p.get_world_constants().get_species(sm.species_id);
+  const Species& species = p.get_world_constants().get_species(sm.species_id);
   assert(!species.has_flag(SPECIES_FLAG_CAN_REGION_BORDER));
 
   assert(tile_index < grid.num_tiles && "Surface molecule tile index is out of bounds for this grid");

@@ -37,7 +37,7 @@ namespace MCell {
 
 class Partition;
 class Molecule;
-class species_t;
+class Species;
 
 
 enum class RayTraceState {
@@ -48,7 +48,7 @@ enum class RayTraceState {
 };
 
 
-enum /*class*/ CollisionType {
+enum class CollisionType {
   INVALID,
 
   VOLMOL_VOLMOL,
@@ -89,7 +89,7 @@ public:
       const float_t time_,
       const vec3_t& pos_,
       const molecule_id_t colliding_molecule_id_,
-      const reaction_t* rx_ptr
+      const Reaction* rx_ptr
       )
     :
       type(type_),
@@ -110,7 +110,7 @@ public:
       const molecule_id_t diffused_molecule_id_,
       const float_t time_, // time from event start
       const molecule_id_t colliding_molecule_id_,
-      const reaction_t* rx_ptr
+      const Reaction* rx_ptr
       )
     :
       type(type_),
@@ -149,7 +149,7 @@ public:
       const molecule_id_t diffused_molecule_id_,
       const float_t time_,
       const vec3_t& pos_,
-      const reaction_t* rx_ptr
+      const Reaction* rx_ptr
       )
     :
       type(type_),
@@ -172,13 +172,13 @@ public:
 
   // valid only for COLLISION_VOLMOL_VOLMOL
   molecule_id_t colliding_molecule_id;
-  const reaction_t* rx;
+  const Reaction* rx;
 
   // valid only for COLLISION_WALL*
   wall_index_t colliding_wall_index;
 
   bool is_vol_mol_collision() const {
-    return type == VOLMOL_VOLMOL;
+    return type == CollisionType::VOLMOL_VOLMOL;
   }
 
   bool is_wall_collision() const {
@@ -192,7 +192,8 @@ public:
 };
 
 /* contains information about the neighbors of the tile */
-struct WallTileIndexPair {
+class WallTileIndexPair {
+public:
   WallTileIndexPair(const wall_index_t wall_index_, const tile_index_t tile_index_)
     : wall_index(wall_index_), tile_index(tile_index_)
     {
@@ -203,7 +204,8 @@ struct WallTileIndexPair {
   //short int flag;           /* flag */ - not needed so far
 };
 
-struct TileNeighborVector: public std::deque<WallTileIndexPair> {
+class TileNeighborVector: public std::deque<WallTileIndexPair> {
+public:
   void dump(const std::string extra_comment, const std::string ind) {
     std::cout << ind << extra_comment << "\n";
     for (uint i = 0; i < size(); i++) {
@@ -214,7 +216,8 @@ struct TileNeighborVector: public std::deque<WallTileIndexPair> {
 
 typedef small_vector<wall_index_t> wall_indices_t;
 
-struct GridPos {
+class GridPos {
+public:
   GridPos()
     : initialized(false),
       wall_index(WALL_INDEX_INVALID), tile_index(TILE_INDEX_INVALID),
@@ -278,7 +281,7 @@ public:
 
 private:
   // molecules newly created in reactions
-  std::vector<diffuse_or_unimol_react_action_t> new_diffuse_or_unimol_react_actions;
+  std::vector<DiffuseOrUnimolReactionAction> new_diffuse_or_unimol_react_actions;
 
   void diffuse_molecules(Partition& p, const std::vector< molecule_id_t >& indices);
 
@@ -340,7 +343,7 @@ private:
 
   wall_index_t ray_trace_surf(
       Partition& p,
-      const species_t& species,
+      const Species& species,
       Molecule& sm,
       vec2_t& remaining_displacement,
       vec2_t& new_pos,
@@ -367,7 +370,7 @@ private:
       Partition& p,
       Molecule& vm,
       const float_t scheduled_time,
-      const reaction_t* unimol_rx
+      const Reaction* unimol_rx
   );
 
   int outcome_products_random(
@@ -387,7 +390,7 @@ private:
       Partition& p,
       const molecule_id_t vm_id,
       const float_t scheduled_time,
-      const reaction_t* unimol_rx
+      const Reaction* unimol_rx
   );
 };
 

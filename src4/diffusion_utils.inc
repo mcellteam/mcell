@@ -57,7 +57,7 @@ static void pick_vol_displacement(const float_t scale, rng_state& rng, vec3_t& d
 
 // determine how far will our diffused molecule move
 static void compute_vol_displacement(
-    const species_t& sp,
+    const Species& sp,
     const float_t remaining_time_step,
     rng_state& rng,
     vec3_t& displacement,
@@ -123,7 +123,7 @@ static void pick_surf_displacement(vec2_t& v, const float_t scale, rng_state& rn
 
 
 static void compute_surf_displacement(
-    const species_t& sp,
+    const Species& sp,
     const float_t scale,
     rng_state& rng,
     vec2_t& v

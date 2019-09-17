@@ -273,14 +273,14 @@ void MCell3WorldConverter::create_uninitialized_walls_for_polygonal_object(const
     Wall& new_wall = p.add_uninitialized_wall(world->get_next_wall_id());
 
     // remember mapping
-    add_mcell4_wall_index_mapping(w, partition_wall_index_pair_t(partition_index, new_wall.index));
+    add_mcell4_wall_index_mapping(w, PartitionWallIndexPair(partition_index, new_wall.index));
   }
 }
 
 
 bool MCell3WorldConverter::convert_wall(const wall* w, GeometryObject& object) {
 
-  partition_wall_index_pair_t wall_pindex = get_mcell4_wall_index(w);
+  PartitionWallIndexPair wall_pindex = get_mcell4_wall_index(w);
   Partition& p = world->get_partition(wall_pindex.first);
   Wall& wall = p.get_wall(wall_pindex.second);
 
@@ -295,7 +295,7 @@ bool MCell3WorldConverter::convert_wall(const wall* w, GeometryObject& object) {
 
   for (uint i = 0; i < VERTICES_IN_TRIANGLE; i++) {
     // this vertex was inserted into the same partition as the whole object
-    partition_vertex_index_pair_t vert_pindex = get_mcell4_vertex_index(w->vert[i]);
+    PartitionVertexIndexPair vert_pindex = get_mcell4_vertex_index(w->vert[i]);
     assert(wall_pindex.first == vert_pindex.first);
     wall.vertex_indices[i] = vert_pindex.second;
   }
@@ -329,7 +329,7 @@ bool MCell3WorldConverter::convert_wall(const wall* w, GeometryObject& object) {
   for (uint i = 0; i < EDGES_IN_TRIANGLE; i++) {
     if (w->nb_walls[i] != nullptr) {
 #ifndef NDEBUG
-      partition_wall_index_pair_t pindex = get_mcell4_wall_index(w->nb_walls[i]);
+      PartitionWallIndexPair pindex = get_mcell4_wall_index(w->nb_walls[i]);
       assert(pindex.first == wall_pindex.first && "Neighbors must be in the same partition for now");
 #endif
       wall.nb_walls[i] = get_mcell4_wall_index(w->nb_walls[i]).second;
@@ -394,7 +394,7 @@ bool MCell3WorldConverter::convert_polygonal_object(const object* o) {
   for (int i = 0; i < o->n_verts; i++) {
     // insert vertex into the right partition and returns partition index and vertex index
     vertex_index_t new_vertex_index = p.add_geometry_vertex(*o->vertices[i]);
-    add_mcell4_vertex_index_mapping(o->vertices[i], partition_vertex_index_pair_t(partition_index, new_vertex_index));
+    add_mcell4_vertex_index_mapping(o->vertices[i], PartitionVertexIndexPair(partition_index, new_vertex_index));
   }
 
   // --- walls ---
@@ -450,7 +450,7 @@ bool MCell3WorldConverter::convert_species_and_create_diffusion_events(volume* s
       continue;
     }
 
-    species_t new_species;
+    Species new_species;
 
     new_species.species_id = world->get_species().size(); // id corresponds to the index in the species array
     new_species.mcell3_species_id = spec->species_id;
@@ -486,8 +486,8 @@ bool MCell3WorldConverter::convert_species_and_create_diffusion_events(volume* s
 
 
 bool MCell3WorldConverter::convert_single_reaction(const rxn *rx) {
-  world->reactions.push_back(reaction_t());
-  reaction_t& reaction = world->reactions.back();
+  world->reactions.push_back(Reaction());
+  Reaction& reaction = world->reactions.back();
 
   // rx->next - handled in convert_reactions
   // rx->sym->name - ignored, name obtained from pathway
@@ -539,16 +539,16 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *rx) {
 
   if (pathway_head->reactant1 != nullptr) {
     species_id_t reactant1_id = get_mcell4_species_id(pathway_head->reactant1->species_id);
-    reaction.reactants.push_back(species_with_orientation_t(reactant1_id, pathway_head->orientation1));
+    reaction.reactants.push_back(SpeciesWithOrientation(reactant1_id, pathway_head->orientation1));
 
     if (pathway_head->reactant2 != nullptr) {
       species_id_t reactant2_id = get_mcell4_species_id(pathway_head->reactant2->species_id);
-      reaction.reactants.push_back(species_with_orientation_t(reactant2_id, pathway_head->orientation2));
+      reaction.reactants.push_back(SpeciesWithOrientation(reactant2_id, pathway_head->orientation2));
 
       if (pathway_head->reactant3 != nullptr) {
         mcell_error("TODO_CONVERSION: reactions with 3 reactants are not fully supported");
         species_id_t reactant3_id = get_mcell4_species_id(pathway_head->reactant3->species_id);
-        reaction.reactants.push_back(species_with_orientation_t(reactant3_id, pathway_head->orientation3));
+        reaction.reactants.push_back(SpeciesWithOrientation(reactant3_id, pathway_head->orientation3));
       }
     }
     else {
@@ -568,7 +568,7 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *rx) {
     species_id_t product_id = get_mcell4_species_id(product_ptr->prod->species_id);
     CHECK(product_ptr->orientation == 0 || product_ptr->orientation == 1 || product_ptr->orientation == -1);
 
-    reaction.products.push_back(species_with_orientation_t(product_id, product_ptr->orientation));
+    reaction.products.push_back(SpeciesWithOrientation(product_id, product_ptr->orientation));
 
     product_ptr = product_ptr->next;
   }
@@ -612,7 +612,7 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
     for (abstract_element *aep = (i < 0) ? releaser->current : releaser->circ_buf_head[i];
          aep != NULL; aep = aep->next) {
 
-      release_event_t event_data(world); // used only locally to capture the information
+      ReleaseEvent event_data(world); // used only locally to capture the information
 
       // -- release_event_queue --
       release_event_queue *req = (release_event_queue *)aep;
@@ -667,10 +667,10 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
 
           wall* w = region_data->owners[region_data->obj_index[wall_i]]->wall_p[region_data->wall_index[wall_i]];
 
-          partition_wall_index_pair_t wall_index = get_mcell4_wall_index(w);
+          PartitionWallIndexPair wall_index = get_mcell4_wall_index(w);
 
           event_data.cum_area_and_pwall_index_pairs.push_back(
-              cum_area_pwall_index_pair_t(region_data->cum_area_list[wall_i], wall_index)
+              CummAreaPWallIndexPair(region_data->cum_area_list[wall_i], wall_index)
           );
         }
       }
@@ -710,7 +710,7 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
         float_t train_end = train_start + rp->train_duration;
         float_t current_time = train_start;
         while (current_time < train_end) {
-          release_event_t* event_to_schedule = new release_event_t(world);
+          ReleaseEvent* event_to_schedule = new ReleaseEvent(world);
           *event_to_schedule = event_data;
 
           event_to_schedule->event_time = current_time;
@@ -764,7 +764,7 @@ bool MCell3WorldConverter::convert_viz_output_events(volume* s) {
     assert(iteration_ptr->value == curr_viz_iteration_ptr->value);
 
     // create an event for each iteration
-    viz_output_event_t* event = new viz_output_event_t(world);
+    VizOutputEvent* event = new VizOutputEvent(world);
     event->event_time = iteration_ptr->value;
     event->viz_mode = viz_mode;
     event->file_prefix_name = file_prefix_name;

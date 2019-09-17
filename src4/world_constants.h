@@ -32,7 +32,8 @@ namespace MCell {
 /*
  * Constant data set in initialization useful for all classes, single object is owned by world
  */
-struct world_constants_t {
+class WorldConstants {
+public:
   // configuration
   float_t time_unit;
   float_t length_unit;
@@ -47,11 +48,11 @@ struct world_constants_t {
   bool use_expanded_list;
 
 
-  const unimolecular_reactions_map_t* unimolecular_reactions_map; // owned by world
-  const bimolecular_reactions_map_t* bimolecular_reactions_map; // owned by world
+  const UnimolecularReactionsMap* unimolecular_reactions_map; // owned by world
+  const BimolecularReactionsMap* bimolecular_reactions_map; // owned by world
 
 private:
-  const std::vector<species_t>* species; // owned by world
+  const std::vector<Species>* species; // owned by world
 
 private:
   void init_subpartition_edge_length() {
@@ -65,9 +66,9 @@ private:
 public:
   // called from world::init_simulation()
   void init(
-      unimolecular_reactions_map_t* unimolecular_reactions_map_,
-      bimolecular_reactions_map_t* bimolecular_reactions_map_,
-      const std::vector<species_t>* species_
+      UnimolecularReactionsMap* unimolecular_reactions_map_,
+      BimolecularReactionsMap* bimolecular_reactions_map_,
+      const std::vector<Species>* species_
       ) {
     unimolecular_reactions_map = unimolecular_reactions_map_;
     bimolecular_reactions_map = bimolecular_reactions_map_;
@@ -75,7 +76,7 @@ public:
     init_subpartition_edge_length();
   }
 
-  const species_t& get_species(species_id_t id) const {
+  const Species& get_species(species_id_t id) const {
     assert(id < species->size());
     return (*species)[id];
   }

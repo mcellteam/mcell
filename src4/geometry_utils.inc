@@ -127,7 +127,7 @@ distribute_wall:
 // original name: distribute_wall
 static void wall_subparts_collision_test(
     const Partition& p, const Wall& w,
-    subpart_indices_vector_t& colliding_subparts
+    SubpartIndicesVector& colliding_subparts
 ) {
   vec3_t llf, urb; /* Bounding box for wall */
   float_t leeway = 1.0; /* Margin of error */

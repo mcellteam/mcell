@@ -42,7 +42,7 @@ void Partition::finalize_wall_creation(const wall_index_t wall_index) {
   }
 
   // also insert this triangle into walls per subpartition
-  subpart_indices_vector_t colliding_subparts;
+  SubpartIndicesVector colliding_subparts;
   GeometryUtil::wall_subparts_collision_test(*this, w, colliding_subparts);
   for (subpart_index_t subpart_index: colliding_subparts) {
     assert(subpart_index < walls_per_subpart.size());

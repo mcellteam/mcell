@@ -138,7 +138,7 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
   const float_t rx_radius,
   const float_t sp_edge_length,
   const bool collect_for_walls,
-  subpart_indices_vector_t& crossed_subparts_for_walls, // crossed subparts considered for wall collision
+  SubpartIndicesVector& crossed_subparts_for_walls, // crossed subparts considered for wall collision
   subpart_indices_set_t& crossed_subparts_for_molecules, // crossed subparts considered for molecule collisions
   subpart_index_t& last_subpart_index
 ) {
@@ -352,7 +352,7 @@ static void collide_mol_loop_body(
   vec3_t position;
   // collide_mol must be inlined because many things are computed all over there
   if (collide_mol(vm, remaining_displacement, colliding_vm, radius, time, position)) {
-    const reaction_t* rx = world->get_reaction(vm, colliding_vm);
+    const Reaction* rx = world->get_reaction(vm, colliding_vm);
     assert(rx != nullptr);
     molecule_collisions.push_back(
         Collision(CollisionType::VOLMOL_VOLMOL, &p, vm.id, time, position, colliding_vm.id, rx)
@@ -582,7 +582,7 @@ static void collect_wall_collisions(
     collision_vector_t& wall_collisions
 ) {
   // check each wall in this subpartition
-  const uint_set_t& wall_indices = p.get_subpart_wall_indices(subpart_index);
+  const UintSet& wall_indices = p.get_subpart_wall_indices(subpart_index);
 
   for (wall_index_t wall_index: wall_indices) {
     if (wall_index == previous_reflected_wall)
