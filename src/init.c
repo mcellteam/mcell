@@ -3766,22 +3766,28 @@ schedule_dynamic_geometry:
 ***************************************************************************/
 int schedule_dynamic_geometry(struct mdlparse_vars *parse_state) {
   struct volume *state = parse_state->vol;
-  char *dynamic_geometry_filename = state->dynamic_geometry_filename;
   // Process the DG text file (e.g. times and corresponding geometry) and store
   // it in state->dynamic_geometry_events_mem. Then preliminary parse each
   // geometry file (mainly to check for added or removed objects).
-  if ((dynamic_geometry_filename != NULL) && 
+  if ((state->dynamic_geometry_filename != NULL) &&
       (add_dynamic_geometry_events(
           parse_state,
-          dynamic_geometry_filename,
+          state->dynamic_geometry_filename,
           state->time_unit,
           state->dynamic_geometry_events_mem,
           &state->dynamic_geometry_head))) {
     mcell_error("Failed to load dynamic geometry from file '%s'.",
-                dynamic_geometry_filename);
-    free(dynamic_geometry_filename);
+        state->dynamic_geometry_filename);
+
+    free(state->dynamic_geometry_filename);
+    state->dynamic_geometry_filename = NULL;
+
     return 1;     
   }
+
+  // we can free up the
+  free(state->dynamic_geometry_filename);
+  state->dynamic_geometry_filename = NULL;
 
   // This is the actual scheduling.
   struct dg_time_filename *dg_time_fname, *dg_time_fname_next;
