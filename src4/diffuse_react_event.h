@@ -67,13 +67,8 @@ enum /*class*/ CollisionType {
 
 class Collision;
 
-#ifndef INDEXER_WA
 typedef boost::container::small_vector<Collision, 16> collision_vector_t;
 typedef boost::container::flat_set<subpart_index_t> subpart_indices_set_t;
-#else
-typedef std::vector<Collision> collision_vector_t;
-typedef std::set<subpart_index_t> subpart_indices_set_t;
-#endif
 
 /**
  * Information about collision of 2 volume/surface molecules or a of a wall collision,

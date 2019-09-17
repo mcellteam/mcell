@@ -24,14 +24,6 @@
 #ifndef SRC4_DEFINES_H_
 #define SRC4_DEFINES_H_
 
-#ifndef NDEBUG
-#define INDEXER_WA // Don't know yet how to convince Eclipse to correctly index boost containers
-#endif
-
-#if defined(NDEBUG) && defined(INDEXER_WA)
-#warning "INDEXER_WA is enabled and this will lead to lower performance"
-#endif
-
 #include <stdint.h>
 #include <vector>
 #include <string>
@@ -169,19 +161,12 @@ typedef std::pair<float_t, partition_wall_index_pair_t> cum_area_pwall_index_pai
 
 
 class reaction_t;
-#ifndef INDEXER_WA
+
 template<class T, class Allocator=boost::container::new_allocator<T>>
 using small_vector = boost::container::small_vector<T, 8, Allocator>;
 
 typedef boost::container::small_vector<subpart_index_t, 8>  subpart_indices_vector_t;
 typedef boost::container::small_vector<const reaction_t*, 8>  reactions_vector_t;
-#else
-template<typename T, typename _Alloc = std::allocator<T>  >
-using small_vector = std::vector<T, _Alloc>;
-
-typedef std::vector<subpart_index_t> subpart_indices_vector_t;
-typedef std::vector<const reaction_t*> reactions_vector_t;
-#endif
 
 
 /**
@@ -483,15 +468,10 @@ static inline void debug_guard_zero_div(vec3_t& val) {
 
 
 class reaction_t;
-#ifndef INDEXER_WA
+
 typedef std::unordered_map<species_id_t, reaction_t*> species_reaction_map_t;
 typedef species_reaction_map_t unimolecular_reactions_map_t;
 typedef std::unordered_map< species_id_t, species_reaction_map_t > bimolecular_reactions_map_t;
-#else
-typedef std::map<species_id_t, reaction_t*> species_reaction_map_t;
-typedef species_reaction_map_t unimolecular_reactions_map_t;
-typedef std::map<species_id_t, species_reaction_map_t> bimolecular_reactions_map_t;
-#endif
 
 /*
  * Constant data set in initialization useful for all classes, single object is owned by world
