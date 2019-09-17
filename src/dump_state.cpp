@@ -30,7 +30,7 @@ Regex to replace struct member definition by dumping code:
 
  */
 
-//#define DUMP_SCHEDULERS
+#define DUMP_SCHEDULERS
 //#define DUMP_WAYPOINTS
 //#define DUMP_SUBVOLUMES
 
@@ -41,6 +41,7 @@ Regex to replace struct member definition by dumping code:
 #include <cassert>
 #include <string.h>
 
+#include "dyngeom_parse_extras.h"
 
 #define MAX_ARRAY_ITEMS 16
 #define MAX_SUBVOLUMES 27
@@ -54,7 +55,7 @@ using namespace std;
 void dump_species(species* spec, const char* name, const char* comment, const char* ind);
 void dump_species_list(int n_species, const char* num_name, species** species_list, const char* name, const char* comment, const char* ind);
 void dump_species_item(species* spec, const char* ind);
-void dump_object_list(object* obj, const char* ind);
+void dump_object_list(object* obj, const char* name, const char* comment, const char* ind);
 void dump_wall_list(wall_list* list, const char* ind);
 void dump_wall_array(int num, wall** wall_array, const char* ind);
 void dump_object(object* o, const char* ind);
@@ -383,6 +384,20 @@ void dump_int_array(int num, const char* num_name, int* values, const char* valu
 }
 
 
+void dump_string_array(int num, const char* num_name, const char** values, const char* values_name, const char* comment, const char* ind) {
+  cout << ind << values_name << "[" << num_name << "]: \t\t" << values << "[" << num << "]" << " [char*[]] \t\t" << comment;
+  for (int i = 0; i < num && i < MAX_ARRAY_ITEMS; i++) {
+    if (i % DUMP_ARRAY_NEWLINE_COUNT == 0) {
+      cout << "\n" << ind << "  ";
+    }
+    cout << i << ":" << str(values[i]) << ", ";
+  }
+  if (num >= MAX_ARRAY_ITEMS) {
+    cout << "...";
+  }
+  cout << "\n";
+}
+
 void dump_vector3_array(int num, const char* num_name, vector3* values, const char* values_name, const char* comment, const char* ind) {
   cout << ind << values_name << "[" << num_name << "]: \t\t" << values << "[" << num << "]" << " [vector3[]] \t\t" << comment;
   for (int i = 0; i < num && i < MAX_ARRAY_ITEMS; i++) {
@@ -431,7 +446,7 @@ void dump_object(object* o, const char* ind) {
   cout << ind << "periodic_y: \t\t" << o->periodic_y << " [bool] \t\t// any volume molecules encountering the box surface in the x,\n";
   cout << ind << "periodic_z: \t\t" << o->periodic_z << " [bool] \t\t// y or z direction are reflected back into the box as if they  had entered the adjacent neighboring box */\n";
 
-  dump_object_list(o->first_child, IND_ADD2(ind));
+  dump_object_list(o->first_child, "first_child", "", IND_ADD2(ind));
 
   cout << ind << "walls: *\t\t" << o->walls << " [wall] \t\t/* Array of walls in object */\n";
   cout << ind << "wall_p: **\t\t" << o->wall_p << " [wall] \t\t// Array of ptrs to walls in object (used at run-time)\n";
@@ -439,7 +454,8 @@ void dump_object(object* o, const char* ind) {
 }
 
 
-void dump_object_list(object* obj, const char* ind) {
+void dump_object_list(object* obj, const char* name, const char* comment, const char* ind) {
+  cout << ind << name << comment << "\n";
   object* curr = obj;
   int i = 0;
   while (curr != NULL) {
@@ -1062,6 +1078,9 @@ void dump_schedule_helper(schedule_helper* shp, const char* name, const char* co
           dump_release_event_queue(req, ind2);
 
         }
+        else if (strcmp(name, "dynamic_geometry_scheduler") == 0) {
+          // TODO
+        }
         else {
           struct abstract_molecule *amp = (struct abstract_molecule *)aep;
           if (amp->properties == NULL) {
@@ -1407,27 +1426,57 @@ void dump_sym_table(sym_table_head* t, const char* name, const char* comment, co
   assert(dumped_symbols == t->n_entries);
 }
 
-void dump_dyngeom_parse_vars(struct dyngeom_parse_vars* dg_parse, const char* name, const char* comment, const char* ind) {
+
+void dump_name_list(name_list* obj, const char* name, const char* comment, const char* ind) {
+  name_list* curr = obj;
+  int i = 0;
+  while (curr != NULL) {
+    cout << ind << i << ": " << str(curr->name) << "\n";
+    i++;
+    curr = curr->next;
+  }
+}
+
+
+void dump_dyngeom_parse_vars(dyngeom_parse_vars* dg_parse, const char* name, const char* comment, const char* ind) {
   cout << ind << name << ": *\t\t" << (void*)dg_parse << " [dyngeom_parse_vars] \t\t" << comment << "\n";
   if (dg_parse == nullptr) {
     return;
   }
 
-  sym_table_head *reg_sym_table;
-  sym_table_head *obj_sym_table;
-  object *root_object;
-  object *root_instance;
-  object *current_object;
-  region *current_region;
-  name_list *object_name_list;
-  name_list *object_name_list_end;
-  char *curr_file; /* Name of MDL file currently being parsed */
-  u_int line_num[MAX_INCLUDE_DEPTH]; /* Line numbers and filenames for all of the currently parsing files */
-  char *include_filename[MAX_INCLUDE_DEPTH]; /* Line numbers and filenames for all of the currently parsing files */
-  u_int include_stack_ptr; /* Stack pointer for filename/line number stack */
-  int comment_started; /* Line number where last top-level (i.e. non-nested) multi-line (C-style) comment was started in the current MDL file. */
+  DECL_IND2(ind)
+
+  dump_sym_table(dg_parse->reg_sym_table, "reg_sym_table", "", ind2);
+
+  //cout << ind2 << "root_object: \t\t" << dg_parse->root_object << " [object*] \t\t  object *root_instance;\n";
+  dump_object_list(dg_parse->root_object, "root_object", "", ind2);
+
+  //cout << ind2 << "current_object: \t\t" << dg_parse->current_object << " [object*] \t\t  region *current_region;\n";
+  dump_object_list(dg_parse->current_object, "current_object", "", ind2);
+
+  //cout << ind2 << "object_name_list: \t\t" << dg_parse->object_name_list << " [name_list*] \t\t  name_list *object_name_list_end;\n";
+  dump_name_list(dg_parse->object_name_list, "object_name_list", "", ind2);
+
+  cout << ind2 << "curr_file: \t\t" << str(dg_parse->curr_file) << " [char*] \t\t /* Name of MDL file currently being parsed */\n";
+
+  dump_int_array(MAX_INCLUDE_DEPTH, "MAX_INCLUDE_DEPTH", (int*)dg_parse->line_num, "line_num", "/* Line numbers and filenames for all of the currently parsing files */", ind2);
+  dump_string_array(MAX_INCLUDE_DEPTH, "MAX_INCLUDE_DEPTH", dg_parse->include_filename, "include_filename", "/* Line numbers and filenames for all of the currently parsing files */", ind2);
+
+  cout << ind2 << "include_stack_ptr: \t\t" << dg_parse->include_stack_ptr << " [u_int] \t\t /* Stack pointer for filename/line number stack */\n";
+  cout << ind2 << "comment_started: \t\t" << dg_parse->comment_started << " [int] \t\t /* Line number where last top-level (i.e. non-nested) multi-line (C-style) comment was started in the current MDL file. */\n";
 }
 
+
+void dump_dg_time_filename_list(dg_time_filename* fn, const char* name, const char* comment, const char* ind) {
+  cout << ind << name << ": *\t\t" << (void*)fn << " [dyngeom_parse_vars] \t\t" << comment << "\n";
+  dg_time_filename* curr = fn;
+  int i = 0;
+  while (curr != NULL) {
+    cout << ind << i << ": " << curr->event_time << " - " << str(curr->mdl_file_path) << "\n";
+    i++;
+    curr = curr->next;
+  }
+}
 
 extern "C" void dump_volume(struct volume* s, const char* comment, unsigned int selected_details /* mask */) {
 
@@ -1515,9 +1564,15 @@ extern "C" void dump_volume(struct volume* s, const char* comment, unsigned int 
   // dynamic geometry, not so important for now
   cout << "dynamic_geometry_flag: \t\t" << s->dynamic_geometry_flag << " [int] \t\t/* This is used to skip over certain sections in the parser when using dynamic geometries.*/ \n";
   cout << "disable_polygon_objects: \t\t" << s->disable_polygon_objects << " [int] \t\t/* This is used to skip over certain sections in the parser when using dynamic geometries.*/\n";
-  cout << "dynamic_geometry_head: *\t\t" << (void*)s->dynamic_geometry_head << " [dg_time_filename] \t\t/*List of all the dynamic geometry events that need to be scheduled*/\n";
+
+
+  //cout << "dynamic_geometry_head: *\t\t" << (void*)s->dynamic_geometry_head << " [dg_time_filename] \t\t/*List of all the dynamic geometry events that need to be scheduled*/\n";
+  dump_dg_time_filename_list(s->dynamic_geometry_head, "dynamic_geometry_head", "/*List of all the dynamic geometry events that need to be scheduled*/", "  ");
+
   cout << "dynamic_geometry_events_mem: *\t\t" << (void*)s->dynamic_geometry_events_mem << " [mem_helper] \t\t/*Memory to store time and MDL names for dynamic geometry*/\n";
-  cout << "dynamic_geometry_scheduler: *\t\t" << (void*)s->dynamic_geometry_scheduler << " [schedule_helper] \t\t/*Scheduler for dynamic geometry (LATER)*/\n";
+
+  //cout << "dynamic_geometry_scheduler: *\t\t" << (void*)s->dynamic_geometry_scheduler << " [schedule_helper] \t\t/*Scheduler for dynamic geometry (LATER)*/\n";
+  dump_schedule_helper(s->dynamic_geometry_scheduler, "dynamic_geometry_scheduler", "/*Scheduler for dynamic geometry (LATER)*/", "", false);
 
   dump_schedule_helper(s->releaser, "releaser", "/* Scheduler for release events */", "", false);
 
@@ -1540,11 +1595,11 @@ extern "C" void dump_volume(struct volume* s, const char* comment, unsigned int 
   cout << "mol_ss_sym_table: *\t\t" << (void*)s->mol_ss_sym_table << " [sym_table_head] \t\t/* Spatially structured molecule symbol hash table */\n";
 
   // ???
-  cout << "root_object: *\t\t" << (void*)s->root_object << " [object] \t\t/* Root of the object template tree */\n";
-  dump_object_list(s->root_object, "  ");
+  //cout << "root_object: *\t\t" << (void*)s->root_object << " [object] \t\t\n";
+  dump_object_list(s->root_object, "root_object", "/* Root of the object template tree */", "  ");
 
-  cout << "root_instance: *\t\t" << (void*)s->root_instance << " [object] \t\t/* Root of the instantiated object tree */\n";
-  dump_object_list(s->root_instance, "  ");
+  //cout << "root_instance: *\t\t" << (void*)s->root_instance << " [object] \t\t/* Root of the instantiated object tree */\n";
+  dump_object_list(s->root_instance, "root_instance", "/* Root of the instantiated object tree */", "  ");
 
   cout << "periodic_box_obj: *\t\t" << (void*)s->periodic_box_obj << " [object] \n";
 
