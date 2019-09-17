@@ -51,14 +51,5 @@ dist
 .ipynb_checkpoints
 sphinx_env
 mcell_venv
-<<<<<<< HEAD
 /.buildconfig
-/.cproject
-/.project
-/.pydevproject
 /build-ref/
-=======
-/.cproject
-/.project
-/.pydevproject
->>>>>>> refs/remotes/origin/testing_infrastructure
