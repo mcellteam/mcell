@@ -455,7 +455,7 @@ void dump_object(object* o, const char* ind) {
 
 
 void dump_object_list(object* obj, const char* name, const char* comment, const char* ind) {
-  cout << ind << name << comment << "\n";
+  cout << ind << name << " " << comment << "\n";
   object* curr = obj;
   int i = 0;
   while (curr != NULL) {
@@ -482,7 +482,7 @@ void dump_wall(wall* w, const char* ind) {
   cout << ind << "side: \t\t" << w->side << " [int] \t\t/* index of this wall in its parent object */\n";
 
   if (w->vert != NULL) {
-    dump_vector3_array(3, "vert", *w->vert, "vector[3]", "/* Array of pointers to vertices TODO: can there be more of them?*/", ind);
+    cout << ind << "vert[3]: 0: " << *w->vert[0] << ", 1: " << *w->vert[2] << ", 2: " << *w->vert[2] << "\n";
   }
   else {
     cout << ind << "vert: \t\t" << (void*)w->vert << " [vector[3]] \t\t/* Array of pointers to vertices */\n";
@@ -1596,10 +1596,10 @@ extern "C" void dump_volume(struct volume* s, const char* comment, unsigned int 
 
   // ???
   //cout << "root_object: *\t\t" << (void*)s->root_object << " [object] \t\t\n";
-  dump_object_list(s->root_object, "root_object", "/* Root of the object template tree */", "  ");
+  dump_object_list(s->root_object, "root_object", "/* Root of the object template tree */", "");
 
   //cout << "root_instance: *\t\t" << (void*)s->root_instance << " [object] \t\t/* Root of the instantiated object tree */\n";
-  dump_object_list(s->root_instance, "root_instance", "/* Root of the instantiated object tree */", "  ");
+  dump_object_list(s->root_instance, "root_instance", "/* Root of the instantiated object tree */", "");
 
   cout << "periodic_box_obj: *\t\t" << (void*)s->periodic_box_obj << " [object] \n";
 
