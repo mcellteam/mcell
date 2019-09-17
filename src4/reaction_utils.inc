@@ -40,7 +40,7 @@
 
 using namespace std;
 
-namespace mcell {
+namespace MCell {
 
 namespace rx_util {
 
@@ -65,7 +65,7 @@ trigger_bimolecular:
 *************************************************************************/
 static void trigger_bimolecular(
     const bimolecular_reactions_map_t& reactions,
-    const molecule_t& reacA, const molecule_t& reacB,
+    const Molecule& reacA, const Molecule& reacB,
     orientation_t orientA, orientation_t orientB,
     reactions_vector_t& matching_rxns // items are appended
 ) {
@@ -117,7 +117,7 @@ static void trigger_bimolecular(
 
 static void trigger_bimolecular_orientation_from_mols(
     const bimolecular_reactions_map_t& reactions,
-    const molecule_t& reacA, const molecule_t& reacB,
+    const Molecule& reacA, const Molecule& reacB,
     reactions_vector_t& matching_rxns // items are appended
 ) {
   trigger_bimolecular(
@@ -179,8 +179,8 @@ test_bimolecular
 static int test_bimolecular(
     const reaction_t& rx,
     rng_state& rng,
-    const molecule_t& a1, // unused for now
-    const molecule_t& a2, // unused for now
+    const Molecule& a1, // unused for now
+    const Molecule& a2, // unused for now
     const float_t scaling,
     const float_t local_prob_factor
 ) {
@@ -286,7 +286,7 @@ static int test_many_bimolecular(
   }
 
   if (n == 1) {
-    molecule_t dummy;
+    Molecule dummy;
     if (all_neighbors_flag) {
       return test_bimolecular(*rx[0], rng, dummy, dummy, scaling[0], local_prob_factor);
     }
@@ -364,7 +364,7 @@ static int test_many_bimolecular(
 // might return nullptr if there is no unimolecular reaction for this species
 // based on pick_unimolecular_reaction
 static const reaction_t* pick_unimol_rx(
-    const world_t* world,
+    const World* world,
     const species_id_t species_id
 ) {
   const unimolecular_reactions_map_t* unimol_rxs = world->world_constants.unimolecular_reactions_map;
@@ -391,8 +391,8 @@ static float_t time_of_unimol(const reaction_t* rx, rng_state& rng) {
 
 // based on compute_lifetime
 static float_t compute_unimol_lifetime(
-    world_t* world,
-    const molecule_t& vm,
+    World* world,
+    const Molecule& vm,
     const reaction_t* rx
 ) {
   assert(rx != nullptr);
@@ -411,7 +411,7 @@ static float_t compute_unimol_lifetime(
 
 
 // note: this might be precomputed
-static uint get_num_surface_products(const world_t* world, const reaction_t* rx) {
+static uint get_num_surface_products(const World* world, const reaction_t* rx) {
   uint res = 0;
   for (const species_with_orientation_t& product: rx->products) {
     const species_t& species = world->get_species(product.species_id);

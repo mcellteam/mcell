@@ -27,7 +27,7 @@
 
 using namespace std;
 
-namespace mcell {
+namespace MCell {
 
 void reaction_t::dump(const string ind) const {
   cout << ind << "name: \t\t" << name << " [string] \t\t\n";

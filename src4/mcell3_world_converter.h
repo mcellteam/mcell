@@ -48,15 +48,15 @@ void mcell4_delete_world();
 #include "world.h"
 #include <map>
 
-namespace mcell {
+namespace MCell {
 
-class mcell3_world_converter {
+class MCell3WorldConverter {
 public:
-  mcell3_world_converter() :
+  MCell3WorldConverter() :
     world(nullptr) {
   }
 
-  ~mcell3_world_converter() {
+  ~MCell3WorldConverter() {
     delete world;
   }
 
@@ -69,7 +69,7 @@ public:
 
   void create_uninitialized_walls_for_polygonal_object(const object* o);
 
-  bool convert_wall(const wall* w, geometry_object_t& object);
+  bool convert_wall(const wall* w, GeometryObject& object);
   bool convert_polygonal_object(const object* o);
   bool convert_geometry_objects(volume* s);
 
@@ -81,7 +81,7 @@ public:
   bool convert_viz_output_events(volume* s);
 
   // contained world object
-  world_t* world;
+  World* world;
 
 private:
   species_id_t get_mcell4_species_id(u_int mcell3_id) {

@@ -42,12 +42,12 @@ extern "C" {
 
 using namespace std;
 
-namespace mcell {
+namespace MCell {
 
 void viz_output_event_t::dump(const std::string indent) {
   cout << indent << "Viz output event:\n";
   std::string ind2 = indent + "  ";
-  base_event_t::dump(ind2);
+  BaseEvent::dump(ind2);
   cout << ind2 << "viz_mode: \t\t" << viz_mode << " [viz_mode_t] \t\t\n";
   cout << ind2 << "file_prefix_name: \t\t" << file_prefix_name << " [const char*] \t\t\n";
 }
@@ -104,7 +104,7 @@ FILE* viz_output_event_t::create_and_open_output_file_name() {
 
 
 void viz_output_event_t::compute_where_and_norm(
-    const partition_t& p, const molecule_t& m,
+    const Partition& p, const Molecule& m,
     vec3_t& where, vec3_t& norm
 ) {
   const species_t& species = world->get_species(m.species_id);
@@ -115,9 +115,9 @@ void viz_output_event_t::compute_where_and_norm(
     norm = vec3_t(0);
   }
   else if ((species.flags & ON_GRID) != 0) {
-    const wall_t& wall = p.get_wall(m.s.wall_index);
+    const Wall& wall = p.get_wall(m.s.wall_index);
     const vec3_t& wall_vert0 = p.get_geometry_vertex(wall.vertex_indices[0]);
-    where = geom_util::uv2xyz(m.s.pos, wall, wall_vert0);
+    where = GeometryUtil::uv2xyz(m.s.pos, wall, wall_vert0);
 
     norm = vec3_t(m.s.orientation) * wall.normal;
   }
@@ -136,8 +136,8 @@ void viz_output_event_t::output_ascii_molecules() {
   FILE *custom_file = create_and_open_output_file_name();
 
   // simply go through all partitions and dump all molecules
-  for (partition_t& p: world->get_partitions()) {
-    for (const molecule_t& m: p.get_molecules()) {
+  for (Partition& p: world->get_partitions()) {
+    for (const Molecule& m: p.get_molecules()) {
       if (m.is_defunct()) {
         continue;
       }
@@ -180,12 +180,12 @@ void viz_output_event_t::output_cellblender_molecules() {
   uint species_count = world->get_species().size();
 
   // FIXME: rather change to partition and molecule indices
-  typedef pair<const partition_t*, const molecule_t*> partition_molecule_ptr_pair_t;
+  typedef pair<const Partition*, const Molecule*> partition_molecule_ptr_pair_t;
   vector< vector<partition_molecule_ptr_pair_t> > volume_molecules_by_species;
   volume_molecules_by_species.resize(species_count);
 
-  for (partition_t& p: world->get_partitions()) {
-    for (const molecule_t& m: p.get_molecules()) {
+  for (Partition& p: world->get_partitions()) {
+    for (const Molecule& m: p.get_molecules()) {
       if (m.is_defunct()) {
         continue;
       }

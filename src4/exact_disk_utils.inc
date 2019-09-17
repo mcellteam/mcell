@@ -47,9 +47,9 @@
 
 using namespace std;
 
-namespace mcell {
+namespace MCell {
 
-namespace exact_disk_util {
+namespace ExactDiskUtil {
 
 
 // ---------------------------------- exact disk ----------------------------------
@@ -321,7 +321,7 @@ static inline exd_vertex_t* construct_final_endpoint(
 
 // not used for now
 static void find_boundaries_occluding_disk(
-    const partition_t& p,
+    const Partition& p,
     const vec3_t& loc, const vec3_t& mv,
     const vec3_t& u, const vec3_t& v,
     const subpart_index_t subpart_index,
@@ -840,12 +840,12 @@ exact_disk:
 // TODO_LATER: get rid of linked lists
 // inlining leads to lower performance
 static float_t __attribute__((noinline)) exact_disk(
-    partition_t& p,
+    Partition& p,
     vec3_t& loc, // point of collision
     vec3_t& mv, // displacement
     float_t R, // radius_3d
-    molecule_t& moving, // molecule being diffused, we care about walls in its subparition
-    molecule_t& target, // molecule that we can potentionally hit
+    Molecule& moving, // molecule being diffused, we care about walls in its subparition
+    Molecule& target, // molecule that we can potentionally hit
     bool use_expanded_list // option from world
 ) {
   /* Initialize */
@@ -882,7 +882,7 @@ static float_t __attribute__((noinline)) exact_disk(
 
   // TODO_LATER: move this to a separate function - only after we got rid of linked lists
   for (wall_index_t wall_index: wall_indices) {
-    const wall_t& w = p.get_wall(wall_index);
+    const Wall& w = p.get_wall(wall_index);
     vec3_t w_vert[VERTICES_IN_TRIANGLE];
     w_vert[0] = p.get_geometry_vertex(w.vertex_indices[0]);
     w_vert[1] = p.get_geometry_vertex(w.vertex_indices[1]);
@@ -903,7 +903,7 @@ static float_t __attribute__((noinline)) exact_disk(
 
     /* Find wall bounding box */
     vec3_t llf, urb;
-    geom_util::get_wall_bounding_box(w_vert, llf, urb);
+    GeometryUtil::get_wall_bounding_box(w_vert, llf, urb);
 
     /* Reject those without overlapping bounding boxes */
     float_t a, b;

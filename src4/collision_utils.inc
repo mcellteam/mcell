@@ -39,16 +39,16 @@
 
 using namespace std;
 
-namespace mcell {
+namespace MCell {
 
-namespace coll_util {
+namespace CollisionUtil {
 
 // ---------------------------------- subpartitions ----------------------------------
 
 // This function checks if any of the neighboring subpartitions are within radius
 // from pos and inserts them into crossed_subparition_indices
 static void collect_neighboring_subparts(
-    const partition_t& p,
+    const Partition& p,
     const vec3_t& pos,
     const ivec3_t& subpart_indices,
     const float_t rx_radius,
@@ -132,8 +132,8 @@ static void collect_neighboring_subparts(
 // collect subpartition indices that we are crossing and that are within radius
 // of vm that moves by displacement
 static inline void __attribute__((always_inline)) collect_crossed_subparts(
-  const partition_t& p,
-  const molecule_t& vm, // molecule that we are diffusing
+  const Partition& p,
+  const Molecule& vm, // molecule that we are diffusing
   const vec3_t& displacement,
   const float_t rx_radius,
   const float_t sp_edge_length,
@@ -283,9 +283,9 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
 // with colliding_vm; returns true if there can be a collision and returns relative collision
 // time and relative position
 static bool collide_mol(
-    const molecule_t& diffused_vm,
+    const Molecule& diffused_vm,
     const vec3_t& displacement,
-    const molecule_t& colliding_vm,
+    const Molecule& colliding_vm,
     const float_t rx_radius_3d,
     float_t& rel_collision_time,
     vec3_t& rel_collision_pos
@@ -336,16 +336,16 @@ static bool collide_mol(
 // body of the collision detection loop
 // made into separate function to be possibly able to make some optimizations over it in the future
 static void collide_mol_loop_body(
-    const world_t* world,
-    partition_t& p,
-    const molecule_t& vm,
+    const World* world,
+    Partition& p,
+    const Molecule& vm,
     const molecule_id_t colliding_vm_id,
     const vec3_t& remaining_displacement,
     const float_t radius,
     collision_vector_t& molecule_collisions
 ) {
 
-  molecule_t& colliding_vm = p.get_m(colliding_vm_id);
+  Molecule& colliding_vm = p.get_m(colliding_vm_id);
 
   // we would like to compute everything that's needed just once
   float_t time;
@@ -355,7 +355,7 @@ static void collide_mol_loop_body(
     const reaction_t* rx = world->get_reaction(vm, colliding_vm);
     assert(rx != nullptr);
     molecule_collisions.push_back(
-        collision_t(COLLISION_VOLMOL_VOLMOL, &p, vm.id, time, position, colliding_vm.id, rx)
+        Collision(CollisionType::VOLMOL_VOLMOL, &p, vm.id, time, position, colliding_vm.id, rx)
     );
   }
 }
@@ -392,7 +392,7 @@ static void jump_away_line(
   f.y = n.z * e.x - n.x * e.z;
   f.z = n.x * e.y - n.y * e.x;
 
-  tiny = EPS * (mcell::abs_max_2vec(p, v) + 1.0) /
+  tiny = EPS * (MCell::abs_max_2vec(p, v) + 1.0) /
          (k * max3d(glm::abs((glm_vec3_t)f)));
   if ((rng_uint(&rng) & 1) == 0) {
     tiny = -tiny;
@@ -425,9 +425,9 @@ collide_wall:
         the value of t returned, not hitpt (reflections happen slightly
         early to avoid rounding errors with superimposed planes).
 ***************************************************************************/
-static collision_type_t collide_wall(
-    const partition_t& p,
-    const vec3_t& pos, const wall_t& face,
+static CollisionType collide_wall(
+    const Partition& p,
+    const vec3_t& pos, const Wall& face,
     rng_state &rng,
     const bool update_move,
     vec3_t& move,
@@ -451,7 +451,7 @@ static collision_type_t collide_wall(
 
     /* Start & end above plane */
     if (dd + dv > d_eps) {
-      return COLLISION_WALL_MISS;
+      return CollisionType::WALL_MISS;
     }
   }
   else {
@@ -461,7 +461,7 @@ static collision_type_t collide_wall(
 
     /* Start & end below plane */
     if (dd < 0.0 && dd + dv < d_eps) {
-      return COLLISION_WALL_MISS;
+      return CollisionType::WALL_MISS;
     }
   }
 
@@ -470,11 +470,11 @@ static collision_type_t collide_wall(
   if (dd == 0.0) {
     /* Start beside plane, end above or below */
     if (dv != 0.0)
-      return COLLISION_WALL_MISS;
+      return CollisionType::WALL_MISS;
 
     // NOTE: what is this doing?
     if (update_move) {
-      a = (mcell::abs_max_2vec(pos, move) + 1.0) * EPS_C;
+      a = (MCell::abs_max_2vec(pos, move) + 1.0) * EPS_C;
       if ((rng_uint(&rng) & 1) == 0)
         a = -a;
       if (dd == 0.0) {
@@ -483,10 +483,10 @@ static collision_type_t collide_wall(
       else {
         move = move * vec3_t(1.0 - a);
       }
-      return COLLISION_WALL_REDO;
+      return CollisionType::WALL_REDO;
     }
     else {
-      return COLLISION_WALL_MISS;
+      return CollisionType::WALL_MISS;
     }
   }
 
@@ -522,10 +522,10 @@ static collision_type_t collide_wall(
     if (g > h) {
       if (c * face.uv_vert1_u + g < h + face.uv_vert1_u * face.uv_vert2.v) {
         if (dv > 0) {
-          return COLLISION_WALL_BACK;
+          return CollisionType::WALL_BACK;
         }
         else {
-          return COLLISION_WALL_FRONT;
+          return CollisionType::WALL_FRONT;
         }
       }
       else if ((!distinguishable_f(
@@ -534,47 +534,47 @@ static collision_type_t collide_wall(
           EPS_C))) {
         if (update_move) {
           jump_away_line(pos, a, face_vert[1], face_vert[2], face.normal, rng, move);
-          return COLLISION_WALL_REDO;
+          return CollisionType::WALL_REDO;
         }
         else {
-          return COLLISION_WALL_MISS;
+          return CollisionType::WALL_MISS;
         }
       }
       else {
-        return COLLISION_WALL_MISS;
+        return CollisionType::WALL_MISS;
       }
     }
     else if (!distinguishable_f(g, h, EPS)) {
       if (update_move) {
         jump_away_line(pos, a, face_vert[2], face_vert[0], face.normal, rng, move);
-        return COLLISION_WALL_REDO;
+        return CollisionType::WALL_REDO;
       }
       else {
-        return COLLISION_WALL_MISS;
+        return CollisionType::WALL_MISS;
       }
     }
     else {
-      return COLLISION_WALL_MISS;
+      return CollisionType::WALL_MISS;
     }
   }
   else if (!distinguishable_f(c, 0, EPS)) /* Hit first edge! */
   {
     if (update_move) {
       jump_away_line(pos, a, face_vert[0], face_vert[1], face.normal, rng, move);
-      return COLLISION_WALL_REDO;
+      return CollisionType::WALL_REDO;
     }
     else {
-      return COLLISION_WALL_MISS;
+      return CollisionType::WALL_MISS;
     }
   }
   else {
-    return COLLISION_WALL_MISS;
+    return CollisionType::WALL_MISS;
   }
 }
 
 static void collect_wall_collisions(
-    partition_t& p,
-    const molecule_t& vm, // molecule that we are diffusing, we are changing its pos  and possibly also subvolume
+    Partition& p,
+    const Molecule& vm, // molecule that we are diffusing, we are changing its pos  and possibly also subvolume
     const subpart_index_t subpart_index,
     const wall_index_t previous_reflected_wall,
     rng_state& rng,
@@ -588,21 +588,21 @@ static void collect_wall_collisions(
     if (wall_index == previous_reflected_wall)
       continue;
 
-    const wall_t& w = p.get_wall(wall_index);
+    const Wall& w = p.get_wall(wall_index);
     float_t collision_time;
     vec3_t collision_pos;
 
-    collision_type_t collision_type =
+    CollisionType collision_type =
         collide_wall(p, vm.v.pos, w, rng, true, displacement, collision_time, collision_pos);
 
-    if (collision_type == COLLISION_WALL_REDO) {
+    if (collision_type == CollisionType::WALL_REDO) {
       // run the same thing again? not sure, need to find such case
       mcell_error("collision redo - not supported yet");
     }
-    else if (collision_type != COLLISION_WALL_MISS) {
+    else if (collision_type != CollisionType::WALL_MISS) {
       p.get_simulation_stats().inc_ray_polygon_colls();
       wall_collisions.push_back(
-          collision_t(collision_type, &p, vm.id, collision_time, collision_pos, wall_index)
+          Collision(collision_type, &p, vm.id, collision_time, collision_pos, wall_index)
       );
     }
   }
@@ -625,15 +625,15 @@ static void collect_wall_collisions(
  *
  ******************************************************************************/
 static int reflect_or_periodic_bc(
-    const partition_t& p,
-    const collision_t& collision,
-    molecule_t& vm, // moves vm to the reflection point
+    const Partition& p,
+    const Collision& collision,
+    Molecule& vm, // moves vm to the reflection point
     vec3_t& displacement,
     float_t& remaining_time_step, // same as t_steps
     wall_index_t& reflected_wall_index
 ) {
 
-  const wall_t& w = p.get_wall(collision.colliding_wall_index);
+  const Wall& w = p.get_wall(collision.colliding_wall_index);
   wall_index_t reflect_w = collision.colliding_wall_index;
   float_t reflect_t = collision.time;
 

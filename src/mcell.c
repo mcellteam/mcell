@@ -25,13 +25,13 @@
 
 #include <stdlib.h>
 
+#include "../src4/mcell3_world_converter.h"
 #include "mcell_init.h"
 #include "mcell_misc.h"
 #include "mcell_run.h"
 #include "init.h"
 
 #include "dump_state.h"
-#include "mcell3_world_converter.h"
 
 #define CHECKED_CALL_EXIT(function, error_message)                             \
   {                                                                            \

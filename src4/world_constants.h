@@ -27,7 +27,7 @@
 #include "defines.h"
 #include "species.h"
 
-namespace mcell {
+namespace MCell {
 
 /*
  * Constant data set in initialization useful for all classes, single object is owned by world

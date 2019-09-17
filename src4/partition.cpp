@@ -29,13 +29,13 @@
 
 using namespace std;
 
-namespace mcell {
+namespace MCell {
 
 // when a wall is added with add_uninitialized_wall,
 // its type and vertices are not know yet, we must include the walls
 // into subvolumes and also for other purposes
-void partition_t::finalize_wall_creation(const wall_index_t wall_index) {
-  wall_t& w = get_wall(wall_index);
+void Partition::finalize_wall_creation(const wall_index_t wall_index) {
+  Wall& w = get_wall(wall_index);
 
   for (vertex_index_t vi: w.vertex_indices) {
     add_wall_using_vertex_mapping(vi, wall_index);
@@ -43,7 +43,7 @@ void partition_t::finalize_wall_creation(const wall_index_t wall_index) {
 
   // also insert this triangle into walls per subpartition
   subpart_indices_vector_t colliding_subparts;
-  geom_util::wall_subparts_collision_test(*this, w, colliding_subparts);
+  GeometryUtil::wall_subparts_collision_test(*this, w, colliding_subparts);
   for (subpart_index_t subpart_index: colliding_subparts) {
     assert(subpart_index < walls_per_subpart.size());
     walls_per_subpart[subpart_index].set_contains_id(wall_index);
@@ -51,8 +51,8 @@ void partition_t::finalize_wall_creation(const wall_index_t wall_index) {
 }
 
 
-void partition_t::dump() {
-  for (geometry_object_t& obj:geometry_objects) {
+void Partition::dump() {
+  for (GeometryObject& obj:geometry_objects) {
     obj.dump(*this, "  ");
   }
 

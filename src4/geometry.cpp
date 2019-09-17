@@ -37,9 +37,9 @@ extern "C" {
 
 using namespace std;
 
-namespace mcell {
+namespace MCell {
 
-void grid_t::initialize(const partition_t& p, const wall_t& w) {
+void Grid::initialize(const Partition& p, const Wall& w) {
 
   num_tiles_along_axis = (int)ceil_f(sqrt_f(w.area));
   if (num_tiles_along_axis < 1) {
@@ -63,7 +63,7 @@ void grid_t::initialize(const partition_t& p, const wall_t& w) {
 }
 
 
-void geometry_object_t::dump(const partition_t& p, const std::string ind) const {
+void GeometryObject::dump(const Partition& p, const std::string ind) const {
   cout << ind << "geometry_object_t: id:" << id << ", name:" << name << "\n";
   for (wall_index_t i: wall_indices) {
     cout << ind << "  " << i << ": ";
@@ -72,7 +72,7 @@ void geometry_object_t::dump(const partition_t& p, const std::string ind) const 
 }
 
 
-void wall_t::dump(const partition_t& p, const std::string ind) const {
+void Wall::dump(const Partition& p, const std::string ind) const {
   cout << "id: " << id << ", side: " << side << ", object_id: " << object_id;
 
   for (uint i = 0; i < VERTICES_IN_TRIANGLE; i++) {

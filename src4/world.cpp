@@ -39,9 +39,9 @@ using namespace std;
 
 const double USEC_IN_SEC = 1000000.0;
 
-namespace mcell {
+namespace MCell {
 
-world_t::world_t()
+World::World()
   : current_iteration(0),
     iterations(0),
     seed_seq(0),
@@ -53,7 +53,7 @@ world_t::world_t()
 }
 
 
-void world_t::init_fpu() {
+void World::init_fpu() {
 #ifdef NDEBUG
   // we do not want to be making extra checks for division by zero
   // all places where such a case can occur is marked with comment POSSIBLE ZERO DIV
@@ -68,7 +68,7 @@ void world_t::init_fpu() {
 #endif
 }
 
-void world_t::init_world_constants() {
+void World::init_world_constants() {
 
   if (species.empty()) {
     // for developers: init_world_constants must be called after species and reactions conversion
@@ -105,7 +105,7 @@ void world_t::init_world_constants() {
 }
 
 
-void world_t::init_simulation() {
+void World::init_simulation() {
 
   init_fpu();
 
@@ -144,7 +144,7 @@ static double tosecs(timeval& t) {
 }
 
 
-bool world_t::run_simulation(const bool dump_initial_state) {
+bool World::run_simulation(const bool dump_initial_state) {
 
   init_simulation(); // must be the first one
 
@@ -153,13 +153,13 @@ bool world_t::run_simulation(const bool dump_initial_state) {
   }
 
   // create defragmentation events
-  defragmentation_event_t* defragmentation_event = new defragmentation_event_t(this);
+  DefragmentationEvent* defragmentation_event = new DefragmentationEvent(this);
   defragmentation_event->event_time = DEFRAGMENTATION_PERIODICITY;
   defragmentation_event->periodicity_interval = DEFRAGMENTATION_PERIODICITY;
   scheduler.schedule_event(defragmentation_event);
 
   // create event that will terminate our simulation
-  end_simulation_event_t* end_event = new end_simulation_event_t();
+  EndSimulationEvent* end_event = new EndSimulationEvent();
   end_event->event_time = iterations;
   scheduler.schedule_event(end_event);
 
@@ -226,13 +226,13 @@ bool world_t::run_simulation(const bool dump_initial_state) {
 }
 
 
-void world_t::dump() {
+void World::dump() {
   world_constants.dump();
   // species
   species_t::dump_array(species);
 
   // partitions
-  for (partition_t& p: partitions) {
+  for (Partition& p: partitions) {
     p.dump();
   }
 }

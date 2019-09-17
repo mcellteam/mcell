@@ -41,9 +41,9 @@
 #include "wall_utils.inc"
 #include "geometry_utils.inc"
 
-namespace mcell {
+namespace MCell {
 
-namespace grid_util {
+namespace GridUtil {
 
 
 
@@ -55,11 +55,11 @@ xyz2grid and uv2grid:
         Error checking for a valid point is done.
 *************************************************************************/
 static tile_index_t xyz2grid_tile_index(
-    const partition_t& p,
+    const Partition& p,
     const vec3_t& v,
-    const wall_t& w
+    const Wall& w
 ) {
-  const grid_t& g = w.grid;
+  const Grid& g = w.grid;
   assert(g.is_initialized());
   const vec3_t& unit_u = w.unit_u;
   const vec3_t& unit_v = w.unit_v;
@@ -90,7 +90,7 @@ static tile_index_t xyz2grid_tile_index(
   }
 
   // check
-  if (!(geom_util::point_in_triangle(v, vert_0, vert_1, vert_2))) {
+  if (!(GeometryUtil::point_in_triangle(v, vert_0, vert_1, vert_2))) {
     mcell_internal_error("Error in function 'uv2grid()': point is outside wall.");
   }
 
@@ -128,9 +128,9 @@ static tile_index_t xyz2grid_tile_index(
 
 static tile_index_t uv2grid_tile_index(
     const vec2_t& v,
-    const wall_t& w
+    const Wall& w
 ) {
-  const grid_t& g = w.grid;
+  const Grid& g = w.grid;
   float_t i, j;
   float_t u0, u1_u0;
   float_t striploc, striprem, stripeloc, striperem;
@@ -163,7 +163,7 @@ static tile_index_t uv2grid_tile_index(
   }
 
   // check
-  if (!(geom_util::point_in_triangle_2D(v, vert_0, vert_1, w.uv_vert2))) {
+  if (!(GeometryUtil::point_in_triangle_2D(v, vert_0, vert_1, w.uv_vert2))) {
     mcell_internal_error("Error in function 'uv2grid()': point is outside wall.");
   }
 
@@ -209,8 +209,8 @@ grid2xyz and grid2uv and grid2uv_random
   Note: grid2xyz just multiplies by uv unit vectors at the end.
 *************************************************************************/
 
-static vec3_t grid2xyz(partition_t& p, const wall_t& w, tile_index_t index) {
-  const grid_t& g = w.grid;
+static vec3_t grid2xyz(Partition& p, const Wall& w, tile_index_t index) {
+  const Grid& g = w.grid;
   const vec3_t& unit_u = w.unit_u;
   const vec3_t& unit_v = w.unit_v;
   int root;
@@ -237,8 +237,8 @@ static vec3_t grid2xyz(partition_t& p, const wall_t& w, tile_index_t index) {
 }
 
 
-static vec2_t grid2uv(const wall_t& w, tile_index_t index) {
-  const grid_t& g = w.grid;
+static vec2_t grid2uv(const Wall& w, tile_index_t index) {
+  const Grid& g = w.grid;
   vec2_t res;
   int root;
   int rootrem;
@@ -261,10 +261,10 @@ static vec2_t grid2uv(const wall_t& w, tile_index_t index) {
 
 
 static vec2_t grid2uv_random(
-    const wall_t& w, const tile_index_t tile_index,
+    const Wall& w, const tile_index_t tile_index,
     rng_state& rng
 ) {
-  const grid_t& g = w.grid;
+  const Grid& g = w.grid;
   int root;
   int rootrem;
   int k, j, i;
@@ -301,7 +301,7 @@ is_inner_tile:
         (not on the border with the neighbor walls).
         Returns 0 if the tile is on the border with the neighbor wall.
 *****************************************************************************/
-static bool is_inner_tile(const grid_t& g, tile_index_t index) {
+static bool is_inner_tile(const Grid& g, tile_index_t index) {
   int root, rootrem, strip, stripe, flip;
 
   root = (int)(sqrt_f((float_t)index));
@@ -334,7 +334,7 @@ is_corner_tile:
         (there are only three corners on each wall).
         Returns 0 if the tile is not a corner tile.
 *****************************************************************************/
-static bool is_corner_tile(const grid_t& g, tile_index_t index) {
+static bool is_corner_tile(const Grid& g, tile_index_t index) {
   if (index == 0 || index == g.num_tiles - 1) {
     return true;
   }
@@ -351,15 +351,15 @@ static bool is_corner_tile(const grid_t& g, tile_index_t index) {
 
 // auxiliary function for grid_neighbors
 static void get_grid_neighbors_single_grid_and_index(
-    partition_t& p,
-    const wall_t& wall,
+    Partition& p,
+    const Wall& wall,
     tile_index_t tile_index,
     wall_index_t nb_wall_index,
 
     wall_index_t &res_nb_wall_index,
     tile_index_t& nb_index
 ) {
-  const grid_t& grid = wall.grid;
+  const Grid& grid = wall.grid;
 
   if (wall.nb_walls[nb_wall_index] == WALL_INDEX_INVALID) {
     res_nb_wall_index = WALL_INDEX_INVALID;
@@ -373,17 +373,17 @@ static void get_grid_neighbors_single_grid_and_index(
     // FIXME: this seems to be the same in all calls
     vec3_t loc3d;
     if (mid != MOLECULE_ID_INVALID) {
-      const molecule_t& sm = p.get_m(mid);
+      const Molecule& sm = p.get_m(mid);
       const vec3_t& wall_vert0 = p.get_geometry_vertex(wall.vertex_indices[0]);
-      loc3d = geom_util::uv2xyz(sm.s.pos, wall, wall_vert0);
+      loc3d = GeometryUtil::uv2xyz(sm.s.pos, wall, wall_vert0);
     }
     else {
       loc3d = grid2xyz(p, wall, tile_index);
     }
 
-    const wall_t& nb_wall = p.get_wall(wall.nb_walls[nb_wall_index]);
+    const Wall& nb_wall = p.get_wall(wall.nb_walls[nb_wall_index]);
     vec2_t near2d;
-    float_t d = geom_util::closest_interior_point(p, loc3d, nb_wall, near2d);
+    float_t d = GeometryUtil::closest_interior_point(p, loc3d, nb_wall, near2d);
 
     if (!distinguishable_f(d, GIGANTIC4, EPS)) {
       res_nb_wall_index = WALL_INDEX_INVALID;
@@ -421,14 +421,14 @@ grid_neighbors:
 *************************************************************************/
 // original argument create_grid_flag - assumed to be always 0
 static void grid_neighbors(
-    partition_t& p,
-    const wall_t& wall,
+    Partition& p,
+    const Wall& wall,
     tile_index_t tile_index,
     // output
     wall_index_t nb_wall[EDGES_IN_TRIANGLE],
     tile_index_t nb_idx[EDGES_IN_TRIANGLE]
 ) {
-  const grid_t& grid = wall.grid;
+  const Grid& grid = wall.grid;
 
   int i, j, k, root, rootrem;
   vec3_t loc_3d;
@@ -489,8 +489,8 @@ tile_orientation:
        and 1 if it is inverted.
        WARNING: no error checking--point assumed to be valid.
 *************************************************************************/
-static int tile_orientation(const vec2_t v, const wall_t& w) {
-  const grid_t& g = w.grid;
+static int tile_orientation(const vec2_t v, const Wall& w) {
+  const Grid& g = w.grid;
   float_t i, j;
   float_t u0, u1_u0;
   float_t striploc, striprem, stripeloc, striperem;
@@ -529,7 +529,7 @@ move_strip_up:
    Note: The direction "up" means moving to the strip where tile indices
          are greater than index "idx".
 *****************************************************************************/
-static tile_index_t move_strip_up(const grid_t& grid, tile_index_t index) {
+static tile_index_t move_strip_up(const Grid& grid, tile_index_t index) {
   int root;
   int tile_up_idx; /* return value */
 
@@ -557,7 +557,7 @@ move_strip_down:
    Note: The direction "down" means moving to the strip where tile indices
          are less than index "idx".
 *****************************************************************************/
-static tile_index_t move_strip_down(const grid_t& grid, tile_index_t index) {
+static tile_index_t move_strip_down(const Grid& grid, tile_index_t index) {
   int root, rootrem, strip, stripe, flip;
   int num_tiles_per_strip;
   tile_index_t tile_down_index; /* return value */
@@ -612,13 +612,13 @@ find_shared_vertices_corner_tile_parent_wall:
 *****************************************************************************/
 // NOTE: can be optimized (somehow) if needed
 static bool neighboring_wall_uses_this_vertex(
-    const partition_t& p,
-    const wall_t& w,
+    const Partition& p,
+    const Wall& w,
     const vertex_index_t vi
 ) {
   for (wall_index_t i = 0; i < EDGES_IN_TRIANGLE; i++) {
     if (w.nb_walls[i] != WALL_INDEX_INVALID) {
-      const wall_t& nw = p.get_wall(w.nb_walls[i]);
+      const Wall& nw = p.get_wall(w.nb_walls[i]);
       for (uint svi = 0; svi < VERTICES_IN_TRIANGLE; svi++) {
         if (vi == nw.vertex_indices[svi]) {
           return true;
@@ -631,9 +631,9 @@ static bool neighboring_wall_uses_this_vertex(
 
 
 static void find_shared_vertices_corner_tile_parent_wall(
-    const partition_t& p,
-    const wall_t& w,
-    const grid_t& g,
+    const Partition& p,
+    const Wall& w,
+    const Grid& g,
     const tile_index_t tile_index,
     vertex_index_t shared_verts[VERTICES_IN_TRIANGLE] // res
 ) {
@@ -691,9 +691,9 @@ find_shared_vertices_for_neighbor_walls:
    Out: neighbor wall shared vertices indices are set up.
 ***********************************************************************/
 static void find_shared_vertices_for_neighbor_walls(
-    const partition_t& p,
-    const wall_t& orig_wall,
-    const wall_t& nb_wall,
+    const Partition& p,
+    const Wall& orig_wall,
+    const Wall& nb_wall,
     int& shared_vert_1,
     int& shared_vert_2
 ) {
@@ -750,15 +750,15 @@ grid_all_neighbors_across_walls_through_vertices:
        the function takes care of REFLECTIVE/ABSORPTIVE region borders.
 ****************************************************************************/
 static void grid_all_neighbors_across_walls_through_vertices(
-    partition_t& p,
-    const molecule_t& sm,
+    Partition& p,
+    const Molecule& sm,
     const wall_indices_t& neighboring_walls,
-    const wall_t& wall,
+    const Wall& wall,
     bool create_grid_flag,
     //bool search_for_reactant,
-    tile_neighbor_vector_t& neighbors
+    TileNeighborVector& neighbors
 ) {
-  const grid_t& grid = wall.grid;
+  const Grid& grid = wall.grid;
   vertex_index_t nbr_wall_vertex_index; /* index of the neighbor wall vertex in "world->all_vertices" array  that coincides with tile vertex */
   tile_index_t nbr_tile_index; /* index of the neighbor tile */
 
@@ -770,7 +770,7 @@ static void grid_all_neighbors_across_walls_through_vertices(
      on the origin wall, from each neighbor wall we will pick up
      only one corner tile that shares a vertex with the origin wall */
   for (wall_index_t wi: neighboring_walls) {
-    wall_t& neighboring_wall = p.get_wall(wi);
+    Wall& neighboring_wall = p.get_wall(wi);
 
     if (!neighboring_wall.has_initialized_grid()) {
       if (create_grid_flag) {
@@ -811,7 +811,7 @@ static void grid_all_neighbors_across_walls_through_vertices(
     }
 #endif
 
-    grid_t& neighboring_grid = neighboring_wall.grid;
+    Grid& neighboring_grid = neighboring_wall.grid;
 
     /* find the index of the neighbor tile */
     if (grid.num_tiles == 1) {
@@ -850,7 +850,7 @@ static void grid_all_neighbors_across_walls_through_vertices(
       }
     }
 
-    neighbors.push_front(wall_tile_index_pair_t(neighboring_wall.index, nbr_tile_index));
+    neighbors.push_front(WallTileIndexPair(neighboring_wall.index, nbr_tile_index));
   }
 }
 
@@ -875,21 +875,21 @@ add_more_tile_neighbors_to_list_fast:
         "orig_grid/orig_idx" and reside on the neighbor "new_grid".
 ***************************************************************************/
 static int add_more_tile_neighbors_to_list_fast(
-    const partition_t& p,
-    const wall_t& orig_wall,
+    const Partition& p,
+    const Wall& orig_wall,
     int orig_strip,
     uint orig_stripe,
     int orig_flip,
     const vec3_t& start, const vec3_t& end,
     int edge_index,
-    const wall_t& new_wall,
-    tile_neighbor_vector_t& neighbors
+    const Wall& new_wall,
+    TileNeighborVector& neighbors
 ) {
   assert(orig_wall.index != new_wall.index
       && "Function 'add_more_tile_neighbors_to_list()' should be called for different grids (walls) only");
 
-  const grid_t& orig_grid = orig_wall.grid;
-  const grid_t& new_grid = new_wall.grid;
+  const Grid& orig_grid = orig_wall.grid;
+  const Grid& new_grid = new_wall.grid;
 
   bool invert_orig_pos = false; /* flag */
   bool check_side_flag;     /* flag */
@@ -1146,13 +1146,13 @@ static int add_more_tile_neighbors_to_list_fast(
   if (ind_low >= 0) {
     for (i = ind_low + 1; i < ind_high; i++) {
       for (k = 0; k < 3; k++) {
-        neighbors.push_front(wall_tile_index_pair_t(new_wall.index, new_tile_indices[i][k]));
+        neighbors.push_front(WallTileIndexPair(new_wall.index, new_tile_indices[i][k]));
       }
     }
 
   }
   else {
-    neighbors.push_front(wall_tile_index_pair_t(new_wall.index, new_tile_indices[ind_high][0]));
+    neighbors.push_front(WallTileIndexPair(new_wall.index, new_tile_indices[ind_high][0]));
   }
 
   return tiles_added;
@@ -1160,7 +1160,7 @@ static int add_more_tile_neighbors_to_list_fast(
 
 
 // w might be nullptr
-static bool wall_has_initialized_grid(const wall_t* w) {
+static bool wall_has_initialized_grid(const Wall* w) {
   return w != nullptr && w->has_initialized_grid();
 }
 
@@ -1182,15 +1182,15 @@ grid_all_neighbors_across_walls_through_edges:
         that are connected to the start wall through edges only.
 ****************************************************************************/
 static void grid_all_neighbors_across_walls_through_edges(
-    partition_t& p,
-    const molecule_t& sm,
-    const wall_t& wall,
+    Partition& p,
+    const Molecule& sm,
+    const Wall& wall,
     const tile_index_t tile_index,
     bool create_grid_flag,
 //    bool search_for_reactant,
-    tile_neighbor_vector_t& neighbors
+    TileNeighborVector& neighbors
 ) {
-  const grid_t& grid = wall.grid;
+  const Grid& grid = wall.grid;
 
   int root, rootrem, strip, stripe, flip;
   tile_index_t temp_index;
@@ -1222,7 +1222,7 @@ static void grid_all_neighbors_across_walls_through_edges(
   const vec3_t& wall_vert2 = p.get_wall_vertex(wall, 2);
 
   // the wall pointers might be nullptrs
-  wall_t* nb_walls[EDGES_IN_TRIANGLE];
+  Wall* nb_walls[EDGES_IN_TRIANGLE];
   nb_walls[0] = p.get_wall_if_exists(wall.nb_walls[0]);
   nb_walls[1] = p.get_wall_if_exists(wall.nb_walls[1]);
   nb_walls[2] = p.get_wall_if_exists(wall.nb_walls[2]);
@@ -1239,10 +1239,10 @@ static void grid_all_neighbors_across_walls_through_edges(
   if (stripe == 0) {
     if (flip > 0) /* inverted tile */
     {
-      neighbors.push_front(wall_tile_index_pair_t(wall_index, tile_index - 1));
-      neighbors.push_front(wall_tile_index_pair_t(wall_index, tile_index + 1));
+      neighbors.push_front(WallTileIndexPair(wall_index, tile_index - 1));
+      neighbors.push_front(WallTileIndexPair(wall_index, tile_index + 1));
       if (strip < (int)grid.num_tiles_along_axis - 2) {
-        neighbors.push_front(wall_tile_index_pair_t(wall_index, tile_index + 2));
+        neighbors.push_front(WallTileIndexPair(wall_index, tile_index + 2));
       }
 
       /* put in the list tiles that are on the row below the start tile
@@ -1250,10 +1250,10 @@ static void grid_all_neighbors_across_walls_through_edges(
       temp_index = move_strip_down(grid, tile_index);
       assert(temp_index != TILE_INDEX_INVALID && "Error in navigating on the grid");
 
-      neighbors.push_front(wall_tile_index_pair_t(wall_index, temp_index));
+      neighbors.push_front(WallTileIndexPair(wall_index, temp_index));
       if (strip < (int)grid.num_tiles_along_axis - 2) {
-        neighbors.push_front(wall_tile_index_pair_t(wall_index, temp_index + 1));
-        neighbors.push_front(wall_tile_index_pair_t(wall_index, temp_index + 2));
+        neighbors.push_front(WallTileIndexPair(wall_index, temp_index + 1));
+        neighbors.push_front(WallTileIndexPair(wall_index, temp_index + 2));
       }
 
       if (strip > 0) {
@@ -1262,9 +1262,9 @@ static void grid_all_neighbors_across_walls_through_edges(
         temp_index = move_strip_up(grid, tile_index);
         assert(temp_index != TILE_INDEX_INVALID && "Error in navigating on the grid");
 
-        neighbors.push_front(wall_tile_index_pair_t(wall_index, temp_index));
-        neighbors.push_front(wall_tile_index_pair_t(wall_index, temp_index - 1));
-        neighbors.push_front(wall_tile_index_pair_t(wall_index, temp_index + 1));
+        neighbors.push_front(WallTileIndexPair(wall_index, temp_index));
+        neighbors.push_front(WallTileIndexPair(wall_index, temp_index - 1));
+        neighbors.push_front(WallTileIndexPair(wall_index, temp_index + 1));
       }
 
       /* get the neighbors from the neighbor walls */
@@ -1307,9 +1307,9 @@ static void grid_all_neighbors_across_walls_through_edges(
           temp_index = move_strip_up(grid, tile_index);
           assert(temp_index != TILE_INDEX_INVALID && "Error in navigating on the grid");
 
-          neighbors.push_front(wall_tile_index_pair_t(wall_index, temp_index));
-          neighbors.push_front(wall_tile_index_pair_t(wall_index, temp_index - 1));
-          neighbors.push_front(wall_tile_index_pair_t(wall_index, temp_index + 1));
+          neighbors.push_front(WallTileIndexPair(wall_index, temp_index));
+          neighbors.push_front(WallTileIndexPair(wall_index, temp_index - 1));
+          neighbors.push_front(WallTileIndexPair(wall_index, temp_index + 1));
         }
         else {
           if (wall_has_initialized_grid(nb_walls[0]) && move_thru_border_0) {
@@ -1346,14 +1346,14 @@ static void grid_all_neighbors_across_walls_through_edges(
       }
       else { /* if (tile_index != 0) */
 
-        neighbors.push_front(wall_tile_index_pair_t(wall_index, tile_index + 1));
-        neighbors.push_front(wall_tile_index_pair_t(wall_index, tile_index + 2));
+        neighbors.push_front(WallTileIndexPair(wall_index, tile_index + 1));
+        neighbors.push_front(WallTileIndexPair(wall_index, tile_index + 2));
 
         /* put in the list tiles that are on the row below the start tile */
         temp_index = move_strip_down(grid, tile_index + 1);
         assert(temp_index != TILE_INDEX_INVALID && "Error in navigating on the grid");
 
-        neighbors.push_front(wall_tile_index_pair_t(wall_index, temp_index));
+        neighbors.push_front(WallTileIndexPair(wall_index, temp_index));
 
         if (strip > 0) {
           /* put in the list tiles that are on the row above the start tile
@@ -1361,10 +1361,10 @@ static void grid_all_neighbors_across_walls_through_edges(
           temp_index = move_strip_up(grid, tile_index);
           assert(temp_index != TILE_INDEX_INVALID && "Error in navigating on the grid");
 
-          neighbors.push_front(wall_tile_index_pair_t(wall_index,  temp_index));
-          neighbors.push_front(wall_tile_index_pair_t(wall_index,  temp_index - 1));
-          neighbors.push_front(wall_tile_index_pair_t(wall_index, temp_index + 1));
-          neighbors.push_front(wall_tile_index_pair_t(wall_index, temp_index + 2));
+          neighbors.push_front(WallTileIndexPair(wall_index,  temp_index));
+          neighbors.push_front(WallTileIndexPair(wall_index,  temp_index - 1));
+          neighbors.push_front(WallTileIndexPair(wall_index, temp_index + 1));
+          neighbors.push_front(WallTileIndexPair(wall_index, temp_index + 2));
         }
         else { /* strip == 0 */
           /* put in the list tiles that are on the row above the start tile
@@ -1399,15 +1399,15 @@ static void grid_all_neighbors_across_walls_through_edges(
 
   if ((strip == 0) && (stripe > 0)) {
     /* put in the list tiles that are on the same row */
-    neighbors.push_front(wall_tile_index_pair_t(wall_index, tile_index - 1));
-    neighbors.push_front(wall_tile_index_pair_t(wall_index, tile_index - 2));
+    neighbors.push_front(WallTileIndexPair(wall_index, tile_index - 1));
+    neighbors.push_front(WallTileIndexPair(wall_index, tile_index - 2));
 
     if ((stripe < (int)grid.num_tiles_along_axis - 2) || ((stripe == (int)grid.num_tiles_along_axis - 2) && (flip == 0))) {
-      neighbors.push_front(wall_tile_index_pair_t(wall_index, tile_index + 1));
-      neighbors.push_front(wall_tile_index_pair_t(wall_index, tile_index + 2));
+      neighbors.push_front(WallTileIndexPair(wall_index, tile_index + 1));
+      neighbors.push_front(WallTileIndexPair(wall_index, tile_index + 2));
     }
     else if ((stripe == (int)grid.num_tiles_along_axis - 2) && (flip == 1)) {
-      neighbors.push_front(wall_tile_index_pair_t(wall_index, tile_index + 1));
+      neighbors.push_front(WallTileIndexPair(wall_index, tile_index + 1));
     }
 
     /* put in the list tiles that are on the row below */
@@ -1415,27 +1415,27 @@ static void grid_all_neighbors_across_walls_through_edges(
       temp_index = move_strip_down(grid, tile_index);
       assert(temp_index != TILE_INDEX_INVALID && "Error in navigating on the grid");
 
-      neighbors.push_front(wall_tile_index_pair_t(wall_index, temp_index));
-      neighbors.push_front(wall_tile_index_pair_t(wall_index, temp_index - 1));
-      neighbors.push_front(wall_tile_index_pair_t(wall_index, temp_index - 2));
+      neighbors.push_front(WallTileIndexPair(wall_index, temp_index));
+      neighbors.push_front(WallTileIndexPair(wall_index, temp_index - 1));
+      neighbors.push_front(WallTileIndexPair(wall_index, temp_index - 2));
       if (stripe < (int)grid.num_tiles_along_axis - 2) {
-        neighbors.push_front(wall_tile_index_pair_t(wall_index, temp_index + 1));
-        neighbors.push_front(wall_tile_index_pair_t(wall_index, temp_index + 2));
+        neighbors.push_front(WallTileIndexPair(wall_index, temp_index + 1));
+        neighbors.push_front(WallTileIndexPair(wall_index, temp_index + 2));
       }
     } else { /* (flip == 0) */
       if (tile_index < grid.num_tiles - 1) {
         temp_index = move_strip_down(grid, tile_index);
         assert(temp_index != TILE_INDEX_INVALID && "Error in navigating on the grid");
 
-        neighbors.push_front(wall_tile_index_pair_t(wall_index, temp_index));
-        neighbors.push_front(wall_tile_index_pair_t(wall_index, temp_index - 1));
-        neighbors.push_front(wall_tile_index_pair_t(wall_index, temp_index + 1));
+        neighbors.push_front(WallTileIndexPair(wall_index, temp_index));
+        neighbors.push_front(WallTileIndexPair(wall_index, temp_index - 1));
+        neighbors.push_front(WallTileIndexPair(wall_index, temp_index + 1));
       } else {
         /* this is a corner tile */
         temp_index = move_strip_down(grid, tile_index - 1);
         assert(temp_index != TILE_INDEX_INVALID && "Error in navigating on the grid");
 
-        neighbors.push_front(wall_tile_index_pair_t(wall_index, temp_index));
+        neighbors.push_front(WallTileIndexPair(wall_index, temp_index));
       }
     }
 
@@ -1474,44 +1474,44 @@ static void grid_all_neighbors_across_walls_through_edges(
        before calling this function. */
     if (flip > 0) {
       /* put in the list tiles that are on the same row */
-      neighbors.push_front(wall_tile_index_pair_t(wall_index, tile_index - 1));
-      neighbors.push_front(wall_tile_index_pair_t(wall_index, tile_index - 2));
-      neighbors.push_front(wall_tile_index_pair_t(wall_index, tile_index + 1));
+      neighbors.push_front(WallTileIndexPair(wall_index, tile_index - 1));
+      neighbors.push_front(WallTileIndexPair(wall_index, tile_index - 2));
+      neighbors.push_front(WallTileIndexPair(wall_index, tile_index + 1));
 
       /* put in the list tiles that are above the current row */
       temp_index = move_strip_up(grid, tile_index);
       assert(temp_index != TILE_INDEX_INVALID && "Error in navigating on the grid");
 
-      neighbors.push_front(wall_tile_index_pair_t(wall_index, temp_index));
-      neighbors.push_front(wall_tile_index_pair_t(wall_index, temp_index - 1));
-      neighbors.push_front(wall_tile_index_pair_t(wall_index, temp_index + 1));
+      neighbors.push_front(WallTileIndexPair(wall_index, temp_index));
+      neighbors.push_front(WallTileIndexPair(wall_index, temp_index - 1));
+      neighbors.push_front(WallTileIndexPair(wall_index, temp_index + 1));
       /* put in the list tiles that are below the current row */
       temp_index = move_strip_down(grid, tile_index);
       assert(temp_index != TILE_INDEX_INVALID && "Error in navigating on the grid");
 
-      neighbors.push_front(wall_tile_index_pair_t(wall_index, temp_index));
-      neighbors.push_front(wall_tile_index_pair_t(wall_index, temp_index - 1));
-      neighbors.push_front(wall_tile_index_pair_t(wall_index, temp_index - 2));
+      neighbors.push_front(WallTileIndexPair(wall_index, temp_index));
+      neighbors.push_front(WallTileIndexPair(wall_index, temp_index - 1));
+      neighbors.push_front(WallTileIndexPair(wall_index, temp_index - 2));
 
     } else { /* (flip == 0) */
 
       /* put in the list tiles that are on the same row */
-      neighbors.push_front(wall_tile_index_pair_t(wall_index, tile_index - 1));
-      neighbors.push_front(wall_tile_index_pair_t(wall_index, tile_index - 2));
+      neighbors.push_front(WallTileIndexPair(wall_index, tile_index - 1));
+      neighbors.push_front(WallTileIndexPair(wall_index, tile_index - 2));
 
       /* put in the list tiles that are above the current row */
       temp_index = move_strip_up(grid, tile_index);
       assert(temp_index != TILE_INDEX_INVALID && "Error in navigating on the grid");
 
-      neighbors.push_front(wall_tile_index_pair_t(wall_index, temp_index));
-      neighbors.push_front(wall_tile_index_pair_t(wall_index, temp_index - 1));
-      neighbors.push_front(wall_tile_index_pair_t(wall_index, temp_index - 2));
-      neighbors.push_front(wall_tile_index_pair_t(wall_index, temp_index + 1));
+      neighbors.push_front(WallTileIndexPair(wall_index, temp_index));
+      neighbors.push_front(WallTileIndexPair(wall_index, temp_index - 1));
+      neighbors.push_front(WallTileIndexPair(wall_index, temp_index - 2));
+      neighbors.push_front(WallTileIndexPair(wall_index, temp_index + 1));
       /* put in the list tiles that are below the current row */
       temp_index = move_strip_down(grid, tile_index - 1);
       assert(temp_index != TILE_INDEX_INVALID && "Error in navigating on the grid");
 
-      neighbors.push_front(wall_tile_index_pair_t(wall_index, temp_index));
+      neighbors.push_front(WallTileIndexPair(wall_index, temp_index));
     }
     /* put in the list tiles that are on the side */
     if (wall_has_initialized_grid(nb_walls[1]) && move_thru_border_1) {
@@ -1543,14 +1543,14 @@ grid_all_neighbors_for_inner_tile:
         neighbor tiles all belonging to the same grid as the start tile.
 *****************************************************************************/
 static void grid_all_neighbors_for_inner_tile(
-    partition_t& p,
-    molecule_t& sm,
-    const wall_t& wall,
+    Partition& p,
+    Molecule& sm,
+    const Wall& wall,
     tile_index_t tile_index,
     const vec2_t& pos,
-    tile_neighbor_vector_t& neighbors
+    TileNeighborVector& neighbors
 ) {
-  const grid_t& grid = wall.grid;
+  const Grid& grid = wall.grid;
 
   assert(tile_index < grid.num_tiles);
 
@@ -1578,10 +1578,10 @@ static void grid_all_neighbors_for_inner_tile(
   // original code appends to front/head,
   // OPTIMIZE: can we push the data from the end rather?
   wall_index_t wall_index = wall.index;
-  neighbors.push_front(wall_tile_index_pair_t(wall_index, tile_index - 1));
-  neighbors.push_front(wall_tile_index_pair_t(wall_index, tile_index - 2));
-  neighbors.push_front(wall_tile_index_pair_t(wall_index, tile_index + 1));
-  neighbors.push_front(wall_tile_index_pair_t(wall_index, tile_index + 2));
+  neighbors.push_front(WallTileIndexPair(wall_index, tile_index - 1));
+  neighbors.push_front(WallTileIndexPair(wall_index, tile_index - 2));
+  neighbors.push_front(WallTileIndexPair(wall_index, tile_index + 1));
+  neighbors.push_front(WallTileIndexPair(wall_index, tile_index + 2));
 
   /* find the orientation of the tile */
   int tile_orient = tile_orientation(pos, wall);
@@ -1589,35 +1589,35 @@ static void grid_all_neighbors_for_inner_tile(
   tile_index_t temp_ind;
   if (tile_orient == 0) {
     /* upright tile has 5 neighbors in the row above it */
-    neighbors.push_front(wall_tile_index_pair_t(wall_index, vert_nbr_index));
-    neighbors.push_front(wall_tile_index_pair_t(wall_index, vert_nbr_index - 1));
-    neighbors.push_front(wall_tile_index_pair_t(wall_index, vert_nbr_index - 2));
-    neighbors.push_front(wall_tile_index_pair_t(wall_index, vert_nbr_index + 1));
-    neighbors.push_front(wall_tile_index_pair_t(wall_index, vert_nbr_index + 2));
+    neighbors.push_front(WallTileIndexPair(wall_index, vert_nbr_index));
+    neighbors.push_front(WallTileIndexPair(wall_index, vert_nbr_index - 1));
+    neighbors.push_front(WallTileIndexPair(wall_index, vert_nbr_index - 2));
+    neighbors.push_front(WallTileIndexPair(wall_index, vert_nbr_index + 1));
+    neighbors.push_front(WallTileIndexPair(wall_index, vert_nbr_index + 2));
 
     /* upright tile has 3 neighbors in the row below it */
     temp_ind = move_strip_down(grid, tile_index);
     assert(temp_ind != TILE_INDEX_INVALID && "Function is called for a tile that is not an inner tile.");
 
-    neighbors.push_front(wall_tile_index_pair_t(wall_index, temp_ind));
-    neighbors.push_front(wall_tile_index_pair_t(wall_index, temp_ind - 1));
-    neighbors.push_front(wall_tile_index_pair_t(wall_index, temp_ind + 1));
+    neighbors.push_front(WallTileIndexPair(wall_index, temp_ind));
+    neighbors.push_front(WallTileIndexPair(wall_index, temp_ind - 1));
+    neighbors.push_front(WallTileIndexPair(wall_index, temp_ind + 1));
   }
   else {
     /* inverted tile has 3 neighbors in the row above it  */
     temp_ind = move_strip_up(grid, tile_index);
     assert(temp_ind != TILE_INDEX_INVALID && "Function is called for a tile that is not an inner tile.");
 
-    neighbors.push_front(wall_tile_index_pair_t(wall_index, temp_ind));
-    neighbors.push_front(wall_tile_index_pair_t(wall_index, temp_ind - 1));
-    neighbors.push_front(wall_tile_index_pair_t(wall_index, temp_ind + 1));
+    neighbors.push_front(WallTileIndexPair(wall_index, temp_ind));
+    neighbors.push_front(WallTileIndexPair(wall_index, temp_ind - 1));
+    neighbors.push_front(WallTileIndexPair(wall_index, temp_ind + 1));
 
     /*   inverted tile has 5 neighbors in the row below it  */
-    neighbors.push_front(wall_tile_index_pair_t(wall_index, vert_nbr_index));
-    neighbors.push_front(wall_tile_index_pair_t(wall_index, vert_nbr_index - 1));
-    neighbors.push_front(wall_tile_index_pair_t(wall_index, vert_nbr_index - 2));
-    neighbors.push_front(wall_tile_index_pair_t(wall_index, vert_nbr_index + 1));
-    neighbors.push_front(wall_tile_index_pair_t(wall_index, vert_nbr_index + 2));
+    neighbors.push_front(WallTileIndexPair(wall_index, vert_nbr_index));
+    neighbors.push_front(WallTileIndexPair(wall_index, vert_nbr_index - 1));
+    neighbors.push_front(WallTileIndexPair(wall_index, vert_nbr_index - 2));
+    neighbors.push_front(WallTileIndexPair(wall_index, vert_nbr_index + 1));
+    neighbors.push_front(WallTileIndexPair(wall_index, vert_nbr_index + 2));
   }
 
   assert(neighbors.size() == 12 && "Function is called for a tile that is not an inner tile.");
@@ -1626,15 +1626,15 @@ static void grid_all_neighbors_for_inner_tile(
 
 
 static wall_index_t find_neighbor_tiles(
-    partition_t& p,
-    molecule_t& sm,
-    const wall_t& wall,
+    Partition& p,
+    Molecule& sm,
+    const Wall& wall,
     tile_index_t tile_index,
     bool create_grid_flag,
     //bool search_for_reactant,
-    tile_neighbor_vector_t& neighbors
+    TileNeighborVector& neighbors
 ) {
-  const grid_t& grid = wall.grid;
+  const Grid& grid = wall.grid;
   assert(tile_index != TILE_INDEX_INVALID);
 
   if (is_inner_tile(grid, tile_index)) {

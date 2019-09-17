@@ -36,17 +36,17 @@
 #include "reaction.h"
 #include "geometry.h"
 
-namespace mcell {
+namespace MCell {
 
 
-class world_t {
+class World {
 private:
   void init_fpu();
   void init_simulation();
   void create_defragmentation_events();
 
 public:
-  world_t();
+  World();
   void init_world_constants();
   bool run_simulation(const bool dump_initial_state);
 
@@ -81,23 +81,23 @@ public:
         floor_to_multiple(pos, world_constants.partition_edge_length)
         - vec3_t(world_constants.partition_edge_length/2);
 
-    partitions.push_back(partition_t(origin, world_constants, simulation_stats));
+    partitions.push_back(Partition(origin, world_constants, simulation_stats));
     return partitions.size() - 1;
   }
 
-  partition_t& get_partition(partition_index_t i) {
+  Partition& get_partition(partition_index_t i) {
     assert(i < partitions.size());
     return partitions[i];
   }
 
-  std::vector<partition_t>& get_partitions() {
+  std::vector<Partition>& get_partitions() {
       return partitions;
   }
 
   // -------------- reaction utility methods --------------
 
   // should be inlined
-  bool can_react_vol_vol(const molecule_t& a, const molecule_t& b) const {
+  bool can_react_vol_vol(const Molecule& a, const Molecule& b) const {
     // must not be the same molecule
     if (&a == &b) {
       return false;
@@ -131,7 +131,7 @@ public:
   }
 
   // must return result, asserts otherwise
-  const reaction_t* get_reaction(const molecule_t& a, const molecule_t& b) const {
+  const reaction_t* get_reaction(const Molecule& a, const Molecule& b) const {
     const auto& it_map_for_species = bimolecular_reactions_map.find(a.species_id);
     assert(it_map_for_species != bimolecular_reactions_map.end());
     const auto& it_res = it_map_for_species->second.find(b.species_id);
@@ -168,7 +168,7 @@ public:
   void dump();
 
 private:
-  std::vector<partition_t> partitions;
+  std::vector<Partition> partitions;
   std::vector<species_t> species;
 
 public:

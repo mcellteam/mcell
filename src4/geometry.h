@@ -26,9 +26,9 @@
 
 #include "defines.h"
 
-namespace mcell {
+namespace MCell {
 
-class partition_t;
+class Partition;
 class uint_set_t;
 
 /**
@@ -36,7 +36,7 @@ class uint_set_t;
  * Vartices are accessible through the wall indices.
  * Owned by partition.
  */
-class geometry_object_t {
+class GeometryObject {
 public:
   geometry_object_id_t id; // world-unique geometry object ID
   std::string name;
@@ -47,13 +47,13 @@ public:
   std::vector<wall_index_t> wall_indices;
 
   // p must be the partition that contains this object
-  void dump(const partition_t& p, const std::string ind) const;
+  void dump(const Partition& p, const std::string ind) const;
 };
 
 
 /* Used to transform coordinates of surface molecules diffusing between
  * adjacent walls */
-class edge_t {
+class Edge {
 public:
   wall_index_t forward_index;  /* For which wall is this a forwards transform? */
   wall_index_t backward_index; /* For which wall is this a reverse transform? */
@@ -64,7 +64,7 @@ public:
 };
 
 
-class wall_t;
+class Wall;
 
 /**
  * Surface grid.
@@ -72,14 +72,14 @@ class wall_t;
  *
  * Contains an array of tiles.
  */
-class grid_t {
+class Grid {
 public:
   bool is_initialized() const {
     // Every initialized grid has at least one item in this array
     return !molecules_per_tile.empty();
   }
 
-  void initialize(const partition_t& p, const wall_t& w);
+  void initialize(const Partition& p, const Wall& w);
 
   uint num_tiles_along_axis; // Number of slots along each axis (originally n)
   uint num_tiles; // Number of tiles in effector grid (triangle: grid_size^2, rectangle: 2*grid_size^2) (originally n_tiles)
@@ -128,9 +128,9 @@ private:
  *
  * This is in fact a triangle, but we are keeping the naming consistent with MCell 3.
  */
-class wall_t {
+class Wall {
 public:
-  wall_t()
+  Wall()
     : id(WALL_ID_INVALID), index(WALL_INDEX_INVALID), side(0), object_id(GEOMETRY_OBJECT_ID_INVALID),
       uv_vert1_u(POS_INVALID), uv_vert2(POS_INVALID),
       area(POS_INVALID),
@@ -150,7 +150,7 @@ public:
   // so when a position of one vertex changes, it should affect all the triangles that use it
   vertex_index_t vertex_indices[VERTICES_IN_TRIANGLE]; // order is important since is specifies orientation
 
-  edge_t edges[EDGES_IN_TRIANGLE]; // note: edges can be shared among walls to save memory
+  Edge edges[EDGES_IN_TRIANGLE]; // note: edges can be shared among walls to save memory
 
   // NOTE: what about walls that are neighboring over a partition edge?
   wall_index_t nb_walls[EDGES_IN_TRIANGLE]; // neighboring wall indices
@@ -164,16 +164,16 @@ public:
   vec3_t unit_v; /* V basis vector for this wall */
   float_t distance_to_origin; // distance to origin (point normal form)
 
-  grid_t grid;
+  Grid grid;
 
   // p must be the partition that contains this object
-  void dump(const partition_t& p, const std::string ind) const;
+  void dump(const Partition& p, const std::string ind) const;
 
   bool has_initialized_grid() const {
     return grid.is_initialized();
   }
 
-  void initialize_grid(const partition_t& p) {
+  void initialize_grid(const Partition& p) {
     assert(!has_initialized_grid());
     grid.initialize(p, *this);
   }

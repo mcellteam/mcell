@@ -38,12 +38,12 @@ extern "C" {
 
 using namespace std;
 
-namespace mcell {
+namespace MCell {
 
 void release_event_t::dump(const string ind) {
   cout << "Release event:\n";
   string ind2 = ind + "  ";
-  base_event_t::dump(ind2);
+  BaseEvent::dump(ind2);
   cout << ind2 << "location: \t\t" << location << " [vec3_t] \t\t\n";
   cout << ind2 << "species_id: \t\t" << species_id << " [species_id_t] \t\t\n";
   cout << ind2 << "release_number: \t\t" << release_number << " [uint] \t\t\n";
@@ -83,12 +83,12 @@ static size_t cum_area_bisect_high(const vector<cum_area_pwall_index_pair_t>& ar
 }
 
 
-void release_event_t::place_single_molecule_onto_grid(partition_t& p, wall_t& wall, tile_index_t tile_index) {
+void release_event_t::place_single_molecule_onto_grid(Partition& p, Wall& wall, tile_index_t tile_index) {
 
-  vec2_t pos_on_wall = grid_util::grid2uv_random(wall, tile_index, world->rng);
+  vec2_t pos_on_wall = GridUtil::grid2uv_random(wall, tile_index, world->rng);
 
-  molecule_t& new_sm = p.add_surface_molecule(
-      molecule_t(MOLECULE_ID_INVALID, species_id, pos_on_wall)
+  Molecule& new_sm = p.add_surface_molecule(
+      Molecule(MOLECULE_ID_INVALID, species_id, pos_on_wall)
   );
 
   new_sm.s.wall_index = wall.index;
@@ -127,14 +127,14 @@ void release_event_t::release_onto_regions(uint computed_release_number) {
       float_t A = rng_dbl(&world->rng) * total_area;
       size_t cum_area_index = cum_area_bisect_high(cum_area_and_pwall_index_pairs, A);
       partition_wall_index_pair_t pw = cum_area_and_pwall_index_pairs[cum_area_index].second;
-      partition_t& p = world->get_partition(pw.first);
-      wall_t& wall = p.get_wall(pw.second);
+      Partition& p = world->get_partition(pw.first);
+      Wall& wall = p.get_wall(pw.second);
 
       if (!wall.has_initialized_grid()) {
         wall.initialize_grid(p); // sets wall's grid_index
       }
 
-      grid_t& grid = wall.grid;
+      Grid& grid = wall.grid;
 
       // get the random number for the current wall
       if (cum_area_index != 0) {
@@ -165,7 +165,7 @@ void release_event_t::release_onto_regions(uint computed_release_number) {
 
 void release_event_t::release_ellipsoid_or_rectcuboid(uint computed_release_number) {
 
-  partition_t& p = world->get_partition(world->get_or_add_partition_index(location));
+  Partition& p = world->get_partition(world->get_or_add_partition_index(location));
   float_t time_step = world->get_species(species_id).time_step;
 
   const int is_spheroidal = (release_shape == SHAPE_SPHERICAL ||
@@ -205,8 +205,8 @@ void release_event_t::release_ellipsoid_or_rectcuboid(uint computed_release_numb
     molecule_location.z = base_location[0][2];
 
     // TODO_LATER: location can be close to a partition boundary, we might need to release to a different partition
-    molecule_t& new_vm = p.add_volume_molecule(
-        molecule_t(MOLECULE_ID_INVALID, species_id, molecule_location)
+    Molecule& new_vm = p.add_volume_molecule(
+        Molecule(MOLECULE_ID_INVALID, species_id, molecule_location)
     );
     new_vm.flags = ACT_NEWBIE | TYPE_VOL | IN_VOLUME | ACT_DIFFUSE;
   }

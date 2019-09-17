@@ -28,12 +28,12 @@
 
 #include "base_event.h"
 
-namespace mcell {
+namespace MCell {
 
-class end_simulation_event_t: public mcell::base_event_t {
+class EndSimulationEvent: public MCell::BaseEvent {
 public:
-  end_simulation_event_t() :
-    base_event_t(EVENT_TYPE_INDEX_END_SIMULATION) {
+  EndSimulationEvent() :
+    BaseEvent(EVENT_TYPE_INDEX_END_SIMULATION) {
   }
 
   void step() {
@@ -43,7 +43,7 @@ public:
   void dump(const std::string indent) {
     std::cout << indent << "End simulation event:\n";
     std::string ind2 = indent + "  ";
-    base_event_t::dump(ind2);
+    BaseEvent::dump(ind2);
   }
 };
 

@@ -26,24 +26,24 @@
 
 #include "base_event.h"
 
-namespace mcell {
+namespace MCell {
 
 /**
  * When a reaction occurs, a hole is created in the parition's molecules array,
  * defragmentation "squeezes" this array so that there are no defuct molecules anymore;
  * updates all related data
  */
-class defragmentation_event_t: public base_event_t {
+class DefragmentationEvent: public BaseEvent {
 public:
-  defragmentation_event_t(world_t* world_)
-    : base_event_t(EVENT_TYPE_INDEX_DEFRAGMENTATION),
+  DefragmentationEvent(World* world_)
+    : BaseEvent(EVENT_TYPE_INDEX_DEFRAGMENTATION),
       world(world_) {
   }
 
   virtual void step();
   virtual void dump(const std::string indent);
 private:
-  world_t* world;
+  World* world;
 };
 
 } // namespace mcell

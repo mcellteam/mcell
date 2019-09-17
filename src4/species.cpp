@@ -27,7 +27,7 @@
 
 using namespace std;
 
-namespace mcell {
+namespace MCell {
 
 void species_t::dump(const string ind) const {
   cout << ind <<"species_id: \t\t" << species_id << " [uint16_t] \t\t/* Unique ID for this species */\n";

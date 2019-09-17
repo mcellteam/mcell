@@ -33,7 +33,7 @@
 using namespace std;
 
 
-namespace mcell {
+namespace MCell {
 
 // TODO_LATER: same as in dump_state.cpp, remove one of the copies
 // for now, dump_state might be useful also without mcell4
@@ -60,7 +60,7 @@ string get_molecule_flags_string(uint flags, bool full_dump = true) {
 }
 
 
-void molecule_t::dump(const string ind) const {
+void Molecule::dump(const string ind) const {
   if (is_vol()) {
     cout << ind << "pos: \t\t" << v.pos << " [vec3_t]\n";
     cout << ind << "subpartition_index: \t\t" << v.subpart_index << " [uint]\n";
@@ -73,8 +73,8 @@ void molecule_t::dump(const string ind) const {
 }
 
 
-void molecule_t::dump(
-    const world_t* world,
+void Molecule::dump(
+    const World* world,
     const string extra_comment,
     const string ind,
     const uint64_t iteration,
@@ -110,7 +110,7 @@ void molecule_t::dump(
 }
 
 
-string molecule_t::to_string() const {
+string Molecule::to_string() const {
   stringstream ss;
   ss
     << "id: " << id
@@ -127,7 +127,7 @@ string molecule_t::to_string() const {
 }
 
 
-void molecule_t::dump_array(const std::vector<molecule_t>& vec) {
+void Molecule::dump_array(const std::vector<Molecule>& vec) {
   for (size_t i = 0; i < vec.size(); i++) {
     if (vec[i].is_vol()) {
       cout << "  vm ";

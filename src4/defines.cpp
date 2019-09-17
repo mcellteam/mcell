@@ -28,7 +28,7 @@
 
 using namespace std;
 
-namespace mcell {
+namespace MCell {
 
 std::ostream & operator<<(std::ostream &out, const vec3_t &a) {
   out << "(" << a.x << ", " << a.y << ", " << a.z << ")";

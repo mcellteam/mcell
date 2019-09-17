@@ -7,7 +7,7 @@
 
 using namespace std;
 
-namespace mcell {
+namespace MCell {
 
 void world_constants_t::dump() {
   cout << "time_unit: \t\t" << time_unit << " [float_t] \t\t\n";

@@ -57,7 +57,7 @@
 // might be some nasty cyclic include dependencies
 
 
-namespace mcell {
+namespace MCell {
 
 // ---------------------------------- optimization macros ----------------------------------
 #if defined(likely) or defined(unlikely)
@@ -324,7 +324,7 @@ static inline float_t abs_max_2vec(const vec3_t& v1, const vec3_t& v2) {
   glm_vec3_t v1abs = glm::abs((glm_vec3_t)v1);
   glm_vec3_t v2abs = glm::abs((glm_vec3_t)v2);
   vec3_t vmax = glm::max(v1abs, v2abs);
-  return mcell::max3d(vmax);
+  return MCell::max3d(vmax);
 }
 
 static inline float_t determinant2(const vec2_t& v1, const vec2_t& v2) {

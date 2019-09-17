@@ -29,7 +29,7 @@
 
 #include "base_event.h"
 
-namespace mcell {
+namespace MCell {
 
 // we should represent the time interval with a precisely
 // represented floating point value
@@ -41,10 +41,10 @@ public:
     start_time(start_time_) {
   }
   ~bucket_t();
-  void insert(base_event_t* event);
+  void insert(BaseEvent* event);
 
   float_t start_time;
-  std::list<base_event_t*> events;
+  std::list<BaseEvent*> events;
 };
 
 
@@ -62,8 +62,8 @@ public:
     // deletes all events
   }
 
-  void insert(base_event_t* event);
-  base_event_t* pop_next();
+  void insert(BaseEvent* event);
+  BaseEvent* pop_next();
 
 private:
   float_t get_first_bucket_start_time() {
@@ -86,7 +86,7 @@ private:
 class scheduler_t {
 public:
   // scheduler becomes owner of the base_event object
-  void schedule_event(base_event_t* event);
+  void schedule_event(BaseEvent* event);
 
   // returns time of the event that was handled
   float_t handle_next_event(bool &end_simulation);

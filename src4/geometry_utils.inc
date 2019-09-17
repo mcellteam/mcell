@@ -42,22 +42,22 @@ extern "C" {
 #include "geometry.h"
 #include "debug_config.h"
 
-namespace mcell {
+namespace MCell {
 
-namespace geom_util {
+namespace GeometryUtil {
 
 // several commonly used geometry utilities,
 // rest of these utilities is in
-static vec3_t uv2xyz(const vec2_t& a, const wall_t& w, const vec3_t& wall_vert0) {
+static vec3_t uv2xyz(const vec2_t& a, const Wall& w, const vec3_t& wall_vert0) {
   return vec3_t(a.u) * w.unit_u + vec3_t(a.v) * w.unit_v + wall_vert0;
 }
 
 
-static vec2_t xyz2uv(const partition_t& p, const vec3_t& a, const wall_t& w) {
+static vec2_t xyz2uv(const Partition& p, const vec3_t& a, const Wall& w) {
   vec2_t res;
 
   if (w.has_initialized_grid()) {
-    const grid_t& g = w.grid;
+    const Grid& g = w.grid;
 
     res.u = a.x * w.unit_u.x + a.y * w.unit_u.y + a.z * w.unit_u.z -
            g.vert0.u;
@@ -126,7 +126,7 @@ distribute_wall:
 ***************************************************************************/
 // original name: distribute_wall
 static void wall_subparts_collision_test(
-    const partition_t& p, const wall_t& w,
+    const Partition& p, const Wall& w,
     subpart_indices_vector_t& colliding_subparts
 ) {
   vec3_t llf, urb; /* Bounding box for wall */
@@ -235,7 +235,7 @@ find_edge_point:
        0, 1, or 2, edgept is set to the new location.
 ***************************************************************************/
 static int find_edge_point(
-    const wall_t& here,
+    const Wall& here,
     const vec2_t& loc,
     const vec2_t& disp,
     vec2_t& edgept
@@ -317,12 +317,12 @@ traverse_surface:
        direction if it is shared. newloc is set to loc in the coordinate system
        of the new wall (after flattening the walls along their shared edge)
 ***************************************************************************/
-static wall_index_t traverse_surface(const wall_t& here, const vec2_t& loc, int which_edge,
+static wall_index_t traverse_surface(const Wall& here, const vec2_t& loc, int which_edge,
   vec2_t& newloc) {
 
   wall_index_t there;
 
-  const edge_t& e = here.edges[which_edge];
+  const Edge& e = here.edges[which_edge];
 
   if (e.forward_index == here.index) {
     /* Apply forward transform to loc */
@@ -565,9 +565,9 @@ closest_interior_point:
 ***************************************************************************/
 
 static float_t closest_interior_point(
-    partition_t& p,
+    Partition& p,
     const vec3_t& pt,
-    const wall_t& w,
+    const Wall& w,
     vec2_t& ip) {
 
   vec3_t v;

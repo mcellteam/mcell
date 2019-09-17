@@ -26,18 +26,18 @@
 
 #include "base_event.h"
 
-namespace mcell {
+namespace MCell {
 
-class partition_t;
-class molecule_t;
+class Partition;
+class Molecule;
 
 /**
  * Dumps world state either in a textual or cellblender format.
  */
-class viz_output_event_t: public base_event_t {
+class viz_output_event_t: public BaseEvent {
 public:
-  viz_output_event_t(world_t* world_)
-    : base_event_t(EVENT_TYPE_INDEX_VIZ_OUTPUT),
+  viz_output_event_t(World* world_)
+    : BaseEvent(EVENT_TYPE_INDEX_VIZ_OUTPUT),
       viz_mode(NO_VIZ_MODE), file_prefix_name(nullptr),
       world(world_) {
   }
@@ -49,11 +49,11 @@ public:
   viz_mode_t viz_mode;
   const char* file_prefix_name; // in const pool
 
-  world_t* world;
+  World* world;
 
 private:
   void compute_where_and_norm(
-      const partition_t& p, const molecule_t& m,
+      const Partition& p, const Molecule& m,
       vec3_t& where, vec3_t& norm
   );
 

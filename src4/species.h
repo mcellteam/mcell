@@ -29,7 +29,7 @@
 
 #include "mcell_structs.h"
 
-namespace mcell {
+namespace MCell {
 
 // same as in mcell_structs but renamed to make sure it is used correctly
 enum species_flag_t {

@@ -48,7 +48,7 @@ using namespace std;
 
 
 // holds global class
-mcell::mcell3_world_converter g_converter;
+MCell::MCell3WorldConverter g_converter;
 
 
 bool mcell4_convert_mcell3_volume(volume* s) {
@@ -84,7 +84,7 @@ void mcell_log_conv_error(char const *fmt, ...) {
 }
 
 
-namespace mcell {
+namespace MCell {
 
 static const char* get_sym_name(const sym_entry *s) {
   assert(s != nullptr);
@@ -106,16 +106,16 @@ static mat4x4 t_matrix_to_mat4x4(const double src[4][4]) {
 }
 
 
-void mcell3_world_converter::reset() {
+void MCell3WorldConverter::reset() {
   delete world;
   world = nullptr;
   mcell3_species_id_map.clear();
 }
 
 
-bool mcell3_world_converter::convert(volume* s) {
+bool MCell3WorldConverter::convert(volume* s) {
 
-  world = new world_t();
+  world = new World();
 
   CHECK(convert_simulation_setup(s));
 
@@ -143,7 +143,7 @@ bool mcell3_world_converter::convert(volume* s) {
 }
 
 
-bool mcell3_world_converter::convert_simulation_setup(volume* s) {
+bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
   // TODO_CONVERSION: many items are not checked
   world->iterations = s->iterations;
   world->world_constants.time_unit = s->time_unit;
@@ -206,7 +206,7 @@ bool check_meta_object(object* o, string expected_name) {
 }
 
 
-bool mcell3_world_converter::convert_geometry_objects(volume* s) {
+bool MCell3WorldConverter::convert_geometry_objects(volume* s) {
 
   object* root = s->root_instance;
   CHECK_PROPERTY(check_meta_object(root, "WORLD_INSTANCE"));
@@ -248,8 +248,8 @@ bool mcell3_world_converter::convert_geometry_objects(volume* s) {
 
 // we do not check anything that might not be supported fro mthe mcell3 side,
 // the actual checks are in convert_polygonal_object
-void mcell3_world_converter::create_uninitialized_walls_for_polygonal_object(const object* o) {
-  geometry_object_t obj;
+void MCell3WorldConverter::create_uninitialized_walls_for_polygonal_object(const object* o) {
+  GeometryObject obj;
 
   // create objects for each wall
   for (int i = 0; i < o->n_walls; i++) {
@@ -269,8 +269,8 @@ void mcell3_world_converter::create_uninitialized_walls_for_polygonal_object(con
     }
 
     // create the wall in that partition but do not set anything else yet
-    partition_t& p = world->get_partition(partition_index);
-    wall_t& new_wall = p.add_uninitialized_wall(world->get_next_wall_id());
+    Partition& p = world->get_partition(partition_index);
+    Wall& new_wall = p.add_uninitialized_wall(world->get_next_wall_id());
 
     // remember mapping
     add_mcell4_wall_index_mapping(w, partition_wall_index_pair_t(partition_index, new_wall.index));
@@ -278,11 +278,11 @@ void mcell3_world_converter::create_uninitialized_walls_for_polygonal_object(con
 }
 
 
-bool mcell3_world_converter::convert_wall(const wall* w, geometry_object_t& object) {
+bool MCell3WorldConverter::convert_wall(const wall* w, GeometryObject& object) {
 
   partition_wall_index_pair_t wall_pindex = get_mcell4_wall_index(w);
-  partition_t& p = world->get_partition(wall_pindex.first);
-  wall_t& wall = p.get_wall(wall_pindex.second);
+  Partition& p = world->get_partition(wall_pindex.first);
+  Wall& wall = p.get_wall(wall_pindex.second);
 
   // bidirectional mapping
   wall.object_id = object.id;
@@ -307,7 +307,7 @@ bool mcell3_world_converter::convert_wall(const wall* w, geometry_object_t& obje
     edge* e = w->edges[i];
     assert(e != nullptr);
 
-    edge_t& edge = wall.edges[i];
+    Edge& edge = wall.edges[i];
 
     if (e->forward != nullptr) {
       edge.forward_index = get_mcell4_wall_index(e->forward).second;
@@ -357,7 +357,7 @@ bool mcell3_world_converter::convert_wall(const wall* w, geometry_object_t& obje
 }
 
 
-bool mcell3_world_converter::convert_polygonal_object(const object* o) {
+bool MCell3WorldConverter::convert_polygonal_object(const object* o) {
 
   // --- object ---
 
@@ -365,9 +365,9 @@ bool mcell3_world_converter::convert_polygonal_object(const object* o) {
   // that the specific walls of this fit into a single partition
   // TODO_CONVERSION: improve this check for the whole object
   partition_index_t partition_index = world->get_partition_index(*o->vertices[0]);
-  partition_t& p = world->get_partition(partition_index);
+  Partition& p = world->get_partition(partition_index);
 
-  geometry_object_t& obj = p.add_uninitialized_geometry_object(world->get_next_geometry_object_id());
+  GeometryObject& obj = p.add_uninitialized_geometry_object(world->get_next_geometry_object_id());
 
   // o->next - ignored
   // o->parent - ignored
@@ -425,7 +425,7 @@ bool mcell3_world_converter::convert_polygonal_object(const object* o) {
 
 
 // cannot fail
-void mcell3_world_converter::create_diffusion_events() {
+void MCell3WorldConverter::create_diffusion_events() {
   assert(!world->get_species().empty() && "There must be at least 1 species");
 
   set<float_t> time_steps_set;
@@ -434,14 +434,14 @@ void mcell3_world_converter::create_diffusion_events() {
   }
 
   for (float_t time_step : time_steps_set) {
-    diffuse_react_event_t* event = new diffuse_react_event_t(world, time_step);
+    DiffuseReactEvent* event = new DiffuseReactEvent(world, time_step);
     event->event_time = TIME_SIMULATION_START;
     world->scheduler.schedule_event(event);
   }
 }
 
 
-bool mcell3_world_converter::convert_species_and_create_diffusion_events(volume* s) {
+bool MCell3WorldConverter::convert_species_and_create_diffusion_events(volume* s) {
   // TODO_CONVERSION: many items are not checked
   for (int i = 0; i < s->n_species; i++) {
     species* spec = s->species_list[i];
@@ -485,7 +485,7 @@ bool mcell3_world_converter::convert_species_and_create_diffusion_events(volume*
 }
 
 
-bool mcell3_world_converter::convert_single_reaction(const rxn *rx) {
+bool MCell3WorldConverter::convert_single_reaction(const rxn *rx) {
   world->reactions.push_back(reaction_t());
   reaction_t& reaction = world->reactions.back();
 
@@ -579,7 +579,7 @@ bool mcell3_world_converter::convert_single_reaction(const rxn *rx) {
 }
 
 
-bool mcell3_world_converter::convert_reactions(volume* s) {
+bool MCell3WorldConverter::convert_reactions(volume* s) {
 
   rxn** reaction_hash = s->reaction_hash;
   int count = s->rx_hashsize;
@@ -596,7 +596,7 @@ bool mcell3_world_converter::convert_reactions(volume* s) {
 }
 
 
-bool mcell3_world_converter::convert_release_events(volume* s) {
+bool MCell3WorldConverter::convert_release_events(volume* s) {
 
   // -- schedule_helper -- (as volume.releaser)
   schedule_helper* releaser = s->releaser;
@@ -734,7 +734,7 @@ bool mcell3_world_converter::convert_release_events(volume* s) {
 }
 
 
-bool mcell3_world_converter::convert_viz_output_events(volume* s) {
+bool MCell3WorldConverter::convert_viz_output_events(volume* s) {
 
   // -- viz_output_block --
   viz_output_block* viz_blocks = s->viz_blocks;

@@ -26,9 +26,9 @@
 
 #include "defines.h"
 
-namespace mcell {
+namespace MCell {
 
-class world_t;
+class World;
 
 #if 0
 // from mcell3, copied for reference
@@ -66,30 +66,30 @@ enum molecule_flags_e {
 /**
  * Base class for all molecules.
  */
-class molecule_t {
+class Molecule {
 public:
-  molecule_t()
+  Molecule()
     : id(MOLECULE_ID_INVALID), flags(0), unimol_rx_time(TIME_FOREVER), unimol_rx(nullptr), species_id(SPECIES_ID_INVALID) {
   }
 
-  molecule_t(const molecule_t& m) {
+  Molecule(const Molecule& m) {
     *this = m;
   }
 
-  molecule_t(const molecule_id_t id_, const species_id_t species_id_)
+  Molecule(const molecule_id_t id_, const species_id_t species_id_)
     : id(id_), flags(0), unimol_rx_time(TIME_FOREVER), unimol_rx(nullptr), species_id(species_id_)
       /*subpart_index(SUBPART_INDEX_INVALID)*/ {
   }
 
   // volume molecule
-  molecule_t(const molecule_id_t id_, const species_id_t species_id_, const vec3_t& pos_)
+  Molecule(const molecule_id_t id_, const species_id_t species_id_, const vec3_t& pos_)
     : id(id_), flags(MOLECULE_FLAG_VOL), unimol_rx_time(TIME_FOREVER), unimol_rx(nullptr), species_id(species_id_) {
     v.pos = pos_;
     v.subpart_index = SUBPART_INDEX_INVALID;
   }
 
   // surface molecule
-  molecule_t(const molecule_id_t id_, const species_id_t species_id_, const vec2_t& pos2d)
+  Molecule(const molecule_id_t id_, const species_id_t species_id_, const vec2_t& pos2d)
     : id(id_), flags(MOLECULE_FLAG_SURF), unimol_rx_time(TIME_FOREVER), unimol_rx(nullptr), species_id(species_id_) {
     s.pos = pos2d;
     //s.subpart_index = SUBPART_INDEX_INVALID;
@@ -99,7 +99,7 @@ public:
   }
 
   // WARNING: this method must be updated when a new attribute is added
-  void operator = (const molecule_t& m) {
+  void operator = (const Molecule& m) {
     id = m.id;
     flags = m.flags;
     species_id = m.species_id;
@@ -192,7 +192,7 @@ public:
 
   void dump(const std::string ind) const;
   void dump(
-      const world_t* world,
+      const World* world,
       const std::string extra_comment,
       const std::string ind,
       const uint64_t iteration,
@@ -200,7 +200,7 @@ public:
       const bool print_position = true
   ) const;
   std::string to_string() const;
-  static void dump_array(const std::vector<molecule_t>& vec);
+  static void dump_array(const std::vector<Molecule>& vec);
 };
 
 } // namespace mcell

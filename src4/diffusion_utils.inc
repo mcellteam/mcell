@@ -40,7 +40,7 @@
 
 using namespace std;
 
-namespace mcell {
+namespace MCell {
 
 namespace diffusion_util {
 
@@ -152,15 +152,15 @@ move_sm_on_same_triangle:
        possible. Counts are updated.
 *************************************************************************/
 static int move_sm_on_same_triangle(
-    partition_t& p,
-    molecule_t& sm,
+    Partition& p,
+    Molecule& sm,
     vec2_t& new_loc
 ) {
-  wall_t& wall = p.get_wall(sm.s.wall_index);
-  grid_t& grid = wall.grid;
+  Wall& wall = p.get_wall(sm.s.wall_index);
+  Grid& grid = wall.grid;
   assert(grid.get_molecule_on_tile(sm.s.grid_tile_index) == sm.id);
 
-  unsigned int new_tile_index = grid_util::uv2grid_tile_index(new_loc, wall);
+  unsigned int new_tile_index = GridUtil::uv2grid_tile_index(new_loc, wall);
 
   if (new_tile_index >= grid.num_tiles) {
     mcell_internal_error("After ray_trace_2D, selected u, v coordinates "
@@ -201,26 +201,26 @@ move_sm_to_new_triangle:
        possible. Counts are updated.
 *************************************************************************/
 static int move_sm_to_new_triangle(
-    partition_t& p,
-    molecule_t& sm,
+    Partition& p,
+    Molecule& sm,
     vec2_t& new_loc,
     const wall_index_t new_wall_index
 ) {
-  wall_t& wall = p.get_wall(sm.s.wall_index);
-  grid_t& grid = wall.grid;
+  Wall& wall = p.get_wall(sm.s.wall_index);
+  Grid& grid = wall.grid;
   assert(grid.get_molecule_on_tile(sm.s.grid_tile_index) == sm.id);
 
-  wall_t& new_wall = p.get_wall(new_wall_index);
+  Wall& new_wall = p.get_wall(new_wall_index);
 
   // No SM has been here before, so we need to make a grid on this wall.
   if (!new_wall.has_initialized_grid()) {
     new_wall.initialize_grid(p);
   }
 
-  grid_t& new_grid = new_wall.grid;
+  Grid& new_grid = new_wall.grid;
 
   /* Move to new tile */
-  unsigned int new_tile_index = grid_util::uv2grid_tile_index(new_loc, new_wall);
+  unsigned int new_tile_index = GridUtil::uv2grid_tile_index(new_loc, new_wall);
 
   if (new_tile_index >= new_grid.num_tiles) {
     mcell_internal_error(

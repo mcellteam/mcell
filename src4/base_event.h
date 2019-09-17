@@ -27,9 +27,9 @@
 
 #include "defines.h"
 
-namespace mcell {
+namespace MCell {
 
-class world_t;
+class World;
 
 typedef int event_type_index_t;
 
@@ -48,12 +48,12 @@ const event_type_index_t EVENT_TYPE_INDEX_DEFRAGMENTATION = 900;
  * Should be independent on the mcell world in order to
  * integrate also other simulators.
  */
-class base_event_t {
+class BaseEvent {
 public:
-  base_event_t(const event_type_index_t t) :
+  BaseEvent(const event_type_index_t t) :
     event_time(TIME_INVALID), periodicity_interval(0), type_index(t) {
   }
-  virtual ~base_event_t() {};
+  virtual ~BaseEvent() {};
   virtual void step() = 0;
   virtual void dump(const std::string indent);
 

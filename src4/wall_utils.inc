@@ -38,7 +38,7 @@
 #include "geometry.h"
 #include "debug_config.h"
 
-namespace mcell {
+namespace MCell {
 
 namespace wall_util {
 
@@ -49,7 +49,7 @@ walls_share_full_edge:
        Here by "full" we mean that the shared edge has two endpoints
        that are the vertices of both walls w1 and w2.
 ************************************************************************/
-static bool walls_share_full_edge(const partition_t& p, const wall_t& w1, const wall_t& w2) {
+static bool walls_share_full_edge(const Partition& p, const Wall& w1, const Wall& w2) {
   uint i, k;
   uint count = 0;
 
@@ -78,8 +78,8 @@ find_nbr_walls_shared_one_vertex:
    Note: the "origin" wall is not included in the list
 **************************************************************************/
 static void find_nbr_walls_shared_one_vertex(
-    const partition_t& p,
-    const wall_t& origin_wall,
+    const Partition& p,
+    const Wall& origin_wall,
     vertex_index_t shared_verts[VERTICES_IN_TRIANGLE],
     wall_indices_t& neighboring_walls
 )
@@ -89,7 +89,7 @@ static void find_nbr_walls_shared_one_vertex(
 
       const std::vector<wall_index_t>& wall_indices = p.get_walls_using_vertex(shared_verts[i]);
       for (wall_index_t wi: wall_indices) {
-        const wall_t& w = p.get_wall(wi);
+        const Wall& w = p.get_wall(wi);
 
         if (w.id == origin_wall.id) {
           // we do not care about current wall

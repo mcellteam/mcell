@@ -34,16 +34,16 @@
 #include "geometry.h"
 #include "species.h"
 
-namespace mcell {
+namespace MCell {
 
 
 /**
  * Partition class contains all molecules and other data contained in
  * one simulation block.
  */
-class partition_t {
+class Partition {
 public:
-  partition_t(
+  Partition(
       const vec3_t origin_,
       const world_constants_t& world_constants_,
       simulation_stats_t& simulation_stats_
@@ -67,7 +67,7 @@ public:
   }
 
 
-  molecule_t& get_m(const molecule_id_t id) { // should be ID
+  Molecule& get_m(const molecule_id_t id) { // should be ID
     assert(id != MOLECULE_ID_INVALID);
     assert(id < molecule_id_to_index_mapping.size());
 
@@ -79,7 +79,7 @@ public:
   }
 
 
-  molecule_id_t get_molecule_index(const molecule_t& m) {
+  molecule_id_t get_molecule_index(const Molecule& m) {
     // simply use pointer arithmetic to compute the molecule's index
     molecule_id_t res = m.id;
     assert(res != MOLECULE_ID_INVALID);
@@ -162,7 +162,7 @@ public:
     urb = llf + vec3_t(world_constants.subpartition_edge_length);
   }
 
-  void change_reactants_map(molecule_t& vm, const uint32_t new_subpartition_index, bool adding, bool removing) {
+  void change_reactants_map(Molecule& vm, const uint32_t new_subpartition_index, bool adding, bool removing) {
     if (vm.is_surf()) {
       // nothing to do
       return;
@@ -189,7 +189,7 @@ public:
   }
 
 
-  void change_molecule_subpartition(molecule_t& vm, const uint32_t new_subpartition_index) {
+  void change_molecule_subpartition(Molecule& vm, const uint32_t new_subpartition_index) {
     assert(vm.v.subpart_index < volume_molecule_reactants_per_subpart.size());
     assert(new_subpartition_index < volume_molecule_reactants_per_subpart.size());
     if (vm.v.subpart_index == new_subpartition_index) {
@@ -205,7 +205,7 @@ public:
   }
 
 
-  void add_molecule_to_diffusion_list(const molecule_t& m, const uint32_t time_step_index) {
+  void add_molecule_to_diffusion_list(const Molecule& m, const uint32_t time_step_index) {
 
     // and its index to the list sorted by time step
     // this is an array that changes only when molecule leaves this partition or is defunct
@@ -217,7 +217,7 @@ public:
 private:
   // internal methods that sets molecule's id and
   // adds it to all relevant structures
-  molecule_t& add_molecule(const molecule_t& vm_copy, const bool is_vol) {
+  Molecule& add_molecule(const Molecule& vm_copy, const bool is_vol) {
 
     const species_t& species = world_constants.get_species(vm_copy.species_id);
     assert((is_vol && species.is_vol()) || (!is_vol && species.is_surf()));
@@ -239,7 +239,7 @@ private:
     // This is the only place where we insert molecules into volume_molecules,
     // although this array size can be decreased in defragmentation
     molecules.push_back(vm_copy);
-    molecule_t& new_m = molecules.back();
+    Molecule& new_m = molecules.back();
     new_m.id = molecule_id;
 
     add_molecule_to_diffusion_list(new_m, time_step_index);
@@ -249,9 +249,9 @@ private:
 
 public:
   // any molecule flags are set by caller after the molecule is created by this method
-  molecule_t& add_volume_molecule(const molecule_t& vm_copy) {
+  Molecule& add_volume_molecule(const Molecule& vm_copy) {
 
-    molecule_t& new_vm = add_molecule(vm_copy, true);
+    Molecule& new_vm = add_molecule(vm_copy, true);
 
     new_vm.v.subpart_index = get_subpartition_index(vm_copy.v.pos);
     change_reactants_map(new_vm, new_vm.v.subpart_index, true, false);
@@ -260,14 +260,14 @@ public:
   }
 
 
-  molecule_t& add_surface_molecule(const molecule_t& sm_copy) {
+  Molecule& add_surface_molecule(const Molecule& sm_copy) {
 
-    molecule_t& new_sm = add_molecule(sm_copy, false);
+    Molecule& new_sm = add_molecule(sm_copy, false);
     return new_sm;
   }
 
 
-  void set_molecule_as_defunct(molecule_t& m) {
+  void set_molecule_as_defunct(Molecule& m) {
     // set that this molecule does not exist anymore
     m.set_is_defunct();
 
@@ -275,7 +275,7 @@ public:
 
     // remove from grid if it was not already removed
     if (m.is_surf() && m.s.grid_tile_index != TILE_INDEX_INVALID) {
-      grid_t& g = get_wall(m.s.wall_index).grid;
+      Grid& g = get_wall(m.s.wall_index).grid;
       g.reset_molecule_tile(m.s.grid_tile_index);
     }
   }
@@ -327,12 +327,12 @@ public:
   }
 
 
-  const std::vector<molecule_t>& get_molecules() const {
+  const std::vector<Molecule>& get_molecules() const {
     return molecules;
   }
 
 
-  std::vector<molecule_t>& get_molecules() {
+  std::vector<Molecule>& get_molecules() {
     return molecules;
   }
   
@@ -353,7 +353,7 @@ public:
     return geometry_vertices[i];
   }
 
-  const vec3_t& get_wall_vertex(const wall_t& w, uint32_t wall_vertex_index) const {
+  const vec3_t& get_wall_vertex(const Wall& w, uint32_t wall_vertex_index) const {
     assert(wall_vertex_index < VERTICES_IN_TRIANGLE);
     vertex_index_t i = w.vertex_indices[wall_vertex_index];
     assert(i < geometry_vertices.size());
@@ -362,10 +362,10 @@ public:
 
   // returns reference to the new wall, only sets id and index
   // register_wall must be called after the wall is initialized
-  wall_t& add_uninitialized_wall(const wall_id_t id) {
+  Wall& add_uninitialized_wall(const wall_id_t id) {
     wall_index_t index = walls.size();
-    walls.push_back(wall_t());
-    wall_t& new_wall = walls.back();
+    walls.push_back(Wall());
+    Wall& new_wall = walls.back();
 
     new_wall.id = id;
     new_wall.index = index;
@@ -379,36 +379,36 @@ public:
   void finalize_wall_creation(const wall_index_t wall_index);
 
   // returns reference to the new object, only sets id
-  geometry_object_t& add_uninitialized_geometry_object(const geometry_object_id_t id) {
+  GeometryObject& add_uninitialized_geometry_object(const geometry_object_id_t id) {
     geometry_object_index_t index = geometry_objects.size();
-    geometry_objects.push_back(geometry_object_t());
-    geometry_object_t& new_obj = geometry_objects.back();
+    geometry_objects.push_back(GeometryObject());
+    GeometryObject& new_obj = geometry_objects.back();
 
     new_obj.id = id;
 
     return new_obj;
   }
 
-  const wall_t& get_wall(wall_index_t i) const {
+  const Wall& get_wall(wall_index_t i) const {
     assert(i < walls.size());
-    const wall_t& res = walls[i];
+    const Wall& res = walls[i];
     assert(res.index == i && "Index of a wall must correspond to its position");
     return res;
   }
 
-  wall_t& get_wall(wall_index_t i) {
+  Wall& get_wall(wall_index_t i) {
     assert(i < walls.size());
-    wall_t& res = walls[i];
+    Wall& res = walls[i];
     assert(res.index == i && "Index of a wall must correspond to its position");
     return res;
   }
 
-  wall_t* get_wall_if_exists(wall_index_t i) {
+  Wall* get_wall_if_exists(wall_index_t i) {
     if (i == WALL_INDEX_INVALID) {
       return nullptr;
     }
     assert(i < walls.size());
-    wall_t& res = walls[i];
+    Wall& res = walls[i];
     assert(res.index == i && "Index of a wall must correspond to its position");
     return &res;
   }
@@ -419,12 +419,12 @@ public:
   }
 
   // returns nullptr if either the wall does not exist or the wall's grid was not initialized
-  const grid_t* get_wall_grid_if_exists(wall_index_t wall_index) const {
+  const Grid* get_wall_grid_if_exists(wall_index_t wall_index) const {
     if (wall_index == WALL_INDEX_INVALID) {
       return nullptr;
     }
 
-    const wall_t& w = get_wall(wall_index);
+    const Wall& w = get_wall(wall_index);
     if (!w.has_initialized_grid()) {
       return nullptr;
     }
@@ -467,7 +467,7 @@ private:
   // ---------------------------------- molecules ----------------------------------
 
   // vector containing all molecules in this partition (volume and surface)
-  std::vector<molecule_t> molecules;
+  std::vector<Molecule> molecules;
 
   // contains mapping of molecule ids to indices to the molecules array
   std::vector<molecule_index_t> molecule_id_to_index_mapping;
@@ -486,9 +486,9 @@ private:
   std::vector<vec3_t> geometry_vertices;
 
   // we must plan for dynamic geometry but for now its just static
-  std::vector<geometry_object_t> geometry_objects;
+  std::vector<GeometryObject> geometry_objects;
 
-  std::vector<wall_t> walls;
+  std::vector<Wall> walls;
   //std::vector<grid_t> grids; // not every wall has a grid
 
   // indexed by vertex_index_t

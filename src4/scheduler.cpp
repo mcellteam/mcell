@@ -23,9 +23,9 @@
 
 #include "scheduler.h"
 
-namespace mcell {
+namespace MCell {
 
-void bucket_t::insert(base_event_t* event) {
+void bucket_t::insert(BaseEvent* event) {
   // check right away if the event belongs to the end
   if (events.empty() || cmp_lt(events.back()->event_time, event->event_time, SCHEDULER_COMPARISON_EPS)) {
     events.push_back(event);
@@ -58,7 +58,7 @@ bucket_t::~bucket_t() {
 
 
 // insert a new item with time event->event_time, create bucket if needed
-void calendar_t::insert(base_event_t* event) {
+void calendar_t::insert(BaseEvent* event) {
   float_t bucket_start_time = event_time_to_bucket_start_time(event->event_time);
   if (queue.empty()) {
     // no items yet - simply create new bucket and insert our event there
@@ -90,17 +90,17 @@ void calendar_t::insert(base_event_t* event) {
 }
 
 
-base_event_t* calendar_t::pop_next() {
+BaseEvent* calendar_t::pop_next() {
   while (queue.front().events.empty()) {
     queue.pop_front();
   }
-  base_event_t* next_event = queue.front().events.front();
+  BaseEvent* next_event = queue.front().events.front();
   queue.front().events.pop_front();
   return next_event;
 }
 
 
-void scheduler_t::schedule_event(base_event_t* event) {
+void scheduler_t::schedule_event(BaseEvent* event) {
   calendar.insert(event);
 }
 
@@ -108,7 +108,7 @@ void scheduler_t::schedule_event(base_event_t* event) {
 // pop next scheduled event and run its step method
 float_t scheduler_t::handle_next_event(bool &end_simulation) {
 
-  base_event_t* event = calendar.pop_next();
+  BaseEvent* event = calendar.pop_next();
   assert(event != NULL && "Empty event queue - at least end simulation event should be present");
   float_t event_time = event->event_time;
 

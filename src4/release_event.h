@@ -28,20 +28,20 @@
 
 #include "base_event.h"
 
-namespace mcell {
+namespace MCell {
 
-class partition_t;
-class wall_t;
-class grid_t;
+class Partition;
+class Wall;
+class Grid;
 
 
 /**
  * Release molecules according to the settings.
  */
-class release_event_t: public base_event_t {
+class release_event_t: public BaseEvent {
 public:
-  release_event_t(world_t* world_) :
-    base_event_t(EVENT_TYPE_INDEX_RELEASE),
+  release_event_t(World* world_) :
+    BaseEvent(EVENT_TYPE_INDEX_RELEASE),
     species_id(SPECIES_ID_INVALID),
     release_number(0),
     release_site_name(NAME_INVALID),
@@ -78,12 +78,12 @@ public:
   std::vector<wall_index_t> wall_indices_t; // need to find the correct partition?
 
 
-  world_t* world;
+  World* world;
 
 private:
   uint calculate_number_to_release();
 
-  void place_single_molecule_onto_grid(partition_t& p, wall_t& wall, uint tile_index);
+  void place_single_molecule_onto_grid(Partition& p, Wall& wall, uint tile_index);
   void release_onto_regions(uint computed_release_number);
 
   void release_ellipsoid_or_rectcuboid(uint computed_release_number);

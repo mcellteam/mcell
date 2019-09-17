@@ -27,7 +27,7 @@
 
 #include "defines.h"
 
-namespace mcell {
+namespace MCell {
 
 struct species_with_orientation_t {
   species_with_orientation_t()
