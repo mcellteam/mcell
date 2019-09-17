@@ -6,6 +6,22 @@ C++
 MCell
 
 
+Naming is inspired by Halide and PIP3
+
+class names (only class, not struct), including typedef over containers or other STL code: UpperCamelCase
+namespaces:  UpperCamelCase
+method names: lower_underscore_case
+local variable names: lower_underscore_case
+base types (type that maps to int, float, long, vec3, ..., structs as well): lower_underscore_case_t (followed by _t)  
+constants: CONSTANT_CASE
+
+
+Preactially everything except for vec3_t is a class, therefore in UpperCamelCase. 
+
+
+Can we get rid of the _t? _t as type, everything else is a class
+
+
 Naming:
 
 molecule, mol, m
