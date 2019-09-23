@@ -51,7 +51,7 @@ file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/deps)
 include_directories(
   "${CMAKE_SOURCE_DIR}/src" 
   "${CMAKE_CURRENT_BINARY_DIR}/deps" 
-  "${CMAKE_SOURCE_DIR}/nfsimCInterface/src/"
+  "${CMAKE_SOURCE_DIR}/../nfsimCInterface/src/"
   "${CMAKE_SOURCE_DIR}/include"
 )
 
@@ -98,8 +98,8 @@ endif()
 set(CMAKE_C_FLAGS "-Wall -Wextra -Wshadow -Wno-unused-parameter -D_GNU_SOURCE=1 -O2 -std=c11 ${CMAKE_C_FLAGS}" )
 set(CMAKE_EXE_LINKER_FLAGS "-lm")
 
-add_subdirectory(nfsim)
-add_subdirectory(nfsimCInterface)
+add_subdirectory(${CMAKE_SOURCE_DIR}/../nfsim ${CMAKE_CURRENT_BINARY_DIR}/nfsim)
+add_subdirectory(${CMAKE_SOURCE_DIR}/../nfsimCInterface ${CMAKE_CURRENT_BINARY_DIR}/nfsimCInterface)
 
 set(SRC_FILES
     src/argparse.c
@@ -292,7 +292,7 @@ endif()
 file(COPY ${CMAKE_SOURCE_DIR}/src/rules_py/ DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 # copy tools for MDLr to MDL
-file(COPY ${CMAKE_SOURCE_DIR}/bionetgen/bng2/ DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/bng2/)
+#file(COPY ${CMAKE_SOURCE_DIR}/bionetgen/bng2/ DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/bng2/)
 
 # build executable
 add_executable(mcell
