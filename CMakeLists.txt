@@ -12,26 +12,34 @@ endif()
 
 add_definitions(-DPACKAGE_BUGREPORT="mcell@salk.edu")
 
-SET(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0 -fsanitize=address ")
-SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 -fsanitize=address ")
-
-SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lasan ")
+SET(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0 ")
+SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 ")
 
 SET(OPTIMIZATION_FLAGS "-O3 -march=core2 -finline-limit=1000 ")
-
-#SET(OPTIMIZATION_FLAGS "-O3")
-#SET(OPTIMIZATION_FLAGS "-O2")
 
 set(INCLUDE_DIRS " -isystem ${CMAKE_SOURCE_DIR}/libs/")
 
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OPTIMIZATION_FLAGS} ${OPTIMIZATION_FLAGS} ${INCLUDE_DIRS} ")
 SET(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c++11 ")
 
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+  SET(USE_SANITIZER_DEFAULT ON)
+else()
+  SET(USE_SANITIZER_DEFAULT OFF)
+endif()
+
 option(USE_GCOV "Use gcc coverage" OFF) 
 option(USE_PROFILING "Use gprof profiling" OFF) 
 option(USE_LTO "Use link-time optimization" OFF)
+option(USE_SANITIZER "Use address sanitizer (ON for debug build, OFF for release build" ${USE_SANITIZER_DEFAULT})
 option(PYMCELL "Build also pyMCell" ON) 
 
+
+if (USE_SANITIZER)
+  SET(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS} -fsanitize=address ")
+  SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} -fsanitize=address ")
+  SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lasan ")
+endif()
 
 if (USE_GCOV)
   SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fprofile-arcs -ftest-coverage ")
@@ -295,3 +303,4 @@ add_dependencies(mcell version_h)
 add_dependencies(pymcell version_h nfsim_c NFsim)
   
 target_link_libraries(mcell nfsim_c_static NFsim_static)
+TARGET_COMPILE_DEFINITIONS(mcell PRIVATE NOSWIG=1)
