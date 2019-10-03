@@ -271,7 +271,7 @@ if (NOT WIN32)
   file(GLOB PYMCELL_EXAMPLES "${CMAKE_SOURCE_DIR}/src/pymcell_examples/*")
   file(COPY ${PYMCELL_EXAMPLES} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/python/)
   
-  # configure_file copies file even for following runs of make
+  # configure_file copies file even for subsequent runs of make
   configure_file(${CMAKE_SOURCE_DIR}/src/data_model_import.py ${CMAKE_CURRENT_BINARY_DIR}/python/data_model_import.py COPYONLY)
   configure_file(${CMAKE_SOURCE_DIR}/src/pymcell_unittests.py ${CMAKE_CURRENT_BINARY_DIR}/python/pymcell_unittests.py COPYONLY)
   configure_file(${CMAKE_SOURCE_DIR}/src/pymcell_helpers.py ${CMAKE_CURRENT_BINARY_DIR}/python/pymcell_helpers.py COPYONLY)  
@@ -292,6 +292,6 @@ add_executable(mcell
   ${FLEX_mdlScanner_OUTPUTS})
 
 add_dependencies(mcell version_h)
-add_dependencies(pymcell version_h)
+add_dependencies(pymcell version_h nfsim_c NFsim)
   
 target_link_libraries(mcell nfsim_c_static NFsim_static)
