@@ -292,6 +292,6 @@ add_executable(mcell
   ${FLEX_mdlScanner_OUTPUTS})
 
 add_dependencies(mcell version_h)
-add_dependencies(_pymcell version_h)
+add_dependencies(pymcell version_h)
   
 target_link_libraries(mcell nfsim_c_static NFsim_static)
