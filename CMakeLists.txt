@@ -51,7 +51,6 @@ if (USE_LTO)
   SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -flto ")
 endif()
 
-
 if (CMAKE_BUILD_TYPE STREQUAL "Release")
   SET(OPTIMIZATION_FLAGS "-O3 -g -march=core2 -finline-limit=1000 ")
 else()
@@ -71,7 +70,7 @@ include_directories(
   "${CMAKE_SOURCE_DIR}/src" 
   "${CMAKE_SOURCE_DIR}/src4" 
   "${CMAKE_CURRENT_BINARY_DIR}/deps" 
-  "${CMAKE_SOURCE_DIR}/nfsimCInterface/src/"
+  "${CMAKE_SOURCE_DIR}/../nfsimCInterface/src/"
   "${CMAKE_SOURCE_DIR}/include"
 )
 
@@ -125,10 +124,10 @@ set(CMAKE_CXX_FLAGS "-g3 -D_GNU_SOURCE=1 -std=c++14 ${INCLUDE_DIRS} ${WARNING_FL
 
 set(CMAKE_EXE_LINKER_FLAGS "-lm")
 
-add_subdirectory(nfsim)
-add_subdirectory(nfsimCInterface)
+add_subdirectory(${CMAKE_SOURCE_DIR}/../nfsim ${CMAKE_CURRENT_BINARY_DIR}/nfsim)
+add_subdirectory(${CMAKE_SOURCE_DIR}/../nfsimCInterface ${CMAKE_CURRENT_BINARY_DIR}/nfsimCInterface)
 
-set(SRC_FILES
+set(SOURCE_FILES
     src/argparse.c
     src/chkpt.c
     src/count_util.c
@@ -144,7 +143,6 @@ set(SRC_FILES
     src/init.c
     src/isaac64.c
     src/logging.c
-    src/mcell.c
     src/mcell_dyngeom.c
     src/mcell_init.c
     src/mcell_misc.c
@@ -158,7 +156,6 @@ set(SRC_FILES
     src/mcell_viz.c
     src/mdlparse.y
     src/dump_state.cpp
-    src/mdlparse_util.c
     src/mem_util.c
     src/minrng.c
     src/nfsim_func.c
@@ -232,6 +229,8 @@ if (NOT WIN32)
   file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/python)
   SET_SOURCE_FILES_PROPERTIES(src/pymcell.i PROPERTIES C ON)
   SET_SOURCE_FILES_PROPERTIES(src/pymcell.i PROPERTIES SWIG_FLAGS "-includeall")
+  
+  
   if (${CMAKE_VERSION} VERSION_GREATER "3.8")
     SWIG_ADD_LIBRARY(pymcell 
       TYPE SHARED 
@@ -264,27 +263,18 @@ endif()
 file(COPY ${CMAKE_SOURCE_DIR}/src/rules_py/ DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 # copy tools for MDLr to MDL
-file(COPY ${CMAKE_SOURCE_DIR}/bionetgen/bng2/ DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/bng2/)
+file(COPY ${CMAKE_SOURCE_DIR}/../bionetgen/bng2/ DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/bng2/)
 
 # build executable
 add_executable(mcell
-  ${SRC_FILES}
+  ${SOURCE_FILES}
   ${SOURCE_FILES_ONLY_MCELL}
   src/mcell.c
   ${BISON_mdlParser_OUTPUTS}
   ${FLEX_mdlScanner_OUTPUTS})
 
 add_dependencies(mcell version_h)
+add_dependencies(pymcell version_h nfsim_c NFsim)
   
 target_link_libraries(mcell nfsim_c_static NFsim_static)
 TARGET_COMPILE_DEFINITIONS(mcell PRIVATE NOSWIG=1)
-
-if (NOT WIN32)
-  if (${CMAKE_VERSION} VERSION_GREATER "3.8")
-	add_dependencies(pymcell nfsim_c)
-    add_dependencies(pymcell version_h)
-  else()
-    add_dependencies(_pymcell nfsim_c)
-    add_dependencies(_pymcell version_h)
-  endif()
-endif()
