@@ -128,12 +128,6 @@ set(CMAKE_EXE_LINKER_FLAGS "-lm")
 add_subdirectory(nfsim)
 add_subdirectory(nfsimCInterface)
 
-if (PROFILING STREQUAL "ON")
-  set(CMAKE_C_FLAGS "-pg ${CMAKE_C_FLAGS}")
-  set(CMAKE_CXX_FLAGS "-pg ${CMAKE_CXX_FLAGS}")
-  set(CMAKE_EXE_LINKER_FLAGS "-pg ${CMAKE_EXE_LINKER_FLAGS}")
-endif()
-
 set(SRC_FILES
     src/argparse.c
     src/chkpt.c
@@ -213,7 +207,7 @@ set(SRC_FILES
 set(SOURCE_FILES_ONLY_MCELL
     src/mdlparse_util.c
     src/mdlparse_util.h
-) 
+)    
 
 link_directories(${CMAKE_BINARY_DIR}/lib)
 if (UNIX)
@@ -275,6 +269,7 @@ file(COPY ${CMAKE_SOURCE_DIR}/bionetgen/bng2/ DESTINATION ${CMAKE_CURRENT_BINARY
 # build executable
 add_executable(mcell
   ${SRC_FILES}
+  ${SOURCE_FILES_ONLY_MCELL}
   src/mcell.c
   ${BISON_mdlParser_OUTPUTS}
   ${FLEX_mdlScanner_OUTPUTS})
