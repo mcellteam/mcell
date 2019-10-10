@@ -28,11 +28,11 @@
 #include <algorithm>
 #include <boost/container/flat_set.hpp>
 
-extern "C" {
+//extern "C" {
 #include "rng.h"
 #include "mcell_structs.h"
 #include "logging.h"
-}
+//}
 
 #include "diffuse_react_event.h"
 #include "defines.h"

@@ -27,17 +27,17 @@
 #include "mcell_structs.h"
 
 #ifdef __cplusplus
-extern "C"
+//extern "C"
 #endif
 bool mcell4_convert_mcell3_volume(struct volume* s);
 
 #ifdef __cplusplus
-extern "C"
+//extern "C"
 #endif
 bool mcell4_run_simulation(const bool dump_initial_state);
 
 #ifdef __cplusplus
-extern "C"
+//extern "C"
 #endif
 void mcell4_delete_world();
 

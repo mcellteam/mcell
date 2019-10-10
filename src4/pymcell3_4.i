@@ -19,33 +19,28 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
  * USA.
  *
-******************************************************************************/
+ ******************************************************************************/
 
-// this is an auxiliary file that provides std::vector functionality that contains pointers as elements
-// used in viz_output.c
+%module pymcell3_4 
 
-#ifndef C_VECTOR_H
-#define C_VECTOR_H
+%{
 
-#ifdef __cplusplus
-//extern "C" {
-#endif
+#include "world.h"
+#include "mcell3_world_converter.h" 
 
-typedef void c_vector_t;
+using namespace MCell;
+%}
 
-c_vector_t* vector_create();
-void vector_push_back(c_vector_t* v, void* a);
-unsigned long long vector_get_size(c_vector_t* v);
-void* vector_at(c_vector_t* v, unsigned long long i);
-void vector_delete(c_vector_t* v);
+// only a few methods for now 
 
+class World {
+public:
+  bool run_simulation(const bool dump_initial_state = false);
+};
 
-void vector_sort_by_mol_id(c_vector_t* v);
-
-
-#ifdef __cplusplus
-//}
-#endif
-
-#endif // C_VECTOR_H
+class MCell3WorldConverter {
+public:
+  bool convert(MCELL_STATE* s);
+  World* world;
+};
 

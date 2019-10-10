@@ -50,7 +50,7 @@ typedef int (*PFany)(any_t, any_t);
 typedef any_t map_t;
 
 #ifdef __cplusplus
-extern "C" {
+//extern "C" {
 #endif
 
 /*
@@ -68,6 +68,6 @@ int hashmap_get_nohash(map_t in, unsigned long key, unsigned long key_hash, any_
 unsigned long crc32(const unsigned char *s, unsigned int len);
 
 #ifdef __cplusplus
-} // extern "C"
+//} // extern "C"
 #endif
 #endif //__MAP_C_H__

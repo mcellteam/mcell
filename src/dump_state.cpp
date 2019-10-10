@@ -1478,7 +1478,7 @@ void dump_dg_time_filename_list(dg_time_filename* fn, const char* name, const ch
   }
 }
 
-extern "C" void dump_volume(struct volume* s, const char* comment, unsigned int selected_details /* mask */) {
+/*extern "C"*/ void dump_volume(struct volume* s, const char* comment, unsigned int selected_details /* mask */) {
 
   cout << "********* volume dump :" << comment << "************ (START)\n";
   cout << comment << "\n";

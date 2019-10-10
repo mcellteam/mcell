@@ -48,7 +48,7 @@ private:
 public:
   World();
   void init_world_constants();
-  bool run_simulation(const bool dump_initial_state);
+  bool run_simulation(const bool dump_initial_state = false);
 
   // -------------- partition manipulation methods --------------
   partition_index_t get_partition_index(const vec3_t& pos) {

@@ -25,9 +25,9 @@
 #include <stdlib.h>
 #include <set>
 
-extern "C" {
+//extern "C" {
 #include "logging.h"
-}
+//}
 #include "mcell_structs.h"
 #include "mcell3_world_converter.h"
 

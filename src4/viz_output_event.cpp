@@ -26,12 +26,12 @@
 #include <stdio.h>
 #include <errno.h>
 
-extern "C" {
+//extern "C" {
 #include "logging.h"
 #include "mem_util.h"
 #include "util.h"
 #include "mcell_structs.h"
-}
+//}
 
 #include "viz_output_event.h"
 #include "geometry.h"

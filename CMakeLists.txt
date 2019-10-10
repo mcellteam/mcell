@@ -91,13 +91,13 @@ endif()
 find_package(BISON)
 find_package(FLEX)
 BISON_TARGET(mdlParser ${CMAKE_SOURCE_DIR}/src/mdlparse.y
-  ${CMAKE_CURRENT_BINARY_DIR}/deps/mdlparse.c)
+  ${CMAKE_CURRENT_BINARY_DIR}/deps/mdlparse.cpp)
 
 file(COPY ${CMAKE_SOURCE_DIR}/src/mdllex.l DESTINATION
   ${CMAKE_CURRENT_BINARY_DIR}/deps)
 
 FLEX_TARGET(mdlScanner ${CMAKE_CURRENT_BINARY_DIR}/deps/mdllex.l
-  ${CMAKE_CURRENT_BINARY_DIR}/deps/mdlex.c COMPILE_FLAGS -Crema)
+  ${CMAKE_CURRENT_BINARY_DIR}/deps/mdlex.cpp COMPILE_FLAGS -Crema)
 ADD_FLEX_BISON_DEPENDENCY(mdlScanner mdlParser mdllex_l)
 
 # create version.h target
@@ -114,7 +114,8 @@ elseif (WIN32)
 endif()
 
 set(OPTIMIZATION_FLAGS " -march=native -O3")
-set(WARNING_FLAGS "-Wall -Wextra -Wno-shadow -Wno-unused-parameter -Wno-unused-function -Wno-unused-variable")
+# FIXME: the -fpermissive arg should be removed
+set(WARNING_FLAGS "-Wall -Wextra -Wno-shadow -Wno-unused-parameter -Wno-unused-function -Wno-unused-variable -fpermissive")
 
 set(INCLUDE_DIRS " -isystem ${CMAKE_SOURCE_DIR}/libs/")
 
@@ -154,7 +155,6 @@ set(SOURCE_FILES
     src/mcell_species.c
     src/mcell_surfclass.c
     src/mcell_viz.c
-    src/mdlparse.y
     src/dump_state.cpp
     src/mem_util.c
     src/minrng.c
@@ -203,8 +203,15 @@ set(SOURCE_FILES
 
 set(SOURCE_FILES_ONLY_MCELL
     src/mdlparse_util.c
-    src/mdlparse_util.h
+    src/mcell.c
 )    
+
+
+SET_SOURCE_FILES_PROPERTIES( ${SOURCE_FILES} PROPERTIES LANGUAGE CXX )
+set( SOURCE_FILES ${SOURCE_FILES} src/mdlparse.y )
+
+SET_SOURCE_FILES_PROPERTIES( ${SOURCE_FILES_ONLY_MCELL} PROPERTIES LANGUAGE CXX )
+
 
 link_directories(${CMAKE_BINARY_DIR}/lib)
 if (UNIX)
@@ -221,13 +228,15 @@ if (NOT WIN32)
   INCLUDE_DIRECTORIES(${PYTHON_INCLUDE_PATH})
 
   #SET(CMAKE_SWIG_FLAGS "-debug-typemap;-debug-tmsearch;-debug-tmused;-ltypemaps")
-  SET(CMAKE_SWIG_FLAGS "-ltypemaps;-py3")
+  SET(CMAKE_SWIG_FLAGS "-c++;-ltypemaps;-py3")
+  #SET(CMAKE_SWIG_FLAGS "-ltypemaps;-py3")
 
   SET(CMAKE_SWIG_OUTDIR "${CMAKE_BINARY_DIR}/python")
   SET(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/python")
 
   file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/python)
-  SET_SOURCE_FILES_PROPERTIES(src/pymcell.i PROPERTIES C ON)
+  #SET_SOURCE_FILES_PROPERTIES(src/pymcell.i PROPERTIES C ON)
+  SET_SOURCE_FILES_PROPERTIES(src/pymcell.i PROPERTIES CPLUSPLUS ON)  
   SET_SOURCE_FILES_PROPERTIES(src/pymcell.i PROPERTIES SWIG_FLAGS "-includeall")
   
   
@@ -269,7 +278,6 @@ file(COPY ${CMAKE_SOURCE_DIR}/../bionetgen/bng2/ DESTINATION ${CMAKE_CURRENT_BIN
 add_executable(mcell
   ${SOURCE_FILES}
   ${SOURCE_FILES_ONLY_MCELL}
-  src/mcell.c
   ${BISON_mdlParser_OUTPUTS}
   ${FLEX_mdlScanner_OUTPUTS})
 

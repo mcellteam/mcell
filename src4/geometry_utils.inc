@@ -31,9 +31,9 @@
  */
 #include <vector>
 
-extern "C" {
+//extern "C" {
 #include "logging.h"
-}
+//}
 
 #include "diffuse_react_event.h"
 #include "defines.h"

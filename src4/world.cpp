@@ -26,10 +26,10 @@
 #include <sys/resource.h> // Linux include
 #include <fenv.h> // Linux include
 
-extern "C" {
+//extern "C" {
 #include "rng.h" // MCell 3
 #include "logging.h"
-}
+//}
 
 #include "world.h"
 #include "end_simulation_event.h"
