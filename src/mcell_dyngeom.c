@@ -106,7 +106,7 @@ int mcell_change_geometry(struct volume *state, struct poly_object_list *pobj_li
   // Reparse the geometry and instantiations. Nothing else should be included
   // in these other MDLs.
 
-  struct object *world_object = NULL;
+  struct geom_object *world_object = NULL;
   mcell_create_instance_object(state, "Scene", &world_object);
 
   while (pobj_list != NULL) {
@@ -117,7 +117,7 @@ int mcell_change_geometry(struct volume *state, struct poly_object_list *pobj_li
       pobj_list->connections,
       pobj_list->num_conn
     };
-    struct object *new_mesh = NULL;
+    struct geom_object *new_mesh = NULL;
     mcell_create_poly_object(state, world_object, &polygon, &new_mesh);
 
     struct region *test_region = mcell_create_region(state, new_mesh, pobj_list->reg_name);

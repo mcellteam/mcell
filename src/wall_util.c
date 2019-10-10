@@ -70,7 +70,7 @@ static struct poly_edge* create_new_poly_edge(struct poly_edge* list);
 
 // have_common_region checks if wall1 and wall2 located on the (same) object
 // are part of a common region or not
-static bool have_common_region(struct object *obj, int wall1, int wall2);
+static bool have_common_region(struct geom_object *obj, int wall1, int wall2);
 
 
 /**************************************************************************\
@@ -321,7 +321,7 @@ static int compatible_edges(struct wall **faces, int wA, int eA, int wB,
  have_common_region checks if wall1 and wall2 located on the (same) object
  are part of a common region or not
 ******************************************************************************/
-bool have_common_region(struct object *obj, int wall1, int wall2) {
+bool have_common_region(struct geom_object *obj, int wall1, int wall2) {
 
   struct region_list *rl = obj->regions;
   bool common_region = false;
@@ -647,7 +647,7 @@ sharpen_object:
        Adds edges to the object and all its children.
 ***************************************************************************/
 
-int sharpen_object(struct object *parent) {
+int sharpen_object(struct geom_object *parent) {
   if (parent->object_type == POLY_OBJ || parent->object_type == BOX_OBJ) {
     int i = surface_net(parent->wall_p, parent->n_walls);
 
@@ -660,7 +660,7 @@ int sharpen_object(struct object *parent) {
       parent->is_closed = -i; 
     }
   } else if (parent->object_type == META_OBJ) {
-    for (struct object *o = parent->first_child; o != NULL; o = o->next) {
+    for (struct geom_object *o = parent->first_child; o != NULL; o = o->next) {
       if (sharpen_object(o))
         return 1;
     }
@@ -676,7 +676,7 @@ sharpen_world:
   Out: 0 on success, 1 on failure.  Adds edges to every object.
 ***************************************************************************/
 int sharpen_world(struct volume *world) {
-  for (struct object *o = world->root_instance; o != NULL; o = o->next) {
+  for (struct geom_object *o = world->root_instance; o != NULL; o = o->next) {
     if (sharpen_object(o))
       return 1;
   }
@@ -1389,7 +1389,7 @@ init_tri_wall:
        vectors, local coordinate vectors, and so on.
 ***************************************************************************/
 
-void init_tri_wall(struct object *objp, int side, struct vector3 *v0,
+void init_tri_wall(struct geom_object *objp, int side, struct vector3 *v0,
                    struct vector3 *v1, struct vector3 *v2) {
   struct wall *w; /* The wall we're working with */
   double f, fx, fy, fz;
@@ -1700,8 +1700,8 @@ distribute_object:
   Note: this function is recursive and is called on any children of the
         object passed to it.
 ***************************************************************************/
-int distribute_object(struct volume *world, struct object *parent) {
-  struct object *o; /* Iterator for child objects */
+int distribute_object(struct volume *world, struct geom_object *parent) {
+  struct geom_object *o; /* Iterator for child objects */
   int i;
   long long vert_index; /* index of the vertex in the global array
                      "world->all_vertices" */
@@ -1751,7 +1751,7 @@ distribute_world:
        is distributed to local memory and into appropriate subvolumes.
 ***************************************************************************/
 int distribute_world(struct volume *world) {
-  struct object *o; /* Iterator for objects in the world */
+  struct geom_object *o; /* Iterator for objects in the world */
 
   for (o = world->root_instance; o != NULL; o = o->next) {
     if (distribute_object(world, o) != 0)
@@ -2557,7 +2557,7 @@ find_restricted_regions_by_object:
         included in the return "region list".
 ************************************************************************/
 struct region_list *
-find_restricted_regions_by_object(struct volume *world, struct object *obj,
+find_restricted_regions_by_object(struct volume *world, struct geom_object *obj,
                                   struct surface_molecule *sm) {
   struct region *rp;
   struct region_list *rlp, *rlps, *rlp_head = NULL;
@@ -2631,7 +2631,7 @@ are_restricted_regions_for_species_on_object:
        0 - if no such regions found
 ************************************************************************/
 int are_restricted_regions_for_species_on_object(struct volume *world,
-                                                 struct object *obj,
+                                                 struct geom_object *obj,
                                                  struct surface_molecule *sm) {
   int wall_idx = INT_MIN;
   struct rxn *matching_rxns[MAX_MATCHING_RXNS];

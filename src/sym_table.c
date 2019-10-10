@@ -257,8 +257,8 @@ struct mol_comp_ss *new_mol_comp_ss(void) {
  *      In:  none
  *      Out: the newly allocated object
  */
-struct object *new_object(void) {
-  struct object *objp = CHECKED_MALLOC_STRUCT(struct object, "object");
+struct geom_object *new_object(void) {
+  struct geom_object *objp = CHECKED_MALLOC_STRUCT(struct geom_object, "object");
   objp->last_name = NULL;
   objp->object_type = META_OBJ;
   objp->contents = NULL;
@@ -548,7 +548,7 @@ struct sym_entry *store_sym(char const *sym, enum symbol_type_t sym_type,
         vp = new_object();
       else
         vp = data;
-      ((struct object *)vp)->sym = sp;
+      ((struct geom_object *)vp)->sym = sp;
       break;
 
     case RPAT:

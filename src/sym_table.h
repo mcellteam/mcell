@@ -32,7 +32,7 @@ typedef unsigned char ub1; /* unsigned 1-byte quantities */
 #endif
 
 struct species *new_species(void);
-struct object *new_object(void);
+struct geom_object *new_object(void);
 struct release_pattern *new_release_pattern(void);
 struct rxn *new_reaction(void);
 struct rxn_pathname *new_reaction_pathname(void);

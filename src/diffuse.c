@@ -138,7 +138,7 @@ void count_tentative_collisions(
 void change_boxes_2D(
     bool periodic_traditional,
     struct surface_molecule *sm,
-    struct object *periodic_box_obj,
+    struct geom_object *periodic_box_obj,
     struct vector3 *hit_xyz,
     struct vector3 *teleport_xyz);
 
@@ -435,7 +435,7 @@ change_boxes_2D:
 void change_boxes_2D(
     bool periodic_traditional,
     struct surface_molecule *sm,
-    struct object *periodic_box_obj,
+    struct geom_object *periodic_box_obj,
     struct vector3 *hit_xyz,
     struct vector3 *teleport_xyz) {
 
@@ -4602,7 +4602,7 @@ int reflect_or_periodic_bc(
   double urz = 0.0;
   // in the presence of periodic boundary conditions we retrieve the box size
   if (periodic_x || periodic_y || periodic_z) {
-    struct object* o = w->parent_object;
+    struct geom_object* o = w->parent_object;
     assert(o->object_type == BOX_OBJ);
     struct polygon_object* p = (struct polygon_object*)(o->contents);
     struct subdivided_box* sb = p->sb;

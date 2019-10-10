@@ -60,9 +60,9 @@ pack_release_expr(
  *
  ******************************************************************************/
 MCELL_STATUS mcell_create_list_release_site(
-  MCELL_STATE *state, struct object *parent, char *site_name, struct
+  MCELL_STATE *state, struct geom_object *parent, char *site_name, struct
   mcell_species *mol, double *x_pos, double *y_pos, double *z_pos, int n_site,
-  struct vector3 *diameter, struct object **new_obj) {
+  struct vector3 *diameter, struct geom_object **new_obj) {
 
   // Create a qualified object name
   // Note: stolen from below. How does this yield a qualified name?
@@ -72,7 +72,7 @@ MCELL_STATUS mcell_create_list_release_site(
     // Make a new release object - this is later copied into new_obj
   int error_code = 0;
   struct dyngeom_parse_vars *dg_parse = state->dg_parse;
-  struct object *release_object = make_new_object(
+  struct geom_object *release_object = make_new_object(
       dg_parse, state->obj_sym_table, qualified_name, &error_code);
 
   // Add it to the scene
@@ -84,7 +84,7 @@ MCELL_STATUS mcell_create_list_release_site(
   /////
   // "Start" the new release site - just like we do in MDL land
   /////
-  struct object *dummy = NULL;
+  struct geom_object *dummy = NULL;
   mcell_start_release_site(state, release_object->sym, &dummy);
 
   // Get a release_site_obj
@@ -170,10 +170,10 @@ MCELL_STATUS mcell_create_list_release_site(
  *
  ******************************************************************************/
 MCELL_STATUS mcell_create_geometrical_release_site(
-    MCELL_STATE *state, struct object *parent, char *site_name, int shape,
+    MCELL_STATE *state, struct geom_object *parent, char *site_name, int shape,
     struct vector3 *position, struct vector3 *diameter,
     struct mcell_species *mol, double num, int num_type, double rel_prob,
-    struct release_pattern *rpatp, struct object **new_obj) {
+    struct release_pattern *rpatp, struct geom_object **new_obj) {
 
   assert(shape != SHAPE_REGION && shape != SHAPE_LIST);
   assert((((struct species *)mol->mol_type->value)->flags & NOT_FREE) == 0);
@@ -186,7 +186,7 @@ MCELL_STATUS mcell_create_geometrical_release_site(
 
   int error_code = 0;
   struct dyngeom_parse_vars *dg_parse = state->dg_parse;
-  struct object *release_object = make_new_object(
+  struct geom_object *release_object = make_new_object(
       dg_parse,
       state->obj_sym_table,
       qualified_name,
@@ -198,7 +198,7 @@ MCELL_STATUS mcell_create_geometrical_release_site(
   release_object->parent = parent;
   add_child_objects(parent, release_object, release_object);
 
-  struct object *dummy = NULL;
+  struct geom_object *dummy = NULL;
   mcell_start_release_site(state, release_object->sym, &dummy);
 
   // release site geometry and locations
@@ -262,9 +262,9 @@ MCELL_STATUS mcell_create_geometrical_release_site(
 **************************************************************************/
 MCELL_STATUS mcell_start_release_site(MCELL_STATE *state,
                     struct sym_entry *sym_ptr,
-                    struct object **obj) {
+                    struct geom_object **obj) {
 
-  struct object *obj_ptr = (struct object *)sym_ptr->value;
+  struct geom_object *obj_ptr = (struct geom_object *)sym_ptr->value;
   obj_ptr->object_type = REL_SITE_OBJ;
   obj_ptr->contents = new_release_site(state, sym_ptr->name);
   if (obj_ptr->contents == NULL) {
@@ -284,9 +284,9 @@ MCELL_STATUS mcell_start_release_site(MCELL_STATE *state,
  Out: the object, on success, or NULL on failure
 **************************************************************************/
 MCELL_STATUS mcell_finish_release_site(struct sym_entry *sym_ptr,
-                     struct object **obj) {
+                     struct geom_object **obj) {
 
-  struct object *obj_ptr_new = (struct object *)sym_ptr->value;
+  struct geom_object *obj_ptr_new = (struct geom_object *)sym_ptr->value;
   no_printf("Release site %s defined:\n", sym_ptr->name);
   if (is_release_site_valid((struct release_site_obj *)obj_ptr_new->contents)) {
   return MCELL_FAIL;
@@ -303,18 +303,18 @@ MCELL_STATUS mcell_finish_release_site(struct sym_entry *sym_ptr,
  *
  ******************************************************************************/
 MCELL_STATUS
-mcell_create_region_release(MCELL_STATE *state, struct object *parent,
-              struct object *release_on_in, char *site_name,
+mcell_create_region_release(MCELL_STATE *state, struct geom_object *parent,
+              struct geom_object *release_on_in, char *site_name,
               char *reg_name, struct mcell_species *mol,
               double num, int num_type, double rel_prob,
-              struct release_pattern *rpatp, struct object **new_obj) {
+              struct release_pattern *rpatp, struct geom_object **new_obj) {
 
   // create qualified release object name
   char *qualified_name = CHECKED_SPRINTF("%s.%s", parent->sym->name, site_name);
 
   int error_code = 0;
   struct dyngeom_parse_vars *dg_parse = state->dg_parse;
-  struct object *release_object = make_new_object(
+  struct geom_object *release_object = make_new_object(
       dg_parse,
       state->obj_sym_table,
       qualified_name,
@@ -325,7 +325,7 @@ mcell_create_region_release(MCELL_STATE *state, struct object *parent,
   release_object->parent = parent;
   add_child_objects(parent, release_object, release_object);
 
-  struct object *dummy = NULL;
+  struct geom_object *dummy = NULL;
   mcell_start_release_site(state, release_object->sym, &dummy);
 
   struct release_site_obj *releaser =
@@ -375,18 +375,18 @@ mcell_create_region_release(MCELL_STATE *state, struct object *parent,
  *
  ******************************************************************************/
 MCELL_STATUS
-mcell_create_region_release_boolean(MCELL_STATE *state, struct object *parent,
+mcell_create_region_release_boolean(MCELL_STATE *state, struct geom_object *parent,
               char *site_name, struct mcell_species *mol,
               double num, int num_type, double rel_prob,
               struct release_pattern *rpatp, struct release_evaluator *rel_eval,
-              struct object **new_obj) {
+              struct geom_object **new_obj) {
 
   // create qualified release object name
   char *qualified_name = CHECKED_SPRINTF("%s.%s", parent->sym->name, site_name);
 
   int error_code = 0;
   struct dyngeom_parse_vars *dg_parse = state->dg_parse;
-  struct object *release_object = make_new_object(
+  struct geom_object *release_object = make_new_object(
       dg_parse,
       state->obj_sym_table,
       qualified_name,
@@ -397,7 +397,7 @@ mcell_create_region_release_boolean(MCELL_STATE *state, struct object *parent,
   release_object->parent = parent;
   add_child_objects(parent, release_object, release_object);
 
-  struct object *obj_ptr = NULL;
+  struct geom_object *obj_ptr = NULL;
   mcell_start_release_site(state, release_object->sym, &obj_ptr);
 
   struct release_site_obj *releaser =
@@ -551,7 +551,7 @@ struct release_pattern *mcell_create_release_pattern(MCELL_STATE *state, char *n
 **************************************************************************/
 int mcell_set_release_site_geometry_region(
   MCELL_STATE *state, struct release_site_obj *rel_site_obj_ptr,
-  struct object *obj_ptr, struct release_evaluator *rel_eval) {
+  struct geom_object *obj_ptr, struct release_evaluator *rel_eval) {
 
   rel_site_obj_ptr->release_shape = SHAPE_REGION;
   state->place_waypoints_flag = 1;
@@ -662,8 +662,8 @@ new_release_region_expr_binary(struct release_evaluator *rel_eval_L,
     any referred-to region cannot be found.
 *************************************************************************/
 int check_release_regions(struct release_evaluator *rel_eval,
-              struct object *parent, struct object *instance) {
-  struct object *obj_ptr;
+              struct geom_object *parent, struct geom_object *instance) {
+  struct geom_object *obj_ptr;
 
   if (rel_eval->left != NULL) {
   if (rel_eval->op & REXP_LEFT_REGION) {

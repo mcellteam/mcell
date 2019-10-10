@@ -254,10 +254,10 @@ struct sym_entry *mdl_start_object(struct mdlparse_vars *parse_state,
 void mdl_finish_object(struct mdlparse_vars *parse_state);
 
 /* Adds the first element to an empty object list. */
-void mdl_object_list_singleton(struct object_list *head, struct object *objp);
+void mdl_object_list_singleton(struct object_list *head, struct geom_object *objp);
 
 /* Adds an element to an object list. */
-void mdl_add_object_to_list(struct object_list *head, struct object *objp);
+void mdl_add_object_to_list(struct object_list *head, struct geom_object *objp);
 
 /* Find an existing object or print an error message if the object isn't found.
  */
@@ -356,7 +356,7 @@ int mdl_transform_rotate(struct mdlparse_vars *parse_state, double (*mat)[4],
 
 /* Deep copy an object. */
 int mdl_deep_copy_object(struct mdlparse_vars *parse_state,
-                         struct object *dst_obj, struct object *src_obj);
+                         struct geom_object *dst_obj, struct geom_object *src_obj);
 
 /* Prepare a region description for use in the simulation by creating a
  * membership bitmask on the region object. */
@@ -388,7 +388,7 @@ int mdl_start_release_site(struct mdlparse_vars *parse_state,
                            struct sym_entry *symp, int shape);
 
 /* Finish parsing the innards of a release site. */
-struct object *mdl_finish_release_site(struct mdlparse_vars *parse_state,
+struct geom_object *mdl_finish_release_site(struct mdlparse_vars *parse_state,
                                        struct sym_entry *symp);
 
 /* Validate a release site. */
@@ -398,14 +398,14 @@ int mdl_is_release_site_valid(struct mdlparse_vars *parse_state,
 /* Set the geometry for a particular release site to be a region expression. */
 int mdl_set_release_site_geometry_region(struct mdlparse_vars *parse_state,
                                          struct release_site_obj *rsop,
-                                         struct object *objp,
+                                         struct geom_object *objp,
                                          struct release_evaluator *re);
 
 /* Set the geometry for a particular release site to be an entire object. */
 int
 mdl_set_release_site_geometry_object(struct mdlparse_vars *parse_state,
                                      struct release_site_obj *rel_site_obj_ptr,
-                                     struct object *obj_ptr);
+                                     struct geom_object *obj_ptr);
 
 /* Set the molecule to be released from this release site. */
 int mdl_set_release_site_molecule(struct mdlparse_vars *parse_state,
@@ -498,7 +498,7 @@ mdl_new_tet_element_connection(struct mdlparse_vars *parse_state,
                                struct num_expr_list_head *indices);
 
 /* Create a new polygon list object. */
-struct object *
+struct geom_object *
 mdl_new_polygon_list(struct mdlparse_vars *parse_state, char *obj_name,
                      int n_vertices, struct vertex_list *vertices,
                      int n_connections,
@@ -507,7 +507,7 @@ mdl_new_polygon_list(struct mdlparse_vars *parse_state, char *obj_name,
 /* Finalize the polygon list, cleaning up any state updates that were made when
  * we started creating the polygon. */
 int mdl_finish_polygon_list(struct mdlparse_vars *parse_state,
-                            struct object *obj_ptr);
+                            struct geom_object *obj_ptr);
 
 /* Create a new voxel list object. */
 struct voxel_object *
@@ -539,11 +539,11 @@ int mdl_finish_box_object(struct mdlparse_vars *parse_state,
 
 /* Create a named region on an object. */
 struct region *mdl_create_region(struct mdlparse_vars *parse_state,
-                                 struct object *objp, char *name);
+                                 struct geom_object *objp, char *name);
 
 /* Get a region on an object, creating it if it does not exist yet. */
 struct region *mdl_get_region(struct mdlparse_vars *parse_state,
-                              struct object *objp, char *name);
+                              struct geom_object *objp, char *name);
 
 /* Begin construction of a region on an existing object. */
 int mdl_start_existing_obj_region_def(struct mdlparse_vars *parse_state,
@@ -568,7 +568,7 @@ struct element_list *mdl_new_element_side(struct mdlparse_vars *parse_state,
 /* Create a new element list for a "previous region" include/exclude statement.
  */
 struct element_list *mdl_new_element_previous_region(
-    struct mdlparse_vars *parse_state, struct object *objp,
+    struct mdlparse_vars *parse_state, struct geom_object *objp,
     struct region *rp_container, char *name_region_referent, int exclude);
 
 /* Allocate a new region element list item for an include/exclude PATCH
@@ -939,12 +939,12 @@ void transform_scale(double (*mat)[4], struct vector3 *scale);
 
 int transform_rotate(double (*mat)[4], struct vector3 *axis, double angle);
 
-void check_regions(struct object *rootInstance, struct object *child_head);
+void check_regions(struct geom_object *rootInstance, struct geom_object *child_head);
 
-int finish_polygon_list(struct object *obj_ptr,
+int finish_polygon_list(struct geom_object *obj_ptr,
                         struct object_creation *obj_creation);
 
-struct object *start_object(MCELL_STATE *state,
+struct geom_object *start_object(MCELL_STATE *state,
                             struct object_creation *obj_creation,
                             char *name,
                             int *error_code);

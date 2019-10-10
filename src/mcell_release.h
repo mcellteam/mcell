@@ -24,22 +24,22 @@
 #pragma once
 
 MCELL_STATUS mcell_create_list_release_site(
-  MCELL_STATE *state, struct object *parent, char *site_name,
+  MCELL_STATE *state, struct geom_object *parent, char *site_name,
   struct mcell_species *mol, double *x_pos, double *y_pos, double *z_pos, int n_site,
-  struct vector3 *diameter, struct object **new_object);
+  struct vector3 *diameter, struct geom_object **new_object);
 
 MCELL_STATUS mcell_create_geometrical_release_site(
-    MCELL_STATE *state, struct object *parent, char *site_name, int shape,
+    MCELL_STATE *state, struct geom_object *parent, char *site_name, int shape,
     struct vector3 *position, struct vector3 *diameter,
     struct mcell_species *mol, double num, int num_type, double release_prob,
-    struct release_pattern *rpatp, struct object **new_object);
+    struct release_pattern *rpatp, struct geom_object **new_object);
 
 MCELL_STATUS mcell_start_release_site(MCELL_STATE *state,
                                       struct sym_entry *sym_ptr,
-                                      struct object **obj);
+                                      struct geom_object **obj);
 
 MCELL_STATUS mcell_finish_release_site(struct sym_entry *sym_ptr,
-                                       struct object **obj);
+                                       struct geom_object **obj);
 
 /* FIXME: some of the functions below should probably not be part of the API
  * but the parser needs them right now */
@@ -47,18 +47,18 @@ int set_release_site_concentration(struct release_site_obj *rel_site_obj_ptr,
                                    double conc);
 
 MCELL_STATUS
-mcell_create_region_release(MCELL_STATE *state, struct object *parent,
-                            struct object *release_on_in, char *site_name,
+mcell_create_region_release(MCELL_STATE *state, struct geom_object *parent,
+                            struct geom_object *release_on_in, char *site_name,
                             char *reg_name, struct mcell_species *mol,
                             double num, int num_type, double rel_prob,
-                            struct release_pattern *rpatp, struct object **new_object);
+                            struct release_pattern *rpatp, struct geom_object **new_object);
 
 MCELL_STATUS
-mcell_create_region_release_boolean(MCELL_STATE *state, struct object *parent,
+mcell_create_region_release_boolean(MCELL_STATE *state, struct geom_object *parent,
                             char *site_name, struct mcell_species *mol,
                             double num, int num_type, double rel_prob,
                             struct release_pattern *rpatp, struct release_evaluator *rel_eval,
-                            struct object **new_object);
+                            struct geom_object **new_object);
 
 struct release_pattern *mcell_create_release_pattern(MCELL_STATE *state, char *name, double delay, 
                                  double release_interval, double train_interval,
@@ -66,10 +66,10 @@ struct release_pattern *mcell_create_release_pattern(MCELL_STATE *state, char *n
 
 int mcell_set_release_site_geometry_region(
     MCELL_STATE *state, struct release_site_obj *rel_site_obj_ptr,
-    struct object *objp, struct release_evaluator *re);
+    struct geom_object *objp, struct release_evaluator *re);
 
-int check_release_regions(struct release_evaluator *rel, struct object *parent,
-                          struct object *instance);
+int check_release_regions(struct release_evaluator *rel, struct geom_object *parent,
+                          struct geom_object *instance);
 
 int is_release_site_valid(struct release_site_obj *rel_site_obj_ptr);
 

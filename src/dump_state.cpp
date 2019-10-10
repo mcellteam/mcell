@@ -55,10 +55,10 @@ using namespace std;
 void dump_species(species* spec, const char* name, const char* comment, const char* ind);
 void dump_species_list(int n_species, const char* num_name, species** species_list, const char* name, const char* comment, const char* ind);
 void dump_species_item(species* spec, const char* ind);
-void dump_object_list(object* obj, const char* name, const char* comment, const char* ind);
+void dump_object_list(geom_object* obj, const char* name, const char* comment, const char* ind);
 void dump_wall_list(wall_list* list, const char* ind);
 void dump_wall_array(int num, wall** wall_array, const char* ind);
-void dump_object(object* o, const char* ind);
+void dump_object(geom_object* o, const char* ind);
 
 const char* str(const char* ptr) {
   if (ptr != nullptr) {
@@ -413,7 +413,7 @@ void dump_vector3_array(int num, const char* num_name, vector3* values, const ch
 }
 
 
-void dump_object(object* o, const char* ind) {
+void dump_object(geom_object* o, const char* ind) {
   if (o == nullptr) {
     return;
   }
@@ -454,9 +454,9 @@ void dump_object(object* o, const char* ind) {
 }
 
 
-void dump_object_list(object* obj, const char* name, const char* comment, const char* ind) {
+void dump_object_list(geom_object* obj, const char* name, const char* comment, const char* ind) {
   cout << ind << name << " " << comment << "\n";
-  object* curr = obj;
+  geom_object* curr = obj;
   int i = 0;
   while (curr != NULL) {
     cout << ind << i << ":\n";
@@ -881,7 +881,7 @@ void dump_reaction_hash_table(int rx_hashsize, const char* num_name, rxn **react
 
 
 void dump_region_data_owners(
-    int n_objects, int* obj_index, object** owners, const char* name, const char* comments, const char* ind
+    int n_objects, int* obj_index, geom_object** owners, const char* name, const char* comments, const char* ind
 ) {
   cout << ind << "owners: **\t\t" << owners << " [object] \t\t/* Array of pointers to each object */\n";
 

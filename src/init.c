@@ -69,18 +69,18 @@ struct reschedule_helper {
 /* Initialize the visualization output (frame_data_lists). */
 static int init_viz_output(struct volume *world);
 
-static int compute_bb(struct volume *world, struct object *objp,
+static int compute_bb(struct volume *world, struct geom_object *objp,
                       double (*im)[4]);
-static int compute_bb_release_site(struct volume *world, struct object *objp,
+static int compute_bb_release_site(struct volume *world, struct geom_object *objp,
                                    double (*im)[4]);
-static int compute_bb_polygon_object(struct volume *world, struct object *objp,
+static int compute_bb_polygon_object(struct volume *world, struct geom_object *objp,
                                      double (*im)[4]);
 
 static int init_species_defaults(struct volume *world);
 static int init_regions_helper(struct volume *world);
 
 static struct ccn_clamp_data* find_clamped_object_in_list(struct ccn_clamp_data *ccd,
-  struct object *obj);
+  struct geom_object *obj);
 
 #define MICROSEC_PER_YEAR 365.25 * 86400.0 * 1e6
 
@@ -470,7 +470,7 @@ int init_data_structures(struct volume *world) {
     return 1;
   }
 
-  world->root_object = (struct object *)sym->value;
+  world->root_object = (struct geom_object *)sym->value;
   world->root_object->object_type = META_OBJ;
   if (!(world->root_object->last_name = CHECKED_STRDUP_NODIE("", NULL))) {
     return 1;
@@ -483,7 +483,7 @@ int init_data_structures(struct volume *world) {
     return 1;
   }
 
-  world->root_instance = (struct object *)sym->value;
+  world->root_instance = (struct geom_object *)sym->value;
   world->root_instance->object_type = META_OBJ;
   if (!(world->root_instance->last_name = CHECKED_STRDUP("", NULL))) {
     return 1;
@@ -1617,13 +1617,13 @@ int init_bounding_box(struct volume *world) {
  * instance_polygon_object() to handle the actual instantiation of
  * those objects.
  */
-int instance_obj(struct volume *world, struct object *objp, double (*im)[4]) {
+int instance_obj(struct volume *world, struct geom_object *objp, double (*im)[4]) {
   double tm[4][4];
   mult_matrix(objp->t_matrix, im, tm, 4, 4, 4);
 
   switch (objp->object_type) {
   case META_OBJ:
-    for (struct object *child_objp = objp->first_child; child_objp != NULL;
+    for (struct geom_object *child_objp = objp->first_child; child_objp != NULL;
          child_objp = child_objp->next) {
       if (instance_obj(world, child_objp, tm))
         return 1;
@@ -1663,7 +1663,7 @@ accumulate_vertex_counts_per_storage:
              object vertex and recursively for object's children
 ************************************************************************/
 int accumulate_vertex_counts_per_storage(struct volume *world,
-                                         struct object *objp,
+                                         struct geom_object *objp,
                                          int *num_vertices_this_storage,
                                          double (*im)[4]) {
   double tm[4][4];
@@ -1671,7 +1671,7 @@ int accumulate_vertex_counts_per_storage(struct volume *world,
 
   switch (objp->object_type) {
   case META_OBJ:
-    for (struct object *child_objp = objp->first_child; child_objp != NULL;
+    for (struct geom_object *child_objp = objp->first_child; child_objp != NULL;
          child_objp = child_objp->next) {
       if (accumulate_vertex_counts_per_storage(world, child_objp,
                                                num_vertices_this_storage, tm))
@@ -1708,7 +1708,7 @@ accumulate_vertex_counts_per_storage_polygon_object:
              polygon object vertex
 **************************************************************************/
 int accumulate_vertex_counts_per_storage_polygon_object(
-    struct volume *world, struct object *objp, int *num_vertices_this_storage,
+    struct volume *world, struct geom_object *objp, int *num_vertices_this_storage,
     double (*im)[4]) {
   struct vertex_list *vl;
   struct vector3 v;
@@ -1778,14 +1778,14 @@ fill_world_vertices_array:
         Out: 0 if successful (the array "world->all_vertices" is filled),
              1 - on failure
 ************************************************************************/
-int fill_world_vertices_array(struct volume *world, struct object *objp,
+int fill_world_vertices_array(struct volume *world, struct geom_object *objp,
                               int *num_vertices_this_storage, double (*im)[4]) {
   double tm[4][4];
   mult_matrix(objp->t_matrix, im, tm, 4, 4, 4);
 
   switch (objp->object_type) {
   case META_OBJ:
-    for (struct object *child_objp = objp->first_child; child_objp != NULL;
+    for (struct geom_object *child_objp = objp->first_child; child_objp != NULL;
          child_objp = child_objp->next) {
       if (fill_world_vertices_array(world, child_objp,
                                     num_vertices_this_storage, tm))
@@ -1823,7 +1823,7 @@ fill_world_vertices_array_polygon_object:
              1 - on failure
 ************************************************************************/
 int fill_world_vertices_array_polygon_object(struct volume *world,
-                                             struct object *objp,
+                                             struct geom_object *objp,
                                              int *num_vertices_this_storage,
                                              double (*im)[4]) {
 
@@ -1868,7 +1868,7 @@ int fill_world_vertices_array_polygon_object(struct volume *world,
  * Adds the rel
  */
 int instance_release_site(struct mem_helper *magic_mem,
-                          struct schedule_helper *releaser, struct object *objp,
+                          struct schedule_helper *releaser, struct geom_object *objp,
                           double (*im)[4]) {
 
   struct release_event_queue *reqp;
@@ -1926,14 +1926,14 @@ int instance_release_site(struct mem_helper *magic_mem,
  * Computes the bounding box for the entire simulation world.
  * Does things recursively in a manner similar to instance_obj().
  */
-static int compute_bb(struct volume *world, struct object *objp,
+static int compute_bb(struct volume *world, struct geom_object *objp,
                       double (*im)[4]) {
   double tm[4][4];
   mult_matrix(objp->t_matrix, im, tm, 4, 4, 4);
 
   switch (objp->object_type) {
   case META_OBJ:
-    for (struct object *child_objp = objp->first_child; child_objp != NULL;
+    for (struct geom_object *child_objp = objp->first_child; child_objp != NULL;
          child_objp = child_objp->next) {
       if (compute_bb(world, child_objp, tm))
         return 1;
@@ -1964,7 +1964,7 @@ static int compute_bb(struct volume *world, struct object *objp,
  * and location of a release site.
  * Used by compute_bb().
  */
-static int compute_bb_release_site(struct volume *world, struct object *objp,
+static int compute_bb_release_site(struct volume *world, struct geom_object *objp,
                                    double (*im)[4]) {
 
   struct release_site_obj *rsop = (struct release_site_obj *)objp->contents;
@@ -2021,7 +2021,7 @@ static int compute_bb_release_site(struct volume *world, struct object *objp,
    "pop->parsed_vertices" array.
  * Used by compute_bb().
  */
-static int compute_bb_polygon_object(struct volume *world, struct object *objp,
+static int compute_bb_polygon_object(struct volume *world, struct geom_object *objp,
                                      double (*im)[4]) {
 
   struct polygon_object *pop = (struct polygon_object *)objp->contents;
@@ -2060,7 +2060,7 @@ static int compute_bb_polygon_object(struct volume *world, struct object *objp,
  * <br>
  */
 int instance_polygon_object(enum warn_level_t degenerate_polys,
-                            struct object *objp) {
+                            struct geom_object *objp) {
 
   int index_0, index_1, index_2;
   unsigned int degenerate_count;
@@ -2192,10 +2192,10 @@ void init_clamp_lists(struct ccn_clamp_data *clamp_list) {
  * Traverse through metaobjects, placing regions on real objects as we find
  * them.
  */
-int instance_obj_regions(struct volume *world, struct object *objp) {
+int instance_obj_regions(struct volume *world, struct geom_object *objp) {
   switch (objp->object_type) {
   case META_OBJ:
-    for (struct object *child_objp = objp->first_child; child_objp != NULL;
+    for (struct geom_object *child_objp = objp->first_child; child_objp != NULL;
          child_objp = child_objp->next) {
       if (instance_obj_regions(world, child_objp))
         return 1;
@@ -2231,7 +2231,7 @@ int instance_obj_regions(struct volume *world, struct object *objp) {
  */
 int init_wall_regions(double length_unit, struct ccn_clamp_data *clamp_list,
                       struct species **species_list, int n_species,
-                      struct object *objp) {
+                      struct geom_object *objp) {
   struct wall *w;
   struct region *rp;
   struct region_list *rlp, *wrlp;
@@ -2537,8 +2537,8 @@ int init_surf_mols(struct volume *world) {
     In:  struct object *objp - the object upon which to instantiate molecules
     Out: 0 on success, 1 on failure
  *******************************************************************/
-int instance_obj_surf_mols(struct volume *world, struct object *objp) {
-  struct object *child_objp;
+int instance_obj_surf_mols(struct volume *world, struct geom_object *objp) {
+  struct geom_object *child_objp;
 
   switch (objp->object_type) {
   case META_OBJ:
@@ -2572,7 +2572,7 @@ int instance_obj_surf_mols(struct volume *world, struct object *objp) {
     In:  struct object *objp - the object upon which to instantiate molecules
     Out: 0 on success, 1 on failure
  *******************************************************************/
-int init_wall_surf_mols(struct volume *world, struct object *objp) {
+int init_wall_surf_mols(struct volume *world, struct geom_object *objp) {
   struct sm_dat *smdp, *dup_smdp, **sm_prop;
   struct region_list *rlp, *rlp2, *reg_sm_num_head;
   /* byte all_region; */ /* flag that points to the region called ALL */
@@ -2722,7 +2722,7 @@ int init_surf_mols_by_density(struct volume *world, struct wall *w,
 
   if (create_grid(world, w, NULL))
     mcell_allocfailed("Failed to create grid for wall.");
-  struct object *objp = w->parent_object;
+  struct geom_object *objp = w->parent_object;
 
   int num_sm_dat = 0;
   for (struct sm_dat *smdp = smdp_head; smdp != NULL; smdp = smdp->next)
@@ -2835,7 +2835,7 @@ int init_surf_mols_by_density(struct volume *world, struct wall *w,
          struct region_list *reg_sm_num_head - list of what to place
     Out: 0 on success, 1 on failure
  *******************************************************************/
-int init_surf_mols_by_number(struct volume *world, struct object *objp,
+int init_surf_mols_by_number(struct volume *world, struct geom_object *objp,
                              struct region_list *reg_sm_num_head) {
   static struct surface_molecule DUMMY_MOLECULE;
   static struct surface_molecule *bread_crumb = &DUMMY_MOLECULE;
@@ -3292,9 +3292,9 @@ find_unique_rev_objects:
        expression (no duplicates), or NULL if out of memory.  The
        second argument is set to the length of the array.
 ***************************************************************************/
-static struct object **find_unique_rev_objects(struct release_evaluator *root,
+static struct geom_object **find_unique_rev_objects(struct release_evaluator *root,
                                                int *n) {
-  struct object **o_array;
+  struct geom_object **o_array;
   struct void_list *vp, *vq;
   struct mem_helper *voidmem;
   int n_unique;
@@ -3322,11 +3322,11 @@ static struct object **find_unique_rev_objects(struct release_evaluator *root,
     n_unique--;
   *n = n_unique;
 
-  o_array = CHECKED_MALLOC_ARRAY(struct object *, n_unique,
+  o_array = CHECKED_MALLOC_ARRAY(struct geom_object *, n_unique,
                                  "object array for region release");
   vq = vp;
   for (unsigned int n_obj = 0; vq != NULL; vq = vq->next, ++n_obj)
-    o_array[n_obj] = (struct object *)vq->data;
+    o_array[n_obj] = (struct geom_object *)vq->data;
 
   delete_mem(voidmem);
 
@@ -3345,7 +3345,7 @@ eval_rel_region_expr:
        this release site.
 ***************************************************************************/
 static int eval_rel_region_expr(struct release_evaluator *expr, int n,
-                                struct object **objs,
+                                struct geom_object **objs,
                                 struct bit_array **result) {
   char bit_op;
 
@@ -6769,7 +6769,7 @@ int check_for_overlapped_walls(
 /* this function checks if obj is contained in the linked list of objects
  * which have the passed-in concentration clamp */
 struct ccn_clamp_data* find_clamped_object_in_list(struct ccn_clamp_data *ccd,
-  struct object *obj) {
+  struct geom_object *obj) {
   struct ccn_clamp_data *c = ccd;
   while (c->next_obj != NULL) {
     if (c->next_obj->objp == obj) {

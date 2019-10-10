@@ -1310,11 +1310,11 @@ destroy_objects:
   Note: Currently, this ultimately only destroys polygon objects. I don't know
         if there's a need to trash release objects that use release patterns.
 ***************************************************************************/
-int destroy_objects(struct object *obj_ptr, int free_poly_flag) {
+int destroy_objects(struct geom_object *obj_ptr, int free_poly_flag) {
   obj_ptr->sym->count = 0;
   switch (obj_ptr->object_type) {
   case META_OBJ:
-    for (struct object *child_obj_ptr = obj_ptr->first_child;
+    for (struct geom_object *child_obj_ptr = obj_ptr->first_child;
          child_obj_ptr != NULL; child_obj_ptr = child_obj_ptr->next) {
       destroy_objects(child_obj_ptr, free_poly_flag);
       child_obj_ptr->n_walls = 0;
@@ -1346,7 +1346,7 @@ destroy_poly_object:
       object (child of root_insance), so we only want to free it once.
   Out: Zero on success. One otherwise. Polygon object is destroyed
 ***************************************************************************/
-int destroy_poly_object(struct object *obj_ptr, int free_poly_flag) {
+int destroy_poly_object(struct geom_object *obj_ptr, int free_poly_flag) {
   if (free_poly_flag) {
     for (int wall_num = 0; wall_num < obj_ptr->n_walls; wall_num++) {
       struct wall *w = obj_ptr->wall_p[wall_num];
@@ -1629,7 +1629,7 @@ find_sm_region_transp:
   Out: Zero on success. Create a data structure so we can quickly check if a
   surface molecule species can move in or out of any given surface region
 ***************************************************************************/
-int find_sm_region_transp(struct object *obj_ptr,
+int find_sm_region_transp(struct geom_object *obj_ptr,
                           struct mesh_transparency **mesh_transp_head,
                           struct mesh_transparency **mesh_transp_tail,
                           char *species_name) {
@@ -1721,7 +1721,7 @@ find_vm_obj_region_transp:
   Out: Zero on success. Check every region on obj_ptr to see if any of them are
        transparent to the volume molecules with species_name.
 ***************************************************************************/
-int find_vm_obj_region_transp(struct object *obj_ptr,
+int find_vm_obj_region_transp(struct geom_object *obj_ptr,
                               struct mesh_transparency **mesh_transp_head,
                               struct mesh_transparency **mesh_transp_tail,
                               char *species_name) {
@@ -1801,7 +1801,7 @@ find_all_obj_region_transp:
   Out: Zero on success. Check every polygon object to see if it is transparent
        to species_name.
 ***************************************************************************/
-int find_all_obj_region_transp(struct object *obj_ptr,
+int find_all_obj_region_transp(struct geom_object *obj_ptr,
                                struct mesh_transparency **mesh_transp_head,
                                struct mesh_transparency **mesh_transp_tail,
                                char *species_name,
@@ -1809,7 +1809,7 @@ int find_all_obj_region_transp(struct object *obj_ptr,
 
   switch (obj_ptr->object_type) {
   case META_OBJ:
-    for (struct object *child_obj_ptr = obj_ptr->first_child;
+    for (struct geom_object *child_obj_ptr = obj_ptr->first_child;
          child_obj_ptr != NULL; child_obj_ptr = child_obj_ptr->next) {
       if (find_all_obj_region_transp(
           child_obj_ptr, mesh_transp_head, mesh_transp_tail, species_name,
@@ -1978,11 +1978,11 @@ int add_dynamic_geometry_events(
  Out: mesh_names is updated so that it contains a list of all the mesh objects
       with their fully qualified names.
  ***********************************************************************/
-char *get_mesh_instantiation_names(struct object *obj_ptr,
+char *get_mesh_instantiation_names(struct geom_object *obj_ptr,
                                    struct string_buffer *mesh_names) {
   switch (obj_ptr->object_type) {
   case META_OBJ:
-    for (struct object *child_obj_ptr = obj_ptr->first_child;
+    for (struct geom_object *child_obj_ptr = obj_ptr->first_child;
          child_obj_ptr != NULL; child_obj_ptr = child_obj_ptr->next) {
       char *mesh_name = get_mesh_instantiation_names(
           child_obj_ptr, mesh_names);
@@ -2108,12 +2108,12 @@ get_reg_names_all_objects:
   Out: 0 on success, 1 on failure.
 ***************************************************************************/
 int get_reg_names_all_objects(
-    struct object *obj_ptr,
+    struct geom_object *obj_ptr,
     struct string_buffer *region_names) {
 
   switch (obj_ptr->object_type) {
   case META_OBJ:
-    for (struct object *child_obj_ptr = obj_ptr->first_child;
+    for (struct geom_object *child_obj_ptr = obj_ptr->first_child;
          child_obj_ptr != NULL; child_obj_ptr = child_obj_ptr->next) {
       if (get_reg_names_all_objects(child_obj_ptr, region_names))
         return 1;
@@ -2141,7 +2141,7 @@ get_reg_names_this_object:
   Out: 0 on success, 1 on failure.
 ***************************************************************************/
 int get_reg_names_this_object(
-    struct object *obj_ptr,
+    struct geom_object *obj_ptr,
     struct string_buffer *region_names) {
   for (struct region_list *reg_list_ptr = obj_ptr->regions;
        reg_list_ptr != NULL;

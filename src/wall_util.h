@@ -73,7 +73,7 @@ void ehtable_kill(struct edge_hashtable *eht);
 
 int surface_net(struct wall **facelist, int nfaces);
 void init_edge_transform(struct edge *e, int edgenum);
-int sharpen_object(struct object *parent);
+int sharpen_object(struct geom_object *parent);
 
 int sharpen_world(struct volume *world);
 
@@ -101,14 +101,14 @@ int collide_mol(struct vector3 *point, struct vector3 *move,
 
 int intersect_box(struct vector3 *llf, struct vector3 *urb, struct wall *w);
 
-void init_tri_wall(struct object *objp, int side, struct vector3 *v0,
+void init_tri_wall(struct geom_object *objp, int side, struct vector3 *v0,
                    struct vector3 *v1, struct vector3 *v2);
 
 struct wall_list *wall_to_vol(struct wall *w, struct subvolume *sv);
 
 struct wall *localize_wall(struct wall *w, struct storage *stor);
 
-int distribute_object(struct volume *world, struct object *parent);
+int distribute_object(struct volume *world, struct geom_object *parent);
 
 int distribute_world(struct volume *world);
 
@@ -153,11 +153,11 @@ find_restricted_regions_by_wall(struct volume *world, struct wall *this_wall,
                                 struct surface_molecule *sm);
 
 struct region_list *
-find_restricted_regions_by_object(struct volume *world, struct object *obj,
+find_restricted_regions_by_object(struct volume *world, struct geom_object *obj,
                                   struct surface_molecule *sm);
 
 int are_restricted_regions_for_species_on_object(struct volume *world,
-                                                 struct object *obj,
+                                                 struct geom_object *obj,
                                                  struct surface_molecule *sm);
 
 int is_wall_edge_region_border(struct wall *this_wall, struct edge *this_edge);

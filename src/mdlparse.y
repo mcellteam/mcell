@@ -31,7 +31,7 @@
 
   /* make sure to declare yyscan_t before including mdlparse.h */
   typedef void *yyscan_t;
-  #include "mdlparse.h"
+  #include "mdlparse.hpp"
 
   int mdllex_init(yyscan_t *ptr_yy_globals) ;
   int mdllex_destroy(yyscan_t yyscanner);
@@ -101,7 +101,7 @@ struct vertex_list_head vertlist;
 struct vertex_list *vertlistitem;
 struct element_connection_list_head ecl;
 struct element_connection_list *elem_conn;
-struct object *obj;
+struct geom_object *obj;
 struct object_list obj_list;
 struct voxel_object *voxel;
 
@@ -1575,10 +1575,10 @@ object_def: meta_object_def
 ;
 
 /* This non-terminal has dangerous side effects, modifying the global parser
- * state.  Notably, it updates current_object and adds a name to the object
+ * state.  Notably, it updates current_object and adds a name to the geom_object
  * name-list.  Each occurrence of this non-terminal in the grammar MUST have a
  * corresponding end_object (or must explicitly call mdl_finish_object(parse_state))
- * when the object scope is closed.
+ * when the geom_object scope is closed.
  */
 new_object: var                                       { CHECKN($$ = mdl_start_object(parse_state, $1)); }
 ;
@@ -1611,7 +1611,7 @@ meta_object_def:
           list_objects
           list_opt_object_cmds
         end_object                                    {
-                                                          struct object *the_object = (struct object *) $1->value;
+                                                          struct geom_object *the_object = (struct geom_object *) $1->value;
                                                           the_object->object_type = META_OBJ;
                                                           add_child_objects(the_object, $4.obj_head, $4.obj_tail);
                                                           $$ = the_object;
@@ -1629,9 +1629,9 @@ object_ref: existing_object_ref
 
 existing_object_ref:
         new_object OBJECT existing_object
-        start_object                                  { CHECK(mdl_deep_copy_object(parse_state, (struct object *) $1->value, (struct object *) $3->value)); }
+        start_object                                  { CHECK(mdl_deep_copy_object(parse_state, (struct geom_object *) $1->value, (struct geom_object *) $3->value)); }
           list_opt_object_cmds
-        end_object                                    { $$ = (struct object *) $1->value; }
+        end_object                                    { $$ = (struct geom_object *) $1->value; }
 ;
 
 /* Object type: Release sites */
@@ -1649,7 +1649,7 @@ release_site_def_new:
 ;
 
 release_site_geom: SHAPE '=' release_region_expr      { CHECK(mdl_set_release_site_geometry_region(parse_state, parse_state->current_release_site, parse_state->current_object, $3)); }
-                 | SHAPE '=' existing_object          { CHECK(mdl_set_release_site_geometry_object(parse_state, parse_state->current_release_site, (struct object *) $3->value)); }
+                 | SHAPE '=' existing_object          { CHECK(mdl_set_release_site_geometry_object(parse_state, parse_state->current_release_site, (struct geom_object *) $3->value)); }
                  | SHAPE '=' SPHERICAL                { parse_state->current_release_site->release_shape = SHAPE_SPHERICAL; }
                  | SHAPE '=' CUBIC                    { parse_state->current_release_site->release_shape = SHAPE_CUBIC; }
                  | SHAPE '=' ELLIPTIC                 { parse_state->current_release_site->release_shape = SHAPE_ELLIPTIC; }
@@ -1782,7 +1782,7 @@ polygon_list_def:
           /*end_object*/
           '}'
                                                       {
-                                                          $$ = (struct object *) $<obj>6;
+                                                          $$ = (struct geom_object *) $<obj>6;
                                                           CHECK(mdl_finish_polygon_list(parse_state, $$));
                                                       }
 ;
@@ -1929,7 +1929,7 @@ voxel_list_def:
                                                                                   $5.connection_count, $5.connection_head));
                                                       }
             list_opt_object_cmds
-          end_object                                  { $$ = (struct object *) $1->value; }
+          end_object                                  { $$ = (struct geom_object *) $1->value; }
 ;
 
 tet_element_connection_cmd:
@@ -1970,7 +1970,7 @@ box_def: new_object BOX
             list_opt_object_cmds
           end_object                                  {
                                                           CHECK(mdl_finish_box_object(parse_state, $1));
-                                                          $$ = (struct object *) $1->value;
+                                                          $$ = (struct geom_object *) $1->value;
                                                       }
 ;
 
@@ -2752,7 +2752,7 @@ int mdlparse_init(struct volume *vol)
     failure = 1;
   }
 
-  /* Free leftover object names */
+  /* Free leftover geom_object names */
   while (mpv.object_name_list)
   {
     struct name_list *l = mpv.object_name_list->next;

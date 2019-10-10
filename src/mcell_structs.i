@@ -1,28 +1,28 @@
 #define ORIENT_NOT_SET -100
 
 /* Container data structure for all physical objects */
-struct object {
-  struct object *next;        /* Next sibling object */
-  struct object *parent;      /* Parent meta object */
-  struct object *first_child; /* First child object */
-  struct object *last_child;  /* Last child object */
-  struct sym_entry *sym;      /* Symbol hash table entry for this object */
-  char *last_name; /* Name of object without pre-pended parent object name */
+struct geom_object {
+  struct geom_object *next;        /* Next sibling geom_object */
+  struct geom_object *parent;      /* Parent meta geom_object */
+  struct geom_object *first_child; /* First child geom_object */
+  struct geom_object *last_child;  /* Last child geom_object */
+  struct sym_entry *sym;      /* Symbol hash table entry for this geom_object */
+  char *last_name; /* Name of geom_object without pre-pended parent geom_object name */
   enum object_type_t object_type; /* Object Type Flags */
-  void *contents;    /* Actual physical object, cast according to object_type */
-  u_int num_regions; /* Number of regions defined on object */
-  struct region_list *regions; /* List of regions for this object */
-  int n_walls;                 /* Total number of walls in object */
-  int n_walls_actual;          /* Number of non-null walls in object */
-  struct wall *walls;          /* Array of walls in object */
-  struct wall **wall_p; // Array of ptrs to walls in object (used at run-time)
-  int n_verts;               /* Total number of vertices in object */
+  void *contents;    /* Actual physical geom_object, cast according to object_type */
+  u_int num_regions; /* Number of regions defined on geom_object */
+  struct region_list *regions; /* List of regions for this geom_object */
+  int n_walls;                 /* Total number of walls in geom_object */
+  int n_walls_actual;          /* Number of non-null walls in geom_object */
+  struct wall *walls;          /* Array of walls in geom_object */
+  struct wall **wall_p; // Array of ptrs to walls in geom_object (used at run-time)
+  int n_verts;               /* Total number of vertices in geom_object */
   struct vector3 **vertices; /* Array of pointers to vertices
                                 (linked to "all_vertices" array) */
-  double total_area;      /* Area of object in length units */
-  u_int n_tiles;          /* Number of surface grid tiles on object */
-  u_int n_occupied_tiles; /* Number of occupied tiles on object */
-  double t_matrix[4][4];  /* Transformation matrix for object */
+  double total_area;      /* Area of geom_object in length units */
+  u_int n_tiles;          /* Number of surface grid tiles on geom_object */
+  u_int n_occupied_tiles; /* Number of occupied tiles on geom_object */
+  double t_matrix[4][4];  /* Transformation matrix for geom_object */
 
   bool periodic_x; // This flag only applies to box objects BOX_OBJ. If set
   bool periodic_y; // any volume molecules encountering the box surface in the x,
@@ -108,7 +108,7 @@ struct release_pattern {
 struct release_evaluator {
   byte op;    /* Region Expression Flags: the operation used */
   void *left; /* The left side of the expression--another evaluator or a region
-                 object depending on bitmask of op */
+                 geom_object depending on bitmask of op */
   void *right; /* The right side--same thing */
 };
 

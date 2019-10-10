@@ -67,10 +67,10 @@ public:
   bool convert_simulation_setup(volume* s);
 
 
-  void create_uninitialized_walls_for_polygonal_object(const object* o);
+  void create_uninitialized_walls_for_polygonal_object(const geom_object* o);
 
   bool convert_wall(const wall* w, GeometryObject& object);
-  bool convert_polygonal_object(const object* o);
+  bool convert_polygonal_object(const geom_object* o);
   bool convert_geometry_objects(volume* s);
 
   void create_diffusion_events();

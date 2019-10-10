@@ -25,7 +25,7 @@
 struct object_creation {
   struct name_list *object_name_list;
   struct name_list *object_name_list_end;
-  struct object *current_object;
+  struct geom_object *current_object;
 };
 
 struct poly_object {
@@ -47,28 +47,28 @@ struct poly_object_list {
   struct poly_object_list *next;
 };
 
-%typemap(in) struct object **new_object (struct object *temp) {
+%typemap(in) struct geom_object **new_object (struct geom_object *temp) {
   $1 = &temp;
 }
 
-%typemap(argout) struct object **new_object {
+%typemap(argout) struct geom_object **new_object {
   %set_output(SWIG_NewPointerObj(SWIG_as_voidptr(*$1), $*1_descriptor, SWIG_POINTER_OWN));
 }
 
-/* object creation */
+/* geom_object creation */
 MCELL_STATUS mcell_create_instance_object(MCELL_STATE *state, char *name,
-                                          struct object **new_object);
+                                          struct geom_object **new_object);
 
-MCELL_STATUS mcell_create_poly_object(MCELL_STATE *state, struct object *parent,
+MCELL_STATUS mcell_create_poly_object(MCELL_STATE *state, struct geom_object *parent,
                                       struct poly_object *poly_obj,
-                                      struct object **new_object);
+                                      struct geom_object **new_object);
 
 struct polygon_object *
-new_polygon_list(MCELL_STATE *state, struct object *obj_ptr, int n_vertices,
+new_polygon_list(MCELL_STATE *state, struct geom_object *obj_ptr, int n_vertices,
                  struct vertex_list *vertices, int n_connections,
                  struct element_connection_list *connections);
 
-struct object *make_new_object(
+struct geom_object *make_new_object(
     struct dyngeom_parse_vars *dg_parse,
     struct sym_table_head *obj_sym_table,
     char *obj_name,
@@ -97,14 +97,14 @@ int mcell_set_region_elements(struct region *rgn, struct element_list *elements,
 struct element_list *mcell_add_to_region_list(struct element_list *elements,
                                               unsigned int region_idx);
 
-/* Adds children to a meta-object, aggregating counts of walls and vertices
+/* Adds children to a meta-geom_object, aggregating counts of walls and vertices
  * from the children into the specified parent. The children should already
  * have their parent pointers set. */
-void add_child_objects(struct object *parent, struct object *child_head,
-                       struct object *child_tail);
+void add_child_objects(struct geom_object *parent, struct geom_object *child_head,
+                       struct geom_object *child_tail);
 
 /* create regions */
-struct region *mcell_create_region(MCELL_STATE *state, struct object *objp,
+struct region *mcell_create_region(MCELL_STATE *state, struct geom_object *objp,
                                    char *name);
 
 struct region *make_new_region(
@@ -113,13 +113,13 @@ struct region *make_new_region(
     char *obj_name,
     char *region_last_name);
 
-/* Clean up the regions on an object, eliminating any removed walls. */
-void remove_gaps_from_regions(struct object *obj_ptr);
+/* Clean up the regions on an geom_object, eliminating any removed walls. */
+void remove_gaps_from_regions(struct geom_object *obj_ptr);
 
 /* lower level helper functions */
-int check_degenerate_polygon_list(struct object *obj_ptr);
+int check_degenerate_polygon_list(struct geom_object *obj_ptr);
 
-struct object *common_ancestor(struct object *a, struct object *b);
+struct geom_object *common_ancestor(struct geom_object *a, struct geom_object *b);
 
 struct polygon_object *allocate_polygon_object(char const *desc);
 
@@ -135,7 +135,7 @@ int cuboid_patch_to_bits(struct subdivided_box *subd_box, struct vector3 *v1,
 int check_patch(struct subdivided_box *b, struct vector3 *p1,
                 struct vector3 *p2, double egd);
 
-struct sym_entry *mcell_get_obj_sym(struct object *obj);
+struct sym_entry *mcell_get_obj_sym(struct geom_object *obj);
 struct sym_entry *mcell_get_reg_sym(struct region *reg);
 struct sym_entry * mcell_get_all_mol_sym(MCELL_STATE *state);
 struct sym_entry * mcell_get_all_volume_mol_sym(MCELL_STATE *state);

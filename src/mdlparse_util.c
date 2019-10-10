@@ -2337,11 +2337,11 @@ int mdl_keep_checkpoint_files(struct mdlparse_vars *parse_state,
       obj_name: fully qualified object name
  Out: the newly created object
 *************************************************************************/
-static struct object *mdl_make_new_object(struct mdlparse_vars *parse_state,
+static struct geom_object *mdl_make_new_object(struct mdlparse_vars *parse_state,
                                           char *obj_name) {
 
   int error_code = 0;
-  struct object *obj_ptr = make_new_object(
+  struct geom_object *obj_ptr = make_new_object(
       parse_state->vol->dg_parse,
       parse_state->vol->obj_sym_table,
       obj_name,
@@ -2379,7 +2379,7 @@ struct sym_entry *mdl_start_object(struct mdlparse_vars *parse_state,
 
   // Create the symbol, if it doesn't exist yet.
   int error_code = 0;
-  struct object *obj_ptr = make_new_object(
+  struct geom_object *obj_ptr = make_new_object(
       parse_state->vol->dg_parse,
       parse_state->vol->obj_sym_table,
       new_name,
@@ -2432,7 +2432,7 @@ void mdl_finish_object(struct mdlparse_vars *parse_state) {
       objp: object to add
  Out: none
 *************************************************************************/
-void mdl_object_list_singleton(struct object_list *head, struct object *objp) {
+void mdl_object_list_singleton(struct object_list *head, struct geom_object *objp) {
   objp->next = NULL;
   head->obj_tail = head->obj_head = objp;
 }
@@ -2445,7 +2445,7 @@ void mdl_object_list_singleton(struct object_list *head, struct object *objp) {
       objp: object to add
  Out: none
 *************************************************************************/
-void mdl_add_object_to_list(struct object_list *head, struct object *objp) {
+void mdl_add_object_to_list(struct object_list *head, struct geom_object *objp) {
   objp->next = NULL;
   head->obj_tail = head->obj_tail->next = objp;
 }
@@ -3026,7 +3026,7 @@ struct sym_table_list *mdl_meshes_by_wildcard(struct mdlparse_vars *parse_state,
   for (cur_match = matches; cur_match != NULL; cur_match = next_match) {
     next_match = cur_match->next;
 
-    struct object *objp = (struct object *)cur_match->node->value;
+    struct geom_object *objp = (struct geom_object *)cur_match->node->value;
     if (objp->object_type != POLY_OBJ && objp->object_type != BOX_OBJ) {
       *prev = cur_match->next;
       mem_put(parse_state->sym_list_mem, cur_match);
@@ -3122,8 +3122,8 @@ static struct region *mdl_make_new_region(struct mdlparse_vars *parse_state,
  Out: 0 on success, 1 on failure
 *************************************************************************/
 static int mdl_copy_object_regions(struct mdlparse_vars *parse_state,
-                                   struct object *dst_obj,
-                                   struct object *src_obj) {
+                                   struct geom_object *dst_obj,
+                                   struct geom_object *src_obj) {
   struct region_list *src_rlp;
   struct region *dst_reg, *src_reg;
   struct sm_dat *dst_sm, *src_sm;
@@ -3197,11 +3197,11 @@ static int mdl_copy_object_regions(struct mdlparse_vars *parse_state,
        find common ancestor, then go forward into the thing labeled "D,R").
 *************************************************************************/
 static struct region *
-find_corresponding_region(struct region *old_r, struct object *old_ob,
-                          struct object *new_ob, struct object *instance,
+find_corresponding_region(struct region *old_r, struct geom_object *old_ob,
+                          struct geom_object *new_ob, struct geom_object *instance,
                           struct sym_table_head *symhash) {
-  struct object *ancestor;
-  struct object *ob;
+  struct geom_object *ancestor;
+  struct geom_object *ob;
   struct sym_entry *gp;
 
   ancestor = common_ancestor(old_ob, old_r->parent);
@@ -3271,7 +3271,7 @@ find_corresponding_region(struct region *old_r, struct object *old_ob,
 *************************************************************************/
 static struct release_evaluator *duplicate_rel_region_expr(
     struct mdlparse_vars *parse_state, struct release_evaluator *expr,
-    struct object *old_self, struct object *new_self, struct object *instance) {
+    struct geom_object *old_self, struct geom_object *new_self, struct geom_object *instance) {
   struct release_evaluator *nexp = CHECKED_MALLOC_STRUCT(
       struct release_evaluator, "region release expression");
   if (nexp == NULL)
@@ -3345,8 +3345,8 @@ static struct release_evaluator *duplicate_rel_region_expr(
 *************************************************************************/
 static struct release_site_obj *
 duplicate_release_site(struct mdlparse_vars *parse_state,
-                       struct release_site_obj *old, struct object *new_self,
-                       struct object *instance) {
+                       struct release_site_obj *old, struct geom_object *new_self,
+                       struct geom_object *instance) {
   struct release_site_obj *rel_site_obj =
       CHECKED_MALLOC_STRUCT(struct release_site_obj, "release site");
   if (rel_site_obj == NULL) {
@@ -3429,7 +3429,7 @@ duplicate_release_site(struct mdlparse_vars *parse_state,
  Out: The newly created region
 *************************************************************************/
 int mdl_deep_copy_object(struct mdlparse_vars *parse_state,
-                         struct object *dst_obj, struct object *src_obj) {
+                         struct geom_object *dst_obj, struct geom_object *src_obj) {
 
   /* Copy over simple object attributes */
   dst_obj->object_type = src_obj->object_type;
@@ -3450,9 +3450,9 @@ int mdl_deep_copy_object(struct mdlparse_vars *parse_state,
   switch (dst_obj->object_type) {
   case META_OBJ:
     /* Copy children */
-    for (struct object *src_child = src_obj->first_child; src_child != NULL;
+    for (struct geom_object *src_child = src_obj->first_child; src_child != NULL;
          src_child = src_child->next) {
-      struct object *dst_child;
+      struct geom_object *dst_child;
       char *child_obj_name =
           CHECKED_SPRINTF("%s.%s", dst_obj->sym->name, src_child->last_name);
       if (child_obj_name == NULL)
@@ -4413,7 +4413,7 @@ int mdl_triangulate_box_object(struct mdlparse_vars *parse_state,
                                struct sym_entry *box_sym,
                                struct polygon_object *pop,
                                double box_aspect_ratio) {
-  struct object *objp = (struct object *)box_sym->value;
+  struct geom_object *objp = (struct geom_object *)box_sym->value;
 
   if (box_aspect_ratio >= 2.0) {
     if (reaspect_cuboid(parse_state, pop->sb, box_aspect_ratio)) {
@@ -4637,7 +4637,7 @@ int mdl_add_to_species_list(struct parse_mcell_species_list *list,
 **************************************************************************/
 int mdl_start_release_site(struct mdlparse_vars *parse_state,
                            struct sym_entry *symp, int shape) {
-  struct object *obj_ptr = NULL;
+  struct geom_object *obj_ptr = NULL;
   if (mcell_start_release_site(parse_state->vol, symp, &obj_ptr)) {
     return 1;
   }
@@ -4660,9 +4660,9 @@ int mdl_start_release_site(struct mdlparse_vars *parse_state,
  Out: the object, on success, or NULL on failure
  NOTE: This is just a thin wrapper around finish_release_site
 **************************************************************************/
-struct object *mdl_finish_release_site(struct mdlparse_vars *parse_state,
+struct geom_object *mdl_finish_release_site(struct mdlparse_vars *parse_state,
                                        struct sym_entry *symp) {
-  struct object *objp_new = NULL;
+  struct geom_object *objp_new = NULL;
   if (mcell_finish_release_site(symp, &objp_new)) {
     mcell_error_nodie("Failed to create release site %s", symp->name);
     return NULL;
@@ -4730,8 +4730,8 @@ int mdl_is_release_site_valid(struct mdlparse_vars *parse_state,
 *************************************************************************/
 static int mdl_check_release_regions(struct mdlparse_vars *parse_state,
                                      struct release_evaluator *rel_eval,
-                                     struct object *parent,
-                                     struct object *instance) {
+                                     struct geom_object *parent,
+                                     struct geom_object *instance) {
   switch (check_release_regions(rel_eval, parent, instance)) {
   case 1:
     return 1;
@@ -4760,7 +4760,7 @@ static int mdl_check_release_regions(struct mdlparse_vars *parse_state,
 int
 mdl_set_release_site_geometry_region(struct mdlparse_vars *parse_state,
                                      struct release_site_obj *rel_site_obj_ptr,
-                                     struct object *obj_ptr,
+                                     struct geom_object *obj_ptr,
                                      struct release_evaluator *rel_eval) {
   switch (mcell_set_release_site_geometry_region(
       parse_state->vol, rel_site_obj_ptr, obj_ptr, rel_eval)) {
@@ -4790,7 +4790,7 @@ mdl_set_release_site_geometry_region(struct mdlparse_vars *parse_state,
 int
 mdl_set_release_site_geometry_object(struct mdlparse_vars *parse_state,
                                      struct release_site_obj *rel_site_obj_ptr,
-                                     struct object *obj_ptr) {
+                                     struct geom_object *obj_ptr) {
   if ((obj_ptr->object_type == META_OBJ) ||
       (obj_ptr->object_type == REL_SITE_OBJ)) {
     mdlerror(
@@ -5423,7 +5423,7 @@ mdl_new_tet_element_connection(struct mdlparse_vars *parse_state,
      connections: list of walls
  Out: polygon object, or NULL if there was an error
 **************************************************************************/
-struct object *
+struct geom_object *
 mdl_new_polygon_list(struct mdlparse_vars *parse_state, char *obj_name,
                      int n_vertices, struct vertex_list *vertices,
                      int n_connections,
@@ -5440,7 +5440,7 @@ mdl_new_polygon_list(struct mdlparse_vars *parse_state, char *obj_name,
         "defined/instantiated through the dynamic geometry file.");
   }
   int error_code = 0;
-  struct object *obj_ptr =
+  struct geom_object *obj_ptr =
       start_object(parse_state->vol, &obj_creation, obj_name, &error_code);
   if (error_code == 1) {
     mdlerror_fmt(parse_state,"Object '%s' is already defined", obj_name);
@@ -5474,7 +5474,7 @@ mdl_new_polygon_list(struct mdlparse_vars *parse_state, char *obj_name,
  Out: 1 on failure, 0 on success
 **************************************************************************/
 int mdl_finish_polygon_list(struct mdlparse_vars *parse_state,
-                            struct object *obj_ptr) {
+                            struct geom_object *obj_ptr) {
   struct object_creation obj_creation;
   obj_creation.object_name_list_end = parse_state->object_name_list_end;
 
@@ -5530,7 +5530,7 @@ mdl_new_voxel_list(struct mdlparse_vars *parse_state, struct sym_entry *sym,
                    struct element_connection_list *connections) {
   struct tet_element_data *tedp;
 
-  struct object *objp = (struct object *)sym->value;
+  struct geom_object *objp = (struct geom_object *)sym->value;
   struct voxel_object *vop = allocate_voxel_object();
   if (vop == NULL)
     goto failure;
@@ -5607,7 +5607,7 @@ struct polygon_object *mdl_create_periodic_box(
   strcpy(name, name_tmp);
 
   struct sym_entry *sym = mdl_start_object(parse_state, name);
-  struct object *objp = (struct object *)sym->value;
+  struct geom_object *objp = (struct geom_object *)sym->value;
 
   /* Allocate polygon object */
   pop = allocate_polygon_object("box object");
@@ -5669,7 +5669,7 @@ int mdl_finish_periodic_box(struct mdlparse_vars *parse_state) {
   if (symp == NULL) {
     mcell_error("Cannot create PERIODIC_BOX_OBJ.");
   }
-  struct object *objp = (struct object *)symp->value;
+  struct geom_object *objp = (struct geom_object *)symp->value;
   remove_gaps_from_regions(objp);
   objp->n_walls = parse_state->current_polygon->n_walls;
   objp->n_verts = parse_state->current_polygon->n_verts;
@@ -5693,7 +5693,7 @@ int mdl_finish_periodic_box(struct mdlparse_vars *parse_state) {
   strcpy(meta_name, meta_name_tmp);
 
   struct sym_entry *meta_sym = mdl_start_object(parse_state, meta_name);
-  struct object *meta_objp = (struct object *)meta_sym->value;
+  struct geom_object *meta_objp = (struct geom_object *)meta_sym->value;
 
   meta_objp->object_type = META_OBJ;
 
@@ -5704,7 +5704,7 @@ int mdl_finish_periodic_box(struct mdlparse_vars *parse_state) {
   strcpy(inst_name, inst_name_tmp);
 
   struct sym_entry *inst_sym = mdl_start_object(parse_state, inst_name);
-  struct object *inst_objp = (struct object *)inst_sym->value;
+  struct geom_object *inst_objp = (struct geom_object *)inst_sym->value;
 
   mdl_deep_copy_object(parse_state, inst_objp, objp);
 
@@ -5736,7 +5736,7 @@ struct polygon_object *mdl_new_box_object(struct mdlparse_vars *parse_state,
                                           struct vector3 *urb) {
   struct polygon_object *pop;
   struct region *rp;
-  struct object *objp = (struct object *)sym->value;
+  struct geom_object *objp = (struct geom_object *)sym->value;
 
 
   /* Allocate polygon object */
@@ -5797,7 +5797,7 @@ struct polygon_object *mdl_new_box_object(struct mdlparse_vars *parse_state,
 **************************************************************************/
 int mdl_finish_box_object(struct mdlparse_vars *parse_state,
                           struct sym_entry *symp) {
-  struct object *objp = (struct object *)symp->value;
+  struct geom_object *objp = (struct geom_object *)symp->value;
   remove_gaps_from_regions(objp);
   objp->n_walls = parse_state->current_polygon->n_walls;
   objp->n_verts = parse_state->current_polygon->n_verts;
@@ -5821,7 +5821,7 @@ int mdl_finish_box_object(struct mdlparse_vars *parse_state,
       allocation failed)
 **************************************************************************/
 struct region *mdl_create_region(struct mdlparse_vars *parse_state,
-                                 struct object *objp, char *name) {
+                                 struct geom_object *objp, char *name) {
   struct region *rp;
   struct region_list *rlp;
   no_printf("Creating new region: %s\n", name);
@@ -5859,7 +5859,7 @@ struct region *mdl_create_region(struct mdlparse_vars *parse_state,
  Out: region, or NULL if allocation fails
 **************************************************************************/
 struct region *mdl_get_region(struct mdlparse_vars *parse_state,
-                              struct object *objp, char *name) {
+                              struct geom_object *objp, char *name) {
   struct sym_entry *reg_sym;
   char *region_name;
   struct region *rp;
@@ -5889,7 +5889,7 @@ struct region *mdl_get_region(struct mdlparse_vars *parse_state,
 **************************************************************************/
 int mdl_start_existing_obj_region_def(struct mdlparse_vars *parse_state,
                                       struct sym_entry *obj_symp) {
-  struct object *objp = (struct object *)obj_symp->value;
+  struct geom_object *objp = (struct geom_object *)obj_symp->value;
   if (objp->object_type != BOX_OBJ && objp->object_type != POLY_OBJ) {
     mdlerror_fmt(parse_state, "Cannot define region on non-surface object: %s",
                  obj_symp->name);
@@ -5974,7 +5974,7 @@ struct element_list *mdl_new_element_side(struct mdlparse_vars *parse_state,
  Out: element list, or NULL if an error occrs
 **************************************************************************/
 struct element_list *mdl_new_element_previous_region(
-    struct mdlparse_vars *parse_state, struct object *objp,
+    struct mdlparse_vars *parse_state, struct geom_object *objp,
     struct region *rp_container, char *name_region_referent, int exclude) {
   struct sym_entry *stp;
   char *full_reg_name = NULL;
@@ -8521,10 +8521,10 @@ int transform_rotate(double (*mat)[4], struct vector3 *axis, double angle) {
  * correspond to properly instantiated objects.
  *
  *******************************************************************************/
-void check_regions(struct object *rootInstance, struct object *child) {
+void check_regions(struct geom_object *rootInstance, struct geom_object *child) {
 
   while (child != NULL) {
-    for (struct object *fc = child->first_child; fc != NULL; fc = fc->next) {
+    for (struct geom_object *fc = child->first_child; fc != NULL; fc = fc->next) {
       if (fc->object_type == REL_SITE_OBJ) {
         struct release_site_obj *rel =
             (struct release_site_obj *)(fc->contents);
@@ -8553,7 +8553,7 @@ void check_regions(struct object *rootInstance, struct object *child) {
  NOTE: This function call might be too low-level for what we want from the API,
        but it is needed to create polygon objects for now.
 **************************************************************************/
-int finish_polygon_list(struct object *obj_ptr,
+int finish_polygon_list(struct geom_object *obj_ptr,
                         struct object_creation *obj_creation) {
   pop_object_name(obj_creation);
   remove_gaps_from_regions(obj_ptr);
@@ -8579,7 +8579,7 @@ int finish_polygon_list(struct object *obj_ptr,
  Out: the newly created object
  NOTE: This is very similar to mdl_start_object, but there is no parse state.
 *************************************************************************/
-struct object *start_object(MCELL_STATE *state,
+struct geom_object *start_object(MCELL_STATE *state,
                             struct object_creation *obj_creation,
                             char *name,
                             int *error_code) {
@@ -8592,7 +8592,7 @@ struct object *start_object(MCELL_STATE *state,
 
   struct dyngeom_parse_vars *dg_parse = state->dg_parse;
   // Create the symbol, if it doesn't exist yet.
-  struct object *obj_ptr = make_new_object(
+  struct geom_object *obj_ptr = make_new_object(
       dg_parse,
       state->obj_sym_table,
       new_name,

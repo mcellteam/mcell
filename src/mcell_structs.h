@@ -896,7 +896,7 @@ struct wall {
 
   u_short flags; /* Count Flags: flags for whether and what we need to count */
 
-  struct object *parent_object; /* The object we are a part of */
+  struct geom_object *parent_object; /* The object we are a part of */
   struct storage *birthplace;   /* Where we live in memory */
 
   struct region_list *counting_regions; /* Counted-on regions containing this
@@ -1203,9 +1203,9 @@ struct volume {
   struct sym_table_head *rxpn_sym_table; /* Named reaction pathway hash table */
   struct sym_table_head *mol_ss_sym_table; /* Spatially structured molecule symbol hash table */
 
-  struct object *root_object;   /* Root of the object template tree */
-  struct object *root_instance; /* Root of the instantiated object tree */
-  struct object *periodic_box_obj;
+  struct geom_object *root_object;   /* Root of the object template tree */
+  struct geom_object *root_instance; /* Root of the instantiated object tree */
+  struct geom_object *periodic_box_obj;
 
   struct release_pattern *default_release_pattern; /* release once at t=0 */
 
@@ -1545,12 +1545,12 @@ struct release_region_data {
   int *obj_index;        /* Indices for objects (in owners array) */
 
   int n_objects;                 /* How many objects are there total */
-  struct object **owners;        /* Array of pointers to each object */
+  struct geom_object **owners;        /* Array of pointers to each object */
   struct bit_array **in_release; /* Array of bit arrays; each bit array says
                                     which walls are in release for an object */
   int *walls_per_obj; /* Number of walls in release for each object */
 
-  struct object *self; /* A pointer to our own release site object */
+  struct geom_object *self; /* A pointer to our own release site object */
   struct release_evaluator *expression; /* A set-construction expression
                                            combining regions to form this
                                            release site */
@@ -1635,7 +1635,7 @@ struct ccn_clamp_data {
   struct species *mol;        /* Which molecule does it clamp? */
   double concentration;       /* At which concentration? */
   short orient;               /* On which side? */
-  struct object *objp;        /* Which object are we clamping? */
+  struct geom_object *objp;        /* Which object are we clamping? */
   struct bit_array *sides;    /* Which walls in that object? */
   int n_sides;                /* How many walls? */
   int *side_idx;              /* Indices of the walls that are clamped */
@@ -1857,7 +1857,7 @@ struct region {
   struct sym_entry *sym;  /* Symbol hash table entry for this region */
   u_int hashval;          /* Hash value for counter hash table */
   char *region_last_name; /* Name of region without prepended object name */
-  struct object *parent;  /* Parent of this region */
+  struct geom_object *parent;  /* Parent of this region */
   struct element_list *element_list_head; /* List of element ranges comprising
                                              this region (used at parse time) */
   struct bit_array *membership; /* Each bit indicates whether the corresponding
@@ -1891,11 +1891,11 @@ struct region_list {
 };
 
 /* Container data structure for all physical objects */
-struct object {
-  struct object *next;        /* Next sibling object */
-  struct object *parent;      /* Parent meta object */
-  struct object *first_child; /* First child object */
-  struct object *last_child;  /* Last child object */
+struct geom_object {
+  struct geom_object *next;        /* Next sibling object */
+  struct geom_object *parent;      /* Parent meta object */
+  struct geom_object *first_child; /* First child object */
+  struct geom_object *last_child;  /* Last child object */
   struct sym_entry *sym;      /* Symbol hash table entry for this object */
   char *last_name; /* Name of object without pre-pended parent object name */
   enum object_type_t object_type; /* Object Type Flags */
@@ -2072,8 +2072,8 @@ struct hit_data {
 };
 
 struct object_list {
-  struct object *obj_head;
-  struct object *obj_tail;
+  struct geom_object *obj_head;
+  struct geom_object *obj_tail;
 };
 
 double rxn_get_nfsim_diffusion(struct rxn*, int);

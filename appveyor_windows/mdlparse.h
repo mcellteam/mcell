@@ -347,7 +347,7 @@ struct vertex_list_head vertlist;
 struct vertex_list *vertlistitem;
 struct element_connection_list_head ecl;
 struct element_connection_list *elem_conn;
-struct object *obj;
+struct geom_object *obj;
 struct object_list obj_list;
 struct voxel_object *voxel;
 

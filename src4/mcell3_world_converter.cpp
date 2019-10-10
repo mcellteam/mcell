@@ -181,7 +181,7 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
 }
 
 
-bool check_meta_object(object* o, string expected_name) {
+bool check_meta_object(geom_object* o, string expected_name) {
   assert(o != nullptr);
   CHECK_PROPERTY(o->next == nullptr);
   CHECK_PROPERTY(get_sym_name(o->sym) == expected_name);
@@ -208,15 +208,15 @@ bool check_meta_object(object* o, string expected_name) {
 
 bool MCell3WorldConverter::convert_geometry_objects(volume* s) {
 
-  object* root = s->root_instance;
+  geom_object* root = s->root_instance;
   CHECK_PROPERTY(check_meta_object(root, "WORLD_INSTANCE"));
   CHECK_PROPERTY(root->first_child == root->last_child && "Only one scene expected");
-  object* scene = root->first_child;
+  geom_object* scene = root->first_child;
   CHECK_PROPERTY(check_meta_object(scene, "Scene"));
 
   // walls reference each other, therefore we must first create
   // empty wall objects in partitions,
-  object* curr_obj = scene->first_child;
+  geom_object* curr_obj = scene->first_child;
   while (curr_obj != nullptr) {
     if (curr_obj->object_type == POLY_OBJ) {
       create_uninitialized_walls_for_polygonal_object(curr_obj);
@@ -248,7 +248,7 @@ bool MCell3WorldConverter::convert_geometry_objects(volume* s) {
 
 // we do not check anything that might not be supported fro mthe mcell3 side,
 // the actual checks are in convert_polygonal_object
-void MCell3WorldConverter::create_uninitialized_walls_for_polygonal_object(const object* o) {
+void MCell3WorldConverter::create_uninitialized_walls_for_polygonal_object(const geom_object* o) {
   GeometryObject obj;
 
   // create objects for each wall
@@ -357,7 +357,7 @@ bool MCell3WorldConverter::convert_wall(const wall* w, GeometryObject& object) {
 }
 
 
-bool MCell3WorldConverter::convert_polygonal_object(const object* o) {
+bool MCell3WorldConverter::convert_polygonal_object(const geom_object* o) {
 
   // --- object ---
 

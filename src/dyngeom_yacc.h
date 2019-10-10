@@ -105,7 +105,7 @@ union YYSTYPE
   struct sym_entry *sym;
   struct vector3 *vec3;
   struct num_expr_list_head nlist;
-  struct object *obj;
+  struct geom_object *obj;
   struct object_list obj_list;
   struct region *reg;
 

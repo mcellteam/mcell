@@ -7,7 +7,7 @@
 
   #include "strfunc.h"
   #include "mdlparse_aux.h"
-  #include "mdlparse.h"
+  #include "mdlparse.hpp"
   #include "mem_util.h"
   #include "logging.h"
 

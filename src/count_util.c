@@ -1369,7 +1369,7 @@ int prepare_counters(struct volume *world) {
     if (request->count_location != NULL &&
         request->count_location->sym_type == OBJ) {
       if (expand_object_output(request,
-                               (struct object *)request->count_location->value,
+                               (struct geom_object *)request->count_location->value,
                                world->reg_sym_table))
         mcell_error("Failed to expand request to count on object.");
     }
@@ -1394,8 +1394,8 @@ is_object_instantiated:
   Note: Checking is performed for all instantiated objects
 ********************************************************************/
 int is_object_instantiated(struct sym_entry *entry,
-                           struct object *root_instance) {
-  struct object *obj = NULL;
+                           struct geom_object *root_instance) {
+  struct geom_object *obj = NULL;
   if (entry->sym_type == REG) {
     struct region *reg = entry->value;
     obj = ((struct region *)(entry->value))->parent;
@@ -1407,7 +1407,7 @@ int is_object_instantiated(struct sym_entry *entry,
     }
   }
   else if (entry->sym_type == OBJ && entry->count != 0)
-    obj = ((struct object *)(entry->value));
+    obj = ((struct geom_object *)(entry->value));
   else
     return 0;
 
@@ -1477,7 +1477,7 @@ expand_object_output:
 *************************************************************************/
 int expand_object_output(
     struct output_request *request,
-    struct object *obj,
+    struct geom_object *obj,
     struct sym_table_head *reg_sym_table) {
 #ifdef ALLOW_COUNTS_ON_METAOBJECT
   int n_expanded;
@@ -1502,7 +1502,7 @@ int expand_object_output(
 #else
 #error "Support for counting in/on a metaobject doesn't work right now."
     n_expanded = 0;
-    for (struct object *child = obj->first_child; child != NULL;
+    for (struct geom_object *child = obj->first_child; child != NULL;
          child = child->next) {
       if (!object_has_geometry(child))
         continue; /* NOTE -- for objects nested N deep, we check this
@@ -1576,8 +1576,8 @@ object_has_geometry:
    Out: 0 if there are no geometrical objects within that object (and it
         is not a geometrical object itself).  1 if there are such object.
 *************************************************************************/
-int object_has_geometry(struct object *obj) {
-  struct object *child;
+int object_has_geometry(struct geom_object *obj) {
+  struct geom_object *child;
   switch (obj->object_type) {
   case BOX_OBJ:
   case POLY_OBJ:

@@ -25,13 +25,13 @@ void setup_root_obj_inst(
   if (sym == NULL) {
     mcell_error("Cannot create WORLD_OBJ for dynamic geometry.");
   }
-  dg_parse_vars->root_object = (struct object *)sym->value;
+  dg_parse_vars->root_object = (struct geom_object *)sym->value;
 
   sym = retrieve_sym("WORLD_INSTANCE", state->obj_sym_table);
   if (sym == NULL) {
     mcell_error("Cannot create WORLD_INSTANCE for dynamic geometry.");
   }
-  dg_parse_vars->root_instance = (struct object *)sym->value;
+  dg_parse_vars->root_instance = (struct geom_object *)sym->value;
 
   dg_parse_vars->current_object = dg_parse_vars->root_object;
   dg_parse_vars->object_name_list = NULL;
@@ -68,7 +68,7 @@ struct sym_entry *dg_start_object(
 
   // Create the symbol, if it doesn't exist yet.
   int error_code = 0;
-  struct object *obj_ptr = make_new_object(
+  struct geom_object *obj_ptr = make_new_object(
       dg_parse_vars, dg_parse_vars->obj_sym_table, new_name, &error_code);
   if (obj_ptr == NULL) {
     mcell_error("Object already defined: %s", new_name);
@@ -95,7 +95,7 @@ struct sym_entry *dg_start_object(
  XXX: There are too many ways to create objects. This needs to be consolidated
  with dg_start_object.
 ***************************************************************************/
-struct object *dg_start_object_simple(struct dyngeom_parse_vars *dg_parse_vars,
+struct geom_object *dg_start_object_simple(struct dyngeom_parse_vars *dg_parse_vars,
                                       struct object_creation *obj_creation,
                                       char *name) {
   // Create new fully qualified name.
@@ -107,7 +107,7 @@ struct object *dg_start_object_simple(struct dyngeom_parse_vars *dg_parse_vars,
 
   // Create the symbol, if it doesn't exist yet.
   int error_code = 0;
-  struct object *obj_ptr = make_new_object(
+  struct geom_object *obj_ptr = make_new_object(
       dg_parse_vars,
       dg_parse_vars->obj_sym_table,
       new_name,
@@ -132,7 +132,7 @@ struct object *dg_start_object_simple(struct dyngeom_parse_vars *dg_parse_vars,
  Out: the polygon object
  Note: This is similar to mdl_new_polygon_list.
 ***************************************************************************/
-struct object *dg_new_polygon_list(
+struct geom_object *dg_new_polygon_list(
     struct dyngeom_parse_vars *dg_parse_vars,
     char *obj_name) {
   struct object_creation obj_creation;
@@ -140,7 +140,7 @@ struct object *dg_new_polygon_list(
   obj_creation.object_name_list_end = dg_parse_vars->object_name_list_end;
   obj_creation.current_object = dg_parse_vars->current_object;
 
-  struct object *obj = dg_start_object_simple(
+  struct geom_object *obj = dg_start_object_simple(
       dg_parse_vars, &obj_creation, obj_name);
   obj->object_type = POLY_OBJ;
   dg_create_region(dg_parse_vars->reg_sym_table, obj, "ALL");
@@ -184,7 +184,7 @@ void dg_finish_object(struct dyngeom_parse_vars *dg_parse_vars) {
 ***************************************************************************/
 struct region *dg_create_region(
     struct sym_table_head *reg_sym_table,
-    struct object *objp,
+    struct geom_object *objp,
     char *reg_name) {
   struct region *reg;
   struct region_list *reg_list;
@@ -263,8 +263,8 @@ struct region *dg_make_new_region(
 ***************************************************************************/
 int dg_copy_object_regions(
     struct dyngeom_parse_vars *dg_parse_vars,
-    struct object *dst_obj,
-    struct object *src_obj) {
+    struct geom_object *dst_obj,
+    struct geom_object *src_obj) {
   struct region_list *src_rlp;
   struct region *dst_reg, *src_reg;
 
@@ -300,9 +300,9 @@ int dg_copy_object_regions(
 ***************************************************************************/
 int dg_deep_copy_object(
     struct dyngeom_parse_vars *dg_parse_vars,
-    struct object *dst_obj,
-    struct object *src_obj) {
-  struct object *src_child;
+    struct geom_object *dst_obj,
+    struct geom_object *src_obj) {
+  struct geom_object *src_child;
 
   /* Copy over simple object attributes */
   dst_obj->object_type = src_obj->object_type;
@@ -327,7 +327,7 @@ int dg_deep_copy_object(
     /* Copy children */
     for (src_child = src_obj->first_child; src_child != NULL;
          src_child = src_child->next) {
-      struct object *dst_child;
+      struct geom_object *dst_child;
       char *child_obj_name =
           CHECKED_SPRINTF("%s.%s", dst_obj->sym->name, src_child->last_name);
       if (child_obj_name == NULL)

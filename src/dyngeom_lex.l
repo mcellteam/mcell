@@ -6,7 +6,7 @@
   #include <unistd.h>
 
   #include "dyngeom_parse_extras.h"
-  #include "dyngeom_yacc.h"
+  #include "dyngeom_yacc.hpp"
   #include "logging.h"
 
   #define YY_DECL int dglex( YYSTYPE *yylval, struct dyngeom_parse_vars *dg_parse, yyscan_t yyscanner )

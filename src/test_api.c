@@ -123,7 +123,7 @@ void test_api(MCELL_STATE *state) {
   /*****************************************************************************
    * create world meta object
    *****************************************************************************/
-  struct object *world_object = NULL;
+  struct geom_object *world_object = NULL;
   CHECKED_CALL_EXIT(mcell_create_instance_object(state, "world", &world_object),
                     "could not create meta object");
 
@@ -155,7 +155,7 @@ void test_api(MCELL_STATE *state) {
   elems = mcell_add_to_connection_list(4, 0, 7, elems);
 
   struct poly_object polygon = { "aBox", verts, 8, elems, 12 };
-  struct object *new_mesh = NULL;
+  struct geom_object *new_mesh = NULL;
   CHECKED_CALL_EXIT(
       mcell_create_poly_object(state, world_object, &polygon, &new_mesh),
       "could not create polygon_object")
@@ -189,7 +189,7 @@ void test_api(MCELL_STATE *state) {
   struct vector3 position = { 0.0, 0.0, 0.0 };
   struct vector3 diameter = { 0.00999, 0.00999, 0.00999 };
 
-  struct object *B_releaser = NULL;
+  struct geom_object *B_releaser = NULL;
   struct mcell_species *B =
       mcell_add_to_species_list(molB_ptr, false, 0, NULL);
   CHECKED_CALL_EXIT(mcell_create_geometrical_release_site(

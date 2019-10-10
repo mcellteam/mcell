@@ -66,13 +66,13 @@ int check_counter_geometry(int count_hashmask, struct counter **count_hash,
                            byte *place_waypoints_flag);
 
 int expand_object_output(struct output_request *request,
-                         struct object *obj,
+                         struct geom_object *obj,
                          struct sym_table_head *reg_sym_table);
-int object_has_geometry(struct object *obj);
+int object_has_geometry(struct geom_object *obj);
 
 /* hit data for region borders */
 void update_hit_data(struct hit_data **hd_head, struct wall *current,
                      struct wall *target, struct surface_molecule *sm,
                      struct vector2 boundary_pos, int direction, int crossed);
 int is_object_instantiated(struct sym_entry *entry,
-                           struct object *root_instance);
+                           struct geom_object *root_instance);

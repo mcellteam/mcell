@@ -151,7 +151,7 @@ struct mdlparse_vars {
   /* Pointers to objects being created or modified */
 
   /* Object currently being created or modified. */
-  struct object *current_object;
+  struct geom_object *current_object;
 
   /* Pointer to surface class currently being created or modified */
   struct species *current_surface_class;

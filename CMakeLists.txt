@@ -93,12 +93,21 @@ find_package(FLEX)
 BISON_TARGET(mdlParser ${CMAKE_SOURCE_DIR}/src/mdlparse.y
   ${CMAKE_CURRENT_BINARY_DIR}/deps/mdlparse.cpp)
 
-file(COPY ${CMAKE_SOURCE_DIR}/src/mdllex.l DESTINATION
-  ${CMAKE_CURRENT_BINARY_DIR}/deps)
+BISON_TARGET(dynGeomParser ${CMAKE_SOURCE_DIR}/src/dyngeom_parse.y
+  ${CMAKE_CURRENT_BINARY_DIR}/deps/dyngeom_yacc.cpp)
+
+# not sure why is the lex file copied
+configure_file(${CMAKE_SOURCE_DIR}/src/mdllex.l ${CMAKE_CURRENT_BINARY_DIR}/deps/mdllex.l COPYONLY)
 
 FLEX_TARGET(mdlScanner ${CMAKE_CURRENT_BINARY_DIR}/deps/mdllex.l
   ${CMAKE_CURRENT_BINARY_DIR}/deps/mdlex.cpp COMPILE_FLAGS -Crema)
 ADD_FLEX_BISON_DEPENDENCY(mdlScanner mdlParser mdllex_l)
+
+configure_file(${CMAKE_SOURCE_DIR}/src/dyngeom_lex.l ${CMAKE_CURRENT_BINARY_DIR}/deps/dyngeom_lex.l COPYONLY)
+
+FLEX_TARGET(dynGeomScanner ${CMAKE_CURRENT_BINARY_DIR}/deps/dyngeom_lex.l
+  ${CMAKE_CURRENT_BINARY_DIR}/deps/dyngeom_lex.cpp COMPILE_FLAGS -Crema)
+ADD_FLEX_BISON_DEPENDENCY(dynGeomScanner dynGeomParser dyngeomlex_l)
 
 # create version.h target
 if (NOT WIN32)
@@ -136,9 +145,10 @@ set(SOURCE_FILES
     src/diffuse_trimol.c
     src/diffuse_util.c
     src/dyngeom.c
-    src/dyngeom_lex.c
+    #src/dyngeom_lex.c
     src/dyngeom_parse_extras.c
-    src/dyngeom_yacc.c
+    #src/dyngeom_yacc.c
+    
     src/grid_util.c
     src/map_c.cpp
     src/init.c
@@ -208,7 +218,7 @@ set(SOURCE_FILES_ONLY_MCELL
 
 
 SET_SOURCE_FILES_PROPERTIES( ${SOURCE_FILES} PROPERTIES LANGUAGE CXX )
-set( SOURCE_FILES ${SOURCE_FILES} src/mdlparse.y )
+set( SOURCE_FILES ${SOURCE_FILES} src/mdlparse.y src/dyngeom_parse.y )
 
 SET_SOURCE_FILES_PROPERTIES( ${SOURCE_FILES_ONLY_MCELL} PROPERTIES LANGUAGE CXX )
 
@@ -244,7 +254,7 @@ if (NOT WIN32)
     SWIG_ADD_LIBRARY(pymcell 
       TYPE SHARED 
       LANGUAGE python
-      SOURCES src/pymcell.i ${SOURCE_FILES}
+      SOURCES src/pymcell.i ${SOURCE_FILES} ${BISON_dynGeomParser_OUTPUTS} ${FLEX_dynGeomScanner_OUTPUTS}  
     )
   else()  
     SWIG_ADD_MODULE(pymcell python
@@ -279,7 +289,10 @@ add_executable(mcell
   ${SOURCE_FILES}
   ${SOURCE_FILES_ONLY_MCELL}
   ${BISON_mdlParser_OUTPUTS}
-  ${FLEX_mdlScanner_OUTPUTS})
+  ${BISON_dynGeomParser_OUTPUTS}
+  ${FLEX_mdlScanner_OUTPUTS}
+  ${FLEX_dynGeomScanner_OUTPUTS}  
+)
 
 add_dependencies(mcell version_h)
 add_dependencies(pymcell version_h nfsim_c NFsim)
