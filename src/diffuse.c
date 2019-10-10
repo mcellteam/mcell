@@ -39,7 +39,7 @@
 #include "react_nfsim.h"
 #include "nfsim_func.h"
 
-// debug
+// for debug & mcell4 development
 #include "debug_config.h"
 #include "dump_state.h"
 
@@ -969,7 +969,6 @@ ray_trace:
 struct collision *ray_trace(struct volume *world, struct vector3 *init_pos,
                             struct collision *c, struct subvolume *sv,
                             struct vector3 *v, struct wall *reflectee) {
-
   /* time, in units of of the molecule's time step, at which molecule
      will cross the x,y,z partitions, respectively. */
   double tx, ty, tz;
@@ -3023,8 +3022,8 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
     if (world->use_expanded_list && redo_expand_collision_list_flag) {
       redo_collision_list(world, &shead, &stail, &shead_exp, vm, &displacement, sv);
     }
-    struct collision* shead2 = ray_trace(world, &(vm->pos), shead, sv, &displacement, reflectee);
 
+    struct collision* shead2 = ray_trace(world, &(vm->pos), shead, sv, &displacement, reflectee);
     if (shead2 == NULL) {
       mcell_internal_error("ray_trace returned NULL.");
     }
@@ -3068,14 +3067,6 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
         if (smash->t < EPS_C) {
           continue;
         }
-
-        // check for mcell4 -assuming that r_rate_factor and t_steps is still 1
-        /*if (abs(r_rate_factor - 1.0) > EPS_C) {
-        	mcell_log("  r_rate_factor: %f, t_steps: %f\n", r_rate_factor, t_steps);
-        }*/
-
-        //assert(abs(r_rate_factor - 1.0) < EPS_C && "mcell4 temporary check");
-        //assert(abs(t_steps - 1.0) < EPS_C && "mcell4 temporary check");
         if (collide_and_react_with_vol_mol(world, smash, vm, &tentative,
           &displacement, loc_certain, t_steps, r_rate_factor) == 1) {
           FREE_COLLISION_LISTS();
@@ -3391,7 +3382,6 @@ struct surface_molecule *diffuse_2D(
         dump_vector2(displacement, "  displacement:")
     );
 #endif
-
 
     if (sm->properties->flags & SET_MAX_STEP_LENGTH) {
       double disp_length = sqrt(displacement.u * displacement.u +
@@ -4128,6 +4118,7 @@ static int collide_and_react_with_vol_mol(struct volume* world,
   if ((rx != NULL) && (rx->prob_t != NULL)) {
     update_probs(world, rx, m->t);
   }
+
   struct species *spec = m->properties;
   struct periodic_image *periodic_box = m->periodic_box;
   int i = test_bimolecular(
@@ -4136,8 +4127,9 @@ static int collide_and_react_with_vol_mol(struct volume* world,
   if (i < RX_LEAST_VALID_PATHWAY) {
     return 0;
   }
-  if (loc_certain != NULL)
+  if (loc_certain != NULL) {
     ASSERT_FOR_MCELL4(loc_certain->x == 0 && loc_certain->y == 0 && loc_certain->z == 0);
+  }
   int j = outcome_bimolecular(world, rx, i, (struct abstract_molecule *)m, am,
     0, 0, m->t + t_steps * smash->t, &(smash->loc), loc_certain);
 
@@ -4187,7 +4179,7 @@ int collide_and_react_with_surf_mol(struct volume* world, struct collision* smas
   struct volume_molecule* m, struct collision** tentative,
   struct vector3** loc_certain, double t_steps, int mol_grid_flag,
   int mol_grid_grid_flag, double r_rate_factor) {
-  assert(mol_grid_flag == 1 && "mcell4 todo");
+  ASSERT_FOR_MCELL4(mol_grid_flag == 1);
   struct collision* ttv = *tentative;
   struct vector3* loc = *loc_certain;
   struct wall* w = (struct wall *)smash->target;
@@ -4198,12 +4190,14 @@ int collide_and_react_with_surf_mol(struct volume* world, struct collision* smas
   } else if (smash->next->t * (1.0 - EPS_C) > smash->t) {
     t_confident = smash->t;
   } else {
-    t_confident = smash->t * (1.0 - EPS_C); assert(false && "mcell4 todo");
+	  ASSERT_FOR_MCELL4(false);
+    t_confident = smash->t * (1.0 - EPS_C);
   }
 
   int k = -1;
   if ((smash->what & COLLIDE_MASK) == COLLIDE_FRONT) {
-    k = 1; assert(false && "mcell4 todo");
+    ASSERT_FOR_MCELL4(false);
+    k = 1;
   }
 
   int j = xyz2grid(&(smash->loc), w->grid);
@@ -4212,7 +4206,8 @@ int collide_and_react_with_surf_mol(struct volume* world, struct collision* smas
     return -1;
   }
   struct surface_molecule* sm = w->grid->sm_list[j]->sm;
-  if (m->index == j && m->previous_wall == w) { assert(false && "mcell4 todo");
+  if (m->index == j && m->previous_wall == w) {
+    ASSERT_FOR_MCELL4(false);
     m->index = -1; // Avoided rebinding, but next time it's OK
     return -1;
   }
@@ -4241,8 +4236,10 @@ int collide_and_react_with_surf_mol(struct volume* world, struct collision* smas
       }
 
       for (int l = 0; l < num_matching_rxns; l++) {
-        if (matching_rxns[l]->prob_t != NULL) { assert(false && "mcell4 todo");
-          update_probs(world, matching_rxns[l], m->t); }
+        if (matching_rxns[l]->prob_t != NULL) { 
+	        ASSERT_FOR_MCELL4(false);
+          update_probs(world, matching_rxns[l], m->t); 
+        }
         scaling_coef[l] = r_rate_factor / w->grid->binding_factor;
       }
 
@@ -4251,7 +4248,8 @@ int collide_and_react_with_surf_mol(struct volume* world, struct collision* smas
           (struct abstract_molecule *)m, (struct abstract_molecule *)sm,
           world->rng);
         jj = 0;
-      } else { assert(false && "mcell4 todo");
+      } else {
+        ASSERT_FOR_MCELL4(false);      
         jj = test_many_bimolecular(matching_rxns, scaling_coef, 0,
           num_matching_rxns, &(ii), world->rng, 0);
       }
@@ -4262,7 +4260,8 @@ int collide_and_react_with_surf_mol(struct volume* world, struct collision* smas
           (struct abstract_molecule *)m, (struct abstract_molecule *)sm,
           k, sm->orient, m->t + t_steps * smash->t, &(smash->loc), loc);
 
-        if (l == RX_FLIP) { assert(false && "mcell4 todo");
+        if (l == RX_FLIP) {
+	        ASSERT_FOR_MCELL4(false);
           if ((m->flags & COUNT_ME) != 0 && (spec->flags & COUNT_SOME_MASK) != 0) {
             /* Count as far up as we can unambiguously */
             int destroy_flag = 0;
@@ -4578,7 +4577,8 @@ int reflect_or_periodic_bc(
   struct wall *reflect_w = w;
   double reflect_t = smash->t;
   struct volume_molecule* vm = *mol;
-  bool periodic_traditional = world->periodic_traditional;   assert(!periodic_traditional && "mcell4 todo");
+  bool periodic_traditional = world->periodic_traditional; 
+  ASSERT_FOR_MCELL4(!periodic_traditional);
   register_hits(world, vm, tentative, &reflect_w, &reflect_t, displacement,
     smash, t_steps);
   struct vector3 orig_pos = {vm->pos.x, vm->pos.y, vm->pos.z};

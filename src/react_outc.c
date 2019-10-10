@@ -44,7 +44,6 @@
 #include "debug_config.h"
 #include "dump_state.h"
 
-
 static int outcome_products_random(struct volume *world, struct wall *w,
                                    struct vector3 *hitpt, double t,
                                    struct rxn *rx, int path,

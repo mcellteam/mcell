@@ -85,9 +85,6 @@
 %{
 #define SWIG_FILE_WITH_INIT
 #include <limits.h>
-
-//extern "C" {
-// all these files are compiled as C
 #include "mcell_init.h"
 #include "mcell_misc.h"
 #include "mcell_objects.h"
@@ -102,7 +99,7 @@
 #include "mcell_dyngeom.h"
 #include "vector.h"
 
-//}
+
 %}
 
 %pythonbegin %{
@@ -141,8 +138,6 @@ from data_model_import import *
 %include "mcell_structs.i"
 %include "mcell_dyngeom.i"
 %include "vector.i"
-
-%include "../src4/pymcell3_4.i"
 
 // Generate docstrings
 %feature("autodoc", "0");

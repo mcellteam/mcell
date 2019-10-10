@@ -1440,6 +1440,8 @@ int init_partitions(struct volume *world) {
 
   /* How many storage subdivisions along each axis? */
 #ifdef MCELL3_ONLY_ONE_MEMPART
+  // multiple memparts make comparison against mcell4 difficult because 
+  // the order of simulation changes
   world->mem_part_x = 1;
   world->mem_part_y = 1;
   world->mem_part_z = 1;
