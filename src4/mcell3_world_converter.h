@@ -26,27 +26,14 @@
 
 #include "mcell_structs.h"
 
-#ifdef __cplusplus
-//extern "C"
-#endif
-bool mcell4_convert_mcell3_volume(struct volume* s);
-
-#ifdef __cplusplus
-//extern "C"
-#endif
-bool mcell4_run_simulation(const bool dump_initial_state);
-
-#ifdef __cplusplus
-//extern "C"
-#endif
-void mcell4_delete_world();
-
-
-// following code is only for C++
-#ifdef __cplusplus
-
 #include "world.h"
 #include <map>
+
+// C-style interface
+bool mcell4_convert_mcell3_volume(struct volume* s);
+bool mcell4_run_simulation(const bool dump_initial_state);
+void mcell4_delete_world();
+
 
 namespace MCell {
 
@@ -132,7 +119,5 @@ private:
 
 
 } // namespace mcell
-
-#endif // #ifdef __cplusplus
 
 #endif // SRC4_MCELL3_WORLD_CONVERTER_H_

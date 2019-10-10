@@ -63,6 +63,7 @@ public:
   }
 
   void insert(BaseEvent* event);
+  float_t get_next_time();
   BaseEvent* pop_next();
 
 private:
@@ -78,6 +79,8 @@ private:
 
   BucketDeque::iterator get_or_create_bucket(const float_t time);
 
+  void clear_empty_buckets();
+
   // queue might be empty
   BucketDeque queue;
 };
@@ -87,6 +90,9 @@ class Scheduler {
 public:
   // scheduler becomes owner of the base_event object
   void schedule_event(BaseEvent* event);
+
+  // returns the time of next event
+  float_t get_next_event_time();
 
   // returns time of the event that was handled
   float_t handle_next_event(bool &end_simulation);

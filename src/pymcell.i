@@ -139,6 +139,8 @@ from data_model_import import *
 %include "mcell_dyngeom.i"
 %include "vector.i"
 
+%include "../src4/pymcell3_4.i"
+
 // Generate docstrings
 %feature("autodoc", "0");
 

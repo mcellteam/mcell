@@ -90,24 +90,36 @@ void Calendar::insert(BaseEvent* event) {
 }
 
 
-BaseEvent* Calendar::pop_next() {
+void Calendar::clear_empty_buckets() {
   while (queue.front().events.empty()) {
     queue.pop_front();
   }
+}
+
+BaseEvent* Calendar::pop_next() {
+  clear_empty_buckets();
   BaseEvent* next_event = queue.front().events.front();
   queue.front().events.pop_front();
   return next_event;
 }
 
+float_t Calendar::get_next_time() {
+  clear_empty_buckets();
+  BaseEvent* next_event = queue.front().events.front();
+  return next_event->event_time;
+}
 
 void Scheduler::schedule_event(BaseEvent* event) {
   calendar.insert(event);
 }
 
+float_t Scheduler::get_next_event_time() {
+  return calendar.get_next_time();
+}
 
 // pop next scheduled event and run its step method
+// current_iteration is the world object's iteration
 float_t Scheduler::handle_next_event(bool &end_simulation) {
-
   BaseEvent* event = calendar.pop_next();
   assert(event != NULL && "Empty event queue - at least end simulation event should be present");
   float_t event_time = event->event_time;

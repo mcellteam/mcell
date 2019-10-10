@@ -164,9 +164,8 @@ bool World::run_simulation(const bool dump_initial_state) {
   scheduler.schedule_event(end_event);
 
   bool end_simulation = false;
-  float_t time = TIME_SIMULATION_START;
-  float_t previous_time;
   current_iteration = 0;
+  uint64_t previous_iteration = 0;
   uint output_frequency = determine_output_frequency(iterations);
   timeval last_timing_time = {0, 0};
 
@@ -176,20 +175,21 @@ bool World::run_simulation(const bool dump_initial_state) {
   getrusage(RUSAGE_SELF, &sim_start_time);
 
   do {
-    previous_time = time;
-
 #ifdef DEBUG_SCHEDULER
     cout << "Before it: " << current_iteration << ", time: " << time << "\n";
 #endif
 
+    // current_iteration corresponds to the number of executed time steps
+    float_t time = scheduler.get_next_event_time();
+    current_iteration = (uint64_t)time;
+
     // this is where events get executed
-    time = scheduler.handle_next_event(end_simulation);
+    scheduler.handle_next_event(end_simulation);
 
     // report progress
-    if (cmp_gt(time, previous_time, SCHEDULER_COMPARISON_EPS)) {
-      current_iteration++; // NOTE: we should rather determine iteration from time or from the number of diffusion events that were executed
-      if (current_iteration % output_frequency == 0) {
+    if (current_iteration > previous_iteration) {
 
+      if (current_iteration % output_frequency == 0) {
         cout << "Iterations: " << current_iteration << " of " << iterations;
 
         timeval curr_timing_time;
@@ -203,6 +203,8 @@ bool World::run_simulation(const bool dump_initial_state) {
 
         cout << "\n";
       }
+
+      previous_iteration = current_iteration;
     }
 
 #ifdef DEBUG_SCHEDULER
