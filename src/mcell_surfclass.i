@@ -33,7 +33,7 @@ MCELL_STATUS mcell_add_surf_class_properties(
   $1 = &temp;
 }
 
-%typemap(argout) struct sym_entry **sc_sym {
+%typemap(argout) /*struct*/ sym_entry **sc_sym {
   %set_output(SWIG_NewPointerObj(SWIG_as_voidptr(*$1), $*1_descriptor, SWIG_POINTER_OWN));
 }
 

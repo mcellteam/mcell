@@ -1468,7 +1468,7 @@ double exact_disk(struct volume *world, struct vector3 *loc, struct vector3 *mv,
 
     /* Reject those that the moving particle can travel through */
     if ((moving->properties->flags & CAN_VOLWALL) != 0) {
-      assert(false && "mcell4 todo");
+      ASSERT_FOR_MCELL4(false);
       num_matching_rxns = trigger_intersect(
           world->reaction_hash, world->rx_hashsize, world->all_mols,
           world->all_volume_mols, world->all_surface_mols,
@@ -2952,7 +2952,7 @@ struct volume_molecule *diffuse_3D(
 
   int inertness = 0;
   set_inertness_and_maxtime(world, vm, &max_time, &inertness);
-  assert(inertness == 0 && "mcell4 check");
+  ASSERT_FOR_MCELL4(inertness == 0);
   /* Done housekeeping, now let's do something fun! */
   int calculate_displacement = 1;
 
@@ -4137,7 +4137,7 @@ static int collide_and_react_with_vol_mol(struct volume* world,
     return 0;
   }
   if (loc_certain != NULL)
-  	assert(loc_certain->x == 0 && loc_certain->y == 0 && loc_certain->z == 0 && "mcell4 temporary check");
+    ASSERT_FOR_MCELL4(loc_certain->x == 0 && loc_certain->y == 0 && loc_certain->z == 0);
   int j = outcome_bimolecular(world, rx, i, (struct abstract_molecule *)m, am,
     0, 0, m->t + t_steps * smash->t, &(smash->loc), loc_certain);
 

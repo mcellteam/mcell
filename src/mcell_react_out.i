@@ -61,7 +61,7 @@ mcell_add_reaction_output_block(MCELL_STATE *state,
                                 struct output_set_list *osets, int buffer_size,
                                 struct output_times_inlist *otimes);
 
-%typemap(argout) struct output_column_list *count_list {
+%typemap(argout) /*struct*/ output_column_list *count_list {
   %set_output(SWIG_NewPointerObj(SWIG_as_voidptr($1), $1_descriptor, SWIG_POINTER_OWN));
 }
 

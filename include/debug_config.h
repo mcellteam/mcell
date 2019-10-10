@@ -2,7 +2,20 @@
 
 // for mcell3 - crossing memory partitions causes reordering in diffusion and it is not possible to
 // compare results anymore
+
+#define MCELL3_IDENTICAL
+//MCell4 check
+
+#ifndef MCELL3_IDENTICAL
+// enable several things that make comparison with mcell4 easier
 #define MCELL3_ONLY_ONE_MEMPART
+#define ASSERT_FOR_MCELL4(...) assert(__VA_ARGS__)
+
+#else
+
+#define ASSERT_FOR_MCELL4(...) do { } while(0)
+
+#endif
 
 //#define DUMP_ALWAYS
 #define DUMP_NEVER

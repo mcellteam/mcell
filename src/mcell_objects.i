@@ -20,6 +20,7 @@
  * USA.
  *
 ******************************************************************************/
+
 %include "typemaps.i"
 
 struct object_creation {
@@ -47,11 +48,12 @@ struct poly_object_list {
   struct poly_object_list *next;
 };
 
-%typemap(in) struct geom_object **new_object (struct geom_object *temp) {
+// swig c++ does not like the extra 'struct'
+%typemap(in) /*struct*/ geom_object **new_object (struct geom_object *temp) {
   $1 = &temp;
 }
 
-%typemap(argout) struct geom_object **new_object {
+%typemap(argout) /*struct*/ geom_object **new_object {
   %set_output(SWIG_NewPointerObj(SWIG_as_voidptr(*$1), $*1_descriptor, SWIG_POINTER_OWN));
 }
 

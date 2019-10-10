@@ -56,7 +56,7 @@ struct mcell_species_list {
   $1 = &temp;
 }
 
-%typemap(argout) struct sym_entry **species_ptr {
+%typemap(argout) /*struct*/ sym_entry **species_ptr {
   %set_output(SWIG_NewPointerObj(SWIG_as_voidptr(*$1), $*1_descriptor, SWIG_POINTER_OWN));
 }
 
