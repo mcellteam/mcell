@@ -2025,6 +2025,7 @@ static int compute_bb_polygon_object(struct volume *world, struct geom_object *o
                                      double (*im)[4]) {
 
   struct polygon_object *pop = (struct polygon_object *)objp->contents;
+  assert(pop != NULL);
 
   for (struct vertex_list *vl = pop->parsed_vertices;
        vl != NULL;

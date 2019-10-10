@@ -1547,20 +1547,21 @@ int expand_object_output(
     break;
 
   case BOX_OBJ:
-  case POLY_OBJ:
-    request->count_location = NULL;
-    for (struct region_list *rl = obj->regions; rl != NULL; rl = rl->next) {
-      if (is_reverse_abbrev(",ALL", rl->reg->sym->name)) {
-        request->count_location = rl->reg->sym;
-        break;
+  case POLY_OBJ: {
+      request->count_location = NULL;
+      for (struct region_list *rl = obj->regions; rl != NULL; rl = rl->next) {
+        if (is_reverse_abbrev(",ALL", rl->reg->sym->name)) {
+          request->count_location = rl->reg->sym;
+          break;
+        }
       }
+      char *region_name = CHECKED_SPRINTF("%s,ALL", obj->sym->name);
+      if (request->count_location == NULL)
+        request->count_location = retrieve_sym(region_name, reg_sym_table);
+      free(region_name);
+      if (request->count_location == NULL)
+        mcell_internal_error("ALL region missing on object %s", obj->sym->name);
     }
-    char *region_name = CHECKED_SPRINTF("%s,ALL", obj->sym->name);
-    if (request->count_location == NULL)
-      request->count_location = retrieve_sym(region_name, reg_sym_table);
-    free(region_name);
-    if (request->count_location == NULL)
-      mcell_internal_error("ALL region missing on object %s", obj->sym->name);
     break;
 
   default:

@@ -1225,27 +1225,28 @@ static char *my_sprintf(struct mdlparse_vars *parse_state, char *format,
   }
 
   /* Now, build the string! */
-  int total_len = head.len + 1;
-  if (format != NULL)
-    total_len += strlen(format);
-  char *buffer = CHECKED_MALLOC_ARRAY(char, total_len, "SPRINTF data");
-  char *pos = buffer;
-  if (buffer == NULL)
-    goto failure;
-  while (head.next != NULL) {
-    struct sprintf_output_list *l = head.next;
-    memcpy(pos, l->segment, l->len);
-    pos += l->len;
-    free(l->segment);
-    head.next = l->next;
-    free(l);
+  {
+    int total_len = head.len + 1;
+    if (format != NULL)
+      total_len += strlen(format);
+    char *buffer = CHECKED_MALLOC_ARRAY(char, total_len, "SPRINTF data");
+    char *pos = buffer;
+    if (buffer == NULL)
+      goto failure;
+    while (head.next != NULL) {
+      struct sprintf_output_list *l = head.next;
+      memcpy(pos, l->segment, l->len);
+      pos += l->len;
+      free(l->segment);
+      head.next = l->next;
+      free(l);
+    }
+    if (format != NULL)
+      strcpy(pos, format);
+    else
+      *pos = '\0';
+    return buffer;
   }
-  if (format != NULL)
-    strcpy(pos, format);
-  else
-    *pos = '\0';
-
-  return buffer;
 
 failure:
   while (head.next != NULL) {
@@ -3480,35 +3481,37 @@ int mdl_deep_copy_object(struct mdlparse_vars *parse_state,
     }
     break;
 
-  case REL_SITE_OBJ:
-    dst_obj->contents =
-        duplicate_release_site(parse_state, src_obj->contents, dst_obj,
-                               parse_state->vol->root_instance);
-    if (dst_obj->contents == NULL)
-      return 1;
-    struct release_site_obj *rso = (struct release_site_obj *)dst_obj->contents;
-    rso->name = mdl_strdup(dst_obj->sym->name);
-    if (rso->name == NULL)
-      return 1;
+  case REL_SITE_OBJ: {
+      dst_obj->contents =
+          duplicate_release_site(parse_state, src_obj->contents, dst_obj,
+                                 parse_state->vol->root_instance);
+      if (dst_obj->contents == NULL)
+        return 1;
+      struct release_site_obj *rso = (struct release_site_obj *)dst_obj->contents;
+      rso->name = mdl_strdup(dst_obj->sym->name);
+      if (rso->name == NULL)
+        return 1;
+    }
     break;
 
   case BOX_OBJ:
-  case POLY_OBJ:
-    if (parse_state->vol->disable_polygon_objects) {
-      mdlerror(
-          parse_state,
-          "When using dynamic geometries, polygon objects should only be "
-          "defined/instantiated through the dynamic geometry file.");
+  case POLY_OBJ: {
+      if (parse_state->vol->disable_polygon_objects) {
+        mdlerror(
+            parse_state,
+            "When using dynamic geometries, polygon objects should only be "
+            "defined/instantiated through the dynamic geometry file.");
+      }
+      dst_obj->contents = src_obj->contents;
+      struct polygon_object *poly_obj = \
+          (struct polygon_object *)src_obj->contents;
+      // Effectively, this tracks the instances of this object, which we need for
+      // cleaning up after dynamic geometry events.
+      poly_obj->references++;
+      dst_obj->periodic_x = src_obj->periodic_x;
+      dst_obj->periodic_y = src_obj->periodic_y;
+      dst_obj->periodic_z = src_obj->periodic_z;
     }
-    dst_obj->contents = src_obj->contents;
-    struct polygon_object *poly_obj = \
-        (struct polygon_object *)src_obj->contents;
-    // Effectively, this tracks the instances of this object, which we need for
-    // cleaning up after dynamic geometry events.
-    poly_obj->references++;
-    dst_obj->periodic_x = src_obj->periodic_x;
-    dst_obj->periodic_y = src_obj->periodic_y;
-    dst_obj->periodic_z = src_obj->periodic_z;
     break;
 
   case VOXEL_OBJ:

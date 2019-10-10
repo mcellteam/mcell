@@ -88,100 +88,101 @@ int truncate_output_file(char *name, double start_value) {
         name);
     /*goto failure;*/
   }
+  {
+    /* Iterate over the entire file */
+    int where = 0; /* Byte offset in file */
+    int start = 0; /* Byte offset in buffer */
+    while (ftell(f) != fs.st_size) {
+      /* Refill the buffer */
+      long long n = (long long)fread(buffer + start, 1, bsize - start, f);
 
-  /* Iterate over the entire file */
-  int where = 0; /* Byte offset in file */
-  int start = 0; /* Byte offset in buffer */
-  while (ftell(f) != fs.st_size) {
-    /* Refill the buffer */
-    long long n = (long long)fread(buffer + start, 1, bsize - start, f);
+      /* Until the current buffer runs dry */
+      int ran_out = 0;
+      i = 0;
+      n += start;
+      int lf = 0;
+      while (!ran_out) {
+        /* Skip leading horizontal whitespace */
+        while (i < n && (buffer[i] == ' ' || buffer[i] == '\t'))
+          i++;
 
-    /* Until the current buffer runs dry */
-    int ran_out = 0;
-    i = 0;
-    n += start;
-    int lf = 0;
-    while (!ran_out) {
-      /* Skip leading horizontal whitespace */
-      while (i < n && (buffer[i] == ' ' || buffer[i] == '\t'))
-        i++;
+        /* Scan over leading numeric characters */
+        int j = i;
+        for (;
+             j < n && (isdigit(buffer[j]) || strchr("eE-+.", buffer[j]) != NULL);
+             j++) {
+        }
 
-      /* Scan over leading numeric characters */
-      int j = i;
-      for (;
-           j < n && (isdigit(buffer[j]) || strchr("eE-+.", buffer[j]) != NULL);
-           j++) {
-      }
+        /* If we had a leading number... */
+        if (j > i && j < (n - 1)) {
+          char *done = NULL;
 
-      /* If we had a leading number... */
-      if (j > i && j < (n - 1)) {
-        char *done = NULL;
+          /* Parse and validate the number */
+          buffer[j] = '\0';
+          double my_value = strtod(buffer + i, &done) + EPS_C;
 
-        /* Parse and validate the number */
-        buffer[j] = '\0';
-        double my_value = strtod(buffer + i, &done) + EPS_C;
+          /* If it was a valid number and it was >= our start time */
+          if (done != buffer + i && my_value >= start_value) {
+            if (fseek(f, 0, SEEK_SET)) {
+              mcell_perror(
+                  errno,
+                  "Failed to seek to beginning of reaction data output file '%s'",
+                  name);
+              /*goto failure;*/
+            }
 
-        /* If it was a valid number and it was >= our start time */
-        if (done != buffer + i && my_value >= start_value) {
-          if (fseek(f, 0, SEEK_SET)) {
-            mcell_perror(
-                errno,
-                "Failed to seek to beginning of reaction data output file '%s'",
-                name);
-            /*goto failure;*/
+            if (ftruncate(fileno(f), where + lf)) {
+              mcell_perror(errno,
+                           "Failed to truncate reaction data output file '%s'",
+                           name);
+              /*goto failure;*/
+            }
+            fclose(f);
+            free(buffer);
+            return 0;
           }
+        }
 
-          if (ftruncate(fileno(f), where + lf)) {
-            mcell_perror(errno,
-                         "Failed to truncate reaction data output file '%s'",
-                         name);
-            /*goto failure;*/
+        /* We will keep this line.  Scan until we hit a newline */
+        for (i = j; i < n && buffer[i] != '\n' && buffer[i] != '\r'; i++) {
+        }
+
+        /* If we're not at the end of the buffer, scan over all crs/lfs. */
+        if (i < n) {
+          for (j = i; j < n && (buffer[j] == '\n' || buffer[j] == '\r'); j++) {
           }
-          fclose(f);
-          free(buffer);
-          return 0;
+          lf = j;
+          i = j; /* If we have run out, we'll catch it next time through */
         }
-      }
 
-      /* We will keep this line.  Scan until we hit a newline */
-      for (i = j; i < n && buffer[i] != '\n' && buffer[i] != '\r'; i++) {
-      }
-
-      /* If we're not at the end of the buffer, scan over all crs/lfs. */
-      if (i < n) {
-        for (j = i; j < n && (buffer[j] == '\n' || buffer[j] == '\r'); j++) {
+        /* If we hit 'n' and the last read was only partial (i.e. EOF), break out
+           */
+        else if (n < bsize) {
+          ran_out = 1;
         }
-        lf = j;
-        i = j; /* If we have run out, we'll catch it next time through */
-      }
 
-      /* If we hit 'n' and the last read was only partial (i.e. EOF), break out
-         */
-      else if (n < bsize) {
-        ran_out = 1;
-      }
-
-      /* Last read was a full read and we've scanned the whole buffer */
-      else {
-        /* If we need to keep some data, resituate it in the buffer */
-        if (lf > start) {
-          /* discard all but n - lf bytes */
-          memmove(buffer, buffer + lf, n - lf);
-          where += lf;
-          start = n - lf;
-        } else {
-          /* discard all bytes */
-          where += n;
-          start = 0;
+        /* Last read was a full read and we've scanned the whole buffer */
+        else {
+          /* If we need to keep some data, resituate it in the buffer */
+          if (lf > start) {
+            /* discard all but n - lf bytes */
+            memmove(buffer, buffer + lf, n - lf);
+            where += lf;
+            start = n - lf;
+          } else {
+            /* discard all bytes */
+            where += n;
+            start = 0;
+          }
+          lf = 0;
+          ran_out = 1;
         }
-        lf = 0;
-        ran_out = 1;
       }
     }
+    fclose(f);
+    free(buffer);
+    return 0;
   }
-  fclose(f);
-  free(buffer);
-  return 0;
 
 failure:
   if (f != NULL)
