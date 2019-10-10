@@ -43,6 +43,8 @@
 #include "nfsim_func.h"
 #include "strfunc.h"
 
+#include "debug_config.h"
+
 /* tetrahedralVol returns the (signed) volume of the tetrahedron spanned by
  * the vertices a, b, c, and d.
  * The formula was taken from "Computational Geometry" (2nd Ed) by J. O'Rourke
@@ -948,7 +950,7 @@ jump_away_line:
 void jump_away_line(struct vector3 *p, struct vector3 *v, double k,
                     struct vector3 *A, struct vector3 *B, struct vector3 *n,
                     struct rng_state *rng) {
-  assert(false && "Called jump_away_line TODO: fix ordering/rng calls");
+  ASSERT_FOR_MCELL4(false && "Called jump_away_line");
 
   struct vector3 e, f;
   double le_1, tiny;
@@ -1047,7 +1049,7 @@ int collide_wall(struct vector3 *point, struct vector3 *move, struct wall *face,
 
     if (update_move) {
       a = (abs_max_2vec(point, move) + 1.0) * EPS_C;
-      assert(false && "Used rng in collide_wallm TODO: fix ordering");
+      ASSERT_FOR_MCELL4(false && "Used rng in collide_wall");
       if ((rng_uint(rng) & 1) == 0)
         a = -a;
       if (dd == 0.0) {

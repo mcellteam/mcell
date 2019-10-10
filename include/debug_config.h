@@ -9,6 +9,7 @@
 #ifndef MCELL3_IDENTICAL
 // enable several things that make comparison with mcell4 easier
 #define MCELL3_ONLY_ONE_MEMPART
+#define MCELL3_SORTED_VIZ_OUTPUT
 #define ASSERT_FOR_MCELL4(...) assert(__VA_ARGS__)
 
 #else

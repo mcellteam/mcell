@@ -38,6 +38,7 @@
 #include <assert.h>
 
 #include "c_vector.h"
+#include "debug_config.h"
 
 /*
 #include "isaac64.h"
@@ -405,10 +406,11 @@ static int output_ascii_molecules(struct volume *world,
         }
       }
     }
-
+#ifdef MCELL3_SORTED_VIZ_OUTPUT
     // sort - necessary for comparison with mcell4 because
     // molecules with diffusion constant zero are printed out in some "random" order
     vector_sort_by_mol_id(vec);
+#endif    
 
     // print
     size_t sz = vector_get_size(vec);
