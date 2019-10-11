@@ -95,7 +95,7 @@ public:
   float_t get_next_event_time();
 
   // returns time of the event that was handled
-  float_t handle_next_event(bool &end_simulation);
+  float_t handle_next_event();
 
 private:
   Calendar calendar;

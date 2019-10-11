@@ -21,9 +21,6 @@
  *
 ******************************************************************************/
 
-#include <time.h>
-#include <sys/time.h> // Linux include
-#include <sys/resource.h> // Linux include
 #include <fenv.h> // Linux include
 
 //extern "C" {
@@ -32,7 +29,6 @@
 //}
 
 #include "world.h"
-#include "end_simulation_event.h"
 #include "defragmentation_event.h"
 
 using namespace std;
@@ -46,7 +42,11 @@ World::World()
     iterations(0),
     seed_seq(0),
     next_wall_id(0),
-    next_geometry_object_id(0)
+    next_geometry_object_id(0),
+    simulation_initialized(false),
+    simulation_ended(false),
+    previous_progress_report_time({0, 0}),
+    previous_iteration(0)
 {
   world_constants.partition_edge_length = PARTITION_EDGE_LENGTH_DEFAULT;
   world_constants.subpartitions_per_partition_dimension = SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT;
@@ -105,15 +105,6 @@ void World::init_world_constants() {
 }
 
 
-void World::init_simulation() {
-
-  init_fpu();
-
-  cout << "Partitions contain " <<  world_constants.subpartitions_per_partition_dimension << "^3 subvolumes.";
-  assert(partitions.size() == 1 && "Initial partition must have been created, only 1 for now");
-}
-
-
 static uint64_t determine_output_frequency(uint64_t iterations) {
   uint64_t frequency;
 
@@ -144,13 +135,13 @@ static double tosecs(timeval& t) {
 }
 
 
-bool World::run_simulation(const bool dump_initial_state) {
+void World::init_simulation() {
+  assert(!simulation_initialized && "init_simulation must be called just once");
 
-  init_simulation(); // must be the first one
+  init_fpu();
 
-  if (dump_initial_state) {
-    dump();
-  }
+  cout << "Partitions contain " <<  world_constants.subpartitions_per_partition_dimension << "^3 subvolumes.";
+  assert(partitions.size() == 1 && "Initial partition must have been created, only 1 for now");
 
   // create defragmentation events
   DefragmentationEvent* defragmentation_event = new DefragmentationEvent(this);
@@ -158,21 +149,30 @@ bool World::run_simulation(const bool dump_initial_state) {
   defragmentation_event->periodicity_interval = DEFRAGMENTATION_PERIODICITY;
   scheduler.schedule_event(defragmentation_event);
 
-  // create event that will terminate our simulation
-  EndSimulationEvent* end_event = new EndSimulationEvent();
-  end_event->event_time = iterations;
-  scheduler.schedule_event(end_event);
-
-  bool end_simulation = false;
-  current_iteration = 0;
-  uint64_t previous_iteration = 0;
-  uint output_frequency = determine_output_frequency(iterations);
-  timeval last_timing_time = {0, 0};
-
-  cout << "Iterations: " << current_iteration << " of " << iterations << "\n";
+  // initialize timing
+  previous_progress_report_time = {0, 0};
 
   rusage sim_start_time;
   getrusage(RUSAGE_SELF, &sim_start_time);
+
+  // iteration counters to report progress and
+  // also to know when to end
+  current_iteration = 0;
+  previous_iteration = 0;
+
+  simulation_initialized = true;
+}
+
+
+void World::run_n_iterations(const uint64_t num_iterations, const uint64_t output_frequency) {
+
+  if (!simulation_initialized) {
+    init_simulation();
+  }
+
+  if (current_iteration == 0) {
+    cout << "Iterations: " << current_iteration << " of " << iterations << "\n";
+  }
 
   do {
 #ifdef DEBUG_SCHEDULER
@@ -183,8 +183,13 @@ bool World::run_simulation(const bool dump_initial_state) {
     float_t time = scheduler.get_next_event_time();
     current_iteration = (uint64_t)time;
 
+    if (current_iteration > iterations) {
+      // terminate simulation
+      break;
+    }
+
     // this is where events get executed
-    scheduler.handle_next_event(end_simulation);
+    scheduler.handle_next_event();
 
     // report progress
     if (current_iteration > previous_iteration) {
@@ -192,14 +197,14 @@ bool World::run_simulation(const bool dump_initial_state) {
       if (current_iteration % output_frequency == 0) {
         cout << "Iterations: " << current_iteration << " of " << iterations;
 
-        timeval curr_timing_time;
-        gettimeofday(&curr_timing_time, NULL);
-        if (last_timing_time.tv_usec > 0) {
-          double time_diff = tousecs(curr_timing_time) - tousecs(last_timing_time);
+        timeval current_progress_report_time;
+        gettimeofday(&current_progress_report_time, NULL);
+        if (previous_progress_report_time.tv_usec > 0) {
+          double time_diff = tousecs(current_progress_report_time) - tousecs(previous_progress_report_time);
           time_diff /= (double)output_frequency;
           cout << " (" << 1000000.0/time_diff << " iter/sec)";
         }
-        last_timing_time = curr_timing_time;
+        previous_progress_report_time = current_progress_report_time;
 
         cout << "\n";
       }
@@ -211,7 +216,15 @@ bool World::run_simulation(const bool dump_initial_state) {
     cout << "After it: " << current_iteration << ", time: " << time << "\n";
 #endif
 
-  } while (!end_simulation);
+  } while (true); // terminated when the nr. of iterations is reached
+}
+
+
+void World::end_simulation() {
+  if (simulation_ended) {
+    // already called, do nothing
+    return;
+  }
 
   cout << "Iteration " << current_iteration << ", simulation finished successfully\n";
 
@@ -224,7 +237,25 @@ bool World::run_simulation(const bool dump_initial_state) {
     << tosecs(run_time.ru_utime) - tosecs(sim_start_time.ru_utime) <<  "(user) and "
     << tosecs(run_time.ru_stime) - tosecs(sim_start_time.ru_stime) <<  "(system)\n";
 
-  return true;
+  simulation_ended = true;
+}
+
+
+void World::run_simulation(const bool dump_initial_state) {
+
+  // do initialization, also insert
+  // defragmentation and end simulation event
+  init_simulation();
+
+  if (dump_initial_state) {
+    dump();
+  }
+
+  uint output_frequency = determine_output_frequency(iterations);
+
+  run_n_iterations(iterations, output_frequency);
+
+  end_simulation();
 }
 
 

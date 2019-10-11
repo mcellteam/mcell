@@ -38,7 +38,7 @@ typedef int event_type_index_t;
 const event_type_index_t EVENT_TYPE_INDEX_INVALID = -1;
 const event_type_index_t EVENT_TYPE_INDEX_RELEASE = 200;
 const event_type_index_t EVENT_TYPE_INDEX_VIZ_OUTPUT = 300;     // first visualization output is done after release
-const event_type_index_t EVENT_TYPE_INDEX_END_SIMULATION = 400; // we terminate simulation as soon as we hit the time
+//const event_type_index_t EVENT_TYPE_INDEX_END_SIMULATION = 400; // we terminate simulation as soon as we hit the time -> removed
 const event_type_index_t EVENT_TYPE_INDEX_DIFFUSE_REACT = 500;  // this event spans the whole time step
 const event_type_index_t EVENT_TYPE_INDEX_DEFRAGMENTATION = 900;
 

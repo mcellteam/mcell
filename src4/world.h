@@ -24,6 +24,10 @@
 #ifndef SRC4_WORLD_H_
 #define SRC4_WORLD_H_
 
+#include <time.h>
+#include <sys/time.h> // Linux include
+#include <sys/resource.h> // Linux include
+
 #include <vector>
 #include <string>
 #include <set>
@@ -48,7 +52,9 @@ private:
 public:
   World();
   void init_world_constants();
-  bool run_simulation(const bool dump_initial_state = false);
+  void run_simulation(const bool dump_initial_state = false);
+  void run_n_iterations(const uint64_t num_iterations, const uint64_t output_frequency);
+  void end_simulation();
 
   // -------------- partition manipulation methods --------------
   partition_index_t get_partition_index(const vec3_t& pos) {
@@ -201,6 +207,21 @@ private:
   // global ID counters
   wall_id_t next_wall_id;
   geometry_object_id_t next_geometry_object_id;
+
+
+  // used by run_n_iterations to know whether the simulation was
+  // already initialized
+  bool simulation_initialized;
+
+  // used to know whether we already reported final simulation stats
+  bool simulation_ended;
+
+  // several variables to report simulation time
+  timeval previous_progress_report_time;
+  rusage sim_start_time;
+
+  // and to nicely report simulation progress
+  uint64_t previous_iteration;
 };
 
 } // namespace mcell

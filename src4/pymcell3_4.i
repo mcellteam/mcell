@@ -23,6 +23,8 @@
 
 %module pymcell3_4 
 
+%import stdint.i
+
 %{
 
 #include "world.h"
@@ -35,7 +37,9 @@ using namespace MCell;
 
 class World {
 public:
-  bool run_simulation(const bool dump_initial_state = false);
+  void run_simulation(const bool dump_initial_state = false);
+  void run_n_iterations(const uint64_t num_iterations, const uint64_t output_frequency);
+  void end_simulation();
 };
 
 class MCell3WorldConverter {
