@@ -231,7 +231,7 @@ bool MCell3WorldConverter::convert_geometry_objects(volume* s) {
   curr_obj = scene->first_child;
   while (curr_obj != nullptr) {
     if (curr_obj->object_type == POLY_OBJ) {
-      convert_polygonal_object(curr_obj);
+      CHECK(convert_polygonal_object(curr_obj));
     }
     else if (curr_obj->object_type == REL_SITE_OBJ) {
       // ignored
