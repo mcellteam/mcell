@@ -21,6 +21,8 @@
 //#define DUMP_ALWAYS
 #define DUMP_NEVER
 
+#define DEBUG_WALL_COLLISIONS
+
 #if (!defined(NDEBUG) || defined(DUMP_ALWAYS)) && !defined(DUMP_NEVER)
 
 //#define DEBUG_SCHEDULER

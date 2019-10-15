@@ -72,6 +72,7 @@ include_directories(
   "${CMAKE_CURRENT_BINARY_DIR}/deps" 
   "${CMAKE_SOURCE_DIR}/../nfsimCInterface/src/"
   "${CMAKE_SOURCE_DIR}/include"
+  "/nadata/cnl/home/ahusar/tools/anaconda/pkgs/python-3.7.3-h0371630_0/include/python3.7m/" # FIXME: detemine automatically
 )
 
 # move config.h into place. Unix and Windows have different header files
@@ -209,11 +210,17 @@ set(SOURCE_FILES
     src4/geometry.cpp
     src4/world.cpp
     src4/world_constants.cpp
+    
+    src4/callback_info.cpp
 )
 
 set(SOURCE_FILES_ONLY_MCELL
     src/mdlparse_util.c
     src/mcell.c
+)    
+
+
+set(SOURCE_FILES_ONLY_PYMCELL
 )    
 
 
@@ -254,7 +261,7 @@ if (NOT WIN32)
     SWIG_ADD_LIBRARY(pymcell 
       TYPE SHARED 
       LANGUAGE python
-      SOURCES src/pymcell.i ${SOURCE_FILES} ${BISON_dynGeomParser_OUTPUTS} ${FLEX_dynGeomScanner_OUTPUTS}  
+      SOURCES src/pymcell.i ${SOURCE_FILES} ${SOURCE_FILES_ONLY_PYMCELL} ${BISON_dynGeomParser_OUTPUTS} ${FLEX_dynGeomScanner_OUTPUTS}  
     )
   else()  
     SWIG_ADD_MODULE(pymcell python

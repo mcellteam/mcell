@@ -46,7 +46,8 @@ World::World()
     simulation_initialized(false),
     simulation_ended(false),
     previous_progress_report_time({0, 0}),
-    previous_iteration(0)
+    previous_iteration(0),
+    wall_hit_callback(nullptr)
 {
   world_constants.partition_edge_length = PARTITION_EDGE_LENGTH_DEFAULT;
   world_constants.subpartitions_per_partition_dimension = SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT;
@@ -133,6 +134,8 @@ static double tousecs(timeval& t) {
 static double tosecs(timeval& t) {
   return (double)t.tv_sec + (double)t.tv_usec/USEC_IN_SEC;
 }
+
+
 
 
 void World::init_simulation() {

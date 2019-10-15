@@ -313,8 +313,32 @@ void DiffuseReactEvent::diffuse_vol_molecule(
       else if (collision.is_wall_collision()) {
         Molecule& vm_new_ref = p.get_m(vm_id);
 
-        // check possible reaction with surface molecules
         Wall& colliding_wall = p.get_wall(collision.colliding_wall_index);
+
+        // call callback if the user registered one
+        wall_hit_callback_func wall_hit_callback = world->get_wall_hit_callback();
+        if (wall_hit_callback != nullptr) {
+          WallHitInfo info;
+          info.molecule_id = vm_new_ref.id;
+          info.geometry_object_id = colliding_wall.object_id;
+          info.wall_id = colliding_wall.id;
+          info.time = event_time + collision.time;
+          info.pos = collision.pos;
+
+          wall_hit_callback(info, world->wall_hit_callback_clientdata);
+        }
+#ifdef DEBUG_WALL_COLLISIONS
+        cout << "Wall collision: \n";
+        const GeometryObject* geom_obj = p.get_geometry_object_if_exists(colliding_wall.object_id);
+        assert(geom_obj != nullptr);
+        cout << "  mol id: " << vm_new_ref.id << ", species: " << world->get_species(vm_new_ref.species_id).name << "\n";
+        cout << "  obj: " << geom_obj->name << ", id: " << geom_obj->id << "\n";
+        cout << "  wall id: " << colliding_wall.id << "\n";
+        cout << "  time: " << float_t(world->current_iteration) + collision.time << "\n";
+        cout << "  pos: " << collision.pos << "\n";
+#endif
+
+        // check possible reaction with surface molecules
         if (species.has_flag(SPECIES_FLAG_CAN_VOLSURF) && colliding_wall.has_initialized_grid()) {
           int collide_res = collide_and_react_with_surf_mol(p, collision, updated_remaining_time_step, r_rate_factor, elapsed_molecule_time);
 

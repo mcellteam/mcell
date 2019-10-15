@@ -39,6 +39,7 @@
 #include "species.h"
 #include "reaction.h"
 #include "geometry.h"
+#include "callback_info.h"
 
 namespace MCell {
 
@@ -173,6 +174,19 @@ public:
 
   void dump();
 
+  // -------------- callback registration --------------
+  void register_wall_hit_callback_internal(wall_hit_callback_func func, void* clientdata_) {
+    wall_hit_callback = func;
+    wall_hit_callback_clientdata = clientdata_;
+  }
+
+  // clientdata hold information on what Python function we should call
+  void* wall_hit_callback_clientdata;
+
+  wall_hit_callback_func get_wall_hit_callback() {
+    return wall_hit_callback;
+  }
+
 private:
   std::vector<Partition> partitions;
   std::vector<Species> species;
@@ -222,6 +236,9 @@ private:
 
   // and to nicely report simulation progress
   uint64_t previous_iteration;
+
+  // callbacks
+  wall_hit_callback_func wall_hit_callback;
 };
 
 } // namespace mcell

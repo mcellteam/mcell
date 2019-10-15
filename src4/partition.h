@@ -390,6 +390,18 @@ public:
     return new_obj;
   }
 
+  const GeometryObject* get_geometry_object_if_exists(const geometry_object_id_t id) {
+
+    // NOTE: optimize of needed
+    for (const GeometryObject& obj: geometry_objects) {
+      if (obj.id == id) {
+        return &obj;
+      }
+    }
+    // not found
+    return nullptr;
+  }
+
   const Wall& get_wall(wall_index_t i) const {
     assert(i < walls.size());
     const Wall& res = walls[i];

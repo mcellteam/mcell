@@ -24,6 +24,7 @@
 #ifndef SRC4_DEFINES_H_
 #define SRC4_DEFINES_H_
 
+#ifndef SWIG
 #include <stdint.h>
 #include <vector>
 #include <string>
@@ -47,6 +48,7 @@
 
 // this file must not depend on any other from mcell4 otherwise there
 // might be some nasty cyclic include dependencies
+#endif
 
 
 namespace MCell {
