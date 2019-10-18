@@ -1,5 +1,15 @@
-cmake_minimum_required(VERSION 3.4)
+cmake_minimum_required(VERSION 3.15)
 project(mcell)
+
+
+# Using default gcc 8.3.0 provided in Debian 10
+# causes a segfault in nfSIM, however different gcc is ok
+if(CMAKE_CXX_COMPILER_VERSION VERSION_EQUAL 8.3.0)
+  message(FATAL_ERROR 
+    "There is an error in nfSim, possibly due to a compiler issue, with gcc-8.3.0. "
+    "Use a different compiler with CC=... and CXX=... "
+  )
+endif()
 
 # silence UseSWIG warnings
 if (${CMAKE_VERSION} VERSION_GREATER "3.13")
@@ -15,18 +25,23 @@ add_definitions(-DPACKAGE_BUGREPORT="mcell@salk.edu")
 SET(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0 ")
 SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 ")
 
-SET(OPTIMIZATION_FLAGS "-O3 -march=core2 -finline-limit=1000 ")
-
 set(INCLUDE_DIRS " -isystem ${CMAKE_SOURCE_DIR}/libs/")
-
-SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OPTIMIZATION_FLAGS} ${OPTIMIZATION_FLAGS} ${INCLUDE_DIRS} ")
-SET(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS} -std=c++11 ")
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
   SET(USE_SANITIZER_DEFAULT ON)
 else()
   SET(USE_SANITIZER_DEFAULT OFF)
+  SET(OPTIMIZATION_FLAGS " -O3 -march=core2 -finline-limit=1000 ")
 endif()
+
+set(WARNING_FLAGS "-Wall -Wextra  -Wno-return-type -Wno-shadow -Wno-sign-compare -Wno-unused-parameter -Wno-unused-function -Wno-unused-variable")
+
+set(INCLUDE_DIRS " -isystem ${CMAKE_SOURCE_DIR}/libs/")
+SET(COMMON_C_CXX_FLAGS "${WARNING_FLAGS} -g3 ${OPTIMIZATION_FLAGS} ${INCLUDE_DIRS} -D_GNU_SOURCE=1")
+SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMMON_C_CXX_FLAGS}  -std=c11 ")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON_C_CXX_FLAGS} -std=c++14")
+
+set(CMAKE_EXE_LINKER_FLAGS "-lm")
 
 option(USE_GCOV "Use gcc coverage" OFF) 
 option(USE_PROFILING "Use gprof profiling" OFF) 
@@ -36,8 +51,8 @@ option(PYMCELL "Build also pyMCell" ON)
 
 
 if (USE_SANITIZER)
-  SET(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS} -fsanitize=address ")
-  SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS} -fsanitize=address ")
+  SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address ")
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address ")
   SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lasan ")
 endif()
 
@@ -111,17 +126,6 @@ elseif (WIN32)
   add_custom_command(TARGET version_h COMMAND ${CMAKE_COMMAND} -E
                      copy ${CMAKE_SOURCE_DIR}/appveyor_windows/version.h ${CMAKE_CURRENT_BINARY_DIR}/deps )
 endif()
-
-set(OPTIMIZATION_FLAGS " -march=native -O3")
-set(WARNING_FLAGS "-Wall -Wextra -Wshadow -Wno-unused-parameter -Wno-unused-function -Wno-unused-variable")
-
-set(INCLUDE_DIRS " -isystem ${CMAKE_SOURCE_DIR}/libs/")
-
-# -faligned-new - only for gcc >= 5.x
-set(CMAKE_C_FLAGS "-g3  -D_GNU_SOURCE=1 ${WARNING_FLAGS} ${OPTIMIZATION_FLAGS} -std=c11 ${CMAKE_C_FLAGS}" )
-set(CMAKE_CXX_FLAGS "-g3 -D_GNU_SOURCE=1 -std=c++14 ${INCLUDE_DIRS} ${WARNING_FLAGS} ${OPTIMIZATION_FLAGS} ${CMAKE_CXX_FLAGS}" )
-
-set(CMAKE_EXE_LINKER_FLAGS "-lm")
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/../nfsim ${CMAKE_CURRENT_BINARY_DIR}/nfsim)
 add_subdirectory(${CMAKE_SOURCE_DIR}/../nfsimCInterface ${CMAKE_CURRENT_BINARY_DIR}/nfsimCInterface)
