@@ -8,7 +8,9 @@
 #ifndef SRC4_CALLBACK_STRUCTS_H_
 #define SRC4_CALLBACK_STRUCTS_H_
 
+#ifndef SWIG
 #include "defines.h"
+#endif
 
 namespace MCell {
 

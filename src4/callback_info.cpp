@@ -7,8 +7,6 @@
 #ifndef NOSWIG
 #include "Python.h"
 
-class PyObject;
-
 using namespace std;
 
 void py_callback_wall_hit(const MCell::WallHitInfo& res, void *clientdata)

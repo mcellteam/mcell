@@ -25,6 +25,8 @@
 
 %import stdint.i
 
+typedef unsigned int uint;
+
 %{
 
 #include "world.h"
@@ -41,10 +43,16 @@ using namespace MCell;
 #include "callback_info.h"
 %}
 
+// TODO: why does simple import not work?
+//%import "defines.h"
+typedef uint partition_index_t;
+typedef uint vertex_index_t;
+
 %import "callback_structs.h"
 
+
 // Grab a Python function object as a Python object.
-%typemap(python,in) PyObject *pyfunc {
+%typemap(in) PyObject *pyfunc {
   if (!PyCallable_Check($source)) {
       PyErr_SetString(PyExc_TypeError, "Need a callable object!");
       return NULL;
@@ -53,13 +61,31 @@ using namespace MCell;
 }
 
 // Type mapping for grabbing a FILE * from Python
-%typemap(python,in) FILE * {
+%typemap(in) FILE * {
   if (!PyFile_Check($source)) {
       PyErr_SetString(PyExc_TypeError, "Need a file!");
       return NULL;
   }
   $target = PyFile_AsFile($source);
 }
+
+
+struct vec3_t {
+	double x, y, z;
+};
+
+class Partition {
+public:
+  Partition(
+      const vec3_t origin_,
+      const WorldConstants& world_constants_,
+      SimulationStats& simulation_stats_
+  );
+  
+  int get_geometry_vertex_count();
+  vec3_t& get_geometry_vertex(vertex_index_t i);
+};
+
 
 class World {
 public:
@@ -68,6 +94,8 @@ public:
   void end_simulation();
   
   void register_wall_hit_callback_internal(wall_hit_callback_func func, void* clientdata_);
+  
+  Partition& get_partition(partition_index_t i);
 };
 
 class MCell3WorldConverter {

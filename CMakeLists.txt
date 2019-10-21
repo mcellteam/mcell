@@ -245,7 +245,7 @@ if (NOT WIN32)
   INCLUDE_DIRECTORIES(${PYTHON_INCLUDE_PATH})
 
   #SET(CMAKE_SWIG_FLAGS "-debug-typemap;-debug-tmsearch;-debug-tmused;-ltypemaps")
-  SET(CMAKE_SWIG_FLAGS "-c++;-ltypemaps;-py3")
+  SET(CMAKE_SWIG_FLAGS "-c++;-ltypemaps;-py3;-Wall")
   #SET(CMAKE_SWIG_FLAGS "-ltypemaps;-py3")
 
   SET(CMAKE_SWIG_OUTDIR "${CMAKE_BINARY_DIR}/python")

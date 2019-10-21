@@ -349,6 +349,10 @@ public:
     return index;
   }
 
+  uint get_geometry_vertex_count() const {
+    return geometry_vertices.size();
+  }
+
   const vec3_t& get_geometry_vertex(vertex_index_t i) const {
     assert(i < geometry_vertices.size());
     return geometry_vertices[i];
