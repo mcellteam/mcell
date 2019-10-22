@@ -198,6 +198,7 @@ set(SOURCE_FILES
     src4/base_event.cpp
     src4/defines.cpp
     src4/diffuse_react_event.cpp
+    src4/dyn_vertex_utils.cpp
     src4/mcell3_world_converter.cpp
     src4/molecule.cpp
     src4/partition.cpp

@@ -173,10 +173,13 @@ public:
     return grid.is_initialized();
   }
 
+  // FIXME: since wall is contained in partition, this is not really a constant ref
   void initialize_grid(const Partition& p) {
     assert(!has_initialized_grid());
     grid.initialize(p, *this);
   }
+
+  void update_after_vertex_change(Partition& p);
 };
 
 

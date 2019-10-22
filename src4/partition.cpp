@@ -25,6 +25,7 @@
 
 #include "partition.h"
 
+#include "dyn_vertex_utils.h"
 #include "geometry_utils.inc"
 
 using namespace std;

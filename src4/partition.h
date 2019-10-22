@@ -33,6 +33,7 @@
 #include "reaction.h"
 #include "geometry.h"
 #include "species.h"
+#include "dyn_vertex_utils.h"
 
 namespace MCell {
 
@@ -358,6 +359,11 @@ public:
     return geometry_vertices[i];
   }
 
+  vec3_t& get_geometry_vertex(vertex_index_t i) {
+    assert(i < geometry_vertices.size());
+    return geometry_vertices[i];
+  }
+
   const vec3_t& get_wall_vertex(const Wall& w, uint vertex_in_wall_index) const {
     assert(vertex_in_wall_index < VERTICES_IN_TRIANGLE);
     vertex_index_t i = w.vertex_indices[vertex_in_wall_index];
@@ -455,6 +461,19 @@ public:
     return walls_using_vertex_mapping[vertex_index];
   }
 
+  // ---------------------------------- dynamic vertices ----------------------------------
+  // add information about a change of a specific vertex
+  // order of calls is important (at least for now)
+  void add_vertex_move(vertex_index_t vertex_index, const vec3_t& translation_vec) {
+    scheduled_vertex_moves.push_back(DynVertexUtils::vertex_move_info_t(vertex_index, translation_vec));
+  }
+
+  // do the actual changes of vertices
+  void apply_vertex_moves() {
+    DynVertexUtils::move_vertices(*this, scheduled_vertex_moves);
+    scheduled_vertex_moves.clear();
+  }
+
 private:
   // automatically enlarges walls_using_vertex array
   void add_wall_using_vertex_mapping(vertex_index_t vertex_index, wall_index_t wall_index) {
@@ -513,6 +532,11 @@ private:
 
   std::vector<UintSet> walls_per_subpart;
 
+  // ---------------------------------- dynamic vertices ----------------------------------
+private:
+  std::vector<DynVertexUtils::vertex_move_info_t> scheduled_vertex_moves;
+
+  // ---------------------------------- other ----------------------------------
   const WorldConstants& world_constants; // owned by world
   SimulationStats& simulation_stats; // owned by world
 };

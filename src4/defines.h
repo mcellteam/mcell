@@ -199,6 +199,7 @@ typedef glm::uvec3 uvec3_t;
 typedef glm::bvec3 bvec3_t;
 typedef glm::dmat4x4 mat4x4;
 
+// NOTE: rename to Vec3? - not sure, this is a really simple object...
 struct vec3_t: public glm_vec3_t {
   vec3_t() = default;
   vec3_t(const glm_vec3_t& a) { x = a.x; y = a.y; z = a.z; }
@@ -326,12 +327,22 @@ static inline float_t len2_squared(const vec2_t& v1) {
   return v1.u * v1.u + v1.v * v1.v;
 }
 
+// FIXME: use places where to use this function
+static inline float_t len2(const vec2_t& v1) {
+  return sqrt_f(len2_squared(v1));
+}
+
 static inline float_t dot(const vec3_t& v1, const vec3_t& v2) {
   return glm::dot((glm_vec3_t)v1, (glm_vec3_t)v2);
 }
 
 static inline float_t len3_squared(const vec3_t& v1) {
   return v1.x * v1.x + v1.y * v1.y + v1.z * v1.z;
+}
+
+// FIXME: use places where to use this function
+static inline float_t len3(const vec3_t& v1) {
+  return sqrt_f(len3_squared(v1));
 }
 
 static inline float_t distance3(const vec3_t& v1, const vec3_t& v2) {

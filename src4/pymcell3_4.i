@@ -69,9 +69,15 @@ typedef uint vertex_index_t;
   $target = PyFile_AsFile($source);
 }
 
+namespace MCell {
+
+typedef double float_t;
 
 struct vec3_t {
-	double x, y, z;
+  vec3_t();
+  vec3_t(const float_t x_, const float_t y_, const float_t z_);
+
+  float_t x, y, z; # should be float_t
 };
 
 class Partition {
@@ -84,9 +90,17 @@ public:
   
   int get_geometry_vertex_count();
   vec3_t& get_geometry_vertex(vertex_index_t i);
+  
+  void add_vertex_move(vertex_index_t vertex_index, const vec3_t& translation_vec);
+  void apply_vertex_moves();
 };
 
-
+class WorldConstants {
+public:
+  float_t length_unit;
+ 
+};
+  
 class World {
 public:
   void run_simulation(const bool dump_initial_state = false);
@@ -94,6 +108,8 @@ public:
   void end_simulation();
   
   void register_wall_hit_callback_internal(wall_hit_callback_func func, void* clientdata_);
+  
+  WorldConstants& get_world_constants();
   
   Partition& get_partition(partition_index_t i);
 };
@@ -103,6 +119,8 @@ public:
   bool convert(MCELL_STATE* s);
   World* world;
 };
+
+} // namespace MCell
 
 // Attach a new method to our plot widget for adding Python functions
 %extend World {

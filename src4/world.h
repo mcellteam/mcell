@@ -57,6 +57,11 @@ public:
   void run_n_iterations(const uint64_t num_iterations, const uint64_t output_frequency);
   void end_simulation();
 
+  // -------------- diverse getters -----------------------------
+  const WorldConstants& get_world_constants() {
+    return world_constants;
+  }
+
   // -------------- partition manipulation methods --------------
   partition_index_t get_partition_index(const vec3_t& pos) {
     // for now a slow approach, later some hashing/memoization might be needed
