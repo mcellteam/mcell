@@ -48,6 +48,17 @@ void Grid::initialize(const Partition& p, const Wall& w) {
 
   num_tiles = num_tiles_along_axis * num_tiles_along_axis;
 
+  // we are expecting that there are no molecules for reinitialization,
+  // dynamic geometry walls must not have any surface molecules for now!
+  // TODO: do we need a better check? - i.e. also for non-debug version? probably yes..
+#ifndef NDEBUG
+  if (!molecules_per_tile.empty()) {
+    for (tile_index_t tile_index = 0; tile_index < num_tiles; tile_index++) {
+      assert(get_molecule_on_tile(tile_index) == MOLECULE_INDEX_INVALID);
+    }
+  }
+#endif
+
   molecules_per_tile.resize(num_tiles, MOLECULE_ID_INVALID);
 
   strip_width_rcp = 1.0 / (w.uv_vert2.v / ((float_t)num_tiles_along_axis));
@@ -242,16 +253,6 @@ void Wall::update_after_vertex_change(Partition& p) {
     //assert(edges[edge_index].forward_index == index); // ???
     init_edge_transform(p, edges[edge_index], edge_index /*???*/);
   }
-
-  // walls must not have any surface molecules for now!
-  // TODO: do we need a better check?
-#ifndef NDEBUG
-  for (tile_index_t tile_index = 0; tile_index < grid.num_tiles; tile_index++) {
-    if (grid.is_initialized()) {
-      assert(grid.get_molecule_on_tile(tile_index) == MOLECULE_INDEX_INVALID);
-    }
-  }
-#endif
 
   // reinitialize grid
   grid.initialize(p, *this);
