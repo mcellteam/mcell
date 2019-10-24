@@ -177,6 +177,8 @@ void World::run_n_iterations(const uint64_t num_iterations, const uint64_t outpu
     cout << "Iterations: " << current_iteration << " of " << iterations << "\n";
   }
 
+  uint64_t this_run_first_iteration = current_iteration;
+
   do {
 #ifdef DEBUG_SCHEDULER
     cout << "Before it: " << current_iteration << ", time: " << time << "\n";
@@ -186,7 +188,7 @@ void World::run_n_iterations(const uint64_t num_iterations, const uint64_t outpu
     float_t time = scheduler.get_next_event_time();
     current_iteration = (uint64_t)time;
 
-    if (current_iteration > iterations) {
+    if (current_iteration >= this_run_first_iteration + num_iterations) {
       // terminate simulation
       break;
     }
@@ -220,6 +222,14 @@ void World::run_n_iterations(const uint64_t num_iterations, const uint64_t outpu
 #endif
 
   } while (true); // terminated when the nr. of iterations is reached
+
+#ifndef NDEBUG
+  // flush everything, we want the output to be mixed with Python in the right ordering
+  cout.flush();
+  cerr.flush();
+  fflush(stdout);
+  fflush(stderr);
+#endif
 }
 
 
@@ -256,7 +266,8 @@ void World::run_simulation(const bool dump_initial_state) {
 
   uint output_frequency = determine_output_frequency(iterations);
 
-  run_n_iterations(iterations, output_frequency);
+  // simulating 1000 iterations means to simulate iterations 0 .. 1000
+  run_n_iterations(iterations + 1, output_frequency);
 
   end_simulation();
 }
