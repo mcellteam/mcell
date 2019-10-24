@@ -66,8 +66,8 @@ void Grid::initialize(const Partition& p, const Wall& w) {
 void GeometryObject::dump(const Partition& p, const std::string ind) const {
   cout << ind << "geometry_object_t: id:" << id << ", name:" << name << "\n";
   for (wall_index_t i: wall_indices) {
-    cout << ind << "  " << i << ": ";
-    p.get_wall(i).dump(p, ind + "  ");
+    cout << ind << "  " << i << ": \n";
+    p.get_wall(i).dump(p, ind + "    ");
   }
 }
 
@@ -253,19 +253,37 @@ void Wall::update_after_vertex_change(Partition& p) {
 
 
 void Wall::dump(const Partition& p, const std::string ind) const {
-  cout << "id: " << id << ", side: " << side << ", object_id: " << object_id;
+  cout << ind << "id: " << id << ", side: " << side << ", object_id: " << object_id << "\n";
 
   for (uint i = 0; i < VERTICES_IN_TRIANGLE; i++) {
     vertex_index_t vertex_index = vertex_indices[i];
     vec3_t pos = p.get_geometry_vertex(vertex_index);
-    cout << ", vert_index: " << vertex_index << ":" << pos;
+    cout << ind << "vertex_index: " << vertex_index << ":" << pos << "\n";
   }
 
-  cout
-    << ", normal " << normal
-    << ", unit_u " << unit_u
-    << ", unit_v " << unit_v
+  for (uint i = 0; i < EDGES_IN_TRIANGLE; i++) {
+    cout << ind << "edges:\n";
+    //TODO: edges[i].dump();
+  }
+
+  cout << ind;
+  for (uint i = 0; i < EDGES_IN_TRIANGLE; i++) {
+    cout << "nb_walls[" << i << "]: " << nb_walls[i] << ", ";
+  }
+  cout << "\n";
+
+  cout << ind
+    << "uv_vert1_u: " << uv_vert1_u
+    << ", uv_vert2: " << uv_vert2
+    << ", area: " << area
+    << ", normal: " << normal << "\n";
+
+  cout << ind
+    << "unit_u: " << unit_u
+    << ", unit_v: " << unit_v
+    << ", distance_to_origin: " << distance_to_origin
     << "\n";
+#undef out
 }
 
 } /* namespace mcell */

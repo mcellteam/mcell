@@ -112,6 +112,8 @@ public:
   WorldConstants& get_world_constants();
   
   Partition& get_partition(partition_index_t i);
+  
+  void dump();
 };
 
 class MCell3WorldConverter {
