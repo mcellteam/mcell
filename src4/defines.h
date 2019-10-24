@@ -176,15 +176,18 @@ typedef boost::container::small_vector<const Reaction*, 8>  ReactionsVector;
  */
 class UintSet: public boost::container::flat_set<uint> {
 public:
-  void set_contains_id(const uint id, const bool value = true) {
-    if (value) {
-      assert(count(id) == 0);
-      insert(id);
-    }
-    else {
-      assert(count(id) == 1);
-      erase(id);
-    }
+  // insert with check that the item is not there yet
+  // for insertions without this check use 'insert'
+  void insert_unique(const uint id_or_index) {
+    assert(count(id_or_index) == 0);
+    insert(id_or_index);
+  }
+
+  // erase with check that the item is present
+  // for insertions without this check use 'erase'
+  void erase_existing(const uint id_or_index) {
+    assert(count(id_or_index) == 1);
+    erase(id_or_index);
   }
 
   void dump();

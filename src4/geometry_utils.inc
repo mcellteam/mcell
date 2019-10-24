@@ -120,8 +120,8 @@ static inline void get_wall_bounding_box(
 
 /***************************************************************************
 distribute_wall:
-  In: a wall 'w' that fully fits into patrition 'p'
-  Out: colliding_subparts - indices of all the subparitions in a given partition
+  In: a wall 'w' that fully fits into partition 'p'
+  Out: colliding_subparts - indices of all the subpartitions in a given partition
         where the wall is located
 ***************************************************************************/
 // original name: distribute_wall

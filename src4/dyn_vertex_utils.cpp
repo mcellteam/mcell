@@ -62,11 +62,10 @@ void move_vertices(Partition& p, const std::vector<vertex_move_info_t>& schedule
 
   // TODO: this can be optimized by moving multiple vertices at once
   for (const vertex_move_info_t& move_info: scheduled_vertex_moves) {
-
     // get all walls that this vertex uses
     const std::vector<wall_index_t>& wall_indices = p.get_walls_using_vertex(move_info.vertex_index);
 
-
+    move_vertex_and_walls(p, wall_indices, move_info);
   }
 }
 

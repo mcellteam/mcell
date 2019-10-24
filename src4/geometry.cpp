@@ -106,6 +106,7 @@ static void init_edge_transform(Partition& p, Edge &e, int edgenum) {
   temp_ff.u = dot(diff_j_0, wf.unit_u) - O_f.u;
   temp_ff.v = dot(diff_j_0, wf.unit_v) - O_f.v; /* Far side of e */
 
+  assert(!cmp_eq(len2_squared(temp_ff), 0.0, EPS_C));
   float_t d_f = 1.0 / len2(temp_ff);
 
   vec2_t ehat_f, fhat_f;
@@ -119,11 +120,12 @@ static void init_edge_transform(Partition& p, Edge &e, int edgenum) {
   O_b.u = dot(diff_i_b0, wb.unit_u);
   O_b.v = dot(diff_i_b0, wb.unit_v); /* Origin */
 
-  vec3_t diff_j_b0 = wf_vert_i - wb_vert_0;
+  vec3_t diff_j_b0 = wf_vert_j - wb_vert_0;
   vec2_t temp_fb;
   temp_fb.u = dot(diff_j_b0, wb.unit_u) - O_b.u;
   temp_fb.v = dot(diff_j_b0, wb.unit_v) - O_b.v; /* Far side of e */
 
+  assert(!cmp_eq(len2_squared(temp_fb), 0.0, EPS_C));
   float_t d_b = 1.0 / len2(temp_fb);
 
   vec2_t ehat_b, fhat_b;
@@ -186,6 +188,7 @@ static void init_tri_wall(Partition& p, Wall& w) {
   fx = (v1.x - v0.x);
   fy = (v1.y - v0.y);
   fz = (v1.z - v0.z);
+  // TODO: assert
   f = 1 / sqrt(fx * fx + fy * fy + fz * fz);
 
   w.unit_u.x = fx * f;
@@ -199,6 +202,7 @@ static void init_tri_wall(Partition& p, Wall& w) {
   w.normal.x = w.unit_u.y * fz - w.unit_u.z * fy;
   w.normal.y = w.unit_u.z * fx - w.unit_u.x * fz;
   w.normal.z = w.unit_u.x * fy - w.unit_u.y * fx;
+  // TODO: assert
   f = 1 / sqrt(w.normal.x * w.normal.x + w.normal.y * w.normal.y +
                w.normal.z * w.normal.z);
   w.normal.x *= f;
@@ -235,7 +239,7 @@ void Wall::update_after_vertex_change(Partition& p) {
 
   // edges, uses info set by init_tri_wall
   for (uint edge_index = 0; edge_index < EDGES_IN_TRIANGLE; edge_index++) {
-    assert(edges[edge_index].forward_index == index); // ???
+    //assert(edges[edge_index].forward_index == index); // ???
     init_edge_transform(p, edges[edge_index], edge_index /*???*/);
   }
 
@@ -243,7 +247,9 @@ void Wall::update_after_vertex_change(Partition& p) {
   // TODO: do we need a better check?
 #ifndef NDEBUG
   for (tile_index_t tile_index = 0; tile_index < grid.num_tiles; tile_index++) {
-    assert(grid.get_molecule_on_tile(tile_index) == MOLECULE_INDEX_INVALID);
+    if (grid.is_initialized()) {
+      assert(grid.get_molecule_on_tile(tile_index) == MOLECULE_INDEX_INVALID);
+    }
   }
 #endif
 

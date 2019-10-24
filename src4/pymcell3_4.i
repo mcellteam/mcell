@@ -122,7 +122,6 @@ public:
   World* world;
 };
 
-} // namespace MCell
 
 // Attach a new method to our plot widget for adding Python functions
 %extend World {
@@ -133,3 +132,5 @@ public:
      Py_INCREF(pyfunc);
    }
 }
+
+} // namespace MCell

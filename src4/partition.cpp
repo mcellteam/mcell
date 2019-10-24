@@ -47,8 +47,48 @@ void Partition::finalize_wall_creation(const wall_index_t wall_index) {
   GeometryUtil::wall_subparts_collision_test(*this, w, colliding_subparts);
   for (subpart_index_t subpart_index: colliding_subparts) {
     assert(subpart_index < walls_per_subpart.size());
-    walls_per_subpart[subpart_index].set_contains_id(wall_index);
+    walls_per_subpart[subpart_index].insert_unique(wall_index);
   }
+}
+
+// remove items when 'insert' is false
+void Partition::update_walls_per_subpart(const UintSet& wall_indices, const bool insert) {
+  for (wall_index_t wall_index: wall_indices) {
+    SubpartIndicesVector colliding_subparts;
+    Wall& w = get_wall(wall_index);
+    GeometryUtil::wall_subparts_collision_test(*this, w, colliding_subparts);
+    for (subpart_index_t subpart_index: colliding_subparts) {
+      assert(subpart_index < walls_per_subpart.size());
+
+      if (insert) {
+        walls_per_subpart[subpart_index].insert_unique(wall_index);
+      }
+      else {
+        walls_per_subpart[subpart_index].erase_existing(wall_index);
+      }
+    }
+  }
+}
+
+void Partition::apply_vertex_moves() {
+
+  // 1) first remove indices of affected walls from subpartitions by
+  // 1.a) creating a set of all affected walls
+  UintSet moved_wall_indices;
+  for (const DynVertexUtils::vertex_move_info_t& move_info: scheduled_vertex_moves) {
+    const std::vector<wall_index_t>& wall_indices = get_walls_using_vertex(move_info.vertex_index);
+    moved_wall_indices.insert(wall_indices.begin(), wall_indices.end());
+  }
+  // 1.b) getting information on where these walls are and remove them
+  update_walls_per_subpart(moved_wall_indices, false);
+
+  // 2) then we move the vertices
+  DynVertexUtils::move_vertices(*this, scheduled_vertex_moves);
+
+  // 3) and update subpartition info
+  update_walls_per_subpart(moved_wall_indices, true);
+
+  scheduled_vertex_moves.clear();
 }
 
 

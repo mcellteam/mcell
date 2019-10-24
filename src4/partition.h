@@ -181,10 +181,10 @@ public:
     // we need to set/clear flag that says that second_reactant_info.first can react with reactant_species_id
     for (const auto& second_reactant_info : reactions_map) {
       if (removing) {
-        subpart_reactants_orig_sp[second_reactant_info.first].set_contains_id(vm.id, false);
+        subpart_reactants_orig_sp[second_reactant_info.first].erase_existing(vm.id);
       }
       if (adding) {
-        subpart_reactants_new_sp[second_reactant_info.first].set_contains_id(vm.id, true);
+        subpart_reactants_new_sp[second_reactant_info.first].insert_unique(vm.id);
       }
     }
   }
@@ -469,12 +469,12 @@ public:
   }
 
   // do the actual changes of vertices
-  void apply_vertex_moves() {
-    DynVertexUtils::move_vertices(*this, scheduled_vertex_moves);
-    scheduled_vertex_moves.clear();
-  }
+  void apply_vertex_moves();
+
 
 private:
+  void update_walls_per_subpart(const UintSet& wall_indices, const bool insert);
+
   // automatically enlarges walls_using_vertex array
   void add_wall_using_vertex_mapping(vertex_index_t vertex_index, wall_index_t wall_index) {
     if (vertex_index >= walls_using_vertex_mapping.size()) {
@@ -530,6 +530,7 @@ private:
   // indexed by vertex_index_t
   std::vector< std::vector<wall_index_t>> walls_using_vertex_mapping;
 
+  // indexed by subpart, UintSet contains a set of wall indices (wall_index_t)
   std::vector<UintSet> walls_per_subpart;
 
   // ---------------------------------- dynamic vertices ----------------------------------
