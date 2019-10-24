@@ -31,23 +31,11 @@
 
 #define DUMP_EVERYTHING 0xFFFFFFFF
 
-#ifdef __cplusplus
-extern "C"
-#endif
 void dump_volume(struct volume* s, const char* comment, unsigned int selected_details);
 
-
-
 // the functions below are used to generate log that can be diffed with mcell4's log
-
-#ifdef __cplusplus
-extern "C"
-#endif
 void dump_collisions(struct collision* shead);
 
-#ifdef __cplusplus
-extern "C"
-#endif
 void dump_surface_molecule(
     struct surface_molecule* amp,
     const char* ind,
@@ -58,9 +46,6 @@ void dump_surface_molecule(
     bool print_position
 );
 
-#ifdef __cplusplus
-extern "C"
-#endif
 void dump_volume_molecule(
     struct volume_molecule* amp,
     const char* ind,
@@ -71,30 +56,17 @@ void dump_volume_molecule(
     bool print_position
 );
 
-#ifdef __cplusplus
-extern "C"
-#endif
+void dump_object_list(geom_object* obj, const char* name, const char* comment, const char* ind);
+
 void dump_vector2(struct vector2 vec, const char* extra_comment);
 
-#ifdef __cplusplus
-extern "C"
-#endif
 void dump_vector3(struct vector3 vec, const char* extra_comment);
 
-#ifdef __cplusplus
-extern "C"
-#endif
 void dump_rng_call_info(struct isaac64_state* rng, const char* extra_comment);
 
-#ifdef __cplusplus
-extern "C"
-#endif
 void dump_tile_neighbors_list(struct tile_neighbor *tile_nbr_head, const char* extra_comment, const char* ind);
 
 
-#ifdef __cplusplus
-extern "C"
-#endif
 void dump_schedule_helper(
     struct schedule_helper* shp,
     const char* name,

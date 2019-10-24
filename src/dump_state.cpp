@@ -482,7 +482,7 @@ void dump_wall(wall* w, const char* ind) {
   cout << ind << "side: \t\t" << w->side << " [int] \t\t/* index of this wall in its parent object */\n";
 
   if (w->vert != NULL) {
-    cout << ind << "vert[3]: 0: " << *w->vert[0] << ", 1: " << *w->vert[2] << ", 2: " << *w->vert[2] << "\n";
+    cout << ind << "vert[3]: 0: " << *w->vert[0] << ", 1: " << *w->vert[1] << ", 2: " << *w->vert[2] << "\n";
   }
   else {
     cout << ind << "vert: \t\t" << (void*)w->vert << " [vector[3]] \t\t/* Array of pointers to vertices */\n";

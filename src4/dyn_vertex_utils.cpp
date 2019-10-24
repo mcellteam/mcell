@@ -39,7 +39,7 @@ void move_vertex_and_walls(Partition& p, const std::vector<wall_index_t>& wall_i
   // TODO - shrink test
 
   // move the vertex - this will also change the data that the walls are using
-  vec3_t vertex_ref = p.get_geometry_vertex(move_info.vertex_index);
+  vec3_t& vertex_ref = p.get_geometry_vertex(move_info.vertex_index);
   vertex_ref = vertex_ref + move_info.translation_vec;
   if (! p.in_this_partition(vertex_ref) ) {
     mcell_log("Error: Crossing partitions is not supported yet.\n");
