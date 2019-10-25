@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 3.14)
 project(mcell)
 
 
@@ -247,7 +247,7 @@ INCLUDE(${SWIG_USE_FILE})
 
 INCLUDE_DIRECTORIES("${CMAKE_CURRENT_SOURCE_DIR}/src")
 
-if (NOT WIN32)
+if (NOT WIN32 AND NOT CYGWIN)
   FIND_PACKAGE(PythonLibs 3 REQUIRED)
   INCLUDE_DIRECTORIES(${PYTHON_INCLUDE_PATH})
 
@@ -304,7 +304,10 @@ add_executable(mcell
   ${FLEX_mdlScanner_OUTPUTS})
 
 add_dependencies(mcell version_h)
-add_dependencies(pymcell version_h nfsim_c NFsim)
+
+if (NOT WIN32 AND NOT CYGWIN)
+    add_dependencies(pymcell version_h nfsim_c NFsim)
+endif()
   
 target_link_libraries(mcell nfsim_c_static NFsim_static)
 TARGET_COMPILE_DEFINITIONS(mcell PRIVATE NOSWIG=1)
