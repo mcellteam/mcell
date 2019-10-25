@@ -133,6 +133,8 @@ void Partition::move_molecules_due_to_moving_wall(const wall_index_t moved_wall_
 
 #ifdef DEBUG_DYNAMIC_GEOMETRY
   // TODO: move to some 'dump utils'
+  // script mcell/utils/blender_debug_scripts/dyn_vertex_check.py can be used to visualize the
+  // collision detection
   cout << "Constructed object from initial and final triangle:\n";
 
   // dump the object in a form that can be imported to blender
