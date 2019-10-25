@@ -482,7 +482,7 @@ private:
       const VertexMoveInfoVector& move_infos
   );
 
-  void update_walls_per_subpart(const UintSet& wall_indices, const bool insert);
+  void update_walls_per_subpart(const WallsWithTheirMovesMap& walls_with_their_moves, const bool insert);
 
   // automatically enlarges walls_using_vertex array
   void add_wall_using_vertex_mapping(vertex_index_t vertex_index, wall_index_t wall_index) {

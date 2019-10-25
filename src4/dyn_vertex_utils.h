@@ -43,12 +43,17 @@ struct VertexMoveInfo {
 };
 
 typedef std::vector<VertexMoveInfo> VertexMoveInfoVector;
+typedef std::map<wall_index_t, VertexMoveInfoVector> WallsWithTheirMovesMap;
 
 namespace DynVertexUtils {
 
-
-
-void move_vertices(Partition& p, const std::vector<VertexMoveInfo>& scheduled_vertex_moves);
+void move_vertices_and_update_walls(
+    Partition& p,
+    const std::vector<VertexMoveInfo>& scheduled_vertex_moves,
+    // we can compute all the information already from scheduled_vertex_moves,
+    // but the keys of the map walls_with_their_moves are the walls that we need to update
+    const WallsWithTheirMovesMap& walls_with_their_moves
+);
 
 } // namespace DynVertexUtils
 

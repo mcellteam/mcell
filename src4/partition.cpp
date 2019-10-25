@@ -53,8 +53,9 @@ void Partition::finalize_wall_creation(const wall_index_t wall_index) {
 }
 
 // remove items when 'insert' is false
-void Partition::update_walls_per_subpart(const UintSet& wall_indices, const bool insert) {
-  for (wall_index_t wall_index: wall_indices) {
+void Partition::update_walls_per_subpart(const WallsWithTheirMovesMap& walls_with_their_moves, const bool insert) {
+  for (auto it: walls_with_their_moves) {
+    wall_index_t wall_index = it.first;
     SubpartIndicesVector colliding_subparts;
     Wall& w = get_wall(wall_index);
     GeometryUtil::wall_subparts_collision_test(*this, w, colliding_subparts);
@@ -72,7 +73,7 @@ void Partition::update_walls_per_subpart(const UintSet& wall_indices, const bool
 }
 
 
-
+// TODO: move to dyn_vertex_utils? -> probably yes
 void Partition::move_molecules_due_to_moving_wall(const wall_index_t moved_wall_index, const VertexMoveInfoVector& move_infos) {
 
   // construct a virtual space where we have all the walls with new and old
@@ -108,8 +109,8 @@ void Partition::move_molecules_due_to_moving_wall(const wall_index_t moved_wall_
 
   // create new arbitrary walls and initialize them,
   // we do not need to insert them into the partition
-  const int TRIAGLES_IN_MOVED_TRIANGLE_MESH = 8;
-  Wall* moved_triangle_walls[TRIAGLES_IN_MOVED_TRIANGLE_MESH];
+  const uint TRIANGLES_IN_MOVED_TRIANGLE_MESH = 8;
+  Wall* moved_triangle_walls[TRIANGLES_IN_MOVED_TRIANGLE_MESH];
   moved_triangle_walls[0] = &orig_wall;
 
   vertex_index_t o0 = orig_indices[0], o1 = orig_indices[1], o2 = orig_indices[2];
@@ -130,15 +131,47 @@ void Partition::move_molecules_due_to_moving_wall(const wall_index_t moved_wall_
   moved_triangle_walls[6] = new Wall(*this, o2, o0, n2, true, false);
   moved_triangle_walls[7] = new Wall(*this, n2, o0, n0, true, false);
 
+#ifdef DEBUG_DYNAMIC_GEOMETRY
+  // TODO: move to some 'dump utils'
+  cout << "Constructed object from initial and final triangle:\n";
 
-  //for (vertex_index move_infos.s)
-  // for now check all molecules,
+  // dump the object in a form that can be imported to blender
+  map<vertex_index_t, uint> map_assigned_index;
+  cout << "mesh_verts = [\n";
+  for (uint i = 0; i < VERTICES_IN_TRIANGLE; i++) {
+    cout << "  " << get_geometry_vertex(orig_indices[i]) << ", #" << i << "\n";
+    map_assigned_index[orig_indices[i]] = i;
+  }
+  for (uint i = 0; i < VERTICES_IN_TRIANGLE; i++) {
+    cout << "  " << get_geometry_vertex(new_indices[i]) << ", #" << i + VERTICES_IN_TRIANGLE << "\n";
+    map_assigned_index[new_indices[i]] = i + VERTICES_IN_TRIANGLE;
+  }
+  cout << "]\n";
+  cout << "mesh_faces = [\n";
+  for (uint i = 0; i < TRIANGLES_IN_MOVED_TRIANGLE_MESH; i++) {
+    cout << "  (";
+    for (uint k = 0; k < VERTICES_IN_TRIANGLE; k++) {
+      cout << map_assigned_index[ moved_triangle_walls[i]->vertex_indices[k] ] << ", ";
+    }
+    cout << "),\n";
+  }
+  cout << "]\n";
+  cout << "add_mesh(mesh_verts, mesh_faces, \"my_mesh\")\n";
+#endif
+
   // TODO: optimize only for molecules in relevant subpartitions
   for (const Molecule& m: molecules) {
 
     if (m.is_surf()) {
       continue;
     }
+
+#ifdef DEBUG_DYNAMIC_GEOMETRY
+    // cout << "# Detecting collision for molecule with id " << m.id << " at " << m.v.pos << "\n";
+    // TODO: move to some 'dump utils'
+    cout << "mol" << m.id << " = " << m.v.pos << "\n";
+    cout << "add_point(mol" << m.id << ", \"molecule" << m.id << "\")\n";
+#endif
 
     // now check a single projection against all walls created by these two triangles
     // if the number of crosses is odd, then we are inside
@@ -150,7 +183,9 @@ void Partition::move_molecules_due_to_moving_wall(const wall_index_t moved_wall_
     // cast ray along the whole partition
     vec3_t move(0, 0, get_world_constants().partition_edge_length);
 
-    for (uint i = 0; i < TRIAGLES_IN_MOVED_TRIANGLE_MESH; i++) {
+    for (uint i = 0; i < TRIANGLES_IN_MOVED_TRIANGLE_MESH; i++) {
+
+      // TODO: skip degenerate triangles
       CollisionType res = CollisionUtil::collide_wall(
           *this, m.v.pos, *moved_triangle_walls[i],
           unused_rng_state, false,
@@ -163,6 +198,11 @@ void Partition::move_molecules_due_to_moving_wall(const wall_index_t moved_wall_
           break;
         case CollisionType::WALL_FRONT:
         case CollisionType::WALL_BACK:
+          #ifdef DEBUG_DYNAMIC_GEOMETRY
+            cout << "# Detecting collision for molecule with id " << m.id <<
+              " at " << ignored_collision_pos << " with wall " << i <<"\n";
+
+          #endif
           num_hits++;
           break;
         case CollisionType::WALL_REDO:
@@ -173,13 +213,14 @@ void Partition::move_molecules_due_to_moving_wall(const wall_index_t moved_wall_
       }
     }
 
-    if (num_hits % 1 == 1) {
+    if (num_hits % 2 == 1) {
+      // TODO: move molecule to a new position close to the
       mcell_error("Collision detected!:)");
     }
   }
 
   // free added walls (wall with index 0 existed before)
-  for (uint i = 1; i < TRIAGLES_IN_MOVED_TRIANGLE_MESH; i++) {
+  for (uint i = 1; i < TRIANGLES_IN_MOVED_TRIANGLE_MESH; i++) {
     delete moved_triangle_walls[i];
   }
 
@@ -193,47 +234,38 @@ void Partition::move_molecules_due_to_moving_wall(const wall_index_t moved_wall_
 
 void Partition::apply_vertex_moves() {
 
-  // TODO: expecting that there we are not moving a single vertex twice
-  // add debug  check
+  // TODO: expecting that there we are not moving a single vertex twice, add a check for it
 
-  // 1) create a set of all affected walls with information on how much each wall moves
-  map<wall_index_t, VertexMoveInfoVector> walls_and_their_changes;
+  // 1) create a set of all affected walls with information on how much each wall moves,
+  WallsWithTheirMovesMap walls_with_their_moves;
   for (const VertexMoveInfo& move_info: scheduled_vertex_moves) {
     const std::vector<wall_index_t>& wall_indices = get_walls_using_vertex(move_info.vertex_index);
 
     for (wall_index_t wall_index: wall_indices) {
-      auto it = walls_and_their_changes.find(wall_index);
-      if (it == walls_and_their_changes.end()) {
-        it = walls_and_their_changes.insert(make_pair(wall_index, VertexMoveInfoVector())).first;
+      // remember mapping wall_index -> moves
+      auto it = walls_with_their_moves.find(wall_index);
+      if (it == walls_with_their_moves.end()) {
+        it = walls_with_their_moves.insert(make_pair(wall_index, VertexMoveInfoVector())).first;
       }
       it->second.push_back(move_info);
     }
   }
 
-
-  // for each wall, detect what molecules will be moved and move them right away
-  for (auto it : walls_and_their_changes) {
+  // 2) for each wall, detect what molecules will be moved and move them right away
+  for (auto it : walls_with_their_moves) {
     move_molecules_due_to_moving_wall(it.first, it.second);
   }
 
-  // 2) get a list of molecules possibly affected by the change in geometry
-  // for now, count with everything in the partition, but we will need to optimize it
-  /*for (wall_index_t wall_index: moved_wall_indices) {
-    get_molecules_hit_by_moving_walls(moved_wall_indices, hit_molecules);
-  }*/
-#if 0
-  // 3) getting information on where these walls are and remove them
-  update_walls_per_subpart(moved_wall_indices, false);
+  // 3) get information on where these walls are and remove them
+  update_walls_per_subpart(walls_with_their_moves, false);
 
-  // 4) then we move the vertices
-  DynVertexUtils::move_vertices(*this, scheduled_vertex_moves);
+  // 4) then we move the vertices and update relevant walls
+  DynVertexUtils::move_vertices_and_update_walls(*this, scheduled_vertex_moves, walls_with_their_moves);
 
-  // 5) move the volume molecules
-  fix_moved_molecule_positions(potentially_hit_molecules);
+  // 5) and update subpartition info for the walls
+  update_walls_per_subpart(walls_with_their_moves, true);
 
-  // 6) and update subpartition info for the walls
-  update_walls_per_subpart(moved_wall_indices, true);
-#endif
+
   scheduled_vertex_moves.clear();
 }
 

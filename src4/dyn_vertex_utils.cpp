@@ -28,44 +28,36 @@
 
 namespace MCell {
 
+// TODO: move to partition?
 namespace DynVertexUtils {
 
-void move_vertex_and_walls(Partition& p, const std::vector<wall_index_t>& wall_indices, const VertexMoveInfo& move_info) {
+// this is the entry point called from Partition class
+void move_vertices_and_update_walls(
+    Partition& p,
+    const std::vector<VertexMoveInfo>& scheduled_vertex_moves,
+    // we can compute all the information already from scheduled_vertex_moves,
+    // but the keys of the map walls_with_their_moves are the walls that we need to update
+    const WallsWithTheirMovesMap& walls_with_their_moves
+) {
 
-  // remember info on original walls
-  // TODO - will I need it?
-
-  // move all molecules whose position will change by moving the wall
-  // TODO - shrink test
-
-  // move the vertex - this will also change the data that the walls are using
-  vec3_t& vertex_ref = p.get_geometry_vertex(move_info.vertex_index);
-  vertex_ref = vertex_ref + move_info.translation_vec;
-  if (! p.in_this_partition(vertex_ref) ) {
-    mcell_log("Error: Crossing partitions is not supported yet.\n");
-    exit(1);
+  // move all vertices
+  for (const VertexMoveInfo& move_info: scheduled_vertex_moves) {
+    vec3_t& vertex_ref = p.get_geometry_vertex(move_info.vertex_index);
+    vertex_ref = vertex_ref + move_info.translation_vec;
+    if (! p.in_this_partition(vertex_ref) ) {
+      mcell_log("Error: Crossing partitions is not supported yet.\n");
+      exit(1);
+    }
   }
 
-  // update each wall
-  for (wall_index_t wall_index: wall_indices) {
+  // update walls
+  for (auto it: walls_with_their_moves) {
+    wall_index_t wall_index = it.first;
     Wall& w = p.get_wall(wall_index);
 
     // debug check that grid does not have any surface molecules is present
     // in the method
     w.update_after_vertex_change(p);
-  }
-
-}
-
-// this is the entry point called from Partition class
-void move_vertices(Partition& p, const std::vector<VertexMoveInfo>& scheduled_vertex_moves) {
-
-  // TODO: this can be optimized by moving multiple vertices at once
-  for (const VertexMoveInfo& move_info: scheduled_vertex_moves) {
-    // get all walls that this vertex uses
-    const std::vector<wall_index_t>& wall_indices = p.get_walls_using_vertex(move_info.vertex_index);
-
-    move_vertex_and_walls(p, wall_indices, move_info);
   }
 }
 
