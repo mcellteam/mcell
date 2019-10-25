@@ -30,7 +30,7 @@ namespace MCell {
 
 namespace DynVertexUtils {
 
-void move_vertex_and_walls(Partition& p, const std::vector<wall_index_t>& wall_indices, const vertex_move_info_t& move_info) {
+void move_vertex_and_walls(Partition& p, const std::vector<wall_index_t>& wall_indices, const VertexMoveInfo& move_info) {
 
   // remember info on original walls
   // TODO - will I need it?
@@ -58,10 +58,10 @@ void move_vertex_and_walls(Partition& p, const std::vector<wall_index_t>& wall_i
 }
 
 // this is the entry point called from Partition class
-void move_vertices(Partition& p, const std::vector<vertex_move_info_t>& scheduled_vertex_moves) {
+void move_vertices(Partition& p, const std::vector<VertexMoveInfo>& scheduled_vertex_moves) {
 
   // TODO: this can be optimized by moving multiple vertices at once
-  for (const vertex_move_info_t& move_info: scheduled_vertex_moves) {
+  for (const VertexMoveInfo& move_info: scheduled_vertex_moves) {
     // get all walls that this vertex uses
     const std::vector<wall_index_t>& wall_indices = p.get_walls_using_vertex(move_info.vertex_index);
 

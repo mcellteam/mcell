@@ -350,6 +350,11 @@ public:
     return index;
   }
 
+  void remove_last_vertex(const vertex_index_t vertex_index) {
+    assert(vertex_index == geometry_vertices.size() - 1 && "Check that we are removing known vertex failed");
+    geometry_vertices.pop_back();
+  }
+
   uint get_geometry_vertex_count() const {
     return geometry_vertices.size();
   }
@@ -465,14 +470,18 @@ public:
   // add information about a change of a specific vertex
   // order of calls is important (at least for now)
   void add_vertex_move(vertex_index_t vertex_index, const vec3_t& translation_vec) {
-    scheduled_vertex_moves.push_back(DynVertexUtils::vertex_move_info_t(vertex_index, translation_vec));
+    scheduled_vertex_moves.push_back(VertexMoveInfo(vertex_index, translation_vec));
   }
 
   // do the actual changes of vertices
   void apply_vertex_moves();
 
-
 private:
+  void move_molecules_due_to_moving_wall(
+      const wall_index_t moved_wall_index,
+      const VertexMoveInfoVector& move_infos
+  );
+
   void update_walls_per_subpart(const UintSet& wall_indices, const bool insert);
 
   // automatically enlarges walls_using_vertex array
@@ -535,7 +544,7 @@ private:
 
   // ---------------------------------- dynamic vertices ----------------------------------
 private:
-  std::vector<DynVertexUtils::vertex_move_info_t> scheduled_vertex_moves;
+  std::vector<VertexMoveInfo> scheduled_vertex_moves;
 
   // ---------------------------------- other ----------------------------------
   const WorldConstants& world_constants; // owned by world

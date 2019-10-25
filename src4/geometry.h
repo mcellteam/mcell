@@ -55,10 +55,21 @@ public:
  * adjacent walls */
 class Edge {
 public:
+  Edge()
+    : forward_index(WALL_INDEX_INVALID), backward_index(WALL_INDEX_INVALID),
+      edge_constants_precomputed(false), translate(0), cos_theta(0), sin_theta(0)
+    {
+  }
+
+  void precompute_edge_constants(const Partition& p, int edgenum);
+
   wall_index_t forward_index;  /* For which wall is this a forwards transform? */
   wall_index_t backward_index; /* For which wall is this a reverse transform? */
 
-  vec2_t translate; /* Translation vector between coordinate systems */
+  bool edge_constants_precomputed; // may be used only for debug
+
+  // --- egde constants ---
+  vec2_t translate;          /* Translation vector between coordinate systems */
   float_t cos_theta;         /* Cosine of angle between coordinate systems */
   float_t sin_theta;         /* Sine of angle between coordinate systems */
 };
@@ -132,11 +143,43 @@ class Wall {
 public:
   Wall()
     : id(WALL_ID_INVALID), index(WALL_INDEX_INVALID), side(0), object_id(GEOMETRY_OBJECT_ID_INVALID),
+      wall_constants_precomputed(false),
       uv_vert1_u(POS_INVALID), uv_vert2(POS_INVALID),
       area(POS_INVALID),
       normal(POS_INVALID), unit_u(POS_INVALID), unit_v(POS_INVALID), distance_to_origin(POS_INVALID)
     {
   }
+
+  // the partition argument is used only to access vertices, wall is not aded to the partition
+  Wall(
+      const Partition& p,
+      const vertex_index_t index0, const vertex_index_t index1, const vertex_index_t index2,
+      const bool do_precompute_wall_constants, const bool do_precompute_edge_constants)
+    : id(WALL_ID_INVALID), index(WALL_INDEX_INVALID), side(0), object_id(GEOMETRY_OBJECT_ID_INVALID),
+      wall_constants_precomputed(false),
+      uv_vert1_u(POS_INVALID), uv_vert2(POS_INVALID),
+      area(POS_INVALID),
+      normal(POS_INVALID), unit_u(POS_INVALID), unit_v(POS_INVALID), distance_to_origin(POS_INVALID)
+    {
+    vertex_indices[0] = index0;
+    vertex_indices[1] = index1;
+    vertex_indices[2] = index2;
+
+    if (do_precompute_wall_constants) {
+      precompute_wall_constants(p);
+    }
+    if (do_precompute_edge_constants) {
+      assert(do_precompute_wall_constants);
+      precompute_edge_constants(p);
+    }
+  }
+
+  // needs vertex indices to be set
+  void precompute_wall_constants(const Partition& p);
+
+  // needs wall constants to be precomputed
+  void precompute_edge_constants(const Partition& p);
+
 
   wall_id_t id; // world-unique identifier of this wall, mainly for debugging
   wall_index_t index; // index in the partition where it is contained, must be fixed if moved
@@ -155,6 +198,10 @@ public:
   // NOTE: what about walls that are neighboring over a partition edge?
   wall_index_t nb_walls[EDGES_IN_TRIANGLE]; // neighboring wall indices
 
+  Grid grid;
+
+  // --- wall constants ---
+  bool wall_constants_precomputed;
   float_t uv_vert1_u;   /* Surface u-coord of 2nd corner (v=0) */
   vec2_t uv_vert2;      /* Surface coords of third corner */
 
@@ -163,8 +210,6 @@ public:
   vec3_t unit_u; /* U basis vector for this wall */
   vec3_t unit_v; /* V basis vector for this wall */
   float_t distance_to_origin; // distance to origin (point normal form)
-
-  Grid grid;
 
   // p must be the partition that contains this object
   void dump(const Partition& p, const std::string ind) const;

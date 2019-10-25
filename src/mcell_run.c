@@ -345,6 +345,12 @@ mcell_run_simulation(MCELL_STATE *world) {
         1) {
       break;
     }
+
+    // ---
+    if (world->current_iterations == 11) {
+      dump_object_list(world->root_instance, "", "", "");
+    }
+    // ---
   }
 
   if (mcell_flush_data(world)) {

@@ -170,6 +170,10 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
 
   CHECK_PROPERTY(s->randomize_smol_pos == 1);
 
+  CHECK_PROPERTY(s->dynamic_geometry_molecule_placement == 0
+      && "DYNAMIC_GEOMETRY_MOLECULE_PLACEMENT '=' NEAREST_TRIANGLE is not supported yet"
+  );
+
   world->world_constants.use_expanded_list = s->use_expanded_list;
 
   // this number counts the number of boundaries, not subvolumes, also, there are always 2 extra subvolumes on the sides in mcell3
@@ -303,6 +307,12 @@ bool MCell3WorldConverter::convert_wall(const wall* w, GeometryObject& object) {
 
   wall.uv_vert1_u = w->uv_vert1_u;
   wall.uv_vert2 = w->uv_vert2;
+  wall.area = w->area;
+  wall.normal = w->normal;
+  wall.unit_u = w->unit_u;
+  wall.unit_v = w->unit_v;
+  wall.distance_to_origin = w->d;
+  wall.wall_constants_precomputed = true;
 
   for (uint i = 0; i < EDGES_IN_TRIANGLE; i++) {
     edge* e = w->edges[i];
@@ -325,6 +335,7 @@ bool MCell3WorldConverter::convert_wall(const wall* w, GeometryObject& object) {
     edge.translate = e->translate;
     edge.cos_theta = e->cos_theta;
     edge.sin_theta = e->sin_theta;
+    edge.edge_constants_precomputed = true;
   }
 
   for (uint i = 0; i < EDGES_IN_TRIANGLE; i++) {
@@ -340,12 +351,6 @@ bool MCell3WorldConverter::convert_wall(const wall* w, GeometryObject& object) {
     }
   }
 
-  // struct wall *nb_walls[3]; - ignored for now
-  wall.area = w->area;
-  wall.normal = w->normal;
-  wall.unit_u = w->unit_u;
-  wall.unit_v = w->unit_v;
-  wall.distance_to_origin = w->d;
   CHECK_PROPERTY(w->grid == nullptr); // for now
   CHECK_PROPERTY(w->flags == 4096); // not sure yet what flags are there for walls
 

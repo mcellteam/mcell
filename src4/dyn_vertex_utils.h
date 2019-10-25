@@ -32,11 +32,8 @@ namespace MCell {
 
 class Partition;
 
-namespace DynVertexUtils {
-
-
-struct vertex_move_info_t {
-  vertex_move_info_t(const vertex_index_t vertex_index_, const vec3_t& translation_vec_)
+struct VertexMoveInfo {
+  VertexMoveInfo(const vertex_index_t vertex_index_, const vec3_t& translation_vec_)
     : vertex_index(vertex_index_), translation_vec(translation_vec_) {
   }
   // which index to move
@@ -45,7 +42,13 @@ struct vertex_move_info_t {
   vec3_t translation_vec;
 };
 
-void move_vertices(Partition& p, const std::vector<vertex_move_info_t>& scheduled_vertex_moves);
+typedef std::vector<VertexMoveInfo> VertexMoveInfoVector;
+
+namespace DynVertexUtils {
+
+
+
+void move_vertices(Partition& p, const std::vector<VertexMoveInfo>& scheduled_vertex_moves);
 
 } // namespace DynVertexUtils
 

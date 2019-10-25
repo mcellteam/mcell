@@ -83,14 +83,13 @@ void GeometryObject::dump(const Partition& p, const std::string ind) const {
 }
 
 
-// should belong to Edge?
-static void init_edge_transform(Partition& p, Edge &e, int edgenum) {
+void Edge::precompute_edge_constants(const Partition& p, int edgenum) {
 
   // not sure what to do if these asserts do not hold
-  assert(e.forward_index != WALL_INDEX_INVALID);
-  assert(e.backward_index != WALL_INDEX_INVALID);
-  Wall wf = p.get_wall(e.forward_index);
-  Wall wb = p.get_wall(e.backward_index);
+  assert(forward_index != WALL_INDEX_INVALID);
+  assert(backward_index != WALL_INDEX_INVALID);
+  Wall wf = p.get_wall(forward_index);
+  Wall wb = p.get_wall(backward_index);
 
   uint i = edgenum;
   assert(i < VERTICES_IN_TRIANGLE);
@@ -162,35 +161,37 @@ static void init_edge_transform(Partition& p, Edge &e, int edgenum) {
   q.v -= mtx[1][0] * O_f.u + mtx[1][1] * O_f.v;
 
   /* Store the results */
-  e.cos_theta = mtx[0][0];
-  e.sin_theta = mtx[0][1];
-  e.translate = q;
+  cos_theta = mtx[0][0];
+  sin_theta = mtx[0][1];
+  translate = q;
+
+  edge_constants_precomputed = true;
 }
 
 
 
-static void init_tri_wall(Partition& p, Wall& w) {
+void Wall::precompute_wall_constants(const Partition& p) {
 
-  const vec3_t& v0 = p.get_geometry_vertex(w.vertex_indices[0]);
-  const vec3_t& v1 = p.get_geometry_vertex(w.vertex_indices[1]);
-  const vec3_t& v2 = p.get_geometry_vertex(w.vertex_indices[2]);
+  const vec3_t& v0 = p.get_geometry_vertex(vertex_indices[0]);
+  const vec3_t& v1 = p.get_geometry_vertex(vertex_indices[1]);
+  const vec3_t& v2 = p.get_geometry_vertex(vertex_indices[2]);
 
   vec3_t vA, vB, vX;
   vA = v1 - v0;
   vB = v2 - v0;
   vX = cross(vA, vB);
 
-  w.area = 0.5 * len3(vX); // vect_length(&vX);
+  area = 0.5 * len3(vX); // vect_length(&vX);
 
-  if (!distinguishable(w.area, 0, EPS_C)) {
+  if (!distinguishable(area, 0, EPS_C)) {
     /* this is a degenerate polygon.
     * perform initialization and quit. */
-    w.normal = vec3_t(0);
-    w.unit_u = vec3_t(0);
-    w.unit_v = vec3_t(0);
-    w.uv_vert1_u = 0;
-    w.uv_vert2 = vec2_t(0);
-    w.distance_to_origin = 0;
+    normal = vec3_t(0);
+    unit_u = vec3_t(0);
+    unit_v = vec3_t(0);
+    uv_vert1_u = 0;
+    uv_vert2 = vec2_t(0);
+    distance_to_origin = 0;
     return;
   }
 
@@ -202,57 +203,58 @@ static void init_tri_wall(Partition& p, Wall& w) {
   // TODO: assert
   f = 1 / sqrt(fx * fx + fy * fy + fz * fz);
 
-  w.unit_u.x = fx * f;
-  w.unit_u.y = fy * f;
-  w.unit_u.z = fz * f;
+  unit_u.x = fx * f;
+  unit_u.y = fy * f;
+  unit_u.z = fz * f;
 
   fx = (v2.x - v0.x);
   fy = (v2.y - v0.y);
   fz = (v2.z - v0.z);
 
-  w.normal.x = w.unit_u.y * fz - w.unit_u.z * fy;
-  w.normal.y = w.unit_u.z * fx - w.unit_u.x * fz;
-  w.normal.z = w.unit_u.x * fy - w.unit_u.y * fx;
+  normal.x = unit_u.y * fz - unit_u.z * fy;
+  normal.y = unit_u.z * fx - unit_u.x * fz;
+  normal.z = unit_u.x * fy - unit_u.y * fx;
   // TODO: assert
-  f = 1 / sqrt(w.normal.x * w.normal.x + w.normal.y * w.normal.y +
-               w.normal.z * w.normal.z);
-  w.normal.x *= f;
-  w.normal.y *= f;
-  w.normal.z *= f;
-  w.unit_v.x = w.normal.y * w.unit_u.z - w.normal.z * w.unit_u.y;
-  w.unit_v.y = w.normal.z * w.unit_u.x - w.normal.x * w.unit_u.z;
-  w.unit_v.z = w.normal.x * w.unit_u.y - w.normal.y * w.unit_u.x;
-  w.distance_to_origin = v0.x * w.normal.x + v0.y * w.normal.y + v0.z * w.normal.z;
+  f = 1 / sqrt(normal.x * normal.x + normal.y * normal.y +
+               normal.z * normal.z);
+  normal.x *= f;
+  normal.y *= f;
+  normal.z *= f;
+  unit_v.x = normal.y * unit_u.z - normal.z * unit_u.y;
+  unit_v.y = normal.z * unit_u.x - normal.x * unit_u.z;
+  unit_v.z = normal.x * unit_u.y - normal.y * unit_u.x;
+  distance_to_origin = v0.x * normal.x + v0.y * normal.y + v0.z * normal.z;
 
-  w.uv_vert1_u = (v1.x - v0.x) * w.unit_u.x +
-                  (v1.y - v0.y) * w.unit_u.y +
-                  (v1.z - v0.z) * w.unit_u.z;
-  w.uv_vert2.u = (v2.x - v0.x) * w.unit_u.x +
-                  (v2.y - v0.y) * w.unit_u.y +
-                  (v2.z - v0.z) * w.unit_u.z;
-  w.uv_vert2.v = (v2.x - v0.x) * w.unit_v.x +
-                  (v2.y - v0.y) * w.unit_v.y +
-                  (v2.z - v0.z) * w.unit_v.z;
+  uv_vert1_u = (v1.x - v0.x) * unit_u.x +
+                  (v1.y - v0.y) * unit_u.y +
+                  (v1.z - v0.z) * unit_u.z;
+  uv_vert2.u = (v2.x - v0.x) * unit_u.x +
+                  (v2.y - v0.y) * unit_u.y +
+                  (v2.z - v0.z) * unit_u.z;
+  uv_vert2.v = (v2.x - v0.x) * unit_v.x +
+                  (v2.y - v0.y) * unit_v.y +
+                  (v2.z - v0.z) * unit_v.z;
+
+  wall_constants_precomputed = true;
 }
+
+void Wall::precompute_edge_constants(const Partition& p) {
+  // edges, uses info set by init_tri_wall
+  for (uint edge_index = 0; edge_index < EDGES_IN_TRIANGLE; edge_index++) {
+    //assert(edges[edge_index].forward_index == index); // ???
+    edges[edge_index].precompute_edge_constants(p, edge_index);
+  }
+}
+
 
 
 void Wall::update_after_vertex_change(Partition& p) {
 
   // the only thing that we know that is correct now is the
   // position of the vertices, we need to recompute everything else
+  precompute_wall_constants(p);
 
-  // area
-  // normal
-  // unit_u
-  // unit_v
-  // distance_to_origin
-  init_tri_wall(p, *this);
-
-  // edges, uses info set by init_tri_wall
-  for (uint edge_index = 0; edge_index < EDGES_IN_TRIANGLE; edge_index++) {
-    //assert(edges[edge_index].forward_index == index); // ???
-    init_edge_transform(p, edges[edge_index], edge_index /*???*/);
-  }
+  precompute_edge_constants(p);
 
   // reinitialize grid
   grid.initialize(p, *this);
