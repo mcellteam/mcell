@@ -49,7 +49,7 @@ if (CYGWIN)
     # cygwin app run in cygwin environment is somehow unable to load cygstdc++-6.dll
     # although it works fine when ran from 'cmd' 
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libc++ ")
-endif
+endif()
 
 
 option(USE_GCOV "Use gcc coverage" OFF) 
