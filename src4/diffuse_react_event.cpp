@@ -209,6 +209,31 @@ void DiffuseReactEvent::diffuse_single_molecule(
 
 // ---------------------------------- volume diffusion ----------------------------------
 
+void sort_collisions_by_time(collision_vector_t& molecule_collisions) {
+  sort( molecule_collisions.begin(), molecule_collisions.end(),
+      [ ]( const auto& lhs, const auto& rhs )
+      {
+        assert((lhs.type != CollisionType::VOLMOL_SURFMOL && lhs.type != CollisionType::SURFMOL_SURFMOL) &&
+            "Ray trace can return only vol-wall or vol-vol collisions");
+
+        if (lhs.time < rhs.time) {
+          return true;
+        }
+        else if (lhs.time > rhs.time) {
+          return false;
+        }
+        else if (lhs.type == CollisionType::VOLMOL_VOLMOL && rhs.type == CollisionType::VOLMOL_VOLMOL) {
+          // mcell3 returns collisions with molecules ordered descending by the molecule index
+          // we need to maintain this behavior (needed only for identical results)
+          return lhs.colliding_molecule_id > rhs.colliding_molecule_id;
+        }
+        else {
+          return false;
+        }
+      }
+  );
+}
+
 void DiffuseReactEvent::diffuse_vol_molecule(
     Partition& p,
     const molecule_id_t vm_id,
@@ -247,7 +272,8 @@ void DiffuseReactEvent::diffuse_vol_molecule(
   do {
     state =
         ray_trace_vol(
-            p, m /* changes position */,
+            p, world->rng,
+            m /* changes position */,
             reflected_wall_index,
             remaining_displacement,
             molecule_collisions,
@@ -255,29 +281,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
             new_subpart_index
         );
 
-    // sort current collisions by time
-    sort( molecule_collisions.begin(), molecule_collisions.end(),
-        [ ]( const auto& lhs, const auto& rhs )
-        {
-      assert((lhs.type != CollisionType::VOLMOL_SURFMOL && lhs.type != CollisionType::SURFMOL_SURFMOL) &&
-          "Ray trace can return only vol-wall or vol-vol collisions");
-
-      if (lhs.time < rhs.time) {
-        return true;
-      }
-      else if (lhs.time > rhs.time) {
-        return false;
-      }
-      else if (lhs.type == CollisionType::VOLMOL_VOLMOL && rhs.type == CollisionType::VOLMOL_VOLMOL) {
-        // mcell3 returns collisions with molecules ordered descending by the molecule index
-        // we need to maintain this behavior (needed only for identical results)
-        return lhs.colliding_molecule_id > rhs.colliding_molecule_id;
-      }
-      else {
-        return false;
-      }
-        }
-    );
+    sort_collisions_by_time(molecule_collisions);
 
 #ifdef DEBUG_COLLISIONS
     DUMP_CONDITION4(
@@ -375,8 +379,9 @@ void DiffuseReactEvent::diffuse_vol_molecule(
 // index of the new subparition in new_subpart_index
 // later, this will check collisions until a wall is hit
 // we assume that wall collisions do not occur so often
-RayTraceState DiffuseReactEvent::ray_trace_vol(
+RayTraceState ray_trace_vol(
     Partition& p,
+    rng_state& rng,
     Molecule& vm, // molecule that we are diffusing, we are changing its pos  and possibly also subvolume
     const wall_index_t previous_reflected_wall, // is WALL_INDEX_INVALID when our molecule did not replect from anything this iddfusion step yet
     vec3_t& remaining_displacement, // in/out - recomputed if there was a reflection
@@ -389,13 +394,16 @@ RayTraceState DiffuseReactEvent::ray_trace_vol(
   RayTraceState res_state = RayTraceState::FINISHED;
   collisions.clear();
 
+  const WorldConstants& world_constants = p.get_world_constants();
+  float_t radius = world_constants.rx_radius_3d;
+
   // first get what subpartitions might be relevant
   SubpartIndicesVector crossed_subparts_for_walls;
   subpart_indices_set_t crossed_subparts_for_molecules;
   subpart_index_t last_subpartition_index;
   CollisionUtil::collect_crossed_subparts(
       p, vm, remaining_displacement,
-      world->world_constants.rx_radius_3d,  world->world_constants.subpartition_edge_length,
+      radius, world_constants.subpartition_edge_length,
       true, crossed_subparts_for_walls,
       crossed_subparts_for_molecules, last_subpartition_index
   );
@@ -410,12 +418,12 @@ RayTraceState DiffuseReactEvent::ray_trace_vol(
   if (!crossed_subparts_for_walls.empty()) {
     for (subpart_index_t subpart_index: crossed_subparts_for_walls) {
 
-      CollisionUtil::collect_wall_collisions( // mcell3 does this onlty for the current subvol
+      CollisionUtil::collect_wall_collisions( // mcell3 does this only for the current subvol
           p,
           vm,
           subpart_index,
           previous_reflected_wall,
-          world->rng,
+          rng,
           displacement_up_to_wall_collision,
           collisions
       );
@@ -432,14 +440,12 @@ RayTraceState DiffuseReactEvent::ray_trace_vol(
     crossed_subparts_for_molecules.clear();
     CollisionUtil::collect_crossed_subparts(
         p, vm, displacement_up_to_wall_collision,
-        world->world_constants.rx_radius_3d,
-        world->world_constants.subpartition_edge_length,
+        radius,
+        world_constants.subpartition_edge_length,
         false, crossed_subparts_for_walls, // not filled this time
         crossed_subparts_for_molecules, last_subpartition_index
     );
   }
-
-  float_t radius = world->world_constants.rx_radius_3d;
 
   // check molecule collisions for each SP
   for (subpart_index_t subpart_index: crossed_subparts_for_molecules) {
@@ -449,7 +455,7 @@ RayTraceState DiffuseReactEvent::ray_trace_vol(
     // for each molecule in this SP
     for (molecule_id_t colliding_vm_id: sp_reactants) {
       CollisionUtil::collide_mol_loop_body(
-          world,
+          world_constants,
           p,
           vm,
           colliding_vm_id,

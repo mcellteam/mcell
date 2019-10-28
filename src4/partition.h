@@ -477,6 +477,8 @@ public:
   void apply_vertex_moves();
 
 private:
+  void move_molecule_to_closest_wall_point(Molecule& m, Wall& wall, const bool place_above);
+
   void move_molecules_due_to_moving_wall(
       const wall_index_t moved_wall_index,
       const VertexMoveInfoVector& move_infos

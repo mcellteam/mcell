@@ -42,6 +42,9 @@
 #include "react.h"
 #include "nfsim_func.h"
 
+#include "debug_config.h"
+#include "dump_state.h"
+
 #define NO_MESH "\0"
 
 /***************************************************************************
@@ -981,6 +984,12 @@ void place_mol_relative_to_mesh(struct volume *state,
     if (strcmp(wl->this_wall->parent_object->sym->name, mesh_name) != 0) {
       continue;
     }
+
+#ifdef DEBUG_DYNAMIC_GEOMETRY
+    mcell_log("Moving molecule towards new wall:\n");
+    dump_wall(wl->this_wall, "");
+#endif
+
 
     d2 = closest_interior_point(loc, wl->this_wall, &s_loc, GIGANTIC);
     if (d2 < best_d2) {

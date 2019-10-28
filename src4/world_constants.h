@@ -26,6 +26,7 @@
 
 #include "defines.h"
 #include "species.h"
+#include "molecule.h"
 
 namespace MCell {
 
@@ -79,6 +80,14 @@ public:
   const Species& get_species(species_id_t id) const {
     assert(id < species->size());
     return (*species)[id];
+  }
+
+  const Reaction* get_reaction(const Molecule& a, const Molecule& b) const {
+    const auto& it_map_for_species = bimolecular_reactions_map->find(a.species_id);
+    assert(it_map_for_species != bimolecular_reactions_map->end());
+    const auto& it_res = it_map_for_species->second.find(b.species_id);
+    assert(it_res != it_map_for_species->second.end());
+    return it_res->second;
   }
 
   void dump();

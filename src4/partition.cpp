@@ -73,8 +73,94 @@ void Partition::update_walls_per_subpart(const WallsWithTheirMovesMap& walls_wit
 }
 
 
+void tiny_diffuse_3D(
+    Partition& p,
+    Molecule& vm,
+    const vec3_t& displacement,
+    const wall_index_t previous_reflected_wall,
+    vec3_t& new_pos) {
+
+  assert(vm.is_vol());
+
+  vec3_t ignored_displacement = displacement;
+  subpart_index_t new_subpart_index;
+
+  collision_vector_t collisions;
+
+  // NOTE: can be optimized by ignoring molecule collisions
+  rng_state ignored_rng;
+  ray_trace_vol(
+        p, ignored_rng, vm, previous_reflected_wall, ignored_displacement,
+        collisions, new_pos, new_subpart_index
+  );
+
+  // sort collisions by time
+  sort_collisions_by_time(collisions);
+
+  new_pos = vm.v.pos;
+  vec3_t new_displacement = displacement;
+  for (size_t collision_index = 0; collision_index < collisions.size(); collision_index++) {
+    Collision& collision = collisions[collision_index];
+
+    // stop after first collision
+    if (collision.is_wall_collision()) {
+      new_pos = collision.pos - new_pos;
+      new_displacement = displacement * vec3_t(0.5);
+    }
+  }
+
+  new_pos = new_pos + displacement;
+}
+
+
+// based on place_mol_relative_to_mesh
+void Partition::move_molecule_to_closest_wall_point(Molecule& vm, Wall& wall, const bool place_above) {
+  assert(vm.is_vol());
+
+  vec2_t wall_pos2d;
+  GeometryUtil::closest_interior_point(*this, vm.v.pos, wall, wall_pos2d);
+
+  vec3_t new_pos3d = GeometryUtil::uv2xyz(wall_pos2d, wall, get_wall_vertex(wall, 0));
+
+  // displacement
+  float_t bump = (place_above) ? EPS : -EPS;
+  vec3_t displacement(2 * bump * wall.normal.x, 2 * bump * wall.normal.y, 2 * bump * wall.normal.z);
+
+  // move the molecule a bit (why?)
+  vm.v.pos = new_pos3d;
+  vec3_t new_pos_after_diffuse;
+  tiny_diffuse_3D(*this, vm, displacement, wall.index, new_pos_after_diffuse);
+
+
+  // TODO:
+  // Make sure we didn't end up on a neighbor's wall, which is kind of easy to
+  // do with, for example, a shrinking box/cuboid.
+  // - see place_mol_relative_to_mesh
+
+
+  // move the molecule and also update the subpartition information
+  vm.v.pos = new_pos_after_diffuse;
+  subpart_index_t new_subpart = get_subpartition_index(vm.v.pos);
+  change_molecule_subpartition(vm, new_subpart);
+}
+
+
+bool is_point_above_plane_defined_by_wall(const Partition& p, const Wall& w, const vec3_t& pos) {
+
+  // make vector pointing from any point to our position
+  vec3_t w0_pos = pos - p.get_wall_vertex(w, 0);
+
+  // dot product with normal gives ||a|| * ||b|| * cos(phi)
+  float_t dot_prod = dot(w0_pos, w.normal);
+  assert(!cmp_eq(dot_prod, 0, EPS) && "Checked point is on the plane");
+  return dot_prod > 0;
+}
+
+
 // TODO: move to dyn_vertex_utils? -> probably yes
 void Partition::move_molecules_due_to_moving_wall(const wall_index_t moved_wall_index, const VertexMoveInfoVector& move_infos) {
+
+  assert(move_infos.size() > 0 && move_infos.size() <= 3 && "Move infos belong to the wall that is being moved");
 
   // construct a virtual space where we have all the walls with new and old
   // positions
@@ -119,7 +205,8 @@ void Partition::move_molecules_due_to_moving_wall(const wall_index_t moved_wall_
   // opposite triangle (wall after being moved)
   // first true argument - we need the wall constants to be precomputed,
   // second false argument - we do not care about edge information
-  moved_triangle_walls[1] = new Wall(*this, n0, n1, n2, true, false);
+  Wall* new_wall = new Wall(*this, n0, n1, n2, true, false);
+  moved_triangle_walls[1] = new_wall;
 
   // triangles that connect the orig and new wall
   moved_triangle_walls[2] = new Wall(*this, o0, o1, n0, true, false);
@@ -131,6 +218,8 @@ void Partition::move_molecules_due_to_moving_wall(const wall_index_t moved_wall_
   moved_triangle_walls[6] = new Wall(*this, o2, o0, n2, true, false);
   moved_triangle_walls[7] = new Wall(*this, n2, o0, n0, true, false);
 
+
+  // TODO: code below can be moved to a separate function to detect whether a point is in a mesh
 #ifdef DEBUG_DYNAMIC_GEOMETRY
   // TODO: move to some 'dump utils'
   // script mcell/utils/blender_debug_scripts/dyn_vertex_check.py can be used to visualize the
@@ -162,7 +251,7 @@ void Partition::move_molecules_due_to_moving_wall(const wall_index_t moved_wall_
 #endif
 
   // TODO: optimize only for molecules in relevant subpartitions
-  for (const Molecule& m: molecules) {
+  for (Molecule& m: molecules) {
 
     if (m.is_surf()) {
       continue;
@@ -216,8 +305,20 @@ void Partition::move_molecules_due_to_moving_wall(const wall_index_t moved_wall_
     }
 
     if (num_hits % 2 == 1) {
-      // TODO: move molecule to a new position close to the
-      mcell_error("Collision detected!:)");
+
+      // we are moving with a single wall here.
+      // different from MCell3 behavior where it tries to find the closest point on the mesh with a given name
+      // this might be super expensive if the mesh is large
+
+      // first we need to figure out on which side of the new wall we should place the molecule
+      // with regards to its normal
+#ifdef DEBUG_DYNAMIC_GEOMETRY
+      cout << "Moving molecule towards new wall:\n";
+      new_wall->dump(*this, "");
+#endif
+
+      bool place_above = is_point_above_plane_defined_by_wall(*this, orig_wall, m.v.pos);
+      move_molecule_to_closest_wall_point(m, *new_wall, place_above);
     }
   }
 

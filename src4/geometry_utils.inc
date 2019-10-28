@@ -67,7 +67,7 @@ static vec2_t xyz2uv(const Partition& p, const vec3_t& a, const Wall& w) {
   else {
     vec3_t pos = a - p.get_wall_vertex(w, 0);
     res.u = dot(pos, w.unit_u);
-    res.u = dot(pos, w.unit_v);
+    res.v = dot(pos, w.unit_v);
   }
   return res;
 }

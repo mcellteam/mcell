@@ -143,23 +143,23 @@ public:
   }
 
   // must return result, asserts otherwise
+  // TODO: remove and use directly world constants
   const Reaction* get_reaction(const Molecule& a, const Molecule& b) const {
-    const auto& it_map_for_species = bimolecular_reactions_map.find(a.species_id);
-    assert(it_map_for_species != bimolecular_reactions_map.end());
-    const auto& it_res = it_map_for_species->second.find(b.species_id);
-    assert(it_res != it_map_for_species->second.end());
-    return it_res->second;
+    return world_constants.get_reaction(a, b);
   }
 
+  // TODO: remove and use directly world constants
   const Species& get_species(const species_id_t species_id) const {
     assert(species_id < species.size());
     return species[species_id];
   }
 
+  // TODO: remove and use directly world constants
   const std::vector<Species>& get_species() const {
     return species;
   }
 
+  // TODO: remove and use directly world constants ????
   void add_species(const Species& new_species) {
     assert(new_species.species_id == species.size());
     species.push_back(new_species);

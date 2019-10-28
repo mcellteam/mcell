@@ -336,7 +336,7 @@ static bool collide_mol(
 // body of the collision detection loop
 // made into separate function to be possibly able to make some optimizations over it in the future
 static void collide_mol_loop_body(
-    const World* world,
+    const WorldConstants& world_constants,
     Partition& p,
     const Molecule& vm,
     const molecule_id_t colliding_vm_id,
@@ -352,7 +352,7 @@ static void collide_mol_loop_body(
   vec3_t position;
   // collide_mol must be inlined because many things are computed all over there
   if (collide_mol(vm, remaining_displacement, colliding_vm, radius, time, position)) {
-    const Reaction* rx = world->get_reaction(vm, colliding_vm);
+    const Reaction* rx = world_constants.get_reaction(vm, colliding_vm);
     assert(rx != nullptr);
     molecule_collisions.push_back(
         Collision(CollisionType::VOLMOL_VOLMOL, &p, vm.id, time, position, colliding_vm.id, rx)

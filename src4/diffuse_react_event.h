@@ -35,6 +35,7 @@
 
 namespace MCell {
 
+class World;
 class Partition;
 class Molecule;
 class Species;
@@ -301,17 +302,6 @@ private:
       vec3_t& new_pos,
       subpart_index_t& new_subpart_index
   );
-
-  RayTraceState ray_trace_vol(
-      Partition& p,
-      Molecule& vm, // molecule that we are diffusing, we are changing its pos  and possibly also subvolume
-      const wall_index_t previous_reflected_wall, // is WALL_INDEX_INVALID when our molecule did not replect from anything this iddfusion step yet
-      vec3_t& remaining_displacement, // in/out - recomputed if there was a reflection
-      collision_vector_t& molecule_collisions, // possible reactions in this part of way marching, ordered by time
-      vec3_t& new_position,
-      subpart_index_t& new_subpartition_index
-  );
-
   bool collide_and_react_with_vol_mol(
       Partition& p,
       Collision& collision,
@@ -393,6 +383,22 @@ private:
       const Reaction* unimol_rx
   );
 };
+
+
+//FIXME: move to some utility namespace
+RayTraceState ray_trace_vol(
+    Partition& p,
+    rng_state& rng,
+    Molecule& vm, // molecule that we are diffusing, we are changing its pos  and possibly also subvolume
+    const wall_index_t previous_reflected_wall, // is WALL_INDEX_INVALID when our molecule did not replect from anything this iddfusion step yet
+    vec3_t& remaining_displacement, // in/out - recomputed if there was a reflection
+    collision_vector_t& molecule_collisions, // possible reactions in this part of way marching, ordered by time
+    vec3_t& new_position,
+    subpart_index_t& new_subpartition_index
+);
+
+void sort_collisions_by_time(collision_vector_t& molecule_collisions);
+
 
 } // namespace mcell
 
