@@ -43,7 +43,7 @@ class MDLR2MDL(object):
             extension = "so"
         elif (sys.platform == 'darwin'):
             extension = "dylib"
-        elif (sys.platform == 'win32') or (sys.platform == 'cygwin):
+        elif (sys.platform == 'win32') or (sys.platform == 'cygwin'):
             extension = "dll"
         else:
             raise Exception("Unexpected platform: {0}".format(sys.platform))
