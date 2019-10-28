@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.14)
 project(mcell)
 
+#TODO: unify case for cmake commands, e.g. set vs SET
+
 
 # Using default gcc 8.3.0 provided in Debian 10
 # causes a segfault in nfSIM, however different gcc is ok
@@ -42,6 +44,13 @@ SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMMON_C_CXX_FLAGS}  -std=c11 ")
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON_C_CXX_FLAGS} -std=c++14")
 
 set(CMAKE_EXE_LINKER_FLAGS "-lm")
+
+if (CYGWIN)
+    # cygwin app run in cygwin environment is somehow unable to load cygstdc++-6.dll
+    # although it works fine when ran from 'cmd' 
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libc++ ")
+endif
+
 
 option(USE_GCOV "Use gcc coverage" OFF) 
 option(USE_PROFILING "Use gprof profiling" OFF) 
