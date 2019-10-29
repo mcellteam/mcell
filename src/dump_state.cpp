@@ -469,7 +469,10 @@ void dump_object_list(geom_object* obj, const char* name, const char* comment, c
 void dump_wall(wall* w, const char* ind, const bool for_diff) {
 
   if (for_diff) {
-    assert(w != nullptr);
+    if (w == nullptr) {
+      cout << "wall: NULL!!!";
+      return;
+    }
     cout << "wall: ";
     for (uint i = 0; i < 3; i++) {
       cout << *w->vert[i];
