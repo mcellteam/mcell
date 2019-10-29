@@ -160,12 +160,24 @@ bool is_point_above_plane_defined_by_wall(const Partition& p, const Wall& w, con
 // TODO: move to dyn_vertex_utils? -> probably yes
 void Partition::move_molecules_due_to_moving_wall(const wall_index_t moved_wall_index, const VertexMoveInfoVector& move_infos) {
 
+  Wall& orig_wall = get_wall(moved_wall_index);
+
+#ifdef DEBUG_DYNAMIC_GEOMETRY_MCELL4_ONLY
+  cout << "*** Moving vertices of a wall:\n";
+  orig_wall.dump(*this, "", false);
+  for (const VertexMoveInfo& info: move_infos) {
+    cout << "vertex index: " << info.vertex_index << "\n";
+    cout << "original position: " << get_geometry_vertex(info.vertex_index) << "\n";
+    cout << "translation: " << info.translation_vec << "\n";
+  }
+  cout << "***\n";
+#endif
+
   assert(move_infos.size() > 0 && move_infos.size() <= 3 && "Move infos belong to the wall that is being moved");
 
   // construct a virtual space where we have all the walls with new and old
   // positions
 
-  Wall& orig_wall = get_wall(moved_wall_index);
   const vertex_index_t* orig_indices = orig_wall.vertex_indices;
 
   // create 3 new temporary vertices and insert them into the partition,
@@ -315,6 +327,8 @@ void Partition::move_molecules_due_to_moving_wall(const wall_index_t moved_wall_
 #ifdef DEBUG_DYNAMIC_GEOMETRY
       m.dump(get_world_constants(), "", "Moving molecule towards new wall: ", 0 /*iteration*/, 0);
       new_wall->dump(*this, "", true);
+      cout << "original wall:\n";
+      orig_wall.dump(*this, "", true);
 #endif
 
       bool place_above = is_point_above_plane_defined_by_wall(*this, orig_wall, m.v.pos);
@@ -340,14 +354,21 @@ void Partition::move_molecules_due_to_moving_wall(const wall_index_t moved_wall_
 
 
 void Partition::apply_vertex_moves() {
-
-  // TODO: expecting that there we are not moving a single vertex twice, add a check for it
-
   // 1) create a set of all affected walls with information on how much each wall moves,
+  UintSet moved_vertices_set;
   WallsWithTheirMovesMap walls_with_their_moves;
   for (const VertexMoveInfo& move_info: scheduled_vertex_moves) {
-    const std::vector<wall_index_t>& wall_indices = get_walls_using_vertex(move_info.vertex_index);
 
+    // expecting that there we are not moving a single vertex twice
+    if (moved_vertices_set.count(move_info.vertex_index) != 0) {
+      mcell_error(
+          "When moving dynamic vertices, each vertex may be listed just once, error for vertex with index %d.",
+          move_info.vertex_index
+      );
+    }
+    moved_vertices_set.insert(move_info.vertex_index);
+
+    const std::vector<wall_index_t>& wall_indices = get_walls_using_vertex(move_info.vertex_index);
     for (wall_index_t wall_index: wall_indices) {
       // remember mapping wall_index -> moves
       auto it = walls_with_their_moves.find(wall_index);

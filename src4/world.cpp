@@ -38,8 +38,7 @@ const double USEC_IN_SEC = 1000000.0;
 namespace MCell {
 
 World::World()
-  : current_iteration(0),
-    iterations(0),
+  : iterations(0),
     seed_seq(0),
     next_wall_id(0),
     next_geometry_object_id(0),
@@ -47,7 +46,8 @@ World::World()
     simulation_ended(false),
     previous_progress_report_time({0, 0}),
     previous_iteration(0),
-    wall_hit_callback(nullptr)
+    wall_hit_callback(nullptr),
+    wall_hit_callback_clientdata(nullptr)
 {
   world_constants.partition_edge_length = PARTITION_EDGE_LENGTH_DEFAULT;
   world_constants.subpartitions_per_partition_dimension = SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT;
@@ -160,7 +160,7 @@ void World::init_simulation() {
 
   // iteration counters to report progress and
   // also to know when to end
-  current_iteration = 0;
+  simulation_stats.current_iteration = 0;
   previous_iteration = 0;
 
   simulation_initialized = true;
@@ -172,6 +172,8 @@ void World::run_n_iterations(const uint64_t num_iterations, const uint64_t outpu
   if (!simulation_initialized) {
     init_simulation();
   }
+
+  uint64_t& current_iteration = simulation_stats.current_iteration;
 
   if (current_iteration == 0) {
     cout << "Iterations: " << current_iteration << " of " << iterations << "\n";
@@ -239,7 +241,7 @@ void World::end_simulation() {
     return;
   }
 
-  cout << "Iteration " << current_iteration << ", simulation finished successfully\n";
+  cout << "Iteration " << simulation_stats.current_iteration << ", simulation finished successfully\n";
 
   simulation_stats.dump();
 

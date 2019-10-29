@@ -62,6 +62,10 @@ public:
     return world_constants;
   }
 
+  uint64_t get_current_iteration() const {
+    return simulation_stats.current_iteration;
+  }
+
   // -------------- partition manipulation methods --------------
   partition_index_t get_partition_index(const vec3_t& pos) {
     // for now a slow approach, later some hashing/memoization might be needed
@@ -185,9 +189,6 @@ public:
     wall_hit_callback_clientdata = clientdata_;
   }
 
-  // clientdata hold information on what Python function we should call
-  void* wall_hit_callback_clientdata;
-
   wall_hit_callback_func get_wall_hit_callback() {
     return wall_hit_callback;
   }
@@ -205,7 +206,6 @@ public:
   UnimolecularReactionsMap unimolecular_reactions_map; // created from reactions in init_simulation
   BimolecularReactionsMap bimolecular_reactions_map; // created from reactions in init_simulation
 
-  uint64_t current_iteration;
   uint64_t iterations; // number of iterations to simulate
 
   uint seed_seq; // initial seed passed to mcell as argument
@@ -242,8 +242,12 @@ private:
   // and to nicely report simulation progress
   uint64_t previous_iteration;
 
+public:
+  // NOTE: only a temporary solution of callbacks for now
   // callbacks
   wall_hit_callback_func wall_hit_callback;
+  // clientdata hold information on what Python function we should call
+  void* wall_hit_callback_clientdata;
 };
 
 } // namespace mcell

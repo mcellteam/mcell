@@ -118,7 +118,6 @@ float_t Scheduler::get_next_event_time() {
 }
 
 // pop next scheduled event and run its step method
-// current_iteration is the world object's iteration
 float_t Scheduler::handle_next_event() {
   BaseEvent* event = calendar.pop_next();
   assert(event != NULL && "Empty event queue - at least end simulation event should be present");

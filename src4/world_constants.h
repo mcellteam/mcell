@@ -21,6 +21,8 @@
  *
 ******************************************************************************/
 
+// FIXME: rename - this class won't contain just constants
+
 #ifndef SRC4_WORLD_CONSTANTS_H_
 #define SRC4_WORLD_CONSTANTS_H_
 

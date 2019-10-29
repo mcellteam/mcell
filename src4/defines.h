@@ -508,7 +508,11 @@ public:
   }
 
   void dump();
+
+  // TODO: make private
+  uint64_t current_iteration;
 private:
+
   uint64_t ray_voxel_tests;
   uint64_t ray_polygon_tests;
   uint64_t ray_polygon_colls;

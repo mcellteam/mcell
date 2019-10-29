@@ -402,7 +402,7 @@ static float_t compute_unimol_lifetime(
 #ifdef DEBUG_REACTIONS
   DUMP_CONDITION4(
       // calling rng for unimolecular
-      vm.dump(world->get_world_constants(), "Assigned unimolecular time (prev rng):", "", world->current_iteration, res);
+      vm.dump(world->get_world_constants(), "Assigned unimolecular time (prev rng):", "", world->get_current_iteration(), res);
   );
 #endif
 

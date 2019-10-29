@@ -24,6 +24,7 @@
 //#define DEBUG_WALL_COLLISIONS
 
 #define DEBUG_DYNAMIC_GEOMETRY
+//#define DEBUG_DYNAMIC_GEOMETRY_MCELL4_ONLY
 //#define DEBUG_DYNAMIC_GEOMETRY_COLLISION_DETECTIONS
 
 #if (!defined(NDEBUG) || defined(DUMP_ALWAYS)) && !defined(DUMP_NEVER)
@@ -33,14 +34,14 @@
 #define DEBUG_DEFRAGMENTATION
 
 // cannot be conditioned by iterations
-#define DEBUG_RNG_CALLS
+//#define DEBUG_RNG_CALLS
 
 // does not generate the same dump as mcell3
 //#define DEBUG_SUBPARTITIONS
 
-#define DEBUG_DIFFUSION
-#define DEBUG_COLLISIONS
-#define DEBUG_REACTIONS
+//#define DEBUG_DIFFUSION
+//#define DEBUG_COLLISIONS
+//#define DEBUG_REACTIONS
 
 //#define DEBUG_GRIDS
 

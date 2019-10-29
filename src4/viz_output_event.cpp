@@ -81,6 +81,7 @@ static int digits_for_file_suffix(uint64_t iterations) {
 
 FILE* VizOutputEvent::create_and_open_output_file_name() {
   int ndigits = digits_for_file_suffix(world->iterations);
+  // FIXME: get this from simulation stats
   long long current_iteration = round(event_time); // NOTE: usage of round might be a little shaky here, maybe we will need a better way how to get the iteration index
   //fprintf(stderr, "***dumps: %lld\n", current_iteration);
   const char* type_name = (viz_mode == ASCII_MODE) ? "ascii" : "cellbin";

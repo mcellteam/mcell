@@ -236,7 +236,7 @@ void ReleaseEvent::step() {
 
   cout
     << "Released " << number << " " << species.name << " from \"" << release_site_name << "\""
-    << " at iteration " << world->current_iteration << ".\n";
+    << " at iteration " << world->get_current_iteration() << ".\n";
 }
 
 
