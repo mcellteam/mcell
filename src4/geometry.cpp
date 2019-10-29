@@ -41,13 +41,6 @@ namespace MCell {
 
 void Grid::initialize(const Partition& p, const Wall& w) {
 
-  num_tiles_along_axis = (int)ceil_f(sqrt_f(w.area));
-  if (num_tiles_along_axis < 1) {
-    num_tiles_along_axis = 1;
-  }
-
-  num_tiles = num_tiles_along_axis * num_tiles_along_axis;
-
   // we are expecting that there are no molecules for reinitialization,
   // dynamic geometry walls must not have any surface molecules for now!
   // TODO: do we need a better check? - i.e. also for non-debug version? probably yes..
@@ -58,6 +51,13 @@ void Grid::initialize(const Partition& p, const Wall& w) {
     }
   }
 #endif
+
+  num_tiles_along_axis = (int)ceil_f(sqrt_f(w.area));
+  if (num_tiles_along_axis < 1) {
+    num_tiles_along_axis = 1;
+  }
+
+  num_tiles = num_tiles_along_axis * num_tiles_along_axis;
 
   molecules_per_tile.resize(num_tiles, MOLECULE_ID_INVALID);
 
@@ -257,7 +257,9 @@ void Wall::update_after_vertex_change(Partition& p) {
   precompute_edge_constants(p);
 
   // reinitialize grid
-  grid.initialize(p, *this);
+  if (grid.is_initialized()) {
+    grid.initialize(p, *this);
+  }
 }
 
 
