@@ -74,7 +74,7 @@ void Molecule::dump(const string ind) const {
 
 
 void Molecule::dump(
-    const World* world,
+    const WorldConstants& world_constants,
     const string extra_comment,
     const string ind,
     const uint64_t iteration,
@@ -83,7 +83,7 @@ void Molecule::dump(
 ) const {
   cout
     << ind << extra_comment << "it:" << iteration << ", idx:" << id
-    << ", species: " << world->get_species(species_id).name;
+    << ", species: " << world_constants.get_species(species_id).name;
 
   if (print_position) {
     cout << ", pos:";

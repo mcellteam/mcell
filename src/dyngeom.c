@@ -644,8 +644,13 @@ struct volume_molecule *insert_volume_molecule_encl_mesh(
   if (move_molecule) {
     /* move molecule to another location so that it is directly inside or
      * outside of "mesh_name" */
+#ifdef DEBUG_DYNAMIC_GEOMETRY
+  dump_volume_molecule(vm, "", true, "Moving molecule towards new wall: ", /*state->current_iterations*/0, /*vm->t*/0, true);
+#endif
+
     place_mol_relative_to_mesh(
         state, &(vm->pos), sv, mesh_name, &new_pos, out_to_in);
+
     check_for_large_molecular_displacement(
         &(vm->pos), &new_pos, vm, &(state->time_unit),
         state->notify->large_molecular_displacement);
@@ -653,6 +658,10 @@ struct volume_molecule *insert_volume_molecule_encl_mesh(
     struct subvolume *new_sv = find_subvolume(state, &(new_vm->pos), NULL);
     new_vm->subvol = new_sv;
     state->dyngeom_molec_displacements++;
+
+#ifdef DEBUG_DYNAMIC_GEOMETRY
+    dump_volume_molecule(new_vm, "", true, "Molecule after being moved: ", /*state->current_iterations*/0, /*vm->t*/0, true);
+#endif
   }
 
   destroy_string_buffer(nested_mesh_names_old_filtered);
@@ -985,12 +994,6 @@ void place_mol_relative_to_mesh(struct volume *state,
       continue;
     }
 
-#ifdef DEBUG_DYNAMIC_GEOMETRY
-    mcell_log("Moving molecule towards new wall:\n");
-    dump_wall(wl->this_wall, "");
-#endif
-
-
     d2 = closest_interior_point(loc, wl->this_wall, &s_loc, GIGANTIC);
     if (d2 < best_d2) {
       best_d2 = d2;
@@ -998,6 +1001,10 @@ void place_mol_relative_to_mesh(struct volume *state,
       best_s_loc = s_loc;
     }
   }
+
+#ifdef DEBUG_DYNAMIC_GEOMETRY
+  dump_wall(best_w, "", true);
+#endif
 
   // Look into neighbor subvolumes
   const int sv_index = sv - state->subvol;

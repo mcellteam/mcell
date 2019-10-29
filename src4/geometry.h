@@ -212,7 +212,7 @@ public:
   float_t distance_to_origin; // distance to origin (point normal form)
 
   // p must be the partition that contains this object
-  void dump(const Partition& p, const std::string ind) const;
+  void dump(const Partition& p, const std::string ind, const bool for_diff = false) const;
 
   bool has_initialized_grid() const {
     return grid.is_initialized();

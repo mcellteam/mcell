@@ -466,55 +466,69 @@ void dump_object_list(geom_object* obj, const char* name, const char* comment, c
   }
 }
 
-void dump_wall(wall* w, const char* ind) {
-  if (w == nullptr) {
-    return;
-  }
+void dump_wall(wall* w, const char* ind, const bool for_diff) {
 
-  DECL_IND2(ind);
-
-  cout << ind << "this wall: " << (void*)w << "\n";
-  cout << ind << "next: *\t\t" << (void*)w->next << " [wall] \t\t/* Next wall in the universe */\n";
-
-  cout << ind << "surf_class_head: *\t\t" << (void*)w->surf_class_head << " [surf_class_list] \t\t/* linked list of surface classes for this wall (multiple surface classes may come from the overlapping regions */\n";
-  cout << ind << "num_surf_classes: \t\t" << w->num_surf_classes << " [int] \t\t/* number of attached surface classes */\n";
-
-  cout << ind << "side: \t\t" << w->side << " [int] \t\t/* index of this wall in its parent object */\n";
-
-  if (w->vert != NULL) {
-    cout << ind << "vert[3]: 0: " << *w->vert[0] << ", 1: " << *w->vert[1] << ", 2: " << *w->vert[2] << "\n";
+  if (for_diff) {
+    assert(w != nullptr);
+    cout << "wall: ";
+    for (uint i = 0; i < 3; i++) {
+      cout << *w->vert[i];
+      if (i != 2) {
+        cout << ", ";
+      }
+    }
+    cout << "\n";
   }
   else {
-    cout << ind << "vert: \t\t" << (void*)w->vert << " [vector[3]] \t\t/* Array of pointers to vertices */\n";
+    if (w == nullptr) {
+      return;
+    }
+
+    DECL_IND2(ind);
+
+    cout << ind << "this wall: " << (void*)w << "\n";
+    cout << ind << "next: *\t\t" << (void*)w->next << " [wall] \t\t/* Next wall in the universe */\n";
+
+    cout << ind << "surf_class_head: *\t\t" << (void*)w->surf_class_head << " [surf_class_list] \t\t/* linked list of surface classes for this wall (multiple surface classes may come from the overlapping regions */\n";
+    cout << ind << "num_surf_classes: \t\t" << w->num_surf_classes << " [int] \t\t/* number of attached surface classes */\n";
+
+    cout << ind << "side: \t\t" << w->side << " [int] \t\t/* index of this wall in its parent object */\n";
+
+    if (w->vert != NULL) {
+      cout << ind << "vert[3]: 0: " << *w->vert[0] << ", 1: " << *w->vert[1] << ", 2: " << *w->vert[2] << "\n";
+    }
+    else {
+      cout << ind << "vert: \t\t" << (void*)w->vert << " [vector[3]] \t\t/* Array of pointers to vertices */\n";
+    }
+
+
+    cout << ind << "uv_vert1_u: \t\t" << w->uv_vert1_u << " [double] \t\t/* Surface u-coord of 2nd corner (v=0) */\n";
+    cout << ind << "uv_vert2: \t\t" << w->uv_vert2 << " [vector2] \t\t/* Surface coords of third corner */\n";
+
+    cout << ind << "edges[3]: *\t\t" << (void*)w->edges << " [*edges[3]] \t\t/*  /* Array of pointers to each edge. */ // TODO */\n";
+
+    cout << ind << "nb_walls[0]: *\t\t" << (void*)w->nb_walls[0] << " [wall] \t\t/* Array of pointers to walls that share an edge*/ // TODO\n";
+    cout << ind << "nb_walls[1]: *\t\t" << (void*)w->nb_walls[1] << " [wall] \t\t/* Array of pointers to walls that share an edge*/ // TODO\n";
+    cout << ind << "nb_walls[2]: *\t\t" << (void*)w->nb_walls[2] << " [wall] \t\t/* Array of pointers to walls that share an edge*/ // TODO\n";
+
+    cout << ind << "area: \t\t" << w->area << " [double] \t\t/* Area of this element */\n";
+
+    cout << ind << "normal: \t\t" << w->normal << " [vector3] \t\t/* Normal vector for this wall */\n";
+    cout << ind << "unit_u: \t\t" << w->unit_u << " [vector3] \t\t/* U basis vector for this wall */\n";
+    cout << ind << "unit_v: \t\t" << w->unit_v << " [vector3] \t\t/* V basis vector for this wall */\n";
+    cout << ind << "d: \t\t" << w->d << " [double] \t\t/* Distance to origin (point normal form) */\n";
+
+    cout << ind << "grid: *\t\t" << w->grid << " [surface_grid] \t\t/* Grid of effectors for this wall */\n";
+
+    cout << ind << "flags: \t\t" << w->flags << " [u_short] \t\t/* Count Flags: flags for whether and what we need to count */\n";
+
+    cout << ind << "parent_object: *\t\t" << w->parent_object << " [object] \t\t/* The object we are a part of */\n";
+    //dump_object(w->parent_object, ind2);
+
+    cout << ind << "birthplace: *\t\t" << w->birthplace << " [storage] \t\t/* Where we live in memory */\n";
+
+    cout << ind << "counting_regions: *\t\t" << w->counting_regions << " [region_list] \t\t/* Counted-on regions containing this wall */\n";
   }
-
-
-  cout << ind << "uv_vert1_u: \t\t" << w->uv_vert1_u << " [double] \t\t/* Surface u-coord of 2nd corner (v=0) */\n";
-  cout << ind << "uv_vert2: \t\t" << w->uv_vert2 << " [vector2] \t\t/* Surface coords of third corner */\n";
-
-  cout << ind << "edges[3]: *\t\t" << (void*)w->edges << " [*edges[3]] \t\t/*  /* Array of pointers to each edge. */ // TODO */\n";
-
-  cout << ind << "nb_walls[0]: *\t\t" << (void*)w->nb_walls[0] << " [wall] \t\t/* Array of pointers to walls that share an edge*/ // TODO\n";
-  cout << ind << "nb_walls[1]: *\t\t" << (void*)w->nb_walls[1] << " [wall] \t\t/* Array of pointers to walls that share an edge*/ // TODO\n";
-  cout << ind << "nb_walls[2]: *\t\t" << (void*)w->nb_walls[2] << " [wall] \t\t/* Array of pointers to walls that share an edge*/ // TODO\n";
-
-  cout << ind << "area: \t\t" << w->area << " [double] \t\t/* Area of this element */\n";
-
-  cout << ind << "normal: \t\t" << w->normal << " [vector3] \t\t/* Normal vector for this wall */\n";
-  cout << ind << "unit_u: \t\t" << w->unit_u << " [vector3] \t\t/* U basis vector for this wall */\n";
-  cout << ind << "unit_v: \t\t" << w->unit_v << " [vector3] \t\t/* V basis vector for this wall */\n";
-  cout << ind << "d: \t\t" << w->d << " [double] \t\t/* Distance to origin (point normal form) */\n";
-
-  cout << ind << "grid: *\t\t" << w->grid << " [surface_grid] \t\t/* Grid of effectors for this wall */\n";
-
-  cout << ind << "flags: \t\t" << w->flags << " [u_short] \t\t/* Count Flags: flags for whether and what we need to count */\n";
-
-  cout << ind << "parent_object: *\t\t" << w->parent_object << " [object] \t\t/* The object we are a part of */\n";
-  //dump_object(w->parent_object, ind2);
-
-  cout << ind << "birthplace: *\t\t" << w->birthplace << " [storage] \t\t/* Where we live in memory */\n";
-
-  cout << ind << "counting_regions: *\t\t" << w->counting_regions << " [region_list] \t\t/* Counted-on regions containing this wall */\n";
 }
 
 

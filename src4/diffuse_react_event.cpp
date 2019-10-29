@@ -144,7 +144,7 @@ void DiffuseReactEvent::diffuse_single_molecule(
         (debug_species.can_diffuse()) ?
             (m.is_vol() ? "Diffusing vm:" : "Diffusing sm:") :
             (m.is_vol() ? "Not diffusing vm:" : "Not diffusing sm:");
-    m.dump(world, "", title, world->current_iteration, event_time_end - time_up_to_event_end);
+    m.dump(world->get_world_constants(), "", title, world->current_iteration, event_time_end - time_up_to_event_end);
   );
 #endif
 
@@ -817,7 +817,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
     DUMP_CONDITION4(
       // the subtraction of diffusion_time_step doesn't make much sense but is needed to make the dump the same as in mcell3
       // need to check it further
-      nsm.dump(world, "", "  checking in react_2D_all_neighbors: ", world->current_iteration, 0.0/*event_time_end - time_up_to_event_end - diffusion_time_step*//*time ???*/);
+      nsm.dump(world->get_world_constants(), "", "  checking in react_2D_all_neighbors: ", world->current_iteration, 0.0/*event_time_end - time_up_to_event_end - diffusion_time_step*//*time ???*/);
     );
 #endif
 
@@ -1111,8 +1111,8 @@ int DiffuseReactEvent::outcome_bimolecular(
 #ifdef DEBUG_REACTIONS
     // reference printout first destroys B then A
     DUMP_CONDITION4(
-      reacB.dump(world, "", "  defunct m:", world->current_iteration, 0, false);
-      reacA.dump(world, "", "  defunct m:", world->current_iteration, 0, false);
+      reacB.dump(world->get_world_constants(), "", "  defunct m:", world->current_iteration, 0, false);
+      reacA.dump(world->get_world_constants(), "", "  defunct m:", world->current_iteration, 0, false);
     );
 #endif
 
@@ -1357,7 +1357,7 @@ int DiffuseReactEvent::outcome_products_random(
 
     #ifdef DEBUG_REACTIONS
       DUMP_CONDITION4(
-        new_vm.dump(world, "", "  created vm:", world->current_iteration, scheduled_time);
+        new_vm.dump(world->get_world_constants(), "", "  created vm:", world->current_iteration, scheduled_time);
       );
     #endif
     }
@@ -1397,7 +1397,7 @@ int DiffuseReactEvent::outcome_products_random(
 
       #ifdef DEBUG_REACTIONS
         DUMP_CONDITION4(
-          new_sm.dump(world, "", "  created sm:", world->current_iteration, scheduled_time);
+          new_sm.dump(world->get_world_constants(), "", "  created sm:", world->current_iteration, scheduled_time);
         );
       #endif
     }
@@ -1435,7 +1435,7 @@ int DiffuseReactEvent::outcome_unimolecular(
   Molecule& m_new_ref = p.get_m(id);
 #ifdef DEBUG_REACTIONS
   DUMP_CONDITION4(
-    m_new_ref.dump(world, "", m_new_ref.is_vol() ? "Unimolecular vm defunct:" : "Unimolecular sm defunct:", world->current_iteration, event_time + time_from_event_start, false);
+    m_new_ref.dump(world->get_world_constants(), "", m_new_ref.is_vol() ? "Unimolecular vm defunct:" : "Unimolecular sm defunct:", world->current_iteration, event_time + time_from_event_start, false);
   );
 #endif
   p.set_molecule_as_defunct(m_new_ref);

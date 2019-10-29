@@ -19,11 +19,12 @@
 #endif
 
 //#define DUMP_ALWAYS
-#define DUMP_NEVER
+//#define DUMP_NEVER
 
 //#define DEBUG_WALL_COLLISIONS
 
 #define DEBUG_DYNAMIC_GEOMETRY
+//#define DEBUG_DYNAMIC_GEOMETRY_COLLISION_DETECTIONS
 
 #if (!defined(NDEBUG) || defined(DUMP_ALWAYS)) && !defined(DUMP_NEVER)
 

@@ -220,7 +220,7 @@ void Partition::move_molecules_due_to_moving_wall(const wall_index_t moved_wall_
 
 
   // TODO: code below can be moved to a separate function to detect whether a point is in a mesh
-#ifdef DEBUG_DYNAMIC_GEOMETRY
+#ifdef DEBUG_DYNAMIC_GEOMETRY_COLLISION_DETECTIONS
   // TODO: move to some 'dump utils'
   // script mcell/utils/blender_debug_scripts/dyn_vertex_check.py can be used to visualize the
   // collision detection
@@ -257,7 +257,7 @@ void Partition::move_molecules_due_to_moving_wall(const wall_index_t moved_wall_
       continue;
     }
 
-#ifdef DEBUG_DYNAMIC_GEOMETRY
+#ifdef DEBUG_DYNAMIC_GEOMETRY_COLLISION_DETECTIONS
     // cout << "# Detecting collision for molecule with id " << m.id << " at " << m.v.pos << "\n";
     // TODO: move to some 'dump utils'
     cout << "mol" << m.id << " = " << m.v.pos << "\n";
@@ -289,7 +289,7 @@ void Partition::move_molecules_due_to_moving_wall(const wall_index_t moved_wall_
           break;
         case CollisionType::WALL_FRONT:
         case CollisionType::WALL_BACK:
-          #ifdef DEBUG_DYNAMIC_GEOMETRY
+          #ifdef DEBUG_DYNAMIC_GEOMETRY_COLLISION_DETECTIONS
             cout << "# Detecting collision for molecule with id " << m.id <<
               " at " << ignored_collision_pos << " with wall " << i <<"\n";
 
@@ -313,12 +313,16 @@ void Partition::move_molecules_due_to_moving_wall(const wall_index_t moved_wall_
       // first we need to figure out on which side of the new wall we should place the molecule
       // with regards to its normal
 #ifdef DEBUG_DYNAMIC_GEOMETRY
-      cout << "Moving molecule towards new wall:\n";
-      new_wall->dump(*this, "");
+      m.dump(get_world_constants(), "", "Moving molecule towards new wall: ", 0 /*iteration*/, 0);
+      new_wall->dump(*this, "", true);
 #endif
 
       bool place_above = is_point_above_plane_defined_by_wall(*this, orig_wall, m.v.pos);
       move_molecule_to_closest_wall_point(m, *new_wall, place_above);
+
+#ifdef DEBUG_DYNAMIC_GEOMETRY
+      m.dump(get_world_constants(), "", "Molecule after being moved: ", 0 /*iteration*/, 0);
+#endif
     }
   }
 

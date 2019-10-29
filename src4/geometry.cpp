@@ -261,38 +261,51 @@ void Wall::update_after_vertex_change(Partition& p) {
 }
 
 
-void Wall::dump(const Partition& p, const std::string ind) const {
-  cout << ind << "id: " << id << ", side: " << side << ", object_id: " << object_id << "\n";
-
-  for (uint i = 0; i < VERTICES_IN_TRIANGLE; i++) {
-    vertex_index_t vertex_index = vertex_indices[i];
-    vec3_t pos = p.get_geometry_vertex(vertex_index);
-    cout << ind << "vertex_index: " << vertex_index << ":" << pos << "\n";
+void Wall::dump(const Partition& p, const std::string ind, const bool for_diff) const {
+  if (for_diff) {
+    cout << "wall: ";
+    for (uint i = 0; i < VERTICES_IN_TRIANGLE; i++) {
+      vertex_index_t vertex_index = vertex_indices[i];
+      vec3_t pos = p.get_geometry_vertex(vertex_index);
+      cout << pos;
+      if (i != VERTICES_IN_TRIANGLE - 1) {
+        cout << ", ";
+      }
+    }
+    cout << "\n";
   }
+  else {
+    cout << ind << "id: " << id << ", side: " << side << ", object_id: " << object_id << "\n";
 
-  for (uint i = 0; i < EDGES_IN_TRIANGLE; i++) {
-    cout << ind << "edges:\n";
-    //TODO: edges[i].dump();
+    for (uint i = 0; i < VERTICES_IN_TRIANGLE; i++) {
+      vertex_index_t vertex_index = vertex_indices[i];
+      vec3_t pos = p.get_geometry_vertex(vertex_index);
+      cout << ind << "vertex_index: " << vertex_index << ":" << pos << "\n";
+    }
+
+    for (uint i = 0; i < EDGES_IN_TRIANGLE; i++) {
+      cout << ind << "edges:\n";
+      //TODO: edges[i].dump();
+    }
+
+    cout << ind;
+    for (uint i = 0; i < EDGES_IN_TRIANGLE; i++) {
+      cout << "nb_walls[" << i << "]: " << nb_walls[i] << ", ";
+    }
+    cout << "\n";
+
+    cout << ind
+      << "uv_vert1_u: " << uv_vert1_u
+      << ", uv_vert2: " << uv_vert2
+      << ", area: " << area
+      << ", normal: " << normal << "\n";
+
+    cout << ind
+      << "unit_u: " << unit_u
+      << ", unit_v: " << unit_v
+      << ", distance_to_origin: " << distance_to_origin
+      << "\n";
   }
-
-  cout << ind;
-  for (uint i = 0; i < EDGES_IN_TRIANGLE; i++) {
-    cout << "nb_walls[" << i << "]: " << nb_walls[i] << ", ";
-  }
-  cout << "\n";
-
-  cout << ind
-    << "uv_vert1_u: " << uv_vert1_u
-    << ", uv_vert2: " << uv_vert2
-    << ", area: " << area
-    << ", normal: " << normal << "\n";
-
-  cout << ind
-    << "unit_u: " << unit_u
-    << ", unit_v: " << unit_v
-    << ", distance_to_origin: " << distance_to_origin
-    << "\n";
-#undef out
 }
 
 } /* namespace mcell */
