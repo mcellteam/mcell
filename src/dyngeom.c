@@ -645,7 +645,7 @@ struct volume_molecule *insert_volume_molecule_encl_mesh(
     /* move molecule to another location so that it is directly inside or
      * outside of "mesh_name" */
 #ifdef DEBUG_DYNAMIC_GEOMETRY
-  dump_volume_molecule(vm, "", true, "Moving molecule towards new wall: ", /*state->current_iterations*/0, /*vm->t*/0, true);
+    dump_volume_molecule(vm, "", true, "Moving molecule towards new wall: ", state->current_iterations, /*vm->t*/0, true);
 #endif
 
     place_mol_relative_to_mesh(
@@ -660,7 +660,7 @@ struct volume_molecule *insert_volume_molecule_encl_mesh(
     state->dyngeom_molec_displacements++;
 
 #ifdef DEBUG_DYNAMIC_GEOMETRY
-    dump_volume_molecule(new_vm, "", true, "Molecule after being moved: ", /*state->current_iterations*/0, /*vm->t*/0, true);
+    dump_volume_molecule(new_vm, "", true, "Molecule after being moved: ", state->current_iterations, /*vm->t*/0, true);
 #endif
   }
 

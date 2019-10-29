@@ -158,7 +158,11 @@ bool is_point_above_plane_defined_by_wall(const Partition& p, const Wall& w, con
 
 
 // TODO: move to dyn_vertex_utils? -> probably yes
-void Partition::move_molecules_due_to_moving_wall(const wall_index_t moved_wall_index, const VertexMoveInfoVector& move_infos) {
+void Partition::move_molecules_due_to_moving_wall(
+    const wall_index_t moved_wall_index, const VertexMoveInfoVector& move_infos,
+    UintSet& already_moved_molecules
+
+) {
 
   Wall& orig_wall = get_wall(moved_wall_index);
 
@@ -269,6 +273,10 @@ void Partition::move_molecules_due_to_moving_wall(const wall_index_t moved_wall_
       continue;
     }
 
+    if (already_moved_molecules.count(m.id) == 1) {
+      continue;
+    }
+
 #ifdef DEBUG_DYNAMIC_GEOMETRY_COLLISION_DETECTIONS
     // cout << "# Detecting collision for molecule with id " << m.id << " at " << m.v.pos << "\n";
     // TODO: move to some 'dump utils'
@@ -325,17 +333,23 @@ void Partition::move_molecules_due_to_moving_wall(const wall_index_t moved_wall_
       // first we need to figure out on which side of the new wall we should place the molecule
       // with regards to its normal
 #ifdef DEBUG_DYNAMIC_GEOMETRY
-      m.dump(get_world_constants(), "", "Moving molecule towards new wall: ", 0 /*iteration*/, 0);
+      m.dump(get_world_constants(), "", "Moving molecule towards new wall: ", simulation_stats.current_iteration, 0);
       new_wall->dump(*this, "", true);
+  #ifdef DEBUG_DYNAMIC_GEOMETRY_MCELL4_ONLY
       cout << "original wall:\n";
       orig_wall.dump(*this, "", true);
+  #endif
 #endif
 
       bool place_above = is_point_above_plane_defined_by_wall(*this, orig_wall, m.v.pos);
+
+      // move the molecule
       move_molecule_to_closest_wall_point(m, *new_wall, place_above);
 
+      // and remember that we must not be moving it anymore
+      already_moved_molecules.insert_unique(m.id);
 #ifdef DEBUG_DYNAMIC_GEOMETRY
-      m.dump(get_world_constants(), "", "Molecule after being moved: ", 0 /*iteration*/, 0);
+      m.dump(get_world_constants(), "", "Molecule after being moved: ", simulation_stats.current_iteration /*iteration*/, 0);
 #endif
     }
   }
@@ -380,8 +394,14 @@ void Partition::apply_vertex_moves() {
   }
 
   // 2) for each wall, detect what molecules will be moved and move them right away
+  //    In some cases, moving one wall might place a molecule into a path of another moved wall,
+  //    however, they should be moved at the same time, so we use just the first move and skip any other further moves.
+  //    Not completely sure about this, but it seems that the same behavior should be achieved when
+  //    we would first collect all moves and do them later, however we are creating temporary walls,
+  //    so remembering them would be more complicated.
+  UintSet already_moved_molecules;
   for (auto it : walls_with_their_moves) {
-    move_molecules_due_to_moving_wall(it.first, it.second);
+    move_molecules_due_to_moving_wall(it.first, it.second, already_moved_molecules);
   }
 
   // 3) get information on where these walls are and remove them

@@ -481,7 +481,8 @@ private:
 
   void move_molecules_due_to_moving_wall(
       const wall_index_t moved_wall_index,
-      const VertexMoveInfoVector& move_infos
+      const VertexMoveInfoVector& move_infos,
+      UintSet& already_moved_molecules
   );
 
   void update_walls_per_subpart(const WallsWithTheirMovesMap& walls_with_their_moves, const bool insert);
