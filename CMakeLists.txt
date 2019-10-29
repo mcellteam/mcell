@@ -48,7 +48,7 @@ set(CMAKE_EXE_LINKER_FLAGS "-lm")
 if (CYGWIN)
     # cygwin app run in cygwin environment is somehow unable to load cygstdc++-6.dll
     # although it works fine when ran from 'cmd' 
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libc++ ")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ")
 endif()
 
 
@@ -298,7 +298,14 @@ if (NOT WIN32 AND NOT CYGWIN)
   configure_file(${CMAKE_SOURCE_DIR}/src/pymcell_helpers.py ${CMAKE_CURRENT_BINARY_DIR}/python/pymcell_helpers.py COPYONLY)  
 endif()
 
+
+configure_file(${CMAKE_SOURCE_DIR}/src/pymcell_helpers.py ${CMAKE_CURRENT_BINARY_DIR}/python/pymcell_helpers.py COPYONLY)
+
 # copy tools for MDLr to MDL
+# TODO: list all files using configure_file
+configure_file(${CMAKE_SOURCE_DIR}/src/rules_py/nfsim_python.py ${CMAKE_CURRENT_BINARY_DIR}/nfsim_python.py COPYONLY)
+configure_file(${CMAKE_SOURCE_DIR}/src/rules_py/mdlr2mdl.py ${CMAKE_CURRENT_BINARY_DIR}/mdlr2mdl.py COPYONLY)
+
 file(COPY ${CMAKE_SOURCE_DIR}/src/rules_py/ DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 # copy tools for MDLr to MDL
