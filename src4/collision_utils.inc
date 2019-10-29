@@ -584,7 +584,9 @@ static void collect_wall_collisions(
   // check each wall in this subpartition
   const UintSet& wall_indices = p.get_subpart_wall_indices(subpart_index);
 
-  for (wall_index_t wall_index: wall_indices) {
+  for (UintSet::const_iterator it = wall_indices.begin(); it != wall_indices.end(); it++) {
+    wall_index_t wall_index = *it;
+
     if (wall_index == previous_reflected_wall)
       continue;
 
@@ -596,8 +598,9 @@ static void collect_wall_collisions(
         collide_wall(p, vm.v.pos, w, rng, true, displacement, collision_time, collision_pos);
 
     if (collision_type == CollisionType::WALL_REDO) {
-      // run the same thing again? not sure, need to find such case
-      mcell_error("collision redo - not supported yet");
+      // molecule was 'jumped' and we need to run collision detection over all walls again
+      wall_collisions.clear();
+      it = wall_indices.begin();
     }
     else if (collision_type != CollisionType::WALL_MISS) {
       p.get_simulation_stats().inc_ray_polygon_colls();
