@@ -334,6 +334,7 @@ void Partition::move_molecules_due_to_moving_wall(
       // with regards to its normal
 #ifdef DEBUG_DYNAMIC_GEOMETRY
       m.dump(get_world_constants(), "", "Moving molecule towards new wall: ", simulation_stats.current_iteration, 0);
+      new_wall->side = orig_wall.side;
       new_wall->dump(*this, "", true);
   #ifdef DEBUG_DYNAMIC_GEOMETRY_MCELL4_ONLY
       cout << "original wall:\n";

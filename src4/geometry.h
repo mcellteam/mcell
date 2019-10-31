@@ -138,6 +138,10 @@ private:
  * Owned by partition, also its vertices are owned by partition.
  *
  * This is in fact a triangle, but we are keeping the naming consistent with MCell 3.
+ *
+ * TODO: Add additional debug checks that will make sure that the
+ * state of this object is consistent. However, how to do it without
+ * making the attributes private?
  */
 class Wall {
 public:
@@ -177,7 +181,7 @@ public:
   // needs vertex indices to be set
   void precompute_wall_constants(const Partition& p);
 
-  // needs wall constants to be precomputed
+  // needs wall constants to be precomputed (all adjacent walls)
   void precompute_edge_constants(const Partition& p);
 
 

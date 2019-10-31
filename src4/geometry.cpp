@@ -83,6 +83,7 @@ void GeometryObject::dump(const Partition& p, const std::string ind) const {
 }
 
 
+// based on init_edge_transform
 void Edge::precompute_edge_constants(const Partition& p, int edgenum) {
 
   // not sure what to do if these asserts do not hold
@@ -90,6 +91,12 @@ void Edge::precompute_edge_constants(const Partition& p, int edgenum) {
   assert(backward_index != WALL_INDEX_INVALID);
   Wall wf = p.get_wall(forward_index);
   Wall wb = p.get_wall(backward_index);
+
+#ifdef DEBUG_EDGE_INITIALIZATION
+  std::cout << "Edge initialization, edgenum: " << edgenum << "\n";
+  wf.dump(p, "", true);
+  wb.dump(p, "", true);
+#endif
 
   uint i = edgenum;
   assert(i < VERTICES_IN_TRIANGLE);
@@ -116,7 +123,7 @@ void Edge::precompute_edge_constants(const Partition& p, int edgenum) {
   temp_ff.u = dot(diff_j_0, wf.unit_u) - O_f.u;
   temp_ff.v = dot(diff_j_0, wf.unit_v) - O_f.v; /* Far side of e */
 
-  assert(!cmp_eq(len2_squared(temp_ff), 0.0, EPS_C));
+  assert(!cmp_eq(len2_squared(temp_ff), 0.0, EPS));
   float_t d_f = 1.0 / len2(temp_ff);
 
   vec2_t ehat_f, fhat_f;
@@ -135,7 +142,7 @@ void Edge::precompute_edge_constants(const Partition& p, int edgenum) {
   temp_fb.u = dot(diff_j_b0, wb.unit_u) - O_b.u;
   temp_fb.v = dot(diff_j_b0, wb.unit_v) - O_b.v; /* Far side of e */
 
-  assert(!cmp_eq(len2_squared(temp_fb), 0.0, EPS_C));
+  assert(!cmp_eq(len2_squared(temp_fb), 0.0, EPS));
   float_t d_b = 1.0 / len2(temp_fb);
 
   vec2_t ehat_b, fhat_b;
@@ -241,31 +248,14 @@ void Wall::precompute_wall_constants(const Partition& p) {
 void Wall::precompute_edge_constants(const Partition& p) {
   // edges, uses info set by init_tri_wall
   for (uint edge_index = 0; edge_index < EDGES_IN_TRIANGLE; edge_index++) {
-    //assert(edges[edge_index].forward_index == index); // ???
     edges[edge_index].precompute_edge_constants(p, edge_index);
-  }
-}
-
-
-
-void Wall::update_after_vertex_change(Partition& p) {
-
-  // the only thing that we know that is correct now is the
-  // position of the vertices, we need to recompute everything else
-  precompute_wall_constants(p);
-
-  precompute_edge_constants(p);
-
-  // reinitialize grid
-  if (grid.is_initialized()) {
-    grid.initialize(p, *this);
   }
 }
 
 
 void Wall::dump(const Partition& p, const std::string ind, const bool for_diff) const {
   if (for_diff) {
-    cout << "wall: ";
+    cout << "wall[side: " << side << "]: ";
     for (uint i = 0; i < VERTICES_IN_TRIANGLE; i++) {
       vertex_index_t vertex_index = vertex_indices[i];
       vec3_t pos = p.get_geometry_vertex(vertex_index);

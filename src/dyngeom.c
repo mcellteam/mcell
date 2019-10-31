@@ -1002,10 +1002,6 @@ void place_mol_relative_to_mesh(struct volume *state,
     }
   }
 
-#ifdef DEBUG_DYNAMIC_GEOMETRY
-  dump_wall(best_w, "", true);
-#endif
-
   // Look into neighbor subvolumes
   const int sv_index = sv - state->subvol;
   int sv_remain = sv_index;
@@ -1099,6 +1095,10 @@ void place_mol_relative_to_mesh(struct volume *state,
       }
     }
   }
+
+#ifdef DEBUG_DYNAMIC_GEOMETRY
+  dump_wall(best_w, "", true);
+#endif
 
   if (best_w == NULL) {
     mcell_internal_error("Error in function 'place_mol_relative_to_mesh()'.");

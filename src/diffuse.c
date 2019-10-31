@@ -42,6 +42,10 @@
 // for debug & mcell4 development
 #include "debug_config.h"
 #include "dump_state.h"
+#ifdef MCELL3_SORTED_WALLS_FOR_COLLISION
+#include <vector>
+#endif
+
 
 #define FREE_COLLISION_LISTS()                                                 \
   do {                                                                         \
@@ -979,21 +983,63 @@ struct collision *ray_trace(struct volume *world, struct vector3 *init_pos,
   struct collision *smash = (struct collision *)CHECKED_MEM_GET(
       sv->local_storage->coll, "collision structure");
 
+#ifdef MCELL3_SORTED_WALLS_FOR_COLLISION
+  // sort by side value, useful only for single objects
+  std::vector<wall_list*> sorted_walls;
+  for (struct wall_list *wlp = sv->wall_head; wlp != NULL; wlp = wlp->next) {
+
+    // same as original:
+    // sorted_walls.push_back(wlp);
+
+    // reversed order
+    sorted_walls.insert(sorted_walls.begin(), wlp);
+  }
+#endif
+
   struct wall_list fake_wlp;
   fake_wlp.next = sv->wall_head;
 
   // Check wall collisions
+#ifdef MCELL3_SORTED_WALLS_FOR_COLLISION
+  for (unsigned wall_array_index = 0; wall_array_index < sorted_walls.size(); wall_array_index++) {
+    struct wall_list *wlp = sorted_walls[wall_array_index];
+#else
   for (struct wall_list *wlp = sv->wall_head; wlp != NULL; wlp = wlp->next) {
+#endif
+
     if (wlp->this_wall == reflectee)
       continue;
 
+#ifdef DEBUG_COLLISIONS_WALL_EXTRA
+    // just faking the name for the dump condition macro
+    DUMP_CONDITION3(
+        std::cout << "Checking wall:\n";
+        dump_wall(wlp->this_wall, "", true);
+    );
+#endif
+
     int i = collide_wall(init_pos, v, wlp->this_wall, &(smash->t), &(smash->loc),
                      1, world->rng, world->notify, &(world->ray_polygon_tests));
+
+#ifdef DEBUG_COLLISIONS_WALL_EXTRA
+    // just faking the name for the dump condition macro
+    DUMP_CONDITION3(
+        if (i == COLLIDE_REDO || i == COLLIDE_FRONT || i == COLLIDE_BACK) {
+          std::cout << "Collide wall: vm pos: " << *init_pos  << ", displacement: " << *v << "\n";
+          dump_wall(wlp->this_wall, "", true);
+          std::cout << "collision time: " << smash->t << ", collision pos: " << smash->loc << "\n";
+        }
+    );
+#endif
+
     if (i == COLLIDE_REDO) {
       if (shead != NULL)
         mem_put_list(sv->local_storage->coll, shead);
       shead = NULL;
       wlp = &fake_wlp;
+#ifdef MCELL3_SORTED_WALLS_FOR_COLLISION
+      wall_array_index = 0;
+#endif
       continue;
     } else if (i != COLLIDE_MISS) {
       world->ray_polygon_colls++;

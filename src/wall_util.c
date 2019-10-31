@@ -575,6 +575,12 @@ void init_edge_transform(struct edge *e, int edgenum) {
   if (j > 2)
     j = 0;
 
+#ifdef DEBUG_EDGE_INITIALIZATION
+  std::cout << "Edge initialization, edgenum: " << edgenum << "\n";
+  dump_wall(wf, "", true);
+  dump_wall(wb, "", true);
+#endif
+
   /* Intermediate basis from the perspective of the forward frame */
 
   struct vector3 temp3d;
@@ -591,6 +597,7 @@ void init_edge_transform(struct edge *e, int edgenum) {
   temp.u = dot_prod(&temp3d, &(wf->unit_u)) - O_f.u;
   temp.v = dot_prod(&temp3d, &(wf->unit_v)) - O_f.v; /* Far side of e */
 
+  assert(temp.u * temp.u + temp.v * temp.v != 0);
   double d = 1.0 / sqrt(temp.u * temp.u + temp.v * temp.v);
   ehat_f.u = temp.u * d;
   ehat_f.v = temp.v * d; /* ehat along edge */
@@ -611,6 +618,7 @@ void init_edge_transform(struct edge *e, int edgenum) {
   temp.u = dot_prod(&temp3d, &(wb->unit_u)) - O_b.u;
   temp.v = dot_prod(&temp3d, &(wb->unit_v)) - O_b.v; /* Far side of e */
 
+  assert(temp.u * temp.u + temp.v * temp.v != 0);
   d = 1.0 / sqrt(temp.u * temp.u + temp.v * temp.v);
   ehat_b.u = temp.u * d;
   ehat_b.v = temp.v * d; /* ehat along edge */

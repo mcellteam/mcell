@@ -24,6 +24,8 @@
 #ifndef __DUMP_STATE_H__
 #define __DUMP_STATE_H__
 
+#include <iostream>
+
 #include "mcell_structs.h"
 #include "grid_util.h"
 
@@ -74,5 +76,8 @@ void dump_schedule_helper(
     const char* comment,
     const char* ind,
     bool simplified_for_vm);
+
+
+std::ostream & operator<<(std::ostream &out, const vector3 &a);
 
 #endif

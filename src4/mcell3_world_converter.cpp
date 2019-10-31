@@ -251,7 +251,7 @@ bool MCell3WorldConverter::convert_geometry_objects(volume* s) {
 }
 
 
-// we do not check anything that might not be supported fro mthe mcell3 side,
+// we do not check anything that might not be supported from the mcell3 side,
 // the actual checks are in convert_polygonal_object
 void MCell3WorldConverter::create_uninitialized_walls_for_polygonal_object(const geom_object* o) {
   GeometryObject obj;

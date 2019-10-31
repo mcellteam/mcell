@@ -51,14 +51,31 @@ void move_vertices_and_update_walls(
   }
 
   // update walls
+  // FIXME: this should be placed in geometry.cpp
   for (auto it: walls_with_their_moves) {
     wall_index_t wall_index = it.first;
     Wall& w = p.get_wall(wall_index);
 
-    // debug check that grid does not have any surface molecules is present
-    // in the method
-    w.update_after_vertex_change(p);
+    // first we need to update all wall constants
+    w.precompute_wall_constants(p);
+
+    // reinitialize grid
+    if (w.grid.is_initialized()) {
+      w.grid.initialize(p, w);
+    }
   }
+
+  // and their edges
+  for (auto it: walls_with_their_moves) {
+    wall_index_t wall_index = it.first;
+    Wall& w = p.get_wall(wall_index);
+
+    // edges need to be fixed after all wall have been moved
+    // otherwise the edge initialization would be using
+    // incosistent data
+    w.precompute_wall_constants(p);
+  }
+
 }
 
 } // namespace DynVertexUtils

@@ -93,6 +93,8 @@ public:
   
   void add_vertex_move(vertex_index_t vertex_index, const vec3_t& translation_vec);
   void apply_vertex_moves();
+  
+  void dump();
 };
 
 class WorldConstants {

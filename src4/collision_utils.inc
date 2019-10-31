@@ -594,8 +594,27 @@ static void collect_wall_collisions(
     float_t collision_time;
     vec3_t collision_pos;
 
+#ifdef DEBUG_COLLISIONS_WALL_EXTRA
+    SimulationStats* world = &p.get_simulation_stats();
+    // just faking the name for the dump condition macro
+    DUMP_CONDITION4(
+        std::cout << "Checking wall:\n";
+        w.dump(p, "", true);
+    );
+#endif
+
     CollisionType collision_type =
         collide_wall(p, vm.v.pos, w, rng, true, displacement, collision_time, collision_pos);
+
+#ifdef DEBUG_COLLISIONS_WALL_EXTRA
+    DUMP_CONDITION4(
+        if (collision_type == CollisionType::WALL_REDO || collision_type == CollisionType::WALL_FRONT || collision_type == CollisionType::WALL_BACK) {
+          cout << "Collide wall: vm pos: " << vm.v.pos << ", displacement: " << displacement << "\n";
+          w.dump(p, "", true);
+          cout << "collision time: " << collision_time << ", collision pos: " << collision_pos << "\n";
+        }
+    );
+#endif
 
     if (collision_type == CollisionType::WALL_REDO) {
       // molecule was 'jumped' and we need to run collision detection over all walls again

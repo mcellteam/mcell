@@ -473,7 +473,7 @@ void dump_wall(wall* w, const char* ind, const bool for_diff) {
       cout << "wall: NULL!!!";
       return;
     }
-    cout << "wall: ";
+    cout << "wall[side: " << w->side << "]: ";
     for (uint i = 0; i < 3; i++) {
       cout << *w->vert[i];
       if (i != 2) {
