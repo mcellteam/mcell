@@ -114,16 +114,45 @@ void tiny_diffuse_3D(
 
 
 // based on place_mol_relative_to_mesh
-void Partition::move_molecule_to_closest_wall_point(Molecule& vm, Wall& wall, const bool place_above) {
+void Partition::move_molecule_to_closest_wall_point(const MoleculeMoveInfo& molecule_move_info) {
+
+  Molecule& vm = get_m(molecule_move_info.molecule_id);
+
+
   assert(vm.is_vol());
 
-  vec2_t wall_pos2d;
-  GeometryUtil::closest_interior_point(*this, vm.v.pos, wall, wall_pos2d);
+  // 1) check all walls to get a reference hopefully
+  //  then try to limit only to wall's neighbors - we would really like to avoid any regions (maybe...?)
+  wall_index_t best_wall_index = WALL_INDEX_INVALID;
+  float_t best_d2 = GIGANTIC4;
+  vec2_t best_wall_pos2d;
 
-  vec3_t new_pos3d = GeometryUtil::uv2xyz(wall_pos2d, wall, get_wall_vertex(wall, 0));
+  for (const Wall& w: walls) {
+    // mcell3 has region/mesh name check here
+
+    vec2_t wall_pos2d;
+    float_t d2 = GeometryUtil::closest_interior_point(*this, vm.v.pos, w, wall_pos2d);
+
+    if (d2 < best_d2) {
+      best_d2 = d2;
+      best_wall_index = w.index;
+      best_wall_pos2d = wall_pos2d;
+    }
+  }
+
+
+  assert(best_wall_index != WALL_INDEX_INVALID);
+  Wall& wall = get_wall(best_wall_index);
+
+  vec3_t new_pos3d = GeometryUtil::uv2xyz(best_wall_pos2d, wall, get_wall_vertex(wall, 0));
+
+#ifdef DEBUG_DYNAMIC_GEOMETRY
+  vm.dump(get_world_constants(), "", "Moving molecule towards new wall: ", simulation_stats.current_iteration, 0);
+  wall.dump(*this, "", true);
+#endif
 
   // displacement
-  float_t bump = (place_above) ? EPS : -EPS;
+  float_t bump = (molecule_move_info.place_above) ? EPS : -EPS;
   vec3_t displacement(2 * bump * wall.normal.x, 2 * bump * wall.normal.y, 2 * bump * wall.normal.z);
 
   // move the molecule a bit (why?)
@@ -142,6 +171,11 @@ void Partition::move_molecule_to_closest_wall_point(Molecule& vm, Wall& wall, co
   vm.v.pos = new_pos_after_diffuse;
   subpart_index_t new_subpart = get_subpartition_index(vm.v.pos);
   change_molecule_subpartition(vm, new_subpart);
+
+
+#ifdef DEBUG_DYNAMIC_GEOMETRY
+  vm.dump(get_world_constants(), "", "Molecule after being moved: ", simulation_stats.current_iteration /*iteration*/, 0);
+#endif
 }
 
 
@@ -157,11 +191,14 @@ bool is_point_above_plane_defined_by_wall(const Partition& p, const Wall& w, con
 }
 
 
+
 // TODO: move to dyn_vertex_utils? -> probably yes
+// TODO: rename
 void Partition::move_molecules_due_to_moving_wall(
     const wall_index_t moved_wall_index, const VertexMoveInfoVector& move_infos,
-    UintSet& already_moved_molecules
-
+    // TODO: maybe remove this set already_moved_molecules since we already have the molecules in the vector molecule_moves?
+    UintSet& already_moved_molecules,
+    MoleculeMoveInfoVector& molecule_moves
 ) {
 
   Wall& orig_wall = get_wall(moved_wall_index);
@@ -274,6 +311,7 @@ void Partition::move_molecules_due_to_moving_wall(
     }
 
     if (already_moved_molecules.count(m.id) == 1) {
+      //assert(false && "this should not happen anymore");
       continue;
     }
 
@@ -332,26 +370,14 @@ void Partition::move_molecules_due_to_moving_wall(
 
       // first we need to figure out on which side of the new wall we should place the molecule
       // with regards to its normal
-#ifdef DEBUG_DYNAMIC_GEOMETRY
-      m.dump(get_world_constants(), "", "Moving molecule towards new wall: ", simulation_stats.current_iteration, 0);
-      new_wall->side = orig_wall.side;
-      new_wall->dump(*this, "", true);
-  #ifdef DEBUG_DYNAMIC_GEOMETRY_MCELL4_ONLY
-      cout << "original wall:\n";
-      orig_wall.dump(*this, "", true);
-  #endif
-#endif
-
       bool place_above = is_point_above_plane_defined_by_wall(*this, orig_wall, m.v.pos);
 
-      // move the molecule
-      move_molecule_to_closest_wall_point(m, *new_wall, place_above);
+      molecule_moves.push_back(MoleculeMoveInfo(m.id, orig_wall.index, place_above));
 
       // and remember that we must not be moving it anymore
+      // should work even without it...
       already_moved_molecules.insert_unique(m.id);
-#ifdef DEBUG_DYNAMIC_GEOMETRY
-      m.dump(get_world_constants(), "", "Molecule after being moved: ", simulation_stats.current_iteration /*iteration*/, 0);
-#endif
+
     }
   }
 
@@ -372,25 +398,25 @@ void Partition::apply_vertex_moves() {
   // 1) create a set of all affected walls with information on how much each wall moves,
   UintSet moved_vertices_set;
   WallsWithTheirMovesMap walls_with_their_moves;
-  for (const VertexMoveInfo& move_info: scheduled_vertex_moves) {
+  for (const VertexMoveInfo& vertex_move_info: scheduled_vertex_moves) {
 
     // expecting that there we are not moving a single vertex twice
-    if (moved_vertices_set.count(move_info.vertex_index) != 0) {
+    if (moved_vertices_set.count(vertex_move_info.vertex_index) != 0) {
       mcell_error(
           "When moving dynamic vertices, each vertex may be listed just once, error for vertex with index %d.",
-          move_info.vertex_index
+          vertex_move_info.vertex_index
       );
     }
-    moved_vertices_set.insert(move_info.vertex_index);
+    moved_vertices_set.insert(vertex_move_info.vertex_index);
 
-    const std::vector<wall_index_t>& wall_indices = get_walls_using_vertex(move_info.vertex_index);
+    const std::vector<wall_index_t>& wall_indices = get_walls_using_vertex(vertex_move_info.vertex_index);
     for (wall_index_t wall_index: wall_indices) {
       // remember mapping wall_index -> moves
       auto it = walls_with_their_moves.find(wall_index);
       if (it == walls_with_their_moves.end()) {
         it = walls_with_their_moves.insert(make_pair(wall_index, VertexMoveInfoVector())).first;
       }
-      it->second.push_back(move_info);
+      it->second.push_back(vertex_move_info);
     }
   }
 
@@ -400,9 +426,10 @@ void Partition::apply_vertex_moves() {
   //    Not completely sure about this, but it seems that the same behavior should be achieved when
   //    we would first collect all moves and do them later, however we are creating temporary walls,
   //    so remembering them would be more complicated.
+  MoleculeMoveInfoVector molecule_moves;
   UintSet already_moved_molecules;
   for (auto it : walls_with_their_moves) {
-    move_molecules_due_to_moving_wall(it.first, it.second, already_moved_molecules);
+    move_molecules_due_to_moving_wall(it.first, it.second, already_moved_molecules, molecule_moves);
   }
 
   // 3) get information on where these walls are and remove them
@@ -411,9 +438,17 @@ void Partition::apply_vertex_moves() {
   // 4) then we move the vertices and update relevant walls
   DynVertexUtils::move_vertices_and_update_walls(*this, scheduled_vertex_moves, walls_with_their_moves);
 
-  // 5) and update subpartition info for the walls
+  // 5) update subpartition info for the walls
   update_walls_per_subpart(walls_with_their_moves, true);
 
+  // 6) move the molecules
+  for (const MoleculeMoveInfo& molecule_move_info: molecule_moves) {
+    // TODO: pass the object directly
+    move_molecule_to_closest_wall_point(
+        molecule_move_info
+        //get_m(molecule_move_info.molecule_id), get_wall(molecule_move_info.wall_index), molecule_move_info.place_above
+    );
+  }
 
   scheduled_vertex_moves.clear();
 }

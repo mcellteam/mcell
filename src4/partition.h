@@ -477,12 +477,13 @@ public:
   void apply_vertex_moves();
 
 private:
-  void move_molecule_to_closest_wall_point(Molecule& m, Wall& wall, const bool place_above);
+  void move_molecule_to_closest_wall_point(const MoleculeMoveInfo& molecule_move_info);
 
   void move_molecules_due_to_moving_wall(
       const wall_index_t moved_wall_index,
       const VertexMoveInfoVector& move_infos,
-      UintSet& already_moved_molecules
+      UintSet& already_moved_molecules,
+      MoleculeMoveInfoVector& molecule_moves
   );
 
   void update_walls_per_subpart(const WallsWithTheirMovesMap& walls_with_their_moves, const bool insert);

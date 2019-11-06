@@ -14,7 +14,7 @@
 // enable several things that make comparison with mcell4 easier
 //#define MCELL3_ONLY_ONE_MEMPART
 //#define MCELL3_SORTED_VIZ_OUTPUT
-#define MCELL3_SORTED_WALLS_FOR_COLLISION
+//#define MCELL3_SORTED_WALLS_FOR_COLLISION
 //#define ASSERT_FOR_MCELL4(...) assert(__VA_ARGS__)
 #define ASSERT_FOR_MCELL4(...) do { } while(0)
 
@@ -31,7 +31,7 @@
 
 #define DEBUG_DYNAMIC_GEOMETRY
 //#define DEBUG_DYNAMIC_GEOMETRY_MCELL4_ONLY
-//#define DEBUG_DYNAMIC_GEOMETRY_COLLISION_DETECTIONS
+#define DEBUG_DYNAMIC_GEOMETRY_COLLISION_DETECTIONS
 
 //#define DEBUG_EDGE_INITIALIZATION
 
@@ -49,14 +49,14 @@
 
 #define DEBUG_DIFFUSION
 #define DEBUG_COLLISIONS
-#define DEBUG_COLLISIONS_WALL_EXTRA
+//#define DEBUG_COLLISIONS_WALL_EXTRA
 //#define DEBUG_REACTIONS
 
 //#define DEBUG_GRIDS
 
-#define FROM_ITERATION 40//250
+#define FROM_ITERATION 29//250
 
-#define TO_ITERATION 41
+#define TO_ITERATION 31
 
 #define DUMP_CONDITION3(code) do { if ((int)world->current_iterations >= (int)FROM_ITERATION && (int)world->current_iterations <= (int)TO_ITERATION) { code; } } while (0)
 #define DUMP_CONDITION4(code) do { if ((int)world->get_current_iteration() >= (int)FROM_ITERATION && (int)world->get_current_iteration() <= (int)TO_ITERATION) { code; } } while (0)

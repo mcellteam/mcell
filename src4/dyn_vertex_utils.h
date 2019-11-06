@@ -45,6 +45,19 @@ struct VertexMoveInfo {
 typedef std::vector<VertexMoveInfo> VertexMoveInfoVector;
 typedef std::map<wall_index_t, VertexMoveInfoVector> WallsWithTheirMovesMap;
 
+struct MoleculeMoveInfo {
+  MoleculeMoveInfo(const molecule_id_t molecule_id_, const wall_index_t wall_index_, const bool place_above_)
+    : molecule_id(molecule_id_), wall_index(wall_index_), place_above(place_above_) {
+  }
+  // molecule to move
+  molecule_id_t molecule_id;
+  // which wall moved this molecule first
+  wall_index_t wall_index;
+  // above or below
+  bool place_above;
+};
+typedef std::vector<MoleculeMoveInfo> MoleculeMoveInfoVector;
+
 namespace DynVertexUtils {
 
 void move_vertices_and_update_walls(
