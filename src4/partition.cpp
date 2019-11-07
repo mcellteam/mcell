@@ -192,6 +192,7 @@ bool is_point_above_plane_defined_by_wall(const Partition& p, const Wall& w, con
 
 
 
+
 // TODO: move to dyn_vertex_utils? -> probably yes
 // TODO: rename
 void Partition::move_molecules_due_to_moving_wall(
@@ -248,18 +249,24 @@ void Partition::move_molecules_due_to_moving_wall(
 
   // create new arbitrary walls and initialize them,
   // we do not need to insert them into the partition
-  const uint TRIANGLES_IN_MOVED_TRIANGLE_MESH = 8;
+  /*const uint TRIANGLES_IN_MOVED_TRIANGLE_MESH = 8;
   Wall* moved_triangle_walls[TRIANGLES_IN_MOVED_TRIANGLE_MESH];
-  moved_triangle_walls[0] = &orig_wall;
+  moved_triangle_walls[0] = &orig_wall;*/
 
-  vertex_index_t o0 = orig_indices[0], o1 = orig_indices[1], o2 = orig_indices[2];
-  vertex_index_t n0 = new_indices[0], n1 = new_indices[1], n2 = new_indices[2];
+  const vec3_t& o0 = get_geometry_vertex(orig_indices[0]);
+  const vec3_t& o1 = get_geometry_vertex(orig_indices[1]);
+  const vec3_t& o2 = get_geometry_vertex(orig_indices[2]);
+
+  const vec3_t& n0 = get_geometry_vertex(new_indices[0]);
+  const vec3_t& n1 = get_geometry_vertex(new_indices[1]);
+  const vec3_t& n2 = get_geometry_vertex(new_indices[2]);
+
 
   // opposite triangle (wall after being moved)
   // first true argument - we need the wall constants to be precomputed,
   // second false argument - we do not care about edge information
-  Wall* new_wall = new Wall(*this, n0, n1, n2, true, false);
-  moved_triangle_walls[1] = new_wall;
+  Wall new_wall = Wall(*this, new_indices[0], new_indices[1], new_indices[2], true, false);
+  /*moved_triangle_walls[1] = new_wall;
 
   // triangles that connect the orig and new wall
   moved_triangle_walls[2] = new Wall(*this, o0, o1, n0, true, false);
@@ -269,7 +276,7 @@ void Partition::move_molecules_due_to_moving_wall(
   moved_triangle_walls[5] = new Wall(*this, n1, o2, n2, true, false);
 
   moved_triangle_walls[6] = new Wall(*this, o2, o0, n2, true, false);
-  moved_triangle_walls[7] = new Wall(*this, n2, o0, n0, true, false);
+  moved_triangle_walls[7] = new Wall(*this, n2, o0, n0, true, false);*/
 
 
   // TODO: code below can be moved to a separate function to detect whether a point is in a mesh
@@ -291,7 +298,23 @@ void Partition::move_molecules_due_to_moving_wall(
     map_assigned_index[new_indices[i]] = i + VERTICES_IN_TRIANGLE;
   }
   cout << "]\n";
+
+  // dumping only the orig and new wall
   cout << "mesh_faces = [\n";
+  cout << "  (";
+  for (uint k = 0; k < VERTICES_IN_TRIANGLE; k++) {
+    cout << map_assigned_index[ orig_wall.vertex_indices[k] ] << ", ";
+  }
+  cout << "),\n";
+  cout << "  (";
+  for (uint k = 0; k < VERTICES_IN_TRIANGLE; k++) {
+    cout << map_assigned_index[new_wall.vertex_indices[k] ] << ", ";
+  }
+  cout << "),\n";
+
+
+  // FIXME": how to display the interconnections as well?
+  /*cout << "mesh_faces = [\n";
   for (uint i = 0; i < TRIANGLES_IN_MOVED_TRIANGLE_MESH; i++) {
     cout << "  (";
     for (uint k = 0; k < VERTICES_IN_TRIANGLE; k++) {
@@ -299,9 +322,13 @@ void Partition::move_molecules_due_to_moving_wall(
     }
     cout << "),\n";
   }
+  */
   cout << "]\n";
   cout << "add_mesh(mesh_verts, mesh_faces, \"my_mesh\")\n";
 #endif
+
+
+  // if some of the objects that form
 
   // TODO: optimize only for molecules in relevant subpartitions
   for (Molecule& m: molecules) {
@@ -325,42 +352,28 @@ void Partition::move_molecules_due_to_moving_wall(
     // now check a single projection against all walls created by these two triangles
     // if the number of crosses is odd, then we are inside
     int num_hits = 0;
-    rng_state unused_rng_state;
-    float_t ignored_collision_time;
-    vec3_t ignored_collision_pos;
+
 
     // cast ray along the whole partition
     vec3_t move(0, 0, get_world_constants().partition_edge_length);
 
-    for (uint i = 0; i < TRIANGLES_IN_MOVED_TRIANGLE_MESH; i++) {
+    // check collision with the original wall
+    bool collides = CollisionUtil::collide_wall_test(*this, m.v.pos, orig_wall, move);
+    if (collides) { num_hits++; }
 
-      // TODO: skip degenerate triangles
-      CollisionType res = CollisionUtil::collide_wall(
-          *this, m.v.pos, *moved_triangle_walls[i],
-          unused_rng_state, false,
-          move,
-          ignored_collision_time, ignored_collision_pos
-      );
+    // and with the new wall as well
+    collides = CollisionUtil::collide_wall_test(*this, m.v.pos, new_wall, move);
+    if (collides) { num_hits++; }
 
-      switch (res) {
-        case CollisionType::WALL_MISS:
-          break;
-        case CollisionType::WALL_FRONT:
-        case CollisionType::WALL_BACK:
-          #ifdef DEBUG_DYNAMIC_GEOMETRY_COLLISION_DETECTIONS
-            cout << "# Detecting collision for molecule with id " << m.id <<
-              " at " << ignored_collision_pos << " with wall " << i <<"\n";
+    // now, let's deal with the areas that are 'drawn' by the moving edges
+    // NOTE: many of the values can be precomputed, but let's keep it simple for now
+    collides = collide_moving_line_and_static_line_test(m.v.pos, m.v.pos+move, o0, n0, o1, n1);
+    if (collides) { num_hits++; }
+    collides = collide_moving_line_and_static_line_test(m.v.pos, m.v.pos+move, o1, n1, o2, n2);
+    if (collides) { num_hits++; }
+    collides = collide_moving_line_and_static_line_test(m.v.pos, m.v.pos+move, o2, n2, o0, n0);
+    if (collides) { num_hits++; }
 
-          #endif
-          num_hits++;
-          break;
-        case CollisionType::WALL_REDO:
-          mcell_error("Collision REDO is not handled yet in dynamic vertices.");
-          break;
-        default:
-          assert(false);
-      }
-    }
 
     if (num_hits % 2 == 1) {
 
@@ -381,10 +394,10 @@ void Partition::move_molecules_due_to_moving_wall(
     }
   }
 
-  // free added walls (wall with index 0 existed before)
+/*  // free added walls (wall with index 0 existed before)
   for (uint i = 1; i < TRIANGLES_IN_MOVED_TRIANGLE_MESH; i++) {
     delete moved_triangle_walls[i];
-  }
+  }*/
 
   // and remove added vertices (checking that we are removing the right ones)
   for (int i = VERTICES_IN_TRIANGLE - 1; i >= 0; i--) {

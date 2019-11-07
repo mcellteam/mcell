@@ -631,6 +631,243 @@ static void collect_wall_collisions(
 }
 
 
+// returns true if there was a collision with a wall,
+// HIT REDO is not supported
+static bool collide_wall_test(
+    const Partition& p,
+    const vec3_t& pos, const Wall& face,
+    vec3_t& move
+) {
+  rng_state unused_rng_state;
+  float_t ignored_collision_time;
+  vec3_t ignored_collision_pos;
+
+  CollisionType res;
+  res = CollisionUtil::collide_wall(
+      p, pos, face, unused_rng_state, false, move,
+      ignored_collision_time, ignored_collision_pos
+  );
+  // TODO: check that rng_state has not changed?
+
+  switch (res) {
+    case CollisionType::WALL_MISS:
+      return false;
+    case CollisionType::WALL_FRONT:
+    case CollisionType::WALL_BACK:
+      #ifdef DEBUG_DYNAMIC_GEOMETRY_COLLISION_DETECTIONS
+        cout << "# Detecting collision for molecule with id " << m.id <<
+          " at " << ignored_collision_pos << " with wall " << i <<"\n";
+
+      #endif
+      return true;
+      break;
+    case CollisionType::WALL_REDO:
+      mcell_error("Collision REDO is not handled yet in dynamic vertices.");
+      return false;
+    default:
+      assert(false);
+      return false;
+  }
+}
+
+/**
+ Detection of ray casts for situations there at least 2 of the vertices of a wall were moved:
+
+    f
+     \
+ k..->\.o..->..l
+ |     \|      |
+ |      x      |
+ |      |\     |
+ m..->..p.\->..n
+           \
+            e
+
+
+ Original edge of the moved wall: k m
+ New edge of the moved wall: l n
+ Percentage of the path traveled by the wall: t  (must be in range 0..1)
+ Position of our molecule: e
+ Destination position after ray trace: f
+ Point where the ray hits the moving edge: x
+
+ Point on the path from k to l: o = k + t*(l-k)
+ Point on the path from m to n: p = m + t*(n - m)
+
+ Normal vector of plane Po defined by e, f, o: no = cross(e-f, o-f)
+ A vector on plane Pp defined by e, f, p: v = p - e
+
+ First step in determining x is to find value of t that then tells us the coordinates of o and p.
+
+ For this, we must find value of t where Po and Pp are the same.
+
+ Value t can be computed from dot(no, v) == 0
+ Analytical solutions are too complicated (hundreds of multiplications), therefore a
+ numerical solution is used instead. Allowed range of t == 0 .. 1 allows us to quickly
+ throw out cases where our ray does not cross the moving edge.
+
+ f(t) = dot(
+    cross((e - f), (-f + k + (-k + l)t) ),
+    (-e + m + (-m + n)t)
+ )
+
+ f'(t) =
+   dot(
+    cross((e - f), (-k + l)),
+    (-e + m - m t + n t)
+   ) +
+   dot(
+    cross((e - f), (-f + k - k t + l t),
+    (-m + n)
+   )
+
+
+ We need to find t such that f(t) == 0.
+
+ Mathematica code used to obtain the equations above:
+
+ o = k + t*(l - k)
+ p = m + t*(n - m)
+
+ no = Cross[e - f, o - f]
+ fun[] := Dot[no, p - e]
+ dfun[] := Simplify[D[fun[], t]]
+
+*/
+
+namespace Local {
+
+static float_t compute_f(
+    const vec3_t& e, const vec3_t& f,
+    const vec3_t& k, const vec3_t& l,
+    const vec3_t& m, const vec3_t& n,
+    const float_t t
+) {
+  return
+      dot(
+          cross((e - f), (-f + k + (-k + l) * vec3_t(t)) ),
+          (-e + m + (-m + n) * vec3_t(t))
+      );
+}
+
+static float_t compute_df(
+    const vec3_t& e, const vec3_t& f,
+    const vec3_t& k, const vec3_t& l,
+    const vec3_t& m, const vec3_t& n,
+    const float_t t
+) {
+  return
+      dot(
+          cross(
+              (e - f),
+              (-k + l)
+          ),
+          (-e + m + (- m + n) * vec3_t(t))
+      )
+      +
+      dot(
+          cross(
+              (e - f),
+              (-f + k + (- k + l) * vec3_t(t))
+          ),
+          (-m + n)
+      );
+}
+
+} // namespace Local
+
+static bool collide_moving_line_and_static_line_test(
+    const Partition& part,
+    const vec3_t& e, const vec3_t& move /* f = e + move */,
+    const vec3_t& k, const vec3_t& l,
+    const vec3_t& m, const vec3_t& n,
+    Wall* kml /* might be nullptr */,
+    Wall* kmn /* might be nullptr */
+) {
+  assert(e != e + move && "The static line must not be a point");
+  assert(k != m && "The source moving line must not be a point");
+  assert(l != n && "The destination moving line must not be a point");
+  assert(!(k == l && m == n) && "The line must move");
+
+  // 1) if klmn creates a triangle, one of the arguments kmml or kmn is not nullptr
+  if (kml) {
+    return collide_wall_test(part, e, *kml, move);
+  }
+  if (kmn) {
+    return collide_wall_test(part, e, *kmn, move);
+  }
+
+  // 2) if klmn is more complex and possibly these points do not lie on the same plane, therefore simple triangle
+  //    ray trace cannot be used
+  // NOTE: possible optimization: check whether all points are in the same plane (e.g. using determinant),
+  //  and use wall test, for now, general solution is used
+
+
+  // first determine t, it must be in the range 0..1
+  // f is continuous and (should?) have just one solution
+
+  // starting from 0
+  float_t t = 0;
+  float_t t_previous = 0;
+
+  vec3_t f = e + move;
+
+  // use Newton's Method to find solution to 't' (https://en.wikipedia.org/wiki/Newton's_method)
+  // using high precision, we should converge quickly
+  bool dft_is_zero = false;
+  bool t_out_of_range = false;
+
+  float_t ft;
+  while (!cmp_eq(t, t_previous, EPS)) {
+    ft = Local::compute_f(e, f, k, l, m, n, t);
+    float_t dft = Local::compute_df(e, f, k, l, m, n, t);
+
+    if (cmp_eq(dft, 0, EPS)) {
+      dft_is_zero = true;
+      break;
+    }
+
+    t_previous = t;
+    t = t_previous - ft / dft;
+
+    if (t < 0.0 || t > 1.0) {
+      t_out_of_range = true;
+      break;
+    }
+  }
+
+  if (t_out_of_range) {
+    return false;
+  }
+
+  bool ft_is_zero = (cmp_eq(ft, 0, EPS));
+
+  if (dft_is_zero && !ft_is_zero) {
+    // we found a minimum that is not zero however
+    // there is no plane that could connect all 4 points efop
+    return false;
+  }
+
+  // ok, we found our plane and we know the value of 't',
+  // we can continue with figuring out out whether we really cross
+  // the object defined by the moving edge
+  // for this, we must find whether line segments ef and op intersect
+  vec3_t o = k + (l - k) * vec3_t(t);
+  vec3_t p = m + (n - m) * vec3_t(t);
+
+  // first let's project them onto 2D
+  vec3_t plane_normal;
+  plane_normal = cross(move, e - o);
+
+  // to which plane?
+
+
+  // transform points
+  // http://mathforum.org/library/drmath/view/62814.html
+
+}
+
+
 // ---------------------------------- reflections ----------------------------------
 
 /******************************************************************************
