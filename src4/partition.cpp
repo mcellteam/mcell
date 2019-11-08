@@ -125,7 +125,7 @@ void Partition::move_molecule_to_closest_wall_point(const MoleculeMoveInfo& mole
   //  then try to limit only to wall's neighbors - we would really like to avoid any regions (maybe...?)
   wall_index_t best_wall_index = WALL_INDEX_INVALID;
   float_t best_d2 = GIGANTIC4;
-  vec2_t best_wall_pos2d;
+  vec2_t best_wall_pos2d(0);
 
   for (const Wall& w: walls) {
     // mcell3 has region/mesh name check here
@@ -140,8 +140,9 @@ void Partition::move_molecule_to_closest_wall_point(const MoleculeMoveInfo& mole
     }
   }
 
-
-  assert(best_wall_index != WALL_INDEX_INVALID);
+  if (best_wall_index == WALL_INDEX_INVALID) {
+    mcell_error("Could not find a wall close to volume molecule with id %d.\n", vm.id);
+  }
   Wall& wall = get_wall(best_wall_index);
 
   vec3_t new_pos3d = GeometryUtil::uv2xyz(best_wall_pos2d, wall, get_wall_vertex(wall, 0));
@@ -247,36 +248,23 @@ void Partition::move_molecules_due_to_moving_wall(
     new_indices[i] = add_geometry_vertex(new_vertex);
   }
 
-  // create new arbitrary walls and initialize them,
-  // we do not need to insert them into the partition
-  /*const uint TRIANGLES_IN_MOVED_TRIANGLE_MESH = 8;
-  Wall* moved_triangle_walls[TRIANGLES_IN_MOVED_TRIANGLE_MESH];
-  moved_triangle_walls[0] = &orig_wall;*/
+  const vec3_t* o[VERTICES_IN_TRIANGLE] = {
+      &get_geometry_vertex(orig_indices[0]),
+      &get_geometry_vertex(orig_indices[1]),
+      &get_geometry_vertex(orig_indices[2])
+  };
 
-  const vec3_t& o0 = get_geometry_vertex(orig_indices[0]);
-  const vec3_t& o1 = get_geometry_vertex(orig_indices[1]);
-  const vec3_t& o2 = get_geometry_vertex(orig_indices[2]);
-
-  const vec3_t& n0 = get_geometry_vertex(new_indices[0]);
-  const vec3_t& n1 = get_geometry_vertex(new_indices[1]);
-  const vec3_t& n2 = get_geometry_vertex(new_indices[2]);
+  const vec3_t* n[VERTICES_IN_TRIANGLE] = {
+      &get_geometry_vertex(new_indices[0]),
+      &get_geometry_vertex(new_indices[1]),
+      &get_geometry_vertex(new_indices[2])
+  };
 
 
   // opposite triangle (wall after being moved)
   // first true argument - we need the wall constants to be precomputed,
   // second false argument - we do not care about edge information
   Wall new_wall = Wall(*this, new_indices[0], new_indices[1], new_indices[2], true, false);
-  /*moved_triangle_walls[1] = new_wall;
-
-  // triangles that connect the orig and new wall
-  moved_triangle_walls[2] = new Wall(*this, o0, o1, n0, true, false);
-  moved_triangle_walls[3] = new Wall(*this, n0, o1, n1, true, false);
-
-  moved_triangle_walls[4] = new Wall(*this, o1, o2, n1, true, false);
-  moved_triangle_walls[5] = new Wall(*this, n1, o2, n2, true, false);
-
-  moved_triangle_walls[6] = new Wall(*this, o2, o0, n2, true, false);
-  moved_triangle_walls[7] = new Wall(*this, n2, o0, n0, true, false);*/
 
 
   // TODO: code below can be moved to a separate function to detect whether a point is in a mesh
@@ -328,7 +316,35 @@ void Partition::move_molecules_due_to_moving_wall(
 #endif
 
 
-  // if some of the objects that form
+  // if moving by one edge creates just a triangle, store this information
+  bool egde_moved[EDGES_IN_TRIANGLE];
+  Wall* wall_if_edge_defines_triangle[EDGES_IN_TRIANGLE];
+
+  for (uint i1 = 0; i1 < EDGES_IN_TRIANGLE; i1++) {
+    uint i2 = (i1 + 1) % EDGES_IN_TRIANGLE;
+
+    bool v1_same = *o[i1] == *n[i1];
+    bool v2_same = *o[i2] == *n[i2];
+
+    if (v1_same && v2_same) {
+      egde_moved[i1] = false;
+      wall_if_edge_defines_triangle[i1] = nullptr;
+    }
+    else if (v1_same) {
+      egde_moved[i1] = true;
+      wall_if_edge_defines_triangle[i1] = new Wall(*this, orig_indices[i1], orig_indices[i2], new_indices[i2], true, false);
+    }
+    else if (v2_same) {
+      egde_moved[i1] = true;
+      wall_if_edge_defines_triangle[i1] = new Wall(*this, orig_indices[i1], orig_indices[i2], new_indices[i1], true, false);
+    }
+    else {
+      egde_moved[i1] = true;
+      wall_if_edge_defines_triangle[i1] = nullptr;
+    }
+  }
+
+
 
   // TODO: optimize only for molecules in relevant subpartitions
   for (Molecule& m: molecules) {
@@ -338,7 +354,7 @@ void Partition::move_molecules_due_to_moving_wall(
     }
 
     if (already_moved_molecules.count(m.id) == 1) {
-      //assert(false && "this should not happen anymore");
+      //assert(false && "this should not happen anymore?");
       continue;
     }
 
@@ -353,7 +369,6 @@ void Partition::move_molecules_due_to_moving_wall(
     // if the number of crosses is odd, then we are inside
     int num_hits = 0;
 
-
     // cast ray along the whole partition
     vec3_t move(0, 0, get_world_constants().partition_edge_length);
 
@@ -366,13 +381,20 @@ void Partition::move_molecules_due_to_moving_wall(
     if (collides) { num_hits++; }
 
     // now, let's deal with the areas that are 'drawn' by the moving edges
-    // NOTE: many of the values can be precomputed, but let's keep it simple for now
-    collides = collide_moving_line_and_static_line_test(m.v.pos, m.v.pos+move, o0, n0, o1, n1);
-    if (collides) { num_hits++; }
-    collides = collide_moving_line_and_static_line_test(m.v.pos, m.v.pos+move, o1, n1, o2, n2);
-    if (collides) { num_hits++; }
-    collides = collide_moving_line_and_static_line_test(m.v.pos, m.v.pos+move, o2, n2, o0, n0);
-    if (collides) { num_hits++; }
+    // NOTE: many of the values can be pre-computed, but let's keep it simple for now
+    for (uint i1 = 0; i1 < EDGES_IN_TRIANGLE; i1++) {
+      uint i2 = (i1 + 1) % EDGES_IN_TRIANGLE;
+
+      collides = CollisionUtil::collide_moving_line_and_static_line_test(
+          *this,
+          m.v.pos, m.v.pos+move,
+          *o[i1], *n[i1], *o[i2], *n[i2],
+          egde_moved[i1], wall_if_edge_defines_triangle[i1]
+      );
+      if (collides) {
+        num_hits++;
+      }
+    }
 
 
     if (num_hits % 2 == 1) {
@@ -394,10 +416,12 @@ void Partition::move_molecules_due_to_moving_wall(
     }
   }
 
-/*  // free added walls (wall with index 0 existed before)
-  for (uint i = 1; i < TRIANGLES_IN_MOVED_TRIANGLE_MESH; i++) {
-    delete moved_triangle_walls[i];
-  }*/
+  // free added walls (wall with index 0 existed before)
+  for (uint i = 1; i < EDGES_IN_TRIANGLE; i++) {
+    if (wall_if_edge_defines_triangle[i] != nullptr) {
+      delete wall_if_edge_defines_triangle[i];
+    }
+  }
 
   // and remove added vertices (checking that we are removing the right ones)
   for (int i = VERTICES_IN_TRIANGLE - 1; i >= 0; i--) {

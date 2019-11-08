@@ -28,6 +28,8 @@
  */
 #include <vector>
 
+#include "logging.h"
+
 #include "diffuse_react_event.h"
 #include "defines.h"
 #include "world.h"
@@ -636,15 +638,16 @@ static void collect_wall_collisions(
 static bool collide_wall_test(
     const Partition& p,
     const vec3_t& pos, const Wall& face,
-    vec3_t& move
+    const vec3_t& move
 ) {
   rng_state unused_rng_state;
   float_t ignored_collision_time;
   vec3_t ignored_collision_pos;
 
+  vec3_t tmp_move = move;
   CollisionType res;
   res = CollisionUtil::collide_wall(
-      p, pos, face, unused_rng_state, false, move,
+      p, pos, face, unused_rng_state, false, tmp_move,
       ignored_collision_time, ignored_collision_pos
   );
   // TODO: check that rng_state has not changed?
@@ -655,8 +658,9 @@ static bool collide_wall_test(
     case CollisionType::WALL_FRONT:
     case CollisionType::WALL_BACK:
       #ifdef DEBUG_DYNAMIC_GEOMETRY_COLLISION_DETECTIONS
-        cout << "# Detecting collision for molecule with id " << m.id <<
-          " at " << ignored_collision_pos << " with wall " << i <<"\n";
+        cout << "# Detecting collision for molecule with original pos " << pos <<
+          " at " << ignored_collision_pos << " with wall:\n";
+        face.dump(p, "", true);
 
       #endif
       return true;
@@ -671,6 +675,99 @@ static bool collide_wall_test(
 }
 
 /**
+
+Detection of whether two lines on the same plane (not checked) cross.
+
+From http://mathforum.org/library/drmath/view/62814.html:
+
+Let's try this with vector algebra. First write the two equations like
+this.
+
+L1 = P1 + a V1  (P1 is e, V1 is move)
+
+L2 = P2 + b V2  (P2 is o, V2 is p - o)
+
+P1 and P2 are points on each line. V1 and V2 are the direction vectors
+for each line.
+
+If we assume that the lines intersect, we can look for the point on L1
+that satisfies the equation for L2. This gives us this equation to
+solve.
+
+P1 + a V1 = P2 + b V2
+
+Now rewrite it like this.
+
+a V1 = (P2 - P1) + b V2
+
+Now take the cross product of each side with V2. This will make the
+term with 'b' drop out.
+
+a (V1 X V2) = (P2 - P1) X V2
+
+If the lines intersect at a single point, then the resultant vectors
+on each side of this equation must be parallel, and the left side must
+not be the zero vector. We should check to make sure that this is
+true.
+ */
+static bool collide_line_and_line_test(
+    const vec3_t& e, const vec3_t& f, const vec3_t& move /* == f - e*/,
+    const vec3_t& o, const vec3_t& p
+) {
+  // we know that these lines intersect (or are parallel)
+
+  // This is the equation:  a (V1 X V2) = (P2 - P1) X V2
+  // in our case: a ((p - o) x (f - e)) = (f - p) x (f - e)
+
+  vec3_t vpo = p - o;
+  // we already have f - e == move
+
+  // so a = ||(f - p) x move|| / ||(vpo x move)||
+
+  float_t len_squared_vpo_x_mov = len3_squared( cross(vpo, move) );
+  if (cmp_eq(len_squared_vpo_x_mov, 0, EPS)) {
+    // lines are parallel?
+    return false;
+  }
+
+  float_t a = len3( cross(vec3_t(f - p), move) ) / sqrt(len_squared_vpo_x_mov);
+
+  if (a < 0.0 || a > 1.0) {
+    // intersection is not in our segment of ef
+    return false;
+  }
+
+  // point L1 (x)
+  vec3_t x = e + move * vec3_t(a);
+
+  // what is the value of b?
+  // x = o + b(vpo)  * o
+
+  // x cross o = b (p - o) cross o
+  // b = ||x cross o|| / ||(vpo cross o)||
+
+  float_t len_squared_vpo_x_o = len3_squared( cross(vpo, x) );
+  if (cmp_eq(len_squared_vpo_x_mov, 0, EPS)) {
+    assert(false && "Should top happen anymore, we already checked whether the lines are parallel");
+    // lines are parallel?
+    return false;
+  }
+
+  float_t b = len3( cross(x, o) ) / sqrt(len_squared_vpo_x_o);
+
+  if (b < 0.0 || b > 1.0) {
+    // intersection is not in our segment of op
+    return false;
+  }
+
+  // all tests passed
+  return true;
+}
+
+
+/**
+ collide_moving_line_and_static_line_test
+
  Detection of ray casts for situations there at least 2 of the vertices of a wall were moved:
 
     f
@@ -781,24 +878,27 @@ static bool collide_moving_line_and_static_line_test(
     const vec3_t& e, const vec3_t& move /* f = e + move */,
     const vec3_t& k, const vec3_t& l,
     const vec3_t& m, const vec3_t& n,
-    Wall* kml /* might be nullptr */,
-    Wall* kmn /* might be nullptr */
+    const bool edge_moved,
+    const Wall* wall_if_edge_defines_triangle /* might be nullptr */
 ) {
   assert(e != e + move && "The static line must not be a point");
   assert(k != m && "The source moving line must not be a point");
   assert(l != n && "The destination moving line must not be a point");
+
+  if (!edge_moved) {
+    return false;
+  }
+
   assert(!(k == l && m == n) && "The line must move");
 
   // 1) if klmn creates a triangle, one of the arguments kmml or kmn is not nullptr
-  if (kml) {
-    return collide_wall_test(part, e, *kml, move);
-  }
-  if (kmn) {
-    return collide_wall_test(part, e, *kmn, move);
+  if (wall_if_edge_defines_triangle) {
+    return collide_wall_test(part, e, *wall_if_edge_defines_triangle, move);
   }
 
   // 2) if klmn is more complex and possibly these points do not lie on the same plane, therefore simple triangle
   //    ray trace cannot be used
+  // TODO: move it to a function
   // NOTE: possible optimization: check whether all points are in the same plane (e.g. using determinant),
   //  and use wall test, for now, general solution is used
 
@@ -851,20 +951,11 @@ static bool collide_moving_line_and_static_line_test(
   // ok, we found our plane and we know the value of 't',
   // we can continue with figuring out out whether we really cross
   // the object defined by the moving edge
-  // for this, we must find whether line segments ef and op intersect
   vec3_t o = k + (l - k) * vec3_t(t);
   vec3_t p = m + (n - m) * vec3_t(t);
 
-  // first let's project them onto 2D
-  vec3_t plane_normal;
-  plane_normal = cross(move, e - o);
-
-  // to which plane?
-
-
-  // transform points
-  // http://mathforum.org/library/drmath/view/62814.html
-
+  // now we must find whether the line segments ef and op intersect
+  return collide_line_and_line_test(e, f, move, o, p);
 }
 
 
