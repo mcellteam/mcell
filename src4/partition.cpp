@@ -387,7 +387,7 @@ void Partition::move_molecules_due_to_moving_wall(
 
       collides = CollisionUtil::collide_moving_line_and_static_line_test(
           *this,
-          m.v.pos, m.v.pos+move,
+          m.v.pos, move,
           *o[i1], *n[i1], *o[i2], *n[i2],
           egde_moved[i1], wall_if_edge_defines_triangle[i1]
       );

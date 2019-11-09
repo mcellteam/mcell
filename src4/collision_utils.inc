@@ -661,7 +661,6 @@ static bool collide_wall_test(
         cout << "# Detecting collision for molecule with original pos " << pos <<
           " at " << ignored_collision_pos << " with wall:\n";
         face.dump(p, "", true);
-
       #endif
       return true;
       break;
@@ -683,7 +682,7 @@ From http://mathforum.org/library/drmath/view/62814.html:
 Let's try this with vector algebra. First write the two equations like
 this.
 
-L1 = P1 + a V1  (P1 is e, V1 is move)
+L1 = P1 + a V1  (P1 is e, V1 is move or f - e)
 
 L2 = P2 + b V2  (P2 is o, V2 is p - o)
 
@@ -703,34 +702,77 @@ a V1 = (P2 - P1) + b V2
 Now take the cross product of each side with V2. This will make the
 term with 'b' drop out.
 
-a (V1 X V2) = (P2 - P1) X V2
+a (V1 X V2) = (P2 - P1) X V2   i.e.  a ( (f - e) X (p - o) ) = ( o - e ) x ( p - o )
+
 
 If the lines intersect at a single point, then the resultant vectors
 on each side of this equation must be parallel, and the left side must
 not be the zero vector. We should check to make sure that this is
 true.
+
+Once we have checked this, we can solve for 'a' by taking the
+magnitude of each side and dividing. If the resultant vectors are
+parallel, but in opposite directions, then 'a' is the negative of the
+ratio of magnitudes. Once we have 'a' we can go back to the equation
+for L1 to find the intersection point.
+
  */
+
+// wrong and weird, new implementaton is needed...
 static bool collide_line_and_line_test(
-    const vec3_t& e, const vec3_t& f, const vec3_t& move /* == f - e*/,
+    const vec3_t& e, const vec3_t& f, const vec3_t& vfe /* == f - e*/,
     const vec3_t& o, const vec3_t& p
 ) {
   // we know that these lines intersect (or are parallel)
 
   // This is the equation:  a (V1 X V2) = (P2 - P1) X V2
-  // in our case: a ((p - o) x (f - e)) = (f - p) x (f - e)
+  // in our case: a ((f - e) x (p - o)) = (o - e) x (p - o)
 
   vec3_t vpo = p - o;
-  // we already have f - e == move
 
-  // so a = ||(f - p) x move|| / ||(vpo x move)||
+  // so a can be determined from ||(vfe x vpo)|| / ||(voe x vpo)||
 
-  float_t len_squared_vpo_x_mov = len3_squared( cross(vpo, move) );
-  if (cmp_eq(len_squared_vpo_x_mov, 0, EPS)) {
-    // lines are parallel?
+  vec3_t vfe_x_vpo = cross(vfe, vpo);
+
+  // vfe_x_vpo must not be a zero vector
+  if (cmp_eq(vfe_x_vpo, vec3_t(0), EPS)) {
     return false;
   }
 
-  float_t a = len3( cross(vec3_t(f - p), move) ) / sqrt(len_squared_vpo_x_mov);
+  // get lengths of our crosses
+  float_t len_squared_vfe_x_vpo = len3_squared(vfe_x_vpo);
+  if (cmp_eq(len_squared_vfe_x_vpo, 0, EPS)) {
+    return false;
+  }
+
+  vec3_t voe = o - e;
+  vec3_t voe_x_vpo = cross(voe, vpo);
+  float_t len_squared_voe_x_vpo = len3_squared(voe_x_vpo);
+  if (cmp_eq(len_squared_voe_x_vpo, 0, EPS)) {
+    return false;
+  }
+
+  float_t len_vfe_x_vpo = sqrt_f(len_squared_vfe_x_vpo);
+  float_t len_voe_x_vpo = sqrt_f(len_squared_voe_x_vpo);
+
+  // vfe_x_vpo and voe_x_cfe must be parallel or antiparallel
+  // (isn't this always true?)
+  vec3_t vfe_x_vpo_unit = vfe_x_vpo/vec3_t(len_vfe_x_vpo);
+  vec3_t voe_x_vpo_unit = voe_x_vpo/vec3_t(len_voe_x_vpo);
+
+  float_t dot_res = dot(vfe_x_vpo_unit, voe_x_vpo_unit);
+  int direction;
+  if (cmp_eq(dot_res, 1)) {
+    direction = 1;
+  }
+  else if (cmp_eq(dot_res, -1)) {
+    direction = -1;
+  }
+  else {
+    assert(false);
+  }
+
+  float_t a = direction *  len_vfe_x_vpo / len_voe_x_vpo;
 
   if (a < 0.0 || a > 1.0) {
     // intersection is not in our segment of ef
@@ -738,7 +780,12 @@ static bool collide_line_and_line_test(
   }
 
   // point L1 (x)
-  vec3_t x = e + move * vec3_t(a);
+  vec3_t x = e + vfe * vec3_t(a);
+
+
+  vec3_t x2 = o + vpo * vec3_t(a);
+
+  //assert(cmp_eq(x == , 0, EPS) && "Value a should give us us the same point on both lines");
 
   // what is the value of b?
   // x = o + b(vpo)  * o
@@ -747,7 +794,7 @@ static bool collide_line_and_line_test(
   // b = ||x cross o|| / ||(vpo cross o)||
 
   float_t len_squared_vpo_x_o = len3_squared( cross(vpo, x) );
-  if (cmp_eq(len_squared_vpo_x_mov, 0, EPS)) {
+  if (cmp_eq(len_squared_vpo_x_o, 0, EPS)) {
     assert(false && "Should top happen anymore, we already checked whether the lines are parallel");
     // lines are parallel?
     return false;
@@ -908,7 +955,7 @@ static bool collide_moving_line_and_static_line_test(
 
   // starting from 0
   float_t t = 0;
-  float_t t_previous = 0;
+  float_t t_previous = GIGANTIC4;
 
   vec3_t f = e + move;
 
@@ -955,7 +1002,17 @@ static bool collide_moving_line_and_static_line_test(
   vec3_t p = m + (n - m) * vec3_t(t);
 
   // now we must find whether the line segments ef and op intersect
-  return collide_line_and_line_test(e, f, move, o, p);
+  bool collides = collide_line_and_line_test(e, f, move, o, p);
+
+
+#ifdef DEBUG_DYNAMIC_GEOMETRY_COLLISION_DETECTIONS
+  if (collides) {
+    cout << "# Detecting collision for molecule with original pos " << e <<
+      " with a moving edge with points klmn " << k << ", " << l  << ", " << m  << ", " << n << "\n";
+  }
+#endif
+
+  return collides;
 }
 
 

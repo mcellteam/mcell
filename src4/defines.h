@@ -284,8 +284,12 @@ static inline bool cmp_eq(const float_t a, const float_t b, const float_t eps) {
   return fabs_f(a - b) < eps;
 }
 
-inline bool cmp_eq(float_t a, float_t b) {
+static inline bool cmp_eq(float_t a, float_t b) {
   return cmp_eq(a, b, EPS);
+}
+
+static inline bool cmp_eq(const vec3_t& a, const vec3_t& b, const float_t eps) {
+  return cmp_eq(a.x, b.x, eps) && cmp_eq(a.y, b.y, eps) && cmp_eq(a.z, b.z, eps);
 }
 
 static inline bool cmp_lt(const float_t a, const float_t b, const float_t eps) {
