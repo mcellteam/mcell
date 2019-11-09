@@ -715,6 +715,11 @@ double closest_interior_point(struct vector3 *pt, struct wall *w,
                               struct vector2 *ip, double r2) {
   UNUSED(r2);
 
+#ifdef DEBUG_CLOSEST_INTERIOR_POINT
+  std::cout << "closest_interior_point: " << *pt << "\n";
+  dump_wall(w, "", true);
+#endif
+
   struct vector3 v;
 
   closest_pt_point_triangle(pt, w->vert[0], w->vert[1], w->vert[2], &v);
@@ -748,8 +753,15 @@ double closest_interior_point(struct vector3 *pt, struct wall *w,
 
     give_up_ctr++;
   }
-  return (v.x - pt->x) * (v.x - pt->x) + (v.y - pt->y) * (v.y - pt->y) +
-         (v.z - pt->z) * (v.z - pt->z);
+
+  double res = (v.x - pt->x) * (v.x - pt->x) + (v.y - pt->y) * (v.y - pt->y) +
+      (v.z - pt->z) * (v.z - pt->z);
+
+#ifdef DEBUG_CLOSEST_INTERIOR_POINT
+  std::cout << "res: " << res << ", ip: " << *ip << "\n";
+#endif
+
+  return res;
 }
 
 /***************************************************************************

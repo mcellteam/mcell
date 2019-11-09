@@ -32,7 +32,7 @@ namespace MCell {
 namespace DynVertexUtils {
 
 // this is the entry point called from Partition class
-void move_vertices_and_update_walls(
+void update_moved_walls(
     Partition& p,
     const std::vector<VertexMoveInfo>& scheduled_vertex_moves,
     // we can compute all the information already from scheduled_vertex_moves,

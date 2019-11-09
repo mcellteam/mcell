@@ -133,7 +133,7 @@ void Partition::move_molecule_to_closest_wall_point(const MoleculeMoveInfo& mole
     vec2_t wall_pos2d;
     float_t d2 = GeometryUtil::closest_interior_point(*this, vm.v.pos, w, wall_pos2d);
 
-    if (d2 < best_d2) {
+    if (d2 <= best_d2) { // the <= is to emulate behavior of mcell3 that goes through the walls in opposite order
       best_d2 = d2;
       best_wall_index = w.index;
       best_wall_pos2d = wall_pos2d;
@@ -473,7 +473,7 @@ void Partition::apply_vertex_moves() {
   update_walls_per_subpart(walls_with_their_moves, false);
 
   // 4) then we move the vertices and update relevant walls
-  DynVertexUtils::move_vertices_and_update_walls(*this, scheduled_vertex_moves, walls_with_their_moves);
+  DynVertexUtils::update_moved_walls(*this, scheduled_vertex_moves, walls_with_their_moves);
 
   // 5) update subpartition info for the walls
   update_walls_per_subpart(walls_with_their_moves, true);

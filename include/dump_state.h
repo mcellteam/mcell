@@ -78,6 +78,7 @@ void dump_schedule_helper(
     bool simplified_for_vm);
 
 
+std::ostream & operator<<(std::ostream &out, const vector2 &a);
 std::ostream & operator<<(std::ostream &out, const vector3 &a);
 
 #endif

@@ -569,6 +569,11 @@ static float_t closest_interior_point(
     const vec3_t& pt,
     const Wall& w,
     vec2_t& ip) {
+#ifdef DEBUG_CLOSEST_INTERIOR_POINT
+  std::cout << "closest_interior_point: " << pt << "\n";;
+  w.dump(p, "", true);
+#endif
+
 
   vec3_t v;
   const vec3_t& w_vert0 = p.get_wall_vertex(w, 0);
@@ -611,7 +616,13 @@ static float_t closest_interior_point(
     give_up_ctr++;
   }
 
-  return len3_squared(v - pt);
+  float_t res = len3_squared(v - pt);
+
+#ifdef DEBUG_CLOSEST_INTERIOR_POINT
+  std::cout << "res: " << res << ", ip: " << ip << "\n";
+#endif
+
+  return res;
 }
 
 
