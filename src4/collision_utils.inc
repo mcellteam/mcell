@@ -675,139 +675,87 @@ static bool collide_wall_test(
 
 /**
 
-Detection of whether two lines on the same plane (not checked) cross.
+ Detection of whether two lines on the same plane (not checked) cross.
 
-From http://mathforum.org/library/drmath/view/62814.html:
+ From http://mathworld.wolfram.com/Line-LineIntersection.html
 
-Let's try this with vector algebra. First write the two equations like
-this.
+  The intersection of two lines containing the points
+    x_1=(x_1,y_1,z_1) and x_2=(x_2,y_2,z_2), and
+    x_3=(x_3,y_3,z_3) and x_4=(x_4,y_4,z_4), respectively,
 
-L1 = P1 + a V1  (P1 is e, V1 is move or f - e)
+  can also be found directly by simultaneously solving
+  x = x_1+(x_2-x_1)s     (17)
+  x = x_3+(x_4-x_3)t     (18)
 
-L2 = P2 + b V2  (P2 is o, V2 is p - o)
+ together with the condition that the four points be coplanar (i.e., the lines are not skew),
 
-P1 and P2 are points on each line. V1 and V2 are the direction vectors
-for each line.
+  his set of equations can be solved for s to yield
 
-If we assume that the lines intersect, we can look for the point on L1
-that satisfies the equation for L2. This gives us this equation to
-solve.
+   s=((cxb)·(axb))/(|axb|^2)   (20)
 
-P1 + a V1 = P2 + b V2
+  where
+  a = x_2-x_1   (21)
+  b = x_4-x_3   (22)
+  c = x_3-x_1   (23)
 
-Now rewrite it like this.
-
-a V1 = (P2 - P1) + b V2
-
-Now take the cross product of each side with V2. This will make the
-term with 'b' drop out.
-
-a (V1 X V2) = (P2 - P1) X V2   i.e.  a ( (f - e) X (p - o) ) = ( o - e ) x ( p - o )
-
-
-If the lines intersect at a single point, then the resultant vectors
-on each side of this equation must be parallel, and the left side must
-not be the zero vector. We should check to make sure that this is
-true.
-
-Once we have checked this, we can solve for 'a' by taking the
-magnitude of each side and dividing. If the resultant vectors are
-parallel, but in opposite directions, then 'a' is the negative of the
-ratio of magnitudes. Once we have 'a' we can go back to the equation
-for L1 to find the intersection point.
-
- */
-
-// wrong and weird, new implementaton is needed...
+  the point of intersection can then be immediately found by plugging back in for s to obtain
+    x=x_1+a((cxb)·(axb))/(|axb|^2) (24)
+*/
 static bool collide_line_and_line_test(
     const vec3_t& e, const vec3_t& f, const vec3_t& vfe /* == f - e*/,
     const vec3_t& o, const vec3_t& p
 ) {
-  // we know that these lines intersect (or are parallel)
+  // rename arguments to get the names used in comment
+  const vec3_t& x1 = e;
+  const vec3_t& x2 = f;
+  const vec3_t& x3 = o;
+  const vec3_t& x4 = p;
 
-  // This is the equation:  a (V1 X V2) = (P2 - P1) X V2
-  // in our case: a ((f - e) x (p - o)) = (o - e) x (p - o)
+  const vec3_t& a = vfe;
+  vec3_t b = x4 - x3;
+  vec3_t c = x3 - x1;
 
-  vec3_t vpo = p - o;
+  vec3_t a_x_b = cross(a, b);
+  vec3_t c_x_b = cross(c, b);
 
-  // so a can be determined from ||(vfe x vpo)|| / ||(voe x vpo)||
-
-  vec3_t vfe_x_vpo = cross(vfe, vpo);
-
-  // vfe_x_vpo must not be a zero vector
-  if (cmp_eq(vfe_x_vpo, vec3_t(0), EPS)) {
+  float_t len_squared_a_x_b = len3_squared(a_x_b);
+  if (cmp_eq(len_squared_a_x_b, 0)) {
+    // s would be too large if the divisor is close to 0
     return false;
   }
 
-  // get lengths of our crosses
-  float_t len_squared_vfe_x_vpo = len3_squared(vfe_x_vpo);
-  if (cmp_eq(len_squared_vfe_x_vpo, 0, EPS)) {
+  // s=((cxb)·(axb))/(|axb|^2)
+  float_t s = dot(c_x_b, a_x_b) / len_squared_a_x_b;
+
+  // check whether we are in segment e-f
+  if (s < 0.0 || s > 1.0) {
     return false;
   }
 
-  vec3_t voe = o - e;
-  vec3_t voe_x_vpo = cross(voe, vpo);
-  float_t len_squared_voe_x_vpo = len3_squared(voe_x_vpo);
-  if (cmp_eq(len_squared_voe_x_vpo, 0, EPS)) {
+  // check whether we are in segment o-p
+  // a' -> x4 - x3 = b
+  // b' -> x2 - x1 = a
+  // c' -> x1 - x3 = d
+  vec3_t d = x1 - x3;
+
+  // t = ((c'xb')·(a'xb'))/(|a'xb'|^2)
+  // t = ((dxa)·(bxa))/(|bxa|^2)
+  vec3_t d_x_a = cross(d, a);
+  vec3_t b_x_a = cross(b, a);
+
+  float_t len_squared_b_x_a = len3_squared(b_x_a);
+  if (cmp_eq(len_squared_b_x_a, 0)) {
+    assert(false && "Should not happen anymore");
+    // t would be too large if the divisor is close to 0
     return false;
   }
 
-  float_t len_vfe_x_vpo = sqrt_f(len_squared_vfe_x_vpo);
-  float_t len_voe_x_vpo = sqrt_f(len_squared_voe_x_vpo);
+  float_t t = dot(d_x_a, b_x_a) / len_squared_b_x_a;
 
-  // vfe_x_vpo and voe_x_cfe must be parallel or antiparallel
-  // (isn't this always true?)
-  vec3_t vfe_x_vpo_unit = vfe_x_vpo/vec3_t(len_vfe_x_vpo);
-  vec3_t voe_x_vpo_unit = voe_x_vpo/vec3_t(len_voe_x_vpo);
-
-  float_t dot_res = dot(vfe_x_vpo_unit, voe_x_vpo_unit);
-  int direction;
-  if (cmp_eq(dot_res, 1)) {
-    direction = 1;
-  }
-  else if (cmp_eq(dot_res, -1)) {
-    direction = -1;
-  }
-  else {
-    assert(false);
-  }
-
-  float_t a = direction *  len_vfe_x_vpo / len_voe_x_vpo;
-
-  if (a < 0.0 || a > 1.0) {
-    // intersection is not in our segment of ef
+  if (t < 0.0 || t > 1.0) {
     return false;
   }
 
-  // point L1 (x)
-  vec3_t x = e + vfe * vec3_t(a);
-
-
-  vec3_t x2 = o + vpo * vec3_t(a);
-
-  //assert(cmp_eq(x == , 0, EPS) && "Value a should give us us the same point on both lines");
-
-  // what is the value of b?
-  // x = o + b(vpo)  * o
-
-  // x cross o = b (p - o) cross o
-  // b = ||x cross o|| / ||(vpo cross o)||
-
-  float_t len_squared_vpo_x_o = len3_squared( cross(vpo, x) );
-  if (cmp_eq(len_squared_vpo_x_o, 0, EPS)) {
-    assert(false && "Should top happen anymore, we already checked whether the lines are parallel");
-    // lines are parallel?
-    return false;
-  }
-
-  float_t b = len3( cross(x, o) ) / sqrt(len_squared_vpo_x_o);
-
-  if (b < 0.0 || b > 1.0) {
-    // intersection is not in our segment of op
-    return false;
-  }
-
-  // all tests passed
   return true;
 }
 
