@@ -18,15 +18,26 @@ void py_callback_wall_hit(const MCell::WallHitInfo& res, void *clientdata)
    func = (PyObject *) clientdata;               // Get Python function
 
    // transform into Python object
-   //arglist = Py_BuildValue("(d)",a);             // Build argument list
+   arglist = Py_BuildValue(
+        "iiiffff",
+        res.molecule_id, res.geometry_object_id, res.wall_id,
+        res.time,
+        res.pos.x, res.pos.y, res.pos.z
+   );             // Build argument list
 
-   result = PyEval_CallObject(func, NULL/*arglist*/);     // Call Python
-   //Py_DECREF(arglist);                           // Trash arglist
+   result = PyEval_CallObject(func, arglist);     // Call Python
+   Py_DECREF(arglist);                           // Trash arglist
+
    if (result) {                                 // If no errors, return double
      dres = PyFloat_AsDouble(result);
    }
    Py_XDECREF(result);
    //return dres;
+
+   // release build somehow fails... maybe the code below will fix it...
+   // what was the error?
+   //PyErr_Print();
+   //PyErr_Clear();
 }
 
 

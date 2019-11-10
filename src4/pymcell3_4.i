@@ -48,7 +48,8 @@ using namespace MCell;
 typedef uint partition_index_t;
 typedef uint vertex_index_t;
 
-%import "callback_structs.h"
+// FIXME: this does not work either
+//%import "callback_structs.h"
 
 
 // Grab a Python function object as a Python object.
@@ -78,6 +79,14 @@ struct vec3_t {
   vec3_t(const float_t x_, const float_t y_, const float_t z_);
 
   float_t x, y, z; # should be float_t
+};
+
+struct WallHitInfo {
+  molecule_id_t molecule_id;
+  geometry_object_id_t geometry_object_id;
+  wall_id_t wall_id;
+  float_t time;
+  vec3_t pos;
 };
 
 class Partition {
