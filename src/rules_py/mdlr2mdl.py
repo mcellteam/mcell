@@ -54,7 +54,7 @@ class MDLR2MDL(object):
             raise Exception("Unexpected platform: {0}".format(sys.platform))
 
         libNFsim_path = os.path.join(self.config['libpath'], '{0}NFsim.{1}'.format(prefix, extension))
-        libnfsim_c_path = os.path.join(self.config['libpath'], '{0}libnfsim_c.{1}'.format(prefix, extension))
+        libnfsim_c_path = os.path.join(self.config['libpath'], '{0}nfsim_c.{1}'.format(prefix, extension))
         
         if not os.path.exists(libNFsim_path) and prefix2:
             # try the cygwin variant
