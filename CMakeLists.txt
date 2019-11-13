@@ -33,7 +33,7 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
   SET(USE_SANITIZER_DEFAULT ON)
 else()
   SET(USE_SANITIZER_DEFAULT OFF)
-  SET(OPTIMIZATION_FLAGS " -O3 -march=core2 -finline-limit=1000 ")
+  SET(OPTIMIZATION_FLAGS " -O3 -march=core2 -finline-limit=1000 -flto ")
 endif()
 
 set(WARNING_FLAGS "-Wall -Wextra  -Wno-return-type -Wno-shadow -Wno-sign-compare -Wno-unused-parameter -Wno-unused-function -Wno-unused-variable")
