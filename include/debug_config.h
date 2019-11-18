@@ -42,10 +42,10 @@
 
 //#define DEBUG_SCHEDULER
 
-#define DEBUG_DEFRAGMENTATION
+//#define DEBUG_DEFRAGMENTATION
 
 // cannot be conditioned by iterations
-//#define DEBUG_RNG_CALLS
+#define DEBUG_RNG_CALLS
 
 // does not generate the same dump as mcell3
 //#define DEBUG_SUBPARTITIONS
@@ -57,7 +57,7 @@
 
 //#define DEBUG_GRIDS
 
-#define FROM_ITERATION 29//250
+#define FROM_ITERATION 0//250
 
 #define TO_ITERATION 31
 

@@ -36,6 +36,7 @@
 #include <signal.h>
 #include <stdlib.h>
 #include <string.h>
+#include <assert.h>
 
 #include "config.h"
 #include "mcell_structs.h"
@@ -78,6 +79,17 @@ static bool has_micro_rev_and_trimol_rxns(struct species **species_list,
 void mcell_set_seed(MCELL_STATE *state, int seed) {
   u_int signed_seed = (u_int) seed;
   state->seed_seq = signed_seed;
+}
+
+/************************************************************************
+ *
+ * set diverse flags
+ *
+ ************************************************************************/
+
+void mcell_set_with_checks_flag(MCELL_STATE *state, int value) {
+  assert(value == 0 || value == 1);
+  state->with_checks_flag = value;
 }
 
 /************************************************************************

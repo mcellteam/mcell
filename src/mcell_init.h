@@ -35,6 +35,7 @@ typedef int MCELL_STATUS;
 typedef struct volume MCELL_STATE;
 
 void mcell_set_seed(MCELL_STATE *state, int seed);
+void mcell_set_with_checks_flag(MCELL_STATE *state, int value);
 
 MCELL_STATE *mcell_create(void);
 
