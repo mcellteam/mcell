@@ -33,7 +33,10 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
   SET(USE_SANITIZER_DEFAULT ON)
 else()
   SET(USE_SANITIZER_DEFAULT OFF)
-  SET(OPTIMIZATION_FLAGS " -O3 -march=core2 -finline-limit=1000 -flto ")
+  SET(OPTIMIZATION_FLAGS " -O3 -march=core2 -finline-limit=1000 ")
+  
+  # must not be used for pymcell (at least for now)
+  SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -flto ")
 endif()
 
 set(WARNING_FLAGS "-Wall -Wextra  -Wno-return-type -Wno-shadow -Wno-sign-compare -Wno-unused-parameter -Wno-unused-function -Wno-unused-variable")
@@ -43,7 +46,7 @@ SET(COMMON_C_CXX_FLAGS "${WARNING_FLAGS} -g3 ${OPTIMIZATION_FLAGS} ${INCLUDE_DIR
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMMON_C_CXX_FLAGS}  -std=c11 ")
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON_C_CXX_FLAGS} -std=c++14")
 
-set(CMAKE_EXE_LINKER_FLAGS "-lm")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lm")
 
 if (CYGWIN)
     # cygwin app run in cygwin environment is somehow unable to load cygstdc++-6.dll
