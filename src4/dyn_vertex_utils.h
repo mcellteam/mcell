@@ -45,8 +45,8 @@ struct VertexMoveInfo {
 typedef std::vector<VertexMoveInfo> VertexMoveInfoVector;
 typedef std::map<wall_index_t, VertexMoveInfoVector> WallsWithTheirMovesMap;
 
-struct MoleculeMoveInfo {
-  MoleculeMoveInfo(const molecule_id_t molecule_id_, const wall_index_t wall_index_, const bool place_above_)
+struct VolumeMoleculeMoveInfo {
+  VolumeMoleculeMoveInfo(const molecule_id_t molecule_id_, const wall_index_t wall_index_, const bool place_above_)
     : molecule_id(molecule_id_), wall_index(wall_index_), place_above(place_above_) {
   }
   // molecule to move
@@ -56,7 +56,20 @@ struct MoleculeMoveInfo {
   // above or below
   bool place_above;
 };
-typedef std::vector<MoleculeMoveInfo> MoleculeMoveInfoVector;
+typedef std::vector<VolumeMoleculeMoveInfo> VolumeMoleculeMoveInfoVector;
+
+struct SurfaceMoleculeMoveInfo {
+  SurfaceMoleculeMoveInfo(const molecule_id_t molecule_id_, const wall_index_t wall_index_, const vec3_t pos3d_)
+    : molecule_id(molecule_id_), wall_index(wall_index_), pos3d(pos3d_) {
+  }
+  // molecule to move
+  molecule_id_t molecule_id;
+  // which wall moved this molecule first
+  wall_index_t wall_index;
+  // above or below
+  vec3_t pos3d;
+};
+typedef std::vector<SurfaceMoleculeMoveInfo> SurfaceMoleculeMoveInfoVector;
 
 namespace DynVertexUtils {
 

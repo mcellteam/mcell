@@ -113,25 +113,26 @@ void tiny_diffuse_3D(
 }
 
 
-// based on place_mol_relative_to_mesh
-void Partition::move_molecule_to_closest_wall_point(const MoleculeMoveInfo& molecule_move_info) {
+void Partition::find_closest_wall(
+    const vec3_t& pos, const wall_index_t wall_that_moved_molecule,
+    wall_index_t& best_wall_index,
+    vec2_t& best_wall_pos2d
+) {
 
-  Molecule& vm = get_m(molecule_move_info.molecule_id);
+  // TODO: use wall_that_moved_molecule to optimize the search,
+  // however for now we are using the same approach as in mcell3 because
+  // we need to match the behavior
+  wall_index_t ignored_for_now = wall_that_moved_molecule;
 
-
-  assert(vm.is_vol());
-
-  // 1) check all walls to get a reference hopefully
-  //  then try to limit only to wall's neighbors - we would really like to avoid any regions (maybe...?)
-  wall_index_t best_wall_index = WALL_INDEX_INVALID;
+  best_wall_index = WALL_INDEX_INVALID;
   float_t best_d2 = GIGANTIC4;
-  vec2_t best_wall_pos2d(0);
+  best_wall_pos2d = vec2_t(0);
 
   for (const Wall& w: walls) {
     // mcell3 has region/mesh name check here
 
     vec2_t wall_pos2d;
-    float_t d2 = GeometryUtil::closest_interior_point(*this, vm.v.pos, w, wall_pos2d);
+    float_t d2 = GeometryUtil::closest_interior_point(*this, pos, w, wall_pos2d);
 
     if (d2 <= best_d2) { // the <= is to emulate behavior of mcell3 that goes through the walls in opposite order
       best_d2 = d2;
@@ -139,6 +140,23 @@ void Partition::move_molecule_to_closest_wall_point(const MoleculeMoveInfo& mole
       best_wall_pos2d = wall_pos2d;
     }
   }
+}
+
+// based on place_mol_relative_to_mesh
+void Partition::move_volume_molecule_to_closest_wall_point(const VolumeMoleculeMoveInfo& molecule_move_info) {
+
+  Molecule& vm = get_m(molecule_move_info.molecule_id);
+
+
+  assert(vm.is_vol());
+
+  // find_closest_wall
+
+  // 1) check all walls to get a reference hopefully
+  //  then try to limit only to wall's neighbors - we would really like to avoid any regions (maybe...?)
+  wall_index_t best_wall_index;
+  vec2_t best_wall_pos2d;
+  find_closest_wall(vm.v.pos, molecule_move_info.wall_index, best_wall_index, best_wall_pos2d);
 
   if (best_wall_index == WALL_INDEX_INVALID) {
     mcell_error("Could not find a wall close to volume molecule with id %d.\n", vm.id);
@@ -192,15 +210,17 @@ bool is_point_above_plane_defined_by_wall(const Partition& p, const Wall& w, con
 }
 
 
+void Partition::move_surface_molecule_to_closest_wall_point(const SurfaceMoleculeMoveInfo& molecule_move_info) {
+  // TODO
+}
 
 
 // TODO: move to dyn_vertex_utils? -> probably yes
-// TODO: rename
-void Partition::move_molecules_due_to_moving_wall(
+void Partition::collect_volume_molecules_moved_due_to_moving_wall(
     const wall_index_t moved_wall_index, const VertexMoveInfoVector& move_infos,
     // TODO: maybe remove this set already_moved_molecules since we already have the molecules in the vector molecule_moves?
     UintSet& already_moved_molecules,
-    MoleculeMoveInfoVector& molecule_moves
+    VolumeMoleculeMoveInfoVector& molecule_moves
 ) {
 
   Wall& orig_wall = get_wall(moved_wall_index);
@@ -407,7 +427,7 @@ void Partition::move_molecules_due_to_moving_wall(
       // with regards to its normal
       bool place_above = is_point_above_plane_defined_by_wall(*this, orig_wall, m.v.pos);
 
-      molecule_moves.push_back(MoleculeMoveInfo(m.id, orig_wall.index, place_above));
+      molecule_moves.push_back(VolumeMoleculeMoveInfo(m.id, orig_wall.index, place_above));
 
       // and remember that we must not be moving it anymore
       // should work even without it...
@@ -429,6 +449,18 @@ void Partition::move_molecules_due_to_moving_wall(
   }
 
 }
+
+
+// TODO: move to dyn_vertex_utils? -> probably yes
+void Partition::collect_surface_molecules_moved_due_to_moving_wall(
+    const wall_index_t moved_wall_index,
+    SurfaceMoleculeMoveInfoVector& molecule_moves) {
+
+  // get all surface molecules that belong to a given wall
+
+
+}
+
 
 
 void Partition::apply_vertex_moves() {
@@ -463,10 +495,14 @@ void Partition::apply_vertex_moves() {
   //    Not completely sure about this, but it seems that the same behavior should be achieved when
   //    we would first collect all moves and do them later, however we are creating temporary walls,
   //    so remembering them would be more complicated.
-  MoleculeMoveInfoVector molecule_moves;
-  UintSet already_moved_molecules;
-  for (auto it : walls_with_their_moves) {
-    move_molecules_due_to_moving_wall(it.first, it.second, already_moved_molecules, molecule_moves);
+  VolumeMoleculeMoveInfoVector volume_molecule_moves;
+  UintSet already_moved_volume_molecules;
+  SurfaceMoleculeMoveInfoVector surface_molecule_moves;
+
+  for (const auto& it: walls_with_their_moves) {
+    collect_volume_molecules_moved_due_to_moving_wall(it.first, it.second, already_moved_volume_molecules, volume_molecule_moves);
+
+    collect_surface_molecules_moved_due_to_moving_wall(it.first, surface_molecule_moves);
   }
 
   // 3) get information on where these walls are and remove them
@@ -478,13 +514,16 @@ void Partition::apply_vertex_moves() {
   // 5) update subpartition info for the walls
   update_walls_per_subpart(walls_with_their_moves, true);
 
-  // 6) move the molecules
-  for (const MoleculeMoveInfo& molecule_move_info: molecule_moves) {
-    // TODO: pass the object directly
-    move_molecule_to_closest_wall_point(
-        molecule_move_info
-        //get_m(molecule_move_info.molecule_id), get_wall(molecule_move_info.wall_index), molecule_move_info.place_above
-    );
+  // 6) move volume molecules
+  for (const VolumeMoleculeMoveInfo& move_info: volume_molecule_moves) {
+    move_volume_molecule_to_closest_wall_point(move_info);
+  }
+
+  // 7) move surface molecules
+  for (const SurfaceMoleculeMoveInfo& move_info: surface_molecule_moves) {
+    // we need original xyz position of the surface mols
+    // TODO: the new wall must belong to the same object
+    move_surface_molecule_to_closest_wall_point(move_info);
   }
 
   scheduled_vertex_moves.clear();
