@@ -186,10 +186,17 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
 }
 
 
-bool check_meta_object(geom_object* o, string expected_name) {
+// "" as expected_name is that the name is not checked
+bool check_meta_object(geom_object* o, string expected_name = "") {
   assert(o != nullptr);
-  CHECK_PROPERTY(o->next == nullptr);
-  CHECK_PROPERTY(get_sym_name(o->sym) == expected_name);
+
+  if (expected_name != "") {
+    CHECK_PROPERTY(get_sym_name(o->sym) == expected_name);
+  }
+  else {
+    // just try that the name is set in debug mode
+    get_sym_name(o->sym);
+  }
   // root->last_name - not checked, contains some nonsense anyway
   CHECK_PROPERTY(o->object_type == META_OBJ);
   CHECK_PROPERTY(o->contents == nullptr);
@@ -213,39 +220,42 @@ bool check_meta_object(geom_object* o, string expected_name) {
 
 bool MCell3WorldConverter::convert_geometry_objects(volume* s) {
 
-  geom_object* root = s->root_instance;
-  CHECK_PROPERTY(check_meta_object(root, "WORLD_INSTANCE"));
-  CHECK_PROPERTY(root->first_child == root->last_child && "Only one scene expected");
-  geom_object* scene = root->first_child;
-  CHECK_PROPERTY(check_meta_object(scene, "Scene"));
+  geom_object* root_instance = s->root_instance;
+  CHECK_PROPERTY(check_meta_object(root_instance, "WORLD_INSTANCE"));
+  CHECK_PROPERTY(root_instance->next == nullptr);
 
-  // walls reference each other, therefore we must first create
-  // empty wall objects in partitions,
-  geom_object* curr_obj = scene->first_child;
-  while (curr_obj != nullptr) {
-    if (curr_obj->object_type == POLY_OBJ) {
-      create_uninitialized_walls_for_polygonal_object(curr_obj);
+  for (geom_object* scene = root_instance->first_child; scene != nullptr; scene = scene->next) {
+    CHECK_PROPERTY(check_meta_object(scene));
+
+    // walls reference each other, therefore we must first create
+    // empty wall objects in partitions,
+    geom_object* curr_obj = scene->first_child;
+    while (curr_obj != nullptr) {
+      if (curr_obj->object_type == POLY_OBJ) {
+        create_uninitialized_walls_for_polygonal_object(curr_obj);
+      }
+
+      curr_obj = curr_obj->next;
     }
 
-    curr_obj = curr_obj->next;
-  }
+    // once all wall were created and mapping established,
+    // we can fill-in all objects
+    curr_obj = scene->first_child;
+    while (curr_obj != nullptr) {
+      if (curr_obj->object_type == POLY_OBJ) {
+        CHECK(convert_polygonal_object(curr_obj));
+      }
+      else if (curr_obj->object_type == REL_SITE_OBJ) {
+        // ignored
+      }
+      else {
+        CHECK_PROPERTY(false && "Unexpected type of object");
+      }
 
-  // once all wall were created and mapping established,
-  // we can fill-in all objects
-  curr_obj = scene->first_child;
-  while (curr_obj != nullptr) {
-    if (curr_obj->object_type == POLY_OBJ) {
-      CHECK(convert_polygonal_object(curr_obj));
-    }
-    else if (curr_obj->object_type == REL_SITE_OBJ) {
-      // ignored
-    }
-    else {
-      CHECK_PROPERTY(false && "Unexpected type of object");
+      curr_obj = curr_obj->next;
     }
 
-    curr_obj = curr_obj->next;
-  }
+  } // for each scene
 
   return true;
 }
