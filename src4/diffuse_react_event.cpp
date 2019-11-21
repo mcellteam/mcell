@@ -114,9 +114,9 @@ void DiffuseReactEvent::diffuse_single_molecule(
     return;
 
   // if the molecule is a "newbie", its unimolecular reaction was not yet scheduled
-  if ((m.flags & ACT_NEWBIE) != 0) {
+  if (m.has_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RX) != 0) {
     create_unimol_rx_action(p, m, time_up_to_event_end);
-    m.flags &= ~ACT_NEWBIE;
+    m.clear_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RX);
   }
 
   // schedule unimol action if it is supposed to be executed in this timestep
@@ -767,7 +767,7 @@ void DiffuseReactEvent::diffuse_surf_molecule(
     // mcell3 compatibility: we might change the schedule only if it is not already scheduled for this time step
     if (new_m_ref.unimol_rx_time >= event_time + diffusion_time_step) {
       new_m_ref.unimol_rx_time = TIME_INVALID;
-      new_m_ref.set_flag(ACT_NEWBIE);
+      new_m_ref.set_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RX);
     }
   }
 }
@@ -1357,7 +1357,10 @@ int DiffuseReactEvent::outcome_products_random(
       // adding molecule might invalidate references of already existing molecules
       Molecule& new_vm = p.add_volume_molecule(vm_initialization);
       new_m_id = new_vm.id;
-      new_vm.flags =  ACT_NEWBIE | TYPE_VOL | IN_VOLUME | (species.can_diffuse() ? ACT_DIFFUSE : 0);
+
+      new_vm.flags = IN_VOLUME | (species.can_diffuse() ? ACT_DIFFUSE : 0);
+      new_vm.set_flag(MOLECULE_FLAG_VOL);
+      new_vm.set_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RX);
 
       /* For an orientable reaction, we need to move products away from the surface
        * to ensure they end up on the correct side of the plane. */
@@ -1410,7 +1413,9 @@ int DiffuseReactEvent::outcome_products_random(
       // might invalidate references of already existing molecules
       Molecule& new_sm = p.add_surface_molecule(sm);
       new_m_id = new_sm.id;
-      new_sm.flags = ACT_NEWBIE | TYPE_SURF | (species.can_diffuse() ? ACT_DIFFUSE : 0) | IN_SURFACE;
+      new_sm.flags = (species.can_diffuse() ? ACT_DIFFUSE : 0) | IN_SURFACE;
+      new_sm.set_flag(MOLECULE_FLAG_SURF);
+      new_sm.set_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RX);
 
       // set wall and grid information
       new_sm.s.wall_index = new_grid_pos.wall_index;

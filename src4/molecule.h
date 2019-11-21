@@ -38,8 +38,14 @@ class WorldConstants;
 
 #define ACT_DIFFUSE 0x008
 #define ACT_REACT 0x020
-#define ACT_NEWBIE 0x040  // does not have unimolecular time specified
-#define ACT_CHANGE 0x080
+
+// IN_VOLUME
+// IN_SURFACE
+
+// #define ACT_NEWBIE 0x040  // does not have unimolecular time specified
+// #define ACT_CHANGE 0x080
+// -> these two above were merged into: ACT_RESCHEDULE_UNIMOL_RX
+
 #define ACT_CLAMPED 0x1000
 
 /* Flags telling us which linked lists the molecule appears in. */
@@ -57,9 +63,13 @@ class WorldConstants;
 #endif
 
 
+
 enum molecule_flags_e {
-  MOLECULE_FLAG_SURF = 1 << 0,
-  MOLECULE_FLAG_VOL = 1 << 1,
+  MOLECULE_FLAG_SURF = 1 << 0, // originally TYPE_SURF
+  MOLECULE_FLAG_VOL = 1 << 1, // originally TYPE_VOL
+
+  MOLECULE_FLAG_RESCHEDULE_UNIMOL_RX = 1 << 16,
+
   MOLECULE_FLAG_DEFUNCT = 1 << 31,
 };
 
@@ -148,11 +158,18 @@ public:
   species_id_t species_id;
 
   bool has_flag(uint flag) const {
+    assert(__builtin_popcount(flag) == 1);
     return (flags & flag) != 0;
   }
 
   void set_flag(uint flag) {
+    assert(__builtin_popcount(flag) == 1);
     flags = flags | flag;
+  }
+
+  void clear_flag(uint flag) {
+    assert(__builtin_popcount(flag) == 1);
+    flags = flags & ~flag;
   }
 
   bool is_vol() const {

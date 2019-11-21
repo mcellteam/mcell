@@ -97,7 +97,9 @@ void ReleaseEvent::place_single_molecule_onto_grid(Partition& p, Wall& wall, til
   new_sm.s.grid_tile_index = tile_index;
   wall.grid.set_molecule_tile(tile_index, new_sm.id);
 
-  new_sm.flags = ACT_NEWBIE | TYPE_SURF | ACT_DIFFUSE | IN_SURFACE;
+  new_sm.flags = ACT_DIFFUSE | IN_SURFACE;
+  new_sm.set_flag(MOLECULE_FLAG_SURF);
+  new_sm.set_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RX);
 }
 
 
@@ -208,7 +210,9 @@ void ReleaseEvent::release_ellipsoid_or_rectcuboid(uint computed_release_number)
     Molecule& new_vm = p.add_volume_molecule(
         Molecule(MOLECULE_ID_INVALID, species_id, molecule_location)
     );
-    new_vm.flags = ACT_NEWBIE | TYPE_VOL | IN_VOLUME | ACT_DIFFUSE;
+    new_vm.flags = IN_VOLUME | ACT_DIFFUSE;
+    new_vm.set_flag(MOLECULE_FLAG_VOL);
+    new_vm.set_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RX);
   }
 }
 
