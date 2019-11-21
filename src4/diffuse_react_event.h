@@ -183,7 +183,7 @@ public:
     return type == CollisionType::VOLMOL_VOLMOL;
   }
 
-  bool is_wall_collision() const {
+  bool is_wall_collision() const { // FIXME: find WALL_FRONT and WALL_BACK and replace
     assert(type != CollisionType::WALL_REDO && "Not sure yet what to do with redo");
     return type == CollisionType::WALL_FRONT || type == CollisionType::WALL_BACK;
   }

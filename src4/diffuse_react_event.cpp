@@ -1173,7 +1173,7 @@ int DiffuseReactEvent::outcome_products_random(
   /* If the reaction involves a surface, make sure there is room for each product. */
   small_vector<GridPos> assigned_surf_prod_positions; // this array contains information on where to place the surface products
   assigned_surf_prod_positions.resize(rx->products.size());
-
+  // TODO: move this into a separate function
   if (is_orientable) {
     uint num_surface_products = rx_util::get_num_surface_products(world, rx);
 
@@ -1312,14 +1312,17 @@ int DiffuseReactEvent::outcome_products_random(
   }
 
   // free up tiles that we are probably going to reuse
+  bool one_of_reactants_is_surf = false;
   if (reacA->is_surf()) {
     p.get_wall(reacA->s.wall_index).grid.reset_molecule_tile(reacA->s.grid_tile_index);
     reacA->s.grid_tile_index = TILE_INDEX_INVALID;
+    one_of_reactants_is_surf = true;
   }
 
   if (reacB != nullptr && reacB->is_surf()) {
     p.get_wall(reacB->s.wall_index).grid.reset_molecule_tile(reacB->s.grid_tile_index);
     reacB->s.grid_tile_index = TILE_INDEX_INVALID;
+    one_of_reactants_is_surf = true;
   }
 
 
@@ -1332,14 +1335,14 @@ int DiffuseReactEvent::outcome_products_random(
     molecule_id_t new_m_id;
 
     float_t scheduled_time;
-    if (rx->reactants.size() == 2 && species.is_vol()) {
+    if (rx->reactants.size() == 2 && species.is_vol() && !one_of_reactants_is_surf) {
       // bimolecular reaction
       // schedule new product for diffusion
       // collision.time is relative to the part that this molecule travels this diffusion step
       // so it needs to be scaled
       scheduled_time = event_time + diffusion_time_step - (remaining_time_step - collision.time * remaining_time_step);
     }
-    else if (rx->reactants.size() == 2 && species.is_surf()) {
+    else if (rx->reactants.size() == 2 && (species.is_surf() || one_of_reactants_is_surf)) {
       scheduled_time = event_time + collision.time;
     }
     else {
