@@ -64,7 +64,7 @@ class WorldConstants;
 
 
 
-enum molecule_flags_e {
+enum molecule_flag_t {
   MOLECULE_FLAG_SURF = 1 << 0, // originally TYPE_SURF
   MOLECULE_FLAG_VOL = 1 << 1, // originally TYPE_VOL
 

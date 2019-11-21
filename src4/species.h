@@ -60,6 +60,7 @@ public:
   uint flags;
 
   bool has_flag(species_flag_t flag) const {
+    assert(__builtin_popcount(flag) == 1);
     return (flags & flag) != 0;
   }
 
