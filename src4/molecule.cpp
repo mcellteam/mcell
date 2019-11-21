@@ -47,10 +47,10 @@ string get_molecule_flags_string(uint flags, bool full_dump = true) {
     DUMP_FLAG(flags, ACT_REACT)
 
     // TODO: what about comparison of this dump?
-    if (((flags) & (MOLECULE_FLAG_RESCHEDULE_UNIMOL_RX)) != 0)
+    if ((flags & MOLECULE_FLAG_RESCHEDULE_UNIMOL_RX) != 0)
       res += string("ACT_NEWBIE") + ", ";
 
-    if (((flags) & (MOLECULE_FLAG_RESCHEDULE_UNIMOL_RX)) != 0)
+    if ((flags & MOLECULE_FLAG_RESCHEDULE_UNIMOL_RX) != 0)
       res += string("ACT_CHANGE") + ", ";
   }
   DUMP_FLAG(flags, ACT_CLAMPED)
