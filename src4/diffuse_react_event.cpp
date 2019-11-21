@@ -755,32 +755,21 @@ void DiffuseReactEvent::diffuse_surf_molecule(
   Molecule& new_m_ref = p.get_m(sm_id);
 
   // for some reason, mcell3 defines a new unimol time if the molecule has moved
-  if (species.can_diffuse() || species.has_flag(SPECIES_FLAG_CAN_SURFSURF)) {
+  bool changed_wall = new_m_ref.s.wall_index != original_wall_index;
+  bool diffusible = species.can_diffuse();
+  bool can_surf_surf_react = species.has_flag(SPECIES_FLAG_CAN_SURFSURF);
 
-    if (new_m_ref.s.wall_index != original_wall_index &&
+  if (diffusible || can_surf_surf_react) {
+
+    // we don't have to remove the molecule from the schedule, we can just change its unimol_rx_time,
+    // this time is checked and against the scheduled time
+    // mcell3 compatibility: we might change the schedule only if it is not already scheduled for this time step
+    if ((!diffusible || changed_wall) &&
         new_m_ref.unimol_rx_time >= event_time + diffusion_time_step) {
       new_m_ref.unimol_rx_time = TIME_INVALID;
       new_m_ref.set_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RX);
     }
   }
-
-  // for some reason, mcell3 defines a new unimol time if the molecule has moved
-  if (
-      (!species.can_diffuse() // weird mcell3 behavior, probably a bug, where unimol non-diffusable molecules are rescheduled
-        || (new_m_ref.s.wall_index != original_wall_index) // or the molecule has changed its wall
-      )
-      &&
-        species.has_flag(SPECIES_FLAG_CAN_SURFSURF) // and we reschedule only when the molecule can react
-  ) {
-    // we don't have to remove the molecule from the schedule, we can just change its unimol_rx_time,
-    // this time is checked and against the scheduled time
-    // mcell3 compatibility: we might change the schedule only if it is not already scheduled for this time step
-    if (new_m_ref.unimol_rx_time >= event_time + diffusion_time_step) {
-      new_m_ref.unimol_rx_time = TIME_INVALID;
-      new_m_ref.set_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RX);
-    }
-  }
-
 }
 
 
