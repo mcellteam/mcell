@@ -29,6 +29,8 @@
 
 namespace MCell {
 
+class WorldConstants;
+
 class SpeciesWithOrientation {
 public:
   SpeciesWithOrientation()
@@ -76,6 +78,8 @@ public:
   uint get_num_players() const {
     return reactants.size() + products.size();
   }
+
+  uint get_num_surf_products(const WorldConstants& world_contants) const;
 
   void dump(const std::string ind) const;
 };

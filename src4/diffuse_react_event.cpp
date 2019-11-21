@@ -1228,7 +1228,10 @@ int DiffuseReactEvent::outcome_products_random(
     if (num_tiles_to_recycle == 1 && recycled_surf_prod_positions.size() >= 1) {
       // NOTE: this can be optimized - in case of a single product, it will just replace the initiator
       // and no initialization of recycled_surf_prod_positions is needed
-      assert(rx->products.size() == 1 && "TODO_PATHWAYS");
+      // there must be just one surface product for this variant
+      assert(rx_util::get_num_surface_products(world, rx) == 1
+          && "not sure, should not probably happen or this case is not handled");
+
       assert(initiator_recycled_index != INDEX_INVALID);
       assigned_surf_prod_positions[0] = recycled_surf_prod_positions[initiator_recycled_index];
     }
@@ -1328,7 +1331,6 @@ int DiffuseReactEvent::outcome_products_random(
 
     molecule_id_t new_m_id;
 
-
     float_t scheduled_time;
     if (rx->reactants.size() == 2 && species.is_vol()) {
       // bimolecular reaction
@@ -1348,12 +1350,36 @@ int DiffuseReactEvent::outcome_products_random(
 
 
     if (species.is_vol()) {
-      Molecule vm(MOLECULE_ID_INVALID, product.species_id, collision.pos);
+      // create and place a volume molecule
 
-      // might invalidate references of already existing molecules
-      Molecule& new_vm = p.add_volume_molecule(vm);
+      Molecule vm_initialization(MOLECULE_ID_INVALID, product.species_id, collision.pos);
+
+      // adding molecule might invalidate references of already existing molecules
+      Molecule& new_vm = p.add_volume_molecule(vm_initialization);
       new_m_id = new_vm.id;
       new_vm.flags =  ACT_NEWBIE | TYPE_VOL | IN_VOLUME | (species.can_diffuse() ? ACT_DIFFUSE : 0);
+
+      /* For an orientable reaction, we need to move products away from the surface
+       * to ensure they end up on the correct side of the plane. */
+      assert(is_orientable
+          || (collision.type != CollisionType::VOLMOL_SURFMOL && collision.type != CollisionType::SURFMOL_SURFMOL)
+      );
+      if (is_orientable) {
+        assert(surf_reac != nullptr);
+        Wall& w = p.get_wall(surf_reac->s.wall_index);
+
+        float_t bump = (product.orientation > 0) ? EPS : -EPS;
+        vec3_t displacement = vec3_t(2 * bump) * w.normal;
+        vec3_t new_pos_after_diffuse;
+
+        diffusion_util::tiny_diffuse_3D(p, new_vm, displacement, w.index, new_pos_after_diffuse);
+
+        // update position and subpart if needed
+        new_vm.v.pos = new_pos_after_diffuse;
+        subpart_index_t new_subpart = p.get_subpartition_index(new_vm.v.pos);
+        p.change_molecule_subpartition(new_vm, new_subpart);
+      }
+
 
     #ifdef DEBUG_REACTIONS
       DUMP_CONDITION4(

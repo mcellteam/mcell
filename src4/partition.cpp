@@ -28,6 +28,7 @@
 #include "dyn_vertex_utils.h"
 #include "geometry_utils.inc"
 #include "collision_utils.inc"
+#include "diffusion_utils.inc"
 
 using namespace std;
 
@@ -70,46 +71,6 @@ void Partition::update_walls_per_subpart(const WallsWithTheirMovesMap& walls_wit
       }
     }
   }
-}
-
-
-void tiny_diffuse_3D(
-    Partition& p,
-    Molecule& vm,
-    const vec3_t& displacement,
-    const wall_index_t previous_reflected_wall,
-    vec3_t& new_pos) {
-
-  assert(vm.is_vol());
-
-  vec3_t ignored_displacement = displacement;
-  subpart_index_t new_subpart_index;
-
-  collision_vector_t collisions;
-
-  // NOTE: can be optimized by ignoring molecule collisions
-  rng_state ignored_rng;
-  ray_trace_vol(
-        p, ignored_rng, vm, previous_reflected_wall, ignored_displacement,
-        collisions, new_pos, new_subpart_index
-  );
-
-  // sort collisions by time
-  sort_collisions_by_time(collisions);
-
-  new_pos = vm.v.pos;
-  vec3_t new_displacement = displacement;
-  for (size_t collision_index = 0; collision_index < collisions.size(); collision_index++) {
-    Collision& collision = collisions[collision_index];
-
-    // stop after first collision
-    if (collision.is_wall_collision()) {
-      new_pos = collision.pos - new_pos;
-      new_displacement = displacement * vec3_t(0.5);
-    }
-  }
-
-  new_pos = new_pos + displacement;
 }
 
 
@@ -177,7 +138,7 @@ void Partition::move_volume_molecule_to_closest_wall_point(const VolumeMoleculeM
   // move the molecule a bit (why?)
   vm.v.pos = new_pos3d;
   vec3_t new_pos_after_diffuse;
-  tiny_diffuse_3D(*this, vm, displacement, wall.index, new_pos_after_diffuse);
+  diffusion_util::tiny_diffuse_3D(*this, vm, displacement, wall.index, new_pos_after_diffuse);
 
 
   // TODO:

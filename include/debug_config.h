@@ -25,7 +25,7 @@
 #endif
 
 //#define DUMP_ALWAYS
-#define DUMP_NEVER
+//#define DUMP_NEVER
 
 
 #if (!defined(NDEBUG) || defined(DUMP_ALWAYS)) && !defined(DUMP_NEVER)
@@ -53,13 +53,13 @@
 #define DEBUG_DIFFUSION
 #define DEBUG_COLLISIONS
 //#define DEBUG_COLLISIONS_WALL_EXTRA
-//#define DEBUG_REACTIONS
+#define DEBUG_REACTIONS
 
 //#define DEBUG_GRIDS
 
-#define FROM_ITERATION 0//250
+#define FROM_ITERATION 75//250
 
-#define TO_ITERATION 31
+#define TO_ITERATION 100
 
 #define DUMP_CONDITION3(code) do { if ((int)world->current_iterations >= (int)FROM_ITERATION && (int)world->current_iterations <= (int)TO_ITERATION) { code; } } while (0)
 #define DUMP_CONDITION4(code) do { if ((int)world->get_current_iteration() >= (int)FROM_ITERATION && (int)world->get_current_iteration() <= (int)TO_ITERATION) { code; } } while (0)

@@ -24,10 +24,22 @@
 #include <iostream>
 
 #include "reaction.h"
+#include "world_constants.h"
 
 using namespace std;
 
 namespace MCell {
+
+
+uint Reaction::get_num_surf_products(const WorldConstants& world_contants) const {
+  uint res = 0;
+  for (const SpeciesWithOrientation& prod: products) {
+    if (world_contants.get_species(prod.species_id).is_surf()) {
+      res++;
+    }
+  }
+  return res;
+}
 
 void Reaction::dump(const string ind) const {
   cout << ind << "name: \t\t" << name << " [string] \t\t\n";

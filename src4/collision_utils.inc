@@ -168,6 +168,7 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
 
   // get 3d indices of start and end subpartitions
   ivec3_t src_subpart_indices, dest_subpart_indices;
+  assert(vm.v.subpart_index != SUBPART_INDEX_INVALID);
   p.get_subpart_3d_indices_from_index(vm.v.subpart_index, src_subpart_indices);
   p.get_subpart_3d_indices(dest_pos, dest_subpart_indices);
 
@@ -178,7 +179,7 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
   );
 
   // collect subpartitions on the way by always finding the point where a subpartition boundary is hit
-  // we must do it eve when we are crossing just one subpartition because we might hit others while
+  // we must do it even when we are crossing just one subpartition because we might hit others while
   // moving along them
   if ( !glm::all( glm::equal(dest_subpart_indices, src_subpart_indices) ) ) {
 
@@ -230,7 +231,8 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
         // =>
         // time_to_subpart_edge = (subpart_edge - vm.v.pos) / displacement_speed
         vec3_t coll_times = diff * displacement_rcp;
-        assert(coll_times.x >= 0 && coll_times.y >= 0 && coll_times.z >= 0 && "Edges must be computed from direction");
+        assert(coll_times.x >= 0 && coll_times.y >= 0 && coll_times.z >= 0
+            && "Subpartition 'edges' must be computed from direction, we cannot hit a subpart boundary that is behind us");
 
         // which of the times is the smallest? - i.e. which boundary we hit first
         if (coll_times.x >= 0 && coll_times.x < coll_times.y && coll_times.x <= coll_times.z) {

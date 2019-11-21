@@ -245,6 +245,46 @@ static int move_sm_to_new_triangle(
 }
 
 
+static void tiny_diffuse_3D(
+    Partition& p,
+    Molecule& vm,
+    const vec3_t& displacement,
+    const wall_index_t previous_reflected_wall,
+    vec3_t& new_pos) {
+
+  assert(vm.is_vol());
+  assert(vm.v.subpart_index != SUBPART_INDEX_INVALID && "Molecule must be already placed into a subvolume");
+
+  vec3_t ignored_displacement = displacement;
+  subpart_index_t new_subpart_index;
+
+  collision_vector_t collisions;
+
+  // NOTE: can be optimized by ignoring molecule collisions
+  rng_state ignored_rng;
+  ray_trace_vol(
+        p, ignored_rng, vm, previous_reflected_wall, ignored_displacement,
+        collisions, new_pos, new_subpart_index
+  );
+
+  // sort collisions by time
+  sort_collisions_by_time(collisions);
+
+  new_pos = vm.v.pos;
+  vec3_t new_displacement = displacement;
+  for (size_t collision_index = 0; collision_index < collisions.size(); collision_index++) {
+    Collision& collision = collisions[collision_index];
+
+    // stop after first collision
+    if (collision.is_wall_collision()) {
+      new_pos = collision.pos - new_pos;
+      new_displacement = displacement * vec3_t(0.5);
+    }
+  }
+
+  new_pos = new_pos + displacement;
+}
+
 } // namespace diffusion_util
 
 } // namespace mcell
