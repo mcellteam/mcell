@@ -1503,13 +1503,13 @@ void Collision::dump(Partition& p, const std::string ind) const {
 }
 
 
-string Collision::to_string() const {
+string Collision::to_string(const Partition& p) const {
   stringstream ss;
   if (type == CollisionType::VOLMOL_VOLMOL) {
     ss << "coll_idx: " << colliding_molecule_id;
   }
   else {
-    //ss << "wall_idx: " << colliding_wall_index;
+    ss << "wall side: " << p.get_wall(colliding_wall_index).side;
   }
 
   ss << ", time: " << time << ", pos: " << pos;
@@ -1521,7 +1521,7 @@ void Collision::dump_array(Partition& p, const collision_vector_t& vec) {
   // printed in reverse - same as
   for (size_t i = 0; i < vec.size(); i++) {
     const char* str_type = (vec[i].type == CollisionType::VOLMOL_VOLMOL) ? "mol collision " : "wall collision ";
-    cout << "  " << str_type << i << ": " << vec[i].to_string() << "\n";
+    cout << "  " << str_type << i << ": " << vec[i].to_string(p) << "\n";
   }
 }
 

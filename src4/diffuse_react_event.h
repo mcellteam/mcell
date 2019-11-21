@@ -75,6 +75,7 @@ typedef boost::container::flat_set<subpart_index_t> subpart_indices_set_t;
  * Information about collision of 2 volume/surface molecules or a of a wall collision,
  * used in diffuse_react and in partition.
  */
+// TODO: move to collision utils?
 class Collision {
 public:
   Collision()
@@ -188,7 +189,7 @@ public:
   }
 
   void dump(Partition& p, const std::string ind) const;
-  std::string to_string() const;
+  std::string to_string(const Partition& p) const;
   static void dump_array(Partition& p, const collision_vector_t& vec);
 };
 

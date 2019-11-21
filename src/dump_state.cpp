@@ -1878,7 +1878,7 @@ void dump_collisions(collision* shead) {
     ) {
       cout << "  " << "wall collision " << i << ": "
           //<< "diff_idx: " << ptr-> diffused_molecule_idx
-          //<< "wall_idx: " << ((wall*)ptr->target)->
+          << "wall side: " << ((wall*)ptr->target)->side
           << ", time: " << ptr->t
           << ", pos: " << ptr->loc
           << "\n";
