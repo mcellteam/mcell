@@ -30,10 +30,10 @@ SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 ")
 set(INCLUDE_DIRS " -isystem ${CMAKE_SOURCE_DIR}/libs/")
 
 if (CMAKE_BUILD_TYPE STREQUAL "Release")
-  SET(OPTIMIZATION_FLAGS " -O3 -march=core2 -finline-limit=1000 ")
+  SET(OPTIMIZATION_FLAGS " -O3 -march=core2 -finline-limit=10000 ")
   
   # must not be used for pymcell (at least for now)
-  SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -flto ")
+  SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -flto -no-pie ")
 endif()
 
 set(WARNING_FLAGS "-Wall -Wextra -Wno-shadow -Wno-unused-parameter -Wno-unused-function -Wno-unused-variable -fpermissive")
@@ -71,9 +71,10 @@ if (USE_GCOV)
 endif()
 
 if (USE_PROFILING)
-  SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pg ")
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg ")
-  SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg ")
+  # gcc 6.3 generates PIC code by default, this does not work with gprof, -no-pie disables it 
+  SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pg -no-pie ")
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg -no-pie ")
+  SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg -no-pie ")
 endif()
 
 if (USE_LTO)
