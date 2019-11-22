@@ -1650,7 +1650,7 @@ static wall_index_t find_neighbor_tiles(
       /* create list of neighbor walls that share one vertex
          with the start tile  (not edge-to-edge neighbor walls) */
       wall_indices_t neighboring_walls;
-      wall_util::find_nbr_walls_shared_one_vertex(p, wall, shared_verts, neighboring_walls);
+      WallUtil::find_nbr_walls_shared_one_vertex(p, wall, shared_verts, neighboring_walls);
 
       if (!neighboring_walls.empty()) {
         grid_all_neighbors_across_walls_through_vertices(
