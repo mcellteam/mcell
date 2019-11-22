@@ -42,6 +42,8 @@
 #include "geometry.h"
 #include "debug_config.h"
 
+#include "wall_utils.inc"
+
 namespace MCell {
 
 namespace GeometryUtil {
@@ -180,6 +182,8 @@ static void wall_subparts_collision_test(
   // don't know yet what is this doing, somehow it is trying to find some subvolume
   // but don't know which one
 
+  // probably just an optimization
+
   // this is needed for the following code (if enabled, fix loop afterwards)
   max_subpart_indices += ivec3_t(1); // max is incremented by 1 in each dimension
 
@@ -208,14 +212,19 @@ static void wall_subparts_collision_test(
     return NULL;
 #endif
 
-  // simply insert to all subparts that cross the expanded cube for this wall
-  // NOTE: can be optimized, the wall is a 3D triangle, not a cube...
+  // go through all subparts in llf-urb box and select only those that cross our wall
   for (int x = min_subpart_indices.x; x <= max_subpart_indices.x; x++) {
     for (int y = min_subpart_indices.y; y <= max_subpart_indices.y; y++) {
       for (int z = min_subpart_indices.z; z <= max_subpart_indices.z; z++) {
-        colliding_subparts.push_back(
-            p.get_subpart_index_from_3d_indices(x, y, z)
-        );
+
+        vec3_t subpart_llf, subpart_urb;
+        subpart_index_t subpart_index = p.get_subpart_index_from_3d_indices(x, y, z);
+        p.get_subpart_llf_point(subpart_index, subpart_llf);
+        p.get_subpart_urb_point_from_llf(subpart_llf, subpart_urb);
+
+        if (WallUtil::wall_in_box(p, w, subpart_llf, subpart_urb) != 0) {
+          colliding_subparts.push_back(subpart_index);
+        }
       }
     }
   }
