@@ -99,20 +99,41 @@ public:
     UNIMOL_REACT
   };
 
+  // TODO: use create ctors instead? the type argument is long...
+  //  what other clsses should use create ctors?
+
+  // DIFFUSE action
   DiffuseOrUnimolReactionAction(
+      const DiffuseOrUnimolReactionAction::Type type_,
       const molecule_id_t id_,
       const float_t scheduled_time_,
+      const WallTileIndexPair& where_created_this_iteration_)
+    :
+      id(id_),
+      scheduled_time(scheduled_time_),
+      type(type_),
+      unimol_rx(nullptr),
+      where_created_this_iteration(where_created_this_iteration_) {
+
+    assert(scheduled_time >= 0.0);
+    assert(type == Type::DIFFUSE);
+    // position where the molecule was created may be invalid when it was not a result of surface reaction
+  }
+
+  // UNIMOL_REACT action
+  DiffuseOrUnimolReactionAction(
       const DiffuseOrUnimolReactionAction::Type type_,
-      const Reaction* unimol_rx_ = nullptr)
+      const molecule_id_t id_,
+      const float_t scheduled_time_,
+      const Reaction* unimol_rx_)
     :
       id(id_),
       scheduled_time(scheduled_time_),
       type(type_),
       unimol_rx(unimol_rx_) {
     assert(scheduled_time >= 0.0);
-    if (type == Type::UNIMOL_REACT) {
-      assert(unimol_rx_ != nullptr);
-    }
+    assert(type == Type::UNIMOL_REACT);
+    assert(unimol_rx != nullptr);
   }
 
   // defined because of usage in calendar_t
@@ -123,7 +144,13 @@ public:
   molecule_id_t id;
   float_t scheduled_time; // this is the scheduled time
   Type type;
-  const Reaction* unimol_rx; // when type is UNIMOL_REACT
+
+  // when type is UNIMOL_REACT
+  const Reaction* unimol_rx;
+
+  // when type is DIFFUSE
+  // used to avoid rebinding for surf+vol->surf+vol reactions
+  WallTileIndexPair where_created_this_iteration;
 };
 
 } // namespace mcell

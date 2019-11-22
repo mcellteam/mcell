@@ -15,8 +15,8 @@
 //#define MCELL3_ONLY_ONE_MEMPART
 //#define MCELL3_SORTED_VIZ_OUTPUT
 //#define MCELL3_SORTED_WALLS_FOR_COLLISION
-//#define ASSERT_FOR_MCELL4(...) assert(__VA_ARGS__)
-#define ASSERT_FOR_MCELL4(...) do { } while(0)
+#define ASSERT_FOR_MCELL4(...) assert(__VA_ARGS__)
+//#define ASSERT_FOR_MCELL4(...) do { } while(0)
 
 #else
 
@@ -57,9 +57,9 @@
 
 //#define DEBUG_GRIDS
 
-#define FROM_ITERATION 75//250
+#define FROM_ITERATION 6//250
 
-#define TO_ITERATION 100
+#define TO_ITERATION 9
 
 #define DUMP_CONDITION3(code) do { if ((int)world->current_iterations >= (int)FROM_ITERATION && (int)world->current_iterations <= (int)TO_ITERATION) { code; } } while (0)
 #define DUMP_CONDITION4(code) do { if ((int)world->get_current_iteration() >= (int)FROM_ITERATION && (int)world->get_current_iteration() <= (int)TO_ITERATION) { code; } } while (0)

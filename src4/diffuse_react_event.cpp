@@ -78,7 +78,7 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const std::vector<molecu
   for (uint i = 0; i < existing_mols_count; i++) {
     molecule_id_t id = molecule_ids[i];
     // existing molecules - simulate whole time step
-    diffuse_single_molecule(p, id, diffusion_time_step);
+    diffuse_single_molecule(p, id, diffusion_time_step, WallTileIndexPair());
   }
 
 
@@ -91,7 +91,11 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const std::vector<molecu
     const DiffuseOrUnimolReactionAction& action = new_diffuse_or_unimol_react_actions[i];
 
     if (action.type == DiffuseOrUnimolReactionAction::Type::DIFFUSE) {
-      diffuse_single_molecule(p, action.id, event_time + diffusion_time_step - action.scheduled_time);
+      diffuse_single_molecule(
+          p, action.id,
+          event_time + diffusion_time_step - action.scheduled_time,
+          action.where_created_this_iteration // making a copy of this pair
+      );
     }
     else {
       react_unimol_single_molecule(p, action.id, action.scheduled_time, action.unimol_rx);
@@ -105,7 +109,8 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const std::vector<molecu
 void DiffuseReactEvent::diffuse_single_molecule(
     Partition& p,
     const molecule_id_t m_id,
-    const float_t time_up_to_event_end // how much diffusion time we should simlate
+    const float_t time_up_to_event_end, // how much diffusion time we should simulate
+    WallTileIndexPair wall_tile_pair_where_created_this_iteration // set only for newly created molecules
 ) {
   float_t event_time_end = event_time + diffusion_time_step;
   Molecule& m = p.get_m(m_id);
@@ -126,7 +131,7 @@ void DiffuseReactEvent::diffuse_single_molecule(
     // now, there are two queues - local for this timestep
     // and global in partition for the following timesteps
     DiffuseOrUnimolReactionAction unimol_react_action(
-        m.id, m.unimol_rx_time, DiffuseOrUnimolReactionAction::Type::UNIMOL_REACT, m.unimol_rx /*temporary*/);
+        DiffuseOrUnimolReactionAction::Type::UNIMOL_REACT, m.id, m.unimol_rx_time, m.unimol_rx);
     // handle this iteration
     new_diffuse_or_unimol_react_actions.push_back(unimol_react_action);
   }
@@ -174,7 +179,8 @@ void DiffuseReactEvent::diffuse_single_molecule(
   if (m.is_vol()) {
     diffuse_vol_molecule(
         p, m_id, remaining_time_step,
-        was_defunct, new_vpos, new_subpart_index
+        was_defunct, new_vpos, new_subpart_index,
+        wall_tile_pair_where_created_this_iteration
     );
   }
   else {
@@ -240,7 +246,8 @@ void DiffuseReactEvent::diffuse_vol_molecule(
     const float_t remaining_time_step,
     bool& was_defunct,
     vec3_t& new_pos,
-    subpart_index_t& new_subpart_index
+    subpart_index_t& new_subpart_index,
+    WallTileIndexPair& wall_tile_pair_where_created_this_iteration
 ) {
   Molecule& m = p.get_m(vm_id);
   const Species& species = world->get_species(m.species_id);
@@ -344,7 +351,11 @@ void DiffuseReactEvent::diffuse_vol_molecule(
 
         // check possible reaction with surface molecules
         if (species.has_flag(SPECIES_FLAG_CAN_VOLSURF) && colliding_wall.has_initialized_grid()) {
-          int collide_res = collide_and_react_with_surf_mol(p, collision, updated_remaining_time_step, r_rate_factor, elapsed_molecule_time);
+          int collide_res = collide_and_react_with_surf_mol(
+              p, collision, updated_remaining_time_step,
+              r_rate_factor, elapsed_molecule_time,
+              wall_tile_pair_where_created_this_iteration
+          );
 
           if (collide_res == 1) { // FIXME: use enum
             was_defunct = true;
@@ -532,15 +543,17 @@ bool DiffuseReactEvent::collide_and_react_with_vol_mol(
  ******************************************************************************/
 int DiffuseReactEvent::collide_and_react_with_surf_mol(
     Partition& p,
-    Collision& collision,
+    Collision& collision, // TODO: const?
     float_t remaining_time_step,
     float_t r_rate_factor,
-    float_t elapsed_molecule_time
+    float_t elapsed_molecule_time,
+    WallTileIndexPair& where_created_this_iteration
 ) {
   Wall& wall = p.get_wall(collision.colliding_wall_index);
   Grid& grid = wall.grid;
 
   tile_index_t j = GridUtil::xyz2grid_tile_index(p, collision.pos, wall);
+  assert(j != TILE_INDEX_INVALID);
 
   molecule_id_t colliging_mol_id = grid.get_molecule_on_tile(j);
   if (colliging_mol_id == MOLECULE_ID_INVALID) {
@@ -556,6 +569,17 @@ int DiffuseReactEvent::collide_and_react_with_surf_mol(
   assert(colliding_molecule.is_surf());
 
   Molecule& diffused_molecule = p.get_m(collision.diffused_molecule_id); // m
+  assert(diffused_molecule.is_vol());
+
+  // Avoid rebinding - i.e. when we created a volume molecule from a surf+vol->surf+vol
+  // reaction, we do not want the molecule to react again
+  if (where_created_this_iteration.wall_index == wall.index &&
+      where_created_this_iteration.tile_index == j) {
+    // However, let this occur next time
+    where_created_this_iteration.wall_index = WALL_INDEX_INVALID;
+    where_created_this_iteration.tile_index = TILE_INDEX_INVALID;
+    return -1;
+  }
 
   ReactionsVector matching_rxns;
   rx_util::trigger_bimolecular(
@@ -1170,6 +1194,20 @@ int DiffuseReactEvent::outcome_products_random(
 
   bool is_orientable = reacA->is_surf() || (reacB != nullptr && reacB->is_surf());
 
+  WallTileIndexPair surf_reac_wall_tile;
+  assert(
+      ( surf_reac == nullptr ||
+       (surf_reac->s.wall_index == WALL_INDEX_INVALID && surf_reac->s.grid_tile_index == TILE_INDEX_INVALID) ||
+       (surf_reac->s.wall_index != WALL_INDEX_INVALID && surf_reac->s.grid_tile_index != TILE_INDEX_INVALID)) &&
+      "Either both wall and tile index must be valid or both must be invalid"
+  );
+  if (surf_reac != nullptr) {
+    // we need to remember this value now because surf_reac's grid tile is freed a bit later to make a place for
+    // new product
+    surf_reac_wall_tile.wall_index = surf_reac->s.wall_index;
+    surf_reac_wall_tile.tile_index = surf_reac->s.grid_tile_index;
+  }
+
   /* If the reaction involves a surface, make sure there is room for each product. */
   small_vector<GridPos> assigned_surf_prod_positions; // this array contains information on where to place the surface products
   assigned_surf_prod_positions.resize(rx->products.size());
@@ -1334,6 +1372,9 @@ int DiffuseReactEvent::outcome_products_random(
 
     molecule_id_t new_m_id;
 
+    // set only for new vol mols when one of the reactants is surf, invalid by default
+    WallTileIndexPair where_is_vm_created;
+
     float_t scheduled_time;
     if (rx->reactants.size() == 2 && species.is_vol() && !one_of_reactants_is_surf) {
       // bimolecular reaction
@@ -1359,7 +1400,12 @@ int DiffuseReactEvent::outcome_products_random(
 
       // adding molecule might invalidate references of already existing molecules
       Molecule& new_vm = p.add_volume_molecule(vm_initialization);
+
+      // id and position is used to schedule a diffusion action
       new_m_id = new_vm.id;
+      if (surf_reac != nullptr) {
+        where_is_vm_created = surf_reac_wall_tile;
+      }
 
       new_vm.flags = IN_VOLUME | (species.can_diffuse() ? ACT_DIFFUSE : 0);
       new_vm.set_flag(MOLECULE_FLAG_VOL);
@@ -1440,7 +1486,11 @@ int DiffuseReactEvent::outcome_products_random(
     // particular product
     // we always create diffuse events, unimol react events are created elsewhere
     new_diffuse_or_unimol_react_actions.push_back(
-        DiffuseOrUnimolReactionAction(new_m_id, scheduled_time, DiffuseOrUnimolReactionAction::Type::DIFFUSE));
+        DiffuseOrUnimolReactionAction(
+            DiffuseOrUnimolReactionAction::Type::DIFFUSE,
+            new_m_id, scheduled_time,
+            where_is_vm_created
+    ));
 
   } // end for - product creation
 

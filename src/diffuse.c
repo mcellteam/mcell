@@ -4253,7 +4253,6 @@ int collide_and_react_with_surf_mol(struct volume* world, struct collision* smas
   }
   struct surface_molecule* sm = w->grid->sm_list[j]->sm;
   if (m->index == j && m->previous_wall == w) {
-    ASSERT_FOR_MCELL4(false);
     m->index = -1; // Avoided rebinding, but next time it's OK
     return -1;
   }

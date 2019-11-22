@@ -131,14 +131,28 @@ const uint EDGES_IN_TRIANGLE = VERTICES_IN_TRIANGLE; // same of course as above,
 typedef uint vertex_index_t; // index in partition's vertices
 const vertex_index_t VERTEX_INDEX_INVALID = UINT32_MAX;
 
-//typedef uint grid_index_t; // index in partition's walls
-//const grid_index_t GRID_INDEX_INVALID = UINT32_MAX;
+typedef uint wall_index_t; // index in partition's walls
+const wall_index_t WALL_INDEX_INVALID = UINT32_MAX;
 
 typedef uint tile_index_t; // index of a tile in a grid
 const tile_index_t TILE_INDEX_INVALID = UINT32_MAX;
 
-typedef uint wall_index_t; // index in partition's walls
-const wall_index_t WALL_INDEX_INVALID = UINT32_MAX;
+/* contains information about the neighbors of the tile */
+class WallTileIndexPair {
+public:
+  WallTileIndexPair()
+    : wall_index(WALL_INDEX_INVALID), tile_index(TILE_INDEX_INVALID)
+    {
+  }
+
+  WallTileIndexPair(const wall_index_t wall_index_, const tile_index_t tile_index_)
+    : wall_index(wall_index_), tile_index(tile_index_)
+    {
+  }
+
+  wall_index_t wall_index;  /* surface grid the tile is on */
+  tile_index_t tile_index;  /* index on that tile */
+};
 
 typedef uint wall_id_t; // world-unique wall id
 const wall_id_t WALL_ID_INVALID = UINT32_MAX;

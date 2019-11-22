@@ -193,19 +193,6 @@ public:
   static void dump_array(Partition& p, const collision_vector_t& vec);
 };
 
-/* contains information about the neighbors of the tile */
-class WallTileIndexPair {
-public:
-  WallTileIndexPair(const wall_index_t wall_index_, const tile_index_t tile_index_)
-    : wall_index(wall_index_), tile_index(tile_index_)
-    {
-  }
-
-  wall_index_t wall_index;  /* surface grid the tile is on */
-  tile_index_t tile_index;  /* index on that tile */
-  //short int flag;           /* flag */ - not needed so far
-};
-
 class TileNeighborVector: public std::deque<WallTileIndexPair> {
 public:
   void dump(const std::string extra_comment, const std::string ind) {
@@ -290,7 +277,8 @@ private:
   void diffuse_single_molecule(
       Partition& p,
       const molecule_id_t vm_id,
-      const float_t time_up_to_event_end
+      const float_t time_up_to_event_end,
+      WallTileIndexPair where_created_this_iteration
   );
 
   // ---------------------------------- volume molecules ----------------------------------
@@ -301,7 +289,8 @@ private:
       const float_t remaining_time_step,
       bool& was_defunct,
       vec3_t& new_pos,
-      subpart_index_t& new_subpart_index
+      subpart_index_t& new_subpart_index,
+      WallTileIndexPair& where_created_this_iteration
   );
   bool collide_and_react_with_vol_mol(
       Partition& p,
@@ -316,7 +305,8 @@ private:
       Collision& collision,
       float_t remaining_time_step,
       float_t r_rate_factor,
-      float_t current_molecule_time
+      float_t current_molecule_time,
+      WallTileIndexPair& where_created_this_iteration
   );
 
   // ---------------------------------- surface molecules ----------------------------------
