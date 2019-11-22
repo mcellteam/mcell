@@ -422,10 +422,6 @@ mcell_run_iteration(MCELL_STATE *world, long long frequency,
     /* Change geometry if needed */
     process_geometry_changes(world, not_yet);
 
-    if (world->current_iterations == 40) {
-      dump_object_list(world->root_instance, "", "", "");
-    }
-
     /* Release molecules */
     process_molecule_releases(world, not_yet);
 
