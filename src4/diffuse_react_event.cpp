@@ -353,11 +353,11 @@ void DiffuseReactEvent::diffuse_vol_molecule(
         }
 
         if (!was_defunct) {
+          elapsed_molecule_time += updated_remaining_time_step * collision.time;
           int res = CollisionUtil::reflect_or_periodic_bc(
               p, collision,
               vm_new_ref, remaining_displacement, updated_remaining_time_step, reflected_wall_index
           );
-          elapsed_molecule_time += remaining_time_step * collision.time;
           assert(res == 0 && "Periodic box BCs are not supported yet");
         }
 
