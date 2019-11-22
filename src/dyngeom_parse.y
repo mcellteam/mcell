@@ -481,8 +481,4 @@ void dgerror(
   mcell_error("%s on line %d in %s\n", str, dg_parse->line_num[dg_parse->include_stack_ptr - 1], dg_parse->curr_file);
 }
 
-int main(int argc, char *argv[])
-{
-  /*struct dyngeom_parse_vars *dg_parse = create_dg_parse();*/
-  /*parse_dg_init(dg_parse, argv[1]);*/
-}
+

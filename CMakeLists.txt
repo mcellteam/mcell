@@ -29,10 +29,7 @@ SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 ")
 
 set(INCLUDE_DIRS " -isystem ${CMAKE_SOURCE_DIR}/libs/")
 
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-  SET(USE_SANITIZER_DEFAULT ON)
-else()
-  SET(USE_SANITIZER_DEFAULT OFF)
+if (CMAKE_BUILD_TYPE STREQUAL "Release")
   SET(OPTIMIZATION_FLAGS " -O3 -march=core2 -finline-limit=1000 ")
   
   # must not be used for pymcell (at least for now)
@@ -58,7 +55,7 @@ endif()
 option(USE_GCOV "Use gcc coverage" OFF) 
 option(USE_PROFILING "Use gprof profiling" OFF) 
 option(USE_LTO "Use link-time optimization" OFF)
-option(USE_SANITIZER "Use address sanitizer (ON for debug build, OFF for release build" ${USE_SANITIZER_DEFAULT})
+option(USE_SANITIZER "Use address sanitizer" OFF)
 option(PYMCELL "Build also pyMCell" ON) 
 
 
@@ -118,13 +115,24 @@ find_package(BISON)
 find_package(FLEX)
 BISON_TARGET(mdlParser ${CMAKE_SOURCE_DIR}/src/mdlparse.y
   ${CMAKE_CURRENT_BINARY_DIR}/deps/mdlparse.c)
+  
+BISON_TARGET(dynGeomParser ${CMAKE_SOURCE_DIR}/src/dyngeom_parse.y
+  ${CMAKE_CURRENT_BINARY_DIR}/deps/dyngeom_yacc.c)
 
-file(COPY ${CMAKE_SOURCE_DIR}/src/mdllex.l DESTINATION
-  ${CMAKE_CURRENT_BINARY_DIR}/deps)
+# not sure why is the lex file copied
+configure_file(${CMAKE_SOURCE_DIR}/src/mdllex.l ${CMAKE_CURRENT_BINARY_DIR}/deps/mdllex.l COPYONLY)
 
 FLEX_TARGET(mdlScanner ${CMAKE_CURRENT_BINARY_DIR}/deps/mdllex.l
   ${CMAKE_CURRENT_BINARY_DIR}/deps/mdlex.c COMPILE_FLAGS -Crema)
 ADD_FLEX_BISON_DEPENDENCY(mdlScanner mdlParser mdllex_l)
+
+configure_file(${CMAKE_SOURCE_DIR}/src/dyngeom_lex.l ${CMAKE_CURRENT_BINARY_DIR}/deps/dyngeom_lex.l COPYONLY)
+
+FLEX_TARGET(dynGeomScanner ${CMAKE_CURRENT_BINARY_DIR}/deps/dyngeom_lex.l
+  ${CMAKE_CURRENT_BINARY_DIR}/deps/dyngeom_lex.c COMPILE_FLAGS -Crema)
+ADD_FLEX_BISON_DEPENDENCY(dynGeomScanner dynGeomParser dyngeomlex_l)
+
+
 
 # create version.h target
 if (NOT WIN32)
@@ -144,110 +152,62 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/../nfsimCInterface ${CMAKE_CURRENT_BINARY_D
 
 set(SOURCE_FILES
     src/argparse.c
-    src/argparse.h
     src/chkpt.c
-    src/chkpt.h
-    src/config-nix.h
-    src/config-win.h
     src/count_util.c
-    src/count_util.h
     src/diffuse.c
-    src/diffuse.h
     src/diffuse_trimol.c
     src/diffuse_util.c
-    src/diffuse_util.h
     src/dyngeom.c
-    src/dyngeom.h
-    src/dyngeom_lex.c
     src/dyngeom_parse_extras.c
-    src/dyngeom_parse_extras.h
-    src/dyngeom_yacc.c
     src/grid_util.c
-    src/grid_util.h
     src/map_c.cpp
-    src/map_c.h
     src/init.c
-    src/init.h
     src/isaac64.c
-    src/isaac64.h
     src/logging.c
-    src/logging.h
     src/mcell_dyngeom.c
-    src/mcell_dyngeom.h
     src/mcell_init.c
-    src/mcell_init.h
     src/mcell_misc.c
-    src/mcell_misc.h
     src/mcell_objects.c
-    src/mcell_objects.h
     src/mcell_react_out.c
-    src/mcell_react_out.h
     src/mcell_reactions.c
-    src/mcell_reactions.h
     src/mcell_release.c
-    src/mcell_release.h
     src/mcell_run.c
-    src/mcell_run.h
     src/mcell_species.c
-    src/mcell_species.h
-    src/mcell_structs.h
     src/mcell_surfclass.c
-    src/mcell_surfclass.h
     src/mcell_viz.c
-    src/mcell_viz.h
-    src/mdlparse.y
-    src/mdlparse_aux.h
     src/mem_util.c
-    src/mem_util.h
     src/minrng.c
-    src/minrng.h
     src/nfsim_func.c
-    src/nfsim_func.h
-    src/react.h
     src/react_cond.c
-    src/react_nfsim.h
     src/react_outc.c
     src/react_outc_nfsim.c
     src/react_outc_trimol.c
     src/react_output.c
-    src/react_output.h
     src/react_trig.c
     src/react_trig_nfsim.c
     src/react_util.c
-    src/react_util.h
     src/react_util_nfsim.c
     src/rng.c
-    src/rng.h
     src/sched_util.c
-    src/sched_util.h
     src/strfunc.c
-    src/strfunc.h
     src/sym_table.c
-    src/sym_table.h
     src/test_api.c
-    src/test_api.h
     src/triangle_overlap.c
-    src/triangle_overlap.h
     src/util.c
-    src/util.h
     src/vector.c
-    src/vector.h
     src/version_info.c
-    src/version_info.h
     src/viz_output.c
-    src/viz_output.h
     src/vol_util.c
-    src/vol_util.h
     src/volume_output.c
-    src/volume_output.h
     src/wall_util.c
-    src/wall_util.h
 )
 
 set(SOURCE_FILES_ONLY_MCELL
     src/mdlparse_util.c
     src/mdlparse_util.h
 )    
+
+set( SOURCE_FILES ${SOURCE_FILES} src/mdlparse.y src/dyngeom_parse.y )
 
 link_directories(${CMAKE_BINARY_DIR}/lib)
 if (UNIX)
@@ -320,7 +280,9 @@ add_executable(mcell
   ${SOURCE_FILES_ONLY_MCELL}
   src/mcell.c
   ${BISON_mdlParser_OUTPUTS}
-  ${FLEX_mdlScanner_OUTPUTS})
+  ${BISON_dynGeomParser_OUTPUTS}  
+  ${FLEX_mdlScanner_OUTPUTS}
+  ${FLEX_dynGeomScanner_OUTPUTS})
 
 add_dependencies(mcell version_h)
 
