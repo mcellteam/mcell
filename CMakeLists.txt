@@ -12,16 +12,10 @@ endif()
 
 add_definitions(-DPACKAGE_BUGREPORT="mcell@salk.edu")
 
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-  SET(USE_SANITIZER_DEFAULT ON)
-else()
-  SET(USE_SANITIZER_DEFAULT OFF)
-endif()
-
 option(USE_GCOV "Use gcc coverage" OFF) 
 option(USE_PROFILING "Use gprof profiling" OFF) 
 option(USE_LTO "Use link-time optimization" OFF)
-option(USE_SANITIZER "Use address sanitizer (ON for debug build, OFF for release build" ${USE_SANITIZER_DEFAULT})
+option(USE_SANITIZER "Use address sanitizer OFF)
 option(PYMCELL "Build also pyMCell" ON) 
 
 
