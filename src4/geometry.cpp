@@ -73,6 +73,19 @@ void Grid::initialize(const Partition& p, const Wall& w) {
   vert0.v = dot(vert0_tmp, w.unit_v);
 }
 
+// populates array molecules with ids of molecules belonging to this grid
+void Grid::get_contained_molecules(
+    small_vector<molecule_id_t>& molecule_ids
+) const {
+  // might be optimized by retaining a vector/set that gets invalidated if anything changes
+  molecule_ids.clear();
+  for (molecule_id_t id: molecules_per_tile) {
+    if (id != MOLECULE_ID_INVALID) {
+      molecule_ids.push_back(id);
+    }
+  }
+}
+
 
 void GeometryObject::dump(const Partition& p, const std::string ind) const {
   cout << ind << "geometry_object_t: id:" << id << ", name:" << name << "\n";

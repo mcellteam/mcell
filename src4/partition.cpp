@@ -171,8 +171,12 @@ bool is_point_above_plane_defined_by_wall(const Partition& p, const Wall& w, con
 }
 
 
-void Partition::move_surface_molecule_to_closest_wall_point(const SurfaceMoleculeMoveInfo& molecule_move_info) {
-  // TODO
+void Partition::move_surface_molecule_to_closest_wall_point(
+    const SurfaceMoleculeMoveInfo& molecule_move_info) {
+
+  // TODO: how does mcell3 do it?
+
+
 }
 
 
@@ -325,8 +329,6 @@ void Partition::collect_volume_molecules_moved_due_to_moving_wall(
     }
   }
 
-
-
   // TODO: optimize only for molecules in relevant subpartitions
   for (Molecule& m: molecules) {
 
@@ -419,7 +421,31 @@ void Partition::collect_surface_molecules_moved_due_to_moving_wall(
 
   // get all surface molecules that belong to a given wall
 
+  // We have no direct set that would say which molecules belong to a given wall,
+  // attempts were done, but even maintaining a simple set in grid costs ~5% of runtime.
+  // With the data that we have available, the simples option is to
+  // go through the array in grid and check all existing molecules.
+  // There might be other solutions that use subpartitions but let's keep it simple for now.
 
+  molecule_moves.clear();
+  const Grid* g = get_wall_grid_if_exists(moved_wall_index);
+  if (g == nullptr) {
+    return;
+  }
+  small_vector<molecule_id_t> molecule_ids;
+  g->get_contained_molecules(molecule_ids);
+
+  const Wall& w = get_wall(moved_wall_index);
+  const vec3_t& vert0 = get_geometry_vertex(w.vertex_indices[0]);
+
+  for (molecule_id_t id: molecule_ids) {
+
+    vec3_t pos3d = GeometryUtil::uv2xyz(get_m(id).s.pos, w, vert0);
+
+    molecule_moves.push_back(
+        SurfaceMoleculeMoveInfo(id, moved_wall_index, pos3d)
+    );
+  }
 }
 
 

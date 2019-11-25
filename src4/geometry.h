@@ -124,6 +124,11 @@ public:
     return molecules_per_tile[tile_index];
   }
 
+  // populates array molecules with ids of molecules belonging to this grid
+  void get_contained_molecules(
+      small_vector<molecule_id_t>& molecule_ids
+  ) const;
+
 private:
   // For now, there can be just one molecule per tile,
   // value is MOLECULE_ID_INVALID when the tile is not occupied
