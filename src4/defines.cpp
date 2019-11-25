@@ -85,6 +85,7 @@ void SimulationStats::dump() {
   cout << "Total number of ray-subvolume intersection tests (number of ray_trace calls): " << ray_voxel_tests << "\n";
   cout << "Total number of ray-polygon intersection tests: " << ray_polygon_tests << "\n";
   cout << "Total number of ray-polygon intersections: " << ray_polygon_colls << "\n";
+  cout << "Total number of molecule moves between walls: " << mol_moves_between_walls << "\n";
 }
 
 } // namespace mcell

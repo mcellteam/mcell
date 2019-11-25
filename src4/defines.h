@@ -513,7 +513,10 @@ typedef std::unordered_map< species_id_t, SpeciesReactionMap > BimolecularReacti
 class SimulationStats {
 public:
   SimulationStats()
-    : ray_voxel_tests(0), ray_polygon_tests(0), ray_polygon_colls(0) {
+    : current_iteration(0),
+      ray_voxel_tests(0), ray_polygon_tests(0), ray_polygon_colls(0),
+      mol_moves_between_walls(0)
+      {
   }
   void inc_ray_voxel_tests() {
     ray_voxel_tests++;
@@ -523,6 +526,11 @@ public:
   }
   void inc_ray_polygon_colls() {
     ray_polygon_colls++;
+  }
+
+  // new mcell4 stats
+  void inc_mol_moves_between_walls() {
+    mol_moves_between_walls++;
   }
 
   void dump();
@@ -538,6 +546,7 @@ private:
   uint64_t ray_voxel_tests;
   uint64_t ray_polygon_tests;
   uint64_t ray_polygon_colls;
+  uint64_t mol_moves_between_walls;
 };
 
 } // namespace mcell
