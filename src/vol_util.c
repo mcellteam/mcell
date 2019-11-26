@@ -51,6 +51,8 @@
 #include "mcell_reactions.h"
 #include "diffuse.h"
 
+#include "debug_config.h"
+
 static int test_max_release(double num_to_release, char *name);
 
 static int check_release_probability(double release_prob, struct volume *state,
@@ -564,9 +566,11 @@ struct wall* find_closest_wall(
       if (d2 <= EPS_C * EPS_C) {
         return NULL;
       } else {
+        struct wall* orig_best_w = best_w;
         best_w = search_nbhd_for_free(
             state, best_w, best_uv, d2, grid_index, NULL, NULL, mesh_name,
             reg_names);
+        ASSERT_FOR_MCELL4(orig_best_w == best_w);
         if (best_w == NULL) {
           return NULL;
         }

@@ -477,7 +477,7 @@ public:
   void apply_vertex_moves();
 
 private:
-  void find_closest_wall(
+  float_t find_closest_wall(
       const vec3_t& pos, const wall_index_t wall_that_moved_molecule,
       wall_index_t& best_wall_index,
       vec2_t& best_wall_pos2d

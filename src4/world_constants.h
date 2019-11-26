@@ -41,6 +41,8 @@ public:
   float_t time_unit;
   float_t length_unit;
   float_t rx_radius_3d;
+  float_t vacancy_search_dist2;
+
   float_t partition_edge_length;
   uint subpartitions_per_partition_dimension;
   uint subpartitions_per_partition_dimension_squared;

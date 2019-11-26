@@ -25,9 +25,7 @@
 #include <stdlib.h>
 #include <set>
 
-//extern "C" {
 #include "logging.h"
-//}
 #include "mcell_structs.h"
 #include "mcell3_world_converter.h"
 
@@ -150,6 +148,7 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
   world->world_constants.time_unit = s->time_unit;
   world->world_constants.length_unit = s->length_unit;
   world->world_constants.rx_radius_3d = s->rx_radius_3d;
+  world->world_constants.vacancy_search_dist2 = s->vacancy_search_dist2;
   world->seed_seq = s->seed_seq;
   world->rng = *s->rng;
 

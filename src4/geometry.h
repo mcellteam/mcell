@@ -94,6 +94,7 @@ public:
 
   uint num_tiles_along_axis; // Number of slots along each axis (originally n)
   uint num_tiles; // Number of tiles in effector grid (triangle: grid_size^2, rectangle: 2*grid_size^2) (originally n_tiles)
+  uint num_occupied; // How many tiles are occupied
 
   float_t strip_width_rcp; /* Reciprocal of the width of one strip */ // inv_strip_wid originally
   float_t vert2_slope;   /* Slope from vertex 0 to vertex 2 */
@@ -106,7 +107,9 @@ public:
     assert(num_tiles == molecules_per_tile.size());
     assert(tile_index < molecules_per_tile.size());
     assert(molecules_per_tile[tile_index] == MOLECULE_INDEX_INVALID && "Cannot overwite a molecule that is already on tile");
+
     molecules_per_tile[tile_index] = id;
+    num_occupied++;
   }
 
   void reset_molecule_tile(tile_index_t tile_index) {
@@ -114,7 +117,9 @@ public:
     assert(num_tiles == molecules_per_tile.size());
     assert(tile_index < molecules_per_tile.size());
     assert(molecules_per_tile[tile_index] != MOLECULE_INDEX_INVALID && "Cannot reset a tile that has no molecule");
+
     molecules_per_tile[tile_index] = MOLECULE_INDEX_INVALID;
+    num_occupied--;
   }
 
   molecule_id_t get_molecule_on_tile(tile_index_t tile_index) const {
@@ -128,6 +133,11 @@ public:
   void get_contained_molecules(
       small_vector<molecule_id_t>& molecule_ids
   ) const;
+
+  void reset_all_tiles() {
+    std::fill(molecules_per_tile.begin(), molecules_per_tile.end(), MOLECULE_INDEX_INVALID);
+    num_occupied = 0;
+  }
 
 private:
   // For now, there can be just one molecule per tile,

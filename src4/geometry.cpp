@@ -39,18 +39,20 @@ using namespace std;
 
 namespace MCell {
 
+// may be also used fore reinitialization
 void Grid::initialize(const Partition& p, const Wall& w) {
 
-  // we are expecting that there are no molecules for reinitialization,
-  // dynamic geometry walls must not have any surface molecules for now!
-  // TODO: do we need a better check? - i.e. also for non-debug version? probably yes..
-#ifndef NDEBUG
-  if (!molecules_per_tile.empty()) {
-    for (tile_index_t tile_index = 0; tile_index < num_tiles; tile_index++) {
-      assert(get_molecule_on_tile(tile_index) == MOLECULE_INDEX_INVALID);
-    }
+  if (is_initialized()) {
+    // keep the same number of items
+    #ifndef NDEBUG
+      small_vector<molecule_id_t> molecule_ids;
+      get_contained_molecules(molecule_ids);
+      assert(molecule_ids.size() == num_occupied);
+    #endif
   }
-#endif
+  else {
+    num_occupied = 0;
+  }
 
   num_tiles_along_axis = (int)ceil_f(sqrt_f(w.area));
   if (num_tiles_along_axis < 1) {
@@ -72,6 +74,7 @@ void Grid::initialize(const Partition& p, const Wall& w) {
   vert0.u = dot(vert0_tmp, w.unit_u);
   vert0.v = dot(vert0_tmp, w.unit_v);
 }
+
 
 // populates array molecules with ids of molecules belonging to this grid
 void Grid::get_contained_molecules(
