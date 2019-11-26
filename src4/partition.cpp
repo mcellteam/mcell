@@ -23,6 +23,8 @@
 
 #include <iostream>
 
+#include "logging.h"
+
 #include "partition.h"
 
 #include "dyn_vertex_utils.h"
