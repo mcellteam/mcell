@@ -24,6 +24,15 @@
 #ifndef SRC4_DEFINES_H_
 #define SRC4_DEFINES_H_
 
+#ifndef NDEBUG
+// TODO: probably make this enabled only for Eclipse, we want the debug build to behave exactly as the release build
+#define INDEXER_WA // Don't know yet how to convince Eclipse to correctly index boost containers
+#endif
+
+#if defined(NDEBUG) && defined(INDEXER_WA)
+#warning "INDEXER_WA is enabled and this will lead to lower performance"
+#endif
+
 #ifndef SWIG
 #include <stdint.h>
 #include <vector>
@@ -178,12 +187,19 @@ typedef std::pair<float_t, PartitionWallIndexPair> CummAreaPWallIndexPair;
 
 class Reaction;
 
+#ifndef INDEXER_WA
 template<class T, class Allocator=boost::container::new_allocator<T>>
 using small_vector = boost::container::small_vector<T, 8, Allocator>;
 
 typedef boost::container::small_vector<subpart_index_t, 8>  SubpartIndicesVector;
 typedef boost::container::small_vector<const Reaction*, 8>  ReactionsVector;
+#else
+template<typename T, typename _Alloc = std::allocator<T>  >
+using small_vector = std::vector<T, _Alloc>;
 
+typedef std::vector<subpart_index_t> SubpartIndicesVector;
+typedef std::vector<const Reaction*> ReactionsVector;
+#endif
 
 /**
  * Class used to hold sets of ids or indices of molecules or other items
@@ -502,10 +518,14 @@ static inline void debug_guard_zero_div(vec3_t& val) {
 
 
 class Reaction;
-
+#ifndef INDEXER_WA
 typedef std::unordered_map<species_id_t, Reaction*> SpeciesReactionMap;
-typedef SpeciesReactionMap UnimolecularReactionsMap;
 typedef std::unordered_map< species_id_t, SpeciesReactionMap > BimolecularReactionsMap;
+#else
+typedef std::map<species_id_t, Reaction*> SpeciesReactionMap;
+typedef std::map<species_id_t, SpeciesReactionMap> BimolecularReactionsMap;
+#endif
+typedef SpeciesReactionMap UnimolecularReactionsMap;
 
 /*
  * Constant data set in initialization useful for all classes, single object is owned by world
