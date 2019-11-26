@@ -28,6 +28,7 @@
 #include "mcell_structs.h"
 
 #include "molecule.h"
+#include "geometry.h"
 #include "world.h"
 
 using namespace std;
@@ -79,7 +80,7 @@ void Molecule::dump(const string ind) const {
 
 
 void Molecule::dump(
-    const WorldConstants& world_constants,
+    const Partition& p,
     const string extra_comment,
     const string ind,
     const uint64_t iteration,
@@ -88,7 +89,7 @@ void Molecule::dump(
 ) const {
   cout
     << ind << extra_comment << "it:" << iteration << ", idx:" << id
-    << ", species: " << world_constants.get_species(species_id).name;
+    << ", species: " << p.get_world_constants().get_species(species_id).name;
 
   if (print_position) {
     cout << ", pos:";
@@ -98,6 +99,8 @@ void Molecule::dump(
     }
     else if (is_surf()) {
       cout << s.pos;
+      const Wall& w = p.get_wall(s.wall_index);
+      cout << ", wall side: " << w.side;
       cout << ", grid index: " << s.grid_tile_index;
     }
   }

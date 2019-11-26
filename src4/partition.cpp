@@ -130,7 +130,7 @@ void Partition::move_volume_molecule_to_closest_wall_point(const VolumeMoleculeM
   vec3_t new_pos3d = GeometryUtil::uv2xyz(best_wall_pos2d, wall, get_wall_vertex(wall, 0));
 
 #ifdef DEBUG_DYNAMIC_GEOMETRY
-  vm.dump(get_world_constants(), "", "Moving molecule towards new wall: ", simulation_stats.current_iteration, 0);
+  vm.dump(*this, "", "Moving molecule towards new wall: ", simulation_stats.current_iteration, 0);
   wall.dump(*this, "", true);
 #endif
 
@@ -157,7 +157,7 @@ void Partition::move_volume_molecule_to_closest_wall_point(const VolumeMoleculeM
 
 
 #ifdef DEBUG_DYNAMIC_GEOMETRY
-  vm.dump(get_world_constants(), "", "Molecule after being moved: ", simulation_stats.current_iteration /*iteration*/, 0);
+  vm.dump(*this, "", "Molecule after being moved: ", simulation_stats.current_iteration /*iteration*/, 0);
 #endif
 }
 
@@ -445,7 +445,7 @@ void find_closest_tile_on_wall(
     }*/
 
     found_wall_index = new_wall_index;
-    found_tile_index = GridUtil::uv2grid_tile_index(closest_pos2d, w);
+    found_tile_index = new_tile_index; //GridUtil::uv2grid_tile_index(closest_pos2d, w);
   }
 }
 

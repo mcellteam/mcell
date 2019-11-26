@@ -391,18 +391,20 @@ static float_t time_of_unimol(const Reaction* rx, rng_state& rng) {
 
 // based on compute_lifetime
 static float_t compute_unimol_lifetime(
-    World* world,
+    const Partition& p,
+    rng_state& rng,
     const Molecule& vm,
     const Reaction* rx
 ) {
   assert(rx != nullptr);
 
-  float_t res = time_of_unimol(rx, world->rng);
+  float_t res = time_of_unimol(rx, rng);
 
 #ifdef DEBUG_REACTIONS
+  SimulationStats* world = &p.get_simulation_stats();
   DUMP_CONDITION4(
       // calling rng for unimolecular
-      vm.dump(world->get_world_constants(), "Assigned unimolecular time (prev rng):", "", world->get_current_iteration(), res);
+      vm.dump(p, "Assigned unimolecular time (prev rng):", "", p.get_simulation_stats().get_current_iteration(), res);
   );
 #endif
 

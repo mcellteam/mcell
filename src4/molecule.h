@@ -28,7 +28,7 @@
 
 namespace MCell {
 
-class WorldConstants;
+class Partition;
 
 #if 0
 // from mcell3, copied for reference
@@ -209,7 +209,7 @@ public:
 
   void dump(const std::string ind) const;
   void dump(
-      const WorldConstants& world_constants,
+      const Partition& p,
       const std::string extra_comment,
       const std::string ind,
       const uint64_t iteration,

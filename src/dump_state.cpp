@@ -1943,7 +1943,8 @@ void dump_surface_molecule(
         << ", species: " << get_species_name(sm);
     if (print_position) {
         cout << ", pos:" << sm->s_pos
-        << ", grid index: " << sm->grid_index;
+            << ", wall side: " << sm->grid->surface->side
+            << ", grid index: " << sm->grid_index;
     }
     cout << ", flags:" << get_molecule_flags_string(sm->flags, false) << ", time: " << time << "\n";
   }
