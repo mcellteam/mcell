@@ -39,6 +39,7 @@ struct num_expr_list_head {
 
 void mcell_set_seed(MCELL_STATE *state, int seed);
 void mcell_set_with_checks_flag(MCELL_STATE *state, int value);
+void mcell_set_randomize_smol_pos(MCELL_STATE *state, int value);
 
 MCELL_STATE *mcell_create(void);
 

@@ -92,6 +92,11 @@ void mcell_set_with_checks_flag(MCELL_STATE *state, int value) {
   state->with_checks_flag = value;
 }
 
+void mcell_set_randomize_smol_pos(MCELL_STATE *state, int value) {
+  assert(value == 0 || value == 1);
+  state->randomize_smol_pos = value;
+}
+
 /************************************************************************
  *
  * function for initializing the main mcell simulator. MCELL_STATE
