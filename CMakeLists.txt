@@ -15,7 +15,7 @@ add_definitions(-DPACKAGE_BUGREPORT="mcell@salk.edu")
 option(USE_GCOV "Use gcc coverage" OFF) 
 option(USE_PROFILING "Use gprof profiling" OFF) 
 option(USE_LTO "Use link-time optimization" OFF)
-option(USE_SANITIZER "Use address sanitizer OFF)
+option(USE_SANITIZER "Use address sanitizer" OFF)
 option(PYMCELL "Build also pyMCell" ON) 
 
 
