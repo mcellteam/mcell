@@ -159,7 +159,7 @@ void Partition::move_volume_molecule_to_closest_wall_point(const VolumeMoleculeM
 
 
 #ifdef DEBUG_DYNAMIC_GEOMETRY
-  vm.dump(*this, "", "Molecule after being moved: ", simulation_stats.current_iteration /*iteration*/, 0);
+  vm.dump(*this, "", "Vm after being moved: ", simulation_stats.current_iteration /*iteration*/, 0);
 #endif
 }
 
@@ -295,7 +295,7 @@ search_nbhd_for_free:
 void search_nbhd_for_free(
     const Partition& p,
     const wall_index_t origin_wall_index, const vec2_t& closest_pos2d, const float_t max_search_d2,
-    wall_index_t& res_wall_index, tile_index_t& res_tile_index, vec2_t& res_pos2d
+    wall_index_t& res_wall_index, tile_index_t& res_tile_index
   ) {
 
   wall_index_t best_wall_index = origin_wall_index;
@@ -316,7 +316,6 @@ void search_nbhd_for_free(
   else {
     res_wall_index = best_wall_index;
     res_tile_index = best_tile_index;
-    res_pos2d = best_pos;
     return;
   }
 #if 0
@@ -409,7 +408,7 @@ void find_closest_tile_on_wall(
     const Partition& p,
     const wall_index_t closest_wall_index, const vec2_t& closest_pos2d,
     const float_t closest_d2, const float_t search_d2,
-    wall_index_t& found_wall_index, tile_index_t& found_tile_index
+    wall_index_t& found_wall_index, tile_index_t& found_tile_index, vec2_t& found_pos2d
 ) {
 
   tile_index_t closest_tile_index;
@@ -422,9 +421,10 @@ void find_closest_tile_on_wall(
     // ok, tile is empty
     found_wall_index = closest_wall_index;
     found_tile_index = closest_tile_index;
+    found_pos2d = closest_pos2d;
   }
   else {
-    // need to find a close one
+    // need to find a tile that is close
 
     // squared distance
     float_t max_search_d2 = search_d2 - closest_d2;
@@ -434,20 +434,26 @@ void find_closest_tile_on_wall(
 
     wall_index_t new_wall_index;
     wall_index_t new_tile_index;
-    vec2_t new_pos;
     search_nbhd_for_free(
         p, closest_wall_index, closest_pos2d, max_search_d2,
-        new_wall_index, new_tile_index, new_pos
+        new_wall_index, new_tile_index
     );
     assert(new_wall_index != TILE_INDEX_INVALID);
 
-    /*if (state->randomize_smol_pos) {
-      assert(false && "TODO");
-      //grid2uv_random(best_w->grid, *grid_index, best_uv, state->rng);
-    }*/
+    vec2_t new_pos2d;
+    const Wall& w = p.get_wall(new_wall_index);
+    if (p.get_world_constants().randomize_smol_pos) {
+      // molecules are processed in different order than in mcell3...
+      assert(false && "TODO - need RNG for dynamic vertices and surface molecules");
+      // new_pos2d = GridUtil::grid2uv_random(w, new_tile_index, rng); // XXX
+    }
+    else {
+      new_pos2d = GridUtil::grid2uv(w, new_tile_index);
+    }
 
     found_wall_index = new_wall_index;
     found_tile_index = new_tile_index; //GridUtil::uv2grid_tile_index(closest_pos2d, w);
+    found_pos2d = new_pos2d;
   }
 }
 
@@ -473,16 +479,24 @@ void Partition::move_surface_molecule_to_closest_wall_point(
   // place molecule onto the found wall, all the remaining information about the molecule stays the same
   wall_index_t found_wall_index;
   tile_index_t found_tile_index;
+  vec2_t found_pos2d;
 
   find_closest_tile_on_wall(
       *this, best_wall_index, best_wall_pos2d, best_d2, get_world_constants().vacancy_search_dist2,
-      found_wall_index, found_tile_index
+      found_wall_index, found_tile_index, found_pos2d
   );
 
   sm.s.wall_index = found_wall_index;
   sm.s.grid_tile_index = found_tile_index;
+  sm.s.pos = found_pos2d; // this will need to be fixed
   Wall& w = get_wall(found_wall_index);
   w.grid.set_molecule_tile(found_tile_index, sm.id);
+
+  // TODO reschedule unimolar
+
+#ifdef DEBUG_DYNAMIC_GEOMETRY
+  sm.dump(*this, "", "Sm after being moved: ", simulation_stats.current_iteration /*iteration*/, 0);
+#endif
 }
 
 

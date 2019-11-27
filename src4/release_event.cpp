@@ -85,7 +85,13 @@ static size_t cum_area_bisect_high(const vector<CummAreaPWallIndexPair>& array, 
 
 void ReleaseEvent::place_single_molecule_onto_grid(Partition& p, Wall& wall, tile_index_t tile_index) {
 
-  vec2_t pos_on_wall = GridUtil::grid2uv_random(wall, tile_index, world->rng);
+  vec2_t pos_on_wall;
+  if (p.get_world_constants().randomize_smol_pos) {
+    pos_on_wall = GridUtil::grid2uv_random(wall, tile_index, world->rng);
+  }
+  else {
+    pos_on_wall = GridUtil::grid2uv(wall, tile_index);
+  }
 
   Molecule& new_sm = p.add_surface_molecule(
       Molecule(MOLECULE_ID_INVALID, species_id, pos_on_wall)

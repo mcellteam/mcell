@@ -210,7 +210,8 @@ static int move_sm_to_new_triangle(
 ) {
   Wall& wall = p.get_wall(sm.s.wall_index);
   Grid& grid = wall.grid;
-  assert(grid.get_molecule_on_tile(sm.s.grid_tile_index) == sm.id);
+  assert(grid.get_molecule_on_tile(sm.s.grid_tile_index) == sm.id
+      && "Mapping grid tile->molecule and molecule->grid tile does not match");
 
   p.get_simulation_stats().inc_mol_moves_between_walls();
 

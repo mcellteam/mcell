@@ -57,7 +57,7 @@
 
 //#define DEBUG_GRIDS
 
-#define FROM_ITERATION 9//250
+#define FROM_ITERATION 0//250
 
 #define TO_ITERATION 12
 

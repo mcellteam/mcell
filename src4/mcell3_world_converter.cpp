@@ -167,7 +167,7 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
   CHECK_PROPERTY(s->nx_parts == s->ny_parts);
   CHECK_PROPERTY(s->ny_parts == s->nz_parts);
 
-  CHECK_PROPERTY(s->randomize_smol_pos == 1);
+  world->world_constants.randomize_smol_pos = s->randomize_smol_pos;
 
   CHECK_PROPERTY(s->dynamic_geometry_molecule_placement == 0
       && "DYNAMIC_GEOMETRY_MOLECULE_PLACEMENT '=' NEAREST_TRIANGLE is not supported yet"
@@ -177,9 +177,6 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
 
   // this number counts the number of boundaries, not subvolumes, also, there are always 2 extra subvolumes on the sides in mcell3
   world->world_constants.subpartitions_per_partition_dimension = s->nx_parts - 3;
-
-
-  CHECK_PROPERTY(s->randomize_smol_pos == 1);
 
   return true;
 }

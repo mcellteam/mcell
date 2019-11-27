@@ -718,6 +718,11 @@ insert_surface_molecule(struct volume *state, struct species *s,
   if (sm == NULL)
     return NULL;
 
+#ifdef DEBUG_DYNAMIC_GEOMETRY
+    dump_surface_molecule(sm, "", true, "Sm after being moved: ", state->current_iterations, /*vm->t*/0, true);
+#endif
+
+
   if (periodic_box != NULL) {
     sm->periodic_box->x = periodic_box->x;
     sm->periodic_box->y = periodic_box->y;

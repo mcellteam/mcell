@@ -51,7 +51,7 @@ public:
 
   // other options
   bool use_expanded_list;
-
+  bool randomize_smol_pos;
 
   const UnimolecularReactionsMap* unimolecular_reactions_map; // owned by world
   const BimolecularReactionsMap* bimolecular_reactions_map; // owned by world
