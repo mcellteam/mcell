@@ -132,7 +132,7 @@ void Partition::move_volume_molecule_to_closest_wall_point(const VolumeMoleculeM
   vec3_t new_pos3d = GeometryUtil::uv2xyz(best_wall_pos2d, wall, get_wall_vertex(wall, 0));
 
 #ifdef DEBUG_DYNAMIC_GEOMETRY
-  vm.dump(*this, "", "Moving molecule towards new wall: ", simulation_stats.current_iteration, 0);
+  vm.dump(*this, "", "Moving vm towards new wall: ", simulation_stats.current_iteration, 0);
   wall.dump(*this, "", true);
 #endif
 
@@ -464,6 +464,10 @@ void Partition::move_surface_molecule_to_closest_wall_point(
   Molecule& sm = get_m(molecule_move_info.molecule_id);
   assert(sm.is_surf());
 
+#ifdef DEBUG_DYNAMIC_GEOMETRY_MCELL4_ONLY
+  sm.dump(*this, "", "Moving sm towards new wall: ", simulation_stats.current_iteration, 0);
+#endif
+
   // find_closest_wall
 
   // 1) check all walls to get a reference hopefully
@@ -746,8 +750,6 @@ void Partition::collect_surface_molecules_moved_due_to_moving_wall(
   // With the data that we have available, the simples option is to
   // go through the array in grid and check all existing molecules.
   // There might be other solutions that use subpartitions but let's keep it simple for now.
-
-  molecule_moves.clear();
   const Grid* g = get_wall_grid_if_exists(moved_wall_index);
   if (g == nullptr) {
     return;
@@ -805,6 +807,14 @@ void Partition::apply_vertex_moves() {
   VolumeMoleculeMoveInfoVector volume_molecule_moves;
   UintSet already_moved_volume_molecules;
   SurfaceMoleculeMoveInfoVector surface_molecule_moves;
+
+#ifdef DEBUG_DYNAMIC_GEOMETRY_MCELL4_ONLY
+  cout << "*** Walls being moved:\n";
+  for (const auto& it: walls_with_their_moves) {
+    const Wall& w = get_wall(it.first);
+    w.dump(*this, "  ", true);
+  }
+#endif
 
   for (const auto& it: walls_with_their_moves) {
     collect_volume_molecules_moved_due_to_moving_wall(it.first, it.second, already_moved_volume_molecules, volume_molecule_moves);
