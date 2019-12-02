@@ -1001,6 +1001,7 @@ wall_index_t DiffuseReactEvent::ray_trace_surf(
 
       #ifndef NDEBUG
         Edge& e = const_cast<Edge&>(this_wall->edges[index_edge_was_hit]);
+        assert(e.is_initialized());
         e.debug_check_values_are_uptodate(p);
       #endif
 

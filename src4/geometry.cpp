@@ -108,7 +108,9 @@ init_edge_transform
 ***************************************************************************/
 void Edge::reinit_edge_constants(const Partition& p) {
 
-  assert(edge_num_used_for_init != EDGE_INDEX_INVALID);
+  if (!is_initialized()) {
+    return;
+  }
 
   // not sure what to do if these asserts do not hold
   assert(forward_index != WALL_INDEX_INVALID);
@@ -201,6 +203,21 @@ void Edge::reinit_edge_constants(const Partition& p) {
 #endif
 }
 
+void Edge::debug_check_values_are_uptodate(const Partition& p) {
+  if (edge_num_used_for_init != EDGE_INDEX_INVALID) {
+    // not initialized
+    return;
+  }
+  vec2_t orig_translate = translate;
+  float_t orig_cos_theta = cos_theta;
+  float_t orig_sin_theta = sin_theta;
+  dump();
+  reinit_edge_constants(p);
+  dump();
+  assert(cmp_eq(orig_translate, translate));
+  assert(cmp_eq(orig_cos_theta, cos_theta));
+  assert(cmp_eq(orig_sin_theta, sin_theta));
+}
 
 void Edge::dump() {
   cout <<

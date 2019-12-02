@@ -65,17 +65,29 @@ void update_moved_walls(
     }
   }
 
-  // and their edges
+
+  // edges need to be fixed after all wall have been moved
+  // otherwise the edge initialization would be using
+  // inconsistent data
+  // we need to update also edges of neighboring walls
+  UintSet walls_to_be_updated;
+  // NOTE: we might consider sharing edges in the same way as in MCell3
   for (auto it: walls_with_their_moves) {
     wall_index_t wall_index = it.first;
     Wall& w = p.get_wall(wall_index);
 
-    // edges need to be fixed after all wall have been moved
-    // otherwise the edge initialization would be using
-    // incosistent data
+    walls_to_be_updated.insert(wall_index);
+    for (uint n = 0; n < EDGES_IN_TRIANGLE; n++) {
+      walls_to_be_updated.insert(w.nb_walls[n]);
+    }
+  }
+  for (wall_index_t wall_index: walls_to_be_updated) {
+    if (wall_index == WALL_INDEX_INVALID) {
+      continue;
+    }
+    Wall& w = p.get_wall(wall_index);
     w.reinit_edge_constants(p);
   }
-
 }
 
 } // namespace DynVertexUtils

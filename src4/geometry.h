@@ -61,20 +61,15 @@ public:
     {
   }
 
+  bool is_initialized() {
+    return edge_num_used_for_init != EDGE_INDEX_INVALID;
+  }
+
   void reinit_edge_constants(const Partition& p);
 
   void dump();
 
-  void debug_check_values_are_uptodate(const Partition& p) {
-      assert(edge_num_used_for_init != EDGE_INDEX_INVALID);
-      vec2_t orig_translate = translate;
-      float_t orig_cos_theta = cos_theta;
-      float_t orig_sin_theta = sin_theta;
-      reinit_edge_constants(p);
-      assert(cmp_eq(orig_translate, translate));
-      assert(cmp_eq(orig_cos_theta, cos_theta));
-      assert(cmp_eq(orig_sin_theta, sin_theta));
-  }
+  void debug_check_values_are_uptodate(const Partition& p);
 
   wall_index_t forward_index;  /* For which wall is this a forwards transform? */
   wall_index_t backward_index; /* For which wall is this a reverse transform? */
