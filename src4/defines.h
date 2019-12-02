@@ -146,6 +146,9 @@ const wall_index_t WALL_INDEX_INVALID = UINT32_MAX;
 typedef uint tile_index_t; // index of a tile in a grid
 const tile_index_t TILE_INDEX_INVALID = UINT32_MAX;
 
+typedef uint edge_index_t; // index of an endge in a wall
+const edge_index_t EDGE_INDEX_INVALID = UINT32_MAX;
+
 /* contains information about the neighbors of the tile */
 class WallTileIndexPair {
 public:
@@ -320,6 +323,18 @@ static inline bool cmp_eq(float_t a, float_t b) {
 
 static inline bool cmp_eq(const vec3_t& a, const vec3_t& b, const float_t eps) {
   return cmp_eq(a.x, b.x, eps) && cmp_eq(a.y, b.y, eps) && cmp_eq(a.z, b.z, eps);
+}
+
+static inline bool cmp_eq(const vec3_t& a, const vec3_t& b) {
+  return cmp_eq(a, b, EPS);
+}
+
+static inline bool cmp_eq(const vec2_t& a, const vec2_t& b, const float_t eps) {
+  return cmp_eq(a.x, b.x, eps) && cmp_eq(a.y, b.y, eps);
+}
+
+static inline bool cmp_eq(const vec2_t& a, const vec2_t& b) {
+  return cmp_eq(a, b, EPS);
 }
 
 static inline bool cmp_lt(const float_t a, const float_t b, const float_t eps) {

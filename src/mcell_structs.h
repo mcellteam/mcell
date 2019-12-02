@@ -865,6 +865,9 @@ struct edge {
 
   double length;   /* Length of the shared edge */
   double length_1; /* Reciprocal of length of shared edge */
+
+  // for mcell4 only
+  int edge_num_used_for_init;
 };
 
 struct wall {

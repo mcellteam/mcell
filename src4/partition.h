@@ -417,6 +417,10 @@ public:
     return nullptr;
   }
 
+  uint get_wall_count() const {
+    return walls.size();
+  }
+
   const Wall& get_wall(wall_index_t i) const {
     assert(i < walls.size());
     const Wall& res = walls[i];

@@ -998,6 +998,12 @@ wall_index_t DiffuseReactEvent::ray_trace_surf(
       assert(!species.has_flag(SPECIES_FLAG_CAN_REGION_BORDER) && "not supported yet");
 
       this_disp = old_pos + this_disp;
+
+      #ifndef NDEBUG
+        Edge& e = const_cast<Edge&>(this_wall->edges[index_edge_was_hit]);
+        e.debug_check_values_are_uptodate(p);
+      #endif
+
       GeometryUtil::traverse_surface(*this_wall, this_disp, index_edge_was_hit, new_disp);
       this_disp = new_disp - this_pos;
       this_wall = &p.get_wall(target_wall_index);

@@ -466,6 +466,35 @@ void dump_object_list(geom_object* obj, const char* name, const char* comment, c
   }
 }
 
+
+void dump_edge(edge* e, const char* ind, const bool for_diff) {
+  DECL_IND2(ind);
+
+
+  if (e == nullptr) {
+    cout << ind << "NULL\n";
+  }
+
+  if (for_diff) {
+    cout << ind <<
+      "Edge: translate: " << e->translate <<
+      ", cos_theta: " << e->cos_theta <<
+      ", sin_theta: " << e->sin_theta <<
+      ", edge_num_used_for_init: " << e->edge_num_used_for_init << "\n";
+  }
+  else {
+
+    cout << ind2 << "translate: \t\t" << e->translate << " [vector2] \t\t /* Translation vector between coordinate systems */\n";
+    cout << ind2 << "cos_theta: \t\t" << e->cos_theta << " [double] \t\t         /* Cosine of angle between coordinate systems */\n";
+    cout << ind2 << "sin_theta: \t\t" << e->sin_theta << " [double] \t\t         /* Sine of angle between coordinate systems */\n";
+
+    cout << ind2 << "length: \t\t" << e->length << " [double] \t\t   /* Length of the shared edge */\n";
+    cout << ind2 << "length_1: \t\t" << e->length_1 << " [double] \t\t /* Reciprocal of length of shared edge */\n";
+    cout << ind2 << "edge_num_used_for_init: \t\t" << e->edge_num_used_for_init << " [int] \t\t // edge used for initialization\n";
+  }
+
+}
+
 void dump_wall(wall* w, const char* ind, const bool for_diff) {
 
   if (for_diff) {
@@ -509,6 +538,11 @@ void dump_wall(wall* w, const char* ind, const bool for_diff) {
     cout << ind << "uv_vert2: \t\t" << w->uv_vert2 << " [vector2] \t\t/* Surface coords of third corner */\n";
 
     cout << ind << "edges[3]: *\t\t" << (void*)w->edges << " [*edges[3]] \t\t/*  /* Array of pointers to each edge. */ // TODO */\n";
+    for (int i = 0; i < 3; i++) {
+      cout << ind << i << ":\n";
+      dump_edge(w->edges[i], ind2);
+    }
+
 
     cout << ind << "nb_walls[0]: *\t\t" << (void*)w->nb_walls[0] << " [wall] \t\t/* Array of pointers to walls that share an edge*/ // TODO\n";
     cout << ind << "nb_walls[1]: *\t\t" << (void*)w->nb_walls[1] << " [wall] \t\t/* Array of pointers to walls that share an edge*/ // TODO\n";
@@ -545,7 +579,7 @@ void dump_wall_array(int num, wall** wall_array, const char* ind) {
       cout << "\n" << ind << "  ";
     }
     cout << ind << i << ":\n";
-    dump_wall(wall_array[i], IND_ADD2(ind));
+    dump_wall(wall_array[i], IND_ADD2(ind), false);
   }
 }
 
@@ -555,7 +589,7 @@ void dump_wall_list(wall_list* list, const char* ind) {
   int i = 0;
   while (curr != NULL) {
     cout << ind << i << ":\n";
-    dump_wall(curr->this_wall, IND_ADD2(ind));
+    dump_wall(curr->this_wall, IND_ADD2(ind), false);
     i++;
     curr = curr->next;
   }

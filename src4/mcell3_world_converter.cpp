@@ -341,7 +341,7 @@ bool MCell3WorldConverter::convert_wall(const wall* w, GeometryObject& object) {
     edge.translate = e->translate;
     edge.cos_theta = e->cos_theta;
     edge.sin_theta = e->sin_theta;
-    edge.edge_constants_precomputed = true;
+    edge.edge_num_used_for_init = e->edge_num_used_for_init; // added only for mcell4
   }
 
   for (uint i = 0; i < EDGES_IN_TRIANGLE; i++) {
@@ -420,6 +420,18 @@ bool MCell3WorldConverter::convert_polygonal_object(const geom_object* o) {
     // uses precomputed map vector_ptr_to_vertex_index_map to transform vertices
     convert_wall(o->wall_p[i], obj);
   }
+
+
+  // check that our reinit function works correctly
+#ifndef NDEBUG
+  for (wall_index_t i = 0; i < p.get_wall_count(); i++) {
+    Wall& w = p.get_wall(i);
+    for (edge_index_t k = 0; k < EDGES_IN_TRIANGLE; k++) {
+      Edge& e = w.edges[k];
+      e.debug_check_values_are_uptodate(p);
+    }
+  }
+#endif
 
   // --- back to object ---
 

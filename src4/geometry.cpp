@@ -99,8 +99,16 @@ void GeometryObject::dump(const Partition& p, const std::string ind) const {
 }
 
 
-// based on init_edge_transform
-void Edge::precompute_edge_constants(const Partition& p, int edgenum) {
+/***************************************************************************
+init_edge_transform
+  In: e: pointer to an edge
+      edgenum: integer telling which edge (0-2) of the "forward" face we are
+  Out: No return value.  Coordinate transform in edge struct is set.
+  Note: Don't call this on a non-shared edge.
+***************************************************************************/
+void Edge::reinit_edge_constants(const Partition& p) {
+
+  assert(edge_num_used_for_init != EDGE_INDEX_INVALID);
 
   // not sure what to do if these asserts do not hold
   assert(forward_index != WALL_INDEX_INVALID);
@@ -109,14 +117,14 @@ void Edge::precompute_edge_constants(const Partition& p, int edgenum) {
   Wall wb = p.get_wall(backward_index);
 
 #ifdef DEBUG_EDGE_INITIALIZATION
-  std::cout << "Edge initialization, edgenum: " << edgenum << "\n";
+  std::cout << "Edge initialization, edgenum: " << edge_num_used_for_init << "\n";
   wf.dump(p, "", true);
   wb.dump(p, "", true);
 #endif
 
-  uint i = edgenum;
+  edge_index_t i = edge_num_used_for_init;
   assert(i < VERTICES_IN_TRIANGLE);
-  uint j = i + 1;
+  edge_index_t j = i + 1;
   if (j == VERTICES_IN_TRIANGLE)
     j = 0;
 
@@ -188,9 +196,19 @@ void Edge::precompute_edge_constants(const Partition& p, int edgenum) {
   sin_theta = mtx[0][1];
   translate = q;
 
-  edge_constants_precomputed = true;
+#ifdef DEBUG_EDGE_INITIALIZATION
+  dump();
+#endif
 }
 
+
+void Edge::dump() {
+  cout <<
+      "Edge: translate: " << translate <<
+      ", cos_theta: " << cos_theta <<
+      ", sin_theta: " << sin_theta <<
+      ", edge_num_used_for_init: " << edge_num_used_for_init << "\n";
+}
 
 
 void Wall::precompute_wall_constants(const Partition& p) {
@@ -261,10 +279,10 @@ void Wall::precompute_wall_constants(const Partition& p) {
   wall_constants_precomputed = true;
 }
 
-void Wall::precompute_edge_constants(const Partition& p) {
+void Wall::reinit_edge_constants(const Partition& p) {
   // edges, uses info set by init_tri_wall
   for (uint edge_index = 0; edge_index < EDGES_IN_TRIANGLE; edge_index++) {
-    edges[edge_index].precompute_edge_constants(p, edge_index);
+    edges[edge_index].reinit_edge_constants(p);
   }
 }
 

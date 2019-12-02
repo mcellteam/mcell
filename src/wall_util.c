@@ -581,6 +581,9 @@ void init_edge_transform(struct edge *e, int edgenum) {
   dump_wall(wb, "", true);
 #endif
 
+  // only for mcell4
+  e->edge_num_used_for_init = edgenum;
+
   /* Intermediate basis from the perspective of the forward frame */
 
   struct vector3 temp3d;
@@ -648,6 +651,10 @@ void init_edge_transform(struct edge *e, int edgenum) {
   e->sin_theta = mtx[0][1];
   e->translate.u = q.u;
   e->translate.v = q.v;
+
+#ifdef DEBUG_EDGE_INITIALIZATION
+  dump_edge(e, "", true);
+#endif
 }
 
 /***************************************************************************

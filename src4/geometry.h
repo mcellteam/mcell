@@ -57,16 +57,30 @@ class Edge {
 public:
   Edge()
     : forward_index(WALL_INDEX_INVALID), backward_index(WALL_INDEX_INVALID),
-      edge_constants_precomputed(false), translate(0), cos_theta(0), sin_theta(0)
+      edge_num_used_for_init(EDGE_INDEX_INVALID), translate(0), cos_theta(0), sin_theta(0)
     {
   }
 
-  void precompute_edge_constants(const Partition& p, int edgenum);
+  void reinit_edge_constants(const Partition& p);
+
+  void dump();
+
+  void debug_check_values_are_uptodate(const Partition& p) {
+      assert(edge_num_used_for_init != EDGE_INDEX_INVALID);
+      vec2_t orig_translate = translate;
+      float_t orig_cos_theta = cos_theta;
+      float_t orig_sin_theta = sin_theta;
+      reinit_edge_constants(p);
+      assert(cmp_eq(orig_translate, translate));
+      assert(cmp_eq(orig_cos_theta, cos_theta));
+      assert(cmp_eq(orig_sin_theta, sin_theta));
+  }
 
   wall_index_t forward_index;  /* For which wall is this a forwards transform? */
   wall_index_t backward_index; /* For which wall is this a reverse transform? */
 
-  bool edge_constants_precomputed; // may be used only for debug
+  // used only for debug, checks that the precomputed values are correct
+  edge_index_t edge_num_used_for_init;
 
   // --- egde constants ---
   vec2_t translate;          /* Translation vector between coordinate systems */
@@ -189,7 +203,7 @@ public:
     }
     if (do_precompute_edge_constants) {
       assert(do_precompute_wall_constants);
-      precompute_edge_constants(p);
+      reinit_edge_constants(p);
     }
   }
 
@@ -197,7 +211,7 @@ public:
   void precompute_wall_constants(const Partition& p);
 
   // needs wall constants to be precomputed (all adjacent walls)
-  void precompute_edge_constants(const Partition& p);
+  void reinit_edge_constants(const Partition& p);
 
 
   wall_id_t id; // world-unique identifier of this wall, mainly for debugging

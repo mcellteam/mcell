@@ -68,7 +68,8 @@ void dump_rng_call_info(struct isaac64_state* rng, const char* extra_comment);
 
 void dump_tile_neighbors_list(struct tile_neighbor *tile_nbr_head, const char* extra_comment, const char* ind);
 
-void dump_wall(wall* w, const char* ind, bool for_diff = false);
+void dump_wall(wall* w, const char* ind, bool for_diff = true);
+void dump_edge(edge* e, const char* ind, bool for_diff = true);
 
 void dump_schedule_helper(
     struct schedule_helper* shp,

@@ -73,7 +73,7 @@ void update_moved_walls(
     // edges need to be fixed after all wall have been moved
     // otherwise the edge initialization would be using
     // incosistent data
-    w.precompute_wall_constants(p);
+    w.reinit_edge_constants(p);
   }
 
 }
