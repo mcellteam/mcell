@@ -151,8 +151,6 @@ void VizOutputEvent::output_ascii_molecules() {
       const Species& species = world->get_species(m.species_id);
 
 #if FLOAT_T_BYTES == 8
-      // TODO: norm
-      // also some test that the output is correct is needed
       errno = 0;
       fprintf(custom_file, "%s %u %.9g %.9g %.9g %.9g %.9g %.9g\n",
           species.name.c_str(), m.id,
@@ -208,16 +206,17 @@ void VizOutputEvent::output_cellblender_molecules() {
     }
 
     /* Write species name: */
-    string mol_name = world->get_species(species_idx).name;
+    const Species& species = world->get_species(species_idx);
+    string mol_name = species.name;
     byte name_len = mol_name.length();
      fwrite(&name_len, sizeof(byte), 1, custom_file);
     fwrite(mol_name.c_str(), sizeof(char), name_len, custom_file);
 
      /* Write species type: */
     byte species_type = 0;
-    /*TODO: if ((amp->properties->flags & ON_GRID) != 0) {
+    if (species.is_surf()) {
       species_type = 1;
-    }*/
+    }
     fwrite(&species_type, sizeof(species_type), 1, custom_file);
 
     /* write number of x,y,z floats for mol positions to follow: */
