@@ -490,10 +490,10 @@ RayTraceState ray_trace_vol(
 // returns true if reaction has occured and the first reactant was destroyed
 bool DiffuseReactEvent::collide_and_react_with_vol_mol(
     Partition& p,
-    Collision& collision,
+    const Collision& collision,
     vec3_t& displacement,
-    float_t remaining_time_step,
-    float_t r_rate_factor
+    const float_t remaining_time_step,
+    const float_t r_rate_factor
 )  {
 
   Molecule& colliding_molecule = p.get_m(collision.colliding_molecule_id); // am
@@ -543,10 +543,10 @@ bool DiffuseReactEvent::collide_and_react_with_vol_mol(
  ******************************************************************************/
 int DiffuseReactEvent::collide_and_react_with_surf_mol(
     Partition& p,
-    Collision& collision, // TODO: const?
-    float_t remaining_time_step,
-    float_t r_rate_factor,
-    float_t elapsed_molecule_time,
+    const Collision& collision,
+    const float_t remaining_time_step,
+    const float_t r_rate_factor,
+    const float_t elapsed_molecule_time,
     WallTileIndexPair& where_created_this_iteration
 ) {
   Wall& wall = p.get_wall(collision.colliding_wall_index);
@@ -1120,7 +1120,7 @@ void DiffuseReactEvent::react_unimol_single_molecule(
 // returns RX_DESTROY when reactants were destroyed
 int DiffuseReactEvent::outcome_bimolecular(
     Partition& p,
-    Collision& collision,
+    const Collision& collision,
     int path,
     float_t remaining_time_step
 ) {
@@ -1166,7 +1166,7 @@ int DiffuseReactEvent::outcome_bimolecular(
 // might return RX_BLOCKED
 int DiffuseReactEvent::outcome_products_random(
     Partition& p,
-    Collision& collision,
+    const Collision& collision,
     float_t remaining_time_step,
     int path
 ) {

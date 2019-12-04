@@ -298,18 +298,18 @@ private:
   );
   bool collide_and_react_with_vol_mol(
       Partition& p,
-      Collision& collision,
+      const Collision& collision,
       vec3_t& displacement,
-      float_t remaining_time_step,
-      float_t r_rate_factor
+      const float_t remaining_time_step,
+      const float_t r_rate_factor
   );
 
   int collide_and_react_with_surf_mol(
       Partition& p,
-      Collision& collision,
-      float_t remaining_time_step,
-      float_t r_rate_factor,
-      float_t current_molecule_time,
+      const Collision& collision,
+      const float_t remaining_time_step,
+      const float_t r_rate_factor,
+      const float_t current_molecule_time,
       WallTileIndexPair& where_created_this_iteration
   );
 
@@ -346,7 +346,7 @@ private:
 
   int outcome_bimolecular(
       Partition& p,
-      Collision& collision,
+      const Collision& collision,
       int path,
       float_t remaining_time_step
   );
@@ -360,7 +360,7 @@ private:
 
   int outcome_products_random(
       Partition& p,
-      Collision& collision,
+      const Collision& collision,
       float_t remaining_time_step,
       int path
   );

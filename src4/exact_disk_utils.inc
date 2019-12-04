@@ -841,7 +841,7 @@ exact_disk:
 // inlining leads to lower performance
 static float_t __attribute__((noinline)) exact_disk(
     Partition& p,
-    vec3_t& loc, // point of collision
+    const vec3_t& loc, // point of collision
     vec3_t& mv, // displacement
     float_t R, // radius_3d
     Molecule& moving, // molecule being diffused, we care about walls in its subparition
