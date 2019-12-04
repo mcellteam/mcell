@@ -1159,6 +1159,144 @@ int DiffuseReactEvent::outcome_bimolecular(
   return result;
 }
 
+// might return RX_BLOCKED if reaction cannot occur,
+// returns 0 if positions were found
+int DiffuseReactEvent::find_surf_product_positions(
+    Partition& p,
+    const Molecule* reacA,
+    const Molecule* reacB,
+    const Molecule* surf_reac,
+    const Reaction* rx,
+    small_vector<GridPos>& assigned_surf_product_positions) {
+
+  uint num_surface_products = rx_util::get_num_surface_products(world, rx);
+
+  small_vector<GridPos> recycled_surf_prod_positions; // this array contains information on where to place the surface products
+  uint initiator_recycled_index = INDEX_INVALID;
+
+  // find which tiles can be recycled
+  if (reacA->is_surf()) {
+    recycled_surf_prod_positions.push_back( GridPos::make_with_pos(p, *reacA) );
+    if (reacA->id == surf_reac->id) {
+      initiator_recycled_index = 0;
+    }
+  }
+
+  if (reacB != nullptr && reacB->is_surf()) {
+    recycled_surf_prod_positions.push_back( GridPos::make_with_pos(p, *reacB) );
+    if (reacB->id == surf_reac->id) {
+      initiator_recycled_index = recycled_surf_prod_positions.size() - 1;
+    }
+  }
+
+  // do we need more tiles?
+  TileNeighborVector vacant_neighbor_tiles;
+  if (num_surface_products > recycled_surf_prod_positions.size()) {
+    assert(surf_reac != nullptr);
+
+    // find neighbors for the first surface reactant
+    Wall& wall = p.get_wall(surf_reac->s.wall_index);
+    Grid& grid = wall.grid;
+    TileNeighborVector neighbor_tiles;
+    GridUtil::find_neighbor_tiles(p, *surf_reac, wall, surf_reac->s.grid_tile_index, true, /* false,*/ neighbor_tiles);
+
+    // we care only about the vacant ones (NOTE: this filtering out might be done in find_neighbor_tiles)
+    // mcell3 reverses the ordering here
+    for (int i = neighbor_tiles.size() - 1; i >=0; i--) {
+      WallTileIndexPair& tile_info = neighbor_tiles[i];
+
+      Grid& neighbor_grid = p.get_wall(tile_info.wall_index).grid;
+      if (neighbor_grid.get_molecule_on_tile(tile_info.tile_index) == MOLECULE_ID_INVALID) {
+        vacant_neighbor_tiles.push_back(tile_info);
+      }
+    }
+
+    /* Can this reaction happen at all? */
+    if (vacant_neighbor_tiles.size() + recycled_surf_prod_positions.size() < num_surface_products) {
+      return RX_BLOCKED;
+    }
+  }
+
+  // random assignment of positions
+  uint num_tiles_to_recycle = min(rx->products.size(), recycled_surf_prod_positions.size());
+  if (num_tiles_to_recycle == 1 && recycled_surf_prod_positions.size() >= 1) {
+    // NOTE: this can be optimized - in case of a single product, it will just replace the initiator
+    // and no initialization of recycled_surf_prod_positions is needed
+    // there must be just one surface product for this variant
+    assert(rx_util::get_num_surface_products(world, rx) == 1
+        && "not sure, should not probably happen or this case is not handled");
+
+    assert(initiator_recycled_index != INDEX_INVALID);
+    assigned_surf_product_positions[0] = recycled_surf_prod_positions[initiator_recycled_index];
+  }
+  else if (num_tiles_to_recycle > 1) {
+    uint next_available_index = 0;
+    uint n_players = rx->get_num_players();
+    uint n_reactants = rx->reactants.size();
+
+    // assign recycled positions to products
+    while (next_available_index < num_tiles_to_recycle) {
+      // we must have the same number of random calls as in mcell3...
+      uint rnd_num = rng_uint(&world->rng) % n_players;
+
+      // continue until we got an index of a product
+      if (rnd_num < n_reactants) {
+        continue;
+      }
+
+      uint product_index = rnd_num - n_reactants;
+      assert(product_index < rx->products.size());
+
+      // we care only about surface molecules
+      if (world->get_species(rx->products[product_index].species_id).is_vol()) {
+        continue;
+      }
+
+      // skip products that we already set
+      if (assigned_surf_product_positions[product_index].initialized) {
+        continue;
+      }
+
+      // set position for product with product_index
+      assigned_surf_product_positions[product_index] = recycled_surf_prod_positions[next_available_index];
+      next_available_index++;
+    }
+
+    // all other products are placed on one of the randomly chosen vacant tiles
+    small_vector<bool> used_vacant_tiles;
+    used_vacant_tiles.resize(vacant_neighbor_tiles.size(), false);
+
+    uint n_products = rx->products.size();
+    uint num_vacant_tiles = vacant_neighbor_tiles.size();
+    for (uint product_index = 0; product_index < n_products; product_index++) {
+
+      if (assigned_surf_product_positions[product_index].initialized) {
+        continue;
+      }
+
+      uint num_attempts = 0;
+      bool found = false;
+      while (!found && num_attempts < SURFACE_DIFFUSION_RETRIES) {
+
+        uint rnd_num = rng_uint(&world->rng) % num_vacant_tiles;
+
+        if (!used_vacant_tiles[rnd_num]) {
+          WallTileIndexPair grid_tile_index_pair = vacant_neighbor_tiles[rnd_num];
+          assigned_surf_product_positions[product_index] = GridPos::make_without_pos(p, grid_tile_index_pair);
+          used_vacant_tiles[rnd_num] = true;
+          found = true;
+        }
+
+        num_attempts++;
+      }
+      if (num_attempts >= SURFACE_DIFFUSION_RETRIES) {
+        return RX_BLOCKED;
+      }
+    }
+  }
+
+  return 0;
+}
 
 // why is this called "random"? - check if reaction occurs is in test_bimolecular
 // mcell3 version returns  cross_wall ? RX_FLIP : RX_A_OK;
@@ -1216,144 +1354,14 @@ int DiffuseReactEvent::outcome_products_random(
   }
 
   /* If the reaction involves a surface, make sure there is room for each product. */
-  small_vector<GridPos> assigned_surf_prod_positions; // this array contains information on where to place the surface products
-  assigned_surf_prod_positions.resize(rx->products.size());
-  // TODO: move this into a separate function
+  small_vector<GridPos> assigned_surf_product_positions; // this array contains information on where to place the surface products
+  assigned_surf_product_positions.resize(rx->products.size());
+
   if (is_orientable) {
-    uint num_surface_products = rx_util::get_num_surface_products(world, rx);
-
-    small_vector<GridPos> recycled_surf_prod_positions; // this array contains information on where to place the surface products
-    uint initiator_recycled_index = INDEX_INVALID;
-
-    // find which tiles can be recycled
-    if (reacA->is_surf()) {
-      recycled_surf_prod_positions.push_back( GridPos::make_with_pos(p, *reacA) );
-      if (reacA->id == surf_reac->id) {
-        initiator_recycled_index = 0;
-      }
+    int res = find_surf_product_positions(p, reacA, reacB, surf_reac, rx, assigned_surf_product_positions);
+    if (res == RX_BLOCKED) {
+      return RX_BLOCKED;
     }
-
-    if (reacB != nullptr && reacB->is_surf()) {
-      recycled_surf_prod_positions.push_back( GridPos::make_with_pos(p, *reacB) );
-      if (reacB->id == surf_reac->id) {
-        initiator_recycled_index = recycled_surf_prod_positions.size() - 1;
-      }
-    }
-
-    // do we need more tiles?
-    TileNeighborVector vacant_neighbor_tiles;
-    if (num_surface_products > recycled_surf_prod_positions.size()) {
-      assert(surf_reac != nullptr);
-
-      // find neighbors for the first surface reactant
-      Wall& wall = p.get_wall(surf_reac->s.wall_index);
-      Grid& grid = wall.grid;
-      TileNeighborVector neighbor_tiles;
-      GridUtil::find_neighbor_tiles(p, *surf_reac, wall, surf_reac->s.grid_tile_index, true, /* false,*/ neighbor_tiles);
-
-      // we care only about the vacant ones (NOTE: this filtering out might be done in find_neighbor_tiles)
-      // mcell3 reverses the ordering here
-      for (int i = neighbor_tiles.size() - 1; i >=0; i--) {
-        WallTileIndexPair& tile_info = neighbor_tiles[i];
-
-        Grid& neighbor_grid = p.get_wall(tile_info.wall_index).grid;
-        if (neighbor_grid.get_molecule_on_tile(tile_info.tile_index) == MOLECULE_ID_INVALID) {
-          vacant_neighbor_tiles.push_back(tile_info);
-        }
-      }
-
-      /* Can this reaction happen at all? */
-      if (vacant_neighbor_tiles.size() + recycled_surf_prod_positions.size() < num_surface_products) {
-        return RX_BLOCKED;
-      }
-    }
-
-    // random assignment of positions
-    uint num_tiles_to_recycle = min(rx->products.size(), recycled_surf_prod_positions.size());
-    if (num_tiles_to_recycle == 1 && recycled_surf_prod_positions.size() >= 1) {
-      // NOTE: this can be optimized - in case of a single product, it will just replace the initiator
-      // and no initialization of recycled_surf_prod_positions is needed
-      // there must be just one surface product for this variant
-      assert(rx_util::get_num_surface_products(world, rx) == 1
-          && "not sure, should not probably happen or this case is not handled");
-
-      assert(initiator_recycled_index != INDEX_INVALID);
-      assigned_surf_prod_positions[0] = recycled_surf_prod_positions[initiator_recycled_index];
-    }
-    else if (num_tiles_to_recycle > 1) {
-      uint next_available_index = 0;
-      uint n_players = rx->get_num_players();
-      uint n_reactants = rx->reactants.size();
-
-      // assign recycled positions to products
-      while (next_available_index < num_tiles_to_recycle) {
-        // we must have the same number of random calls as in mcell3...
-        uint rnd_num = rng_uint(&world->rng) % n_players;
-
-        // continue until we got an index of a product
-        if (rnd_num < n_reactants) {
-          continue;
-        }
-
-        uint product_index = rnd_num - n_reactants;
-        assert(product_index < rx->products.size());
-
-        // we care only about surface molecules
-        if (world->get_species(rx->products[product_index].species_id).is_vol()) {
-          continue;
-        }
-
-        // skip products that we already set
-        if (assigned_surf_prod_positions[product_index].initialized) {
-          continue;
-        }
-
-        // set position for product with product_index
-        assigned_surf_prod_positions[product_index] = recycled_surf_prod_positions[next_available_index];
-        next_available_index++;
-      }
-
-      // all other products are placed on one of the randomly chosen vacant tiles
-      small_vector<bool> used_vacant_tiles;
-      used_vacant_tiles.resize(vacant_neighbor_tiles.size(), false);
-
-      uint n_products = rx->products.size();
-      uint num_vacant_tiles = vacant_neighbor_tiles.size();
-      for (uint product_index = 0; product_index < n_products; product_index++) {
-
-        if (assigned_surf_prod_positions[product_index].initialized) {
-          continue;
-        }
-
-        uint num_attempts = 0;
-        bool found = false;
-        while (!found && num_attempts < SURFACE_DIFFUSION_RETRIES) {
-
-          uint rnd_num = rng_uint(&world->rng) % num_vacant_tiles;
-
-          if (!used_vacant_tiles[rnd_num]) {
-            WallTileIndexPair grid_tile_index_pair = vacant_neighbor_tiles[rnd_num];
-            assigned_surf_prod_positions[product_index] = GridPos::make_without_pos(p, grid_tile_index_pair);
-            used_vacant_tiles[rnd_num] = true;
-            found = true;
-          }
-
-          num_attempts++;
-        }
-        if (num_attempts >= SURFACE_DIFFUSION_RETRIES) {
-          return RX_BLOCKED;
-        }
-      }
-    }
-
-    /* set the orientations of the products. */
-    // why so complicated?
-    // take from the reaction directly for now - complexity in mcell3 is maybe related to nfsim
-
-    // only replace for now
-
-
-    /* find out where to place surface products */
   }
 
   // free up tiles that we are probably going to reuse
@@ -1450,7 +1458,7 @@ int DiffuseReactEvent::outcome_products_random(
       // see release_event_t::place_single_molecule_onto_grid, merge somehow
 
       // get info on where to place the product
-      const GridPos& new_grid_pos = assigned_surf_prod_positions[product_index];
+      const GridPos& new_grid_pos = assigned_surf_product_positions[product_index];
       assert(new_grid_pos.initialized);
 
       vec2_t pos;

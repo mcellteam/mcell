@@ -31,6 +31,8 @@
  */
 #include <vector>
 
+#include "logging.h"
+
 #include "diffuse_react_event.h"
 #include "defines.h"
 #include "world.h"
@@ -1542,7 +1544,7 @@ grid_all_neighbors_for_inner_tile:
 *****************************************************************************/
 static void grid_all_neighbors_for_inner_tile(
     Partition& p,
-    Molecule& sm,
+    const Molecule& sm,
     const Wall& wall,
     tile_index_t tile_index,
     const vec2_t& pos,
@@ -1625,7 +1627,7 @@ static void grid_all_neighbors_for_inner_tile(
 
 static wall_index_t find_neighbor_tiles(
     Partition& p,
-    Molecule& sm,
+    const Molecule& sm,
     const Wall& wall,
     tile_index_t tile_index,
     bool create_grid_flag,

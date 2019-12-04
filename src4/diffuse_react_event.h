@@ -343,6 +343,14 @@ private:
   );
 
   // ---------------------------------- reactions ----------------------------------
+  int find_surf_product_positions(
+      Partition& p,
+      const Molecule* reacA,
+      const Molecule* reacB,
+      const Molecule* surf_reac,
+      const Reaction* rx,
+      small_vector<GridPos>& assigned_surf_product_positions
+  );
 
   int outcome_bimolecular(
       Partition& p,
