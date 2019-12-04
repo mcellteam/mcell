@@ -146,7 +146,7 @@ const wall_index_t WALL_INDEX_INVALID = UINT32_MAX;
 typedef uint tile_index_t; // index of a tile in a grid
 const tile_index_t TILE_INDEX_INVALID = UINT32_MAX;
 
-typedef uint edge_index_t; // index of an endge in a wall
+typedef uint edge_index_t; // index of an edge in a wall, must be in range 0..2
 const edge_index_t EDGE_INDEX_INVALID = UINT32_MAX;
 
 /* contains information about the neighbors of the tile */

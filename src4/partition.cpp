@@ -22,6 +22,7 @@
 ******************************************************************************/
 
 #include <iostream>
+#include <algorithm>
 
 #include "logging.h"
 
@@ -193,7 +194,7 @@ int nearest_free(struct surface_grid *g, struct vector2 *v, double max_d2,
                  double *found_dist2) {
   */
 
-// TODO: cleanup
+// TODO: cleanup, move to grid_util
 tile_index_t nearest_free(
     const Wall& wall, const vec2_t& v, const float_t max_d2,
     float_t& found_dist2) {
@@ -212,7 +213,7 @@ tile_index_t nearest_free(
 
 
   /* check whether the grid is fully occupied */
-  if (g.num_occupied >= g.num_tiles) {
+  if (g.is_full()) {
     found_dist2 = 0;
     return TILE_INDEX_INVALID;
   }
@@ -293,7 +294,7 @@ search_nbhd_for_free:
 */
 
 void search_nbhd_for_free(
-    const Partition& p,
+    Partition& p,
     const wall_index_t origin_wall_index, const vec2_t& closest_pos2d, const float_t max_search_d2,
     wall_index_t& res_wall_index, tile_index_t& res_tile_index
   ) {
@@ -301,111 +302,108 @@ void search_nbhd_for_free(
   wall_index_t best_wall_index = origin_wall_index;
   tile_index_t best_tile_index = TILE_INDEX_INVALID;
   vec2_t best_pos = closest_pos2d;
-  float_t best_d2 = 2.0 * max_search_d2 + 1.0; // unused
 
-  const Wall& w = p.get_wall(origin_wall_index);
-  assert(w.grid.is_initialized());
+  const Wall& origin_wall = p.get_wall(origin_wall_index);
+  assert(origin_wall.grid.is_initialized());
 
-  /* Find index and distance of nearest free grid element on origin wall */
-  best_tile_index = nearest_free(w, best_pos, max_search_d2, best_d2 /*unused*/);
+  // Find index and distance of nearest free grid element on origin wall,
+  // returns TILE_INDEX_INVALID when there is not space left
+  float_t d2_unused;
+  best_tile_index = nearest_free(origin_wall, best_pos, max_search_d2, d2_unused);
 
-  if (best_tile_index == TILE_INDEX_INVALID) {
-    // all tiles on this wall are full
-    assert(false && "TODO - all tiles on this wall are full");
-  }
-  else {
+  if (best_tile_index != TILE_INDEX_INVALID) {
     res_wall_index = best_wall_index;
     res_tile_index = best_tile_index;
     return;
   }
-#if 0
-  /*uint i, j;
-  float_t d2 = 0;
-  vec2_t pt, ed;
-  vec2_t vurt0, vurt1;
-  */
+
+  float_t best_d2 = 2.0 * max_search_d2 + 1.0;
+  const vec2_t& point = closest_pos2d;
 
   /* if there are no free slots on the origin wall - look around */
+  /* Check for closer free grid elements on neighboring walls */
+  for (edge_index_t j = 0; j < EDGES_IN_TRIANGLE; j++) {
+    if (origin_wall.edges[j].backward_index == WALL_INDEX_INVALID)
+      continue;
 
-  if (best_w == NULL) {
-    /* Check for closer free grid elements on neighboring walls */
-    for (j = 0; j < 3; j++) {
-      if (origin->edges[j] == NULL || origin->edges[j]->backward == NULL)
+    wall_index_t there_wall_index;
+    if (origin_wall.edges[j].forward_index == origin_wall_index) {
+      there_wall_index = origin_wall.edges[j].backward_index;
+    }
+    else {
+      there_wall_index = origin_wall.edges[j].forward_index;
+    }
+
+    // TODO - wall regions...
+    /*if (verify_wall_regions_match(mesh_name, reg_names, there, NULL, NULL, NULL)) {
+      continue;
+    }*/
+
+    /* check whether there are any available spots on the neighbor wall */
+    Wall& there_wall = p.get_wall(there_wall_index);
+    if (there_wall.grid.is_initialized()) {
+      if (there_wall.grid.is_full()) {
         continue;
+      }
+    }
 
-      if (origin->edges[j]->forward == origin)
-        there = origin->edges[j]->backward;
-      else
-        there = origin->edges[j]->forward;
+    /* Calculate distance between point and edge j of origin wall */
+    vec2_t vurt0, vurt1;
+    switch (j) {
+    case 0:
+      vurt0 = vec2_t(0);
+      vurt1.u = origin_wall.uv_vert1_u;
+      vurt1.v = 0;
+      break;
+    case 1:
+      vurt0.u = origin_wall.uv_vert1_u;
+      vurt0.v = 0;
+      vurt1 = origin_wall.uv_vert2;
+      break;
+    case 2:
+      vurt0 = origin_wall.uv_vert2;
+      vurt1 = vec2_t(0);
+      break;
+    default:
+      /* default case should not occur since 0<=j<=2 */
+      assert(false);
+    }
 
-      if (ok != NULL && !(*ok)(context, there))
-        continue; /* Calling function doesn't like this wall */
+    vec2_t pt, ed;
+    ed = vurt1 - vurt0;
+    pt = point - vurt0;
 
-      if (verify_wall_regions_match(mesh_name, reg_names, there, NULL, NULL, NULL)) {
-        continue;
+    float_t d2;
+    d2 = dot2(pt, ed);
+    d2 = len2_squared(pt) -
+         d2 * d2 / len2_squared(ed); /* Distance squared to line */
+
+    /* Check for free grid element on neighbor if point to edge distance is
+     * closer than best_d2  */
+    if (d2 < best_d2) {
+
+      if (!there_wall.grid.is_initialized()) {
+        there_wall.grid.initialize(p, there_wall);
       }
 
-      /* check whether there are any available spots on the neighbor wall */
-      if (there->grid != NULL) {
-        if (there->grid->n_occupied >= there->grid->n_tiles) {
-          continue;
-        }
-      }
+      GeometryUtil::traverse_surface(origin_wall, point, j, pt);
+      tile_index_t i = nearest_free(there_wall, pt, max_search_d2, d2);
 
-      /* Calculate distance between point and edge j of origin wall */
-      switch (j) {
-      case 0:
-        vurt0.u = vurt0.v = 0.0;
-        vurt1.u = origin->uv_vert1_u;
-        vurt1.v = 0;
-        break;
-      case 1:
-        vurt0.u = origin->uv_vert1_u;
-        vurt0.v = 0;
-        memcpy(&vurt1, &(origin->uv_vert2), sizeof(vec2_t));
-        break;
-      case 2:
-        memcpy(&vurt0, &(origin->uv_vert2), sizeof(vec2_t));
-        vurt1.u = vurt1.v = 0.0;
-        break;
-      default:
-        /* default case should not occur since 0<=j<=2 */
-        UNHANDLED_CASE(j);
-      }
-      ed.u = vurt1.u - vurt0.u;
-      ed.v = vurt1.v - vurt0.v;
-      pt.u = point->u - vurt0.u;
-      pt.v = point->v - vurt0.v;
-
-      d2 = pt.u * ed.u + pt.v * ed.v;
-      d2 = (pt.u * pt.u + pt.v * pt.v) -
-           d2 * d2 / (ed.u * ed.u + ed.v * ed.v); /* Distance squared to line */
-
-      /* Check for free grid element on neighbor if point to edge distance is
-       * closer than best_d2  */
-      if (d2 < best_d2) {
-
-        if (there->grid == NULL && create_grid(world, there, NULL))
-          mcell_allocfailed("Failed to create grid for wall.");
-
-        traverse_surface(origin, point, j, &pt);
-        i = nearest_free(there->grid, &pt, max_d2, &d2);
-
-        if (i != -1 && d2 < best_d2) {
-          best_i = i;
-          best_d2 = d2;
-          best_w = there;
-        }
+      if (i != TILE_INDEX_INVALID && d2 < best_d2) {
+        best_tile_index = i;
+        best_d2 = d2;
+        best_wall_index = there_wall_index;
       }
     }
   }
 
-#endif
+  res_wall_index = best_wall_index;
+  res_tile_index = best_tile_index;
 }
 
 
 void find_closest_tile_on_wall(
-    const Partition& p,
+    Partition& p,
     const wall_index_t closest_wall_index, const vec2_t& closest_pos2d,
     const float_t closest_d2, const float_t search_d2,
     wall_index_t& found_wall_index, tile_index_t& found_tile_index, vec2_t& found_pos2d
@@ -416,7 +414,15 @@ void find_closest_tile_on_wall(
   const Wall& w = p.get_wall(closest_wall_index);
   closest_tile_index = GridUtil::uv2grid_tile_index(closest_pos2d, w);
 
+#ifdef DEBUG_DYNAMIC_GEOMETRY_MCELL4_ONLY
+  cout << "find_closest_tile_on_wall: closest_wall_index: " << closest_wall_index <<
+      ", closest_tile_index: " << closest_tile_index << "\n";
+  w.grid.dump();
+#endif
+
   molecule_id_t mol_on_tile = w.grid.get_molecule_on_tile(closest_tile_index);
+
+
   if (mol_on_tile == MOLECULE_ID_INVALID) {
     // ok, tile is empty
     found_wall_index = closest_wall_index;
@@ -489,6 +495,8 @@ void Partition::move_surface_molecule_to_closest_wall_point(
       *this, best_wall_index, best_wall_pos2d, best_d2, get_world_constants().vacancy_search_dist2,
       found_wall_index, found_tile_index, found_pos2d
   );
+  assert(found_wall_index != WALL_INDEX_INVALID);
+  assert(found_tile_index != TILE_INDEX_INVALID);
 
   sm.s.wall_index = found_wall_index;
   sm.s.grid_tile_index = found_tile_index;
@@ -846,6 +854,14 @@ void Partition::apply_vertex_moves() {
   }
 
   // 7.2) do the actual movement
+  // mcell3 compatibility - sort surface_molecule_moves by id in order to
+  // use the same grid locations as in mcell3, not really needed for correctness
+  sort( surface_molecule_moves.begin(), surface_molecule_moves.end(),
+      [ ]( const auto& lhs, const auto& rhs )
+      {
+        return lhs.molecule_id < rhs.molecule_id;
+      }
+  );
   for (const SurfaceMoleculeMoveInfo& move_info: surface_molecule_moves) {
     // we need original xyz position of the surface mols
     // TODO: the new wall must belong to the same object

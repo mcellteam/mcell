@@ -25,7 +25,7 @@
 #endif
 
 //#define DUMP_ALWAYS
-#define DUMP_NEVER
+//#define DUMP_NEVER
 
 
 #if (!defined(NDEBUG) || defined(DUMP_ALWAYS)) && !defined(DUMP_NEVER)
@@ -33,7 +33,7 @@
 //#define DEBUG_WALL_COLLISIONS
 
 #define DEBUG_DYNAMIC_GEOMETRY
-//#define DEBUG_DYNAMIC_GEOMETRY_MCELL4_ONLY
+#define DEBUG_DYNAMIC_GEOMETRY_MCELL4_ONLY
 //#define DEBUG_DYNAMIC_GEOMETRY_COLLISION_DETECTIONS
 
 //#define DEBUG_CLOSEST_INTERIOR_POINT
@@ -57,9 +57,9 @@
 
 //#define DEBUG_GRIDS
 
-#define FROM_ITERATION 9//250
+#define FROM_ITERATION 29//250
 
-#define TO_ITERATION 12
+#define TO_ITERATION 31
 
 #define DUMP_CONDITION3(code) do { if ((int)world->current_iterations >= (int)FROM_ITERATION && (int)world->current_iterations <= (int)TO_ITERATION) { code; } } while (0)
 #define DUMP_CONDITION4(code) do { if ((int)world->get_current_iteration() >= (int)FROM_ITERATION && (int)world->get_current_iteration() <= (int)TO_ITERATION) { code; } } while (0)

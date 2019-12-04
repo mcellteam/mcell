@@ -90,6 +90,17 @@ void Grid::get_contained_molecules(
 }
 
 
+void Grid::dump() const {
+  // dumping just occupied locations and base info for now
+  cout << "Grid: num_tiles: " << num_tiles << ", num_occupied: " << num_occupied << "\n";
+  for (uint i = 0; i < molecules_per_tile.size(); i++) {
+    molecule_id_t id = molecules_per_tile[i];
+    if (id != MOLECULE_ID_INVALID) {
+      cout << "[" << i << "]" << id << "\n";
+    }
+  }
+}
+
 void GeometryObject::dump(const Partition& p, const std::string ind) const {
   cout << ind << "geometry_object_t: id:" << id << ", name:" << name << "\n";
   for (wall_index_t i: wall_indices) {

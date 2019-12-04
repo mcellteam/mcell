@@ -103,7 +103,6 @@ public:
 
   uint num_tiles_along_axis; // Number of slots along each axis (originally n)
   uint num_tiles; // Number of tiles in effector grid (triangle: grid_size^2, rectangle: 2*grid_size^2) (originally n_tiles)
-  uint num_occupied; // How many tiles are occupied
 
   float_t strip_width_rcp; /* Reciprocal of the width of one strip */ // inv_strip_wid originally
   float_t vert2_slope;   /* Slope from vertex 0 to vertex 2 */
@@ -113,6 +112,7 @@ public:
 
   void set_molecule_tile(tile_index_t tile_index, molecule_id_t id) {
     assert(is_initialized());
+    assert(tile_index != TILE_INDEX_INVALID);
     assert(num_tiles == molecules_per_tile.size());
     assert(tile_index < molecules_per_tile.size());
     assert(molecules_per_tile[tile_index] == MOLECULE_INDEX_INVALID && "Cannot overwite a molecule that is already on tile");
@@ -123,6 +123,7 @@ public:
 
   void reset_molecule_tile(tile_index_t tile_index) {
     assert(is_initialized());
+    assert(tile_index != TILE_INDEX_INVALID);
     assert(num_tiles == molecules_per_tile.size());
     assert(tile_index < molecules_per_tile.size());
     assert(molecules_per_tile[tile_index] != MOLECULE_INDEX_INVALID && "Cannot reset a tile that has no molecule");
@@ -133,6 +134,7 @@ public:
 
   molecule_id_t get_molecule_on_tile(tile_index_t tile_index) const {
     assert(is_initialized());
+    assert(tile_index != TILE_INDEX_INVALID);
     assert(num_tiles == molecules_per_tile.size());
     assert(tile_index < molecules_per_tile.size());
     return molecules_per_tile[tile_index];
@@ -148,7 +150,17 @@ public:
     num_occupied = 0;
   }
 
+  bool is_full() const {
+    assert(is_initialized());
+    assert(num_occupied <= num_tiles);
+    return num_occupied == num_tiles;
+  }
+
+  void dump() const;
+
 private:
+  uint num_occupied; // How many tiles are occupied
+
   // For now, there can be just one molecule per tile,
   // value is MOLECULE_ID_INVALID when the tile is not occupied
   // indexed by type tile_index_t
