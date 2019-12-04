@@ -39,6 +39,7 @@ class UintSet;
 class GeometryObject {
 public:
   geometry_object_id_t id; // world-unique geometry object ID
+  geometry_object_index_t index; // partition-unique geometry object index
   std::string name;
 
   // bool is_closed;
@@ -182,7 +183,8 @@ private:
 class Wall {
 public:
   Wall()
-    : id(WALL_ID_INVALID), index(WALL_INDEX_INVALID), side(0), object_id(GEOMETRY_OBJECT_ID_INVALID),
+    : id(WALL_ID_INVALID), index(WALL_INDEX_INVALID), side(0),
+      object_id(GEOMETRY_OBJECT_ID_INVALID), object_index(GEOMETRY_OBJECT_INDEX_INVALID),
       wall_constants_precomputed(false),
       uv_vert1_u(POS_INVALID), uv_vert2(POS_INVALID),
       area(POS_INVALID),
@@ -195,7 +197,8 @@ public:
       const Partition& p,
       const vertex_index_t index0, const vertex_index_t index1, const vertex_index_t index2,
       const bool do_precompute_wall_constants, const bool do_precompute_edge_constants)
-    : id(WALL_ID_INVALID), index(WALL_INDEX_INVALID), side(0), object_id(GEOMETRY_OBJECT_ID_INVALID),
+    : id(WALL_ID_INVALID), index(WALL_INDEX_INVALID), side(0),
+      object_id(GEOMETRY_OBJECT_ID_INVALID), object_index(GEOMETRY_OBJECT_INDEX_INVALID),
       wall_constants_precomputed(false),
       uv_vert1_u(POS_INVALID), uv_vert2(POS_INVALID),
       area(POS_INVALID),
@@ -220,12 +223,22 @@ public:
   // needs wall constants to be precomputed (all adjacent walls)
   void reinit_edge_constants(const Partition& p);
 
+  bool is_same_region(const Wall& w) const {
+    if (w.object_id == object_id) {
+      // TODO: regions
+      return true;
+    }
+    else {
+      return false;
+    }
+  }
 
   wall_id_t id; // world-unique identifier of this wall, mainly for debugging
   wall_index_t index; // index in the partition where it is contained, must be fixed if moved
   uint side; // index in its parent object, not sure if really needed
 
-  geometry_object_id_t object_id; // index of object to which this wall belongs
+  geometry_object_id_t object_id; // id of object to which this wall belongs
+  geometry_object_index_t object_index; // index of object in this partition to which this wall belongs
   //wall_class_index_t class_index; // index of this wall's class
 
   // indices of the three triangle's vertices,
@@ -258,7 +271,6 @@ public:
     return grid.is_initialized();
   }
 
-  // FIXME: since wall is contained in partition, this is not really a constant ref
   void initialize_grid(const Partition& p) {
     assert(!has_initialized_grid());
     grid.initialize(p, *this);

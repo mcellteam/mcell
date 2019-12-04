@@ -401,20 +401,14 @@ public:
     GeometryObject& new_obj = geometry_objects.back();
 
     new_obj.id = id;
+    new_obj.index = index;
 
     return new_obj;
   }
 
-  const GeometryObject* get_geometry_object_if_exists(const geometry_object_id_t id) {
-
-    // NOTE: optimize of needed
-    for (const GeometryObject& obj: geometry_objects) {
-      if (obj.id == id) {
-        return &obj;
-      }
-    }
-    // not found
-    return nullptr;
+  const GeometryObject& get_geometry_object(geometry_object_index_t index) const {
+    assert(index < geometry_objects.size());
+    return geometry_objects[index];
   }
 
   uint get_wall_count() const {

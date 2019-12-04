@@ -297,6 +297,7 @@ bool MCell3WorldConverter::convert_wall(const wall* w, GeometryObject& object) {
 
   // bidirectional mapping
   wall.object_id = object.id;
+  wall.object_index = object.index;
   object.wall_indices.push_back(wall.index);
 
   CHECK_PROPERTY(w->surf_class_head == nullptr); // for now

@@ -78,23 +78,31 @@ void Partition::update_walls_per_subpart(const WallsWithTheirMovesMap& walls_wit
 
 
 // returns the closest distance
+// wall must belong to the same object and region
 float_t Partition::find_closest_wall(
     const vec3_t& pos, const wall_index_t wall_that_moved_molecule,
     wall_index_t& best_wall_index,
     vec2_t& best_wall_pos2d
 ) {
 
-  // TODO: use wall_that_moved_molecule to optimize the search,
-  // however for now we are using the same approach as in mcell3 because
-  // we need to match the behavior
-  wall_index_t ignored_for_now = wall_that_moved_molecule;
+  const Wall& moved_wall = get_wall(wall_that_moved_molecule);
 
   best_wall_index = WALL_INDEX_INVALID;
   float_t best_d2 = GIGANTIC4;
   best_wall_pos2d = vec2_t(0);
 
-  for (const Wall& w: walls) {
-    // mcell3 has region/mesh name check here
+  // TODO: use wall_that_moved_molecule to optimize the search,
+  // however for now we are using the same approach as in mcell3 because
+  // we need to match the behavior
+  const GeometryObject& obj = get_geometry_object(moved_wall.object_index);
+
+  for (const wall_index_t wall_index: obj.wall_indices) {
+    const Wall& w = get_wall(wall_index);
+
+    // TODO: regions - we are checking only object id here
+    if (!moved_wall.is_same_region(w)) {
+      continue;
+    }
 
     vec2_t wall_pos2d;
     float_t d2 = GeometryUtil::closest_interior_point(*this, pos, w, wall_pos2d);
@@ -113,11 +121,7 @@ float_t Partition::find_closest_wall(
 void Partition::move_volume_molecule_to_closest_wall_point(const VolumeMoleculeMoveInfo& molecule_move_info) {
 
   Molecule& vm = get_m(molecule_move_info.molecule_id);
-
-
   assert(vm.is_vol());
-
-  // find_closest_wall
 
   // 1) check all walls to get a reference hopefully
   //  then try to limit only to wall's neighbors - we would really like to avoid any regions (maybe...?)
@@ -189,11 +193,6 @@ nearest_free:
   Note: if no unoccupied tile is found, found_dist2 contains distance to
         closest occupied tile.
 *************************************************************************/
-/*
-int nearest_free(struct surface_grid *g, struct vector2 *v, double max_d2,
-                 double *found_dist2) {
-  */
-
 // TODO: cleanup, move to grid_util
 tile_index_t nearest_free(
     const Wall& wall, const vec2_t& v, const float_t max_d2,
@@ -285,14 +284,6 @@ search_nbhd_for_free:
         will return the correct result but not efficiently.
   Note: This is not recursive.  It should be made recursive.
 *************************************************************************/
-/*struct wall *search_nbhd_for_free(struct volume *world, struct wall *origin,
-                                  struct vector2 *point, double max_d2,
-                                  int *found_idx,
-                                  int (*ok)(void *, struct wall *),
-                                  void *context, char *mesh_name,
-                                  struct string_buffer *reg_names) {
-*/
-
 void search_nbhd_for_free(
     Partition& p,
     const wall_index_t origin_wall_index, const vec2_t& closest_pos2d, const float_t max_search_d2,
@@ -334,13 +325,15 @@ void search_nbhd_for_free(
       there_wall_index = origin_wall.edges[j].forward_index;
     }
 
-    // TODO - wall regions...
-    /*if (verify_wall_regions_match(mesh_name, reg_names, there, NULL, NULL, NULL)) {
+    Wall& there_wall = p.get_wall(there_wall_index);
+
+    // TODO - wall regions - we are checking only geom object for now
+    if (!origin_wall.is_same_region(there_wall)) {
       continue;
-    }*/
+    }
 
     /* check whether there are any available spots on the neighbor wall */
-    Wall& there_wall = p.get_wall(there_wall_index);
+
     if (there_wall.grid.is_initialized()) {
       if (there_wall.grid.is_full()) {
         continue;
@@ -473,8 +466,6 @@ void Partition::move_surface_molecule_to_closest_wall_point(
 #ifdef DEBUG_DYNAMIC_GEOMETRY_MCELL4_ONLY
   sm.dump(*this, "", "Moving sm towards new wall: ", simulation_stats.current_iteration, 0);
 #endif
-
-  // find_closest_wall
 
   // 1) check all walls to get a reference hopefully
   //  then try to limit only to wall's neighbors - we would really like to avoid any regions (maybe...?)
