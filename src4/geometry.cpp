@@ -21,12 +21,10 @@
  *
 ******************************************************************************/
 
-//extern "C" {
 #include "rng.h" // MCell 3
 #include "isaac64.h"
 #include "mcell_structs.h"
 #include "logging.h"
-//}
 
 #include <iostream>
 
@@ -362,4 +360,67 @@ void Wall::dump(const Partition& p, const std::string ind, const bool for_diff) 
   }
 }
 
-} /* namespace mcell */
+namespace Geometry {
+
+// this is the entry point called from Partition class
+void update_moved_walls(
+    Partition& p,
+    const std::vector<VertexMoveInfo>& scheduled_vertex_moves,
+    // we can compute all the information already from scheduled_vertex_moves,
+    // but the keys of the map walls_with_their_moves are the walls that we need to update
+    const WallsWithTheirMovesMap& walls_with_their_moves
+) {
+
+  // move all vertices
+  for (const VertexMoveInfo& move_info: scheduled_vertex_moves) {
+    vec3_t& vertex_ref = p.get_geometry_vertex(move_info.vertex_index);
+    vertex_ref = vertex_ref + move_info.translation_vec;
+    if (! p.in_this_partition(vertex_ref) ) {
+      mcell_log("Error: Crossing partitions is not supported yet.\n");
+      exit(1);
+    }
+  }
+
+  // update walls
+  // FIXME: this should be placed in geometry.cpp
+  for (auto it: walls_with_their_moves) {
+    wall_index_t wall_index = it.first;
+    Wall& w = p.get_wall(wall_index);
+
+    // first we need to update all wall constants
+    w.precompute_wall_constants(p);
+
+    // reinitialize grid
+    if (w.grid.is_initialized()) {
+      w.grid.initialize(p, w);
+    }
+  }
+
+
+  // edges need to be fixed after all wall have been moved
+  // otherwise the edge initialization would be using
+  // inconsistent data
+  // we need to update also edges of neighboring walls
+  UintSet walls_to_be_updated;
+  // NOTE: we might consider sharing edges in the same way as in MCell3
+  for (auto it: walls_with_their_moves) {
+    wall_index_t wall_index = it.first;
+    Wall& w = p.get_wall(wall_index);
+
+    walls_to_be_updated.insert(wall_index);
+    for (uint n = 0; n < EDGES_IN_TRIANGLE; n++) {
+      walls_to_be_updated.insert(w.nb_walls[n]);
+    }
+  }
+  for (wall_index_t wall_index: walls_to_be_updated) {
+    if (wall_index == WALL_INDEX_INVALID) {
+      continue;
+    }
+    Wall& w = p.get_wall(wall_index);
+    w.reinit_edge_constants(p);
+  }
+}
+
+} /* namespace Geometry */
+
+} /* namespace MCell */

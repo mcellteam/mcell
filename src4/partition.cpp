@@ -28,10 +28,10 @@
 
 #include "partition.h"
 
-#include "dyn_vertex_utils.h"
 #include "geometry_utils.inc"
 #include "collision_utils.inc"
 #include "diffusion_utils.inc"
+#include "dyn_vertex_structs.h"
 
 using namespace std;
 
@@ -825,7 +825,7 @@ void Partition::apply_vertex_moves() {
   update_walls_per_subpart(walls_with_their_moves, false);
 
   // 4) then we move the vertices and update relevant walls
-  DynVertexUtils::update_moved_walls(*this, scheduled_vertex_moves, walls_with_their_moves);
+  Geometry::update_moved_walls(*this, scheduled_vertex_moves, walls_with_their_moves);
 
   // 5) update subpartition info for the walls
   update_walls_per_subpart(walls_with_their_moves, true);

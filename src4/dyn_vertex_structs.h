@@ -21,11 +21,10 @@
  *
 ******************************************************************************/
 
-#ifndef SRC4_DYN_VERTEX_UTILS_H_
-#define SRC4_DYN_VERTEX_UTILS_H_
+#ifndef SRC4_DYN_VERTEX_STRUCTS_H_
+#define SRC4_DYN_VERTEX_STRUCTS_H_
 
 #include "defines.h"
-#include <math.h>
 
 namespace MCell {
 
@@ -71,18 +70,6 @@ struct SurfaceMoleculeMoveInfo {
 };
 typedef std::vector<SurfaceMoleculeMoveInfo> SurfaceMoleculeMoveInfoVector;
 
-namespace DynVertexUtils {
-
-void update_moved_walls(
-    Partition& p,
-    const std::vector<VertexMoveInfo>& scheduled_vertex_moves,
-    // we can compute all the information already from scheduled_vertex_moves,
-    // but the keys of the map walls_with_their_moves are the walls that we need to update
-    const WallsWithTheirMovesMap& walls_with_their_moves
-);
-
-} // namespace DynVertexUtils
-
 } // namespace MCell
 
-#endif /* SRC4_DYN_VERTEX_UTILS_H_ */
+#endif /* SRC4_DYN_VERTEX_STRUCTS_H_ */

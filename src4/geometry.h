@@ -26,6 +26,7 @@
 
 #include "defines.h"
 #include "molecule.h"
+#include "dyn_vertex_structs.h"
 
 namespace MCell {
 
@@ -322,6 +323,19 @@ public:
   vec2_t pos;
 };
 
+// several utility functions related to geometry
+namespace Geometry {
+
+// this is the entry point called from Partition class
+void update_moved_walls(
+    Partition& p,
+    const std::vector<VertexMoveInfo>& scheduled_vertex_moves,
+    // we can compute all the information already from scheduled_vertex_moves,
+    // but the keys of the map walls_with_their_moves are the walls that we need to update
+    const WallsWithTheirMovesMap& walls_with_their_moves
+);
+
+}
 } /* namespace mcell */
 
 #endif /* SRC4_GEOMETRY_H_ */

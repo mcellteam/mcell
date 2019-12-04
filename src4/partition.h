@@ -27,13 +27,13 @@
 #include <set>
 
 #include "defines.h"
+#include "dyn_vertex_structs.h"
 #include "world_constants.h"
 #include "molecule.h"
 #include "scheduler.h"
 #include "reaction.h"
 #include "geometry.h"
 #include "species.h"
-#include "dyn_vertex_utils.h"
 
 namespace MCell {
 
