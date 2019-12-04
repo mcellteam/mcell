@@ -870,35 +870,18 @@ static float_t compute_df(
 
 } // namespace Local
 
-static bool collide_moving_line_and_static_line_test(
-    const Partition& part,
-    const vec3_t& e, const vec3_t& move /* f = e + move */,
+
+// returns true if plane that contains all points efop was found and also crosses line
+// segments kl and mn
+// sets points o and p
+// returns false is such plane does not exist
+static bool find_plane_crossing_efop(
+    const vec3_t& e, const vec3_t& f, const vec3_t& move /* f = e + move */,
     const vec3_t& k, const vec3_t& l,
     const vec3_t& m, const vec3_t& n,
-    const bool edge_moved,
-    const Wall* wall_if_edge_defines_triangle /* might be nullptr */
-) {
-  assert(e != e + move && "The static line must not be a point");
-  assert(k != m && "The source moving line must not be a point");
-  assert(l != n && "The destination moving line must not be a point");
+    vec3_t& o, vec3_t& p) {
 
-  if (!edge_moved) {
-    return false;
-  }
-
-  assert(!(k == l && m == n) && "The line must move");
-
-  // 1) if klmn creates a triangle, one of the arguments kmml or kmn is not nullptr
-  if (wall_if_edge_defines_triangle) {
-    return collide_wall_test(part, e, *wall_if_edge_defines_triangle, move);
-  }
-
-  // 2) if klmn is more complex and possibly these points do not lie on the same plane, therefore simple triangle
-  //    ray trace cannot be used
-  // TODO: move it to a function
-  // NOTE: possible optimization: check whether all points are in the same plane (e.g. using determinant),
-  //  and use wall test, for now, general solution is used
-
+  assert(cmp_eq(f, e + move));
 
   // first determine t, it must be in the range 0..1
   // f is continuous and (should?) have just one solution
@@ -906,8 +889,6 @@ static bool collide_moving_line_and_static_line_test(
   // starting from 0
   float_t t = 0;
   float_t t_previous = GIGANTIC4;
-
-  vec3_t f = e + move;
 
   // use Newton's Method to find solution to 't' (https://en.wikipedia.org/wiki/Newton's_method)
   // using high precision, we should converge quickly
@@ -948,8 +929,42 @@ static bool collide_moving_line_and_static_line_test(
   // ok, we found our plane and we know the value of 't',
   // we can continue with figuring out out whether we really cross
   // the object defined by the moving edge
-  vec3_t o = k + (l - k) * vec3_t(t);
-  vec3_t p = m + (n - m) * vec3_t(t);
+  o = k + (l - k) * vec3_t(t);
+  p = m + (n - m) * vec3_t(t);
+  return true;
+}
+
+static bool collide_moving_line_and_static_line_test(
+    const Partition& part,
+    const vec3_t& e, const vec3_t& move /* f = e + move */,
+    const vec3_t& k, const vec3_t& l,
+    const vec3_t& m, const vec3_t& n,
+    const bool edge_moved,
+    const Wall* wall_if_edge_defines_triangle /* might be nullptr */
+) {
+  assert(e != e + move && "The static line must not be a point");
+  assert(k != m && "The source moving line must not be a point");
+  assert(l != n && "The destination moving line must not be a point");
+
+  if (!edge_moved) {
+    return false;
+  }
+
+  assert(!(k == l && m == n) && "The line must move");
+
+  // 1) if klmn creates a triangle, one of the arguments kmml or kmn is not nullptr
+  if (wall_if_edge_defines_triangle) {
+    return collide_wall_test(part, e, *wall_if_edge_defines_triangle, move);
+  }
+
+  // 2) if klmn is more complex and possibly these points do not lie on the same plane, therefore simple triangle
+  //    ray trace cannot be used
+  vec3_t o, p;
+  vec3_t f = e + move;
+  bool found = find_plane_crossing_efop(e, f, move, k, l, m, n, o, p);
+  if (!found) {
+    return false;
+  }
 
   // now we must find whether the line segments ef and op intersect
   bool collides = collide_line_and_line_test(e, f, move, o, p);
