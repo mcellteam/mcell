@@ -137,7 +137,7 @@ void Partition::move_volume_molecule_to_closest_wall_point(const VolumeMoleculeM
   vec3_t new_pos3d = GeometryUtil::uv2xyz(best_wall_pos2d, wall, get_wall_vertex(wall, 0));
 
 #ifdef DEBUG_DYNAMIC_GEOMETRY
-  vm.dump(*this, "", "Moving vm towards new wall: ", simulation_stats.current_iteration, 0);
+  vm.dump(*this, "", "Moving vm towards new wall: ", simulation_stats.get_current_iteration(), 0);
   wall.dump(*this, "", true);
 #endif
 
@@ -164,7 +164,7 @@ void Partition::move_volume_molecule_to_closest_wall_point(const VolumeMoleculeM
 
 
 #ifdef DEBUG_DYNAMIC_GEOMETRY
-  vm.dump(*this, "", "Vm after being moved: ", simulation_stats.current_iteration /*iteration*/, 0);
+  vm.dump(*this, "", "Vm after being moved: ", simulation_stats.get_current_iteration /*iteration*/, 0);
 #endif
 }
 
@@ -464,7 +464,7 @@ void Partition::move_surface_molecule_to_closest_wall_point(
   assert(sm.is_surf());
 
 #ifdef DEBUG_DYNAMIC_GEOMETRY_MCELL4_ONLY
-  sm.dump(*this, "", "Moving sm towards new wall: ", simulation_stats.current_iteration, 0);
+  sm.dump(*this, "", "Moving sm towards new wall: ", simulation_stats.get_current_iteration, 0);
 #endif
 
   // 1) check all walls to get a reference hopefully
@@ -498,7 +498,7 @@ void Partition::move_surface_molecule_to_closest_wall_point(
   // TODO reschedule unimolar
 
 #ifdef DEBUG_DYNAMIC_GEOMETRY
-  sm.dump(*this, "", "Sm after being moved: ", simulation_stats.current_iteration /*iteration*/, 0);
+  sm.dump(*this, "", "Sm after being moved: ", simulation_stats.get_current_iteration /*iteration*/, 0);
 #endif
 }
 

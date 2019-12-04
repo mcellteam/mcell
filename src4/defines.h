@@ -570,13 +570,16 @@ public:
 
   void dump();
 
-  uint64_t get_current_iteration() const {
+  const uint64_t& get_current_iteration() const {
     return current_iteration;
   }
 
-  // TODO: make private
-  uint64_t current_iteration;
+  uint64_t& get_current_iteration() {
+    return current_iteration;
+  }
+
 private:
+  uint64_t current_iteration;
 
   uint64_t ray_voxel_tests;
   uint64_t ray_polygon_tests;

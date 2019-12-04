@@ -63,7 +63,7 @@ public:
   }
 
   uint64_t get_current_iteration() const {
-    return simulation_stats.current_iteration;
+    return simulation_stats.get_current_iteration();
   }
 
   // -------------- partition manipulation methods --------------

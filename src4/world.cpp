@@ -158,9 +158,7 @@ void World::init_simulation() {
   rusage sim_start_time;
   getrusage(RUSAGE_SELF, &sim_start_time);
 
-  // iteration counters to report progress and
-  // also to know when to end
-  simulation_stats.current_iteration = 0;
+  // iteration counter to report progress
   previous_iteration = 0;
 
   simulation_initialized = true;
@@ -173,7 +171,7 @@ void World::run_n_iterations(const uint64_t num_iterations, const uint64_t outpu
     init_simulation();
   }
 
-  uint64_t& current_iteration = simulation_stats.current_iteration;
+  uint64_t& current_iteration = simulation_stats.get_current_iteration();
 
   if (current_iteration == 0) {
     cout << "Iterations: " << current_iteration << " of " << iterations << "\n";
@@ -241,7 +239,7 @@ void World::end_simulation() {
     return;
   }
 
-  cout << "Iteration " << simulation_stats.current_iteration << ", simulation finished successfully\n";
+  cout << "Iteration " << simulation_stats.get_current_iteration() << ", simulation finished successfully\n";
 
   simulation_stats.dump();
 
