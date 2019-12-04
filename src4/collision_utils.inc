@@ -648,11 +648,17 @@ static bool collide_wall_test(
 
   vec3_t tmp_move = move;
   CollisionType res;
+#ifndef NDEBUG
+  uint orig_randcnt = unused_rng_state.randcnt;
+#endif
   res = CollisionUtil::collide_wall(
       p, pos, face, unused_rng_state, false, tmp_move,
       ignored_collision_time, ignored_collision_pos
   );
-  // TODO: check that rng_state has not changed?
+#ifndef NDEBUG
+  assert(orig_randcnt == unused_rng_state.randcnt && "collide_wall_test should not trigger usage of rng");
+#endif
+
 
   switch (res) {
     case CollisionType::WALL_MISS:
