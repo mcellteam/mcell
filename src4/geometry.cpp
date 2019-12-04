@@ -228,6 +228,7 @@ void Edge::debug_check_values_are_uptodate(const Partition& p) {
   assert(cmp_eq(orig_sin_theta, sin_theta));
 }
 
+
 void Edge::dump() const {
   cout <<
       "Edge: translate: " << translate <<
@@ -237,7 +238,6 @@ void Edge::dump() const {
 }
 
 
-// TODO: cleanup
 void Wall::precompute_wall_constants(const Partition& p) {
 
   const vec3_t& v0 = p.get_geometry_vertex(vertex_indices[0]);
@@ -249,7 +249,7 @@ void Wall::precompute_wall_constants(const Partition& p) {
   vB = v2 - v0;
   vX = cross(vA, vB);
 
-  area = 0.5 * len3(vX); // vect_length(&vX);
+  area = 0.5 * len3(vX);
 
   if (!distinguishable(area, 0, EPS_C)) {
     /* this is a degenerate polygon.
@@ -263,46 +263,28 @@ void Wall::precompute_wall_constants(const Partition& p) {
     return;
   }
 
-  // FIXME: simplify
-  float_t f, fx, fy, fz;
-  fx = (v1.x - v0.x);
-  fy = (v1.y - v0.y);
-  fz = (v1.z - v0.z);
-  float_t lenf2 = fx * fx + fy * fy + fz * fz;
-  assert(lenf2 != 0);
-  f = 1 / sqrt_f(lenf2);
+  vec3_t f1 = v1 - v0;
+  float_t f1_len_squared = len3_squared(f1);
+  assert(f1_len_squared != 0);
+  float_t inv_f1_len = 1 / sqrt_f(f1_len_squared);
 
-  unit_u.x = fx * f;
-  unit_u.y = fy * f;
-  unit_u.z = fz * f;
+  unit_u = f1 * vec3_t(inv_f1_len);
 
-  fx = (v2.x - v0.x);
-  fy = (v2.y - v0.y);
-  fz = (v2.z - v0.z);
+  vec3_t f2 = v2 - v0;
+  normal = cross(unit_u, f2);
 
-  normal.x = unit_u.y * fz - unit_u.z * fy;
-  normal.y = unit_u.z * fx - unit_u.x * fz;
-  normal.z = unit_u.x * fy - unit_u.y * fx;
-  float_t lennorm2 = normal.x * normal.x + normal.y * normal.y + normal.z * normal.z;
-  assert(lennorm2 != 0);
-  f = 1 / sqrt_f(lennorm2);
-  normal.x *= f;
-  normal.y *= f;
-  normal.z *= f;
-  unit_v.x = normal.y * unit_u.z - normal.z * unit_u.y;
-  unit_v.y = normal.z * unit_u.x - normal.x * unit_u.z;
-  unit_v.z = normal.x * unit_u.y - normal.y * unit_u.x;
-  distance_to_origin = v0.x * normal.x + v0.y * normal.y + v0.z * normal.z;
+  float_t norm_len_squared = len3_squared(normal);
+  assert(norm_len_squared != 0);
+  float_t inv_norm_len = 1 / sqrt_f(norm_len_squared);
+  normal = normal * vec3_t(inv_norm_len);
 
-  uv_vert1_u = (v1.x - v0.x) * unit_u.x +
-                  (v1.y - v0.y) * unit_u.y +
-                  (v1.z - v0.z) * unit_u.z;
-  uv_vert2.u = (v2.x - v0.x) * unit_u.x +
-                  (v2.y - v0.y) * unit_u.y +
-                  (v2.z - v0.z) * unit_u.z;
-  uv_vert2.v = (v2.x - v0.x) * unit_v.x +
-                  (v2.y - v0.y) * unit_v.y +
-                  (v2.z - v0.z) * unit_v.z;
+  unit_v = cross(normal, unit_u);
+
+  distance_to_origin =  dot(v0, normal);
+
+  uv_vert1_u = dot(f1, unit_u);
+  uv_vert2.u = dot(f2, unit_u);
+  uv_vert2.v = dot(f2, unit_v);
 
   wall_constants_precomputed = true;
 }
