@@ -281,6 +281,7 @@ static inline float_t sqrt_f(const float_t x) {
 }
 
 static inline float_t log_f(const float_t x) {
+  assert(x != 0);
 #if FLOAT_T_BYTES == 8
   return log(x);
 #else

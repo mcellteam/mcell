@@ -70,7 +70,7 @@ public:
 
   void reinit_edge_constants(const Partition& p);
 
-  void dump();
+  void dump() const;
 
   void debug_check_values_are_uptodate(const Partition& p);
 

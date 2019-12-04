@@ -228,7 +228,7 @@ void Edge::debug_check_values_are_uptodate(const Partition& p) {
   assert(cmp_eq(orig_sin_theta, sin_theta));
 }
 
-void Edge::dump() {
+void Edge::dump() const {
   cout <<
       "Edge: translate: " << translate <<
       ", cos_theta: " << cos_theta <<
@@ -237,6 +237,7 @@ void Edge::dump() {
 }
 
 
+// TODO: cleanup
 void Wall::precompute_wall_constants(const Partition& p) {
 
   const vec3_t& v0 = p.get_geometry_vertex(vertex_indices[0]);
@@ -267,8 +268,9 @@ void Wall::precompute_wall_constants(const Partition& p) {
   fx = (v1.x - v0.x);
   fy = (v1.y - v0.y);
   fz = (v1.z - v0.z);
-  // TODO: assert
-  f = 1 / sqrt(fx * fx + fy * fy + fz * fz);
+  float_t lenf2 = fx * fx + fy * fy + fz * fz;
+  assert(lenf2 != 0);
+  f = 1 / sqrt_f(lenf2);
 
   unit_u.x = fx * f;
   unit_u.y = fy * f;
@@ -281,9 +283,9 @@ void Wall::precompute_wall_constants(const Partition& p) {
   normal.x = unit_u.y * fz - unit_u.z * fy;
   normal.y = unit_u.z * fx - unit_u.x * fz;
   normal.z = unit_u.x * fy - unit_u.y * fx;
-  // TODO: assert
-  f = 1 / sqrt(normal.x * normal.x + normal.y * normal.y +
-               normal.z * normal.z);
+  float_t lennorm2 = normal.x * normal.x + normal.y * normal.y + normal.z * normal.z;
+  assert(lennorm2 != 0);
+  f = 1 / sqrt_f(lennorm2);
   normal.x *= f;
   normal.y *= f;
   normal.z *= f;
@@ -337,7 +339,7 @@ void Wall::dump(const Partition& p, const std::string ind, const bool for_diff) 
 
     for (uint i = 0; i < EDGES_IN_TRIANGLE; i++) {
       cout << ind << "edges:\n";
-      //TODO: edges[i].dump();
+      edges[i].dump();
     }
 
     cout << ind;
