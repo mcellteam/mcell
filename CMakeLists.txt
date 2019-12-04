@@ -208,6 +208,7 @@ set(SOURCE_FILES
     src/c_vector.cpp
     
     src4/base_event.cpp
+    src4/collision_structs.cpp
     src4/defines.cpp
     src4/diffuse_react_event.cpp
     src4/dyn_vertex_utils.cpp

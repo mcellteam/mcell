@@ -25,6 +25,7 @@
 #define SRC4_GEOMETRY_H_
 
 #include "defines.h"
+#include "molecule.h"
 
 namespace MCell {
 
@@ -280,6 +281,46 @@ public:
 };
 
 
+// auxiliary class used to hold information on
+// grid position for reactions
+class GridPos {
+public:
+  GridPos()
+    : initialized(false),
+      wall_index(WALL_INDEX_INVALID), tile_index(TILE_INDEX_INVALID),
+      pos_is_set(false), pos(POS_INVALID) {
+  }
+
+  static GridPos make_with_pos(const Partition& p, const Molecule& sm) {
+    assert(sm.is_surf());
+    assert(sm.s.pos.is_valid());
+    GridPos res;
+
+    res.initialized = true;
+    res.wall_index = sm.s.wall_index;
+    res.tile_index = sm.s.grid_tile_index;
+    res.pos = sm.s.pos;
+    res.pos_is_set = true;
+    return res;
+  }
+
+  static GridPos make_without_pos(const Partition& p, const WallTileIndexPair& wall_tile_index_pair) {
+    assert(wall_tile_index_pair.tile_index != TILE_INDEX_INVALID);
+    GridPos res;
+
+    res.initialized = true;
+    res.wall_index = wall_tile_index_pair.wall_index;
+    res.tile_index = wall_tile_index_pair.tile_index;
+    res.pos_is_set = false;
+    return res;
+  }
+
+  bool initialized; // was this info initialized
+  wall_index_t wall_index;  /* wall where the tile is on */
+  tile_index_t tile_index;  /* index on that tile */
+  bool pos_is_set;
+  vec2_t pos;
+};
 
 } /* namespace mcell */
 

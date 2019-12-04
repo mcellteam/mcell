@@ -1,0 +1,167 @@
+/*
+ * collision_structs.h
+ *
+ *  Created on: Dec 4, 2019
+ *      Author: ahusar
+ */
+
+#ifndef SRC4_COLLISION_STRUCTS_H_
+#define SRC4_COLLISION_STRUCTS_H_
+
+#include "defines.h"
+#include <set>
+#include "../libs/boost/container/small_vector.hpp"
+
+namespace MCell {
+
+
+enum class CollisionType {
+  INVALID,
+
+  VOLMOL_VOLMOL,
+  WALL_REDO,
+  WALL_MISS,
+  WALL_FRONT,
+  WALL_BACK,
+
+  SURFMOL_SURFMOL,
+  VOLMOL_SURFMOL,
+  UNIMOLECULAR_VOLMOL,
+};
+
+
+class Collision;
+class Partition;
+
+#ifndef INDEXER_WA
+typedef boost::container::small_vector<Collision, 16> collision_vector_t;
+typedef boost::container::flat_set<subpart_index_t> subpart_indices_set_t;
+#else
+typedef std::vector<Collision> collision_vector_t;
+typedef std::set<subpart_index_t> subpart_indices_set_t;
+#endif
+/**
+ * Information about collision of 2 volume/surface molecules or a of a wall collision,
+ * used in diffuse_react and in partition.
+ */
+// TODO: move to collision utils?
+class Collision {
+public:
+  Collision()
+    : type(CollisionType::INVALID), partition(nullptr), diffused_molecule_id(MOLECULE_ID_INVALID), time(TIME_INVALID),
+      colliding_molecule_id(MOLECULE_ID_INVALID), rx(nullptr), colliding_wall_index(WALL_INDEX_INVALID) {
+  }
+
+  // maybe create some static constructors with better names
+  Collision(
+      const CollisionType type_,
+      Partition* partition_ptr,
+      const molecule_id_t diffused_molecule_id_,
+      const float_t time_,
+      const vec3_t& pos_,
+      const molecule_id_t colliding_molecule_id_,
+      const Reaction* rx_ptr
+      )
+    :
+      type(type_),
+      partition(partition_ptr),
+      diffused_molecule_id(diffused_molecule_id_),
+      time(time_),
+      pos(pos_),
+      colliding_molecule_id(colliding_molecule_id_),
+      rx(rx_ptr),
+      colliding_wall_index(WALL_INDEX_INVALID) {
+    assert((type == CollisionType::VOLMOL_VOLMOL || type == CollisionType::VOLMOL_SURFMOL)
+        && "This constructor must be used only for volmol or volsurf collisions");
+  }
+
+  Collision(
+      const CollisionType type_,
+      Partition* partition_ptr,
+      const molecule_id_t diffused_molecule_id_,
+      const float_t time_, // time from event start
+      const molecule_id_t colliding_molecule_id_,
+      const Reaction* rx_ptr
+      )
+    :
+      type(type_),
+      partition(partition_ptr),
+      diffused_molecule_id(diffused_molecule_id_),
+      time(time_),
+      colliding_molecule_id(colliding_molecule_id_),
+      rx(rx_ptr),
+      colliding_wall_index(WALL_INDEX_INVALID) {
+    assert(type == CollisionType::SURFMOL_SURFMOL && "This constructor must be used only for surfsurf collisions");
+  }
+
+  Collision(
+      const CollisionType type_,
+      Partition* partition_ptr,
+      const molecule_id_t diffused_molecule_id_,
+      const float_t time_,
+      const vec3_t& pos_,
+      const wall_index_t colliding_wall_index_
+      )
+    :
+      type(type_),
+      partition(partition_ptr),
+      diffused_molecule_id(diffused_molecule_id_),
+      time(time_),
+      pos(pos_),
+      colliding_molecule_id(MOLECULE_ID_INVALID),
+      rx(nullptr),
+      colliding_wall_index(colliding_wall_index_) {
+    assert((type == CollisionType::WALL_BACK || type == CollisionType::WALL_FRONT) && "This constructor must be used only for wall collisions");
+  }
+
+  Collision(
+      const CollisionType type_,
+      Partition* partition_ptr,
+      const molecule_id_t diffused_molecule_id_,
+      const float_t time_,
+      const vec3_t& pos_,
+      const Reaction* rx_ptr
+      )
+    :
+      type(type_),
+      partition(partition_ptr),
+      diffused_molecule_id(diffused_molecule_id_),
+      time(time_),
+      pos(pos_),
+      colliding_molecule_id(MOLECULE_ID_INVALID),
+      rx(rx_ptr),
+      colliding_wall_index(WALL_INDEX_INVALID) {
+    assert(type == CollisionType::UNIMOLECULAR_VOLMOL && "This constructor must be used only for unimol volmol collisions");
+  }
+
+
+  CollisionType type;
+  Partition* partition;
+  molecule_id_t diffused_molecule_id;
+  float_t time;
+  vec3_t pos;
+
+  // valid only for COLLISION_VOLMOL_VOLMOL
+  molecule_id_t colliding_molecule_id;
+  const Reaction* rx;
+
+  // valid only for COLLISION_WALL*
+  wall_index_t colliding_wall_index;
+
+  bool is_vol_mol_collision() const {
+    return type == CollisionType::VOLMOL_VOLMOL;
+  }
+
+  bool is_wall_collision() const { // FIXME: find WALL_FRONT and WALL_BACK and replace
+    assert(type != CollisionType::WALL_REDO && "Not sure yet what to do with redo");
+    return type == CollisionType::WALL_FRONT || type == CollisionType::WALL_BACK;
+  }
+
+  void dump(Partition& p, const std::string ind) const;
+  std::string to_string(const Partition& p) const;
+  static void dump_array(Partition& p, const collision_vector_t& vec);
+};
+
+} /* namespace MCell */
+
+#endif /* SRC4_COLLISION_STRUCTS_H_ */
