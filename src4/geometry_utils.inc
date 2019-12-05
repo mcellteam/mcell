@@ -572,7 +572,7 @@ closest_interior_point:
 ***************************************************************************/
 
 static float_t closest_interior_point(
-    Partition& p,
+    const Partition& p,
     const vec3_t& pt,
     const Wall& w,
     vec2_t& ip) {
@@ -633,8 +633,62 @@ static float_t closest_interior_point(
 }
 
 
-} // namespace geom_util
+// returns the closest distance
+// wall must belong to the same object and region
+static float_t find_closest_wall(
+    const Partition& p,
+    const vec3_t& pos, const wall_index_t wall_that_moved_molecule,
+    wall_index_t& best_wall_index,
+    vec2_t& best_wall_pos2d
+) {
 
-} // namespace mcell
+  const Wall& moved_wall = p.get_wall(wall_that_moved_molecule);
+
+  best_wall_index = WALL_INDEX_INVALID;
+  float_t best_d2 = GIGANTIC4;
+  best_wall_pos2d = vec2_t(0);
+
+  // NOTE: use wall_that_moved_molecule to optimize the search,
+  // however for now we are using the same approach as in mcell3 because
+  // we need to match the behavior
+  const GeometryObject& obj = p.get_geometry_object(moved_wall.object_index);
+
+  for (const wall_index_t wall_index: obj.wall_indices) {
+    const Wall& w = p.get_wall(wall_index);
+
+    // TODO: regions - we are checking only object id here
+    if (!moved_wall.is_same_region(w)) {
+      continue;
+    }
+
+    vec2_t wall_pos2d;
+    float_t d2 = closest_interior_point(p, pos, w, wall_pos2d);
+
+    if (d2 <= best_d2) { // the <= is to emulate behavior of mcell3 that goes through the walls in opposite order
+      best_d2 = d2;
+      best_wall_index = w.index;
+      best_wall_pos2d = wall_pos2d;
+    }
+  }
+
+  return best_d2;
+}
+
+
+static bool is_point_above_plane_defined_by_wall(const Partition& p, const Wall& w, const vec3_t& pos) {
+
+  // make vector pointing from any point to our position
+  vec3_t w0_pos = pos - p.get_wall_vertex(w, 0);
+
+  // dot product with normal gives ||a|| * ||b|| * cos(phi)
+  float_t dot_prod = dot(w0_pos, w.normal);
+  assert(!cmp_eq(dot_prod, 0, EPS) && "Checked point is on the plane");
+  return dot_prod > 0;
+}
+
+
+} // namespace GeometryUtil
+
+} // namespace MCell
 
 #endif // SRC4_GEOMETRY_UTILS_INC_

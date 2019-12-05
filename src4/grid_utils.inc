@@ -1681,8 +1681,279 @@ static wall_index_t find_neighbor_tiles(
 }
 
 
-} // namespace grid_util
+/*************************************************************************
+nearest_free:
+  In: a surface grid
+      a vector in u,v coordinates on that surface
+      the maximum distance we can search for free spots
+  Out: integer containing the index of the closest unoccupied grid point
+       to the vector, or -1 if no unoccupied points are found in range
+  Note: we assume you've already checked the grid element that contains
+        the point, so we don't bother looking there first.
+  Note: if no unoccupied tile is found, found_dist2 contains distance to
+        closest occupied tile.
+*************************************************************************/
+static tile_index_t nearest_free(
+    const Wall& wall, const vec2_t& v, const float_t max_d2,
+    float_t& found_dist2) {
 
-} // namespace mcell
+  const Grid& g = wall.grid;
+
+  tile_index_t tile_index;
+  float_t d2;
+  const float_t over3n = 0.333333333333333 / (float_t)(g.num_tiles_along_axis);
+
+
+  /* check whether the grid is fully occupied */
+  if (g.is_full()) {
+    found_dist2 = 0;
+    return TILE_INDEX_INVALID;
+  }
+
+  tile_index = TILE_INDEX_INVALID;
+  d2 = 2 * max_d2 + 1.0;
+
+  // this seems quite inefficient
+
+  for (uint k = 0; k < g.num_tiles_along_axis; k++) {
+    float_t f = v.v - ((float_t)(3 * k + 1)) * over3n * wall.uv_vert2.v;
+    float_t ff = f - over3n * wall.uv_vert2.v;
+    ff *= ff;
+    f *= f;
+    if (f > max_d2 && ff > max_d2) {
+      continue; /* Entire strip is too far away */
+    }
+
+    uint span = (g.num_tiles_along_axis - k);
+    for (uint j = 0; j < span; j++) {
+      uint can_flip = (j != span - 1);
+      for (uint i = 0; i <= can_flip; i++) {
+        float_t fff =
+            v.u - over3n * ((float_t)(3 * j + i + 1) * wall.uv_vert1_u +
+                             (float_t)(3 * k + i + 1) * wall.uv_vert2.u);
+        fff *= fff;
+        if (i) {
+          fff += ff;
+        }
+        else {
+          fff += f;
+        }
+
+        if (fff < max_d2 && (tile_index == TILE_INDEX_INVALID || fff < d2)) {
+          tile_index_t h = (g.num_tiles_along_axis - k) - 1;
+          h = h * h + 2 * j + i;
+
+          if (g.get_molecule_on_tile(h) == MOLECULE_ID_INVALID) {
+            tile_index = h;
+            d2 = fff;
+          }
+          else if (tile_index == TILE_INDEX_INVALID) {
+            if (fff < d2) {
+              d2 = fff;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  found_dist2 = d2;
+  return tile_index;
+}
+
+
+/*************************************************************************
+search_nbhd_for_free:
+  In: the wall that we ought to be in
+      a vector in u,v coordinates on that surface where we should go
+      the maximum distance we can search for free spots
+      a place to store the index of our free slot
+      a function that we'll call to make sure a wall is okay
+      context for that function passed in by whatever called us
+  Out: pointer to the wall that has the free slot, or NULL if no wall
+       exist in range.
+  Note: usually the calling function will create a grid if needed and
+        check the grid element at u,v; if that is not done this function
+        will return the correct result but not efficiently.
+  Note: This is not recursive.  It should be made recursive.
+*************************************************************************/
+static void search_nbhd_for_free(
+    Partition& p,
+    const wall_index_t origin_wall_index, const vec2_t& closest_pos2d, const float_t max_search_d2,
+    wall_index_t& res_wall_index, tile_index_t& res_tile_index
+  ) {
+
+  wall_index_t best_wall_index = origin_wall_index;
+  tile_index_t best_tile_index = TILE_INDEX_INVALID;
+  vec2_t best_pos = closest_pos2d;
+
+  const Wall& origin_wall = p.get_wall(origin_wall_index);
+  assert(origin_wall.grid.is_initialized());
+
+  // Find index and distance of nearest free grid element on origin wall,
+  // returns TILE_INDEX_INVALID when there is not space left
+  float_t d2_unused;
+  best_tile_index = GridUtil::nearest_free(origin_wall, best_pos, max_search_d2, d2_unused);
+
+  if (best_tile_index != TILE_INDEX_INVALID) {
+    res_wall_index = best_wall_index;
+    res_tile_index = best_tile_index;
+    return;
+  }
+
+  float_t best_d2 = 2.0 * max_search_d2 + 1.0;
+  const vec2_t& point = closest_pos2d;
+
+  /* if there are no free slots on the origin wall - look around */
+  /* Check for closer free grid elements on neighboring walls */
+  for (edge_index_t j = 0; j < EDGES_IN_TRIANGLE; j++) {
+    if (origin_wall.edges[j].backward_index == WALL_INDEX_INVALID)
+      continue;
+
+    wall_index_t there_wall_index;
+    if (origin_wall.edges[j].forward_index == origin_wall_index) {
+      there_wall_index = origin_wall.edges[j].backward_index;
+    }
+    else {
+      there_wall_index = origin_wall.edges[j].forward_index;
+    }
+
+    Wall& there_wall = p.get_wall(there_wall_index);
+
+    // TODO - wall regions - we are checking only geom object for now
+    if (!origin_wall.is_same_region(there_wall)) {
+      continue;
+    }
+
+    /* check whether there are any available spots on the neighbor wall */
+
+    if (there_wall.grid.is_initialized()) {
+      if (there_wall.grid.is_full()) {
+        continue;
+      }
+    }
+
+    /* Calculate distance between point and edge j of origin wall */
+    vec2_t vurt0, vurt1;
+    switch (j) {
+    case 0:
+      vurt0 = vec2_t(0);
+      vurt1.u = origin_wall.uv_vert1_u;
+      vurt1.v = 0;
+      break;
+    case 1:
+      vurt0.u = origin_wall.uv_vert1_u;
+      vurt0.v = 0;
+      vurt1 = origin_wall.uv_vert2;
+      break;
+    case 2:
+      vurt0 = origin_wall.uv_vert2;
+      vurt1 = vec2_t(0);
+      break;
+    default:
+      /* default case should not occur since 0<=j<=2 */
+      assert(false);
+    }
+
+    vec2_t pt, ed;
+    ed = vurt1 - vurt0;
+    pt = point - vurt0;
+
+    float_t d2;
+    d2 = dot2(pt, ed);
+    d2 = len2_squared(pt) -
+         d2 * d2 / len2_squared(ed); /* Distance squared to line */
+
+    /* Check for free grid element on neighbor if point to edge distance is
+     * closer than best_d2  */
+    if (d2 < best_d2) {
+
+      if (!there_wall.grid.is_initialized()) {
+        there_wall.grid.initialize(p, there_wall);
+      }
+
+      GeometryUtil::traverse_surface(origin_wall, point, j, pt);
+      tile_index_t i = GridUtil::nearest_free(there_wall, pt, max_search_d2, d2);
+
+      if (i != TILE_INDEX_INVALID && d2 < best_d2) {
+        best_tile_index = i;
+        best_d2 = d2;
+        best_wall_index = there_wall_index;
+      }
+    }
+  }
+
+  res_wall_index = best_wall_index;
+  res_tile_index = best_tile_index;
+}
+
+
+static void find_closest_tile_on_wall(
+    Partition& p,
+    const wall_index_t closest_wall_index, const vec2_t& closest_pos2d,
+    const float_t closest_d2, const float_t search_d2,
+    wall_index_t& found_wall_index, tile_index_t& found_tile_index, vec2_t& found_pos2d
+) {
+
+  tile_index_t closest_tile_index;
+
+  const Wall& w = p.get_wall(closest_wall_index);
+  closest_tile_index = GridUtil::uv2grid_tile_index(closest_pos2d, w);
+
+#ifdef DEBUG_DYNAMIC_GEOMETRY_MCELL4_ONLY
+  std::cout << "find_closest_tile_on_wall: closest_wall_index: " << closest_wall_index <<
+      ", closest_tile_index: " << closest_tile_index << "\n";
+  w.grid.dump();
+#endif
+
+  molecule_id_t mol_on_tile = w.grid.get_molecule_on_tile(closest_tile_index);
+
+
+  if (mol_on_tile == MOLECULE_ID_INVALID) {
+    // ok, tile is empty
+    found_wall_index = closest_wall_index;
+    found_tile_index = closest_tile_index;
+    found_pos2d = closest_pos2d;
+  }
+  else {
+    // need to find a tile that is close
+
+    // squared distance
+    float_t max_search_d2 = search_d2 - closest_d2;
+    if (max_search_d2 <= EPS_C * EPS_C) {
+      mcell_error("Search distance for find_closest_tile_on_wall is too small");
+    }
+
+    wall_index_t new_wall_index;
+    wall_index_t new_tile_index;
+    search_nbhd_for_free(
+        p, closest_wall_index, closest_pos2d, max_search_d2,
+        new_wall_index, new_tile_index
+    );
+    assert(new_wall_index != TILE_INDEX_INVALID);
+
+    vec2_t new_pos2d;
+    const Wall& w = p.get_wall(new_wall_index);
+    if (p.get_world_constants().randomize_smol_pos) {
+      // molecules are processed in different order than in mcell3...
+      // although, maybe not anymore due to sort in Partition::apply_vertex_moves,
+      // revisit if needed
+      assert(false && "Need RNG for dynamic vertices and surface molecules that would however break consistency with mcell3");
+      // new_pos2d = GridUtil::grid2uv_random(w, new_tile_index, rng);
+    }
+    else {
+      new_pos2d = GridUtil::grid2uv(w, new_tile_index);
+    }
+
+    found_wall_index = new_wall_index;
+    found_tile_index = new_tile_index; //GridUtil::uv2grid_tile_index(closest_pos2d, w);
+    found_pos2d = new_pos2d;
+  }
+}
+
+
+} // namespace GridUtil
+
+} // namespace MCell
 
 #endif // SRC4_GRID_UTILS_INC_

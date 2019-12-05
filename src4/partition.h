@@ -68,7 +68,7 @@ public:
   }
 
 
-  Molecule& get_m(const molecule_id_t id) { // should be ID
+  Molecule& get_m(const molecule_id_t id) {
     assert(id != MOLECULE_ID_INVALID);
     assert(id < molecule_id_to_index_mapping.size());
 
@@ -79,6 +79,16 @@ public:
     return molecules[vm_vec_index];
   }
 
+  const Molecule& get_m(const molecule_id_t id) const {
+    assert(id != MOLECULE_ID_INVALID);
+    assert(id < molecule_id_to_index_mapping.size());
+
+    // code works with molecule ids, but they need to be converted to indices to the volume_molecules vector
+    // because we need to defragment the contents
+    uint32_t vm_vec_index = molecule_id_to_index_mapping[id];
+    assert(vm_vec_index != MOLECULE_INDEX_INVALID);
+    return molecules[vm_vec_index];
+  }
 
   molecule_id_t get_molecule_index(const Molecule& m) {
     // simply use pointer arithmetic to compute the molecule's index
@@ -475,27 +485,6 @@ public:
   void apply_vertex_moves();
 
 private:
-  float_t find_closest_wall(
-      const vec3_t& pos, const wall_index_t wall_that_moved_molecule,
-      wall_index_t& best_wall_index,
-      vec2_t& best_wall_pos2d
-  );
-
-  void move_volume_molecule_to_closest_wall_point(const VolumeMoleculeMoveInfo& molecule_move_info);
-  void move_surface_molecule_to_closest_wall_point(const SurfaceMoleculeMoveInfo& molecule_move_info);
-
-  void collect_volume_molecules_moved_due_to_moving_wall(
-      const wall_index_t moved_wall_index,
-      const VertexMoveInfoVector& move_infos,
-      UintSet& already_moved_molecules,
-      VolumeMoleculeMoveInfoVector& molecule_moves
-  );
-
-  void collect_surface_molecules_moved_due_to_moving_wall(
-      const wall_index_t moved_wall_index,
-      SurfaceMoleculeMoveInfoVector& molecule_moves
-  );
-
   void update_walls_per_subpart(const WallsWithTheirMovesMap& walls_with_their_moves, const bool insert);
 
   // automatically enlarges walls_using_vertex array
