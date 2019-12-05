@@ -24,7 +24,6 @@ endif()
 
 add_definitions(-DPACKAGE_BUGREPORT="mcell@salk.edu")
 
-<<<<<<< HEAD
 SET(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0 ")
 SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 ")
 
@@ -53,8 +52,6 @@ if (CYGWIN)
 endif()
 
 
-=======
->>>>>>> 74f6d4ade7e951e9598ca895395135dbab8679d5
 option(USE_GCOV "Use gcc coverage" OFF) 
 option(USE_PROFILING "Use gprof profiling" OFF) 
 option(USE_LTO "Use link-time optimization" OFF)
