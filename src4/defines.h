@@ -402,6 +402,21 @@ static inline float_t distance3(const vec3_t& v1, const vec3_t& v2) {
   return sqrt_f( len3_squared(v1 - v2) );
 }
 
+/***************************************************************************
+point_in_box:
+  In:  pt - we want to find out if this point is in the box
+       llf - lower left front corner of the box
+       urb - upper right back corner of the box
+
+  Out: Returns true if point is in box, 0 otherwise
+***************************************************************************/
+static inline bool point_in_box(const vec3_t& pt, const vec3_t& llf, const vec3_t& urb) {
+  return
+      pt.x >= llf.x && pt.x <= urb.x &&
+      pt.y >= llf.y && pt.y <= urb.y &&
+      pt.z >= llf.z && pt.z <= urb.z;
+}
+
 /**
  * Performs vector cross product.
  * Computes the cross product of two vector3's v1 and v2 storing the result

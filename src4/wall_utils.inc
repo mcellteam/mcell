@@ -26,7 +26,7 @@
 
 /**
  * This file is directly included into diffuse_react_event.cpp.
- * The reason why this is not a standard .cpp + .h file is to gove the compiler
+ * The reason why this is not a standard .cpp + .h file is to give the compiler
  * the opportunity to inline these functions into methods of diffuse&react event.
  */
 #include <vector>
