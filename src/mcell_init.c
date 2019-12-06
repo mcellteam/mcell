@@ -304,6 +304,23 @@ mcell_redo_geom(MCELL_STATE *state) {
 
 /************************************************************************
  *
+ * function for reading elapsed time and iteration of our checkpoint
+ * if one should be loaded or exists
+ *
+ * Returns 1 on error and 0 on success
+ *
+ ************************************************************************/
+MCELL_STATUS
+mcell_init_read_checkpoint_time_and_iteration(MCELL_STATE *state) {
+  if (state->chkpt_infile) {
+    CHECKED_CALL(load_checkpoint(state, true),
+      "Error while loading time and iteration from previous checkpoint.");
+  }
+  return MCELL_SUCCESS;
+}
+
+/************************************************************************
+ *
  * function for reading and initializing the checkpoint if requested
  *
  * Returns 1 on error and 0 on success
@@ -318,7 +335,7 @@ mcell_init_read_checkpoint(MCELL_STATE *state) {
     "An error occured during setting the state of the checkpointing routine.");
 
   if (state->chkpt_infile) { //state->chkpt_flag == 1) {
-    CHECKED_CALL(load_checkpoint(state),
+    CHECKED_CALL(load_checkpoint(state, false),
       "Error while loading previous checkpoint.");
 
     long long exec_iterations;

@@ -99,8 +99,7 @@ static int build_reaction_hash_table(
 
 static void check_reaction_for_duplicate_pathways(struct pathway **head);
 
-static int load_rate_file(double time_unit, struct mem_helper *tv_rxn_mem,
-                          struct rxn *rx, char *fname, int path, enum warn_level_t neg_reaction);
+static int load_rate_file(struct volume* state, struct rxn *rx, char *fname, int path);
 
 static void add_surface_reaction_flags(struct sym_table_head *mol_sym_table,
                                        struct species *all_mols,
@@ -1482,8 +1481,7 @@ int init_reactions(MCELL_STATE *state) {
           for (int n_pathway = 0; path != NULL;
                n_pathway++, path = path->next) {
             if (path->km_filename != NULL) {
-              if (load_rate_file(state->time_unit, state->tv_rxn_mem, rx,
-                                 path->km_filename, n_pathway, state->notify->neg_reaction))
+              if (load_rate_file(state, rx, path->km_filename, n_pathway))
                 mcell_error("Failed to load rates from file '%s'.",
                             path->km_filename);
             }
@@ -3778,9 +3776,9 @@ struct reaction_rates mcell_create_reaction_rates(int forwardRateType,
        appropriate units) that starts at that time.  Lines that are not numbers
        are ignored.
 *************************************************************************/
-int load_rate_file(double time_unit, struct mem_helper *tv_rxn_mem,
-                   struct rxn *rx, char *fname, int path,
-                   enum warn_level_t neg_reaction) {
+int load_rate_file(struct volume* state, struct rxn *rx, char *fname, int path) {
+
+  struct mem_helper *tv_rxn_mem = state->tv_rxn_mem;
 
   const char *RATE_SEPARATORS = "\f\n\r\t\v ,;";
   const char *FIRST_DIGIT = "+-0123456789";
@@ -3831,12 +3829,12 @@ int load_rate_file(double time_unit, struct mem_helper *tv_rxn_mem,
         /* at this point we need to handle negative reaction rate constants */
         if (rate_constant < 0.0)
         {
-          if (neg_reaction == WARN_ERROR)
+          if (state->notify->neg_reaction == WARN_ERROR)
           {
             mcell_error("reaction rate constants should be zero or positive.");
             return 1;
           }
-          else if (neg_reaction == WARN_WARN) {
+          else if (state->notify->neg_reaction == WARN_WARN) {
             mcell_warn("negative reaction rate constant %f; setting to zero "
                        "and continuing.", rate_constant);
             rate_constant = 0.0;
@@ -3851,7 +3849,15 @@ int load_rate_file(double time_unit, struct mem_helper *tv_rxn_mem,
         }
         tp->next = NULL;
         tp->path = path;
-        tp->time = t / time_unit;
+
+        // time is in fact iteration, we need to convert the iteration correctly in case we
+        // are continuing from a checkpoint with a different timestep
+
+        // FIXME: computation is wrong
+        tp->time = convert_seconds_to_iterations(
+            state->start_iterations, state->time_unit,
+            state->chkpt_start_time_seconds, t);
+
         tp->value = rate_constant;
 #ifdef DEBUG
         valid_linecount++;

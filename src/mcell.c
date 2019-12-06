@@ -76,9 +76,16 @@ int main(int argc, char **argv) {
   CHECKED_CALL_EXIT(parse_input(state),
                     "An error occured during parsing of the mdl file.");
 
+  // full checkpoint read must be done after full initialization,
+  // however some values from it are already needed earlier
+  CHECKED_CALL_EXIT(
+      mcell_init_read_checkpoint_time_and_iteration(state),
+      "An error occured during initialization and reading of checkpoint.");
+
   CHECKED_CALL_EXIT(mcell_init_simulation(state),
                     "An error occured during simulation creation.");
 
+  // read all data from the checkpoint now
   CHECKED_CALL_EXIT(
       mcell_init_read_checkpoint(state),
       "An error occured during initialization and reading of checkpoint.");
