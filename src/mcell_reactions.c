@@ -3850,10 +3850,8 @@ int load_rate_file(struct volume* state, struct rxn *rx, char *fname, int path) 
         tp->next = NULL;
         tp->path = path;
 
-        // time is in fact iteration, we need to convert the iteration correctly in case we
+        // tp->time is in fact iteration, we need to convert the iteration correctly in case we
         // are continuing from a checkpoint with a different timestep
-
-        // FIXME: computation is wrong
         tp->time = convert_seconds_to_iterations(
             state->start_iterations, state->time_unit,
             state->chkpt_start_time_seconds, t);
