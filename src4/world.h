@@ -210,7 +210,10 @@ public:
 
   uint seed_seq; // initial seed passed to mcell as argument
 
+  // single instance for the whole mcell simulator
   WorldConstants world_constants;
+
+  // single instance for the whole mcell simulator
   SimulationStats simulation_stats;
 
   rng_state rng; // single state for the random number generator

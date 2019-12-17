@@ -56,12 +56,23 @@ public:
 
   species_id_t species_id;
   orientation_t orientation;
+
+  static void dump_array(const std::vector<SpeciesWithOrientation>& vec, const std::string ind);
 };
 
+
+enum class ReactionType {
+  Standard, // any other reaction than below
+  Transparent,
+  Reflect,
+  AbsorbRegionBorder
+};
 
 class Reaction {
 public:
   std::string name;
+
+  ReactionType type;
 
   /* Rate constant of this pathway */
   float_t rate_constant;
@@ -80,6 +91,20 @@ public:
   }
 
   uint get_num_surf_products(const WorldConstants& world_contants) const;
+
+  bool is_reflect() const {
+    return type == ReactionType::Reflect;
+  }
+
+  bool is_transparent() const {
+    return type == ReactionType::Reflect;
+  }
+
+  bool is_absorb() const {
+    return type == ReactionType::AbsorbRegionBorder;
+  }
+
+  static void dump_array(const std::vector<Reaction>& vec);
 
   void dump(const std::string ind) const;
 };

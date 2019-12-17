@@ -225,6 +225,7 @@ const orientation_t ORIENTATION_NONE = 0;
 const orientation_t ORIENTATION_UP = 1;
 
 typedef std::pair<partition_index_t, wall_index_t> PartitionWallIndexPair;
+typedef std::pair<partition_index_t, region_index_t> PartitionRegionIndexPair;
 typedef std::pair<partition_index_t, vertex_index_t> PartitionVertexIndexPair;
 
 typedef std::pair<float_t, PartitionWallIndexPair> CummAreaPWallIndexPair;

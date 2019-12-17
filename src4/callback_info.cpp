@@ -13,7 +13,7 @@ void py_callback_wall_hit(const MCell::WallHitInfo& res, void *clientdata)
 {
    PyObject *func, *arglist;
    PyObject *result;
-   double    dres = 0;
+   //double    dres = 0;
 
    func = (PyObject *) clientdata;               // Get Python function
 
@@ -29,7 +29,7 @@ void py_callback_wall_hit(const MCell::WallHitInfo& res, void *clientdata)
    Py_DECREF(arglist);                           // Trash arglist
 
    if (result) {                                 // If no errors, return double
-     dres = PyFloat_AsDouble(result);
+     //dres = PyFloat_AsDouble(result);
    }
    Py_XDECREF(result);
    //return dres;

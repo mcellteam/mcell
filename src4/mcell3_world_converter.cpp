@@ -293,7 +293,10 @@ void MCell3WorldConverter::create_uninitialized_walls_for_polygonal_object(const
 }
 
 
-bool MCell3WorldConverter::convert_wall(const wall* w, GeometryObject& object) {
+bool MCell3WorldConverter::convert_wall_and_update_regions(
+    const wall* w, GeometryObject& object,
+    const region_list* rl
+) {
 
   PartitionWallIndexPair wall_pindex = get_mcell4_wall_index(w);
   Partition& p = world->get_partition(wall_pindex.first);
@@ -303,11 +306,6 @@ bool MCell3WorldConverter::convert_wall(const wall* w, GeometryObject& object) {
   wall.object_id = object.id;
   wall.object_index = object.index;
   object.wall_indices.push_back(wall.index);
-
-  for (surf_class_list *sl = w->surf_class_head; sl != nullptr; sl = sl->next) {
-    CHECK_PROPERTY(sl->surf_class != nullptr);
-    wall.surface_class_species.push_back(get_mcell4_species_id(sl->surf_class->species_id));
-  }
 
   wall.side = w->side;
 
@@ -367,6 +365,49 @@ bool MCell3WorldConverter::convert_wall(const wall* w, GeometryObject& object) {
   CHECK_PROPERTY(w->grid == nullptr); // for now
   CHECK_PROPERTY(w->flags == 4096); // not sure yet what flags are there for walls
 
+
+
+  // now let's handle regions
+  for (const region_list *r = rl; r != NULL; r = r->next) {
+    region* reg = r->reg;
+    assert(reg != nullptr);
+
+    // are we in this region?
+    if (get_bit(reg->membership, wall.side)) {
+      auto pindex = get_mcell4_region_index(reg);
+      CHECK_PROPERTY(pindex.first == wall_pindex.first);
+
+      region_index_t region_index = pindex.second;
+      wall.regions.push_back(region_index);
+
+      // add our wall to the region
+      Region& mcell4_reg = p.get_region(region_index);
+
+      // which of our walls are region edges?
+      set<edge_index_t> edge_indices;
+      if (reg->boundaries != nullptr) {
+        for (uint i = 0; i < EDGES_IN_TRIANGLE; i++) {
+          edge* e = w->edges[i];
+          uint keyhash = (unsigned int)(intptr_t)(e);
+          void* key = (void *)(e);
+          if (pointer_hash_lookup(reg->boundaries, key, keyhash)) {
+            edge_indices.insert(i);
+          }
+        }
+      }
+
+      assert(mcell4_reg.walls_and_edges.count(wall.index) == 0);
+      mcell4_reg.walls_and_edges[wall.index] = edge_indices;
+    }
+  }
+
+  // TODO: check that associated regions used the same 'surf_classes'/species
+  for (surf_class_list *sl = w->surf_class_head; sl != nullptr; sl = sl->next) {
+    CHECK_PROPERTY(sl->surf_class != nullptr);
+    // TODO: we might need to check that
+    //assert(false && "FIXME");
+    //wall.surface_class_species.push_back(get_mcell4_species_id(sl->surf_class->species_id));
+  }
 
   // finally, we must let the partition know that
   // we initialized the wall
@@ -444,15 +485,14 @@ bool MCell3WorldConverter::convert_polygonal_object(const geom_object* o) {
 
   // --- regions ---
   uint reg_cnt = 0;
-  map<region*, region_index_t> mcell3_region_to_mcell4_index;
   for (region_list *r = o->regions; r != NULL; r = r->next) {
     region* reg = r->reg;
     assert(reg != nullptr);
 
     region_index_t region_index;
     CHECK(convert_region(p, reg, region_index));
-    assert(mcell3_region_to_mcell4_index.count(reg) == 0);
-    mcell3_region_to_mcell4_index[reg] = region_index;
+
+    add_mcell4_region_index_mapping(reg, PartitionRegionIndexPair(partition_index, region_index));
     reg_cnt++;
   }
   CHECK_PROPERTY(o->num_regions == reg_cnt);
@@ -478,7 +518,9 @@ bool MCell3WorldConverter::convert_polygonal_object(const geom_object* o) {
   for (int i = 0; i < o->n_walls; i++) {
     //walls_vertices[i].resize(VERTICES_IN_TRIANGLE);
     // uses precomputed map vector_ptr_to_vertex_index_map to transform vertices
-    CHECK(convert_wall(o->wall_p[i], obj));
+    // also uses mcell3_region_to_mcell4_index mapping to set that it belongs to a given region
+    //
+    CHECK(convert_wall_and_update_regions(o->wall_p[i], obj, o->regions));
   }
 
 
@@ -670,15 +712,29 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *rx) {
 
   CHECK(pathway_head->km_filename == nullptr);
 
-  // products
-  product *product_ptr = pathway_head->product_head;
-  while (product_ptr != nullptr) {
-    species_id_t product_id = get_mcell4_species_id(product_ptr->prod->species_id);
-    CHECK(product_ptr->orientation == 0 || product_ptr->orientation == 1 || product_ptr->orientation == -1);
 
-    reaction.products.push_back(SpeciesWithOrientation(product_id, product_ptr->orientation));
+  if (rx->n_pathways == RX_ABSORB_REGION_BORDER) {
+    reaction.type = ReactionType::AbsorbRegionBorder;
+  }
+  else if (rx->n_pathways == RX_TRANSP) {
+    reaction.type = ReactionType::Transparent;
+  }
+  else if (rx->n_pathways == RX_REFLEC) {
+    reaction.type = ReactionType::Reflect;
+  }
+  else {
+    reaction.type = ReactionType::Standard;
 
-    product_ptr = product_ptr->next;
+    // products
+    product *product_ptr = pathway_head->product_head;
+    while (product_ptr != nullptr) {
+      species_id_t product_id = get_mcell4_species_id(product_ptr->prod->species_id);
+      CHECK(product_ptr->orientation == 0 || product_ptr->orientation == 1 || product_ptr->orientation == -1);
+
+      reaction.products.push_back(SpeciesWithOrientation(product_id, product_ptr->orientation));
+
+      product_ptr = product_ptr->next;
+    }
   }
 
   CHECK(pathway_head->flags == 0);

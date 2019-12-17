@@ -24,6 +24,9 @@
 #ifndef SRC4_GEOMETRY_H_
 #define SRC4_GEOMETRY_H_
 
+#include <vector>
+#include <set>
+
 #include "defines.h"
 #include "molecule.h"
 #include "dyn_vertex_structs.h"
@@ -36,6 +39,9 @@ class UintSet;
 
 class Region {
 public:
+  Region()
+    : name(""), species_id(SPECIES_ID_INVALID) {
+  }
 
   std::string name;
   //region_index_t index; // not sure if it is needed
@@ -46,6 +52,27 @@ public:
 
   // TODO: wall indices
   // we might have a region but it is not used at all now and not referenced from anywhere
+
+  // each wall contained in this map is a part of this region
+  // the vector of edge indices may be empty but if not, it specifies the
+  // edge od the wall that is a border of the region
+  std::map<wall_index_t, std::set<edge_index_t>> walls_and_edges;
+
+  bool is_edge(wall_index_t wall_index, edge_index_t edge_index) const {
+    auto it = walls_and_edges.find(wall_index);
+    if (it != walls_and_edges.end()) {
+      return it->second.count(edge_index) != 0;
+    }
+    else {
+      return false;
+    }
+  }
+
+  bool is_reactive() const {
+    return species_id != SPECIES_ID_INVALID;
+  }
+
+  void dump();
 };
 
 
@@ -261,8 +288,13 @@ public:
 
   // regions, one wall can belong to multiple regions, regions are owned by partition
   // TODO: not used
-  std::vector<species_id_t> surface_class_species; // this is the only information that mcell keeps along this wall and it is derived from region
+  //std::vector<species_id_t> surface_class_species; // this is the only information that mcell keeps along this wall and it is derived from region
 
+
+  // does not contain the main object's region and possibly other regions that
+  // cannot affect molecules
+  // however, for statistics, we might need all regions...
+  std::vector<region_index_t> regions;
 
   // indices of the three triangle's vertices,
   // they are shared in a partition and a single vertex should be usually represented by just one item

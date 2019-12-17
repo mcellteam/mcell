@@ -37,6 +37,22 @@ using namespace std;
 
 namespace MCell {
 
+void Region::dump() {
+  cout << "Region : " <<
+      "name:" << name <<
+      ", species_id: " << ((species_id == SPECIES_ID_INVALID) ? string("invalid") : to_string(species_id)) <<
+      "\n";
+
+  for (auto& wall_it: walls_and_edges) {
+    cout << "  " << "wall " << wall_it.first << ", region edges: {";
+    for (auto& edge: wall_it.second) {
+      cout << edge << ", ";
+    }
+    cout << "}\n";
+  }
+}
+
+
 // may be also used fore reinitialization
 void Grid::initialize(const Partition& p, const Wall& w) {
 
@@ -327,6 +343,12 @@ void Wall::dump(const Partition& p, const std::string ind, const bool for_diff) 
     cout << ind;
     for (uint i = 0; i < EDGES_IN_TRIANGLE; i++) {
       cout << "nb_walls[" << i << "]: " << nb_walls[i] << ", ";
+    }
+    cout << "\n";
+
+    cout << ind << "regions: ";
+    for (region_index_t i: regions) {
+      cout << i << ", ";
     }
     cout << "\n";
 

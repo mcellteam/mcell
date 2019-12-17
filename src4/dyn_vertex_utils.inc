@@ -74,7 +74,7 @@ static void move_volume_molecule_to_closest_wall_point(Partition& p, const Volum
   // move the molecule a bit so that it ends up at the correct side of the wall
   vm.v.pos = new_pos3d;
   vec3_t new_pos_after_diffuse;
-  diffusion_util::tiny_diffuse_3D(p, vm, displacement, wall.index, new_pos_after_diffuse);
+  DiffusionUtil::tiny_diffuse_3D(p, vm, displacement, wall.index, new_pos_after_diffuse);
 
 
   // TODO:

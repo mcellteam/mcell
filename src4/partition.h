@@ -422,30 +422,40 @@ public:
     return new_obj;
   }
 
-  const GeometryObject& get_geometry_object(geometry_object_index_t index) const {
+  const GeometryObject& get_geometry_object(const geometry_object_index_t index) const {
     assert(index < geometry_objects.size());
     return geometry_objects[index];
+  }
+
+  const Region& get_region(const region_index_t i) const {
+    assert(i < regions.size());
+    return regions[i];
+  }
+
+  Region& get_region(const region_index_t i) {
+    assert(i < regions.size());
+    return regions[i];
   }
 
   uint get_wall_count() const {
     return walls.size();
   }
 
-  const Wall& get_wall(wall_index_t i) const {
+  const Wall& get_wall(const wall_index_t i) const {
     assert(i < walls.size());
     const Wall& res = walls[i];
     assert(res.index == i && "Index of a wall must correspond to its position");
     return res;
   }
 
-  Wall& get_wall(wall_index_t i) {
+  Wall& get_wall(const wall_index_t i) {
     assert(i < walls.size());
     Wall& res = walls[i];
     assert(res.index == i && "Index of a wall must correspond to its position");
     return res;
   }
 
-  Wall* get_wall_if_exists(wall_index_t i) {
+  Wall* get_wall_if_exists(const wall_index_t i) {
     if (i == WALL_INDEX_INVALID) {
       return nullptr;
     }
@@ -456,12 +466,12 @@ public:
   }
 
   // maybe we will need to filter out, e.g. just reflective surfaces
-  const UintSet& get_subpart_wall_indices(subpart_index_t subpart_index) const {
+  const UintSet& get_subpart_wall_indices(const subpart_index_t subpart_index) const {
     return walls_per_subpart[subpart_index];
   }
 
   // returns nullptr if either the wall does not exist or the wall's grid was not initialized
-  const Grid* get_wall_grid_if_exists(wall_index_t wall_index) const {
+  const Grid* get_wall_grid_if_exists(const wall_index_t wall_index) const {
     if (wall_index == WALL_INDEX_INVALID) {
       return nullptr;
     }
@@ -474,7 +484,7 @@ public:
     return &w.grid;
   }
 
-  const std::vector<wall_index_t>& get_walls_using_vertex(vertex_index_t vertex_index) const {
+  const std::vector<wall_index_t>& get_walls_using_vertex(const vertex_index_t vertex_index) const {
     assert(vertex_index != VERTEX_INDEX_INVALID);
     assert(vertex_index < walls_using_vertex_mapping.size());
     return walls_using_vertex_mapping[vertex_index];
@@ -483,7 +493,7 @@ public:
   // ---------------------------------- dynamic vertices ----------------------------------
   // add information about a change of a specific vertex
   // order of calls is important (at least for now)
-  void add_vertex_move(vertex_index_t vertex_index, const vec3_t& translation_vec) {
+  void add_vertex_move(const vertex_index_t vertex_index, const vec3_t& translation_vec) {
     scheduled_vertex_moves.push_back(VertexMoveInfo(vertex_index, translation_vec));
   }
 

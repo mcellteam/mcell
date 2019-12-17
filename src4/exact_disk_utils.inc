@@ -934,6 +934,7 @@ static float_t __attribute__((noinline)) exact_disk(
     /* Ignore this wall if moving molecule can travel through it */
 
     /* Reject those that the moving particle can travel through */
+    assert(!moving.has_flag(CAN_VOLWALL));
 #if 0
     // TODO_LATER: checked with assert in mcell3 that it does not occur
     if ((moving->properties->flags & CAN_VOLWALL) != 0) {

@@ -275,8 +275,12 @@ void World::run_simulation(const bool dump_initial_state) {
 
 void World::dump() {
   world_constants.dump();
+
   // species
   Species::dump_array(species);
+
+  // reactions
+  Reaction::dump_array(reactions);
 
   // partitions
   for (Partition& p: partitions) {

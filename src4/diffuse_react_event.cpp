@@ -42,6 +42,7 @@
 #include "debug_config.h"
 
 // include implementations of utility functions
+#include "geometry_utils.inc"
 #include "reaction_utils.inc"
 #include "collision_utils.inc"
 #include "exact_disk_utils.inc"
@@ -255,7 +256,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
   // diffuse each molecule - get information on position change
   vec3_t displacement;
   float_t r_rate_factor;
-  diffusion_util::compute_vol_displacement(
+  DiffusionUtil::compute_vol_displacement(
       species, remaining_time_step, world->rng, displacement, r_rate_factor);
 
 #ifdef DEBUG_DIFFUSION
@@ -514,7 +515,7 @@ bool DiffuseReactEvent::collide_and_react_with_vol_mol(
   //  rx->prob_t is always NULL in out case update_probs(world, rx, m->t);
   // returns which reaction pathway to take
   float_t scaling = factor * r_rate_factor;
-  int i = rx_util::test_bimolecular(
+  int i = RxUtil::test_bimolecular(
     rx, world->rng, colliding_molecule, diffused_molecule, scaling, 0);
 
   if (i < RX_LEAST_VALID_PATHWAY) {
@@ -582,7 +583,7 @@ int DiffuseReactEvent::collide_and_react_with_surf_mol(
   }
 
   ReactionsVector matching_rxns;
-  rx_util::trigger_bimolecular(
+  RxUtil::trigger_bimolecular(
     *p.get_world_constants().bimolecular_reactions_map,
     diffused_molecule, colliding_molecule,
     collision_orientation, colliding_molecule.s.orientation,
@@ -605,7 +606,7 @@ int DiffuseReactEvent::collide_and_react_with_surf_mol(
   int selected_rx_pathway;
   int reactant_index;
   if (matching_rxns.size() == 1) {
-    selected_rx_pathway = rx_util::test_bimolecular(
+    selected_rx_pathway = RxUtil::test_bimolecular(
         *matching_rxns[0], world->rng,
         diffused_molecule, colliding_molecule,
         scaling_coefs[0], 0);
@@ -615,7 +616,7 @@ int DiffuseReactEvent::collide_and_react_with_surf_mol(
   }
   else {
     bool all_neighbors_flag = true;
-    reactant_index = rx_util::test_many_bimolecular(matching_rxns, scaling_coefs, 0, world->rng, false);
+    reactant_index = RxUtil::test_many_bimolecular(matching_rxns, scaling_coefs, 0, world->rng, false);
     selected_rx_pathway = 0; // TODO_PATHWAYS: use value from test_many_bimolecular
   }
 
@@ -697,7 +698,7 @@ void DiffuseReactEvent::diffuse_surf_molecule(
          find_new_position > 0; find_new_position--) {
 
       vec2_t displacement;
-      diffusion_util::compute_surf_displacement(species, space_factor, world->rng, displacement);
+      DiffusionUtil::compute_surf_displacement(species, space_factor, world->rng, displacement);
 
 
   #ifdef DEBUG_DIFFUSION
@@ -747,13 +748,13 @@ void DiffuseReactEvent::diffuse_surf_molecule(
 
       // After diffusing, are we still on the SAME triangle?
       if (new_wall_index == sm.s.wall_index) {
-        if (diffusion_util::move_sm_on_same_triangle(p, sm, new_loc)) {
+        if (DiffusionUtil::move_sm_on_same_triangle(p, sm, new_loc)) {
           continue;
         }
       }
       // After diffusing, we ended up on a NEW triangle.
       else {
-        if (diffusion_util::move_sm_to_new_triangle(p, sm, new_loc, new_wall_index)) {
+        if (DiffusionUtil::move_sm_to_new_triangle(p, sm, new_loc, new_wall_index)) {
           continue;
         }
       }
@@ -853,7 +854,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
 
     // returns value >=1 if there can be a reaction
     size_t orig_num_rxsn = matching_rxns.size();
-    rx_util::trigger_bimolecular_orientation_from_mols(
+    RxUtil::trigger_bimolecular_orientation_from_mols(
         world->bimolecular_reactions_map,
         sm, nsm,
         matching_rxns
@@ -885,7 +886,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
        Here we convert from 3 neighbor tiles (upper probability
        limit) to the real "num_nbrs" neighbor tiles. */
 
-    selected_rx_pathway = rx_util::test_bimolecular(
+    selected_rx_pathway = RxUtil::test_bimolecular(
         *matching_rxns[0], world->rng,
         sm, p.get_m(reactant_molecule_ids[0]),
         correction_factors[0], local_prob_factor);
@@ -895,7 +896,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
   }
   else {
     bool all_neighbors_flag = true;
-    reactant_index = rx_util::test_many_bimolecular(matching_rxns, correction_factors, local_prob_factor, world->rng, all_neighbors_flag);
+    reactant_index = RxUtil::test_many_bimolecular(matching_rxns, correction_factors, local_prob_factor, world->rng, all_neighbors_flag);
     selected_rx_pathway = 0; // TODO_PATHWAYS: use value from test_many_bimolecular
   }
 
@@ -987,15 +988,17 @@ wall_index_t DiffuseReactEvent::ray_trace_surf(
        edges of the wall if they are region borders
        Note - here we test for potential collisions with the region
        border while moving INSIDE OUT */
-    assert(!species.has_flag(SPECIES_FLAG_CAN_REGION_BORDER) && "not supported yet");
+    bool absorb_now = false;
     bool reflect_now = false;
     if (species.can_interact_with_border()) {
-#if 0
-      reflect_absorb_inside_out(
-          world, sm, hit_data_head, &rx, matching_rxns, boundary_pos, this_wall,
-          edge_index_that_was_hit, &reflect_now, &absorb_now,
-          &this_wall_edge_region_border);
+      DiffusionUtil::reflect_absorb_inside_out(
+          p, sm, *this_wall, edge_index_that_was_hit,
+          reflect_now, absorb_now
+      );
 
+      assert(!absorb_now && "TODO");
+
+#if 0
       if (absorb_now) {
         assert(false && "TODO");
         /**kill_me = 1;
@@ -1013,21 +1016,38 @@ wall_index_t DiffuseReactEvent::ray_trace_surf(
           GeometryUtil::traverse_surface(*this_wall, old_pos, edge_index_that_was_hit, this_pos);
 
       if (target_wall_index != WALL_INDEX_INVALID) {
-        assert(!species.has_flag(SPECIES_FLAG_CAN_REGION_BORDER) && "not supported yet");
+        /* We hit the edge - check for the reflection/absorption from the
+           edges of the wall if they are region borders
+           Note - here we test for potential collisions with the region
+           border while moving OUTSIDE IN */
+        if (species.can_interact_with_border()) {
+          // same as above
+          /*DiffusionUtil::reflect_absorb_outside_in(
+              // TODO
 
-        this_disp = old_pos + this_disp;
+              p, sm, *this_wall, edge_index_that_was_hit,
+              reflect_now, absorb_now
+          );*/
 
-        #ifndef NDEBUG
-          Edge& e = const_cast<Edge&>(this_wall->edges[edge_index_that_was_hit]);
-          assert(e.is_initialized());
-          e.debug_check_values_are_uptodate(p);
-        #endif
+          assert(!absorb_now && "TODO");
+        }
 
-        vec2_t tmp_disp;
-        GeometryUtil::traverse_surface(*this_wall, this_disp, edge_index_that_was_hit, tmp_disp);
-        this_disp = tmp_disp - this_pos;
-        this_wall = &p.get_wall(target_wall_index);
-        continue;
+
+        if (!reflect_now) {
+          this_disp = old_pos + this_disp;
+
+          #ifndef NDEBUG
+            Edge& e = const_cast<Edge&>(this_wall->edges[edge_index_that_was_hit]);
+            assert(e.is_initialized());
+            e.debug_check_values_are_uptodate(p);
+          #endif
+
+          vec2_t tmp_disp;
+          GeometryUtil::traverse_surface(*this_wall, this_disp, edge_index_that_was_hit, tmp_disp);
+          this_disp = tmp_disp - this_pos;
+          this_wall = &p.get_wall(target_wall_index);
+          continue;
+        }
       }
     }
 
@@ -1090,12 +1110,12 @@ void DiffuseReactEvent::create_unimol_rx_action(
   float_t curr_time = event_time + diffusion_time_step - remaining_time_step;
   assert(curr_time >= 0);
 
-  const Reaction* rx = rx_util::pick_unimol_rx(world, m.species_id);
+  const Reaction* rx = RxUtil::pick_unimol_rx(world, m.species_id);
   if (rx == nullptr) {
     return;
   }
 
-  float_t time_from_now = rx_util::compute_unimol_lifetime(p, world->rng, m, rx);
+  float_t time_from_now = RxUtil::compute_unimol_lifetime(p, world->rng, m, rx);
 
   float_t scheduled_time = curr_time + time_from_now;
 
@@ -1189,7 +1209,7 @@ int DiffuseReactEvent::find_surf_product_positions(
     const Reaction* rx,
     small_vector<GridPos>& assigned_surf_product_positions) {
 
-  uint num_surface_products = rx_util::get_num_surface_products(world, rx);
+  uint num_surface_products = RxUtil::get_num_surface_products(world, rx);
 
   small_vector<GridPos> recycled_surf_prod_positions; // this array contains information on where to place the surface products
   uint initiator_recycled_index = INDEX_INVALID;
@@ -1243,7 +1263,7 @@ int DiffuseReactEvent::find_surf_product_positions(
     // NOTE: this can be optimized - in case of a single product, it will just replace the initiator
     // and no initialization of recycled_surf_prod_positions is needed
     // there must be just one surface product for this variant
-    assert(rx_util::get_num_surface_products(world, rx) == 1
+    assert(RxUtil::get_num_surface_products(world, rx) == 1
         && "not sure, should not probably happen or this case is not handled");
 
     assert(initiator_recycled_index != INDEX_INVALID);
@@ -1459,7 +1479,7 @@ int DiffuseReactEvent::outcome_products_random(
         vec3_t displacement = vec3_t(2 * bump) * w.normal;
         vec3_t new_pos_after_diffuse;
 
-        diffusion_util::tiny_diffuse_3D(p, new_vm, displacement, w.index, new_pos_after_diffuse);
+        DiffusionUtil::tiny_diffuse_3D(p, new_vm, displacement, w.index, new_pos_after_diffuse);
 
         // update position and subpart if needed
         new_vm.v.pos = new_pos_after_diffuse;
