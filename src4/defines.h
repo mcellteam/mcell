@@ -59,6 +59,42 @@
 // might be some nasty cyclic include dependencies
 #endif
 
+/**
+ * Usage of IDs and indexes:
+ *
+ * ID - world-unique identifier of an object
+ * Index -partition-unique identifier of an object
+ *
+ * Why use indices instead of pointers:
+ *   - Having a value that is independent on actual position in memory can be beneficial,
+ *     this way, we can migrate the data to a different piece of memory and the index will be still valid
+ *
+ *   - Do we really need to move data? - Yes
+ *      - Growing arrays get reallocated
+ *      - Defragmentation of molecule arrays
+ *
+ * Use only IDs?
+ *   - This would mean that for every access, we need to use indirection, might be cheap, but also might
+ *     block some superscalar executions...
+ *   - Also, every type of object would have its own mapping array for all the possible IDs
+ *     in each partition
+ *
+ * What about cases when a wall changes its partition?
+ *   - If I hold just its index, I cannot know that it has moved.
+ *
+ * Go back to single partition? Do not think about multicore execution for now?
+ *   - Single partition system won't need to use indices, just IDs
+ *   - However, ids do not allow for defragmentation without fixing up all existing references
+ *
+ * Keep the implementation it as it is for now? - Yes
+ *   - molecules use ids, everything else uses indices
+ *   - refactor once we will have a good reason to do it - e.g. initially we might now want to allow walls to cross partitions
+ *
+ * Another approach:
+ *   - Id + index for everything that can change?
+ *   - Id for everything that does not change?
+ *
+ */
 
 namespace MCell {
 
@@ -92,7 +128,7 @@ const float_t PARTITION_EDGE_LENGTH_DEFAULT = 10 * 100 /*100 = 1/length unit*/; 
 const float_t SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT = 1;
 
 
-// ---------------------------------- fixed costants and specific typedefs -------------------
+// ---------------------------------- fixed constants and specific typedefs -------------------
 const float_t POS_INVALID = FLT_MAX; // cannot be NAN because we cannot do any comparison with NANs
 
 const float_t TIME_INVALID = -1;
@@ -147,6 +183,11 @@ typedef uint tile_index_t; // index of a tile in a grid
 const tile_index_t TILE_INDEX_INVALID = UINT32_MAX;
 
 typedef uint edge_index_t; // index of an edge in a wall, must be in range 0..2
+const edge_index_t EDGE_INDEX_0 = 0;
+const edge_index_t EDGE_INDEX_1 = 1;
+const edge_index_t EDGE_INDEX_2 = 2;
+const edge_index_t EDGE_INDEX_WITHIN_WALL = 3; // used in find_edge_point
+const edge_index_t EDGE_INDEX_CANNOT_TELL = 4;
 const edge_index_t EDGE_INDEX_INVALID = UINT32_MAX;
 
 /* contains information about the neighbors of the tile */
@@ -169,7 +210,8 @@ public:
 typedef uint wall_id_t; // world-unique wall id
 const wall_id_t WALL_ID_INVALID = UINT32_MAX;
 
-//typedef uint wall_class_index_t; // index in world's wall classes
+typedef uint region_index_t; // index in partition's regions
+const region_index_t REGION_INDEX_INVALID = UINT32_MAX;
 
 typedef uint geometry_object_index_t;
 const geometry_object_index_t GEOMETRY_OBJECT_INDEX_INVALID = UINT32_MAX;

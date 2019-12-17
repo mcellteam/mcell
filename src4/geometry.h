@@ -33,9 +33,25 @@ namespace MCell {
 class Partition;
 class UintSet;
 
+
+class Region {
+public:
+
+  std::string name;
+  //region_index_t index; // not sure if it is needed
+
+  // the reactivity of the region is modeled using reactions and
+  // this region has its species specified
+  species_id_t species_id;
+
+  // TODO: wall indices
+  // we might have a region but it is not used at all now and not referenced from anywhere
+};
+
+
 /**
  * A single geometrical object composed of multiple walls.
- * Vartices are accessible through the wall indices.
+ * Vertices are accessible through the wall indices.
  * Owned by partition.
  */
 class GeometryObject {
@@ -55,7 +71,7 @@ public:
 
 
 /* Used to transform coordinates of surface molecules diffusing between
- * adjacent walls */
+ * adjacent walls, owned by its wall */
 class Edge {
 public:
   Edge()
@@ -91,7 +107,7 @@ class Wall;
 
 /**
  * Surface grid.
- * Owned by partition, associated always with a single wall.
+ * Owned by its wall.
  *
  * Contains an array of tiles.
  */
@@ -241,7 +257,12 @@ public:
 
   geometry_object_id_t object_id; // id of object to which this wall belongs
   geometry_object_index_t object_index; // index of object in this partition to which this wall belongs
-  //wall_class_index_t class_index; // index of this wall's class
+
+
+  // regions, one wall can belong to multiple regions, regions are owned by partition
+  // TODO: not used
+  std::vector<species_id_t> surface_class_species; // this is the only information that mcell keeps along this wall and it is derived from region
+
 
   // indices of the three triangle's vertices,
   // they are shared in a partition and a single vertex should be usually represented by just one item

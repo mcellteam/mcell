@@ -958,19 +958,18 @@ wall_index_t DiffuseReactEvent::ray_trace_surf(
 
     /* Index of the wall edge that the SM hits */
     vec2_t boundary_pos;
-    // FIXME: enum for index_edge_was_hit?
-    int index_edge_was_hit =
+    edge_index_t edge_index_that_was_hit =
         GeometryUtil::find_edge_point(*this_wall, this_pos, this_disp, boundary_pos);
 
     // Ambiguous edge collision. Give up and try again from diffuse_2D.
-    if (index_edge_was_hit == -2) {
+    if (edge_index_that_was_hit == EDGE_INDEX_CANNOT_TELL) {
       sm.s.pos = orig_pos;
       // hit_data_info = hit_data_head;
       return WALL_INDEX_INVALID;
     }
 
     // We didn't hit the edge. Stay inside this wall. We're done!
-    else if (index_edge_was_hit == -1) {
+    else if (edge_index_that_was_hit == EDGE_INDEX_WITHIN_WALL) {
       new_pos = this_pos + this_disp;
 
       // ???
@@ -980,7 +979,8 @@ wall_index_t DiffuseReactEvent::ray_trace_surf(
     }
 
 
-    // Neither ambiguous (-2) nor inside wall (-1), must have hit edge (0, 1, 2)
+    // Neither ambiguous (EDGE_INDEX_CANNOT_TELL) nor inside wall (EDGE_INDEX_WITHIN_WALL),
+    // must have hit edge (0, 1, 2)
     vec2_t old_pos = this_pos;
 
     /* We hit the edge - check for the reflection/absorption from the
@@ -988,27 +988,47 @@ wall_index_t DiffuseReactEvent::ray_trace_surf(
        Note - here we test for potential collisions with the region
        border while moving INSIDE OUT */
     assert(!species.has_flag(SPECIES_FLAG_CAN_REGION_BORDER) && "not supported yet");
+    bool reflect_now = false;
+    if (species.can_interact_with_border()) {
+#if 0
+      reflect_absorb_inside_out(
+          world, sm, hit_data_head, &rx, matching_rxns, boundary_pos, this_wall,
+          edge_index_that_was_hit, &reflect_now, &absorb_now,
+          &this_wall_edge_region_border);
+
+      if (absorb_now) {
+        assert(false && "TODO");
+        /**kill_me = 1;
+        *rxp = rx;
+        *hit_data_info = hit_data_head;
+        return NULL;*/
+      }
+#endif
+    }
 
     /* no reflection - keep going */
-    vec2_t new_disp;
-    wall_index_t target_wall_index =
-        GeometryUtil::traverse_surface(*this_wall, old_pos, index_edge_was_hit, this_pos);
 
-    if (target_wall_index != WALL_INDEX_INVALID) {
-      assert(!species.has_flag(SPECIES_FLAG_CAN_REGION_BORDER) && "not supported yet");
+    if (!reflect_now) {
+      wall_index_t target_wall_index =
+          GeometryUtil::traverse_surface(*this_wall, old_pos, edge_index_that_was_hit, this_pos);
 
-      this_disp = old_pos + this_disp;
+      if (target_wall_index != WALL_INDEX_INVALID) {
+        assert(!species.has_flag(SPECIES_FLAG_CAN_REGION_BORDER) && "not supported yet");
 
-      #ifndef NDEBUG
-        Edge& e = const_cast<Edge&>(this_wall->edges[index_edge_was_hit]);
-        assert(e.is_initialized());
-        e.debug_check_values_are_uptodate(p);
-      #endif
+        this_disp = old_pos + this_disp;
 
-      GeometryUtil::traverse_surface(*this_wall, this_disp, index_edge_was_hit, new_disp);
-      this_disp = new_disp - this_pos;
-      this_wall = &p.get_wall(target_wall_index);
-      continue;
+        #ifndef NDEBUG
+          Edge& e = const_cast<Edge&>(this_wall->edges[edge_index_that_was_hit]);
+          assert(e.is_initialized());
+          e.debug_check_values_are_uptodate(p);
+        #endif
+
+        vec2_t tmp_disp;
+        GeometryUtil::traverse_surface(*this_wall, this_disp, edge_index_that_was_hit, tmp_disp);
+        this_disp = tmp_disp - this_pos;
+        this_wall = &p.get_wall(target_wall_index);
+        continue;
+      }
     }
 
     /* If we reach this point, assume we reflect off the edge since there is no
@@ -1017,13 +1037,13 @@ wall_index_t DiffuseReactEvent::ray_trace_surf(
      * NOTE: this_pos has been corrupted by traverse_surface; use old_pos to find
      * out whether the present wall edge is a region border
      */
-    new_disp = this_disp - (boundary_pos - old_pos);
+    vec2_t new_disp = this_disp - (boundary_pos - old_pos);
 
-    switch (index_edge_was_hit) {
-      case 0:
+    switch (edge_index_that_was_hit) {
+      case EDGE_INDEX_0:
         new_disp.v *= -1.0;
         break;
-      case 1: {
+      case EDGE_INDEX_1: {
         float_t f;
         vec2_t reflector;
         reflector.u = -this_wall->uv_vert2.v;
@@ -1034,7 +1054,7 @@ wall_index_t DiffuseReactEvent::ray_trace_surf(
         new_disp -= vec2_t(f) * reflector;
         break;
       }
-      case 2: {
+      case EDGE_INDEX_2: {
         float_t f;
         vec2_t reflector;
         reflector.u = this_wall->uv_vert2.v;
@@ -1046,7 +1066,7 @@ wall_index_t DiffuseReactEvent::ray_trace_surf(
         break;
       }
       default:
-        UNHANDLED_CASE(index_edge_was_hit);
+        UNHANDLED_CASE(edge_index_that_was_hit);
     }
 
     this_pos.u = boundary_pos.u;

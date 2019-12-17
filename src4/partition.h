@@ -386,6 +386,12 @@ public:
     return get_geometry_vertex(i);
   }
 
+  region_index_t add_region(const Region& reg) {
+    region_index_t index = regions.size();
+    regions.push_back(reg);
+    return index;
+  }
+
   // returns reference to the new wall, only sets id and index
   // register_wall must be called after the wall is initialized
   Wall& add_uninitialized_wall(const wall_id_t id) {
@@ -537,7 +543,8 @@ private:
   std::vector<GeometryObject> geometry_objects;
 
   std::vector<Wall> walls;
-  //std::vector<grid_t> grids; // not every wall has a grid
+
+  std::vector<Region> regions;
 
   // indexed by vertex_index_t
   std::vector< std::vector<wall_index_t>> walls_using_vertex_mapping;

@@ -25,6 +25,7 @@
 #define SRC4_SPECIES_H_
 
 #include <string>
+#include <vector>
 #include "defines.h"
 
 #include "mcell_structs.h"
@@ -35,13 +36,14 @@ namespace MCell {
 enum species_flag_t {
 
   SPECIES_FLAG_ON_GRID = ON_GRID, // 0x01
+  SPECIES_FLAG_IS_SURFACE = IS_SURFACE, // 0x02 - not stored
   SPECIES_FLAG_CAN_VOLVOL = CAN_VOLVOL, // 0x10  - can vol vol react?
   SPECIES_FLAG_CAN_VOLSURF = CAN_VOLSURF, // 0x20
   SPECIES_FLAG_CAN_SURFSURF = CAN_SURFSURF, // 0x80
   SPECIES_FLAG_CANT_INITIATE = CANT_INITIATE, // 0x400 - not sure what to do with this yet
   SPECIES_FLAG_CAN_SURFSURFSURF = CAN_SURFSURFSURF, // 0x20000 - not supported
   SPECIES_FLAG_SET_MAX_STEP_LENGTH = SET_MAX_STEP_LENGTH, // 0x80000
-  SPECIES_FLAG_CAN_REGION_BORDER = CAN_REGION_BORDER, // 0x100000 - not supported
+  SPECIES_FLAG_CAN_REGION_BORDER = CAN_REGION_BORDER, // 0x100000
   SPECIES_FLAG_EXTERNAL_SPECIES = EXTERNAL_SPECIES // 0x400000 - not supported
 };
 /**
@@ -70,6 +72,15 @@ public:
 
   bool is_vol() const {
     return !has_flag(SPECIES_FLAG_ON_GRID);
+  }
+
+  bool is_reactive_surface() const {
+    return has_flag(SPECIES_FLAG_IS_SURFACE);
+  }
+
+  // true if can interact with edge of an border
+  bool can_interact_with_border() const {
+    return has_flag(SPECIES_FLAG_CAN_REGION_BORDER);
   }
 
   bool can_diffuse() const {

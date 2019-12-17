@@ -59,6 +59,7 @@ void dump_object_list(geom_object* obj, const char* name, const char* comment, c
 void dump_wall_list(wall_list* list, const char* ind);
 void dump_wall_array(int num, wall** wall_array, const char* ind);
 void dump_object(geom_object* o, const char* ind);
+void dump_region_list(region_list *rl, const char* regions_name, const char* comment, const char* ind);
 
 const char* str(const char* ptr) {
   if (ptr != nullptr) {
@@ -100,6 +101,19 @@ std::ostream & operator<<(std::ostream &out, const periodic_image &a) {
 
 std::ostream & operator<<(std::ostream &out, const int3D &a) {
   out << "(" << a.x << ", " << a.y << ", " << a.z << ")";
+  return out;
+}
+
+std::ostream & operator<<(std::ostream &out, const name_orient* a) {
+  if (a == nullptr) {
+    out << "NULL";
+  }
+  else {
+    for (const name_orient* curr = a; curr != nullptr; curr = curr->next) {
+      out << "(" << ((curr->name == nullptr) ? "NULL" : curr->name) << "," << curr->orient << "), ";
+    }
+
+  }
   return out;
 }
 
@@ -414,6 +428,8 @@ void dump_vector3_array(int num, const char* num_name, vector3* values, const ch
 
 
 void dump_object(geom_object* o, const char* ind) {
+  DECL_IND2(ind);
+
   if (o == nullptr) {
     return;
   }
@@ -432,7 +448,10 @@ void dump_object(geom_object* o, const char* ind) {
   cout << ind << "object_type: \t\t" << o->object_type << " [object_type_flags_t] \t\t/* Object Type Flags */\n";
   cout << ind << "contents: *\t\t" << o->contents << " [void] \t\t/* Actual physical object, cast according to object_type */\n";
   cout << ind << "num_regions: \t\t" << o->num_regions << " [u_int] \t\t/* Number of regions defined on object */\n";
-  cout << ind << "regions: *\t\t" << o->regions << " [region_list] \t\t/* List of regions for this object */\n";
+
+  //cout << ind << "regions: *\t\t" << o->regions << " [region_list] \t\t/* List of regions for this object */\n";
+  dump_region_list(o->regions, "regions", "/* List of regions for this object */", ind2);
+
   cout << ind << "n_walls: \t\t" << o->n_walls << " [int] \t\t/* Total number of walls in object */\n";
   cout << ind << "n_walls_actual: \t\t" << o->n_walls_actual << " [int] \t\t/* Number of non-null walls in object */\n";
   cout << ind << "n_verts: \t\t" << o->n_verts << " [int] \t\t/* Total number of vertices in object */\n";
@@ -446,11 +465,11 @@ void dump_object(geom_object* o, const char* ind) {
   cout << ind << "periodic_y: \t\t" << o->periodic_y << " [bool] \t\t// any volume molecules encountering the box surface in the x,\n";
   cout << ind << "periodic_z: \t\t" << o->periodic_z << " [bool] \t\t// y or z direction are reflected back into the box as if they  had entered the adjacent neighboring box */\n";
 
-  dump_object_list(o->first_child, "first_child", "", IND_ADD2(ind));
+  dump_object_list(o->first_child, "first_child", "", ind2);
 
   cout << ind << "walls: *\t\t" << o->walls << " [wall] \t\t/* Array of walls in object */\n";
   cout << ind << "wall_p: **\t\t" << o->wall_p << " [wall] \t\t// Array of ptrs to walls in object (used at run-time)\n";
-  dump_wall_array(o->n_walls, o->wall_p, IND_ADD2(ind));
+  dump_wall_array(o->n_walls, o->wall_p, ind2);
 }
 
 
@@ -682,7 +701,9 @@ void dump_molecules(int num_all_molecules, molecule_info **all_molecules) {
 
 
 void dump_region(region* reg, const char* ind) {
-  // TODO
+  DECL_IND2(ind)
+
+  // TODO XXXXXXXX
   cout << ind << "reg: *\t\t" << (void*)reg << " [region] \t\t\n";
   cout << ind << "  " << "sym: *\t\t" << reg->sym << " [sym_entry] \t\t  /* Symbol hash table entry for this region */\n";
   cout << ind << "  " << "hashval: \t\t" << reg->hashval << " [u_int] \t\t          /* Hash value for counter hash table */\n";
@@ -691,11 +712,11 @@ void dump_region(region* reg, const char* ind) {
   cout << ind << "  " << "element_list_head: *\t\t" << (void*)reg->element_list_head << " [element_list] \t\t /* List of element ranges comprising this region (used at parse time) */\n";
   cout << ind << "  " << "membership: *\t\t" << (void*)reg->membership << " [bit_array] \t\t /* Each bit indicates whether the corresponding wall is in the region */\n";
   cout << ind << "  " << "sm_dat_head: *\t\t" << (void*)reg->sm_dat_head << " [sm_dat] \t\t /* List of surface molecules to add to region */\n";
-  cout << ind << "  " << "surf_class: *\t\t" << (void*)reg->surf_class << " [species] \t\t /* Surface class of this region */\n";
+  dump_species(reg->surf_class, "surf_class", "/* Surface class of this region */", ind2);
   cout << ind << "  " << "bbox: *\t\t" << (void*)reg->bbox << " [vector3] \t\t /* Array of length 2 to hold corners of region bounding box (used for release in region) */\n";
   cout << ind << "  " << "area: \t\t" << reg->area << " [double] \t\t          /* Area of region */\n";
   cout << ind << "  " << "flags: \t\t" << reg->flags << " [u_short] \t\t        /* Counting subset of Species Flags */\n";
-  cout << ind << "  " << "manifold_flag: \t\t" << reg->manifold_flag << " [byte] \t\t   /* Manifold Flags: If IS_MANIFOLD, region is a closed manifold and thus defines a volume */\n";
+  cout << ind << "  " << "manifold_flag: \t\t" << (int)reg->manifold_flag << " [byte] \t\t   /* Manifold Flags: If IS_MANIFOLD, region is a closed manifold and thus defines a volume */\n";
   cout << ind << "  " << "volume: \t\t" << reg->volume << " [double] \t\t                   /* volume of region for closed manifolds */\n";
   cout << ind << "  " << "boundaries: *\t\t" << (void*)reg->boundaries << " [pointer_hash] \t\t /* hash table of edges that constitute external boundary of the region */\n";
   cout << ind << "  " << "region_has_all_elements: \t\t" << reg->region_has_all_elements << " [int] \t\t /* flag that tells whether the region contains ALL_ELEMENTS (effectively comprises the whole object) */\n";
@@ -703,7 +724,7 @@ void dump_region(region* reg, const char* ind) {
 
 void dump_region_list(region_list *rl, const char* regions_name, const char* comment, const char* ind) {
   cout << ind << regions_name << ": *\t\t" << rl << " [region_list] \t\t " << comment << "\n";
-  for (region_list *r = rl; rl != NULL; rl = rl->next) {
+  for (region_list *r = rl; r != NULL; r = r->next) {
     dump_region(r->reg, IND_ADD2(ind) );
   }
 }
