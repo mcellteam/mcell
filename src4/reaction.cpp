@@ -24,7 +24,8 @@
 #include <iostream>
 
 #include "reaction.h"
-#include "world_constants.h"
+
+#include "species_info.h"
 
 using namespace std;
 
@@ -37,10 +38,10 @@ void SpeciesWithOrientation::dump_array(const std::vector<SpeciesWithOrientation
 }
 
 
-uint Reaction::get_num_surf_products(const WorldConstants& world_contants) const {
+uint Reaction::get_num_surf_products(const SpeciesInfo& all_species) const {
   uint res = 0;
   for (const SpeciesWithOrientation& prod: products) {
-    if (world_contants.get_species(prod.species_id).is_surf()) {
+    if (all_species.get_species(prod.species_id).is_surf()) {
       res++;
     }
   }

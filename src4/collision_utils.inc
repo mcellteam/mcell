@@ -340,7 +340,7 @@ static bool collide_mol(
 // body of the collision detection loop
 // made into separate function to be possibly able to make some optimizations over it in the future
 static void collide_mol_loop_body(
-    const WorldConstants& world_constants,
+    const ReactionsInfo& all_reactions,
     Partition& p,
     const Molecule& vm,
     const molecule_id_t colliding_vm_id,
@@ -356,7 +356,7 @@ static void collide_mol_loop_body(
   vec3_t position;
   // collide_mol must be inlined because many things are computed all over there
   if (collide_mol(vm, remaining_displacement, colliding_vm, radius, time, position)) {
-    const Reaction* rx = world_constants.get_reaction(vm, colliding_vm);
+    const Reaction* rx = all_reactions.get_reaction(vm, colliding_vm);
     assert(rx != nullptr);
     molecule_collisions.push_back(
         Collision(CollisionType::VOLMOL_VOLMOL, &p, vm.id, time, position, colliding_vm.id, rx)
@@ -437,7 +437,7 @@ static CollisionType collide_wall(
     vec3_t& move,
     float_t& collision_time, vec3_t& collision_pos
 ) {
-  p.get_simulation_stats().inc_ray_polygon_tests();
+  p.stats.inc_ray_polygon_tests();
 
   float_t dp, dv, dd;
   float_t d_eps;
@@ -626,7 +626,7 @@ static void collect_wall_collisions(
       it = wall_indices.begin();
     }
     else if (collision_type != CollisionType::WALL_MISS) {
-      p.get_simulation_stats().inc_ray_polygon_colls();
+      p.stats.inc_ray_polygon_colls();
       wall_collisions.push_back(
           Collision(collision_type, &p, vm.id, collision_time, collision_pos, wall_index)
       );

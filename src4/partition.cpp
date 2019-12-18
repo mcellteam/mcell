@@ -181,7 +181,7 @@ void Partition::dump() {
     if (!walls_per_subpart[i].empty()) {
       vec3_t llf, urb;
       get_subpart_llf_point(i, llf);
-      urb = llf + vec3_t(world_constants.subpartition_edge_length);
+      urb = llf + vec3_t(config.subpartition_edge_length);
 
       cout << "subpart: " << i << ", llf: " << llf << ", urb: " << urb << "\n";
       walls_per_subpart[i].dump();

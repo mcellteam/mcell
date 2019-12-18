@@ -602,15 +602,12 @@ typedef std::map<species_id_t, SpeciesReactionMap> BimolecularReactionsMap;
 typedef SpeciesReactionMap UnimolecularReactionsMap;
 
 /*
- * Constant data set in initialization useful for all classes, single object is owned by world
+ * Stats collected during simulation, contains also number of the current iteration
  */
 class SimulationStats {
 public:
-  SimulationStats()
-    : current_iteration(0),
-      ray_voxel_tests(0), ray_polygon_tests(0), ray_polygon_colls(0),
-      mol_moves_between_walls(0)
-      {
+  SimulationStats() {
+    reset();
   }
   void inc_ray_voxel_tests() {
     ray_voxel_tests++;
@@ -637,6 +634,14 @@ public:
     return current_iteration;
   }
 
+  void reset() {
+    current_iteration = 0;
+    ray_voxel_tests = 0;
+    ray_polygon_tests = 0;
+    ray_polygon_colls = 0;
+    mol_moves_between_walls = 0;
+  }
+
 private:
   uint64_t current_iteration;
 
@@ -646,6 +651,43 @@ private:
   uint64_t mol_moves_between_walls;
 };
 
+/*
+ * Constant data set in initialization useful for all classes, single object is owned by world
+ */
+class SimulationConfig {
+public:
+  // configuration
+  float_t time_unit;
+  float_t length_unit;
+  float_t rx_radius_3d;
+  float_t vacancy_search_dist2;
+
+  float_t partition_edge_length;
+  uint subpartitions_per_partition_dimension;
+  uint subpartitions_per_partition_dimension_squared;
+  float_t subpartition_edge_length; // == partition_edge_length / subpartitions_per_partition_dimension
+  float_t subpartition_edge_length_rcp; // == 1/subpartition_edge_length
+
+  // other options
+  bool use_expanded_list;
+  bool randomize_smol_pos;
+
+  void init() {
+    init_subpartition_edge_length();
+  }
+
+  void dump();
+
+private:
+  void init_subpartition_edge_length() {
+    if (partition_edge_length != 0) {
+      subpartition_edge_length = partition_edge_length / (float_t)subpartitions_per_partition_dimension;
+      subpartition_edge_length_rcp = 1.0/subpartition_edge_length;
+    }
+    subpartitions_per_partition_dimension_squared = powu(subpartitions_per_partition_dimension, 2);
+  }
+
+};
 } // namespace mcell
 
 #endif // SRC4_DEFINES_H_

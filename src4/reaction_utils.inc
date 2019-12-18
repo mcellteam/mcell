@@ -509,9 +509,9 @@ static const Reaction* pick_unimol_rx(
     const World* world,
     const species_id_t species_id
 ) {
-  const UnimolecularReactionsMap* unimol_rxs = world->world_constants.unimolecular_reactions_map;
-  auto it = unimol_rxs->find(species_id);
-  if (it == unimol_rxs->end()) {
+  const UnimolecularReactionsMap& unimol_rxs = world->all_reactions.unimolecular_reactions_map;
+  auto it = unimol_rxs.find(species_id);
+  if (it == unimol_rxs.end()) {
     return nullptr;
   }
   else {
@@ -543,10 +543,10 @@ static float_t compute_unimol_lifetime(
   float_t res = time_of_unimol(rx, rng);
 
 #ifdef DEBUG_REACTIONS
-  SimulationStats* world = &p.get_simulation_stats();
+  SimulationStats* world = &p.stats;
   DUMP_CONDITION4(
       // calling rng for unimolecular
-      vm.dump(p, "Assigned unimolecular time (prev rng):", "", p.get_simulation_stats().get_current_iteration(), res);
+      vm.dump(p, "Assigned unimolecular time (prev rng):", "", p.stats.get_current_iteration(), res);
   );
 #endif
 
@@ -558,7 +558,7 @@ static float_t compute_unimol_lifetime(
 static uint get_num_surface_products(const World* world, const Reaction* rx) {
   uint res = 0;
   for (const SpeciesWithOrientation& product: rx->products) {
-    const Species& species = world->get_species(product.species_id);
+    const Species& species = world->all_species.get_species(product.species_id);
     if (species.is_surf()) {
       res++;
     }

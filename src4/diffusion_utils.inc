@@ -214,7 +214,7 @@ static int move_sm_to_new_triangle(
   assert(grid.get_molecule_on_tile(sm.s.grid_tile_index) == sm.id
       && "Mapping grid tile->molecule and molecule->grid tile does not match");
 
-  p.get_simulation_stats().inc_mol_moves_between_walls();
+  p.stats.inc_mol_moves_between_walls();
 
   Wall& new_wall = p.get_wall(new_wall_index);
 
@@ -345,7 +345,7 @@ static void reflect_absorb_inside_out(
   if (WallUtil::is_wall_edge_region_border(p, this_wall, edge_index_that_was_hit, true)) {
     ReactionsVector matching_rxns;
     RxUtil::trigger_intersect(
-        p, *p.get_world_constants().bimolecular_reactions_map,
+        p, p.all_reactions.bimolecular_reactions_map,
         sm, this_wall,
         true, true, true,
         matching_rxns

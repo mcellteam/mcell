@@ -125,8 +125,6 @@ bool MCell3WorldConverter::convert(volume* s) {
   CHECK(convert_species_and_create_diffusion_events(s));
   CHECK(convert_reactions(s));
 
-  world->init_world_constants();
-
   // at this point, we need to create the first (and for now the only) partition
   // create initial partition with center at 0,0,0 - we woud like to have the partitions all the same,
   // not depend on some random initialization
@@ -149,10 +147,10 @@ bool MCell3WorldConverter::convert(volume* s) {
 bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
   // TODO_CONVERSION: many items are not checked
   world->iterations = s->iterations;
-  world->world_constants.time_unit = s->time_unit;
-  world->world_constants.length_unit = s->length_unit;
-  world->world_constants.rx_radius_3d = s->rx_radius_3d;
-  world->world_constants.vacancy_search_dist2 = s->vacancy_search_dist2 / s->length_unit;
+  world->config.time_unit = s->time_unit;
+  world->config.length_unit = s->length_unit;
+  world->config.rx_radius_3d = s->rx_radius_3d;
+  world->config.vacancy_search_dist2 = s->vacancy_search_dist2 / s->length_unit;
   world->seed_seq = s->seed_seq;
   world->rng = *s->rng;
 
@@ -163,24 +161,27 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
     CHECK_PROPERTY(s->partition_urb[0] == s->partition_urb[1]);
     CHECK_PROPERTY(s->partition_urb[1] == s->partition_urb[2]);
     assert(s->partition_urb[0] > s->partition_llf[0]);
-    world->world_constants.partition_edge_length = (s->partition_urb[0] - s->partition_llf[0]) / s->length_unit;
+    world->config.partition_edge_length = (s->partition_urb[0] - s->partition_llf[0]) / s->length_unit;
   }
   else {
-    world->world_constants.partition_edge_length = PARTITION_EDGE_LENGTH_DEFAULT;
+    world->config.partition_edge_length = PARTITION_EDGE_LENGTH_DEFAULT;
   }
   CHECK_PROPERTY(s->nx_parts == s->ny_parts);
   CHECK_PROPERTY(s->ny_parts == s->nz_parts);
 
-  world->world_constants.randomize_smol_pos = s->randomize_smol_pos;
+  world->config.randomize_smol_pos = s->randomize_smol_pos;
 
   CHECK_PROPERTY(s->dynamic_geometry_molecule_placement == 0
       && "DYNAMIC_GEOMETRY_MOLECULE_PLACEMENT '=' NEAREST_TRIANGLE is not supported yet"
   );
 
-  world->world_constants.use_expanded_list = s->use_expanded_list;
+  world->config.use_expanded_list = s->use_expanded_list;
 
   // this number counts the number of boundaries, not subvolumes, also, there are always 2 extra subvolumes on the sides in mcell3
-  world->world_constants.subpartitions_per_partition_dimension = s->nx_parts - 3;
+  world->config.subpartitions_per_partition_dimension = s->nx_parts - 3;
+
+	// compute other constants
+  world->config.init();
 
   return true;
 }
@@ -552,10 +553,10 @@ bool MCell3WorldConverter::convert_polygonal_object(const geom_object* o) {
 
 // cannot fail
 void MCell3WorldConverter::create_diffusion_events() {
-  assert(!world->get_species().empty() && "There must be at least 1 species");
+  assert(world->all_species.get_count() != 0 && "There must be at least 1 species");
 
   set<float_t> time_steps_set;
-  for (auto &species : world->get_species() ) {
+  for (auto &species : world->all_species.get_species_vector() ) {
     time_steps_set.insert(species.time_step);
   }
 
@@ -584,7 +585,7 @@ bool MCell3WorldConverter::convert_species_and_create_diffusion_events(volume* s
     CHECK_PROPERTY(spec != s->all_volume_mols || new_species.name == ALL_VOLUME_MOLECULES);
     CHECK_PROPERTY(spec != s->all_surface_mols || new_species.name == ALL_SURFACE_MOLECULES);
 
-    new_species.species_id = world->get_species().size(); // id corresponds to the index in the species array
+    new_species.species_id = world->all_species.get_count(); // id corresponds to the index in the species array
     new_species.mcell3_species_id = spec->species_id;
     new_species.D = spec->D;
     new_species.space_step = spec->space_step;
@@ -620,7 +621,7 @@ bool MCell3WorldConverter::convert_species_and_create_diffusion_events(volume* s
     CHECK_PROPERTY(spec->absorb_mols == nullptr);
     CHECK_PROPERTY(spec->clamp_conc_mols == nullptr);
 
-    world->add_species(new_species);
+    world->all_species.add_species(new_species);
 
     mcell3_species_id_map[new_species.mcell3_species_id] = new_species.species_id;
   }
@@ -632,8 +633,9 @@ bool MCell3WorldConverter::convert_species_and_create_diffusion_events(volume* s
 
 
 bool MCell3WorldConverter::convert_single_reaction(const rxn *rx) {
-  world->reactions.push_back(Reaction());
-  Reaction& reaction = world->reactions.back();
+  /*world->all_reactions.push_back(Reaction());
+  Reaction& reaction = world->all_reactions.back();*/
+  Reaction reaction;
 
   // rx->next - handled in convert_reactions
   // rx->sym->name - ignored, name obtained from pathway
@@ -738,6 +740,8 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *rx) {
   }
 
   CHECK(pathway_head->flags == 0);
+
+  world->all_reactions.add(reaction);
 
   return true;
 }

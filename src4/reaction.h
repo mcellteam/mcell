@@ -29,7 +29,8 @@
 
 namespace MCell {
 
-class WorldConstants;
+class SimulationConfig;
+class SpeciesInfo;
 
 class SpeciesWithOrientation {
 public:
@@ -90,7 +91,7 @@ public:
     return reactants.size() + products.size();
   }
 
-  uint get_num_surf_products(const WorldConstants& world_contants) const;
+  uint get_num_surf_products(const SpeciesInfo& all_species) const;
 
   bool is_reflect() const {
     return type == ReactionType::Reflect;

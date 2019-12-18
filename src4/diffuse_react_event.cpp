@@ -142,7 +142,7 @@ void DiffuseReactEvent::diffuse_single_molecule(
 
 
 #ifdef DEBUG_DIFFUSION
-  const Species& debug_species = world->get_species(m.species_id);
+  const Species& debug_species = p.all_species.get_species(m.species_id);
   DUMP_CONDITION4(
     // the subtraction of diffusion_time_step doesn't make much sense but is needed to make the dump the same as in mcell3
     // need to check it further
@@ -251,7 +251,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
     WallTileIndexPair& wall_tile_pair_where_created_this_iteration
 ) {
   Molecule& m = p.get_m(vm_id);
-  const Species& species = world->get_species(m.species_id);
+  const Species& species = p.all_species.get_species(m.species_id);
 
   // diffuse each molecule - get information on position change
   vec3_t displacement;
@@ -343,7 +343,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
         cout << "Wall collision: \n";
         const GeometryObject* geom_obj = p.get_geometry_object_if_exists(colliding_wall.object_id);
         assert(geom_obj != nullptr);
-        cout << "  mol id: " << vm_new_ref.id << ", species: " << world->get_species(vm_new_ref.species_id).name << "\n";
+        cout << "  mol id: " << vm_new_ref.id << ", species: " << p.all_species.get_species(vm_new_ref.species_id).name << "\n";
         cout << "  obj: " << geom_obj->name << ", id: " << geom_obj->id << "\n";
         cout << "  wall id: " << colliding_wall.id << "\n";
         cout << "  time: " << float_t(world->get_current_iteration()) + collision.time << "\n";
@@ -401,13 +401,12 @@ RayTraceState ray_trace_vol(
     vec3_t& new_pos,
     subpart_index_t& new_subpart_index
     ) {
-  p.get_simulation_stats().inc_ray_voxel_tests();
+  p.stats.inc_ray_voxel_tests();
 
   RayTraceState res_state = RayTraceState::FINISHED;
   collisions.clear();
 
-  const WorldConstants& world_constants = p.get_world_constants();
-  float_t radius = world_constants.rx_radius_3d;
+  float_t radius = p.config.rx_radius_3d;
 
   // first get what subpartitions might be relevant
   SubpartIndicesVector crossed_subparts_for_walls;
@@ -415,7 +414,7 @@ RayTraceState ray_trace_vol(
   subpart_index_t last_subpartition_index;
   CollisionUtil::collect_crossed_subparts(
       p, vm, remaining_displacement,
-      radius, world_constants.subpartition_edge_length,
+      radius, p.config.subpartition_edge_length,
       true, crossed_subparts_for_walls,
       crossed_subparts_for_molecules, last_subpartition_index
   );
@@ -453,7 +452,7 @@ RayTraceState ray_trace_vol(
     CollisionUtil::collect_crossed_subparts(
         p, vm, displacement_up_to_wall_collision,
         radius,
-        world_constants.subpartition_edge_length,
+        p.config.subpartition_edge_length,
         false, crossed_subparts_for_walls, // not filled this time
         crossed_subparts_for_molecules, last_subpartition_index
     );
@@ -467,7 +466,7 @@ RayTraceState ray_trace_vol(
     // for each molecule in this SP
     for (molecule_id_t colliding_vm_id: sp_reactants) {
       CollisionUtil::collide_mol_loop_body(
-          world_constants,
+          p.all_reactions, // TODO: remove this argument, p is already passed
           p,
           vm,
           colliding_vm_id,
@@ -502,9 +501,9 @@ bool DiffuseReactEvent::collide_and_react_with_vol_mol(
 
   // returns 1 when there are no walls at all
   float_t factor = ExactDiskUtil::exact_disk(
-      p, collision.pos, displacement, p.get_world_constants().rx_radius_3d,
+      p, collision.pos, displacement, p.config.rx_radius_3d,
       diffused_molecule, colliding_molecule,
-      p.get_world_constants().use_expanded_list
+      p.config.use_expanded_list
   );
 
   if (factor < 0) { /* Probably hit a wall, might have run out of memory */
@@ -584,7 +583,7 @@ int DiffuseReactEvent::collide_and_react_with_surf_mol(
 
   ReactionsVector matching_rxns;
   RxUtil::trigger_bimolecular(
-    *p.get_world_constants().bimolecular_reactions_map,
+    p.all_reactions.bimolecular_reactions_map,
     diffused_molecule, colliding_molecule,
     collision_orientation, colliding_molecule.s.orientation,
     matching_rxns
@@ -662,7 +661,7 @@ void DiffuseReactEvent::diffuse_surf_molecule(
     float_t& advance_time
 ) {
   Molecule& sm = p.get_m(sm_id);
-  const Species& species = world->get_species(sm.species_id);
+  const Species& species = p.all_species.get_species(sm.species_id);
 
   float_t steps = 0.0;
   float_t t_steps = 0.0;
@@ -815,7 +814,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
     return true;
   }
 
-  const Species& sm_species = world->get_species(sm.species_id);
+  const Species& sm_species = p.all_species.get_species(sm.species_id);
 
 
   size_t l = 0;
@@ -836,7 +835,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
     }
 
     Molecule& nsm = p.get_m(nid);
-    const Species& nsm_species = world->get_species(nsm.species_id);
+    const Species& nsm_species = p.all_species.get_species(nsm.species_id);
 
 #ifdef DEBUG_REACTIONS
     DUMP_CONDITION4(
@@ -855,7 +854,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
     // returns value >=1 if there can be a reaction
     size_t orig_num_rxsn = matching_rxns.size();
     RxUtil::trigger_bimolecular_orientation_from_mols(
-        world->bimolecular_reactions_map,
+        p.all_reactions.bimolecular_reactions_map,
         sm, nsm,
         matching_rxns
     );
@@ -1288,7 +1287,7 @@ int DiffuseReactEvent::find_surf_product_positions(
       assert(product_index < rx->products.size());
 
       // we care only about surface molecules
-      if (world->get_species(rx->products[product_index].species_id).is_vol()) {
+      if (p.all_species.get_species(rx->products[product_index].species_id).is_vol()) {
         continue;
       }
 
@@ -1423,7 +1422,7 @@ int DiffuseReactEvent::outcome_products_random(
   // create and place each product
   for (uint product_index = 0; product_index < rx->products.size(); product_index++) {
     const SpeciesWithOrientation& product = rx->products[product_index];
-    const Species& species = world->get_species(product.species_id);
+    const Species& species = p.all_species.get_species(product.species_id);
 
     molecule_id_t new_m_id;
 

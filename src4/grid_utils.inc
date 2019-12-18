@@ -1205,7 +1205,7 @@ static void grid_all_neighbors_across_walls_through_edges(
   bool move_thru_border_1 = true;
   bool move_thru_border_2 = true;
 
-  const Species& species = p.get_world_constants().get_species(sm.species_id);
+  const Species& species = p.all_species.get_species(sm.species_id);
   assert(!species.has_flag(SPECIES_FLAG_CAN_REGION_BORDER));
 
   assert(tile_index < grid.num_tiles && "Surface molecule tile index is out of bounds for this grid");
@@ -1934,7 +1934,7 @@ static void find_closest_tile_on_wall(
 
     vec2_t new_pos2d;
     const Wall& w = p.get_wall(new_wall_index);
-    if (p.get_world_constants().randomize_smol_pos) {
+    if (p.config.randomize_smol_pos) {
       // molecules are processed in different order than in mcell3...
       // although, maybe not anymore due to sort in Partition::apply_vertex_moves,
       // revisit if needed

@@ -28,12 +28,13 @@
 
 #include "defines.h"
 #include "dyn_vertex_structs.h"
-#include "world_constants.h"
 #include "molecule.h"
 #include "scheduler.h"
 #include "reaction.h"
 #include "geometry.h"
 #include "species.h"
+#include "reactions_info.h"
+#include "species_info.h"
 
 namespace MCell {
 
@@ -46,22 +47,26 @@ class Partition {
 public:
   Partition(
       const vec3_t origin_,
-      const WorldConstants& world_constants_,
-      SimulationStats& simulation_stats_
+      const SimulationConfig& config_,
+      const ReactionsInfo& reactions_,
+      const SpeciesInfo& species_,
+      SimulationStats& stats_
   )
     : origin_corner(origin_),
       next_molecule_id(0),
-      world_constants(world_constants_),
-      simulation_stats(simulation_stats_) {
+      config(config_),
+      all_reactions(reactions_),
+      all_species(species_),
+      stats(stats_) {
 
-    opposite_corner = origin_corner + world_constants.partition_edge_length;
+    opposite_corner = origin_corner + config.partition_edge_length;
 
     // pre-allocate volume_molecules arrays and also volume_molecule_indices_per_time_step
-    uint32_t num_subparts = powu(world_constants.subpartitions_per_partition_dimension, 3);
+    uint32_t num_subparts = powu(config.subpartitions_per_partition_dimension, 3);
     volume_molecule_reactants_per_subpart.resize(num_subparts);
     walls_per_subpart.resize(num_subparts);
 
-    size_t num_species = world_constants.bimolecular_reactions_map->size();
+    size_t num_species = all_species.get_count();
     for (auto& reactants : volume_molecule_reactants_per_subpart) {
       reactants.resize(num_species);
     }
@@ -129,7 +134,7 @@ public:
   void get_subpart_3d_indices(const vec3_t& pos, ivec3_t& res) const {
     assert(in_this_partition(pos));
     vec3_t relative_position = pos - origin_corner;
-    res = relative_position * world_constants.subpartition_edge_length_rcp;
+    res = relative_position * config.subpartition_edge_length_rcp;
   }
 
 
@@ -137,8 +142,8 @@ public:
     // example: dim: 5x5x5,  (1, 2, 3) -> 1 + 2*5 + 3*5*5 = 86
     return
         indices.x +
-        indices.y * world_constants.subpartitions_per_partition_dimension +
-        indices.z * world_constants.subpartitions_per_partition_dimension_squared;
+        indices.y * config.subpartitions_per_partition_dimension +
+        indices.z * config.subpartitions_per_partition_dimension_squared;
   }
 
 
@@ -148,11 +153,11 @@ public:
 
 
   void get_subpart_3d_indices_from_index(const uint32_t index, ivec3_t& indices) const {
-    uint32_t dim = world_constants.subpartitions_per_partition_dimension;
+    uint32_t dim = config.subpartitions_per_partition_dimension;
     // example: dim: 5x5x5,  86 -> (86%5, (86/5)%5, (86/(5*5))%5) = (1, 2, 3)
     indices.x = index % dim;
     indices.y = (index / dim) % dim;
-    indices.z = (index / world_constants.subpartitions_per_partition_dimension_squared) % dim;
+    indices.z = (index / config.subpartitions_per_partition_dimension_squared) % dim;
   }
 
 
@@ -166,11 +171,11 @@ public:
   void get_subpart_llf_point(const subpart_index_t subpart_index, vec3_t& llf) const {
     ivec3_t indices;
     get_subpart_3d_indices_from_index(subpart_index, indices);
-    llf = origin_corner + vec3_t(indices) * vec3_t(world_constants.subpartition_edge_length);
+    llf = origin_corner + vec3_t(indices) * vec3_t(config.subpartition_edge_length);
   }
 
   void get_subpart_urb_point_from_llf(const vec3_t& llf, vec3_t& urb) const {
-    urb = llf + vec3_t(world_constants.subpartition_edge_length);
+    urb = llf + vec3_t(config.subpartition_edge_length);
   }
 
   void change_reactants_map(Molecule& vm, const uint32_t new_subpartition_index, bool adding, bool removing) {
@@ -179,14 +184,14 @@ public:
       return;
     }
     assert(vm.is_vol() && "This function is applicable only to volume mols and ignored for surface mols");
-    assert(world_constants.bimolecular_reactions_map->find(vm.species_id) != world_constants.bimolecular_reactions_map->end());
+    assert(all_reactions.bimolecular_reactions_map.count(vm.species_id) != 0);
 
     // these are all the sets of indices of reactants for this particular subpartition
-    species_reactants_map_t& subpart_reactants_orig_sp = volume_molecule_reactants_per_subpart[vm.v.subpart_index];
-    species_reactants_map_t& subpart_reactants_new_sp = volume_molecule_reactants_per_subpart[new_subpartition_index];
+    SpeciesReactantsMap& subpart_reactants_orig_sp = volume_molecule_reactants_per_subpart[vm.v.subpart_index];
+    SpeciesReactantsMap& subpart_reactants_new_sp = volume_molecule_reactants_per_subpart[new_subpartition_index];
 
     // and these are indices of possible reactants with our reactant_species_id
-    const SpeciesReactionMap& reactions_map = world_constants.bimolecular_reactions_map->find(vm.species_id)->second;
+    const SpeciesReactionMap& reactions_map = all_reactions.bimolecular_reactions_map.find(vm.species_id)->second;
 
     // we need to set/clear flag that says that second_reactant_info.first can react with reactant_species_id
     for (const auto& second_reactant_info : reactions_map) {
@@ -230,7 +235,7 @@ private:
   // adds it to all relevant structures
   Molecule& add_molecule(const Molecule& vm_copy, const bool is_vol) {
 
-    const Species& species = world_constants.get_species(vm_copy.species_id);
+    const Species& species = all_species.get_species(vm_copy.species_id);
     assert((is_vol && species.is_vol()) || (!is_vol && species.is_surf()));
     uint32_t time_step_index = get_or_add_molecule_list_index_for_time_step(species.time_step);
 
@@ -309,7 +314,7 @@ public:
   };
 
   // indexed with species_id_t
-  typedef std::vector< UintSet > species_reactants_map_t;
+  typedef std::vector< UintSet > SpeciesReactantsMap;
 
 
   // ---------------------------------- molecule getters ----------------------------------
@@ -513,13 +518,13 @@ private:
 public:
   // ---------------------------------- other ----------------------------------
 
-  const WorldConstants& get_world_constants() const {
-    return world_constants;
+  /*const SimulationConfig& get_world_constants() const {
+    return config;
   }
 
   SimulationStats& get_simulation_stats() const {
-    return simulation_stats;
-  }
+    return stats;
+  }*/
 
   void dump();
 
@@ -543,7 +548,7 @@ private:
   std::vector<TimeStepMoleculesData> molecules_data_per_time_step_array;
 
   // indexed with subpartition index, only for vol-vol reactions
-  std::vector<species_reactants_map_t> volume_molecule_reactants_per_subpart;
+  std::vector<SpeciesReactantsMap> volume_molecule_reactants_per_subpart;
 
   // ---------------------------------- geometry objects ----------------------------------
 
@@ -559,16 +564,21 @@ private:
   // indexed by vertex_index_t
   std::vector< std::vector<wall_index_t>> walls_using_vertex_mapping;
 
-  // indexed by subpart, UintSet contains a set of wall indices (wall_index_t)
+  // indexed by subpartition index, contains a set of wall indices (wall_index_t)
   std::vector<UintSet> walls_per_subpart;
 
   // ---------------------------------- dynamic vertices ----------------------------------
 private:
   std::vector<VertexMoveInfo> scheduled_vertex_moves;
 
-  // ---------------------------------- other ----------------------------------
-  const WorldConstants& world_constants; // owned by world
-  SimulationStats& simulation_stats; // owned by world
+  // ---------------------------------- shared simulation configuration -------------------
+public:
+  // all these reference an object owned by a single World instance
+  // enclose into something?
+  const SimulationConfig& config;
+  const ReactionsInfo& all_reactions;
+  const SpeciesInfo& all_species; // species_info? - species is both singular and plural...
+  SimulationStats& stats;
 };
 
 } // namespace mcell

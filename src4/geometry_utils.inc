@@ -155,8 +155,8 @@ static void wall_subparts_collision_test(
   if (urb.z > leeway)
     leeway = urb.z;
   leeway = EPS + leeway * EPS;
-  if (p.get_world_constants().use_expanded_list) {
-    leeway += p.get_world_constants().rx_radius_3d;
+  if (p.config.use_expanded_list) {
+    leeway += p.config.rx_radius_3d;
   }
 
   llf = llf - vec3_t(leeway);

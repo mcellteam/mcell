@@ -38,14 +38,14 @@
 
 //#define DEBUG_CLOSEST_INTERIOR_POINT
 
-#define DEBUG_EDGE_INITIALIZATION
+//#define DEBUG_EDGE_INITIALIZATION
 
 //#define DEBUG_SCHEDULER
 
 //#define DEBUG_DEFRAGMENTATION
 
 // cannot be conditioned by iterations
-#define DEBUG_RNG_CALLS
+//#define DEBUG_RNG_CALLS
 
 // does not generate the same dump as mcell3
 //#define DEBUG_SUBPARTITIONS
@@ -57,9 +57,9 @@
 
 //#define DEBUG_GRIDS
 
-#define FROM_ITERATION 29//250
+#define FROM_ITERATION 0//250
 
-#define TO_ITERATION 31
+#define TO_ITERATION 1
 
 #define DUMP_CONDITION3(code) do { if ((int)world->current_iterations >= (int)FROM_ITERATION && (int)world->current_iterations <= (int)TO_ITERATION) { code; } } while (0)
 #define DUMP_CONDITION4(code) do { if ((int)world->get_current_iteration() >= (int)FROM_ITERATION && (int)world->get_current_iteration() <= (int)TO_ITERATION) { code; } } while (0)

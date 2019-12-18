@@ -86,7 +86,7 @@ static size_t cum_area_bisect_high(const vector<CummAreaPWallIndexPair>& array, 
 void ReleaseEvent::place_single_molecule_onto_grid(Partition& p, Wall& wall, tile_index_t tile_index) {
 
   vec2_t pos_on_wall;
-  if (p.get_world_constants().randomize_smol_pos) {
+  if (p.config.randomize_smol_pos) {
     pos_on_wall = GridUtil::grid2uv_random(wall, tile_index, world->rng);
   }
   else {
@@ -174,7 +174,7 @@ void ReleaseEvent::release_onto_regions(uint computed_release_number) {
 void ReleaseEvent::release_ellipsoid_or_rectcuboid(uint computed_release_number) {
 
   Partition& p = world->get_partition(world->get_or_add_partition_index(location));
-  float_t time_step = world->get_species(species_id).time_step;
+  float_t time_step = world->all_species.get_species(species_id).time_step;
 
   const int is_spheroidal = (release_shape == SHAPE_SPHERICAL ||
                              release_shape == SHAPE_ELLIPTIC ||
@@ -229,7 +229,7 @@ void ReleaseEvent::step() {
 
   uint number = calculate_number_to_release();
 
-  const Species& species = world->get_species(species_id);
+  const Species& species = world->all_species.get_species(species_id);
 
   if (release_shape == SHAPE_REGION) {
     if (species.is_surf()) {

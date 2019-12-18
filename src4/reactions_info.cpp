@@ -1,0 +1,49 @@
+
+#include "reactions_info.h"
+
+#include "defines.h"
+#include "species.h"
+#include "molecule.h"
+#include "reaction.h"
+#include "species_info.h"
+
+#include <iostream>
+#include <sstream>
+
+using namespace std;
+
+namespace MCell {
+
+void ReactionsInfo::init(const SpeciesInfo& all_species) {
+  assert(!initialized); // not really an issue but should not normally happen
+
+  // create map for fast reaction searches
+  for (Reaction& r: reactions) {
+    assert(r.reactants.size() == 1 || r.reactants.size() == 2); // only bimolecular reactions are supported now
+
+    if (r.reactants.size() == 1) {
+      // for now we only support only one outcome of a bimolecular reaction
+      assert(unimolecular_reactions_map.count(r.reactants[0].species_id) == 0);
+      unimolecular_reactions_map[r.reactants[0].species_id] = &r;
+    }
+    else {
+      // check - for now we only support only one outcome of a bimolecular reaction
+      if (bimolecular_reactions_map.count(r.reactants[0].species_id) != 0) {
+        assert(bimolecular_reactions_map[r.reactants[0].species_id].count(r.reactants[1].species_id) == 0);
+      }
+      bimolecular_reactions_map[r.reactants[0].species_id][r.reactants[1].species_id] = &r;
+      bimolecular_reactions_map[r.reactants[1].species_id][r.reactants[0].species_id] = &r;
+    }
+  }
+
+  // just to make sure that we have an item for all the species
+  const std::vector<Species>& species = all_species.get_species_vector();
+  for (const Species& s: species) {
+    bimolecular_reactions_map.insert( std::make_pair(s.species_id, SpeciesReactionMap()) );
+  }
+  assert(bimolecular_reactions_map.size() == all_species.get_count());
+
+  initialized = true;
+}
+
+}
