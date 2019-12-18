@@ -241,8 +241,8 @@ template<class T, class Allocator=boost::container::new_allocator<T>>
 typedef boost::container::small_vector<subpart_index_t, 8>  SubpartIndicesVector;
 typedef boost::container::small_vector<const Reaction*, 8>  ReactionsVector;
 
-template<class T, class Allocator=boost::container::new_allocator<T>>
-  using base_flat_set = boost::container::small_vector<T, 8, Allocator>;
+template<class T, typename Compare = std::less<T>, class Allocator=boost::container::new_allocator<T>>
+  using base_flat_set = boost::container::flat_set<T, Compare, Allocator>;
 #else
 template<typename T, typename _Alloc = std::allocator<T>  >
   using small_vector = std::vector<T, _Alloc>;
