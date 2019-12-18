@@ -31,6 +31,9 @@ void ReactionsInfo::init(const SpeciesInfo& all_species) {
       if (bimolecular_reactions_map.count(r.reactants[0].species_id) != 0) {
         assert(bimolecular_reactions_map[r.reactants[0].species_id].count(r.reactants[1].species_id) == 0);
       }
+
+      // add mapping for both reactants pairs A + B and also B + A
+      // NOTE: if we would sort the species id, we might have just one-directional mapping
       bimolecular_reactions_map[r.reactants[0].species_id][r.reactants[1].species_id] = &r;
       bimolecular_reactions_map[r.reactants[1].species_id][r.reactants[0].species_id] = &r;
     }

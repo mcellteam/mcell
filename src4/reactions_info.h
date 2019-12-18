@@ -53,7 +53,20 @@ class SpeciesInfo;
 class ReactionsInfo {
 public:
   ReactionsInfo()
-    : initialized(false) {
+    : initialized(false),
+      all_molecules_species_id(SPECIES_ID_INVALID),
+      all_volume_molecules_species_id(SPECIES_ID_INVALID),
+      all_surface_molecules_species_id(SPECIES_ID_INVALID) {
+  }
+
+  void set_all_molecules_species_id(species_id_t id) {
+    all_molecules_species_id = id;
+  }
+  void set_all_volume_molecules_species_id(species_id_t id) {
+    all_volume_molecules_species_id = id;
+  }
+  void set_all_surface_molecules_species_id(species_id_t id) {
+    all_surface_molecules_species_id = id;
   }
 
   void init(const SpeciesInfo& all_species);
@@ -82,6 +95,47 @@ public:
     return it_res->second;
   }
 
+  // might return nullptr if there are none
+  const SpeciesReactionMap* get_specific_reactions_for_species(const species_id_t species_id) const {
+    if (species_id == SPECIES_ID_INVALID) {
+      return nullptr;
+    }
+
+    const auto& it_map_for_species = bimolecular_reactions_map.find(species_id);
+    if (it_map_for_species != bimolecular_reactions_map.end()) {
+      return &it_map_for_species->second;
+    }
+    else {
+      return nullptr;
+    }
+  }
+
+  // does not store nullptr into the resulting array
+  // checks also species superclasses
+  void get_all_reactions_for_reactant(const Molecule& reactant, small_vector<const SpeciesReactionMap*>& potential_reactions) const {
+    potential_reactions.clear();
+
+    // species-specific
+    const SpeciesReactionMap* species_specific = get_specific_reactions_for_species(reactant.species_id);
+    if (species_specific != nullptr) {
+      potential_reactions.push_back(species_specific);
+    }
+
+    // all molecules
+    const SpeciesReactionMap* all_molecules = get_specific_reactions_for_species(all_molecules_species_id);
+    if (all_molecules != nullptr) {
+      potential_reactions.push_back(all_molecules);
+    }
+
+    // all surface/volume molecules
+    const SpeciesReactionMap* all_vol_surf =
+        get_specific_reactions_for_species(
+            reactant.is_vol() ? all_volume_molecules_species_id : all_surface_molecules_species_id);
+    if (all_vol_surf != nullptr) {
+      potential_reactions.push_back(all_vol_surf);
+    }
+  }
+
   void dump() {
     Reaction::dump_array(reactions);
   }
@@ -90,6 +144,12 @@ private:
   bool initialized;
 
   std::vector<Reaction> reactions;
+
+  // ids of species superclasses, SPECIES_ID_INVALID if not set
+  // it might seem that this should belong into SpeciesInfo but this class needs this information
+  species_id_t all_molecules_species_id;
+  species_id_t all_volume_molecules_species_id;
+  species_id_t all_surface_molecules_species_id;
 
 public:
   // TODO: these should be private

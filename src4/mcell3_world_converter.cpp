@@ -41,7 +41,7 @@ const char* const ALL_VOLUME_MOLECULES = "ALL_VOLUME_MOLECULES";
 const char* const ALL_SURFACE_MOLECULES = "ALL_SURFACE_MOLECULES";
 
 // checking major conversion blocks
-#define CHECK(a) do { if(!(a)) return false; } while (0)
+#define CHECK(cond) do { if(!(cond)) { mcell_log_conv_error("Returning from %s after conversion error.", __FUNCTION__); return false; } } while (0)
 
 // checking assumptions
 #define CHECK_PROPERTY(cond) do { if(!(cond)) { mcell_log_conv_error("Expected '%s' is false. (%s - %s:%d)\n", #cond, __FUNCTION__, __FILE__, __LINE__); return false; } } while (0)
@@ -577,14 +577,23 @@ bool MCell3WorldConverter::convert_species_and_create_diffusion_events(volume* s
 
     Species new_species;
     new_species.name = get_sym_name(spec->sym);
+    new_species.species_id = world->all_species.get_count(); // id corresponds to the index in the species array
 
     // check all species 'superclasses' classes
     // these special species might be used in wall - surf|vol reactions
-    CHECK_PROPERTY(spec != s->all_mols || new_species.name == ALL_MOLECULES);
-    CHECK_PROPERTY(spec != s->all_volume_mols || new_species.name == ALL_VOLUME_MOLECULES);
-    CHECK_PROPERTY(spec != s->all_surface_mols || new_species.name == ALL_SURFACE_MOLECULES);
+    if (spec == s->all_mols) {
+      CHECK_PROPERTY(new_species.name == ALL_MOLECULES);
+      world->all_reactions.set_all_molecules_species_id(new_species.species_id);
+    }
+    else if (spec == s->all_volume_mols) {
+      CHECK_PROPERTY(new_species.name == ALL_VOLUME_MOLECULES);
+      world->all_reactions.set_all_volume_molecules_species_id(new_species.species_id);
+    }
+    else if (spec == s->all_surface_mols) {
+      CHECK_PROPERTY(new_species.name == ALL_SURFACE_MOLECULES);
+      world->all_reactions.set_all_surface_molecules_species_id(new_species.species_id);
+    }
 
-    new_species.species_id = world->all_species.get_count(); // id corresponds to the index in the species array
     new_species.mcell3_species_id = spec->species_id;
     new_species.D = spec->D;
     new_species.space_step = spec->space_step;
@@ -625,6 +634,7 @@ bool MCell3WorldConverter::convert_species_and_create_diffusion_events(volume* s
     mcell3_species_id_map[new_species.mcell3_species_id] = new_species.species_id;
   }
 
+  // TODO: really not sure why this is here... split
   create_diffusion_events();
 
   return true;
@@ -632,8 +642,6 @@ bool MCell3WorldConverter::convert_species_and_create_diffusion_events(volume* s
 
 
 bool MCell3WorldConverter::convert_single_reaction(const rxn *rx) {
-  /*world->all_reactions.push_back(Reaction());
-  Reaction& reaction = world->all_reactions.back();*/
   Reaction reaction;
 
   // rx->next - handled in convert_reactions
@@ -664,15 +672,15 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *rx) {
   // NFSIM short *geometries;         /* Geometries of reactants/products */
   // NFSIM short **nfsim_geometries;   /* geometries of the nfsim geometries associated with each path */
 
-  CHECK(rx->n_occurred == 0);
-  CHECK(rx->n_skipped == 0);
-  CHECK(rx->prob_t == nullptr);
+  CHECK_PROPERTY(rx->n_occurred == 0);
+  CHECK_PROPERTY(rx->n_skipped == 0);
+  CHECK_PROPERTY(rx->prob_t == nullptr);
 
   // TODO_CONVERSION: pathway_info *info - magic_list, also some checks might be useful
 
   // --- pathway ---
   pathway *pathway_head = rx->pathway_head;
-  CHECK(pathway_head->next == nullptr); // only 1 supported now
+  CHECK_PROPERTY(pathway_head->next == nullptr); // only 1 supported now
 
   if (pathway_head->pathname != nullptr) {
     assert(pathway_head->pathname->sym != nullptr);
@@ -684,9 +692,9 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *rx) {
 
   reaction.rate_constant = pathway_head->km;
 
-  CHECK(pathway_head->orientation1 == 0 || pathway_head->orientation1 == 1 || pathway_head->orientation1 == -1);
-  CHECK(pathway_head->orientation2 == 0 || pathway_head->orientation2 == 1 || pathway_head->orientation2 == -1);
-  CHECK(pathway_head->orientation3 == 0 || pathway_head->orientation3 == 1 || pathway_head->orientation3 == -1);
+  CHECK_PROPERTY(pathway_head->orientation1 == 0 || pathway_head->orientation1 == 1 || pathway_head->orientation1 == -1);
+  CHECK_PROPERTY(pathway_head->orientation2 == 0 || pathway_head->orientation2 == 1 || pathway_head->orientation2 == -1);
+  CHECK_PROPERTY(pathway_head->orientation3 == 0 || pathway_head->orientation3 == 1 || pathway_head->orientation3 == -1);
 
   if (pathway_head->reactant1 != nullptr) {
     species_id_t reactant1_id = get_mcell4_species_id(pathway_head->reactant1->species_id);
@@ -711,34 +719,37 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *rx) {
     assert(false && "No reactants?");
   }
 
-  CHECK(pathway_head->km_filename == nullptr);
+  CHECK_PROPERTY(pathway_head->km_filename == nullptr);
 
 
   if (rx->n_pathways == RX_ABSORB_REGION_BORDER) {
+    CHECK_PROPERTY(pathway_head->flags == PATHW_ABSORP);
     reaction.type = ReactionType::AbsorbRegionBorder;
   }
   else if (rx->n_pathways == RX_TRANSP) {
+    CHECK_PROPERTY(pathway_head->flags == PATHW_TRANSP);
     reaction.type = ReactionType::Transparent;
   }
   else if (rx->n_pathways == RX_REFLEC) {
+    CHECK_PROPERTY(pathway_head->flags == PATHW_REFLEC);
     reaction.type = ReactionType::Reflect;
   }
   else {
+    CHECK_PROPERTY(pathway_head->flags == 0);
+
     reaction.type = ReactionType::Standard;
 
     // products
     product *product_ptr = pathway_head->product_head;
     while (product_ptr != nullptr) {
       species_id_t product_id = get_mcell4_species_id(product_ptr->prod->species_id);
-      CHECK(product_ptr->orientation == 0 || product_ptr->orientation == 1 || product_ptr->orientation == -1);
+      CHECK_PROPERTY(product_ptr->orientation == 0 || product_ptr->orientation == 1 || product_ptr->orientation == -1);
 
       reaction.products.push_back(SpeciesWithOrientation(product_id, product_ptr->orientation));
 
       product_ptr = product_ptr->next;
     }
   }
-
-  CHECK(pathway_head->flags == 0);
 
   world->all_reactions.add(reaction);
 
@@ -754,7 +765,7 @@ bool MCell3WorldConverter::convert_reactions(volume* s) {
   for (int i = 0; i < count; ++i) {
     rxn *rx = reaction_hash[i];
     while (rx != nullptr) {
-      convert_single_reaction(rx);
+      CHECK(convert_single_reaction(rx));
       rx = rx->next;
     }
   }

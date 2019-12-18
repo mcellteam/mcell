@@ -163,51 +163,50 @@ static void find_surface_mol_reactions_with_surf_classes(
 
   assert(reacA.is_surf());
 
-  // for all reactions applicable to reacA and reacB
-  BimolecularReactionsMap::const_iterator reactions_reacA_it = reactions.find(reacA.species_id);
-  if (reactions_reacA_it == reactions.end()) {
+  // for all reactions applicable to reacA and and wall
+  small_vector<const SpeciesReactionMap*> potential_reactions;
+  p.all_reactions.get_all_reactions_for_reactant(reacA, potential_reactions);
+  if (potential_reactions.empty()) {
     // no reactions at all for reacA
     return;
   }
 
   // for all reactive regions of a wall
-
   for (region_index_t region_index: w.regions) {
     const Region& reg = p.get_region(region_index);
     if (!reg.is_reactive()) {
       continue;
     }
 
+    // each map of potential reactions is for this specific species, all molecules an all surf molecules
+    for (const SpeciesReactionMap* reaction_map: potential_reactions) {
 
-    // NOTE: should this search should also include all superclasses (all molecules, all surf mols, all vol mols)
-    // or this is something that is already handled in the reactions and should work out of the box?
-    // preferably, we should not care and the map should handle this transparently by having multiple
-    // reactions for all these superclasses
-    SpeciesReactionMap::const_iterator reactions_reacA_and_reacB_it = reactions_reacA_it->second.find(reg.species_id);
-    if (reactions_reacA_and_reacB_it == reactions_reacA_it->second.end()) {
-      // no reactions for this type of region
-      continue;
-    }
+      SpeciesReactionMap::const_iterator reactions_reacA_and_surface_it = reaction_map->find(reg.species_id);
+      if (reactions_reacA_and_surface_it == reaction_map->end()) {
+        // no reactions for this type of region
+        continue;
+      }
 
-    const Reaction* rxn = reactions_reacA_and_reacB_it->second;
-    assert(rxn->reactants.size() == 2);
+      const Reaction* rxn = reactions_reacA_and_surface_it->second;
+      assert(rxn->reactants.size() == 2);
 
-    // TODO_PATHWAYS: allow multiple reactions..
-    orientation_t orient0 = rxn->reactants[0].orientation;
-    orientation_t orient1 = rxn->reactants[1].orientation;
+      // TODO_PATHWAYS: allow multiple reactions..
+      orientation_t orient0 = rxn->reactants[0].orientation;
+      orientation_t orient1 = rxn->reactants[1].orientation;
 
-    // TODO: can we move this condition to some shared function?
-    if ( (orient0 == 0) ||
-         (orient1 == 0 || (orient0 + orient1) * (orient0 - orient1) != 0) ||
-         (reacA.s.orientation * orient0 * orient1 > 0) ) {
+      // TODO: can we move this condition to some shared function?
+      if ( (orient0 == 0) ||
+           (orient1 == 0 || (orient0 + orient1) * (orient0 - orient1) != 0) ||
+           (reacA.s.orientation * orient0 * orient1 > 0) ) {
 
-      bool reject_reaction =
-          (rxn->is_transparent() && !allow_rx_transp) ||
-          (rxn->is_reflect() && !allow_rx_reflec) ||
-          (rxn->is_absorb() && !allow_rx_absorb_reg_border);
+        bool reject_reaction =
+            (rxn->is_transparent() && !allow_rx_transp) ||
+            (rxn->is_reflect() && !allow_rx_reflec) ||
+            (rxn->is_absorb() && !allow_rx_absorb_reg_border);
 
-      if (!reject_reaction) {
-        matching_rxns.push_back(rxn);
+        if (!reject_reaction) {
+          matching_rxns.push_back(rxn);
+        }
       }
     }
   }
