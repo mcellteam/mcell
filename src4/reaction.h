@@ -125,9 +125,6 @@ public:
     UNIMOL_REACT
   };
 
-  // TODO: use create ctors instead? the type argument is long...
-  //  what other clsses should use create ctors?
-
   // DIFFUSE action
   DiffuseOrUnimolReactionAction(
       const DiffuseOrUnimolReactionAction::Type type_,

@@ -35,6 +35,28 @@ namespace MCell {
 
 class Partition;
 
+/**
+ * A single geometrical object composed of multiple walls.
+ * Vertices are accessible through the wall indices.
+ * Owned by partition.
+ */
+class GeometryObject {
+public:
+  geometry_object_id_t id; // world-unique geometry object ID
+  geometry_object_index_t index; // partition-unique geometry object index
+  std::string name;
+
+  // bool is_closed;
+
+  // all walls (triangles) that form this object
+  std::vector<wall_index_t> wall_indices;
+
+  // p must be the partition that contains this object
+  void dump(const Partition& p, const std::string ind) const;
+  static void dump_array(const Partition& p, const std::vector<GeometryObject>& vec);
+};
+
+
 class Region {
 public:
   Region()
@@ -67,28 +89,8 @@ public:
     return species_id != SPECIES_ID_INVALID;
   }
 
-  void dump();
-};
-
-
-/**
- * A single geometrical object composed of multiple walls.
- * Vertices are accessible through the wall indices.
- * Owned by partition.
- */
-class GeometryObject {
-public:
-  geometry_object_id_t id; // world-unique geometry object ID
-  geometry_object_index_t index; // partition-unique geometry object index
-  std::string name;
-
-  // bool is_closed;
-
-  // all walls (triangles) that form this object
-  std::vector<wall_index_t> wall_indices;
-
-  // p must be the partition that contains this object
-  void dump(const Partition& p, const std::string ind) const;
+  void dump(const std::string ind) const;
+  static void dump_array(const std::vector<Region>& vec);
 };
 
 
@@ -216,7 +218,7 @@ private:
  *
  * This is in fact a triangle, but we are keeping the naming consistent with MCell 3.
  *
- * TODO: Add additional debug checks that will make sure that the
+ * TODO_LATER: Add additional debug checks that will make sure that the
  * state of this object is consistent. However, how to do it without
  * making the attributes private?
  */

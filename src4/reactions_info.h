@@ -48,7 +48,8 @@ class SpeciesInfo;
  * Owns information on reactions and species,
  * mostly accessed as constant data.
  */
-// TODO: move the trigger_bimolecular, trigger_bimolecular_orientation_from_mols, and trigger_intersect functions here?
+// TODO: move the trigger_bimolecular, trigger_bimolecular_orientation_from_mols,
+// and trigger_intersect functions here?
 class ReactionsInfo {
 public:
   ReactionsInfo()

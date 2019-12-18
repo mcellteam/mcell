@@ -435,12 +435,8 @@ bool MCell3WorldConverter::convert_region(Partition& p, const region* r, region_
   // struct geom_object *parent; // ignored
   CHECK_PROPERTY(r->element_list_head == nullptr); // should be used only at parse time
 
-  // this contains the information on which walls are there
-  // TODO:
-
-  // bitset: membership  /* Each bit indicates whether the corresponding wall is in the region */
-
-  //r->boundaries
+  // r->membership - Each bit indicates whether the corresponding wall is in the region */
+  // and r->boundaries - edges of region are handled in convert_wall_and_update_regions
 
   CHECK_PROPERTY(r->sm_dat_head == nullptr); // should be null during initial conversion
 
@@ -454,7 +450,6 @@ bool MCell3WorldConverter::convert_region(Partition& p, const region* r, region_
   CHECK_PROPERTY(r->region_has_all_elements || r->bbox == nullptr); // so far it can be set only to all-encopasing region
   // CHECK_PROPERTY(r->area == 0);  // ignored for now
   // CHECK_PROPERTY(r->volume == 0);  // ignored for now
-
   // CHECK_PROPERTY(r->flags == 0); // ignored for now
   CHECK_PROPERTY(r->manifold_flag == 0);
 
@@ -702,7 +697,7 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *rx) {
       reaction.reactants.push_back(SpeciesWithOrientation(reactant2_id, pathway_head->orientation2));
 
       if (pathway_head->reactant3 != nullptr) {
-        mcell_error("TODO_CONVERSION: reactions with 3 reactants are not fully supported");
+        mcell_error("TODO_CONVERSION: reactions with 3 reactants are not supported");
         species_id_t reactant3_id = get_mcell4_species_id(pathway_head->reactant3->species_id);
         reaction.reactants.push_back(SpeciesWithOrientation(reactant3_id, pathway_head->orientation3));
       }
@@ -916,7 +911,6 @@ bool MCell3WorldConverter::convert_viz_output_events(volume* s) {
   CHECK_PROPERTY(viz_blocks->next == nullptr);
   CHECK_PROPERTY(viz_blocks->viz_mode == NO_VIZ_MODE || viz_blocks->viz_mode  == ASCII_MODE || viz_blocks->viz_mode == CELLBLENDER_MODE); // just checking valid values
   viz_mode_t viz_mode = viz_blocks->viz_mode;
-  const char* file_prefix_name = world->add_const_string_to_pool(viz_blocks->file_prefix_name);
   // CHECK_PROPERTY(viz_blocks->viz_output_flag == VIZ_ALL_MOLECULES); // ignored (for now?)
   CHECK_PROPERTY(viz_blocks->species_viz_states != nullptr && (*viz_blocks->species_viz_states == (int)0x80000000 || *viz_blocks->species_viz_states == 0x7FFFFFFF)); // NOTE: not sure what this means
   // CHECK_PROPERTY(viz_blocks->default_mol_state == 0x7FFFFFFF); // ignored, not sure what this means
@@ -939,7 +933,7 @@ bool MCell3WorldConverter::convert_viz_output_events(volume* s) {
     VizOutputEvent* event = new VizOutputEvent(world);
     event->event_time = iteration_ptr->value;
     event->viz_mode = viz_mode;
-    event->file_prefix_name = file_prefix_name;
+    event->file_prefix_name = viz_blocks->file_prefix_name;
 
     world->scheduler.schedule_event(event);
 

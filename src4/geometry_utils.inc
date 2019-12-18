@@ -656,7 +656,6 @@ static float_t find_closest_wall(
   for (const wall_index_t wall_index: obj.wall_indices) {
     const Wall& w = p.get_wall(wall_index);
 
-    // TODO: regions - we are checking only object id here
     if (!moved_wall.is_same_region(w)) {
       continue;
     }

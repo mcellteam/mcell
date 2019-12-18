@@ -168,14 +168,8 @@ void Partition::apply_vertex_moves() {
 
 
 void Partition::dump() {
-  // TODO: add static dump_array methods to GeometryObject and Region
-  for (GeometryObject& obj: geometry_objects) {
-    obj.dump(*this, "  ");
-  }
-
-  for (Region& reg: regions) {
-    reg.dump();
-  }
+  GeometryObject::dump_array(*this, geometry_objects);
+  Region::dump_array(regions);
 
   for (size_t i = 0; i < walls_per_subpart.size(); i++) {
     if (!walls_per_subpart[i].empty()) {

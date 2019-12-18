@@ -1820,13 +1820,11 @@ static void search_nbhd_for_free(
 
     Wall& there_wall = p.get_wall(there_wall_index);
 
-    // TODO - wall regions - we are checking only geom object for now
     if (!origin_wall.is_same_region(there_wall)) {
       continue;
     }
 
     /* check whether there are any available spots on the neighbor wall */
-
     if (there_wall.grid.is_initialized()) {
       if (there_wall.grid.is_full()) {
         continue;

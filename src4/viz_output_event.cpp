@@ -86,7 +86,7 @@ FILE* VizOutputEvent::create_and_open_output_file_name() {
   //fprintf(stderr, "***dumps: %lld\n", current_iteration);
   const char* type_name = (viz_mode == ASCII_MODE) ? "ascii" : "cellbin";
   char* cf_name =
-      CHECKED_SPRINTF("4%s.%s.%.*lld.dat", file_prefix_name, type_name, ndigits, current_iteration);
+      CHECKED_SPRINTF("4%s.%s.%.*lld.dat", file_prefix_name.c_str(), type_name, ndigits, current_iteration);
   assert(cf_name != nullptr);
 
   if (::make_parent_dir(cf_name)) {

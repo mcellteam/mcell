@@ -38,7 +38,7 @@ class VizOutputEvent: public BaseEvent {
 public:
   VizOutputEvent(World* world_)
     : BaseEvent(EVENT_TYPE_INDEX_VIZ_OUTPUT),
-      viz_mode(NO_VIZ_MODE), file_prefix_name(nullptr),
+      viz_mode(NO_VIZ_MODE),
       world(world_) {
   }
   virtual ~VizOutputEvent() {}
@@ -47,7 +47,7 @@ public:
   virtual void dump(const std::string indent);
 
   viz_mode_t viz_mode;
-  const char* file_prefix_name; // in const pool
+  std::string file_prefix_name;
 
   World* world;
 

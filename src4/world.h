@@ -155,19 +155,10 @@ public:
 
   rng_state rng; // single state for the random number generator
 
-  // in case when there would be many copies of a string, this constant pool can be used
-  // TODO: is this really necessary? maybe remove...
-  const char* add_const_string_to_pool(const std::string str) {
-    return const_string_pool.insert(str).first->c_str();
-  }
-
 private:
-  std::set<std::string> const_string_pool;
-
   // global ID counters
   wall_id_t next_wall_id;
   geometry_object_id_t next_geometry_object_id;
-
 
   // used by run_n_iterations to know whether the simulation was
   // already initialized

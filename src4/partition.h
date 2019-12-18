@@ -542,6 +542,7 @@ private:
   std::vector<molecule_index_t> molecule_id_to_index_mapping;
 
   // id of the next molecule to be created
+  // TODO_LATER: move to World
   molecule_id_t next_molecule_id;
 
   // indexed by diffusion time step index
