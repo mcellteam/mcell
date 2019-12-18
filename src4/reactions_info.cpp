@@ -15,7 +15,7 @@ using namespace std;
 namespace MCell {
 
 void ReactionsInfo::init(const SpeciesInfo& all_species) {
-  assert(!initialized); // not really an issue but should not normally happen
+  assert(!initialized); // there should not be a reason to reinitialize reactions info
 
   // create map for fast reaction searches
   for (Reaction& r: reactions) {

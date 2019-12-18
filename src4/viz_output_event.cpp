@@ -108,7 +108,7 @@ void VizOutputEvent::compute_where_and_norm(
     const Partition& p, const Molecule& m,
     vec3_t& where, vec3_t& norm
 ) {
-  const Species& species = world->all_species.get_species(m.species_id);
+  const Species& species = world->all_species.get(m.species_id);
 
   if ((species.flags & NOT_FREE) == 0) {
     // neither surface nor on grid
@@ -148,7 +148,7 @@ void VizOutputEvent::output_ascii_molecules() {
       vec3_t norm;
       compute_where_and_norm(p, m, where, norm);
 
-      const Species& species = world->all_species.get_species(m.species_id);
+      const Species& species = world->all_species.get(m.species_id);
 
 #if FLOAT_T_BYTES == 8
       errno = 0;
@@ -206,7 +206,7 @@ void VizOutputEvent::output_cellblender_molecules() {
     }
 
     /* Write species name: */
-    const Species& species = world->all_species.get_species(species_idx);
+    const Species& species = world->all_species.get(species_idx);
     string mol_name = species.name;
     byte name_len = mol_name.length();
      fwrite(&name_len, sizeof(byte), 1, custom_file);

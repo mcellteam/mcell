@@ -38,28 +38,15 @@ namespace MCell {
  * mostly accessed as constant data.
  */
 class SpeciesInfo {
-
 public:
-  void init(); // ???
-
-public:
-/*  // TODO: rename - remove _species
-  const std::vector<Species>& get_species() const {
-    return species;
-  }*/
-
-  void add_species(const Species& new_species) {
+  void add(const Species& new_species) {
     assert(new_species.species_id == species.size());
     species.push_back(new_species);
   }
 
-  const Species& get_species(species_id_t id) const {
+  const Species& get(species_id_t id) const {
     assert(id < species.size());
     return species[id];
-  }
-
-  void dump() {
-    Species::dump_array(species);
   }
 
   uint get_count() const {
@@ -70,11 +57,14 @@ public:
     return species;
   }
 
+  void dump() {
+    Species::dump_array(species);
+  }
+
 private:
   std::vector<Species> species;
-
 };
 
-} // namespace mcell
+} // namespace MCell
 
 #endif // SRC4_SPECIES_INFO_H_

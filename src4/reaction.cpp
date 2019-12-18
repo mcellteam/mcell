@@ -41,7 +41,7 @@ void SpeciesWithOrientation::dump_array(const std::vector<SpeciesWithOrientation
 uint Reaction::get_num_surf_products(const SpeciesInfo& all_species) const {
   uint res = 0;
   for (const SpeciesWithOrientation& prod: products) {
-    if (all_species.get_species(prod.species_id).is_surf()) {
+    if (all_species.get(prod.species_id).is_surf()) {
       res++;
     }
   }

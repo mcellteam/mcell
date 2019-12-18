@@ -369,6 +369,7 @@ bool MCell3WorldConverter::convert_wall_and_update_regions(
 
 
   // now let's handle regions
+  std::set<species_id_t> region_species_from_mcell3;
   for (const region_list *r = rl; r != NULL; r = r->next) {
     region* reg = r->reg;
     assert(reg != nullptr);
@@ -379,10 +380,13 @@ bool MCell3WorldConverter::convert_wall_and_update_regions(
       CHECK_PROPERTY(pindex.first == wall_pindex.first);
 
       region_index_t region_index = pindex.second;
-      wall.regions.push_back(region_index);
+      wall.regions.insert_unique(region_index);
 
       // add our wall to the region
       Region& mcell4_reg = p.get_region(region_index);
+      if (mcell4_reg.species_id != SPECIES_ID_INVALID) {
+        region_species_from_mcell3.insert(mcell4_reg.species_id);
+      }
 
       // which of our walls are region edges?
       set<edge_index_t> edge_indices;
@@ -402,13 +406,13 @@ bool MCell3WorldConverter::convert_wall_and_update_regions(
     }
   }
 
-  // TODO: check that associated regions used the same 'surf_classes'/species
+  // check that associated regions used the same 'surf_classes'/species
+  std::set<species_id_t> wall_species_from_mcell3;
   for (surf_class_list *sl = w->surf_class_head; sl != nullptr; sl = sl->next) {
     CHECK_PROPERTY(sl->surf_class != nullptr);
-    // TODO: we might need to check that
-    //assert(false && "FIXME");
-    //wall.surface_class_species.push_back(get_mcell4_species_id(sl->surf_class->species_id));
+    wall_species_from_mcell3.insert(get_mcell4_species_id(sl->surf_class->species_id));
   }
+  CHECK_PROPERTY(wall_species_from_mcell3 == region_species_from_mcell3);
 
   // finally, we must let the partition know that
   // we initialized the wall
@@ -621,7 +625,7 @@ bool MCell3WorldConverter::convert_species_and_create_diffusion_events(volume* s
     CHECK_PROPERTY(spec->absorb_mols == nullptr);
     CHECK_PROPERTY(spec->clamp_conc_mols == nullptr);
 
-    world->all_species.add_species(new_species);
+    world->all_species.add(new_species);
 
     mcell3_species_id_map[new_species.mcell3_species_id] = new_species.species_id;
   }

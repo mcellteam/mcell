@@ -184,7 +184,7 @@ public:
       return;
     }
     assert(vm.is_vol() && "This function is applicable only to volume mols and ignored for surface mols");
-    assert(all_reactions.bimolecular_reactions_map.count(vm.species_id) != 0);
+    assert(all_reactions.is_initialized() && all_reactions.bimolecular_reactions_map.count(vm.species_id) != 0);
 
     // these are all the sets of indices of reactants for this particular subpartition
     SpeciesReactantsMap& subpart_reactants_orig_sp = volume_molecule_reactants_per_subpart[vm.v.subpart_index];
@@ -235,7 +235,7 @@ private:
   // adds it to all relevant structures
   Molecule& add_molecule(const Molecule& vm_copy, const bool is_vol) {
 
-    const Species& species = all_species.get_species(vm_copy.species_id);
+    const Species& species = all_species.get(vm_copy.species_id);
     assert((is_vol && species.is_vol()) || (!is_vol && species.is_surf()));
     uint32_t time_step_index = get_or_add_molecule_list_index_for_time_step(species.time_step);
 
@@ -314,7 +314,7 @@ public:
   };
 
   // indexed with species_id_t
-  typedef std::vector< UintSet > SpeciesReactantsMap;
+  typedef std::vector< uint_set<molecule_id_t> > SpeciesReactantsMap;
 
 
   // ---------------------------------- molecule getters ----------------------------------
@@ -339,7 +339,7 @@ public:
     return opposite_corner;
   }
 
-  UintSet& get_volume_molecule_reactants(subpart_index_t subpart_index, species_id_t species_id) {
+  uint_set<molecule_id_t>& get_volume_molecule_reactants(subpart_index_t subpart_index, species_id_t species_id) {
     return volume_molecule_reactants_per_subpart[subpart_index][species_id];
   }
 
@@ -471,7 +471,7 @@ public:
   }
 
   // maybe we will need to filter out, e.g. just reflective surfaces
-  const UintSet& get_subpart_wall_indices(const subpart_index_t subpart_index) const {
+  const uint_set<wall_index_t>& get_subpart_wall_indices(const subpart_index_t subpart_index) const {
     return walls_per_subpart[subpart_index];
   }
 
@@ -565,7 +565,7 @@ private:
   std::vector< std::vector<wall_index_t>> walls_using_vertex_mapping;
 
   // indexed by subpartition index, contains a set of wall indices (wall_index_t)
-  std::vector<UintSet> walls_per_subpart;
+  std::vector< uint_set<wall_index_t> > walls_per_subpart;
 
   // ---------------------------------- dynamic vertices ----------------------------------
 private:

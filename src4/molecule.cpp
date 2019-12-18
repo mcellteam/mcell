@@ -88,7 +88,7 @@ void Molecule::dump(
 ) const {
   cout
     << ind << extra_comment << "it:" << iteration << ", idx:" << id
-    << ", species: " << p.all_species.get_species(species_id).name;
+    << ", species: " << p.all_species.get(species_id).name;
 
   if (print_position) {
     cout << ", pos:";

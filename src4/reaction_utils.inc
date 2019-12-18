@@ -558,7 +558,7 @@ static float_t compute_unimol_lifetime(
 static uint get_num_surface_products(const World* world, const Reaction* rx) {
   uint res = 0;
   for (const SpeciesWithOrientation& product: rx->products) {
-    const Species& species = world->all_species.get_species(product.species_id);
+    const Species& species = world->all_species.get(product.species_id);
     if (species.is_surf()) {
       res++;
     }

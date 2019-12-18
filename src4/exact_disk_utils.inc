@@ -878,7 +878,7 @@ static float_t __attribute__((noinline)) exact_disk(
     sm.zeta = exd_zetize(sm.v, sm.u);
   }
   /* Find walls that occlude the interaction disk (or block the reaction) */
-  const UintSet& wall_indices = p.get_subpart_wall_indices(moving.v.subpart_index);
+  const uint_set<wall_index_t>& wall_indices = p.get_subpart_wall_indices(moving.v.subpart_index);
 
   // TODO_LATER: move this to a separate function - only after we got rid of linked lists
   for (wall_index_t wall_index: wall_indices) {

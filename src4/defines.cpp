@@ -66,21 +66,6 @@ void vec2_t::dump(const std::string extra_comment, const std::string ind) const 
 }
 
 
-void UintSet::dump() {
-  cout << "Indices contained in a subpartition: ";
-  int cnt = 0;
-  for (uint idx: *this) {
-    cout << idx << ", ";
-
-    if (cnt %20 == 0 && cnt != 0) {
-      cout << "\n";
-    }
-    cnt++;
-  }
-  cout << "\n";
-}
-
-
 void SimulationStats::dump() {
   cout << "Total number of ray-subvolume intersection tests (number of ray_trace calls): " << ray_voxel_tests << "\n";
   cout << "Total number of ray-polygon intersection tests: " << ray_polygon_tests << "\n";

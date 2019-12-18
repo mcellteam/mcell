@@ -340,7 +340,6 @@ static bool collide_mol(
 // body of the collision detection loop
 // made into separate function to be possibly able to make some optimizations over it in the future
 static void collide_mol_loop_body(
-    const ReactionsInfo& all_reactions,
     Partition& p,
     const Molecule& vm,
     const molecule_id_t colliding_vm_id,
@@ -356,7 +355,7 @@ static void collide_mol_loop_body(
   vec3_t position;
   // collide_mol must be inlined because many things are computed all over there
   if (collide_mol(vm, remaining_displacement, colliding_vm, radius, time, position)) {
-    const Reaction* rx = all_reactions.get_reaction(vm, colliding_vm);
+    const Reaction* rx = p.all_reactions.get_specific_reaction(vm, colliding_vm);
     assert(rx != nullptr);
     molecule_collisions.push_back(
         Collision(CollisionType::VOLMOL_VOLMOL, &p, vm.id, time, position, colliding_vm.id, rx)
@@ -586,9 +585,9 @@ static void collect_wall_collisions(
     collision_vector_t& wall_collisions
 ) {
   // check each wall in this subpartition
-  const UintSet& wall_indices = p.get_subpart_wall_indices(subpart_index);
+  const uint_set<wall_index_t>& wall_indices = p.get_subpart_wall_indices(subpart_index);
 
-  for (UintSet::const_iterator it = wall_indices.begin(); it != wall_indices.end(); it++) {
+  for (auto it = wall_indices.begin(); it != wall_indices.end(); it++) {
     wall_index_t wall_index = *it;
 
     if (wall_index == previous_reflected_wall)

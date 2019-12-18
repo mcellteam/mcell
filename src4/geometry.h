@@ -34,8 +34,6 @@
 namespace MCell {
 
 class Partition;
-class UintSet;
-
 
 class Region {
 public:
@@ -49,9 +47,6 @@ public:
   // the reactivity of the region is modeled using reactions and
   // this region has its species specified
   species_id_t species_id;
-
-  // TODO: wall indices
-  // we might have a region but it is not used at all now and not referenced from anywhere
 
   // each wall contained in this map is a part of this region
   // the vector of edge indices may be empty but if not, it specifies the
@@ -269,8 +264,7 @@ public:
   void reinit_edge_constants(const Partition& p);
 
   bool is_same_region(const Wall& w) const {
-    if (w.object_id == object_id) {
-      // TODO: regions
+    if (w.object_id == object_id && w.regions == regions) {
       return true;
     }
     else {
@@ -285,16 +279,8 @@ public:
   geometry_object_id_t object_id; // id of object to which this wall belongs
   geometry_object_index_t object_index; // index of object in this partition to which this wall belongs
 
-
   // regions, one wall can belong to multiple regions, regions are owned by partition
-  // TODO: not used
-  //std::vector<species_id_t> surface_class_species; // this is the only information that mcell keeps along this wall and it is derived from region
-
-
-  // does not contain the main object's region and possibly other regions that
-  // cannot affect molecules
-  // however, for statistics, we might need all regions...
-  std::vector<region_index_t> regions;
+  uint_set<region_index_t> regions;
 
   // indices of the three triangle's vertices,
   // they are shared in a partition and a single vertex should be usually represented by just one item

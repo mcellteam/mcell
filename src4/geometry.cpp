@@ -407,7 +407,7 @@ void update_moved_walls(
   // otherwise the edge initialization would be using
   // inconsistent data
   // we need to update also edges of neighboring walls
-  UintSet walls_to_be_updated;
+  uint_set<wall_index_t> walls_to_be_updated;
   // NOTE: we might consider sharing edges in the same way as in MCell3
   for (auto it: walls_with_their_moves) {
     wall_index_t wall_index = it.first;

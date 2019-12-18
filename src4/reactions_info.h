@@ -21,8 +21,6 @@
  *
 ******************************************************************************/
 
-// FIXME: rename - this class won't contain just constants
-
 #ifndef SRC4_REACTIONS_INFO_H_
 #define SRC4_REACTIONS_INFO_H_
 
@@ -33,14 +31,25 @@
 
 namespace MCell {
 
+class Reaction;
+#ifndef INDEXER_WA
+typedef std::unordered_map<species_id_t, Reaction*> SpeciesReactionMap;
+typedef std::unordered_map< species_id_t, SpeciesReactionMap > BimolecularReactionsMap;
+#else
+typedef std::map<species_id_t, Reaction*> SpeciesReactionMap;
+typedef std::map<species_id_t, SpeciesReactionMap> BimolecularReactionsMap;
+#endif
+typedef SpeciesReactionMap UnimolecularReactionsMap;
+
+
 class SpeciesInfo;
 
 /**
  * Owns information on reactions and species,
  * mostly accessed as constant data.
  */
+// TODO: move the trigger_bimolecular, trigger_bimolecular_orientation_from_mols, and trigger_intersect functions here?
 class ReactionsInfo {
-
 public:
   ReactionsInfo()
     : initialized(false) {
@@ -48,23 +57,27 @@ public:
 
   void init(const SpeciesInfo& all_species);
 
-private:
-
-  // -------------- reaction utility methods --------------
-
-public:
+  bool is_initialized() const {
+    return initialized;
+  }
 
   void add(const Reaction& r) {
     reactions.push_back(r);
     initialized = false;
   }
 
-  // TODO: fixme - doies not deal with all_molecules, etc.
-  const Reaction* get_reaction(const Molecule& a, const Molecule& b) const {
+  // simply looks up a reaction between 'a' and 'b',
+  // this reaction must exist, asserts if not,
+  // does not take species superclasses such as ALL_MOLECULES into account
+  const Reaction* get_specific_reaction(const Molecule& a, const Molecule& b) const {
+    assert(initialized);
+
     const auto& it_map_for_species = bimolecular_reactions_map.find(a.species_id);
     assert(it_map_for_species != bimolecular_reactions_map.end());
+
     const auto& it_res = it_map_for_species->second.find(b.species_id);
     assert(it_res != it_map_for_species->second.end());
+
     return it_res->second;
   }
 
@@ -78,6 +91,8 @@ private:
   std::vector<Reaction> reactions;
 
 public:
+  // TODO: these should be private
+
   // TODO_PATHWAYS: there might be multiple reactions for 1 or 2 reactants (multiple pathways)
   UnimolecularReactionsMap unimolecular_reactions_map; // created from reactions in init_simulation
   BimolecularReactionsMap bimolecular_reactions_map; // created from reactions in init_simulation

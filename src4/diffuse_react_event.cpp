@@ -142,7 +142,7 @@ void DiffuseReactEvent::diffuse_single_molecule(
 
 
 #ifdef DEBUG_DIFFUSION
-  const Species& debug_species = p.all_species.get_species(m.species_id);
+  const Species& debug_species = p.all_species.get(m.species_id);
   DUMP_CONDITION4(
     // the subtraction of diffusion_time_step doesn't make much sense but is needed to make the dump the same as in mcell3
     // need to check it further
@@ -251,7 +251,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
     WallTileIndexPair& wall_tile_pair_where_created_this_iteration
 ) {
   Molecule& m = p.get_m(vm_id);
-  const Species& species = p.all_species.get_species(m.species_id);
+  const Species& species = p.all_species.get(m.species_id);
 
   // diffuse each molecule - get information on position change
   vec3_t displacement;
@@ -343,7 +343,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
         cout << "Wall collision: \n";
         const GeometryObject* geom_obj = p.get_geometry_object_if_exists(colliding_wall.object_id);
         assert(geom_obj != nullptr);
-        cout << "  mol id: " << vm_new_ref.id << ", species: " << p.all_species.get_species(vm_new_ref.species_id).name << "\n";
+        cout << "  mol id: " << vm_new_ref.id << ", species: " << p.all_species.get(vm_new_ref.species_id).name << "\n";
         cout << "  obj: " << geom_obj->name << ", id: " << geom_obj->id << "\n";
         cout << "  wall id: " << colliding_wall.id << "\n";
         cout << "  time: " << float_t(world->get_current_iteration()) + collision.time << "\n";
@@ -461,12 +461,11 @@ RayTraceState ray_trace_vol(
   // check molecule collisions for each SP
   for (subpart_index_t subpart_index: crossed_subparts_for_molecules) {
     // get cached reacting molecules for this SP
-    UintSet& sp_reactants = p.get_volume_molecule_reactants(subpart_index, vm.species_id);
+    uint_set<molecule_id_t>& sp_reactants = p.get_volume_molecule_reactants(subpart_index, vm.species_id);
 
     // for each molecule in this SP
     for (molecule_id_t colliding_vm_id: sp_reactants) {
       CollisionUtil::collide_mol_loop_body(
-          p.all_reactions, // TODO: remove this argument, p is already passed
           p,
           vm,
           colliding_vm_id,
@@ -661,7 +660,7 @@ void DiffuseReactEvent::diffuse_surf_molecule(
     float_t& advance_time
 ) {
   Molecule& sm = p.get_m(sm_id);
-  const Species& species = p.all_species.get_species(sm.species_id);
+  const Species& species = p.all_species.get(sm.species_id);
 
   float_t steps = 0.0;
   float_t t_steps = 0.0;
@@ -814,7 +813,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
     return true;
   }
 
-  const Species& sm_species = p.all_species.get_species(sm.species_id);
+  const Species& sm_species = p.all_species.get(sm.species_id);
 
 
   size_t l = 0;
@@ -835,7 +834,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
     }
 
     Molecule& nsm = p.get_m(nid);
-    const Species& nsm_species = p.all_species.get_species(nsm.species_id);
+    const Species& nsm_species = p.all_species.get(nsm.species_id);
 
 #ifdef DEBUG_REACTIONS
     DUMP_CONDITION4(
@@ -1287,7 +1286,7 @@ int DiffuseReactEvent::find_surf_product_positions(
       assert(product_index < rx->products.size());
 
       // we care only about surface molecules
-      if (p.all_species.get_species(rx->products[product_index].species_id).is_vol()) {
+      if (p.all_species.get(rx->products[product_index].species_id).is_vol()) {
         continue;
       }
 
@@ -1422,7 +1421,7 @@ int DiffuseReactEvent::outcome_products_random(
   // create and place each product
   for (uint product_index = 0; product_index < rx->products.size(); product_index++) {
     const SpeciesWithOrientation& product = rx->products[product_index];
-    const Species& species = p.all_species.get_species(product.species_id);
+    const Species& species = p.all_species.get(product.species_id);
 
     molecule_id_t new_m_id;
 

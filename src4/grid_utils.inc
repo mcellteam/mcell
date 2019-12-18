@@ -1205,7 +1205,7 @@ static void grid_all_neighbors_across_walls_through_edges(
   bool move_thru_border_1 = true;
   bool move_thru_border_2 = true;
 
-  const Species& species = p.all_species.get_species(sm.species_id);
+  const Species& species = p.all_species.get(sm.species_id);
   assert(!species.has_flag(SPECIES_FLAG_CAN_REGION_BORDER));
 
   assert(tile_index < grid.num_tiles && "Surface molecule tile index is out of bounds for this grid");

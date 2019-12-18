@@ -36,6 +36,7 @@
 #ifndef SWIG
 #include <stdint.h>
 #include <vector>
+#include <set>
 #include <string>
 #include <cassert>
 #include <climits>
@@ -235,38 +236,58 @@ class Reaction;
 
 #ifndef INDEXER_WA
 template<class T, class Allocator=boost::container::new_allocator<T>>
-using small_vector = boost::container::small_vector<T, 8, Allocator>;
+  using small_vector = boost::container::small_vector<T, 8, Allocator>;
 
 typedef boost::container::small_vector<subpart_index_t, 8>  SubpartIndicesVector;
 typedef boost::container::small_vector<const Reaction*, 8>  ReactionsVector;
+
+template<class T, class Allocator=boost::container::new_allocator<T>>
+  using base_flat_set = boost::container::small_vector<T, 8, Allocator>;
 #else
 template<typename T, typename _Alloc = std::allocator<T>  >
-using small_vector = std::vector<T, _Alloc>;
+  using small_vector = std::vector<T, _Alloc>;
 
 typedef std::vector<subpart_index_t> SubpartIndicesVector;
 typedef std::vector<const Reaction*> ReactionsVector;
+
+template<typename T, typename _Compare = std::less<T>, typename _Alloc = std::allocator<T>  >
+  using base_flat_set = std::set<T, _Compare, _Alloc>;
 #endif
 
 /**
- * Class used to hold sets of ids or indices of molecules or other items
+ * Template class used to hold sets of ids or indices of molecules or other items,
+ * extended to check for unique insertions and checked removals.
  */
-class UintSet: public boost::container::flat_set<uint> {
+template<typename T>
+class uint_set: public base_flat_set<T> {
 public:
   // insert with check that the item is not there yet
   // for insertions without this check use 'insert'
-  void insert_unique(const uint id_or_index) {
-    assert(count(id_or_index) == 0);
-    insert(id_or_index);
+  void insert_unique(const T id_or_index) {
+    assert(this->count(id_or_index) == 0);
+    this->insert(id_or_index);
   }
 
   // erase with check that the item is present
   // for insertions without this check use 'erase'
-  void erase_existing(const uint id_or_index) {
-    assert(count(id_or_index) == 1);
-    erase(id_or_index);
+  void erase_existing(const T id_or_index) {
+    assert(this->count(id_or_index) == 1);
+    this->erase(id_or_index);
   }
 
-  void dump();
+  void dump(const std::string comment = "") const {
+    std::cout << comment << ": ";
+    int cnt = 0;
+    for (const T& idx: *this) {
+      std::cout << idx << ", ";
+
+      if (cnt %20 == 0 && cnt != 0) {
+        std::cout << "\n";
+      }
+      cnt++;
+    }
+    std::cout << "\n";
+  }
 };
 
 // ---------------------------------- vector types ----------------------------------
@@ -590,17 +611,6 @@ static inline void debug_guard_zero_div(vec3_t& val) {
 #endif
 }
 
-
-class Reaction;
-#ifndef INDEXER_WA
-typedef std::unordered_map<species_id_t, Reaction*> SpeciesReactionMap;
-typedef std::unordered_map< species_id_t, SpeciesReactionMap > BimolecularReactionsMap;
-#else
-typedef std::map<species_id_t, Reaction*> SpeciesReactionMap;
-typedef std::map<species_id_t, SpeciesReactionMap> BimolecularReactionsMap;
-#endif
-typedef SpeciesReactionMap UnimolecularReactionsMap;
-
 /*
  * Stats collected during simulation, contains also number of the current iteration
  */
@@ -654,6 +664,7 @@ private:
 /*
  * Constant data set in initialization useful for all classes, single object is owned by world
  */
+// TODO: cleanup all unnecessary argument passing, e.g. in diffuse_react_event.cpp
 class SimulationConfig {
 public:
   // configuration
