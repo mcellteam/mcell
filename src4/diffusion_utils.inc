@@ -292,6 +292,38 @@ static void tiny_diffuse_3D(
 }
 
 
+static void reflect_absorb_check_wall(
+    const Partition& p,
+    const Molecule& sm,
+    const Wall& wall,
+    bool& reflect_now,
+    bool& absorb_now
+) {
+  ReactionsVector matching_rxns;
+  RxUtil::trigger_intersect(
+      p, p.all_reactions.bimolecular_reactions_map,
+      sm, wall,
+      true, true, true,
+      matching_rxns
+  );
+
+  /* check if this wall has any reflective or absorptive region borders for
+   * this molecule (aka special reactions) */
+  for (const Reaction* rxn: matching_rxns) {
+    if (rxn->is_reflect()) {
+      /* check for REFLECTIVE border */
+      reflect_now = true;
+      break;
+    }
+    else if (rxn->is_absorb()) {
+      /* check for ABSORPTIVE border */
+      absorb_now = 1;
+      break;
+    }
+  }
+  /* count hits if we absorb or reflect */
+}
+
 /*************************************************************************
 reflect_absorb_inside_out:
   In: world: simulation state
@@ -316,63 +348,47 @@ static void reflect_absorb_inside_out(
     bool& reflect_now,
     bool& absorb_now
 ) {
-
-
-#if 0
-  const Edge& this_edge = this_wall.edges[edge_index_that_was_hit];
-
-  if (is_wall_edge_region_border(p, this_wall, edge_index_that_was_hit)) {
-    this_wall_edge_region_border = 1;
-  }
-
-  /* find neighbor wall that shares this_edge and it's index in the coordinate
-   * system of neighbor wall */
-  wall_index_t nbr_wall_index;
-  /* index of the shared edge with neighbor wall in the coordinate system of
-   * neighbor wall */
-  edge_index_t nbr_edge_index;
-  WallUtil::find_neighbor_wall_and_edge(p, this_wall, edge_index_that_was_hit, nbr_wall_index, nbr_edge_index);
-
-  int nbr_wall_edge_region_border = 0;
-  if (nbr_wall != NULL) {
-    if (is_wall_edge_region_border(nbr_wall, nbr_wall->edges[nbr_edge_index])) {
-      nbr_wall_edge_region_border = 1;
-    }
-  }
-#endif
-
   // missing hit from the second side
   if (WallUtil::is_wall_edge_region_border(p, this_wall, edge_index_that_was_hit, true)) {
-    ReactionsVector matching_rxns;
-    RxUtil::trigger_intersect(
-        p, p.all_reactions.bimolecular_reactions_map,
-        sm, this_wall,
-        true, true, true,
-        matching_rxns
-    );
-
-    /* check if this wall has any reflective or absorptive region borders for
-     * this molecule (aka special reactions) */
-    for (const Reaction* rxn: matching_rxns) {
-      if (rxn->is_reflect()) {
-        /* check for REFLECTIVE border */
-        reflect_now = true;
-        break;
-      }
-      else if (rxn->is_absorb()) {
-        /* check for ABSORPTIVE border */
-        absorb_now = 1;
-        break;
-      }
-    }
-
-    // /* count hits if we absorb or reflect */
+    reflect_absorb_check_wall(p, sm, this_wall, reflect_now, absorb_now);
   }
-
 }
 
 
-} // namespace diffusion_util
+
+/*************************************************************************
+reflect_absorb_outside_in:
+  In: world: simulation state
+      sm: molecule that is moving
+      hd_head: region border hit data information
+      rx: the type of reaction if any - absorptive/reflective
+      matching_rxns: an array of possible reactions
+      boundary_pos: the uv coordinates where we hit
+      target_wall: the wall we hit
+      this_wall: the wall that we are on
+      reflect_now: should the sm reflect
+      absorb_now: should the sm be absorbed
+      this_wall_edge_region_border:
+  Out: 1 if we are about to reflect or absorb (reflect_now, absorb_now). 0
+       otherwise. hd_head is updated.
+*************************************************************************/
+static void reflect_absorb_outside_in(
+    const Partition& p,
+    const Molecule& sm,
+    const Wall& target_wall,
+    const Wall& this_wall,
+    bool& reflect_now,
+    bool& absorb_now) {
+
+  /* index of the shared edge in the coordinate system of target wall */
+  edge_index_t target_edge_index = WallUtil::find_shared_edge_index_of_neighbor_wall(this_wall, target_wall);
+
+  if (WallUtil::is_wall_edge_region_border(p, target_wall, target_edge_index, true)) {
+    reflect_absorb_check_wall(p, sm, target_wall, reflect_now, absorb_now);
+  }
+}
+
+} // namespace DiffusionUtil
 
 } // namespace mcell
 

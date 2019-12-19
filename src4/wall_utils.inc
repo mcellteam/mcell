@@ -136,7 +136,7 @@ static bool wall_contains_both_vertices(
 
   return count == 2;
 }
-
+#endif
 
 /***********************************************************************
 find_shared_vertices_for_neighbor_walls:
@@ -220,7 +220,7 @@ static edge_index_t find_shared_edge_index_of_neighbor_wall(
   return nbr_edge_ind;
 }
 
-
+#if 0
 /****************************************************************************
 find_neighbor_wall_and_edge:
   In: orig_wall: wall

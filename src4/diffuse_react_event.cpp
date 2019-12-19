@@ -1019,13 +1019,12 @@ wall_index_t DiffuseReactEvent::ray_trace_surf(
            Note - here we test for potential collisions with the region
            border while moving OUTSIDE IN */
         if (species.can_interact_with_border()) {
-          // same as above
-          /*DiffusionUtil::reflect_absorb_outside_in(
-              // TODO
 
-              p, sm, *this_wall, edge_index_that_was_hit,
+          const Wall& target_wall = p.get_wall(target_wall_index);
+          DiffusionUtil::reflect_absorb_outside_in(
+              p, sm, target_wall, *this_wall,
               reflect_now, absorb_now
-          );*/
+          );
 
           assert(!absorb_now && "TODO");
         }
