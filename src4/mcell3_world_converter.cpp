@@ -606,6 +606,7 @@ bool MCell3WorldConverter::convert_species_and_create_diffusion_events(volume* s
         || spec->flags == SPECIES_FLAG_IS_SURFACE
         || spec->flags == (SPECIES_FLAG_ON_GRID | SPECIES_FLAG_CAN_SURFSURF)
         || spec->flags == (SPECIES_FLAG_ON_GRID | SPECIES_FLAG_CAN_REGION_BORDER)
+        || spec->flags == (SPECIES_FLAG_ON_GRID | SPECIES_FLAG_CAN_SURFSURF | CAN_SURFWALL | SPECIES_FLAG_CAN_REGION_BORDER | REGION_PRESENT)
         || spec->flags == SPECIES_FLAG_CAN_VOLSURF
     );
     new_species.flags = spec->flags;
@@ -618,7 +619,6 @@ bool MCell3WorldConverter::convert_species_and_create_diffusion_events(volume* s
       CHECK_PROPERTY(spec->refl_mols->next == nullptr); // just one type for now
 
       // reflective surface, seems that this information is transformed into reactions, so we do no need to store anything else
-      CHECK_PROPERTY(string(spec->refl_mols->name) == ALL_MOLECULES);
       CHECK_PROPERTY(spec->refl_mols->orient == ORIENTATION_NONE);
     }
     else {
