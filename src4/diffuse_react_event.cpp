@@ -847,8 +847,9 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
 
     /* check whether the neighbor molecule is behind
        the restrictive region boundary   */
-    if (sm_species.has_flag(SPECIES_FLAG_CAN_REGION_BORDER) || nsm_species.has_flag(SPECIES_FLAG_CAN_REGION_BORDER)) {
-
+    if ((sm_species.has_flag(SPECIES_FLAG_CAN_REGION_BORDER) || nsm_species.has_flag(SPECIES_FLAG_CAN_REGION_BORDER)) &&
+        sm.s.wall_index != nsm.s.wall_index
+    ) {
       /* INSIDE-OUT check */
       if (WallUtil::walls_belong_to_at_least_one_different_restricted_region(p, wall, sm, nwall, nsm)) {
         continue;
@@ -1177,12 +1178,14 @@ int DiffuseReactEvent::outcome_bimolecular(
 
   // might invalidate references
 
+  bool keep_reacA, keep_reacB;
   int result =
       outcome_products_random(
         p,
         collision,
         remaining_time_step,
-        path
+        path,
+        keep_reacA, keep_reacB
       );
 
   if (result == RX_A_OK) {
@@ -1192,15 +1195,23 @@ int DiffuseReactEvent::outcome_bimolecular(
 #ifdef DEBUG_REACTIONS
     // reference printout first destroys B then A
     DUMP_CONDITION4(
-      reacB.dump(p, "", "  defunct m:", world->get_current_iteration(), 0, false);
-      reacA.dump(p, "", "  defunct m:", world->get_current_iteration(), 0, false);
+      if (!keep_reacB) {
+        reacB.dump(p, "", "  defunct m:", world->get_current_iteration(), 0, false);
+      }
+      if (!keep_reacA) {
+        reacA.dump(p, "", "  defunct m:", world->get_current_iteration(), 0, false);
+      }
     );
 #endif
 
     // always for now
     // we used the reactants - remove them
-    p.set_molecule_as_defunct(reacA);
-    p.set_molecule_as_defunct(reacB);
+    if (!keep_reacA) {
+      p.set_molecule_as_defunct(reacA);
+    }
+    if (!keep_reacB) {
+      p.set_molecule_as_defunct(reacB);
+    }
 
     return RX_DESTROY;
   }
@@ -1213,8 +1224,8 @@ int DiffuseReactEvent::outcome_bimolecular(
 // returns 0 if positions were found
 int DiffuseReactEvent::find_surf_product_positions(
     Partition& p,
-    const Molecule* reacA,
-    const Molecule* reacB,
+    const Molecule* reacA, const bool keep_reacA,
+    const Molecule* reacB, const bool keep_reacB,
     const Molecule* surf_reac,
     const Reaction* rx,
     small_vector<GridPos>& assigned_surf_product_positions) {
@@ -1225,14 +1236,14 @@ int DiffuseReactEvent::find_surf_product_positions(
   uint initiator_recycled_index = INDEX_INVALID;
 
   // find which tiles can be recycled
-  if (reacA->is_surf()) {
+  if (reacA->is_surf() && !keep_reacA) {
     recycled_surf_prod_positions.push_back( GridPos::make_with_pos(p, *reacA) );
     if (reacA->id == surf_reac->id) {
       initiator_recycled_index = 0;
     }
   }
 
-  if (reacB != nullptr && reacB->is_surf()) {
+  if (reacB != nullptr && reacB->is_surf() && !keep_reacB) {
     recycled_surf_prod_positions.push_back( GridPos::make_with_pos(p, *reacB) );
     if (reacB->id == surf_reac->id) {
       initiator_recycled_index = recycled_surf_prod_positions.size() - 1;
@@ -1270,14 +1281,14 @@ int DiffuseReactEvent::find_surf_product_positions(
   // random assignment of positions
   uint num_tiles_to_recycle = min(rx->products.size(), recycled_surf_prod_positions.size());
   if (num_tiles_to_recycle == 1 && recycled_surf_prod_positions.size() >= 1) {
-    // NOTE: this can be optimized - in case of a single product, it will just replace the initiator
-    // and no initialization of recycled_surf_prod_positions is needed
-    // there must be just one surface product for this variant
-    assert(RxUtil::get_num_surface_products(world, rx) == 1
-        && "not sure, should not probably happen or this case is not handled");
-
-    assert(initiator_recycled_index != INDEX_INVALID);
-    assigned_surf_product_positions[0] = recycled_surf_prod_positions[initiator_recycled_index];
+    // NOTE: this code is overly complex and can be simplified
+    if (initiator_recycled_index == INDEX_INVALID) {
+      assert(recycled_surf_prod_positions.size() == 1);
+      assigned_surf_product_positions[0] = recycled_surf_prod_positions[0];
+    }
+    else {
+      assigned_surf_product_positions[0] = recycled_surf_prod_positions[initiator_recycled_index];
+    }
   }
   else if (num_tiles_to_recycle > 1) {
     uint next_available_index = 0;
@@ -1355,8 +1366,10 @@ int DiffuseReactEvent::find_surf_product_positions(
 int DiffuseReactEvent::outcome_products_random(
     Partition& p,
     const Collision& collision,
-    float_t remaining_time_step,
-    int path
+    const float_t remaining_time_step,
+    const int path,
+    bool& keep_reacA,
+    bool& keep_reacB
 ) {
   assert(path == 0 && "Only single pathway is supported now");
 
@@ -1364,10 +1377,15 @@ int DiffuseReactEvent::outcome_products_random(
   assert(rx->reactants.size() == 1 || rx->reactants.size() == 2);
 
   Molecule* reacA = &p.get_m(collision.diffused_molecule_id);
+  keep_reacA = false; // one product is the same as reacA
   assert(reacA != nullptr);
+
   Molecule* reacB = nullptr;
+  keep_reacB = false; // one product is the same as reacB
+
   Molecule* surf_reac = nullptr;
 
+  bool reactants_swapped = false;
   if (rx->reactants.size() == 2) {
     reacB = &p.get_m(collision.colliding_molecule_id);
 
@@ -1379,13 +1397,17 @@ int DiffuseReactEvent::outcome_products_random(
       Molecule* tmp_mol = reacA;
       reacA = reacB;
       reacB = tmp_mol;
+      reactants_swapped = true;
     }
     assert(rx->reactants[1].is_same_tolerate_orientation_none(reacB->species_id, reacB->get_orientation()));
+
+    keep_reacB = rx->reactants[1].is_on_both_sides_of_rxn();
   }
   else {
     surf_reac = reacA->is_surf() ? reacA : nullptr;
   }
   assert(rx->reactants[0].is_same_tolerate_orientation_none(reacA->species_id, reacA->get_orientation()));
+  keep_reacA = rx->reactants[0].is_on_both_sides_of_rxn();
 
   bool is_orientable = reacA->is_surf() || (reacB != nullptr && reacB->is_surf());
 
@@ -1408,7 +1430,7 @@ int DiffuseReactEvent::outcome_products_random(
   assigned_surf_product_positions.resize(rx->products.size());
 
   if (is_orientable) {
-    int res = find_surf_product_positions(p, reacA, reacB, surf_reac, rx, assigned_surf_product_positions);
+    int res = find_surf_product_positions(p, reacA, keep_reacA, reacB, keep_reacB, surf_reac, rx, assigned_surf_product_positions);
     if (res == RX_BLOCKED) {
       return RX_BLOCKED;
     }
@@ -1416,13 +1438,13 @@ int DiffuseReactEvent::outcome_products_random(
 
   // free up tiles that we are probably going to reuse
   bool one_of_reactants_is_surf = false;
-  if (reacA->is_surf()) {
+  if (reacA->is_surf() && !keep_reacA) {
     p.get_wall(reacA->s.wall_index).grid.reset_molecule_tile(reacA->s.grid_tile_index);
     reacA->s.grid_tile_index = TILE_INDEX_INVALID;
     one_of_reactants_is_surf = true;
   }
 
-  if (reacB != nullptr && reacB->is_surf()) {
+  if (reacB != nullptr && reacB->is_surf() && !keep_reacB) {
     p.get_wall(reacB->s.wall_index).grid.reset_molecule_tile(reacB->s.grid_tile_index);
     reacB->s.grid_tile_index = TILE_INDEX_INVALID;
     one_of_reactants_is_surf = true;
@@ -1433,6 +1455,12 @@ int DiffuseReactEvent::outcome_products_random(
   // create and place each product
   for (uint product_index = 0; product_index < rx->products.size(); product_index++) {
     const SpeciesWithOrientation& product = rx->products[product_index];
+
+    if (product.is_on_both_sides_of_rxn()) {
+      // we will keep the reactant as it is
+      continue;
+    }
+
     const Species& species = p.all_species.get(product.species_id);
 
     molecule_id_t new_m_id;
@@ -1559,6 +1587,13 @@ int DiffuseReactEvent::outcome_products_random(
 
   } // end for - product creation
 
+  // we might need to swap info on which reactant was kept
+  if (reactants_swapped) {
+    bool tmp = keep_reacA;
+    keep_reacA = keep_reacB;
+    keep_reacB = tmp;
+  }
+
   return RX_A_OK;
 }
 
@@ -1577,7 +1612,8 @@ int DiffuseReactEvent::outcome_unimolecular(
   // !! might invalidate references (we might reorder defuncting and outcome call later)
   Collision collision(CollisionType::UNIMOLECULAR_VOLMOL, &p, m.id, time_from_event_start, m.v.pos, unimol_rx);
   //int outcome_res = outcome_products_random(p, unimol_rx, vm.v.pos, time_from_event_start, TIME_INVALID, 0);
-  int outcome_res = outcome_products_random(p, collision, TIME_INVALID, 0);
+  bool ignoredA, ignoredB;
+  int outcome_res = outcome_products_random(p, collision, TIME_INVALID, 0, ignoredA, ignoredB);
   assert(outcome_res == RX_A_OK);
 
   // and defunct this molecule

@@ -1165,6 +1165,27 @@ static bool wall_has_initialized_grid(const Wall* w) {
 }
 
 
+static bool check_if_can_move_through_border(
+    const Partition& p,
+    const Molecule& sm,
+    const Wall& wall,
+    const uint_set<region_index_t>& this_wall_restricted_regions,
+    const Wall* neighbor_wall) {
+
+  if (neighbor_wall != NULL) {
+    if (!WallUtil::wall_belongs_to_all_regions_in_region_list(*neighbor_wall, this_wall_restricted_regions)) {
+      return false;
+    }
+
+    uint_set<region_index_t> nb_regions;
+    WallUtil::find_restricted_regions_by_wall(p, *neighbor_wall, sm, nb_regions);
+    if (!WallUtil::wall_belongs_to_all_regions_in_region_list(*neighbor_wall, nb_regions)) {
+      return false;
+    }
+  }
+
+  return true;
+}
 
 /**************************************************************************
 grid_all_neighbors_across_walls_through_edges:
@@ -1207,14 +1228,26 @@ static void grid_all_neighbors_across_walls_through_edges(
   bool move_thru_border_1 = true;
   bool move_thru_border_2 = true;
 
-  const Species& species = p.all_species.get(sm.species_id);
-  assert(!species.has_flag(SPECIES_FLAG_CAN_REGION_BORDER));
-
-
+  // the wall pointers might be nullptrs
+  Wall* nb_walls[EDGES_IN_TRIANGLE];
+  nb_walls[0] = p.get_wall_if_exists(wall.nb_walls[0]);
+  nb_walls[1] = p.get_wall_if_exists(wall.nb_walls[1]);
+  nb_walls[2] = p.get_wall_if_exists(wall.nb_walls[2]);
 
   /* check for possible reflection (absorption) from the wall edges
      that may be region borders.  These are INSIDE_OUT and OUTSIDE-IN
      checks against molecule's own wall and neighbor wall */
+  const Species& species = p.all_species.get(sm.species_id);
+  if (species.has_flag(SPECIES_FLAG_CAN_REGION_BORDER)) {
+    assert(sm.s.wall_index == wall.index);
+
+    uint_set<region_index_t> regions;
+    WallUtil::find_restricted_regions_by_wall(p, wall, sm, regions);
+
+    move_thru_border_0 = check_if_can_move_through_border(p, sm, wall, regions, nb_walls[0]);
+    move_thru_border_1 = check_if_can_move_through_border(p, sm, wall, regions, nb_walls[1]);
+    move_thru_border_2 = check_if_can_move_through_border(p, sm, wall, regions, nb_walls[2]);
+  }
 
   /* find (strip, stripe, flip) coordinates of the tile */
   root = (int)(sqrt_f((float_t)tile_index));
@@ -1227,11 +1260,6 @@ static void grid_all_neighbors_across_walls_through_edges(
   const vec3_t& wall_vert1 = p.get_wall_vertex(wall, 1);
   const vec3_t& wall_vert2 = p.get_wall_vertex(wall, 2);
 
-  // the wall pointers might be nullptrs
-  Wall* nb_walls[EDGES_IN_TRIANGLE];
-  nb_walls[0] = p.get_wall_if_exists(wall.nb_walls[0]);
-  nb_walls[1] = p.get_wall_if_exists(wall.nb_walls[1]);
-  nb_walls[2] = p.get_wall_if_exists(wall.nb_walls[2]);
 
   if (create_grid_flag) {
     for (uint kk = 0; kk < EDGES_IN_TRIANGLE; kk++) {

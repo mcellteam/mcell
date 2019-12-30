@@ -160,8 +160,8 @@ private:
   // ---------------------------------- reactions ----------------------------------
   int find_surf_product_positions(
       Partition& p,
-      const Molecule* reacA,
-      const Molecule* reacB,
+      const Molecule* reacA, const bool keep_reacA,
+      const Molecule* reacB, const bool keep_reacB,
       const Molecule* surf_reac,
       const Reaction* rx,
       small_vector<GridPos>& assigned_surf_product_positions
@@ -184,8 +184,10 @@ private:
   int outcome_products_random(
       Partition& p,
       const Collision& collision,
-      float_t remaining_time_step,
-      int path
+      const float_t remaining_time_step,
+      const int path,
+      bool& keep_reacA,
+      bool& keep_reacB
   );
 
   void create_unimol_rx_action(

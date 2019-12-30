@@ -35,28 +35,38 @@ class SpeciesInfo;
 class SpeciesWithOrientation {
 public:
   SpeciesWithOrientation()
-    : species_id(SPECIES_ID_INVALID), orientation(ORIENTATION_NONE) {
+    : species_id(SPECIES_ID_INVALID), orientation(ORIENTATION_NONE), equivalent_product_or_reactant_index(INDEX_INVALID) {
   }
   SpeciesWithOrientation(
       const species_id_t species_id_,
       const orientation_t orientation_)
-    : species_id(species_id_), orientation(orientation_) {
+    : species_id(species_id_), orientation(orientation_), equivalent_product_or_reactant_index(INDEX_INVALID) {
   }
 
   bool operator == (const SpeciesWithOrientation& a) const {
     return species_id == a.species_id && orientation == a.orientation;
   }
+
   bool operator != (const SpeciesWithOrientation& a) const {
     return !(*this == a);
   }
+
   bool is_same_tolerate_orientation_none(const species_id_t species_id_, const orientation_t orientation_) const {
     return
         species_id == species_id_ &&
         (orientation == ORIENTATION_NONE || orientation_ == ORIENTATION_NONE || orientation == orientation_);
   }
 
+  bool is_on_both_sides_of_rxn() const {
+    return equivalent_product_or_reactant_index != INDEX_INVALID;
+  }
+
   species_id_t species_id;
   orientation_t orientation;
+
+  // if valid (not INDEX_INVALID), this specifies a reactant identical to a product,
+  // the value is then the index of Reaction's identical product
+  uint equivalent_product_or_reactant_index;
 
   static void dump_array(const std::vector<SpeciesWithOrientation>& vec, const std::string ind);
 };
@@ -87,6 +97,10 @@ public:
   std::vector<SpeciesWithOrientation> reactants;
   std::vector<SpeciesWithOrientation> products;
 
+  void initialize() {
+    update_equivalent_product_indices();
+  }
+
   uint get_num_players() const {
     return reactants.size() + products.size();
   }
@@ -108,6 +122,10 @@ public:
   static void dump_array(const std::vector<Reaction>& vec);
 
   void dump(const std::string ind) const;
+private:
+
+  // must be called after initialization
+  void update_equivalent_product_indices();
 };
 
 

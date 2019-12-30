@@ -138,33 +138,34 @@ const float_t TIME_SIMULATION_START = 0;
 
 const float_t DIFFUSION_CONSTANT_ZER0 = 0;
 
-const uint INDEX_INVALID = UINT32_MAX;
+const uint ID_INVALID = UINT32_MAX; // general invalid index, should not be used when a definition for a specific type is available
+const uint INDEX_INVALID = UINT32_MAX; // general invalid index, should not be used when a definition for a specific type is available
 
 // unique species id
 typedef uint species_id_t;
-const species_id_t SPECIES_ID_INVALID = UINT32_MAX;
+const species_id_t SPECIES_ID_INVALID = ID_INVALID;
 
 // molecule id is a unique identifier of a molecule,
 // no 2 molecules may have the same ID in the course of a simulation (at least for now)
 typedef uint molecule_id_t;
-const molecule_id_t MOLECULE_ID_INVALID = UINT32_MAX;
+const molecule_id_t MOLECULE_ID_INVALID = ID_INVALID;
 
 // molecule index is index into partition's molecules array, indices and ids are
 // identical until the first defragmentation that shuffles molecules in the molecules array
 typedef uint molecule_index_t;
-const molecule_index_t MOLECULE_INDEX_INVALID = UINT32_MAX;
+const molecule_index_t MOLECULE_INDEX_INVALID = INDEX_INVALID;
 
 // for now, this is the partition that contains point 0,0,0 in its center
 typedef uint partition_index_t;
 const partition_index_t PARTITION_INDEX_INITIAL = 0;
-const partition_index_t PARTITION_INDEX_INVALID = UINT32_MAX;
+const partition_index_t PARTITION_INDEX_INVALID = INDEX_INVALID;
 
 typedef uint subpart_index_t;
-const subpart_index_t SUBPART_INDEX_INVALID = UINT32_MAX;
+const subpart_index_t SUBPART_INDEX_INVALID = INDEX_INVALID;
 
 // time step is used in partition to make sets of molecules that can be diffused with
 // different periodicity
-const uint TIME_STEP_INDEX_INVALID = UINT32_MAX;
+const uint TIME_STEP_INDEX_INVALID = INDEX_INVALID;
 
 const char* const NAME_INVALID = "name_invalid";
 const char* const NAME_NOT_SET = "name_not_set";
@@ -175,13 +176,13 @@ const uint VERTICES_IN_TRIANGLE = 3;
 const uint EDGES_IN_TRIANGLE = VERTICES_IN_TRIANGLE; // same of course as above, but different name to specify what we are counting
 
 typedef uint vertex_index_t; // index in partition's vertices
-const vertex_index_t VERTEX_INDEX_INVALID = UINT32_MAX;
+const vertex_index_t VERTEX_INDEX_INVALID = INDEX_INVALID;
 
 typedef uint wall_index_t; // index in partition's walls
-const wall_index_t WALL_INDEX_INVALID = UINT32_MAX;
+const wall_index_t WALL_INDEX_INVALID = INDEX_INVALID;
 
 typedef uint tile_index_t; // index of a tile in a grid
-const tile_index_t TILE_INDEX_INVALID = UINT32_MAX;
+const tile_index_t TILE_INDEX_INVALID = INDEX_INVALID;
 
 typedef uint edge_index_t; // index of an edge in a wall, must be in range 0..2
 const edge_index_t EDGE_INDEX_0 = 0;
@@ -189,7 +190,7 @@ const edge_index_t EDGE_INDEX_1 = 1;
 const edge_index_t EDGE_INDEX_2 = 2;
 const edge_index_t EDGE_INDEX_WITHIN_WALL = 3; // used in find_edge_point
 const edge_index_t EDGE_INDEX_CANNOT_TELL = 4;
-const edge_index_t EDGE_INDEX_INVALID = UINT32_MAX;
+const edge_index_t EDGE_INDEX_INVALID = INDEX_INVALID;
 
 /* contains information about the neighbors of the tile */
 class WallTileIndexPair {
@@ -209,16 +210,16 @@ public:
 };
 
 typedef uint wall_id_t; // world-unique wall id
-const wall_id_t WALL_ID_INVALID = UINT32_MAX;
+const wall_id_t WALL_ID_INVALID = ID_INVALID;
 
 typedef uint region_index_t; // index in partition's regions
-const region_index_t REGION_INDEX_INVALID = UINT32_MAX;
+const region_index_t REGION_INDEX_INVALID = INDEX_INVALID;
 
 typedef uint geometry_object_index_t;
-const geometry_object_index_t GEOMETRY_OBJECT_INDEX_INVALID = UINT32_MAX;
+const geometry_object_index_t GEOMETRY_OBJECT_INDEX_INVALID = INDEX_INVALID;
 
 typedef uint geometry_object_id_t; // world-unique unique geometry object id
-const geometry_object_id_t GEOMETRY_OBJECT_ID_INVALID = UINT32_MAX;
+const geometry_object_id_t GEOMETRY_OBJECT_ID_INVALID = ID_INVALID;
 
 typedef int32_t orientation_t;
 const orientation_t ORIENTATION_DOWN = -1;

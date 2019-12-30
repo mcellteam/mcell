@@ -37,6 +37,27 @@ void SpeciesWithOrientation::dump_array(const std::vector<SpeciesWithOrientation
   }
 }
 
+// create mapping for cases when one of the reactants is unchanged in the reaction
+void Reaction::update_equivalent_product_indices() {
+  for (SpeciesWithOrientation& product: products) {
+    product.equivalent_product_or_reactant_index = INDEX_INVALID;
+  }
+
+  for (uint ri = 0; ri < products.size(); ri++) {
+    reactants[ri].equivalent_product_or_reactant_index = INDEX_INVALID;
+
+    for (uint pi = 0; pi < products.size(); pi++) {
+      if (reactants[ri].equivalent_product_or_reactant_index == INDEX_INVALID &&
+          products[pi].equivalent_product_or_reactant_index == INDEX_INVALID &&
+          reactants[ri] == products[pi]) {
+
+        reactants[ri].equivalent_product_or_reactant_index = pi;
+        products[pi].equivalent_product_or_reactant_index = ri;
+      }
+    }
+  }
+}
+
 
 uint Reaction::get_num_surf_products(const SpeciesInfo& all_species) const {
   uint res = 0;

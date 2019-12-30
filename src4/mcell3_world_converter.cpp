@@ -751,6 +751,8 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *rx) {
     }
   }
 
+  reaction.initialize();
+
   world->all_reactions.add(reaction);
 
   return true;
