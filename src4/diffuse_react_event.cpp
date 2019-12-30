@@ -824,7 +824,8 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
 
   /* step through the neighbors */
   for (const WallTileIndexPair& neighbor: neighbors) {
-    Grid& ngrid = p.get_wall(neighbor.wall_index).grid;
+    Wall& nwall = p.get_wall(neighbor.wall_index);
+    Grid& ngrid = nwall.grid;
 
     // is there something on the tile?
     // TODO_LATER: this filtering should be done already while looking for neighbors
@@ -846,8 +847,20 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
 
     /* check whether the neighbor molecule is behind
        the restrictive region boundary   */
-    assert(!sm_species.has_flag(SPECIES_FLAG_CAN_REGION_BORDER) && "TODO_LATER");
-    assert(!nsm_species.has_flag(SPECIES_FLAG_CAN_REGION_BORDER) && "TODO_LATER");
+    if (sm_species.has_flag(SPECIES_FLAG_CAN_REGION_BORDER) || nsm_species.has_flag(SPECIES_FLAG_CAN_REGION_BORDER)) {
+
+      /* INSIDE-OUT check */
+      if (WallUtil::walls_belong_to_at_least_one_different_restricted_region(p, wall, sm, nwall, nsm)) {
+        continue;
+      }
+
+      /* OUTSIDE-IN check */
+      // note: the pairing wall is same as in mcell3, TODO: explain why is it so
+      if (WallUtil::walls_belong_to_at_least_one_different_restricted_region(p, wall, nsm, nwall, sm)) {
+        continue;
+      }
+    }
+
     assert(!nsm_species.has_flag(SPECIES_FLAG_EXTERNAL_SPECIES) && "TODO_LATER");
 
     // returns value >=1 if there can be a reaction

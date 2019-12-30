@@ -230,15 +230,13 @@ trigger_intersect:
 
 *************************************************************************/
 static void trigger_intersect(
-    //const UnimolecularReactionsMap& unimol_reactions,
     const Partition& p,
-    const BimolecularReactionsMap& bimol_reactions,
     const Molecule& reacA,
     const Wall& w,
-    const bool allow_rx_transp,
-    const bool allow_rx_reflec,
-    const bool allow_rx_absorb_reg_border,
-    ReactionsVector& matching_rxns
+    ReactionsVector& matching_rxns,
+    const bool allow_rx_transp = true,
+    const bool allow_rx_reflec = true,
+    const bool allow_rx_absorb_reg_border = true
 ) {
   /*
    * ??? how are unimol reactions related to molecule - surface reactions?
@@ -262,7 +260,7 @@ static void trigger_intersect(
     else if (reacA.is_surf()) {
 
       find_surface_mol_reactions_with_surf_classes(
-          p, bimol_reactions, reacA, w,  allow_rx_transp, allow_rx_reflec,
+          p, p.all_reactions.bimolecular_reactions_map, reacA, w,  allow_rx_transp, allow_rx_reflec,
           allow_rx_absorb_reg_border, matching_rxns);
     }
   }

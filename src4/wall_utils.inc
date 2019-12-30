@@ -39,6 +39,8 @@
 #include "geometry.h"
 #include "debug_config.h"
 
+#include "reaction_utils.inc"
+
 namespace MCell {
 
 namespace WallUtil {
@@ -505,8 +507,141 @@ static int wall_in_box(
 }
 
 
-} // namespace wall_util
 
-} // namespace mcell
+/***********************************************************************
+find_restricted_regions_by_wall:
+  In: wall
+      surface molecule
+  Out: an object's region list if the wall belongs to the region
+          that is restrictive (REFL/ABSORB) to the surface molecule
+       NULL - if no such regions found
+  Note: regions called "ALL" or the ones that have ALL_ELEMENTS are not
+        included in the return "region list".
+************************************************************************/
+static void find_restricted_regions_by_wall(
+    const Partition& p,
+    const Wall& this_wall,
+    const Molecule& sm,
+    uint_set<region_index_t>& regions) {
+
+  assert(regions.empty() && "Function does not clean the resulting array");
+
+  const Species& species = p.all_species.get(sm.species_id);
+
+  if (species.has_flag(SPECIES_FLAG_CAN_REGION_BORDER)) {
+    // no restricted region
+    return;
+  }
+
+  // get all possible molecule-surface reactions
+  ReactionsVector matching_rxns;
+  RxUtil::trigger_intersect(p, sm, this_wall, matching_rxns);
+
+  // collect species that can react
+  uint_set<species_id_t> restricted_surf_classes;
+  for (const Reaction* rxn: matching_rxns) {
+    if (rxn->is_reflect() || rxn->is_absorb()) {
+      assert(rxn->reactants.size() == 2);
+      restricted_surf_classes.insert(rxn->reactants[1].species_id);
+    }
+  }
+
+  // and store all regions that match the reacting species
+  for (region_index_t region_index: this_wall.regions) {
+    const Region& reg = p.get_region(region_index);
+    if (restricted_surf_classes.count(reg.species_id) != 0) {
+      regions.insert(region_index);
+    }
+  }
+}
+
+
+/*****************************************************************
+wall_belongs_to_all_regions_in_region_list:
+  In: wall
+      region_list
+  Out: 1 if wall belongs to all regions in the region list
+       0 otherwise.
+  Note: Wall can belong to several regions simultaneously.
+******************************************************************/
+static bool wall_belongs_to_all_regions_in_region_list(
+    const Wall& this_wall, const uint_set<region_index_t>& regions) {
+
+  if (regions.empty()) {
+    return false;
+  }
+
+  for (region_index_t region_index: regions) {
+    if (this_wall.regions.count(region_index) == 0) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/*****************************************************************
+walls_belong_to_at_least_one_different_restricted_region:
+  In: wall and surface molecule on it
+      wall and surface molecule on it
+  Out: 1 if both walls belong to at least one different restricted region
+       relative to the properties of surface molecule,
+       0 otherwise.
+  Note: Wall can be belong to several regions simultaneously.
+        Restricted region is one for the boundary of which the reactions
+        REFL/ABSORB are declared.
+******************************************************************/
+static bool walls_belong_to_at_least_one_different_restricted_region(
+    const Partition& p,
+    const Wall& w1, const Molecule& sm1,
+    const Wall& w2, const Molecule& sm2) {
+
+  uint_set<region_index_t> regions1;
+  find_restricted_regions_by_wall(p, w1, sm1, regions1);
+  uint_set<region_index_t> regions2;
+  find_restricted_regions_by_wall(p, w2, sm2, regions2);
+
+  if (regions1.empty() && regions2.empty()) {
+    return false;
+  }
+
+  bool res = false;
+  if (regions1.empty()) {
+    /* Is wall 1 part of all restricted regions rl_2, then these restricted
+     * regions just encompass wall 1 */
+    if (wall_belongs_to_all_regions_in_region_list(w1, regions2)) {
+      return false;
+    }
+    else {
+      return true;
+    }
+
+    return res;
+  }
+
+  if (regions2.empty()) {
+    /* Is wall 2 part of all restricted regions rl_1, then these restricted
+     * regions just encompass wall 2 */
+    if (wall_belongs_to_all_regions_in_region_list(w2, regions1)){
+      return false;
+    }
+    else {
+      return true;
+    }
+  }
+
+  // check whether the intersection of the two sets is not empty
+  for (region_index_t region_index: regions1) {
+    if (regions2.count(region_index) != 0) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+} // namespace WallUtil
+
+} // namespace MCell
 
 #endif // SRC4_WALL_UTILS_INC_

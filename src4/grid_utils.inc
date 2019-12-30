@@ -1191,6 +1191,8 @@ static void grid_all_neighbors_across_walls_through_edges(
     TileNeighborVector& neighbors
 ) {
   const Grid& grid = wall.grid;
+  assert(tile_index < grid.num_tiles && "Surface molecule tile index is out of bounds for this grid");
+
 
   int root, rootrem, strip, stripe, flip;
   tile_index_t temp_index;
@@ -1208,7 +1210,11 @@ static void grid_all_neighbors_across_walls_through_edges(
   const Species& species = p.all_species.get(sm.species_id);
   assert(!species.has_flag(SPECIES_FLAG_CAN_REGION_BORDER));
 
-  assert(tile_index < grid.num_tiles && "Surface molecule tile index is out of bounds for this grid");
+
+
+  /* check for possible reflection (absorption) from the wall edges
+     that may be region borders.  These are INSIDE_OUT and OUTSIDE-IN
+     checks against molecule's own wall and neighbor wall */
 
   /* find (strip, stripe, flip) coordinates of the tile */
   root = (int)(sqrt_f((float_t)tile_index));

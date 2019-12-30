@@ -412,7 +412,7 @@ static int outcome_products_random(struct volume *world, struct wall *w,
   int sm_bitmask = determine_molecule_region_topology(
       world, sm_1, sm_2, &rlp_head_wall_1, &rlp_head_wall_2, &rlp_head_obj_1,
       &rlp_head_obj_2, is_unimol);
-  ASSERT_FOR_MCELL4(sm_bitmask == 0);
+
   /* reacA is the molecule which initiated the reaction. */
   struct abstract_molecule *const initiator = reacA;
   short const initiatorOrient = orientA;
@@ -870,6 +870,7 @@ static int outcome_products_random(struct volume *world, struct wall *w,
 
           /* make sure we can get to the tile given the surface regions defined
            * in the model */
+          ASSERT_FOR_MCELL4(sm_bitmask == 0);
           if (!product_tile_can_be_reached(tile_grid->surface, rlp_head_wall_1,
             rlp_head_wall_2, rlp_head_obj_1, rlp_head_obj_2, sm_bitmask, is_unimol)) {
             uncheck_vacant_tile(tile_vacant_nbr_head, rnd_num);

@@ -301,9 +301,7 @@ static void reflect_absorb_check_wall(
 ) {
   ReactionsVector matching_rxns;
   RxUtil::trigger_intersect(
-      p, p.all_reactions.bimolecular_reactions_map,
-      sm, wall,
-      true, true, true,
+      p, sm, wall,
       matching_rxns
   );
 
