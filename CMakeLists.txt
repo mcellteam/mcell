@@ -207,7 +207,14 @@ set(SOURCE_FILES_ONLY_MCELL
     src/mdlparse_util.h
 )    
 
-set( SOURCE_FILES ${SOURCE_FILES} src/mdlparse.y src/dyngeom_parse.y )
+set( SOURCE_FILES 
+  ${SOURCE_FILES} 
+  src/mdlparse.y 
+  src/dyngeom_parse.y 
+  ${BISON_dynGeomParser_OUTPUTS}  
+  ${FLEX_dynGeomScanner_OUTPUTS}
+)
+ 
 
 link_directories(${CMAKE_BINARY_DIR}/lib)
 if (UNIX)
@@ -278,11 +285,10 @@ file(COPY ${CMAKE_SOURCE_DIR}/../bionetgen/bng2/ DESTINATION ${CMAKE_CURRENT_BIN
 add_executable(mcell
   ${SOURCE_FILES}
   ${SOURCE_FILES_ONLY_MCELL}
-  src/mcell.c
   ${BISON_mdlParser_OUTPUTS}
-  ${BISON_dynGeomParser_OUTPUTS}  
   ${FLEX_mdlScanner_OUTPUTS}
-  ${FLEX_dynGeomScanner_OUTPUTS})
+  src/mcell.c
+)
 
 add_dependencies(mcell version_h)
 
