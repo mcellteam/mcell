@@ -17,7 +17,6 @@ missing
 opt
 .DS_store
 *.pyc
-debug
 build
 test.cfg
 test_results
