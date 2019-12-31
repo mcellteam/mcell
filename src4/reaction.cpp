@@ -43,7 +43,7 @@ void Reaction::update_equivalent_product_indices() {
     product.equivalent_product_or_reactant_index = INDEX_INVALID;
   }
 
-  for (uint ri = 0; ri < products.size(); ri++) {
+  for (uint ri = 0; ri < reactants.size(); ri++) {
     reactants[ri].equivalent_product_or_reactant_index = INDEX_INVALID;
 
     for (uint pi = 0; pi < products.size(); pi++) {
