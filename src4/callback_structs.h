@@ -20,6 +20,7 @@ struct WallHitInfo {
   wall_id_t wall_id;
   float_t time;
   vec3_t pos;
+  vec3_t pos_before_hit;
 };
 
 } /* namespace MCell */
