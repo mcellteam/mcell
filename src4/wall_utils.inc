@@ -528,7 +528,7 @@ static void find_restricted_regions_by_wall(
 
   const Species& species = p.all_species.get(sm.species_id);
 
-  if (species.has_flag(SPECIES_FLAG_CAN_REGION_BORDER)) {
+  if (!species.has_flag(SPECIES_FLAG_CAN_REGION_BORDER)) {
     // no restricted region
     return;
   }
