@@ -87,6 +87,7 @@ struct WallHitInfo {
   wall_id_t wall_id;
   float_t time;
   vec3_t pos;
+  float_t time_before_hit;
   vec3_t pos_before_hit;
 };
 

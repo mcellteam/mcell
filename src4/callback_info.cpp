@@ -19,11 +19,10 @@ void py_callback_wall_hit(const MCell::WallHitInfo& res, void *clientdata)
 
    // transform into Python object
    arglist = Py_BuildValue(
-        "iiifffffff",
+        "iiiffffffff",
         res.molecule_id, res.geometry_object_id, res.wall_id,
-        res.time,
-        res.pos.x, res.pos.y, res.pos.z,
-        res.pos_before_hit.x, res.pos_before_hit.y, res.pos_before_hit.z
+        res.time, res.pos.x, res.pos.y, res.pos.z,
+        res.time_before_hit, res.pos_before_hit.x, res.pos_before_hit.y, res.pos_before_hit.z
    );             // Build argument list
 
    result = PyEval_CallObject(func, arglist);     // Call Python

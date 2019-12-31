@@ -335,6 +335,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
           info.wall_id = colliding_wall.id;
           info.time = event_time + collision.time;
           info.pos = collision.pos;
+          info.time_before_hit = event_time + elapsed_molecule_time;
           info.pos_before_hit = vm_new_ref.v.pos;
 
           wall_hit_callback(info, world->wall_hit_callback_clientdata);
