@@ -302,6 +302,7 @@ def construct_bng_from_mdlr(mdlrPath, nfsimFlag=False, separate_spatial=True):
     else:
         functions = ''
 
+    observables = ''
     if not nfsimFlag:
         observables = process_observables(sections['observables'])
     else:
