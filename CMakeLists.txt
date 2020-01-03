@@ -289,10 +289,19 @@ configure_file(${CMAKE_SOURCE_DIR}/src/pymcell_helpers.py ${CMAKE_CURRENT_BINARY
 
 # copy tools for MDLr to MDL
 # TODO: list all files using configure_file
-configure_file(${CMAKE_SOURCE_DIR}/src/rules_py/nfsim_python.py ${CMAKE_CURRENT_BINARY_DIR}/nfsim_python.py COPYONLY)
-configure_file(${CMAKE_SOURCE_DIR}/src/rules_py/mdlr2mdl.py ${CMAKE_CURRENT_BINARY_DIR}/mdlr2mdl.py COPYONLY)
+SET(MCELL_RULES_DIR ${CMAKE_SOURCE_DIR}/src/rules_py)
 
-file(COPY ${CMAKE_SOURCE_DIR}/src/rules_py/ DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+configure_file(${MCELL_RULES_DIR}/grammar_definition.py ${CMAKE_CURRENT_BINARY_DIR}/grammar_definition.py COPYONLY)
+configure_file(${MCELL_RULES_DIR}/mcell3r.py ${CMAKE_CURRENT_BINARY_DIR}/mcell3r.py COPYONLY)
+configure_file(${MCELL_RULES_DIR}/mdlr2mdl.py ${CMAKE_CURRENT_BINARY_DIR}/mdlr2mdl.py COPYONLY)
+configure_file(${MCELL_RULES_DIR}/nfsim_python.py ${CMAKE_CURRENT_BINARY_DIR}/nfsim_python.py COPYONLY)
+configure_file(${MCELL_RULES_DIR}/postprocess_mcell3r.py ${CMAKE_CURRENT_BINARY_DIR}/postprocess_mcell3r.py COPYONLY)
+configure_file(${MCELL_RULES_DIR}/read_bngxml.py ${CMAKE_CURRENT_BINARY_DIR}/read_bngxml.py COPYONLY)
+configure_file(${MCELL_RULES_DIR}/read_mdl.py ${CMAKE_CURRENT_BINARY_DIR}/read_mdl.py COPYONLY)
+configure_file(${MCELL_RULES_DIR}/small_structures.py ${CMAKE_CURRENT_BINARY_DIR}/small_structures.py COPYONLY)
+configure_file(${MCELL_RULES_DIR}/split_bngxml.py ${CMAKE_CURRENT_BINARY_DIR}/split_bngxml.py COPYONLY)
+configure_file(${MCELL_RULES_DIR}/write_bngxmle.py ${CMAKE_CURRENT_BINARY_DIR}/write_bngxmle.py COPYONLY)
+configure_file(${MCELL_RULES_DIR}/write_mdl.py ${CMAKE_CURRENT_BINARY_DIR}/write_mdl.py COPYONLY)
 
 # copy tools for MDLr to MDL
 file(COPY ${CMAKE_SOURCE_DIR}/../bionetgen/bng2/ DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/bng2/)
