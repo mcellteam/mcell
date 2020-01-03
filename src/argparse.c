@@ -387,7 +387,7 @@ int argparse_init(int argc, char *const argv[], struct volume *vol) {
 
   /* Initialize NFSim if requested */
   if (vol->nfsim_flag) {
-    int nfsimStatus = setupNFSim_c(rules_xml_file, vol->seed_seq, 0);
+    int nfsimStatus = setupNFSim_c(rules_xml_file, vol->seed_seq, vol->dump_level > 0);
     free(rules_xml_file);
     if (nfsimStatus != 0){
       argerror("nfsim model could not be properly initialized: %s", optarg);
