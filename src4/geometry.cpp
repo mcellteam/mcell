@@ -116,14 +116,12 @@ init_edge_transform
   Note: Don't call this on a non-shared edge.
 ***************************************************************************/
 void Edge::reinit_edge_constants(const Partition& p) {
+  assert(is_shared_edge());
 
   if (!is_initialized()) {
     return;
   }
 
-  // not sure what to do if these asserts do not hold
-  assert(forward_index != WALL_INDEX_INVALID);
-  assert(backward_index != WALL_INDEX_INVALID);
   Wall wf = p.get_wall(forward_index);
   Wall wb = p.get_wall(backward_index);
 
@@ -221,7 +219,9 @@ void Edge::debug_check_values_are_uptodate(const Partition& p) {
   float_t orig_cos_theta = cos_theta;
   float_t orig_sin_theta = sin_theta;
   dump();
-  reinit_edge_constants(p);
+  if (is_shared_edge()) {
+    reinit_edge_constants(p);
+  }
   dump();
   assert(cmp_eq(orig_translate, translate));
   assert(cmp_eq(orig_cos_theta, cos_theta));
@@ -292,7 +292,9 @@ void Wall::precompute_wall_constants(const Partition& p) {
 void Wall::reinit_edge_constants(const Partition& p) {
   // edges, uses info set by init_tri_wall
   for (uint edge_index = 0; edge_index < EDGES_IN_TRIANGLE; edge_index++) {
-    edges[edge_index].reinit_edge_constants(p);
+    if (edges[edge_index].is_shared_edge()) {
+      edges[edge_index].reinit_edge_constants(p);
+    }
   }
 }
 

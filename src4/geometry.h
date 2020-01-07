@@ -64,10 +64,15 @@ public:
     {
   }
 
-  bool is_initialized() {
+  bool is_initialized() const {
     return edge_num_used_for_init != EDGE_INDEX_INVALID;
   }
 
+  bool is_shared_edge() const {
+    return forward_index != WALL_INDEX_INVALID && backward_index != WALL_INDEX_INVALID;
+  }
+
+  // must not be called on non-shared edge
   void reinit_edge_constants(const Partition& p);
 
   void dump() const;
@@ -80,6 +85,34 @@ public:
   // used only for debug, checks that the precomputed values are correct
   edge_index_t edge_num_used_for_init;
 
+  const vec2_t& get_translate() const {
+    assert(is_initialized());
+    return translate;
+  }
+
+  float_t get_cos_theta() const {
+    assert(is_initialized());
+    return cos_theta;
+  }
+
+  float_t get_sin_theta() const {
+    assert(is_initialized());
+    return sin_theta;
+  }
+
+  void set_translate(const vec2_t& value) {
+    translate = value;
+  }
+
+  void set_cos_theta(const float_t value) {
+    cos_theta = value;
+  }
+
+  void set_sin_theta(const float_t value) {
+    sin_theta = value;
+  }
+
+private:
   // --- egde constants ---
   vec2_t translate;          /* Translation vector between coordinate systems */
   float_t cos_theta;         /* Cosine of angle between coordinate systems */

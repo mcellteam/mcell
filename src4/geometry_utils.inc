@@ -337,11 +337,11 @@ static wall_index_t traverse_surface(const Wall& here, const vec2_t& loc, int wh
 
     /* rotation */
     vec2_t tmp;
-    tmp.u = e.cos_theta * loc.u + e.sin_theta * loc.v;
-    tmp.v = -e.sin_theta * loc.u + e.cos_theta * loc.v;
+    tmp.u = e.get_cos_theta() * loc.u + e.get_sin_theta() * loc.v;
+    tmp.v = -e.get_sin_theta() * loc.u + e.get_cos_theta() * loc.v;
 
     /* translation */
-    newloc = tmp + e.translate;
+    newloc = tmp + e.get_translate();
 
     return there;
   }
@@ -351,11 +351,11 @@ static wall_index_t traverse_surface(const Wall& here, const vec2_t& loc, int wh
 
     /* inverse translation */
     vec2_t tmp;
-    tmp = loc - e.translate;
+    tmp = loc - e.get_translate();
 
     /* inverse rotation */
-    newloc.u = e.cos_theta * tmp.u - e.sin_theta * tmp.v;
-    newloc.v = e.sin_theta * tmp.u + e.cos_theta * tmp.v;
+    newloc.u = e.get_cos_theta() * tmp.u - e.get_sin_theta() * tmp.v;
+    newloc.v = e.get_sin_theta() * tmp.u + e.get_cos_theta() * tmp.v;
 
     return there;
   }

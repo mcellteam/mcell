@@ -339,9 +339,9 @@ bool MCell3WorldConverter::convert_wall(const wall* w, GeometryObject& object) {
     else {
       edge.backward_index = WALL_INDEX_INVALID;
     }
-    edge.translate = e->translate;
-    edge.cos_theta = e->cos_theta;
-    edge.sin_theta = e->sin_theta;
+    edge.set_translate(e->translate);
+    edge.set_cos_theta(e->cos_theta);
+    edge.set_sin_theta(e->sin_theta);
     edge.edge_num_used_for_init = e->edge_num_used_for_init; // added only for mcell4
   }
 
