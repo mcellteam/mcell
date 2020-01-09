@@ -24,7 +24,9 @@
 #ifndef SRC4_MOLECULE_H_
 #define SRC4_MOLECULE_H_
 
+#include "../libs/bng/molecule_instance.h"
 #include "defines.h"
+
 
 namespace MCell {
 
@@ -76,7 +78,7 @@ enum molecule_flag_t {
 /**
  * Base class for all molecules.
  */
-class Molecule {
+class Molecule: public BNG::MoleculeInstance {
 public:
   Molecule()
     : id(MOLECULE_ID_INVALID), flags(0), unimol_rx_time(TIME_FOREVER), unimol_rx(nullptr), species_id(SPECIES_ID_INVALID) {

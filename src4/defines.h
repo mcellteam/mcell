@@ -24,28 +24,14 @@
 #ifndef SRC4_DEFINES_H_
 #define SRC4_DEFINES_H_
 
-#ifndef NDEBUG
-// TODO: probably make this enabled only for Eclipse, we want the debug build to behave exactly as the release build
-#define INDEXER_WA // Don't know yet how to convince Eclipse to correctly index boost containers
-#endif
-
-#if defined(NDEBUG) && defined(INDEXER_WA)
-#warning "INDEXER_WA is enabled and this will lead to lower performance"
-#endif
-
 #ifndef SWIG
 #include <stdint.h>
-#include <vector>
-#include <set>
-#include <string>
 #include <cassert>
-#include <climits>
 #include <cmath>
-#include <iostream>
-#include <map>
-#include <unordered_map>
-#include "../libs/boost/container/small_vector.hpp"
-#include "../libs/boost/container/flat_set.hpp"
+
+
+#include "../libs/bng/common_defines.h"
+#include "../libs/bng/bng_defines.h"
 
 #include "mcell_structs.h"
 #include "debug_config.h"
@@ -99,6 +85,8 @@
 
 namespace MCell {
 
+typedef Common::float_t float_t;
+
 // ---------------------------------- optimization macros ----------------------------------
 #if defined(likely) or defined(unlikely)
 #error "Macros 'likely' or 'unlikely' are already defined"
@@ -107,18 +95,7 @@ namespace MCell {
 #define likely(x)       __builtin_expect((x),1)
 #define unlikely(x)     __builtin_expect((x),0)
 
-// ---------------------------------- float types ----------------------------------
 
-typedef double float_t; // will be changed to float
-#define FLOAT_T_BYTES 8
-
-#if FLOAT_T_BYTES == 8
-const float_t EPS = 1e-12; // same as EPS_C
-const float_t SQRT_EPS = 1e-6;
-const float_t GIGANTIC4 = 1e140;
-#else
-#error "Base type float32 is not supported yet"
-#endif
 
 const float_t SCHEDULER_COMPARISON_EPS = 1e-10;
 
@@ -130,25 +107,13 @@ const float_t SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT = 1;
 
 
 // ---------------------------------- fixed constants and specific typedefs -------------------
-const float_t POS_INVALID = FLT_MAX; // cannot be NAN because we cannot do any comparison with NANs
-
-const float_t TIME_INVALID = -1;
-const float_t TIME_FOREVER = FLT_MAX; // this max is sufficient for both float and double
-const float_t TIME_SIMULATION_START = 0;
 
 const float_t DIFFUSION_CONSTANT_ZER0 = 0;
-
-const uint ID_INVALID = UINT32_MAX; // general invalid index, should not be used when a definition for a specific type is available
-const uint INDEX_INVALID = UINT32_MAX; // general invalid index, should not be used when a definition for a specific type is available
 
 // unique species id
 typedef uint species_id_t;
 const species_id_t SPECIES_ID_INVALID = ID_INVALID;
 
-// molecule id is a unique identifier of a molecule,
-// no 2 molecules may have the same ID in the course of a simulation (at least for now)
-typedef uint molecule_id_t;
-const molecule_id_t MOLECULE_ID_INVALID = ID_INVALID;
 
 // molecule index is index into partition's molecules array, indices and ids are
 // identical until the first defragmentation that shuffles molecules in the molecules array
@@ -236,60 +201,12 @@ typedef std::pair<float_t, PartitionWallIndexPair> CummAreaPWallIndexPair;
 class Reaction;
 
 #ifndef INDEXER_WA
-template<class T, class Allocator=boost::container::new_allocator<T>>
-  using small_vector = boost::container::small_vector<T, 8, Allocator>;
-
 typedef boost::container::small_vector<subpart_index_t, 8>  SubpartIndicesVector;
 typedef boost::container::small_vector<const Reaction*, 8>  ReactionsVector;
-
-template<class T, typename Compare = std::less<T>, class Allocator=boost::container::new_allocator<T>>
-  using base_flat_set = boost::container::flat_set<T, Compare, Allocator>;
 #else
-template<typename T, typename _Alloc = std::allocator<T>  >
-  using small_vector = std::vector<T, _Alloc>;
-
 typedef std::vector<subpart_index_t> SubpartIndicesVector;
 typedef std::vector<const Reaction*> ReactionsVector;
-
-template<typename T, typename _Compare = std::less<T>, typename _Alloc = std::allocator<T>  >
-  using base_flat_set = std::set<T, _Compare, _Alloc>;
 #endif
-
-/**
- * Template class used to hold sets of ids or indices of molecules or other items,
- * extended to check for unique insertions and checked removals.
- */
-template<typename T>
-class uint_set: public base_flat_set<T> {
-public:
-  // insert with check that the item is not there yet
-  // for insertions without this check use 'insert'
-  void insert_unique(const T id_or_index) {
-    assert(this->count(id_or_index) == 0);
-    this->insert(id_or_index);
-  }
-
-  // erase with check that the item is present
-  // for insertions without this check use 'erase'
-  void erase_existing(const T id_or_index) {
-    assert(this->count(id_or_index) == 1);
-    this->erase(id_or_index);
-  }
-
-  void dump(const std::string comment = "") const {
-    std::cout << comment << ": ";
-    int cnt = 0;
-    for (const T& idx: *this) {
-      std::cout << idx << ", ";
-
-      if (cnt %20 == 0 && cnt != 0) {
-        std::cout << "\n";
-      }
-      cnt++;
-    }
-    std::cout << "\n";
-  }
-};
 
 // ---------------------------------- vector types ----------------------------------
 

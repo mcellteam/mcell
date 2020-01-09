@@ -225,6 +225,14 @@ set(SOURCE_FILES
     src4/world.cpp
     
     src4/callback_info.cpp    
+    
+    libs/bng/bng_engine.cpp
+    libs/bng/complex_species.cpp
+    libs/bng/component.cpp
+    libs/bng/molecule_instance.cpp
+    libs/bng/molecule_species.cpp
+    libs/bng/rule.cpp
+
 )
 
 set(SOURCE_FILES_ONLY_MCELL
