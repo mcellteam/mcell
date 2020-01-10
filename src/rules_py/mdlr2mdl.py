@@ -40,29 +40,25 @@ class MDLR2MDL(object):
         self.config['libpath'] = os.path.join(configpath,'lib')
         self.config['scriptpath'] = configpath
         prefix = "lib"
-        prefix2 = None
         if (sys.platform == 'linux') or (sys.platform == 'linux2'):
             extension = "so"
         elif (sys.platform == 'darwin'):
             extension = "dylib"
         elif (sys.platform == 'win32'):
             extension = "dll"
-        elif (sys.platform == 'cygwin'):
-            extension = "dll"
-            prefix2 = "cyg" # cygwin uses this prefix instead of lib
         else:
             raise Exception("Unexpected platform: {0}".format(sys.platform))
 
         libNFsim_path = os.path.join(self.config['libpath'], '{0}NFsim.{1}'.format(prefix, extension))
         libnfsim_c_path = os.path.join(self.config['libpath'], '{0}nfsim_c.{1}'.format(prefix, extension))
         
-        if not os.path.exists(libNFsim_path) and prefix2:
-            # try the cygwin variant
-            libNFsim_path = os.path.join(self.config['libpath'], '..', 'nfsim', '{0}NFsim.{1}'.format(prefix2, extension))
+        if not os.path.exists(libNFsim_path):
+            # try the build directory paths
+            libNFsim_path = os.path.join(self.config['libpath'], '..', 'nfsim', '{0}NFsim.{1}'.format(prefix, extension))
 
-        if not os.path.exists(libnfsim_c_path) and prefix2:
+        if not os.path.exists(libnfsim_c_path):
             # try the cygwin variant
-            libnfsim_c_path = os.path.join(self.config['libpath'], '..', 'nfsimCInterface', '{0}nfsim_c.{1}'.format(prefix2, extension))
+            libnfsim_c_path = os.path.join(self.config['libpath'], '..', 'nfsimCInterface', '{0}nfsim_c.{1}'.format(prefix, extension))
         
         print("Loading libs from " + libNFsim_path + " and " + libnfsim_c_path + ".")
         
