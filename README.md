@@ -73,7 +73,7 @@ Running 'python run.py --help' shows other options.
 
 To build just MCell, run these commands after you ran the 'python run.py'.
 
-    cd mcell_tools/work/build\_mcell
+    cd mcell_tools/work/build_mcell
     cmake ../../../mcell -DCMAKE_BUILD_TYPE=Release
     make 
 
