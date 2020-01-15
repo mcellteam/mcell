@@ -79,6 +79,7 @@ static bool has_micro_rev_and_trimol_rxns(struct species **species_list,
 void mcell_set_seed(MCELL_STATE *state, int seed) {
   u_int signed_seed = (u_int) seed;
   state->seed_seq = signed_seed;
+  rng_init(state->rng, state->seed_seq);
 }
 
 /************************************************************************
