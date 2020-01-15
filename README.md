@@ -64,22 +64,22 @@ Windows PATH (Search "Control Panel"; View by small icons; System; Advanced Syst
 Open a terminal (non-Administrator PowerShell for Windows users), clone the
 mcell_tools repo and run:
 
-  git clone https://github.com/mcellteam/mcell\_tools.git
-  cd mcell\_tools
-  python run.py
+    git clone https://github.com/mcellteam/mcell_tools.git
+    cd mcell_tools
+    python run.py
 
 This will clone all the required repositories and run build of all the components.
 Running 'python run.py --help' shows other options.
 
 To build just MCell, run these commands after you ran the 'python run.py'.
 
-  cd mcell\_tools/work/build\_mcell
-  cmake ../../../mcell -DCMAKE_BUILD_TYPE=Release
-  make 
+    cd mcell_tools/work/build\_mcell
+    cmake ../../../mcell -DCMAKE_BUILD_TYPE=Release
+    make 
 
 ### Testing MCell
 
-  cd mcell\_tests
-  python run_tests.py
+    cd mcell_tests
+    python run_tests.py
 
 Running 'python run_tests.py --help' shows other options. 
