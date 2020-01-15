@@ -10,21 +10,6 @@ MCell is a program that uses spatially realistic 3D cellular models and
 specialized Monte Carlo algorithms to simulate the movements and reactions of
 molecules within and between cells—cellular microphysiology. 
 
-[![Build Status](https://travis-ci.org/mcellteam/mcell.svg?branch=master)](https://travis-ci.org/mcellteam/mcell)
-[![Build status](https://ci.appveyor.com/api/projects/status/github/mcellteam/mcell?branch=master&svg=true)](https://ci.appveyor.com/project/jczech/mcell/branch/master)
-<a href="https://scan.coverity.com/projects/mcellteam-mcell">
-  <img alt="Coverity Scan Build Status"
-       src="https://scan.coverity.com/projects/8521/badge.svg"/>
-</a>
-
-## Download Latest Test Builds
-
-These builds are the from the head of this branch and are not guaranteed to be
-stable. Use at your own risk.
-
-* [Linux](https://bintray.com/jczech/mcell/download_file?file_path=mcell-linux-gcc.tgz)
-* [OSX](https://bintray.com/jczech/mcell/download_file?file_path=mcell-osx-gcc.tgz)
-
 ## Build Requirements:
 
 ### Ubuntu 16.04:
@@ -77,61 +62,24 @@ Windows PATH (Search "Control Panel"; View by small icons; System; Advanced Syst
 ## Building MCell Executable from Source (OSX, Linux, Windows)
 
 Open a terminal (non-Administrator PowerShell for Windows users), clone the
-repo and checkout the appropriate branch:
+mcell_tools repo and run:
 
-    git clone https://github.com/mcellteam/mcell
-    cd mcell
-    git checkout nfsim_dynamic_meshes_pymcell
+  git clone https://github.com/mcellteam/mcell\_tools.git
+  cd mcell\_tools
+  python run.py
 
-### CMake
+This will clone all the required repositories and run build of all the components.
+Running 'python run.py --help' shows other options.
 
-If this is your first time cloning the repo, you'll want to do this first:
+To build just MCell, run these commands after you ran the 'python run.py'.
 
-    git submodule init
-    git submodule update
+  cd mcell\_tools/work/build\_mcell
+  cmake ../../../mcell -DCMAKE_BUILD_TYPE=Release
+  make 
 
-Next create your build directory and change into it:
+### Testing MCell
 
-    mkdir build
-    cd build
+  cd mcell\_tests
+  python run_tests.py
 
-#### OSX and Linux
-
-    cmake ..
-    make
-
-#### Windows
-
-    cmake -G Ninja ..
-    ninja
-
-Note: pyMCell does not currently build on Windows.
-
-## Alternative (non-CMake) Method to Build pyMCell:
-
-PyMCell is an experimental MCell-Python library. You can build it using the
-traditional CMake method above or this distutils based method, which requires
-swig and a newer version of Python 3 (preferably 3.5 or greater). Run the
-following command:
-
-    python3 setupy.py build
-
-## How to Test:
-
-### Testing with nutmeg
-
-[nutmeg](https://github.com/mcellteam/nutmeg) is a regression test
-framework for MCell. Installation and usage instructions are listed on the
-nutmeg project page.
-
-### Testing MCellR
-
-MCellR testing hasn't been incorporated into nutmeg yet, but you can test
-MCellR functionality directly after building MCell. Simply run the following
-commands (starting at the top level of the "mcell" project directory):
-
-    python3 -m venv mcell_venv
-    source mcell_venv/bin/activate
-    pip install -r requirements.txt
-    cd build
-    python mdlr2mdl.py -ni ./fceri_files/fceri.mdlr -o ./fceri_files/fceri -r
+Running 'python run_tests.py --help' shows other options. 
