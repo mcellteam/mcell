@@ -1858,6 +1858,12 @@ void dump_dg_time_filename_list(dg_time_filename* fn, const char* name, const ch
   cout << "********* volume dump :" << comment << "************ (END)\n";
 }
 
+/* lmr */
+void data_model_mcell4(const char* comment) {
+  for(int i=0;i<10;i++){
+    cout << comment << "\n";
+  }
+}
 
 // ----------- other debug functions -------
 

@@ -89,6 +89,10 @@ int main(int argc, char **argv) {
   CHECKED_CALL_EXIT(mcell_init_output(state),
                     "An error occured during setting up of output.");
 
+  if (state->data_model_mcell4){
+    make_data_model(state); /* lmr */
+  }
+
   if (state->dump_mcell4) {
     dump_volume(state, "initial", DUMP_EVERYTHING);
   }
