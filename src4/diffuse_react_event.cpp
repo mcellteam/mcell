@@ -268,7 +268,10 @@ void DiffuseReactEvent::diffuse_vol_molecule(
 #endif
   // note: we are ignoring use_expanded_list setting compared to mcell3
 
-  // detect collisions with other molecules
+  // cut the displacement so that it does not cross partition?
+  // or how to simplify this case when we know that we will definitely
+  // be stopped by a wall (we need to fail if not anyway)
+
   vec3_t remaining_displacement = displacement;
 
   RayTraceState state;
@@ -385,6 +388,91 @@ void DiffuseReactEvent::diffuse_vol_molecule(
   } while (unlikely(state != RayTraceState::FINISHED && !was_defunct));
 }
 
+// move to collision utils or to partition
+static vec3_t get_displacement_up_to_partition_boundary(
+    const Partition& p,
+    const vec3_t& pos,
+    const vec3_t& displacement
+    ) {
+
+  vec3_t new_pos = pos + displacement;
+  assert(p.in_this_partition(pos));
+  assert(!p.in_this_partition(new_pos));
+
+  // TODO: similar code is in collect_crossed_subparts, clean it up
+  // direction of the displacement
+  // TODO: get rid of the zero div check??
+
+  vec3_t displacement_nonzero = displacement;
+  debug_guard_zero_div(displacement_nonzero);
+  ivec3_t dir_urb_direction = ivec3_t(glm::greaterThan(displacement_nonzero, vec3_t(0)));
+
+  ivec3_t dir_urb_addend;
+  dir_urb_addend.x = (dir_urb_direction.x == 0) ? -1 : 1;
+  dir_urb_addend.y = (dir_urb_direction.y == 0) ? -1 : 1;
+  dir_urb_addend.z = (dir_urb_direction.z == 0) ? -1 : 1;
+
+  // position of edges in our direction
+  vec3_t partition_edges =
+      p.get_origin_corner()
+      + vec3_t(dir_urb_direction) * p.config.partition_edge_length;
+
+  vec3_t diff = partition_edges - pos;
+
+  vec3_t displacement_rcp = 1.0/displacement_nonzero; // POSSIBLE ZERO DIV
+
+  // time we hit a boundary
+  float_t hit_time = 1;
+
+
+
+  // first check whether we are not in fact touching one of the boundaries
+  if (abs(diff.x) < EPS) {
+    // only update the xyz subpartition index
+    // curr_subpart_indices.x += dir_urb_addend.x;
+    assert(false && "TODO");
+  }
+  else if (abs(diff.y) < EPS) {
+    //curr_subpart_indices.y += dir_urb_addend.y;
+    assert(false && "TODO");
+  }
+  else if (abs(diff.z) < EPS) {
+    //curr_subpart_indices.z += dir_urb_addend.z;
+    assert(false && "TODO");
+  }
+  else {
+    // compute time for the next subpartition collision, let's assume that displacemnt
+    // is our speed vector and the total time to travel is 1
+    //
+    // pos(time) = pos + displacement * time, therefore
+    // time = (pos(time) - vm.v.pos) / displacement
+    // =>
+    // time_to_subpart_edge = (subpart_edge - vm.v.pos) / displacement_speed
+    vec3_t coll_times = diff * displacement_rcp;
+    assert(coll_times.x >= 0 && coll_times.y >= 0 && coll_times.z >= 0
+      && "Subpartition 'edges' must be computed from direction, we cannot hit a subpart boundary that is behind us");
+
+    // which of the times is the smallest? - i.e. which boundary we hit first
+    if (coll_times.x >= 0 && coll_times.x < coll_times.y && coll_times.x <= coll_times.z) {
+      // x
+      hit_time = coll_times.x;
+    }
+    else if (coll_times.y >= 0 && coll_times.y <= coll_times.z) {
+      // y
+      hit_time = coll_times.y;
+    }
+    else if (coll_times.z >= 0) {
+      // z
+      hit_time = coll_times.z;
+    }
+    else {
+      assert(false && "Collision time must not be negative");
+    }
+   }
+
+  return displacement * hit_time;
+}
+
 
 // collect possible collisions for molecule vm that has to displace by remaining_displacement,
 // returns possible collisions in molecule_collisions, new position in new_pos and
@@ -408,18 +496,29 @@ RayTraceState ray_trace_vol(
 
   float_t radius = p.config.rx_radius_3d;
 
+  // if we would get out of this partition, cut off the displacement
+  // so we check collisions just here
+  vec3_t partition_displacement;
+  if (!p.in_this_partition(vm.v.pos + remaining_displacement)) {
+    partition_displacement = get_displacement_up_to_partition_boundary(p, vm.v.pos, remaining_displacement);
+  }
+  else {
+    partition_displacement = remaining_displacement;
+  }
+
   // first get what subpartitions might be relevant
   SubpartIndicesVector crossed_subparts_for_walls;
   subpart_indices_set_t crossed_subparts_for_molecules;
   subpart_index_t last_subpartition_index;
   CollisionUtil::collect_crossed_subparts(
-      p, vm, remaining_displacement,
+      p, vm, partition_displacement,
       radius, p.config.subpartition_edge_length,
       true, crossed_subparts_for_walls,
       crossed_subparts_for_molecules, last_subpartition_index
   );
 
 
+  // for wall
   vec3_t& displacement_up_to_wall_collision = remaining_displacement;
 
   // check wall collisions in the crossed subparitions,
@@ -476,9 +575,11 @@ RayTraceState ray_trace_vol(
     }
   }
 
-  // the value is valid only when RAY_TRACE_FINISHED is returned
-  new_subpart_index = last_subpartition_index; // FIXME: this is valid only when there was no collision
-  new_pos = vm.v.pos + remaining_displacement; // FIXME: this is overwritten in case of a collision, should I do something about it?
+  // these values are valid only when RAY_TRACE_FINISHED is returned
+  new_subpart_index = last_subpartition_index;
+
+
+  new_pos = vm.v.pos + remaining_displacement;
 
   return res_state; // no wall was hit
 }
