@@ -201,6 +201,14 @@ void DiffuseReactEvent::diffuse_single_molecule(
       // finally move molecule to its destination
       m_new_ref.v.pos = new_vpos;
 
+#ifdef DEBUG_DIFFUSION_EXTRA
+      DUMP_CONDITION4(
+        // the subtraction of diffusion_time_step doesn't make much sense but is needed to make the dump the same as in mcell3
+        // need to check it further
+        m.dump(p, "", "Diffused vm:", world->get_current_iteration(), event_time_end - time_up_to_event_end);
+      );
+#endif
+
       // are we still in the same partition or do we need to move?
       bool move_to_another_partition = !p.in_this_partition(m_new_ref.v.pos);
       if (move_to_another_partition) {
@@ -468,9 +476,15 @@ static vec3_t get_displacement_up_to_partition_boundary(
     else {
       assert(false && "Collision time must not be negative");
     }
-   }
+  }
 
-  return displacement * hit_time;
+  // there might be some floating point imprecisions, we want this value to be clearly in our partition,
+  // so let's make the time a bit smaller
+  // the displacement value is used only to find out which subpartitions we are crossing
+  vec3_t new_displacement = displacement * (hit_time - EPS);
+  assert(p.in_this_partition(pos + new_displacement));
+
+  return new_displacement;
 }
 
 
@@ -518,13 +532,11 @@ RayTraceState ray_trace_vol(
   );
 
 
-  // for wall
-  vec3_t& displacement_up_to_wall_collision = remaining_displacement;
+  // changed when wall was hit
+  vec3_t displacement_up_to_wall_collision = remaining_displacement;
+  vec3_t corrected_displacement = remaining_displacement;
 
   // check wall collisions in the crossed subparitions,
-  // stop at first crossing because crossed_subparts_for_walls are ordered
-  // and we are sure that if we hit a wall in the actual supartition, we cannot
-  // possibly hit another wall in a subparition that follows
   if (!crossed_subparts_for_walls.empty()) {
     for (subpart_index_t subpart_index: crossed_subparts_for_walls) {
 
@@ -534,10 +546,14 @@ RayTraceState ray_trace_vol(
           subpart_index,
           previous_reflected_wall,
           rng,
-          displacement_up_to_wall_collision,
+          corrected_displacement,
+          displacement_up_to_wall_collision, // may be update in case we need to 'redo' the collision detection
           collisions
       );
 
+      // stop at first crossing because crossed_subparts_for_walls are ordered
+      // and we are sure that if we hit a wall in the actual supartition, we cannot
+      // possibly hit another wall in a subparition that follows
       if (!collisions.empty()) {
         res_state = RayTraceState::RAY_TRACE_HIT_WALL;
         break;
@@ -568,7 +584,7 @@ RayTraceState ray_trace_vol(
           p,
           vm,
           colliding_vm_id,
-          displacement_up_to_wall_collision,
+          corrected_displacement,// displacement_up_to_wall_collision,
           radius,
           collisions
       );

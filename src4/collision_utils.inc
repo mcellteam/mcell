@@ -475,7 +475,8 @@ static CollisionType collide_wall(
     if (dv != 0.0)
       return CollisionType::WALL_MISS;
 
-    // NOTE: what is this doing?
+    // in case that the trajectory is parallel to the wall?
+    // update the displacement a bit
     if (update_move) {
       a = (MCell::abs_max_2vec(pos, move) + 1.0) * EPS_C;
       if ((rng_uint(&rng) & 1) == 0)
@@ -575,15 +576,24 @@ static CollisionType collide_wall(
   }
 }
 
+// called only from ray_trace_vol
 static void collect_wall_collisions(
     Partition& p,
     const Molecule& vm, // molecule that we are diffusing, we are changing its pos  and possibly also subvolume
     const subpart_index_t subpart_index,
     const wall_index_t previous_reflected_wall,
     rng_state& rng,
-    vec3_t& displacement, // can be changed
+    // displacement can be changed in case we needed to 'REDO' the collision, also,
+    // if there was a hit, is changed to the closest displacement
+    vec3_t& displacement,
+    vec3_t& displacement_up_to_wall_collision, // overwritten only when there is a wall collision
     collision_vector_t& wall_collisions
 ) {
+
+  // remember which was the closest hit to update displacement
+  float_t closest_hit_time = TIME_FOREVER;
+  vec3_t closest_hit_pos;
+
   // check each wall in this subpartition
   const uint_set<wall_index_t>& wall_indices = p.get_subpart_wall_indices(subpart_index);
 
@@ -598,8 +608,8 @@ static void collect_wall_collisions(
     vec3_t collision_pos;
 
 #ifdef DEBUG_COLLISIONS_WALL_EXTRA
-    SimulationStats* world = &p.get_simulation_stats();
-    // just faking the name for the dump condition macro
+    SimulationStats* world = &p.stats;
+    // just faking the name for the dump condition macro - FIXME - use better name
     DUMP_CONDITION4(
         std::cout << "Checking wall:\n";
         w.dump(p, "", true);
@@ -625,11 +635,21 @@ static void collect_wall_collisions(
       it = wall_indices.begin();
     }
     else if (collision_type != CollisionType::WALL_MISS) {
+      // remember the closest hit position
+      if (collision_time < closest_hit_time) {
+        closest_hit_pos = collision_pos;
+      }
+
       p.stats.inc_ray_polygon_colls();
       wall_collisions.push_back(
           Collision(collision_type, &p, vm.id, collision_time, collision_pos, wall_index)
       );
     }
+  }
+
+  if (!wall_collisions.empty()) {
+    // update displacement up to the wall collision
+    //displacement_up_to_wall_collision = closest_hit_pos - vm.v.pos;
   }
 }
 
