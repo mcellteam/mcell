@@ -576,6 +576,11 @@ static CollisionType collide_wall(
   }
 }
 
+
+static bool is_immediate_collision(const float_t time) {
+  return time < EPS;
+}
+
 // called only from ray_trace_vol
 static void collect_wall_collisions(
     Partition& p,
@@ -635,8 +640,8 @@ static void collect_wall_collisions(
       it = wall_indices.begin();
     }
     else if (collision_type != CollisionType::WALL_MISS) {
-      // remember the closest hit position
-      if (collision_time < closest_hit_time) {
+      // remember the closest hit position, but ignore immediate
+      if (collision_time < closest_hit_time && !is_immediate_collision(collision_time)) {
         closest_hit_pos = collision_pos;
       }
 
@@ -649,7 +654,7 @@ static void collect_wall_collisions(
 
   if (!wall_collisions.empty()) {
     // update displacement up to the wall collision
-    //displacement_up_to_wall_collision = closest_hit_pos - vm.v.pos;
+    displacement_up_to_wall_collision = closest_hit_pos - vm.v.pos;
   }
 }
 

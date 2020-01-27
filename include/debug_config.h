@@ -51,7 +51,7 @@
 //#define DEBUG_SUBPARTITIONS
 
 #define DEBUG_DIFFUSION
-#define DEBUG_DIFFUSION_EXTRA
+//#define DEBUG_DIFFUSION_EXTRA
 #define DEBUG_COLLISIONS
 //#define DEBUG_COLLISIONS_WALL_EXTRA
 #define DEBUG_REACTIONS
@@ -60,7 +60,7 @@
 
 #define FROM_ITERATION 0//250
 
-#define TO_ITERATION 30
+#define TO_ITERATION 100
 
 #define DUMP_CONDITION3(code) do { if ((int)world->current_iterations >= (int)FROM_ITERATION && (int)world->current_iterations <= (int)TO_ITERATION) { code; } } while (0)
 #define DUMP_CONDITION4(code) do { if ((int)world->get_current_iteration() >= (int)FROM_ITERATION && (int)world->get_current_iteration() <= (int)TO_ITERATION) { code; } } while (0)

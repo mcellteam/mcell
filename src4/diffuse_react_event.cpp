@@ -316,7 +316,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
 
       if (collision.is_vol_mol_collision()) {
         // ignoring immediate collisions
-        if (collision.time < EPS) {
+        if (CollisionUtil::is_immediate_collision(collision.time)) {
           continue;
         }
 
@@ -534,7 +534,7 @@ RayTraceState ray_trace_vol(
 
   // changed when wall was hit
   vec3_t displacement_up_to_wall_collision = remaining_displacement;
-  vec3_t corrected_displacement = remaining_displacement;
+  vec3_t& corrected_displacement = remaining_displacement;
 
   // check wall collisions in the crossed subparitions,
   if (!crossed_subparts_for_walls.empty()) {
@@ -584,7 +584,7 @@ RayTraceState ray_trace_vol(
           p,
           vm,
           colliding_vm_id,
-          corrected_displacement,// displacement_up_to_wall_collision,
+          corrected_displacement,// needs the full displacement to compute reaction time displacement_up_to_wall_collision,
           radius,
           collisions
       );
@@ -593,8 +593,6 @@ RayTraceState ray_trace_vol(
 
   // these values are valid only when RAY_TRACE_FINISHED is returned
   new_subpart_index = last_subpartition_index;
-
-
   new_pos = vm.v.pos + remaining_displacement;
 
   return res_state; // no wall was hit
