@@ -131,6 +131,12 @@ public:
   }
 
 
+  bool is_subpart_index_in_range(const int index) const {
+    assert((subpart_index_t)index != SUBPART_INDEX_INVALID);
+    return index >= 0 && index < (int)config.subpartitions_per_partition_dimension;
+  }
+
+
   void get_subpart_3d_indices(const vec3_t& pos, ivec3_t& res) const {
     assert(in_this_partition(pos));
     vec3_t relative_position = pos - origin_corner;

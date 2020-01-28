@@ -214,13 +214,25 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
       // first check whether we are not in fact touching one of the boundaries
       if (abs(diff.x) < EPS) {
         // only update the xyz subpartition index
-        curr_subpart_indices.x += dir_urb_addend.x;
+        curr_subpart_indices.x += dir_urb_addend.x;\
+        // in some cases, we can run out of partition
+        // this means that we missed the destination partition which is fine since collection of subparts
+        // is only an optimization, but still we must terminate
+        if (!p.is_subpart_index_in_range(curr_subpart_indices.x)) {
+          break;
+        }
       }
       else if (abs(diff.y) < EPS) {
         curr_subpart_indices.y += dir_urb_addend.y;
+        if (!p.is_subpart_index_in_range(curr_subpart_indices.y)) {
+          break;
+        }
       }
       else if (abs(diff.z) < EPS) {
         curr_subpart_indices.z += dir_urb_addend.z;
+        if (!p.is_subpart_index_in_range(curr_subpart_indices.z)) {
+          break;
+        }
       }
       else {
         // compute time for the next subpartition collision, let's assume that displacemnt
@@ -240,14 +252,23 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
           curr_pos += displacement * coll_times.x;
           // and also update the xyz subpartition index
           curr_subpart_indices.x += dir_urb_addend.x;
+          if (!p.is_subpart_index_in_range(curr_subpart_indices.x)) {
+            break;
+          }
         }
         else if (coll_times.y >= 0 && coll_times.y <= coll_times.z) {
           curr_pos += displacement * coll_times.y;
           curr_subpart_indices.y += dir_urb_addend.y;
+          if (!p.is_subpart_index_in_range(curr_subpart_indices.y)) {
+            break;
+          }
         }
         else if (coll_times.z >= 0) {
           curr_pos += displacement * coll_times.z;
           curr_subpart_indices.z += dir_urb_addend.z;
+          if (!p.is_subpart_index_in_range(curr_subpart_indices.z)) {
+            break;
+          }
         }
         else {
           break;
