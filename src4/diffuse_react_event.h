@@ -174,7 +174,7 @@ private:
       float_t remaining_time_step
   );
 
-  int outcome_unimolecular(
+  void outcome_unimolecular(
       Partition& p,
       Molecule& vm,
       const float_t scheduled_time,

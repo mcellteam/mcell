@@ -1276,8 +1276,7 @@ void DiffuseReactEvent::react_unimol_single_molecule(
   }
 
   assert(scheduled_time >= event_time && scheduled_time <= event_time + diffusion_time_step);
-  int rx_res = outcome_unimolecular(p, m, scheduled_time - event_time, unimol_rx);
-  assert(rx_res == RX_DESTROY);
+  outcome_unimolecular(p, m, scheduled_time - event_time, unimol_rx);
 }
 
 
@@ -1565,16 +1564,9 @@ int DiffuseReactEvent::outcome_products_random(
     one_of_reactants_is_surf = true;
   }
 
-
-
   // create and place each product
   for (uint product_index = 0; product_index < rx->products.size(); product_index++) {
     const SpeciesWithOrientation& product = rx->products[product_index];
-
-    if (product.is_on_both_sides_of_rxn()) {
-      // we will keep the reactant as it is
-      continue;
-    }
 
     const Species& species = p.all_species.get(product.species_id);
 
@@ -1600,95 +1592,111 @@ int DiffuseReactEvent::outcome_products_random(
       scheduled_time = event_time + collision.time;
     }
 
+    // if we are keeping the reactant, we must still schedule it for diffusion
+    if (!product.is_on_both_sides_of_rxn()) {
 
-    if (species.is_vol()) {
-      // create and place a volume molecule
+      if (species.is_vol()) {
+        // create and place a volume molecule
 
-      Molecule vm_initialization(MOLECULE_ID_INVALID, product.species_id, collision.pos);
+        Molecule vm_initialization(MOLECULE_ID_INVALID, product.species_id, collision.pos);
 
-      // adding molecule might invalidate references of already existing molecules
-      Molecule& new_vm = p.add_volume_molecule(vm_initialization);
+        // adding molecule might invalidate references of already existing molecules
+        Molecule& new_vm = p.add_volume_molecule(vm_initialization);
 
-      // id and position is used to schedule a diffusion action
-      new_m_id = new_vm.id;
-      if (surf_reac != nullptr) {
-        where_is_vm_created = surf_reac_wall_tile;
-      }
+        // id and position is used to schedule a diffusion action
+        new_m_id = new_vm.id;
+        if (surf_reac != nullptr) {
+          where_is_vm_created = surf_reac_wall_tile;
+        }
 
-      new_vm.flags = IN_VOLUME | (species.can_diffuse() ? ACT_DIFFUSE : 0);
-      new_vm.set_flag(MOLECULE_FLAG_VOL);
-      new_vm.set_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RX);
+        new_vm.flags = IN_VOLUME | (species.can_diffuse() ? ACT_DIFFUSE : 0);
+        new_vm.set_flag(MOLECULE_FLAG_VOL);
+        new_vm.set_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RX);
 
-      /* For an orientable reaction, we need to move products away from the surface
-       * to ensure they end up on the correct side of the plane. */
-      assert(is_orientable
-          || (collision.type != CollisionType::VOLMOL_SURFMOL && collision.type != CollisionType::SURFMOL_SURFMOL)
-      );
-      if (is_orientable) {
-        assert(surf_reac != nullptr);
-        Wall& w = p.get_wall(surf_reac->s.wall_index);
+        /* For an orientable reaction, we need to move products away from the surface
+         * to ensure they end up on the correct side of the plane. */
+        assert(is_orientable
+            || (collision.type != CollisionType::VOLMOL_SURFMOL && collision.type != CollisionType::SURFMOL_SURFMOL)
+        );
+        if (is_orientable) {
+          assert(surf_reac != nullptr);
+          Wall& w = p.get_wall(surf_reac->s.wall_index);
 
-        float_t bump = (product.orientation > 0) ? EPS : -EPS;
-        vec3_t displacement = vec3_t(2 * bump) * w.normal;
-        vec3_t new_pos_after_diffuse;
+          float_t bump = (product.orientation > 0) ? EPS : -EPS;
+          vec3_t displacement = vec3_t(2 * bump) * w.normal;
+          vec3_t new_pos_after_diffuse;
 
-        DiffusionUtil::tiny_diffuse_3D(p, new_vm, displacement, w.index, new_pos_after_diffuse);
+          DiffusionUtil::tiny_diffuse_3D(p, new_vm, displacement, w.index, new_pos_after_diffuse);
 
-        // update position and subpart if needed
-        new_vm.v.pos = new_pos_after_diffuse;
-        subpart_index_t new_subpart = p.get_subpartition_index(new_vm.v.pos);
-        p.change_molecule_subpartition(new_vm, new_subpart);
-      }
+          // update position and subpart if needed
+          new_vm.v.pos = new_pos_after_diffuse;
+          subpart_index_t new_subpart = p.get_subpartition_index(new_vm.v.pos);
+          p.change_molecule_subpartition(new_vm, new_subpart);
+        }
 
-
-    #ifdef DEBUG_REACTIONS
-      DUMP_CONDITION4(
-        new_vm.dump(p, "", "  created vm:", world->get_current_iteration(), scheduled_time);
-      );
-    #endif
-    }
-    else {
-      // see release_event_t::place_single_molecule_onto_grid, merge somehow
-
-      // get info on where to place the product
-      const GridPos& new_grid_pos = assigned_surf_product_positions[product_index];
-      assert(new_grid_pos.initialized);
-
-      vec2_t pos;
-      if (new_grid_pos.pos_is_set) {
-        pos = new_grid_pos.pos;
-      }
-      else {
-        // NOTE: there might be some optimization for this in mcell3
-        const Wall& wall = p.get_wall(new_grid_pos.wall_index);
-        pos = GridUtil::grid2uv_random(wall, new_grid_pos.tile_index, world->rng);
-      }
-
-      // create our new molecule
-      Molecule sm(MOLECULE_ID_INVALID, product.species_id, pos);
-
-      // might invalidate references of already existing molecules
-      Molecule& new_sm = p.add_surface_molecule(sm);
-      new_m_id = new_sm.id;
-      new_sm.flags = (species.can_diffuse() ? ACT_DIFFUSE : 0) | IN_SURFACE;
-      new_sm.set_flag(MOLECULE_FLAG_SURF);
-      new_sm.set_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RX);
-
-      // set wall and grid information
-      new_sm.s.wall_index = new_grid_pos.wall_index;
-      new_sm.s.grid_tile_index = new_grid_pos.tile_index;
-      Grid& grid = p.get_wall(new_grid_pos.wall_index).grid;
-      grid.set_molecule_tile(new_sm.s.grid_tile_index, new_sm.id);
-
-      // and finally orientation
-      new_sm.s.orientation = product.orientation;
 
       #ifdef DEBUG_REACTIONS
         DUMP_CONDITION4(
-          new_sm.dump(p, "", "  created sm:", world->get_current_iteration(), scheduled_time);
+          new_vm.dump(p, "", "  created vm:", world->get_current_iteration(), scheduled_time);
         );
       #endif
+      }
+      else {
+        // see release_event_t::place_single_molecule_onto_grid, merge somehow
+
+        // get info on where to place the product
+        const GridPos& new_grid_pos = assigned_surf_product_positions[product_index];
+        assert(new_grid_pos.initialized);
+
+        vec2_t pos;
+        if (new_grid_pos.pos_is_set) {
+          pos = new_grid_pos.pos;
+        }
+        else {
+          // NOTE: there might be some optimization for this in mcell3
+          const Wall& wall = p.get_wall(new_grid_pos.wall_index);
+          pos = GridUtil::grid2uv_random(wall, new_grid_pos.tile_index, world->rng);
+        }
+
+        // create our new molecule
+        Molecule sm(MOLECULE_ID_INVALID, product.species_id, pos);
+
+        // might invalidate references of already existing molecules
+        Molecule& new_sm = p.add_surface_molecule(sm);
+        new_m_id = new_sm.id;
+        new_sm.flags = (species.can_diffuse() ? ACT_DIFFUSE : 0) | IN_SURFACE;
+        new_sm.set_flag(MOLECULE_FLAG_SURF);
+        new_sm.set_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RX);
+
+        // set wall and grid information
+        new_sm.s.wall_index = new_grid_pos.wall_index;
+        new_sm.s.grid_tile_index = new_grid_pos.tile_index;
+        Grid& grid = p.get_wall(new_grid_pos.wall_index).grid;
+        grid.set_molecule_tile(new_sm.s.grid_tile_index, new_sm.id);
+
+        // and finally orientation
+        new_sm.s.orientation = product.orientation;
+
+        #ifdef DEBUG_REACTIONS
+          DUMP_CONDITION4(
+            new_sm.dump(p, "", "  created sm:", world->get_current_iteration(), scheduled_time);
+          );
+        #endif
+      }
     }
+    else {
+      // if we are keeping the reactant, we must still schedule it for diffusion
+      assert(product.equivalent_product_or_reactant_index != INDEX_INVALID);
+
+      // which is the product?
+      assert(reacB == nullptr && "TODO: fix for bimol rxns");
+      keep_reacA = true;
+      new_m_id = reacA->id;
+      assert(surf_reac == nullptr && "TODO: reusing reactant for surf rxns, need to set where_is_vm_created");
+    }
+
+
+    // TODO: ordering of product simulations... - for RXN
 
     // NOTE: in this time step, we will simply simulate all results of reactions regardless on the diffusion time step of the
     // particular product
@@ -1715,7 +1723,7 @@ int DiffuseReactEvent::outcome_products_random(
 // ---------------------------------- unimolecular reactions ----------------------------------
 
 
-int DiffuseReactEvent::outcome_unimolecular(
+void DiffuseReactEvent::outcome_unimolecular(
     Partition& p,
     Molecule& m,
     const float_t time_from_event_start,
@@ -1731,15 +1739,22 @@ int DiffuseReactEvent::outcome_unimolecular(
   int outcome_res = outcome_products_random(p, collision, TIME_INVALID, 0, ignoredA, ignoredB);
   assert(outcome_res == RX_A_OK);
 
-  // and defunct this molecule
-  Molecule& m_new_ref = p.get_m(id);
-#ifdef DEBUG_REACTIONS
-  DUMP_CONDITION4(
-    m_new_ref.dump(p, "", m_new_ref.is_vol() ? "Unimolecular vm defunct:" : "Unimolecular sm defunct:", world->get_current_iteration(), event_time + time_from_event_start, false);
-  );
-#endif
-  p.set_molecule_as_defunct(m_new_ref);
-  return RX_DESTROY;
+  // and defunct this molecule if it was not kept
+  assert(unimol_rx->reactants.size() == 1);
+  if (!unimol_rx->reactants[0].is_on_both_sides_of_rxn()) {
+    Molecule& m_new_ref = p.get_m(id);
+  #ifdef DEBUG_REACTIONS
+    DUMP_CONDITION4(
+      m_new_ref.dump(p, "", m_new_ref.is_vol() ? "Unimolecular vm defunct:" : "Unimolecular sm defunct:", world->get_current_iteration(), event_time + time_from_event_start, false);
+    );
+  #endif
+    p.set_molecule_as_defunct(m_new_ref);
+  }
+  else {
+    // we must reschedule the molecule's unimol rxn
+    float_t time_up_to_event_end = diffusion_time_step - time_from_event_start;
+    create_unimol_rx_action(p, m, time_up_to_event_end);
+  }
 }
 
 

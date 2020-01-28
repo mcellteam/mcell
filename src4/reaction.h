@@ -99,6 +99,10 @@ public:
 
   void initialize() {
     update_equivalent_product_indices();
+
+    // MCELL3 compatibility - reorder products so that case such as
+    // CaM -> Ca + CaM becomes CaM -> CaM + Ca
+    move_reused_reactants_to_be_the_first_products();
   }
 
   uint get_num_players() const {
@@ -126,6 +130,8 @@ private:
 
   // must be called after initialization
   void update_equivalent_product_indices();
+
+  void move_reused_reactants_to_be_the_first_products();
 };
 
 
