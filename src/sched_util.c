@@ -29,6 +29,9 @@
 
 #include "sched_util.h"
 
+#include "mcell_structs.h"
+#include "debug_config.h"
+
 /*************************************************************************
 ae_list_sort:
   In: head of a linked list of abstract_elements
@@ -214,6 +217,23 @@ failure:
   return NULL;
 }
 
+int schedule_add_mol(struct schedule_helper *sh, void *data) {
+  struct abstract_molecule *am = (struct abstract_molecule *)data;
+
+#ifdef DEBUG_SCHEDULER
+  if ((am->flags & TYPE_SURF) != 0) {
+    struct surface_molecule* sm = (struct surface_molecule*)am;
+    dump_surface_molecule(sm, "", true, "\n* Scheduled a new sm action: ", 0, sm->t, true);
+  }
+  else {
+    struct volume_molecule* vm = (struct volume_molecule*)am;
+    dump_volume_molecule(vm, "", true, "\n* Scheduled a new vm action: ", 0, vm->t, true);
+  }
+#endif
+
+  return schedule_insert(sh, am, 1);
+}
+
 /*************************************************************************
 schedule_insert:
   In: scheduler that we are using
@@ -227,6 +247,7 @@ schedule_insert:
 int schedule_insert(struct schedule_helper *sh, void *data,
                     int put_neg_in_current) {
   struct abstract_element *ae = (struct abstract_element *)data;
+
 
   if (put_neg_in_current && ae->t < sh->now) {
     /* insert item into current list */

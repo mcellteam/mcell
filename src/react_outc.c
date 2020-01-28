@@ -248,7 +248,7 @@ place_volume_product(struct volume *world, struct species *product_species, stru
   ++new_volume_mol->subvol->mol_count;
 
   /* Add to the schedule. */
-  if (schedule_add(subvol->local_storage->timer, new_volume_mol))
+  if (schedule_add_mol(subvol->local_storage->timer, new_volume_mol))
     mcell_allocfailed("Failed to add newly created %s molecule to scheduler.",
                       product_species->sym->name);
   return new_volume_mol;
@@ -310,7 +310,7 @@ place_sm_product(struct volume *world, struct species *product_species, struct g
     grid->sm_list[grid_index], new_surf_mol);
 
   /* Add to the schedule. */
-  if (schedule_add(sv->local_storage->timer, new_surf_mol))
+  if (schedule_add_mol(sv->local_storage->timer, new_surf_mol))
     mcell_allocfailed("Failed to add newly created %s molecule to scheduler.",
                       product_species->sym->name);
 
