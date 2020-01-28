@@ -3206,6 +3206,16 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
   if (shead != NULL)
     mem_put_list(sv->local_storage->coll, shead);
 
+
+#ifdef DEBUG_DIFFUSION
+  if (vm->properties != NULL) {
+    DUMP_CONDITION3(
+      dump_volume_molecule(vm, "", true, "- Final vm position:", world->current_iterations, /*vm->t*/0, true);
+    );
+  }
+#endif
+
+
   return vm;
 }
 

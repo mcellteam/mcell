@@ -201,11 +201,11 @@ void DiffuseReactEvent::diffuse_single_molecule(
       // finally move molecule to its destination
       m_new_ref.v.pos = new_vpos;
 
-#ifdef DEBUG_DIFFUSION_EXTRA
+#ifdef DEBUG_DIFFUSION
       DUMP_CONDITION4(
         // the subtraction of diffusion_time_step doesn't make much sense but is needed to make the dump the same as in mcell3
         // need to check it further
-        m.dump(p, "", "Diffused vm:", world->get_current_iteration(), event_time_end - time_up_to_event_end);
+        m.dump(p, "", "- Final vm position:", world->get_current_iteration(), /*event_time_end*/ 0);
       );
 #endif
 
