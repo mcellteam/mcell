@@ -152,13 +152,13 @@ void World::run_n_iterations(const uint64_t num_iterations, const uint64_t outpu
   uint64_t this_run_first_iteration = current_iteration;
 
   do {
-#ifdef DEBUG_SCHEDULER
-    cout << "Before it: " << current_iteration << ", time: " << time << "\n";
-#endif
-
     // current_iteration corresponds to the number of executed time steps
     float_t time = scheduler.get_next_event_time();
     current_iteration = (uint64_t)time;
+
+#ifdef DEBUG_SCHEDULER
+    cout << "Before it: " << current_iteration << ", time: " << time << "\n";
+#endif
 
     if (current_iteration >= this_run_first_iteration + num_iterations) {
       // terminate simulation
