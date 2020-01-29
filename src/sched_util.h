@@ -85,3 +85,5 @@ schedule_cleanup(struct schedule_helper *sh,
                  int (*is_defunct)(struct abstract_element *e));
 
 void delete_scheduler(struct schedule_helper *sh);
+
+void sort_schedule_by_time_and_id(struct schedule_helper *sh);

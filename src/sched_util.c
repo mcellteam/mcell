@@ -26,6 +26,8 @@
 #include <float.h>
 #include <string.h>
 #include <stdlib.h>
+#include <assert.h>
+#include <math.h>
 
 #include "sched_util.h"
 
@@ -669,4 +671,50 @@ void delete_scheduler(struct schedule_helper *sh) {
       free(sh->circ_buf_count);
     free(sh);
   }
+}
+
+
+static bool less_time_and_id(struct abstract_molecule* a1, struct abstract_molecule* a2) {
+  assert(a1 != NULL);
+  assert(a2 != NULL);
+  // WARNING: this comparison is a bit 'shaky' - the constant 10*EPS_C there...
+  return (a1->t + 10*EPS_C < a2->t) || (fabs(a1->t - a2->t) < 10*EPS_C && a1->id < a2->id);
+}
+
+// used only when MCELL3_SORTED_MOLS_ON_RUN_TIMESTEP is defined
+void sort_schedule_by_time_and_id(struct schedule_helper *sh) {
+  struct abstract_molecule* list = (struct abstract_molecule*)sh->current;
+
+  // used code from https://en.wikipedia.org/wiki/Insertion_sort#List_insertion_sort_code_in_C
+  // zero or one element in list
+  if (list == NULL || list->next == NULL) {
+      return ;
+  }
+  // head is the first element of resulting sorted list
+  struct abstract_molecule* head = NULL;
+  while (list != NULL) {
+      struct abstract_molecule* current = list;
+      list = list->next;
+      if (head == NULL || less_time_and_id(current, head)) {
+          // insert into the head of the sorted list
+          // or as the first element into an empty sorted list
+          current->next = head;
+          head = current;
+      } else {
+          // insert current element into proper position in non-empty sorted list
+          struct abstract_molecule* p = head;
+          while (p != NULL) {
+              if (p->next == NULL || // last element of the sorted list
+                  less_time_and_id(current, p->next)) // middle of the list
+              {
+                  // insert into middle of the sorted list or as the last element
+                  current->next = p->next;
+                  p->next = current;
+                  break; // done
+              }
+              p = p->next;
+          }
+      }
+  }
+  sh->current = (struct abstract_element*)head;
 }

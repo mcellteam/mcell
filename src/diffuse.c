@@ -3758,6 +3758,18 @@ void run_timestep(struct volume *state, struct storage *local,
 
   // Now run the timestep
 
+#ifdef MCELL3_SORTED_MOLS_ON_RUN_TIMESTEP
+  #ifdef DUMP_LOCAL_SCHEDULE_HELPER
+    dump_schedule_helper(local->timer, "Before sorting", "", "", true);
+  #endif
+  // sort by time and id so that we get the same ordering as in mcell4
+  sort_schedule_by_time_and_id(local->timer);
+
+  #ifdef DUMP_LOCAL_SCHEDULE_HELPER
+    dump_schedule_helper(local->timer, "After sorting", "", "", true);
+  #endif
+#endif
+
   /* Do not trigger the scheduler to advance!  This will be done
    * by the main loop. */
   while (local->timer->current != NULL) {

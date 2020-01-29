@@ -1106,6 +1106,7 @@ void dump_schedule_helper(schedule_helper* shp, const char* name, const char* co
       }
       am = am->next;
     }
+    cout << "\n";
   }
   else {
     std::string inds = ind;
