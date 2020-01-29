@@ -66,6 +66,7 @@ static void compute_vol_displacement(
     vec3_t& displacement,
     float_t& r_rate_factor
 ) {
+  assert(remaining_time_step != 0);
 
   float_t rate_factor = (remaining_time_step == 1.0) ? 1.0 : sqrt(remaining_time_step);
   r_rate_factor = 1.0 / rate_factor;

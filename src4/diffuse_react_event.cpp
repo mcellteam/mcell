@@ -1722,7 +1722,7 @@ int DiffuseReactEvent::outcome_products_random(
 
 // ---------------------------------- unimolecular reactions ----------------------------------
 
-
+// !! might invalidate references (we might reorder defuncting and outcome call later)
 void DiffuseReactEvent::outcome_unimolecular(
     Partition& p,
     Molecule& m,
@@ -1731,18 +1731,19 @@ void DiffuseReactEvent::outcome_unimolecular(
 ) {
   molecule_id_t id = m.id;
 
+  Collision collision(CollisionType::UNIMOLECULAR_VOLMOL, &p, m.id, time_from_event_start, m.v.pos, unimol_rx);
+
+  bool ignoredA, ignoredB;
   // creates new molecule(s) as output of the unimolecular reaction
   // !! might invalidate references (we might reorder defuncting and outcome call later)
-  Collision collision(CollisionType::UNIMOLECULAR_VOLMOL, &p, m.id, time_from_event_start, m.v.pos, unimol_rx);
-  //int outcome_res = outcome_products_random(p, unimol_rx, vm.v.pos, time_from_event_start, TIME_INVALID, 0);
-  bool ignoredA, ignoredB;
   int outcome_res = outcome_products_random(p, collision, TIME_INVALID, 0, ignoredA, ignoredB);
   assert(outcome_res == RX_A_OK);
+
+  Molecule& m_new_ref = p.get_m(id);
 
   // and defunct this molecule if it was not kept
   assert(unimol_rx->reactants.size() == 1);
   if (!unimol_rx->reactants[0].is_on_both_sides_of_rxn()) {
-    Molecule& m_new_ref = p.get_m(id);
   #ifdef DEBUG_REACTIONS
     DUMP_CONDITION4(
       m_new_ref.dump(p, "", m_new_ref.is_vol() ? "Unimolecular vm defunct:" : "Unimolecular sm defunct:", world->get_current_iteration(), event_time + time_from_event_start, false);
@@ -1753,7 +1754,7 @@ void DiffuseReactEvent::outcome_unimolecular(
   else {
     // we must reschedule the molecule's unimol rxn
     float_t time_up_to_event_end = diffusion_time_step - time_from_event_start;
-    create_unimol_rx_action(p, m, time_up_to_event_end);
+    create_unimol_rx_action(p, m_new_ref, time_up_to_event_end);
   }
 }
 
