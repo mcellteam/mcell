@@ -33,6 +33,7 @@
 #include "reaction.h"
 #include "collision_structs.h"
 
+#define TEST 1
 
 namespace MCell {
 
@@ -101,16 +102,13 @@ private:
   );
 
   // ---------------------------------- volume molecules ----------------------------------
-
   void diffuse_vol_molecule(
       Partition& p,
       const molecule_id_t vm_id,
       const float_t remaining_time_step,
-      bool& was_defunct,
-      vec3_t& new_pos,
-      subpart_index_t& new_subpart_index,
       WallTileIndexPair& where_created_this_iteration
   );
+
   bool collide_and_react_with_vol_mol(
       Partition& p,
       const Collision& collision,
@@ -134,11 +132,7 @@ private:
       Partition& p,
       const molecule_id_t sm_id,
       const float_t current_time,
-      const float_t remaining_time_step,
-      bool& was_defunct,
-      vec2_t& new_loc,
-      wall_index_t& new_wall_index,
-      float_t& advance_time
+      const float_t remaining_time_step
   );
 
   wall_index_t ray_trace_surf(
@@ -146,8 +140,7 @@ private:
       const Species& species,
       Molecule& sm,
       vec2_t& remaining_displacement,
-      vec2_t& new_pos,
-      bool& was_defunct
+      vec2_t& new_pos
   );
 
   bool react_2D_all_neighbors(
