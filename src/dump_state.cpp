@@ -2052,7 +2052,10 @@ void dump_processing_reaction(
       ", idA:"  << reacA->id <<
       ", idB:"  << reacB->id <<
       //TODO ", rxn: " << rx->to_string(p) <<
-      ", time: " << t << ", pos " << *hitpt;
+      ", time: " << t;
+    if (hitpt != nullptr) {
+      cout << ", pos " << *hitpt;
+    }
   }
   else {
     cout <<
