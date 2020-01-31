@@ -1524,7 +1524,12 @@ int DiffuseReactEvent::outcome_products_random(
   if (rx->reactants.size() == 2) {
     reacB = &p.get_m(collision.colliding_molecule_id);
 
-    surf_reac = reacA->is_surf() ? reacA : reacB;
+    if (reacA->is_surf()) {
+      surf_reac = reacA;
+    }
+    else if (reacB->is_surf()) {
+      surf_reac = reacB;
+    }
 
     /* Ensure that reacA and reacB are sorted in the same order as the rxn players. */
     /* Needed to maintain the same behavior as in mcell3 */
@@ -1706,14 +1711,30 @@ int DiffuseReactEvent::outcome_products_random(
       }
     }
     else {
+      assert(surf_reac == nullptr && "TODO: reusing reactant for surf rxns, need to set where_is_vm_created");
+
       // if we are keeping the reactant, we must still schedule it for diffusion
       assert(product.equivalent_product_or_reactant_index != INDEX_INVALID);
 
-      // which is the product?
-      assert(reacB == nullptr && "TODO: fix for bimol rxns");
-      keep_reacA = true;
-      new_m_id = reacA->id;
-      assert(surf_reac == nullptr && "TODO: reusing reactant for surf rxns, need to set where_is_vm_created");
+      if (reacB == nullptr) {
+        keep_reacA = true;
+        new_m_id = reacA->id;
+      }
+      else {
+        // which of the reactants is the product we are processing right now?
+        assert(rx->reactants[0].species_id != rx->reactants[1].species_id && "It must be clear which reactant to keep (at least for now)");
+
+        const SpeciesWithOrientation& reactant = rx->reactants[product.equivalent_product_or_reactant_index];
+
+        if (reactant.species_id == reacA->species_id) {
+          keep_reacA = true;
+          new_m_id = reacA->id;
+        }
+        else {
+          keep_reacB = true;
+          new_m_id = reacB->id;
+        }
+      }
     }
 
 
