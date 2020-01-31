@@ -354,6 +354,12 @@ static int outcome_products_random(struct volume *world, struct wall *w,
                                    struct abstract_molecule *reacB,
                                    short orientA, short orientB) {
 
+#ifdef DEBUG_REACTIONS
+  DUMP_CONDITION3(
+      dump_processing_reaction(world->current_iterations, hitpt, t, rx, reacA, reacB);
+  );
+#endif
+
   /* Did the moving molecule cross the plane? */
   bool cross_wall = false; 
 

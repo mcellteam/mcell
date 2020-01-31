@@ -1487,6 +1487,12 @@ int DiffuseReactEvent::outcome_products_random(
 ) {
   assert(path == 0 && "Only single pathway is supported now");
 
+#ifdef DEBUG_REACTIONS
+  DUMP_CONDITION4(
+      collision.dump(p, "Processing reaction: ", p.stats.get_current_iteration());
+  );
+#endif
+
   const Reaction* rx = collision.rx;
   assert(rx->reactants.size() == 1 || rx->reactants.size() == 2);
 

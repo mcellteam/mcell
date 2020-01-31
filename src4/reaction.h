@@ -31,6 +31,7 @@ namespace MCell {
 
 class SimulationConfig;
 class SpeciesInfo;
+class Partition;
 
 class SpeciesWithOrientation {
 public:
@@ -126,6 +127,8 @@ public:
   static void dump_array(const std::vector<Reaction>& vec);
 
   void dump(const std::string ind) const;
+
+  std::string to_string(const Partition& p) const;
 private:
 
   // must be called after initialization

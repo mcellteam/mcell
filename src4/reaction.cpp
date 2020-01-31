@@ -26,6 +26,7 @@
 #include "reaction.h"
 
 #include "species_info.h"
+#include "partition.h"
 
 using namespace std;
 
@@ -108,5 +109,23 @@ void Reaction::dump(const string ind) const {
   SpeciesWithOrientation::dump_array(products, ind + "  ");
 }
 
+
+static std::string rxn_players_to_string(
+    const Partition& p, const std::vector<SpeciesWithOrientation>& players
+) {
+  string res;
+
+  for (uint i = 0; i < players.size(); i++) {
+    res += p.all_species.get(players[i].species_id).name;
+    if (i != players.size() - 1) {
+      res += " + ";
+    }
+  }
+  return res;
+}
+
+std::string Reaction::to_string(const Partition& p) const {
+  return rxn_players_to_string(p, reactants) + " -> " + rxn_players_to_string(p, products);
+}
 
 } // namespace mcell

@@ -2029,3 +2029,37 @@ void dump_tile_neighbors_list(struct tile_neighbor *tile_nbr_head, const char* e
   }
 }
 
+void dump_processing_reaction(
+    long long it,
+    struct vector3 *hitpt, double t,
+    struct rxn *rx, /*int path,*/
+    struct abstract_molecule *reacA,
+    struct abstract_molecule *reacB
+) {
+  if (rx->n_pathways != 1) {
+    cout << "FIXME: dump_processing_reaction - only 1 pathway for now\n";
+    return;
+  }
+
+  assert(reacA != nullptr);
+  bool bimol = (reacB != nullptr);
+
+  cout << "Processing reaction: it:" << it << ", ";
+
+  if (bimol) {
+    cout <<
+      "bimol rxn" <<
+      ", idA:"  << reacA->id <<
+      ", idB:"  << reacB->id <<
+      //TODO ", rxn: " << rx->to_string(p) <<
+      ", time: " << t << ", pos " << *hitpt;
+  }
+  else {
+    cout <<
+      "unimol rxn" <<
+      ", idA:"  << reacA->id <<
+      // ", rxn: " << rx->to_string(p) <<
+      ", time: " << t;
+  }
+
+}

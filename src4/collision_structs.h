@@ -34,12 +34,12 @@ namespace MCell {
 enum class CollisionType {
   INVALID,
 
-  VOLMOL_VOLMOL,
   WALL_REDO,
   WALL_MISS,
   WALL_FRONT,
   WALL_BACK,
 
+  VOLMOL_VOLMOL,
   SURFMOL_SURFMOL,
   VOLMOL_SURFMOL,
   UNIMOLECULAR_VOLMOL,
@@ -156,7 +156,7 @@ public:
   float_t time;
   vec3_t pos;
 
-  // valid only for COLLISION_VOLMOL_VOLMOL
+  // valid only for is_wall_collision
   molecule_id_t colliding_molecule_id;
   const Reaction* rx;
 
@@ -167,12 +167,30 @@ public:
     return type == CollisionType::VOLMOL_VOLMOL;
   }
 
-  bool is_wall_collision() const { // FIXME: find WALL_FRONT and WALL_BACK and replace
+  bool is_unimol_reaction() const {
+    return type == CollisionType::UNIMOLECULAR_VOLMOL;
+  }
+
+  bool is_mol_mol_reaction() const {
+    return type == CollisionType::VOLMOL_VOLMOL || type == CollisionType::SURFMOL_SURFMOL || type == CollisionType::VOLMOL_SURFMOL;
+  }
+
+  bool is_wall_collision() const {
     assert(type != CollisionType::WALL_REDO && "Not sure yet what to do with redo");
     return type == CollisionType::WALL_FRONT || type == CollisionType::WALL_BACK;
   }
 
+  // full dump
   void dump(Partition& p, const std::string ind) const;
+
+  // for comparison with mcell3
+  // FIXME: args are almost the same as for the variant above
+  void dump(
+      const Partition& p,
+      const std::string extra_comment,
+      const uint64_t iteration
+  ) const;
+
   std::string to_string(const Partition& p) const;
   static void dump_array(Partition& p, const collision_vector_t& vec);
 };
