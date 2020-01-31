@@ -1489,7 +1489,7 @@ int DiffuseReactEvent::outcome_products_random(
 
 #ifdef DEBUG_REACTIONS
   DUMP_CONDITION4(
-      collision.dump(p, "Processing reaction: ", p.stats.get_current_iteration());
+      collision.dump(p, "Processing reaction:", p.stats.get_current_iteration());
   );
 #endif
 

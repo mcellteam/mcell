@@ -2044,7 +2044,7 @@ void dump_processing_reaction(
   assert(reacA != nullptr);
   bool bimol = (reacB != nullptr);
 
-  cout << "Processing reaction: it:" << it << ", ";
+  cout << "Processing reaction:it:" << it << ", ";
 
   if (bimol) {
     cout <<
@@ -2061,5 +2061,5 @@ void dump_processing_reaction(
       // ", rxn: " << rx->to_string(p) <<
       ", time: " << t;
   }
-
+  cout << "\n";
 }
