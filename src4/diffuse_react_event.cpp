@@ -338,6 +338,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
         // for now, do the change right away, but we might need to cache these changes and
         // do them after all diffusions were finished
         // warning: might invalidate references to p.volume_molecules array! returns true in that case
+        // also, if this is a reaction where this diffused product is kept, we simply continue with diffusion
         if (collide_and_react_with_vol_mol(
               p, collision, remaining_displacement,
               updated_remaining_time_step, r_rate_factor)
@@ -615,7 +616,7 @@ RayTraceState ray_trace_vol(
 
 // handle collision of two volume molecules: checks probability of reaction,
 // executes this reaction, removes reactants and creates products
-// returns true if reaction has occured and the first reactant was destroyed
+// returns true if the first reactant was destroyed
 bool DiffuseReactEvent::collide_and_react_with_vol_mol(
     Partition& p,
     const Collision& collision,
@@ -651,8 +652,8 @@ bool DiffuseReactEvent::collide_and_react_with_vol_mol(
   else {
     // might invalidate references
     int j = outcome_bimolecular(p, collision, i, remaining_time_step);
-    assert(j == RX_DESTROY);
-    return true;
+    assert(j == RX_DESTROY || j == RX_A_OK);
+    return j == RX_DESTROY;
   }
 }
 
@@ -1297,7 +1298,7 @@ bool DiffuseReactEvent::react_unimol_single_molecule(
 
 // checks if reaction should probabilistically occur and if so,
 // destroys reactants
-// returns RX_DESTROY when reactants were destroyed
+// returns RX_DESTROY when the primary reactant was destroyed, RX_A_OK if the reactant A was kept
 int DiffuseReactEvent::outcome_bimolecular(
     Partition& p,
     const Collision& collision,
@@ -1342,7 +1343,12 @@ int DiffuseReactEvent::outcome_bimolecular(
       p.set_molecule_as_defunct(reacB);
     }
 
-    return RX_DESTROY;
+    if (keep_reacA) {
+      return RX_A_OK;
+    }
+    else {
+      return RX_DESTROY;
+    }
   }
 
 
@@ -1746,7 +1752,8 @@ int DiffuseReactEvent::outcome_products_random(
     // unfortunately, to keep MCell3 compatibility, diffusion of molecule that survived its unimol reaction must
     // be executed right away (use push_front rather?)
     // FIXME: can this be somehow cleaned up?
-    if (!(rx->reactants.size() == 1 && product.is_on_both_sides_of_rxn())) {
+//    if (!(rx->reactants.size() == 1 && product.is_on_both_sides_of_rxn())) {
+		if (!product.is_on_both_sides_of_rxn()) {
       new_diffuse_or_unimol_react_actions.push_back(
           DiffuseOrUnimolReactionAction(
               DiffuseOrUnimolReactionAction::Type::DIFFUSE,

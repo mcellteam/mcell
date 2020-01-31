@@ -677,8 +677,8 @@ void delete_scheduler(struct schedule_helper *sh) {
 static bool less_time_and_id(struct abstract_molecule* a1, struct abstract_molecule* a2) {
   assert(a1 != NULL);
   assert(a2 != NULL);
-  // WARNING: this comparison is a bit 'shaky' - the constant 10*EPS_C there...
-  return (a1->t + 10*EPS_C < a2->t) || (fabs(a1->t - a2->t) < 10*EPS_C && a1->id < a2->id);
+  // WARNING: this comparison is a bit 'shaky' - the constant 100*EPS_C there...
+  return (a1->t + 100*EPS_C < a2->t) || (fabs(a1->t - a2->t) < 100*EPS_C && a1->id < a2->id);
 }
 
 // used only when MCELL3_SORTED_MOLS_ON_RUN_TIMESTEP is defined
