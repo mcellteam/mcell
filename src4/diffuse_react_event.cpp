@@ -99,7 +99,21 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const std::vector<molecu
       );
     }
     else {
-      react_unimol_single_molecule(p, action.id, action.scheduled_time, action.unimol_rx);
+      bool diffuse_right_away = react_unimol_single_molecule(p, action.id, action.scheduled_time, action.unimol_rx);
+
+      // get a fresh action reference - unimol reaction could have added some items into the array
+      const DiffuseOrUnimolReactionAction& new_ref_action = new_diffuse_or_unimol_react_actions[i];
+      if (diffuse_right_away) {
+        // if the molecule survived (e.g. in rxn like A -> A + B), then
+        // diffuse it right away
+        // (another option is to put it into the new_diffuse_or_unimol_react_actions
+        //  but MCell3 diffuses them right away)
+        diffuse_single_molecule(
+            p, new_ref_action.id,
+            event_time + diffusion_time_step - new_ref_action.scheduled_time,
+            new_ref_action.where_created_this_iteration // making a copy of this pair
+        );
+      }
     }
   }
 
@@ -1254,7 +1268,8 @@ void DiffuseReactEvent::create_unimol_rx_action(
 
 // based on mcell3's check_for_unimolecular_reaction
 // might invalidate vm references
-void DiffuseReactEvent::react_unimol_single_molecule(
+// returns true if molecule should be diffused right away (needed for mcell3 compatibility)
+bool DiffuseReactEvent::react_unimol_single_molecule(
     Partition& p,
     const molecule_id_t m_id,
     const float_t scheduled_time,
@@ -1266,17 +1281,17 @@ void DiffuseReactEvent::react_unimol_single_molecule(
   // FIXME: if there is more of them, mcell3 uses rng to select which to execute...
   Molecule& m = p.get_m(m_id);
   if (m.is_defunct()) {
-    return;
+    return false;
   }
 
   // unimolecular reactions for surface molecules can be rescheduled,
   // ignore this action in this case
   if (scheduled_time != m.unimol_rx_time) {
-    return;
+    return true; // TODO: check, we will probably need to return false here...
   }
 
   assert(scheduled_time >= event_time && scheduled_time <= event_time + diffusion_time_step);
-  outcome_unimolecular(p, m, scheduled_time - event_time, unimol_rx);
+  return outcome_unimolecular(p, m, scheduled_time - event_time, unimol_rx);
 }
 
 
@@ -1706,13 +1721,18 @@ int DiffuseReactEvent::outcome_products_random(
 
     // NOTE: in this time step, we will simply simulate all results of reactions regardless on the diffusion time step of the
     // particular product
-    // we always create diffuse events, unimol react events are created elsewhere
-    new_diffuse_or_unimol_react_actions.push_back(
-        DiffuseOrUnimolReactionAction(
-            DiffuseOrUnimolReactionAction::Type::DIFFUSE,
-            new_m_id, scheduled_time,
-            where_is_vm_created
-    ));
+    // we always create diffuse events, unimol react events are created right before diffusion of that molecule
+    // unfortunately, to keep MCell3 compatibility, diffusion of molecule that survived its unimol reaction must
+    // be executed right away (use push_front rather?)
+    // FIXME: can this be somehow cleaned up?
+    if (!(rx->reactants.size() == 1 && product.is_on_both_sides_of_rxn())) {
+      new_diffuse_or_unimol_react_actions.push_back(
+          DiffuseOrUnimolReactionAction(
+              DiffuseOrUnimolReactionAction::Type::DIFFUSE,
+              new_m_id, scheduled_time,
+              where_is_vm_created
+      ));
+    }
 
   } // end for - product creation
 
@@ -1729,7 +1749,8 @@ int DiffuseReactEvent::outcome_products_random(
 // ---------------------------------- unimolecular reactions ----------------------------------
 
 // !! might invalidate references (we might reorder defuncting and outcome call later)
-void DiffuseReactEvent::outcome_unimolecular(
+// returns true if molecule survived
+bool DiffuseReactEvent::outcome_unimolecular(
     Partition& p,
     Molecule& m,
     const float_t time_from_event_start,
@@ -1756,11 +1777,20 @@ void DiffuseReactEvent::outcome_unimolecular(
     );
   #endif
     p.set_molecule_as_defunct(m_new_ref);
+    return false;
   }
   else {
-    // we must reschedule the molecule's unimol rxn
-    float_t time_up_to_event_end = diffusion_time_step - time_from_event_start;
-    create_unimol_rx_action(p, m_new_ref, time_up_to_event_end);
+    // we must reschedule the molecule's unimol rxn, this will happen right away 
+    // during the molecule's diffusion
+    m_new_ref.set_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RX);
+    
+    // a cleaner way would be to schedule a new diffusion event but we must do the diffusion right away 
+    // to stay compatible with mcell3
+    // float_t time_up_to_event_end = diffusion_time_step - time_from_event_start;
+		// create_unimol_rx_action(p, m_new_ref, time_up_to_event_end);
+    
+    // molecule survived
+    return true;
   }
 }
 

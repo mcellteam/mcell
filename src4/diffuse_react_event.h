@@ -174,7 +174,8 @@ private:
       float_t remaining_time_step
   );
 
-  void outcome_unimolecular(
+	// returns true if molecule urvived
+  bool outcome_unimolecular(
       Partition& p,
       Molecule& vm,
       const float_t scheduled_time,
@@ -196,7 +197,7 @@ private:
       float_t remaining_time_step
   );
 
-  void react_unimol_single_molecule(
+  bool react_unimol_single_molecule(
       Partition& p,
       const molecule_id_t vm_id,
       const float_t scheduled_time,
