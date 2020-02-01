@@ -66,7 +66,11 @@ void Collision::dump(
       ", idA:"  << diffused_molecule_id <<
       ", idB:"  << colliding_molecule_id <<
       //TODO in mcell3 ", rxn: " << rx->to_string(p) <<
-      ", time: " << time << ", pos " << pos;
+      ", time: " << time;
+
+      if (type != CollisionType::SURFMOL_SURFMOL) {
+        cout << ", pos " << pos;
+      }
   }
   else if (is_unimol_reaction()) {
     cout <<
