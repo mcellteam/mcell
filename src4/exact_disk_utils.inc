@@ -878,7 +878,10 @@ static float_t __attribute__((noinline)) exact_disk(
     sm.zeta = exd_zetize(sm.v, sm.u);
   }
   /* Find walls that occlude the interaction disk (or block the reaction) */
-  const uint_set<wall_index_t>& wall_indices = p.get_subpart_wall_indices(moving.v.subpart_index);
+  // mcell3 uses the subvolume of the diffused molecule, but in mcell4 case this might be wrong,
+  // we are interested in the subpartition(s?) where the collision occurred
+  subpart_index_t collision_subpart_index = p.get_subpartition_index(loc);
+  const uint_set<wall_index_t>& wall_indices = p.get_subpart_wall_indices(collision_subpart_index);
 
   // TODO_LATER: move this to a separate function - only after we got rid of linked lists
   for (wall_index_t wall_index: wall_indices) {
