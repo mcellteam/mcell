@@ -362,7 +362,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
         }
 
         // molecule could have been moved
-        subpart_index_t subpart_after_wall_hit = p.get_subpartition_index(vm_new_ref.v.pos);
+        subpart_index_t subpart_after_wall_hit = p.get_subpart_index(vm_new_ref.v.pos);
         // change subpartition if needed
         p.change_molecule_subpartition(vm_new_ref, subpart_after_wall_hit);
 
@@ -1666,7 +1666,7 @@ int DiffuseReactEvent::outcome_products_random(
 
         // update position and subpart if needed
         new_vm.v.pos = new_pos_after_diffuse;
-        subpart_index_t new_subpart = p.get_subpartition_index(new_vm.v.pos);
+        subpart_index_t new_subpart = p.get_subpart_index(new_vm.v.pos);
         p.change_molecule_subpartition(new_vm, new_subpart);
       }
 

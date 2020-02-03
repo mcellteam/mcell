@@ -143,8 +143,8 @@ public:
     res = relative_position * config.subpartition_edge_length_rcp;
   }
 
-
-  uint32_t get_subpartition_index_from_3d_indices(const ivec3_t& indices) const {
+  // FIXME: use subpart_index_t, rename to subpart
+  subpart_index_t get_subpart_index_from_3d_indices(const ivec3_t& indices) const {
     // example: dim: 5x5x5,  (1, 2, 3) -> 1 + 2*5 + 3*5*5 = 86
     return
         indices.x +
@@ -152,9 +152,8 @@ public:
         indices.z * config.subpartitions_per_partition_dimension_squared;
   }
 
-
-  uint32_t get_subpart_index_from_3d_indices(const int x, const int y, const int z) const {
-    return get_subpartition_index_from_3d_indices(ivec3_t(x, y, z));
+  subpart_index_t get_subpart_index_from_3d_indices(const int x, const int y, const int z) const {
+    return get_subpart_index_from_3d_indices(ivec3_t(x, y, z));
   }
 
 
@@ -166,11 +165,11 @@ public:
     indices.z = (index / config.subpartitions_per_partition_dimension_squared) % dim;
   }
 
-
-  uint32_t get_subpartition_index(const vec3_t& pos) {
+  // FIXME: use subpart_index_t, rename to subpart
+  subpart_index_t get_subpart_index(const vec3_t& pos) {
     ivec3_t indices;
     get_subpart_3d_indices(pos, indices);
-    return get_subpartition_index_from_3d_indices(indices);
+    return get_subpart_index_from_3d_indices(indices);
   }
 
 
@@ -275,7 +274,7 @@ public:
 
     Molecule& new_vm = add_molecule(vm_copy, true);
 
-    new_vm.v.subpart_index = get_subpartition_index(vm_copy.v.pos);
+    new_vm.v.subpart_index = get_subpart_index(vm_copy.v.pos);
     change_reactants_map(new_vm, new_vm.v.subpart_index, true, false);
 
     return new_vm;

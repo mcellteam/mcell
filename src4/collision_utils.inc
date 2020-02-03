@@ -203,7 +203,7 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
   // moving along them
   if ( !glm::all( glm::equal(dest_subpart_indices, src_subpart_indices) ) ) {
 
-    subpart_index_t dest_subpart_index = p.get_subpartition_index_from_3d_indices(dest_subpart_indices);
+    subpart_index_t dest_subpart_index = p.get_subpart_index_from_3d_indices(dest_subpart_indices);
     last_subpart_index = dest_subpart_index;
 
     ivec3_t dir_urb_addend;
@@ -295,7 +295,7 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
         }
       }
 
-      curr_subpart_index = p.get_subpartition_index_from_3d_indices(curr_subpart_indices);
+      curr_subpart_index = p.get_subpart_index_from_3d_indices(curr_subpart_indices);
       if (collect_for_walls) {
         crossed_subparts_for_walls.push_back(curr_subpart_index);
       }
