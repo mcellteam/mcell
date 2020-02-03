@@ -137,6 +137,7 @@ const float_t TIME_FOREVER = FLT_MAX; // this max is sufficient for both float a
 const float_t TIME_SIMULATION_START = 0;
 
 const float_t DIFFUSION_CONSTANT_ZER0 = 0;
+const float_t SQRT2 = 1.41421356238;
 
 const uint ID_INVALID = UINT32_MAX; // general invalid index, should not be used when a definition for a specific type is available
 const uint INDEX_INVALID = UINT32_MAX; // general invalid index, should not be used when a definition for a specific type is available

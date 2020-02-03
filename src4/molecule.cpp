@@ -31,6 +31,8 @@
 #include "geometry.h"
 #include "world.h"
 
+#include "debug_config.h"
+
 using namespace std;
 
 

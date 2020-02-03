@@ -172,9 +172,29 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
   p.get_subpart_3d_indices_from_index(vm.v.subpart_index, src_subpart_indices);
   p.get_subpart_3d_indices(dest_pos, dest_subpart_indices);
 
+
+  // the radius must be adjusted so that it takes into account distance in the 3D space,
+  // taking the radius in just one dimension is not sufficient as shown here:
+  //
+  //     a
+  //    /|
+  // __/_|__
+  //  b  |x
+  //
+  // distance of the points a and b from x is higher than radius, but
+  // distance of x to any point on the line might be less than radius
+  //
+  // mcell3 extends the bounding box in all dimensions and is overly pessimistic
+  //
+  // the (possibly) logic behind this is that the case has something to do with
+  // the diameter of a square, computing precise length would be most probably worse perfrmance-wise
+  // TODO: explain why this should work
+  // a more efficient variant if definitely possible
+  float_t rx_radius_for_neighbors = rx_radius * SQRT2;
+
   // first check what's around the starting point
   collect_neighboring_subparts(
-      p, vm.v.pos, src_subpart_indices, rx_radius, sp_edge_length,
+      p, vm.v.pos, src_subpart_indices, rx_radius_for_neighbors, sp_edge_length,
       crossed_subparts_for_molecules
   );
 
@@ -283,7 +303,7 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
 
       // also neighbors
       collect_neighboring_subparts(
-          p, curr_pos, curr_subpart_indices, rx_radius, sp_edge_length,
+          p, curr_pos, curr_subpart_indices, rx_radius_for_neighbors, sp_edge_length,
           crossed_subparts_for_molecules
       );
 
@@ -296,10 +316,68 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
 
   // finally check also neighbors in destination
   collect_neighboring_subparts(
-      p, dest_pos, dest_subpart_indices, rx_radius, sp_edge_length,
+      p, dest_pos, dest_subpart_indices, rx_radius_for_neighbors, sp_edge_length,
       crossed_subparts_for_molecules
   );
 }
+
+#if 0
+// a potentially more efficient variant of collect_crossed_subparts
+// 1 variant for molecules,
+// another for walls (direct crosses, no radius)
+static inline void __attribute__((always_inline)) collect_crossed_subparts2(
+  const Partition& p,
+  const Molecule& vm, // molecule that we are diffusing
+  const vec3_t& displacement,
+  const float_t rx_radius,
+  const float_t sp_edge_length,
+  const bool collect_for_walls,
+  SubpartIndicesVector& crossed_subparts_for_walls, // crossed subparts considered for wall collision
+  subpart_indices_set_t& crossed_subparts_for_molecules, // crossed subparts considered for molecule collisions
+  subpart_index_t& last_subpart_index
+) {
+  // compute 4 points where the traces start
+  // e.g. rotate a square
+
+  // compute how often a subpart plane is hit along the way for x, y, and z dimensions
+
+  // compute first hits for each subpart plane (we need to know where to start)
+
+  // for each dimension, process each trace and each plane
+
+}
+#endif
+
+
+#if 0
+// one more option is to use point-line distance and
+// somehow go along the trace and check neighboring points
+//
+static inline void __attribute__((always_inline)) collect_crossed_subparts3(
+  const Partition& p,
+  const Molecule& vm, // molecule that we are diffusing
+  const vec3_t& displacement,
+  const float_t rx_radius,
+  const float_t sp_edge_length,
+  const bool collect_for_walls,
+  SubpartIndicesVector& crossed_subparts_for_walls, // crossed subparts considered for wall collision
+  subpart_indices_set_t& crossed_subparts_for_molecules, // crossed subparts considered for molecule collisions
+  subpart_index_t& last_subpart_index
+) {
+  // starting point
+
+
+  // reuse collide_mol
+
+
+  // 1) check corners
+}
+#endif
+
+#if 0
+// last option is to fall back to the mcell3 implementation (maybe try this first of optimization is needed)
+static inline void __attribute__((always_inline)) collect_crossed_subparts4(
+#endif
 
 
 // ---------------------------------- molecule collisions ----------------------------------
