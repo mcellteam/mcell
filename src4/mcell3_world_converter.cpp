@@ -34,6 +34,8 @@
 #include "diffuse_react_event.h"
 #include "viz_output_event.h"
 
+#include "dump_state.h"
+
 using namespace std;
 
 const char* const ALL_MOLECULES = "ALL_MOLECULES";
@@ -41,7 +43,7 @@ const char* const ALL_VOLUME_MOLECULES = "ALL_VOLUME_MOLECULES";
 const char* const ALL_SURFACE_MOLECULES = "ALL_SURFACE_MOLECULES";
 
 // checking major conversion blocks
-#define CHECK(cond) do { if(!(cond)) { mcell_log_conv_error("Returning from %s after conversion error.", __FUNCTION__); return false; } } while (0)
+#define CHECK(cond) do { if(!(cond)) { mcell_log_conv_error("Returning from %s after conversion error.\n", __FUNCTION__); return false; } } while (0)
 
 // checking assumptions
 #define CHECK_PROPERTY(cond) do { if(!(cond)) { mcell_log_conv_error("Expected '%s' is false. (%s - %s:%d)\n", #cond, __FUNCTION__, __FILE__, __LINE__); return false; } } while (0)
@@ -598,7 +600,8 @@ bool MCell3WorldConverter::convert_species_and_create_diffusion_events(volume* s
     new_species.D = spec->D;
     new_species.space_step = spec->space_step;
     new_species.time_step = spec->time_step;
-    CHECK_PROPERTY(
+
+    if (!(
         is_species_superclass(s, spec)
         || spec->flags == 0
         || spec->flags == SPECIES_FLAG_CAN_VOLVOL
@@ -608,7 +611,10 @@ bool MCell3WorldConverter::convert_species_and_create_diffusion_events(volume* s
         || spec->flags == (SPECIES_FLAG_ON_GRID | SPECIES_FLAG_CAN_REGION_BORDER)
         || spec->flags == (SPECIES_FLAG_ON_GRID | SPECIES_FLAG_CAN_SURFSURF | CAN_SURFWALL | SPECIES_FLAG_CAN_REGION_BORDER | REGION_PRESENT)
         || spec->flags == SPECIES_FLAG_CAN_VOLSURF
-    );
+      )) {
+      mcell_log("Unsupported species flag for species %s: %s\n", new_species.name.c_str(), get_species_flags_string(spec->flags).c_str());
+      CHECK_PROPERTY(false && "Flags listed above are not supported yet");
+    }
     new_species.flags = spec->flags;
 
     CHECK_PROPERTY(spec->n_deceased == 0);

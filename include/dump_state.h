@@ -86,6 +86,7 @@ void dump_schedule_helper(
     const char* ind,
     bool simplified_for_vm);
 
+std::string get_species_flags_string(uint flags);
 
 std::ostream & operator<<(std::ostream &out, const vector2 &a);
 std::ostream & operator<<(std::ostream &out, const vector3 &a);

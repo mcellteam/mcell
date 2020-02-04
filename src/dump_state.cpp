@@ -301,6 +301,35 @@ std::ostream & operator<<(std::ostream &out, const output_expression *e) {
 
 #define DUMP_FLAG(f, mask) if (((f) & (mask)) != 0) res += string(#mask) + ", ";
 
+string get_species_flags_string(uint flags) {
+  string res;
+  DUMP_FLAG(flags, ON_GRID)
+  DUMP_FLAG(flags, IS_SURFACE)
+  DUMP_FLAG(flags, NOT_FREE)
+  DUMP_FLAG(flags, TIME_VARY)
+  DUMP_FLAG(flags, CAN_VOLVOLVOL)
+  DUMP_FLAG(flags, CAN_VOLVOL)
+  DUMP_FLAG(flags, CAN_VOLSURF)
+  DUMP_FLAG(flags, CAN_VOLWALL)
+  DUMP_FLAG(flags, CAN_SURFSURF)
+  DUMP_FLAG(flags, CAN_SURFWALL)
+  DUMP_FLAG(flags, CAN_VOLVOLSURF)
+  DUMP_FLAG(flags, CANT_INITIATE)
+  DUMP_FLAG(flags, COUNT_TRIGGER)
+  DUMP_FLAG(flags, COUNT_CONTENTS)
+  DUMP_FLAG(flags, COUNT_HITS)
+  DUMP_FLAG(flags, COUNT_RXNS)
+  DUMP_FLAG(flags, COUNT_ENCLOSED)
+  DUMP_FLAG(flags, COUNT_SOME_MASK)
+  DUMP_FLAG(flags, CAN_VOLSURFSURF)
+  DUMP_FLAG(flags, CAN_SURFSURFSURF)
+  DUMP_FLAG(flags, SET_MAX_STEP_LENGTH)
+  DUMP_FLAG(flags, CAN_REGION_BORDER)
+  DUMP_FLAG(flags, REGION_PRESENT)
+  DUMP_FLAG(flags, EXTERNAL_SPECIES)
+  return res;
+}
+
 string get_molecule_flags_string(short flags, bool full_dump = true) {
   string res;
   DUMP_FLAG(flags, TYPE_SURF)
@@ -1201,8 +1230,7 @@ void dump_species_item(species* spec, const char* ind) {
   cout << ind2 <<"time_step: \t\t" << spec->time_step << " [double] \t\t/* Minimum (maximum?) sensible timestep */\n";
   cout << ind2 <<"max_step_length: \t\t" << spec->max_step_length << " [double] \t\t/* maximum allowed random walk step */\n";
 
-  //TODO: dump_species_flags(spec->flags, ind);
-  cout << ind2 <<"flags: \t\t" << spec->flags << " [u_int] \t\t/* Species Flags:  Vol Molecule? Surface Molecule? Surface Class? Counting stuff, etc... */\n";
+  cout << ind2 <<"flags: \t\t" << spec->flags << " [u_int] " << get_species_flags_string(spec->flags) << " \t\t/* Species Flags:  Vol Molecule? Surface Molecule? Surface Class? Counting stuff, etc... */\n";
 
   cout << ind2 <<"n_deceased: \t\t" << spec->n_deceased << " [long long] \t\t/* Total number that have been destroyed. */\n";
   cout << ind2 <<"cum_lifetime_seconds: \t\t" << spec->cum_lifetime_seconds << " [double] \t\t/* Seconds lived by now-destroyed molecules */\n";
