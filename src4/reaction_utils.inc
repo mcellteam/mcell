@@ -272,7 +272,7 @@ binary_search_double
   Out: Returns the index of the match in the array
   Note: This should possibly be moved to util.c
 *************************************************************************/
-static int binary_search_double(const small_vector<float_t>& A, float_t match, int max_idx, double mult) {
+static int binary_search_double(const std::vector<float_t>& A, float_t match, int max_idx, double mult) {
   int min_idx = 0;
 
   while (max_idx - min_idx > 1) {
@@ -551,23 +551,22 @@ static float_t compute_unimol_lifetime(
   return res;
 }
 
-/*
- * already provided by rxn,
- * TODO: delete
- */
-/*
-// note: this might be precomputed
-static uint get_num_surface_products(const World* world, const RxnClass* rx) {
-  uint res = 0;
-  for (const SpeciesWithOrientation& product: rx->products) {
-    const Species& species = world->all_species.get(product.species_id);
-    if (species.is_surf()) {
-      res++;
-    }
+/*************************************************************************
+which_unimolecular:
+  In: the reaction we're testing
+  Out: int containing which unimolecular reaction occurs (one must occur)
+*************************************************************************/
+static reaction_index_t which_unimolecular(const RxnClass *rxn_class, rng_state& rng) {
+  assert(rxn_class != nullptr);
+  if (rxn_class->get_num_reactions() == 1) {
+    return 0;
   }
-  return res;
+
+  int max = rxn_class->get_num_reactions() - 1;
+  float_t match = rng_dbl(&rng);
+  match = match * rxn_class->cum_probs[max];
+  return binary_search_double(rxn_class->cum_probs, match, max, 1);
 }
-*/
 
 } // namespace RxUtil
 

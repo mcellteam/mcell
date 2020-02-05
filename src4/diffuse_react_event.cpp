@@ -1277,18 +1277,13 @@ bool DiffuseReactEvent::react_unimol_single_molecule(
     Partition& p,
     const molecule_id_t m_id,
     const float_t scheduled_time,
-    const RxnClass* unimol_rx_class
+    const RxnClass* unimol_rxn_class
 ) {
-  assert(unimol_rx_class != nullptr);
-  assert(unimol_rx_class != (const RxnClass*)-1);
-  // the unimolecular reaction was already selected
-  // FIXME: if there is more of them, mcell3 uses rng to select which to execute...
-
-  // TODO: see check_for_unimolecular_reaction
-  assert(unimol_rx_class->get_num_reactions() == 1 && "Select pathway");
-  reaction_index_t ri = 0;
+  // the unimolecular reaction class was already selected
+  assert(unimol_rxn_class != nullptr);
 
   Molecule& m = p.get_m(m_id);
+
   if (m.is_defunct()) {
     return false;
   }
@@ -1300,7 +1295,9 @@ bool DiffuseReactEvent::react_unimol_single_molecule(
   }
 
   assert(scheduled_time >= event_time && scheduled_time <= event_time + diffusion_time_step);
-  return outcome_unimolecular(p, m, scheduled_time - event_time, unimol_rx_class->get_reaction(ri));
+
+  reaction_index_t ri = RxUtil::which_unimolecular(unimol_rxn_class, world->rng);
+  return outcome_unimolecular(p, m, scheduled_time - event_time, unimol_rxn_class->get_reaction(ri));
 }
 
 
