@@ -36,9 +36,9 @@
 #include "partition.h"
 #include "scheduler.h"
 #include "species.h"
-#include "reaction.h"
 #include "geometry.h"
 #include "callback_info.h"
+#include "reaction.h"
 #include "reactions_info.h"
 
 namespace MCell {

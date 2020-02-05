@@ -31,15 +31,15 @@
 
 namespace MCell {
 
-class Reaction;
+class RxnClass;
 #ifndef INDEXER_WA
-typedef std::unordered_map<species_id_t, Reaction*> SpeciesReactionMap;
-typedef std::unordered_map< species_id_t, SpeciesReactionMap > BimolecularReactionsMap;
+typedef std::unordered_map<species_id_t, RxnClass*> SpeciesRxnClassesMap;
+typedef std::unordered_map< species_id_t, SpeciesRxnClassesMap > BimolecularRxnClassesMap;
 #else
-typedef std::map<species_id_t, Reaction*> SpeciesReactionMap;
-typedef std::map<species_id_t, SpeciesReactionMap> BimolecularReactionsMap;
+typedef std::map<species_id_t, RxnClass*> SpeciesRxnClassesMap;
+typedef std::map<species_id_t, SpeciesRxnClassesMap> BimolecularRxnClassesMap;
 #endif
-typedef SpeciesReactionMap UnimolecularReactionsMap;
+typedef SpeciesRxnClassesMap UnimolecularRxnClassesMap;
 
 
 class SpeciesInfo;
@@ -50,6 +50,7 @@ class SpeciesInfo;
  */
 // TODO: move the trigger_bimolecular, trigger_bimolecular_orientation_from_mols,
 // and trigger_intersect functions here?
+// rename to Rxn(s)Info
 class ReactionsInfo {
 public:
   ReactionsInfo()
@@ -75,7 +76,7 @@ public:
     return initialized;
   }
 
-  void add(const Reaction& r) {
+  void add(const RxnClass& r) {
     reactions.push_back(r);
     initialized = false;
   }
@@ -83,7 +84,7 @@ public:
   // simply looks up a reaction between 'a' and 'b',
   // this reaction must exist, asserts if not,
   // does not take species superclasses such as ALL_MOLECULES into account
-  const Reaction* get_specific_reaction(const Molecule& a, const Molecule& b) const {
+  const RxnClass* get_specific_reaction_class(const Molecule& a, const Molecule& b) const {
     assert(initialized);
 
     const auto& it_map_for_species = bimolecular_reactions_map.find(a.species_id);
@@ -96,7 +97,7 @@ public:
   }
 
   // might return nullptr if there are none
-  const SpeciesReactionMap* get_specific_reactions_for_species(const species_id_t species_id) const {
+  const SpeciesRxnClassesMap* get_specific_reactions_for_species(const species_id_t species_id) const {
     if (species_id == SPECIES_ID_INVALID) {
       return nullptr;
     }
@@ -112,23 +113,23 @@ public:
 
   // does not store nullptr into the resulting array
   // checks also species superclasses
-  void get_all_reactions_for_reactant(const Molecule& reactant, small_vector<const SpeciesReactionMap*>& potential_reactions) const {
+  void get_all_reactions_for_reactant(const Molecule& reactant, small_vector<const SpeciesRxnClassesMap*>& potential_reactions) const {
     potential_reactions.clear();
 
     // species-specific
-    const SpeciesReactionMap* species_specific = get_specific_reactions_for_species(reactant.species_id);
+    const SpeciesRxnClassesMap* species_specific = get_specific_reactions_for_species(reactant.species_id);
     if (species_specific != nullptr) {
       potential_reactions.push_back(species_specific);
     }
 
     // all molecules
-    const SpeciesReactionMap* all_molecules = get_specific_reactions_for_species(all_molecules_species_id);
+    const SpeciesRxnClassesMap* all_molecules = get_specific_reactions_for_species(all_molecules_species_id);
     if (all_molecules != nullptr) {
       potential_reactions.push_back(all_molecules);
     }
 
     // all surface/volume molecules
-    const SpeciesReactionMap* all_vol_surf =
+    const SpeciesRxnClassesMap* all_vol_surf =
         get_specific_reactions_for_species(
             reactant.is_vol() ? all_volume_molecules_species_id : all_surface_molecules_species_id);
     if (all_vol_surf != nullptr) {
@@ -137,13 +138,13 @@ public:
   }
 
   void dump() {
-    Reaction::dump_array(reactions);
+    RxnClass::dump_array(reactions);
   }
 
 private:
   bool initialized;
 
-  std::vector<Reaction> reactions;
+  std::vector<RxnClass> reactions;
 
   // ids of species superclasses, SPECIES_ID_INVALID if not set
   // it might seem that this should belong into SpeciesInfo but this class needs this information
@@ -155,8 +156,8 @@ public:
   // TODO: these should be private
 
   // TODO_PATHWAYS: there might be multiple reactions for 1 or 2 reactants (multiple pathways)
-  UnimolecularReactionsMap unimolecular_reactions_map; // created from reactions in init_simulation
-  BimolecularReactionsMap bimolecular_reactions_map; // created from reactions in init_simulation
+  UnimolecularRxnClassesMap unimolecular_reactions_map; // created from reactions in init_simulation
+  BimolecularRxnClassesMap bimolecular_reactions_map; // created from reactions in init_simulation
 
 };
 

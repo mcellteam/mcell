@@ -66,61 +66,54 @@ trigger_bimolecular:
          the moving molecule is not inert!
 *************************************************************************/
 static void trigger_bimolecular(
-    const BimolecularReactionsMap& reactions,
+    const BimolecularRxnClassesMap& reactions,
     const Molecule& reacA, const Molecule& reacB,
     orientation_t orientA, orientation_t orientB,
-    ReactionsVector& matching_rxns // items are appended
+    RxnClassesVector& matching_rxns // items are appended
 ) {
 
   // for all reactions applicable to reacA and reacB
-  BimolecularReactionsMap::const_iterator reactions_reacA_it
+  BimolecularRxnClassesMap::const_iterator reactions_reacA_it
     = reactions.find(reacA.species_id);
   if (reactions_reacA_it == reactions.end()) {
     // no reactions at all for reacA
     return;
   }
 
-  SpeciesReactionMap::const_iterator reactions_reacA_and_reacB_it
+  SpeciesRxnClassesMap::const_iterator reactions_reacA_and_reacB_it
     = reactions_reacA_it->second.find(reacB.species_id);
   if (reactions_reacA_and_reacB_it == reactions_reacA_it->second.end()) {
     return;
   }
 
-  // for now we can have just one reaction, TODO_PATHWAYS: allow multiple reactions..
-  const Reaction* inter = reactions_reacA_and_reacB_it->second;
+  // there can be a single class for a unique pair of reactants,
+  // TODO: check it when creating the maps
+  const RxnClass* rxn_class = reactions_reacA_and_reacB_it->second;
 
-  /*for (struct rxn *inter = reaction_hash[hash]; inter != NULL; inter = inter->next)*/ {
+  int right_walls_surf_classes = 0;  /* flag to check whether SURFACE_CLASSES
+                                        of the walls for one or both reactants
+                                        match the SURFACE_CLASS of the reaction
+                                        (if needed) */
 
-    int right_walls_surf_classes = 0;  /* flag to check whether SURFACE_CLASSES
-                                          of the walls for one or both reactants
-                                          match the SURFACE_CLASS of the reaction
-                                          (if needed) */
+  /* skip irrelevant reactions (i.e. non vol-surf reactions) */
+  assert(rxn_class->reactants.size() == 2 && "We already checked that there must be 2 reactants");
 
-    /* skip irrelevant reactions (i.e. non vol-surf reactions) */
-    assert(inter->reactants.size() == 2 && "We already checked that there must be 2 reactants");
-
-    /* Check to see if orientation classes are zero/different */
-
-
-    /* Check to see if orientation classes are zero/different */
-    int test_wall = 0;
-    orientation_t geomA = inter->reactants[0].orientation;
-    orientation_t geomB = inter->reactants[1].orientation;
-    if (geomA == ORIENTATION_NONE || geomB == ORIENTATION_NONE || (geomA + geomB) * (geomA - geomB) != 0) {
-      matching_rxns.push_back(inter);
-      //continue;
-    }
-    else if (orientA != ORIENTATION_NONE && orientA * orientB * geomA * geomB > 0) {
-      matching_rxns.push_back(inter);
-      //continue;
-    }
+  /* Check to see if orientation classes are zero/different */
+  int test_wall = 0;
+  orientation_t geomA = rxn_class->reactants[0].orientation;
+  orientation_t geomB = rxn_class->reactants[1].orientation;
+  if (geomA == ORIENTATION_NONE || geomB == ORIENTATION_NONE || (geomA + geomB) * (geomA - geomB) != 0) {
+    matching_rxns.push_back(rxn_class);
+  }
+  else if (orientA != ORIENTATION_NONE && orientA * orientB * geomA * geomB > 0) {
+    matching_rxns.push_back(rxn_class);
   }
 }
 
 static void trigger_bimolecular_orientation_from_mols(
-    const BimolecularReactionsMap& reactions,
+    const BimolecularRxnClassesMap& reactions,
     const Molecule& reacA, const Molecule& reacB,
-    ReactionsVector& matching_rxns // items are appended
+    RxnClassesVector& matching_rxns // items are appended
 ) {
   trigger_bimolecular(
       reactions,
@@ -152,19 +145,19 @@ static void trigger_bimolecular_orientation_from_mols(
  *************************************************************************/
 static void find_surface_mol_reactions_with_surf_classes(
     const Partition& p,
-    const BimolecularReactionsMap& reactions,
+    const BimolecularRxnClassesMap& reactions,
     const Molecule& reacA,
     const Wall& w,
     const bool allow_rx_transp,
     const bool allow_rx_reflec,
     const bool allow_rx_absorb_reg_border,
-    ReactionsVector& matching_rxns
+    RxnClassesVector& matching_rxns
 ) {
 
   assert(reacA.is_surf());
 
   // for all reactions applicable to reacA and and wall
-  small_vector<const SpeciesReactionMap*> potential_reactions;
+  small_vector<const SpeciesRxnClassesMap*> potential_reactions;
   p.all_reactions.get_all_reactions_for_reactant(reacA, potential_reactions);
   if (potential_reactions.empty()) {
     // no reactions at all for reacA
@@ -179,15 +172,15 @@ static void find_surface_mol_reactions_with_surf_classes(
     }
 
     // each map of potential reactions is for this specific species, all molecules an all surf molecules
-    for (const SpeciesReactionMap* reaction_map: potential_reactions) {
+    for (const SpeciesRxnClassesMap* reaction_map: potential_reactions) {
 
-      SpeciesReactionMap::const_iterator reactions_reacA_and_surface_it = reaction_map->find(reg.species_id);
+      SpeciesRxnClassesMap::const_iterator reactions_reacA_and_surface_it = reaction_map->find(reg.species_id);
       if (reactions_reacA_and_surface_it == reaction_map->end()) {
         // no reactions for this type of region
         continue;
       }
 
-      const Reaction* rxn = reactions_reacA_and_surface_it->second;
+      const RxnClass* rxn = reactions_reacA_and_surface_it->second;
       assert(rxn->reactants.size() == 2);
 
       // TODO_PATHWAYS: allow multiple reactions..
@@ -233,7 +226,7 @@ static void trigger_intersect(
     const Partition& p,
     const Molecule& reacA,
     const Wall& w,
-    ReactionsVector& matching_rxns,
+    RxnClassesVector& matching_rxns,
     const bool allow_rx_transp = true,
     const bool allow_rx_reflec = true,
     const bool allow_rx_absorb_reg_border = true
@@ -316,7 +309,7 @@ test_bimolecular
 *************************************************************************/
 /*, double scaling - 1, double local_prob_factor = 0,*/
 static int test_bimolecular(
-    const Reaction& rx,
+    const RxnClass& rxn_class,
     rng_state& rng,
     const Molecule& a1, // unused for now
     const Molecule& a2, // unused for now
@@ -325,9 +318,9 @@ static int test_bimolecular(
 ) {
   /* rescale probabilities for the case of the reaction
      between two surface molecules */
-  float_t min_noreaction_p = rx.min_noreaction_p; // local_prob_factor == 0
+  float_t min_noreaction_p = rxn_class.min_noreaction_p; // local_prob_factor == 0
   if (local_prob_factor != 0) {
-    min_noreaction_p = rx.min_noreaction_p * local_prob_factor;
+    min_noreaction_p = rxn_class.min_noreaction_p * local_prob_factor;
   }
 
   float_t p;
@@ -343,13 +336,14 @@ static int test_bimolecular(
     }
   }
   else {
-    float max_p = rx.max_fixed_p; //rx.cum_probs[rx->n_pathways - 1]; // TODO_PATHWAYS
+    float max_p = rxn_class.max_fixed_p; //rx.cum_probs[rx->n_pathways - 1]; // TODO_PATHWAYS
     if (local_prob_factor > 0) {
       max_p *= local_prob_factor;
     }
 
     if (max_p >= scaling) /* we cannot scale enough. add missed rxns */
     {
+      // TODO: this statistics is important
       /* How may reactions will we miss? - only statistics?? */
       /*if (scaling == 0.0)
         rx->n_skipped += GIGANTIC4;
@@ -370,6 +364,8 @@ static int test_bimolecular(
   }
 
   // TODO_PATHWAYS: find the right reaction for multiple pathways
+  assert(rxn_class.get_num_reactions() == 1 && "TODO");
+
   return 0; // return index of the only reaction
 }
 
@@ -400,20 +396,20 @@ test_many_bimolecular:
         such reactions local_prob_factor > 0.
 *************************************************************************/
 static int test_many_bimolecular(
-    const ReactionsVector& rx,
+    const RxnClassesVector& rxn_classes,
     const small_vector<float_t>& scaling,
     float_t local_prob_factor,
     //TODO_PATHWAYS: int& chosen_pathway - always 0 for now?
     rng_state& rng,
     bool all_neighbors_flag
 ) {
-  assert(rx.size() == scaling.size());
-  uint n = rx.size();
+  assert(rxn_classes.size() == scaling.size());
+  uint n = rxn_classes.size();
 
   small_vector<float_t> rxp;  /* array of cumulative rxn probabilities */
   rxp.resize(2 * n, 0.0);
 
-  const Reaction* my_rx;
+  const RxnClass* my_rxn;
   int m, M;
   float_t p, f;
 
@@ -427,28 +423,28 @@ static int test_many_bimolecular(
   if (n == 1) {
     Molecule dummy;
     if (all_neighbors_flag) {
-      return test_bimolecular(*rx[0], rng, dummy, dummy, scaling[0], local_prob_factor);
+      return test_bimolecular(*rxn_classes[0], rng, dummy, dummy, scaling[0], local_prob_factor);
     }
     else {
-      return test_bimolecular(*rx[0], rng, dummy, dummy, scaling[0], 0);
+      return test_bimolecular(*rxn_classes[0], rng, dummy, dummy, scaling[0], 0);
     }
   }
 
   /* Note: lots of division here, if we're CPU-bound,could invert the
      definition of scaling_coefficients */
   if (all_neighbors_flag && local_prob_factor > 0) {
-    rxp[0] = (rx[0]->max_fixed_p) * local_prob_factor / scaling[0];
+    rxp[0] = (rxn_classes[0]->max_fixed_p) * local_prob_factor / scaling[0];
   }
   else {
-    rxp[0] = rx[0]->max_fixed_p / scaling[0];
+    rxp[0] = rxn_classes[0]->max_fixed_p / scaling[0];
   }
 
   for (uint i = 1; i < n; i++) {
     if (all_neighbors_flag && local_prob_factor > 0) {
-      rxp[i] = rxp[i - 1] + (rx[i]->max_fixed_p) * local_prob_factor / scaling[i];
+      rxp[i] = rxp[i - 1] + (rxn_classes[i]->max_fixed_p) * local_prob_factor / scaling[i];
     }
     else {
-      rxp[i] = rxp[i - 1] + rx[i]->max_fixed_p / scaling[i];
+      rxp[i] = rxp[i - 1] + rxn_classes[i]->max_fixed_p / scaling[i];
     }
   }
 
@@ -458,12 +454,12 @@ static int test_many_bimolecular(
     for (i = 0; i < n; i++) /* Distribute failures */
     {
       if (all_neighbors_flag && local_prob_factor > 0) {
-        rx[i]->n_skipped += f * ((rx[i]->cum_probs[rx[i]->n_pathways - 1]) *
+        rxn_classes[i]->n_skipped += f * ((rxn_classes[i]->cum_probs[rxn_classes[i]->n_pathways - 1]) *
                                  local_prob_factor) /
                             rxp[n - 1];
       } else {
-        rx[i]->n_skipped +=
-            f * (rx[i]->cum_probs[rx[i]->n_pathways - 1]) / rxp[n - 1];
+        rxn_classes[i]->n_skipped +=
+            f * (rxn_classes[i]->cum_probs[rxn_classes[i]->n_pathways - 1]) / rxp[n - 1];
       }
     }
 #endif
@@ -475,23 +471,25 @@ static int test_many_bimolecular(
       return RX_NO_RX;
   }
 
-  /* Pick the reaction that happens */
+  /* Pick the reaction class that happens */
   int rx_index = binary_search_double(rxp, p, rxp.size() - 1, 1);
 
+  assert(rxn_classes[rx_index]->get_num_reactions() == 1 && "TODO");
+
 #if 0 // TODO_PATHWAYS
-  my_rx = rx[i];
+  my_rxn = rxn_classes[i];
   if (i > 0) {
     p = (p - rxp[i - 1]);
   }
   p = p * scaling[i];
 
   /* Now pick the pathway within that reaction */
-  M = my_rx->n_pathways - 1;
+  M = my_rxn->n_pathways - 1;
 
   if (all_neighbors_flag && local_prob_factor > 0)
-    m = binary_search_double(my_rx->cum_probs, p, M, local_prob_factor);
+    m = binary_search_double(my_rxn->cum_probs, p, M, local_prob_factor);
   else
-    m = binary_search_double(my_rx->cum_probs, p, M, 1);
+    m = binary_search_double(my_rxn->cum_probs, p, M, 1);
 
   *chosen_pathway = m;
 #endif
@@ -502,11 +500,11 @@ static int test_many_bimolecular(
 
 // might return nullptr if there is no unimolecular reaction for this species
 // based on pick_unimolecular_reaction
-static const Reaction* pick_unimol_rx(
+static const RxnClass* pick_unimol_rx(
     const World* world,
     const species_id_t species_id
 ) {
-  const UnimolecularReactionsMap& unimol_rxs = world->all_reactions.unimolecular_reactions_map;
+  const UnimolecularRxnClassesMap& unimol_rxs = world->all_reactions.unimolecular_reactions_map;
   auto it = unimol_rxs.find(species_id);
   if (it == unimol_rxs.end()) {
     return nullptr;
@@ -518,7 +516,7 @@ static const Reaction* pick_unimol_rx(
 
 
 // based on timeof_unimolecular
-static float_t time_of_unimol(const Reaction* rx, rng_state& rng) {
+static float_t time_of_unimol(const RxnClass* rx, rng_state& rng) {
   double k_tot = rx->max_fixed_p;
   double p = rng_dbl(&rng);
 
@@ -533,7 +531,7 @@ static float_t compute_unimol_lifetime(
     const Partition& p,
     rng_state& rng,
     const Molecule& vm,
-    const Reaction* rx
+    const RxnClass* rx
 ) {
   assert(rx != nullptr);
 
@@ -550,9 +548,13 @@ static float_t compute_unimol_lifetime(
   return res;
 }
 
-
+/*
+ * already provided by rxn,
+ * TODO: delete
+ */
+/*
 // note: this might be precomputed
-static uint get_num_surface_products(const World* world, const Reaction* rx) {
+static uint get_num_surface_products(const World* world, const RxnClass* rx) {
   uint res = 0;
   for (const SpeciesWithOrientation& product: rx->products) {
     const Species& species = world->all_species.get(product.species_id);
@@ -562,7 +564,7 @@ static uint get_num_surface_products(const World* world, const Reaction* rx) {
   }
   return res;
 }
-
+*/
 
 } // namespace RxUtil
 

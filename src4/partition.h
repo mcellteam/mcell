@@ -30,8 +30,8 @@
 #include "dyn_vertex_structs.h"
 #include "molecule.h"
 #include "scheduler.h"
-#include "reaction.h"
 #include "geometry.h"
+#include "reaction.h"
 #include "species.h"
 #include "reactions_info.h"
 #include "species_info.h"
@@ -196,7 +196,7 @@ public:
     SpeciesReactantsMap& subpart_reactants_new_sp = volume_molecule_reactants_per_subpart[new_subpartition_index];
 
     // and these are indices of possible reactants with our reactant_species_id
-    const SpeciesReactionMap& reactions_map = all_reactions.bimolecular_reactions_map.find(vm.species_id)->second;
+    const SpeciesRxnClassesMap& reactions_map = all_reactions.bimolecular_reactions_map.find(vm.species_id)->second;
 
     // we need to set/clear flag that says that second_reactant_info.first can react with reactant_species_id
     for (const auto& second_reactant_info : reactions_map) {

@@ -134,7 +134,7 @@ public:
 
   float_t unimol_rx_time;
 
-  const Reaction* unimol_rx;
+  const RxnClass* unimol_rx;
 
   // update assignment operator when modifying this
   union {

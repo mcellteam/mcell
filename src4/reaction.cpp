@@ -21,9 +21,9 @@
  *
 ******************************************************************************/
 
-#include <iostream>
-
 #include "reaction.h"
+
+#include <iostream>
 
 #include "species_info.h"
 #include "partition.h"
@@ -38,8 +38,41 @@ void SpeciesWithOrientation::dump_array(const std::vector<SpeciesWithOrientation
   }
 }
 
+
+void Rxn::initialize(const RxnClass& reaction) {
+  debug_check_reactants_against_reaction(reaction);
+
+  update_equivalent_product_indices();
+
+  // MCELL3 compatibility - reorder products so that case such as
+  // CaM -> Ca + CaM becomes CaM -> CaM + Ca
+  move_reused_reactants_to_be_the_first_products();
+}
+
+// asserts in debug mode if the reactants are different
+void Rxn::debug_check_reactants_against_reaction(const RxnClass& reaction) {
+  assert(reaction.reactants.size() == reactants.size());
+  assert(reactants.size() >= 1 && reactants.size() <= 2);
+  if (reactants.size() == 1) {
+    assert(reactants[0] == reaction.reactants[0]);
+  }
+  else {
+
+  }
+}
+
+uint Rxn::get_num_surf_products(const SpeciesInfo& all_species) const {
+  uint res = 0;
+  for (const SpeciesWithOrientation& prod: products) {
+    if (all_species.get(prod.species_id).is_surf()) {
+      res++;
+    }
+  }
+  return res;
+}
+
 // create mapping for cases when one of the reactants is unchanged in the reaction
-void Reaction::update_equivalent_product_indices() {
+void Rxn::update_equivalent_product_indices() {
   for (SpeciesWithOrientation& product: products) {
     product.equivalent_product_or_reactant_index = INDEX_INVALID;
   }
@@ -60,7 +93,7 @@ void Reaction::update_equivalent_product_indices() {
 }
 
 
-void Reaction::move_reused_reactants_to_be_the_first_products() {
+void Rxn::move_reused_reactants_to_be_the_first_products() {
   // for each reactant (from the end since we want the products to be ordered in the same way)
   for (int ri = reactants.size() - 1; ri >= 0; ri--) {
     if (reactants[ri].equivalent_product_or_reactant_index != INDEX_INVALID) {
@@ -76,31 +109,9 @@ void Reaction::move_reused_reactants_to_be_the_first_products() {
   }
 }
 
-
-uint Reaction::get_num_surf_products(const SpeciesInfo& all_species) const {
-  uint res = 0;
-  for (const SpeciesWithOrientation& prod: products) {
-    if (all_species.get(prod.species_id).is_surf()) {
-      res++;
-    }
-  }
-  return res;
-}
-
-void Reaction::dump_array(const vector<Reaction>& vec) {
-  cout << "Reaction array: " << (vec.empty() ? "EMPTY" : "") << "\n";
-
-  for (size_t i = 0; i < vec.size(); i++) {
-    cout << i << ":\n";
-    vec[i].dump("  ");
-  }
-}
-
-void Reaction::dump(const string ind) const {
+void Rxn::dump(const string ind) const {
   cout << ind << "name: \t\t" << name << " [string] \t\t\n";
   cout << ind << "rate_constant: \t\t" << rate_constant << " [float_t] \t\t\n";
-  cout << ind << "max_fixed_p: \t\t" << max_fixed_p << " [float_t] \t\t\n";
-  cout << ind << "min_noreaction_p: \t\t" << min_noreaction_p << " [float_t] \t\t\n";
 
   cout << ind << "rectants:\n";
   SpeciesWithOrientation::dump_array(reactants, ind + "  ");
@@ -110,7 +121,7 @@ void Reaction::dump(const string ind) const {
 }
 
 
-static std::string rxn_players_to_string(
+static std::string pathway_players_to_string(
     const Partition& p, const std::vector<SpeciesWithOrientation>& players
 ) {
   string res;
@@ -124,8 +135,31 @@ static std::string rxn_players_to_string(
   return res;
 }
 
-std::string Reaction::to_string(const Partition& p) const {
-  return rxn_players_to_string(p, reactants) + " -> " + rxn_players_to_string(p, products);
+
+std::string Rxn::to_string(const Partition& p) const {
+  return pathway_players_to_string(p, reactants) + " -> " + pathway_players_to_string(p, products);
 }
+
+void RxnClass::dump_array(const vector<RxnClass>& vec) {
+  cout << "Reaction array: " << (vec.empty() ? "EMPTY" : "") << "\n";
+
+  for (size_t i = 0; i < vec.size(); i++) {
+    cout << i << ":\n";
+    vec[i].dump("  ");
+  }
+}
+
+void RxnClass::dump(const string ind) const {
+  cout << ind << "max_fixed_p: \t\t" << max_fixed_p << " [float_t] \t\t\n";
+  cout << ind << "min_noreaction_p: \t\t" << min_noreaction_p << " [float_t] \t\t\n";
+  SpeciesWithOrientation::dump_array(reactants, ind + "  ");
+
+  for (const Rxn& rxn: reactions) {
+    rxn.dump(ind);
+  }
+}
+
+
+
 
 } // namespace mcell

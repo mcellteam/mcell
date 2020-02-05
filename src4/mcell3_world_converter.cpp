@@ -647,8 +647,8 @@ bool MCell3WorldConverter::convert_species_and_create_diffusion_events(volume* s
 }
 
 
-bool MCell3WorldConverter::convert_single_reaction(const rxn *rx) {
-  Reaction reaction;
+bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
+  RxnClass reaction;
 
   // rx->next - handled in convert_reactions
   // rx->sym->name - ignored, name obtained from pathway
@@ -656,17 +656,14 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *rx) {
   //?? u_int n_reactants - obtained from pathways, might check it
 
   CHECK_PROPERTY(
-      rx->n_pathways == 1
-      || rx->n_pathways == RX_REFLEC // reflections for surf mols
+      mcell3_rx->n_pathways >= 1
+      || mcell3_rx->n_pathways == RX_REFLEC // reflections for surf mols
   ); // limited for now
 
-  assert(rx->cum_probs != nullptr);
-  // ?? reaction.cum_prob = rx->cum_probs[0]; - what is this good for?
+  assert(mcell3_rx->cum_probs != nullptr);
 
-  CHECK_PROPERTY(rx->max_fixed_p == 1.0 || rx->cum_probs[0] == rx->max_fixed_p); // limited for now
-  CHECK_PROPERTY(rx->min_noreaction_p == 1.0 || rx->cum_probs[0] == rx->min_noreaction_p); // limited for now
-  reaction.max_fixed_p = rx->max_fixed_p;
-  reaction.min_noreaction_p = rx->min_noreaction_p;
+  reaction.max_fixed_p = mcell3_rx->max_fixed_p;
+  reaction.min_noreaction_p = mcell3_rx->min_noreaction_p;
 
   // ?? double pb_factor; /* Conversion factor from rxn rate to rxn probability (used for cooperativity) */
 
@@ -678,86 +675,110 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *rx) {
   // NFSIM short *geometries;         /* Geometries of reactants/products */
   // NFSIM short **nfsim_geometries;   /* geometries of the nfsim geometries associated with each path */
 
-  CHECK_PROPERTY(rx->n_occurred == 0);
-  CHECK_PROPERTY(rx->n_skipped == 0);
-  CHECK_PROPERTY(rx->prob_t == nullptr);
+  CHECK_PROPERTY(mcell3_rx->n_occurred == 0);
+  CHECK_PROPERTY(mcell3_rx->n_skipped == 0);
+  CHECK_PROPERTY(mcell3_rx->prob_t == nullptr);
 
   // TODO_CONVERSION: pathway_info *info - magic_list, also some checks might be useful
 
-  // --- pathway ---
-  pathway *pathway_head = rx->pathway_head;
-  CHECK_PROPERTY(pathway_head->next == nullptr); // only 1 supported now
+  int pathway_index = 0;
+  for (
+      pathway* current_pathway = mcell3_rx->pathway_head;
+      current_pathway != nullptr;
+      current_pathway = current_pathway->next) {
 
-  if (pathway_head->pathname != nullptr) {
-    assert(pathway_head->pathname->sym != nullptr);
-    reaction.name = pathway_head->pathname->sym->name;
-  }
-  else {
-    reaction.name = NAME_NOT_SET;
-  }
+    // --- pathway ---
 
-  reaction.rate_constant = pathway_head->km;
+    // there can be a single reaction for absorb, reflect and transparent reactions
+    assert((pathway_index < mcell3_rx->n_pathways) || (pathway_index == 0 && mcell3_rx->n_pathways < 0));
 
-  CHECK_PROPERTY(pathway_head->orientation1 == 0 || pathway_head->orientation1 == 1 || pathway_head->orientation1 == -1);
-  CHECK_PROPERTY(pathway_head->orientation2 == 0 || pathway_head->orientation2 == 1 || pathway_head->orientation2 == -1);
-  CHECK_PROPERTY(pathway_head->orientation3 == 0 || pathway_head->orientation3 == 1 || pathway_head->orientation3 == -1);
+    // -> pathway is renamed in MCell3 to reaction because pathway has a different meaning
+    //    MCell3 rection is reaction class
+    Rxn rxn;
 
-  if (pathway_head->reactant1 != nullptr) {
-    species_id_t reactant1_id = get_mcell4_species_id(pathway_head->reactant1->species_id);
-    reaction.reactants.push_back(SpeciesWithOrientation(reactant1_id, pathway_head->orientation1));
+    if (current_pathway->pathname != nullptr) {
+      assert(current_pathway->pathname->sym != nullptr);
+      rxn.name = current_pathway->pathname->sym->name;
+    }
+    else {
+      rxn.name = NAME_NOT_SET;
+    }
 
-    if (pathway_head->reactant2 != nullptr) {
-      species_id_t reactant2_id = get_mcell4_species_id(pathway_head->reactant2->species_id);
-      reaction.reactants.push_back(SpeciesWithOrientation(reactant2_id, pathway_head->orientation2));
+    rxn.rate_constant = current_pathway->km;
+    rxn.cum_prob = mcell3_rx->cum_probs[pathway_index];
 
-      if (pathway_head->reactant3 != nullptr) {
-        mcell_error("TODO_CONVERSION: reactions with 3 reactants are not supported");
-        species_id_t reactant3_id = get_mcell4_species_id(pathway_head->reactant3->species_id);
-        reaction.reactants.push_back(SpeciesWithOrientation(reactant3_id, pathway_head->orientation3));
+    CHECK_PROPERTY(current_pathway->orientation1 == 0 || current_pathway->orientation1 == 1 || current_pathway->orientation1 == -1);
+    CHECK_PROPERTY(current_pathway->orientation2 == 0 || current_pathway->orientation2 == 1 || current_pathway->orientation2 == -1);
+    CHECK_PROPERTY(current_pathway->orientation3 == 0 || current_pathway->orientation3 == 1 || current_pathway->orientation3 == -1);
+
+    // reactants
+    if (current_pathway->reactant1 != nullptr) {
+      species_id_t reactant1_id = get_mcell4_species_id(current_pathway->reactant1->species_id);
+      SpeciesWithOrientation r1 = SpeciesWithOrientation(reactant1_id, current_pathway->orientation1);
+      rxn.reactants.push_back(r1);
+      if (pathway_index == 0) {
+        // reaction has the same reactants, storing only once
+        reaction.reactants.push_back(r1);
+      }
+
+      if (current_pathway->reactant2 != nullptr) {
+        species_id_t reactant2_id = get_mcell4_species_id(current_pathway->reactant2->species_id);
+        SpeciesWithOrientation r2 = SpeciesWithOrientation(reactant2_id, current_pathway->orientation2);
+        rxn.reactants.push_back(r2);
+        if (pathway_index == 0) {
+          reaction.reactants.push_back(r2);
+        }
+
+        if (current_pathway->reactant3 != nullptr) {
+          mcell_error("TODO_CONVERSION: reactions with 3 reactants are not supported");
+        }
+      }
+      else {
+        // reactant3 must be null if reactant2 is null
+        assert(current_pathway->reactant3 == nullptr);
       }
     }
     else {
-      // reactant3 must be null if reactant2 is null
-      assert(pathway_head->reactant3 == nullptr);
+      assert(false && "No reactants?");
     }
-  }
-  else {
-    assert(false && "No reactants?");
-  }
 
-  CHECK_PROPERTY(pathway_head->km_filename == nullptr);
+    CHECK_PROPERTY(current_pathway->km_filename == nullptr);
 
 
-  if (rx->n_pathways == RX_ABSORB_REGION_BORDER) {
-    CHECK_PROPERTY(pathway_head->flags == PATHW_ABSORP);
-    reaction.type = ReactionType::AbsorbRegionBorder;
-  }
-  else if (rx->n_pathways == RX_TRANSP) {
-    CHECK_PROPERTY(pathway_head->flags == PATHW_TRANSP);
-    reaction.type = ReactionType::Transparent;
-  }
-  else if (rx->n_pathways == RX_REFLEC) {
-    CHECK_PROPERTY(pathway_head->flags == PATHW_REFLEC);
-    reaction.type = ReactionType::Reflect;
-  }
-  else {
-    CHECK_PROPERTY(pathway_head->flags == 0);
-
-    reaction.type = ReactionType::Standard;
-
-    // products
-    product *product_ptr = pathway_head->product_head;
-    while (product_ptr != nullptr) {
-      species_id_t product_id = get_mcell4_species_id(product_ptr->prod->species_id);
-      CHECK_PROPERTY(product_ptr->orientation == 0 || product_ptr->orientation == 1 || product_ptr->orientation == -1);
-
-      reaction.products.push_back(SpeciesWithOrientation(product_id, product_ptr->orientation));
-
-      product_ptr = product_ptr->next;
+    if (mcell3_rx->n_pathways == RX_ABSORB_REGION_BORDER) {
+      CHECK_PROPERTY(current_pathway->flags == PATHW_ABSORP);
+      reaction.type = RxnClassType::AbsorbRegionBorder;
     }
+    else if (mcell3_rx->n_pathways == RX_TRANSP) {
+      CHECK_PROPERTY(current_pathway->flags == PATHW_TRANSP);
+      reaction.type = RxnClassType::Transparent;
+    }
+    else if (mcell3_rx->n_pathways == RX_REFLEC) {
+      CHECK_PROPERTY(current_pathway->flags == PATHW_REFLEC);
+      reaction.type = RxnClassType::Reflect;
+    }
+    else {
+      CHECK_PROPERTY(current_pathway->flags == 0);
+
+      reaction.type = RxnClassType::Standard;
+
+      // products
+      product *product_ptr = current_pathway->product_head;
+      while (product_ptr != nullptr) {
+        species_id_t product_id = get_mcell4_species_id(product_ptr->prod->species_id);
+        CHECK_PROPERTY(product_ptr->orientation == 0 || product_ptr->orientation == 1 || product_ptr->orientation == -1);
+
+        rxn.products.push_back(SpeciesWithOrientation(product_id, product_ptr->orientation));
+
+        product_ptr = product_ptr->next;
+      }
+    }
+
+    reaction.add_and_initialize_reaction(rxn);
+
+    pathway_index++;
   }
 
-  reaction.initialize();
 
   world->all_reactions.add(reaction);
 

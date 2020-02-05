@@ -38,11 +38,17 @@ namespace MCell {
 void Collision::dump(Partition& p, const std::string ind) const {
   cout << ind << "diffused_molecule:\n";
   p.get_m(diffused_molecule_id).dump(ind + "  ");
-  if (type == CollisionType::VOLMOL_VOLMOL) {
+  if (type == CollisionType::VOLMOL_VOLMOL) { // dump is rather limited for now, goes not deal with all types
     cout << ind << "colliding_molecule:\n";
     p.get_m(colliding_molecule_id).dump(ind + "  ");
     cout << ind << "reaction:";
-    rx->dump(ind + "  ");
+
+    if (rx != nullptr) {
+      rx->dump(ind + "  ");
+    }
+    else if (rxn_class != nullptr) {
+      rxn_class->dump(ind + "  ");
+    }
   }
   else {
     cout << ind << "colliding_wall_index: " << colliding_wall_index << "\n";

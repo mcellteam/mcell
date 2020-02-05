@@ -30,8 +30,8 @@
 
 #include "base_event.h"
 #include "partition.h"
-#include "reaction.h"
 #include "collision_structs.h"
+#include "reaction.h"
 
 #define TEST 1
 
@@ -90,7 +90,7 @@ public:
 
 private:
   // molecules newly created in reactions
-  std::vector<DiffuseOrUnimolReactionAction> new_diffuse_or_unimol_react_actions;
+  std::vector<DiffuseOrUnimolRxnAction> new_diffuse_or_unimol_react_actions;
 
   void diffuse_molecules(Partition& p, const std::vector< molecule_id_t >& indices);
 
@@ -156,7 +156,7 @@ private:
       const Molecule* reacA, const bool keep_reacA,
       const Molecule* reacB, const bool keep_reacB,
       const Molecule* surf_reac,
-      const Reaction* rx,
+      const Rxn* rxn,
       small_vector<GridPos>& assigned_surf_product_positions
   );
 
@@ -172,14 +172,14 @@ private:
       Partition& p,
       Molecule& vm,
       const float_t scheduled_time,
-      const Reaction* unimol_rx
+      const Rxn* unimol_rx
   );
 
   int outcome_products_random(
       Partition& p,
       const Collision& collision,
       const float_t remaining_time_step,
-      const int path,
+      const reaction_index_t reaction_index,
       bool& keep_reacA,
       bool& keep_reacB
   );
@@ -194,7 +194,7 @@ private:
       Partition& p,
       const molecule_id_t vm_id,
       const float_t scheduled_time,
-      const Reaction* unimol_rx
+      const RxnClass* unimol_rx
   );
 };
 

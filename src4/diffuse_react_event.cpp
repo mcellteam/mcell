@@ -89,9 +89,9 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const std::vector<molecu
   // again, we are using it as a queue and we do not follow the time when
   // they were created
   for (uint i = 0; i < new_diffuse_or_unimol_react_actions.size(); i++) {
-    const DiffuseOrUnimolReactionAction& action = new_diffuse_or_unimol_react_actions[i];
+    const DiffuseOrUnimolRxnAction& action = new_diffuse_or_unimol_react_actions[i];
 
-    if (action.type == DiffuseOrUnimolReactionAction::Type::DIFFUSE) {
+    if (action.type == DiffuseOrUnimolRxnAction::Type::DIFFUSE) {
       diffuse_single_molecule(
           p, action.id,
           event_time + diffusion_time_step - action.scheduled_time,
@@ -102,7 +102,7 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const std::vector<molecu
       bool diffuse_right_away = react_unimol_single_molecule(p, action.id, action.scheduled_time, action.unimol_rx);
 
       // get a fresh action reference - unimol reaction could have added some items into the array
-      const DiffuseOrUnimolReactionAction& new_ref_action = new_diffuse_or_unimol_react_actions[i];
+      const DiffuseOrUnimolRxnAction& new_ref_action = new_diffuse_or_unimol_react_actions[i];
       if (diffuse_right_away) {
         // if the molecule survived (e.g. in rxn like A -> A + B), then
         // diffuse it right away
@@ -145,8 +145,8 @@ void DiffuseReactEvent::diffuse_single_molecule(
 
     // now, there are two queues - local for this timestep
     // and global in partition for the following timesteps
-    DiffuseOrUnimolReactionAction unimol_react_action(
-        DiffuseOrUnimolReactionAction::Type::UNIMOL_REACT, m.id, m.unimol_rx_time, m.unimol_rx);
+    DiffuseOrUnimolRxnAction unimol_react_action(
+        DiffuseOrUnimolRxnAction::Type::UNIMOL_REACT, m.id, m.unimol_rx_time, m.unimol_rx);
     // handle this iteration
     new_diffuse_or_unimol_react_actions.push_back(unimol_react_action);
   }
@@ -290,7 +290,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
 
       assert(collision.time >= 0 && collision.time <= 1);
 
-      if (collision.is_vol_mol_collision()) {
+      if (collision.is_vol_mol_vol_mol_collision()) {
         // ignoring immediate collisions
         if (CollisionUtil::is_immediate_collision(collision.time)) {
           continue;
@@ -630,12 +630,15 @@ bool DiffuseReactEvent::collide_and_react_with_vol_mol(
     return 0; /* Reaction blocked by a wall */
   }
 
-  const Reaction& rx = *collision.rx;
+
+  // TODO: unify usage to rxn and rxn class pointers,
+  //       they might not be set in Collision struct, so pointers are the only way
+  const RxnClass& rxn_class = *collision.rxn_class;
   //  rx->prob_t is always NULL in out case update_probs(world, rx, m->t);
   // returns which reaction pathway to take
   float_t scaling = factor * r_rate_factor;
   int i = RxUtil::test_bimolecular(
-    rx, world->rng, colliding_molecule, diffused_molecule, scaling, 0);
+      rxn_class, world->rng, colliding_molecule, diffused_molecule, scaling, 0);
 
   if (i < RX_LEAST_VALID_PATHWAY) {
     return false;
@@ -701,22 +704,24 @@ int DiffuseReactEvent::collide_and_react_with_surf_mol(
     return -1;
   }
 
-  ReactionsVector matching_rxns;
+  RxnClassesVector matching_rxn_classes;
   RxUtil::trigger_bimolecular(
     p.all_reactions.bimolecular_reactions_map,
     diffused_molecule, colliding_molecule,
     collision_orientation, colliding_molecule.s.orientation,
-    matching_rxns
+    matching_rxn_classes
   );
 
-  if (matching_rxns.empty()) {
+  if (matching_rxn_classes.empty()) {
     return -1;
   }
 
-  // FIXME: this code is very similar to code in react_2D_neighbors
+  assert(matching_rxn_classes.size() == 1 && "There should be max 1 rxn class");
+
+  // FIXME: this code is very similar to code in react_2D_all_neighbors
   small_vector<float_t> scaling_coefs;
-  for (size_t i = 0; i < matching_rxns.size(); i++) {
-    const Reaction* rxn = matching_rxns[i];
+  for (size_t i = 0; i < matching_rxn_classes.size(); i++) {
+    const RxnClass* rxn = matching_rxn_classes[i];
     assert(rxn != nullptr);
 
     scaling_coefs.push_back(r_rate_factor / grid.binding_factor);
@@ -724,9 +729,9 @@ int DiffuseReactEvent::collide_and_react_with_surf_mol(
 
   int selected_rx_pathway;
   int reactant_index;
-  if (matching_rxns.size() == 1) {
+  if (matching_rxn_classes.size() == 1) {
     selected_rx_pathway = RxUtil::test_bimolecular(
-        *matching_rxns[0], world->rng,
+        *matching_rxn_classes[0], world->rng,
         diffused_molecule, colliding_molecule,
         scaling_coefs[0], 0);
 
@@ -734,15 +739,20 @@ int DiffuseReactEvent::collide_and_react_with_surf_mol(
     reactant_index = 0;
   }
   else {
-    bool all_neighbors_flag = true;
-    reactant_index = RxUtil::test_many_bimolecular(matching_rxns, scaling_coefs, 0, world->rng, false);
-    selected_rx_pathway = 0; // TODO_PATHWAYS: use value from test_many_bimolecular
+    // TODO: cleanup
+    // TODO: is test_many_bimolecular really neeeded?
+    assert(false && "This should not happen - why would we need multiple rxn classes?");
+    /*bool all_neighbors_flag = true;
+    reactant_index = RxUtil::test_many_bimolecular(matching_rxn_classes, scaling_coefs, 0, world->rng, false);
+    selected_rx_pathway = 0; // TODO_PATHWAYS: use value from test_many_bimolecular*/
   }
 
-
+  // TODO: cleanup
   if (reactant_index == RX_NO_RX || selected_rx_pathway < RX_LEAST_VALID_PATHWAY) {
     return -1; /* No reaction */
   }
+
+  assert(selected_rx_pathway == 0 && "TODO");
 
   /* run the reaction */
   Collision rx_collision = Collision(
@@ -752,7 +762,7 @@ int DiffuseReactEvent::collide_and_react_with_surf_mol(
       elapsed_molecule_time + remaining_time_step * collision.time,
       collision.pos,
       colliding_molecule.id,
-      matching_rxns[selected_rx_pathway] // FIXME_PATHWAYS: this should contain all the pathways
+      matching_rxn_classes[0]
   );
 
   int outcome_bimol_result = outcome_bimolecular(
@@ -913,6 +923,7 @@ void DiffuseReactEvent::diffuse_surf_molecule(
 
 
 // returns true if molecule survived
+// TODO: merge with collide_and_react_with_surf_mol
 bool DiffuseReactEvent::react_2D_all_neighbors(
     Partition& p,
     Molecule& sm,
@@ -936,7 +947,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
   // array, each item corresponds to one potential reaction
   small_vector<float_t> correction_factors;
   small_vector<molecule_id_t> reactant_molecule_ids;
-  ReactionsVector matching_rxns;
+  RxnClassesVector matching_rxn_classes;
 
   /* step through the neighbors */
   for (const WallTileIndexPair& neighbor: neighbors) {
@@ -981,17 +992,17 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
     assert(!nsm_species.has_flag(SPECIES_FLAG_EXTERNAL_SPECIES) && "TODO_LATER");
 
     // returns value >=1 if there can be a reaction
-    size_t orig_num_rxsn = matching_rxns.size();
+    size_t orig_num_rxsn = matching_rxn_classes.size();
     RxUtil::trigger_bimolecular_orientation_from_mols(
         p.all_reactions.bimolecular_reactions_map,
         sm, nsm,
-        matching_rxns
+        matching_rxn_classes
     );
 
     // extend arrays holding additional information
     // FIXME: the same code is in collide_and_react_with_surf_mol
-    for (size_t i = orig_num_rxsn; i < matching_rxns.size(); i++) {
-      const Reaction* rxn = matching_rxns[i];
+    for (size_t i = orig_num_rxsn; i < matching_rxn_classes.size(); i++) {
+      const RxnClass* rxn = matching_rxn_classes[i];
       assert(rxn != nullptr);
 
       correction_factors.push_back(remaining_time_step / ngrid.binding_factor);
@@ -999,7 +1010,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
     }
   }
 
-  size_t num_matching_rxns = matching_rxns.size();
+  size_t num_matching_rxns = matching_rxn_classes.size();
   if (num_matching_rxns == 0) {
     return true;
   }
@@ -1007,7 +1018,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
   int selected_rx_pathway;
   Collision collision;
   float_t local_prob_factor = 3.0 / neighbors.size();
-  int reactant_index;
+  int rxn_class_index;
   if (num_matching_rxns == 1) {
     // figure out what should happen
     /* Calculate local_prob_factor for the reaction probability.
@@ -1015,24 +1026,29 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
        limit) to the real "num_nbrs" neighbor tiles. */
 
     selected_rx_pathway = RxUtil::test_bimolecular(
-        *matching_rxns[0], world->rng,
+        *matching_rxn_classes[0], world->rng,
         sm, p.get_m(reactant_molecule_ids[0]),
         correction_factors[0], local_prob_factor);
 
     assert(selected_rx_pathway <= 0 && "Only one pathway supported for now (with index 0)");
-    reactant_index = 0;
+    rxn_class_index = 0;
   }
   else {
     bool all_neighbors_flag = true;
-    reactant_index = RxUtil::test_many_bimolecular(matching_rxns, correction_factors, local_prob_factor, world->rng, all_neighbors_flag);
+    rxn_class_index = RxUtil::test_many_bimolecular(matching_rxn_classes, correction_factors, local_prob_factor, world->rng, all_neighbors_flag);
     selected_rx_pathway = 0; // TODO_PATHWAYS: use value from test_many_bimolecular
   }
 
-  if (reactant_index == RX_NO_RX || selected_rx_pathway < RX_LEAST_VALID_PATHWAY) {
+  if (rxn_class_index == RX_NO_RX || selected_rx_pathway < RX_LEAST_VALID_PATHWAY) {
     return true; /* No reaction */
   }
 
-  collision = Collision(CollisionType::SURFMOL_SURFMOL, &p, sm.id, current_time - event_time, reactant_molecule_ids[reactant_index], matching_rxns[reactant_index]);
+  collision = Collision(
+      CollisionType::SURFMOL_SURFMOL,
+      &p, sm.id, current_time - event_time,
+      reactant_molecule_ids[rxn_class_index],
+      matching_rxn_classes[rxn_class_index]
+  );
 
   /* run the reaction */
   int outcome_bimol_result = outcome_bimolecular(
@@ -1236,7 +1252,7 @@ void DiffuseReactEvent::create_unimol_rx_action(
   float_t curr_time = event_time + diffusion_time_step - remaining_time_step;
   assert(curr_time >= 0);
 
-  const Reaction* rx = RxUtil::pick_unimol_rx(world, m.species_id);
+  const RxnClass* rx = RxUtil::pick_unimol_rx(world, m.species_id);
   if (rx == nullptr) {
     return;
   }
@@ -1259,12 +1275,17 @@ bool DiffuseReactEvent::react_unimol_single_molecule(
     Partition& p,
     const molecule_id_t m_id,
     const float_t scheduled_time,
-    const Reaction* unimol_rx
+    const RxnClass* unimol_rx_class
 ) {
-  assert(unimol_rx != nullptr);
-  assert(unimol_rx != (const Reaction*)-1);
+  assert(unimol_rx_class != nullptr);
+  assert(unimol_rx_class != (const RxnClass*)-1);
   // the unimolecular reaction was already selected
   // FIXME: if there is more of them, mcell3 uses rng to select which to execute...
+
+  // TODO: see check_for_unimolecular_reaction
+  assert(unimol_rx_class->get_num_reactions() == 1 && "Select pathway");
+  reaction_index_t ri = 0;
+
   Molecule& m = p.get_m(m_id);
   if (m.is_defunct()) {
     return false;
@@ -1277,7 +1298,7 @@ bool DiffuseReactEvent::react_unimol_single_molecule(
   }
 
   assert(scheduled_time >= event_time && scheduled_time <= event_time + diffusion_time_step);
-  return outcome_unimolecular(p, m, scheduled_time - event_time, unimol_rx);
+  return outcome_unimolecular(p, m, scheduled_time - event_time, unimol_rx_class->get_reaction(ri));
 }
 
 
@@ -1347,10 +1368,10 @@ int DiffuseReactEvent::find_surf_product_positions(
     const Molecule* reacA, const bool keep_reacA,
     const Molecule* reacB, const bool keep_reacB,
     const Molecule* surf_reac,
-    const Reaction* rx,
+    const Rxn* rxn,
     small_vector<GridPos>& assigned_surf_product_positions) {
 
-  uint needed_surface_positions = RxUtil::get_num_surface_products(world, rx);
+  uint needed_surface_positions = rxn->get_num_surf_products(p.all_species);
 
   small_vector<GridPos> recycled_surf_prod_positions; // this array contains information on where to place the surface products
   uint initiator_recycled_index = INDEX_INVALID;
@@ -1411,7 +1432,7 @@ int DiffuseReactEvent::find_surf_product_positions(
   }
 
   // random assignment of positions
-  uint num_tiles_to_recycle = min(rx->products.size(), recycled_surf_prod_positions.size());
+  uint num_tiles_to_recycle = min(rxn->products.size(), recycled_surf_prod_positions.size());
   if (num_tiles_to_recycle == 1 && recycled_surf_prod_positions.size() >= 1) {
     // NOTE: this code is overly complex and can be simplified
     if (initiator_recycled_index == INDEX_INVALID) {
@@ -1424,8 +1445,8 @@ int DiffuseReactEvent::find_surf_product_positions(
   }
   else if (num_tiles_to_recycle > 1) {
     uint next_available_index = 0;
-    uint n_players = rx->get_num_players();
-    uint n_reactants = rx->reactants.size();
+    uint n_players = rxn->get_num_players();
+    uint n_reactants = rxn->reactants.size();
 
     // assign recycled positions to products
     while (next_available_index < num_tiles_to_recycle) {
@@ -1438,10 +1459,10 @@ int DiffuseReactEvent::find_surf_product_positions(
       }
 
       uint product_index = rnd_num - n_reactants;
-      assert(product_index < rx->products.size());
+      assert(product_index < rxn->products.size());
 
       // we care only about surface molecules
-      if (p.all_species.get(rx->products[product_index].species_id).is_vol()) {
+      if (p.all_species.get(rxn->products[product_index].species_id).is_vol()) {
         continue;
       }
 
@@ -1459,7 +1480,7 @@ int DiffuseReactEvent::find_surf_product_positions(
     small_vector<bool> used_vacant_tiles;
     used_vacant_tiles.resize(vacant_neighbor_tiles.size(), false);
 
-    uint n_products = rx->products.size();
+    uint n_products = rxn->products.size();
     uint num_vacant_tiles = vacant_neighbor_tiles.size();
     for (uint product_index = 0; product_index < n_products; product_index++) {
 
@@ -1499,19 +1520,28 @@ int DiffuseReactEvent::outcome_products_random(
     Partition& p,
     const Collision& collision,
     const float_t remaining_time_step,
-    const int path,
+    const reaction_index_t reaction_index,
     bool& keep_reacA,
     bool& keep_reacB
 ) {
-  assert(path == 0 && "Only single pathway is supported now");
-
 #ifdef DEBUG_REACTIONS
   DUMP_CONDITION4(
       collision.dump(p, "Processing reaction:", p.stats.get_current_iteration());
   );
 #endif
 
-  const Reaction* rx = collision.rx;
+  // TODO: unify rx vs rxn
+  const Rxn* rx = nullptr;
+  if (collision.is_mol_mol_reaction()) {
+    const RxnClass* rxn_class = collision.rxn_class;
+    assert(rxn_class != nullptr);
+    rx = rxn_class->get_reaction(reaction_index);
+  }
+  else {
+    assert(reaction_index == 0 && "For other than mol mol collision the selected reaction index must be 0");
+    rx = collision.rx;
+  }
+  assert(rx != nullptr);
   assert(rx->reactants.size() == 1 || rx->reactants.size() == 2);
 
   Molecule* reacA = &p.get_m(collision.diffused_molecule_id);
@@ -1572,7 +1602,9 @@ int DiffuseReactEvent::outcome_products_random(
   small_vector<GridPos> assigned_surf_product_positions; // this array contains information on where to place the surface products
   assigned_surf_product_positions.resize(rx->products.size());
   if (is_orientable) {
-    int res = find_surf_product_positions(p, reacA, keep_reacA, reacB, keep_reacB, surf_reac, rx, assigned_surf_product_positions);
+    int res = find_surf_product_positions(
+        p, reacA, keep_reacA, reacB, keep_reacB, surf_reac, rx,
+        assigned_surf_product_positions);
     if (res == RX_BLOCKED) {
       return RX_BLOCKED;
     }
@@ -1727,8 +1759,8 @@ int DiffuseReactEvent::outcome_products_random(
     // to keep MCell3 compatibility, diffusion of molecule that survived its unimol reaction must
     // be executed right away and this is handled i nDiffuseReactEvent::diffuse_molecules
     new_diffuse_or_unimol_react_actions.push_back(
-        DiffuseOrUnimolReactionAction(
-            DiffuseOrUnimolReactionAction::Type::DIFFUSE,
+        DiffuseOrUnimolRxnAction(
+            DiffuseOrUnimolRxnAction::Type::DIFFUSE,
             new_m_id, scheduled_time,
             where_is_vm_created
     ));
@@ -1752,7 +1784,7 @@ bool DiffuseReactEvent::outcome_unimolecular(
     Partition& p,
     Molecule& m,
     const float_t time_from_event_start,
-    const Reaction* unimol_rx
+    const Rxn* unimol_rx
 ) {
   molecule_id_t id = m.id;
 

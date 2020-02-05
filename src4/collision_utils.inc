@@ -454,10 +454,11 @@ static void collide_mol_loop_body(
   vec3_t position;
   // collide_mol must be inlined because many things are computed all over there
   if (collide_mol(vm, remaining_displacement, colliding_vm, radius, time, position)) {
-    const Reaction* rx = p.all_reactions.get_specific_reaction(vm, colliding_vm);
-    assert(rx != nullptr);
+    const RxnClass* rxn_class = p.all_reactions.get_specific_reaction_class(vm, colliding_vm);
+    assert(rxn_class != nullptr);
+    assert(rxn_class->get_num_reactions() == 1 && "TODO");
     molecule_collisions.push_back(
-        Collision(CollisionType::VOLMOL_VOLMOL, &p, vm.id, time, position, colliding_vm.id, rx)
+        Collision(CollisionType::VOLMOL_VOLMOL, &p, vm.id, time, position, colliding_vm.id, rxn_class)
     );
   }
 }

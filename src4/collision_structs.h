@@ -48,6 +48,8 @@ enum class CollisionType {
 
 class Collision;
 class Partition;
+class Rxn;
+class RxnClass;
 
 #ifndef INDEXER_WA
 typedef boost::container::small_vector<Collision, 16> collision_vector_t;
@@ -64,7 +66,7 @@ class Collision {
 public:
   Collision()
     : type(CollisionType::INVALID), partition(nullptr), diffused_molecule_id(MOLECULE_ID_INVALID), time(TIME_INVALID),
-      colliding_molecule_id(MOLECULE_ID_INVALID), rx(nullptr), colliding_wall_index(WALL_INDEX_INVALID) {
+      colliding_molecule_id(MOLECULE_ID_INVALID), rx(nullptr), rxn_class(nullptr), colliding_wall_index(WALL_INDEX_INVALID) {
   }
 
   // maybe create some static constructors with better names
@@ -75,7 +77,7 @@ public:
       const float_t time_,
       const vec3_t& pos_,
       const molecule_id_t colliding_molecule_id_,
-      const Reaction* rx_ptr
+      const RxnClass* rxn_class_ptr
       )
     :
       type(type_),
@@ -84,7 +86,8 @@ public:
       time(time_),
       pos(pos_),
       colliding_molecule_id(colliding_molecule_id_),
-      rx(rx_ptr),
+      rx(nullptr),
+      rxn_class(rxn_class_ptr),
       colliding_wall_index(WALL_INDEX_INVALID) {
     assert((type == CollisionType::VOLMOL_VOLMOL || type == CollisionType::VOLMOL_SURFMOL)
         && "This constructor must be used only for volmol or volsurf collisions");
@@ -96,7 +99,7 @@ public:
       const molecule_id_t diffused_molecule_id_,
       const float_t time_, // time from event start
       const molecule_id_t colliding_molecule_id_,
-      const Reaction* rx_ptr
+      const RxnClass* rxn_class_ptr
       )
     :
       type(type_),
@@ -104,7 +107,8 @@ public:
       diffused_molecule_id(diffused_molecule_id_),
       time(time_),
       colliding_molecule_id(colliding_molecule_id_),
-      rx(rx_ptr),
+      rx(nullptr),
+      rxn_class(rxn_class_ptr),
       colliding_wall_index(WALL_INDEX_INVALID) {
     assert(type == CollisionType::SURFMOL_SURFMOL && "This constructor must be used only for surfsurf collisions");
   }
@@ -125,6 +129,7 @@ public:
       pos(pos_),
       colliding_molecule_id(MOLECULE_ID_INVALID),
       rx(nullptr),
+      rxn_class(nullptr),
       colliding_wall_index(colliding_wall_index_) {
     assert((type == CollisionType::WALL_BACK || type == CollisionType::WALL_FRONT) && "This constructor must be used only for wall collisions");
   }
@@ -135,7 +140,7 @@ public:
       const molecule_id_t diffused_molecule_id_,
       const float_t time_,
       const vec3_t& pos_,
-      const Reaction* rx_ptr
+      const Rxn* rx_ptr
       )
     :
       type(type_),
@@ -145,6 +150,7 @@ public:
       pos(pos_),
       colliding_molecule_id(MOLECULE_ID_INVALID),
       rx(rx_ptr),
+      rxn_class(nullptr),
       colliding_wall_index(WALL_INDEX_INVALID) {
     assert(type == CollisionType::UNIMOLECULAR_VOLMOL && "This constructor must be used only for unimol volmol collisions");
   }
@@ -158,12 +164,16 @@ public:
 
   // valid only for is_wall_collision
   molecule_id_t colliding_molecule_id;
-  const Reaction* rx;
+  const Rxn* rx;
+
+  // used for VOLMOL_VOLMOL or type == CollisionType::VOLMOL_SURFMOL
+  // TODO: make them private? so that we can check access
+  const RxnClass* rxn_class;
 
   // valid only for COLLISION_WALL*
   wall_index_t colliding_wall_index;
 
-  bool is_vol_mol_collision() const {
+  bool is_vol_mol_vol_mol_collision() const {
     return type == CollisionType::VOLMOL_VOLMOL;
   }
 
