@@ -633,7 +633,9 @@ bool DiffuseReactEvent::collide_and_react_with_vol_mol(
 
   // TODO: unify usage to rxn and rxn class pointers,
   //       they might not be set in Collision struct, so pointers are the only way
-  const RxnClass& rxn_class = *collision.rxn_class;
+  const RxnClass* rxn_class = collision.rxn_class;
+  assert(rxn_class != nullptr);
+
   //  rx->prob_t is always NULL in out case update_probs(world, rx, m->t);
   // returns which reaction pathway to take
   float_t scaling = factor * r_rate_factor;
@@ -731,7 +733,7 @@ int DiffuseReactEvent::collide_and_react_with_surf_mol(
   int reactant_index;
   if (matching_rxn_classes.size() == 1) {
     selected_rx_pathway = RxUtil::test_bimolecular(
-        *matching_rxn_classes[0], world->rng,
+        matching_rxn_classes[0], world->rng,
         diffused_molecule, colliding_molecule,
         scaling_coefs[0], 0);
 
@@ -1026,7 +1028,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
        limit) to the real "num_nbrs" neighbor tiles. */
 
     selected_rx_pathway = RxUtil::test_bimolecular(
-        *matching_rxn_classes[0], world->rng,
+        matching_rxn_classes[0], world->rng,
         sm, p.get_m(reactant_molecule_ids[0]),
         correction_factors[0], local_prob_factor);
 

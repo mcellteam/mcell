@@ -93,9 +93,6 @@ public:
   /* Rate constant of this pathway */
   float_t rate_constant;
 
-  /* Cumulative probabilities for (entering) this pathway, based on all pathways of the reaction */
-  float_t cum_prob;
-
   // contains the same reactants as the parent Reaction, but possibly in different order
   // checked for correctness on initialize and it is used as constant anyway
   std::vector<SpeciesWithOrientation> reactants;
@@ -140,6 +137,10 @@ public:
 
   std::vector<Rxn> reactions;
 
+  // Cumulative probabilities for specific reactions, based on all reactions of the class
+  // has same size as reactions
+  std::vector<float_t> cum_probs;
+
 public:
 
   uint get_num_reactions() const {
@@ -151,9 +152,13 @@ public:
     return &reactions[rx_index];
   }
 
-  void add_and_initialize_reaction(const Rxn& r) {
+  void add_and_initialize_reaction(const Rxn& r, const float_t cum_prob) {
+    assert(reactions.size() == cum_probs.size());
+
     reactions.push_back(r);
     reactions.back().initialize(*this);
+
+    cum_probs.push_back(cum_prob);
   }
 
   // there are no pathways for this type of reactions

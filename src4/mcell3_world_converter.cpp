@@ -648,7 +648,7 @@ bool MCell3WorldConverter::convert_species_and_create_diffusion_events(volume* s
 
 
 bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
-  RxnClass reaction;
+  RxnClass rxn_class;
 
   // rx->next - handled in convert_reactions
   // rx->sym->name - ignored, name obtained from pathway
@@ -662,8 +662,8 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
 
   assert(mcell3_rx->cum_probs != nullptr);
 
-  reaction.max_fixed_p = mcell3_rx->max_fixed_p;
-  reaction.min_noreaction_p = mcell3_rx->min_noreaction_p;
+  rxn_class.max_fixed_p = mcell3_rx->max_fixed_p;
+  rxn_class.min_noreaction_p = mcell3_rx->min_noreaction_p;
 
   // ?? double pb_factor; /* Conversion factor from rxn rate to rxn probability (used for cooperativity) */
 
@@ -705,7 +705,6 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
     }
 
     rxn.rate_constant = current_pathway->km;
-    rxn.cum_prob = mcell3_rx->cum_probs[pathway_index];
 
     CHECK_PROPERTY(current_pathway->orientation1 == 0 || current_pathway->orientation1 == 1 || current_pathway->orientation1 == -1);
     CHECK_PROPERTY(current_pathway->orientation2 == 0 || current_pathway->orientation2 == 1 || current_pathway->orientation2 == -1);
@@ -718,7 +717,7 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
       rxn.reactants.push_back(r1);
       if (pathway_index == 0) {
         // reaction has the same reactants, storing only once
-        reaction.reactants.push_back(r1);
+        rxn_class.reactants.push_back(r1);
       }
 
       if (current_pathway->reactant2 != nullptr) {
@@ -726,7 +725,7 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
         SpeciesWithOrientation r2 = SpeciesWithOrientation(reactant2_id, current_pathway->orientation2);
         rxn.reactants.push_back(r2);
         if (pathway_index == 0) {
-          reaction.reactants.push_back(r2);
+          rxn_class.reactants.push_back(r2);
         }
 
         if (current_pathway->reactant3 != nullptr) {
@@ -747,20 +746,20 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
 
     if (mcell3_rx->n_pathways == RX_ABSORB_REGION_BORDER) {
       CHECK_PROPERTY(current_pathway->flags == PATHW_ABSORP);
-      reaction.type = RxnClassType::AbsorbRegionBorder;
+      rxn_class.type = RxnClassType::AbsorbRegionBorder;
     }
     else if (mcell3_rx->n_pathways == RX_TRANSP) {
       CHECK_PROPERTY(current_pathway->flags == PATHW_TRANSP);
-      reaction.type = RxnClassType::Transparent;
+      rxn_class.type = RxnClassType::Transparent;
     }
     else if (mcell3_rx->n_pathways == RX_REFLEC) {
       CHECK_PROPERTY(current_pathway->flags == PATHW_REFLEC);
-      reaction.type = RxnClassType::Reflect;
+      rxn_class.type = RxnClassType::Reflect;
     }
     else {
       CHECK_PROPERTY(current_pathway->flags == 0);
 
-      reaction.type = RxnClassType::Standard;
+      rxn_class.type = RxnClassType::Standard;
 
       // products
       product *product_ptr = current_pathway->product_head;
@@ -774,13 +773,13 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
       }
     }
 
-    reaction.add_and_initialize_reaction(rxn);
+    rxn_class.add_and_initialize_reaction(rxn, mcell3_rx->cum_probs[pathway_index]);
 
     pathway_index++;
   }
 
 
-  world->all_reactions.add(reaction);
+  world->all_reactions.add(rxn_class);
 
   return true;
 }

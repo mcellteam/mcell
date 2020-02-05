@@ -2064,11 +2064,6 @@ void dump_processing_reaction(
     struct abstract_molecule *reacA,
     struct abstract_molecule *reacB
 ) {
-  if (rx->n_pathways != 1) {
-    cout << "FIXME: dump_processing_reaction - only 1 pathway for now\n";
-    return;
-  }
-
   assert(reacA != nullptr);
   bool bimol = (reacB != nullptr);
 

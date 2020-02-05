@@ -309,18 +309,19 @@ test_bimolecular
 *************************************************************************/
 /*, double scaling - 1, double local_prob_factor = 0,*/
 static int test_bimolecular(
-    const RxnClass& rxn_class,
+    const RxnClass* rxn_class,
     rng_state& rng,
     const Molecule& a1, // unused for now
     const Molecule& a2, // unused for now
     const float_t scaling,
     const float_t local_prob_factor
 ) {
+  assert(rxn_class != nullptr);
   /* rescale probabilities for the case of the reaction
      between two surface molecules */
-  float_t min_noreaction_p = rxn_class.min_noreaction_p; // local_prob_factor == 0
+  float_t min_noreaction_p = rxn_class->min_noreaction_p; // local_prob_factor == 0
   if (local_prob_factor != 0) {
-    min_noreaction_p = rxn_class.min_noreaction_p * local_prob_factor;
+    min_noreaction_p = rxn_class->min_noreaction_p * local_prob_factor;
   }
 
   float_t p;
@@ -331,12 +332,10 @@ static int test_bimolecular(
     if (p >= min_noreaction_p) {
       return RX_NO_RX;
     }
-    else {
-      return 0; // we have just one pathwayy
-    }
+    // continue below
   }
   else {
-    float max_p = rxn_class.max_fixed_p; //rx.cum_probs[rx->n_pathways - 1]; // TODO_PATHWAYS
+    float max_p = rxn_class->max_fixed_p; //rx.cum_probs[rx->n_pathways - 1]; // TODO_PATHWAYS
     if (local_prob_factor > 0) {
       max_p *= local_prob_factor;
     }
@@ -344,6 +343,7 @@ static int test_bimolecular(
     if (max_p >= scaling) /* we cannot scale enough. add missed rxns */
     {
       // TODO: this statistics is important
+      // where to store this info? - RXN is constant and should stay like this
       /* How may reactions will we miss? - only statistics?? */
       /*if (scaling == 0.0)
         rx->n_skipped += GIGANTIC4;
@@ -363,10 +363,13 @@ static int test_bimolecular(
     }
   }
 
-  // TODO_PATHWAYS: find the right reaction for multiple pathways
-  assert(rxn_class.get_num_reactions() == 1 && "TODO");
-
-  return 0; // return index of the only reaction
+  int M = rxn_class->get_num_reactions() - 1;
+  if (local_prob_factor > 0) {
+    return binary_search_double(rxn_class->cum_probs, p, M, local_prob_factor);
+  }
+  else {
+    return binary_search_double(rxn_class->cum_probs, p, M, 1);
+  }
 }
 
 
@@ -423,10 +426,10 @@ static int test_many_bimolecular(
   if (n == 1) {
     Molecule dummy;
     if (all_neighbors_flag) {
-      return test_bimolecular(*rxn_classes[0], rng, dummy, dummy, scaling[0], local_prob_factor);
+      return test_bimolecular(rxn_classes[0], rng, dummy, dummy, scaling[0], local_prob_factor);
     }
     else {
-      return test_bimolecular(*rxn_classes[0], rng, dummy, dummy, scaling[0], 0);
+      return test_bimolecular(rxn_classes[0], rng, dummy, dummy, scaling[0], 0);
     }
   }
 
