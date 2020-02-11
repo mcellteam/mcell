@@ -799,15 +799,16 @@ int init_counter_name_hash(struct sym_table_head **counter_by_name,
 /***********************************************************************
  *
  * load the model checkpoint data
+ * when only_time_and_iter is true, only time and iteration is read
  *
  ***********************************************************************/
-int load_checkpoint(struct volume *world) {
+int load_checkpoint(struct volume *world, bool only_time_and_iter) {
   FILE *chkpt_infs = NULL;
   if ((chkpt_infs = fopen(world->chkpt_infile, "rb")) == NULL) {
     world->chkpt_seq_num = 1;
   } else {
     mcell_log("Reading from checkpoint file '%s'.", world->chkpt_infile);
-    if (read_chkpt(world, chkpt_infs)) {
+    if (read_chkpt(world, chkpt_infs, only_time_and_iter)) {
       mcell_error_nodie("Failed to read checkpoint file '%s'.",
                         world->chkpt_infile);
       fclose(chkpt_infs);

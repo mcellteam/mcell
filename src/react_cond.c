@@ -87,7 +87,7 @@ int binary_search_double(double *A, double match, int max_idx, double mult) {
       max_idx = mid_idx;
   }
 
-  if (match > A[min_idx])
+  if (match > A[min_idx] * mult)
     return max_idx;
   else
     return min_idx;
@@ -470,6 +470,13 @@ void update_probs(struct volume *world, struct rxn *rx, double t) {
           mcell_log_raw("%s[%d] ", rx->players[n_product]->sym->name,
                         rx->geometries[n_product]);
       }
+
+      double time_secs = convert_iterations_to_seconds(
+          world->start_iterations, world->time_unit,
+          world->simulation_start_seconds, world->current_iterations);
+
+      mcell_log_raw("at iteration %lld with time %.9f", world->current_iterations, time_secs);
+
       mcell_log_raw("\n");
     }
 
