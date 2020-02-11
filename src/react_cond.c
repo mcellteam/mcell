@@ -87,7 +87,7 @@ int binary_search_double(double *A, double match, int max_idx, double mult) {
       max_idx = mid_idx;
   }
 
-  if (match > A[min_idx])
+  if (match > A[min_idx] * mult)
     return max_idx;
   else
     return min_idx;

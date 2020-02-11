@@ -25,3 +25,10 @@ Changes in MCell 3.5
 * Optimizations:
   * Optimized search in nfSim reaction cache (up to 2x speedup for some MCellR models)
 
+
+Changes in MCell 3.5.1
+-------------------------------------------------------------------------------
+
+* Bug Fixes:
+  *  Fixed multiple surface-surface reaction handling when the reactions had the same reactants, 
+     previous implementation assigned too low probability to the last reaction with the same reactants.  
