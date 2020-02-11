@@ -1017,31 +1017,32 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
     return true;
   }
 
-  int selected_rx_pathway;
+  reaction_index_t selected_reaction_index;
   Collision collision;
+
+  /* Calculate local_prob_factor for the reaction probability.
+     Here we convert from 3 neighbor tiles (upper probability
+     limit) to the real "num_nbrs" neighbor tiles. */
   float_t local_prob_factor = 3.0 / neighbors.size();
   int rxn_class_index;
   if (num_matching_rxns == 1) {
     // figure out what should happen
-    /* Calculate local_prob_factor for the reaction probability.
-       Here we convert from 3 neighbor tiles (upper probability
-       limit) to the real "num_nbrs" neighbor tiles. */
-
-    selected_rx_pathway = RxUtil::test_bimolecular(
+    selected_reaction_index = RxUtil::test_bimolecular(
         matching_rxn_classes[0], world->rng,
         sm, p.get_m(reactant_molecule_ids[0]),
         correction_factors[0], local_prob_factor);
 
-    assert(selected_rx_pathway <= 0 && "Only one pathway supported for now (with index 0)");
+    // there is just one possible class == one pair of reactants
     rxn_class_index = 0;
   }
   else {
     bool all_neighbors_flag = true;
-    rxn_class_index = RxUtil::test_many_bimolecular(matching_rxn_classes, correction_factors, local_prob_factor, world->rng, all_neighbors_flag);
-    selected_rx_pathway = 0; // TODO_PATHWAYS: use value from test_many_bimolecular
+    rxn_class_index =
+        RxUtil::test_many_bimolecular(matching_rxn_classes, correction_factors, local_prob_factor, world->rng, all_neighbors_flag, selected_reaction_index);
+    selected_reaction_index = 0; // TODO_PATHWAYS: use value from test_many_bimolecular
   }
 
-  if (rxn_class_index == RX_NO_RX || selected_rx_pathway < RX_LEAST_VALID_PATHWAY) {
+  if (rxn_class_index == RX_NO_RX || selected_reaction_index < RX_LEAST_VALID_PATHWAY) {
     return true; /* No reaction */
   }
 
@@ -1054,9 +1055,8 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
 
   /* run the reaction */
   int outcome_bimol_result = outcome_bimolecular(
-      p, collision, selected_rx_pathway, remaining_time_step
+      p, collision, selected_reaction_index, remaining_time_step
   );
-
 
   return outcome_bimol_result != RX_DESTROY;
 }

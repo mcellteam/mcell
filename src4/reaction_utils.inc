@@ -285,7 +285,7 @@ static int binary_search_double(const std::vector<float_t>& A, float_t match, in
     }
   }
 
-  if (match > A[min_idx]) {
+  if (match > A[min_idx] * mult) {
     return max_idx;
   }
   else {
@@ -307,7 +307,6 @@ test_bimolecular
   Note: If this reaction does not return RX_NO_RX, then we update
         counters appropriately assuming that the reaction does take place.
 *************************************************************************/
-/*, double scaling - 1, double local_prob_factor = 0,*/
 static int test_bimolecular(
     const RxnClass* rxn_class,
     rng_state& rng,
@@ -363,6 +362,13 @@ static int test_bimolecular(
     }
   }
 
+#ifdef DEBUG_REACTION_PROBABILITIES
+  mcell_log(
+      "test_bimolecular: p = %.8f, scaling = %.8f, min_noreaction_p = %.8f, local_prob_factor = %.8f",
+      p, scaling, min_noreaction_p, local_prob_factor
+  );
+#endif
+
   int M = rxn_class->get_num_reactions() - 1;
   if (local_prob_factor > 0) {
     return binary_search_double(rxn_class->cum_probs, p, M, local_prob_factor);
@@ -402,19 +408,18 @@ static int test_many_bimolecular(
     const RxnClassesVector& rxn_classes,
     const small_vector<float_t>& scaling,
     float_t local_prob_factor,
-    //TODO_PATHWAYS: int& chosen_pathway - always 0 for now?
     rng_state& rng,
-    bool all_neighbors_flag
+    bool all_neighbors_flag,
+    reaction_index_t& chosen_reaction_index
 ) {
   assert(rxn_classes.size() == scaling.size());
   uint n = rxn_classes.size();
 
-  //small_vector<float_t> rxp;  /* array of cumulative rxn probabilities */
   //TODO: use small vector
-  std::vector<float_t> rxp;
-  rxp.resize(2 * n, 0.0);
+  /* array of cumulative rxn probabilities */
+  std::vector<float_t> cum_rxn_class_probs; // rxn in mcell3
+  cum_rxn_class_probs.resize(2 * n, 0.0);
 
-  const RxnClass* my_rxn;
   int m, M;
   float_t p, f;
 
@@ -438,66 +443,66 @@ static int test_many_bimolecular(
   /* Note: lots of division here, if we're CPU-bound,could invert the
      definition of scaling_coefficients */
   if (all_neighbors_flag && local_prob_factor > 0) {
-    rxp[0] = (rxn_classes[0]->max_fixed_p) * local_prob_factor / scaling[0];
+    cum_rxn_class_probs[0] = (rxn_classes[0]->max_fixed_p) * local_prob_factor / scaling[0];
   }
   else {
-    rxp[0] = rxn_classes[0]->max_fixed_p / scaling[0];
+    cum_rxn_class_probs[0] = rxn_classes[0]->max_fixed_p / scaling[0];
   }
 
   for (uint i = 1; i < n; i++) {
     if (all_neighbors_flag && local_prob_factor > 0) {
-      rxp[i] = rxp[i - 1] + (rxn_classes[i]->max_fixed_p) * local_prob_factor / scaling[i];
+      cum_rxn_class_probs[i] = cum_rxn_class_probs[i - 1] + (rxn_classes[i]->max_fixed_p) * local_prob_factor / scaling[i];
     }
     else {
-      rxp[i] = rxp[i - 1] + rxn_classes[i]->max_fixed_p / scaling[i];
+      cum_rxn_class_probs[i] = cum_rxn_class_probs[i - 1] + rxn_classes[i]->max_fixed_p / scaling[i];
     }
   }
 
-  if (rxp[n - 1] > 1.0) {
+  if (cum_rxn_class_probs[n - 1] > 1.0) {
     //f = rxp[n - 1] - 1.0;   /* Number of failed reactions */
+    // TODO: important statistics
 #if 0
     for (i = 0; i < n; i++) /* Distribute failures */
     {
       if (all_neighbors_flag && local_prob_factor > 0) {
         rxn_classes[i]->n_skipped += f * ((rxn_classes[i]->cum_probs[rxn_classes[i]->n_pathways - 1]) *
                                  local_prob_factor) /
-                            rxp[n - 1];
+                            cum_rxn_class_probs[n - 1];
       } else {
         rxn_classes[i]->n_skipped +=
-            f * (rxn_classes[i]->cum_probs[rxn_classes[i]->n_pathways - 1]) / rxp[n - 1];
+            f * (rxn_classes[i]->cum_probs[rxn_classes[i]->n_pathways - 1]) / cum_rxn_class_probs[n - 1];
       }
     }
 #endif
-    p = rng_dbl(&rng) * rxp[n - 1];
+    p = rng_dbl(&rng) * cum_rxn_class_probs[n - 1];
   }
   else {
     p = rng_dbl(&rng);
-    if (p > rxp[n - 1])
+    if (p > cum_rxn_class_probs[n - 1])
       return RX_NO_RX;
   }
 
   /* Pick the reaction class that happens */
-  int rx_index = binary_search_double(rxp, p, rxp.size() - 1, 1);
+  int rx_index = binary_search_double(cum_rxn_class_probs, p, cum_rxn_class_probs.size() - 1, 1);
+  assert(rx_index >= 0);
 
-  assert(rxn_classes[rx_index]->get_num_reactions() == 1 && "TODO");
-
-#if 0 // TODO_PATHWAYS
-  my_rxn = rxn_classes[i];
-  if (i > 0) {
-    p = (p - rxp[i - 1]);
+  const RxnClass* my_rxn = rxn_classes[rx_index];
+  if (rx_index > 0) {
+    p = (p - cum_rxn_class_probs[rx_index - 1]);
   }
-  p = p * scaling[i];
+  p = p * scaling[rx_index];
 
   /* Now pick the pathway within that reaction */
-  M = my_rxn->n_pathways - 1;
-
-  if (all_neighbors_flag && local_prob_factor > 0)
+  // NOTE: might optimize if there is just one rxn
+  M = my_rxn->get_num_reactions() - 1;
+  if (all_neighbors_flag && local_prob_factor > 0) {
     m = binary_search_double(my_rxn->cum_probs, p, M, local_prob_factor);
-  else
+  }
+  else {
     m = binary_search_double(my_rxn->cum_probs, p, M, 1);
+  }
 
-  *chosen_pathway = m;
-#endif
+  chosen_reaction_index = m;
 
   return rx_index;
 }

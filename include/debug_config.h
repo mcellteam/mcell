@@ -48,21 +48,27 @@
 
 //#define DEBUG_DEFRAGMENTATION
 
-// cannot be conditioned by iterations
-#define DEBUG_RNG_CALLS
+
+//#define DEBUG_RNG_CALLS // cannot be conditioned by iterations
 
 // does not generate the same dump as mcell3
 //#define DEBUG_SUBPARTITIONS
 
+#if 1
 #define DEBUG_DIFFUSION
-//#define DEBUG_DIFFUSION_EXTRA
 //#define DEBUG_COLLISIONS
-//#define DEBUG_COLLISIONS_WALL_EXTRA
 #define DEBUG_REACTIONS
+#endif
+
+//#define DEBUG_DIFFUSION_EXTRA
+//#define DEBUG_COLLISIONS_WALL_EXTRA
+
+//
+#define DEBUG_REACTION_PROBABILITIES  // cannot be conditioned by iterations
 
 //#define DEBUG_GRIDS
 
-#define FROM_ITERATION 10//250
+#define FROM_ITERATION 0//250
 
 #define TO_ITERATION 100
 

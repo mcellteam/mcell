@@ -148,7 +148,7 @@ public:
   }
 
   const Rxn* get_reaction(reaction_index_t rx_index) const {
-    assert(rx_index < reactions.size());
+    assert(rx_index < (int)reactions.size());
     return &reactions[rx_index];
   }
 

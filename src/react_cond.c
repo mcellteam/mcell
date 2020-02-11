@@ -33,6 +33,8 @@
 #include "react.h"
 #include "vol_util.h"
 
+#include "debug_config.h"
+
 /*************************************************************************
 timeof_unimolecular:
   In: the reaction we're testing
@@ -155,6 +157,13 @@ int test_bimolecular(struct rxn *rx, double scaling, double local_prob_factor,
         return RX_NO_RX;
     }
   }
+
+#ifdef DEBUG_REACTION_PROBABILITIES
+  mcell_log(
+      "test_bimolecular: p = %.8f, scaling = %.8f, min_noreaction_p = %.8f, local_prob_factor = %.8f",
+      p, scaling, min_noreaction_p, local_prob_factor
+  );
+#endif
 
   /* If we have only fixed pathways... */
   int M = rx->n_pathways - 1;

@@ -164,9 +164,11 @@ const partition_index_t PARTITION_INDEX_INVALID = INDEX_INVALID;
 typedef uint subpart_index_t;
 const subpart_index_t SUBPART_INDEX_INVALID = INDEX_INVALID;
 
-// index of reaction's pathway (local for reaction)
-typedef uint reaction_index_t;
-const reaction_index_t REACTION_INDEX_INVALID = INDEX_INVALID;
+// index of reaction in a reaction class pathway (local for reaction)
+// -1 is used to signalize that no reaction was selected (i < RX_LEAST_VALID_PATHWAY)
+// TODO: change to using and use INVALID?
+typedef int reaction_index_t;
+//const reaction_index_t REACTION_INDEX_INVALID = INDEX_INVALID;
 
 // time step is used in partition to make sets of molecules that can be diffused with
 // different periodicity
