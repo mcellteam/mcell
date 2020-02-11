@@ -409,7 +409,9 @@ static int test_many_bimolecular(
   assert(rxn_classes.size() == scaling.size());
   uint n = rxn_classes.size();
 
-  small_vector<float_t> rxp;  /* array of cumulative rxn probabilities */
+  //small_vector<float_t> rxp;  /* array of cumulative rxn probabilities */
+  //TODO: use small vector
+  std::vector<float_t> rxp;
   rxp.resize(2 * n, 0.0);
 
   const RxnClass* my_rxn;
