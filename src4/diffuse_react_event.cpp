@@ -317,7 +317,8 @@ void DiffuseReactEvent::diffuse_vol_molecule(
 
         // call callback if the user registered one
         wall_hit_callback_func wall_hit_callback = world->get_wall_hit_callback();
-        if (wall_hit_callback != nullptr) {
+        if (wall_hit_callback != nullptr &&
+            (world->wall_hit_object_id == GEOMETRY_OBJECT_ID_INVALID || world->wall_hit_object_id == colliding_wall.object_id)) {
           WallHitInfo info;
           info.molecule_id = vm_new_ref.id;
           info.geometry_object_id = colliding_wall.object_id;

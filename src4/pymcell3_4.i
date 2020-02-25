@@ -127,7 +127,7 @@ public:
   void run_n_iterations(const uint64_t num_iterations, const uint64_t output_frequency);
   void end_simulation();
   
-  void register_wall_hit_callback_internal(wall_hit_callback_func func, void* clientdata_);
+  void register_wall_hit_callback_internal(wall_hit_callback_func func, void* clientdata_, const char* object_name);
   
   
   void enable_wall_hit_counting();
@@ -152,9 +152,9 @@ public:
 // Attach a new method to our plot widget for adding Python functions
 %extend World {
    // Set a Python function object as a callback function
-   // Note : PyObject *pyfunc is remapped with a typempap
-   void register_wall_hit_callback(PyObject *pyfunc) {
-     self->register_wall_hit_callback_internal(py_callback_wall_hit, (void *) pyfunc);
+   // Note : PyObject *pyfunc is remapped with a typemap
+   void register_wall_hit_callback(PyObject *pyfunc, const char* object_name = "") {
+     self->register_wall_hit_callback_internal(py_callback_wall_hit, (void *) pyfunc, object_name);
      Py_INCREF(pyfunc);
    }
 }
