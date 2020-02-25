@@ -124,7 +124,7 @@ public:
 
   void dump();
 
-  // -------------- callback registration --------------
+  // -------------- callback registration -------------------------
   void register_wall_hit_callback_internal(wall_hit_callback_func func, void* clientdata_) {
     wall_hit_callback = func;
     wall_hit_callback_clientdata = clientdata_;
@@ -133,6 +133,33 @@ public:
   wall_hit_callback_func get_wall_hit_callback() {
     return wall_hit_callback;
   }
+
+  // ------------- counting ---------------------------------------
+  // ?? why is it slower???
+  void enable_wall_hit_counting(/*argument might contain information on filtering these events*/) {
+    wall_hit_callback = wall_hit_callback_append;
+    wall_hit_callback_clientdata = this;
+  }
+
+  uint get_wall_hit_array_size() const {
+    return wall_hits.size();
+  }
+
+  const WallHitInfo& get_wall_hit_array_item(uint index) const {
+    return wall_hits[index];
+  }
+
+  void clear_wall_hit_array() {
+    wall_hits.clear();
+  }
+
+private:
+  static void wall_hit_callback_append(const WallHitInfo& info, void* ctx) {
+    (static_cast<World*>(ctx))->wall_hits.push_back(info);
+  }
+
+  // used when enable_wall_hit_counting is called
+  small_vector<WallHitInfo> wall_hits;
 
 private:
   std::vector<Partition> partitions;

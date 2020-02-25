@@ -47,6 +47,9 @@ using namespace MCell;
 //%import "defines.h"
 typedef uint partition_index_t;
 typedef uint vertex_index_t;
+typedef uint molecule_id_t;
+typedef uint geometry_object_id_t;
+typedef uint wall_id_t;
 
 // FIXME: this does not work either
 //%import "callback_structs.h"
@@ -125,6 +128,12 @@ public:
   void end_simulation();
   
   void register_wall_hit_callback_internal(wall_hit_callback_func func, void* clientdata_);
+  
+  
+  void enable_wall_hit_counting();
+  uint get_wall_hit_array_size();
+  const WallHitInfo& get_wall_hit_array_item(uint index);
+  void clear_wall_hit_array();
   
   Partition& get_partition(partition_index_t i);
   
