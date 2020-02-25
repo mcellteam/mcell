@@ -172,9 +172,29 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
   p.get_subpart_3d_indices_from_index(vm.v.subpart_index, src_subpart_indices);
   p.get_subpart_3d_indices(dest_pos, dest_subpart_indices);
 
+
+  // the radius must be adjusted so that it takes into account distance in the 3D space,
+  // taking the radius in just one dimension is not sufficient as shown here:
+  //
+  //     a
+  //    /|
+  // __/_|__
+  //  b  |x
+  //
+  // distance of the points a and b from x is higher than radius, but
+  // distance of x to any point on the line might be less than radius
+  //
+  // mcell3 extends the bounding box in all dimensions and is overly pessimistic
+  //
+  // the (possibly) logic behind this is that the case has something to do with
+  // the diameter of a square, computing precise length would be most probably worse perfrmance-wise
+  // TODO: explain why this should work
+  // a more efficient variant if definitely possible
+  float_t rx_radius_for_neighbors = rx_radius * SQRT2;
+
   // first check what's around the starting point
   collect_neighboring_subparts(
-      p, vm.v.pos, src_subpart_indices, rx_radius, sp_edge_length,
+      p, vm.v.pos, src_subpart_indices, rx_radius_for_neighbors, sp_edge_length,
       crossed_subparts_for_molecules
   );
 
@@ -183,7 +203,7 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
   // moving along them
   if ( !glm::all( glm::equal(dest_subpart_indices, src_subpart_indices) ) ) {
 
-    subpart_index_t dest_subpart_index = p.get_subpartition_index_from_3d_indices(dest_subpart_indices);
+    subpart_index_t dest_subpart_index = p.get_subpart_index_from_3d_indices(dest_subpart_indices);
     last_subpart_index = dest_subpart_index;
 
     ivec3_t dir_urb_addend;
@@ -214,13 +234,25 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
       // first check whether we are not in fact touching one of the boundaries
       if (abs(diff.x) < EPS) {
         // only update the xyz subpartition index
-        curr_subpart_indices.x += dir_urb_addend.x;
+        curr_subpart_indices.x += dir_urb_addend.x;\
+        // in some cases, we can run out of partition
+        // this means that we missed the destination partition which is fine since collection of subparts
+        // is only an optimization, but still we must terminate
+        if (!p.is_subpart_index_in_range(curr_subpart_indices.x)) {
+          break;
+        }
       }
       else if (abs(diff.y) < EPS) {
         curr_subpart_indices.y += dir_urb_addend.y;
+        if (!p.is_subpart_index_in_range(curr_subpart_indices.y)) {
+          break;
+        }
       }
       else if (abs(diff.z) < EPS) {
         curr_subpart_indices.z += dir_urb_addend.z;
+        if (!p.is_subpart_index_in_range(curr_subpart_indices.z)) {
+          break;
+        }
       }
       else {
         // compute time for the next subpartition collision, let's assume that displacemnt
@@ -240,21 +272,30 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
           curr_pos += displacement * coll_times.x;
           // and also update the xyz subpartition index
           curr_subpart_indices.x += dir_urb_addend.x;
+          if (!p.is_subpart_index_in_range(curr_subpart_indices.x)) {
+            break;
+          }
         }
         else if (coll_times.y >= 0 && coll_times.y <= coll_times.z) {
           curr_pos += displacement * coll_times.y;
           curr_subpart_indices.y += dir_urb_addend.y;
+          if (!p.is_subpart_index_in_range(curr_subpart_indices.y)) {
+            break;
+          }
         }
         else if (coll_times.z >= 0) {
           curr_pos += displacement * coll_times.z;
           curr_subpart_indices.z += dir_urb_addend.z;
+          if (!p.is_subpart_index_in_range(curr_subpart_indices.z)) {
+            break;
+          }
         }
         else {
           break;
         }
       }
 
-      curr_subpart_index = p.get_subpartition_index_from_3d_indices(curr_subpart_indices);
+      curr_subpart_index = p.get_subpart_index_from_3d_indices(curr_subpart_indices);
       if (collect_for_walls) {
         crossed_subparts_for_walls.push_back(curr_subpart_index);
       }
@@ -262,7 +303,7 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
 
       // also neighbors
       collect_neighboring_subparts(
-          p, curr_pos, curr_subpart_indices, rx_radius, sp_edge_length,
+          p, curr_pos, curr_subpart_indices, rx_radius_for_neighbors, sp_edge_length,
           crossed_subparts_for_molecules
       );
 
@@ -275,10 +316,68 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
 
   // finally check also neighbors in destination
   collect_neighboring_subparts(
-      p, dest_pos, dest_subpart_indices, rx_radius, sp_edge_length,
+      p, dest_pos, dest_subpart_indices, rx_radius_for_neighbors, sp_edge_length,
       crossed_subparts_for_molecules
   );
 }
+
+#if 0
+// a potentially more efficient variant of collect_crossed_subparts
+// 1 variant for molecules,
+// another for walls (direct crosses, no radius)
+static inline void __attribute__((always_inline)) collect_crossed_subparts2(
+  const Partition& p,
+  const Molecule& vm, // molecule that we are diffusing
+  const vec3_t& displacement,
+  const float_t rx_radius,
+  const float_t sp_edge_length,
+  const bool collect_for_walls,
+  SubpartIndicesVector& crossed_subparts_for_walls, // crossed subparts considered for wall collision
+  subpart_indices_set_t& crossed_subparts_for_molecules, // crossed subparts considered for molecule collisions
+  subpart_index_t& last_subpart_index
+) {
+  // compute 4 points where the traces start
+  // e.g. rotate a square
+
+  // compute how often a subpart plane is hit along the way for x, y, and z dimensions
+
+  // compute first hits for each subpart plane (we need to know where to start)
+
+  // for each dimension, process each trace and each plane
+
+}
+#endif
+
+
+#if 0
+// one more option is to use point-line distance and
+// somehow go along the trace and check neighboring points
+//
+static inline void __attribute__((always_inline)) collect_crossed_subparts3(
+  const Partition& p,
+  const Molecule& vm, // molecule that we are diffusing
+  const vec3_t& displacement,
+  const float_t rx_radius,
+  const float_t sp_edge_length,
+  const bool collect_for_walls,
+  SubpartIndicesVector& crossed_subparts_for_walls, // crossed subparts considered for wall collision
+  subpart_indices_set_t& crossed_subparts_for_molecules, // crossed subparts considered for molecule collisions
+  subpart_index_t& last_subpart_index
+) {
+  // starting point
+
+
+  // reuse collide_mol
+
+
+  // 1) check corners
+}
+#endif
+
+#if 0
+// last option is to fall back to the mcell3 implementation (maybe try this first of optimization is needed)
+static inline void __attribute__((always_inline)) collect_crossed_subparts4(
+#endif
 
 
 // ---------------------------------- molecule collisions ----------------------------------
@@ -340,7 +439,6 @@ static bool collide_mol(
 // body of the collision detection loop
 // made into separate function to be possibly able to make some optimizations over it in the future
 static void collide_mol_loop_body(
-    const WorldConstants& world_constants,
     Partition& p,
     const Molecule& vm,
     const molecule_id_t colliding_vm_id,
@@ -356,7 +454,7 @@ static void collide_mol_loop_body(
   vec3_t position;
   // collide_mol must be inlined because many things are computed all over there
   if (collide_mol(vm, remaining_displacement, colliding_vm, radius, time, position)) {
-    const Reaction* rx = world_constants.get_reaction(vm, colliding_vm);
+    const Reaction* rx = p.all_reactions.get_specific_reaction(vm, colliding_vm);
     assert(rx != nullptr);
     molecule_collisions.push_back(
         Collision(CollisionType::VOLMOL_VOLMOL, &p, vm.id, time, position, colliding_vm.id, rx)
@@ -437,7 +535,7 @@ static CollisionType collide_wall(
     vec3_t& move,
     float_t& collision_time, vec3_t& collision_pos
 ) {
-  p.get_simulation_stats().inc_ray_polygon_tests();
+  p.stats.inc_ray_polygon_tests();
 
   float_t dp, dv, dd;
   float_t d_eps;
@@ -476,7 +574,8 @@ static CollisionType collide_wall(
     if (dv != 0.0)
       return CollisionType::WALL_MISS;
 
-    // NOTE: what is this doing?
+    // in case that the trajectory is parallel to the wall?
+    // update the displacement a bit
     if (update_move) {
       a = (MCell::abs_max_2vec(pos, move) + 1.0) * EPS_C;
       if ((rng_uint(&rng) & 1) == 0)
@@ -576,19 +675,33 @@ static CollisionType collide_wall(
   }
 }
 
+
+static bool is_immediate_collision(const float_t time) {
+  return time < EPS;
+}
+
+// called only from ray_trace_vol
 static void collect_wall_collisions(
     Partition& p,
     const Molecule& vm, // molecule that we are diffusing, we are changing its pos  and possibly also subvolume
     const subpart_index_t subpart_index,
     const wall_index_t previous_reflected_wall,
     rng_state& rng,
-    vec3_t& displacement, // can be changed
+    // displacement can be changed in case we needed to 'REDO' the collision, also,
+    // if there was a hit, is changed to the closest displacement
+    vec3_t& displacement,
+    vec3_t& displacement_up_to_wall_collision, // overwritten only when there is a wall collision
     collision_vector_t& wall_collisions
 ) {
-  // check each wall in this subpartition
-  const UintSet& wall_indices = p.get_subpart_wall_indices(subpart_index);
 
-  for (UintSet::const_iterator it = wall_indices.begin(); it != wall_indices.end(); it++) {
+  // remember which was the closest hit to update displacement
+  float_t closest_hit_time = TIME_FOREVER;
+  vec3_t closest_hit_pos;
+
+  // check each wall in this subpartition
+  const uint_set<wall_index_t>& wall_indices = p.get_subpart_wall_indices(subpart_index);
+
+  for (auto it = wall_indices.begin(); it != wall_indices.end(); it++) {
     wall_index_t wall_index = *it;
 
     if (wall_index == previous_reflected_wall)
@@ -599,8 +712,8 @@ static void collect_wall_collisions(
     vec3_t collision_pos;
 
 #ifdef DEBUG_COLLISIONS_WALL_EXTRA
-    SimulationStats* world = &p.get_simulation_stats();
-    // just faking the name for the dump condition macro
+    SimulationStats* world = &p.stats;
+    // just faking the name for the dump condition macro - FIXME - use better name
     DUMP_CONDITION4(
         std::cout << "Checking wall:\n";
         w.dump(p, "", true);
@@ -626,11 +739,21 @@ static void collect_wall_collisions(
       it = wall_indices.begin();
     }
     else if (collision_type != CollisionType::WALL_MISS) {
-      p.get_simulation_stats().inc_ray_polygon_colls();
+      // remember the closest hit position, but ignore immediate
+      if (collision_time < closest_hit_time && !is_immediate_collision(collision_time)) {
+        closest_hit_pos = collision_pos;
+      }
+
+      p.stats.inc_ray_polygon_colls();
       wall_collisions.push_back(
           Collision(collision_type, &p, vm.id, collision_time, collision_pos, wall_index)
       );
     }
+  }
+
+  if (!wall_collisions.empty()) {
+    // update displacement up to the wall collision
+    displacement_up_to_wall_collision = closest_hit_pos - vm.v.pos;
   }
 }
 

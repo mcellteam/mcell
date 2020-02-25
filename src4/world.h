@@ -33,13 +33,13 @@
 #include <set>
 #include <map>
 
-#include "world_constants.h"
 #include "partition.h"
 #include "scheduler.h"
 #include "species.h"
 #include "reaction.h"
 #include "geometry.h"
 #include "callback_info.h"
+#include "reactions_info.h"
 
 namespace MCell {
 
@@ -47,23 +47,22 @@ namespace MCell {
 class World {
 private:
   void init_fpu();
-  void init_simulation();
   void create_defragmentation_events();
 
 public:
   World();
-  void init_world_constants();
+  void init_simulation();
   void run_simulation(const bool dump_initial_state = false);
   void run_n_iterations(const uint64_t num_iterations, const uint64_t output_frequency);
   void end_simulation();
 
   // -------------- diverse getters -----------------------------
-  const WorldConstants& get_world_constants() {
-    return world_constants;
+  const SimulationConfig& get_config() {
+    return config;
   }
 
   uint64_t get_current_iteration() const {
-    return simulation_stats.get_current_iteration();
+    return stats.get_current_iteration();
   }
 
   // -------------- partition manipulation methods --------------
@@ -90,14 +89,14 @@ public:
 
   // add a partition in a predefined 'lattice' that contains point pos
   partition_index_t add_partition(const vec3_t& pos) {
-    assert(world_constants.partition_edge_length != 0);
+    assert(config.partition_edge_length != 0);
     assert(get_partition_index(pos) == PARTITION_INDEX_INVALID && "Partition must not exist");
 
     vec3_t origin =
-        floor_to_multiple(pos, world_constants.partition_edge_length)
-        - vec3_t(world_constants.partition_edge_length/2);
+        floor_to_multiple(pos, config.partition_edge_length)
+        - vec3_t(config.partition_edge_length/2);
 
-    partitions.push_back(Partition(origin, world_constants, simulation_stats));
+    partitions.push_back(Partition(origin, config, all_reactions, all_species, stats));
     return partitions.size() - 1;
   }
 
@@ -110,64 +109,6 @@ public:
       return partitions;
   }
 
-  // -------------- reaction utility methods --------------
-
-  // should be inlined
-  bool can_react_vol_vol(const Molecule& a, const Molecule& b) const {
-    // must not be the same molecule
-    if (&a == &b) {
-      return false;
-    }
-
-    // not be defunct
-    if (a.is_defunct() || b.is_defunct()) {
-      return false;
-    }
-    // is there even any reaction
-    const Species& sa = species[a.species_id];
-    if (!sa.has_flag(SPECIES_FLAG_CAN_VOLVOL)) {
-      return false;
-    }
-    const Species& sb = species[b.species_id];
-    if (!sb.has_flag(SPECIES_FLAG_CAN_VOLVOL)) {
-      return false;
-    }
-
-    // is there a reaction between these two species?
-    auto it_first_species = bimolecular_reactions_map.find(a.species_id);
-    if (it_first_species == bimolecular_reactions_map.end()) {
-      return false;
-    }
-    auto it_second_species = it_first_species->second.find(b.species_id);
-    if (it_second_species == it_first_species->second.end()) {
-      return false;
-    }
-
-    return true;
-  }
-
-  // must return result, asserts otherwise
-  // TODO: remove and use directly world constants
-  const Reaction* get_reaction(const Molecule& a, const Molecule& b) const {
-    return world_constants.get_reaction(a, b);
-  }
-
-  // TODO: remove and use directly world constants
-  const Species& get_species(const species_id_t species_id) const {
-    assert(species_id < species.size());
-    return species[species_id];
-  }
-
-  // TODO: remove and use directly world constants
-  const std::vector<Species>& get_species() const {
-    return species;
-  }
-
-  // TODO: remove and use directly world constants ????
-  void add_species(const Species& new_species) {
-    assert(new_species.species_id == species.size());
-    species.push_back(new_species);
-  }
   // -------------- object id counters --------------
   wall_id_t get_next_wall_id() {
     wall_id_t res = next_wall_id;
@@ -195,38 +136,29 @@ public:
 
 private:
   std::vector<Partition> partitions;
-  std::vector<Species> species;
 
 public:
   Scheduler scheduler;
 
-  std::vector<Reaction> reactions; // we might need faster searching or reference from species to reactions here but let's keep it simple for now
-
-  // TODO_PATHWAYS: there might be multiple reactions for 1 or 2 reactants (multiple pathways)
-  UnimolecularReactionsMap unimolecular_reactions_map; // created from reactions in init_simulation
-  BimolecularReactionsMap bimolecular_reactions_map; // created from reactions in init_simulation
-
-  uint64_t iterations; // number of iterations to simulate
-
+  uint64_t iterations; // number of iterations to simulate - move to Sim config
   uint seed_seq; // initial seed passed to mcell as argument
 
-  WorldConstants world_constants;
-  SimulationStats simulation_stats;
+
+public:
+  // single instance for the whole mcell simulator,
+  // used as constants during simulation
+  SimulationConfig config;
+  ReactionsInfo all_reactions;
+  SpeciesInfo all_species;
+  SimulationStats stats;
+
 
   rng_state rng; // single state for the random number generator
 
-  // in case when there would be many copies of a string, this constant pool can be used
-  const char* add_const_string_to_pool(const std::string str) {
-    return const_string_pool.insert(str).first->c_str();
-  }
-
 private:
-  std::set<std::string> const_string_pool;
-
   // global ID counters
   wall_id_t next_wall_id;
   geometry_object_id_t next_geometry_object_id;
-
 
   // used by run_n_iterations to know whether the simulation was
   // already initialized

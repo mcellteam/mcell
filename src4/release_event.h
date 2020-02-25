@@ -73,11 +73,6 @@ public:
   // for surface molecule releases
   std::vector<CummAreaPWallIndexPair> cum_area_and_pwall_index_pairs;
 
-  // do I need objects?
-  // walls?
-  std::vector<wall_index_t> wall_indices_t; // need to find the correct partition?
-
-
   World* world;
 
 private:

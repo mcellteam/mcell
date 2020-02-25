@@ -30,6 +30,8 @@
  * new_diffuse_or_unimol_react_actions action queue stay in the diffuse_react_event_t
  * class.
  */
+#ifndef SRC4_REACTION_UTILS_INC_
+#define SRC4_REACTION_UTILS_INC_
 
 #include "diffuse_react_event.h"
 #include "defines.h"
@@ -42,7 +44,7 @@ using namespace std;
 
 namespace MCell {
 
-namespace rx_util {
+namespace RxUtil {
 
 // ---------------------------------- bimolecular reactions ----------------------------------
 
@@ -127,6 +129,143 @@ static void trigger_bimolecular_orientation_from_mols(
       matching_rxns
   );
 }
+
+
+
+/*************************************************************************
+ *
+ * find all surface reactions for any surface molecule with orientation
+ * orientA on a surface class triggered via the ALL_MOLECULES and
+ * ALL_SURFACE_MOLECULE keywords
+ *
+ * in: orientation of surface molecule
+ *     surface class species to test
+ *     number of matching reactions before the function call
+ *     flag signaling the presence of a transparent region border
+ *     flag signaling the presence of a reflective region border
+ *     flag signaling the presence of a absorbing region border
+ *     array holding matching reactions
+ *
+ * out: returns number of matching reactions
+ *      adds matching reactions to matching_rxns array
+ *
+ *************************************************************************/
+static void find_surface_mol_reactions_with_surf_classes(
+    const Partition& p,
+    const BimolecularReactionsMap& reactions,
+    const Molecule& reacA,
+    const Wall& w,
+    const bool allow_rx_transp,
+    const bool allow_rx_reflec,
+    const bool allow_rx_absorb_reg_border,
+    ReactionsVector& matching_rxns
+) {
+
+  assert(reacA.is_surf());
+
+  // for all reactions applicable to reacA and and wall
+  small_vector<const SpeciesReactionMap*> potential_reactions;
+  p.all_reactions.get_all_reactions_for_reactant(reacA, potential_reactions);
+  if (potential_reactions.empty()) {
+    // no reactions at all for reacA
+    return;
+  }
+
+  // for all reactive regions of a wall
+  for (region_index_t region_index: w.regions) {
+    const Region& reg = p.get_region(region_index);
+    if (!reg.is_reactive()) {
+      continue;
+    }
+
+    // each map of potential reactions is for this specific species, all molecules an all surf molecules
+    for (const SpeciesReactionMap* reaction_map: potential_reactions) {
+
+      SpeciesReactionMap::const_iterator reactions_reacA_and_surface_it = reaction_map->find(reg.species_id);
+      if (reactions_reacA_and_surface_it == reaction_map->end()) {
+        // no reactions for this type of region
+        continue;
+      }
+
+      const Reaction* rxn = reactions_reacA_and_surface_it->second;
+      assert(rxn->reactants.size() == 2);
+
+      // TODO_PATHWAYS: allow multiple reactions..
+      orientation_t orient0 = rxn->reactants[0].orientation;
+      orientation_t orient1 = rxn->reactants[1].orientation;
+
+      // TODO: can we move this condition to some shared function?
+      if ( (orient0 == 0) ||
+           (orient1 == 0 || (orient0 + orient1) * (orient0 - orient1) != 0) ||
+           (reacA.s.orientation * orient0 * orient1 > 0) ) {
+
+        bool reject_reaction =
+            (rxn->is_transparent() && !allow_rx_transp) ||
+            (rxn->is_reflect() && !allow_rx_reflec) ||
+            (rxn->is_absorb() && !allow_rx_absorb_reg_border);
+
+        if (!reject_reaction) {
+          matching_rxns.push_back(rxn);
+        }
+      }
+    }
+  }
+}
+
+
+/*************************************************************************
+trigger_intersect:
+   In: hash value of molecule's species
+       pointer to a molecule
+       orientation of that molecule
+       pointer to a wall
+       array of matching reactions (placeholder for output)
+       flags that tells whether we should include special reactions
+          (REFL/TRANSP/ABSORB_REGION_BORDER) in the output array
+   Out: number of matching reactions for this
+        molecule/wall intersection, or for this mol/generic wall,
+        or this wall/generic mol.  All matching reactions are placed in
+        the array "matching_rxns" in the first "number" slots.
+   Note: Moving molecule may be inert.
+
+*************************************************************************/
+static void trigger_intersect(
+    const Partition& p,
+    const Molecule& reacA,
+    const Wall& w,
+    ReactionsVector& matching_rxns,
+    const bool allow_rx_transp = true,
+    const bool allow_rx_reflec = true,
+    const bool allow_rx_absorb_reg_border = true
+) {
+  /*
+   * ??? how are unimol reactions related to molecule - surface reactions?
+  if (w.in_reactive_region()) {
+    num_matching_rxns = find_unimol_reactions_with_surf_classes(
+        reaction_hash, rx_hashsize, reacA, w, hashA, orientA, num_matching_rxns,
+        allow_rx_transp, allow_rx_reflec, allow_rx_absorb_reg_border,
+        matching_rxns);
+  }
+  */
+
+  for (region_index_t region_index: w.regions) {
+
+    if (reacA.is_vol()) {
+      /*num_matching_rxns = find_volume_mol_reactions_with_surf_classes(
+          reaction_hash, rx_hashsize, all_mols, all_volume_mols, orientA,
+          scl->surf_class, num_matching_rxns, allow_rx_transp, allow_rx_reflec,
+          matching_rxns);*/
+      assert(false && "TODO");
+    }
+    else if (reacA.is_surf()) {
+
+      find_surface_mol_reactions_with_surf_classes(
+          p, p.all_reactions.bimolecular_reactions_map, reacA, w,  allow_rx_transp, allow_rx_reflec,
+          allow_rx_absorb_reg_border, matching_rxns);
+    }
+  }
+}
+
 
 
 /*************************************************************************
@@ -367,9 +506,9 @@ static const Reaction* pick_unimol_rx(
     const World* world,
     const species_id_t species_id
 ) {
-  const UnimolecularReactionsMap* unimol_rxs = world->world_constants.unimolecular_reactions_map;
-  auto it = unimol_rxs->find(species_id);
-  if (it == unimol_rxs->end()) {
+  const UnimolecularReactionsMap& unimol_rxs = world->all_reactions.unimolecular_reactions_map;
+  auto it = unimol_rxs.find(species_id);
+  if (it == unimol_rxs.end()) {
     return nullptr;
   }
   else {
@@ -401,10 +540,10 @@ static float_t compute_unimol_lifetime(
   float_t res = time_of_unimol(rx, rng);
 
 #ifdef DEBUG_REACTIONS
-  SimulationStats* world = &p.get_simulation_stats();
+  SimulationStats* world = &p.stats;
   DUMP_CONDITION4(
       // calling rng for unimolecular
-      vm.dump(p, "Assigned unimolecular time (prev rng):", "", p.get_simulation_stats().get_current_iteration(), res);
+      vm.dump(p, "Assigned unimolecular time (prev rng):", "", p.stats.get_current_iteration(), res);
   );
 #endif
 
@@ -416,7 +555,7 @@ static float_t compute_unimol_lifetime(
 static uint get_num_surface_products(const World* world, const Reaction* rx) {
   uint res = 0;
   for (const SpeciesWithOrientation& product: rx->products) {
-    const Species& species = world->get_species(product.species_id);
+    const Species& species = world->all_species.get(product.species_id);
     if (species.is_surf()) {
       res++;
     }
@@ -425,6 +564,8 @@ static uint get_num_surface_products(const World* world, const Reaction* rx) {
 }
 
 
-} // namespace rx_util
+} // namespace RxUtil
 
-} // namespace mcell
+} // namespace MCell
+
+#endif // SRC4_REACTION_UTILS_INC_

@@ -66,26 +66,21 @@ void vec2_t::dump(const std::string extra_comment, const std::string ind) const 
 }
 
 
-void UintSet::dump() {
-  cout << "Indices contained in a subpartition: ";
-  int cnt = 0;
-  for (uint idx: *this) {
-    cout << idx << ", ";
-
-    if (cnt %20 == 0 && cnt != 0) {
-      cout << "\n";
-    }
-    cnt++;
-  }
-  cout << "\n";
-}
-
-
 void SimulationStats::dump() {
   cout << "Total number of ray-subvolume intersection tests (number of ray_trace calls): " << ray_voxel_tests << "\n";
   cout << "Total number of ray-polygon intersection tests: " << ray_polygon_tests << "\n";
   cout << "Total number of ray-polygon intersections: " << ray_polygon_colls << "\n";
   cout << "Total number of molecule moves between walls: " << mol_moves_between_walls << "\n";
+}
+
+
+void SimulationConfig::dump() {
+  cout << "time_unit: \t\t" << time_unit << " [float_t] \t\t\n";
+  cout << "length_unit: \t\t" << length_unit << " [float_t] \t\t\n";
+  cout << "rx_radius_3d: \t\t" << rx_radius_3d << " [float_t] \t\t\n";
+  cout << "partition_edge_length: \t\t" << partition_edge_length << " [float_t] \t\t\n";
+  cout << "subpartitions_per_partition_dimension: \t\t" << subpartitions_per_partition_dimension << " [uint] \t\t\n";
+  cout << "subpartition_edge_length: \t\t" << subpartition_edge_length << " [float_t] \t\t\n";
 }
 
 } // namespace mcell

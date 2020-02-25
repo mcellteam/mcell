@@ -22,11 +22,11 @@
 ******************************************************************************/
 
 #include <fenv.h> // Linux include
+#include <sys/resource.h> // Linux include
 
-//extern "C" {
 #include "rng.h" // MCell 3
 #include "logging.h"
-//}
+
 
 #include "world.h"
 #include "defragmentation_event.h"
@@ -49,8 +49,8 @@ World::World()
     wall_hit_callback(nullptr),
     wall_hit_callback_clientdata(nullptr)
 {
-  world_constants.partition_edge_length = PARTITION_EDGE_LENGTH_DEFAULT;
-  world_constants.subpartitions_per_partition_dimension = SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT;
+  config.partition_edge_length = PARTITION_EDGE_LENGTH_DEFAULT;
+  config.subpartitions_per_partition_dimension = SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT;
 }
 
 
@@ -68,43 +68,6 @@ void World::init_fpu() {
   }
 #endif
 }
-
-void World::init_world_constants() {
-
-  if (species.empty()) {
-    // for developers: init_world_constants must be called after species and reactions conversion
-    mcell_log("Error: there must be at lease one species!");
-    exit(1);
-  }
-
-  // create map for fast reaction searches
-  for (Reaction& r: reactions) {
-    assert(r.reactants.size() == 1 || r.reactants.size() == 2); // only bimolecular reactions are supported now
-
-    if (r.reactants.size() == 1) {
-      // for now we only support only one outcome of a bimolecular reaction
-      assert(unimolecular_reactions_map.count(r.reactants[0].species_id) == 0);
-      unimolecular_reactions_map[r.reactants[0].species_id] = &r;
-    }
-    else {
-      // check - for now we only support only one outcome of a bimolecular reaction
-      if (bimolecular_reactions_map.count(r.reactants[0].species_id) != 0) {
-        assert(bimolecular_reactions_map[r.reactants[0].species_id].count(r.reactants[1].species_id) == 0);
-      }
-      bimolecular_reactions_map[r.reactants[0].species_id][r.reactants[1].species_id] = &r;
-      bimolecular_reactions_map[r.reactants[1].species_id][r.reactants[0].species_id] = &r;
-    }
-  }
-
-  // just to make sure that we have an item for all the species
-  for (Species& s: species) {
-    bimolecular_reactions_map.insert( std::make_pair(s.species_id, SpeciesReactionMap()) );
-  }
-  assert(bimolecular_reactions_map.size() == species.size());
-
-  world_constants.init(&unimolecular_reactions_map, &bimolecular_reactions_map, &species);
-}
-
 
 static uint64_t determine_output_frequency(uint64_t iterations) {
   uint64_t frequency;
@@ -141,10 +104,19 @@ static double tosecs(timeval& t) {
 void World::init_simulation() {
   assert(!simulation_initialized && "init_simulation must be called just once");
 
+  if (all_species.get_count() == 0) {
+    mcell_log("Error: there must be at lease one species!");
+    exit(1);
+  }
+
+  all_reactions.init(all_species);
+  config.init();
+  stats.reset();
+
   init_fpu();
 
-  cout << "Partitions contain " <<  world_constants.subpartitions_per_partition_dimension << "^3 subvolumes.";
-  assert(partitions.size() == 1 && "Initial partition must have been created, only 1 for now");
+  cout << "Partitions contain " <<  config.subpartitions_per_partition_dimension << "^3 subvolumes.";
+  assert(partitions.size() == 1 && "Initial partition must have been created, only 1 is allowed for now");
 
   // create defragmentation events
   DefragmentationEvent* defragmentation_event = new DefragmentationEvent(this);
@@ -171,7 +143,7 @@ void World::run_n_iterations(const uint64_t num_iterations, const uint64_t outpu
     init_simulation();
   }
 
-  uint64_t& current_iteration = simulation_stats.get_current_iteration();
+  uint64_t& current_iteration = stats.get_current_iteration();
 
   if (current_iteration == 0) {
     cout << "Iterations: " << current_iteration << " of " << iterations << "\n";
@@ -180,13 +152,13 @@ void World::run_n_iterations(const uint64_t num_iterations, const uint64_t outpu
   uint64_t this_run_first_iteration = current_iteration;
 
   do {
-#ifdef DEBUG_SCHEDULER
-    cout << "Before it: " << current_iteration << ", time: " << time << "\n";
-#endif
-
     // current_iteration corresponds to the number of executed time steps
     float_t time = scheduler.get_next_event_time();
     current_iteration = (uint64_t)time;
+
+#ifdef DEBUG_SCHEDULER
+    cout << "Before it: " << current_iteration << ", time: " << time << "\n";
+#endif
 
     if (current_iteration >= this_run_first_iteration + num_iterations) {
       // terminate simulation
@@ -239,9 +211,9 @@ void World::end_simulation() {
     return;
   }
 
-  cout << "Iteration " << simulation_stats.get_current_iteration() << ", simulation finished successfully\n";
+  cout << "Iteration " << stats.get_current_iteration() << ", simulation finished successfully\n";
 
-  simulation_stats.dump();
+  stats.dump();
 
   // report final time
   rusage run_time;
@@ -274,9 +246,10 @@ void World::run_simulation(const bool dump_initial_state) {
 
 
 void World::dump() {
-  world_constants.dump();
-  // species
-  Species::dump_array(species);
+  stats.dump();
+
+  all_species.dump();
+  all_reactions.dump();
 
   // partitions
   for (Partition& p: partitions) {

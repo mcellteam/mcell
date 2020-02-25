@@ -2293,7 +2293,7 @@ struct surface_molecule *place_single_molecule(struct volume *state,
                               1, NULL, new_sm->grid->surface, new_sm->t,
                               new_sm->periodic_box);
 
-  if (schedule_add(gsv->local_storage->timer, new_sm)) {
+  if (schedule_add_mol(gsv->local_storage->timer, new_sm)) {
     mcell_allocfailed("Failed to add volume molecule '%s' to scheduler.",
                       new_sm->properties->sym->name);
     return NULL;

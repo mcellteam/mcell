@@ -21,48 +21,50 @@
  *
 ******************************************************************************/
 
-#ifndef SRC4_VIZ_OUTPUT_EVENT_H_
-#define SRC4_VIZ_OUTPUT_EVENT_H_
+// FIXME: rename - this class won't contain just constants
 
-#include "base_event.h"
+#ifndef SRC4_SPECIES_INFO_H_
+#define SRC4_SPECIES_INFO_H_
+
+#include "defines.h"
+#include "species.h"
+#include "molecule.h"
+#include "reaction.h"
 
 namespace MCell {
 
-class Partition;
-class Molecule;
-
 /**
- * Dumps world state either in a textual or cellblender format.
+ * Owns information on reactions and species,
+ * mostly accessed as constant data.
  */
-class VizOutputEvent: public BaseEvent {
+class SpeciesInfo {
 public:
-  VizOutputEvent(World* world_)
-    : BaseEvent(EVENT_TYPE_INDEX_VIZ_OUTPUT),
-      viz_mode(NO_VIZ_MODE),
-      world(world_) {
+  void add(const Species& new_species) {
+    assert(new_species.species_id == species.size());
+    species.push_back(new_species);
   }
-  virtual ~VizOutputEvent() {}
 
-  virtual void step();
-  virtual void dump(const std::string indent);
+  const Species& get(species_id_t id) const {
+    assert(id < species.size());
+    return species[id];
+  }
 
-  viz_mode_t viz_mode;
-  std::string file_prefix_name;
+  uint get_count() const {
+    return species.size();
+  }
 
-  World* world;
+  const std::vector<Species>& get_species_vector() const {
+    return species;
+  }
+
+  void dump() {
+    Species::dump_array(species);
+  }
 
 private:
-  void compute_where_and_norm(
-      const Partition& p, const Molecule& m,
-      vec3_t& where, vec3_t& norm
-  );
-
-
-  FILE* create_and_open_output_file_name();
-  void output_ascii_molecules();
-  void output_cellblender_molecules();
+  std::vector<Species> species;
 };
 
-} // namespace mcell
+} // namespace MCell
 
-#endif // SRC4_VIZ_OUTPUT_EVENT_H_
+#endif // SRC4_SPECIES_INFO_H_

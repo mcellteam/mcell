@@ -42,6 +42,7 @@
 #include "debug_config.h"
 
 // include implementations of utility functions
+#include "geometry_utils.inc"
 #include "reaction_utils.inc"
 #include "collision_utils.inc"
 #include "exact_disk_utils.inc"
@@ -98,7 +99,21 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const std::vector<molecu
       );
     }
     else {
-      react_unimol_single_molecule(p, action.id, action.scheduled_time, action.unimol_rx);
+      bool diffuse_right_away = react_unimol_single_molecule(p, action.id, action.scheduled_time, action.unimol_rx);
+
+      // get a fresh action reference - unimol reaction could have added some items into the array
+      const DiffuseOrUnimolReactionAction& new_ref_action = new_diffuse_or_unimol_react_actions[i];
+      if (diffuse_right_away) {
+        // if the molecule survived (e.g. in rxn like A -> A + B), then
+        // diffuse it right away
+        // (another option is to put it into the new_diffuse_or_unimol_react_actions
+        //  but MCell3 diffuses them right away)
+        diffuse_single_molecule(
+            p, new_ref_action.id,
+            event_time + diffusion_time_step - new_ref_action.scheduled_time,
+            new_ref_action.where_created_this_iteration // making a copy of this pair
+        );
+      }
     }
   }
 
@@ -141,7 +156,7 @@ void DiffuseReactEvent::diffuse_single_molecule(
 
 
 #ifdef DEBUG_DIFFUSION
-  const Species& debug_species = world->get_species(m.species_id);
+  const Species& debug_species = p.all_species.get(m.species_id);
   DUMP_CONDITION4(
     // the subtraction of diffusion_time_step doesn't make much sense but is needed to make the dump the same as in mcell3
     // need to check it further
@@ -171,45 +186,16 @@ void DiffuseReactEvent::diffuse_single_molecule(
   }
   assert(remaining_time_step <= diffusion_time_step && "remaining_time_step is how much time we should simulate in this step");
 
-  bool was_defunct;
-  vec3_t new_vpos;
-  vec2_t new_spos;
-  subpart_index_t new_subpart_index;
-  wall_index_t new_wall_index;
   if (m.is_vol()) {
     diffuse_vol_molecule(
         p, m_id, remaining_time_step,
-        was_defunct, new_vpos, new_subpart_index,
         wall_tile_pair_where_created_this_iteration
     );
   }
   else {
-    float_t advance_time;
     diffuse_surf_molecule(
-        p, m_id, event_time_end - time_up_to_event_end, remaining_time_step,
-        was_defunct, new_spos, new_wall_index,
-        advance_time
+        p, m_id, event_time_end - time_up_to_event_end, remaining_time_step
     );
-  }
-
-  if (!was_defunct) { // FIXME: unify - we are changing the partition, but not the wall here
-    // need to get a new reference
-    Molecule& m_new_ref = p.get_m(m_id);
-
-    if (m.is_vol()) {
-      // finally move molecule to its destination
-      m_new_ref.v.pos = new_vpos;
-
-      // are we still in the same partition or do we need to move?
-      bool move_to_another_partition = !p.in_this_partition(m_new_ref.v.pos);
-      if (move_to_another_partition) {
-        mcell_log("Error: Crossing partitions is not supported yet.\n");
-        exit(1);
-      }
-
-      // change subpartition
-      p.change_molecule_subpartition(m_new_ref, new_subpart_index);
-    }
   }
 }
 
@@ -244,18 +230,15 @@ void DiffuseReactEvent::diffuse_vol_molecule(
     Partition& p,
     const molecule_id_t vm_id,
     const float_t remaining_time_step,
-    bool& was_defunct,
-    vec3_t& new_pos,
-    subpart_index_t& new_subpart_index,
     WallTileIndexPair& wall_tile_pair_where_created_this_iteration
 ) {
   Molecule& m = p.get_m(vm_id);
-  const Species& species = world->get_species(m.species_id);
+  const Species& species = p.all_species.get(m.species_id);
 
   // diffuse each molecule - get information on position change
   vec3_t displacement;
   float_t r_rate_factor;
-  diffusion_util::compute_vol_displacement(
+  DiffusionUtil::compute_vol_displacement(
       species, remaining_time_step, world->rng, displacement, r_rate_factor);
 
 #ifdef DEBUG_DIFFUSION
@@ -267,12 +250,17 @@ void DiffuseReactEvent::diffuse_vol_molecule(
 #endif
   // note: we are ignoring use_expanded_list setting compared to mcell3
 
-  // detect collisions with other molecules
+  // cut the displacement so that it does not cross partition?
+  // or how to simplify this case when we know that we will definitely
+  // be stopped by a wall (we need to fail if not anyway)
+
   vec3_t remaining_displacement = displacement;
 
   RayTraceState state;
   collision_vector_t molecule_collisions;
-  was_defunct = false;
+  bool was_defunct = false;
+  vec3_t new_pos;
+  subpart_index_t new_subpart_index;
   wall_index_t reflected_wall_index = WALL_INDEX_INVALID;
   float_t updated_remaining_time_step = remaining_time_step; // == t_steps
   float_t elapsed_molecule_time = diffusion_time_step - remaining_time_step; // == vm->t
@@ -304,7 +292,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
 
       if (collision.is_vol_mol_collision()) {
         // ignoring immediate collisions
-        if (collision.time < EPS) {
+        if (CollisionUtil::is_immediate_collision(collision.time)) {
           continue;
         }
 
@@ -312,6 +300,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
         // for now, do the change right away, but we might need to cache these changes and
         // do them after all diffusions were finished
         // warning: might invalidate references to p.volume_molecules array! returns true in that case
+        // also, if this is a reaction where this diffused product is kept, we simply continue with diffusion
         if (collide_and_react_with_vol_mol(
               p, collision, remaining_displacement,
               updated_remaining_time_step, r_rate_factor)
@@ -344,7 +333,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
         cout << "Wall collision: \n";
         const GeometryObject* geom_obj = p.get_geometry_object_if_exists(colliding_wall.object_id);
         assert(geom_obj != nullptr);
-        cout << "  mol id: " << vm_new_ref.id << ", species: " << world->get_species(vm_new_ref.species_id).name << "\n";
+        cout << "  mol id: " << vm_new_ref.id << ", species: " << p.all_species.get(vm_new_ref.species_id).name << "\n";
         cout << "  obj: " << geom_obj->name << ", id: " << geom_obj->id << "\n";
         cout << "  wall id: " << colliding_wall.id << "\n";
         cout << "  time: " << float_t(world->get_current_iteration()) + collision.time << "\n";
@@ -376,7 +365,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
         }
 
         // molecule could have been moved
-        subpart_index_t subpart_after_wall_hit = p.get_subpartition_index(vm_new_ref.v.pos);
+        subpart_index_t subpart_after_wall_hit = p.get_subpart_index(vm_new_ref.v.pos);
         // change subpartition if needed
         p.change_molecule_subpartition(vm_new_ref, subpart_after_wall_hit);
 
@@ -385,6 +374,125 @@ void DiffuseReactEvent::diffuse_vol_molecule(
     }
 
   } while (unlikely(state != RayTraceState::FINISHED && !was_defunct));
+
+  if (!was_defunct) { // FIXME: unify - we are changing the partition, but not the wall here - probably move to diffuse diffuse_vol_molecule
+    // need to get a new reference
+    Molecule& m_new_ref = p.get_m(vm_id);
+
+    if (m_new_ref.is_vol()) {
+      // finally move molecule to its destination
+      m_new_ref.v.pos = new_pos;
+
+#ifdef DEBUG_DIFFUSION
+      DUMP_CONDITION4(
+        // the subtraction of diffusion_time_step doesn't make much sense but is needed to make the dump the same as in mcell3
+        // need to check it further
+        m.dump(p, "", "- Final vm position:", world->get_current_iteration(), /*event_time_end*/ 0);
+      );
+#endif
+
+      // are we still in the same partition or do we need to move?
+      bool move_to_another_partition = !p.in_this_partition(m_new_ref.v.pos);
+      if (move_to_another_partition) {
+        mcell_log("Error: Crossing partitions is not supported yet.\n");
+        exit(1);
+      }
+
+      // change subpartition
+      p.change_molecule_subpartition(m_new_ref, new_subpart_index);
+    }
+  }
+}
+
+// move to collision utils or to partition
+static vec3_t get_displacement_up_to_partition_boundary(
+    const Partition& p,
+    const vec3_t& pos,
+    const vec3_t& displacement
+    ) {
+
+  vec3_t new_pos = pos + displacement;
+  assert(p.in_this_partition(pos));
+  assert(!p.in_this_partition(new_pos));
+
+  // TODO: similar code is in collect_crossed_subparts, clean it up
+  // direction of the displacement
+  // TODO: get rid of the zero div check??
+
+  vec3_t displacement_nonzero = displacement;
+  debug_guard_zero_div(displacement_nonzero);
+  ivec3_t dir_urb_direction = ivec3_t(glm::greaterThan(displacement_nonzero, vec3_t(0)));
+
+  ivec3_t dir_urb_addend;
+  dir_urb_addend.x = (dir_urb_direction.x == 0) ? -1 : 1;
+  dir_urb_addend.y = (dir_urb_direction.y == 0) ? -1 : 1;
+  dir_urb_addend.z = (dir_urb_direction.z == 0) ? -1 : 1;
+
+  // position of edges in our direction
+  vec3_t partition_edges =
+      p.get_origin_corner()
+      + vec3_t(dir_urb_direction) * p.config.partition_edge_length;
+
+  vec3_t diff = partition_edges - pos;
+
+  vec3_t displacement_rcp = 1.0/displacement_nonzero; // POSSIBLE ZERO DIV
+
+  // time we hit a boundary
+  float_t hit_time = 1;
+
+
+
+  // first check whether we are not in fact touching one of the boundaries
+  if (abs(diff.x) < EPS) {
+    // only update the xyz subpartition index
+    // curr_subpart_indices.x += dir_urb_addend.x;
+    assert(false && "TODO");
+  }
+  else if (abs(diff.y) < EPS) {
+    //curr_subpart_indices.y += dir_urb_addend.y;
+    assert(false && "TODO");
+  }
+  else if (abs(diff.z) < EPS) {
+    //curr_subpart_indices.z += dir_urb_addend.z;
+    assert(false && "TODO");
+  }
+  else {
+    // compute time for the next subpartition collision, let's assume that displacemnt
+    // is our speed vector and the total time to travel is 1
+    //
+    // pos(time) = pos + displacement * time, therefore
+    // time = (pos(time) - vm.v.pos) / displacement
+    // =>
+    // time_to_subpart_edge = (subpart_edge - vm.v.pos) / displacement_speed
+    vec3_t coll_times = diff * displacement_rcp;
+    assert(coll_times.x >= 0 && coll_times.y >= 0 && coll_times.z >= 0
+      && "Subpartition 'edges' must be computed from direction, we cannot hit a subpart boundary that is behind us");
+
+    // which of the times is the smallest? - i.e. which boundary we hit first
+    if (coll_times.x >= 0 && coll_times.x < coll_times.y && coll_times.x <= coll_times.z) {
+      // x
+      hit_time = coll_times.x;
+    }
+    else if (coll_times.y >= 0 && coll_times.y <= coll_times.z) {
+      // y
+      hit_time = coll_times.y;
+    }
+    else if (coll_times.z >= 0) {
+      // z
+      hit_time = coll_times.z;
+    }
+    else {
+      assert(false && "Collision time must not be negative");
+    }
+  }
+
+  // there might be some floating point imprecisions, we want this value to be clearly in our partition,
+  // so let's make the time a bit smaller
+  // the displacement value is used only to find out which subpartitions we are crossing
+  vec3_t new_displacement = displacement * (hit_time - EPS);
+  assert(p.in_this_partition(pos + new_displacement));
+
+  return new_displacement;
 }
 
 
@@ -403,32 +511,40 @@ RayTraceState ray_trace_vol(
     vec3_t& new_pos,
     subpart_index_t& new_subpart_index
     ) {
-  p.get_simulation_stats().inc_ray_voxel_tests();
+  p.stats.inc_ray_voxel_tests();
 
   RayTraceState res_state = RayTraceState::FINISHED;
   collisions.clear();
 
-  const WorldConstants& world_constants = p.get_world_constants();
-  float_t radius = world_constants.rx_radius_3d;
+  float_t radius = p.config.rx_radius_3d;
+
+  // if we would get out of this partition, cut off the displacement
+  // so we check collisions just here
+  vec3_t partition_displacement;
+  if (!p.in_this_partition(vm.v.pos + remaining_displacement)) {
+    partition_displacement = get_displacement_up_to_partition_boundary(p, vm.v.pos, remaining_displacement);
+  }
+  else {
+    partition_displacement = remaining_displacement;
+  }
 
   // first get what subpartitions might be relevant
   SubpartIndicesVector crossed_subparts_for_walls;
   subpart_indices_set_t crossed_subparts_for_molecules;
   subpart_index_t last_subpartition_index;
   CollisionUtil::collect_crossed_subparts(
-      p, vm, remaining_displacement,
-      radius, world_constants.subpartition_edge_length,
+      p, vm, partition_displacement,
+      radius, p.config.subpartition_edge_length,
       true, crossed_subparts_for_walls,
       crossed_subparts_for_molecules, last_subpartition_index
   );
 
 
-  vec3_t& displacement_up_to_wall_collision = remaining_displacement;
+  // changed when wall was hit
+  vec3_t displacement_up_to_wall_collision = remaining_displacement;
+  vec3_t& corrected_displacement = remaining_displacement;
 
   // check wall collisions in the crossed subparitions,
-  // stop at first crossing because crossed_subparts_for_walls are ordered
-  // and we are sure that if we hit a wall in the actual supartition, we cannot
-  // possibly hit another wall in a subparition that follows
   if (!crossed_subparts_for_walls.empty()) {
     for (subpart_index_t subpart_index: crossed_subparts_for_walls) {
 
@@ -438,10 +554,14 @@ RayTraceState ray_trace_vol(
           subpart_index,
           previous_reflected_wall,
           rng,
-          displacement_up_to_wall_collision,
+          corrected_displacement,
+          displacement_up_to_wall_collision, // may be update in case we need to 'redo' the collision detection
           collisions
       );
 
+      // stop at first crossing because crossed_subparts_for_walls are ordered
+      // and we are sure that if we hit a wall in the actual supartition, we cannot
+      // possibly hit another wall in a subparition that follows
       if (!collisions.empty()) {
         res_state = RayTraceState::RAY_TRACE_HIT_WALL;
         break;
@@ -451,11 +571,12 @@ RayTraceState ray_trace_vol(
 
   if (res_state == RayTraceState::RAY_TRACE_HIT_WALL) {
     // recompute collect_crossed_subparts if there was a wall collision
+    // NOTE: this can be in theory done more efficiently if we knew the order of subpartitions that we hit in the previous call
     crossed_subparts_for_molecules.clear();
     CollisionUtil::collect_crossed_subparts(
         p, vm, displacement_up_to_wall_collision,
         radius,
-        world_constants.subpartition_edge_length,
+        p.config.subpartition_edge_length,
         false, crossed_subparts_for_walls, // not filled this time
         crossed_subparts_for_molecules, last_subpartition_index
     );
@@ -464,25 +585,24 @@ RayTraceState ray_trace_vol(
   // check molecule collisions for each SP
   for (subpart_index_t subpart_index: crossed_subparts_for_molecules) {
     // get cached reacting molecules for this SP
-    UintSet& sp_reactants = p.get_volume_molecule_reactants(subpart_index, vm.species_id);
+    uint_set<molecule_id_t>& sp_reactants = p.get_volume_molecule_reactants(subpart_index, vm.species_id);
 
     // for each molecule in this SP
     for (molecule_id_t colliding_vm_id: sp_reactants) {
       CollisionUtil::collide_mol_loop_body(
-          world_constants,
           p,
           vm,
           colliding_vm_id,
-          displacement_up_to_wall_collision,
+          corrected_displacement,// needs the full displacement to compute reaction time displacement_up_to_wall_collision,
           radius,
           collisions
       );
     }
   }
 
-  // the value is valid only when RAY_TRACE_FINISHED is returned
-  new_subpart_index = last_subpartition_index; // FIXME: this is valid only when there was no collision
-  new_pos = vm.v.pos + remaining_displacement; // FIXME: this is overwritten in case of a collision, should I do something about it?
+  // these values are valid only when RAY_TRACE_FINISHED is returned
+  new_subpart_index = last_subpartition_index;
+  new_pos = vm.v.pos + remaining_displacement;
 
   return res_state; // no wall was hit
 }
@@ -490,7 +610,7 @@ RayTraceState ray_trace_vol(
 
 // handle collision of two volume molecules: checks probability of reaction,
 // executes this reaction, removes reactants and creates products
-// returns true if reaction has occured and the first reactant was destroyed
+// returns true if the first reactant was destroyed
 bool DiffuseReactEvent::collide_and_react_with_vol_mol(
     Partition& p,
     const Collision& collision,
@@ -504,9 +624,9 @@ bool DiffuseReactEvent::collide_and_react_with_vol_mol(
 
   // returns 1 when there are no walls at all
   float_t factor = ExactDiskUtil::exact_disk(
-      p, collision.pos, displacement, p.get_world_constants().rx_radius_3d,
+      p, collision.pos, displacement, p.config.rx_radius_3d,
       diffused_molecule, colliding_molecule,
-      p.get_world_constants().use_expanded_list
+      p.config.use_expanded_list
   );
 
   if (factor < 0) { /* Probably hit a wall, might have run out of memory */
@@ -517,7 +637,7 @@ bool DiffuseReactEvent::collide_and_react_with_vol_mol(
   //  rx->prob_t is always NULL in out case update_probs(world, rx, m->t);
   // returns which reaction pathway to take
   float_t scaling = factor * r_rate_factor;
-  int i = rx_util::test_bimolecular(
+  int i = RxUtil::test_bimolecular(
     rx, world->rng, colliding_molecule, diffused_molecule, scaling, 0);
 
   if (i < RX_LEAST_VALID_PATHWAY) {
@@ -526,8 +646,8 @@ bool DiffuseReactEvent::collide_and_react_with_vol_mol(
   else {
     // might invalidate references
     int j = outcome_bimolecular(p, collision, i, remaining_time_step);
-    assert(j == RX_DESTROY);
-    return true;
+    assert(j == RX_DESTROY || j == RX_A_OK);
+    return j == RX_DESTROY;
   }
 }
 
@@ -585,8 +705,8 @@ int DiffuseReactEvent::collide_and_react_with_surf_mol(
   }
 
   ReactionsVector matching_rxns;
-  rx_util::trigger_bimolecular(
-    *p.get_world_constants().bimolecular_reactions_map,
+  RxUtil::trigger_bimolecular(
+    p.all_reactions.bimolecular_reactions_map,
     diffused_molecule, colliding_molecule,
     collision_orientation, colliding_molecule.s.orientation,
     matching_rxns
@@ -608,7 +728,7 @@ int DiffuseReactEvent::collide_and_react_with_surf_mol(
   int selected_rx_pathway;
   int reactant_index;
   if (matching_rxns.size() == 1) {
-    selected_rx_pathway = rx_util::test_bimolecular(
+    selected_rx_pathway = RxUtil::test_bimolecular(
         *matching_rxns[0], world->rng,
         diffused_molecule, colliding_molecule,
         scaling_coefs[0], 0);
@@ -618,7 +738,7 @@ int DiffuseReactEvent::collide_and_react_with_surf_mol(
   }
   else {
     bool all_neighbors_flag = true;
-    reactant_index = rx_util::test_many_bimolecular(matching_rxns, scaling_coefs, 0, world->rng, false);
+    reactant_index = RxUtil::test_many_bimolecular(matching_rxns, scaling_coefs, 0, world->rng, false);
     selected_rx_pathway = 0; // TODO_PATHWAYS: use value from test_many_bimolecular
   }
 
@@ -657,14 +777,10 @@ void DiffuseReactEvent::diffuse_surf_molecule(
     Partition& p,
     const molecule_id_t sm_id,
     const float_t current_time,
-    const float_t remaining_time_step,
-    bool& was_defunct,
-    vec2_t& new_loc,
-    wall_index_t& new_wall_index,
-    float_t& advance_time
+    const float_t remaining_time_step
 ) {
   Molecule& sm = p.get_m(sm_id);
-  const Species& species = world->get_species(sm.species_id);
+  const Species& species = p.all_species.get(sm.species_id);
 
   float_t steps = 0.0;
   float_t t_steps = 0.0;
@@ -700,7 +816,7 @@ void DiffuseReactEvent::diffuse_surf_molecule(
          find_new_position > 0; find_new_position--) {
 
       vec2_t displacement;
-      diffusion_util::compute_surf_displacement(species, space_factor, world->rng, displacement);
+      DiffusionUtil::compute_surf_displacement(species, space_factor, world->rng, displacement);
 
 
   #ifdef DEBUG_DIFFUSION
@@ -714,8 +830,9 @@ void DiffuseReactEvent::diffuse_surf_molecule(
       assert(!species.has_flag(SPECIES_FLAG_SET_MAX_STEP_LENGTH) && "not supported yet");
 
       // ray_trace does the movement and all other stuff
-      new_wall_index =
-          ray_trace_surf(p, species, sm, displacement, new_loc, was_defunct/*, &rxp, &hd_info*/);
+      vec2_t new_loc;
+      wall_index_t new_wall_index =
+          ray_trace_surf(p, species, sm, displacement, new_loc);
 
       // Either something ambiguous happened or we hit absorptive border
       if (new_wall_index == WALL_INDEX_INVALID) {
@@ -750,13 +867,13 @@ void DiffuseReactEvent::diffuse_surf_molecule(
 
       // After diffusing, are we still on the SAME triangle?
       if (new_wall_index == sm.s.wall_index) {
-        if (diffusion_util::move_sm_on_same_triangle(p, sm, new_loc)) {
+        if (DiffusionUtil::move_sm_on_same_triangle(p, sm, new_loc)) {
           continue;
         }
       }
       // After diffusing, we ended up on a NEW triangle.
       else {
-        if (diffusion_util::move_sm_to_new_triangle(p, sm, new_loc, new_wall_index)) {
+        if (DiffusionUtil::move_sm_to_new_triangle(p, sm, new_loc, new_wall_index)) {
           continue;
         }
       }
@@ -764,43 +881,41 @@ void DiffuseReactEvent::diffuse_surf_molecule(
     }
   } // if (species.space_step != 0)
 
-  advance_time = t_steps;
-
 
   // NOTE: what about molecules that cannot diffuse?
+  bool sm_still_exists = true;
   assert(!species.has_flag(SPECIES_FLAG_CAN_SURFSURFSURF) && "Not supported");
   if (species.has_flag(SPECIES_FLAG_CAN_SURFSURF)) {
     assert(!species.has_flag(SPECIES_FLAG_CANT_INITIATE) && "Not sure what to do here");
 
-    if (react_2D_all_neighbors(p, sm, current_time, advance_time)) {
-      was_defunct = true;
-    }
+    sm_still_exists = react_2D_all_neighbors(p, sm, current_time, t_steps);
   }
 
+  if (sm_still_exists) {
+    // reactions in react_2D_all_neighbors could have invalidated the molecules array
+    Molecule& new_m_ref = p.get_m(sm_id);
 
-  // reactions in react_2D_all_neighbors could have invalidated
-  Molecule& new_m_ref = p.get_m(sm_id);
+    // for some reason, mcell3 defines a new unimol time if the molecule has moved
+    bool changed_wall = new_m_ref.s.wall_index != original_wall_index;
+    bool diffusible = species.can_diffuse();
+    bool can_surf_surf_react = species.has_flag(SPECIES_FLAG_CAN_SURFSURF);
 
-  // for some reason, mcell3 defines a new unimol time if the molecule has moved
-  bool changed_wall = new_m_ref.s.wall_index != original_wall_index;
-  bool diffusible = species.can_diffuse();
-  bool can_surf_surf_react = species.has_flag(SPECIES_FLAG_CAN_SURFSURF);
+    if (diffusible || can_surf_surf_react) {
 
-  if (diffusible || can_surf_surf_react) {
-
-    // we don't have to remove the molecule from the schedule, we can just change its unimol_rx_time,
-    // this time is checked and against the scheduled time
-    // mcell3 compatibility: we might change the schedule only if it is not already scheduled for this time step
-    if ((!diffusible || changed_wall) &&
-        new_m_ref.unimol_rx_time >= event_time + diffusion_time_step) {
-      new_m_ref.unimol_rx_time = TIME_INVALID;
-      new_m_ref.set_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RX);
+      // we don't have to remove the molecule from the schedule, we can just change its unimol_rx_time,
+      // this time is checked and against the scheduled time
+      // mcell3 compatibility: we might change the schedule only if it is not already scheduled for this time step
+      if ((!diffusible || changed_wall) &&
+          new_m_ref.unimol_rx_time >= event_time + diffusion_time_step) {
+        new_m_ref.unimol_rx_time = TIME_INVALID;
+        new_m_ref.set_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RX);
+      }
     }
   }
 }
 
 
-// returns true if molecule still exists
+// returns true if molecule survived
 bool DiffuseReactEvent::react_2D_all_neighbors(
     Partition& p,
     Molecule& sm,
@@ -817,7 +932,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
     return true;
   }
 
-  const Species& sm_species = world->get_species(sm.species_id);
+  const Species& sm_species = p.all_species.get(sm.species_id);
 
 
   size_t l = 0;
@@ -828,7 +943,8 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
 
   /* step through the neighbors */
   for (const WallTileIndexPair& neighbor: neighbors) {
-    Grid& ngrid = p.get_wall(neighbor.wall_index).grid;
+    Wall& nwall = p.get_wall(neighbor.wall_index);
+    Grid& ngrid = nwall.grid;
 
     // is there something on the tile?
     // TODO_LATER: this filtering should be done already while looking for neighbors
@@ -838,7 +954,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
     }
 
     Molecule& nsm = p.get_m(nid);
-    const Species& nsm_species = world->get_species(nsm.species_id);
+    const Species& nsm_species = p.all_species.get(nsm.species_id);
 
 #ifdef DEBUG_REACTIONS
     DUMP_CONDITION4(
@@ -850,14 +966,27 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
 
     /* check whether the neighbor molecule is behind
        the restrictive region boundary   */
-    assert(!sm_species.has_flag(SPECIES_FLAG_CAN_REGION_BORDER) && "TODO_LATER");
-    assert(!nsm_species.has_flag(SPECIES_FLAG_CAN_REGION_BORDER) && "TODO_LATER");
+    if ((sm_species.has_flag(SPECIES_FLAG_CAN_REGION_BORDER) || nsm_species.has_flag(SPECIES_FLAG_CAN_REGION_BORDER)) &&
+        sm.s.wall_index != nsm.s.wall_index
+    ) {
+      /* INSIDE-OUT check */
+      if (WallUtil::walls_belong_to_at_least_one_different_restricted_region(p, wall, sm, nwall, nsm)) {
+        continue;
+      }
+
+      /* OUTSIDE-IN check */
+      // note: the pairing wall is same as in mcell3, TODO: explain why is it so
+      if (WallUtil::walls_belong_to_at_least_one_different_restricted_region(p, wall, nsm, nwall, sm)) {
+        continue;
+      }
+    }
+
     assert(!nsm_species.has_flag(SPECIES_FLAG_EXTERNAL_SPECIES) && "TODO_LATER");
 
     // returns value >=1 if there can be a reaction
     size_t orig_num_rxsn = matching_rxns.size();
-    rx_util::trigger_bimolecular_orientation_from_mols(
-        world->bimolecular_reactions_map,
+    RxUtil::trigger_bimolecular_orientation_from_mols(
+        p.all_reactions.bimolecular_reactions_map,
         sm, nsm,
         matching_rxns
     );
@@ -888,7 +1017,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
        Here we convert from 3 neighbor tiles (upper probability
        limit) to the real "num_nbrs" neighbor tiles. */
 
-    selected_rx_pathway = rx_util::test_bimolecular(
+    selected_rx_pathway = RxUtil::test_bimolecular(
         *matching_rxns[0], world->rng,
         sm, p.get_m(reactant_molecule_ids[0]),
         correction_factors[0], local_prob_factor);
@@ -898,7 +1027,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
   }
   else {
     bool all_neighbors_flag = true;
-    reactant_index = rx_util::test_many_bimolecular(matching_rxns, correction_factors, local_prob_factor, world->rng, all_neighbors_flag);
+    reactant_index = RxUtil::test_many_bimolecular(matching_rxns, correction_factors, local_prob_factor, world->rng, all_neighbors_flag);
     selected_rx_pathway = 0; // TODO_PATHWAYS: use value from test_many_bimolecular
   }
 
@@ -914,7 +1043,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
   );
 
 
-  return true;
+  return outcome_bimol_result != RX_DESTROY;
 }
 
 
@@ -944,8 +1073,7 @@ wall_index_t DiffuseReactEvent::ray_trace_surf(
     const Species& species,
     Molecule& sm,
     vec2_t& remaining_displacement,
-    vec2_t& new_pos,
-    bool& was_defunct
+    vec2_t& new_pos
 ) {
   const Wall* this_wall = &p.get_wall(sm.s.wall_index);
 
@@ -961,19 +1089,18 @@ wall_index_t DiffuseReactEvent::ray_trace_surf(
 
     /* Index of the wall edge that the SM hits */
     vec2_t boundary_pos;
-    // FIXME: enum for index_edge_was_hit?
-    int index_edge_was_hit =
+    edge_index_t edge_index_that_was_hit =
         GeometryUtil::find_edge_point(*this_wall, this_pos, this_disp, boundary_pos);
 
     // Ambiguous edge collision. Give up and try again from diffuse_2D.
-    if (index_edge_was_hit == -2) {
+    if (edge_index_that_was_hit == EDGE_INDEX_CANNOT_TELL) {
       sm.s.pos = orig_pos;
       // hit_data_info = hit_data_head;
       return WALL_INDEX_INVALID;
     }
 
     // We didn't hit the edge. Stay inside this wall. We're done!
-    else if (index_edge_was_hit == -1) {
+    else if (edge_index_that_was_hit == EDGE_INDEX_WITHIN_WALL) {
       new_pos = this_pos + this_disp;
 
       // ???
@@ -983,35 +1110,74 @@ wall_index_t DiffuseReactEvent::ray_trace_surf(
     }
 
 
-    // Neither ambiguous (-2) nor inside wall (-1), must have hit edge (0, 1, 2)
+    // Neither ambiguous (EDGE_INDEX_CANNOT_TELL) nor inside wall (EDGE_INDEX_WITHIN_WALL),
+    // must have hit edge (0, 1, 2)
     vec2_t old_pos = this_pos;
 
     /* We hit the edge - check for the reflection/absorption from the
        edges of the wall if they are region borders
        Note - here we test for potential collisions with the region
        border while moving INSIDE OUT */
-    assert(!species.has_flag(SPECIES_FLAG_CAN_REGION_BORDER) && "not supported yet");
+    bool absorb_now = false;
+    bool reflect_now = false;
+    if (species.can_interact_with_border()) {
+      DiffusionUtil::reflect_absorb_inside_out(
+          p, sm, *this_wall, edge_index_that_was_hit,
+          reflect_now, absorb_now
+      );
+
+      assert(!absorb_now && "TODO");
+
+#if 0
+      if (absorb_now) {
+        assert(false && "TODO");
+        /**kill_me = 1;
+        *rxp = rx;
+        *hit_data_info = hit_data_head;
+        return NULL;*/
+      }
+#endif
+    }
 
     /* no reflection - keep going */
-    vec2_t new_disp;
-    wall_index_t target_wall_index =
-        GeometryUtil::traverse_surface(*this_wall, old_pos, index_edge_was_hit, this_pos);
 
-    if (target_wall_index != WALL_INDEX_INVALID) {
-      assert(!species.has_flag(SPECIES_FLAG_CAN_REGION_BORDER) && "not supported yet");
+    if (!reflect_now) {
+      wall_index_t target_wall_index =
+          GeometryUtil::traverse_surface(*this_wall, old_pos, edge_index_that_was_hit, this_pos);
 
-      this_disp = old_pos + this_disp;
+      if (target_wall_index != WALL_INDEX_INVALID) {
+        /* We hit the edge - check for the reflection/absorption from the
+           edges of the wall if they are region borders
+           Note - here we test for potential collisions with the region
+           border while moving OUTSIDE IN */
+        if (species.can_interact_with_border()) {
 
-      #ifndef NDEBUG
-        Edge& e = const_cast<Edge&>(this_wall->edges[index_edge_was_hit]);
-        assert(e.is_initialized());
-        e.debug_check_values_are_uptodate(p);
-      #endif
+          const Wall& target_wall = p.get_wall(target_wall_index);
+          DiffusionUtil::reflect_absorb_outside_in(
+              p, sm, target_wall, *this_wall,
+              reflect_now, absorb_now
+          );
 
-      GeometryUtil::traverse_surface(*this_wall, this_disp, index_edge_was_hit, new_disp);
-      this_disp = new_disp - this_pos;
-      this_wall = &p.get_wall(target_wall_index);
-      continue;
+          assert(!absorb_now && "TODO");
+        }
+
+
+        if (!reflect_now) {
+          this_disp = old_pos + this_disp;
+
+          #ifndef NDEBUG
+            Edge& e = const_cast<Edge&>(this_wall->edges[edge_index_that_was_hit]);
+            assert(e.is_initialized());
+            e.debug_check_values_are_uptodate(p);
+          #endif
+
+          vec2_t tmp_disp;
+          GeometryUtil::traverse_surface(*this_wall, this_disp, edge_index_that_was_hit, tmp_disp);
+          this_disp = tmp_disp - this_pos;
+          this_wall = &p.get_wall(target_wall_index);
+          continue;
+        }
+      }
     }
 
     /* If we reach this point, assume we reflect off the edge since there is no
@@ -1020,13 +1186,13 @@ wall_index_t DiffuseReactEvent::ray_trace_surf(
      * NOTE: this_pos has been corrupted by traverse_surface; use old_pos to find
      * out whether the present wall edge is a region border
      */
-    new_disp = this_disp - (boundary_pos - old_pos);
+    vec2_t new_disp = this_disp - (boundary_pos - old_pos);
 
-    switch (index_edge_was_hit) {
-      case 0:
+    switch (edge_index_that_was_hit) {
+      case EDGE_INDEX_0:
         new_disp.v *= -1.0;
         break;
-      case 1: {
+      case EDGE_INDEX_1: {
         float_t f;
         vec2_t reflector;
         reflector.u = -this_wall->uv_vert2.v;
@@ -1037,7 +1203,7 @@ wall_index_t DiffuseReactEvent::ray_trace_surf(
         new_disp -= vec2_t(f) * reflector;
         break;
       }
-      case 2: {
+      case EDGE_INDEX_2: {
         float_t f;
         vec2_t reflector;
         reflector.u = this_wall->uv_vert2.v;
@@ -1049,7 +1215,7 @@ wall_index_t DiffuseReactEvent::ray_trace_surf(
         break;
       }
       default:
-        UNHANDLED_CASE(index_edge_was_hit);
+        UNHANDLED_CASE(edge_index_that_was_hit);
     }
 
     this_pos.u = boundary_pos.u;
@@ -1073,12 +1239,12 @@ void DiffuseReactEvent::create_unimol_rx_action(
   float_t curr_time = event_time + diffusion_time_step - remaining_time_step;
   assert(curr_time >= 0);
 
-  const Reaction* rx = rx_util::pick_unimol_rx(world, m.species_id);
+  const Reaction* rx = RxUtil::pick_unimol_rx(world, m.species_id);
   if (rx == nullptr) {
     return;
   }
 
-  float_t time_from_now = rx_util::compute_unimol_lifetime(p, world->rng, m, rx);
+  float_t time_from_now = RxUtil::compute_unimol_lifetime(p, world->rng, m, rx);
 
   float_t scheduled_time = curr_time + time_from_now;
 
@@ -1091,7 +1257,8 @@ void DiffuseReactEvent::create_unimol_rx_action(
 
 // based on mcell3's check_for_unimolecular_reaction
 // might invalidate vm references
-void DiffuseReactEvent::react_unimol_single_molecule(
+// returns true if molecule should be diffused right away (needed for mcell3 compatibility)
+bool DiffuseReactEvent::react_unimol_single_molecule(
     Partition& p,
     const molecule_id_t m_id,
     const float_t scheduled_time,
@@ -1103,24 +1270,23 @@ void DiffuseReactEvent::react_unimol_single_molecule(
   // FIXME: if there is more of them, mcell3 uses rng to select which to execute...
   Molecule& m = p.get_m(m_id);
   if (m.is_defunct()) {
-    return;
+    return false;
   }
 
   // unimolecular reactions for surface molecules can be rescheduled,
   // ignore this action in this case
   if (scheduled_time != m.unimol_rx_time) {
-    return;
+    return true; // TODO: check, we will probably need to return false here...
   }
 
   assert(scheduled_time >= event_time && scheduled_time <= event_time + diffusion_time_step);
-  int rx_res = outcome_unimolecular(p, m, scheduled_time - event_time, unimol_rx);
-  assert(rx_res == RX_DESTROY);
+  return outcome_unimolecular(p, m, scheduled_time - event_time, unimol_rx);
 }
 
 
 // checks if reaction should probabilistically occur and if so,
 // destroys reactants
-// returns RX_DESTROY when reactants were destroyed
+// returns RX_DESTROY when the primary reactant was destroyed, RX_A_OK if the reactant A was kept
 int DiffuseReactEvent::outcome_bimolecular(
     Partition& p,
     const Collision& collision,
@@ -1130,12 +1296,14 @@ int DiffuseReactEvent::outcome_bimolecular(
 
   // might invalidate references
 
+  bool keep_reacA, keep_reacB;
   int result =
       outcome_products_random(
         p,
         collision,
         remaining_time_step,
-        path
+        path,
+        keep_reacA, keep_reacB
       );
 
   if (result == RX_A_OK) {
@@ -1145,17 +1313,30 @@ int DiffuseReactEvent::outcome_bimolecular(
 #ifdef DEBUG_REACTIONS
     // reference printout first destroys B then A
     DUMP_CONDITION4(
-      reacB.dump(p, "", "  defunct m:", world->get_current_iteration(), 0, false);
-      reacA.dump(p, "", "  defunct m:", world->get_current_iteration(), 0, false);
+      if (!keep_reacB) {
+        reacB.dump(p, "", "  defunct m:", world->get_current_iteration(), 0, false);
+      }
+      if (!keep_reacA) {
+        reacA.dump(p, "", "  defunct m:", world->get_current_iteration(), 0, false);
+      }
     );
 #endif
 
     // always for now
     // we used the reactants - remove them
-    p.set_molecule_as_defunct(reacA);
-    p.set_molecule_as_defunct(reacB);
+    if (!keep_reacA) {
+      p.set_molecule_as_defunct(reacA);
+    }
+    if (!keep_reacB) {
+      p.set_molecule_as_defunct(reacB);
+    }
 
-    return RX_DESTROY;
+    if (keep_reacA) {
+      return RX_A_OK;
+    }
+    else {
+      return RX_DESTROY;
+    }
   }
 
 
@@ -1166,35 +1347,47 @@ int DiffuseReactEvent::outcome_bimolecular(
 // returns 0 if positions were found
 int DiffuseReactEvent::find_surf_product_positions(
     Partition& p,
-    const Molecule* reacA,
-    const Molecule* reacB,
+    const Molecule* reacA, const bool keep_reacA,
+    const Molecule* reacB, const bool keep_reacB,
     const Molecule* surf_reac,
     const Reaction* rx,
     small_vector<GridPos>& assigned_surf_product_positions) {
 
-  uint num_surface_products = rx_util::get_num_surface_products(world, rx);
+  uint needed_surface_positions = RxUtil::get_num_surface_products(world, rx);
 
   small_vector<GridPos> recycled_surf_prod_positions; // this array contains information on where to place the surface products
   uint initiator_recycled_index = INDEX_INVALID;
 
   // find which tiles can be recycled
   if (reacA->is_surf()) {
-    recycled_surf_prod_positions.push_back( GridPos::make_with_pos(p, *reacA) );
-    if (reacA->id == surf_reac->id) {
-      initiator_recycled_index = 0;
+    if (!keep_reacA) {
+      recycled_surf_prod_positions.push_back( GridPos::make_with_pos(p, *reacA) );
+      if (reacA->id == surf_reac->id) {
+        initiator_recycled_index = 0;
+      }
+    }
+    else if (keep_reacA) {
+      // reacA is kept
+      needed_surface_positions--;
     }
   }
 
   if (reacB != nullptr && reacB->is_surf()) {
-    recycled_surf_prod_positions.push_back( GridPos::make_with_pos(p, *reacB) );
-    if (reacB->id == surf_reac->id) {
-      initiator_recycled_index = recycled_surf_prod_positions.size() - 1;
+    if (!keep_reacB) {
+      recycled_surf_prod_positions.push_back( GridPos::make_with_pos(p, *reacB) );
+      if (reacB->id == surf_reac->id) {
+        initiator_recycled_index = recycled_surf_prod_positions.size() - 1;
+      }
+    }
+    else if (reacB->is_surf() && keep_reacB) {
+      // reacB is kept
+      needed_surface_positions--;
     }
   }
 
   // do we need more tiles?
   TileNeighborVector vacant_neighbor_tiles;
-  if (num_surface_products > recycled_surf_prod_positions.size()) {
+  if (needed_surface_positions > recycled_surf_prod_positions.size()) {
     assert(surf_reac != nullptr);
 
     // find neighbors for the first surface reactant
@@ -1215,7 +1408,7 @@ int DiffuseReactEvent::find_surf_product_positions(
     }
 
     /* Can this reaction happen at all? */
-    if (vacant_neighbor_tiles.size() + recycled_surf_prod_positions.size() < num_surface_products) {
+    if (vacant_neighbor_tiles.size() + recycled_surf_prod_positions.size() < needed_surface_positions) {
       return RX_BLOCKED;
     }
   }
@@ -1223,14 +1416,14 @@ int DiffuseReactEvent::find_surf_product_positions(
   // random assignment of positions
   uint num_tiles_to_recycle = min(rx->products.size(), recycled_surf_prod_positions.size());
   if (num_tiles_to_recycle == 1 && recycled_surf_prod_positions.size() >= 1) {
-    // NOTE: this can be optimized - in case of a single product, it will just replace the initiator
-    // and no initialization of recycled_surf_prod_positions is needed
-    // there must be just one surface product for this variant
-    assert(rx_util::get_num_surface_products(world, rx) == 1
-        && "not sure, should not probably happen or this case is not handled");
-
-    assert(initiator_recycled_index != INDEX_INVALID);
-    assigned_surf_product_positions[0] = recycled_surf_prod_positions[initiator_recycled_index];
+    // NOTE: this code is overly complex and can be simplified
+    if (initiator_recycled_index == INDEX_INVALID) {
+      assert(recycled_surf_prod_positions.size() == 1);
+      assigned_surf_product_positions[0] = recycled_surf_prod_positions[0];
+    }
+    else {
+      assigned_surf_product_positions[0] = recycled_surf_prod_positions[initiator_recycled_index];
+    }
   }
   else if (num_tiles_to_recycle > 1) {
     uint next_available_index = 0;
@@ -1251,7 +1444,7 @@ int DiffuseReactEvent::find_surf_product_positions(
       assert(product_index < rx->products.size());
 
       // we care only about surface molecules
-      if (world->get_species(rx->products[product_index].species_id).is_vol()) {
+      if (p.all_species.get(rx->products[product_index].species_id).is_vol()) {
         continue;
       }
 
@@ -1308,23 +1501,41 @@ int DiffuseReactEvent::find_surf_product_positions(
 int DiffuseReactEvent::outcome_products_random(
     Partition& p,
     const Collision& collision,
-    float_t remaining_time_step,
-    int path
+    const float_t remaining_time_step,
+    const int path,
+    bool& keep_reacA,
+    bool& keep_reacB
 ) {
   assert(path == 0 && "Only single pathway is supported now");
+
+#ifdef DEBUG_REACTIONS
+  DUMP_CONDITION4(
+      collision.dump(p, "Processing reaction:", p.stats.get_current_iteration());
+  );
+#endif
 
   const Reaction* rx = collision.rx;
   assert(rx->reactants.size() == 1 || rx->reactants.size() == 2);
 
   Molecule* reacA = &p.get_m(collision.diffused_molecule_id);
+  keep_reacA = false; // one product is the same as reacA
   assert(reacA != nullptr);
+
   Molecule* reacB = nullptr;
+  keep_reacB = false; // one product is the same as reacB
+
   Molecule* surf_reac = nullptr;
 
+  bool reactants_swapped = false;
   if (rx->reactants.size() == 2) {
     reacB = &p.get_m(collision.colliding_molecule_id);
 
-    surf_reac = reacA->is_surf() ? reacA : reacB;
+    if (reacA->is_surf()) {
+      surf_reac = reacA;
+    }
+    else if (reacB->is_surf()) {
+      surf_reac = reacB;
+    }
 
     /* Ensure that reacA and reacB are sorted in the same order as the rxn players. */
     /* Needed to maintain the same behavior as in mcell3 */
@@ -1332,13 +1543,17 @@ int DiffuseReactEvent::outcome_products_random(
       Molecule* tmp_mol = reacA;
       reacA = reacB;
       reacB = tmp_mol;
+      reactants_swapped = true;
     }
     assert(rx->reactants[1].is_same_tolerate_orientation_none(reacB->species_id, reacB->get_orientation()));
+
+    keep_reacB = rx->reactants[1].is_on_both_sides_of_rxn();
   }
   else {
     surf_reac = reacA->is_surf() ? reacA : nullptr;
   }
   assert(rx->reactants[0].is_same_tolerate_orientation_none(reacA->species_id, reacA->get_orientation()));
+  keep_reacA = rx->reactants[0].is_on_both_sides_of_rxn();
 
   bool is_orientable = reacA->is_surf() || (reacB != nullptr && reacB->is_surf());
 
@@ -1359,9 +1574,8 @@ int DiffuseReactEvent::outcome_products_random(
   /* If the reaction involves a surface, make sure there is room for each product. */
   small_vector<GridPos> assigned_surf_product_positions; // this array contains information on where to place the surface products
   assigned_surf_product_positions.resize(rx->products.size());
-
   if (is_orientable) {
-    int res = find_surf_product_positions(p, reacA, reacB, surf_reac, rx, assigned_surf_product_positions);
+    int res = find_surf_product_positions(p, reacA, keep_reacA, reacB, keep_reacB, surf_reac, rx, assigned_surf_product_positions);
     if (res == RX_BLOCKED) {
       return RX_BLOCKED;
     }
@@ -1369,24 +1583,34 @@ int DiffuseReactEvent::outcome_products_random(
 
   // free up tiles that we are probably going to reuse
   bool one_of_reactants_is_surf = false;
-  if (reacA->is_surf()) {
+  if (reacA->is_surf() && !keep_reacA) {
     p.get_wall(reacA->s.wall_index).grid.reset_molecule_tile(reacA->s.grid_tile_index);
     reacA->s.grid_tile_index = TILE_INDEX_INVALID;
     one_of_reactants_is_surf = true;
   }
 
-  if (reacB != nullptr && reacB->is_surf()) {
+  if (reacB != nullptr && reacB->is_surf() && !keep_reacB) {
     p.get_wall(reacB->s.wall_index).grid.reset_molecule_tile(reacB->s.grid_tile_index);
     reacB->s.grid_tile_index = TILE_INDEX_INVALID;
     one_of_reactants_is_surf = true;
   }
 
-
-
   // create and place each product
+
+  uint current_surf_product_position_index = 0;
+
   for (uint product_index = 0; product_index < rx->products.size(); product_index++) {
     const SpeciesWithOrientation& product = rx->products[product_index];
-    const Species& species = world->get_species(product.species_id);
+
+    // do not create anything new when the reactant is kept -
+    // for bimol reactions - the diffusion simply continues
+    // for unimol reactions - the unimol action action starts diffusion for the remaining timestep
+    if (product.is_on_both_sides_of_rxn()) {
+      // remember which reactant(s) to keep?
+      continue;
+    }
+
+    const Species& species = p.all_species.get(product.species_id);
 
     molecule_id_t new_m_id;
 
@@ -1409,7 +1633,6 @@ int DiffuseReactEvent::outcome_products_random(
       // reaction_time is the time when this new molecule was created
       scheduled_time = event_time + collision.time;
     }
-
 
     if (species.is_vol()) {
       // create and place a volume molecule
@@ -1442,11 +1665,11 @@ int DiffuseReactEvent::outcome_products_random(
         vec3_t displacement = vec3_t(2 * bump) * w.normal;
         vec3_t new_pos_after_diffuse;
 
-        diffusion_util::tiny_diffuse_3D(p, new_vm, displacement, w.index, new_pos_after_diffuse);
+        DiffusionUtil::tiny_diffuse_3D(p, new_vm, displacement, w.index, new_pos_after_diffuse);
 
         // update position and subpart if needed
         new_vm.v.pos = new_pos_after_diffuse;
-        subpart_index_t new_subpart = p.get_subpartition_index(new_vm.v.pos);
+        subpart_index_t new_subpart = p.get_subpart_index(new_vm.v.pos);
         p.change_molecule_subpartition(new_vm, new_subpart);
       }
 
@@ -1460,8 +1683,9 @@ int DiffuseReactEvent::outcome_products_random(
     else {
       // see release_event_t::place_single_molecule_onto_grid, merge somehow
 
-      // get info on where to place the product
-      const GridPos& new_grid_pos = assigned_surf_product_positions[product_index];
+      // get info on where to place the product and increment the counter
+      const GridPos& new_grid_pos = assigned_surf_product_positions[current_surf_product_position_index];
+      current_surf_product_position_index++;
       assert(new_grid_pos.initialized);
 
       vec2_t pos;
@@ -1500,25 +1724,34 @@ int DiffuseReactEvent::outcome_products_random(
       #endif
     }
 
-    // NOTE: in this time step, we will simply simulate all results of reactions regardless on the diffusion time step of the
+    // In this time step, we will simply simulate all results of reactions regardless on the diffusion time step of the
     // particular product
-    // we always create diffuse events, unimol react events are created elsewhere
+    // We always create diffuse events, unimol react events are created right before diffusion of that molecule
+    // to keep MCell3 compatibility, diffusion of molecule that survived its unimol reaction must
+    // be executed right away and this is handled i nDiffuseReactEvent::diffuse_molecules
     new_diffuse_or_unimol_react_actions.push_back(
         DiffuseOrUnimolReactionAction(
             DiffuseOrUnimolReactionAction::Type::DIFFUSE,
             new_m_id, scheduled_time,
             where_is_vm_created
     ));
-
   } // end for - product creation
+
+  // we might need to swap info on which reactant was kept
+  if (reactants_swapped) {
+    bool tmp = keep_reacA;
+    keep_reacA = keep_reacB;
+    keep_reacB = tmp;
+  }
 
   return RX_A_OK;
 }
 
 // ---------------------------------- unimolecular reactions ----------------------------------
 
-
-int DiffuseReactEvent::outcome_unimolecular(
+// !! might invalidate references (we might reorder defuncting and outcome call later)
+// returns true if molecule survived
+bool DiffuseReactEvent::outcome_unimolecular(
     Partition& p,
     Molecule& m,
     const float_t time_from_event_start,
@@ -1526,22 +1759,40 @@ int DiffuseReactEvent::outcome_unimolecular(
 ) {
   molecule_id_t id = m.id;
 
+  Collision collision(CollisionType::UNIMOLECULAR_VOLMOL, &p, m.id, time_from_event_start, m.v.pos, unimol_rx);
+
+  bool ignoredA, ignoredB;
   // creates new molecule(s) as output of the unimolecular reaction
   // !! might invalidate references (we might reorder defuncting and outcome call later)
-  Collision collision(CollisionType::UNIMOLECULAR_VOLMOL, &p, m.id, time_from_event_start, m.v.pos, unimol_rx);
-  //int outcome_res = outcome_products_random(p, unimol_rx, vm.v.pos, time_from_event_start, TIME_INVALID, 0);
-  int outcome_res = outcome_products_random(p, collision, TIME_INVALID, 0);
+  int outcome_res = outcome_products_random(p, collision, TIME_INVALID, 0, ignoredA, ignoredB);
   assert(outcome_res == RX_A_OK);
 
-  // and defunct this molecule
   Molecule& m_new_ref = p.get_m(id);
-#ifdef DEBUG_REACTIONS
-  DUMP_CONDITION4(
-    m_new_ref.dump(p, "", m_new_ref.is_vol() ? "Unimolecular vm defunct:" : "Unimolecular sm defunct:", world->get_current_iteration(), event_time + time_from_event_start, false);
-  );
-#endif
-  p.set_molecule_as_defunct(m_new_ref);
-  return RX_DESTROY;
+
+  // and defunct this molecule if it was not kept
+  assert(unimol_rx->reactants.size() == 1);
+  if (!unimol_rx->reactants[0].is_on_both_sides_of_rxn()) {
+  #ifdef DEBUG_REACTIONS
+    DUMP_CONDITION4(
+      m_new_ref.dump(p, "", m_new_ref.is_vol() ? "Unimolecular vm defunct:" : "Unimolecular sm defunct:", world->get_current_iteration(), event_time + time_from_event_start, false);
+    );
+  #endif
+    p.set_molecule_as_defunct(m_new_ref);
+    return false;
+  }
+  else {
+    // we must reschedule the molecule's unimol rxn, this will happen right away 
+    // during the molecule's diffusion
+    m_new_ref.set_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RX);
+    
+    // a cleaner way would be to schedule a new diffusion event but we must do the diffusion right away 
+    // to stay compatible with mcell3
+    // float_t time_up_to_event_end = diffusion_time_step - time_from_event_start;
+		// create_unimol_rx_action(p, m_new_ref, time_up_to_event_end);
+    
+    // molecule survived
+    return true;
+  }
 }
 
 

@@ -76,7 +76,7 @@ void Partition::update_walls_per_subpart(const WallsWithTheirMovesMap& walls_wit
 
 void Partition::apply_vertex_moves() {
   // 1) create a set of all affected walls with information on how much each wall moves,
-  UintSet moved_vertices_set;
+  uint_set<vertex_index_t> moved_vertices_set;
   WallsWithTheirMovesMap walls_with_their_moves;
   for (const VertexMoveInfo& vertex_move_info: scheduled_vertex_moves) {
 
@@ -107,7 +107,7 @@ void Partition::apply_vertex_moves() {
   //    we would first collect all moves and do them later, however we are creating temporary walls,
   //    so remembering them would be more complicated.
   VolumeMoleculeMoveInfoVector volume_molecule_moves;
-  UintSet already_moved_volume_molecules;
+  uint_set<molecule_id_t> already_moved_volume_molecules;
   SurfaceMoleculeMoveInfoVector surface_molecule_moves;
 
 #ifdef DEBUG_DYNAMIC_GEOMETRY_MCELL4_ONLY
@@ -168,18 +168,17 @@ void Partition::apply_vertex_moves() {
 
 
 void Partition::dump() {
-  for (GeometryObject& obj:geometry_objects) {
-    obj.dump(*this, "  ");
-  }
+  GeometryObject::dump_array(*this, geometry_objects);
+  Region::dump_array(regions);
 
   for (size_t i = 0; i < walls_per_subpart.size(); i++) {
     if (!walls_per_subpart[i].empty()) {
       vec3_t llf, urb;
       get_subpart_llf_point(i, llf);
-      urb = llf + vec3_t(world_constants.subpartition_edge_length);
+      urb = llf + vec3_t(config.subpartition_edge_length);
 
       cout << "subpart: " << i << ", llf: " << llf << ", urb: " << urb << "\n";
-      walls_per_subpart[i].dump();
+      walls_per_subpart[i].dump("Indices contained in a subpartition");
     }
   }
 }

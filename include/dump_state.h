@@ -38,6 +38,14 @@ void dump_volume(struct volume* s, const char* comment, unsigned int selected_de
 // the functions below are used to generate log that can be diffed with mcell4's log
 void dump_collisions(struct collision* shead);
 
+void dump_processing_reaction(
+    long long it,
+    struct vector3 *hitpt, double t,
+    struct rxn *rx, /*int path,*/
+    struct abstract_molecule *reacA,
+    struct abstract_molecule *reacB
+);
+
 void dump_surface_molecule(
     struct surface_molecule* amp,
     const char* ind,
@@ -78,6 +86,7 @@ void dump_schedule_helper(
     const char* ind,
     bool simplified_for_vm);
 
+std::string get_species_flags_string(uint flags);
 
 std::ostream & operator<<(std::ostream &out, const vector2 &a);
 std::ostream & operator<<(std::ostream &out, const vector3 &a);

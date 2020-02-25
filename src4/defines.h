@@ -36,6 +36,7 @@
 #ifndef SWIG
 #include <stdint.h>
 #include <vector>
+#include <set>
 #include <string>
 #include <cassert>
 #include <climits>
@@ -59,6 +60,42 @@
 // might be some nasty cyclic include dependencies
 #endif
 
+/**
+ * Usage of IDs and indexes:
+ *
+ * ID - world-unique identifier of an object
+ * Index -partition-unique identifier of an object
+ *
+ * Why use indices instead of pointers:
+ *   - Having a value that is independent on actual position in memory can be beneficial,
+ *     this way, we can migrate the data to a different piece of memory and the index will be still valid
+ *
+ *   - Do we really need to move data? - Yes
+ *      - Growing arrays get reallocated
+ *      - Defragmentation of molecule arrays
+ *
+ * Use only IDs?
+ *   - This would mean that for every access, we need to use indirection, might be cheap, but also might
+ *     block some superscalar executions...
+ *   - Also, every type of object would have its own mapping array for all the possible IDs
+ *     in each partition
+ *
+ * What about cases when a wall changes its partition?
+ *   - If I hold just its index, I cannot know that it has moved.
+ *
+ * Go back to single partition? Do not think about multicore execution for now?
+ *   - Single partition system won't need to use indices, just IDs
+ *   - However, ids do not allow for defragmentation without fixing up all existing references
+ *
+ * Keep the implementation it as it is for now? - Yes
+ *   - molecules use ids, everything else uses indices
+ *   - refactor once we will have a good reason to do it - e.g. initially we might now want to allow walls to cross partitions
+ *
+ * Another approach:
+ *   - Id + index for everything that can change?
+ *   - Id for everything that does not change?
+ *
+ */
 
 namespace MCell {
 
@@ -92,7 +129,7 @@ const float_t PARTITION_EDGE_LENGTH_DEFAULT = 10 * 100 /*100 = 1/length unit*/; 
 const float_t SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT = 1;
 
 
-// ---------------------------------- fixed costants and specific typedefs -------------------
+// ---------------------------------- fixed constants and specific typedefs -------------------
 const float_t POS_INVALID = FLT_MAX; // cannot be NAN because we cannot do any comparison with NANs
 
 const float_t TIME_INVALID = -1;
@@ -100,34 +137,36 @@ const float_t TIME_FOREVER = FLT_MAX; // this max is sufficient for both float a
 const float_t TIME_SIMULATION_START = 0;
 
 const float_t DIFFUSION_CONSTANT_ZER0 = 0;
+const float_t SQRT2 = 1.41421356238;
 
-const uint INDEX_INVALID = UINT32_MAX;
+const uint ID_INVALID = UINT32_MAX; // general invalid index, should not be used when a definition for a specific type is available
+const uint INDEX_INVALID = UINT32_MAX; // general invalid index, should not be used when a definition for a specific type is available
 
 // unique species id
 typedef uint species_id_t;
-const species_id_t SPECIES_ID_INVALID = UINT32_MAX;
+const species_id_t SPECIES_ID_INVALID = ID_INVALID;
 
 // molecule id is a unique identifier of a molecule,
 // no 2 molecules may have the same ID in the course of a simulation (at least for now)
 typedef uint molecule_id_t;
-const molecule_id_t MOLECULE_ID_INVALID = UINT32_MAX;
+const molecule_id_t MOLECULE_ID_INVALID = ID_INVALID;
 
 // molecule index is index into partition's molecules array, indices and ids are
 // identical until the first defragmentation that shuffles molecules in the molecules array
 typedef uint molecule_index_t;
-const molecule_index_t MOLECULE_INDEX_INVALID = UINT32_MAX;
+const molecule_index_t MOLECULE_INDEX_INVALID = INDEX_INVALID;
 
 // for now, this is the partition that contains point 0,0,0 in its center
 typedef uint partition_index_t;
 const partition_index_t PARTITION_INDEX_INITIAL = 0;
-const partition_index_t PARTITION_INDEX_INVALID = UINT32_MAX;
+const partition_index_t PARTITION_INDEX_INVALID = INDEX_INVALID;
 
 typedef uint subpart_index_t;
-const subpart_index_t SUBPART_INDEX_INVALID = UINT32_MAX;
+const subpart_index_t SUBPART_INDEX_INVALID = INDEX_INVALID;
 
 // time step is used in partition to make sets of molecules that can be diffused with
 // different periodicity
-const uint TIME_STEP_INDEX_INVALID = UINT32_MAX;
+const uint TIME_STEP_INDEX_INVALID = INDEX_INVALID;
 
 const char* const NAME_INVALID = "name_invalid";
 const char* const NAME_NOT_SET = "name_not_set";
@@ -138,16 +177,21 @@ const uint VERTICES_IN_TRIANGLE = 3;
 const uint EDGES_IN_TRIANGLE = VERTICES_IN_TRIANGLE; // same of course as above, but different name to specify what we are counting
 
 typedef uint vertex_index_t; // index in partition's vertices
-const vertex_index_t VERTEX_INDEX_INVALID = UINT32_MAX;
+const vertex_index_t VERTEX_INDEX_INVALID = INDEX_INVALID;
 
 typedef uint wall_index_t; // index in partition's walls
-const wall_index_t WALL_INDEX_INVALID = UINT32_MAX;
+const wall_index_t WALL_INDEX_INVALID = INDEX_INVALID;
 
 typedef uint tile_index_t; // index of a tile in a grid
-const tile_index_t TILE_INDEX_INVALID = UINT32_MAX;
+const tile_index_t TILE_INDEX_INVALID = INDEX_INVALID;
 
 typedef uint edge_index_t; // index of an edge in a wall, must be in range 0..2
-const edge_index_t EDGE_INDEX_INVALID = UINT32_MAX;
+const edge_index_t EDGE_INDEX_0 = 0;
+const edge_index_t EDGE_INDEX_1 = 1;
+const edge_index_t EDGE_INDEX_2 = 2;
+const edge_index_t EDGE_INDEX_WITHIN_WALL = 3; // used in find_edge_point
+const edge_index_t EDGE_INDEX_CANNOT_TELL = 4;
+const edge_index_t EDGE_INDEX_INVALID = INDEX_INVALID;
 
 /* contains information about the neighbors of the tile */
 class WallTileIndexPair {
@@ -167,15 +211,16 @@ public:
 };
 
 typedef uint wall_id_t; // world-unique wall id
-const wall_id_t WALL_ID_INVALID = UINT32_MAX;
+const wall_id_t WALL_ID_INVALID = ID_INVALID;
 
-//typedef uint wall_class_index_t; // index in world's wall classes
+typedef uint region_index_t; // index in partition's regions
+const region_index_t REGION_INDEX_INVALID = INDEX_INVALID;
 
 typedef uint geometry_object_index_t;
-const geometry_object_index_t GEOMETRY_OBJECT_INDEX_INVALID = UINT32_MAX;
+const geometry_object_index_t GEOMETRY_OBJECT_INDEX_INVALID = INDEX_INVALID;
 
 typedef uint geometry_object_id_t; // world-unique unique geometry object id
-const geometry_object_id_t GEOMETRY_OBJECT_ID_INVALID = UINT32_MAX;
+const geometry_object_id_t GEOMETRY_OBJECT_ID_INVALID = ID_INVALID;
 
 typedef int32_t orientation_t;
 const orientation_t ORIENTATION_DOWN = -1;
@@ -183,6 +228,7 @@ const orientation_t ORIENTATION_NONE = 0;
 const orientation_t ORIENTATION_UP = 1;
 
 typedef std::pair<partition_index_t, wall_index_t> PartitionWallIndexPair;
+typedef std::pair<partition_index_t, region_index_t> PartitionRegionIndexPair;
 typedef std::pair<partition_index_t, vertex_index_t> PartitionVertexIndexPair;
 
 typedef std::pair<float_t, PartitionWallIndexPair> CummAreaPWallIndexPair;
@@ -192,38 +238,58 @@ class Reaction;
 
 #ifndef INDEXER_WA
 template<class T, class Allocator=boost::container::new_allocator<T>>
-using small_vector = boost::container::small_vector<T, 8, Allocator>;
+  using small_vector = boost::container::small_vector<T, 8, Allocator>;
 
 typedef boost::container::small_vector<subpart_index_t, 8>  SubpartIndicesVector;
 typedef boost::container::small_vector<const Reaction*, 8>  ReactionsVector;
+
+template<class T, typename Compare = std::less<T>, class Allocator=boost::container::new_allocator<T>>
+  using base_flat_set = boost::container::flat_set<T, Compare, Allocator>;
 #else
 template<typename T, typename _Alloc = std::allocator<T>  >
-using small_vector = std::vector<T, _Alloc>;
+  using small_vector = std::vector<T, _Alloc>;
 
 typedef std::vector<subpart_index_t> SubpartIndicesVector;
 typedef std::vector<const Reaction*> ReactionsVector;
+
+template<typename T, typename _Compare = std::less<T>, typename _Alloc = std::allocator<T>  >
+  using base_flat_set = std::set<T, _Compare, _Alloc>;
 #endif
 
 /**
- * Class used to hold sets of ids or indices of molecules or other items
+ * Template class used to hold sets of ids or indices of molecules or other items,
+ * extended to check for unique insertions and checked removals.
  */
-class UintSet: public boost::container::flat_set<uint> {
+template<typename T>
+class uint_set: public base_flat_set<T> {
 public:
   // insert with check that the item is not there yet
   // for insertions without this check use 'insert'
-  void insert_unique(const uint id_or_index) {
-    assert(count(id_or_index) == 0);
-    insert(id_or_index);
+  void insert_unique(const T id_or_index) {
+    assert(this->count(id_or_index) == 0);
+    this->insert(id_or_index);
   }
 
   // erase with check that the item is present
   // for insertions without this check use 'erase'
-  void erase_existing(const uint id_or_index) {
-    assert(count(id_or_index) == 1);
-    erase(id_or_index);
+  void erase_existing(const T id_or_index) {
+    assert(this->count(id_or_index) == 1);
+    this->erase(id_or_index);
   }
 
-  void dump();
+  void dump(const std::string comment = "") const {
+    std::cout << comment << ": ";
+    int cnt = 0;
+    for (const T& idx: *this) {
+      std::cout << idx << ", ";
+
+      if (cnt %20 == 0 && cnt != 0) {
+        std::cout << "\n";
+      }
+      cnt++;
+    }
+    std::cout << "\n";
+  }
 };
 
 // ---------------------------------- vector types ----------------------------------
@@ -547,27 +613,13 @@ static inline void debug_guard_zero_div(vec3_t& val) {
 #endif
 }
 
-
-class Reaction;
-#ifndef INDEXER_WA
-typedef std::unordered_map<species_id_t, Reaction*> SpeciesReactionMap;
-typedef std::unordered_map< species_id_t, SpeciesReactionMap > BimolecularReactionsMap;
-#else
-typedef std::map<species_id_t, Reaction*> SpeciesReactionMap;
-typedef std::map<species_id_t, SpeciesReactionMap> BimolecularReactionsMap;
-#endif
-typedef SpeciesReactionMap UnimolecularReactionsMap;
-
 /*
- * Constant data set in initialization useful for all classes, single object is owned by world
+ * Stats collected during simulation, contains also number of the current iteration
  */
 class SimulationStats {
 public:
-  SimulationStats()
-    : current_iteration(0),
-      ray_voxel_tests(0), ray_polygon_tests(0), ray_polygon_colls(0),
-      mol_moves_between_walls(0)
-      {
+  SimulationStats() {
+    reset();
   }
   void inc_ray_voxel_tests() {
     ray_voxel_tests++;
@@ -594,6 +646,14 @@ public:
     return current_iteration;
   }
 
+  void reset() {
+    current_iteration = 0;
+    ray_voxel_tests = 0;
+    ray_polygon_tests = 0;
+    ray_polygon_colls = 0;
+    mol_moves_between_walls = 0;
+  }
+
 private:
   uint64_t current_iteration;
 
@@ -603,6 +663,44 @@ private:
   uint64_t mol_moves_between_walls;
 };
 
+/*
+ * Constant data set in initialization useful for all classes, single object is owned by world
+ */
+// TODO: cleanup all unnecessary argument passing, e.g. in diffuse_react_event.cpp
+class SimulationConfig {
+public:
+  // configuration
+  float_t time_unit;
+  float_t length_unit;
+  float_t rx_radius_3d;
+  float_t vacancy_search_dist2;
+
+  float_t partition_edge_length;
+  uint subpartitions_per_partition_dimension;
+  uint subpartitions_per_partition_dimension_squared;
+  float_t subpartition_edge_length; // == partition_edge_length / subpartitions_per_partition_dimension
+  float_t subpartition_edge_length_rcp; // == 1/subpartition_edge_length
+
+  // other options
+  bool use_expanded_list;
+  bool randomize_smol_pos;
+
+  void init() {
+    init_subpartition_edge_length();
+  }
+
+  void dump();
+
+private:
+  void init_subpartition_edge_length() {
+    if (partition_edge_length != 0) {
+      subpartition_edge_length = partition_edge_length / (float_t)subpartitions_per_partition_dimension;
+      subpartition_edge_length_rcp = 1.0/subpartition_edge_length;
+    }
+    subpartitions_per_partition_dimension_squared = powu(subpartitions_per_partition_dimension, 2);
+  }
+
+};
 } // namespace mcell
 
 #endif // SRC4_DEFINES_H_

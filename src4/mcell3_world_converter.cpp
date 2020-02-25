@@ -34,10 +34,16 @@
 #include "diffuse_react_event.h"
 #include "viz_output_event.h"
 
+#include "dump_state.h"
+
 using namespace std;
 
-// checking major converstion blocks
-#define CHECK(a) do { if(!(a)) return false; } while (0)
+const char* const ALL_MOLECULES = "ALL_MOLECULES";
+const char* const ALL_VOLUME_MOLECULES = "ALL_VOLUME_MOLECULES";
+const char* const ALL_SURFACE_MOLECULES = "ALL_SURFACE_MOLECULES";
+
+// checking major conversion blocks
+#define CHECK(cond) do { if(!(cond)) { mcell_log_conv_error("Returning from %s after conversion error.\n", __FUNCTION__); return false; } } while (0)
 
 // checking assumptions
 #define CHECK_PROPERTY(cond) do { if(!(cond)) { mcell_log_conv_error("Expected '%s' is false. (%s - %s:%d)\n", #cond, __FUNCTION__, __FILE__, __LINE__); return false; } } while (0)
@@ -121,8 +127,6 @@ bool MCell3WorldConverter::convert(volume* s) {
   CHECK(convert_species_and_create_diffusion_events(s));
   CHECK(convert_reactions(s));
 
-  world->init_world_constants();
-
   // at this point, we need to create the first (and for now the only) partition
   // create initial partition with center at 0,0,0 - we woud like to have the partitions all the same,
   // not depend on some random initialization
@@ -145,10 +149,10 @@ bool MCell3WorldConverter::convert(volume* s) {
 bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
   // TODO_CONVERSION: many items are not checked
   world->iterations = s->iterations;
-  world->world_constants.time_unit = s->time_unit;
-  world->world_constants.length_unit = s->length_unit;
-  world->world_constants.rx_radius_3d = s->rx_radius_3d;
-  world->world_constants.vacancy_search_dist2 = s->vacancy_search_dist2 / s->length_unit;
+  world->config.time_unit = s->time_unit;
+  world->config.length_unit = s->length_unit;
+  world->config.rx_radius_3d = s->rx_radius_3d;
+  world->config.vacancy_search_dist2 = s->vacancy_search_dist2 / s->length_unit;
   world->seed_seq = s->seed_seq;
   world->rng = *s->rng;
 
@@ -159,24 +163,27 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
     CHECK_PROPERTY(s->partition_urb[0] == s->partition_urb[1]);
     CHECK_PROPERTY(s->partition_urb[1] == s->partition_urb[2]);
     assert(s->partition_urb[0] > s->partition_llf[0]);
-    world->world_constants.partition_edge_length = (s->partition_urb[0] - s->partition_llf[0]) / s->length_unit;
+    world->config.partition_edge_length = (s->partition_urb[0] - s->partition_llf[0]) / s->length_unit;
   }
   else {
-    world->world_constants.partition_edge_length = PARTITION_EDGE_LENGTH_DEFAULT;
+    world->config.partition_edge_length = PARTITION_EDGE_LENGTH_DEFAULT;
   }
   CHECK_PROPERTY(s->nx_parts == s->ny_parts);
   CHECK_PROPERTY(s->ny_parts == s->nz_parts);
 
-  world->world_constants.randomize_smol_pos = s->randomize_smol_pos;
+  world->config.randomize_smol_pos = s->randomize_smol_pos;
 
   CHECK_PROPERTY(s->dynamic_geometry_molecule_placement == 0
       && "DYNAMIC_GEOMETRY_MOLECULE_PLACEMENT '=' NEAREST_TRIANGLE is not supported yet"
   );
 
-  world->world_constants.use_expanded_list = s->use_expanded_list;
+  world->config.use_expanded_list = s->use_expanded_list;
 
   // this number counts the number of boundaries, not subvolumes, also, there are always 2 extra subvolumes on the sides in mcell3
-  world->world_constants.subpartitions_per_partition_dimension = s->nx_parts - 3;
+  world->config.subpartitions_per_partition_dimension = s->nx_parts - 3;
+
+	// compute other constants
+  world->config.init();
 
   return true;
 }
@@ -289,7 +296,10 @@ void MCell3WorldConverter::create_uninitialized_walls_for_polygonal_object(const
 }
 
 
-bool MCell3WorldConverter::convert_wall(const wall* w, GeometryObject& object) {
+bool MCell3WorldConverter::convert_wall_and_update_regions(
+    const wall* w, GeometryObject& object,
+    const region_list* rl
+) {
 
   PartitionWallIndexPair wall_pindex = get_mcell4_wall_index(w);
   Partition& p = world->get_partition(wall_pindex.first);
@@ -299,9 +309,6 @@ bool MCell3WorldConverter::convert_wall(const wall* w, GeometryObject& object) {
   wall.object_id = object.id;
   wall.object_index = object.index;
   object.wall_indices.push_back(wall.index);
-
-  CHECK_PROPERTY(w->surf_class_head == nullptr); // for now
-  CHECK_PROPERTY(w->num_surf_classes == 0); // for now
 
   wall.side = w->side;
 
@@ -362,10 +369,93 @@ bool MCell3WorldConverter::convert_wall(const wall* w, GeometryObject& object) {
   CHECK_PROPERTY(w->flags == 4096); // not sure yet what flags are there for walls
 
 
+
+  // now let's handle regions
+  std::set<species_id_t> region_species_from_mcell3;
+  for (const region_list *r = rl; r != NULL; r = r->next) {
+    region* reg = r->reg;
+    assert(reg != nullptr);
+
+    // are we in this region?
+    if (get_bit(reg->membership, wall.side)) {
+      auto pindex = get_mcell4_region_index(reg);
+      CHECK_PROPERTY(pindex.first == wall_pindex.first);
+
+      region_index_t region_index = pindex.second;
+      wall.regions.insert_unique(region_index);
+
+      // add our wall to the region
+      Region& mcell4_reg = p.get_region(region_index);
+      if (mcell4_reg.species_id != SPECIES_ID_INVALID) {
+        region_species_from_mcell3.insert(mcell4_reg.species_id);
+      }
+
+      // which of our walls are region edges?
+      set<edge_index_t> edge_indices;
+      if (reg->boundaries != nullptr) {
+        for (uint i = 0; i < EDGES_IN_TRIANGLE; i++) {
+          edge* e = w->edges[i];
+          uint keyhash = (unsigned int)(intptr_t)(e);
+          void* key = (void *)(e);
+          if (pointer_hash_lookup(reg->boundaries, key, keyhash)) {
+            edge_indices.insert(i);
+          }
+        }
+      }
+
+      assert(mcell4_reg.walls_and_edges.count(wall.index) == 0);
+      mcell4_reg.walls_and_edges[wall.index] = edge_indices;
+    }
+  }
+
+  // check that associated regions used the same 'surf_classes'/species
+  std::set<species_id_t> wall_species_from_mcell3;
+  for (surf_class_list *sl = w->surf_class_head; sl != nullptr; sl = sl->next) {
+    CHECK_PROPERTY(sl->surf_class != nullptr);
+    wall_species_from_mcell3.insert(get_mcell4_species_id(sl->surf_class->species_id));
+  }
+  CHECK_PROPERTY(wall_species_from_mcell3 == region_species_from_mcell3);
+
   // finally, we must let the partition know that
   // we initialized the wall
   p.finalize_wall_creation(wall.index);
 
+  return true;
+}
+
+// result is not used anywhere
+bool MCell3WorldConverter::convert_region(Partition& p, const region* r, region_index_t& region_index) {
+
+  assert(r != nullptr);
+
+  Region new_region;
+
+  new_region.name = get_sym_name(r->sym);
+
+  // u_int hashval;          // ignored
+  // char *region_last_name; // ignored
+  // struct geom_object *parent; // ignored
+  CHECK_PROPERTY(r->element_list_head == nullptr); // should be used only at parse time
+
+  // r->membership - Each bit indicates whether the corresponding wall is in the region */
+  // and r->boundaries - edges of region are handled in convert_wall_and_update_regions
+
+  CHECK_PROPERTY(r->sm_dat_head == nullptr); // should be null during initial conversion
+
+  if (r->surf_class != nullptr) {
+    new_region.species_id = get_mcell4_species_id(r->surf_class->species_id);
+  }
+  else {
+    new_region.species_id = SPECIES_ID_INVALID;
+  }
+
+  CHECK_PROPERTY(r->region_has_all_elements || r->bbox == nullptr); // so far it can be set only to all-encopasing region
+  // CHECK_PROPERTY(r->area == 0);  // ignored for now
+  // CHECK_PROPERTY(r->volume == 0);  // ignored for now
+  // CHECK_PROPERTY(r->flags == 0); // ignored for now
+  CHECK_PROPERTY(r->manifold_flag == 0);
+
+  region_index = p.add_region(new_region);
   return true;
 }
 
@@ -390,14 +480,25 @@ bool MCell3WorldConverter::convert_polygonal_object(const geom_object* o) {
   // o->last_name - ignored
   CHECK_PROPERTY(o->object_type == POLY_OBJ);
   CHECK_PROPERTY(o->contents != nullptr); // ignored for now, not sure what is contained
-  CHECK_PROPERTY(o->num_regions == 1); // for now
-
-  //TODO_CONVERSION: o->regions // this probably contains some flags and other data
 
   CHECK_PROPERTY(o->n_walls == o->n_walls_actual); // ignored
   CHECK_PROPERTY(o->walls == nullptr); // this is null for some reason
   CHECK_PROPERTY(o->wall_p != nullptr);
 
+  // --- regions ---
+  uint reg_cnt = 0;
+  for (region_list *r = o->regions; r != NULL; r = r->next) {
+    region* reg = r->reg;
+    assert(reg != nullptr);
+
+    region_index_t region_index;
+    CHECK(convert_region(p, reg, region_index));
+
+    add_mcell4_region_index_mapping(reg, PartitionRegionIndexPair(partition_index, region_index));
+    reg_cnt++;
+  }
+  CHECK_PROPERTY(o->num_regions == reg_cnt);
+  // TODO: add regions to the object
 
   // --- vertices ---
   // to stay identical to mcell3, will use the exact number of vertices as in mcell3, for this to work,
@@ -419,7 +520,9 @@ bool MCell3WorldConverter::convert_polygonal_object(const geom_object* o) {
   for (int i = 0; i < o->n_walls; i++) {
     //walls_vertices[i].resize(VERTICES_IN_TRIANGLE);
     // uses precomputed map vector_ptr_to_vertex_index_map to transform vertices
-    convert_wall(o->wall_p[i], obj);
+    // also uses mcell3_region_to_mcell4_index mapping to set that it belongs to a given region
+    //
+    CHECK(convert_wall_and_update_regions(o->wall_p[i], obj, o->regions));
   }
 
 
@@ -451,10 +554,10 @@ bool MCell3WorldConverter::convert_polygonal_object(const geom_object* o) {
 
 // cannot fail
 void MCell3WorldConverter::create_diffusion_events() {
-  assert(!world->get_species().empty() && "There must be at least 1 species");
+  assert(world->all_species.get_count() != 0 && "There must be at least 1 species");
 
   set<float_t> time_steps_set;
-  for (auto &species : world->get_species() ) {
+  for (auto &species : world->all_species.get_species_vector() ) {
     time_steps_set.insert(species.time_step);
   }
 
@@ -465,45 +568,79 @@ void MCell3WorldConverter::create_diffusion_events() {
   }
 }
 
+static bool is_species_superclass(volume* s, species* spec) {
+  return spec == s->all_mols || spec == s->all_volume_mols || spec == s->all_surface_mols;
+}
 
 bool MCell3WorldConverter::convert_species_and_create_diffusion_events(volume* s) {
   // TODO_CONVERSION: many items are not checked
   for (int i = 0; i < s->n_species; i++) {
     species* spec = s->species_list[i];
-    // not sure what to do with these superclasses
-    if (spec == s->all_mols || spec == s->all_volume_mols || spec == s->all_surface_mols) {
-      continue;
-    }
 
     Species new_species;
+    new_species.name = get_sym_name(spec->sym);
+    new_species.species_id = world->all_species.get_count(); // id corresponds to the index in the species array
 
-    new_species.species_id = world->get_species().size(); // id corresponds to the index in the species array
+    // check all species 'superclasses' classes
+    // these special species might be used in wall - surf|vol reactions
+    if (spec == s->all_mols) {
+      CHECK_PROPERTY(new_species.name == ALL_MOLECULES);
+      world->all_reactions.set_all_molecules_species_id(new_species.species_id);
+    }
+    else if (spec == s->all_volume_mols) {
+      CHECK_PROPERTY(new_species.name == ALL_VOLUME_MOLECULES);
+      world->all_reactions.set_all_volume_molecules_species_id(new_species.species_id);
+    }
+    else if (spec == s->all_surface_mols) {
+      CHECK_PROPERTY(new_species.name == ALL_SURFACE_MOLECULES);
+      world->all_reactions.set_all_surface_molecules_species_id(new_species.species_id);
+    }
+
     new_species.mcell3_species_id = spec->species_id;
     new_species.D = spec->D;
-    new_species.name = get_sym_name(spec->sym);
     new_species.space_step = spec->space_step;
     new_species.time_step = spec->time_step;
-    CHECK_PROPERTY(
-        spec->flags == 0
+
+    if (!(
+        is_species_superclass(s, spec)
+        || spec->flags == 0
         || spec->flags == SPECIES_FLAG_CAN_VOLVOL
         || spec->flags == SPECIES_FLAG_ON_GRID
-        || spec->flags == (SPECIES_FLAG_ON_GRID | CAN_SURFSURF)
+        || spec->flags == SPECIES_FLAG_IS_SURFACE
+        || spec->flags == (SPECIES_FLAG_ON_GRID | SPECIES_FLAG_CAN_SURFSURF)
+        || spec->flags == (SPECIES_FLAG_ON_GRID | SPECIES_FLAG_CAN_REGION_BORDER)
+        || spec->flags == (SPECIES_FLAG_ON_GRID | SPECIES_FLAG_CAN_SURFSURF | CAN_SURFWALL | SPECIES_FLAG_CAN_REGION_BORDER | REGION_PRESENT)
         || spec->flags == SPECIES_FLAG_CAN_VOLSURF
-    );
+      )) {
+      mcell_log("Unsupported species flag for species %s: %s\n", new_species.name.c_str(), get_species_flags_string(spec->flags).c_str());
+      CHECK_PROPERTY(false && "Flags listed above are not supported yet");
+    }
     new_species.flags = spec->flags;
 
     CHECK_PROPERTY(spec->n_deceased == 0);
     CHECK_PROPERTY(spec->cum_lifetime_seconds == 0);
-    CHECK_PROPERTY(spec->refl_mols == nullptr);
+
+    if (new_species.is_reactive_surface()) {
+      CHECK_PROPERTY(spec->refl_mols != nullptr);
+      CHECK_PROPERTY(spec->refl_mols->next == nullptr); // just one type for now
+
+      // reflective surface, seems that this information is transformed into reactions, so we do no need to store anything else
+      CHECK_PROPERTY(spec->refl_mols->orient == ORIENTATION_NONE);
+    }
+    else {
+      CHECK_PROPERTY(spec->refl_mols == nullptr);
+    }
+
     CHECK_PROPERTY(spec->transp_mols == nullptr);
     CHECK_PROPERTY(spec->absorb_mols == nullptr);
     CHECK_PROPERTY(spec->clamp_conc_mols == nullptr);
 
-    world->add_species(new_species);
+    world->all_species.add(new_species);
 
     mcell3_species_id_map[new_species.mcell3_species_id] = new_species.species_id;
   }
 
+  // TODO: really not sure why this is here... split
   create_diffusion_events();
 
   return true;
@@ -511,20 +648,23 @@ bool MCell3WorldConverter::convert_species_and_create_diffusion_events(volume* s
 
 
 bool MCell3WorldConverter::convert_single_reaction(const rxn *rx) {
-  world->reactions.push_back(Reaction());
-  Reaction& reaction = world->reactions.back();
+  Reaction reaction;
 
   // rx->next - handled in convert_reactions
   // rx->sym->name - ignored, name obtained from pathway
 
-  //?? u_int n_reactants - obtained from pthways, might check it
+  //?? u_int n_reactants - obtained from pathways, might check it
 
-  CHECK_PROPERTY(rx->n_pathways == 1); // limited for now
+  CHECK_PROPERTY(
+      rx->n_pathways == 1
+      || rx->n_pathways == RX_REFLEC // reflections for surf mols
+  ); // limited for now
+
   assert(rx->cum_probs != nullptr);
   // ?? reaction.cum_prob = rx->cum_probs[0]; - what is this good for?
 
-  CHECK_PROPERTY(rx->cum_probs[0] == rx->max_fixed_p); // limited for now
-  CHECK_PROPERTY(rx->cum_probs[0] == rx->min_noreaction_p); // limited for now
+  CHECK_PROPERTY(rx->max_fixed_p == 1.0 || rx->cum_probs[0] == rx->max_fixed_p); // limited for now
+  CHECK_PROPERTY(rx->min_noreaction_p == 1.0 || rx->cum_probs[0] == rx->min_noreaction_p); // limited for now
   reaction.max_fixed_p = rx->max_fixed_p;
   reaction.min_noreaction_p = rx->min_noreaction_p;
 
@@ -538,15 +678,15 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *rx) {
   // NFSIM short *geometries;         /* Geometries of reactants/products */
   // NFSIM short **nfsim_geometries;   /* geometries of the nfsim geometries associated with each path */
 
-  CHECK(rx->n_occurred == 0);
-  CHECK(rx->n_skipped == 0);
-  CHECK(rx->prob_t == nullptr);
+  CHECK_PROPERTY(rx->n_occurred == 0);
+  CHECK_PROPERTY(rx->n_skipped == 0);
+  CHECK_PROPERTY(rx->prob_t == nullptr);
 
   // TODO_CONVERSION: pathway_info *info - magic_list, also some checks might be useful
 
   // --- pathway ---
   pathway *pathway_head = rx->pathway_head;
-  CHECK(pathway_head->next == nullptr); // only 1 supported now
+  CHECK_PROPERTY(pathway_head->next == nullptr); // only 1 supported now
 
   if (pathway_head->pathname != nullptr) {
     assert(pathway_head->pathname->sym != nullptr);
@@ -558,9 +698,9 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *rx) {
 
   reaction.rate_constant = pathway_head->km;
 
-  CHECK(pathway_head->orientation1 == 0 || pathway_head->orientation1 == 1 || pathway_head->orientation1 == -1);
-  CHECK(pathway_head->orientation2 == 0 || pathway_head->orientation2 == 1 || pathway_head->orientation2 == -1);
-  CHECK(pathway_head->orientation3 == 0 || pathway_head->orientation3 == 1 || pathway_head->orientation3 == -1);
+  CHECK_PROPERTY(pathway_head->orientation1 == 0 || pathway_head->orientation1 == 1 || pathway_head->orientation1 == -1);
+  CHECK_PROPERTY(pathway_head->orientation2 == 0 || pathway_head->orientation2 == 1 || pathway_head->orientation2 == -1);
+  CHECK_PROPERTY(pathway_head->orientation3 == 0 || pathway_head->orientation3 == 1 || pathway_head->orientation3 == -1);
 
   if (pathway_head->reactant1 != nullptr) {
     species_id_t reactant1_id = get_mcell4_species_id(pathway_head->reactant1->species_id);
@@ -571,7 +711,7 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *rx) {
       reaction.reactants.push_back(SpeciesWithOrientation(reactant2_id, pathway_head->orientation2));
 
       if (pathway_head->reactant3 != nullptr) {
-        mcell_error("TODO_CONVERSION: reactions with 3 reactants are not fully supported");
+        mcell_error("TODO_CONVERSION: reactions with 3 reactants are not supported");
         species_id_t reactant3_id = get_mcell4_species_id(pathway_head->reactant3->species_id);
         reaction.reactants.push_back(SpeciesWithOrientation(reactant3_id, pathway_head->orientation3));
       }
@@ -585,20 +725,41 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *rx) {
     assert(false && "No reactants?");
   }
 
-  CHECK(pathway_head->km_filename == nullptr);
+  CHECK_PROPERTY(pathway_head->km_filename == nullptr);
 
-  // products
-  product *product_ptr = pathway_head->product_head;
-  while (product_ptr != nullptr) {
-    species_id_t product_id = get_mcell4_species_id(product_ptr->prod->species_id);
-    CHECK(product_ptr->orientation == 0 || product_ptr->orientation == 1 || product_ptr->orientation == -1);
 
-    reaction.products.push_back(SpeciesWithOrientation(product_id, product_ptr->orientation));
+  if (rx->n_pathways == RX_ABSORB_REGION_BORDER) {
+    CHECK_PROPERTY(pathway_head->flags == PATHW_ABSORP);
+    reaction.type = ReactionType::AbsorbRegionBorder;
+  }
+  else if (rx->n_pathways == RX_TRANSP) {
+    CHECK_PROPERTY(pathway_head->flags == PATHW_TRANSP);
+    reaction.type = ReactionType::Transparent;
+  }
+  else if (rx->n_pathways == RX_REFLEC) {
+    CHECK_PROPERTY(pathway_head->flags == PATHW_REFLEC);
+    reaction.type = ReactionType::Reflect;
+  }
+  else {
+    CHECK_PROPERTY(pathway_head->flags == 0);
 
-    product_ptr = product_ptr->next;
+    reaction.type = ReactionType::Standard;
+
+    // products
+    product *product_ptr = pathway_head->product_head;
+    while (product_ptr != nullptr) {
+      species_id_t product_id = get_mcell4_species_id(product_ptr->prod->species_id);
+      CHECK_PROPERTY(product_ptr->orientation == 0 || product_ptr->orientation == 1 || product_ptr->orientation == -1);
+
+      reaction.products.push_back(SpeciesWithOrientation(product_id, product_ptr->orientation));
+
+      product_ptr = product_ptr->next;
+    }
   }
 
-  CHECK(pathway_head->flags == 0);
+  reaction.initialize();
+
+  world->all_reactions.add(reaction);
 
   return true;
 }
@@ -612,7 +773,7 @@ bool MCell3WorldConverter::convert_reactions(volume* s) {
   for (int i = 0; i < count; ++i) {
     rxn *rx = reaction_hash[i];
     while (rx != nullptr) {
-      convert_single_reaction(rx);
+      CHECK(convert_single_reaction(rx));
       rx = rx->next;
     }
   }
@@ -769,7 +930,6 @@ bool MCell3WorldConverter::convert_viz_output_events(volume* s) {
   CHECK_PROPERTY(viz_blocks->next == nullptr);
   CHECK_PROPERTY(viz_blocks->viz_mode == NO_VIZ_MODE || viz_blocks->viz_mode  == ASCII_MODE || viz_blocks->viz_mode == CELLBLENDER_MODE); // just checking valid values
   viz_mode_t viz_mode = viz_blocks->viz_mode;
-  const char* file_prefix_name = world->add_const_string_to_pool(viz_blocks->file_prefix_name);
   // CHECK_PROPERTY(viz_blocks->viz_output_flag == VIZ_ALL_MOLECULES); // ignored (for now?)
   CHECK_PROPERTY(viz_blocks->species_viz_states != nullptr && (*viz_blocks->species_viz_states == (int)0x80000000 || *viz_blocks->species_viz_states == 0x7FFFFFFF)); // NOTE: not sure what this means
   // CHECK_PROPERTY(viz_blocks->default_mol_state == 0x7FFFFFFF); // ignored, not sure what this means
@@ -792,7 +952,7 @@ bool MCell3WorldConverter::convert_viz_output_events(volume* s) {
     VizOutputEvent* event = new VizOutputEvent(world);
     event->event_time = iteration_ptr->value;
     event->viz_mode = viz_mode;
-    event->file_prefix_name = file_prefix_name;
+    event->file_prefix_name = viz_blocks->file_prefix_name;
 
     world->scheduler.schedule_event(event);
 

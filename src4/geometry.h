@@ -24,6 +24,9 @@
 #ifndef SRC4_GEOMETRY_H_
 #define SRC4_GEOMETRY_H_
 
+#include <vector>
+#include <set>
+
 #include "defines.h"
 #include "molecule.h"
 #include "dyn_vertex_structs.h"
@@ -31,11 +34,10 @@
 namespace MCell {
 
 class Partition;
-class UintSet;
 
 /**
  * A single geometrical object composed of multiple walls.
- * Vartices are accessible through the wall indices.
+ * Vertices are accessible through the wall indices.
  * Owned by partition.
  */
 class GeometryObject {
@@ -51,11 +53,49 @@ public:
 
   // p must be the partition that contains this object
   void dump(const Partition& p, const std::string ind) const;
+  static void dump_array(const Partition& p, const std::vector<GeometryObject>& vec);
+};
+
+
+class Region {
+public:
+  Region()
+    : name(""), species_id(SPECIES_ID_INVALID) {
+  }
+
+  std::string name;
+  //region_index_t index; // not sure if it is needed
+
+  // the reactivity of the region is modeled using reactions and
+  // this region has its species specified
+  species_id_t species_id;
+
+  // each wall contained in this map is a part of this region
+  // the vector of edge indices may be empty but if not, it specifies the
+  // edge od the wall that is a border of the region
+  std::map<wall_index_t, std::set<edge_index_t>> walls_and_edges;
+
+  bool is_edge(wall_index_t wall_index, edge_index_t edge_index) const {
+    auto it = walls_and_edges.find(wall_index);
+    if (it != walls_and_edges.end()) {
+      return it->second.count(edge_index) != 0;
+    }
+    else {
+      return false;
+    }
+  }
+
+  bool is_reactive() const {
+    return species_id != SPECIES_ID_INVALID;
+  }
+
+  void dump(const std::string ind) const;
+  static void dump_array(const std::vector<Region>& vec);
 };
 
 
 /* Used to transform coordinates of surface molecules diffusing between
- * adjacent walls */
+ * adjacent walls, owned by its wall */
 class Edge {
 public:
   Edge()
@@ -124,7 +164,7 @@ class Wall;
 
 /**
  * Surface grid.
- * Owned by partition, associated always with a single wall.
+ * Owned by its wall.
  *
  * Contains an array of tiles.
  */
@@ -211,7 +251,7 @@ private:
  *
  * This is in fact a triangle, but we are keeping the naming consistent with MCell 3.
  *
- * TODO: Add additional debug checks that will make sure that the
+ * TODO_LATER: Add additional debug checks that will make sure that the
  * state of this object is consistent. However, how to do it without
  * making the attributes private?
  */
@@ -259,8 +299,7 @@ public:
   void reinit_edge_constants(const Partition& p);
 
   bool is_same_region(const Wall& w) const {
-    if (w.object_id == object_id) {
-      // TODO: regions
+    if (w.object_id == object_id && w.regions == regions) {
       return true;
     }
     else {
@@ -274,7 +313,9 @@ public:
 
   geometry_object_id_t object_id; // id of object to which this wall belongs
   geometry_object_index_t object_index; // index of object in this partition to which this wall belongs
-  //wall_class_index_t class_index; // index of this wall's class
+
+  // regions, one wall can belong to multiple regions, regions are owned by partition
+  uint_set<region_index_t> regions;
 
   // indices of the three triangle's vertices,
   // they are shared in a partition and a single vertex should be usually represented by just one item

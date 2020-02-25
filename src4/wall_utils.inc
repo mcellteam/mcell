@@ -30,6 +30,7 @@
  * the opportunity to inline these functions into methods of diffuse&react event.
  */
 #include <vector>
+#include <limits.h>
 
 #include "diffuse_react_event.h"
 #include "defines.h"
@@ -37,6 +38,8 @@
 #include "partition.h"
 #include "geometry.h"
 #include "debug_config.h"
+
+#include "reaction_utils.inc"
 
 namespace MCell {
 
@@ -65,6 +68,7 @@ static bool walls_share_full_edge(const Partition& p, const Wall& w1, const Wall
 
   return count == 2;
 }
+
 
 /*************************************************************************
 find_nbr_walls_shared_one_vertex:
@@ -104,6 +108,214 @@ static void find_nbr_walls_shared_one_vertex(
   }
 }
 
+#if 0 // unused for now
+/***************************************************************************
+wall_contains_both_vertices:
+  In: wall
+      two vertices
+  Out: Returns 1 if the wall contains both vertices above, and 0 otherwise.
+
+  Different from MCell3 implementation, we are just comparing vertex indices,
+  this is used for neighboring edge detection and we assume that the
+  neighbor is in the same mesh, therefore the vertices must have the same
+  index.
+
+***************************************************************************/
+static bool wall_contains_both_vertices(
+    const Wall& w, const vertex_index_t vert_A, const vertex_index_t vert_B) {
+
+  assert(vert_A != vert_B && "Vertices must be different");
+
+  uint count = 0;
+
+  for (uint i = 0; i < 3; i++) {
+    vertex_index_t vi = w.vertex_indices[i];
+
+    if (vi == vert_A || vi == vert_B) {
+      count++;
+    }
+  }
+
+  return count == 2;
+}
+#endif
+
+/***********************************************************************
+find_shared_vertices_for_neighbor_walls:
+   In: original wall
+       neighbor wall
+       index of the neighbor wall vertex that is
+           shared with original wall (return value)
+       index of the neighbor wall vertex that is
+           shared with original wall (return value)
+   Out: neighbor wall shared vertices indices are set up.
+***********************************************************************/
+static void find_shared_vertices_for_neighbor_walls(const Wall& orig_wall,
+                                             const Wall& nb_wall,
+                                             int& shared_vert_1,
+                                             int& shared_vert_2) {
+
+  shared_vert_1 = -1;
+  shared_vert_2 = -1;
+
+  if (nb_wall.vertex_indices[0] == orig_wall.vertex_indices[0] ||
+      nb_wall.vertex_indices[0] == orig_wall.vertex_indices[1] ||
+      nb_wall.vertex_indices[0] == orig_wall.vertex_indices[2]) {
+    shared_vert_1 = 0;
+  }
+
+  if (nb_wall.vertex_indices[1] == orig_wall.vertex_indices[0] ||
+      nb_wall.vertex_indices[1] == orig_wall.vertex_indices[1] ||
+      nb_wall.vertex_indices[1] == orig_wall.vertex_indices[2]) {
+    if (shared_vert_1 < 0) {
+      shared_vert_1 = 1;
+    }
+    else {
+      shared_vert_2 = 1;
+    }
+  }
+
+  if (nb_wall.vertex_indices[2] == orig_wall.vertex_indices[0] ||
+      nb_wall.vertex_indices[2] == orig_wall.vertex_indices[1] ||
+      nb_wall.vertex_indices[2] == orig_wall.vertex_indices[2]) {
+    if (shared_vert_1 < 0) {
+      shared_vert_1 = 2;
+    }
+    else {
+      shared_vert_2 = 2;
+    }
+  }
+
+  assert(shared_vert_1 != -1);
+  assert(shared_vert_2 != -1);
+}
+
+/*************************************************************************
+find_shared_edge_index_of_neighbor_wall:
+  In: original wall
+      neighbor wall
+  Out: index of the shared edge in the coordinate system of neighbor wall.
+
+**************************************************************************/
+static edge_index_t find_shared_edge_index_of_neighbor_wall(
+    const Wall& orig_wall,
+    const Wall& nbr_wall) {
+  edge_index_t nbr_edge_ind;
+  int shared_vert_ind_1, shared_vert_ind_2;
+
+  find_shared_vertices_for_neighbor_walls(
+      orig_wall, nbr_wall, shared_vert_ind_1, shared_vert_ind_2);
+
+  if ((shared_vert_ind_1 + shared_vert_ind_2) == 1) {
+    nbr_edge_ind = EDGE_INDEX_0;
+  }
+  else if ((shared_vert_ind_1 + shared_vert_ind_2) == 2) {
+    nbr_edge_ind = EDGE_INDEX_2;
+  }
+  else if ((shared_vert_ind_1 + shared_vert_ind_2) == 3) {
+    nbr_edge_ind = EDGE_INDEX_1;
+  }
+  else {
+    assert(false);
+  }
+
+  return nbr_edge_ind;
+}
+
+#if 0
+/****************************************************************************
+find_neighbor_wall_and_edge:
+  In: orig_wall: wall
+      orig_edge_ind: wall edge index (in the coordinate system of "wall")
+      nbr_wall: neighbor wall (return value)
+      nbr_edge_ind: index of the edge in the coordinate system of "neighbor
+                    wall" that is shared with "wall" and coincides with the
+                    edge with "wall edge index" (return value)
+
+****************************************************************************/
+static void find_neighbor_wall_and_edge(
+    const Partition& p,
+    const Wall& orig_wall, const edge_index_t orig_edge_index,
+    wall_index_t& nbr_wall_index, edge_index_t& nbr_edge_index) {
+
+  struct wall *w;
+  vertex_index_t vert_A, vert_B;
+
+  switch (orig_edge_index) {
+  case EDGE_INDEX_0:
+    vert_A = orig_wall.vertex_indices[0];
+    vert_B = orig_wall.vertex_indices[1];
+    break;
+  case EDGE_INDEX_1:
+    vert_A = orig_wall.vertex_indices[1];
+    vert_B = orig_wall.vertex_indices[2];
+    break;
+  case EDGE_INDEX_2:
+    vert_A = orig_wall.vertex_indices[2];
+    vert_B = orig_wall.vertex_indices[0];
+    break;
+  default:
+    assert(false && "Invalid edge index");
+  }
+
+  for (uint i = 0; i < 3; i++) {
+    wall_index_t wi = orig_wall.nb_walls[i];
+    if (wi == WALL_INDEX_INVALID) {
+      continue;
+    }
+    const Wall& w = p.get_wall(wi);
+    // NOTE: wall_contains_both_vertices and find_shared_edge_index_of_neighbor_wall can be probably optimized
+    // into a single call
+    if (wall_contains_both_vertices(w, vert_A, vert_B)) {
+      nbr_wall_index = wi;
+      nbr_edge_index = find_shared_edge_index_of_neighbor_wall(orig_wall, w);
+      return;
+    }
+  }
+}
+#endif // unused for now
+
+
+/***********************************************************************
+is_wall_edge_region_border:
+  In: wall
+      wall's edge
+  Out: 1 if the edge is a region's border, and 0 - otherwise.
+  Note: we do not specify any particular region here, any region will
+        suffice
+************************************************************************/
+/***********************************************************************
+is_wall_edge_restricted_region_border: - when region_must_be_reactive is false
+  In: wall
+      wall's edge
+      surface molecule
+  Out: 1 if the edge is a restricted region's border for above surface molecule
+       0 - otherwise.
+  Note: we do not specify any particular region here, any region will
+        suffice for which special reactions (REFL/ABSORB) are defined.
+************************************************************************/
+static bool is_wall_edge_region_border(
+    const Partition& p,
+    const Wall& this_wall,
+    const edge_index_t edge_index,
+    const bool region_must_be_reactive
+) {
+
+  for (region_index_t region_index: this_wall.regions) {
+    const Region& reg = p.get_region(region_index);
+
+    if (region_must_be_reactive && !reg.is_reactive()) {
+      continue;
+    }
+
+    bool is_edge = reg.is_edge(this_wall.index, edge_index);
+    if (is_edge) {
+      return true;
+    }
+  }
+
+  return false;
+}
 
 
 /***************************************************************************
@@ -295,8 +507,141 @@ static int wall_in_box(
 }
 
 
-} // namespace wall_util
 
-} // namespace mcell
+/***********************************************************************
+find_restricted_regions_by_wall:
+  In: wall
+      surface molecule
+  Out: an object's region list if the wall belongs to the region
+          that is restrictive (REFL/ABSORB) to the surface molecule
+       NULL - if no such regions found
+  Note: regions called "ALL" or the ones that have ALL_ELEMENTS are not
+        included in the return "region list".
+************************************************************************/
+static void find_restricted_regions_by_wall(
+    const Partition& p,
+    const Wall& this_wall,
+    const Molecule& sm,
+    uint_set<region_index_t>& regions) {
+
+  assert(regions.empty() && "Function does not clean the resulting array");
+
+  const Species& species = p.all_species.get(sm.species_id);
+
+  if (!species.has_flag(SPECIES_FLAG_CAN_REGION_BORDER)) {
+    // no restricted region
+    return;
+  }
+
+  // get all possible molecule-surface reactions
+  ReactionsVector matching_rxns;
+  RxUtil::trigger_intersect(p, sm, this_wall, matching_rxns);
+
+  // collect species that can react
+  uint_set<species_id_t> restricted_surf_classes;
+  for (const Reaction* rxn: matching_rxns) {
+    if (rxn->is_reflect() || rxn->is_absorb()) {
+      assert(rxn->reactants.size() == 2);
+      restricted_surf_classes.insert(rxn->reactants[1].species_id);
+    }
+  }
+
+  // and store all regions that match the reacting species
+  for (region_index_t region_index: this_wall.regions) {
+    const Region& reg = p.get_region(region_index);
+    if (restricted_surf_classes.count(reg.species_id) != 0) {
+      regions.insert(region_index);
+    }
+  }
+}
+
+
+/*****************************************************************
+wall_belongs_to_all_regions_in_region_list:
+  In: wall
+      region_list
+  Out: 1 if wall belongs to all regions in the region list
+       0 otherwise.
+  Note: Wall can belong to several regions simultaneously.
+******************************************************************/
+static bool wall_belongs_to_all_regions_in_region_list(
+    const Wall& this_wall, const uint_set<region_index_t>& regions) {
+
+  if (regions.empty()) {
+    return false;
+  }
+
+  for (region_index_t region_index: regions) {
+    if (this_wall.regions.count(region_index) == 0) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/*****************************************************************
+walls_belong_to_at_least_one_different_restricted_region:
+  In: wall and surface molecule on it
+      wall and surface molecule on it
+  Out: 1 if both walls belong to at least one different restricted region
+       relative to the properties of surface molecule,
+       0 otherwise.
+  Note: Wall can be belong to several regions simultaneously.
+        Restricted region is one for the boundary of which the reactions
+        REFL/ABSORB are declared.
+******************************************************************/
+static bool walls_belong_to_at_least_one_different_restricted_region(
+    const Partition& p,
+    const Wall& w1, const Molecule& sm1,
+    const Wall& w2, const Molecule& sm2) {
+
+  uint_set<region_index_t> regions1;
+  find_restricted_regions_by_wall(p, w1, sm1, regions1);
+  uint_set<region_index_t> regions2;
+  find_restricted_regions_by_wall(p, w2, sm2, regions2);
+
+  if (regions1.empty() && regions2.empty()) {
+    return false;
+  }
+
+  bool res = false;
+  if (regions1.empty()) {
+    /* Is wall 1 part of all restricted regions rl_2, then these restricted
+     * regions just encompass wall 1 */
+    if (wall_belongs_to_all_regions_in_region_list(w1, regions2)) {
+      return false;
+    }
+    else {
+      return true;
+    }
+
+    return res;
+  }
+
+  if (regions2.empty()) {
+    /* Is wall 2 part of all restricted regions rl_1, then these restricted
+     * regions just encompass wall 2 */
+    if (wall_belongs_to_all_regions_in_region_list(w2, regions1)){
+      return false;
+    }
+    else {
+      return true;
+    }
+  }
+
+  // check whether the intersection of the two sets is not empty
+  for (region_index_t region_index: regions1) {
+    if (regions2.count(region_index) != 0) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+} // namespace WallUtil
+
+} // namespace MCell
 
 #endif // SRC4_WALL_UTILS_INC_

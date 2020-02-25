@@ -31,6 +31,8 @@
 #include "geometry.h"
 #include "world.h"
 
+#include "debug_config.h"
+
 using namespace std;
 
 
@@ -88,7 +90,7 @@ void Molecule::dump(
 ) const {
   cout
     << ind << extra_comment << "it:" << iteration << ", idx:" << id
-    << ", species: " << p.get_world_constants().get_species(species_id).name;
+    << ", species: " << p.all_species.get(species_id).name;
 
   if (print_position) {
     cout << ", pos:";

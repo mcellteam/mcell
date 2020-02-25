@@ -91,12 +91,22 @@ struct WallHitInfo {
   vec3_t pos_before_hit;
 };
 
+
+class SimulationConfig {
+public:
+  float_t length_unit;
+ 
+};
+
 class Partition {
 public:
+  // ctor definition is needed, default variant is generated instead by swig 
   Partition(
       const vec3_t origin_,
-      const WorldConstants& world_constants_,
-      SimulationStats& simulation_stats_
+      const SimulationConfig& config_,
+      const ReactionsInfo& reactions_,
+      const SpeciesInfo& species_,
+      SimulationStats& stats_
   );
   
   int get_geometry_vertex_count();
@@ -107,12 +117,6 @@ public:
   
   void dump();
 };
-
-class WorldConstants {
-public:
-  float_t length_unit;
- 
-};
   
 class World {
 public:
@@ -122,11 +126,11 @@ public:
   
   void register_wall_hit_callback_internal(wall_hit_callback_func func, void* clientdata_);
   
-  WorldConstants& get_world_constants();
-  
   Partition& get_partition(partition_index_t i);
   
   void dump();
+  
+  SimulationConfig config;
 };
 
 class MCell3WorldConverter {

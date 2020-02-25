@@ -24,21 +24,76 @@
 #include <iostream>
 
 #include "reaction.h"
-#include "world_constants.h"
+
+#include "species_info.h"
+#include "partition.h"
 
 using namespace std;
 
 namespace MCell {
 
+void SpeciesWithOrientation::dump_array(const std::vector<SpeciesWithOrientation>& vec, const string ind) {
+  for (size_t i = 0; i < vec.size(); i++) {
+    cout << ind << i << ": species_id: " << vec[i].species_id << ", orientation:" << vec[i].orientation << "\n";
+  }
+}
 
-uint Reaction::get_num_surf_products(const WorldConstants& world_contants) const {
+// create mapping for cases when one of the reactants is unchanged in the reaction
+void Reaction::update_equivalent_product_indices() {
+  for (SpeciesWithOrientation& product: products) {
+    product.equivalent_product_or_reactant_index = INDEX_INVALID;
+  }
+
+  for (uint ri = 0; ri < reactants.size(); ri++) {
+    reactants[ri].equivalent_product_or_reactant_index = INDEX_INVALID;
+
+    for (uint pi = 0; pi < products.size(); pi++) {
+      if (reactants[ri].equivalent_product_or_reactant_index == INDEX_INVALID &&
+          products[pi].equivalent_product_or_reactant_index == INDEX_INVALID &&
+          reactants[ri] == products[pi]) {
+
+        reactants[ri].equivalent_product_or_reactant_index = pi;
+        products[pi].equivalent_product_or_reactant_index = ri;
+      }
+    }
+  }
+}
+
+
+void Reaction::move_reused_reactants_to_be_the_first_products() {
+  // for each reactant (from the end since we want the products to be ordered in the same way)
+  for (int ri = reactants.size() - 1; ri >= 0; ri--) {
+    if (reactants[ri].equivalent_product_or_reactant_index != INDEX_INVALID) {
+      // move product to the front
+      uint index = reactants[ri].equivalent_product_or_reactant_index;
+      SpeciesWithOrientation prod = products[index];
+      products.erase(products.begin() + index);
+      products.insert(products.begin(), prod);
+
+      // update mapping (inefficient, but used only in initialization)
+      update_equivalent_product_indices();
+    }
+  }
+}
+
+
+uint Reaction::get_num_surf_products(const SpeciesInfo& all_species) const {
   uint res = 0;
   for (const SpeciesWithOrientation& prod: products) {
-    if (world_contants.get_species(prod.species_id).is_surf()) {
+    if (all_species.get(prod.species_id).is_surf()) {
       res++;
     }
   }
   return res;
+}
+
+void Reaction::dump_array(const vector<Reaction>& vec) {
+  cout << "Reaction array: " << (vec.empty() ? "EMPTY" : "") << "\n";
+
+  for (size_t i = 0; i < vec.size(); i++) {
+    cout << i << ":\n";
+    vec[i].dump("  ");
+  }
 }
 
 void Reaction::dump(const string ind) const {
@@ -46,7 +101,31 @@ void Reaction::dump(const string ind) const {
   cout << ind << "rate_constant: \t\t" << rate_constant << " [float_t] \t\t\n";
   cout << ind << "max_fixed_p: \t\t" << max_fixed_p << " [float_t] \t\t\n";
   cout << ind << "min_noreaction_p: \t\t" << min_noreaction_p << " [float_t] \t\t\n";
+
+  cout << ind << "rectants:\n";
+  SpeciesWithOrientation::dump_array(reactants, ind + "  ");
+
+  cout << ind << "products:\n";
+  SpeciesWithOrientation::dump_array(products, ind + "  ");
 }
 
+
+static std::string rxn_players_to_string(
+    const Partition& p, const std::vector<SpeciesWithOrientation>& players
+) {
+  string res;
+
+  for (uint i = 0; i < players.size(); i++) {
+    res += p.all_species.get(players[i].species_id).name;
+    if (i != players.size() - 1) {
+      res += " + ";
+    }
+  }
+  return res;
+}
+
+std::string Reaction::to_string(const Partition& p) const {
+  return rxn_players_to_string(p, reactants) + " -> " + rxn_players_to_string(p, products);
+}
 
 } // namespace mcell

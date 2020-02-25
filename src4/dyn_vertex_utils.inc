@@ -63,7 +63,7 @@ static void move_volume_molecule_to_closest_wall_point(Partition& p, const Volum
   vec3_t new_pos3d = GeometryUtil::uv2xyz(best_wall_pos2d, wall, p.get_wall_vertex(wall, 0));
 
 #ifdef DEBUG_DYNAMIC_GEOMETRY
-  vm.dump(p, "", "Moving vm towards new wall: ", p.get_simulation_stats().get_current_iteration(), 0);
+  vm.dump(p, "", "Moving vm towards new wall: ", p.stats.get_current_iteration(), 0);
   wall.dump(p, "", true);
 #endif
 
@@ -74,7 +74,7 @@ static void move_volume_molecule_to_closest_wall_point(Partition& p, const Volum
   // move the molecule a bit so that it ends up at the correct side of the wall
   vm.v.pos = new_pos3d;
   vec3_t new_pos_after_diffuse;
-  diffusion_util::tiny_diffuse_3D(p, vm, displacement, wall.index, new_pos_after_diffuse);
+  DiffusionUtil::tiny_diffuse_3D(p, vm, displacement, wall.index, new_pos_after_diffuse);
 
 
   // TODO:
@@ -85,12 +85,12 @@ static void move_volume_molecule_to_closest_wall_point(Partition& p, const Volum
 
   // move the molecule and also update the subpartition information
   vm.v.pos = new_pos_after_diffuse;
-  subpart_index_t new_subpart = p.get_subpartition_index(vm.v.pos);
+  subpart_index_t new_subpart = p.get_subpart_index(vm.v.pos);
   p.change_molecule_subpartition(vm, new_subpart);
 
 
 #ifdef DEBUG_DYNAMIC_GEOMETRY
-  vm.dump(p, "", "Vm after being moved: ", p.get_simulation_stats().get_current_iteration() /*iteration*/, 0);
+  vm.dump(p, "", "Vm after being moved: ", p.stats.get_current_iteration() /*iteration*/, 0);
 #endif
 }
 
@@ -104,7 +104,7 @@ static void move_surface_molecule_to_closest_wall_point(
   assert(sm.is_surf());
 
 #ifdef DEBUG_DYNAMIC_GEOMETRY_MCELL4_ONLY
-  sm.dump(p, "", "Moving sm towards new wall: ", p.get_simulation_stats().get_current_iteration(), 0);
+  sm.dump(p, "", "Moving sm towards new wall: ", p.stats.get_current_iteration(), 0);
 #endif
 
   // 1) check all walls to get a reference hopefully
@@ -123,7 +123,7 @@ static void move_surface_molecule_to_closest_wall_point(
   vec2_t found_pos2d;
 
   GridUtil::find_closest_tile_on_wall(
-      p, best_wall_index, best_wall_pos2d, best_d2, p.get_world_constants().vacancy_search_dist2,
+      p, best_wall_index, best_wall_pos2d, best_d2, p.config.vacancy_search_dist2,
       found_wall_index, found_tile_index, found_pos2d
   );
   assert(found_wall_index != WALL_INDEX_INVALID);
@@ -138,7 +138,7 @@ static void move_surface_molecule_to_closest_wall_point(
   // TODO: reschedule unimolar
 
 #ifdef DEBUG_DYNAMIC_GEOMETRY
-  sm.dump(p, "", "Sm after being moved: ", p.get_simulation_stats().get_current_iteration() /*iteration*/, 0);
+  sm.dump(p, "", "Sm after being moved: ", p.stats.get_current_iteration() /*iteration*/, 0);
 #endif
 }
 
@@ -198,7 +198,7 @@ static void dump_blender_display_code(
 static void collect_volume_molecules_moved_due_to_moving_wall(
     Partition& p,
     const wall_index_t moved_wall_index, const VertexMoveInfoVector& move_infos,
-    UintSet& already_moved_molecules,
+    uint_set<molecule_id_t>& already_moved_molecules,
     VolumeMoleculeMoveInfoVector& molecule_moves
 ) {
 
@@ -319,7 +319,7 @@ static void collect_volume_molecules_moved_due_to_moving_wall(
     int num_hits = 0;
 
     // cast ray along the whole partition
-    vec3_t move(0, 0, p.get_world_constants().partition_edge_length);
+    vec3_t move(0, 0, p.config.partition_edge_length);
 
     // check collision with the original wall
     bool collides = CollisionUtil::collide_wall_test(p, m.v.pos, orig_wall, move);

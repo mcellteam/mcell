@@ -37,7 +37,53 @@ using namespace std;
 
 namespace MCell {
 
-// may be also used fore reinitialization
+
+void GeometryObject::dump(const Partition& p, const std::string ind) const {
+  cout << ind << "GeometryObject: id:" << id << ", name:" << name << "\n";
+  for (wall_index_t i: wall_indices) {
+    cout << ind << "  " << i << ": \n";
+    p.get_wall(i).dump(p, ind + "    ");
+  }
+}
+
+
+void GeometryObject::dump_array(const Partition& p, const std::vector<GeometryObject>& vec) {
+  cout << "GeometryObject array: " << (vec.empty() ? "EMPTY" : "") << "\n";
+
+  for (size_t i = 0; i < vec.size(); i++) {
+    cout << i << ":\n";
+    vec[i].dump(p, "  ");
+  }
+}
+
+
+void Region::dump(const std::string ind) const {
+  cout << ind << "Region : " <<
+      "name:" << name <<
+      ", species_id: " << ((species_id == SPECIES_ID_INVALID) ? string("invalid") : to_string(species_id)) <<
+      "\n";
+
+  for (auto& wall_it: walls_and_edges) {
+    cout << ind << "  " << "wall " << wall_it.first << ", region edges: {";
+    for (auto& edge: wall_it.second) {
+      cout << edge << ", ";
+    }
+    cout << "}\n";
+  }
+}
+
+
+void Region::dump_array(const std::vector<Region>& vec) {
+  cout << "Region array: " << (vec.empty() ? "EMPTY" : "") << "\n";
+
+  for (size_t i = 0; i < vec.size(); i++) {
+    cout << i << ":\n";
+    vec[i].dump("  ");
+  }
+}
+
+
+// may be also used for reinitialization
 void Grid::initialize(const Partition& p, const Wall& w) {
 
   if (is_initialized()) {
@@ -96,14 +142,6 @@ void Grid::dump() const {
     if (id != MOLECULE_ID_INVALID) {
       cout << "[" << i << "]" << id << "\n";
     }
-  }
-}
-
-void GeometryObject::dump(const Partition& p, const std::string ind) const {
-  cout << ind << "geometry_object_t: id:" << id << ", name:" << name << "\n";
-  for (wall_index_t i: wall_indices) {
-    cout << ind << "  " << i << ": \n";
-    p.get_wall(i).dump(p, ind + "    ");
   }
 }
 
@@ -332,6 +370,12 @@ void Wall::dump(const Partition& p, const std::string ind, const bool for_diff) 
     }
     cout << "\n";
 
+    cout << ind << "regions: ";
+    for (region_index_t i: regions) {
+      cout << i << ", ";
+    }
+    cout << "\n";
+
     cout << ind
       << "uv_vert1_u: " << uv_vert1_u
       << ", uv_vert2: " << uv_vert2
@@ -387,7 +431,7 @@ void update_moved_walls(
   // otherwise the edge initialization would be using
   // inconsistent data
   // we need to update also edges of neighboring walls
-  UintSet walls_to_be_updated;
+  uint_set<wall_index_t> walls_to_be_updated;
   // NOTE: we might consider sharing edges in the same way as in MCell3
   for (auto it: walls_with_their_moves) {
     wall_index_t wall_index = it.first;

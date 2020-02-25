@@ -52,6 +52,42 @@ void Collision::dump(Partition& p, const std::string ind) const {
   cout << "position: \t\t" << pos << " [vec3_t] \t\t\n";
 }
 
+void Collision::dump(
+    const Partition& p,
+    const std::string extra_comment,
+    const uint64_t iteration
+) const {
+
+  cout << extra_comment << "it:" << iteration << ", ";
+
+  if (is_mol_mol_reaction()) {
+    cout <<
+      "bimol rxn" <<
+      ", idA:"  << diffused_molecule_id <<
+      ", idB:"  << colliding_molecule_id <<
+      //TODO in mcell3 ", rxn: " << rx->to_string(p) <<
+      ", time: " << time;
+
+      if (type != CollisionType::SURFMOL_SURFMOL) {
+        cout << ", pos " << pos;
+      }
+  }
+  else if (is_unimol_reaction()) {
+    cout <<
+      "unimol rxn" <<
+      ", idA:"  << diffused_molecule_id <<
+      //TODO in mcell3 ", rxn: " << rx->to_string(p) <<
+      ", time: " << time;
+  }
+  else if (is_wall_collision()) {
+    cout << "Unimol (TODO)";
+  }
+  else {
+    assert(false);
+  }
+  cout << "\n";
+}
+
 
 string Collision::to_string(const Partition& p) const {
   stringstream ss;

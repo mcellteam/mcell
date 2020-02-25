@@ -86,7 +86,7 @@ FILE* VizOutputEvent::create_and_open_output_file_name() {
   //fprintf(stderr, "***dumps: %lld\n", current_iteration);
   const char* type_name = (viz_mode == ASCII_MODE) ? "ascii" : "cellbin";
   char* cf_name =
-      CHECKED_SPRINTF("4%s.%s.%.*lld.dat", file_prefix_name, type_name, ndigits, current_iteration);
+      CHECKED_SPRINTF("4%s.%s.%.*lld.dat", file_prefix_name.c_str(), type_name, ndigits, current_iteration);
   assert(cf_name != nullptr);
 
   if (::make_parent_dir(cf_name)) {
@@ -108,7 +108,7 @@ void VizOutputEvent::compute_where_and_norm(
     const Partition& p, const Molecule& m,
     vec3_t& where, vec3_t& norm
 ) {
-  const Species& species = world->get_species(m.species_id);
+  const Species& species = world->all_species.get(m.species_id);
 
   if ((species.flags & NOT_FREE) == 0) {
     // neither surface nor on grid
@@ -128,7 +128,7 @@ void VizOutputEvent::compute_where_and_norm(
     norm = vec3_t(0);
   }
 
-  where *= world->world_constants.length_unit;
+  where *= world->config.length_unit;
 }
 
 
@@ -148,7 +148,7 @@ void VizOutputEvent::output_ascii_molecules() {
       vec3_t norm;
       compute_where_and_norm(p, m, where, norm);
 
-      const Species& species = world->get_species(m.species_id);
+      const Species& species = world->all_species.get(m.species_id);
 
 #if FLOAT_T_BYTES == 8
       errno = 0;
@@ -173,10 +173,10 @@ void VizOutputEvent::output_ascii_molecules() {
 void VizOutputEvent::output_cellblender_molecules() {
   // assuming that fdlp->type == ALL_MOL_DATA
   FILE *custom_file = create_and_open_output_file_name();
-  float_t length_unit = world->world_constants.length_unit;
+  float_t length_unit = world->config.length_unit;
 
   // sort all molecules by species
-  uint species_count = world->get_species().size();
+  uint species_count = world->all_species.get_count();
 
   // FIXME: rather change to partition and molecule indices
   typedef pair<const Partition*, const Molecule*> partition_molecule_ptr_pair_t;
@@ -198,7 +198,7 @@ void VizOutputEvent::output_cellblender_molecules() {
   fwrite(&cellbin_version, sizeof(cellbin_version), 1, custom_file);
 
   /* Write all the molecules whether EXTERNAL_SPECIES or not (for now) */
-  for (species_id_t species_idx = 0; species_idx < world->get_species().size(); species_idx++) {
+  for (species_id_t species_idx = 0; species_idx < world->all_species.get_count(); species_idx++) {
     // count of molecules for this species
     vector<partition_molecule_ptr_pair_t>& species_molecules = volume_molecules_by_species[species_idx];
     if (species_molecules.empty()) {
@@ -206,7 +206,7 @@ void VizOutputEvent::output_cellblender_molecules() {
     }
 
     /* Write species name: */
-    const Species& species = world->get_species(species_idx);
+    const Species& species = world->all_species.get(species_idx);
     string mol_name = species.name;
     byte name_len = mol_name.length();
      fwrite(&name_len, sizeof(byte), 1, custom_file);

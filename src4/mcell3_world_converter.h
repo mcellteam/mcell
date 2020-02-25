@@ -56,7 +56,11 @@ public:
 
   void create_uninitialized_walls_for_polygonal_object(const geom_object* o);
 
-  bool convert_wall(const wall* w, GeometryObject& object);
+  bool convert_wall_and_update_regions(
+      const wall* w, GeometryObject& object,
+      const region_list* rl
+  );
+  bool convert_region(Partition& p, const region* r, region_index_t& region_index);
   bool convert_polygonal_object(const geom_object* o);
   bool convert_geometry_objects(volume* s);
 
@@ -115,6 +119,21 @@ private:
 
   // use only through add_mcell4_wall_index_mapping, get_mcell4_wall_index
   std::map<const wall*, PartitionWallIndexPair> wall_ptr_to_vertex_index_map;
+
+
+  void add_mcell4_region_index_mapping(const region* mcell3_region, PartitionWallIndexPair pindex) {
+    assert(region_ptr_to_region_index_map.find(mcell3_region) == region_ptr_to_region_index_map.end() && "Region mapping for this wall already exists");
+    region_ptr_to_region_index_map[mcell3_region] = pindex;
+  }
+
+  PartitionRegionIndexPair get_mcell4_region_index(const region* mcell3_region) {
+    auto it = region_ptr_to_region_index_map.find(mcell3_region);
+    assert(it != region_ptr_to_region_index_map.end());
+    return it->second;
+  }
+
+  // use only through add_mcell4_region_index_mapping, get_mcell4_region_index
+  std::map<const region*, PartitionRegionIndexPair> region_ptr_to_region_index_map;
 };
 
 

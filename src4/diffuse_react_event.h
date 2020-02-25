@@ -33,6 +33,7 @@
 #include "reaction.h"
 #include "collision_structs.h"
 
+#define TEST 1
 
 namespace MCell {
 
@@ -101,16 +102,13 @@ private:
   );
 
   // ---------------------------------- volume molecules ----------------------------------
-
   void diffuse_vol_molecule(
       Partition& p,
       const molecule_id_t vm_id,
       const float_t remaining_time_step,
-      bool& was_defunct,
-      vec3_t& new_pos,
-      subpart_index_t& new_subpart_index,
       WallTileIndexPair& where_created_this_iteration
   );
+
   bool collide_and_react_with_vol_mol(
       Partition& p,
       const Collision& collision,
@@ -134,11 +132,7 @@ private:
       Partition& p,
       const molecule_id_t sm_id,
       const float_t current_time,
-      const float_t remaining_time_step,
-      bool& was_defunct,
-      vec2_t& new_loc,
-      wall_index_t& new_wall_index,
-      float_t& advance_time
+      const float_t remaining_time_step
   );
 
   wall_index_t ray_trace_surf(
@@ -146,8 +140,7 @@ private:
       const Species& species,
       Molecule& sm,
       vec2_t& remaining_displacement,
-      vec2_t& new_pos,
-      bool& was_defunct
+      vec2_t& new_pos
   );
 
   bool react_2D_all_neighbors(
@@ -160,8 +153,8 @@ private:
   // ---------------------------------- reactions ----------------------------------
   int find_surf_product_positions(
       Partition& p,
-      const Molecule* reacA,
-      const Molecule* reacB,
+      const Molecule* reacA, const bool keep_reacA,
+      const Molecule* reacB, const bool keep_reacB,
       const Molecule* surf_reac,
       const Reaction* rx,
       small_vector<GridPos>& assigned_surf_product_positions
@@ -174,7 +167,8 @@ private:
       float_t remaining_time_step
   );
 
-  int outcome_unimolecular(
+	// returns true if molecule urvived
+  bool outcome_unimolecular(
       Partition& p,
       Molecule& vm,
       const float_t scheduled_time,
@@ -184,8 +178,10 @@ private:
   int outcome_products_random(
       Partition& p,
       const Collision& collision,
-      float_t remaining_time_step,
-      int path
+      const float_t remaining_time_step,
+      const int path,
+      bool& keep_reacA,
+      bool& keep_reacB
   );
 
   void create_unimol_rx_action(
@@ -194,7 +190,7 @@ private:
       float_t remaining_time_step
   );
 
-  void react_unimol_single_molecule(
+  bool react_unimol_single_molecule(
       Partition& p,
       const molecule_id_t vm_id,
       const float_t scheduled_time,

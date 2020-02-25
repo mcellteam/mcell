@@ -155,8 +155,8 @@ static void wall_subparts_collision_test(
   if (urb.z > leeway)
     leeway = urb.z;
   leeway = EPS + leeway * EPS;
-  if (p.get_world_constants().use_expanded_list) {
-    leeway += p.get_world_constants().rx_radius_3d;
+  if (p.config.use_expanded_list) {
+    leeway += p.config.rx_radius_3d;
   }
 
   llf = llf - vec3_t(leeway);
@@ -171,7 +171,7 @@ static void wall_subparts_collision_test(
   // do we fit into just one subparition?
   if (max_subpart_indices == min_subpart_indices) {
     colliding_subparts.push_back(
-        p.get_subpartition_index_from_3d_indices(min_subpart_indices)
+        p.get_subpart_index_from_3d_indices(min_subpart_indices)
     );
     return;
   }
@@ -237,11 +237,11 @@ find_edge_point:
            (assumed to be on or inside triangle)
       disp: a 2D displacement vector to move
       edgept: a place to store the coordinate on the edge, if we hit it
-  Out: index of the edge we hit (0, 1, or 2), or -1 if the new location
-       is within the wall, or -2 if we can't tell.  If the result is
+  Out: index of the edge we hit (0, 1, or 2), or 3 if the new location
+       is within the wall, or 4 if we can't tell.  If the result is
        0, 1, or 2, edgept is set to the new location.
 ***************************************************************************/
-static int find_edge_point(
+static edge_index_t find_edge_point(
     const Wall& here,
     const vec2_t& loc,
     const vec2_t& disp,
@@ -261,10 +261,10 @@ static int find_edge_point(
       t = -lxc1 * f;
       if (EPS < t && t < 1.0) {
         edgept = loc + vec2_t(t) * disp;
-        return 0;
+        return EDGE_INDEX_0;
       }
       else if (t > 1.0 + EPS) {
-        return -1;
+        return EDGE_INDEX_WITHIN_WALL;
       }
       /* else can't tell if we hit this edge, assume not */
     }
@@ -281,10 +281,10 @@ static int find_edge_point(
       t = -lxc2 * f;
       if (EPS < t && t < 1.0) {
         edgept = loc + vec2_t(t) * disp;
-        return 2;
+        return EDGE_INDEX_2;
       }
       else if (t > 1.0 + EPS) {
-        return -1;
+        return EDGE_INDEX_WITHIN_WALL;
       }
       /* else can't tell */
     }
@@ -299,16 +299,16 @@ static int find_edge_point(
       t = (here.uv_vert1_u * here.uv_vert2.v + lxc1 - lxc2) * f;
       if (EPS < t && t < 1.0) {
         edgept = loc + vec2_t(t) * disp;
-        return 1;
+        return EDGE_INDEX_1;
       }
       else if (t > 1.0 + EPS) {
-        return -1;
+        return EDGE_INDEX_WITHIN_WALL;
       }
       /* else can't tell */
     }
   }
 
-  return -2; /* Couldn't tell whether we hit or not--calling function should
+  return EDGE_INDEX_CANNOT_TELL; /* Couldn't tell whether we hit or not--calling function should
                 pick another displacement */
 }
 
@@ -324,7 +324,7 @@ traverse_surface:
        direction if it is shared. newloc is set to loc in the coordinate system
        of the new wall (after flattening the walls along their shared edge)
 ***************************************************************************/
-static wall_index_t traverse_surface(const Wall& here, const vec2_t& loc, int which_edge,
+static wall_index_t traverse_surface(const Wall& here, const vec2_t& loc, edge_index_t which_edge,
   vec2_t& newloc) {
 
   wall_index_t there;
@@ -656,7 +656,6 @@ static float_t find_closest_wall(
   for (const wall_index_t wall_index: obj.wall_indices) {
     const Wall& w = p.get_wall(wall_index);
 
-    // TODO: regions - we are checking only object id here
     if (!moved_wall.is_same_region(w)) {
       continue;
     }
