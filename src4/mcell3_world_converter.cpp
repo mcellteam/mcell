@@ -453,7 +453,7 @@ bool MCell3WorldConverter::convert_region(Partition& p, const region* r, region_
   // CHECK_PROPERTY(r->area == 0);  // ignored for now
   // CHECK_PROPERTY(r->volume == 0);  // ignored for now
   // CHECK_PROPERTY(r->flags == 0); // ignored for now
-  CHECK_PROPERTY(r->manifold_flag == 0);
+  // CHECK_PROPERTY(r->manifold_flag == 0); // ignored, do we care?
 
   region_index = p.add_region(new_region);
   return true;
@@ -706,9 +706,16 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
 
     rxn.rate_constant = current_pathway->km;
 
+    CHECK_PROPERTY(current_pathway->reactant1 != nullptr);
     CHECK_PROPERTY(current_pathway->orientation1 == 0 || current_pathway->orientation1 == 1 || current_pathway->orientation1 == -1);
-    CHECK_PROPERTY(current_pathway->orientation2 == 0 || current_pathway->orientation2 == 1 || current_pathway->orientation2 == -1);
-    CHECK_PROPERTY(current_pathway->orientation3 == 0 || current_pathway->orientation3 == 1 || current_pathway->orientation3 == -1);
+    CHECK_PROPERTY(
+        current_pathway->reactant2 == nullptr ||
+        (current_pathway->orientation2 == 0 || current_pathway->orientation2 == 1 || current_pathway->orientation2 == -1)
+    );
+    CHECK_PROPERTY(
+        current_pathway->reactant2 == nullptr ||
+        (current_pathway->orientation3 == 0 || current_pathway->orientation3 == 1 || current_pathway->orientation3 == -1)
+    );
 
     // reactants
     if (current_pathway->reactant1 != nullptr) {
@@ -802,6 +809,7 @@ bool MCell3WorldConverter::convert_reactions(volume* s) {
 }
 
 
+// FIXME: thiscould use a cleanup and maybe redesign
 bool MCell3WorldConverter::convert_release_events(volume* s) {
 
   // -- schedule_helper -- (as volume.releaser)
@@ -828,16 +836,67 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
       // -- release_site --
       release_site_obj* rel_site = req->release_site;
 
-      bool surface_release;
+      CHECK_PROPERTY(rel_site->release_shape == SHAPE_SPHERICAL || rel_site->release_shape == SHAPE_REGION);
+      switch (rel_site->release_shape) {
+        case SHAPE_SPHERICAL:
+          event_data.release_shape = ReleaseShape::SPHERICAL;
+          break;
+        case SHAPE_REGION:
+          event_data.release_shape = ReleaseShape::REGION;
+          break;
+        default:
+          assert(false);
+      }
+
       if (rel_site->region_data == nullptr) {
         assert(rel_site->location != nullptr);
         event_data.location = vec3_t(*rel_site->location); // might be NULL
-        surface_release = false;
       }
       else if (rel_site->location == nullptr) {
         assert(rel_site->region_data != nullptr);
+        release_region_data* region_data = rel_site->region_data;
         event_data.location = vec3_t(POS_INVALID);
-        surface_release = true;
+
+        // CHECK_PROPERTY(region_data->in_release == nullptr); // not sure what this means yet
+
+
+        if (rel_site->region_data->cum_area_list != nullptr) {
+          // surface molecules release onto region
+
+          release_region_data* region_data = rel_site->region_data;
+          for (int wall_i = 0; wall_i < region_data->n_walls_included; wall_i++) {
+
+            wall* w = region_data->owners[region_data->obj_index[wall_i]]->wall_p[region_data->wall_index[wall_i]];
+
+            PartitionWallIndexPair wall_index = get_mcell4_wall_index(w);
+
+            event_data.cum_area_and_pwall_index_pairs.push_back(
+                CummAreaPWallIndexPair(region_data->cum_area_list[wall_i], wall_index)
+            );
+          }
+
+        }
+        else {
+          // volume molecules release into region
+
+          // this is quite limited for now, a single region is allowed
+          CHECK_PROPERTY(region_data->cum_area_list == nullptr);
+          CHECK_PROPERTY(region_data->wall_index == nullptr);
+          CHECK_PROPERTY(region_data->n_objects == -1);
+          CHECK_PROPERTY(region_data->owners == 0);
+          CHECK_PROPERTY(region_data->walls_per_obj == 0);
+
+          CHECK_PROPERTY(region_data->expression != nullptr);
+          release_evaluator* expression = region_data->expression;
+          CHECK_PROPERTY(expression->op == (REXP_NO_OP | REXP_LEFT_REGION));
+          CHECK_PROPERTY(expression->left != nullptr);
+          CHECK_PROPERTY(expression->right == nullptr);
+          region* left_region = (region*)expression->left;
+
+          event_data.region_llf = region_data->llf;
+          event_data.region_urb = region_data->urb;
+          event_data.region_name = get_sym_name(left_region->sym);
+        }
       }
       else {
         CHECK_PROPERTY(
@@ -849,8 +908,8 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
       event_data.species_id = get_mcell4_species_id(rel_site->mol_type->species_id);
 
       CHECK_PROPERTY(rel_site->release_number_method == 0);
-      event_data.release_shape = rel_site->release_shape;
-      CHECK_PROPERTY(surface_release || rel_site->orientation == 0);
+
+      CHECK_PROPERTY(event_data.release_shape == ReleaseShape::REGION || rel_site->orientation == 0);
       event_data.orientation = rel_site->orientation;
 
       event_data.release_number = rel_site->release_number;
@@ -858,7 +917,7 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
       CHECK_PROPERTY(rel_site->mean_diameter == 0); // temporary
       CHECK_PROPERTY(rel_site->concentration == 0); // temporary
       CHECK_PROPERTY(rel_site->standard_deviation == 0); // temporary
-      CHECK_PROPERTY(surface_release || rel_site->diameter != nullptr);
+      CHECK_PROPERTY(event_data.release_shape == ReleaseShape::REGION || rel_site->diameter != nullptr);
       if (rel_site->diameter != nullptr) {
         event_data.diameter = *rel_site->diameter; // ignored for now
       }
@@ -866,20 +925,6 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
         event_data.diameter = vec3_t(POS_INVALID);
       }
 
-      //region_data
-      if (rel_site->region_data != nullptr) {
-        release_region_data* region_data = rel_site->region_data;
-        for (int wall_i = 0; wall_i < region_data->n_walls_included; wall_i++) {
-
-          wall* w = region_data->owners[region_data->obj_index[wall_i]]->wall_p[region_data->wall_index[wall_i]];
-
-          PartitionWallIndexPair wall_index = get_mcell4_wall_index(w);
-
-          event_data.cum_area_and_pwall_index_pairs.push_back(
-              CummAreaPWallIndexPair(region_data->cum_area_list[wall_i], wall_index)
-          );
-        }
-      }
 
       CHECK_PROPERTY(rel_site->mol_list == nullptr);
       CHECK_PROPERTY(rel_site->release_prob == 1); // temporary

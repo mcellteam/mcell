@@ -1110,6 +1110,39 @@ static bool collide_moving_line_and_static_line_test(
 }
 
 
+// ---------------------------------- other detections ----------------------------------
+
+/*************************************************************************
+ is_point_inside_release_region:
+    Simplified against MCell3 variant - we are dealing with just one
+    region
+
+    Does not deal with subpartitions yet
+
+    Expects that the region is an enclosed volume
+
+*************************************************************************/
+static bool is_point_inside_region(const Partition& p, const vec3_t pos, const Region& reg) {
+
+  // cast ray along the whole partition
+  vec3_t move(0, 0, p.config.partition_edge_length);
+
+  // and count intersects
+  int num_hits = 0;
+  for (const auto& wall_edges_pair: reg.walls_and_edges) {
+
+    // check collision with each wall
+    const Wall& w = p.get_wall(wall_edges_pair.first);
+    bool collides = CollisionUtil::collide_wall_test(p, pos, w, move);
+    if (collides) {
+      num_hits++;
+    }
+  }
+
+  // odd number of hits means that we are inside
+  return num_hits % 2 == 1;
+}
+
 // ---------------------------------- reflections ----------------------------------
 
 /******************************************************************************

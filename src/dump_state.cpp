@@ -375,6 +375,19 @@ string get_report_type_flags_string(char report_type) {
 
 }
 
+
+string get_region_expression_flags_string(char op) {
+  string res;
+  DUMP_FLAG(op, REXP_NO_OP)
+  DUMP_FLAG(op, REXP_UNION)
+  DUMP_FLAG(op, REXP_INTERSECTION)
+  DUMP_FLAG(op, REXP_SUBTRACTION)
+  DUMP_FLAG(op, REXP_LEFT_REGION)
+  DUMP_FLAG(op, REXP_RIGHT_REGION)
+
+  return res;
+}
+
 #undef DUMP_FLAG
 
 string get_release_shape_name(int8_t release_shape) {
@@ -734,6 +747,9 @@ void dump_region(region* reg, const char* ind) {
 
   // TODO XXXXXXXX
   cout << ind << "reg: *\t\t" << (void*)reg << " [region] \t\t\n";
+  if (reg == nullptr) {
+    return;
+  }
   cout << ind << "  " << "sym: *\t\t" << reg->sym << " [sym_entry] \t\t  /* Symbol hash table entry for this region */\n";
   cout << ind << "  " << "hashval: \t\t" << reg->hashval << " [u_int] \t\t          /* Hash value for counter hash table */\n";
   cout << ind << "  " << "region_last_name: *\t\t" << reg->region_last_name << " [char] \t\t /* Name of region without prepended object name */\n";
@@ -1007,6 +1023,32 @@ void dump_region_data_owners(
 }
 
 
+// recursive
+void dump_release_evaluator(release_evaluator* expr, const char* ind) {
+  DECL_IND2(ind);
+  if (expr == nullptr) {
+    return;
+  }
+
+  cout << ind2 << "op: " << get_region_expression_flags_string(expr->op) << "\n";
+  cout << ind2 << "left: ";
+  if (expr->op & REXP_LEFT_REGION) {
+    region* r = (region *)expr->left;
+    dump_region(r, ind2);
+  }
+  else {
+    dump_release_evaluator((release_evaluator*)expr->left, ind2);
+  }
+  cout << ind2 << "right: ";
+  if (expr->op & REXP_RIGHT_REGION) {
+    region* r = (region *)expr->right;
+    dump_region(r, ind2);
+  }
+  else {
+    dump_release_evaluator((release_evaluator*)expr->right, ind2);
+  }
+}
+
 
 void dump_release_region_data(release_region_data* region_data, const char* name, const char* comment, const char* ind) {
   DECL_IND2(ind);
@@ -1034,9 +1076,12 @@ void dump_release_region_data(release_region_data* region_data, const char* name
     cout << ind2 << "in_release: **\t\t" << region_data->in_release << " [bit_array] \t\t/* Array of bit arrays; each bit array says which walls are in release for an object */\n";
     // TODO - dump
     cout << ind2 << "walls_per_obj: *\t\t" << region_data->walls_per_obj << " [int] \t\t/* Number of walls in release for each object */\n";
-    // TODO - ???
+
     cout << ind2 << "self: *\t\t" << region_data->self << " [object] \t\t/* A pointer to our own release site object */\n";
+    dump_object(region_data->self,  IND_ADD2(ind2));
+
     cout << ind2 << "expression: *\t\t" << region_data->expression << " [release_evaluator] \t\t/* A set-construction expression combining regions to form this release site */\n";
+    dump_release_evaluator(region_data->expression, ind2);
   }
 
 }
