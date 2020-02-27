@@ -884,7 +884,7 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
           CHECK_PROPERTY(region_data->wall_index == nullptr);
           CHECK_PROPERTY(region_data->n_objects == -1);
           CHECK_PROPERTY(region_data->owners == 0);
-          CHECK_PROPERTY(region_data->walls_per_obj == 0);
+          // CHECK_PROPERTY(region_data->walls_per_obj == 0); not sure what this does
 
           CHECK_PROPERTY(region_data->expression != nullptr);
           release_evaluator* expression = region_data->expression;
