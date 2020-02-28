@@ -41,6 +41,7 @@
 
 // for debug & mcell4 development
 #include "debug_config.h"
+#include "debug.h"
 #include "dump_state.h"
 #ifdef MCELL3_SORTED_WALLS_FOR_COLLISION
 #include <vector>
@@ -3014,6 +3015,7 @@ struct volume_molecule *diffuse_3D(
   struct vector3 displacement2; /* Used for 3D mol-mol unbinding */
 
   bool displacement_printed = false; // mcell4
+  bool timing_printed = false; // mcell4
 
 pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
 
@@ -3033,6 +3035,19 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
     compute_displacement(world, shead, vm, &displacement, &displacement2,
       &rate_factor, &r_rate_factor, &steps, &t_steps, max_time);
   }
+
+#ifdef DEBUG_TIMING
+  DUMP_CONDITION3(
+      if (!timing_printed) {
+        MCell::dump_vol_mol_timing(
+            "VM Diffuse", world->current_iterations, vm->id,
+            vm->t, max_time, vm->t + vm->t2,
+            rate_factor, r_rate_factor, steps, t_steps
+        );
+        timing_printed = true;
+      }
+  );
+#endif
 
 #ifdef DEBUG_DIFFUSION
   DUMP_CONDITION3(

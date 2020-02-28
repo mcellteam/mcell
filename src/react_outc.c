@@ -1184,7 +1184,7 @@ int outcome_unimolecular(struct volume *world, struct rxn *rx, int path,
     if (vm != NULL) {
 #ifdef DEBUG_REACTIONS
       DUMP_CONDITION3(
-        dump_volume_molecule(vm, "", true, "Unimolecular vm defunct:", world->current_iterations, vm->t, true);
+        dump_volume_molecule(vm, "", true, "Unimolecular vm defunct:", world->current_iterations, vm->t, false);
       );
 #endif
       collect_molecule(vm);
@@ -1198,7 +1198,7 @@ int outcome_unimolecular(struct volume *world, struct rxn *rx, int path,
     if (vm != NULL) {
 #ifdef DEBUG_REACTIONS
       DUMP_CONDITION3(
-        dump_volume_molecule(vm, "", true, "Unimolecular vm defunct:", world->current_iterations, vm->t, true);
+        dump_volume_molecule(vm, "", true, "Unimolecular vm defunct:", world->current_iterations, vm->t, false);
       );
 #endif
       collect_molecule(vm);

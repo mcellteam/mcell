@@ -198,7 +198,8 @@ public:
   void dump(
       const Partition& p,
       const std::string extra_comment,
-      const uint64_t iteration
+      const uint64_t iteration,
+      float_t time_override = TIME_INVALID
   ) const;
 
   std::string to_string(const Partition& p) const;

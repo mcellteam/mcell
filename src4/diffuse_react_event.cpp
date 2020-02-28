@@ -40,6 +40,7 @@
 #include "partition.h"
 #include "geometry.h"
 #include "debug_config.h"
+#include "debug.h"
 
 // include implementations of utility functions
 #include "geometry_utils.inc"
@@ -79,7 +80,7 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const std::vector<molecu
   for (uint i = 0; i < existing_mols_count; i++) {
     molecule_id_t id = molecule_ids[i];
     // existing molecules - simulate whole time step
-    diffuse_single_molecule(p, id, diffusion_time_step, WallTileIndexPair());
+    diffuse_single_molecule(p, id, event_time, WallTileIndexPair());
   }
 
 
@@ -91,10 +92,12 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const std::vector<molecu
   for (uint i = 0; i < new_diffuse_or_unimol_react_actions.size(); i++) {
     const DiffuseOrUnimolRxnAction& action = new_diffuse_or_unimol_react_actions[i];
 
+    assert(action.scheduled_time >= event_time && action.scheduled_time <= event_time + diffusion_time_step);
+
     if (action.type == DiffuseOrUnimolRxnAction::Type::DIFFUSE) {
       diffuse_single_molecule(
           p, action.id,
-          event_time + diffusion_time_step - action.scheduled_time,
+          action.scheduled_time,
           action.where_created_this_iteration // making a copy of this pair
       );
     }
@@ -110,7 +113,7 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const std::vector<molecu
         //  but MCell3 diffuses them right away)
         diffuse_single_molecule(
             p, new_ref_action.id,
-            event_time + diffusion_time_step - new_ref_action.scheduled_time,
+            new_ref_action.scheduled_time,
             new_ref_action.where_created_this_iteration // making a copy of this pair
         );
       }
@@ -124,14 +127,18 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const std::vector<molecu
 void DiffuseReactEvent::diffuse_single_molecule(
     Partition& p,
     const molecule_id_t m_id,
-    const float_t time_up_to_event_end, // how much diffusion time we should simulate
+    const float_t diffusion_start_time, // time for which was this event scheduled
     WallTileIndexPair wall_tile_pair_where_created_this_iteration // set only for newly created molecules
 ) {
-  float_t event_time_end = event_time + diffusion_time_step;
+  assert(diffusion_start_time < event_time + diffusion_time_step);
+
   Molecule& m = p.get_m(m_id);
 
   if (m.is_defunct())
     return;
+
+
+  float_t time_up_to_event_end =  event_time + diffusion_time_step - diffusion_start_time;
 
   // if the molecule is a "newbie", its unimolecular reaction was not yet scheduled
   if (m.has_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RX) != 0) {
@@ -157,6 +164,7 @@ void DiffuseReactEvent::diffuse_single_molecule(
 
 #ifdef DEBUG_DIFFUSION
   const Species& debug_species = p.all_species.get(m.species_id);
+  float_t event_time_end = event_time + diffusion_time_step;
   DUMP_CONDITION4(
     // the subtraction of diffusion_time_step doesn't make much sense but is needed to make the dump the same as in mcell3
     // need to check it further
@@ -164,13 +172,20 @@ void DiffuseReactEvent::diffuse_single_molecule(
         (debug_species.can_diffuse()) ?
             (m.is_vol() ? "Diffusing vm:" : "Diffusing sm:") :
             (m.is_vol() ? "Not diffusing vm:" : "Not diffusing sm:");
-    m.dump(p, "", title, world->get_current_iteration(), event_time_end - time_up_to_event_end);
+    m.dump(p, "", title, world->get_current_iteration(), diffusion_start_time);
   );
 #endif
 
+  // max_time is the time for which we should simulate the diffusion
+  float_t max_time = time_up_to_event_end;
+  if (m.unimol_rx_time != TIME_INVALID && m.unimol_rx_time < event_time + max_time) {
+    max_time = m.unimol_rx_time - event_time;
+  }
+
+
   // we might need to adjust remaining time step if this molecule has a unimolecular reaction
   // within this event's time step range
-  float_t remaining_time_step;
+  /*float_t remaining_time_step;
   if (m.unimol_rx_time != TIME_INVALID && m.unimol_rx_time < event_time_end) { // unlikely
     assert(m.unimol_rx_time >= event_time && "Missed unimol rx");
 
@@ -185,16 +200,21 @@ void DiffuseReactEvent::diffuse_single_molecule(
     remaining_time_step = time_up_to_event_end;
   }
   assert(remaining_time_step <= diffusion_time_step && "remaining_time_step is how much time we should simulate in this step");
+   */
+
+
 
   if (m.is_vol()) {
     diffuse_vol_molecule(
-        p, m_id, remaining_time_step,
+        p, m_id,
+        max_time,
+        diffusion_start_time,
         wall_tile_pair_where_created_this_iteration
     );
   }
   else {
     diffuse_surf_molecule(
-        p, m_id, event_time_end - time_up_to_event_end, remaining_time_step
+        p, m_id, max_time, 0 //event_time_end - time_up_to_event_end, remaining_time_step
     );
   }
 }
@@ -229,7 +249,8 @@ void sort_collisions_by_time(collision_vector_t& molecule_collisions) {
 void DiffuseReactEvent::diffuse_vol_molecule(
     Partition& p,
     const molecule_id_t vm_id,
-    const float_t remaining_time_step,
+    const float_t max_time,
+    const float_t diffusion_start_time,
     WallTileIndexPair& wall_tile_pair_where_created_this_iteration
 ) {
   Molecule& m = p.get_m(vm_id);
@@ -237,9 +258,25 @@ void DiffuseReactEvent::diffuse_vol_molecule(
 
   // diffuse each molecule - get information on position change
   vec3_t displacement;
-  float_t r_rate_factor;
+
+  float_t steps = 1.0;
+  float_t t_steps = 1.0;
+  float_t rate_factor = 1.0;
+  float_t r_rate_factor = 1.0;
   DiffusionUtil::compute_vol_displacement(
-      species, remaining_time_step, world->rng, displacement, r_rate_factor);
+      species, max_time, world->rng,
+      displacement, rate_factor, r_rate_factor, steps, t_steps
+  );
+
+#ifdef DEBUG_TIMING
+  DUMP_CONDITION4(
+      dump_vol_mol_timing(
+          "VM Diffuse", p.stats.get_current_iteration(), vm_id,
+          diffusion_start_time, max_time, m.unimol_rx_time,
+          rate_factor, r_rate_factor, steps, t_steps
+      );
+  );
+#endif
 
 #ifdef DEBUG_DIFFUSION
   DUMP_CONDITION4(
@@ -262,8 +299,12 @@ void DiffuseReactEvent::diffuse_vol_molecule(
   vec3_t new_pos;
   subpart_index_t new_subpart_index;
   wall_index_t reflected_wall_index = WALL_INDEX_INVALID;
-  float_t updated_remaining_time_step = remaining_time_step; // == t_steps
-  float_t elapsed_molecule_time = diffusion_time_step - remaining_time_step; // == vm->t
+
+  //float_t updated_remaining_time_step = remaining_time_step; // == t_steps
+
+  // ????
+  float_t elapsed_molecule_time = diffusion_start_time; // == vm->t
+
   do {
     state =
         ray_trace_vol(
@@ -303,7 +344,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
         // also, if this is a reaction where this diffused product is kept, we simply continue with diffusion
         if (collide_and_react_with_vol_mol(
               p, collision, remaining_displacement,
-              updated_remaining_time_step, r_rate_factor)
+              t_steps, r_rate_factor, elapsed_molecule_time)
         ) {
           // molecule was destroyed
           was_defunct = true;
@@ -341,7 +382,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
         // check possible reaction with surface molecules
         if (species.has_flag(SPECIES_FLAG_CAN_VOLSURF) && colliding_wall.has_initialized_grid()) {
           int collide_res = collide_and_react_with_surf_mol(
-              p, collision, updated_remaining_time_step,
+              p, collision, t_steps,
               r_rate_factor, elapsed_molecule_time,
               wall_tile_pair_where_created_this_iteration
           );
@@ -353,10 +394,10 @@ void DiffuseReactEvent::diffuse_vol_molecule(
         }
 
         if (!was_defunct) {
-          elapsed_molecule_time += updated_remaining_time_step * collision.time;
+          elapsed_molecule_time += t_steps * collision.time;
           int res = CollisionUtil::reflect_or_periodic_bc(
               p, collision,
-              vm_new_ref, remaining_displacement, updated_remaining_time_step, reflected_wall_index
+              vm_new_ref, remaining_displacement, t_steps, reflected_wall_index
           );
           assert(res == 0 && "Periodic box BCs are not supported yet");
         }
@@ -612,8 +653,9 @@ bool DiffuseReactEvent::collide_and_react_with_vol_mol(
     Partition& p,
     const Collision& collision,
     vec3_t& displacement,
-    const float_t remaining_time_step,
-    const float_t r_rate_factor
+    const float_t t_steps,
+    const float_t r_rate_factor,
+    const float_t elapsed_molecule_time
 )  {
 
   Molecule& colliding_molecule = p.get_m(collision.colliding_molecule_id); // am
@@ -647,7 +689,7 @@ bool DiffuseReactEvent::collide_and_react_with_vol_mol(
   }
   else {
     // might invalidate references
-    int j = outcome_bimolecular(p, collision, i, remaining_time_step);
+    int j = outcome_bimolecular(p, collision, i, elapsed_molecule_time + t_steps * collision.time);
     assert(j == RX_DESTROY || j == RX_A_OK);
     return j == RX_DESTROY;
   }
@@ -1261,7 +1303,7 @@ void DiffuseReactEvent::create_unimol_rx_action(
 
   float_t time_from_now = RxUtil::compute_unimol_lifetime(p, world->rng, m, rx);
 
-  float_t scheduled_time = curr_time + time_from_now;
+  float_t scheduled_time = curr_time + time_from_now; // TODO: this is weird... seems mcell uses t+t2?
 
   // we need to store the end time to the molecule because oit is needed in diffusion to
   // figure out whether we should do the whole time step
@@ -1297,7 +1339,7 @@ bool DiffuseReactEvent::react_unimol_single_molecule(
   assert(scheduled_time >= event_time && scheduled_time <= event_time + diffusion_time_step);
 
   reaction_index_t ri = RxUtil::which_unimolecular(unimol_rxn_class, world->rng);
-  return outcome_unimolecular(p, m, scheduled_time - event_time, unimol_rxn_class->get_reaction(ri));
+  return outcome_unimolecular(p, m, scheduled_time, unimol_rxn_class->get_reaction(ri));
 }
 
 
@@ -1308,7 +1350,7 @@ int DiffuseReactEvent::outcome_bimolecular(
     Partition& p,
     const Collision& collision,
     int path,
-    float_t remaining_time_step
+    float_t time // FIXME: compute time here?
 ) {
 
   // might invalidate references
@@ -1318,7 +1360,7 @@ int DiffuseReactEvent::outcome_bimolecular(
       outcome_products_random(
         p,
         collision,
-        remaining_time_step,
+        time,
         path,
         keep_reacA, keep_reacB
       );
@@ -1518,14 +1560,14 @@ int DiffuseReactEvent::find_surf_product_positions(
 int DiffuseReactEvent::outcome_products_random(
     Partition& p,
     const Collision& collision,
-    const float_t remaining_time_step,
+    const float_t time,
     const reaction_index_t reaction_index,
     bool& keep_reacA,
     bool& keep_reacB
 ) {
 #ifdef DEBUG_REACTIONS
   DUMP_CONDITION4(
-      collision.dump(p, "Processing reaction:", p.stats.get_current_iteration());
+      collision.dump(p, "Processing reaction:", p.stats.get_current_iteration(), event_time + time);
   );
 #endif
 
@@ -1610,17 +1652,17 @@ int DiffuseReactEvent::outcome_products_random(
   }
 
   // free up tiles that we are probably going to reuse
-  bool one_of_reactants_is_surf = false;
+  //bool one_of_reactants_is_surf = false;
   if (reacA->is_surf() && !keep_reacA) {
     p.get_wall(reacA->s.wall_index).grid.reset_molecule_tile(reacA->s.grid_tile_index);
     reacA->s.grid_tile_index = TILE_INDEX_INVALID;
-    one_of_reactants_is_surf = true;
+    //one_of_reactants_is_surf = true;
   }
 
   if (reacB != nullptr && reacB->is_surf() && !keep_reacB) {
     p.get_wall(reacB->s.wall_index).grid.reset_molecule_tile(reacB->s.grid_tile_index);
     reacB->s.grid_tile_index = TILE_INDEX_INVALID;
-    one_of_reactants_is_surf = true;
+    //one_of_reactants_is_surf = true;
   }
 
   // create and place each product
@@ -1645,13 +1687,13 @@ int DiffuseReactEvent::outcome_products_random(
     // set only for new vol mols when one of the reactants is surf, invalid by default
     WallTileIndexPair where_is_vm_created;
 
-    float_t scheduled_time;
-    if (rx->reactants.size() == 2 && species.is_vol() && !one_of_reactants_is_surf) {
+    float_t scheduled_time = time;
+    /*if (rx->reactants.size() == 2 && species.is_vol() && !one_of_reactants_is_surf) {
       // bimolecular reaction
       // schedule new product for diffusion
       // collision.time is relative to the part that this molecule travels this diffusion step
       // so it needs to be scaled
-      scheduled_time = event_time + diffusion_time_step - (remaining_time_step - collision.time * remaining_time_step);
+      scheduled_time = event_time + diffusion_time_step - (time - collision.time * time);
     }
     else if (rx->reactants.size() == 2 && (species.is_surf() || one_of_reactants_is_surf)) {
       scheduled_time = event_time + collision.time;
@@ -1660,7 +1702,7 @@ int DiffuseReactEvent::outcome_products_random(
       // unimolecular reaction
       // reaction_time is the time when this new molecule was created
       scheduled_time = event_time + collision.time;
-    }
+    }*/
 
     if (species.is_vol()) {
       // create and place a volume molecule
@@ -1782,17 +1824,17 @@ int DiffuseReactEvent::outcome_products_random(
 bool DiffuseReactEvent::outcome_unimolecular(
     Partition& p,
     Molecule& m,
-    const float_t time_from_event_start,
+    const float_t scheduled_time,
     const Rxn* unimol_rx
 ) {
   molecule_id_t id = m.id;
 
-  Collision collision(CollisionType::UNIMOLECULAR_VOLMOL, &p, m.id, time_from_event_start, m.v.pos, unimol_rx);
+  Collision collision(CollisionType::UNIMOLECULAR_VOLMOL, &p, m.id, scheduled_time, m.v.pos, unimol_rx);
 
   bool ignoredA, ignoredB;
   // creates new molecule(s) as output of the unimolecular reaction
   // !! might invalidate references (we might reorder defuncting and outcome call later)
-  int outcome_res = outcome_products_random(p, collision, TIME_INVALID, 0, ignoredA, ignoredB);
+  int outcome_res = outcome_products_random(p, collision, scheduled_time, 0, ignoredA, ignoredB);
   assert(outcome_res == RX_A_OK);
 
   Molecule& m_new_ref = p.get_m(id);
@@ -1802,7 +1844,7 @@ bool DiffuseReactEvent::outcome_unimolecular(
   if (!unimol_rx->reactants[0].is_on_both_sides_of_rxn()) {
   #ifdef DEBUG_REACTIONS
     DUMP_CONDITION4(
-      m_new_ref.dump(p, "", m_new_ref.is_vol() ? "Unimolecular vm defunct:" : "Unimolecular sm defunct:", world->get_current_iteration(), event_time + time_from_event_start, false);
+      m_new_ref.dump(p, "", m_new_ref.is_vol() ? "Unimolecular vm defunct:" : "Unimolecular sm defunct:", world->get_current_iteration(), scheduled_time, false);
     );
   #endif
     p.set_molecule_as_defunct(m_new_ref);

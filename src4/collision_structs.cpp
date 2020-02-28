@@ -61,7 +61,8 @@ void Collision::dump(Partition& p, const std::string ind) const {
 void Collision::dump(
     const Partition& p,
     const std::string extra_comment,
-    const uint64_t iteration
+    const uint64_t iteration,
+    float_t time_override
 ) const {
 
   cout << extra_comment << "it:" << iteration << ", ";
@@ -72,7 +73,7 @@ void Collision::dump(
       ", idA:"  << diffused_molecule_id <<
       ", idB:"  << colliding_molecule_id <<
       //TODO in mcell3 ", rxn: " << rx->to_string(p) <<
-      ", time: " << time;
+      ", time: " << ((time_override == TIME_INVALID) ? time : time_override);
 
       if (type != CollisionType::SURFMOL_SURFMOL) {
         cout << ", pos " << pos;

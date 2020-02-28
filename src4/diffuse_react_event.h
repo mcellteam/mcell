@@ -97,15 +97,17 @@ private:
   void diffuse_single_molecule(
       Partition& p,
       const molecule_id_t vm_id,
-      const float_t time_up_to_event_end,
+      const float_t diffusion_start_time,
       WallTileIndexPair where_created_this_iteration
   );
 
   // ---------------------------------- volume molecules ----------------------------------
+  // FIXME: unify argument names
   void diffuse_vol_molecule(
       Partition& p,
       const molecule_id_t vm_id,
       const float_t remaining_time_step,
+      const float_t diffusion_start_time,
       WallTileIndexPair& where_created_this_iteration
   );
 
@@ -114,7 +116,8 @@ private:
       const Collision& collision,
       vec3_t& displacement,
       const float_t remaining_time_step,
-      const float_t r_rate_factor
+      const float_t r_rate_factor,
+      const float_t molecule_time
   );
 
   int collide_and_react_with_surf_mol(
