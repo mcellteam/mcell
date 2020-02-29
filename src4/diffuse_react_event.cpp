@@ -272,7 +272,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
 #ifdef DEBUG_TIMING
   DUMP_CONDITION4(
       dump_vol_mol_timing(
-          "VM Diffuse", p.stats.get_current_iteration(), vm_id,
+          "- Timing vm", p.stats.get_current_iteration(), vm_id,
           diffusion_start_time, max_time, m.unimol_rx_time,
           rate_factor, r_rate_factor, steps, t_steps
       );
@@ -800,18 +800,20 @@ int DiffuseReactEvent::collide_and_react_with_surf_mol(
   assert(selected_rx_pathway == 0 && "TODO");
 
   /* run the reaction */
+  float_t collision_time = elapsed_molecule_time + remaining_time_step * collision.time;
+
   Collision rx_collision = Collision(
       CollisionType::VOLMOL_SURFMOL,
       &p,
       collision.diffused_molecule_id,
-      elapsed_molecule_time + remaining_time_step * collision.time, // unused? FIXME: find places where the collision time is not used and remove
+      collision_time, // unused? FIXME: find places where the collision time is not used and remove
       collision.pos,
       colliding_molecule.id,
       matching_rxn_classes[0]
   );
 
   int outcome_bimol_result = outcome_bimolecular(
-      p, rx_collision, selected_rx_pathway, elapsed_molecule_time
+      p, rx_collision, selected_rx_pathway, collision_time
   );
 
   if (outcome_bimol_result == RX_DESTROY) {
@@ -867,7 +869,7 @@ void DiffuseReactEvent::diffuse_surf_molecule(
 #ifdef DEBUG_TIMING
   DUMP_CONDITION4(
       dump_surf_mol_timing(
-          "SM Diffuse", p.stats.get_current_iteration(), sm_id,
+          "- Timing sm", p.stats.get_current_iteration(), sm_id,
           diffusion_start_time, max_time, sm.unimol_rx_time,
           space_factor, steps, t_steps
       );
