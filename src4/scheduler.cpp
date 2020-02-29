@@ -118,7 +118,7 @@ float_t Scheduler::get_next_event_time() {
 }
 
 // pop next scheduled event and run its step method
-float_t Scheduler::handle_next_event() {
+EventExecutionInfo Scheduler::handle_next_event() {
   BaseEvent* event = calendar.pop_next();
   assert(event != NULL && "Empty event queue - at least end simulation event should be present");
   float_t event_time = event->event_time;
@@ -127,6 +127,8 @@ float_t Scheduler::handle_next_event() {
   event->dump("");
 #endif
   event->step();
+
+  event_type_index_t type_index = event->type_index;
 
   // schedule itself for the next period or just delete
   if (event->periodicity_interval != 0) {
@@ -137,7 +139,7 @@ float_t Scheduler::handle_next_event() {
     delete event;
   }
 
-  return event_time;
+  return EventExecutionInfo(event_time, type_index);
 }
 
 } // namespace mcell
