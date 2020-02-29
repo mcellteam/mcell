@@ -804,14 +804,14 @@ int DiffuseReactEvent::collide_and_react_with_surf_mol(
       CollisionType::VOLMOL_SURFMOL,
       &p,
       collision.diffused_molecule_id,
-      elapsed_molecule_time + remaining_time_step * collision.time,
+      elapsed_molecule_time + remaining_time_step * collision.time, // unused? FIXME: find places where the collision time is not used and remove
       collision.pos,
       colliding_molecule.id,
       matching_rxn_classes[0]
   );
 
   int outcome_bimol_result = outcome_bimolecular(
-      p, rx_collision, selected_rx_pathway, remaining_time_step
+      p, rx_collision, selected_rx_pathway, elapsed_molecule_time
   );
 
   if (outcome_bimol_result == RX_DESTROY) {
@@ -989,6 +989,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
     const float_t diffusion_start_time, // diffusion_start_time + elapsed_molecule_time should be the time when reaction occurred
     const float_t elapsed_molecule_time
 ) {
+  assert(elapsed_molecule_time == 0 && "This is weird - mcell3 does not care about the time of diffusion on surface when creating products");
 
 #ifdef DEBUG_TIMING
   DUMP_CONDITION4(
@@ -1111,16 +1112,18 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
     return true; /* No reaction */
   }
 
+  float_t collision_time = diffusion_start_time + elapsed_molecule_time;
+
   collision = Collision(
       CollisionType::SURFMOL_SURFMOL,
-      &p, sm.id, elapsed_molecule_time - event_time,
+      &p, sm.id, collision_time,
       reactant_molecule_ids[rxn_class_index],
       matching_rxn_classes[rxn_class_index]
   );
 
   /* run the reaction */
   int outcome_bimol_result = outcome_bimolecular(
-      p, collision, selected_reaction_index, elapsed_molecule_time
+      p, collision, selected_reaction_index, collision_time
   );
 
   return outcome_bimol_result != RX_DESTROY;
