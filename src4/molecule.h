@@ -87,20 +87,20 @@ public:
   }
 
   Molecule(const molecule_id_t id_, const species_id_t species_id_)
-    : id(id_), flags(0), unimol_rx_time(TIME_FOREVER), unimol_rx(nullptr), species_id(species_id_)
+    : id(id_), flags(0), unimol_rx_time(TIME_INVALID), unimol_rx(nullptr), species_id(species_id_)
       /*subpart_index(SUBPART_INDEX_INVALID)*/ {
   }
 
   // volume molecule
   Molecule(const molecule_id_t id_, const species_id_t species_id_, const vec3_t& pos_)
-    : id(id_), flags(MOLECULE_FLAG_VOL), unimol_rx_time(TIME_FOREVER), unimol_rx(nullptr), species_id(species_id_) {
+    : id(id_), flags(MOLECULE_FLAG_VOL), unimol_rx_time(TIME_INVALID), unimol_rx(nullptr), species_id(species_id_) {
     v.pos = pos_;
     v.subpart_index = SUBPART_INDEX_INVALID;
   }
 
   // surface molecule
   Molecule(const molecule_id_t id_, const species_id_t species_id_, const vec2_t& pos2d)
-    : id(id_), flags(MOLECULE_FLAG_SURF), unimol_rx_time(TIME_FOREVER), unimol_rx(nullptr), species_id(species_id_) {
+    : id(id_), flags(MOLECULE_FLAG_SURF), unimol_rx_time(TIME_INVALID), unimol_rx(nullptr), species_id(species_id_) {
     s.pos = pos2d;
     //s.subpart_index = SUBPART_INDEX_INVALID;
     s.orientation = ORIENTATION_NONE;

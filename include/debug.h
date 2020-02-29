@@ -38,7 +38,7 @@ static void dump_vol_mol_timing(
      << extra_comment << ": it:" << iteration << ", id:" << id
      << ", scheduled_time: " << scheduled_time
      << ", max_time: " << max_time
-     << ", unimol_time: " << ((unimol_time != TIME_FOREVER && unimol_time != scheduled_time) ? unimol_time : 0)
+     << ", unimol_time: " << ((unimol_time != TIME_INVALID && unimol_time != scheduled_time) ? unimol_time : 0)
      << ", rate_factor: " << rate_factor
      << ", r_rate_factor: " << r_rate_factor
      << ", steps: " << steps
@@ -59,7 +59,7 @@ static void dump_surf_mol_timing(
      << extra_comment << ": it:" << iteration << ", id:" << id
      << ", scheduled_time: " << scheduled_time
      << ", max_time: " << max_time
-     << ", unimol_time: " << ((unimol_time != TIME_FOREVER && unimol_time != scheduled_time) ? unimol_time : 0)
+     << ", unimol_time: " << ((unimol_time != TIME_INVALID && unimol_time != scheduled_time) ? unimol_time : 0)
      << ", space_factor: " << space_factor
      << ", steps: " << steps
      << ", t_steps: " << t_steps

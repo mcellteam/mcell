@@ -3040,7 +3040,7 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
   DUMP_CONDITION3(
       if (!timing_printed) {
         MCell::dump_vol_mol_timing(
-            "VM Diffuse", world->current_iterations, vm->id,
+            "- Timing vm", world->current_iterations, vm->id,
             vm->t, max_time, vm->t + vm->t2,
             rate_factor, r_rate_factor, steps, t_steps
         );
@@ -3436,7 +3436,7 @@ struct surface_molecule *diffuse_2D(
 #ifdef DEBUG_TIMING
   DUMP_CONDITION3(
       MCell::dump_surf_mol_timing(
-          "SM Diffuse", world->current_iterations, sm->id,
+          "- Timing sm", world->current_iterations, sm->id,
           sm->t, max_time, sm->t + sm->t2,
           space_factor, steps, t_steps
       ); // advance_time?
