@@ -3557,11 +3557,11 @@ react_2D_all_neighbors(struct volume *world, struct surface_molecule *sm,
                        int grid_grid_reaction_flag,
                        long long *surf_surf_colls) {
 
+#ifdef DEBUG_TIMING
   DUMP_CONDITION3(
-      MCell::dump_react_2D_all_neighbors_timing(
-          t, sm->t
-      );
+      MCell::dump_react_2D_all_neighbors_timing(t, sm->t);
   );
+#endif
 
   int i;     /* points to the pathway of the reaction */
   int j;     /* points to the the reaction */
