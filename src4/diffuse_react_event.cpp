@@ -178,7 +178,7 @@ void DiffuseReactEvent::diffuse_single_molecule(
 
   // max_time is the time for which we should simulate the diffusion
   float_t max_time = time_up_to_event_end;
-  if (m.unimol_rx_time != TIME_INVALID && m.unimol_rx_time < event_time + max_time) {
+  if (m.unimol_rx_time != TIME_INVALID && m.unimol_rx_time < diffusion_start_time + max_time) {
     assert(m.unimol_rx_time >= diffusion_start_time);
     max_time = m.unimol_rx_time - diffusion_start_time;
   }
@@ -215,7 +215,7 @@ void DiffuseReactEvent::diffuse_single_molecule(
   }
   else {
     diffuse_surf_molecule(
-        p, m_id, max_time, 0 //event_time_end - time_up_to_event_end, remaining_time_step
+        p, m_id, max_time, diffusion_start_time
     );
   }
 }
@@ -828,8 +828,8 @@ int DiffuseReactEvent::collide_and_react_with_surf_mol(
 void DiffuseReactEvent::diffuse_surf_molecule(
     Partition& p,
     const molecule_id_t sm_id,
-    const float_t current_time,
-    const float_t remaining_time_step
+    const float_t max_time,
+    const float_t diffusion_start_time
 ) {
   Molecule& sm = p.get_m(sm_id);
   const Species& species = p.all_species.get(sm.species_id);
@@ -837,32 +837,42 @@ void DiffuseReactEvent::diffuse_surf_molecule(
   float_t steps = 0.0;
   float_t t_steps = 0.0;
   float_t space_factor = 0.0;
-
+  float_t elapsed_molecule_time = 0.0;
 
   wall_index_t original_wall_index = sm.s.wall_index;
 
   /* Where are we going? */
-  if (species.time_step > remaining_time_step) {
-    t_steps = remaining_time_step;
-    steps = remaining_time_step / species.time_step ;
+  if (species.get_time_step() > max_time) {
+    t_steps = max_time;
+    steps = max_time / species.get_time_step() ;
   }
   else {
-    t_steps = species.time_step;
+    t_steps = species.get_time_step();
     steps = 1.0;
   }
   if (steps < EPS) {
-    t_steps = EPS * species.time_step;
+    t_steps = EPS * species.get_time_step();
     steps = EPS;
   }
 
-  if (species.space_step != 0) {
+  if (species.get_space_step() != 0) {
 
     if (steps == 1.0) {
-      space_factor = species.space_step;
+      space_factor = species.get_space_step();
     }
     else {
-      space_factor = species.space_step * sqrt_f(steps);
+      space_factor = species.get_space_step() * sqrt_f(steps);
     }
+
+#ifdef DEBUG_TIMING
+  DUMP_CONDITION4(
+      dump_surf_mol_timing(
+          "SM Diffuse", p.stats.get_current_iteration(), sm_id,
+          diffusion_start_time, max_time, sm.unimol_rx_time,
+          space_factor, steps, t_steps
+      );
+  );
+#endif
 
     for (int find_new_position = (SURFACE_DIFFUSION_RETRIES + 1);
          find_new_position > 0; find_new_position--) {
@@ -884,7 +894,7 @@ void DiffuseReactEvent::diffuse_surf_molecule(
       // ray_trace does the movement and all other stuff
       vec2_t new_loc;
       wall_index_t new_wall_index =
-          ray_trace_surf(p, species, sm, displacement, new_loc);
+          ray_trace_surf(p, species, sm, displacement, new_loc/*, elapsed_molecule_time*/);
 
       // Either something ambiguous happened or we hit absorptive border
       if (new_wall_index == WALL_INDEX_INVALID) {
@@ -940,7 +950,9 @@ void DiffuseReactEvent::diffuse_surf_molecule(
   if (species.has_flag(SPECIES_FLAG_CAN_SURFSURF)) {
     assert(!species.has_flag(SPECIES_FLAG_CANT_INITIATE) && "Not sure what to do here");
 
-    sm_still_exists = react_2D_all_neighbors(p, sm, current_time, t_steps);
+    // the time t_steps should tell when the reaction occurred and it is quite weird because
+    // it has nothing to do with the time spent diffusing
+    sm_still_exists = react_2D_all_neighbors(p, sm, t_steps, diffusion_start_time, elapsed_molecule_time);
   }
 
   if (sm_still_exists) {
@@ -964,6 +976,7 @@ void DiffuseReactEvent::diffuse_surf_molecule(
       }
     }
   }
+
 }
 
 
@@ -972,9 +985,18 @@ void DiffuseReactEvent::diffuse_surf_molecule(
 bool DiffuseReactEvent::react_2D_all_neighbors(
     Partition& p,
     Molecule& sm,
-    const float_t current_time,
-    const float_t remaining_time_step
+    const float_t time, // same argument as t passed in mcell3 (come up with a better name)
+    const float_t diffusion_start_time, // diffusion_start_time + elapsed_molecule_time should be the time when reaction occurred
+    const float_t elapsed_molecule_time
 ) {
+
+#ifdef DEBUG_TIMING
+  DUMP_CONDITION4(
+      dump_react_2D_all_neighbors_timing(
+          time, diffusion_start_time + elapsed_molecule_time
+      );
+  );
+#endif
 
   const Wall& wall = p.get_wall(sm.s.wall_index);
 
@@ -1050,7 +1072,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
       const RxnClass* rxn = matching_rxn_classes[i];
       assert(rxn != nullptr);
 
-      correction_factors.push_back(remaining_time_step / ngrid.binding_factor);
+      correction_factors.push_back(time / ngrid.binding_factor);
       reactant_molecule_ids.push_back(nsm.id);
     }
   }
@@ -1091,14 +1113,14 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
 
   collision = Collision(
       CollisionType::SURFMOL_SURFMOL,
-      &p, sm.id, current_time - event_time,
+      &p, sm.id, elapsed_molecule_time - event_time,
       reactant_molecule_ids[rxn_class_index],
       matching_rxn_classes[rxn_class_index]
   );
 
   /* run the reaction */
   int outcome_bimol_result = outcome_bimolecular(
-      p, collision, selected_reaction_index, remaining_time_step
+      p, collision, selected_reaction_index, elapsed_molecule_time
   );
 
   return outcome_bimol_result != RX_DESTROY;
@@ -1131,7 +1153,8 @@ wall_index_t DiffuseReactEvent::ray_trace_surf(
     const Species& species,
     Molecule& sm,
     vec2_t& remaining_displacement,
-    vec2_t& new_pos
+    vec2_t& new_pos/*,
+    float_t& elapsed_molecule_time*/
 ) {
   const Wall* this_wall = &p.get_wall(sm.s.wall_index);
 
@@ -1353,6 +1376,11 @@ int DiffuseReactEvent::outcome_bimolecular(
     int path,
     float_t time // FIXME: compute time here?
 ) {
+#ifdef DEBUG_TIMING
+  DUMP_CONDITION4(
+      dump_outcome_bimolecular_timing(time);
+  );
+#endif
 
   // might invalidate references
 

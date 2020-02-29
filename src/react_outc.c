@@ -42,6 +42,7 @@
 #include "diffuse.h"
 
 #include "debug_config.h"
+#include "debug.h"
 #include "dump_state.h"
 
 static int outcome_products_random(struct volume *world, struct wall *w,
@@ -1231,6 +1232,11 @@ int outcome_bimolecular(struct volume *world, struct rxn *rx, int path,
                         struct abstract_molecule *reacB, short orientA,
                         short orientB, double t, struct vector3 *hitpt,
                         struct vector3 *loc_okay) {
+#ifdef DEBUG_TIMING
+  DUMP_CONDITION3(
+      MCell::dump_outcome_bimolecular_timing(t);
+  );
+#endif
 
   assert(periodic_boxes_are_identical(reacA->periodic_box, reacB->periodic_box));
 

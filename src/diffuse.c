@@ -3433,6 +3433,16 @@ struct surface_molecule *diffuse_2D(
   else
     space_factor = sm->get_space_step(sm) * sqrt(steps);
 
+#ifdef DEBUG_TIMING
+  DUMP_CONDITION3(
+      MCell::dump_surf_mol_timing(
+          "SM Diffuse", world->current_iterations, sm->id,
+          sm->t, max_time, sm->t + sm->t2,
+          space_factor, steps, t_steps
+      ); // advance_time?
+  );
+#endif
+
   world->diffusion_number++;
   world->diffusion_cumtime += steps;
 
@@ -3546,6 +3556,12 @@ react_2D_all_neighbors(struct volume *world, struct surface_molecule *sm,
                        double t, enum notify_level_t molecule_collision_report,
                        int grid_grid_reaction_flag,
                        long long *surf_surf_colls) {
+
+  DUMP_CONDITION3(
+      MCell::dump_react_2D_all_neighbors_timing(
+          t, sm->t
+      );
+  );
 
   int i;     /* points to the pathway of the reaction */
   int j;     /* points to the the reaction */
