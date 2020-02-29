@@ -179,7 +179,8 @@ void DiffuseReactEvent::diffuse_single_molecule(
   // max_time is the time for which we should simulate the diffusion
   float_t max_time = time_up_to_event_end;
   if (m.unimol_rx_time != TIME_INVALID && m.unimol_rx_time < event_time + max_time) {
-    max_time = m.unimol_rx_time - event_time;
+    assert(m.unimol_rx_time >= diffusion_start_time);
+    max_time = m.unimol_rx_time - diffusion_start_time;
   }
 
 
