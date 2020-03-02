@@ -234,8 +234,7 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
   const float_t sp_edge_length,
   const bool collect_for_walls,
   SubpartIndicesVector& crossed_subparts_for_walls, // crossed subparts considered for wall collision
-  subpart_indices_set_t& crossed_subparts_for_molecules, // crossed subparts considered for molecule collisions
-  subpart_index_t& last_subpart_index // TODO: remove
+  subpart_indices_set_t& crossed_subparts_for_molecules // crossed subparts considered for molecule collisions
 ) {
   if (collect_for_walls) {
     assert(crossed_subparts_for_walls.empty());
@@ -297,7 +296,6 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
   if ( !glm::all( glm::equal(dest_subpart_indices, src_subpart_indices) ) ) {
 
     subpart_index_t dest_subpart_index = p.get_subpart_index_from_3d_indices(dest_subpart_indices);
-    last_subpart_index = dest_subpart_index;
 
     ivec3_t dir_urb_addend;
     dir_urb_addend.x = (dir_urb_direction.x == 0) ? -1 : 1;
@@ -402,10 +400,6 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
 
     } while (curr_subpart_index != dest_subpart_index);
   }
-  else {
-    // subpartition index did not change
-    last_subpart_index = vm.v.subpart_index;
-  }
 
   // finally check also neighbors in destination
   collect_neighboring_subparts(
@@ -494,8 +488,7 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts2(
   const float_t sp_edge_length,
   const bool collect_for_walls,
   SubpartIndicesVector& crossed_subparts_for_walls, // crossed subparts considered for wall collision
-  subpart_indices_set_t& crossed_subparts_for_molecules, // crossed subparts considered for molecule collisions
-  subpart_index_t& last_subpart_index // ???
+  subpart_indices_set_t& crossed_subparts_for_molecules // crossed subparts considered for molecule collisions
 ) {
   if (collect_for_walls) {
     assert(crossed_subparts_for_walls.empty());

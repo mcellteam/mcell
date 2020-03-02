@@ -479,22 +479,21 @@ RayTraceState ray_trace_vol(
   // first get what subpartitions might be relevant
   SubpartIndicesVector crossed_subparts_for_walls;
   subpart_indices_set_t crossed_subparts_for_molecules;
-  subpart_index_t last_subpartition_index;
   CollisionUtil::collect_crossed_subparts(
       p, vm, partition_displacement,
       radius, p.config.subpartition_edge_length,
       true, crossed_subparts_for_walls,
-      crossed_subparts_for_molecules, last_subpartition_index
+      crossed_subparts_for_molecules
   );
 
-/*  SubpartIndicesVector crossed_subparts_for_walls2;
+  SubpartIndicesVector crossed_subparts_for_walls2;
   subpart_indices_set_t crossed_subparts_for_molecules2;
   CollisionUtil::collect_crossed_subparts2(
       p, vm, partition_displacement,
       radius, p.config.subpartition_edge_length,
       true, crossed_subparts_for_walls2,
-      crossed_subparts_for_molecules2, last_subpartition_index
-  );*/
+      crossed_subparts_for_molecules2
+  );
 
 #ifdef DEBUG_SUBPARTITIONS
   if (crossed_subparts_for_walls != crossed_subparts_for_walls2) {
@@ -550,7 +549,7 @@ RayTraceState ray_trace_vol(
         radius,
         p.config.subpartition_edge_length,
         false, crossed_subparts_for_walls, // not filled this time
-        crossed_subparts_for_molecules, last_subpartition_index
+        crossed_subparts_for_molecules
     );
   }
 
