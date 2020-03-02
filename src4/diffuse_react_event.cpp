@@ -477,37 +477,37 @@ RayTraceState ray_trace_vol(
   }
 
   // first get what subpartitions might be relevant
+  SubpartIndicesVector crossed_subparts_for_walls_orig;
+  subpart_indices_set_t crossed_subparts_for_molecules_orig;
+  CollisionUtil::collect_crossed_subparts(
+      p, vm, partition_displacement,
+      radius, p.config.subpartition_edge_length,
+      true, crossed_subparts_for_walls_orig,
+      crossed_subparts_for_molecules_orig
+  );
+
   SubpartIndicesVector crossed_subparts_for_walls;
   subpart_indices_set_t crossed_subparts_for_molecules;
-  CollisionUtil::collect_crossed_subparts(
+  CollisionUtil::collect_crossed_subparts2(
       p, vm, partition_displacement,
       radius, p.config.subpartition_edge_length,
       true, crossed_subparts_for_walls,
       crossed_subparts_for_molecules
   );
 
-  SubpartIndicesVector crossed_subparts_for_walls2;
-  subpart_indices_set_t crossed_subparts_for_molecules2;
-  CollisionUtil::collect_crossed_subparts2(
-      p, vm, partition_displacement,
-      radius, p.config.subpartition_edge_length,
-      true, crossed_subparts_for_walls2,
-      crossed_subparts_for_molecules2
-  );
-
 #ifdef DEBUG_SUBPARTITIONS
-  if (crossed_subparts_for_walls != crossed_subparts_for_walls2) {
+  if (crossed_subparts_for_walls != crossed_subparts_for_walls_orig) {
     std::cout << "Difference in wall subparts:\n";
-    dump_uint_vector(crossed_subparts_for_walls);
+    dump_uint_vector(crossed_subparts_for_walls_orig);
     std::cout << "vs new:\n";
-    dump_uint_vector(crossed_subparts_for_walls2);
+    dump_uint_vector(crossed_subparts_for_walls);
   }
 
-  if (crossed_subparts_for_molecules != crossed_subparts_for_molecules2) {
+  if (crossed_subparts_for_molecules != crossed_subparts_for_molecules_orig) {
     std::cout << "Difference in mol subparts:\n";
-    dump_uint_set(crossed_subparts_for_molecules);
+    dump_uint_set(crossed_subparts_for_molecules_orig);
     std::cout << "vs new:\n";
-    dump_uint_set(crossed_subparts_for_molecules2);
+    dump_uint_set(crossed_subparts_for_molecules);
   }
 #endif
 

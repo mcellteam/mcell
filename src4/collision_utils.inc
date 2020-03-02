@@ -548,6 +548,8 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts2(
   }
   if (collect_for_walls) {
     start_subpart_indices[MOL_POS_POINT_INDEX] = vm.v.subpart_index;
+    // also directly remember the first subpart for walls
+    crossed_subparts_for_walls.push_back(vm.v.subpart_index);
   }
 
   // urb - upper, right, bottom
