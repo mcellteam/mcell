@@ -109,7 +109,7 @@ void Molecule::dump(
     << ", flags:" << get_molecule_flags_string(flags, false);
 #ifdef DEBUG_SUBPARTITIONS
   if (is_vol()) {
-    cout << ", subpartition:" << subpart_index;
+    cout << ", subpartition:" << v.subpart_index;
   }
 #endif
 

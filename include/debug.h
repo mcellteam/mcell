@@ -86,4 +86,18 @@ static void dump_outcome_bimolecular_timing(
     << "\n";
 }
 
+static void dump_uint_vector(const std::vector<uint> v) {
+  for (uint i = 0; i < v.size(); i++) {
+    std::cout << v[i] << ", ";
+  }
+  std::cout << "\n";
+}
+
+static void dump_uint_set(const std::set<uint> s) {
+  for (uint val: s) {
+    std::cout << val << ", ";
+  }
+  std::cout << "\n";
+}
+
 } // namespace?

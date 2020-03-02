@@ -474,6 +474,27 @@ static inline float_t distance3(const vec3_t& v1, const vec3_t& v2) {
   return sqrt_f( len3_squared(v1 - v2) );
 }
 
+static inline uint get_largest_abs_dim_index(const vec3_t& v) {
+  vec3_t a = glm::abs(glm_vec3_t(v));
+  if (a.x > a.y) {
+    if (a.x > a.z) {
+      return 0; // x
+    }
+    else {
+      return 2; // z
+    }
+  }
+  else {
+    if (a.y > a.z) {
+      return 1; // y
+    }
+    else {
+      return 2; // z
+    }
+
+  }
+}
+
 /***************************************************************************
 point_in_box:
   In:  pt - we want to find out if this point is in the box

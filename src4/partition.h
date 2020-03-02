@@ -165,8 +165,7 @@ public:
     indices.z = (index / config.subpartitions_per_partition_dimension_squared) % dim;
   }
 
-  // FIXME: use subpart_index_t, rename to subpart
-  subpart_index_t get_subpart_index(const vec3_t& pos) {
+  subpart_index_t get_subpart_index(const vec3_t& pos) const {
     ivec3_t indices;
     get_subpart_3d_indices(pos, indices);
     return get_subpart_index_from_3d_indices(indices);
@@ -217,7 +216,7 @@ public:
       return; // nothing to do
     }
 #ifdef DEBUG_SUBPARTITIONS
-    std::cout << "Molecule " << molecule_idx << " changed subpartition from "
+    std::cout << "Molecule " << vm.id << " changed subpartition from "
         <<  vm.v.subpart_index << " to " << new_subpartition_index << ".\n";
 #endif
 

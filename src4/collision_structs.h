@@ -55,7 +55,7 @@ class RxnClass;
 typedef boost::container::small_vector<Collision, 16> collision_vector_t;
 typedef boost::container::flat_set<subpart_index_t> subpart_indices_set_t;
 #else
-typedef std::vector<Collision> collision_vector_t;
+typedef std::vector<Collision> collision_vector_t; // FIXME: shoudl be UpperCase
 typedef std::set<subpart_index_t> subpart_indices_set_t;
 #endif
 /**
