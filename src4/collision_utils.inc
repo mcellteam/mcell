@@ -460,13 +460,17 @@ static inline void get_corner_points_for_subpart_colection(
   vec3_t vp = cross(v, move);
 
   // 3) and compute the vectors v1-v4 of length rx_radius * SQRT2
-  float_t ratio = 1/len3(v) * rx_radius * SQRT2;
-  float_t ratiop = 1/len3(vp) * rx_radius * SQRT2;
+  float_t radius = rx_radius * SQRT2;
+  float_t ratio = 1/len3(v) * radius;
+  float_t ratiop = 1/len3(vp) * radius;
 
   vec3_t v0 = v * vec3_t(ratio);
   vec3_t v1 = vp * vec3_t(ratiop);
   vec3_t v2 = -v1;
   vec3_t v3 = -v0;
+
+  assert(cmp_eq(len3(v0), radius) && cmp_eq(len3(v1), radius) && cmp_eq(len3(v2), radius) && cmp_eq(len3(v3), radius));
+  assert(cmp_eq(dot(v0, move), 0) && cmp_eq(dot(v1, move), 0) && cmp_eq(dot(v2, move), 0) && cmp_eq(dot(v3, move), 0));
 
   pts[0] = pos + v0;
   pts[1] = pos + v1;
@@ -532,12 +536,23 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts2(
   // set pts 0 - 3
   get_corner_points_for_subpart_colection(vm.v.pos, displacement, rx_radius, curr_positions);
 
+  // we need to move the poits a bit backwards and also forwards
+  float_t displacement_length = len3(displacement);
+  vec3_t displacement_unit = displacement/vec3_t(displacement_length);
+  vec3_t displacement_of_radius_length = displacement_unit * vec3_t(rx_radius * SQRT2);
+
   // compute how often a subpart plane is hit along the way for x, y, and z dimensions
 
   // remember the starting subpartitions
   small_vector<subpart_index_t> start_subpart_indices;
   start_subpart_indices.resize(num_points);
   for (uint i = 0; i < NUM_CORNER_POINTS; i++) {
+
+    // move detection points a bit back
+    if (i != MOL_POS_POINT_INDEX) {
+      curr_positions[i] = curr_positions[i] - displacement_of_radius_length;
+    }
+
     // the starting points may be out of our partition - this is not supported yet
     if (p.in_this_partition(curr_positions[i])) {
       start_subpart_indices[i] = p.get_subpart_index(curr_positions[i]);
@@ -548,6 +563,13 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts2(
           "collect_crossed_subparts: Subpart search starting points are outside of the partition. Not supported yet.");
     }
   }
+
+#ifdef DEBUG_SUBPARTITIONS
+  std::cout << "Corrected corner points for subpart colection:\n"
+      << "0:" << curr_positions[0] << "\n1:" << curr_positions[1] << "\n2:" << curr_positions[2] << "\n3:" << curr_positions[3] << "\n";
+#endif
+
+
   if (collect_for_walls) {
     start_subpart_indices[MOL_POS_POINT_INDEX] = vm.v.subpart_index;
     // also directly remember the first subpart for walls
@@ -571,10 +593,8 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts2(
   dest_subpart_indices3d.resize(num_points);
   dest_subpart_indices.resize(num_points);
 
-  // TODO: this might not be needed, try to remove
-  float_t displacement_length = len3(displacement);
-  vec3_t displacement_unit = displacement/vec3_t(displacement_length);
-  vec3_t extended_displacement = displacement + displacement_unit * rx_radius * SQRT2;
+  // we already subtracted displacement_of_radius_length from the current positions
+  vec3_t extended_displacement = displacement + vec3_t(2)*displacement_of_radius_length;
 
   for (uint i = 0; i < num_points; i++) {
     crossed_subparts_for_molecules.insert(start_subpart_indices[i]);
@@ -583,6 +603,7 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts2(
 
     vec3_t dest_pos;
 
+    // TODO: this might not be needed, try to remove
     if (i == MOL_POS_POINT_INDEX) {
       dest_pos = curr_positions[i] + displacement;
     }
@@ -599,8 +620,9 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts2(
 
     #ifdef DEBUG_SUBPARTITIONS
     DUMP_CONDITION4P(
-      std::cout << "Point " << i << ", start subpart indices: " <<  curr_subpart_indices3d[i] << "\n";
-      std::cout << "Point " << i << ", dest  subpart indices: " <<  dest_subpart_indices3d[i] << "\n";
+      std::cout << "Point " << i << ", dest pos: " << dest_pos << "\n";
+      std::cout << "Point " << i << ", start subpart indices: " << curr_subpart_indices3d[i] << "\n";
+      std::cout << "Point " << i << ", dest  subpart indices: " << dest_subpart_indices3d[i] << "\n";
     );
     #endif
 
