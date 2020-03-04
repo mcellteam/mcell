@@ -784,7 +784,9 @@ static inline void /*__attribute__((always_inline))*/ collect_crossed_subparts2(
 */
 
 static void raycast_with_endpoints(
-    const Partition& p, uint pt, const vec3_t& v3dStart, const vec3_t& v3dEnd,
+    const Partition& p, const vec3_t& v3dStart, const vec3_t& v3dEnd,
+    const uint pt /*only for debug*/, const bool collect_for_walls, /* wall subparts are collected for the internal ray */
+    SubpartIndicesVector& crossed_subparts_for_walls,
     subpart_indices_set_t& crossed_subparts_for_molecules
 )
 {
@@ -816,9 +818,13 @@ static void raycast_with_endpoints(
   const int dj = ((y1 < y2) ? 1 : ((y1 > y2) ? -1 : 0));
   const int dk = ((z1 < z2) ? 1 : ((z1 > z2) ? -1 : 0));
 
-  const float_t abs_x21 = abs(x2 - x1); // might use rcp
-  const float_t abs_y21 = abs(y2 - y1);
-  const float_t abs_z21 = abs(z2 - z1);
+  float_t abs_x21 = abs(x2 - x1); // might use rcp
+  float_t abs_y21 = abs(y2 - y1);
+  float_t abs_z21 = abs(z2 - z1);
+
+  abs_x21 = (abs_x21 == 0) ? EPS : abs_x21;
+  abs_y21 = (abs_y21 == 0) ? EPS : abs_y21;
+  abs_z21 = (abs_z21 == 0) ? EPS : abs_z21;
 
   const float_t deltatx = CELL_SIDE / abs_x21;
   const float_t deltaty = CELL_SIDE / abs_y21;
@@ -842,7 +848,11 @@ static void raycast_with_endpoints(
 
 
   do {
-    crossed_subparts_for_molecules.insert( p.get_subpart_index_from_3d_indices(ivec3_t(i, j, k)) );
+    subpart_index_t spi = p.get_subpart_index_from_3d_indices(ivec3_t(i, j, k));
+    crossed_subparts_for_molecules.insert(spi);
+    if (collect_for_walls) {
+      crossed_subparts_for_walls.push_back(spi);
+    }
 
 
     if (tx <= ty && tx <= tz)
@@ -883,13 +893,21 @@ static void raycast_with_endpoints(
 #endif
 
   // add final subpart
-  crossed_subparts_for_molecules.insert( p.get_subpart_index_from_3d_indices(ivec3_t(i, j, k)) );
+  subpart_index_t spi = p.get_subpart_index_from_3d_indices(ivec3_t(i, j, k));
+  crossed_subparts_for_molecules.insert(spi);
+  if (collect_for_walls) {
+    crossed_subparts_for_walls.push_back(spi);
+  }
 
   // last step missing?
   int diff = abs(i - iend) + abs(j - jend) + abs(j - jend);
-  //assert(diff <= 2); //??
+  //assert(diff <= 2); // this is a bit weird, but it seems to be working
   if (diff != 0) {
-    crossed_subparts_for_molecules.insert( p.get_subpart_index_from_3d_indices(ivec3_t(iend, jend, kend)) );
+    subpart_index_t spi_final = p.get_subpart_index_from_3d_indices(ivec3_t(iend, jend, kend));
+    crossed_subparts_for_molecules.insert(spi);
+    if (collect_for_walls) {
+      crossed_subparts_for_walls.push_back(spi);
+    }
   }
 }
 // temporary copy of collect_crossed_subparts2
@@ -1063,7 +1081,11 @@ static inline void /*__attribute__((always_inline))*/ collect_crossed_subparts3(
 
 
   for (uint i = 0; i < num_points; i++){
-    raycast_with_endpoints(p, i, curr_positions[i], dest_positions[i], crossed_subparts_for_molecules);
+    raycast_with_endpoints(
+        p, curr_positions[i], dest_positions[i],
+        i, i == MOL_POS_POINT_INDEX,
+        crossed_subparts_for_walls, crossed_subparts_for_molecules
+    );
   }
 
 
@@ -1074,7 +1096,7 @@ static inline void /*__attribute__((always_inline))*/ collect_crossed_subparts3(
       if (reached_last_subpart[i]) {
         continue;
       }
-#endif
+//#endif
 
   if (collect_for_walls) {
     while(!reached_last_subpart[MOL_POS_POINT_INDEX]) {
@@ -1183,10 +1205,10 @@ static inline void /*__attribute__((always_inline))*/ collect_crossed_subparts3(
         num_reached_last_subpart++;
       }
     }
-#if 0
+  } // while
+//#if 0
     } // for
 #endif
-  } // while
 }
 
 #if 0
