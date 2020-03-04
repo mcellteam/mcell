@@ -762,6 +762,284 @@ static inline void /*__attribute__((always_inline))*/ collect_crossed_subparts2(
 }
 
 
+
+// temporary copy of collect_crossed_subparts2
+// use bresenham alg to optimize
+static inline void /*__attribute__((always_inline))*/ collect_crossed_subparts3(
+  const Partition& p,
+  const Molecule& vm, // molecule that we are diffusing
+  const vec3_t& displacement,
+  const float_t rx_radius,
+  const float_t sp_edge_length,
+  const bool collect_for_walls,
+  SubpartIndicesVector& crossed_subparts_for_walls, // crossed subparts considered for wall collision
+  subpart_indices_set_t& crossed_subparts_for_molecules // crossed subparts considered for molecule collisions
+) {
+  if (collect_for_walls) {
+    assert(crossed_subparts_for_walls.empty());
+  }
+  assert(crossed_subparts_for_molecules.empty());
+
+  if (cmp_eq(displacement, 0)) {
+    // we are practically not moving (add some nearby positions?)
+    crossed_subparts_for_walls.push_back(vm.v.subpart_index);
+    crossed_subparts_for_molecules.insert(vm.v.subpart_index);
+    return;
+  }
+
+  const int NUM_CORNER_POINTS = 4;
+  const int MOL_POS_POINT_INDEX = 4;
+
+  // The idea here is to have 4 lines that represent a moving square instead of a circle,
+  // the 4 lines are then checked for collisions with subpartitions. The rx radius must be smaller
+  // than the subpart size, therefore the actual subpartition through which the ray from the
+  // molecule's position goes are included automatically.
+  //
+  // However, when we are collecting walls, we want just the exct subpartitions and not neighbors.
+  //
+  small_vector<vec3_t> curr_positions;
+  if (collect_for_walls) {
+    curr_positions.resize(NUM_CORNER_POINTS + 1);
+    curr_positions[MOL_POS_POINT_INDEX] = vm.v.pos;
+  }
+  else {
+    curr_positions.resize(NUM_CORNER_POINTS);
+  }
+
+  uint num_points = curr_positions.size();
+
+  small_vector<bool> reached_last_subpart;
+  reached_last_subpart.resize(num_points, false);
+  uint num_reached_last_subpart = 0;
+
+  // set pts 0 - 3
+  get_corner_points_for_subpart_colection(vm.v.pos, displacement, rx_radius, curr_positions);
+
+  // we need to move the poits a bit backwards and also forwards
+  float_t displacement_length = len3(displacement);
+  vec3_t displacement_unit = displacement/vec3_t(displacement_length);
+  vec3_t displacement_of_radius_length = displacement_unit * vec3_t(rx_radius * SQRT2 * RX_RADIUS_MULTIPLIER);
+
+  // compute how often a subpart plane is hit along the way for x, y, and z dimensions
+
+  // remember the starting subpartitions
+  small_vector<subpart_index_t> start_subpart_indices;
+  start_subpart_indices.resize(num_points);
+  for (uint i = 0; i < NUM_CORNER_POINTS; i++) {
+
+    // move detection points a bit back
+    if (i != MOL_POS_POINT_INDEX) {
+      curr_positions[i] = curr_positions[i] - displacement_of_radius_length;
+    }
+
+    // the starting points may be out of our partition - this is not supported yet
+    if (p.in_this_partition(curr_positions[i])) {
+      start_subpart_indices[i] = p.get_subpart_index(curr_positions[i]);
+    }
+    else {
+      std::cout << "Point " << i << ", curr_positions[i]: " << curr_positions[i] << "\n";
+      mcell_error(
+          "collect_crossed_subparts: Subpart search starting points are outside of the partition. Not supported yet.");
+    }
+  }
+
+#ifdef DEBUG_SUBPARTITIONS
+  std::cout << "Corrected corner points for subpart colection:\n"
+      << "0:" << curr_positions[0] << "\n1:" << curr_positions[1] << "\n2:" << curr_positions[2] << "\n3:" << curr_positions[3] << "\n";
+#endif
+
+
+  if (collect_for_walls) {
+    start_subpart_indices[MOL_POS_POINT_INDEX] = vm.v.subpart_index;
+    // also directly remember the first subpart for walls
+    crossed_subparts_for_walls.push_back(vm.v.subpart_index);
+  }
+
+  // urb - upper, right, bottom
+  vec3_t displacement_nonzero = displacement;
+  debug_guard_zero_div(displacement_nonzero);
+  ivec3_t dir_urb_direction = ivec3_t(glm::greaterThan(displacement_nonzero, vec3_t(0)));
+  assert(dir_urb_direction.x == 0 || dir_urb_direction.x == 1);
+  assert(dir_urb_direction.y == 0 || dir_urb_direction.y == 1);
+  assert(dir_urb_direction.z == 0 || dir_urb_direction.z == 1);
+
+  // get 3d indices of start and end subpartitions
+  small_vector<ivec3_t> curr_subpart_indices3d;
+  small_vector<ivec3_t> dest_subpart_indices3d;
+  small_vector<subpart_index_t> dest_subpart_indices;
+
+  curr_subpart_indices3d.resize(num_points);
+  dest_subpart_indices3d.resize(num_points);
+  dest_subpart_indices.resize(num_points);
+
+  // we already subtracted displacement_of_radius_length from the current positions
+  vec3_t extended_displacement = displacement + vec3_t(2)*displacement_of_radius_length;
+
+  for (uint i = 0; i < num_points; i++) {
+    crossed_subparts_for_molecules.insert(start_subpart_indices[i]);
+
+    p.get_subpart_3d_indices_from_index( start_subpart_indices[i], curr_subpart_indices3d[i]);
+
+    vec3_t dest_pos;
+
+    // TODO: this might not be needed, try to remove
+    if (i == MOL_POS_POINT_INDEX) {
+      dest_pos = curr_positions[i] + displacement;
+    }
+    else {
+      dest_pos = curr_positions[i] + extended_displacement;
+    }
+
+    // truncate if needed, does not happen often
+    if (!p.in_this_partition(dest_pos)) {
+      dest_pos = curr_positions[i] + get_displacement_up_to_partition_boundary(p, curr_positions[i], extended_displacement);
+    }
+
+    p.get_subpart_3d_indices(dest_pos, dest_subpart_indices3d[i]);
+
+    #ifdef DEBUG_SUBPARTITIONS
+    DUMP_CONDITION4P(
+      std::cout << "Point " << i << ", dest pos: " << dest_pos << "\n";
+      std::cout << "Point " << i << ", start subpart indices: " << curr_subpart_indices3d[i] << "\n";
+      std::cout << "Point " << i << ", dest  subpart indices: " << dest_subpart_indices3d[i] << "\n";
+    );
+    #endif
+
+    dest_subpart_indices[i] = p.get_subpart_index_from_3d_indices(dest_subpart_indices3d[i]);
+
+    if (start_subpart_indices[i] == dest_subpart_indices[i]) {
+      reached_last_subpart[i] = true;
+      num_reached_last_subpart++;
+    }
+  }
+
+  // for each dimension, process each trace and each plane
+  // collect subpartitions on the way by always finding the point where a subpartition boundary is hit
+  // we must do it even when we are crossing just one subpartition because we might hit others while
+  // moving along them
+
+
+  ivec3_t dir_urb_addend;
+  dir_urb_addend.x = (dir_urb_direction.x == 0) ? -1 : 1;
+  dir_urb_addend.y = (dir_urb_direction.y == 0) ? -1 : 1;
+  dir_urb_addend.z = (dir_urb_direction.z == 0) ? -1 : 1;
+
+  vec3_t displacement_rcp = 1.0/displacement_nonzero; // POSSIBLE ZERO DIV
+  vec3_t sp_len_as_vec3 = vec3_t(sp_edge_length);
+
+  while(num_reached_last_subpart != num_points) {
+
+    for (uint i = 0; i < num_points; i++){
+      if (reached_last_subpart[i]) {
+        continue;
+      }
+
+      // subpartition edges
+      // = origin + subparition index * length + is_urb * length
+      vec3_t sp_edges =
+        p.get_origin_corner()
+        +  vec3_t(curr_subpart_indices3d[i]) * sp_len_as_vec3 // llf edge
+        + vec3_t(dir_urb_direction) * sp_len_as_vec3; // move if we go urb
+
+      vec3_t& curr_pos = curr_positions[i];
+      vec3_t diff = sp_edges - curr_pos;
+
+      #ifdef DEBUG_SUBPARTITIONS
+        std::cout << "Point " << i << " starts at " << curr_pos << "\n";
+      #endif
+
+      int changed_subpart_index;
+
+      // first check whether we are not in fact touching one of the boundaries
+      if (abs(diff.x) < EPS) {
+        // only update the xyz subpartition index
+        curr_subpart_indices3d[i].x += dir_urb_addend.x;
+        changed_subpart_index = curr_subpart_indices3d[i].x;
+      }
+      else if (abs(diff.y) < EPS) {
+        curr_subpart_indices3d[i].y += dir_urb_addend.y;
+        changed_subpart_index = curr_subpart_indices3d[i].y;
+      }
+      else if (abs(diff.z) < EPS) {
+        curr_subpart_indices3d[i].z += dir_urb_addend.z;
+        changed_subpart_index = curr_subpart_indices3d[i].z;
+      }
+      else {
+        // compute time for the next subpartition collision, let's assume that displacemnt
+        // is our speed vector and the total time to travel is 1
+        //
+        // pos(time) = pos + displacement * time, therefore
+        // time = (pos(time) - vm.v.pos) / displacement
+        // =>
+        // time_to_subpart_edge = (subpart_edge - vm.v.pos) / displacement_speed
+        vec3_t coll_times = diff * displacement_rcp;
+
+        assert(coll_times.x >= 0 && coll_times.y >= 0 && coll_times.z >= 0
+            && "Subpartition 'edges' for the main point must be computed from direction, we cannot hit a subpart boundary that is behind us");
+
+        // which of the times is the smallest? - i.e. which boundary we hit first
+        if (coll_times.x >= 0 && coll_times.x < coll_times.y && coll_times.x <= coll_times.z) {
+          // new position on the edge of the subpartition
+          curr_pos += displacement * coll_times.x;
+          // and also update the xyz subpartition index
+          curr_subpart_indices3d[i].x += dir_urb_addend.x;
+          changed_subpart_index = curr_subpart_indices3d[i].x;
+        }
+        else if (coll_times.y >= 0 && coll_times.y <= coll_times.z) {
+          curr_pos += displacement * coll_times.y;
+          curr_subpart_indices3d[i].y += dir_urb_addend.y;
+          changed_subpart_index = curr_subpart_indices3d[i].y;
+        }
+        else if (coll_times.z >= 0) {
+          curr_pos += displacement * coll_times.z;
+          curr_subpart_indices3d[i].z += dir_urb_addend.z;
+          changed_subpart_index = curr_subpart_indices3d[i].z;
+        }
+        else {
+          assert(false);
+          reached_last_subpart[i] = true;
+          num_reached_last_subpart++;
+          continue;
+        }
+      }
+
+      #ifdef DEBUG_SUBPARTITIONS
+        std::cout << "Point " << i << " moved to " << curr_pos << "\n";
+      #endif
+
+      // in some cases, we can run out of partition
+      // this means that we missed the destination partition which is fine since collection of subparts
+      // is only an optimization, but still we must terminate this search
+      if (!p.is_subpart_index_in_range(changed_subpart_index)) {
+        reached_last_subpart[i] = true;
+        num_reached_last_subpart++;
+        continue;
+      }
+
+
+      subpart_index_t curr_subpart_index = p.get_subpart_index_from_3d_indices(curr_subpart_indices3d[i]);
+      #ifdef DEBUG_SUBPARTITIONS
+        DUMP_CONDITION4P(
+            std::cout << "Point " << i << ", new subpart indices: " <<  curr_subpart_indices3d[i] << "\n";
+        );
+      #endif
+
+      if (collect_for_walls && i == MOL_POS_POINT_INDEX) {
+        crossed_subparts_for_walls.push_back(curr_subpart_index);
+      }
+      crossed_subparts_for_molecules.insert(curr_subpart_index);
+
+      if (curr_subpart_index == dest_subpart_indices[i]) {
+        // do we have to reach the last subpart at the same time?
+        // ... expecting that yes
+        reached_last_subpart[i] = true;
+        num_reached_last_subpart++;
+      }
+
+    } // for
+  } // while
+}
+
 #if 0
 // one more option is to use point-line distance and
 // somehow go along the trace and check neighboring points
