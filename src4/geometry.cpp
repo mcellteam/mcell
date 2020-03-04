@@ -32,6 +32,7 @@
 #include "geometry.h"
 
 #include "geometry_utils.inc" // uses get_wall_bounding_box, maybe not include this file
+#include <typeinfo> // used for testing typeid()
 
 using namespace std;
 
@@ -56,6 +57,53 @@ void GeometryObject::dump_array(const Partition& p, const std::vector<GeometryOb
   }
 }
 
+void GeometryObject::to_data_model(std::ostream& out, const Partition& p, const SimulationConfig& config) const {
+  /*
+  // there is no "location" given in mdl files in addition to the position of vertices.
+  out << "\"location\": [\n";
+  out <<"],\n";
+  */
+  vector<uint> vertex_order;
+  out << "\"element_connections\": [";
+  bool first = true; // to indicate when to use a comma
+  for (wall_index_t i: wall_indices) {
+    if (!first) {
+      out << ",";
+    }
+    p.get_wall(i).connections_to_data_model(out);
+    first = false;
+  }
+  out <<
+      "],\n" <<
+      "\"name\": \"" << name << "\",\n" <<
+      "\"material_names\": [\n" <<
+      "\"membrane\"" <<  // default transparent material. MDL doesn't currently handle material properties.
+      "],\n" <<
+      "\"vertex_list\": [\n";
+  vertices_to_data_model(out, p, config);
+  out << "]\n";
+}
+
+// outputs complete list of partition vertices to data_model
+void GeometryObject::vertices_to_data_model(std::ostream& out, const Partition& p, const SimulationConfig& config) const {
+  uint vertex_count = p.get_geometry_vertex_count();
+  for (uint i=0; i<vertex_count; i++){
+    out << "[\n";
+    for (uint j = 0; j < VERTICES_IN_TRIANGLE; j++) {
+      vec3_t pos = p.get_geometry_vertex(i);
+      out << pos[j]*config.length_unit;
+      if (j != VERTICES_IN_TRIANGLE - 1) {
+        out << ",";
+      }
+      out << "\n";
+    }
+    out << "]";
+    if (i != vertex_count - 1) {
+      out << ",";
+    }
+    out << "\n";
+  }
+}
 
 void Region::dump(const std::string ind) const {
   cout << ind << "Region : " <<
@@ -386,6 +434,18 @@ void Wall::dump(const Partition& p, const std::string ind, const bool for_diff) 
       << ", distance_to_origin: " << distance_to_origin
       << "\n";
   }
+}
+
+// writting "element_connections" to data_model
+void Wall::connections_to_data_model(std::ostream& out) const {
+  out << "\n[\n";
+  for (uint i = 0; i < VERTICES_IN_TRIANGLE; i++) {
+    out << vertex_indices[i];
+    if (i != VERTICES_IN_TRIANGLE - 1) {
+          out << ",\n";
+    }
+  }
+  out << "\n]";
 }
 
 namespace Geometry {

@@ -72,7 +72,6 @@ public:
     }
   }
 
-
   Molecule& get_m(const molecule_id_t id) {
     assert(id != MOLECULE_ID_INVALID);
     assert(id < molecule_id_to_index_mapping.size());
@@ -376,6 +375,15 @@ public:
 
   const vec3_t& get_geometry_vertex(vertex_index_t i) const {
     assert(i < geometry_vertices.size());
+    /*
+    fprintf(stdout, "\n+++GETTING GEOM VERTS+++\n");
+    const vec3_t* v = geometry_vertices[i];
+    int j;
+    for(int i= 0; i<3; i++) {
+      j = v[i];
+      fprintf(stdout, j);
+    }
+    */
     return geometry_vertices[i];
   }
 
@@ -527,6 +535,7 @@ public:
   }*/
 
   void dump();
+  void to_data_model(std::ostream& out) const;
 
 private:
   // left, bottom, closest (lowest z) point of the partition

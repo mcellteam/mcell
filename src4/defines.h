@@ -128,6 +128,9 @@ const uint DEFRAGMENTATION_PERIODICITY = 500;
 const float_t PARTITION_EDGE_LENGTH_DEFAULT = 10 * 100 /*100 = 1/length unit*/; // large for now because we have just one partition
 const float_t SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT = 1;
 
+// ---------------------------------- datamodel constants----------------------------------
+
+const char* const JSON_DM_VERSION = "\"DM_2014_10_24_1638\"";
 
 // ---------------------------------- fixed constants and specific typedefs -------------------
 const float_t POS_INVALID = FLT_MAX; // cannot be NAN because we cannot do any comparison with NANs

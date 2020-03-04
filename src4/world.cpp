@@ -24,6 +24,8 @@
 #include <fenv.h> // Linux include
 #include <sys/resource.h> // Linux include
 
+#include <fstream>
+
 #include "rng.h" // MCell 3
 #include "logging.h"
 
@@ -97,8 +99,6 @@ static double tousecs(timeval& t) {
 static double tosecs(timeval& t) {
   return (double)t.tv_sec + (double)t.tv_usec/USEC_IN_SEC;
 }
-
-
 
 
 void World::init_simulation() {
@@ -236,6 +236,17 @@ void World::run_simulation(const bool dump_initial_state) {
     dump();
   }
 
+  if (data_model_mcell4) {
+    const char* fname = "data_model.json";
+    std::ofstream out;
+    out.open(fname);
+    if (!out.is_open()) {
+      mcell_error("Could not open file %s for writing.\n", fname);
+    }
+    to_data_model(out);
+    out.close();
+  }
+
   uint output_frequency = determine_output_frequency(iterations);
 
   // simulating 1000 iterations means to simulate iterations 0 .. 1000
@@ -255,6 +266,36 @@ void World::dump() {
   for (Partition& p: partitions) {
     p.dump();
   }
+}
+
+void World::to_data_model(std::ostream& out) {
+  out <<
+      "{\n" <<
+      "\"mcell\": {\n" <<
+      "\"cellblender_version\": \"0.1.54\",";
+
+  bool first = true;
+  for (Partition& p: partitions) {
+    if (!first) out << ",\n";
+    else out << "\n";
+    p.to_data_model(out);
+    }
+
+  // Creates default material: transparent "membrane". I don't believe MDL can currently define materials.
+  out <<
+      "\"materials\": {\n" <<
+      "\"material_dict\": {\n" <<
+      "\"membrane\": {\n" <<
+      "\"diffuse_color\": {\n" <<
+      "\"g\": " << 0.800000011920929 << ",\n" <<
+      "\"b\": " << 0.800000011920929 << ",\n" <<
+      "\"a\": " << 0.25 << ",\n" <<  // 75% transparent
+      "\"r\": " << 0.800000011920929 << "\n" <<
+      "}\n}\n}\n},\n";
+
+  all_species.to_data_model(out);
+
+  out << "}\n}";
 }
 
 } // namespace mcell

@@ -31,6 +31,7 @@
 #include "molecule.h"
 #include "reaction.h"
 
+
 namespace MCell {
 
 /**
@@ -59,6 +60,27 @@ public:
 
   void dump() {
     Species::dump_array(species);
+  }
+
+  void to_data_model(std::ostream& out) {
+    out <<
+        "\"define_molecules\": {\n" <<
+        "\"molecule_list\": [\n";
+
+    for (size_t i = 0; i < get_count(); i++) {
+      Species &s = species[i];
+      s.to_data_model(out);
+      // only outputs a comma if there are more speices to come
+      if(i != get_count()-1) {
+        out << ",";
+      }
+      out << "\n";
+    }
+    out <<
+        "],\n" <<
+        "\"data_model_version\": " <<
+        JSON_DM_VERSION <<
+        "\n}\n";
   }
 
 private:

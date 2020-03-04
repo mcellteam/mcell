@@ -26,6 +26,11 @@
 #include <stdlib.h>
 
 #include "../src4/mcell3_world_converter.h"
+
+#include "mcell3_world_converter.h" // why wasn't this included before?
+#include "world.h"
+#include "defines.h"
+
 #include "mcell_init.h"
 #include "mcell_misc.h"
 #include "mcell_run.h"
@@ -88,10 +93,6 @@ int main(int argc, char **argv) {
 
   CHECKED_CALL_EXIT(mcell_init_output(state),
                     "An error occured during setting up of output.");
-
-  if (state->data_model_mcell4){
-    make_data_model(state); /* lmr */
-  }
 
   if (state->dump_mcell4) {
     dump_volume(state, "initial", DUMP_EVERYTHING);

@@ -54,6 +54,8 @@ public:
   // p must be the partition that contains this object
   void dump(const Partition& p, const std::string ind) const;
   static void dump_array(const Partition& p, const std::vector<GeometryObject>& vec);
+  void to_data_model(std::ostream& out, const Partition& p, const SimulationConfig& config) const;
+  void vertices_to_data_model(std::ostream& out, const Partition& p, const SimulationConfig& config) const;
 };
 
 
@@ -309,6 +311,7 @@ public:
 
   // p must be the partition that contains this object
   void dump(const Partition& p, const std::string ind, const bool for_diff = false) const;
+  void connections_to_data_model(std::ostream& out) const;
 
   bool has_initialized_grid() const {
     return grid.is_initialized();

@@ -24,9 +24,13 @@
 #ifndef SRC4_SPECIES_H_
 #define SRC4_SPECIES_H_
 
+#define RGB_COLORS 3
+#define ONE_DECIMAL 1
+
 #include <string>
 #include <vector>
 #include "defines.h"
+#include "logging.h" // needed for error reports
 
 #include "mcell_structs.h"
 
@@ -51,13 +55,25 @@ enum species_flag_t {
  */
 class Species {
 public:
-  species_id_t species_id;
+  // I don't see why any of the later initialized class attributes need to be initialized inside the constructor.
+  Species() {
+    color[0] = 1;
+    color[1] = 0;
+    color[2] = 0;
+    scale = 1.0;
+  }
 
+public:
+  species_id_t species_id;
   uint mcell3_species_id;
   float_t D; // diffusion constant
   std::string name;
   float_t space_step;
   float_t time_step; // in standard time
+
+  // Insead of defining default values here, make a constructor that does this
+  float_t color [RGB_COLORS];  // mol color default is red
+  float_t scale; // scale = 1 by default
 
   uint flags;
 
@@ -89,9 +105,15 @@ public:
 
   void dump(const std::string ind) const;
   static void dump_array(const std::vector<Species>& vec);
+  void to_data_model(std::ostream& out) const;
+  void set_color(float_t r, float_t g, float_t b);
+  void set_scale(float_t s);
+
 };
 
 } // namespace mcell
+
+
 
 #endif // SRC4_SPECIES_H_
 

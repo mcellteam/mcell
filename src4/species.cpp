@@ -21,9 +21,14 @@
  *
 ******************************************************************************/
 
+//#define _GLIBCXX_USE_CXX11_ABI 0 // added for fprintf-ing vec[i].name
+
 #include <iostream>
+#include <iomanip> // needed for std::setprecision()
+#include "mdlparse_util.h"
 
 #include "species.h"
+//#include "species_info.h" // needed for get species.size()
 
 using namespace std;
 
@@ -41,10 +46,99 @@ void Species::dump(const string ind) const {
 void Species::dump_array(const vector<Species>& vec) {
   cout << "Species array: " << (vec.empty() ? "EMPTY" : "") << "\n";
 
+  cout << "VECTOR SIZE:" << vec.size() << "\n";
   for (size_t i = 0; i < vec.size(); i++) {
     cout << i << ":\n";
     vec[i].dump("  ");
   }
+}
+
+void Species::to_data_model(std::ostream& out) const{
+  // stores default ostream output precision
+  int old_precision = out.precision();
+
+  out <<
+      "{" <<
+      "\n\"display\": {" <<
+      "\n\"emit\": " <<
+      "\"\"," <<
+      "\n\"color\": [";
+  // configure ostream for 1 decimanl place output of floating points
+  out << setprecision(ONE_DECIMAL) << fixed;
+  out <<
+      "\n" << color[0] << "," <<
+      "\n" << color[1] << "," <<
+      "\n" << color[2];
+  // return ostream output to default precision settings
+  out << setprecision(old_precision) << defaultfloat;
+  out <<
+      "\n]," <<
+      "\n\"glyph\": " <<
+      "\"" << "\"," <<
+      "\n\"letter\": " <<
+      "\"\",";
+  out << setprecision(ONE_DECIMAL) << fixed;
+  out <<
+      "\n\"scale\": " <<
+      scale;
+  out << setprecision(old_precision) << defaultfloat;
+  out <<
+      "\n}," <<
+      "\n\"bngl_component_list\": " <<
+      "\"\"," <<
+      "\n\"mol_bngl_label\": " <<
+      "\"\"," <<
+      "\n\"data_model_version\": " <<
+      JSON_DM_VERSION <<
+      "," <<
+      "\n\"description\": " <<
+      "\"\"," <<
+      "\n\"mol_type\": ";
+  if (is_vol()) {
+    out << "\"3D\",";
+  }
+  else {
+    out << "\"2D\",";
+  }
+  out <<
+      "\n\"export_viz\": " <<
+      "\"\"," <<
+      "\n\"custom_space_step\": " <<
+      "\"\"," <<
+      "\n\"maximum_step_length\": " <<
+      "\"\"," <<
+      "\n\"target_only\": " <<
+      "\"\"," <<
+      "\n\"diffusion_constant\": " <<
+      "\"" << D << "\"," <<
+      "\n\"spatial_structure\": " <<
+      // this will always be "None" until mcell4 updates this feature
+      "\"None\"," <<
+      "\n\"mol_name\": " <<
+      "\"" << name << "\"," <<
+      "\n\"custom_time_step\": " <<
+      "\"\"" <<
+      "\n}";
+}
+
+// sets mol display color
+void Species::set_color(float_t r, float_t g, float_t b) {
+  if (r > 1 || r < 0 || g > 1 || g < 0 || b > 1 || b < 0) {
+    mcell_error_nodie("Error: RGB color values must be between 0 and 1. Default values {1,0,0} will be used.");
+    return;
+  }
+  color[0] = r;
+  color[1] = g;
+  color[2] = b;
+}
+
+// sets mol display size
+void Species::set_scale(float_t s) {
+  if (s <= 0) {
+    mcell_error_nodie("Error: Mol scale value must be greater than 0. Default value (1) will be used.");
+    return;
+  }
+  scale = s;
 }
 
 } // namespace mcell
