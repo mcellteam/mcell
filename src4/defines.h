@@ -432,11 +432,15 @@ static inline float_t max3d(const vec3_t& v) {
   return glm::compMax((glm_vec3_t)v);
 }
 
+static inline vec3_t abs3(const vec3_t& v) {
+  return glm::abs((glm_vec3_t)v);
+}
+
 /* abs_max_2vec picks out the largest (absolute) value found among two vectors
  * (useful for properly handling floating-point rounding error). */
 static inline float_t abs_max_2vec(const vec3_t& v1, const vec3_t& v2) {
-  glm_vec3_t v1abs = glm::abs((glm_vec3_t)v1);
-  glm_vec3_t v2abs = glm::abs((glm_vec3_t)v2);
+  glm_vec3_t v1abs = abs3(v1);
+  glm_vec3_t v2abs = abs3(v2);
   vec3_t vmax = glm::max(v1abs, v2abs);
   return MCell::max3d(vmax);
 }
