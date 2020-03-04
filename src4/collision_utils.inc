@@ -460,7 +460,7 @@ static inline void get_corner_points_for_subpart_colection(
   vec3_t vp = cross(v, move);
 
   // 3) and compute the vectors v1-v4 of length rx_radius * SQRT2
-  float_t radius = rx_radius * SQRT2;
+  float_t radius = rx_radius * SQRT2 * RX_RADIUS_MULTIPLIER;
   float_t ratio = 1/len3(v) * radius;
   float_t ratiop = 1/len3(vp) * radius;
 
@@ -486,7 +486,7 @@ static inline void get_corner_points_for_subpart_colection(
 // a potentially more efficient variant of collect_crossed_subparts
 // 1 variant for molecules,
 // another for walls (direct crosses, no radius)
-static inline void __attribute__((always_inline)) collect_crossed_subparts2(
+static inline void /*__attribute__((always_inline))*/ collect_crossed_subparts2(
   const Partition& p,
   const Molecule& vm, // molecule that we are diffusing
   const vec3_t& displacement,
@@ -539,7 +539,7 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts2(
   // we need to move the poits a bit backwards and also forwards
   float_t displacement_length = len3(displacement);
   vec3_t displacement_unit = displacement/vec3_t(displacement_length);
-  vec3_t displacement_of_radius_length = displacement_unit * vec3_t(rx_radius * SQRT2);
+  vec3_t displacement_of_radius_length = displacement_unit * vec3_t(rx_radius * SQRT2 * RX_RADIUS_MULTIPLIER);
 
   // compute how often a subpart plane is hit along the way for x, y, and z dimensions
 

@@ -138,6 +138,7 @@ const float_t TIME_SIMULATION_START = 0;
 
 const float_t DIFFUSION_CONSTANT_ZER0 = 0;
 const float_t SQRT2 = 1.41421356238;
+const float_t RX_RADIUS_MULTIPLIER = 1.1; // TEMPORARY - we should figure out why some collisions with subparts are missed..., but maybe, it won't have big perf impact...
 
 const uint ID_INVALID = UINT32_MAX; // general invalid index, should not be used when a definition for a specific type is available
 const uint INDEX_INVALID = UINT32_MAX; // general invalid index, should not be used when a definition for a specific type is available
