@@ -762,7 +762,136 @@ static inline void /*__attribute__((always_inline))*/ collect_crossed_subparts2(
 }
 
 
+/*
+ Cast a ray through a volume by specifying the start and end positions
 
+ base implementation from https://bitbucket.org/volumesoffun/polyvox/src/9a71004b1e72d6cf92c41da8995e21b652e6b836/include/PolyVox/Raycast.inl?at=develop&fileviewer=file-view-default
+
+ The MIT License (MIT)
+
+ Copyright (c) 2015 David Williams and Matthew Williams
+
+ This function is based on Christer Ericson's code and description of the 'Uniform Grid Intersection Test' in
+ 'Real Time Collision Detection'. The following information from the errata on the book website is also relevent:
+
+  pages 326-327. In the function VisitCellsOverlapped() the two lines calculating tx and ty are incorrect.
+  The less-than sign in each line should be a greater-than sign. That is, the two lines should read:
+
+  float tx = ((x1 > x2) ? (x1 - minx) : (maxx - x1)) / Abs(x2 - x1);
+  float ty = ((y1 > y2) ? (y1 - miny) : (maxy - y1)) / Abs(y2 - y1);
+
+  Thanks to Jetro Lauha of Fathammer in Helsinki, Finland for reporting this error.
+*/
+
+static void raycast_with_endpoints(
+    const Partition& p, uint pt, const vec3_t& v3dStart, const vec3_t& v3dEnd,
+    subpart_indices_set_t& crossed_subparts_for_molecules
+)
+{
+  //The doRaycast function is assuming that it is iterating over the areas defined between
+  //voxels. We actually want to define the areas as being centered on voxels (as this is
+  //what the CubicSurfaceExtractor generates). We add 0.5 here to adjust for this.
+  const float_t x1 = v3dStart.x;// + 0.5f; // might need to add sp_len / 2?
+  const float_t y1 = v3dStart.y;// + 0.5f;
+  const float_t z1 = v3dStart.z;// + 0.5f;
+  const float_t x2 = v3dEnd.x;// + 0.5f;
+  const float_t y2 = v3dEnd.y;// + 0.5f;
+  const float_t z2 = v3dEnd.z;// + 0.5f;
+
+  const float_t CELL_SIDE = p.config.subpartition_edge_length;
+  const float_t CELL_SIZE_RCP = p.config.subpartition_edge_length_rcp;
+
+  ivec3_t tmp;
+  p.get_subpart_3d_indices(vec3_t(x1, y1, z1), tmp);
+  int i = tmp.x;
+  int j = tmp.y;
+  int k = tmp.z;
+
+  p.get_subpart_3d_indices(vec3_t(x2, y2, z2), tmp);
+  const int iend = tmp.x;
+  const int jend = tmp.y;
+  const int kend = tmp.z;
+
+  const int di = ((x1 < x2) ? 1 : ((x1 > x2) ? -1 : 0)); // displacement direction
+  const int dj = ((y1 < y2) ? 1 : ((y1 > y2) ? -1 : 0));
+  const int dk = ((z1 < z2) ? 1 : ((z1 > z2) ? -1 : 0));
+
+  const float_t abs_x21 = abs(x2 - x1); // might use rcp
+  const float_t abs_y21 = abs(y2 - y1);
+  const float_t abs_z21 = abs(z2 - z1);
+
+  const float_t deltatx = CELL_SIDE / abs_x21;
+  const float_t deltaty = CELL_SIDE / abs_y21;
+  const float_t deltatz = CELL_SIDE / abs_z21;
+
+  const float_t minx = floorf(x1*CELL_SIZE_RCP) * CELL_SIDE;
+  const float_t maxx = minx + CELL_SIDE;
+  float_t tx = ((x1 > x2) ? (x1 - minx) : (maxx - x1)) / abs_x21;
+
+  const float_t miny = floorf(y1*CELL_SIZE_RCP) * CELL_SIDE;
+  const float_t maxy = miny + CELL_SIDE;
+  float_t ty = ((y1 > y2) ? (y1 - miny) : (maxy - y1)) / abs_y21;
+
+  const float_t minz = floorf(z1*CELL_SIZE_RCP) * CELL_SIDE;
+  const float_t maxz = minz + CELL_SIDE;
+  float_t tz = ((z1 > z2) ? (z1 - minz) : (maxz - z1)) / abs_z21;
+
+#ifdef DEBUG_SUBPARTITIONS
+  std::cout << "Point " << pt << " start subpart indices " << vec3_t(i, j, k) << "\n";
+#endif
+
+
+  do {
+    crossed_subparts_for_molecules.insert( p.get_subpart_index_from_3d_indices(ivec3_t(i, j, k)) );
+
+
+    if (tx <= ty && tx <= tz)
+    {
+      if (i == iend) {
+        break;
+      }
+      tx += deltatx;
+      i += di;
+    }
+    else if (ty <= tz)
+    {
+      if (j == jend) {
+        break;
+      }
+      ty += deltaty;
+      j += dj;
+
+    }
+    else
+    {
+      if (k == kend) {
+        break;
+      }
+      tz += deltatz;
+      k += dk;
+
+    }
+
+    #ifdef DEBUG_SUBPARTITIONS
+      std::cout << "Point " << pt << ", new subpart indices: " << ivec3_t(i, j, k) << "\n";
+    #endif
+  }
+  while (true);
+
+#ifdef DEBUG_SUBPARTITIONS
+  std::cout << "Point " << pt << ", last subpart indices: " << ivec3_t(i, j, k) << "\n";
+#endif
+
+  // add final subpart
+  crossed_subparts_for_molecules.insert( p.get_subpart_index_from_3d_indices(ivec3_t(i, j, k)) );
+
+  // last step missing?
+  int diff = abs(i - iend) + abs(j - jend) + abs(j - jend);
+  //assert(diff <= 2); //??
+  if (diff != 0) {
+    crossed_subparts_for_molecules.insert( p.get_subpart_index_from_3d_indices(ivec3_t(iend, jend, kend)) );
+  }
+}
 // temporary copy of collect_crossed_subparts2
 // use bresenham alg to optimize
 static inline void /*__attribute__((always_inline))*/ collect_crossed_subparts3(
@@ -875,6 +1004,9 @@ static inline void /*__attribute__((always_inline))*/ collect_crossed_subparts3(
   // we already subtracted displacement_of_radius_length from the current positions
   vec3_t extended_displacement = displacement + vec3_t(2)*displacement_of_radius_length;
 
+  small_vector<vec3_t> dest_positions;
+  dest_positions.resize(num_points);
+
   for (uint i = 0; i < num_points; i++) {
     crossed_subparts_for_molecules.insert(start_subpart_indices[i]);
 
@@ -894,6 +1026,8 @@ static inline void /*__attribute__((always_inline))*/ collect_crossed_subparts3(
     if (!p.in_this_partition(dest_pos)) {
       dest_pos = curr_positions[i] + get_displacement_up_to_partition_boundary(p, curr_positions[i], extended_displacement);
     }
+
+    dest_positions[i] = dest_pos;
 
     p.get_subpart_3d_indices(dest_pos, dest_subpart_indices3d[i]);
 
@@ -927,12 +1061,25 @@ static inline void /*__attribute__((always_inline))*/ collect_crossed_subparts3(
   vec3_t displacement_rcp = 1.0/displacement_nonzero; // POSSIBLE ZERO DIV
   vec3_t sp_len_as_vec3 = vec3_t(sp_edge_length);
 
+
+  for (uint i = 0; i < num_points; i++){
+    raycast_with_endpoints(p, i, curr_positions[i], dest_positions[i], crossed_subparts_for_molecules);
+  }
+
+
+#if 0
   while(num_reached_last_subpart != num_points) {
 
     for (uint i = 0; i < num_points; i++){
       if (reached_last_subpart[i]) {
         continue;
       }
+#endif
+
+  if (collect_for_walls) {
+    while(!reached_last_subpart[MOL_POS_POINT_INDEX]) {
+
+      uint i = MOL_POS_POINT_INDEX;
 
       // subpartition edges
       // = origin + subparition index * length + is_urb * length
@@ -1027,7 +1174,7 @@ static inline void /*__attribute__((always_inline))*/ collect_crossed_subparts3(
       if (collect_for_walls && i == MOL_POS_POINT_INDEX) {
         crossed_subparts_for_walls.push_back(curr_subpart_index);
       }
-      crossed_subparts_for_molecules.insert(curr_subpart_index);
+      //crossed_subparts_for_molecules.insert(curr_subpart_index);
 
       if (curr_subpart_index == dest_subpart_indices[i]) {
         // do we have to reach the last subpart at the same time?
@@ -1035,8 +1182,10 @@ static inline void /*__attribute__((always_inline))*/ collect_crossed_subparts3(
         reached_last_subpart[i] = true;
         num_reached_last_subpart++;
       }
-
+    }
+#if 0
     } // for
+#endif
   } // while
 }
 

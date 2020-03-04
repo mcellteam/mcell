@@ -477,17 +477,23 @@ RayTraceState ray_trace_vol(
   }
 
   // first get what subpartitions might be relevant
-  /*SubpartIndicesVector crossed_subparts_for_walls_orig;
-  subpart_indices_set_t crossed_subparts_for_molecules_orig;
-  CollisionUtil::collect_crossed_subparts(
+  SubpartIndicesVector crossed_subparts_for_walls_new;
+  subpart_indices_set_t crossed_subparts_for_molecules_new;
+#ifdef DEBUG_SUBPARTITIONS
+  std::cout << "3------------ collect_crossed_subparts3 -----------\n";
+#endif
+  CollisionUtil::collect_crossed_subparts3(
       p, vm, partition_displacement,
       radius, p.config.subpartition_edge_length,
-      true, crossed_subparts_for_walls_orig,
-      crossed_subparts_for_molecules_orig
-  );*/
+      true, crossed_subparts_for_walls_new,
+      crossed_subparts_for_molecules_new
+  );
 
   SubpartIndicesVector crossed_subparts_for_walls;
   subpart_indices_set_t crossed_subparts_for_molecules;
+#ifdef DEBUG_SUBPARTITIONS
+  std::cout << "2------------ collect_crossed_subparts2 -----------\n";
+#endif
   CollisionUtil::collect_crossed_subparts2(
       p, vm, partition_displacement,
       radius, p.config.subpartition_edge_length,
@@ -496,20 +502,23 @@ RayTraceState ray_trace_vol(
   );
 
 #ifdef DEBUG_SUBPARTITIONS
-  if (crossed_subparts_for_walls != crossed_subparts_for_walls_orig) {
+  if (crossed_subparts_for_walls != crossed_subparts_for_walls_new) {
     std::cout << "Difference in wall subparts:\n";
-    dump_uint_vector(crossed_subparts_for_walls_orig);
-    std::cout << "vs new:\n";
     dump_uint_vector(crossed_subparts_for_walls);
+    std::cout << "vs new:\n";
+    dump_uint_vector(crossed_subparts_for_walls_new);
   }
 
-  if (crossed_subparts_for_molecules != crossed_subparts_for_molecules_orig) {
+  if (crossed_subparts_for_molecules != crossed_subparts_for_molecules_new) {
     std::cout << "Difference in mol subparts:\n";
-    dump_uint_set(crossed_subparts_for_molecules_orig);
-    std::cout << "vs new:\n";
     dump_uint_set(crossed_subparts_for_molecules);
+    std::cout << "vs new:\n";
+    dump_uint_set(crossed_subparts_for_molecules_new);
   }
 #endif
+
+  crossed_subparts_for_walls = crossed_subparts_for_walls_new;
+  crossed_subparts_for_molecules = crossed_subparts_for_molecules_new;
 
   // changed when wall was hit
   vec3_t displacement_up_to_wall_collision = remaining_displacement;
