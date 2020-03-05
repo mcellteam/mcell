@@ -248,6 +248,7 @@ static void __attribute__((always_inline)) raycast_with_endpoints(
     subpart_indices_set_t& crossed_subparts_for_molecules
 )
 {
+  // FIXME: used lower case, these are not really contants...
   const float_t CELL_SIDE = p.config.subpartition_edge_length;
   const float_t CELL_SIZE_RCP = p.config.subpartition_edge_length_rcp;
 

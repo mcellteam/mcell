@@ -17,8 +17,6 @@ opt
 build
 test.cfg
 test_results
-config.h.in*
-config.h
 config.log
 config.status
 stamp-h1
