@@ -251,8 +251,14 @@ static void __attribute__((always_inline)) raycast_with_endpoints(
   const float_t CELL_SIDE = p.config.subpartition_edge_length;
   const float_t CELL_SIZE_RCP = p.config.subpartition_edge_length_rcp;
 
+  // computing subpart index using get_subpart_index_from_3d_indices every time is rather expensive
+  const int SUBPART_X_ADDEND = dir.x;
+  const int SUBPART_Y_ADDEND = dir.y * p.config.subpartitions_per_partition_dimension;
+  const int SUBPART_Z_ADDEND = dir.z * p.config.subpartitions_per_partition_dimension_squared;
+
   ivec3_t indices;
   p.get_subpart_3d_indices(pt1, indices);
+  subpart_index_t subpart_index = p.get_subpart_index_from_3d_indices(indices);
 
   ivec3_t end_indices;
   p.get_subpart_3d_indices(pt2, end_indices);
@@ -271,10 +277,9 @@ static void __attribute__((always_inline)) raycast_with_endpoints(
 #endif
 
   do {
-    subpart_index_t spi = p.get_subpart_index_from_3d_indices(indices);
-    crossed_subparts_for_molecules.insert(spi);
+    crossed_subparts_for_molecules.insert(subpart_index);
     if (collect_for_walls) {
-      crossed_subparts_for_walls.push_back(spi);
+      crossed_subparts_for_walls.push_back(subpart_index);
     }
 
     if (t.x <= t.y && t.x <= t.z)
@@ -284,6 +289,7 @@ static void __attribute__((always_inline)) raycast_with_endpoints(
       }
       t.x += deltat.x;
       indices.x += dir.x;
+      subpart_index += SUBPART_X_ADDEND;
     }
     else if (t.y <= t.z)
     {
@@ -292,6 +298,7 @@ static void __attribute__((always_inline)) raycast_with_endpoints(
       }
       t.y += deltat.y;
       indices.y += dir.y;
+      subpart_index += SUBPART_Y_ADDEND;
     }
     else
     {
@@ -300,6 +307,7 @@ static void __attribute__((always_inline)) raycast_with_endpoints(
       }
       t.z += deltat.z;
       indices.z += dir.z;
+      subpart_index += SUBPART_Z_ADDEND;
     }
 
     #ifdef DEBUG_SUBPARTITIONS
@@ -313,10 +321,9 @@ static void __attribute__((always_inline)) raycast_with_endpoints(
 #endif
 
   // add final subpart
-  subpart_index_t spi = p.get_subpart_index_from_3d_indices(indices);
-  crossed_subparts_for_molecules.insert(spi);
+  crossed_subparts_for_molecules.insert(subpart_index);
   if (collect_for_walls) {
-    crossed_subparts_for_walls.push_back(spi);
+    crossed_subparts_for_walls.push_back(subpart_index);
   }
 
   // note: indices != end_indices at this point, this is ok (at least all tests pass)
