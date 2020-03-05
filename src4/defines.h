@@ -438,6 +438,10 @@ static inline vec3_t abs3(const vec3_t& v) {
   return glm::abs((glm_vec3_t)v);
 }
 
+static inline vec3_t floor3(const vec3_t& v) {
+  return glm::floor((glm_vec3_t)v);
+}
+
 /* abs_max_2vec picks out the largest (absolute) value found among two vectors
  * (useful for properly handling floating-point rounding error). */
 static inline float_t abs_max_2vec(const vec3_t& v1, const vec3_t& v2) {

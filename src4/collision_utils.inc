@@ -239,14 +239,11 @@ static inline void get_corner_points_for_subpart_colection(
 static void __attribute__((always_inline)) raycast_with_endpoints(
     const Partition& p, const vec3_t& pt1, const vec3_t& pt2,
     const uint pt_index /*only for debug*/, const bool collect_for_walls, /* wall subparts are collected for the internal ray */
+    const ivec3_t& dir, const vec3_t& abs_d_rcp, const vec3_t& deltat,
     SubpartIndicesVector& crossed_subparts_for_walls,
     subpart_indices_set_t& crossed_subparts_for_molecules
 )
 {
-  //The doRaycast function is assuming that it is iterating over the areas defined between
-  //voxels. We actually want to define the areas as being centered on voxels (as this is
-  //what the CubicSurfaceExtractor generates). We add 0.5 here to adjust for this.
-
   const float_t CELL_SIDE = p.config.subpartition_edge_length;
   const float_t CELL_SIZE_RCP = p.config.subpartition_edge_length_rcp;
 
@@ -256,32 +253,14 @@ static void __attribute__((always_inline)) raycast_with_endpoints(
   ivec3_t end_indices;
   p.get_subpart_3d_indices(pt2, end_indices);
 
-  const int di = ((pt1.x < pt2.x) ? 1 : ((pt1.x > pt2.x) ? -1 : 0)); // displacement direction
-  const int dj = ((pt1.y < pt2.y) ? 1 : ((pt1.y > pt2.y) ? -1 : 0));
-  const int dk = ((pt1.z < pt2.z) ? 1 : ((pt1.z > pt2.z) ? -1 : 0));
 
-  vec3_t abs_d = abs3(pt2 - pt1);
-
-  abs_d.x = (abs_d.x == 0) ? EPS : abs_d.x;
-  abs_d.y = (abs_d.y == 0) ? EPS : abs_d.y;
-  abs_d.z = (abs_d.z == 0) ? EPS : abs_d.z;
-
-  vec3_t abs_d_rcp = 1.0/abs_d;
-  vec3_t deltat = vec3_t(CELL_SIDE) * abs_d_rcp;
+  vec3_t min = floor3(pt1 * vec3_t(CELL_SIZE_RCP)) * vec3_t(CELL_SIDE);
+  vec3_t max = min + vec3_t(CELL_SIDE);
 
   vec3_t t;
-
-  const float_t minx = floorf(pt1.x*CELL_SIZE_RCP) * CELL_SIDE;
-  const float_t maxx = minx + CELL_SIDE;
-  t.x = ((pt1.x > pt2.x) ? (pt1.x - minx) : (maxx - pt1.x)) * abs_d_rcp.x;
-
-  const float_t miny = floorf(pt1.y*CELL_SIZE_RCP) * CELL_SIDE;
-  const float_t maxy = miny + CELL_SIDE;
-  t.y = ((pt1.y > pt2.y) ? (pt1.y - miny) : (maxy - pt1.y)) * abs_d_rcp.y;
-
-  const float_t minz = floorf(pt1.z*CELL_SIZE_RCP) * CELL_SIDE;
-  const float_t maxz = minz + CELL_SIDE;
-  t.z = ((pt1.z > pt2.z) ? (pt1.z - minz) : (maxz - pt1.z)) * abs_d_rcp.z;
+  t.x = ((dir.x == -1) ? (pt1.x - min.x) : (max.x - pt1.x)) * abs_d_rcp.x;
+  t.y = ((dir.y == -1) ? (pt1.y - min.y) : (max.y - pt1.y)) * abs_d_rcp.y;
+  t.z = ((dir.z == -1) ? (pt1.z - min.z) : (max.z - pt1.z)) * abs_d_rcp.z;
 
 #ifdef DEBUG_SUBPARTITIONS
   std::cout << "Point " << pt_index << " start subpart indices " << vec3_t(i, j, k) << "\n";
@@ -300,7 +279,7 @@ static void __attribute__((always_inline)) raycast_with_endpoints(
         break;
       }
       t.x += deltat.x;
-      indices.x += di;
+      indices.x += dir.x;
     }
     else if (t.y <= t.z)
     {
@@ -308,7 +287,7 @@ static void __attribute__((always_inline)) raycast_with_endpoints(
         break;
       }
       t.y += deltat.y;
-      indices.y += dj;
+      indices.y += dir.y;
     }
     else
     {
@@ -316,7 +295,7 @@ static void __attribute__((always_inline)) raycast_with_endpoints(
         break;
       }
       t.z += deltat.z;
-      indices.z += dk;
+      indices.z += dir.z;
     }
 
     #ifdef DEBUG_SUBPARTITIONS
@@ -336,18 +315,7 @@ static void __attribute__((always_inline)) raycast_with_endpoints(
     crossed_subparts_for_walls.push_back(spi);
   }
 
-  /*
-  // last step missing? -- apparently not needed...
-  int diff = abs(i - iend) + abs(j - jend) + abs(j - jend);
-  //assert(diff <= 2); // this is a bit weird, but it seems to be working
-  if (diff != 0) {
-    subpart_index_t spi_final = p.get_subpart_index_from_3d_indices(ivec3_t(iend, jend, kend));
-    crossed_subparts_for_molecules.insert(spi);
-    if (collect_for_walls) {
-      crossed_subparts_for_walls.push_back(spi);
-    }
-  }
-  */
+  // note: indices != end_indices at this point, this is ok (at least all tests pass)
 }
 
 
@@ -452,11 +420,25 @@ static inline void /*__attribute__((always_inline))*/ collect_crossed_subparts(
   // collect subpartitions on the way by always finding the point where a subpartition boundary is hit
   // we must do it even when we are crossing just one subpartition because we might hit others while
   // moving along them
+  const int di = ((displacement.x > 0) ? 1 : ((displacement.x < 0) ? -1 : 0)); // displacement direction
+  const int dj = ((displacement.y > 0) ? 1 : ((displacement.y < 0) ? -1 : 0));
+  const int dk = ((displacement.z > 0) ? 1 : ((displacement.z < 0) ? -1 : 0));
+  vec3_t dir(di, dj, dk);
 
-  for (uint i = 0; i < num_points; i++){
+  // corner points
+  vec3_t abs_d = abs3(extended_displacement);
+  abs_d.x = (abs_d.x == 0) ? EPS : abs_d.x;
+  abs_d.y = (abs_d.y == 0) ? EPS : abs_d.y;
+  abs_d.z = (abs_d.z == 0) ? EPS : abs_d.z;
+
+  vec3_t abs_d_rcp = 1.0/abs_d;
+  vec3_t deltat = vec3_t(p.config.subpartition_edge_length) * abs_d_rcp;
+
+  for (uint i = 0; i < start_positions.size(); i++){
     raycast_with_endpoints(
         p, start_positions[i], dest_positions[i],
         i, i == MOL_POS_POINT_INDEX,
+        dir, abs_d_rcp, deltat,
         crossed_subparts_for_walls, crossed_subparts_for_molecules
     );
   }
