@@ -243,12 +243,14 @@ typedef std::pair<float_t, PartitionWallIndexPair> CummAreaPWallIndexPair;
 
 class RxnClass;
 
+const int BASE_CONTAINER_ALLOC = 16;
+
 #ifndef INDEXER_WA
 template<class T, class Allocator=boost::container::new_allocator<T>>
-  using small_vector = boost::container::small_vector<T, 8, Allocator>;
+  using small_vector = boost::container::small_vector<T, BASE_CONTAINER_ALLOC, Allocator>;
 
-typedef boost::container::small_vector<subpart_index_t, 8>  SubpartIndicesVector;
-typedef boost::container::small_vector<const RxnClass*, 8>  RxnClassesVector;
+typedef boost::container::small_vector<subpart_index_t, BASE_CONTAINER_ALLOC>  SubpartIndicesVector;
+typedef boost::container::small_vector<const RxnClass*, BASE_CONTAINER_ALLOC>  RxnClassesVector;
 
 template<class T, typename Compare = std::less<T>, class Allocator=boost::container::new_allocator<T>>
   using base_flat_set = boost::container::flat_set<T, Compare, Allocator>;

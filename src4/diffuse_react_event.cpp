@@ -479,6 +479,9 @@ RayTraceState ray_trace_vol(
   // first get what subpartitions might be relevant
   SubpartIndicesVector crossed_subparts_for_walls;
   subpart_indices_set_t crossed_subparts_for_molecules;
+#ifndef INDEXER_WA // FIXME: clean this up...
+  crossed_subparts_for_molecules.reserve(BASE_CONTAINER_ALLOC);
+#endif
 #ifdef DEBUG_SUBPARTITIONS
   std::cout << "3------------ collect_crossed_subparts3 -----------\n";
 #endif
