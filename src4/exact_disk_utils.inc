@@ -589,7 +589,7 @@ static float_t calculate_area_for_multiple_edges(
 
       /* Check if lines are parallel--combine if so */
       if (r * r <
-          EPS_C * (pa.u * pa.u + pa.v * pa.v) * (pb.u * pb.u + pb.v * pb.v)) {
+          EPS * (pa.u * pa.u + pa.v * pa.v) * (pb.u * pb.u + pb.v * pb.v)) {
         pqa->e = NULL;
         pqa->role = ExdRole::OTHER;
 

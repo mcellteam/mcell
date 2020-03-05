@@ -81,9 +81,9 @@ static void compute_vol_displacement(
     t_steps = max_time;
     steps = max_time / sp.get_time_step();
   }
-  if (steps < EPS_C) {
-    steps = EPS_C;
-    t_steps = EPS_C * sp.get_time_step();
+  if (steps < EPS) {
+    steps = EPS;
+    t_steps = EPS * sp.get_time_step();
   }
 
   if (steps == 1.0) {

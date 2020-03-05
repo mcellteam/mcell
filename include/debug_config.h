@@ -27,7 +27,8 @@
 #ifndef DEBUG_CONFIG_H
 #define DEBUG_CONFIG_H
 
-// TODO: make the dumping system integrated and build all for debug
+// TODO: make the dumping system integrated and build it all for debug builds,
+//       enabled by cmdline arguments
 
 // for mcell3 - crossing memory partitions causes reordering in diffusion and it is not possible to
 // compare results anymore
@@ -80,12 +81,12 @@
 
 #if 1
 #define DEBUG_DIFFUSION
-//#define DEBUG_COLLISIONS
+#define DEBUG_COLLISIONS
 #define DEBUG_REACTIONS
 #endif
 
 
-#define DEBUG_TIMING
+//#define DEBUG_TIMING
 
 //#define DEBUG_DIFFUSION_EXTRA
 //#define DEBUG_COLLISIONS_WALL_EXTRA
@@ -95,12 +96,13 @@
 
 //#define DEBUG_GRIDS
 
-#define FROM_ITERATION 0//250
+#define FROM_ITERATION 0
 
-#define TO_ITERATION 100
+#define TO_ITERATION 20
 
 #define DUMP_CONDITION3(code) do { if ((int)world->current_iterations >= (int)FROM_ITERATION && (int)world->current_iterations <= (int)TO_ITERATION) { code; } } while (0)
 #define DUMP_CONDITION4(code) do { if ((int)world->get_current_iteration() >= (int)FROM_ITERATION && (int)world->get_current_iteration() <= (int)TO_ITERATION) { code; } } while (0)
+#define DUMP_CONDITION4P(code) do { if ((int)p.stats.get_current_iteration() >= (int)FROM_ITERATION && (int)p.stats.get_current_iteration() <= (int)TO_ITERATION) { code; } } while (0)
 
 #ifdef DEBUG_SCHEDULER
 #define DUMP_LOCAL_SCHEDULE_HELPER

@@ -80,7 +80,7 @@ static vec3_t get_displacement_up_to_partition_boundary(
 
   vec3_t diff = partition_edges - pos;
 
-  vec3_t displacement_rcp = 1.0/displacement_nonzero; // POSSIBLE ZERO DIV
+  vec3_t displacement_rcp = float_t(1.0)/displacement_nonzero; // POSSIBLE ZERO DIV
 
   // time we hit a boundary
   float_t hit_time = 1;
@@ -200,8 +200,12 @@ static inline void get_corner_points_for_subpart_colection(
   vec3_t v2 = -v1;
   vec3_t v3 = -v0;
 
-  assert(cmp_eq(len3(v0), radius) && cmp_eq(len3(v1), radius) && cmp_eq(len3(v2), radius) && cmp_eq(len3(v3), radius));
-  assert(cmp_eq(dot(v0, move), 0) && cmp_eq(dot(v1, move), 0) && cmp_eq(dot(v2, move), 0) && cmp_eq(dot(v3, move), 0));
+  assert(
+      cmp_eq(len3(v0), radius, SQRT_EPS) && cmp_eq(len3(v1), radius, SQRT_EPS) &&
+      cmp_eq(len3(v2), radius, SQRT_EPS) && cmp_eq(len3(v3), radius, SQRT_EPS));
+  assert(
+      cmp_eq(dot(v0, move), 0, SQRT_EPS) && cmp_eq(dot(v1, move), 0, SQRT_EPS) &&
+      cmp_eq(dot(v2, move), 0, SQRT_EPS) && cmp_eq(dot(v3, move), 0, SQRT_EPS));
 
   pts[0] = pos + v0;
   pts[1] = pos + v1;
@@ -431,7 +435,7 @@ static inline void /*__attribute__((always_inline))*/ collect_crossed_subparts(
   abs_d.y = (abs_d.y == 0) ? EPS : abs_d.y;
   abs_d.z = (abs_d.z == 0) ? EPS : abs_d.z;
 
-  vec3_t abs_d_rcp = 1.0/abs_d;
+  vec3_t abs_d_rcp = float_t(1.0)/abs_d;
   vec3_t deltat = vec3_t(p.config.subpartition_edge_length) * abs_d_rcp;
 
   for (uint i = 0; i < start_positions.size(); i++){
@@ -642,7 +646,7 @@ static CollisionType collide_wall(
     // in case that the trajectory is parallel to the wall?
     // update the displacement a bit
     if (update_move) {
-      a = (MCell::abs_max_2vec(pos, move) + 1.0) * EPS_C;
+      a = (MCell::abs_max_2vec(pos, move) + 1.0) * EPS;
       if ((rng_uint(&rng) & 1) == 0)
         a = -a;
       if (dd == 0.0) {
@@ -699,7 +703,7 @@ static CollisionType collide_wall(
       else if ((!distinguishable_f(
           c * face.uv_vert1_u + g,
           h + face.uv_vert1_u * face.uv_vert2.v,
-          EPS_C))) {
+          EPS))) {
         if (update_move) {
           jump_away_line(pos, a, face_vert[1], face_vert[2], face.normal, rng, move);
           return CollisionType::WALL_REDO;

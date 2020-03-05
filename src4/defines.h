@@ -109,15 +109,21 @@ namespace MCell {
 
 // ---------------------------------- float types ----------------------------------
 
-typedef double float_t; // will be changed to float
-#define FLOAT_T_BYTES 8
+
+#define FLOAT_T_BYTES 8 // or 4 (not working yet)
 
 #if FLOAT_T_BYTES == 8
+typedef double float_t;
 const float_t EPS = 1e-12; // same as EPS_C
 const float_t SQRT_EPS = 1e-6;
 const float_t GIGANTIC4 = 1e140;
+#elif FLOAT_T_BYTES == 4
+typedef float float_t;
+const float_t EPS = 1e-6;
+const float_t SQRT_EPS = 1e-4;
+const float_t GIGANTIC4 = 1e38;
 #else
-#error "Base type float32 is not supported yet"
+#error "FLOAT_T_BYTES must be either 8 or 4"
 #endif
 
 const float_t SCHEDULER_COMPARISON_EPS = 1e-10;
@@ -303,12 +309,19 @@ public:
 
 // ---------------------------------- vector types ----------------------------------
 
+#if FLOAT_T_BYTES == 8
 typedef glm::dvec3 glm_vec3_t;
 typedef glm::dvec2 glm_vec2_t;
+typedef glm::dmat4x4 mat4x4;
+#else
+typedef glm::fvec3 glm_vec3_t;
+typedef glm::fvec2 glm_vec2_t;
+typedef glm::fmat4x4 mat4x4;
+#endif
+
 typedef glm::ivec3 ivec3_t;
 typedef glm::uvec3 uvec3_t;
 typedef glm::bvec3 bvec3_t;
-typedef glm::dmat4x4 mat4x4;
 
 // NOTE: rename to Vec3? - not sure, this is a really simple object...
 struct vec3_t: public glm_vec3_t {
@@ -626,7 +639,7 @@ static inline bool distinguishable_vec3(const vec3_t& a, const vec3_t& b, float_
   return (c * eps < cc);
 }
 
-
+// FIXME: use these functions also for NDEBUG versions
 static inline void debug_guard_zero_div(float_t& val) {
 #ifndef NDEBUG
   // if we divide by such a small number, result is practically the same as
@@ -636,6 +649,7 @@ static inline void debug_guard_zero_div(float_t& val) {
   }
 #endif
 }
+
 
 static inline void debug_guard_zero_div(vec3_t& val) {
 #ifndef NDEBUG
