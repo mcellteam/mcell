@@ -33,7 +33,7 @@ if (CMAKE_BUILD_TYPE STREQUAL "Release")
   SET(OPTIMIZATION_FLAGS " -O3 -march=core2 -finline-limit=10000 ")
   
   # must not be used for pymcell (at least for now)
-  SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -flto -no-pie ")
+  SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -no-pie ")
 endif()
 
 set(WARNING_FLAGS "-Wall -Wextra -Wno-shadow -Wno-unused-parameter -Wno-unused-function -Wno-unused-variable -fpermissive")
@@ -52,32 +52,15 @@ if (CYGWIN)
 endif()
 
 
-option(USE_GCOV "Use gcc coverage" OFF) 
-option(USE_PROFILING "Use gprof profiling" OFF) 
-option(USE_LTO "Use link-time optimization" OFF)
-option(USE_SANITIZER "Use address sanitizer" OFF)
+option(ENABLE_LTO "Use link-time optimization" OFF)
+option(ENABLE_GCOV "Use gcc coverage" OFF) 
+option(ENABLE_GPROF "Use gprof profiling" OFF)
+option(ENABLE_GPERFTOOLS "Build with gperftools profiling" OFF)  
+option(ENABLE_SANITIZER "Use address sanitizer" OFF)
 option(PYMCELL "Build also pyMCell" ON) 
 
 
-if (USE_SANITIZER)
-  SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address ")
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address ")
-  SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lasan ")
-endif()
-
-if (USE_GCOV)
-  SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fprofile-arcs -ftest-coverage ")
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-arcs -ftest-coverage ")
-endif()
-
-if (USE_PROFILING)
-  # gcc 6.3 generates PIC code by default, this does not work with gprof, -no-pie disables it 
-  SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pg -no-pie ")
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg -no-pie ")
-  SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg -no-pie ")
-endif()
-
-if (USE_LTO)
+if (ENABLE_LTO)
   SET(CMAKE_AR "gcc-ar")
   SET(CMAKE_LD "gcc-ld")
   SET(CMAKE_RANLIB "gcc-ranlib")
@@ -85,6 +68,38 @@ if (USE_LTO)
   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -flto ")
   SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -flto ")
 endif()
+
+if (ENABLE_GCOV)
+  SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fprofile-arcs -ftest-coverage ")
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-arcs -ftest-coverage ")
+endif()
+
+if (ENABLE_GPROF)
+  # gcc 6.3 generates PIC code by default, this does not work with gprof, -no-pie disables it
+  SET(COMMON_PROFILING_FLAGS "-pg -no-pie -fno-omit-frame-pointer -finline-limit=20")
+  SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMMON_PROFILING_FLAGS}")
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON_PROFILING_FLAGS}")
+  SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${COMMON_PROFILING_FLAGS}")
+endif()
+
+if (ENABLE_GPERFTOOLS)
+  # TODO: build and install gperftools, for now it is done manually
+  # then to run profiling 
+  # CPUPROFILE=./prof.out mc4
+  # pprof --text <app> ./prof.out # text output
+  # pprof --gv <app> ./prof.out # graphical output, requires gv installed
+  # (http://euccas.github.io/blog/20170827/cpu-profiling-tools-on-linux.html)
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DWITHGPERFTOOLS -I${CMAKE_CURRENT_BINARY_DIR}/libs/")
+  SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -I${CMAKE_CURRENT_BINARY_DIR}/libs/install_gperftools/lib/ -lprofiler")
+endif()
+	
+if (ENABLE_SANITIZER)
+  SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fsanitize=address ")
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address ")
+  SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lasan ")
+endif()
+
+
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
 
