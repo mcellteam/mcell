@@ -58,13 +58,13 @@ xyz2grid and uv2grid:
 *************************************************************************/
 static tile_index_t xyz2grid_tile_index(
     const Partition& p,
-    const vec3_t& v,
+    const Vec3& v,
     const Wall& w
 ) {
   const Grid& g = w.grid;
   assert(g.is_initialized());
-  const vec3_t& unit_u = w.unit_u;
-  const vec3_t& unit_v = w.unit_v;
+  const Vec3& unit_u = w.unit_u;
+  const Vec3& unit_v = w.unit_v;
 
   if (g.num_tiles == 1) {
     return 0;
@@ -77,9 +77,9 @@ static tile_index_t xyz2grid_tile_index(
   tile_idx_mid = g.num_tiles - 2 * (g.num_tiles_along_axis) + 1;
   tile_idx_last = g.num_tiles - 1;
 
-  const vec3_t& vert_0 = p.get_wall_vertex(w, 0);
-  const vec3_t& vert_1 = p.get_wall_vertex(w, 1);
-  const vec3_t& vert_2 = p.get_wall_vertex(w, 2);
+  const Vec3& vert_0 = p.get_wall_vertex(w, 0);
+  const Vec3& vert_1 = p.get_wall_vertex(w, 1);
+  const Vec3& vert_2 = p.get_wall_vertex(w, 2);
 
   if (!(distinguishable_vec3(v, vert_0, EPS))) {
     return tile_idx_mid;
@@ -129,7 +129,7 @@ static tile_index_t xyz2grid_tile_index(
 }
 
 static tile_index_t uv2grid_tile_index(
-    const vec2_t& v,
+    const Vec2& v,
     const Wall& w
 ) {
   const Grid& g = w.grid;
@@ -137,7 +137,7 @@ static tile_index_t uv2grid_tile_index(
   float_t u0, u1_u0;
   float_t striploc, striprem, stripeloc, striperem;
   int strip, stripe, flip, idx;
-  vec2_t vert_0, vert_1;
+  Vec2 vert_0, vert_1;
   int tile_idx_0, tile_idx_mid, tile_idx_last;
 
   if (g.num_tiles == 1) {
@@ -211,10 +211,10 @@ grid2xyz and grid2uv and grid2uv_random
   Note: grid2xyz just multiplies by uv unit vectors at the end.
 *************************************************************************/
 
-static vec3_t grid2xyz(Partition& p, const Wall& w, tile_index_t index) {
+static Vec3 grid2xyz(Partition& p, const Wall& w, tile_index_t index) {
   const Grid& g = w.grid;
-  const vec3_t& unit_u = w.unit_u;
-  const vec3_t& unit_v = w.unit_v;
+  const Vec3& unit_u = w.unit_u;
+  const Vec3& unit_v = w.unit_v;
   int root;
   int rootrem;
   int k, j, i;
@@ -232,16 +232,16 @@ static vec3_t grid2xyz(Partition& p, const Wall& w, tile_index_t index) {
           ((float_t)(3 * k + i + 1)) * over3n * w.uv_vert2.u;
   vcoef = ((float_t)(3 * k + i + 1)) * over3n * w.uv_vert2.v;
 
-  const vec3_t& vert0 = p.get_geometry_vertex(w.vertex_indices[0]);
-  vec3_t res;
-  res = vec3_t(ucoef) * unit_u  + vec3_t(vcoef) * unit_v  + vert0;
+  const Vec3& vert0 = p.get_geometry_vertex(w.vertex_indices[0]);
+  Vec3 res;
+  res = Vec3(ucoef) * unit_u  + Vec3(vcoef) * unit_v  + vert0;
   return res;
 }
 
 
-static vec2_t grid2uv(const Wall& w, tile_index_t index) {
+static Vec2 grid2uv(const Wall& w, tile_index_t index) {
   const Grid& g = w.grid;
-  vec2_t res;
+  Vec2 res;
   int root;
   int rootrem;
   int k, j, i;
@@ -262,7 +262,7 @@ static vec2_t grid2uv(const Wall& w, tile_index_t index) {
 }
 
 
-static vec2_t grid2uv_random(
+static Vec2 grid2uv_random(
     const Wall& w, const tile_index_t tile_index,
     rng_state& rng
 ) {
@@ -284,7 +284,7 @@ static vec2_t grid2uv_random(
   u_ran = rng_dbl(&rng);
   v_ran = 1.0 - sqrt(rng_dbl(&rng));
 
-  vec2_t res;
+  Vec2 res;
   res.u =
       ((float_t)(j + i) + (1 - 2 * i) * (1.0 - v_ran) * u_ran) * over_n *
           w.uv_vert1_u +
@@ -373,10 +373,10 @@ static void get_grid_neighbors_single_grid_and_index(
     molecule_id_t mid = grid.get_molecule_on_tile(tile_index);
 
     // FIXME: this seems to be the same in all calls
-    vec3_t loc3d;
+    Vec3 loc3d;
     if (mid != MOLECULE_ID_INVALID) {
       const Molecule& sm = p.get_m(mid);
-      const vec3_t& wall_vert0 = p.get_geometry_vertex(wall.vertex_indices[0]);
+      const Vec3& wall_vert0 = p.get_geometry_vertex(wall.vertex_indices[0]);
       loc3d = GeometryUtil::uv2xyz(sm.s.pos, wall, wall_vert0);
     }
     else {
@@ -384,7 +384,7 @@ static void get_grid_neighbors_single_grid_and_index(
     }
 
     const Wall& nb_wall = p.get_wall(wall.nb_walls[nb_wall_index]);
-    vec2_t near2d;
+    Vec2 near2d;
     float_t d = GeometryUtil::closest_interior_point(p, loc3d, nb_wall, near2d);
 
     if (!distinguishable_f(d, GIGANTIC4, EPS)) {
@@ -433,8 +433,8 @@ static void grid_neighbors(
   const Grid& grid = wall.grid;
 
   int i, j, k, root, rootrem;
-  vec3_t loc_3d;
-  vec2_t near_2d;
+  Vec3 loc_3d;
+  Vec2 near_2d;
   float_t d;
 
   /* Calculate strip (k), stripe (j), and flip (i) indices from idx */
@@ -491,7 +491,7 @@ tile_orientation:
        and 1 if it is inverted.
        WARNING: no error checking--point assumed to be valid.
 *************************************************************************/
-static int tile_orientation(const vec2_t v, const Wall& w) {
+static int tile_orientation(const Vec2 v, const Wall& w) {
   const Grid& g = w.grid;
   float_t i, j;
   float_t u0, u1_u0;
@@ -697,13 +697,13 @@ static void find_shared_vertices_for_neighbor_walls(
     int& shared_vert_1,
     int& shared_vert_2
 ) {
-  const vec3_t& orig_wall_vert0 = p.get_wall_vertex(orig_wall, 0);
-  const vec3_t& orig_wall_vert1 = p.get_wall_vertex(orig_wall, 1);
-  const vec3_t& orig_wall_vert2 = p.get_wall_vertex(orig_wall, 2);
+  const Vec3& orig_wall_vert0 = p.get_wall_vertex(orig_wall, 0);
+  const Vec3& orig_wall_vert1 = p.get_wall_vertex(orig_wall, 1);
+  const Vec3& orig_wall_vert2 = p.get_wall_vertex(orig_wall, 2);
 
-  const vec3_t& nb_wall_vert0 = p.get_wall_vertex(nb_wall, 0);
-  const vec3_t& nb_wall_vert1 = p.get_wall_vertex(nb_wall, 1);
-  const vec3_t& nb_wall_vert2 = p.get_wall_vertex(nb_wall, 2);
+  const Vec3& nb_wall_vert0 = p.get_wall_vertex(nb_wall, 0);
+  const Vec3& nb_wall_vert1 = p.get_wall_vertex(nb_wall, 1);
+  const Vec3& nb_wall_vert2 = p.get_wall_vertex(nb_wall, 2);
 
   if ((!distinguishable_vec3(nb_wall_vert0, orig_wall_vert0, EPS)) ||
       (!distinguishable_vec3(nb_wall_vert0, orig_wall_vert1, EPS)) ||
@@ -962,7 +962,7 @@ static int add_more_tile_neighbors_to_list_fast(
     int orig_strip,
     uint orig_stripe,
     int orig_flip,
-    const vec3_t& start, const vec3_t& end,
+    const Vec3& start, const Vec3& end,
     int edge_index,
     const Wall& new_wall,
     TileNeighborVector& neighbors
@@ -1338,9 +1338,9 @@ static void grid_all_neighbors_across_walls_through_edges(
   stripe = rootrem / 2;
   flip = rootrem - 2 * stripe;
 
-  const vec3_t& wall_vert0 = p.get_wall_vertex(wall, 0);
-  const vec3_t& wall_vert1 = p.get_wall_vertex(wall, 1);
-  const vec3_t& wall_vert2 = p.get_wall_vertex(wall, 2);
+  const Vec3& wall_vert0 = p.get_wall_vertex(wall, 0);
+  const Vec3& wall_vert1 = p.get_wall_vertex(wall, 1);
+  const Vec3& wall_vert2 = p.get_wall_vertex(wall, 2);
 
 
   if (create_grid_flag) {
@@ -1663,7 +1663,7 @@ static void grid_all_neighbors_for_inner_tile(
     const Molecule& sm,
     const Wall& wall,
     tile_index_t tile_index,
-    const vec2_t& pos,
+    const Vec2& pos,
     TileNeighborVector& neighbors
 ) {
   const Grid& grid = wall.grid;
@@ -1755,7 +1755,7 @@ static wall_index_t find_neighbor_tiles(
 
   if (is_inner_tile(grid, tile_index)) {
 
-    vec2_t pos = grid2uv(wall, tile_index);
+    Vec2 pos = grid2uv(wall, tile_index);
     grid_all_neighbors_for_inner_tile(p, sm, wall, tile_index, pos, neighbors);
   }
   else {
@@ -1810,7 +1810,7 @@ nearest_free:
         closest occupied tile.
 *************************************************************************/
 static tile_index_t nearest_free(
-    const Wall& wall, const vec2_t& v, const float_t max_d2,
+    const Wall& wall, const Vec2& v, const float_t max_d2,
     float_t& found_dist2) {
 
   const Grid& g = wall.grid;
@@ -1895,13 +1895,13 @@ search_nbhd_for_free:
 *************************************************************************/
 static void search_nbhd_for_free(
     Partition& p,
-    const wall_index_t origin_wall_index, const vec2_t& closest_pos2d, const float_t max_search_d2,
+    const wall_index_t origin_wall_index, const Vec2& closest_pos2d, const float_t max_search_d2,
     wall_index_t& res_wall_index, tile_index_t& res_tile_index
   ) {
 
   wall_index_t best_wall_index = origin_wall_index;
   tile_index_t best_tile_index = TILE_INDEX_INVALID;
-  vec2_t best_pos = closest_pos2d;
+  Vec2 best_pos = closest_pos2d;
 
   const Wall& origin_wall = p.get_wall(origin_wall_index);
   assert(origin_wall.grid.is_initialized());
@@ -1918,7 +1918,7 @@ static void search_nbhd_for_free(
   }
 
   float_t best_d2 = 2.0 * max_search_d2 + 1.0;
-  const vec2_t& point = closest_pos2d;
+  const Vec2& point = closest_pos2d;
 
   /* if there are no free slots on the origin wall - look around */
   /* Check for closer free grid elements on neighboring walls */
@@ -1948,10 +1948,10 @@ static void search_nbhd_for_free(
     }
 
     /* Calculate distance between point and edge j of origin wall */
-    vec2_t vurt0, vurt1;
+    Vec2 vurt0, vurt1;
     switch (j) {
     case 0:
-      vurt0 = vec2_t(0);
+      vurt0 = Vec2(0);
       vurt1.u = origin_wall.uv_vert1_u;
       vurt1.v = 0;
       break;
@@ -1962,14 +1962,14 @@ static void search_nbhd_for_free(
       break;
     case 2:
       vurt0 = origin_wall.uv_vert2;
-      vurt1 = vec2_t(0);
+      vurt1 = Vec2(0);
       break;
     default:
       /* default case should not occur since 0<=j<=2 */
       assert(false);
     }
 
-    vec2_t pt, ed;
+    Vec2 pt, ed;
     ed = vurt1 - vurt0;
     pt = point - vurt0;
 
@@ -2004,9 +2004,9 @@ static void search_nbhd_for_free(
 
 static void find_closest_tile_on_wall(
     Partition& p,
-    const wall_index_t closest_wall_index, const vec2_t& closest_pos2d,
+    const wall_index_t closest_wall_index, const Vec2& closest_pos2d,
     const float_t closest_d2, const float_t search_d2,
-    wall_index_t& found_wall_index, tile_index_t& found_tile_index, vec2_t& found_pos2d
+    wall_index_t& found_wall_index, tile_index_t& found_tile_index, Vec2& found_pos2d
 ) {
 
   tile_index_t closest_tile_index;
@@ -2046,7 +2046,7 @@ static void find_closest_tile_on_wall(
     );
     assert(new_wall_index != TILE_INDEX_INVALID);
 
-    vec2_t new_pos2d;
+    Vec2 new_pos2d;
     const Wall& w = p.get_wall(new_wall_index);
     if (p.config.randomize_smol_pos) {
       // molecules are processed in different order than in mcell3...

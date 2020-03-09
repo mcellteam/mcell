@@ -258,7 +258,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
   const Species& species = p.all_species.get(m.species_id);
 
   // diffuse each molecule - get information on position change
-  vec3_t displacement;
+  Vec3 displacement;
 
   float_t steps = 1.0;
   float_t t_steps = 1.0;
@@ -292,12 +292,12 @@ void DiffuseReactEvent::diffuse_vol_molecule(
   // or how to simplify this case when we know that we will definitely
   // be stopped by a wall (we need to fail if not anyway)
 
-  vec3_t remaining_displacement = displacement;
+  Vec3 remaining_displacement = displacement;
 
   RayTraceState state;
   collision_vector_t molecule_collisions;
   bool was_defunct = false;
-  vec3_t new_pos;
+  Vec3 new_pos;
   subpart_index_t new_subpart_index;
   wall_index_t reflected_wall_index = WALL_INDEX_INVALID;
 
@@ -454,9 +454,9 @@ RayTraceState ray_trace_vol(
     rng_state& rng,
     Molecule& vm, // molecule that we are diffusing, we are changing its pos  and possibly also subvolume
     const wall_index_t previous_reflected_wall, // is WALL_INDEX_INVALID when our molecule did not replect from anything this iddfusion step yet
-    vec3_t& remaining_displacement, // in/out - recomputed if there was a reflection
+    Vec3& remaining_displacement, // in/out - recomputed if there was a reflection
     collision_vector_t& collisions, // both mol mol and wall collisions
-    vec3_t& new_pos,
+    Vec3& new_pos,
     subpart_index_t& new_subpart_index
     ) {
   p.stats.inc_ray_voxel_tests();
@@ -468,7 +468,7 @@ RayTraceState ray_trace_vol(
 
   // if we would get out of this partition, cut off the displacement
   // so we check collisions just here
-  vec3_t partition_displacement;
+  Vec3 partition_displacement;
   if (!p.in_this_partition(vm.v.pos + remaining_displacement)) {
     partition_displacement = CollisionUtil::get_displacement_up_to_partition_boundary(p, vm.v.pos, remaining_displacement);
   }
@@ -523,8 +523,8 @@ RayTraceState ray_trace_vol(
   //crossed_subparts_for_molecules = crossed_subparts_for_molecules_new;
 
   // changed when wall was hit
-  vec3_t displacement_up_to_wall_collision = remaining_displacement;
-  vec3_t& corrected_displacement = remaining_displacement;
+  Vec3 displacement_up_to_wall_collision = remaining_displacement;
+  Vec3& corrected_displacement = remaining_displacement;
 
   // check wall collisions in the crossed subparitions,
   if (!crossed_subparts_for_walls.empty()) {
@@ -598,7 +598,7 @@ RayTraceState ray_trace_vol(
 bool DiffuseReactEvent::collide_and_react_with_vol_mol(
     Partition& p,
     const Collision& collision,
-    vec3_t& displacement,
+    Vec3& displacement,
     const float_t t_steps,
     const float_t r_rate_factor,
     const float_t elapsed_molecule_time
@@ -824,7 +824,7 @@ void DiffuseReactEvent::diffuse_surf_molecule(
     for (int find_new_position = (SURFACE_DIFFUSION_RETRIES + 1);
          find_new_position > 0; find_new_position--) {
 
-      vec2_t displacement;
+      Vec2 displacement;
       DiffusionUtil::compute_surf_displacement(species, space_factor, world->rng, displacement);
 
 
@@ -839,7 +839,7 @@ void DiffuseReactEvent::diffuse_surf_molecule(
       assert(!species.has_flag(SPECIES_FLAG_SET_MAX_STEP_LENGTH) && "not supported yet");
 
       // ray_trace does the movement and all other stuff
-      vec2_t new_loc;
+      Vec2 new_loc;
       wall_index_t new_wall_index =
           ray_trace_surf(p, species, sm, displacement, new_loc/*, elapsed_molecule_time*/);
 
@@ -1102,15 +1102,15 @@ wall_index_t DiffuseReactEvent::ray_trace_surf(
     Partition& p,
     const Species& species,
     Molecule& sm,
-    vec2_t& remaining_displacement,
-    vec2_t& new_pos/*,
+    Vec2& remaining_displacement,
+    Vec2& new_pos/*,
     float_t& elapsed_molecule_time*/
 ) {
   const Wall* this_wall = &p.get_wall(sm.s.wall_index);
 
-  vec2_t orig_pos = sm.s.pos;
-  vec2_t this_pos = sm.s.pos;
-  vec2_t this_disp = remaining_displacement;
+  Vec2 orig_pos = sm.s.pos;
+  Vec2 this_pos = sm.s.pos;
+  Vec2 this_disp = remaining_displacement;
 
   /* Will break out with return or break when we're done traversing walls */
   while (1) {
@@ -1119,7 +1119,7 @@ wall_index_t DiffuseReactEvent::ray_trace_surf(
     //bool absorb_now = 0;
 
     /* Index of the wall edge that the SM hits */
-    vec2_t boundary_pos;
+    Vec2 boundary_pos;
     edge_index_t edge_index_that_was_hit =
         GeometryUtil::find_edge_point(*this_wall, this_pos, this_disp, boundary_pos);
 
@@ -1143,7 +1143,7 @@ wall_index_t DiffuseReactEvent::ray_trace_surf(
 
     // Neither ambiguous (EDGE_INDEX_CANNOT_TELL) nor inside wall (EDGE_INDEX_WITHIN_WALL),
     // must have hit edge (0, 1, 2)
-    vec2_t old_pos = this_pos;
+    Vec2 old_pos = this_pos;
 
     /* We hit the edge - check for the reflection/absorption from the
        edges of the wall if they are region borders
@@ -1202,7 +1202,7 @@ wall_index_t DiffuseReactEvent::ray_trace_surf(
             e.debug_check_values_are_uptodate(p);
           #endif
 
-          vec2_t tmp_disp;
+          Vec2 tmp_disp;
           GeometryUtil::traverse_surface(*this_wall, this_disp, edge_index_that_was_hit, tmp_disp);
           this_disp = tmp_disp - this_pos;
           this_wall = &p.get_wall(target_wall_index);
@@ -1217,7 +1217,7 @@ wall_index_t DiffuseReactEvent::ray_trace_surf(
      * NOTE: this_pos has been corrupted by traverse_surface; use old_pos to find
      * out whether the present wall edge is a region border
      */
-    vec2_t new_disp = this_disp - (boundary_pos - old_pos);
+    Vec2 new_disp = this_disp - (boundary_pos - old_pos);
 
     switch (edge_index_that_was_hit) {
       case EDGE_INDEX_0:
@@ -1225,24 +1225,24 @@ wall_index_t DiffuseReactEvent::ray_trace_surf(
         break;
       case EDGE_INDEX_1: {
         float_t f;
-        vec2_t reflector;
+        Vec2 reflector;
         reflector.u = -this_wall->uv_vert2.v;
         reflector.v = this_wall->uv_vert2.u - this_wall->uv_vert1_u;
         f = 1.0 / sqrt_f( len2_squared(reflector) );
         reflector *= f;
         f = 2.0 * dot2(new_disp, reflector);
-        new_disp -= vec2_t(f) * reflector;
+        new_disp -= Vec2(f) * reflector;
         break;
       }
       case EDGE_INDEX_2: {
         float_t f;
-        vec2_t reflector;
+        Vec2 reflector;
         reflector.u = this_wall->uv_vert2.v;
         reflector.v = -this_wall->uv_vert2.u;
         f = 1.0 / sqrt_f( len2_squared(reflector) );
         reflector *= f;
         f = 2.0 * dot2(new_disp, reflector);
-        new_disp -= vec2_t(f) * reflector;
+        new_disp -= Vec2(f) * reflector;
         break;
       }
       default:
@@ -1711,8 +1711,8 @@ int DiffuseReactEvent::outcome_products_random(
         Wall& w = p.get_wall(surf_reac->s.wall_index);
 
         float_t bump = (product.orientation > 0) ? EPS : -EPS;
-        vec3_t displacement = vec3_t(2 * bump) * w.normal;
-        vec3_t new_pos_after_diffuse;
+        Vec3 displacement = Vec3(2 * bump) * w.normal;
+        Vec3 new_pos_after_diffuse;
 
         DiffusionUtil::tiny_diffuse_3D(p, new_vm, displacement, w.index, new_pos_after_diffuse);
 
@@ -1737,7 +1737,7 @@ int DiffuseReactEvent::outcome_products_random(
       current_surf_product_position_index++;
       assert(new_grid_pos.initialized);
 
-      vec2_t pos;
+      Vec2 pos;
       if (new_grid_pos.pos_is_set) {
         pos = new_grid_pos.pos;
       }

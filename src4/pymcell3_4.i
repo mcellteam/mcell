@@ -74,9 +74,9 @@ namespace MCell {
 
 typedef double float_t;
 
-struct vec3_t {
-  vec3_t();
-  vec3_t(const float_t x_, const float_t y_, const float_t z_);
+struct Vec3 {
+  Vec3();
+  Vec3(const float_t x_, const float_t y_, const float_t z_);
 
   float_t x, y, z; # should be float_t
 };
@@ -86,7 +86,7 @@ struct WallHitInfo {
   geometry_object_id_t geometry_object_id;
   wall_id_t wall_id;
   float_t time;
-  vec3_t pos;
+  Vec3 pos;
 };
 
 
@@ -100,7 +100,7 @@ class Partition {
 public:
   // ctor definition is needed, default variant is generated instead by swig 
   Partition(
-      const vec3_t origin_,
+      const Vec3 origin_,
       const SimulationConfig& config_,
       const ReactionsInfo& reactions_,
       const SpeciesInfo& species_,
@@ -108,9 +108,9 @@ public:
   );
   
   int get_geometry_vertex_count();
-  vec3_t& get_geometry_vertex(vertex_index_t i);
+  Vec3& get_geometry_vertex(vertex_index_t i);
   
-  void add_vertex_move(vertex_index_t vertex_index, const vec3_t& translation_vec);
+  void add_vertex_move(vertex_index_t vertex_index, const Vec3& translation_vec);
   void apply_vertex_moves();
   
   void dump();

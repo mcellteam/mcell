@@ -173,9 +173,9 @@ void Partition::dump() {
 
   for (size_t i = 0; i < walls_per_subpart.size(); i++) {
     if (!walls_per_subpart[i].empty()) {
-      vec3_t llf, urb;
+      Vec3 llf, urb;
       get_subpart_llf_point(i, llf);
-      urb = llf + vec3_t(config.subpartition_edge_length);
+      urb = llf + Vec3(config.subpartition_edge_length);
 
       cout << "subpart: " << i << ", llf: " << llf << ", urb: " << urb << "\n";
       walls_per_subpart[i].dump("Indices contained in a subpartition");

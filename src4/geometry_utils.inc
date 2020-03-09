@@ -48,13 +48,13 @@ namespace GeometryUtil {
 
 // several commonly used geometry utilities,
 // rest of these utilities is in
-static vec3_t uv2xyz(const vec2_t& a, const Wall& w, const vec3_t& wall_vert0) {
-  return vec3_t(a.u) * w.unit_u + vec3_t(a.v) * w.unit_v + wall_vert0;
+static Vec3 uv2xyz(const Vec2& a, const Wall& w, const Vec3& wall_vert0) {
+  return Vec3(a.u) * w.unit_u + Vec3(a.v) * w.unit_v + wall_vert0;
 }
 
 
-static vec2_t xyz2uv(const Partition& p, const vec3_t& a, const Wall& w) {
-  vec2_t res;
+static Vec2 xyz2uv(const Partition& p, const Vec3& a, const Wall& w) {
+  Vec2 res;
 
   if (w.has_initialized_grid()) {
     const Grid& g = w.grid;
@@ -65,7 +65,7 @@ static vec2_t xyz2uv(const Partition& p, const vec3_t& a, const Wall& w) {
            g.vert0.v;
   }
   else {
-    vec3_t pos = a - p.get_wall_vertex(w, 0);
+    Vec3 pos = a - p.get_wall_vertex(w, 0);
     res.u = dot(pos, w.unit_u);
     res.v = dot(pos, w.unit_v);
   }
@@ -82,8 +82,8 @@ wall_bounding_box:
        that contains the wall.
 ***************************************************************************/
 static inline void get_wall_bounding_box(
-    const vec3_t w_vert[VERTICES_IN_TRIANGLE],
-    vec3_t& llf, vec3_t& urb
+    const Vec3 w_vert[VERTICES_IN_TRIANGLE],
+    Vec3& llf, Vec3& urb
 ) {
   llf.x = urb.x = w_vert[0].x;
   llf.y = urb.y = w_vert[0].y;
@@ -129,10 +129,10 @@ static void wall_subparts_collision_test(
     const Partition& p, const Wall& w,
     SubpartIndicesVector& colliding_subparts
 ) {
-  vec3_t llf, urb; /* Bounding box for wall */
+  Vec3 llf, urb; /* Bounding box for wall */
   float_t leeway = 1.0; /* Margin of error */
 
-  vec3_t w_vert[VERTICES_IN_TRIANGLE];
+  Vec3 w_vert[VERTICES_IN_TRIANGLE];
   w_vert[0] = p.get_geometry_vertex(w.vertex_indices[0]);
   w_vert[1] = p.get_geometry_vertex(w.vertex_indices[1]);
   w_vert[2] = p.get_geometry_vertex(w.vertex_indices[2]);
@@ -159,12 +159,12 @@ static void wall_subparts_collision_test(
     leeway += p.config.rx_radius_3d;
   }
 
-  llf = llf - vec3_t(leeway);
-  urb = urb + vec3_t(leeway);
+  llf = llf - Vec3(leeway);
+  urb = urb + Vec3(leeway);
 
   // let's assume for now that we are placing a cube with corners llf and urb,
   // fing what are the min and max parition indices
-  ivec3_t min_subpart_indices, max_subpart_indices;
+  IVec3 min_subpart_indices, max_subpart_indices;
   p.get_subpart_3d_indices(llf, min_subpart_indices);
   p.get_subpart_3d_indices(urb, max_subpart_indices);
 
@@ -183,7 +183,7 @@ static void wall_subparts_collision_test(
   // probably just an optimization
 
   // this is needed for the following code (if enabled, fix loop afterwards)
-  max_subpart_indices += ivec3_t(1); // max is incremented by 1 in each dimension
+  max_subpart_indices += IVec3(1); // max is incremented by 1 in each dimension
 
   cent.x = 0.33333333333 * (w_vert[0].x + w_vert[1].x + w_vert[2].x);
   cent.y = 0.33333333333 * (w_vert[0].y + w_vert[1].y + w_vert[2].y);
@@ -215,7 +215,7 @@ static void wall_subparts_collision_test(
     for (int y = min_subpart_indices.y; y <= max_subpart_indices.y; y++) {
       for (int z = min_subpart_indices.z; z <= max_subpart_indices.z; z++) {
 
-        vec3_t subpart_llf, subpart_urb;
+        Vec3 subpart_llf, subpart_urb;
         subpart_index_t subpart_index = p.get_subpart_index_from_3d_indices(x, y, z);
         p.get_subpart_llf_point(subpart_index, subpart_llf);
         p.get_subpart_urb_point_from_llf(subpart_llf, subpart_urb);
@@ -243,9 +243,9 @@ find_edge_point:
 ***************************************************************************/
 static edge_index_t find_edge_point(
     const Wall& here,
-    const vec2_t& loc,
-    const vec2_t& disp,
-    vec2_t& edgept
+    const Vec2& loc,
+    const Vec2& disp,
+    Vec2& edgept
 ) {
   float_t lxd = determinant2(loc, disp);
 
@@ -260,7 +260,7 @@ static edge_index_t find_edge_point(
     if (0.0 < s && s < 1.0 && f > 0.0) {
       t = -lxc1 * f;
       if (EPS < t && t < 1.0) {
-        edgept = loc + vec2_t(t) * disp;
+        edgept = loc + Vec2(t) * disp;
         return EDGE_INDEX_0;
       }
       else if (t > 1.0 + EPS) {
@@ -280,7 +280,7 @@ static edge_index_t find_edge_point(
     if (0.0 < s && s < 1.0 && f < 0.0) {
       t = -lxc2 * f;
       if (EPS < t && t < 1.0) {
-        edgept = loc + vec2_t(t) * disp;
+        edgept = loc + Vec2(t) * disp;
         return EDGE_INDEX_2;
       }
       else if (t > 1.0 + EPS) {
@@ -298,7 +298,7 @@ static edge_index_t find_edge_point(
     if (0.0 < s && s < 1.0 && f > 0.0) {
       t = (here.uv_vert1_u * here.uv_vert2.v + lxc1 - lxc2) * f;
       if (EPS < t && t < 1.0) {
-        edgept = loc + vec2_t(t) * disp;
+        edgept = loc + Vec2(t) * disp;
         return EDGE_INDEX_1;
       }
       else if (t > 1.0 + EPS) {
@@ -324,8 +324,8 @@ traverse_surface:
        direction if it is shared. newloc is set to loc in the coordinate system
        of the new wall (after flattening the walls along their shared edge)
 ***************************************************************************/
-static wall_index_t traverse_surface(const Wall& here, const vec2_t& loc, edge_index_t which_edge,
-  vec2_t& newloc) {
+static wall_index_t traverse_surface(const Wall& here, const Vec2& loc, edge_index_t which_edge,
+  Vec2& newloc) {
 
   wall_index_t there;
 
@@ -336,7 +336,7 @@ static wall_index_t traverse_surface(const Wall& here, const vec2_t& loc, edge_i
     there = e.backward_index;
 
     /* rotation */
-    vec2_t tmp;
+    Vec2 tmp;
     tmp.u = e.cos_theta * loc.u + e.sin_theta * loc.v;
     tmp.v = -e.sin_theta * loc.u + e.cos_theta * loc.v;
 
@@ -350,7 +350,7 @@ static wall_index_t traverse_surface(const Wall& here, const vec2_t& loc, edge_i
     there = e.forward_index;
 
     /* inverse translation */
-    vec2_t tmp;
+    Vec2 tmp;
     tmp = loc - e.translate;
 
     /* inverse rotation */
@@ -371,8 +371,8 @@ same_side:
         Out: returns 1 if points p1 and p2 are on the same side of the line
              defined by the points a and b
 **************************************************************************/
-static int same_side(const vec3_t& p1, const vec3_t& p2, const vec3_t& a, const vec3_t& b) {
-  vec3_t cp1, cp2, b_a, p1_a, p2_a;
+static int same_side(const Vec3& p1, const Vec3& p2, const Vec3& a, const Vec3& b) {
+  Vec3 cp1, cp2, b_a, p1_a, p2_a;
   b_a = b - a;
   p1_a = p1 - a;
   p2_a = p2 - a;
@@ -398,7 +398,7 @@ point_in_triangle:
         Note: If point p coincides with vertices (a,b,c) we consider that p
               is in the triangle.
 ************************************************************************/
-static bool point_in_triangle(const vec3_t& p, const vec3_t& a, const vec3_t& b, const vec3_t& c) {
+static bool point_in_triangle(const Vec3& p, const Vec3& a, const Vec3& b, const Vec3& c) {
 
   if (same_side(p, a, b, c) && same_side(p, b, a, c) && same_side(p, c, a, b)) {
     return 1;
@@ -428,7 +428,7 @@ cross2D:
               Christer Ericson, p.205
 
 *******************************************************************/
-static float_t cross2D(const vec2_t& a, const vec2_t& b) {
+static float_t cross2D(const Vec2& a, const Vec2& b) {
   return ((a.v) * (b.u) - (a.u) * (b.v));
 }
 
@@ -441,8 +441,8 @@ point_in_triangle_2D:
         Note: The code adapted from "Real-Time Collision Detection" by
               Christer Ericson, p.206
 ***********************************************************************/
-static bool point_in_triangle_2D(const vec2_t& p, const vec2_t& a,
-                         const vec2_t& b, const vec2_t& c) {
+static bool point_in_triangle_2D(const Vec2& p, const Vec2& a,
+                         const Vec2& b, const Vec2& c) {
   float_t pab, pbc, pca;
 
   pab = cross2D(p - a, b - a);
@@ -475,13 +475,13 @@ Ericson, ISBN 1-55860-732-3, p.141.
 
 ***************************************************************************/
 static void closest_pt_point_triangle(
-    const vec3_t& p, const vec3_t& a,
-    const vec3_t& b, const vec3_t& c,
-    vec3_t& final_result
+    const Vec3& p, const Vec3& a,
+    const Vec3& b, const Vec3& c,
+    Vec3& final_result
 ) {
 
   /* Check if P in vertex region outside A */
-  vec3_t ab, ac, ap;
+  Vec3 ab, ac, ap;
   ab = b - a;
   ac = c - a;
   ap = p - a;
@@ -496,7 +496,7 @@ static void closest_pt_point_triangle(
   }
 
   /* Check if P in vertex region outside B */
-  vec3_t bp = p - b;
+  Vec3 bp = p - b;
   float_t d3, d4;
   d3 = dot(ab, bp);
   d4 = dot(ac, bp);
@@ -507,17 +507,17 @@ static void closest_pt_point_triangle(
 
   /* Check if P in edge region of AB, if so return projection of P onto AB */
   float_t v, w;
-  vec3_t result1;
+  Vec3 result1;
   float_t vc = d1 * d4 - d3 * d2;
   if (vc <= 0.0 && d1 >= 0.0 && d3 <= 0.0) {
     v = d1 / (d1 - d3);
-    result1 = ab * vec3_t(v);
+    result1 = ab * Vec3(v);
     final_result = a + result1;
     return; /* barycentric coordinates (1-v,v,0) */
   }
 
   /* Check if P in vertex region outside C */
-  vec3_t cp = p - c;
+  Vec3 cp = p - c;
   float_t d5, d6;
   d5 = dot(ab, cp);
   d6 = dot(ac, cp);
@@ -530,7 +530,7 @@ static void closest_pt_point_triangle(
   float_t vb = d5 * d2 - d1 * d6;
   if (vb <= 0.0f && d2 >= 0.0f && d6 <= 0.0f) {
     w = d2 / (d2 - d6);
-    result1 = ac * vec3_t(w);
+    result1 = ac * Vec3(w);
     final_result = a + result1;
     return; /* barycentric coordinates (0, 1-w,w) */
   }
@@ -539,7 +539,7 @@ static void closest_pt_point_triangle(
   float_t va = d3 * d6 - d5 * d4;
   if (va <= 0.0f && (d4 - d3) >= 0.0f && (d5 - d6) >= 0.0f) {
     w = (d4 - d3) / ((d4 - d3) + (d5 - d6));
-    result1 = (c - b) * vec3_t(w);
+    result1 = (c - b) * Vec3(w);
     final_result = b + result1;
     return; /*barycentric coordinates (0,1-w, w) */
   }
@@ -549,8 +549,8 @@ static void closest_pt_point_triangle(
   float_t denom = 1.0f / (va + vb + vc);
   v = vb * denom;
   w = vc * denom;
-  ab = ab * vec3_t(v);
-  ac = ac * vec3_t(w);
+  ab = ab * Vec3(v);
+  ac = ac * Vec3(w);
   result1 = ab + ac;
   final_result = a + result1;
   return; /* = u*a + v*b + w*c, u = va * denom = 1.0f - v -w */
@@ -573,19 +573,19 @@ closest_interior_point:
 
 static float_t closest_interior_point(
     const Partition& p,
-    const vec3_t& pt,
+    const Vec3& pt,
     const Wall& w,
-    vec2_t& ip) {
+    Vec2& ip) {
 #ifdef DEBUG_CLOSEST_INTERIOR_POINT
   std::cout << "closest_interior_point: " << pt << "\n";;
   w.dump(p, "", true);
 #endif
 
 
-  vec3_t v;
-  const vec3_t& w_vert0 = p.get_wall_vertex(w, 0);
-  const vec3_t& w_vert1 = p.get_wall_vertex(w, 1);
-  const vec3_t& w_vert2 = p.get_wall_vertex(w, 2);
+  Vec3 v;
+  const Vec3& w_vert0 = p.get_wall_vertex(w, 0);
+  const Vec3& w_vert1 = p.get_wall_vertex(w, 1);
+  const Vec3& w_vert2 = p.get_wall_vertex(w, 2);
 
   closest_pt_point_triangle(pt, w_vert0, w_vert1, w_vert2, v);
 
@@ -598,8 +598,8 @@ static float_t closest_interior_point(
   int give_up = 10;
   float_t a1 = ip.u * w.uv_vert2.v - ip.v * w.uv_vert2.u;
   float_t a2 = w.uv_vert1_u * ip.v;
-  vec2_t vert_0(0.0);
-  vec2_t vert_1(w.uv_vert1_u, 0.0);
+  Vec2 vert_0(0.0);
+  Vec2 vert_1(w.uv_vert1_u, 0.0);
 
   while (
       give_up_ctr < give_up
@@ -637,16 +637,16 @@ static float_t closest_interior_point(
 // wall must belong to the same object and region
 static float_t find_closest_wall(
     const Partition& p,
-    const vec3_t& pos, const wall_index_t wall_that_moved_molecule,
+    const Vec3& pos, const wall_index_t wall_that_moved_molecule,
     wall_index_t& best_wall_index,
-    vec2_t& best_wall_pos2d
+    Vec2& best_wall_pos2d
 ) {
 
   const Wall& moved_wall = p.get_wall(wall_that_moved_molecule);
 
   best_wall_index = WALL_INDEX_INVALID;
   float_t best_d2 = GIGANTIC4;
-  best_wall_pos2d = vec2_t(0);
+  best_wall_pos2d = Vec2(0);
 
   // NOTE: use wall_that_moved_molecule to optimize the search,
   // however for now we are using the same approach as in mcell3 because
@@ -660,7 +660,7 @@ static float_t find_closest_wall(
       continue;
     }
 
-    vec2_t wall_pos2d;
+    Vec2 wall_pos2d;
     float_t d2 = closest_interior_point(p, pos, w, wall_pos2d);
 
     if (d2 <= best_d2) { // the <= is to emulate behavior of mcell3 that goes through the walls in opposite order
@@ -674,10 +674,10 @@ static float_t find_closest_wall(
 }
 
 
-static bool is_point_above_plane_defined_by_wall(const Partition& p, const Wall& w, const vec3_t& pos) {
+static bool is_point_above_plane_defined_by_wall(const Partition& p, const Wall& w, const Vec3& pos) {
 
   // make vector pointing from any point to our position
-  vec3_t w0_pos = pos - p.get_wall_vertex(w, 0);
+  Vec3 w0_pos = pos - p.get_wall_vertex(w, 0);
 
   // dot product with normal gives ||a|| * ||b|| * cos(phi)
   float_t dot_prod = dot(w0_pos, w.normal);

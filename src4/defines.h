@@ -33,7 +33,6 @@
 #warning "INDEXER_WA is enabled and this will lead to lower performance"
 #endif
 
-#ifndef SWIG
 #include <stdint.h>
 #include <vector>
 #include <set>
@@ -58,7 +57,6 @@
 
 // this file must not depend on any other from mcell4 otherwise there
 // might be some nasty cyclic include dependencies
-#endif
 
 /**
  * Usage of IDs and indexes:
@@ -319,19 +317,19 @@ typedef glm::fvec2 glm_vec2_t;
 typedef glm::fmat4x4 mat4x4;
 #endif
 
-typedef glm::ivec3 ivec3_t;
-typedef glm::uvec3 uvec3_t;
-typedef glm::bvec3 bvec3_t;
+typedef glm::ivec3 IVec3;
+typedef glm::uvec3 UVec3;
+typedef glm::bvec3 BVec3;
 
 // NOTE: rename to Vec3? - not sure, this is a really simple object...
-struct vec3_t: public glm_vec3_t {
-  vec3_t() = default;
-  vec3_t(const glm_vec3_t& a) { x = a.x; y = a.y; z = a.z; }
-  vec3_t(const vec3_t& a) : glm_vec3_t(a.x, a.y, a.z) { }
-  vec3_t(const ivec3_t& a) : glm_vec3_t(a.x, a.y, a.z) { }
-  vec3_t(const vector3& a) { x = a.x; y = a.y; z = a.z; }
-  vec3_t(const float_t x_, const float_t y_, const float_t z_) { x = x_; y = y_; z = z_; }
-  vec3_t(const float_t xyz) { x = xyz; y = xyz; z = xyz; }
+struct Vec3: public glm_vec3_t {
+  Vec3() = default;
+  Vec3(const glm_vec3_t& a) { x = a.x; y = a.y; z = a.z; }
+  Vec3(const Vec3& a) : glm_vec3_t(a.x, a.y, a.z) { }
+  Vec3(const IVec3& a) : glm_vec3_t(a.x, a.y, a.z) { }
+  Vec3(const vector3& a) { x = a.x; y = a.y; z = a.z; }
+  Vec3(const float_t x_, const float_t y_, const float_t z_) { x = x_; y = y_; z = z_; }
+  Vec3(const float_t xyz) { x = xyz; y = xyz; z = xyz; }
 
   bool is_valid() const { return !(x == POS_INVALID || y == POS_INVALID || z == POS_INVALID); }
 
@@ -340,13 +338,13 @@ struct vec3_t: public glm_vec3_t {
 };
 
 // usually are .u and .v used to access contained values
-struct vec2_t: public glm_vec2_t {
-  vec2_t() = default;
-  vec2_t(const glm_vec2_t& a) { x = a.x; y = a.y; }
-  vec2_t(const vec2_t& a) : glm_vec2_t(a.x, a.y) { }
-  vec2_t(const vector2& a) { x = a.u; y = a.v; }
-  vec2_t(const float_t x_, const float_t y_) { x = x_; y = y_; }
-  vec2_t(const float_t xy) { x = xy; y = xy; }
+struct Vec2: public glm_vec2_t {
+  Vec2() = default;
+  Vec2(const glm_vec2_t& a) { x = a.x; y = a.y; }
+  Vec2(const Vec2& a) : glm_vec2_t(a.x, a.y) { }
+  Vec2(const vector2& a) { x = a.u; y = a.v; }
+  Vec2(const float_t x_, const float_t y_) { x = x_; y = y_; }
+  Vec2(const float_t xy) { x = xy; y = xy; }
 
   bool is_valid() const { return !(x == POS_INVALID || y == POS_INVALID); }
 
@@ -354,8 +352,8 @@ struct vec2_t: public glm_vec2_t {
   void dump(const std::string extra_comment, const std::string ind) const;
 };
 
-std::ostream & operator<<(std::ostream &out, const vec3_t &a);
-std::ostream & operator<<(std::ostream &out, const vec2_t &a);
+std::ostream & operator<<(std::ostream &out, const Vec3 &a);
+std::ostream & operator<<(std::ostream &out, const Vec2 &a);
 
 
 // ---------------------------------- auxiliary functions ----------------------------------
@@ -398,8 +396,8 @@ static inline float_t floor_to_multiple(const float_t val, float_t multiple) {
   return (float_t)((int)(val / multiple)) * multiple;
 }
 
-static inline vec3_t floor_to_multiple(const vec3_t& val, float_t multiple) {
-  return (vec3_t)((glm::ivec3)(val / multiple)) * multiple;
+static inline Vec3 floor_to_multiple(const Vec3& val, float_t multiple) {
+  return (Vec3)((glm::ivec3)(val / multiple)) * multiple;
 }
 
 static inline bool cmp_eq(const float_t a, const float_t b, const float_t eps) {
@@ -410,19 +408,19 @@ static inline bool cmp_eq(float_t a, float_t b) {
   return cmp_eq(a, b, EPS);
 }
 
-static inline bool cmp_eq(const vec3_t& a, const vec3_t& b, const float_t eps) {
+static inline bool cmp_eq(const Vec3& a, const Vec3& b, const float_t eps) {
   return cmp_eq(a.x, b.x, eps) && cmp_eq(a.y, b.y, eps) && cmp_eq(a.z, b.z, eps);
 }
 
-static inline bool cmp_eq(const vec3_t& a, const vec3_t& b) {
+static inline bool cmp_eq(const Vec3& a, const Vec3& b) {
   return cmp_eq(a, b, EPS);
 }
 
-static inline bool cmp_eq(const vec2_t& a, const vec2_t& b, const float_t eps) {
+static inline bool cmp_eq(const Vec2& a, const Vec2& b, const float_t eps) {
   return cmp_eq(a.x, b.x, eps) && cmp_eq(a.y, b.y, eps);
 }
 
-static inline bool cmp_eq(const vec2_t& a, const vec2_t& b) {
+static inline bool cmp_eq(const Vec2& a, const Vec2& b) {
   return cmp_eq(a, b, EPS);
 }
 
@@ -443,63 +441,63 @@ static inline uint powu(const uint a, const uint n) {
   return res;
 }
 
-static inline float_t max3d(const vec3_t& v) {
+static inline float_t max3d(const Vec3& v) {
   return glm::compMax((glm_vec3_t)v);
 }
 
-static inline vec3_t abs3(const vec3_t& v) {
+static inline Vec3 abs3(const Vec3& v) {
   return glm::abs((glm_vec3_t)v);
 }
 
-static inline vec3_t floor3(const vec3_t& v) {
+static inline Vec3 floor3(const Vec3& v) {
   return glm::floor((glm_vec3_t)v);
 }
 
 /* abs_max_2vec picks out the largest (absolute) value found among two vectors
  * (useful for properly handling floating-point rounding error). */
-static inline float_t abs_max_2vec(const vec3_t& v1, const vec3_t& v2) {
+static inline float_t abs_max_2vec(const Vec3& v1, const Vec3& v2) {
   glm_vec3_t v1abs = abs3(v1);
   glm_vec3_t v2abs = abs3(v2);
-  vec3_t vmax = glm::max(v1abs, v2abs);
+  Vec3 vmax = glm::max(v1abs, v2abs);
   return MCell::max3d(vmax);
 }
 
-static inline float_t determinant2(const vec2_t& v1, const vec2_t& v2) {
+static inline float_t determinant2(const Vec2& v1, const Vec2& v2) {
   return v1.u * v2.v - v1.v * v2.u;
 }
 
-static inline float_t dot2(const vec2_t& v1, const vec2_t& v2) {
+static inline float_t dot2(const Vec2& v1, const Vec2& v2) {
   return glm::dot((glm_vec2_t)v1, (glm_vec2_t)v2);
 }
 
-static inline float_t len2_squared(const vec2_t& v1) {
+static inline float_t len2_squared(const Vec2& v1) {
   return v1.u * v1.u + v1.v * v1.v;
 }
 
 // FIXME: use places where to use this function
-static inline float_t len2(const vec2_t& v1) {
+static inline float_t len2(const Vec2& v1) {
   return sqrt_f(len2_squared(v1));
 }
 
-static inline float_t dot(const vec3_t& v1, const vec3_t& v2) {
+static inline float_t dot(const Vec3& v1, const Vec3& v2) {
   return glm::dot((glm_vec3_t)v1, (glm_vec3_t)v2);
 }
 
-static inline float_t len3_squared(const vec3_t& v1) {
+static inline float_t len3_squared(const Vec3& v1) {
   return v1.x * v1.x + v1.y * v1.y + v1.z * v1.z;
 }
 
 // FIXME: use places where to use this function
-static inline float_t len3(const vec3_t& v1) {
+static inline float_t len3(const Vec3& v1) {
   return sqrt_f(len3_squared(v1));
 }
 
-static inline float_t distance3(const vec3_t& v1, const vec3_t& v2) {
+static inline float_t distance3(const Vec3& v1, const Vec3& v2) {
   return sqrt_f( len3_squared(v1 - v2) );
 }
 
-static inline uint get_largest_abs_dim_index(const vec3_t& v) {
-  vec3_t a = glm::abs(glm_vec3_t(v));
+static inline uint get_largest_abs_dim_index(const Vec3& v) {
+  Vec3 a = glm::abs(glm_vec3_t(v));
   if (a.x > a.y) {
     if (a.x > a.z) {
       return 0; // x
@@ -527,7 +525,7 @@ point_in_box:
 
   Out: Returns true if point is in box, 0 otherwise
 ***************************************************************************/
-static inline bool point_in_box(const vec3_t& pt, const vec3_t& llf, const vec3_t& urb) {
+static inline bool point_in_box(const Vec3& pt, const Vec3& llf, const Vec3& urb) {
   return
       pt.x >= llf.x && pt.x <= urb.x &&
       pt.y >= llf.y && pt.y <= urb.y &&
@@ -539,7 +537,7 @@ static inline bool point_in_box(const vec3_t& pt, const vec3_t& llf, const vec3_
  * Computes the cross product of two vector3's v1 and v2 storing the result
  * in vector3 v3.
  */
-static inline vec3_t cross(const vec3_t& v1, const vec3_t& v2) {
+static inline Vec3 cross(const Vec3& v1, const Vec3& v2) {
   return glm::cross((glm_vec3_t)v1, (glm_vec3_t)v2);
 }
 
@@ -562,7 +560,7 @@ inline bool distinguishable_f(float_t a, float_t b, float_t eps) {
 
 
 
-static inline int distinguishable_vec2(const vec2_t& a, const vec2_t& b, float_t eps) {
+static inline int distinguishable_vec2(const Vec2& a, const Vec2& b, float_t eps) {
   float_t c, cc, d;
 
   /* Find largest coordinate */
@@ -595,7 +593,7 @@ static inline int distinguishable_vec2(const vec2_t& a, const vec2_t& b, float_t
 }
 
 
-static inline bool distinguishable_vec3(const vec3_t& a, const vec3_t& b, float_t eps) {
+static inline bool distinguishable_vec3(const Vec3& a, const Vec3& b, float_t eps) {
   float_t c, cc, d;
 
   /* Find largest coordinate */
@@ -651,7 +649,7 @@ static inline void debug_guard_zero_div(float_t& val) {
 }
 
 
-static inline void debug_guard_zero_div(vec3_t& val) {
+static inline void debug_guard_zero_div(Vec3& val) {
 #ifndef NDEBUG
   if (val.x == 0) {
     val.x = FLT_MIN;

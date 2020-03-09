@@ -75,8 +75,8 @@ public:
   ReleaseShape release_shape; /* Release Shape Flags: controls shape over which to release (enum release_shape_t) */
 
   // SHAPE_SPHERICAL - only volume molecules
-  vec3_t location;
-  vec3_t diameter; /* x,y,z diameter for geometrical release shapes */
+  Vec3 location;
+  Vec3 diameter; /* x,y,z diameter for geometrical release shapes */
 
   // SHAPE_REGION
   // for surface molecule releases
@@ -84,8 +84,8 @@ public:
 
   // for volume molecule releases into a region
   std::string region_name; // name of the region into which we should release the
-  vec3_t region_llf; // note: this is fully specified by the region above, maybe remove in the future
-  vec3_t region_urb; // note: this is fully specified by the region above as well
+  Vec3 region_llf; // note: this is fully specified by the region above, maybe remove in the future
+  Vec3 region_urb; // note: this is fully specified by the region above as well
 
 
   std::string release_pattern_name; // unused
