@@ -135,6 +135,7 @@ const float_t SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT = 1;
 
 // ---------------------------------- fixed constants and specific typedefs -------------------
 const float_t POS_INVALID = FLT_MAX; // cannot be NAN because we cannot do any comparison with NANs
+const float_t FLT_INVALID = FLT_MAX;
 
 const float_t TIME_INVALID = -256;
 const float_t TIME_FOREVER = FLT_MAX; // this max is sufficient for both float and double
@@ -144,6 +145,7 @@ const float_t DIFFUSION_CONSTANT_ZER0 = 0;
 const float_t SQRT2 = 1.41421356238;
 const float_t RX_RADIUS_MULTIPLIER = 1.2; // TEMPORARY - we should figure out why some collisions with subparts are missed..., but maybe, it won't have big perf impact...
 
+const uint INT_INVALID = INT32_MAX;
 const uint ID_INVALID = UINT32_MAX; // general invalid index, should not be used when a definition for a specific type is available
 const uint INDEX_INVALID = UINT32_MAX; // general invalid index, should not be used when a definition for a specific type is available
 
@@ -352,8 +354,14 @@ struct Vec2: public glm_vec2_t {
   void dump(const std::string extra_comment, const std::string ind) const;
 };
 
-std::ostream & operator<<(std::ostream &out, const Vec3 &a);
-std::ostream & operator<<(std::ostream &out, const Vec2 &a);
+static inline std::ostream & operator<<(std::ostream &out, const Vec3 &a) {
+  out << "(" << a.x << ", " << a.y << ", " << a.z << ")";
+  return out;
+}
+static inline std::ostream & operator<<(std::ostream &out, const Vec2 &a) {
+  out << "(" << a.u << ", " << a.v << ")";
+  return out;
+}
 
 
 // ---------------------------------- auxiliary functions ----------------------------------

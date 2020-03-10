@@ -35,12 +35,6 @@ using namespace std;
 
 namespace MCell {
 
-std::ostream & operator<<(std::ostream &out, const Vec3 &a) {
-  out << "(" << a.x << ", " << a.y << ", " << a.z << ")";
-  return out;
-}
-
-
 string Vec3::to_string() const {
   stringstream ss;
   ss << *this;
@@ -50,12 +44,6 @@ string Vec3::to_string() const {
 
 void Vec3::dump(const std::string extra_comment, const std::string ind) const {
   cout << ind << extra_comment << *this << "\n";
-}
-
-
-std::ostream & operator<<(std::ostream &out, const Vec2 &a) {
-  out << "(" << a.u << ", " << a.v << ")";
-  return out;
 }
 
 
