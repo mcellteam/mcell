@@ -112,7 +112,8 @@ include_directories(
   "${CMAKE_SOURCE_DIR}/../nfsimCInterface/src/"
   "${CMAKE_SOURCE_DIR}/include"
   "${CMAKE_SOURCE_DIR}/libs/sparsehash/src/"
-  "/nadata/cnl/home/ahusar/tools/anaconda/pkgs/python-3.7.3-h0371630_0/include/python3.7m/" # FIXME: should be the same as PYTHON_INCLUDE_PATH
+  "/nadata/cnl/home/ahusar/tools/anaconda/include" # FIXME: generate automatically using python3 -m pybind11 --includes
+  "/nadata/cnl/home/ahusar/tools/anaconda/include/python3.7m"
 )
 
 

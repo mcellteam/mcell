@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import mcell                                                                                                                                                                          
 
 s = mcell.Species(name = 'my_species', diffusion_constant_2d = 1e-6)

@@ -4,7 +4,7 @@
 
 #include <string>
 
-#include "../examples/gen_release_site.h"
+#include "../generated/gen_release_site.h"
 #include "common.h"
 
 namespace MCell {

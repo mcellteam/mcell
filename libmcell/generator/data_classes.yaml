@@ -49,10 +49,6 @@ ReleaseSite:
           type: float
           default: null
           
-        - name: site_diameter
-          type: float
-          default: null                    
-          
         - name: site_radius
           type: float
           default: null       

@@ -1,7 +1,7 @@
 
 #include "mcell.h"
-#include "../examples/gen_release_site.h"
-#include "../examples/gen_species.h"
+#include "../generated/gen_release_site.h"
+#include "../generated/gen_species.h"
 
 namespace MCell {
 namespace API {
