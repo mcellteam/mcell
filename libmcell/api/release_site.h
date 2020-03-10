@@ -12,7 +12,7 @@ namespace API {
 
 class ReleaseSite: public GenReleaseSite {
 public:
-  RELEASESITE_CTOR()
+  RELEASE_SITE_CTOR()
 
   // actual manual implementation of a semantic check
   SemRes check_semantics(std::ostream& out) const override {

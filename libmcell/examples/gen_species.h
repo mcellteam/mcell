@@ -19,8 +19,8 @@ namespace API {
 #define SPECIES_CTOR() \
     Species( \
         const std::string& name_, \
-        const float_t diffusion_constant_2d_ = FLT_INVALID, \
-        const float_t diffusion_constant_3d_ = FLT_INVALID \
+        const float_t diffusion_constant_2d_ = FLT_UNSET, \
+        const float_t diffusion_constant_3d_ = FLT_UNSET \
     ) { \
       class_name = "Species"; \
       name = name_; \

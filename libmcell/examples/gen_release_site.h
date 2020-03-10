@@ -14,15 +14,15 @@
 namespace MCell {
 namespace API {
 
-#define RELEASESITE_CTOR() \
+#define RELEASE_SITE_CTOR() \
     ReleaseSite( \
         const std::string& name_, \
         const std::string& shape_, \
         const Species* molecule_, \
-        const Vec3& location_ = FLT_INVALID, \
-        const float_t site_diameter_ = FLT_INVALID, \
-        const float_t site_radius_ = FLT_INVALID, \
-        const float_t release_probability_ = FLT_INVALID \
+        const Vec3& location_ = VEC3_UNSET, \
+        const float_t site_diameter_ = FLT_UNSET, \
+        const float_t site_radius_ = FLT_UNSET, \
+        const float_t release_probability_ = FLT_UNSET \
     ) { \
       class_name = "ReleaseSite"; \
       name = name_; \
