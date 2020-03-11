@@ -121,7 +121,7 @@ public:
   edge_index_t edge_num_used_for_init;
 
   // --- egde constants ---
-  vec2_t translate;          /* Translation vector between coordinate systems */
+  Vec2 translate;          /* Translation vector between coordinate systems */
   float_t cos_theta;         /* Cosine of angle between coordinate systems */
   float_t sin_theta;         /* Sine of angle between coordinate systems */
 };
@@ -151,7 +151,7 @@ public:
   float_t vert2_slope;   /* Slope from vertex 0 to vertex 2 */
   float_t fullslope;     /* Slope of full width of triangle */
   float_t binding_factor;
-  vec2_t vert0;          /* Projection of vertex zero onto unit_u and unit_v of wall */
+  Vec2 vert0;          /* Projection of vertex zero onto unit_u and unit_v of wall */
 
   void set_molecule_tile(tile_index_t tile_index, molecule_id_t id) {
     assert(is_initialized());
@@ -299,12 +299,12 @@ public:
   // --- wall constants ---
   bool wall_constants_precomputed;
   float_t uv_vert1_u;   /* Surface u-coord of 2nd corner (v=0) */
-  vec2_t uv_vert2;      /* Surface coords of third corner */
+  Vec2 uv_vert2;      /* Surface coords of third corner */
 
   float_t area;  /* Area of this element */
-  vec3_t normal; /* Normal vector for this wall */
-  vec3_t unit_u; /* U basis vector for this wall */
-  vec3_t unit_v; /* V basis vector for this wall */
+  Vec3 normal; /* Normal vector for this wall */
+  Vec3 unit_u; /* U basis vector for this wall */
+  Vec3 unit_v; /* V basis vector for this wall */
   float_t distance_to_origin; // distance to origin (point normal form)
 
   // p must be the partition that contains this object
@@ -361,7 +361,7 @@ public:
   wall_index_t wall_index;  /* wall where the tile is on */
   tile_index_t tile_index;  /* index on that tile */
   bool pos_is_set;
-  vec2_t pos;
+  Vec2 pos;
 };
 
 // several utility functions related to geometry

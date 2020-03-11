@@ -54,7 +54,7 @@ public:
 private:
   void compute_where_and_norm(
       const Partition& p, const Molecule& m,
-      vec3_t& where, vec3_t& norm
+      Vec3& where, Vec3& norm
   );
 
 

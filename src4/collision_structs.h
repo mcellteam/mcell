@@ -86,7 +86,7 @@ public:
       Partition* partition_ptr,
       const molecule_id_t diffused_molecule_id_,
       const float_t time_,
-      const vec3_t& pos_,
+      const Vec3& pos_,
       const molecule_id_t colliding_molecule_id_,
       const RxnClass* rxn_class_ptr
       )
@@ -129,7 +129,7 @@ public:
       Partition* partition_ptr,
       const molecule_id_t diffused_molecule_id_,
       const float_t time_,
-      const vec3_t& pos_,
+      const Vec3& pos_,
       const wall_index_t colliding_wall_index_
       )
     :
@@ -150,7 +150,7 @@ public:
       Partition* partition_ptr,
       const molecule_id_t diffused_molecule_id_,
       const float_t time_,
-      const vec3_t& pos_,
+      const Vec3& pos_,
       const Rxn* rx_ptr
       )
     :
@@ -171,7 +171,7 @@ public:
   Partition* partition;
   molecule_id_t diffused_molecule_id;
   float_t time;
-  vec3_t pos;
+  Vec3 pos;
 
   // valid only for is_wall_collision
   molecule_id_t colliding_molecule_id;

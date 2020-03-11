@@ -130,7 +130,7 @@ bool MCell3WorldConverter::convert(volume* s) {
   // at this point, we need to create the first (and for now the only) partition
   // create initial partition with center at 0,0,0 - we woud like to have the partitions all the same,
   // not depend on some random initialization
-  partition_index_t index = world->add_partition(vec3_t(0, 0, 0));
+  partition_index_t index = world->add_partition(Vec3(0, 0, 0));
   assert(index == PARTITION_INDEX_INITIAL);
 
   // convert geometry already puts geometry objects into partitions
@@ -281,7 +281,7 @@ void MCell3WorldConverter::create_uninitialized_walls_for_polygonal_object(const
       partition_index_t curr_partition_index = world->get_partition_index(*w->vert[k]);
 
       if (partition_index != curr_partition_index) {
-        vec3_t pos(*w->vert[k]);
+        Vec3 pos(*w->vert[k]);
         mcell_log("Error: whole walls must be in a single partition is for now, vertex %s is out of bounds", pos.to_string().c_str());
       }
     }
@@ -850,12 +850,12 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
 
       if (rel_site->region_data == nullptr) {
         assert(rel_site->location != nullptr);
-        event_data.location = vec3_t(*rel_site->location); // might be NULL
+        event_data.location = Vec3(*rel_site->location); // might be NULL
       }
       else if (rel_site->location == nullptr) {
         assert(rel_site->region_data != nullptr);
         release_region_data* region_data = rel_site->region_data;
-        event_data.location = vec3_t(POS_INVALID);
+        event_data.location = Vec3(POS_INVALID);
 
         // CHECK_PROPERTY(region_data->in_release == nullptr); // not sure what this means yet
 
@@ -922,7 +922,7 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
         event_data.diameter = *rel_site->diameter; // ignored for now
       }
       else {
-        event_data.diameter = vec3_t(POS_INVALID);
+        event_data.diameter = Vec3(POS_INVALID);
       }
 
 

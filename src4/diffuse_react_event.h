@@ -114,7 +114,7 @@ private:
   bool collide_and_react_with_vol_mol(
       Partition& p,
       const Collision& collision,
-      vec3_t& displacement,
+      Vec3& displacement,
       const float_t remaining_time_step,
       const float_t r_rate_factor,
       const float_t molecule_time
@@ -142,8 +142,8 @@ private:
       Partition& p,
       const Species& species,
       Molecule& sm,
-      vec2_t& remaining_displacement,
-      vec2_t& new_pos
+      Vec2& remaining_displacement,
+      Vec2& new_pos
   );
 
   bool react_2D_all_neighbors(
@@ -209,9 +209,9 @@ RayTraceState ray_trace_vol(
     rng_state& rng,
     Molecule& vm, // molecule that we are diffusing, we are changing its pos  and possibly also subvolume
     const wall_index_t previous_reflected_wall, // is WALL_INDEX_INVALID when our molecule did not replect from anything this iddfusion step yet
-    vec3_t& remaining_displacement, // in/out - recomputed if there was a reflection
+    Vec3& remaining_displacement, // in/out - recomputed if there was a reflection
     collision_vector_t& molecule_collisions, // possible reactions in this part of way marching, ordered by time
-    vec3_t& new_position,
+    Vec3& new_position,
     subpart_index_t& new_subpartition_index
 );
 

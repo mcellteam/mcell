@@ -19,7 +19,7 @@ struct WallHitInfo {
   geometry_object_id_t geometry_object_id;
   wall_id_t wall_id;
   float_t time;
-  vec3_t pos;
+  Vec3 pos;
 };
 
 } /* namespace MCell */

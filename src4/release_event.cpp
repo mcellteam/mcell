@@ -86,7 +86,7 @@ static size_t cum_area_bisect_high(const vector<CummAreaPWallIndexPair>& array, 
 
 void ReleaseEvent::place_single_molecule_onto_grid(Partition& p, Wall& wall, tile_index_t tile_index) {
 
-  vec2_t pos_on_wall;
+  Vec2 pos_on_wall;
   if (p.config.randomize_smol_pos) {
     pos_on_wall = GridUtil::grid2uv_random(wall, tile_index, world->rng);
   }
@@ -185,7 +185,7 @@ void ReleaseEvent::release_inside_regions(uint computed_release_number) {
   int n = computed_release_number;
 
   while (n > 0) {
-    vec3_t pos;
+    Vec3 pos;
     pos.x = region_llf.x + (region_urb.x - region_llf.x) * rng_dbl(&world->rng);
     pos.y = region_llf.y + (region_urb.y - region_llf.y) * rng_dbl(&world->rng);
     pos.z = region_llf.z + (region_urb.z - region_llf.z) * rng_dbl(&world->rng);
@@ -219,7 +219,7 @@ void ReleaseEvent::release_ellipsoid_or_rectcuboid(uint computed_release_number)
                              release_shape == ReleaseShape::SPHERICAL_SHELL);
 
   for (uint i = 0; i < computed_release_number; i++) {
-    vec3_t pos;
+    Vec3 pos;
     do /* Pick values in unit square, toss if not in unit circle */
     {
       pos.x = (rng_dbl(&world->rng) - 0.5);
@@ -230,7 +230,7 @@ void ReleaseEvent::release_ellipsoid_or_rectcuboid(uint computed_release_number)
     if (release_shape == ReleaseShape::SPHERICAL_SHELL) {
       float_t r = sqrt(len3_squared(pos)) * 2.0;
       if (r == 0.0) {
-        pos = vec3_t(0.0, 0.0, 0.5);
+        pos = Vec3(0.0, 0.0, 0.5);
       } else {
         pos /= r;
       }
@@ -245,7 +245,7 @@ void ReleaseEvent::release_ellipsoid_or_rectcuboid(uint computed_release_number)
     // TODO_LATER: t_matrix can be only identity matrix for now, also use glm matrix mult.
     // mult_matrix(location, req->t_matrix, location, 1, 4, 4);
 
-    vec3_t molecule_location;
+    Vec3 molecule_location;
     molecule_location.x = base_location[0][0];
     molecule_location.y = base_location[0][1];
     molecule_location.z = base_location[0][2];

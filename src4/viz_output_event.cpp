@@ -106,26 +106,26 @@ FILE* VizOutputEvent::create_and_open_output_file_name() {
 
 void VizOutputEvent::compute_where_and_norm(
     const Partition& p, const Molecule& m,
-    vec3_t& where, vec3_t& norm
+    Vec3& where, Vec3& norm
 ) {
   const Species& species = world->all_species.get(m.species_id);
 
   if ((species.flags & NOT_FREE) == 0) {
     // neither surface nor on grid
     where = m.v.pos;
-    norm = vec3_t(0);
+    norm = Vec3(0);
   }
   else if ((species.flags & ON_GRID) != 0) {
     const Wall& wall = p.get_wall(m.s.wall_index);
-    const vec3_t& wall_vert0 = p.get_geometry_vertex(wall.vertex_indices[0]);
+    const Vec3& wall_vert0 = p.get_geometry_vertex(wall.vertex_indices[0]);
     where = GeometryUtil::uv2xyz(m.s.pos, wall, wall_vert0);
 
-    norm = vec3_t(m.s.orientation) * wall.normal;
+    norm = Vec3(m.s.orientation) * wall.normal;
   }
   else {
     assert(false && "Unexpected molecule type");
-    where = vec3_t(0); // to silence compiler warnings
-    norm = vec3_t(0);
+    where = Vec3(0); // to silence compiler warnings
+    norm = Vec3(0);
   }
 
   where *= world->config.length_unit;
@@ -144,8 +144,8 @@ void VizOutputEvent::output_ascii_molecules() {
       }
 
 
-      vec3_t where;
-      vec3_t norm;
+      Vec3 where;
+      Vec3 norm;
       compute_where_and_norm(p, m, where, norm);
 
       const Species& species = world->all_species.get(m.species_id);
@@ -228,8 +228,8 @@ void VizOutputEvent::output_cellblender_molecules() {
 
        assert(partition_molecule_ptr_pair.second->is_vol() && "TODO - dump norm for surface molecules");
 
-       vec3_t where;
-       vec3_t norm;
+       Vec3 where;
+       Vec3 norm;
        compute_where_and_norm(
            *partition_molecule_ptr_pair.first, *partition_molecule_ptr_pair.second,
            where, norm

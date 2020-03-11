@@ -330,9 +330,9 @@ wall_in_box:
 static int wall_in_box(
     const Partition& p,
     const Wall& w,
-    const vec3_t& llf, const vec3_t& urb) {
+    const Vec3& llf, const Vec3& urb) {
 
-  const vec3_t* vert[VERTICES_IN_TRIANGLE] = {
+  const Vec3* vert[VERTICES_IN_TRIANGLE] = {
       &p.get_wall_vertex(w, 0),
       &p.get_wall_vertex(w, 1),
       &p.get_wall_vertex(w, 2)
@@ -348,7 +348,7 @@ static int wall_in_box(
   for (uint i = 0; i < VERTICES_IN_TRIANGLE; i++) {
     float_t r, a3, a4;
 
-    const vec3_t *v1, *v2;
+    const Vec3 *v1, *v2;
     v2 = vert[i];
     v1 = (i == 0) ? vert[VERTICES_IN_TRIANGLE - 1] : vert[i - 1];
 
@@ -419,7 +419,7 @@ static int wall_in_box(
   int edge1_vt[12] = { 0, 1, 3, 2, 6, 7, 5, 4, 0, 1, 3, 4 };
   int edge2_vt[12] = { 1, 3, 2, 6, 7, 5, 4, 0, 2, 5, 7, 2 };
 
-  const vec3_t& normal = w.normal;
+  const Vec3& normal = w.normal;
   float_t d = w.distance_to_origin;
 
 
@@ -430,27 +430,27 @@ static int wall_in_box(
   float_t* vv_ = &(vu_[VERTICES_IN_TRIANGLE]);
 
   /* Wall coordinate system n,u,v */
-  vec3_t n = normal;
-  vec3_t u = *vert[1] - *vert[0];
+  Vec3 n = normal;
+  Vec3 u = *vert[1] - *vert[0];
   float_t len_u_squared = len3_squared(u);
   assert(len_u_squared != 0);
   float_t r_u = 1 / sqrt(len_u_squared);
 
-  u = u * vec3_t(r_u);
-  vec3_t v = cross(n, u);
+  u = u * Vec3(r_u);
+  Vec3 v = cross(n, u);
   for (uint j = 0; j < VERTICES_IN_TRIANGLE; j++) {
     vu_[j] = dot(*vert[j], u);
     vv_[j] = dot(*vert[j], v);
   }
 
   /* Test every edge. */
-  vec3_t bb = llf;
+  Vec3 bb = llf;
   float_t d_box[8];
   d_box[0] = dot(bb, n);;
 
   for (uint i = 0; i < 12; i++) {
     float_t a1, a2;
-    vec3_t ba;
+    Vec3 ba;
 
     if (i < 7) /* Visiting new vertices in order */
     {
@@ -486,7 +486,7 @@ static int wall_in_box(
     }
     /* Now ba,bb = box edge endpoints ; a1,a2 = distances along wall normal */
     float_t r = (d - a1) / (a2 - a1);
-    vec3_t c = ba + vec3_t(r) * (bb - ba);
+    Vec3 c = ba + Vec3(r) * (bb - ba);
     float_t cu = dot(c, u);
     float_t cv = dot(c, v);
     /* Test for internal intersection point in wall coordinate space */

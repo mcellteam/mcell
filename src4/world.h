@@ -70,7 +70,7 @@ public:
   }
 
   // -------------- partition manipulation methods --------------
-  partition_index_t get_partition_index(const vec3_t& pos) {
+  partition_index_t get_partition_index(const Vec3& pos) {
     // for now a slow approach, later some hashing/memoization might be needed
     for (partition_index_t i = 0; i < partitions.size(); i++) {
       if (partitions[i].in_this_partition(pos)) {
@@ -80,7 +80,7 @@ public:
     return PARTITION_INDEX_INVALID;
   }
 
-  partition_index_t get_or_add_partition_index(const vec3_t& pos) {
+  partition_index_t get_or_add_partition_index(const Vec3& pos) {
 
     partition_index_t res = get_partition_index(pos);
     // not found - add a new partition
@@ -92,13 +92,13 @@ public:
   }
 
   // add a partition in a predefined 'lattice' that contains point pos
-  partition_index_t add_partition(const vec3_t& pos) {
+  partition_index_t add_partition(const Vec3& pos) {
     assert(config.partition_edge_length != 0);
     assert(get_partition_index(pos) == PARTITION_INDEX_INVALID && "Partition must not exist");
 
-    vec3_t origin =
+    Vec3 origin =
         floor_to_multiple(pos, config.partition_edge_length)
-        - vec3_t(config.partition_edge_length/2);
+        - Vec3(config.partition_edge_length/2);
 
     partitions.push_back(Partition(origin, config, all_reactions, all_species, stats));
     return partitions.size() - 1;
