@@ -43,7 +43,7 @@ int init_counter_name_hash(struct sym_table_head **counter_by_name,
 
 int parse_input(struct volume *world);
 
-int load_checkpoint(struct volume *world);
+int load_checkpoint(struct volume *world, bool only_time_and_iter);
 
 int instance_obj(struct volume *world, struct geom_object *objp, double (*im)[4]);
 

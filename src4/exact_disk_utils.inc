@@ -290,32 +290,36 @@ static inline IntersectResult test_intersect_line_with_circle(
 }
 
 
-static inline exd_vertex_t* construct_final_endpoint(
-    const bool comparing_ti, const float_t ti_or_si,
-    const exd_vertex_t& pa, const exd_vertex_t& pb
+static inline void construct_final_endpoints(
+    const float_t ti, const float_t si,
+    const exd_vertex_t& pa, const exd_vertex_t& pb,
+    exd_vertex_t*& ppa, exd_vertex_t*& ppb
 ) {
-  exd_vertex_t* res = new exd_vertex_t();
+  ppa = new exd_vertex_t();
+  ppb = new exd_vertex_t();
 
-  bool cond;
-  if (comparing_ti) {
-    cond = ti_or_si > 0;
-  }
-  else {
-    cond = ti_or_si < 1;
-  }
-
-  if (cond) {
-    res->u = pa.u + ti_or_si * (pb.u - pa.u);
-    res->v = pa.v + ti_or_si * (pb.v - pa.v);
-    res->r2 = len2_squared(*res);
-    res->zeta = exd_zetize(res->v, res->u);
+  if (ti > 0) {
+    ppa->u = pa.u + ti * (pb.u - pa.u);
+    ppa->v = pa.v + ti * (pb.v - pa.v);
+    ppa->r2 = ppa->u * ppa->u + ppa->v * ppa->v;
+    ppa->zeta = exd_zetize(ppa->v, ppa->u);
   } else {
-    res->u = pa.u;
-    res->v = pa.v;
-    res->r2 = pa.r2;
-    res->zeta = exd_zetize(pa.v, pa.u);
+    ppa->u = pa.u;
+    ppa->v = pa.v;
+    ppa->r2 = pa.r2;
+    ppa->zeta = exd_zetize(pa.v, pa.u);
   }
-  return res;
+  if (si < 1) {
+    ppb->u = pa.u + si * (pb.u - pa.u);
+    ppb->v = pa.v + si * (pb.v - pa.v);
+    ppb->r2 = ppb->u * ppb->u + ppb->v * ppb->v;
+    ppb->zeta = exd_zetize(ppb->v, ppb->u);
+  } else {
+    ppb->u = pb.u;
+    ppb->v = pb.v;
+    ppb->r2 = pb.r2;
+    ppb->zeta = exd_zetize(pb.v, pb.u);
+  }
 }
 
 
@@ -585,7 +589,7 @@ static float_t calculate_area_for_multiple_edges(
 
       /* Check if lines are parallel--combine if so */
       if (r * r <
-          EPS_C * (pa.u * pa.u + pa.v * pa.v) * (pb.u * pb.u + pb.v * pb.v)) {
+          EPS * (pa.u * pa.u + pa.v * pa.v) * (pb.u * pb.u + pb.v * pb.v)) {
         pqa->e = NULL;
         pqa->role = ExdRole::OTHER;
 
@@ -878,7 +882,10 @@ static float_t __attribute__((noinline)) exact_disk(
     sm.zeta = exd_zetize(sm.v, sm.u);
   }
   /* Find walls that occlude the interaction disk (or block the reaction) */
-  const uint_set<wall_index_t>& wall_indices = p.get_subpart_wall_indices(moving.v.subpart_index);
+  // mcell3 uses the subvolume of the diffused molecule, but in mcell4 case this might be wrong,
+  // we are interested in the subpartition(s?) where the collision occurred
+  subpart_index_t collision_subpart_index = p.get_subpart_index(loc);
+  const uint_set<wall_index_t>& wall_indices = p.get_subpart_wall_indices(collision_subpart_index);
 
   // TODO_LATER: move this to a separate function - only after we got rid of linked lists
   for (wall_index_t wall_index: wall_indices) {
@@ -1018,8 +1025,9 @@ static float_t __attribute__((noinline)) exact_disk(
     /* Add this edge to the growing list, or return -1 if edge blocks target */
 
     /* Construct final endpoints and prepare to store them */
-    exd_vertex_t* ppa = construct_final_endpoint(true, ti, pa, pb); // set if ti > 0
-    exd_vertex_t* ppb = construct_final_endpoint(false, si, pa, pb); // set if si < 0
+    exd_vertex_t* ppa;
+    exd_vertex_t* ppb;
+    construct_final_endpoints(ti, si, pa, pb, ppa, ppb);
 
     /* It's convenient if ppa is earlier, ccw, than ppb */
     a = (ppb->zeta - ppa->zeta);
@@ -1071,7 +1079,7 @@ static float_t __attribute__((noinline)) exact_disk(
     vertex_head = ppa;
     n_verts += 2;
     n_edges++;
-  }
+  } // for each wall
 
   /* Find partition boundaries that occlude the interaction disk */
   if (!use_expanded_list) { /* We'll hit partitions */

@@ -534,12 +534,12 @@ static void find_restricted_regions_by_wall(
   }
 
   // get all possible molecule-surface reactions
-  ReactionsVector matching_rxns;
+  RxnClassesVector matching_rxns;
   RxUtil::trigger_intersect(p, sm, this_wall, matching_rxns);
 
   // collect species that can react
   uint_set<species_id_t> restricted_surf_classes;
-  for (const Reaction* rxn: matching_rxns) {
+  for (const RxnClass* rxn: matching_rxns) {
     if (rxn->is_reflect() || rxn->is_absorb()) {
       assert(rxn->reactants.size() == 2);
       restricted_surf_classes.insert(rxn->reactants[1].species_id);

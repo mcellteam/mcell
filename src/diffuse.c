@@ -41,6 +41,7 @@
 
 // for debug & mcell4 development
 #include "debug_config.h"
+#include "debug.h"
 #include "dump_state.h"
 #ifdef MCELL3_SORTED_WALLS_FOR_COLLISION
 #include <vector>
@@ -3014,6 +3015,7 @@ struct volume_molecule *diffuse_3D(
   struct vector3 displacement2; /* Used for 3D mol-mol unbinding */
 
   bool displacement_printed = false; // mcell4
+  bool timing_printed = false; // mcell4
 
 pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
 
@@ -3033,6 +3035,19 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
     compute_displacement(world, shead, vm, &displacement, &displacement2,
       &rate_factor, &r_rate_factor, &steps, &t_steps, max_time);
   }
+
+#ifdef DEBUG_TIMING
+  DUMP_CONDITION3(
+      if (!timing_printed) {
+        MCell::dump_vol_mol_timing(
+            "- Timing vm", world->current_iterations, vm->id,
+            vm->t, max_time, vm->t + vm->t2,
+            rate_factor, r_rate_factor, steps, t_steps
+        );
+        timing_printed = true;
+      }
+  );
+#endif
 
 #ifdef DEBUG_DIFFUSION
   DUMP_CONDITION3(
@@ -3205,6 +3220,16 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
 
   if (shead != NULL)
     mem_put_list(sv->local_storage->coll, shead);
+
+
+#ifdef DEBUG_DIFFUSION
+  if (vm->properties != NULL) {
+    DUMP_CONDITION3(
+      dump_volume_molecule(vm, "", true, "- Final vm position:", world->current_iterations, /*vm->t*/0, true);
+    );
+  }
+#endif
+
 
   return vm;
 }
@@ -3408,6 +3433,16 @@ struct surface_molecule *diffuse_2D(
   else
     space_factor = sm->get_space_step(sm) * sqrt(steps);
 
+#ifdef DEBUG_TIMING
+  DUMP_CONDITION3(
+      MCell::dump_surf_mol_timing(
+          "- Timing sm", world->current_iterations, sm->id,
+          sm->t, max_time, sm->t + sm->t2,
+          space_factor, steps, t_steps
+      ); // advance_time?
+  );
+#endif
+
   world->diffusion_number++;
   world->diffusion_cumtime += steps;
 
@@ -3521,6 +3556,12 @@ react_2D_all_neighbors(struct volume *world, struct surface_molecule *sm,
                        double t, enum notify_level_t molecule_collision_report,
                        int grid_grid_reaction_flag,
                        long long *surf_surf_colls) {
+
+#ifdef DEBUG_TIMING
+  DUMP_CONDITION3(
+      MCell::dump_react_2D_all_neighbors_timing(t, sm->t);
+  );
+#endif
 
   int i;     /* points to the pathway of the reaction */
   int j;     /* points to the the reaction */
@@ -3716,12 +3757,12 @@ void reschedule_surface_molecules(
     }
 
     mem_put(sm->birthplace, sm);
-    if (schedule_add(sv->local_storage->timer, sm_new))
+    if (schedule_add_mol(sv->local_storage->timer, sm_new))
       mcell_allocfailed("Failed to add a '%s' surface molecule to scheduler "
                         "after migrating to a new memory store.",
                         am->properties->sym->name);
   } else {
-    if (schedule_add(local->timer, am))
+    if (schedule_add_mol(local->timer, am))
       mcell_allocfailed("Failed to add a '%s' surface molecule to scheduler "
                         "after taking a diffusion step.",
                         am->properties->sym->name);
@@ -3748,6 +3789,18 @@ void run_timestep(struct volume *state, struct storage *local,
 
   // Now run the timestep
 
+#ifdef MCELL3_SORTED_MOLS_ON_RUN_TIMESTEP
+  #ifdef DUMP_LOCAL_SCHEDULE_HELPER
+    dump_schedule_helper(local->timer, "Before sorting", "", "", true);
+  #endif
+  // sort by time and id so that we get the same ordering as in mcell4
+  sort_schedule_by_time_and_id(local->timer);
+
+  #ifdef DUMP_LOCAL_SCHEDULE_HELPER
+    dump_schedule_helper(local->timer, "After sorting", "", "", true);
+  #endif
+#endif
+
   /* Do not trigger the scheduler to advance!  This will be done
    * by the main loop. */
   while (local->timer->current != NULL) {
@@ -3772,7 +3825,7 @@ void run_timestep(struct volume *state, struct storage *local,
       struct volume *world = state;
       DUMP_CONDITION3(
           struct volume_molecule* vm = (struct volume_molecule*)am;
-          dump_volume_molecule(vm, "", true, "\n* Scheduled action: ", world->current_iterations, vm->t, true);
+          dump_volume_molecule(vm, "", true, "\n* Running scheduled action: ", world->current_iterations, vm->t, true);
       );
     }
 #endif

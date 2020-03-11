@@ -24,14 +24,28 @@
 #ifndef SRC4_DEFINES_H_
 #define SRC4_DEFINES_H_
 
+#ifndef NDEBUG
+// TODO: probably make this enabled only for Eclipse, we want the debug build to behave exactly as the release build
+#define INDEXER_WA // Don't know yet how to convince Eclipse to correctly index boost containers
+#endif
+
+#if defined(NDEBUG) && defined(INDEXER_WA)
+#warning "INDEXER_WA is enabled and this will lead to lower performance"
+#endif
+
 #ifndef SWIG
 #include <stdint.h>
+#include <vector>
+#include <set>
+#include <string>
 #include <cassert>
+#include <climits>
 #include <cmath>
-
-
-#include "../libs/bng/common_defines.h"
-#include "../libs/bng/bng_defines.h"
+#include <iostream>
+#include <map>
+#include <unordered_map>
+#include "../libs/boost/container/small_vector.hpp"
+#include "../libs/boost/container/flat_set.hpp"
 
 #include "mcell_structs.h"
 #include "debug_config.h"
@@ -85,8 +99,6 @@
 
 namespace MCell {
 
-typedef Common::float_t float_t;
-
 // ---------------------------------- optimization macros ----------------------------------
 #if defined(likely) or defined(unlikely)
 #error "Macros 'likely' or 'unlikely' are already defined"
@@ -95,7 +107,24 @@ typedef Common::float_t float_t;
 #define likely(x)       __builtin_expect((x),1)
 #define unlikely(x)     __builtin_expect((x),0)
 
+// ---------------------------------- float types ----------------------------------
 
+
+#define FLOAT_T_BYTES 8 // or 4 (not working yet)
+
+#if FLOAT_T_BYTES == 8
+typedef double float_t;
+const float_t EPS = 1e-12; // same as EPS_C
+const float_t SQRT_EPS = 1e-6;
+const float_t GIGANTIC4 = 1e140;
+#elif FLOAT_T_BYTES == 4
+typedef float float_t;
+const float_t EPS = 1e-6;
+const float_t SQRT_EPS = 1e-4;
+const float_t GIGANTIC4 = 1e38;
+#else
+#error "FLOAT_T_BYTES must be either 8 or 4"
+#endif
 
 const float_t SCHEDULER_COMPARISON_EPS = 1e-10;
 
@@ -107,13 +136,27 @@ const float_t SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT = 1;
 
 
 // ---------------------------------- fixed constants and specific typedefs -------------------
+const float_t POS_INVALID = FLT_MAX; // cannot be NAN because we cannot do any comparison with NANs
+
+const float_t TIME_INVALID = -256;
+const float_t TIME_FOREVER = FLT_MAX; // this max is sufficient for both float and double
+const float_t TIME_SIMULATION_START = 0;
 
 const float_t DIFFUSION_CONSTANT_ZER0 = 0;
+const float_t SQRT2 = 1.41421356238;
+const float_t RX_RADIUS_MULTIPLIER = 1.2; // TEMPORARY - we should figure out why some collisions with subparts are missed..., but maybe, it won't have big perf impact...
+
+const uint ID_INVALID = UINT32_MAX; // general invalid index, should not be used when a definition for a specific type is available
+const uint INDEX_INVALID = UINT32_MAX; // general invalid index, should not be used when a definition for a specific type is available
 
 // unique species id
 typedef uint species_id_t;
 const species_id_t SPECIES_ID_INVALID = ID_INVALID;
 
+// molecule id is a unique identifier of a molecule,
+// no 2 molecules may have the same ID in the course of a simulation (at least for now)
+typedef uint molecule_id_t;
+const molecule_id_t MOLECULE_ID_INVALID = ID_INVALID;
 
 // molecule index is index into partition's molecules array, indices and ids are
 // identical until the first defragmentation that shuffles molecules in the molecules array
@@ -127,6 +170,12 @@ const partition_index_t PARTITION_INDEX_INVALID = INDEX_INVALID;
 
 typedef uint subpart_index_t;
 const subpart_index_t SUBPART_INDEX_INVALID = INDEX_INVALID;
+
+// index of reaction in a reaction class pathway (local for reaction)
+// -1 is used to signalize that no reaction was selected (i < RX_LEAST_VALID_PATHWAY)
+// TODO: change to using and use INVALID?
+typedef int reaction_index_t;
+//const reaction_index_t REACTION_INDEX_INVALID = INDEX_INVALID;
 
 // time step is used in partition to make sets of molecules that can be diffused with
 // different periodicity
@@ -198,24 +247,81 @@ typedef std::pair<partition_index_t, vertex_index_t> PartitionVertexIndexPair;
 typedef std::pair<float_t, PartitionWallIndexPair> CummAreaPWallIndexPair;
 
 
-class Reaction;
+class RxnClass;
+
+const int BASE_CONTAINER_ALLOC = 16;
 
 #ifndef INDEXER_WA
-typedef boost::container::small_vector<subpart_index_t, 8>  SubpartIndicesVector;
-typedef boost::container::small_vector<const Reaction*, 8>  ReactionsVector;
+template<class T, class Allocator=boost::container::new_allocator<T>>
+  using small_vector = boost::container::small_vector<T, BASE_CONTAINER_ALLOC, Allocator>;
+
+typedef boost::container::small_vector<subpart_index_t, BASE_CONTAINER_ALLOC>  SubpartIndicesVector;
+typedef boost::container::small_vector<const RxnClass*, BASE_CONTAINER_ALLOC>  RxnClassesVector;
+
+template<class T, typename Compare = std::less<T>, class Allocator=boost::container::new_allocator<T>>
+  using base_flat_set = boost::container::flat_set<T, Compare, Allocator>;
 #else
+template<typename T, typename _Alloc = std::allocator<T>  >
+  using small_vector = std::vector<T, _Alloc>;
+
 typedef std::vector<subpart_index_t> SubpartIndicesVector;
-typedef std::vector<const Reaction*> ReactionsVector;
+typedef std::vector<const RxnClass*> RxnClassesVector;
+
+template<typename T, typename _Compare = std::less<T>, typename _Alloc = std::allocator<T>  >
+  using base_flat_set = std::set<T, _Compare, _Alloc>;
 #endif
+
+/**
+ * Template class used to hold sets of ids or indices of molecules or other items,
+ * extended to check for unique insertions and checked removals.
+ */
+template<typename T>
+class uint_set: public base_flat_set<T> {
+public:
+  // insert with check that the item is not there yet
+  // for insertions without this check use 'insert'
+  void insert_unique(const T id_or_index) {
+    assert(this->count(id_or_index) == 0);
+    this->insert(id_or_index);
+  }
+
+  // erase with check that the item is present
+  // for insertions without this check use 'erase'
+  void erase_existing(const T id_or_index) {
+    assert(this->count(id_or_index) == 1);
+    this->erase(id_or_index);
+  }
+
+  void dump(const std::string comment = "") const {
+    std::cout << comment << ": ";
+    int cnt = 0;
+    for (const T& idx: *this) {
+      std::cout << idx << ", ";
+
+      if (cnt %20 == 0 && cnt != 0) {
+        std::cout << "\n";
+      }
+      cnt++;
+    }
+    std::cout << "\n";
+  }
+};
 
 // ---------------------------------- vector types ----------------------------------
 
+#if FLOAT_T_BYTES == 8
 typedef glm::dvec3 glm_vec3_t;
 typedef glm::dvec2 glm_vec2_t;
+typedef glm::dmat4x4 mat4x4;
+#else
+typedef glm::fvec3 glm_vec3_t;
+typedef glm::fvec2 glm_vec2_t;
+typedef glm::fmat4x4 mat4x4;
+#endif
+
 typedef glm::ivec3 ivec3_t;
 typedef glm::uvec3 uvec3_t;
 typedef glm::bvec3 bvec3_t;
-typedef glm::dmat4x4 mat4x4;
 
 // NOTE: rename to Vec3? - not sure, this is a really simple object...
 struct vec3_t: public glm_vec3_t {
@@ -341,11 +447,19 @@ static inline float_t max3d(const vec3_t& v) {
   return glm::compMax((glm_vec3_t)v);
 }
 
+static inline vec3_t abs3(const vec3_t& v) {
+  return glm::abs((glm_vec3_t)v);
+}
+
+static inline vec3_t floor3(const vec3_t& v) {
+  return glm::floor((glm_vec3_t)v);
+}
+
 /* abs_max_2vec picks out the largest (absolute) value found among two vectors
  * (useful for properly handling floating-point rounding error). */
 static inline float_t abs_max_2vec(const vec3_t& v1, const vec3_t& v2) {
-  glm_vec3_t v1abs = glm::abs((glm_vec3_t)v1);
-  glm_vec3_t v2abs = glm::abs((glm_vec3_t)v2);
+  glm_vec3_t v1abs = abs3(v1);
+  glm_vec3_t v2abs = abs3(v2);
   vec3_t vmax = glm::max(v1abs, v2abs);
   return MCell::max3d(vmax);
 }
@@ -382,6 +496,27 @@ static inline float_t len3(const vec3_t& v1) {
 
 static inline float_t distance3(const vec3_t& v1, const vec3_t& v2) {
   return sqrt_f( len3_squared(v1 - v2) );
+}
+
+static inline uint get_largest_abs_dim_index(const vec3_t& v) {
+  vec3_t a = glm::abs(glm_vec3_t(v));
+  if (a.x > a.y) {
+    if (a.x > a.z) {
+      return 0; // x
+    }
+    else {
+      return 2; // z
+    }
+  }
+  else {
+    if (a.y > a.z) {
+      return 1; // y
+    }
+    else {
+      return 2; // z
+    }
+
+  }
 }
 
 /***************************************************************************
@@ -504,7 +639,7 @@ static inline bool distinguishable_vec3(const vec3_t& a, const vec3_t& b, float_
   return (c * eps < cc);
 }
 
-
+// FIXME: use these functions also for NDEBUG versions
 static inline void debug_guard_zero_div(float_t& val) {
 #ifndef NDEBUG
   // if we divide by such a small number, result is practically the same as
@@ -514,6 +649,7 @@ static inline void debug_guard_zero_div(float_t& val) {
   }
 #endif
 }
+
 
 static inline void debug_guard_zero_div(vec3_t& val) {
 #ifndef NDEBUG

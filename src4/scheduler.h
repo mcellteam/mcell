@@ -85,6 +85,14 @@ private:
   BucketDeque queue;
 };
 
+// Structure used to return information about the event that was just handled
+struct EventExecutionInfo {
+  EventExecutionInfo(float_t time_, event_type_index_t type_index_)
+    : time(time_), type_index(type_index_) {
+  }
+  float_t time;
+  event_type_index_t type_index;
+};
 
 class Scheduler {
 public:
@@ -95,7 +103,7 @@ public:
   float_t get_next_event_time();
 
   // returns time of the event that was handled
-  float_t handle_next_event();
+  EventExecutionInfo handle_next_event();
 
 private:
   Calendar calendar;

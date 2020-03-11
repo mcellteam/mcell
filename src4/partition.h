@@ -30,8 +30,8 @@
 #include "dyn_vertex_structs.h"
 #include "molecule.h"
 #include "scheduler.h"
-#include "reaction.h"
 #include "geometry.h"
+#include "reaction.h"
 #include "species.h"
 #include "reactions_info.h"
 #include "species_info.h"
@@ -131,14 +131,20 @@ public:
   }
 
 
+  bool is_subpart_index_in_range(const int index) const {
+    assert((subpart_index_t)index != SUBPART_INDEX_INVALID);
+    return index >= 0 && index < (int)config.subpartitions_per_partition_dimension;
+  }
+
+
   void get_subpart_3d_indices(const vec3_t& pos, ivec3_t& res) const {
     assert(in_this_partition(pos));
     vec3_t relative_position = pos - origin_corner;
     res = relative_position * config.subpartition_edge_length_rcp;
   }
 
-
-  uint32_t get_subpartition_index_from_3d_indices(const ivec3_t& indices) const {
+  // FIXME: use subpart_index_t, rename to subpart
+  subpart_index_t get_subpart_index_from_3d_indices(const ivec3_t& indices) const {
     // example: dim: 5x5x5,  (1, 2, 3) -> 1 + 2*5 + 3*5*5 = 86
     return
         indices.x +
@@ -146,9 +152,8 @@ public:
         indices.z * config.subpartitions_per_partition_dimension_squared;
   }
 
-
-  uint32_t get_subpart_index_from_3d_indices(const int x, const int y, const int z) const {
-    return get_subpartition_index_from_3d_indices(ivec3_t(x, y, z));
+  subpart_index_t get_subpart_index_from_3d_indices(const int x, const int y, const int z) const {
+    return get_subpart_index_from_3d_indices(ivec3_t(x, y, z));
   }
 
 
@@ -160,11 +165,10 @@ public:
     indices.z = (index / config.subpartitions_per_partition_dimension_squared) % dim;
   }
 
-
-  uint32_t get_subpartition_index(const vec3_t& pos) {
+  subpart_index_t get_subpart_index(const vec3_t& pos) const {
     ivec3_t indices;
     get_subpart_3d_indices(pos, indices);
-    return get_subpartition_index_from_3d_indices(indices);
+    return get_subpart_index_from_3d_indices(indices);
   }
 
 
@@ -191,7 +195,7 @@ public:
     SpeciesReactantsMap& subpart_reactants_new_sp = volume_molecule_reactants_per_subpart[new_subpartition_index];
 
     // and these are indices of possible reactants with our reactant_species_id
-    const SpeciesReactionMap& reactions_map = all_reactions.bimolecular_reactions_map.find(vm.species_id)->second;
+    const SpeciesRxnClassesMap& reactions_map = all_reactions.bimolecular_reactions_map.find(vm.species_id)->second;
 
     // we need to set/clear flag that says that second_reactant_info.first can react with reactant_species_id
     for (const auto& second_reactant_info : reactions_map) {
@@ -212,7 +216,7 @@ public:
       return; // nothing to do
     }
 #ifdef DEBUG_SUBPARTITIONS
-    std::cout << "Molecule " << molecule_idx << " changed subpartition from "
+    std::cout << "Molecule " << vm.id << " changed subpartition from "
         <<  vm.v.subpart_index << " to " << new_subpartition_index << ".\n";
 #endif
 
@@ -269,7 +273,7 @@ public:
 
     Molecule& new_vm = add_molecule(vm_copy, true);
 
-    new_vm.v.subpart_index = get_subpartition_index(vm_copy.v.pos);
+    new_vm.v.subpart_index = get_subpart_index(vm_copy.v.pos);
     change_reactants_map(new_vm, new_vm.v.subpart_index, true, false);
 
     return new_vm;
@@ -440,6 +444,15 @@ public:
   Region& get_region(const region_index_t i) {
     assert(i < regions.size());
     return regions[i];
+  }
+
+  const Region* get_region_by_name(const std::string& name) const {
+    for (const Region& r: regions) {
+      if (r.name == name) {
+        return &r;
+      }
+    }
+    return nullptr;
   }
 
   uint get_wall_count() const {

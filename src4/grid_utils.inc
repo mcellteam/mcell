@@ -855,6 +855,88 @@ static void grid_all_neighbors_across_walls_through_vertices(
 }
 
 
+/*************************************************************************
+bisect:
+  In: array of float_ts, sorted low to high
+      int saying how many float_ts there are
+      float_t we are using to bisect the array
+  Out: index of the largest element in the array smaller than the bisector
+*************************************************************************/
+static int bisect(float_t *list, int n, float_t val) {
+  int lo = 0;
+  int hi = n;
+  int mid = 0;
+  while (hi - lo > 1) {
+    mid = (hi + lo) / 2;
+    if (list[mid] > val) {
+      hi = mid;
+    }
+    else {
+      lo = mid;
+    }
+  }
+  return lo;
+}
+
+/*************************************************************************
+bisect_near:
+  In: array of float_ts, sorted low to high
+      int saying how many float_ts there are
+      float_t we are using to bisect the array
+  Out: index of the element closest to val
+*************************************************************************/
+static int bisect_near(float_t *list, int n, float_t val) {
+  int lo = 0;
+  int hi = n - 1;
+  int mid = 0;
+  while (hi - lo > 1) {
+    mid = (hi + lo) / 2;
+    if (list[mid] > val)
+    {
+      hi = mid;
+    } else {
+      lo = mid;
+    }
+  }
+  if (val > list[hi]) {
+    return hi;
+  }
+  else if (val < list[lo]) {
+    return lo;
+  }
+  else if (val - list[lo] < list[hi] - val) {
+    return lo;
+  }
+  else {
+    return hi;
+  }
+}
+
+/*************************************************************************
+bisect_high:
+  In: array of float_ts, sorted low to high
+      int saying how many float_ts there are
+      float_t we are using to bisect the array
+  Out: index of the smallest element in the array larger than the bisector
+*************************************************************************/
+static int bisect_high(float_t *list, int n, float_t val) {
+  int lo = 0;
+  int hi = n - 1;
+  int mid = 0;
+  while (hi - lo > 1) {
+    mid = (hi + lo) / 2;
+    if (list[mid] > val) {
+      hi = mid;
+    } else {
+      lo = mid;
+    }
+  }
+  if (list[lo] > val) {
+    return lo;
+  } else {
+    return hi;
+  }
+}
 
 /**************************************************************************
 add_more_tile_neighbors_to_list_fast:
@@ -1952,7 +2034,7 @@ static void find_closest_tile_on_wall(
 
     // squared distance
     float_t max_search_d2 = search_d2 - closest_d2;
-    if (max_search_d2 <= EPS_C * EPS_C) {
+    if (max_search_d2 <= EPS * EPS) {
       mcell_error("Search distance for find_closest_tile_on_wall is too small");
     }
 

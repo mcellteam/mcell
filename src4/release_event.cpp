@@ -33,6 +33,7 @@
 #include "world.h"
 #include "partition.h"
 
+#include "collision_utils.inc"
 #include "geometry_utils.inc"
 #include "grid_utils.inc"
 
@@ -170,15 +171,52 @@ void ReleaseEvent::release_onto_regions(uint computed_release_number) {
   }
 }
 
+void ReleaseEvent::release_inside_regions(uint computed_release_number) {
+
+  assert(region_name != "");
+  Partition& p = world->get_partition(0);
+  const Region* reg = p.get_region_by_name(region_name);
+  assert(reg != nullptr && "Region for release must exist");
+
+  /*if (rso->release_number_method == CCNNUM) {
+    n = num_vol_mols_from_conc(rso, state->length_unit, &exactNumber);
+  }*/
+
+  int n = computed_release_number;
+
+  while (n > 0) {
+    vec3_t pos;
+    pos.x = region_llf.x + (region_urb.x - region_llf.x) * rng_dbl(&world->rng);
+    pos.y = region_llf.y + (region_urb.y - region_llf.y) * rng_dbl(&world->rng);
+    pos.z = region_llf.z + (region_urb.z - region_llf.z) * rng_dbl(&world->rng);
+
+    if (!CollisionUtil::is_point_inside_region(p, pos, *reg)) {
+      /*if (rso->release_number_method == CCNNUM && !exactNumber)
+        n--;*/
+      continue;
+    }
+
+    // TODO_LATER: location can be close to a partition boundary, we might need to release to a different partition
+    Molecule& new_vm = p.add_volume_molecule(
+        Molecule(MOLECULE_ID_INVALID, species_id, pos)
+    );
+    new_vm.flags = IN_VOLUME | ACT_DIFFUSE;
+    new_vm.set_flag(MOLECULE_FLAG_VOL);
+    new_vm.set_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RX);
+
+    n--;
+  }
+}
+
 
 void ReleaseEvent::release_ellipsoid_or_rectcuboid(uint computed_release_number) {
 
   Partition& p = world->get_partition(world->get_or_add_partition_index(location));
   float_t time_step = world->all_species.get(species_id).time_step;
 
-  const int is_spheroidal = (release_shape == SHAPE_SPHERICAL ||
-                             release_shape == SHAPE_ELLIPTIC ||
-                             release_shape == SHAPE_SPHERICAL_SHELL);
+  const int is_spheroidal = (release_shape == ReleaseShape::SPHERICAL ||
+                             /*release_shape == SHAPE_ELLIPTIC ||*/
+                             release_shape == ReleaseShape::SPHERICAL_SHELL);
 
   for (uint i = 0; i < computed_release_number; i++) {
     vec3_t pos;
@@ -189,7 +227,7 @@ void ReleaseEvent::release_ellipsoid_or_rectcuboid(uint computed_release_number)
       pos.z = (rng_dbl(&world->rng) - 0.5);
     } while (is_spheroidal && len3_squared(pos) >= 0.25);
 
-    if (release_shape == SHAPE_SPHERICAL_SHELL) {
+    if (release_shape == ReleaseShape::SPHERICAL_SHELL) {
       float_t r = sqrt(len3_squared(pos)) * 2.0;
       if (r == 0.0) {
         pos = vec3_t(0.0, 0.0, 0.5);
@@ -231,17 +269,20 @@ void ReleaseEvent::step() {
 
   const Species& species = world->all_species.get(species_id);
 
-  if (release_shape == SHAPE_REGION) {
+  if (release_shape == ReleaseShape::REGION) {
     if (species.is_surf()) {
       release_onto_regions(number);
     }
     else {
-      assert(false && "Region volume mol release is not supported yet.");
+      release_inside_regions(number);
     }
   }
-  else {
+  else if (release_shape == ReleaseShape::SPHERICAL) {
     assert(diameter.is_valid());
     release_ellipsoid_or_rectcuboid(number);
+  }
+  else {
+    assert(false);
   }
 
   cout

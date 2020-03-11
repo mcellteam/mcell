@@ -289,7 +289,7 @@ void Wall::precompute_wall_constants(const Partition& p) {
 
   area = 0.5 * len3(vX);
 
-  if (!distinguishable(area, 0, EPS_C)) {
+  if (!distinguishable(area, 0, EPS)) {
     /* this is a degenerate polygon.
     * perform initialization and quit. */
     normal = vec3_t(0);

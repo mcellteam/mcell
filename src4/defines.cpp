@@ -26,6 +26,11 @@
 #include <iostream>
 #include <sstream>
 
+#ifdef DWITHGPERFTOOLS
+// using longer path to avoid collisions
+#include "install_gperftools/include/profiler.h"
+#endif
+
 using namespace std;
 
 namespace MCell {

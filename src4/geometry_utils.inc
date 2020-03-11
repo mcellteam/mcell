@@ -171,7 +171,7 @@ static void wall_subparts_collision_test(
   // do we fit into just one subparition?
   if (max_subpart_indices == min_subpart_indices) {
     colliding_subparts.push_back(
-        p.get_subpartition_index_from_3d_indices(min_subpart_indices)
+        p.get_subpart_index_from_3d_indices(min_subpart_indices)
     );
     return;
   }

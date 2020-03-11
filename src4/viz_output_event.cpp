@@ -150,17 +150,17 @@ void VizOutputEvent::output_ascii_molecules() {
 
       const Species& species = world->all_species.get(m.species_id);
 
-#if FLOAT_T_BYTES == 8
+      glm::dvec3 dwhere = where;
+      glm::dvec3 dnorm = norm;
+      assert(sizeof(dwhere.x) == sizeof(double));
+
       errno = 0;
       fprintf(custom_file, "%s %u %.9g %.9g %.9g %.9g %.9g %.9g\n",
           species.name.c_str(), m.id,
-          where.x, where.y, where.z,
-          norm.x, norm.y, norm.z
+          dwhere.x, dwhere.y, dwhere.z,
+          dnorm.x, dnorm.y, dnorm.z
       );
       assert(errno == 0);
-#else
-#error "Marker for float type"
-#endif
     }
   }
 
@@ -235,13 +235,15 @@ void VizOutputEvent::output_cellblender_molecules() {
            where, norm
        );
 
-#if FLOAT_T_BYTES == 8
-       fwrite(&where.x, sizeof(float_t), 1, custom_file);
-       fwrite(&where.y, sizeof(float_t), 1, custom_file);
-       fwrite(&where.z, sizeof(float_t), 1, custom_file);
-#else
-#error "Marker for float type"
-#endif
+       // the values are always stored as double
+       glm::dvec3 dwhere = where;
+       assert(sizeof(dwhere.x) == sizeof(double));
+
+       fwrite(&dwhere.x, sizeof(double), 1, custom_file);
+       fwrite(&dwhere.y, sizeof(double), 1, custom_file);
+       fwrite(&dwhere.z, sizeof(double), 1, custom_file);
+
+       // TODO: store norm
      }
 
    }

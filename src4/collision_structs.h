@@ -27,6 +27,7 @@
 #include "defines.h"
 #include <set>
 #include "../libs/boost/container/small_vector.hpp"
+#include "../libs/sparsehash/src/google/dense_hash_set"
 
 namespace MCell {
 
@@ -34,12 +35,12 @@ namespace MCell {
 enum class CollisionType {
   INVALID,
 
-  VOLMOL_VOLMOL,
   WALL_REDO,
   WALL_MISS,
   WALL_FRONT,
   WALL_BACK,
 
+  VOLMOL_VOLMOL,
   SURFMOL_SURFMOL,
   VOLMOL_SURFMOL,
   UNIMOLECULAR_VOLMOL,
@@ -48,13 +49,25 @@ enum class CollisionType {
 
 class Collision;
 class Partition;
+class Rxn;
+class RxnClass;
+
+
 
 #ifndef INDEXER_WA
 typedef boost::container::small_vector<Collision, 16> collision_vector_t;
-typedef boost::container::flat_set<subpart_index_t> subpart_indices_set_t;
+
+// boost't set is slower (measured for mcell_tests_private/benchmarks/mdl/B3050_camkii_gen_rxn_faster_no_rxn_out_it_200)
+//typedef boost::container::flat_set<subpart_index_t> subpart_indices_set_t;
+//#define SUBPART_SET_INITIALIZE(container, size, invalid_value) container.reserve(size)
+
+typedef google::dense_hash_set<subpart_index_t> subpart_indices_set_t;
+#define SUBPART_SET_INITIALIZE(container, size, invalid_value) container.set_empty_key(invalid_value)
+
 #else
-typedef std::vector<Collision> collision_vector_t;
+typedef std::vector<Collision> collision_vector_t; // FIXME: shoudl be UpperCase
 typedef std::set<subpart_index_t> subpart_indices_set_t;
+#define SUBPART_SET_INITIALIZE(container, size, invalid_value) do { } while(0)
 #endif
 /**
  * Information about collision of 2 volume/surface molecules or a of a wall collision,
@@ -64,7 +77,7 @@ class Collision {
 public:
   Collision()
     : type(CollisionType::INVALID), partition(nullptr), diffused_molecule_id(MOLECULE_ID_INVALID), time(TIME_INVALID),
-      colliding_molecule_id(MOLECULE_ID_INVALID), rx(nullptr), colliding_wall_index(WALL_INDEX_INVALID) {
+      colliding_molecule_id(MOLECULE_ID_INVALID), rx(nullptr), rxn_class(nullptr), colliding_wall_index(WALL_INDEX_INVALID) {
   }
 
   // maybe create some static constructors with better names
@@ -75,7 +88,7 @@ public:
       const float_t time_,
       const vec3_t& pos_,
       const molecule_id_t colliding_molecule_id_,
-      const Reaction* rx_ptr
+      const RxnClass* rxn_class_ptr
       )
     :
       type(type_),
@@ -84,7 +97,8 @@ public:
       time(time_),
       pos(pos_),
       colliding_molecule_id(colliding_molecule_id_),
-      rx(rx_ptr),
+      rx(nullptr),
+      rxn_class(rxn_class_ptr),
       colliding_wall_index(WALL_INDEX_INVALID) {
     assert((type == CollisionType::VOLMOL_VOLMOL || type == CollisionType::VOLMOL_SURFMOL)
         && "This constructor must be used only for volmol or volsurf collisions");
@@ -96,7 +110,7 @@ public:
       const molecule_id_t diffused_molecule_id_,
       const float_t time_, // time from event start
       const molecule_id_t colliding_molecule_id_,
-      const Reaction* rx_ptr
+      const RxnClass* rxn_class_ptr
       )
     :
       type(type_),
@@ -104,7 +118,8 @@ public:
       diffused_molecule_id(diffused_molecule_id_),
       time(time_),
       colliding_molecule_id(colliding_molecule_id_),
-      rx(rx_ptr),
+      rx(nullptr),
+      rxn_class(rxn_class_ptr),
       colliding_wall_index(WALL_INDEX_INVALID) {
     assert(type == CollisionType::SURFMOL_SURFMOL && "This constructor must be used only for surfsurf collisions");
   }
@@ -125,6 +140,7 @@ public:
       pos(pos_),
       colliding_molecule_id(MOLECULE_ID_INVALID),
       rx(nullptr),
+      rxn_class(nullptr),
       colliding_wall_index(colliding_wall_index_) {
     assert((type == CollisionType::WALL_BACK || type == CollisionType::WALL_FRONT) && "This constructor must be used only for wall collisions");
   }
@@ -135,7 +151,7 @@ public:
       const molecule_id_t diffused_molecule_id_,
       const float_t time_,
       const vec3_t& pos_,
-      const Reaction* rx_ptr
+      const Rxn* rx_ptr
       )
     :
       type(type_),
@@ -145,6 +161,7 @@ public:
       pos(pos_),
       colliding_molecule_id(MOLECULE_ID_INVALID),
       rx(rx_ptr),
+      rxn_class(nullptr),
       colliding_wall_index(WALL_INDEX_INVALID) {
     assert(type == CollisionType::UNIMOLECULAR_VOLMOL && "This constructor must be used only for unimol volmol collisions");
   }
@@ -156,23 +173,46 @@ public:
   float_t time;
   vec3_t pos;
 
-  // valid only for COLLISION_VOLMOL_VOLMOL
+  // valid only for is_wall_collision
   molecule_id_t colliding_molecule_id;
-  const Reaction* rx;
+  const Rxn* rx;
+
+  // used for VOLMOL_VOLMOL or type == CollisionType::VOLMOL_SURFMOL
+  // TODO: make them private? so that we can check access
+  const RxnClass* rxn_class;
 
   // valid only for COLLISION_WALL*
   wall_index_t colliding_wall_index;
 
-  bool is_vol_mol_collision() const {
+  bool is_vol_mol_vol_mol_collision() const {
     return type == CollisionType::VOLMOL_VOLMOL;
   }
 
-  bool is_wall_collision() const { // FIXME: find WALL_FRONT and WALL_BACK and replace
+  bool is_unimol_reaction() const {
+    return type == CollisionType::UNIMOLECULAR_VOLMOL;
+  }
+
+  bool is_mol_mol_reaction() const {
+    return type == CollisionType::VOLMOL_VOLMOL || type == CollisionType::SURFMOL_SURFMOL || type == CollisionType::VOLMOL_SURFMOL;
+  }
+
+  bool is_wall_collision() const {
     assert(type != CollisionType::WALL_REDO && "Not sure yet what to do with redo");
     return type == CollisionType::WALL_FRONT || type == CollisionType::WALL_BACK;
   }
 
+  // full dump
   void dump(Partition& p, const std::string ind) const;
+
+  // for comparison with mcell3
+  // FIXME: args are almost the same as for the variant above
+  void dump(
+      const Partition& p,
+      const std::string extra_comment,
+      const uint64_t iteration,
+      float_t time_override = TIME_INVALID
+  ) const;
+
   std::string to_string(const Partition& p) const;
   static void dump_array(Partition& p, const collision_vector_t& vec);
 };

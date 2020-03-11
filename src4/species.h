@@ -56,6 +56,8 @@ public:
   uint mcell3_species_id;
   float_t D; // diffusion constant
   std::string name;
+
+  // TODO: make private
   float_t space_step;
   float_t time_step; // in standard time
 
@@ -85,6 +87,14 @@ public:
 
   bool can_diffuse() const {
     return D != DIFFUSION_CONSTANT_ZER0;
+  }
+
+  float_t get_time_step() const {
+    return time_step;
+  }
+
+  float_t get_space_step() const {
+    return space_step;
   }
 
   void dump(const std::string ind) const;

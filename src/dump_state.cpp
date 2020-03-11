@@ -301,6 +301,35 @@ std::ostream & operator<<(std::ostream &out, const output_expression *e) {
 
 #define DUMP_FLAG(f, mask) if (((f) & (mask)) != 0) res += string(#mask) + ", ";
 
+string get_species_flags_string(uint flags) {
+  string res;
+  DUMP_FLAG(flags, ON_GRID)
+  DUMP_FLAG(flags, IS_SURFACE)
+  DUMP_FLAG(flags, NOT_FREE)
+  DUMP_FLAG(flags, TIME_VARY)
+  DUMP_FLAG(flags, CAN_VOLVOLVOL)
+  DUMP_FLAG(flags, CAN_VOLVOL)
+  DUMP_FLAG(flags, CAN_VOLSURF)
+  DUMP_FLAG(flags, CAN_VOLWALL)
+  DUMP_FLAG(flags, CAN_SURFSURF)
+  DUMP_FLAG(flags, CAN_SURFWALL)
+  DUMP_FLAG(flags, CAN_VOLVOLSURF)
+  DUMP_FLAG(flags, CANT_INITIATE)
+  DUMP_FLAG(flags, COUNT_TRIGGER)
+  DUMP_FLAG(flags, COUNT_CONTENTS)
+  DUMP_FLAG(flags, COUNT_HITS)
+  DUMP_FLAG(flags, COUNT_RXNS)
+  DUMP_FLAG(flags, COUNT_ENCLOSED)
+  DUMP_FLAG(flags, COUNT_SOME_MASK)
+  DUMP_FLAG(flags, CAN_VOLSURFSURF)
+  DUMP_FLAG(flags, CAN_SURFSURFSURF)
+  DUMP_FLAG(flags, SET_MAX_STEP_LENGTH)
+  DUMP_FLAG(flags, CAN_REGION_BORDER)
+  DUMP_FLAG(flags, REGION_PRESENT)
+  DUMP_FLAG(flags, EXTERNAL_SPECIES)
+  return res;
+}
+
 string get_molecule_flags_string(short flags, bool full_dump = true) {
   string res;
   DUMP_FLAG(flags, TYPE_SURF)
@@ -344,6 +373,19 @@ string get_report_type_flags_string(char report_type) {
 
   return res;
 
+}
+
+
+string get_region_expression_flags_string(char op) {
+  string res;
+  DUMP_FLAG(op, REXP_NO_OP)
+  DUMP_FLAG(op, REXP_UNION)
+  DUMP_FLAG(op, REXP_INTERSECTION)
+  DUMP_FLAG(op, REXP_SUBTRACTION)
+  DUMP_FLAG(op, REXP_LEFT_REGION)
+  DUMP_FLAG(op, REXP_RIGHT_REGION)
+
+  return res;
 }
 
 #undef DUMP_FLAG
@@ -705,6 +747,9 @@ void dump_region(region* reg, const char* ind) {
 
   // TODO XXXXXXXX
   cout << ind << "reg: *\t\t" << (void*)reg << " [region] \t\t\n";
+  if (reg == nullptr) {
+    return;
+  }
   cout << ind << "  " << "sym: *\t\t" << reg->sym << " [sym_entry] \t\t  /* Symbol hash table entry for this region */\n";
   cout << ind << "  " << "hashval: \t\t" << reg->hashval << " [u_int] \t\t          /* Hash value for counter hash table */\n";
   cout << ind << "  " << "region_last_name: *\t\t" << reg->region_last_name << " [char] \t\t /* Name of region without prepended object name */\n";
@@ -978,6 +1023,32 @@ void dump_region_data_owners(
 }
 
 
+// recursive
+void dump_release_evaluator(release_evaluator* expr, const char* ind) {
+  DECL_IND2(ind);
+  if (expr == nullptr) {
+    return;
+  }
+
+  cout << ind2 << "op: " << get_region_expression_flags_string(expr->op) << "\n";
+  cout << ind2 << "left: ";
+  if (expr->op & REXP_LEFT_REGION) {
+    region* r = (region *)expr->left;
+    dump_region(r, ind2);
+  }
+  else {
+    dump_release_evaluator((release_evaluator*)expr->left, ind2);
+  }
+  cout << ind2 << "right: ";
+  if (expr->op & REXP_RIGHT_REGION) {
+    region* r = (region *)expr->right;
+    dump_region(r, ind2);
+  }
+  else {
+    dump_release_evaluator((release_evaluator*)expr->right, ind2);
+  }
+}
+
 
 void dump_release_region_data(release_region_data* region_data, const char* name, const char* comment, const char* ind) {
   DECL_IND2(ind);
@@ -1005,9 +1076,12 @@ void dump_release_region_data(release_region_data* region_data, const char* name
     cout << ind2 << "in_release: **\t\t" << region_data->in_release << " [bit_array] \t\t/* Array of bit arrays; each bit array says which walls are in release for an object */\n";
     // TODO - dump
     cout << ind2 << "walls_per_obj: *\t\t" << region_data->walls_per_obj << " [int] \t\t/* Number of walls in release for each object */\n";
-    // TODO - ???
+
     cout << ind2 << "self: *\t\t" << region_data->self << " [object] \t\t/* A pointer to our own release site object */\n";
+    dump_object(region_data->self,  IND_ADD2(ind2));
+
     cout << ind2 << "expression: *\t\t" << region_data->expression << " [release_evaluator] \t\t/* A set-construction expression combining regions to form this release site */\n";
+    dump_release_evaluator(region_data->expression, ind2);
   }
 
 }
@@ -1106,6 +1180,7 @@ void dump_schedule_helper(schedule_helper* shp, const char* name, const char* co
       }
       am = am->next;
     }
+    cout << "\n";
   }
   else {
     std::string inds = ind;
@@ -1200,8 +1275,7 @@ void dump_species_item(species* spec, const char* ind) {
   cout << ind2 <<"time_step: \t\t" << spec->time_step << " [double] \t\t/* Minimum (maximum?) sensible timestep */\n";
   cout << ind2 <<"max_step_length: \t\t" << spec->max_step_length << " [double] \t\t/* maximum allowed random walk step */\n";
 
-  //TODO: dump_species_flags(spec->flags, ind);
-  cout << ind2 <<"flags: \t\t" << spec->flags << " [u_int] \t\t/* Species Flags:  Vol Molecule? Surface Molecule? Surface Class? Counting stuff, etc... */\n";
+  cout << ind2 <<"flags: \t\t" << spec->flags << " [u_int] " << get_species_flags_string(spec->flags) << " \t\t/* Species Flags:  Vol Molecule? Surface Molecule? Surface Class? Counting stuff, etc... */\n";
 
   cout << ind2 <<"n_deceased: \t\t" << spec->n_deceased << " [long long] \t\t/* Total number that have been destroyed. */\n";
   cout << ind2 <<"cum_lifetime_seconds: \t\t" << spec->cum_lifetime_seconds << " [double] \t\t/* Seconds lived by now-destroyed molecules */\n";
@@ -2028,3 +2102,35 @@ void dump_tile_neighbors_list(struct tile_neighbor *tile_nbr_head, const char* e
   }
 }
 
+void dump_processing_reaction(
+    long long it,
+    struct vector3 *hitpt, double t,
+    struct rxn *rx, /*int path,*/
+    struct abstract_molecule *reacA,
+    struct abstract_molecule *reacB
+) {
+  assert(reacA != nullptr);
+  bool bimol = (reacB != nullptr);
+
+  cout << "Processing reaction:it:" << it << ", ";
+
+  if (bimol) {
+    cout <<
+      "bimol rxn" <<
+      ", idA:"  << reacA->id <<
+      ", idB:"  << reacB->id <<
+      //TODO ", rxn: " << rx->to_string(p) <<
+      ", time: " << t;
+    if (hitpt != nullptr) {
+      cout << ", pos " << *hitpt;
+    }
+  }
+  else {
+    cout <<
+      "unimol rxn" <<
+      ", idA:"  << reacA->id <<
+      // ", rxn: " << rx->to_string(p) <<
+      ", time: " << t;
+  }
+  cout << "\n";
+}

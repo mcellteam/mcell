@@ -30,9 +30,10 @@
 
 #include "base_event.h"
 #include "partition.h"
-#include "reaction.h"
 #include "collision_structs.h"
+#include "reaction.h"
 
+#define TEST 1
 
 namespace MCell {
 
@@ -89,34 +90,34 @@ public:
 
 private:
   // molecules newly created in reactions
-  std::vector<DiffuseOrUnimolReactionAction> new_diffuse_or_unimol_react_actions;
+  std::vector<DiffuseOrUnimolRxnAction> new_diffuse_or_unimol_react_actions;
 
   void diffuse_molecules(Partition& p, const std::vector< molecule_id_t >& indices);
 
   void diffuse_single_molecule(
       Partition& p,
       const molecule_id_t vm_id,
-      const float_t time_up_to_event_end,
+      const float_t diffusion_start_time,
       WallTileIndexPair where_created_this_iteration
   );
 
   // ---------------------------------- volume molecules ----------------------------------
-
+  // FIXME: unify argument names
   void diffuse_vol_molecule(
       Partition& p,
       const molecule_id_t vm_id,
       const float_t remaining_time_step,
-      bool& was_defunct,
-      vec3_t& new_pos,
-      subpart_index_t& new_subpart_index,
+      const float_t diffusion_start_time,
       WallTileIndexPair& where_created_this_iteration
   );
+
   bool collide_and_react_with_vol_mol(
       Partition& p,
       const Collision& collision,
       vec3_t& displacement,
       const float_t remaining_time_step,
-      const float_t r_rate_factor
+      const float_t r_rate_factor,
+      const float_t molecule_time
   );
 
   int collide_and_react_with_surf_mol(
@@ -134,11 +135,7 @@ private:
       Partition& p,
       const molecule_id_t sm_id,
       const float_t current_time,
-      const float_t remaining_time_step,
-      bool& was_defunct,
-      vec2_t& new_loc,
-      wall_index_t& new_wall_index,
-      float_t& advance_time
+      const float_t remaining_time_step
   );
 
   wall_index_t ray_trace_surf(
@@ -146,15 +143,15 @@ private:
       const Species& species,
       Molecule& sm,
       vec2_t& remaining_displacement,
-      vec2_t& new_pos,
-      bool& was_defunct
+      vec2_t& new_pos
   );
 
   bool react_2D_all_neighbors(
       Partition& p,
       Molecule& sm,
-      const float_t current_time,
-      const float_t remaining_time_step
+      const float_t time, // same argument as t passed in mcell3 (come up with a better name)
+      const float_t diffusion_start_time, // diffusion_start_time + elapsed_molecule_time should be the time when reaction occurred
+      const float_t elapsed_molecule_time
   );
 
   // ---------------------------------- reactions ----------------------------------
@@ -163,7 +160,7 @@ private:
       const Molecule* reacA, const bool keep_reacA,
       const Molecule* reacB, const bool keep_reacB,
       const Molecule* surf_reac,
-      const Reaction* rx,
+      const Rxn* rxn,
       small_vector<GridPos>& assigned_surf_product_positions
   );
 
@@ -174,18 +171,19 @@ private:
       float_t remaining_time_step
   );
 
-  int outcome_unimolecular(
+	// returns true if molecule urvived
+  bool outcome_unimolecular(
       Partition& p,
       Molecule& vm,
       const float_t scheduled_time,
-      const Reaction* unimol_rx
+      const Rxn* unimol_rx
   );
 
   int outcome_products_random(
       Partition& p,
       const Collision& collision,
       const float_t remaining_time_step,
-      const int path,
+      const reaction_index_t reaction_index,
       bool& keep_reacA,
       bool& keep_reacB
   );
@@ -196,11 +194,11 @@ private:
       float_t remaining_time_step
   );
 
-  void react_unimol_single_molecule(
+  bool react_unimol_single_molecule(
       Partition& p,
       const molecule_id_t vm_id,
       const float_t scheduled_time,
-      const Reaction* unimol_rx
+      const RxnClass* unimol_rx
   );
 };
 

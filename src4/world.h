@@ -36,9 +36,9 @@
 #include "partition.h"
 #include "scheduler.h"
 #include "species.h"
-#include "reaction.h"
 #include "geometry.h"
 #include "callback_info.h"
+#include "reaction.h"
 #include "reactions_info.h"
 
 namespace MCell {
@@ -53,7 +53,11 @@ public:
   World();
   void init_simulation();
   void run_simulation(const bool dump_initial_state = false);
-  void run_n_iterations(const uint64_t num_iterations, const uint64_t output_frequency);
+  void run_n_iterations(
+      const uint64_t num_iterations,
+      const uint64_t output_frequency,
+      const bool terminate_last_iteration_after_viz_output = false // needed for exact match with MCell3, must false when used from pymcell
+  );
   void end_simulation();
 
   // -------------- diverse getters -----------------------------

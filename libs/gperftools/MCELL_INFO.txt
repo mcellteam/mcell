@@ -1,0 +1,11 @@
+Cloned on March 4, 2020 from https://github.com/gperftools/gperftools, branch master (b7607ee).
+Then executed ./autogen.sh.
+Does not seem to be actively maintained.
+
+Build like this:
+
+cd mcell_tools/work/build_mcell/
+mkdir -p libs/build_gperftools
+cd libs/build_gperftools
+../../../../mcell/libs/gperftools/configure --prefix=`pwd`/install_gperftools
+make install

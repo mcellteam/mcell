@@ -42,6 +42,7 @@
 #include "diffuse.h"
 
 #include "debug_config.h"
+#include "debug.h"
 #include "dump_state.h"
 
 static int outcome_products_random(struct volume *world, struct wall *w,
@@ -248,7 +249,7 @@ place_volume_product(struct volume *world, struct species *product_species, stru
   ++new_volume_mol->subvol->mol_count;
 
   /* Add to the schedule. */
-  if (schedule_add(subvol->local_storage->timer, new_volume_mol))
+  if (schedule_add_mol(subvol->local_storage->timer, new_volume_mol))
     mcell_allocfailed("Failed to add newly created %s molecule to scheduler.",
                       product_species->sym->name);
   return new_volume_mol;
@@ -310,7 +311,7 @@ place_sm_product(struct volume *world, struct species *product_species, struct g
     grid->sm_list[grid_index], new_surf_mol);
 
   /* Add to the schedule. */
-  if (schedule_add(sv->local_storage->timer, new_surf_mol))
+  if (schedule_add_mol(sv->local_storage->timer, new_surf_mol))
     mcell_allocfailed("Failed to add newly created %s molecule to scheduler.",
                       product_species->sym->name);
 
@@ -353,6 +354,12 @@ static int outcome_products_random(struct volume *world, struct wall *w,
                                    struct abstract_molecule *reacA,
                                    struct abstract_molecule *reacB,
                                    short orientA, short orientB) {
+
+#ifdef DEBUG_REACTIONS
+  DUMP_CONDITION3(
+      dump_processing_reaction(world->current_iterations, hitpt, t, rx, reacA, reacB);
+  );
+#endif
 
   /* Did the moving molecule cross the plane? */
   bool cross_wall = false; 
@@ -1178,7 +1185,7 @@ int outcome_unimolecular(struct volume *world, struct rxn *rx, int path,
     if (vm != NULL) {
 #ifdef DEBUG_REACTIONS
       DUMP_CONDITION3(
-        dump_volume_molecule(vm, "", true, "Unimolecular vm defunct:", world->current_iterations, vm->t, true);
+        dump_volume_molecule(vm, "", true, "Unimolecular vm defunct:", world->current_iterations, vm->t, false);
       );
 #endif
       collect_molecule(vm);
@@ -1192,7 +1199,7 @@ int outcome_unimolecular(struct volume *world, struct rxn *rx, int path,
     if (vm != NULL) {
 #ifdef DEBUG_REACTIONS
       DUMP_CONDITION3(
-        dump_volume_molecule(vm, "", true, "Unimolecular vm defunct:", world->current_iterations, vm->t, true);
+        dump_volume_molecule(vm, "", true, "Unimolecular vm defunct:", world->current_iterations, vm->t, false);
       );
 #endif
       collect_molecule(vm);
@@ -1225,6 +1232,11 @@ int outcome_bimolecular(struct volume *world, struct rxn *rx, int path,
                         struct abstract_molecule *reacB, short orientA,
                         short orientB, double t, struct vector3 *hitpt,
                         struct vector3 *loc_okay) {
+#ifdef DEBUG_TIMING
+  DUMP_CONDITION3(
+      MCell::dump_outcome_bimolecular_timing(t);
+  );
+#endif
 
   assert(periodic_boxes_are_identical(reacA->periodic_box, reacB->periodic_box));
 

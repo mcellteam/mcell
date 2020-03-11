@@ -563,7 +563,7 @@ static int read_preamble(FILE *fs, struct chkpt_read_state *state, uint32_t *api
       in the simulation.
       Returns 1 on error, and 0 - on success.
 ***************************************************************************/
-int read_chkpt(struct volume *world, FILE *fs) {
+int read_chkpt(struct volume *world, FILE *fs, bool only_time_and_iter) {
   byte cmd;
 
   int seen_section[NUM_CHKPT_CMDS];
@@ -578,6 +578,9 @@ int read_chkpt(struct volume *world, FILE *fs) {
     return 1;
   seen_section[BYTE_ORDER_CMD] = 1;
   seen_section[MCELL_VERSION_CMD] = 1;
+
+  bool time_read = false;
+  bool iteration_read = false;
 
   /* Handle all other commands */
   while (1) {
@@ -601,14 +604,29 @@ int read_chkpt(struct volume *world, FILE *fs) {
     /* Process normal commands */
     switch (cmd) {
     case CURRENT_TIME_CMD:
-      if (read_current_time_seconds(world, fs, &state))
+      if (read_current_time_seconds(world, fs, &state)) {
         return 1;
+      }
+      time_read = true;
+      if (only_time_and_iter && iteration_read) {
+        return 0;
+      }
       break;
 
     case CURRENT_ITERATION_CMD:
-      if (read_current_iteration(world, fs, &state) ||
-          create_molecule_scheduler(world->storage_head, world->start_iterations))
+      if (read_current_iteration(world, fs, &state)) {
         return 1;
+      }
+      iteration_read = true;
+      if (only_time_and_iter && time_read) {
+        return 0;
+      }
+      // do not create scheduler if we are reading just time and iteration
+      if (!only_time_and_iter) {
+        if (create_molecule_scheduler(world->storage_head, world->start_iterations)) {
+          return 1;
+        }
+      }
       break;
 
     case CHKPT_SEQ_NUM_CMD:

@@ -31,6 +31,7 @@ namespace MCell {
 
 class SimulationConfig;
 class SpeciesInfo;
+class Partition;
 
 class SpeciesWithOrientation {
 public:
@@ -43,6 +44,7 @@ public:
     : species_id(species_id_), orientation(orientation_), equivalent_product_or_reactant_index(INDEX_INVALID) {
   }
 
+  // ignores equivalent_product_or_reactant_index
   bool operator == (const SpeciesWithOrientation& a) const {
     return species_id == a.species_id && orientation == a.orientation;
   }
@@ -72,21 +74,55 @@ public:
 };
 
 
-enum class ReactionType {
+enum class RxnClassType {
   Standard, // any other reaction than below
   Transparent,
   Reflect,
   AbsorbRegionBorder
 };
 
-class Reaction {
-public:
-  std::string name;
+class RxnClass;
 
-  ReactionType type;
+// corresponds to MDL reaction and pathway in MCell3 code
+// note sure about the naming Rxn or Reaction?
+class Rxn {
+public:
+  /* Name of MDL reaction */
+  std::string name;
 
   /* Rate constant of this pathway */
   float_t rate_constant;
+
+  // contains the same reactants as the parent Reaction, but possibly in different order
+  // checked for correctness on initialize and it is used as constant anyway
+  std::vector<SpeciesWithOrientation> reactants;
+
+  std::vector<SpeciesWithOrientation> products;
+
+  uint get_num_surf_products(const SpeciesInfo& all_species) const;
+
+  uint get_num_players() const {
+    return reactants.size() + products.size();
+  }
+
+  void initialize(const RxnClass& reaction);
+  void dump(const std::string ind) const;
+  std::string to_string(const Partition& p) const;
+
+private:
+  // asserts in debug mode if the reactants are different
+  void debug_check_reactants_against_reaction(const RxnClass& reaction);
+
+  // must be called after initialization
+  void update_equivalent_product_indices();
+
+  void move_reused_reactants_to_be_the_first_products();
+};
+
+// corresponds to reaction in mcell3 code
+class RxnClass {
+public:
+  RxnClassType type;
 
   /* Maximum 'p' for region of p-space for all non-cooperative pathways */
   float_t max_fixed_p;
@@ -94,38 +130,55 @@ public:
   /* Minimum 'p' for region of p-space which is always in the non-reacting "pathway". (note that
      cooperativity may mean that some values of p less than this still do not produce a reaction) */
   float_t min_noreaction_p;
+
+  // reactants are copied into specific reactions as well
+  // because a different order might be needed
   std::vector<SpeciesWithOrientation> reactants;
-  std::vector<SpeciesWithOrientation> products;
 
-  void initialize() {
-    update_equivalent_product_indices();
+  std::vector<Rxn> reactions;
+
+  // Cumulative probabilities for specific reactions, based on all reactions of the class
+  // has same size as reactions
+  std::vector<float_t> cum_probs;
+
+public:
+
+  uint get_num_reactions() const {
+    return reactions.size();
   }
 
-  uint get_num_players() const {
-    return reactants.size() + products.size();
+  const Rxn* get_reaction(reaction_index_t rx_index) const {
+    assert(rx_index < (int)reactions.size());
+    return &reactions[rx_index];
   }
 
-  uint get_num_surf_products(const SpeciesInfo& all_species) const;
+  void add_and_initialize_reaction(const Rxn& r, const float_t cum_prob) {
+    assert(reactions.size() == cum_probs.size());
 
+    reactions.push_back(r);
+    reactions.back().initialize(*this);
+
+    cum_probs.push_back(cum_prob);
+  }
+
+  // there are no pathways for this type of reactions
   bool is_reflect() const {
-    return type == ReactionType::Reflect;
+    return type == RxnClassType::Reflect;
   }
 
   bool is_transparent() const {
-    return type == ReactionType::Reflect;
+    return type == RxnClassType::Transparent;
   }
 
   bool is_absorb() const {
-    return type == ReactionType::AbsorbRegionBorder;
+    return type == RxnClassType::AbsorbRegionBorder;
   }
 
-  static void dump_array(const std::vector<Reaction>& vec);
+  static void dump_array(const std::vector<RxnClass>& vec);
 
   void dump(const std::string ind) const;
-private:
 
-  // must be called after initialization
-  void update_equivalent_product_indices();
+  std::string to_string(const Partition& p) const;
 };
 
 
@@ -136,7 +189,7 @@ private:
  *
  * Used in diffuse_react _event_t and in partition_t.
  */
-class DiffuseOrUnimolReactionAction {
+class DiffuseOrUnimolRxnAction {
 public:
   enum class Type {
     DIFFUSE,
@@ -144,8 +197,8 @@ public:
   };
 
   // DIFFUSE action
-  DiffuseOrUnimolReactionAction(
-      const DiffuseOrUnimolReactionAction::Type type_,
+  DiffuseOrUnimolRxnAction(
+      const DiffuseOrUnimolRxnAction::Type type_,
       const molecule_id_t id_,
       const float_t scheduled_time_,
       const WallTileIndexPair& where_created_this_iteration_)
@@ -162,11 +215,11 @@ public:
   }
 
   // UNIMOL_REACT action
-  DiffuseOrUnimolReactionAction(
-      const DiffuseOrUnimolReactionAction::Type type_,
+  DiffuseOrUnimolRxnAction(
+      const DiffuseOrUnimolRxnAction::Type type_,
       const molecule_id_t id_,
       const float_t scheduled_time_,
-      const Reaction* unimol_rx_)
+      const RxnClass* unimol_rx_)
     :
       id(id_),
       scheduled_time(scheduled_time_),
@@ -178,7 +231,7 @@ public:
   }
 
   // defined because of usage in calendar_t
-  const DiffuseOrUnimolReactionAction& operator->() const {
+  const DiffuseOrUnimolRxnAction& operator->() const {
      return *this;
   }
 
@@ -187,7 +240,7 @@ public:
   Type type;
 
   // when type is UNIMOL_REACT
-  const Reaction* unimol_rx;
+  const RxnClass* unimol_rx;
 
   // when type is DIFFUSE
   // used to avoid rebinding for surf+vol->surf+vol reactions

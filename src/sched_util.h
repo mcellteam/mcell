@@ -77,9 +77,13 @@ void *schedule_next(struct schedule_helper *sh);
 void *schedule_peak(struct schedule_helper *sh);
 #define schedule_add(x, y) schedule_insert((x), (y), 1)
 
+int schedule_add_mol(struct schedule_helper *sh, void* /*struct abstract_molecule* */ data);
+
 int schedule_anticipate(struct schedule_helper *sh, double *t);
 struct abstract_element *
 schedule_cleanup(struct schedule_helper *sh,
                  int (*is_defunct)(struct abstract_element *e));
 
 void delete_scheduler(struct schedule_helper *sh);
+
+void sort_schedule_by_time_and_id(struct schedule_helper *sh);
