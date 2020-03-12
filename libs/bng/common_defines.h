@@ -17,8 +17,8 @@
 #include <iostream>
 #include <map>
 #include <unordered_map>
-#include "../libs/boost/container/small_vector.hpp"
-#include "../libs/boost/container/flat_set.hpp"
+#include <boost/container/small_vector.hpp>
+#include <boost/container/flat_set.hpp>
 
 // ---------------------------------- float types ----------------------------------
 
