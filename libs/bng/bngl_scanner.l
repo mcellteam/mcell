@@ -18,6 +18,8 @@
 /* Set up function name prefixes and output file name */
 %option prefix="bngl"
 
+/* TODO: there was a way to store l=file and line information with each token*/ 
+
 DIGIT    [0-9]
 ID       [a-zA-Z_][a-zA-Z0-9_]*
 R ([0-9]+\.)|([0-9]*\.[0-9]+)|([0-9]+[eE][+-]?[0-9]+)|([0-9]+\.[0-9]*[eE][+-]?[0-9]+)|([0-9]*\.[0-9]+[eE][+-]?[0-9]+)
@@ -46,8 +48,8 @@ I ([0-9]+)
 
     /* numbers and identifiers */
 
-{R}             { bngllval.dbl = BNGL::convert_to_dbl(bngltext); return TOK_DBL; }
-{I}             { bngllval.llong = BNGL::convert_dec_to_llong(bngltext); return TOK_LLONG; }
+{R}             { bngllval.dbl = BNG::convert_to_dbl(bngltext); return TOK_DBL; }
+{I}             { bngllval.llong = BNG::convert_dec_to_llong(bngltext); return TOK_LLONG; }
 {ID}            { bngllval.str = strdup(yytext); return TOK_ID; }
                         
     /* other characters */
@@ -56,7 +58,7 @@ I ([0-9]+)
 "<->"           { return TOK_ARROW_BIDIR; }
 [\~\,\!\.\(\)\/\+]  { return bngltext[0];}
 
-.               { bnglerror_fmt("Unexpected character '%c'.", bngltext[0]); return bngltext[0]; }
+.               { BNG::errs() << "Unexpected character '" << bngltext[0] << "'.\n"; return bngltext[0]; }
 %%
 
 

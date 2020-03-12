@@ -5,6 +5,22 @@
 
 using namespace std;
 
+
+void parse_bngl() {
+
+  ::create_ast_context();
+
+  int res = bnglparse();
+  if (res != 0) {
+    cerr << "\nParse error code is " << res << ".\n";
+  }
+
+  BNG::ASTContext* ctx = ::get_ast_context();
+  ctx->dump();
+
+  ::delete_ast_context();
+}
+
 int main(int argc, const char* argv[]) {
 
   // TODO - use file as input
@@ -12,12 +28,7 @@ int main(int argc, const char* argv[]) {
     cerr << "Expected input file as argument\n";
   }*/
 
-  int res = bnglparse();
+  parse_bngl();
 
-
-
-  if (res != 0) {
-    cerr << "\nParse error code is " << res << ".\n";
-  }
-  return res;
+  return 0;
 }

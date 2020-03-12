@@ -3,11 +3,20 @@
 #include <cerrno>
 #include <string>
 
+
 #include "parser_utils.h"
+#include "bngl_parser.hpp"
 
 using namespace std;
 
-namespace BNGL {
+extern int bngllineno;
+
+namespace BNG {
+
+ostream& errs() {
+  cerr << "Line " << bngllineno << ": ";
+  return cerr;
+}
 
 double convert_to_dbl(const char* str) {
   char* end;
@@ -16,7 +25,7 @@ double convert_to_dbl(const char* str) {
   errno = 0; // note: errno is thread-local
   res = strtod(str, &end);
   if (errno != 0 || *end != '\0') {
-    bnglerror_fmt("Could not convert floating point value '%s'.", str);
+    errs() << "Could not convert floating point value '" << str << "'.\n";
   }
 
   return res;
@@ -29,10 +38,10 @@ long long convert_dec_to_llong(const char* str) {
   errno = 0; // note: errno is thread-local
   res = strtoll(str, &end, 10);
   if (errno != 0 || *end != '\0') {
-    bnglerror_fmt("Could not convert integer value '%s'.", str);
+    errs() << "Could not convert integer value '" << str << "'.\n";
   }
 
   return res;
 }
 
-} // namespace BNGL
+} // namespace BNG

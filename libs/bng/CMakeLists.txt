@@ -15,6 +15,7 @@ set(SOURCE_FILES
 	molecule_species.cpp
 	rule.cpp
 	parser_utils.cpp
+	ast.cpp
 	test.cpp # only for development
 )
 

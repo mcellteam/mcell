@@ -1,42 +1,62 @@
-%{
-/* C declarations */
 
+// for top of bngl_parser.hpp
+%code requires {	  
+#include "ast.h"
+}
+
+// for top of bngl_parser.cpp
+%code top {	  
+#include "ast.h"
+}
+
+// for bngl_parser.hpp
+%code provides {
+	
+void create_ast_context();
+BNG::ASTContext* get_ast_context();
+void delete_ast_context();
+
+}
+
+// for bngl_parser.cpp
+%{
   #include <cstdio>
   #include <cstdarg>
   #include <string>
-  
+  #include "parser_utils.h"
+	
   // Declare stuff from Flex that Bison needs to know about:
   extern int bngllex();
-  //extern int bnglparse();
-  //extern FILE *bnglin;
- 
-  void bnglerror(const char *s);
+  
+  void bnglerror(char const *s);
+
+  // global context used during parsing
+  BNG::ASTContext* g_ctx;
 %}
 
-/* bison declarations */
 
-/* Require bison 3.0 or later */
 %require "3.0"
 
-/* Add debug output code to generated parser. disable this for release
- * versions. */
+// add debug output code to generated parser. disable this for release versions. 
 %debug
 
-/* write out a header file containing the token defines */
+// write out a header file containing the token defines 
 %defines
 
-/* verbose error messages */
 %error-verbose
 
-/* set up function name prefixes and output file name */
-%define api.prefix  {bngl}
+// set up function name prefixes and output file name 
+%define api.prefix {bngl}
 
+// one rr conflict is expected
 %expect 1
 
 %union {
-double dbl;
-long long llong;
-const char* str; // default, required by flex
+  char* str; // default, required by flex
+  double dbl;
+  long long llong;
+  BNG::ASTExprNode* expr;
+  BNG::ASTListNode* list;
 }
 
 %token TOK_BEGIN
@@ -48,75 +68,78 @@ const char* str; // default, required by flex
 %token TOK_REACTION
 %token TOK_RULES
 
-%token TOK_ID
-%token TOK_DBL
-%token TOK_LLONG
+%token <str> TOK_ID
+%token <dbl> TOK_DBL
+%token <llong> TOK_LLONG
 
 %token TOK_ARROW_RIGHT
 %token TOK_ARROW_BIDIR
 
+%type <expr> expr
+
 %start start
 
 %%
-/* grammar rules */
 
-/* TODO: error recovery ?*/
+// TODO: error recovery 
 
 start: 
-      sections_list
-    | TOK_BEGIN TOK_MODEL sections_list TOK_END TOK_MODEL
+      section_list
+    | TOK_BEGIN TOK_MODEL section_list TOK_END TOK_MODEL
     | /* empty - end of file */
 ;
 
-sections_list:
-      sections_list section
+section_list:
+      section_list section
     | section
 
 section:
-      TOK_BEGIN TOK_PARAMETERS parameters_list_maybe_empty TOK_END TOK_PARAMETERS
-    | TOK_BEGIN TOK_MOLECULE TOK_TYPES molecules_list_maybe_empty TOK_END TOK_MOLECULE TOK_TYPES
-    | TOK_BEGIN TOK_REACTION TOK_RULES reactions_list_maybe_empty TOK_END TOK_REACTION TOK_RULES
+      TOK_BEGIN TOK_PARAMETERS parameter_list_maybe_empty TOK_END TOK_PARAMETERS
+    | TOK_BEGIN TOK_MOLECULE TOK_TYPES molecule_list_maybe_empty TOK_END TOK_MOLECULE TOK_TYPES
+    | TOK_BEGIN TOK_REACTION TOK_RULES reaction_list_maybe_empty TOK_END TOK_REACTION TOK_RULES
 ;
 
-/* ---------------- parameters ------------------- */    
-parameters_list_maybe_empty:
-      parameters_list
+// ---------------- parameters ------------------- 
+parameter_list_maybe_empty:
+      parameter_list
     | /* empty */
 ;
 
-parameters_list:
-      parameters_list parameter
+parameter_list:
+      parameter_list parameter
     | parameter
 
 parameter:
-      TOK_ID expr
+      TOK_ID expr {
+    	g_ctx->symtab.insert($1, $2);
+      }
 ;
       
-/* ---------------- molecules ------------------- */    
-molecules_list_maybe_empty:
-      molecules_list
+// ---------------- molecules -------------------     
+molecule_list_maybe_empty:
+      molecule_list
     | /* empty */
 ;
 
-/* left recursion is preferred */
-molecules_list:
-      molecules_list molecule
+// left recursion is preferred 
+molecule_list:
+      molecule_list molecule
     | molecule
 ;
 
-/* fully general specification, might contain information on bonds, checked later fir semantic checks */
+// fully general specification, might contain information on bonds, checked later in semantic checks 
 molecule:
-      TOK_ID '(' components_list_maybe_empty ')'
+      TOK_ID '(' component_list_maybe_empty ')'
 ;
 
-components_list_maybe_empty:
-      components_list
+component_list_maybe_empty:
+      component_list
     | /* empty */
 ;
 
-/* this rule allows bonds even in molecyle types section, this is checked later in semantic checks */
-components_list:
-      components_list ',' component
+// this rule allows bonds even in molecule types section, this is checked later in semantic checks 
+component_list:
+      component_list ',' component
     | component
 ;
 
@@ -125,11 +148,11 @@ component:
 ; 
 
 component_name_with_states_maybe_empty:
-      component_states_list
+      component_state_list
     | /* empty */
     
-component_states_list:
-      component_states_list component_state
+component_state_list:
+      component_state_list component_state
     | component_state
 ;
 
@@ -145,14 +168,14 @@ bond_maybe_empty:
 ;
     
 
-/* ---------------- reactions ------------------- */    
-reactions_list_maybe_empty:
-      reactions_list
+// ---------------- reactions ------------------- 
+reaction_list_maybe_empty:
+      reaction_list
     | /* empty */
 ;
 
-reactions_list:
-      reactions_list reaction
+reaction_list:
+      reaction_list reaction
     | reaction
 ;
 
@@ -179,29 +202,37 @@ rates:
       expr ',' expr
     | expr
 
-/* ---------------- expressions --------------------- */
+// ---------------- expressions --------------------- 
+// TODO: expressions are just IDs and constants for now
 expr:
-      TOK_ID
-    | TOK_DBL
-    | TOK_LLONG 
-    
+      TOK_ID { 
+        $$ = g_ctx->new_id_node($1); 
+        free($1);
+        $1 = nullptr;
+      } 
+    | TOK_DBL { 
+        $$ = g_ctx->new_dbl_node($1); 
+      } 
+    | TOK_LLONG { 
+        $$ = g_ctx->new_llong_node($1); 
+      } 
 
 %%
 
-/* additional C code */
-extern int bngllineno;
-
-
 void bnglerror(char const *s) {
-  fprintf (stderr, "Line %d: %s\n", (int)bngllineno, s);
+  BNG::errs() << s << "\n";
 }
 
-void bnglerror_fmt(char const *fmt, ...) {
-  char buffer[256];
-  va_list args;
-  va_start (args, fmt);
-  vsnprintf (buffer, 256,fmt, args);
-  bnglerror(buffer);
-  va_end(args);
+void create_ast_context() {
+  assert(g_ctx == nullptr);
+  g_ctx = new BNG::ASTContext();
 }
 
+BNG::ASTContext* get_ast_context() {
+  return g_ctx;
+}
+
+void delete_ast_context() {
+  delete g_ctx;
+  g_ctx = nullptr;
+}

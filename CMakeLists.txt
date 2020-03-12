@@ -139,7 +139,7 @@ BISON_TARGET(mdlParser ${CMAKE_SOURCE_DIR}/src/mdlparse.y
 BISON_TARGET(dynGeomParser ${CMAKE_SOURCE_DIR}/src/dyngeom_parse.y
   ${CMAKE_CURRENT_BINARY_DIR}/deps/dyngeom_yacc.cpp)
 
-# not sure why is the lex file copied
+# the cmake flex plugin requires the flex file to be in the 'deps' directory
 configure_file(${CMAKE_SOURCE_DIR}/src/mdllex.l ${CMAKE_CURRENT_BINARY_DIR}/deps/mdllex.l COPYONLY)
 
 FLEX_TARGET(mdlScanner ${CMAKE_CURRENT_BINARY_DIR}/deps/mdllex.l
