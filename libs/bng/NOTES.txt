@@ -1,0 +1,5 @@
+
+- current implementation is not reentrant - some globals are used during parsing,
+  how important it is?
+  
+- what license to use?
