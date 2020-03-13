@@ -77,21 +77,21 @@ namespace BNG {
   BNG::ASTMoleculeNode* molecule_node;
 }
 
-%token TOK_BEGIN
-%token TOK_END
-%token TOK_MODEL
-%token TOK_PARAMETERS
-%token TOK_MOLECULE
-%token TOK_TYPES
-%token TOK_REACTION
-%token TOK_RULES
+%token TOK_BEGIN "begin"
+%token TOK_END "end"
+%token TOK_MODEL "model"
+%token TOK_PARAMETERS "parameters"
+%token TOK_MOLECULE "molecule"
+%token TOK_TYPES "types"
+%token TOK_REACTION "reaction"
+%token TOK_RULES "rules"
 
-%token <str> TOK_ID
-%token <dbl> TOK_DBL
-%token <llong> TOK_LLONG
+%token <str> TOK_ID "identifier"
+%token <dbl> TOK_DBL "floating point constant"
+%token <llong> TOK_LLONG "integer constant"
 
-%token <llong> TOK_ARROW_RIGHT
-%token <llong> TOK_ARROW_BIDIR
+%token <llong> TOK_ARROW_RIGHT "->"
+%token <llong> TOK_ARROW_BIDIR "<->"
 
 %type <expr_node> expr
 %type <str_node> bond_maybe_empty
@@ -124,7 +124,8 @@ start:
 section_list:
       section_list section
     | section
-
+;
+      
 section:
       TOK_BEGIN TOK_PARAMETERS parameter_list_maybe_empty TOK_END TOK_PARAMETERS
     | TOK_BEGIN TOK_MOLECULE TOK_TYPES molecule_list_maybe_empty TOK_END TOK_MOLECULE TOK_TYPES {
@@ -142,7 +143,8 @@ parameter_list_maybe_empty:
 parameter_list:
       parameter_list parameter
     | parameter
-
+;
+      
 parameter:
       TOK_ID expr {
     	g_ctx->symtab.insert($1, $2, g_ctx);
