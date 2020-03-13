@@ -8,17 +8,19 @@ using namespace std;
 
 void parse_bngl() {
 
-  ::create_ast_context();
+  BNG::create_ast_context();
 
   int res = bnglparse();
   if (res != 0) {
     cerr << "\nParse error code is " << res << ".\n";
   }
 
-  BNG::ASTContext* ctx = ::get_ast_context();
+  BNG::ASTContext* ctx = BNG::get_ast_context();
   ctx->dump();
 
-  ::delete_ast_context();
+  ctx->print_error_report();
+
+  BNG::delete_ast_context();
 }
 
 int main(int argc, const char* argv[]) {

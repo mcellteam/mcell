@@ -9,7 +9,7 @@
 
 /* Enable scanner to generate debug output. disable this for release
  * versions. */
-%option debug
+/* %option debug */
 
 /* Eliminate unused symbols to eliminate compiler warnings */
 %option nounput
@@ -50,7 +50,7 @@ I ([0-9]+)
 
 {R}             { bngllval.dbl = BNG::convert_to_dbl(bngltext); return TOK_DBL; }
 {I}             { bngllval.llong = BNG::convert_dec_to_llong(bngltext); return TOK_LLONG; }
-{ID}            { bngllval.str = strdup(yytext); return TOK_ID; }
+{ID}            { bngllval.str = BNG::strdup_new(yytext); return TOK_ID; }
                         
     /* other characters */
     

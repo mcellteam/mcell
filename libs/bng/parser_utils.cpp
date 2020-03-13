@@ -14,7 +14,7 @@ extern int bngllineno;
 namespace BNG {
 
 ostream& errs() {
-  cerr << "Line " << bngllineno << ": ";
+  cerr << "Error: line " << bngllineno << ": ";
   return cerr;
 }
 
@@ -42,6 +42,18 @@ long long convert_dec_to_llong(const char* str) {
   }
 
   return res;
+}
+
+char *strdup_new(const char *src)
+{
+  char *str;
+  size_t size = strlen(src) + 1;
+
+  str = new char[size];
+  if (str != nullptr) {
+    memcpy(str, src, size);
+  }
+  return str;
 }
 
 } // namespace BNG
