@@ -5,7 +5,7 @@
  *      Author: ahusar
  */
 
-#include "rule.h"
+#include "reaction_rule.h"
 
 namespace BNG {
 

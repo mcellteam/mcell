@@ -5,8 +5,8 @@
  *      Author: ahusar
  */
 
-#ifndef LIBS_BNG_RULE_H_
-#define LIBS_BNG_RULE_H_
+#ifndef LIBS_BNG_REACTION_RULE_H_
+#define LIBS_BNG_REACTION_RULE_H_
 
 #include <string>
 
@@ -20,7 +20,7 @@ namespace BNG {
 // rules are only unidirectional,
 // if there is a reversible reaction in BNGL definition,
 // two
-class Rule {
+class ReactionRule {
 public:
   std::string name;
 
@@ -33,4 +33,4 @@ public:
 
 } /* namespace BNG */
 
-#endif /* LIBS_BNG_RULE_H_ */
+#endif /* LIBS_BNG_REACTION_RULE_H_ */
