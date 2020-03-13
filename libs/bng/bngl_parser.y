@@ -13,9 +13,9 @@
 %code provides {
 	
 namespace BNG {
-void create_ast_context();
-ASTContext* get_ast_context();
-void delete_ast_context();
+  void create_ast_context();
+  ASTContext* get_ast_context();
+  void delete_ast_context();
 }
 
 }
@@ -66,6 +66,7 @@ void delete_ast_context();
   char* str; // default, required by flex
   double dbl;
   long long llong;
+  bool boolean;
   BNG::ASTExprNode* expr_node;
   BNG::ASTListNode* list_node;
   BNG::ASTStrNode* str_node;
@@ -86,8 +87,8 @@ void delete_ast_context();
 %token <dbl> TOK_DBL
 %token <llong> TOK_LLONG
 
-%token TOK_ARROW_RIGHT
-%token TOK_ARROW_BIDIR
+%token <llong> TOK_ARROW_RIGHT
+%token <llong> TOK_ARROW_BIDIR
 
 %type <expr_node> expr
 %type <str_node> bond_maybe_empty
@@ -100,6 +101,10 @@ void delete_ast_context();
 %type <molecule_node> molecule
 %type <list_node> molecule_list_maybe_empty
 %type <list_node> molecule_list
+%type <list_node> reaction_rule_side_maybe_empty
+%type <list_node> reaction_rule_side
+%type <list_node> rates
+%type <boolean> reaction_rule_direction
 
 %start start
 
@@ -122,7 +127,7 @@ section:
     | TOK_BEGIN TOK_MOLECULE TOK_TYPES molecule_list_maybe_empty TOK_END TOK_MOLECULE TOK_TYPES {
     	g_ctx->symtab.insert_molecule_declarations($4, g_ctx);
       }
-    | TOK_BEGIN TOK_REACTION TOK_RULES reaction_list_maybe_empty TOK_END TOK_REACTION TOK_RULES
+    | TOK_BEGIN TOK_REACTION TOK_RULES reaction_rule_list_maybe_empty TOK_END TOK_REACTION TOK_RULES 
 ;
 
 // ---------------- parameters ------------------- 
@@ -236,40 +241,66 @@ bond_maybe_empty:
 ;
     
 
-// ---------------- reactions ------------------- 
-reaction_list_maybe_empty:
-      reaction_list
-    | /* empty */
+// ---------------- reaction_rules ------------------- 
+reaction_rule_list_maybe_empty:
+      reaction_rule_list
+    | /* empty */ 
 ;
 
-reaction_list:
-      reaction_list reaction
-    | reaction
+reaction_rule_list:
+      reaction_rule_list reaction_rule 
+    | reaction_rule 
 ;
 
-reaction:
-      reaction_side reaction_direction reaction_side_maybe_empty rates
+reaction_rule:
+      reaction_rule_side reaction_rule_direction reaction_rule_side_maybe_empty rates {
+    	 
+    	BNG::ASTReactionRuleNode* n = g_ctx->new_reaction_rule_node($1, $2, $3, $4);
+    	g_ctx->add_reaction_rule(n);
+      }
 ;
 
-reaction_side_maybe_empty:
-      reaction_side
-    | /* empty */
+reaction_rule_side_maybe_empty:
+      reaction_rule_side
+    | /* empty */ {
+    	$$ = nullptr;
+      }
 ;
 
-reaction_side:
-      reaction_side '+' molecule
-    | reaction_side '.' molecule
-    | molecule
+reaction_rule_side:
+      reaction_rule_side '+' molecule {
+    	$1->append(g_ctx->new_separator_node(BNG::SeparatorType::Plus));
+    	$1->append($3);
+        $$ = $1;
+      }
+    | reaction_rule_side '.' molecule {
+    	$1->append(g_ctx->new_separator_node(BNG::SeparatorType::Dot));
+  	    $1->append($3);
+	    $$ = $1;
+      }
+    | molecule {
+    	$$ = g_ctx->new_list_node()->append($1);
+      }
 ;
 
-reaction_direction:
-      TOK_ARROW_RIGHT
-    | TOK_ARROW_BIDIR
+reaction_rule_direction:
+      TOK_ARROW_RIGHT {
+    	$$ = false;
+      }
+    | TOK_ARROW_BIDIR {
+        $$ = true;
+      }
+;
 
 rates:
-      expr ',' expr
-    | expr
-
+      expr ',' expr {
+     	$$ = g_ctx->new_list_node()->append($1)->append($3);
+      }
+    | expr {
+    	$$ = g_ctx->new_list_node()->append($1);
+      }
+;
+    
 // ---------------- expressions --------------------- 
 // TODO: expressions are just IDs and constants for now
 expr:
@@ -282,7 +313,8 @@ expr:
     | TOK_LLONG { 
         $$ = g_ctx->new_llong_node($1); 
       } 
-
+;
+    
 %%
 
 void bnglerror(char const *s) {

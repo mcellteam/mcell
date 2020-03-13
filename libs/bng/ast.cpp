@@ -8,6 +8,7 @@ using namespace std;
 namespace BNG {
 
 static const std::string IND2 = "  ";
+static const std::string IND4 = "    ";
 
 // ------------------------------- ASTBaseNode ------------------------
 void ASTBaseNode::dump(const std::string ind) {
@@ -34,6 +35,32 @@ void ASTExprNode::dump(const std::string ind) {
   cout << "\n";
 }
 
+
+// ------------------------------- ASTStrNode ------------------------
+void ASTStrNode::dump(const std::string ind) {
+  cout << ind << "str: '" << str << "'";
+}
+
+
+
+// ------------------------------- ASTStrNode ------------------------
+void ASTSeparatorNode::dump(const std::string ind) {
+  string s;
+  switch (separator_type) {
+    case SeparatorType::Dot:
+      s = ".";
+      break;
+    case SeparatorType::Plus:
+      s = "+";
+      break;
+    default:
+      assert(false);
+      s = "error";
+  }
+  cout << ind << "separator: '" << s << "'\n";
+}
+
+
 // ------------------------------- ASTListNode ------------------------
 void ASTListNode::dump(const std::string ind) {
   if (items.empty()) {
@@ -42,7 +69,7 @@ void ASTListNode::dump(const std::string ind) {
   else {
     for (size_t i = 0; i < items.size(); i++) {
       assert(items[i] != nullptr);
-      cout << ind << i << ": ";
+      cout << ind << i << ": \n";
       items[i]->dump(ind + IND2);
     }
     cout << "\n";
@@ -51,25 +78,36 @@ void ASTListNode::dump(const std::string ind) {
 
 // ------------------------------- ASTComponentNode ------------------------
 void ASTComponentNode::dump(const std::string ind) {
-  cout << "component: name='" << name << "', states:\n";
-  assert(state_list != nullptr);
-  state_list->dump(ind + IND2);
+  cout << ind << "component: name='" << name << "'\n";
+  cout << ind << "  states:\n";
+  assert(states != nullptr);
+  states->dump(ind + IND4);
   assert(bond != nullptr);
-  cout << ind << " " << "bond: ";
-  bond->dump(ind);
+  cout << ind << "  bond:\n";
+  bond->dump(ind + IND4);
   cout << "\n";
-}
-
-// ------------------------------- ASTStrNode ------------------------
-void ASTStrNode::dump(const std::string ind) {
-  cout << "str: '" << str << "'";
 }
 
 // ------------------------------- ASTMoleculeNode ------------------------
 void ASTMoleculeNode::dump(const std::string ind) {
-  cout << ind << "molecule: name='" << name << "', components:\n";
-  assert(component_list != nullptr);
-  component_list->dump(ind + IND2);
+  cout << ind << "molecule: name='" << name << "'\n";
+  cout << ind << "  components:\n";
+  assert(components != nullptr);
+  components->dump(ind + IND4);
+}
+
+// ------------------------------- ASTMoleculeNode ------------------------
+void ASTReactionRuleNode::dump(const std::string ind) {
+  cout << ind << "reaction rule: name='" << name << "', reversible: " << (reversible?"true":"false") << "\n";
+  cout << ind << "  reactants:\n";
+  assert(reactants != nullptr);
+  reactants->dump(ind + IND4);
+  cout << ind << "  products:\n";
+  assert(reactants != nullptr);
+  reactants->dump(ind + IND4);
+  cout << ind << "  rates:\n";
+  assert(rates != nullptr);
+  rates->dump(ind + IND4);
 }
 
 // ------------------------------- ASTSymbolTable ------------------------
@@ -94,7 +132,7 @@ void ASTSymbolTable::dump() {
   cout << "ASTSymbolTable:\n";
   for (const auto& item: table) {
     cout << IND2 << item.first << " = \n";
-    item.second->dump(IND2 + IND2);
+    item.second->dump(IND4);
   }
 }
 
@@ -148,6 +186,13 @@ ASTListNode* ASTContext::new_list_node() {
   return n;
 }
 
+ASTSeparatorNode* ASTContext::new_separator_node(const SeparatorType type) {
+  ASTSeparatorNode* n = new ASTSeparatorNode();
+  n->separator_type = type;
+  remember_node(n);
+  return n;
+}
+
 ASTComponentNode* ASTContext::new_component_node(
     const std::string& name,
     ASTListNode* state_list,
@@ -155,7 +200,7 @@ ASTComponentNode* ASTContext::new_component_node(
 ) {
   ASTComponentNode* n = new ASTComponentNode();
   n->name = name;
-  n->state_list = state_list;
+  n->states = state_list;
   n->bond = bond;
   remember_node(n);
   return n;
@@ -167,7 +212,22 @@ ASTMoleculeNode* ASTContext::new_molecule_node(
 ) {
   ASTMoleculeNode* n = new ASTMoleculeNode();
   n->name = name;
-  n->component_list = component_list;
+  n->components = component_list;
+  remember_node(n);
+  return n;
+}
+
+ASTReactionRuleNode* ASTContext::new_reaction_rule_node(
+    ASTListNode* products,
+    const bool reversible,
+    ASTListNode* reactants,
+    ASTListNode* rates
+) {
+  ASTReactionRuleNode* n = new ASTReactionRuleNode();
+  n->products = products;
+  n->reversible = reversible;
+  n->reactants = reactants;
+  n->rates = rates;
   remember_node(n);
   return n;
 }
@@ -181,6 +241,8 @@ void ASTContext::print_error_report() {
 void ASTContext::dump() {
   cout << "-- ASTContext dump --\n";
   symtab.dump();
+  cout << "reaction rules:\n";
+  reaction_rules.dump(IND2);
 }
 
 } // namespace BNG

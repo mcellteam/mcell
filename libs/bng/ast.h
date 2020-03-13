@@ -22,7 +22,9 @@ enum class NodeType {
   List,
   Molecule,
   Component,
-  Str
+  ReactionRule,
+  Str,
+  ListSeparator
 };
 
 enum class ExprType {
@@ -30,6 +32,12 @@ enum class ExprType {
   Id,
   Dbl,
   Llong
+};
+
+enum class SeparatorType {
+  Invalid,
+  Plus,
+  Dot
 };
 
 static const std::string ANY_BOND = "+";
@@ -98,6 +106,18 @@ public:
 };
 
 
+class ASTSeparatorNode: public ASTBaseNode {
+public:
+  ASTSeparatorNode()
+    : separator_type(SeparatorType::Invalid) {
+    node_type = NodeType::Str;
+  }
+  void dump(const std::string ind) override;
+
+  SeparatorType separator_type;
+};
+
+
 class ASTListNode: public ASTBaseNode {
 public:
   ASTListNode() {}
@@ -116,13 +136,13 @@ public:
 class ASTComponentNode: public ASTBaseNode {
 public:
   ASTComponentNode()
-    : state_list(nullptr), bond(nullptr) {
+    : states(nullptr), bond(nullptr) {
     node_type = NodeType::Component;
   }
   void dump(const std::string ind) override;
 
   std::string name;
-  ASTListNode* state_list;
+  ASTListNode* states;
   ASTStrNode* bond;
 };
 
@@ -135,14 +155,33 @@ public:
 class ASTMoleculeNode: public ASTBaseNode {
 public:
   ASTMoleculeNode()
-    : component_list(nullptr) {
+    : components(nullptr) {
     node_type = NodeType::Molecule;
   }
   void dump(const std::string ind) override;
 
   std::string name;
-  ASTListNode* component_list;
+  ASTListNode* components;
 };
+
+
+class ASTReactionRuleNode: public ASTBaseNode {
+public:
+  ASTReactionRuleNode()
+    : reactants(nullptr), reversible(false), products(nullptr), rates(nullptr) {
+    node_type = NodeType::ReactionRule;
+  }
+  void dump(const std::string ind) override;
+
+  std::string generate_name() const;
+
+  std::string name; // generated automatically for now
+  ASTListNode* reactants;
+  bool reversible;
+  ASTListNode* products;
+  ASTListNode* rates;
+};
+
 
 
 class ASTSymbolTable {
@@ -179,16 +218,27 @@ public:
 
   ASTListNode* new_list_node();
 
+  ASTSeparatorNode* new_separator_node(const SeparatorType type);
+
   ASTComponentNode* new_component_node(
       const std::string& name,
-      ASTListNode* state_list,
+      ASTListNode* states,
       ASTStrNode* bond
   );
 
   ASTMoleculeNode* new_molecule_node(
       const std::string& name,
-      ASTListNode* component_list
+      ASTListNode* components
   );
+
+  ASTReactionRuleNode* new_reaction_rule_node(
+      ASTListNode* products,
+      const bool reversible,
+      ASTListNode* reactants,
+      ASTListNode* rates
+  );
+
+
 
   void inc_error_count() {
     errors++;
@@ -196,10 +246,17 @@ public:
 
   void print_error_report();
 
+  void add_reaction_rule(ASTReactionRuleNode* n) {
+    assert(n != nullptr);
+    reaction_rules.append(n);
+  }
+
   // contains parameters from parameters sections
   // molecules from molecule types sections
   // and rules from reaction rules sections
   ASTSymbolTable symtab;
+
+  ASTListNode reaction_rules;
 
   void dump();
 
