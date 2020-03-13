@@ -59,6 +59,9 @@ namespace BNG {
 // set up function name prefixes and output file name 
 %define api.prefix {bngl}
 
+// extend yylval (bngllval) with the possibility to store line)
+%locations
+
 // one rr conflict is expected
 %expect 1
 
@@ -80,7 +83,7 @@ namespace BNG {
 %token TOK_PARAMETERS
 %token TOK_MOLECULE
 %token TOK_TYPES
-%token TOK_rxn
+%token TOK_REACTION
 %token TOK_RULES
 
 %token <str> TOK_ID
@@ -127,7 +130,7 @@ section:
     | TOK_BEGIN TOK_MOLECULE TOK_TYPES molecule_list_maybe_empty TOK_END TOK_MOLECULE TOK_TYPES {
     	g_ctx->symtab.insert_molecule_declarations($4, g_ctx);
       }
-    | TOK_BEGIN TOK_rxn TOK_RULES rxn_rule_list_maybe_empty TOK_END TOK_rxn TOK_RULES 
+    | TOK_BEGIN TOK_REACTION TOK_RULES rxn_rule_list_maybe_empty TOK_END TOK_REACTION TOK_RULES 
 ;
 
 // ---------------- parameters ------------------- 
@@ -170,7 +173,8 @@ molecule:
       TOK_ID '(' component_list_maybe_empty ')' {
     	$$ = g_ctx->new_molecule_node(
     		to_str_and_delete($1),		
-			$3
+			$3,
+			@1
     	);	
       }
 ;
@@ -197,7 +201,8 @@ component:
     	$$ = g_ctx->new_component_node(
     		to_str_and_delete($1),	
 			$2,
-			$3
+			$3,
+			@1
     	);
       }
 ; 
@@ -221,22 +226,22 @@ component_state_list:
 
 component_state:
       '~' TOK_ID {
-      	$$ = g_ctx->new_str_node(to_str_and_delete($2));
+      	$$ = g_ctx->new_str_node(to_str_and_delete($2), @2);
       }
     | '~' TOK_LLONG {
-      	$$ = g_ctx->new_str_node($2);
+      	$$ = g_ctx->new_str_node($2, @2);
       }
 ;
 
 bond_maybe_empty:
       '!' TOK_LLONG {
-    	$$ = g_ctx->new_str_node($2);
+    	$$ = g_ctx->new_str_node($2, @2);
       }
     | '!' '+' {
-    	$$ = g_ctx->new_str_node(BNG::ANY_BOND);
+    	$$ = g_ctx->new_str_node(BNG::ANY_BOND, @2);
       }
     | /* empty */ {
-    	$$ = g_ctx->new_str_node("");
+    	$$ = g_ctx->new_empty_str_node();
     }
 ;
     
@@ -255,7 +260,7 @@ rxn_rule_list:
 rxn_rule:
       rxn_rule_side rxn_rule_direction rxn_rule_side_maybe_empty rates {
     	 
-    	BNG::ASTrxnRuleNode* n = g_ctx->new_rxn_rule_node($1, $2, $3, $4);
+    	BNG::ASTRxnRuleNode* n = g_ctx->new_rxn_rule_node($1, $2, $3, $4);
     	g_ctx->add_rxn_rule(n);
       }
 ;
@@ -269,12 +274,12 @@ rxn_rule_side_maybe_empty:
 
 rxn_rule_side:
       rxn_rule_side '+' molecule {
-    	$1->append(g_ctx->new_separator_node(BNG::SeparatorType::Plus));
+    	$1->append(g_ctx->new_separator_node(BNG::SeparatorType::Plus, @2));
     	$1->append($3);
         $$ = $1;
       }
     | rxn_rule_side '.' molecule {
-    	$1->append(g_ctx->new_separator_node(BNG::SeparatorType::Dot));
+    	$1->append(g_ctx->new_separator_node(BNG::SeparatorType::Dot, @2));
   	    $1->append($3);
 	    $$ = $1;
       }
@@ -305,13 +310,13 @@ rates:
 // TODO: expressions are just IDs and constants for now
 expr:
       TOK_ID { 
-        $$ = g_ctx->new_id_node(to_str_and_delete($1)); 
+        $$ = g_ctx->new_id_node(to_str_and_delete($1), @1); 
       } 
     | TOK_DBL { 
-        $$ = g_ctx->new_dbl_node($1); 
+        $$ = g_ctx->new_dbl_node($1, @1); 
       } 
     | TOK_LLONG { 
-        $$ = g_ctx->new_llong_node($1); 
+        $$ = g_ctx->new_llong_node($1, @1); 
       } 
 ;
     

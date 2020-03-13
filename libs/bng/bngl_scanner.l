@@ -3,6 +3,8 @@
   #include "parser_utils.h"
     
   #define size_t long // eliminate compiler warning
+  
+  #define LOC() bngllloc.first_line = bngllineno
 %}
 
 /* definitions */
@@ -14,6 +16,8 @@
 /* Eliminate unused symbols to eliminate compiler warnings */
 %option nounput
 %option noyywrap
+
+%option yylineno
 
 /* Set up function name prefixes and output file name */
 %option prefix="bngl"
@@ -29,36 +33,36 @@ I ([0-9]+)
 
     /* comments and whitespaces */
 
-"#"[^\n]*"\n"   { /* line comment */ bngllineno++; }
+"#"[^\n]*"\n"   { /* line comment */ /*bngllineno++;*/ }
 [ \t]+          ; /* whitespaces are ignored, not sure if this is correct */ 
-"\n"            { bngllineno++; }
+"\n"            { /*bngllineno++;*/ }
 "\r"            ; /* Windows end line character is ignored */
 
 
     /* keywords */
      
-"begin"         { return TOK_BEGIN; }
-"end"           { return TOK_END; }
-"model"         { return TOK_MODEL; }
-"parameters"    { return TOK_PARAMETERS; }
-"molecule"      { return TOK_MOLECULE; }
-"types"         { return TOK_TYPES; }
-"reaction"      { return TOK_REACTION; }
-"rules"         { return TOK_RULES; }
+"begin"         { LOC(); return TOK_BEGIN; }
+"end"           { LOC(); return TOK_END; }
+"model"         { LOC(); return TOK_MODEL; }
+"parameters"    { LOC(); return TOK_PARAMETERS; }
+"molecule"      { LOC(); return TOK_MOLECULE; }
+"types"         { LOC(); return TOK_TYPES; }
+"reaction"      { LOC(); return TOK_REACTION; }
+"rules"         { LOC(); return TOK_RULES; }
 
     /* numbers and identifiers */
 
-{R}             { bngllval.dbl = BNG::convert_to_dbl(bngltext); return TOK_DBL; }
-{I}             { bngllval.llong = BNG::convert_dec_to_llong(bngltext); return TOK_LLONG; }
-{ID}            { bngllval.str = BNG::strdup_new(yytext); return TOK_ID; }
+{R}             { LOC(); bngllval.dbl = BNG::convert_to_dbl(bngltext); return TOK_DBL; }
+{I}             { LOC(); bngllval.llong = BNG::convert_dec_to_llong(bngltext); return TOK_LLONG; }
+{ID}            { LOC(); bngllval.str = BNG::strdup_new(yytext); return TOK_ID; }
                         
     /* other characters */
     
-"->"            { return TOK_ARROW_RIGHT; }
-"<->"           { return TOK_ARROW_BIDIR; }
-[\~\,\!\.\(\)\/\+]  { return bngltext[0];}
+"->"            { LOC(); return TOK_ARROW_RIGHT; }
+"<->"           { LOC(); return TOK_ARROW_BIDIR; }
+[\~\,\!\.\(\)\/\+]  { LOC(); return bngltext[0];}
 
-.               { BNG::errs() << "Unexpected character '" << bngltext[0] << "'.\n"; return bngltext[0]; }
+.               { LOC(); BNG::errs() << "Unexpected character '" << bngltext[0] << "'.\n"; return bngltext[0]; }
 %%
 
 

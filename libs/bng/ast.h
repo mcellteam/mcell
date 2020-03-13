@@ -12,6 +12,19 @@
 
 #include "bng_defines.h"
 
+// The declaration below should come from #include "bngl_parser.hpp"
+// but this include causes many conflicts
+#if ! defined BNGLLTYPE && ! defined BNGLLTYPE_IS_DECLARED
+struct BNGLLTYPE
+{
+  int first_line;
+  int first_column;
+  int last_line;
+  int last_column;
+};
+# define BNGLLTYPE_IS_DECLARED 1
+#endif
+
 namespace BNG {
 
 class ASTContext;
@@ -45,14 +58,20 @@ static const std::string ANY_BOND = "+";
 class ASTBaseNode {
 public:
   ASTBaseNode()
-    : node_type(NodeType::Invalid), line(0), file(nullptr) {
+    : node_type(NodeType::Invalid), has_loc(false), line(0), file(nullptr) {
   }
   virtual ~ASTBaseNode() {}
   virtual void dump(const std::string ind);
 
   NodeType node_type;
 
-  // TODO
+  void set_loc(const char* file_, const BNGLLTYPE& loc) {
+    file = file_;
+    line = loc.first_line;
+    has_loc = true;
+  }
+
+  bool has_loc;
   int line;
   const char* file; // owned by ASTContext
 };
@@ -203,52 +222,49 @@ private:
 class ASTContext {
 public:
   ASTContext()
-    : errors(0) {
+    : errors(0), current_file(nullptr) {
   }
 
   // frees all owned nodes
   ~ ASTContext();
 
-  ASTExprNode* new_id_node(const std::string& id);
-  ASTExprNode* new_dbl_node(const double val);
-  ASTExprNode* new_llong_node(const long long val);
+  // ------------- AST node manipulation -----------------
 
-  ASTStrNode* new_str_node(const std::string str);
-  ASTStrNode* new_str_node(const long long val_to_str);
+  ASTExprNode* new_id_node(const std::string& id, const BNGLLTYPE& loc);
+  ASTExprNode* new_dbl_node(const double val, const BNGLLTYPE& loc);
+  ASTExprNode* new_llong_node(const long long val, const BNGLLTYPE& loc);
+
+  ASTStrNode* new_empty_str_node();
+  ASTStrNode* new_str_node(const std::string str, const BNGLLTYPE& loc);
+  ASTStrNode* new_str_node(const long long val_to_str, const BNGLLTYPE& loc);
 
   ASTListNode* new_list_node();
 
-  ASTSeparatorNode* new_separator_node(const SeparatorType type);
+  ASTSeparatorNode* new_separator_node(const SeparatorType type, const BNGLLTYPE& loc);
 
   ASTComponentNode* new_component_node(
       const std::string& name,
       ASTListNode* states,
-      ASTStrNode* bond
+      ASTStrNode* bond,
+      const BNGLLTYPE& loc
   );
 
   ASTMoleculeNode* new_molecule_node(
       const std::string& name,
-      ASTListNode* components
+      ASTListNode* components,
+      const BNGLLTYPE& loc
   );
 
-  ASTRxnRuleNode* new_reaction_rule_node(
-      ASTListNode* products,
-      const bool reversible,
+  ASTRxnRuleNode* new_rxn_rule_node(
       ASTListNode* reactants,
+      const bool reversible,
+      ASTListNode* products,
       ASTListNode* rates
   );
 
-
-
-  void inc_error_count() {
-    errors++;
-  }
-
-  void print_error_report();
-
-  void add_reaction_rule(ASTRxnRuleNode* n) {
+  void add_rxn_rule(ASTRxnRuleNode* n) {
     assert(n != nullptr);
-    reaction_rules.append(n);
+    rxn_rules.append(n);
   }
 
   // contains parameters from parameters sections
@@ -256,7 +272,25 @@ public:
   // and rules from reaction rules sections
   ASTSymbolTable symtab;
 
-  ASTListNode reaction_rules;
+  ASTListNode rxn_rules;
+
+  // ------------- other parsing utilities -----------------
+
+  void inc_error_count() {
+    errors++;
+  }
+
+  int get_error_count() const {
+    return errors;
+  }
+
+  void print_error_report();
+
+  void set_current_file_name(const char* file_name) {
+    // insert the file name into a set that owns all the name strings
+    auto pair_it_bool = file_names.insert(file_name);
+    current_file = pair_it_bool.first->c_str();
+  }
 
   void dump();
 
@@ -271,8 +305,9 @@ private:
   // set that contains all nodes, used to free up memory
   std::set<ASTBaseNode*> all_nodes;
 
-  // input file names
-  std::vector<std::string> file_names;
+  // all input file names are owned by this set and only pointers are passed around
+  const char* current_file;
+  std::set<std::string> file_names;
 };
 
 } // namespace BNG
