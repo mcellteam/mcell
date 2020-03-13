@@ -80,7 +80,7 @@ namespace BNG {
 %token TOK_PARAMETERS
 %token TOK_MOLECULE
 %token TOK_TYPES
-%token TOK_REACTION
+%token TOK_rxn
 %token TOK_RULES
 
 %token <str> TOK_ID
@@ -101,10 +101,10 @@ namespace BNG {
 %type <molecule_node> molecule
 %type <list_node> molecule_list_maybe_empty
 %type <list_node> molecule_list
-%type <list_node> reaction_rule_side_maybe_empty
-%type <list_node> reaction_rule_side
+%type <list_node> rxn_rule_side_maybe_empty
+%type <list_node> rxn_rule_side
 %type <list_node> rates
-%type <boolean> reaction_rule_direction
+%type <boolean> rxn_rule_direction
 
 %start start
 
@@ -127,7 +127,7 @@ section:
     | TOK_BEGIN TOK_MOLECULE TOK_TYPES molecule_list_maybe_empty TOK_END TOK_MOLECULE TOK_TYPES {
     	g_ctx->symtab.insert_molecule_declarations($4, g_ctx);
       }
-    | TOK_BEGIN TOK_REACTION TOK_RULES reaction_rule_list_maybe_empty TOK_END TOK_REACTION TOK_RULES 
+    | TOK_BEGIN TOK_rxn TOK_RULES rxn_rule_list_maybe_empty TOK_END TOK_rxn TOK_RULES 
 ;
 
 // ---------------- parameters ------------------- 
@@ -241,39 +241,39 @@ bond_maybe_empty:
 ;
     
 
-// ---------------- reaction_rules ------------------- 
-reaction_rule_list_maybe_empty:
-      reaction_rule_list
+// ---------------- rxn_rules ------------------- 
+rxn_rule_list_maybe_empty:
+      rxn_rule_list
     | /* empty */ 
 ;
 
-reaction_rule_list:
-      reaction_rule_list reaction_rule 
-    | reaction_rule 
+rxn_rule_list:
+      rxn_rule_list rxn_rule 
+    | rxn_rule 
 ;
 
-reaction_rule:
-      reaction_rule_side reaction_rule_direction reaction_rule_side_maybe_empty rates {
+rxn_rule:
+      rxn_rule_side rxn_rule_direction rxn_rule_side_maybe_empty rates {
     	 
-    	BNG::ASTReactionRuleNode* n = g_ctx->new_reaction_rule_node($1, $2, $3, $4);
-    	g_ctx->add_reaction_rule(n);
+    	BNG::ASTrxnRuleNode* n = g_ctx->new_rxn_rule_node($1, $2, $3, $4);
+    	g_ctx->add_rxn_rule(n);
       }
 ;
 
-reaction_rule_side_maybe_empty:
-      reaction_rule_side
+rxn_rule_side_maybe_empty:
+      rxn_rule_side
     | /* empty */ {
     	$$ = nullptr;
       }
 ;
 
-reaction_rule_side:
-      reaction_rule_side '+' molecule {
+rxn_rule_side:
+      rxn_rule_side '+' molecule {
     	$1->append(g_ctx->new_separator_node(BNG::SeparatorType::Plus));
     	$1->append($3);
         $$ = $1;
       }
-    | reaction_rule_side '.' molecule {
+    | rxn_rule_side '.' molecule {
     	$1->append(g_ctx->new_separator_node(BNG::SeparatorType::Dot));
   	    $1->append($3);
 	    $$ = $1;
@@ -283,7 +283,7 @@ reaction_rule_side:
       }
 ;
 
-reaction_rule_direction:
+rxn_rule_direction:
       TOK_ARROW_RIGHT {
     	$$ = false;
       }

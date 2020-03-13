@@ -97,7 +97,7 @@ void ASTMoleculeNode::dump(const std::string ind) {
 }
 
 // ------------------------------- ASTMoleculeNode ------------------------
-void ASTReactionRuleNode::dump(const std::string ind) {
+void ASTRxnRuleNode::dump(const std::string ind) {
   cout << ind << "reaction rule: name='" << name << "', reversible: " << (reversible?"true":"false") << "\n";
   cout << ind << "  reactants:\n";
   assert(reactants != nullptr);
@@ -217,13 +217,13 @@ ASTMoleculeNode* ASTContext::new_molecule_node(
   return n;
 }
 
-ASTReactionRuleNode* ASTContext::new_reaction_rule_node(
+ASTRxnRuleNode* ASTContext::new_reaction_rule_node(
     ASTListNode* products,
     const bool reversible,
     ASTListNode* reactants,
     ASTListNode* rates
 ) {
-  ASTReactionRuleNode* n = new ASTReactionRuleNode();
+  ASTRxnRuleNode* n = new ASTRxnRuleNode();
   n->products = products;
   n->reversible = reversible;
   n->reactants = reactants;

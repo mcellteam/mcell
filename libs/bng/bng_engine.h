@@ -12,6 +12,7 @@
 
 #include "component.h"
 #include "complex_species.h"
+#include "rxn_rule.h"
 
 namespace BNG {
 
@@ -22,9 +23,11 @@ class BNGData {
   std::vector<ComponentType> component_types;
   component_type_id_t next_component_type_id;
 
-
   // indexed with state_id_t
   std::vector<std::string> state_names;
+  
+  
+  std::vector<RxnRule> reaction_rules;
 };
 
 

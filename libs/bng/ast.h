@@ -22,7 +22,7 @@ enum class NodeType {
   List,
   Molecule,
   Component,
-  ReactionRule,
+  RxnRule,
   Str,
   ListSeparator
 };
@@ -165,11 +165,11 @@ public:
 };
 
 
-class ASTReactionRuleNode: public ASTBaseNode {
+class ASTRxnRuleNode: public ASTBaseNode {
 public:
-  ASTReactionRuleNode()
+  ASTRxnRuleNode()
     : reactants(nullptr), reversible(false), products(nullptr), rates(nullptr) {
-    node_type = NodeType::ReactionRule;
+    node_type = NodeType::RxnRule;
   }
   void dump(const std::string ind) override;
 
@@ -231,7 +231,7 @@ public:
       ASTListNode* components
   );
 
-  ASTReactionRuleNode* new_reaction_rule_node(
+  ASTRxnRuleNode* new_reaction_rule_node(
       ASTListNode* products,
       const bool reversible,
       ASTListNode* reactants,
@@ -246,7 +246,7 @@ public:
 
   void print_error_report();
 
-  void add_reaction_rule(ASTReactionRuleNode* n) {
+  void add_reaction_rule(ASTRxnRuleNode* n) {
     assert(n != nullptr);
     reaction_rules.append(n);
   }

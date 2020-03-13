@@ -13,7 +13,7 @@ set(SOURCE_FILES
 	component.cpp
 	molecule_instance.cpp
 	molecule_species.cpp
-	rule.cpp
+	rxn_rule.cpp
 	parser_utils.cpp
 	ast.cpp
 	test.cpp # only for development
