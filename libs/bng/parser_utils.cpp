@@ -10,11 +10,24 @@
 using namespace std;
 
 extern int bngllineno;
+extern BNG::ASTContext* g_ctx;
 
 namespace BNG {
 
 ostream& errs() {
-  cerr << "Error: line " << bngllineno << ": ";
+  assert(g_ctx != nullptr);
+  cerr <<
+      g_ctx->get_current_file_name() << ":" << bngllineno <<
+      ": error: ";
+  return cerr;
+}
+
+ostream& errs(const ASTBaseNode* loc) {
+  assert(loc != nullptr);
+  assert(loc->has_loc);
+  cerr <<
+      loc->file << ":" << loc->line <<
+      ": error: ";
   return cerr;
 }
 

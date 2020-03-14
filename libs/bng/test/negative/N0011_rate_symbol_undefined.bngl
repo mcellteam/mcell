@@ -1,0 +1,10 @@
+
+begin molecule types
+   A()
+   B()
+   C()
+end molecule types
+
+begin reaction rules
+  A() + B() -> C() a
+end reaction rules

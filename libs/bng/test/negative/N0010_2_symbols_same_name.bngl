@@ -1,0 +1,9 @@
+begin parameters
+   a 5
+   a 6
+end parameters
+
+begin molecule types
+   A()
+   A()
+end molecule types

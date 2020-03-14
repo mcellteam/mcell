@@ -5,7 +5,11 @@
 
 namespace BNG {
 
+class ASTBaseNode;
+
 std::ostream& errs();
+std::ostream& errs(const ASTBaseNode* loc);
+
 double convert_to_dbl(const char* str);
 long long convert_dec_to_llong(const char* str);
 

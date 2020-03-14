@@ -130,10 +130,22 @@ void ASTSymbolTable::insert(const std::string id, ASTBaseNode* node, ASTContext*
   table[id] = node;
 }
 
+ASTBaseNode* ASTSymbolTable::get(const std::string& id, ASTBaseNode* loc, ASTContext* ctx) const {
+  auto it = table.find(id);
+  if (it == table.end()) {
+    errs() << "Symbol '" << id << "' is not defined.\n";
+    ctx->inc_error_count();
+    return nullptr;
+  }
+  else {
+    return it->second;
+  }
+}
+
 void ASTSymbolTable::insert_molecule_declarations(const ASTListNode* molecule_node_list, ASTContext* ctx) {
   for (ASTBaseNode* n: molecule_node_list->items) {
-    assert(n->node_type == NodeType::Molecule);
-    ASTMoleculeNode* mn = dynamic_cast<ASTMoleculeNode*>(n);
+    assert(n->is_molecule());
+    ASTMoleculeNode* mn = to_molecule(n);
     insert(mn->name, mn, ctx);
   }
 }
@@ -167,6 +179,14 @@ ASTExprNode* ASTContext::new_dbl_node(const double val, const BNGLLTYPE& loc) {
   ASTExprNode* n = new ASTExprNode;
   n->set_dbl(val);
   n->set_loc(current_file, loc);
+  remember_node(n);
+  return n;
+}
+
+ASTExprNode* ASTContext::new_dbl_node(const double val, const ASTBaseNode* loc) {
+  ASTExprNode* n = new ASTExprNode;
+  n->set_dbl(val);
+  n->set_loc(loc->file, loc->line);
   remember_node(n);
   return n;
 }
@@ -270,7 +290,7 @@ ASTRxnRuleNode* ASTContext::new_rxn_rule_node(
 
 void ASTContext::print_error_report() {
   if (errors != 0) {
-    cerr << "Compilation failed, there were " << errors << " errors.";
+    cerr << "Compilation failed, there were " << errors << " errors.\n";
   }
 }
 

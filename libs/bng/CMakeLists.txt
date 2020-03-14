@@ -16,6 +16,7 @@ set(SOURCE_FILES
 	rxn_rule.cpp
 	parser_utils.cpp
 	ast.cpp
+	semantic_analyzer.cpp
 	test.cpp # only for development
 )
 

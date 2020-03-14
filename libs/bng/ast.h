@@ -28,6 +28,8 @@ struct BNGLLTYPE
 namespace BNG {
 
 class ASTContext;
+class ASTExprNode;
+class ASTRxnRuleNode;
 
 enum class NodeType {
   Invalid,
@@ -63,14 +65,32 @@ public:
   virtual ~ASTBaseNode() {}
   virtual void dump(const std::string ind);
 
-  NodeType node_type;
-
   void set_loc(const char* file_, const BNGLLTYPE& loc) {
     file = file_;
     line = loc.first_line;
     has_loc = true;
   }
 
+  void set_loc(const char* file_, const int line_) {
+    file = file_;
+    line = line_;
+    has_loc = true;
+  }
+
+  bool is_expr() const {
+    return node_type == NodeType::Expr;
+  }
+
+  bool is_molecule() const {
+    return node_type == NodeType::Molecule;
+  }
+
+  bool is_rxn_rule() const {
+    return node_type == NodeType::RxnRule;
+  }
+
+
+  NodeType node_type;
   bool has_loc;
   int line;
   const char* file; // owned by ASTContext
@@ -103,6 +123,33 @@ public:
     llong = llong_;
   }
 
+  bool is_id() const {
+    return expr_type == ExprType::Id;
+  }
+
+  bool is_dbl() const {
+    return expr_type == ExprType::Dbl;
+  }
+
+  bool is_llong() const {
+    return expr_type == ExprType::Llong;
+  }
+
+  const std::string& get_id() const {
+    assert(is_id());
+    return id;
+  }
+
+  double get_dbl() const {
+    assert(is_dbl());
+    return dbl;
+  }
+
+  double get_llong() const {
+    assert(is_llong());
+    return llong;
+  }
+
   // getters that check the type
 private:
   ASTExprNode* left;
@@ -125,6 +172,9 @@ public:
 };
 
 
+// separators represent:
+//  '+' - adding a reactant or a product to a side of a reaction)
+//  '.' - creating a complex with another molecule
 class ASTSeparatorNode: public ASTBaseNode {
 public:
   ASTSeparatorNode()
@@ -146,6 +196,10 @@ public:
     assert(n != nullptr);
     items.push_back(n);
     return this;
+  }
+
+  size_t size() {
+    return items.size();
   }
 
   std::vector<ASTBaseNode*> items;
@@ -207,7 +261,9 @@ class ASTSymbolTable {
 public:
   void insert(const std::string id, ASTBaseNode* node, ASTContext* ctx);
   void insert_molecule_declarations(const ASTListNode* molecule_node_list, ASTContext* ctx);
-  ASTBaseNode* get(const std::string& id) const;
+
+  // if symbol does was not defined, returns null and prints out error message
+  ASTBaseNode* get(const std::string& id, ASTBaseNode* loc, ASTContext* ctx) const;
 
   void dump();
 private:
@@ -219,6 +275,7 @@ private:
 
 // contains and owns all created nodes
 // also contains symbol table
+// TODO: maybe use different name, parser context?
 class ASTContext {
 public:
   ASTContext()
@@ -232,6 +289,7 @@ public:
 
   ASTExprNode* new_id_node(const std::string& id, const BNGLLTYPE& loc);
   ASTExprNode* new_dbl_node(const double val, const BNGLLTYPE& loc);
+  ASTExprNode* new_dbl_node(const double val, const ASTBaseNode* loc);
   ASTExprNode* new_llong_node(const long long val, const BNGLLTYPE& loc);
 
   ASTStrNode* new_empty_str_node();
@@ -292,6 +350,10 @@ public:
     current_file = pair_it_bool.first->c_str();
   }
 
+  const char* get_current_file_name() const {
+    return current_file;
+  }
+
   void dump();
 
 private:
@@ -309,6 +371,28 @@ private:
   const char* current_file;
   std::set<std::string> file_names;
 };
+
+
+// ------------- dynamic cast utilities -----------------
+
+// these cannot be methods of ASTBaseNode because the target data types are undefined
+// when ASTBaseNode is being defined
+// TODO: maybe use AST namespace?
+
+static inline ASTExprNode* to_expr(ASTBaseNode* n) {
+  assert(n->is_expr());
+  return dynamic_cast<ASTExprNode*>(n);
+}
+
+static inline ASTMoleculeNode* to_molecule(ASTBaseNode* n) {
+  assert(n->is_molecule());
+  return dynamic_cast<ASTMoleculeNode*>(n);
+}
+
+static inline ASTRxnRuleNode* to_rxn_rule(ASTBaseNode* n) {
+  assert(n->is_rxn_rule());
+  return dynamic_cast<ASTRxnRuleNode*>(n);
+}
 
 } // namespace BNG
 
