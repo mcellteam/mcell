@@ -12,7 +12,7 @@ set(SOURCE_FILES
 	complex_species.cpp
 	component.cpp
 	molecule_instance.cpp
-	molecule_species.cpp
+	molecule_type.cpp
 	rxn_rule.cpp
 	parser_utils.cpp
 	ast.cpp

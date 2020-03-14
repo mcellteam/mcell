@@ -81,8 +81,16 @@ public:
     return node_type == NodeType::Expr;
   }
 
+  bool is_str() const {
+    return node_type == NodeType::Str;
+  }
+
   bool is_molecule() const {
     return node_type == NodeType::Molecule;
+  }
+
+  bool is_component() const {
+    return node_type == NodeType::Component;
   }
 
   bool is_rxn_rule() const {
@@ -259,17 +267,23 @@ public:
 
 class ASTSymbolTable {
 public:
+  typedef std::map<std::string, ASTBaseNode*> IdToNodeMap;
+
   void insert(const std::string id, ASTBaseNode* node, ASTContext* ctx);
   void insert_molecule_declarations(const ASTListNode* molecule_node_list, ASTContext* ctx);
 
   // if symbol does was not defined, returns null and prints out error message
   ASTBaseNode* get(const std::string& id, ASTBaseNode* loc, ASTContext* ctx) const;
 
+  const IdToNodeMap& get_as_map() const {
+    return table;
+  }
+
   void dump();
 private:
   // we do not hold constant pointers because one for instance might
   // want to evaluate an expression
-  std::map<std::string, ASTBaseNode*> table;
+  IdToNodeMap table;
 };
 
 
@@ -377,19 +391,39 @@ private:
 
 // these cannot be methods of ASTBaseNode because the target data types are undefined
 // when ASTBaseNode is being defined
-// TODO: maybe use AST namespace?
 
-static inline ASTExprNode* to_expr(ASTBaseNode* n) {
+static inline ASTExprNode* to_expr_node(ASTBaseNode* n) {
+  assert(n != nullptr);
   assert(n->is_expr());
   return dynamic_cast<ASTExprNode*>(n);
 }
 
-static inline ASTMoleculeNode* to_molecule(ASTBaseNode* n) {
+static inline const ASTStrNode* to_str_node(const ASTBaseNode* n) {
+  assert(n != nullptr);
+  assert(n->is_str());
+  return dynamic_cast<const ASTStrNode*>(n);
+}
+
+static inline ASTMoleculeNode* to_molecule_node(ASTBaseNode* n) {
+  assert(n != nullptr);
   assert(n->is_molecule());
   return dynamic_cast<ASTMoleculeNode*>(n);
 }
 
-static inline ASTRxnRuleNode* to_rxn_rule(ASTBaseNode* n) {
+static inline const ASTMoleculeNode* to_molecule_node(const ASTBaseNode* n) {
+  assert(n != nullptr);
+  assert(n->is_molecule());
+  return dynamic_cast<const ASTMoleculeNode*>(n);
+}
+
+static inline const ASTComponentNode* to_component_node(const ASTBaseNode* n) {
+  assert(n != nullptr);
+  assert(n->is_component());
+  return dynamic_cast<const ASTComponentNode*>(n);
+}
+
+static inline ASTRxnRuleNode* to_rxn_rule_node(ASTBaseNode* n) {
+  assert(n != nullptr);
   assert(n->is_rxn_rule());
   return dynamic_cast<ASTRxnRuleNode*>(n);
 }

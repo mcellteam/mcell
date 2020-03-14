@@ -145,7 +145,7 @@ ASTBaseNode* ASTSymbolTable::get(const std::string& id, ASTBaseNode* loc, ASTCon
 void ASTSymbolTable::insert_molecule_declarations(const ASTListNode* molecule_node_list, ASTContext* ctx) {
   for (ASTBaseNode* n: molecule_node_list->items) {
     assert(n->is_molecule());
-    ASTMoleculeNode* mn = to_molecule(n);
+    ASTMoleculeNode* mn = to_molecule_node(n);
     insert(mn->name, mn, ctx);
   }
 }

@@ -4,7 +4,6 @@
 #include <stdint.h>
 #include <string>
 #include "common_defines.h"
-//#include "../../src4/defines.h"
 
 namespace BNG {
 
@@ -19,6 +18,9 @@ const state_id_t STATE_ID_ANY = 0;
 
 typedef uint component_type_id_t;
 const component_type_id_t COMPONENT_TYPE_ID_INVALID = ID_INVALID;
+
+typedef uint molecule_type_id_t;
+const molecule_type_id_t MOLECULE_TYPE_ID_INVALID = ID_INVALID;
 
 //typedef uint component_index_t;
 //const component_index_t COMPONENT_INDEX_INVALID = ID_INVALID;

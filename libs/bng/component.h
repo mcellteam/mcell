@@ -14,12 +14,6 @@
 
 namespace BNG {
 
-class ComponentType {
-  std::string name;
-  uint_set<state_id_t> allowed_states;
-};
-
-
 // each Component belongs directly to its elementary molecule
 class Component {
 public:

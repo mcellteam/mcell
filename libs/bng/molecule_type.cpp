@@ -5,7 +5,7 @@
  *      Author: ahusar
  */
 
-#include "molecule_species.h"
+#include "molecule_type.h"
 
 namespace BNG {
 

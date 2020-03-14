@@ -25,11 +25,17 @@ private:
   ASTExprNode* evaluate_to_dbl(ASTExprNode* root, std::set<std::string> used_ids={});
   void resolve_rxn_rates();
 
+  state_id_t convert_state_name(const ASTStrNode* s);
+  component_type_id_t convert_component_type(const ASTComponentNode* c);
+  void convert_molecule_types();
+
+  // map between information from molecule types and AST nodes
+  // to be able to determine original source code location
 
   // local copies so that we don't have to pass everything
   // as arguments
   ASTContext* ctx;
-  BNGData* res;
+  BNGData* bng_data;
 };
 
 } /* namespace BNG */

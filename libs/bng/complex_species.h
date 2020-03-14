@@ -9,7 +9,7 @@
 #define LIBS_BNG_COMPLEX_SPECIES_H_
 
 #include "bng_defines.h"
-#include "molecule_species.h"
+#include "molecule_type.h"
 
 namespace BNG {
 
@@ -26,7 +26,7 @@ class ComplexSpecies {
 public:
   complex_species_index_t index;
 
-  small_vector<MoleculeSpecies> molecules;
+  small_vector<MoleculeType> molecules;
 
   // bonds - must be defined in a way that allows for fast graph
   // algorithms

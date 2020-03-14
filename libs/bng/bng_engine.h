@@ -19,13 +19,24 @@ namespace BNG {
 // Data shared among all instances of BNGEngines
 // Usually constant, initialized when BNGL is parsed
 class BNGData {
+public:
+  // -- constant data ---
 
-  std::vector<ComponentType> component_types;
-  component_type_id_t next_component_type_id;
-
+  // section molecule types
   // indexed with state_id_t
+  state_id_t find_or_add_state_name(const std::string& s);
   std::vector<std::string> state_names;
-  
+
+  // indexed with component_type_id_t
+  component_type_id_t find_or_add_component_type(const ComponentType& ct);
+  std::vector<ComponentType> component_types;
+
+  // indexed with molecule_type_id_t
+  molecule_type_id_t find_or_add_molecule_type(const MoleculeType& mt);
+  std::vector<MoleculeType> molecule_types;
+
+
+
   
   std::vector<RxnRule> reaction_rules;
 };
