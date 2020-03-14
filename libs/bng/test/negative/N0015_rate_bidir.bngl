@@ -1,0 +1,12 @@
+# FAIL
+# OUTPUT: error: A reversible rule must have exactly 2 rates, 1 rate(s) provided
+
+begin molecule types
+   A()
+   B()
+   C()
+end molecule types
+
+begin reaction rules
+  A() + B() <-> C() 0.1
+end reaction rules
