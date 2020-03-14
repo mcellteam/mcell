@@ -1,17 +1,17 @@
 
 // for top of bngl_parser.hpp
-%code requires {	  
+%code requires {      
 #include "ast.h"
 }
 
 // for top of bngl_parser.cpp
-%code top {	  
+%code top {      
 #include "ast.h"
 }
 
 // for bngl_parser.hpp
 %code provides {
-	
+    
 namespace BNG {
   void create_ast_context();
   ASTContext* get_ast_context();
@@ -26,7 +26,7 @@ namespace BNG {
   #include <cstdarg>
   #include <string>
   #include "parser_utils.h"
-	
+    
   // Declare stuff from Flex that Bison needs to know about:
   extern int bngllex();
   
@@ -37,10 +37,10 @@ namespace BNG {
   
   // used to process TOK_ID tokens
   std::string to_str_and_delete(char*& ptr) {
-	std::string res = ptr;
-	free(ptr);
-	ptr = nullptr;
-	return res;
+    std::string res = ptr;
+    free(ptr);
+    ptr = nullptr;
+    return res;
   }
   
 %}
@@ -129,7 +129,7 @@ section_list:
 section:
       TOK_BEGIN TOK_PARAMETERS parameter_list_maybe_empty TOK_END TOK_PARAMETERS
     | TOK_BEGIN TOK_MOLECULE TOK_TYPES molecule_list_maybe_empty TOK_END TOK_MOLECULE TOK_TYPES {
-    	g_ctx->symtab.insert_molecule_declarations($4, g_ctx);
+        g_ctx->symtab.insert_molecule_declarations($4, g_ctx);
       }
     | TOK_BEGIN TOK_REACTION TOK_RULES rxn_rule_list_maybe_empty TOK_END TOK_REACTION TOK_RULES 
 ;
@@ -147,7 +147,7 @@ parameter_list:
       
 parameter:
       TOK_ID expr {
-    	g_ctx->symtab.insert($1, $2, g_ctx);
+        g_ctx->symtab.insert($1, $2, g_ctx);
       }
 ;
       
@@ -155,95 +155,95 @@ parameter:
 molecule_list_maybe_empty:
       molecule_list
     | /* empty */ {
-       	$$ = g_ctx->new_list_node();
+           $$ = g_ctx->new_list_node();
       }
 ;
 
 // left recursion is preferred 
 molecule_list:
       molecule_list molecule {
-       	$1->append($2);
+           $1->append($2);
         $$ = $1;
       }
     | molecule {
-  	    $$ = g_ctx->new_list_node()->append($1);
+          $$ = g_ctx->new_list_node()->append($1);
       }
 ;
 
 // fully general specification, might contain information on bonds, checked later in semantic checks 
 molecule:
       TOK_ID '(' component_list_maybe_empty ')' {
-    	$$ = g_ctx->new_molecule_node(
-    		to_str_and_delete($1),		
-			$3,
-			@1
-    	);	
+        $$ = g_ctx->new_molecule_node(
+            to_str_and_delete($1),        
+            $3,
+            @1
+        );    
       }
 ;
 
 component_list_maybe_empty:
       component_list
     | /* empty */ {
-      	$$ = g_ctx->new_list_node();
+          $$ = g_ctx->new_list_node();
       }
 ;
 
 component_list:
       component_list ',' component {
-      	$1->append($3);
-  	    $$ = $1;
+          $1->append($3);
+          $$ = $1;
       }
     | component {
-  	    $$ = g_ctx->new_list_node()->append($1);
+          $$ = g_ctx->new_list_node()->append($1);
       }
 ;
 
 component:
       TOK_ID component_state_list_maybe_empty bond_maybe_empty {
-    	$$ = g_ctx->new_component_node(
-    		to_str_and_delete($1),	
-			$2,
-			$3,
-			@1
-    	);
+        $$ = g_ctx->new_component_node(
+            to_str_and_delete($1),    
+            $2,
+            $3,
+            @1
+        );
       }
 ; 
 
 component_state_list_maybe_empty:
       component_state_list
     | /* empty */ {
-    	$$ = g_ctx->new_list_node();
+        $$ = g_ctx->new_list_node();
       }
 ;
     
 component_state_list:
       component_state_list component_state {
-    	$1->append($2);
-	    $$ = $1;
+        $1->append($2);
+        $$ = $1;
       }
     | component_state {
-	    $$ = g_ctx->new_list_node()->append($1);
+        $$ = g_ctx->new_list_node()->append($1);
       }
 ;
 
 component_state:
       '~' TOK_ID {
-      	$$ = g_ctx->new_str_node(to_str_and_delete($2), @2);
+          $$ = g_ctx->new_str_node(to_str_and_delete($2), @2);
       }
     | '~' TOK_LLONG {
-      	$$ = g_ctx->new_str_node($2, @2);
+          $$ = g_ctx->new_str_node($2, @2);
       }
 ;
 
 bond_maybe_empty:
       '!' TOK_LLONG {
-    	$$ = g_ctx->new_str_node($2, @2);
+        $$ = g_ctx->new_str_node($2, @2);
       }
     | '!' '+' {
-    	$$ = g_ctx->new_str_node(BNG::ANY_BOND, @2);
+        $$ = g_ctx->new_str_node(BNG::ANY_BOND, @2);
       }
     | /* empty */ {
-    	$$ = g_ctx->new_empty_str_node();
+        $$ = g_ctx->new_empty_str_node();
     }
 ;
     
@@ -261,38 +261,38 @@ rxn_rule_list:
 
 rxn_rule:
       rxn_rule_side rxn_rule_direction rxn_rule_side_maybe_empty rates {
-    	 
-    	BNG::ASTRxnRuleNode* n = g_ctx->new_rxn_rule_node($1, $2, $3, $4);
-    	g_ctx->add_rxn_rule(n);
+         
+        BNG::ASTRxnRuleNode* n = g_ctx->new_rxn_rule_node($1, $2, $3, $4);
+        g_ctx->add_rxn_rule(n);
       }
 ;
 
 rxn_rule_side_maybe_empty:
       rxn_rule_side
     | /* empty */ {
-    	$$ = nullptr;
+        $$ = nullptr;
       }
 ;
 
 rxn_rule_side:
       rxn_rule_side '+' molecule {
-    	$1->append(g_ctx->new_separator_node(BNG::SeparatorType::Plus, @2));
-    	$1->append($3);
+        $1->append(g_ctx->new_separator_node(BNG::SeparatorType::Plus, @2));
+        $1->append($3);
         $$ = $1;
       }
     | rxn_rule_side '.' molecule {
-    	$1->append(g_ctx->new_separator_node(BNG::SeparatorType::Dot, @2));
-  	    $1->append($3);
-	    $$ = $1;
+        $1->append(g_ctx->new_separator_node(BNG::SeparatorType::Dot, @2));
+          $1->append($3);
+        $$ = $1;
       }
     | molecule {
-    	$$ = g_ctx->new_list_node()->append($1);
+        $$ = g_ctx->new_list_node()->append($1);
       }
 ;
 
 rxn_rule_direction:
       TOK_ARROW_RIGHT {
-    	$$ = false;
+        $$ = false;
       }
     | TOK_ARROW_BIDIR {
         $$ = true;
@@ -301,10 +301,10 @@ rxn_rule_direction:
 
 rates:
       expr ',' expr {
-     	$$ = g_ctx->new_list_node()->append($1)->append($3);
+         $$ = g_ctx->new_list_node()->append($1)->append($3);
       }
     | expr {
-    	$$ = g_ctx->new_list_node()->append($1);
+        $$ = g_ctx->new_list_node()->append($1);
       }
 ;
     
