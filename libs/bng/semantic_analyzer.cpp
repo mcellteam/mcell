@@ -30,6 +30,7 @@ ASTExprNode* SemanticAnalyzer::evaluate_to_dbl(ASTExprNode* root, set<string> us
       // TODO: test for this case
       errs(root) <<
           "Cyclic dependence while evaluating an expression, id '" << id << "' was already used.\n";
+      ctx->inc_error_count();
       return ctx->new_dbl_node(0, root);
     }
 
@@ -42,6 +43,7 @@ ASTExprNode* SemanticAnalyzer::evaluate_to_dbl(ASTExprNode* root, set<string> us
     if (!val->is_expr()) {
       errs(root) <<
           "Referenced id '" << id << "' cannot be used in an expression.\n";
+      ctx->inc_error_count();
       return ctx->new_dbl_node(0, root);
     }
 

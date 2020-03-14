@@ -1,3 +1,7 @@
+# FAIL
+# OUTPUT: error: Symbol 'a' was already defined.
+# OUTPUT: error: Symbol 'A' was already defined.
+
 begin parameters
    a 5
    a 6

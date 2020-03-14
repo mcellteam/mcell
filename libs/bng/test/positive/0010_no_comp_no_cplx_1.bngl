@@ -1,3 +1,4 @@
+# OK
 # type of reactions that can be handled by MCell as well
 begin molecule types
    A()

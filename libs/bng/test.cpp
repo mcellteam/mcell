@@ -9,6 +9,7 @@ using namespace std;
 
 extern FILE *bnglin;
 
+// returns 0 if everything was ok
 int parse_bngl(char const *name, const bool dump) {
 
   BNG::create_ast_context();
@@ -42,7 +43,7 @@ int parse_bngl(char const *name, const bool dump) {
 
   BNG::delete_ast_context();
 
-  return errors == 0;
+  return errors != 0;
 }
 
 int main(int argc, const char* argv[]) {

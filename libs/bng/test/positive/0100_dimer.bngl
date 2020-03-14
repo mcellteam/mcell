@@ -1,3 +1,4 @@
+# OK
 #from nfsim/test/dimer/dimer.bngl
 begin parameters
    kp 0.00001

@@ -1,5 +1,5 @@
 # FAIL
-# OUTPUT: error: Cyclic dependence while evaluating an expression, id 'a' was already used.
+# OUTPUT: error: Referenced id 'A' cannot be used in an expression.
 
 begin parameters
    a b
@@ -13,5 +13,5 @@ begin molecule types
 end molecule types
 
 begin reaction rules
-  A() + B() -> C() a
+  A() + B() -> C() A
 end reaction rules

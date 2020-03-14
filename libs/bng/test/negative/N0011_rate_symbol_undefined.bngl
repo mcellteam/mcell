@@ -1,3 +1,5 @@
+# FAIL
+# OUTPUT: error: Symbol 'a' is not defined.
 
 begin molecule types
    A()
