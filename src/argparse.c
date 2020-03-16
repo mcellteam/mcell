@@ -71,6 +71,7 @@ static struct option long_options[] = { { "help", 0, 0, 'h' },
                                         { "rules", 1, 0, 'r'},
 																				{ "mcell4", 0, 0, 'n'},
 																				{ "dump_mcell4", 0, 0, 'o'},
+																				{ "mdl2datamodel", 0, 0, 'm'},
                                         { NULL, 0, 0, 0 } };
 
 /* print_usage: Write the usage message for mcell to a file handle.
@@ -101,6 +102,7 @@ void print_usage(FILE *f, char const *argv0) {
       "     [-rules rules_file_name] run in MCell-R mode\n"
 			"     [-mcell4]                run new experimental MCell 4 version\n"
 			"     [-dump_mcell4]           dump Mcell 3 state for MCell 4 development\n"
+      "     [-mdl2datamodel]         convert MDL to datamodel, the resulting file will be called datamodel.json\n"
       "\n");
 }
 
@@ -348,6 +350,10 @@ int argparse_init(int argc, char *const argv[], struct volume *vol) {
 
     case 'o':
       vol->dump_mcell4 = 1;
+      break;
+
+    case 'm':
+      vol->mdl2datamodel = 1;
       break;
 
     default:
