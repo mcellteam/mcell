@@ -58,7 +58,7 @@ public:
 class ComplexInstance {
 public:
   // to what complex species this complex belongs
-  complex_species_index_t complex_species_index;
+  complex_species_id_t complex_species_index;
 
   // molecule instances contained in this complex instance
   small_vector<molecule_id_t> molecule_ids;

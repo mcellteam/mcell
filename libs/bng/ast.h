@@ -39,7 +39,7 @@ enum class NodeType {
   Component,
   RxnRule,
   Str,
-  ListSeparator
+  Separator
 };
 
 enum class ExprType {
@@ -95,6 +95,10 @@ public:
 
   bool is_rxn_rule() const {
     return node_type == NodeType::RxnRule;
+  }
+
+  bool is_separator() const {
+    return node_type == NodeType::Separator;
   }
 
 
@@ -187,9 +191,23 @@ class ASTSeparatorNode: public ASTBaseNode {
 public:
   ASTSeparatorNode()
     : separator_type(SeparatorType::Invalid) {
-    node_type = NodeType::Str;
+    node_type = NodeType::Separator;
   }
+
+  bool is_dot() const {
+    return separator_type == SeparatorType::Dot;
+  }
+
+  bool is_plus() const {
+    return separator_type == SeparatorType::Plus;
+  }
+
   void dump(const std::string ind) override;
+
+  char to_char() const {
+    assert(separator_type != SeparatorType::Invalid);
+    return (separator_type == SeparatorType::Dot) ? '.' : '+';
+  }
 
   SeparatorType separator_type;
 };
@@ -427,6 +445,19 @@ static inline ASTRxnRuleNode* to_rxn_rule_node(ASTBaseNode* n) {
   assert(n->is_rxn_rule());
   return dynamic_cast<ASTRxnRuleNode*>(n);
 }
+
+static inline const ASTRxnRuleNode* to_rxn_rule_node(const ASTBaseNode* n) {
+  assert(n != nullptr);
+  assert(n->is_rxn_rule());
+  return dynamic_cast<const ASTRxnRuleNode*>(n);
+}
+
+static inline const ASTSeparatorNode* to_separator(const ASTBaseNode* n) {
+  assert(n != nullptr);
+  assert(n->is_separator());
+  return dynamic_cast<const ASTSeparatorNode*>(n);
+}
+
 
 } // namespace BNG
 

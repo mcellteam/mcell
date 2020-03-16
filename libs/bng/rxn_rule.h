@@ -24,11 +24,24 @@ class RxnRule {
 public:
   std::string name;
 
-  small_vector<ComplexSpecies> reactants;
-  small_vector<ComplexSpecies> products;
+  // the complex species are patterns
+  //
+  // there is a potential for optimizations, e.g.
+  // to make a set of species that match the patterns, but let's keep it
+  // for later
+  ComplexSpeciesVector reactants;
+  ComplexSpeciesVector products;
 
   float_t reaction_rate;
 
+  bool operator ==(const RxnRule& rr2) {
+    // ordering of components in a molecule is important
+    // two component types must have the same id, this is ensured in find_or_add_component_type
+    return
+        name == rr2.name &&
+        reactants == rr2.reactants && products == rr2.products &&
+        reaction_rate == rr2.reaction_rate;
+  }
 };
 
 } /* namespace BNG */

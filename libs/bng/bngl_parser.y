@@ -155,18 +155,18 @@ parameter:
 molecule_list_maybe_empty:
       molecule_list
     | /* empty */ {
-           $$ = g_ctx->new_list_node();
+        $$ = g_ctx->new_list_node();
       }
 ;
 
 // left recursion is preferred 
 molecule_list:
       molecule_list molecule {
-           $1->append($2);
+        $1->append($2);
         $$ = $1;
       }
     | molecule {
-          $$ = g_ctx->new_list_node()->append($1);
+        $$ = g_ctx->new_list_node()->append($1);
       }
 ;
 
@@ -184,17 +184,17 @@ molecule:
 component_list_maybe_empty:
       component_list
     | /* empty */ {
-          $$ = g_ctx->new_list_node();
+        $$ = g_ctx->new_list_node();
       }
 ;
 
 component_list:
       component_list ',' component {
-          $1->append($3);
-          $$ = $1;
+        $1->append($3);
+        $$ = $1;
       }
     | component {
-          $$ = g_ctx->new_list_node()->append($1);
+        $$ = g_ctx->new_list_node()->append($1);
       }
 ;
 
@@ -228,10 +228,10 @@ component_state_list:
 
 component_state:
       '~' TOK_ID {
-          $$ = g_ctx->new_str_node(to_str_and_delete($2), @2);
+        $$ = g_ctx->new_str_node(to_str_and_delete($2), @2);
       }
     | '~' TOK_LLONG {
-          $$ = g_ctx->new_str_node($2, @2);
+        $$ = g_ctx->new_str_node($2, @2);
       }
 ;
 

@@ -56,6 +56,7 @@ ASTExprNode* SemanticAnalyzer::evaluate_to_dbl(ASTExprNode* root, set<string> us
   return nullptr;
 }
 
+
 // compute all reaction rates and replace them with a floating point value (BNGL uses integers only for bond indices)
 void SemanticAnalyzer::resolve_rxn_rates() {
   // the only place where expressions are currently used are rates
@@ -144,6 +145,113 @@ void SemanticAnalyzer::convert_molecule_types() {
   }
 }
 
+
+void SemanticAnalyzer::convert_rxn_complex_pattern(const small_vector<const ASTMoleculeNode*>& complex_nodes, ComplexSpecies& pattern) {
+
+  for (const ASTMoleculeNode* m: complex_nodes) {
+    // molecule ids are based on their name
+
+    molecule_type_id_t molecule_type_id = bng_data->find_molecule_type_id(m->name);
+    if (molecule_type_id == MOLECULE_TYPE_ID_INVALID) {
+      errs(m) << "Molecule type with name '" + m->name + "' was not defined.\n";
+      ctx->inc_error_count();
+      continue;
+    }
+
+    // TODO: complexes and bonds!
+  }
+
+}
+
+
+// take one side of a reaction rule and create pattern for rule matching
+void SemanticAnalyzer::convert_rxn_rule_side(const ASTListNode* rule_side, ComplexSpeciesVector& patterns) {
+
+  // we need to check each molecule type from each complex
+  small_vector<const ASTMoleculeNode*> current_complex_nodes;
+  for (size_t i = 0; i < rule_side->items.size(); i++) {
+    const ASTBaseNode* n = rule_side->items[i];
+
+    if (n->is_separator()) {
+      const ASTSeparatorNode* sep = to_separator(n);
+
+      // separator must separate molecule type patterns,
+      // also the last item must not be a separator
+      if (current_complex_nodes.empty() || i == rule_side->items.size() - 1) {
+        errs(n) <<
+            "Invalid use of reaction rule separator '" << sep->to_char() << "'. "
+            "It must be used to separate molecule type patterns.\n";
+        ctx->inc_error_count();
+        continue;
+      }
+
+      if (sep->is_plus()) {
+        ComplexSpecies pattern;
+        convert_rxn_complex_pattern(current_complex_nodes, pattern);
+        patterns.push_back(pattern);
+
+        // start a new complex pattern
+        current_complex_nodes.clear();
+      }
+      // if no need to do anything for '.' -
+    }
+    else {
+      // must be molecule type if not a separator
+      const ASTMoleculeNode* m = to_molecule_node(n);
+      current_complex_nodes.push_back(m);
+    }
+  }
+
+  // process final complex
+  assert(current_complex_nodes.empty() == rule_side->items.empty() && "Last set can be empty only if the patterns are empty");
+  if (!current_complex_nodes.empty()) {
+    ComplexSpecies pattern;
+    convert_rxn_complex_pattern(current_complex_nodes, pattern);
+    patterns.push_back(pattern);
+  }
+}
+
+
+void SemanticAnalyzer::convert_rxn_rules() {
+
+  // for each reaction rule
+  for (const ASTBaseNode* n: ctx->rxn_rules.items) {
+    const ASTRxnRuleNode* r = to_rxn_rule_node(n);
+
+    ComplexSpeciesVector reactants;
+    convert_rxn_rule_side(r->reactants, reactants);
+
+    ComplexSpeciesVector products;
+    convert_rxn_rule_side(r->products, products);
+
+    RxnRule fwd_rule;
+    fwd_rule.name = r->name;
+    assert(r->rates->items.size() >= 1);
+    fwd_rule.reaction_rate = to_expr_node(r->rates->items[0])->get_dbl();
+    fwd_rule.reactants = reactants;
+    fwd_rule.products = products;
+
+    if (r->reversible) {
+      RxnRule rev_rule;
+      rev_rule.name = r->name;
+
+      if (products.empty()) {
+        errs(r) <<
+            "A reversible rule must have at least one complex pattern " <<
+            "on the right side of the reaction rule.\n";
+        ctx->inc_error_count();
+      }
+
+      assert(r->rates->items.size() == 2);
+      fwd_rule.reaction_rate = to_expr_node(r->rates->items[1])->get_dbl();
+      fwd_rule.reactants = products;
+      fwd_rule.products = reactants;
+    }
+  }
+}
+
+
+
 // returns true if conversion and semantic checks passed
 bool SemanticAnalyzer::check_and_convert(ASTContext* ctx_, BNGData* res_bng) {
   assert(ctx_ != nullptr);
@@ -167,6 +275,10 @@ bool SemanticAnalyzer::check_and_convert(ASTContext* ctx_, BNGData* res_bng) {
   }
 
   // convert rxn rules
+  convert_rxn_rules();
+  if (ctx->get_error_count() != 0) {
+    return false;
+  }
 
 
   return true;

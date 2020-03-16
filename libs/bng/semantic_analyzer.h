@@ -29,6 +29,10 @@ private:
   component_type_id_t convert_component_type(const ASTComponentNode* c);
   void convert_molecule_types();
 
+  void convert_rxn_complex_pattern(const small_vector<const ASTMoleculeNode*>& complex_nodes, ComplexSpecies& pattern);
+  void convert_rxn_rule_side(const ASTListNode* rule_side, ComplexSpeciesVector& pattern);
+  void convert_rxn_rules();
+
   // map between information from molecule types and AST nodes
   // to be able to determine original source code location
 
