@@ -105,7 +105,7 @@ component_type_id_t SemanticAnalyzer::convert_component_type(const ASTComponentN
   // states
   for (const ASTBaseNode* state: c->states->items) {
     state_id_t state_id = convert_state_name(to_str_node(state));
-    ct.allowed_states.insert(state_id);
+    ct.allowed_state_ids.insert(state_id);
   }
 
   // bond - ignored, only error is printed

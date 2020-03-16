@@ -10,7 +10,7 @@ using namespace std;
 extern FILE *bnglin;
 
 // returns 0 if everything was ok
-int parse_bngl(char const *name, const bool dump) {
+int parse_bngl(char const *name, const bool dump_ast, const bool dump_bng_data) {
 
   BNG::create_ast_context();
   BNG::ASTContext* ctx = BNG::get_ast_context();
@@ -28,7 +28,7 @@ int parse_bngl(char const *name, const bool dump) {
     cerr << "\nParse error code is " << res << ".\n";
   }
 
-  if (dump) {
+  if (dump_ast) {
     ctx->dump();
   }
 
@@ -36,6 +36,10 @@ int parse_bngl(char const *name, const bool dump) {
 
   BNG::BNGData bng_data;
   sema.check_and_convert(ctx, &bng_data);
+
+  if (dump_bng_data) {
+    bng_data.dump();
+  }
 
   ctx->print_error_report();
 
@@ -53,10 +57,14 @@ int main(int argc, const char* argv[]) {
     cerr << "Expected input file as argument, second optional arg enables AST dump\n";
   }
 
-  bool dump = false;
-  if (argc == 3 && string(argv[2]) == "-d") {
-    dump = true;
+  bool dump_ast = false;
+  bool dump_bng = false;
+  if (argc == 3 && string(argv[2]) == "-a") {
+    dump_ast = true;
+  }
+  if (argc == 3 && string(argv[2]) == "-b") {
+    dump_bng = true;
   }
 
-  return parse_bngl(argv[1], dump);
+  return parse_bngl(argv[1], dump_ast, dump_bng);
 }

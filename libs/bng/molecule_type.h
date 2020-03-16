@@ -18,12 +18,12 @@ namespace BNG {
 class ComponentType {
 public:
   std::string name;
-  uint_set<state_id_t> allowed_states;
+  uint_set<state_id_t> allowed_state_ids;
 
   bool operator ==(const ComponentType& ct2) {
     // ordering of allowed states is not important (they are in a set anyway)
     // two states must have the same id, this is ensured in find_or_add_state_name
-    return name == ct2.name && allowed_states == ct2.allowed_states;
+    return name == ct2.name && allowed_state_ids == ct2.allowed_state_ids;
   }
 };
 

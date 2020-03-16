@@ -24,19 +24,30 @@ public:
 
   // section molecule types
   // indexed with state_id_t
-  state_id_t find_or_add_state_name(const std::string& s);
   std::vector<std::string> state_names;
+  state_id_t find_or_add_state_name(const std::string& s);
+  const std::string& get_state_name(const state_id_t id) {
+    assert(id < state_names.size());
+    return state_names[id];
+  }
 
   // indexed with component_type_id_t
-  component_type_id_t find_or_add_component_type(const ComponentType& ct);
   std::vector<ComponentType> component_types;
+  component_type_id_t find_or_add_component_type(const ComponentType& ct);
+  const ComponentType& get_component_type(const component_type_id_t id) {
+    assert(id < component_types.size());
+    return component_types[id];
+  }
 
   // indexed with molecule_type_id_t
   molecule_type_id_t find_or_add_molecule_type(const MoleculeType& mt);
   std::vector<MoleculeType> molecule_types;
+  const MoleculeType& get_molecule_type(const molecule_type_id_t id) {
+    assert(id < molecule_types.size());
+    return molecule_types[id];
+  }
 
-
-
+  void dump(const bool as_bngl = true);
   
   std::vector<RxnRule> reaction_rules;
 };

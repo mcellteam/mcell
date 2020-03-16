@@ -4,6 +4,7 @@
  *  Created on: Jan 9, 2020
  *      Author: ahusar
  */
+#include <iostream>
 
 #include "bng_engine.h"
 
@@ -47,5 +48,39 @@ molecule_type_id_t BNGData::find_or_add_molecule_type(const MoleculeType& mt) {
   molecule_types.push_back(mt);
   return molecule_types.size() - 1;
 }
+
+
+void BNGData::dump(const bool as_bngl) {
+  if (as_bngl) {
+    cout << "begin molecule types\n";
+
+    for (const MoleculeType& mt: molecule_types) {
+
+      cout << "  " << mt.name << "(";
+
+      for (size_t i = 0; i < mt.component_type_ids.size(); i++) {
+
+        const ComponentType& ct = get_component_type(mt.component_type_ids[i]);
+
+        cout << ct.name;
+
+        for (state_id_t state_id: ct.allowed_state_ids) {
+          cout << "~" << get_state_name(state_id);
+        }
+        if (i != mt.component_type_ids.size() - 1) {
+          cout << ", ";
+        }
+      }
+
+      cout << ")\n";
+    }
+
+    cout << "end molecule types\n";
+  }
+  else {
+    assert(false && "TODO");
+  }
+}
+
 
 } /* namespace BNG */
