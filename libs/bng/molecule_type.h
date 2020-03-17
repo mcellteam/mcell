@@ -43,6 +43,9 @@ public:
   }
 };
 
+
+
+
 } /* namespace BNG */
 
 #endif /* LIBS_BNG_MOLECULE_TYPE_H_ */

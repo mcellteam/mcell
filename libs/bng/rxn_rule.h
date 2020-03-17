@@ -29,8 +29,8 @@ public:
   // there is a potential for optimizations, e.g.
   // to make a set of species that match the patterns, but let's keep it
   // for later
-  ComplexSpeciesVector reactants;
-  ComplexSpeciesVector products;
+  ComplexSpeciesInstanceVector reactants;
+  ComplexSpeciesInstanceVector products;
 
   float_t reaction_rate;
 

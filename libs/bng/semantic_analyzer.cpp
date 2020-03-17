@@ -100,6 +100,7 @@ state_id_t SemanticAnalyzer::convert_state_name(const ASTStrNode* s) {
 
 
 component_type_id_t SemanticAnalyzer::convert_component_type(const ASTComponentNode* c) {
+
   ComponentType ct;
   ct.name = c->name;
 
@@ -121,7 +122,21 @@ component_type_id_t SemanticAnalyzer::convert_component_type(const ASTComponentN
 }
 
 
-void SemanticAnalyzer::convert_molecule_types() {
+MoleculeType SemanticAnalyzer::convert_molecule_type(const ASTMoleculeNode* n) {
+  MoleculeType mt;
+  mt.name = n->name;
+
+  for (const ASTBaseNode* c: n->components->items) {
+    // component types must not have bonds
+    component_type_id_t component_type_id =
+        convert_component_type(to_component_node(c));
+    mt.component_type_ids.push_back(component_type_id);
+  }
+
+  return mt;
+}
+
+void SemanticAnalyzer::convert_and_store_molecule_types() {
 
   // for each molecule (type) from the symbol table
   const ASTSymbolTable::IdToNodeMap& table = ctx->symtab.get_as_map();
@@ -130,15 +145,7 @@ void SemanticAnalyzer::convert_molecule_types() {
     if (it.second->is_molecule()) {
       const ASTMoleculeNode* n = to_molecule_node(it.second);
 
-      MoleculeType mt;
-      mt.name = n->name;
-
-      for (const ASTBaseNode* c: n->components->items) {
-        // component types must not have bonds
-        component_type_id_t component_type_id =
-            convert_component_type( to_component_node(c) );
-        mt.component_type_ids.push_back(component_type_id);
-      }
+      MoleculeType mt = convert_molecule_type(n);
 
       bng_data->find_or_add_molecule_type(mt);
     }
@@ -146,26 +153,74 @@ void SemanticAnalyzer::convert_molecule_types() {
 }
 
 
-void SemanticAnalyzer::convert_rxn_complex_pattern(const small_vector<const ASTMoleculeNode*>& complex_nodes, ComplexSpecies& pattern) {
+component_type_id_t SemanticAnalyzer::convert_component_instance(const ASTComponentNode* c) {
+
+  ComponentType ct;
+  ct.name = c->name;
+
+  // states
+  for (const ASTBaseNode* state: c->states->items) {
+    state_id_t state_id = convert_state_name(to_str_node(state));
+    ct.allowed_state_ids.insert(state_id);
+  }
+
+  // bond - ignored, only error is printed
+  if (c->bond->str != "") {
+    errs(c) <<
+        "Definition of a component in the molecule types section must not have a bond, "
+        "error for '!" << c->bond->str << "'.\n";
+    ctx->inc_error_count();
+  }
+
+  return bng_data->find_or_add_component_type(ct);
+}
+
+
+ComponentInstance SemanticAnalyzer::convert_component_instance(const ASTComponentNode* n) {
+
+  // check on allowed state?
+}
+
+
+MoleculeTypeInstance SemanticAnalyzer::convert_molecule_type_pattern(const ASTMoleculeNode* m) {
+
+  MoleculeTypeInstance mtp;
+
+  // process and remember ID
+  molecule_type_id_t molecule_type_id = bng_data->find_molecule_type_id(m->name);
+  if (molecule_type_id == MOLECULE_TYPE_ID_INVALID) {
+    errs(m) << "Molecule type with name '" + m->name + "' was not defined.\n";
+    ctx->inc_error_count();
+    continue;
+  }
+
+  mtp.molecule_type_id = molecule_type_id;
+
+  // process component instances for this molecule type pattern/instance
+
+  for (size_t i = 0; i < complex_nodes.size(); i++) {
+    //component_instances
+    const ASTComponentNode* n = to_component_node(m->components[i]);
+  }
+
+  // TODO: semantic check that this is a really an allowed pattern for molecule_type_id
+}
+
+// for a pattern it is ok to not to list all components
+void SemanticAnalyzer::convert_rxn_complex_pattern(const small_vector<const ASTMoleculeNode*>& complex_nodes, ComplexSpeciesInstance& pattern) {
 
   for (const ASTMoleculeNode* m: complex_nodes) {
     // molecule ids are based on their name
-
-    molecule_type_id_t molecule_type_id = bng_data->find_molecule_type_id(m->name);
-    if (molecule_type_id == MOLECULE_TYPE_ID_INVALID) {
-      errs(m) << "Molecule type with name '" + m->name + "' was not defined.\n";
-      ctx->inc_error_count();
-      continue;
-    }
-
-    // TODO: complexes and bonds!
+    pattern.push_back( convert_molecule_type_pattern(m) );
   }
+
+  // TODO: semantic checks on bonds validity
 
 }
 
 
 // take one side of a reaction rule and create pattern for rule matching
-void SemanticAnalyzer::convert_rxn_rule_side(const ASTListNode* rule_side, ComplexSpeciesVector& patterns) {
+void SemanticAnalyzer::convert_rxn_rule_side(const ASTListNode* rule_side, ComplexSpeciesInstanceVector& patterns) {
 
   // we need to check each molecule type from each complex
   small_vector<const ASTMoleculeNode*> current_complex_nodes;
@@ -186,7 +241,7 @@ void SemanticAnalyzer::convert_rxn_rule_side(const ASTListNode* rule_side, Compl
       }
 
       if (sep->is_plus()) {
-        ComplexSpecies pattern;
+        ComplexSpeciesInstance pattern;
         convert_rxn_complex_pattern(current_complex_nodes, pattern);
         patterns.push_back(pattern);
 
@@ -212,16 +267,16 @@ void SemanticAnalyzer::convert_rxn_rule_side(const ASTListNode* rule_side, Compl
 }
 
 
-void SemanticAnalyzer::convert_rxn_rules() {
+void SemanticAnalyzer::convert_and_store_rxn_rules() {
 
   // for each reaction rule
   for (const ASTBaseNode* n: ctx->rxn_rules.items) {
     const ASTRxnRuleNode* r = to_rxn_rule_node(n);
 
-    ComplexSpeciesVector reactants;
+    ComplexSpeciesInstanceVector reactants;
     convert_rxn_rule_side(r->reactants, reactants);
 
-    ComplexSpeciesVector products;
+    ComplexSpeciesInstanceVector products;
     convert_rxn_rule_side(r->products, products);
 
     RxnRule fwd_rule;
@@ -269,13 +324,13 @@ bool SemanticAnalyzer::check_and_convert(ASTContext* ctx_, BNGData* res_bng) {
   // convert molecule types
   // the single purpose of molecule types is to be able to check
   // that reaction rules and also new releases adhere to the molecule type template
-  convert_molecule_types();
+  convert_and_store_molecule_types();
   if (ctx->get_error_count() != 0) {
     return false;
   }
 
   // convert rxn rules
-  convert_rxn_rules();
+  convert_and_store_rxn_rules();
   if (ctx->get_error_count() != 0) {
     return false;
   }

@@ -19,6 +19,10 @@ const state_id_t STATE_ID_ANY = 0;
 typedef uint component_type_id_t;
 const component_type_id_t COMPONENT_TYPE_ID_INVALID = ID_INVALID;
 
+typedef uint bond_value_t;
+const bond_value_t BOND_VALUE_INVALID = UINT32_MAX; // same as ID_INVALID
+const bond_value_t BOND_VALUE_ANY = UINT32_MAX - 1; // for '+' in patterns such as a!+
+
 typedef uint molecule_type_id_t;
 const molecule_type_id_t MOLECULE_TYPE_ID_INVALID = ID_INVALID;
 
