@@ -250,7 +250,7 @@ def write_gen_class(f, class_name, items):
 
 
 def write_define_binding_decl(f, class_name):
-    f.write('void define_binding_' + class_name + '(py::module& m)')           
+    f.write('void define_pybinding_' + class_name + '(py::module& m)')           
 
 
 def generate_class_header(class_name, items, input_file_name):
@@ -354,7 +354,7 @@ def write_pybind11_bindings(f, class_name, items):
     # properties
     for i in range(num_items):
         name = items[i][KEY_NAME]
-        f.write('      .def_property("' + name + '", &' + class_name + '::get_name, &' + class_name + '::set_name)\n')
+        f.write('      .def_property("' + name + '", &' + class_name + '::get_' + name + ', &' + class_name + '::set_' + name + ')\n')
     f.write('    ;\n')
     f.write('}\n\n')
                 

@@ -21,7 +21,7 @@
  *
 ******************************************************************************/
 
-// This file was generated automatically on 03/10/2020, 10:52 from 'data_classes.yaml'
+// This file was generated automatically on 03/17/2020, 12:05 from 'data_classes.yaml'
 
 #include <sstream>
 #include "../api/mcell.h"
@@ -45,7 +45,7 @@ std::string GenSpecies::to_str() const{
   return ss.str();
 }
 
-void define_binding_Species(py::module& m) {
+void define_pybinding_Species(py::module& m) {
   py::class_<Species>(m, "Species")
       .def(
           py::init<
@@ -61,8 +61,8 @@ void define_binding_Species(py::module& m) {
       .def("__str__", &Species::to_str)
       .def("dump", &Species::dump)
       .def_property("name", &Species::get_name, &Species::set_name)
-      .def_property("diffusion_constant_3d", &Species::get_name, &Species::set_name)
-      .def_property("diffusion_constant_2d", &Species::get_name, &Species::set_name)
+      .def_property("diffusion_constant_3d", &Species::get_diffusion_constant_3d, &Species::set_diffusion_constant_3d)
+      .def_property("diffusion_constant_2d", &Species::get_diffusion_constant_2d, &Species::set_diffusion_constant_2d)
     ;
 }
 

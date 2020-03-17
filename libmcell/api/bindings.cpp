@@ -6,7 +6,7 @@
 namespace MCell {
 namespace API {
 
-void define_binding_Vec3(py::module& m) {
+void define_pybinding_Vec3(py::module& m) {
   py::class_<MCell::Vec3>(m, "Vec3")
       .def(
           py::init<>()
@@ -34,9 +34,9 @@ PYBIND11_MODULE(mcell, m) {
       .value("FATAL_ERROR", SemRes::FATAL_ERROR)
       .export_values();
 
-  define_binding_Vec3(m);
-  define_binding_ReleaseSite(m);
-  define_binding_Species(m);
+  define_pybinding_Vec3(m);
+  define_pybinding_ReleaseSite(m);
+  define_pybinding_Species(m);
 
 }
 

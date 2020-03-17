@@ -6,12 +6,7 @@
 
 #include "defines.h"
 
-#ifdef INDEXER_WA
-// FIMXE: how to convince Eclipse to index headers whose position must be obtained dynamically?
-#include "/nadata/cnl/home/ahusar/tools/anaconda/include/python3.7m/pybind11/pybind11.h"
-#else
 #include <pybind11/pybind11.h>
-#endif
 
 namespace py = pybind11;
 #include <string>

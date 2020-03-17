@@ -21,7 +21,7 @@
  *
 ******************************************************************************/
 
-// This file was generated automatically on 03/10/2020, 10:52 from 'data_classes.yaml'
+// This file was generated automatically on 03/17/2020, 12:05 from 'data_classes.yaml'
 
 #ifndef API_GEN_SPECIES_H
 #define API_GEN_SPECIES_H
@@ -75,7 +75,7 @@ public:
 
 }; // GenSpecies
 
-void define_binding_Species(py::module& m);
+void define_pybinding_Species(py::module& m);
 } // namespace API
 } // namespace MCell
 
