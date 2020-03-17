@@ -25,6 +25,17 @@ state_id_t BNGData::find_or_add_state_name(const std::string& s) {
   return state_names.size() - 1;
 }
 
+// may return STATE_ID_INVALID when the name was not found
+state_id_t BNGData::find_state_id(const std::string& name) const {
+  for (state_id_t i = 0; i < state_names.size(); i++) {
+    if (state_names[i] == name) {
+      return i;
+    }
+  }
+  return MOLECULE_TYPE_ID_INVALID;
+}
+
+
 
 component_type_id_t BNGData::find_or_add_component_type(const ComponentType& ct) {
   for (component_type_id_t i = 0; i < component_types.size(); i++) {
@@ -81,38 +92,42 @@ rxn_rule_id_t BNGData::find_or_add_rxn_rule(const RxnRule& rr) {
   return rxn_rules.size() - 1;
 }
 
+// TODO: move these dumps into the specific classes and pass BNGData
+
+void BNGData::dump_molecule_types_as_bngl() {
+  cout << "begin molecule types\n";
+
+  for (const MoleculeType& mt: molecule_types) {
+    cout << "  ";
+    mt.dump(*this);
+    cout << "\n";
+  }
+
+  cout << "end molecule types\n";
+}
+
+
+void BNGData::dump_reaction_rules_as_bngl() {
+  cout << "begin reaction rules\n";
+
+  for (const RxnRule& rr: rxn_rules) {
+    cout << "  ";
+    rr.dump(*this);
+    cout << "\n";
+  }
+
+  cout << "end reaction rules\n";
+
+}
 
 void BNGData::dump(const bool as_bngl) {
   if (as_bngl) {
-    cout << "begin molecule types\n";
-
-    for (const MoleculeType& mt: molecule_types) {
-
-      cout << "  " << mt.name << "(";
-
-      for (size_t i = 0; i < mt.component_type_ids.size(); i++) {
-
-        const ComponentType& ct = get_component_type(mt.component_type_ids[i]);
-
-        cout << ct.name;
-
-        for (state_id_t state_id: ct.allowed_state_ids) {
-          cout << "~" << get_state_name(state_id);
-        }
-        if (i != mt.component_type_ids.size() - 1) {
-          cout << ", ";
-        }
-      }
-
-      cout << ")\n";
-    }
-
-    cout << "end molecule types\n";
+    dump_molecule_types_as_bngl();
+    dump_reaction_rules_as_bngl();
   }
   else {
     assert(false && "TODO");
   }
 }
-
 
 } /* namespace BNG */

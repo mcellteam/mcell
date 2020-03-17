@@ -5,6 +5,9 @@
   #define size_t long // eliminate compiler warning
   
   #define LOC() bngllloc.first_line = bngllineno
+  
+  extern BNG::ASTContext* g_ctx; // defined in bngl_parser.y
+  
 %}
 
 /* definitions */
@@ -54,7 +57,7 @@ I ([0-9]+)
 
 {R}             { LOC(); bngllval.dbl = BNG::convert_to_dbl(bngltext); return TOK_DBL; }
 {I}             { LOC(); bngllval.llong = BNG::convert_dec_to_llong(bngltext); return TOK_LLONG; }
-{ID}            { LOC(); bngllval.str = BNG::strdup_new(yytext); return TOK_ID; }
+{ID}            { LOC(); bngllval.str = g_ctx->insert_to_string_pool(yytext); return TOK_ID; }
                         
     /* other characters */
     

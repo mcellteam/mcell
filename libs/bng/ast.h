@@ -55,7 +55,7 @@ enum class SeparatorType {
   Dot
 };
 
-static const std::string ANY_BOND = "+";
+static const std::string BOND_STR_ANY = "+";
 
 class ASTBaseNode {
 public:
@@ -251,6 +251,7 @@ public:
 // into the symbol table
 // when used in reaction rule, it is referenced from the
 // reaction itself
+// TODO: add operator [] and .size() - yes
 class ASTMoleculeNode: public ASTBaseNode {
 public:
   ASTMoleculeNode()
@@ -388,6 +389,12 @@ public:
 
   void dump();
 
+  // context owns all strings parsed as IDs
+  const char* insert_to_string_pool(const char* s) {
+    auto it = parser_string_pool.insert(s);
+    return it.first->c_str();
+  }
+
 private:
   int errors;
 
@@ -402,6 +409,12 @@ private:
   // all input file names are owned by this set and only pointers are passed around
   const char* current_file;
   std::set<std::string> file_names;
+
+
+  // container for all parsed strings,
+  // with GLR parser we must not delete strings returned as the attribute of a token,
+  // so we must maintain them somewhere, should not have much impact on performance
+  std::set<std::string> parser_string_pool;
 };
 
 
@@ -457,6 +470,9 @@ static inline const ASTSeparatorNode* to_separator(const ASTBaseNode* n) {
   assert(n->is_separator());
   return dynamic_cast<const ASTSeparatorNode*>(n);
 }
+
+// returns bond index, BOND_VALUE_NO_BOND, BOND_VALUE_ANY or BOND_VALUE_INVALID
+bond_value_t str_to_bond_value(const std::string& s);
 
 
 } // namespace BNG

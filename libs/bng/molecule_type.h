@@ -11,9 +11,10 @@
 #include <string>
 
 #include "bng_defines.h"
-#include "component.h"
 
 namespace BNG {
+
+class BNGData;
 
 class ComponentType {
 public:
@@ -25,6 +26,8 @@ public:
     // two states must have the same id, this is ensured in find_or_add_state_name
     return name == ct2.name && allowed_state_ids == ct2.allowed_state_ids;
   }
+
+  void dump(const BNGData& bng_data) const;
 };
 
 
@@ -41,6 +44,8 @@ public:
     // two component types must have the same id, this is ensured in find_or_add_component_type
     return name == mt2.name && component_type_ids == mt2.component_type_ids;
   }
+
+  void dump(const BNGData& bng_data) const;
 };
 
 

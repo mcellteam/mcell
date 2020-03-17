@@ -10,14 +10,16 @@
 
 #include "bng_defines.h"
 
-#include "component.h"
+#include "molecule_type.h"
 #include "complex_species.h"
 #include "rxn_rule.h"
 
 namespace BNG {
 
+// TODO: split, make bng_data.h file
 // Data shared among all instances of BNGEngines
 // Usually constant, initialized when BNGL is parsed
+// TODO: make arrays private
 class BNGData {
 public:
   // -------- component states --------
@@ -27,7 +29,10 @@ public:
 
   state_id_t find_or_add_state_name(const std::string& s);
 
-  const std::string& get_state_name(const state_id_t id) {
+  // may return STATE_ID_INVALID when the name was not found
+  state_id_t find_state_id(const std::string& name) const;
+
+  const std::string& get_state_name(const state_id_t id) const {
     assert(id < state_names.size());
     return state_names[id];
   }
@@ -40,7 +45,7 @@ public:
 
   component_type_id_t find_or_add_component_type(const ComponentType& ct);
 
-  const ComponentType& get_component_type(const component_type_id_t id) {
+  const ComponentType& get_component_type(const component_type_id_t id) const {
     assert(id < component_types.size());
     return component_types[id];
   }
@@ -56,12 +61,11 @@ public:
   // may return MOLECULE_TYPE_ID_INVALID when the name was not found
   molecule_type_id_t find_molecule_type_id(const std::string& name) const;
 
-  const MoleculeType& get_molecule_type(const molecule_type_id_t id) {
+  const MoleculeType& get_molecule_type(const molecule_type_id_t id) const {
     assert(id < molecule_types.size());
     return molecule_types[id];
   }
 
-  void dump(const bool as_bngl = true);
   
 
   // -------- reaction rules --------
@@ -69,6 +73,13 @@ public:
 
   rxn_rule_id_t find_or_add_rxn_rule(const RxnRule& rr);
 
+
+  // -------- utilities --------
+  void dump(const bool as_bngl = true);
+
+private:
+  void dump_molecule_types_as_bngl();
+  void dump_reaction_rules_as_bngl();
 };
 
 
@@ -96,7 +107,7 @@ public:
   );
 
   // search whether two molecules can react is done
-  std::vector<ComplexSpecies> complex_species;
+  //std::vector<ComplexSpecies> complex_species;
 
 
   // cache of complex species indices that can interact together

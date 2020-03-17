@@ -1,4 +1,7 @@
+#include <cstdlib>
+#include <cerrno>
 #include <iostream>
+#include <string>
 
 #include "ast.h"
 #include "parser_utils.h"
@@ -112,8 +115,8 @@ void ASTRxnRuleNode::dump(const std::string ind) {
   assert(reactants != nullptr);
   reactants->dump(ind + IND4);
   cout << ind << "  products:\n";
-  assert(reactants != nullptr);
-  reactants->dump(ind + IND4);
+  assert(products != nullptr);
+  products->dump(ind + IND4);
   cout << ind << "  rates:\n";
   assert(rates != nullptr);
   rates->dump(ind + IND4);
@@ -271,9 +274,9 @@ ASTRxnRuleNode* ASTContext::new_rxn_rule_node(
     ASTListNode* rates
 ) {
   ASTRxnRuleNode* n = new ASTRxnRuleNode();
-  n->products = products;
-  n->reversible = reversible;
   n->reactants = reactants;
+  n->reversible = reversible;
+  n->products = products;
   n->rates = rates;
 
   // use the first reactant as the location
@@ -299,6 +302,38 @@ void ASTContext::dump() {
   symtab.dump();
   cout << "reaction rules:\n";
   rxn_rules.dump(IND2);
+}
+
+
+bond_value_t str_to_bond_value(const std::string& s) {
+  if (s == "") {
+    return BOND_VALUE_NO_BOND;
+  }
+  else if (s == BOND_STR_ANY) {
+    return BOND_VALUE_ANY;
+  }
+  else {
+    // try to convert
+
+    char* end;
+    long long int res;
+
+    errno = 0; // note: errno is thread-local
+    res = strtoll(s.c_str(), &end, 10);
+
+    // conversion error
+    if (errno != 0 || *end != '\0') {
+      return BOND_VALUE_INVALID;
+    }
+
+    // range check
+    if (res < 0 || res >= BOND_VALUE_NO_BOND) {
+      return BOND_VALUE_INVALID;
+    }
+
+     // ok
+    return res;
+  }
 }
 
 } // namespace BNG

@@ -12,6 +12,8 @@
 
 namespace BNG {
 
+#if 0
+// TODO: sone remaming needed
 
 enum class BaseMoleculeFlags {
 
@@ -65,6 +67,7 @@ public:
 
 };
 
+#endif
 } /* namespace BNG */
 
 #endif /* LIBS_BNG_MOLECULE_INSTANCE_H_ */

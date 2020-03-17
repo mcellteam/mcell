@@ -36,12 +36,12 @@ namespace BNG {
   BNG::ASTContext* g_ctx;
   
   // used to process TOK_ID tokens
-  std::string to_str_and_delete(char*& ptr) {
+  /*std::string to_str_and_delete(char*& ptr) {
     std::string res = ptr;
     free(ptr);
     ptr = nullptr;
     return res;
-  }
+  }*/
   
 %}
 
@@ -62,11 +62,23 @@ namespace BNG {
 // extend yylval (bngllval) with the possibility to store line)
 %locations
 
-// one rr conflict is expected
+// One shift-reduce conflict is expected, the reason is that 
+// the beginning of the molecule types section is resolved
+// only after the first molecule type declaration is parsed as shown here.
+// So we need to use GLR parser that is able to do arbitrary lookahead.
+//
+// begin molecule types
+//   A(a)
+// end molecule types
+// begin reaction rules
+//   A(a) +|.
+// end reaction rules
+//
+%glr-parser
 %expect 1
 
 %union {
-  char* str; // default, required by flex
+  const char* str;
   double dbl;
   long long llong;
   bool boolean;
@@ -173,11 +185,7 @@ molecule_list:
 // fully general specification, might contain information on bonds, checked later in semantic checks 
 molecule:
       TOK_ID '(' component_list_maybe_empty ')' {
-        $$ = g_ctx->new_molecule_node(
-            to_str_and_delete($1),        
-            $3,
-            @1
-        );    
+        $$ = g_ctx->new_molecule_node($1, $3, @1);    
       }
 ;
 
@@ -200,12 +208,7 @@ component_list:
 
 component:
       TOK_ID component_state_list_maybe_empty bond_maybe_empty {
-        $$ = g_ctx->new_component_node(
-            to_str_and_delete($1),    
-            $2,
-            $3,
-            @1
-        );
+        $$ = g_ctx->new_component_node($1, $2, $3, @1);
       }
 ; 
 
@@ -228,7 +231,7 @@ component_state_list:
 
 component_state:
       '~' TOK_ID {
-        $$ = g_ctx->new_str_node(to_str_and_delete($2), @2);
+        $$ = g_ctx->new_str_node($2, @2);
       }
     | '~' TOK_LLONG {
         $$ = g_ctx->new_str_node($2, @2);
@@ -240,7 +243,7 @@ bond_maybe_empty:
         $$ = g_ctx->new_str_node($2, @2);
       }
     | '!' '+' {
-        $$ = g_ctx->new_str_node(BNG::ANY_BOND, @2);
+        $$ = g_ctx->new_str_node(BNG::BOND_STR_ANY, @2);
       }
     | /* empty */ {
         $$ = g_ctx->new_empty_str_node();
@@ -270,7 +273,7 @@ rxn_rule:
 rxn_rule_side_maybe_empty:
       rxn_rule_side
     | /* empty */ {
-        $$ = nullptr;
+        $$ = g_ctx->new_list_node();
       }
 ;
 
@@ -282,7 +285,7 @@ rxn_rule_side:
       }
     | rxn_rule_side '.' molecule {
         $1->append(g_ctx->new_separator_node(BNG::SeparatorType::Dot, @2));
-          $1->append($3);
+        $1->append($3);
         $$ = $1;
       }
     | molecule {
@@ -300,8 +303,9 @@ rxn_rule_direction:
 ;
 
 rates:
-      expr ',' expr {
-         $$ = g_ctx->new_list_node()->append($1)->append($3);
+      rates ',' expr {
+         $1->append($3);
+         $$ = $1; 
       }
     | expr {
         $$ = g_ctx->new_list_node()->append($1);
@@ -312,7 +316,7 @@ rates:
 // TODO: expressions are just IDs and constants for now
 expr:
       TOK_ID { 
-        $$ = g_ctx->new_id_node(to_str_and_delete($1), @1); 
+        $$ = g_ctx->new_id_node($1, @1); 
       } 
     | TOK_DBL { 
         $$ = g_ctx->new_dbl_node($1, @1); 

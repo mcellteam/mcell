@@ -10,7 +10,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -isystem ${CMAKE_SOURCE_DIR}/libs/
 set(SOURCE_FILES
 	bng_engine.cpp
 	complex_species.cpp
-	component.cpp
 	molecule_instance.cpp
 	molecule_type.cpp
 	rxn_rule.cpp

@@ -16,6 +16,8 @@
 
 namespace BNG {
 
+class BNGData;
+
 // BNG reaction rule
 // rules are only unidirectional,
 // if there is a reversible reaction in BNGL definition,
@@ -29,8 +31,8 @@ public:
   // there is a potential for optimizations, e.g.
   // to make a set of species that match the patterns, but let's keep it
   // for later
-  ComplexSpeciesInstanceVector reactants;
-  ComplexSpeciesInstanceVector products;
+  ComplexInstanceVector reactants;
+  ComplexInstanceVector products;
 
   float_t reaction_rate;
 
@@ -42,6 +44,13 @@ public:
         reactants == rr2.reactants && products == rr2.products &&
         reaction_rate == rr2.reaction_rate;
   }
+
+  void dump(const BNGData& bng_data) const;
+
+private:
+  void dump_complex_instance_vector(
+      const BNGData& bng_data,
+      const ComplexInstanceVector& complexes) const;
 };
 
 } /* namespace BNG */
