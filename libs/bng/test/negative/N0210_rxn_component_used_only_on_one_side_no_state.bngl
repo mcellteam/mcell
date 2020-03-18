@@ -1,0 +1,17 @@
+# FAIL
+# OUTPUT: error: Bond with numerical value '1' must bind different molecules of a complex pattern of a rule.
+# 
+# NOTE: BNG2.pl reports Molecule created in reaction rule: Component(s) p missing from molecule A(a!1)
+
+begin parameters
+   kp 0.00001
+   km 1
+end parameters
+
+begin molecule types
+   A(a,p~0~1)
+end molecule types
+
+begin reaction rules
+  A(a,p) + A(a) <-> A(a!1).A(a!1) kp, km
+end reaction rules
