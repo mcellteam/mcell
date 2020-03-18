@@ -28,10 +28,11 @@ class BNGData;
 class ComponentInstance {
 public:
   ComponentInstance(const component_type_id_t id)
-    : component_type_id(id), state_id(STATE_ID_DONT_CARE), bond_value(BOND_VALUE_NO_BOND) {
+    : component_type_id(id), state_id(STATE_ID_DONT_CARE), bond_value(BOND_VALUE_ANY) {
   }
 
   // type id can be also found from parent's MoleculeInstance::molecule_type_id
+  // maybe remove
   component_type_id_t component_type_id;
 
   // specific state or STATE_ID_DONT_CARE if we don't care
@@ -47,6 +48,11 @@ public:
         component_type_id == comp2.component_type_id &&
         state_id == comp2.state_id &&
         bond_value == comp2.bond_value;
+  }
+
+  bool bond_has_numeric_value() const {
+    assert(bond_value != BOND_VALUE_INVALID);
+    return bond_value != BOND_VALUE_ANY && bond_value != BOND_VALUE_NO_BOND;
   }
 
   void dump(const BNGData& bng_data) const;

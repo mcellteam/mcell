@@ -32,7 +32,7 @@ ASTExprNode* SemanticAnalyzer::evaluate_to_dbl(ASTExprNode* root, set<string> us
     const string& id = root->get_id();
     if (used_ids.count(id) != 0) {
       errs(root) <<
-          "Cyclic dependence while evaluating an expression, id '" << id << "' was already used.\n";
+          "Cyclic dependence while evaluating an expression, id '" << id << "' was already used.\n"; // test N0012
       ctx->inc_error_count();
       return ctx->new_dbl_node(0, root);
     }
@@ -73,14 +73,14 @@ void SemanticAnalyzer::resolve_rxn_rates() {
     if (rule->reversible && rule->rates->size() != 2) {
       errs(rule) <<
           "A reversible rule must have exactly 2 rates, "<<
-          rule->rates->size() << " rate(s) provided.\n";
+          rule->rates->size() << " rate(s) provided.\n"; // test N0015
       ctx->inc_error_count();
     }
 
     if (!rule->reversible && rule->rates->size() != 1) {
       errs(rule) <<
           "A unidirectional rule must have exactly 1 rate, " <<
-          rule->rates->size() << " rate(s) provided.\n";
+          rule->rates->size() << " rate(s) provided.\n"; // test N0014
       ctx->inc_error_count();
     }
 
@@ -116,7 +116,7 @@ component_type_id_t SemanticAnalyzer::convert_component_type(const ASTComponentN
   if (c->bond->str != "") {
     errs(c) <<
         "Definition of a component in the molecule types section must not have a bond, "
-        "error for '!" << c->bond->str << "'.\n";
+        "error for '!" << c->bond->str << "'.\n"; // test N0100
     ctx->inc_error_count();
   }
 
@@ -135,8 +135,26 @@ MoleculeType SemanticAnalyzer::convert_molecule_type(const ASTMoleculeNode* n) {
     mt.component_type_ids.push_back(component_type_id);
   }
 
-  // TODO: add a semantic check that when there a components with the same name in on molecule,
-  //       they must have the same allowed states
+  // when there a components with the same name in on molecule, they must have the same allowed states
+  for (size_t i = 0; i < mt.component_type_ids.size(); i++) {
+
+    component_type_id_t ct_i_id = mt.component_type_ids[i];
+    const ComponentType& ct_i = bng_data->get_component_type(ct_i_id);
+
+    for (size_t k = i+1; k < mt.component_type_ids.size(); k++) {
+
+      component_type_id_t ct_k_id = mt.component_type_ids[k];
+      const ComponentType& ct_k = bng_data->get_component_type(ct_k_id);
+
+      if (ct_i_id != ct_k_id && ct_i.name == ct_k.name) {
+        // this is directly a conflict because if the components would have the same name and the same components,
+        // their id would be the same
+        errs(n) <<
+            "Molecule type has 2 components with name '" << ct_i.name << "' but with different states, this is not allowed.\n"; // test N0101
+        ctx->inc_error_count();
+      }
+    }
+  }
 
   return mt;
 }
@@ -166,7 +184,7 @@ MoleculeInstance SemanticAnalyzer::convert_molecule_pattern(const ASTMoleculeNod
   // process and remember ID
   molecule_type_id_t molecule_type_id = bng_data->find_molecule_type_id(m->name);
   if (molecule_type_id == MOLECULE_TYPE_ID_INVALID) {
-    errs(m) << "Molecule type with name '" + m->name + "' was not defined.\n";
+    errs(m) << "Molecule type with name '" + m->name + "' was not defined.\n"; // test N0200
     ctx->inc_error_count();
     return mp;
   }
@@ -190,7 +208,7 @@ MoleculeInstance SemanticAnalyzer::convert_molecule_pattern(const ASTMoleculeNod
     if (current_component_index == INDEX_INVALID) {
       errs(m) <<
           "Molecule type '" << mt.name << "' does not declare component '" << component->name <<
-          "' or all instances of this component were already used.\n";
+          "' or all instances of this component were already used.\n"; // test N0201
       ctx->inc_error_count();
       return mp;
     }
@@ -199,7 +217,7 @@ MoleculeInstance SemanticAnalyzer::convert_molecule_pattern(const ASTMoleculeNod
 
     // state
     if (component->states->items.size() > 1) {
-      errs(component) << "A component might have max. 1 state specified, error for component " << component->name << ".\n";
+      errs(component) << "A component might have max. 1 state specified, error for component " << component->name << ".\n"; // test N0202
       ctx->inc_error_count();
       return mp;
     }
@@ -213,7 +231,7 @@ MoleculeInstance SemanticAnalyzer::convert_molecule_pattern(const ASTMoleculeNod
       if (state_id == STATE_ID_INVALID) {
         errs(component) <<
             "Unknown state name '" << state_name << "' for component '" << component->name <<
-            "' (this state name was not found for any declared component).\n";
+            "' (this state name was not found for any declared component).\n"; // test N0203
         ctx->inc_error_count();
         return mp;
       }
@@ -222,7 +240,7 @@ MoleculeInstance SemanticAnalyzer::convert_molecule_pattern(const ASTMoleculeNod
       const ComponentType& ct = bng_data->component_types[component_type_id];
       if (ct.allowed_state_ids.count(state_id) == 0) {
         errs(component) <<
-            "State name '" << state_name << "' was not declared as allowed for component '" << component->name << "'.\n";
+            "State name '" << state_name << "' was not declared as allowed for component '" << component->name << "'.\n"; // test N0204
         ctx->inc_error_count();
         return mp;
       }
@@ -235,11 +253,9 @@ MoleculeInstance SemanticAnalyzer::convert_molecule_pattern(const ASTMoleculeNod
     const string& bond = component->bond->str;
     bond_value_t b = str_to_bond_value(bond);
     if (b == BOND_VALUE_INVALID) {
-      errs(component->bond) <<
-          "Bond index '" << bond << "' must be either '+' or a nonnegative integer, " <<
-          "error for component '" << component->name << "'.\n";
-      ctx->inc_error_count();
-      return mp;
+      // this is already checked by parser, so the a test checks parser message but let's keep this
+      // parser test: N0205
+      ctx->internal_error(component->bond, "Invalid bond index");
     }
 
     mp.component_instances[current_component_index].bond_value = b;
@@ -259,8 +275,38 @@ void SemanticAnalyzer::convert_complex_pattern(const small_vector<const ASTMolec
     pattern.molecule_patterns.push_back( convert_molecule_pattern(m) );
   }
 
-  // TODO: semantic checks on bonds validity
+  // semantic checks on bonds validity
+  map<bond_value_t, vector<uint> > bond_value_to_molecule_index;
+  for (uint i = 0; i < pattern.molecule_patterns.size(); i++) {
+    const MoleculeInstance& mi = pattern.molecule_patterns[i];
 
+    for (const ComponentInstance& compi: mi.component_instances) {
+      if (compi.bond_has_numeric_value()) {
+        // remember molecule index in this complex for a given bond
+        bond_value_to_molecule_index[compi.bond_value].push_back(i);
+      }
+    }
+  }
+
+  for (const auto& it: bond_value_to_molecule_index) {
+    // each bond is used exactly twice
+    if (it.second.size() != 2) {
+      assert(complex_nodes.size() > 0);
+      errs(complex_nodes[0]) <<
+          "Bond with numerical value '" << it.first << "' must be used exactly twice in a complex pattern of a rule.\n"; // test
+      ctx->inc_error_count();
+      return;
+    }
+
+    // it is used in different molecules of a complex
+    if (it.second[0] == it.second[1]) {
+      assert(complex_nodes.size() > 0);
+      errs(complex_nodes[0]) <<
+          "Bond with numerical value '" << it.first << "' must bind different molecules of a complex pattern of a rule.\n"; // test
+      ctx->inc_error_count();
+      return;
+    }
+  }
 }
 
 
@@ -324,12 +370,22 @@ void SemanticAnalyzer::convert_and_store_rxn_rules() {
     ComplexInstanceVector products;
     convert_rxn_rule_side(r->products, products);
 
+    //TODO: can we somehow check component usage?
+    // e.g. is this an allowed rule:
+    // A(a)
+
+    // ERROR: Molecule created in reaction rule: Component(s) p missing from molecule A(a!1)
+
+    // Component with state attribute defined in reactant pattern cannot map to component with undefined state attribute in product pattern
+
+
     RxnRule fwd_rule;
     fwd_rule.name = r->name;
     assert(r->rates->items.size() >= 1);
-    fwd_rule.reaction_rate = to_expr_node(r->rates->items[0])->get_dbl();
+    fwd_rule.rxn_rate = to_expr_node(r->rates->items[0])->get_dbl();
     fwd_rule.reactants = reactants;
     fwd_rule.products = products;
+
 
     bng_data->find_or_add_rxn_rule(fwd_rule);
 
@@ -345,7 +401,7 @@ void SemanticAnalyzer::convert_and_store_rxn_rules() {
       }
 
       assert(r->rates->items.size() == 2);
-      rev_rule.reaction_rate = to_expr_node(r->rates->items[1])->get_dbl();
+      rev_rule.rxn_rate = to_expr_node(r->rates->items[1])->get_dbl();
       rev_rule.reactants = products;
       rev_rule.products = reactants;
 

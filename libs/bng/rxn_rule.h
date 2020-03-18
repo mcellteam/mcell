@@ -34,7 +34,9 @@ public:
   ComplexInstanceVector reactants;
   ComplexInstanceVector products;
 
-  float_t reaction_rate;
+  // TODO: we need matching between molecules of reactants and molecules of products
+
+  float_t rxn_rate;
 
   bool operator ==(const RxnRule& rr2) {
     // ordering of components in a molecule is important
@@ -42,7 +44,7 @@ public:
     return
         name == rr2.name &&
         reactants == rr2.reactants && products == rr2.products &&
-        reaction_rate == rr2.reaction_rate;
+        rxn_rate == rr2.rxn_rate;
   }
 
   void dump(const BNGData& bng_data) const;

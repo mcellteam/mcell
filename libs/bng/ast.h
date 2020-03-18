@@ -375,6 +375,7 @@ public:
     return errors;
   }
 
+  void internal_error(const ASTBaseNode* loc, const std::string msg);
   void print_error_report();
 
   void set_current_file_name(const char* file_name) {

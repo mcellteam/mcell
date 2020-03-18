@@ -297,6 +297,12 @@ void ASTContext::print_error_report() {
   }
 }
 
+void ASTContext::internal_error(const ASTBaseNode* loc, const std::string msg) {
+  errs(loc) << "INTERNAL: " << msg;
+  exit(2);
+}
+
+
 void ASTContext::dump() {
   cout << "-- ASTContext dump --\n";
   symtab.dump();

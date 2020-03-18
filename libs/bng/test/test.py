@@ -14,7 +14,7 @@ TEST_APP = os.path.join(THIS_DIR, '..', 'build', 'bng')
 def get_test_files(dir):
     res = []
     test_set_full_path = os.path.join(THIS_DIR, dir)
-    print("Looking for tests in " + test_set_full_path)
+    print("Collecting tests in " + test_set_full_path)
     files = os.listdir(test_set_full_path)
     for name in files:
         name_w_dir = os.path.join(test_set_full_path, name)
@@ -48,7 +48,7 @@ def run_single_test(test_file):
     ec = utils.run(cmd, cwd=WORK_DIR, fout_name=log_file, verbose=False)
     
     if (ec != expected_ec):
-        print("TEST " + test_file + ": exit code was " + str(ec) + ", expected " + str(expected_ec))
+        print("!FAIL " + test_file + ": exit code was " + str(ec) + ", expected " + str(expected_ec))
         return False
     
     with open(log_file, 'r') as f:
@@ -56,10 +56,10 @@ def run_single_test(test_file):
     
     for output in expected_outputs:
         if output not in log_content:
-            print("FAIL " + test_file + ": did not find  '" + output + "' in " + log_file)
+            print("!FAIL " + test_file + ": did not find  '" + output + "' in " + log_file)
             return False
     
-    print("PASS " + test_file)
+    print(" PASS " + test_file)
     return True
    
 def run_tests():
@@ -83,7 +83,9 @@ def run_tests():
         print("TESTING PASSED: " + str(num_tests) + " passed")
         return 0
     else:
+        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
         print("TESTING FAILED: " + str(num_tests_failed) + " failed out of " + str(num_tests))
+        print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
         return 1
 
 if __name__ == '__main__':

@@ -35,7 +35,7 @@ void RxnRule::dump(const BNGData& bng_data) const {
   cout << " -> ";
   dump_complex_instance_vector(bng_data, products);
 
-  cout << " " << reaction_rate;
+  cout << " " << rxn_rate;
 }
 
 } /* namespace BNG */
