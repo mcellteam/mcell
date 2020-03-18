@@ -733,7 +733,7 @@ insert_surface_molecule(struct volume *state, struct species *s,
     count_region_from_scratch(state, (struct abstract_molecule *)sm, NULL, 1,
                               NULL, sm->grid->surface, sm->t, NULL);
 
-  if (schedule_add(sv->local_storage->timer, sm))
+  if (schedule_add_mol(sv->local_storage->timer, sm))
     mcell_allocfailed("Failed to add surface molecule to scheduler.");
 
   return sm;
@@ -805,7 +805,7 @@ struct volume_molecule *insert_volume_molecule(
                               new_vm->periodic_box);
   }
 
-  if (schedule_add(sv->local_storage->timer, new_vm))
+  if (schedule_add_mol(sv->local_storage->timer, new_vm))
     mcell_allocfailed("Failed to add volume molecule to scheduler.");
   return new_vm;
 }

@@ -30,8 +30,8 @@
 #include "dyn_vertex_structs.h"
 #include "molecule.h"
 #include "scheduler.h"
-#include "reaction.h"
 #include "geometry.h"
+#include "reaction.h"
 #include "species.h"
 #include "reactions_info.h"
 #include "species_info.h"
@@ -46,7 +46,7 @@ namespace MCell {
 class Partition {
 public:
   Partition(
-      const vec3_t origin_,
+      const Vec3 origin_,
       const SimulationConfig& config_,
       const ReactionsInfo& reactions_,
       const SpeciesInfo& species_,
@@ -124,20 +124,26 @@ public:
   }
 
 
-  bool in_this_partition(const vec3_t& pos) const {
+  bool in_this_partition(const Vec3& pos) const {
     return glm::all(glm::greaterThanEqual(pos, origin_corner))
       && glm::all(glm::lessThan(pos, opposite_corner));
   }
 
 
-  void get_subpart_3d_indices(const vec3_t& pos, ivec3_t& res) const {
-    assert(in_this_partition(pos));
-    vec3_t relative_position = pos - origin_corner;
-    res = relative_position * config.subpartition_edge_length_rcp;
+  bool is_subpart_index_in_range(const int index) const {
+    assert((subpart_index_t)index != SUBPART_INDEX_INVALID);
+    return index >= 0 && index < (int)config.subpartitions_per_partition_dimension;
   }
 
 
-  uint32_t get_subpartition_index_from_3d_indices(const ivec3_t& indices) const {
+  void get_subpart_3d_indices(const Vec3& pos, IVec3& res) const {
+    assert(in_this_partition(pos));
+    Vec3 relative_position = pos - origin_corner;
+    res = relative_position * config.subpartition_edge_length_rcp;
+  }
+
+  // FIXME: use subpart_index_t, rename to subpart
+  subpart_index_t get_subpart_index_from_3d_indices(const IVec3& indices) const {
     // example: dim: 5x5x5,  (1, 2, 3) -> 1 + 2*5 + 3*5*5 = 86
     return
         indices.x +
@@ -145,13 +151,12 @@ public:
         indices.z * config.subpartitions_per_partition_dimension_squared;
   }
 
-
-  uint32_t get_subpart_index_from_3d_indices(const int x, const int y, const int z) const {
-    return get_subpartition_index_from_3d_indices(ivec3_t(x, y, z));
+  subpart_index_t get_subpart_index_from_3d_indices(const int x, const int y, const int z) const {
+    return get_subpart_index_from_3d_indices(IVec3(x, y, z));
   }
 
 
-  void get_subpart_3d_indices_from_index(const uint32_t index, ivec3_t& indices) const {
+  void get_subpart_3d_indices_from_index(const uint32_t index, IVec3& indices) const {
     uint32_t dim = config.subpartitions_per_partition_dimension;
     // example: dim: 5x5x5,  86 -> (86%5, (86/5)%5, (86/(5*5))%5) = (1, 2, 3)
     indices.x = index % dim;
@@ -159,22 +164,21 @@ public:
     indices.z = (index / config.subpartitions_per_partition_dimension_squared) % dim;
   }
 
-
-  uint32_t get_subpartition_index(const vec3_t& pos) {
-    ivec3_t indices;
+  subpart_index_t get_subpart_index(const Vec3& pos) const {
+    IVec3 indices;
     get_subpart_3d_indices(pos, indices);
-    return get_subpartition_index_from_3d_indices(indices);
+    return get_subpart_index_from_3d_indices(indices);
   }
 
 
-  void get_subpart_llf_point(const subpart_index_t subpart_index, vec3_t& llf) const {
-    ivec3_t indices;
+  void get_subpart_llf_point(const subpart_index_t subpart_index, Vec3& llf) const {
+    IVec3 indices;
     get_subpart_3d_indices_from_index(subpart_index, indices);
-    llf = origin_corner + vec3_t(indices) * vec3_t(config.subpartition_edge_length);
+    llf = origin_corner + Vec3(indices) * Vec3(config.subpartition_edge_length);
   }
 
-  void get_subpart_urb_point_from_llf(const vec3_t& llf, vec3_t& urb) const {
-    urb = llf + vec3_t(config.subpartition_edge_length);
+  void get_subpart_urb_point_from_llf(const Vec3& llf, Vec3& urb) const {
+    urb = llf + Vec3(config.subpartition_edge_length);
   }
 
   void change_reactants_map(Molecule& vm, const uint32_t new_subpartition_index, bool adding, bool removing) {
@@ -190,7 +194,7 @@ public:
     SpeciesReactantsMap& subpart_reactants_new_sp = volume_molecule_reactants_per_subpart[new_subpartition_index];
 
     // and these are indices of possible reactants with our reactant_species_id
-    const SpeciesReactionMap& reactions_map = all_reactions.bimolecular_reactions_map.find(vm.species_id)->second;
+    const SpeciesRxnClassesMap& reactions_map = all_reactions.bimolecular_reactions_map.find(vm.species_id)->second;
 
     // we need to set/clear flag that says that second_reactant_info.first can react with reactant_species_id
     for (const auto& second_reactant_info : reactions_map) {
@@ -211,7 +215,7 @@ public:
       return; // nothing to do
     }
 #ifdef DEBUG_SUBPARTITIONS
-    std::cout << "Molecule " << molecule_idx << " changed subpartition from "
+    std::cout << "Molecule " << vm.id << " changed subpartition from "
         <<  vm.v.subpart_index << " to " << new_subpartition_index << ".\n";
 #endif
 
@@ -268,7 +272,7 @@ public:
 
     Molecule& new_vm = add_molecule(vm_copy, true);
 
-    new_vm.v.subpart_index = get_subpartition_index(vm_copy.v.pos);
+    new_vm.v.subpart_index = get_subpart_index(vm_copy.v.pos);
     change_reactants_map(new_vm, new_vm.v.subpart_index, true, false);
 
     return new_vm;
@@ -330,11 +334,11 @@ public:
   }
 
 
-  const vec3_t& get_origin_corner() const {
+  const Vec3& get_origin_corner() const {
     return origin_corner;
   }
   
-  const vec3_t& get_opposite_corner() const {
+  const Vec3& get_opposite_corner() const {
     return opposite_corner;
   }
 
@@ -358,7 +362,7 @@ public:
   }
   
   // ---------------------------------- geometry ----------------------------------
-  vertex_index_t add_geometry_vertex(const vec3_t pos) {
+  vertex_index_t add_geometry_vertex(const Vec3 pos) {
     vertex_index_t index = geometry_vertices.size();
     geometry_vertices.push_back(pos);
     return index;
@@ -373,7 +377,7 @@ public:
     return geometry_vertices.size();
   }
 
-  const vec3_t& get_geometry_vertex(vertex_index_t i) const {
+  const Vec3& get_geometry_vertex(vertex_index_t i) const {
     assert(i < geometry_vertices.size());
     /*
     fprintf(stdout, "\n+++GETTING GEOM VERTS+++\n");
@@ -387,12 +391,12 @@ public:
     return geometry_vertices[i];
   }
 
-  vec3_t& get_geometry_vertex(vertex_index_t i) {
+  Vec3& get_geometry_vertex(vertex_index_t i) {
     assert(i < geometry_vertices.size());
     return geometry_vertices[i];
   }
 
-  const vec3_t& get_wall_vertex(const Wall& w, uint vertex_in_wall_index) const {
+  const Vec3& get_wall_vertex(const Wall& w, uint vertex_in_wall_index) const {
     assert(vertex_in_wall_index < VERTICES_IN_TRIANGLE);
     vertex_index_t i = w.vertex_indices[vertex_in_wall_index];
     assert(i < geometry_vertices.size());
@@ -448,6 +452,15 @@ public:
   Region& get_region(const region_index_t i) {
     assert(i < regions.size());
     return regions[i];
+  }
+
+  const Region* get_region_by_name(const std::string& name) const {
+    for (const Region& r: regions) {
+      if (r.name == name) {
+        return &r;
+      }
+    }
+    return nullptr;
   }
 
   uint get_wall_count() const {
@@ -506,7 +519,7 @@ public:
   // ---------------------------------- dynamic vertices ----------------------------------
   // add information about a change of a specific vertex
   // order of calls is important (at least for now)
-  void add_vertex_move(const vertex_index_t vertex_index, const vec3_t& translation_vec) {
+  void add_vertex_move(const vertex_index_t vertex_index, const Vec3& translation_vec) {
     scheduled_vertex_moves.push_back(VertexMoveInfo(vertex_index, translation_vec));
   }
 
@@ -539,8 +552,8 @@ public:
 
 private:
   // left, bottom, closest (lowest z) point of the partition
-  vec3_t origin_corner;
-  vec3_t opposite_corner;
+  Vec3 origin_corner;
+  Vec3 opposite_corner;
 
   // ---------------------------------- molecules ----------------------------------
 
@@ -562,7 +575,7 @@ private:
 
   // ---------------------------------- geometry objects ----------------------------------
 
-  std::vector<vec3_t> geometry_vertices;
+  std::vector<Vec3> geometry_vertices;
 
   // we must plan for dynamic geometry but for now its just static
   std::vector<GeometryObject> geometry_objects;

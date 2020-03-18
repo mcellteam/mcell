@@ -161,7 +161,7 @@ void Grid::initialize(const Partition& p, const Wall& w) {
 
   binding_factor = ((float_t)num_tiles) / w.area;
 
-  const vec3_t& vert0_tmp = p.get_wall_vertex(w, 0);
+  const Vec3& vert0_tmp = p.get_wall_vertex(w, 0);
 
   vert0.u = dot(vert0_tmp, w.unit_u);
   vert0.v = dot(vert0_tmp, w.unit_v);
@@ -225,48 +225,48 @@ void Edge::reinit_edge_constants(const Partition& p) {
   if (j == VERTICES_IN_TRIANGLE)
     j = 0;
 
-  const vec3_t& wf_vert_0 = p.get_geometry_vertex(wf.vertex_indices[0]);
-  const vec3_t& wf_vert_i = p.get_geometry_vertex(wf.vertex_indices[i]);
-  const vec3_t& wf_vert_j = p.get_geometry_vertex(wf.vertex_indices[j]);
+  const Vec3& wf_vert_0 = p.get_geometry_vertex(wf.vertex_indices[0]);
+  const Vec3& wf_vert_i = p.get_geometry_vertex(wf.vertex_indices[i]);
+  const Vec3& wf_vert_j = p.get_geometry_vertex(wf.vertex_indices[j]);
 
-  const vec3_t& wb_vert_0 = p.get_geometry_vertex(wb.vertex_indices[0]);
+  const Vec3& wb_vert_0 = p.get_geometry_vertex(wb.vertex_indices[0]);
 
 
   /* Intermediate basis from the perspective of the forward frame */
-  vec3_t diff_i_0 = wf_vert_i - wf_vert_0;
+  Vec3 diff_i_0 = wf_vert_i - wf_vert_0;
 
-  vec2_t O_f;
+  Vec2 O_f;
   O_f.u = dot(diff_i_0, wf.unit_u); // should be called after wall init
   O_f.v = dot(diff_i_0, wf.unit_v); /* Origin */
 
-  vec3_t diff_j_0 = wf_vert_j - wf_vert_0;
-  vec2_t temp_ff;
+  Vec3 diff_j_0 = wf_vert_j - wf_vert_0;
+  Vec2 temp_ff;
   temp_ff.u = dot(diff_j_0, wf.unit_u) - O_f.u;
   temp_ff.v = dot(diff_j_0, wf.unit_v) - O_f.v; /* Far side of e */
 
   assert(!cmp_eq(len2_squared(temp_ff), 0.0, EPS));
   float_t d_f = 1.0 / len2(temp_ff);
 
-  vec2_t ehat_f, fhat_f;
+  Vec2 ehat_f, fhat_f;
   ehat_f = temp_ff * d_f; /* ehat along edge */
   fhat_f.u = -ehat_f.v;
   fhat_f.v = ehat_f.u; /* fhat 90 degrees CCW */
 
   /* Intermediate basis from the perspective of the backward frame */
-  vec3_t diff_i_b0 = wf_vert_i - wb_vert_0;
-  vec2_t O_b;
+  Vec3 diff_i_b0 = wf_vert_i - wb_vert_0;
+  Vec2 O_b;
   O_b.u = dot(diff_i_b0, wb.unit_u);
   O_b.v = dot(diff_i_b0, wb.unit_v); /* Origin */
 
-  vec3_t diff_j_b0 = wf_vert_j - wb_vert_0;
-  vec2_t temp_fb;
+  Vec3 diff_j_b0 = wf_vert_j - wb_vert_0;
+  Vec2 temp_fb;
   temp_fb.u = dot(diff_j_b0, wb.unit_u) - O_b.u;
   temp_fb.v = dot(diff_j_b0, wb.unit_v) - O_b.v; /* Far side of e */
 
   assert(!cmp_eq(len2_squared(temp_fb), 0.0, EPS));
   float_t d_b = 1.0 / len2(temp_fb);
 
-  vec2_t ehat_b, fhat_b;
+  Vec2 ehat_b, fhat_b;
 
   ehat_b = temp_fb * d_b; /* ehat along edge */
   fhat_b.u = -ehat_b.v;
@@ -282,7 +282,7 @@ void Edge::reinit_edge_constants(const Partition& p) {
 
   /* Calculate translation vector */
 
-  vec2_t q;
+  Vec2 q;
   q = O_b;
 
   q.u -= mtx[0][0] * O_f.u + mtx[0][1] * O_f.v;
@@ -303,7 +303,7 @@ void Edge::debug_check_values_are_uptodate(const Partition& p) {
     // not initialized
     return;
   }
-  vec2_t orig_translate = translate;
+  Vec2 orig_translate = translate;
   float_t orig_cos_theta = cos_theta;
   float_t orig_sin_theta = sin_theta;
   dump();
@@ -326,43 +326,43 @@ void Edge::dump() const {
 
 void Wall::precompute_wall_constants(const Partition& p) {
 
-  const vec3_t& v0 = p.get_geometry_vertex(vertex_indices[0]);
-  const vec3_t& v1 = p.get_geometry_vertex(vertex_indices[1]);
-  const vec3_t& v2 = p.get_geometry_vertex(vertex_indices[2]);
+  const Vec3& v0 = p.get_geometry_vertex(vertex_indices[0]);
+  const Vec3& v1 = p.get_geometry_vertex(vertex_indices[1]);
+  const Vec3& v2 = p.get_geometry_vertex(vertex_indices[2]);
 
-  vec3_t vA, vB, vX;
+  Vec3 vA, vB, vX;
   vA = v1 - v0;
   vB = v2 - v0;
   vX = cross(vA, vB);
 
   area = 0.5 * len3(vX);
 
-  if (!distinguishable(area, 0, EPS_C)) {
+  if (!distinguishable(area, 0, EPS)) {
     /* this is a degenerate polygon.
     * perform initialization and quit. */
-    normal = vec3_t(0);
-    unit_u = vec3_t(0);
-    unit_v = vec3_t(0);
+    normal = Vec3(0);
+    unit_u = Vec3(0);
+    unit_v = Vec3(0);
     uv_vert1_u = 0;
-    uv_vert2 = vec2_t(0);
+    uv_vert2 = Vec2(0);
     distance_to_origin = 0;
     return;
   }
 
-  vec3_t f1 = v1 - v0;
+  Vec3 f1 = v1 - v0;
   float_t f1_len_squared = len3_squared(f1);
   assert(f1_len_squared != 0);
   float_t inv_f1_len = 1 / sqrt_f(f1_len_squared);
 
-  unit_u = f1 * vec3_t(inv_f1_len);
+  unit_u = f1 * Vec3(inv_f1_len);
 
-  vec3_t f2 = v2 - v0;
+  Vec3 f2 = v2 - v0;
   normal = cross(unit_u, f2);
 
   float_t norm_len_squared = len3_squared(normal);
   assert(norm_len_squared != 0);
   float_t inv_norm_len = 1 / sqrt_f(norm_len_squared);
-  normal = normal * vec3_t(inv_norm_len);
+  normal = normal * Vec3(inv_norm_len);
 
   unit_v = cross(normal, unit_u);
 
@@ -388,7 +388,7 @@ void Wall::dump(const Partition& p, const std::string ind, const bool for_diff) 
     cout << "wall[side: " << side << "]: ";
     for (uint i = 0; i < VERTICES_IN_TRIANGLE; i++) {
       vertex_index_t vertex_index = vertex_indices[i];
-      vec3_t pos = p.get_geometry_vertex(vertex_index);
+      Vec3 pos = p.get_geometry_vertex(vertex_index);
       cout << pos;
       if (i != VERTICES_IN_TRIANGLE - 1) {
         cout << ", ";
@@ -401,7 +401,7 @@ void Wall::dump(const Partition& p, const std::string ind, const bool for_diff) 
 
     for (uint i = 0; i < VERTICES_IN_TRIANGLE; i++) {
       vertex_index_t vertex_index = vertex_indices[i];
-      vec3_t pos = p.get_geometry_vertex(vertex_index);
+      Vec3 pos = p.get_geometry_vertex(vertex_index);
       cout << ind << "vertex_index: " << vertex_index << ":" << pos << "\n";
     }
 
@@ -461,7 +461,7 @@ void update_moved_walls(
 
   // move all vertices
   for (const VertexMoveInfo& move_info: scheduled_vertex_moves) {
-    vec3_t& vertex_ref = p.get_geometry_vertex(move_info.vertex_index);
+    Vec3& vertex_ref = p.get_geometry_vertex(move_info.vertex_index);
     vertex_ref = vertex_ref + move_info.translation_vec;
     if (! p.in_this_partition(vertex_ref) ) {
       mcell_log("Error: Crossing partitions is not supported yet.\n");

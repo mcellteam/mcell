@@ -1,0 +1,59 @@
+Species:
+    items:
+        - name: name
+          type: str
+          # no default value, this value must be entered
+          doc: Name of the species
+    
+        - name: diffusion_constant_3d
+          type: float
+          default: null # the value is optional and might need to be checked with a more complex check
+          doc: > 
+              This molecule diffuses in space with diffusion constant D. D can
+              be zero, in which case the molecule doesn’t move.
+              The units of D are cm 2 /s.
+    
+        - name: diffusion_constant_2d
+          type: float
+          default: null
+          doc: > 
+              This molecule is constrained to a surface and diffuses with 
+              diffusion constant D. 
+
+# need to read items in order 
+ReleaseSite:
+    items:
+        - name: name
+          type: str
+          doc: Name of the release site
+            
+        - name: shape
+          type: str
+          doc: >
+              Release molecules in the specified shape. Valid shapes are 'cubic',
+              spherical', 'spherical_shell', and 'list'; or the name of the 
+              name of region(s) on which to release.
+    
+        - name: molecule
+          type: Species  # Species must have beemn defined before
+          doc: > 
+              The named molecule is the one that will be released. Not used for 
+              the 'list' shape. You must specify an orientation if the molecule 
+                is a surface molecule.
+        
+        - name: location
+          type: Vec3  # Vec3 and Vec2 are built-in data types
+          default: null  # null is equivalent to None in YAML
+       
+        - name: site_diameter
+          type: float
+          default: null
+          
+        - name: site_radius
+          type: float
+          default: null       
+          
+        - name: release_probability
+          type: float
+          default: null       
+            

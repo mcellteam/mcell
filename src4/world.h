@@ -37,9 +37,9 @@
 #include "partition.h"
 #include "scheduler.h"
 #include "species.h"
-#include "reaction.h"
 #include "geometry.h"
 #include "callback_info.h"
+#include "reaction.h"
 #include "reactions_info.h"
 
 
@@ -55,7 +55,11 @@ public:
   World();
   void init_simulation();
   void run_simulation(const bool dump_initial_state = false);
-  void run_n_iterations(const uint64_t num_iterations, const uint64_t output_frequency);
+  void run_n_iterations(
+      const uint64_t num_iterations,
+      const uint64_t output_frequency,
+      const bool terminate_last_iteration_after_viz_output = false // needed for exact match with MCell3, must false when used from pymcell
+  );
   void end_simulation();
 
   // -------------- diverse getters -----------------------------
@@ -68,7 +72,7 @@ public:
   }
 
   // -------------- partition manipulation methods --------------
-  partition_index_t get_partition_index(const vec3_t& pos) {
+  partition_index_t get_partition_index(const Vec3& pos) {
     // for now a slow approach, later some hashing/memoization might be needed
     for (partition_index_t i = 0; i < partitions.size(); i++) {
       if (partitions[i].in_this_partition(pos)) {
@@ -78,7 +82,7 @@ public:
     return PARTITION_INDEX_INVALID;
   }
 
-  partition_index_t get_or_add_partition_index(const vec3_t& pos) {
+  partition_index_t get_or_add_partition_index(const Vec3& pos) {
 
     partition_index_t res = get_partition_index(pos);
     // not found - add a new partition
@@ -90,13 +94,13 @@ public:
   }
 
   // add a partition in a predefined 'lattice' that contains point pos
-  partition_index_t add_partition(const vec3_t& pos) {
+  partition_index_t add_partition(const Vec3& pos) {
     assert(config.partition_edge_length != 0);
     assert(get_partition_index(pos) == PARTITION_INDEX_INVALID && "Partition must not exist");
 
-    vec3_t origin =
+    Vec3 origin =
         floor_to_multiple(pos, config.partition_edge_length)
-        - vec3_t(config.partition_edge_length/2);
+        - Vec3(config.partition_edge_length/2);
 
     partitions.push_back(Partition(origin, config, all_reactions, all_species, stats));
     return partitions.size() - 1;

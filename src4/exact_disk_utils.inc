@@ -109,13 +109,13 @@ Out: No return value.  Unit vectors m,u,v are set such that vector m
      coordinate system.
 Note: This is a utility function for 'exact_disk()'.
 *********************************************************************/
-static void exd_coordize(const vec3_t& mv, vec3_t& m,
-                         vec3_t& u, vec3_t& v) {
+static void exd_coordize(const Vec3& mv, Vec3& m,
+                         Vec3& u, Vec3& v) {
   float_t a;
 
   /* Normalize input vector */
   a = 1.0 / sqrt(dot(mv, mv));
-  m = vec3_t(a) * mv;
+  m = Vec3(a) * mv;
 
   float_t mx2 = m.x * m.x;
   float_t my2 = m.y * m.y;
@@ -125,34 +125,34 @@ static void exd_coordize(const vec3_t& mv, vec3_t& m,
   if (mx2 > my2) {
     if (mx2 > mz2) {
       if (my2 > mz2) {
-        u = vec3_t(m.y, -m.x, 0.0);
+        u = Vec3(m.y, -m.x, 0.0);
         a = 1.0 - mz2;
-        v = vec3_t(m.z * m.x, m.z * m.y, -a);
+        v = Vec3(m.z * m.x, m.z * m.y, -a);
       } else {
-        u = vec3_t(m.z, 0.0, -m.x);
+        u = Vec3(m.z, 0.0, -m.x);
         a = 1.0 - my2;
-        v = vec3_t(-m.y * m.x, a, -m.y * m.z);
+        v = Vec3(-m.y * m.x, a, -m.y * m.z);
       }
     } else {
-      u = vec3_t(-m.z, 0.0, m.x);
+      u = Vec3(-m.z, 0.0, m.x);
       a = 1.0 - my2;
-      v = vec3_t(m.y * m.x, -a, m.y * m.z);
+      v = Vec3(m.y * m.x, -a, m.y * m.z);
     }
   } else {
     if (my2 > mz2) {
       if (mx2 > mz2) {
-        u = vec3_t(-m.y, m.x, 0.0);
+        u = Vec3(-m.y, m.x, 0.0);
         a = 1.0 - mz2;
-        v = vec3_t(-m.z * m.x, -m.z* m.y, a);
+        v = Vec3(-m.z * m.x, -m.z* m.y, a);
       } else {
-        u = vec3_t(0.0, m.z, -m.y);
+        u = Vec3(0.0, m.z, -m.y);
         a = 1.0 - mx2;
-        v = vec3_t(-a, m.x * m.y, m.x * m.z);
+        v = Vec3(-a, m.x * m.y, m.x * m.z);
       }
     } else {
-      u = vec3_t(0.0, -m.z, m.y);
+      u = Vec3(0.0, -m.z, m.y);
       a = 1.0 - mx2;
-      v = vec3_t(a, -m.x * m.y, -m.x * m.z);
+      v = Vec3(a, -m.x * m.y, -m.x * m.z);
     }
   }
 
@@ -213,8 +213,8 @@ struct exd_vertex_t {
   ExdRole role;                /* Exact Disk Flags: Head, tail, whatever */
 
   // note: ignores other data
-  operator vec2_t() { return vec2_t(x, y); }
-  operator const vec2_t() const { return vec2_t(x, y); }
+  operator Vec2() { return Vec2(x, y); }
+  operator const Vec2() const { return Vec2(x, y); }
 };
 
 
@@ -229,7 +229,7 @@ static void delete_list(exd_vertex_t*& ptr) {
 
 
 static inline void compute_intersect_w_m0(
-    const vec3_t& p0muv, const vec3_t p1muv,
+    const Vec3& p0muv, const Vec3 p1muv,
     exd_vertex_t& intersect_uv)
 {
   float_t t;
@@ -290,47 +290,51 @@ static inline IntersectResult test_intersect_line_with_circle(
 }
 
 
-static inline exd_vertex_t* construct_final_endpoint(
-    const bool comparing_ti, const float_t ti_or_si,
-    const exd_vertex_t& pa, const exd_vertex_t& pb
+static inline void construct_final_endpoints(
+    const float_t ti, const float_t si,
+    const exd_vertex_t& pa, const exd_vertex_t& pb,
+    exd_vertex_t*& ppa, exd_vertex_t*& ppb
 ) {
-  exd_vertex_t* res = new exd_vertex_t();
+  ppa = new exd_vertex_t();
+  ppb = new exd_vertex_t();
 
-  bool cond;
-  if (comparing_ti) {
-    cond = ti_or_si > 0;
-  }
-  else {
-    cond = ti_or_si < 1;
-  }
-
-  if (cond) {
-    res->u = pa.u + ti_or_si * (pb.u - pa.u);
-    res->v = pa.v + ti_or_si * (pb.v - pa.v);
-    res->r2 = len2_squared(*res);
-    res->zeta = exd_zetize(res->v, res->u);
+  if (ti > 0) {
+    ppa->u = pa.u + ti * (pb.u - pa.u);
+    ppa->v = pa.v + ti * (pb.v - pa.v);
+    ppa->r2 = ppa->u * ppa->u + ppa->v * ppa->v;
+    ppa->zeta = exd_zetize(ppa->v, ppa->u);
   } else {
-    res->u = pa.u;
-    res->v = pa.v;
-    res->r2 = pa.r2;
-    res->zeta = exd_zetize(pa.v, pa.u);
+    ppa->u = pa.u;
+    ppa->v = pa.v;
+    ppa->r2 = pa.r2;
+    ppa->zeta = exd_zetize(pa.v, pa.u);
   }
-  return res;
+  if (si < 1) {
+    ppb->u = pa.u + si * (pb.u - pa.u);
+    ppb->v = pa.v + si * (pb.v - pa.v);
+    ppb->r2 = ppb->u * ppb->u + ppb->v * ppb->v;
+    ppb->zeta = exd_zetize(ppb->v, ppb->u);
+  } else {
+    ppb->u = pb.u;
+    ppb->v = pb.v;
+    ppb->r2 = pb.r2;
+    ppb->zeta = exd_zetize(pb.v, pb.u);
+  }
 }
 
 
 // not used for now
 static void find_boundaries_occluding_disk(
     const Partition& p,
-    const vec3_t& loc, const vec3_t& mv,
-    const vec3_t& u, const vec3_t& v,
+    const Vec3& loc, const Vec3& mv,
+    const Vec3& u, const Vec3& v,
     const subpart_index_t subpart_index,
     const float_t R, const float_t R2, const float_t m2_i,
     exd_vertex_t*& vertex_head,
     int& n_verts,
     int& n_edges
 ) {
-  vec3_t subpart_llf, subpart_urb;
+  Vec3 subpart_llf, subpart_urb;
   p.get_subpart_llf_point(subpart_index, subpart_llf);
   p.get_subpart_urb_point_from_llf(subpart_llf, subpart_urb);
 
@@ -421,7 +425,7 @@ static void find_boundaries_occluding_disk(
         }
 
         float_t s;
-        vec2_t pa, pb;
+        Vec2 pa, pb;
         if (!distinguishable_f(a, 0, EPS)) {
           s = d / b;
           if (s * s > R2) {
@@ -585,7 +589,7 @@ static float_t calculate_area_for_multiple_edges(
 
       /* Check if lines are parallel--combine if so */
       if (r * r <
-          EPS_C * (pa.u * pa.u + pa.v * pa.v) * (pb.u * pb.u + pb.v * pb.v)) {
+          EPS * (pa.u * pa.u + pa.v * pa.v) * (pb.u * pb.u + pb.v * pb.v)) {
         pqa->e = NULL;
         pqa->role = ExdRole::OTHER;
 
@@ -841,8 +845,8 @@ exact_disk:
 // inlining leads to lower performance
 static float_t __attribute__((noinline)) exact_disk(
     Partition& p,
-    const vec3_t& loc, // point of collision
-    vec3_t& mv, // displacement
+    const Vec3& loc, // point of collision
+    Vec3& mv, // displacement
     float_t R, // radius_3d
     Molecule& moving, // molecule being diffused, we care about walls in its subparition
     Molecule& target, // molecule that we can potentionally hit
@@ -858,10 +862,10 @@ static float_t __attribute__((noinline)) exact_disk(
   float_t m2_i = 1.0 / dot(mv, mv);
 
   /* Set up coordinate system and convert vertices */
-  vec3_t m, u, v;
+  Vec3 m, u, v;
   exd_coordize(mv, m, u, v);
 
-  vec3_t Lmuv;
+  Vec3 Lmuv;
   Lmuv.m = dot(loc, m);
   Lmuv.u = dot(loc, u);
   Lmuv.v = dot(loc, v);
@@ -871,19 +875,22 @@ static float_t __attribute__((noinline)) exact_disk(
     sm.u = sm.v = sm.r2 = sm.zeta = 0.0;
   }
   else { /* Find location of target in moving-molecule-centric coords */
-    vec3_t target_distance = target.v.pos - loc;
+    Vec3 target_distance = target.v.pos - loc;
     sm.u = dot(target_distance, u);
     sm.v = dot(target_distance, v);
     sm.r2 = len2_squared(sm);
     sm.zeta = exd_zetize(sm.v, sm.u);
   }
   /* Find walls that occlude the interaction disk (or block the reaction) */
-  const uint_set<wall_index_t>& wall_indices = p.get_subpart_wall_indices(moving.v.subpart_index);
+  // mcell3 uses the subvolume of the diffused molecule, but in mcell4 case this might be wrong,
+  // we are interested in the subpartition(s?) where the collision occurred
+  subpart_index_t collision_subpart_index = p.get_subpart_index(loc);
+  const uint_set<wall_index_t>& wall_indices = p.get_subpart_wall_indices(collision_subpart_index);
 
   // TODO_LATER: move this to a separate function - only after we got rid of linked lists
   for (wall_index_t wall_index: wall_indices) {
     const Wall& w = p.get_wall(wall_index);
-    vec3_t w_vert[VERTICES_IN_TRIANGLE];
+    Vec3 w_vert[VERTICES_IN_TRIANGLE];
     w_vert[0] = p.get_geometry_vertex(w.vertex_indices[0]);
     w_vert[1] = p.get_geometry_vertex(w.vertex_indices[1]);
     w_vert[2] = p.get_geometry_vertex(w.vertex_indices[2]);
@@ -902,7 +909,7 @@ static float_t __attribute__((noinline)) exact_disk(
     /* Ignore this wall if no overlap between wall & disk bounding boxes */
 
     /* Find wall bounding box */
-    vec3_t llf, urb;
+    Vec3 llf, urb;
     GeometryUtil::get_wall_bounding_box(w_vert, llf, urb);
 
     /* Reject those without overlapping bounding boxes */
@@ -958,10 +965,10 @@ static float_t __attribute__((noinline)) exact_disk(
 #endif
 
     /* Find line of intersection between wall and disk */
-    vec3_t v0muv, v1muv, v2muv;
-    v0muv = vec3_t(dot(w_vert[0], m), dot(w_vert[0], u), dot(w_vert[0], v)) - Lmuv;
-    v1muv = vec3_t(dot(w_vert[1], m), dot(w_vert[1], u), dot(w_vert[1], v)) - Lmuv;
-    v2muv = vec3_t(dot(w_vert[2], m), dot(w_vert[2], u), dot(w_vert[2], v)) - Lmuv;
+    Vec3 v0muv, v1muv, v2muv;
+    v0muv = Vec3(dot(w_vert[0], m), dot(w_vert[0], u), dot(w_vert[0], v)) - Lmuv;
+    v1muv = Vec3(dot(w_vert[1], m), dot(w_vert[1], u), dot(w_vert[1], v)) - Lmuv;
+    v2muv = Vec3(dot(w_vert[2], m), dot(w_vert[2], u), dot(w_vert[2], v)) - Lmuv;
 
     exd_vertex_t pa, pb;
     /* Draw lines between points and pick intersections with plane of m=0 */
@@ -1018,8 +1025,9 @@ static float_t __attribute__((noinline)) exact_disk(
     /* Add this edge to the growing list, or return -1 if edge blocks target */
 
     /* Construct final endpoints and prepare to store them */
-    exd_vertex_t* ppa = construct_final_endpoint(true, ti, pa, pb); // set if ti > 0
-    exd_vertex_t* ppb = construct_final_endpoint(false, si, pa, pb); // set if si < 0
+    exd_vertex_t* ppa;
+    exd_vertex_t* ppb;
+    construct_final_endpoints(ti, si, pa, pb, ppa, ppb);
 
     /* It's convenient if ppa is earlier, ccw, than ppb */
     a = (ppb->zeta - ppa->zeta);
@@ -1041,8 +1049,8 @@ static float_t __attribute__((noinline)) exact_disk(
     }
 
     if (b < a) {
-      vec2_t ppa_minus_sm = vec2_t(*ppa) - vec2_t(sm);
-      vec2_t ppb_minus_sm = vec2_t(*ppb) - vec2_t(sm);
+      Vec2 ppa_minus_sm = Vec2(*ppa) - Vec2(sm);
+      Vec2 ppb_minus_sm = Vec2(*ppb) - Vec2(sm);
 
       float_t c = ppa_minus_sm.u * ppb_minus_sm.v - ppa_minus_sm.v * ppb_minus_sm.u;
 
@@ -1071,7 +1079,7 @@ static float_t __attribute__((noinline)) exact_disk(
     vertex_head = ppa;
     n_verts += 2;
     n_edges++;
-  }
+  } // for each wall
 
   /* Find partition boundaries that occlude the interaction disk */
   if (!use_expanded_list) { /* We'll hit partitions */

@@ -33,6 +33,8 @@
 #include "react.h"
 #include "vol_util.h"
 
+#include "debug_config.h"
+
 /*************************************************************************
 timeof_unimolecular:
   In: the reaction we're testing
@@ -87,7 +89,7 @@ int binary_search_double(double *A, double match, int max_idx, double mult) {
       max_idx = mid_idx;
   }
 
-  if (match > A[min_idx])
+  if (match > A[min_idx] * mult)
     return max_idx;
   else
     return min_idx;
@@ -155,6 +157,13 @@ int test_bimolecular(struct rxn *rx, double scaling, double local_prob_factor,
         return RX_NO_RX;
     }
   }
+
+#ifdef DEBUG_REACTION_PROBABILITIES
+  mcell_log(
+      "test_bimolecular: p = %.8f, scaling = %.8f, min_noreaction_p = %.8f, local_prob_factor = %.8f",
+      p, scaling, min_noreaction_p, local_prob_factor
+  );
+#endif
 
   /* If we have only fixed pathways... */
   int M = rx->n_pathways - 1;
@@ -470,6 +479,13 @@ void update_probs(struct volume *world, struct rxn *rx, double t) {
           mcell_log_raw("%s[%d] ", rx->players[n_product]->sym->name,
                         rx->geometries[n_product]);
       }
+
+      double time_secs = convert_iterations_to_seconds(
+          world->start_iterations, world->time_unit,
+          world->simulation_start_seconds, world->current_iterations);
+
+      mcell_log_raw("at iteration %lld with time %.9f", world->current_iterations, time_secs);
+
       mcell_log_raw("\n");
     }
 

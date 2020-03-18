@@ -87,20 +87,20 @@ public:
   }
 
   Molecule(const molecule_id_t id_, const species_id_t species_id_)
-    : id(id_), flags(0), unimol_rx_time(TIME_FOREVER), unimol_rx(nullptr), species_id(species_id_)
+    : id(id_), flags(0), unimol_rx_time(TIME_INVALID), unimol_rx(nullptr), species_id(species_id_)
       /*subpart_index(SUBPART_INDEX_INVALID)*/ {
   }
 
   // volume molecule
-  Molecule(const molecule_id_t id_, const species_id_t species_id_, const vec3_t& pos_)
-    : id(id_), flags(MOLECULE_FLAG_VOL), unimol_rx_time(TIME_FOREVER), unimol_rx(nullptr), species_id(species_id_) {
+  Molecule(const molecule_id_t id_, const species_id_t species_id_, const Vec3& pos_)
+    : id(id_), flags(MOLECULE_FLAG_VOL), unimol_rx_time(TIME_INVALID), unimol_rx(nullptr), species_id(species_id_) {
     v.pos = pos_;
     v.subpart_index = SUBPART_INDEX_INVALID;
   }
 
   // surface molecule
-  Molecule(const molecule_id_t id_, const species_id_t species_id_, const vec2_t& pos2d)
-    : id(id_), flags(MOLECULE_FLAG_SURF), unimol_rx_time(TIME_FOREVER), unimol_rx(nullptr), species_id(species_id_) {
+  Molecule(const molecule_id_t id_, const species_id_t species_id_, const Vec2& pos2d)
+    : id(id_), flags(MOLECULE_FLAG_SURF), unimol_rx_time(TIME_INVALID), unimol_rx(nullptr), species_id(species_id_) {
     s.pos = pos2d;
     //s.subpart_index = SUBPART_INDEX_INVALID;
     s.orientation = ORIENTATION_NONE;
@@ -134,19 +134,19 @@ public:
 
   float_t unimol_rx_time;
 
-  const Reaction* unimol_rx;
+  const RxnClass* unimol_rx;
 
   // update assignment operator when modifying this
   union {
     // volume molecule data
     struct {
-      vec3_t pos;
+      Vec3 pos;
       subpart_index_t subpart_index;
     } v;
 
     // surface molecule data
     struct {
-      vec2_t pos;
+      Vec2 pos;
       // we probably do not want subpart index, wall index serves this purpose
       //subpart_index_t subpart_index;
       orientation_t orientation;

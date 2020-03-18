@@ -51,30 +51,48 @@ namespace DiffusionUtil {
 // ---------------------------------- volume mol diffusion ----------------------------------
 
 // get displacement based on scale (related to diffusion constant) and gauss random number
-static void pick_vol_displacement(const float_t scale, rng_state& rng, vec3_t& displacement) {
-  displacement.x = scale * rng_gauss(&rng) * .70710678118654752440;
-  displacement.y = scale * rng_gauss(&rng) * .70710678118654752440;
-  displacement.z = scale * rng_gauss(&rng) * .70710678118654752440;
+static void pick_vol_displacement(const Species& sp, const float_t scale, rng_state& rng, Vec3& displacement) {
+
+  if (!sp.can_diffuse()) {
+    displacement = Vec3(0);
+  }
+  else {
+    displacement.x = scale * rng_gauss(&rng) * .70710678118654752440;
+    displacement.y = scale * rng_gauss(&rng) * .70710678118654752440;
+    displacement.z = scale * rng_gauss(&rng) * .70710678118654752440;
+  }
 }
 
 
 // determine how far will our diffused molecule move
 static void compute_vol_displacement(
     const Species& sp,
-    const float_t remaining_time_step,
+    const float_t max_time,
     rng_state& rng,
-    vec3_t& displacement,
-    float_t& r_rate_factor
+    Vec3& displacement,
+    float_t& rate_factor, float_t& r_rate_factor, float_t& steps, float_t& t_steps
 ) {
+  assert(max_time != 0);
 
-  float_t rate_factor = (remaining_time_step == 1.0) ? 1.0 : sqrt(remaining_time_step);
-  r_rate_factor = 1.0 / rate_factor;
+  // assert(!m.has_flag(ACT_CLAMPED) && "Not implemented yet");
 
-  if (sp.can_diffuse()) {
-    pick_vol_displacement(sp.space_step * rate_factor, rng, displacement);
+  t_steps = steps * sp.get_time_step();
+  if (t_steps > max_time) {
+    t_steps = max_time;
+    steps = max_time / sp.get_time_step();
   }
-  else {
-    displacement = vec3_t(0);
+  if (steps < EPS) {
+    steps = EPS;
+    t_steps = EPS * sp.get_time_step();
+  }
+
+  if (steps == 1.0) {
+    pick_vol_displacement(sp, sp.get_space_step(), rng, displacement);
+    r_rate_factor = rate_factor = 1.0;
+  } else {
+    rate_factor = sqrt_f(steps);
+    r_rate_factor = 1.0 / rate_factor;
+    pick_vol_displacement(sp, rate_factor * sp.get_space_step(), rng, displacement);
   }
 }
 
@@ -90,9 +108,9 @@ pick_2D_displacement:
          distance chosen from the probability distribution of a diffusing
          2D molecule, scaled by the scaling factor.
 *************************************************************************/
-static void pick_surf_displacement(vec2_t& v, const float_t scale, rng_state& rng) {
+static void pick_surf_displacement(Vec2& v, const float_t scale, rng_state& rng) {
   const float_t one_over_2_to_16th = 1.52587890625e-5;
-  vec2_t a;
+  Vec2 a;
 
   /*
    * NOTE: The below algorithm is the polar method due to Marsaglia
@@ -121,7 +139,7 @@ static void pick_surf_displacement(vec2_t& v, const float_t scale, rng_state& rn
    * resulting in normalFactor.
    */
   float_t normal_factor = sqrt_f(-log_f(f) / f);
-  v = a * vec2_t(normal_factor * scale);
+  v = a * Vec2(normal_factor * scale);
 }
 
 
@@ -129,13 +147,13 @@ static void compute_surf_displacement(
     const Species& sp,
     const float_t scale,
     rng_state& rng,
-    vec2_t& v
+    Vec2& v
 ) {
   if (sp.can_diffuse()) {
     pick_surf_displacement(v, scale, rng);
   }
   else {
-    v = vec2_t(0);
+    v = Vec2(0);
   }
 }
 
@@ -157,7 +175,7 @@ move_sm_on_same_triangle:
 static int move_sm_on_same_triangle(
     Partition& p,
     Molecule& sm,
-    vec2_t& new_loc
+    Vec2& new_loc
 ) {
   Wall& wall = p.get_wall(sm.s.wall_index);
   Grid& grid = wall.grid;
@@ -206,7 +224,7 @@ move_sm_to_new_triangle:
 static int move_sm_to_new_triangle(
     Partition& p,
     Molecule& sm,
-    vec2_t& new_loc,
+    Vec2& new_loc,
     const wall_index_t new_wall_index
 ) {
   Wall& wall = p.get_wall(sm.s.wall_index);
@@ -254,14 +272,14 @@ static int move_sm_to_new_triangle(
 static void tiny_diffuse_3D(
     Partition& p,
     Molecule& vm,
-    const vec3_t& displacement,
+    const Vec3& displacement,
     const wall_index_t previous_reflected_wall,
-    vec3_t& new_pos) {
+    Vec3& new_pos) {
 
   assert(vm.is_vol());
   assert(vm.v.subpart_index != SUBPART_INDEX_INVALID && "Molecule must be already placed into a subvolume");
 
-  vec3_t ignored_displacement = displacement;
+  Vec3 ignored_displacement = displacement;
   subpart_index_t new_subpart_index;
 
   collision_vector_t collisions;
@@ -277,14 +295,14 @@ static void tiny_diffuse_3D(
   sort_collisions_by_time(collisions);
 
   new_pos = vm.v.pos;
-  vec3_t new_displacement = displacement;
+  Vec3 new_displacement = displacement;
   for (size_t collision_index = 0; collision_index < collisions.size(); collision_index++) {
     Collision& collision = collisions[collision_index];
 
     // stop after first collision
     if (collision.is_wall_collision()) {
       new_pos = collision.pos - new_pos;
-      new_displacement = displacement * vec3_t(0.5);
+      new_displacement = displacement * Vec3(0.5);
     }
   }
 
@@ -299,7 +317,7 @@ static void reflect_absorb_check_wall(
     bool& reflect_now,
     bool& absorb_now
 ) {
-  ReactionsVector matching_rxns;
+  RxnClassesVector matching_rxns;
   RxUtil::trigger_intersect(
       p, sm, wall,
       matching_rxns
@@ -307,7 +325,7 @@ static void reflect_absorb_check_wall(
 
   /* check if this wall has any reflective or absorptive region borders for
    * this molecule (aka special reactions) */
-  for (const Reaction* rxn: matching_rxns) {
+  for (const RxnClass* rxn: matching_rxns) {
     if (rxn->is_reflect()) {
       /* check for REFLECTIVE border */
       reflect_now = true;

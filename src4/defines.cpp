@@ -26,42 +26,35 @@
 #include <iostream>
 #include <sstream>
 
+#ifdef DWITHGPERFTOOLS
+// using longer path to avoid collisions
+#include "install_gperftools/include/profiler.h"
+#endif
+
 using namespace std;
 
 namespace MCell {
 
-std::ostream & operator<<(std::ostream &out, const vec3_t &a) {
-  out << "(" << a.x << ", " << a.y << ", " << a.z << ")";
-  return out;
-}
-
-
-string vec3_t::to_string() const {
+string Vec3::to_string() const {
   stringstream ss;
   ss << *this;
   return ss.str();
 }
 
 
-void vec3_t::dump(const std::string extra_comment, const std::string ind) const {
+void Vec3::dump(const std::string extra_comment, const std::string ind) const {
   cout << ind << extra_comment << *this << "\n";
 }
 
 
-std::ostream & operator<<(std::ostream &out, const vec2_t &a) {
-  out << "(" << a.u << ", " << a.v << ")";
-  return out;
-}
-
-
-string vec2_t::to_string() const {
+string Vec2::to_string() const {
   stringstream ss;
   ss << *this;
   return ss.str();
 }
 
 
-void vec2_t::dump(const std::string extra_comment, const std::string ind) const {
+void Vec2::dump(const std::string extra_comment, const std::string ind) const {
   cout << ind << extra_comment << *this << "\n";
 }
 

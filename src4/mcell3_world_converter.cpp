@@ -34,6 +34,8 @@
 #include "diffuse_react_event.h"
 #include "viz_output_event.h"
 
+#include "dump_state.h"
+
 using namespace std;
 
 const char* const ALL_MOLECULES = "ALL_MOLECULES";
@@ -41,7 +43,7 @@ const char* const ALL_VOLUME_MOLECULES = "ALL_VOLUME_MOLECULES";
 const char* const ALL_SURFACE_MOLECULES = "ALL_SURFACE_MOLECULES";
 
 // checking major conversion blocks
-#define CHECK(cond) do { if(!(cond)) { mcell_log_conv_error("Returning from %s after conversion error.", __FUNCTION__); return false; } } while (0)
+#define CHECK(cond) do { if(!(cond)) { mcell_log_conv_error("Returning from %s after conversion error.\n", __FUNCTION__); return false; } } while (0)
 
 // checking assumptions
 #define CHECK_PROPERTY(cond) do { if(!(cond)) { mcell_log_conv_error("Expected '%s' is false. (%s - %s:%d)\n", #cond, __FUNCTION__, __FILE__, __LINE__); return false; } } while (0)
@@ -128,7 +130,7 @@ bool MCell3WorldConverter::convert(volume* s) {
   // at this point, we need to create the first (and for now the only) partition
   // create initial partition with center at 0,0,0 - we woud like to have the partitions all the same,
   // not depend on some random initialization
-  partition_index_t index = world->add_partition(vec3_t(0, 0, 0));
+  partition_index_t index = world->add_partition(Vec3(0, 0, 0));
   assert(index == PARTITION_INDEX_INITIAL);
 
   // convert geometry already puts geometry objects into partitions
@@ -279,7 +281,7 @@ void MCell3WorldConverter::create_uninitialized_walls_for_polygonal_object(const
       partition_index_t curr_partition_index = world->get_partition_index(*w->vert[k]);
 
       if (partition_index != curr_partition_index) {
-        vec3_t pos(*w->vert[k]);
+        Vec3 pos(*w->vert[k]);
         mcell_log("Error: whole walls must be in a single partition is for now, vertex %s is out of bounds", pos.to_string().c_str());
       }
     }
@@ -451,7 +453,7 @@ bool MCell3WorldConverter::convert_region(Partition& p, const region* r, region_
   // CHECK_PROPERTY(r->area == 0);  // ignored for now
   // CHECK_PROPERTY(r->volume == 0);  // ignored for now
   // CHECK_PROPERTY(r->flags == 0); // ignored for now
-  CHECK_PROPERTY(r->manifold_flag == 0);
+  // CHECK_PROPERTY(r->manifold_flag == 0); // ignored, do we care?
 
   region_index = p.add_region(new_region);
   return true;
@@ -598,7 +600,8 @@ bool MCell3WorldConverter::convert_species_and_create_diffusion_events(volume* s
     new_species.D = spec->D;
     new_species.space_step = spec->space_step;
     new_species.time_step = spec->time_step;
-    CHECK_PROPERTY(
+
+    if (!(
         is_species_superclass(s, spec)
         || spec->flags == 0
         || spec->flags == SPECIES_FLAG_CAN_VOLVOL
@@ -608,7 +611,10 @@ bool MCell3WorldConverter::convert_species_and_create_diffusion_events(volume* s
         || spec->flags == (SPECIES_FLAG_ON_GRID | SPECIES_FLAG_CAN_REGION_BORDER)
         || spec->flags == (SPECIES_FLAG_ON_GRID | SPECIES_FLAG_CAN_SURFSURF | CAN_SURFWALL | SPECIES_FLAG_CAN_REGION_BORDER | REGION_PRESENT)
         || spec->flags == SPECIES_FLAG_CAN_VOLSURF
-    );
+      )) {
+      mcell_log("Unsupported species flag for species %s: %s\n", new_species.name.c_str(), get_species_flags_string(spec->flags).c_str());
+      CHECK_PROPERTY(false && "Flags listed above are not supported yet");
+    }
     new_species.flags = spec->flags;
 
     CHECK_PROPERTY(spec->n_deceased == 0);
@@ -641,8 +647,8 @@ bool MCell3WorldConverter::convert_species_and_create_diffusion_events(volume* s
 }
 
 
-bool MCell3WorldConverter::convert_single_reaction(const rxn *rx) {
-  Reaction reaction;
+bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
+  RxnClass rxn_class;
 
   // rx->next - handled in convert_reactions
   // rx->sym->name - ignored, name obtained from pathway
@@ -650,17 +656,14 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *rx) {
   //?? u_int n_reactants - obtained from pathways, might check it
 
   CHECK_PROPERTY(
-      rx->n_pathways == 1
-      || rx->n_pathways == RX_REFLEC // reflections for surf mols
+      mcell3_rx->n_pathways >= 1
+      || mcell3_rx->n_pathways == RX_REFLEC // reflections for surf mols
   ); // limited for now
 
-  assert(rx->cum_probs != nullptr);
-  // ?? reaction.cum_prob = rx->cum_probs[0]; - what is this good for?
+  assert(mcell3_rx->cum_probs != nullptr);
 
-  CHECK_PROPERTY(rx->max_fixed_p == 1.0 || rx->cum_probs[0] == rx->max_fixed_p); // limited for now
-  CHECK_PROPERTY(rx->min_noreaction_p == 1.0 || rx->cum_probs[0] == rx->min_noreaction_p); // limited for now
-  reaction.max_fixed_p = rx->max_fixed_p;
-  reaction.min_noreaction_p = rx->min_noreaction_p;
+  rxn_class.max_fixed_p = mcell3_rx->max_fixed_p;
+  rxn_class.min_noreaction_p = mcell3_rx->min_noreaction_p;
 
   // ?? double pb_factor; /* Conversion factor from rxn rate to rxn probability (used for cooperativity) */
 
@@ -672,88 +675,118 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *rx) {
   // NFSIM short *geometries;         /* Geometries of reactants/products */
   // NFSIM short **nfsim_geometries;   /* geometries of the nfsim geometries associated with each path */
 
-  CHECK_PROPERTY(rx->n_occurred == 0);
-  CHECK_PROPERTY(rx->n_skipped == 0);
-  CHECK_PROPERTY(rx->prob_t == nullptr);
+  CHECK_PROPERTY(mcell3_rx->n_occurred == 0);
+  CHECK_PROPERTY(mcell3_rx->n_skipped == 0);
+  CHECK_PROPERTY(mcell3_rx->prob_t == nullptr);
 
   // TODO_CONVERSION: pathway_info *info - magic_list, also some checks might be useful
 
-  // --- pathway ---
-  pathway *pathway_head = rx->pathway_head;
-  CHECK_PROPERTY(pathway_head->next == nullptr); // only 1 supported now
+  int pathway_index = 0;
+  for (
+      pathway* current_pathway = mcell3_rx->pathway_head;
+      current_pathway != nullptr;
+      current_pathway = current_pathway->next) {
 
-  if (pathway_head->pathname != nullptr) {
-    assert(pathway_head->pathname->sym != nullptr);
-    reaction.name = pathway_head->pathname->sym->name;
-  }
-  else {
-    reaction.name = NAME_NOT_SET;
-  }
+    // --- pathway ---
 
-  reaction.rate_constant = pathway_head->km;
+    // there can be a single reaction for absorb, reflect and transparent reactions
+    assert((pathway_index < mcell3_rx->n_pathways) || (pathway_index == 0 && mcell3_rx->n_pathways < 0));
 
-  CHECK_PROPERTY(pathway_head->orientation1 == 0 || pathway_head->orientation1 == 1 || pathway_head->orientation1 == -1);
-  CHECK_PROPERTY(pathway_head->orientation2 == 0 || pathway_head->orientation2 == 1 || pathway_head->orientation2 == -1);
-  CHECK_PROPERTY(pathway_head->orientation3 == 0 || pathway_head->orientation3 == 1 || pathway_head->orientation3 == -1);
+    // -> pathway is renamed in MCell3 to reaction because pathway has a different meaning
+    //    MCell3 rection is reaction class
+    Rxn rxn;
 
-  if (pathway_head->reactant1 != nullptr) {
-    species_id_t reactant1_id = get_mcell4_species_id(pathway_head->reactant1->species_id);
-    reaction.reactants.push_back(SpeciesWithOrientation(reactant1_id, pathway_head->orientation1));
+    if (current_pathway->pathname != nullptr) {
+      assert(current_pathway->pathname->sym != nullptr);
+      rxn.name = current_pathway->pathname->sym->name;
+    }
+    else {
+      rxn.name = NAME_NOT_SET;
+    }
 
-    if (pathway_head->reactant2 != nullptr) {
-      species_id_t reactant2_id = get_mcell4_species_id(pathway_head->reactant2->species_id);
-      reaction.reactants.push_back(SpeciesWithOrientation(reactant2_id, pathway_head->orientation2));
+    rxn.rate_constant = current_pathway->km;
 
-      if (pathway_head->reactant3 != nullptr) {
-        mcell_error("TODO_CONVERSION: reactions with 3 reactants are not supported");
-        species_id_t reactant3_id = get_mcell4_species_id(pathway_head->reactant3->species_id);
-        reaction.reactants.push_back(SpeciesWithOrientation(reactant3_id, pathway_head->orientation3));
+    CHECK_PROPERTY(current_pathway->reactant1 != nullptr);
+    CHECK_PROPERTY(current_pathway->orientation1 == 0 || current_pathway->orientation1 == 1 || current_pathway->orientation1 == -1);
+    CHECK_PROPERTY(
+        current_pathway->reactant2 == nullptr ||
+        (current_pathway->orientation2 == 0 || current_pathway->orientation2 == 1 || current_pathway->orientation2 == -1)
+    );
+    CHECK_PROPERTY(
+        current_pathway->reactant2 == nullptr ||
+        (current_pathway->orientation3 == 0 || current_pathway->orientation3 == 1 || current_pathway->orientation3 == -1)
+    );
+
+    // reactants
+    if (current_pathway->reactant1 != nullptr) {
+      species_id_t reactant1_id = get_mcell4_species_id(current_pathway->reactant1->species_id);
+      SpeciesWithOrientation r1 = SpeciesWithOrientation(reactant1_id, current_pathway->orientation1);
+      rxn.reactants.push_back(r1);
+      if (pathway_index == 0) {
+        // reaction has the same reactants, storing only once
+        rxn_class.reactants.push_back(r1);
+      }
+
+      if (current_pathway->reactant2 != nullptr) {
+        species_id_t reactant2_id = get_mcell4_species_id(current_pathway->reactant2->species_id);
+        SpeciesWithOrientation r2 = SpeciesWithOrientation(reactant2_id, current_pathway->orientation2);
+        rxn.reactants.push_back(r2);
+        if (pathway_index == 0) {
+          rxn_class.reactants.push_back(r2);
+        }
+
+        if (current_pathway->reactant3 != nullptr) {
+          mcell_error("TODO_CONVERSION: reactions with 3 reactants are not supported");
+        }
+      }
+      else {
+        // reactant3 must be null if reactant2 is null
+        assert(current_pathway->reactant3 == nullptr);
       }
     }
     else {
-      // reactant3 must be null if reactant2 is null
-      assert(pathway_head->reactant3 == nullptr);
+      assert(false && "No reactants?");
     }
-  }
-  else {
-    assert(false && "No reactants?");
-  }
 
-  CHECK_PROPERTY(pathway_head->km_filename == nullptr);
+    CHECK_PROPERTY(current_pathway->km_filename == nullptr);
 
 
-  if (rx->n_pathways == RX_ABSORB_REGION_BORDER) {
-    CHECK_PROPERTY(pathway_head->flags == PATHW_ABSORP);
-    reaction.type = ReactionType::AbsorbRegionBorder;
-  }
-  else if (rx->n_pathways == RX_TRANSP) {
-    CHECK_PROPERTY(pathway_head->flags == PATHW_TRANSP);
-    reaction.type = ReactionType::Transparent;
-  }
-  else if (rx->n_pathways == RX_REFLEC) {
-    CHECK_PROPERTY(pathway_head->flags == PATHW_REFLEC);
-    reaction.type = ReactionType::Reflect;
-  }
-  else {
-    CHECK_PROPERTY(pathway_head->flags == 0);
-
-    reaction.type = ReactionType::Standard;
-
-    // products
-    product *product_ptr = pathway_head->product_head;
-    while (product_ptr != nullptr) {
-      species_id_t product_id = get_mcell4_species_id(product_ptr->prod->species_id);
-      CHECK_PROPERTY(product_ptr->orientation == 0 || product_ptr->orientation == 1 || product_ptr->orientation == -1);
-
-      reaction.products.push_back(SpeciesWithOrientation(product_id, product_ptr->orientation));
-
-      product_ptr = product_ptr->next;
+    if (mcell3_rx->n_pathways == RX_ABSORB_REGION_BORDER) {
+      CHECK_PROPERTY(current_pathway->flags == PATHW_ABSORP);
+      rxn_class.type = RxnClassType::AbsorbRegionBorder;
     }
+    else if (mcell3_rx->n_pathways == RX_TRANSP) {
+      CHECK_PROPERTY(current_pathway->flags == PATHW_TRANSP);
+      rxn_class.type = RxnClassType::Transparent;
+    }
+    else if (mcell3_rx->n_pathways == RX_REFLEC) {
+      CHECK_PROPERTY(current_pathway->flags == PATHW_REFLEC);
+      rxn_class.type = RxnClassType::Reflect;
+    }
+    else {
+      CHECK_PROPERTY(current_pathway->flags == 0);
+
+      rxn_class.type = RxnClassType::Standard;
+
+      // products
+      product *product_ptr = current_pathway->product_head;
+      while (product_ptr != nullptr) {
+        species_id_t product_id = get_mcell4_species_id(product_ptr->prod->species_id);
+        CHECK_PROPERTY(product_ptr->orientation == 0 || product_ptr->orientation == 1 || product_ptr->orientation == -1);
+
+        rxn.products.push_back(SpeciesWithOrientation(product_id, product_ptr->orientation));
+
+        product_ptr = product_ptr->next;
+      }
+    }
+
+    rxn_class.add_and_initialize_reaction(rxn, mcell3_rx->cum_probs[pathway_index]);
+
+    pathway_index++;
   }
 
-  reaction.initialize();
 
-  world->all_reactions.add(reaction);
+  world->all_reactions.add(rxn_class);
 
   return true;
 }
@@ -776,6 +809,7 @@ bool MCell3WorldConverter::convert_reactions(volume* s) {
 }
 
 
+// FIXME: thiscould use a cleanup and maybe redesign
 bool MCell3WorldConverter::convert_release_events(volume* s) {
 
   // -- schedule_helper -- (as volume.releaser)
@@ -802,16 +836,67 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
       // -- release_site --
       release_site_obj* rel_site = req->release_site;
 
-      bool surface_release;
+      CHECK_PROPERTY(rel_site->release_shape == SHAPE_SPHERICAL || rel_site->release_shape == SHAPE_REGION);
+      switch (rel_site->release_shape) {
+        case SHAPE_SPHERICAL:
+          event_data.release_shape = ReleaseShape::SPHERICAL;
+          break;
+        case SHAPE_REGION:
+          event_data.release_shape = ReleaseShape::REGION;
+          break;
+        default:
+          assert(false);
+      }
+
       if (rel_site->region_data == nullptr) {
         assert(rel_site->location != nullptr);
-        event_data.location = vec3_t(*rel_site->location); // might be NULL
-        surface_release = false;
+        event_data.location = Vec3(*rel_site->location); // might be NULL
       }
       else if (rel_site->location == nullptr) {
         assert(rel_site->region_data != nullptr);
-        event_data.location = vec3_t(POS_INVALID);
-        surface_release = true;
+        release_region_data* region_data = rel_site->region_data;
+        event_data.location = Vec3(POS_INVALID);
+
+        // CHECK_PROPERTY(region_data->in_release == nullptr); // not sure what this means yet
+
+
+        if (rel_site->region_data->cum_area_list != nullptr) {
+          // surface molecules release onto region
+
+          release_region_data* region_data = rel_site->region_data;
+          for (int wall_i = 0; wall_i < region_data->n_walls_included; wall_i++) {
+
+            wall* w = region_data->owners[region_data->obj_index[wall_i]]->wall_p[region_data->wall_index[wall_i]];
+
+            PartitionWallIndexPair wall_index = get_mcell4_wall_index(w);
+
+            event_data.cum_area_and_pwall_index_pairs.push_back(
+                CummAreaPWallIndexPair(region_data->cum_area_list[wall_i], wall_index)
+            );
+          }
+
+        }
+        else {
+          // volume molecules release into region
+
+          // this is quite limited for now, a single region is allowed
+          CHECK_PROPERTY(region_data->cum_area_list == nullptr);
+          CHECK_PROPERTY(region_data->wall_index == nullptr);
+          CHECK_PROPERTY(region_data->n_objects == -1);
+          CHECK_PROPERTY(region_data->owners == 0);
+          // CHECK_PROPERTY(region_data->walls_per_obj == 0); not sure what this does
+
+          CHECK_PROPERTY(region_data->expression != nullptr);
+          release_evaluator* expression = region_data->expression;
+          CHECK_PROPERTY(expression->op == (REXP_NO_OP | REXP_LEFT_REGION));
+          CHECK_PROPERTY(expression->left != nullptr);
+          CHECK_PROPERTY(expression->right == nullptr);
+          region* left_region = (region*)expression->left;
+
+          event_data.region_llf = region_data->llf;
+          event_data.region_urb = region_data->urb;
+          event_data.region_name = get_sym_name(left_region->sym);
+        }
       }
       else {
         CHECK_PROPERTY(
@@ -823,8 +908,8 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
       event_data.species_id = get_mcell4_species_id(rel_site->mol_type->species_id);
 
       CHECK_PROPERTY(rel_site->release_number_method == 0);
-      event_data.release_shape = rel_site->release_shape;
-      CHECK_PROPERTY(surface_release || rel_site->orientation == 0);
+
+      CHECK_PROPERTY(event_data.release_shape == ReleaseShape::REGION || rel_site->orientation == 0);
       event_data.orientation = rel_site->orientation;
 
       event_data.release_number = rel_site->release_number;
@@ -832,28 +917,14 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
       CHECK_PROPERTY(rel_site->mean_diameter == 0); // temporary
       CHECK_PROPERTY(rel_site->concentration == 0); // temporary
       CHECK_PROPERTY(rel_site->standard_deviation == 0); // temporary
-      CHECK_PROPERTY(surface_release || rel_site->diameter != nullptr);
+      CHECK_PROPERTY(event_data.release_shape == ReleaseShape::REGION || rel_site->diameter != nullptr);
       if (rel_site->diameter != nullptr) {
         event_data.diameter = *rel_site->diameter; // ignored for now
       }
       else {
-        event_data.diameter = vec3_t(POS_INVALID);
+        event_data.diameter = Vec3(POS_INVALID);
       }
 
-      //region_data
-      if (rel_site->region_data != nullptr) {
-        release_region_data* region_data = rel_site->region_data;
-        for (int wall_i = 0; wall_i < region_data->n_walls_included; wall_i++) {
-
-          wall* w = region_data->owners[region_data->obj_index[wall_i]]->wall_p[region_data->wall_index[wall_i]];
-
-          PartitionWallIndexPair wall_index = get_mcell4_wall_index(w);
-
-          event_data.cum_area_and_pwall_index_pairs.push_back(
-              CummAreaPWallIndexPair(region_data->cum_area_list[wall_i], wall_index)
-          );
-        }
-      }
 
       CHECK_PROPERTY(rel_site->mol_list == nullptr);
       CHECK_PROPERTY(rel_site->release_prob == 1); // temporary

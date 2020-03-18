@@ -4,11 +4,12 @@
 #include "defines.h"
 #include "species.h"
 #include "molecule.h"
-#include "reaction.h"
 #include "species_info.h"
 
 #include <iostream>
 #include <sstream>
+
+#include "reaction.h"
 
 using namespace std;
 
@@ -18,7 +19,7 @@ void ReactionsInfo::init(const SpeciesInfo& all_species) {
   assert(!initialized); // there should not be a reason to reinitialize reactions info
 
   // create map for fast reaction searches
-  for (Reaction& r: reactions) {
+  for (RxnClass& r: reactions) {
     assert(r.reactants.size() == 1 || r.reactants.size() == 2); // only bimolecular reactions are supported now
 
     if (r.reactants.size() == 1) {
@@ -42,7 +43,7 @@ void ReactionsInfo::init(const SpeciesInfo& all_species) {
   // just to make sure that we have an item for all the species
   const std::vector<Species>& species = all_species.get_species_vector();
   for (const Species& s: species) {
-    bimolecular_reactions_map.insert( std::make_pair(s.species_id, SpeciesReactionMap()) );
+    bimolecular_reactions_map.insert( std::make_pair(s.species_id, SpeciesRxnClassesMap()) );
   }
   assert(bimolecular_reactions_map.size() == all_species.get_count());
 

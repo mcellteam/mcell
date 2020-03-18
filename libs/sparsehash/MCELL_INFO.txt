@@ -1,0 +1,5 @@
+Cloned on March 5, 2020 from https://github.com/sparsehash/sparsehash-c11, branch master (88b354f).
+Then executed ./configure and copied src/config.h into src/sparsehash/internal/sparseconfig.h.
+Seems that it is maintained manly with regards to warnings and builds.
+
+Used as header-only, there was no need to compile it yet. 

@@ -1,0 +1,34 @@
+CHANGELOG
+===============================================================================
+
+Changes in MCell 3.5
+-------------------------------------------------------------------------------
+
+* Requirements:
+  * BNGL style reactions (MCell-R) require Perl to be installed, Windows variant is known to work with Perl from strawberryper.com and must be as the first perl.exe in PATH 
+  * To use Matplotlib, Debian 9 and 10 require package 'tk' to be installed; instead of installing it, it is possible to run export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:`pwd`/2.79/python/lib/ in Blender-2.79-CellBlender before running the ./blender executable     
+
+* Known limitations:
+  * Windows build does not contain GAMER plugin for mesh refinement
+  * Older settings might interfere on Windows, to fix this, please erase C:\Users\USER_NAME\AppData\Roaming\Blender Foundation
+  * MacOS version must be extracted into the /Applications/ directory manually and must be run from terminal with working directory being the root directory '/' 
+  
+* Major changes:
+  * NFSim reaction engine gets the same seed as mcell, no longer it generates its seed from current time 
+  * Several improvements in CellBlender plugin with regards to BNGL type reactions
+  * Automated build and test system
+
+* Bug Fixes:
+  * Fixed several issues for BNGL type reactions in compartments support 
+  * Fixed case when memory usage grew indefinitely when logging BNGL type reactions
+  
+* Optimizations:
+  * Optimized search in nfSim reaction cache (up to 2x speedup for some MCellR models)
+
+
+Changes in MCell 3.5.1
+-------------------------------------------------------------------------------
+
+* Bug Fixes:
+  *  Fixed multiple surface-surface reaction handling when the reactions had the same reactants, 
+     previous implementation assigned too low probability to the last reaction with the same reactants.  

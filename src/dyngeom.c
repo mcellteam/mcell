@@ -684,7 +684,7 @@ struct volume_molecule *insert_volume_molecule_encl_mesh(
                               new_vm->periodic_box);
   }
 
-  if (schedule_add(new_vm->subvol->local_storage->timer, new_vm))
+  if (schedule_add_mol(new_vm->subvol->local_storage->timer, new_vm))
     mcell_allocfailed("Failed to add volume molecule to scheduler.");
 
   return new_vm;

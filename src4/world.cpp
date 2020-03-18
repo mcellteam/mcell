@@ -137,7 +137,7 @@ void World::init_simulation() {
 }
 
 
-void World::run_n_iterations(const uint64_t num_iterations, const uint64_t output_frequency) {
+void World::run_n_iterations(const uint64_t num_iterations, const uint64_t output_frequency, const bool terminate_last_iteration_after_viz_output) {
 
   if (!simulation_initialized) {
     init_simulation();
@@ -152,21 +152,21 @@ void World::run_n_iterations(const uint64_t num_iterations, const uint64_t outpu
   uint64_t this_run_first_iteration = current_iteration;
 
   do {
-#ifdef DEBUG_SCHEDULER
-    cout << "Before it: " << current_iteration << ", time: " << time << "\n";
-#endif
-
     // current_iteration corresponds to the number of executed time steps
     float_t time = scheduler.get_next_event_time();
     current_iteration = (uint64_t)time;
 
+#ifdef DEBUG_SCHEDULER
+    cout << "Before it: " << current_iteration << ", time: " << time << "\n";
+#endif
+
+    // terminate simulation if we executed the right number of iterations
     if (current_iteration >= this_run_first_iteration + num_iterations) {
-      // terminate simulation
       break;
     }
 
     // this is where events get executed
-    scheduler.handle_next_event();
+    EventExecutionInfo event_info = scheduler.handle_next_event();
 
     // report progress
     if (current_iteration > previous_iteration) {
@@ -192,6 +192,14 @@ void World::run_n_iterations(const uint64_t num_iterations, const uint64_t outpu
 #ifdef DEBUG_SCHEDULER
     cout << "After it: " << current_iteration << ", time: " << time << "\n";
 #endif
+
+    // also terminate if this was the last iteration and the event was viz output
+    if (terminate_last_iteration_after_viz_output &&
+       current_iteration == this_run_first_iteration + num_iterations - 1 &&
+       event_info.type_index >= EVENT_TYPE_INDEX_VIZ_OUTPUT
+    ) {
+      break;
+    }
 
   } while (true); // terminated when the nr. of iterations is reached
 
@@ -250,7 +258,7 @@ void World::run_simulation(const bool dump_initial_state) {
   uint output_frequency = determine_output_frequency(iterations);
 
   // simulating 1000 iterations means to simulate iterations 0 .. 1000
-  run_n_iterations(iterations + 1, output_frequency);
+  run_n_iterations(iterations + 1, output_frequency, true);
 
   end_simulation();
 }

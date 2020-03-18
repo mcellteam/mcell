@@ -106,26 +106,26 @@ FILE* VizOutputEvent::create_and_open_output_file_name() {
 
 void VizOutputEvent::compute_where_and_norm(
     const Partition& p, const Molecule& m,
-    vec3_t& where, vec3_t& norm
+    Vec3& where, Vec3& norm
 ) {
   const Species& species = world->all_species.get(m.species_id);
 
   if ((species.flags & NOT_FREE) == 0) {
     // neither surface nor on grid
     where = m.v.pos;
-    norm = vec3_t(0);
+    norm = Vec3(0);
   }
   else if ((species.flags & ON_GRID) != 0) {
     const Wall& wall = p.get_wall(m.s.wall_index);
-    const vec3_t& wall_vert0 = p.get_geometry_vertex(wall.vertex_indices[0]);
+    const Vec3& wall_vert0 = p.get_geometry_vertex(wall.vertex_indices[0]);
     where = GeometryUtil::uv2xyz(m.s.pos, wall, wall_vert0);
 
-    norm = vec3_t(m.s.orientation) * wall.normal;
+    norm = Vec3(m.s.orientation) * wall.normal;
   }
   else {
     assert(false && "Unexpected molecule type");
-    where = vec3_t(0); // to silence compiler warnings
-    norm = vec3_t(0);
+    where = Vec3(0); // to silence compiler warnings
+    norm = Vec3(0);
   }
 
   where *= world->config.length_unit;
@@ -144,23 +144,23 @@ void VizOutputEvent::output_ascii_molecules() {
       }
 
 
-      vec3_t where;
-      vec3_t norm;
+      Vec3 where;
+      Vec3 norm;
       compute_where_and_norm(p, m, where, norm);
 
       const Species& species = world->all_species.get(m.species_id);
 
-#if FLOAT_T_BYTES == 8
+      glm::dvec3 dwhere = where;
+      glm::dvec3 dnorm = norm;
+      assert(sizeof(dwhere.x) == sizeof(double));
+
       errno = 0;
       fprintf(custom_file, "%s %u %.9g %.9g %.9g %.9g %.9g %.9g\n",
           species.name.c_str(), m.id,
-          where.x, where.y, where.z,
-          norm.x, norm.y, norm.z
+          dwhere.x, dwhere.y, dwhere.z,
+          dnorm.x, dnorm.y, dnorm.z
       );
       assert(errno == 0);
-#else
-#error "Marker for float type"
-#endif
     }
   }
 
@@ -228,20 +228,22 @@ void VizOutputEvent::output_cellblender_molecules() {
 
        assert(partition_molecule_ptr_pair.second->is_vol() && "TODO - dump norm for surface molecules");
 
-       vec3_t where;
-       vec3_t norm;
+       Vec3 where;
+       Vec3 norm;
        compute_where_and_norm(
            *partition_molecule_ptr_pair.first, *partition_molecule_ptr_pair.second,
            where, norm
        );
 
-#if FLOAT_T_BYTES == 8
-       fwrite(&where.x, sizeof(float_t), 1, custom_file);
-       fwrite(&where.y, sizeof(float_t), 1, custom_file);
-       fwrite(&where.z, sizeof(float_t), 1, custom_file);
-#else
-#error "Marker for float type"
-#endif
+       // the values are always stored as double
+       glm::dvec3 dwhere = where;
+       assert(sizeof(dwhere.x) == sizeof(double));
+
+       fwrite(&dwhere.x, sizeof(double), 1, custom_file);
+       fwrite(&dwhere.y, sizeof(double), 1, custom_file);
+       fwrite(&dwhere.z, sizeof(double), 1, custom_file);
+
+       // TODO: store norm
      }
 
    }

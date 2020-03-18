@@ -2,10 +2,8 @@ _build
 Makefile.in
 aclocal.m4
 autom4te.cache
-configure
 compile
 depcomp
-install-sh
 ylwrap
 version.h
 mcell
@@ -13,16 +11,12 @@ mdlparse.c
 mdlparse.h
 mdllex.c
 mdllex.h
-missing
 opt
 .DS_store
 *.pyc
-debug
 build
 test.cfg
 test_results
-config.h.in*
-config.h
 config.log
 config.status
 stamp-h1

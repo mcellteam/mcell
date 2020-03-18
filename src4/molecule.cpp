@@ -31,6 +31,8 @@
 #include "geometry.h"
 #include "world.h"
 
+#include "debug_config.h"
+
 using namespace std;
 
 
@@ -107,7 +109,7 @@ void Molecule::dump(
     << ", flags:" << get_molecule_flags_string(flags, false);
 #ifdef DEBUG_SUBPARTITIONS
   if (is_vol()) {
-    cout << ", subpartition:" << subpart_index;
+    cout << ", subpartition:" << v.subpart_index;
   }
 #endif
 

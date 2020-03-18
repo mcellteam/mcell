@@ -34,6 +34,16 @@ class Partition;
 class Wall;
 class Grid;
 
+enum class ReleaseShape {
+  UNDEFINED = -1,  /* Not specified */
+  SPHERICAL,       /* Volume enclosed by a sphere */
+  // SHAPE_CUBIC,           /* Volume enclosed by a cube */ (might be supported, needs to be tested)
+  // SHAPE_ELLIPTIC,        /* Volume enclosed by an ellipsoid */ (might be supported, needs to be tested)
+  // SHAPE_RECTANGULAR,     /* Volume enclosed by a rect. solid */ (might be supported, needs to be tested)
+  SPHERICAL_SHELL, /* Surface of a sphere */ // not tested yet
+  REGION,          /* Inside/on the surface of an arbitrary region */
+  // SHAPE_LIST             /* Individiaul mol. placement by list */
+};
 
 /**
  * Release molecules according to the settings.
@@ -42,11 +52,11 @@ class ReleaseEvent: public BaseEvent {
 public:
   ReleaseEvent(World* world_) :
     BaseEvent(EVENT_TYPE_INDEX_RELEASE),
+    release_site_name(NAME_INVALID),
     species_id(SPECIES_ID_INVALID),
     release_number(0),
-    release_site_name(NAME_INVALID),
     orientation(ORIENTATION_NONE),
-    release_shape(SHAPE_SPHERICAL),
+    release_shape(ReleaseShape::UNDEFINED),
     world(world_) {
   }
   virtual ~ReleaseEvent() {}
@@ -55,32 +65,45 @@ public:
   virtual void dump(const std::string indent);
 
 public:
-  vec3_t location;
+  std::string release_site_name; // name of releaser site from which was this event created
+
   species_id_t species_id;
   uint release_number; // number of molecules to release
 
-  std::string release_pattern_name;
-
-  // ---------------------------------- release location ----------------------------------
-
-  std::string release_site_name;
   orientation_t orientation;
-  int8_t release_shape; /* Release Shape Flags: controls shape over which to release (enum release_shape_t) */
-  vec3_t diameter; /* x,y,z diameter for geometrical release shapes */
 
-  // ---------------------------------- surface release info ----------------------------------
+  ReleaseShape release_shape; /* Release Shape Flags: controls shape over which to release (enum release_shape_t) */
 
+  // SHAPE_SPHERICAL - only volume molecules
+  Vec3 location;
+  Vec3 diameter; /* x,y,z diameter for geometrical release shapes */
+
+  // SHAPE_REGION
   // for surface molecule releases
   std::vector<CummAreaPWallIndexPair> cum_area_and_pwall_index_pairs;
 
+  // for volume molecule releases into a region
+  std::string region_name; // name of the region into which we should release the
+  Vec3 region_llf; // note: this is fully specified by the region above, maybe remove in the future
+  Vec3 region_urb; // note: this is fully specified by the region above as well
+
+
+  std::string release_pattern_name; // unused
+
+private:
   World* world;
 
 private:
   uint calculate_number_to_release();
 
+  // for surface molecule releases
   void place_single_molecule_onto_grid(Partition& p, Wall& wall, uint tile_index);
   void release_onto_regions(uint computed_release_number);
 
+  // for volume molecule releases into a region
+  void release_inside_regions(uint computed_release_number);
+
+  // for volume molecule releases
   void release_ellipsoid_or_rectcuboid(uint computed_release_number);
 
 };
