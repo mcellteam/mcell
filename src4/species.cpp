@@ -21,14 +21,11 @@
  *
 ******************************************************************************/
 
-//#define _GLIBCXX_USE_CXX11_ABI 0 // added for fprintf-ing vec[i].name
-
 #include <iostream>
 #include <iomanip> // needed for std::setprecision()
 #include "mdlparse_util.h"
 
 #include "species.h"
-//#include "species_info.h" // needed for get species.size()
 
 using namespace std;
 
@@ -46,7 +43,6 @@ void Species::dump(const string ind) const {
 void Species::dump_array(const vector<Species>& vec) {
   cout << "Species array: " << (vec.empty() ? "EMPTY" : "") << "\n";
 
-  cout << "VECTOR SIZE:" << vec.size() << "\n";
   for (size_t i = 0; i < vec.size(); i++) {
     cout << i << ":\n";
     vec[i].dump("  ");

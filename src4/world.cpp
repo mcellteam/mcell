@@ -244,6 +244,8 @@ void World::run_simulation(const bool dump_initial_state) {
     dump();
   }
 
+  // DMFIXME: this is just for testing
+  // where is the data_model_mcell4 coming from?
   if (data_model_mcell4) {
     const char* fname = "data_model.json";
     std::ofstream out;
@@ -291,6 +293,7 @@ void World::to_data_model(std::ostream& out) {
     }
 
   // Creates default material: transparent "membrane". I don't believe MDL can currently define materials.
+  // DMFIXME: what is this?
   out <<
       "\"materials\": {\n" <<
       "\"material_dict\": {\n" <<

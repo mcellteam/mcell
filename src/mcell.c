@@ -26,11 +26,6 @@
 #include <stdlib.h>
 
 #include "../src4/mcell3_world_converter.h"
-
-#include "mcell3_world_converter.h" // why wasn't this included before?
-#include "world.h"
-#include "defines.h"
-
 #include "mcell_init.h"
 #include "mcell_misc.h"
 #include "mcell_run.h"

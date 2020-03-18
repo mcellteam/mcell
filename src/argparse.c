@@ -69,9 +69,9 @@ static struct option long_options[] = { { "help", 0, 0, 'h' },
                                         { "quiet", 0, 0, 'q' },
                                         { "with_checks", 1, 0, 'w' },
                                         { "rules", 1, 0, 'r'},
-																				{ "mcell4", 0, 0, 'n'},
-																				{ "dump_mcell4", 0, 0, 'o'},
-																				{ "data_model_mcell4", 0, 0, 'm'},
+                                        { "mcell4", 0, 0, 'n'},
+                                        { "dump_mcell4", 0, 0, 'o'},
+                                        { "data_model_mcell4", 0, 0, 'm'},
                                         { NULL, 0, 0, 0 } };
 
 /* print_usage: Write the usage message for mcell to a file handle.
@@ -100,8 +100,8 @@ void print_usage(FILE *f, char const *argv0) {
       "     [-quiet]                 suppress all unrequested output except for errors\n"
       "     [-with_checks ('yes'/'no', default 'yes')]   performs check of the geometry for coincident walls\n"
       "     [-rules rules_file_name] run in MCell-R mode\n"
-			"     [-mcell4]                run new experimental MCell 4 version\n"
-			"     [-dump_mcell4]           dump Mcell 3 state for MCell 4 development\n"
+      "     [-mcell4]                run new experimental MCell 4 version\n"
+      "     [-dump_mcell4]           dump Mcell 3 state for MCell 4 development\n"
       "     [-data_model_mcell4]     write to json data model file, located in the same dir as .mdl or .py API files\n"
       "\n");
 }

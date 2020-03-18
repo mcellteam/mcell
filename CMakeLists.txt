@@ -256,7 +256,7 @@ SET_SOURCE_FILES_PROPERTIES( ${SOURCE_FILES_ONLY_MCELL} PROPERTIES LANGUAGE CXX 
 
 link_directories(${CMAKE_BINARY_DIR}/lib)
 
-# Change made by Leo to accommodate different swig version:
+# fallback to a different swig version:
 if (NOT /usr/bin/swig2.0)
   set(SWIG_EXECUTABLE /usr/bin/swig)
 endif()

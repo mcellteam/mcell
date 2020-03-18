@@ -32,7 +32,6 @@
 #include "geometry.h"
 
 #include "geometry_utils.inc" // uses get_wall_bounding_box, maybe not include this file
-#include <typeinfo> // used for testing typeid()
 
 using namespace std;
 

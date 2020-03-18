@@ -169,7 +169,6 @@ void Partition::apply_vertex_moves() {
 
 void Partition::dump() {
   GeometryObject::dump_array(*this, geometry_objects);
-  cout << "\n\nSIZE OF GEOMETRY VECTOR ARRAY: " << geometry_objects.size() << "\n\n";
   Region::dump_array(regions);
 
   for (size_t i = 0; i < walls_per_subpart.size(); i++) {

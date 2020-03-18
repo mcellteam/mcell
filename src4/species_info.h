@@ -31,7 +31,6 @@
 #include "molecule.h"
 #include "reaction.h"
 
-
 namespace MCell {
 
 /**

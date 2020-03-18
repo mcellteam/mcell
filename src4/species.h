@@ -25,12 +25,11 @@
 #define SRC4_SPECIES_H_
 
 #define RGB_COLORS 3
-#define ONE_DECIMAL 1
+#define ONE_DECIMAL 1 // DMFIXME: this is wrong, we will cut off too many decimal places
 
 #include <string>
 #include <vector>
 #include "defines.h"
-#include "logging.h" // needed for error reports
 
 #include "mcell_structs.h"
 
@@ -50,21 +49,14 @@ enum species_flag_t {
   SPECIES_FLAG_CAN_REGION_BORDER = CAN_REGION_BORDER, // 0x100000
   SPECIES_FLAG_EXTERNAL_SPECIES = EXTERNAL_SPECIES // 0x400000 - not supported
 };
+
 /**
  * Holds information on one species type.
  */
 class Species {
 public:
-  Species() {
-    // color default is red.
-    color[0] = 1;
-    color[1] = 0;
-    color[2] = 0;
-    scale = 1.0;
-  }
-
-public:
   species_id_t species_id;
+
   uint mcell3_species_id;
   float_t D; // diffusion constant
   std::string name;
@@ -73,11 +65,11 @@ public:
   float_t space_step;
   float_t time_step; // in standard time
 
-  // Insead of defining default values here, make a constructor that does this
-  float_t color [RGB_COLORS];  // mol color default is red
-  float_t scale; // scale = 1 by default
-
   uint flags;
+
+  // DMFIXME: how to represent colors? what is the color format in datamodel?
+  uint color [RGB_COLORS];  // mol color default is red
+  float_t scale; // scale = 1 by default
 
   bool has_flag(species_flag_t flag) const {
     assert(__builtin_popcount(flag) == 1);
@@ -116,14 +108,9 @@ public:
   void dump(const std::string ind) const;
   static void dump_array(const std::vector<Species>& vec);
   void to_data_model(std::ostream& out) const;
-  void set_color(float_t r, float_t g, float_t b);
-  void set_scale(float_t s);
-
 };
 
 } // namespace mcell
-
-
 
 #endif // SRC4_SPECIES_H_
 
