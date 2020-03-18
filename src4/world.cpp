@@ -274,6 +274,7 @@ void World::to_data_model(std::ostream& out) {
       "\"mcell\": {\n" <<
       "\"cellblender_version\": \"0.1.54\",";
 
+  // gets all geometrical_objects
   bool first = true;
   for (Partition& p: partitions) {
     if (!first) out << ",\n";
@@ -292,6 +293,125 @@ void World::to_data_model(std::ostream& out) {
       "\"a\": " << 0.25 << ",\n" <<  // 75% transparent
       "\"r\": " << 0.800000011920929 << "\n" <<
       "}\n}\n}\n},\n";
+
+  out <<
+      "\"model_objects\": {\n" <<
+      "\"data_model_version\": " <<
+      JSON_DM_VERSION_1330 << ",\n" <<
+      "\"model_object_list\": [\n" <<
+      "{\n" <<
+      "\"parent_object\": " <<
+      "\"\",\n" <<
+      "\"description\": " <<
+      "\"\",\n" <<
+      "\"object_source\": " <<
+      "\"blender\",\n" <<
+      "\"dynamic_display_source\": " <<
+      "\"script\",\n" <<
+      "\"script_name\": " <<
+      "\"\",\n" <<
+      "\"membrane_name\": " <<
+      "\"\",\n" <<
+      "\"dynamic\": " <<
+      "false,\n" <<
+      "\"name\": " <<
+      "\"\"\n" <<  // Doesn't seem necessary to have a legit name
+      "}\n]\n},\n";
+
+  out <<
+      "\"define_surface_classes\": {},\n" <<
+      "\"mol_viz\": {\n" <<
+      "\"manual_select_viz_dir\": " <<
+      "false,\n" <<
+      "\"file_start_index\": " <<
+      "0,\n" <<
+      "\"seed_list\": " <<
+      "[],\n" <<
+      "\"data_model_version\": " <<
+      JSON_DM_VERSION_1700 << ",\n" <<
+      "\"color_list\": [\n" <<
+      "[\n" <<
+      "0.800000011920929,\n" <<
+      "0.0,\n" <<
+      "0.0\n" <<
+      "],\n" <<
+      "[\n" <<
+      "0.0,\n" <<
+      "0.800000011920929,\n" <<
+      "0.0\n" <<
+      "],\n" <<
+      "[\n" <<
+      "0.0,\n" <<
+      "0.0,\n" <<
+      "0.800000011920929\n" <<
+      "],\n" <<
+      "[\n" <<
+      "0.0,\n" <<
+      "0.800000011920929,\n" <<
+      "0.800000011920929\n" <<
+      "],\n" <<
+      "[\n" <<
+      "0.800000011920929,\n" <<
+      "0.0,\n" <<
+      "0.800000011920929\n" <<
+      "],\n" <<
+      "[\n" <<
+      "0.800000011920929,\n" <<
+      "0.800000011920929,\n" <<
+      "0.0\n" <<
+      "],\n" <<
+      "[\n" <<
+      "1.0,\n" <<
+      "1.0,\n" <<
+      "1.0\n" <<
+      "],\n" <<
+      "[\n" <<
+      "0.0,\n" <<
+      "0.0,\n" <<
+      "0.0\n" <<
+      "]\n" <<
+      "],\n" <<
+      "\"active_seed_index\": " <<
+      "0,\n" <<
+      "\"file_index\": " <<
+      "959,\n" <<   // THIS NEEDS TO CHANGE
+      "\"file_num\": " <<
+      "1001,\n" <<  // THIS NEEDS TO CHANGE
+      "\"viz_enable\": " <<\
+      "true,\n" <<
+      "\"file_name\": " <<
+      "\"\",\n" <<
+      "\"color_index\": " <<
+      "0,\n" <<
+      "\"render_and_save\": " <<
+      "false,\n" <<
+      "\"file_step_index\": " <<
+      "1,\n" <<
+      "\"viz_list\": " <<
+      "[],\n" <<
+      "\"file_stop_index\": " <<
+      "1000,\n" << // THIS NEEDS TO CHANGE
+      "\"file_dir\": " <<
+      "\"ahusar\"\n" <<  // THIS NEEDS TO CHANGE
+      "},\n" <<
+      "\"model_language\": " <<
+      "\"mcell3\",\n" <<
+      "\"parameter_system\": " <<
+      "{},\n" <<
+      "\"data_model_version\": " <<
+      JSON_DM_VERSION_1300 << ",\n" <<
+      "\"initialization\": " <<
+      "{},\n" <<
+      "\"blender_version\": " << // Is there a way to avoid hard coding this?
+      "[\n" <<
+      BLENDER_VERSION[0] << ",\n" <<
+      BLENDER_VERSION[1] << ",\n" <<
+      BLENDER_VERSION[2] << "\n" <<
+      //"2,\n" <<
+      //"79,\n" <<
+      //"0\n" <<
+      "],\n";
+
 
   all_species.to_data_model(out);
 

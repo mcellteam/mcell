@@ -55,8 +55,8 @@ enum species_flag_t {
  */
 class Species {
 public:
-  // I don't see why any of the later initialized class attributes need to be initialized inside the constructor.
   Species() {
+    // color default is red.
     color[0] = 1;
     color[1] = 0;
     color[2] = 0;

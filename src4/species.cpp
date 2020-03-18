@@ -61,7 +61,7 @@ void Species::to_data_model(std::ostream& out) const{
       "{" <<
       "\n\"display\": {" <<
       "\n\"emit\": " <<
-      "\"\"," <<
+      "1.0," <<
       "\n\"color\": [";
   // configure ostream for 1 decimanl place output of floating points
   out << setprecision(ONE_DECIMAL) << fixed;
@@ -74,9 +74,14 @@ void Species::to_data_model(std::ostream& out) const{
   out <<
       "\n]," <<
       "\n\"glyph\": " <<
-      "\"" << "\"," <<
+      "\"" <<
+      "Sphere_1" << // Sphere_1 by default for now.
+      "\",";
+      /*
+       * This should only come up if the glyph is called "Letter"
       "\n\"letter\": " <<
       "\"\",";
+      */
   out << setprecision(ONE_DECIMAL) << fixed;
   out <<
       "\n\"scale\": " <<
@@ -85,11 +90,11 @@ void Species::to_data_model(std::ostream& out) const{
   out <<
       "\n}," <<
       "\n\"bngl_component_list\": " <<
-      "\"\"," <<
+      "\[]," <<  // No bngl_component_list for now
       "\n\"mol_bngl_label\": " <<
       "\"\"," <<
       "\n\"data_model_version\": " <<
-      JSON_DM_VERSION <<
+      JSON_DM_VERSION_SPECIES <<
       "," <<
       "\n\"description\": " <<
       "\"\"," <<
@@ -102,13 +107,13 @@ void Species::to_data_model(std::ostream& out) const{
   }
   out <<
       "\n\"export_viz\": " <<
-      "\"\"," <<
+      "false," << // or else errors in cellblender
       "\n\"custom_space_step\": " <<
       "\"\"," <<
       "\n\"maximum_step_length\": " <<
       "\"\"," <<
       "\n\"target_only\": " <<
-      "\"\"," <<
+      "false," << // or else errors in cellblender
       "\n\"diffusion_constant\": " <<
       "\"" << D << "\"," <<
       "\n\"spatial_structure\": " <<
