@@ -56,6 +56,7 @@ TARGET_DIRECTORY = os.path.join('..', 'generated')
 
 KEY_ITEMS = 'items'
 KEY_NAME = 'name'
+ATTR_NAME_NAME = 'name' # attrribute with name 'name' is already defined in BaseDataClass
 KEY_TYPE = 'type'
 KEY_DEFAULT = 'default'
 
@@ -213,6 +214,11 @@ def write_attr_with_get_set(f, attr):
     assert KEY_TYPE in attr
     
     name = attr[KEY_NAME]
+    
+    # skip attribute 'name'
+    if name == ATTR_NAME_NAME:
+        return
+    
     yaml_type = attr[KEY_TYPE]
     cpp_type = yam_type_to_cpp_type(yaml_type)
     
