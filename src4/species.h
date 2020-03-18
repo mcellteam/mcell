@@ -24,9 +24,6 @@
 #ifndef SRC4_SPECIES_H_
 #define SRC4_SPECIES_H_
 
-#define RGB_COLORS 3
-#define ONE_DECIMAL 1 // DMFIXME: this is wrong, we will cut off too many decimal places
-
 #include <string>
 #include <vector>
 #include "defines.h"
@@ -68,7 +65,7 @@ public:
   uint flags;
 
   // DMFIXME: how to represent colors? what is the color format in datamodel?
-  uint color [RGB_COLORS];  // mol color default is red
+  Vec3 color;  // mol color default is red
   float_t scale; // scale = 1 by default
 
   bool has_flag(species_flag_t flag) const {
@@ -108,6 +105,9 @@ public:
   void dump(const std::string ind) const;
   static void dump_array(const std::vector<Species>& vec);
   void to_data_model(std::ostream& out) const;
+
+  void set_color(float_t r, float_t g, float_t b);
+  void set_scale(float_t s);
 };
 
 } // namespace mcell

@@ -236,6 +236,7 @@ set(SOURCE_FILES
     src4/release_event.cpp
     src4/scheduler.cpp
     src4/species.cpp
+    src4/species_info.cpp
     src4/viz_output_event.cpp
     src4/defragmentation_event.cpp
     src4/geometry.cpp

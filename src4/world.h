@@ -149,9 +149,6 @@ public:
 
   uint64_t iterations; // number of iterations to simulate - move to Sim config
   uint seed_seq; // initial seed passed to mcell as argument
-  
-  // DMFIXME: this should be done similarly as viz output, e.g. including frequency
-  bool data_model_mcell4; // set to 1 or 0 in mcell3_world_converter.cpp - determines if to_data_model should be called
 
 public:
   // single instance for the whole mcell simulator,

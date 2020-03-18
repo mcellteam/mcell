@@ -89,7 +89,7 @@ void GeometryObject::vertices_to_data_model(std::ostream& out, const Partition& 
   for (uint i=0; i<vertex_count; i++){
     out << "[\n";
     for (uint j = 0; j < VERTICES_IN_TRIANGLE; j++) {
-      vec3_t pos = p.get_geometry_vertex(i);
+      Vec3 pos = p.get_geometry_vertex(i);
       out << pos[j]*config.length_unit;
       if (j != VERTICES_IN_TRIANGLE - 1) {
         out << ",";

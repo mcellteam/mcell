@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2019 by
+ * Copyright (C) 2020 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -21,52 +21,33 @@
  *
 ******************************************************************************/
 
-// FIXME: rename - this class won't contain just constants
 
-#ifndef SRC4_SPECIES_INFO_H_
-#define SRC4_SPECIES_INFO_H_
+#include "species_info.h"
+#include "datamodel_defines.h"
 
-#include "defines.h"
-#include "species.h"
-#include "molecule.h"
-#include "reaction.h"
+using namespace std;
 
 namespace MCell {
 
-/**
- * Owns information on reactions and species,
- * mostly accessed as constant data.
- */
-class SpeciesInfo {
-public:
-  void add(const Species& new_species) {
-    assert(new_species.species_id == species.size());
-    species.push_back(new_species);
+void SpeciesInfo::to_data_model(std::ostream& out) {
+  out <<
+      "\"define_molecules\": {\n" <<
+      "\"molecule_list\": [\n";
+
+  for (size_t i = 0; i < get_count(); i++) {
+    Species &s = species[i];
+    s.to_data_model(out);
+    // only outputs a comma if there are more speices to come
+    if(i != get_count()-1) {
+      out << ",";
+    }
+    out << "\n";
   }
+  out <<
+      "],\n" <<
+      "\"data_model_version\": " <<
+      JSON_DM_VERSION_1638 <<
+      "\n}\n";
+}
 
-  const Species& get(species_id_t id) const {
-    assert(id < species.size());
-    return species[id];
-  }
-
-  uint get_count() const {
-    return species.size();
-  }
-
-  const std::vector<Species>& get_species_vector() const {
-    return species;
-  }
-
-  void dump() {
-    Species::dump_array(species);
-  }
-
-  void to_data_model(std::ostream& out);
-
-private:
-  std::vector<Species> species;
-};
-
-} // namespace MCell
-
-#endif // SRC4_SPECIES_INFO_H_
+} // namespace mcell

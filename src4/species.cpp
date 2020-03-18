@@ -26,6 +26,9 @@
 #include "mdlparse_util.h"
 
 #include "species.h"
+#include "datamodel_defines.h"
+
+#define ONE_DECIMAL 1 // DMFIXME: this is wrong, we will cut off too many decimal places
 
 using namespace std;
 
@@ -53,6 +56,8 @@ void Species::to_data_model(std::ostream& out) const{
   // stores default ostream output precision
   int old_precision = out.precision();
 
+  // DMFIXME: remove setprecision
+
   out <<
       "{" <<
       "\n\"display\": {" <<
@@ -62,9 +67,9 @@ void Species::to_data_model(std::ostream& out) const{
   // configure ostream for 1 decimanl place output of floating points
   out << setprecision(ONE_DECIMAL) << fixed;
   out <<
-      "\n" << color[0] << "," <<
-      "\n" << color[1] << "," <<
-      "\n" << color[2];
+      "\n" << color.r << "," <<
+      "\n" << color.g << "," <<
+      "\n" << color.b;
   // return ostream output to default precision settings
   out << setprecision(old_precision) << defaultfloat;
   out <<
@@ -90,7 +95,7 @@ void Species::to_data_model(std::ostream& out) const{
       "\n\"mol_bngl_label\": " <<
       "\"\"," <<
       "\n\"data_model_version\": " <<
-      JSON_DM_VERSION_SPECIES <<
+      JSON_DM_VERSION_1632 <<
       "," <<
       "\n\"description\": " <<
       "\"\"," <<
@@ -124,21 +129,15 @@ void Species::to_data_model(std::ostream& out) const{
 
 // sets mol display color
 void Species::set_color(float_t r, float_t g, float_t b) {
-  if (r > 1 || r < 0 || g > 1 || g < 0 || b > 1 || b < 0) {
-    mcell_error_nodie("Error: RGB color values must be between 0 and 1. Default values {1,0,0} will be used.");
-    return;
-  }
-  color[0] = r;
-  color[1] = g;
-  color[2] = b;
+  assert((r <= 1 && r >= 0) && (g <= 1 && g >= 0) && (b <= 0 && b >= 0));
+  color.r = r;
+  color.g = g;
+  color.b = b;
 }
 
 // sets mol display size
 void Species::set_scale(float_t s) {
-  if (s <= 0) {
-    mcell_error_nodie("Error: Mol scale value must be greater than 0. Default value (1) will be used.");
-    return;
-  }
+  assert(s > 0);
   scale = s;
 }
 

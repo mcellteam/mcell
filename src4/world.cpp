@@ -29,9 +29,9 @@
 #include "rng.h" // MCell 3
 #include "logging.h"
 
-
 #include "world.h"
 #include "defragmentation_event.h"
+#include "datamodel_defines.h"
 
 using namespace std;
 
@@ -245,8 +245,8 @@ void World::run_simulation(const bool dump_initial_state) {
   }
 
   // DMFIXME: this is just for testing
-  // where is the data_model_mcell4 coming from?
-  if (data_model_mcell4) {
+  // set periodicity of dump from python3_4
+  if (true) {
     const char* fname = "data_model.json";
     std::ofstream out;
     out.open(fname);
