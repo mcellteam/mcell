@@ -43,7 +43,7 @@ SET(COMMON_C_CXX_FLAGS "${WARNING_FLAGS} -g3 ${OPTIMIZATION_FLAGS} ${INCLUDE_DIR
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMMON_C_CXX_FLAGS}  -std=c11 ")
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON_C_CXX_FLAGS} -std=c++14")
 
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lm")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lm -L ${CMAKE_CURRENT_BINARY_DIR}/libs/jsoncpp/src/lib_json")
 
 if (CYGWIN)
     # cygwin app run in cygwin environment is somehow unable to load cygstdc++-6.dll
@@ -112,6 +112,7 @@ include_directories(
   "${CMAKE_SOURCE_DIR}/../nfsimCInterface/src/"
   "${CMAKE_SOURCE_DIR}/include"
   "${CMAKE_SOURCE_DIR}/libs/sparsehash/src/"
+  "${CMAKE_SOURCE_DIR}/libs/jsoncpp/include/"
   "/nadata/cnl/home/ahusar/tools/anaconda/include" # FIXME: generate automatically using python3 -m pybind11 --includes
   "/nadata/cnl/home/ahusar/tools/anaconda/include/python3.7m"
 )
@@ -169,6 +170,7 @@ endif()
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/../nfsim ${CMAKE_CURRENT_BINARY_DIR}/nfsim)
 add_subdirectory(${CMAKE_SOURCE_DIR}/../nfsimCInterface ${CMAKE_CURRENT_BINARY_DIR}/nfsimCInterface)
+add_subdirectory(${CMAKE_SOURCE_DIR}/libs/jsoncpp ${CMAKE_CURRENT_BINARY_DIR}/libs/jsoncpp)
 
 set(SOURCE_FILES
     src/argparse.c
@@ -222,6 +224,7 @@ set(SOURCE_FILES
     src/wall_util.c
     
     src/dump_state.cpp
+    src/mdl2datamodel.cpp
     src/c_vector.cpp
     
     src4/base_event.cpp
@@ -336,5 +339,6 @@ if (NOT WIN32 AND NOT CYGWIN)
     add_dependencies(pymcell version_h nfsim_c NFsim)
 endif()
   
-target_link_libraries(mcell nfsim_c_static NFsim_static)
+target_link_libraries(mcell nfsim_c_static NFsim_static jsoncpp)
+
 TARGET_COMPILE_DEFINITIONS(mcell PRIVATE NOSWIG=1)
