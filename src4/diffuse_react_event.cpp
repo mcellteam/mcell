@@ -359,13 +359,16 @@ void DiffuseReactEvent::diffuse_vol_molecule(
 
         // call callback if the user registered one
         wall_hit_callback_func wall_hit_callback = world->get_wall_hit_callback();
-        if (wall_hit_callback != nullptr) {
+        if (wall_hit_callback != nullptr &&
+            (world->wall_hit_object_id == GEOMETRY_OBJECT_ID_INVALID || world->wall_hit_object_id == colliding_wall.object_id)) {
           WallHitInfo info;
           info.molecule_id = vm_new_ref.id;
           info.geometry_object_id = colliding_wall.object_id;
           info.wall_id = colliding_wall.id;
           info.time = event_time + collision.time;
           info.pos = collision.pos;
+          info.time_before_hit = event_time + elapsed_molecule_time;
+          info.pos_before_hit = vm_new_ref.v.pos;
 
           wall_hit_callback(info, world->wall_hit_callback_clientdata);
         }
@@ -396,6 +399,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
 
         if (!was_defunct) {
           elapsed_molecule_time += t_steps * collision.time;
+          // if a molecule was reflected, changes its position to the reflection point
           int res = CollisionUtil::reflect_or_periodic_bc(
               p, collision,
               vm_new_ref, remaining_displacement, t_steps, reflected_wall_index

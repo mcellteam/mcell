@@ -47,6 +47,9 @@ using namespace MCell;
 //%import "defines.h"
 typedef uint partition_index_t;
 typedef uint vertex_index_t;
+typedef uint molecule_id_t;
+typedef uint geometry_object_id_t;
+typedef uint wall_id_t;
 
 // FIXME: this does not work either
 //%import "callback_structs.h"
@@ -87,6 +90,8 @@ struct WallHitInfo {
   wall_id_t wall_id;
   float_t time;
   Vec3 pos;
+  float_t time_before_hit;
+  Vec3 pos_before_hit;
 };
 
 
@@ -122,7 +127,13 @@ public:
   void run_n_iterations(const uint64_t num_iterations, const uint64_t output_frequency);
   void end_simulation();
   
-  void register_wall_hit_callback_internal(wall_hit_callback_func func, void* clientdata_);
+  void register_wall_hit_callback_internal(wall_hit_callback_func func, void* clientdata_, const char* object_name);
+  
+  
+  void enable_wall_hit_counting();
+  uint get_wall_hit_array_size();
+  const WallHitInfo& get_wall_hit_array_item(uint index);
+  void clear_wall_hit_array();
   
   Partition& get_partition(partition_index_t i);
   
@@ -141,9 +152,9 @@ public:
 // Attach a new method to our plot widget for adding Python functions
 %extend World {
    // Set a Python function object as a callback function
-   // Note : PyObject *pyfunc is remapped with a typempap
-   void register_wall_hit_callback(PyObject *pyfunc) {
-     self->register_wall_hit_callback_internal(py_callback_wall_hit, (void *) pyfunc);
+   // Note : PyObject *pyfunc is remapped with a typemap
+   void register_wall_hit_callback(PyObject *pyfunc, const char* object_name = "") {
+     self->register_wall_hit_callback_internal(py_callback_wall_hit, (void *) pyfunc, object_name);
      Py_INCREF(pyfunc);
    }
 }

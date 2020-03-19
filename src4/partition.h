@@ -439,6 +439,15 @@ public:
     return geometry_objects[index];
   }
 
+  const GeometryObject* find_geometry_object(const std::string& name) const {
+    for (auto& go: geometry_objects) {
+      if (go.name == name) {
+        return &go;
+      }
+    }
+    return nullptr;
+  }
+
   const Region& get_region(const region_index_t i) const {
     assert(i < regions.size());
     return regions[i];

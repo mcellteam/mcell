@@ -41,6 +41,7 @@
 #include "callback_info.h"
 #include "reaction.h"
 #include "reactions_info.h"
+#include "logging.h"
 
 namespace Json {
 class Value;
@@ -136,14 +137,61 @@ public:
 
   void to_data_model(Json::Value& root);
 
-  // -------------- callback registration --------------
-  void register_wall_hit_callback_internal(wall_hit_callback_func func, void* clientdata_) {
+  // -------------- callback registration -------------------------
+  // move into cpp file
+  void register_wall_hit_callback_internal(wall_hit_callback_func func, void* clientdata_, const char* object_name) {
     wall_hit_callback = func;
     wall_hit_callback_clientdata = clientdata_;
+
+    std::string log_msg = "Registering a callback for wall hits";
+
+    wall_hit_object_id = GEOMETRY_OBJECT_ID_INVALID;
+    if (object_name != nullptr && strcmp(object_name, "") != 0) {
+      std::string name = object_name;
+      log_msg += " for object " + name;
+      // find object with our name
+      for (const Partition& p: partitions) {
+        const GeometryObject* go = p.find_geometry_object(name);
+        if (go != nullptr) {
+          if (wall_hit_object_id != GEOMETRY_OBJECT_ID_INVALID) {
+            mcell_error("There are multiple geometry objects with name %s.", object_name);
+          }
+          wall_hit_object_id = go->id;
+        }
+      }
+
+      if (wall_hit_object_id != GEOMETRY_OBJECT_ID_INVALID) {
+        log_msg += ", ok - this object was found";
+      }
+      else {
+        log_msg += ", warning - this object was not found";
+      }
+
+    }
+    mcell_log("%s.", log_msg.c_str());
   }
 
   wall_hit_callback_func get_wall_hit_callback() {
     return wall_hit_callback;
+  }
+
+  // ------------- counting ---------------------------------------
+  // ?? why is it slower???
+  void enable_wall_hit_counting(/*argument might contain information on filtering these events*/) {
+    wall_hit_callback = wall_hit_callback_append;
+    wall_hit_callback_clientdata = this;
+  }
+
+  uint get_wall_hit_array_size() const {
+    return wall_hits.size();
+  }
+
+  const WallHitInfo& get_wall_hit_array_item(uint index) const {
+    return wall_hits[index];
+  }
+
+  void clear_wall_hit_array() {
+    wall_hits.clear();
   }
 
 private:
@@ -191,6 +239,17 @@ public:
   wall_hit_callback_func wall_hit_callback;
   // clientdata hold information on what Python function we should call
   void* wall_hit_callback_clientdata;
+
+  geometry_object_id_t wall_hit_object_id;
+
+private:
+  static void wall_hit_callback_append(const WallHitInfo& info, void* ctx) {
+    (static_cast<World*>(ctx))->wall_hits.push_back(info);
+  }
+
+  // used when enable_wall_hit_counting is called
+  small_vector<WallHitInfo> wall_hits;
+
 };
 
 } // namespace mcell
