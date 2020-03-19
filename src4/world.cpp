@@ -284,6 +284,10 @@ void World::export_visualization_datamodel_to_dir(const char* prefix) const {
       "4" << prefix << ".datamodel." <<
       VizOutputEvent::iterations_to_string(stats.get_current_iteration(), total_iterations) <<
       ".json";
+
+  // create directories if needed
+  ::make_parent_dir(path.str().c_str());
+
   export_visualization_datamodel(path.str().c_str());
 }
 
