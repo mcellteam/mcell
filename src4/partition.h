@@ -36,8 +36,11 @@
 #include "reactions_info.h"
 #include "species_info.h"
 
-namespace MCell {
+namespace Json {
+class Value;
+}
 
+namespace MCell {
 
 /**
  * Partition class contains all molecules and other data contained in
@@ -540,7 +543,7 @@ public:
   }*/
 
   void dump();
-  void to_data_model(std::ostream& out) const;
+  void to_data_model(Json::Value& mcell) const;
 
 private:
   // left, bottom, closest (lowest z) point of the partition

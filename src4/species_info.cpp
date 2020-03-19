@@ -29,25 +29,19 @@ using namespace std;
 
 namespace MCell {
 
-void SpeciesInfo::to_data_model(std::ostream& out) {
-  out <<
-      "\"define_molecules\": {\n" <<
-      "\"molecule_list\": [\n";
+void SpeciesInfo::to_data_model(Json::Value& mcell) const {
+  Json::Value& define_molecules = mcell[KEY_DEFINE_MOLECULES];
+  json_add_version(define_molecules, JSON_DM_VERSION_1638);
+  Json::Value& molecule_list = define_molecules[KEY_MOLECULE_LIST];
 
-  for (size_t i = 0; i < get_count(); i++) {
-    Species &s = species[i];
-    s.to_data_model(out);
-    // only outputs a comma if there are more speices to come
-    if(i != get_count()-1) {
-      out << ",";
+  for (const Species &s: species) {
+    if (s.name == ALL_MOLECULES || s.name == ALL_VOLUME_MOLECULES || s.name == ALL_SURFACE_MOLECULES) {
+      continue;
     }
-    out << "\n";
+    Json::Value species_value;
+    s.to_data_model(species_value);
+    molecule_list.append(species_value);
   }
-  out <<
-      "],\n" <<
-      "\"data_model_version\": " <<
-      JSON_DM_VERSION_1638 <<
-      "\n}\n";
 }
 
 } // namespace mcell

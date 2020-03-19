@@ -31,6 +31,10 @@
 #include "molecule.h"
 #include "reaction.h"
 
+namespace Json {
+class Value;
+}
+
 namespace MCell {
 
 /**
@@ -61,7 +65,7 @@ public:
     Species::dump_array(species);
   }
 
-  void to_data_model(std::ostream& out);
+  void to_data_model(Json::Value& mcell) const;
 
 private:
   std::vector<Species> species;

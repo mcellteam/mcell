@@ -42,8 +42,11 @@
 #include "reaction.h"
 #include "reactions_info.h"
 
-namespace MCell {
+namespace Json {
+class Value;
+}
 
+namespace MCell {
 
 class World {
 private:
@@ -129,7 +132,9 @@ public:
 
   void dump();
 
-  void to_data_model(std::ostream& out);
+  void export_visualization_datamodel(const char* filename);
+
+  void to_data_model(Json::Value& root);
 
   // -------------- callback registration --------------
   void register_wall_hit_callback_internal(wall_hit_callback_func func, void* clientdata_) {

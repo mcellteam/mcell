@@ -33,6 +33,7 @@
 #include "defragmentation_event.h"
 #include "datamodel_defines.h"
 
+
 using namespace std;
 
 const double USEC_IN_SEC = 1000000.0;
@@ -246,16 +247,7 @@ void World::run_simulation(const bool dump_initial_state) {
 
   // DMFIXME: this is just for testing
   // set periodicity of dump from python3_4
-  if (true) {
-    const char* fname = "data_model.json";
-    std::ofstream out;
-    out.open(fname);
-    if (!out.is_open()) {
-      mcell_error("Could not open file %s for writing.\n", fname);
-    }
-    to_data_model(out);
-    out.close();
-  }
+  export_visualization_datamodel("data_model.json");
 
   uint output_frequency = determine_output_frequency(iterations);
 
@@ -278,155 +270,115 @@ void World::dump() {
   }
 }
 
-void World::to_data_model(std::ostream& out) {
-  out <<
-      "{\n" <<
-      "\"mcell\": {\n" <<
-      "\"cellblender_version\": \"0.1.54\",";
 
-  // gets all geometrical_objects
+void World::export_visualization_datamodel(const char* filename) {
+
+
+  Json::Value root;
+
+  to_data_model(root);
+
+
+  Json::StreamWriterBuilder wbuilder;
+  wbuilder["indentation"] = " ";
+  wbuilder.settings_["precision"] = 12;
+  wbuilder.settings_["precisionType"] = "decimal";
+  std::string document = Json::writeString(wbuilder, root);
+
+  // write result into a file
+  ofstream res_file(filename);
+  if (res_file.is_open())
+  {
+    res_file << document;
+    res_file.close();
+  }
+  else {
+    cout << "Unable to open file " << filename << " for writing.\n";
+  }
+}
+
+void World::to_data_model(Json::Value& root) {
+  Json::Value& mcell = root[KEY_MCELL];
+
+  mcell[KEY_CELLBLENDER_VERSION] = VALUE_CELLBLENDER_VERSION;
+
+  // generate geometry information
   bool first = true;
   for (Partition& p: partitions) {
-    if (!first) out << ",\n";
-    else out << "\n";
-    p.to_data_model(out);
-    }
+    p.to_data_model(mcell);
+  }
 
-  // Creates default material: transparent "membrane". I don't believe MDL can currently define materials.
-  // DMFIXME: what is this?
-  out <<
-      "\"materials\": {\n" <<
-      "\"material_dict\": {\n" <<
-      "\"membrane\": {\n" <<
-      "\"diffuse_color\": {\n" <<
-      "\"g\": " << 0.800000011920929 << ",\n" <<
-      "\"b\": " << 0.800000011920929 << ",\n" <<
-      "\"a\": " << 0.25 << ",\n" <<  // 75% transparent
-      "\"r\": " << 0.800000011920929 << "\n" <<
-      "}\n}\n}\n},\n";
+  // generate species info
+  all_species.to_data_model(mcell);
 
-  out <<
-      "\"model_objects\": {\n" <<
-      "\"data_model_version\": " <<
-      JSON_DM_VERSION_1330 << ",\n" <<
-      "\"model_object_list\": [\n" <<
-      "{\n" <<
-      "\"parent_object\": " <<
-      "\"\",\n" <<
-      "\"description\": " <<
-      "\"\",\n" <<
-      "\"object_source\": " <<
-      "\"blender\",\n" <<
-      "\"dynamic_display_source\": " <<
-      "\"script\",\n" <<
-      "\"script_name\": " <<
-      "\"\",\n" <<
-      "\"membrane_name\": " <<
-      "\"\",\n" <<
-      "\"dynamic\": " <<
-      "false,\n" <<
-      "\"name\": " <<
-      "\"\"\n" <<  // Doesn't seem necessary to have a legit name
-      "}\n]\n},\n";
+  // add other default values, might need to generate this better
+  Json::Value& materials = mcell[KEY_MATERIALS];
+  Json::Value& material_dict = materials[KEY_MATERIAL_DICT];
+  Json::Value& membrane = material_dict[KEY_VALUE_MEMBRANE];
+  Json::Value& diffuse_color = membrane[KEY_DIFFUSE_COLOR];
+  diffuse_color[KEY_R] = DEFAULT_OBJECT_COLOR_COMPONENT;
+  diffuse_color[KEY_G] = DEFAULT_OBJECT_COLOR_COMPONENT;
+  diffuse_color[KEY_B] = DEFAULT_OBJECT_COLOR_COMPONENT;
+  diffuse_color[KEY_A] = DEFAULT_OBJECT_ALPHA;
 
-  out <<
-      "\"define_surface_classes\": {},\n" <<
-      "\"mol_viz\": {\n" <<
-      "\"manual_select_viz_dir\": " <<
-      "false,\n" <<
-      "\"file_start_index\": " <<
-      "0,\n" <<
-      "\"seed_list\": " <<
-      "[],\n" <<
-      "\"data_model_version\": " <<
-      JSON_DM_VERSION_1700 << ",\n" <<
-      "\"color_list\": [\n" <<
-      "[\n" <<
-      "0.800000011920929,\n" <<
-      "0.0,\n" <<
-      "0.0\n" <<
-      "],\n" <<
-      "[\n" <<
-      "0.0,\n" <<
-      "0.800000011920929,\n" <<
-      "0.0\n" <<
-      "],\n" <<
-      "[\n" <<
-      "0.0,\n" <<
-      "0.0,\n" <<
-      "0.800000011920929\n" <<
-      "],\n" <<
-      "[\n" <<
-      "0.0,\n" <<
-      "0.800000011920929,\n" <<
-      "0.800000011920929\n" <<
-      "],\n" <<
-      "[\n" <<
-      "0.800000011920929,\n" <<
-      "0.0,\n" <<
-      "0.800000011920929\n" <<
-      "],\n" <<
-      "[\n" <<
-      "0.800000011920929,\n" <<
-      "0.800000011920929,\n" <<
-      "0.0\n" <<
-      "],\n" <<
-      "[\n" <<
-      "1.0,\n" <<
-      "1.0,\n" <<
-      "1.0\n" <<
-      "],\n" <<
-      "[\n" <<
-      "0.0,\n" <<
-      "0.0,\n" <<
-      "0.0\n" <<
-      "]\n" <<
-      "],\n" <<
-      "\"active_seed_index\": " <<
-      "0,\n" <<
-      "\"file_index\": " <<
-      "959,\n" <<   // THIS NEEDS TO CHANGE
-      "\"file_num\": " <<
-      "1001,\n" <<  // THIS NEEDS TO CHANGE
-      "\"viz_enable\": " <<\
-      "true,\n" <<
-      "\"file_name\": " <<
-      "\"\",\n" <<
-      "\"color_index\": " <<
-      "0,\n" <<
-      "\"render_and_save\": " <<
-      "false,\n" <<
-      "\"file_step_index\": " <<
-      "1,\n" <<
-      "\"viz_list\": " <<
-      "[],\n" <<
-      "\"file_stop_index\": " <<
-      "1000,\n" << // THIS NEEDS TO CHANGE
-      "\"file_dir\": " <<
-      "\"ahusar\"\n" <<  // THIS NEEDS TO CHANGE
-      "},\n" <<
-      "\"model_language\": " <<
-      "\"mcell3\",\n" <<
-      "\"parameter_system\": " <<
-      "{},\n" <<
-      "\"data_model_version\": " <<
-      JSON_DM_VERSION_1300 << ",\n" <<
-      "\"initialization\": " <<
-      "{},\n" <<
-      "\"blender_version\": " << // Is there a way to avoid hard coding this?
-      "[\n" <<
-      BLENDER_VERSION[0] << ",\n" <<
-      BLENDER_VERSION[1] << ",\n" <<
-      BLENDER_VERSION[2] << "\n" <<
-      //"2,\n" <<
-      //"79,\n" <<
-      //"0\n" <<
-      "],\n";
+  Json::Value& model_objects = mcell[KEY_MODEL_OBJECTS];
+  json_add_version(model_objects, JSON_DM_VERSION_1330);
+  Json::Value& model_object_list = model_objects[KEY_MODEL_OBJECT_LIST];
 
+  Json::Value empty_model_object;
+  empty_model_object[KEY_PARENT_OBJECT] = "";
+  empty_model_object[KEY_DESCRIPTION] = "";
+  empty_model_object[KEY_OBJECT_SOURCE] = VALUE_BLENDER;
+  empty_model_object[KEY_DYNAMIC_DISPLAY_SOURCE] = "script";
+  empty_model_object[KEY_SCRIPT_NAME] = "";
+  empty_model_object[KEY_MEMBRANE_NAME] = "";
+  empty_model_object[KEY_DYNAMIC] = false;
+  empty_model_object[KEY_NAME] = ""; // doesn't seem necessary to have a name
+  model_object_list.append(empty_model_object);
 
-  all_species.to_data_model(out);
+  mcell[KEY_DEFINE_SURFACE_CLASSES] = Json::Value(Json::ValueType::objectValue); // empty dict
 
-  out << "}\n}";
+  Json::Value& mol_viz = mcell[KEY_MOL_VIZ];
+  json_add_version(mol_viz, JSON_DM_VERSION_1700);
+  mol_viz[KEY_MANUAL_SELECT_VIZ_DIR] = false;
+  mol_viz[KEY_FILE_START_INDEX] = 0;
+  mol_viz[KEY_SEED_LIST] = Json::Value(Json::arrayValue); // empty array
+
+  Json::Value& color_list = mol_viz[KEY_COLOR_LIST];
+  json_append_triplet(color_list, 0.8, 0.0, 0.0);
+  json_append_triplet(color_list, 0.0, 0.8, 0.0);
+  json_append_triplet(color_list, 0.0, 0.0, 0.8);
+  json_append_triplet(color_list, 0.0, 0.8, 0.8);
+  json_append_triplet(color_list, 0.8, 0.0, 0.8);
+  json_append_triplet(color_list, 0.8, 0.8, 0.0);
+  json_append_triplet(color_list, 1.0, 1.0, 1.0);
+  json_append_triplet(color_list, 0.0, 0.0, 0.0);
+
+  mol_viz[KEY_ACTIVE_SEED_INDEX] = 0;
+  mol_viz[KEY_FILE_INDEX] = 959; // don't know what this means
+  mol_viz[KEY_FILE_NUM] = 1001; // don't know what this means
+  mol_viz[KEY_VIZ_ENABLE] = true;
+  mol_viz[KEY_FILE_NAME] = "";
+  mol_viz[KEY_COLOR_INDEX] = 0;
+  mol_viz[KEY_RENDER_AND_SAVE] = false;
+  mol_viz[KEY_FILE_STEP_INDEX] = 1; // don't know what this means
+  mol_viz[KEY_FILE_STOP_INDEX] = 1000; // don't know what this means
+  mol_viz[KEY_FILE_DIR] = ""; // does this need to be set?
+
+  mol_viz[KEY_VIZ_LIST] = Json::Value(Json::arrayValue); // empty array
+
+  mcell[KEY_MODEL_LANGUAGE] = VALUE_MCELL3;
+
+  mcell[KEY_PARAMETER_SYSTEM] = Json::Value(Json::ValueType::objectValue); // empty dict
+
+  json_add_version(mcell, JSON_DM_VERSION_1300);
+
+  mcell[KEY_INITIALIZATION] = Json::Value(Json::ValueType::objectValue); // empty dict
+
+  Json::Value& blender_version = mcell[KEY_BLENDER_VERSION];
+  blender_version.append(Json::Value(BLENDER_VERSION[0]));
+  blender_version.append(Json::Value(BLENDER_VERSION[1]));
+  blender_version.append(Json::Value(BLENDER_VERSION[2]));
 }
 
 } // namespace mcell

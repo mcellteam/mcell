@@ -27,6 +27,7 @@
 #include "logging.h"
 
 #include "partition.h"
+#include "datamodel_defines.h"
 
 #include "dyn_vertex_utils.inc"
 
@@ -183,19 +184,16 @@ void Partition::dump() {
   }
 }
 
-void Partition::to_data_model(std::ostream& out) const {
-  out <<
-      "\"geometrical_objects\": {\n" <<
-      "\"object_list\": [\n";
+void Partition::to_data_model(Json::Value& mcell) const {
+
+  Json::Value& geometrical_objects = mcell[KEY_GEOMETRICAL_OBJECTS];
+  Json::Value& object_list = geometrical_objects[KEY_OBJECT_LIST];
 
   for (const GeometryObject& g: geometry_objects) {
-    out << "{\n";
-    g.to_data_model(out, *this, config);
-    out << "}\n";
+    Json::Value object;
+    g.to_data_model(object, *this, config);
+    object_list.append(object);
   }
-  out <<
-      "]\n" <<
-      "},\n";
 }
 
 } // namespace mcell

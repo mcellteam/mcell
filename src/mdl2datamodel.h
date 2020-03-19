@@ -16,7 +16,6 @@ public:
   bool convert(const volume* state_, const char* output_file_name);
 
 private:
-  void add_version(Json::Value& define_molecules, const char* ver);
   bool convert_molecule(Json::Value& molecule_list, species* spec);
   bool convert_molecule_list(Json::Value& mcell);
 

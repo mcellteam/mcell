@@ -30,6 +30,10 @@
 
 #include "mcell_structs.h"
 
+namespace Json {
+class Value;
+}
+
 namespace MCell {
 
 // same as in mcell_structs but renamed to make sure it is used correctly
@@ -52,6 +56,13 @@ enum species_flag_t {
  */
 class Species {
 public:
+  Species()
+  : species_id(SPECIES_ID_INVALID), mcell3_species_id(0),
+    D(FLT_INVALID), space_step(FLT_INVALID), time_step(FLT_INVALID),
+    flags(0), color(1, 0, 0), scale(0)
+    {
+  }
+
   species_id_t species_id;
 
   uint mcell3_species_id;
@@ -104,7 +115,8 @@ public:
 
   void dump(const std::string ind) const;
   static void dump_array(const std::vector<Species>& vec);
-  void to_data_model(std::ostream& out) const;
+
+  void to_data_model(Json::Value& species) const;
 
   void set_color(float_t r, float_t g, float_t b);
   void set_scale(float_t s);

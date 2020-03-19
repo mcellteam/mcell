@@ -30,6 +30,7 @@
 
 #include "partition.h"
 #include "geometry.h"
+#include "datamodel_defines.h"
 
 #include "geometry_utils.inc" // uses get_wall_bounding_box, maybe not include this file
 
@@ -56,51 +57,32 @@ void GeometryObject::dump_array(const Partition& p, const std::vector<GeometryOb
   }
 }
 
-void GeometryObject::to_data_model(std::ostream& out, const Partition& p, const SimulationConfig& config) const {
-  /*
-  // there is no "location" given in mdl files in addition to the position of vertices.
-  out << "\"location\": [\n";
-  out <<"],\n";
-  */
+void GeometryObject::to_data_model(Json::Value& object, const Partition& p, const SimulationConfig& config) const {
+
   vector<uint> vertex_order;
-  out << "\"element_connections\": [";
+
+  object[KEY_NAME] = name;
+  object[KEY_MATERIAL_NAMES].append(Json::Value(KEY_VALUE_MEMBRANE));
+
+  Json::Value& element_connections = object[KEY_ELEMENT_CONNECTIONS];
   bool first = true; // to indicate when to use a comma
+
+  // DMFIXME:
   for (wall_index_t i: wall_indices) {
-    if (!first) {
-      out << ",";
-    }
-    p.get_wall(i).connections_to_data_model(out);
-    first = false;
+    Json::Value one_connection;
+    p.get_wall(i).connection_to_data_model(one_connection);
+    element_connections.append(one_connection);
   }
-  out <<
-      "],\n" <<
-      "\"name\": \"" << name << "\",\n" <<
-      "\"material_names\": [\n" <<
-      "\"membrane\"" <<  // default transparent material. MDL doesn't currently handle material properties.
-      "],\n" <<
-      "\"vertex_list\": [\n";
-  vertices_to_data_model(out, p, config);
-  out << "]\n";
+  Json::Value& vertex_list = object[KEY_VERTEX_LIST];
+  vertices_to_data_model(vertex_list, p, config);
 }
 
 // outputs complete list of partition vertices to data_model
-void GeometryObject::vertices_to_data_model(std::ostream& out, const Partition& p, const SimulationConfig& config) const {
+void GeometryObject::vertices_to_data_model(Json::Value& vertex_list, const Partition& p, const SimulationConfig& config) const {
   uint vertex_count = p.get_geometry_vertex_count();
   for (uint i=0; i<vertex_count; i++){
-    out << "[\n";
-    for (uint j = 0; j < VERTICES_IN_TRIANGLE; j++) {
-      Vec3 pos = p.get_geometry_vertex(i);
-      out << pos[j]*config.length_unit;
-      if (j != VERTICES_IN_TRIANGLE - 1) {
-        out << ",";
-      }
-      out << "\n";
-    }
-    out << "]";
-    if (i != vertex_count - 1) {
-      out << ",";
-    }
-    out << "\n";
+    Vec3 pos = p.get_geometry_vertex(i) * Vec3(config.length_unit);
+    json_append_triplet(vertex_list, pos.x, pos.y, pos.z);
   }
 }
 
@@ -435,17 +417,13 @@ void Wall::dump(const Partition& p, const std::string ind, const bool for_diff) 
   }
 }
 
-// writting "element_connections" to data_model
-void Wall::connections_to_data_model(std::ostream& out) const {
-  out << "\n[\n";
+
+void Wall::connection_to_data_model(Json::Value& one_connection) const {
   for (uint i = 0; i < VERTICES_IN_TRIANGLE; i++) {
-    out << vertex_indices[i];
-    if (i != VERTICES_IN_TRIANGLE - 1) {
-          out << ",\n";
-    }
+    one_connection.append(vertex_indices[i]);
   }
-  out << "\n]";
 }
+
 
 namespace Geometry {
 

@@ -31,6 +31,10 @@
 #include "molecule.h"
 #include "dyn_vertex_structs.h"
 
+namespace Json {
+class Value;
+}
+
 namespace MCell {
 
 class Partition;
@@ -54,8 +58,8 @@ public:
   // p must be the partition that contains this object
   void dump(const Partition& p, const std::string ind) const;
   static void dump_array(const Partition& p, const std::vector<GeometryObject>& vec);
-  void to_data_model(std::ostream& out, const Partition& p, const SimulationConfig& config) const;
-  void vertices_to_data_model(std::ostream& out, const Partition& p, const SimulationConfig& config) const;
+  void to_data_model(Json::Value& object, const Partition& p, const SimulationConfig& config) const;
+  void vertices_to_data_model(Json::Value& vertex_list, const Partition& p, const SimulationConfig& config) const;
 };
 
 
@@ -311,7 +315,7 @@ public:
 
   // p must be the partition that contains this object
   void dump(const Partition& p, const std::string ind, const bool for_diff = false) const;
-  void connections_to_data_model(std::ostream& out) const;
+  void connection_to_data_model(Json::Value& one_connection) const;
 
   bool has_initialized_grid() const {
     return grid.is_initialized();

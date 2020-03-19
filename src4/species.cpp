@@ -28,8 +28,6 @@
 #include "species.h"
 #include "datamodel_defines.h"
 
-#define ONE_DECIMAL 1 // DMFIXME: this is wrong, we will cut off too many decimal places
-
 using namespace std;
 
 namespace MCell {
@@ -52,79 +50,32 @@ void Species::dump_array(const vector<Species>& vec) {
   }
 }
 
-void Species::to_data_model(std::ostream& out) const{
-  // stores default ostream output precision
-  int old_precision = out.precision();
+void Species::to_data_model(Json::Value& species) const{
 
-  // DMFIXME: remove setprecision
+  json_add_version(species, JSON_DM_VERSION_1632);
 
-  out <<
-      "{" <<
-      "\n\"display\": {" <<
-      "\n\"emit\": " <<
-      "1.0," <<
-      "\n\"color\": [";
-  // configure ostream for 1 decimanl place output of floating points
-  out << setprecision(ONE_DECIMAL) << fixed;
-  out <<
-      "\n" << color.r << "," <<
-      "\n" << color.g << "," <<
-      "\n" << color.b;
-  // return ostream output to default precision settings
-  out << setprecision(old_precision) << defaultfloat;
-  out <<
-      "\n]," <<
-      "\n\"glyph\": " <<
-      "\"" <<
-      "Sphere_1" << // Sphere_1 by default for now.
-      "\",";
-      /*
-       * This should only come up if the glyph is called "Letter"
-      "\n\"letter\": " <<
-      "\"\",";
-      */
-  out << setprecision(ONE_DECIMAL) << fixed;
-  out <<
-      "\n\"scale\": " <<
-      scale;
-  out << setprecision(old_precision) << defaultfloat;
-  out <<
-      "\n}," <<
-      "\n\"bngl_component_list\": " <<
-      "\[]," <<  // No bngl_component_list for now
-      "\n\"mol_bngl_label\": " <<
-      "\"\"," <<
-      "\n\"data_model_version\": " <<
-      JSON_DM_VERSION_1632 <<
-      "," <<
-      "\n\"description\": " <<
-      "\"\"," <<
-      "\n\"mol_type\": ";
-  if (is_vol()) {
-    out << "\"3D\",";
-  }
-  else {
-    out << "\"2D\",";
-  }
-  out <<
-      "\n\"export_viz\": " <<
-      "false," << // or else errors in cellblender
-      "\n\"custom_space_step\": " <<
-      "\"\"," <<
-      "\n\"maximum_step_length\": " <<
-      "\"\"," <<
-      "\n\"target_only\": " <<
-      "false," << // or else errors in cellblender
-      "\n\"diffusion_constant\": " <<
-      "\"" << D << "\"," <<
-      "\n\"spatial_structure\": " <<
-      // this will always be "None" until mcell4 updates this feature
-      "\"None\"," <<
-      "\n\"mol_name\": " <<
-      "\"" << name << "\"," <<
-      "\n\"custom_time_step\": " <<
-      "\"\"" <<
-      "\n}";
+  Json::Value& display = species[KEY_DISPLAY];
+  display[KEY_EMIT] = 1.0;
+  Json::Value& color_value = display[KEY_COLOR];
+  color_value.append(color.r);
+  color_value.append(color.g);
+  color_value.append(color.b);
+  display[KEY_GLYPH] = VALUE_GLYPH_SPHERE_1;
+  display[KEY_SCALE] = scale;
+
+
+  species[KEY_BNGL_COMPONENT_LIST] = Json::Value(Json::arrayValue); // empty array;
+  species[KEY_MOL_BNGL_LABEL] = "";
+  species[KEY_DESCRIPTION] = "";
+  species[KEY_MOL_TYPE] = is_vol() ? VALUE_MOL_TYPE_3D : VALUE_MOL_TYPE_2D;
+  species[KEY_EXPORT_VIZ] = false; // true causes error in cellblender
+  species[KEY_CUSTOM_SPACE_STEP] = "";
+  species[KEY_MAXIMUM_STEP_LENGTH] = "";
+  species[KEY_TARGET_ONLY] = false;
+  species[KEY_DIFFUSION_CONSTANT] = to_string(D);
+  species[KEY_SPATIAL_STRUCTURE] = "None";
+  species[KEY_MOL_NAME] = name;
+  species[KEY_CUSTOM_TIME_STEP] = "";
 }
 
 // sets mol display color

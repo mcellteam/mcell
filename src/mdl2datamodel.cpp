@@ -10,31 +10,12 @@
 #include <assert.h>
 
 #include "mdl2datamodel.h"
+#include "datamodel_defines.h"
 #include "json/json.h"
 
 using namespace std;
 using namespace Json;
 
-const char* const ALL_MOLECULES = "ALL_MOLECULES";
-const char* const ALL_VOLUME_MOLECULES = "ALL_VOLUME_MOLECULES";
-const char* const ALL_SURFACE_MOLECULES = "ALL_SURFACE_MOLECULES";
-
-// all keys should be defined as a constant string
-const char* const KEY_MCELL = "mcell";
-const char* const KEY_DEFINE_MOLECULES = "define_molecules";
-const char* const KEY_MOLECULE_LIST = "molecule_list";
-
-const char* const KEY_MOL_NAME = "mol_name";
-const char* const KEY_MOL_TYPE = "mol_type";
-const char* const VALUE_MOL_TYPE_2D = "2D";
-const char* const VALUE_MOL_TYPE_3D = "3D";
-const char* const KEY_DIFFUSION_CONSTANT = "diffusion_contant";
-
-
-const char* const KEY_DATA_MODEL_VERSION = "data_model_version";
-
-const char* const VER_DM_2018_10_16_1632 = "DM_2018_10_16_1632";
-const char* const VER_DM_2014_10_24_1638 = "DM_2014_10_24_1638";
 
 // ------------- utilities -----------------------
 static const char* get_sym_name(const sym_entry *s) {
@@ -53,10 +34,6 @@ static bool has_flag(unsigned int flags, unsigned int one_flag) {
 
 
 // ------------- conversion methods -----------------------
-
-void Mdl2DataModel::add_version(Value& define_molecules, const char* ver) {
-  define_molecules[KEY_DATA_MODEL_VERSION] = ver;
-}
 
 bool Mdl2DataModel::convert_molecule(Value& molecule_list, species* spec) {
 
@@ -89,7 +66,7 @@ bool Mdl2DataModel::convert_molecule_list(Value& mcell) {
     convert_molecule(molecule_list, spec);
   }
 
-  add_version(define_molecules, VER_DM_2014_10_24_1638);
+  json_add_version(define_molecules, JSON_DM_VERSION_1638);
 
   return true;
 }
