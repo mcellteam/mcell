@@ -148,7 +148,7 @@ bool MCell3WorldConverter::convert(volume* s) {
 
 bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
   // TODO_CONVERSION: many items are not checked
-  world->iterations = s->iterations;
+  world->total_iterations = s->iterations;
   world->config.time_unit = s->time_unit;
   world->config.length_unit = s->length_unit;
   world->config.rx_radius_3d = s->rx_radius_3d;

@@ -23,6 +23,8 @@
 
 
 #include <iostream>
+#include <sstream>
+#include <iomanip>
 #include <stdio.h>
 #include <errno.h>
 
@@ -69,24 +71,31 @@ void VizOutputEvent::step() {
 }
 
 
-static int digits_for_file_suffix(uint64_t iterations) {
+string VizOutputEvent::iterations_to_string(const uint64_t current_iterations, const uint64_t total_iterations) {
+  stringstream res;
+
   uint64_t lli = 10;
   int ndigits;
-  for (ndigits = 1; lli <= iterations && ndigits < 20; ndigits++) {
+  for (ndigits = 1; lli <= total_iterations && ndigits < 20; ndigits++) {
     lli *= 10;
   }
-  return ndigits;
+
+  res << setfill('0') << std::setw(ndigits) << current_iterations;
+  return res.str();
 }
 
 
 FILE* VizOutputEvent::create_and_open_output_file_name() {
-  int ndigits = digits_for_file_suffix(world->iterations);
-  // FIXME: get this from simulation stats
+
   long long current_iteration = round(event_time); // NOTE: usage of round might be a little shaky here, maybe we will need a better way how to get the iteration index
   //fprintf(stderr, "***dumps: %lld\n", current_iteration);
   const char* type_name = (viz_mode == ASCII_MODE) ? "ascii" : "cellbin";
-  char* cf_name =
-      CHECKED_SPRINTF("4%s.%s.%.*lld.dat", file_prefix_name.c_str(), type_name, ndigits, current_iteration);
+  char* cf_name = CHECKED_SPRINTF(
+      "4%s.%s.%s.dat",
+      file_prefix_name.c_str(),
+      type_name,
+      iterations_to_string(world->stats.get_current_iteration(), world->total_iterations).c_str()
+   );
   assert(cf_name != nullptr);
 
   if (::make_parent_dir(cf_name)) {

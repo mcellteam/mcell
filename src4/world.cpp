@@ -30,6 +30,7 @@
 #include "logging.h"
 
 #include "world.h"
+#include "viz_output_event.h"
 #include "defragmentation_event.h"
 #include "datamodel_defines.h"
 
@@ -41,7 +42,7 @@ const double USEC_IN_SEC = 1000000.0;
 namespace MCell {
 
 World::World()
-  : iterations(0),
+  : total_iterations(0),
     seed_seq(0),
     next_wall_id(0),
     next_geometry_object_id(0),
@@ -49,8 +50,11 @@ World::World()
     simulation_ended(false),
     previous_progress_report_time({0, 0}),
     previous_iteration(0),
+
+    // temporary solution of callbacks
     wall_hit_callback(nullptr),
-    wall_hit_callback_clientdata(nullptr)
+    wall_hit_callback_clientdata(nullptr),
+    wall_hit_object_id(GEOMETRY_OBJECT_ID_INVALID)
 {
   config.partition_edge_length = PARTITION_EDGE_LENGTH_DEFAULT;
   config.subpartitions_per_partition_dimension = SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT;
@@ -147,7 +151,7 @@ void World::run_n_iterations(const uint64_t num_iterations, const uint64_t outpu
   uint64_t& current_iteration = stats.get_current_iteration();
 
   if (current_iteration == 0) {
-    cout << "Iterations: " << current_iteration << " of " << iterations << "\n";
+    cout << "Iterations: " << current_iteration << " of " << total_iterations << "\n";
   }
 
   uint64_t this_run_first_iteration = current_iteration;
@@ -173,7 +177,7 @@ void World::run_n_iterations(const uint64_t num_iterations, const uint64_t outpu
     if (current_iteration > previous_iteration) {
 
       if (current_iteration % output_frequency == 0) {
-        cout << "Iterations: " << current_iteration << " of " << iterations;
+        cout << "Iterations: " << current_iteration << " of " << total_iterations;
 
         timeval current_progress_report_time;
         gettimeofday(&current_progress_report_time, NULL);
@@ -249,10 +253,10 @@ void World::run_simulation(const bool dump_initial_state) {
   // set periodicity of dump from python3_4
   export_visualization_datamodel("data_model.json");
 
-  uint output_frequency = determine_output_frequency(iterations);
+  uint output_frequency = determine_output_frequency(total_iterations);
 
   // simulating 1000 iterations means to simulate iterations 0 .. 1000
-  run_n_iterations(iterations + 1, output_frequency, true);
+  run_n_iterations(total_iterations + 1, output_frequency, true);
 
   end_simulation();
 }
@@ -271,7 +275,19 @@ void World::dump() {
 }
 
 
-void World::export_visualization_datamodel(const char* filename) {
+void World::export_visualization_datamodel_to_dir(const char* prefix) const {
+  // prefix should be the same directory that is used for viz_output,
+  // e.g. ./viz_data/seed_0001/Scene
+
+  stringstream path;
+  path <<
+      "4" << prefix << ".datamodel." <<
+      VizOutputEvent::iterations_to_string(stats.get_current_iteration(), total_iterations) <<
+      ".json";
+  export_visualization_datamodel(path.str().c_str());
+}
+
+void World::export_visualization_datamodel(const char* filename) const {
 
 
   Json::Value root;
@@ -297,14 +313,14 @@ void World::export_visualization_datamodel(const char* filename) {
   }
 }
 
-void World::to_data_model(Json::Value& root) {
+void World::to_data_model(Json::Value& root) const {
   Json::Value& mcell = root[KEY_MCELL];
 
   mcell[KEY_CELLBLENDER_VERSION] = VALUE_CELLBLENDER_VERSION;
 
   // generate geometry information
   bool first = true;
-  for (Partition& p: partitions) {
+  for (const Partition& p: partitions) {
     p.to_data_model(mcell);
   }
 

@@ -133,9 +133,10 @@ public:
 
   void dump();
 
-  void export_visualization_datamodel(const char* filename);
+  void export_visualization_datamodel_to_dir(const char* prefix) const;
+  void export_visualization_datamodel(const char* filename) const;
 
-  void to_data_model(Json::Value& root);
+  void to_data_model(Json::Value& root) const;
 
   // -------------- callback registration -------------------------
   // move into cpp file
@@ -200,7 +201,7 @@ private:
 public:
   Scheduler scheduler;
 
-  uint64_t iterations; // number of iterations to simulate - move to Sim config
+  uint64_t total_iterations; // number of iterations to simulate - move to Sim config
   uint seed_seq; // initial seed passed to mcell as argument
 
 public:

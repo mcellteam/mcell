@@ -139,6 +139,9 @@ public:
   
   void dump();
   
+  void export_visualization_datamodel_to_dir(const char* prefix);
+  void export_visualization_datamodel(const char* filename);
+  
   SimulationConfig config;
 };
 

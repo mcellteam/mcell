@@ -46,6 +46,8 @@ public:
   virtual void step();
   virtual void dump(const std::string indent);
 
+  static std::string iterations_to_string(const uint64_t current_iterations, const uint64_t total_iterations);
+
   viz_mode_t viz_mode;
   std::string file_prefix_name;
 
@@ -56,7 +58,6 @@ private:
       const Partition& p, const Molecule& m,
       Vec3& where, Vec3& norm
   );
-
 
   FILE* create_and_open_output_file_name();
   void output_ascii_molecules();
