@@ -98,7 +98,6 @@ struct WallHitInfo {
 class SimulationConfig {
 public:
   float_t length_unit;
- 
 };
 
 class Partition {
@@ -119,6 +118,17 @@ public:
   void apply_vertex_moves();
   
   void dump();
+};
+
+
+class SpeciesInfo { 
+	Species* find_species_by_name(const char* name);
+};
+  
+class Species {  
+public:
+  void set_color(float_t r, float_t g, float_t b);
+  void set_scale(float_t s);
 };
   
 class World {
@@ -143,6 +153,7 @@ public:
   void export_visualization_datamodel(const char* filename);
   
   SimulationConfig config;
+  SpeciesInfo all_species;
 };
 
 class MCell3WorldConverter {
@@ -160,6 +171,11 @@ public:
      self->register_wall_hit_callback_internal(py_callback_wall_hit, (void *) pyfunc, object_name);
      Py_INCREF(pyfunc);
    }
+   
+    // only in Python API
+    Species* find_species_by_name(const char* name) {
+     	return self->all_species.find_species_by_name(name);
+    }
 }
 
 } // namespace MCell

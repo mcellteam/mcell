@@ -55,7 +55,7 @@ void Species::to_data_model(Json::Value& species) const{
   json_add_version(species, JSON_DM_VERSION_1632);
 
   Json::Value& display = species[KEY_DISPLAY];
-  display[KEY_EMIT] = 1.0;
+  display[KEY_EMIT] = 0.0;
   Json::Value& color_value = display[KEY_COLOR];
   color_value.append(color.r);
   color_value.append(color.g);
@@ -80,7 +80,7 @@ void Species::to_data_model(Json::Value& species) const{
 
 // sets mol display color
 void Species::set_color(float_t r, float_t g, float_t b) {
-  assert((r <= 1 && r >= 0) && (g <= 1 && g >= 0) && (b <= 0 && b >= 0));
+  assert((r <= 1 && r >= 0) && (g <= 1 && g >= 0) && (b <= 1 && b >= 0));
   color.r = r;
   color.g = g;
   color.b = b;

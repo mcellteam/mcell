@@ -59,7 +59,7 @@ public:
   Species()
   : species_id(SPECIES_ID_INVALID), mcell3_species_id(0),
     D(FLT_INVALID), space_step(FLT_INVALID), time_step(FLT_INVALID),
-    flags(0), color(1, 0, 0), scale(0)
+    flags(0), color(1, 0, 0), scale(1)
     {
   }
 

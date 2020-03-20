@@ -37,7 +37,7 @@
 
 #include "dump_state.h"
 
-//#define MCELL3_IDENTICAL
+#define MCELL3_IDENTICAL
 
 #ifndef MCELL3_IDENTICAL
 // enable several things that make comparison with mcell4 easier

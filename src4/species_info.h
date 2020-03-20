@@ -67,6 +67,9 @@ public:
 
   void to_data_model(Json::Value& mcell) const;
 
+  // may return NULL if species were not defined
+  Species* find_species_by_name(const char* name);
+
 private:
   std::vector<Species> species;
 };

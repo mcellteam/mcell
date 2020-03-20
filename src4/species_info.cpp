@@ -29,6 +29,15 @@ using namespace std;
 
 namespace MCell {
 
+Species* SpeciesInfo::find_species_by_name(const char* name) {
+  for (Species& s: species) {
+    if (s.name == name) {
+      return &s;
+    }
+  }
+  return nullptr;
+}
+
 void SpeciesInfo::to_data_model(Json::Value& mcell) const {
   Json::Value& define_molecules = mcell[KEY_DEFINE_MOLECULES];
   json_add_version(define_molecules, JSON_DM_VERSION_1638);
