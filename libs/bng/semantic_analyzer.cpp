@@ -370,6 +370,9 @@ void SemanticAnalyzer::convert_and_store_rxn_rules() {
     ComplexInstanceVector products;
     convert_rxn_rule_side(r->products, products);
 
+    // determine mapping from molecule instances on one side to another
+    // -> only for case when we are not creating or
+
     //TODO: can we somehow check component usage?
     // e.g. is this an allowed rule:
     // A(a)

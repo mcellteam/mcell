@@ -1,3 +1,8 @@
+// FIXMEs: 
+// 1) BNGL (BNG2.pl) requires whitespace to be precisely defined,
+//    need to update the parser and tests
+// 2) Parentheses are not required for molecule types and molecule instances
+
 
 // for top of bngl_parser.hpp
 %code requires {      

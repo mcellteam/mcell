@@ -18,6 +18,16 @@ namespace BNG {
 
 class BNGData;
 
+struct ComplexMoleculeIndex {
+  uint complex_index;
+  uint molecule_index;
+};
+
+struct ComplexMoleculeInstancePair {
+  ComplexMoleculeIndex cmi1;
+  ComplexMoleculeIndex cmi2;
+};
+
 // BNG reaction rule
 // rules are only unidirectional,
 // if there is a reversible reaction in BNGL definition,
@@ -34,7 +44,13 @@ public:
   ComplexInstanceVector reactants;
   ComplexInstanceVector products;
 
-  // TODO: we need matching between molecules of reactants and molecules of products
+  // set to true if it was possible to do a mapping between reactants and products
+  bool molecule_instances_are_maintained;
+
+  // matching between molecules of reactants and molecules of products,
+  // contains information only if molecule_instances_are_maintained is true
+  small_vector<ComplexMoleculeInstancePair> mapping;
+
 
   float_t rxn_rate;
 
@@ -48,6 +64,12 @@ public:
   }
 
   void dump(const BNGData& bng_data) const;
+
+  // checks if it is possible to create a mapping from reactants to products and
+  // sets members molecule_instances_are_maintained and mapping,
+  // might write some error messages to the msgs stream,
+  // returns true if errors were encountered
+  bool compute_reactants_products_mapping(std::stringstream& msgs);
 
 private:
   void dump_complex_instance_vector(

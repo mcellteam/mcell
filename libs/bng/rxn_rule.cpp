@@ -6,12 +6,20 @@
  */
 
 #include <iostream>
+#include <sstream>
 
 #include "rxn_rule.h"
 
 using namespace std;
 
 namespace BNG {
+
+
+void RxnRule::compute_reactants_products_mapping(std::stringstream& msgs) {
+
+  // TODO:
+
+}
 
 
 void RxnRule::dump_complex_instance_vector(const BNGData& bng_data, const ComplexInstanceVector& complexes) const {
