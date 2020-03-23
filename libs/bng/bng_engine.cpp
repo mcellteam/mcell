@@ -50,7 +50,7 @@ component_type_id_t BNGData::find_or_add_component_type(const ComponentType& ct)
 }
 
 
-molecule_type_id_t BNGData::find_or_add_molecule_type(const MoleculeType& mt) {
+mol_type_id_t BNGData::find_or_add_molecule_type(const MolType& mt) {
   // TODO: check that if there is a molecule type with the same name,
   //
 
@@ -67,9 +67,9 @@ molecule_type_id_t BNGData::find_or_add_molecule_type(const MoleculeType& mt) {
 
 
 // may return MOLECULE_TYPE_ID_INVALID when the name was not found
-molecule_type_id_t BNGData::find_molecule_type_id(const std::string& name) const {
-  for (molecule_type_id_t i = 0; i < molecule_types.size(); i++) {
-    const MoleculeType& mt = molecule_types[i];
+mol_type_id_t BNGData::find_molecule_type_id(const std::string& name) const {
+  for (mol_type_id_t i = 0; i < molecule_types.size(); i++) {
+    const MolType& mt = molecule_types[i];
     if (mt.name == name) {
       return i;
     }
@@ -97,7 +97,7 @@ rxn_rule_id_t BNGData::find_or_add_rxn_rule(const RxnRule& rr) {
 void BNGData::dump_molecule_types_as_bngl() {
   cout << "begin molecule types\n";
 
-  for (const MoleculeType& mt: molecule_types) {
+  for (const MolType& mt: molecule_types) {
     cout << "  ";
     mt.dump(*this);
     cout << "\n";

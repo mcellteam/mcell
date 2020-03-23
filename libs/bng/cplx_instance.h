@@ -5,8 +5,8 @@
  *      Author: ahusar
  */
 
-#ifndef LIBS_BNG_COMPLEX_SPECIES_H_
-#define LIBS_BNG_COMPLEX_SPECIES_H_
+#ifndef LIBS_BNG_CPLX_INSTANCE_H_
+#define LIBS_BNG_CPLX_INSTANCE_H_
 
 #include "bng_defines.h"
 
@@ -14,7 +14,7 @@
 
 namespace BNG {
 
-class MoleculeType;
+class MolType;
 class BNGData;
 
 /**
@@ -62,26 +62,26 @@ public:
 // Similarly as ComplexSpeciesInstance -
 //  can be used as instance and as pattern
 // TODO: should molecule type reference be an attribute?
-class MoleculeInstance {
+class MolInstance {
 public:
   // ID of this molecule type in BNGData::molecule_types
-  molecule_type_id_t molecule_type_id;
+  mol_type_id_t mol_type_id;
 
   // has the same number of elements as MoleculeType::component_type_ids
   small_vector<ComponentInstance> component_instances;
 
 
-  bool operator ==(const MoleculeInstance& mi2) const  {
-    return molecule_type_id == mi2.molecule_type_id && component_instances == mi2.component_instances;
+  bool operator ==(const MolInstance& mi2) const  {
+    return mol_type_id == mi2.mol_type_id && component_instances == mi2.component_instances;
   }
 
 
-  void initialize_components_types(const MoleculeType& mt);
+  void initialize_components_types(const MolType& mt);
 
   // searches for component with name
   uint get_corresponding_component_index(
       const BNGData& bng_data,
-      const MoleculeType& mt,
+      const MolType& mt,
       const std::string& name,
       const uint starting_index
   ) const;
@@ -93,14 +93,14 @@ public:
 // - as a pattern for matching, not all states and bonds need to be entered
 // - as a definition of species, in this case all components must be present and
 //      if a component has more than 0 states then the state must be set
-class ComplexInstance {
+class CplxInstance {
 public:
-  small_vector<MoleculeInstance> molecule_patterns;
+  small_vector<MolInstance> mol_patterns;
 
-  bool operator ==(const ComplexInstance& ci2) const  {
+  bool operator ==(const CplxInstance& ci2) const  {
     // ordering of components in a molecule is important
     // two component types must have the same id, this is ensured in find_or_add_component_type
-    return molecule_patterns == ci2.molecule_patterns;
+    return mol_patterns == ci2.mol_patterns;
   }
 
   void dump(const BNGData& bng_data) const;
@@ -109,8 +109,8 @@ public:
 
 // maybe some derived class for instances?
 
-typedef small_vector<ComplexInstance> ComplexInstanceVector;
+typedef small_vector<CplxInstance> ComplexInstanceVector;
 
 } /* namespace BNG */
 
-#endif /* LIBS_BNG_COMPLEX_SPECIES_H_ */
+#endif /* LIBS_BNG_CPLX_INSTANCE_H_ */

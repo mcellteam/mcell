@@ -27,11 +27,11 @@ private:
 
   state_id_t convert_state_name(const ASTStrNode* s);
   component_type_id_t convert_component_type(const ASTComponentNode* c);
-  MoleculeType convert_molecule_type(const ASTMoleculeNode* n);
+  MolType convert_molecule_type(const ASTMoleculeNode* n);
   void convert_and_store_molecule_types();
 
-  MoleculeInstance convert_molecule_pattern(const ASTMoleculeNode* m);
-  void convert_complex_pattern(const small_vector<const ASTMoleculeNode*>& complex_nodes, ComplexInstance& pattern);
+  MolInstance convert_molecule_pattern(const ASTMoleculeNode* m);
+  void convert_complex_pattern(const small_vector<const ASTMoleculeNode*>& complex_nodes, CplxInstance& pattern);
   void convert_rxn_rule_side(const ASTListNode* rule_side, ComplexInstanceVector& pattern);
   void convert_and_store_rxn_rules();
 

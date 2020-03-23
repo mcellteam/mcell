@@ -4,9 +4,10 @@
  *  Created on: Jan 9, 2020
  *      Author: ahusar
  */
+#include "mol_type.h"
+
 #include <iostream>
 
-#include "molecule_type.h"
 #include "bng_engine.h"
 
 using namespace std;
@@ -24,7 +25,7 @@ void ComponentType::dump(const BNGData& bng_data) const {
 
 
 // ------------- MoleculeType -------------
-void MoleculeType::dump(const BNGData& bng_data) const {
+void MolType::dump(const BNGData& bng_data) const {
   cout << name << "(";
 
   for (size_t i = 0; i < component_type_ids.size(); i++) {

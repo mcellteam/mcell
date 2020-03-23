@@ -7,10 +7,9 @@
 #include <iostream>
 
 #include "ast.h"
-#include "complex_species.h"
-
-#include "molecule_type.h"
 #include "bng_engine.h"
+#include "cplx_instance.h"
+#include "mol_type.h"
 
 using namespace std;
 
@@ -38,7 +37,7 @@ void ComponentInstance::dump(const BNGData& bng_data) const {
 
 
 // ------------- MoleculeInstance -------------
-void MoleculeInstance::initialize_components_types(const MoleculeType& mt) {
+void MolInstance::initialize_components_types(const MolType& mt) {
   for (component_type_id_t component_type_id: mt.component_type_ids) {
     // state is don't care, no bond
     component_instances.push_back(component_type_id);
@@ -47,9 +46,9 @@ void MoleculeInstance::initialize_components_types(const MoleculeType& mt) {
 
 
 // searches for component with name
-uint MoleculeInstance::get_corresponding_component_index(
+uint MolInstance::get_corresponding_component_index(
     const BNGData& bng_data,
-    const MoleculeType& mt,
+    const MolType& mt,
     const std::string& name,
     const uint starting_index
 ) const {
@@ -66,8 +65,8 @@ uint MoleculeInstance::get_corresponding_component_index(
 }
 
 
-void MoleculeInstance::dump(const BNGData& bng_data) const {
-  const MoleculeType& mt = bng_data.get_molecule_type(molecule_type_id);
+void MolInstance::dump(const BNGData& bng_data) const {
+  const MolType& mt = bng_data.get_molecule_type(mol_type_id);
   cout << mt.name << "(";
 
   for (size_t i = 0; i < component_instances.size(); i++) {
@@ -81,11 +80,11 @@ void MoleculeInstance::dump(const BNGData& bng_data) const {
 
 
 // ------------- ComplexInstance -------------
-void ComplexInstance::dump(const BNGData& bng_data) const {
-  for (size_t i = 0; i < molecule_patterns.size(); i++) {
-    molecule_patterns[i].dump(bng_data);
+void CplxInstance::dump(const BNGData& bng_data) const {
+  for (size_t i = 0; i < mol_patterns.size(); i++) {
+    mol_patterns[i].dump(bng_data);
 
-    if (i != molecule_patterns.size() - 1) {
+    if (i != mol_patterns.size() - 1) {
       cout << ".";
     }
   }

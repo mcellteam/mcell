@@ -24,18 +24,19 @@ const bond_value_t BOND_VALUE_INVALID = UINT32_MAX; // same as ID_INVALID
 const bond_value_t BOND_VALUE_ANY = UINT32_MAX - 1; // for '+' in patterns such as a!+
 const bond_value_t BOND_VALUE_NO_BOND = UINT32_MAX - 2;
 
-typedef uint molecule_type_id_t;
-const molecule_type_id_t MOLECULE_TYPE_ID_INVALID = ID_INVALID;
+typedef uint mol_type_id_t;
+const mol_type_id_t MOLECULE_TYPE_ID_INVALID = ID_INVALID;
 
 typedef uint rxn_rule_id_t;
 const rxn_rule_id_t RXN_RULE_INDEX_INVALID = ID_INVALID;
 
-typedef uint complex_species_id_t;
-const complex_species_id_t COMPONENT_SPECIES_INDEX_INVALID = ID_INVALID;
+/*
+typedef uint cplx_species_id_t;
+const cplx_species_id_t COMPLEX_SPECIES_INDEX_INVALID = ID_INVALID;
 
-typedef uint complex_instance_index_t;
-const complex_instance_index_t COMPLEX_INSTANCE_INDEX_INVALID = ID_INVALID;
-
+typedef uint cplx_instance_index_t;
+const cplx_instance_index_t COMPLEX_INSTANCE_INDEX_INVALID = ID_INVALID;
+*/
 }
 
 #endif // __BNG_DEFINES_H__

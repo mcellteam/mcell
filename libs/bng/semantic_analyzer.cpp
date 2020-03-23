@@ -6,9 +6,10 @@
  */
 
 #include "semantic_analyzer.h"
+
+#include "mol_type.h"
 #include "parser_utils.h"
 
-#include "molecule_type.h"
 
 // TODO: each semantic check has in comment the name of a test for it
 
@@ -124,8 +125,8 @@ component_type_id_t SemanticAnalyzer::convert_component_type(const ASTComponentN
 }
 
 
-MoleculeType SemanticAnalyzer::convert_molecule_type(const ASTMoleculeNode* n) {
-  MoleculeType mt;
+MolType SemanticAnalyzer::convert_molecule_type(const ASTMoleculeNode* n) {
+  MolType mt;
   mt.name = n->name;
 
   for (const ASTBaseNode* c: n->components->items) {
@@ -169,7 +170,7 @@ void SemanticAnalyzer::convert_and_store_molecule_types() {
     if (it.second->is_molecule()) {
       const ASTMoleculeNode* n = to_molecule_node(it.second);
 
-      MoleculeType mt = convert_molecule_type(n);
+      MolType mt = convert_molecule_type(n);
 
       bng_data->find_or_add_molecule_type(mt);
     }
@@ -177,20 +178,20 @@ void SemanticAnalyzer::convert_and_store_molecule_types() {
 }
 
 
-MoleculeInstance SemanticAnalyzer::convert_molecule_pattern(const ASTMoleculeNode* m) {
+MolInstance SemanticAnalyzer::convert_molecule_pattern(const ASTMoleculeNode* m) {
 
-  MoleculeInstance mp;
+  MolInstance mp;
 
   // process and remember ID
-  molecule_type_id_t molecule_type_id = bng_data->find_molecule_type_id(m->name);
+  mol_type_id_t molecule_type_id = bng_data->find_molecule_type_id(m->name);
   if (molecule_type_id == MOLECULE_TYPE_ID_INVALID) {
     errs(m) << "Molecule type with name '" + m->name + "' was not defined.\n"; // test N0200
     ctx->inc_error_count();
     return mp;
   }
 
-  const MoleculeType& mt = bng_data->get_molecule_type(molecule_type_id);
-  mp.molecule_type_id = molecule_type_id;
+  const MolType& mt = bng_data->get_molecule_type(molecule_type_id);
+  mp.mol_type_id = molecule_type_id;
 
   mp.initialize_components_types(mt);
 
@@ -268,17 +269,17 @@ MoleculeInstance SemanticAnalyzer::convert_molecule_pattern(const ASTMoleculeNod
 }
 
 // for a pattern it is ok to not to list all components
-void SemanticAnalyzer::convert_complex_pattern(const small_vector<const ASTMoleculeNode*>& complex_nodes, ComplexInstance& pattern) {
+void SemanticAnalyzer::convert_complex_pattern(const small_vector<const ASTMoleculeNode*>& complex_nodes, CplxInstance& pattern) {
 
   for (const ASTMoleculeNode* m: complex_nodes) {
     // molecule ids are based on their name
-    pattern.molecule_patterns.push_back( convert_molecule_pattern(m) );
+    pattern.mol_patterns.push_back( convert_molecule_pattern(m) );
   }
 
   // semantic checks on bonds validity
   map<bond_value_t, vector<uint> > bond_value_to_molecule_index;
-  for (uint i = 0; i < pattern.molecule_patterns.size(); i++) {
-    const MoleculeInstance& mi = pattern.molecule_patterns[i];
+  for (uint i = 0; i < pattern.mol_patterns.size(); i++) {
+    const MolInstance& mi = pattern.mol_patterns[i];
 
     for (const ComponentInstance& compi: mi.component_instances) {
       if (compi.bond_has_numeric_value()) {
@@ -332,7 +333,7 @@ void SemanticAnalyzer::convert_rxn_rule_side(const ASTListNode* rule_side, Compl
       }
 
       if (sep->is_plus()) {
-        ComplexInstance pattern;
+        CplxInstance pattern;
         convert_complex_pattern(current_complex_nodes, pattern);
         patterns.push_back(pattern);
 
@@ -351,7 +352,7 @@ void SemanticAnalyzer::convert_rxn_rule_side(const ASTListNode* rule_side, Compl
   // process final complex
   assert(current_complex_nodes.empty() == rule_side->items.empty() && "Last set can be empty only if the patterns are empty");
   if (!current_complex_nodes.empty()) {
-    ComplexInstance pattern;
+    CplxInstance pattern;
     convert_complex_pattern(current_complex_nodes, pattern);
     patterns.push_back(pattern);
   }

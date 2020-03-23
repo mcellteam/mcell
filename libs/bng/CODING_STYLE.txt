@@ -1,0 +1,10 @@
+Naming:
+
+These terms repeat very often:
+ - complex - always Cplx/cplx
+ - molecule - always Mol/mol
+ - reaction - Rxn/rxn
+ - context  - Ctx/ctx
+ 
+ - component - Component
+ 

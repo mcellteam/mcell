@@ -9,9 +9,9 @@
 #define LIBS_BNG_BNG_ENGINE_H_
 
 #include "bng_defines.h"
+#include "cplx_instance.h"
 
-#include "molecule_type.h"
-#include "complex_species.h"
+#include "mol_type.h"
 #include "rxn_rule.h"
 
 namespace BNG {
@@ -54,14 +54,14 @@ public:
   // -------- molecule types --------
 
   // indexed with molecule_type_id_t
-  std::vector<MoleculeType> molecule_types;
+  std::vector<MolType> molecule_types;
 
-  molecule_type_id_t find_or_add_molecule_type(const MoleculeType& mt);
+  mol_type_id_t find_or_add_molecule_type(const MolType& mt);
 
   // may return MOLECULE_TYPE_ID_INVALID when the name was not found
-  molecule_type_id_t find_molecule_type_id(const std::string& name) const;
+  mol_type_id_t find_molecule_type_id(const std::string& name) const;
 
-  const MoleculeType& get_molecule_type(const molecule_type_id_t id) const {
+  const MolType& get_molecule_type(const mol_type_id_t id) const {
     assert(id < molecule_types.size());
     return molecule_types[id];
   }
@@ -96,14 +96,14 @@ public:
   // checks cache - 2 types of caches can/cannot react
   // if not found, we need to decide
   void can_react(
-      complex_species_id_t a,
-      complex_species_id_t b,
-      small_vector<complex_species_id_t>& reactions
+      cplx_species_id_t a,
+      cplx_species_id_t b,
+      small_vector<cplx_species_id_t>& reactions
   );
 
   void get_reactants(
-      complex_species_id_t b,
-      small_vector<complex_species_id_t>& reactions
+      cplx_species_id_t b,
+      small_vector<cplx_species_id_t>& reactions
   );
 
   // search whether two molecules can react is done
