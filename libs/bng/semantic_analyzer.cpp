@@ -261,6 +261,10 @@ MolInstance SemanticAnalyzer::convert_molecule_pattern(const ASTMoleculeNode* m)
 
     mp.component_instances[current_component_index].bond_value = b;
 
+    // we also need to remember for further checks that this component was explicitly
+    // specified
+    mp.component_instances[current_component_index].explicitly_listed_in_pattern = true;
+
     // need to move component index because we processed this component
     current_component_index++;
   }
@@ -312,7 +316,7 @@ void SemanticAnalyzer::convert_complex_pattern(const small_vector<const ASTMolec
 
 
 // take one side of a reaction rule and create pattern for rule matching
-void SemanticAnalyzer::convert_rxn_rule_side(const ASTListNode* rule_side, ComplexInstanceVector& patterns) {
+void SemanticAnalyzer::convert_rxn_rule_side(const ASTListNode* rule_side, CplxInstanceVector& patterns) {
 
   // we need to check each molecule type from each complex
   small_vector<const ASTMoleculeNode*> current_complex_nodes;
@@ -365,10 +369,10 @@ void SemanticAnalyzer::convert_and_store_rxn_rules() {
   for (const ASTBaseNode* n: ctx->rxn_rules.items) {
     const ASTRxnRuleNode* r = to_rxn_rule_node(n);
 
-    ComplexInstanceVector reactants;
+    CplxInstanceVector reactants;
     convert_rxn_rule_side(r->reactants, reactants);
 
-    ComplexInstanceVector products;
+    CplxInstanceVector products;
     convert_rxn_rule_side(r->products, products);
 
     // determine mapping from molecule instances on one side to another

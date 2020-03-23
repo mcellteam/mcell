@@ -32,7 +32,7 @@ private:
 
   MolInstance convert_molecule_pattern(const ASTMoleculeNode* m);
   void convert_complex_pattern(const small_vector<const ASTMoleculeNode*>& complex_nodes, CplxInstance& pattern);
-  void convert_rxn_rule_side(const ASTListNode* rule_side, ComplexInstanceVector& pattern);
+  void convert_rxn_rule_side(const ASTListNode* rule_side, CplxInstanceVector& pattern);
   void convert_and_store_rxn_rules();
 
   // map between information from molecule types and AST nodes

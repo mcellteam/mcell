@@ -25,7 +25,12 @@ struct CplxMolIndex {
 
   uint cplx_index;
   uint mol_index;
+
+  bool operator==(const CplxMolIndex& cmi2) const {
+    return cplx_index == cmi2.cplx_index && mol_index == cmi2.mol_index;
+  }
 };
+
 
 struct CMIndexPair {
   CMIndexPair(
@@ -35,7 +40,12 @@ struct CMIndexPair {
 
   CplxMolIndex reactant_cmi;
   CplxMolIndex product_cmi;
+
+  bool operator==(const CMIndexPair& cmi_pair2) const {
+    return reactant_cmi == cmi_pair2.reactant_cmi && product_cmi == cmi_pair2.product_cmi;
+  }
 };
+
 
 // BNG reaction rule
 // rules are only unidirectional,
@@ -50,8 +60,8 @@ public:
   // there is a potential for optimizations, e.g.
   // to make a set of species that match the patterns, but let's keep it
   // for later
-  ComplexInstanceVector reactants;
-  ComplexInstanceVector products;
+  CplxInstanceVector reactants;
+  CplxInstanceVector products;
 
   // set to true if it was possible to do a mapping between reactants and products
   bool mol_instances_are_maintained;
@@ -64,13 +74,13 @@ public:
 
   float_t rxn_rate;
 
-  const MolInstance& get_reactant_mol(const CplxMolIndex& cmi) {
+  const MolInstance& get_reactant_mol_inst(const CplxMolIndex& cmi) const {
     assert(cmi.cplx_index <= reactants.size());
     assert(cmi.mol_index <= reactants[cmi.cplx_index].mol_patterns.size());
     return reactants[cmi.cplx_index].mol_patterns[cmi.mol_index];
   }
 
-  const MolInstance& get_product_mol(const CplxMolIndex& cmi) {
+  const MolInstance& get_product_mol_inst(const CplxMolIndex& cmi) const {
     assert(cmi.cplx_index <= products.size());
     assert(cmi.mol_index <= products[cmi.cplx_index].mol_patterns.size());
     return products[cmi.cplx_index].mol_patterns[cmi.mol_index];
@@ -94,18 +104,19 @@ public:
   bool compute_reactants_products_mapping(std::stringstream& msgs);
 
 private:
-  // returns nullptr if cmi was not found in mapping
-  CplxMolIndex* get_assigned_reactant_for_product(CplxMolIndex& product_cmi);
+  // returns false if cmi was not found in mapping,
+  bool find_assigned_reactant_for_product(CplxMolIndex& product_cmi, const CplxMolIndex& reactant_cmi) const;
 
   // check if it makes sense to compute mapping at all
-  bool has_same_molecules_in_reactants_and_products();
+  bool has_same_molecules_in_reactants_and_products() const;
 
-  void find_most_fitting_unassigned_product(CplxMolIndex& cmi);
+  // returns false if no fitting product was found
+  bool find_most_fitting_unassigned_product(const CplxMolIndex& reactant_cmi, CplxMolIndex& best_product_cmi) const;
 
 
   void dump_complex_instance_vector(
       const BNGData& bng_data,
-      const ComplexInstanceVector& complexes) const;
+      const CplxInstanceVector& complexes) const;
 };
 
 } /* namespace BNG */

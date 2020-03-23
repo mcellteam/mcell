@@ -28,7 +28,8 @@ class BNGData;
 class ComponentInstance {
 public:
   ComponentInstance(const component_type_id_t id)
-    : component_type_id(id), state_id(STATE_ID_DONT_CARE), bond_value(BOND_VALUE_ANY) {
+    : component_type_id(id), state_id(STATE_ID_DONT_CARE), bond_value(BOND_VALUE_ANY),
+      explicitly_listed_in_pattern(false) {
   }
 
   // type id can be also found from parent's MoleculeInstance::molecule_type_id
@@ -42,6 +43,9 @@ public:
   // BOND_VALUE_ANY for patterns (+),
   // BOND_VALUE_NO_BOND if this component has no bond
   bond_value_t bond_value;
+
+  // true if this component was explicitly listed in a pattern
+  bool explicitly_listed_in_pattern;
 
   bool operator ==(const ComponentInstance& comp2) const  {
     return
@@ -109,7 +113,7 @@ public:
 
 // maybe some derived class for instances?
 
-typedef small_vector<CplxInstance> ComplexInstanceVector;
+typedef small_vector<CplxInstance> CplxInstanceVector;
 
 } /* namespace BNG */
 
