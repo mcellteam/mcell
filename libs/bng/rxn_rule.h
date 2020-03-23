@@ -9,6 +9,7 @@
 #define LIBS_BNG_RXN_RULE_H_
 
 #include <string>
+#include <iostream>
 
 #include "bng_defines.h"
 
@@ -19,6 +20,10 @@ namespace BNG {
 class BNGData;
 
 struct CplxMolIndex {
+  CplxMolIndex()
+  : cplx_index(INDEX_INVALID), mol_index(INDEX_INVALID) {
+  }
+
   CplxMolIndex(const uint complex_index_, const uint molecule_index_)
     : cplx_index(complex_index_), mol_index(molecule_index_) {
   }
@@ -101,11 +106,11 @@ public:
   // sets members molecule_instances_are_maintained and mapping,
   // might write some error messages to the msgs stream,
   // returns true if errors were encountered
-  bool compute_reactants_products_mapping(std::stringstream& msgs);
+  bool compute_reactants_products_mapping(const BNGData& bng_data, std::ostream& out);
 
 private:
   // returns false if cmi was not found in mapping,
-  bool find_assigned_reactant_for_product(CplxMolIndex& product_cmi, const CplxMolIndex& reactant_cmi) const;
+  bool find_assigned_reactant_for_product(const CplxMolIndex& product_cmi, CplxMolIndex& reactant_cmi) const;
 
   // check if it makes sense to compute mapping at all
   bool has_same_molecules_in_reactants_and_products() const;

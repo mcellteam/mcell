@@ -30,10 +30,11 @@ const mol_type_id_t MOLECULE_TYPE_ID_INVALID = ID_INVALID;
 typedef uint rxn_rule_id_t;
 const rxn_rule_id_t RXN_RULE_INDEX_INVALID = ID_INVALID;
 
-/*
+
 typedef uint cplx_species_id_t;
 const cplx_species_id_t COMPLEX_SPECIES_INDEX_INVALID = ID_INVALID;
 
+/*
 typedef uint cplx_instance_index_t;
 const cplx_instance_index_t COMPLEX_INSTANCE_INDEX_INVALID = ID_INVALID;
 */

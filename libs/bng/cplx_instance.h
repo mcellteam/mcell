@@ -8,6 +8,8 @@
 #ifndef LIBS_BNG_CPLX_INSTANCE_H_
 #define LIBS_BNG_CPLX_INSTANCE_H_
 
+#include <iostream>
+
 #include "bng_defines.h"
 
 // rename this to complex instance?
@@ -59,7 +61,12 @@ public:
     return bond_value != BOND_VALUE_ANY && bond_value != BOND_VALUE_NO_BOND;
   }
 
-  void dump(const BNGData& bng_data) const;
+  bool state_is_set() const {
+    assert(state_id != STATE_ID_INVALID);
+    return state_id != STATE_ID_DONT_CARE;
+  }
+
+  void dump(const BNGData& bng_data, std::ostream& out = std::cout) const;
 };
 
 
@@ -90,7 +97,7 @@ public:
       const uint starting_index
   ) const;
 
-  void dump(const BNGData& bng_data) const;
+  void dump(const BNGData& bng_data, const bool only_explicit = false, std::ostream& out = std::cout) const;
 };
 
 // this class is used in two ways:

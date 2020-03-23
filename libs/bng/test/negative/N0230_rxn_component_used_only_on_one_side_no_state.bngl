@@ -1,5 +1,6 @@
 # FAIL
-# OUTPUT: error: Bond with numerical value '1' must bind different molecules of a complex pattern of a rule.
+# OUTPUT: error: Did not find a matching molecule in products for reactant molecule A(a,p) listed as complex 0 and molecule 0. (in the forward direction, indices are counted from 0)
+# OUTPUT: error: Did not find a matching molecule in products for reactant molecule A(a!1) listed as complex 0 and molecule 1. (in the reverse direction, indices are counted from 0)
 # 
 # NOTE: BNG2.pl reports Molecule created in reaction rule: Component(s) p missing from molecule A(a!1)
 

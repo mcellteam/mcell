@@ -16,7 +16,7 @@ namespace BNG {
 
 
 
-bool RxnRule::find_assigned_reactant_for_product(CplxMolIndex& product_cmi, const CplxMolIndex& reactant_cmi) const {
+bool RxnRule::find_assigned_reactant_for_product(const CplxMolIndex& product_cmi, CplxMolIndex& reactant_cmi) const {
   // this is not a time critical search
   for (const CMIndexPair& cmi_pair: mapping) {
     if (product_cmi == cmi_pair.product_cmi) {
@@ -28,10 +28,9 @@ bool RxnRule::find_assigned_reactant_for_product(CplxMolIndex& product_cmi, cons
 }
 
 
-// score:
-//  - start with -1
-//  - components must the same
-//  - each fitting state: +1
+// Finds a matching already not assigned product,
+// the product must be
+// NOTE: BNGL2.pl provides more detailed reporting, see tests N220, N230-N232
 bool RxnRule::find_most_fitting_unassigned_product(const CplxMolIndex& reactant_cmi, CplxMolIndex& best_product_cmi) const {
   const MolInstance& reactant_mol_inst = get_reactant_mol_inst(reactant_cmi);
 
@@ -57,9 +56,9 @@ bool RxnRule::find_most_fitting_unassigned_product(const CplxMolIndex& reactant_
       }
 
       // ok, this product was not mapped yet
-      uint num_explicitly_listed_components_in_reactant = 0;
-      uint num_same_explicitly_listed_components = 0;
-      uint num_same_component_states = 0; // when the components are expl. listed
+      int num_explicitly_listed_components_in_reactant = 0;
+      int num_same_explicitly_listed_components = 0;
+      int num_same_component_states = 0; // when the components are expl. listed
 
       assert(reactant_mol_inst.component_instances.size() == product_mol_inst.component_instances.size());
       for (uint i = 0; i < reactant_mol_inst.component_instances.size(); i++) {
@@ -71,12 +70,20 @@ bool RxnRule::find_most_fitting_unassigned_product(const CplxMolIndex& reactant_
         if (reactant_comp_inst.explicitly_listed_in_pattern) {
           num_explicitly_listed_components_in_reactant++;
 
-          if (product_comp_inst.explicitly_listed_in_pattern) {
+          // the same component must be explicitly listed and
+          // if state is specified, it must be set on both sides
+          if (product_comp_inst.explicitly_listed_in_pattern &&
+              reactant_comp_inst.state_is_set() == product_comp_inst.state_is_set())  {
+
             num_same_explicitly_listed_components++;
             if (reactant_comp_inst.state_id == product_comp_inst.state_id) {
               num_same_component_states++;
             }
           }
+        }
+        else if (product_comp_inst.explicitly_listed_in_pattern) {
+          // component is not listed in reactants, just in products
+          num_same_explicitly_listed_components--;
         }
       }
 
@@ -90,7 +97,13 @@ bool RxnRule::find_most_fitting_unassigned_product(const CplxMolIndex& reactant_
     }
   }
 
-  return best_cmi;
+  if (best_score != -1) {
+    best_product_cmi = best_cmi;
+    return true;
+  }
+  else {
+    return false;
+  }
 }
 
 
@@ -105,18 +118,18 @@ bool RxnRule::has_same_molecules_in_reactants_and_products() const {
         reactant_types[mi.mol_type_id]++;
       }
       else {
-        reactant_types[mi.mol_type_id] = 0;
+        reactant_types[mi.mol_type_id] = 1;
       }
     }
   }
 
   for (const CplxInstance& ci: products) {
     for (const MolInstance& mi: ci.mol_patterns) {
-      if (reactant_types.count(mi.mol_type_id)) {
+      if (product_types.count(mi.mol_type_id)) {
         product_types[mi.mol_type_id]++;
       }
       else {
-        product_types[mi.mol_type_id] = 0;
+        product_types[mi.mol_type_id] = 1;
       }
     }
   }
@@ -126,11 +139,11 @@ bool RxnRule::has_same_molecules_in_reactants_and_products() const {
 
 
 
-bool RxnRule::compute_reactants_products_mapping(const BNGData* bng_data, std::stringstream& msgs) {
+bool RxnRule::compute_reactants_products_mapping(const BNGData& bng_data, std::ostream& out) {
 
   if (!has_same_molecules_in_reactants_and_products()) {
     mol_instances_are_maintained = false;
-    return false;
+    return true; // this is ok because molecules are transformed in this rule
   }
 
 
@@ -145,14 +158,12 @@ bool RxnRule::compute_reactants_products_mapping(const BNGData* bng_data, std::s
         mapping.push_back(CMIndexPair(reactant_cmi, product_cmi));
       }
       else {
-        // TODO: tests
-        // error
         const MolInstance& mol_inst = get_reactant_mol_inst(reactant_cmi);
 
-        const MolType& mol_type = bng_data->get_molecule_type(mol_inst.mol_type_id);
-        // TODO: dump how exactly the pattern looks like and its indices
-        msgs << "Did not find a matching molecule in products for reactant molecule ";//  << mol_type.name << ", " <<
-            //the pattern looks
+        out << "Did not find a matching molecule in products for reactant molecule ";
+        mol_inst.dump(bng_data, true, out);
+        out << " listed as complex " << reactant_cmi.cplx_index << " and molecule " << reactant_cmi.mol_index << ".";
+
         return false;
       }
 

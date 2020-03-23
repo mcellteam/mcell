@@ -5,13 +5,15 @@
  *      Author: ahusar
  */
 
+#include <sstream>
+
 #include "semantic_analyzer.h"
 
 #include "mol_type.h"
 #include "parser_utils.h"
 
 
-// TODO: each semantic check has in comment the name of a test for it
+// each semantic check has in comment the name of a test for it
 
 using namespace std;
 
@@ -363,6 +365,18 @@ void SemanticAnalyzer::convert_rxn_rule_side(const ASTListNode* rule_side, CplxI
 }
 
 
+void SemanticAnalyzer::finalize_and_store_rxn_rule(const ASTRxnRuleNode* n, RxnRule& r, const char* direction_str) {
+  // determine mapping from molecule instances on one side to another
+  stringstream out;
+  bool ok = r.compute_reactants_products_mapping(*bng_data, out);
+  if (!ok) {
+    errs(n) << out.str() << " (in the " << direction_str << " direction, indices are counted from 0)\n";
+    ctx->inc_error_count();
+  }
+
+  bng_data->find_or_add_rxn_rule(r);
+}
+
 void SemanticAnalyzer::convert_and_store_rxn_rules() {
 
   // for each reaction rule
@@ -375,18 +389,6 @@ void SemanticAnalyzer::convert_and_store_rxn_rules() {
     CplxInstanceVector products;
     convert_rxn_rule_side(r->products, products);
 
-    // determine mapping from molecule instances on one side to another
-    // -> only for case when we are not creating or
-
-    //TODO: can we somehow check component usage?
-    // e.g. is this an allowed rule:
-    // A(a)
-
-    // ERROR: Molecule created in reaction rule: Component(s) p missing from molecule A(a!1)
-
-    // Component with state attribute defined in reactant pattern cannot map to component with undefined state attribute in product pattern
-
-
     RxnRule fwd_rule;
     fwd_rule.name = r->name;
     assert(r->rates->items.size() >= 1);
@@ -394,8 +396,7 @@ void SemanticAnalyzer::convert_and_store_rxn_rules() {
     fwd_rule.reactants = reactants;
     fwd_rule.products = products;
 
-
-    bng_data->find_or_add_rxn_rule(fwd_rule);
+    finalize_and_store_rxn_rule(r, fwd_rule, "forward");
 
     if (r->reversible) {
       RxnRule rev_rule;
@@ -413,7 +414,7 @@ void SemanticAnalyzer::convert_and_store_rxn_rules() {
       rev_rule.reactants = products;
       rev_rule.products = reactants;
 
-      bng_data->find_or_add_rxn_rule(rev_rule);
+      finalize_and_store_rxn_rule(r, rev_rule, "reverse");
     }
   }
 }

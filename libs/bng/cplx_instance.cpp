@@ -16,22 +16,22 @@ using namespace std;
 namespace BNG {
 
 // ------------- ComponentInstance -------------
-void ComponentInstance::dump(const BNGData& bng_data) const {
+void ComponentInstance::dump(const BNGData& bng_data, ostream& out) const {
 
   const ComponentType& ct = bng_data.get_component_type(component_type_id);
-  cout << ct.name;
+  out << ct.name;
 
   assert(state_id != STATE_ID_INVALID);
   if (state_id != STATE_ID_DONT_CARE) {
-    cout << "~" << bng_data.get_state_name(state_id);
+    out << "~" << bng_data.get_state_name(state_id);
   }
 
   assert(state_id != BOND_VALUE_INVALID);
   if (bond_value == BOND_VALUE_ANY) {
-    cout << "!" + BOND_STR_ANY;
+    out << "!" + BOND_STR_ANY;
   }
   else if (bond_value != BOND_VALUE_NO_BOND) {
-    cout << "!"  << bond_value;
+    out << "!"  << bond_value;
   }
 }
 
@@ -65,17 +65,24 @@ uint MolInstance::get_corresponding_component_index(
 }
 
 
-void MolInstance::dump(const BNGData& bng_data) const {
+void MolInstance::dump(const BNGData& bng_data, const bool only_explicit, ostream& out) const {
   const MolType& mt = bng_data.get_molecule_type(mol_type_id);
-  cout << mt.name << "(";
+  out << mt.name << "(";
 
+  bool first_component = true;
   for (size_t i = 0; i < component_instances.size(); i++) {
-    component_instances[i].dump(bng_data);
-    if (i != component_instances.size() - 1) {
-      cout << ", ";
+
+    if (!only_explicit || component_instances[i].explicitly_listed_in_pattern) {
+      if (!first_component) {
+        out << ",";
+      }
+
+      component_instances[i].dump(bng_data, out);
+
+      first_component = false;
     }
   }
-  cout << ")";
+  out << ")";
 }
 
 
