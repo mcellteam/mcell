@@ -28,41 +28,15 @@
 namespace MCell {
 namespace API {
 
-SemRes GenSpecies::check_semantics(std::ostream& out) const{
-  if (!is_set(name)) {
-    out << get_object_name() << ": Parameter 'name' must be set.\n";
-    return SemRes::ERROR;
-  }
-  return SemRes::OK;
-}
-
-std::string GenSpecies::to_str() const{
-  std::stringstream ss;
-  ss << get_object_name() << ": " <<
-      "name=" << name << ", " <<
-      "diffusion_constant_3d=" << diffusion_constant_3d << ", " <<
-      "diffusion_constant_2d=" << diffusion_constant_2d;
-  return ss.str();
-}
-
-void define_pybinding_Species(py::module& m) {
-  py::class_<Species>(m, "Species")
+void define_pybinding_InstantiationData(py::module& m) {
+  py::class_<InstantiationData>(m, "InstantiationData")
       .def(
           py::init<
-            const std::string&,
-            const float_t,
-            const float_t
+
           >(),
-          py::arg("name"),
-          py::arg("diffusion_constant_3d") = FLT_UNSET,
-          py::arg("diffusion_constant_2d") = FLT_UNSET
+
         )
-      .def("check_semantics", &Species::check_semantics_cerr)
-      .def("__str__", &Species::to_str)
-      .def("dump", &Species::dump)
-      .def_property("name", &Species::get_name, &Species::set_name)
-      .def_property("diffusion_constant_3d", &Species::get_diffusion_constant_3d, &Species::set_diffusion_constant_3d)
-      .def_property("diffusion_constant_2d", &Species::get_diffusion_constant_2d, &Species::set_diffusion_constant_2d)
+      .def("dump", &InstantiationData::dump)
     ;
 }
 

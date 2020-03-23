@@ -21,7 +21,7 @@
  *
 ******************************************************************************/
 
-// This file was generated automatically on 03/17/2020, 12:05 from 'data_classes.yaml'
+// This file was generated automatically on 03/23/2020, 15:47 from 'data_classes.yaml'
 
 #ifndef API_GEN_RELEASE_SITE_H
 #define API_GEN_RELEASE_SITE_H
@@ -51,20 +51,12 @@ namespace API {
       release_probability = release_probability_; \
     }
 
-class GenReleaseSite: public BaseDataClass{
+class GenReleaseSite: public BaseDataClass {
 public:
   SemRes check_semantics(std::ostream& out) const override;
   std::string to_str() const override;
 
   // --- attributes ---
-  std::string name;
-  virtual void set_name(const std::string& new_name_) {
-    name = new_name_;
-  }
-  virtual const std::string& get_name() const {
-    return name;
-  }
-
   std::string shape;
   virtual void set_shape(const std::string& new_shape_) {
     shape = new_shape_;
@@ -113,6 +105,7 @@ public:
     return release_probability;
   }
 
+  // --- methods ---
 }; // GenReleaseSite
 
 void define_pybinding_ReleaseSite(py::module& m);

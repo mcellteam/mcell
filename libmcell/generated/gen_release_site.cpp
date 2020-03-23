@@ -21,7 +21,7 @@
  *
 ******************************************************************************/
 
-// This file was generated automatically on 03/17/2020, 12:05 from 'data_classes.yaml'
+// This file was generated automatically on 03/23/2020, 15:47 from 'data_classes.yaml'
 
 #include <sstream>
 #include "../api/mcell.h"

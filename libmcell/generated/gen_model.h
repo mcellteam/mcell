@@ -23,53 +23,25 @@
 
 // This file was generated automatically on 03/23/2020, 15:47 from 'data_classes.yaml'
 
-#ifndef API_GEN_SPECIES_H
-#define API_GEN_SPECIES_H
+#ifndef API_GEN_MODEL_H
+#define API_GEN_MODEL_H
 
 #include "../api/mcell.h"
 
 namespace MCell {
 namespace API {
 
-#define SPECIES_CTOR() \
-    Species( \
-        const std::string& name_, \
-        const float_t diffusion_constant_3d_ = FLT_UNSET, \
-        const float_t diffusion_constant_2d_ = FLT_UNSET \
-    ) { \
-      class_name = "Species"; \
-      name = name_; \
-      diffusion_constant_3d = diffusion_constant_3d_; \
-      diffusion_constant_2d = diffusion_constant_2d_; \
-    }
-
-class GenSpecies: public BaseDataClass {
+class GenModel {
 public:
-  SemRes check_semantics(std::ostream& out) const override;
-  std::string to_str() const override;
-
   // --- attributes ---
-  float_t diffusion_constant_3d;
-  virtual void set_diffusion_constant_3d(const float_t new_diffusion_constant_3d_) {
-    diffusion_constant_3d = new_diffusion_constant_3d_;
-  }
-  virtual float_t get_diffusion_constant_3d() const {
-    return diffusion_constant_3d;
-  }
-
-  float_t diffusion_constant_2d;
-  virtual void set_diffusion_constant_2d(const float_t new_diffusion_constant_2d_) {
-    diffusion_constant_2d = new_diffusion_constant_2d_;
-  }
-  virtual float_t get_diffusion_constant_2d() const {
-    return diffusion_constant_2d;
-  }
-
   // --- methods ---
-}; // GenSpecies
+  virtual void run_iterations(const unsigned long long* iterations) = 0;
+  virtual void add_subsystem(const Subsystem* sybsystem) = 0;
+  virtual void add_instantiation_data(const InstantiationData* instantiation_data) = 0;
+}; // GenModel
 
-void define_pybinding_Species(py::module& m);
+void define_pybinding_Model(py::module& m);
 } // namespace API
 } // namespace MCell
 
-#endif // API_GEN_SPECIES_H
+#endif // API_GEN_MODEL_H

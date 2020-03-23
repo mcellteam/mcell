@@ -1,4 +1,10 @@
+# TODO: rename - this file contains also dynamic API definition
+
+# Static API definition 
+# - classes whose objects represent the static state of the model
+
 Species:
+    superclass: BaseDataClass
     items:
         - name: name
           type: str
@@ -22,6 +28,7 @@ Species:
 
 # need to read items in order 
 ReleaseSite:
+    superclass: BaseDataClass
     items:
         - name: name
           type: str
@@ -56,4 +63,86 @@ ReleaseSite:
         - name: release_probability
           type: float
           default: null       
+
             
+GeometryObject:
+    superclass: BaseDataClass
+    items:
+        - name: name
+          type: str
+          doc: Name of the object
+          
+          
+# Dynamic API definition
+#
+# - the section below defines classes with their methods 
+# - the assumption is that the dynamic API does not change so often
+# 
+# - base classes are generated as a check for API consistency
+# - we will need to manually override all the methods, so this might seem as a double work,
+#   but with pybind011 we would be forced to repeat the work anyway and it would not help with 
+#   documentation generation 
+# 
+# distinguish data and manipulation classes?
+# 
+Subsystem:    
+    methods:
+        - name: add_species
+          params:
+              - name: s
+                type: Species
+
+        - name: find_species   # 'find' prefix is always used when the  
+          return_type: Species
+          params:
+              - name: name
+                type: str
+                
+
+InstantiationData:
+    methods:
+        - name: add_release_site
+          params:
+              - name: s
+                type: Species            
+
+        - name: find_release_site
+          return_type: ReleaseSite
+          params:
+              - name: name
+                type: str            
+
+        - name: add_geometry_object
+          params:
+              - name: o
+                type: GeometryObject           
+
+        - name: find_geometry_object
+          params:
+              - name: name
+                type: str            
+            
+            
+Model:
+     # inheritance information is provided only for the API generation,
+     # on the C++ level, inheritance is done manually 
+    inherits_methods_from: 
+        - name: Subsystem
+        - name: Instantiation
+        
+    methods:
+        - name: run_iterations
+          params:
+              - name: iterations
+                type: unsigned long long
+          
+        - name: add_subsystem
+          params:
+              - name: sybsystem
+                type: Subsystem
+                
+        - name: add_instantiation_data
+          params:
+              - name: instantiation_data
+                type: InstantiationData
+                

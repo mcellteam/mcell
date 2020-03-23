@@ -3,13 +3,12 @@
 #define API_COMMON_H
 
 #include <ostream>
-
-#include "defines.h"
-
+#include <string>
 #include <pybind11/pybind11.h>
 
 namespace py = pybind11;
-#include <string>
+
+#include "defines.h"
 
 namespace MCell {
 namespace API {
