@@ -1,7 +1,6 @@
 # OK
-# OUTPUT: TODO
 # 
-# NOTE: BNG2.pl passes, although for N0220 it reports error 
+# NOTE: BNG2.pl passes, related to tests N0220 and N023*  
 
 begin parameters
    kp 0.00001
