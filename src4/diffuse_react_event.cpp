@@ -163,7 +163,7 @@ void DiffuseReactEvent::diffuse_single_molecule(
 
 
 #ifdef DEBUG_DIFFUSION
-  const Species& debug_species = p.all_species.get(m.species_id);
+  const Species& debug_species = p.bng_engine.all_species.get(m.species_id);
   float_t event_time_end = event_time + diffusion_time_step;
   DUMP_CONDITION4(
     // the subtraction of diffusion_time_step doesn't make much sense but is needed to make the dump the same as in mcell3
@@ -255,7 +255,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
     WallTileIndexPair& wall_tile_pair_where_created_this_iteration
 ) {
   Molecule& m = p.get_m(vm_id);
-  const Species& species = p.all_species.get(m.species_id);
+  const Species& species = p.bng_engine.all_species.get(m.species_id);
 
   // diffuse each molecule - get information on position change
   Vec3 displacement;
@@ -779,7 +779,7 @@ void DiffuseReactEvent::diffuse_surf_molecule(
     const float_t diffusion_start_time
 ) {
   Molecule& sm = p.get_m(sm_id);
-  const Species& species = p.all_species.get(sm.species_id);
+  const Species& species = p.bng_engine.all_species.get(sm.species_id);
 
   float_t steps = 0.0;
   float_t t_steps = 0.0;
@@ -955,7 +955,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
     return true;
   }
 
-  const Species& sm_species = p.all_species.get(sm.species_id);
+  const Species& sm_species = p.bng_engine.all_species.get(sm.species_id);
 
 
   size_t l = 0;
@@ -977,7 +977,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
     }
 
     Molecule& nsm = p.get_m(nid);
-    const Species& nsm_species = p.all_species.get(nsm.species_id);
+    const Species& nsm_species = p.bng_engine.all_species.get(nsm.species_id);
 
 #ifdef DEBUG_REACTIONS
     DUMP_CONDITION4(
@@ -1391,7 +1391,7 @@ int DiffuseReactEvent::find_surf_product_positions(
     const Rxn* rxn,
     small_vector<GridPos>& assigned_surf_product_positions) {
 
-  uint needed_surface_positions = rxn->get_num_surf_products(p.all_species);
+  uint needed_surface_positions = rxn->get_num_surf_products(p.bng_engine.all_species);
 
   small_vector<GridPos> recycled_surf_prod_positions; // this array contains information on where to place the surface products
   uint initiator_recycled_index = INDEX_INVALID;
@@ -1594,13 +1594,13 @@ int DiffuseReactEvent::outcome_products_random(
     }
     assert(p.bng_engine.matches_ignore_orientation(rx->reactants[1], reacB->species_id));
 
-    keep_reacB = rx->is_reactant_on_both_sides_of_rxn(1);
+    keep_reacB = rx->is_cplx_reactant_on_both_sides_of_rxn(1);
   }
   else {
     surf_reac = reacA->is_surf() ? reacA : nullptr;
   }
   assert(p.bng_engine.matches_ignore_orientation(rx->reactants[0], reacA->species_id));
-  keep_reacA = rx->is_reactant_on_both_sides_of_rxn(0);
+  keep_reacA = rx->is_cplx_reactant_on_both_sides_of_rxn(0);
 
   bool is_orientable = reacA->is_surf() || (reacB != nullptr && reacB->is_surf());
 
@@ -1654,13 +1654,14 @@ int DiffuseReactEvent::outcome_products_random(
     // do not create anything new when the reactant is kept -
     // for bimol reactions - the diffusion simply continues
     // for unimol reactions - the unimol action action starts diffusion for the remaining timestep
-    if (rx->is_reactant_on_both_sides_of_rxn(product_index) /*product.is_on_both_sides_of_rxn()*/) {
+    if (rx->is_cplx_reactant_on_both_sides_of_rxn(product_index) /*product.is_on_both_sides_of_rxn()*/) {
       // remember which reactant(s) to keep?
       continue;
     }
 
-    species_id_t product_species_id = p.bng_engine.get_rxn_product_species_id(rx, product_index); // p.all_species.get(product.species_id);
-    const Species& species = p.all_species.get(product_species_id);
+    species_id_t product_species_id = p.bng_engine.get_rxn_product_species_id(
+        rx, product_index, reacA->species_id, (reacB != nullptr) ? reacB->species_id : SPECIES_ID_INVALID); // p.all_species.get(product.species_id);
+    const Species& species = p.bng_engine.all_species.get(product_species_id);
 
     molecule_id_t new_m_id;
 
@@ -1822,7 +1823,7 @@ bool DiffuseReactEvent::outcome_unimolecular(
 
   // and defunct this molecule if it was not kept
   assert(unimol_rx->reactants.size() == 1);
-  if (!unimol_rx->is_reactant_on_both_sides_of_rxn(0)) {
+  if (!unimol_rx->is_cplx_reactant_on_both_sides_of_rxn(0)) {
   #ifdef DEBUG_REACTIONS
     DUMP_CONDITION4(
       m_new_ref.dump(p, "", m_new_ref.is_vol() ? "Unimolecular vm defunct:" : "Unimolecular sm defunct:", world->get_current_iteration(), scheduled_time, false);

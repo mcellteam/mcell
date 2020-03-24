@@ -11,6 +11,7 @@
 #include "bng_defines.h"
 #include "bng_data.h"
 #include "cplx_instance.h"
+#include "species_container.h"
 #include "mol_type.h"
 #include "rxn_rule.h"
 
@@ -21,6 +22,10 @@ namespace BNG {
 // the contents might change a lot during execution and string comparison
 // on using BNGL components we still have a way how to unify all the instances
 // might need to be a template as well
+//
+// template - compilation time might get bad, because we need to include this every time
+// need other helper classes or functions to hide the implementation
+template<class SpeciesT>
 class BNGEngine {
 
 public:
@@ -40,7 +45,11 @@ public:
   );
 
 
-  species_id_t get_rxn_product_species_id(const RxnRule* rxn, const uint product_index);
+  species_id_t get_rxn_product_species_id(
+      const RxnRule* rxn, const uint product_index,
+      const species_id_t reactant_a_species_id, const species_id_t reactant_b_species_id
+  );
+
   //component_index_t next_component_index;
 
   // checks cache - 2 types of caches can/cannot react
@@ -67,11 +76,34 @@ public:
     return data;
   }
 
+  // make private?
+  SpeciesContainer<SpeciesT> all_species;
+
   // cache of complex species indices that can interact together
 private:
+  // data entered by user also with reactions
   BNGData data;
+
 };
 
+
+template<class SpeciesT>
+species_id_t BNGEngine<SpeciesT>::get_rxn_product_species_id(
+    const RxnRule* rxn, const uint product_index,
+    const species_id_t reactant_a_species_id, const species_id_t reactant_b_species_id
+) {
+  // limited for now, no components allowed
+  const CplxInstance& product = rxn->get_cplx_product(product_index);
+
+  assert(product.is_simple() && "TODO");
+
+  // do we have such species already or we must define a new set?
+
+  // TODO: !!! where is the list of species? -> SpeciesInfo...
+  // BNG engine must be a template as well,
+  //
+  return SPECIES_ID_INVALID;
+}
 
 
 } /* namespace BNG */

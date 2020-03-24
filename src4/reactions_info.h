@@ -29,6 +29,8 @@
 #include "molecule.h"
 #include "reaction.h"
 
+#include "bng/bng.h"
+
 namespace MCell {
 
 class RxnClass;
@@ -67,7 +69,8 @@ public:
     all_surface_molecules_species_id = id;
   }
 
-  void init(const SpeciesInfo& all_species);
+  // TODO: remove
+  void init(const BNG::SpeciesContainer<Species>& all_species);
 
   bool is_initialized() const {
     return initialized;

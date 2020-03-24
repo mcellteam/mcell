@@ -49,15 +49,13 @@ public:
       const Vec3 origin_,
       const SimulationConfig& config_,
       const ReactionsInfo& reactions_,
-      const SpeciesInfo& species_,
-      BNG::BNGEngine& bng_engine_,
+      BNG::BNGEngine<Species>& bng_engine_,
       SimulationStats& stats_
   )
     : origin_corner(origin_),
       next_molecule_id(0),
       config(config_),
-      all_reactions(reactions_),
-      all_species(species_),
+      all_reactions(reactions_), // all_reactions need to be removed
       bng_engine(bng_engine_),
       stats(stats_) {
 
@@ -68,7 +66,8 @@ public:
     volume_molecule_reactants_per_subpart.resize(num_subparts);
     walls_per_subpart.resize(num_subparts);
 
-    size_t num_species = all_species.get_count();
+    assert(false && "need to have dynamic size for these maps");
+    size_t num_species = bng_engine.all_species.get_count();
     for (auto& reactants : volume_molecule_reactants_per_subpart) {
       reactants.resize(num_species);
     }
@@ -241,7 +240,7 @@ private:
   // adds it to all relevant structures
   Molecule& add_molecule(const Molecule& vm_copy, const bool is_vol) {
 
-    const Species& species = all_species.get(vm_copy.species_id);
+    const Species& species = bng_engine.all_species.get(vm_copy.species_id);
     assert((is_vol && species.is_vol()) || (!is_vol && species.is_surf()));
     uint32_t time_step_index = get_or_add_molecule_list_index_for_time_step(species.time_step);
 
@@ -592,9 +591,8 @@ public:
   // all these reference an object owned by a single World instance
   // enclose into something?
   const SimulationConfig& config;
-  const ReactionsInfo& all_reactions; // ??
-  const SpeciesInfo& all_species; // species_info? - species is both singular and plural...
-  BNG::BNGEngine& bng_engine;
+  const ReactionsInfo& all_reactions; // remove..
+  BNG::BNGEngine<Species>& bng_engine;
   SimulationStats& stats;
 };
 

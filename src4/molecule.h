@@ -67,6 +67,7 @@ class Partition;
 
 
 enum molecule_flag_t {
+  // volume/surface information is only cached from BNG CplxInstance
   MOLECULE_FLAG_SURF = 1 << 0, // originally TYPE_SURF
   MOLECULE_FLAG_VOL = 1 << 1, // originally TYPE_VOL
 
@@ -78,6 +79,8 @@ enum molecule_flag_t {
 /**
  * Base class for all molecules.
  */
+// BNG: do we need more information from BNG or species suffices?
+// TODO: remove orientation -> get this info from species
 class Molecule {
 public:
   Molecule()

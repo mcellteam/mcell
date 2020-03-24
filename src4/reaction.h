@@ -105,7 +105,7 @@ public:
 
   //std::vector<SpeciesWithOrientation> products;
 
-  uint get_num_surf_products(const SpeciesInfo& all_species) const;
+  uint get_num_surf_products(const BNG::SpeciesContainer<Species>& all_species) const;
 
   uint get_num_players() const {
     assert(false);

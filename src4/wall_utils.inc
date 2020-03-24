@@ -527,7 +527,7 @@ static void find_restricted_regions_by_wall(
 
   assert(regions.empty() && "Function does not clean the resulting array");
 
-  const Species& species = p.all_species.get(sm.species_id);
+  const Species& species = p.bng_engine.all_species.get(sm.species_id);
 
   if (!species.has_flag(SPECIES_FLAG_CAN_REGION_BORDER)) {
     // no restricted region

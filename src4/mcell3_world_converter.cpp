@@ -554,10 +554,10 @@ bool MCell3WorldConverter::convert_polygonal_object(const geom_object* o) {
 
 // cannot fail
 void MCell3WorldConverter::create_diffusion_events() {
-  assert(world->all_species.get_count() != 0 && "There must be at least 1 species");
+  assert(world->bng_engine.all_species.get_count() != 0 && "There must be at least 1 species");
 
   set<float_t> time_steps_set;
-  for (auto &species : world->all_species.get_species_vector() ) {
+  for (auto &species : world->bng_engine.all_species.get_species_vector() ) {
     time_steps_set.insert(species.time_step);
   }
 

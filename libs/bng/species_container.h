@@ -17,14 +17,14 @@ namespace BNG {
 // using templates instead of virtual methods? -> rather a template
 // with virtual methods, this container would not be able to create new
 // objects by its own
-template<class T>
+template<class SpeciesT>
 class SpeciesContainer {
 public:
   SpeciesContainer()
     : next_species_id(0) {
   }
 
-  species_id_t find_or_add(const T& new_species) {
+  species_id_t find_or_add(const SpeciesT& new_species) {
     assert(new_species.species_id == species.size());
     // TODO: we must check that this species does not exist already
     species_id_t res = next_species_id;
@@ -32,7 +32,7 @@ public:
     return 0;
   }
 
-  const T& get(const species_id_t id) const {
+  const SpeciesT& get(const species_id_t id) const {
     assert(id < species.size());
     // TODO: we will need a mapping, the species vector will need to be
     //       defragmented time from time
@@ -43,7 +43,7 @@ public:
     return species.size();
   }
 
-  const std::vector<T>& get_species_vector() const {
+  const std::vector<SpeciesT>& get_species_vector() const {
     return species;
   }
 
@@ -54,7 +54,7 @@ public:
 private:
   uint next_species_id;
 
-  std::vector<T> species;
+  std::vector<SpeciesT> species;
 };
 
 } // namespace BNG

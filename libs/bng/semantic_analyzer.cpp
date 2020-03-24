@@ -315,6 +315,8 @@ void SemanticAnalyzer::convert_complex_pattern(const small_vector<const ASTMolec
       return;
     }
   }
+
+  pattern.finalize();
 }
 
 

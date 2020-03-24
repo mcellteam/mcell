@@ -61,7 +61,7 @@ void Rxn::debug_check_reactants_against_reaction(const RxnClass& reaction) {
   */
 }
 
-uint Rxn::get_num_surf_products(const SpeciesInfo& all_species) const {
+uint Rxn::get_num_surf_products(const BNG::SpeciesContainer<Species>& all_species) const {
   assert(false && "BNGTODO");
   /*
   uint res = 0;
@@ -138,7 +138,7 @@ static std::string pathway_players_to_string(
   string res;
 
   for (uint i = 0; i < players.size(); i++) {
-    res += p.all_species.get(players[i].species_id).name;
+    res += p.bng_engine.all_species.get(players[i].species_id).name;
     if (i != players.size() - 1) {
       res += " + ";
     }

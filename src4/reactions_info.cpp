@@ -15,7 +15,7 @@ using namespace std;
 
 namespace MCell {
 
-void ReactionsInfo::init(const SpeciesInfo& all_species) {
+void ReactionsInfo::init(const BNG::SpeciesContainer<Species>& all_species) {
   assert(!initialized); // there should not be a reason to reinitialize reactions info
 
   // create map for fast reaction searches

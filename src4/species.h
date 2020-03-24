@@ -103,7 +103,6 @@ public:
   static void dump_array(const std::vector<Species>& vec);
 };
 
-typedef BNG::SpeciesContainer<Species> SpeciesInfo;
 
 } // namespace mcell
 

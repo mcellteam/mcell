@@ -15,10 +15,29 @@ using namespace std;
 namespace BNG {
 
 
+bool RxnRule::is_cplx_reactant_on_both_sides_of_rxn(const uint index) const {
+  for (const CplxIndexPair& cplx_index_pair: cplx_mapping) {
+    if (index == cplx_index_pair.reactant_index) {
+      return true;
+    }
+  }
+  return false;
+}
 
-bool RxnRule::find_assigned_reactant_for_product(const CplxMolIndex& product_cmi, CplxMolIndex& reactant_cmi) const {
+
+bool RxnRule::is_cplx_product_on_both_sides_of_rxn(const uint index) const {
+  for (const CplxIndexPair& cplx_index_pair: cplx_mapping) {
+    if (index == cplx_index_pair.product_index) {
+      return true;
+    }
+  }
+  return false;
+}
+
+
+bool RxnRule::find_assigned_mol_reactant_for_product(const CplxMolIndex& product_cmi, CplxMolIndex& reactant_cmi) const {
   // this is not a time critical search
-  for (const CMIndexPair& cmi_pair: mapping) {
+  for (const CMIndexPair& cmi_pair: mol_mapping) {
     if (product_cmi == cmi_pair.product_cmi) {
       reactant_cmi = cmi_pair.reactant_cmi;
       return true;
@@ -31,8 +50,8 @@ bool RxnRule::find_assigned_reactant_for_product(const CplxMolIndex& product_cmi
 // Finds a matching already not assigned product,
 // the product must be
 // NOTE: BNGL2.pl provides more detailed reporting, see tests N220, N230-N232
-bool RxnRule::find_most_fitting_unassigned_product(const CplxMolIndex& reactant_cmi, CplxMolIndex& best_product_cmi) const {
-  const MolInstance& reactant_mol_inst = get_reactant_mol_inst(reactant_cmi);
+bool RxnRule::find_most_fitting_unassigned_mol_product(const CplxMolIndex& reactant_cmi, CplxMolIndex& best_product_cmi) const {
+  const MolInstance& reactant_mol_inst = get_mol_reactant(reactant_cmi);
 
   int best_score = -1;
   CplxMolIndex best_cmi;
@@ -43,14 +62,14 @@ bool RxnRule::find_most_fitting_unassigned_product(const CplxMolIndex& reactant_
       CplxMolIndex product_cmi(complex_index, molecule_index);
 
       // must have the same molecule type
-      const MolInstance& product_mol_inst = get_product_mol_inst(product_cmi);
+      const MolInstance& product_mol_inst = get_mol_product(product_cmi);
       if (reactant_mol_inst.mol_type_id != product_mol_inst.mol_type_id) {
         continue;
       }
 
       // and must not be assigned
       CplxMolIndex found_cmi_ignored;
-      bool found = find_assigned_reactant_for_product(product_cmi, found_cmi_ignored);
+      bool found = find_assigned_mol_reactant_for_product(product_cmi, found_cmi_ignored);
       if (found) {
         continue;
       }
@@ -108,8 +127,8 @@ bool RxnRule::find_most_fitting_unassigned_product(const CplxMolIndex& reactant_
 
 
 
-// check if it makes sense to compute mapping at all
-bool RxnRule::has_same_molecules_in_reactants_and_products() const {
+// check if it makes sense to compute molecule_mapping at all
+bool RxnRule::has_same_mols_in_reactants_and_products() const {
   map<mol_type_id_t, int> reactant_types, product_types;
 
   for (const CplxInstance& ci: reactants) {
@@ -139,26 +158,25 @@ bool RxnRule::has_same_molecules_in_reactants_and_products() const {
 
 
 
-bool RxnRule::compute_reactants_products_mapping(const BNGData& bng_data, std::ostream& out) {
+bool RxnRule::compute_mol_reactants_products_mapping(const BNGData& bng_data, std::ostream& out) {
 
-  if (!has_same_molecules_in_reactants_and_products()) {
-    mol_instances_are_maintained = false;
-    return true; // this is ok because molecules are transformed in this rule
+  if (!has_same_mols_in_reactants_and_products()) {
+    mol_instances_are_fully_maintained = false;
   }
-
 
   for (uint complex_index = 0; complex_index < reactants.size(); complex_index++) {
     for (uint molecule_index = 0; molecule_index < reactants[complex_index].mol_patterns.size(); molecule_index++) {
 
       CplxMolIndex reactant_cmi = CplxMolIndex(complex_index, molecule_index);
       CplxMolIndex product_cmi;
-      bool found = find_most_fitting_unassigned_product(reactant_cmi, product_cmi);
+      bool found = find_most_fitting_unassigned_mol_product(reactant_cmi, product_cmi);
 
       if (found) {
-        mapping.push_back(CMIndexPair(reactant_cmi, product_cmi));
+        mol_mapping.push_back(CMIndexPair(reactant_cmi, product_cmi));
       }
-      else {
-        const MolInstance& mol_inst = get_reactant_mol_inst(reactant_cmi);
+      else if (mol_instances_are_fully_maintained) {
+        // reporting error only if there should be a full match
+        const MolInstance& mol_inst = get_mol_reactant(reactant_cmi);
 
         out << "Did not find a matching molecule in products for reactant molecule ";
         mol_inst.dump(bng_data, true, out);
@@ -166,12 +184,53 @@ bool RxnRule::compute_reactants_products_mapping(const BNGData& bng_data, std::o
 
         return false;
       }
-
     }
   }
 
   return true;
 }
+
+
+bool RxnRule::find_assigned_cplx_reactant_for_product(const uint product_index, uint& reactant_index) const {
+  // this is not a time critical search
+  for (const CplxIndexPair& cplx_index_pair: cplx_mapping) {
+    if (product_index == cplx_index_pair.product_index) {
+      reactant_index = cplx_index_pair.reactant_index;
+      return true;
+    }
+  }
+  return false;
+}
+
+
+void RxnRule::compute_cplx_reactants_products_mapping(const BNGData& bng_data) {
+
+  for (uint ri = 0; ri < reactants.size(); ri++) {
+    for (uint pi = 0; pi < products.size(); pi++) {
+      uint index_ignored;
+      if (find_assigned_cplx_reactant_for_product(pi, index_ignored)) {
+        // already used
+        continue;
+      }
+
+      if (reactants[ri] == products[pi]) {
+        cplx_mapping.push_back(CplxIndexPair(ri, pi));
+      }
+    }
+  }
+}
+
+
+
+bool RxnRule::compute_reactants_products_mapping(const BNGData& bng_data, std::ostream& out) {
+  compute_cplx_reactants_products_mapping(bng_data);
+
+  // NOTE: we might need to direct the molecule mapping using cplx mapping,
+  // but let's see later
+  bool res = compute_mol_reactants_products_mapping(bng_data, out);
+  return res;
+}
+
 
 
 void RxnRule::dump_complex_instance_vector(const BNGData& bng_data, const CplxInstanceVector& complexes) const {

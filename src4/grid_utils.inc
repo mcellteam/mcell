@@ -1320,7 +1320,7 @@ static void grid_all_neighbors_across_walls_through_edges(
   /* check for possible reflection (absorption) from the wall edges
      that may be region borders.  These are INSIDE_OUT and OUTSIDE-IN
      checks against molecule's own wall and neighbor wall */
-  const Species& species = p.all_species.get(sm.species_id);
+  const Species& species = p.bng_engine.all_species.get(sm.species_id);
   if (species.has_flag(SPECIES_FLAG_CAN_REGION_BORDER)) {
     assert(sm.s.wall_index == wall.index);
 
