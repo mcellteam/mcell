@@ -10,9 +10,16 @@
 namespace MCell {
 namespace API {
 
+class ReleaseSite;
+class GeometryObject;
+
 class InstantiationData: public GenInstantiationData {
 public:
 
+  void add_release_site(const Species* s) override {}
+  ReleaseSite* find_release_site(const std::string& name) override {return nullptr;}
+  void add_geometry_object(const GeometryObject* o) override {}
+  void find_geometry_object(const std::string& name) override {}
 };
 
 

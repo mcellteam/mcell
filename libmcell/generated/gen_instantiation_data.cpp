@@ -21,22 +21,22 @@
  *
 ******************************************************************************/
 
-// This file was generated automatically on 03/23/2020, 15:47 from 'data_classes.yaml'
-
 #include <sstream>
 #include "../api/mcell.h"
 namespace MCell {
 namespace API {
 
-void define_pybinding_InstantiationData(py::module& m) {
+py::class_<InstantiationData> void define_pybinding_InstantiationData(py::module& m) {
   py::class_<InstantiationData>(m, "InstantiationData")
       .def(
           py::init<
-
-          >(),
+          >()
 
         )
-      .def("dump", &InstantiationData::dump)
+      .def("add_release_site", &InstantiationData::add_release_site, py::arg("s"))
+      .def("find_release_site", &InstantiationData::find_release_site, py::arg("name"))
+      .def("add_geometry_object", &InstantiationData::add_geometry_object, py::arg("o"))
+      .def("find_geometry_object", &InstantiationData::find_geometry_object, py::arg("name"))
     ;
 }
 

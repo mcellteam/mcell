@@ -2,6 +2,9 @@
 #include "mcell.h"
 #include "../generated/gen_release_site.h"
 #include "../generated/gen_species.h"
+#include "../generated/gen_subsystem.h"
+#include "../generated/gen_instantiation_data.h"
+#include "../generated/gen_model.h"
 
 namespace MCell {
 namespace API {
@@ -37,6 +40,10 @@ PYBIND11_MODULE(mcell, m) {
   define_pybinding_Vec3(m);
   define_pybinding_ReleaseSite(m);
   define_pybinding_Species(m);
+
+  define_pybinding_Subsystem(m);
+  define_pybinding_InstantiationData(m);
+  define_pybinding_Model(m);
 
 }
 

@@ -21,8 +21,6 @@
  *
 ******************************************************************************/
 
-// This file was generated automatically on 03/23/2020, 15:47 from 'data_classes.yaml'
-
 #include <sstream>
 #include "../api/mcell.h"
 namespace MCell {
@@ -57,7 +55,7 @@ std::string GenReleaseSite::to_str() const{
   return ss.str();
 }
 
-void define_pybinding_ReleaseSite(py::module& m) {
+py::class_<ReleaseSite> void define_pybinding_ReleaseSite(py::module& m) {
   py::class_<ReleaseSite>(m, "ReleaseSite")
       .def(
           py::init<
@@ -68,8 +66,8 @@ void define_pybinding_ReleaseSite(py::module& m) {
             const float_t,
             const float_t,
             const float_t
-          >(),
-          py::arg("name"),
+          >()
+,          py::arg("name"),
           py::arg("shape"),
           py::arg("molecule"),
           py::arg("location") = VEC3_UNSET,

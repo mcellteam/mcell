@@ -21,22 +21,21 @@
  *
 ******************************************************************************/
 
-// This file was generated automatically on 03/23/2020, 15:47 from 'data_classes.yaml'
-
 #include <sstream>
 #include "../api/mcell.h"
 namespace MCell {
 namespace API {
 
-void define_pybinding_Model(py::module& m) {
+py::class_<Model> void define_pybinding_Model(py::module& m) {
   py::class_<Model>(m, "Model")
       .def(
           py::init<
-
-          >(),
+          >()
 
         )
-      .def("dump", &Model::dump)
+      .def("run_iterations", &Model::run_iterations, py::arg("iterations"))
+      .def("add_subsystem", &Model::add_subsystem, py::arg("subsystem"))
+      .def("add_instantiation_data", &Model::add_instantiation_data, py::arg("instantiation_data"))
     ;
 }
 

@@ -21,8 +21,6 @@
  *
 ******************************************************************************/
 
-// This file was generated automatically on 03/23/2020, 15:47 from 'data_classes.yaml'
-
 #ifndef API_GEN_SUBSYSTEM_H
 #define API_GEN_SUBSYSTEM_H
 
@@ -33,13 +31,15 @@ namespace API {
 
 class GenSubsystem {
 public:
+  virtual ~GenSubsystem() {}
   // --- attributes ---
   // --- methods ---
   virtual void add_species(const Species* s) = 0;
   virtual Species* find_species(const std::string& name) = 0;
 }; // GenSubsystem
 
-void define_pybinding_Subsystem(py::module& m);
+class Subsystem;
+py::class_<Subsystem> void define_pybinding_Subsystem(py::module& m);
 } // namespace API
 } // namespace MCell
 

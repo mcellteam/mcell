@@ -21,8 +21,6 @@
  *
 ******************************************************************************/
 
-// This file was generated automatically on 03/23/2020, 15:47 from 'data_classes.yaml'
-
 #ifndef API_GEN_MODEL_H
 #define API_GEN_MODEL_H
 
@@ -33,14 +31,16 @@ namespace API {
 
 class GenModel {
 public:
+  virtual ~GenModel() {}
   // --- attributes ---
   // --- methods ---
   virtual void run_iterations(const unsigned long long* iterations) = 0;
-  virtual void add_subsystem(const Subsystem* sybsystem) = 0;
+  virtual void add_subsystem(const Subsystem* subsystem) = 0;
   virtual void add_instantiation_data(const InstantiationData* instantiation_data) = 0;
 }; // GenModel
 
-void define_pybinding_Model(py::module& m);
+class Model;
+py::class_<Model> void define_pybinding_Model(py::module& m);
 } // namespace API
 } // namespace MCell
 

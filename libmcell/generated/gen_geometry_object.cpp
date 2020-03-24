@@ -21,8 +21,6 @@
  *
 ******************************************************************************/
 
-// This file was generated automatically on 03/23/2020, 15:47 from 'data_classes.yaml'
-
 #include <sstream>
 #include "../api/mcell.h"
 namespace MCell {
@@ -43,13 +41,13 @@ std::string GenGeometryObject::to_str() const{
   return ss.str();
 }
 
-void define_pybinding_GeometryObject(py::module& m) {
+py::class_<GeometryObject> void define_pybinding_GeometryObject(py::module& m) {
   py::class_<GeometryObject>(m, "GeometryObject")
       .def(
           py::init<
             const std::string&
-          >(),
-          py::arg("name")
+          >()
+,          py::arg("name")
         )
       .def("check_semantics", &GeometryObject::check_semantics_cerr)
       .def("__str__", &GeometryObject::to_str)

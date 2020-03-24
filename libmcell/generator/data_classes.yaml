@@ -138,7 +138,7 @@ Model:
           
         - name: add_subsystem
           params:
-              - name: sybsystem
+              - name: subsystem
                 type: Subsystem
                 
         - name: add_instantiation_data

@@ -21,8 +21,6 @@
  *
 ******************************************************************************/
 
-// This file was generated automatically on 03/23/2020, 15:47 from 'data_classes.yaml'
-
 #ifndef API_GEN_RELEASE_SITE_H
 #define API_GEN_RELEASE_SITE_H
 
@@ -108,7 +106,8 @@ public:
   // --- methods ---
 }; // GenReleaseSite
 
-void define_pybinding_ReleaseSite(py::module& m);
+class ReleaseSite;
+py::class_<ReleaseSite> void define_pybinding_ReleaseSite(py::module& m);
 } // namespace API
 } // namespace MCell
 

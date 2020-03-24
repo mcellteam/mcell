@@ -21,8 +21,6 @@
  *
 ******************************************************************************/
 
-// This file was generated automatically on 03/23/2020, 15:47 from 'data_classes.yaml'
-
 #include <sstream>
 #include "../api/mcell.h"
 namespace MCell {
@@ -45,15 +43,15 @@ std::string GenSpecies::to_str() const{
   return ss.str();
 }
 
-void define_pybinding_Species(py::module& m) {
+py::class_<Species> void define_pybinding_Species(py::module& m) {
   py::class_<Species>(m, "Species")
       .def(
           py::init<
             const std::string&,
             const float_t,
             const float_t
-          >(),
-          py::arg("name"),
+          >()
+,          py::arg("name"),
           py::arg("diffusion_constant_3d") = FLT_UNSET,
           py::arg("diffusion_constant_2d") = FLT_UNSET
         )

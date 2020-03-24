@@ -21,8 +21,6 @@
  *
 ******************************************************************************/
 
-// This file was generated automatically on 03/23/2020, 15:47 from 'data_classes.yaml'
-
 #ifndef API_GEN_INSTANTIATION_DATA_H
 #define API_GEN_INSTANTIATION_DATA_H
 
@@ -33,15 +31,17 @@ namespace API {
 
 class GenInstantiationData {
 public:
+  virtual ~GenInstantiationData() {}
   // --- attributes ---
   // --- methods ---
   virtual void add_release_site(const Species* s) = 0;
   virtual ReleaseSite* find_release_site(const std::string& name) = 0;
   virtual void add_geometry_object(const GeometryObject* o) = 0;
-  virtual void find_geometry_object(const GeometryObject* o) = 0;
+  virtual void find_geometry_object(const std::string& name) = 0;
 }; // GenInstantiationData
 
-void define_pybinding_InstantiationData(py::module& m);
+class InstantiationData;
+py::class_<InstantiationData> void define_pybinding_InstantiationData(py::module& m);
 } // namespace API
 } // namespace MCell
 

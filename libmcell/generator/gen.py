@@ -181,8 +181,9 @@ def is_cpp_ptr_or_ref_type(t):
 
 def write_generated_notice(f, input_file_name):
     now = datetime.now()
-    date_time = now.strftime("%m/%d/%Y, %H:%M")
-    f.write('// This file was generated automatically on ' + date_time + ' from ' + '\'' + input_file_name + '\'\n\n')
+    # date printing is disabled during the development phase to minimize changes in files 
+    #date_time = now.strftime("%m/%d/%Y, %H:%M")
+    #f.write('// This file was generated automatically on ' + date_time + ' from ' + '\'' + input_file_name + '\'\n\n')
 
 
 def write_ctor_define(f, class_name, items):
@@ -297,6 +298,10 @@ def write_gen_class(f, class_name, class_def):
     f.write( ' {\n')
     f.write('public:\n')
     
+    if not based_on_base_data_class(class_def):
+        # generate virtual destructor
+        f.write('  virtual ~' + GEN_CLASS_PREFIX + class_name + '() {}\n')
+        
     if based_on_base_data_class(class_def):
         f.write('  ' + RET_TYPE_CHECK_SEMANTICS + ' ' + DECL_CHECK_SEMANTICS + ' ' + KEYWORD_OVERRIDE + ';\n')
         f.write('  ' + RET_TYPE_TO_STR + ' ' +DECL_TO_STR + ' ' + KEYWORD_OVERRIDE + ';\n\n')
@@ -317,7 +322,7 @@ def write_gen_class(f, class_name, class_def):
 
 
 def write_define_binding_decl(f, class_name):
-    f.write('void define_pybinding_' + class_name + '(py::module& m)')           
+    f.write('py::class_<' + class_name + '> void define_pybinding_' + class_name + '(py::module& m)')           
 
 
 def generate_class_header(class_name, class_def, input_file_name):
@@ -336,6 +341,7 @@ def generate_class_header(class_name, class_def, input_file_name):
         
         write_gen_class(f, class_name, class_def)
         
+        f.write('class ' + class_name + ';\n')
         write_define_binding_decl(f, class_name)
         f.write(';\n')
         
@@ -385,6 +391,22 @@ def write_to_str_implemetation(f, class_name, items):
     f.write('}\n\n')                
 
 
+def write_pybind11_method_bindings(f, class_name, method):
+    assert KEY_NAME in method
+    name = method[KEY_NAME]
+    f.write('      .def("' + name + '", &' + class_name + '::' + name)  
+    
+    if KEY_PARAMS in method:
+        params = method[KEY_PARAMS]
+        params_cnt = len(params)
+        for i in range(params_cnt):
+            f.write(', ')
+            p = params[i]
+            assert KEY_NAME in p
+            f.write('py::arg("' + p[KEY_NAME] + '")')
+    f.write(')\n')
+    
+    
 def write_pybind11_bindings(f, class_name, class_def):
     items = class_def[KEY_ITEMS]
     
@@ -401,9 +423,13 @@ def write_pybind11_bindings(f, class_name, class_def):
         f.write('            const ' + get_type_as_ref_param(attr))
         if i != num_items - 1:
             f.write(',\n')
-    f.write('\n')
-    f.write('          >(),\n')
+    if num_items != 0:
+        f.write('\n')
+    f.write('          >()\n')
         
+    if num_items != 0:
+        f.write(',')
+    
     # init argument names and default values
     for i in range(num_items):
         attr = items[i]
@@ -420,9 +446,13 @@ def write_pybind11_bindings(f, class_name, class_def):
     if based_on_base_data_class(class_def):
         f.write('      .def("check_semantics", &' + class_name + '::check_semantics_cerr)\n')
         f.write('      .def("__str__", &' + class_name + '::to_str)\n')
+        # LATER: dump is required to be implemented, TODO: to_str as well?
+        f.write('      .def("dump", &' + class_name + '::dump)\n')
         
-    # dump is required to be implemented, TODO: to_str as well?
-    f.write('      .def("dump", &' + class_name + '::dump)\n')
+    # declared methods
+    for m in class_def[KEY_METHODS]:
+        write_pybind11_method_bindings(f, class_name, m)
+
     
     # properties
     for i in range(num_items):
@@ -438,6 +468,7 @@ def generate_class_implementation_and_bindings(class_name, class_def, input_file
         write_generated_notice(f, input_file_name)
         
         f.write('#include <sstream>\n')
+        #f.write('#include "' + get_class_file_name(class_name, EXT_H) + '"\n') 
         f.write(INCLUDE_API_MCELL_H + '\n')
         
         f.write(NAMESPACES_BEGIN + '\n\n')
@@ -452,8 +483,13 @@ def generate_class_implementation_and_bindings(class_name, class_def, input_file
         f.write(NAMESPACES_END + '\n\n')
         
 
+def inherits_methods(data_classes, class_name, class_def):
+    
+    #if KEY
+    return class_def
 
-def generate_class_files(class_name, class_def, input_file_name):
+
+def generate_class_files(data_classes, class_name, class_def, input_file_name):
     # we need items and methods to be present 
     if KEY_ITEMS not in class_def:
         class_def[KEY_ITEMS] = []
@@ -462,13 +498,16 @@ def generate_class_files(class_name, class_def, input_file_name):
         class_def[KEY_METHODS] = []
     
     generate_class_header(class_name, class_def, input_file_name)
-    generate_class_implementation_and_bindings(class_name, class_def, input_file_name)
+    
+    class_def_w_method_inheritances = inherits_methods(data_classes, class_name, class_def) 
+    
+    generate_class_implementation_and_bindings(class_name, class_def_w_method_inheritances, input_file_name)
     
 
 def generate_data_classes(data_classes, input_file_name):
     assert type(data_classes) == dict
     for key, value in data_classes.items():
-        generate_class_files(key, value, input_file_name)
+        generate_class_files(data_classes, key, value, input_file_name)
     
     
 def load_and_generate_data_classes():

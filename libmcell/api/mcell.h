@@ -1,4 +1,6 @@
 // header file that includes all C++ classes of MCell API
+#ifndef API_MCELL_H
+#define API_MCELL_H
 
 #include "../api/common.h"
 
@@ -12,3 +14,5 @@
 #include "../api/geometry_object.h"
 #include "../api/release_site.h"
 #include "../api/species.h"
+
+#endif // API_MCELL_H

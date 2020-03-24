@@ -21,22 +21,20 @@
  *
 ******************************************************************************/
 
-// This file was generated automatically on 03/23/2020, 15:47 from 'data_classes.yaml'
-
 #include <sstream>
 #include "../api/mcell.h"
 namespace MCell {
 namespace API {
 
-void define_pybinding_Subsystem(py::module& m) {
+py::class_<Subsystem> void define_pybinding_Subsystem(py::module& m) {
   py::class_<Subsystem>(m, "Subsystem")
       .def(
           py::init<
-
-          >(),
+          >()
 
         )
-      .def("dump", &Subsystem::dump)
+      .def("add_species", &Subsystem::add_species, py::arg("s"))
+      .def("find_species", &Subsystem::find_species, py::arg("name"))
     ;
 }
 

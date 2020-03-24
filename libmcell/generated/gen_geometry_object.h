@@ -21,8 +21,6 @@
  *
 ******************************************************************************/
 
-// This file was generated automatically on 03/23/2020, 15:47 from 'data_classes.yaml'
-
 #ifndef API_GEN_GEOMETRY_OBJECT_H
 #define API_GEN_GEOMETRY_OBJECT_H
 
@@ -48,7 +46,8 @@ public:
   // --- methods ---
 }; // GenGeometryObject
 
-void define_pybinding_GeometryObject(py::module& m);
+class GeometryObject;
+py::class_<GeometryObject> void define_pybinding_GeometryObject(py::module& m);
 } // namespace API
 } // namespace MCell
 
