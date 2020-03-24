@@ -29,6 +29,8 @@
 namespace MCell {
 namespace API {
 
+class Species;
+
 class GenSubsystem {
 public:
   virtual ~GenSubsystem() {}
@@ -39,7 +41,7 @@ public:
 }; // GenSubsystem
 
 class Subsystem;
-py::class_<Subsystem> void define_pybinding_Subsystem(py::module& m);
+py::class_<Subsystem> define_pybinding_Subsystem(py::module& m);
 } // namespace API
 } // namespace MCell
 

@@ -134,7 +134,7 @@ Model:
         - name: run_iterations
           params:
               - name: iterations
-                type: unsigned long long
+                type: long
           
         - name: add_subsystem
           params:

@@ -26,8 +26,8 @@
 namespace MCell {
 namespace API {
 
-py::class_<InstantiationData> void define_pybinding_InstantiationData(py::module& m) {
-  py::class_<InstantiationData>(m, "InstantiationData")
+py::class_<InstantiationData> define_pybinding_InstantiationData(py::module& m) {
+  return py::class_<InstantiationData>(m, "InstantiationData")
       .def(
           py::init<
           >()

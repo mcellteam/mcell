@@ -29,6 +29,8 @@
 namespace MCell {
 namespace API {
 
+class Species;
+
 #define RELEASE_SITE_CTOR() \
     ReleaseSite( \
         const std::string& name_, \
@@ -107,7 +109,7 @@ public:
 }; // GenReleaseSite
 
 class ReleaseSite;
-py::class_<ReleaseSite> void define_pybinding_ReleaseSite(py::module& m);
+py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m);
 } // namespace API
 } // namespace MCell
 

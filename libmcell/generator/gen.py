@@ -70,12 +70,14 @@ KEY_RETURN_TYPE = 'return_type'
 YAML_TYPE_FLOAT = 'float'
 YAML_TYPE_STR = 'str'
 YAML_TYPE_INT = 'int'
+YAML_TYPE_LONG = 'long'
 YAML_TYPE_VEC2 = 'Vec2'
 YAML_TYPE_VEC3 = 'Vec3'
 
 CPP_TYPE_FLOAT = 'float_t'
 CPP_TYPE_STR = 'std::string'
 CPP_TYPE_INT = 'int'
+CPP_TYPE_LONG = 'long'
 CPP_TYPE_VEC2 = 'Vec2'
 CPP_TYPE_VEC3 = 'Vec3'
 
@@ -84,6 +86,7 @@ CPP_REFERENCE_TYPES = [CPP_TYPE_STR, CPP_TYPE_VEC2, CPP_TYPE_VEC3]
 UNSET_VALUE_FLOAT = 'FLT_UNSET'
 UNSET_VALUE_STR = 'STR_UNSET'
 UNSET_VALUE_INT = 'INT_UNSET'
+UNSET_VALUE_INT = 'LONG_UNSET'
 UNSET_VALUE_VEC2 = 'VEC2_UNSET'
 UNSET_VALUE_VEC3 = 'VEC3_UNSET'
 UNSET_VALUE_PTR = 'nullptr'
@@ -128,6 +131,8 @@ def yaml_type_to_cpp_type(t):
         return CPP_TYPE_STR
     elif t == YAML_TYPE_INT:
         return CPP_TYPE_INT
+    elif t == YAML_TYPE_LONG:
+        return CPP_TYPE_LONG
     elif t == YAML_TYPE_VEC2:
         return CPP_TYPE_VEC2
     elif t == YAML_TYPE_VEC3:
@@ -158,6 +163,8 @@ def get_unset_value(attr):
         return UNSET_VALUE_STR
     elif t == YAML_TYPE_INT:
         return UNSET_VALUE_INT
+    elif t == YAML_TYPE_LONG:
+        return UNSET_VALUE_LONG
     elif t == YAML_TYPE_VEC2:
         return UNSET_VALUE_VEC2
     elif t == YAML_TYPE_VEC3:
@@ -322,8 +329,37 @@ def write_gen_class(f, class_name, class_def):
 
 
 def write_define_binding_decl(f, class_name):
-    f.write('py::class_<' + class_name + '> void define_pybinding_' + class_name + '(py::module& m)')           
+    f.write('py::class_<' + class_name + '> define_pybinding_' + class_name + '(py::module& m)')           
 
+
+def write_forward_decls(f, class_def):
+    # first we need to collect all types that we will need
+    types = set()
+    for items in class_def[KEY_ITEMS]:
+        assert KEY_TYPE in items
+        t = items[KEY_TYPE]
+        if is_yaml_ptr_type(t):
+            types.add(t)
+
+    for method in class_def[KEY_METHODS]:
+        if KEY_RETURN_TYPE in method:
+            t = method[KEY_RETURN_TYPE]
+            if is_yaml_ptr_type(t):
+                types.add(t)
+            
+        if KEY_PARAMS in method:
+            for param in method[KEY_PARAMS]:
+                assert KEY_TYPE in param
+                t = param[KEY_TYPE]
+                if is_yaml_ptr_type(t):
+                    types.add(t)
+
+    for t in types:
+        f.write('class ' + t + ';\n')
+        
+    if types:
+        f.write('\n')
+    
 
 def generate_class_header(class_name, class_def, input_file_name):
     with open(get_class_file_name(class_name, EXT_H), 'w') as f:
@@ -335,6 +371,8 @@ def generate_class_header(class_name, class_def, input_file_name):
         f.write('#define ' + guard + '\n\n')
         f.write(INCLUDE_API_MCELL_H + '\n\n')
         f.write(NAMESPACES_BEGIN + '\n\n')
+        
+        write_forward_decls(f, class_def)
         
         if based_on_base_data_class(class_def):
             write_ctor_define(f, class_name, class_def[KEY_ITEMS])
@@ -412,7 +450,7 @@ def write_pybind11_bindings(f, class_name, class_def):
     
     write_define_binding_decl(f, class_name)
     f.write(' {\n')
-    f.write('  py::class_<' + class_name + '>(m, "' + class_name + '")\n')
+    f.write('  return py::class_<' + class_name + '>(m, "' + class_name + '")\n')
     f.write('      .def(\n')
     f.write('          py::init<\n')
 

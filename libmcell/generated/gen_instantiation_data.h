@@ -29,6 +29,10 @@
 namespace MCell {
 namespace API {
 
+class Species;
+class GeometryObject;
+class ReleaseSite;
+
 class GenInstantiationData {
 public:
   virtual ~GenInstantiationData() {}
@@ -41,7 +45,7 @@ public:
 }; // GenInstantiationData
 
 class InstantiationData;
-py::class_<InstantiationData> void define_pybinding_InstantiationData(py::module& m);
+py::class_<InstantiationData> define_pybinding_InstantiationData(py::module& m);
 } // namespace API
 } // namespace MCell
 

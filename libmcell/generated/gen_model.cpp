@@ -26,8 +26,8 @@
 namespace MCell {
 namespace API {
 
-py::class_<Model> void define_pybinding_Model(py::module& m) {
-  py::class_<Model>(m, "Model")
+py::class_<Model> define_pybinding_Model(py::module& m) {
+  return py::class_<Model>(m, "Model")
       .def(
           py::init<
           >()

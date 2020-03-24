@@ -29,18 +29,21 @@
 namespace MCell {
 namespace API {
 
+class InstantiationData;
+class Subsystem;
+
 class GenModel {
 public:
   virtual ~GenModel() {}
   // --- attributes ---
   // --- methods ---
-  virtual void run_iterations(const unsigned long long* iterations) = 0;
+  virtual void run_iterations(const long iterations) = 0;
   virtual void add_subsystem(const Subsystem* subsystem) = 0;
   virtual void add_instantiation_data(const InstantiationData* instantiation_data) = 0;
 }; // GenModel
 
 class Model;
-py::class_<Model> void define_pybinding_Model(py::module& m);
+py::class_<Model> define_pybinding_Model(py::module& m);
 } // namespace API
 } // namespace MCell
 

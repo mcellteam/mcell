@@ -10,9 +10,6 @@
 namespace MCell {
 namespace API {
 
-class ReleaseSite;
-class GeometryObject;
-
 class InstantiationData: public GenInstantiationData {
 public:
 

@@ -15,7 +15,7 @@ namespace API {
 class Model: public GenModel, public Subsystem, public InstantiationData {
 public:
 
-  void run_iterations(const unsigned long long* iterations) override {}
+  void run_iterations(const long iterations) override {}
   void add_subsystem(const Subsystem* subsystem) override {}
   void add_instantiation_data(const InstantiationData* instantiation_data) override {}
 

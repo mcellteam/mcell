@@ -1,7 +1,7 @@
 
 #include "mcell.h"
-#include "../generated/gen_release_site.h"
 #include "../generated/gen_species.h"
+#include "../generated/gen_release_site.h"
 #include "../generated/gen_subsystem.h"
 #include "../generated/gen_instantiation_data.h"
 #include "../generated/gen_model.h"

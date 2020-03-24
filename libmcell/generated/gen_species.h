@@ -67,7 +67,7 @@ public:
 }; // GenSpecies
 
 class Species;
-py::class_<Species> void define_pybinding_Species(py::module& m);
+py::class_<Species> define_pybinding_Species(py::module& m);
 } // namespace API
 } // namespace MCell
 
