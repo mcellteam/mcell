@@ -26,8 +26,8 @@
 namespace MCell {
 namespace API {
 
-py::class_<Subsystem> void define_pybinding_Subsystem(py::module& m) {
-  py::class_<Subsystem>(m, "Subsystem")
+py::class_<Subsystem> define_pybinding_Subsystem(py::module& m) {
+  return py::class_<Subsystem>(m, "Subsystem")
       .def(
           py::init<
           >()

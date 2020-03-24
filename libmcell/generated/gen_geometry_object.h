@@ -47,7 +47,7 @@ public:
 }; // GenGeometryObject
 
 class GeometryObject;
-py::class_<GeometryObject> void define_pybinding_GeometryObject(py::module& m);
+py::class_<GeometryObject> define_pybinding_GeometryObject(py::module& m);
 } // namespace API
 } // namespace MCell
 

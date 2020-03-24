@@ -55,8 +55,8 @@ std::string GenReleaseSite::to_str() const{
   return ss.str();
 }
 
-py::class_<ReleaseSite> void define_pybinding_ReleaseSite(py::module& m) {
-  py::class_<ReleaseSite>(m, "ReleaseSite")
+py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
+  return py::class_<ReleaseSite>(m, "ReleaseSite")
       .def(
           py::init<
             const std::string&,

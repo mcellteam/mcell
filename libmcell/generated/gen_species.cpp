@@ -43,8 +43,8 @@ std::string GenSpecies::to_str() const{
   return ss.str();
 }
 
-py::class_<Species> void define_pybinding_Species(py::module& m) {
-  py::class_<Species>(m, "Species")
+py::class_<Species> define_pybinding_Species(py::module& m) {
+  return py::class_<Species>(m, "Species")
       .def(
           py::init<
             const std::string&,
