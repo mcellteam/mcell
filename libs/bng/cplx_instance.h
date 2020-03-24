@@ -73,17 +73,28 @@ public:
 // Similarly as ComplexSpeciesInstance -
 //  can be used as instance and as pattern
 // TODO: should molecule type reference be an attribute?
+// TODO: rename to pattern
 class MolInstance {
 public:
+  MolInstance()
+    : mol_type_id(MOL_TYPE_ID_INVALID), orientation(ORIENTATION_NONE) {
+  }
+
+
   // ID of this molecule type in BNGData::molecule_types
   mol_type_id_t mol_type_id;
 
   // has the same number of elements as MoleculeType::component_type_ids
   small_vector<ComponentInstance> component_instances;
 
+  // not read from BNG yet, but
+  orientation_t orientation;
 
   bool operator ==(const MolInstance& mi2) const  {
-    return mol_type_id == mi2.mol_type_id && component_instances == mi2.component_instances;
+    return
+        mol_type_id == mi2.mol_type_id &&
+        component_instances == mi2.component_instances &&
+        orientation == mi2.orientation;
   }
 
 
@@ -104,11 +115,25 @@ public:
 // - as a pattern for matching, not all states and bonds need to be entered
 // - as a definition of species, in this case all components must be present and
 //      if a component has more than 0 states then the state must be set
+// TODO:L rename to pattern
 class CplxInstance {
 public:
   small_vector<MolInstance> mol_patterns;
 
-  bool operator ==(const CplxInstance& ci2) const  {
+  // flags?
+  // share this interface with actual species?
+  bool is_vol() const;
+  bool is_surf() const;
+
+  bool has_single_orientation() const;
+
+  // asserts if has_single_orientation is false
+  orientation_t get_single_orientation() const;
+
+  // asserts if has_single_orientation is false
+  void set_single_orientation(orientation_t orientation) const;
+
+  bool operator ==(const CplxInstance& ci2) const {
     // ordering of components in a molecule is important
     // two component types must have the same id, this is ensured in find_or_add_component_type
     return mol_patterns == ci2.mol_patterns;

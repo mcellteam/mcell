@@ -34,11 +34,11 @@ int parse_bngl(char const *name, const bool dump_ast, const bool dump_bng_data) 
 
   BNG::SemanticAnalyzer sema;
 
-  BNG::BNGData bng_data;
-  sema.check_and_convert(ctx, &bng_data);
+  BNG::BNGEngine bng_engine;
+  sema.check_and_convert(ctx, &bng_engine.get_data());
 
   if (dump_bng_data) {
-    bng_data.dump();
+    bng_engine.get_data().dump();
   }
 
   ctx->print_error_report();

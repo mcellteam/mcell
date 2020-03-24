@@ -8,7 +8,7 @@ import utils
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 WORK_DIR = os.path.join(THIS_DIR, 'work')
 BNGL_EXT = '.bngl'
-TEST_APP = os.path.join(THIS_DIR, '..', 'build', 'bng')
+TEST_APP = os.path.join(THIS_DIR, '..', 'build', 'test_bng')
 
 # returns a list of TestInfo objects
 def get_test_files(dir):

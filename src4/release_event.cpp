@@ -20,14 +20,15 @@
  * USA.
  *
 ******************************************************************************/
-//extern "C" {
+
 #include "rng.h" // MCell 3
 #include "isaac64.h"
 #include "mcell_structs.h"
 #include "logging.h"
-//}
 
 #include <iostream>
+
+#include "defines.h"
 
 #include "release_event.h"
 #include "world.h"

@@ -33,6 +33,8 @@
 #include <set>
 #include <map>
 
+#include "bng/bng.h"
+
 #include "partition.h"
 #include "scheduler.h"
 #include "species.h"
@@ -40,6 +42,8 @@
 #include "callback_info.h"
 #include "reaction.h"
 #include "reactions_info.h"
+
+
 
 namespace MCell {
 
@@ -100,7 +104,7 @@ public:
         floor_to_multiple(pos, config.partition_edge_length)
         - Vec3(config.partition_edge_length/2);
 
-    partitions.push_back(Partition(origin, config, all_reactions, all_species, stats));
+    partitions.push_back(Partition(origin, config, all_reactions, all_species, bng_engine, stats));
     return partitions.size() - 1;
   }
 
@@ -154,6 +158,7 @@ public:
   SimulationConfig config;
   ReactionsInfo all_reactions;
   SpeciesInfo all_species;
+  BNG::BNGEngine bng_engine;
   SimulationStats stats;
 
 

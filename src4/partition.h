@@ -34,7 +34,7 @@
 #include "reaction.h"
 #include "species.h"
 #include "reactions_info.h"
-#include "species_info.h"
+
 
 namespace MCell {
 
@@ -50,6 +50,7 @@ public:
       const SimulationConfig& config_,
       const ReactionsInfo& reactions_,
       const SpeciesInfo& species_,
+      BNG::BNGEngine& bng_engine_,
       SimulationStats& stats_
   )
     : origin_corner(origin_),
@@ -57,6 +58,7 @@ public:
       config(config_),
       all_reactions(reactions_),
       all_species(species_),
+      bng_engine(bng_engine_),
       stats(stats_) {
 
     opposite_corner = origin_corner + config.partition_edge_length;
@@ -590,8 +592,9 @@ public:
   // all these reference an object owned by a single World instance
   // enclose into something?
   const SimulationConfig& config;
-  const ReactionsInfo& all_reactions;
+  const ReactionsInfo& all_reactions; // ??
   const SpeciesInfo& all_species; // species_info? - species is both singular and plural...
+  BNG::BNGEngine& bng_engine;
   SimulationStats& stats;
 };
 

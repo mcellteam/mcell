@@ -78,10 +78,10 @@ enum molecule_flag_t {
 /**
  * Base class for all molecules.
  */
-class Molecule: public BNG::MolInstance {
+class Molecule {
 public:
   Molecule()
-    : id(MOLECULE_ID_INVALID), flags(0), unimol_rx_time(TIME_FOREVER), unimol_rx(nullptr), species_id(SPECIES_ID_INVALID) {
+    : id(MOLECULE_ID_INVALID), species_id(SPECIES_ID_INVALID), flags(0), unimol_rx_time(TIME_FOREVER), unimol_rx(nullptr) {
   }
 
   Molecule(const Molecule& m) {
@@ -89,20 +89,20 @@ public:
   }
 
   Molecule(const molecule_id_t id_, const species_id_t species_id_)
-    : id(id_), flags(0), unimol_rx_time(TIME_INVALID), unimol_rx(nullptr), species_id(species_id_)
+    : id(id_), species_id(species_id_), flags(0), unimol_rx_time(TIME_INVALID), unimol_rx(nullptr)
       /*subpart_index(SUBPART_INDEX_INVALID)*/ {
   }
 
   // volume molecule
   Molecule(const molecule_id_t id_, const species_id_t species_id_, const Vec3& pos_)
-    : id(id_), flags(MOLECULE_FLAG_VOL), unimol_rx_time(TIME_INVALID), unimol_rx(nullptr), species_id(species_id_) {
+    : id(id_), species_id(species_id_), flags(MOLECULE_FLAG_VOL), unimol_rx_time(TIME_INVALID), unimol_rx(nullptr) {
     v.pos = pos_;
     v.subpart_index = SUBPART_INDEX_INVALID;
   }
 
   // surface molecule
   Molecule(const molecule_id_t id_, const species_id_t species_id_, const Vec2& pos2d)
-    : id(id_), flags(MOLECULE_FLAG_SURF), unimol_rx_time(TIME_INVALID), unimol_rx(nullptr), species_id(species_id_) {
+    : id(id_), species_id(species_id_), flags(MOLECULE_FLAG_SURF), unimol_rx_time(TIME_INVALID), unimol_rx(nullptr) {
     s.pos = pos2d;
     //s.subpart_index = SUBPART_INDEX_INVALID;
     s.orientation = ORIENTATION_NONE;
@@ -132,6 +132,7 @@ public:
 
   // data is ordered to avoid alignment holes (for 64-bit floats)
   molecule_id_t id; // unique molecule id (for now it is unique per partition but should be world-wide unique)
+  species_id_t species_id;
   uint flags;
 
   float_t unimol_rx_time;
@@ -156,8 +157,6 @@ public:
       tile_index_t grid_tile_index;
     } s;
   };
-
-  species_id_t species_id;
 
   bool has_flag(uint flag) const {
     assert(__builtin_popcount(flag) == 1);

@@ -573,6 +573,11 @@ static bool is_species_superclass(volume* s, species* spec) {
 }
 
 bool MCell3WorldConverter::convert_species_and_create_diffusion_events(volume* s) {
+
+  assert(false);
+
+#if 0
+
   // TODO_CONVERSION: many items are not checked
   for (int i = 0; i < s->n_species; i++) {
     species* spec = s->species_list[i];
@@ -635,14 +640,14 @@ bool MCell3WorldConverter::convert_species_and_create_diffusion_events(volume* s
     CHECK_PROPERTY(spec->absorb_mols == nullptr);
     CHECK_PROPERTY(spec->clamp_conc_mols == nullptr);
 
-    world->all_species.add(new_species);
+    world->all_species.find_or_add(new_species);
 
     mcell3_species_id_map[new_species.mcell3_species_id] = new_species.species_id;
   }
 
   // TODO: really not sure why this is here... split
   create_diffusion_events();
-
+#endif
   return true;
 }
 
@@ -650,6 +655,9 @@ bool MCell3WorldConverter::convert_species_and_create_diffusion_events(volume* s
 bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
   RxnClass rxn_class;
 
+  assert(false);
+
+#if 0
   // rx->next - handled in convert_reactions
   // rx->sym->name - ignored, name obtained from pathway
 
@@ -787,7 +795,7 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
 
 
   world->all_reactions.add(rxn_class);
-
+#endif
   return true;
 }
 

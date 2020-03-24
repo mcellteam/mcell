@@ -9,6 +9,7 @@
 
 #include "semantic_analyzer.h"
 
+#include "bng_data.h"
 #include "mol_type.h"
 #include "parser_utils.h"
 
@@ -186,7 +187,7 @@ MolInstance SemanticAnalyzer::convert_molecule_pattern(const ASTMoleculeNode* m)
 
   // process and remember ID
   mol_type_id_t molecule_type_id = bng_data->find_molecule_type_id(m->name);
-  if (molecule_type_id == MOLECULE_TYPE_ID_INVALID) {
+  if (molecule_type_id == MOL_TYPE_ID_INVALID) {
     errs(m) << "Molecule type with name '" + m->name + "' was not defined.\n"; // test N0200
     ctx->inc_error_count();
     return mp;

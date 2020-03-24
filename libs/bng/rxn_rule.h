@@ -76,7 +76,6 @@ public:
   // TODO: private
   small_vector<CMIndexPair> mapping;
 
-
   float_t rxn_rate;
 
   const MolInstance& get_reactant_mol_inst(const CplxMolIndex& cmi) const {
@@ -90,6 +89,15 @@ public:
     assert(cmi.mol_index <= products[cmi.cplx_index].mol_patterns.size());
     return products[cmi.cplx_index].mol_patterns[cmi.mol_index];
   }
+
+
+  // mcell3 variant of maintaining substances,
+  // e.g. for A + B -> A - A is maintained
+  // TODO: merge with BNG style of maintaining substances
+  bool is_reactant_on_both_sides_of_rxn(const uint index) const;
+
+  bool is_product_on_both_sides_of_rxn(const uint index) const;
+
 
   bool operator ==(const RxnRule& rr2) {
     // ordering of components in a molecule is important

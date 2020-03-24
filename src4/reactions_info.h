@@ -41,9 +41,6 @@ typedef std::map<species_id_t, SpeciesRxnClassesMap> BimolecularRxnClassesMap;
 #endif
 typedef SpeciesRxnClassesMap UnimolecularRxnClassesMap;
 
-
-class SpeciesInfo;
-
 /**
  * Owns information on reactions and species,
  * mostly accessed as constant data.

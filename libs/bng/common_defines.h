@@ -48,6 +48,8 @@ const Common::float_t GIGANTIC4 = 1e140;
 // ---------------------------------- fixed constants and specific typedefs -------------------
 const Common::float_t POS_INVALID = FLT_MAX; // cannot be NAN because we cannot do any comparison with NANs
 
+const Common::float_t FLT_INVALID = FLT_MAX;
+
 const Common::float_t TIME_INVALID = -1;
 const Common::float_t TIME_FOREVER = FLT_MAX; // this max is sufficient for both float and double
 const Common::float_t TIME_SIMULATION_START = 0;
@@ -64,6 +66,14 @@ const uint INDEX_INVALID = UINT32_MAX; // general invalid index, should not be u
 typedef uint molecule_id_t;
 const molecule_id_t MOLECULE_ID_INVALID = ID_INVALID;
 
+// unique species id
+typedef uint species_id_t;
+const species_id_t SPECIES_ID_INVALID = ID_INVALID;
+
+typedef int32_t orientation_t;
+const orientation_t ORIENTATION_DOWN = -1;
+const orientation_t ORIENTATION_NONE = 0;
+const orientation_t ORIENTATION_UP = 1;
 
 #ifndef NDEBUG
 // TODO: probably make this enabled only for Eclipse, we want the debug build to behave exactly as the release build

@@ -4,7 +4,7 @@
 #include "defines.h"
 #include "species.h"
 #include "molecule.h"
-#include "species_info.h"
+#include "species.h"
 
 #include <iostream>
 #include <sstream>

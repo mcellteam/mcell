@@ -57,7 +57,7 @@ option(ENABLE_GCOV "Use gcc coverage" OFF)
 option(ENABLE_GPROF "Use gprof profiling" OFF)
 option(ENABLE_GPERFTOOLS "Build with gperftools profiling" OFF)  
 option(ENABLE_SANITIZER "Use address sanitizer" OFF)
-option(PYMCELL "Build also pyMCell" ON) 
+option(PYMCELL "Build also pyMCell" OFF) # pymcell is disabled in this pohase of BNG reactions development 
 
 
 if (ENABLE_LTO)
@@ -167,6 +167,7 @@ elseif (WIN32)
                      copy ${CMAKE_SOURCE_DIR}/appveyor_windows/version.h ${CMAKE_CURRENT_BINARY_DIR}/deps )
 endif()
 
+add_subdirectory(${CMAKE_SOURCE_DIR}/libs/bng ${CMAKE_CURRENT_BINARY_DIR}/libs/bng)
 add_subdirectory(${CMAKE_SOURCE_DIR}/../nfsim ${CMAKE_CURRENT_BINARY_DIR}/nfsim)
 add_subdirectory(${CMAKE_SOURCE_DIR}/../nfsimCInterface ${CMAKE_CURRENT_BINARY_DIR}/nfsimCInterface)
 
@@ -242,14 +243,6 @@ set(SOURCE_FILES
     src4/world.cpp
     
     src4/callback_info.cpp    
-    
-    libs/bng/bng_engine.cpp
-    libs/bng/complex_species.cpp
-    libs/bng/component.cpp
-    libs/bng/molecule_instance.cpp
-    libs/bng/molecule_species.cpp
-    libs/bng/rule.cpp
-
 )
 
 set(SOURCE_FILES_ONLY_MCELL
@@ -272,7 +265,7 @@ INCLUDE(${SWIG_USE_FILE})
 
 INCLUDE_DIRECTORIES("${CMAKE_CURRENT_SOURCE_DIR}/src")
 
-if (NOT WIN32 AND NOT CYGWIN)
+if (PYMCELL AND NOT WIN32 AND NOT CYGWIN)
   FIND_PACKAGE(PythonLibs 3 REQUIRED)
   INCLUDE_DIRECTORIES(${PYTHON_INCLUDE_PATH})
 
@@ -342,9 +335,9 @@ add_executable(mcell
 
 add_dependencies(mcell version_h)
 
-if (NOT WIN32 AND NOT CYGWIN)
+if (PYMCELL AND NOT WIN32 AND NOT CYGWIN)
     add_dependencies(pymcell version_h nfsim_c NFsim)
 endif()
   
-target_link_libraries(mcell nfsim_c_static NFsim_static)
+target_link_libraries(mcell bng nfsim_c_static NFsim_static)
 TARGET_COMPILE_DEFINITIONS(mcell PRIVATE NOSWIG=1)

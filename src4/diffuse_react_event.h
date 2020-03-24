@@ -31,6 +31,7 @@
 #include "base_event.h"
 #include "partition.h"
 #include "collision_structs.h"
+#include "species.h"
 #include "reaction.h"
 
 #define TEST 1
@@ -40,7 +41,6 @@ namespace MCell {
 class World;
 class Partition;
 class Molecule;
-class Species;
 
 
 enum class RayTraceState {

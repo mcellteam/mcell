@@ -87,6 +87,7 @@ void MolInstance::dump(const BNGData& bng_data, const bool only_explicit, ostrea
 
 
 // ------------- ComplexInstance -------------
+
 void CplxInstance::dump(const BNGData& bng_data) const {
   for (size_t i = 0; i < mol_patterns.size(); i++) {
     mol_patterns[i].dump(bng_data);

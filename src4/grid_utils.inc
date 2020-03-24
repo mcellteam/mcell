@@ -37,6 +37,7 @@
 #include "defines.h"
 #include "world.h"
 #include "partition.h"
+#include "species.h"
 #include "geometry.h"
 #include "debug_config.h"
 

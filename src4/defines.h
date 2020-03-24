@@ -46,6 +46,8 @@
 #include "../libs/boost/container/small_vector.hpp"
 #include "../libs/boost/container/flat_set.hpp"
 
+#include "bng/common_defines.h"
+
 #include "mcell_structs.h"
 #include "debug_config.h"
 
@@ -135,7 +137,6 @@ const float_t SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT = 1;
 
 // ---------------------------------- fixed constants and specific typedefs -------------------
 const float_t POS_INVALID = FLT_MAX; // cannot be NAN because we cannot do any comparison with NANs
-const float_t FLT_INVALID = FLT_MAX;
 
 const float_t TIME_INVALID = -256;
 const float_t TIME_FOREVER = FLT_MAX; // this max is sufficient for both float and double
@@ -148,10 +149,6 @@ const float_t RX_RADIUS_MULTIPLIER = 1.2; // TEMPORARY - we should figure out wh
 const uint INT_INVALID = INT32_MAX;
 const uint ID_INVALID = UINT32_MAX; // general invalid index, should not be used when a definition for a specific type is available
 const uint INDEX_INVALID = UINT32_MAX; // general invalid index, should not be used when a definition for a specific type is available
-
-// unique species id
-typedef uint species_id_t;
-const species_id_t SPECIES_ID_INVALID = ID_INVALID;
 
 // molecule id is a unique identifier of a molecule,
 // no 2 molecules may have the same ID in the course of a simulation (at least for now)
@@ -234,11 +231,6 @@ const geometry_object_index_t GEOMETRY_OBJECT_INDEX_INVALID = INDEX_INVALID;
 
 typedef uint geometry_object_id_t; // world-unique unique geometry object id
 const geometry_object_id_t GEOMETRY_OBJECT_ID_INVALID = ID_INVALID;
-
-typedef int32_t orientation_t;
-const orientation_t ORIENTATION_DOWN = -1;
-const orientation_t ORIENTATION_NONE = 0;
-const orientation_t ORIENTATION_UP = 1;
 
 typedef std::pair<partition_index_t, wall_index_t> PartitionWallIndexPair;
 typedef std::pair<partition_index_t, region_index_t> PartitionRegionIndexPair;

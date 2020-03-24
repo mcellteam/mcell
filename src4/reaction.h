@@ -21,18 +21,24 @@
  *
 ******************************************************************************/
 
+// TODO: rename to rxn.h/cpp
 
 #ifndef SRC4_REACTION_H_
 #define SRC4_REACTION_H_
 
+#include "bng/bng.h"
+
 #include "defines.h"
+#include "species.h"
 
 namespace MCell {
 
 class SimulationConfig;
-class SpeciesInfo;
 class Partition;
 
+
+// must go wholly into BNG
+// Species already contains orientation
 class SpeciesWithOrientation {
 public:
   SpeciesWithOrientation()
@@ -85,7 +91,7 @@ class RxnClass;
 
 // corresponds to MDL reaction and pathway in MCell3 code
 // note sure about the naming Rxn or Reaction?
-class Rxn {
+class Rxn: public BNG::RxnRule {
 public:
   /* Name of MDL reaction */
   std::string name;
@@ -95,13 +101,14 @@ public:
 
   // contains the same reactants as the parent Reaction, but possibly in different order
   // checked for correctness on initialize and it is used as constant anyway
-  std::vector<SpeciesWithOrientation> reactants;
+  //std::vector<SpeciesWithOrientation> reactants;
 
-  std::vector<SpeciesWithOrientation> products;
+  //std::vector<SpeciesWithOrientation> products;
 
   uint get_num_surf_products(const SpeciesInfo& all_species) const;
 
   uint get_num_players() const {
+    assert(false);
     return reactants.size() + products.size();
   }
 

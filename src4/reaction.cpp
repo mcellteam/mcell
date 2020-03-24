@@ -25,7 +25,7 @@
 
 #include <iostream>
 
-#include "species_info.h"
+#include "species.h"
 #include "partition.h"
 
 using namespace std;
@@ -51,28 +51,32 @@ void Rxn::initialize(const RxnClass& reaction) {
 
 // asserts in debug mode if the reactants are different
 void Rxn::debug_check_reactants_against_reaction(const RxnClass& reaction) {
+  assert(false && "BNGTODO");
+  /*
   assert(reaction.reactants.size() == reactants.size());
   assert(reactants.size() >= 1 && reactants.size() <= 2);
   if (reactants.size() == 1) {
     assert(reactants[0] == reaction.reactants[0]);
   }
-  else {
-
-  }
+  */
 }
 
 uint Rxn::get_num_surf_products(const SpeciesInfo& all_species) const {
+  assert(false && "BNGTODO");
+  /*
   uint res = 0;
   for (const SpeciesWithOrientation& prod: products) {
     if (all_species.get(prod.species_id).is_surf()) {
       res++;
     }
   }
-  return res;
+  return res;*/
 }
 
 // create mapping for cases when one of the reactants is unchanged in the reaction
 void Rxn::update_equivalent_product_indices() {
+  assert(false && "BNGTODO");
+  /*
   for (SpeciesWithOrientation& product: products) {
     product.equivalent_product_or_reactant_index = INDEX_INVALID;
   }
@@ -90,10 +94,13 @@ void Rxn::update_equivalent_product_indices() {
       }
     }
   }
+  */
 }
 
 
 void Rxn::move_reused_reactants_to_be_the_first_products() {
+  assert(false && "BNGTODO");
+  /*
   // for each reactant (from the end since we want the products to be ordered in the same way)
   for (int ri = reactants.size() - 1; ri >= 0; ri--) {
     if (reactants[ri].equivalent_product_or_reactant_index != INDEX_INVALID) {
@@ -107,9 +114,12 @@ void Rxn::move_reused_reactants_to_be_the_first_products() {
       update_equivalent_product_indices();
     }
   }
+  */
 }
 
 void Rxn::dump(const string ind) const {
+  assert(false && "TODO");
+  /*
   cout << ind << "name: \t\t" << name << " [string] \t\t\n";
   cout << ind << "rate_constant: \t\t" << rate_constant << " [float_t] \t\t\n";
 
@@ -118,6 +128,7 @@ void Rxn::dump(const string ind) const {
 
   cout << ind << "products:\n";
   SpeciesWithOrientation::dump_array(products, ind + "  ");
+  */
 }
 
 
@@ -137,7 +148,8 @@ static std::string pathway_players_to_string(
 
 
 std::string Rxn::to_string(const Partition& p) const {
-  return pathway_players_to_string(p, reactants) + " -> " + pathway_players_to_string(p, products);
+  assert(false && "TODO");
+  //return pathway_players_to_string(p, reactants) + " -> " + pathway_players_to_string(p, products);
 }
 
 void RxnClass::dump_array(const vector<RxnClass>& vec) {

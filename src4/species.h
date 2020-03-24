@@ -26,9 +26,12 @@
 
 #include <string>
 #include <vector>
-#include "defines.h"
 
+#include "bng/bng.h"
+
+#include "defines.h"
 #include "mcell_structs.h"
+
 
 namespace MCell {
 
@@ -49,13 +52,12 @@ enum species_flag_t {
 /**
  * Holds information on one species type.
  */
-class Species {
+class Species : public BNG::CplxSpecies {
 public:
-  species_id_t species_id;
 
   uint mcell3_species_id;
-  float_t D; // diffusion constant
-  std::string name;
+  //float_t D; // diffusion constant
+  //std::string name;
 
   // TODO: make private
   float_t space_step;
@@ -100,6 +102,8 @@ public:
   void dump(const std::string ind) const;
   static void dump_array(const std::vector<Species>& vec);
 };
+
+typedef BNG::SpeciesContainer<Species> SpeciesInfo;
 
 } // namespace mcell
 

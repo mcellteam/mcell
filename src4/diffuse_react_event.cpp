@@ -1482,7 +1482,7 @@ int DiffuseReactEvent::find_surf_product_positions(
       assert(product_index < rxn->products.size());
 
       // we care only about surface molecules
-      if (p.all_species.get(rxn->products[product_index].species_id).is_vol()) {
+      if (rxn->products[product_index].is_vol()) {
         continue;
       }
 
@@ -1586,21 +1586,21 @@ int DiffuseReactEvent::outcome_products_random(
 
     /* Ensure that reacA and reacB are sorted in the same order as the rxn players. */
     /* Needed to maintain the same behavior as in mcell3 */
-    if (SpeciesWithOrientation(reacA->species_id, reacA->get_orientation()) != rx->reactants[0]) {
+    if (p.bng_engine.matches(rx->reactants[0], reacA->species_id)) {
       Molecule* tmp_mol = reacA;
       reacA = reacB;
       reacB = tmp_mol;
       reactants_swapped = true;
     }
-    assert(rx->reactants[1].is_same_tolerate_orientation_none(reacB->species_id, reacB->get_orientation()));
+    assert(p.bng_engine.matches_ignore_orientation(rx->reactants[1], reacB->species_id));
 
-    keep_reacB = rx->reactants[1].is_on_both_sides_of_rxn();
+    keep_reacB = rx->is_reactant_on_both_sides_of_rxn(1);
   }
   else {
     surf_reac = reacA->is_surf() ? reacA : nullptr;
   }
-  assert(rx->reactants[0].is_same_tolerate_orientation_none(reacA->species_id, reacA->get_orientation()));
-  keep_reacA = rx->reactants[0].is_on_both_sides_of_rxn();
+  assert(p.bng_engine.matches_ignore_orientation(rx->reactants[0], reacA->species_id));
+  keep_reacA = rx->is_reactant_on_both_sides_of_rxn(0);
 
   bool is_orientable = reacA->is_surf() || (reacB != nullptr && reacB->is_surf());
 
@@ -1649,17 +1649,18 @@ int DiffuseReactEvent::outcome_products_random(
   uint current_surf_product_position_index = 0;
 
   for (uint product_index = 0; product_index < rx->products.size(); product_index++) {
-    const SpeciesWithOrientation& product = rx->products[product_index];
+    const BNG::CplxInstance& product = rx->products[product_index];
 
     // do not create anything new when the reactant is kept -
     // for bimol reactions - the diffusion simply continues
     // for unimol reactions - the unimol action action starts diffusion for the remaining timestep
-    if (product.is_on_both_sides_of_rxn()) {
+    if (rx->is_reactant_on_both_sides_of_rxn(product_index) /*product.is_on_both_sides_of_rxn()*/) {
       // remember which reactant(s) to keep?
       continue;
     }
 
-    const Species& species = p.all_species.get(product.species_id);
+    species_id_t product_species_id = p.bng_engine.get_rxn_product_species_id(rx, product_index); // p.all_species.get(product.species_id);
+    const Species& species = p.all_species.get(product_species_id);
 
     molecule_id_t new_m_id;
 
@@ -1686,7 +1687,7 @@ int DiffuseReactEvent::outcome_products_random(
     if (species.is_vol()) {
       // create and place a volume molecule
 
-      Molecule vm_initialization(MOLECULE_ID_INVALID, product.species_id, collision.pos);
+      Molecule vm_initialization(MOLECULE_ID_INVALID, product_species_id, collision.pos);
 
       // adding molecule might invalidate references of already existing molecules
       Molecule& new_vm = p.add_volume_molecule(vm_initialization);
@@ -1706,11 +1707,11 @@ int DiffuseReactEvent::outcome_products_random(
       assert(is_orientable
           || (collision.type != CollisionType::VOLMOL_SURFMOL && collision.type != CollisionType::SURFMOL_SURFMOL)
       );
-      if (is_orientable) {
+      if (is_orientable && product.has_single_orientation()) {
         assert(surf_reac != nullptr);
         Wall& w = p.get_wall(surf_reac->s.wall_index);
 
-        float_t bump = (product.orientation > 0) ? EPS : -EPS;
+        float_t bump = (product.get_single_orientation() > 0) ? EPS : -EPS;
         Vec3 displacement = Vec3(2 * bump) * w.normal;
         Vec3 new_pos_after_diffuse;
 
@@ -1748,7 +1749,7 @@ int DiffuseReactEvent::outcome_products_random(
       }
 
       // create our new molecule
-      Molecule sm(MOLECULE_ID_INVALID, product.species_id, pos);
+      Molecule sm(MOLECULE_ID_INVALID, product_species_id, pos);
 
       // might invalidate references of already existing molecules
       Molecule& new_sm = p.add_surface_molecule(sm);
@@ -1764,7 +1765,8 @@ int DiffuseReactEvent::outcome_products_random(
       grid.set_molecule_tile(new_sm.s.grid_tile_index, new_sm.id);
 
       // and finally orientation
-      new_sm.s.orientation = product.orientation;
+      // - should be alreay set when species were defined
+      // BNG: new_sm.s.orientation = product.orientation;
 
       #ifdef DEBUG_REACTIONS
         DUMP_CONDITION4(
@@ -1820,7 +1822,7 @@ bool DiffuseReactEvent::outcome_unimolecular(
 
   // and defunct this molecule if it was not kept
   assert(unimol_rx->reactants.size() == 1);
-  if (!unimol_rx->reactants[0].is_on_both_sides_of_rxn()) {
+  if (!unimol_rx->is_reactant_on_both_sides_of_rxn(0)) {
   #ifdef DEBUG_REACTIONS
     DUMP_CONDITION4(
       m_new_ref.dump(p, "", m_new_ref.is_vol() ? "Unimolecular vm defunct:" : "Unimolecular sm defunct:", world->get_current_iteration(), scheduled_time, false);
