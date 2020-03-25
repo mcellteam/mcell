@@ -101,6 +101,15 @@ public:
 
   void dump(const std::string ind) const;
   static void dump_array(const std::vector<Species>& vec);
+
+  // not virtual
+  bool equal_except_for_id(const Species& s2) {
+    return
+        CplxSpecies::equal_except_for_id(s2) &&
+        space_step == s2.space_step &&
+        time_step == s2.time_step &&
+        flags == s2.flags;
+  }
 };
 
 

@@ -27,16 +27,20 @@ public:
   }
 
   species_id_t find_or_add(const SpeciesT& new_species) {
-    assert(new_species.species_id == species.size());
+
+    species_id_t res = SPECIES_ID_INVALID;
 
     // check that this species does not exist already
-    species_id_t res = find(new_species);
+    if (new_species.species_id != SPECIES_ID_INVALID) {
+      res = find(new_species);
+    }
 
     // add if not found
     if (res == SPECIES_ID_INVALID) {
       res = next_species_id;
       next_species_id++;
       species.push_back(new_species);
+      species.back().species_id = res;
     }
 
     return res;
@@ -46,7 +50,7 @@ public:
   species_id_t find(const SpeciesT& species_to_find) {
     // simple equality comparison for now, some hashing will be needed
     for (const SpeciesT& s: species) {
-      if (species_to_find == s) {
+      if (species_to_find.equal_except_for_id(s)) {
         return s.species_id;
       }
     }

@@ -10,7 +10,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -isystem ${CMAKE_SOURCE_DIR}/libs/
 set(SOURCE_FILES
 	ast.cpp
 	bng_data.cpp
-	bng_engine.cpp
 	cplx_instance.cpp
 	molecule_instance.cpp
 	mol_instance.cpp

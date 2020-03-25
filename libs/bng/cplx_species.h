@@ -24,6 +24,13 @@ public:
 
   float_t D; // diffusion constant
 
+  bool equal_except_for_id(const CplxSpecies& s2) {
+    return
+        CplxInstance::equal(s2) &&
+        name == s2.name &&
+        D == s2.D;;
+  }
+
 };
 
 } // namespace BNG

@@ -255,8 +255,6 @@ void RxnRule::move_reused_reactants_to_be_the_first_products() {
 }
 
 
-
-
 uint RxnRule::get_num_surf_products(/*const BNG::SpeciesContainer<Species>& all_species*/) const {
   assert(false && "BNGTODO");
   /*

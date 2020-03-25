@@ -88,12 +88,16 @@ public:
   // returns true if this object as a pattern matches second instance
   bool matches(const CplxInstance& inst, const bool ignore_orientation = false) const;
 
-  bool operator ==(const CplxInstance& ci2) const {
-    // ordering of components in a molecule is important
-    // two component types must have the same id, this is ensured in find_or_add_component_type
+  bool equal(const CplxInstance& ci2) const {
     return
         mol_patterns == ci2.mol_patterns &&
         orientation == ci2.orientation;
+  }
+
+  bool operator ==(const CplxInstance& ci2) const {
+    // ordering of components in a molecule is important
+    // two component types must have the same id, this is ensured in find_or_add_component_type
+    return equal(ci2);
   }
 
   void dump(const BNGData& bng_data) const;

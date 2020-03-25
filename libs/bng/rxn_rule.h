@@ -152,8 +152,13 @@ public:
   bool compute_reactants_products_mapping(const BNGData& bng_data, std::ostream& out);
 
 
-  void append_simple_reactant(const species_id_t id, const orientation_t o);
-  void append_simple_product(const species_id_t id, const orientation_t o);
+  void append_simple_reactant(const CplxInstance& inst) {
+    reactants.push_back(inst);
+  }
+
+  void append_simple_product(const CplxInstance& inst) {
+    products.push_back(inst);
+  }
 
   uint get_num_surf_products() const; // we don't have probably the information that is needed
 
@@ -183,6 +188,7 @@ private:
   void dump_complex_instance_vector(
       const BNGData& bng_data,
       const CplxInstanceVector& complexes) const;
+
 };
 
 } /* namespace BNG */

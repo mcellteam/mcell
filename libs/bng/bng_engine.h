@@ -77,7 +77,7 @@ public:
   );
 
 
-  const BNG::RxnClass* get_unimol_rxn_class(const species_id_t id) {
+  const RxnClass* get_unimol_rxn_class(const species_id_t id) {
     assert(false);
 #if 0
     const UnimolecularRxnClassesMap& unimol_rxs = world->all_reactions.unimolecular_reactions_map;
@@ -91,7 +91,7 @@ public:
 #endif
   }
 
-  const BNG::RxnClass* get_bimol_rxn_class(const species_id_t id1, const species_id_t id2) {
+  const RxnClass* get_bimol_rxn_class(const species_id_t id1, const species_id_t id2) {
     assert(false);
 
     #if 0
@@ -177,6 +177,10 @@ public:
     */
   }
 
+
+  CplxInstance create_simple_cplx_instance(const species_id_t id, const orientation_t o) const;
+
+
   // search whether two molecules can react is done
   //std::vector<ComplexSpecies> complex_species;
 
@@ -219,6 +223,16 @@ species_id_t BNGEngine<SpeciesT>::get_rxn_product_species_id(
   //
   return SPECIES_ID_INVALID;
 }
+
+
+template<class SpeciesT>
+CplxInstance BNGEngine<SpeciesT>::create_simple_cplx_instance(const species_id_t id, const orientation_t o) const {
+  const CplxInstance& ref = all_species.get(id);
+  CplxInstance copy = ref;
+  copy.set_orientation(o);
+  return copy;
+}
+
 
 } /* namespace BNG */
 

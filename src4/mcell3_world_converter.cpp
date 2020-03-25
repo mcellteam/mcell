@@ -578,8 +578,6 @@ static bool is_species_superclass(volume* s, species* spec) {
 
 bool MCell3WorldConverter::convert_species(volume* s) {
 
-  assert(false);
-
   // TODO_CONVERSION: many items are not checked
   for (int i = 0; i < s->n_species; i++) {
     species* spec = s->species_list[i];
@@ -654,8 +652,6 @@ bool MCell3WorldConverter::convert_species(volume* s) {
 bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
   RxnClass rxn_class;
 
-  assert(false);
-
   // rx->next - handled in convert_reactions
   // rx->sym->name - ignored, name obtained from pathway
 
@@ -727,11 +723,11 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
     // reactants
     if (current_pathway->reactant1 != nullptr) {
       species_id_t reactant1_id = get_mcell4_species_id(current_pathway->reactant1->species_id);
-      rxn.append_simple_reactant(reactant1_id, current_pathway->orientation1);
+      rxn.append_simple_reactant(world->bng_engine.create_simple_cplx_instance(reactant1_id, current_pathway->orientation1));
 
       if (current_pathway->reactant2 != nullptr) {
         species_id_t reactant2_id = get_mcell4_species_id(current_pathway->reactant2->species_id);
-        rxn.append_simple_reactant(reactant2_id, current_pathway->orientation2);
+        rxn.append_simple_reactant(world->bng_engine.create_simple_cplx_instance(reactant2_id, current_pathway->orientation2));
 
         if (current_pathway->reactant3 != nullptr) {
           mcell_error("TODO_CONVERSION: reactions with 3 reactants are not supported");
@@ -771,7 +767,7 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
       while (product_ptr != nullptr) {
         CHECK_PROPERTY(product_ptr->orientation == 0 || product_ptr->orientation == 1 || product_ptr->orientation == -1);
         species_id_t product_id = get_mcell4_species_id(product_ptr->prod->species_id);
-        rxn.append_simple_product(product_id, product_ptr->orientation);
+        rxn.append_simple_product( world->bng_engine.create_simple_cplx_instance(product_id, product_ptr->orientation) );
 
         product_ptr = product_ptr->next;
       }
