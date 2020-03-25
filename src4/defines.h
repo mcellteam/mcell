@@ -168,12 +168,6 @@ const partition_index_t PARTITION_INDEX_INVALID = INDEX_INVALID;
 typedef uint subpart_index_t;
 const subpart_index_t SUBPART_INDEX_INVALID = INDEX_INVALID;
 
-// index of reaction in a reaction class pathway (local for reaction)
-// -1 is used to signalize that no reaction was selected (i < RX_LEAST_VALID_PATHWAY)
-// TODO: change to using and use INVALID?
-typedef int reaction_index_t;
-//const reaction_index_t REACTION_INDEX_INVALID = INDEX_INVALID;
-
 // time step is used in partition to make sets of molecules that can be diffused with
 // different periodicity
 const uint TIME_STEP_INDEX_INVALID = INDEX_INVALID;
@@ -248,7 +242,7 @@ template<class T, class Allocator=boost::container::new_allocator<T>>
   using small_vector = boost::container::small_vector<T, BASE_CONTAINER_ALLOC, Allocator>;
 
 typedef boost::container::small_vector<subpart_index_t, BASE_CONTAINER_ALLOC>  SubpartIndicesVector;
-typedef boost::container::small_vector<const RxnClass*, BASE_CONTAINER_ALLOC>  RxnClassesVector;
+
 
 template<class T, typename Compare = std::less<T>, class Allocator=boost::container::new_allocator<T>>
   using base_flat_set = boost::container::flat_set<T, Compare, Allocator>;
@@ -257,7 +251,6 @@ template<typename T, typename _Alloc = std::allocator<T>  >
   using small_vector = std::vector<T, _Alloc>;
 
 typedef std::vector<subpart_index_t> SubpartIndicesVector;
-typedef std::vector<const RxnClass*> RxnClassesVector;
 
 template<typename T, typename _Compare = std::less<T>, typename _Alloc = std::allocator<T>  >
   using base_flat_set = std::set<T, _Compare, _Alloc>;

@@ -29,8 +29,13 @@
 #include "../libs/boost/container/small_vector.hpp"
 #include "../libs/sparsehash/src/google/dense_hash_set"
 
-namespace MCell {
+#include "bng/bng.h"
 
+namespace BNG {
+class RxnClass;
+}
+
+namespace MCell {
 
 enum class CollisionType {
   INVALID,
@@ -49,10 +54,6 @@ enum class CollisionType {
 
 class Collision;
 class Partition;
-class Rxn;
-class RxnClass;
-
-
 
 #ifndef INDEXER_WA
 typedef boost::container::small_vector<Collision, 16> collision_vector_t;
@@ -77,7 +78,7 @@ class Collision {
 public:
   Collision()
     : type(CollisionType::INVALID), partition(nullptr), diffused_molecule_id(MOLECULE_ID_INVALID), time(TIME_INVALID),
-      colliding_molecule_id(MOLECULE_ID_INVALID), rx(nullptr), rxn_class(nullptr), colliding_wall_index(WALL_INDEX_INVALID) {
+      colliding_molecule_id(MOLECULE_ID_INVALID), rxn(nullptr), rxn_class(nullptr), colliding_wall_index(WALL_INDEX_INVALID) {
   }
 
   // maybe create some static constructors with better names
@@ -88,7 +89,7 @@ public:
       const float_t time_,
       const Vec3& pos_,
       const molecule_id_t colliding_molecule_id_,
-      const RxnClass* rxn_class_ptr
+      const BNG::RxnClass* rxn_class_ptr
       )
     :
       type(type_),
@@ -97,7 +98,7 @@ public:
       time(time_),
       pos(pos_),
       colliding_molecule_id(colliding_molecule_id_),
-      rx(nullptr),
+      rxn(nullptr),
       rxn_class(rxn_class_ptr),
       colliding_wall_index(WALL_INDEX_INVALID) {
     assert((type == CollisionType::VOLMOL_VOLMOL || type == CollisionType::VOLMOL_SURFMOL)
@@ -110,7 +111,7 @@ public:
       const molecule_id_t diffused_molecule_id_,
       const float_t time_, // time from event start
       const molecule_id_t colliding_molecule_id_,
-      const RxnClass* rxn_class_ptr
+      const BNG::RxnClass* rxn_class_ptr
       )
     :
       type(type_),
@@ -118,7 +119,7 @@ public:
       diffused_molecule_id(diffused_molecule_id_),
       time(time_),
       colliding_molecule_id(colliding_molecule_id_),
-      rx(nullptr),
+      rxn(nullptr),
       rxn_class(rxn_class_ptr),
       colliding_wall_index(WALL_INDEX_INVALID) {
     assert(type == CollisionType::SURFMOL_SURFMOL && "This constructor must be used only for surfsurf collisions");
@@ -139,7 +140,7 @@ public:
       time(time_),
       pos(pos_),
       colliding_molecule_id(MOLECULE_ID_INVALID),
-      rx(nullptr),
+      rxn(nullptr),
       rxn_class(nullptr),
       colliding_wall_index(colliding_wall_index_) {
     assert((type == CollisionType::WALL_BACK || type == CollisionType::WALL_FRONT) && "This constructor must be used only for wall collisions");
@@ -151,7 +152,7 @@ public:
       const molecule_id_t diffused_molecule_id_,
       const float_t time_,
       const Vec3& pos_,
-      const Rxn* rx_ptr
+      const BNG::Rxn* rx_ptr
       )
     :
       type(type_),
@@ -160,7 +161,7 @@ public:
       time(time_),
       pos(pos_),
       colliding_molecule_id(MOLECULE_ID_INVALID),
-      rx(rx_ptr),
+      rxn(rx_ptr),
       rxn_class(nullptr),
       colliding_wall_index(WALL_INDEX_INVALID) {
     assert(type == CollisionType::UNIMOLECULAR_VOLMOL && "This constructor must be used only for unimol volmol collisions");
@@ -175,11 +176,11 @@ public:
 
   // valid only for is_wall_collision
   molecule_id_t colliding_molecule_id;
-  const Rxn* rx;
+  const BNG::RxnRule* rxn;
 
   // used for VOLMOL_VOLMOL or type == CollisionType::VOLMOL_SURFMOL
   // TODO: make them private? so that we can check access
-  const RxnClass* rxn_class;
+  const BNG::RxnClass* rxn_class;
 
   // valid only for COLLISION_WALL*
   wall_index_t colliding_wall_index;

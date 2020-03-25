@@ -26,6 +26,7 @@
 
 #include <set>
 
+#include "../libs/bng/rxn_container.h"
 #include "defines.h"
 #include "dyn_vertex_structs.h"
 #include "molecule.h"
@@ -33,7 +34,6 @@
 #include "geometry.h"
 #include "reaction.h"
 #include "species.h"
-#include "reactions_info.h"
 
 
 namespace MCell {
@@ -48,14 +48,12 @@ public:
   Partition(
       const Vec3 origin_,
       const SimulationConfig& config_,
-      const ReactionsInfo& reactions_,
       BNG::BNGEngine<Species>& bng_engine_,
       SimulationStats& stats_
   )
     : origin_corner(origin_),
       next_molecule_id(0),
       config(config_),
-      all_reactions(reactions_), // all_reactions need to be removed
       bng_engine(bng_engine_),
       stats(stats_) {
 
@@ -184,10 +182,14 @@ public:
   }
 
   void change_reactants_map(Molecule& vm, const uint32_t new_subpartition_index, bool adding, bool removing) {
+    assert(false && "BNGTODO");
+
     if (vm.is_surf()) {
       // nothing to do
       return;
     }
+
+#if 0
     assert(vm.is_vol() && "This function is applicable only to volume mols and ignored for surface mols");
     assert(all_reactions.is_initialized() && all_reactions.bimolecular_reactions_map.count(vm.species_id) != 0);
 
@@ -207,6 +209,7 @@ public:
         subpart_reactants_new_sp[second_reactant_info.first].insert_unique(vm.id);
       }
     }
+#endif
   }
 
 
@@ -591,7 +594,6 @@ public:
   // all these reference an object owned by a single World instance
   // enclose into something?
   const SimulationConfig& config;
-  const ReactionsInfo& all_reactions; // remove..
   BNG::BNGEngine<Species>& bng_engine;
   SimulationStats& stats;
 };

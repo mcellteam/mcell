@@ -55,7 +55,7 @@ enum species_flag_t {
 class Species : public BNG::CplxSpecies {
 public:
 
-  uint mcell3_species_id;
+  //uint mcell3_species_id;
   //float_t D; // diffusion constant
   //std::string name;
 

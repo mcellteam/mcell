@@ -52,6 +52,7 @@
 #include "wall_utils.inc"
 
 using namespace std;
+using namespace BNG;
 
 namespace MCell {
 
@@ -1388,7 +1389,7 @@ int DiffuseReactEvent::find_surf_product_positions(
     const Molecule* reacA, const bool keep_reacA,
     const Molecule* reacB, const bool keep_reacB,
     const Molecule* surf_reac,
-    const Rxn* rxn,
+    const RxnRule* rxn,
     small_vector<GridPos>& assigned_surf_product_positions) {
 
   uint needed_surface_positions = rxn->get_num_surf_products(p.bng_engine.all_species);
@@ -1551,7 +1552,7 @@ int DiffuseReactEvent::outcome_products_random(
 #endif
 
   // TODO: unify rx vs rxn
-  const Rxn* rx = nullptr;
+  const RxnRule* rx = nullptr;
   if (collision.is_mol_mol_reaction()) {
     const RxnClass* rxn_class = collision.rxn_class;
     assert(rxn_class != nullptr);
@@ -1559,7 +1560,7 @@ int DiffuseReactEvent::outcome_products_random(
   }
   else {
     assert(reaction_index == 0 && "For other than mol mol collision the selected reaction index must be 0");
-    rx = collision.rx;
+    rx = collision.rxn;
   }
   assert(rx != nullptr);
   assert(rx->reactants.size() == 1 || rx->reactants.size() == 2);
@@ -1807,7 +1808,7 @@ bool DiffuseReactEvent::outcome_unimolecular(
     Partition& p,
     Molecule& m,
     const float_t scheduled_time,
-    const Rxn* unimol_rx
+    const RxnRule* unimol_rx
 ) {
   molecule_id_t id = m.id;
 

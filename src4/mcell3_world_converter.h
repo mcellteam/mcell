@@ -65,7 +65,7 @@ public:
   bool convert_geometry_objects(volume* s);
 
   void create_diffusion_events();
-  bool convert_species_and_create_diffusion_events(volume* s);
+  bool convert_species(volume* s);
   bool convert_single_reaction(const rxn *rx);
   bool convert_reactions(volume* s);
   bool convert_release_events(volume* s);
@@ -75,14 +75,36 @@ public:
   World* world;
 
 private:
-  species_id_t get_mcell4_species_id(u_int mcell3_id) {
-    auto it = mcell3_species_id_map.find(mcell3_id);
+  species_id_t get_mcell4_species_id(const u_int mcell3_id, const orientation_t orient) {
+    auto it = mcell3_species_id_map.find(MCell3IdOrientPair(mcell3_id, orient));
     assert(it != mcell3_species_id_map.end());
     return it->second;
   }
 
   // mapping from mcell3 species id to mcell4 species id
-  std::map<u_int, species_id_t> mcell3_species_id_map;
+  // TODO: maybe simplify to a normal search using arrays
+  struct MCell3IdOrientPair {
+    MCell3IdOrientPair(const uint mcell3_id_, const orientation_t orient_)
+      : mcell3_id(mcell3_id_), orient(orient_) {
+    }
+
+    bool operator < (const MCell3IdOrientPair& p2) {
+      if (mcell3_id < p2.mcell3_id) {
+        return true;
+      }
+      else if (mcell3_id > p2.mcell3_id) {
+        return false;
+      }
+      else {
+        return orient < p2.orient;
+      }
+    }
+
+    uint mcell3_id;
+    orientation_t orient;
+  };
+
+  std::map<MCell3IdOrientPair, species_id_t> mcell3_species_id_map;
 
 
   void add_mcell4_vertex_index_mapping(const vector3* mcell3_vertex, PartitionVertexIndexPair pindex) {

@@ -28,11 +28,31 @@ public:
 
   species_id_t find_or_add(const SpeciesT& new_species) {
     assert(new_species.species_id == species.size());
-    // TODO: we must check that this species does not exist already
-    species_id_t res = next_species_id;
-    species.push_back(new_species);
-    return 0;
+
+    // check that this species does not exist already
+    species_id_t res = find(new_species);
+
+    // add if not found
+    if (res == SPECIES_ID_INVALID) {
+      res = next_species_id;
+      next_species_id++;
+      species.push_back(new_species);
+    }
+
+    return res;
   }
+
+  // returns SPECIES_ID_INVALID if not found
+  species_id_t find(const SpeciesT& species_to_find) {
+    // simple equality comparison for now, some hashing will be needed
+    for (const SpeciesT& s: species) {
+      if (species_to_find == s) {
+        return s.species_id;
+      }
+    }
+    return SPECIES_ID_INVALID;
+  }
+
 
   const SpeciesT& get(const species_id_t id) const {
     assert(id < species.size());
@@ -62,7 +82,7 @@ public:
   }
 
 private:
-  uint next_species_id;
+  species_id_t next_species_id;
 
   std::vector<SpeciesT> species;
 };

@@ -5,10 +5,11 @@
  *      Author: ahusar
  */
 
+#include "rxn_rule.h"
+
 #include <iostream>
 #include <sstream>
 
-#include "rxn_rule.h"
 
 using namespace std;
 
@@ -16,6 +17,7 @@ namespace BNG {
 
 
 bool RxnRule::is_cplx_reactant_on_both_sides_of_rxn(const uint index) const {
+  assert(finalized);
   for (const CplxIndexPair& cplx_index_pair: cplx_mapping) {
     if (index == cplx_index_pair.reactant_index) {
       return true;
@@ -26,6 +28,7 @@ bool RxnRule::is_cplx_reactant_on_both_sides_of_rxn(const uint index) const {
 
 
 bool RxnRule::is_cplx_product_on_both_sides_of_rxn(const uint index) const {
+  assert(finalized);
   for (const CplxIndexPair& cplx_index_pair: cplx_mapping) {
     if (index == cplx_index_pair.product_index) {
       return true;
@@ -232,6 +235,26 @@ bool RxnRule::compute_reactants_products_mapping(const BNGData& bng_data, std::o
 }
 
 
+void RxnRule::move_reused_reactants_to_be_the_first_products() {
+  assert(false && "BNGTODO");
+  /*
+  // for each reactant (from the end since we want the products to be ordered in the same way)
+  for (int ri = reactants.size() - 1; ri >= 0; ri--) {
+    if (reactants[ri].equivalent_product_or_reactant_index != INDEX_INVALID) {
+      // move product to the front
+      uint index = reactants[ri].equivalent_product_or_reactant_index;
+      SpeciesWithOrientation prod = products[index];
+      products.erase(products.begin() + index);
+      products.insert(products.begin(), prod);
+
+      // update mapping (inefficient, but used only in initialization)
+      update_equivalent_product_indices();
+    }
+  }
+  */
+}
+
+
 
 void RxnRule::dump_complex_instance_vector(const BNGData& bng_data, const CplxInstanceVector& complexes) const {
 
@@ -254,7 +277,7 @@ void RxnRule::dump(const BNGData& bng_data) const {
   cout << " -> ";
   dump_complex_instance_vector(bng_data, products);
 
-  cout << " " << rxn_rate;
+  cout << " " << rate_constant;
 }
 
 } /* namespace BNG */

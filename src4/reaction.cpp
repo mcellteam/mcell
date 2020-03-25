@@ -32,6 +32,7 @@ using namespace std;
 
 namespace MCell {
 
+#if 0
 void SpeciesWithOrientation::dump_array(const std::vector<SpeciesWithOrientation>& vec, const string ind) {
   for (size_t i = 0; i < vec.size(); i++) {
     cout << ind << i << ": species_id: " << vec[i].species_id << ", orientation:" << vec[i].orientation << "\n";
@@ -98,25 +99,6 @@ void Rxn::update_equivalent_product_indices() {
 }
 
 
-void Rxn::move_reused_reactants_to_be_the_first_products() {
-  assert(false && "BNGTODO");
-  /*
-  // for each reactant (from the end since we want the products to be ordered in the same way)
-  for (int ri = reactants.size() - 1; ri >= 0; ri--) {
-    if (reactants[ri].equivalent_product_or_reactant_index != INDEX_INVALID) {
-      // move product to the front
-      uint index = reactants[ri].equivalent_product_or_reactant_index;
-      SpeciesWithOrientation prod = products[index];
-      products.erase(products.begin() + index);
-      products.insert(products.begin(), prod);
-
-      // update mapping (inefficient, but used only in initialization)
-      update_equivalent_product_indices();
-    }
-  }
-  */
-}
-
 void Rxn::dump(const string ind) const {
   assert(false && "TODO");
   /*
@@ -172,6 +154,6 @@ void RxnClass::dump(const string ind) const {
 }
 
 
-
+#endif
 
 } // namespace mcell

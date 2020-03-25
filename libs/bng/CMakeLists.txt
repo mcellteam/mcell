@@ -14,6 +14,8 @@ set(SOURCE_FILES
 	#molecule_instance.cpp
 	mol_type.cpp
 	rxn_rule.cpp
+	rxn_class.cpp
+	rxn_container.cpp
 	parser_utils.cpp
 	ast.cpp
 	semantic_analyzer.cpp

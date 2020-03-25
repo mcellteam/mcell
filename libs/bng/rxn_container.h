@@ -21,27 +21,27 @@
  *
 ******************************************************************************/
 
-#ifndef SRC4_REACTIONS_INFO_H_
-#define SRC4_REACTIONS_INFO_H_
+#ifndef LIBS_BNG_RXN_CONTAINER_H_
+#define LIBS_BNG_RXN_CONTAINER_H_
 
-#include "defines.h"
-#include "species.h"
-#include "molecule.h"
-#include "reaction.h"
+#include <map>
 
-#include "bng/bng.h"
+#include "bng_defines.h"
+#include "rxn_rule.h"
+#include "rxn_class.h"
 
-namespace MCell {
+namespace BNG {
 
-class RxnClass;
-#ifndef INDEXER_WA
-typedef std::unordered_map<species_id_t, RxnClass*> SpeciesRxnClassesMap;
-typedef std::unordered_map< species_id_t, SpeciesRxnClassesMap > BimolecularRxnClassesMap;
-#else
+
+/*
+  TODO: caching
+
+*/
+
 typedef std::map<species_id_t, RxnClass*> SpeciesRxnClassesMap;
 typedef std::map<species_id_t, SpeciesRxnClassesMap> BimolecularRxnClassesMap;
-#endif
 typedef SpeciesRxnClassesMap UnimolecularRxnClassesMap;
+
 
 /**
  * Owns information on reactions and species,
@@ -50,9 +50,9 @@ typedef SpeciesRxnClassesMap UnimolecularRxnClassesMap;
 // TODO: move the trigger_bimolecular, trigger_bimolecular_orientation_from_mols,
 // and trigger_intersect functions here?
 // rename to Rxn(s)Info
-class ReactionsInfo {
+class RxnContainer {
 public:
-  ReactionsInfo()
+  RxnContainer()
     : initialized(false),
       all_molecules_species_id(SPECIES_ID_INVALID),
       all_volume_molecules_species_id(SPECIES_ID_INVALID),
@@ -70,21 +70,23 @@ public:
   }
 
   // TODO: remove
-  void init(const BNG::SpeciesContainer<Species>& all_species);
+  void init(/*const BNG::SpeciesContainer<Species>& all_species*/);
 
   bool is_initialized() const {
     return initialized;
   }
 
   void add(const RxnClass& r) {
-    reactions.push_back(r);
+    rxn_classes.push_back(r);
     initialized = false;
   }
 
   // simply looks up a reaction between 'a' and 'b',
   // this reaction must exist, asserts if not,
   // does not take species superclasses such as ALL_MOLECULES into account
-  const RxnClass* get_specific_reaction_class(const Molecule& a, const Molecule& b) const {
+  const RxnClass* get_specific_reaction_class(const CplxInstance& a, const CplxInstance& b) const {
+    assert(false);
+    /*
     assert(initialized);
 
     const auto& it_map_for_species = bimolecular_reactions_map.find(a.species_id);
@@ -93,11 +95,13 @@ public:
     const auto& it_res = it_map_for_species->second.find(b.species_id);
     assert(it_res != it_map_for_species->second.end());
 
-    return it_res->second;
+    return it_res->second;*/
   }
 
   // might return nullptr if there are none
   const SpeciesRxnClassesMap* get_specific_reactions_for_species(const species_id_t species_id) const {
+    assert(false);
+    /*
     if (species_id == SPECIES_ID_INVALID) {
       return nullptr;
     }
@@ -108,12 +112,14 @@ public:
     }
     else {
       return nullptr;
-    }
+    }*/
   }
 
   // does not store nullptr into the resulting array
   // checks also species superclasses
-  void get_all_reactions_for_reactant(const Molecule& reactant, small_vector<const SpeciesRxnClassesMap*>& potential_reactions) const {
+  void get_all_reactions_for_reactant(const CplxInstance& reactant, small_vector<const SpeciesRxnClassesMap*>& potential_reactions) const {
+    assert(false);
+    /*
     potential_reactions.clear();
 
     // species-specific
@@ -135,16 +141,22 @@ public:
     if (all_vol_surf != nullptr) {
       potential_reactions.push_back(all_vol_surf);
     }
+    */
   }
 
   void dump() {
-    RxnClass::dump_array(reactions);
+    //RxnClass::dump_array(reactions);
   }
 
 private:
   bool initialized;
 
-  std::vector<RxnClass> reactions;
+  // hold pointers to reactions
+  std::vector<RxnClass> rxn_classes;
+
+  // RxnContainer owns Rxn rules?
+  // maybe just copy them after parsing
+  std::vector<RxnRule> reactions;
 
   // ids of species superclasses, SPECIES_ID_INVALID if not set
   // it might seem that this should belong into SpeciesInfo but this class needs this information
@@ -156,11 +168,11 @@ public:
   // TODO: these should be private
 
   // TODO_PATHWAYS: there might be multiple reactions for 1 or 2 reactants (multiple pathways)
-  UnimolecularRxnClassesMap unimolecular_reactions_map; // created from reactions in init_simulation
-  BimolecularRxnClassesMap bimolecular_reactions_map; // created from reactions in init_simulation
+  //UnimolecularRxnClassesMap unimolecular_reactions_map; // created from reactions in init_simulation
+  //BimolecularRxnClassesMap bimolecular_reactions_map; // created from reactions in init_simulation
 
 };
 
-} // namespace mcell
+} // namespace BNG
 
-#endif // SRC4_REACTIONS_INFO_H_
+#endif // LIBS_BNG_RXN_CONTAINER_H_

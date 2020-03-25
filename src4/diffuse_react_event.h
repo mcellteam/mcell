@@ -160,7 +160,7 @@ private:
       const Molecule* reacA, const bool keep_reacA,
       const Molecule* reacB, const bool keep_reacB,
       const Molecule* surf_reac,
-      const Rxn* rxn,
+      const BNG::RxnRule* rxn,
       small_vector<GridPos>& assigned_surf_product_positions
   );
 
@@ -176,7 +176,7 @@ private:
       Partition& p,
       Molecule& vm,
       const float_t scheduled_time,
-      const Rxn* unimol_rx
+      const BNG::RxnRule* unimol_rx
   );
 
   int outcome_products_random(
@@ -198,7 +198,7 @@ private:
       Partition& p,
       const molecule_id_t vm_id,
       const float_t scheduled_time,
-      const RxnClass* unimol_rx
+      const BNG::RxnClass* unimol_rx
   );
 };
 

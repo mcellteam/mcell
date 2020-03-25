@@ -69,7 +69,7 @@ static void trigger_bimolecular(
     const BimolecularRxnClassesMap& reactions,
     const Molecule& reacA, const Molecule& reacB,
     orientation_t orientA, orientation_t orientB,
-    RxnClassesVector& matching_rxns // items are appended
+    BNG::RxnClassesVector& matching_rxns // items are appended
 ) {
 
   // for all reactions applicable to reacA and reacB
@@ -88,7 +88,7 @@ static void trigger_bimolecular(
 
   // there can be a single class for a unique pair of reactants,
   // TODO: check it when creating the maps
-  const RxnClass* rxn_class = reactions_reacA_and_reacB_it->second;
+  const BNG::RxnClass* rxn_class = reactions_reacA_and_reacB_it->second;
 
   int right_walls_surf_classes = 0;  /* flag to check whether SURFACE_CLASSES
                                         of the walls for one or both reactants
@@ -113,7 +113,7 @@ static void trigger_bimolecular(
 static void trigger_bimolecular_orientation_from_mols(
     const BimolecularRxnClassesMap& reactions,
     const Molecule& reacA, const Molecule& reacB,
-    RxnClassesVector& matching_rxns // items are appended
+    BNG::RxnClassesVector& matching_rxns // items are appended
 ) {
   trigger_bimolecular(
       reactions,
@@ -151,7 +151,7 @@ static void find_surface_mol_reactions_with_surf_classes(
     const bool allow_rx_transp,
     const bool allow_rx_reflec,
     const bool allow_rx_absorb_reg_border,
-    RxnClassesVector& matching_rxns
+    BNG::RxnClassesVector& matching_rxns
 ) {
 
   assert(reacA.is_surf());
@@ -180,7 +180,7 @@ static void find_surface_mol_reactions_with_surf_classes(
         continue;
       }
 
-      const RxnClass* rxn = reactions_reacA_and_surface_it->second;
+      const BNG::RxnClass* rxn = reactions_reacA_and_surface_it->second;
       assert(rxn->reactants.size() == 2);
 
       // TODO_PATHWAYS: allow multiple reactions..
@@ -226,7 +226,7 @@ static void trigger_intersect(
     const Partition& p,
     const Molecule& reacA,
     const Wall& w,
-    RxnClassesVector& matching_rxns,
+    BNG::RxnClassesVector& matching_rxns,
     const bool allow_rx_transp = true,
     const bool allow_rx_reflec = true,
     const bool allow_rx_absorb_reg_border = true

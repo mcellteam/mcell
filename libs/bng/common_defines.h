@@ -75,6 +75,13 @@ const orientation_t ORIENTATION_DOWN = -1;
 const orientation_t ORIENTATION_NONE = 0;
 const orientation_t ORIENTATION_UP = 1;
 
+// index of reaction in a reaction class (local for reaction)
+// -1 is used to signalize that no reaction was selected (i < RX_LEAST_VALID_PATHWAY)
+// TODO: change to using and use INVALID?
+typedef int reaction_index_t;
+//const reaction_index_t REACTION_INDEX_INVALID = INDEX_INVALID;
+
+
 #ifndef NDEBUG
 // TODO: probably make this enabled only for Eclipse, we want the debug build to behave exactly as the release build
 #define INDEXER_WA // Don't know yet how to convince Eclipse to correctly index boost containers

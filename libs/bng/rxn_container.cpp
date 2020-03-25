@@ -1,21 +1,16 @@
 
-#include "reactions_info.h"
-
-#include "defines.h"
-#include "species.h"
-#include "molecule.h"
-#include "species.h"
+#include "rxn_container.h"
 
 #include <iostream>
 #include <sstream>
 
-#include "reaction.h"
 
 using namespace std;
 
-namespace MCell {
+namespace BNG {
 
-void ReactionsInfo::init(const BNG::SpeciesContainer<Species>& all_species) {
+void RxnContainer::init(/*const BNG::SpeciesContainer<Species>& all_species*/) {
+  assert(false);/*
   assert(!initialized); // there should not be a reason to reinitialize reactions info
 
   // create map for fast reaction searches
@@ -48,6 +43,7 @@ void ReactionsInfo::init(const BNG::SpeciesContainer<Species>& all_species) {
   assert(bimolecular_reactions_map.size() == all_species.get_count());
 
   initialized = true;
+  */
 }
 
-}
+} // namespace BNG

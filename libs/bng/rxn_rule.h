@@ -92,7 +92,18 @@ public:
   small_vector<CplxIndexPair> cplx_mapping;
 
 
-  float_t rxn_rate;
+  float_t rate_constant;
+
+  bool finalized;
+public:
+  void finalize() {
+    finalized = true;
+    // only for mcell3 compatibility
+    // TODO: need some config also for other tools
+    // TODO: where to check for finalized?
+    move_reused_reactants_to_be_the_first_products();
+  }
+
 
   const CplxInstance& get_cplx_reactant(const uint index) const {
     assert(index <= reactants.size());
@@ -129,7 +140,7 @@ public:
     return
         name == rr2.name &&
         reactants == rr2.reactants && products == rr2.products &&
-        rxn_rate == rr2.rxn_rate;
+        rate_constant == rr2.rate_constant;
   }
 
   void dump(const BNGData& bng_data) const;
@@ -139,6 +150,10 @@ public:
   // might write some error messages to the msgs stream,
   // returns true if errors were encountered
   bool compute_reactants_products_mapping(const BNGData& bng_data, std::ostream& out);
+
+
+  void append_simple_reactant(const species_id_t id);
+  void append_simple_product(const species_id_t id);
 
 private:
 
@@ -157,6 +172,7 @@ private:
   bool find_assigned_cplx_reactant_for_product(const uint product_index, uint& reactant_index) const;
   void compute_cplx_reactants_products_mapping(const BNGData& bng_data);
 
+  void move_reused_reactants_to_be_the_first_products();
 
   void dump_complex_instance_vector(
       const BNGData& bng_data,

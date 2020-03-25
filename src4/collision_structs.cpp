@@ -43,8 +43,8 @@ void Collision::dump(Partition& p, const std::string ind) const {
     p.get_m(colliding_molecule_id).dump(ind + "  ");
     cout << ind << "reaction:";
 
-    if (rx != nullptr) {
-      rx->dump(ind + "  ");
+    if (rxn != nullptr) {
+      rxn->dump(ind + "  ");
     }
     else if (rxn_class != nullptr) {
       rxn_class->dump(ind + "  ");

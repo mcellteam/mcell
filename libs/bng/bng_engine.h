@@ -12,6 +12,7 @@
 #include "bng_data.h"
 #include "cplx_instance.h"
 #include "species_container.h"
+#include "rxn_container.h"
 #include "mol_type.h"
 #include "rxn_rule.h"
 
@@ -38,13 +39,21 @@ public:
   bool matches(
       const CplxInstance& cplx_pattern,
       const species_id_t species_id
-  );
+  ) {
+    // TODO: caching
+    const CplxInstance& cplx_inst = all_species.get_as_cplx_instance(species_id);
+    return cplx_pattern.matches(cplx_inst);
+  }
 
 
   bool matches_ignore_orientation(
       const CplxInstance& cplx_pattern,
       const species_id_t species_id
-  );
+  ) {
+    // TODO: caching
+    const CplxInstance& cplx_inst = all_species.get_as_cplx_instance(species_id);
+    return cplx_pattern.matches(cplx_inst, true);
+  }
 
 
   species_id_t get_rxn_product_species_id(
@@ -81,9 +90,12 @@ public:
   // make private?
   SpeciesContainer<SpeciesT> all_species;
 
+
+  RxnContainer all_reactions;
+
   // cache of complex species indices that can interact together
 private:
-  // data entered by user also with reactions
+  // data entered by user, reactions reference these data
   BNGData data;
 
 };
@@ -106,28 +118,6 @@ species_id_t BNGEngine<SpeciesT>::get_rxn_product_species_id(
   //
   return SPECIES_ID_INVALID;
 }
-
-
-template<class SpeciesT>
-bool BNGEngine<SpeciesT>::matches(
-    const CplxInstance& cplx_pattern,
-    const species_id_t species_id
-) {
-  // TODO: caching
-  const CplxInstance& cplx_inst = all_species.get_as_cplx_instance(species_id);
-  return cplx_pattern.matches(cplx_inst);
-}
-
-template<class SpeciesT>
-bool BNGEngine<SpeciesT>::matches_ignore_orientation(
-    const CplxInstance& cplx_pattern,
-    const species_id_t species_id
-) {
-  // TODO: caching
-  const CplxInstance& cplx_inst = all_species.get_as_cplx_instance(species_id);
-  return cplx_pattern.matches(cplx_inst, true);
-}
-
 
 } /* namespace BNG */
 

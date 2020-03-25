@@ -33,6 +33,7 @@
 #include <set>
 #include <map>
 
+#include "../libs/bng/rxn_container.h"
 #include "bng/bng.h"
 
 #include "partition.h"
@@ -41,7 +42,6 @@
 #include "geometry.h"
 #include "callback_info.h"
 #include "reaction.h"
-#include "reactions_info.h"
 
 
 
@@ -156,7 +156,7 @@ public:
   // single instance for the whole mcell simulator,
   // used as constants during simulation
   SimulationConfig config;
-  ReactionsInfo all_reactions;
+  BNG::RxnContainer all_reactions;
   BNG::BNGEngine<Species> bng_engine;
   SimulationStats stats;
 
