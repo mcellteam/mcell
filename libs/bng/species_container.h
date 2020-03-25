@@ -11,12 +11,14 @@
 #include <vector>
 
 #include "bng_defines.h"
+#include "cplx_species.h"
 
 namespace BNG {
 
 // using templates instead of virtual methods? -> rather a template
 // with virtual methods, this container would not be able to create new
 // objects by its own
+// SpeciesT must be derived from CplxSpecies
 template<class SpeciesT>
 class SpeciesContainer {
 public:
@@ -37,6 +39,14 @@ public:
     // TODO: we will need a mapping, the species vector will need to be
     //       defragmented time from time
     return species[id];
+  }
+
+  const CplxInstance& get_as_cplx_instance(const species_id_t id) const {
+    return get(id);
+  }
+
+  const CplxSpecies& get_as_cplx_species(const species_id_t id) const {
+    return get(id);
   }
 
   uint get_count() const {

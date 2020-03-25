@@ -25,6 +25,8 @@ namespace BNG {
 //
 // template - compilation time might get bad, because we need to include this every time
 // need other helper classes or functions to hide the implementation
+//
+// SpeciesT must be derived from CplxSpecies
 template<class SpeciesT>
 class BNGEngine {
 
@@ -103,6 +105,27 @@ species_id_t BNGEngine<SpeciesT>::get_rxn_product_species_id(
   // BNG engine must be a template as well,
   //
   return SPECIES_ID_INVALID;
+}
+
+
+template<class SpeciesT>
+bool BNGEngine<SpeciesT>::matches(
+    const CplxInstance& cplx_pattern,
+    const species_id_t species_id
+) {
+  // TODO: caching
+  const CplxInstance& cplx_inst = all_species.get_as_cplx_instance(species_id);
+  return cplx_pattern.matches(cplx_inst);
+}
+
+template<class SpeciesT>
+bool BNGEngine<SpeciesT>::matches_ignore_orientation(
+    const CplxInstance& cplx_pattern,
+    const species_id_t species_id
+) {
+  // TODO: caching
+  const CplxInstance& cplx_inst = all_species.get_as_cplx_instance(species_id);
+  return cplx_pattern.matches(cplx_inst, true);
 }
 
 
