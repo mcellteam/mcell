@@ -39,6 +39,7 @@ namespace BNG {
 */
 
 typedef std::map<species_id_t, RxnClass*> SpeciesRxnClassesMap;
+typedef std::vector<SpeciesRxnClassesMap*> SpeciesRxnClassesMapPtrVector;
 typedef std::map<species_id_t, SpeciesRxnClassesMap> BimolecularRxnClassesMap;
 typedef SpeciesRxnClassesMap UnimolecularRxnClassesMap;
 
@@ -81,22 +82,7 @@ public:
     initialized = false;
   }
 
-  // simply looks up a reaction between 'a' and 'b',
-  // this reaction must exist, asserts if not,
-  // does not take species superclasses such as ALL_MOLECULES into account
-  const RxnClass* get_specific_reaction_class(const CplxInstance& a, const CplxInstance& b) const {
-    assert(false);
-    /*
-    assert(initialized);
-
-    const auto& it_map_for_species = bimolecular_reactions_map.find(a.species_id);
-    assert(it_map_for_species != bimolecular_reactions_map.end());
-
-    const auto& it_res = it_map_for_species->second.find(b.species_id);
-    assert(it_res != it_map_for_species->second.end());
-
-    return it_res->second;*/
-  }
+#if 0
 
   // might return nullptr if there are none
   const SpeciesRxnClassesMap* get_specific_reactions_for_species(const species_id_t species_id) const {
@@ -114,35 +100,8 @@ public:
       return nullptr;
     }*/
   }
+#endif
 
-  // does not store nullptr into the resulting array
-  // checks also species superclasses
-  void get_all_reactions_for_reactant(const CplxInstance& reactant, small_vector<const SpeciesRxnClassesMap*>& potential_reactions) const {
-    assert(false);
-    /*
-    potential_reactions.clear();
-
-    // species-specific
-    const SpeciesRxnClassesMap* species_specific = get_specific_reactions_for_species(reactant.species_id);
-    if (species_specific != nullptr) {
-      potential_reactions.push_back(species_specific);
-    }
-
-    // all molecules
-    const SpeciesRxnClassesMap* all_molecules = get_specific_reactions_for_species(all_molecules_species_id);
-    if (all_molecules != nullptr) {
-      potential_reactions.push_back(all_molecules);
-    }
-
-    // all surface/volume molecules
-    const SpeciesRxnClassesMap* all_vol_surf =
-        get_specific_reactions_for_species(
-            reactant.is_vol() ? all_volume_molecules_species_id : all_surface_molecules_species_id);
-    if (all_vol_surf != nullptr) {
-      potential_reactions.push_back(all_vol_surf);
-    }
-    */
-  }
 
   void dump() {
     //RxnClass::dump_array(reactions);

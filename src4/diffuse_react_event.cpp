@@ -697,7 +697,7 @@ int DiffuseReactEvent::collide_and_react_with_surf_mol(
 
   RxnClassesVector matching_rxn_classes;
   RxUtil::trigger_bimolecular(
-    p.all_reactions.bimolecular_reactions_map,
+    p.bng_engine,
     diffused_molecule, colliding_molecule,
     collision_orientation, colliding_molecule.s.orientation,
     matching_rxn_classes
@@ -1010,7 +1010,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
     // returns value >=1 if there can be a reaction
     size_t orig_num_rxsn = matching_rxn_classes.size();
     RxUtil::trigger_bimolecular_orientation_from_mols(
-        p.all_reactions.bimolecular_reactions_map,
+        p.bng_engine,
         sm, nsm,
         matching_rxn_classes
     );
@@ -1392,7 +1392,7 @@ int DiffuseReactEvent::find_surf_product_positions(
     const RxnRule* rxn,
     small_vector<GridPos>& assigned_surf_product_positions) {
 
-  uint needed_surface_positions = rxn->get_num_surf_products(p.bng_engine.all_species);
+  uint needed_surface_positions = rxn->get_num_surf_products(/*p.bng_engine.all_species*/);
 
   small_vector<GridPos> recycled_surf_prod_positions; // this array contains information on where to place the surface products
   uint initiator_recycled_index = INDEX_INVALID;
@@ -1709,11 +1709,11 @@ int DiffuseReactEvent::outcome_products_random(
       assert(is_orientable
           || (collision.type != CollisionType::VOLMOL_SURFMOL && collision.type != CollisionType::SURFMOL_SURFMOL)
       );
-      if (is_orientable && product.has_single_orientation()) {
+      if (is_orientable) {
         assert(surf_reac != nullptr);
         Wall& w = p.get_wall(surf_reac->s.wall_index);
 
-        float_t bump = (product.get_single_orientation() > 0) ? EPS : -EPS;
+        float_t bump = (product.get_orientation() > 0) ? EPS : -EPS;
         Vec3 displacement = Vec3(2 * bump) * w.normal;
         Vec3 new_pos_after_diffuse;
 

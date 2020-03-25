@@ -317,7 +317,7 @@ static void reflect_absorb_check_wall(
     bool& reflect_now,
     bool& absorb_now
 ) {
-  RxnClassesVector matching_rxns;
+  BNG::RxnClassesVector matching_rxns;
   RxUtil::trigger_intersect(
       p, sm, wall,
       matching_rxns
@@ -325,7 +325,7 @@ static void reflect_absorb_check_wall(
 
   /* check if this wall has any reflective or absorptive region borders for
    * this molecule (aka special reactions) */
-  for (const RxnClass* rxn: matching_rxns) {
+  for (const BNG::RxnClass* rxn: matching_rxns) {
     if (rxn->is_reflect()) {
       /* check for REFLECTIVE border */
       reflect_now = true;

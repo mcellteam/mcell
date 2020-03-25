@@ -545,7 +545,9 @@ static void find_restricted_regions_by_wall(
   for (const BNG::RxnClass* rxn: matching_rxns) {
     if (rxn->is_reflect() || rxn->is_absorb()) {
       assert(rxn->reactants.size() == 2);
-      restricted_surf_classes.insert(rxn->reactants[1].species_id);
+
+      assert(false && "BNGTODO");
+      // restricted_surf_classes.insert(rxn->reactants[1].species_id);
     }
   }
 

@@ -70,6 +70,10 @@ const molecule_id_t MOLECULE_ID_INVALID = ID_INVALID;
 typedef uint species_id_t;
 const species_id_t SPECIES_ID_INVALID = ID_INVALID;
 
+// unique pattern id
+typedef uint pattern_id_t;
+const pattern_id_t PATTERN_ID_INVALID = ID_INVALID;
+
 typedef int32_t orientation_t;
 const orientation_t ORIENTATION_DOWN = -1;
 const orientation_t ORIENTATION_NONE = 0;

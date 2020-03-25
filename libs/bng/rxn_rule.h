@@ -143,7 +143,7 @@ public:
         rate_constant == rr2.rate_constant;
   }
 
-  void dump(const BNGData& bng_data) const;
+  void dump(const BNGData& bng_data, const std::string ind = "") const;
 
   // checks if it is possible to create a mapping from reactants to products and
   // sets members molecule_instances_are_maintained and mapping,
@@ -152,8 +152,14 @@ public:
   bool compute_reactants_products_mapping(const BNGData& bng_data, std::ostream& out);
 
 
-  void append_simple_reactant(const species_id_t id);
-  void append_simple_product(const species_id_t id);
+  void append_simple_reactant(const species_id_t id, const orientation_t o);
+  void append_simple_product(const species_id_t id, const orientation_t o);
+
+  uint get_num_surf_products() const; // we don't have probably the information that is needed
+
+  uint get_num_players() const {
+    return reactants.size() + products.size();
+  }
 
 private:
 

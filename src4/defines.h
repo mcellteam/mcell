@@ -232,9 +232,6 @@ typedef std::pair<partition_index_t, vertex_index_t> PartitionVertexIndexPair;
 
 typedef std::pair<float_t, PartitionWallIndexPair> CummAreaPWallIndexPair;
 
-
-class RxnClass;
-
 const int BASE_CONTAINER_ALLOC = 16;
 
 #ifndef INDEXER_WA

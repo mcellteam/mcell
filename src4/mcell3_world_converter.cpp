@@ -128,7 +128,7 @@ bool MCell3WorldConverter::convert(volume* s) {
   CHECK(convert_simulation_setup(s));
 
   CHECK(convert_species(s));
-  create_diffusion_events(s); // cannot fail?
+  create_diffusion_events(); // cannot fail?
   CHECK(convert_reactions(s));
 
   // at this point, we need to create the first (and for now the only) partition
@@ -416,7 +416,7 @@ bool MCell3WorldConverter::convert_wall_and_update_regions(
   std::set<species_id_t> wall_species_from_mcell3;
   for (surf_class_list *sl = w->surf_class_head; sl != nullptr; sl = sl->next) {
     CHECK_PROPERTY(sl->surf_class != nullptr);
-    wall_species_from_mcell3.insert(get_mcell4_species_id(sl->surf_class->species_id, ORIENTATION_NONE));
+    wall_species_from_mcell3.insert(get_mcell4_species_id(sl->surf_class->species_id));
   }
   CHECK_PROPERTY(wall_species_from_mcell3 == region_species_from_mcell3);
 
@@ -447,7 +447,7 @@ bool MCell3WorldConverter::convert_region(Partition& p, const region* r, region_
   CHECK_PROPERTY(r->sm_dat_head == nullptr); // should be null during initial conversion
 
   if (r->surf_class != nullptr) {
-    new_region.species_id = get_mcell4_species_id(r->surf_class->species_id, ORIENTATION_NONE);
+    new_region.species_id = get_mcell4_species_id(r->surf_class->species_id);
   }
   else {
     new_region.species_id = SPECIES_ID_INVALID;
@@ -726,12 +726,12 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
 
     // reactants
     if (current_pathway->reactant1 != nullptr) {
-      species_id_t reactant1_id = get_mcell4_species_id(current_pathway->reactant1->species_id, current_pathway->orientation1);
-      rxn.append_simple_reactant(reactant1_id);
+      species_id_t reactant1_id = get_mcell4_species_id(current_pathway->reactant1->species_id);
+      rxn.append_simple_reactant(reactant1_id, current_pathway->orientation1);
 
       if (current_pathway->reactant2 != nullptr) {
-        species_id_t reactant2_id = get_mcell4_species_id(current_pathway->reactant2->species_id, current_pathway->orientation2);
-        rxn.append_simple_reactant(reactant2_id);
+        species_id_t reactant2_id = get_mcell4_species_id(current_pathway->reactant2->species_id);
+        rxn.append_simple_reactant(reactant2_id, current_pathway->orientation2);
 
         if (current_pathway->reactant3 != nullptr) {
           mcell_error("TODO_CONVERSION: reactions with 3 reactants are not supported");
@@ -770,8 +770,8 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
       product *product_ptr = current_pathway->product_head;
       while (product_ptr != nullptr) {
         CHECK_PROPERTY(product_ptr->orientation == 0 || product_ptr->orientation == 1 || product_ptr->orientation == -1);
-        species_id_t product_id = get_mcell4_species_id(product_ptr->prod->species_id, product_ptr->orientation);
-        rxn.append_simple_product(product_id);
+        species_id_t product_id = get_mcell4_species_id(product_ptr->prod->species_id);
+        rxn.append_simple_product(product_id, product_ptr->orientation);
 
         product_ptr = product_ptr->next;
       }
@@ -906,7 +906,7 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
         );
       }
 
-      event_data.species_id = get_mcell4_species_id(rel_site->mol_type->species_id, rel_site->orientation);
+      event_data.species_id = get_mcell4_species_id(rel_site->mol_type->species_id);
 
       CHECK_PROPERTY(rel_site->release_number_method == 0);
 

@@ -53,7 +53,6 @@ public:
     return SPECIES_ID_INVALID;
   }
 
-
   const SpeciesT& get(const species_id_t id) const {
     assert(id < species.size());
     // TODO: we will need a mapping, the species vector will need to be
@@ -68,6 +67,8 @@ public:
   const CplxSpecies& get_as_cplx_species(const species_id_t id) const {
     return get(id);
   }
+
+  orientation_t get_single_orientation(const species_id_t id) const;
 
   uint get_count() const {
     return species.size();

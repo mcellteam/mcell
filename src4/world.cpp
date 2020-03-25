@@ -109,7 +109,8 @@ void World::init_simulation() {
     exit(1);
   }
 
-  all_reactions.init(bng_engine.all_species);
+  // TODO: what do I need for initialization?
+  all_reactions.init(/*bng_engine*/);
   config.init();
   stats.reset();
 

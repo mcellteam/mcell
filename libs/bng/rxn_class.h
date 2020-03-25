@@ -41,7 +41,7 @@ public:
 
   // reactants are copied into specific reactions as well
   // because a different order might be needed
-  std::vector<species_id_t> reactants;
+  CplxInstanceVector reactants;
 
   // reactions are owned by RxnContainer
   std::vector<RxnRule*> reactions;
@@ -83,11 +83,9 @@ public:
     return type == RxnClassType::AbsorbRegionBorder;
   }
 
-  static void dump_array(const std::vector<RxnClass>& vec);
+  static void dump_array(const BNGData& bng_data, const std::vector<RxnClass>& vec);
 
-  void dump(const std::string ind) const;
-
-  //std::string to_string(const Partition& p) const;
+  void dump(const BNGData& bng_data, const std::string ind = "") const;
 };
 
 

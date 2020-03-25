@@ -33,6 +33,8 @@
 #ifndef SRC4_REACTION_UTILS_INC_
 #define SRC4_REACTION_UTILS_INC_
 
+#include "bng/bng.h"
+
 #include "diffuse_react_event.h"
 #include "defines.h"
 #include "world.h"
@@ -66,42 +68,22 @@ trigger_bimolecular:
          the moving molecule is not inert!
 *************************************************************************/
 static void trigger_bimolecular(
-    const BimolecularRxnClassesMap& reactions,
+    BNG::BNGEngine<Species>& bng_engine,
     const Molecule& reacA, const Molecule& reacB,
     orientation_t orientA, orientation_t orientB,
     BNG::RxnClassesVector& matching_rxns // items are appended
 ) {
 
-  // for all reactions applicable to reacA and reacB
-  BimolecularRxnClassesMap::const_iterator reactions_reacA_it
-    = reactions.find(reacA.species_id);
-  if (reactions_reacA_it == reactions.end()) {
-    // no reactions at all for reacA
-    return;
-  }
-
-  SpeciesRxnClassesMap::const_iterator reactions_reacA_and_reacB_it
-    = reactions_reacA_it->second.find(reacB.species_id);
-  if (reactions_reacA_and_reacB_it == reactions_reacA_it->second.end()) {
-    return;
-  }
-
-  // there can be a single class for a unique pair of reactants,
-  // TODO: check it when creating the maps
-  const BNG::RxnClass* rxn_class = reactions_reacA_and_reacB_it->second;
-
-  int right_walls_surf_classes = 0;  /* flag to check whether SURFACE_CLASSES
-                                        of the walls for one or both reactants
-                                        match the SURFACE_CLASS of the reaction
-                                        (if needed) */
-
-  /* skip irrelevant reactions (i.e. non vol-surf reactions) */
+  const BNG::RxnClass* rxn_class = bng_engine.get_bimol_rxn_class(reacA.species_id, reacB.species_id);
   assert(rxn_class->reactants.size() == 2 && "We already checked that there must be 2 reactants");
+  
+  matching_rxns.push_back(rxn_class);
+  
 
   /* Check to see if orientation classes are zero/different */
   int test_wall = 0;
-  orientation_t geomA = rxn_class->reactants[0].orientation;
-  orientation_t geomB = rxn_class->reactants[1].orientation;
+  orientation_t geomA = rxn_class->reactants[0].get_orientation();
+  orientation_t geomB = rxn_class->reactants[1].get_orientation();
   if (geomA == ORIENTATION_NONE || geomB == ORIENTATION_NONE || (geomA + geomB) * (geomA - geomB) != 0) {
     matching_rxns.push_back(rxn_class);
   }
@@ -111,12 +93,12 @@ static void trigger_bimolecular(
 }
 
 static void trigger_bimolecular_orientation_from_mols(
-    const BimolecularRxnClassesMap& reactions,
+    BNG::BNGEngine<Species>& bng_engine,
     const Molecule& reacA, const Molecule& reacB,
     BNG::RxnClassesVector& matching_rxns // items are appended
 ) {
   trigger_bimolecular(
-      reactions,
+      bng_engine,
       reacA, reacB,
       reacA.s.orientation, reacB.s.orientation,
       matching_rxns
@@ -145,7 +127,6 @@ static void trigger_bimolecular_orientation_from_mols(
  *************************************************************************/
 static void find_surface_mol_reactions_with_surf_classes(
     const Partition& p,
-    const BimolecularRxnClassesMap& reactions,
     const Molecule& reacA,
     const Wall& w,
     const bool allow_rx_transp,
@@ -157,8 +138,8 @@ static void find_surface_mol_reactions_with_surf_classes(
   assert(reacA.is_surf());
 
   // for all reactions applicable to reacA and and wall
-  small_vector<const SpeciesRxnClassesMap*> potential_reactions;
-  p.all_reactions.get_all_reactions_for_reactant(reacA, potential_reactions);
+  BNG::SpeciesRxnClassesMapPtrVector potential_reactions;
+  p.bng_engine.get_all_reactions_for_reactant(reacA.species_id, potential_reactions);
   if (potential_reactions.empty()) {
     // no reactions at all for reacA
     return;
@@ -172,9 +153,9 @@ static void find_surface_mol_reactions_with_surf_classes(
     }
 
     // each map of potential reactions is for this specific species, all molecules an all surf molecules
-    for (const SpeciesRxnClassesMap* reaction_map: potential_reactions) {
+    for (const BNG::SpeciesRxnClassesMap* reaction_map: potential_reactions) {
 
-      SpeciesRxnClassesMap::const_iterator reactions_reacA_and_surface_it = reaction_map->find(reg.species_id);
+      BNG::SpeciesRxnClassesMap::const_iterator reactions_reacA_and_surface_it = reaction_map->find(reg.species_id);
       if (reactions_reacA_and_surface_it == reaction_map->end()) {
         // no reactions for this type of region
         continue;
@@ -184,8 +165,8 @@ static void find_surface_mol_reactions_with_surf_classes(
       assert(rxn->reactants.size() == 2);
 
       // TODO_PATHWAYS: allow multiple reactions..
-      orientation_t orient0 = rxn->reactants[0].orientation;
-      orientation_t orient1 = rxn->reactants[1].orientation;
+      orientation_t orient0 = rxn->reactants[0].get_orientation();
+      orientation_t orient1 = rxn->reactants[1].get_orientation();
 
       // TODO: can we move this condition to some shared function?
       if ( (orient0 == 0) ||
@@ -253,7 +234,7 @@ static void trigger_intersect(
     else if (reacA.is_surf()) {
 
       find_surface_mol_reactions_with_surf_classes(
-          p, p.all_reactions.bimolecular_reactions_map, reacA, w,  allow_rx_transp, allow_rx_reflec,
+          p, reacA, w,  allow_rx_transp, allow_rx_reflec,
           allow_rx_absorb_reg_border, matching_rxns);
     }
   }
@@ -308,7 +289,7 @@ test_bimolecular
         counters appropriately assuming that the reaction does take place.
 *************************************************************************/
 static int test_bimolecular(
-    const RxnClass* rxn_class,
+    const BNG::RxnClass* rxn_class,
     rng_state& rng,
     const Molecule& a1, // unused for now
     const Molecule& a2, // unused for now
@@ -405,7 +386,7 @@ test_many_bimolecular:
         such reactions local_prob_factor > 0.
 *************************************************************************/
 static int test_many_bimolecular(
-    const RxnClassesVector& rxn_classes,
+    const BNG::RxnClassesVector& rxn_classes,
     const small_vector<float_t>& scaling,
     float_t local_prob_factor,
     rng_state& rng,
@@ -486,7 +467,7 @@ static int test_many_bimolecular(
   int rx_index = binary_search_double(cum_rxn_class_probs, p, cum_rxn_class_probs.size() - 1, 1);
   assert(rx_index >= 0);
 
-  const RxnClass* my_rxn = rxn_classes[rx_index];
+  const BNG::RxnClass* my_rxn = rxn_classes[rx_index];
   if (rx_index > 0) {
     p = (p - cum_rxn_class_probs[rx_index - 1]);
   }
@@ -510,23 +491,16 @@ static int test_many_bimolecular(
 
 // might return nullptr if there is no unimolecular reaction for this species
 // based on pick_unimolecular_reaction
-static const RxnClass* pick_unimol_rx(
-    const World* world,
+static const BNG::RxnClass* pick_unimol_rx(
+    World* world,
     const species_id_t species_id
 ) {
-  const UnimolecularRxnClassesMap& unimol_rxs = world->all_reactions.unimolecular_reactions_map;
-  auto it = unimol_rxs.find(species_id);
-  if (it == unimol_rxs.end()) {
-    return nullptr;
-  }
-  else {
-    return it->second;
-  }
+  return world->bng_engine.get_unimol_rxn_class(species_id);
 }
 
 
 // based on timeof_unimolecular
-static float_t time_of_unimol(const RxnClass* rx, rng_state& rng) {
+static float_t time_of_unimol(const BNG::RxnClass* rx, rng_state& rng) {
   double k_tot = rx->max_fixed_p;
   double p = rng_dbl(&rng);
 
@@ -541,7 +515,7 @@ static float_t compute_unimol_lifetime(
     const Partition& p,
     rng_state& rng,
     const Molecule& vm,
-    const RxnClass* rx
+    const BNG::RxnClass* rx
 ) {
   assert(rx != nullptr);
 
@@ -563,7 +537,7 @@ which_unimolecular:
   In: the reaction we're testing
   Out: int containing which unimolecular reaction occurs (one must occur)
 *************************************************************************/
-static reaction_index_t which_unimolecular(const RxnClass *rxn_class, rng_state& rng) {
+static reaction_index_t which_unimolecular(const BNG::RxnClass *rxn_class, rng_state& rng) {
   assert(rxn_class != nullptr);
   if (rxn_class->get_num_reactions() == 1) {
     return 0;

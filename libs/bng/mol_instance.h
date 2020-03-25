@@ -83,12 +83,9 @@ public:
   // has the same number of elements as MoleculeType::component_type_ids
   small_vector<ComponentInstance> component_instances;
 
-  // not read from BNG yet, but proposal is on its way
-  orientation_t orientation;
-
 public:
   MolInstance()
-    : mol_type_id(MOL_TYPE_ID_INVALID), orientation(ORIENTATION_NONE) {
+    : mol_type_id(MOL_TYPE_ID_INVALID) {
   }
 
   // share this interface with actual species?
@@ -114,8 +111,7 @@ public:
   bool operator ==(const MolInstance& mi2) const  {
     return
         mol_type_id == mi2.mol_type_id &&
-        component_instances == mi2.component_instances &&
-        orientation == mi2.orientation;
+        component_instances == mi2.component_instances;
   }
 
   void initialize_components_types(const MolType& mt);

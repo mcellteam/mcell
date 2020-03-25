@@ -152,7 +152,7 @@ public:
       const molecule_id_t diffused_molecule_id_,
       const float_t time_,
       const Vec3& pos_,
-      const BNG::Rxn* rx_ptr
+      const BNG::RxnRule* rx_ptr
       )
     :
       type(type_),

@@ -24,7 +24,8 @@
 #ifndef SRC4_MOLECULE_H_
 #define SRC4_MOLECULE_H_
 
-#include "../libs/bng/molecule_instance.h"
+#include "bng/bng.h"
+
 #include "defines.h"
 
 
@@ -140,7 +141,7 @@ public:
 
   float_t unimol_rx_time;
 
-  const RxnClass* unimol_rx;
+  const BNG::RxnClass* unimol_rx;
 
   // update assignment operator when modifying this
   union {

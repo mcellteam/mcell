@@ -256,6 +256,20 @@ void RxnRule::move_reused_reactants_to_be_the_first_products() {
 
 
 
+
+uint RxnRule::get_num_surf_products(/*const BNG::SpeciesContainer<Species>& all_species*/) const {
+  assert(false && "BNGTODO");
+  /*
+  uint res = 0;
+  for (const SpeciesWithOrientation& prod: products) {
+    if (all_species.get(prod.species_id).is_surf()) {
+      res++;
+    }
+  }
+  return res;*/
+}
+
+
 void RxnRule::dump_complex_instance_vector(const BNGData& bng_data, const CplxInstanceVector& complexes) const {
 
   for (size_t i = 0; i < complexes.size(); i++) {
@@ -268,9 +282,9 @@ void RxnRule::dump_complex_instance_vector(const BNGData& bng_data, const CplxIn
 }
 
 
-void RxnRule::dump(const BNGData& bng_data) const {
+void RxnRule::dump(const BNGData& bng_data, const std::string ind) const {
   if (name != "") {
-    cout << name << " ";
+    cout << ind << name << " ";
   }
   dump_complex_instance_vector(bng_data, reactants);
 

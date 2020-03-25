@@ -36,6 +36,7 @@ void CplxInstance::finalize() {
     set_flag(CPLX_MOL_FLAG_SURF);
   }
 
+  /*
   // orientation
   bool single_orientation = true;
   orientation_t o;
@@ -53,6 +54,7 @@ void CplxInstance::finalize() {
   if (single_orientation) {
     set_flag(CPLX_FLAG_SINGLE_ORIENTATION_IS_UP, o == ORIENTATION_UP);
   }
+  */
 
   // CPLX_FLAG_SINGLE_MOL_NO_COMPONENTS
   bool is_simple = true;
