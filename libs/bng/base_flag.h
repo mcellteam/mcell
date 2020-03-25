@@ -32,7 +32,6 @@ public:
   }
 
   void set_flag(uint flag, bool value = true) {
-    assert(finalized);
     assert(__builtin_popcount(flag) == 1);
     if (value) {
       flags = flags | flag;
@@ -43,7 +42,6 @@ public:
   }
 
   void clear_flag(uint flag) {
-    assert(finalized);
     assert(__builtin_popcount(flag) == 1);
     flags = flags & ~flag;
   }

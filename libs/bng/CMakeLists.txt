@@ -8,16 +8,17 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -isystem ${CMAKE_SOURCE_DIR}/libs/
 
 
 set(SOURCE_FILES
+	ast.cpp
+	bng_data.cpp
 	bng_engine.cpp
-	mol_instance.cpp
 	cplx_instance.cpp
-	#molecule_instance.cpp
+	molecule_instance.cpp
+	mol_instance.cpp
 	mol_type.cpp
-	rxn_rule.cpp
+	parser_utils.cpp
 	rxn_class.cpp
 	rxn_container.cpp
-	parser_utils.cpp
-	ast.cpp
+	rxn_rule.cpp
 	semantic_analyzer.cpp
 )
 
@@ -47,7 +48,7 @@ add_library(${PROJECT_NAME}
     ${ALL_SOURCES}
 )
 
-#add_executable(test_${PROJECT_NAME}
-#    ${ALL_SOURCES}
-#	test.cpp # only for development
-#)
+add_executable(test_${PROJECT_NAME}
+    ${ALL_SOURCES}
+	test.cpp # only for development
+)

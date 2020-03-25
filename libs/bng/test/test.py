@@ -24,7 +24,7 @@ def get_test_files(dir):
    
 
 # returns true if test passed
-def run_single_test(test_file):
+def run_single_test(test_app, test_file):
 
     expected_ec = 0
     expected_outputs = []
@@ -43,7 +43,7 @@ def run_single_test(test_file):
             expected_outputs.append(line[len('# OUTPUT:'):].strip())    
             line = f.readline()
             
-    cmd = [TEST_APP, test_file]
+    cmd = [test_app, test_file]
     log_file = os.path.join(WORK_DIR, os.path.basename(test_file) + '.log')
     ec = utils.run(cmd, cwd=WORK_DIR, fout_name=log_file, verbose=False)
     
@@ -62,7 +62,7 @@ def run_single_test(test_file):
     print(" PASS " + test_file)
     return True
    
-def run_tests():
+def run_tests(test_app):
     if not os.path.exists(WORK_DIR):
         os.mkdir(WORK_DIR)
     
@@ -73,7 +73,7 @@ def run_tests():
     tests += get_test_files('positive')
     tests.sort()
     for t in tests:
-        ok = run_single_test(t)
+        ok = run_single_test(test_app, t)
         num_tests += 1
         if not ok:
             num_tests_failed += 1
@@ -89,7 +89,14 @@ def run_tests():
         return 1
 
 if __name__ == '__main__':
-    ec = run_tests()
+    
+    if len(sys.argv) == 2:
+        test_app = sys.argv[1]
+    else:     
+        test_app = TEST_APP
+        
+    print("Using test application " + test_app)  
+    ec = run_tests(test_app)
     sys.exit(ec)
 
     

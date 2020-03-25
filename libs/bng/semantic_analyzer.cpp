@@ -184,6 +184,8 @@ void SemanticAnalyzer::convert_and_store_molecule_types() {
 MolInstance SemanticAnalyzer::convert_molecule_pattern(const ASTMoleculeNode* m) {
 
   MolInstance mp;
+  // there is no support for surface molecules in BNGL yet, so everything must be volume molecule
+  mp.set_flag(CPLX_MOL_FLAG_VOL);
 
   // process and remember ID
   mol_type_id_t molecule_type_id = bng_data->find_molecule_type_id(m->name);
