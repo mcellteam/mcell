@@ -54,14 +54,16 @@ COPYRIGHT = \
 """
 
 TARGET_DIRECTORY = os.path.join('..', 'generated')
-
-KEY_SUPERCLASS = 'superclass'
+API_DIRECTORY = os.path.join('..', 'api')
 
 KEY_ITEMS = 'items'
 KEY_NAME = 'name'
 ATTR_NAME_NAME = 'name' # attrribute with name 'name' is already defined in BaseDataClass
 KEY_TYPE = 'type'
 KEY_DEFAULT = 'default'
+
+KEY_SUPERCLASS = 'superclass'
+KEY_INHERITS_METHODS_FROM = 'inherits_methods_from'
 
 KEY_METHODS = 'methods'
 KEY_PARAMS = 'params'
@@ -110,6 +112,7 @@ KEYWORD_OVERRIDE = 'override'
 CLASS_NAME_ATTR = 'class_name'
 
 INCLUDE_API_MCELL_H = '#include "../api/mcell.h"'
+INCLUDE_API_COMMON_H = '#include "../api/common.h"'
 NAMESPACES_BEGIN = 'namespace MCell {\nnamespace API {'
 NAMESPACES_END = '} // namespace API\n} // namespace MCell'
 
@@ -120,8 +123,14 @@ def get_underscored(class_name):
 def get_header_guard_name(class_name):
     return GUARD_PREFIX + get_underscored(class_name).upper() + GUARD_SUFFIX
 
-def get_class_file_name(class_name, extension):
-    return os.path.join(TARGET_DIRECTORY, GEN_PREFIX + get_underscored(class_name) + '.' + extension)
+def get_gen_class_file_name(class_name, extension):
+    return os.path.join(GEN_PREFIX + get_underscored(class_name) + '.' + extension)
+
+def get_gen_class_file_name_w_dir(class_name, extension):
+    return os.path.join(TARGET_DIRECTORY, get_gen_class_file_name(class_name, extension))
+
+def get_api_class_file_name(class_name, extension):
+    return os.path.join(API_DIRECTORY, get_underscored(class_name) + '.' + extension)
 
 def yaml_type_to_cpp_type(t):
     assert len(t) >= 1
@@ -332,8 +341,7 @@ def write_define_binding_decl(f, class_name):
     f.write('py::class_<' + class_name + '> define_pybinding_' + class_name + '(py::module& m)')           
 
 
-def write_forward_decls(f, class_def):
-    # first we need to collect all types that we will need
+def get_all_used_pointer_types(class_def):
     types = set()
     for items in class_def[KEY_ITEMS]:
         assert KEY_TYPE in items
@@ -353,7 +361,13 @@ def write_forward_decls(f, class_def):
                 t = param[KEY_TYPE]
                 if is_yaml_ptr_type(t):
                     types.add(t)
+    return types
 
+
+def write_forward_decls(f, class_def):
+    # first we need to collect all types that we will need
+    types = get_all_used_pointer_types(class_def);
+    
     for t in types:
         f.write('class ' + t + ';\n')
         
@@ -362,14 +376,14 @@ def write_forward_decls(f, class_def):
     
 
 def generate_class_header(class_name, class_def, input_file_name):
-    with open(get_class_file_name(class_name, EXT_H), 'w') as f:
+    with open(get_gen_class_file_name_w_dir(class_name, EXT_H), 'w') as f:
         f.write(COPYRIGHT)
         write_generated_notice(f, input_file_name)
         
         guard = get_header_guard_name(class_name);
         f.write('#ifndef ' + guard + '\n')
         f.write('#define ' + guard + '\n\n')
-        f.write(INCLUDE_API_MCELL_H + '\n\n')
+        f.write(INCLUDE_API_COMMON_H + '\n\n')
         f.write(NAMESPACES_BEGIN + '\n\n')
         
         write_forward_decls(f, class_def)
@@ -484,13 +498,13 @@ def write_pybind11_bindings(f, class_name, class_def):
     if based_on_base_data_class(class_def):
         f.write('      .def("check_semantics", &' + class_name + '::check_semantics_cerr)\n')
         f.write('      .def("__str__", &' + class_name + '::to_str)\n')
-        # LATER: dump is required to be implemented, TODO: to_str as well?
-        f.write('      .def("dump", &' + class_name + '::dump)\n')
         
     # declared methods
     for m in class_def[KEY_METHODS]:
         write_pybind11_method_bindings(f, class_name, m)
 
+    # dump needs to be always implemented
+    f.write('      .def("dump", &' + class_name + '::dump)\n')
     
     # properties
     for i in range(num_items):
@@ -498,18 +512,29 @@ def write_pybind11_bindings(f, class_name, class_def):
         f.write('      .def_property("' + name + '", &' + class_name + '::get_' + name + ', &' + class_name + '::set_' + name + ')\n')
     f.write('    ;\n')
     f.write('}\n\n')
+    
                 
+def write_used_classes_includes(f, class_def):
+    types = get_all_used_pointer_types(class_def)
+    for t in types:
+        f.write('#include "' + get_api_class_file_name(t, EXT_H) + '"\n')
+
             
 def generate_class_implementation_and_bindings(class_name, class_def, input_file_name):
-    with open(get_class_file_name(class_name, EXT_CPP), 'w') as f:
+    with open(get_gen_class_file_name_w_dir(class_name, EXT_CPP), 'w') as f:
         f.write(COPYRIGHT)
         write_generated_notice(f, input_file_name)
         
         f.write('#include <sstream>\n')
-        #f.write('#include "' + get_class_file_name(class_name, EXT_H) + '"\n') 
-        f.write(INCLUDE_API_MCELL_H + '\n')
         
-        f.write(NAMESPACES_BEGIN + '\n\n')
+        # includes for our class
+        f.write('#include "' + get_gen_class_file_name(class_name, EXT_H) + '"\n')  
+        f.write('#include "' + get_api_class_file_name(class_name, EXT_H) + '"\n')
+        
+        # we also need includes for every type that we used
+        write_used_classes_includes(f, class_def)
+        
+        f.write('\n' + NAMESPACES_BEGIN + '\n\n')
         
         if based_on_base_data_class(class_def):
             items = class_def[KEY_ITEMS]
@@ -521,10 +546,25 @@ def generate_class_implementation_and_bindings(class_name, class_def, input_file
         f.write(NAMESPACES_END + '\n\n')
         
 
+# class Model provides the same methods as Subsystem and InstantiationData, 
+# this function copies the definition for pybind11 API generation
 def inherits_methods(data_classes, class_name, class_def):
     
-    #if KEY
-    return class_def
+    res = class_def.copy() 
+    
+    if KEY_INHERITS_METHODS_FROM in class_def:
+        superclasses = class_def[KEY_INHERITS_METHODS_FROM]
+        for sc in superclasses:
+            assert KEY_NAME in sc
+            sc_name = sc[KEY_NAME]
+            assert sc_name in data_classes
+            sc_def = data_classes[sc_name]
+            
+            # we are not checking any duplicates
+            if KEY_METHODS in sc_def:
+                res[KEY_METHODS] += sc_def[KEY_METHODS]
+            
+    return res
 
 
 def generate_class_files(data_classes, class_name, class_def, input_file_name):

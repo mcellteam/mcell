@@ -22,7 +22,9 @@
 ******************************************************************************/
 
 #include <sstream>
-#include "../api/mcell.h"
+#include "gen_geometry_object.h"
+#include "../api/geometry_object.h"
+
 namespace MCell {
 namespace API {
 

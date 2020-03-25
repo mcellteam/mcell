@@ -24,14 +24,14 @@
 #ifndef API_GEN_INSTANTIATION_DATA_H
 #define API_GEN_INSTANTIATION_DATA_H
 
-#include "../api/mcell.h"
+#include "../api/common.h"
 
 namespace MCell {
 namespace API {
 
-class Species;
 class GeometryObject;
 class ReleaseSite;
+class Species;
 
 class GenInstantiationData {
 public:

@@ -22,7 +22,10 @@
 ******************************************************************************/
 
 #include <sstream>
-#include "../api/mcell.h"
+#include "gen_subsystem.h"
+#include "../api/subsystem.h"
+#include "../api/species.h"
+
 namespace MCell {
 namespace API {
 
@@ -35,6 +38,7 @@ py::class_<Subsystem> define_pybinding_Subsystem(py::module& m) {
         )
       .def("add_species", &Subsystem::add_species, py::arg("s"))
       .def("find_species", &Subsystem::find_species, py::arg("name"))
+      .def("dump", &Subsystem::dump)
     ;
 }
 

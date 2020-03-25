@@ -22,7 +22,14 @@
 ******************************************************************************/
 
 #include <sstream>
-#include "../api/mcell.h"
+#include "gen_model.h"
+#include "../api/model.h"
+#include "../api/release_site.h"
+#include "../api/instantiation_data.h"
+#include "../api/geometry_object.h"
+#include "../api/subsystem.h"
+#include "../api/species.h"
+
 namespace MCell {
 namespace API {
 
@@ -36,6 +43,13 @@ py::class_<Model> define_pybinding_Model(py::module& m) {
       .def("run_iterations", &Model::run_iterations, py::arg("iterations"))
       .def("add_subsystem", &Model::add_subsystem, py::arg("subsystem"))
       .def("add_instantiation_data", &Model::add_instantiation_data, py::arg("instantiation_data"))
+      .def("add_species", &Model::add_species, py::arg("s"))
+      .def("find_species", &Model::find_species, py::arg("name"))
+      .def("add_release_site", &Model::add_release_site, py::arg("s"))
+      .def("find_release_site", &Model::find_release_site, py::arg("name"))
+      .def("add_geometry_object", &Model::add_geometry_object, py::arg("o"))
+      .def("find_geometry_object", &Model::find_geometry_object, py::arg("name"))
+      .def("dump", &Model::dump)
     ;
 }
 

@@ -128,7 +128,7 @@ Model:
      # on the C++ level, inheritance is done manually 
     inherits_methods_from: 
         - name: Subsystem
-        - name: Instantiation
+        - name: InstantiationData
         
     methods:
         - name: run_iterations

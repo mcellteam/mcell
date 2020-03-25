@@ -24,7 +24,7 @@
 #ifndef API_GEN_SPECIES_H
 #define API_GEN_SPECIES_H
 
-#include "../api/mcell.h"
+#include "../api/common.h"
 
 namespace MCell {
 namespace API {

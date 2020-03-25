@@ -22,7 +22,10 @@
 ******************************************************************************/
 
 #include <sstream>
-#include "../api/mcell.h"
+#include "gen_release_site.h"
+#include "../api/release_site.h"
+#include "../api/species.h"
+
 namespace MCell {
 namespace API {
 

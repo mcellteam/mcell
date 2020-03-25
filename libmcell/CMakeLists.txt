@@ -21,6 +21,9 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -std=c++17 ${PYTHON_INCLUDES}")
 
 set(SOURCE_FILES
     api/bindings.cpp
+    api/instantiation_data.cpp
+    api/model.cpp
+    api/subsystem.cpp
 
     generated/gen_geometry_object.cpp
     generated/gen_instantiation_data.cpp
