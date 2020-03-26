@@ -20,9 +20,10 @@ namespace BNG {
 
 
 typedef std::map<species_id_t, RxnClass*> SpeciesRxnClassesMap;
-//typedef std::vector<SpeciesRxnClassesMap*> SpeciesRxnClassesMapPtrVector;
-typedef std::map<species_id_t, SpeciesRxnClassesMap> BimolecularRxnClassesMap;
-typedef SpeciesRxnClassesMap UnimolecularRxnClassesMap;
+
+
+typedef std::map<species_id_t, SpeciesRxnClassesMap> BimolRxnClassesMap;
+typedef SpeciesRxnClassesMap UnimolRxnClassesMap;
 
 
 // Each partition will have its own BNG engine,
@@ -82,25 +83,25 @@ public:
 
 
   const RxnClass* get_unimol_rxn_class(const species_id_t id) {
-    assert(false);
-#if 0
-    const UnimolecularRxnClassesMap& unimol_rxs = world->all_reactions.unimolecular_reactions_map;
-    auto it = unimol_rxs.find(species_id);
-    if (it == unimol_rxs.end()) {
-      return nullptr;
+
+    auto it = unimol_rxn_class_map.find(id);
+
+    // reaction maps get updated only when needed, it is not associated with addition of a new species
+    // the assumption is that, after some simulation time elapsed, this will be fairly stable
+    if (it == unimol_rxn_class_map.end()) {
+      update_unimol_map_for_new_species(id);
+      it = unimol_rxn_class_map.find(id);
     }
-    else {
-      return it->second;
-    }
-#endif
+    return it->second;
   }
 
+  // TODO: need orientation, check what we erased before
   const RxnClass* get_bimol_rxn_class(const species_id_t id1, const species_id_t id2) {
     assert(false);
 
     #if 0
     // for all reactions applicable to reacA and reacB
-    BimolecularRxnClassesMap::const_iterator reactions_reacA_it
+    BimolRxnClassesMap::const_iterator reactions_reacA_it
       = reactions.find(reacA.species_id);
     if (reactions_reacA_it == reactions.end()) {
       // no reactions at all for reacA
@@ -154,25 +155,29 @@ public:
 
   // returns null if there is no reaction for this species?
   // no -> when there is no entry in the map, this meanbs that reactants were not determined yet
-  const BNG::SpeciesRxnClassesMap& get_all_reactions_for_reactant(const species_id_t id) const {
+  const BNG::SpeciesRxnClassesMap& get_bimol_rxns_for_reactant(const species_id_t id) {
 
-    auto it = bimolecular_reactions_map.find(id);
+    auto it = bimol_rxn_class_map.find(id);
 
     // reaction maps get updated only when needed, it is not associated with addition of a new species
     // the assumption is that, after some simulation time elapsed, this will be fairly stable
-    if (it == bimolecular_reactions_map.end()) {
-      //RxnUpdater::update_bimol_map_for_new_species()
-      assert(false);
+    if (it == bimol_rxn_class_map.end()) {
+      update_bimol_map_for_new_species(id);
+      it = bimol_rxn_class_map.find(id);
     }
 
-    assert(false);
+    return it->second;
   }
 
+private:
+  void update_bimol_map_for_new_species(const species_id_t id);
+  void update_unimol_map_for_new_species(const species_id_t id);
 
+public:
   // does not store nullptr into the resulting array
   // checks also species superclasses
 #if 0
-  void get_all_reactions_for_reactant(const species_id_t id, SpeciesRxnClassesMapPtrVector& potential_rxn_classes) const {
+  void get_bimol_rxns_for_reactant(const species_id_t id, SpeciesRxnClassesMapPtrVector& potential_rxn_classes) const {
     assert(false);
     /*
     potential_reactions.clear();
@@ -226,9 +231,9 @@ private:
   // data entered by user, reactions reference these data
   BNGData data;
 
-  UnimolecularRxnClassesMap unimolecular_reactions_map;
+  UnimolRxnClassesMap unimol_rxn_class_map;
 
-  BimolecularRxnClassesMap bimolecular_reactions_map;
+  BimolRxnClassesMap bimol_rxn_class_map;
 };
 
 

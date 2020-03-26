@@ -34,4 +34,36 @@ CplxInstance BNGEngine::create_species_based_cplx_instance(const species_id_t id
   return copy;
 }
 
+
+void BNGEngine::update_bimol_map_for_new_species(const species_id_t id) {
+  assert(bimol_rxn_class_map.count(id) == 0 && "Not a new species");
+
+  // find all reactions that use id as one of the reactants
+  // TODO:
+
+  // create rxn classes
+  // TODO:
+
+  // store rxn classes into the bimolecular_reactions_map
+  // empty for now
+  bimol_rxn_class_map[id] = SpeciesRxnClassesMap();
+}
+
+
+
+
+void BNGEngine::update_unimol_map_for_new_species(const species_id_t id) {
+  assert(unimol_rxn_class_map.count(id) == 0 && "Not a new species");
+
+  // find all reactions that use id as one of the reactants
+  // TODO:
+
+  // create rxn classes
+  // TODO:
+
+  // store rxn classes into the bimolecular_reactions_map
+  static RxnClass empty_rxn_class;
+  unimol_rxn_class_map[id] = &empty_rxn_class;
+}
+
 } // namespace BNG
