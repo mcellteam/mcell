@@ -38,7 +38,6 @@
 #include "defines.h"
 #include "world.h"
 #include "partition.h"
-#include "species.h"
 #include "geometry.h"
 #include "debug_config.h"
 
@@ -529,9 +528,9 @@ static void find_restricted_regions_by_wall(
 
   assert(regions.empty() && "Function does not clean the resulting array");
 
-  const Species& species = p.bng_engine.all_species.get(sm.species_id);
+  const BNG::Species& species = p.bng_engine.all_species.get(sm.species_id);
 
-  if (!species.has_flag(SPECIES_FLAG_CAN_REGION_BORDER)) {
+  if (!species.has_flag(MCell::SPECIES_FLAG_CAN_REGION_BORDER)) {
     // no restricted region
     return;
   }

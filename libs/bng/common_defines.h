@@ -20,6 +20,9 @@
 #include <boost/container/small_vector.hpp>
 #include <boost/container/flat_set.hpp>
 
+
+#include "config.h"
+
 // ---------------------------------- float types ----------------------------------
 
 #define FLOAT_T_BYTES 8

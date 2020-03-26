@@ -1,10 +1,10 @@
+#include <species.h>
 #include <iostream>
 #include <cstdlib>
 
 #include "bngl_parser.hpp"
 #include "semantic_analyzer.h"
 #include "bng_engine.h"
-#include "cplx_species.h"
 
 using namespace std;
 
@@ -35,7 +35,7 @@ int parse_bngl(char const *name, const bool dump_ast, const bool dump_bng_data) 
 
   BNG::SemanticAnalyzer sema;
 
-  BNG::BNGEngine<BNG::CplxSpecies> bng_engine;
+  BNG::BNGEngine bng_engine;
   sema.check_and_convert(ctx, &bng_engine.get_data());
 
   if (dump_bng_data) {

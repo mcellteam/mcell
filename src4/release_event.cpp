@@ -268,7 +268,7 @@ void ReleaseEvent::step() {
 
   uint number = calculate_number_to_release();
 
-  const Species& species = world->bng_engine.all_species.get(species_id);
+  const BNG::Species& species = world->bng_engine.all_species.get(species_id);
 
   if (release_shape == ReleaseShape::REGION) {
     if (species.is_surf()) {

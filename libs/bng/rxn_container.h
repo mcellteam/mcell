@@ -38,28 +38,22 @@ namespace BNG {
 
 */
 
-typedef std::map<species_id_t, RxnClass*> SpeciesRxnClassesMap;
-typedef std::vector<SpeciesRxnClassesMap*> SpeciesRxnClassesMapPtrVector;
-typedef std::map<species_id_t, SpeciesRxnClassesMap> BimolecularRxnClassesMap;
-typedef SpeciesRxnClassesMap UnimolecularRxnClassesMap;
 
 
 /**
  * Owns information on reactions and species,
- * mostly accessed as constant data.
+ * serves as a source of information for BNGEngine
  */
-// TODO: move the trigger_bimolecular, trigger_bimolecular_orientation_from_mols,
-// and trigger_intersect functions here?
-// rename to Rxn(s)Info
+// TODO: maybe remove this class
 class RxnContainer {
 public:
   RxnContainer()
-    : initialized(false),
-      all_molecules_species_id(SPECIES_ID_INVALID),
+    : all_molecules_species_id(SPECIES_ID_INVALID),
       all_volume_molecules_species_id(SPECIES_ID_INVALID),
       all_surface_molecules_species_id(SPECIES_ID_INVALID) {
   }
 
+  // TODO: move to some config in bng engine
   void set_all_molecules_species_id(species_id_t id) {
     all_molecules_species_id = id;
   }
@@ -70,16 +64,9 @@ public:
     all_surface_molecules_species_id = id;
   }
 
-  // TODO: remove
-  void init(/*const BNG::SpeciesContainer<Species>& all_species*/);
-
-  bool is_initialized() const {
-    return initialized;
-  }
 
   void add(const RxnClass& r) {
     rxn_classes.push_back(r);
-    initialized = false;
   }
 
 #if 0
@@ -108,7 +95,6 @@ public:
   }
 
 private:
-  bool initialized;
 
   // hold pointers to reactions
   std::vector<RxnClass> rxn_classes;
@@ -117,6 +103,7 @@ private:
   // maybe just copy them after parsing
   std::vector<RxnRule> reactions;
 
+public:
   // ids of species superclasses, SPECIES_ID_INVALID if not set
   // it might seem that this should belong into SpeciesInfo but this class needs this information
   species_id_t all_molecules_species_id;

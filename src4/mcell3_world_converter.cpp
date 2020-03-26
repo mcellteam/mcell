@@ -70,7 +70,7 @@ bool mcell4_run_simulation(const bool dump_initial_state) {
 
 
 void mcell4_delete_world() {
-  return g_converter.reset();
+  g_converter.reset();
 }
 
 
@@ -640,9 +640,8 @@ bool MCell3WorldConverter::convert_species(volume* s) {
     CHECK_PROPERTY(spec->absorb_mols == nullptr);
     CHECK_PROPERTY(spec->clamp_conc_mols == nullptr);
 
-    world->bng_engine.all_species.find_or_add(new_species);
-
-    mcell3_species_id_map[spec->species_id] = new_species.species_id;
+    species_id_t new_species_id = world->bng_engine.all_species.find_or_add(new_species);
+    mcell3_species_id_map[spec->species_id] = new_species_id;
   }
 
   return true;
@@ -723,11 +722,11 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
     // reactants
     if (current_pathway->reactant1 != nullptr) {
       species_id_t reactant1_id = get_mcell4_species_id(current_pathway->reactant1->species_id);
-      rxn.append_simple_reactant(world->bng_engine.create_simple_cplx_instance(reactant1_id, current_pathway->orientation1));
+      rxn.append_simple_reactant(world->bng_engine.create_species_based_cplx_instance(reactant1_id, current_pathway->orientation1));
 
       if (current_pathway->reactant2 != nullptr) {
         species_id_t reactant2_id = get_mcell4_species_id(current_pathway->reactant2->species_id);
-        rxn.append_simple_reactant(world->bng_engine.create_simple_cplx_instance(reactant2_id, current_pathway->orientation2));
+        rxn.append_simple_reactant(world->bng_engine.create_species_based_cplx_instance(reactant2_id, current_pathway->orientation2));
 
         if (current_pathway->reactant3 != nullptr) {
           mcell_error("TODO_CONVERSION: reactions with 3 reactants are not supported");
@@ -767,7 +766,7 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
       while (product_ptr != nullptr) {
         CHECK_PROPERTY(product_ptr->orientation == 0 || product_ptr->orientation == 1 || product_ptr->orientation == -1);
         species_id_t product_id = get_mcell4_species_id(product_ptr->prod->species_id);
-        rxn.append_simple_product( world->bng_engine.create_simple_cplx_instance(product_id, product_ptr->orientation) );
+        rxn.append_simple_product( world->bng_engine.create_species_based_cplx_instance(product_id, product_ptr->orientation) );
 
         product_ptr = product_ptr->next;
       }

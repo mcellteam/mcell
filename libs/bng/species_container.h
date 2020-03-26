@@ -11,7 +11,7 @@
 #include <vector>
 
 #include "bng_defines.h"
-#include "cplx_species.h"
+#include "species.h"
 
 namespace BNG {
 
@@ -19,14 +19,13 @@ namespace BNG {
 // with virtual methods, this container would not be able to create new
 // objects by its own
 // SpeciesT must be derived from CplxSpecies
-template<class SpeciesT>
 class SpeciesContainer {
 public:
   SpeciesContainer()
     : next_species_id(0) {
   }
 
-  species_id_t find_or_add(const SpeciesT& new_species) {
+  species_id_t find_or_add(const Species& new_species) {
 
     species_id_t res = SPECIES_ID_INVALID;
 
@@ -47,9 +46,9 @@ public:
   }
 
   // returns SPECIES_ID_INVALID if not found
-  species_id_t find(const SpeciesT& species_to_find) {
+  species_id_t find(const Species& species_to_find) {
     // simple equality comparison for now, some hashing will be needed
-    for (const SpeciesT& s: species) {
+    for (const Species& s: species) {
       if (species_to_find.equal_except_for_id(s)) {
         return s.species_id;
       }
@@ -57,7 +56,7 @@ public:
     return SPECIES_ID_INVALID;
   }
 
-  const SpeciesT& get(const species_id_t id) const {
+  const Species& get(const species_id_t id) const {
     assert(id < species.size());
     // TODO: we will need a mapping, the species vector will need to be
     //       defragmented time from time
@@ -68,17 +67,13 @@ public:
     return get(id);
   }
 
-  const CplxSpecies& get_as_cplx_species(const species_id_t id) const {
-    return get(id);
-  }
-
   orientation_t get_single_orientation(const species_id_t id) const;
 
   uint get_count() const {
     return species.size();
   }
 
-  const std::vector<SpeciesT>& get_species_vector() const {
+  const std::vector<Species>& get_species_vector() const {
     return species;
   }
 
@@ -89,7 +84,7 @@ public:
 private:
   species_id_t next_species_id;
 
-  std::vector<SpeciesT> species;
+  std::vector<Species> species;
 };
 
 } // namespace BNG

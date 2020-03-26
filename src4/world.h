@@ -38,7 +38,6 @@
 
 #include "partition.h"
 #include "scheduler.h"
-#include "species.h"
 #include "geometry.h"
 #include "callback_info.h"
 #include "reaction.h"
@@ -157,7 +156,7 @@ public:
   // used as constants during simulation
   SimulationConfig config;
   BNG::RxnContainer all_reactions;
-  BNG::BNGEngine<Species> bng_engine;
+  BNG::BNGEngine bng_engine;
   SimulationStats stats;
 
 

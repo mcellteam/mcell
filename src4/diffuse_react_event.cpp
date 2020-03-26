@@ -164,7 +164,7 @@ void DiffuseReactEvent::diffuse_single_molecule(
 
 
 #ifdef DEBUG_DIFFUSION
-  const Species& debug_species = p.bng_engine.all_species.get(m.species_id);
+  const BNG::Species& debug_species = p.bng_engine.all_species.get(m.species_id);
   float_t event_time_end = event_time + diffusion_time_step;
   DUMP_CONDITION4(
     // the subtraction of diffusion_time_step doesn't make much sense but is needed to make the dump the same as in mcell3
@@ -256,7 +256,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
     WallTileIndexPair& wall_tile_pair_where_created_this_iteration
 ) {
   Molecule& m = p.get_m(vm_id);
-  const Species& species = p.bng_engine.all_species.get(m.species_id);
+  const BNG::Species& species = p.bng_engine.all_species.get(m.species_id);
 
   // diffuse each molecule - get information on position change
   Vec3 displacement;
@@ -780,7 +780,7 @@ void DiffuseReactEvent::diffuse_surf_molecule(
     const float_t diffusion_start_time
 ) {
   Molecule& sm = p.get_m(sm_id);
-  const Species& species = p.bng_engine.all_species.get(sm.species_id);
+  const BNG::Species& species = p.bng_engine.all_species.get(sm.species_id);
 
   float_t steps = 0.0;
   float_t t_steps = 0.0;
@@ -956,7 +956,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
     return true;
   }
 
-  const Species& sm_species = p.bng_engine.all_species.get(sm.species_id);
+  const BNG::Species& sm_species = p.bng_engine.all_species.get(sm.species_id);
 
 
   size_t l = 0;
@@ -978,7 +978,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
     }
 
     Molecule& nsm = p.get_m(nid);
-    const Species& nsm_species = p.bng_engine.all_species.get(nsm.species_id);
+    const BNG::Species& nsm_species = p.bng_engine.all_species.get(nsm.species_id);
 
 #ifdef DEBUG_REACTIONS
     DUMP_CONDITION4(
@@ -1101,7 +1101,7 @@ ray_trace_2D:
 *************************************************************************/
 wall_index_t DiffuseReactEvent::ray_trace_surf(
     Partition& p,
-    const Species& species,
+    const BNG::Species& species,
     Molecule& sm,
     Vec2& remaining_displacement,
     Vec2& new_pos/*,
@@ -1662,7 +1662,7 @@ int DiffuseReactEvent::outcome_products_random(
 
     species_id_t product_species_id = p.bng_engine.get_rxn_product_species_id(
         rx, product_index, reacA->species_id, (reacB != nullptr) ? reacB->species_id : SPECIES_ID_INVALID); // p.all_species.get(product.species_id);
-    const Species& species = p.bng_engine.all_species.get(product_species_id);
+    const BNG::Species& species = p.bng_engine.all_species.get(product_species_id);
 
     molecule_id_t new_m_id;
 

@@ -33,10 +33,25 @@
 #include "scheduler.h"
 #include "geometry.h"
 #include "reaction.h"
-#include "species.h"
 
 
 namespace MCell {
+
+// class used to hold potential reactants of given species
+class SpeciesReactantsMap: public std::map<species_id_t, uint_set<molecule_id_t> > {
+public:
+  // key must exist
+  void erase_existing(const species_id_t key, const molecule_id_t id) {
+    auto it = find(key);
+    assert(it != end() && "Key must exist");
+    it->second.erase_existing(id);
+  }
+
+  // key is created if it does not exist
+  void insert_unique(const species_id_t key, const molecule_id_t id) {
+    (*this)[key].insert_unique(id);
+  }
+};
 
 
 /**
@@ -48,7 +63,7 @@ public:
   Partition(
       const Vec3 origin_,
       const SimulationConfig& config_,
-      BNG::BNGEngine<Species>& bng_engine_,
+      BNG::BNGEngine& bng_engine_,
       SimulationStats& stats_
   )
     : origin_corner(origin_),
@@ -63,12 +78,6 @@ public:
     uint32_t num_subparts = powu(config.subpartitions_per_partition_dimension, 3);
     volume_molecule_reactants_per_subpart.resize(num_subparts);
     walls_per_subpart.resize(num_subparts);
-
-    assert(false && "need to have dynamic size for these maps");
-    size_t num_species = bng_engine.all_species.get_count();
-    for (auto& reactants : volume_molecule_reactants_per_subpart) {
-      reactants.resize(num_species);
-    }
   }
 
 
@@ -182,34 +191,35 @@ public:
   }
 
   void change_reactants_map(Molecule& vm, const uint32_t new_subpartition_index, bool adding, bool removing) {
-    assert(false && "BNGTODO");
-
     if (vm.is_surf()) {
       // nothing to do
       return;
     }
 
-#if 0
     assert(vm.is_vol() && "This function is applicable only to volume mols and ignored for surface mols");
-    assert(all_reactions.is_initialized() && all_reactions.bimolecular_reactions_map.count(vm.species_id) != 0);
+
+    // and these are indices of possible reactants with our reactant_species_id
+    // NOTE: this must be fast, bng engine must have this map/vector already ready
+    // TODO: we can optimize this by taking just volume reactants into account
+    const BNG::SpeciesRxnClassesMap& reactions_map = bng_engine.get_all_reactions_for_reactant(vm.species_id);
+    if (reactions_map.empty()) {
+      // nothing to do
+      return;
+    }
 
     // these are all the sets of indices of reactants for this particular subpartition
     SpeciesReactantsMap& subpart_reactants_orig_sp = volume_molecule_reactants_per_subpart[vm.v.subpart_index];
     SpeciesReactantsMap& subpart_reactants_new_sp = volume_molecule_reactants_per_subpart[new_subpartition_index];
 
-    // and these are indices of possible reactants with our reactant_species_id
-    const SpeciesRxnClassesMap& reactions_map = all_reactions.bimolecular_reactions_map.find(vm.species_id)->second;
-
     // we need to set/clear flag that says that second_reactant_info.first can react with reactant_species_id
-    for (const auto& second_reactant_info : reactions_map) {
+    for (const auto& second_reactant_info: reactions_map) {
       if (removing) {
-        subpart_reactants_orig_sp[second_reactant_info.first].erase_existing(vm.id);
+        subpart_reactants_orig_sp.erase_existing(second_reactant_info.first, vm.id);
       }
       if (adding) {
-        subpart_reactants_new_sp[second_reactant_info.first].insert_unique(vm.id);
+        subpart_reactants_new_sp.insert_unique(second_reactant_info.first, vm.id);
       }
     }
-#endif
   }
 
 
@@ -229,6 +239,11 @@ public:
   }
 
 
+
+private:
+  // internal methods that sets molecule's id and
+  // adds it to all relevant structures
+
   void add_molecule_to_diffusion_list(const Molecule& m, const uint32_t time_step_index) {
 
     // and its index to the list sorted by time step
@@ -238,12 +253,9 @@ public:
   }
 
 
-private:
-  // internal methods that sets molecule's id and
-  // adds it to all relevant structures
   Molecule& add_molecule(const Molecule& vm_copy, const bool is_vol) {
 
-    const Species& species = bng_engine.all_species.get(vm_copy.species_id);
+    const BNG::Species& species = bng_engine.all_species.get(vm_copy.species_id);
     assert((is_vol && species.is_vol()) || (!is_vol && species.is_surf()));
     uint32_t time_step_index = get_or_add_molecule_list_index_for_time_step(species.time_step);
 
@@ -320,10 +332,6 @@ public:
     // molecule ids with this diffusion time step 
     std::vector<molecule_id_t> molecule_ids;
   };
-
-  // indexed with species_id_t
-  typedef std::vector< uint_set<molecule_id_t> > SpeciesReactantsMap;
-
 
   // ---------------------------------- molecule getters ----------------------------------
 
@@ -594,7 +602,7 @@ public:
   // all these reference an object owned by a single World instance
   // enclose into something?
   const SimulationConfig& config;
-  BNG::BNGEngine<Species>& bng_engine;
+  BNG::BNGEngine& bng_engine;
   SimulationStats& stats;
 };
 

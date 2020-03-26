@@ -51,7 +51,7 @@ namespace DiffusionUtil {
 // ---------------------------------- volume mol diffusion ----------------------------------
 
 // get displacement based on scale (related to diffusion constant) and gauss random number
-static void pick_vol_displacement(const Species& sp, const float_t scale, rng_state& rng, Vec3& displacement) {
+static void pick_vol_displacement(const BNG::Species& sp, const float_t scale, rng_state& rng, Vec3& displacement) {
 
   if (!sp.can_diffuse()) {
     displacement = Vec3(0);
@@ -66,7 +66,7 @@ static void pick_vol_displacement(const Species& sp, const float_t scale, rng_st
 
 // determine how far will our diffused molecule move
 static void compute_vol_displacement(
-    const Species& sp,
+    const BNG::Species& sp,
     const float_t max_time,
     rng_state& rng,
     Vec3& displacement,
@@ -144,7 +144,7 @@ static void pick_surf_displacement(Vec2& v, const float_t scale, rng_state& rng)
 
 
 static void compute_surf_displacement(
-    const Species& sp,
+    const BNG::Species& sp,
     const float_t scale,
     rng_state& rng,
     Vec2& v

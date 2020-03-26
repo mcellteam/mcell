@@ -142,7 +142,6 @@ const float_t TIME_INVALID = -256;
 const float_t TIME_FOREVER = FLT_MAX; // this max is sufficient for both float and double
 const float_t TIME_SIMULATION_START = 0;
 
-const float_t DIFFUSION_CONSTANT_ZER0 = 0;
 const float_t SQRT2 = 1.41421356238;
 const float_t RX_RADIUS_MULTIPLIER = 1.2; // TEMPORARY - we should figure out why some collisions with subparts are missed..., but maybe, it won't have big perf impact...
 

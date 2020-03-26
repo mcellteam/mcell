@@ -31,7 +31,6 @@
 #include "base_event.h"
 #include "partition.h"
 #include "collision_structs.h"
-#include "species.h"
 #include "reaction.h"
 
 #define TEST 1
@@ -140,7 +139,7 @@ private:
 
   wall_index_t ray_trace_surf(
       Partition& p,
-      const Species& species,
+      const BNG::Species& species,
       Molecule& sm,
       Vec2& remaining_displacement,
       Vec2& new_pos

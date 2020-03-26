@@ -233,10 +233,8 @@ set(SOURCE_FILES
     src4/molecule.cpp
     src4/partition.cpp
     src4/reaction.cpp
-    #src4/reactions_info.cpp
     src4/release_event.cpp
     src4/scheduler.cpp
-    src4/species.cpp
     src4/viz_output_event.cpp
     src4/defragmentation_event.cpp
     src4/geometry.cpp

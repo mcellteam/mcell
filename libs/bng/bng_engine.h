@@ -19,6 +19,12 @@
 namespace BNG {
 
 
+typedef std::map<species_id_t, RxnClass*> SpeciesRxnClassesMap;
+//typedef std::vector<SpeciesRxnClassesMap*> SpeciesRxnClassesMapPtrVector;
+typedef std::map<species_id_t, SpeciesRxnClassesMap> BimolecularRxnClassesMap;
+typedef SpeciesRxnClassesMap UnimolecularRxnClassesMap;
+
+
 // Each partition will have its own BNG engine,
 // the contents might change a lot during execution and string comparison
 // on using BNGL components we still have a way how to unify all the instances
@@ -27,8 +33,6 @@ namespace BNG {
 // template - compilation time might get bad, because we need to include this every time
 // need other helper classes or functions to hide the implementation
 //
-// SpeciesT must be derived from CplxSpecies
-template<class SpeciesT>
 class BNGEngine {
 
 public:
@@ -148,8 +152,26 @@ public:
     return it_res->second;*/
   }
 
+  // returns null if there is no reaction for this species?
+  // no -> when there is no entry in the map, this meanbs that reactants were not determined yet
+  const BNG::SpeciesRxnClassesMap& get_all_reactions_for_reactant(const species_id_t id) const {
+
+    auto it = bimolecular_reactions_map.find(id);
+
+    // reaction maps get updated only when needed, it is not associated with addition of a new species
+    // the assumption is that, after some simulation time elapsed, this will be fairly stable
+    if (it == bimolecular_reactions_map.end()) {
+      //RxnUpdater::update_bimol_map_for_new_species()
+      assert(false);
+    }
+
+    assert(false);
+  }
+
+
   // does not store nullptr into the resulting array
   // checks also species superclasses
+#if 0
   void get_all_reactions_for_reactant(const species_id_t id, SpeciesRxnClassesMapPtrVector& potential_rxn_classes) const {
     assert(false);
     /*
@@ -176,9 +198,9 @@ public:
     }
     */
   }
+#endif
 
-
-  CplxInstance create_simple_cplx_instance(const species_id_t id, const orientation_t o) const;
+  CplxInstance create_species_based_cplx_instance(const species_id_t id, const orientation_t o) const;
 
 
   // search whether two molecules can react is done
@@ -193,7 +215,8 @@ public:
   }
 
   // make private?
-  SpeciesContainer<SpeciesT> all_species;
+  // - defintely, must be added through this engine
+  SpeciesContainer all_species;
 
 
   RxnContainer all_reactions;
@@ -203,35 +226,11 @@ private:
   // data entered by user, reactions reference these data
   BNGData data;
 
+  UnimolecularRxnClassesMap unimolecular_reactions_map;
+
+  BimolecularRxnClassesMap bimolecular_reactions_map;
 };
 
-
-template<class SpeciesT>
-species_id_t BNGEngine<SpeciesT>::get_rxn_product_species_id(
-    const RxnRule* rxn, const uint product_index,
-    const species_id_t reactant_a_species_id, const species_id_t reactant_b_species_id
-) {
-  // limited for now, no components allowed
-  const CplxInstance& product = rxn->get_cplx_product(product_index);
-
-  assert(product.is_simple() && "TODO");
-
-  // do we have such species already or we must define a new set?
-
-  // TODO: !!! where is the list of species? -> SpeciesInfo...
-  // BNG engine must be a template as well,
-  //
-  return SPECIES_ID_INVALID;
-}
-
-
-template<class SpeciesT>
-CplxInstance BNGEngine<SpeciesT>::create_simple_cplx_instance(const species_id_t id, const orientation_t o) const {
-  const CplxInstance& ref = all_species.get(id);
-  CplxInstance copy = ref;
-  copy.set_orientation(o);
-  return copy;
-}
 
 
 } /* namespace BNG */

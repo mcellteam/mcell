@@ -29,7 +29,6 @@
 #include "bng/bng.h"
 
 #include "defines.h"
-#include "species.h"
 
 namespace MCell {
 

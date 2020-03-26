@@ -25,7 +25,6 @@
 
 #include <iostream>
 
-#include "species.h"
 #include "partition.h"
 
 using namespace std;
