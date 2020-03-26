@@ -29,7 +29,8 @@ class BNGData;
 // TODO:L rename to pattern
 class CplxInstance: public BaseFlag {
 public:
-  small_vector<MolInstance> mol_patterns;
+  // TODO: rename this to mol_instances
+  MolInstanceVector mol_patterns;
 
 private:
   // ID of this pattern, set to a value only

@@ -49,6 +49,10 @@ public:
   void set_finalized() {
     finalized = true;
   }
+
+  bool is_finalized() const {
+    return finalized;
+  }
 };
 
 

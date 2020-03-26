@@ -5,15 +5,36 @@
  *      Author: ahusar
  */
 
-#include "rxn_rule.h"
-
 #include <iostream>
 #include <sstream>
+
+#include "rxn_rule.h"
+
+#include "species.h"
+#include "species_container.h"
 
 
 using namespace std;
 
 namespace BNG {
+
+void RxnRule::finalize() {
+  // finalize all reactants and products
+  for (CplxInstance& ci: reactants) {
+    ci.finalize();
+  }
+  for (CplxInstance& ci: products) {
+    ci.finalize();
+  }
+
+  compute_reactants_products_mapping();
+
+  // only for mcell3 compatibility
+  // TODO: need some config also for other tools
+  move_reused_reactants_to_be_the_first_products();
+
+  finalized = true;
+}
 
 
 bool RxnRule::is_cplx_reactant_on_both_sides_of_rxn(const uint index) const {
@@ -161,37 +182,6 @@ bool RxnRule::has_same_mols_in_reactants_and_products() const {
 
 
 
-bool RxnRule::compute_mol_reactants_products_mapping(const BNGData& bng_data, std::ostream& out) {
-
-  if (!has_same_mols_in_reactants_and_products()) {
-    mol_instances_are_fully_maintained = false;
-  }
-
-  for (uint complex_index = 0; complex_index < reactants.size(); complex_index++) {
-    for (uint molecule_index = 0; molecule_index < reactants[complex_index].mol_patterns.size(); molecule_index++) {
-
-      CplxMolIndex reactant_cmi = CplxMolIndex(complex_index, molecule_index);
-      CplxMolIndex product_cmi;
-      bool found = find_most_fitting_unassigned_mol_product(reactant_cmi, product_cmi);
-
-      if (found) {
-        mol_mapping.push_back(CMIndexPair(reactant_cmi, product_cmi));
-      }
-      else if (mol_instances_are_fully_maintained) {
-        // reporting error only if there should be a full match
-        const MolInstance& mol_inst = get_mol_reactant(reactant_cmi);
-
-        out << "Did not find a matching molecule in products for reactant molecule ";
-        mol_inst.dump(bng_data, true, out);
-        out << " listed as complex " << reactant_cmi.cplx_index << " and molecule " << reactant_cmi.mol_index << ".";
-
-        return false;
-      }
-    }
-  }
-
-  return true;
-}
 
 
 bool RxnRule::find_assigned_cplx_reactant_for_product(const uint product_index, uint& reactant_index) const {
@@ -206,7 +196,7 @@ bool RxnRule::find_assigned_cplx_reactant_for_product(const uint product_index, 
 }
 
 
-void RxnRule::compute_cplx_reactants_products_mapping(const BNGData& bng_data) {
+void RxnRule::compute_cplx_reactants_products_mapping() {
 
   for (uint ri = 0; ri < reactants.size(); ri++) {
     for (uint pi = 0; pi < products.size(); pi++) {
@@ -225,18 +215,72 @@ void RxnRule::compute_cplx_reactants_products_mapping(const BNGData& bng_data) {
 
 
 
-bool RxnRule::compute_reactants_products_mapping(const BNGData& bng_data, std::ostream& out) {
-  compute_cplx_reactants_products_mapping(bng_data);
+bool RxnRule::compute_mol_reactants_products_mapping(MolInstance& not_matching_mol_inst, CplxMolIndex& not_matching_cmi) {
+
+  if (!has_same_mols_in_reactants_and_products()) {
+    mol_instances_are_fully_maintained = false;
+  }
+
+  for (uint complex_index = 0; complex_index < reactants.size(); complex_index++) {
+    for (uint molecule_index = 0; molecule_index < reactants[complex_index].mol_patterns.size(); molecule_index++) {
+
+      CplxMolIndex reactant_cmi = CplxMolIndex(complex_index, molecule_index);
+      CplxMolIndex product_cmi;
+      bool found = find_most_fitting_unassigned_mol_product(reactant_cmi, product_cmi);
+
+      if (found) {
+        mol_mapping.push_back(CMIndexPair(reactant_cmi, product_cmi));
+      }
+      else if (mol_instances_are_fully_maintained) {
+        // reporting error only if there should be a full match
+
+        not_matching_mol_inst = get_mol_reactant(reactant_cmi);
+        not_matching_cmi = reactant_cmi;
+
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
+
+bool RxnRule::compute_reactants_products_mapping() {
+
+  compute_cplx_reactants_products_mapping();
+
+  MolInstance not_matching_mol_inst_ignored;
+  CplxMolIndex not_matching_cmi_ignored;
+  bool ok = compute_mol_reactants_products_mapping(not_matching_mol_inst_ignored, not_matching_cmi_ignored);
+  assert(ok);
+  return ok;
+}
+
+
+bool RxnRule::compute_reactants_products_mapping_w_error_output(const BNGData& bng_data, std::ostream& out) {
+
+  compute_cplx_reactants_products_mapping();
 
   // NOTE: we might need to direct the molecule mapping using cplx mapping,
   // but let's see later
-  bool res = compute_mol_reactants_products_mapping(bng_data, out);
-  return res;
+
+  MolInstance not_matching_mol_inst;
+  CplxMolIndex not_matching_cmi;
+  bool ok = compute_mol_reactants_products_mapping(not_matching_mol_inst, not_matching_cmi);
+  if (!ok) {
+    out << "Did not find a matching molecule in products for reactant molecule ";
+    not_matching_mol_inst.dump(bng_data, true, out);
+    out << " listed as complex " << not_matching_cmi.cplx_index << " and molecule " << not_matching_cmi.mol_index << ".";
+  }
+  return ok;
 }
 
 
 void RxnRule::move_reused_reactants_to_be_the_first_products() {
-  assert(false && "BNGTODO");
+
+  // ok for now when we have no repeated molecule types/complexes
+  assert(cplx_mapping.empty() && "BNGTODO");
   /*
   // for each reactant (from the end since we want the products to be ordered in the same way)
   for (int ri = reactants.size() - 1; ri >= 0; ri--) {
@@ -265,6 +309,58 @@ uint RxnRule::get_num_surf_products(/*const BNG::SpeciesContainer<Species>& all_
     }
   }
   return res;*/
+}
+
+
+bool RxnRule::species_can_be_reactant(const species_id_t id, const SpeciesContainer& all_species) {
+
+  // check caches first
+  if (species_applicable_as_reactants.count(id) != 0) {
+    return true;
+  }
+  if (species_not_applicable_as_reactants.count(id) != 0) {
+    return false;
+  }
+
+  // need to find out
+  const CplxInstance& inst = all_species.get_as_cplx_instance(id);
+
+  bool matches = false;
+  for (const CplxInstance& reactant: reactants) {
+    if (!matches || reactant.matches(inst)) {
+      matches = true;
+    }
+    else {
+      matches = false;
+    }
+  }
+
+  if (matches) {
+    species_applicable_as_reactants.insert_unique(id);
+  }
+  else {
+    species_not_applicable_as_reactants.insert_unique(id);
+  }
+
+  return matches;
+}
+
+
+bool RxnRule::species_is_both_bimol_reactants(const species_id_t id, const SpeciesContainer& all_species) {
+
+  if (!is_bimol()) {
+    return false;
+  }
+
+  // check if the species can be a reactant at all
+  if (!species_can_be_reactant(id, all_species)) {
+    return false;
+  }
+
+  // then the reactants must be identical (this can be precomputed)
+  bool res = reactants[0].matches(reactants[1]);
+  assert(res == reactants[1].matches(reactants[0]) && "Pattern identity must be bijective");
+  return res;
 }
 
 

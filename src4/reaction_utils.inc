@@ -71,37 +71,37 @@ static void trigger_bimolecular(
     BNG::BNGEngine& bng_engine,
     const Molecule& reacA, const Molecule& reacB,
     orientation_t orientA, orientation_t orientB,
-    BNG::RxnClassesVector& matching_rxns // items are appended
+    BNG::RxnClassesVector& matching_rxn_classes // items are appended
 ) {
 
-  const BNG::RxnClass* rxn_class = bng_engine.get_bimol_rxn_class(reacA.species_id, reacB.species_id);
+  const BNG::RxnClass* rxn_class = bng_engine.all_rxns.get_bimol_rxn_class(reacA.species_id, reacB.species_id);
   assert(rxn_class->reactants.size() == 2 && "We already checked that there must be 2 reactants");
   
-  matching_rxns.push_back(rxn_class);
+  matching_rxn_classes.push_back(rxn_class);
   
 
   /* Check to see if orientation classes are zero/different */
   int test_wall = 0;
-  orientation_t geomA = rxn_class->reactants[0].get_orientation();
-  orientation_t geomB = rxn_class->reactants[1].get_orientation();
+  orientation_t geomA = rxn_class->get_reactant_orientation(0);
+  orientation_t geomB = rxn_class->get_reactant_orientation(1);
   if (geomA == ORIENTATION_NONE || geomB == ORIENTATION_NONE || (geomA + geomB) * (geomA - geomB) != 0) {
-    matching_rxns.push_back(rxn_class);
+    matching_rxn_classes.push_back(rxn_class);
   }
   else if (orientA != ORIENTATION_NONE && orientA * orientB * geomA * geomB > 0) {
-    matching_rxns.push_back(rxn_class);
+    matching_rxn_classes.push_back(rxn_class);
   }
 }
 
 static void trigger_bimolecular_orientation_from_mols(
     BNG::BNGEngine& bng_engine,
     const Molecule& reacA, const Molecule& reacB,
-    BNG::RxnClassesVector& matching_rxns // items are appended
+    BNG::RxnClassesVector& matching_rxn_classes // items are appended
 ) {
   trigger_bimolecular(
       bng_engine,
       reacA, reacB,
       reacA.s.orientation, reacB.s.orientation,
-      matching_rxns
+      matching_rxn_classes
   );
 }
 
@@ -135,7 +135,7 @@ static void find_surface_mol_reactions_with_surf_classes_for_rxn_class_map(
     const bool allow_rx_absorb_reg_border,
     const Region& reg,
     const BNG::SpeciesRxnClassesMap& potential_reactions,
-    BNG::RxnClassesVector& matching_rxns
+    BNG::RxnClassesVector& matching_rxn_classes
 ) {
 
   BNG::SpeciesRxnClassesMap::const_iterator reactions_reacA_and_surface_it = potential_reactions.find(reg.species_id);
@@ -144,12 +144,11 @@ static void find_surface_mol_reactions_with_surf_classes_for_rxn_class_map(
     return;
   }
 
-  const BNG::RxnClass* rxn = reactions_reacA_and_surface_it->second;
-  assert(rxn->reactants.size() == 2);
+  const BNG::RxnClass* rxn_class = reactions_reacA_and_surface_it->second;
+  assert(rxn_class->reactants.size() == 2);
 
-  // TODO_PATHWAYS: allow multiple reactions..
-  orientation_t orient0 = rxn->reactants[0].get_orientation();
-  orientation_t orient1 = rxn->reactants[1].get_orientation();
+  orientation_t orient0 = rxn_class->get_reactant_orientation(0);
+  orientation_t orient1 = rxn_class->get_reactant_orientation(1);
 
   // TODO: can we move this condition to some shared function?
   if ( (orient0 == 0) ||
@@ -157,12 +156,12 @@ static void find_surface_mol_reactions_with_surf_classes_for_rxn_class_map(
        (reacA.s.orientation * orient0 * orient1 > 0) ) {
 
     bool reject_reaction =
-        (rxn->is_transparent() && !allow_rx_transp) ||
-        (rxn->is_reflect() && !allow_rx_reflec) ||
-        (rxn->is_absorb() && !allow_rx_absorb_reg_border);
+        (rxn_class->is_transparent() && !allow_rx_transp) ||
+        (rxn_class->is_reflect() && !allow_rx_reflec) ||
+        (rxn_class->is_absorb() && !allow_rx_absorb_reg_border);
 
     if (!reject_reaction) {
-      matching_rxns.push_back(rxn);
+      matching_rxn_classes.push_back(rxn_class);
     }
   }
 }
@@ -181,9 +180,9 @@ static void find_surface_mol_reactions_with_surf_classes(
   assert(reacA.is_surf());
 
   // for all reactions applicable to reacA and and wall
-  const BNG::SpeciesRxnClassesMap& species_rxns = p.bng_engine.get_bimol_rxns_for_reactant(reacA.species_id);
-  const BNG::SpeciesRxnClassesMap& all_molecules_rxns = p.bng_engine.get_bimol_rxns_for_reactant(p.bng_engine.all_rxns.all_molecules_species_id);
-  const BNG::SpeciesRxnClassesMap& all_vol_surf_rxns = p.bng_engine.get_bimol_rxns_for_reactant(p.bng_engine.all_rxns.all_surface_molecules_species_id);
+  const BNG::SpeciesRxnClassesMap& species_rxns = p.bng_engine.all_rxns.get_bimol_rxns_for_reactant(reacA.species_id);
+  const BNG::SpeciesRxnClassesMap& all_molecules_rxns = p.bng_engine.all_rxns.get_bimol_rxns_for_reactant(p.bng_engine.all_rxns.all_molecules_species_id);
+  const BNG::SpeciesRxnClassesMap& all_vol_surf_rxns = p.bng_engine.all_rxns.get_bimol_rxns_for_reactant(p.bng_engine.all_rxns.all_surface_molecules_species_id);
 
   if (species_rxns.empty() && all_molecules_rxns.empty() && all_vol_surf_rxns.empty()) {
     // no reactions at all for reacA
@@ -526,7 +525,7 @@ static const BNG::RxnClass* pick_unimol_rx(
     World* world,
     const species_id_t species_id
 ) {
-  return world->bng_engine.get_unimol_rxn_class(species_id);
+  return world->bng_engine.all_rxns.get_unimol_rxn_class(species_id);
 }
 
 

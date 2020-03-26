@@ -15,10 +15,11 @@
 
 namespace BNG {
 
+typedef small_vector<Species> SpeciesVector;
+
 // using templates instead of virtual methods? -> rather a template
 // with virtual methods, this container would not be able to create new
 // objects by its own
-// SpeciesT must be derived from CplxSpecies
 class SpeciesContainer {
 public:
   SpeciesContainer()
@@ -26,6 +27,7 @@ public:
   }
 
   species_id_t find_or_add(const Species& new_species) {
+    assert(new_species.is_finalized());
 
     species_id_t res = SPECIES_ID_INVALID;
 
@@ -73,7 +75,7 @@ public:
     return species.size();
   }
 
-  const std::vector<Species>& get_species_vector() const {
+  const SpeciesVector& get_species_vector() const {
     return species;
   }
 
@@ -84,7 +86,7 @@ public:
 private:
   species_id_t next_species_id;
 
-  std::vector<Species> species;
+  SpeciesVector species;
 };
 
 } // namespace BNG

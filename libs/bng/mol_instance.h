@@ -127,6 +127,8 @@ public:
   void dump(const BNGData& bng_data, const bool only_explicit = false, std::ostream& out = std::cout) const;
 };
 
+typedef small_vector<MolInstance> MolInstanceVector;
+
 } /* namespace BNG */
 
 #endif /* LIBS_BNG_MOL_INSTANCE_H_ */

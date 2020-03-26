@@ -38,7 +38,8 @@ const double USEC_IN_SEC = 1000000.0;
 namespace MCell {
 
 World::World()
-  : iterations(0),
+  : bng_engine(config),
+    iterations(0),
     seed_seq(0),
     next_wall_id(0),
     next_geometry_object_id(0),

@@ -234,59 +234,14 @@ typedef std::pair<float_t, PartitionWallIndexPair> CummAreaPWallIndexPair;
 const int BASE_CONTAINER_ALLOC = 16;
 
 #ifndef INDEXER_WA
-template<class T, class Allocator=boost::container::new_allocator<T>>
-  using small_vector = boost::container::small_vector<T, BASE_CONTAINER_ALLOC, Allocator>;
 
 typedef boost::container::small_vector<subpart_index_t, BASE_CONTAINER_ALLOC>  SubpartIndicesVector;
 
-
-template<class T, typename Compare = std::less<T>, class Allocator=boost::container::new_allocator<T>>
-  using base_flat_set = boost::container::flat_set<T, Compare, Allocator>;
 #else
-template<typename T, typename _Alloc = std::allocator<T>  >
-  using small_vector = std::vector<T, _Alloc>;
 
 typedef std::vector<subpart_index_t> SubpartIndicesVector;
 
-template<typename T, typename _Compare = std::less<T>, typename _Alloc = std::allocator<T>  >
-  using base_flat_set = std::set<T, _Compare, _Alloc>;
 #endif
-
-/**
- * Template class used to hold sets of ids or indices of molecules or other items,
- * extended to check for unique insertions and checked removals.
- */
-template<typename T>
-class uint_set: public base_flat_set<T> {
-public:
-  // insert with check that the item is not there yet
-  // for insertions without this check use 'insert'
-  void insert_unique(const T id_or_index) {
-    assert(this->count(id_or_index) == 0);
-    this->insert(id_or_index);
-  }
-
-  // erase with check that the item is present
-  // for insertions without this check use 'erase'
-  void erase_existing(const T id_or_index) {
-    assert(this->count(id_or_index) == 1);
-    this->erase(id_or_index);
-  }
-
-  void dump(const std::string comment = "") const {
-    std::cout << comment << ": ";
-    int cnt = 0;
-    for (const T& idx: *this) {
-      std::cout << idx << ", ";
-
-      if (cnt %20 == 0 && cnt != 0) {
-        std::cout << "\n";
-      }
-      cnt++;
-    }
-    std::cout << "\n";
-  }
-};
 
 // ---------------------------------- vector types ----------------------------------
 
@@ -706,12 +661,10 @@ private:
  * Constant data set in initialization useful for all classes, single object is owned by world
  */
 // TODO: cleanup all unnecessary argument passing, e.g. in diffuse_react_event.cpp
-class SimulationConfig {
+class SimulationConfig: public BNG::BNGConfig {
 public:
   // configuration
-  float_t time_unit;
-  float_t length_unit;
-  float_t rx_radius_3d;
+
   float_t vacancy_search_dist2;
 
   float_t partition_edge_length;

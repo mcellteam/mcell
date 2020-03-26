@@ -373,7 +373,7 @@ void SemanticAnalyzer::convert_rxn_rule_side(const ASTListNode* rule_side, CplxI
 void SemanticAnalyzer::finalize_and_store_rxn_rule(const ASTRxnRuleNode* n, RxnRule& r, const char* direction_str) {
   // determine mapping from molecule instances on one side to another
   stringstream out;
-  bool ok = r.compute_reactants_products_mapping(*bng_data, out);
+  bool ok = r.compute_reactants_products_mapping_w_error_output(*bng_data, out);
   if (!ok) {
     errs(n) << out.str() << " (in the " << direction_str << " direction, indices are counted from 0)\n";
     ctx->inc_error_count();

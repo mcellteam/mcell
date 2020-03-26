@@ -18,6 +18,7 @@
 namespace BNG {
 
 class BNGData;
+class SpeciesContainer;
 
 struct CplxMolIndex {
   CplxMolIndex()
@@ -92,18 +93,19 @@ public:
   small_vector<CplxIndexPair> cplx_mapping;
 
 
+  // caching
+  uint_set<species_id_t> species_applicable_as_reactants;
+  uint_set<species_id_t> species_not_applicable_as_reactants;
+
   float_t rate_constant;
 
   bool finalized;
 public:
-  void finalize() {
-    finalized = true;
-    // only for mcell3 compatibility
-    // TODO: need some config also for other tools
-    // TODO: where to check for finalized?
-    move_reused_reactants_to_be_the_first_products();
-  }
+  void finalize();
 
+  bool is_finalized() const {
+    return finalized;
+  }
 
   const CplxInstance& get_cplx_reactant(const uint index) const {
     assert(index <= reactants.size());
@@ -149,7 +151,9 @@ public:
   // sets members molecule_instances_are_maintained and mapping,
   // might write some error messages to the msgs stream,
   // returns true if errors were encountered
-  bool compute_reactants_products_mapping(const BNGData& bng_data, std::ostream& out);
+  bool compute_reactants_products_mapping();
+
+  bool compute_reactants_products_mapping_w_error_output(const BNGData& bng_data, std::ostream& out);
 
 
   void append_simple_reactant(const CplxInstance& inst) {
@@ -166,6 +170,17 @@ public:
     return reactants.size() + products.size();
   }
 
+  bool is_unimol() const {
+    return reactants.size() == 1;
+  }
+
+  bool is_bimol() const {
+    return reactants.size() == 2;
+  }
+
+  bool species_can_be_reactant(const species_id_t id, const SpeciesContainer& all_species);
+  bool species_is_both_bimol_reactants(const species_id_t id, const SpeciesContainer& all_species);
+
 private:
 
   // returns false if cmi was not found in mapping,
@@ -177,11 +192,11 @@ private:
   // returns false if no fitting product was found
   bool find_most_fitting_unassigned_mol_product(const CplxMolIndex& reactant_cmi, CplxMolIndex& best_product_cmi) const;
 
-  bool compute_mol_reactants_products_mapping(const BNGData& bng_data, std::ostream& out);
+  bool compute_mol_reactants_products_mapping(MolInstance& not_matching_mol_inst, CplxMolIndex& not_matching_cmi);
 
 
   bool find_assigned_cplx_reactant_for_product(const uint product_index, uint& reactant_index) const;
-  void compute_cplx_reactants_products_mapping(const BNGData& bng_data);
+  void compute_cplx_reactants_products_mapping();
 
   void move_reused_reactants_to_be_the_first_products();
 

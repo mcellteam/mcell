@@ -141,15 +141,6 @@ public:
     return wall_hit_callback;
   }
 
-private:
-  std::vector<Partition> partitions;
-
-public:
-  Scheduler scheduler;
-
-  uint64_t iterations; // number of iterations to simulate - move to Sim config
-  uint seed_seq; // initial seed passed to mcell as argument
-
 
 public:
   // single instance for the whole mcell simulator,
@@ -159,6 +150,14 @@ public:
   BNG::BNGEngine bng_engine;
   SimulationStats stats;
 
+private:
+  std::vector<Partition> partitions;
+
+public:
+  Scheduler scheduler;
+
+  uint64_t iterations; // number of iterations to simulate - move to Sim config
+  uint seed_seq; // initial seed passed to mcell as argument
 
   rng_state rng; // single state for the random number generator
 

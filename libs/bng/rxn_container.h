@@ -33,28 +33,31 @@
 
 namespace BNG {
 
+typedef std::map<species_id_t, RxnClass*> SpeciesRxnClassesMap;
 
-/*
-  TODO: caching
 
-*/
-
+typedef std::map<species_id_t, SpeciesRxnClassesMap> BimolRxnClassesMap;
+typedef SpeciesRxnClassesMap UnimolRxnClassesMap;
 
 
 /**
  * Owns information on reactions and species,
  * serves as a source of information for BNGEngine
  */
-// TODO: maybe remove this class
+// TODO: better name, this will be much than a container,
+// caching is done in BNGEngine
 class RxnContainer {
 public:
-  RxnContainer(SpeciesContainer& all_species_)
+  RxnContainer(SpeciesContainer& all_species_, const BNGConfig& bng_config_)
     : all_molecules_species_id(SPECIES_ID_INVALID),
       all_volume_molecules_species_id(SPECIES_ID_INVALID),
       all_surface_molecules_species_id(SPECIES_ID_INVALID),
-      all_species(all_species_)
+      all_species(all_species_),
+      bng_config(bng_config_)
       {
   }
+
+  ~RxnContainer();
 
   // TODO: move to some config in bng engine
   void set_all_molecules_species_id(species_id_t id) {
@@ -68,9 +71,100 @@ public:
   }
 
 
-  void add(const RxnRule& r) {
+  // this method is supposed to be used only during initialization
+  void add_no_update(const RxnRule& r) {
+    assert(r.is_finalized());
     // TODO: check that we don't have this rule already
     rxns.push_back(r);
+  }
+
+
+  const RxnClass* get_unimol_rxn_class(const species_id_t id) {
+    auto it = unimol_rxn_class_map.find(id);
+
+    // reaction maps get updated only when needed, it is not associated with addition of a new species
+    // the assumption is that, after some simulation time elapsed, this will be fairly stable
+    if (it == unimol_rxn_class_map.end()) {
+      update_unimol_map_for_new_species(id);
+      it = unimol_rxn_class_map.find(id);
+    }
+    return it->second;
+  }
+
+
+
+  // TODO: need orientation, check what we erased before
+  const RxnClass* get_bimol_rxn_class(const species_id_t id1, const species_id_t id2) {
+    assert(false);
+
+    #if 0
+    // for all reactions applicable to reacA and reacB
+    BimolRxnClassesMap::const_iterator reactions_reacA_it
+      = reactions.find(reacA.species_id);
+    if (reactions_reacA_it == reactions.end()) {
+      // no reactions at all for reacA
+      return;
+    }
+
+    SpeciesRxnClassesMap::const_iterator reactions_reacA_and_reacB_it
+      = reactions_reacA_it->second.find(reacB.species_id);
+    if (reactions_reacA_and_reacB_it == reactions_reacA_it->second.end()) {
+      return;
+    }
+
+    // there can be a single class for a unique pair of reactants,
+    // TODO: check it when creating the maps
+    const BNG::RxnClass* rxn_class = reactions_reacA_and_reacB_it->second;
+
+
+    /* skip irrelevant reactions (i.e. non vol-surf reactions) */
+    assert(rxn_class->reactants.size() == 2 && "We already checked that there must be 2 reactants");
+
+    /* Check to see if orientation classes are zero/different */
+    int test_wall = 0;
+    orientation_t geomA = rxn_class->reactants[0].orientation;
+    orientation_t geomB = rxn_class->reactants[1].orientation;
+    if (geomA == ORIENTATION_NONE || geomB == ORIENTATION_NONE || (geomA + geomB) * (geomA - geomB) != 0) {
+      matching_rxns.push_back(rxn_class);
+    }
+    else if (orientA != ORIENTATION_NONE && orientA * orientB * geomA * geomB > 0) {
+      matching_rxns.push_back(rxn_class);
+    }
+    #endif
+  }
+
+
+  // simply looks up a reaction between 'a' and 'b',
+  // this reaction must exist, asserts if not,
+  // does not take species superclasses such as ALL_MOLECULES into account
+  const RxnClass* get_specific_reaction_class(const species_id_t id1, const species_id_t id2) const {
+    assert(false);
+    /*
+    assert(initialized);
+
+    const auto& it_map_for_species = bimolecular_reactions_map.find(a.species_id);
+    assert(it_map_for_species != bimolecular_reactions_map.end());
+
+    const auto& it_res = it_map_for_species->second.find(b.species_id);
+    assert(it_res != it_map_for_species->second.end());
+
+    return it_res->second;*/
+  }
+
+  // returns null if there is no reaction for this species?
+  // no -> when there is no entry in the map, this meanbs that reactants were not determined yet
+  const BNG::SpeciesRxnClassesMap& get_bimol_rxns_for_reactant(const species_id_t id) {
+
+    auto it = bimol_rxn_class_map.find(id);
+
+    // reaction maps get updated only when needed, it is not associated with addition of a new species
+    // the assumption is that, after some simulation time elapsed, this will be fairly stable
+    if (it == bimol_rxn_class_map.end()) {
+      update_bimol_map_for_new_species(id);
+      it = bimol_rxn_class_map.find(id);
+    }
+
+    return it->second;
   }
 
 #if 0
@@ -98,10 +192,20 @@ public:
     //RxnClass::dump_array(reactions);
   }
 
+  void create_bimol_rxn_classes_for_new_species(const species_id_t id, SpeciesRxnClassesMap& res_classes_map);
+
+private:
+  RxnClass* get_or_create_empty_bimol_rxn_class(const species_id_t id1, const species_id_t id2);
+
+  void update_unimol_map_for_new_species(const species_id_t id);
+  const SpeciesRxnClassesMap& update_bimol_map_for_new_species(const species_id_t id);
+
 private:
 
-  // hold pointers to reactions
-  std::vector<RxnClass> rxn_classes;
+  // owns reaction classes
+  // allocated in get_or_create_empty_bimol_rxn_class, deleted in destructor
+  // the size of the vector will be changing, so we cannot take pointers to its elements
+  std::vector<RxnClass*> rxn_classes;
 
   // RxnContainer owns Rxn rules?
   // maybe just copy them after parsing
@@ -116,8 +220,15 @@ public:
 
   // owned by BNGEngine
   SpeciesContainer& all_species;
+  const BNGConfig& bng_config;
 
 public:
+
+
+  UnimolRxnClassesMap unimol_rxn_class_map;
+
+  BimolRxnClassesMap bimol_rxn_class_map;
+
   // TODO: these should be private
 
   // TODO_PATHWAYS: there might be multiple reactions for 1 or 2 reactants (multiple pathways)

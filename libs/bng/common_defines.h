@@ -21,8 +21,6 @@
 #include <boost/container/flat_set.hpp>
 
 
-#include "config.h"
-
 // ---------------------------------- float types ----------------------------------
 
 #define FLOAT_T_BYTES 8
@@ -38,6 +36,11 @@ typedef double float_t; // will be changed to float
 #endif
 
 }
+
+#include "bng_config.h"
+
+const Common::float_t BNG_PI = 3.14159265358979323846;
+const Common::float_t BNG_N_AV = 6.0221417930e23;
 
 
 #if FLOAT_T_BYTES == 8

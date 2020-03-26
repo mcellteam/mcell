@@ -5,8 +5,8 @@
  *      Author: ahusar
  */
 
-#ifndef LIBS_BNG_CONFIG_H_
-#define LIBS_BNG_CONFIG_H_
+#ifndef LIBS_BNG_BNG_CONFIG_H_
+#define LIBS_BNG_BNG_CONFIG_H_
 
 // ---------------------------------- configurability ------------------------------
 /**
@@ -39,5 +39,26 @@
  */
 #define BNG_ONLY_MCELL
 
+// included only in common_defines.h
 
-#endif /* LIBS_BNG_CONFIG_H_ */
+// TODO create an equivalent of a triple,
+//
+
+namespace BNG {
+
+class BNGConfig {
+public:
+  // configuration
+
+  // MCell
+  Common::float_t time_unit;
+  Common::float_t length_unit;
+  Common::float_t grid_density;
+  Common::float_t rx_radius_3d;
+
+};
+
+}
+
+
+#endif /* LIBS_BNG_BNG_CONFIG_H_ */

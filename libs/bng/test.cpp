@@ -35,7 +35,8 @@ int parse_bngl(char const *name, const bool dump_ast, const bool dump_bng_data) 
 
   BNG::SemanticAnalyzer sema;
 
-  BNG::BNGEngine bng_engine;
+  BNG::BNGConfig bng_config; // we do not care about the config values here
+  BNG::BNGEngine bng_engine(bng_config);
   sema.check_and_convert(ctx, &bng_engine.get_data());
 
   if (dump_bng_data) {

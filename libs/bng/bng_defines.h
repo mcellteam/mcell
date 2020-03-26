@@ -1,3 +1,5 @@
+// this file contains BNG-specific defines
+
 #ifndef __BNG_DEFINES_H__
 #define __BNG_DEFINES_H__
 

@@ -155,6 +155,7 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
   world->iterations = s->iterations;
   world->config.time_unit = s->time_unit;
   world->config.length_unit = s->length_unit;
+  world->config.grid_density = s->grid_density;
   world->config.rx_radius_3d = s->rx_radius_3d;
   world->config.vacancy_search_dist2 = s->vacancy_search_dist2 / s->length_unit;
   world->seed_seq = s->seed_seq;
@@ -606,6 +607,9 @@ bool MCell3WorldConverter::convert_species(volume* s) {
     new_species.space_step = spec->space_step;
     new_species.time_step = spec->time_step;
 
+
+    CHECK_PROPERTY((spec->flags & CANT_INITIATE) == 0); // RxnClass::compute_pb_factor assumes this
+
     if (!(
         is_species_superclass(s, spec)
         || spec->flags == 0
@@ -640,6 +644,29 @@ bool MCell3WorldConverter::convert_species(volume* s) {
     CHECK_PROPERTY(spec->absorb_mols == nullptr);
     CHECK_PROPERTY(spec->clamp_conc_mols == nullptr);
 
+
+    // we must add a complex instance as the single molecule type in the new species
+    // define a molecule type with no components
+    MolType mol_type;
+    mol_type.name = new_species.name; // name of the mol type is the same as for our species
+    mol_type_id_t mol_type_id = world->bng_engine.get_data().find_or_add_molecule_type(mol_type);
+
+    MolInstance mol_inst;
+    mol_inst.mol_type_id = mol_type_id;
+    if (new_species.is_vol()) {
+      mol_inst.set_flag(CPLX_MOL_FLAG_VOL);
+    }
+    else if (new_species.is_surf()) {
+      mol_inst.set_flag(CPLX_MOL_FLAG_SURF);
+    }
+    else {
+      assert(false);
+    }
+
+    new_species.mol_patterns.push_back(mol_inst);
+
+    // and finally let's add our new species
+    new_species.finalize();
     species_id_t new_species_id = world->bng_engine.all_species.find_or_add(new_species);
     mcell3_species_id_map[spec->species_id] = new_species_id;
   }
@@ -774,7 +801,8 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
     pathway_index++;
 
     // add our reaction, reaction classes are created on-the-fly
-    world->bng_engine.all_rxns.add(rxn);
+    rxn.finalize();
+    world->bng_engine.all_rxns.add_no_update(rxn);
   }
 
 

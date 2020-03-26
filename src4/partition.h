@@ -201,7 +201,7 @@ public:
     // and these are indices of possible reactants with our reactant_species_id
     // NOTE: this must be fast, bng engine must have this map/vector already ready
     // TODO: we can optimize this by taking just volume reactants into account
-    const BNG::SpeciesRxnClassesMap& reactions_map = bng_engine.get_bimol_rxns_for_reactant(vm.species_id);
+    const BNG::SpeciesRxnClassesMap& reactions_map = bng_engine.all_rxns.get_bimol_rxns_for_reactant(vm.species_id);
     if (reactions_map.empty()) {
       // nothing to do
       return;
