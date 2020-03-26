@@ -155,7 +155,7 @@ public:
   // single instance for the whole mcell simulator,
   // used as constants during simulation
   SimulationConfig config;
-  BNG::RxnContainer all_reactions;
+  //BNG::RxnContainer all_reactions;
   BNG::BNGEngine bng_engine;
   SimulationStats stats;
 

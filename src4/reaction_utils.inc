@@ -182,8 +182,8 @@ static void find_surface_mol_reactions_with_surf_classes(
 
   // for all reactions applicable to reacA and and wall
   const BNG::SpeciesRxnClassesMap& species_rxns = p.bng_engine.get_bimol_rxns_for_reactant(reacA.species_id);
-  const BNG::SpeciesRxnClassesMap& all_molecules_rxns = p.bng_engine.get_bimol_rxns_for_reactant(p.bng_engine.all_reactions.all_molecules_species_id);
-  const BNG::SpeciesRxnClassesMap& all_vol_surf_rxns = p.bng_engine.get_bimol_rxns_for_reactant(p.bng_engine.all_reactions.all_surface_molecules_species_id);
+  const BNG::SpeciesRxnClassesMap& all_molecules_rxns = p.bng_engine.get_bimol_rxns_for_reactant(p.bng_engine.all_rxns.all_molecules_species_id);
+  const BNG::SpeciesRxnClassesMap& all_vol_surf_rxns = p.bng_engine.get_bimol_rxns_for_reactant(p.bng_engine.all_rxns.all_surface_molecules_species_id);
 
   if (species_rxns.empty() && all_molecules_rxns.empty() && all_vol_surf_rxns.empty()) {
     // no reactions at all for reacA

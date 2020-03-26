@@ -257,7 +257,7 @@ void World::dump() {
   stats.dump();
 
   bng_engine.all_species.dump();
-  all_reactions.dump();
+  bng_engine.all_rxns.dump();
 
   // partitions
   for (Partition& p: partitions) {

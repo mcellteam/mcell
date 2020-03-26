@@ -590,15 +590,15 @@ bool MCell3WorldConverter::convert_species(volume* s) {
     // these special species might be used in wall - surf|vol reactions
     if (spec == s->all_mols) {
       CHECK_PROPERTY(new_species.name == ALL_MOLECULES);
-      world->bng_engine.all_reactions.set_all_molecules_species_id(new_species.species_id);
+      world->bng_engine.all_rxns.set_all_molecules_species_id(new_species.species_id);
     }
     else if (spec == s->all_volume_mols) {
       CHECK_PROPERTY(new_species.name == ALL_VOLUME_MOLECULES);
-      world->bng_engine.all_reactions.set_all_volume_molecules_species_id(new_species.species_id);
+      world->bng_engine.all_rxns.set_all_volume_molecules_species_id(new_species.species_id);
     }
     else if (spec == s->all_surface_mols) {
       CHECK_PROPERTY(new_species.name == ALL_SURFACE_MOLECULES);
-      world->bng_engine.all_reactions.set_all_surface_molecules_species_id(new_species.species_id);
+      world->bng_engine.all_rxns.set_all_surface_molecules_species_id(new_species.species_id);
     }
 
     //new_species.mcell3_species_id = spec->species_id;
@@ -649,8 +649,6 @@ bool MCell3WorldConverter::convert_species(volume* s) {
 
 
 bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
-  RxnClass rxn_class;
-
   // rx->next - handled in convert_reactions
   // rx->sym->name - ignored, name obtained from pathway
 
@@ -772,17 +770,14 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
       }
     }
 
-    //rxn_class.add_and_initialize_reaction(rxn, mcell3_rx->cum_probs[pathway_index]);
 
     pathway_index++;
+
+    // add our reaction, reaction classes are created on-the-fly
+    world->bng_engine.all_rxns.add(rxn);
   }
 
 
-  // TODO: create RxnClass
-  // some rxn classes are specific
-  assert(false);
-
-  //world->bng_engine.all_reactions.add(rxn_class);
 
   return true;
 }

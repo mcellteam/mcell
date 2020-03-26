@@ -29,6 +29,7 @@
 #include "bng_defines.h"
 #include "rxn_rule.h"
 #include "rxn_class.h"
+#include "species_container.h"
 
 namespace BNG {
 
@@ -47,10 +48,12 @@ namespace BNG {
 // TODO: maybe remove this class
 class RxnContainer {
 public:
-  RxnContainer()
+  RxnContainer(SpeciesContainer& all_species_)
     : all_molecules_species_id(SPECIES_ID_INVALID),
       all_volume_molecules_species_id(SPECIES_ID_INVALID),
-      all_surface_molecules_species_id(SPECIES_ID_INVALID) {
+      all_surface_molecules_species_id(SPECIES_ID_INVALID),
+      all_species(all_species_)
+      {
   }
 
   // TODO: move to some config in bng engine
@@ -65,8 +68,9 @@ public:
   }
 
 
-  void add(const RxnClass& r) {
-    rxn_classes.push_back(r);
+  void add(const RxnRule& r) {
+    // TODO: check that we don't have this rule already
+    rxns.push_back(r);
   }
 
 #if 0
@@ -101,7 +105,7 @@ private:
 
   // RxnContainer owns Rxn rules?
   // maybe just copy them after parsing
-  std::vector<RxnRule> reactions;
+  std::vector<RxnRule> rxns;
 
 public:
   // ids of species superclasses, SPECIES_ID_INVALID if not set
@@ -109,6 +113,9 @@ public:
   species_id_t all_molecules_species_id;
   species_id_t all_volume_molecules_species_id;
   species_id_t all_surface_molecules_species_id;
+
+  // owned by BNGEngine
+  SpeciesContainer& all_species;
 
 public:
   // TODO: these should be private

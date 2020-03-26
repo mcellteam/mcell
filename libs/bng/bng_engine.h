@@ -38,6 +38,11 @@ class BNGEngine {
 
 public:
 
+  BNGEngine()
+    : all_rxns(all_species)
+      {
+  }
+
   // TODO: use IDs for rxn patterns
   // this function will be needed anyway
   // checks if species_id matches the reaction pattern
@@ -223,8 +228,8 @@ public:
   // - defintely, must be added through this engine
   SpeciesContainer all_species;
 
-
-  RxnContainer all_reactions;
+  // TODO: rename to all_rxns
+  RxnContainer all_rxns;
 
   // cache of complex species indices that can interact together
 private:

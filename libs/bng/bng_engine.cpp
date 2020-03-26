@@ -39,10 +39,10 @@ void BNGEngine::update_bimol_map_for_new_species(const species_id_t id) {
   assert(bimol_rxn_class_map.count(id) == 0 && "Not a new species");
 
   // find all reactions that use id as one of the reactants
-  // TODO:
+  //get_all_matching_bimol_rxns()
 
   // create rxn classes
-  // TODO:
+  //create_rxn_classes_for_new_species(const species_id_t id);
 
   // store rxn classes into the bimolecular_reactions_map
   // empty for now
