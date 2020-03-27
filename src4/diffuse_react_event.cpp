@@ -482,43 +482,12 @@ RayTraceState ray_trace_vol(
   subpart_indices_set_t crossed_subparts_for_molecules;
   SUBPART_SET_INITIALIZE(crossed_subparts_for_molecules, BASE_CONTAINER_ALLOC, SUBPART_INDEX_INVALID);
 
-#ifdef DEBUG_SUBPARTITIONS
-  std::cout << "3------------ collect_crossed_subparts3 -----------\n";
-#endif
   CollisionUtil::collect_crossed_subparts(
       p, vm, partition_displacement,
       radius, p.config.subpartition_edge_length,
       true, crossed_subparts_for_walls,
       crossed_subparts_for_molecules
   );
-/*
-  SubpartIndicesVector crossed_subparts_for_walls;
-  subpart_indices_set_t crossed_subparts_for_molecules;
-#ifdef DEBUG_SUBPARTITIONS
-  std::cout << "2------------ collect_crossed_subparts2 -----------\n";
-#endif
-  CollisionUtil::collect_crossed_subparts2(
-      p, vm, partition_displacement,
-      radius, p.config.subpartition_edge_length,
-      true, crossed_subparts_for_walls,
-      crossed_subparts_for_molecules
-  );*/
-
-#ifdef DEBUG_SUBPARTITIONS
-  if (crossed_subparts_for_walls != crossed_subparts_for_walls_new) {
-    std::cout << "Difference in wall subparts:\n";
-    dump_uint_vector(crossed_subparts_for_walls);
-    std::cout << "vs new:\n";
-    dump_uint_vector(crossed_subparts_for_walls_new);
-  }
-
-  if (crossed_subparts_for_molecules != crossed_subparts_for_molecules_new) {
-    std::cout << "Difference in mol subparts:\n";
-    dump_uint_set(crossed_subparts_for_molecules);
-    std::cout << "vs new:\n";
-    dump_uint_set(crossed_subparts_for_molecules_new);
-  }
-#endif
 
   //crossed_subparts_for_walls = crossed_subparts_for_walls_new;
   //crossed_subparts_for_molecules = crossed_subparts_for_molecules_new;
