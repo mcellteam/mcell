@@ -33,6 +33,7 @@ enum class RxnClassType {
 class RxnClass {
 public:
   // reactions are owned by RxnContainer
+  // they must be ordered
   std::vector<RxnRule*> reactions;
 
   RxnClassType type;
@@ -81,6 +82,16 @@ public:
   }
 
   void add_rxn_rule(const BNGConfig& bng_config, RxnRule* r) {
+
+    // check that the rule was not added already,
+    // for now simple pointer comparison
+    for (const RxnRule* rxn: reactions) {
+      if (r == rxn) {
+        // reaction is already present
+        return;
+      }
+    }
+
     reactions.push_back(r);
 
     // FIXME: rather run update at once after everything was added

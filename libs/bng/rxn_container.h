@@ -46,6 +46,7 @@ typedef SpeciesRxnClassesMap UnimolRxnClassesMap;
  */
 // TODO: better name, this will be much than a container,
 // caching is done in BNGEngine
+// Must be notified when a new species was created to update reaction maps
 class RxnContainer {
 public:
   RxnContainer(SpeciesContainer& all_species_, const BNGData& bng_data_, const BNGConfig& bng_config_)
@@ -120,7 +121,7 @@ public:
 
     // reaction maps get updated only when needed, it is not associated with addition of a new species
     // the assumption is that, after some simulation time elapsed, this will be fairly stable
-    if (it == bimol_rxn_class_map.end()) {
+    if (species_processed_for_bimol_rxn_classes.count(id) == 0) {
       create_bimol_rxn_classes_for_new_species(id);
       it = bimol_rxn_class_map.find(id);
     }
@@ -152,7 +153,12 @@ private:
 
   // RxnContainer owns Rxn rules?
   // maybe just copy them after parsing
+  // the size of the vector will be changing, so we cannot take pointers to its elements
+  // FIXME: change to pointers
   std::vector<RxnRule> rxns;
+
+  uint_set<species_id_t> species_processed_for_unimol_rxn_classes;
+  uint_set<species_id_t> species_processed_for_bimol_rxn_classes;
 
 public:
   // ids of species superclasses, SPECIES_ID_INVALID if not set

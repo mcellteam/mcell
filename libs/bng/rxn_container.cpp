@@ -80,9 +80,13 @@ void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t n
     }
   }
 
-  // 1) create rxn class map for id
-  assert(bimol_rxn_class_map.count(new_id) == 0 && "Rxn class map for new species should not exist");
-  SpeciesRxnClassesMap& new_rxn_class_map = bimol_rxn_class_map[new_id] = SpeciesRxnClassesMap();
+  // 1) create or get rxn class map for id
+  auto it = bimol_rxn_class_map.find(new_id);
+  if (it == bimol_rxn_class_map.end()) {
+    auto it_pair = bimol_rxn_class_map.insert( make_pair(new_id,SpeciesRxnClassesMap()) );
+    it = it_pair.first;
+  }
+  SpeciesRxnClassesMap& rxn_class_map = it->second;
 
   // create reactions classes specific for our species
   const SpeciesVector& species_vec = all_species.get_species_vector();
@@ -110,6 +114,8 @@ void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t n
       }
     }
   }
+
+  species_processed_for_bimol_rxn_classes.insert(new_id);
 }
 
 
