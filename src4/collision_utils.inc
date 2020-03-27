@@ -274,7 +274,7 @@ static void __attribute__((always_inline)) raycast_with_endpoints(
   t.z = ((dir.z == -1) ? (pt1.z - min.z) : (max.z - pt1.z)) * abs_d_rcp.z;
 
 #ifdef DEBUG_SUBPARTITIONS
-  std::cout << "Point " << pt_index << " start subpart indices " << Vec3(i, j, k) << "\n";
+  std::cout << "Point " << pt_index << " start subpart indices " << indices << "\n";
 #endif
 
   do {
@@ -312,13 +312,13 @@ static void __attribute__((always_inline)) raycast_with_endpoints(
     }
 
     #ifdef DEBUG_SUBPARTITIONS
-      std::cout << "Point " << pt_index << ", new subpart indices: " << IVec3(i, j, k) << "\n";
+      std::cout << "Point " << pt_index << ", new subpart indices: " << indices << "\n";
     #endif
   }
   while (true);
 
 #ifdef DEBUG_SUBPARTITIONS
-  std::cout << "Point " << pt_index << ", last subpart indices: " << IVec3(i, j, k) << "\n";
+  std::cout << "Point " << pt_index << ", last subpart indices: " << indices << "\n";
 #endif
 
   // add final subpart
@@ -422,8 +422,8 @@ static inline void /*__attribute__((always_inline))*/ collect_crossed_subparts(
     #ifdef DEBUG_SUBPARTITIONS
     DUMP_CONDITION4P(
       std::cout << "Point " << i << ", dest pos: " << dest_pos << "\n";
-      std::cout << "Point " << i << ", start subpart indices: " << curr_subpart_indices3d[i] << "\n";
-      std::cout << "Point " << i << ", dest  subpart indices: " << dest_subpart_indices3d[i] << "\n";
+      std::cout << "Point " << i << ", start subpart indices: " << start_positions[i] << "\n";
+      std::cout << "Point " << i << ", dest  subpart indices: " << dest_positions[i] << "\n";
     );
     #endif
   }
