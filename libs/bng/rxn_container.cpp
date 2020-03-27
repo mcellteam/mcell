@@ -15,21 +15,43 @@ RxnContainer::~RxnContainer() {
   }
 }
 
+RxnClass* RxnContainer::get_or_create_empty_unimol_rxn_class(const species_id_t id) {
 
-void RxnContainer::create_unimol_rxn_classes_for_new_species(const species_id_t id) {
-  assert(unimol_rxn_class_map.count(id) == 0 && "Not a new species");
+  auto it = unimol_rxn_class_map.find(id);
 
-  // find all reactions that use id as one of the reactants
-  // TODO:
-
-  // create rxn classes
-  // TODO:
-  //assert(false);
-
-  // store rxn classes into the bimolecular_reactions_map
-  static RxnClass empty_rxn_class(all_species, id);
-  unimol_rxn_class_map[id] = &empty_rxn_class;
+  if (it != unimol_rxn_class_map.end()) {
+    return it->second;
+  }
+  else {
+    rxn_classes.push_back(new RxnClass(all_species, id));
+    RxnClass* new_rxn_class = rxn_classes.back();
+    unimol_rxn_class_map[id] = new_rxn_class;
+    return new_rxn_class;
+  }
 }
+
+
+void RxnContainer::create_unimol_rxn_classes_for_new_species(const species_id_t new_id) {
+
+  // find all reactions for species id
+  small_vector<RxnRule*> rxns_for_new_species;
+  for (RxnRule& r: rxns) {
+    if (r.is_unimol() && r.species_can_be_reactant(new_id, all_species)) {
+      rxns_for_new_species.push_back(&r);
+    }
+  }
+
+  // 1) first we need to get to the instance of the reaction class for new_id
+  RxnClass* rxn_class = get_or_create_empty_unimol_rxn_class(new_id);
+
+  // create reactions classes specific for our species
+  for (RxnRule* matching_rxn: rxns_for_new_species) {
+    // 2) add the matching_rxn to our rxn class
+    //    this also automatically updates the reaction class
+    rxn_class->add_rxn_rule(bng_config, matching_rxn);
+  }
+}
+
 
 // only for internal use
 RxnClass* RxnContainer::get_or_create_empty_bimol_rxn_class(const species_id_t id1, const species_id_t id2) {
@@ -41,9 +63,8 @@ RxnClass* RxnContainer::get_or_create_empty_bimol_rxn_class(const species_id_t i
 
   auto it_map2 = bimol_rxn_class_map.find(id2);
   if (it_map2 == bimol_rxn_class_map.end()) {
-    SpeciesRxnClassesMap empty_map;
-    bimol_rxn_class_map[id2] = empty_map;
-    it_map2 = bimol_rxn_class_map.find(id2);
+    auto it_map2_pair = bimol_rxn_class_map.insert( make_pair(id2, SpeciesRxnClassesMap()) );
+    it_map2 = it_map2_pair.first;
   }
 
   auto it_map1_species2 = it_map1->second.find(id2);
@@ -83,7 +104,7 @@ void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t n
   // 1) create or get rxn class map for id
   auto it = bimol_rxn_class_map.find(new_id);
   if (it == bimol_rxn_class_map.end()) {
-    auto it_pair = bimol_rxn_class_map.insert( make_pair(new_id,SpeciesRxnClassesMap()) );
+    auto it_pair = bimol_rxn_class_map.insert( make_pair(new_id, SpeciesRxnClassesMap()) );
     it = it_pair.first;
   }
   SpeciesRxnClassesMap& rxn_class_map = it->second;

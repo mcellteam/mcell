@@ -121,6 +121,9 @@ public:
 
     // reaction maps get updated only when needed, it is not associated with addition of a new species
     // the assumption is that, after some simulation time elapsed, this will be fairly stable
+    // we must use a separate set to know whether this ID is a new one or not because
+    // reaction A + B with species A also creates reaction class for B (although not a full one
+    // since only reactions of B with A were considered (not B + C or or similar)
     if (species_processed_for_bimol_rxn_classes.count(id) == 0) {
       create_bimol_rxn_classes_for_new_species(id);
       it = bimol_rxn_class_map.find(id);
@@ -138,6 +141,7 @@ public:
 
 
 private:
+  RxnClass* get_or_create_empty_unimol_rxn_class(const species_id_t id);
   RxnClass* get_or_create_empty_bimol_rxn_class(const species_id_t id1, const species_id_t id2);
 
   void create_unimol_rxn_classes_for_new_species(const species_id_t id);
@@ -157,7 +161,6 @@ private:
   // FIXME: change to pointers
   std::vector<RxnRule> rxns;
 
-  uint_set<species_id_t> species_processed_for_unimol_rxn_classes;
   uint_set<species_id_t> species_processed_for_bimol_rxn_classes;
 
 public:
