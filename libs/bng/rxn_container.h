@@ -48,11 +48,12 @@ typedef SpeciesRxnClassesMap UnimolRxnClassesMap;
 // caching is done in BNGEngine
 class RxnContainer {
 public:
-  RxnContainer(SpeciesContainer& all_species_, const BNGConfig& bng_config_)
+  RxnContainer(SpeciesContainer& all_species_, const BNGData& bng_data_, const BNGConfig& bng_config_)
     : all_molecules_species_id(SPECIES_ID_INVALID),
       all_volume_molecules_species_id(SPECIES_ID_INVALID),
       all_surface_molecules_species_id(SPECIES_ID_INVALID),
       all_species(all_species_),
+      bng_data(bng_data_),
       bng_config(bng_config_)
       {
   }
@@ -91,64 +92,26 @@ public:
     return it->second;
   }
 
-
-
-  // TODO: need orientation, check what we erased before
-  const RxnClass* get_bimol_rxn_class(const species_id_t id1, const species_id_t id2) {
-    assert(false);
-
-    #if 0
-    // for all reactions applicable to reacA and reacB
-    BimolRxnClassesMap::const_iterator reactions_reacA_it
-      = reactions.find(reacA.species_id);
-    if (reactions_reacA_it == reactions.end()) {
-      // no reactions at all for reacA
-      return;
-    }
-
-    SpeciesRxnClassesMap::const_iterator reactions_reacA_and_reacB_it
-      = reactions_reacA_it->second.find(reacB.species_id);
-    if (reactions_reacA_and_reacB_it == reactions_reacA_it->second.end()) {
-      return;
-    }
-
-    // there can be a single class for a unique pair of reactants,
-    // TODO: check it when creating the maps
-    const BNG::RxnClass* rxn_class = reactions_reacA_and_reacB_it->second;
-
-
-    /* skip irrelevant reactions (i.e. non vol-surf reactions) */
-    assert(rxn_class->reactants.size() == 2 && "We already checked that there must be 2 reactants");
-
-    /* Check to see if orientation classes are zero/different */
-    int test_wall = 0;
-    orientation_t geomA = rxn_class->reactants[0].orientation;
-    orientation_t geomB = rxn_class->reactants[1].orientation;
-    if (geomA == ORIENTATION_NONE || geomB == ORIENTATION_NONE || (geomA + geomB) * (geomA - geomB) != 0) {
-      matching_rxns.push_back(rxn_class);
-    }
-    else if (orientA != ORIENTATION_NONE && orientA * orientB * geomA * geomB > 0) {
-      matching_rxns.push_back(rxn_class);
-    }
-    #endif
-  }
-
-
   // simply looks up a reaction between 'a' and 'b',
   // this reaction must exist, asserts if not,
   // does not take species superclasses such as ALL_MOLECULES into account
-  const RxnClass* get_specific_reaction_class(const species_id_t id1, const species_id_t id2) const {
-    assert(false);
-    /*
-    assert(initialized);
+  // order of species ids does not matter
+  // get_bimol_rxn_class
+  const RxnClass* get_bimol_rxn_class(const species_id_t id1, const species_id_t id2) const {
+    // species must exist
+    assert(all_species.is_valid_id(id1));
+    assert(all_species.is_valid_id(id2));
 
-    const auto& it_map_for_species = bimolecular_reactions_map.find(a.species_id);
-    assert(it_map_for_species != bimolecular_reactions_map.end());
+    dump();
 
-    const auto& it_res = it_map_for_species->second.find(b.species_id);
+    const auto& it_map_for_species = bimol_rxn_class_map.find(id1);
+    assert(it_map_for_species != bimol_rxn_class_map.end());
+
+    const auto& it_res = it_map_for_species->second.find(id2);
     assert(it_res != it_map_for_species->second.end());
 
-    return it_res->second;*/
+    assert(it_res->second != nullptr);
+    return it_res->second;
   }
 
   // returns null if there is no reaction for this species?
@@ -160,7 +123,7 @@ public:
     // reaction maps get updated only when needed, it is not associated with addition of a new species
     // the assumption is that, after some simulation time elapsed, this will be fairly stable
     if (it == bimol_rxn_class_map.end()) {
-      update_bimol_map_for_new_species(id);
+      create_bimol_rxn_classes_for_new_species(id);
       it = bimol_rxn_class_map.find(id);
     }
 
@@ -188,11 +151,9 @@ public:
 #endif
 
 
-  void dump() {
-    //RxnClass::dump_array(reactions);
-  }
+  void dump() const;
 
-  void create_bimol_rxn_classes_for_new_species(const species_id_t id, SpeciesRxnClassesMap& res_classes_map);
+  void create_bimol_rxn_classes_for_new_species(const species_id_t id);
 
 private:
   RxnClass* get_or_create_empty_bimol_rxn_class(const species_id_t id1, const species_id_t id2);
@@ -220,6 +181,7 @@ public:
 
   // owned by BNGEngine
   SpeciesContainer& all_species;
+  const BNGData& bng_data;
   const BNGConfig& bng_config;
 
 public:

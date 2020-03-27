@@ -31,7 +31,7 @@ class BNGEngine {
 public:
 
   BNGEngine(const BNGConfig& bng_config_)
-    : all_rxns(all_species, bng_config_), bng_config(bng_config_)
+    : all_rxns(all_species, data, bng_config_), bng_config(bng_config_)
       {
   }
 

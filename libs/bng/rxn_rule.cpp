@@ -325,10 +325,12 @@ bool RxnRule::species_can_be_reactant(const species_id_t id, const SpeciesContai
   // need to find out
   const CplxInstance& inst = all_species.get_as_cplx_instance(id);
 
+  // at least one should match
   bool matches = false;
   for (const CplxInstance& reactant: reactants) {
-    if (!matches || reactant.matches(inst)) {
+    if (reactant.matches(inst)) {
       matches = true;
+      break;
     }
     else {
       matches = false;

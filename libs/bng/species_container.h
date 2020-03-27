@@ -65,6 +65,11 @@ public:
     return species[id];
   }
 
+  // for debugging
+  bool is_valid_id(const species_id_t id) const {
+    return id < species.size();
+  }
+
   const CplxInstance& get_as_cplx_instance(const species_id_t id) const {
     return get(id);
   }
@@ -79,9 +84,7 @@ public:
     return species;
   }
 
-  void dump() {
-    //Species::dump_array(species);
-  }
+  void dump(const BNGData& bng_data) const;
 
 private:
   species_id_t next_species_id;

@@ -101,8 +101,8 @@ public:
     return space_step;
   }
 
-  void dump(const std::string ind) const;
-  static void dump_array(const std::vector<Species>& vec);
+  void dump(const BNGData& bng_data, const std::string ind = "") const;
+  static void dump_array(const BNGData& bng_data, const std::vector<Species>& vec);
 
   // not virtual
   bool equal_except_for_id(const Species& s2) const {

@@ -101,7 +101,7 @@ public:
     return equal(ci2);
   }
 
-  void dump(const BNGData& bng_data) const;
+  void dump(const BNGData& bng_data, std::string ind = "") const;
 };
 
 

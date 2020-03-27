@@ -29,20 +29,22 @@ using namespace std;
 
 namespace BNG {
 
-void Species::dump(const string ind) const {
-  cout << ind <<"species_id: \t\t" << species_id << " [uint16_t] \t\t/* Unique ID for this species */\n";
-  cout << ind <<"name: *\t\t" << name << " [string] \t\t/* Symbol table entry (name) */\n";
-  cout << ind <<"D: \t\t" << D << " [float_t] \t\t/* Diffusion constant */\n";
-  cout << ind <<"space_step: \t\t" << space_step << " [float_t] \t\t/* Characteristic step length */\n";
-  cout << ind <<"time_step: \t\t" << time_step << " [float_t] \t\t/* Minimum (maximum?) sensible timestep */\n";
+void Species::dump(const BNGData& bng_data, const string ind) const {
+  cout << ind << "species_id: \t\t" << species_id << " [uint16_t] \t\t/* Unique ID for this species */\n";
+  cout << ind << "name: *\t\t" << name << " [string] \t\t/* Symbol table entry (name) */\n";
+  cout << ind << "D: \t\t" << D << " [float_t] \t\t/* Diffusion constant */\n";
+  cout << ind << "space_step: \t\t" << space_step << " [float_t] \t\t/* Characteristic step length */\n";
+  cout << ind << "time_step: \t\t" << time_step << " [float_t] \t\t/* Minimum (maximum?) sensible timestep */\n";
+  CplxInstance::dump(bng_data, ind);
+  cout << "\n";
 }
 
-void Species::dump_array(const vector<Species>& vec) {
+void Species::dump_array(const BNGData& bng_data, const vector<Species>& vec) {
   cout << "Species array: " << (vec.empty() ? "EMPTY" : "") << "\n";
 
   for (size_t i = 0; i < vec.size(); i++) {
     cout << i << ":\n";
-    vec[i].dump("  ");
+    vec[i].dump(bng_data, "  ");
   }
 }
 

@@ -257,7 +257,7 @@ void World::run_simulation(const bool dump_initial_state) {
 void World::dump() {
   stats.dump();
 
-  bng_engine.all_species.dump();
+  bng_engine.all_species.dump(bng_engine.get_data());
   bng_engine.all_rxns.dump();
 
   // partitions

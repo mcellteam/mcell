@@ -90,7 +90,8 @@ bool CplxInstance::matches(const CplxInstance& inst, const bool ignore_orientati
 }
 
 
-void CplxInstance::dump(const BNGData& bng_data) const {
+void CplxInstance::dump(const BNGData& bng_data, std::string ind) const {
+  cout << ind;
   for (size_t i = 0; i < mol_patterns.size(); i++) {
     mol_patterns[i].dump(bng_data);
 

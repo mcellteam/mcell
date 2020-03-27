@@ -16,19 +16,6 @@ RxnContainer::~RxnContainer() {
 }
 
 
-const SpeciesRxnClassesMap& RxnContainer::update_bimol_map_for_new_species(const species_id_t id) {
-  assert(bimol_rxn_class_map.count(id) == 0 && "Not a new species");
-
-  // create rxn classes
-  SpeciesRxnClassesMap classes_map;
-  create_bimol_rxn_classes_for_new_species(id, classes_map);
-
-  return (bimol_rxn_class_map[id] = classes_map);
-}
-
-
-
-
 void RxnContainer::update_unimol_map_for_new_species(const species_id_t id) {
   assert(unimol_rxn_class_map.count(id) == 0 && "Not a new species");
 
@@ -47,12 +34,17 @@ void RxnContainer::update_unimol_map_for_new_species(const species_id_t id) {
 // only for internal use
 RxnClass* RxnContainer::get_or_create_empty_bimol_rxn_class(const species_id_t id1, const species_id_t id2) {
 
-  // top level rxn class maps must already exist
+  // top level rxn class maps must already exist??
+  // TODO: think this through
   auto it_map1 = bimol_rxn_class_map.find(id1);
   assert(it_map1 != bimol_rxn_class_map.end());
 
   auto it_map2 = bimol_rxn_class_map.find(id2);
-  assert(it_map2 != bimol_rxn_class_map.end());
+  if (it_map2 == bimol_rxn_class_map.end()) {
+    SpeciesRxnClassesMap empty_map;
+    bimol_rxn_class_map[id2] = empty_map;
+    it_map2 = bimol_rxn_class_map.find(id2);
+  }
 
   auto it_map1_species2 = it_map1->second.find(id2);
 
@@ -78,7 +70,7 @@ RxnClass* RxnContainer::get_or_create_empty_bimol_rxn_class(const species_id_t i
 }
 
 // puts pointers to all corresponding classes to the res_classes_map
-void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t new_id, SpeciesRxnClassesMap& res_classes_map) {
+void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t new_id) {
 
   // find all reactions for species id
   small_vector<RxnRule*> rxns_for_new_species;
@@ -120,6 +112,28 @@ void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t n
   }
 }
 
+void RxnContainer::dump() const {
+  set<RxnClass*> already_printed_classes;
 
+  // TODO: unimol
+
+  //set<RxnClass*> already_printed_classes;
+  // bimol
+  for (auto it_reac1: bimol_rxn_class_map) {
+    for (auto it_reac2: it_reac1.second) {
+      cout <<
+          "RxnClass for " <<
+          all_species.get(it_reac1.first).name << " (" << it_reac1.first << ") + " <<
+          all_species.get(it_reac2.first).name << " (" << it_reac2.first << "):\n";
+
+      const RxnClass* rxn_class = it_reac2.second;
+      assert(rxn_class != nullptr);
+      rxn_class->dump(bng_data, "  ");
+      cout << "\n";
+    }
+  }
+
+  cout.flush();
+}
 
 } // namespace BNG

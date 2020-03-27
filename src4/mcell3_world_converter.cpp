@@ -925,6 +925,7 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
       }
 
       event_data.species_id = get_mcell4_species_id(rel_site->mol_type->species_id);
+      assert(world->bng_engine.all_species.is_valid_id(event_data.species_id));
 
       CHECK_PROPERTY(rel_site->release_number_method == 0);
 
