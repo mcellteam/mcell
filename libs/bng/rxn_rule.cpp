@@ -279,23 +279,16 @@ bool RxnRule::compute_reactants_products_mapping_w_error_output(const BNGData& b
 
 void RxnRule::move_reused_reactants_to_be_the_first_products() {
 
-  // ok for now when we have no repeated molecule types/complexes
-  assert(cplx_mapping.empty() && "BNGTODO");
-  /*
-  // for each reactant (from the end since we want the products to be ordered in the same way)
-  for (int ri = reactants.size() - 1; ri >= 0; ri--) {
-    if (reactants[ri].equivalent_product_or_reactant_index != INDEX_INVALID) {
-      // move product to the front
-      uint index = reactants[ri].equivalent_product_or_reactant_index;
-      SpeciesWithOrientation prod = products[index];
-      products.erase(products.begin() + index);
-      products.insert(products.begin(), prod);
-
-      // update mapping (inefficient, but used only in initialization)
-      update_equivalent_product_indices();
+  // we can move reactants only if there is just one that is reused
+  if (is_bimol() && cplx_mapping.size() == 1) {
+    if (cplx_mapping[0].reactant_index == 1) {
+      // swap reactants
+      // mcell-only
+      CplxInstance tmp = reactants[0];
+      reactants[0] = reactants[1];
+      reactants[1] = tmp;
     }
   }
-  */
 }
 
 
