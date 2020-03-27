@@ -86,7 +86,7 @@ public:
     // reaction maps get updated only when needed, it is not associated with addition of a new species
     // the assumption is that, after some simulation time elapsed, this will be fairly stable
     if (it == unimol_rxn_class_map.end()) {
-      update_unimol_map_for_new_species(id);
+      create_unimol_rxn_classes_for_new_species(id);
       it = unimol_rxn_class_map.find(id);
     }
     return it->second;
@@ -101,8 +101,6 @@ public:
     // species must exist
     assert(all_species.is_valid_id(id1));
     assert(all_species.is_valid_id(id2));
-
-    dump();
 
     const auto& it_map_for_species = bimol_rxn_class_map.find(id1);
     assert(it_map_for_species != bimol_rxn_class_map.end());
@@ -130,36 +128,20 @@ public:
     return it->second;
   }
 
-#if 0
-
-  // might return nullptr if there are none
-  const SpeciesRxnClassesMap* get_specific_reactions_for_species(const species_id_t species_id) const {
-    assert(false);
-    /*
-    if (species_id == SPECIES_ID_INVALID) {
-      return nullptr;
-    }
-
-    const auto& it_map_for_species = bimolecular_reactions_map.find(species_id);
-    if (it_map_for_species != bimolecular_reactions_map.end()) {
-      return &it_map_for_species->second;
-    }
-    else {
-      return nullptr;
-    }*/
-  }
-#endif
-
+  species_id_t get_rxn_product_species_id(
+      const RxnRule* rxn, const uint product_index,
+      const species_id_t reactant_a_species_id, const species_id_t reactant_b_species_id
+  );
 
   void dump() const;
 
-  void create_bimol_rxn_classes_for_new_species(const species_id_t id);
 
 private:
   RxnClass* get_or_create_empty_bimol_rxn_class(const species_id_t id1, const species_id_t id2);
 
-  void update_unimol_map_for_new_species(const species_id_t id);
-  const SpeciesRxnClassesMap& update_bimol_map_for_new_species(const species_id_t id);
+  void create_unimol_rxn_classes_for_new_species(const species_id_t id);
+
+  void create_bimol_rxn_classes_for_new_species(const species_id_t id);
 
 private:
 

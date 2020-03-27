@@ -16,7 +16,7 @@ RxnContainer::~RxnContainer() {
 }
 
 
-void RxnContainer::update_unimol_map_for_new_species(const species_id_t id) {
+void RxnContainer::create_unimol_rxn_classes_for_new_species(const species_id_t id) {
   assert(unimol_rxn_class_map.count(id) == 0 && "Not a new species");
 
   // find all reactions that use id as one of the reactants
@@ -111,6 +111,32 @@ void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t n
     }
   }
 }
+
+
+species_id_t RxnContainer::get_rxn_product_species_id(
+    const RxnRule* rxn, const uint product_index,
+    const species_id_t reactant_a_species_id, const species_id_t reactant_b_species_id
+) {
+  // limited for now, no components allowed
+  const CplxInstance& product = rxn->get_cplx_product(product_index);
+
+  species_id_t res;
+
+  if (product.is_simple()) {
+    // simple species must be already defined (they are based on molecule types)
+    res = all_species.find_simple_species_id(product);
+    assert(res != SPECIES_ID_INVALID);
+  }
+  else {
+    // do we have such species already or we must define a new set?
+    // here are all the other tricks with
+    assert(false && "TODO");
+    res = SPECIES_ID_INVALID;
+  }
+
+  return res;
+}
+
 
 void RxnContainer::dump() const {
   set<RxnClass*> already_printed_classes;

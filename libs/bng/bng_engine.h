@@ -111,7 +111,6 @@ public:
   // - defintely, must be added through this engine
   SpeciesContainer all_species;
 
-  // TODO: rename to all_rxns
   RxnContainer all_rxns;
 
   // cache of complex species indices that can interact together

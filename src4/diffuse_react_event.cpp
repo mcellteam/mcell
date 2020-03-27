@@ -1588,7 +1588,7 @@ int DiffuseReactEvent::outcome_products_random(
 
     /* Ensure that reacA and reacB are sorted in the same order as the rxn players. */
     /* Needed to maintain the same behavior as in mcell3 */
-    if (p.bng_engine.matches(rx->reactants[0], reacA->species_id)) {
+    if (!p.bng_engine.matches(rx->reactants[0], reacA->species_id)) {
       Molecule* tmp_mol = reacA;
       reacA = reacB;
       reacB = tmp_mol;
@@ -1661,7 +1661,8 @@ int DiffuseReactEvent::outcome_products_random(
       continue;
     }
 
-    species_id_t product_species_id = p.bng_engine.get_rxn_product_species_id(
+    // TODO: return Species directly
+    species_id_t product_species_id = p.bng_engine.all_rxns.get_rxn_product_species_id(
         rx, product_index, reacA->species_id, (reacB != nullptr) ? reacB->species_id : SPECIES_ID_INVALID); // p.all_species.get(product.species_id);
     const BNG::Species& species = p.bng_engine.all_species.get(product_species_id);
 
@@ -1671,21 +1672,6 @@ int DiffuseReactEvent::outcome_products_random(
     WallTileIndexPair where_is_vm_created;
 
     float_t scheduled_time = time;
-    /*if (rx->reactants.size() == 2 && species.is_vol() && !one_of_reactants_is_surf) {
-      // bimolecular reaction
-      // schedule new product for diffusion
-      // collision.time is relative to the part that this molecule travels this diffusion step
-      // so it needs to be scaled
-      scheduled_time = event_time + diffusion_time_step - (time - collision.time * time);
-    }
-    else if (rx->reactants.size() == 2 && (species.is_surf() || one_of_reactants_is_surf)) {
-      scheduled_time = event_time + collision.time;
-    }
-    else {
-      // unimolecular reaction
-      // reaction_time is the time when this new molecule was created
-      scheduled_time = event_time + collision.time;
-    }*/
 
     if (species.is_vol()) {
       // create and place a volume molecule

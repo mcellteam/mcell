@@ -58,6 +58,9 @@ public:
     return SPECIES_ID_INVALID;
   }
 
+  species_id_t find_simple_species_id(const CplxInstance& inst);
+
+
   const Species& get(const species_id_t id) const {
     assert(id < species.size());
     // TODO: we will need a mapping, the species vector will need to be
