@@ -25,12 +25,21 @@
 	</natures>
 	<filteredResources>
 		<filter>
-			<id>1585348505418</id>
-			<name>build</name>
+			<id>1585350370732</id>
+			<name></name>
+			<type>14</type>
+			<matcher>
+				<id>org.eclipse.ui.ide.multiFilter</id>
+				<arguments>1.0-name-matches-false-false-.sc*.c</arguments>
+			</matcher>
+		</filter>
+		<filter>
+			<id>1585350370734</id>
+			<name></name>
 			<type>6</type>
 			<matcher>
 				<id>org.eclipse.ui.ide.multiFilter</id>
-				<arguments>1.0-name-matches-false-true-\.*.c</arguments>
+				<arguments>1.0-name-matches-false-false-.sc*.cpp</arguments>
 			</matcher>
 		</filter>
 	</filteredResources>
