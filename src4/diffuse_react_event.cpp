@@ -1613,8 +1613,12 @@ int DiffuseReactEvent::outcome_products_random(
     reacB->s.grid_tile_index = TILE_INDEX_INVALID;
   }
 
-  // create and place each product
+  // remember reactant IDs
+  molecule_id_t reacA_id = reacA->id;
+  molecule_id_t reacB_id = (reacB != nullptr) ? reacB->id : MOLECULE_ID_INVALID;
+  molecule_id_t surf_reac_id = (surf_reac != nullptr) ? surf_reac->id : MOLECULE_ID_INVALID;
 
+  // create and place each product
   uint current_surf_product_position_index = 0;
 
   for (uint product_index = 0; product_index < rx->products.size(); product_index++) {
@@ -1628,7 +1632,6 @@ int DiffuseReactEvent::outcome_products_random(
       continue;
     }
 
-    // TODO: return Species directly
     species_id_t product_species_id = p.bng_engine.all_rxns.get_rxn_product_species_id(
         rx, product_index, reacA->species_id, (reacB != nullptr) ? reacB->species_id : SPECIES_ID_INVALID); // p.all_species.get(product.species_id);
     const BNG::Species& species = p.bng_engine.all_species.get(product_species_id);
@@ -1741,6 +1744,12 @@ int DiffuseReactEvent::outcome_products_random(
             new_m_id, scheduled_time,
             where_is_vm_created
     ));
+
+
+    // refresh reacA and reacB pointers, we are added new molecules in this loop and they point to that vector
+    reacA = &p.get_m(reacA_id);
+    reacB = (reacB_id != MOLECULE_ID_INVALID) ? &p.get_m(reacB_id) : nullptr;
+    surf_reac = (surf_reac_id != MOLECULE_ID_INVALID) ? &p.get_m(surf_reac_id) : nullptr;
   } // end for - product creation
 
   // we might need to swap info on which reactant was kept
