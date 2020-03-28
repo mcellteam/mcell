@@ -33,6 +33,13 @@ float_t RxnClass::get_reactant_time_step(const uint reactant_index) const {
   return s.time_step;
 }
 
+float_t RxnClass::get_reactant_diffusion(const uint reactant_index) const {
+  assert(reactant_index < reactants.size());
+
+  const Species& s = all_species.get(reactants[reactant_index]);
+  return s.D;
+}
+
 /*************************************************************************
  *
  * function for computing the probability factor (pb_factor) used to
@@ -57,8 +64,10 @@ float_t RxnClass::compute_pb_factor(const BNGConfig& bng_config) const {
   // we already have the value that was divided
   float_t rx_radius_3d_mul_length_unit = bng_config.rx_radius_3d * bng_config.length_unit;
 
+  small_vector<const Species*> reactant_species;
   for (uint n_reactant = 0; n_reactant < reactants.size(); n_reactant++) {
     const Species& s = all_species.get(reactants[n_reactant]);
+    reactant_species.push_back(&s);
     if (s.is_surf()) {
       num_surf_reactants++;
     }
@@ -76,88 +85,61 @@ float_t RxnClass::compute_pb_factor(const BNGConfig& bng_config) const {
   /* determine reaction probability by proper conversion of the reaction rate constant */
   assert(reactants.size() == 1 || reactants.size() == 2);
   if (reactants.size() == 1) {
+    // unimolecular
     pb_factor = bng_config.time_unit;
   }
   else if (num_surf_reactants >= 1 || num_surfaces == 1) {
 
-    if ((num_surf_reactants == 2) && (num_vol_reactants == 0) &&
-        (num_surfaces < 2)) {
+    if (num_surf_reactants == 2) {
       /* this is a reaction between two surface molecules */
-      /* with an optional SURFACE                         */
-
-      assert(false && "TODO");
+      pb_factor = bng_config.time_unit * bng_config.grid_density / 6; /* 2 molecules, 3 neighbors each */
     }
-#if 0
-      if (rx->players[0]->flags & rx->players[1]->flags & CANT_INITIATE)
-        mcell_error("Reaction between %s and %s listed, but both are marked "
-                    "TARGET_ONLY.",
-                    rx->players[0]->sym->name, rx->players[1]->sym->name);
-      else if ((rx->players[0]->flags | rx->players[1]->flags) &
-               CANT_INITIATE) {
-        pb_factor =
-            time_unit * grid_density / 3; /* 3 neighbors */
-      } else {
-        pb_factor = time_unit * grid_density /
-                    6; /* 2 molecules, 3 neighbors each */
-      }
-    } else if ((((rx->players[0]->flags & IS_SURFACE) != 0 &&
-                 (rx->players[1]->flags & ON_GRID) != 0) ||
-                ((rx->players[1]->flags & IS_SURFACE) != 0 &&
-                 (rx->players[0]->flags & ON_GRID) != 0)) &&
-               (rx->n_reactants == 2)) {
+    else if (
+        (reactant_species[0]->is_reactive_surface() && reactant_species[1]->is_surf()) ||
+        (reactant_species[1]->is_reactive_surface() && reactant_species[0]->is_surf())
+    ) {
+
       /* This is actually a unimolecular reaction in disguise! */
-      pb_factor = time_unit;
-      if (max_num_surf_products > 0)
-        *create_shared_walls_info_flag = 1;
-    } else if (((rx->n_reactants == 2) && (num_vol_reactants == 1) &&
-                (num_surfaces == 1)) ||
-               ((rx->n_reactants == 2) && (num_vol_reactants == 1) &&
-                (num_surf_reactants == 1)) ||
-               ((rx->n_reactants == 3) && (num_vol_reactants == 1) &&
-                (num_surf_reactants == 1) && (num_surfaces == 1))) {
+      pb_factor = bng_config.time_unit;
+    }
+    else if (
+        (num_vol_reactants == 1 && num_surfaces == 1) ||
+        (num_vol_reactants == 1 && num_surf_reactants == 1)
+    ) {
       /* this is a reaction between "vol_mol" and "surf_mol" */
-      /* with an optional SURFACE                            */
       /* or reaction between "vol_mol" and SURFACE           */
-      if (max_num_surf_products > 0)
-        *create_shared_walls_info_flag = 1;
-      if (((rx->n_reactants == 2) && (num_vol_reactants == 1) &&
-           (num_surfaces == 1))) {
-        /* do not take into acccount SPECIAL reactions */
-        if (rx->n_pathways > RX_SPECIAL) {
-          rxn_flags->vol_wall_reaction_flag = 1;
-        }
-      } else {
-        rxn_flags->vol_surf_reaction_flag = 1;
-      }
 
       float_t D_tot = 0.0;
       float_t t_step = 0.0;
-      if ((rx->players[0]->flags & NOT_FREE) == 0) {
-        D_tot = rx->get_reactant_diffusion(rx, 0);
-        t_step = rx->get_reactant_time_step(rx,0) * time_unit;
-      } else if ((rx->players[1]->flags & NOT_FREE) == 0) {
-        D_tot = rx->get_reactant_diffusion(rx, 1);
-        t_step = rx->get_reactant_time_step(rx,1) * time_unit;
+      if (reactant_species[0]->is_surf()) {
+        D_tot = get_reactant_diffusion(0);
+        t_step = get_reactant_time_step(0) * bng_config.time_unit;
+      }
+      else if (reactant_species[1]->is_surf()) {
+        D_tot = get_reactant_diffusion(1);
+        t_step = get_reactant_time_step(1) * bng_config.time_unit;
       } else {
         /* Should never happen. */
+        assert(false);
         D_tot = 1.0;
         t_step = 1.0;
       }
 
-      if (D_tot <= 0.0)
+      if (D_tot <= 0.0) {
         pb_factor = 0; /* Reaction can't happen! */
-      else
-        pb_factor = 1.0e11 * grid_density / (2.0 * N_AV) *
-                    sqrt(MY_PI * t_step / D_tot);
+      }
+      else {
+        pb_factor = 1.0e11 * bng_config.grid_density / (2.0 * BNG_N_AV) * sqrt(BNG_PI * t_step / D_tot);
+      }
 
-      if ((rx->geometries[0] + rx->geometries[1]) *
-                  (rx->geometries[0] - rx->geometries[1]) ==
-              0 &&
+      /*
+      // not sure what to do with this code from the orig implemetation
+      if ((rx->geometries[0] + rx->geometries[1]) * (rx->geometries[0] - rx->geometries[1]) == 0 &&
           rx->geometries[0] * rx->geometries[1] != 0) {
         pb_factor *= 2.0;
       }
-    } /* end else */
-#endif
+      */
+    }
   }
   else if (num_vol_reactants == 2) {
     /* This is the reaction between two "vol_mols" */

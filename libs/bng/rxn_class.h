@@ -128,6 +128,7 @@ public:
 private:
   void update(const BNGConfig& bng_config);
 
+  float_t get_reactant_diffusion(const uint reactant_index) const;
   float_t get_reactant_space_step(const uint reactant_index) const;
   float_t get_reactant_time_step(const uint reactant_index) const;
 

@@ -1606,13 +1606,11 @@ int DiffuseReactEvent::outcome_products_random(
   if (reacA->is_surf() && !keep_reacA) {
     p.get_wall(reacA->s.wall_index).grid.reset_molecule_tile(reacA->s.grid_tile_index);
     reacA->s.grid_tile_index = TILE_INDEX_INVALID;
-    //one_of_reactants_is_surf = true;
   }
 
   if (reacB != nullptr && reacB->is_surf() && !keep_reacB) {
     p.get_wall(reacB->s.wall_index).grid.reset_molecule_tile(reacB->s.grid_tile_index);
     reacB->s.grid_tile_index = TILE_INDEX_INVALID;
-    //one_of_reactants_is_surf = true;
   }
 
   // create and place each product
@@ -1723,8 +1721,7 @@ int DiffuseReactEvent::outcome_products_random(
       grid.set_molecule_tile(new_sm.s.grid_tile_index, new_sm.id);
 
       // and finally orientation
-      // - should be alreay set when species were defined
-      // BNG: new_sm.s.orientation = product.orientation;
+      new_sm.s.orientation = product.get_orientation();
 
       #ifdef DEBUG_REACTIONS
         DUMP_CONDITION4(

@@ -99,7 +99,10 @@ public:
 
   float_t rate_constant;
 
+private:
   bool finalized;
+  uint num_surf_products;
+
 public:
   void finalize();
 
@@ -164,7 +167,10 @@ public:
     products.push_back(inst);
   }
 
-  uint get_num_surf_products() const; // we don't have probably the information that is needed
+  uint get_num_surf_products() const { // we don't have probably the information that is needed
+    assert(finalized);
+    return num_surf_products;
+  }
 
   uint get_num_players() const {
     return reactants.size() + products.size();

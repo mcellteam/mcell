@@ -98,19 +98,22 @@ public:
   // does not take species superclasses such as ALL_MOLECULES into account
   // order of species ids does not matter
   // get_bimol_rxn_class
-  const RxnClass* get_bimol_rxn_class(const species_id_t id1, const species_id_t id2) const {
+  const RxnClass* get_bimol_rxn_class(const species_id_t id1, const species_id_t id2) {
     // species must exist
     assert(all_species.is_valid_id(id1));
     assert(all_species.is_valid_id(id2));
 
-    const auto& it_map_for_species = bimol_rxn_class_map.find(id1);
-    assert(it_map_for_species != bimol_rxn_class_map.end());
+    const BNG::SpeciesRxnClassesMap& rxn_class_map_for_id1 = get_bimol_rxns_for_reactant(id1);
 
-    const auto& it_res = it_map_for_species->second.find(id2);
-    assert(it_res != it_map_for_species->second.end());
-
-    assert(it_res->second != nullptr);
-    return it_res->second;
+    const auto it_res = rxn_class_map_for_id1.find(id2);
+    // reaction class for this pair might not exist
+    if (it_res == rxn_class_map_for_id1.end()) {
+      return nullptr;
+    }
+    else {
+      assert(it_res->second != nullptr);
+      return it_res->second;
+    }
   }
 
   // returns null if there is no reaction for this species?

@@ -73,8 +73,11 @@ static void trigger_bimolecular(
     orientation_t orientA, orientation_t orientB,
     BNG::RxnClassesVector& matching_rxn_classes // items are appended
 ) {
-
   const BNG::RxnClass* rxn_class = bng_engine.all_rxns.get_bimol_rxn_class(reacA.species_id, reacB.species_id);
+  if (rxn_class == nullptr) {
+    // no reaction
+    return;
+  }
   assert(rxn_class->reactants.size() == 2 && "We already checked that there must be 2 reactants");
   
   matching_rxn_classes.push_back(rxn_class);
