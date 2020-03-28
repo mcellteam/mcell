@@ -79,9 +79,6 @@ static void trigger_bimolecular(
     return;
   }
   assert(rxn_class->reactants.size() == 2 && "We already checked that there must be 2 reactants");
-  
-  matching_rxn_classes.push_back(rxn_class);
-  
 
   /* Check to see if orientation classes are zero/different */
   int test_wall = 0;
@@ -330,6 +327,8 @@ static int test_bimolecular(
     const float_t local_prob_factor
 ) {
   assert(rxn_class != nullptr);
+  assert(rxn_class->get_num_reactions() != 0);
+
   /* rescale probabilities for the case of the reaction
      between two surface molecules */
   float_t min_noreaction_p = rxn_class->min_noreaction_p; // local_prob_factor == 0

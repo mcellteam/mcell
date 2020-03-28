@@ -995,8 +995,8 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
     }
   }
 
-  size_t num_matching_rxns = matching_rxn_classes.size();
-  if (num_matching_rxns == 0) {
+  size_t num_matching_rxn_classes = matching_rxn_classes.size();
+  if (num_matching_rxn_classes == 0) {
     return true;
   }
 
@@ -1008,7 +1008,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
      limit) to the real "num_nbrs" neighbor tiles. */
   float_t local_prob_factor = 3.0 / neighbors.size();
   int rxn_class_index;
-  if (num_matching_rxns == 1) {
+  if (num_matching_rxn_classes == 1) {
     // figure out what should happen
     selected_reaction_index = RxUtil::test_bimolecular(
         matching_rxn_classes[0], world->rng,
