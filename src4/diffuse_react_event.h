@@ -31,7 +31,6 @@
 #include "base_event.h"
 #include "partition.h"
 #include "collision_structs.h"
-#include "reaction.h"
 
 #define TEST 1
 
@@ -62,6 +61,71 @@ public:
 
 typedef small_vector<wall_index_t> wall_indices_t;
 
+
+/**
+ * Used as a pair molecule id, remaining timestep for molecules newly created in diffusion.
+ * Using name action instead of event because events are handled by scheduler and are ordered by time.
+ * These actions are simply processes in a queue (FIFO) manner.
+ *
+ * Used in diffuse_react _event_t and in partition_t.
+ */
+class DiffuseOrUnimolRxnAction {
+public:
+  enum class Type {
+    DIFFUSE,
+    UNIMOL_REACT
+  };
+
+  // DIFFUSE action
+  DiffuseOrUnimolRxnAction(
+      const DiffuseOrUnimolRxnAction::Type type_,
+      const molecule_id_t id_,
+      const float_t scheduled_time_,
+      const WallTileIndexPair& where_created_this_iteration_)
+    :
+      id(id_),
+      scheduled_time(scheduled_time_),
+      type(type_),
+      unimol_rx(nullptr),
+      where_created_this_iteration(where_created_this_iteration_) {
+
+    assert(scheduled_time >= 0.0);
+    assert(type == Type::DIFFUSE);
+    // position where the molecule was created may be invalid when it was not a result of surface reaction
+  }
+
+  // UNIMOL_REACT action
+  DiffuseOrUnimolRxnAction(
+      const DiffuseOrUnimolRxnAction::Type type_,
+      const molecule_id_t id_,
+      const float_t scheduled_time_,
+      const BNG::RxnClass* unimol_rx_)
+    :
+      id(id_),
+      scheduled_time(scheduled_time_),
+      type(type_),
+      unimol_rx(unimol_rx_) {
+    assert(scheduled_time >= 0.0);
+    assert(type == Type::UNIMOL_REACT);
+    assert(unimol_rx != nullptr);
+  }
+
+  // defined because of usage in calendar_t
+  const DiffuseOrUnimolRxnAction& operator->() const {
+     return *this;
+  }
+
+  molecule_id_t id;
+  float_t scheduled_time; // this is the scheduled time
+  Type type;
+
+  // when type is UNIMOL_REACT
+  const BNG::RxnClass* unimol_rx;
+
+  // when type is DIFFUSE
+  // used to avoid rebinding for surf+vol->surf+vol reactions
+  WallTileIndexPair where_created_this_iteration;
+};
 
 /**
  * Diffuse all molecules with a given time step.

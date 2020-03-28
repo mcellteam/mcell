@@ -98,7 +98,7 @@
 
 #define FROM_ITERATION 0
 
-#define TO_ITERATION 20
+#define TO_ITERATION 2
 
 #define DUMP_CONDITION3(code) do { if ((int)world->current_iterations >= (int)FROM_ITERATION && (int)world->current_iterations <= (int)TO_ITERATION) { code; } } while (0)
 #define DUMP_CONDITION4(code) do { if ((int)world->get_current_iteration() >= (int)FROM_ITERATION && (int)world->get_current_iteration() <= (int)TO_ITERATION) { code; } } while (0)

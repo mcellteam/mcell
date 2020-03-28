@@ -32,8 +32,6 @@
 #include "molecule.h"
 #include "scheduler.h"
 #include "geometry.h"
-#include "reaction.h"
-
 
 namespace MCell {
 
@@ -213,6 +211,11 @@ public:
 
     // we need to set/clear flag that says that second_reactant_info.first can react with reactant_species_id
     for (const auto& second_reactant_info: reactions_map) {
+      if (second_reactant_info.second->get_num_reactions() == 0) {
+        // there is a reaction class, but it has no reactions
+        continue;
+      }
+
       if (removing) {
         subpart_reactants_orig_sp.erase_existing(second_reactant_info.first, vm.id);
       }

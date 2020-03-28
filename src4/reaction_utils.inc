@@ -74,7 +74,7 @@ static void trigger_bimolecular(
     BNG::RxnClassesVector& matching_rxn_classes // items are appended
 ) {
   const BNG::RxnClass* rxn_class = bng_engine.all_rxns.get_bimol_rxn_class(reacA.species_id, reacB.species_id);
-  if (rxn_class == nullptr) {
+  if (rxn_class == nullptr || rxn_class->get_num_reactions() == 0) {
     // no reaction
     return;
   }

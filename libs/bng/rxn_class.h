@@ -135,6 +135,7 @@ private:
 
   float_t compute_pb_factor(const BNGConfig& bng_config) const;
 
+  // owned by BNGEngine
   const SpeciesContainer& all_species;
 };
 

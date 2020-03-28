@@ -48,6 +48,16 @@ namespace BNG {
 
 class BNGConfig {
 public:
+  BNGConfig()
+    : time_unit(0),
+      length_unit(0),
+      grid_density(0),
+      rx_radius_3d(0),
+
+      debug_reactions(false)
+    {
+  }
+
   // configuration
 
   // MCell
@@ -55,6 +65,9 @@ public:
   Common::float_t length_unit;
   Common::float_t grid_density;
   Common::float_t rx_radius_3d;
+
+  // debug
+  bool debug_reactions;
 
 };
 

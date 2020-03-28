@@ -40,8 +40,6 @@
 #include "scheduler.h"
 #include "geometry.h"
 #include "callback_info.h"
-#include "reaction.h"
-
 
 
 namespace MCell {

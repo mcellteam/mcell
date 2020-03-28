@@ -50,6 +50,11 @@ void RxnContainer::create_unimol_rxn_classes_for_new_species(const species_id_t 
     //    this also automatically updates the reaction class
     rxn_class->add_rxn_rule(bng_config, matching_rxn);
   }
+
+  if (bng_config.debug_reactions) {
+    cout << "BNG: Created a new unimolecular reaction class:\n";
+    rxn_class->dump(bng_data);
+  }
 }
 
 
@@ -113,6 +118,9 @@ void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t n
   const SpeciesVector& species_vec = all_species.get_species_vector();
   for (const Species& s: species_vec) {
 
+    // 1) first we need to get to the instance of the reaction class for (new_id, second_id) or (second_id, new_id)
+    RxnClass* rxn_class = get_or_create_empty_bimol_rxn_class(new_id, s.species_id);
+
     for (RxnRule* matching_rxn: rxns_for_new_species) {
 
       species_id_t second_id = s.species_id;
@@ -126,13 +134,15 @@ void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t n
         // ok, we have a reaction applicable both to new_id and second_id
         // we need to add this rxn to a rxn class for these reactants
 
-        // 1) first we need to get to the instance of the reaction class for (new_id, second_id) or (second_id, new_id)
-        RxnClass* rxn_class = get_or_create_empty_bimol_rxn_class(new_id, s.species_id);
-
         // 2) add the matching_rxn to our rxn class
         //    this also automatically updates the reaction class
         rxn_class->add_rxn_rule(bng_config, matching_rxn);
       }
+    }
+
+    if (bng_config.debug_reactions) {
+      cout << "BNG: Created a new bimolecular reaction class:\n";
+      rxn_class->dump(bng_data, "  ");
     }
   }
 

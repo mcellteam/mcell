@@ -210,14 +210,6 @@ void RxnClass::update(const BNGConfig& bng_config) {
 }
 
 
-/*
-void RxnClass::add_rxn_rule(RxnRule* r) {
-  reactions.push_back(r);
-  update();
-}
-*/
-
-
 void RxnClass::dump_array(const BNGData& bng_data, const vector<RxnClass>& vec) {
   cout << "Reaction class array: " << (vec.empty() ? "EMPTY" : "") << "\n";
 
@@ -227,12 +219,33 @@ void RxnClass::dump_array(const BNGData& bng_data, const vector<RxnClass>& vec) 
   }
 }
 
+
 void RxnClass::dump(const BNGData& bng_data, const std::string ind) const {
+  assert(reactants.size() == 1 || reactants.size() == 2);
+  cout << ind <<
+      all_species.get(reactants[0]).name << " (" << reactants[0] << ")";
+  if (reactants.size() == 2) {
+    cout << " + " << all_species.get(reactants[1]).name << " (" << reactants[1] << ")\n";
+  }
+  else {
+    cout << "\n";
+  }
+
+  if (reactions.empty()) {
+    return;
+  }
+
   cout << ind << "max_fixed_p: \t\t" << max_fixed_p << " [float_t] \t\t\n";
   cout << ind << "min_noreaction_p: \t\t" << min_noreaction_p << " [float_t] \t\t\n";
+  cout << ind << "cum_probs: ";
+  for (float_t p: cum_probs) {
+    cout << p << ", ";
+  }
+  cout << "\n";
 
   for (const RxnRule* rxn: reactions) {
     rxn->dump(bng_data, ind);
+    cout << "\n";
   }
 }
 

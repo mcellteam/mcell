@@ -52,6 +52,10 @@ World::World()
 {
   config.partition_edge_length = PARTITION_EDGE_LENGTH_DEFAULT;
   config.subpartitions_per_partition_dimension = SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT;
+
+#ifdef DEBUG_REACTIONS
+  config.debug_reactions = true;
+#endif
 }
 
 
