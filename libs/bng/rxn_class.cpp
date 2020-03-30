@@ -183,7 +183,6 @@ void RxnClass::update(const BNGConfig& bng_config) {
     cum_probs[i] = reactions[i]->rate_constant;
   }
 
-
   float_t pb_factor = compute_pb_factor(bng_config);
 
   // scale_rxn_probabilities
@@ -206,6 +205,20 @@ void RxnClass::update(const BNGConfig& bng_config) {
   else {
     max_fixed_p = 1.0;
     min_noreaction_p = 1.0;
+  }
+
+  // set class' rxn type
+  type = RxnType::Invalid;
+  for (uint i = 0; i < reactions.size(); i++) {
+    assert(reactions[i]->type != RxnType::Invalid && "Type for individual rxns must be set");
+
+    if (type == RxnType::Invalid) {
+      type = reactions[i]->type;
+    }
+    else {
+      // type must be the same as before
+      assert(type == reactions[i]->type);
+    }
   }
 }
 

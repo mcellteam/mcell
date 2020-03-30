@@ -585,28 +585,9 @@ bool MCell3WorldConverter::convert_species(volume* s) {
 
     Species new_species;
     new_species.name = get_sym_name(spec->sym);
-    //new_species.species_id = world->bng_engine.all_species.get_count(); // id corresponds to the index in the species array
-
-    // check all species 'superclasses' classes
-    // these special species might be used in wall - surf|vol reactions
-    if (spec == s->all_mols) {
-      CHECK_PROPERTY(new_species.name == ALL_MOLECULES);
-      world->bng_engine.all_rxns.set_all_molecules_species_id(new_species.species_id);
-    }
-    else if (spec == s->all_volume_mols) {
-      CHECK_PROPERTY(new_species.name == ALL_VOLUME_MOLECULES);
-      world->bng_engine.all_rxns.set_all_volume_molecules_species_id(new_species.species_id);
-    }
-    else if (spec == s->all_surface_mols) {
-      CHECK_PROPERTY(new_species.name == ALL_SURFACE_MOLECULES);
-      world->bng_engine.all_rxns.set_all_surface_molecules_species_id(new_species.species_id);
-    }
-
-    //new_species.mcell3_species_id = spec->species_id;
     new_species.D = spec->D;
     new_species.space_step = spec->space_step;
     new_species.time_step = spec->time_step;
-
 
     CHECK_PROPERTY((spec->flags & CANT_INITIATE) == 0); // RxnClass::compute_pb_factor assumes this
 
@@ -644,7 +625,6 @@ bool MCell3WorldConverter::convert_species(volume* s) {
     CHECK_PROPERTY(spec->absorb_mols == nullptr);
     CHECK_PROPERTY(spec->clamp_conc_mols == nullptr);
 
-
     // we must add a complex instance as the single molecule type in the new species
     // define a molecule type with no components
     MolType mol_type;
@@ -668,6 +648,22 @@ bool MCell3WorldConverter::convert_species(volume* s) {
     // and finally let's add our new species
     new_species.finalize();
     species_id_t new_species_id = world->bng_engine.all_species.find_or_add(new_species);
+
+    // set all species 'superclasses' ids
+    // these special species might be used in wall - surf|vol reactions
+    if (spec == s->all_mols) {
+      CHECK_PROPERTY(new_species.name == ALL_MOLECULES);
+      world->bng_engine.all_rxns.set_all_molecules_species_id(new_species_id);
+    }
+    else if (spec == s->all_volume_mols) {
+      CHECK_PROPERTY(new_species.name == ALL_VOLUME_MOLECULES);
+    }
+    else if (spec == s->all_surface_mols) {
+      CHECK_PROPERTY(new_species.name == ALL_SURFACE_MOLECULES);
+      world->bng_engine.all_rxns.set_all_surface_molecules_species_id(new_species_id);
+    }
+
+    // map for other conversion steps
     mcell3_species_id_map[spec->species_id] = new_species_id;
   }
 
@@ -771,20 +767,19 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
 
     if (mcell3_rx->n_pathways == RX_ABSORB_REGION_BORDER) {
       CHECK_PROPERTY(current_pathway->flags == PATHW_ABSORP);
-      //rxn_class.type = RxnClassType::AbsorbRegionBorder;
+      rxn.type = RxnType::AbsorbRegionBorder;
     }
     else if (mcell3_rx->n_pathways == RX_TRANSP) {
       CHECK_PROPERTY(current_pathway->flags == PATHW_TRANSP);
-      //rxn_class.type = RxnClassType::Transparent;
+      rxn.type = RxnType::Transparent;
     }
     else if (mcell3_rx->n_pathways == RX_REFLEC) {
       CHECK_PROPERTY(current_pathway->flags == PATHW_REFLEC);
-      //rxn_class.type = RxnClassType::Reflect;
+      rxn.type = RxnType::Reflect;
     }
     else {
       CHECK_PROPERTY(current_pathway->flags == 0);
-
-      //rxn_class.type = RxnClassType::Standard;
+      rxn.type = RxnType::Standard;
 
       // products
       product *product_ptr = current_pathway->product_head;

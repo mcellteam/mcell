@@ -60,9 +60,10 @@ const Common::float_t TIME_INVALID = -1;
 const Common::float_t TIME_FOREVER = FLT_MAX; // this max is sufficient for both float and double
 const Common::float_t TIME_SIMULATION_START = 0;
 
+const Common::float_t UINT_INVALID = UINT32_MAX;
 
-const uint ID_INVALID = UINT32_MAX; // general invalid index, should not be used when a definition for a specific type is available
-const uint INDEX_INVALID = UINT32_MAX; // general invalid index, should not be used when a definition for a specific type is available
+const uint ID_INVALID = UINT_INVALID; // general invalid index, should not be used when a definition for a specific type is available
+const uint INDEX_INVALID = UINT_INVALID; // general invalid index, should not be used when a definition for a specific type is available
 
 
 // molecule id is a unique identifier of a molecule,

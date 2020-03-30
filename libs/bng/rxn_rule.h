@@ -63,6 +63,15 @@ struct CplxIndexPair {
 };
 
 
+
+enum class RxnType {
+  Invalid,
+  Standard, // any other reaction than below
+  Transparent,
+  Reflect,
+  AbsorbRegionBorder
+};
+
 // BNG reaction rule
 // rules are only unidirectional,
 // if there is a reversible reaction in BNGL definition,
@@ -70,6 +79,8 @@ struct CplxIndexPair {
 class RxnRule {
 public:
   std::string name;
+
+  RxnType type;
 
   // the complex species are patterns
   //
@@ -104,6 +115,11 @@ private:
   uint num_surf_products;
 
 public:
+  RxnRule()
+    :type(RxnType::Invalid), mol_instances_are_fully_maintained(false), rate_constant(FLT_INVALID),
+     finalized(false), num_surf_products(UINT_INVALID) {
+  }
+
   void finalize();
 
   bool is_finalized() const {

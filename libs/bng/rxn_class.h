@@ -19,13 +19,6 @@ namespace BNG {
 
 class SpeciesContainer;
 
-enum class RxnClassType {
-  Standard, // any other reaction than below
-  Transparent,
-  Reflect,
-  AbsorbRegionBorder
-};
-
 
 // corresponds to reaction in mcell3 code
 // coupled reactions for given species, serves for caching
@@ -36,7 +29,8 @@ public:
   // they must be ordered
   std::vector<RxnRule*> reactions;
 
-  RxnClassType type;
+  // Standard reaction or special such as Reflect, Transparent or Absorb
+  RxnType type;
 
   /* Maximum 'p' for region of p-space for all non-cooperative pathways */
   float_t max_fixed_p;
@@ -54,7 +48,7 @@ public:
 
 public:
   RxnClass(const SpeciesContainer& all_species_, const species_id_t reactant_id1, const species_id_t reactant_id2 = SPECIES_ID_INVALID)
-    : type(RxnClassType::Standard), max_fixed_p(FLT_INVALID), min_noreaction_p(FLT_INVALID), all_species(all_species_)
+    : type(RxnType::Invalid), max_fixed_p(FLT_INVALID), min_noreaction_p(FLT_INVALID), all_species(all_species_)
     {
     assert(reactant_id1 != SPECIES_ID_INVALID);
     reactants.push_back(reactant_id1);
@@ -94,31 +88,23 @@ public:
 
     reactions.push_back(r);
 
-    // FIXME: rather run update at once after everything was added
+    // NOTE: run update rather at once after everything was added?
     update(bng_config);
   }
 
-  /*
-  void add_and_finalize_reaction(RxnRule* r, const float_t cum_prob) {
-    assert(reactions.size() == cum_probs.size());
+  bool is_standard() const {
+    return type == RxnType::Standard;
+  }
 
-    reactions.push_back(r);
-    reactions.back()->finalize();
-
-    cum_probs.push_back(cum_prob);
-  }*/
-
-  // there are no pathways for this type of reactions
+  // there is exactly one reaction for this type
   bool is_reflect() const {
-    return type == RxnClassType::Reflect;
+    return type == RxnType::Reflect;
   }
-
   bool is_transparent() const {
-    return type == RxnClassType::Transparent;
+    return type == RxnType::Transparent;
   }
-
   bool is_absorb() const {
-    return type == RxnClassType::AbsorbRegionBorder;
+    return type == RxnType::AbsorbRegionBorder;
   }
 
   static void dump_array(const BNGData& bng_data, const std::vector<RxnClass>& vec);

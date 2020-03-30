@@ -146,6 +146,9 @@ static void find_surface_mol_reactions_with_surf_classes_for_rxn_class_map(
 
   const BNG::RxnClass* rxn_class = reactions_reacA_and_surface_it->second;
   assert(rxn_class->reactants.size() == 2);
+  if (rxn_class->get_num_reactions() == 0) {
+    return;
+  }
 
   orientation_t orient0 = rxn_class->get_reactant_orientation(0);
   orientation_t orient1 = rxn_class->get_reactant_orientation(1);

@@ -141,7 +141,7 @@ void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t n
     }
 
     if (bng_config.debug_reactions) {
-      cout << "BNG: Created a new bimolecular reaction class:\n";
+      cout << "BNG: Created or updated a new bimolecular reaction class:\n";
       rxn_class->dump(bng_data, "  ");
     }
   }
