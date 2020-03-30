@@ -1397,7 +1397,7 @@ int is_object_instantiated(struct sym_entry *entry,
                            struct object *root_instance) {
   struct object *obj = NULL;
   if (entry->sym_type == REG) {
-    struct region *reg = entry->value;
+    struct region *reg = (struct region *)entry->value;
     obj = ((struct region *)(entry->value))->parent;
     if (region_listed(obj->regions, reg)) {
       return 1; 

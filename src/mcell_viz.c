@@ -99,7 +99,7 @@ mcell_create_viz_output(MCELL_STATE *state, char *filename,
 **************************************************************************/
 void mcell_new_viz_output_block(struct viz_output_block *vizblk) {
   vizblk->frame_data_head = NULL;
-  vizblk->viz_mode = -1;
+  vizblk->viz_mode = VIZ_MODE_INVALID;
   vizblk->file_prefix_name = NULL;
   vizblk->viz_output_flag = 0;
   vizblk->species_viz_states = NULL;
