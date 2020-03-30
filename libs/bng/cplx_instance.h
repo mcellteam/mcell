@@ -78,7 +78,7 @@ public:
   // asserts if has_single_orientation is false
   //void set_single_orientation(orientation_t orientation) const;
 
-  bool get_orientation() const {
+  orientation_t get_orientation() const {
     return orientation;
   }
 

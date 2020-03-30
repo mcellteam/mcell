@@ -66,9 +66,6 @@ public:
     return reactions[rx_index];
   }
 
-  // NOTE: ordering of reactants might be different in reality
-  // using the first reaction for this information
-  // should all the reactions be sorted in the same way?
   orientation_t get_reactant_orientation(uint reactant_index) const {
     assert(!reactions.empty());
     assert(reactant_index < reactions[0]->reactants.size());
