@@ -524,9 +524,10 @@ enum output_timer_type_t {
 
 /* Visualization modes. */
 enum viz_mode_t {
-  NO_VIZ_MODE,
-  ASCII_MODE,
-  CELLBLENDER_MODE,
+  VIZ_MODE_INVALID = -1,
+  NO_VIZ_MODE = 0,
+  ASCII_MODE = 1,
+  CELLBLENDER_MODE = 2,
 };
 
 /* Visualization Frame Data Type */
@@ -1380,7 +1381,7 @@ struct volume {
   long long
   last_checkpoint_iteration;  /* Last iteration when chkpt was created */
   time_t begin_timestamp;     /* Time since epoch at beginning of 'main' */
-  char *initialization_state; /* NULL after initialization completes */
+  const char *initialization_state; /* NULL after initialization completes */
   struct reaction_flags rxn_flags;
   /* shared walls information per mesh vertex is created when there are
      reactions present with more than one surface reactant or more than one
@@ -1707,7 +1708,7 @@ struct output_set {
   enum overwrite_policy_t file_flags; /* Overwrite Policy Flags: tells us how to
                                        * handle existing files */
   u_int chunk_count;    /* Number of buffered output chunks processed */
-  char *header_comment; /* Comment character(s) for header */
+  const char *header_comment; /* Comment character(s) for header */
   int exact_time_flag;  /* Boolean value; nonzero means print exact time in
                            TRIGGER statements */
   struct output_column *column_head; /* Data for one output column */

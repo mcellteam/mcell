@@ -50,7 +50,7 @@ static int is_region_degenerate(struct region *reg_ptr);
       A mesh is created.
 *************************************************************************/
 MCELL_STATUS
-mcell_create_instance_object(MCELL_STATE *state, char *name,
+mcell_create_instance_object(MCELL_STATE *state, const char *name,
                              struct geom_object **new_obj) {
   // Create the symbol, if it doesn't exist yet.
   int error_code = 0;
@@ -77,7 +77,7 @@ mcell_create_instance_object(MCELL_STATE *state, char *name,
 
 MCELL_STATUS mcell_create_periodic_box(
     struct volume *state,
-    char *box_name,
+    const char *box_name,
     struct vector3 *llf,
     struct vector3 *urb) {
   
@@ -1186,7 +1186,7 @@ int mcell_check_for_region(char *region_name, struct geom_object *obj_ptr) {
  NOTE: This is similar to mdl_create_region
 **************************************************************************/
 struct region *mcell_create_region(MCELL_STATE *state, struct geom_object *obj_ptr,
-                                   char *name) {
+                                   const char *name) {
   struct region *reg_ptr;
   struct region_list *reg_list_ptr;
   no_printf("Creating new region: %s\n", name);

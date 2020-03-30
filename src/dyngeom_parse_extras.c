@@ -185,7 +185,7 @@ void dg_finish_object(struct dyngeom_parse_vars *dg_parse_vars) {
 struct region *dg_create_region(
     struct sym_table_head *reg_sym_table,
     struct geom_object *objp,
-    char *reg_name) {
+    const char *reg_name) {
   struct region *reg;
   struct region_list *reg_list;
   if ((reg = dg_make_new_region(reg_sym_table, objp->sym->name, reg_name)) ==
@@ -223,8 +223,8 @@ struct region *dg_create_region(
 ***************************************************************************/
 struct region *dg_make_new_region(
     struct sym_table_head *reg_sym_table,
-    char *obj_name,
-    char *region_last_name) {
+    const char *obj_name,
+    const char *region_last_name) {
   char *region_name;
   region_name = CHECKED_SPRINTF("%s,%s", obj_name, region_last_name);
   if (region_name == NULL) {
@@ -388,9 +388,9 @@ char *find_include_file(char const *path, char const *cur_path) {
   if (path[0] == '/')
     candidate = strdup(path);
   else {
-    char *last_slash = strrchr(cur_path, '/');
+    const char *last_slash = strrchr(cur_path, '/');
 #ifdef _WIN32
-    char *last_bslash = strrchr(cur_path, '\\');
+    const char *last_bslash = strrchr(cur_path, '\\');
     if (last_bslash > last_slash)
       last_slash = last_bslash;
 #endif
