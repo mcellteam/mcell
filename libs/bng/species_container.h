@@ -15,8 +15,6 @@
 
 namespace BNG {
 
-typedef small_vector<Species> SpeciesVector;
-
 // using templates instead of virtual methods? -> rather a template
 // with virtual methods, this container would not be able to create new
 // objects by its own

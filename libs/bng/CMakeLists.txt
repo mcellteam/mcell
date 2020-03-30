@@ -46,9 +46,7 @@ set(ALL_SOURCES
     ${FLEX_bngl_scanner_OUTPUTS}    
 )
 
-add_library(${PROJECT_NAME} 
-    ${ALL_SOURCES}
-)
+add_library(${PROJECT_NAME} ${ALL_SOURCES})
 
 add_executable(test_${PROJECT_NAME}
     ${ALL_SOURCES}

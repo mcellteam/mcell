@@ -144,9 +144,6 @@ float_t RxnClass::compute_pb_factor(const BNGConfig& bng_config) const {
   else if (num_vol_reactants == 2) {
     /* This is the reaction between two "vol_mols" */
 
-    const Species& s1 = all_species.get(reactants[0]);
-    const Species& s2 = all_species.get(reactants[1]);
-
     float_t eff_vel_a = get_reactant_space_step(0) / get_reactant_time_step(0);
     float_t eff_vel_b = get_reactant_space_step(1) / get_reactant_time_step(1);
     float_t eff_vel;

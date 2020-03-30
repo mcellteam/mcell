@@ -38,7 +38,10 @@ enum species_flag_t {
 
 namespace BNG {
 
-class Species : public CplxInstance {
+class Species;
+typedef small_vector<Species> SpeciesVector;
+
+class Species: public CplxInstance {
 public:
   Species()
     : species_id(SPECIES_ID_INVALID), D(FLT_INVALID)
@@ -102,7 +105,7 @@ public:
   }
 
   void dump(const BNGData& bng_data, const std::string ind = "") const;
-  static void dump_array(const BNGData& bng_data, const std::vector<Species>& vec);
+  static void dump_array(const BNGData& bng_data, const SpeciesVector& vec);
 
   // not virtual
   bool equal_except_for_id(const Species& s2) const {

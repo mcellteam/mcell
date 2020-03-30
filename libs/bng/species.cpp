@@ -39,7 +39,7 @@ void Species::dump(const BNGData& bng_data, const string ind) const {
   cout << "\n";
 }
 
-void Species::dump_array(const BNGData& bng_data, const vector<Species>& vec) {
+void Species::dump_array(const BNGData& bng_data, const SpeciesVector& vec) {
   cout << "Species array: " << (vec.empty() ? "EMPTY" : "") << "\n";
 
   for (size_t i = 0; i < vec.size(); i++) {

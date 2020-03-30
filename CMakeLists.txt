@@ -39,7 +39,7 @@ endif()
 set(WARNING_FLAGS "-Wall -Wextra -Wno-shadow -Wno-unused-parameter -Wno-unused-function -Wno-unused-variable -fpermissive")
 
 set(INCLUDE_DIRS " -isystem ${CMAKE_SOURCE_DIR}/libs/")
-SET(COMMON_C_CXX_FLAGS "${WARNING_FLAGS} -g3 ${OPTIMIZATION_FLAGS} ${INCLUDE_DIRS} -D_GNU_SOURCE=1")
+SET(COMMON_C_CXX_FLAGS "${WARNING_FLAGS} -fPIC -g3 ${OPTIMIZATION_FLAGS} ${INCLUDE_DIRS} -D_GNU_SOURCE=1")
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMMON_C_CXX_FLAGS}  -std=c11 ")
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON_C_CXX_FLAGS} -std=c++14")
 
@@ -57,7 +57,7 @@ option(ENABLE_GCOV "Use gcc coverage" OFF)
 option(ENABLE_GPROF "Use gprof profiling" OFF)
 option(ENABLE_GPERFTOOLS "Build with gperftools profiling" OFF)  
 option(ENABLE_SANITIZER "Use address sanitizer" OFF)
-option(PYMCELL "Build also pyMCell" OFF) # pymcell is disabled in this pohase of BNG reactions development 
+option(PYMCELL "Build also PyMCell" ON) 
 
 
 if (ENABLE_LTO)
@@ -283,10 +283,12 @@ if (PYMCELL AND NOT WIN32 AND NOT CYGWIN)
     SOURCES src/pymcell.i ${SOURCE_FILES}  ${BISON_dynGeomParser_OUTPUTS} ${FLEX_dynGeomScanner_OUTPUTS}  
   )
   
+  set(PYMCELL_ARCHIVES ${CMAKE_CURRENT_BINARY_DIR}/libs/bng/libbng.a)
+  
   if (APPLE)
-    SWIG_LINK_LIBRARIES(pymcell ${CMAKE_CURRENT_BINARY_DIR}/lib/libnfsim_c.dylib ${CMAKE_CURRENT_BINARY_DIR}/lib/libNFsim.dylib ${PYTHON_LIBRARIES})
+    SWIG_LINK_LIBRARIES(pymcell ${PYMCELL_ARCHIVES} ${CMAKE_CURRENT_BINARY_DIR}/lib/libnfsim_c.dylib ${CMAKE_CURRENT_BINARY_DIR}/lib/libNFsim.dylib ${PYTHON_LIBRARIES})
   else()
-    SWIG_LINK_LIBRARIES(pymcell ${CMAKE_CURRENT_BINARY_DIR}/lib/libnfsim_c.so ${CMAKE_CURRENT_BINARY_DIR}/lib/libNFsim.so ${PYTHON_LIBRARIES})
+    SWIG_LINK_LIBRARIES(pymcell  ${PYMCELL_ARCHIVES} ${CMAKE_CURRENT_BINARY_DIR}/lib/libnfsim_c.so ${CMAKE_CURRENT_BINARY_DIR}/lib/libNFsim.so ${PYTHON_LIBRARIES})
   endif()
 
   # copy the pyMCell test scripts into place
@@ -333,7 +335,7 @@ add_executable(mcell
 add_dependencies(mcell version_h)
 
 if (PYMCELL AND NOT WIN32 AND NOT CYGWIN)
-    add_dependencies(pymcell version_h nfsim_c NFsim)
+    add_dependencies(pymcell version_h bng nfsim_c NFsim)
 endif()
   
 target_link_libraries(mcell bng nfsim_c_static NFsim_static)
