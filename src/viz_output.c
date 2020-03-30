@@ -635,8 +635,8 @@ static void bind_molecules_at_components ( struct volume *world, external_molcom
   int fixed_mol_index = mc[fixed_comp_index].peers[0];
   int var_mol_index = mc[var_comp_index].peers[0];
 
-  double fixed_vec[3];  // This will either hold 2 or 3 values, but since it's temporary, the allocation difference doesn't accumulate.
-  double   var_vec[3];
+  double fixed_vec[3] = {0, 0, 0};  // This will either hold 2 or 3 values, but since it's temporary, the allocation difference doesn't accumulate.
+  double   var_vec[3] = {0, 0, 0};
   fixed_vec[0] = mc[fixed_comp_index].x - mc[fixed_mol_index].x;
   fixed_vec[1] = mc[fixed_comp_index].y - mc[fixed_mol_index].y;
   var_vec[0]   = mc[  var_comp_index].x - mc[  var_mol_index].x;

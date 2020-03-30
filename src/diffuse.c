@@ -391,7 +391,7 @@ struct vector3* reflect_periodic_2D(
         continue;
       }
 
-      struct vector3 *hit_xyz = malloc(sizeof(*hit_xyz));
+      struct vector3 *hit_xyz = (struct vector3 *)malloc(sizeof(*hit_xyz));
       double t = 0.0;
       int i = collide_wall(
           &updated_xyz, &delta_xyz, wl->this_wall, &t, hit_xyz, 0, state->rng,

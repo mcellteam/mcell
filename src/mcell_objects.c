@@ -50,7 +50,7 @@ static int is_region_degenerate(struct region *reg_ptr);
       A mesh is created.
 *************************************************************************/
 MCELL_STATUS
-mcell_create_instance_object(MCELL_STATE *state, char *name,
+mcell_create_instance_object(MCELL_STATE *state, const char *name,
                              struct object **new_obj) {
   // Create the symbol, if it doesn't exist yet.
   int error_code = 0;
@@ -63,7 +63,7 @@ mcell_create_instance_object(MCELL_STATE *state, char *name,
   if (obj_ptr == NULL) {
     return MCELL_FAIL;
   }
-  obj_ptr->last_name = name;
+  obj_ptr->last_name = (char*)name;
   obj_ptr->object_type = META_OBJ;
 
   // instantiate object
@@ -77,7 +77,7 @@ mcell_create_instance_object(MCELL_STATE *state, char *name,
 
 MCELL_STATUS mcell_create_periodic_box(
     struct volume *state,
-    char *box_name,
+    const char *box_name,
     struct vector3 *llf,
     struct vector3 *urb) {
   
@@ -239,6 +239,10 @@ new_polygon_list(MCELL_STATE *state, struct object *obj_ptr, int n_vertices,
                  struct vertex_list *vertices, int n_connections,
                  struct element_connection_list *connections) {
 
+  struct vertex_list *vert_list = NULL;
+  struct element_data *elem_data_ptr = NULL;
+  struct region *reg_ptr = NULL;
+
   struct polygon_object *poly_obj_ptr =
       allocate_polygon_object("polygon list object");
   if (poly_obj_ptr == NULL) {
@@ -263,7 +267,7 @@ new_polygon_list(MCELL_STATE *state, struct object *obj_ptr, int n_vertices,
   poly_obj_ptr->parsed_vertices = vertices;
 
   // Copy in vertices and normals
-  struct vertex_list *vert_list = poly_obj_ptr->parsed_vertices;
+  vert_list = poly_obj_ptr->parsed_vertices;
   for (int i = 0; i < poly_obj_ptr->n_verts; i++) {
     // Rescale vertices coordinates
     vert_list->vertex->x *= state->r_length_unit;
@@ -273,7 +277,6 @@ new_polygon_list(MCELL_STATE *state, struct object *obj_ptr, int n_vertices,
   }
 
   // Allocate wall elements
-  struct element_data *elem_data_ptr = NULL;
   if ((elem_data_ptr =
            CHECKED_MALLOC_ARRAY(struct element_data, poly_obj_ptr->n_walls,
                                 "polygon list object walls")) == NULL) {
@@ -297,7 +300,6 @@ new_polygon_list(MCELL_STATE *state, struct object *obj_ptr, int n_vertices,
   }
 
   // Create object default region on polygon list object:
-  struct region *reg_ptr = NULL;
   if ((reg_ptr = mcell_create_region(state, obj_ptr, "ALL")) == NULL) {
     goto failure;
   }
@@ -343,7 +345,7 @@ failure:
 struct object *make_new_object(
     struct dyngeom_parse_vars *dg_parse,
     struct sym_table_head *obj_sym_table,
-    char *obj_name,
+    const char *obj_name,
     int *error_code) {
 
   struct sym_entry *symbol = retrieve_sym(obj_name, obj_sym_table);
@@ -1181,7 +1183,7 @@ int mcell_check_for_region(char *region_name, struct object *obj_ptr) {
  NOTE: This is similar to mdl_create_region
 **************************************************************************/
 struct region *mcell_create_region(MCELL_STATE *state, struct object *obj_ptr,
-                                   char *name) {
+                                   const char *name) {
   struct region *reg_ptr;
   struct region_list *reg_list_ptr;
   no_printf("Creating new region: %s\n", name);
@@ -1230,8 +1232,8 @@ struct region *mcell_create_region(MCELL_STATE *state, struct object *obj_ptr,
 struct region *make_new_region(
     struct dyngeom_parse_vars *dg_parse,
     MCELL_STATE *state,
-    char *obj_name,
-    char *region_last_name) {
+    const char *obj_name,
+    const char *region_last_name) {
 
   char *region_name;
   region_name = CHECKED_SPRINTF("%s,%s", obj_name, region_last_name);

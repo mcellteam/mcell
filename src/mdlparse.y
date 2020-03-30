@@ -16,7 +16,7 @@
   #include "strfunc.h"
   #include "mem_util.h"
   #include "sym_table.h"
-#include "diffuse_util.h"
+  #include "diffuse_util.h"
   #include "mdlparse_util.h"
   #include "mdlparse_aux.h"
   #include "util.h"
@@ -31,7 +31,12 @@
 
   /* make sure to declare yyscan_t before including mdlparse.h */
   typedef void *yyscan_t;
-  #include "mdlparse.h"
+  
+#if __cplusplus
+#  include "mdlparse.hpp"
+#else
+#  include "mdlparse.h"
+#endif
 
   int mdllex_init(yyscan_t *ptr_yy_globals) ;
   int mdllex_destroy(yyscan_t yyscanner);
@@ -131,13 +136,14 @@ struct arg_list printfargs;
 
 }
 
+%require "3.0"
 %pure-parser
 
 %lex-param {struct mdlparse_vars *parse_state}
 %lex-param {yyscan_t scanner}
 %parse-param {struct mdlparse_vars *parse_state}
 %parse-param {yyscan_t scanner}
-%name-prefix="mdl"
+%name-prefix "mdl"
 
 %token       ABS
 %token       ABSORPTIVE
@@ -956,27 +962,27 @@ notification_list:
 
 notification_item_def:
         ALL_NOTIFICATIONS '=' notify_bilevel          { if (!parse_state->vol->quiet_flag) mdl_set_all_notifications(parse_state->vol, $3); }
-      | PROGRESS_REPORT '=' notify_bilevel            { if (!parse_state->vol->quiet_flag) parse_state->vol->notify->progress_report        = $3; }
-      | DIFFUSION_CONSTANT_REPORT '=' notify_level    { if (!parse_state->vol->quiet_flag) parse_state->vol->notify->diffusion_constants    = $3; }
-      | PROBABILITY_REPORT '=' notify_bilevel         { if (!parse_state->vol->quiet_flag) parse_state->vol->notify->reaction_probabilities = $3; }
-      | VARYING_PROBABILITY_REPORT '=' notify_bilevel { if (!parse_state->vol->quiet_flag) parse_state->vol->notify->time_varying_reactions = $3; }
-      | PROBABILITY_REPORT_THRESHOLD '=' num_expr     { if (!parse_state->vol->quiet_flag) parse_state->vol->notify->reaction_prob_notify   = $3; }
-      | PARTITION_LOCATION_REPORT '=' notify_bilevel  { if (!parse_state->vol->quiet_flag) parse_state->vol->notify->partition_location     = $3; }
-      | BOX_TRIANGULATION_REPORT '=' notify_bilevel   { if (!parse_state->vol->quiet_flag) parse_state->vol->notify->box_triangulation      = $3; }
-      | RELEASE_EVENT_REPORT '=' notify_bilevel       { if (!parse_state->vol->quiet_flag) parse_state->vol->notify->release_events         = $3; }
-      | FILE_OUTPUT_REPORT '=' notify_bilevel         { if (!parse_state->vol->quiet_flag) parse_state->vol->notify->file_writes            = $3; }
-      | FINAL_SUMMARY '=' notify_bilevel              { if (!parse_state->vol->quiet_flag) parse_state->vol->notify->final_summary          = $3; }
-      | THROUGHPUT_REPORT '=' notify_bilevel          { if (!parse_state->vol->quiet_flag) parse_state->vol->notify->throughput_report      = $3; }
-      | REACTION_OUTPUT_REPORT '=' notify_level       { if (!parse_state->vol->quiet_flag) parse_state->vol->notify->reaction_output_report = $3; }
-      | VOLUME_OUTPUT_REPORT '=' notify_level         { if (!parse_state->vol->quiet_flag) parse_state->vol->notify->volume_output_report   = $3; }
-      | VIZ_OUTPUT_REPORT '=' notify_level            { if (!parse_state->vol->quiet_flag) parse_state->vol->notify->viz_output_report      = $3; }
-      | CHECKPOINT_REPORT '=' notify_bilevel          { if (!parse_state->vol->quiet_flag) parse_state->vol->notify->checkpoint_report      = $3; }
+      | PROGRESS_REPORT '=' notify_bilevel            { if (!parse_state->vol->quiet_flag) parse_state->vol->notify->progress_report        = (enum notify_level_t)$3; }
+      | DIFFUSION_CONSTANT_REPORT '=' notify_level    { if (!parse_state->vol->quiet_flag) parse_state->vol->notify->diffusion_constants    = (enum notify_level_t)$3; }
+      | PROBABILITY_REPORT '=' notify_bilevel         { if (!parse_state->vol->quiet_flag) parse_state->vol->notify->reaction_probabilities = (enum notify_level_t)$3; }
+      | VARYING_PROBABILITY_REPORT '=' notify_bilevel { if (!parse_state->vol->quiet_flag) parse_state->vol->notify->time_varying_reactions = (enum notify_level_t)$3; }
+      | PROBABILITY_REPORT_THRESHOLD '=' num_expr     { if (!parse_state->vol->quiet_flag) parse_state->vol->notify->reaction_prob_notify   = (enum notify_level_t)$3; }
+      | PARTITION_LOCATION_REPORT '=' notify_bilevel  { if (!parse_state->vol->quiet_flag) parse_state->vol->notify->partition_location     = (enum notify_level_t)$3; }
+      | BOX_TRIANGULATION_REPORT '=' notify_bilevel   { if (!parse_state->vol->quiet_flag) parse_state->vol->notify->box_triangulation      = (enum notify_level_t)$3; }
+      | RELEASE_EVENT_REPORT '=' notify_bilevel       { if (!parse_state->vol->quiet_flag) parse_state->vol->notify->release_events         = (enum notify_level_t)$3; }
+      | FILE_OUTPUT_REPORT '=' notify_bilevel         { if (!parse_state->vol->quiet_flag) parse_state->vol->notify->file_writes            = (enum notify_level_t)$3; }
+      | FINAL_SUMMARY '=' notify_bilevel              { if (!parse_state->vol->quiet_flag) parse_state->vol->notify->final_summary          = (enum notify_level_t)$3; }
+      | THROUGHPUT_REPORT '=' notify_bilevel          { if (!parse_state->vol->quiet_flag) parse_state->vol->notify->throughput_report      = (enum notify_level_t)$3; }
+      | REACTION_OUTPUT_REPORT '=' notify_level       { if (!parse_state->vol->quiet_flag) parse_state->vol->notify->reaction_output_report = (enum notify_level_t)$3; }
+      | VOLUME_OUTPUT_REPORT '=' notify_level         { if (!parse_state->vol->quiet_flag) parse_state->vol->notify->volume_output_report   = (enum notify_level_t)$3; }
+      | VIZ_OUTPUT_REPORT '=' notify_level            { if (!parse_state->vol->quiet_flag) parse_state->vol->notify->viz_output_report      = (enum notify_level_t)$3; }
+      | CHECKPOINT_REPORT '=' notify_bilevel          { if (!parse_state->vol->quiet_flag) parse_state->vol->notify->checkpoint_report      = (enum notify_level_t)$3; }
       | ITERATION_REPORT '=' notify_bilevel           {
                                                           if (!parse_state->vol->quiet_flag && parse_state->vol->log_freq == ULONG_MAX)
-                                                            parse_state->vol->notify->iteration_report = $3;
+                                                            parse_state->vol->notify->iteration_report = (enum notify_level_t)$3;
                                                       }
       | ITERATION_REPORT '=' num_expr                 { if (!parse_state->vol->quiet_flag) CHECK(mdl_set_iteration_report_freq(parse_state, (long long) $3)); }
-      | MOLECULE_COLLISION_REPORT '=' notify_bilevel    { if (!parse_state->vol->quiet_flag) parse_state->vol->notify->molecule_collision_report    = $3; }
+      | MOLECULE_COLLISION_REPORT '=' notify_bilevel    { if (!parse_state->vol->quiet_flag) parse_state->vol->notify->molecule_collision_report    = (enum notify_level_t)$3; }
 ;
 
 notify_bilevel:
@@ -1002,23 +1008,23 @@ warning_list:
 
 warning_item_def:
         ALL_WARNINGS '=' warning_level                { mdl_set_all_warnings(parse_state->vol, (byte) $3); }
-      | NEGATIVE_DIFFUSION_CONSTANT '=' warning_level { parse_state->vol->notify->neg_diffusion = (byte)$3; }
-      | NEGATIVE_REACTION_RATE '=' warning_level      { parse_state->vol->notify->neg_reaction = (byte)$3; }
-      | HIGH_REACTION_PROBABILITY '=' warning_level   { parse_state->vol->notify->high_reaction_prob = (byte)$3; }
+      | NEGATIVE_DIFFUSION_CONSTANT '=' warning_level { parse_state->vol->notify->neg_diffusion = (enum warn_level_t)$3; }
+      | NEGATIVE_REACTION_RATE '=' warning_level      { parse_state->vol->notify->neg_reaction = (enum warn_level_t)$3; }
+      | HIGH_REACTION_PROBABILITY '=' warning_level   { parse_state->vol->notify->high_reaction_prob = (enum warn_level_t)$3; }
       | HIGH_PROBABILITY_THRESHOLD '=' num_expr       { parse_state->vol->notify->reaction_prob_warn = $3; }
-      | CLOSE_PARTITION_SPACING '=' warning_level     { parse_state->vol->notify->close_partitions = (byte)$3; }
-      | DEGENERATE_POLYGONS '=' warning_level         { parse_state->vol->notify->degenerate_polys = (byte)$3; }
-      | OVERWRITTEN_OUTPUT_FILE '=' warning_level     { parse_state->vol->notify->overwritten_file = (byte)$3; }
-      | LIFETIME_TOO_SHORT '=' warning_level          { parse_state->vol->notify->short_lifetime = (byte)$3; }
+      | CLOSE_PARTITION_SPACING '=' warning_level     { parse_state->vol->notify->close_partitions = (enum warn_level_t)$3; }
+      | DEGENERATE_POLYGONS '=' warning_level         { parse_state->vol->notify->degenerate_polys = (enum warn_level_t)$3; }
+      | OVERWRITTEN_OUTPUT_FILE '=' warning_level     { parse_state->vol->notify->overwritten_file = (enum warn_level_t)$3; }
+      | LIFETIME_TOO_SHORT '=' warning_level          { parse_state->vol->notify->short_lifetime = (enum warn_level_t)$3; }
       | LIFETIME_THRESHOLD '=' num_expr               { CHECK(mdl_set_lifetime_warning_threshold(parse_state, (long long) $3)); }
-      | MISSED_REACTIONS '=' warning_level            { parse_state->vol->notify->missed_reactions = (byte)$3; }
+      | MISSED_REACTIONS '=' warning_level            { parse_state->vol->notify->missed_reactions = (enum warn_level_t)$3; }
       | MISSED_REACTION_THRESHOLD '=' num_expr        { CHECK(mdl_set_missed_reaction_warning_threshold(parse_state, $3)); }
-      | MISSING_SURFACE_ORIENTATION '=' warning_level { parse_state->vol->notify->missed_surf_orient = (byte)$3; }
-      | USELESS_VOLUME_ORIENTATION '=' warning_level  { parse_state->vol->notify->useless_vol_orient = (byte)$3; }
-      | MOLECULE_PLACEMENT_FAILURE '=' warning_level  { parse_state->vol->notify->mol_placement_failure = (byte) $3; }
-      | INVALID_OUTPUT_STEP_TIME '=' warning_level    { parse_state->vol->notify->invalid_output_step_time = (byte) $3; }
-      | LARGE_MOLECULAR_DISPLACEMENT '=' warning_level { parse_state->vol->notify->large_molecular_displacement = (byte) $3; }
-      | ADD_REMOVE_MESH '=' warning_level { parse_state->vol->notify->add_remove_mesh_warning = (byte) $3; }
+      | MISSING_SURFACE_ORIENTATION '=' warning_level { parse_state->vol->notify->missed_surf_orient = (enum warn_level_t)$3; }
+      | USELESS_VOLUME_ORIENTATION '=' warning_level  { parse_state->vol->notify->useless_vol_orient = (enum warn_level_t)$3; }
+      | MOLECULE_PLACEMENT_FAILURE '=' warning_level  { parse_state->vol->notify->mol_placement_failure = (enum warn_level_t) $3; }
+      | INVALID_OUTPUT_STEP_TIME '=' warning_level    { parse_state->vol->notify->invalid_output_step_time = (enum warn_level_t) $3; }
+      | LARGE_MOLECULAR_DISPLACEMENT '=' warning_level { parse_state->vol->notify->large_molecular_displacement = (enum warn_level_t) $3; }
+      | ADD_REMOVE_MESH '=' warning_level { parse_state->vol->notify->add_remove_mesh_warning = (enum warn_level_t) $3; }
 ;
 
 warning_level:
@@ -2152,7 +2158,7 @@ count_stmt:
 
 custom_header_value:
           NONE                                        { $$ = NULL; }
-        | boolean                                     { $$ = ($1 ? "" : NULL); }
+        | boolean                                     { $$ = ($1 ? (char*)"" : NULL); }
         | str_expr                                    { $$ = $1; }
 ;
 

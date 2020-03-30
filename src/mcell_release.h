@@ -29,7 +29,7 @@ MCELL_STATUS mcell_create_list_release_site(
   struct vector3 *diameter, struct object **new_object);
 
 MCELL_STATUS mcell_create_geometrical_release_site(
-    MCELL_STATE *state, struct object *parent, char *site_name, int shape,
+    MCELL_STATE *state, struct object *parent, const char *site_name, int shape,
     struct vector3 *position, struct vector3 *diameter,
     struct mcell_species *mol, double num, int num_type, double release_prob,
     struct release_pattern *rpatp, struct object **new_object);

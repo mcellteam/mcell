@@ -83,27 +83,27 @@ void check_for_large_molecular_displacement(
     double *time_unit,
     enum warn_level_t large_molecular_displacement_warning);
 
-char *compare_molecule_nesting(int *move_molecule,
+const char *compare_molecule_nesting(int *move_molecule,
                                int *out_to_in, 
                                struct string_buffer *mesh_names_old,
                                struct string_buffer *mesh_names_new,
                                struct mesh_transparency *mesh_transp);
 
-char *check_overlapping_meshes(
+const char *check_overlapping_meshes(
     int *move_molecule, int *out_to_in, int difference,
-    struct string_buffer *compare_this, char *best_mesh,
+    struct string_buffer *compare_this, const char *best_mesh,
     struct mesh_transparency *mesh_transp);
 
-char *check_nonoverlapping_meshes(int *move_molecule,
+const char *check_nonoverlapping_meshes(int *move_molecule,
                                   int *out_to_in,
                                   struct string_buffer *mesh_names_old,
                                   struct string_buffer *mesh_names_new,
-                                  char *best_mesh,
+                                  const char *best_mesh,
                                   struct mesh_transparency *mesh_transp);
 
-char *check_outin_or_inout(
+const char *check_outin_or_inout(
     int start, int increment, int end, int *move_molecule,
-    int *out_to_in, char *best_mesh, struct string_buffer *mesh_names,
+    int *out_to_in, const char *best_mesh, struct string_buffer *mesh_names,
     struct mesh_transparency *mesh_transp);
 
 struct volume_molecule *insert_volume_molecule_encl_mesh(
@@ -130,7 +130,7 @@ struct string_buffer *find_enclosing_meshes(
 
 void place_mol_relative_to_mesh(
     struct volume *state, struct vector3 *loc, struct subvolume *sv,
-    char *mesh_name, struct vector3 *new_pos, int out_to_in);
+    const char *mesh_name, struct vector3 *new_pos, int out_to_in);
 
 void destroy_mesh_transp_data(
     struct sym_table_head *mol_sym_table,
@@ -151,7 +151,7 @@ void check_count_validity(struct output_request *output_request_head,
                           struct string_buffer *meshes_to_ignore,
                           struct string_buffer *new_mesh_names);
 
-void reset_count_type(char *name,
+void reset_count_type(const char *name,
                       struct output_request *request,
                       struct string_buffer *names_to_ignore,
                       struct string_buffer *new_names);
@@ -161,30 +161,30 @@ int init_species_mesh_transp(struct volume *world);
 int find_sm_region_transp(struct object *obj_ptr,
                           struct mesh_transparency **mesh_transp_head,
                           struct mesh_transparency **mesh_transp_tail,
-                          char *species_name);
+                          const char *species_name);
 
 void check_surf_class_properties(
-  char *species_name, struct mesh_transparency *mesh_transp,
+    const char *species_name, struct mesh_transparency *mesh_transp,
   struct name_orient *surf_class_props);
 
 int find_vm_obj_region_transp(struct object *obj_ptr,
                               struct mesh_transparency **mesh_transp_head,
                               struct mesh_transparency **mesh_transp_tail,
-                              char *species_name);
+                              const char *species_name);
 
 int find_all_obj_region_transp(struct object *obj_ptr,
                                struct mesh_transparency **mesh_transp_head,
                                struct mesh_transparency **mesh_transp_tail,
-                               char *species_name, int sm_flag);
+                               const char *species_name, int sm_flag);
 
 int add_dynamic_geometry_events(
     struct mdlparse_vars *parse_state,
-    char *dynamic_geometry_filepath,
+    const char *dynamic_geometry_filepath,
     double timestep,
     struct mem_helper *dynamic_geometry_events_mem,
     struct dg_time_filename **dg_time_fname_head);
 
-char *get_mesh_instantiation_names(struct object *obj_ptr,
+const char *get_mesh_instantiation_names(struct object *obj_ptr,
                                    struct string_buffer *mesh_names);
 
 void diff_string_buffers(

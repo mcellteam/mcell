@@ -72,7 +72,7 @@ MCELL_STATUS mcell_add_surf_class_properties(
  Out: 0 on success, 1 on failure. The surface class is created
 **************************************************************************/
 MCELL_STATUS mcell_create_surf_class(
-    MCELL_STATE *state, char *surf_class_name, mcell_symbol **sc_sym) {
+    MCELL_STATE *state, const char *surf_class_name, mcell_symbol **sc_sym) {
 
   struct sym_entry *sym = NULL;
   int error_code = new_mol_species(state, surf_class_name, &sym);

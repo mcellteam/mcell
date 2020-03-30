@@ -63,15 +63,15 @@ int nearest_free(struct surface_grid *sm, struct vector2 *v, double max_d2,
                  double *found_dist2);
 
 int verify_wall_regions_match(
-    char *mesh_name, struct string_buffer *reg_names, struct wall *w,
+    const char *mesh_name, struct string_buffer *reg_names, struct wall *w,
     struct string_buffer *regions_to_ignore,
-    struct mesh_transparency *mesh_transp, char *species_name);
+    struct mesh_transparency *mesh_transp, const char *species_name);
 
 struct wall *search_nbhd_for_free(struct volume *world, struct wall *origin,
                                   struct vector2 *point, double max_d2,
                                   int *found_idx,
                                   int (*ok)(void *, struct wall *),
-                                  void *context, char *mesh_name,
+                                  void *context, const char *mesh_name,
                                   struct string_buffer *reg_names);
 
 void delete_tile_neighbor_list(struct tile_neighbor *head);

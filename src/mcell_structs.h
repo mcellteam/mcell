@@ -1846,7 +1846,7 @@ struct element_special {
 struct region {
   struct sym_entry *sym;  /* Symbol hash table entry for this region */
   u_int hashval;          /* Hash value for counter hash table */
-  char *region_last_name; /* Name of region without prepended object name */
+  const char *region_last_name; /* Name of region without prepended object name */
   struct object *parent;  /* Parent of this region */
   struct element_list *element_list_head; /* List of element ranges comprising
                                              this region (used at parse time) */
@@ -1887,7 +1887,7 @@ struct object {
   struct object *first_child; /* First child object */
   struct object *last_child;  /* Last child object */
   struct sym_entry *sym;      /* Symbol hash table entry for this object */
-  char *last_name; /* Name of object without pre-pended parent object name */
+  char *last_name; /* Name of object without pre-pended parent object name, must not be const char* */
   enum object_type_t object_type; /* Object Type Flags */
   void *contents;    /* Actual physical object, cast according to object_type */
   u_int num_regions; /* Number of regions defined on object */

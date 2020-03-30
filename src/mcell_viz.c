@@ -55,7 +55,7 @@ static struct frame_data_list *create_viz_frame(long long iterations,
  Note: Right now, only iterations (not time points) can be specified.
 *************************************************************************/
 MCELL_STATUS
-mcell_create_viz_output(MCELL_STATE *state, char *filename,
+mcell_create_viz_output(MCELL_STATE *state, const char *filename,
                         struct mcell_species *mol_viz_list, long long start,
                         long long end, long long step) {
 
@@ -127,8 +127,8 @@ mcell_create_viz_frame(int time_type, int type,
   if (fdlp == NULL)
     return NULL;
 
-  fdlp->list_type = time_type;
-  fdlp->type = type;
+  fdlp->list_type = (enum output_timer_type_t)time_type;
+  fdlp->type = (enum viz_frame_type_t)type;
   fdlp->viz_iteration = -1;
   fdlp->n_viz_iterations = 0;
   fdlp->iteration_list = iteration_list;

@@ -38,7 +38,7 @@ void calculate_reactant_orientation(struct abstract_molecule *reac,
 
 queryOptions initializeNFSimQueryForBimolecularReactions(struct graph_data *am,
                                                          struct graph_data *am2,
-                                                         char *onlyActive);
+                                                         const char *onlyActive);
 
 int trigger_bimolecular_preliminary_nfsim(struct abstract_molecule *reacA,
                                           struct abstract_molecule *reacB);

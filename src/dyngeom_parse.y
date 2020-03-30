@@ -1,3 +1,11 @@
+%require "3.0"
+
+%code requires {  
+  #include "util.h"
+  #include "mcell_structs.h"
+  typedef void *yyscan_t;
+}
+
 %{
   /*#define YYDEBUG 1*/
   #include <stdlib.h>
@@ -9,8 +17,11 @@
   #include "strfunc.h"
   #include "dyngeom_parse_extras.h"
 
-  typedef void *yyscan_t;
-  #include "dyngeom_yacc.h"
+  #if __cplusplus
+  #  include "dyngeom_yacc.hpp"
+  #else
+  #  include "dyngeom_yacc.h"
+  #endif
 
   int dglex_init(yyscan_t *ptr_yy_globals) ;
   int dglex_destroy(yyscan_t yyscanner);
@@ -37,7 +48,7 @@
 
   int parse_dg_init(
       struct dyngeom_parse_vars *dg_parse,
-      char *dynamic_geometry_filename,
+      const char *dynamic_geometry_filename,
       struct volume *state) {
     dg_parse->include_stack_ptr = 0;
     dg_parse->line_num[0] = 0;
@@ -47,7 +58,7 @@
   }
 
   int parse_dg(struct dyngeom_parse_vars *dg_parse,
-               char *dynamic_geometry_filename) {
+               const char *dynamic_geometry_filename) {
     int cur_stack = dg_parse->include_stack_ptr ++;
     dg_parse->line_num[cur_stack] = 1;
     dg_parse->include_filename[cur_stack] = dynamic_geometry_filename;

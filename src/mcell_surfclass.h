@@ -39,7 +39,7 @@ MCELL_STATUS mcell_add_surf_class_properties(
 
 MCELL_STATUS mcell_create_surf_class(
     MCELL_STATE *state,
-    char *surf_class_name,
+    const char *surf_class_name,
     mcell_symbol **sc_sym);
 
 struct sm_dat *mcell_add_mol_release_to_surf_class(

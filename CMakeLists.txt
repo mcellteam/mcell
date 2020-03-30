@@ -36,10 +36,10 @@ if (CMAKE_BUILD_TYPE STREQUAL "Release")
   SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -flto ")
 endif()
 
-set(WARNING_FLAGS "-Wall -Wextra  -Wno-return-type -Wno-shadow -Wno-sign-compare -Wno-unused-parameter -Wno-unused-function -Wno-unused-variable")
+set(WARNING_FLAGS "-Wall -Wextra -Wno-unused-parameter -Wno-unused-function -Wno-unused-variable")
 
 set(INCLUDE_DIRS " -isystem ${CMAKE_SOURCE_DIR}/libs/")
-SET(COMMON_C_CXX_FLAGS "${WARNING_FLAGS} -g3 ${OPTIMIZATION_FLAGS} ${INCLUDE_DIRS} -D_GNU_SOURCE=1")
+SET(COMMON_C_CXX_FLAGS " ${WARNING_FLAGS} -g3 ${OPTIMIZATION_FLAGS} ${INCLUDE_DIRS} -D_GNU_SOURCE=1")
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMMON_C_CXX_FLAGS}  -std=c11 ")
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON_C_CXX_FLAGS} -std=c++14")
 
@@ -57,6 +57,7 @@ option(USE_PROFILING "Use gprof profiling" OFF)
 option(USE_LTO "Use link-time optimization" OFF)
 option(USE_SANITIZER "Use address sanitizer" OFF)
 option(PYMCELL "Build also pyMCell" ON) 
+option(COMPILE_AS_CXX "Build MCell sources with a C++ compiler" OFF) 
 
 
 if (USE_SANITIZER)
@@ -110,26 +111,32 @@ elseif (WIN32)
     ${CMAKE_CURRENT_BINARY_DIR}/deps/config.h)
 endif()
 
+if (COMPILE_AS_CXX) 
+  SET(C_EXT "cpp")
+else()
+  SET(C_EXT "c")
+endif()
+
 # check for bison/flex and set up code gen
 find_package(BISON)
 find_package(FLEX)
 BISON_TARGET(mdlParser ${CMAKE_SOURCE_DIR}/src/mdlparse.y
-  ${CMAKE_CURRENT_BINARY_DIR}/deps/mdlparse.c)
+  ${CMAKE_CURRENT_BINARY_DIR}/deps/mdlparse.${C_EXT})
   
 BISON_TARGET(dynGeomParser ${CMAKE_SOURCE_DIR}/src/dyngeom_parse.y
-  ${CMAKE_CURRENT_BINARY_DIR}/deps/dyngeom_yacc.c)
+  ${CMAKE_CURRENT_BINARY_DIR}/deps/dyngeom_yacc.${C_EXT})
 
 # not sure why is the lex file copied
 configure_file(${CMAKE_SOURCE_DIR}/src/mdllex.l ${CMAKE_CURRENT_BINARY_DIR}/deps/mdllex.l COPYONLY)
 
 FLEX_TARGET(mdlScanner ${CMAKE_CURRENT_BINARY_DIR}/deps/mdllex.l
-  ${CMAKE_CURRENT_BINARY_DIR}/deps/mdlex.c COMPILE_FLAGS -Crema)
+  ${CMAKE_CURRENT_BINARY_DIR}/deps/mdlex.${C_EXT} COMPILE_FLAGS -Crema)
 ADD_FLEX_BISON_DEPENDENCY(mdlScanner mdlParser mdllex_l)
 
 configure_file(${CMAKE_SOURCE_DIR}/src/dyngeom_lex.l ${CMAKE_CURRENT_BINARY_DIR}/deps/dyngeom_lex.l COPYONLY)
 
 FLEX_TARGET(dynGeomScanner ${CMAKE_CURRENT_BINARY_DIR}/deps/dyngeom_lex.l
-  ${CMAKE_CURRENT_BINARY_DIR}/deps/dyngeom_lex.c COMPILE_FLAGS -Crema)
+  ${CMAKE_CURRENT_BINARY_DIR}/deps/dyngeom_lex.${C_EXT} COMPILE_FLAGS -Crema)
 ADD_FLEX_BISON_DEPENDENCY(dynGeomScanner dynGeomParser dyngeomlex_l)
 
 
@@ -204,17 +211,13 @@ set(SOURCE_FILES
 
 set(SOURCE_FILES_ONLY_MCELL
     src/mdlparse_util.c
-    src/mdlparse_util.h
+    src/mcell.c
 )    
 
-set( SOURCE_FILES 
-  ${SOURCE_FILES} 
-  src/mdlparse.y 
-  src/dyngeom_parse.y 
-  ${BISON_dynGeomParser_OUTPUTS}  
-  ${FLEX_dynGeomScanner_OUTPUTS}
-)
- 
+if (COMPILE_AS_CXX) 
+  SET_SOURCE_FILES_PROPERTIES( ${SOURCE_FILES} PROPERTIES LANGUAGE CXX )
+  SET_SOURCE_FILES_PROPERTIES( ${SOURCE_FILES_ONLY_MCELL} PROPERTIES LANGUAGE CXX )
+endif()
 
 link_directories(${CMAKE_BINARY_DIR}/lib)
 if (UNIX)
@@ -232,12 +235,18 @@ if (NOT WIN32 AND NOT CYGWIN)
 
   #SET(CMAKE_SWIG_FLAGS "-debug-typemap;-debug-tmsearch;-debug-tmused;-ltypemaps")
   SET(CMAKE_SWIG_FLAGS "-ltypemaps;-py3")
-
+  if (COMPILE_AS_CXX)  
+    SET(CMAKE_SWIG_FLAGS "-c++;${CMAKE_SWIG_FLAGS}")
+  endif()
   SET(CMAKE_SWIG_OUTDIR "${CMAKE_BINARY_DIR}/python")
   SET(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/python")
 
   file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/python)
-  SET_SOURCE_FILES_PROPERTIES(src/pymcell.i PROPERTIES C ON)
+  if (COMPILE_AS_CXX)  
+  	SET_SOURCE_FILES_PROPERTIES(src/pymcell.i PROPERTIES CPLUSPLUS ON)
+  else()
+  	SET_SOURCE_FILES_PROPERTIES(src/pymcell.i PROPERTIES C ON)
+  endif()
   SET_SOURCE_FILES_PROPERTIES(src/pymcell.i PROPERTIES SWIG_FLAGS "-includeall")
  
   
@@ -281,13 +290,20 @@ file(COPY ${CMAKE_SOURCE_DIR}/src/rules_py/ DESTINATION ${CMAKE_CURRENT_BINARY_D
 # copy tools for MDLr to MDL
 file(COPY ${CMAKE_SOURCE_DIR}/../bionetgen/bng2/ DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/bng2/)
 
+
+if (COMPILE_AS_CXX) 
+  SET_SOURCE_FILES_PROPERTIES( ${SOURCE_FILES} PROPERTIES LANGUAGE CXX )
+  
+endif()
+  
 # build executable
 add_executable(mcell
   ${SOURCE_FILES}
   ${SOURCE_FILES_ONLY_MCELL}
   ${BISON_mdlParser_OUTPUTS}
+  ${BISON_dynGeomParser_OUTPUTS}  
   ${FLEX_mdlScanner_OUTPUTS}
-  src/mcell.c
+  ${FLEX_dynGeomScanner_OUTPUTS}
 )
 
 add_dependencies(mcell version_h)

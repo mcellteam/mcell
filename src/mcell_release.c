@@ -170,7 +170,7 @@ MCELL_STATUS mcell_create_list_release_site(
  *
  ******************************************************************************/
 MCELL_STATUS mcell_create_geometrical_release_site(
-    MCELL_STATE *state, struct object *parent, char *site_name, int shape,
+    MCELL_STATE *state, struct object *parent, const char *site_name, int shape,
     struct vector3 *position, struct vector3 *diameter,
     struct mcell_species *mol, double num, int num_type, double rel_prob,
     struct release_pattern *rpatp, struct object **new_obj) {
@@ -403,7 +403,7 @@ mcell_create_region_release_boolean(MCELL_STATE *state, struct object *parent,
   struct release_site_obj *releaser =
     (struct release_site_obj *)release_object->contents;
 
-  mcell_set_release_site_geometry_region(state, releaser, (struct geom_object *)obj_ptr->contents,
+  mcell_set_release_site_geometry_region(state, releaser, (struct object *)obj_ptr->contents,
                      rel_eval);
 
   // release probability and release patterns

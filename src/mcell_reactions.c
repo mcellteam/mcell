@@ -128,11 +128,11 @@ mcell_modify_multiple_rate_constants(struct volume *world, char **names, double 
 
   // Store what each type of reaction is
   // diffusing
-  struct rxn **reactions_ud = malloc(0 * sizeof(*reactions_ud)); // Empty
+  struct rxn **reactions_ud = (struct rxn **)malloc(0 * sizeof(*reactions_ud)); // Empty
   // unimolecular non-diffusing, volume
-  struct rxn **reactions_undv = malloc(0 * sizeof(*reactions_undv));
+  struct rxn **reactions_undv = (struct rxn **)malloc(0 * sizeof(*reactions_undv));
   // unimolecular non-diffusing, surface
-  struct rxn **reactions_unds = malloc(0 * sizeof(*reactions_unds));
+  struct rxn **reactions_unds = (struct rxn **)malloc(0 * sizeof(*reactions_unds));
   // Keep track of the size
   int n_reactions_ud=0;
   int n_reactions_undv=0;
@@ -156,7 +156,7 @@ mcell_modify_multiple_rate_constants(struct volume *world, char **names, double 
     // Found the reaction, now do the changing
 
     // What is the pathway that needs to be changed?
-    struct rxn_pathname *rxpn = sym->value;  
+    struct rxn_pathname *rxpn = (struct rxn_pathname *)sym->value;
     // The reaction that owns this pathway
     struct rxn *reaction = rxpn->rx;  
     // The index of the pathway in this reaction
@@ -361,7 +361,7 @@ mcell_modify_rate_constant(struct volume *world, char *name, double rate_constan
   {
     
     // What is the pathway that needs to be changed?
-    struct rxn_pathname *rxpn = sym->value;  
+    struct rxn_pathname *rxpn = (struct rxn_pathname *)sym->value;
     // The reaction that owns this pathway
     struct rxn *reaction = rxpn->rx;  
     // The index of the pathway in this reaction
@@ -3841,7 +3841,7 @@ int load_rate_file(struct volume* state, struct rxn *rx, char *fname, int path) 
           }
         }
 
-        tp = CHECKED_MEM_GET(tv_rxn_mem,
+        tp = (struct t_func *)CHECKED_MEM_GET(tv_rxn_mem,
                              "time-varying reaction rate constants");
         if (tp == NULL) {
           fclose(f);

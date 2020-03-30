@@ -5,8 +5,8 @@
 
 // typedef double (*get_reactant_diffusion)(int a, int b);
 
-void initialize_diffusion_function(struct abstract_molecule *this);
-void initialize_rxn_diffusion_functions(struct rxn *this);
+void initialize_diffusion_function(struct abstract_molecule *mol_ptr);
+void initialize_rxn_diffusion_functions(struct rxn *mol_ptr);
 
 double get_standard_diffusion(void *self);
 double get_nfsim_diffusion(void *self);
@@ -32,7 +32,7 @@ int get_graph_data(unsigned long graph_pattern_hash,
 int store_graph_data(unsigned long graph_pattern_hash,
                      struct graph_data *graph_data);
 
-u_int get_nfsim_flags(void *this);
-u_int get_standard_flags(void *this);
+u_int get_nfsim_flags(void *mol_ptr);
+u_int get_standard_flags(void *mol_ptr);
 
 #endif

@@ -237,10 +237,10 @@ mcell_create_count(MCELL_STATE *state, struct sym_entry *target,
       outfile_name: name of output file
  Out: output request item, or NULL if an error occurred
 *************************************************************************/
-struct output_set *mcell_create_new_output_set(char *comment, int exact_time,
+struct output_set *mcell_create_new_output_set(const char *comment, int exact_time,
                                                struct output_column *col_head,
                                                int file_flags,
-                                               char *outfile_name) {
+                                               const char *outfile_name) {
 
   struct output_set *os =
       CHECKED_MALLOC_STRUCT(struct output_set, "reaction data output set");

@@ -35,7 +35,7 @@ struct object_creation {
 #include "dyngeom_parse_extras.h"
 
 struct poly_object {
-  char *obj_name;
+  const char *obj_name;
   struct vertex_list *vertices;
   int num_vert;
   struct element_connection_list *connections;
@@ -43,23 +43,23 @@ struct poly_object {
 };
 
 struct poly_object_list {
-  char *obj_name;
+  const char *obj_name;
   struct vertex_list *vertices;
   int num_vert;
   struct element_connection_list *connections;
   int num_conn;
   struct element_list *surf_reg_faces;
-  char *reg_name;
+  const char *reg_name;
   struct poly_object_list *next;
 };
 
 /* object creation */
-MCELL_STATUS mcell_create_instance_object(MCELL_STATE *state, char *name,
+MCELL_STATUS mcell_create_instance_object(MCELL_STATE *state, const char *name,
                                           struct object **new_object);
 
 MCELL_STATUS mcell_create_periodic_box(
     struct volume *state,
-    char *box_name,
+    const char *box_name,
     struct vector3 *llf,
     struct vector3 *urb);
 
@@ -75,7 +75,7 @@ new_polygon_list(MCELL_STATE *state, struct object *obj_ptr, int n_vertices,
 struct object *make_new_object(
     struct dyngeom_parse_vars *dg_parse,
     struct sym_table_head *obj_sym_table,
-    char *obj_name,
+    const char *obj_name,
     int *error_code);
 
 char *push_object_name(struct object_creation *obj_creation, char *name);
@@ -111,13 +111,13 @@ int mcell_check_for_region(char *region_name, struct object *obj_ptr);
 
 /* create regions */
 struct region *mcell_create_region(MCELL_STATE *state, struct object *objp,
-                                   char *name);
+                                   const char *name);
 
 struct region *make_new_region(
     struct dyngeom_parse_vars *dg_parse,
     MCELL_STATE *state,
-    char *obj_name,
-    char *region_last_name);
+    const char *obj_name,
+    const char *region_last_name);
 
 /* Clean up the regions on an object, eliminating any removed walls. */
 void remove_gaps_from_regions(struct object *obj_ptr);

@@ -70,7 +70,7 @@ int bisect_near(double *list, int n, double val);
 int bisect_high(double *list, int n, double val);
 
 int distinguishable(double a, double b, double eps);
-int is_reverse_abbrev(char *abbrev, char *full);
+int is_reverse_abbrev(const char *abbrev, const char *full);
 
 struct void_list {
   struct void_list *next;
@@ -216,7 +216,7 @@ int pointer_hash_remove(struct pointer_hash *ht, void const *key,
 
 int double_cmp(void const *i1, void const *i2);
 
-int is_string_present_in_string_array(char * str, char ** strings, int length);
+int is_string_present_in_string_array(const char * str, char ** strings, int length);
 
 int generate_range(struct num_expr_list_head *list, double start, double end,
                    double step);
