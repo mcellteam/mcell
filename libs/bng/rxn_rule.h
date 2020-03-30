@@ -220,7 +220,7 @@ private:
   bool find_assigned_cplx_reactant_for_product(const uint product_index, uint& reactant_index) const;
   void compute_cplx_reactants_products_mapping();
 
-  void move_reused_reactants_to_be_the_first_products();
+  void move_products_that_are_also_reactants_to_be_the_first_products();
 
   void dump_complex_instance_vector(
       const BNGData& bng_data,

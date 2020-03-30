@@ -1627,7 +1627,7 @@ int DiffuseReactEvent::outcome_products_random(
     // do not create anything new when the reactant is kept -
     // for bimol reactions - the diffusion simply continues
     // for unimol reactions - the unimol action action starts diffusion for the remaining timestep
-    if (rx->is_cplx_reactant_on_both_sides_of_rxn(product_index) /*product.is_on_both_sides_of_rxn()*/) {
+    if (rx->is_cplx_product_on_both_sides_of_rxn(product_index) /*product.is_on_both_sides_of_rxn()*/) {
       // remember which reactant(s) to keep?
       continue;
     }

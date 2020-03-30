@@ -36,7 +36,8 @@ void RxnRule::finalize() {
 
   // only for mcell3 compatibility
   // TODO: need some config also for other tools
-  move_reused_reactants_to_be_the_first_products();
+
+  move_products_that_are_also_reactants_to_be_the_first_products();
 
   finalized = true;
 }
@@ -203,6 +204,8 @@ bool RxnRule::find_assigned_cplx_reactant_for_product(const uint product_index, 
 
 void RxnRule::compute_cplx_reactants_products_mapping() {
 
+  cplx_mapping.clear();
+
   for (uint ri = 0; ri < reactants.size(); ri++) {
     for (uint pi = 0; pi < products.size(); pi++) {
       uint index_ignored;
@@ -221,6 +224,7 @@ void RxnRule::compute_cplx_reactants_products_mapping() {
 
 
 bool RxnRule::compute_mol_reactants_products_mapping(MolInstance& not_matching_mol_inst, CplxMolIndex& not_matching_cmi) {
+  mol_mapping.clear();
 
   if (!has_same_mols_in_reactants_and_products()) {
     mol_instances_are_fully_maintained = false;
@@ -282,16 +286,21 @@ bool RxnRule::compute_reactants_products_mapping_w_error_output(const BNGData& b
 }
 
 
-void RxnRule::move_reused_reactants_to_be_the_first_products() {
+void RxnRule::move_products_that_are_also_reactants_to_be_the_first_products() {
 
-  // we can move reactants only if there is just one that is reused
-  if (is_bimol() && cplx_mapping.size() == 1) {
-    if (cplx_mapping[0].reactant_index == 1) {
-      // swap reactants
-      // mcell-only
-      CplxInstance tmp = reactants[0];
-      reactants[0] = reactants[1];
-      reactants[1] = tmp;
+  // for each reactant (from the end since we want the products to be ordered in the same way)
+  for (int pi = products.size() - 1; pi > 0; pi--) {
+    uint ri;
+    bool found = find_assigned_cplx_reactant_for_product(pi, ri);
+
+    if (found) {
+      // move product to the front
+      CplxInstance prod = products[pi];
+      products.erase(products.begin() + pi);
+      products.insert(products.begin(), prod);
+
+      // update mapping
+      compute_reactants_products_mapping();
     }
   }
 }
