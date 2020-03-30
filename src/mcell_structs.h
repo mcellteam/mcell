@@ -524,9 +524,10 @@ enum output_timer_type_t {
 
 /* Visualization modes. */
 enum viz_mode_t {
-  NO_VIZ_MODE,
-  ASCII_MODE,
-  CELLBLENDER_MODE,
+  VIZ_MODE_INVALID = -1,
+  NO_VIZ_MODE = 0,
+  ASCII_MODE = 1,
+  CELLBLENDER_MODE = 2,
 };
 
 /* Visualization Frame Data Type */
@@ -1380,7 +1381,7 @@ struct volume {
   long long
   last_checkpoint_iteration;  /* Last iteration when chkpt was created */
   time_t begin_timestamp;     /* Time since epoch at beginning of 'main' */
-  char *initialization_state; /* NULL after initialization completes */
+  const char *initialization_state; /* NULL after initialization completes */
   struct reaction_flags rxn_flags;
   /* shared walls information per mesh vertex is created when there are
      reactions present with more than one surface reactant or more than one
@@ -1706,7 +1707,7 @@ struct output_set {
   enum overwrite_policy_t file_flags; /* Overwrite Policy Flags: tells us how to
                                        * handle existing files */
   u_int chunk_count;    /* Number of buffered output chunks processed */
-  char *header_comment; /* Comment character(s) for header */
+  const char *header_comment; /* Comment character(s) for header */
   int exact_time_flag;  /* Boolean value; nonzero means print exact time in
                            TRIGGER statements */
   struct output_column *column_head; /* Data for one output column */
@@ -1859,7 +1860,7 @@ struct element_special {
 struct region {
   struct sym_entry *sym;  /* Symbol hash table entry for this region */
   u_int hashval;          /* Hash value for counter hash table */
-  char *region_last_name; /* Name of region without prepended object name */
+  const char *region_last_name; /* Name of region without prepended object name */
   struct geom_object *parent;  /* Parent of this region */
   struct element_list *element_list_head; /* List of element ranges comprising
                                              this region (used at parse time) */
@@ -1900,7 +1901,7 @@ struct geom_object {
   struct geom_object *first_child; /* First child object */
   struct geom_object *last_child;  /* Last child object */
   struct sym_entry *sym;      /* Symbol hash table entry for this object */
-  char *last_name; /* Name of object without pre-pended parent object name */
+  char *last_name; /* Name of object without pre-pended parent object name, must not be const char* */
   enum object_type_t object_type; /* Object Type Flags */
   void *contents;    /* Actual physical object, cast according to object_type */
   u_int num_regions; /* Number of regions defined on object */

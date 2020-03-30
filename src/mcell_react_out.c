@@ -87,7 +87,7 @@ int mcell_get_count(char *mol_name, char *reg_name, struct volume *world) {
     return -5;
 
   // Cast mol_sym (sym_entry, void pointer) to a species pointer
-  struct species *mol = mol_sym->value;
+  struct species *mol = (struct species *)mol_sym->value;
   // Get hash value for molecule 
   u_int mol_hashval = mol->hashval;
 
@@ -102,7 +102,7 @@ int mcell_get_count(char *mol_name, char *reg_name, struct volume *world) {
     return -6;  
  
   // Cast mol_sym (sym_entry,void pointer) to a species pointer 
-  struct region *reg = reg_sym->value;
+  struct region *reg = (struct region *)reg_sym->value;
   // Get hash value for region
   u_int reg_hashval = reg-> hashval;
 
@@ -147,7 +147,7 @@ struct output_request *mcell_new_output_request(MCELL_STATE *state,
   struct output_request *orq;
   struct output_expression *oe;
 
-  orq = CHECKED_MEM_GET(state->outp_request_mem, "count request");
+  orq = (struct output_request *)CHECKED_MEM_GET(state->outp_request_mem, "count request");
   if (orq == NULL)
     return NULL;
 
@@ -237,10 +237,10 @@ mcell_create_count(MCELL_STATE *state, struct sym_entry *target,
       outfile_name: name of output file
  Out: output request item, or NULL if an error occurred
 *************************************************************************/
-struct output_set *mcell_create_new_output_set(char *comment, int exact_time,
+struct output_set *mcell_create_new_output_set(const char *comment, int exact_time,
                                                struct output_column *col_head,
                                                int file_flags,
-                                               char *outfile_name) {
+                                               const char *outfile_name) {
 
   struct output_set *os =
       CHECKED_MALLOC_STRUCT(struct output_set, "reaction data output set");
@@ -249,7 +249,7 @@ struct output_set *mcell_create_new_output_set(char *comment, int exact_time,
   }
 
   os->outfile_name = CHECKED_STRDUP(outfile_name, "count outfile_name");
-  os->file_flags = file_flags;
+  os->file_flags = (enum overwrite_policy_t)file_flags;
   os->exact_time_flag = exact_time;
   os->chunk_count = 0;
   os->block = NULL;

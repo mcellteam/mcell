@@ -395,7 +395,7 @@ int is_defunct_molecule(struct abstract_element *e) {
 /*                       struct string_buffer *regions_to_ignore) {*/
 struct wall* find_closest_wall(
     struct volume *state, struct vector3 *loc, double search_diam,
-    struct vector2 *best_uv, int *grid_index, struct species *s, char *mesh_name,
+    struct vector2 *best_uv, int *grid_index, struct species *s, const char *mesh_name,
     struct string_buffer *reg_names, struct string_buffer *regions_to_ignore) {
 
   double d2;
@@ -604,7 +604,7 @@ place_surface_molecule
 struct surface_molecule *
 place_surface_molecule(struct volume *state, struct species *s,
                        struct vector3 *loc, short orient, double search_diam,
-                       double t, struct subvolume **psv, char *mesh_name,
+                       double t, struct subvolume **psv, const char *mesh_name,
                        struct string_buffer *reg_names,
                        struct string_buffer *regions_to_ignore,
                        struct periodic_image *periodic_box) {
@@ -641,7 +641,7 @@ place_surface_molecule(struct volume *state, struct species *s,
   sv = find_subvolume(state, &best_xyz, sv);
 
   struct surface_molecule *sm;
-  sm = CHECKED_MEM_GET(sv->local_storage->smol, "surface molecule");
+  sm = (struct surface_molecule *)CHECKED_MEM_GET(sv->local_storage->smol, "surface molecule");
   sm->mesh_name = NULL;
   sm->birthplace = sv->local_storage->smol;
   sm->birthday = convert_iterations_to_seconds(
@@ -706,7 +706,7 @@ double!)
 struct surface_molecule *
 insert_surface_molecule(struct volume *state, struct species *s,
                         struct vector3 *loc, short orient, double search_diam,
-                        double t, char *mesh_name,
+                        double t, const char *mesh_name,
                         struct string_buffer *reg_names,
                         struct string_buffer *regions_to_ignore,
                         struct periodic_image *periodic_box) {
@@ -776,7 +776,7 @@ struct volume_molecule *insert_volume_molecule(
   }
 
   struct volume_molecule *new_vm;
-  new_vm = CHECKED_MEM_GET(sv->local_storage->mol, "volume molecule");
+  new_vm = (struct volume_molecule *)CHECKED_MEM_GET(sv->local_storage->mol, "volume molecule");
   memcpy(new_vm, vm, sizeof(struct volume_molecule));
   new_vm->mesh_name = NULL;
   new_vm->birthplace = sv->local_storage->mol;
@@ -858,7 +858,7 @@ struct volume_molecule *migrate_volume_molecule(struct volume_molecule *vm,
     }
   }
 
-  new_vm = CHECKED_MEM_GET(new_sv->local_storage->mol, "volume molecule");
+  new_vm = (struct volume_molecule *)CHECKED_MEM_GET(new_sv->local_storage->mol, "volume molecule");
   memcpy(new_vm, vm, sizeof(struct volume_molecule));
   new_vm->birthplace = new_sv->local_storage->mol;
   new_vm->mesh_name = NULL;
@@ -914,7 +914,7 @@ int eval_rel_region_3d(struct release_evaluator *expr, struct waypoint *wp,
       }
     }
   } else
-    satisfies_l = eval_rel_region_3d(expr->left, wp, in_regions, out_regions);
+    satisfies_l = eval_rel_region_3d((struct release_evaluator *)expr->left, wp, in_regions, out_regions);
 
   if (expr->op & REXP_NO_OP)
     return satisfies_l;
@@ -944,7 +944,7 @@ int eval_rel_region_3d(struct release_evaluator *expr, struct waypoint *wp,
       }
     }
   } else
-    satisfies_r = eval_rel_region_3d(expr->right, wp, in_regions, out_regions);
+    satisfies_r = eval_rel_region_3d((struct release_evaluator *)expr->right, wp, in_regions, out_regions);
 
   if (expr->op & REXP_UNION)
     return (satisfies_l || satisfies_r);
