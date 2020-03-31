@@ -109,7 +109,7 @@ static double tosecs(timeval& t) {
 void World::init_simulation() {
   assert(!simulation_initialized && "init_simulation must be called just once");
 
-  if (bng_engine.all_species.get_count() == 0) {
+  if (get_all_species().get_count() == 0) {
     mcell_log("Error: there must be at lease one species!");
     exit(1);
   }
@@ -261,8 +261,8 @@ void World::run_simulation(const bool dump_initial_state) {
 void World::dump() {
   stats.dump();
 
-  bng_engine.all_species.dump(bng_engine.get_data());
-  bng_engine.all_rxns.dump();
+  get_all_species().dump(bng_engine.get_data());
+  get_all_rxns().dump();
 
   // partitions
   for (Partition& p: partitions) {

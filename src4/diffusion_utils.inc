@@ -311,7 +311,7 @@ static void tiny_diffuse_3D(
 
 
 static void reflect_absorb_check_wall(
-    const Partition& p,
+    Partition& p,
     const Molecule& sm,
     const Wall& wall,
     bool& reflect_now,
@@ -357,7 +357,7 @@ reflect_absorb_inside_out:
        otherwise. hd_head and this_wall_edge_region_border are updated.
 *************************************************************************/
 static void reflect_absorb_inside_out(
-    const Partition& p,
+    Partition& p,
     const Molecule& sm,
     const Wall& this_wall,
     const edge_index_t edge_index_that_was_hit,
@@ -389,7 +389,7 @@ reflect_absorb_outside_in:
        otherwise. hd_head is updated.
 *************************************************************************/
 static void reflect_absorb_outside_in(
-    const Partition& p,
+    Partition& p,
     const Molecule& sm,
     const Wall& target_wall,
     const Wall& this_wall,

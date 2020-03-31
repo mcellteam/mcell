@@ -23,11 +23,21 @@ namespace BNG {
  */
 // TODO: make arrays private
 class BNGData {
-public:
-  // -------- component states --------
-
+private:
   // indexed with state_id_t
   std::vector<std::string> state_names;
+
+  // indexed with component_type_id_t
+  std::vector<ComponentType> component_types;
+
+  // indexed with molecule_type_id_t
+  std::vector<MolType> molecule_types;
+
+  // indexed with rxn_rule_id_t
+  std::vector<RxnRule> rxn_rules;
+  
+public:
+  // -------- component state names --------
 
   state_id_t find_or_add_state_name(const std::string& s);
 
@@ -42,9 +52,6 @@ public:
 
   // -------- components --------
 
-  // indexed with component_type_id_t
-  std::vector<ComponentType> component_types;
-
   component_type_id_t find_or_add_component_type(const ComponentType& ct);
 
   const ComponentType& get_component_type(const component_type_id_t id) const {
@@ -54,9 +61,6 @@ public:
 
 
   // -------- molecule types --------
-
-  // indexed with molecule_type_id_t
-  std::vector<MolType> molecule_types;
 
   mol_type_id_t find_or_add_molecule_type(const MolType& mt);
 
@@ -69,12 +73,9 @@ public:
   }
 
 
-
   // -------- reaction rules --------
-  std::vector<RxnRule> rxn_rules;
 
   rxn_rule_id_t find_or_add_rxn_rule(const RxnRule& rr);
-
 
   // -------- utilities --------
   void dump();

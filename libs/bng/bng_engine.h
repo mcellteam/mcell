@@ -27,22 +27,30 @@ namespace BNG {
 // Does mostly caching, all the intelligence is in other classes
 //
 class BNGEngine {
+private:
+  SpeciesContainer all_species;
+
+  RxnContainer all_rxns;
+
+  // data entered by user, reactions reference these data
+  BNGData data;
+
+  const BNGConfig& bng_config;
 
 public:
-
   BNGEngine(const BNGConfig& bng_config_)
     : all_rxns(all_species, data, bng_config_), bng_config(bng_config_)
       {
   }
 
-  // TODO: use IDs for rxn patterns
+  // NOTE: use IDs for rxn patterns?
   // this function will be needed anyway
   // checks if species_id matches the reaction pattern
   bool matches(
       const CplxInstance& cplx_pattern,
       const species_id_t species_id
   ) {
-    // TODO: caching
+    // NOTE: probably some caching will be needed
     const CplxInstance& cplx_inst = all_species.get_as_cplx_instance(species_id);
     return cplx_pattern.matches(cplx_inst);
   }
@@ -52,7 +60,7 @@ public:
       const CplxInstance& cplx_pattern,
       const species_id_t species_id
   ) {
-    // TODO: caching
+    // NOTE: probably some caching will be needed
     const CplxInstance& cplx_inst = all_species.get_as_cplx_instance(species_id);
     return cplx_pattern.matches(cplx_inst, true);
   }
@@ -63,63 +71,16 @@ public:
       const species_id_t reactant_a_species_id, const species_id_t reactant_b_species_id
   );
 
-  //component_index_t next_component_index;
+  SpeciesContainer& get_all_species() { return all_species; }
+  const SpeciesContainer& get_all_species() const { return all_species; }
 
-  // checks cache - 2 types of caches can/cannot react
-  // if not found, we need to decide
-  /*void can_react(
-      species_id_t a,
-      species_id_t b,
-      small_vector<species_id_t>& reactions
-  );
+  RxnContainer& get_all_rxns() { return all_rxns; }
+  const RxnContainer& get_all_rxns() const { return all_rxns; }
 
-  void get_reactants(
-      species_id_t b,
-      small_vector<species_id_t>& reactions
-  );
-  */
-
-  BNGData& get_data() {
-    return data;
-  }
-
-  const BNGData& get_data() const {
-    return data;
-  }
-
-
-
+  BNGData& get_data() { return data; }
+  const BNGData& get_data() const { return data; }
 
   CplxInstance create_species_based_cplx_instance(const species_id_t id, const orientation_t o) const;
-
-
-  // search whether two molecules can react is done
-  //std::vector<ComplexSpecies> complex_species;
-
-
-  // -------- new -----------
-
-  /*
-  // finds all reactions for species id,
-  // creates reactions classes or updates existing,
-  // puts pointers to all corresponding classes to the res_classes_map
-  void create_rxn_classes_for_new_species(const species_id_t id, SpeciesRxnClassesMap& res_classes_map);
-*/
-
-
-  // make private?
-  // - defintely, must be added through this engine
-  SpeciesContainer all_species;
-
-  RxnContainer all_rxns;
-
-  // cache of complex species indices that can interact together
-private:
-  // data entered by user, reactions reference these data
-  BNGData data;
-
-  const BNGConfig& bng_config;
-
 };
 
 

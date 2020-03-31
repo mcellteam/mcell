@@ -243,7 +243,7 @@ MolInstance SemanticAnalyzer::convert_molecule_pattern(const ASTMoleculeNode* m)
       }
 
       // is this state allowed for this component?
-      const ComponentType& ct = bng_data->component_types[component_type_id];
+      const ComponentType& ct = bng_data->get_component_type(component_type_id);
       if (ct.allowed_state_ids.count(state_id) == 0) {
         errs(component) <<
             "State name '" << state_name << "' was not declared as allowed for component '" << component->name << "'.\n"; // test N0204

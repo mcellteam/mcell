@@ -522,14 +522,14 @@ find_restricted_regions_by_wall:
         included in the return "region list".
 ************************************************************************/
 static void find_restricted_regions_by_wall(
-    const Partition& p,
+    Partition& p,
     const Wall& this_wall,
     const Molecule& sm,
     uint_set<region_index_t>& regions) {
 
   assert(regions.empty() && "Function does not clean the resulting array");
 
-  const BNG::Species& species = p.bng_engine.all_species.get(sm.species_id);
+  const BNG::Species& species = p.get_all_species().get(sm.species_id);
 
   if (!species.has_flag(MCell::SPECIES_FLAG_CAN_REGION_BORDER)) {
     // no restricted region
@@ -596,7 +596,7 @@ walls_belong_to_at_least_one_different_restricted_region:
         REFL/ABSORB are declared.
 ******************************************************************/
 static bool walls_belong_to_at_least_one_different_restricted_region(
-    const Partition& p,
+    Partition& p,
     const Wall& w1, const Molecule& sm1,
     const Wall& w2, const Molecule& sm2) {
 

@@ -73,7 +73,7 @@ static void trigger_bimolecular(
     orientation_t orientA, orientation_t orientB,
     BNG::RxnClassesVector& matching_rxn_classes // items are appended
 ) {
-  const BNG::RxnClass* rxn_class = bng_engine.all_rxns.get_bimol_rxn_class(reacA.species_id, reacB.species_id);
+  const BNG::RxnClass* rxn_class = bng_engine.get_all_rxns().get_bimol_rxn_class(reacA.species_id, reacB.species_id);
   if (rxn_class == nullptr) {
     // no reaction
     return;
@@ -171,7 +171,7 @@ static void find_surface_mol_reactions_with_surf_classes_for_rxn_class_map(
 
 
 static void find_surface_mol_reactions_with_surf_classes(
-    const Partition& p,
+    Partition& p,
     const Molecule& reacA,
     const Wall& w,
     const bool allow_rx_transp,
@@ -183,9 +183,9 @@ static void find_surface_mol_reactions_with_surf_classes(
   assert(reacA.is_surf());
 
   // for all reactions applicable to reacA and and wall
-  const BNG::SpeciesRxnClassesMap* species_rxns = p.bng_engine.all_rxns.get_bimol_rxns_for_reactant(reacA.species_id);
-  const BNG::SpeciesRxnClassesMap* all_molecules_rxns = p.bng_engine.all_rxns.get_bimol_rxns_for_reactant(p.bng_engine.all_rxns.all_molecules_species_id);
-  const BNG::SpeciesRxnClassesMap* all_vol_surf_rxns = p.bng_engine.all_rxns.get_bimol_rxns_for_reactant(p.bng_engine.all_rxns.all_surface_molecules_species_id);
+  const BNG::SpeciesRxnClassesMap* species_rxns = p.get_all_rxns().get_bimol_rxns_for_reactant(reacA.species_id);
+  const BNG::SpeciesRxnClassesMap* all_molecules_rxns = p.get_all_rxns().get_bimol_rxns_for_reactant(p.get_all_rxns().all_molecules_species_id);
+  const BNG::SpeciesRxnClassesMap* all_vol_surf_rxns = p.get_all_rxns().get_bimol_rxns_for_reactant(p.get_all_rxns().all_surface_molecules_species_id);
 
   if (species_rxns == nullptr && all_molecules_rxns == nullptr && all_vol_surf_rxns == nullptr) {
     // no reactions at all for reacA
@@ -243,7 +243,7 @@ trigger_intersect:
 
 *************************************************************************/
 static void trigger_intersect(
-    const Partition& p,
+    Partition& p,
     const Molecule& reacA,
     const Wall& w,
     BNG::RxnClassesVector& matching_rxns,
@@ -537,7 +537,7 @@ static const BNG::RxnClass* pick_unimol_rx(
     World* world,
     const species_id_t species_id
 ) {
-  return world->bng_engine.all_rxns.get_unimol_rxn_class(species_id);
+  return world->bng_engine.get_all_rxns().get_unimol_rxn_class(species_id);
 }
 
 

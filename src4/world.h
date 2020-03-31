@@ -139,6 +139,12 @@ public:
     return wall_hit_callback;
   }
 
+  // ---------------------- other ----------------------
+  BNG::SpeciesContainer& get_all_species() { return bng_engine.get_all_species(); }
+  const BNG::SpeciesContainer& get_all_species() const { return bng_engine.get_all_species(); }
+
+  BNG::RxnContainer& get_all_rxns() { return bng_engine.get_all_rxns(); }
+  const BNG::RxnContainer& get_all_rxns() const { return bng_engine.get_all_rxns(); }
 
 public:
   // single instance for the whole mcell simulator,

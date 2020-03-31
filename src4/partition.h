@@ -224,7 +224,7 @@ public:
     // and these are indices of possible reactants with our reactant_species_id
     // NOTE: this must be fast, bng engine must have this map/vector already ready
     // TODO: we can optimize this by taking just volume reactants into account
-    const BNG::SpeciesRxnClassesMap* reactions_map = bng_engine.all_rxns.get_bimol_rxns_for_reactant(vm.species_id);
+    const BNG::SpeciesRxnClassesMap* reactions_map = get_all_rxns().get_bimol_rxns_for_reactant(vm.species_id);
     if (reactions_map == nullptr) {
       // nothing to do
       return;
@@ -283,7 +283,7 @@ private:
 
   Molecule& add_molecule(const Molecule& vm_copy, const bool is_vol) {
 
-    const BNG::Species& species = bng_engine.all_species.get(vm_copy.species_id);
+    const BNG::Species& species = get_all_species().get(vm_copy.species_id);
     assert((is_vol && species.is_vol()) || (!is_vol && species.is_surf()));
     uint32_t time_step_index = get_or_add_molecule_list_index_for_time_step(species.time_step);
 
@@ -570,14 +570,11 @@ private:
   }
 public:
   // ---------------------------------- other ----------------------------------
+  BNG::SpeciesContainer& get_all_species() { return bng_engine.get_all_species(); }
+  const BNG::SpeciesContainer& get_all_species() const { return bng_engine.get_all_species(); }
 
-  /*const SimulationConfig& get_world_constants() const {
-    return config;
-  }
-
-  SimulationStats& get_simulation_stats() const {
-    return stats;
-  }*/
+  BNG::RxnContainer& get_all_rxns() { return bng_engine.get_all_rxns(); }
+  const BNG::RxnContainer& get_all_rxns() const { return bng_engine.get_all_rxns(); }
 
   void dump();
 

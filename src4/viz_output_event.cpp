@@ -108,7 +108,7 @@ void VizOutputEvent::compute_where_and_norm(
     const Partition& p, const Molecule& m,
     Vec3& where, Vec3& norm
 ) {
-  const BNG::Species& species = world->bng_engine.all_species.get(m.species_id);
+  const BNG::Species& species = world->get_all_species().get(m.species_id);
 
   if ((species.flags & NOT_FREE) == 0) {
     // neither surface nor on grid
@@ -148,7 +148,7 @@ void VizOutputEvent::output_ascii_molecules() {
       Vec3 norm;
       compute_where_and_norm(p, m, where, norm);
 
-      const BNG::Species& species = world->bng_engine.all_species.get(m.species_id);
+      const BNG::Species& species = world->get_all_species().get(m.species_id);
 
       glm::dvec3 dwhere = where;
       glm::dvec3 dnorm = norm;
@@ -176,7 +176,7 @@ void VizOutputEvent::output_cellblender_molecules() {
   float_t length_unit = world->config.length_unit;
 
   // sort all molecules by species
-  uint species_count = world->bng_engine.all_species.get_count();
+  uint species_count = world->get_all_species().get_count();
 
   // FIXME: rather change to partition and molecule indices
   typedef pair<const Partition*, const Molecule*> partition_molecule_ptr_pair_t;
@@ -198,7 +198,7 @@ void VizOutputEvent::output_cellblender_molecules() {
   fwrite(&cellbin_version, sizeof(cellbin_version), 1, custom_file);
 
   /* Write all the molecules whether EXTERNAL_SPECIES or not (for now) */
-  for (species_id_t species_idx = 0; species_idx < world->bng_engine.all_species.get_count(); species_idx++) {
+  for (species_id_t species_idx = 0; species_idx < world->get_all_species().get_count(); species_idx++) {
     // count of molecules for this species
     vector<partition_molecule_ptr_pair_t>& species_molecules = volume_molecules_by_species[species_idx];
     if (species_molecules.empty()) {
@@ -206,7 +206,7 @@ void VizOutputEvent::output_cellblender_molecules() {
     }
 
     /* Write species name: */
-    const BNG::Species& species = world->bng_engine.all_species.get(species_idx);
+    const BNG::Species& species = world->get_all_species().get(species_idx);
     string mol_name = species.name;
     byte name_len = mol_name.length();
      fwrite(&name_len, sizeof(byte), 1, custom_file);

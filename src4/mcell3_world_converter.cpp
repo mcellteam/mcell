@@ -559,10 +559,10 @@ bool MCell3WorldConverter::convert_polygonal_object(const geom_object* o) {
 
 // cannot fail
 void MCell3WorldConverter::create_diffusion_events() {
-  assert(world->bng_engine.all_species.get_count() != 0 && "There must be at least 1 species");
+  assert(world->get_all_species().get_count() != 0 && "There must be at least 1 species");
 
   set<float_t> time_steps_set;
-  for (auto &species : world->bng_engine.all_species.get_species_vector() ) {
+  for (auto &species : world->get_all_species().get_species_vector() ) {
     time_steps_set.insert(species.time_step);
   }
 
@@ -647,20 +647,20 @@ bool MCell3WorldConverter::convert_species(volume* s) {
 
     // and finally let's add our new species
     new_species.finalize();
-    species_id_t new_species_id = world->bng_engine.all_species.find_or_add(new_species);
+    species_id_t new_species_id = world->get_all_species().find_or_add(new_species);
 
     // set all species 'superclasses' ids
     // these special species might be used in wall - surf|vol reactions
     if (spec == s->all_mols) {
       CHECK_PROPERTY(new_species.name == ALL_MOLECULES);
-      world->bng_engine.all_rxns.set_all_molecules_species_id(new_species_id);
+      world->get_all_rxns().set_all_molecules_species_id(new_species_id);
     }
     else if (spec == s->all_volume_mols) {
       CHECK_PROPERTY(new_species.name == ALL_VOLUME_MOLECULES);
     }
     else if (spec == s->all_surface_mols) {
       CHECK_PROPERTY(new_species.name == ALL_SURFACE_MOLECULES);
-      world->bng_engine.all_rxns.set_all_surface_molecules_species_id(new_species_id);
+      world->get_all_rxns().set_all_surface_molecules_species_id(new_species_id);
     }
 
     // map for other conversion steps
@@ -797,7 +797,7 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
 
     // add our reaction, reaction classes are created on-the-fly
     rxn.finalize();
-    world->bng_engine.all_rxns.add_no_update(rxn);
+    world->get_all_rxns().add_no_update(rxn);
   }
 
 
@@ -920,7 +920,7 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
       }
 
       event_data.species_id = get_mcell4_species_id(rel_site->mol_type->species_id);
-      assert(world->bng_engine.all_species.is_valid_id(event_data.species_id));
+      assert(world->get_all_species().is_valid_id(event_data.species_id));
 
       CHECK_PROPERTY(rel_site->release_number_method == 0);
 

@@ -213,7 +213,7 @@ void ReleaseEvent::release_inside_regions(uint computed_release_number) {
 void ReleaseEvent::release_ellipsoid_or_rectcuboid(uint computed_release_number) {
 
   Partition& p = world->get_partition(world->get_or_add_partition_index(location));
-  float_t time_step = world->bng_engine.all_species.get(species_id).time_step;
+  float_t time_step = world->get_all_species().get(species_id).time_step;
 
   const int is_spheroidal = (release_shape == ReleaseShape::SPHERICAL ||
                              /*release_shape == SHAPE_ELLIPTIC ||*/
@@ -268,7 +268,7 @@ void ReleaseEvent::step() {
 
   uint number = calculate_number_to_release();
 
-  const BNG::Species& species = world->bng_engine.all_species.get(species_id);
+  const BNG::Species& species = world->get_all_species().get(species_id);
 
   if (release_shape == ReleaseShape::REGION) {
     if (species.is_surf()) {

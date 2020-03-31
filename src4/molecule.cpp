@@ -90,7 +90,7 @@ void Molecule::dump(
 ) const {
   cout
     << ind << extra_comment << "it:" << iteration << ", idx:" << id
-    << ", species: " << p.bng_engine.all_species.get(species_id).name;
+    << ", species: " << p.get_all_species().get(species_id).name;
 
   if (print_position) {
     cout << ", pos:";
