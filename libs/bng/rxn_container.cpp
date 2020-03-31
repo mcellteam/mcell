@@ -178,8 +178,8 @@ species_id_t RxnContainer::get_rxn_product_species_id(
   }
   else {
     // do we have such species already or we must define a new set?
-    // here are all the other tricks with
-    assert(false && "TODO");
+    // here are all the other tricks with components and bonds
+    assert(false && "Support for BNG style products generation is not implemented yet");
     res = SPECIES_ID_INVALID;
   }
 
@@ -188,12 +188,18 @@ species_id_t RxnContainer::get_rxn_product_species_id(
 
 
 void RxnContainer::dump() const {
-  set<RxnClass*> already_printed_classes;
 
-  // TODO: unimol
+  for (auto it_reac2: unimol_rxn_class_map) {
+    cout <<
+        "RxnClass for " <<
+        all_species.get(it_reac2.first).name << " (" << it_reac2.first << "):\n";
 
-  //set<RxnClass*> already_printed_classes;
-  // bimol
+    const RxnClass* rxn_class = it_reac2.second;
+    assert(rxn_class != nullptr);
+    rxn_class->dump(bng_data, "  ");
+    cout << "\n";
+  }
+
   for (auto it_reac1: bimol_rxn_class_map) {
     for (auto it_reac2: it_reac1.second) {
       cout <<

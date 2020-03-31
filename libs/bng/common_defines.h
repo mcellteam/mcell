@@ -143,20 +143,7 @@ public:
     this->erase(id_or_index);
   }
 
-  // TODO : move out of class
-  void dump(const std::string comment = "") const {
-    std::cout << comment << ": ";
-    int cnt = 0;
-    for (const Key& idx: *this) {
-      std::cout << idx << ", ";
-
-      if (cnt %20 == 0 && cnt != 0) {
-        std::cout << "\n";
-      }
-      cnt++;
-    }
-    std::cout << "\n";
-  }
+  void dump(const std::string comment = "") const;
 };
 
 
@@ -215,5 +202,23 @@ public:
     this->set_deleted_key(UINT_INVALID2);
   }
 };
+
+
+
+template<typename Key>
+void uint_set<Key>::dump(const std::string comment) const {
+  std::cout << comment << ": ";
+  int cnt = 0;
+  for (const Key& idx: *this) {
+    std::cout << idx << ", ";
+
+    if (cnt %20 == 0 && cnt != 0) {
+      std::cout << "\n";
+    }
+    cnt++;
+  }
+  std::cout << "\n";
+}
+
 
 #endif // __SHARED_DEFINES_H__

@@ -84,7 +84,7 @@ bool CplxInstance::matches(const CplxInstance& inst, const bool ignore_orientati
     return mol_instances[0].matches(inst.mol_instances[0], ignore_orientation);
   }
   else {
-    assert(false && "TODO");
+    assert(false && "Support for BNG style matching is not implemented yet");
     return false;
   }
 }

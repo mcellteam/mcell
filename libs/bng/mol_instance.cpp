@@ -97,7 +97,7 @@ bool MolInstance::matches(const MolInstance& inst, const bool ignore_orientation
     }
   }
   else {
-    assert(false && "TODO");
+    assert(false && "Support for BNG style matching is not implemented yet");
     return false;
   }
 }

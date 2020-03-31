@@ -171,7 +171,7 @@ void RxnClass::update(const BNGConfig& bng_config) {
   // alphabetize?
   // also, we might need to sort the reactions somehow (later, when input is from Python)
 
-  // TODO: check_reaction_for_duplicate_pathways
+  // TODO LATER: check_reaction_for_duplicate_pathways
 
   cum_probs.resize(reactions.size());
 
@@ -183,7 +183,7 @@ void RxnClass::update(const BNGConfig& bng_config) {
   float_t pb_factor = compute_pb_factor(bng_config);
 
   // scale_rxn_probabilities
-  // TODO: info and warning printouts
+  // TODO LATER: info and warning printouts
   for (uint i = 0; i < reactions.size(); i++) {
     float_t rate = pb_factor * cum_probs[i];
     cum_probs[i] = rate;

@@ -39,11 +39,12 @@ typedef SpeciesRxnClassesMap UnimolRxnClassesMap;
 
 /**
  * Owns information on reactions and species,
- * serves as a source of information for BNGEngine
+ * serves as a source of information for BNGEngine.
+ *
+ * Must be notified when a new species was created to update reaction maps.
+ *
+ * NOTE: Maybe rename, it is much more than a container
  */
-// TODO: better name, this will be much than a container,
-// caching is done in BNGEngine
-// Must be notified when a new species was created to update reaction maps
 class RxnContainer {
 public:
   RxnContainer(SpeciesContainer& all_species_, const BNGData& bng_data_, const BNGConfig& bng_config_)
@@ -73,7 +74,7 @@ public:
   // this method is supposed to be used only during initialization
   void add_no_update(const RxnRule& r) {
     assert(r.is_finalized());
-    // TODO: check that we don't have this rule already
+    // TODO LATER: check that we don't have this rule already
     rxns.push_back(r);
   }
 
@@ -189,30 +190,22 @@ private:
   uint_dense_hash_set<species_id_t> species_processed_for_unimol_rxn_classes;
 
 public:
+  // TODO: move to species container
   // ids of species superclasses, SPECIES_ID_INVALID if not set
   // it might seem that this should belong into SpeciesInfo but this class needs this information
   species_id_t all_molecules_species_id;
   species_id_t all_volume_molecules_species_id;
   species_id_t all_surface_molecules_species_id;
 
-  // owned by BNGEngine
-  SpeciesContainer& all_species;
-  const BNGData& bng_data;
-  const BNGConfig& bng_config;
-
-public:
-
-
+private:
   UnimolRxnClassesMap unimol_rxn_class_map;
 
   BimolRxnClassesMap bimol_rxn_class_map;
 
-  // TODO: these should be private
-
-  // TODO_PATHWAYS: there might be multiple reactions for 1 or 2 reactants (multiple pathways)
-  //UnimolecularRxnClassesMap unimolecular_reactions_map; // created from reactions in init_simulation
-  //BimolecularRxnClassesMap bimolecular_reactions_map; // created from reactions in init_simulation
-
+  // owned by BNGEngine
+  SpeciesContainer& all_species;
+  const BNGData& bng_data;
+  const BNGConfig& bng_config;
 };
 
 } // namespace BNG
