@@ -55,6 +55,7 @@ enum class CollisionType {
 class Collision;
 class Partition;
 
+// TODO: use only dense hash map/set and boost vector where possible
 #ifndef INDEXER_WA
 typedef boost::container::small_vector<Collision, 16> collision_vector_t;
 

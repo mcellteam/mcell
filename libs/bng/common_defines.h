@@ -17,9 +17,12 @@
 #include <iostream>
 #include <map>
 #include <unordered_map>
+
 #include <boost/container/small_vector.hpp>
 #include <boost/container/flat_set.hpp>
 
+#include <google/dense_hash_map>
+#include <google/dense_hash_set>
 
 // ---------------------------------- float types ----------------------------------
 
@@ -60,7 +63,8 @@ const Common::float_t TIME_INVALID = -1;
 const Common::float_t TIME_FOREVER = FLT_MAX; // this max is sufficient for both float and double
 const Common::float_t TIME_SIMULATION_START = 0;
 
-const Common::float_t UINT_INVALID = UINT32_MAX;
+const Common::float_t UINT_INVALID = UINT32_MAX; // invalid value to be used for any invalid unsigned integer values
+const Common::float_t UINT_INVALID2 = UINT32_MAX - 1; // second invalid value not to be used, in this case for any purpose
 
 const uint ID_INVALID = UINT_INVALID; // general invalid index, should not be used when a definition for a specific type is available
 const uint INDEX_INVALID = UINT_INVALID; // general invalid index, should not be used when a definition for a specific type is available
@@ -121,20 +125,28 @@ template<typename T, typename _Compare = std::less<T>, typename _Alloc = std::al
 /**
  * Template class used to hold sets of ids or indices of molecules or other items,
  * extended to check for unique insertions and checked removals.
+ *
+ * T is really not needed since it is an uint, but ot
  */
-template<typename T>
-class uint_set: public base_flat_set<T> {
+template<typename Key>
+class uint_set: public google::dense_hash_set<Key> {
 public:
+  uint_set() {
+    // dense_hash_set requires this to be called
+    this->set_empty_key(UINT_INVALID);
+    this->set_deleted_key(UINT_INVALID2);
+  }
+
   // insert with check that the item is not there yet
   // for insertions without this check use 'insert'
-  void insert_unique(const T id_or_index) {
+  void insert_unique(const Key id_or_index) {
     assert(this->count(id_or_index) == 0);
     this->insert(id_or_index);
   }
 
   // erase with check that the item is present
   // for insertions without this check use 'erase'
-  void erase_existing(const T id_or_index) {
+  void erase_existing(const Key id_or_index) {
     assert(this->count(id_or_index) == 1);
     this->erase(id_or_index);
   }
@@ -142,7 +154,7 @@ public:
   void dump(const std::string comment = "") const {
     std::cout << comment << ": ";
     int cnt = 0;
-    for (const T& idx: *this) {
+    for (const Key& idx: *this) {
       std::cout << idx << ", ";
 
       if (cnt %20 == 0 && cnt != 0) {
@@ -152,6 +164,22 @@ public:
     }
     std::cout << "\n";
   }
+};
+
+/**
+ *  Warning: value must be POD (plain old data),
+ *  this is not really checked.
+ */
+template<typename Key, typename Value>
+class uint_map: public google::dense_hash_map<Key, Value> {
+public:
+  uint_map() {
+    assert(sizeof(Value) <= 8);
+    // dense_hash_map requires this to be called
+    this->set_empty_key(UINT_INVALID);
+    this->set_deleted_key(UINT_INVALID2);
+  }
+
 };
 
 #endif // __SHARED_DEFINES_H__

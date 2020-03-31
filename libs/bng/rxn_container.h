@@ -24,8 +24,6 @@
 #ifndef LIBS_BNG_RXN_CONTAINER_H_
 #define LIBS_BNG_RXN_CONTAINER_H_
 
-#include <map>
-
 #include "bng_defines.h"
 #include "rxn_rule.h"
 #include "rxn_class.h"
@@ -34,7 +32,6 @@
 namespace BNG {
 
 typedef std::map<species_id_t, RxnClass*> SpeciesRxnClassesMap;
-
 
 typedef std::map<species_id_t, SpeciesRxnClassesMap> BimolRxnClassesMap;
 typedef SpeciesRxnClassesMap UnimolRxnClassesMap;
@@ -187,6 +184,7 @@ private:
   // FIXME: change to pointers
   std::vector<RxnRule> rxns;
 
+  //
   uint_set<species_id_t> species_processed_for_bimol_rxn_classes;
   uint_set<species_id_t> species_processed_for_unimol_rxn_classes;
 

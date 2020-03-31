@@ -54,7 +54,7 @@
 #endif
 
 //#define DUMP_ALWAYS
-//#define DUMP_NEVER
+#define DUMP_NEVER
 
 
 #if (!defined(NDEBUG) || defined(DUMP_ALWAYS)) && !defined(DUMP_NEVER)
