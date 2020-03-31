@@ -14,32 +14,29 @@
 #include "base_flag.h"
 #include "mol_instance.h"
 
-// rename this to complex instance?
-
 namespace BNG {
 
 class MolType;
 class BNGData;
 
 
-// this class is used in two ways:
-// - as a pattern for matching, not all states and bonds need to be entered
-// - as a definition of species, in this case all components must be present and
-//      if a component has more than 0 states then the state must be set
-// TODO:L rename to pattern
+/**
+ * Complex instance or pattern.
+ *
+ * This class is used in two ways:
+ * - as a pattern for matching, not all states and bonds need to be entered
+ * - as a definition of species, in this case all components must be present and
+ *      if a component has more than 0 states then the state must be set
+ *
+ * Contains information on orientation, so two identical complexes but
+ * with different orientation are different species.
+ */
 class CplxInstance: public BaseFlag {
 public:
-  // TODO: rename this to mol_instances
-  MolInstanceVector mol_patterns;
+  MolInstanceVector mol_instances;
 
 private:
-  // ID of this pattern, set to a value only
-  // if this instance is used by a reaction
-  // ???
-  // pattern_id_t pattern_id;
-
   // not read from BNG yet, but proposal is on its way
-  // for now
   orientation_t orientation;
 
 public:
@@ -61,22 +58,9 @@ public:
     return has_flag(CPLX_MOL_FLAG_SURF);
   }
 
-  /*bool has_single_orientation() const {
-    return has_flag(CPLX_FLAG_HAS_SINGLE_ORIENTATION);
-  }
-
-  // asserts if has_single_orientation is false
-  orientation_t get_single_orientation() const {
-    assert(has_single_orientation());
-    return has_flag(CPLX_FLAG_SINGLE_ORIENTATION_IS_UP) ? ORIENTATION_UP : ORIENTATION_DOWN;
-  }*/
-
   bool is_simple() const {
     return has_flag(CPLX_FLAG_ONE_MOL_NO_COMPONENTS);
   }
-
-  // asserts if has_single_orientation is false
-  //void set_single_orientation(orientation_t orientation) const;
 
   orientation_t get_orientation() const {
     return orientation;
@@ -91,7 +75,7 @@ public:
 
   bool equal(const CplxInstance& ci2) const {
     return
-        mol_patterns == ci2.mol_patterns &&
+        mol_instances == ci2.mol_instances &&
         orientation == ci2.orientation;
   }
 
@@ -103,9 +87,6 @@ public:
 
   void dump(const BNGData& bng_data, std::string ind = "") const;
 };
-
-
-// maybe some derived class for instances?
 
 typedef small_vector<CplxInstance> CplxInstanceVector;
 

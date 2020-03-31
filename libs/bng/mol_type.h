@@ -48,9 +48,6 @@ public:
   void dump(const BNGData& bng_data) const;
 };
 
-
-
-
 } /* namespace BNG */
 
 #endif /* LIBS_BNG_MOL_TYPE_H_ */

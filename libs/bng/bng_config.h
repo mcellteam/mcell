@@ -34,15 +34,12 @@
  *
  * Preprocessor conditioning must be used only in necessary cases such as when
  * defining attributes and methods for Species or Reactions.
- * Everywhere else, configuration from a config class must be used. (TODO: not implemented yet)
+ * Everywhere else, configuration from a config class must be used.
  *
  */
 #define BNG_ONLY_MCELL
 
 // included only in common_defines.h
-
-// TODO create an equivalent of a triple,
-//
 
 namespace BNG {
 

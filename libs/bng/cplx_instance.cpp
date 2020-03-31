@@ -16,16 +16,16 @@ using namespace std;
 namespace BNG {
 
 void CplxInstance::finalize() {
-  assert(!mol_patterns.empty() && "There must be at least one molecule type");
+  assert(!mol_instances.empty() && "There must be at least one molecule type");
 
   // finalize mol instances first
-  for (MolInstance& mp: mol_patterns) {
+  for (MolInstance& mp: mol_instances) {
     mp.finalize();
   }
 
   // volume or surface type
   bool vol_type = true;
-  for (MolInstance& mp: mol_patterns) {
+  for (MolInstance& mp: mol_instances) {
     mp.finalize();
     if (mp.is_surf()) {
       vol_type = false;
@@ -60,11 +60,11 @@ void CplxInstance::finalize() {
 
   // CPLX_FLAG_SINGLE_MOL_NO_COMPONENTS
   bool is_simple = true;
-  if (mol_patterns.size() > 1) {
+  if (mol_instances.size() > 1) {
     is_simple = false;
   }
   if (is_simple) {
-    for (MolInstance& mp: mol_patterns) {
+    for (MolInstance& mp: mol_instances) {
       if (!mp.component_instances.empty()) {
         is_simple = false;
         break;
@@ -80,8 +80,8 @@ void CplxInstance::finalize() {
 bool CplxInstance::matches(const CplxInstance& inst, const bool ignore_orientation) const {
   if (is_simple() && inst.is_simple()) {
     // keep it simple for now...
-    assert(mol_patterns.size() == 1 && inst.mol_patterns.size() == 1);
-    return mol_patterns[0].matches(inst.mol_patterns[0], ignore_orientation);
+    assert(mol_instances.size() == 1 && inst.mol_instances.size() == 1);
+    return mol_instances[0].matches(inst.mol_instances[0], ignore_orientation);
   }
   else {
     assert(false && "TODO");
@@ -92,10 +92,10 @@ bool CplxInstance::matches(const CplxInstance& inst, const bool ignore_orientati
 
 void CplxInstance::dump(const BNGData& bng_data, std::string ind) const {
   cout << ind;
-  for (size_t i = 0; i < mol_patterns.size(); i++) {
-    mol_patterns[i].dump(bng_data);
+  for (size_t i = 0; i < mol_instances.size(); i++) {
+    mol_instances[i].dump(bng_data);
 
-    if (i != mol_patterns.size() - 1) {
+    if (i != mol_instances.size() - 1) {
       cout << ".";
     }
   }

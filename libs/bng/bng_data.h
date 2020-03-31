@@ -17,9 +17,10 @@
 
 namespace BNG {
 
-// TODO: split, make bng_data.h file
-// Data shared among all instances of BNGEngines
-// Usually constant, initialized when BNGL is parsed
+/**
+ *  Data shared among all instances of BNGEngines
+ * Usually constant, initialized when BNGL is parsed
+ */
 // TODO: make arrays private
 class BNGData {
 public:
@@ -76,7 +77,7 @@ public:
 
 
   // -------- utilities --------
-  void dump(const bool as_bngl = true);
+  void dump();
 
 private:
   void dump_molecule_types_as_bngl();

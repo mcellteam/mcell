@@ -27,7 +27,7 @@ struct BNGLLTYPE
 
 namespace BNG {
 
-class ASTContext;
+class ParserContext;
 class ASTExprNode;
 class ASTRxnRuleNode;
 
@@ -251,7 +251,6 @@ public:
 // into the symbol table
 // when used in reaction rule, it is referenced from the
 // reaction itself
-// TODO: add operator [] and .size() - yes
 class ASTMoleculeNode: public ASTBaseNode {
 public:
   ASTMoleculeNode()
@@ -288,11 +287,11 @@ class ASTSymbolTable {
 public:
   typedef std::map<std::string, ASTBaseNode*> IdToNodeMap;
 
-  void insert(const std::string id, ASTBaseNode* node, ASTContext* ctx);
-  void insert_molecule_declarations(const ASTListNode* molecule_node_list, ASTContext* ctx);
+  void insert(const std::string id, ASTBaseNode* node, ParserContext* ctx);
+  void insert_molecule_declarations(const ASTListNode* molecule_node_list, ParserContext* ctx);
 
   // if symbol does was not defined, returns null and prints out error message
-  ASTBaseNode* get(const std::string& id, ASTBaseNode* loc, ASTContext* ctx) const;
+  ASTBaseNode* get(const std::string& id, ASTBaseNode* loc, ParserContext* ctx) const;
 
   const IdToNodeMap& get_as_map() const {
     return table;
@@ -308,15 +307,14 @@ private:
 
 // contains and owns all created nodes
 // also contains symbol table
-// TODO: maybe use different name, parser context?
-class ASTContext {
+class ParserContext {
 public:
-  ASTContext()
+  ParserContext()
     : errors(0), current_file(nullptr) {
   }
 
   // frees all owned nodes
-  ~ ASTContext();
+  ~ ParserContext();
 
   // ------------- AST node manipulation -----------------
 

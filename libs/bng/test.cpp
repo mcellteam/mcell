@@ -14,7 +14,7 @@ extern FILE *bnglin;
 int parse_bngl(char const *name, const bool dump_ast, const bool dump_bng_data) {
 
   BNG::create_ast_context();
-  BNG::ASTContext* ctx = BNG::get_ast_context();
+  BNG::ParserContext* ctx = BNG::get_ast_context();
 
   FILE *infile = fopen(name, "r");
   if (infile == nullptr) {

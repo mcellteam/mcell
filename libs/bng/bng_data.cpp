@@ -53,7 +53,7 @@ component_type_id_t BNGData::find_or_add_component_type(const ComponentType& ct)
 
 mol_type_id_t BNGData::find_or_add_molecule_type(const MolType& mt) {
   // TODO: check that if there is a molecule type with the same name,
-  //
+  // it has the same components and alowed states
 
   for (component_type_id_t i = 0; i < molecule_types.size(); i++) {
     if (molecule_types[i] == mt) {
@@ -93,7 +93,6 @@ rxn_rule_id_t BNGData::find_or_add_rxn_rule(const RxnRule& rr) {
   return rxn_rules.size() - 1;
 }
 
-// TODO: move these dumps into the specific classes and pass BNGData
 
 void BNGData::dump_molecule_types_as_bngl() {
   cout << "begin molecule types\n";
@@ -121,14 +120,9 @@ void BNGData::dump_reaction_rules_as_bngl() {
 
 }
 
-void BNGData::dump(const bool as_bngl) {
-  if (as_bngl) {
-    dump_molecule_types_as_bngl();
-    dump_reaction_rules_as_bngl();
-  }
-  else {
-    assert(false && "TODO");
-  }
+void BNGData::dump() {
+  dump_molecule_types_as_bngl();
+  dump_reaction_rules_as_bngl();
 }
 
 } /* namespace BNG2 */

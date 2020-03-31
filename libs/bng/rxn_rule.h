@@ -137,13 +137,13 @@ public:
   }
 
   const MolInstance& get_mol_reactant(const CplxMolIndex& cmi) const {
-    assert(cmi.mol_index <= reactants[cmi.cplx_index].mol_patterns.size());
-    return get_cplx_reactant(cmi.cplx_index).mol_patterns[cmi.mol_index];
+    assert(cmi.mol_index <= reactants[cmi.cplx_index].mol_instances.size());
+    return get_cplx_reactant(cmi.cplx_index).mol_instances[cmi.mol_index];
   }
 
   const MolInstance& get_mol_product(const CplxMolIndex& cmi) const {
-    assert(cmi.mol_index <= products[cmi.cplx_index].mol_patterns.size());
-    return get_cplx_product(cmi.cplx_index).mol_patterns[cmi.mol_index];
+    assert(cmi.mol_index <= products[cmi.cplx_index].mol_instances.size());
+    return get_cplx_product(cmi.cplx_index).mol_instances[cmi.mol_index];
   }
 
 

@@ -1,9 +1,8 @@
-// some definitions shared among all MCell's components
-// out of any namespace
-// the reason to avoid namespaces is the capability to detach the BNG library
-// from MCell
-//
-// TODO: use some master namespace? how should we call it?
+/**
+ * Definitions shared among BNG and other sources that might use it.
+ *
+ * No namespace is used here (except for float_t that in enclosed in namespace Common).
+ */
 
 #ifndef __SHARED_DEFINES_H__
 #define __SHARED_DEFINES_H__
@@ -72,13 +71,13 @@ const uint INDEX_INVALID = UINT_INVALID; // general invalid index, should not be
 
 
 // molecule id is a unique identifier of a molecule,
-// no 2 molecules may have the same ID in the course of a simulation (at least for now)
-// TODO: this should be something else, not ID, but neither index,
-// it changes
+// no 2 molecules may have the same ID in the course of a simulation
+// not used from the BNG lib yet
 typedef uint molecule_id_t;
 const molecule_id_t MOLECULE_ID_INVALID = ID_INVALID;
 
-// unique species id
+// unique species id,
+// every distinct species that exists or
 typedef uint species_id_t;
 const species_id_t SPECIES_ID_INVALID = ID_INVALID;
 
@@ -91,11 +90,8 @@ const orientation_t ORIENTATION_DOWN = -1;
 const orientation_t ORIENTATION_NONE = 0;
 const orientation_t ORIENTATION_UP = 1;
 
-// index of reaction in a reaction class (local for reaction)
-// -1 is used to signalize that no reaction was selected (i < RX_LEAST_VALID_PATHWAY)
-// TODO: change to using and use INVALID?
+// index of reaction in a reaction class
 typedef int reaction_index_t;
-//const reaction_index_t REACTION_INDEX_INVALID = INDEX_INVALID;
 
 
 #ifndef NDEBUG

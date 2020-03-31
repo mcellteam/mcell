@@ -282,13 +282,13 @@ void SemanticAnalyzer::convert_complex_pattern(const small_vector<const ASTMolec
 
   for (const ASTMoleculeNode* m: complex_nodes) {
     // molecule ids are based on their name
-    pattern.mol_patterns.push_back( convert_molecule_pattern(m) );
+    pattern.mol_instances.push_back( convert_molecule_pattern(m) );
   }
 
   // semantic checks on bonds validity
   map<bond_value_t, vector<uint> > bond_value_to_molecule_index;
-  for (uint i = 0; i < pattern.mol_patterns.size(); i++) {
-    const MolInstance& mi = pattern.mol_patterns[i];
+  for (uint i = 0; i < pattern.mol_instances.size(); i++) {
+    const MolInstance& mi = pattern.mol_instances[i];
 
     for (const ComponentInstance& compi: mi.component_instances) {
       if (compi.bond_has_numeric_value()) {
@@ -427,7 +427,7 @@ void SemanticAnalyzer::convert_and_store_rxn_rules() {
 
 
 // returns true if conversion and semantic checks passed
-bool SemanticAnalyzer::check_and_convert(ASTContext* ctx_, BNGData* res_bng) {
+bool SemanticAnalyzer::check_and_convert(ParserContext* ctx_, BNGData* res_bng) {
   assert(ctx_ != nullptr);
   assert(res_bng != nullptr);
 

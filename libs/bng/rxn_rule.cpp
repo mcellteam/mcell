@@ -87,7 +87,7 @@ bool RxnRule::find_most_fitting_unassigned_mol_product(const CplxMolIndex& react
   CplxMolIndex best_cmi;
 
   for (uint complex_index = 0; complex_index < products.size(); complex_index++) {
-    for (uint molecule_index = 0; molecule_index < products[complex_index].mol_patterns.size(); molecule_index++) {
+    for (uint molecule_index = 0; molecule_index < products[complex_index].mol_instances.size(); molecule_index++) {
 
       CplxMolIndex product_cmi(complex_index, molecule_index);
 
@@ -162,7 +162,7 @@ bool RxnRule::has_same_mols_in_reactants_and_products() const {
   map<mol_type_id_t, int> reactant_types, product_types;
 
   for (const CplxInstance& ci: reactants) {
-    for (const MolInstance& mi: ci.mol_patterns) {
+    for (const MolInstance& mi: ci.mol_instances) {
       if (reactant_types.count(mi.mol_type_id)) {
         reactant_types[mi.mol_type_id]++;
       }
@@ -173,7 +173,7 @@ bool RxnRule::has_same_mols_in_reactants_and_products() const {
   }
 
   for (const CplxInstance& ci: products) {
-    for (const MolInstance& mi: ci.mol_patterns) {
+    for (const MolInstance& mi: ci.mol_instances) {
       if (product_types.count(mi.mol_type_id)) {
         product_types[mi.mol_type_id]++;
       }
@@ -231,7 +231,7 @@ bool RxnRule::compute_mol_reactants_products_mapping(MolInstance& not_matching_m
   }
 
   for (uint complex_index = 0; complex_index < reactants.size(); complex_index++) {
-    for (uint molecule_index = 0; molecule_index < reactants[complex_index].mol_patterns.size(); molecule_index++) {
+    for (uint molecule_index = 0; molecule_index < reactants[complex_index].mol_instances.size(); molecule_index++) {
 
       CplxMolIndex reactant_cmi = CplxMolIndex(complex_index, molecule_index);
       CplxMolIndex product_cmi;

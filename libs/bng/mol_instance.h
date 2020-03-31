@@ -71,10 +71,10 @@ public:
 };
 
 
-// Similarly as ComplexSpeciesInstance -
-//  can be used as instance and as pattern
-// TODO: should molecule type reference be an attribute?
-// TODO: rename to pattern
+/**
+ * Instance of a molecule type.
+ * Similarly as ComplexSpeciesInstance, it can be used as instance and as pattern.
+ */
 class MolInstance: public BaseFlag {
 public:
   // ID of this molecule type in BNGData::molecule_types

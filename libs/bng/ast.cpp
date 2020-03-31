@@ -124,7 +124,7 @@ void ASTRxnRuleNode::dump(const std::string ind) {
 }
 
 // ------------------------------- ASTSymbolTable ------------------------
-void ASTSymbolTable::insert(const std::string id, ASTBaseNode* node, ASTContext* ctx) {
+void ASTSymbolTable::insert(const std::string id, ASTBaseNode* node, ParserContext* ctx) {
   if (table.count(id) != 0) {
     errs() << "Symbol '" << id << "' was already defined.\n";
     ctx->inc_error_count();
@@ -133,7 +133,7 @@ void ASTSymbolTable::insert(const std::string id, ASTBaseNode* node, ASTContext*
   table[id] = node;
 }
 
-ASTBaseNode* ASTSymbolTable::get(const std::string& id, ASTBaseNode* loc, ASTContext* ctx) const {
+ASTBaseNode* ASTSymbolTable::get(const std::string& id, ASTBaseNode* loc, ParserContext* ctx) const {
   auto it = table.find(id);
   if (it == table.end()) {
     errs() << "Symbol '" << id << "' is not defined.\n";
@@ -145,7 +145,7 @@ ASTBaseNode* ASTSymbolTable::get(const std::string& id, ASTBaseNode* loc, ASTCon
   }
 }
 
-void ASTSymbolTable::insert_molecule_declarations(const ASTListNode* molecule_node_list, ASTContext* ctx) {
+void ASTSymbolTable::insert_molecule_declarations(const ASTListNode* molecule_node_list, ParserContext* ctx) {
   for (ASTBaseNode* n: molecule_node_list->items) {
     assert(n->is_molecule());
     ASTMoleculeNode* mn = to_molecule_node(n);
@@ -162,7 +162,7 @@ void ASTSymbolTable::dump() {
 }
 
 // ------------------------------- ASTContext ----------------------------
-ASTContext::~ASTContext() {
+ParserContext::~ParserContext() {
 
   for (ASTBaseNode* n: all_nodes) {
     delete n;
@@ -170,7 +170,7 @@ ASTContext::~ASTContext() {
   all_nodes.clear();
 }
 
-ASTExprNode* ASTContext::new_id_node(const std::string& id, const BNGLLTYPE& loc) {
+ASTExprNode* ParserContext::new_id_node(const std::string& id, const BNGLLTYPE& loc) {
   ASTExprNode* n = new ASTExprNode;
   n->set_id(id);
   n->set_loc(current_file, loc);
@@ -178,7 +178,7 @@ ASTExprNode* ASTContext::new_id_node(const std::string& id, const BNGLLTYPE& loc
   return n;
 }
 
-ASTExprNode* ASTContext::new_dbl_node(const double val, const BNGLLTYPE& loc) {
+ASTExprNode* ParserContext::new_dbl_node(const double val, const BNGLLTYPE& loc) {
   ASTExprNode* n = new ASTExprNode;
   n->set_dbl(val);
   n->set_loc(current_file, loc);
@@ -186,7 +186,7 @@ ASTExprNode* ASTContext::new_dbl_node(const double val, const BNGLLTYPE& loc) {
   return n;
 }
 
-ASTExprNode* ASTContext::new_dbl_node(const double val, const ASTBaseNode* loc) {
+ASTExprNode* ParserContext::new_dbl_node(const double val, const ASTBaseNode* loc) {
   ASTExprNode* n = new ASTExprNode;
   n->set_dbl(val);
   n->set_loc(loc->file, loc->line);
@@ -194,7 +194,7 @@ ASTExprNode* ASTContext::new_dbl_node(const double val, const ASTBaseNode* loc) 
   return n;
 }
 
-ASTExprNode* ASTContext::new_llong_node(const long long val, const BNGLLTYPE& loc) {
+ASTExprNode* ParserContext::new_llong_node(const long long val, const BNGLLTYPE& loc) {
   ASTExprNode* n = new ASTExprNode;
   n->set_llong(val);
   n->set_loc(current_file, loc);
@@ -202,14 +202,14 @@ ASTExprNode* ASTContext::new_llong_node(const long long val, const BNGLLTYPE& lo
   return n;
 }
 
-ASTStrNode* ASTContext::new_empty_str_node() {
+ASTStrNode* ParserContext::new_empty_str_node() {
   ASTStrNode* n = new ASTStrNode;
   n->str = "";
   remember_node(n);
   return n;
 }
 
-ASTStrNode* ASTContext::new_str_node(const std::string str, const BNGLLTYPE& loc) {
+ASTStrNode* ParserContext::new_str_node(const std::string str, const BNGLLTYPE& loc) {
   ASTStrNode* n = new ASTStrNode;
   n->str = str;
   n->set_loc(current_file, loc);
@@ -217,7 +217,7 @@ ASTStrNode* ASTContext::new_str_node(const std::string str, const BNGLLTYPE& loc
   return n;
 }
 
-ASTStrNode* ASTContext::new_str_node(const long long val_to_str, const BNGLLTYPE& loc) {
+ASTStrNode* ParserContext::new_str_node(const long long val_to_str, const BNGLLTYPE& loc) {
   ASTStrNode* n = new ASTStrNode;
   n->str = to_string(val_to_str);
   n->set_loc(current_file, loc);
@@ -225,13 +225,13 @@ ASTStrNode* ASTContext::new_str_node(const long long val_to_str, const BNGLLTYPE
   return n;
 }
 
-ASTListNode* ASTContext::new_list_node() {
+ASTListNode* ParserContext::new_list_node() {
   ASTListNode* n = new ASTListNode();
   remember_node(n);
   return n;
 }
 
-ASTSeparatorNode* ASTContext::new_separator_node(const SeparatorType type, const BNGLLTYPE& loc) {
+ASTSeparatorNode* ParserContext::new_separator_node(const SeparatorType type, const BNGLLTYPE& loc) {
   ASTSeparatorNode* n = new ASTSeparatorNode();
   n->separator_type = type;
   n->set_loc(current_file, loc);
@@ -239,7 +239,7 @@ ASTSeparatorNode* ASTContext::new_separator_node(const SeparatorType type, const
   return n;
 }
 
-ASTComponentNode* ASTContext::new_component_node(
+ASTComponentNode* ParserContext::new_component_node(
     const std::string& name,
     ASTListNode* state_list,
     ASTStrNode* bond,
@@ -254,7 +254,7 @@ ASTComponentNode* ASTContext::new_component_node(
   return n;
 }
 
-ASTMoleculeNode* ASTContext::new_molecule_node(
+ASTMoleculeNode* ParserContext::new_molecule_node(
     const std::string& name,
     ASTListNode* component_list,
     const BNGLLTYPE& loc
@@ -267,7 +267,7 @@ ASTMoleculeNode* ASTContext::new_molecule_node(
   return n;
 }
 
-ASTRxnRuleNode* ASTContext::new_rxn_rule_node(
+ASTRxnRuleNode* ParserContext::new_rxn_rule_node(
     ASTListNode* reactants,
     const bool reversible,
     ASTListNode* products,
@@ -291,19 +291,19 @@ ASTRxnRuleNode* ASTContext::new_rxn_rule_node(
   return n;
 }
 
-void ASTContext::print_error_report() {
+void ParserContext::print_error_report() {
   if (errors != 0) {
     cerr << "Compilation failed, there were " << errors << " errors.\n";
   }
 }
 
-void ASTContext::internal_error(const ASTBaseNode* loc, const std::string msg) {
+void ParserContext::internal_error(const ASTBaseNode* loc, const std::string msg) {
   errs(loc) << "INTERNAL: " << msg;
   exit(2);
 }
 
 
-void ASTContext::dump() {
+void ParserContext::dump() {
   cout << "-- ASTContext dump --\n";
   symtab.dump();
   cout << "reaction rules:\n";

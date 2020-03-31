@@ -10,7 +10,7 @@
 using namespace std;
 
 extern int bngllineno;
-extern BNG::ASTContext* g_ctx;
+extern BNG::ParserContext* g_ctx;
 
 namespace BNG {
 

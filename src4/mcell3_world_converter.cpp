@@ -643,7 +643,7 @@ bool MCell3WorldConverter::convert_species(volume* s) {
       assert(false);
     }
 
-    new_species.mol_patterns.push_back(mol_inst);
+    new_species.mol_instances.push_back(mol_inst);
 
     // and finally let's add our new species
     new_species.finalize();

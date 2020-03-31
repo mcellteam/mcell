@@ -19,7 +19,7 @@ namespace BNG {
 class SemanticAnalyzer {
 public:
   // modifies context e.g. by resolving expressions
-  bool check_and_convert(ASTContext* ctx_, BNGData* res_bng);
+  bool check_and_convert(ParserContext* ctx_, BNGData* res_bng);
 
 private:
   ASTExprNode* evaluate_to_dbl(ASTExprNode* root, std::set<std::string> used_ids={});
@@ -41,7 +41,7 @@ private:
 
   // local copies so that we don't have to pass everything
   // as arguments
-  ASTContext* ctx;
+  ParserContext* ctx;
   BNGData* bng_data;
 };
 

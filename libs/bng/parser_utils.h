@@ -17,6 +17,6 @@ long long convert_dec_to_llong(const char* str);
 // consistently use 'delete' afterwards to free it
 char* strdup_new(const char* str);
 
-}
+} // namespace BNG
 
 #endif // LIBS_BNG_PARSER_UTILS_H_

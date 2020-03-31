@@ -6,7 +6,7 @@
   
   #define LOC() bngllloc.first_line = bngllineno
   
-  extern BNG::ASTContext* g_ctx; // defined in bngl_parser.y
+  extern BNG::ParserContext* g_ctx; // defined in bngl_parser.y
   
 %}
 
@@ -25,9 +25,6 @@
 /* Set up function name prefixes and output file name */
 %option prefix="bngl"
 
-/* TODO: there was a way to store l=file and line information with each token*/ 
-
-DIGIT    [0-9]
 ID       [a-zA-Z_][a-zA-Z0-9_]*
 R ([0-9]+\.)|([0-9]*\.[0-9]+)|([0-9]+[eE][+-]?[0-9]+)|([0-9]+\.[0-9]*[eE][+-]?[0-9]+)|([0-9]*\.[0-9]+[eE][+-]?[0-9]+)
 I ([0-9]+)
