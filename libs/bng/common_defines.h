@@ -20,6 +20,7 @@
 
 #include <boost/container/small_vector.hpp>
 #include <boost/container/flat_set.hpp>
+#include <boost/container/flat_map.hpp>
 
 #include <google/dense_hash_map>
 #include <google/dense_hash_set>
@@ -123,22 +124,16 @@ template<typename T, typename _Compare = std::less<T>, typename _Alloc = std::al
 
 
 /**
- * Template class used to hold sets of ids or indices of molecules or other items,
+ * Set based on boost's flat_set. 
+ * Used to hold sets of ids or indices of molecules or other items,
  * extended to check for unique insertions and checked removals.
  *
- * T is really not needed since it is an uint, but ot
+ * T is really not needed since it is an uint, but the declaration then
+ * shows what type of values are expected.
  */
 template<typename Key>
-class uint_set:
-  //public google::dense_hash_set<Key> {
-  public base_flat_set<Key> {
+class uint_set: public base_flat_set<Key> {
 public:
-  uint_set() {
-    // dense_hash_set requires this to be called
-    //this->set_empty_key(UINT_INVALID);
-    //this->set_deleted_key(UINT_INVALID2);
-  }
-
   // insert with check that the item is not there yet
   // for insertions without this check use 'insert'
   void insert_unique(const Key id_or_index) {
@@ -169,6 +164,10 @@ public:
   }
 };
 
+
+/**
+ * Set based on googles's dense_hash_set.
+ */
 template<typename Key>
 class uint_dense_hash_set: public google::dense_hash_set<Key> {
 public:
@@ -193,20 +192,33 @@ public:
   }
 };
 
+
 /**
- *  Warning: value must be POD (plain old data),
- *  this is not really checked.
+ * Map based on boost's flat_map.
+ * 
+ * Not used yet
+ */ 
+template<typename Key, typename Value>
+class uint_flat_map: public boost::container::flat_map<Key, Value> {
+
+};
+
+/**
+ * Map based on googles's dense_hash_map.
+ * 
+ *  Warning: value must be POD (plain old data), this is not checked during compilations.
+ *
+ *  Not used yet
  */
 template<typename Key, typename Value>
-class uint_map: public google::dense_hash_map<Key, Value> {
+class uint_dense_hash_map: public google::dense_hash_map<Key, Value> {
 public:
-  uint_map() {
+  uint_dense_hash_map() {
     assert(sizeof(Value) <= 8);
     // dense_hash_map requires this to be called
     this->set_empty_key(UINT_INVALID);
     this->set_deleted_key(UINT_INVALID2);
   }
-
 };
 
 #endif // __SHARED_DEFINES_H__
