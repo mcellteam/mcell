@@ -41,28 +41,30 @@ void RxnContainer::create_unimol_rxn_classes_for_new_species(const species_id_t 
     }
   }
 
-  // 1) first we need to get to the instance of the reaction class for new_id
-  RxnClass* rxn_class = get_or_create_empty_unimol_rxn_class(new_id);
+  if (!rxns_for_new_species.empty()) {
+    // 1) first we need to get to the instance of the reaction class for new_id
+    RxnClass* rxn_class = get_or_create_empty_unimol_rxn_class(new_id);
 
-  // create reactions classes specific for our species
-  for (RxnRule* matching_rxn: rxns_for_new_species) {
-    // 2) add the matching_rxn to our rxn class
-    //    this also automatically updates the reaction class
-    rxn_class->add_rxn_rule(bng_config, matching_rxn);
+    // create reactions classes specific for our species
+    for (RxnRule* matching_rxn: rxns_for_new_species) {
+      // 2) add the matching_rxn to our rxn class
+      //    this also automatically updates the reaction class
+      rxn_class->add_rxn_rule(bng_config, matching_rxn);
+    }
+
+    if (bng_config.debug_reactions) {
+      cout << "BNG: Created a new unimolecular reaction class:\n";
+      rxn_class->dump(bng_data);
+    }
   }
 
-  if (bng_config.debug_reactions) {
-    cout << "BNG: Created a new unimolecular reaction class:\n";
-    rxn_class->dump(bng_data);
-  }
+  species_processed_for_unimol_rxn_classes.insert(new_id);
 }
 
 
 // only for internal use
 RxnClass* RxnContainer::get_or_create_empty_bimol_rxn_class(const species_id_t id1, const species_id_t id2) {
 
-  // top level rxn class maps must already exist??
-  // TODO: think this through
   auto it_map1 = bimol_rxn_class_map.find(id1);
   assert(it_map1 != bimol_rxn_class_map.end());
 
@@ -106,44 +108,54 @@ void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t n
     }
   }
 
-  // 1) create or get rxn class map for id
-  auto it = bimol_rxn_class_map.find(new_id);
-  if (it == bimol_rxn_class_map.end()) {
-    auto it_pair = bimol_rxn_class_map.insert( make_pair(new_id, SpeciesRxnClassesMap()) );
-    it = it_pair.first;
-  }
-  SpeciesRxnClassesMap& rxn_class_map = it->second;
+  // don't do anything if this species cannot react
+  if (!rxns_for_new_species.empty()) {
 
-  // create reactions classes specific for our species
-  const SpeciesVector& species_vec = all_species.get_species_vector();
-  for (const Species& s: species_vec) {
+    // create or get rxn class map for id
+    auto it = bimol_rxn_class_map.find(new_id);
+    if (it == bimol_rxn_class_map.end()) {
+      auto it_pair = bimol_rxn_class_map.insert( make_pair(new_id, SpeciesRxnClassesMap()) );
+      it = it_pair.first;
+    }
+    SpeciesRxnClassesMap& rxn_class_map = it->second;
 
-    // 1) first we need to get to the instance of the reaction class for (new_id, second_id) or (second_id, new_id)
-    RxnClass* rxn_class = get_or_create_empty_bimol_rxn_class(new_id, s.species_id);
+    // create reactions classes specific for our species
+    const SpeciesVector& species_vec = all_species.get_species_vector();
+    for (const Species& s: species_vec) {
 
-    for (RxnRule* matching_rxn: rxns_for_new_species) {
+      small_vector<RxnRule*> applicable_rxns;
 
-      species_id_t second_id = s.species_id;
+      for (RxnRule* matching_rxn: rxns_for_new_species) {
 
-      // usually the species must be different but reactions of type A + A are allowed
-      if (new_id == second_id && !matching_rxn->species_is_both_bimol_reactants(new_id, all_species)) {
-        continue;
+        species_id_t second_id = s.species_id;
+
+        // usually the species must be different but reactions of type A + A are allowed
+        if (new_id == second_id && !matching_rxn->species_is_both_bimol_reactants(new_id, all_species)) {
+          continue;
+        }
+
+        if (matching_rxn->species_can_be_reactant(s.species_id, all_species)) {
+          // ok, we have a reaction applicable both to new_id and second_id
+          // we need to add this rxn to a rxn class for these reactants
+
+          applicable_rxns.push_back(matching_rxn);
+        }
       }
 
-      if (matching_rxn->species_can_be_reactant(s.species_id, all_species)) {
-        // ok, we have a reaction applicable both to new_id and second_id
-        // we need to add this rxn to a rxn class for these reactants
+      if (!applicable_rxns.empty()) {
+        // get to the instance of the reaction class for (new_id, second_id) or (second_id, new_id)
+        RxnClass* rxn_class = get_or_create_empty_bimol_rxn_class(new_id, s.species_id);
 
-        // 2) add the matching_rxn to our rxn class
-        //    this also automatically updates the reaction class
-        rxn_class->add_rxn_rule(bng_config, matching_rxn);
+        for (RxnRule* rxn: applicable_rxns) {
+          rxn_class->add_rxn_rule(bng_config, rxn);
+        }
+
+        if (bng_config.debug_reactions) {
+          cout << "BNG: Created or updated a new bimolecular reaction class:\n";
+          rxn_class->dump(bng_data, "  ");
+        }
       }
-    }
-
-    if (bng_config.debug_reactions) {
-      cout << "BNG: Created or updated a new bimolecular reaction class:\n";
-      rxn_class->dump(bng_data, "  ");
-    }
+    } // for rxns_for_new_species
   }
 
   species_processed_for_bimol_rxn_classes.insert(new_id);

@@ -199,8 +199,8 @@ public:
     // and these are indices of possible reactants with our reactant_species_id
     // NOTE: this must be fast, bng engine must have this map/vector already ready
     // TODO: we can optimize this by taking just volume reactants into account
-    const BNG::SpeciesRxnClassesMap& reactions_map = bng_engine.all_rxns.get_bimol_rxns_for_reactant(vm.species_id);
-    if (reactions_map.empty()) {
+    const BNG::SpeciesRxnClassesMap* reactions_map = bng_engine.all_rxns.get_bimol_rxns_for_reactant(vm.species_id);
+    if (reactions_map == nullptr) {
       // nothing to do
       return;
     }
@@ -210,7 +210,7 @@ public:
     SpeciesReactantsMap& subpart_reactants_new_sp = volume_molecule_reactants_per_subpart[new_subpartition_index];
 
     // we need to set/clear flag that says that second_reactant_info.first can react with reactant_species_id
-    for (const auto& second_reactant_info: reactions_map) {
+    for (const auto& second_reactant_info: *reactions_map) {
       if (second_reactant_info.second->get_num_reactions() == 0) {
         // there is a reaction class, but it has no reactions
         continue;

@@ -1236,8 +1236,7 @@ void DiffuseReactEvent::create_unimol_rx_action(
   assert(curr_time >= 0);
 
   const RxnClass* rx = RxUtil::pick_unimol_rx(world, m.species_id);
-  assert(rx != nullptr);
-  if (rx->get_num_reactions() == 0) {
+  if (rx == nullptr) {
     return;
   }
 

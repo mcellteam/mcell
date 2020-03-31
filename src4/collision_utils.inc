@@ -531,9 +531,12 @@ static void collide_mol_loop_body(
   Vec3 position;
   // collide_mol must be inlined because many things are computed all over there
   if (collide_mol(vm, remaining_displacement, colliding_vm, radius, time, position)) {
+
     const BNG::RxnClass* rxn_class =
         p.bng_engine.all_rxns.get_bimol_rxn_class(vm.species_id, colliding_vm.species_id);
-    assert(rxn_class != nullptr);
+
+    assert(rxn_class != nullptr && "If a collision of two molecules was detected, there must be a reaction for them.");
+
     molecule_collisions.push_back(
         Collision(CollisionType::VOLMOL_VOLMOL, &p, vm.id, time, position, colliding_vm.id, rxn_class)
     );

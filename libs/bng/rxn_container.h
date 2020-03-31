@@ -86,11 +86,21 @@ public:
 
     // reaction maps get updated only when needed, it is not associated with addition of a new species
     // the assumption is that, after some simulation time elapsed, this will be fairly stable
-    if (it == unimol_rxn_class_map.end()) {
+    if (species_processed_for_unimol_rxn_classes.count(id) == 0) {
       create_unimol_rxn_classes_for_new_species(id);
       it = unimol_rxn_class_map.find(id);
     }
-    return it->second;
+
+    if (it != unimol_rxn_class_map.end()) {
+      assert(it->second != nullptr);
+      assert(it->second->get_num_reactions() != 0);
+
+      return it->second;
+    }
+    else {
+      // no reactions for this species
+      return nullptr;
+    }
   }
 
   // simply looks up a reaction between 'a' and 'b',
@@ -103,22 +113,29 @@ public:
     assert(all_species.is_valid_id(id1));
     assert(all_species.is_valid_id(id2));
 
-    const BNG::SpeciesRxnClassesMap& rxn_class_map_for_id1 = get_bimol_rxns_for_reactant(id1);
-
-    const auto it_res = rxn_class_map_for_id1.find(id2);
-    // reaction class for this pair might not exist
-    if (it_res == rxn_class_map_for_id1.end()) {
+    const BNG::SpeciesRxnClassesMap* rxn_class_map_for_id1 = get_bimol_rxns_for_reactant(id1);
+    if (rxn_class_map_for_id1 == nullptr) {
+      // no reactions for this species at all
       return nullptr;
     }
-    else {
+
+    const auto it_res = rxn_class_map_for_id1->find(id2);
+
+    if (it_res != rxn_class_map_for_id1->end()) {
       assert(it_res->second != nullptr);
+      assert(it_res->second->get_num_reactions() != 0);
+
       return it_res->second;
+    }
+    else {
+      // no reactions for this pair os species
+      return nullptr;
     }
   }
 
   // returns null if there is no reaction for this species?
   // no -> when there is no entry in the map, this meanbs that reactants were not determined yet
-  const BNG::SpeciesRxnClassesMap& get_bimol_rxns_for_reactant(const species_id_t id) {
+  const BNG::SpeciesRxnClassesMap* get_bimol_rxns_for_reactant(const species_id_t id) {
 
     auto it = bimol_rxn_class_map.find(id);
 
@@ -132,7 +149,13 @@ public:
       it = bimol_rxn_class_map.find(id);
     }
 
-    return it->second;
+    if (it != bimol_rxn_class_map.end()) {
+      return &it->second;
+    }
+    else {
+      // no reactions for this species at all
+      return nullptr;
+    }
   }
 
   species_id_t get_rxn_product_species_id(
@@ -165,6 +188,7 @@ private:
   std::vector<RxnRule> rxns;
 
   uint_set<species_id_t> species_processed_for_bimol_rxn_classes;
+  uint_set<species_id_t> species_processed_for_unimol_rxn_classes;
 
 public:
   // ids of species superclasses, SPECIES_ID_INVALID if not set

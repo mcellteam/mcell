@@ -74,7 +74,7 @@ static void trigger_bimolecular(
     BNG::RxnClassesVector& matching_rxn_classes // items are appended
 ) {
   const BNG::RxnClass* rxn_class = bng_engine.all_rxns.get_bimol_rxn_class(reacA.species_id, reacB.species_id);
-  if (rxn_class == nullptr || rxn_class->get_num_reactions() == 0) {
+  if (rxn_class == nullptr) {
     // no reaction
     return;
   }
@@ -183,11 +183,11 @@ static void find_surface_mol_reactions_with_surf_classes(
   assert(reacA.is_surf());
 
   // for all reactions applicable to reacA and and wall
-  const BNG::SpeciesRxnClassesMap& species_rxns = p.bng_engine.all_rxns.get_bimol_rxns_for_reactant(reacA.species_id);
-  const BNG::SpeciesRxnClassesMap& all_molecules_rxns = p.bng_engine.all_rxns.get_bimol_rxns_for_reactant(p.bng_engine.all_rxns.all_molecules_species_id);
-  const BNG::SpeciesRxnClassesMap& all_vol_surf_rxns = p.bng_engine.all_rxns.get_bimol_rxns_for_reactant(p.bng_engine.all_rxns.all_surface_molecules_species_id);
+  const BNG::SpeciesRxnClassesMap* species_rxns = p.bng_engine.all_rxns.get_bimol_rxns_for_reactant(reacA.species_id);
+  const BNG::SpeciesRxnClassesMap* all_molecules_rxns = p.bng_engine.all_rxns.get_bimol_rxns_for_reactant(p.bng_engine.all_rxns.all_molecules_species_id);
+  const BNG::SpeciesRxnClassesMap* all_vol_surf_rxns = p.bng_engine.all_rxns.get_bimol_rxns_for_reactant(p.bng_engine.all_rxns.all_surface_molecules_species_id);
 
-  if (species_rxns.empty() && all_molecules_rxns.empty() && all_vol_surf_rxns.empty()) {
+  if (species_rxns == nullptr && all_molecules_rxns == nullptr && all_vol_surf_rxns == nullptr) {
     // no reactions at all for reacA
     return;
   }
@@ -199,23 +199,29 @@ static void find_surface_mol_reactions_with_surf_classes(
       continue;
     }
 
-    find_surface_mol_reactions_with_surf_classes_for_rxn_class_map(
-        p, reacA, allow_rx_transp, allow_rx_reflec, allow_rx_absorb_reg_border, reg,
-        species_rxns,
-        matching_rxns
-    );
+    if (species_rxns != nullptr) {
+      find_surface_mol_reactions_with_surf_classes_for_rxn_class_map(
+          p, reacA, allow_rx_transp, allow_rx_reflec, allow_rx_absorb_reg_border, reg,
+          *species_rxns,
+          matching_rxns
+      );
+    }
 
-    find_surface_mol_reactions_with_surf_classes_for_rxn_class_map(
-        p, reacA, allow_rx_transp, allow_rx_reflec, allow_rx_absorb_reg_border, reg,
-        all_molecules_rxns,
-        matching_rxns
-    );
+    if (all_molecules_rxns != nullptr) {
+      find_surface_mol_reactions_with_surf_classes_for_rxn_class_map(
+          p, reacA, allow_rx_transp, allow_rx_reflec, allow_rx_absorb_reg_border, reg,
+          *all_molecules_rxns,
+          matching_rxns
+      );
+    }
 
-    find_surface_mol_reactions_with_surf_classes_for_rxn_class_map(
-        p, reacA, allow_rx_transp, allow_rx_reflec, allow_rx_absorb_reg_border, reg,
-        all_vol_surf_rxns,
-        matching_rxns
-    );
+    if (all_vol_surf_rxns != nullptr) {
+      find_surface_mol_reactions_with_surf_classes_for_rxn_class_map(
+          p, reacA, allow_rx_transp, allow_rx_reflec, allow_rx_absorb_reg_border, reg,
+          *all_vol_surf_rxns,
+          matching_rxns
+      );
+    }
 }
 }
 
@@ -526,6 +532,7 @@ static int test_many_bimolecular(
 
 // might return nullptr if there is no unimolecular reaction for this species
 // based on pick_unimolecular_reaction
+// TODO: remove this function
 static const BNG::RxnClass* pick_unimol_rx(
     World* world,
     const species_id_t species_id
