@@ -303,7 +303,7 @@ void SemanticAnalyzer::convert_complex_pattern(const small_vector<const ASTMolec
     if (it.second.size() != 2) {
       assert(complex_nodes.size() > 0);
       errs(complex_nodes[0]) <<
-          "Bond with numerical value '" << it.first << "' must be used exactly twice in a complex pattern of a rule.\n"; // test
+          "Bond with numerical value '" << it.first << "' must be used exactly twice in a complex pattern of a rule.\n"; // test N0206
       ctx->inc_error_count();
       return;
     }
@@ -312,7 +312,7 @@ void SemanticAnalyzer::convert_complex_pattern(const small_vector<const ASTMolec
     if (it.second[0] == it.second[1]) {
       assert(complex_nodes.size() > 0);
       errs(complex_nodes[0]) <<
-          "Bond with numerical value '" << it.first << "' must bind different molecules of a complex pattern of a rule.\n"; // test
+          "Bond with numerical value '" << it.first << "' must bind different molecules of a complex pattern of a rule.\n"; // test N0208
       ctx->inc_error_count();
       return;
     }
@@ -338,7 +338,7 @@ void SemanticAnalyzer::convert_rxn_rule_side(const ASTListNode* rule_side, CplxI
       if (current_complex_nodes.empty() || i == rule_side->items.size() - 1) {
         errs(n) <<
             "Invalid use of reaction rule separator '" << sep->to_char() << "'. "
-            "It must be used to separate molecule type patterns.\n";
+            "It must be used to separate molecule type patterns.\n"; // should be caught by parser, test N0210
         ctx->inc_error_count();
         continue;
       }
@@ -375,7 +375,7 @@ void SemanticAnalyzer::finalize_and_store_rxn_rule(const ASTRxnRuleNode* n, RxnR
   stringstream out;
   bool ok = r.compute_reactants_products_mapping_w_error_output(*bng_data, out);
   if (!ok) {
-    errs(n) << out.str() << " (in the " << direction_str << " direction, indices are counted from 0)\n";
+    errs(n) << out.str() << " (in the " << direction_str << " direction, indices are counted from 0)\n"; // tests N0220, N0230, N0231, N0232
     ctx->inc_error_count();
   }
 
@@ -410,7 +410,7 @@ void SemanticAnalyzer::convert_and_store_rxn_rules() {
       if (products.empty()) {
         errs(r) <<
             "A reversible rule must have at least one complex pattern " <<
-            "on the right side of the reaction rule.\n";
+            "on the right side of the reaction rule.\n"; // caught by parser, test N0211
         ctx->inc_error_count();
       }
 

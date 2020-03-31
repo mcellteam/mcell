@@ -187,9 +187,6 @@ bool RxnRule::has_same_mols_in_reactants_and_products() const {
 }
 
 
-
-
-
 bool RxnRule::find_assigned_cplx_reactant_for_product(const uint product_index, uint& reactant_index) const {
   // this is not a time critical search
   for (const CplxIndexPair& cplx_index_pair: cplx_mapping) {
@@ -202,6 +199,7 @@ bool RxnRule::find_assigned_cplx_reactant_for_product(const uint product_index, 
 }
 
 
+// a matching reactant and product must be identical
 void RxnRule::compute_cplx_reactants_products_mapping() {
 
   cplx_mapping.clear();
@@ -226,9 +224,7 @@ void RxnRule::compute_cplx_reactants_products_mapping() {
 bool RxnRule::compute_mol_reactants_products_mapping(MolInstance& not_matching_mol_inst, CplxMolIndex& not_matching_cmi) {
   mol_mapping.clear();
 
-  if (!has_same_mols_in_reactants_and_products()) {
-    mol_instances_are_fully_maintained = false;
-  }
+  mol_instances_are_fully_maintained = has_same_mols_in_reactants_and_products();
 
   for (uint complex_index = 0; complex_index < reactants.size(); complex_index++) {
     for (uint molecule_index = 0; molecule_index < reactants[complex_index].mol_instances.size(); molecule_index++) {
@@ -242,7 +238,6 @@ bool RxnRule::compute_mol_reactants_products_mapping(MolInstance& not_matching_m
       }
       else if (mol_instances_are_fully_maintained) {
         // reporting error only if there should be a full match
-
         not_matching_mol_inst = get_mol_reactant(reactant_cmi);
         not_matching_cmi = reactant_cmi;
 

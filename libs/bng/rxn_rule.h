@@ -100,7 +100,7 @@ public:
 
 
   // matching between complexes
-  // set only if the complex patterns are identical
+  // set only if the complex patterns are identical (MCell-style rxns)
   small_vector<CplxIndexPair> cplx_mapping;
 
 
