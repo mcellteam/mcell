@@ -219,6 +219,7 @@ static edge_index_t find_shared_edge_index_of_neighbor_wall(
   }
   else {
     assert(false);
+    nbr_edge_ind = EDGE_INDEX_INVALID;
   }
 
   return nbr_edge_ind;

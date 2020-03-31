@@ -699,12 +699,7 @@ int DiffuseReactEvent::collide_and_react_with_surf_mol(
     reactant_index = 0;
   }
   else {
-    // TODO: cleanup
-    // TODO: is test_many_bimolecular really neeeded?
-    assert(false && "This should not happen - why would we need multiple rxn classes?");
-    /*bool all_neighbors_flag = true;
-    reactant_index = RxUtil::test_many_bimolecular(matching_rxn_classes, scaling_coefs, 0, world->rng, false);
-    selected_rx_pathway = 0; // TODO_PATHWAYS: use value from test_many_bimolecular*/
+    mcell_error("Internal error: multiple rxn classes sould not be needed for sorf mol rxn.");
   }
 
   // TODO: cleanup

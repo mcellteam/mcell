@@ -2052,7 +2052,7 @@ static void find_closest_tile_on_wall(
       // molecules are processed in different order than in mcell3...
       // although, maybe not anymore due to sort in Partition::apply_vertex_moves,
       // revisit if needed
-      assert(false && "Need RNG for dynamic vertices and surface molecules that would however break consistency with mcell3");
+      mcell_error("Need RNG for dynamic vertices and surface molecules that would however break consistency with mcell3");
       // new_pos2d = GridUtil::grid2uv_random(w, new_tile_index, rng);
     }
     else {

@@ -120,7 +120,7 @@ static void move_surface_molecule_to_closest_wall_point(
   // place molecule onto the found wall, all the remaining information about the molecule stays the same
   wall_index_t found_wall_index;
   tile_index_t found_tile_index;
-  Vec2 found_pos2d;
+  Vec2 found_pos2d(FLT_INVALID);
 
   GridUtil::find_closest_tile_on_wall(
       p, best_wall_index, best_wall_pos2d, best_d2, p.config.vacancy_search_dist2,
@@ -128,10 +128,11 @@ static void move_surface_molecule_to_closest_wall_point(
   );
   assert(found_wall_index != WALL_INDEX_INVALID);
   assert(found_tile_index != TILE_INDEX_INVALID);
+  assert(found_pos2d != Vec2(FLT_INVALID));
 
   sm.s.wall_index = found_wall_index;
   sm.s.grid_tile_index = found_tile_index;
-  sm.s.pos = found_pos2d; // this will need to be fixed
+  sm.s.pos = found_pos2d;
   Wall& w = p.get_wall(found_wall_index);
   w.grid.set_molecule_tile(found_tile_index, sm.id);
 

@@ -446,7 +446,7 @@ static int output_ascii_molecules(struct volume *world,
                   fprintf(custom_file,"%d %15.8e %15.8e %15.8e
          %2d\n",id,where.x,where.y,where.z,orient);
       */
-      char *external_name = "";
+      const char *external_name = "";
 
       #ifdef ASCII_VIZ_EXTERNAL_SPECIES_NAME
         if ((amp->properties->flags & EXTERNAL_SPECIES) != 0) {
