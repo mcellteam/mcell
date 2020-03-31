@@ -59,10 +59,6 @@ class Partition;
 #ifndef INDEXER_WA
 typedef boost::container::small_vector<Collision, 16> collision_vector_t;
 
-// boost't set is slower (measured for mcell_tests_private/benchmarks/mdl/B3050_camkii_gen_rxn_faster_no_rxn_out_it_200)
-//typedef boost::container::flat_set<subpart_index_t> subpart_indices_set_t;
-//#define SUBPART_SET_INITIALIZE(container, size, invalid_value) container.reserve(size)
-
 typedef google::dense_hash_set<subpart_index_t> subpart_indices_set_t;
 #define SUBPART_SET_INITIALIZE(container, size, invalid_value) container.set_empty_key(invalid_value)
 

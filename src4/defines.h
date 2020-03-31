@@ -25,7 +25,6 @@
 #define SRC4_DEFINES_H_
 
 #ifndef NDEBUG
-// TODO: probably make this enabled only for Eclipse, we want the debug build to behave exactly as the release build
 #define INDEXER_WA // Don't know yet how to convince Eclipse to correctly index boost containers
 #endif
 

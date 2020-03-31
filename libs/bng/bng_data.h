@@ -18,10 +18,9 @@
 namespace BNG {
 
 /**
- *  Data shared among all instances of BNGEngines
+ * Data shared among all instances of BNGEngines
  * Usually constant, initialized when BNGL is parsed
  */
-// TODO: make arrays private
 class BNGData {
 private:
   // indexed with state_id_t

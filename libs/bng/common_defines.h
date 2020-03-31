@@ -95,7 +95,6 @@ typedef int reaction_index_t;
 
 
 #ifndef NDEBUG
-// TODO: probably make this enabled only for Eclipse, we want the debug build to behave exactly as the release build
 #define INDEXER_WA // Don't know yet how to convince Eclipse to correctly index boost containers
 #endif
 
