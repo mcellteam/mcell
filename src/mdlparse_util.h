@@ -21,7 +21,8 @@
  *
 ******************************************************************************/
 
-#pragma once
+#ifndef MDLPARSE_UTIL_H
+#define MDLPARSE_UTIL_H
 
 #include "vector.h"
 #include "mcell_structs.h"
@@ -55,7 +56,7 @@ void mdl_warning(struct mdlparse_vars *parse_state, char const *fmt, ...)
 
 /* Check that the speficied file mode string is valid for an fopen statement.
  */
-int mdl_valid_file_mode(struct mdlparse_vars *parse_state, char *mode);
+int mdl_valid_file_mode(struct mdlparse_vars *parse_state, const char *mode);
 
 /* Error-reporting version of log */
 int mdl_expr_log(struct mdlparse_vars *parse_state, double in, double *out);
@@ -539,11 +540,11 @@ int mdl_finish_box_object(struct mdlparse_vars *parse_state,
 
 /* Create a named region on an object. */
 struct region *mdl_create_region(struct mdlparse_vars *parse_state,
-                                 struct geom_object *objp, char *name);
+                                 struct geom_object *objp, const char *name);
 
 /* Get a region on an object, creating it if it does not exist yet. */
 struct region *mdl_get_region(struct mdlparse_vars *parse_state,
-                              struct geom_object *objp, char *name);
+                              struct geom_object *objp, const char *name);
 
 /* Begin construction of a region on an existing object. */
 int mdl_start_existing_obj_region_def(struct mdlparse_vars *parse_state,
@@ -948,3 +949,5 @@ struct geom_object *start_object(MCELL_STATE *state,
                             struct object_creation *obj_creation,
                             char *name,
                             int *error_code);
+
+#endif // MDLPARSE_UTIL_H

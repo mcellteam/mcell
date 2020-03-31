@@ -468,7 +468,7 @@ is_reverse_abbrev: reports whether the first string is a reverse
   abbreviation of the second, i.e. whether it matches the end of
   the second string.
 **********************************************************************/
-int is_reverse_abbrev(char *abbrev, char *full) {
+int is_reverse_abbrev(const char *abbrev, const char *full) {
   size_t na = strlen(abbrev);
   size_t nf = strlen(full);
   if (na > nf) {
@@ -1953,7 +1953,7 @@ is_string_present_in_string_array:
   Out: Return 1 if string "str" is present in the array of strings "strings",
        and 0 otherwise.
 **************************************************************************/
-int is_string_present_in_string_array(char * str, char ** strings, int length)
+int is_string_present_in_string_array(const char * str, char ** strings, int length)
 {
   int found = 0, i;
 

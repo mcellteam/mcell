@@ -240,7 +240,7 @@ static inline void get_corner_points_for_subpart_colection(
   Thanks to Jetro Lauha of Fathammer in Helsinki, Finland for reporting this error.
 */
 
-static void /*__attribute__((always_inline))*/ raycast_with_endpoints(
+static void raycast_with_endpoints(
     const Partition& p, const Vec3& pt1, const Vec3& pt2,
     const uint pt_index /*only for debug*/, const bool collect_for_walls, /* wall subparts are collected for the internal ray */
     const IVec3& dir, const Vec3& abs_d_rcp, const Vec3& deltat,

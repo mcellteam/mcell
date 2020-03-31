@@ -769,7 +769,7 @@ int write_reaction_output(struct volume *world, struct output_set *set) {
 
   FILE *fp;
   struct output_column *column;
-  char *mode;
+  const char *mode;
   u_int n_output;
   u_int i;
 
@@ -1053,13 +1053,13 @@ struct output_expression *dupl_oexpr_tree(struct output_expression *root,
   memcpy(sprout, root, sizeof(struct output_expression));
   if (root->left != NULL &&
       (root->expr_flags & OEXPR_LEFT_MASK) == OEXPR_LEFT_OEXPR) {
-    sprout->left = dupl_oexpr_tree(root->left, oexpr_mem);
+    sprout->left = dupl_oexpr_tree((struct output_expression *)root->left, oexpr_mem);
     if (sprout->left == NULL)
       return NULL;
   }
   if (root->right != NULL &&
       (root->expr_flags & OEXPR_RIGHT_MASK) == OEXPR_RIGHT_OEXPR) {
-    sprout->right = dupl_oexpr_tree(root->right, oexpr_mem);
+    sprout->right = dupl_oexpr_tree((struct output_expression *)root->right, oexpr_mem);
     if (sprout->right == NULL)
       return NULL;
   }

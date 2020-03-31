@@ -7,6 +7,11 @@
 
   #include "dyngeom_parse_extras.h"
   #include "dyngeom_yacc.hpp"
+  #if __cplusplus
+  #  include "dyngeom_yacc.hpp"
+  #else
+  #  include "dyngeom_yacc.h"
+  #endif
   #include "logging.h"
 
   #define YY_DECL int dglex( YYSTYPE *yylval, struct dyngeom_parse_vars *dg_parse, yyscan_t yyscanner )

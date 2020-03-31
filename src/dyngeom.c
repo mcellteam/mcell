@@ -227,7 +227,7 @@ void cleanup_names_molecs(
     int num_all_molecules,
     struct molecule_info **all_molecules) {
   for (int i = 0; i < num_all_molecules; i++) {
-    char *mesh_name = all_molecules[i]->molecule->mesh_name;
+    char *mesh_name = (char *)all_molecules[i]->molecule->mesh_name;
     if (mesh_name && (strcmp(mesh_name, NO_MESH) != 0)) {
       free(mesh_name);
     }
@@ -297,7 +297,7 @@ int place_all_molecules(
     }
     // Insert surface molecule into world.
     else if ((am_ptr->properties->flags & ON_GRID) != 0) {
-      char *mesh_name = am_ptr->mesh_name;
+      const char *mesh_name = am_ptr->mesh_name;
       struct surface_molecule *sm = insert_surface_molecule(
           state, am_ptr->properties, &mol_info->pos, mol_info->orient,
           state->vacancy_search_dist2, am_ptr->t, mesh_name,
@@ -357,7 +357,7 @@ int place_all_molecules(
  Out: The name of the mesh that we are either immediately inside or outside of.
       Also move_molecule and out_to_in are set.
 ***************************************************************************/
-char *compare_molecule_nesting(int *move_molecule,
+const char *compare_molecule_nesting(int *move_molecule,
                                int *out_to_in, 
                                struct string_buffer *mesh_names_old,
                                struct string_buffer *mesh_names_new,
@@ -366,9 +366,9 @@ char *compare_molecule_nesting(int *move_molecule,
   int old_n_strings = mesh_names_old->n_strings;
   int new_n_strings = mesh_names_new->n_strings;
   int difference;
-  char *old_mesh_name;
-  char *new_mesh_name;
-  char *best_mesh = mesh_names_old->strings[0];
+  const char *old_mesh_name;
+  const char *new_mesh_name;
+  const char *best_mesh = mesh_names_old->strings[0];
   struct string_buffer *compare_this;
 
   // mesh_names_old example:       C->D->null
@@ -434,12 +434,12 @@ char *compare_molecule_nesting(int *move_molecule,
  Out: The name of the mesh that we are either immediately inside or outside of.
       Also move_molecule and out_to_in are set.
 ***************************************************************************/
-char *check_overlapping_meshes(
+const char *check_overlapping_meshes(
     int *move_molecule,
     int *out_to_in,
     int difference,
     struct string_buffer *compare_this,
-    char *best_mesh,
+    const char *best_mesh,
     struct mesh_transparency *mesh_transp) {
   int start;
   int increment;
@@ -487,11 +487,11 @@ char *check_overlapping_meshes(
  Out: The name of the mesh that we are either immediately inside or outside of.
       Also move_molecule and out_to_in are set.
 ***************************************************************************/
-char *check_nonoverlapping_meshes(int *move_molecule,
+const char *check_nonoverlapping_meshes(int *move_molecule,
                                   int *out_to_in,
                                   struct string_buffer *mesh_names_old,
                                   struct string_buffer *mesh_names_new,
-                                  char *best_mesh,
+                                  const char *best_mesh,
                                   struct mesh_transparency *mesh_transp) {
 
   *out_to_in = 0;
@@ -536,19 +536,19 @@ char *check_nonoverlapping_meshes(int *move_molecule,
  Out: The name of the mesh that we are either immediately inside or outside of.
       Also move_molecule and out_to_in are set.
 ***************************************************************************/
-char *check_outin_or_inout(
+const char *check_outin_or_inout(
     int start,
     int increment,
     int end,
     int *move_molecule,
     int *out_to_in,
-    char *best_mesh,
+    const char *best_mesh,
     struct string_buffer *mesh_names,
     struct mesh_transparency *mesh_transp) {
   int done = 0;
   int mesh_idx = start;
   while (!done) {
-    char *mesh_name = mesh_names->strings[mesh_idx];
+    const char *mesh_name = mesh_names->strings[mesh_idx];
     if (mesh_name == NULL) {
       mesh_name = NO_MESH;
     }
@@ -601,7 +601,7 @@ struct volume_molecule *insert_volume_molecule_encl_mesh(
   } else
     sv = find_subvolume(state, &(vm->pos), vm_guess->subvol);
 
-  struct volume_molecule *new_vm = CHECKED_MEM_GET(
+  struct volume_molecule *new_vm = (struct volume_molecule *)CHECKED_MEM_GET(
     sv->local_storage->mol, "volume molecule");
   memcpy(new_vm, vm, sizeof(struct volume_molecule));
   new_vm->mesh_name = NULL;
@@ -624,7 +624,7 @@ struct volume_molecule *insert_volume_molecule_encl_mesh(
   diff_string_buffers(
     nested_mesh_names_old_filtered, nested_mesh_names_old, meshes_to_ignore);
 
-  char *species_name = new_vm->properties->sym->name;
+  const char *species_name = new_vm->properties->sym->name;
   unsigned int keyhash = (unsigned int)(intptr_t)(species_name);
   void *key = (void *)(species_name);
   struct mesh_transparency *mesh_transp = (
@@ -633,7 +633,7 @@ struct volume_molecule *insert_volume_molecule_encl_mesh(
 
   int move_molecule = 0;
   int out_to_in = 0;
-  char *mesh_name = compare_molecule_nesting(
+  const char *mesh_name = compare_molecule_nesting(
     &move_molecule,
     &out_to_in,
     nested_mesh_names_old_filtered,
@@ -980,7 +980,7 @@ place_mol_relative_to_mesh:
 void place_mol_relative_to_mesh(struct volume *state,
                                 struct vector3 *loc,
                                 struct subvolume *sv,
-                                char *mesh_name,
+                                const char *mesh_name,
                                 struct vector3 *new_pos,
                                 int out_to_in) {
   struct vector2 s_loc;
@@ -1175,7 +1175,7 @@ void destroy_mesh_transp_data(
   for (int n_mol_bin = 0; n_mol_bin < mol_sym_table->n_bins; n_mol_bin++) {
     for (struct sym_entry *sym_ptr = mol_sym_table->entries[n_mol_bin];
          sym_ptr != NULL; sym_ptr = sym_ptr->next) {
-      char *species_name = sym_ptr->name;
+      const char *species_name = sym_ptr->name;
       if (strcmp(species_name, "ALL_MOLECULES") == 0)
         continue;
       else if (strcmp(species_name, "ALL_VOLUME_MOLECULES") == 0)
@@ -1372,7 +1372,7 @@ int destroy_poly_object(struct geom_object *obj_ptr, int free_poly_flag) {
       } 
       delete_void_list((struct void_list *)w->surf_class_head);
     }
-    struct polygon_object *poly_obj_ptr = obj_ptr->contents;
+    struct polygon_object *poly_obj_ptr = (struct polygon_object *)obj_ptr->contents;
     free(poly_obj_ptr->side_removed);
     poly_obj_ptr->side_removed = NULL;
     free(poly_obj_ptr->element);
@@ -1491,12 +1491,12 @@ void check_count_validity(struct output_request *output_request_head,
             "Non-region location symbol (type=%d) in count request.",
             request->count_location->sym_type);
       }
-      char *reg_name = request->count_location->name;
+      const char *reg_name = request->count_location->name;
       // Counting in/on an object
       if (is_reverse_abbrev(",ALL", reg_name)) {
         struct region *reg_of_count = (
             struct region *)request->count_location->value;
-        char *obj_name = reg_of_count->parent->sym->name;
+        const char *obj_name = reg_of_count->parent->sym->name;
         reset_count_type(
             obj_name,
             request,
@@ -1528,7 +1528,7 @@ reset_count_type:
       new_names: a string buffer of meshes/regions that were just added
   Out: none
 ***************************************************************************/
-void reset_count_type(char *name,
+void reset_count_type(const char *name,
                       struct output_request *request,
                       struct string_buffer *names_to_ignore,
                       struct string_buffer *new_names) {
@@ -1608,7 +1608,7 @@ int init_species_mesh_transp(struct volume *state) {
   state->species_mesh_transp = species_mesh_transp;
   for (int i = 0; i < state->n_species; i++) {
     struct species *spec = state->species_list[i];
-    char *species_name = spec->sym->name;
+    const char *species_name = spec->sym->name;
     if (spec->flags & IS_SURFACE)
       continue;
     if (strcmp(species_name, "ALL_MOLECULES") == 0)
@@ -1648,7 +1648,7 @@ find_sm_region_transp:
 int find_sm_region_transp(struct geom_object *obj_ptr,
                           struct mesh_transparency **mesh_transp_head,
                           struct mesh_transparency **mesh_transp_tail,
-                          char *species_name) {
+                          const char *species_name) {
 
   // Check every region on the object
   for (struct region_list *reg_list_ptr = obj_ptr->regions;
@@ -1701,7 +1701,7 @@ check_surf_class_properties:
        a given region
 ***************************************************************************/
 void check_surf_class_properties(
-  char *species_name,
+  const char *species_name,
   struct mesh_transparency *mesh_transp,
   struct name_orient *surf_class_props) {
 
@@ -1740,7 +1740,7 @@ find_vm_obj_region_transp:
 int find_vm_obj_region_transp(struct geom_object *obj_ptr,
                               struct mesh_transparency **mesh_transp_head,
                               struct mesh_transparency **mesh_transp_tail,
-                              char *species_name) {
+                              const char *species_name) {
 
   struct mesh_transparency *mesh_transp;
   mesh_transp =
@@ -1820,7 +1820,7 @@ find_all_obj_region_transp:
 int find_all_obj_region_transp(struct geom_object *obj_ptr,
                                struct mesh_transparency **mesh_transp_head,
                                struct mesh_transparency **mesh_transp_tail,
-                               char *species_name,
+                               const char *species_name,
                                int sm_flag) {
 
   switch (obj_ptr->object_type) {
@@ -1872,7 +1872,7 @@ int find_all_obj_region_transp(struct geom_object *obj_ptr,
  ***********************************************************************/
 int add_dynamic_geometry_events(
     struct mdlparse_vars *parse_state,
-    char *dynamic_geometry_filepath,
+    const char *dynamic_geometry_filepath,
     double timestep,
     struct mem_helper *dynamic_geometry_events_mem,
     struct dg_time_filename **dg_time_fname_head) {
@@ -1945,7 +1945,7 @@ int add_dynamic_geometry_events(
           destroy_objects(state->root_object, 0);
 
           struct dg_time_filename *dyn_geom;
-          dyn_geom = CHECKED_MEM_GET(dynamic_geometry_events_mem,
+          dyn_geom = (struct dg_time_filename *)CHECKED_MEM_GET(dynamic_geometry_events_mem,
                                      "time-varying dynamic geometry");
           if (dyn_geom == NULL) {
             free(zero_file_name);
@@ -1981,6 +1981,9 @@ int add_dynamic_geometry_events(
     free(zero_file_name);
   }
 
+  // this free causes double free errors
+  // free((char*)dynamic_geometry_filepath);
+  
   // Disable parsing of geometry for the rest of the MDL. It should only happen
   // via files referenced in the DG file.
   state->disable_polygon_objects = 1;
@@ -1994,13 +1997,13 @@ int add_dynamic_geometry_events(
  Out: mesh_names is updated so that it contains a list of all the mesh objects
       with their fully qualified names.
  ***********************************************************************/
-char *get_mesh_instantiation_names(struct geom_object *obj_ptr,
+const char *get_mesh_instantiation_names(struct geom_object *obj_ptr,
                                    struct string_buffer *mesh_names) {
   switch (obj_ptr->object_type) {
   case META_OBJ:
     for (struct geom_object *child_obj_ptr = obj_ptr->first_child;
          child_obj_ptr != NULL; child_obj_ptr = child_obj_ptr->next) {
-      char *mesh_name = get_mesh_instantiation_names(
+      char *mesh_name = (char *)get_mesh_instantiation_names(
           child_obj_ptr, mesh_names);
       if ((mesh_name != NULL) &&
           (add_string_to_buffer(mesh_names, mesh_name))) {

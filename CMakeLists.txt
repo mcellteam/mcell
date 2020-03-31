@@ -36,7 +36,7 @@ if (CMAKE_BUILD_TYPE STREQUAL "Release")
   SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -no-pie ")
 endif()
 
-set(WARNING_FLAGS "-Wall -Wextra -Wno-shadow -Wno-unused-parameter -Wno-unused-function -Wno-unused-variable -fpermissive")
+set(WARNING_FLAGS "-Wall -Wextra -Wno-unused-parameter -Wno-unused-function -Wno-unused-variable ")
 
 set(INCLUDE_DIRS " -isystem ${CMAKE_SOURCE_DIR}/libs/")
 SET(COMMON_C_CXX_FLAGS "${WARNING_FLAGS} -fPIC -g3 ${OPTIMIZATION_FLAGS} ${INCLUDE_DIRS} -D_GNU_SOURCE=1")

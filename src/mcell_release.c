@@ -170,7 +170,7 @@ MCELL_STATUS mcell_create_list_release_site(
  *
  ******************************************************************************/
 MCELL_STATUS mcell_create_geometrical_release_site(
-    MCELL_STATE *state, struct geom_object *parent, char *site_name, int shape,
+    MCELL_STATE *state, struct geom_object *parent, const char *site_name, int shape,
     struct vector3 *position, struct vector3 *diameter,
     struct mcell_species *mol, double num, int num_type, double rel_prob,
     struct release_pattern *rpatp, struct geom_object **new_obj) {

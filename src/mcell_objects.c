@@ -63,7 +63,7 @@ mcell_create_instance_object(MCELL_STATE *state, const char *name,
   if (obj_ptr == NULL) {
     return MCELL_FAIL;
   }
-  obj_ptr->last_name = name;
+  obj_ptr->last_name = (char*)name;
   obj_ptr->object_type = META_OBJ;
 
   // instantiate object
@@ -239,6 +239,10 @@ new_polygon_list(MCELL_STATE *state, struct geom_object *obj_ptr, int n_vertices
                  struct vertex_list *vertices, int n_connections,
                  struct element_connection_list *connections) {
 
+  struct vertex_list *vert_list = NULL;
+  struct element_data *elem_data_ptr = NULL;
+  struct region *reg_ptr = NULL;
+
   struct polygon_object *poly_obj_ptr =
       allocate_polygon_object("polygon list object");
   if (poly_obj_ptr == NULL) {
@@ -262,62 +266,55 @@ new_polygon_list(MCELL_STATE *state, struct geom_object *obj_ptr, int n_vertices
   // "parsed_vertices"
   poly_obj_ptr->parsed_vertices = vertices;
 
-  { // extra block to avoid jump crossing initialization
+  // Copy in vertices and normals
+  vert_list = poly_obj_ptr->parsed_vertices;
+  for (int i = 0; i < poly_obj_ptr->n_verts; i++) {
+    // Rescale vertices coordinates
+    vert_list->vertex->x *= state->r_length_unit;
+    vert_list->vertex->y *= state->r_length_unit;
+    vert_list->vertex->z *= state->r_length_unit;
+    vert_list = vert_list->next;
+  }
 
-    // Copy in vertices and normals
-    struct vertex_list *vert_list = poly_obj_ptr->parsed_vertices;
-    for (int i = 0; i < poly_obj_ptr->n_verts; i++) {
-      // Rescale vertices coordinates
-      vert_list->vertex->x *= state->r_length_unit;
-      vert_list->vertex->y *= state->r_length_unit;
-      vert_list->vertex->z *= state->r_length_unit;
-      vert_list = vert_list->next;
-    }
+  // Allocate wall elements
+  if ((elem_data_ptr =
+           CHECKED_MALLOC_ARRAY(struct element_data, poly_obj_ptr->n_walls,
+                                "polygon list object walls")) == NULL) {
+    goto failure;
+  }
+  poly_obj_ptr->element = elem_data_ptr;
 
-    // Allocate wall elements
-    struct element_data *elem_data_ptr = NULL;
-    if ((elem_data_ptr =
-             CHECKED_MALLOC_ARRAY(struct element_data, poly_obj_ptr->n_walls,
-                                  "polygon list object walls")) == NULL) {
+  // Copy in wall elements
+  for (int i = 0; i < poly_obj_ptr->n_walls; i++) {
+    if (connections->n_verts != 3) {
+      // mdlerror(parse_state, "All polygons must have three vertices.");
       goto failure;
     }
-    poly_obj_ptr->element = elem_data_ptr;
 
-    // Copy in wall elements
-    for (int i = 0; i < poly_obj_ptr->n_walls; i++) {
-      if (connections->n_verts != 3) {
-        // mdlerror(parse_state, "All polygons must have three vertices.");
-        goto failure;
-      }
+    struct element_connection_list *elem_conn_list_temp = connections;
+    memcpy(elem_data_ptr[i].vertex_index, connections->indices,
+           3 * sizeof(int));
+    connections = connections->next;
+    free(elem_conn_list_temp->indices);
+    free(elem_conn_list_temp);
+  }
 
-      struct element_connection_list *elem_conn_list_temp = connections;
-      memcpy(elem_data_ptr[i].vertex_index, connections->indices,
-             3 * sizeof(int));
-      connections = connections->next;
-      free(elem_conn_list_temp->indices);
-      free(elem_conn_list_temp);
-    }
+  // Create object default region on polygon list object:
+  if ((reg_ptr = mcell_create_region(state, obj_ptr, "ALL")) == NULL) {
+    goto failure;
+  }
+  if ((reg_ptr->element_list_head =
+           new_element_list(0, poly_obj_ptr->n_walls - 1)) == NULL) {
+    goto failure;
+  }
 
-    // Create object default region on polygon list object:
-    {
-      struct region *reg_ptr = NULL;
-      if ((reg_ptr = mcell_create_region(state, obj_ptr, "ALL")) == NULL) {
-        goto failure;
-      }
-      if ((reg_ptr->element_list_head =
-               new_element_list(0, poly_obj_ptr->n_walls - 1)) == NULL) {
-        goto failure;
-      }
-
-      obj_ptr->n_walls = poly_obj_ptr->n_walls;
-      obj_ptr->n_verts = poly_obj_ptr->n_verts;
-      if (normalize_elements(reg_ptr, 0)) {
-        // mdlerror_fmt(parse_state,
-        //             "Error setting up elements in default 'ALL' region in the "
-        //             "polygon object '%s'.", sym->name);
-        goto failure;
-      }
-    }
+  obj_ptr->n_walls = poly_obj_ptr->n_walls;
+  obj_ptr->n_verts = poly_obj_ptr->n_verts;
+  if (normalize_elements(reg_ptr, 0)) {
+    // mdlerror_fmt(parse_state,
+    //             "Error setting up elements in default 'ALL' region in the "
+    //             "polygon object '%s'.", sym->name);
+    goto failure;
   }
 
   return poly_obj_ptr;
@@ -348,7 +345,7 @@ failure:
 struct geom_object *make_new_object(
     struct dyngeom_parse_vars *dg_parse,
     struct sym_table_head *obj_sym_table,
-    char *obj_name,
+    const char *obj_name,
     int *error_code) {
 
   struct sym_entry *symbol = retrieve_sym(obj_name, obj_sym_table);
@@ -1235,8 +1232,8 @@ struct region *mcell_create_region(MCELL_STATE *state, struct geom_object *obj_p
 struct region *make_new_region(
     struct dyngeom_parse_vars *dg_parse,
     MCELL_STATE *state,
-    char *obj_name,
-    char *region_last_name) {
+    const char *obj_name,
+    const char *region_last_name) {
 
   char *region_name;
   region_name = CHECKED_SPRINTF("%s,%s", obj_name, region_last_name);

@@ -43,13 +43,13 @@ unsigned long lhash(const char *keystring) {
 }
 
 queryOptions initializeNFSimQueryForBimolecularReactions(
-    struct graph_data *graph1, struct graph_data *graph2, char *onlyActive) {
+    struct graph_data *graph1, struct graph_data *graph2, const char *onlyActive) {
   // constant settings
 
   static const char *optionKeys[2] = {"numReactants", "onlyActive"};
   static char *optionValues[2];
   optionValues[0] = (char *)"2";
-  optionValues[1] = onlyActive;
+  optionValues[1] = (char *)onlyActive;
 
   static const int optionSeeds[2] = {1, 1};
   static char *speciesArray[2];
@@ -91,7 +91,7 @@ queryOptions
 initializeNFSimQueryForUnimolecularReactions(struct abstract_molecule *am) {
   // constant settings
   static const char *optionKeys[1] = {"numReactants"};
-  static char *optionValues[1] = {"1"};
+  static char *optionValues[1] = {(char *)"1"};
   static const int optionSeeds[1] = {1};
   static char *speciesArray[1];
   // initialize speciesArray with the string we are going to query

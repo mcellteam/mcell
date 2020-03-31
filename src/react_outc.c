@@ -173,7 +173,7 @@ place_volume_product(struct volume *world, struct species *product_species, stru
   /* Allocate and initialize the molecule. */
   struct volume_molecule *new_volume_mol;
   new_volume_mol =
-      CHECKED_MEM_GET(subvol->local_storage->mol, "volume molecule");
+      (struct volume_molecule *)CHECKED_MEM_GET(subvol->local_storage->mol, "volume molecule");
   new_volume_mol->birthplace = subvol->local_storage->mol;
   new_volume_mol->birthday = convert_iterations_to_seconds(
       world->start_iterations, world->time_unit,
@@ -266,7 +266,7 @@ place_sm_product(struct volume *world, struct species *product_species, struct g
 
   /* Allocate and initialize the molecule. */
   struct surface_molecule *new_surf_mol;
-  new_surf_mol = CHECKED_MEM_GET(sv->local_storage->smol, "surface molecule");
+  new_surf_mol = (struct surface_molecule *)CHECKED_MEM_GET(sv->local_storage->smol, "surface molecule");
   new_surf_mol->birthplace = sv->local_storage->smol;
   new_surf_mol->birthday = convert_iterations_to_seconds(
       world->start_iterations, world->time_unit,

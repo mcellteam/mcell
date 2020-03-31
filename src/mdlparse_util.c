@@ -149,7 +149,7 @@ void mdl_warning(struct mdlparse_vars *parse_state, char const *fmt, ...) {
      mode: mode string to check
  Out: 1 if
 **************************************************************************/
-int mdl_valid_file_mode(struct mdlparse_vars *parse_state, char *mode) {
+int mdl_valid_file_mode(struct mdlparse_vars *parse_state, const char *mode) {
   char c = mode[0];
   if (c != 'r' && c != 'w' && c != 'a') {
     mdlerror_fmt(parse_state, "Invalid file mode: %s", mode);
@@ -504,7 +504,7 @@ char *mdl_expand_string_escapes(char *in) {
   char *in_start = in;
 
   /* Allocate buffer for new string */
-  char *expanded = CHECKED_MALLOC(strlen(in) + 1, "printf format string");
+  char *expanded = (char *)CHECKED_MALLOC(strlen(in) + 1, "printf format string");
   if (expanded == NULL)
     return NULL;
 
@@ -802,7 +802,7 @@ static int get_printf_conversion_specifier(struct mdlparse_vars *parse_state,
  Out: formatted segment on success, NULL on failure; *argpp is updated.
 *************************************************************************/
 static char *my_sprintf_segment(struct mdlparse_vars *parse_state,
-                                char *fmt_seg, struct arg **argpp) {
+                                const char *fmt_seg, struct arg **argpp) {
   int num_asterisks = 0;
   struct arg *argp = *argpp;
 
@@ -1139,6 +1139,10 @@ static char *my_sprintf(struct mdlparse_vars *parse_state, char *format,
   char *this_start, *this_end;
   char const *const format_orig = format;
 
+  int total_len = 0;
+  char *buffer = NULL;
+  char *pos = NULL;
+
   struct sprintf_output_list head, *tail;
   head.segment = NULL;
   head.next = NULL;
@@ -1225,28 +1229,27 @@ static char *my_sprintf(struct mdlparse_vars *parse_state, char *format,
   }
 
   /* Now, build the string! */
-  {
-    int total_len = head.len + 1;
-    if (format != NULL)
-      total_len += strlen(format);
-    char *buffer = CHECKED_MALLOC_ARRAY(char, total_len, "SPRINTF data");
-    char *pos = buffer;
-    if (buffer == NULL)
-      goto failure;
-    while (head.next != NULL) {
-      struct sprintf_output_list *l = head.next;
-      memcpy(pos, l->segment, l->len);
-      pos += l->len;
-      free(l->segment);
-      head.next = l->next;
-      free(l);
-    }
-    if (format != NULL)
-      strcpy(pos, format);
-    else
-      *pos = '\0';
-    return buffer;
+  total_len = head.len + 1;
+  if (format != NULL)
+    total_len += strlen(format);
+  buffer = CHECKED_MALLOC_ARRAY(char, total_len, "SPRINTF data");
+  pos = buffer;
+  if (buffer == NULL)
+    goto failure;
+  while (head.next != NULL) {
+    struct sprintf_output_list *l = head.next;
+    memcpy(pos, l->segment, l->len);
+    pos += l->len;
+    free(l->segment);
+    head.next = l->next;
+    free(l);
   }
+  if (format != NULL)
+    strcpy(pos, format);
+  else
+    *pos = '\0';
+
+  return buffer;
 
 failure:
   while (head.next != NULL) {
@@ -1804,20 +1807,21 @@ int mdl_assign_variable(struct mdlparse_vars *parse_state,
  Out: notification levels are changed
 *************************************************************************/
 void mdl_set_all_notifications(struct volume *vol, byte notify_value) {
-  vol->notify->progress_report = notify_value;
-  vol->notify->diffusion_constants = notify_value;
-  vol->notify->reaction_probabilities = notify_value;
-  vol->notify->time_varying_reactions = notify_value;
-  vol->notify->partition_location = notify_value;
-  vol->notify->box_triangulation = notify_value;
+  enum notify_level_t n = (enum notify_level_t)notify_value;
+  vol->notify->progress_report = n;
+  vol->notify->diffusion_constants = n;
+  vol->notify->reaction_probabilities = n;
+  vol->notify->time_varying_reactions = n;
+  vol->notify->partition_location = n;
+  vol->notify->box_triangulation = n;
   if (vol->log_freq == ULONG_MAX)
-    vol->notify->iteration_report = notify_value;
-  vol->notify->throughput_report = notify_value;
-  vol->notify->checkpoint_report = notify_value;
-  vol->notify->release_events = notify_value;
-  vol->notify->file_writes = notify_value;
-  vol->notify->final_summary = notify_value;
-  vol->notify->molecule_collision_report = notify_value;
+    vol->notify->iteration_report = n;
+  vol->notify->throughput_report = n;
+  vol->notify->checkpoint_report = n;
+  vol->notify->release_events = n;
+  vol->notify->file_writes = n;
+  vol->notify->final_summary = n;
+  vol->notify->molecule_collision_report = n;
 }
 
 /*************************************************************************
@@ -1854,23 +1858,25 @@ int mdl_set_iteration_report_freq(struct mdlparse_vars *parse_state,
  Out: warning levels are changed
 *************************************************************************/
 void mdl_set_all_warnings(struct volume *vol, byte warning_level) {
-  vol->notify->neg_diffusion = warning_level;
-  vol->notify->neg_reaction = warning_level;
-  vol->notify->high_reaction_prob = warning_level;
-  vol->notify->close_partitions = warning_level;
-  vol->notify->degenerate_polys = warning_level;
-  vol->notify->overwritten_file = warning_level;
-  vol->notify->mol_placement_failure = warning_level;
+  enum warn_level_t w = (enum warn_level_t)warning_level;
 
-  if (warning_level == WARN_ERROR)
-    warning_level = WARN_WARN;
-  vol->notify->short_lifetime = warning_level;
-  vol->notify->missed_reactions = warning_level;
-  vol->notify->missed_surf_orient = warning_level;
-  vol->notify->useless_vol_orient = warning_level;
-  vol->notify->invalid_output_step_time = warning_level;
-  vol->notify->large_molecular_displacement = warning_level;
-  vol->notify->add_remove_mesh_warning = warning_level;
+  vol->notify->neg_diffusion = w;
+  vol->notify->neg_reaction = w;
+  vol->notify->high_reaction_prob = w;
+  vol->notify->close_partitions = w;
+  vol->notify->degenerate_polys = w;
+  vol->notify->overwritten_file = w;
+  vol->notify->mol_placement_failure = w;
+
+  if (w == WARN_ERROR)
+    w = WARN_WARN;
+  vol->notify->short_lifetime = w;
+  vol->notify->missed_reactions = w;
+  vol->notify->missed_surf_orient = w;
+  vol->notify->useless_vol_orient = w;
+  vol->notify->invalid_output_step_time = w;
+  vol->notify->large_molecular_displacement = w;
+  vol->notify->add_remove_mesh_warning = w;
 }
 
 /*************************************************************************
@@ -2523,12 +2529,12 @@ static struct sym_entry *mdl_existing_symbol(struct mdlparse_vars *parse_state,
                                              int type) {
   struct sym_entry *symp = retrieve_sym(name, tab);
   if (symp == NULL)
-    mdlerror_fmt(parse_state, "Undefined %s: %s", mdl_symbol_type_name(type),
+    mdlerror_fmt(parse_state, "Undefined %s: %s", mdl_symbol_type_name((enum symbol_type_t)type),
                  name);
   else if (symp->sym_type != type) {
     mdlerror_fmt(
         parse_state, "Invalid type for symbol %s: expected %s, but found %s",
-        name, mdl_symbol_type_name(type), mdl_symbol_type_name(symp->sym_type));
+        name, mdl_symbol_type_name((enum symbol_type_t)type), mdl_symbol_type_name((enum symbol_type_t)symp->sym_type));
     symp = NULL;
   } else if (strcmp(symp->name, "GENERIC_MOLECULE") == 0) {
     mdlerror_fmt(parse_state, "The keyword 'GENERIC_MOLECULE' is obsolete. "
@@ -2563,16 +2569,16 @@ mdl_existing_symbol_2types(struct mdlparse_vars *parse_state, char *name,
     symp = retrieve_sym(name, tab2);
     if (symp == NULL)
       mdlerror_fmt(parse_state, "Undefined %s or %s: %s",
-                   mdl_symbol_type_name(type1), mdl_symbol_type_name(type2),
+                   mdl_symbol_type_name((enum symbol_type_t)type1), mdl_symbol_type_name((enum symbol_type_t)type2),
                    name);
   } else {
     if (retrieve_sym(name, tab2) != NULL) {
       mdlerror_fmt(parse_state, "Named object '%s' could refer to %s %s or %s "
                                 "%s.  Please rename one of them.",
-                   name, mdl_symbol_type_name_article(type1),
-                   mdl_symbol_type_name(type1),
-                   mdl_symbol_type_name_article(type2),
-                   mdl_symbol_type_name(type2));
+                   name, mdl_symbol_type_name_article((enum symbol_type_t)type1),
+                   mdl_symbol_type_name((enum symbol_type_t)type1),
+                   mdl_symbol_type_name_article((enum symbol_type_t)type2),
+                   mdl_symbol_type_name((enum symbol_type_t)type2));
       symp = NULL;
     }
   }
@@ -2603,7 +2609,7 @@ mdl_find_symbols_by_wildcard(struct mdlparse_vars *parse_state,
 
       if (is_wildcard_match((char *)wildcard, sym_t->name)) {
         stl =
-            CHECKED_MEM_GET(parse_state->sym_list_mem, "wildcard symbol list");
+            (struct sym_table_list *)CHECKED_MEM_GET(parse_state->sym_list_mem, "wildcard symbol list");
         if (stl == NULL) {
           if (symbols)
             mem_put_list(parse_state->sym_list_mem, symbols);
@@ -2741,7 +2747,7 @@ struct sym_table_list *
 mdl_singleton_symbol_list(struct mdlparse_vars *parse_state,
                           struct sym_entry *sym) {
   struct sym_table_list *stl =
-      CHECKED_MEM_GET(parse_state->sym_list_mem, "symbol list item");
+      (struct sym_table_list *)CHECKED_MEM_GET(parse_state->sym_list_mem, "symbol list item");
   if (stl != NULL) {
     stl->next = NULL;
     stl->node = sym;
@@ -3085,7 +3091,7 @@ int mdl_transform_rotate(struct mdlparse_vars *parse_state, double (*mat)[4],
 *************************************************************************/
 static struct region *mdl_make_new_region(struct mdlparse_vars *parse_state,
                                           char *obj_name,
-                                          char *region_last_name) {
+                                          const char *region_last_name) {
   char *region_name;
   region_name = CHECKED_SPRINTF("%s,%s", obj_name, region_last_name);
   if (region_name == NULL)
@@ -3283,7 +3289,7 @@ static struct release_evaluator *duplicate_rel_region_expr(
   struct region *r;
   if (expr->left != NULL) {
     if (expr->op & REXP_LEFT_REGION) {
-      r = find_corresponding_region(expr->left, old_self, new_self, instance,
+      r = find_corresponding_region((struct region *)expr->left, old_self, new_self, instance,
                                     parse_state->vol->reg_sym_table);
 
       if (r == NULL) {
@@ -3298,14 +3304,14 @@ static struct release_evaluator *duplicate_rel_region_expr(
 
       nexp->left = r;
     } else
-      nexp->left = duplicate_rel_region_expr(parse_state, expr->left, old_self,
+      nexp->left = duplicate_rel_region_expr(parse_state, (struct release_evaluator *)expr->left, old_self,
                                              new_self, instance);
   } else
     nexp->left = NULL;
 
   if (expr->right != NULL) {
     if (expr->op & REXP_RIGHT_REGION) {
-      r = find_corresponding_region(expr->right, old_self, new_self, instance,
+      r = find_corresponding_region((struct region *)expr->right, old_self, new_self, instance,
                                     parse_state->vol->reg_sym_table);
 
       if (r == NULL) {
@@ -3320,7 +3326,7 @@ static struct release_evaluator *duplicate_rel_region_expr(
 
       nexp->right = r;
     } else
-      nexp->right = duplicate_rel_region_expr(parse_state, expr->right,
+      nexp->right = duplicate_rel_region_expr(parse_state, (struct release_evaluator *)expr->right,
                                               old_self, new_self, instance);
   } else
     nexp->right = NULL;
@@ -3483,7 +3489,7 @@ int mdl_deep_copy_object(struct mdlparse_vars *parse_state,
 
   case REL_SITE_OBJ: {
       dst_obj->contents =
-          duplicate_release_site(parse_state, src_obj->contents, dst_obj,
+          duplicate_release_site(parse_state, (struct release_site_obj *)src_obj->contents, dst_obj,
                                  parse_state->vol->root_instance);
       if (dst_obj->contents == NULL)
         return 1;
@@ -4557,7 +4563,7 @@ void mdl_print_species_summary(MCELL_STATE *state,
     report_diffusion_distances(species, state->time_unit, state->length_unit,
                                state->notify->diffusion_constants);
     no_printf("Molecule %s defined with D = %g\n", species->name, species->D);
-    free(species->name);
+    free((char*)species->name);
     free(species);
   }
 }
@@ -4590,7 +4596,7 @@ mdl_print_species_summaries(struct volume *state,
     struct parse_mcell_species_list_item *next;
     for (spec_item = spec_items; NULL != spec_item; spec_item = next) {
       next = spec_item->next;
-      free(spec_item->spec->name);
+      free((char*)spec_item->spec->name);
       free(spec_item->spec);
       free(spec_item);
     }
@@ -4645,7 +4651,7 @@ int mdl_start_release_site(struct mdlparse_vars *parse_state,
     return 1;
   }
 
-  parse_state->current_release_site = obj_ptr->contents;
+  parse_state->current_release_site = (struct release_site_obj *)obj_ptr->contents;
   if (obj_ptr->contents == NULL) {
     return 1;
   }
@@ -5604,7 +5610,7 @@ struct polygon_object *mdl_create_periodic_box(
   struct polygon_object *pop;
   struct region *rp;
 
-  char *name_tmp = "PERIODIC_BOX_OBJ";
+  const char *name_tmp = "PERIODIC_BOX_OBJ";
   int name_len = strlen(name_tmp) + 1;
   char *name = (char*)malloc(name_len * sizeof(char));
   strcpy(name, name_tmp);
@@ -5690,7 +5696,7 @@ int mdl_finish_periodic_box(struct mdlparse_vars *parse_state) {
   parse_state->current_object = parse_state->vol->root_instance;
 
   // Create meta object
-  char *meta_name_tmp = "PERIODIC_BOX_META";
+  const char *meta_name_tmp = "PERIODIC_BOX_META";
   int meta_name_len = strlen(meta_name_tmp) + 1;
   char *meta_name = (char*)malloc(meta_name_len * sizeof(char));
   strcpy(meta_name, meta_name_tmp);
@@ -5701,7 +5707,7 @@ int mdl_finish_periodic_box(struct mdlparse_vars *parse_state) {
   meta_objp->object_type = META_OBJ;
 
   // Create instance of PERIODIC_BOX_OBJECT
-  char *inst_name_tmp = "PERIODIC_BOX_INSTANT";
+  const char *inst_name_tmp = "PERIODIC_BOX_INSTANT";
   int inst_name_len = strlen(inst_name_tmp) + 1;
   char *inst_name = (char*)malloc(inst_name_len * sizeof(char));
   strcpy(inst_name, inst_name_tmp);
@@ -5824,7 +5830,7 @@ int mdl_finish_box_object(struct mdlparse_vars *parse_state,
       allocation failed)
 **************************************************************************/
 struct region *mdl_create_region(struct mdlparse_vars *parse_state,
-                                 struct geom_object *objp, char *name) {
+                                 struct geom_object *objp, const char *name) {
   struct region *rp;
   struct region_list *rlp;
   no_printf("Creating new region: %s\n", name);
@@ -5862,7 +5868,7 @@ struct region *mdl_create_region(struct mdlparse_vars *parse_state,
  Out: region, or NULL if allocation fails
 **************************************************************************/
 struct region *mdl_get_region(struct mdlparse_vars *parse_state,
-                              struct geom_object *objp, char *name) {
+                              struct geom_object *objp, const char *name) {
   struct sym_entry *reg_sym;
   char *region_name;
   struct region *rp;
@@ -5898,7 +5904,7 @@ int mdl_start_existing_obj_region_def(struct mdlparse_vars *parse_state,
                  obj_symp->name);
     return 1;
   }
-  parse_state->current_polygon = objp->contents;
+  parse_state->current_polygon = (struct polygon_object*)objp->contents;
   parse_state->current_object = objp;
   parse_state->allow_patches = 0;
   return 0;
@@ -7183,7 +7189,7 @@ int mdl_new_viz_output_block(struct mdlparse_vars *parse_state) {
 **************************************************************************/
 int mdl_set_viz_mode(struct viz_output_block *vizblk, int mode) {
 
-  vizblk->viz_mode = mode;
+  vizblk->viz_mode = (enum viz_mode_t)mode;
   return 0;
 }
 
@@ -7627,7 +7633,7 @@ struct volume_output_item *mdl_new_volume_output_item(
 **************************************************************************/
 struct output_times *
 mdl_new_output_times_default(struct mdlparse_vars *parse_state) {
-  struct output_times *ot = CHECKED_MEM_GET(parse_state->output_times_mem,
+  struct output_times *ot = (struct output_times *)CHECKED_MEM_GET(parse_state->output_times_mem,
                                             "output times for volume output");
   if (ot == NULL)
     return NULL;
@@ -7650,7 +7656,7 @@ mdl_new_output_times_default(struct mdlparse_vars *parse_state) {
 struct output_times *
 mdl_new_output_times_step(struct mdlparse_vars *parse_state, double step) {
   long long output_freq;
-  struct output_times *ot = CHECKED_MEM_GET(parse_state->output_times_mem,
+  struct output_times *ot = (struct output_times *)CHECKED_MEM_GET(parse_state->output_times_mem,
                                             "output times for volume output");
   if (ot == NULL)
     return NULL;
@@ -7689,7 +7695,7 @@ mdl_new_output_times_step(struct mdlparse_vars *parse_state, double step) {
 struct output_times *
 mdl_new_output_times_iterations(struct mdlparse_vars *parse_state,
                                 struct num_expr_list_head *iters) {
-  struct output_times *ot = CHECKED_MEM_GET(parse_state->output_times_mem,
+  struct output_times *ot = (struct output_times *)CHECKED_MEM_GET(parse_state->output_times_mem,
                                             "output times for volume output");
   if (ot == NULL) {
     if (!iters->shared)
@@ -7724,7 +7730,7 @@ mdl_new_output_times_iterations(struct mdlparse_vars *parse_state,
 struct output_times *
 mdl_new_output_times_time(struct mdlparse_vars *parse_state,
                           struct num_expr_list_head *times) {
-  struct output_times *ot = CHECKED_MEM_GET(parse_state->output_times_mem,
+  struct output_times *ot = (struct output_times *)CHECKED_MEM_GET(parse_state->output_times_mem,
                                             "output times for volume output");
   if (ot == NULL) {
     if (!times->shared)

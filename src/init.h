@@ -115,7 +115,7 @@ void check_for_conflicting_surface_classes(struct wall *w, int n_species,
                                            struct species **species_list);
 void check_for_conflicts_in_surface_class(struct volume *world,
                                           struct species *sp);
-struct species *get_species_by_name(char *name, int n_species,
+struct species *get_species_by_name(const char *name, int n_species,
                                     struct species **species_list);
 void create_name_lists_of_volume_and_surface_mols(
     struct volume *world, struct name_list **vol_species_name_list,

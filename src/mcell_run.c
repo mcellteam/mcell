@@ -89,9 +89,9 @@ static void process_volume_output(struct volume *wrld, double not_yet) {
 static void process_reaction_output(struct volume *wrld, double not_yet) {
   struct output_block *obp;
   
-  for (obp = schedule_next(wrld->count_scheduler);
+  for (obp = (struct output_block *)schedule_next(wrld->count_scheduler);
        obp != NULL || not_yet >= wrld->count_scheduler->now;
-       obp = schedule_next(wrld->count_scheduler)) {
+       obp = (struct output_block *)schedule_next(wrld->count_scheduler)) {
     if (obp == NULL)
       continue;
     //nfsim observables update
@@ -116,9 +116,9 @@ static void process_reaction_output(struct volume *wrld, double not_yet) {
  Out: none.  molecules are released into the world.
  ***********************************************************************/
 void process_molecule_releases(struct volume *wrld, double not_yet) {
-  for (struct release_event_queue *req = schedule_next(wrld->releaser);
+  for (struct release_event_queue *req = (struct release_event_queue *)schedule_next(wrld->releaser);
        req != NULL || not_yet >= wrld->releaser->now;
-       req = schedule_next(wrld->releaser)) {
+       req = (struct release_event_queue *)schedule_next(wrld->releaser)) {
     if (req == NULL ||
         !distinguishable(req->release_site->release_prob, MAGIC_PATTERN_PROBABILITY, EPS_C))
       continue;
@@ -147,10 +147,10 @@ void process_molecule_releases(struct volume *wrld, double not_yet) {
       if necessary to keep them in/out of the appropriate compartments).
  ***********************************************************************/
 void process_geometry_changes(struct volume *state, double not_yet) {
-  for (struct dg_time_filename *dg_time_fname = schedule_next(
+  for (struct dg_time_filename *dg_time_fname = (struct dg_time_filename *)schedule_next(
        state->dynamic_geometry_scheduler);
        dg_time_fname != NULL || not_yet >= state->dynamic_geometry_scheduler->now;
-       dg_time_fname = schedule_next(state->dynamic_geometry_scheduler)) {
+       dg_time_fname = (struct dg_time_filename *)schedule_next(state->dynamic_geometry_scheduler)) {
 
     if (dg_time_fname == NULL)
       continue;
@@ -742,7 +742,7 @@ mcell_print_final_statistics(MCELL_STATE *world) {
         world->surf_surf_surf_colls,
         &world->rxn_flags);
 
-    struct rusage run_time = { .ru_utime = { 0, 0 }, .ru_stime = { 0, 0 } };
+    struct rusage run_time;
     time_t t_end; /* global end time of MCell run */
     double u_init_time,
         s_init_time;               /* initialization time (user) and (system) */
