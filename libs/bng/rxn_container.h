@@ -185,8 +185,8 @@ private:
   std::vector<RxnRule> rxns;
 
   //
-  uint_set<species_id_t> species_processed_for_bimol_rxn_classes;
-  uint_set<species_id_t> species_processed_for_unimol_rxn_classes;
+  uint_dense_hash_set<species_id_t> species_processed_for_bimol_rxn_classes;
+  uint_dense_hash_set<species_id_t> species_processed_for_unimol_rxn_classes;
 
 public:
   // ids of species superclasses, SPECIES_ID_INVALID if not set

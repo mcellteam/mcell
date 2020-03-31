@@ -53,7 +53,7 @@
 
 #endif
 
-//#define DUMP_ALWAYS
+#define DUMP_ALWAYS
 #define DUMP_NEVER
 
 

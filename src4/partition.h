@@ -36,19 +36,44 @@
 namespace MCell {
 
 // class used to hold potential reactants of given species
-class SpeciesReactantsMap: public std::map<species_id_t, uint_set<molecule_id_t> > {
+// performance critical, therefore we are using a vector for now,
+// will probably need to change in the future
+class SpeciesReactantsMap:
+    // public std::map<species_id_t, uint_set<molecule_id_t> > {
+    public std::vector<uint_set<molecule_id_t> > {
+
 public:
   // key must exist
   void erase_existing(const species_id_t key, const molecule_id_t id) {
-    auto it = find(key);
-    assert(it != end() && "Key must exist");
-    it->second.erase_existing(id);
+    //auto it = find(key);
+    //assert(it != end() && "Key must exist");
+    //it->second.erase_existing(id);
+
+    assert(key < this->size());
+    (*this)[key].erase_existing(id);
   }
 
   // key is created if it does not exist
   void insert_unique(const species_id_t key, const molecule_id_t id) {
+    if (key >= this->size()) {
+      // resize vector
+      this->resize(key + 1);
+    }
     (*this)[key].insert_unique(id);
   }
+
+  const uint_set<molecule_id_t>& get_set(const species_id_t key) {
+    if (key >= this->size()) {
+      // resize vector
+      return empty_set;
+    }
+    else {
+      return (*this)[key];
+    }
+  }
+
+private:
+  uint_set<molecule_id_t> empty_set;
 };
 
 
@@ -358,8 +383,8 @@ public:
     return opposite_corner;
   }
 
-  uint_set<molecule_id_t>& get_volume_molecule_reactants(subpart_index_t subpart_index, species_id_t species_id) {
-    return volume_molecule_reactants_per_subpart[subpart_index][species_id];
+  const uint_set<molecule_id_t>& get_volume_molecule_reactants(subpart_index_t subpart_index, species_id_t species_id) {
+    return volume_molecule_reactants_per_subpart[subpart_index].get_set(species_id);
   }
 
 

@@ -129,9 +129,50 @@ template<typename T, typename _Compare = std::less<T>, typename _Alloc = std::al
  * T is really not needed since it is an uint, but ot
  */
 template<typename Key>
-class uint_set: public google::dense_hash_set<Key> {
+class uint_set:
+  //public google::dense_hash_set<Key> {
+  public base_flat_set<Key> {
 public:
   uint_set() {
+    // dense_hash_set requires this to be called
+    //this->set_empty_key(UINT_INVALID);
+    //this->set_deleted_key(UINT_INVALID2);
+  }
+
+  // insert with check that the item is not there yet
+  // for insertions without this check use 'insert'
+  void insert_unique(const Key id_or_index) {
+    assert(this->count(id_or_index) == 0);
+    this->insert(id_or_index);
+  }
+
+  // erase with check that the item is present
+  // for insertions without this check use 'erase'
+  void erase_existing(const Key id_or_index) {
+    assert(this->count(id_or_index) == 1);
+    this->erase(id_or_index);
+  }
+
+  // TODO : move out of class
+  void dump(const std::string comment = "") const {
+    std::cout << comment << ": ";
+    int cnt = 0;
+    for (const Key& idx: *this) {
+      std::cout << idx << ", ";
+
+      if (cnt %20 == 0 && cnt != 0) {
+        std::cout << "\n";
+      }
+      cnt++;
+    }
+    std::cout << "\n";
+  }
+};
+
+template<typename Key>
+class uint_dense_hash_set: public google::dense_hash_set<Key> {
+public:
+  uint_dense_hash_set() {
     // dense_hash_set requires this to be called
     this->set_empty_key(UINT_INVALID);
     this->set_deleted_key(UINT_INVALID2);
@@ -149,20 +190,6 @@ public:
   void erase_existing(const Key id_or_index) {
     assert(this->count(id_or_index) == 1);
     this->erase(id_or_index);
-  }
-
-  void dump(const std::string comment = "") const {
-    std::cout << comment << ": ";
-    int cnt = 0;
-    for (const Key& idx: *this) {
-      std::cout << idx << ", ";
-
-      if (cnt %20 == 0 && cnt != 0) {
-        std::cout << "\n";
-      }
-      cnt++;
-    }
-    std::cout << "\n";
   }
 };
 
