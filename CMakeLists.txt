@@ -85,12 +85,14 @@ endif()
 if (ENABLE_GPERFTOOLS)
   # TODO: build and install gperftools, for now it is done manually
   # then to run profiling 
-  # CPUPROFILE=./prof.out mc4
+  # export CPUPROFILE=./prof.out 
+  # mcell
   # pprof --text <app> ./prof.out # text output
   # pprof --gv <app> ./prof.out # graphical output, requires gv installed
   # (http://euccas.github.io/blog/20170827/cpu-profiling-tools-on-linux.html)
   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DWITHGPERFTOOLS -I${CMAKE_CURRENT_BINARY_DIR}/libs/")
-  SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -I${CMAKE_CURRENT_BINARY_DIR}/libs/install_gperftools/lib/ -lprofiler")
+  SET(CMAKE_EXE_LINKER_FLAGS 
+  	"${CMAKE_EXE_LINKER_FLAGS} -L${CMAKE_CURRENT_BINARY_DIR}/libs/install_gperftools/lib/ -L${CMAKE_CURRENT_SOURCE_DIR}/../other/install_gperftools/lib/ -lprofiler")
 endif()
 	
 if (ENABLE_SANITIZER)
