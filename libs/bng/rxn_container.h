@@ -60,7 +60,9 @@ public:
   void add_no_update(const RxnRule& r) {
     assert(r.is_finalized());
     // TODO LATER: check that we don't have this rule already
-    rxns.push_back(r);
+
+    // store a copy
+    rxns.push_back(new RxnRule(r));
   }
 
   const RxnClass* get_unimol_rxn_class(const species_id_t id) {
@@ -160,10 +162,9 @@ private:
   // the size of the vector will be changing, so we cannot take pointers to its elements
   std::vector<RxnClass*> rxn_classes;
 
-  // RxnContainer owns Rxn rules
-  // the size of the vector will be changing, so we cannot take pointers to its elements
-  // FIXME: change to pointers
-  std::vector<RxnRule> rxns;
+  // RxnContainer owns Rxn rules,
+  // RxnClasses use pointers to these objects
+  std::vector<RxnRule*> rxns;
 
   // sets that remember which species were processed for rxn class generation
   uint_dense_hash_set<species_id_t> species_processed_for_bimol_rxn_classes;
