@@ -653,14 +653,14 @@ bool MCell3WorldConverter::convert_species(volume* s) {
     // these special species might be used in wall - surf|vol reactions
     if (spec == s->all_mols) {
       CHECK_PROPERTY(new_species.name == ALL_MOLECULES);
-      world->get_all_rxns().set_all_molecules_species_id(new_species_id);
+      world->get_all_species().set_all_molecules_species_id(new_species_id);
     }
     else if (spec == s->all_volume_mols) {
       CHECK_PROPERTY(new_species.name == ALL_VOLUME_MOLECULES);
     }
     else if (spec == s->all_surface_mols) {
       CHECK_PROPERTY(new_species.name == ALL_SURFACE_MOLECULES);
-      world->get_all_rxns().set_all_surface_molecules_species_id(new_species_id);
+      world->get_all_species().set_all_surface_molecules_species_id(new_species_id);
     }
 
     // map for other conversion steps

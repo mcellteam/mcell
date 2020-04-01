@@ -21,7 +21,10 @@ namespace BNG {
 class SpeciesContainer {
 public:
   SpeciesContainer()
-    : next_species_id(0) {
+    : next_species_id(0),
+      all_molecules_species_id(SPECIES_ID_INVALID),
+      all_volume_molecules_species_id(SPECIES_ID_INVALID),
+      all_surface_molecules_species_id(SPECIES_ID_INVALID) {
   }
 
   species_id_t find_or_add(const Species& new_species) {
@@ -85,12 +88,38 @@ public:
     return species;
   }
 
+  void set_all_molecules_species_id(species_id_t id) {
+    all_molecules_species_id = id;
+  }
+  void set_all_volume_molecules_species_id(species_id_t id) {
+    all_volume_molecules_species_id = id;
+  }
+  void set_all_surface_molecules_species_id(species_id_t id) {
+    all_surface_molecules_species_id = id;
+  }
+
+  species_id_t get_all_molecules_species_id() const {
+    return all_molecules_species_id;
+  }
+  species_id_t get_all_volume_molecules_species_id() const {
+    return all_volume_molecules_species_id;
+  }
+  species_id_t get_all_surface_molecules_species_id() const {
+    return all_surface_molecules_species_id;
+  }
+
   void dump(const BNGData& bng_data) const;
 
 private:
   species_id_t next_species_id;
 
   SpeciesVector species;
+
+  // ids of species superclasses, SPECIES_ID_INVALID if not set
+  // it might seem that this should belong into SpeciesInfo but this class needs this information
+  species_id_t all_molecules_species_id;
+  species_id_t all_volume_molecules_species_id;
+  species_id_t all_surface_molecules_species_id;
 };
 
 } // namespace BNG

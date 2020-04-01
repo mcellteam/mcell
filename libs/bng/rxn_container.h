@@ -48,28 +48,13 @@ typedef SpeciesRxnClassesMap UnimolRxnClassesMap;
 class RxnContainer {
 public:
   RxnContainer(SpeciesContainer& all_species_, const BNGData& bng_data_, const BNGConfig& bng_config_)
-    : all_molecules_species_id(SPECIES_ID_INVALID),
-      all_volume_molecules_species_id(SPECIES_ID_INVALID),
-      all_surface_molecules_species_id(SPECIES_ID_INVALID),
-      all_species(all_species_),
+    : all_species(all_species_),
       bng_data(bng_data_),
       bng_config(bng_config_)
       {
   }
 
   ~RxnContainer();
-
-  // TODO: move to some config in bng engine
-  void set_all_molecules_species_id(species_id_t id) {
-    all_molecules_species_id = id;
-  }
-  void set_all_volume_molecules_species_id(species_id_t id) {
-    all_volume_molecules_species_id = id;
-  }
-  void set_all_surface_molecules_species_id(species_id_t id) {
-    all_surface_molecules_species_id = id;
-  }
-
 
   // this method is supposed to be used only during initialization
   void add_no_update(const RxnRule& r) {
@@ -185,19 +170,10 @@ private:
   // FIXME: change to pointers
   std::vector<RxnRule> rxns;
 
-  //
+  // sets that remember which species were processed for rxn class generation
   uint_dense_hash_set<species_id_t> species_processed_for_bimol_rxn_classes;
   uint_dense_hash_set<species_id_t> species_processed_for_unimol_rxn_classes;
 
-public:
-  // TODO: move to species container
-  // ids of species superclasses, SPECIES_ID_INVALID if not set
-  // it might seem that this should belong into SpeciesInfo but this class needs this information
-  species_id_t all_molecules_species_id;
-  species_id_t all_volume_molecules_species_id;
-  species_id_t all_surface_molecules_species_id;
-
-private:
   UnimolRxnClassesMap unimol_rxn_class_map;
 
   BimolRxnClassesMap bimol_rxn_class_map;
