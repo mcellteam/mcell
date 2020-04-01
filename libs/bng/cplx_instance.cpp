@@ -38,26 +38,6 @@ void CplxInstance::finalize() {
     set_flag(CPLX_MOL_FLAG_SURF);
   }
 
-  /*
-  // orientation
-  bool single_orientation = true;
-  orientation_t o;
-  for (uint i = 0; i < mol_patterns.size(); i++) {
-    if (i == 0) {
-      o = mol_patterns[i].orientation;
-    }
-    else {
-      if (mol_patterns[i].orientation != o) {
-        single_orientation = false;
-      }
-    }
-  }
-  set_flag(CPLX_FLAG_HAS_SINGLE_ORIENTATION, single_orientation);
-  if (single_orientation) {
-    set_flag(CPLX_FLAG_SINGLE_ORIENTATION_IS_UP, o == ORIENTATION_UP);
-  }
-  */
-
   // CPLX_FLAG_SINGLE_MOL_NO_COMPONENTS
   bool is_simple = true;
   if (mol_instances.size() > 1) {

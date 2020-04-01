@@ -14,7 +14,6 @@
 #include "mol_type.h"
 #include "rxn_rule.h"
 
-
 namespace BNG {
 
 /**
@@ -83,8 +82,6 @@ private:
   void dump_molecule_types_as_bngl();
   void dump_reaction_rules_as_bngl();
 };
-
-
 
 } /* namespace BNG2 */
 

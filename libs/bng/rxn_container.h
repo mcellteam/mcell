@@ -63,7 +63,6 @@ public:
     rxns.push_back(r);
   }
 
-
   const RxnClass* get_unimol_rxn_class(const species_id_t id) {
     auto it = unimol_rxn_class_map.find(id);
 
@@ -148,24 +147,20 @@ public:
 
   void dump() const;
 
-
 private:
   RxnClass* get_or_create_empty_unimol_rxn_class(const species_id_t id);
   RxnClass* get_or_create_empty_bimol_rxn_class(const species_id_t id1, const species_id_t id2);
 
   void create_unimol_rxn_classes_for_new_species(const species_id_t id);
-
   void create_bimol_rxn_classes_for_new_species(const species_id_t id);
 
 private:
-
   // owns reaction classes
   // allocated in get_or_create_empty_bimol_rxn_class, deleted in destructor
   // the size of the vector will be changing, so we cannot take pointers to its elements
   std::vector<RxnClass*> rxn_classes;
 
-  // RxnContainer owns Rxn rules?
-  // maybe just copy them after parsing
+  // RxnContainer owns Rxn rules
   // the size of the vector will be changing, so we cannot take pointers to its elements
   // FIXME: change to pointers
   std::vector<RxnRule> rxns;

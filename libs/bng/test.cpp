@@ -13,8 +13,8 @@ extern FILE *bnglin;
 // returns 0 if everything was ok
 int parse_bngl(char const *name, const bool dump_ast, const bool dump_bng_data) {
 
-  BNG::create_ast_context();
-  BNG::ParserContext* ctx = BNG::get_ast_context();
+  BNG::create_parser_context();
+  BNG::ParserContext* ctx = BNG::get_parser_context();
 
   FILE *infile = fopen(name, "r");
   if (infile == nullptr) {
@@ -47,14 +47,13 @@ int parse_bngl(char const *name, const bool dump_ast, const bool dump_bng_data) 
 
   int errors = ctx->get_error_count();
 
-  BNG::delete_ast_context();
+  BNG::delete_parser_context();
 
   return errors != 0;
 }
 
 int main(int argc, const char* argv[]) {
 
-  // TODO - use file as input
   if (argc != 2 && argc != 3) {
     cerr << "Expected input file as argument, second optional arg enables AST dump\n";
   }

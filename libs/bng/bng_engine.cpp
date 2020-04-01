@@ -16,5 +16,4 @@ CplxInstance BNGEngine::create_species_based_cplx_instance(const species_id_t id
   return copy;
 }
 
-
 } // namespace BNG

@@ -5,7 +5,8 @@
 
 #include <stdint.h>
 #include <string>
-#include "common_defines.h"
+
+#include "defines_shared.h"
 
 namespace BNG {
 

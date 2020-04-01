@@ -36,9 +36,6 @@ private:
   void finalize_and_store_rxn_rule(const ASTRxnRuleNode* n, RxnRule& r, const char* direction_str);
   void convert_and_store_rxn_rules();
 
-  // map between information from molecule types and AST nodes
-  // to be able to determine original source code location
-
   // local copies so that we don't have to pass everything
   // as arguments
   ParserContext* ctx;

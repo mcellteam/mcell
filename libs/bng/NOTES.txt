@@ -1,5 +1,0 @@
-
-- current implementation is not reentrant - some globals are used during parsing,
-  it does not seem important, we can always put parsing in a critical section
-  
-- what license to use?

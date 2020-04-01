@@ -34,9 +34,7 @@ void RxnRule::finalize() {
 
   compute_reactants_products_mapping();
 
-  // only for mcell3 compatibility
-  // TODO: need some config also for other tools
-
+  // for MCell3 compatibility
   move_products_that_are_also_reactants_to_be_the_first_products();
 
   finalized = true;
@@ -156,7 +154,6 @@ bool RxnRule::find_most_fitting_unassigned_mol_product(const CplxMolIndex& react
 }
 
 
-
 // check if it makes sense to compute molecule_mapping at all
 bool RxnRule::has_same_mols_in_reactants_and_products() const {
   map<mol_type_id_t, int> reactant_types, product_types;
@@ -218,7 +215,6 @@ void RxnRule::compute_cplx_reactants_products_mapping() {
     }
   }
 }
-
 
 
 bool RxnRule::compute_mol_reactants_products_mapping(MolInstance& not_matching_mol_inst, CplxMolIndex& not_matching_cmi) {

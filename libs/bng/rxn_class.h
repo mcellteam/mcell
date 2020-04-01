@@ -19,32 +19,35 @@ namespace BNG {
 
 class SpeciesContainer;
 
-
-// corresponds to reaction in mcell3 code
-// coupled reactions for given species, serves for caching
-// created on-the-fly
+/**
+ * Reaction class contains all applicable reactions for a pair of reactants.
+ *
+ * Reaction classes are created on-the-fly by RxnContainer.
+ */
 class RxnClass {
 public:
+  // keeping just IDs, with IDs unlike with pointers we are able to check that the species was 'discarded'
+  std::vector<species_id_t> reactants;
+
   // reactions are owned by RxnContainer
-  // they must be ordered
+  // order in this vector is important
   std::vector<RxnRule*> reactions;
 
   // Standard reaction or special such as Reflect, Transparent or Absorb
   RxnType type;
 
-  /* Maximum 'p' for region of p-space for all non-cooperative pathways */
+  // ----------- MCell-specific -----------
+  // Maximum 'p' for region of p-space for all non-cooperative pathways
   float_t max_fixed_p;
 
-  /* Minimum 'p' for region of p-space which is always in the non-reacting "pathway". (note that
-     cooperativity may mean that some values of p less than this still do not produce a reaction) */
+  // Minimum 'p' for region of p-space which is always in the non-reacting "pathway". (note that
+  // cooperativity may mean that some values of p less than this still do not produce a reaction)
   float_t min_noreaction_p;
-
-  // keeping just IDs, with IDs unlike with pointers we are able to check that the species was 'discarded'
-  std::vector<species_id_t> reactants;
 
   // Cumulative probabilities for specific reactions, based on all reactions of the class
   // has same size as reactions
   std::vector<float_t> cum_probs;
+  // ^^^^^^^^^^ MCell-specific ^^^^^^^^^^
 
 public:
   RxnClass(const SpeciesContainer& all_species_, const species_id_t reactant_id1, const species_id_t reactant_id2 = SPECIES_ID_INVALID)
@@ -85,7 +88,6 @@ public:
 
     reactions.push_back(r);
 
-    // NOTE: run update rather at once after everything was added?
     update(bng_config);
   }
 
@@ -97,9 +99,11 @@ public:
   bool is_reflect() const {
     return type == RxnType::Reflect;
   }
+
   bool is_transparent() const {
     return type == RxnType::Transparent;
   }
+
   bool is_absorb() const {
     return type == RxnType::AbsorbRegionBorder;
   }
@@ -111,12 +115,13 @@ public:
 private:
   void update(const BNGConfig& bng_config);
 
+  // ----------- MCell-specific -----------
   float_t get_reactant_diffusion(const uint reactant_index) const;
   float_t get_reactant_space_step(const uint reactant_index) const;
   float_t get_reactant_time_step(const uint reactant_index) const;
 
-
   float_t compute_pb_factor(const BNGConfig& bng_config) const;
+  // ^^^^^^^^^^ MCell-specific ^^^^^^^^^^
 
   // owned by BNGEngine
   const SpeciesContainer& all_species;

@@ -18,9 +18,9 @@
 %code provides {
     
 namespace BNG {
-  void create_ast_context();
-  ASTContext* get_ast_context();
-  void delete_ast_context();
+  void create_parser_context();
+  ParserContext* get_parser_context();
+  void delete_parser_context();
 }
 
 }
@@ -38,16 +38,7 @@ namespace BNG {
   void bnglerror(char const *s);
 
   // global context used during parsing
-  BNG::ASTContext* g_ctx;
-  
-  // used to process TOK_ID tokens
-  /*std::string to_str_and_delete(char*& ptr) {
-    std::string res = ptr;
-    free(ptr);
-    ptr = nullptr;
-    return res;
-  }*/
-  
+  BNG::ParserContext* g_ctx;
 %}
 
 
@@ -255,7 +246,6 @@ bond_maybe_empty:
     }
 ;
     
-
 // ---------------- rxn_rules ------------------- 
 rxn_rule_list_maybe_empty:
       rxn_rule_list
@@ -339,16 +329,16 @@ void bnglerror(char const *s) {
 }
 
 namespace BNG {
-void create_ast_context() {
+void create_parser_context() {
   assert(g_ctx == nullptr);
-  g_ctx = new BNG::ASTContext();
+  g_ctx = new ParserContext();
 }
 
-ASTContext* get_ast_context() {
+ParserContext* get_parser_context() {
   return g_ctx;
 }
 
-void delete_ast_context() {
+void delete_parser_context() {
   delete g_ctx;
   g_ctx = nullptr;
 }

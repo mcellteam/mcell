@@ -13,12 +13,10 @@
 #include "bng_defines.h"
 #include "base_flag.h"
 
-
 namespace BNG {
 
 class MolType;
 class BNGData;
-
 
 /**
  * Pattern vs instance:
@@ -27,7 +25,6 @@ class BNGData;
  *
  * - instances are fully specified, each component has a given state (if it has states)
  */
-
 class ComponentInstance {
 public:
   ComponentInstance(const component_type_id_t id)

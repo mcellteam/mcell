@@ -26,6 +26,7 @@ state_id_t BNGData::find_or_add_state_name(const std::string& s) {
   return state_names.size() - 1;
 }
 
+
 // may return STATE_ID_INVALID when the name was not found
 state_id_t BNGData::find_state_id(const std::string& name) const {
   for (state_id_t i = 0; i < state_names.size(); i++) {
@@ -119,6 +120,7 @@ void BNGData::dump_reaction_rules_as_bngl() {
   cout << "end reaction rules\n";
 
 }
+
 
 void BNGData::dump() {
   dump_molecule_types_as_bngl();

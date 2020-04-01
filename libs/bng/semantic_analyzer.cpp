@@ -277,6 +277,7 @@ MolInstance SemanticAnalyzer::convert_molecule_pattern(const ASTMoleculeNode* m)
   return mp;
 }
 
+
 // for a pattern it is ok to not to list all components
 void SemanticAnalyzer::convert_complex_pattern(const small_vector<const ASTMoleculeNode*>& complex_nodes, CplxInstance& pattern) {
 
@@ -382,6 +383,7 @@ void SemanticAnalyzer::finalize_and_store_rxn_rule(const ASTRxnRuleNode* n, RxnR
   bng_data->find_or_add_rxn_rule(r);
 }
 
+
 void SemanticAnalyzer::convert_and_store_rxn_rules() {
 
   // for each reaction rule
@@ -423,7 +425,6 @@ void SemanticAnalyzer::convert_and_store_rxn_rules() {
     }
   }
 }
-
 
 
 // returns true if conversion and semantic checks passed

@@ -3,6 +3,7 @@
 
 #include "bng_defines.h"
 
+namespace BNG {
 
 enum cplx_mol_flag_t {
   CPLX_MOL_FLAG_SURF = 1 << 0,
@@ -14,7 +15,7 @@ enum cplx_mol_flag_t {
 };
 
 
-// NOTE: maybe use bitfield instead?
+// NOTE: use bitfield instead?
 class BaseFlag {
 private:
   bool finalized;
@@ -55,5 +56,6 @@ public:
   }
 };
 
+} // namespace BNG
 
 #endif // LIBS_BNG_BASE_FLAG_H_

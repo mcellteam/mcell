@@ -31,6 +31,7 @@ class ParserContext;
 class ASTExprNode;
 class ASTRxnRuleNode;
 
+
 enum class NodeType {
   Invalid,
   Expr,
@@ -42,6 +43,7 @@ enum class NodeType {
   Separator
 };
 
+
 enum class ExprType {
   Invalid,
   Id,
@@ -49,13 +51,16 @@ enum class ExprType {
   Llong
 };
 
+
 enum class SeparatorType {
   Invalid,
   Plus,
   Dot
 };
 
+
 static const std::string BOND_STR_ANY = "+";
+
 
 class ASTBaseNode {
 public:
@@ -100,7 +105,6 @@ public:
   bool is_separator() const {
     return node_type == NodeType::Separator;
   }
-
 
   NodeType node_type;
   bool has_loc;
@@ -280,7 +284,6 @@ public:
   ASTListNode* products;
   ASTListNode* rates;
 };
-
 
 
 class ASTSymbolTable {
@@ -473,8 +476,6 @@ static inline const ASTSeparatorNode* to_separator(const ASTBaseNode* n) {
 // returns bond index, BOND_VALUE_NO_BOND, BOND_VALUE_ANY or BOND_VALUE_INVALID
 bond_value_t str_to_bond_value(const std::string& s);
 
-
 } // namespace BNG
-
 
 #endif // LIBS_BNG_AST_H_

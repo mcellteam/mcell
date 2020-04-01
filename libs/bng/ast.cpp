@@ -21,6 +21,7 @@ void ASTBaseNode::dump(const std::string ind) {
   }
 }
 
+
 // ------------------------------- ASTExprNode ------------------------
 void ASTExprNode::dump(const std::string ind) {
   cout << ind;
@@ -48,7 +49,6 @@ void ASTStrNode::dump(const std::string ind) {
   cout << ind << "str: '" << str << "'";
   ASTBaseNode::dump(ind);
 }
-
 
 
 // ------------------------------- ASTStrNode ------------------------
@@ -86,6 +86,7 @@ void ASTListNode::dump(const std::string ind) {
   ASTBaseNode::dump(ind);
 }
 
+
 // ------------------------------- ASTComponentNode ------------------------
 void ASTComponentNode::dump(const std::string ind) {
   cout << ind << "component: name='" << name << "'\n";
@@ -99,6 +100,7 @@ void ASTComponentNode::dump(const std::string ind) {
   ASTBaseNode::dump(ind);
 }
 
+
 // ------------------------------- ASTMoleculeNode ------------------------
 void ASTMoleculeNode::dump(const std::string ind) {
   cout << ind << "molecule: name='" << name << "'\n";
@@ -107,6 +109,7 @@ void ASTMoleculeNode::dump(const std::string ind) {
   components->dump(ind + IND4);
   ASTBaseNode::dump(ind);
 }
+
 
 // ------------------------------- ASTMoleculeNode ------------------------
 void ASTRxnRuleNode::dump(const std::string ind) {
@@ -123,6 +126,7 @@ void ASTRxnRuleNode::dump(const std::string ind) {
   ASTBaseNode::dump(ind);
 }
 
+
 // ------------------------------- ASTSymbolTable ------------------------
 void ASTSymbolTable::insert(const std::string id, ASTBaseNode* node, ParserContext* ctx) {
   if (table.count(id) != 0) {
@@ -132,6 +136,7 @@ void ASTSymbolTable::insert(const std::string id, ASTBaseNode* node, ParserConte
 
   table[id] = node;
 }
+
 
 ASTBaseNode* ASTSymbolTable::get(const std::string& id, ASTBaseNode* loc, ParserContext* ctx) const {
   auto it = table.find(id);
@@ -145,6 +150,7 @@ ASTBaseNode* ASTSymbolTable::get(const std::string& id, ASTBaseNode* loc, Parser
   }
 }
 
+
 void ASTSymbolTable::insert_molecule_declarations(const ASTListNode* molecule_node_list, ParserContext* ctx) {
   for (ASTBaseNode* n: molecule_node_list->items) {
     assert(n->is_molecule());
@@ -153,6 +159,7 @@ void ASTSymbolTable::insert_molecule_declarations(const ASTListNode* molecule_no
   }
 }
 
+
 void ASTSymbolTable::dump() {
   cout << "ASTSymbolTable:\n";
   for (const auto& item: table) {
@@ -160,6 +167,7 @@ void ASTSymbolTable::dump() {
     item.second->dump(IND4);
   }
 }
+
 
 // ------------------------------- ASTContext ----------------------------
 ParserContext::~ParserContext() {
@@ -170,6 +178,7 @@ ParserContext::~ParserContext() {
   all_nodes.clear();
 }
 
+
 ASTExprNode* ParserContext::new_id_node(const std::string& id, const BNGLLTYPE& loc) {
   ASTExprNode* n = new ASTExprNode;
   n->set_id(id);
@@ -177,6 +186,7 @@ ASTExprNode* ParserContext::new_id_node(const std::string& id, const BNGLLTYPE& 
   remember_node(n);
   return n;
 }
+
 
 ASTExprNode* ParserContext::new_dbl_node(const double val, const BNGLLTYPE& loc) {
   ASTExprNode* n = new ASTExprNode;
@@ -186,6 +196,7 @@ ASTExprNode* ParserContext::new_dbl_node(const double val, const BNGLLTYPE& loc)
   return n;
 }
 
+
 ASTExprNode* ParserContext::new_dbl_node(const double val, const ASTBaseNode* loc) {
   ASTExprNode* n = new ASTExprNode;
   n->set_dbl(val);
@@ -193,6 +204,7 @@ ASTExprNode* ParserContext::new_dbl_node(const double val, const ASTBaseNode* lo
   remember_node(n);
   return n;
 }
+
 
 ASTExprNode* ParserContext::new_llong_node(const long long val, const BNGLLTYPE& loc) {
   ASTExprNode* n = new ASTExprNode;
@@ -202,12 +214,14 @@ ASTExprNode* ParserContext::new_llong_node(const long long val, const BNGLLTYPE&
   return n;
 }
 
+
 ASTStrNode* ParserContext::new_empty_str_node() {
   ASTStrNode* n = new ASTStrNode;
   n->str = "";
   remember_node(n);
   return n;
 }
+
 
 ASTStrNode* ParserContext::new_str_node(const std::string str, const BNGLLTYPE& loc) {
   ASTStrNode* n = new ASTStrNode;
@@ -217,6 +231,7 @@ ASTStrNode* ParserContext::new_str_node(const std::string str, const BNGLLTYPE& 
   return n;
 }
 
+
 ASTStrNode* ParserContext::new_str_node(const long long val_to_str, const BNGLLTYPE& loc) {
   ASTStrNode* n = new ASTStrNode;
   n->str = to_string(val_to_str);
@@ -225,11 +240,13 @@ ASTStrNode* ParserContext::new_str_node(const long long val_to_str, const BNGLLT
   return n;
 }
 
+
 ASTListNode* ParserContext::new_list_node() {
   ASTListNode* n = new ASTListNode();
   remember_node(n);
   return n;
 }
+
 
 ASTSeparatorNode* ParserContext::new_separator_node(const SeparatorType type, const BNGLLTYPE& loc) {
   ASTSeparatorNode* n = new ASTSeparatorNode();
@@ -238,6 +255,7 @@ ASTSeparatorNode* ParserContext::new_separator_node(const SeparatorType type, co
   remember_node(n);
   return n;
 }
+
 
 ASTComponentNode* ParserContext::new_component_node(
     const std::string& name,
@@ -254,6 +272,7 @@ ASTComponentNode* ParserContext::new_component_node(
   return n;
 }
 
+
 ASTMoleculeNode* ParserContext::new_molecule_node(
     const std::string& name,
     ASTListNode* component_list,
@@ -266,6 +285,7 @@ ASTMoleculeNode* ParserContext::new_molecule_node(
   remember_node(n);
   return n;
 }
+
 
 ASTRxnRuleNode* ParserContext::new_rxn_rule_node(
     ASTListNode* reactants,
@@ -291,11 +311,13 @@ ASTRxnRuleNode* ParserContext::new_rxn_rule_node(
   return n;
 }
 
+
 void ParserContext::print_error_report() {
   if (errors != 0) {
     cerr << "Compilation failed, there were " << errors << " errors.\n";
   }
 }
+
 
 void ParserContext::internal_error(const ASTBaseNode* loc, const std::string msg) {
   errs(loc) << "INTERNAL: " << msg;

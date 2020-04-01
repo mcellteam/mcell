@@ -102,5 +102,4 @@ bool MolInstance::matches(const MolInstance& inst, const bool ignore_orientation
   }
 }
 
-
 } /* namespace BNG */

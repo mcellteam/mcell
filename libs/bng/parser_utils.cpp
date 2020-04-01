@@ -22,6 +22,7 @@ ostream& errs() {
   return cerr;
 }
 
+
 ostream& errs(const ASTBaseNode* loc) {
   assert(loc != nullptr);
   assert(loc->has_loc);
@@ -30,6 +31,7 @@ ostream& errs(const ASTBaseNode* loc) {
       ": error: ";
   return cerr;
 }
+
 
 double convert_to_dbl(const char* str) {
   char* end;
@@ -44,6 +46,7 @@ double convert_to_dbl(const char* str) {
   return res;
 }
 
+
 long long convert_dec_to_llong(const char* str) {
   char* end;
   long long int res;
@@ -56,6 +59,7 @@ long long convert_dec_to_llong(const char* str) {
 
   return res;
 }
+
 
 char *strdup_new(const char *src)
 {

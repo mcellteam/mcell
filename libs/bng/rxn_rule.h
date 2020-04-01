@@ -52,7 +52,6 @@ struct CMIndexPair {
 };
 
 
-
 struct CplxIndexPair {
   CplxIndexPair(const uint reactant_index_, const uint product_index_)
     : reactant_index(reactant_index_), product_index(product_index_) {
@@ -63,7 +62,6 @@ struct CplxIndexPair {
 };
 
 
-
 enum class RxnType {
   Invalid,
   Standard, // any other reaction than below
@@ -71,6 +69,7 @@ enum class RxnType {
   Reflect,
   AbsorbRegionBorder
 };
+
 
 // BNG reaction rule
 // rules are only unidirectional,
@@ -98,11 +97,9 @@ public:
   // mol_instances_are_fully_maintained is false
   small_vector<CMIndexPair> mol_mapping;
 
-
   // matching between complexes
   // set only if the complex patterns are identical (MCell-style rxns)
   small_vector<CplxIndexPair> cplx_mapping;
-
 
   // caching
   uint_set<species_id_t> species_applicable_as_reactants;
@@ -146,14 +143,10 @@ public:
     return get_cplx_product(cmi.cplx_index).mol_instances[cmi.mol_index];
   }
 
-
   // mcell3 variant of maintaining substances,
-  // e.g. for A + B -> A - A is maintained
-  // TODO: merge with BNG style of maintaining substances
+  // e.g. for A + B -> A : reactant A is maintained
   bool is_cplx_reactant_on_both_sides_of_rxn(const uint index) const;
-
   bool is_cplx_product_on_both_sides_of_rxn(const uint index) const;
-
 
   bool operator ==(const RxnRule& rr2) {
     // ordering of components in a molecule is important
@@ -175,11 +168,11 @@ public:
   bool compute_reactants_products_mapping_w_error_output(const BNGData& bng_data, std::ostream& out);
 
 
-  void append_simple_reactant(const CplxInstance& inst) {
+  void append_reactant(const CplxInstance& inst) {
     reactants.push_back(inst);
   }
 
-  void append_simple_product(const CplxInstance& inst) {
+  void append_product(const CplxInstance& inst) {
     products.push_back(inst);
   }
 
@@ -200,7 +193,10 @@ public:
     return reactants.size() == 2;
   }
 
+  // returns true if species 'id' matches one of the reactants
   bool species_can_be_reactant(const species_id_t id, const SpeciesContainer& all_species);
+
+  // returns true if two reactants match each other and species 'id' matches one of the reactants
   bool species_is_both_bimol_reactants(const species_id_t id, const SpeciesContainer& all_species);
 
 private:
@@ -216,15 +212,13 @@ private:
 
   bool compute_mol_reactants_products_mapping(MolInstance& not_matching_mol_inst, CplxMolIndex& not_matching_cmi);
 
-
   bool find_assigned_cplx_reactant_for_product(const uint product_index, uint& reactant_index) const;
+
   void compute_cplx_reactants_products_mapping();
 
   void move_products_that_are_also_reactants_to_be_the_first_products();
 
-  void dump_complex_instance_vector(
-      const BNGData& bng_data,
-      const CplxInstanceVector& complexes) const;
+  void dump_complex_instance_vector(const BNGData& bng_data, const CplxInstanceVector& complexes) const;
 
 };
 

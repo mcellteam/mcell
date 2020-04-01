@@ -45,7 +45,7 @@
 #include "../libs/boost/container/small_vector.hpp"
 #include "../libs/boost/container/flat_set.hpp"
 
-#include "bng/common_defines.h"
+#include "../libs/bng/defines_shared.h"
 
 #include "mcell_structs.h"
 #include "debug_config.h"

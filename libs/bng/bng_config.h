@@ -27,17 +27,18 @@
  * Using vertial classes means that we must allocate each class and use pointers,
  * this might lead to "scattered?" memory usage compared to vectors.
  *
- * The last approach is to use preprocessor. This brings disadvantages that a big
+ * One more approach is to use preprocessor. This brings disadvantages that a big
  * part of code might not be compilable and different implementations can diverge.
- * The code must be maintained in a way that this does not happen and rules must be
- * set.
+ * For example one could use preprocessor conditioning must be used only in necessary
+ * cases such as when defining attributes and methods for Species or Reactions,
+ * however,
  *
- * Preprocessor conditioning must be used only in necessary cases such as when
- * defining attributes and methods for Species or Reactions.
- * Everywhere else, configuration from a config class must be used.
+ * Therefore, all the variables needed for species and reactions along with their
+ * code for every simulator that uses this library is present here and shared.
+ * We might rethink this later.
  *
  */
-#define BNG_ONLY_MCELL
+#define BNG_MCELL 1
 
 // included only in common_defines.h
 
@@ -46,7 +47,9 @@ namespace BNG {
 class BNGConfig {
 public:
   BNGConfig()
-    : time_unit(0),
+    : mcell(BNG_MCELL),
+
+      time_unit(0),
       length_unit(0),
       grid_density(0),
       rx_radius_3d(0),
@@ -56,6 +59,7 @@ public:
   }
 
   // configuration
+  bool mcell;
 
   // MCell
   Common::float_t time_unit;

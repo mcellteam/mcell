@@ -35,7 +35,7 @@ class CplxInstance: public BaseFlag {
 public:
   MolInstanceVector mol_instances;
 
-  // Some higher-level bond information will be needed here
+  // NOTE: Some higher-level bond information will be needed here
 
 private:
   // not read from BNG yet, but proposal is on its way

@@ -16,7 +16,6 @@ using namespace std;
 
 namespace BNG {
 
-
 // might need to be different for NFsim
 // not sure if this belongs here
 float_t RxnClass::get_reactant_space_step(const uint reactant_index) const {
@@ -26,12 +25,14 @@ float_t RxnClass::get_reactant_space_step(const uint reactant_index) const {
   return s.space_step;
 }
 
+
 float_t RxnClass::get_reactant_time_step(const uint reactant_index) const {
   assert(reactant_index < reactants.size());
 
   const Species& s = all_species.get(reactants[reactant_index]);
   return s.time_step;
 }
+
 
 float_t RxnClass::get_reactant_diffusion(const uint reactant_index) const {
   assert(reactant_index < reactants.size());
@@ -40,18 +41,9 @@ float_t RxnClass::get_reactant_diffusion(const uint reactant_index) const {
   return s.D;
 }
 
-/*************************************************************************
- *
- * function for computing the probability factor (pb_factor) used to
- * convert reaction rate constants into probabilities
- *
- * in: mcell state
- *     rx to compute pb_factor for
- *     maximum number of expected surface products for this reaction
- *
- * out: pb_factor
- *
- ************************************************************************/
+
+// function for computing the probability factor (pb_factor) used to
+// convert reaction rate constants into probabilities
 float_t RxnClass::compute_pb_factor(const BNGConfig& bng_config) const {
 
   /* determine the number of volume and surface reactants as well
@@ -133,7 +125,7 @@ float_t RxnClass::compute_pb_factor(const BNGConfig& bng_config) const {
       }
 
       /*
-      // not sure what to do with this code from the orig implemetation
+      // TODO LATER: not sure what to do with this code from the orig implemetation
       if ((rx->geometries[0] + rx->geometries[1]) * (rx->geometries[0] - rx->geometries[1]) == 0 &&
           rx->geometries[0] * rx->geometries[1] != 0) {
         pb_factor *= 2.0;

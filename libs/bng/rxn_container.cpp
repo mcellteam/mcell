@@ -15,6 +15,7 @@ RxnContainer::~RxnContainer() {
   }
 }
 
+
 RxnClass* RxnContainer::get_or_create_empty_unimol_rxn_class(const species_id_t id) {
 
   auto it = unimol_rxn_class_map.find(id);
@@ -96,6 +97,7 @@ RxnClass* RxnContainer::get_or_create_empty_bimol_rxn_class(const species_id_t i
     return new_rxn_class;
   }
 }
+
 
 // puts pointers to all corresponding classes to the res_classes_map
 void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t new_id) {

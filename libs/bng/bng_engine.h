@@ -18,14 +18,15 @@
 
 namespace BNG {
 
-
-// Each partition will have its own BNG engine,
-// the contents might change a lot during execution and string comparison
-// on using BNGL components we still have a way how to unify all the instances
-// might need to be a template as well
-//
-// Does mostly caching, all the intelligence is in other classes
-//
+/**
+ * This is the main BNG library class that owns all the data.
+ *
+ * One option being considered is that for parallel execution,
+ * each partition in MCell will have its own BNG engine.
+ * During simulation of a single time step, the contents will
+ * change e.g. when a new species is created. So it must be
+ * possible to synchronize the multiple BNG engines.
+ */
 class BNGEngine {
 private:
   SpeciesContainer all_species;
@@ -55,7 +56,6 @@ public:
     return cplx_pattern.matches(cplx_inst);
   }
 
-
   bool matches_ignore_orientation(
       const CplxInstance& cplx_pattern,
       const species_id_t species_id
@@ -64,7 +64,6 @@ public:
     const CplxInstance& cplx_inst = all_species.get_as_cplx_instance(species_id);
     return cplx_pattern.matches(cplx_inst, true);
   }
-
 
   species_id_t get_rxn_product_species_id(
       const RxnRule* rxn, const uint product_index,
