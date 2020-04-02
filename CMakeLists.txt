@@ -336,9 +336,9 @@ add_executable(mcell
 add_dependencies(mcell version_h)
 
 if (NOT WIN32 AND NOT CYGWIN)
-    add_dependencies(pymcell version_h nfsim_c NFsim)
+    add_dependencies(pymcell version_h nfsim_c NFsim jsoncpp_lib)
 endif()
   
-target_link_libraries(mcell nfsim_c_static NFsim_static jsoncpp)
+target_link_libraries(mcell nfsim_c_static NFsim_static jsoncpp_lib)
 
 TARGET_COMPILE_DEFINITIONS(mcell PRIVATE NOSWIG=1)
