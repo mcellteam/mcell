@@ -59,6 +59,16 @@ public:
     return SPECIES_ID_INVALID;
   }
 
+
+  species_id_t find_by_name(const std::string& name) {
+    for (const Species& s: species) {
+      if (s.name == name) {
+        return s.species_id;
+      }
+    }
+    return SPECIES_ID_INVALID;
+  }
+
   species_id_t find_simple_species_id(const CplxInstance& inst);
 
   const Species& get(const species_id_t id) const {

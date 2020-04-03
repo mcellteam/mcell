@@ -176,7 +176,7 @@ void ReleaseEvent::release_inside_regions(uint computed_release_number) {
 
   assert(region_name != "");
   Partition& p = world->get_partition(0);
-  const Region* reg = p.get_region_by_name(region_name);
+  const Region* reg = p.find_region_by_name(region_name);
   assert(reg != nullptr && "Region for release must exist");
 
   /*if (rso->release_number_method == CCNNUM) {

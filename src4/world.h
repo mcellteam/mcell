@@ -40,16 +40,13 @@
 #include "scheduler.h"
 #include "geometry.h"
 #include "callback_info.h"
+#include "count_buffer.h"
 
 
 namespace MCell {
 
 
 class World {
-private:
-  void init_fpu();
-  void create_defragmentation_events();
-
 public:
   World();
   void init_simulation();
@@ -110,7 +107,7 @@ public:
     return partitions[i];
   }
 
-  std::vector<Partition>& get_partitions() {
+  PartitionVector& get_partitions() {
       return partitions;
   }
 
@@ -146,18 +143,32 @@ public:
   BNG::RxnContainer& get_all_rxns() { return bng_engine.get_all_rxns(); }
   const BNG::RxnContainer& get_all_rxns() const { return bng_engine.get_all_rxns(); }
 
+  count_buffer_id_t create_count_buffer(const std::string filename, const size_t buffer_size) {
+    count_buffer_id_t id = count_buffers.size();
+    count_buffers.push_back(CountBuffer(filename, buffer_size));
+    return id;
+  }
+
+  CountBuffer& get_count_buffer(const count_buffer_id_t id) {
+    assert(id < count_buffers.size());
+    return count_buffers[id];
+  }
+
+
+private:
+  void init_fpu();
+  void create_defragmentation_events();
+  void init_counted_volumes();
+
 public:
   // single instance for the whole mcell simulator,
   // used as constants during simulation
   SimulationConfig config;
-  //BNG::RxnContainer all_reactions;
+
   BNG::BNGEngine bng_engine;
+
   SimulationStats stats;
 
-private:
-  std::vector<Partition> partitions;
-
-public:
   Scheduler scheduler;
 
   uint64_t iterations; // number of iterations to simulate - move to Sim config
@@ -166,9 +177,14 @@ public:
   rng_state rng; // single state for the random number generator
 
 private:
+  PartitionVector partitions;
+
+  CountBufferVector count_buffers;
+
   // global ID counters
   wall_id_t next_wall_id;
   geometry_object_id_t next_geometry_object_id;
+  counted_volume_id_t next_counted_volume_id;
 
   // used by run_n_iterations to know whether the simulation was
   // already initialized
@@ -186,6 +202,7 @@ private:
 
 public:
   // NOTE: only a temporary solution of callbacks for now
+
   // callbacks
   wall_hit_callback_func wall_hit_callback;
   // clientdata hold information on what Python function we should call

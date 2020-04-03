@@ -471,6 +471,11 @@ public:
     return new_obj;
   }
 
+  GeometryObject& get_geometry_object(const geometry_object_index_t index) {
+    assert(index < geometry_objects.size());
+    return geometry_objects[index];
+  }
+
   const GeometryObject& get_geometry_object(const geometry_object_index_t index) const {
     assert(index < geometry_objects.size());
     return geometry_objects[index];
@@ -481,12 +486,21 @@ public:
     return regions[i];
   }
 
+  const GeometryObject* find_geometry_object_by_name(const std::string& name) const {
+    for (const GeometryObject& o: geometry_objects) {
+      if (o.name == name) {
+        return &o;
+      }
+    }
+    return nullptr;
+  }
+
   Region& get_region(const region_index_t i) {
     assert(i < regions.size());
     return regions[i];
   }
 
-  const Region* get_region_by_name(const std::string& name) const {
+  const Region* find_region_by_name(const std::string& name) const {
     for (const Region& r: regions) {
       if (r.name == name) {
         return &r;
@@ -630,6 +644,8 @@ public:
   BNG::BNGEngine& bng_engine;
   SimulationStats& stats;
 };
+
+typedef std::vector<Partition> PartitionVector;
 
 } // namespace mcell
 

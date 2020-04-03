@@ -269,7 +269,7 @@ void dump_oexpr_element(std::ostream &out, const int flags, void* child, bool le
     out << "TODO request";
   }
   else if (specific_flags & (OEXPR_LEFT_TRIG | OEXPR_RIGHT_TRIG)) {
-    out << "TODO request";
+    out << "TODO trig";
   }
   else {
     out << ""; /*no children*/
@@ -1442,10 +1442,9 @@ void dump_one_output_column(output_column* column, const char* ind) {
   cout << ind << "initial_value: \t\t" << column->initial_value << " [double] \t\t        /* To continue existing cumulative counts--not implemented yet--and keep track of triggered data */\n";
 
   //cout << ind << "buffer: \t\t" << column->buffer << " [output_buffer*] \t\t /* Output buffer array (cast based on data_type) */\n";
-  dump_output_buffer(column->buffer, "output_column", "/* Data for one output column *", ind);
+  dump_output_buffer(column->buffer, "buffer", "/* Data for one output column *", ind);
 
-  // todo
-  cout << ind << "expr: \t\t" << column->expr << " [output_expression*] \t\t /* Evaluate this to calculate our value (NULL if trigger) */\n";
+  cout << ind << "expr: \t\t" << column->expr << " (" << (void*)column->expr << ") [output_expression*] \t\t /* Evaluate this to calculate our value (NULL if trigger) */\n";
 }
 
 void dump_output_column(output_column* ocol, const char* name, const char* comment, const char* ind) {
@@ -1476,8 +1475,7 @@ void dump_one_output_set(output_set* block, const char* ind) {
   cout << ind << "exact_time_flag: \t\t" << block->exact_time_flag << " [int] \t\t  /* Boolean value; nonzero means print exact time in TRIGGER statements */\n";
 
   //cout << ind << "column_head: \t\t" << block->column_head << " [output_column*] \t\t /* Data for one output column */\n";
-  dump_output_column(block->column_head, "output_column", "/* Data for one output column */", ind);
-
+  dump_output_column(block->column_head, "column_head", "/* Data for one output column */", ind);
 }
 
 
@@ -1486,7 +1484,11 @@ void dump_output_set(output_set* oset, const char* name, const char* comment, co
 
   DECL_IND2(ind);
   output_set* curr = oset;
+
+  int i = 0;
   while (curr != nullptr) {
+    cout << ind << i << ": \n";
+    i++;
     dump_one_output_set(curr, ind2);
     curr = curr->next;
   }
@@ -1519,7 +1521,11 @@ void dump_output_blocks(output_block* output_block_head, const char* name, const
 
   DECL_IND2(ind);
   output_block* curr = output_block_head;
+
+  int i = 0;
   while (curr != nullptr) {
+    cout << ind << i << ": \n";
+    i++;
     dump_one_output_block(curr, ind2);
     curr = curr->next;
   }
@@ -1529,7 +1535,7 @@ void dump_output_blocks(output_block* output_block_head, const char* name, const
 
 void dump_one_output_request(output_request* req, const char* ind) {
   cout << ind << "next: \t\t" << (void*)req->next << " [output_request*] \t\t         /* Next request in global list */\n";
-  cout << ind << "requester: \t\t" << req->requester << " [output_expression*] \t\t /* Expression in which we appear */\n";
+  cout << ind << "requester: \t\t" << req->requester << " (" << (void*)req->requester << ") [output_expression*] \t\t /* Expression in which we appear */\n";
   cout << ind << "count_target: \t\t" << req->count_target << " [sym_entry*] \t\t      /* Mol/rxn we're supposed to count */\n";
   cout << ind << "count_orientation: \t\t" << req->count_orientation << " [short] \t\t             /* orientation of the molecule we are supposed to count */\n";
   cout << ind << "count_location: \t\t" << req->count_location << " [sym_entry*] \t\t    /* Object or region on which we're supposed to count it */\n";
@@ -1543,7 +1549,10 @@ void dump_output_requests(output_request* output_request_head, const char* name,
 
   DECL_IND2(ind);
   output_request* curr = output_request_head;
+  int i = 0;
   while (curr != nullptr) {
+    cout << ind << i << ": \n";
+    i++;
     dump_one_output_request(curr, ind2);
     curr = curr->next;
   }

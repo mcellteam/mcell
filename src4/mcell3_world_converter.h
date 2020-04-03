@@ -51,6 +51,7 @@ public:
 
   bool convert(volume* s);
 
+private:
   bool convert_simulation_setup(volume* s);
 
 
@@ -70,7 +71,9 @@ public:
   bool convert_reactions(volume* s);
   bool convert_release_events(volume* s);
   bool convert_viz_output_events(volume* s);
+  bool convert_mol_count_events(volume* s);
 
+public:
   // contained world object
   World* world;
 

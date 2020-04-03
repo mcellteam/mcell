@@ -89,6 +89,7 @@ typedef int32_t orientation_t;
 const orientation_t ORIENTATION_DOWN = -1;
 const orientation_t ORIENTATION_NONE = 0;
 const orientation_t ORIENTATION_UP = 1;
+const orientation_t ORIENTATION_NOT_SET = 2;
 
 // index of reaction in a reaction class
 typedef int reaction_index_t;

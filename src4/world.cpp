@@ -105,6 +105,13 @@ static double tosecs(timeval& t) {
 
 
 
+void World::init_counted_volumes() {
+  assert(partitions.size() == 1);
+
+  // all ids are used in the MolCountEvent::step call what works on the whole world,
+  // so they must be world-unique
+}
+
 
 void World::init_simulation() {
   assert(!simulation_initialized && "init_simulation must be called just once");
@@ -119,6 +126,8 @@ void World::init_simulation() {
   stats.reset();
 
   init_fpu();
+
+  init_counted_volumes();
 
   cout << "Partitions contain " <<  config.subpartitions_per_partition_dimension << "^3 subvolumes.";
   assert(partitions.size() == 1 && "Initial partition must have been created, only 1 is allowed for now");
@@ -227,6 +236,11 @@ void World::end_simulation() {
   cout << "Iteration " << stats.get_current_iteration() << ", simulation finished successfully\n";
 
   stats.dump();
+
+  // flush and close count buffers
+  for (CountBuffer& b: count_buffers) {
+    b.flush_and_close();
+  }
 
   // report final time
   rusage run_time;

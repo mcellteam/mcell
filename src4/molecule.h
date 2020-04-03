@@ -149,6 +149,7 @@ public:
     struct {
       Vec3 pos;
       subpart_index_t subpart_index;
+      counted_volume_id_t volume_id;
     } v;
 
     // surface molecule data

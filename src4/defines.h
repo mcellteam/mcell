@@ -146,6 +146,7 @@ const float_t RX_RADIUS_MULTIPLIER = 1.2; // TEMPORARY - we should figure out wh
 
 const uint INT_INVALID = INT32_MAX;
 const uint ID_INVALID = UINT32_MAX; // general invalid index, should not be used when a definition for a specific type is available
+const uint ID_INVALID2 = UINT32_MAX - 1; // second general invalid index, might be used for special values
 const uint INDEX_INVALID = UINT32_MAX; // general invalid index, should not be used when a definition for a specific type is available
 
 // molecule id is a unique identifier of a molecule,
@@ -195,6 +196,11 @@ const edge_index_t EDGE_INDEX_WITHIN_WALL = 3; // used in find_edge_point
 const edge_index_t EDGE_INDEX_CANNOT_TELL = 4;
 const edge_index_t EDGE_INDEX_INVALID = INDEX_INVALID;
 
+
+typedef uint count_buffer_id_t; // index of a tile in a grid
+const count_buffer_id_t COUNT_BUFFER_ID_INVALID = INDEX_INVALID;
+
+
 /* contains information about the neighbors of the tile */
 class WallTileIndexPair {
 public:
@@ -223,6 +229,10 @@ const geometry_object_index_t GEOMETRY_OBJECT_INDEX_INVALID = INDEX_INVALID;
 
 typedef uint geometry_object_id_t; // world-unique unique geometry object id
 const geometry_object_id_t GEOMETRY_OBJECT_ID_INVALID = ID_INVALID;
+
+typedef uint counted_volume_id_t; // ids of volumes, for now only those that are counted
+const counted_volume_id_t COUNTED_VOLUME_ID_INVALID = ID_INVALID;
+const counted_volume_id_t COUNTED_VOLUME_ID_WORLD = ID_INVALID2;
 
 typedef std::pair<partition_index_t, wall_index_t> PartitionWallIndexPair;
 typedef std::pair<partition_index_t, region_index_t> PartitionRegionIndexPair;

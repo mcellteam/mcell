@@ -42,6 +42,11 @@ class Partition;
  */
 class GeometryObject {
 public:
+  GeometryObject()
+    : id(GEOMETRY_OBJECT_ID_INVALID), index(GEOMETRY_OBJECT_INDEX_INVALID),
+      is_counted_volume(false) {
+  }
+
   geometry_object_id_t id; // world-unique geometry object ID
   geometry_object_index_t index; // partition-unique geometry object index
   std::string name;
@@ -50,6 +55,10 @@ public:
 
   // all walls (triangles) that form this object
   std::vector<wall_index_t> wall_indices;
+
+  // for now, intersections of counted objects are not allowed,
+  // so we do not need to create new objects for volumes
+  bool is_counted_volume;
 
   // p must be the partition that contains this object
   void dump(const Partition& p, const std::string ind) const;
@@ -60,15 +69,17 @@ public:
 class Region {
 public:
   Region()
-    : name(""), species_id(SPECIES_ID_INVALID) {
+    : name(""), species_id(SPECIES_ID_INVALID), geometry_object_id(GEOMETRY_OBJECT_ID_INVALID) {
   }
 
   std::string name;
-  //region_index_t index; // not sure if it is needed
 
   // the reactivity of the region is modeled using reactions and
   // this region has its species specified
   species_id_t species_id;
+
+  // to which object this region belongs
+  geometry_object_id_t geometry_object_id;
 
   // each wall contained in this map is a part of this region
   // the vector of edge indices may be empty but if not, it specifies the
@@ -295,6 +306,11 @@ public:
   wall_index_t nb_walls[EDGES_IN_TRIANGLE]; // neighboring wall indices
 
   Grid grid;
+
+  // counted volume information
+  bool is_volume_wall;
+  counted_volume_id_t volume_id_inside;
+  counted_volume_id_t volume_id_outside;
 
   // --- wall constants ---
   bool wall_constants_precomputed;

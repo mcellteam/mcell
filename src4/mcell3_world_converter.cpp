@@ -35,6 +35,8 @@
 #include "release_event.h"
 #include "diffuse_react_event.h"
 #include "viz_output_event.h"
+#include "mol_count_event.h"
+#include "count_buffer.h"
 
 #include "dump_state.h"
 
@@ -143,8 +145,7 @@ bool MCell3WorldConverter::convert(volume* s) {
   // release events require wall information
   CHECK(convert_release_events(s));
   CHECK(convert_viz_output_events(s));
-
-
+  CHECK(convert_mol_count_events(s));
 
   return true;
 }
@@ -459,6 +460,11 @@ bool MCell3WorldConverter::convert_region(Partition& p, const region* r, region_
   // CHECK_PROPERTY(r->volume == 0);  // ignored for now
   // CHECK_PROPERTY(r->flags == 0); // ignored for now
   // CHECK_PROPERTY(r->manifold_flag == 0); // ignored, do we care?
+
+  string parent_name = get_sym_name(r->parent->sym);
+  const GeometryObject* obj = world->get_partition(0).find_geometry_object_by_name(parent_name);
+  CHECK_PROPERTY(obj != nullptr);
+  new_region.geometry_object_id = obj->id;
 
   region_index = p.add_region(new_region);
   return true;
@@ -1043,5 +1049,132 @@ bool MCell3WorldConverter::convert_viz_output_events(volume* s) {
   return true;
 }
 
+
+static output_request* find_output_request_by_requester(volume* s, output_expression* expr) {
+  for (
+      output_request* req = s->output_request_head;
+      req != nullptr;
+      req = req->next) {
+
+    // pointer comparison
+    if (req->requester == expr) {
+      return req;
+    }
+  }
+
+  return nullptr;
+}
+
+
+static bool ends_with(std::string const & value, std::string const & ending)
+{
+    if (ending.size() > value.size()) {
+      return false;
+    }
+    return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
+}
+
+bool MCell3WorldConverter::convert_mol_count_events(volume* s) {
+  output_block* output_blocks = s->output_block_head;
+
+  if (output_blocks == nullptr) {
+    return true;
+  }
+
+  CHECK_PROPERTY(output_blocks->next == nullptr); // for now just one block
+
+  MolCountEvent* event = new MolCountEvent(world);
+
+  CHECK_PROPERTY(output_blocks->timer_type == OUTPUT_BY_STEP);
+
+  CHECK_PROPERTY(output_blocks->t == 0);
+  event->event_time = 0;
+  event->periodicity_interval = output_blocks->step_time / world->config.time_unit;
+  size_t buffer_size = output_blocks->buffersize;
+
+  // we can check that the time_array contains expected values
+
+  for (
+      output_set* data_set = output_blocks->data_set_head;
+      data_set != nullptr;
+      data_set = data_set->next) {
+
+    CHECK_PROPERTY(data_set->outfile_name != nullptr);
+    // appending "4" to distinguish from
+    count_buffer_id_t buffer_id = world->create_count_buffer(string("4") + data_set->outfile_name, buffer_size);
+
+    // NOTE: FILE_SUBSTITUTE is interpreted in the same way as FILE_OVERWRITE
+    CHECK_PROPERTY(data_set->file_flags == FILE_OVERWRITE || data_set->file_flags == FILE_SUBSTITUTE);
+    CHECK_PROPERTY(data_set->chunk_count == 0);
+    CHECK_PROPERTY(data_set->header_comment == nullptr);
+    CHECK_PROPERTY(data_set->exact_time_flag == 1);
+
+    output_column* column_head = data_set->column_head;
+    CHECK_PROPERTY(column_head->next == nullptr);
+    CHECK_PROPERTY(column_head->initial_value == 0);
+
+    // TODO: we should better check column_head->expr contents
+
+    // this information is split in a weird way in MCell3,
+    // output request contains more information on what should be counted,
+    // there is a way how to get to the output_set from the expression
+    // but not how to the output_request
+    output_request* req = find_output_request_by_requester(s, column_head->expr);
+    CHECK_PROPERTY(req != 0);
+
+    MolCountInfo info(buffer_id);
+
+    int o = req->count_orientation;
+    if (o == ORIENT_NOT_SET) {
+      info.orientation = ORIENTATION_NOT_SET;
+    }
+    else {
+      CHECK_PROPERTY(o == ORIENTATION_UP || o == ORIENTATION_NONE || o == ORIENTATION_DOWN);
+      info.orientation = o;
+    }
+
+    // report type
+    CHECK_PROPERTY(
+        req->report_type == (REPORT_CONTENTS | REPORT_ENCLOSED) ||
+        req->report_type == (REPORT_CONTENTS | REPORT_WORLD)
+    );
+
+
+    // count target (species)
+    CHECK_PROPERTY(req->count_target != 0);
+    string species_name = get_sym_name(req->count_target);
+
+    info.species_id = world->get_all_species().find_by_name(species_name);
+    CHECK_PROPERTY(info.species_id != SPECIES_ID_INVALID);
+
+    // count location
+    // only whole geom object for now
+    if ((req->report_type & REPORT_ENCLOSED) != 0) {
+      info.type = CountType::EnclosedInObject;
+      string reg_name = get_sym_name(req->count_location);
+      CHECK_PROPERTY(ends_with(reg_name, ",ALL")); // for now only whole objects
+
+      const Region* reg = world->get_partition(0).find_region_by_name(reg_name);
+      CHECK_PROPERTY(reg != nullptr);
+      assert(reg->geometry_object_id != GEOMETRY_OBJECT_ID_INVALID);
+      info.geometry_object_id = reg->geometry_object_id;
+
+      GeometryObject& obj = world->get_partition(0).get_geometry_object(info.geometry_object_id);
+
+      // set flag that we should include this object in counted volumes
+      obj.is_counted_volume = true;
+    }
+    else {
+      CHECK_PROPERTY(req->count_location == nullptr);
+      info.type = CountType::World;
+    }
+
+    event->add_mol_count_info(info);
+  }
+
+  world->scheduler.schedule_event(event);
+
+  return true;
+}
 
 } // namespace mcell

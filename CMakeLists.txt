@@ -236,6 +236,8 @@ set(SOURCE_FILES
     src4/partition.cpp
     src4/release_event.cpp
     src4/scheduler.cpp
+    src4/count_buffer.cpp
+    src4/mol_count_event.cpp
     src4/viz_output_event.cpp
     src4/defragmentation_event.cpp
     src4/geometry.cpp
