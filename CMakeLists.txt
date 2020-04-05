@@ -22,6 +22,10 @@ if (${CMAKE_VERSION} VERSION_GREATER "3.13")
   cmake_policy(SET CMP0086 NEW)
 endif()
 
+# add VTK libs VTK and headers
+set(VTK_DIR ${CMAKE_SOURCE_DIR}/../mcell_tools/work/build_vtk)
+find_package(VTK REQUIRED)
+
 add_definitions(-DPACKAGE_BUGREPORT="mcell@salk.edu")
 
 SET(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0 ")
@@ -57,7 +61,7 @@ option(ENABLE_GCOV "Use gcc coverage" OFF)
 option(ENABLE_GPROF "Use gprof profiling" OFF)
 option(ENABLE_GPERFTOOLS "Build with gperftools profiling" OFF)  
 option(ENABLE_SANITIZER "Use address sanitizer" OFF)
-option(PYMCELL "Build also PyMCell" ON) 
+option(PYMCELL "Build also PyMCell" OFF) 
 
 
 if (ENABLE_LTO)
@@ -242,6 +246,7 @@ set(SOURCE_FILES
     src4/defragmentation_event.cpp
     src4/geometry.cpp
     src4/world.cpp
+    src4/counted_volumes_util.cpp
     
     src4/callback_info.cpp    
 )
@@ -343,4 +348,11 @@ if (PYMCELL AND NOT WIN32 AND NOT CYGWIN)
 endif()
   
 target_link_libraries(mcell bng nfsim_c_static NFsim_static)
+
+if(VTK_LIBRARIES)
+  target_link_libraries(mcell ${VTK_LIBRARIES})
+else()
+  target_link_libraries(mcell vtkHybrid)
+endif()
+
 TARGET_COMPILE_DEFINITIONS(mcell PRIVATE NOSWIG=1)

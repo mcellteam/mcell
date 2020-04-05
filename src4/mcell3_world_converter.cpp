@@ -136,8 +136,8 @@ bool MCell3WorldConverter::convert(volume* s) {
   // at this point, we need to create the first (and for now the only) partition
   // create initial partition with center at 0,0,0 - we woud like to have the partitions all the same,
   // not depend on some random initialization
-  partition_index_t index = world->add_partition(Vec3(0, 0, 0));
-  assert(index == PARTITION_INDEX_INITIAL);
+  partition_id_t index = world->add_partition(Vec3(0, 0, 0));
+  assert(index == PARTITION_ID_INITIAL);
 
   // convert geometry already puts geometry objects into partitions
   CHECK(convert_geometry_objects(s));
@@ -280,11 +280,11 @@ void MCell3WorldConverter::create_uninitialized_walls_for_polygonal_object(const
     wall* w = o->wall_p[i];
 
     // which partition?
-    partition_index_t partition_index = world->get_partition_index(*w->vert[0]);
+    partition_id_t partition_index = world->get_partition_index(*w->vert[0]);
 
     // check that the remaining vertices are in the same partition
     for (uint k = 1; k < VERTICES_IN_TRIANGLE; k++) {
-      partition_index_t curr_partition_index = world->get_partition_index(*w->vert[k]);
+      partition_id_t curr_partition_index = world->get_partition_index(*w->vert[k]);
 
       if (partition_index != curr_partition_index) {
         Vec3 pos(*w->vert[k]);
@@ -478,7 +478,7 @@ bool MCell3WorldConverter::convert_polygonal_object(const geom_object* o) {
   // we already checked in create_uninitialized_walls_for_polygonal_object
   // that the specific walls of this fit into a single partition
   // TODO_CONVERSION: improve this check for the whole object
-  partition_index_t partition_index = world->get_partition_index(*o->vertices[0]);
+  partition_id_t partition_index = world->get_partition_index(*o->vertices[0]);
   Partition& p = world->get_partition(partition_index);
 
   GeometryObject& obj = p.add_uninitialized_geometry_object(world->get_next_geometry_object_id());

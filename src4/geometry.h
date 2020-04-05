@@ -393,6 +393,9 @@ void update_moved_walls(
 );
 
 }
+
+typedef std::vector<GeometryObject> GeometryObjectVector;
+
 } /* namespace mcell */
 
 #endif /* SRC4_GEOMETRY_H_ */

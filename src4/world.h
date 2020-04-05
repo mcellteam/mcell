@@ -41,6 +41,7 @@
 #include "geometry.h"
 #include "callback_info.h"
 #include "count_buffer.h"
+#include "counted_volumes_util.h"
 
 
 namespace MCell {
@@ -68,21 +69,21 @@ public:
   }
 
   // -------------- partition manipulation methods --------------
-  partition_index_t get_partition_index(const Vec3& pos) {
+  partition_id_t get_partition_index(const Vec3& pos) {
     // for now a slow approach, later some hashing/memoization might be needed
-    for (partition_index_t i = 0; i < partitions.size(); i++) {
+    for (partition_id_t i = 0; i < partitions.size(); i++) {
       if (partitions[i].in_this_partition(pos)) {
         return i;
       }
     }
-    return PARTITION_INDEX_INVALID;
+    return PARTITION_ID_INVALID;
   }
 
-  partition_index_t get_or_add_partition_index(const Vec3& pos) {
+  partition_id_t get_or_add_partition_index(const Vec3& pos) {
 
-    partition_index_t res = get_partition_index(pos);
+    partition_id_t res = get_partition_index(pos);
     // not found - add a new partition
-    if (res == PARTITION_INDEX_INVALID) {
+    if (res == PARTITION_ID_INVALID) {
       res = add_partition(pos);
     }
 
@@ -90,19 +91,24 @@ public:
   }
 
   // add a partition in a predefined 'lattice' that contains point pos
-  partition_index_t add_partition(const Vec3& pos) {
+  partition_id_t add_partition(const Vec3& pos) {
     assert(config.partition_edge_length != 0);
-    assert(get_partition_index(pos) == PARTITION_INDEX_INVALID && "Partition must not exist");
+    assert(get_partition_index(pos) == PARTITION_ID_INVALID && "Partition must not exist");
 
     Vec3 origin =
         floor_to_multiple(pos, config.partition_edge_length)
         - Vec3(config.partition_edge_length/2);
 
-    partitions.push_back(Partition(origin, config, bng_engine, stats));
+    partitions.push_back(Partition(partitions.size(), origin, config, bng_engine, stats));
     return partitions.size() - 1;
   }
 
-  Partition& get_partition(partition_index_t i) {
+  Partition& get_partition(partition_id_t i) {
+    assert(i < partitions.size());
+    return partitions[i];
+  }
+
+  const Partition& get_partition(partition_id_t i) const {
     assert(i < partitions.size());
     return partitions[i];
   }

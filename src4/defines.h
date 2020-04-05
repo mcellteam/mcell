@@ -160,9 +160,9 @@ typedef uint molecule_index_t;
 const molecule_index_t MOLECULE_INDEX_INVALID = INDEX_INVALID;
 
 // for now, this is the partition that contains point 0,0,0 in its center
-typedef uint partition_index_t;
-const partition_index_t PARTITION_INDEX_INITIAL = 0;
-const partition_index_t PARTITION_INDEX_INVALID = INDEX_INVALID;
+typedef uint partition_id_t;
+const partition_id_t PARTITION_ID_INITIAL = 0;
+const partition_id_t PARTITION_ID_INVALID = INDEX_INVALID;
 
 typedef uint subpart_index_t;
 const subpart_index_t SUBPART_INDEX_INVALID = INDEX_INVALID;
@@ -234,9 +234,9 @@ typedef uint counted_volume_id_t; // ids of volumes, for now only those that are
 const counted_volume_id_t COUNTED_VOLUME_ID_INVALID = ID_INVALID;
 const counted_volume_id_t COUNTED_VOLUME_ID_WORLD = ID_INVALID2;
 
-typedef std::pair<partition_index_t, wall_index_t> PartitionWallIndexPair;
-typedef std::pair<partition_index_t, region_index_t> PartitionRegionIndexPair;
-typedef std::pair<partition_index_t, vertex_index_t> PartitionVertexIndexPair;
+typedef std::pair<partition_id_t, wall_index_t> PartitionWallIndexPair;
+typedef std::pair<partition_id_t, region_index_t> PartitionRegionIndexPair;
+typedef std::pair<partition_id_t, vertex_index_t> PartitionVertexIndexPair;
 
 typedef std::pair<float_t, PartitionWallIndexPair> CummAreaPWallIndexPair;
 

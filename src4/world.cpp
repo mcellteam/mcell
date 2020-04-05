@@ -43,6 +43,7 @@ World::World()
     seed_seq(0),
     next_wall_id(0),
     next_geometry_object_id(0),
+    next_counted_volume_id(0),
     simulation_initialized(false),
     simulation_ended(false),
     previous_progress_report_time({0, 0}),
@@ -108,8 +109,10 @@ static double tosecs(timeval& t) {
 void World::init_counted_volumes() {
   assert(partitions.size() == 1);
 
-  // all ids are used in the MolCountEvent::step call what works on the whole world,
-  // so they must be world-unique
+  bool ok = CountedVolumesUtil::initialize_counted_volumes(this);
+  if (!ok) {
+    mcell_error("Processing of counted volumes failed, terminating.");
+  }
 }
 
 

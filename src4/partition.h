@@ -84,6 +84,7 @@ private:
 class Partition {
 public:
   Partition(
+      const partition_id_t id_,
       const Vec3 origin_,
       const SimulationConfig& config_,
       BNG::BNGEngine& bng_engine_,
@@ -91,6 +92,7 @@ public:
   )
     : origin_corner(origin_),
       next_molecule_id(0),
+      id(id_),
       config(config_),
       bng_engine(bng_engine_),
       stats(stats_) {
@@ -481,6 +483,10 @@ public:
     return geometry_objects[index];
   }
 
+  const GeometryObjectVector& get_geometry_objects() const {
+    return geometry_objects;
+  }
+
   const Region& get_region(const region_index_t i) const {
     assert(i < regions.size());
     return regions[i];
@@ -638,6 +644,8 @@ private:
 
   // ---------------------------------- shared simulation configuration -------------------
 public:
+  partition_id_t id;
+
   // all these reference an object owned by a single World instance
   // enclose into something?
   const SimulationConfig& config;

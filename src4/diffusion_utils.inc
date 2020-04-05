@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2017 by
+ * Copyright (C) 2019-2020 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
