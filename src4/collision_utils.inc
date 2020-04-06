@@ -1203,7 +1203,7 @@ static bool collide_moving_line_and_static_line_test(
     Expects that the region is an enclosed volume
 
 *************************************************************************/
-static bool is_point_inside_region(const Partition& p, const Vec3 pos, const Region& reg) {
+static bool is_point_inside_region(const Partition& p, const Vec3& pos, const Region& reg) {
 
   // cast ray along the whole partition
   Vec3 move(0, 0, p.config.partition_edge_length);
@@ -1226,7 +1226,7 @@ static bool is_point_inside_region(const Partition& p, const Vec3 pos, const Reg
 }
 
 
-static bool is_point_inside_object(const Partition& p, const Vec3 pos, const GeometryObject& obj) {
+static bool is_point_inside_object(const Partition& p, const Vec3& pos, const GeometryObject& obj) {
 
   // cast ray along the whole partition
   Vec3 move(0, 0, p.config.partition_edge_length);

@@ -372,9 +372,12 @@ bool MCell3WorldConverter::convert_wall_and_update_regions(
   }
 
   CHECK_PROPERTY(w->grid == nullptr); // for now
-  CHECK_PROPERTY(w->flags == 4096); // not sure yet what flags are there for walls
 
-
+  // walls use some of the flags used by species
+  CHECK_PROPERTY(
+      w->flags == COUNT_CONTENTS ||
+      w->flags == (COUNT_CONTENTS | COUNT_ENCLOSED)
+  );
 
   // now let's handle regions
   std::set<species_id_t> region_species_from_mcell3;
@@ -600,6 +603,7 @@ bool MCell3WorldConverter::convert_species(volume* s) {
     if (!(
         is_species_superclass(s, spec)
         || spec->flags == 0
+        || spec->flags == (SPECIES_FLAG_COUNT_ENCLOSED | COUNT_CONTENTS)
         || spec->flags == SPECIES_FLAG_CAN_VOLVOL
         || spec->flags == SPECIES_CPLX_MOL_FLAG_SURF
         || spec->flags == SPECIES_CPLX_MOL_FLAG_REACTIVE_SURFACE

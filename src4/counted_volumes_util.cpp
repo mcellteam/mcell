@@ -149,7 +149,7 @@ static bool convert_objects_to_clean_polydata(World* world, GeomObjectInfoVector
     }
 
     // create input polydata
-    vtkSmartPointer<vtkPolyData> polydata;
+    vtkSmartPointer<vtkPolyData> polydata = vtkSmartPointer<vtkPolyData>::New();
     polydata->SetPoints(points);
     polydata->SetPolys(triangles);
 
@@ -310,7 +310,7 @@ static bool compute_containement_mapping(
 
   contained_in_mapping.clear();
   for (uint obj1 = 0; obj1 < counted_objects.size(); obj1++) {
-    for (uint obj2 = obj1; obj1 < counted_objects.size(); obj1++) {
+    for (uint obj2 = obj1 + 1; obj2 < counted_objects.size(); obj2++) {
       ContainmentResult containment_res =
           geom_object_containment_test(counted_objects[obj1].polydata, counted_objects[obj2].polydata);
 
