@@ -207,7 +207,7 @@ geometry_object_id_t Partition::find_smallest_counted_volume_recursively(const G
 geometry_object_id_t Partition::determine_counted_volume_id(const Vec3& pos) {
   // find the first object we are in
   for (const GeometryObject& obj: geometry_objects) {
-    if (CollisionUtil::is_point_inside_object(*this, pos, obj)) {
+    if (obj.is_counted_volume && CollisionUtil::is_point_inside_object(*this, pos, obj)) {
       // follow the containment graph to determine the smallest counted volume
       return find_smallest_counted_volume_recursively(obj, pos);
     }

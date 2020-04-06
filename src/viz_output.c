@@ -447,6 +447,7 @@ static int output_ascii_molecules(struct volume *world,
          %2d\n",id,where.x,where.y,where.z,orient);
       */
       const char *external_name = "";
+      const char *space_before = "";
 
       #ifdef ASCII_VIZ_EXTERNAL_SPECIES_NAME
         if ((amp->properties->flags & EXTERNAL_SPECIES) != 0) {
@@ -455,19 +456,20 @@ static int output_ascii_molecules(struct volume *world,
           /*    c:SH2~NO_STATE!5,c:U~NO_STATE!5!3,c:a~NO_STATE!6,c:b~Y!6!1,c:g~Y!6,m:Lyn@PM!0!1,m:Rec@PM!2!3!4, */
           external_name = amp->graph_data->graph_pattern;
           assert(external_name != NULL);
+          space_before = ""
         }
       #endif
 
       if (id == INCLUDE_OBJ) {
         /* write name of molecule */
-        fprintf(custom_file, "%s %lu %.9g %.9g %.9g %.9g %.9g %.9g %s\n",
+        fprintf(custom_file, "%s %lu %.9g %.9g %.9g %.9g %.9g %.9g%s%s\n",
                 amp->properties->sym->name, amp->id, where.x, where.y,
-                where.z, norm.x, norm.y, norm.z, external_name);
+                where.z, norm.x, norm.y, norm.z, space_before, external_name);
       } else {
         /* write state value of molecule */
-        fprintf(custom_file, "%d %lu %.9g %.9g %.9g %.9g %.9g %.9g %s\n", id,
+        fprintf(custom_file, "%d %lu %.9g %.9g %.9g %.9g %.9g %.9g%s%s\n", id,
                 amp->id, where.x, where.y, where.z, norm.x, norm.y,
-                norm.z, external_name);
+                norm.z, space_before, external_name);
       }
 
     }

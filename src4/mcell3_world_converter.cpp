@@ -1150,6 +1150,10 @@ bool MCell3WorldConverter::convert_mol_count_events(volume* s) {
     info.species_id = world->get_all_species().find_by_name(species_name);
     CHECK_PROPERTY(info.species_id != SPECIES_ID_INVALID);
 
+    // set a flag that these species are to be counted
+    BNG::Species& species = world->get_all_species().get(info.species_id);
+    species.set_flag(BNG::SPECIES_FLAG_COUNT_ENCLOSED);
+
     // count location
     // only whole geom object for now
     if ((req->report_type & REPORT_ENCLOSED) != 0) {

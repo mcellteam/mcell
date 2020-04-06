@@ -93,7 +93,9 @@ void MolCountEvent::step() {
         }
         else if (info.type == CountType::EnclosedInObject) {
           // is the molecule inside of the object that we are checking?
-          if (enclosing_volumes.count(m.v.counted_volume_id)) {
+          if (m.v.counted_volume_id == info.geometry_object_id ||
+              enclosing_volumes.count(info.geometry_object_id)) {
+
             count_items[i].inc();
           }
         }

@@ -604,9 +604,17 @@ public:
 
   const uint_set<geometry_object_id_t>& get_enclosing_counted_volumes(
       const geometry_object_id_t child_id) const {
-    auto it = enclosing_counted_volume_objects.find(child_id);
-    assert(it != enclosing_counted_volume_objects.end());
-    return it->second;
+
+    if (child_id == COUNTED_VOLUME_ID_OUTSIDE_ALL) {
+      // special case for "outside"
+      static uint_set<geometry_object_id_t> empty_set;
+      return empty_set;
+    }
+    else {
+      auto it = enclosing_counted_volume_objects.find(child_id);
+      assert(it != enclosing_counted_volume_objects.end());
+      return it->second;
+    }
   }
 
   // ---------------------------------- dynamic vertices ----------------------------------
