@@ -31,11 +31,8 @@ void CplxInstance::finalize() {
       vol_type = false;
     }
   }
-  if (vol_type) {
-    set_flag(CPLX_MOL_FLAG_VOL);
-  }
-  else {
-    set_flag(CPLX_MOL_FLAG_SURF);
+  if (!vol_type) {
+    set_flag(SPECIES_CPLX_MOL_FLAG_SURF);
   }
 
   // CPLX_FLAG_SINGLE_MOL_NO_COMPONENTS
@@ -51,7 +48,7 @@ void CplxInstance::finalize() {
       }
     }
   }
-  set_flag(CPLX_FLAG_ONE_MOL_NO_COMPONENTS, is_simple);
+  set_flag(SPECIES_CPLX_FLAG_ONE_MOL_NO_COMPONENTS, is_simple);
 
   set_finalized();
 }

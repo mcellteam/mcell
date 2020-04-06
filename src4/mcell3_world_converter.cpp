@@ -601,22 +601,22 @@ bool MCell3WorldConverter::convert_species(volume* s) {
         is_species_superclass(s, spec)
         || spec->flags == 0
         || spec->flags == SPECIES_FLAG_CAN_VOLVOL
-        || spec->flags == SPECIES_FLAG_ON_GRID
-        || spec->flags == SPECIES_FLAG_IS_SURFACE
-        || spec->flags == (SPECIES_FLAG_ON_GRID | SPECIES_FLAG_CAN_SURFSURF)
-        || spec->flags == (SPECIES_FLAG_ON_GRID | SPECIES_FLAG_CAN_REGION_BORDER)
-        || spec->flags == (SPECIES_FLAG_ON_GRID | SPECIES_FLAG_CAN_SURFSURF | CAN_SURFWALL | SPECIES_FLAG_CAN_REGION_BORDER | REGION_PRESENT)
+        || spec->flags == SPECIES_CPLX_MOL_FLAG_SURF
+        || spec->flags == SPECIES_CPLX_MOL_FLAG_REACTIVE_SURFACE
+        || spec->flags == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_SURFSURF)
+        || spec->flags == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_REGION_BORDER)
+        || spec->flags == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_SURFSURF | CAN_SURFWALL | SPECIES_FLAG_CAN_REGION_BORDER | REGION_PRESENT)
         || spec->flags == SPECIES_FLAG_CAN_VOLSURF
       )) {
       mcell_log("Unsupported species flag for species %s: %s\n", new_species.name.c_str(), get_species_flags_string(spec->flags).c_str());
       CHECK_PROPERTY(false && "Flags listed above are not supported yet");
     }
-    new_species.flags = spec->flags;
+    new_species.set_flags(spec->flags);
 
     CHECK_PROPERTY(spec->n_deceased == 0);
     CHECK_PROPERTY(spec->cum_lifetime_seconds == 0);
 
-    if (new_species.is_reactive_surface()) {
+    if ((spec->flags & IS_SURFACE) != 0) {
       CHECK_PROPERTY(spec->refl_mols != nullptr);
       CHECK_PROPERTY(spec->refl_mols->next == nullptr); // just one type for now
 
@@ -639,11 +639,14 @@ bool MCell3WorldConverter::convert_species(volume* s) {
 
     MolInstance mol_inst;
     mol_inst.mol_type_id = mol_type_id;
-    if (new_species.is_vol()) {
-      mol_inst.set_flag(CPLX_MOL_FLAG_VOL);
+    if ((spec->flags & ON_GRID) == 0 && (spec->flags & IS_SURFACE) == 0) {  //FIXME: ALL_SURF_MOLS have wrong flag
+      mol_inst.set_is_vol();
     }
-    else if (new_species.is_surf()) {
-      mol_inst.set_flag(CPLX_MOL_FLAG_SURF);
+    else if ((spec->flags & ON_GRID) != 0) {
+      mol_inst.set_is_surf();
+    }
+    else if ((spec->flags & IS_SURFACE) != 0) {
+      mol_inst.set_is_reactive_surface();
     }
     else {
       assert(false);

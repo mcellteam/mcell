@@ -49,19 +49,8 @@ public:
   // must be called after initialization, sets up flags
   void finalize();
 
-  // share this interface with actual species?
-  bool is_vol() const {
-    return has_flag(CPLX_MOL_FLAG_VOL);
-  }
-
-  // if any of the contained molecule instances is a surface molecule,
-  // the whole complex is a surface molecule
-  bool is_surf() const {
-    return has_flag(CPLX_MOL_FLAG_SURF);
-  }
-
   bool is_simple() const {
-    return has_flag(CPLX_FLAG_ONE_MOL_NO_COMPONENTS);
+    return has_flag(SPECIES_CPLX_FLAG_ONE_MOL_NO_COMPONENTS);
   }
 
   orientation_t get_orientation() const {

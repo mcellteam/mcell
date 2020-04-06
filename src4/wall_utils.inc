@@ -531,7 +531,7 @@ static void find_restricted_regions_by_wall(
 
   const BNG::Species& species = p.get_all_species().get(sm.species_id);
 
-  if (!species.has_flag(MCell::SPECIES_FLAG_CAN_REGION_BORDER)) {
+  if (!species.can_interact_with_border()) {
     // no restricted region
     return;
   }

@@ -1320,7 +1320,7 @@ static void grid_all_neighbors_across_walls_through_edges(
      that may be region borders.  These are INSIDE_OUT and OUTSIDE-IN
      checks against molecule's own wall and neighbor wall */
   const BNG::Species& species = p.get_all_species().get(sm.species_id);
-  if (species.has_flag(SPECIES_FLAG_CAN_REGION_BORDER)) {
+  if (species.can_interact_with_border()) {
     assert(sm.s.wall_index == wall.index);
 
     uint_set<region_index_t> regions;

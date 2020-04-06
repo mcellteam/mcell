@@ -5,21 +5,43 @@
 
 namespace BNG {
 
-enum cplx_mol_flag_t {
-  CPLX_MOL_FLAG_SURF = 1 << 0,
-  CPLX_MOL_FLAG_VOL = 1 << 1,
+// this single enum defines flags for species, complex instances and molecule instances
+enum species_cplx_mol_flag_t {
 
-  CPLX_FLAG_HAS_SINGLE_ORIENTATION = 1 << 2,
-  CPLX_FLAG_SINGLE_ORIENTATION_IS_UP = 1 << 3,
-  CPLX_FLAG_ONE_MOL_NO_COMPONENTS = 1 << 4,
+  // maintaining the same values as in MCell
+
+  // if both of the following flags are unset, the a volume molecule/species
+  // the type of molecule will be bits when bitfield will be used
+  SPECIES_CPLX_MOL_FLAG_SURF = 0x01, // surface or vol mol
+  SPECIES_CPLX_MOL_FLAG_REACTIVE_SURFACE = 0x02, // reactive surface
+
+  // simple species
+  SPECIES_CPLX_FLAG_ONE_MOL_NO_COMPONENTS = 0x04,
+
+  SPECIES_FLAG_CAN_VOLVOL = 0x10, // can vol vol react? (unused for now)
+  SPECIES_FLAG_CAN_VOLSURF = 0x20, // can vol-surf react
+  SPECIES_FLAG_CAN_SURFSURF = 0x80, // can surf-surf react
+  SPECIES_FLAG_CANT_INITIATE = 0x400, // must not be set, not sure what to do with this yet (at least for some cases)
+  SPECIES_FLAG_COUNT_ENCLOSED = 0x8000, // this species is marked to be counted inside of a volume
+  SPECIES_FLAG_CAN_SURFSURFSURF = 0x20000, // 0x20000 - not supported - TODO LATER: remove
+  SPECIES_FLAG_SET_MAX_STEP_LENGTH = 0x80000,
+  SPECIES_FLAG_CAN_REGION_BORDER = 0x100000,
+  SPECIES_FLAG_EXTERNAL_SPECIES = 0x400000 // 0x400000 - not supported - TODO LATER: remove
 };
 
 
-// NOTE: use bitfield instead?
+// use bitfield?
+// TODO: rename to make it more specific
 class BaseFlag {
 private:
   bool finalized;
-  uint flags;
+
+  union {
+    uint flags;
+    struct {
+
+    };
+  };
 
 public:
   BaseFlag()
@@ -53,6 +75,41 @@ public:
 
   bool is_finalized() const {
     return finalized;
+  }
+
+  uint get_flags() const {
+    return flags;
+  }
+
+  void set_flags(uint value) {
+    flags = value;
+  }
+
+  void set_is_vol() {
+    clear_flag(SPECIES_CPLX_MOL_FLAG_SURF);
+    clear_flag(SPECIES_CPLX_MOL_FLAG_REACTIVE_SURFACE);
+  }
+
+  void set_is_surf() {
+    set_flag(SPECIES_CPLX_MOL_FLAG_SURF);
+    clear_flag(SPECIES_CPLX_MOL_FLAG_REACTIVE_SURFACE);
+  }
+
+  void set_is_reactive_surface() {
+    clear_flag(SPECIES_CPLX_MOL_FLAG_SURF);
+    set_flag(SPECIES_CPLX_MOL_FLAG_REACTIVE_SURFACE);
+  }
+
+  bool is_surf() const {
+    return has_flag(SPECIES_CPLX_MOL_FLAG_SURF);
+  }
+
+  bool is_vol() const {
+    return !has_flag(SPECIES_CPLX_MOL_FLAG_SURF) && !has_flag(SPECIES_CPLX_MOL_FLAG_REACTIVE_SURFACE);
+  }
+
+  bool is_reactive_surface() const {
+    return has_flag(SPECIES_CPLX_MOL_FLAG_REACTIVE_SURFACE);
   }
 };
 

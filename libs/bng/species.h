@@ -10,7 +10,6 @@
 
 #include "cplx_instance.h"
 #include "defines_shared.h"
-#include "mcell_shared.h"
 
 namespace BNG {
 
@@ -22,7 +21,7 @@ public:
   Species()
     : species_id(SPECIES_ID_INVALID), D(FLT_INVALID),
       // MCell-specific
-      space_step(FLT_INVALID), time_step(TIME_INVALID), flags(0)
+      space_step(FLT_INVALID), time_step(TIME_INVALID)
     {
   }
 
@@ -43,27 +42,13 @@ public:
   float_t space_step;
   float_t time_step; // in standard time
 
-  uint flags;
-
-  bool is_surf() const {
-    return has_flag(MCell::SPECIES_FLAG_ON_GRID);
-  }
-
-  bool is_vol() const {
-    return !has_flag(MCell::SPECIES_FLAG_ON_GRID);
-  }
-
-  bool is_reactive_surface() const {
-    return has_flag(MCell::SPECIES_FLAG_IS_SURFACE);
-  }
-
   bool has_count_enclosed_flag() const {
-    return has_flag(MCell::SPECIES_FLAG_COUNT_ENCLOSED);
+    return has_flag(SPECIES_FLAG_COUNT_ENCLOSED);
   }
 
   // true if can interact with edge of an border
   bool can_interact_with_border() const {
-    return has_flag(MCell::SPECIES_FLAG_CAN_REGION_BORDER);
+    return has_flag(SPECIES_FLAG_CAN_REGION_BORDER);
   }
 
   bool can_diffuse() const {
@@ -87,7 +72,7 @@ public:
         equal_except_for_id_base(s2) &&
         space_step == s2.space_step &&
         time_step == s2.time_step &&
-        flags == s2.flags;
+        get_flags() == s2.get_flags();
   }
 
   // ^^^^^^^^^^ MCell-specific ^^^^^^^^^^

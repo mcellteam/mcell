@@ -110,12 +110,13 @@ void VizOutputEvent::compute_where_and_norm(
 ) {
   const BNG::Species& species = world->get_all_species().get(m.species_id);
 
-  if ((species.flags & NOT_FREE) == 0) {
+  // TODO: replace with new flags
+  if (species.is_vol()) {
     // neither surface nor on grid
     where = m.v.pos;
     norm = Vec3(0);
   }
-  else if ((species.flags & ON_GRID) != 0) {
+  else if (species.is_surf()) {
     const Wall& wall = p.get_wall(m.s.wall_index);
     const Vec3& wall_vert0 = p.get_geometry_vertex(wall.vertex_indices[0]);
     where = GeometryUtil::uv2xyz(m.s.pos, wall, wall_vert0);
