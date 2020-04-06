@@ -53,6 +53,10 @@ World::World()
   config.partition_edge_length = PARTITION_EDGE_LENGTH_DEFAULT;
   config.subpartitions_per_partition_dimension = SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT;
 
+  // although the same thing is called in init_simulation, not reseting it causes weird valdrind reports on
+  // uninitialized variable
+  reset_rusage(&sim_start_time);
+
 #ifdef DEBUG_REACTIONS
   config.debug_reactions = true;
 #endif
@@ -144,6 +148,7 @@ void World::init_simulation() {
   previous_progress_report_time = {0, 0};
 
   rusage sim_start_time;
+  reset_rusage(&sim_start_time);
   getrusage(RUSAGE_SELF, &sim_start_time);
 
   // iteration counter to report progress
@@ -237,15 +242,16 @@ void World::end_simulation() {
 
   cout << "Iteration " << stats.get_current_iteration() << ", simulation finished successfully\n";
 
-  stats.dump();
+  //stats.dump();
 
   // flush and close count buffers
-  for (CountBuffer& b: count_buffers) {
+  /*for (CountBuffer& b: count_buffers) {
     b.flush_and_close();
-  }
+  }*/
 
   // report final time
   rusage run_time;
+  reset_rusage(&run_time);
   getrusage(RUSAGE_SELF, &run_time);
   cout << "Simulation CPU time = "
     << tosecs(run_time.ru_utime) - tosecs(sim_start_time.ru_utime) <<  "(user) and "

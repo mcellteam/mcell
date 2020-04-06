@@ -24,6 +24,7 @@
 #pragma once
 
 #include <stdio.h>
+#include <sys/resource.h> // Linux include
 
 #define COUNT_OF(arr) (sizeof((arr)) / sizeof((arr[0])))
 
@@ -281,4 +282,12 @@ static inline int minNi(int *array, int N) {
       smallest = array[N];
   }
   return smallest;
+}
+
+// initializer list for rusage causes many compilation warnings when used
+static inline void reset_rusage(rusage* r) {
+  r->ru_utime.tv_sec = 0;
+  r->ru_utime.tv_usec = 0;
+  r->ru_stime.tv_sec = 0;
+  r->ru_stime.tv_usec = 0;
 }
