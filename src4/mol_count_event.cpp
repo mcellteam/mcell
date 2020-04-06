@@ -69,18 +69,34 @@ void MolCountEvent::step() {
     count_items[i].int_value = 0;
   }
 
+  // for each partition
   for (const Partition& p: partitions) {
 
-    // check each molecule against what we are checking
-    for (uint i = 0; i < mol_count_infos.size(); i++) {
-      const MolCountInfo& info = mol_count_infos[i];
+    // for each molecule
+    for (const Molecule& m: p.get_molecules()) {
 
-      if (info.type == CountType::World) {
-        // count the item
-        count_items[i].inc();
+      const BNG::Species& species = world->get_all_species().get(m.species_id);
+      if (!species.has_count_enclosed_flag()) {
+        continue;
       }
-      else {
-        assert(false && "TODO");
+
+      const uint_set<geometry_object_id_t>& enclosing_volumes =
+          p.get_enclosing_counted_volumes(m.v.counted_volume_id);
+
+      // for each counting info
+      for (uint i = 0; i < mol_count_infos.size(); i++) {
+        const MolCountInfo& info = mol_count_infos[i];
+
+        if (info.type == CountType::World) {
+          // count the molecule
+          count_items[i].inc();
+        }
+        else if (info.type == CountType::EnclosedInObject) {
+          // is the molecule inside of the object that we are checking?
+          if (enclosing_volumes.count(m.v.counted_volume_id)) {
+            count_items[i].inc();
+          }
+        }
       }
 
     }

@@ -578,7 +578,7 @@ public:
     return walls_using_vertex_mapping[vertex_index];
   }
 
-  void set_parent_and_child_of_directly_contained_counted_volume(
+  void add_child_of_directly_contained_counted_volume(
       const geometry_object_id_t parent_id,
       const geometry_object_id_t child_id) {
     // both must be counted volumes
@@ -587,6 +587,27 @@ public:
     directly_contained_counted_volume_objects[parent_id].insert(child_id);
   }
 
+  void add_parent_that_encloses_counted_volume(
+      const geometry_object_id_t child_id,
+      const geometry_object_id_t parent_id) {
+    // both must be counted volumes
+    assert(get_geometry_object(parent_id).is_counted_volume);
+    assert(get_geometry_object(child_id).is_counted_volume);
+    enclosing_counted_volume_objects[child_id].insert(parent_id);
+  }
+
+  void set_that_object_has_no_enclosing_counted_volumes(
+      const geometry_object_id_t child_id) {
+    // create key with empty calue
+    enclosing_counted_volume_objects[child_id] = uint_set<geometry_object_id_t>();
+  }
+
+  const uint_set<geometry_object_id_t>& get_enclosing_counted_volumes(
+      const geometry_object_id_t child_id) const {
+    auto it = enclosing_counted_volume_objects.find(child_id);
+    assert(it != enclosing_counted_volume_objects.end());
+    return it->second;
+  }
 
   // ---------------------------------- dynamic vertices ----------------------------------
   // add information about a change of a specific vertex
@@ -659,8 +680,12 @@ private:
   std::vector< uint_set<wall_index_t> > walls_per_subpart;
 
   // key is object id and its values are objects ids directly contained in it,
-  // defines a containment tree this way
+  // defines a containment tree this way, used when placing a new molecule
   CountedVolumesMap directly_contained_counted_volume_objects;
+
+  // key is object id and its values are objects ids that contain this volume
+  // used when determining when counting the molecules
+  CountedVolumesMap enclosing_counted_volume_objects;
 
   // ---------------------------------- dynamic vertices ----------------------------------
 private:

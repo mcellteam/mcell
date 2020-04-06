@@ -196,7 +196,6 @@ public:
     return res;
   }
 
-
   bool is_defunct() const {
     return (flags & MOLECULE_FLAG_DEFUNCT) != 0;
   }

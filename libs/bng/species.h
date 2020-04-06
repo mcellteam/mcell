@@ -45,11 +45,6 @@ public:
 
   uint flags;
 
-  bool has_flag(uint flag) const {
-    assert(__builtin_popcount(flag) == 1);
-    return (flags & flag) != 0;
-  }
-
   bool is_surf() const {
     return has_flag(MCell::SPECIES_FLAG_ON_GRID);
   }
@@ -60,6 +55,10 @@ public:
 
   bool is_reactive_surface() const {
     return has_flag(MCell::SPECIES_FLAG_IS_SURFACE);
+  }
+
+  bool has_count_enclosed_flag() const {
+    return has_flag(MCell::SPECIES_FLAG_COUNT_ENCLOSED);
   }
 
   // true if can interact with edge of an border

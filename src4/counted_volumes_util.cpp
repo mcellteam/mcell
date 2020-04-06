@@ -425,12 +425,26 @@ static void define_counted_volumes(
       GeometryObject& child_obj = child_info.get_geometry_object_noconst(world);
       child_obj.counted_volume_id_outside = outside_id;
 
+      Partition& p = world->get_partition(child_info.partition_id);
+
       // and also create mapping for partition so that it knows about the hierarchy of objects
       if (direct_parent_obj != nullptr) {
-        Partition& p = world->get_partition(child_info.partition_id);
 
-        // direct parent -> { child1, ... }
-        p.set_parent_and_child_of_directly_contained_counted_volume(direct_parent_obj->id, child_obj.id);      }
+        // set mapping direct parent -> { child1, ... }
+        p.add_child_of_directly_contained_counted_volume(direct_parent_obj->id, child_obj.id);
+
+        // set mapping child -> all counted volumes it is enclosed in
+        auto it_parents = contained_in_mapping.find(child_info);
+        assert(it_parents != contained_in_mapping.end());
+
+        for (const GeomObjectInfo& parent_info: it_parents->second) {
+          p.add_parent_that_encloses_counted_volume(child_obj.id, parent_info.geometry_object_id);
+        }
+      }
+      else {
+        // there is no parent, set that to the partition as well
+        p.set_that_object_has_no_enclosing_counted_volumes(child_obj.id);
+      }
     }
   }
 }
