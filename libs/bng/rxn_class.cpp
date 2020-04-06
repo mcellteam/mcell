@@ -103,11 +103,11 @@ float_t RxnClass::compute_pb_factor(const BNGConfig& bng_config) const {
 
       float_t D_tot = 0.0;
       float_t t_step = 0.0;
-      if (reactant_species[0]->is_surf()) {
+      if (reactant_species[0]->is_surf() || reactant_species[0]->is_reactive_surface()) {
         D_tot = get_reactant_diffusion(0);
         t_step = get_reactant_time_step(0) * bng_config.time_unit;
       }
-      else if (reactant_species[1]->is_surf()) {
+      else if (reactant_species[1]->is_surf() || reactant_species[1]->is_reactive_surface()) {
         D_tot = get_reactant_diffusion(1);
         t_step = get_reactant_time_step(1) * bng_config.time_unit;
       } else {

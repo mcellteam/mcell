@@ -88,7 +88,7 @@ public:
   void finalize() {
     set_finalized();
     // flag about molecule type must be set
-    assert(is_vol() || is_surf());
+    assert(is_vol() || is_surf() || is_reactive_surface());
   }
 
   // returns true if this object as a pattern matches second instance
