@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2019 by
+ * Copyright (C) 2020 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -56,14 +56,38 @@ struct GeomObjectInfo {
   // geometry objects and pointers would become invalidated
   partition_id_t partition_id;
   geometry_object_id_t geometry_object_id;
+
   vtkSmartPointer<vtkPolyData> polydata;
+
+
+  GeometryObject& get_geometry_object_noconst(World* world) const {
+    Partition& p = world->get_partition(partition_id);
+    return p.get_geometry_object(geometry_object_id);
+  }
+
+  const GeometryObject& get_geometry_object(const World* world) const {
+    const Partition& p = world->get_partition(partition_id);
+    return p.get_geometry_object(geometry_object_id);
+  }
+
+  // comparison uses geometry_object_id only, used in maps
+  bool operator < (const GeomObjectInfo& second) const {
+    return geometry_object_id < second.geometry_object_id;
+  }
+
+  bool operator == (const GeomObjectInfo& second) const {
+    return geometry_object_id == second.geometry_object_id;
+  }
+
 };
 
 
 typedef vector<GeomObjectInfo> GeomObjectInfoVector;
 
 // containment mapping of counted geometry objects
-typedef std::map<geometry_object_id_t, uint_set<geometry_object_id_t>> ContainmentMap;
+typedef std::map<GeomObjectInfo, uint_set<GeomObjectInfo>> ContainmentMap;
+
+typedef std::map<counted_volume_id_t, uint_set<counted_volume_id_t>> CountedVolumesMap;
 
 enum class ContainmentResult {
   Error,
@@ -74,11 +98,6 @@ enum class ContainmentResult {
   Obj2InObj1
 };
 
-
-static const GeometryObject& get_geometry_object(const World* world, const GeomObjectInfo& info) {
-  const Partition& p = world->get_partition(info.partition_id);
-  return p.get_geometry_object(info.geometry_object_id);
-}
 
 
 static bool convert_objects_to_clean_polydata(World* world, GeomObjectInfoVector& counted_objects) {
@@ -282,8 +301,9 @@ static ContainmentResult geom_object_containment_test(vtkSmartPointer<vtkPolyDat
 
 
 // returns false if theee was any error
-static bool compute_contained_in_mapping(
-    const World* world, const GeomObjectInfoVector& counted_objects, ContainmentMap& contained_in_mapping) {
+static bool compute_containement_mapping(
+    const World* world, const GeomObjectInfoVector& counted_objects,
+    ContainmentMap& contains_mapping, ContainmentMap& contained_in_mapping) {
 
   // keep it simple for now, let's just compute 'contained in' relation for each pair of objects
   // can be optimized in the future
@@ -298,11 +318,13 @@ static bool compute_contained_in_mapping(
 
       switch (containment_res) {
         case ContainmentResult::Obj1InObj2:
-          contained_in_mapping[obj1].insert(obj2);
+          contained_in_mapping[counted_objects[obj1]].insert(counted_objects[obj2]);
+          contains_mapping[counted_objects[obj2]].insert(counted_objects[obj1]);
           break;
 
         case ContainmentResult::Obj2InObj1:
-          contained_in_mapping[obj2].insert(obj1);
+          contained_in_mapping[counted_objects[obj2]].insert(counted_objects[obj1]);
+          contains_mapping[counted_objects[obj1]].insert(counted_objects[obj2]);
           break;
 
         case ContainmentResult::Disjoint:
@@ -324,8 +346,8 @@ static bool compute_contained_in_mapping(
             }
             mcell_warn(
                 fmt.c_str(),
-                get_geometry_object(world, counted_objects[obj1]).name.c_str(),
-                get_geometry_object(world, counted_objects[obj2]).name.c_str()
+                counted_objects[obj1].get_geometry_object(world).name.c_str(),
+                counted_objects[obj2].get_geometry_object(world).name.c_str()
             );
             res = false;
           }
@@ -338,6 +360,60 @@ static bool compute_contained_in_mapping(
   }
 
   return res;
+}
+
+
+static counted_volume_id_t get_direct_parent_inside_volume_id(
+    const World* world, const GeomObjectInfo& obj_info, const ContainmentMap& contained_in_mapping) {
+
+  assert(contained_in_mapping.find(obj_info) != contained_in_mapping.end());
+  const uint_set<GeomObjectInfo>& obj_contained_in = contained_in_mapping.find(obj_info)->second;
+
+  // need to find an object that is a direct parent
+  //   p in contained_in_mapping(obj)
+  // such that:
+  //  contained_in_mapping(p) == contained_in_mapping(obj) - p
+  //
+  // i.e.: p is the direct intemediate between our object and all other objects obj is contained in
+  //
+  for (const GeomObjectInfo& parent: obj_contained_in) {
+
+    // copy 'parents' and remove 'p'
+    uint_set<GeomObjectInfo> obj_contained_in_less_p = obj_contained_in;
+    obj_contained_in_less_p.erase_existing(parent);
+
+    assert(contained_in_mapping.find(parent) != contained_in_mapping.end());
+    const uint_set<GeomObjectInfo>& p_contained_in = contained_in_mapping.find(parent)->second;
+
+    if (obj_contained_in_less_p == p_contained_in) {
+      return parent.get_geometry_object(world).counted_volume_id_inside;
+    }
+  }
+
+  // nothing found - is outside of all objects
+  assert(obj_contained_in.empty());
+  return COUNTED_VOLUME_ID_OUTSIDE_ALL;
+}
+
+
+static void define_counted_volumes(
+    World* world, GeomObjectInfoVector& counted_objects,
+    const ContainmentMap& contained_in_mapping) {
+
+  // 1) set inside volume ids
+  for(GeomObjectInfo& info: counted_objects) {
+    info.get_geometry_object_noconst(world).counted_volume_id_inside = world->get_next_counted_volume_id();
+  }
+
+  // 2) and set outside ids
+  for (auto it_curr: contained_in_mapping) {
+    if (it_curr.second.empty()) {
+      counted_volume_id_t outside_id = get_direct_parent_inside_volume_id(world, it_curr.first, contained_in_mapping);
+
+      GeometryObject& obj = it_curr.first.get_geometry_object_noconst(world);
+      obj.counted_volume_id_outside = outside_id;
+    }
+  }
 }
 
 
@@ -360,18 +436,20 @@ bool initialize_counted_volumes(World* world) {
   convert_objects_to_clean_polydata(world, counted_objects);
 
   // holds mapping that tells in which geometry objects is a given object contained
-  ContainmentMap geom_objects_contained_in_mapping;
+  ContainmentMap contained_in_mapping;
 
-  // compute contained in mapping
-  bool ok = compute_contained_in_mapping(world, counted_objects, geom_objects_contained_in_mapping);
+  // TODO: remove
+  ContainmentMap contains_mapping;
+
+  // compute 'contains' and 'contained-in' mapping
+  bool ok = compute_containement_mapping(world, counted_objects, contains_mapping, contained_in_mapping);
   if (!ok) {
     return false;
   }
 
-  // define counted volumes
-
-
-  // setup walls
+  // define counted volumes, sets inside and outside volume id for geometry objects
+  uint_set<geometry_object_id_t> already_processed_objects;
+  define_counted_volumes(world, counted_objects, contained_in_mapping);
 
   return true;
 }

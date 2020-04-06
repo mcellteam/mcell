@@ -130,6 +130,12 @@ public:
     return res;
   }
 
+  counted_volume_id_t get_next_counted_volume_id() {
+    counted_volume_id_t res = next_counted_volume_id;
+    next_counted_volume_id++;
+    return res;
+  }
+
   void dump();
 
   // -------------- callback registration --------------
