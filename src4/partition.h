@@ -295,7 +295,7 @@ private:
     // We always have to increase the size of the mapping array - its size is
     // large enough to hold indices for all molecules that were ever created,
     // we will need to reuse ids or compress it later
-    uint32_t next_molecule_array_index = molecules.size(); // get the index of the molecule we aregoing to store
+    uint32_t next_molecule_array_index = molecules.size(); // get the index of the molecule we are going to store
     molecule_id_to_index_mapping.push_back(next_molecule_array_index);
     assert(
         molecule_id_to_index_mapping.size() == next_molecule_id
@@ -313,6 +313,13 @@ private:
     return new_m;
   }
 
+  // returns counted volume id for this position,
+  // member function of Partition because some caching might be useful in the future
+  counted_volume_id_t determine_counted_volume_id(const Vec3& pos);
+
+  // auxiliary method for determine_counted_volume_id
+  counted_volume_id_t find_smallest_counted_volume_recursively(const GeometryObject& obj, const Vec3& pos);
+
 public:
   // any molecule flags are set by caller after the molecule is created by this method
   Molecule& add_volume_molecule(const Molecule& vm_copy) {
@@ -321,6 +328,9 @@ public:
 
     new_vm.v.subpart_index = get_subpart_index(vm_copy.v.pos);
     change_reactants_map(new_vm, new_vm.v.subpart_index, true, false);
+
+    // compute counted volume id for a new molecule
+    new_vm.v.counted_volume_id = determine_counted_volume_id(new_vm.v.pos);
 
     return new_vm;
   }
@@ -568,6 +578,16 @@ public:
     return walls_using_vertex_mapping[vertex_index];
   }
 
+  void set_parent_and_child_of_directly_contained_counted_volume(
+      const geometry_object_id_t parent_id,
+      const geometry_object_id_t child_id) {
+    // both must be counted volumes
+    assert(get_geometry_object(parent_id).is_counted_volume);
+    assert(get_geometry_object(child_id).is_counted_volume);
+    directly_contained_counted_volume_objects[parent_id].insert(child_id);
+  }
+
+
   // ---------------------------------- dynamic vertices ----------------------------------
   // add information about a change of a specific vertex
   // order of calls is important (at least for now)
@@ -637,6 +657,10 @@ private:
 
   // indexed by subpartition index, contains a set of wall indices (wall_index_t)
   std::vector< uint_set<wall_index_t> > walls_per_subpart;
+
+  // key is object id and its values are objects ids directly contained in it,
+  // defines a containment tree this way
+  CountedVolumesMap directly_contained_counted_volume_objects;
 
   // ---------------------------------- dynamic vertices ----------------------------------
 private:

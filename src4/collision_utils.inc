@@ -1213,7 +1213,31 @@ static bool is_point_inside_region(const Partition& p, const Vec3 pos, const Reg
   for (const auto& wall_edges_pair: reg.walls_and_edges) {
 
     // check collision with each wall
+    // TODO LATER: optimize with subparts
     const Wall& w = p.get_wall(wall_edges_pair.first);
+    bool collides = CollisionUtil::collide_wall_test(p, pos, w, move);
+    if (collides) {
+      num_hits++;
+    }
+  }
+
+  // odd number of hits means that we are inside
+  return num_hits % 2 == 1;
+}
+
+
+static bool is_point_inside_object(const Partition& p, const Vec3 pos, const GeometryObject& obj) {
+
+  // cast ray along the whole partition
+  Vec3 move(0, 0, p.config.partition_edge_length);
+
+  // and count intersects
+  int num_hits = 0;
+  for (wall_index_t wi: obj.wall_indices) {
+
+    // check collision with each wall
+    // TODO LATER: optimize with subparts
+    const Wall& w = p.get_wall(wi);
     bool collides = CollisionUtil::collide_wall_test(p, pos, w, move);
     if (collides) {
       num_hits++;

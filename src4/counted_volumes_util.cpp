@@ -87,8 +87,6 @@ typedef vector<GeomObjectInfo> GeomObjectInfoVector;
 // containment mapping of counted geometry objects
 typedef std::map<GeomObjectInfo, uint_set<GeomObjectInfo>> ContainmentMap;
 
-typedef std::map<counted_volume_id_t, uint_set<counted_volume_id_t>> CountedVolumesMap;
-
 enum class ContainmentResult {
   Error,
   Disjoint,
@@ -363,18 +361,19 @@ static bool compute_containement_mapping(
 }
 
 
-static counted_volume_id_t get_direct_parent_inside_volume_id(
+static const GeometryObject* get_direct_parent(
     const World* world, const GeomObjectInfo& obj_info, const ContainmentMap& contained_in_mapping) {
 
-  assert(contained_in_mapping.find(obj_info) != contained_in_mapping.end());
-  const uint_set<GeomObjectInfo>& obj_contained_in = contained_in_mapping.find(obj_info)->second;
+  auto it = contained_in_mapping.find(obj_info);
+  assert(it != contained_in_mapping.end());
+  const uint_set<GeomObjectInfo>& obj_contained_in = it->second;
 
   // need to find an object that is a direct parent
   //   p in contained_in_mapping(obj)
   // such that:
   //  contained_in_mapping(p) == contained_in_mapping(obj) - p
   //
-  // i.e.: p is the direct intemediate between our object and all other objects obj is contained in
+  // i.e.: p is the direct intermediate between our object and all other objects obj is contained in
   //
   for (const GeomObjectInfo& parent: obj_contained_in) {
 
@@ -382,17 +381,18 @@ static counted_volume_id_t get_direct_parent_inside_volume_id(
     uint_set<GeomObjectInfo> obj_contained_in_less_p = obj_contained_in;
     obj_contained_in_less_p.erase_existing(parent);
 
-    assert(contained_in_mapping.find(parent) != contained_in_mapping.end());
-    const uint_set<GeomObjectInfo>& p_contained_in = contained_in_mapping.find(parent)->second;
+    auto it = contained_in_mapping.find(parent);
+    assert(it != contained_in_mapping.end());
+    const uint_set<GeomObjectInfo>& p_contained_in = it->second;
 
     if (obj_contained_in_less_p == p_contained_in) {
-      return parent.get_geometry_object(world).counted_volume_id_inside;
+      return &parent.get_geometry_object(world);
     }
   }
 
   // nothing found - is outside of all objects
   assert(obj_contained_in.empty());
-  return COUNTED_VOLUME_ID_OUTSIDE_ALL;
+  return nullptr;
 }
 
 
@@ -408,10 +408,29 @@ static void define_counted_volumes(
   // 2) and set outside ids
   for (auto it_curr: contained_in_mapping) {
     if (it_curr.second.empty()) {
-      counted_volume_id_t outside_id = get_direct_parent_inside_volume_id(world, it_curr.first, contained_in_mapping);
 
-      GeometryObject& obj = it_curr.first.get_geometry_object_noconst(world);
-      obj.counted_volume_id_outside = outside_id;
+      const GeomObjectInfo& child_info = it_curr.first;
+
+      const GeometryObject* direct_parent_obj = get_direct_parent(world, child_info, contained_in_mapping);
+
+      // set outside ID for our object
+      counted_volume_id_t outside_id;
+      if (direct_parent_obj != nullptr) {
+        outside_id = direct_parent_obj->counted_volume_id_inside;
+      }
+      else {
+        outside_id = COUNTED_VOLUME_ID_OUTSIDE_ALL;
+      }
+
+      GeometryObject& child_obj = child_info.get_geometry_object_noconst(world);
+      child_obj.counted_volume_id_outside = outside_id;
+
+      // and also create mapping for partition so that it knows about the hierarchy of objects
+      if (direct_parent_obj != nullptr) {
+        Partition& p = world->get_partition(child_info.partition_id);
+
+        // direct parent -> { child1, ... }
+        p.set_parent_and_child_of_directly_contained_counted_volume(direct_parent_obj->id, child_obj.id);      }
     }
   }
 }

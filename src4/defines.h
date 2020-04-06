@@ -242,6 +242,8 @@ typedef std::pair<partition_id_t, vertex_index_t> PartitionVertexIndexPair;
 
 typedef std::pair<float_t, PartitionWallIndexPair> CummAreaPWallIndexPair;
 
+typedef std::map<counted_volume_id_t, uint_set<counted_volume_id_t>> CountedVolumesMap;
+
 const int BASE_CONTAINER_ALLOC = 16;
 
 #ifndef INDEXER_WA

@@ -183,4 +183,39 @@ void Partition::dump() {
   }
 }
 
+
+counted_volume_id_t Partition::find_smallest_counted_volume_recursively(const GeometryObject& obj, const Vec3& pos) {
+
+  assert(obj.is_counted_volume);
+  auto it = directly_contained_counted_volume_objects.find(obj.id);
+  assert(it != directly_contained_counted_volume_objects.end());
+
+  const uint_set<geometry_object_id_t>& subobject_ids = it->second;
+
+  for (geometry_object_id_t subobj_id: subobject_ids) {
+    const GeometryObject& subobj = get_geometry_object(subobj_id);
+    if (CollisionUtil::is_point_inside_object(*this, pos, subobj)) {
+      // the hierarchy must be a tree, so we directly find the path to the leaf of the object 'containment' tree
+      return find_smallest_counted_volume_recursively(subobj, pos);
+    }
+  }
+
+  return obj.counted_volume_id_inside;
+}
+
+
+counted_volume_id_t Partition::determine_counted_volume_id(const Vec3& pos) {
+  // find the first object we are in
+  for (const GeometryObject& obj: geometry_objects) {
+    if (CollisionUtil::is_point_inside_object(*this, pos, obj)) {
+      // follow the containment graph to determine the smallest counted volume
+      return find_smallest_counted_volume_recursively(obj, pos);
+    }
+  }
+
+  // nothing found
+  return COUNTED_VOLUME_ID_OUTSIDE_ALL;
+}
+
+
 } // namespace mcell

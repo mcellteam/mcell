@@ -102,6 +102,7 @@ public:
     : id(id_), species_id(species_id_), flags(MOLECULE_FLAG_VOL), unimol_rx_time(TIME_INVALID), unimol_rx(nullptr) {
     v.pos = pos_;
     v.subpart_index = SUBPART_INDEX_INVALID;
+    v.counted_volume_id = COUNTED_VOLUME_ID_INVALID;
   }
 
   // surface molecule
@@ -125,6 +126,7 @@ public:
     if (m.is_vol()) {
       v.pos = m.v.pos;
       v.subpart_index = m.v.subpart_index;
+      v.counted_volume_id = m.v.counted_volume_id;
     }
     else if (m.is_surf()) {
       s.pos = m.s.pos;
@@ -149,7 +151,7 @@ public:
     struct {
       Vec3 pos;
       subpart_index_t subpart_index;
-      counted_volume_id_t volume_id;
+      counted_volume_id_t counted_volume_id;
     } v;
 
     // surface molecule data
