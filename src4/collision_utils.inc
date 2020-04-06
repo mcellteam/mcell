@@ -853,6 +853,7 @@ static bool collide_wall_test(
   Vec3 tmp_move = move;
   CollisionType res;
 #ifndef NDEBUG
+  unused_rng_state.randcnt = 0;
   uint orig_randcnt = unused_rng_state.randcnt;
 #endif
   res = CollisionUtil::collide_wall(
@@ -863,6 +864,25 @@ static bool collide_wall_test(
   assert(orig_randcnt == unused_rng_state.randcnt && "collide_wall_test should not trigger usage of rng");
 #endif
 
+#ifdef DEBUG_COLLISIONS_WALL_EXTRA
+  Vec3 face_vert[VERTICES_IN_TRIANGLE];
+  face_vert[0] = p.get_geometry_vertex(face.vertex_indices[0]);
+  face_vert[1] = p.get_geometry_vertex(face.vertex_indices[1]);
+  face_vert[2] = p.get_geometry_vertex(face.vertex_indices[2]);
+
+  cout <<
+      "Testing wall collision: pos: " << pos << ", move: " << move <<
+      ", v1:" << face_vert[0] << ", v2:" << face_vert[0] << ", v3:" << face_vert[0] << "\n  result: " ;
+
+  switch (res) {
+    case CollisionType::WALL_MISS: cout << "MISS"; break;
+    case CollisionType::WALL_FRONT: cout << "FRONT"; break;
+    case CollisionType::WALL_BACK: cout << "BACK"; break;
+    case CollisionType::WALL_REDO: cout << "REDO"; break;
+    default: cout << "UNEXPECTED"; break;
+  }
+  cout << "\n";
+#endif
 
   switch (res) {
     case CollisionType::WALL_MISS:
@@ -1206,7 +1226,7 @@ static bool collide_moving_line_and_static_line_test(
 static bool is_point_inside_region(const Partition& p, const Vec3& pos, const Region& reg) {
 
   // cast ray along the whole partition
-  Vec3 move(0, 0, p.config.partition_edge_length);
+  Vec3 move(EPS, EPS, p.config.partition_edge_length);
 
   // and count intersects
   int num_hits = 0;
@@ -1229,7 +1249,10 @@ static bool is_point_inside_region(const Partition& p, const Vec3& pos, const Re
 static bool is_point_inside_object(const Partition& p, const Vec3& pos, const GeometryObject& obj) {
 
   // cast ray along the whole partition
-  Vec3 move(0, 0, p.config.partition_edge_length);
+  // note: the almost non-zero value is needed so that we won't miss an edge of an object
+  // TODO LATER: this will need to be fixed, see test mdl/0701 and set 0 instead of these EPS's
+  //  -> no wall hit for molecule at (0, 0, 0) is detected although it is in a box
+  Vec3 move(EPS, EPS, p.config.partition_edge_length);
 
   // and count intersects
   int num_hits = 0;
@@ -1242,7 +1265,7 @@ static bool is_point_inside_object(const Partition& p, const Vec3& pos, const Ge
     if (collides) {
       num_hits++;
     }
-  }
+ }
 
   // odd number of hits means that we are inside
   return num_hits % 2 == 1;
