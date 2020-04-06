@@ -400,12 +400,9 @@ static void define_counted_volumes(
     World* world, GeomObjectInfoVector& counted_objects,
     const ContainmentMap& contained_in_mapping) {
 
-  // 1) set inside volume ids
-  for(GeomObjectInfo& info: counted_objects) {
-    info.get_geometry_object_noconst(world).counted_volume_id_inside = world->get_next_counted_volume_id();
-  }
+  // 1) inside volume id is identical to geom object id
 
-  // 2) and set outside ids
+  // 2) set outside ids
   for (auto it_curr: contained_in_mapping) {
     if (it_curr.second.empty()) {
 
@@ -414,9 +411,9 @@ static void define_counted_volumes(
       const GeometryObject* direct_parent_obj = get_direct_parent(world, child_info, contained_in_mapping);
 
       // set outside ID for our object
-      counted_volume_id_t outside_id;
+      geometry_object_id_t outside_id;
       if (direct_parent_obj != nullptr) {
-        outside_id = direct_parent_obj->counted_volume_id_inside;
+        outside_id = direct_parent_obj->id;
       }
       else {
         outside_id = COUNTED_VOLUME_ID_OUTSIDE_ALL;

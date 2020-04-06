@@ -184,7 +184,7 @@ void Partition::dump() {
 }
 
 
-counted_volume_id_t Partition::find_smallest_counted_volume_recursively(const GeometryObject& obj, const Vec3& pos) {
+geometry_object_id_t Partition::find_smallest_counted_volume_recursively(const GeometryObject& obj, const Vec3& pos) {
 
   assert(obj.is_counted_volume);
   auto it = directly_contained_counted_volume_objects.find(obj.id);
@@ -200,11 +200,11 @@ counted_volume_id_t Partition::find_smallest_counted_volume_recursively(const Ge
     }
   }
 
-  return obj.counted_volume_id_inside;
+  return obj.id;
 }
 
 
-counted_volume_id_t Partition::determine_counted_volume_id(const Vec3& pos) {
+geometry_object_id_t Partition::determine_counted_volume_id(const Vec3& pos) {
   // find the first object we are in
   for (const GeometryObject& obj: geometry_objects) {
     if (CollisionUtil::is_point_inside_object(*this, pos, obj)) {

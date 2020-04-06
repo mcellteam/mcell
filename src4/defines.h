@@ -230,11 +230,8 @@ const geometry_object_index_t GEOMETRY_OBJECT_INDEX_INVALID = INDEX_INVALID;
 typedef uint geometry_object_id_t; // world-unique unique geometry object id
 const geometry_object_id_t GEOMETRY_OBJECT_ID_INVALID = ID_INVALID;
 
-typedef uint counted_volume_id_t; // ids of volumes, for now only those that are counted
-const counted_volume_id_t COUNTED_VOLUME_ID_INVALID = ID_INVALID;
-
 // volume outside of all objects, i.e. WORLD-all objects
-const counted_volume_id_t COUNTED_VOLUME_ID_OUTSIDE_ALL = ID_INVALID2;
+const geometry_object_id_t COUNTED_VOLUME_ID_OUTSIDE_ALL = ID_INVALID2;
 
 typedef std::pair<partition_id_t, wall_index_t> PartitionWallIndexPair;
 typedef std::pair<partition_id_t, region_index_t> PartitionRegionIndexPair;
@@ -242,7 +239,7 @@ typedef std::pair<partition_id_t, vertex_index_t> PartitionVertexIndexPair;
 
 typedef std::pair<float_t, PartitionWallIndexPair> CummAreaPWallIndexPair;
 
-typedef std::map<counted_volume_id_t, uint_set<counted_volume_id_t>> CountedVolumesMap;
+typedef std::map<geometry_object_id_t, uint_set<geometry_object_id_t>> CountedVolumesMap;
 
 const int BASE_CONTAINER_ALLOC = 16;
 

@@ -130,12 +130,6 @@ public:
     return res;
   }
 
-  counted_volume_id_t get_next_counted_volume_id() {
-    counted_volume_id_t res = next_counted_volume_id;
-    next_counted_volume_id++;
-    return res;
-  }
-
   void dump();
 
   // -------------- callback registration --------------
@@ -196,7 +190,6 @@ private:
   // global ID counters
   wall_id_t next_wall_id;
   geometry_object_id_t next_geometry_object_id;
-  counted_volume_id_t next_counted_volume_id;
 
   // used by run_n_iterations to know whether the simulation was
   // already initialized

@@ -43,7 +43,6 @@ World::World()
     seed_seq(0),
     next_wall_id(0),
     next_geometry_object_id(0),
-    next_counted_volume_id(0),
     simulation_initialized(false),
     simulation_ended(false),
     previous_progress_report_time({0, 0}),

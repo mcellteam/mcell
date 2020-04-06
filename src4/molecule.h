@@ -102,7 +102,7 @@ public:
     : id(id_), species_id(species_id_), flags(MOLECULE_FLAG_VOL), unimol_rx_time(TIME_INVALID), unimol_rx(nullptr) {
     v.pos = pos_;
     v.subpart_index = SUBPART_INDEX_INVALID;
-    v.counted_volume_id = COUNTED_VOLUME_ID_INVALID;
+    v.counted_volume_id = GEOMETRY_OBJECT_ID_INVALID;
   }
 
   // surface molecule
@@ -151,7 +151,7 @@ public:
     struct {
       Vec3 pos;
       subpart_index_t subpart_index;
-      counted_volume_id_t counted_volume_id;
+      geometry_object_id_t counted_volume_id;
     } v;
 
     // surface molecule data

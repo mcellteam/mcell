@@ -45,7 +45,7 @@ public:
   GeometryObject()
     : id(GEOMETRY_OBJECT_ID_INVALID), index(GEOMETRY_OBJECT_INDEX_INVALID),
       is_counted_volume(false),
-      counted_volume_id_outside(COUNTED_VOLUME_ID_INVALID), counted_volume_id_inside(COUNTED_VOLUME_ID_INVALID) {
+      counted_volume_id_outside(GEOMETRY_OBJECT_ID_INVALID) {
   }
 
   geometry_object_id_t id; // world-unique geometry object ID
@@ -60,9 +60,8 @@ public:
   // for now, intersections of counted objects are not allowed,
   // so we do not need to create new objects for volumes
   bool is_counted_volume;
-  counted_volume_id_t counted_volume_id_outside;
-  counted_volume_id_t counted_volume_id_inside;
-
+  // counted_volume_id_inside - same id as this object
+  geometry_object_id_t counted_volume_id_outside;
 
   // p must be the partition that contains this object
   void dump(const Partition& p, const std::string ind) const;

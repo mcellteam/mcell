@@ -315,10 +315,10 @@ private:
 
   // returns counted volume id for this position,
   // member function of Partition because some caching might be useful in the future
-  counted_volume_id_t determine_counted_volume_id(const Vec3& pos);
+  geometry_object_id_t determine_counted_volume_id(const Vec3& pos);
 
   // auxiliary method for determine_counted_volume_id
-  counted_volume_id_t find_smallest_counted_volume_recursively(const GeometryObject& obj, const Vec3& pos);
+  geometry_object_id_t find_smallest_counted_volume_recursively(const GeometryObject& obj, const Vec3& pos);
 
 public:
   // any molecule flags are set by caller after the molecule is created by this method
