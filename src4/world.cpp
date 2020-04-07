@@ -242,12 +242,12 @@ void World::end_simulation() {
 
   cout << "Iteration " << stats.get_current_iteration() << ", simulation finished successfully\n";
 
-  //stats.dump();
+  stats.dump();
 
   // flush and close count buffers
-  /*for (CountBuffer& b: count_buffers) {
+  for (CountBuffer& b: count_buffers) {
     b.flush_and_close();
-  }*/
+  }
 
   // report final time
   rusage run_time;

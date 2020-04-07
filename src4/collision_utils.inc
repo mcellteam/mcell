@@ -1254,6 +1254,8 @@ static bool is_point_inside_object(const Partition& p, const Vec3& pos, const Ge
   //  -> no wall hit for molecule at (0, 0, 0) is detected although it is in a box
   Vec3 move(EPS, EPS, p.config.partition_edge_length);
 
+//  Vec3 pos(0, 0, 0);
+
   // and count intersects
   int num_hits = 0;
   for (wall_index_t wi: obj.wall_indices) {

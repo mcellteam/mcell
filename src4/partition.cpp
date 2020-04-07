@@ -188,7 +188,10 @@ geometry_object_id_t Partition::find_smallest_counted_volume_recursively(const G
 
   assert(obj.is_counted_volume);
   auto it = directly_contained_counted_volume_objects.find(obj.id);
-  assert(it != directly_contained_counted_volume_objects.end());
+  if (it != directly_contained_counted_volume_objects.end()) {
+    // there are no cntained objects
+    return obj.id;
+  }
 
   const uint_set<geometry_object_id_t>& subobject_ids = it->second;
 
@@ -200,6 +203,7 @@ geometry_object_id_t Partition::find_smallest_counted_volume_recursively(const G
     }
   }
 
+  // none of the contained objects contains point at 'pos'
   return obj.id;
 }
 

@@ -80,7 +80,8 @@ void MolCountEvent::step() {
         continue;
       }
 
-      const uint_set<geometry_object_id_t>& enclosing_volumes =
+      // might be nullptr if not found
+      const uint_set<geometry_object_id_t>* enclosing_volumes =
           p.get_enclosing_counted_volumes(m.v.counted_volume_id);
 
       // for each counting info
@@ -94,7 +95,7 @@ void MolCountEvent::step() {
         else if (info.type == CountType::EnclosedInObject) {
           // is the molecule inside of the object that we are checking?
           if (m.v.counted_volume_id == info.geometry_object_id ||
-              enclosing_volumes.count(info.geometry_object_id)) {
+              (enclosing_volumes != nullptr && enclosing_volumes->count(info.geometry_object_id))) {
 
             count_items[i].inc();
           }
