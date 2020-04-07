@@ -167,8 +167,35 @@ void Partition::apply_vertex_moves() {
 }
 
 
+static void dump_counted_volumes_map(const std::string name, const CountedVolumesMap& map) {
+  cout << name << ": ";
+  if (map.empty()) {
+    cout << "empty\n";
+  }
+  else {
+    cout << "\n";
+  }
+
+  for (auto it: map) {
+    cout << "  " << it.first << " -> {";
+    it.second.dump();
+    cout << "}\n";
+  }
+}
+
 void Partition::dump() {
   GeometryObject::dump_array(*this, geometry_objects);
+
+  // dump
+  dump_counted_volumes_map(
+      "directly_contained_counted_volume_objects",
+      directly_contained_counted_volume_objects
+  );
+  dump_counted_volumes_map(
+      "enclosing_counted_volume_objects",
+      enclosing_counted_volume_objects
+  );
+
   Region::dump_array(regions);
 
   for (size_t i = 0; i < walls_per_subpart.size(); i++) {
@@ -188,14 +215,15 @@ geometry_object_id_t Partition::find_smallest_counted_volume_recursively(const G
 
   assert(obj.is_counted_volume);
   auto it = directly_contained_counted_volume_objects.find(obj.id);
-  if (it != directly_contained_counted_volume_objects.end()) {
-    // there are no cntained objects
+  if (it == directly_contained_counted_volume_objects.end()) {
+    // there are no contained objects
     return obj.id;
   }
 
   const uint_set<geometry_object_id_t>& subobject_ids = it->second;
 
   for (geometry_object_id_t subobj_id: subobject_ids) {
+    assert(subobj_id != obj.id);
     const GeometryObject& subobj = get_geometry_object(subobj_id);
     if (CollisionUtil::is_point_inside_object(*this, pos, subobj)) {
       // the hierarchy must be a tree, so we directly find the path to the leaf of the object 'containment' tree

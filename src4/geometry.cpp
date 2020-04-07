@@ -269,8 +269,8 @@ void Edge::debug_check_values_are_uptodate(const Partition& p) {
 }
 
 
-void Edge::dump() const {
-  cout <<
+void Edge::dump(const std::string ind) const {
+  cout << ind <<
       "Edge: translate: " << translate <<
       ", cos_theta: " << cos_theta <<
       ", sin_theta: " << sin_theta <<
@@ -361,7 +361,7 @@ void Wall::dump(const Partition& p, const std::string ind, const bool for_diff) 
 
     for (uint i = 0; i < EDGES_IN_TRIANGLE; i++) {
       cout << ind << "edges:\n";
-      edges[i].dump();
+      edges[i].dump("        ");
     }
 
     cout << ind;

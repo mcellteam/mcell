@@ -183,8 +183,8 @@ static bool is_noncolliding_obj1_fully_contained_in_obj2(vtkSmartPointer<vtkPoly
   // is the object contained?
   auto select_enclosed_points = vtkSmartPointer<vtkSelectEnclosedPoints>::New();
 
-  select_enclosed_points->SetSurfaceData(poly1);
-  select_enclosed_points->SetInputData(poly2);
+  select_enclosed_points->SetSurfaceData(poly2); // poly 2 is supposed to be the larger object
+  select_enclosed_points->SetInputData(poly1); // and we are trying whether poly1 fits into that
   select_enclosed_points->Update();
 
   vtkDataArray* inside_array = vtkDataArray::SafeDownCast(
@@ -301,7 +301,7 @@ static ContainmentResult geom_object_containment_test(vtkSmartPointer<vtkPolyDat
 // returns false if theee was any error
 static bool compute_containement_mapping(
     const World* world, const GeomObjectInfoVector& counted_objects,
-    ContainmentMap& contains_mapping, ContainmentMap& contained_in_mapping) {
+    ContainmentMap& contained_in_mapping) {
 
   // keep it simple for now, let's just compute 'contained in' relation for each pair of objects
   // can be optimized in the future
@@ -317,12 +317,10 @@ static bool compute_containement_mapping(
       switch (containment_res) {
         case ContainmentResult::Obj1InObj2:
           contained_in_mapping[counted_objects[obj1]].insert(counted_objects[obj2]);
-          contains_mapping[counted_objects[obj2]].insert(counted_objects[obj1]);
           break;
 
         case ContainmentResult::Obj2InObj1:
           contained_in_mapping[counted_objects[obj2]].insert(counted_objects[obj1]);
-          contains_mapping[counted_objects[obj1]].insert(counted_objects[obj2]);
           break;
 
         case ContainmentResult::Disjoint:
@@ -382,10 +380,14 @@ static const GeometryObject* get_direct_parent(
     obj_contained_in_less_p.erase_existing(parent);
 
     auto it = contained_in_mapping.find(parent);
-    assert(it != contained_in_mapping.end());
+    if (it == contained_in_mapping.end()) {
+      // this object has no parent so it must be the direct parent
+      return &parent.get_geometry_object(world);
+    }
     const uint_set<GeomObjectInfo>& p_contained_in = it->second;
 
     if (obj_contained_in_less_p == p_contained_in) {
+      // this is the closest parent
       return &parent.get_geometry_object(world);
     }
   }
@@ -404,7 +406,7 @@ static void define_counted_volumes(
 
   // 2) set outside ids
   for (auto it_curr: contained_in_mapping) {
-    if (it_curr.second.empty()) {
+    if (!it_curr.second.empty()) {
 
       const GeomObjectInfo& child_info = it_curr.first;
 
@@ -468,11 +470,8 @@ bool initialize_counted_volumes(World* world) {
   // holds mapping that tells in which geometry objects is a given object contained
   ContainmentMap contained_in_mapping;
 
-  // TODO: remove
-  ContainmentMap contains_mapping;
-
   // compute 'contains' and 'contained-in' mapping
-  bool ok = compute_containement_mapping(world, counted_objects, contains_mapping, contained_in_mapping);
+  bool ok = compute_containement_mapping(world, counted_objects, contained_in_mapping);
   if (!ok) {
     return false;
   }

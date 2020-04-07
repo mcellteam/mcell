@@ -124,7 +124,7 @@ public:
 
   void reinit_edge_constants(const Partition& p);
 
-  void dump() const;
+  void dump(const std::string ind = "") const;
 
   void debug_check_values_are_uptodate(const Partition& p);
 
