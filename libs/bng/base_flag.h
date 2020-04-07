@@ -20,7 +20,9 @@ enum species_cplx_mol_flag_t {
 
   SPECIES_FLAG_CAN_VOLVOL = 0x10, // can vol vol react? (unused for now)
   SPECIES_FLAG_CAN_VOLSURF = 0x20, // can vol-surf react
+  SPECIES_FLAG_CAN_VOLWALL = 0x40, // can vol-surface react
   SPECIES_FLAG_CAN_SURFSURF = 0x80, // can surf-surf react
+  //SPECIES_FLAG_CAN_SURFWALL = 0x100, // can surf-surface react
   SPECIES_FLAG_CANT_INITIATE = 0x400, // must not be set, not sure what to do with this yet (at least for some cases)
   SPECIES_FLAG_COUNT_ENCLOSED = 0x8000, // this species is marked to be counted inside of a volume
   SPECIES_FLAG_CAN_SURFSURFSURF = 0x20000, // 0x20000 - not supported - TODO LATER: remove

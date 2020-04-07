@@ -304,7 +304,6 @@ void DiffuseReactEvent::diffuse_vol_molecule(
 
   //float_t updated_remaining_time_step = remaining_time_step; // == t_steps
 
-  // ????
   float_t elapsed_molecule_time = diffusion_start_time; // == vm->t
 
   do {
@@ -394,6 +393,21 @@ void DiffuseReactEvent::diffuse_vol_molecule(
             return;
           }
         }
+
+        // check possible reaction with walls
+        if (species.has_flag(SPECIES_FLAG_CAN_VOLWALL)) {
+          WallRxnResult collide_res = collide_and_react_with_walls(p, collision);
+
+          if (collide_res == WallRxnResult::Transparent) {
+            // update molecules' counted volume, time and displacement and continue
+            CollisionUtil::cross_transparent_wall(
+                p, collision, steps, displacement,
+                m, remaining_displacement, t_steps
+            );
+            continue;
+          }
+        }
+
 
         if (!was_defunct) {
           elapsed_molecule_time += t_steps * collision.time;
@@ -733,6 +747,53 @@ int DiffuseReactEvent::collide_and_react_with_surf_mol(
     return -1;
   }
 
+}
+
+/******************************************************************************
+ *
+ * check_collisions_with_walls is a helper function used in diffuse_3D to handle
+ * collision of a diffusing molecule with a wall
+ *
+ * Return values:
+ *
+ * -1 : nothing happened - continue on with next smash targets
+ *  0 : reaction happened and we still exist but are done with the current smash
+ *      target
+ *  1 : reaction happened and we are destroyed
+ *
+ ******************************************************************************/
+WallRxnResult DiffuseReactEvent::collide_and_react_with_walls(
+    Partition& p,
+    const Collision& collision
+) {
+  Molecule& diffused_molecule = p.get_m(collision.diffused_molecule_id); // m
+  assert(diffused_molecule.is_vol());
+
+  Wall& wall = p.get_wall(collision.colliding_wall_index);
+
+  RxnClassesVector matching_rxn_classes;
+  RxUtil::trigger_intersect(p, diffused_molecule, wall, matching_rxn_classes);
+  if (matching_rxn_classes.empty()) {
+    assert(false && "This should not happen because we are checking flags.");
+    return WallRxnResult::Invalid;
+  }
+
+  const BNG::RxnClass* transp_rxn_class = nullptr;
+  for (const BNG::RxnClass* rxn: matching_rxn_classes) {
+    if (rxn->is_transparent()) {
+      transp_rxn_class = rxn;
+      break;
+    }
+  }
+
+  if (transp_rxn_class != nullptr) {
+    // we are crossing this wall
+    return WallRxnResult::Transparent;
+  }
+
+  assert(false && "Other that vol - transp wall rxns are not supported yet");
+
+  return WallRxnResult::Invalid;
 }
 
 // ---------------------------------- surface diffusion ----------------------------------

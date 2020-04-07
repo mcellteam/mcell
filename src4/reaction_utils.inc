@@ -46,6 +46,7 @@ using namespace std;
 
 namespace MCell {
 
+// FIXME: rename to RxnUtil
 namespace RxUtil {
 
 // ---------------------------------- bimolecular reactions ----------------------------------
@@ -170,7 +171,26 @@ static void find_surface_mol_reactions_with_surf_classes_for_rxn_class_map(
 }
 
 
-static void find_surface_mol_reactions_with_surf_classes(
+/*************************************************************************
+ *
+ * find all volume reactions for any volume molecule with orientation
+ * orientA with a surface class triggered via the ALL_MOLECULES and
+ * ALL_VOLUME_MOLECULE keywords
+ *
+ * in: orientation of surface molecule
+ *     surface class species to test
+ *     number of matching reactions before the function call
+ *     flag signalling the presence of transparent region border
+ *     flag signalling the presence of a reflective region border
+ *     flag signalling the presence of a absorbing region border
+ *     array holding matching reactions
+ *
+ * out: returns number of matching reactions
+ *      adds matching reactions to matching_rxns array
+ *
+ *************************************************************************/
+// TODO LATER: practically the same as find_surface_mol_reactions_with_surf_classes, but let's wait for full vol/surface rxn support
+static void find_volume_mol_reactions_with_surf_classes(
     Partition& p,
     const Molecule& reacA,
     const Wall& w,
@@ -180,14 +200,14 @@ static void find_surface_mol_reactions_with_surf_classes(
     BNG::RxnClassesVector& matching_rxns
 ) {
 
-  assert(reacA.is_surf());
+  assert(reacA.is_vol());
 
   // for all reactions applicable to reacA and and wall
   const BNG::SpeciesRxnClassesMap* species_rxns = p.get_all_rxns().get_bimol_rxns_for_reactant(reacA.species_id);
   const BNG::SpeciesRxnClassesMap* all_molecules_rxns = p.get_all_rxns().get_bimol_rxns_for_reactant(p.get_all_species().get_all_molecules_species_id());
-  const BNG::SpeciesRxnClassesMap* all_vol_surf_rxns = p.get_all_rxns().get_bimol_rxns_for_reactant(p.get_all_species().get_all_surface_molecules_species_id());
+  const BNG::SpeciesRxnClassesMap* all_vol_rxns = p.get_all_rxns().get_bimol_rxns_for_reactant(p.get_all_species().get_all_volume_molecules_species_id());
 
-  if (species_rxns == nullptr && all_molecules_rxns == nullptr && all_vol_surf_rxns == nullptr) {
+  if (species_rxns == nullptr && all_molecules_rxns == nullptr && all_vol_rxns == nullptr) {
     // no reactions at all for reacA
     return;
   }
@@ -215,14 +235,88 @@ static void find_surface_mol_reactions_with_surf_classes(
       );
     }
 
-    if (all_vol_surf_rxns != nullptr) {
+    if (all_vol_rxns != nullptr) {
       find_surface_mol_reactions_with_surf_classes_for_rxn_class_map(
           p, reacA, allow_rx_transp, allow_rx_reflec, allow_rx_absorb_reg_border, reg,
-          *all_vol_surf_rxns,
+          *all_vol_rxns,
           matching_rxns
       );
     }
+  }
 }
+
+
+/*************************************************************************
+ *
+ * find all surface reactions for any surface molecule with orientation
+ * orientA on a surface class triggered via the ALL_MOLECULES and
+ * ALL_SURFACE_MOLECULE keywords
+ *
+ * in: orientation of surface molecule
+ *     surface class species to test
+ *     number of matching reactions before the function call
+ *     flag signalling the presence of transparent region border
+ *     flag signalling the presence of a reflective region border
+ *     flag signalling the presence of a absorbing region border
+ *     array holding matching reactions
+ *
+ * out: returns number of matching reactions
+ *      adds matching reactions to matching_rxns array
+ *
+ *************************************************************************/
+static void find_surface_mol_reactions_with_surf_classes(
+    Partition& p,
+    const Molecule& reacA,
+    const Wall& w,
+    const bool allow_rx_transp,
+    const bool allow_rx_reflec,
+    const bool allow_rx_absorb_reg_border,
+    BNG::RxnClassesVector& matching_rxns
+) {
+
+  assert(reacA.is_surf());
+
+  // for all reactions applicable to reacA and and wall
+  const BNG::SpeciesRxnClassesMap* species_rxns = p.get_all_rxns().get_bimol_rxns_for_reactant(reacA.species_id);
+  const BNG::SpeciesRxnClassesMap* all_molecules_rxns = p.get_all_rxns().get_bimol_rxns_for_reactant(p.get_all_species().get_all_molecules_species_id());
+  const BNG::SpeciesRxnClassesMap* all_surf_rxns = p.get_all_rxns().get_bimol_rxns_for_reactant(p.get_all_species().get_all_surface_molecules_species_id());
+
+  if (species_rxns == nullptr && all_molecules_rxns == nullptr && all_surf_rxns == nullptr) {
+    // no reactions at all for reacA
+    return;
+  }
+
+  // for all reactive regions of a wall
+  for (region_index_t region_index: w.regions) {
+    const Region& reg = p.get_region(region_index);
+    if (!reg.is_reactive()) {
+      continue;
+    }
+
+    if (species_rxns != nullptr) {
+      find_surface_mol_reactions_with_surf_classes_for_rxn_class_map(
+          p, reacA, allow_rx_transp, allow_rx_reflec, allow_rx_absorb_reg_border, reg,
+          *species_rxns,
+          matching_rxns
+      );
+    }
+
+    if (all_molecules_rxns != nullptr) {
+      find_surface_mol_reactions_with_surf_classes_for_rxn_class_map(
+          p, reacA, allow_rx_transp, allow_rx_reflec, allow_rx_absorb_reg_border, reg,
+          *all_molecules_rxns,
+          matching_rxns
+      );
+    }
+
+    if (all_surf_rxns != nullptr) {
+      find_surface_mol_reactions_with_surf_classes_for_rxn_class_map(
+          p, reacA, allow_rx_transp, allow_rx_reflec, allow_rx_absorb_reg_border, reg,
+          *all_surf_rxns,
+          matching_rxns
+      );
+    }
+  }
 }
 
 
@@ -264,17 +358,19 @@ static void trigger_intersect(
   for (region_index_t region_index: w.regions) {
 
     if (reacA.is_vol()) {
-      /*num_matching_rxns = find_volume_mol_reactions_with_surf_classes(
-          reaction_hash, rx_hashsize, all_mols, all_volume_mols, orientA,
-          scl->surf_class, num_matching_rxns, allow_rx_transp, allow_rx_reflec,
-          matching_rxns);*/
-      assert(false && "TODO");
+      find_volume_mol_reactions_with_surf_classes(
+          p, reacA, w, allow_rx_transp, allow_rx_reflec,
+          allow_rx_absorb_reg_border, matching_rxns
+      );
     }
     else if (reacA.is_surf()) {
-
       find_surface_mol_reactions_with_surf_classes(
-          p, reacA, w,  allow_rx_transp, allow_rx_reflec,
-          allow_rx_absorb_reg_border, matching_rxns);
+          p, reacA, w, allow_rx_transp, allow_rx_reflec,
+          allow_rx_absorb_reg_border, matching_rxns
+      );
+    }
+    else {
+      assert(false);
     }
   }
 }

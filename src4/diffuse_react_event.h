@@ -42,10 +42,16 @@ class Molecule;
 
 
 enum class RayTraceState {
+  // TODO: use UpperCase
   UNDEFINED,
   HIT_SUBPARTITION,
   RAY_TRACE_HIT_WALL,
   FINISHED
+};
+
+enum class WallRxnResult {
+  Invalid,
+  Transparent
 };
 
 
@@ -190,6 +196,11 @@ private:
       const float_t r_rate_factor,
       const float_t current_molecule_time,
       WallTileIndexPair& where_created_this_iteration
+  );
+
+  WallRxnResult collide_and_react_with_walls(
+      Partition& p,
+      const Collision& collision
   );
 
   // ---------------------------------- surface molecules ----------------------------------

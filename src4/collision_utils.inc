@@ -1273,7 +1273,47 @@ static bool is_point_inside_object(const Partition& p, const Vec3& pos, const Ge
   return num_hits % 2 == 1;
 }
 
-// ---------------------------------- reflections ----------------------------------
+// ---------------------------------- reflections and other wall interactions ----------------------------------
+
+static void cross_transparent_wall(
+    const Partition& p,
+    const Collision& collision,
+    const float_t steps, // full time step this diffusion
+    const Vec3& full_displacement, // whole displacement computed for this molecule
+    Molecule& vm, // moves vm to the reflection point
+    Vec3& remaining_displacement,
+    float_t& remaining_time_step // same as t_steps
+) {
+  const Wall& w = p.get_wall(collision.colliding_wall_index);
+  const GeometryObject& obj = p.get_geometry_object(w.object_id);
+  if (obj.is_counted_volume) {
+    // which direction?
+    if (collision.type == CollisionType::WALL_BACK) {
+      // going outside
+      assert(vm.v.counted_volume_id == obj.id);
+      vm.v.counted_volume_id = obj.counted_volume_id_outside;
+    }
+    else if (collision.type == CollisionType::WALL_FRONT) {
+      // going inside
+      assert(vm.v.counted_volume_id == obj.counted_volume_id_outside);
+      vm.v.counted_volume_id = obj.id;
+    }
+    else {
+      assert(false);
+    }
+  }
+
+  float_t t_cross = collision.time;
+
+  // Update molecule location to the point of wall crossing
+  vm.v.pos = collision.pos;
+
+  // Reduce our remaining available time
+  remaining_time_step = remaining_time_step - t_cross;
+
+  // Set displacement for remainder of step length
+  remaining_displacement = full_displacement * Vec3(steps - t_cross);
+}
 
 /******************************************************************************
  *
@@ -1299,13 +1339,13 @@ static int reflect_or_periodic_bc(
 
   const Wall& w = p.get_wall(collision.colliding_wall_index);
   wall_index_t reflect_w = collision.colliding_wall_index;
-  float_t reflect_t = collision.time;
+  float_t t_reflect = collision.time;
 
   /* Update molecule location to the point of reflection (originally in register_hits) */
   vm.v.pos = collision.pos;
 
   /* Reduce our remaining available time. */
-  remaining_time_step *= (1.0 - reflect_t);
+  remaining_time_step *= (1.0 - t_reflect);
 
   reflected_wall_index = reflect_w;
 
@@ -1313,7 +1353,7 @@ static int reflect_or_periodic_bc(
 
   // Set displacement for remainder of step length
   // No PBCs or non-traditional PBCs
-  displacement = (displacement + Vec3(reflect_factor) * w.normal) * Vec3(1.0 - reflect_t);
+  displacement = (displacement + Vec3(reflect_factor) * w.normal) * Vec3(1.0 - t_reflect);
 
   return 0;
 }

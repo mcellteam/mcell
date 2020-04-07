@@ -51,7 +51,7 @@ const char* const ALL_SURFACE_MOLECULES = "ALL_SURFACE_MOLECULES";
 #define CHECK(cond) do { if(!(cond)) { mcell_log_conv_error("Returning from %s after conversion error.\n", __FUNCTION__); return false; } } while (0)
 
 // checking assumptions
-#define CHECK_PROPERTY(cond) do { if(!(cond)) { mcell_log_conv_error("Expected '%s' is false. (%s - %s:%d)\n", #cond, __FUNCTION__, __FILE__, __LINE__); return false; } } while (0)
+#define CHECK_PROPERTY(cond) do { if(!(cond)) { mcell_log_conv_error("Expected '%s' is false. (%s - %s:%d)\n", #cond, __FUNCTION__, __FILE__, __LINE__); assert(false); return false; } } while (0)
 
 // asserts - things that can never occur and will 'never' be supported
 
@@ -605,6 +605,7 @@ bool MCell3WorldConverter::convert_species(volume* s) {
         || spec->flags == 0
         || spec->flags == (SPECIES_FLAG_COUNT_ENCLOSED | COUNT_CONTENTS)
         || spec->flags == SPECIES_FLAG_CAN_VOLVOL
+        || spec->flags == SPECIES_FLAG_CAN_VOLWALL
         || spec->flags == SPECIES_CPLX_MOL_FLAG_SURF
         || spec->flags == SPECIES_CPLX_MOL_FLAG_REACTIVE_SURFACE
         || spec->flags == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_SURFSURF)
@@ -613,7 +614,7 @@ bool MCell3WorldConverter::convert_species(volume* s) {
         || spec->flags == SPECIES_FLAG_CAN_VOLSURF
       )) {
       mcell_log("Unsupported species flag for species %s: %s\n", new_species.name.c_str(), get_species_flags_string(spec->flags).c_str());
-      CHECK_PROPERTY(false && "Flags listed above are not supported yet");
+      CHECK_PROPERTY(false && "Flags listed in the message above are not supported yet");
     }
     new_species.set_flags(spec->flags);
 
@@ -621,18 +622,20 @@ bool MCell3WorldConverter::convert_species(volume* s) {
     CHECK_PROPERTY(spec->cum_lifetime_seconds == 0);
 
     if ((spec->flags & IS_SURFACE) != 0) {
-      CHECK_PROPERTY(spec->refl_mols != nullptr);
-      CHECK_PROPERTY(spec->refl_mols->next == nullptr); // just one type for now
+      if (spec->refl_mols != nullptr) {
+        // just one type for now
+        CHECK_PROPERTY(spec->refl_mols == nullptr || spec->refl_mols->next == nullptr);
 
-      // reflective surface, seems that this information is transformed into reactions, so we do no need to store anything else
-      CHECK_PROPERTY(spec->refl_mols->orient == ORIENTATION_NONE);
+        // reflective surface, seems that this information is transformed into reactions, so we do no need to store anything else
+        CHECK_PROPERTY(spec->refl_mols->orient == ORIENTATION_NONE);
+      }
     }
     else {
       CHECK_PROPERTY(spec->refl_mols == nullptr);
     }
 
-    CHECK_PROPERTY(spec->transp_mols == nullptr);
-    CHECK_PROPERTY(spec->absorb_mols == nullptr);
+    // CHECK_PROPERTY(spec->transp_mols == nullptr);
+    // CHECK_PROPERTY(spec->absorb_mols == nullptr);
     CHECK_PROPERTY(spec->clamp_conc_mols == nullptr);
 
     // we must add a complex instance as the single molecule type in the new species
@@ -670,6 +673,7 @@ bool MCell3WorldConverter::convert_species(volume* s) {
     }
     else if (spec == s->all_volume_mols) {
       CHECK_PROPERTY(new_species.name == ALL_VOLUME_MOLECULES);
+      world->get_all_species().set_all_volume_molecules_species_id(new_species_id);
     }
     else if (spec == s->all_surface_mols) {
       CHECK_PROPERTY(new_species.name == ALL_SURFACE_MOLECULES);
@@ -693,6 +697,7 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
   CHECK_PROPERTY(
       mcell3_rx->n_pathways >= 1
       || mcell3_rx->n_pathways == RX_REFLEC // reflections for surf mols
+      || mcell3_rx->n_pathways == RX_TRANSP
   ); // limited for now
 
   assert(mcell3_rx->cum_probs != nullptr);
