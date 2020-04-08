@@ -21,7 +21,7 @@
  *
 ******************************************************************************/
 // TODO_LATER: optimization for diffusion constant 0, e.g. test 1172
-
+// TODO: make this file shorter
 
 #include <iostream>
 #include <sstream>
@@ -396,7 +396,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
 
         // check possible reaction with walls
         if (species.has_flag(SPECIES_FLAG_CAN_VOLWALL)) {
-          WallRxnResult collide_res = collide_and_react_with_walls(p, collision);
+          WallRxnResult collide_res = collide_and_react_with_walls(p, collision, r_rate_factor, elapsed_molecule_time, t_steps);
 
           if (collide_res == WallRxnResult::Transparent) {
             // update molecules' counted volume, time and displacement and continue
@@ -405,6 +405,15 @@ void DiffuseReactEvent::diffuse_vol_molecule(
                 m, remaining_displacement, t_steps
             );
             continue;
+          }
+          else if (collide_res == WallRxnResult::Destroyed) {
+            was_defunct = true;
+          }
+          else if (collide_res == WallRxnResult::Reflect) {
+            // reflect in reflect_or_periodic_bc and continue with diffusion
+          }
+          else {
+            assert(false);
           }
         }
 
@@ -764,7 +773,10 @@ int DiffuseReactEvent::collide_and_react_with_surf_mol(
  ******************************************************************************/
 WallRxnResult DiffuseReactEvent::collide_and_react_with_walls(
     Partition& p,
-    const Collision& collision
+    const Collision& collision,
+    const float_t r_rate_factor,
+    const float_t elapsed_molecule_time,
+    const float_t t_steps
 ) {
   Molecule& diffused_molecule = p.get_m(collision.diffused_molecule_id); // m
   assert(diffused_molecule.is_vol());
@@ -788,13 +800,55 @@ WallRxnResult DiffuseReactEvent::collide_and_react_with_walls(
 
   if (transp_rxn_class != nullptr) {
     // we are crossing this wall
+    assert(matching_rxn_classes.size() == 1 && "Expected only a single transparent rxn for transparent walls");
     return WallRxnResult::Transparent;
   }
 
-  assert(false && "Other that vol - transp wall rxns are not supported yet");
 
-  return WallRxnResult::Invalid;
+  /* Collisions with the surfaces declared REFLECTIVE are treated similar to
+   * the default surfaces after this loop. */
+
+  // TODO: we can just call test_many_intersect...
+  // TODO: use rxn_class_index_t and rxn_index_t also in other places
+  rxn_class_index_t rxn_class_index;
+  rxn_index_t rxn_index;
+
+  if (matching_rxn_classes.size() == 1) {
+    rxn_class_index = 0;
+    rxn_index = RxUtil::test_intersect(matching_rxn_classes[0], r_rate_factor, world->rng);
+  } else {
+    rxn_index = RxUtil::test_many_intersect(
+        matching_rxn_classes, r_rate_factor, rxn_class_index, world->rng);
+  }
+
+
+  if (rxn_class_index != RNX_CLASS_INDEX_INVALID && rxn_index >= RNX_INDEX_LEAST_VALID_RXN) {
+    const BNG::RxnClass* rxn_class = matching_rxn_classes[rxn_class_index];
+
+    assert(collision.type == CollisionType::WALL_FRONT || collision.type == CollisionType::WALL_BACK);
+
+    int j = outcome_intersect(
+        p, rxn_class, rxn_index, collision, elapsed_molecule_time + t_steps * collision.time);
+
+    if (j == RX_FLIP) {
+      return WallRxnResult::Transparent;
+    }
+    else if (j == RX_A_OK) {
+      return WallRxnResult::Reflect;
+    }
+    else if (j == RX_DESTROY) {
+      return WallRxnResult::Destroyed;
+    }
+    else {
+      assert(false);
+      return WallRxnResult::Invalid;
+    }
+  }
+
+  assert(false && "So far, only absorptive rxn classes were tested and they must be always executed");
+  return WallRxnResult::Reflect;
 }
+
 
 // ---------------------------------- surface diffusion ----------------------------------
 
@@ -1056,7 +1110,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
     return true;
   }
 
-  reaction_index_t selected_reaction_index;
+  rxn_index_t selected_reaction_index;
   Collision collision;
 
   /* Calculate local_prob_factor for the reaction probability.
@@ -1338,7 +1392,7 @@ bool DiffuseReactEvent::react_unimol_single_molecule(
 
   assert(scheduled_time >= event_time && scheduled_time <= event_time + diffusion_time_step);
 
-  reaction_index_t ri = RxUtil::which_unimolecular(unimol_rxn_class, world->rng);
+  rxn_index_t ri = RxUtil::which_unimolecular(unimol_rxn_class, world->rng);
   return outcome_unimolecular(p, m, scheduled_time, unimol_rxn_class->get_reaction(ri));
 }
 
@@ -1346,11 +1400,12 @@ bool DiffuseReactEvent::react_unimol_single_molecule(
 // checks if reaction should probabilistically occur and if so,
 // destroys reactants
 // returns RX_DESTROY when the primary reactant was destroyed, RX_A_OK if the reactant A was kept
+// TODO: change return type for enum
 int DiffuseReactEvent::outcome_bimolecular(
     Partition& p,
     const Collision& collision,
-    int path,
-    float_t time // FIXME: compute time here?
+    const int path,
+    const float_t time // FIXME: compute time here?
 ) {
 #ifdef DEBUG_TIMING
   DUMP_CONDITION4(
@@ -1406,6 +1461,86 @@ int DiffuseReactEvent::outcome_bimolecular(
 
   return result;
 }
+
+
+/*************************************************************************
+outcome_intersect:
+  In: world: simulation state
+      rx: reaction that's taking place
+      path: path the reaction's taking
+      surface: wall that is being struck
+      reac: molecule that is hitting the wall
+      orient: orientation of the molecule
+      t: time that the reaction is occurring
+      hitpt: location of collision with wall
+      loc_okay:
+  Out: Value depending on outcome:
+       RX_A_OK if the molecule reflects
+       RX_FLIP if the molecule passes through
+       RX_DESTROY if the molecule stops, is destroyed, etc.
+       Additionally, products are created as needed.
+  Note: Can assume molecule is always first in the reaction.
+*************************************************************************/
+int DiffuseReactEvent::outcome_intersect(
+    Partition& p,
+    const RxnClass* rxn_class,
+    const rxn_index_t rxn_index,
+    const Collision& collision,
+    const float_t time
+) {
+  if (!rxn_class->is_standard()) {
+    if (rxn_class->is_reflect()) {
+      return RX_A_OK; /* just reflect */
+    }
+    else {
+      assert(rxn_class->is_transparent()); // already dealt with before for better performance, but let's keep this general
+      return RX_FLIP; /* Flip = transparent is default special case */
+    }
+  }
+
+  Molecule& m = p.get_m(collision.diffused_molecule_id);
+  assert(m.is_vol() && "We should never call outcome_intersect() on a surface molecule");
+
+  /* If reaction object has ALL_MOLECULES or ALL_VOLUME_MOLECULES as the
+   * first reactant it means that reaction is of the type ABSORPTIVE =
+   * ALL_MOLECULES or ABSORPTIVE = ALL_VOLUME_MOLECULES since other cases
+   * (REFLECTIVE/TRANSPARENT) are taken care above. But there are no products
+   * for this reaction, so we do no need to go into "outcome_products()"
+   * function. */
+
+  assert(rxn_class->is_bimol());
+  species_id_t all_molecules_id = p.get_all_species().get_all_molecules_species_id();
+  species_id_t all_volume_molecules_id = p.get_all_species().get_all_volume_molecules_species_id();
+
+  int result;
+  bool keep_reacA, keep_reacB;
+
+  // expecting that the surface is always the second reactant
+  assert(p.get_all_species().get(rxn_class->reactants[1]).is_reactive_surface());
+
+  if (rxn_class->reactants[0] == all_molecules_id || rxn_class->reactants[0] == all_volume_molecules_id) {
+    assert(rxn_class->get_num_reactions() == 1);
+    result = RX_DESTROY;
+  }
+  else {
+    // might return RX_BLOCKED
+    result = outcome_products_random(p, collision, time, rxn_index, keep_reacA, keep_reacB);
+    assert(keep_reacB && "We are keeping the surface");
+  }
+
+  if (result == RX_BLOCKED) {
+    return RX_A_OK; /* reflect the molecule */
+  }
+
+  if (!keep_reacA) {
+    p.set_molecule_as_defunct(m);
+    return RX_DESTROY;
+  }
+  else {
+    return result; /* RX_A_OK or RX_FLIP */
+  }
+}
+
 
 // might return RX_BLOCKED if reaction cannot occur,
 // returns 0 if positions were found
@@ -1566,7 +1701,7 @@ int DiffuseReactEvent::outcome_products_random(
     Partition& p,
     const Collision& collision,
     const float_t time,
-    const reaction_index_t reaction_index,
+    const rxn_index_t reaction_index,
     bool& keep_reacA,
     bool& keep_reacB
 ) {

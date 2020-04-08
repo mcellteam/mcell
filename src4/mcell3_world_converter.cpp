@@ -606,6 +606,7 @@ bool MCell3WorldConverter::convert_species(volume* s) {
         || spec->flags == (SPECIES_FLAG_COUNT_ENCLOSED | COUNT_CONTENTS)
         || spec->flags == SPECIES_FLAG_CAN_VOLVOL
         || spec->flags == SPECIES_FLAG_CAN_VOLWALL
+        || spec->flags == (SPECIES_FLAG_CAN_VOLWALL | SPECIES_FLAG_COUNT_ENCLOSED | COUNT_CONTENTS)
         || spec->flags == SPECIES_CPLX_MOL_FLAG_SURF
         || spec->flags == SPECIES_CPLX_MOL_FLAG_REACTIVE_SURFACE
         || spec->flags == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_SURFSURF)
@@ -796,7 +797,7 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
       rxn.type = RxnType::Reflect;
     }
     else {
-      CHECK_PROPERTY(current_pathway->flags == 0);
+      CHECK_PROPERTY(current_pathway->flags == 0 || current_pathway->flags == PATHW_ABSORP);
       rxn.type = RxnType::Standard;
 
       // products
@@ -809,7 +810,6 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
         product_ptr = product_ptr->next;
       }
     }
-
 
     pathway_index++;
 

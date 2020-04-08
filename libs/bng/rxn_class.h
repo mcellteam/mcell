@@ -64,7 +64,7 @@ public:
     return reactions.size();
   }
 
-  const RxnRule* get_reaction(const reaction_index_t rx_index) const {
+  const RxnRule* get_reaction(const rxn_index_t rx_index) const {
     assert(rx_index < (int)reactions.size());
     return reactions[rx_index];
   }
@@ -104,7 +104,15 @@ public:
     return type == RxnType::Transparent;
   }
 
-  bool is_absorb() const {
+  bool is_unimol() const {
+    return reactants.size() == 1;
+  }
+
+  bool is_bimol() const {
+    return reactants.size() == 2;
+  }
+
+  bool is_absorb_region_border() const {
     return type == RxnType::AbsorbRegionBorder;
   }
 

@@ -51,7 +51,9 @@ enum class RayTraceState {
 
 enum class WallRxnResult {
   Invalid,
-  Transparent
+  Transparent,
+  Reflect,
+  Destroyed
 };
 
 
@@ -200,7 +202,10 @@ private:
 
   WallRxnResult collide_and_react_with_walls(
       Partition& p,
-      const Collision& collision
+      const Collision& collision,
+      const float_t r_rate_factor,
+      const float_t elapsed_molecule_time,
+      const float_t t_steps
   );
 
   // ---------------------------------- surface molecules ----------------------------------
@@ -241,11 +246,19 @@ private:
   int outcome_bimolecular(
       Partition& p,
       const Collision& collision,
-      int path,
-      float_t remaining_time_step
+      const int path,
+      const float_t remaining_time_step
   );
 
-	// returns true if molecule urvived
+  int outcome_intersect(
+      Partition& p,
+      const BNG::RxnClass* rxn_class,
+      const rxn_index_t rxn_index,
+      const Collision& collision,
+      const float_t time
+  );
+
+	// returns true if molecule survived
   bool outcome_unimolecular(
       Partition& p,
       Molecule& vm,
@@ -257,7 +270,7 @@ private:
       Partition& p,
       const Collision& collision,
       const float_t remaining_time_step,
-      const reaction_index_t reaction_index,
+      const rxn_index_t reaction_index,
       bool& keep_reacA,
       bool& keep_reacB
   );

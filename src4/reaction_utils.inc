@@ -162,7 +162,7 @@ static void find_surface_mol_reactions_with_surf_classes_for_rxn_class_map(
     bool reject_reaction =
         (rxn_class->is_transparent() && !allow_rx_transp) ||
         (rxn_class->is_reflect() && !allow_rx_reflec) ||
-        (rxn_class->is_absorb() && !allow_rx_absorb_reg_border);
+        (rxn_class->is_absorb_region_border() && !allow_rx_absorb_reg_border);
 
     if (!reject_reaction) {
       matching_rxn_classes.push_back(rxn_class);
@@ -528,7 +528,7 @@ static int test_many_bimolecular(
     float_t local_prob_factor,
     rng_state& rng,
     bool all_neighbors_flag,
-    reaction_index_t& chosen_reaction_index
+    rxn_index_t& chosen_reaction_index
 ) {
   assert(rxn_classes.size() == scaling.size());
   uint n = rxn_classes.size();
@@ -626,6 +626,122 @@ static int test_many_bimolecular(
 }
 
 
+/*************************************************************************
+test_intersect
+  In: the reaction we're testing
+      a probability multiplier depending on how many timesteps we've
+        moved at once (1.0 means one timestep)
+  Out: RX_NO_RX if no reaction occurs (assume reflection)
+       int containing which reaction occurs if one does occur
+  Note: If not RX_NO_RX, and not the trasparency shortcut, then we
+        update counters assuming the reaction will take place.
+*************************************************************************/
+// TODO LATER: see if it can be merged with test_bimolecular
+static rxn_index_t test_intersect(const BNG::RxnClass* rxn_class, const float_t scaling, rng_state& rng) {
+  float_t p;
+
+  assert(rxn_class->type == BNG::RxnType::Standard &&
+      "Reflect and Transparent should be handled elsewhere, AbsorbRegionBorder is not applicable here");
+
+
+  float_t max_prob = rxn_class->cum_probs.back();
+  assert(max_prob == rxn_class->max_fixed_p);
+
+  if (max_prob > scaling) {
+    /*if (scaling <= 0.0)
+      rxn_class->n_skipped += GIGANTIC;
+    else
+      rxn_class->n_skipped += rxn_class->cum_probs[rxn_class->n_pathways - 1] / scaling - 1.0;*/
+    p = rng_dbl(&rng) * max_prob;
+  }
+  else {
+    p = rng_dbl(&rng) * scaling;
+
+    if (p > max_prob) {
+      return RNX_INDEX_NO_RXN;
+    }
+  }
+
+  int M = rxn_class->get_num_reactions() - 1;
+
+  if (p > rxn_class->cum_probs[M]) {
+    return RNX_INDEX_NO_RXN;
+  }
+
+  float_t match = rng_dbl(&rng);
+  match = match * rxn_class->cum_probs[M];
+
+  return binary_search_double(rxn_class->cum_probs, match, M, 1);
+}
+
+/*************************************************************************
+test_many_intersect:
+  In: an array of reactions we're testing
+      a probability multiplier depending on how many timesteps we've
+        moved at once (1.0 means one timestep)
+      the number of elements in the array of reactions
+      placeholder for the chosen pathway in the reaction (return value)
+  Out: RX_NO_RX if no reaction occurs (assume reflection)
+       index in the reaction array if reaction does occur
+  Note: If not RX_NO_RX, and not the trasparency shortcut, then we
+        update counters assuming the reaction will take place.
+*************************************************************************/
+// TODO LATER: see if it can be merged with test_many bimolecular
+static rxn_index_t test_many_intersect(
+    const BNG::RxnClassesVector& rxn_classes, const float_t scaling,
+    rxn_class_index_t& chosen_rxn_class_index, rng_state& rng) {
+
+  uint num_classes = rxn_classes.size();
+
+  if (num_classes == 1) {
+    chosen_rxn_class_index = 0;
+    return test_intersect(rxn_classes[0], scaling, rng);
+  }
+
+  // array of cumulative rxn probabilities
+  std::vector<float_t> rxn_probs;
+  rxn_probs.resize(num_classes);
+
+  rxn_probs[0] = rxn_classes[0]->max_fixed_p / scaling;
+  for (uint i = 1; i < num_classes; i++) {
+    rxn_probs[i] = rxn_probs[i - 1] + rxn_classes[i]->max_fixed_p / scaling;
+  }
+
+  double p;
+  if (rxn_probs[num_classes - 1] > 1.0) {
+    /*double f = rxp[n - 1] - 1.0; // Number of failed reactions
+    for (i = 0; i < n; i++)      // Distribute failures
+    {
+      rxn_classes[i]->n_skipped +=
+          f * (rxn_classes[i]->cum_probs[rxn_classes[i]->n_pathways - 1]) / rxp[n - 1];
+    }
+    */
+    p = rng_dbl(&rng) * rxn_probs[num_classes - 1];
+  } else {
+    p = rng_dbl(&rng);
+    if (p > rxn_probs[num_classes - 1]) {
+      return RX_NO_RX;
+    }
+  }
+
+  /* Pick the reaction that happens */
+  chosen_rxn_class_index = binary_search_double(rxn_probs, p, num_classes - 1, 1);
+
+  const BNG::RxnClass *my_rxn_class = rxn_classes[chosen_rxn_class_index];
+
+  if (chosen_rxn_class_index > 0) {
+    p = (p - rxn_probs[chosen_rxn_class_index - 1]);
+  }
+  p = p * scaling;
+
+  /* Now pick the pathway within that reaction */
+  rxn_index_t rxn_index =
+      binary_search_double(my_rxn_class->cum_probs, p, my_rxn_class->get_num_reactions() - 1, 1);
+
+  return rxn_index;
+}
+
+
 // might return nullptr if there is no unimolecular reaction for this species
 // based on pick_unimolecular_reaction
 // TODO: remove this function
@@ -638,8 +754,8 @@ static const BNG::RxnClass* pick_unimol_rx(
 
 
 // based on timeof_unimolecular
-static float_t time_of_unimol(const BNG::RxnClass* rx, rng_state& rng) {
-  double k_tot = rx->max_fixed_p;
+static float_t time_of_unimol(const BNG::RxnClass* rxn_class, rng_state& rng) {
+  double k_tot = rxn_class->max_fixed_p;
   double p = rng_dbl(&rng);
 
   if ((k_tot <= 0) || (!distinguishable_f(p, 0, EPS)))
@@ -675,7 +791,7 @@ which_unimolecular:
   In: the reaction we're testing
   Out: int containing which unimolecular reaction occurs (one must occur)
 *************************************************************************/
-static reaction_index_t which_unimolecular(const BNG::RxnClass *rxn_class, rng_state& rng) {
+static rxn_index_t which_unimolecular(const BNG::RxnClass *rxn_class, rng_state& rng) {
   assert(rxn_class != nullptr);
   if (rxn_class->get_num_reactions() == 1) {
     return 0;

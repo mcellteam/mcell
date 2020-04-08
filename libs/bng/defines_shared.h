@@ -49,7 +49,7 @@ const Common::float_t BNG_N_AV = 6.0221417930e23;
 #if FLOAT_T_BYTES == 8
 const Common::float_t EPS = 1e-12; // same as EPS_C
 const Common::float_t SQRT_EPS = 1e-6;
-const Common::float_t GIGANTIC4 = 1e140;
+const Common::float_t GIGANTIC_DBL = 1e140;
 #else
 #error "Base type float32 is not supported yet"
 #endif
@@ -65,6 +65,7 @@ const Common::float_t TIME_SIMULATION_START = 0;
 
 const Common::float_t UINT_INVALID = UINT32_MAX; // invalid value to be used for any invalid unsigned integer values
 const Common::float_t UINT_INVALID2 = UINT32_MAX - 1; // second invalid value not to be used, in this case for any purpose
+const Common::float_t INT_INVALID = INT32_MAX;
 
 const uint ID_INVALID = UINT_INVALID; // general invalid index, should not be used when a definition for a specific type is available
 const uint INDEX_INVALID = UINT_INVALID; // general invalid index, should not be used when a definition for a specific type is available
@@ -92,8 +93,14 @@ const orientation_t ORIENTATION_UP = 1;
 const orientation_t ORIENTATION_NOT_SET = 2;
 
 // index of reaction in a reaction class
-typedef int reaction_index_t;
+typedef int rxn_index_t;
+// TODO: originally RX_NO_RX, fix all cases in MCell
+const rxn_index_t RNX_INDEX_LEAST_VALID_RXN = 0;
+const rxn_index_t RNX_INDEX_NO_RXN = -2;
 
+// index of a reaction classes in an array of reaction classes
+typedef int rxn_class_index_t;
+const rxn_class_index_t RNX_CLASS_INDEX_INVALID = INT_INVALID;
 
 #ifndef NDEBUG
 #define INDEXER_WA // Don't know yet how to convince Eclipse to correctly index boost containers

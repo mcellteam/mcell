@@ -118,7 +118,7 @@ float_t RxnClass::compute_pb_factor(const BNGConfig& bng_config) const {
       }
 
       if (D_tot <= 0.0) {
-        pb_factor = 0; /* Reaction can't happen! */
+        pb_factor = 0; /* Reaction can't happen (not true for vol--surface rxns) */
       }
       else {
         pb_factor = 1.0e11 * bng_config.grid_density / (2.0 * BNG_N_AV) * sqrt(BNG_PI * t_step / D_tot);
@@ -177,6 +177,10 @@ void RxnClass::update(const BNGConfig& bng_config) {
   // scale_rxn_probabilities
   // TODO LATER: info and warning printouts
   for (uint i = 0; i < reactions.size(); i++) {
+    if (fabs(cum_probs[i] - GIGANTIC_DBL) < EPS) {
+      // special surface reactions are not scaled because their pb_factor is 0
+      continue;
+    }
     float_t rate = pb_factor * cum_probs[i];
     cum_probs[i] = rate;
   }

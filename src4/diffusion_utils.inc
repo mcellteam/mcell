@@ -331,7 +331,7 @@ static void reflect_absorb_check_wall(
       reflect_now = true;
       break;
     }
-    else if (rxn->is_absorb()) {
+    else if (rxn->is_absorb_region_border()) {
       /* check for ABSORPTIVE border */
       absorb_now = 1;
       break;

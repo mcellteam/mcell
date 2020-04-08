@@ -320,7 +320,6 @@ string get_species_flags_string(uint flags) {
   DUMP_FLAG(flags, COUNT_HITS)
   DUMP_FLAG(flags, COUNT_RXNS)
   DUMP_FLAG(flags, COUNT_ENCLOSED)
-  DUMP_FLAG(flags, COUNT_SOME_MASK)
   DUMP_FLAG(flags, CAN_VOLSURFSURF)
   DUMP_FLAG(flags, CAN_SURFSURFSURF)
   DUMP_FLAG(flags, SET_MAX_STEP_LENGTH)
