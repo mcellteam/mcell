@@ -151,6 +151,26 @@ bool MCell3WorldConverter::convert(volume* s) {
 }
 
 
+static float_t get_largest_abs_value(const vector3& v) {
+  float_t max = 0;
+  if (fabs_f(v.y) > max) {
+    max = fabs_f(v.y);
+  }
+  if (fabs_f(v.y) > max) {
+    max = fabs_f(v.y);
+  }
+  if (fabs_f(v.y) > max) {
+    max = fabs_f(v.y);
+  }
+  return max;
+}
+
+static float_t get_largest_distance_from_center(const vector3& llf, const vector3& urb) {
+  float_t max1 = get_largest_abs_value(llf);
+  float_t max2 = get_largest_abs_value(urb);
+  return max1 > max2 ? max1 : max2;
+}
+
 bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
   // TODO_CONVERSION: many items are not checked
   world->iterations = s->iterations;
@@ -172,7 +192,11 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
     world->config.partition_edge_length = (s->partition_urb[0] - s->partition_llf[0]) / s->length_unit;
   }
   else {
-    world->config.partition_edge_length = PARTITION_EDGE_LENGTH_DEFAULT;
+    // use MCell's bounding box, however, we must make a cube out of it
+    float_t half_dim = get_largest_distance_from_center(s->bb_llf, s->bb_urb);
+    world->config.partition_edge_length = (half_dim + 0.1) * 2 / world->config.length_unit;
+    mcell_log("Automatically determined partition size: %f.\n",
+        (double)world->config.partition_edge_length * world->config.length_unit);
   }
   CHECK_PROPERTY(s->nx_parts == s->ny_parts);
   CHECK_PROPERTY(s->ny_parts == s->nz_parts);
@@ -280,24 +304,30 @@ void MCell3WorldConverter::create_uninitialized_walls_for_polygonal_object(const
     wall* w = o->wall_p[i];
 
     // which partition?
-    partition_id_t partition_index = world->get_partition_index(*w->vert[0]);
+    partition_id_t partition_id = world->get_partition_index(*w->vert[0]);
+    if (partition_id == PARTITION_ID_INVALID) {
+      Vec3 v(*w->vert[0]);
+      v = v * Vec3(world->config.length_unit);
+      mcell_log("Error: vertex %s does not fit any partition.", v.to_string().c_str());
+    }
 
     // check that the remaining vertices are in the same partition
     for (uint k = 1; k < VERTICES_IN_TRIANGLE; k++) {
       partition_id_t curr_partition_index = world->get_partition_index(*w->vert[k]);
 
-      if (partition_index != curr_partition_index) {
+      if (partition_id != curr_partition_index) {
         Vec3 pos(*w->vert[k]);
-        mcell_log("Error: whole walls must be in a single partition is for now, vertex %s is out of bounds", pos.to_string().c_str());
+        pos = pos * Vec3(world->config.length_unit);
+        mcell_error("Error: whole walls must be in a single partition is for now, vertex %s is out of bounds", pos.to_string().c_str());
       }
     }
 
     // create the wall in that partition but do not set anything else yet
-    Partition& p = world->get_partition(partition_index);
+    Partition& p = world->get_partition(partition_id);
     Wall& new_wall = p.add_uninitialized_wall(world->get_next_wall_id());
 
     // remember mapping
-    add_mcell4_wall_index_mapping(w, PartitionWallIndexPair(partition_index, new_wall.index));
+    add_mcell4_wall_index_mapping(w, PartitionWallIndexPair(partition_id, new_wall.index));
   }
 }
 
@@ -607,6 +637,7 @@ bool MCell3WorldConverter::convert_species(volume* s) {
         || spec->flags == SPECIES_FLAG_CAN_VOLVOL
         || spec->flags == SPECIES_FLAG_CAN_VOLWALL
         || spec->flags == (SPECIES_FLAG_CAN_VOLWALL | SPECIES_FLAG_COUNT_ENCLOSED | COUNT_CONTENTS)
+        || spec->flags == (SPECIES_FLAG_CAN_VOLWALL | SPECIES_FLAG_COUNT_ENCLOSED | COUNT_CONTENTS | REGION_PRESENT)
         || spec->flags == SPECIES_CPLX_MOL_FLAG_SURF
         || spec->flags == SPECIES_CPLX_MOL_FLAG_REACTIVE_SURFACE
         || spec->flags == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_SURFSURF)

@@ -260,9 +260,13 @@ void Edge::debug_check_values_are_uptodate(const Partition& p) {
 #endif
   float_t orig_cos_theta = cos_theta;
   float_t orig_sin_theta = sin_theta;
+#ifdef DEBUG_EDGE_INITIALIZATION
   dump();
+#endif
   reinit_edge_constants(p);
+#ifdef DEBUG_EDGE_INITIALIZATION
   dump();
+#endif
   assert(cmp_eq(orig_translate, translate));
   assert(cmp_eq(orig_cos_theta, cos_theta));
   assert(cmp_eq(orig_sin_theta, sin_theta));
