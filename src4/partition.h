@@ -330,7 +330,9 @@ public:
     change_reactants_map(new_vm, new_vm.v.subpart_index, true, false);
 
     // compute counted volume id for a new molecule
-    new_vm.v.counted_volume_id = determine_counted_volume_id(new_vm.v.pos);
+    if (new_vm.v.counted_volume_id == COUNTED_VOLUME_ID_INVALID) {
+      new_vm.v.counted_volume_id = determine_counted_volume_id(new_vm.v.pos);
+    }
 
     return new_vm;
   }

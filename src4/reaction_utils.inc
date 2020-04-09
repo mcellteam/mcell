@@ -720,6 +720,7 @@ static rxn_index_t test_many_intersect(
   } else {
     p = rng_dbl(&rng);
     if (p > rxn_probs[num_classes - 1]) {
+      chosen_rxn_class_index = RNX_CLASS_INDEX_INVALID;
       return RX_NO_RX;
     }
   }

@@ -810,7 +810,7 @@ WallRxnResult DiffuseReactEvent::collide_and_react_with_walls(
 
   // TODO: we can just call test_many_intersect...
   // TODO: use rxn_class_index_t and rxn_index_t also in other places
-  rxn_class_index_t rxn_class_index;
+  rxn_class_index_t rxn_class_index = RNX_CLASS_INDEX_INVALID;
   rxn_index_t rxn_index;
 
   if (matching_rxn_classes.size() == 1) {

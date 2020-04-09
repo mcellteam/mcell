@@ -231,6 +231,7 @@ typedef uint geometry_object_id_t; // world-unique unique geometry object id
 const geometry_object_id_t GEOMETRY_OBJECT_ID_INVALID = ID_INVALID;
 
 // volume outside of all objects, i.e. WORLD-all objects
+const geometry_object_id_t COUNTED_VOLUME_ID_INVALID = ID_INVALID;
 const geometry_object_id_t COUNTED_VOLUME_ID_OUTSIDE_ALL = ID_INVALID2;
 
 typedef std::pair<partition_id_t, wall_index_t> PartitionWallIndexPair;
