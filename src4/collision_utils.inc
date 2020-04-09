@@ -264,6 +264,7 @@ static void raycast_with_endpoints(
   IVec3 end_indices;
   p.get_subpart_3d_indices(pt2, end_indices);
 
+  // TODO: optimize when start and end are the same? check with benchmark
 
   Vec3 min = floor3(pt1 * Vec3(CELL_SIZE_RCP)) * Vec3(CELL_SIDE);
   Vec3 max = min + Vec3(CELL_SIDE);
@@ -278,7 +279,9 @@ static void raycast_with_endpoints(
 #endif
 
   do {
-    crossed_subparts_for_molecules.insert(subpart_index);
+    if (!collect_for_walls) {
+      crossed_subparts_for_molecules.insert(subpart_index);
+    }
     if (collect_for_walls) {
       crossed_subparts_for_walls.push_back(subpart_index);
     }
@@ -320,12 +323,6 @@ static void raycast_with_endpoints(
 #ifdef DEBUG_SUBPARTITIONS
   std::cout << "Point " << pt_index << ", last subpart indices: " << indices << "\n";
 #endif
-
-  // add final subpart
-  crossed_subparts_for_molecules.insert(subpart_index);
-  if (collect_for_walls) {
-    crossed_subparts_for_walls.push_back(subpart_index);
-  }
 
   // note: indices != end_indices at this point, this is ok (at least all tests pass)
 }
@@ -385,9 +382,7 @@ static inline void /*__attribute__((always_inline))*/ collect_crossed_subparts(
   // move detection points a bit back
   small_vector<subpart_index_t> start_subpart_indices;
   for (uint i = 0; i < NUM_CORNER_POINTS; i++) {
-    if (i != MOL_POS_POINT_INDEX) {
-      start_positions[i] = start_positions[i] - displacement_of_radius_length;
-    }
+    start_positions[i] = start_positions[i] - displacement_of_radius_length;
   }
 
 #ifdef DEBUG_SUBPARTITIONS
@@ -785,8 +780,9 @@ static void collect_wall_collisions(
   for (auto it = wall_indices.begin(); it != wall_indices.end(); it++) {
     wall_index_t wall_index = *it;
 
-    if (wall_index == last_hit_wall_index)
+    if (wall_index == last_hit_wall_index) {
       continue;
+    }
 
     const Wall& w = p.get_wall(wall_index);
     float_t collision_time;
