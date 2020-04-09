@@ -240,10 +240,23 @@ geometry_object_id_t Partition::determine_counted_volume_id(const Vec3& pos) {
   // find the first object we are in
   for (const GeometryObject& obj: geometry_objects) {
     if (obj.is_counted_volume && CollisionUtil::is_point_inside_object(*this, pos, obj)) {
+
       // follow the containment graph to determine the smallest counted volume
-      return find_smallest_counted_volume_recursively(obj, pos);
+      geometry_object_id_t res = find_smallest_counted_volume_recursively(obj, pos);
+
+#ifdef DEBUG_COUNTED_VOLUMES
+      cout <<
+          "Counted volumes: assigned obj " << get_geometry_object(res).name << " (id:" << res << ")" <<
+          " for pos " << pos << "\n";
+#endif
+
+			return res;
     }
   }
+
+#ifdef DEBUG_COUNTED_VOLUMES
+      cout << "Counted volumes: assigned 'outside' for pos " << pos << "\n";
+#endif
 
   // nothing found
   return COUNTED_VOLUME_ID_OUTSIDE_ALL;

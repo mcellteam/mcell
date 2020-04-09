@@ -54,7 +54,7 @@
 #endif
 
 #define DUMP_ALWAYS
-#define DUMP_NEVER
+//#define DUMP_NEVER
 
 
 #if (!defined(NDEBUG) || defined(DUMP_ALWAYS)) && !defined(DUMP_NEVER)
@@ -69,7 +69,7 @@
 
 //#define DEBUG_EDGE_INITIALIZATION
 
-#define DEBUG_SCHEDULER
+//#define DEBUG_SCHEDULER
 
 //#define DEBUG_DEFRAGMENTATION
 
@@ -86,6 +86,8 @@
 #endif
 
 
+#define DEBUG_COUNTED_VOLUMES
+
 //#define DEBUG_TIMING
 
 //#define DEBUG_DIFFUSION_EXTRA
@@ -96,9 +98,9 @@
 
 //#define DEBUG_GRIDS
 
-#define FROM_ITERATION 8
+#define FROM_ITERATION 0
 
-#define TO_ITERATION 11
+#define TO_ITERATION 10
 
 #define DUMP_CONDITION3(code) do { if ((int)world->current_iterations >= (int)FROM_ITERATION && (int)world->current_iterations <= (int)TO_ITERATION) { code; } } while (0)
 #define DUMP_CONDITION4(code) do { if ((int)world->get_current_iteration() >= (int)FROM_ITERATION && (int)world->get_current_iteration() <= (int)TO_ITERATION) { code; } } while (0)
