@@ -224,8 +224,8 @@ geometry_object_id_t Partition::find_smallest_counted_volume_recursively(const G
 
   for (geometry_object_id_t subobj_id: subobject_ids) {
     assert(subobj_id != obj.id);
-    const GeometryObject& subobj = get_geometry_object(subobj_id);
-    if (CollisionUtil::is_point_inside_object(*this, pos, subobj)) {
+    GeometryObject& subobj = get_geometry_object(subobj_id);
+    if (CountedVolumesUtil::is_point_inside_counted_volume(subobj, pos)) {
       // the hierarchy must be a tree, so we directly find the path to the leaf of the object 'containment' tree
       return find_smallest_counted_volume_recursively(subobj, pos);
     }
@@ -238,8 +238,8 @@ geometry_object_id_t Partition::find_smallest_counted_volume_recursively(const G
 
 geometry_object_id_t Partition::determine_counted_volume_id(const Vec3& pos) {
   // find the first object we are in
-  for (const GeometryObject& obj: geometry_objects) {
-    if (obj.is_counted_volume && CollisionUtil::is_point_inside_object(*this, pos, obj)) {
+  for (GeometryObject& obj: geometry_objects) {
+    if (obj.is_counted_volume && CountedVolumesUtil::is_point_inside_counted_volume(obj, pos)) {
 
       // follow the containment graph to determine the smallest counted volume
       geometry_object_id_t res = find_smallest_counted_volume_recursively(obj, pos);

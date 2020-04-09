@@ -300,7 +300,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
   bool was_defunct = false;
   Vec3 new_pos;
   subpart_index_t new_subpart_index;
-  wall_index_t reflected_wall_index = WALL_INDEX_INVALID;
+  wall_index_t last_hit_wall_index = WALL_INDEX_INVALID;
 
   //float_t updated_remaining_time_step = remaining_time_step; // == t_steps
 
@@ -311,7 +311,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
         ray_trace_vol(
             p, world->rng,
             m /* changes position */,
-            reflected_wall_index,
+            last_hit_wall_index,
             remaining_displacement,
             molecule_collisions,
             new_pos,
@@ -402,7 +402,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
             // update molecules' counted volume, time and displacement and continue
             CollisionUtil::cross_transparent_wall(
                 p, collision, steps, displacement,
-                m, remaining_displacement, t_steps
+                m, remaining_displacement, t_steps, last_hit_wall_index
             );
             continue;
           }
@@ -422,7 +422,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
           elapsed_molecule_time += t_steps * collision.time;
           int res = CollisionUtil::reflect_or_periodic_bc(
               p, collision,
-              vm_new_ref, remaining_displacement, t_steps, reflected_wall_index
+              vm_new_ref, remaining_displacement, t_steps, last_hit_wall_index
           );
           assert(res == 0 && "Periodic box BCs are not supported yet");
         }
@@ -477,7 +477,7 @@ RayTraceState ray_trace_vol(
     Partition& p,
     rng_state& rng,
     Molecule& vm, // molecule that we are diffusing, we are changing its pos  and possibly also subvolume
-    const wall_index_t previous_reflected_wall, // is WALL_INDEX_INVALID when our molecule did not replect from anything this iddfusion step yet
+    const wall_index_t last_hit_wall_index, // is WALL_INDEX_INVALID when our molecule did not reflect from anything this diffusion step yet
     Vec3& remaining_displacement, // in/out - recomputed if there was a reflection
     collision_vector_t& collisions, // both mol mol and wall collisions
     Vec3& new_pos,
@@ -527,7 +527,7 @@ RayTraceState ray_trace_vol(
           p,
           vm,
           subpart_index,
-          previous_reflected_wall,
+          last_hit_wall_index,
           rng,
           corrected_displacement,
           displacement_up_to_wall_collision, // may be update in case we need to 'redo' the collision detection

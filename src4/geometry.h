@@ -26,6 +26,7 @@
 
 #include <vector>
 #include <set>
+#include <vtkPolyData.h>
 
 #include "defines.h"
 #include "molecule.h"
@@ -52,8 +53,6 @@ public:
   geometry_object_index_t index; // partition-unique geometry object index
   std::string name;
 
-  // bool is_closed;
-
   // all walls (triangles) that form this object
   std::vector<wall_index_t> wall_indices;
 
@@ -62,6 +61,8 @@ public:
   bool is_counted_volume;
   // counted_volume_id_inside - same id as this object
   geometry_object_id_t counted_volume_id_outside;
+  // valid only if is_counted_volume is true
+  vtkSmartPointer<vtkPolyData> counted_volume_polydata;
 
   // p must be the partition that contains this object
   void dump(const Partition& p, const std::string ind) const;

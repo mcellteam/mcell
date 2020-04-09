@@ -766,7 +766,7 @@ static void collect_wall_collisions(
     Partition& p,
     const Molecule& vm, // molecule that we are diffusing, we are changing its pos  and possibly also subvolume
     const subpart_index_t subpart_index,
-    const wall_index_t previous_reflected_wall,
+    const wall_index_t last_hit_wall_index,
     rng_state& rng,
     // displacement can be changed in case we needed to 'REDO' the collision, also,
     // if there was a hit, is changed to the closest displacement
@@ -785,7 +785,7 @@ static void collect_wall_collisions(
   for (auto it = wall_indices.begin(); it != wall_indices.end(); it++) {
     wall_index_t wall_index = *it;
 
-    if (wall_index == previous_reflected_wall)
+    if (wall_index == last_hit_wall_index)
       continue;
 
     const Wall& w = p.get_wall(wall_index);
@@ -1245,34 +1245,6 @@ static bool is_point_inside_region(const Partition& p, const Vec3& pos, const Re
   return num_hits % 2 == 1;
 }
 
-
-static bool is_point_inside_object(const Partition& p, const Vec3& pos, const GeometryObject& obj) {
-
-  // cast ray along the whole partition
-  // note: the almost non-zero value is needed so that we won't miss an edge of an object
-  // TODO LATER: this will need to be fixed, see test mdl/0701 and set 0 instead of these EPS's
-  //  -> no wall hit for molecule at (0, 0, 0) is detected although it is in a box
-  Vec3 move(EPS, EPS, p.config.partition_edge_length);
-
-//  Vec3 pos(0, 0, 0);
-
-  // and count intersects
-  int num_hits = 0;
-  for (wall_index_t wi: obj.wall_indices) {
-
-    // check collision with each wall
-    // TODO LATER: optimize with subparts
-    const Wall& w = p.get_wall(wi);
-    bool collides = CollisionUtil::collide_wall_test(p, pos, w, move);
-    if (collides) {
-      num_hits++;
-    }
- }
-
-  // odd number of hits means that we are inside
-  return num_hits % 2 == 1;
-}
-
 // ---------------------------------- reflections and other wall interactions ----------------------------------
 
 static void cross_transparent_wall(
@@ -1282,8 +1254,10 @@ static void cross_transparent_wall(
     const Vec3& full_displacement, // whole displacement computed for this molecule
     Molecule& vm, // moves vm to the reflection point
     Vec3& remaining_displacement,
-    float_t& remaining_time_step // same as t_steps
+    float_t& remaining_time_step, // same as t_steps
+    wall_index_t& last_hit_wall_index
 ) {
+
   const Wall& w = p.get_wall(collision.colliding_wall_index);
   const GeometryObject& obj = p.get_geometry_object(w.object_id);
   if (obj.is_counted_volume) {
@@ -1313,6 +1287,8 @@ static void cross_transparent_wall(
 
   // Set displacement for remainder of step length
   remaining_displacement = full_displacement * Vec3(steps - t_cross);
+
+  last_hit_wall_index = w.index;
 }
 
 /******************************************************************************
@@ -1334,7 +1310,7 @@ static int reflect_or_periodic_bc(
     Molecule& vm, // moves vm to the reflection point
     Vec3& displacement,
     float_t& remaining_time_step, // same as t_steps
-    wall_index_t& reflected_wall_index
+    wall_index_t& last_hit_wall_index
 ) {
 
   const Wall& w = p.get_wall(collision.colliding_wall_index);
@@ -1347,7 +1323,7 @@ static int reflect_or_periodic_bc(
   /* Reduce our remaining available time. */
   remaining_time_step *= (1.0 - t_reflect);
 
-  reflected_wall_index = reflect_w;
+  last_hit_wall_index = reflect_w;
 
   float_t reflect_factor = -2.0 * glm::dot((glm_vec3_t)displacement, (glm_vec3_t)w.normal);
 

@@ -46,6 +46,7 @@ namespace MCell {
 
 namespace CountedVolumesUtil {
 
+// FIXME: use directly GeometryObject where it will have the partition ID
 struct GeomObjectInfo {
 
   GeomObjectInfo(const partition_id_t partition_id_, const geometry_object_id_t geometry_object_id_)
@@ -103,8 +104,8 @@ static bool convert_objects_to_clean_polydata(World* world, GeomObjectInfoVector
 
   for (GeomObjectInfo& obj_info: counted_objects) {
 
-    const Partition& p = world->get_partition(obj_info.partition_id);
-    const GeometryObject& obj = p.get_geometry_object(obj_info.geometry_object_id);
+    Partition& p = world->get_partition(obj_info.partition_id);
+    GeometryObject& obj = p.get_geometry_object(obj_info.geometry_object_id);
 
     // we need to convert each geometry object into VTK's polydata representation
     // example: https://vtk.org/Wiki/VTK/Examples/Cxx/PolyData/TriangleArea
@@ -169,6 +170,10 @@ static bool convert_objects_to_clean_polydata(World* world, GeomObjectInfoVector
 
     // and finally store the points and faces
     obj_info.polydata = clean->GetOutput();
+
+    // also copy this information to our object
+    //obj.counted_volume_polydata.TakeReference(clean->GetOutput());
+    obj.counted_volume_polydata = clean->GetOutput();
   }
 
   return res;
@@ -476,6 +481,29 @@ bool initialize_counted_volumes(World* world) {
 
   return true;
 }
+
+
+bool is_point_inside_counted_volume(GeometryObject& obj, const Vec3& point) {
+  assert(obj.is_counted_volume);
+  assert(obj.counted_volume_polydata.Get() != nullptr);
+
+  double point_coords[3] = {point.x, point.y, point.z};
+
+  vtkSmartPointer<vtkPoints> points = vtkSmartPointer<vtkPoints>::New();
+  points->InsertNextPoint(point_coords);
+
+  vtkSmartPointer<vtkPolyData> points_polydata = vtkSmartPointer<vtkPolyData>::New();
+  points_polydata->SetPoints(points);
+
+  auto select_enclosed_points = vtkSmartPointer<vtkSelectEnclosedPoints>::New();
+
+  select_enclosed_points->SetSurfaceData(obj.counted_volume_polydata);
+  select_enclosed_points->SetInputData(points_polydata); // and we are trying whether poly1 fits into that
+  select_enclosed_points->Update();
+
+  return select_enclosed_points->IsInside(0) ;
+}
+
 
 } // namespace CountedVolumesUtil
 } // namespace MCell
