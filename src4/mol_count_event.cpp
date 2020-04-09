@@ -31,7 +31,7 @@ using namespace std;
 
 namespace MCell {
 
-void MolCountInfo::dump(const std::string ind) {
+void MolCountTerm::dump(const std::string ind) {
 
   cout << ind << "type: ";
   switch(type) {
@@ -49,10 +49,20 @@ void MolCountInfo::dump(const std::string ind) {
   }
   cout << "\n";
 
-  cout << ind << "buffer_id: \t\t" << buffer_id << " [count_buffer_id_t] \t\t\n";
-  cout << ind << "orientation: \t\t" << orientation << " [orientation_t] \t\t\n";
-  cout << ind << "species_id: \t\t" << species_id << " [species_id_t] \t\t\n";
-  cout << ind << "geometry_object_id: \t\t" << geometry_object_id << " [geometry_object_id_t] \t\t\n";
+  cout << ind << "orientation: " << orientation << " [orientation_t] \t\t\n";
+  cout << ind << "species_id: " << species_id << " [species_id_t] \t\t\n";
+  cout << ind << "geometry_object_id: " << geometry_object_id << " [geometry_object_id_t] \t\t\n";
+}
+
+
+void MolCountInfo::dump(const std::string ind) {
+
+  cout << ind << "buffer_id: " << buffer_id << " [count_buffer_id_t] \t\t\n";
+  cout << ind << "terms:\n";
+  for (uint i = 0; i < terms.size(); i++) {
+    cout << i << ":\n";
+    terms[i].dump(ind + "  ");
+  }
 }
 
 
@@ -88,16 +98,19 @@ void MolCountEvent::step() {
       for (uint i = 0; i < mol_count_infos.size(); i++) {
         const MolCountInfo& info = mol_count_infos[i];
 
-        if (info.type == CountType::World) {
-          // count the molecule
-          count_items[i].inc();
-        }
-        else if (info.type == CountType::EnclosedInObject) {
-          // is the molecule inside of the object that we are checking?
-          if (m.v.counted_volume_id == info.geometry_object_id ||
-              (enclosing_volumes != nullptr && enclosing_volumes->count(info.geometry_object_id))) {
+        for (const MolCountTerm& term: info.terms) {
 
-            count_items[i].inc();
+          if (term.type == CountType::World) {
+            // count the molecule
+            count_items[i].inc_or_dec(term.sign_in_expression);
+          }
+          else if (term.type == CountType::EnclosedInObject) {
+            // is the molecule inside of the object that we are checking?
+            if (m.v.counted_volume_id == term.geometry_object_id ||
+                (enclosing_volumes != nullptr && enclosing_volumes->count(term.geometry_object_id))) {
+
+              count_items[i].inc_or_dec(term.sign_in_expression);
+            }
           }
         }
       }

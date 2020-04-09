@@ -1108,6 +1108,45 @@ static output_request* find_output_request_by_requester(volume* s, output_expres
   return nullptr;
 }
 
+// returns false if conversion failed
+static bool find_output_requests_terms_recursively(
+    volume* s, output_expression* expr, int sign, std::vector< pair<output_request*, int>>& requests_with_sign) {
+  assert(sign == -1 || sign == 1);
+
+  // operator must me one of +, -, #
+  // # - cast output_request to expr
+
+  switch (expr->oper) {
+    case '#': {
+      output_request* req = find_output_request_by_requester(s, expr);
+      CHECK_PROPERTY(req != nullptr);
+      requests_with_sign.push_back(make_pair(req, sign));
+      }
+      break;
+
+
+    case '+':
+    case '-': {
+        bool left_ok = find_output_requests_terms_recursively(s, (output_expression*)expr->left, sign, requests_with_sign);
+        if (!left_ok) {
+          return false;
+        }
+
+        if (expr->oper == '-') {
+          sign = -sign;
+        }
+        bool right_ok = find_output_requests_terms_recursively(s, (output_expression*)expr->right, sign, requests_with_sign);
+        if (!right_ok) {
+          return false;
+        }
+      }
+      break;
+    default:
+      CHECK_PROPERTY(false && "Invalid output request operator");
+  }
+
+  return true;
+}
 
 static bool ends_with(std::string const & value, std::string const & ending)
 {
@@ -1162,60 +1201,74 @@ bool MCell3WorldConverter::convert_mol_count_events(volume* s) {
     // output request contains more information on what should be counted,
     // there is a way how to get to the output_set from the expression
     // but not how to the output_request
-    output_request* req = find_output_request_by_requester(s, column_head->expr);
-    CHECK_PROPERTY(req != 0);
+    // we simplify it to a list of terms with their sign
+    // first is the output request, second is sign (-1 or +1)
+    std::vector< pair<output_request*, int>> requests_with_sign;
+    CHECK(find_output_requests_terms_recursively(s, column_head->expr, +1, requests_with_sign));
 
     MolCountInfo info(buffer_id);
 
-    int o = req->count_orientation;
-    if (o == ORIENT_NOT_SET) {
-      info.orientation = ORIENTATION_NOT_SET;
+    for (pair<output_request*, int>& req_w_sign: requests_with_sign) {
+
+      MolCountTerm term;
+
+      term.sign_in_expression = req_w_sign.second;
+
+      output_request* req = req_w_sign.first;
+      CHECK_PROPERTY(req != 0);
+
+      int o = req->count_orientation;
+      if (o == ORIENT_NOT_SET) {
+        term.orientation = ORIENTATION_NOT_SET;
+      }
+      else {
+        CHECK_PROPERTY(o == ORIENTATION_UP || o == ORIENTATION_NONE || o == ORIENTATION_DOWN);
+        term.orientation = o;
+      }
+
+      // report type
+      CHECK_PROPERTY(
+          req->report_type == (REPORT_CONTENTS | REPORT_ENCLOSED) ||
+          req->report_type == (REPORT_CONTENTS | REPORT_WORLD)
+      );
+
+
+      // count target (species)
+      CHECK_PROPERTY(req->count_target != 0);
+      string species_name = get_sym_name(req->count_target);
+
+      term.species_id = world->get_all_species().find_by_name(species_name);
+      CHECK_PROPERTY(term.species_id != SPECIES_ID_INVALID);
+
+      // set a flag that these species are to be counted
+      BNG::Species& species = world->get_all_species().get(term.species_id);
+      species.set_flag(BNG::SPECIES_FLAG_COUNT_ENCLOSED);
+
+      // count location
+      // only whole geom object for now
+      if ((req->report_type & REPORT_ENCLOSED) != 0) {
+        term.type = CountType::EnclosedInObject;
+        string reg_name = get_sym_name(req->count_location);
+        CHECK_PROPERTY(ends_with(reg_name, ",ALL")); // for now only whole objects
+
+        const Region* reg = world->get_partition(0).find_region_by_name(reg_name);
+        CHECK_PROPERTY(reg != nullptr);
+        assert(reg->geometry_object_id != GEOMETRY_OBJECT_ID_INVALID);
+        term.geometry_object_id = reg->geometry_object_id;
+
+        GeometryObject& obj = world->get_partition(0).get_geometry_object(term.geometry_object_id);
+
+        // set flag that we should include this object in counted volumes
+        obj.is_counted_volume = true;
+      }
+      else {
+        CHECK_PROPERTY(req->count_location == nullptr);
+        term.type = CountType::World;
+      }
+
+
+      info.terms.push_back(term);
     }
-    else {
-      CHECK_PROPERTY(o == ORIENTATION_UP || o == ORIENTATION_NONE || o == ORIENTATION_DOWN);
-      info.orientation = o;
-    }
-
-    // report type
-    CHECK_PROPERTY(
-        req->report_type == (REPORT_CONTENTS | REPORT_ENCLOSED) ||
-        req->report_type == (REPORT_CONTENTS | REPORT_WORLD)
-    );
-
-
-    // count target (species)
-    CHECK_PROPERTY(req->count_target != 0);
-    string species_name = get_sym_name(req->count_target);
-
-    info.species_id = world->get_all_species().find_by_name(species_name);
-    CHECK_PROPERTY(info.species_id != SPECIES_ID_INVALID);
-
-    // set a flag that these species are to be counted
-    BNG::Species& species = world->get_all_species().get(info.species_id);
-    species.set_flag(BNG::SPECIES_FLAG_COUNT_ENCLOSED);
-
-    // count location
-    // only whole geom object for now
-    if ((req->report_type & REPORT_ENCLOSED) != 0) {
-      info.type = CountType::EnclosedInObject;
-      string reg_name = get_sym_name(req->count_location);
-      CHECK_PROPERTY(ends_with(reg_name, ",ALL")); // for now only whole objects
-
-      const Region* reg = world->get_partition(0).find_region_by_name(reg_name);
-      CHECK_PROPERTY(reg != nullptr);
-      assert(reg->geometry_object_id != GEOMETRY_OBJECT_ID_INVALID);
-      info.geometry_object_id = reg->geometry_object_id;
-
-      GeometryObject& obj = world->get_partition(0).get_geometry_object(info.geometry_object_id);
-
-      // set flag that we should include this object in counted volumes
-      obj.is_counted_volume = true;
-    }
-    else {
-      CHECK_PROPERTY(req->count_location == nullptr);
-      info.type = CountType::World;
-    }
-
     event->add_mol_count_info(info);
   }
 

@@ -39,8 +39,9 @@ public:
     : time(time_), int_value(value_) {
   }
 
-  void inc() {
-    int_value++;
+  void inc_or_dec(const int sign) {
+    assert(sign == 1 || sign == -1);
+    int_value += sign;
   }
 
   float_t time; // time is in outside units, was already precomputed for printing

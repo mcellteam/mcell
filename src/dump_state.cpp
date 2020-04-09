@@ -248,37 +248,40 @@ std::ostream & operator<<(std::ostream &out, const reaction_flags &a) {
   return out;
 }
 
+std::ostream & operator<<(std::ostream &out, const output_expression *e);
 
 void dump_oexpr_element(std::ostream &out, const int flags, void* child, bool left) {
 
   int specific_flags = flags & ((left) ? OEXPR_LEFT_MASK : OEXPR_RIGHT_MASK);
 
-  if (specific_flags & (OEXPR_LEFT_INT | OEXPR_RIGHT_INT)) {
-    out << *(int*)child;
+  if (specific_flags == OEXPR_LEFT_INT || specific_flags == OEXPR_RIGHT_INT) {
+    out << *(int*)child << "(" << (void*)child << ")";
   }
-  else if (specific_flags & (OEXPR_LEFT_DBL | OEXPR_RIGHT_DBL)) {
+  else if (specific_flags == OEXPR_LEFT_DBL || specific_flags == OEXPR_RIGHT_DBL) {
     out << *(double*)child;
   }
-  else if (specific_flags & (OEXPR_LEFT_OEXPR | OEXPR_RIGHT_OEXPR)) {
-    out << (output_expression*)child;
+  else if (specific_flags == OEXPR_LEFT_OEXPR || specific_flags == OEXPR_RIGHT_OEXPR) {
+    out << (const output_expression*)child;
   }
-  else if (specific_flags & (OEXPR_LEFT_CONST | OEXPR_RIGHT_CONST)) {
+  else if (specific_flags == OEXPR_LEFT_CONST || specific_flags == OEXPR_RIGHT_CONST) {
     out << "TODO const";
   }
-  else if (specific_flags & (OEXPR_LEFT_REQUEST | OEXPR_RIGHT_REQUEST)) {
+  else if (specific_flags == OEXPR_LEFT_REQUEST || specific_flags == OEXPR_RIGHT_REQUEST) {
     out << "TODO request";
   }
-  else if (specific_flags & (OEXPR_LEFT_TRIG | OEXPR_RIGHT_TRIG)) {
+  else if (specific_flags == OEXPR_LEFT_TRIG || specific_flags == OEXPR_RIGHT_TRIG) {
     out << "TODO trig";
   }
   else {
     out << ""; /*no children*/
   }
 
+  out.flush();
 }
 
 
 std::ostream & operator<<(std::ostream &out, const output_expression *e) {
+  // NOTE: the flags for column_head::expr are somehow messed up... everything seems to be an integer
   if (e != NULL) {
     out <<
         "("

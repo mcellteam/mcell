@@ -39,30 +39,49 @@ enum class CountType {
   EnclosedInObject
 };
 
-class MolCountInfo {
+
+class MolCountTerm {
 public:
-  MolCountInfo(const count_buffer_id_t buffer_id_)
+  MolCountTerm()
     : type(CountType::Invalid),
-      buffer_id(buffer_id_),
       orientation(ORIENTATION_NOT_SET),
       species_id(SPECIES_ID_INVALID),
-      geometry_object_id(GEOMETRY_OBJECT_ID_INVALID)
-      {
-    assert(buffer_id != COUNT_BUFFER_ID_INVALID);
+      geometry_object_id(GEOMETRY_OBJECT_ID_INVALID),
+      sign_in_expression(0) {
   }
 
   void dump(const std::string ind);
 
   CountType type;
 
-  // count buffer objects are owned by World
-  count_buffer_id_t buffer_id;
-
   orientation_t orientation;
   species_id_t species_id;
 
   // valid when type is EnclosedInObject
   geometry_object_id_t geometry_object_id;
+
+  // if sign_in_expression == +1 -> add to the total count
+  // if sign_in_expression == -1 -> subtract from the total count
+  // 0 - invalid
+  int sign_in_expression;
+};
+
+
+class MolCountInfo {
+public:
+  MolCountInfo(const count_buffer_id_t buffer_id_)
+    : buffer_id(buffer_id_) {
+    assert(buffer_id != COUNT_BUFFER_ID_INVALID);
+  }
+
+  void dump(const std::string ind);
+
+  // count buffer objects are owned by World
+  count_buffer_id_t buffer_id;
+
+  // note: items are shared in MCell3 but so far it seems that
+  // we can just count them separately
+  std::vector<MolCountTerm> terms;
 };
 
 
