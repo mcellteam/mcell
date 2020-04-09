@@ -194,9 +194,19 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
   else {
     // use MCell's bounding box, however, we must make a cube out of it
     float_t half_dim = get_largest_distance_from_center(s->bb_llf, s->bb_urb);
-    world->config.partition_edge_length = (half_dim + 0.1) * 2 / world->config.length_unit;
-    mcell_log("Automatically determined partition size: %f.\n",
-        (double)world->config.partition_edge_length * world->config.length_unit);
+    float_t auto_length = (half_dim + 0.1) * 2 / world->config.length_unit;
+
+    if (auto_length > PARTITION_EDGE_LENGTH_DEFAULT) {
+      world->config.partition_edge_length = auto_length;
+      mcell_log("Automatically determined partition size: %f.\n",
+        (double)auto_length * world->config.length_unit);
+    }
+    else {
+      mcell_log("Automatically determined partition size %f is smaller than default %f, using default.\n",
+        (double)auto_length * world->config.length_unit, PARTITION_EDGE_LENGTH_DEFAULT);
+    }
+
+
   }
   CHECK_PROPERTY(s->nx_parts == s->ny_parts);
   CHECK_PROPERTY(s->ny_parts == s->nz_parts);
