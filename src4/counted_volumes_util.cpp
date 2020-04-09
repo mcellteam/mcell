@@ -363,7 +363,9 @@ static const GeometryObject* get_direct_parent(
     const World* world, const GeomObjectInfo& obj_info, const ContainmentMap& contained_in_mapping) {
 
   auto it = contained_in_mapping.find(obj_info);
-  assert(it != contained_in_mapping.end());
+  if (it == contained_in_mapping.end()) {
+    return nullptr;
+  }
   const uint_set<GeomObjectInfo>& obj_contained_in = it->second;
 
   // need to find an object that is a direct parent
@@ -405,44 +407,36 @@ static void define_counted_volumes(
   // 1) inside volume id is identical to geom object id
 
   // 2) set outside ids
-  for (auto it_curr: contained_in_mapping) {
-    if (!it_curr.second.empty()) {
+  for (const GeomObjectInfo& obj_info: counted_objects) {
 
-      const GeomObjectInfo& child_info = it_curr.first;
+    const GeometryObject* direct_parent_obj = get_direct_parent(world, obj_info, contained_in_mapping);
 
-      const GeometryObject* direct_parent_obj = get_direct_parent(world, child_info, contained_in_mapping);
+    // set outside ID for our object
+    geometry_object_id_t outside_id;
+    if (direct_parent_obj != nullptr) {
+      outside_id = direct_parent_obj->id;
+    }
+    else {
+      outside_id = COUNTED_VOLUME_ID_OUTSIDE_ALL;
+    }
 
-      // set outside ID for our object
-      geometry_object_id_t outside_id;
-      if (direct_parent_obj != nullptr) {
-        outside_id = direct_parent_obj->id;
-      }
-      else {
-        outside_id = COUNTED_VOLUME_ID_OUTSIDE_ALL;
-      }
+    GeometryObject& child_obj = obj_info.get_geometry_object_noconst(world);
+    child_obj.counted_volume_id_outside = outside_id;
 
-      GeometryObject& child_obj = child_info.get_geometry_object_noconst(world);
-      child_obj.counted_volume_id_outside = outside_id;
+    Partition& p = world->get_partition(obj_info.partition_id);
 
-      Partition& p = world->get_partition(child_info.partition_id);
+    // and also create mapping for partition so that it knows about the hierarchy of objects
+    if (direct_parent_obj != nullptr) {
 
-      // and also create mapping for partition so that it knows about the hierarchy of objects
-      if (direct_parent_obj != nullptr) {
+      // set mapping direct parent -> { child1, ... }
+      p.add_child_of_directly_contained_counted_volume(direct_parent_obj->id, child_obj.id);
 
-        // set mapping direct parent -> { child1, ... }
-        p.add_child_of_directly_contained_counted_volume(direct_parent_obj->id, child_obj.id);
+      // set mapping child -> all counted volumes it is enclosed in
+      auto it_parents = contained_in_mapping.find(obj_info);
+      assert(it_parents != contained_in_mapping.end());
 
-        // set mapping child -> all counted volumes it is enclosed in
-        auto it_parents = contained_in_mapping.find(child_info);
-        assert(it_parents != contained_in_mapping.end());
-
-        for (const GeomObjectInfo& parent_info: it_parents->second) {
-          p.add_parent_that_encloses_counted_volume(child_obj.id, parent_info.geometry_object_id);
-        }
-      }
-      else {
-        // there is no parent, set that to the partition as well
-        p.set_that_object_has_no_enclosing_counted_volumes(child_obj.id);
+      for (const GeomObjectInfo& parent_info: it_parents->second) {
+        p.add_parent_that_encloses_counted_volume(child_obj.id, parent_info.geometry_object_id);
       }
     }
   }

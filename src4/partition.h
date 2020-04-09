@@ -596,12 +596,6 @@ public:
     enclosing_counted_volume_objects[child_id].insert(parent_id);
   }
 
-  void set_that_object_has_no_enclosing_counted_volumes(
-      const geometry_object_id_t child_id) {
-    // create key with empty calue
-    enclosing_counted_volume_objects[child_id] = uint_set<geometry_object_id_t>();
-  }
-
   const uint_set<geometry_object_id_t>* get_enclosing_counted_volumes(
       const geometry_object_id_t child_id) const {
 
