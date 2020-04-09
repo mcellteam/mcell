@@ -902,47 +902,49 @@ int init_reaction_data(struct volume *world) {
       }
     }
 
-    for (set = obp->data_set_head; set != NULL; set = set->next) {
-      if (set->file_flags == FILE_SUBSTITUTE) {
-        if (world->chkpt_seq_num == 1) {
-          FILE *file = fopen(set->outfile_name, "w");
-          if (file == NULL) {
-            mcell_perror_nodie(errno, "Failed to open reaction data output "
-                                      "file '%s' for writing",
-                               set->outfile_name);
-            return 1;
-          }
+    if (!world->use_mcell4) { // do not clean mcell3 output files in mcell4 mode
+      for (set = obp->data_set_head; set != NULL; set = set->next) {
+        if (set->file_flags == FILE_SUBSTITUTE) {
+          if (world->chkpt_seq_num == 1) {
+            FILE *file = fopen(set->outfile_name, "w");
+            if (file == NULL) {
+              mcell_perror_nodie(errno, "Failed to open reaction data output "
+                                        "file '%s' for writing",
+                                 set->outfile_name);
+              return 1;
+            }
 
-          fclose(file);
-        } else if (obp->timer_type == OUTPUT_BY_ITERATION_LIST) {
-          if (obp->time_now == NULL)
-            continue;
-          if (truncate_output_file(set->outfile_name, obp->t)) {
-            mcell_error_nodie("Failed to prepare reaction data output file "
-                              "'%s' to receive output.",
-                              set->outfile_name);
-            return 1;
-          }
-        } else if (obp->timer_type == OUTPUT_BY_TIME_LIST) {
-          if (obp->time_now == NULL)
-            continue;
-          if (truncate_output_file(set->outfile_name,
-                                   obp->t * world->time_unit)) {
-            mcell_error_nodie("Failed to prepare reaction data output file "
-                              "'%s' to receive output.",
-                              set->outfile_name);
-            return 1;
-          }
-        } else {
-          /* we need to truncate up until the start of the new checkpoint
-            * simulation plus a single TIMESTEP */
-          double startTime =
-              world->chkpt_start_time_seconds + world->time_unit;
-          if (truncate_output_file(set->outfile_name, startTime)) {
-            mcell_error_nodie("Failed to prepare reaction data output file "
-                              "'%s' to receive output.",
-                              set->outfile_name);
-            return 1;
+            fclose(file);
+          } else if (obp->timer_type == OUTPUT_BY_ITERATION_LIST) {
+            if (obp->time_now == NULL)
+              continue;
+            if (truncate_output_file(set->outfile_name, obp->t)) {
+              mcell_error_nodie("Failed to prepare reaction data output file "
+                                "'%s' to receive output.",
+                                set->outfile_name);
+              return 1;
+            }
+          } else if (obp->timer_type == OUTPUT_BY_TIME_LIST) {
+            if (obp->time_now == NULL)
+              continue;
+            if (truncate_output_file(set->outfile_name,
+                                     obp->t * world->time_unit)) {
+              mcell_error_nodie("Failed to prepare reaction data output file "
+                                "'%s' to receive output.",
+                                set->outfile_name);
+              return 1;
+            }
+          } else {
+            /* we need to truncate up until the start of the new checkpoint
+              * simulation plus a single TIMESTEP */
+            double startTime =
+                world->chkpt_start_time_seconds + world->time_unit;
+            if (truncate_output_file(set->outfile_name, startTime)) {
+              mcell_error_nodie("Failed to prepare reaction data output file "
+                                "'%s' to receive output.",
+                                set->outfile_name);
+              return 1;
+            }
           }
         }
       }

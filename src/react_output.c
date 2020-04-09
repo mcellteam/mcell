@@ -637,7 +637,7 @@ int check_reaction_output_file(struct output_set *os) {
 
   switch (os->file_flags) {
   case FILE_OVERWRITE:
-    f = fopen(name, "w");
+    f = fopen(name, "w"); // TODO: this might clear mcell3 file when mcell4 mode is used but there is no easy way how to pass information on the mode
     if (!f) {
       switch (errno) {
       case EACCES:
