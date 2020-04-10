@@ -449,8 +449,18 @@ static inline void /*__attribute__((always_inline))*/ collect_crossed_subparts(
     );
   }
 
-  // if we start close to an edge, the starting subpart might not be present
-  crossed_subparts_for_molecules.insert(vm.v.subpart_index);
+  if (collect_for_walls) {
+    // first for walls might not be present either, should be the first item
+    assert(!crossed_subparts_for_walls.empty());
+    if (crossed_subparts_for_walls.front() != vm.v.subpart_index) {
+      crossed_subparts_for_walls.push_back(vm.v.subpart_index);
+    }
+  }
+
+  // some subparts can be missed when checking just the corner points
+  for (subpart_index_t index: crossed_subparts_for_walls) {
+    crossed_subparts_for_molecules.insert(index);
+  }
 }
 
 

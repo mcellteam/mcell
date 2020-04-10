@@ -143,7 +143,7 @@ const float_t TIME_FOREVER = FLT_MAX; // this max is sufficient for both float a
 const float_t TIME_SIMULATION_START = 0;
 
 const float_t SQRT2 = 1.41421356238;
-const float_t RX_RADIUS_MULTIPLIER = 1.2; // TEMPORARY - we should figure out why some collisions with subparts are missed..., but maybe, it won't have big perf impact...
+const float_t RX_RADIUS_MULTIPLIER = 1.3; // TEMPORARY - we should figure out why some collisions with subparts are missed..., but maybe it won't have big perf impact...
 
 const uint INT_INVALID = INT32_MAX;
 const uint ID_INVALID = UINT32_MAX; // general invalid index, should not be used when a definition for a specific type is available

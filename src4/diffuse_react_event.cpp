@@ -505,7 +505,7 @@ RayTraceState ray_trace_vol(
   // first get what subpartitions might be relevant
   SubpartIndicesVector crossed_subparts_for_walls;
   subpart_indices_set_t crossed_subparts_for_molecules;
-  SUBPART_SET_INITIALIZE(crossed_subparts_for_molecules, BASE_CONTAINER_ALLOC, SUBPART_INDEX_INVALID);
+  SUBPART_SET_INITIALIZE(crossed_subparts_for_molecules, BASE_CONTAINER_ALLOC, SUBPART_INDEX_INVALID); // FIXME: use uint_dense_hash_map
 
   CollisionUtil::collect_crossed_subparts(
       p, vm, partition_displacement,
@@ -514,8 +514,8 @@ RayTraceState ray_trace_vol(
       crossed_subparts_for_molecules
   );
 
-  // crossed subparts must contain our own subpart
 #ifndef NDEBUG
+  // crossed subparts must contain our own subpart
   assert(crossed_subparts_for_molecules.count(vm.v.subpart_index) == 1);
   bool debug_found = false;
   for (subpart_index_t debug_index: crossed_subparts_for_walls) {
@@ -524,7 +524,12 @@ RayTraceState ray_trace_vol(
       break;
     }
   }
-  assert(debug_found);
+  assert(debug_found && "Did not find the starting subpartition in crossed subparts for walls");
+
+  // also, each subpart from a wall must be present when checking molecules
+  for (subpart_index_t debug_index: crossed_subparts_for_walls) {
+    assert(crossed_subparts_for_molecules.count(debug_index) == 1);
+  }
 #endif
 
   //crossed_subparts_for_walls = crossed_subparts_for_walls_new;
@@ -563,11 +568,12 @@ RayTraceState ray_trace_vol(
     // recompute collect_crossed_subparts if there was a wall collision
     // NOTE: this can be in theory done more efficiently if we knew the order of subpartitions that we hit in the previous call
     crossed_subparts_for_molecules.clear();
+    crossed_subparts_for_walls.clear();
     CollisionUtil::collect_crossed_subparts(
         p, vm, displacement_up_to_wall_collision,
         radius,
         p.config.subpartition_edge_length,
-        false, crossed_subparts_for_walls, // not filled this time
+        true, crossed_subparts_for_walls, // not filled this time
         crossed_subparts_for_molecules
     );
   }
