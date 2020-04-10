@@ -4601,6 +4601,11 @@ int collide_and_react_with_walls(struct volume* world, struct collision* smash,
         *loc_certain = &(ttv->loc);
       }
     }
+
+#ifdef DEBUG_TRANSPARENT_SURFACES
+  std::cout << "Crossed a transparent wall, side: " << ((wall*)smash->target)->side << "\n";
+#endif
+
     return 0; /* Ignore this wall and keep going */
   } else if (inertness < inert_to_all) {
     /* Collisions with the surfaces declared REFLECTIVE are treated similar to

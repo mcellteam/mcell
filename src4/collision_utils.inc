@@ -1246,11 +1246,11 @@ static bool is_point_inside_region(const Partition& p, const Vec3& pos, const Re
 static void cross_transparent_wall(
     const Partition& p,
     const Collision& collision,
-    const float_t steps, // full time step this diffusion
     const Vec3& full_displacement, // whole displacement computed for this molecule
     Molecule& vm, // moves vm to the reflection point
     Vec3& remaining_displacement,
-    float_t& remaining_time_step, // same as t_steps
+    float_t& t_steps,
+    float_t& elapsed_molecule_time,
     wall_index_t& last_hit_wall_index
 ) {
 
@@ -1273,16 +1273,33 @@ static void cross_transparent_wall(
     }
   }
 
-  float_t t_cross = collision.time;
+#ifdef DEBUG_TRANSPARENT_SURFACES
+  std::cout << "Crossed a transparent wall, side: " << w.side << "\n";
+#endif
+
+  // ignore the collision time, it is a bit earlier and does not fit for multiple collisions in the
+  // same time step
+  float_t t_smash = collision.time;
+
+  remaining_displacement = remaining_displacement * Vec3(1.0 - t_smash);
 
   // Update molecule location to the point of wall crossing
   vm.v.pos = collision.pos;
 
-  // Reduce our remaining available time
-  remaining_time_step = remaining_time_step - t_cross;
+  elapsed_molecule_time += t_steps * t_smash;
+
+  t_steps *= (1.0 - t_smash);
+  if (t_steps < EPS) {
+    t_steps = EPS;
+  }
+
+  /*// Reduce our remaining available time
+  t_steps = t_steps - t_cross;
+  assert(cmp_gt(t_steps, 0, EPS));
 
   // Set displacement for remainder of step length
-  remaining_displacement = full_displacement * Vec3(steps - t_cross);
+//  remaining_displacement = full_displacement * Vec3(steps - t_cross);
+  remaining_displacement = full_displacement * Vec3(t_steps);*/
 
   last_hit_wall_index = w.index;
 }

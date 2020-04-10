@@ -401,9 +401,16 @@ void DiffuseReactEvent::diffuse_vol_molecule(
           if (collide_res == WallRxnResult::Transparent) {
             // update molecules' counted volume, time and displacement and continue
             CollisionUtil::cross_transparent_wall(
-                p, collision, steps, displacement,
-                m, remaining_displacement, t_steps, last_hit_wall_index
+                p, collision, displacement,
+                m, remaining_displacement, t_steps, elapsed_molecule_time, last_hit_wall_index
             );
+
+            // update collision times of the following wall hits because we processed this hit
+            for (size_t ci_update = collision_index + 1; ci_update < molecule_collisions.size(); ci_update++) {
+              assert(molecule_collisions[ci_update].time >= collision.time);
+              molecule_collisions[ci_update].time -= collision.time;
+            }
+
             continue;
           }
           else if (collide_res == WallRxnResult::Destroyed) {
