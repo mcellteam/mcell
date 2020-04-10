@@ -177,6 +177,7 @@ public:
   }
 
   // FIXME: use subpart_index_t, rename to subpart
+  // TODO: consider using bitfields, this recomputation can be slow
   subpart_index_t get_subpart_index_from_3d_indices(const IVec3& indices) const {
     // example: dim: 5x5x5,  (1, 2, 3) -> 1 + 2*5 + 3*5*5 = 86
     return
@@ -190,7 +191,7 @@ public:
   }
 
 
-  void get_subpart_3d_indices_from_index(const uint32_t index, IVec3& indices) const {
+  void get_subpart_3d_indices_from_index(const subpart_index_t index, IVec3& indices) const {
     uint32_t dim = config.subpartitions_per_partition_dimension;
     // example: dim: 5x5x5,  86 -> (86%5, (86/5)%5, (86/(5*5))%5) = (1, 2, 3)
     indices.x = index % dim;

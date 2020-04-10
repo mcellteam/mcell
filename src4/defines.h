@@ -131,6 +131,7 @@ const float_t SCHEDULER_COMPARISON_EPS = 1e-10;
 
 const uint DEFRAGMENTATION_PERIODICITY = 500;
 const float_t PARTITION_EDGE_LENGTH_DEFAULT = 10 * 100 /*100 = 1/length unit*/; // large for now because we have just one partition
+const float_t PARTITION_EDGE_EXTRA_MARGIN = 0.1;
 const float_t SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT = 1;
 
 
@@ -696,6 +697,8 @@ public:
 
 private:
   void init_subpartition_edge_length() {
+    assert(subpartitions_per_partition_dimension % 2 == 0
+        && "Implementation of raycast_with_endpoints requires that central subparts are aligned with the axes and not shifted");
     if (partition_edge_length != 0) {
       subpartition_edge_length = partition_edge_length / (float_t)subpartitions_per_partition_dimension;
       subpartition_edge_length_rcp = 1.0/subpartition_edge_length;

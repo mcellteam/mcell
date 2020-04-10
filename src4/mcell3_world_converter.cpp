@@ -165,11 +165,23 @@ static float_t get_largest_abs_value(const vector3& v) {
   return max;
 }
 
+
 static float_t get_largest_distance_from_center(const vector3& llf, const vector3& urb) {
   float_t max1 = get_largest_abs_value(llf);
   float_t max2 = get_largest_abs_value(urb);
   return max1 > max2 ? max1 : max2;
 }
+
+
+static uint get_even_higher_or_same_value(const uint val) {
+  if (val % 2 == 0) {
+    return val;
+  }
+  else {
+    return val + 1;
+  }
+}
+
 
 bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
   // TODO_CONVERSION: many items are not checked
@@ -199,7 +211,8 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
     mcell_log("MCell4 partition bounding box in microns: [ %f, %f, %f ], [ %f, %f, %f ]\n",
         -l, -l, -l, l, l, l);
 
-    world->config.subpartitions_per_partition_dimension = s->num_subparts;
+    // number of subparts must be even so that the central subparts are aligned with the axes and not shifted
+    world->config.subpartitions_per_partition_dimension = get_even_higher_or_same_value(s->num_subparts);
   }
   else {
     // use MCell's bounding box, however, we must make a cube out of it
@@ -217,7 +230,7 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
     }
 
     // this number counts the number of boundaries, not subvolumes, also, there are always 2 extra subvolumes on the sides in mcell3
-    world->config.subpartitions_per_partition_dimension = s->nx_parts - 3;
+    world->config.subpartitions_per_partition_dimension = get_even_higher_or_same_value(s->nx_parts - 3);
   }
   CHECK_PROPERTY(s->nx_parts == s->ny_parts);
   CHECK_PROPERTY(s->ny_parts == s->nz_parts);

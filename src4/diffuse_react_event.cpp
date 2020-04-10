@@ -514,6 +514,19 @@ RayTraceState ray_trace_vol(
       crossed_subparts_for_molecules
   );
 
+  // crossed subparts must contain our own subpart
+#ifndef NDEBUG
+  assert(crossed_subparts_for_molecules.count(vm.v.subpart_index) == 1);
+  bool debug_found = false;
+  for (subpart_index_t debug_index: crossed_subparts_for_walls) {
+    if (debug_index == vm.v.subpart_index) {
+      debug_found = true;
+      break;
+    }
+  }
+  assert(debug_found);
+#endif
+
   //crossed_subparts_for_walls = crossed_subparts_for_walls_new;
   //crossed_subparts_for_molecules = crossed_subparts_for_molecules_new;
 

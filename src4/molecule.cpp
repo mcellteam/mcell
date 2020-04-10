@@ -108,8 +108,10 @@ void Molecule::dump(
   cout
     << ", flags:" << get_molecule_flags_string(flags, false);
 #ifdef DEBUG_SUBPARTITIONS
+  IVec3 indices;
+  p.get_subpart_3d_indices_from_index(v.subpart_index, indices);
   if (is_vol()) {
-    cout << ", subpartition:" << v.subpart_index;
+    cout << ", subpartition: " << v.subpart_index << " " << indices;
   }
 #endif
 

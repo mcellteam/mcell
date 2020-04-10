@@ -135,7 +135,9 @@ void World::init_simulation() {
 
   init_counted_volumes();
 
-  cout << "Partitions contain " <<  config.subpartitions_per_partition_dimension << "^3 subvolumes.";
+  cout <<
+      "Partition contains " <<  config.subpartitions_per_partition_dimension << "^3 subpartitions, " <<
+      "subpartition size is " << config.subpartition_edge_length * config.length_unit << " microns.\n";
   assert(partitions.size() == 1 && "Initial partition must have been created, only 1 is allowed for now");
 
   // create defragmentation events

@@ -275,7 +275,7 @@ static void raycast_with_endpoints(
   t.z = ((dir.z == -1) ? (pt1.z - min.z) : (max.z - pt1.z)) * abs_d_rcp.z;
 
 #ifdef DEBUG_SUBPARTITIONS
-  std::cout << "Point " << pt_index << " start subpart indices " << indices << "\n";
+  std::cout << "Point " << pt_index << ", start subpart indices " << indices << "\n";
 #endif
 
   do {
@@ -416,9 +416,8 @@ static inline void /*__attribute__((always_inline))*/ collect_crossed_subparts(
 
     #ifdef DEBUG_SUBPARTITIONS
     DUMP_CONDITION4P(
-      std::cout << "Point " << i << ", dest pos: " << dest_pos << "\n";
-      std::cout << "Point " << i << ", start subpart indices: " << start_positions[i] << "\n";
-      std::cout << "Point " << i << ", dest  subpart indices: " << dest_positions[i] << "\n";
+      std::cout << "Point " << i << ", start pos: " << start_positions[i] << "\n";
+      std::cout << "Point " << i << ", dest  pos: " << dest_positions[i] << "\n";
     );
     #endif
   }
@@ -449,6 +448,9 @@ static inline void /*__attribute__((always_inline))*/ collect_crossed_subparts(
         crossed_subparts_for_walls, crossed_subparts_for_molecules
     );
   }
+
+  // if we start close to an edge, the starting subpart might not be present
+  crossed_subparts_for_molecules.insert(vm.v.subpart_index);
 }
 
 
