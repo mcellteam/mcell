@@ -1,0 +1,55 @@
+# OK
+# simple_system.bngl
+#
+# An example model for running NFsim to get you started.
+#
+# Comments in BNGL are always preceded with a pound (#) character, so that any text that
+# follows a pound character is ignored.  The model file below is commented to help you
+# understand the main parts of a BNGL file.  Note that some commands at the end of the
+# model file that allow you to run the model with different simulators are commented out.
+# To use these other options, simply remove the pound character before the command.
+
+
+
+
+
+# The first part of a BNGL file is the parameters block, where you can define the rates
+# of equations or the starting numbers of any of the molecular species.
+begin parameters
+   kon 10
+   koff 5
+   kcat 0.7
+   dephos 0.5
+end parameters
+
+
+
+# Next, we define the set of molecule types in the system.  This is a declaration only, so
+# we don't specify how many of each molecules there are, and we have to provide a list
+# of all possible state values for each component of each molecule with a tilda (~)
+# character.
+begin molecule types
+  X(y,p~0~1)
+  Y(x)
+end molecule types
+
+
+
+# This is a very simple system indeed.  The only rules that are defined
+# tell us that X can bind Y if X is dephosphorylated.  Then the XY complex
+# can either disassociate, or a phosphorylation reaction can occur.  Finally, X
+# will dephosphorylate regardless of whether or not it is bound to Y, although
+# for these rules, it will always be unbound to Y if it is phosphorylated.
+# Here are the rule definitions:
+begin reaction rules
+
+   X(y,p~0) + Y(x) -> X(y!1,p~0).Y(x!1)   kon
+   X(y!1,p~0).Y(x!1) -> X(y,p~0) + Y(x)   koff
+   X(y!1,p~0).Y(x!1) -> X(y,p~1) + Y(x)   kcat
+   
+   X(p~1) -> X(p~0)                       dephos
+
+end reaction rules
+
+
+

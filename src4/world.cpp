@@ -38,7 +38,8 @@ const double USEC_IN_SEC = 1000000.0;
 namespace MCell {
 
 World::World()
-  : iterations(0),
+  : bng_engine(config),
+    iterations(0),
     seed_seq(0),
     next_wall_id(0),
     next_geometry_object_id(0),
@@ -51,6 +52,10 @@ World::World()
 {
   config.partition_edge_length = PARTITION_EDGE_LENGTH_DEFAULT;
   config.subpartitions_per_partition_dimension = SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT;
+
+#ifdef DEBUG_REACTIONS
+  config.debug_reactions = true;
+#endif
 }
 
 
@@ -104,12 +109,12 @@ static double tosecs(timeval& t) {
 void World::init_simulation() {
   assert(!simulation_initialized && "init_simulation must be called just once");
 
-  if (all_species.get_count() == 0) {
+  if (get_all_species().get_count() == 0) {
     mcell_log("Error: there must be at lease one species!");
     exit(1);
   }
 
-  all_reactions.init(all_species);
+  // TODO: what do I need for initialization?
   config.init();
   stats.reset();
 
@@ -256,8 +261,8 @@ void World::run_simulation(const bool dump_initial_state) {
 void World::dump() {
   stats.dump();
 
-  all_species.dump();
-  all_reactions.dump();
+  get_all_species().dump(bng_engine.get_data());
+  get_all_rxns().dump();
 
   // partitions
   for (Partition& p: partitions) {

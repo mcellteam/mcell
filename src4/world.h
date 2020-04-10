@@ -33,13 +33,14 @@
 #include <set>
 #include <map>
 
+#include "../libs/bng/rxn_container.h"
+#include "bng/bng.h"
+
 #include "partition.h"
 #include "scheduler.h"
-#include "species.h"
 #include "geometry.h"
 #include "callback_info.h"
-#include "reaction.h"
-#include "reactions_info.h"
+
 
 namespace MCell {
 
@@ -100,7 +101,7 @@ public:
         floor_to_multiple(pos, config.partition_edge_length)
         - Vec3(config.partition_edge_length/2);
 
-    partitions.push_back(Partition(origin, config, all_reactions, all_species, stats));
+    partitions.push_back(Partition(origin, config, bng_engine, stats));
     return partitions.size() - 1;
   }
 
@@ -138,6 +139,21 @@ public:
     return wall_hit_callback;
   }
 
+  // ---------------------- other ----------------------
+  BNG::SpeciesContainer& get_all_species() { return bng_engine.get_all_species(); }
+  const BNG::SpeciesContainer& get_all_species() const { return bng_engine.get_all_species(); }
+
+  BNG::RxnContainer& get_all_rxns() { return bng_engine.get_all_rxns(); }
+  const BNG::RxnContainer& get_all_rxns() const { return bng_engine.get_all_rxns(); }
+
+public:
+  // single instance for the whole mcell simulator,
+  // used as constants during simulation
+  SimulationConfig config;
+  //BNG::RxnContainer all_reactions;
+  BNG::BNGEngine bng_engine;
+  SimulationStats stats;
+
 private:
   std::vector<Partition> partitions;
 
@@ -146,16 +162,6 @@ public:
 
   uint64_t iterations; // number of iterations to simulate - move to Sim config
   uint seed_seq; // initial seed passed to mcell as argument
-
-
-public:
-  // single instance for the whole mcell simulator,
-  // used as constants during simulation
-  SimulationConfig config;
-  ReactionsInfo all_reactions;
-  SpeciesInfo all_species;
-  SimulationStats stats;
-
 
   rng_state rng; // single state for the random number generator
 

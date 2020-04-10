@@ -274,7 +274,7 @@ static void raycast_with_endpoints(
   t.z = ((dir.z == -1) ? (pt1.z - min.z) : (max.z - pt1.z)) * abs_d_rcp.z;
 
 #ifdef DEBUG_SUBPARTITIONS
-  std::cout << "Point " << pt_index << " start subpart indices " << Vec3(i, j, k) << "\n";
+  std::cout << "Point " << pt_index << " start subpart indices " << indices << "\n";
 #endif
 
   do {
@@ -312,13 +312,13 @@ static void raycast_with_endpoints(
     }
 
     #ifdef DEBUG_SUBPARTITIONS
-      std::cout << "Point " << pt_index << ", new subpart indices: " << IVec3(i, j, k) << "\n";
+      std::cout << "Point " << pt_index << ", new subpart indices: " << indices << "\n";
     #endif
   }
   while (true);
 
 #ifdef DEBUG_SUBPARTITIONS
-  std::cout << "Point " << pt_index << ", last subpart indices: " << IVec3(i, j, k) << "\n";
+  std::cout << "Point " << pt_index << ", last subpart indices: " << indices << "\n";
 #endif
 
   // add final subpart
@@ -422,8 +422,8 @@ static inline void /*__attribute__((always_inline))*/ collect_crossed_subparts(
     #ifdef DEBUG_SUBPARTITIONS
     DUMP_CONDITION4P(
       std::cout << "Point " << i << ", dest pos: " << dest_pos << "\n";
-      std::cout << "Point " << i << ", start subpart indices: " << curr_subpart_indices3d[i] << "\n";
-      std::cout << "Point " << i << ", dest  subpart indices: " << dest_subpart_indices3d[i] << "\n";
+      std::cout << "Point " << i << ", start subpart indices: " << start_positions[i] << "\n";
+      std::cout << "Point " << i << ", dest  subpart indices: " << dest_positions[i] << "\n";
     );
     #endif
   }
@@ -531,8 +531,12 @@ static void collide_mol_loop_body(
   Vec3 position;
   // collide_mol must be inlined because many things are computed all over there
   if (collide_mol(vm, remaining_displacement, colliding_vm, radius, time, position)) {
-    const RxnClass* rxn_class = p.all_reactions.get_specific_reaction_class(vm, colliding_vm);
-    assert(rxn_class != nullptr);
+
+    const BNG::RxnClass* rxn_class =
+        p.get_all_rxns().get_bimol_rxn_class(vm.species_id, colliding_vm.species_id);
+
+    assert(rxn_class != nullptr && "If a collision of two molecules was detected, there must be a reaction for them.");
+
     molecule_collisions.push_back(
         Collision(CollisionType::VOLMOL_VOLMOL, &p, vm.id, time, position, colliding_vm.id, rxn_class)
     );

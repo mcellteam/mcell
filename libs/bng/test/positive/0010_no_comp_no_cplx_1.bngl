@@ -1,0 +1,11 @@
+# OK
+# type of reactions that can be handled by MCell as well
+begin molecule types
+   A()
+   B()
+   C()
+end molecule types
+
+begin reaction rules
+  A() + B() <-> C() 0.001, 0.001
+end reaction rules

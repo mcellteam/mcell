@@ -25,6 +25,8 @@
 #include <stdlib.h>
 #include <set>
 
+#include "bng/bng.h"
+
 #include "logging.h"
 #include "mcell_structs.h"
 #include "mcell3_world_converter.h"
@@ -37,6 +39,7 @@
 #include "dump_state.h"
 
 using namespace std;
+using namespace BNG;
 
 const char* const ALL_MOLECULES = "ALL_MOLECULES";
 const char* const ALL_VOLUME_MOLECULES = "ALL_VOLUME_MOLECULES";
@@ -67,7 +70,7 @@ bool mcell4_run_simulation(const bool dump_initial_state) {
 
 
 void mcell4_delete_world() {
-  return g_converter.reset();
+  g_converter.reset();
 }
 
 
@@ -124,7 +127,8 @@ bool MCell3WorldConverter::convert(volume* s) {
 
   CHECK(convert_simulation_setup(s));
 
-  CHECK(convert_species_and_create_diffusion_events(s));
+  CHECK(convert_species(s));
+  create_diffusion_events(); // cannot fail?
   CHECK(convert_reactions(s));
 
   // at this point, we need to create the first (and for now the only) partition
@@ -151,6 +155,7 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
   world->iterations = s->iterations;
   world->config.time_unit = s->time_unit;
   world->config.length_unit = s->length_unit;
+  world->config.grid_density = s->grid_density;
   world->config.rx_radius_3d = s->rx_radius_3d;
   world->config.vacancy_search_dist2 = s->vacancy_search_dist2 / s->length_unit;
   world->seed_seq = s->seed_seq;
@@ -554,10 +559,10 @@ bool MCell3WorldConverter::convert_polygonal_object(const geom_object* o) {
 
 // cannot fail
 void MCell3WorldConverter::create_diffusion_events() {
-  assert(world->all_species.get_count() != 0 && "There must be at least 1 species");
+  assert(world->get_all_species().get_count() != 0 && "There must be at least 1 species");
 
   set<float_t> time_steps_set;
-  for (auto &species : world->all_species.get_species_vector() ) {
+  for (auto &species : world->get_all_species().get_species_vector() ) {
     time_steps_set.insert(species.time_step);
   }
 
@@ -572,34 +577,19 @@ static bool is_species_superclass(volume* s, species* spec) {
   return spec == s->all_mols || spec == s->all_volume_mols || spec == s->all_surface_mols;
 }
 
-bool MCell3WorldConverter::convert_species_and_create_diffusion_events(volume* s) {
+bool MCell3WorldConverter::convert_species(volume* s) {
+
   // TODO_CONVERSION: many items are not checked
   for (int i = 0; i < s->n_species; i++) {
     species* spec = s->species_list[i];
 
     Species new_species;
     new_species.name = get_sym_name(spec->sym);
-    new_species.species_id = world->all_species.get_count(); // id corresponds to the index in the species array
-
-    // check all species 'superclasses' classes
-    // these special species might be used in wall - surf|vol reactions
-    if (spec == s->all_mols) {
-      CHECK_PROPERTY(new_species.name == ALL_MOLECULES);
-      world->all_reactions.set_all_molecules_species_id(new_species.species_id);
-    }
-    else if (spec == s->all_volume_mols) {
-      CHECK_PROPERTY(new_species.name == ALL_VOLUME_MOLECULES);
-      world->all_reactions.set_all_volume_molecules_species_id(new_species.species_id);
-    }
-    else if (spec == s->all_surface_mols) {
-      CHECK_PROPERTY(new_species.name == ALL_SURFACE_MOLECULES);
-      world->all_reactions.set_all_surface_molecules_species_id(new_species.species_id);
-    }
-
-    new_species.mcell3_species_id = spec->species_id;
     new_species.D = spec->D;
     new_species.space_step = spec->space_step;
     new_species.time_step = spec->time_step;
+
+    CHECK_PROPERTY((spec->flags & CANT_INITIATE) == 0); // RxnClass::compute_pb_factor assumes this
 
     if (!(
         is_species_superclass(s, spec)
@@ -635,21 +625,53 @@ bool MCell3WorldConverter::convert_species_and_create_diffusion_events(volume* s
     CHECK_PROPERTY(spec->absorb_mols == nullptr);
     CHECK_PROPERTY(spec->clamp_conc_mols == nullptr);
 
-    world->all_species.add(new_species);
+    // we must add a complex instance as the single molecule type in the new species
+    // define a molecule type with no components
+    MolType mol_type;
+    mol_type.name = new_species.name; // name of the mol type is the same as for our species
+    mol_type_id_t mol_type_id = world->bng_engine.get_data().find_or_add_molecule_type(mol_type);
 
-    mcell3_species_id_map[new_species.mcell3_species_id] = new_species.species_id;
+    MolInstance mol_inst;
+    mol_inst.mol_type_id = mol_type_id;
+    if (new_species.is_vol()) {
+      mol_inst.set_flag(CPLX_MOL_FLAG_VOL);
+    }
+    else if (new_species.is_surf()) {
+      mol_inst.set_flag(CPLX_MOL_FLAG_SURF);
+    }
+    else {
+      assert(false);
+    }
+
+    new_species.mol_instances.push_back(mol_inst);
+
+    // and finally let's add our new species
+    new_species.finalize();
+    species_id_t new_species_id = world->get_all_species().find_or_add(new_species);
+
+    // set all species 'superclasses' ids
+    // these special species might be used in wall - surf|vol reactions
+    if (spec == s->all_mols) {
+      CHECK_PROPERTY(new_species.name == ALL_MOLECULES);
+      world->get_all_species().set_all_molecules_species_id(new_species_id);
+    }
+    else if (spec == s->all_volume_mols) {
+      CHECK_PROPERTY(new_species.name == ALL_VOLUME_MOLECULES);
+    }
+    else if (spec == s->all_surface_mols) {
+      CHECK_PROPERTY(new_species.name == ALL_SURFACE_MOLECULES);
+      world->get_all_species().set_all_surface_molecules_species_id(new_species_id);
+    }
+
+    // map for other conversion steps
+    mcell3_species_id_map[spec->species_id] = new_species_id;
   }
-
-  // TODO: really not sure why this is here... split
-  create_diffusion_events();
 
   return true;
 }
 
 
 bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
-  RxnClass rxn_class;
-
   // rx->next - handled in convert_reactions
   // rx->sym->name - ignored, name obtained from pathway
 
@@ -662,8 +684,9 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
 
   assert(mcell3_rx->cum_probs != nullptr);
 
-  rxn_class.max_fixed_p = mcell3_rx->max_fixed_p;
-  rxn_class.min_noreaction_p = mcell3_rx->min_noreaction_p;
+  // BNGTODO: create RXN classes!
+  // rxn_class.max_fixed_p = mcell3_rx->max_fixed_p;
+  // rxn_class.min_noreaction_p = mcell3_rx->min_noreaction_p;
 
   // ?? double pb_factor; /* Conversion factor from rxn rate to rxn probability (used for cooperativity) */
 
@@ -694,7 +717,7 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
 
     // -> pathway is renamed in MCell3 to reaction because pathway has a different meaning
     //    MCell3 rection is reaction class
-    Rxn rxn;
+    RxnRule rxn;
 
     if (current_pathway->pathname != nullptr) {
       assert(current_pathway->pathname->sym != nullptr);
@@ -720,20 +743,11 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
     // reactants
     if (current_pathway->reactant1 != nullptr) {
       species_id_t reactant1_id = get_mcell4_species_id(current_pathway->reactant1->species_id);
-      SpeciesWithOrientation r1 = SpeciesWithOrientation(reactant1_id, current_pathway->orientation1);
-      rxn.reactants.push_back(r1);
-      if (pathway_index == 0) {
-        // reaction has the same reactants, storing only once
-        rxn_class.reactants.push_back(r1);
-      }
+      rxn.append_reactant(world->bng_engine.create_species_based_cplx_instance(reactant1_id, current_pathway->orientation1));
 
       if (current_pathway->reactant2 != nullptr) {
         species_id_t reactant2_id = get_mcell4_species_id(current_pathway->reactant2->species_id);
-        SpeciesWithOrientation r2 = SpeciesWithOrientation(reactant2_id, current_pathway->orientation2);
-        rxn.reactants.push_back(r2);
-        if (pathway_index == 0) {
-          rxn_class.reactants.push_back(r2);
-        }
+        rxn.append_reactant(world->bng_engine.create_species_based_cplx_instance(reactant2_id, current_pathway->orientation2));
 
         if (current_pathway->reactant3 != nullptr) {
           mcell_error("TODO_CONVERSION: reactions with 3 reactants are not supported");
@@ -753,40 +767,40 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
 
     if (mcell3_rx->n_pathways == RX_ABSORB_REGION_BORDER) {
       CHECK_PROPERTY(current_pathway->flags == PATHW_ABSORP);
-      rxn_class.type = RxnClassType::AbsorbRegionBorder;
+      rxn.type = RxnType::AbsorbRegionBorder;
     }
     else if (mcell3_rx->n_pathways == RX_TRANSP) {
       CHECK_PROPERTY(current_pathway->flags == PATHW_TRANSP);
-      rxn_class.type = RxnClassType::Transparent;
+      rxn.type = RxnType::Transparent;
     }
     else if (mcell3_rx->n_pathways == RX_REFLEC) {
       CHECK_PROPERTY(current_pathway->flags == PATHW_REFLEC);
-      rxn_class.type = RxnClassType::Reflect;
+      rxn.type = RxnType::Reflect;
     }
     else {
       CHECK_PROPERTY(current_pathway->flags == 0);
-
-      rxn_class.type = RxnClassType::Standard;
+      rxn.type = RxnType::Standard;
 
       // products
       product *product_ptr = current_pathway->product_head;
       while (product_ptr != nullptr) {
-        species_id_t product_id = get_mcell4_species_id(product_ptr->prod->species_id);
         CHECK_PROPERTY(product_ptr->orientation == 0 || product_ptr->orientation == 1 || product_ptr->orientation == -1);
-
-        rxn.products.push_back(SpeciesWithOrientation(product_id, product_ptr->orientation));
+        species_id_t product_id = get_mcell4_species_id(product_ptr->prod->species_id);
+        rxn.append_product( world->bng_engine.create_species_based_cplx_instance(product_id, product_ptr->orientation) );
 
         product_ptr = product_ptr->next;
       }
     }
 
-    rxn_class.add_and_initialize_reaction(rxn, mcell3_rx->cum_probs[pathway_index]);
 
     pathway_index++;
+
+    // add our reaction, reaction classes are created on-the-fly
+    rxn.finalize();
+    world->get_all_rxns().add_no_update(rxn);
   }
 
 
-  world->all_reactions.add(rxn_class);
 
   return true;
 }
@@ -906,6 +920,7 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
       }
 
       event_data.species_id = get_mcell4_species_id(rel_site->mol_type->species_id);
+      assert(world->get_all_species().is_valid_id(event_data.species_id));
 
       CHECK_PROPERTY(rel_site->release_number_method == 0);
 

@@ -1,0 +1,15 @@
+# FAIL
+# OUTPUT: error: Unknown state name 'Q' for component 'p' (this state name was not found for any declared component).
+
+begin parameters
+   kp 0.00001
+   km 1
+end parameters
+
+begin molecule types
+   A(a,p~0~1)
+end molecule types
+
+begin reaction rules
+  A(p~Q) + A(a) <-> A(a!1).A(a!1) kp, km
+end reaction rules

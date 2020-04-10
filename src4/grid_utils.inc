@@ -1248,7 +1248,7 @@ static bool wall_has_initialized_grid(const Wall* w) {
 
 
 static bool check_if_can_move_through_border(
-    const Partition& p,
+    Partition& p,
     const Molecule& sm,
     const Wall& wall,
     const uint_set<region_index_t>& this_wall_restricted_regions,
@@ -1319,7 +1319,7 @@ static void grid_all_neighbors_across_walls_through_edges(
   /* check for possible reflection (absorption) from the wall edges
      that may be region borders.  These are INSIDE_OUT and OUTSIDE-IN
      checks against molecule's own wall and neighbor wall */
-  const Species& species = p.all_species.get(sm.species_id);
+  const BNG::Species& species = p.get_all_species().get(sm.species_id);
   if (species.has_flag(SPECIES_FLAG_CAN_REGION_BORDER)) {
     assert(sm.s.wall_index == wall.index);
 
@@ -2052,7 +2052,7 @@ static void find_closest_tile_on_wall(
       // molecules are processed in different order than in mcell3...
       // although, maybe not anymore due to sort in Partition::apply_vertex_moves,
       // revisit if needed
-      assert(false && "Need RNG for dynamic vertices and surface molecules that would however break consistency with mcell3");
+      mcell_error("Need RNG for dynamic vertices and surface molecules that would however break consistency with mcell3");
       // new_pos2d = GridUtil::grid2uv_random(w, new_tile_index, rng);
     }
     else {

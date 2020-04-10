@@ -96,7 +96,7 @@ int main(int argc, char **argv) {
   CHECKED_CALL_EXIT(mcell_init_output(state),
                     "An error occured during setting up of output.");
 
-  if (state->dump_mcell4) {
+  if (state->dump_mcell3) {
     dump_volume(state, "initial", DUMP_EVERYTHING);
   }
   

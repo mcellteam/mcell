@@ -1404,6 +1404,7 @@ struct volume {
 
   // mcell4 -specific items
   int use_mcell4;
+  int dump_mcell3;
   int dump_mcell4;
 
   // min and max values from PARTITION_X|Y|Z settings,

@@ -1,0 +1,18 @@
+# FAIL
+# OUTPUT: error: Did not find a matching molecule in products for reactant molecule A(a,p~0) listed as complex 0 and molecule 0. (in the forward direction, indices are counted from 0)
+# OUTPUT: error: Did not find a matching molecule in products for reactant molecule A(a!1,p) listed as complex 0 and molecule 1. (in the reverse direction, indices are counted from 0)
+#
+# NOTE: BNG2.pl reports Component with state attribute defined in reactant pattern cannot map to component with undefined state attribute in product pattern
+
+begin parameters
+   kp 0.00001
+   km 1
+end parameters
+
+begin molecule types
+   A(a,p~0~1)
+end molecule types
+
+begin reaction rules
+  A(a,p~0) + A(a) <-> A(a!1).A(a!1,p) kp, km
+end reaction rules

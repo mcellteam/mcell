@@ -70,6 +70,7 @@ static struct option long_options[] = { { "help", 0, 0, 'h' },
                                         { "with_checks", 1, 0, 'w' },
                                         { "rules", 1, 0, 'r'},
 																				{ "mcell4", 0, 0, 'n'},
+																				{ "dump_mcell3", 0, 0, 't'},
 																				{ "dump_mcell4", 0, 0, 'o'},
                                         { NULL, 0, 0, 0 } };
 
@@ -100,7 +101,8 @@ void print_usage(FILE *f, char const *argv0) {
       "     [-with_checks ('yes'/'no', default 'yes')]   performs check of the geometry for coincident walls\n"
       "     [-rules rules_file_name] run in MCell-R mode\n"
 			"     [-mcell4]                run new experimental MCell 4 version\n"
-			"     [-dump_mcell4]           dump Mcell 3 state for MCell 4 development\n"
+      "     [-dump_mcell3]           dump initial MCell 3 state for MCell 4 development\n"
+			"     [-dump_mcell4]           dump initial MCell 4 state\n"
       "\n");
 }
 
@@ -346,6 +348,10 @@ int argparse_init(int argc, char *const argv[], struct volume *vol) {
       vol->use_mcell4 = 1;
       break;
 
+    case 't':
+      vol->dump_mcell3 = 1;
+      break;
+
     case 'o':
       vol->dump_mcell4 = 1;
       break;
@@ -387,7 +393,7 @@ int argparse_init(int argc, char *const argv[], struct volume *vol) {
 
   /* Initialize NFSim if requested */
   if (vol->nfsim_flag) {
-    int nfsimStatus = setupNFSim_c(rules_xml_file, vol->seed_seq, 0);
+    int nfsimStatus = setupNFSim_c(rules_xml_file, vol->seed_seq, vol->dump_level > 0);
     free(rules_xml_file);
     if (nfsimStatus != 0){
       argerror("nfsim model could not be properly initialized: %s", optarg);

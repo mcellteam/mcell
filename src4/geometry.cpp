@@ -255,7 +255,9 @@ void Edge::debug_check_values_are_uptodate(const Partition& p) {
     // not initialized
     return;
   }
+#ifndef NDEBUG
   Vec2 orig_translate = translate;
+#endif
   float_t orig_cos_theta = cos_theta;
   float_t orig_sin_theta = sin_theta;
   dump();

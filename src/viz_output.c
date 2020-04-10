@@ -446,16 +446,28 @@ static int output_ascii_molecules(struct volume *world,
                   fprintf(custom_file,"%d %15.8e %15.8e %15.8e
          %2d\n",id,where.x,where.y,where.z,orient);
       */
+      const char *external_name = "";
+
+      #ifdef ASCII_VIZ_EXTERNAL_SPECIES_NAME
+        if ((amp->properties->flags & EXTERNAL_SPECIES) != 0) {
+          /* This is complex molecule, so add a new viz molecule for each molecule in the complex */
+          /* The graph pattern will be something like: */
+          /*    c:SH2~NO_STATE!5,c:U~NO_STATE!5!3,c:a~NO_STATE!6,c:b~Y!6!1,c:g~Y!6,m:Lyn@PM!0!1,m:Rec@PM!2!3!4, */
+          external_name = amp->graph_data->graph_pattern;
+          assert(external_name != NULL);
+        }
+      #endif
+
       if (id == INCLUDE_OBJ) {
         /* write name of molecule */
-        fprintf(custom_file, "%s %lu %.9g %.9g %.9g %.9g %.9g %.9g\n",
+        fprintf(custom_file, "%s %lu %.9g %.9g %.9g %.9g %.9g %.9g %s\n",
                 amp->properties->sym->name, amp->id, where.x, where.y,
-                where.z, norm.x, norm.y, norm.z);
+                where.z, norm.x, norm.y, norm.z, external_name);
       } else {
         /* write state value of molecule */
-        fprintf(custom_file, "%d %lu %.9g %.9g %.9g %.9g %.9g %.9g\n", id,
+        fprintf(custom_file, "%d %lu %.9g %.9g %.9g %.9g %.9g %.9g %s\n", id,
                 amp->id, where.x, where.y, where.z, norm.x, norm.y,
-                norm.z);
+                norm.z, external_name);
       }
 
     }

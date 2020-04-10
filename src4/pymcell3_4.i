@@ -21,6 +21,8 @@
  *
  ******************************************************************************/
 
+
+
 %module pymcell3_4 
 
 %import stdint.i
@@ -102,8 +104,7 @@ public:
   Partition(
       const Vec3 origin_,
       const SimulationConfig& config_,
-      const ReactionsInfo& reactions_,
-      const SpeciesInfo& species_,
+      BNG::BNGEngine& bng_engine_,
       SimulationStats& stats_
   );
   

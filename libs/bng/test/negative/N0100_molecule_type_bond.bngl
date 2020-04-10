@@ -1,0 +1,9 @@
+# FAIL
+# OUTPUT: error: Definition of a component in the molecule types section must not have a bond, error for '!+'
+# OUTPUT: error: Definition of a component in the molecule types section must not have a bond, error for '!1'
+
+
+begin molecule types
+   A(a!+)
+   B(z!1)
+end molecule types

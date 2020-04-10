@@ -60,6 +60,14 @@ class MDLR2MDL(object):
             # try the cygwin variant
             libnfsim_c_path = os.path.join(self.config['libpath'], '..', 'nfsimCInterface', '{0}nfsim_c.{1}'.format(prefix, extension))
         
+        if not os.path.exists(libNFsim_path):
+            # default to system search using LD_LIBRARY_PATH on Unix or PATH on Windows 
+            libNFsim_path = '{0}NFsim.{1}'.format(prefix, extension)
+
+        if not os.path.exists(libnfsim_c_path):
+            # default to system search
+            libnfsim_c_path = '{0}nfsim_c.{1}'.format(prefix, extension)
+        
         print("Loading libs from " + libNFsim_path + " and " + libnfsim_c_path + ".")
         
         self.nfsim = NFSim(libnfsim_c_path, libNFsim_path=libNFsim_path)
