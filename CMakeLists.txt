@@ -44,7 +44,7 @@ endif()
 set(WARNING_FLAGS "-Wall -Wextra -Wno-unused-parameter -Wno-unused-function -Wno-unused-variable ")
 
 set(INCLUDE_DIRS " -isystem ${CMAKE_SOURCE_DIR}/libs/")
-SET(COMMON_C_CXX_FLAGS "${WARNING_FLAGS} -fPIC -g3 ${OPTIMIZATION_FLAGS} ${INCLUDE_DIRS} -D_GNU_SOURCE=1")
+SET(COMMON_C_CXX_FLAGS "${WARNING_FLAGS} -fPIC -g3 ${OPTIMIZATION_FLAGS} ${INCLUDE_DIRS} -D_GNU_SOURCE=1 -fpermissive")
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMMON_C_CXX_FLAGS}  -std=c11 ")
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON_C_CXX_FLAGS} -std=c++14")
 
