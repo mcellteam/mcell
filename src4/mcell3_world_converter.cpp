@@ -189,12 +189,22 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
     CHECK_PROPERTY(s->partition_urb[0] == s->partition_urb[1]);
     CHECK_PROPERTY(s->partition_urb[1] == s->partition_urb[2]);
     assert(s->partition_urb[0] > s->partition_llf[0]);
-    world->config.partition_edge_length = (s->partition_urb[0] - s->partition_llf[0]) / s->length_unit;
+
+    // some MCell models have their partition boundary set exactly. we need to add a bit of margin
+    world->config.partition_edge_length =
+        (s->partition_urb[0] +  - s->partition_llf[0]) / s->length_unit +
+        PARTITION_EDGE_EXTRA_MARGIN*2;
+
+    float_t l = world->config.partition_edge_length / 2 * s->length_unit;
+    mcell_log("MCell4 partition bounding box in microns: [ %f, %f, %f ], [ %f, %f, %f ]\n",
+        -l, -l, -l, l, l, l);
+
+    world->config.subpartitions_per_partition_dimension = s->num_subparts;
   }
   else {
     // use MCell's bounding box, however, we must make a cube out of it
     float_t half_dim = get_largest_distance_from_center(s->bb_llf, s->bb_urb);
-    float_t auto_length = (half_dim + 0.1) * 2 / world->config.length_unit;
+    float_t auto_length = (half_dim + PARTITION_EDGE_EXTRA_MARGIN) * 2 / world->config.length_unit;
 
     if (auto_length > PARTITION_EDGE_LENGTH_DEFAULT) {
       world->config.partition_edge_length = auto_length;
@@ -206,7 +216,8 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
         (double)auto_length * world->config.length_unit, PARTITION_EDGE_LENGTH_DEFAULT);
     }
 
-
+    // this number counts the number of boundaries, not subvolumes, also, there are always 2 extra subvolumes on the sides in mcell3
+    world->config.subpartitions_per_partition_dimension = s->nx_parts - 3;
   }
   CHECK_PROPERTY(s->nx_parts == s->ny_parts);
   CHECK_PROPERTY(s->ny_parts == s->nz_parts);
@@ -218,9 +229,6 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
   );
 
   world->config.use_expanded_list = s->use_expanded_list;
-
-  // this number counts the number of boundaries, not subvolumes, also, there are always 2 extra subvolumes on the sides in mcell3
-  world->config.subpartitions_per_partition_dimension = s->nx_parts - 3;
 
 	// compute other constants
   world->config.init();
@@ -318,7 +326,7 @@ void MCell3WorldConverter::create_uninitialized_walls_for_polygonal_object(const
     if (partition_id == PARTITION_ID_INVALID) {
       Vec3 v(*w->vert[0]);
       v = v * Vec3(world->config.length_unit);
-      mcell_log("Error: vertex %s does not fit any partition.", v.to_string().c_str());
+      mcell_error("Error: vertex %s does not fit any partition.", v.to_string().c_str());
     }
 
     // check that the remaining vertices are in the same partition
@@ -645,6 +653,7 @@ bool MCell3WorldConverter::convert_species(volume* s) {
         || spec->flags == 0
         || spec->flags == (SPECIES_FLAG_COUNT_ENCLOSED | COUNT_CONTENTS)
         || spec->flags == SPECIES_FLAG_CAN_VOLVOL
+        || spec->flags == (SPECIES_FLAG_CAN_VOLVOL | SPECIES_FLAG_CAN_VOLSURF)
         || spec->flags == SPECIES_FLAG_CAN_VOLWALL
         || spec->flags == (SPECIES_FLAG_CAN_VOLWALL | SPECIES_FLAG_COUNT_ENCLOSED | COUNT_CONTENTS)
         || spec->flags == (SPECIES_FLAG_CAN_VOLWALL | SPECIES_FLAG_COUNT_ENCLOSED | COUNT_CONTENTS | REGION_PRESENT)

@@ -1413,6 +1413,7 @@ struct volume {
   bool partitions_initialized;
   double partition_llf[3];
   double partition_urb[3];
+  int num_subparts;
 };
 
 /* Data structure to store information about collisions. */

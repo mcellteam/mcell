@@ -430,7 +430,14 @@ MCELL_STATUS mcell_set_partition(MCELL_STATE *state, int dim,
   /* mcell4 */
   state->partitions_initialized = true; // setting for all dimensions, expecting that all partition dims are set
   state->partition_llf[dim] = head->value_head->value;
-  state->partition_urb[dim] = head->value_tail->value;
+  if (head->value_head->next == NULL) {
+    mcell_error("Internal error: could not determine subpartition size for MCell4.");
+  }
+  // head->tail->value does contains a smaller value if the whole partition subpartition size is not divisible by
+  // by a single size, need to compute it like this:
+  state->num_subparts = head->value_count;
+  double subvol_size = head->value_head->next->value - head->value_head->value;
+  state->partition_urb[dim] = state->partition_llf[dim] + state->num_subparts * subvol_size;
 
   /* Copy partitions in sorted order to the array */
   unsigned int num_values = 0;
