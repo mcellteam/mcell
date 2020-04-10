@@ -53,16 +53,24 @@
 
 #endif
 
-#define DUMP_ALWAYS
+//#define DUMP_ALWAYS
 //#define DUMP_NEVER
-
 
 #if (!defined(NDEBUG) || defined(DUMP_ALWAYS)) && !defined(DUMP_NEVER)
 
+#define FROM_ITERATION 0
+#define TO_ITERATION 10
+
+#if 1
+#define DEBUG_DIFFUSION
+#define DEBUG_COLLISIONS
+#define DEBUG_REACTIONS
+#endif
+
 //#define DEBUG_WALL_COLLISIONS
 
-#define DEBUG_DYNAMIC_GEOMETRY
-#define DEBUG_DYNAMIC_GEOMETRY_MCELL4_ONLY
+//#define DEBUG_DYNAMIC_GEOMETRY
+//#define DEBUG_DYNAMIC_GEOMETRY_MCELL4_ONLY
 //#define DEBUG_DYNAMIC_GEOMETRY_COLLISION_DETECTIONS
 
 //#define DEBUG_CLOSEST_INTERIOR_POINT
@@ -79,14 +87,8 @@
 // does not generate the same dump as mcell3
 //#define DEBUG_SUBPARTITIONS
 
-#if 1
-#define DEBUG_DIFFUSION
-#define DEBUG_COLLISIONS
-#define DEBUG_REACTIONS
-#endif
-
-
-#define DEBUG_COUNTED_VOLUMES
+//#define DEBUG_COUNTED_VOLUMES
+//#define DEBUG_TRANSPARENT_SURFACES
 
 //#define DEBUG_TIMING
 
@@ -98,9 +100,6 @@
 
 //#define DEBUG_GRIDS
 
-#define FROM_ITERATION 0
-
-#define TO_ITERATION 10
 
 #define DUMP_CONDITION3(code) do { if ((int)world->current_iterations >= (int)FROM_ITERATION && (int)world->current_iterations <= (int)TO_ITERATION) { code; } } while (0)
 #define DUMP_CONDITION4(code) do { if ((int)world->get_current_iteration() >= (int)FROM_ITERATION && (int)world->get_current_iteration() <= (int)TO_ITERATION) { code; } } while (0)
