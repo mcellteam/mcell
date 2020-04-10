@@ -8,9 +8,9 @@
 #ifndef LIBS_BNG_SPECIES_H_
 #define LIBS_BNG_SPECIES_H_
 
-#include "cplx_instance.h"
-#include "defines_shared.h"
-#include "mcell_shared.h"
+#include "bng/cplx_instance.h"
+#include "bng/defines_shared.h"
+#include "bng/mcell_shared.h"
 
 namespace BNG {
 

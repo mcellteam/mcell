@@ -23,7 +23,7 @@
 
 #include <iostream>
 
-#include "species.h"
+#include "bng/species.h"
 
 using namespace std;
 

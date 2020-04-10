@@ -6,11 +6,11 @@
  * BNG library.
  */
 
-#include "species_container.h"
-#include "bng_engine.h"
-#include "rxn_rule.h"
-#include "rxn_class.h"
-#include "rxn_container.h"
-#include "species.h"
+#include "bng/species_container.h"
+#include "bng/bng_engine.h"
+#include "bng/rxn_rule.h"
+#include "bng/rxn_class.h"
+#include "bng/rxn_container.h"
+#include "bng/species.h"
 
 #endif // LIBS_BNG_H_

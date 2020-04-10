@@ -5,7 +5,7 @@
  *      Author: ahusar
  */
 
-#include "molecule_instance.h"
+#include "bng/molecule_instance.h"
 
 namespace BNG {
 

@@ -40,7 +40,7 @@ typedef double float_t; // will be changed to float
 
 }
 
-#include "bng_config.h"
+#include "bng/bng_config.h"
 
 const Common::float_t BNG_PI = 3.14159265358979323846;
 const Common::float_t BNG_N_AV = 6.0221417930e23;

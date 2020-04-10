@@ -5,7 +5,7 @@
  *      Author: ahusar
  */
 
-#include "bng_engine.h"
+#include "bng/bng_engine.h"
 
 namespace BNG {
 

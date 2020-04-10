@@ -8,9 +8,9 @@
 #include <iostream>
 #include <cmath>
 
-#include "rxn_class.h"
+#include "bng/rxn_class.h"
 
-#include "species_container.h"
+#include "bng/species_container.h"
 
 using namespace std;
 

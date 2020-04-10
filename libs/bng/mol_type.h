@@ -10,7 +10,7 @@
 
 #include <string>
 
-#include "bng_defines.h"
+#include "bng/bng_defines.h"
 
 namespace BNG {
 

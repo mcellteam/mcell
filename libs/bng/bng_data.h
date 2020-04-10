@@ -8,11 +8,11 @@
 #ifndef LIBS_BNG_BNG_DATA_H_
 #define LIBS_BNG_BNG_DATA_H_
 
-#include "bng_defines.h"
-#include "cplx_instance.h"
+#include "bng/bng_defines.h"
+#include "bng/cplx_instance.h"
 
-#include "mol_type.h"
-#include "rxn_rule.h"
+#include "bng/mol_type.h"
+#include "bng/rxn_rule.h"
 
 namespace BNG {
 

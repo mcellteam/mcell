@@ -1,6 +1,6 @@
 %{
   #include "bngl_parser.hpp"
-  #include "parser_utils.h"
+  #include "bng/parser_utils.h"
     
   #define size_t long // eliminate compiler warning
   

@@ -10,7 +10,7 @@
 
 #include <string>
 
-#include "bng_defines.h"
+#include "bng/bng_defines.h"
 
 // The declaration below should come from #include "bngl_parser.hpp"
 // but this include causes many conflicts

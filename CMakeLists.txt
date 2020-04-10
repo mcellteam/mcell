@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.14)
 project(mcell)
 
+find_package(Python3 COMPONENTS Interpreter Development)
+message("-- Python3 include dirs are ${Python3_INCLUDE_DIRS}")
+include_directories(${Python3_INCLUDE_DIRS})
+
+
 #TODO: unify case for cmake commands, e.g. set vs SET
 
 
@@ -115,8 +120,6 @@ include_directories(
   "${CMAKE_SOURCE_DIR}/../nfsimCInterface/src/"
   "${CMAKE_SOURCE_DIR}/include"
   "${CMAKE_SOURCE_DIR}/libs/sparsehash/src/"
-  "/nadata/cnl/home/ahusar/tools/anaconda/include" # FIXME: generate automatically using python3 -m pybind11 --includes
-  "/nadata/cnl/home/ahusar/tools/anaconda/include/python3.7m"
 )
 
 
@@ -266,8 +269,6 @@ INCLUDE(${SWIG_USE_FILE})
 INCLUDE_DIRECTORIES("${CMAKE_CURRENT_SOURCE_DIR}/src")
 
 if (PYMCELL AND NOT WIN32 AND NOT CYGWIN)
-  FIND_PACKAGE(PythonLibs 3 REQUIRED)
-  INCLUDE_DIRECTORIES(${PYTHON_INCLUDE_PATH})
 
   #SET(CMAKE_SWIG_FLAGS "-debug-typemap;-debug-tmsearch;-debug-tmused;-ltypemaps")
   SET(CMAKE_SWIG_FLAGS "-c++;-ltypemaps;-py3")

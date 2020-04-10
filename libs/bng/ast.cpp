@@ -3,8 +3,8 @@
 #include <iostream>
 #include <string>
 
-#include "ast.h"
-#include "parser_utils.h"
+#include "bng/ast.h"
+#include "bng/parser_utils.h"
 
 using namespace std;
 

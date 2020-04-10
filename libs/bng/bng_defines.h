@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <string>
 
-#include "defines_shared.h"
+#include "bng/defines_shared.h"
 
 namespace BNG {
 

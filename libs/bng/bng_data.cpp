@@ -7,7 +7,7 @@
 
 #include <iostream>
 
-#include "bng_data.h"
+#include "bng/bng_data.h"
 
 using namespace std;
 
