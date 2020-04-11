@@ -42,6 +42,62 @@ using namespace std;
 
 namespace MCell {
 
+void RegionExprNode::dump() {
+  assert(op != RegionExprOperator::Invalid);
+
+  if (op == RegionExprOperator::Leaf) {
+    cout << region_name;
+    return;
+  }
+
+  assert(left != nullptr);
+  cout << "(";
+  left->dump();
+
+  switch(op) {
+  case RegionExprOperator::Union:
+    cout << " + ";
+    break;
+  case RegionExprOperator::Intersection:
+    cout << " * ";
+    break;
+  case RegionExprOperator::Subtraction:
+    cout << " - ";
+    break;
+  default:
+    assert(false);
+  }
+  right->dump();
+  cout << ")";
+}
+
+
+ReleaseEvent::~ReleaseEvent() {
+  for (RegionExprNode* expr_node: all_region_expr_nodes) {
+    delete expr_node;
+  }
+}
+
+
+RegionExprNode* ReleaseEvent::create_new_region_expr_node_leaf(const std::string region_name) {
+  RegionExprNode* res = new RegionExprNode;
+  res->op = RegionExprOperator::Leaf;
+  res->region_name = region_name;
+  return res;
+}
+
+
+RegionExprNode* ReleaseEvent::create_new_region_expr_node_op(
+    const RegionExprOperator op, RegionExprNode* left, RegionExprNode* right) {
+
+  RegionExprNode* res = new RegionExprNode;
+  res->op = op;
+  res->left = left;
+  res->right = right;
+  return res;
+}
+
+
 void ReleaseEvent::dump(const string ind) {
   cout << "Release event:\n";
   string ind2 = ind + "  ";
@@ -50,6 +106,10 @@ void ReleaseEvent::dump(const string ind) {
   cout << ind2 << "species_id: \t\t" << species_id << " [species_id_t] \t\t\n";
   cout << ind2 << "release_number: \t\t" << release_number << " [uint] \t\t\n";
   cout << ind2 << "name: \t\t" << release_site_name << " [string] \t\t\n";
+
+  if (region_expr_root != nullptr) {
+    region_expr_root->dump();
+  }
 }
 
 
@@ -172,12 +232,38 @@ void ReleaseEvent::release_onto_regions(uint computed_release_number) {
   }
 }
 
+
+static bool is_point_inside_region_expr_recursively(const Partition& p, const Vec3& pos, const RegionExprNode* region_expr_node) {
+  assert(region_expr_node->op != RegionExprOperator::Invalid);
+
+  if (region_expr_node->op == RegionExprOperator::Leaf) {
+    const Region* reg = p.find_region_by_name(region_expr_node->region_name);
+    assert(reg != nullptr && "Region for release must exist");
+    return CollisionUtil::is_point_inside_region(p, pos, *reg);
+  }
+
+  bool satisfies_l = is_point_inside_region_expr_recursively(p, pos, region_expr_node->left);
+  bool satisfies_r = is_point_inside_region_expr_recursively(p, pos, region_expr_node->right);
+
+  switch (region_expr_node->op) {
+    case RegionExprOperator::Union:
+      return satisfies_l || satisfies_r;
+    case RegionExprOperator::Intersection:
+      return satisfies_l && satisfies_r;
+    case RegionExprOperator::Subtraction:
+      return satisfies_l && !satisfies_r;
+    default:
+      assert(false);
+      return false;
+  }
+}
+
+
 void ReleaseEvent::release_inside_regions(uint computed_release_number) {
 
-  assert(region_name != "");
+  assert(region_expr_root != nullptr);
+
   Partition& p = world->get_partition(0);
-  const Region* reg = p.find_region_by_name(region_name);
-  assert(reg != nullptr && "Region for release must exist");
 
   /*if (rso->release_number_method == CCNNUM) {
     n = num_vol_mols_from_conc(rso, state->length_unit, &exactNumber);
@@ -191,7 +277,7 @@ void ReleaseEvent::release_inside_regions(uint computed_release_number) {
     pos.y = region_llf.y + (region_urb.y - region_llf.y) * rng_dbl(&world->rng);
     pos.z = region_llf.z + (region_urb.z - region_llf.z) * rng_dbl(&world->rng);
 
-    if (!CollisionUtil::is_point_inside_region(p, pos, *reg)) {
+    if (!is_point_inside_region_expr_recursively(p, pos, region_expr_root)) {
       /*if (rso->release_number_method == CCNNUM && !exactNumber)
         n--;*/
       continue;

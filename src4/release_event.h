@@ -45,6 +45,33 @@ enum class ReleaseShape {
   // SHAPE_LIST             /* Individiaul mol. placement by list */
 };
 
+
+enum class RegionExprOperator {
+  Invalid,
+  Union,
+  Intersection,
+  Subtraction,
+  Leaf
+};
+
+
+class RegionExprNode {
+public:
+  RegionExprNode()
+    : op(RegionExprOperator::Invalid), left(nullptr), right(nullptr) {
+  }
+
+  RegionExprOperator op;
+
+  std::string region_name; // name of the region into which we should release the molecules
+
+  RegionExprNode* left;
+  RegionExprNode* right;
+
+  void dump(); // does not print any newlines
+};
+
+
 /**
  * Release molecules according to the settings.
  */
@@ -57,9 +84,10 @@ public:
     release_number(0),
     orientation(ORIENTATION_NONE),
     release_shape(ReleaseShape::UNDEFINED),
+    region_expr_root(nullptr),
     world(world_) {
   }
-  virtual ~ReleaseEvent() {}
+  virtual ~ReleaseEvent();
 
   virtual void step();
   virtual void dump(const std::string indent);
@@ -82,8 +110,17 @@ public:
   // for surface molecule releases
   std::vector<CummAreaPWallIndexPair> cum_area_and_pwall_index_pairs;
 
+
+  // constructor and container for all region expr nodes
+  RegionExprNode* create_new_region_expr_node_leaf(const std::string region_name);
+  RegionExprNode* create_new_region_expr_node_op(const RegionExprOperator op, RegionExprNode* left, RegionExprNode* right);
+  std::vector<RegionExprNode*> all_region_expr_nodes;
+
+  // only when release_shape is SHAPE_REGION
+  RegionExprNode* region_expr_root;
+
   // for volume molecule releases into a region
-  std::string region_name; // name of the region into which we should release the
+
   Vec3 region_llf; // note: this is fully specified by the region above, maybe remove in the future
   Vec3 region_urb; // note: this is fully specified by the region above as well
 
