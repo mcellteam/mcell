@@ -79,6 +79,10 @@ void MolCountEvent::step() {
     count_items[i].int_value = 0;
   }
 
+  species_id_t all_mol_id = world->get_all_species().get_all_molecules_species_id();
+  species_id_t all_vol_id = world->get_all_species().get_all_volume_molecules_species_id();
+  species_id_t all_surf_id = world->get_all_species().get_all_surface_molecules_species_id();
+
   // for each partition
   for (const Partition& p: partitions) {
 
@@ -100,16 +104,23 @@ void MolCountEvent::step() {
 
         for (const MolCountTerm& term: info.terms) {
 
-          if (term.type == CountType::World) {
-            // count the molecule
-            count_items[i].inc_or_dec(term.sign_in_expression);
-          }
-          else if (term.type == CountType::EnclosedInObject) {
-            // is the molecule inside of the object that we are checking?
-            if (m.v.counted_volume_id == term.geometry_object_id ||
-                (enclosing_volumes != nullptr && enclosing_volumes->count(term.geometry_object_id))) {
+          // TODO: make a function for this
+          if (term.species_id == m.species_id ||
+              term.species_id == all_mol_id ||
+              (term.species_id == all_vol_id && m.is_vol()) ||
+              (term.species_id == all_surf_id && m.is_surf())) {
 
+            if (term.type == CountType::World) {
+              // count the molecule
               count_items[i].inc_or_dec(term.sign_in_expression);
+            }
+            else if (term.type == CountType::EnclosedInObject) {
+              // is the molecule inside of the object that we are checking?
+              if (m.v.counted_volume_id == term.geometry_object_id ||
+                  (enclosing_volumes != nullptr && enclosing_volumes->count(term.geometry_object_id))) {
+
+                count_items[i].inc_or_dec(term.sign_in_expression);
+              }
             }
           }
         }
