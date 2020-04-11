@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.14)
 project(mcell)
 
+find_package(Python3 COMPONENTS Interpreter Development)
+message("-- Python3 include dirs are ${Python3_INCLUDE_DIRS}")
+include_directories(${Python3_INCLUDE_DIRS})
+
+
 #TODO: unify case for cmake commands, e.g. set vs SET
 
 
@@ -43,9 +48,9 @@ endif()
 set(WARNING_FLAGS "-Wall -Wextra -Wno-unused-parameter -Wno-unused-function -Wno-unused-variable ")
 
 set(INCLUDE_DIRS " -isystem ${CMAKE_SOURCE_DIR}/libs/")
-SET(COMMON_C_CXX_FLAGS "${WARNING_FLAGS} -fPIC -g3 ${OPTIMIZATION_FLAGS} ${INCLUDE_DIRS} -D_GNU_SOURCE=1")
+SET(COMMON_C_CXX_FLAGS "${WARNING_FLAGS} -fPIC -g3 ${OPTIMIZATION_FLAGS} ${INCLUDE_DIRS} -D_GNU_SOURCE=1 ")
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMMON_C_CXX_FLAGS}  -std=c11 ")
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON_C_CXX_FLAGS} -std=c++14")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON_C_CXX_FLAGS} -std=c++14 -fpermissive")
 
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lm")
 
@@ -96,7 +101,8 @@ if (ENABLE_GPERFTOOLS)
   # (http://euccas.github.io/blog/20170827/cpu-profiling-tools-on-linux.html)
   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DWITHGPERFTOOLS -I${CMAKE_CURRENT_BINARY_DIR}/libs/")
   SET(CMAKE_EXE_LINKER_FLAGS 
-  	"${CMAKE_EXE_LINKER_FLAGS} -L${CMAKE_CURRENT_BINARY_DIR}/libs/install_gperftools/lib/ -L${CMAKE_CURRENT_SOURCE_DIR}/../other/install_gperftools/lib/ -lprofiler")
+  	"${CMAKE_EXE_LINKER_FLAGS} -L${CMAKE_CURRENT_BINARY_DIR}/libs/install_gperftools/lib/ -L${CMAKE_CURRENT_SOURCE_DIR}/../../src4_bng/other/install_gperftools/lib/ -lprofiler")
+
 endif()
 	
 if (ENABLE_SANITIZER)
@@ -118,8 +124,6 @@ include_directories(
   "${CMAKE_SOURCE_DIR}/../nfsimCInterface/src/"
   "${CMAKE_SOURCE_DIR}/include"
   "${CMAKE_SOURCE_DIR}/libs/sparsehash/src/"
-  "/nadata/cnl/home/ahusar/tools/anaconda/include" # FIXME: generate automatically using python3 -m pybind11 --includes
-  "/nadata/cnl/home/ahusar/tools/anaconda/include/python3.7m"
 )
 
 
@@ -272,8 +276,6 @@ INCLUDE(${SWIG_USE_FILE})
 INCLUDE_DIRECTORIES("${CMAKE_CURRENT_SOURCE_DIR}/src")
 
 if (PYMCELL AND NOT WIN32 AND NOT CYGWIN)
-  FIND_PACKAGE(PythonLibs 3 REQUIRED)
-  INCLUDE_DIRECTORIES(${PYTHON_INCLUDE_PATH})
 
   #SET(CMAKE_SWIG_FLAGS "-debug-typemap;-debug-tmsearch;-debug-tmused;-ltypemaps")
   SET(CMAKE_SWIG_FLAGS "-c++;-ltypemaps;-py3")

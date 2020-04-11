@@ -11,9 +11,9 @@
 #include <string>
 #include <iostream>
 
-#include "bng_defines.h"
+#include "bng/bng_defines.h"
 
-#include "rxn_rule.h"
+#include "bng/rxn_rule.h"
 
 namespace BNG {
 

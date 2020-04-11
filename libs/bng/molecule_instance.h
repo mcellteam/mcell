@@ -8,7 +8,7 @@
 #ifndef LIBS_BNG_MOLECULE_INSTANCE_H_
 #define LIBS_BNG_MOLECULE_INSTANCE_H_
 
-#include "bng_defines.h"
+#include "bng/bng_defines.h"
 
 namespace BNG {
 

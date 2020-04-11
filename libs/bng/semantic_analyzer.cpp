@@ -7,11 +7,11 @@
 
 #include <sstream>
 
-#include "semantic_analyzer.h"
+#include "bng/semantic_analyzer.h"
 
-#include "bng_data.h"
-#include "mol_type.h"
-#include "parser_utils.h"
+#include "bng/bng_data.h"
+#include "bng/mol_type.h"
+#include "bng/parser_utils.h"
 
 
 // each semantic check has in comment the name of a test for it

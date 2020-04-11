@@ -11,8 +11,8 @@
 #include <set>
 #include <string>
 
-#include "ast.h"
-#include "bng_engine.h"
+#include "bng/ast.h"
+#include "bng/bng_engine.h"
 
 namespace BNG {
 

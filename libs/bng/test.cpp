@@ -1,10 +1,10 @@
-#include <species.h>
 #include <iostream>
 #include <cstdlib>
 
 #include "bngl_parser.hpp"
-#include "semantic_analyzer.h"
-#include "bng_engine.h"
+#include "bng/species.h"
+#include "bng/semantic_analyzer.h"
+#include "bng/bng_engine.h"
 
 using namespace std;
 

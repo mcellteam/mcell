@@ -1,7 +1,7 @@
 #ifndef LIBS_BNG_BASE_FLAG_H_
 #define LIBS_BNG_BASE_FLAG_H_
 
-#include "bng_defines.h"
+#include "bng/bng_defines.h"
 
 namespace BNG {
 

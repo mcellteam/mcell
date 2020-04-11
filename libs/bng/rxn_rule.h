@@ -11,9 +11,9 @@
 #include <string>
 #include <iostream>
 
-#include "bng_defines.h"
+#include "bng/bng_defines.h"
 
-#include "cplx_instance.h"
+#include "bng/cplx_instance.h"
 
 namespace BNG {
 

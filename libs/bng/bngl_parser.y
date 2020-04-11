@@ -6,12 +6,12 @@
 
 // for top of bngl_parser.hpp
 %code requires {      
-#include "ast.h"
+#include "bng/ast.h"
 }
 
 // for top of bngl_parser.cpp
 %code top {      
-#include "ast.h"
+#include "bng/ast.h"
 }
 
 // for bngl_parser.hpp
@@ -30,7 +30,7 @@ namespace BNG {
   #include <cstdio>
   #include <cstdarg>
   #include <string>
-  #include "parser_utils.h"
+  #include "bng/parser_utils.h"
     
   // Declare stuff from Flex that Bison needs to know about:
   extern int bngllex();

@@ -8,10 +8,10 @@
 #include <iostream>
 #include <sstream>
 
-#include "rxn_rule.h"
+#include "bng/rxn_rule.h"
 
-#include "species.h"
-#include "species_container.h"
+#include "bng/species.h"
+#include "bng/species_container.h"
 
 
 using namespace std;

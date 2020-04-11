@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "species_container.h"
+#include "bng/species_container.h"
 
 using namespace std;
 

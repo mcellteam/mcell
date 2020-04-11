@@ -4,11 +4,11 @@
  *  Created on: Jan 9, 2020
  *      Author: ahusar
  */
-#include "mol_type.h"
+#include "bng/mol_type.h"
 
 #include <iostream>
 
-#include "bng_engine.h"
+#include "bng/bng_engine.h"
 
 using namespace std;
 

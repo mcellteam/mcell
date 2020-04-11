@@ -4,7 +4,7 @@
 #include <string>
 
 
-#include "parser_utils.h"
+#include "bng/parser_utils.h"
 #include "bngl_parser.hpp"
 
 using namespace std;

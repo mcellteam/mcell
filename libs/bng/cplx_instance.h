@@ -10,9 +10,9 @@
 
 #include <iostream>
 
-#include "bng_defines.h"
-#include "base_flag.h"
-#include "mol_instance.h"
+#include "bng/bng_defines.h"
+#include "bng/base_flag.h"
+#include "bng/mol_instance.h"
 
 namespace BNG {
 

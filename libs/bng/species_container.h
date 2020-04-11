@@ -10,8 +10,8 @@
 
 #include <vector>
 
-#include "bng_defines.h"
-#include "species.h"
+#include "bng/bng_defines.h"
+#include "bng/species.h"
 
 namespace BNG {
 

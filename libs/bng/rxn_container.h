@@ -24,10 +24,10 @@
 #ifndef LIBS_BNG_RXN_CONTAINER_H_
 #define LIBS_BNG_RXN_CONTAINER_H_
 
-#include "bng_defines.h"
-#include "rxn_rule.h"
-#include "rxn_class.h"
-#include "species_container.h"
+#include "bng/bng_defines.h"
+#include "bng/rxn_rule.h"
+#include "bng/rxn_class.h"
+#include "bng/species_container.h"
 
 namespace BNG {
 

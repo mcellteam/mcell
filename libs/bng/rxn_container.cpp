@@ -1,5 +1,5 @@
 
-#include "rxn_container.h"
+#include "bng/rxn_container.h"
 
 #include <iostream>
 #include <sstream>
