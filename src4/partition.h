@@ -165,7 +165,6 @@ public:
 
 
   bool is_subpart_index_in_range(const int index) const {
-    assert((subpart_index_t)index != SUBPART_INDEX_INVALID);
     return index >= 0 && index < (int)config.subpartitions_per_partition_dimension;
   }
 
@@ -216,10 +215,14 @@ public:
     urb = llf + Vec3(config.subpartition_edge_length);
   }
 
-  // the orig_subpart_index is index where the molecule was originally
-  void change_reactants_map(Molecule& vm, const uint32_t orig_subpart_index, bool adding, bool removing) {
-
+  // the reactant_subpart_index is index where the molecule was originally created,
+  // it might have moved to subpart_index in the meantime
+  void change_vol_reactants_map_from_orig_to_current(Molecule& vm, bool adding, bool removing) {
+    assert(vm.is_vol());
+    assert(vm.v.subpart_index != SUBPART_INDEX_INVALID);
+    assert(vm.v.reactant_subpart_index != SUBPART_INDEX_INVALID);
     assert(vm.v.subpart_index == get_subpart_index(vm.v.pos) && "Position and subpart must match all the time");
+
 
     if (vm.is_surf()) {
       // nothing to do
@@ -238,7 +241,7 @@ public:
     }
 
     // these are all the sets of indices of reactants for this particular subpartition
-    SpeciesReactantsMap& subpart_reactants_orig_sp = volume_molecule_reactants_per_subpart[orig_subpart_index];
+    SpeciesReactantsMap& subpart_reactants_orig_sp = volume_molecule_reactants_per_subpart[vm.v.reactant_subpart_index];
     SpeciesReactantsMap& subpart_reactants_new_sp = volume_molecule_reactants_per_subpart[vm.v.subpart_index];
 
     // we need to set/clear flag that says that second_reactant_info.first can react with reactant_species_id
@@ -255,13 +258,15 @@ public:
         subpart_reactants_new_sp.insert_unique(second_reactant_info.first, vm.id);
       }
     }
+
+    vm.v.reactant_subpart_index = vm.v.subpart_index;
   }
 
 
-  void change_molecule_subpartition(Molecule& vm, const uint32_t orig_subpart_index) {
+  void update_molecule_reactants_map(Molecule& vm) {
     assert(vm.v.subpart_index < volume_molecule_reactants_per_subpart.size());
-    assert(orig_subpart_index < volume_molecule_reactants_per_subpart.size());
-    if (vm.v.subpart_index == orig_subpart_index) {
+    assert(vm.v.reactant_subpart_index < volume_molecule_reactants_per_subpart.size());
+    if (vm.v.subpart_index == vm.v.reactant_subpart_index) {
       return; // nothing to do
     }
 #ifdef DEBUG_SUBPARTITIONS
@@ -269,7 +274,7 @@ public:
         <<  vm.v.subpart_index << " to " << new_subpartition_index << ".\n";
 #endif
 
-    change_reactants_map(vm, orig_subpart_index, true, true);
+    change_vol_reactants_map_from_orig_to_current(vm, true, true);
   }
 
 
@@ -331,7 +336,8 @@ public:
     Molecule& new_vm = add_molecule(vm_copy, true);
 
     new_vm.v.subpart_index = get_subpart_index(vm_copy.v.pos);
-    change_reactants_map(new_vm, new_vm.v.subpart_index, true, false);
+    new_vm.v.reactant_subpart_index = new_vm.v.subpart_index;
+    change_vol_reactants_map_from_orig_to_current(new_vm, true, false);
 
     // compute counted volume id for a new molecule
     if (new_vm.v.counted_volume_id == COUNTED_VOLUME_ID_INVALID) {
@@ -353,7 +359,9 @@ public:
     // set that this molecule does not exist anymore
     m.set_is_defunct();
 
-    change_reactants_map(m, 0/*unused*/, false, true);
+    if (m.is_vol()) {
+      change_vol_reactants_map_from_orig_to_current(m, false, true);
+    }
 
     // remove from grid if it was not already removed
     if (m.is_surf() && m.s.grid_tile_index != TILE_INDEX_INVALID) {

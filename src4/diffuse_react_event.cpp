@@ -255,8 +255,8 @@ void DiffuseReactEvent::diffuse_vol_molecule(
     const float_t diffusion_start_time,
     WallTileIndexPair& wall_tile_pair_where_created_this_iteration
 ) {
-  Molecule& m = p.get_m(vm_id);
-  const BNG::Species& species = p.get_all_species().get(m.species_id);
+  Molecule& vm = p.get_m(vm_id);
+  const BNG::Species& species = p.get_all_species().get(vm.species_id);
 
   // diffuse each molecule - get information on position change
   Vec3 displacement;
@@ -274,7 +274,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
   DUMP_CONDITION4(
       dump_vol_mol_timing(
           "- Timing vm", p.stats.get_current_iteration(), vm_id,
-          diffusion_start_time, max_time, m.unimol_rx_time,
+          diffusion_start_time, max_time, vm.unimol_rx_time,
           rate_factor, r_rate_factor, steps, t_steps
       );
   );
@@ -298,7 +298,6 @@ void DiffuseReactEvent::diffuse_vol_molecule(
   RayTraceState state;
   collision_vector_t molecule_collisions;
   bool was_defunct = false;
-  subpart_index_t orig_subpart_index = m.v.subpart_index; // molecule's subpart really changes only after trhe whole diffusion is done
   wall_index_t last_hit_wall_index = WALL_INDEX_INVALID;
 
   //float_t updated_remaining_time_step = remaining_time_step; // == t_steps
@@ -309,7 +308,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
     state =
         ray_trace_vol(
             p, world->rng,
-            m /* changes position */,
+            vm /* changes position */,
             last_hit_wall_index,
             remaining_displacement,
             molecule_collisions
@@ -453,7 +452,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
       DUMP_CONDITION4(
         // the subtraction of diffusion_time_step doesn't make much sense but is needed to make the dump the same as in mcell3
         // need to check it further
-        m.dump(p, "", "- Final vm position:", world->get_current_iteration(), /*event_time_end*/ 0);
+        vm.dump(p, "", "- Final vm position:", world->get_current_iteration(), /*event_time_end*/ 0);
       );
 #endif
 
@@ -465,7 +464,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
       }
 
       // change subpartition
-      p.change_molecule_subpartition(m_new_ref, orig_subpart_index);
+      p.update_molecule_reactants_map(m_new_ref);
     }
   }
 }
@@ -592,6 +591,11 @@ RayTraceState ray_trace_vol(
           collisions
       );
     }
+  }
+
+  if (res_state == RayTraceState::FINISHED) {
+    vm.v.pos = vm.v.pos + remaining_displacement;
+    vm.v.subpart_index = p.get_subpart_index(vm.v.pos);
   }
 
   return res_state; // no wall was hit
@@ -1881,8 +1885,8 @@ int DiffuseReactEvent::outcome_products_random(
 
         // update position and subpart if needed
         new_vm.v.pos = new_pos_after_diffuse;
-        subpart_index_t new_subpart = p.get_subpart_index(new_vm.v.pos);
-        p.change_molecule_subpartition(new_vm, new_subpart);
+        new_vm.v.subpart_index = p.get_subpart_index(new_vm.v.pos);
+        p.update_molecule_reactants_map(new_vm);
       }
 
 

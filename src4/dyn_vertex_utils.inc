@@ -84,11 +84,10 @@ static void move_volume_molecule_to_closest_wall_point(Partition& p, const Volum
   // - see place_mol_relative_to_mesh
 
 
-  // move the molecule and also update the subpartition information
+  // move the molecule and also update the information on subpartition reactants
   vm.v.pos = new_pos_after_diffuse;
   vm.v.subpart_index = p.get_subpart_index(vm.v.pos);
-  subpart_index_t new_subpart = p.get_subpart_index(vm.v.pos);
-  p.change_molecule_subpartition(vm, new_subpart);
+  p.update_molecule_reactants_map(vm);
 
 
 #ifdef DEBUG_DYNAMIC_GEOMETRY
