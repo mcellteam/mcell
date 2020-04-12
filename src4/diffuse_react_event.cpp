@@ -508,8 +508,7 @@ RayTraceState ray_trace_vol(
   CollisionUtil::collect_crossed_subparts(
       p, vm, partition_displacement,
       radius, p.config.subpartition_edge_length,
-      true, crossed_subparts_for_walls,
-      crossed_subparts_for_molecules
+      crossed_subparts_for_walls, crossed_subparts_for_molecules
   );
 
 #ifndef NDEBUG
@@ -570,8 +569,7 @@ RayTraceState ray_trace_vol(
     CollisionUtil::collect_crossed_subparts(
         p, vm, displacement_up_to_wall_collision,
         radius, p.config.subpartition_edge_length,
-        true, crossed_subparts_for_walls, // not filled this time
-        crossed_subparts_for_molecules
+        crossed_subparts_for_walls, crossed_subparts_for_molecules
     );
   }
 

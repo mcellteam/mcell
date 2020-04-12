@@ -341,13 +341,10 @@ static inline void collect_crossed_subparts(
   const Vec3& displacement,
   const float_t rx_radius,
   const float_t sp_edge_length,
-  const bool collect_for_walls,
   SubpartIndicesVector& crossed_subparts_for_walls, // crossed subparts considered for wall collision
   subpart_indices_set_t& crossed_subparts_for_molecules // crossed subparts considered for molecule collisions
 ) {
-  if (collect_for_walls) {
-    assert(crossed_subparts_for_walls.empty());
-  }
+  assert(crossed_subparts_for_walls.empty());
   assert(crossed_subparts_for_molecules.empty());
 
   if (cmp_eq(displacement, 0)) {
@@ -368,13 +365,8 @@ static inline void collect_crossed_subparts(
   // However, when we are collecting walls, we want just the exct subpartitions and not neighbors.
   //
   small_vector<Vec3> start_positions;
-  if (collect_for_walls) {
-    start_positions.resize(NUM_CORNER_POINTS + 1);
-    start_positions[MOL_POS_POINT_INDEX] = vm.v.pos;
-  }
-  else {
-    start_positions.resize(NUM_CORNER_POINTS);
-  }
+  start_positions.resize(NUM_CORNER_POINTS + 1);
+  start_positions[MOL_POS_POINT_INDEX] = vm.v.pos;
 
   uint num_points = start_positions.size();
 
@@ -456,12 +448,10 @@ static inline void collect_crossed_subparts(
     );
   }
 
-  if (collect_for_walls) {
-    // first for walls might not be present either, should be the first item
-    assert(!crossed_subparts_for_walls.empty());
-    if (crossed_subparts_for_walls.front() != vm.v.subpart_index) {
-      crossed_subparts_for_walls.push_back(vm.v.subpart_index);
-    }
+  // first for walls might not be present either, should be the first item
+  assert(!crossed_subparts_for_walls.empty());
+  if (crossed_subparts_for_walls.front() != vm.v.subpart_index) {
+    crossed_subparts_for_walls.push_back(vm.v.subpart_index);
   }
 
   // some subparts can be missed when checking just the corner points

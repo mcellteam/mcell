@@ -54,7 +54,7 @@
 
 #endif
 
-//#define COLLECT_SUBPARTS_LEGACY // 4021 fails, probably others as well
+//#define COLLECT_SUBPARTS_LEGACY
 
 //#define DUMP_ALWAYS
 //#define DUMP_NEVER
