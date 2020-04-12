@@ -4295,7 +4295,6 @@ int collide_and_react_with_surf_mol(struct volume* world, struct collision* smas
 
   int k = -1;
   if ((smash->what & COLLIDE_MASK) == COLLIDE_FRONT) {
-    ASSERT_FOR_MCELL4(false);
     k = 1;
   }
 
