@@ -54,14 +54,14 @@
 
 #endif
 
-#define COLLECT_SUBPARTS_LEGACY // 4021 fails, probably others as well
+//#define COLLECT_SUBPARTS_LEGACY // 4021 fails, probably others as well
 
 //#define DUMP_ALWAYS
 //#define DUMP_NEVER
 
 #if (!defined(NDEBUG) || defined(DUMP_ALWAYS)) && !defined(DUMP_NEVER)
 
-#define FROM_ITERATION 8
+#define FROM_ITERATION 0
 #define TO_ITERATION 9
 
 #if 1
