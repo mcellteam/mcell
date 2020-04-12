@@ -298,8 +298,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
   RayTraceState state;
   collision_vector_t molecule_collisions;
   bool was_defunct = false;
-  Vec3 new_pos;
-  subpart_index_t new_subpart_index;
+  subpart_index_t orig_subpart_index = m.v.subpart_index; // molecule's subpart really changes only after trhe whole diffusion is done
   wall_index_t last_hit_wall_index = WALL_INDEX_INVALID;
 
   //float_t updated_remaining_time_step = remaining_time_step; // == t_steps
@@ -313,9 +312,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
             m /* changes position */,
             last_hit_wall_index,
             remaining_displacement,
-            molecule_collisions,
-            new_pos,
-            new_subpart_index
+            molecule_collisions
         );
 
     sort_collisions_by_time(molecule_collisions);
@@ -402,7 +399,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
             // update molecules' counted volume, time and displacement and continue
             CollisionUtil::cross_transparent_wall(
                 p, collision, displacement,
-                m, remaining_displacement, t_steps, elapsed_molecule_time, last_hit_wall_index
+                vm_new_ref, remaining_displacement, t_steps, elapsed_molecule_time, last_hit_wall_index
             );
 
             // continue with diffusion
@@ -429,14 +426,18 @@ void DiffuseReactEvent::diffuse_vol_molecule(
           assert(res == 0 && "Periodic box BCs are not supported yet");
         }
 
+        /*
         // molecule could have been moved
         subpart_index_t subpart_after_wall_hit = p.get_subpart_index(vm_new_ref.v.pos);
         // change subpartition if needed
         p.change_molecule_subpartition(vm_new_ref, subpart_after_wall_hit);
+        */
 
         break; // we reflected and did not react, do ray_trace again
       }
     }
+
+    assert(p.get_m(vm_id).v.subpart_index == p.get_subpart_index(p.get_m(vm_id).v.pos));
 
   } while (unlikely(state != RayTraceState::FINISHED && !was_defunct));
 
@@ -445,8 +446,8 @@ void DiffuseReactEvent::diffuse_vol_molecule(
     Molecule& m_new_ref = p.get_m(vm_id);
 
     if (m_new_ref.is_vol()) {
-      // finally move molecule to its destination
-      m_new_ref.v.pos = new_pos;
+
+      // change molecules' subpartition
 
 #ifdef DEBUG_DIFFUSION
       DUMP_CONDITION4(
@@ -464,7 +465,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
       }
 
       // change subpartition
-      p.change_molecule_subpartition(m_new_ref, new_subpart_index);
+      p.change_molecule_subpartition(m_new_ref, orig_subpart_index);
     }
   }
 }
@@ -481,9 +482,7 @@ RayTraceState ray_trace_vol(
     Molecule& vm, // molecule that we are diffusing, we are changing its pos  and possibly also subvolume
     const wall_index_t last_hit_wall_index, // is WALL_INDEX_INVALID when our molecule did not reflect from anything this diffusion step yet
     Vec3& remaining_displacement, // in/out - recomputed if there was a reflection
-    collision_vector_t& collisions, // both mol mol and wall collisions
-    Vec3& new_pos,
-    subpart_index_t& new_subpart_index
+    collision_vector_t& collisions // both mol mol and wall collisions
     ) {
   p.stats.inc_ray_voxel_tests();
 
@@ -541,12 +540,12 @@ RayTraceState ray_trace_vol(
 
   // check wall collisions in the crossed subparitions,
   if (!crossed_subparts_for_walls.empty()) {
-    for (subpart_index_t subpart_index: crossed_subparts_for_walls) {
+    for (subpart_index_t subpart_w_walls_index: crossed_subparts_for_walls) {
 
       CollisionUtil::collect_wall_collisions( // mcell3 does this only for the current subvol
           p,
           vm,
-          subpart_index,
+          subpart_w_walls_index,
           last_hit_wall_index,
           rng,
           corrected_displacement,
@@ -571,8 +570,7 @@ RayTraceState ray_trace_vol(
     crossed_subparts_for_walls.clear();
     CollisionUtil::collect_crossed_subparts(
         p, vm, displacement_up_to_wall_collision,
-        radius,
-        p.config.subpartition_edge_length,
+        radius, p.config.subpartition_edge_length,
         true, crossed_subparts_for_walls, // not filled this time
         crossed_subparts_for_molecules
     );
@@ -594,12 +592,6 @@ RayTraceState ray_trace_vol(
           collisions
       );
     }
-  }
-
-  // these values are valid only when FINISHED is returned
-  if (res_state == RayTraceState::FINISHED) {
-    new_pos = vm.v.pos + remaining_displacement;
-    new_subpart_index = p.get_subpart_index(new_pos);
   }
 
   return res_state; // no wall was hit

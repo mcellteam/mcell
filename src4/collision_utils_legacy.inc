@@ -1,16 +1,35 @@
 
-#if 0 // legacy implementation, kept in case it was needed for reference
+#include <vector>
+
+#include "logging.h"
+
+#include "diffuse_react_event.h"
+#include "defines.h"
+#include "world.h"
+#include "partition.h"
+#include "geometry.h"
+#include "debug_config.h"
+
+#include "geometry_utils.inc"
+
+using namespace std;
+
+
+namespace MCell {
+
+namespace CollisionUtil {
+//#if 0 // legacy implementation, kept in case it was needed for reference
 // This function checks if any of the neighboring subpartitions are within radius
 // from pos and inserts them into crossed_subparition_indices
 static void collect_neighboring_subparts(
     const Partition& p,
-    const vec3_t& pos,
-    const ivec3_t& subpart_indices,
+    const Vec3& pos,
+    const IVec3& subpart_indices,
     const float_t rx_radius,
     const float_t subpart_edge_len,
     subpart_indices_set_t& crossed_subpart_indices
 ) {
-  vec3_t rel_pos = pos - p.get_origin_corner();
+  Vec3 rel_pos = pos - p.get_origin_corner();
 
   // left (x)
   int x_dir_used = 0;
@@ -89,13 +108,15 @@ static void collect_neighboring_subparts(
 static inline void __attribute__((always_inline)) collect_crossed_subparts(
   const Partition& p,
   const Molecule& vm, // molecule that we are diffusing
-  const vec3_t& displacement,
+  const Vec3& displacement,
   const float_t rx_radius,
   const float_t sp_edge_length,
   const bool collect_for_walls,
   SubpartIndicesVector& crossed_subparts_for_walls, // crossed subparts considered for wall collision
   subpart_indices_set_t& crossed_subparts_for_molecules // crossed subparts considered for molecule collisions
 ) {
+  subpart_index_t current_subpart_index = vm.v.subpart_index;
+
   if (collect_for_walls) {
     assert(crossed_subparts_for_walls.empty());
   }
@@ -103,25 +124,25 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
 
   // remember the starting subpartition
   if (collect_for_walls) {
-    crossed_subparts_for_walls.push_back(vm.v.subpart_index);
+    crossed_subparts_for_walls.push_back(current_subpart_index);
   }
-  crossed_subparts_for_molecules.insert(vm.v.subpart_index);
+  crossed_subparts_for_molecules.insert(current_subpart_index);
 
   // destination
-  vec3_t dest_pos = vm.v.pos + displacement;
+  Vec3 dest_pos = vm.v.pos + displacement;
 
   // urb - upper, right, bottom
-  vec3_t displacement_nonzero = displacement;
+  Vec3 displacement_nonzero = displacement;
   debug_guard_zero_div(displacement_nonzero);
-  ivec3_t dir_urb_direction = ivec3_t(glm::greaterThan(displacement_nonzero, vec3_t(0)));
+  IVec3 dir_urb_direction = IVec3(glm::greaterThan(displacement_nonzero, Vec3(0)));
   assert(dir_urb_direction.x == 0 || dir_urb_direction.x == 1);
   assert(dir_urb_direction.y == 0 || dir_urb_direction.y == 1);
   assert(dir_urb_direction.z == 0 || dir_urb_direction.z == 1);
 
   // get 3d indices of start and end subpartitions
-  ivec3_t src_subpart_indices, dest_subpart_indices;
-  assert(vm.v.subpart_index != SUBPART_INDEX_INVALID);
-  p.get_subpart_3d_indices_from_index(vm.v.subpart_index, src_subpart_indices);
+  IVec3 src_subpart_indices, dest_subpart_indices;
+  assert(current_subpart_index != SUBPART_INDEX_INVALID);
+  p.get_subpart_3d_indices_from_index(current_subpart_index, src_subpart_indices);
   p.get_subpart_3d_indices(dest_pos, dest_subpart_indices);
 
 
@@ -157,30 +178,30 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
 
     subpart_index_t dest_subpart_index = p.get_subpart_index_from_3d_indices(dest_subpart_indices);
 
-    ivec3_t dir_urb_addend;
+    IVec3 dir_urb_addend;
     dir_urb_addend.x = (dir_urb_direction.x == 0) ? -1 : 1;
     dir_urb_addend.y = (dir_urb_direction.y == 0) ? -1 : 1;
     dir_urb_addend.z = (dir_urb_direction.z == 0) ? -1 : 1;
 
-    vec3_t curr_pos = vm.v.pos;
-    ivec3_t curr_subpart_indices = src_subpart_indices;
+    Vec3 curr_pos = vm.v.pos;
+    IVec3 curr_subpart_indices = src_subpart_indices;
 
     subpart_index_t curr_subpart_index;
 
-    vec3_t displacement_rcp = 1.0/displacement_nonzero; // POSSIBLE ZERO DIV
+    Vec3 displacement_rcp = 1.0/displacement_nonzero; // POSSIBLE ZERO DIV
 
     do {
       // subpartition edges
       // = origin + subparition index * length + is_urb * length
 
       // NOTE: some of these computation can be moved out of the loop, not sure if it will improve performance
-      vec3_t sp_len_as_vec3 = vec3_t(sp_edge_length);
-      vec3_t sp_edges =
+      Vec3 sp_len_as_vec3 = Vec3(sp_edge_length);
+      Vec3 sp_edges =
           p.get_origin_corner()
-          +  vec3_t(curr_subpart_indices) * sp_len_as_vec3 // llf edge
-          + vec3_t(dir_urb_direction) * sp_len_as_vec3; // move if we go urb
+          +  Vec3(curr_subpart_indices) * sp_len_as_vec3 // llf edge
+          + Vec3(dir_urb_direction) * sp_len_as_vec3; // move if we go urb
 
-      vec3_t diff = sp_edges - curr_pos;
+      Vec3 diff = sp_edges - curr_pos;
 
       // first check whether we are not in fact touching one of the boundaries
       if (abs(diff.x) < EPS) {
@@ -213,7 +234,7 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
         // time = (pos(time) - vm.v.pos) / displacement
         // =>
         // time_to_subpart_edge = (subpart_edge - vm.v.pos) / displacement_speed
-        vec3_t coll_times = diff * displacement_rcp;
+        Vec3 coll_times = diff * displacement_rcp;
         assert(coll_times.x >= 0 && coll_times.y >= 0 && coll_times.z >= 0
             && "Subpartition 'edges' must be computed from direction, we cannot hit a subpart boundary that is behind us");
 
@@ -267,4 +288,6 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
       crossed_subparts_for_molecules
   );
 }
-#endif
+
+} // namespace CollisionUtil
+} // namespace MCell

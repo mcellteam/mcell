@@ -297,9 +297,7 @@ RayTraceState ray_trace_vol(
     Molecule& vm, // molecule that we are diffusing, we are changing its pos  and possibly also subvolume
     const wall_index_t previous_reflected_wall, // is WALL_INDEX_INVALID when our molecule did not replect from anything this iddfusion step yet
     Vec3& remaining_displacement, // in/out - recomputed if there was a reflection
-    collision_vector_t& molecule_collisions, // possible reactions in this part of way marching, ordered by time
-    Vec3& new_position,
-    subpart_index_t& new_subpartition_index
+    collision_vector_t& molecule_collisions // possible reactions in this part of way marching, ordered by time
 );
 
 void sort_collisions_by_time(collision_vector_t& molecule_collisions);

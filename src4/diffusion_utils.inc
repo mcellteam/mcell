@@ -288,8 +288,9 @@ static void tiny_diffuse_3D(
   rng_state ignored_rng;
   ray_trace_vol(
         p, ignored_rng, vm, previous_reflected_wall, ignored_displacement,
-        collisions, new_pos, new_subpart_index
+        collisions
   );
+  assert(vm.v.subpart_index == p.get_subpart_index(vm.v.pos));
 
   // sort collisions by time
   sort_collisions_by_time(collisions);

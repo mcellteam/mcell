@@ -204,8 +204,7 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
 
     // some MCell models have their partition boundary set exactly. we need to add a bit of margin
     world->config.partition_edge_length =
-        (s->partition_urb[0] +  - s->partition_llf[0]) / s->length_unit +
-        PARTITION_EDGE_EXTRA_MARGIN*2;
+        (s->partition_urb[0] - s->partition_llf[0] + PARTITION_EDGE_EXTRA_MARGIN_UM) / s->length_unit;
 
     float_t l = world->config.partition_edge_length / 2 * s->length_unit;
     mcell_log("MCell4 partition bounding box in microns: [ %f, %f, %f ], [ %f, %f, %f ]\n",
@@ -217,16 +216,17 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
   else {
     // use MCell's bounding box, however, we must make a cube out of it
     float_t half_dim = get_largest_distance_from_center(s->bb_llf, s->bb_urb);
-    float_t auto_length = (half_dim + PARTITION_EDGE_EXTRA_MARGIN) * 2 / world->config.length_unit;
+    float_t auto_length = (half_dim + PARTITION_EDGE_EXTRA_MARGIN_UM) * 2 / world->config.length_unit;
 
-    if (auto_length > PARTITION_EDGE_LENGTH_DEFAULT) {
+    if (auto_length > PARTITION_EDGE_LENGTH_DEFAULT_UM / world->config.length_unit) {
       world->config.partition_edge_length = auto_length;
       mcell_log("Automatically determined partition size: %f.\n",
         (double)auto_length * world->config.length_unit);
     }
     else {
+      world->config.partition_edge_length = PARTITION_EDGE_LENGTH_DEFAULT_UM / world->config.length_unit;
       mcell_log("Automatically determined partition size %f is smaller than default %f, using default.\n",
-        (double)auto_length * world->config.length_unit, PARTITION_EDGE_LENGTH_DEFAULT);
+        (double)auto_length * world->config.length_unit, PARTITION_EDGE_LENGTH_DEFAULT_UM);
     }
 
     // this number counts the number of boundaries, not subvolumes, also, there are always 2 extra subvolumes on the sides in mcell3

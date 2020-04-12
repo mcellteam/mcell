@@ -130,8 +130,8 @@ const float_t SCHEDULER_COMPARISON_EPS = 1e-10;
 // ---------------------------------- configurable constants----------------------------------
 
 const uint DEFRAGMENTATION_PERIODICITY = 500;
-const float_t PARTITION_EDGE_LENGTH_DEFAULT = 10 * 100 /*100 = 1/length unit*/; // large for now because we have just one partition
-const float_t PARTITION_EDGE_EXTRA_MARGIN = 0.1;
+const float_t PARTITION_EDGE_LENGTH_DEFAULT_UM = 10; // large for now because we have just one partition
+const float_t PARTITION_EDGE_EXTRA_MARGIN_UM = 0.01;
 const float_t SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT = 1;
 
 

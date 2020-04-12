@@ -50,7 +50,7 @@ World::World()
     wall_hit_callback(nullptr),
     wall_hit_callback_clientdata(nullptr)
 {
-  config.partition_edge_length = PARTITION_EDGE_LENGTH_DEFAULT;
+  config.partition_edge_length = FLT_INVALID;
   config.subpartitions_per_partition_dimension = SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT;
 
   // although the same thing is called in init_simulation, not reseting it causes weird valdrind reports on

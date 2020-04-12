@@ -73,6 +73,7 @@ static void move_volume_molecule_to_closest_wall_point(Partition& p, const Volum
 
   // move the molecule a bit so that it ends up at the correct side of the wall
   vm.v.pos = new_pos3d;
+  vm.v.subpart_index = p.get_subpart_index(vm.v.pos);
   Vec3 new_pos_after_diffuse;
   DiffusionUtil::tiny_diffuse_3D(p, vm, displacement, wall.index, new_pos_after_diffuse);
 
@@ -85,6 +86,7 @@ static void move_volume_molecule_to_closest_wall_point(Partition& p, const Volum
 
   // move the molecule and also update the subpartition information
   vm.v.pos = new_pos_after_diffuse;
+  vm.v.subpart_index = p.get_subpart_index(vm.v.pos);
   subpart_index_t new_subpart = p.get_subpart_index(vm.v.pos);
   p.change_molecule_subpartition(vm, new_subpart);
 

@@ -216,7 +216,11 @@ public:
     urb = llf + Vec3(config.subpartition_edge_length);
   }
 
-  void change_reactants_map(Molecule& vm, const uint32_t new_subpartition_index, bool adding, bool removing) {
+  // the orig_subpart_index is index where the molecule was originally
+  void change_reactants_map(Molecule& vm, const uint32_t orig_subpart_index, bool adding, bool removing) {
+
+    assert(vm.v.subpart_index == get_subpart_index(vm.v.pos) && "Position and subpart must match all the time");
+
     if (vm.is_surf()) {
       // nothing to do
       return;
@@ -234,8 +238,8 @@ public:
     }
 
     // these are all the sets of indices of reactants for this particular subpartition
-    SpeciesReactantsMap& subpart_reactants_orig_sp = volume_molecule_reactants_per_subpart[vm.v.subpart_index];
-    SpeciesReactantsMap& subpart_reactants_new_sp = volume_molecule_reactants_per_subpart[new_subpartition_index];
+    SpeciesReactantsMap& subpart_reactants_orig_sp = volume_molecule_reactants_per_subpart[orig_subpart_index];
+    SpeciesReactantsMap& subpart_reactants_new_sp = volume_molecule_reactants_per_subpart[vm.v.subpart_index];
 
     // we need to set/clear flag that says that second_reactant_info.first can react with reactant_species_id
     for (const auto& second_reactant_info: *reactions_map) {
@@ -254,10 +258,10 @@ public:
   }
 
 
-  void change_molecule_subpartition(Molecule& vm, const uint32_t new_subpartition_index) {
+  void change_molecule_subpartition(Molecule& vm, const uint32_t orig_subpart_index) {
     assert(vm.v.subpart_index < volume_molecule_reactants_per_subpart.size());
-    assert(new_subpartition_index < volume_molecule_reactants_per_subpart.size());
-    if (vm.v.subpart_index == new_subpartition_index) {
+    assert(orig_subpart_index < volume_molecule_reactants_per_subpart.size());
+    if (vm.v.subpart_index == orig_subpart_index) {
       return; // nothing to do
     }
 #ifdef DEBUG_SUBPARTITIONS
@@ -265,8 +269,7 @@ public:
         <<  vm.v.subpart_index << " to " << new_subpartition_index << ".\n";
 #endif
 
-    change_reactants_map(vm, new_subpartition_index, true, true);
-    vm.v.subpart_index = new_subpartition_index;
+    change_reactants_map(vm, orig_subpart_index, true, true);
   }
 
 

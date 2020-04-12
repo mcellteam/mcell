@@ -37,7 +37,8 @@
 
 #include "dump_state.h"
 
-#define MCELL3_IDENTICAL
+// when enabled, mcell3 produces identical result to the mcell master branch
+//#define MCELL3_IDENTICAL
 
 #ifndef MCELL3_IDENTICAL
 // enable several things that make comparison with mcell4 easier
@@ -53,13 +54,15 @@
 
 #endif
 
+#define COLLECT_SUBPARTS_LEGACY // 4021 fails, probably others as well
+
 //#define DUMP_ALWAYS
 //#define DUMP_NEVER
 
 #if (!defined(NDEBUG) || defined(DUMP_ALWAYS)) && !defined(DUMP_NEVER)
 
-#define FROM_ITERATION 0
-#define TO_ITERATION 10
+#define FROM_ITERATION 8
+#define TO_ITERATION 9
 
 #if 1
 #define DEBUG_DIFFUSION
