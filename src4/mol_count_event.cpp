@@ -89,6 +89,10 @@ void MolCountEvent::step() {
     // for each molecule
     for (const Molecule& m: p.get_molecules()) {
 
+      if (m.is_defunct()) {
+        continue;
+      }
+
       const BNG::Species& species = world->get_all_species().get(m.species_id);
       if (!species.has_count_enclosed_flag()) {
         continue;
