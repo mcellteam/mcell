@@ -65,18 +65,9 @@ static Vec3 get_displacement_up_to_partition_boundary(
   assert(!p.in_this_partition(new_pos));
 #endif
 
-  // TODO: similar code is in collect_crossed_subparts, clean it up
-  // direction of the displacement
-  // TODO: get rid of the zero div check??
-
   Vec3 displacement_nonzero = displacement;
-  debug_guard_zero_div(displacement_nonzero);
+  guard_zero_div(displacement_nonzero);
   IVec3 dir_urb_direction = IVec3(glm::greaterThan(displacement_nonzero, Vec3(0)));
-
-  IVec3 dir_urb_addend;
-  dir_urb_addend.x = (dir_urb_direction.x == 0) ? -1 : 1;
-  dir_urb_addend.y = (dir_urb_direction.y == 0) ? -1 : 1;
-  dir_urb_addend.z = (dir_urb_direction.z == 0) ? -1 : 1;
 
   // position of edges in our direction
   Vec3 partition_edges =
@@ -84,8 +75,6 @@ static Vec3 get_displacement_up_to_partition_boundary(
       + Vec3(dir_urb_direction) * p.config.partition_edge_length;
 
   Vec3 diff = partition_edges - pos;
-
-  Vec3 displacement_rcp = float_t(1.0)/displacement_nonzero; // POSSIBLE ZERO DIV
 
   // time we hit a boundary
   float_t hit_time = 1;
@@ -112,7 +101,7 @@ static Vec3 get_displacement_up_to_partition_boundary(
     // time = (pos(time) - vm.v.pos) / displacement
     // =>
     // time_to_subpart_edge = (subpart_edge - vm.v.pos) / displacement_speed
-    Vec3 coll_times = diff * displacement_rcp;
+    Vec3 coll_times = diff / displacement_nonzero;
     assert(coll_times.x >= 0 && coll_times.y >= 0 && coll_times.z >= 0
       && "Subpartition 'edges' must be computed from direction, we cannot hit a subpart boundary that is behind us");
 
@@ -385,7 +374,9 @@ static inline void collect_crossed_subparts(
 
     if (!p.in_this_partition(start_pos)) {
       // we got out of the partition, move the corner point just a little so that we still fit
-      start_pos = start_pos - get_displacement_up_to_partition_boundary(p, start_positions[i], -displacement_of_radius_length);
+      // because we are sending negated displacement, we also get negated result
+      Vec3 new_displacement_neg = get_displacement_up_to_partition_boundary(p, start_positions[i], -displacement_of_radius_length);
+      start_pos = start_positions[i] + new_displacement_neg;
       assert(p.in_this_partition(start_pos));
     }
 

@@ -593,20 +593,8 @@ static inline bool distinguishable_vec3(const Vec3& a, const Vec3& b, float_t ep
   return (c * eps < cc);
 }
 
-// FIXME: use these functions also for NDEBUG versions
-static inline void debug_guard_zero_div(float_t& val) {
-#ifndef NDEBUG
-  // if we divide by such a small number, result is practically the same as
-  // if we would return inf during division
-  if (val == 0) {
-    val = FLT_MIN;
-  }
-#endif
-}
 
-
-static inline void debug_guard_zero_div(Vec3& val) {
-#ifndef NDEBUG
+static inline void guard_zero_div(Vec3& val) {
   if (val.x == 0) {
     val.x = FLT_MIN;
   }
@@ -616,7 +604,6 @@ static inline void debug_guard_zero_div(Vec3& val) {
   if (val.z == 0) {
     val.z = FLT_MIN;
   }
-#endif
 }
 
 /*

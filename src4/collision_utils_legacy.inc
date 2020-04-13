@@ -133,7 +133,7 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
 
   // urb - upper, right, bottom
   Vec3 displacement_nonzero = displacement;
-  debug_guard_zero_div(displacement_nonzero);
+  guard_zero_div(displacement_nonzero);
   IVec3 dir_urb_direction = IVec3(glm::greaterThan(displacement_nonzero, Vec3(0)));
   assert(dir_urb_direction.x == 0 || dir_urb_direction.x == 1);
   assert(dir_urb_direction.y == 0 || dir_urb_direction.y == 1);
