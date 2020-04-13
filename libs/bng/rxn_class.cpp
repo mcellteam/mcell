@@ -46,6 +46,27 @@ float_t RxnClass::get_reactant_diffusion(const uint reactant_index) const {
 // convert reaction rate constants into probabilities
 float_t RxnClass::compute_pb_factor(const BNGConfig& bng_config) const {
 
+#ifndef NDEBUG
+  assert(get_num_reactions() >= 1);
+  // checking that all reactions in the same rxn class have the same orientation,
+  // this is used later
+  if (is_bimol()) {
+    orientation_t orient0 = reactions[0]->reactants[0].get_orientation();
+    orientation_t orient1 = reactions[0]->reactants[1].get_orientation();
+    for (uint i = 0; i < get_num_reactions(); i++) {
+      assert(orient0 == reactions[i]->reactants[0].get_orientation());
+      assert(orient1 == reactions[i]->reactants[1].get_orientation());
+    }
+  }
+  else {
+    // orientation does not make much sense for unimol rxns, but let's check it as well
+    orientation_t orient0 = reactions[0]->reactants[0].get_orientation();
+    for (uint i = 0; i < get_num_reactions(); i++) {
+      assert(orient0 == reactions[i]->reactants[0].get_orientation());
+    }
+  }
+#endif
+
   /* determine the number of volume and surface reactants as well
    * as the number of surfaces */
   uint num_vol_reactants = 0;
@@ -103,11 +124,11 @@ float_t RxnClass::compute_pb_factor(const BNGConfig& bng_config) const {
 
       float_t D_tot = 0.0;
       float_t t_step = 0.0;
-      if (reactant_species[0]->is_surf() || reactant_species[0]->is_reactive_surface()) {
+      if (reactant_species[0]->is_vol()) {
         D_tot = get_reactant_diffusion(0);
         t_step = get_reactant_time_step(0) * bng_config.time_unit;
       }
-      else if (reactant_species[1]->is_surf() || reactant_species[1]->is_reactive_surface()) {
+      else if (reactant_species[1]->is_vol()) {
         D_tot = get_reactant_diffusion(1);
         t_step = get_reactant_time_step(1) * bng_config.time_unit;
       } else {
@@ -124,13 +145,21 @@ float_t RxnClass::compute_pb_factor(const BNGConfig& bng_config) const {
         pb_factor = 1.0e11 * bng_config.grid_density / (2.0 * BNG_N_AV) * sqrt(BNG_PI * t_step / D_tot);
       }
 
-      /*
-      // TODO LATER: not sure what to do with this code from the orig implemetation
-      if ((rx->geometries[0] + rx->geometries[1]) * (rx->geometries[0] - rx->geometries[1]) == 0 &&
-          rx->geometries[0] * rx->geometries[1] != 0) {
+      // reactant_species are general, the do not have orientation
+      // assuming that all reactions in the same rxn class have the same orientation
+      orientation_t orient0 = reactions[0]->reactants[0].get_orientation();
+      orientation_t orient1 = reactions[0]->reactants[1].get_orientation();
+
+      // double pb factor if both use orientation (both orientations are not zero)
+      // TODO: search elsewhere in the code for explanation, the first condition
+      // seems superfluous because already the multiplications tells us that neither of them is 0
+      // (assuming the allowed values are -1, 0, 1)
+      assert(orient0 == ORIENTATION_UP || orient0 == ORIENTATION_NONE || orient0 == ORIENTATION_DOWN);
+      assert(orient1 == ORIENTATION_UP || orient1 == ORIENTATION_NONE || orient1 == ORIENTATION_DOWN);
+
+      if ( ((orient0 + orient1) * (orient0 - orient1) == 0) && (orient0 * orient1 != 0) ) {
         pb_factor *= 2.0;
       }
-      */
     }
   }
   else if (num_vol_reactants == 2) {
