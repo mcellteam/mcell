@@ -344,6 +344,7 @@ static inline void collect_crossed_subparts(
   SubpartIndicesVector& crossed_subparts_for_walls, // crossed subparts considered for wall collision
   subpart_indices_set_t& crossed_subparts_for_molecules // crossed subparts considered for molecule collisions
 ) {
+  assert(p.in_this_partition(vm.v.pos));
   assert(crossed_subparts_for_walls.empty());
   assert(crossed_subparts_for_molecules.empty());
 
@@ -366,7 +367,6 @@ static inline void collect_crossed_subparts(
   //
   small_vector<Vec3> start_positions;
   start_positions.resize(NUM_CORNER_POINTS + 1);
-  start_positions[MOL_POS_POINT_INDEX] = vm.v.pos;
 
   uint num_points = start_positions.size();
 
@@ -381,8 +381,17 @@ static inline void collect_crossed_subparts(
   // move detection points a bit back
   small_vector<subpart_index_t> start_subpart_indices;
   for (uint i = 0; i < NUM_CORNER_POINTS; i++) {
-    start_positions[i] = start_positions[i] - displacement_of_radius_length;
+    Vec3 start_pos = start_positions[i] - displacement_of_radius_length;
+
+    if (!p.in_this_partition(start_pos)) {
+      // we got out of the partition, move the corner point just a little so that we still fit
+      start_pos = start_pos - get_displacement_up_to_partition_boundary(p, start_positions[i], -displacement_of_radius_length);
+      assert(p.in_this_partition(start_pos));
+    }
+
+    start_positions[i] = start_pos;
   }
+  start_positions[MOL_POS_POINT_INDEX] = vm.v.pos;
 
 #ifdef DEBUG_SUBPARTITIONS
   std::cout << "Corrected corner points for subpart colection:\n"
