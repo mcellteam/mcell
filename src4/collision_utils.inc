@@ -1253,18 +1253,12 @@ static bool is_point_inside_region(const Partition& p, const Vec3& pos, const Re
 
 // ---------------------------------- reflections and other wall interactions ----------------------------------
 
-static void cross_transparent_wall(
+static void update_counted_volume_id_when_crossing_wall(
     const Partition& p,
+    const Wall& w,
     const Collision& collision,
-    const Vec3& full_displacement, // whole displacement computed for this molecule
-    Molecule& vm, // moves vm to the reflection point
-    Vec3& remaining_displacement,
-    float_t& t_steps,
-    float_t& elapsed_molecule_time,
-    wall_index_t& last_hit_wall_index
+    Molecule& vm
 ) {
-
-  const Wall& w = p.get_wall(collision.colliding_wall_index);
   const GeometryObject& obj = p.get_geometry_object(w.object_id);
   if (obj.is_counted_volume) {
     // which direction?
@@ -1282,6 +1276,23 @@ static void cross_transparent_wall(
       assert(false);
     }
   }
+}
+
+
+static void cross_transparent_wall(
+    const Partition& p,
+    const Collision& collision,
+    const Vec3& full_displacement, // whole displacement computed for this molecule
+    Molecule& vm, // moves vm to the reflection point
+    Vec3& remaining_displacement,
+    float_t& t_steps,
+    float_t& elapsed_molecule_time,
+    wall_index_t& last_hit_wall_index
+) {
+
+  const Wall& w = p.get_wall(collision.colliding_wall_index);
+
+  update_counted_volume_id_when_crossing_wall(p, w, collision, vm);
 
 #ifdef DEBUG_TRANSPARENT_SURFACES
   std::cout << "Crossed a transparent wall, side: " << w.side << "\n";
@@ -1303,14 +1314,6 @@ static void cross_transparent_wall(
   if (t_steps < EPS) {
     t_steps = EPS;
   }
-
-  /*// Reduce our remaining available time
-  t_steps = t_steps - t_cross;
-  assert(cmp_gt(t_steps, 0, EPS));
-
-  // Set displacement for remainder of step length
-//  remaining_displacement = full_displacement * Vec3(steps - t_cross);
-  remaining_displacement = full_displacement * Vec3(t_steps);*/
 
   last_hit_wall_index = w.index;
 }

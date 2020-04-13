@@ -199,6 +199,8 @@ public:
   // returns true if two reactants match each other and species 'id' matches one of the reactants
   bool species_is_both_bimol_reactants(const species_id_t id, const SpeciesContainer& all_species);
 
+  bool find_assigned_cplx_reactant_for_product(const uint product_index, uint& reactant_index) const;
+
 private:
 
   // returns false if cmi was not found in mapping,
@@ -211,8 +213,6 @@ private:
   bool find_most_fitting_unassigned_mol_product(const CplxMolIndex& reactant_cmi, CplxMolIndex& best_product_cmi) const;
 
   bool compute_mol_reactants_products_mapping(MolInstance& not_matching_mol_inst, CplxMolIndex& not_matching_cmi);
-
-  bool find_assigned_cplx_reactant_for_product(const uint product_index, uint& reactant_index) const;
 
   void compute_cplx_reactants_products_mapping();
 

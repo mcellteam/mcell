@@ -70,6 +70,10 @@ public:
         orientation == ci2.orientation;
   }
 
+  bool equal_ignore_orientation(const CplxInstance& ci2) const {
+    return mol_instances == ci2.mol_instances;
+  }
+
   bool operator ==(const CplxInstance& ci2) const {
     // ordering of components in a molecule is important
     // two component types must have the same id, this is ensured in find_or_add_component_type

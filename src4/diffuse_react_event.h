@@ -196,8 +196,11 @@ private:
       const Collision& collision,
       const float_t remaining_time_step,
       const float_t r_rate_factor,
-      const float_t current_molecule_time,
-      WallTileIndexPair& where_created_this_iteration
+      WallTileIndexPair& where_created_this_iteration,
+      wall_index_t& last_hit_wall_index,
+      Vec3& remaining_displacement,
+      float_t& t_steps,
+      float_t& elapsed_molecule_time
   );
 
   WallRxnResult collide_and_react_with_walls(

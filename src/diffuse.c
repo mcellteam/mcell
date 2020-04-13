@@ -4358,7 +4358,6 @@ int collide_and_react_with_surf_mol(struct volume* world, struct collision* smas
           k, sm->orient, m->t + t_steps * smash->t, &(smash->loc), loc);
 
         if (l == RX_FLIP) {
-	        ASSERT_FOR_MCELL4(false);
           if ((m->flags & COUNT_ME) != 0 && (spec->flags & COUNT_SOME_MASK) != 0) {
             /* Count as far up as we can unambiguously */
             int destroy_flag = 0;

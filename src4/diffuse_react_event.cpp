@@ -380,13 +380,22 @@ void DiffuseReactEvent::diffuse_vol_molecule(
         if (species.has_flag(SPECIES_FLAG_CAN_VOLSURF) && colliding_wall.has_initialized_grid()) {
           int collide_res = collide_and_react_with_surf_mol(
               p, collision, t_steps,
-              r_rate_factor, elapsed_molecule_time,
-              wall_tile_pair_where_created_this_iteration
+              r_rate_factor,
+              wall_tile_pair_where_created_this_iteration,
+              last_hit_wall_index,
+              remaining_displacement,
+              t_steps,
+              elapsed_molecule_time
           );
 
           if (collide_res == 1) { // FIXME: use enum
             was_defunct = true;
-            return;
+            break;
+          }
+          else if (collide_res == 0) {
+            // flip, position and counted vol change was already handled in outcome_products_random
+            // continue with diffusion
+            break;
           }
         }
 
@@ -662,13 +671,17 @@ bool DiffuseReactEvent::collide_and_react_with_vol_mol(
  *      target
  *
  ******************************************************************************/
+// TODO: return enum
 int DiffuseReactEvent::collide_and_react_with_surf_mol(
     Partition& p,
     const Collision& collision,
     const float_t remaining_time_step,
     const float_t r_rate_factor,
-    const float_t elapsed_molecule_time,
-    WallTileIndexPair& where_created_this_iteration
+    WallTileIndexPair& where_created_this_iteration,
+    wall_index_t& last_hit_wall_index,
+    Vec3& remaining_displacement,
+    float_t& t_steps,
+    float_t& elapsed_molecule_time
 ) {
   Wall& wall = p.get_wall(collision.colliding_wall_index);
   Grid& grid = wall.grid;
@@ -767,7 +780,34 @@ int DiffuseReactEvent::collide_and_react_with_surf_mol(
   if (outcome_bimol_result == RX_DESTROY) {
     return 1;
   }
+  else if (outcome_bimol_result == RX_FLIP) {
+    float_t t_smash = collision.time;
+    // update position and timing for flipped molecule
+
+    Molecule& vm = p.get_m(collision.diffused_molecule_id);
+
+    // update position and subpart if needed
+    vm.v.pos = collision.pos;
+    vm.v.subpart_index = p.get_subpart_index(vm.v.pos);
+    //p.update_molecule_reactants_map(vm);
+    CollisionUtil::update_counted_volume_id_when_crossing_wall(p, wall, collision, vm);
+
+    // TODO: same code is on multiple places, e.g. in cross_transparent_wall,
+    // make a function for it
+    remaining_displacement = remaining_displacement * Vec3(1.0 - t_smash);
+    elapsed_molecule_time += t_steps * t_smash;
+
+    t_steps *= (1.0 - t_smash);
+    if (t_steps < EPS) {
+      t_steps = EPS;
+    }
+
+    last_hit_wall_index = wall.index;
+
+    return 0;
+  }
   else {
+    last_hit_wall_index = wall.index;
     return -1;
   }
 
@@ -1440,7 +1480,7 @@ int DiffuseReactEvent::outcome_bimolecular(
         keep_reacA, keep_reacB
       );
 
-  if (result == RX_A_OK) {
+  if (result == RX_A_OK || result == RX_FLIP) {
     Molecule& reacA = p.get_m(collision.diffused_molecule_id);
     Molecule& reacB = p.get_m(collision.colliding_molecule_id);
 
@@ -1466,7 +1506,7 @@ int DiffuseReactEvent::outcome_bimolecular(
     }
 
     if (keep_reacA) {
-      return RX_A_OK;
+      return result;
     }
     else {
       return RX_DESTROY;
@@ -1708,10 +1748,36 @@ int DiffuseReactEvent::find_surf_product_positions(
   return 0;
 }
 
+
+// TODO: better name?
+static void update_vol_mol_after_rxn_with_surf_mol(
+    Partition& p,
+    const Molecule* surf_reac,
+    const BNG::CplxInstance& product,
+    const Collision& collision,
+    Molecule& vm
+) {
+  assert(surf_reac != nullptr);
+  Wall& w = p.get_wall(surf_reac->s.wall_index);
+
+  float_t bump = (product.get_orientation() > 0) ? EPS : -EPS;
+  Vec3 displacement = Vec3(2 * bump) * w.normal;
+  Vec3 new_pos_after_diffuse;
+
+  DiffusionUtil::tiny_diffuse_3D(p, vm, displacement, w.index, new_pos_after_diffuse);
+
+  // update position and subpart if needed
+  vm.v.pos = new_pos_after_diffuse;
+  vm.v.subpart_index = p.get_subpart_index(vm.v.pos);
+  p.update_molecule_reactants_map(vm);
+  CollisionUtil::update_counted_volume_id_when_crossing_wall(p, w, collision, vm);
+}
+
+
 // why is this called "random"? - check if reaction occurs is in test_bimolecular
-// mcell3 version returns  cross_wall ? RX_FLIP : RX_A_OK;
 // ! might invalidate references
 // might return RX_BLOCKED
+// TODO: refactor, split into multiple functions
 int DiffuseReactEvent::outcome_products_random(
     Partition& p,
     const Collision& collision,
@@ -1826,14 +1892,45 @@ int DiffuseReactEvent::outcome_products_random(
   // create and place each product
   uint current_surf_product_position_index = 0;
 
+  int res = RX_A_OK;
+
   for (uint product_index = 0; product_index < rx->products.size(); product_index++) {
     const BNG::CplxInstance& product = rx->products[product_index];
 
     // do not create anything new when the reactant is kept -
     // for bimol reactions - the diffusion simply continues
     // for unimol reactions - the unimol action action starts diffusion for the remaining timestep
-    if (rx->is_cplx_product_on_both_sides_of_rxn(product_index) /*product.is_on_both_sides_of_rxn()*/) {
-      // remember which reactant(s) to keep?
+    if (rx->is_cplx_product_on_both_sides_of_rxn(product_index)) {
+
+      uint reactant_index;
+      bool ok = rx->find_assigned_cplx_reactant_for_product(product_index, reactant_index);
+      assert(reactant_index == 0 || reactant_index == 1);
+
+      if (rx->reactants[reactant_index].get_orientation() != product.get_orientation()) {
+        // initiator volume molecule passes through wall?
+        // any surf mol -> set new orient
+
+        // if not swapped, reacA is the diffused molecule and matches the reactant with index 0
+        // reacA  matches reactant with index 0, reacB matches reactant with index 1
+        Molecule* reactant = ((reactant_index == 0) ? reacA : reacB);
+        assert(reactant != nullptr);
+        assert(p.bng_engine.matches_ignore_orientation(product, reactant->species_id));
+
+        if (reactant->is_vol()) {
+          Molecule* initiator = (!reactants_swapped) ? reacA : reacB;
+          if (reactant == initiator) {
+            res = RX_FLIP;
+          }
+        }
+        else if (reactant->is_surf()) {
+          // surface mol - set new orientation
+          reactant->s.orientation = product.get_orientation();
+        }
+        else {
+          assert(false);
+        }
+      }
+
       continue;
     }
 
@@ -1872,19 +1969,9 @@ int DiffuseReactEvent::outcome_products_random(
           || (collision.type != CollisionType::VOLMOL_SURFMOL && collision.type != CollisionType::SURFMOL_SURFMOL)
       );
       if (is_orientable) {
-        assert(surf_reac != nullptr);
-        Wall& w = p.get_wall(surf_reac->s.wall_index);
-
-        float_t bump = (product.get_orientation() > 0) ? EPS : -EPS;
-        Vec3 displacement = Vec3(2 * bump) * w.normal;
-        Vec3 new_pos_after_diffuse;
-
-        DiffusionUtil::tiny_diffuse_3D(p, new_vm, displacement, w.index, new_pos_after_diffuse);
-
-        // update position and subpart if needed
-        new_vm.v.pos = new_pos_after_diffuse;
-        new_vm.v.subpart_index = p.get_subpart_index(new_vm.v.pos);
-        p.update_molecule_reactants_map(new_vm);
+        update_vol_mol_after_rxn_with_surf_mol(
+            p, surf_reac, product, collision, new_vm
+        );
       }
 
 
@@ -1964,7 +2051,7 @@ int DiffuseReactEvent::outcome_products_random(
     keep_reacB = tmp;
   }
 
-  return RX_A_OK;
+  return res;
 }
 
 // ---------------------------------- unimolecular reactions ----------------------------------
