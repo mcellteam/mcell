@@ -1411,8 +1411,8 @@ struct volume {
   // these are processed already in parser and are not accessible through other variables
   // during conversion, index is dimension
   bool partitions_initialized;
-  double partition_llf[3];
-  double partition_urb[3];
+  struct vector3 partition_llf;
+  struct vector3 partition_urb;
   int num_subparts;
 };
 

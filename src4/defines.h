@@ -401,6 +401,10 @@ static inline float_t max3(const Vec3& v) {
   return glm::compMax((glm_vec3_t)v);
 }
 
+static inline int max3_i(const IVec3& v) {
+  return glm::compMax(v);
+}
+
 static inline Vec3 abs3(const Vec3& v) {
   return glm::abs((glm_vec3_t)v);
 }
@@ -666,7 +670,7 @@ public:
 
   float_t vacancy_search_dist2;
 
-  float_t partition_edge_length;
+  float_t partition_edge_length; // TODO: rename to side
   uint subpartitions_per_partition_dimension;
   uint subpartitions_per_partition_dimension_squared;
   float_t subpartition_edge_length; // == partition_edge_length / subpartitions_per_partition_dimension

@@ -183,6 +183,20 @@ static uint get_even_higher_or_same_value(const uint val) {
 }
 
 
+static float_t get_partition_edge_length(const World* world, const float_t largest_mcell3_distance_from_center) {
+  // some MCell models have their partition boundary set exactly. we need to add a bit of margin
+  return (largest_mcell3_distance_from_center + PARTITION_EDGE_EXTRA_MARGIN_UM) * 2 / world->config.length_unit;
+}
+
+
+/**
+ * Partition conversion greatly simplifies the variability in MCell3 where the partition can be an arbitrary box.
+ * Here, it must be a cube and the first partition must be placed the way so that the coordinate origin
+ * is in its corner.
+ * The assumption (quite possibly premature) is that there will be big systems that are simulated
+ * and the whole space will be split into multiple partitions anyway. And we do not care about the
+ * number of subpartitions, they should only take up memory, not computation time.
+ */
 bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
   // TODO_CONVERSION: many items are not checked
   world->iterations = s->iterations;
@@ -196,27 +210,26 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
 
   // there seems to be just one partition in MCell but we interpret it as mcell4 partition size
   if (s->partitions_initialized) {
-    CHECK_PROPERTY(s->partition_llf[0] == s->partition_llf[1]);
-    CHECK_PROPERTY(s->partition_llf[1] == s->partition_llf[2]);
-    CHECK_PROPERTY(s->partition_urb[0] == s->partition_urb[1]);
-    CHECK_PROPERTY(s->partition_urb[1] == s->partition_urb[2]);
-    assert(s->partition_urb[0] > s->partition_llf[0]);
+    CHECK_PROPERTY(s->partition_urb.x > s->partition_llf.x);
+    CHECK_PROPERTY(s->partition_urb.y > s->partition_llf.y);
+    CHECK_PROPERTY(s->partition_urb.z > s->partition_llf.z);
 
-    // some MCell models have their partition boundary set exactly. we need to add a bit of margin
-    world->config.partition_edge_length =
-        (s->partition_urb[0] - s->partition_llf[0] + PARTITION_EDGE_EXTRA_MARGIN_UM) / s->length_unit;
+    // simply choose the largest abs value from all the values
+    float_t largest_mcell3_distance_from_center = get_largest_distance_from_center(s->partition_llf, s->partition_urb);
 
-    float_t l = world->config.partition_edge_length / 2 * s->length_unit;
-    mcell_log("MCell4 partition bounding box in microns: [ %f, %f, %f ], [ %f, %f, %f ]\n",
-        -l, -l, -l, l, l, l);
+    world->config.partition_edge_length = get_partition_edge_length(world, largest_mcell3_distance_from_center);
 
     // number of subparts must be even so that the central subparts are aligned with the axes and not shifted
     world->config.subpartitions_per_partition_dimension = get_even_higher_or_same_value(s->num_subparts);
   }
   else {
+    CHECK_PROPERTY(s->bb_urb.x > s->bb_llf.x);
+    CHECK_PROPERTY(s->bb_urb.y > s->bb_llf.y);
+    CHECK_PROPERTY(s->bb_urb.z > s->bb_llf.z);
+
     // use MCell's bounding box, however, we must make a cube out of it
-    float_t half_dim = get_largest_distance_from_center(s->bb_llf, s->bb_urb);
-    float_t auto_length = (half_dim + PARTITION_EDGE_EXTRA_MARGIN_UM) * 2 / world->config.length_unit;
+    float_t largest_mcell3_distance_from_center = get_largest_distance_from_center(s->bb_llf, s->bb_urb);
+    float_t auto_length = get_partition_edge_length(world, largest_mcell3_distance_from_center);
 
     if (auto_length > PARTITION_EDGE_LENGTH_DEFAULT_UM / world->config.length_unit) {
       world->config.partition_edge_length = auto_length;
@@ -229,11 +242,14 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
         (double)auto_length * world->config.length_unit, PARTITION_EDGE_LENGTH_DEFAULT_UM);
     }
 
-    // this number counts the number of boundaries, not subvolumes, also, there are always 2 extra subvolumes on the sides in mcell3
-    world->config.subpartitions_per_partition_dimension = get_even_higher_or_same_value(s->nx_parts - 3);
+    // nx_parts counts the number of boundaries, not subvolumes, also, there are always 2 extra subvolumes on the sides in mcell3
+    int max_n_p_parts = max3_i(IVec3(s->nx_parts, s->ny_parts, s->nz_parts));
+    world->config.subpartitions_per_partition_dimension = get_even_higher_or_same_value(max_n_p_parts - 3);
   }
-  CHECK_PROPERTY(s->nx_parts == s->ny_parts);
-  CHECK_PROPERTY(s->ny_parts == s->nz_parts);
+
+  float_t l = world->config.partition_edge_length / 2 * s->length_unit;
+  mcell_log("MCell4 partition bounding box in microns: [ %f, %f, %f ], [ %f, %f, %f ]\n", -l, -l, -l, l, l, l);
+
 
   world->config.randomize_smol_pos = s->randomize_smol_pos;
 
