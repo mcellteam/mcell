@@ -243,13 +243,13 @@ static void raycast_with_endpoints(
 )
 {
   // FIXME: used lower case, these are not really contants...
-  const float_t CELL_SIDE = p.config.subpartition_edge_length;
-  const float_t CELL_SIZE_RCP = p.config.subpartition_edge_length_rcp;
+  const float_t cell_side = p.config.subpartition_edge_length;
+  const float_t cell_size_rcp = p.config.subpartition_edge_length_rcp;
 
   // computing subpart index using get_subpart_index_from_3d_indices every time is rather expensive
-  const int SUBPART_X_ADDEND = dir.x;
-  const int SUBPART_Y_ADDEND = dir.y * p.config.subpartitions_per_partition_dimension;
-  const int SUBPART_Z_ADDEND = dir.z * p.config.subpartitions_per_partition_dimension_squared;
+  const int subpart_x_addend = dir.x;
+  const int subpart_y_addend = dir.y * p.config.subpartitions_per_partition_dimension;
+  const int subpart_z_addend = dir.z * p.config.subpartitions_per_partition_dimension_squared;
 
   IVec3 indices;
   p.get_subpart_3d_indices(pt1, indices);
@@ -260,8 +260,8 @@ static void raycast_with_endpoints(
 
   // TODO: optimize when start and end are the same? check with benchmark
 
-  Vec3 min = floor3(pt1 * Vec3(CELL_SIZE_RCP)) * Vec3(CELL_SIDE);
-  Vec3 max = min + Vec3(CELL_SIDE);
+  Vec3 min = floor3(pt1 * Vec3(cell_size_rcp)) * Vec3(cell_side);
+  Vec3 max = min + Vec3(cell_side);
 
   Vec3 t;
   t.x = ((dir.x == -1) ? (pt1.x - min.x) : (max.x - pt1.x)) * abs_d_rcp.x;
@@ -287,7 +287,7 @@ static void raycast_with_endpoints(
       }
       t.x += deltat.x;
       indices.x += dir.x;
-      subpart_index += SUBPART_X_ADDEND;
+      subpart_index += subpart_x_addend;
     }
     else if (t.y <= t.z)
     {
@@ -296,7 +296,7 @@ static void raycast_with_endpoints(
       }
       t.y += deltat.y;
       indices.y += dir.y;
-      subpart_index += SUBPART_Y_ADDEND;
+      subpart_index += subpart_y_addend;
     }
     else
     {
@@ -305,7 +305,7 @@ static void raycast_with_endpoints(
       }
       t.z += deltat.z;
       indices.z += dir.z;
-      subpart_index += SUBPART_Z_ADDEND;
+      subpart_index += subpart_z_addend;
     }
 
     #ifdef DEBUG_SUBPARTITIONS
@@ -581,7 +581,7 @@ static void jump_away_line(
   f.z = n.x * e.y - n.y * e.x;
 
   tiny = EPS * (MCell::abs_max_2vec(p, v) + 1.0) /
-         (k * max3d(glm::abs((glm_vec3_t)f)));
+         (k * max3(glm::abs((glm_vec3_t)f)));
   if ((rng_uint(&rng) & 1) == 0) {
     tiny = -tiny;
   }

@@ -397,7 +397,7 @@ static inline uint powu(const uint a, const uint n) {
   return res;
 }
 
-static inline float_t max3d(const Vec3& v) {
+static inline float_t max3(const Vec3& v) {
   return glm::compMax((glm_vec3_t)v);
 }
 
@@ -415,7 +415,7 @@ static inline float_t abs_max_2vec(const Vec3& v1, const Vec3& v2) {
   glm_vec3_t v1abs = abs3(v1);
   glm_vec3_t v2abs = abs3(v2);
   Vec3 vmax = glm::max(v1abs, v2abs);
-  return MCell::max3d(vmax);
+  return MCell::max3(vmax);
 }
 
 static inline float_t determinant2(const Vec2& v1, const Vec2& v2) {
