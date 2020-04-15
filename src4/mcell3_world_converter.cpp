@@ -1014,15 +1014,14 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
   // -- schedule_helper -- (as volume.releaser)
   for (schedule_helper* releaser = s->releaser; releaser != NULL; releaser = releaser->next_scale) {
 
-    CHECK_PROPERTY(releaser->dt == 1);
-    CHECK_PROPERTY(releaser->dt_1 == 1);
-    CHECK_PROPERTY(releaser->now == 0);
+    //CHECK_PROPERTY(releaser->dt == 1); // it seems that wecan safely ignore dt
+    //CHECK_PROPERTY(releaser->dt_1 == 1);
+    // CHECK_PROPERTY(releaser->now == 0); // and now as well?
     //ok now: CHECK_PROPERTY(releaser->count == 1);
     CHECK_PROPERTY(releaser->index == 0);
 
     for (int i = -1; i < releaser->buf_len; i++) {
-      for (abstract_element *aep = (i < 0) ? releaser->current : releaser->circ_buf_head[i];
-           aep != NULL; aep = aep->next) {
+      for (abstract_element *aep = (i < 0) ? releaser->current : releaser->circ_buf_head[i]; aep != NULL; aep = aep->next) {
 
         ReleaseEvent event_data(world); // used only locally to capture the information
 
@@ -1190,7 +1189,7 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
     CHECK_PROPERTY(releaser->current_tail == nullptr);
     CHECK_PROPERTY(releaser->defunct_count == 0);
     CHECK_PROPERTY(releaser->error == 0);
-    CHECK_PROPERTY(releaser->depth == 0);
+    //CHECK_PROPERTY(releaser->depth == 0); // ignore
 
   }
 
