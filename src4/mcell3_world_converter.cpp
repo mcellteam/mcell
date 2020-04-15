@@ -211,9 +211,19 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
   // there seems to be just one partition in MCell but we interpret it as mcell4 partition size
   if (s->partitions_initialized) {
     // assuming that the mcell's bounding box if it is bigger than the partition
-    CHECK_PROPERTY(s->partition_llf.x <= s->bb_llf.x && s->bb_urb.x <= s->partition_urb.x);
-    CHECK_PROPERTY(s->partition_llf.y <= s->bb_llf.y && s->bb_urb.y <= s->partition_urb.y);
-    CHECK_PROPERTY(s->partition_llf.z <= s->bb_llf.z && s->bb_urb.z <= s->partition_urb.z);
+    if (
+        s->partition_llf.x <= s->bb_llf.x || s->bb_urb.x <= s->partition_urb.x ||
+        s->partition_llf.y <= s->bb_llf.y || s->bb_urb.y <= s->partition_urb.y ||
+        s->partition_llf.z <= s->bb_llf.z || s->bb_urb.z <= s->partition_urb.z
+    ) {
+      mcell_warn("Warning: partitioning was specified, but it is smaller than the automatically determined bounding box.");
+
+      float_t lu = s->length_unit;
+      mcell_log("Bounding box in microns: [ %f, %f, %f ], [ %f, %f, %f ]",
+          s->bb_llf.x/lu, s->bb_llf.y/lu, s->bb_llf.z/lu, s->bb_urb.x/lu, s->bb_urb.y/lu, s->bb_urb.z/lu);
+      mcell_log("Partition box in microns: [ %f, %f, %f ], [ %f, %f, %f ]",
+          s->partition_llf.x/lu, s->partition_llf.y/lu, s->partition_llf.z/lu, s->partition_urb.x/lu, s->partition_urb.y/lu, s->partition_urb.z/lu);
+    }
 
     CHECK_PROPERTY(s->partition_urb.x > s->partition_llf.x);
     CHECK_PROPERTY(s->partition_urb.y > s->partition_llf.y);
