@@ -113,10 +113,74 @@ void ReleaseEvent::dump(const string ind) {
 }
 
 
+static void check_max_release_count(double num_to_release, const std::string& name) {
+  int num = (int)num_to_release;
+  if (num < 0 || num > INT_MAX) {
+    mcell_error(
+        "Release site '%s' tries to release more than INT_MAX (2147483647) molecules.",
+        name.c_str());
+  }
+}
+
+
 uint ReleaseEvent::calculate_number_to_release() {
-  // release_number_method - only 0 allowed now
-  // case CONSTNUM:
-  return release_number;
+
+  switch (release_number_method) {
+    case ReleaseNumberMethod::ConstNum:
+      return release_number;
+
+    case ReleaseNumberMethod::ConcNum:
+      if (diameter == Vec3(LENGTH_INVALID)) {
+        return 0;
+      }
+      else {
+        float_t vol;
+        switch (release_shape) {
+        case ReleaseShape::SPHERICAL:
+        //case ReleaseShape::ELLIPTIC:
+          vol = (1.0 / 6.0) * MY_PI * diameter.x * diameter.y * diameter.z;
+          break;
+        /*case SHAPE_RECTANGULAR:
+        case SHAPE_CUBIC:
+          vol = rso->diameter->x * rso->diameter->y * rso->diameter->z;
+          break;*/
+
+        case ReleaseShape::SPHERICAL_SHELL:
+          mcell_error("Release site \"%s\" tries to release a concentration on a "
+                      "spherical shell.", release_site_name.c_str());
+          break;
+
+        default:
+          mcell_internal_error("Release by concentration on invalid release site "
+                               "shape (%d) for release site \"%s\".",
+                               (int)release_shape, release_site_name.c_str());
+          break;
+        }
+        assert(concentration != FLT_INVALID);
+        float_t num_to_release =
+            N_AV * 1e-15 * concentration * vol * pow_f(world->config.length_unit, 3) + 0.5;
+        check_max_release_count(num_to_release, release_site_name);
+        return (uint)num_to_release;
+      }
+      break;
+
+    case ReleaseNumberMethod::DensityNum: {
+        // computed in release_onto_regions in MCell3
+        assert(!cum_area_and_pwall_index_pairs.empty());
+        float_t max_A = cum_area_and_pwall_index_pairs.back().first;
+        float_t est_sites_avail = (int)max_A;
+
+        assert(concentration != FLT_INVALID);
+        float_t num_to_release = concentration * est_sites_avail / world->config.grid_density;
+        check_max_release_count(num_to_release, release_site_name);
+        return (uint)num_to_release;
+      }
+      break;
+
+    default:
+      assert(false);
+      return 0;
+  }
 }
 
 

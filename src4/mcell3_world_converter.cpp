@@ -216,7 +216,7 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
         s->partition_llf.y <= s->bb_llf.y || s->bb_urb.y <= s->partition_urb.y ||
         s->partition_llf.z <= s->bb_llf.z || s->bb_urb.z <= s->partition_urb.z
     ) {
-      mcell_warn("Warning: partitioning was specified, but it is smaller than the automatically determined bounding box.");
+      mcell_warn("Partitioning was specified, but it is smaller than the automatically determined bounding box.");
 
       float_t lu = s->length_unit;
       mcell_log("Bounding box in microns: [ %f, %f, %f ], [ %f, %f, %f ]",
@@ -1010,172 +1010,189 @@ static RegionExprNode* create_release_region_terms_recursively(release_evaluator
 // FIXME: thiscould use a cleanup and maybe redesign
 bool MCell3WorldConverter::convert_release_events(volume* s) {
 
+
   // -- schedule_helper -- (as volume.releaser)
-  schedule_helper* releaser = s->releaser;
+  for (schedule_helper* releaser = s->releaser; releaser != NULL; releaser = releaser->next_scale) {
 
-  CHECK_PROPERTY(releaser->next_scale == nullptr);
-  CHECK_PROPERTY(releaser->dt == 1);
-  CHECK_PROPERTY(releaser->dt_1 == 1);
-  CHECK_PROPERTY(releaser->now == 0);
-  //ok now: CHECK_PROPERTY(releaser->count == 1);
-  CHECK_PROPERTY(releaser->index == 0);
+    CHECK_PROPERTY(releaser->dt == 1);
+    CHECK_PROPERTY(releaser->dt_1 == 1);
+    CHECK_PROPERTY(releaser->now == 0);
+    //ok now: CHECK_PROPERTY(releaser->count == 1);
+    CHECK_PROPERTY(releaser->index == 0);
 
-  for (int i = -1; i < releaser->buf_len; i++) {
-    for (abstract_element *aep = (i < 0) ? releaser->current : releaser->circ_buf_head[i];
-         aep != NULL; aep = aep->next) {
+    for (int i = -1; i < releaser->buf_len; i++) {
+      for (abstract_element *aep = (i < 0) ? releaser->current : releaser->circ_buf_head[i];
+           aep != NULL; aep = aep->next) {
 
-      ReleaseEvent event_data(world); // used only locally to capture the information
+        ReleaseEvent event_data(world); // used only locally to capture the information
 
-      // -- release_event_queue --
-      release_event_queue *req = (release_event_queue *)aep;
+        // -- release_event_queue --
+        release_event_queue *req = (release_event_queue *)aep;
 
-      event_data.event_time = req->event_time;
+        event_data.event_time = req->event_time;
 
-      // -- release_site --
-      release_site_obj* rel_site = req->release_site;
+        // -- release_site --
+        release_site_obj* rel_site = req->release_site;
 
-      CHECK_PROPERTY(rel_site->release_shape == SHAPE_SPHERICAL || rel_site->release_shape == SHAPE_REGION);
-      switch (rel_site->release_shape) {
-        case SHAPE_SPHERICAL:
-          event_data.release_shape = ReleaseShape::SPHERICAL;
-          break;
-        case SHAPE_REGION:
-          event_data.release_shape = ReleaseShape::REGION;
-          break;
-        default:
-          assert(false);
-      }
+        CHECK_PROPERTY(rel_site->release_shape == SHAPE_SPHERICAL || rel_site->release_shape == SHAPE_REGION);
+        switch (rel_site->release_shape) {
+          case SHAPE_SPHERICAL:
+            event_data.release_shape = ReleaseShape::SPHERICAL;
+            break;
+          case SHAPE_REGION:
+            event_data.release_shape = ReleaseShape::REGION;
+            break;
+          default:
+            assert(false);
+        }
 
-      if (rel_site->region_data == nullptr) {
-        assert(rel_site->location != nullptr);
-        event_data.location = Vec3(*rel_site->location); // might be NULL
-      }
-      else if (rel_site->location == nullptr) {
-        assert(rel_site->region_data != nullptr);
-        release_region_data* region_data = rel_site->region_data;
-        event_data.location = Vec3(POS_INVALID);
-
-        // CHECK_PROPERTY(region_data->in_release == nullptr); // not sure what this means yet
-
-
-        if (rel_site->region_data->cum_area_list != nullptr) {
-          // surface molecules release onto region
-
+        if (rel_site->region_data == nullptr) {
+          assert(rel_site->location != nullptr);
+          event_data.location = Vec3(*rel_site->location); // might be NULL
+        }
+        else if (rel_site->location == nullptr) {
+          assert(rel_site->region_data != nullptr);
           release_region_data* region_data = rel_site->region_data;
-          for (int wall_i = 0; wall_i < region_data->n_walls_included; wall_i++) {
+          event_data.location = Vec3(POS_INVALID);
 
-            wall* w = region_data->owners[region_data->obj_index[wall_i]]->wall_p[region_data->wall_index[wall_i]];
+          // CHECK_PROPERTY(region_data->in_release == nullptr); // not sure what this means yet
 
-            PartitionWallIndexPair wall_index = get_mcell4_wall_index(w);
 
-            event_data.cum_area_and_pwall_index_pairs.push_back(
-                CummAreaPWallIndexPair(region_data->cum_area_list[wall_i], wall_index)
-            );
+          if (rel_site->region_data->cum_area_list != nullptr) {
+            // surface molecules release onto region
+
+            release_region_data* region_data = rel_site->region_data;
+            for (int wall_i = 0; wall_i < region_data->n_walls_included; wall_i++) {
+
+              wall* w = region_data->owners[region_data->obj_index[wall_i]]->wall_p[region_data->wall_index[wall_i]];
+
+              PartitionWallIndexPair wall_index = get_mcell4_wall_index(w);
+
+              event_data.cum_area_and_pwall_index_pairs.push_back(
+                  CummAreaPWallIndexPair(region_data->cum_area_list[wall_i], wall_index)
+              );
+            }
+
           }
+          else {
+            // volume or surface molecules release into region
 
+            // this is quite limited for now, a single region is allowed
+            CHECK_PROPERTY(region_data->cum_area_list == nullptr);
+            CHECK_PROPERTY(region_data->wall_index == nullptr);
+            CHECK_PROPERTY(region_data->n_objects == -1);
+            CHECK_PROPERTY(region_data->owners == 0);
+            // CHECK_PROPERTY(region_data->walls_per_obj == 0); not sure what this does
+
+            CHECK_PROPERTY(region_data->expression != nullptr);
+            release_evaluator* expression = region_data->expression;
+
+            event_data.region_llf = region_data->llf;
+            event_data.region_urb = region_data->urb;
+
+            event_data.region_expr_root = create_release_region_terms_recursively(expression, event_data);
+          }
         }
         else {
-          // volume or surface molecules release into region
-
-          // this is quite limited for now, a single region is allowed
-          CHECK_PROPERTY(region_data->cum_area_list == nullptr);
-          CHECK_PROPERTY(region_data->wall_index == nullptr);
-          CHECK_PROPERTY(region_data->n_objects == -1);
-          CHECK_PROPERTY(region_data->owners == 0);
-          // CHECK_PROPERTY(region_data->walls_per_obj == 0); not sure what this does
-
-          CHECK_PROPERTY(region_data->expression != nullptr);
-          release_evaluator* expression = region_data->expression;
-
-          event_data.region_llf = region_data->llf;
-          event_data.region_urb = region_data->urb;
-
-          event_data.region_expr_root = create_release_region_terms_recursively(expression, event_data);
+          CHECK_PROPERTY(
+              false
+              && "So far supporting location for volume molecules and region for surface molecules"
+          );
         }
-      }
-      else {
-        CHECK_PROPERTY(
-            false
-            && "So far supporting location for volume molecules and region for surface molecules"
-        );
-      }
 
-      event_data.species_id = get_mcell4_species_id(rel_site->mol_type->species_id);
-      assert(world->get_all_species().is_valid_id(event_data.species_id));
+        event_data.species_id = get_mcell4_species_id(rel_site->mol_type->species_id);
+        assert(world->get_all_species().is_valid_id(event_data.species_id));
 
-      CHECK_PROPERTY(rel_site->release_number_method == 0);
-
-      CHECK_PROPERTY(event_data.release_shape == ReleaseShape::REGION || rel_site->orientation == 0);
-      event_data.orientation = rel_site->orientation;
-
-      event_data.release_number = rel_site->release_number;
-
-      CHECK_PROPERTY(rel_site->mean_diameter == 0); // temporary
-      CHECK_PROPERTY(rel_site->concentration == 0); // temporary
-      CHECK_PROPERTY(rel_site->standard_deviation == 0); // temporary
-      CHECK_PROPERTY(event_data.release_shape == ReleaseShape::REGION || rel_site->diameter != nullptr);
-      if (rel_site->diameter != nullptr) {
-        event_data.diameter = *rel_site->diameter; // ignored for now
-      }
-      else {
-        event_data.diameter = Vec3(POS_INVALID);
-      }
+        CHECK_PROPERTY(rel_site->release_number_method == CONSTNUM || rel_site->release_number_method == DENSITYNUM);
+        switch(rel_site->release_number_method) {
+          case CONSTNUM:
+            event_data.release_number_method = ReleaseNumberMethod::ConstNum;
+            CHECK_PROPERTY(rel_site->concentration == 0);
+            break;
+          case DENSITYNUM:
+            event_data.release_number_method = ReleaseNumberMethod::DensityNum;
+            break;
+          default:
+            assert(false);
+        }
 
 
-      CHECK_PROPERTY(rel_site->mol_list == nullptr);
-      CHECK_PROPERTY(rel_site->release_prob == 1); // temporary
-      // rel_site->periodic_box - ignoring?
+        CHECK_PROPERTY(event_data.release_shape == ReleaseShape::REGION || rel_site->orientation == 0);
+        event_data.orientation = rel_site->orientation;
 
-      event_data.release_site_name = rel_site->name;
-      // rel_site->graph_pattern - ignored
+        event_data.release_number = rel_site->release_number;
 
-      // -- release_event_queue -- (again)
-      CHECK_PROPERTY(t_matrix_to_mat4x4(req->t_matrix) == mat4x4(1) && "only identity matrix for now");
-      CHECK_PROPERTY(req->train_counter == 0);
+        CHECK_PROPERTY(rel_site->mean_diameter == 0); // temporary
 
-      //release_pattern
-      assert(rel_site->pattern != nullptr);
-      release_pattern* rp = rel_site->pattern;
-      if (rp->sym != nullptr) {
-        event_data.release_pattern_name = get_sym_name(rp->sym);
-      }
-      else {
-        event_data.release_pattern_name = NAME_NOT_SET;
-      }
+        event_data.concentration = rel_site->concentration;
 
-      assert(rp->delay == req->event_time && "Release pattern must specify the same delay as for which the event is scheduled");
-      assert(rp->delay == req->train_high_time && "Initial train_high_time must be the same as delay");
+        CHECK_PROPERTY(rel_site->standard_deviation == 0); // temporary
 
-      // schedule all the needed release events based on release pattern
-      // note: there might be many of them but for now, we assume that not so many
-      // maybe we will need to change it in a way so that the event schedules itself, but this was
-      // a simpler solution for now
-      float_t next_time = rp->delay;
-      for (int train = 0; train < rp->number_of_trains; train++) {
+        CHECK_PROPERTY(event_data.release_shape == ReleaseShape::REGION || rel_site->diameter != nullptr);
+        if (rel_site->diameter != nullptr) {
+          event_data.diameter = *rel_site->diameter;
+        }
+        else {
+          event_data.diameter = Vec3(LENGTH_INVALID);
+        }
 
-        float_t train_start = rp->delay + train * rp->train_interval;
-        float_t train_end = train_start + rp->train_duration;
-        float_t current_time = train_start;
-        while (current_time < train_end) {
-          ReleaseEvent* event_to_schedule = new ReleaseEvent(world);
-          *event_to_schedule = event_data;
 
-          event_to_schedule->event_time = current_time;
-          world->scheduler.schedule_event(event_to_schedule); // we always need to schedule a new instance
+        CHECK_PROPERTY(rel_site->mol_list == nullptr);
+        CHECK_PROPERTY(rel_site->release_prob == 1); // temporary
+        // rel_site->periodic_box - ignoring?
 
-          current_time += rp->release_interval;
+        event_data.release_site_name = rel_site->name;
+        // rel_site->graph_pattern - ignored
+
+        // -- release_event_queue -- (again)
+        CHECK_PROPERTY(t_matrix_to_mat4x4(req->t_matrix) == mat4x4(1) && "only identity matrix for now");
+        CHECK_PROPERTY(req->train_counter == 0);
+
+        //release_pattern
+        assert(rel_site->pattern != nullptr);
+        release_pattern* rp = rel_site->pattern;
+        if (rp->sym != nullptr) {
+          event_data.release_pattern_name = get_sym_name(rp->sym);
+        }
+        else {
+          event_data.release_pattern_name = NAME_NOT_SET;
+        }
+
+        assert(rp->delay == req->event_time && "Release pattern must specify the same delay as for which the event is scheduled");
+        assert(rp->delay == req->train_high_time && "Initial train_high_time must be the same as delay");
+
+        // schedule all the needed release events based on release pattern
+        // note: there might be many of them but for now, we assume that not so many
+        // maybe we will need to change it in a way so that the event schedules itself, but this was
+        // a simpler solution for now
+        float_t next_time = rp->delay;
+        for (int train = 0; train < rp->number_of_trains; train++) {
+
+          float_t train_start = rp->delay + train * rp->train_interval;
+          float_t train_end = train_start + rp->train_duration;
+          float_t current_time = train_start;
+          while (current_time < train_end) {
+            ReleaseEvent* event_to_schedule = new ReleaseEvent(world);
+            *event_to_schedule = event_data;
+
+            event_to_schedule->event_time = current_time;
+            world->scheduler.schedule_event(event_to_schedule); // we always need to schedule a new instance
+
+            current_time += rp->release_interval;
+          }
         }
       }
     }
-  }
 
-  // -- schedule_helper -- (again)
-  CHECK_PROPERTY(releaser->current_count ==  0);
-  CHECK_PROPERTY(releaser->current == nullptr);
-  CHECK_PROPERTY(releaser->current_tail == nullptr);
-  CHECK_PROPERTY(releaser->defunct_count == 0);
-  CHECK_PROPERTY(releaser->error == 0);
-  CHECK_PROPERTY(releaser->depth == 0);
+    // -- schedule_helper -- (again)
+    CHECK_PROPERTY(releaser->current_count ==  0);
+    CHECK_PROPERTY(releaser->current == nullptr);
+    CHECK_PROPERTY(releaser->current_tail == nullptr);
+    CHECK_PROPERTY(releaser->defunct_count == 0);
+    CHECK_PROPERTY(releaser->error == 0);
+    CHECK_PROPERTY(releaser->depth == 0);
+
+  }
 
   return true;
 }

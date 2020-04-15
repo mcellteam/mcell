@@ -137,6 +137,7 @@ const float_t SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT = 1;
 
 // ---------------------------------- fixed constants and specific typedefs -------------------
 const float_t POS_INVALID = FLT_MAX; // cannot be NAN because we cannot do any comparison with NANs
+const float_t LENGTH_INVALID = FLT_MAX;
 
 const float_t TIME_INVALID = -256;
 const float_t TIME_FOREVER = FLT_MAX; // this max is sufficient for both float and double
@@ -391,6 +392,14 @@ static inline bool cmp_gt(const float_t a, const float_t b, const float_t eps) {
 
 static inline uint powu(const uint a, const uint n) {
   uint res = a;
+  for (uint i = 1; i < n; i++) {
+    res *= a;
+  }
+  return res;
+}
+
+static inline uint pow_f(const uint a, const uint n) {
+  float_t res = a;
   for (uint i = 1; i < n; i++) {
     res *= a;
   }

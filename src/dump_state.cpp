@@ -33,6 +33,7 @@ Regex to replace struct member definition by dumping code:
 #define DUMP_SCHEDULERS
 //#define DUMP_WAYPOINTS
 //#define DUMP_SUBVOLUMES
+//#define DUMP_RELEASE_REGION_DATA
 
 #include "dump_state.h"
 
@@ -410,6 +411,21 @@ string get_release_shape_name(int8_t release_shape) {
   return res;
 }
 
+
+string get_release_number_method_string(release_number_type_t rt) {
+  string res;
+#define CASE_ITEM(n) case n: res = #n; break;
+  switch (rt) {
+    CASE_ITEM(CONSTNUM)
+    CASE_ITEM(GAUSSNUM)
+    CASE_ITEM(VOLNUM)
+    CASE_ITEM(CCNNUM)
+    CASE_ITEM(DENSITYNUM)
+    default: res = "unknown!"; break;
+  }
+#undef CASE_ITEM
+  return res;
+}
 
 
 void dump_double_array(int num, const char* num_name, double* values, const char* values_name, const char* comment, const char* ind, const int max = MAX_ARRAY_ITEMS) {
@@ -856,7 +872,7 @@ void dump_pathway(pathway* pathway_ptr, const char* ind) {
   dump_species(pathway_ptr->reactant3, "reactant3", "/* Third reactant in reaction pathway */", ind);
 
   cout << ind << "km: \t\t" << pathway_ptr->km << " [double] \t\t/* Rate constant */\n";
-  cout << ind << "km_filename: *\t\t" << ((pathway_ptr->km_filename == nullptr) ? "NULL" : pathway_ptr->km_filename) << " [char] \t\t/* Filename for time-varying rates */\n";
+  cout << ind << "km_filename: *\t\t" << ((pathway_ptr->km_filename == nullptr) ? "NULL" : pathway_ptr->km_filename) << " [char*] \t\t/* Filename for time-varying rates */\n";
   cout << ind << "orientation1: \t\t" << pathway_ptr->orientation1 << " [short] \t\t/* Orientation of first reactant */\n";
   cout << ind << "orientation2: \t\t" << pathway_ptr->orientation2 << " [short] \t\t/* Orientation of second reactant */\n";
   cout << ind << "orientation3: \t\t" << pathway_ptr->orientation3 << " [short] \t\t/* Orientation of third reactant */\n";
@@ -864,7 +880,8 @@ void dump_pathway(pathway* pathway_ptr, const char* ind) {
   cout << ind << "product_head: *\t\t" << (void*)pathway_ptr->product_head << " [product] \t\t/* Linked lists of species created */\n";
   dump_product_list(pathway_ptr->product_head, ind);
 
-  cout << ind << "prod_signature: *\t\t" << pathway_ptr->prod_signature << " [char] \t\t/* string created from the names of products put in alphabetical order */\n";
+
+  cout << ind << "prod_signature: *\t\t" << ((pathway_ptr->prod_signature == nullptr) ? "NULL" : pathway_ptr->prod_signature) << " [char*] \t\t/* string created from the names of products put in alphabetical order */\n";
   cout << ind << "flags: \t\t" << pathway_ptr->flags << " [short] \t\t/* flags describing special reactions - REFLECTIVE, TRANSPARENT, CLAMP_CONCENTRATION */\n";
 }
 
@@ -1118,7 +1135,7 @@ void dump_release_site_obj(release_site_obj* rel_site, const char* ind) {
   //dump_species(rel_site->mol_type, "mol_type", "/* species to be released */", ind2);
   cout << ind2 << "  mol_type (name): *\t\t" << rel_site->mol_type->sym->name << "\n";
 
-  cout << ind2 << "release_number_method: \t\t" << (unsigned)rel_site->release_number_method << " [byte] \t\t/* Release Number Flags: controls how release_number is used (enum release_number_type_t) */\n";
+  cout << ind2 << "release_number_method: \t\t" << get_release_number_method_string((release_number_type_t)rel_site->release_number_method) << " [byte] \t\t/* Release Number Flags: controls how release_number is used (enum release_number_type_t) */\n";
   cout << ind2 << "release_shape: \t\t" << get_release_shape_name(rel_site->release_shape) << " [int8_t] \t\t/* Release Shape Flags: controls shape over which to release (enum release_shape_t) */\n";
   cout << ind2 << "orientation: \t\t" << rel_site->orientation << " [short] \t\t/* Orientation of released surface molecules */\n";
   cout << ind2 << "release_number: \t\t" << rel_site->release_number << " [double] \t\t/* Number to release */\n";
@@ -1132,7 +1149,11 @@ void dump_release_site_obj(release_site_obj* rel_site, const char* ind) {
     cout << ind2 << "diameter: *\t\t" << (void*)rel_site->diameter << " [vector3*] \t\t/* x,y,z diameter for geometrical release shapes */\n";
   }
 
+#ifdef DUMP_RELEASE_REGION_DATA
   dump_release_region_data(rel_site->region_data, "region_data", "/* Information related to release on regions */", ind2);
+#else
+  cout << ind2 << "region_data: *\t\t" << (void*)rel_site->region_data << " [release_region_data] \t\t/* Information related to release on regions */\n";
+#endif
 
   cout << ind2 << "mol_list: *\t\t" << (void*)rel_site->mol_list << " [release_single_molecule] \t\t/* Information related to release by list */\n";
   cout << ind2 << "release_prob: \t\t" << rel_site->release_prob << " [double] \t\t/* Probability of releasing at scheduled time */\n";
@@ -1941,6 +1962,8 @@ void dump_dg_time_filename_list(dg_time_filename* fn, const char* name, const ch
   cout << "species_mesh_transp: *\t\t" << (void*)s->species_mesh_transp << " [pointer_hash] \n";
 
   cout << "********* volume dump :" << comment << "************ (END)\n";
+
+  cout.flush();
 }
 
 

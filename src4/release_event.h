@@ -37,14 +37,22 @@ class Grid;
 enum class ReleaseShape {
   UNDEFINED = -1,  /* Not specified */
   SPHERICAL,       /* Volume enclosed by a sphere */
-  // SHAPE_CUBIC,           /* Volume enclosed by a cube */ (might be supported, needs to be tested)
-  // SHAPE_ELLIPTIC,        /* Volume enclosed by an ellipsoid */ (might be supported, needs to be tested)
-  // SHAPE_RECTANGULAR,     /* Volume enclosed by a rect. solid */ (might be supported, needs to be tested)
+  // CUBIC,           /* Volume enclosed by a cube */ (might be supported, needs to be tested)
+  // ELLIPTIC,        /* Volume enclosed by an ellipsoid */ (might be supported, needs to be tested)
+  // RECTANGULAR,     /* Volume enclosed by a rect. solid */ (might be supported, needs to be tested)
   SPHERICAL_SHELL, /* Surface of a sphere */ // not tested yet
   REGION,          /* Inside/on the surface of an arbitrary region */
-  // SHAPE_LIST             /* Individiaul mol. placement by list */
+  // LIST             /* Individiaul mol. placement by list */
 };
 
+enum class ReleaseNumberMethod {
+  Invalid,
+  ConstNum,
+  GaussNum,
+  VolNum,
+  ConcNum,
+  DensityNum
+};
 
 enum class RegionExprOperator {
   Invalid,
@@ -81,7 +89,9 @@ public:
     BaseEvent(EVENT_TYPE_INDEX_RELEASE),
     release_site_name(NAME_INVALID),
     species_id(SPECIES_ID_INVALID),
-    release_number(0),
+    release_number_method(ReleaseNumberMethod::Invalid),
+    release_number(UINT_INVALID),
+    concentration(FLT_INVALID),
     orientation(ORIENTATION_NONE),
     release_shape(ReleaseShape::UNDEFINED),
     region_expr_root(nullptr),
@@ -96,7 +106,10 @@ public:
   std::string release_site_name; // name of releaser site from which was this event created
 
   species_id_t species_id;
+
+  ReleaseNumberMethod release_number_method; // specifies what does the release_number mean
   uint release_number; // number of molecules to release
+  float_t concentration;
 
   orientation_t orientation;
 
