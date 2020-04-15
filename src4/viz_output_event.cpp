@@ -143,6 +143,9 @@ void VizOutputEvent::output_ascii_molecules() {
       if (m.is_defunct()) {
         continue;
       }
+      if (species_ids_to_visualize.count(m.species_id) == 0) {
+        continue;
+      }
 
 
       Vec3 where;
@@ -187,6 +190,9 @@ void VizOutputEvent::output_cellblender_molecules() {
   for (Partition& p: world->get_partitions()) {
     for (const Molecule& m: p.get_molecules()) {
       if (m.is_defunct()) {
+        continue;
+      }
+      if (species_ids_to_visualize.count(m.species_id) == 0) {
         continue;
       }
       volume_molecules_by_species[m.species_id].push_back(partition_molecule_ptr_pair_t(&p, &m));

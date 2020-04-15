@@ -1208,8 +1208,22 @@ bool MCell3WorldConverter::convert_viz_output_events(volume* s) {
   CHECK_PROPERTY(viz_blocks->viz_mode == NO_VIZ_MODE || viz_blocks->viz_mode  == ASCII_MODE || viz_blocks->viz_mode == CELLBLENDER_MODE); // just checking valid values
   viz_mode_t viz_mode = viz_blocks->viz_mode;
   // CHECK_PROPERTY(viz_blocks->viz_output_flag == VIZ_ALL_MOLECULES); // ignored (for now?)
-  CHECK_PROPERTY(viz_blocks->species_viz_states != nullptr && (*viz_blocks->species_viz_states == (int)0x80000000 || *viz_blocks->species_viz_states == 0x7FFFFFFF)); // NOTE: not sure what this means
-  // CHECK_PROPERTY(viz_blocks->default_mol_state == 0x7FFFFFFF); // ignored, not sure what this means
+
+  uint_set<species_id_t> species_ids_to_visualize;
+  assert((int)mcell3_species_id_map.size() == s->n_species);
+  for (int i = 0; i < s->n_species; i++) {
+    if (viz_blocks->species_viz_states[i] == INCLUDE_OBJ) {
+      species_ids_to_visualize.insert_unique( get_mcell4_species_id(i) );
+    }
+    else if (viz_blocks->species_viz_states[i] == EXCLUDE_OBJ) {
+      continue; // this species is not counted
+    }
+    else {
+      assert(false);
+    }
+  }
+
+  // CHECK_PROPERTY(viz_blocks->default_mol_state == INCLUDE_OBJ); // seems to be used only internally
 
   // -- frame_data_head --
   frame_data_list* frame_data_head = viz_blocks->frame_data_head;
@@ -1226,10 +1240,12 @@ bool MCell3WorldConverter::convert_viz_output_events(volume* s) {
     assert(iteration_ptr->value == curr_viz_iteration_ptr->value);
 
     // create an event for each iteration
+    // TODO: create just one repeating event for periodic events
     VizOutputEvent* event = new VizOutputEvent(world);
     event->event_time = iteration_ptr->value;
     event->viz_mode = viz_mode;
     event->file_prefix_name = viz_blocks->file_prefix_name;
+    event->species_ids_to_visualize = species_ids_to_visualize; // copying the whole map
 
     world->scheduler.schedule_event(event);
 
