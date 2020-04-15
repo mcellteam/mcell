@@ -153,14 +153,14 @@ bool MCell3WorldConverter::convert(volume* s) {
 
 static float_t get_largest_abs_value(const vector3& v) {
   float_t max = 0;
-  if (fabs_f(v.y) > max) {
-    max = fabs_f(v.y);
+  if (fabs_f(v.x) > max) {
+    max = fabs_f(v.x);
   }
   if (fabs_f(v.y) > max) {
     max = fabs_f(v.y);
   }
-  if (fabs_f(v.y) > max) {
-    max = fabs_f(v.y);
+  if (fabs_f(v.z) > max) {
+    max = fabs_f(v.z);
   }
   return max;
 }
@@ -185,7 +185,7 @@ static uint get_even_higher_or_same_value(const uint val) {
 
 static float_t get_partition_edge_length(const World* world, const float_t largest_mcell3_distance_from_center) {
   // some MCell models have their partition boundary set exactly. we need to add a bit of margin
-  return (largest_mcell3_distance_from_center + PARTITION_EDGE_EXTRA_MARGIN_UM) * 2 / world->config.length_unit;
+  return (largest_mcell3_distance_from_center + PARTITION_EDGE_EXTRA_MARGIN_UM / world->config.length_unit) * 2 ;
 }
 
 
@@ -210,6 +210,11 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
 
   // there seems to be just one partition in MCell but we interpret it as mcell4 partition size
   if (s->partitions_initialized) {
+    // assuming that the mcell's bounding box if it is bigger than the partition
+    CHECK_PROPERTY(s->partition_llf.x <= s->bb_llf.x && s->bb_urb.x <= s->partition_urb.x);
+    CHECK_PROPERTY(s->partition_llf.y <= s->bb_llf.y && s->bb_urb.y <= s->partition_urb.y);
+    CHECK_PROPERTY(s->partition_llf.z <= s->bb_llf.z && s->bb_urb.z <= s->partition_urb.z);
+
     CHECK_PROPERTY(s->partition_urb.x > s->partition_llf.x);
     CHECK_PROPERTY(s->partition_urb.y > s->partition_llf.y);
     CHECK_PROPERTY(s->partition_urb.z > s->partition_llf.z);
@@ -219,13 +224,16 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
 
     world->config.partition_edge_length = get_partition_edge_length(world, largest_mcell3_distance_from_center);
 
+    mcell_log("Using manually specified partition size (with margin): %f.",
+      (double)world->config.partition_edge_length * world->config.length_unit);
+
     // number of subparts must be even so that the central subparts are aligned with the axes and not shifted
     world->config.subpartitions_per_partition_dimension = get_even_higher_or_same_value(s->num_subparts);
   }
   else {
-    CHECK_PROPERTY(s->bb_urb.x > s->bb_llf.x);
-    CHECK_PROPERTY(s->bb_urb.y > s->bb_llf.y);
-    CHECK_PROPERTY(s->bb_urb.z > s->bb_llf.z);
+    CHECK_PROPERTY(s->bb_urb.x >= s->bb_llf.x);
+    CHECK_PROPERTY(s->bb_urb.y >= s->bb_llf.y);
+    CHECK_PROPERTY(s->bb_urb.z >= s->bb_llf.z);
 
     // use MCell's bounding box, however, we must make a cube out of it
     float_t largest_mcell3_distance_from_center = get_largest_distance_from_center(s->bb_llf, s->bb_urb);
@@ -233,12 +241,12 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
 
     if (auto_length > PARTITION_EDGE_LENGTH_DEFAULT_UM / world->config.length_unit) {
       world->config.partition_edge_length = auto_length;
-      mcell_log("Automatically determined partition size: %f.\n",
+      mcell_log("Automatically determined partition size: %f.",
         (double)auto_length * world->config.length_unit);
     }
     else {
       world->config.partition_edge_length = PARTITION_EDGE_LENGTH_DEFAULT_UM / world->config.length_unit;
-      mcell_log("Automatically determined partition size %f is smaller than default %f, using default.\n",
+      mcell_log("Automatically determined partition size %f is smaller than default %f, using default.",
         (double)auto_length * world->config.length_unit, PARTITION_EDGE_LENGTH_DEFAULT_UM);
     }
 
@@ -248,7 +256,7 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
   }
 
   float_t l = world->config.partition_edge_length / 2 * s->length_unit;
-  mcell_log("MCell4 partition bounding box in microns: [ %f, %f, %f ], [ %f, %f, %f ]\n", -l, -l, -l, l, l, l);
+  mcell_log("MCell4 partition bounding box in microns: [ %f, %f, %f ], [ %f, %f, %f ]", -l, -l, -l, l, l, l);
 
 
   world->config.randomize_smol_pos = s->randomize_smol_pos;
@@ -686,6 +694,7 @@ bool MCell3WorldConverter::convert_species(volume* s) {
         || spec->flags == SPECIES_FLAG_CAN_VOLWALL
         || spec->flags == (SPECIES_FLAG_CAN_VOLWALL | SPECIES_FLAG_COUNT_ENCLOSED | COUNT_CONTENTS)
         || spec->flags == (SPECIES_FLAG_CAN_VOLWALL | SPECIES_FLAG_COUNT_ENCLOSED | COUNT_CONTENTS | REGION_PRESENT)
+        || spec->flags == (SPECIES_FLAG_CAN_VOLWALL | SPECIES_FLAG_CAN_VOLSURF | REGION_PRESENT)
         || spec->flags == SPECIES_CPLX_MOL_FLAG_SURF
         || spec->flags == SPECIES_CPLX_MOL_FLAG_REACTIVE_SURFACE
         || spec->flags == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_SURFSURF)
