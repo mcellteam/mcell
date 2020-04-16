@@ -43,7 +43,8 @@ void dump_processing_reaction(
     struct vector3 *hitpt, double t,
     struct rxn *rx, /*int path,*/
     struct abstract_molecule *reacA,
-    struct abstract_molecule *reacB
+    struct abstract_molecule *reacB,
+    struct wall *w
 );
 
 void dump_surface_molecule(

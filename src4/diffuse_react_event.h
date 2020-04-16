@@ -205,7 +205,7 @@ private:
 
   WallRxnResult collide_and_react_with_walls(
       Partition& p,
-      const Collision& collision,
+      Collision& collision,
       const float_t r_rate_factor,
       const float_t elapsed_molecule_time,
       const float_t t_steps
@@ -257,7 +257,7 @@ private:
       Partition& p,
       const BNG::RxnClass* rxn_class,
       const rxn_index_t rxn_index,
-      const Collision& collision,
+      Collision& collision,
       const float_t time
   );
 

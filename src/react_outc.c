@@ -357,7 +357,7 @@ static int outcome_products_random(struct volume *world, struct wall *w,
 
 #ifdef DEBUG_REACTIONS
   DUMP_CONDITION3(
-      dump_processing_reaction(world->current_iterations, hitpt, t, rx, reacA, reacB);
+      dump_processing_reaction(world->current_iterations, hitpt, t, rx, reacA, reacB, w);
   );
 #endif
 
@@ -1502,6 +1502,11 @@ int outcome_intersect(struct volume *world, struct rxn *rx, int path,
       if (vm->flags & IN_SCHEDULE) {
         vm->subvol->local_storage->timer->defunct_count++;
       }
+#ifdef DEBUG_REACTIONS
+      DUMP_CONDITION3(
+         dump_volume_molecule((struct volume_molecule*)vm, "", true, "  defunct m:", world->current_iterations, 0.0, false);
+      );
+#endif
       collect_molecule(vm);
       return RX_DESTROY;
     } else

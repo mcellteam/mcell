@@ -860,7 +860,7 @@ int DiffuseReactEvent::collide_and_react_with_surf_mol(
  ******************************************************************************/
 WallRxnResult DiffuseReactEvent::collide_and_react_with_walls(
     Partition& p,
-    const Collision& collision,
+    Collision& collision,
     const float_t r_rate_factor,
     const float_t elapsed_molecule_time,
     const float_t t_steps
@@ -873,8 +873,7 @@ WallRxnResult DiffuseReactEvent::collide_and_react_with_walls(
   RxnClassesVector matching_rxn_classes;
   RxUtil::trigger_intersect(p, diffused_molecule, wall, matching_rxn_classes);
   if (matching_rxn_classes.empty()) {
-    assert(false && "This should not happen because we are checking flags.");
-    return WallRxnResult::Invalid;
+    return WallRxnResult::Reflect;
   }
 
   const BNG::RxnClass* transp_rxn_class = nullptr;
@@ -932,7 +931,6 @@ WallRxnResult DiffuseReactEvent::collide_and_react_with_walls(
     }
   }
 
-  assert(false && "So far, only absorptive rxn classes were tested and they must be always executed");
   return WallRxnResult::Reflect;
 }
 
@@ -1572,7 +1570,7 @@ int DiffuseReactEvent::outcome_intersect(
     Partition& p,
     const RxnClass* rxn_class,
     const rxn_index_t rxn_index,
-    const Collision& collision,
+    Collision& collision, // rxn_class can be set
     const float_t time
 ) {
   if (!rxn_class->is_standard()) {
@@ -1600,7 +1598,7 @@ int DiffuseReactEvent::outcome_intersect(
   species_id_t all_volume_molecules_id = p.get_all_species().get_all_volume_molecules_species_id();
 
   int result;
-  bool keep_reacA, keep_reacB;
+  bool keep_reacA = true, keep_reacB = true;
 
   // expecting that the surface is always the second reactant
   assert(p.get_all_species().get(rxn_class->reactants[1]).is_reactive_surface());
@@ -1611,6 +1609,7 @@ int DiffuseReactEvent::outcome_intersect(
   }
   else {
     // might return RX_BLOCKED
+    collision.rxn_class = rxn_class;
     result = outcome_products_random(p, collision, time, rxn_index, keep_reacA, keep_reacB);
     assert(keep_reacB && "We are keeping the surface");
   }
@@ -1620,6 +1619,14 @@ int DiffuseReactEvent::outcome_intersect(
   }
 
   if (!keep_reacA) {
+#ifdef DEBUG_REACTIONS
+    const Molecule& reacA = p.get_m(collision.diffused_molecule_id);
+    DUMP_CONDITION4(
+      if (!keep_reacA) {
+        reacA.dump(p, "", "  defunct m:", world->get_current_iteration(), 0, false);
+      }
+    );
+#endif
     p.set_molecule_as_defunct(m);
     return RX_DESTROY;
   }
@@ -1824,20 +1831,6 @@ int DiffuseReactEvent::outcome_products_random(
   );
 #endif
 
-  // TODO: unify rx vs rxn
-  const RxnRule* rx = nullptr;
-  if (collision.is_mol_mol_reaction()) {
-    const RxnClass* rxn_class = collision.rxn_class;
-    assert(rxn_class != nullptr);
-    rx = rxn_class->get_reaction(reaction_index);
-  }
-  else {
-    assert(reaction_index == 0 && "For other than mol mol collision the selected reaction index must be 0");
-    rx = collision.rxn;
-  }
-  assert(rx != nullptr);
-  assert(rx->reactants.size() == 1 || rx->reactants.size() == 2);
-
   Molecule* reacA = &p.get_m(collision.diffused_molecule_id);
   keep_reacA = false; // one product is the same as reacA
   assert(reacA != nullptr);
@@ -1845,10 +1838,46 @@ int DiffuseReactEvent::outcome_products_random(
   Molecule* reacB = nullptr;
   keep_reacB = false; // one product is the same as reacB
 
+  // TODO: unify rx vs rxn
+  const RxnRule* rx = nullptr;
+  if (collision.is_mol_mol_reaction() || collision.is_wall_collision()) {
+    const RxnClass* rxn_class = collision.rxn_class;
+    assert(rxn_class != nullptr);
+    rx = rxn_class->get_reaction(reaction_index);
+
+    assert(rx->reactants.size() == 2);
+
+    if (collision.is_wall_collision()) {
+      keep_reacB = true;
+#ifndef NDEBUG
+      // check that the second reactant is a reactive surface
+      assert(rx->reactants[1].is_simple());
+      BNG::mol_type_id_t mol_type_id = rx->reactants[1].get_simple_species_mol_type_id();
+      const BNG::MolType& mt = p.bng_engine.get_data().get_molecule_type(mol_type_id);
+      species_id_t sid = p.get_all_species().find_by_name(mt.name);
+      assert(p.get_all_species().get(sid).is_reactive_surface());
+#endif
+    }
+  }
+  else if (collision.is_unimol_reaction()) {
+    assert(reaction_index == 0 &&
+        "For unimol rxn the selected reaction index must be 0 because the rxn was chosen already before");
+    rx = collision.rxn;
+    assert(rx->reactants.size() == 1);
+  }
+  else {
+  	assert(false && "Invalid collision type");
+  }
+  assert(rx != nullptr);
+
   Molecule* surf_reac = nullptr;
 
   bool reactants_swapped = false;
-  if (rx->reactants.size() == 2) {
+
+  // the second reactant might be a surface
+  uint num_mol_reactants = collision.is_wall_collision() ? 1 : rx->reactants.size();
+
+  if (num_mol_reactants == 2) {
     reacB = &p.get_m(collision.colliding_molecule_id);
 
     if (reacA->is_surf()) {

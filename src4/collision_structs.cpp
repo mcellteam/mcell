@@ -84,10 +84,14 @@ void Collision::dump(
       "unimol rxn" <<
       ", idA:"  << diffused_molecule_id <<
       //TODO in mcell3 ", rxn: " << rx->to_string(p) <<
-      ", time: " << time;
+      ", time: " << ((time_override == TIME_INVALID) ? time : time_override);
   }
   else if (is_wall_collision()) {
-    cout << "Unimol (TODO)";
+    cout << "wall collision" <<
+        ", idA:"  << diffused_molecule_id <<
+        //", wall index:"  << colliding_wall_index <<
+        ", time: " << ((time_override == TIME_INVALID) ? time : time_override) <<
+        ", pos " << pos;
   }
   else {
     assert(false);

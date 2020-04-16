@@ -2146,22 +2146,39 @@ void dump_processing_reaction(
     struct vector3 *hitpt, double t,
     struct rxn *rx, /*int path,*/
     struct abstract_molecule *reacA,
-    struct abstract_molecule *reacB
+    struct abstract_molecule *reacB,
+    struct wall *w
 ) {
   assert(reacA != nullptr);
-  bool bimol = (reacB != nullptr);
+  bool two_reactants = rx->n_reactants;
 
   cout << "Processing reaction:it:" << it << ", ";
 
-  if (bimol) {
-    cout <<
-      "bimol rxn" <<
-      ", idA:"  << reacA->id <<
-      ", idB:"  << reacB->id <<
-      //TODO ", rxn: " << rx->to_string(p) <<
-      ", time: " << t;
-    if (hitpt != nullptr) {
-      cout << ", pos " << *hitpt;
+  if (two_reactants) {
+
+    if (reacB != nullptr) {
+      cout <<
+        "bimol rxn" <<
+        ", idA:"  << reacA->id <<
+        ", idB:"  << reacB->id <<
+        //TODO ", rxn: " << rx->to_string(p) <<
+        ", time: " << t;
+      if (hitpt != nullptr) {
+        cout << ", pos " << *hitpt;
+      }
+    }
+    else {
+      assert(w != nullptr);
+      cout <<
+        "wall collision" <<
+        ", idA:"  << reacA->id <<
+        //", wall_index:"  << w->side <<
+        //TODO ", rxn: " << rx->to_string(p) <<
+        ", time: " << t;
+
+      if (hitpt != nullptr) {
+        cout << ", pos " << *hitpt;
+      }
     }
   }
   else {
