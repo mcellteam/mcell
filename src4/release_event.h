@@ -89,6 +89,7 @@ public:
     BaseEvent(EVENT_TYPE_INDEX_RELEASE),
     release_site_name(NAME_INVALID),
     species_id(SPECIES_ID_INVALID),
+    actual_release_time(TIME_INVALID),
     release_number_method(ReleaseNumberMethod::Invalid),
     release_number(UINT_INVALID),
     concentration(FLT_INVALID),
@@ -106,6 +107,8 @@ public:
   std::string release_site_name; // name of releaser site from which was this event created
 
   species_id_t species_id;
+
+  float_t actual_release_time;
 
   ReleaseNumberMethod release_number_method; // specifies what does the release_number mean
   uint release_number; // number of molecules to release
@@ -156,6 +159,14 @@ private:
   // for volume molecule releases
   void release_ellipsoid_or_rectcuboid(uint computed_release_number);
 
+  float_t get_release_delay_time() const {
+    if (cmp_eq(actual_release_time, event_time)) {
+      return 0; // same as event time
+    }
+    else {
+      return actual_release_time - event_time;
+    }
+  }
 };
 
 } // namespace mcell

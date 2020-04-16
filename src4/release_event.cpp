@@ -220,7 +220,7 @@ void ReleaseEvent::place_single_molecule_onto_grid(Partition& p, Wall& wall, til
   }
 
   Molecule& new_sm = p.add_surface_molecule(
-      Molecule(MOLECULE_ID_INVALID, species_id, pos_on_wall)
+      Molecule(MOLECULE_ID_INVALID, species_id, pos_on_wall, get_release_delay_time())
   );
 
   new_sm.s.wall_index = wall.index;
@@ -349,7 +349,7 @@ void ReleaseEvent::release_inside_regions(uint computed_release_number) {
 
     // TODO_LATER: location can be close to a partition boundary, we might need to release to a different partition
     Molecule& new_vm = p.add_volume_molecule(
-        Molecule(MOLECULE_ID_INVALID, species_id, pos)
+        Molecule(MOLECULE_ID_INVALID, species_id, pos, get_release_delay_time())
     );
     new_vm.flags = IN_VOLUME | ACT_DIFFUSE;
     new_vm.set_flag(MOLECULE_FLAG_VOL);
@@ -403,7 +403,7 @@ void ReleaseEvent::release_ellipsoid_or_rectcuboid(uint computed_release_number)
 
     // TODO_LATER: location can be close to a partition boundary, we might need to release to a different partition
     Molecule& new_vm = p.add_volume_molecule(
-        Molecule(MOLECULE_ID_INVALID, species_id, molecule_location)
+        Molecule(MOLECULE_ID_INVALID, species_id, molecule_location, get_release_delay_time())
     );
     new_vm.flags = IN_VOLUME | ACT_DIFFUSE;
     new_vm.set_flag(MOLECULE_FLAG_VOL);

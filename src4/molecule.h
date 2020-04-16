@@ -85,21 +85,21 @@ enum molecule_flag_t {
 class Molecule {
 public:
   Molecule()
-    : id(MOLECULE_ID_INVALID), species_id(SPECIES_ID_INVALID), flags(0), unimol_rx_time(TIME_FOREVER), unimol_rx(nullptr) {
+    : id(MOLECULE_ID_INVALID), species_id(SPECIES_ID_INVALID), flags(0),
+      release_delay(TIME_INVALID), unimol_rx_time(TIME_FOREVER), unimol_rx(nullptr) {
   }
 
   Molecule(const Molecule& m) {
     *this = m;
   }
 
-  Molecule(const molecule_id_t id_, const species_id_t species_id_)
-    : id(id_), species_id(species_id_), flags(0), unimol_rx_time(TIME_INVALID), unimol_rx(nullptr)
-      /*subpart_index(SUBPART_INDEX_INVALID)*/ {
-  }
-
   // volume molecule
-  Molecule(const molecule_id_t id_, const species_id_t species_id_, const Vec3& pos_)
-    : id(id_), species_id(species_id_), flags(MOLECULE_FLAG_VOL), unimol_rx_time(TIME_INVALID), unimol_rx(nullptr) {
+  Molecule(
+      const molecule_id_t id_, const species_id_t species_id_,
+      const Vec3& pos_, const float_t release_delay_=0
+    )
+    : id(id_), species_id(species_id_), flags(MOLECULE_FLAG_VOL),
+      release_delay(release_delay_), unimol_rx_time(TIME_INVALID), unimol_rx(nullptr) {
     v.pos = pos_;
     v.subpart_index = SUBPART_INDEX_INVALID;
     v.reactant_subpart_index = SUBPART_INDEX_INVALID;
@@ -107,8 +107,12 @@ public:
   }
 
   // surface molecule
-  Molecule(const molecule_id_t id_, const species_id_t species_id_, const Vec2& pos2d)
-    : id(id_), species_id(species_id_), flags(MOLECULE_FLAG_SURF), unimol_rx_time(TIME_INVALID), unimol_rx(nullptr) {
+  Molecule(
+      const molecule_id_t id_, const species_id_t species_id_,
+      const Vec2& pos2d, const float_t release_delay_=0
+    )
+    : id(id_), species_id(species_id_), flags(MOLECULE_FLAG_SURF),
+      release_delay(release_delay_), unimol_rx_time(TIME_INVALID), unimol_rx(nullptr) {
     s.pos = pos2d;
     //s.subpart_index = SUBPART_INDEX_INVALID;
     s.orientation = ORIENTATION_NONE;
@@ -121,6 +125,7 @@ public:
     id = m.id;
     flags = m.flags;
     species_id = m.species_id;
+    release_delay = m.release_delay;
     unimol_rx_time = m.unimol_rx_time;
     unimol_rx = m.unimol_rx;
 
@@ -143,8 +148,13 @@ public:
   species_id_t species_id;
   uint flags;
 
-  float_t unimol_rx_time;
+  // set when the molecule was released this iteration and the actual release time was delayed compared to the
+  // release event time
+  // is 0 when the molecule was released in a previous iteration or was released this iteration
+  // and diffusion can start right away
+  float_t release_delay;
 
+  float_t unimol_rx_time;
   const BNG::RxnClass* unimol_rx;
 
   // update assignment operator when modifying this

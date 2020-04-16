@@ -80,8 +80,26 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const std::vector<molecu
   uint existing_mols_count = molecule_ids.size();
   for (uint i = 0; i < existing_mols_count; i++) {
     molecule_id_t id = molecule_ids[i];
-    // existing molecules - simulate whole time step
-    diffuse_single_molecule(p, id, event_time, WallTileIndexPair());
+
+    Molecule& m = p.get_m(id);
+    float_t release_delay = m.release_delay;
+
+    if (release_delay == 0.0) {
+      // existing molecules or created at the beginning of this timestep
+      // - simulate whole time step
+      diffuse_single_molecule(p, id, event_time, WallTileIndexPair());
+    }
+    else {
+      // released during this iteration but not at the beginning, postpone its diffusion
+      assert(release_delay > 0 && release_delay < diffusion_time_step);
+      m.release_delay = 0; // reset release_delay to specify that the delay was handled
+      new_diffuse_or_unimol_react_actions.push_back(
+          DiffuseOrUnimolRxnAction(
+              DiffuseOrUnimolRxnAction::Type::DIFFUSE,
+              id, event_time + release_delay,
+              WallTileIndexPair() /* invalid wall, only used to avoid rebinding */
+      ));
+    }
   }
 
 

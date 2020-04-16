@@ -704,6 +704,7 @@ bool MCell3WorldConverter::convert_species(volume* s) {
         || spec->flags == SPECIES_FLAG_CAN_VOLWALL
         || spec->flags == (SPECIES_FLAG_CAN_VOLWALL | SPECIES_FLAG_COUNT_ENCLOSED | COUNT_CONTENTS)
         || spec->flags == (SPECIES_FLAG_CAN_VOLWALL | SPECIES_FLAG_COUNT_ENCLOSED | COUNT_CONTENTS | REGION_PRESENT)
+        || spec->flags == (SPECIES_FLAG_CAN_VOLWALL | REGION_PRESENT)
         || spec->flags == (SPECIES_FLAG_CAN_VOLWALL | SPECIES_FLAG_CAN_VOLSURF | REGION_PRESENT)
         || spec->flags == SPECIES_CPLX_MOL_FLAG_SURF
         || spec->flags == SPECIES_CPLX_MOL_FLAG_REACTIVE_SURFACE
@@ -1028,7 +1029,11 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
         // -- release_event_queue --
         release_event_queue *req = (release_event_queue *)aep;
 
-        event_data.event_time = req->event_time;
+        // mcell3 has several independent scheduling queues, this means that a release scheduled for
+        // middle of of a timestep is executed at the beginning of a timestep, time is the number of iterations
+        // therefore to get the iteration time, we can simply floor the value
+        event_data.event_time = floor_to_multiple(req->event_time, 1);
+        event_data.actual_release_time = req->event_time;
 
         // -- release_site --
         release_site_obj* rel_site = req->release_site;
@@ -1174,7 +1179,9 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
             ReleaseEvent* event_to_schedule = new ReleaseEvent(world);
             *event_to_schedule = event_data;
 
-            event_to_schedule->event_time = current_time;
+            // similar as above for releases without release patterns, we need to set time to the beginning of the iteration
+            event_to_schedule->event_time = floor_to_multiple(current_time, 1);
+            event_data.actual_release_time = req->event_time;
             world->scheduler.schedule_event(event_to_schedule); // we always need to schedule a new instance
 
             current_time += rp->release_interval;

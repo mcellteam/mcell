@@ -350,11 +350,11 @@ static inline float_t fabs_f(const float_t x) {
 
 
 static inline float_t floor_to_multiple(const float_t val, float_t multiple) {
-  return (float_t)((int)(val / multiple)) * multiple;
+  return (float_t)((int)((val + EPS)/ multiple)) * multiple;
 }
 
 static inline Vec3 floor_to_multiple(const Vec3& val, float_t multiple) {
-  return (Vec3)((glm::ivec3)(val / multiple)) * multiple;
+  return (Vec3)((glm::ivec3)((val + EPS)/ multiple)) * multiple;
 }
 
 static inline bool cmp_eq(const float_t a, const float_t b, const float_t eps) {
