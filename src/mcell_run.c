@@ -50,6 +50,7 @@
 #include "mcell_react_out.h"
 
 #include "dump_state.h"
+#include "debug_config.h"
 
 // static helper functions
 static long long mcell_determine_output_frequency(MCELL_STATE *state);
@@ -515,8 +516,12 @@ mcell_run_iteration(MCELL_STATE *world, long long frequency,
   if (!schedule_anticipate(world->volume_output_scheduler, &next_vol_output))
     next_vol_output = world->iterations + 1;
   double next_viz_output = find_next_viz_output(world->viz_blocks);
+
   double next_barrier =
       min3d(next_release_time, next_vol_output, next_viz_output);
+#ifdef MCELL3_NEXT_BARRIER_IS_THE_NEXT_TIMESTEP
+  next_barrier = not_yet; // == iterations + 1
+#endif
 
   while (world->storage_head != NULL &&
          world->storage_head->store->current_time <= not_yet) {

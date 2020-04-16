@@ -46,6 +46,7 @@
 #define MCELL3_SORTED_VIZ_OUTPUT
 #define MCELL3_SORTED_WALLS_FOR_COLLISION
 #define MCELL3_SORTED_MOLS_ON_RUN_TIMESTEP  // sort molecules in schedule helper according to ID before a new timestep begins
+#define MCELL3_NEXT_BARRIER_IS_THE_NEXT_TIMESTEP // do not diffuse more than until the end of the timestep
 #define ASSERT_FOR_MCELL4(...) assert(__VA_ARGS__)
 
 #else
