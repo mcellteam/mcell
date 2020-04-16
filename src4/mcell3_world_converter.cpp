@@ -1181,7 +1181,8 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
 
             // similar as above for releases without release patterns, we need to set time to the beginning of the iteration
             event_to_schedule->event_time = floor_to_multiple(current_time, 1);
-            event_data.actual_release_time = req->event_time;
+            event_to_schedule->actual_release_time =
+                event_to_schedule->event_time + (event_data.actual_release_time - event_data.event_time);
             world->scheduler.schedule_event(event_to_schedule); // we always need to schedule a new instance
 
             current_time += rp->release_interval;
