@@ -76,13 +76,13 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const std::vector<molecu
   // we need to strictly follow the ordering in mcell3, therefore steps 2) and 3) do not use the time
   // for which they were scheduled but rather simply the order in which these "microevents" were created
 
+  std::vector<DiffuseOrUnimolRxnAction> delayed_release_diffusions;
+
   // 1) first diffuse already existing molecules
   uint existing_mols_count = molecule_ids.size();
   for (uint i = 0; i < existing_mols_count; i++) {
     molecule_id_t id = molecule_ids[i];
-
-    Molecule& m = p.get_m(id);
-    float_t release_delay = m.release_delay;
+    float_t release_delay =  p.get_m(id).release_delay;
 
     if (release_delay == 0.0) {
       // existing molecules or created at the beginning of this timestep
@@ -92,8 +92,7 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const std::vector<molecu
     else {
       // released during this iteration but not at the beginning, postpone its diffusion
       assert(release_delay > 0 && release_delay < diffusion_time_step);
-      m.release_delay = 0; // reset release_delay to specify that the delay was handled
-      new_diffuse_or_unimol_react_actions.push_back(
+      delayed_release_diffusions.push_back(
           DiffuseOrUnimolRxnAction(
               DiffuseOrUnimolRxnAction::Type::DIFFUSE,
               id, event_time + release_delay,
@@ -102,8 +101,23 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const std::vector<molecu
     }
   }
 
+  // 2) mcell3 first handles diffusions of existing molecules, then the delayed diffusions
+  // actions created by the diffusion of all these molecules are handled later
+  for (uint i = 0; i < delayed_release_diffusions.size(); i++) {
+    const DiffuseOrUnimolRxnAction& action = delayed_release_diffusions[i];
+    assert(action.scheduled_time >= event_time && action.scheduled_time <= event_time + diffusion_time_step);
+    assert(action.type == DiffuseOrUnimolRxnAction::Type::DIFFUSE);
 
-  // 2) simulate remaining time of molecules created with reactions or
+    Molecule& m = p.get_m(action.id);
+    m.release_delay = 0; // reset release_delay to specify that the delay was handled
+    diffuse_single_molecule(
+        p, action.id,
+        action.scheduled_time,
+        action.where_created_this_iteration
+    );
+  }
+
+  // 3) simulate remaining time of molecules created with reactions or
   // scheduled unimolecular reactions
   // need to call .size() each iteration because the size can increase,
   // again, we are using it as a queue and we do not follow the time when
@@ -1806,7 +1820,7 @@ int DiffuseReactEvent::outcome_products_random(
 ) {
 #ifdef DEBUG_REACTIONS
   DUMP_CONDITION4(
-      collision.dump(p, "Processing reaction:", p.stats.get_current_iteration(), event_time + time);
+      collision.dump(p, "Processing reaction:", p.stats.get_current_iteration(), time);
   );
 #endif
 
