@@ -1361,6 +1361,11 @@ void dump_frame_data_list(frame_data_list* frame_data_head, const char* name, co
   DECL_IND2(ind);
   cout << ind << name << ": *\t\t" << frame_data_head << " [frame_data_list] \t\t" << comment << "\n";
 
+  if (frame_data_head == nullptr) {
+    cout << ind2 << "NULL\n";
+    return;
+  }
+
   cout << ind2 << "next: *\t\t" << frame_data_head->next << " [frame_data_list] \t\t\n";
 
   cout << ind2 << "list_type: \t\t" << frame_data_head->list_type << " [output_timer_type_t] \t\t/* Data Output Timing Type (OUTPUT_BY_TIME_LIST, etc) */\n";

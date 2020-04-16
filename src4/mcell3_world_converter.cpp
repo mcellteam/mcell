@@ -1227,6 +1227,11 @@ bool MCell3WorldConverter::convert_viz_output_events(volume* s) {
 
   // -- frame_data_head --
   frame_data_list* frame_data_head = viz_blocks->frame_data_head;
+  if (frame_data_head == nullptr) {
+    // no events to log
+    return true;
+  }
+
   CHECK_PROPERTY(frame_data_head->next == nullptr);
   CHECK_PROPERTY(frame_data_head->list_type == OUTPUT_BY_ITERATION_LIST); // limited for now
   CHECK_PROPERTY(frame_data_head->type == ALL_MOL_DATA); // limited for now
