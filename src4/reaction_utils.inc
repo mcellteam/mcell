@@ -355,23 +355,20 @@ static void trigger_intersect(
   }
   */
 
-  for (region_index_t region_index: w.regions) {
-
-    if (reacA.is_vol()) {
-      find_volume_mol_reactions_with_surf_classes(
-          p, reacA, w, allow_rx_transp, allow_rx_reflec,
-          allow_rx_absorb_reg_border, matching_rxns
-      );
-    }
-    else if (reacA.is_surf()) {
-      find_surface_mol_reactions_with_surf_classes(
-          p, reacA, w, allow_rx_transp, allow_rx_reflec,
-          allow_rx_absorb_reg_border, matching_rxns
-      );
-    }
-    else {
-      assert(false);
-    }
+  if (reacA.is_vol()) {
+    find_volume_mol_reactions_with_surf_classes(
+        p, reacA, w, allow_rx_transp, allow_rx_reflec,
+        allow_rx_absorb_reg_border, matching_rxns
+    );
+  }
+  else if (reacA.is_surf()) {
+    find_surface_mol_reactions_with_surf_classes(
+        p, reacA, w, allow_rx_transp, allow_rx_reflec,
+        allow_rx_absorb_reg_border, matching_rxns
+    );
+  }
+  else {
+    assert(false);
   }
 }
 
