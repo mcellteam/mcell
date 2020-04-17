@@ -2150,7 +2150,7 @@ void dump_processing_reaction(
     struct wall *w
 ) {
   assert(reacA != nullptr);
-  bool two_reactants = rx->n_reactants;
+  bool two_reactants = rx->n_reactants == 2;
 
   cout << "Processing reaction:it:" << it << ", ";
 

@@ -781,6 +781,9 @@ struct volume_molecule *insert_volume_molecule(
   new_vm->mesh_name = NULL;
   new_vm->birthplace = sv->local_storage->mol;
   new_vm->id = state->current_mol_id++;
+#ifdef DEBUG_RELEASES
+  vm->id = new_vm->id;
+#endif
   new_vm->prev_v = NULL;
   new_vm->next_v = NULL;
   new_vm->next = NULL;
@@ -1520,6 +1523,10 @@ int release_ellipsoid_or_rectcuboid(struct volume *state,
     vm->periodic_box->y = rso->periodic_box->y;
     vm->periodic_box->z = rso->periodic_box->z;
     guess = insert_volume_molecule(state, vm, guess); 
+#ifdef DEBUG_RELEASES
+    dump_volume_molecule(vm, "", true, "Released vm:", state->current_iterations, vm->t, true);
+#endif
+
     if (guess == NULL)
       return 1;
   }

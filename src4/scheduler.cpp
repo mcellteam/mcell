@@ -41,6 +41,18 @@ void Bucket::insert(BaseEvent* event) {
     // find the right ordering among events with the same event_time
     while (it != events.end() && cmp_eq((*it)->event_time, event->event_time, SCHEDULER_COMPARISON_EPS)
         && (*it)->type_index <= event->type_index) {
+
+      // if we already found events with our type, check secondary ordering
+      if ((*it)->type_index == event->type_index && event->needs_secondary_ordering()) {
+        assert((*it)->needs_secondary_ordering());
+
+        // do we belong in front of the current event?
+        if (event->get_secondary_ordering_value() < (*it)->get_secondary_ordering_value()) {
+          // yes, terminate search
+          break;
+        }
+      }
+
       it++;
     }
 

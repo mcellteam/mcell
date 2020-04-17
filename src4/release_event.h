@@ -100,8 +100,19 @@ public:
   }
   virtual ~ReleaseEvent();
 
-  virtual void step();
-  virtual void dump(const std::string indent);
+  // TODO: change other events virtual function decls to override
+  void step() override;
+  void dump(const std::string indent) override;
+
+  // release events must be sorted by the actual release time as well
+  bool needs_secondary_ordering() override {
+    return true;
+  }
+
+  float_t get_secondary_ordering_value() override {
+    assert(actual_release_time != TIME_INVALID);
+    return actual_release_time;
+  }
 
 public:
   std::string release_site_name; // name of releaser site from which was this event created

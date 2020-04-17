@@ -85,6 +85,7 @@
 
 //#define DEBUG_DEFRAGMENTATION
 
+//#define DEBUG_RELEASES // cannot be conditioned by iterations
 
 //#define DEBUG_RNG_CALLS // cannot be conditioned by iterations
 

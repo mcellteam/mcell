@@ -408,6 +408,10 @@ void ReleaseEvent::release_ellipsoid_or_rectcuboid(uint computed_release_number)
     new_vm.flags = IN_VOLUME | ACT_DIFFUSE;
     new_vm.set_flag(MOLECULE_FLAG_VOL);
     new_vm.set_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RX);
+#ifdef DEBUG_RELEASES
+    new_vm.dump(p, "Released vm:", "", p.stats.get_current_iteration(), actual_release_time, true);
+#endif
+
   }
 }
 

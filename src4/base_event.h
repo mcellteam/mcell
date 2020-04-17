@@ -59,6 +59,12 @@ public:
   virtual void step() = 0;
   virtual void dump(const std::string indent);
 
+  // some events such as release events have their event time set for
+  // the beginning of a timestep but internally they need to be ordered
+  // also according to another value such as actual release time
+  virtual bool needs_secondary_ordering() { return false; }
+  virtual float_t get_secondary_ordering_value() { return 0; }
+
   // time when this object;s step() method will be callled
   float_t event_time;
 
