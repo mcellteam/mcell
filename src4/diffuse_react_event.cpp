@@ -170,7 +170,6 @@ void DiffuseReactEvent::diffuse_single_molecule(
   if (m.is_defunct())
     return;
 
-
   float_t time_up_to_event_end =  event_time + diffusion_time_step - diffusion_start_time;
 
   // if the molecule is a "newbie", its unimolecular reaction was not yet scheduled
@@ -183,29 +182,19 @@ void DiffuseReactEvent::diffuse_single_molecule(
   assert(m.unimol_rx_time == TIME_INVALID || m.unimol_rx_time >= event_time);
   if (m.unimol_rx_time != TIME_INVALID && m.unimol_rx != nullptr && m.unimol_rx_time < event_time + diffusion_time_step) {
 
-    // now, there are two queues - local for this timestep
-    // and global in partition for the following timesteps
     DiffuseOrUnimolRxnAction unimol_react_action(
         DiffuseOrUnimolRxnAction::Type::UNIMOL_REACT, m.id, m.unimol_rx_time, m.unimol_rx);
-    // handle this iteration
     new_diffuse_or_unimol_react_actions.push_back(unimol_react_action);
   }
-  /*else {
-    p.add_unimolecular_action(diffusion_time_step, unimol_react_action);
-  }*/
-
 
 #ifdef DEBUG_DIFFUSION
   const BNG::Species& debug_species = p.get_all_species().get(m.species_id);
   float_t event_time_end = event_time + diffusion_time_step;
   DUMP_CONDITION4(
-    // the subtraction of diffusion_time_step doesn't make much sense but is needed to make the dump the same as in mcell3
-    // need to check it further
-    const char* title =
-        (debug_species.can_diffuse()) ?
-            (m.is_vol() ? "Diffusing vm:" : "Diffusing sm:") :
-            (m.is_vol() ? "Not diffusing vm:" : "Not diffusing sm:");
-    m.dump(p, "", title, world->get_current_iteration(), diffusion_start_time);
+    if (debug_species.can_diffuse()) {
+      const char* title = (m.is_vol() ? "Diffusing vm:" : "Diffusing sm:");
+      m.dump(p, "", title, world->get_current_iteration(), diffusion_start_time);
+    }
   );
 #endif
 
@@ -215,28 +204,6 @@ void DiffuseReactEvent::diffuse_single_molecule(
     assert(m.unimol_rx_time >= diffusion_start_time);
     max_time = m.unimol_rx_time - diffusion_start_time;
   }
-
-
-  // we might need to adjust remaining time step if this molecule has a unimolecular reaction
-  // within this event's time step range
-  /*float_t remaining_time_step;
-  if (m.unimol_rx_time != TIME_INVALID && m.unimol_rx_time < event_time_end) { // unlikely
-    assert(m.unimol_rx_time >= event_time && "Missed unimol rx");
-
-    // the value of remaining_time_step passed as argument is time up to event_time_end
-    float_t prev_time_from_event_start = diffusion_time_step - time_up_to_event_end;
-    float_t new_time_from_event_start = m.unimol_rx_time - event_time;
-    assert(new_time_from_event_start >= prev_time_from_event_start && "Unimol rx cannot be scheduled to the past");
-
-    remaining_time_step = new_time_from_event_start - prev_time_from_event_start;
-  }
-  else {
-    remaining_time_step = time_up_to_event_end;
-  }
-  assert(remaining_time_step <= diffusion_time_step && "remaining_time_step is how much time we should simulate in this step");
-   */
-
-
 
   if (m.is_vol()) {
     diffuse_vol_molecule(
@@ -771,26 +738,19 @@ int DiffuseReactEvent::collide_and_react_with_surf_mol(
   }
 
   int selected_rx_pathway;
-  int reactant_index;
   if (matching_rxn_classes.size() == 1) {
     selected_rx_pathway = RxUtil::test_bimolecular(
         matching_rxn_classes[0], world->rng,
         diffused_molecule, colliding_molecule,
         scaling_coefs[0], 0);
-
-    assert(selected_rx_pathway <= 0 && "Only one pathway supported for now (with index 0)");
-    reactant_index = 0;
   }
   else {
-    mcell_error("Internal error: multiple rxn classes sould not be needed for sorf mol rxn.");
+    mcell_error("Internal error: multiple rxn classes should not be needed for surf mol rxn.");
   }
 
-  // TODO: cleanup
-  if (reactant_index == RX_NO_RX || selected_rx_pathway < RX_LEAST_VALID_PATHWAY) {
+  if (selected_rx_pathway < RX_LEAST_VALID_PATHWAY) {
     return -1; /* No reaction */
   }
-
-  assert(selected_rx_pathway == 0 && "TODO");
 
   /* run the reaction */
   float_t collision_time = elapsed_molecule_time + remaining_time_step * collision.time;
