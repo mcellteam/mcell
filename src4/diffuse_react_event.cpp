@@ -1605,6 +1605,7 @@ int DiffuseReactEvent::outcome_intersect(
 
   if (rxn_class->reactants[0] == all_molecules_id || rxn_class->reactants[0] == all_volume_molecules_id) {
     assert(rxn_class->get_num_reactions() == 1);
+    keep_reacA = false;
     result = RX_DESTROY;
   }
   else {
