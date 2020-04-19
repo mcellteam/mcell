@@ -102,6 +102,7 @@ class Partition {
 public:
   // ctor definition is needed, default variant is generated instead by swig 
   Partition(
+      const partition_id_t id_,  
       const Vec3 origin_,
       const SimulationConfig& config_,
       BNG::BNGEngine& bng_engine_,
@@ -125,7 +126,7 @@ public:
   
   void register_wall_hit_callback_internal(wall_hit_callback_func func, void* clientdata_);
   
-  Partition& get_partition(partition_index_t i);
+  Partition& get_partition(partition_id_t i);
   
   void dump();
   

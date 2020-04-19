@@ -36,8 +36,6 @@ add_definitions(-DPACKAGE_BUGREPORT="mcell@salk.edu")
 SET(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0 ")
 SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 ")
 
-set(INCLUDE_DIRS " -isystem ${CMAKE_SOURCE_DIR}/libs/")
-
 if (CMAKE_BUILD_TYPE STREQUAL "Release")
   SET(OPTIMIZATION_FLAGS " -O3 -march=core2 -finline-limit=10000 ")
   
@@ -347,14 +345,10 @@ add_dependencies(mcell version_h)
 
 if (PYMCELL AND NOT WIN32 AND NOT CYGWIN)
     add_dependencies(pymcell version_h bng nfsim_c NFsim)
+    target_link_libraries(pymcell ${VTK_LIBRARIES})
 endif()
   
-target_link_libraries(mcell bng nfsim_c_static NFsim_static)
+target_link_libraries(mcell bng nfsim_c_static NFsim_static ${VTK_LIBRARIES})
 
-if(VTK_LIBRARIES)
-  target_link_libraries(mcell ${VTK_LIBRARIES})
-else()
-  target_link_libraries(mcell vtkHybrid)
-endif()
 
 TARGET_COMPILE_DEFINITIONS(mcell PRIVATE NOSWIG=1)
