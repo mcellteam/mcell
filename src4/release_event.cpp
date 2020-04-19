@@ -20,14 +20,15 @@
  * USA.
  *
 ******************************************************************************/
-//extern "C" {
+
 #include "rng.h" // MCell 3
 #include "isaac64.h"
 #include "mcell_structs.h"
 #include "logging.h"
-//}
 
 #include <iostream>
+
+#include "defines.h"
 
 #include "release_event.h"
 #include "world.h"
@@ -41,6 +42,62 @@ using namespace std;
 
 namespace MCell {
 
+void RegionExprNode::dump() {
+  assert(op != RegionExprOperator::Invalid);
+
+  if (op == RegionExprOperator::Leaf) {
+    cout << region_name;
+    return;
+  }
+
+  assert(left != nullptr);
+  cout << "(";
+  left->dump();
+
+  switch(op) {
+  case RegionExprOperator::Union:
+    cout << " + ";
+    break;
+  case RegionExprOperator::Intersection:
+    cout << " * ";
+    break;
+  case RegionExprOperator::Subtraction:
+    cout << " - ";
+    break;
+  default:
+    assert(false);
+  }
+  right->dump();
+  cout << ")";
+}
+
+
+ReleaseEvent::~ReleaseEvent() {
+  for (RegionExprNode* expr_node: all_region_expr_nodes) {
+    delete expr_node;
+  }
+}
+
+
+RegionExprNode* ReleaseEvent::create_new_region_expr_node_leaf(const std::string region_name) {
+  RegionExprNode* res = new RegionExprNode;
+  res->op = RegionExprOperator::Leaf;
+  res->region_name = region_name;
+  return res;
+}
+
+
+RegionExprNode* ReleaseEvent::create_new_region_expr_node_op(
+    const RegionExprOperator op, RegionExprNode* left, RegionExprNode* right) {
+
+  RegionExprNode* res = new RegionExprNode;
+  res->op = op;
+  res->left = left;
+  res->right = right;
+  return res;
+}
+
+
 void ReleaseEvent::dump(const string ind) {
   cout << "Release event:\n";
   string ind2 = ind + "  ";
@@ -49,13 +106,81 @@ void ReleaseEvent::dump(const string ind) {
   cout << ind2 << "species_id: \t\t" << species_id << " [species_id_t] \t\t\n";
   cout << ind2 << "release_number: \t\t" << release_number << " [uint] \t\t\n";
   cout << ind2 << "name: \t\t" << release_site_name << " [string] \t\t\n";
+
+  if (region_expr_root != nullptr) {
+    region_expr_root->dump();
+  }
+}
+
+
+static void check_max_release_count(double num_to_release, const std::string& name) {
+  int num = (int)num_to_release;
+  if (num < 0 || num > INT_MAX) {
+    mcell_error(
+        "Release site '%s' tries to release more than INT_MAX (2147483647) molecules.",
+        name.c_str());
+  }
 }
 
 
 uint ReleaseEvent::calculate_number_to_release() {
-  // release_number_method - only 0 allowed now
-  // case CONSTNUM:
-  return release_number;
+
+  switch (release_number_method) {
+    case ReleaseNumberMethod::ConstNum:
+      return release_number;
+
+    case ReleaseNumberMethod::ConcNum:
+      if (diameter == Vec3(LENGTH_INVALID)) {
+        return 0;
+      }
+      else {
+        float_t vol;
+        switch (release_shape) {
+        case ReleaseShape::SPHERICAL:
+        //case ReleaseShape::ELLIPTIC:
+          vol = (1.0 / 6.0) * MY_PI * diameter.x * diameter.y * diameter.z;
+          break;
+        /*case SHAPE_RECTANGULAR:
+        case SHAPE_CUBIC:
+          vol = rso->diameter->x * rso->diameter->y * rso->diameter->z;
+          break;*/
+
+        case ReleaseShape::SPHERICAL_SHELL:
+          mcell_error("Release site \"%s\" tries to release a concentration on a "
+                      "spherical shell.", release_site_name.c_str());
+          break;
+
+        default:
+          mcell_internal_error("Release by concentration on invalid release site "
+                               "shape (%d) for release site \"%s\".",
+                               (int)release_shape, release_site_name.c_str());
+          break;
+        }
+        assert(concentration != FLT_INVALID);
+        float_t num_to_release =
+            N_AV * 1e-15 * concentration * vol * pow_f(world->config.length_unit, 3) + 0.5;
+        check_max_release_count(num_to_release, release_site_name);
+        return (uint)num_to_release;
+      }
+      break;
+
+    case ReleaseNumberMethod::DensityNum: {
+        // computed in release_onto_regions in MCell3
+        assert(!cum_area_and_pwall_index_pairs.empty());
+        float_t max_A = cum_area_and_pwall_index_pairs.back().first;
+        float_t est_sites_avail = (int)max_A;
+
+        assert(concentration != FLT_INVALID);
+        float_t num_to_release = concentration * est_sites_avail / world->config.grid_density;
+        check_max_release_count(num_to_release, release_site_name);
+        return (uint)num_to_release;
+      }
+      break;
+
+    default:
+      assert(false);
+      return 0;
+  }
 }
 
 
@@ -95,7 +220,7 @@ void ReleaseEvent::place_single_molecule_onto_grid(Partition& p, Wall& wall, til
   }
 
   Molecule& new_sm = p.add_surface_molecule(
-      Molecule(MOLECULE_ID_INVALID, species_id, pos_on_wall)
+      Molecule(MOLECULE_ID_INVALID, species_id, pos_on_wall, get_release_delay_time())
   );
 
   new_sm.s.wall_index = wall.index;
@@ -171,12 +296,38 @@ void ReleaseEvent::release_onto_regions(uint computed_release_number) {
   }
 }
 
+
+static bool is_point_inside_region_expr_recursively(const Partition& p, const Vec3& pos, const RegionExprNode* region_expr_node) {
+  assert(region_expr_node->op != RegionExprOperator::Invalid);
+
+  if (region_expr_node->op == RegionExprOperator::Leaf) {
+    const Region* reg = p.find_region_by_name(region_expr_node->region_name);
+    assert(reg != nullptr && "Region for release must exist");
+    return CollisionUtil::is_point_inside_region(p, pos, *reg);
+  }
+
+  bool satisfies_l = is_point_inside_region_expr_recursively(p, pos, region_expr_node->left);
+  bool satisfies_r = is_point_inside_region_expr_recursively(p, pos, region_expr_node->right);
+
+  switch (region_expr_node->op) {
+    case RegionExprOperator::Union:
+      return satisfies_l || satisfies_r;
+    case RegionExprOperator::Intersection:
+      return satisfies_l && satisfies_r;
+    case RegionExprOperator::Subtraction:
+      return satisfies_l && !satisfies_r;
+    default:
+      assert(false);
+      return false;
+  }
+}
+
+
 void ReleaseEvent::release_inside_regions(uint computed_release_number) {
 
-  assert(region_name != "");
+  assert(region_expr_root != nullptr);
+
   Partition& p = world->get_partition(0);
-  const Region* reg = p.get_region_by_name(region_name);
-  assert(reg != nullptr && "Region for release must exist");
 
   /*if (rso->release_number_method == CCNNUM) {
     n = num_vol_mols_from_conc(rso, state->length_unit, &exactNumber);
@@ -190,7 +341,7 @@ void ReleaseEvent::release_inside_regions(uint computed_release_number) {
     pos.y = region_llf.y + (region_urb.y - region_llf.y) * rng_dbl(&world->rng);
     pos.z = region_llf.z + (region_urb.z - region_llf.z) * rng_dbl(&world->rng);
 
-    if (!CollisionUtil::is_point_inside_region(p, pos, *reg)) {
+    if (!is_point_inside_region_expr_recursively(p, pos, region_expr_root)) {
       /*if (rso->release_number_method == CCNNUM && !exactNumber)
         n--;*/
       continue;
@@ -198,7 +349,7 @@ void ReleaseEvent::release_inside_regions(uint computed_release_number) {
 
     // TODO_LATER: location can be close to a partition boundary, we might need to release to a different partition
     Molecule& new_vm = p.add_volume_molecule(
-        Molecule(MOLECULE_ID_INVALID, species_id, pos)
+        Molecule(MOLECULE_ID_INVALID, species_id, pos, get_release_delay_time())
     );
     new_vm.flags = IN_VOLUME | ACT_DIFFUSE;
     new_vm.set_flag(MOLECULE_FLAG_VOL);
@@ -212,7 +363,7 @@ void ReleaseEvent::release_inside_regions(uint computed_release_number) {
 void ReleaseEvent::release_ellipsoid_or_rectcuboid(uint computed_release_number) {
 
   Partition& p = world->get_partition(world->get_or_add_partition_index(location));
-  float_t time_step = world->all_species.get(species_id).time_step;
+  float_t time_step = world->get_all_species().get(species_id).time_step;
 
   const int is_spheroidal = (release_shape == ReleaseShape::SPHERICAL ||
                              /*release_shape == SHAPE_ELLIPTIC ||*/
@@ -252,11 +403,15 @@ void ReleaseEvent::release_ellipsoid_or_rectcuboid(uint computed_release_number)
 
     // TODO_LATER: location can be close to a partition boundary, we might need to release to a different partition
     Molecule& new_vm = p.add_volume_molecule(
-        Molecule(MOLECULE_ID_INVALID, species_id, molecule_location)
+        Molecule(MOLECULE_ID_INVALID, species_id, molecule_location, get_release_delay_time())
     );
     new_vm.flags = IN_VOLUME | ACT_DIFFUSE;
     new_vm.set_flag(MOLECULE_FLAG_VOL);
     new_vm.set_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RX);
+#ifdef DEBUG_RELEASES
+    new_vm.dump(p, "Released vm:", "", p.stats.get_current_iteration(), actual_release_time, true);
+#endif
+
   }
 }
 
@@ -267,7 +422,7 @@ void ReleaseEvent::step() {
 
   uint number = calculate_number_to_release();
 
-  const Species& species = world->all_species.get(species_id);
+  const BNG::Species& species = world->get_all_species().get(species_id);
 
   if (release_shape == ReleaseShape::REGION) {
     if (species.is_surf()) {

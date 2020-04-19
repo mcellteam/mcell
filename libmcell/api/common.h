@@ -1,36 +1,15 @@
-/******************************************************************************
- *
- * Copyright (C) 2020 by
- * The Salk Institute for Biological Studies and
- * Pittsburgh Supercomputing Center, Carnegie Mellon University
- *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version 2
- * of the License, or (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
- * USA.
- *
-******************************************************************************/
-
-#ifndef LIBMCELL_API_COMMON_H
-#define LIBMCELL_API_COMMON_H
+// TODO: better file name and guard macro name
+#ifndef API_COMMON_H
+#define API_COMMON_H
 
 #include <ostream>
-#include <string>
+
+#include "defines.h"
+
 #include <pybind11/pybind11.h>
 
 namespace py = pybind11;
-
-#include "defines.h"
+#include <string>
 
 namespace MCell {
 namespace API {
@@ -127,4 +106,4 @@ public:
 } // namespace API
 } // namespace MCell
 
-#endif // LIBMCELL_API_COMMON_H
+#endif // API_COMMON_H

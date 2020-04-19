@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.14)
 project(mcell)
 
+find_package(Python3 COMPONENTS Interpreter Development)
+message("-- Python3 include dirs are ${Python3_INCLUDE_DIRS}")
+include_directories(${Python3_INCLUDE_DIRS})
+
+
 #TODO: unify case for cmake commands, e.g. set vs SET
 
 
@@ -22,6 +27,10 @@ if (${CMAKE_VERSION} VERSION_GREATER "3.13")
   cmake_policy(SET CMP0086 NEW)
 endif()
 
+# add VTK libs VTK and headers
+set(VTK_DIR ${CMAKE_SOURCE_DIR}/../mcell_tools/work/build_vtk)
+find_package(VTK REQUIRED)
+
 add_definitions(-DPACKAGE_BUGREPORT="mcell@salk.edu")
 
 SET(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0 ")
@@ -36,12 +45,12 @@ if (CMAKE_BUILD_TYPE STREQUAL "Release")
   SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -no-pie ")
 endif()
 
-set(WARNING_FLAGS "-Wall -Wextra -Wno-shadow -Wno-unused-parameter -Wno-unused-function -Wno-unused-variable -fpermissive")
+set(WARNING_FLAGS "-Wall -Wextra -Wno-unused-parameter -Wno-unused-function -Wno-unused-variable ")
 
 set(INCLUDE_DIRS " -isystem ${CMAKE_SOURCE_DIR}/libs/")
-SET(COMMON_C_CXX_FLAGS "${WARNING_FLAGS} -g3 ${OPTIMIZATION_FLAGS} ${INCLUDE_DIRS} -D_GNU_SOURCE=1")
+SET(COMMON_C_CXX_FLAGS "${WARNING_FLAGS} -fPIC -g3 ${OPTIMIZATION_FLAGS} ${INCLUDE_DIRS} -D_GNU_SOURCE=1 ")
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMMON_C_CXX_FLAGS}  -std=c11 ")
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON_C_CXX_FLAGS} -std=c++14")
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON_C_CXX_FLAGS} -std=c++14 -fpermissive")
 
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lm")
 
@@ -57,7 +66,7 @@ option(ENABLE_GCOV "Use gcc coverage" OFF)
 option(ENABLE_GPROF "Use gprof profiling" OFF)
 option(ENABLE_GPERFTOOLS "Build with gperftools profiling" OFF)  
 option(ENABLE_SANITIZER "Use address sanitizer" OFF)
-option(PYMCELL "Build also pyMCell" ON) 
+option(PYMCELL "Build also PyMCell" OFF) 
 
 
 if (ENABLE_LTO)
@@ -85,12 +94,15 @@ endif()
 if (ENABLE_GPERFTOOLS)
   # TODO: build and install gperftools, for now it is done manually
   # then to run profiling 
-  # CPUPROFILE=./prof.out mc4
+  # export CPUPROFILE=./prof.out 
+  # mcell
   # pprof --text <app> ./prof.out # text output
   # pprof --gv <app> ./prof.out # graphical output, requires gv installed
   # (http://euccas.github.io/blog/20170827/cpu-profiling-tools-on-linux.html)
   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DWITHGPERFTOOLS -I${CMAKE_CURRENT_BINARY_DIR}/libs/")
-  SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -I${CMAKE_CURRENT_BINARY_DIR}/libs/install_gperftools/lib/ -lprofiler")
+  SET(CMAKE_EXE_LINKER_FLAGS 
+  	"${CMAKE_EXE_LINKER_FLAGS} -L${CMAKE_CURRENT_BINARY_DIR}/libs/install_gperftools/lib/ -L${CMAKE_CURRENT_SOURCE_DIR}/../../src4_bng/other/install_gperftools/lib/ -lprofiler")
+
 endif()
 	
 if (ENABLE_SANITIZER)
@@ -112,8 +124,6 @@ include_directories(
   "${CMAKE_SOURCE_DIR}/../nfsimCInterface/src/"
   "${CMAKE_SOURCE_DIR}/include"
   "${CMAKE_SOURCE_DIR}/libs/sparsehash/src/"
-  "/nadata/cnl/home/ahusar/tools/anaconda/include" # FIXME: generate automatically using python3 -m pybind11 --includes
-  "/nadata/cnl/home/ahusar/tools/anaconda/include/python3.7m"
 )
 
 
@@ -139,7 +149,7 @@ BISON_TARGET(mdlParser ${CMAKE_SOURCE_DIR}/src/mdlparse.y
 BISON_TARGET(dynGeomParser ${CMAKE_SOURCE_DIR}/src/dyngeom_parse.y
   ${CMAKE_CURRENT_BINARY_DIR}/deps/dyngeom_yacc.cpp)
 
-# not sure why is the lex file copied
+# the cmake flex plugin requires the flex file to be in the 'deps' directory
 configure_file(${CMAKE_SOURCE_DIR}/src/mdllex.l ${CMAKE_CURRENT_BINARY_DIR}/deps/mdllex.l COPYONLY)
 
 FLEX_TARGET(mdlScanner ${CMAKE_CURRENT_BINARY_DIR}/deps/mdllex.l
@@ -167,6 +177,7 @@ elseif (WIN32)
                      copy ${CMAKE_SOURCE_DIR}/appveyor_windows/version.h ${CMAKE_CURRENT_BINARY_DIR}/deps )
 endif()
 
+add_subdirectory(${CMAKE_SOURCE_DIR}/libs/bng ${CMAKE_CURRENT_BINARY_DIR}/libs/bng)
 add_subdirectory(${CMAKE_SOURCE_DIR}/../nfsim ${CMAKE_CURRENT_BINARY_DIR}/nfsim)
 add_subdirectory(${CMAKE_SOURCE_DIR}/../nfsimCInterface ${CMAKE_CURRENT_BINARY_DIR}/nfsimCInterface)
 
@@ -231,15 +242,15 @@ set(SOURCE_FILES
     src4/mcell3_world_converter.cpp
     src4/molecule.cpp
     src4/partition.cpp
-    src4/reaction.cpp
-    src4/reactions_info.cpp
     src4/release_event.cpp
     src4/scheduler.cpp
-    src4/species.cpp
+    src4/count_buffer.cpp
+    src4/mol_count_event.cpp
     src4/viz_output_event.cpp
     src4/defragmentation_event.cpp
     src4/geometry.cpp
     src4/world.cpp
+    src4/counted_volumes_util.cpp
     
     src4/callback_info.cpp    
 )
@@ -264,9 +275,7 @@ INCLUDE(${SWIG_USE_FILE})
 
 INCLUDE_DIRECTORIES("${CMAKE_CURRENT_SOURCE_DIR}/src")
 
-if (NOT WIN32 AND NOT CYGWIN)
-  FIND_PACKAGE(PythonLibs 3 REQUIRED)
-  INCLUDE_DIRECTORIES(${PYTHON_INCLUDE_PATH})
+if (PYMCELL AND NOT WIN32 AND NOT CYGWIN)
 
   #SET(CMAKE_SWIG_FLAGS "-debug-typemap;-debug-tmsearch;-debug-tmused;-ltypemaps")
   SET(CMAKE_SWIG_FLAGS "-c++;-ltypemaps;-py3")
@@ -285,10 +294,12 @@ if (NOT WIN32 AND NOT CYGWIN)
     SOURCES src/pymcell.i ${SOURCE_FILES}  ${BISON_dynGeomParser_OUTPUTS} ${FLEX_dynGeomScanner_OUTPUTS}  
   )
   
+  set(PYMCELL_ARCHIVES ${CMAKE_CURRENT_BINARY_DIR}/libs/bng/libbng.a)
+  
   if (APPLE)
-    SWIG_LINK_LIBRARIES(pymcell ${CMAKE_CURRENT_BINARY_DIR}/lib/libnfsim_c.dylib ${CMAKE_CURRENT_BINARY_DIR}/lib/libNFsim.dylib ${PYTHON_LIBRARIES})
+    SWIG_LINK_LIBRARIES(pymcell ${PYMCELL_ARCHIVES} ${CMAKE_CURRENT_BINARY_DIR}/lib/libnfsim_c.dylib ${CMAKE_CURRENT_BINARY_DIR}/lib/libNFsim.dylib ${PYTHON_LIBRARIES})
   else()
-    SWIG_LINK_LIBRARIES(pymcell ${CMAKE_CURRENT_BINARY_DIR}/lib/libnfsim_c.so ${CMAKE_CURRENT_BINARY_DIR}/lib/libNFsim.so ${PYTHON_LIBRARIES})
+    SWIG_LINK_LIBRARIES(pymcell  ${PYMCELL_ARCHIVES} ${CMAKE_CURRENT_BINARY_DIR}/lib/libnfsim_c.so ${CMAKE_CURRENT_BINARY_DIR}/lib/libNFsim.so ${PYTHON_LIBRARIES})
   endif()
 
   # copy the pyMCell test scripts into place
@@ -306,10 +317,19 @@ configure_file(${CMAKE_SOURCE_DIR}/src/pymcell_helpers.py ${CMAKE_CURRENT_BINARY
 
 # copy tools for MDLr to MDL
 # TODO: list all files using configure_file
-configure_file(${CMAKE_SOURCE_DIR}/src/rules_py/nfsim_python.py ${CMAKE_CURRENT_BINARY_DIR}/nfsim_python.py COPYONLY)
-configure_file(${CMAKE_SOURCE_DIR}/src/rules_py/mdlr2mdl.py ${CMAKE_CURRENT_BINARY_DIR}/mdlr2mdl.py COPYONLY)
+SET(MCELL_RULES_DIR ${CMAKE_SOURCE_DIR}/src/rules_py)
 
-file(COPY ${CMAKE_SOURCE_DIR}/src/rules_py/ DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+configure_file(${MCELL_RULES_DIR}/grammar_definition.py ${CMAKE_CURRENT_BINARY_DIR}/grammar_definition.py COPYONLY)
+configure_file(${MCELL_RULES_DIR}/mcell3r.py ${CMAKE_CURRENT_BINARY_DIR}/mcell3r.py COPYONLY)
+configure_file(${MCELL_RULES_DIR}/mdlr2mdl.py ${CMAKE_CURRENT_BINARY_DIR}/mdlr2mdl.py COPYONLY)
+configure_file(${MCELL_RULES_DIR}/nfsim_python.py ${CMAKE_CURRENT_BINARY_DIR}/nfsim_python.py COPYONLY)
+configure_file(${MCELL_RULES_DIR}/postprocess_mcell3r.py ${CMAKE_CURRENT_BINARY_DIR}/postprocess_mcell3r.py COPYONLY)
+configure_file(${MCELL_RULES_DIR}/read_bngxml.py ${CMAKE_CURRENT_BINARY_DIR}/read_bngxml.py COPYONLY)
+configure_file(${MCELL_RULES_DIR}/read_mdl.py ${CMAKE_CURRENT_BINARY_DIR}/read_mdl.py COPYONLY)
+configure_file(${MCELL_RULES_DIR}/small_structures.py ${CMAKE_CURRENT_BINARY_DIR}/small_structures.py COPYONLY)
+configure_file(${MCELL_RULES_DIR}/split_bngxml.py ${CMAKE_CURRENT_BINARY_DIR}/split_bngxml.py COPYONLY)
+configure_file(${MCELL_RULES_DIR}/write_bngxmle.py ${CMAKE_CURRENT_BINARY_DIR}/write_bngxmle.py COPYONLY)
+configure_file(${MCELL_RULES_DIR}/write_mdl.py ${CMAKE_CURRENT_BINARY_DIR}/write_mdl.py COPYONLY)
 
 # copy tools for MDLr to MDL
 file(COPY ${CMAKE_SOURCE_DIR}/../bionetgen/bng2/ DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/bng2/)
@@ -325,9 +345,16 @@ add_executable(mcell
 
 add_dependencies(mcell version_h)
 
-if (NOT WIN32 AND NOT CYGWIN)
-    add_dependencies(pymcell version_h nfsim_c NFsim)
+if (PYMCELL AND NOT WIN32 AND NOT CYGWIN)
+    add_dependencies(pymcell version_h bng nfsim_c NFsim)
 endif()
   
-target_link_libraries(mcell nfsim_c_static NFsim_static)
+target_link_libraries(mcell bng nfsim_c_static NFsim_static)
+
+if(VTK_LIBRARIES)
+  target_link_libraries(mcell ${VTK_LIBRARIES})
+else()
+  target_link_libraries(mcell vtkHybrid)
+endif()
+
 TARGET_COMPILE_DEFINITIONS(mcell PRIVATE NOSWIG=1)

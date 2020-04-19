@@ -1,0 +1,17 @@
+# OK
+# 
+# NOTE: BNG2.pl passes, related to tests N0220 and N023*  
+
+begin parameters
+   kp 0.00001
+   km 1
+end parameters
+
+begin molecule types
+   A(a,p~0~1)
+   B(b)
+end molecule types
+
+begin reaction rules
+  A(a,p~0) + A(a) <-> A(a!1).B(b!1) kp, km
+end reaction rules

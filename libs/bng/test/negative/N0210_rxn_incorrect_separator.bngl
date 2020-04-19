@@ -1,0 +1,15 @@
+# FAIL
+# OUTPUT: error: syntax error, unexpected '+', expecting identifier
+
+begin parameters
+   kp 0.00001
+   km 1
+end parameters
+
+begin molecule types
+   A(a,p~0~1)
+end molecule types
+
+begin reaction rules
+  A(a) + + A(a) <-> A(a!1).A(a) kp, km
+end reaction rules

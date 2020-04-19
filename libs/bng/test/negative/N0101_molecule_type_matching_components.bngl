@@ -1,0 +1,7 @@
+# FAIL
+# OUTPUT: error: Molecule type has 2 components with name 'a' but with different states, this is not allowed.
+
+
+begin molecule types
+   A(a~0~1, a~P)
+end molecule types

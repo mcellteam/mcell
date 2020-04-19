@@ -1,0 +1,17 @@
+# FAIL
+# OUTPUT: error: Referenced id 'A' cannot be used in an expression.
+
+begin parameters
+   a b
+   b a
+end parameters
+
+begin molecule types
+   A()
+   B()
+   C()
+end molecule types
+
+begin reaction rules
+  A() + B() -> C() A
+end reaction rules

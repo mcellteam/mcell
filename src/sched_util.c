@@ -204,6 +204,7 @@ struct schedule_helper *create_scheduler(double dt_min, double dt_max,
   sh->circ_buf_tail = sh->circ_buf_head + len;
 
   if (sh->dt * sh->buf_len < dt_max) {
+    ASSERT_FOR_MCELL4(false);
     sh->next_scale =
         create_scheduler(dt_min * len, dt_max, maxlen, sh->now + dt_min * len);
     if (sh->next_scale == NULL)

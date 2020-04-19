@@ -139,7 +139,7 @@ void mcell_delete_species_list(struct mcell_species *species) {
      sym_ptr:   symbol for the species
  Out: 0 on success, positive integer on failure
 **************************************************************************/
-int new_mol_species(MCELL_STATE *state, char *name, struct sym_entry **sym_ptr) {
+int new_mol_species(MCELL_STATE *state, const char *name, struct sym_entry **sym_ptr) {
   // Molecule already defined
   if (retrieve_sym(name, state->mol_sym_table) != NULL) {
     return 2;

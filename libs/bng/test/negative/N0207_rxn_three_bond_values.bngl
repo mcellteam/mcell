@@ -1,0 +1,16 @@
+# FAIL
+# OUTPUT: error: Bond with numerical value '1' must be used exactly twice in a complex pattern of a rule.
+# NOTE: checking the same message as in N0206 
+
+begin parameters
+   kp 0.00001
+   km 1
+end parameters
+
+begin molecule types
+   A(a,p~0~1)
+end molecule types
+
+begin reaction rules
+  A(a) + A(a) <-> A(a!1).A(a!1).A(a!1) kp, km
+end reaction rules

@@ -26,6 +26,7 @@
 
 #include <vector>
 #include <set>
+#include <vtkPolyData.h>
 
 #include "defines.h"
 #include "molecule.h"
@@ -42,14 +43,26 @@ class Partition;
  */
 class GeometryObject {
 public:
+  GeometryObject()
+    : id(GEOMETRY_OBJECT_ID_INVALID), index(GEOMETRY_OBJECT_INDEX_INVALID),
+      is_counted_volume(false),
+      counted_volume_id_outside(GEOMETRY_OBJECT_ID_INVALID) {
+  }
+
   geometry_object_id_t id; // world-unique geometry object ID
   geometry_object_index_t index; // partition-unique geometry object index
   std::string name;
 
-  // bool is_closed;
-
   // all walls (triangles) that form this object
   std::vector<wall_index_t> wall_indices;
+
+  // for now, intersections of counted objects are not allowed,
+  // so we do not need to create new objects for volumes
+  bool is_counted_volume;
+  // counted_volume_id_inside - same id as this object
+  geometry_object_id_t counted_volume_id_outside;
+  // valid only if is_counted_volume is true
+  vtkSmartPointer<vtkPolyData> counted_volume_polydata;
 
   // p must be the partition that contains this object
   void dump(const Partition& p, const std::string ind) const;
@@ -60,15 +73,17 @@ public:
 class Region {
 public:
   Region()
-    : name(""), species_id(SPECIES_ID_INVALID) {
+    : name(""), species_id(SPECIES_ID_INVALID), geometry_object_id(GEOMETRY_OBJECT_ID_INVALID) {
   }
 
   std::string name;
-  //region_index_t index; // not sure if it is needed
 
   // the reactivity of the region is modeled using reactions and
   // this region has its species specified
   species_id_t species_id;
+
+  // to which object this region belongs
+  geometry_object_id_t geometry_object_id;
 
   // each wall contained in this map is a part of this region
   // the vector of edge indices may be empty but if not, it specifies the
@@ -110,7 +125,7 @@ public:
 
   void reinit_edge_constants(const Partition& p);
 
-  void dump() const;
+  void dump(const std::string ind = "") const;
 
   void debug_check_values_are_uptodate(const Partition& p);
 
@@ -377,6 +392,9 @@ void update_moved_walls(
 );
 
 }
+
+typedef std::vector<GeometryObject> GeometryObjectVector;
+
 } /* namespace mcell */
 
 #endif /* SRC4_GEOMETRY_H_ */

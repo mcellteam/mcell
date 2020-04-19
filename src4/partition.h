@@ -26,17 +26,55 @@
 
 #include <set>
 
+#include "../libs/bng/rxn_container.h"
 #include "defines.h"
 #include "dyn_vertex_structs.h"
 #include "molecule.h"
 #include "scheduler.h"
 #include "geometry.h"
-#include "reaction.h"
-#include "species.h"
-#include "reactions_info.h"
-#include "species_info.h"
 
 namespace MCell {
+
+// class used to hold potential reactants of given species
+// performance critical, therefore we are using a vector for now,
+// will probably need to change in the future
+class SpeciesReactantsMap:
+    // public std::map<species_id_t, uint_set<molecule_id_t> > {
+    public std::vector<uint_set<molecule_id_t> > {
+
+public:
+  // key must exist
+  void erase_existing(const species_id_t key, const molecule_id_t id) {
+    //auto it = find(key);
+    //assert(it != end() && "Key must exist");
+    //it->second.erase_existing(id);
+
+    assert(key < this->size());
+    (*this)[key].erase_existing(id);
+  }
+
+  // key is created if it does not exist
+  void insert_unique(const species_id_t key, const molecule_id_t id) {
+    if (key >= this->size()) {
+      // resize vector
+      this->resize(key + 1);
+    }
+    (*this)[key].insert_unique(id);
+  }
+
+  const uint_set<molecule_id_t>& get_set(const species_id_t key) {
+    if (key >= this->size()) {
+      // resize vector
+      return empty_set;
+    }
+    else {
+      return (*this)[key];
+    }
+  }
+
+private:
+  uint_set<molecule_id_t> empty_set;
+};
 
 
 /**
@@ -46,17 +84,17 @@ namespace MCell {
 class Partition {
 public:
   Partition(
+      const partition_id_t id_,
       const Vec3 origin_,
       const SimulationConfig& config_,
-      const ReactionsInfo& reactions_,
-      const SpeciesInfo& species_,
+      BNG::BNGEngine& bng_engine_,
       SimulationStats& stats_
   )
     : origin_corner(origin_),
       next_molecule_id(0),
+      id(id_),
       config(config_),
-      all_reactions(reactions_),
-      all_species(species_),
+      bng_engine(bng_engine_),
       stats(stats_) {
 
     opposite_corner = origin_corner + config.partition_edge_length;
@@ -65,11 +103,6 @@ public:
     uint32_t num_subparts = powu(config.subpartitions_per_partition_dimension, 3);
     volume_molecule_reactants_per_subpart.resize(num_subparts);
     walls_per_subpart.resize(num_subparts);
-
-    size_t num_species = all_species.get_count();
-    for (auto& reactants : volume_molecule_reactants_per_subpart) {
-      reactants.resize(num_species);
-    }
   }
 
 
@@ -132,7 +165,6 @@ public:
 
 
   bool is_subpart_index_in_range(const int index) const {
-    assert((subpart_index_t)index != SUBPART_INDEX_INVALID);
     return index >= 0 && index < (int)config.subpartitions_per_partition_dimension;
   }
 
@@ -144,6 +176,7 @@ public:
   }
 
   // FIXME: use subpart_index_t, rename to subpart
+  // TODO: consider using bitfields, this recomputation can be slow
   subpart_index_t get_subpart_index_from_3d_indices(const IVec3& indices) const {
     // example: dim: 5x5x5,  (1, 2, 3) -> 1 + 2*5 + 3*5*5 = 86
     return
@@ -157,7 +190,7 @@ public:
   }
 
 
-  void get_subpart_3d_indices_from_index(const uint32_t index, IVec3& indices) const {
+  void get_subpart_3d_indices_from_index(const subpart_index_t index, IVec3& indices) const {
     uint32_t dim = config.subpartitions_per_partition_dimension;
     // example: dim: 5x5x5,  86 -> (86%5, (86/5)%5, (86/(5*5))%5) = (1, 2, 3)
     indices.x = index % dim;
@@ -182,37 +215,58 @@ public:
     urb = llf + Vec3(config.subpartition_edge_length);
   }
 
-  void change_reactants_map(Molecule& vm, const uint32_t new_subpartition_index, bool adding, bool removing) {
+  // the reactant_subpart_index is index where the molecule was originally created,
+  // it might have moved to subpart_index in the meantime
+  void change_vol_reactants_map_from_orig_to_current(Molecule& vm, bool adding, bool removing) {
+    assert(vm.is_vol());
+    assert(vm.v.subpart_index != SUBPART_INDEX_INVALID);
+    assert(vm.v.reactant_subpart_index != SUBPART_INDEX_INVALID);
+    assert(vm.v.subpart_index == get_subpart_index(vm.v.pos) && "Position and subpart must match all the time");
+
+
     if (vm.is_surf()) {
       // nothing to do
       return;
     }
-    assert(vm.is_vol() && "This function is applicable only to volume mols and ignored for surface mols");
-    assert(all_reactions.is_initialized() && all_reactions.bimolecular_reactions_map.count(vm.species_id) != 0);
 
-    // these are all the sets of indices of reactants for this particular subpartition
-    SpeciesReactantsMap& subpart_reactants_orig_sp = volume_molecule_reactants_per_subpart[vm.v.subpart_index];
-    SpeciesReactantsMap& subpart_reactants_new_sp = volume_molecule_reactants_per_subpart[new_subpartition_index];
+    assert(vm.is_vol() && "This function is applicable only to volume mols and ignored for surface mols");
 
     // and these are indices of possible reactants with our reactant_species_id
-    const SpeciesRxnClassesMap& reactions_map = all_reactions.bimolecular_reactions_map.find(vm.species_id)->second;
+    // NOTE: this must be fast, bng engine must have this map/vector already ready
+    // TODO: we can optimize this by taking just volume reactants into account
+    const BNG::SpeciesRxnClassesMap* reactions_map = get_all_rxns().get_bimol_rxns_for_reactant(vm.species_id);
+    if (reactions_map == nullptr) {
+      // nothing to do
+      return;
+    }
+
+    // these are all the sets of indices of reactants for this particular subpartition
+    SpeciesReactantsMap& subpart_reactants_orig_sp = volume_molecule_reactants_per_subpart[vm.v.reactant_subpart_index];
+    SpeciesReactantsMap& subpart_reactants_new_sp = volume_molecule_reactants_per_subpart[vm.v.subpart_index];
 
     // we need to set/clear flag that says that second_reactant_info.first can react with reactant_species_id
-    for (const auto& second_reactant_info : reactions_map) {
+    for (const auto& second_reactant_info: *reactions_map) {
+      if (second_reactant_info.second->get_num_reactions() == 0) {
+        // there is a reaction class, but it has no reactions
+        continue;
+      }
+
       if (removing) {
-        subpart_reactants_orig_sp[second_reactant_info.first].erase_existing(vm.id);
+        subpart_reactants_orig_sp.erase_existing(second_reactant_info.first, vm.id);
       }
       if (adding) {
-        subpart_reactants_new_sp[second_reactant_info.first].insert_unique(vm.id);
+        subpart_reactants_new_sp.insert_unique(second_reactant_info.first, vm.id);
       }
     }
+
+    vm.v.reactant_subpart_index = vm.v.subpart_index;
   }
 
 
-  void change_molecule_subpartition(Molecule& vm, const uint32_t new_subpartition_index) {
+  void update_molecule_reactants_map(Molecule& vm) {
     assert(vm.v.subpart_index < volume_molecule_reactants_per_subpart.size());
-    assert(new_subpartition_index < volume_molecule_reactants_per_subpart.size());
-    if (vm.v.subpart_index == new_subpartition_index) {
+    assert(vm.v.reactant_subpart_index < volume_molecule_reactants_per_subpart.size());
+    if (vm.v.subpart_index == vm.v.reactant_subpart_index) {
       return; // nothing to do
     }
 #ifdef DEBUG_SUBPARTITIONS
@@ -220,10 +274,14 @@ public:
         <<  vm.v.subpart_index << " to " << new_subpartition_index << ".\n";
 #endif
 
-    change_reactants_map(vm, new_subpartition_index, true, true);
-    vm.v.subpart_index = new_subpartition_index;
+    change_vol_reactants_map_from_orig_to_current(vm, true, true);
   }
 
+
+
+private:
+  // internal methods that sets molecule's id and
+  // adds it to all relevant structures
 
   void add_molecule_to_diffusion_list(const Molecule& m, const uint32_t time_step_index) {
 
@@ -234,12 +292,9 @@ public:
   }
 
 
-private:
-  // internal methods that sets molecule's id and
-  // adds it to all relevant structures
   Molecule& add_molecule(const Molecule& vm_copy, const bool is_vol) {
 
-    const Species& species = all_species.get(vm_copy.species_id);
+    const BNG::Species& species = get_all_species().get(vm_copy.species_id);
     assert((is_vol && species.is_vol()) || (!is_vol && species.is_surf()));
     uint32_t time_step_index = get_or_add_molecule_list_index_for_time_step(species.time_step);
 
@@ -249,7 +304,7 @@ private:
     // We always have to increase the size of the mapping array - its size is
     // large enough to hold indices for all molecules that were ever created,
     // we will need to reuse ids or compress it later
-    uint32_t next_molecule_array_index = molecules.size(); // get the index of the molecule we aregoing to store
+    uint32_t next_molecule_array_index = molecules.size(); // get the index of the molecule we are going to store
     molecule_id_to_index_mapping.push_back(next_molecule_array_index);
     assert(
         molecule_id_to_index_mapping.size() == next_molecule_id
@@ -267,6 +322,13 @@ private:
     return new_m;
   }
 
+  // returns counted volume id for this position,
+  // member function of Partition because some caching might be useful in the future
+  geometry_object_id_t determine_counted_volume_id(const Vec3& pos);
+
+  // auxiliary method for determine_counted_volume_id
+  geometry_object_id_t find_smallest_counted_volume_recursively(const GeometryObject& obj, const Vec3& pos);
+
 public:
   // any molecule flags are set by caller after the molecule is created by this method
   Molecule& add_volume_molecule(const Molecule& vm_copy) {
@@ -274,7 +336,13 @@ public:
     Molecule& new_vm = add_molecule(vm_copy, true);
 
     new_vm.v.subpart_index = get_subpart_index(vm_copy.v.pos);
-    change_reactants_map(new_vm, new_vm.v.subpart_index, true, false);
+    new_vm.v.reactant_subpart_index = new_vm.v.subpart_index;
+    change_vol_reactants_map_from_orig_to_current(new_vm, true, false);
+
+    // compute counted volume id for a new molecule
+    if (new_vm.v.counted_volume_id == COUNTED_VOLUME_ID_INVALID) {
+      new_vm.v.counted_volume_id = determine_counted_volume_id(new_vm.v.pos);
+    }
 
     return new_vm;
   }
@@ -291,7 +359,9 @@ public:
     // set that this molecule does not exist anymore
     m.set_is_defunct();
 
-    change_reactants_map(m, 0/*unused*/, false, true);
+    if (m.is_vol()) {
+      change_vol_reactants_map_from_orig_to_current(m, false, true);
+    }
 
     // remove from grid if it was not already removed
     if (m.is_surf() && m.s.grid_tile_index != TILE_INDEX_INVALID) {
@@ -317,10 +387,6 @@ public:
     std::vector<molecule_id_t> molecule_ids;
   };
 
-  // indexed with species_id_t
-  typedef std::vector< uint_set<molecule_id_t> > SpeciesReactantsMap;
-
-
   // ---------------------------------- molecule getters ----------------------------------
 
   // usually used as constant
@@ -343,8 +409,8 @@ public:
     return opposite_corner;
   }
 
-  uint_set<molecule_id_t>& get_volume_molecule_reactants(subpart_index_t subpart_index, species_id_t species_id) {
-    return volume_molecule_reactants_per_subpart[subpart_index][species_id];
+  const uint_set<molecule_id_t>& get_volume_molecule_reactants(subpart_index_t subpart_index, species_id_t species_id) {
+    return volume_molecule_reactants_per_subpart[subpart_index].get_set(species_id);
   }
 
 
@@ -431,9 +497,18 @@ public:
     return new_obj;
   }
 
+  GeometryObject& get_geometry_object(const geometry_object_index_t index) {
+    assert(index < geometry_objects.size());
+    return geometry_objects[index];
+  }
+
   const GeometryObject& get_geometry_object(const geometry_object_index_t index) const {
     assert(index < geometry_objects.size());
     return geometry_objects[index];
+  }
+
+  const GeometryObjectVector& get_geometry_objects() const {
+    return geometry_objects;
   }
 
   const Region& get_region(const region_index_t i) const {
@@ -441,12 +516,21 @@ public:
     return regions[i];
   }
 
+  const GeometryObject* find_geometry_object_by_name(const std::string& name) const {
+    for (const GeometryObject& o: geometry_objects) {
+      if (o.name == name) {
+        return &o;
+      }
+    }
+    return nullptr;
+  }
+
   Region& get_region(const region_index_t i) {
     assert(i < regions.size());
     return regions[i];
   }
 
-  const Region* get_region_by_name(const std::string& name) const {
+  const Region* find_region_by_name(const std::string& name) const {
     for (const Region& r: regions) {
       if (r.name == name) {
         return &r;
@@ -508,6 +592,42 @@ public:
     return walls_using_vertex_mapping[vertex_index];
   }
 
+  void add_child_of_directly_contained_counted_volume(
+      const geometry_object_id_t parent_id,
+      const geometry_object_id_t child_id) {
+    // both must be counted volumes
+    assert(get_geometry_object(parent_id).is_counted_volume);
+    assert(get_geometry_object(child_id).is_counted_volume);
+    directly_contained_counted_volume_objects[parent_id].insert(child_id);
+  }
+
+  void add_parent_that_encloses_counted_volume(
+      const geometry_object_id_t child_id,
+      const geometry_object_id_t parent_id) {
+    // both must be counted volumes
+    assert(get_geometry_object(parent_id).is_counted_volume);
+    assert(get_geometry_object(child_id).is_counted_volume);
+    enclosing_counted_volume_objects[child_id].insert(parent_id);
+  }
+
+  const uint_set<geometry_object_id_t>* get_enclosing_counted_volumes(
+      const geometry_object_id_t child_id) const {
+
+    if (child_id == COUNTED_VOLUME_ID_OUTSIDE_ALL) {
+      // special case for "outside"
+      return nullptr;
+    }
+    else {
+      auto it = enclosing_counted_volume_objects.find(child_id);
+      if (it != enclosing_counted_volume_objects.end()) {
+        return &it->second;
+      }
+      else {
+        return nullptr;
+      }
+    }
+  }
+
   // ---------------------------------- dynamic vertices ----------------------------------
   // add information about a change of a specific vertex
   // order of calls is important (at least for now)
@@ -530,14 +650,11 @@ private:
   }
 public:
   // ---------------------------------- other ----------------------------------
+  BNG::SpeciesContainer& get_all_species() { return bng_engine.get_all_species(); }
+  const BNG::SpeciesContainer& get_all_species() const { return bng_engine.get_all_species(); }
 
-  /*const SimulationConfig& get_world_constants() const {
-    return config;
-  }
-
-  SimulationStats& get_simulation_stats() const {
-    return stats;
-  }*/
+  BNG::RxnContainer& get_all_rxns() { return bng_engine.get_all_rxns(); }
+  const BNG::RxnContainer& get_all_rxns() const { return bng_engine.get_all_rxns(); }
 
   void dump();
 
@@ -581,19 +698,30 @@ private:
   // indexed by subpartition index, contains a set of wall indices (wall_index_t)
   std::vector< uint_set<wall_index_t> > walls_per_subpart;
 
+  // key is object id and its values are objects ids directly contained in it,
+  // defines a containment tree this way, used when placing a new molecule
+  CountedVolumesMap directly_contained_counted_volume_objects;
+
+  // key is object id and its values are objects ids that contain this volume
+  // used when determining when counting the molecules
+  CountedVolumesMap enclosing_counted_volume_objects;
+
   // ---------------------------------- dynamic vertices ----------------------------------
 private:
   std::vector<VertexMoveInfo> scheduled_vertex_moves;
 
   // ---------------------------------- shared simulation configuration -------------------
 public:
+  partition_id_t id;
+
   // all these reference an object owned by a single World instance
   // enclose into something?
   const SimulationConfig& config;
-  const ReactionsInfo& all_reactions;
-  const SpeciesInfo& all_species; // species_info? - species is both singular and plural...
+  BNG::BNGEngine& bng_engine;
   SimulationStats& stats;
 };
+
+typedef std::vector<Partition> PartitionVector;
 
 } // namespace mcell
 

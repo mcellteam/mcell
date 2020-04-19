@@ -1,0 +1,13 @@
+# FAIL
+# OUTPUT: error: A unidirectional rule must have exactly 1 rate, 2 rate(s) provided
+
+
+begin molecule types
+   A()
+   B()
+   C()
+end molecule types
+
+begin reaction rules
+  A() + B() -> C() 0.1, 0.2
+end reaction rules

@@ -41,6 +41,11 @@
 
 using namespace std;
 
+#ifdef COLLECT_SUBPARTS_LEGACY
+#include "collision_utils_legacy.inc"
+#endif
+
+
 namespace MCell {
 
 namespace CollisionUtil {
@@ -60,18 +65,9 @@ static Vec3 get_displacement_up_to_partition_boundary(
   assert(!p.in_this_partition(new_pos));
 #endif
 
-  // TODO: similar code is in collect_crossed_subparts, clean it up
-  // direction of the displacement
-  // TODO: get rid of the zero div check??
-
   Vec3 displacement_nonzero = displacement;
-  debug_guard_zero_div(displacement_nonzero);
+  guard_zero_div(displacement_nonzero);
   IVec3 dir_urb_direction = IVec3(glm::greaterThan(displacement_nonzero, Vec3(0)));
-
-  IVec3 dir_urb_addend;
-  dir_urb_addend.x = (dir_urb_direction.x == 0) ? -1 : 1;
-  dir_urb_addend.y = (dir_urb_direction.y == 0) ? -1 : 1;
-  dir_urb_addend.z = (dir_urb_direction.z == 0) ? -1 : 1;
 
   // position of edges in our direction
   Vec3 partition_edges =
@@ -79,8 +75,6 @@ static Vec3 get_displacement_up_to_partition_boundary(
       + Vec3(dir_urb_direction) * p.config.partition_edge_length;
 
   Vec3 diff = partition_edges - pos;
-
-  Vec3 displacement_rcp = float_t(1.0)/displacement_nonzero; // POSSIBLE ZERO DIV
 
   // time we hit a boundary
   float_t hit_time = 1;
@@ -107,7 +101,7 @@ static Vec3 get_displacement_up_to_partition_boundary(
     // time = (pos(time) - vm.v.pos) / displacement
     // =>
     // time_to_subpart_edge = (subpart_edge - vm.v.pos) / displacement_speed
-    Vec3 coll_times = diff * displacement_rcp;
+    Vec3 coll_times = diff / displacement_nonzero;
     assert(coll_times.x >= 0 && coll_times.y >= 0 && coll_times.z >= 0
       && "Subpartition 'edges' must be computed from direction, we cannot hit a subpart boundary that is behind us");
 
@@ -240,7 +234,7 @@ static inline void get_corner_points_for_subpart_colection(
   Thanks to Jetro Lauha of Fathammer in Helsinki, Finland for reporting this error.
 */
 
-static void __attribute__((always_inline)) raycast_with_endpoints(
+static void raycast_with_endpoints(
     const Partition& p, const Vec3& pt1, const Vec3& pt2,
     const uint pt_index /*only for debug*/, const bool collect_for_walls, /* wall subparts are collected for the internal ray */
     const IVec3& dir, const Vec3& abs_d_rcp, const Vec3& deltat,
@@ -249,13 +243,13 @@ static void __attribute__((always_inline)) raycast_with_endpoints(
 )
 {
   // FIXME: used lower case, these are not really contants...
-  const float_t CELL_SIDE = p.config.subpartition_edge_length;
-  const float_t CELL_SIZE_RCP = p.config.subpartition_edge_length_rcp;
+  const float_t cell_side = p.config.subpartition_edge_length;
+  const float_t cell_size_rcp = p.config.subpartition_edge_length_rcp;
 
   // computing subpart index using get_subpart_index_from_3d_indices every time is rather expensive
-  const int SUBPART_X_ADDEND = dir.x;
-  const int SUBPART_Y_ADDEND = dir.y * p.config.subpartitions_per_partition_dimension;
-  const int SUBPART_Z_ADDEND = dir.z * p.config.subpartitions_per_partition_dimension_squared;
+  const int subpart_x_addend = dir.x;
+  const int subpart_y_addend = dir.y * p.config.subpartitions_per_partition_dimension;
+  const int subpart_z_addend = dir.z * p.config.subpartitions_per_partition_dimension_squared;
 
   IVec3 indices;
   p.get_subpart_3d_indices(pt1, indices);
@@ -264,9 +258,10 @@ static void __attribute__((always_inline)) raycast_with_endpoints(
   IVec3 end_indices;
   p.get_subpart_3d_indices(pt2, end_indices);
 
+  // TODO: optimize when start and end are the same? check with benchmark
 
-  Vec3 min = floor3(pt1 * Vec3(CELL_SIZE_RCP)) * Vec3(CELL_SIDE);
-  Vec3 max = min + Vec3(CELL_SIDE);
+  Vec3 min = floor3(pt1 * Vec3(cell_size_rcp)) * Vec3(cell_side);
+  Vec3 max = min + Vec3(cell_side);
 
   Vec3 t;
   t.x = ((dir.x == -1) ? (pt1.x - min.x) : (max.x - pt1.x)) * abs_d_rcp.x;
@@ -274,11 +269,13 @@ static void __attribute__((always_inline)) raycast_with_endpoints(
   t.z = ((dir.z == -1) ? (pt1.z - min.z) : (max.z - pt1.z)) * abs_d_rcp.z;
 
 #ifdef DEBUG_SUBPARTITIONS
-  std::cout << "Point " << pt_index << " start subpart indices " << indices << "\n";
+  std::cout << "Point " << pt_index << ", start subpart indices " << indices << "\n";
 #endif
 
   do {
-    crossed_subparts_for_molecules.insert(subpart_index);
+    if (!collect_for_walls) {
+      crossed_subparts_for_molecules.insert(subpart_index);
+    }
     if (collect_for_walls) {
       crossed_subparts_for_walls.push_back(subpart_index);
     }
@@ -290,7 +287,7 @@ static void __attribute__((always_inline)) raycast_with_endpoints(
       }
       t.x += deltat.x;
       indices.x += dir.x;
-      subpart_index += SUBPART_X_ADDEND;
+      subpart_index += subpart_x_addend;
     }
     else if (t.y <= t.z)
     {
@@ -299,7 +296,7 @@ static void __attribute__((always_inline)) raycast_with_endpoints(
       }
       t.y += deltat.y;
       indices.y += dir.y;
-      subpart_index += SUBPART_Y_ADDEND;
+      subpart_index += subpart_y_addend;
     }
     else
     {
@@ -308,7 +305,7 @@ static void __attribute__((always_inline)) raycast_with_endpoints(
       }
       t.z += deltat.z;
       indices.z += dir.z;
-      subpart_index += SUBPART_Z_ADDEND;
+      subpart_index += subpart_z_addend;
     }
 
     #ifdef DEBUG_SUBPARTITIONS
@@ -321,29 +318,23 @@ static void __attribute__((always_inline)) raycast_with_endpoints(
   std::cout << "Point " << pt_index << ", last subpart indices: " << indices << "\n";
 #endif
 
-  // add final subpart
-  crossed_subparts_for_molecules.insert(subpart_index);
-  if (collect_for_walls) {
-    crossed_subparts_for_walls.push_back(subpart_index);
-  }
-
   // note: indices != end_indices at this point, this is ok (at least all tests pass)
 }
 
 
-static inline void /*__attribute__((always_inline))*/ collect_crossed_subparts(
+
+#ifndef COLLECT_SUBPARTS_LEGACY
+static inline void collect_crossed_subparts(
   const Partition& p,
   const Molecule& vm, // molecule that we are diffusing
   const Vec3& displacement,
   const float_t rx_radius,
   const float_t sp_edge_length,
-  const bool collect_for_walls,
   SubpartIndicesVector& crossed_subparts_for_walls, // crossed subparts considered for wall collision
   subpart_indices_set_t& crossed_subparts_for_molecules // crossed subparts considered for molecule collisions
 ) {
-  if (collect_for_walls) {
-    assert(crossed_subparts_for_walls.empty());
-  }
+  assert(p.in_this_partition(vm.v.pos));
+  assert(crossed_subparts_for_walls.empty());
   assert(crossed_subparts_for_molecules.empty());
 
   if (cmp_eq(displacement, 0)) {
@@ -364,13 +355,7 @@ static inline void /*__attribute__((always_inline))*/ collect_crossed_subparts(
   // However, when we are collecting walls, we want just the exct subpartitions and not neighbors.
   //
   small_vector<Vec3> start_positions;
-  if (collect_for_walls) {
-    start_positions.resize(NUM_CORNER_POINTS + 1);
-    start_positions[MOL_POS_POINT_INDEX] = vm.v.pos;
-  }
-  else {
-    start_positions.resize(NUM_CORNER_POINTS);
-  }
+  start_positions.resize(NUM_CORNER_POINTS + 1);
 
   uint num_points = start_positions.size();
 
@@ -385,10 +370,19 @@ static inline void /*__attribute__((always_inline))*/ collect_crossed_subparts(
   // move detection points a bit back
   small_vector<subpart_index_t> start_subpart_indices;
   for (uint i = 0; i < NUM_CORNER_POINTS; i++) {
-    if (i != MOL_POS_POINT_INDEX) {
-      start_positions[i] = start_positions[i] - displacement_of_radius_length;
+    Vec3 start_pos = start_positions[i] - displacement_of_radius_length;
+
+    if (!p.in_this_partition(start_pos)) {
+      // we got out of the partition, move the corner point just a little so that we still fit
+      // because we are sending negated displacement, we also get negated result
+      Vec3 new_displacement_neg = get_displacement_up_to_partition_boundary(p, start_positions[i], -displacement_of_radius_length);
+      start_pos = start_positions[i] + new_displacement_neg;
+      assert(p.in_this_partition(start_pos));
     }
+
+    start_positions[i] = start_pos;
   }
+  start_positions[MOL_POS_POINT_INDEX] = vm.v.pos;
 
 #ifdef DEBUG_SUBPARTITIONS
   std::cout << "Corrected corner points for subpart colection:\n"
@@ -421,9 +415,8 @@ static inline void /*__attribute__((always_inline))*/ collect_crossed_subparts(
 
     #ifdef DEBUG_SUBPARTITIONS
     DUMP_CONDITION4P(
-      std::cout << "Point " << i << ", dest pos: " << dest_pos << "\n";
-      std::cout << "Point " << i << ", start subpart indices: " << start_positions[i] << "\n";
-      std::cout << "Point " << i << ", dest  subpart indices: " << dest_positions[i] << "\n";
+      std::cout << "Point " << i << ", start pos: " << start_positions[i] << "\n";
+      std::cout << "Point " << i << ", dest  pos: " << dest_positions[i] << "\n";
     );
     #endif
   }
@@ -454,8 +447,20 @@ static inline void /*__attribute__((always_inline))*/ collect_crossed_subparts(
         crossed_subparts_for_walls, crossed_subparts_for_molecules
     );
   }
+
+  // first for walls might not be present either, should be the first item
+  assert(!crossed_subparts_for_walls.empty());
+  if (crossed_subparts_for_walls.front() != vm.v.subpart_index) {
+    crossed_subparts_for_walls.push_back(vm.v.subpart_index);
+  }
+
+  // some subparts can be missed when checking just the corner points
+  for (subpart_index_t index: crossed_subparts_for_walls) {
+    crossed_subparts_for_molecules.insert(index);
+  }
 }
 
+#endif // COLLECT_SUBPARTS_LEGACY
 
 // ---------------------------------- molecule collisions ----------------------------------
 
@@ -531,8 +536,12 @@ static void collide_mol_loop_body(
   Vec3 position;
   // collide_mol must be inlined because many things are computed all over there
   if (collide_mol(vm, remaining_displacement, colliding_vm, radius, time, position)) {
-    const RxnClass* rxn_class = p.all_reactions.get_specific_reaction_class(vm, colliding_vm);
-    assert(rxn_class != nullptr);
+
+    const BNG::RxnClass* rxn_class =
+        p.get_all_rxns().get_bimol_rxn_class(vm.species_id, colliding_vm.species_id);
+
+    assert(rxn_class != nullptr && "If a collision of two molecules was detected, there must be a reaction for them.");
+
     molecule_collisions.push_back(
         Collision(CollisionType::VOLMOL_VOLMOL, &p, vm.id, time, position, colliding_vm.id, rxn_class)
     );
@@ -572,7 +581,7 @@ static void jump_away_line(
   f.z = n.x * e.y - n.y * e.x;
 
   tiny = EPS * (MCell::abs_max_2vec(p, v) + 1.0) /
-         (k * max3d(glm::abs((glm_vec3_t)f)));
+         (k * max3(glm::abs((glm_vec3_t)f)));
   if ((rng_uint(&rng) & 1) == 0) {
     tiny = -tiny;
   }
@@ -762,7 +771,7 @@ static void collect_wall_collisions(
     Partition& p,
     const Molecule& vm, // molecule that we are diffusing, we are changing its pos  and possibly also subvolume
     const subpart_index_t subpart_index,
-    const wall_index_t previous_reflected_wall,
+    const wall_index_t last_hit_wall_index,
     rng_state& rng,
     // displacement can be changed in case we needed to 'REDO' the collision, also,
     // if there was a hit, is changed to the closest displacement
@@ -781,8 +790,9 @@ static void collect_wall_collisions(
   for (auto it = wall_indices.begin(); it != wall_indices.end(); it++) {
     wall_index_t wall_index = *it;
 
-    if (wall_index == previous_reflected_wall)
+    if (wall_index == last_hit_wall_index) {
       continue;
+    }
 
     const Wall& w = p.get_wall(wall_index);
     float_t collision_time;
@@ -849,6 +859,7 @@ static bool collide_wall_test(
   Vec3 tmp_move = move;
   CollisionType res;
 #ifndef NDEBUG
+  unused_rng_state.randcnt = 0;
   uint orig_randcnt = unused_rng_state.randcnt;
 #endif
   res = CollisionUtil::collide_wall(
@@ -859,6 +870,25 @@ static bool collide_wall_test(
   assert(orig_randcnt == unused_rng_state.randcnt && "collide_wall_test should not trigger usage of rng");
 #endif
 
+#ifdef DEBUG_COLLISIONS_WALL_EXTRA
+  Vec3 face_vert[VERTICES_IN_TRIANGLE];
+  face_vert[0] = p.get_geometry_vertex(face.vertex_indices[0]);
+  face_vert[1] = p.get_geometry_vertex(face.vertex_indices[1]);
+  face_vert[2] = p.get_geometry_vertex(face.vertex_indices[2]);
+
+  cout <<
+      "Testing wall collision: pos: " << pos << ", move: " << move <<
+      ", v1:" << face_vert[0] << ", v2:" << face_vert[0] << ", v3:" << face_vert[0] << "\n  result: " ;
+
+  switch (res) {
+    case CollisionType::WALL_MISS: cout << "MISS"; break;
+    case CollisionType::WALL_FRONT: cout << "FRONT"; break;
+    case CollisionType::WALL_BACK: cout << "BACK"; break;
+    case CollisionType::WALL_REDO: cout << "REDO"; break;
+    default: cout << "UNEXPECTED"; break;
+  }
+  cout << "\n";
+#endif
 
   switch (res) {
     case CollisionType::WALL_MISS:
@@ -1199,16 +1229,17 @@ static bool collide_moving_line_and_static_line_test(
     Expects that the region is an enclosed volume
 
 *************************************************************************/
-static bool is_point_inside_region(const Partition& p, const Vec3 pos, const Region& reg) {
+static bool is_point_inside_region(const Partition& p, const Vec3& pos, const Region& reg) {
 
   // cast ray along the whole partition
-  Vec3 move(0, 0, p.config.partition_edge_length);
+  Vec3 move(EPS, EPS, p.config.partition_edge_length);
 
   // and count intersects
   int num_hits = 0;
   for (const auto& wall_edges_pair: reg.walls_and_edges) {
 
     // check collision with each wall
+    // TODO LATER: optimize with subparts
     const Wall& w = p.get_wall(wall_edges_pair.first);
     bool collides = CollisionUtil::collide_wall_test(p, pos, w, move);
     if (collides) {
@@ -1220,7 +1251,72 @@ static bool is_point_inside_region(const Partition& p, const Vec3 pos, const Reg
   return num_hits % 2 == 1;
 }
 
-// ---------------------------------- reflections ----------------------------------
+// ---------------------------------- reflections and other wall interactions ----------------------------------
+
+static void update_counted_volume_id_when_crossing_wall(
+    const Partition& p,
+    const Wall& w,
+    const Collision& collision,
+    Molecule& vm
+) {
+  const GeometryObject& obj = p.get_geometry_object(w.object_id);
+  if (obj.is_counted_volume) {
+    // which direction?
+    if (collision.type == CollisionType::WALL_BACK) {
+      // going outside
+      assert(vm.v.counted_volume_id == obj.id);
+      vm.v.counted_volume_id = obj.counted_volume_id_outside;
+    }
+    else if (collision.type == CollisionType::WALL_FRONT) {
+      // going inside
+      assert(vm.v.counted_volume_id == obj.counted_volume_id_outside);
+      vm.v.counted_volume_id = obj.id;
+    }
+    else {
+      assert(false);
+    }
+  }
+}
+
+
+static void cross_transparent_wall(
+    const Partition& p,
+    const Collision& collision,
+    const Vec3& full_displacement, // whole displacement computed for this molecule
+    Molecule& vm, // moves vm to the reflection point
+    Vec3& remaining_displacement,
+    float_t& t_steps,
+    float_t& elapsed_molecule_time,
+    wall_index_t& last_hit_wall_index
+) {
+
+  const Wall& w = p.get_wall(collision.colliding_wall_index);
+
+  update_counted_volume_id_when_crossing_wall(p, w, collision, vm);
+
+#ifdef DEBUG_TRANSPARENT_SURFACES
+  std::cout << "Crossed a transparent wall, side: " << w.side << "\n";
+#endif
+
+  // ignore the collision time, it is a bit earlier and does not fit for multiple collisions in the
+  // same time step
+  float_t t_smash = collision.time;
+
+  remaining_displacement = remaining_displacement * Vec3(1.0 - t_smash);
+
+  // Update molecule location to the point of wall crossing
+  vm.v.pos = collision.pos;
+  vm.v.subpart_index = p.get_subpart_index(vm.v.pos);
+
+  elapsed_molecule_time += t_steps * t_smash;
+
+  t_steps *= (1.0 - t_smash);
+  if (t_steps < EPS) {
+    t_steps = EPS;
+  }
+
+  last_hit_wall_index = w.index;
+}
 
 /******************************************************************************
  *
@@ -1241,26 +1337,27 @@ static int reflect_or_periodic_bc(
     Molecule& vm, // moves vm to the reflection point
     Vec3& displacement,
     float_t& remaining_time_step, // same as t_steps
-    wall_index_t& reflected_wall_index
+    wall_index_t& last_hit_wall_index
 ) {
 
   const Wall& w = p.get_wall(collision.colliding_wall_index);
   wall_index_t reflect_w = collision.colliding_wall_index;
-  float_t reflect_t = collision.time;
+  float_t t_reflect = collision.time;
 
   /* Update molecule location to the point of reflection (originally in register_hits) */
   vm.v.pos = collision.pos;
+  vm.v.subpart_index = p.get_subpart_index(vm.v.pos);
 
   /* Reduce our remaining available time. */
-  remaining_time_step *= (1.0 - reflect_t);
+  remaining_time_step *= (1.0 - t_reflect);
 
-  reflected_wall_index = reflect_w;
+  last_hit_wall_index = reflect_w;
 
   float_t reflect_factor = -2.0 * glm::dot((glm_vec3_t)displacement, (glm_vec3_t)w.normal);
 
   // Set displacement for remainder of step length
   // No PBCs or non-traditional PBCs
-  displacement = (displacement + Vec3(reflect_factor) * w.normal) * Vec3(1.0 - reflect_t);
+  displacement = (displacement + Vec3(reflect_factor) * w.normal) * Vec3(1.0 - t_reflect);
 
   return 0;
 }

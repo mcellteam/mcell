@@ -1,0 +1,13 @@
+# FAIL
+# OUTPUT: error: Symbol 'a' was already defined.
+# OUTPUT: error: Symbol 'A' was already defined.
+
+begin parameters
+   a 5
+   a 6
+end parameters
+
+begin molecule types
+   A()
+   A()
+end molecule types

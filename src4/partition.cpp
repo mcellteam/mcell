@@ -167,8 +167,35 @@ void Partition::apply_vertex_moves() {
 }
 
 
+static void dump_counted_volumes_map(const std::string name, const CountedVolumesMap& map) {
+  cout << name << ": ";
+  if (map.empty()) {
+    cout << "empty\n";
+  }
+  else {
+    cout << "\n";
+  }
+
+  for (auto it: map) {
+    cout << "  " << it.first << " -> {";
+    it.second.dump();
+    cout << "}\n";
+  }
+}
+
 void Partition::dump() {
   GeometryObject::dump_array(*this, geometry_objects);
+
+  // dump
+  dump_counted_volumes_map(
+      "directly_contained_counted_volume_objects",
+      directly_contained_counted_volume_objects
+  );
+  dump_counted_volumes_map(
+      "enclosing_counted_volume_objects",
+      enclosing_counted_volume_objects
+  );
+
   Region::dump_array(regions);
 
   for (size_t i = 0; i < walls_per_subpart.size(); i++) {
@@ -182,5 +209,58 @@ void Partition::dump() {
     }
   }
 }
+
+
+geometry_object_id_t Partition::find_smallest_counted_volume_recursively(const GeometryObject& obj, const Vec3& pos) {
+
+  assert(obj.is_counted_volume);
+  auto it = directly_contained_counted_volume_objects.find(obj.id);
+  if (it == directly_contained_counted_volume_objects.end()) {
+    // there are no contained objects
+    return obj.id;
+  }
+
+  const uint_set<geometry_object_id_t>& subobject_ids = it->second;
+
+  for (geometry_object_id_t subobj_id: subobject_ids) {
+    assert(subobj_id != obj.id);
+    GeometryObject& subobj = get_geometry_object(subobj_id);
+    if (CountedVolumesUtil::is_point_inside_counted_volume(subobj, pos)) {
+      // the hierarchy must be a tree, so we directly find the path to the leaf of the object 'containment' tree
+      return find_smallest_counted_volume_recursively(subobj, pos);
+    }
+  }
+
+  // none of the contained objects contains point at 'pos'
+  return obj.id;
+}
+
+
+geometry_object_id_t Partition::determine_counted_volume_id(const Vec3& pos) {
+  // find the first object we are in
+  for (GeometryObject& obj: geometry_objects) {
+    if (obj.is_counted_volume && CountedVolumesUtil::is_point_inside_counted_volume(obj, pos)) {
+
+      // follow the containment graph to determine the smallest counted volume
+      geometry_object_id_t res = find_smallest_counted_volume_recursively(obj, pos);
+
+#ifdef DEBUG_COUNTED_VOLUMES
+      cout <<
+          "Counted volumes: assigned obj " << get_geometry_object(res).name << " (id:" << res << ")" <<
+          " for pos " << pos << "\n";
+#endif
+
+			return res;
+    }
+  }
+
+#ifdef DEBUG_COUNTED_VOLUMES
+      cout << "Counted volumes: assigned 'outside' for pos " << pos << "\n";
+#endif
+
+  // nothing found
+  return COUNTED_VOLUME_ID_OUTSIDE_ALL;
+}
+
 
 } // namespace mcell

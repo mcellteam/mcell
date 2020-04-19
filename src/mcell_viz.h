@@ -23,7 +23,7 @@
 
 #pragma once
 
-MCELL_STATUS mcell_create_viz_output(MCELL_STATE *state, char *filename,
+MCELL_STATUS mcell_create_viz_output(MCELL_STATE *state, const char *filename,
                                      struct mcell_species *mol_viz_list,
                                      long long start, long long end,
                                      long long step, bool ascii_output);

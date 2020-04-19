@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2019 by
+ * Copyright (C) 2020 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -21,30 +21,61 @@
  *
 ******************************************************************************/
 
-#include <iostream>
+#include "count_buffer.h"
 
-#include "species.h"
-
-using namespace std;
+#include "logging.h"
 
 namespace MCell {
 
-void Species::dump(const string ind) const {
-  cout << ind <<"species_id: \t\t" << species_id << " [uint16_t] \t\t/* Unique ID for this species */\n";
-  cout << ind <<"mcell_species_id: \t\t" << mcell3_species_id << " [uint] \t\t/* Unique ID for this species from mcell3 representation*/\n";
-  cout << ind <<"name: *\t\t" << name << " [string] \t\t/* Symbol table entry (name) */\n";
-  cout << ind <<"D: \t\t" << D << " [float_t] \t\t/* Diffusion constant */\n";
-  cout << ind <<"space_step: \t\t" << space_step << " [float_t] \t\t/* Characteristic step length */\n";
-  cout << ind <<"time_step: \t\t" << time_step << " [float_t] \t\t/* Minimum (maximum?) sensible timestep */\n";
+void CountItem::write(std::ostream& out) const {
+  out << time << " " << int_value << "\n";
 }
 
-void Species::dump_array(const vector<Species>& vec) {
-  cout << "Species array: " << (vec.empty() ? "EMPTY" : "") << "\n";
+void CountBuffer::flush() {
+  if (!fout.is_open()) {
+    open(true);
+  }
 
-  for (size_t i = 0; i < vec.size(); i++) {
-    cout << i << ":\n";
-    vec[i].dump("  ");
+  for (const auto& item: data) {
+    item.write(fout);
+  }
+  data.clear();
+}
+
+
+bool CountBuffer::open(bool error_is_fatal) {
+
+  if (::make_parent_dir(filename.c_str()) ) {
+    mcell_error("Failed to create parent directory for molecule count output.");
+  }
+
+  // create an empty file so that we know that nothing was stored
+  fout.open(filename);
+
+  if (!fout.is_open()) {
+    mcell_warn("Could not open file %s for writing.", filename.c_str());
+    if (error_is_fatal) {
+      mcell_error("Terminating due to error.");
+    }
+    return false;
+  }
+  return true;
+}
+
+
+void CountBuffer::flush_and_close() {
+
+  flush();
+
+  if (fout.is_open()) {
+    fout.close();
+  }
+  else {
+    bool ok = open(false);
+    if (ok) {
+      fout.close();
+    }
   }
 }
 
-} // namespace mcell
+} /* namespace MCell */

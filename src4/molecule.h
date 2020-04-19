@@ -24,7 +24,10 @@
 #ifndef SRC4_MOLECULE_H_
 #define SRC4_MOLECULE_H_
 
+#include "bng/bng.h"
+
 #include "defines.h"
+
 
 namespace MCell {
 
@@ -65,6 +68,7 @@ class Partition;
 
 
 enum molecule_flag_t {
+  // volume/surface information is only cached from BNG CplxInstance
   MOLECULE_FLAG_SURF = 1 << 0, // originally TYPE_SURF
   MOLECULE_FLAG_VOL = 1 << 1, // originally TYPE_VOL
 
@@ -76,31 +80,39 @@ enum molecule_flag_t {
 /**
  * Base class for all molecules.
  */
+// BNG: do we need more information from BNG or species suffices?
+// TODO: remove orientation -> get this info from species
 class Molecule {
 public:
   Molecule()
-    : id(MOLECULE_ID_INVALID), flags(0), unimol_rx_time(TIME_FOREVER), unimol_rx(nullptr), species_id(SPECIES_ID_INVALID) {
+    : id(MOLECULE_ID_INVALID), species_id(SPECIES_ID_INVALID), flags(0),
+      release_delay(TIME_INVALID), unimol_rx_time(TIME_FOREVER), unimol_rx(nullptr) {
   }
 
   Molecule(const Molecule& m) {
     *this = m;
   }
 
-  Molecule(const molecule_id_t id_, const species_id_t species_id_)
-    : id(id_), flags(0), unimol_rx_time(TIME_INVALID), unimol_rx(nullptr), species_id(species_id_)
-      /*subpart_index(SUBPART_INDEX_INVALID)*/ {
-  }
-
   // volume molecule
-  Molecule(const molecule_id_t id_, const species_id_t species_id_, const Vec3& pos_)
-    : id(id_), flags(MOLECULE_FLAG_VOL), unimol_rx_time(TIME_INVALID), unimol_rx(nullptr), species_id(species_id_) {
+  Molecule(
+      const molecule_id_t id_, const species_id_t species_id_,
+      const Vec3& pos_, const float_t release_delay_=0
+    )
+    : id(id_), species_id(species_id_), flags(MOLECULE_FLAG_VOL),
+      release_delay(release_delay_), unimol_rx_time(TIME_INVALID), unimol_rx(nullptr) {
     v.pos = pos_;
     v.subpart_index = SUBPART_INDEX_INVALID;
+    v.reactant_subpart_index = SUBPART_INDEX_INVALID;
+    v.counted_volume_id = COUNTED_VOLUME_ID_INVALID;
   }
 
   // surface molecule
-  Molecule(const molecule_id_t id_, const species_id_t species_id_, const Vec2& pos2d)
-    : id(id_), flags(MOLECULE_FLAG_SURF), unimol_rx_time(TIME_INVALID), unimol_rx(nullptr), species_id(species_id_) {
+  Molecule(
+      const molecule_id_t id_, const species_id_t species_id_,
+      const Vec2& pos2d, const float_t release_delay_=0
+    )
+    : id(id_), species_id(species_id_), flags(MOLECULE_FLAG_SURF),
+      release_delay(release_delay_), unimol_rx_time(TIME_INVALID), unimol_rx(nullptr) {
     s.pos = pos2d;
     //s.subpart_index = SUBPART_INDEX_INVALID;
     s.orientation = ORIENTATION_NONE;
@@ -113,12 +125,15 @@ public:
     id = m.id;
     flags = m.flags;
     species_id = m.species_id;
+    release_delay = m.release_delay;
     unimol_rx_time = m.unimol_rx_time;
     unimol_rx = m.unimol_rx;
 
     if (m.is_vol()) {
       v.pos = m.v.pos;
       v.subpart_index = m.v.subpart_index;
+      v.reactant_subpart_index = m.v.reactant_subpart_index;
+      v.counted_volume_id = m.v.counted_volume_id;
     }
     else if (m.is_surf()) {
       s.pos = m.s.pos;
@@ -130,11 +145,17 @@ public:
 
   // data is ordered to avoid alignment holes (for 64-bit floats)
   molecule_id_t id; // unique molecule id (for now it is unique per partition but should be world-wide unique)
+  species_id_t species_id;
   uint flags;
 
-  float_t unimol_rx_time;
+  // set when the molecule was released this iteration and the actual release time was delayed compared to the
+  // release event time
+  // is 0 when the molecule was released in a previous iteration or was released this iteration
+  // and diffusion can start right away
+  float_t release_delay;
 
-  const RxnClass* unimol_rx;
+  float_t unimol_rx_time;
+  const BNG::RxnClass* unimol_rx;
 
   // update assignment operator when modifying this
   union {
@@ -142,6 +163,10 @@ public:
     struct {
       Vec3 pos;
       subpart_index_t subpart_index;
+      // during diffusion the molecules' subpart index might change but the reactant_subpart_index
+      // stays the same until its moved in the Partition's volume_molecule_reactants_per_subpart[] array
+      subpart_index_t reactant_subpart_index;
+      geometry_object_id_t counted_volume_id;
     } v;
 
     // surface molecule data
@@ -154,8 +179,6 @@ public:
       tile_index_t grid_tile_index;
     } s;
   };
-
-  species_id_t species_id;
 
   bool has_flag(uint flag) const {
     assert(__builtin_popcount(flag) == 1);
@@ -188,8 +211,9 @@ public:
     return res;
   }
 
-
   bool is_defunct() const {
+    // TODO LATER: molecules with release_delay > 0 were actually not released yet,
+    // but is seems that mcell3 does not care, so let's keep it like this for now
     return (flags & MOLECULE_FLAG_DEFUNCT) != 0;
   }
 

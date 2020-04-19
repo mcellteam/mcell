@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2017 by
+ * Copyright (C) 2019-2020 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -51,7 +51,7 @@ namespace DiffusionUtil {
 // ---------------------------------- volume mol diffusion ----------------------------------
 
 // get displacement based on scale (related to diffusion constant) and gauss random number
-static void pick_vol_displacement(const Species& sp, const float_t scale, rng_state& rng, Vec3& displacement) {
+static void pick_vol_displacement(const BNG::Species& sp, const float_t scale, rng_state& rng, Vec3& displacement) {
 
   if (!sp.can_diffuse()) {
     displacement = Vec3(0);
@@ -66,7 +66,7 @@ static void pick_vol_displacement(const Species& sp, const float_t scale, rng_st
 
 // determine how far will our diffused molecule move
 static void compute_vol_displacement(
-    const Species& sp,
+    const BNG::Species& sp,
     const float_t max_time,
     rng_state& rng,
     Vec3& displacement,
@@ -144,7 +144,7 @@ static void pick_surf_displacement(Vec2& v, const float_t scale, rng_state& rng)
 
 
 static void compute_surf_displacement(
-    const Species& sp,
+    const BNG::Species& sp,
     const float_t scale,
     rng_state& rng,
     Vec2& v
@@ -288,8 +288,9 @@ static void tiny_diffuse_3D(
   rng_state ignored_rng;
   ray_trace_vol(
         p, ignored_rng, vm, previous_reflected_wall, ignored_displacement,
-        collisions, new_pos, new_subpart_index
+        collisions
   );
+  assert(vm.v.subpart_index == p.get_subpart_index(vm.v.pos));
 
   // sort collisions by time
   sort_collisions_by_time(collisions);
@@ -311,13 +312,13 @@ static void tiny_diffuse_3D(
 
 
 static void reflect_absorb_check_wall(
-    const Partition& p,
+    Partition& p,
     const Molecule& sm,
     const Wall& wall,
     bool& reflect_now,
     bool& absorb_now
 ) {
-  RxnClassesVector matching_rxns;
+  BNG::RxnClassesVector matching_rxns;
   RxUtil::trigger_intersect(
       p, sm, wall,
       matching_rxns
@@ -325,13 +326,13 @@ static void reflect_absorb_check_wall(
 
   /* check if this wall has any reflective or absorptive region borders for
    * this molecule (aka special reactions) */
-  for (const RxnClass* rxn: matching_rxns) {
+  for (const BNG::RxnClass* rxn: matching_rxns) {
     if (rxn->is_reflect()) {
       /* check for REFLECTIVE border */
       reflect_now = true;
       break;
     }
-    else if (rxn->is_absorb()) {
+    else if (rxn->is_absorb_region_border()) {
       /* check for ABSORPTIVE border */
       absorb_now = 1;
       break;
@@ -357,7 +358,7 @@ reflect_absorb_inside_out:
        otherwise. hd_head and this_wall_edge_region_border are updated.
 *************************************************************************/
 static void reflect_absorb_inside_out(
-    const Partition& p,
+    Partition& p,
     const Molecule& sm,
     const Wall& this_wall,
     const edge_index_t edge_index_that_was_hit,
@@ -389,7 +390,7 @@ reflect_absorb_outside_in:
        otherwise. hd_head is updated.
 *************************************************************************/
 static void reflect_absorb_outside_in(
-    const Partition& p,
+    Partition& p,
     const Molecule& sm,
     const Wall& target_wall,
     const Wall& this_wall,

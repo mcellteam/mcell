@@ -108,14 +108,15 @@ void VizOutputEvent::compute_where_and_norm(
     const Partition& p, const Molecule& m,
     Vec3& where, Vec3& norm
 ) {
-  const Species& species = world->all_species.get(m.species_id);
+  const BNG::Species& species = world->get_all_species().get(m.species_id);
 
-  if ((species.flags & NOT_FREE) == 0) {
+  // TODO: replace with new flags
+  if (species.is_vol()) {
     // neither surface nor on grid
     where = m.v.pos;
     norm = Vec3(0);
   }
-  else if ((species.flags & ON_GRID) != 0) {
+  else if (species.is_surf()) {
     const Wall& wall = p.get_wall(m.s.wall_index);
     const Vec3& wall_vert0 = p.get_geometry_vertex(wall.vertex_indices[0]);
     where = GeometryUtil::uv2xyz(m.s.pos, wall, wall_vert0);
@@ -142,13 +143,16 @@ void VizOutputEvent::output_ascii_molecules() {
       if (m.is_defunct()) {
         continue;
       }
+      if (species_ids_to_visualize.count(m.species_id) == 0) {
+        continue;
+      }
 
 
       Vec3 where;
       Vec3 norm;
       compute_where_and_norm(p, m, where, norm);
 
-      const Species& species = world->all_species.get(m.species_id);
+      const BNG::Species& species = world->get_all_species().get(m.species_id);
 
       glm::dvec3 dwhere = where;
       glm::dvec3 dnorm = norm;
@@ -176,7 +180,7 @@ void VizOutputEvent::output_cellblender_molecules() {
   float_t length_unit = world->config.length_unit;
 
   // sort all molecules by species
-  uint species_count = world->all_species.get_count();
+  uint species_count = world->get_all_species().get_count();
 
   // FIXME: rather change to partition and molecule indices
   typedef pair<const Partition*, const Molecule*> partition_molecule_ptr_pair_t;
@@ -186,6 +190,9 @@ void VizOutputEvent::output_cellblender_molecules() {
   for (Partition& p: world->get_partitions()) {
     for (const Molecule& m: p.get_molecules()) {
       if (m.is_defunct()) {
+        continue;
+      }
+      if (species_ids_to_visualize.count(m.species_id) == 0) {
         continue;
       }
       volume_molecules_by_species[m.species_id].push_back(partition_molecule_ptr_pair_t(&p, &m));
@@ -198,7 +205,7 @@ void VizOutputEvent::output_cellblender_molecules() {
   fwrite(&cellbin_version, sizeof(cellbin_version), 1, custom_file);
 
   /* Write all the molecules whether EXTERNAL_SPECIES or not (for now) */
-  for (species_id_t species_idx = 0; species_idx < world->all_species.get_count(); species_idx++) {
+  for (species_id_t species_idx = 0; species_idx < world->get_all_species().get_count(); species_idx++) {
     // count of molecules for this species
     vector<partition_molecule_ptr_pair_t>& species_molecules = volume_molecules_by_species[species_idx];
     if (species_molecules.empty()) {
@@ -206,7 +213,7 @@ void VizOutputEvent::output_cellblender_molecules() {
     }
 
     /* Write species name: */
-    const Species& species = world->all_species.get(species_idx);
+    const BNG::Species& species = world->get_all_species().get(species_idx);
     string mol_name = species.name;
     byte name_len = mol_name.length();
      fwrite(&name_len, sizeof(byte), 1, custom_file);

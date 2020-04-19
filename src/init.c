@@ -902,47 +902,49 @@ int init_reaction_data(struct volume *world) {
       }
     }
 
-    for (set = obp->data_set_head; set != NULL; set = set->next) {
-      if (set->file_flags == FILE_SUBSTITUTE) {
-        if (world->chkpt_seq_num == 1) {
-          FILE *file = fopen(set->outfile_name, "w");
-          if (file == NULL) {
-            mcell_perror_nodie(errno, "Failed to open reaction data output "
-                                      "file '%s' for writing",
-                               set->outfile_name);
-            return 1;
-          }
+    if (!world->use_mcell4) { // do not clean mcell3 output files in mcell4 mode
+      for (set = obp->data_set_head; set != NULL; set = set->next) {
+        if (set->file_flags == FILE_SUBSTITUTE) {
+          if (world->chkpt_seq_num == 1) {
+            FILE *file = fopen(set->outfile_name, "w");
+            if (file == NULL) {
+              mcell_perror_nodie(errno, "Failed to open reaction data output "
+                                        "file '%s' for writing",
+                                 set->outfile_name);
+              return 1;
+            }
 
-          fclose(file);
-        } else if (obp->timer_type == OUTPUT_BY_ITERATION_LIST) {
-          if (obp->time_now == NULL)
-            continue;
-          if (truncate_output_file(set->outfile_name, obp->t)) {
-            mcell_error_nodie("Failed to prepare reaction data output file "
-                              "'%s' to receive output.",
-                              set->outfile_name);
-            return 1;
-          }
-        } else if (obp->timer_type == OUTPUT_BY_TIME_LIST) {
-          if (obp->time_now == NULL)
-            continue;
-          if (truncate_output_file(set->outfile_name,
-                                   obp->t * world->time_unit)) {
-            mcell_error_nodie("Failed to prepare reaction data output file "
-                              "'%s' to receive output.",
-                              set->outfile_name);
-            return 1;
-          }
-        } else {
-          /* we need to truncate up until the start of the new checkpoint
-            * simulation plus a single TIMESTEP */
-          double startTime =
-              world->chkpt_start_time_seconds + world->time_unit;
-          if (truncate_output_file(set->outfile_name, startTime)) {
-            mcell_error_nodie("Failed to prepare reaction data output file "
-                              "'%s' to receive output.",
-                              set->outfile_name);
-            return 1;
+            fclose(file);
+          } else if (obp->timer_type == OUTPUT_BY_ITERATION_LIST) {
+            if (obp->time_now == NULL)
+              continue;
+            if (truncate_output_file(set->outfile_name, obp->t)) {
+              mcell_error_nodie("Failed to prepare reaction data output file "
+                                "'%s' to receive output.",
+                                set->outfile_name);
+              return 1;
+            }
+          } else if (obp->timer_type == OUTPUT_BY_TIME_LIST) {
+            if (obp->time_now == NULL)
+              continue;
+            if (truncate_output_file(set->outfile_name,
+                                     obp->t * world->time_unit)) {
+              mcell_error_nodie("Failed to prepare reaction data output file "
+                                "'%s' to receive output.",
+                                set->outfile_name);
+              return 1;
+            }
+          } else {
+            /* we need to truncate up until the start of the new checkpoint
+              * simulation plus a single TIMESTEP */
+            double startTime =
+                world->chkpt_start_time_seconds + world->time_unit;
+            if (truncate_output_file(set->outfile_name, startTime)) {
+              mcell_error_nodie("Failed to prepare reaction data output file "
+                                "'%s' to receive output.",
+                                set->outfile_name);
+              return 1;
+            }
           }
         }
       }
@@ -965,7 +967,7 @@ int init_reaction_data(struct volume *world) {
  *
  ***********************************************************************/
 int init_timers(struct volume *world) {
-  struct rusage init_time = { .ru_utime = { 0, 0 }, .ru_stime = { 0, 0 } };
+  struct rusage init_time;
   getrusage(RUSAGE_SELF, &init_time);
 
   world->u_init_time.tv_sec = init_time.ru_utime.tv_sec;
@@ -3250,23 +3252,23 @@ static struct void_list *rel_expr_grab_obj(struct release_evaluator *root,
 
   if (root->left != NULL) {
     if (root->op & REXP_LEFT_REGION) {
-      vl = CHECKED_MEM_GET(voidmem, "temporary list for region release");
+      vl = (struct void_list *)CHECKED_MEM_GET(voidmem, "temporary list for region release");
       if (vl == NULL)
         return NULL;
       vl->data = ((struct region *)(root->left))->parent;
       vl->next = NULL;
     } else
-      vl = rel_expr_grab_obj(root->left, voidmem);
+      vl = (struct void_list *)rel_expr_grab_obj((struct release_evaluator *)root->left, voidmem);
   }
   if (root->right != NULL) {
     if (root->op & REXP_RIGHT_REGION) {
-      vr = CHECKED_MEM_GET(voidmem, "temporary list for region release");
+      vr = (struct void_list *)CHECKED_MEM_GET(voidmem, "temporary list for region release");
       if (vr == NULL)
         return NULL;
       vr->data = ((struct region *)(root->right))->parent;
       vr->next = NULL;
     } else
-      vr = rel_expr_grab_obj(root->right, voidmem);
+      vr = (struct void_list *)rel_expr_grab_obj((struct release_evaluator *)root->right, voidmem);
   }
 
   if (vl == NULL) {
@@ -3362,7 +3364,7 @@ static int eval_rel_region_expr(struct release_evaluator *expr, int n,
       if (result[pos] == NULL)
         return 1;
     } else {
-      if (eval_rel_region_expr(expr->left, n, objs, result))
+      if (eval_rel_region_expr((struct release_evaluator *)expr->left, n, objs, result))
         return 1;
     }
 
@@ -3399,7 +3401,7 @@ static int eval_rel_region_expr(struct release_evaluator *expr, int n,
       for (int i = 0; i < n; i++)
         res2[i] = NULL;
 
-      if (eval_rel_region_expr(expr->right, n, objs, res2))
+      if (eval_rel_region_expr((struct release_evaluator *)expr->right, n, objs, res2))
         return 1;
 
       for (int i = 0; i < n; i++) {
@@ -3591,7 +3593,7 @@ static int eval_rel_region_bbox(struct release_evaluator *expr,
       }
 
     } else {
-      if (eval_rel_region_bbox(expr->left, llf, urb))
+      if (eval_rel_region_bbox((struct release_evaluator *)expr->left, llf, urb))
         return 1;
     }
 
@@ -3630,7 +3632,7 @@ static int eval_rel_region_bbox(struct release_evaluator *expr,
         urb2.y = r->bbox[1].y;
         urb2.z = r->bbox[1].z;
       } else {
-        if (eval_rel_region_bbox(expr->right, &llf2, &urb2))
+        if (eval_rel_region_bbox((struct release_evaluator *)expr->right, &llf2, &urb2))
           return 1;
       }
 
@@ -3703,7 +3705,7 @@ output_regrel_eval_tree:
       release expression
   Out: no return value.  The tree is printed to the file.
 ***************************************************************************/
-static void output_relreg_eval_tree(FILE *f, char *prefix, char cA, char cB,
+static void output_relreg_eval_tree(FILE *f, const char *prefix, char cA, char cB,
                                     struct release_evaluator *expr) {
   size_t l = strlen(prefix);
   char my_op;
@@ -3724,7 +3726,7 @@ static void output_relreg_eval_tree(FILE *f, char *prefix, char cA, char cB,
       fprintf(f, "%s >%s\n", prefix,
               ((struct region *)(expr->left))->sym->name);
     } else {
-      output_relreg_eval_tree(f, prefixA, ' ', '|', expr->left);
+      output_relreg_eval_tree(f, prefixA, ' ', '|', (struct release_evaluator *)expr->left);
     }
 
     my_op = '?';
@@ -3741,7 +3743,7 @@ static void output_relreg_eval_tree(FILE *f, char *prefix, char cA, char cB,
       fprintf(f, "%s >%s\n", prefix,
               ((struct region *)(expr->left))->sym->name);
     } else {
-      output_relreg_eval_tree(f, prefixA, '|', ' ', expr->right);
+      output_relreg_eval_tree(f, prefixA, '|', ' ', (struct release_evaluator *)expr->right);
     }
   }
 }
@@ -6607,7 +6609,7 @@ get_species_by_name:
   In: name of species
   Out: Species object or NULL if we can't find one.
 ***************************************************************************/
-struct species *get_species_by_name(char *name, int n_species,
+struct species *get_species_by_name(const char *name, int n_species,
                                     struct species **species_list) {
   for (int i = 0; i < n_species; i++) {
     struct species *sp = species_list[i];

@@ -31,7 +31,6 @@
 #include "base_event.h"
 #include "partition.h"
 #include "collision_structs.h"
-#include "reaction.h"
 
 #define TEST 1
 
@@ -40,14 +39,21 @@ namespace MCell {
 class World;
 class Partition;
 class Molecule;
-class Species;
 
 
 enum class RayTraceState {
+  // TODO: use UpperCase
   UNDEFINED,
   HIT_SUBPARTITION,
   RAY_TRACE_HIT_WALL,
   FINISHED
+};
+
+enum class WallRxnResult {
+  Invalid,
+  Transparent,
+  Reflect,
+  Destroyed
 };
 
 
@@ -63,6 +69,71 @@ public:
 
 typedef small_vector<wall_index_t> wall_indices_t;
 
+
+/**
+ * Used as a pair molecule id, remaining timestep for molecules newly created in diffusion.
+ * Using name action instead of event because events are handled by scheduler and are ordered by time.
+ * These actions are simply processes in a queue (FIFO) manner.
+ *
+ * Used in diffuse_react _event_t and in partition_t.
+ */
+class DiffuseOrUnimolRxnAction {
+public:
+  enum class Type {
+    DIFFUSE,
+    UNIMOL_REACT
+  };
+
+  // DIFFUSE action
+  DiffuseOrUnimolRxnAction(
+      const DiffuseOrUnimolRxnAction::Type type_,
+      const molecule_id_t id_,
+      const float_t scheduled_time_,
+      const WallTileIndexPair& where_created_this_iteration_)
+    :
+      id(id_),
+      scheduled_time(scheduled_time_),
+      type(type_),
+      unimol_rx(nullptr),
+      where_created_this_iteration(where_created_this_iteration_) {
+
+    assert(scheduled_time >= 0.0);
+    assert(type == Type::DIFFUSE);
+    // position where the molecule was created may be invalid when it was not a result of surface reaction
+  }
+
+  // UNIMOL_REACT action
+  DiffuseOrUnimolRxnAction(
+      const DiffuseOrUnimolRxnAction::Type type_,
+      const molecule_id_t id_,
+      const float_t scheduled_time_,
+      const BNG::RxnClass* unimol_rx_)
+    :
+      id(id_),
+      scheduled_time(scheduled_time_),
+      type(type_),
+      unimol_rx(unimol_rx_) {
+    assert(scheduled_time >= 0.0);
+    assert(type == Type::UNIMOL_REACT);
+    assert(unimol_rx != nullptr);
+  }
+
+  // defined because of usage in calendar_t
+  const DiffuseOrUnimolRxnAction& operator->() const {
+     return *this;
+  }
+
+  molecule_id_t id;
+  float_t scheduled_time; // this is the scheduled time
+  Type type;
+
+  // when type is UNIMOL_REACT
+  const BNG::RxnClass* unimol_rx;
+
+  // when type is DIFFUSE
+  // used to avoid rebinding for surf+vol->surf+vol reactions
+  WallTileIndexPair where_created_this_iteration;
+};
 
 /**
  * Diffuse all molecules with a given time step.
@@ -125,8 +196,19 @@ private:
       const Collision& collision,
       const float_t remaining_time_step,
       const float_t r_rate_factor,
-      const float_t current_molecule_time,
-      WallTileIndexPair& where_created_this_iteration
+      WallTileIndexPair& where_created_this_iteration,
+      wall_index_t& last_hit_wall_index,
+      Vec3& remaining_displacement,
+      float_t& t_steps,
+      float_t& elapsed_molecule_time
+  );
+
+  WallRxnResult collide_and_react_with_walls(
+      Partition& p,
+      Collision& collision,
+      const float_t r_rate_factor,
+      const float_t elapsed_molecule_time,
+      const float_t t_steps
   );
 
   // ---------------------------------- surface molecules ----------------------------------
@@ -140,7 +222,7 @@ private:
 
   wall_index_t ray_trace_surf(
       Partition& p,
-      const Species& species,
+      const BNG::Species& species,
       Molecule& sm,
       Vec2& remaining_displacement,
       Vec2& new_pos
@@ -160,30 +242,38 @@ private:
       const Molecule* reacA, const bool keep_reacA,
       const Molecule* reacB, const bool keep_reacB,
       const Molecule* surf_reac,
-      const Rxn* rxn,
+      const BNG::RxnRule* rxn,
       small_vector<GridPos>& assigned_surf_product_positions
   );
 
   int outcome_bimolecular(
       Partition& p,
       const Collision& collision,
-      int path,
-      float_t remaining_time_step
+      const int path,
+      const float_t remaining_time_step
   );
 
-	// returns true if molecule urvived
+  int outcome_intersect(
+      Partition& p,
+      const BNG::RxnClass* rxn_class,
+      const rxn_index_t rxn_index,
+      Collision& collision,
+      const float_t time
+  );
+
+	// returns true if molecule survived
   bool outcome_unimolecular(
       Partition& p,
       Molecule& vm,
       const float_t scheduled_time,
-      const Rxn* unimol_rx
+      const BNG::RxnRule* unimol_rx
   );
 
   int outcome_products_random(
       Partition& p,
       const Collision& collision,
       const float_t remaining_time_step,
-      const reaction_index_t reaction_index,
+      const rxn_index_t reaction_index,
       bool& keep_reacA,
       bool& keep_reacB
   );
@@ -198,7 +288,7 @@ private:
       Partition& p,
       const molecule_id_t vm_id,
       const float_t scheduled_time,
-      const RxnClass* unimol_rx
+      const BNG::RxnClass* unimol_rx
   );
 };
 
@@ -210,9 +300,7 @@ RayTraceState ray_trace_vol(
     Molecule& vm, // molecule that we are diffusing, we are changing its pos  and possibly also subvolume
     const wall_index_t previous_reflected_wall, // is WALL_INDEX_INVALID when our molecule did not replect from anything this iddfusion step yet
     Vec3& remaining_displacement, // in/out - recomputed if there was a reflection
-    collision_vector_t& molecule_collisions, // possible reactions in this part of way marching, ordered by time
-    Vec3& new_position,
-    subpart_index_t& new_subpartition_index
+    collision_vector_t& molecule_collisions // possible reactions in this part of way marching, ordered by time
 );
 
 void sort_collisions_by_time(collision_vector_t& molecule_collisions);

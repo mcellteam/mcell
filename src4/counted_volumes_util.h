@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2019 by
+ * Copyright (C) 2020 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -21,50 +21,23 @@
  *
 ******************************************************************************/
 
-// FIXME: rename - this class won't contain just constants
-
-#ifndef SRC4_SPECIES_INFO_H_
-#define SRC4_SPECIES_INFO_H_
-
-#include "defines.h"
-#include "species.h"
-#include "molecule.h"
-#include "reaction.h"
+#ifndef SRC4_COUNTED_VOLUME_UTIL_H_
+#define SRC4_COUNTED_VOLUME_UTIL_H_
 
 namespace MCell {
 
-/**
- * Owns information on reactions and species,
- * mostly accessed as constant data.
- */
-class SpeciesInfo {
-public:
-  void add(const Species& new_species) {
-    assert(new_species.species_id == species.size());
-    species.push_back(new_species);
-  }
+class World;
+class GeometryObject;
 
-  const Species& get(species_id_t id) const {
-    assert(id < species.size());
-    return species[id];
-  }
+namespace CountedVolumesUtil {
 
-  uint get_count() const {
-    return species.size();
-  }
+// return true if counted volumes were correctly set up
+bool initialize_counted_volumes(World* world);
 
-  const std::vector<Species>& get_species_vector() const {
-    return species;
-  }
+bool is_point_inside_counted_volume(GeometryObject& obj, const Vec3& point);
 
-  void dump() {
-    Species::dump_array(species);
-  }
-
-private:
-  std::vector<Species> species;
 };
 
 } // namespace MCell
 
-#endif // SRC4_SPECIES_INFO_H_
+#endif // SRC4_COUNTED_VOLUME_UTIL_H_

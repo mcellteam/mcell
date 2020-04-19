@@ -37,13 +37,48 @@ class Grid;
 enum class ReleaseShape {
   UNDEFINED = -1,  /* Not specified */
   SPHERICAL,       /* Volume enclosed by a sphere */
-  // SHAPE_CUBIC,           /* Volume enclosed by a cube */ (might be supported, needs to be tested)
-  // SHAPE_ELLIPTIC,        /* Volume enclosed by an ellipsoid */ (might be supported, needs to be tested)
-  // SHAPE_RECTANGULAR,     /* Volume enclosed by a rect. solid */ (might be supported, needs to be tested)
+  // CUBIC,           /* Volume enclosed by a cube */ (might be supported, needs to be tested)
+  // ELLIPTIC,        /* Volume enclosed by an ellipsoid */ (might be supported, needs to be tested)
+  // RECTANGULAR,     /* Volume enclosed by a rect. solid */ (might be supported, needs to be tested)
   SPHERICAL_SHELL, /* Surface of a sphere */ // not tested yet
   REGION,          /* Inside/on the surface of an arbitrary region */
-  // SHAPE_LIST             /* Individiaul mol. placement by list */
+  // LIST             /* Individiaul mol. placement by list */
 };
+
+enum class ReleaseNumberMethod {
+  Invalid,
+  ConstNum,
+  GaussNum,
+  VolNum,
+  ConcNum,
+  DensityNum
+};
+
+enum class RegionExprOperator {
+  Invalid,
+  Union,
+  Intersection,
+  Subtraction,
+  Leaf
+};
+
+
+class RegionExprNode {
+public:
+  RegionExprNode()
+    : op(RegionExprOperator::Invalid), left(nullptr), right(nullptr) {
+  }
+
+  RegionExprOperator op;
+
+  std::string region_name; // name of the region into which we should release the molecules
+
+  RegionExprNode* left;
+  RegionExprNode* right;
+
+  void dump(); // does not print any newlines
+};
+
 
 /**
  * Release molecules according to the settings.
@@ -54,21 +89,41 @@ public:
     BaseEvent(EVENT_TYPE_INDEX_RELEASE),
     release_site_name(NAME_INVALID),
     species_id(SPECIES_ID_INVALID),
-    release_number(0),
+    actual_release_time(TIME_INVALID),
+    release_number_method(ReleaseNumberMethod::Invalid),
+    release_number(UINT_INVALID),
+    concentration(FLT_INVALID),
     orientation(ORIENTATION_NONE),
     release_shape(ReleaseShape::UNDEFINED),
+    region_expr_root(nullptr),
     world(world_) {
   }
-  virtual ~ReleaseEvent() {}
+  virtual ~ReleaseEvent();
 
-  virtual void step();
-  virtual void dump(const std::string indent);
+  // TODO: change other events virtual function decls to override
+  void step() override;
+  void dump(const std::string indent) override;
+
+  // release events must be sorted by the actual release time as well
+  bool needs_secondary_ordering() override {
+    return true;
+  }
+
+  float_t get_secondary_ordering_value() override {
+    assert(actual_release_time != TIME_INVALID);
+    return actual_release_time;
+  }
 
 public:
   std::string release_site_name; // name of releaser site from which was this event created
 
   species_id_t species_id;
+
+  float_t actual_release_time;
+
+  ReleaseNumberMethod release_number_method; // specifies what does the release_number mean
   uint release_number; // number of molecules to release
+  float_t concentration;
 
   orientation_t orientation;
 
@@ -82,8 +137,17 @@ public:
   // for surface molecule releases
   std::vector<CummAreaPWallIndexPair> cum_area_and_pwall_index_pairs;
 
+
+  // constructor and container for all region expr nodes
+  RegionExprNode* create_new_region_expr_node_leaf(const std::string region_name);
+  RegionExprNode* create_new_region_expr_node_op(const RegionExprOperator op, RegionExprNode* left, RegionExprNode* right);
+  std::vector<RegionExprNode*> all_region_expr_nodes;
+
+  // only when release_shape is SHAPE_REGION
+  RegionExprNode* region_expr_root;
+
   // for volume molecule releases into a region
-  std::string region_name; // name of the region into which we should release the
+
   Vec3 region_llf; // note: this is fully specified by the region above, maybe remove in the future
   Vec3 region_urb; // note: this is fully specified by the region above as well
 
@@ -106,6 +170,14 @@ private:
   // for volume molecule releases
   void release_ellipsoid_or_rectcuboid(uint computed_release_number);
 
+  float_t get_release_delay_time() const {
+    if (cmp_eq(actual_release_time, event_time)) {
+      return 0; // same as event time
+    }
+    else {
+      return actual_release_time - event_time;
+    }
+  }
 };
 
 } // namespace mcell

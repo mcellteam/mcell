@@ -51,6 +51,7 @@ public:
 
   bool convert(volume* s);
 
+private:
   bool convert_simulation_setup(volume* s);
 
 
@@ -65,12 +66,14 @@ public:
   bool convert_geometry_objects(volume* s);
 
   void create_diffusion_events();
-  bool convert_species_and_create_diffusion_events(volume* s);
+  bool convert_species(volume* s);
   bool convert_single_reaction(const rxn *rx);
   bool convert_reactions(volume* s);
   bool convert_release_events(volume* s);
   bool convert_viz_output_events(volume* s);
+  bool convert_mol_count_events(volume* s);
 
+public:
   // contained world object
   World* world;
 
@@ -78,6 +81,7 @@ private:
   species_id_t get_mcell4_species_id(u_int mcell3_id) {
     auto it = mcell3_species_id_map.find(mcell3_id);
     assert(it != mcell3_species_id_map.end());
+    assert(it->second != SPECIES_ID_INVALID);
     return it->second;
   }
 

@@ -37,8 +37,10 @@ typedef int event_type_index_t;
 // The 'holes' are there on purpose for ordering of external events
 const event_type_index_t EVENT_TYPE_INDEX_INVALID = -1;
 const event_type_index_t EVENT_TYPE_INDEX_RELEASE = 200;
-const event_type_index_t EVENT_TYPE_INDEX_VIZ_OUTPUT = 300;     // first visualization output is done after release
-//const event_type_index_t EVENT_TYPE_INDEX_END_SIMULATION = 400; // we terminate simulation as soon as we hit the time -> removed
+// first counting and visualization output is done after release
+const event_type_index_t EVENT_TYPE_INDEX_MOL_COUNT = 290;
+// viz_output is special in the way that simulation is terminated herein the last iteration
+const event_type_index_t EVENT_TYPE_INDEX_VIZ_OUTPUT = 300;
 const event_type_index_t EVENT_TYPE_INDEX_DIFFUSE_REACT = 500;  // this event spans the whole time step
 const event_type_index_t EVENT_TYPE_INDEX_DEFRAGMENTATION = 900;
 
@@ -56,6 +58,12 @@ public:
   virtual ~BaseEvent() {};
   virtual void step() = 0;
   virtual void dump(const std::string indent);
+
+  // some events such as release events have their event time set for
+  // the beginning of a timestep but internally they need to be ordered
+  // also according to another value such as actual release time
+  virtual bool needs_secondary_ordering() { return false; }
+  virtual float_t get_secondary_ordering_value() { return 0; }
 
   // time when this object;s step() method will be callled
   float_t event_time;

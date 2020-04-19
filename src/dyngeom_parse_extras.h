@@ -32,8 +32,8 @@ struct dyngeom_parse_vars {
 
 #include "mcell_objects.h"
 
-int parse_dg(struct dyngeom_parse_vars *dg_parse, char *dynamic_geometry_filename);
-int parse_dg_init(struct dyngeom_parse_vars *dg_parse, char *dynamic_geometry_filename, struct volume *state);
+int parse_dg(struct dyngeom_parse_vars *dg_parse, const char *dynamic_geometry_filename);
+int parse_dg_init(struct dyngeom_parse_vars *dg_parse, const char *dynamic_geometry_filename, struct volume *state);
 
 void setup_root_obj_inst(struct dyngeom_parse_vars *dg_parse_vars, struct volume *state);
 struct sym_entry *dg_start_object(
@@ -49,11 +49,11 @@ void dg_finish_object(struct dyngeom_parse_vars *dg_parse_vars);
 struct region *dg_create_region(
     struct sym_table_head *reg_sym_table,
     struct geom_object *objp,
-    char *name);
+    const char *name);
 struct region *dg_make_new_region(
     struct sym_table_head *reg_sym_table,
-    char *obj_name,
-    char *region_last_name);
+    const char *obj_name,
+    const char *region_last_name);
 int dg_copy_object_regions(
     struct dyngeom_parse_vars *dg_parse_vars,
     struct geom_object *dst_obj,

@@ -33,22 +33,21 @@
 #include <set>
 #include <map>
 
+#include "../libs/bng/rxn_container.h"
+#include "bng/bng.h"
+
 #include "partition.h"
 #include "scheduler.h"
-#include "species.h"
 #include "geometry.h"
 #include "callback_info.h"
-#include "reaction.h"
-#include "reactions_info.h"
+#include "count_buffer.h"
+#include "counted_volumes_util.h"
+
 
 namespace MCell {
 
 
 class World {
-private:
-  void init_fpu();
-  void create_defragmentation_events();
-
 public:
   World();
   void init_simulation();
@@ -70,21 +69,21 @@ public:
   }
 
   // -------------- partition manipulation methods --------------
-  partition_index_t get_partition_index(const Vec3& pos) {
+  partition_id_t get_partition_index(const Vec3& pos) {
     // for now a slow approach, later some hashing/memoization might be needed
-    for (partition_index_t i = 0; i < partitions.size(); i++) {
+    for (partition_id_t i = 0; i < partitions.size(); i++) {
       if (partitions[i].in_this_partition(pos)) {
         return i;
       }
     }
-    return PARTITION_INDEX_INVALID;
+    return PARTITION_ID_INVALID;
   }
 
-  partition_index_t get_or_add_partition_index(const Vec3& pos) {
+  partition_id_t get_or_add_partition_index(const Vec3& pos) {
 
-    partition_index_t res = get_partition_index(pos);
+    partition_id_t res = get_partition_index(pos);
     // not found - add a new partition
-    if (res == PARTITION_INDEX_INVALID) {
+    if (res == PARTITION_ID_INVALID) {
       res = add_partition(pos);
     }
 
@@ -92,24 +91,29 @@ public:
   }
 
   // add a partition in a predefined 'lattice' that contains point pos
-  partition_index_t add_partition(const Vec3& pos) {
+  partition_id_t add_partition(const Vec3& pos) {
     assert(config.partition_edge_length != 0);
-    assert(get_partition_index(pos) == PARTITION_INDEX_INVALID && "Partition must not exist");
+    assert(get_partition_index(pos) == PARTITION_ID_INVALID && "Partition must not exist");
 
     Vec3 origin =
         floor_to_multiple(pos, config.partition_edge_length)
         - Vec3(config.partition_edge_length/2);
 
-    partitions.push_back(Partition(origin, config, all_reactions, all_species, stats));
+    partitions.push_back(Partition(partitions.size(), origin, config, bng_engine, stats));
     return partitions.size() - 1;
   }
 
-  Partition& get_partition(partition_index_t i) {
+  Partition& get_partition(partition_id_t i) {
     assert(i < partitions.size());
     return partitions[i];
   }
 
-  std::vector<Partition>& get_partitions() {
+  const Partition& get_partition(partition_id_t i) const {
+    assert(i < partitions.size());
+    return partitions[i];
+  }
+
+  PartitionVector& get_partitions() {
       return partitions;
   }
 
@@ -138,28 +142,51 @@ public:
     return wall_hit_callback;
   }
 
+  // ---------------------- other ----------------------
+  BNG::SpeciesContainer& get_all_species() { return bng_engine.get_all_species(); }
+  const BNG::SpeciesContainer& get_all_species() const { return bng_engine.get_all_species(); }
+
+  BNG::RxnContainer& get_all_rxns() { return bng_engine.get_all_rxns(); }
+  const BNG::RxnContainer& get_all_rxns() const { return bng_engine.get_all_rxns(); }
+
+  count_buffer_id_t create_count_buffer(const std::string filename, const size_t buffer_size) {
+    count_buffer_id_t id = count_buffers.size();
+    count_buffers.push_back(CountBuffer(filename, buffer_size));
+    return id;
+  }
+
+  CountBuffer& get_count_buffer(const count_buffer_id_t id) {
+    assert(id < count_buffers.size());
+    return count_buffers[id];
+  }
+
+
 private:
-  std::vector<Partition> partitions;
-
-public:
-  Scheduler scheduler;
-
-  uint64_t iterations; // number of iterations to simulate - move to Sim config
-  uint seed_seq; // initial seed passed to mcell as argument
-
+  void init_fpu();
+  void create_defragmentation_events();
+  void init_counted_volumes();
 
 public:
   // single instance for the whole mcell simulator,
   // used as constants during simulation
   SimulationConfig config;
-  ReactionsInfo all_reactions;
-  SpeciesInfo all_species;
+
+  BNG::BNGEngine bng_engine;
+
   SimulationStats stats;
 
+  Scheduler scheduler;
+
+  uint64_t iterations; // number of iterations to simulate - move to Sim config
+  uint seed_seq; // initial seed passed to mcell as argument
 
   rng_state rng; // single state for the random number generator
 
 private:
+  PartitionVector partitions;
+
+  CountBufferVector count_buffers;
+
   // global ID counters
   wall_id_t next_wall_id;
   geometry_object_id_t next_geometry_object_id;
@@ -180,6 +207,7 @@ private:
 
 public:
   // NOTE: only a temporary solution of callbacks for now
+
   // callbacks
   wall_hit_callback_func wall_hit_callback;
   // clientdata hold information on what Python function we should call

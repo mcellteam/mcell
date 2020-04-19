@@ -399,7 +399,7 @@ struct vector3* reflect_periodic_2D(
         continue;
       }
 
-      struct vector3 *hit_xyz = malloc(sizeof(*hit_xyz));
+      struct vector3 *hit_xyz = (struct vector3 *)malloc(sizeof(*hit_xyz));
       double t = 0.0;
       int i = collide_wall(
           &updated_xyz, &delta_xyz, wl->this_wall, &t, hit_xyz, 0, state->rng,
@@ -4295,7 +4295,6 @@ int collide_and_react_with_surf_mol(struct volume* world, struct collision* smas
 
   int k = -1;
   if ((smash->what & COLLIDE_MASK) == COLLIDE_FRONT) {
-    ASSERT_FOR_MCELL4(false);
     k = 1;
   }
 
@@ -4359,7 +4358,6 @@ int collide_and_react_with_surf_mol(struct volume* world, struct collision* smas
           k, sm->orient, m->t + t_steps * smash->t, &(smash->loc), loc);
 
         if (l == RX_FLIP) {
-	        ASSERT_FOR_MCELL4(false);
           if ((m->flags & COUNT_ME) != 0 && (spec->flags & COUNT_SOME_MASK) != 0) {
             /* Count as far up as we can unambiguously */
             int destroy_flag = 0;
@@ -4601,6 +4599,11 @@ int collide_and_react_with_walls(struct volume* world, struct collision* smash,
         *loc_certain = &(ttv->loc);
       }
     }
+
+#ifdef DEBUG_TRANSPARENT_SURFACES
+  std::cout << "Crossed a transparent wall, side: " << ((wall*)smash->target)->side << "\n";
+#endif
+
     return 0; /* Ignore this wall and keep going */
   } else if (inertness < inert_to_all) {
     /* Collisions with the surfaces declared REFLECTIVE are treated similar to

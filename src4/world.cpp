@@ -38,7 +38,8 @@ const double USEC_IN_SEC = 1000000.0;
 namespace MCell {
 
 World::World()
-  : iterations(0),
+  : bng_engine(config),
+    iterations(0),
     seed_seq(0),
     next_wall_id(0),
     next_geometry_object_id(0),
@@ -49,8 +50,16 @@ World::World()
     wall_hit_callback(nullptr),
     wall_hit_callback_clientdata(nullptr)
 {
-  config.partition_edge_length = PARTITION_EDGE_LENGTH_DEFAULT;
+  config.partition_edge_length = FLT_INVALID;
   config.subpartitions_per_partition_dimension = SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT;
+
+  // although the same thing is called in init_simulation, not reseting it causes weird valdrind reports on
+  // uninitialized variable
+  reset_rusage(&sim_start_time);
+
+#ifdef DEBUG_REACTIONS
+  config.debug_reactions = true;
+#endif
 }
 
 
@@ -100,22 +109,35 @@ static double tosecs(timeval& t) {
 
 
 
+void World::init_counted_volumes() {
+  assert(partitions.size() == 1);
+
+  bool ok = CountedVolumesUtil::initialize_counted_volumes(this);
+  if (!ok) {
+    mcell_error("Processing of counted volumes failed, terminating.");
+  }
+}
+
 
 void World::init_simulation() {
   assert(!simulation_initialized && "init_simulation must be called just once");
 
-  if (all_species.get_count() == 0) {
+  if (get_all_species().get_count() == 0) {
     mcell_log("Error: there must be at lease one species!");
     exit(1);
   }
 
-  all_reactions.init(all_species);
+  // TODO: what do I need for initialization?
   config.init();
   stats.reset();
 
   init_fpu();
 
-  cout << "Partitions contain " <<  config.subpartitions_per_partition_dimension << "^3 subvolumes.";
+  init_counted_volumes();
+
+  cout <<
+      "Partition contains " <<  config.subpartitions_per_partition_dimension << "^3 subpartitions, " <<
+      "subpartition size is " << config.subpartition_edge_length * config.length_unit << " microns.\n";
   assert(partitions.size() == 1 && "Initial partition must have been created, only 1 is allowed for now");
 
   // create defragmentation events
@@ -128,6 +150,7 @@ void World::init_simulation() {
   previous_progress_report_time = {0, 0};
 
   rusage sim_start_time;
+  reset_rusage(&sim_start_time);
   getrusage(RUSAGE_SELF, &sim_start_time);
 
   // iteration counter to report progress
@@ -223,8 +246,14 @@ void World::end_simulation() {
 
   stats.dump();
 
+  // flush and close count buffers
+  for (CountBuffer& b: count_buffers) {
+    b.flush_and_close();
+  }
+
   // report final time
   rusage run_time;
+  reset_rusage(&run_time);
   getrusage(RUSAGE_SELF, &run_time);
   cout << "Simulation CPU time = "
     << tosecs(run_time.ru_utime) - tosecs(sim_start_time.ru_utime) <<  "(user) and "
@@ -256,8 +285,8 @@ void World::run_simulation(const bool dump_initial_state) {
 void World::dump() {
   stats.dump();
 
-  all_species.dump();
-  all_reactions.dump();
+  get_all_species().dump(bng_engine.get_data());
+  get_all_rxns().dump();
 
   // partitions
   for (Partition& p: partitions) {

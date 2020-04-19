@@ -37,6 +37,7 @@
 
 #include "dump_state.h"
 
+// when enabled, mcell3 produces identical result to the mcell master branch
 //#define MCELL3_IDENTICAL
 
 #ifndef MCELL3_IDENTICAL
@@ -45,6 +46,7 @@
 #define MCELL3_SORTED_VIZ_OUTPUT
 #define MCELL3_SORTED_WALLS_FOR_COLLISION
 #define MCELL3_SORTED_MOLS_ON_RUN_TIMESTEP  // sort molecules in schedule helper according to ID before a new timestep begins
+#define MCELL3_NEXT_BARRIER_IS_THE_NEXT_TIMESTEP // do not diffuse more than until the end of the timestep
 #define ASSERT_FOR_MCELL4(...) assert(__VA_ARGS__)
 
 #else
@@ -53,16 +55,26 @@
 
 #endif
 
+//#define COLLECT_SUBPARTS_LEGACY
+
 //#define DUMP_ALWAYS
 //#define DUMP_NEVER
 
-
 #if (!defined(NDEBUG) || defined(DUMP_ALWAYS)) && !defined(DUMP_NEVER)
+
+#define FROM_ITERATION 0
+#define TO_ITERATION 9
+
+#if 1
+#define DEBUG_DIFFUSION
+#define DEBUG_COLLISIONS
+#define DEBUG_REACTIONS
+#endif
 
 //#define DEBUG_WALL_COLLISIONS
 
-#define DEBUG_DYNAMIC_GEOMETRY
-#define DEBUG_DYNAMIC_GEOMETRY_MCELL4_ONLY
+//#define DEBUG_DYNAMIC_GEOMETRY
+//#define DEBUG_DYNAMIC_GEOMETRY_MCELL4_ONLY
 //#define DEBUG_DYNAMIC_GEOMETRY_COLLISION_DETECTIONS
 
 //#define DEBUG_CLOSEST_INTERIOR_POINT
@@ -73,18 +85,15 @@
 
 //#define DEBUG_DEFRAGMENTATION
 
+//#define DEBUG_RELEASES // cannot be conditioned by iterations
 
 //#define DEBUG_RNG_CALLS // cannot be conditioned by iterations
 
 // does not generate the same dump as mcell3
 //#define DEBUG_SUBPARTITIONS
 
-#if 1
-#define DEBUG_DIFFUSION
-#define DEBUG_COLLISIONS
-#define DEBUG_REACTIONS
-#endif
-
+//#define DEBUG_COUNTED_VOLUMES
+//#define DEBUG_TRANSPARENT_SURFACES
 
 //#define DEBUG_TIMING
 
@@ -96,9 +105,6 @@
 
 //#define DEBUG_GRIDS
 
-#define FROM_ITERATION 0
-
-#define TO_ITERATION 20
 
 #define DUMP_CONDITION3(code) do { if ((int)world->current_iterations >= (int)FROM_ITERATION && (int)world->current_iterations <= (int)TO_ITERATION) { code; } } while (0)
 #define DUMP_CONDITION4(code) do { if ((int)world->get_current_iteration() >= (int)FROM_ITERATION && (int)world->get_current_iteration() <= (int)TO_ITERATION) { code; } } while (0)

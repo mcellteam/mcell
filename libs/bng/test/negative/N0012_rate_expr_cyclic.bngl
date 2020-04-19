@@ -1,0 +1,17 @@
+# FAIL
+# OUTPUT: error: Cyclic dependence while evaluating an expression, id 'a' was already used.
+
+begin parameters
+   a b
+   b a
+end parameters
+
+begin molecule types
+   A()
+   B()
+   C()
+end molecule types
+
+begin reaction rules
+  A() + B() -> C() a
+end reaction rules

@@ -1569,7 +1569,7 @@ wall_to_vol:
 ***************************************************************************/
 struct wall_list *wall_to_vol(struct wall *w, struct subvolume *sv) {
   struct wall_list *wl =
-      CHECKED_MEM_GET_NODIE(sv->local_storage->list, "wall list");
+      (struct wall_list *)CHECKED_MEM_GET_NODIE(sv->local_storage->list, "wall list");
   if (wl == NULL)
     return NULL;
 
@@ -1589,7 +1589,7 @@ localize_wall:
 ***************************************************************************/
 struct wall *localize_wall(struct wall *w, struct storage *stor) {
   struct wall *ww;
-  ww = CHECKED_MEM_GET_NODIE(stor->face, "wall");
+  ww = (struct wall *)CHECKED_MEM_GET_NODIE(stor->face, "wall");
   if (ww == NULL)
     return NULL;
 
@@ -1962,7 +1962,7 @@ static int vacuum_from_regions(struct volume *world,
           smp = w->grid->sm_list[n_tile]->sm;
           if (smp != NULL) {
             if (smp->properties == sm->properties) {
-              p = CHECKED_MEM_GET_NODIE(mh, "release region helper data");
+              p = (struct reg_rel_helper_data *)CHECKED_MEM_GET_NODIE(mh, "release region helper data");
               if (p == NULL)
                 return 1;
 
@@ -2130,7 +2130,7 @@ int release_onto_regions(struct volume *world, struct release_site_obj *rso,
           for (unsigned int n_tile = 0; n_tile < w->grid->n_tiles; n_tile++) {
             if (w->grid->sm_list[n_tile] == NULL || w->grid->sm_list[n_tile]->sm == NULL) {
               struct reg_rel_helper_data *new_rrd =
-                  CHECKED_MEM_GET_NODIE(mh, "release region helper data");
+                  (struct reg_rel_helper_data *)CHECKED_MEM_GET_NODIE(mh, "release region helper data");
               if (new_rrd == NULL)
                 return 1;
 

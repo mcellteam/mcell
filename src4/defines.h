@@ -25,7 +25,6 @@
 #define SRC4_DEFINES_H_
 
 #ifndef NDEBUG
-// TODO: probably make this enabled only for Eclipse, we want the debug build to behave exactly as the release build
 #define INDEXER_WA // Don't know yet how to convince Eclipse to correctly index boost containers
 #endif
 
@@ -48,6 +47,8 @@
 #include <boost/container/small_vector.hpp>
 #include <boost/container/flat_set.hpp>
 #endif
+
+#include "../libs/bng/defines_shared.h"
 
 #include "mcell_structs.h"
 #include "debug_config.h"
@@ -132,29 +133,26 @@ const float_t SCHEDULER_COMPARISON_EPS = 1e-10;
 // ---------------------------------- configurable constants----------------------------------
 
 const uint DEFRAGMENTATION_PERIODICITY = 500;
-const float_t PARTITION_EDGE_LENGTH_DEFAULT = 10 * 100 /*100 = 1/length unit*/; // large for now because we have just one partition
+const float_t PARTITION_EDGE_LENGTH_DEFAULT_UM = 10; // large for now because we have just one partition
+const float_t PARTITION_EDGE_EXTRA_MARGIN_UM = 0.01;
 const float_t SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT = 1;
 
 
 // ---------------------------------- fixed constants and specific typedefs -------------------
 const float_t POS_INVALID = FLT_MAX; // cannot be NAN because we cannot do any comparison with NANs
-const float_t FLT_INVALID = FLT_MAX;
+const float_t LENGTH_INVALID = FLT_MAX;
 
 const float_t TIME_INVALID = -256;
 const float_t TIME_FOREVER = FLT_MAX; // this max is sufficient for both float and double
 const float_t TIME_SIMULATION_START = 0;
 
-const float_t DIFFUSION_CONSTANT_ZER0 = 0;
 const float_t SQRT2 = 1.41421356238;
-const float_t RX_RADIUS_MULTIPLIER = 1.2; // TEMPORARY - we should figure out why some collisions with subparts are missed..., but maybe, it won't have big perf impact...
+const float_t RX_RADIUS_MULTIPLIER = 1.3; // TEMPORARY - we should figure out why some collisions with subparts are missed..., but maybe it won't have big perf impact...
 
 const uint INT_INVALID = INT32_MAX;
 const uint ID_INVALID = UINT32_MAX; // general invalid index, should not be used when a definition for a specific type is available
+const uint ID_INVALID2 = UINT32_MAX - 1; // second general invalid index, might be used for special values
 const uint INDEX_INVALID = UINT32_MAX; // general invalid index, should not be used when a definition for a specific type is available
-
-// unique species id
-typedef uint species_id_t;
-const species_id_t SPECIES_ID_INVALID = ID_INVALID;
 
 // molecule id is a unique identifier of a molecule,
 // no 2 molecules may have the same ID in the course of a simulation (at least for now)
@@ -167,18 +165,12 @@ typedef uint molecule_index_t;
 const molecule_index_t MOLECULE_INDEX_INVALID = INDEX_INVALID;
 
 // for now, this is the partition that contains point 0,0,0 in its center
-typedef uint partition_index_t;
-const partition_index_t PARTITION_INDEX_INITIAL = 0;
-const partition_index_t PARTITION_INDEX_INVALID = INDEX_INVALID;
+typedef uint partition_id_t;
+const partition_id_t PARTITION_ID_INITIAL = 0;
+const partition_id_t PARTITION_ID_INVALID = INDEX_INVALID;
 
 typedef uint subpart_index_t;
 const subpart_index_t SUBPART_INDEX_INVALID = INDEX_INVALID;
-
-// index of reaction in a reaction class pathway (local for reaction)
-// -1 is used to signalize that no reaction was selected (i < RX_LEAST_VALID_PATHWAY)
-// TODO: change to using and use INVALID?
-typedef int reaction_index_t;
-//const reaction_index_t REACTION_INDEX_INVALID = INDEX_INVALID;
 
 // time step is used in partition to make sets of molecules that can be diffused with
 // different periodicity
@@ -209,6 +201,11 @@ const edge_index_t EDGE_INDEX_WITHIN_WALL = 3; // used in find_edge_point
 const edge_index_t EDGE_INDEX_CANNOT_TELL = 4;
 const edge_index_t EDGE_INDEX_INVALID = INDEX_INVALID;
 
+
+typedef uint count_buffer_id_t; // index of a tile in a grid
+const count_buffer_id_t COUNT_BUFFER_ID_INVALID = INDEX_INVALID;
+
+
 /* contains information about the neighbors of the tile */
 class WallTileIndexPair {
 public:
@@ -238,77 +235,29 @@ const geometry_object_index_t GEOMETRY_OBJECT_INDEX_INVALID = INDEX_INVALID;
 typedef uint geometry_object_id_t; // world-unique unique geometry object id
 const geometry_object_id_t GEOMETRY_OBJECT_ID_INVALID = ID_INVALID;
 
-typedef int32_t orientation_t;
-const orientation_t ORIENTATION_DOWN = -1;
-const orientation_t ORIENTATION_NONE = 0;
-const orientation_t ORIENTATION_UP = 1;
+// volume outside of all objects, i.e. WORLD-all objects
+const geometry_object_id_t COUNTED_VOLUME_ID_INVALID = ID_INVALID;
+const geometry_object_id_t COUNTED_VOLUME_ID_OUTSIDE_ALL = ID_INVALID2;
 
-typedef std::pair<partition_index_t, wall_index_t> PartitionWallIndexPair;
-typedef std::pair<partition_index_t, region_index_t> PartitionRegionIndexPair;
-typedef std::pair<partition_index_t, vertex_index_t> PartitionVertexIndexPair;
+typedef std::pair<partition_id_t, wall_index_t> PartitionWallIndexPair;
+typedef std::pair<partition_id_t, region_index_t> PartitionRegionIndexPair;
+typedef std::pair<partition_id_t, vertex_index_t> PartitionVertexIndexPair;
 
 typedef std::pair<float_t, PartitionWallIndexPair> CummAreaPWallIndexPair;
 
-
-class RxnClass;
+typedef std::map<geometry_object_id_t, uint_set<geometry_object_id_t>> CountedVolumesMap;
 
 const int BASE_CONTAINER_ALLOC = 16;
 
 #ifndef INDEXER_WA
-template<class T, class Allocator=boost::container::new_allocator<T>>
-  using small_vector = boost::container::small_vector<T, BASE_CONTAINER_ALLOC, Allocator>;
 
 typedef boost::container::small_vector<subpart_index_t, BASE_CONTAINER_ALLOC>  SubpartIndicesVector;
-typedef boost::container::small_vector<const RxnClass*, BASE_CONTAINER_ALLOC>  RxnClassesVector;
 
-template<class T, typename Compare = std::less<T>, class Allocator=boost::container::new_allocator<T>>
-  using base_flat_set = boost::container::flat_set<T, Compare, Allocator>;
 #else
-template<typename T, typename _Alloc = std::allocator<T>  >
-  using small_vector = std::vector<T, _Alloc>;
 
 typedef std::vector<subpart_index_t> SubpartIndicesVector;
-typedef std::vector<const RxnClass*> RxnClassesVector;
 
-template<typename T, typename _Compare = std::less<T>, typename _Alloc = std::allocator<T>  >
-  using base_flat_set = std::set<T, _Compare, _Alloc>;
 #endif
-
-/**
- * Template class used to hold sets of ids or indices of molecules or other items,
- * extended to check for unique insertions and checked removals.
- */
-template<typename T>
-class uint_set: public base_flat_set<T> {
-public:
-  // insert with check that the item is not there yet
-  // for insertions without this check use 'insert'
-  void insert_unique(const T id_or_index) {
-    assert(this->count(id_or_index) == 0);
-    this->insert(id_or_index);
-  }
-
-  // erase with check that the item is present
-  // for insertions without this check use 'erase'
-  void erase_existing(const T id_or_index) {
-    assert(this->count(id_or_index) == 1);
-    this->erase(id_or_index);
-  }
-
-  void dump(const std::string comment = "") const {
-    std::cout << comment << ": ";
-    int cnt = 0;
-    for (const T& idx: *this) {
-      std::cout << idx << ", ";
-
-      if (cnt %20 == 0 && cnt != 0) {
-        std::cout << "\n";
-      }
-      cnt++;
-    }
-    std::cout << "\n";
-  }
-};
 
 // ---------------------------------- vector types ----------------------------------
 
@@ -404,11 +353,11 @@ static inline float_t fabs_f(const float_t x) {
 
 
 static inline float_t floor_to_multiple(const float_t val, float_t multiple) {
-  return (float_t)((int)(val / multiple)) * multiple;
+  return (float_t)((int)((val + EPS)/ multiple)) * multiple;
 }
 
 static inline Vec3 floor_to_multiple(const Vec3& val, float_t multiple) {
-  return (Vec3)((glm::ivec3)(val / multiple)) * multiple;
+  return (Vec3)((glm::ivec3)((val + EPS)/ multiple)) * multiple;
 }
 
 static inline bool cmp_eq(const float_t a, const float_t b, const float_t eps) {
@@ -452,8 +401,20 @@ static inline uint powu(const uint a, const uint n) {
   return res;
 }
 
-static inline float_t max3d(const Vec3& v) {
+static inline uint pow_f(const uint a, const uint n) {
+  float_t res = a;
+  for (uint i = 1; i < n; i++) {
+    res *= a;
+  }
+  return res;
+}
+
+static inline float_t max3(const Vec3& v) {
   return glm::compMax((glm_vec3_t)v);
+}
+
+static inline int max3_i(const IVec3& v) {
+  return glm::compMax(v);
 }
 
 static inline Vec3 abs3(const Vec3& v) {
@@ -470,7 +431,7 @@ static inline float_t abs_max_2vec(const Vec3& v1, const Vec3& v2) {
   glm_vec3_t v1abs = abs3(v1);
   glm_vec3_t v2abs = abs3(v2);
   Vec3 vmax = glm::max(v1abs, v2abs);
-  return MCell::max3d(vmax);
+  return MCell::max3(vmax);
 }
 
 static inline float_t determinant2(const Vec2& v1, const Vec2& v2) {
@@ -648,20 +609,8 @@ static inline bool distinguishable_vec3(const Vec3& a, const Vec3& b, float_t ep
   return (c * eps < cc);
 }
 
-// FIXME: use these functions also for NDEBUG versions
-static inline void debug_guard_zero_div(float_t& val) {
-#ifndef NDEBUG
-  // if we divide by such a small number, result is practically the same as
-  // if we would return inf during division
-  if (val == 0) {
-    val = FLT_MIN;
-  }
-#endif
-}
 
-
-static inline void debug_guard_zero_div(Vec3& val) {
-#ifndef NDEBUG
+static inline void guard_zero_div(Vec3& val) {
   if (val.x == 0) {
     val.x = FLT_MIN;
   }
@@ -671,7 +620,6 @@ static inline void debug_guard_zero_div(Vec3& val) {
   if (val.z == 0) {
     val.z = FLT_MIN;
   }
-#endif
 }
 
 /*
@@ -728,15 +676,13 @@ private:
  * Constant data set in initialization useful for all classes, single object is owned by world
  */
 // TODO: cleanup all unnecessary argument passing, e.g. in diffuse_react_event.cpp
-class SimulationConfig {
+class SimulationConfig: public BNG::BNGConfig {
 public:
   // configuration
-  float_t time_unit;
-  float_t length_unit;
-  float_t rx_radius_3d;
+
   float_t vacancy_search_dist2;
 
-  float_t partition_edge_length;
+  float_t partition_edge_length; // TODO: rename to side
   uint subpartitions_per_partition_dimension;
   uint subpartitions_per_partition_dimension_squared;
   float_t subpartition_edge_length; // == partition_edge_length / subpartitions_per_partition_dimension
@@ -754,6 +700,8 @@ public:
 
 private:
   void init_subpartition_edge_length() {
+    assert(subpartitions_per_partition_dimension % 2 == 0
+        && "Implementation of raycast_with_endpoints requires that central subparts are aligned with the axes and not shifted");
     if (partition_edge_length != 0) {
       subpartition_edge_length = partition_edge_length / (float_t)subpartitions_per_partition_dimension;
       subpartition_edge_length_rcp = 1.0/subpartition_edge_length;

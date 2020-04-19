@@ -637,7 +637,7 @@ int check_reaction_output_file(struct output_set *os) {
 
   switch (os->file_flags) {
   case FILE_OVERWRITE:
-    f = fopen(name, "w");
+    f = fopen(name, "w"); // TODO: this might clear mcell3 file when mcell4 mode is used but there is no easy way how to pass information on the mode
     if (!f) {
       switch (errno) {
       case EACCES:
@@ -769,7 +769,7 @@ int write_reaction_output(struct volume *world, struct output_set *set) {
 
   FILE *fp;
   struct output_column *column;
-  char *mode;
+  const char *mode;
   u_int n_output;
   u_int i;
 
@@ -1053,13 +1053,13 @@ struct output_expression *dupl_oexpr_tree(struct output_expression *root,
   memcpy(sprout, root, sizeof(struct output_expression));
   if (root->left != NULL &&
       (root->expr_flags & OEXPR_LEFT_MASK) == OEXPR_LEFT_OEXPR) {
-    sprout->left = dupl_oexpr_tree(root->left, oexpr_mem);
+    sprout->left = dupl_oexpr_tree((struct output_expression *)root->left, oexpr_mem);
     if (sprout->left == NULL)
       return NULL;
   }
   if (root->right != NULL &&
       (root->expr_flags & OEXPR_RIGHT_MASK) == OEXPR_RIGHT_OEXPR) {
-    sprout->right = dupl_oexpr_tree(root->right, oexpr_mem);
+    sprout->right = dupl_oexpr_tree((struct output_expression *)root->right, oexpr_mem);
     if (sprout->right == NULL)
       return NULL;
   }

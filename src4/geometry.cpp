@@ -255,20 +255,26 @@ void Edge::debug_check_values_are_uptodate(const Partition& p) {
     // not initialized
     return;
   }
+#ifndef NDEBUG
   Vec2 orig_translate = translate;
+#endif
   float_t orig_cos_theta = cos_theta;
   float_t orig_sin_theta = sin_theta;
+#ifdef DEBUG_EDGE_INITIALIZATION
   dump();
+#endif
   reinit_edge_constants(p);
+#ifdef DEBUG_EDGE_INITIALIZATION
   dump();
+#endif
   assert(cmp_eq(orig_translate, translate));
   assert(cmp_eq(orig_cos_theta, cos_theta));
   assert(cmp_eq(orig_sin_theta, sin_theta));
 }
 
 
-void Edge::dump() const {
-  cout <<
+void Edge::dump(const std::string ind) const {
+  cout << ind <<
       "Edge: translate: " << translate <<
       ", cos_theta: " << cos_theta <<
       ", sin_theta: " << sin_theta <<
@@ -359,7 +365,7 @@ void Wall::dump(const Partition& p, const std::string ind, const bool for_diff) 
 
     for (uint i = 0; i < EDGES_IN_TRIANGLE; i++) {
       cout << ind << "edges:\n";
-      edges[i].dump();
+      edges[i].dump("        ");
     }
 
     cout << ind;

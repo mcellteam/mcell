@@ -32,6 +32,8 @@
 #include <vector>
 #include <limits.h>
 
+#include "bng/bng.h"
+
 #include "diffuse_react_event.h"
 #include "defines.h"
 #include "world.h"
@@ -217,6 +219,7 @@ static edge_index_t find_shared_edge_index_of_neighbor_wall(
   }
   else {
     assert(false);
+    nbr_edge_ind = EDGE_INDEX_INVALID;
   }
 
   return nbr_edge_ind;
@@ -519,30 +522,31 @@ find_restricted_regions_by_wall:
         included in the return "region list".
 ************************************************************************/
 static void find_restricted_regions_by_wall(
-    const Partition& p,
+    Partition& p,
     const Wall& this_wall,
     const Molecule& sm,
     uint_set<region_index_t>& regions) {
 
   assert(regions.empty() && "Function does not clean the resulting array");
 
-  const Species& species = p.all_species.get(sm.species_id);
+  const BNG::Species& species = p.get_all_species().get(sm.species_id);
 
-  if (!species.has_flag(SPECIES_FLAG_CAN_REGION_BORDER)) {
+  if (!species.can_interact_with_border()) {
     // no restricted region
     return;
   }
 
   // get all possible molecule-surface reactions
-  RxnClassesVector matching_rxns;
+  BNG::RxnClassesVector matching_rxns;
   RxUtil::trigger_intersect(p, sm, this_wall, matching_rxns);
 
   // collect species that can react
   uint_set<species_id_t> restricted_surf_classes;
-  for (const RxnClass* rxn: matching_rxns) {
-    if (rxn->is_reflect() || rxn->is_absorb()) {
+  for (const BNG::RxnClass* rxn: matching_rxns) {
+    if (rxn->is_reflect() || rxn->is_absorb_region_border()) {
       assert(rxn->reactants.size() == 2);
-      restricted_surf_classes.insert(rxn->reactants[1].species_id);
+
+      restricted_surf_classes.insert(rxn->reactants[1]);
     }
   }
 
@@ -592,7 +596,7 @@ walls_belong_to_at_least_one_different_restricted_region:
         REFL/ABSORB are declared.
 ******************************************************************/
 static bool walls_belong_to_at_least_one_different_restricted_region(
-    const Partition& p,
+    Partition& p,
     const Wall& w1, const Molecule& sm1,
     const Wall& w2, const Molecule& sm2) {
 

@@ -33,6 +33,7 @@ Regex to replace struct member definition by dumping code:
 #define DUMP_SCHEDULERS
 //#define DUMP_WAYPOINTS
 //#define DUMP_SUBVOLUMES
+//#define DUMP_RELEASE_REGION_DATA
 
 #include "dump_state.h"
 
@@ -248,37 +249,40 @@ std::ostream & operator<<(std::ostream &out, const reaction_flags &a) {
   return out;
 }
 
+std::ostream & operator<<(std::ostream &out, const output_expression *e);
 
 void dump_oexpr_element(std::ostream &out, const int flags, void* child, bool left) {
 
   int specific_flags = flags & ((left) ? OEXPR_LEFT_MASK : OEXPR_RIGHT_MASK);
 
-  if (specific_flags & (OEXPR_LEFT_INT | OEXPR_RIGHT_INT)) {
-    out << *(int*)child;
+  if (specific_flags == OEXPR_LEFT_INT || specific_flags == OEXPR_RIGHT_INT) {
+    out << *(int*)child << "(" << (void*)child << ")";
   }
-  else if (specific_flags & (OEXPR_LEFT_DBL | OEXPR_RIGHT_DBL)) {
+  else if (specific_flags == OEXPR_LEFT_DBL || specific_flags == OEXPR_RIGHT_DBL) {
     out << *(double*)child;
   }
-  else if (specific_flags & (OEXPR_LEFT_OEXPR | OEXPR_RIGHT_OEXPR)) {
-    out << (output_expression*)child;
+  else if (specific_flags == OEXPR_LEFT_OEXPR || specific_flags == OEXPR_RIGHT_OEXPR) {
+    out << (const output_expression*)child;
   }
-  else if (specific_flags & (OEXPR_LEFT_CONST | OEXPR_RIGHT_CONST)) {
+  else if (specific_flags == OEXPR_LEFT_CONST || specific_flags == OEXPR_RIGHT_CONST) {
     out << "TODO const";
   }
-  else if (specific_flags & (OEXPR_LEFT_REQUEST | OEXPR_RIGHT_REQUEST)) {
+  else if (specific_flags == OEXPR_LEFT_REQUEST || specific_flags == OEXPR_RIGHT_REQUEST) {
     out << "TODO request";
   }
-  else if (specific_flags & (OEXPR_LEFT_TRIG | OEXPR_RIGHT_TRIG)) {
-    out << "TODO request";
+  else if (specific_flags == OEXPR_LEFT_TRIG || specific_flags == OEXPR_RIGHT_TRIG) {
+    out << "TODO trig";
   }
   else {
     out << ""; /*no children*/
   }
 
+  out.flush();
 }
 
 
 std::ostream & operator<<(std::ostream &out, const output_expression *e) {
+  // NOTE: the flags for column_head::expr are somehow messed up... everything seems to be an integer
   if (e != NULL) {
     out <<
         "("
@@ -320,7 +324,6 @@ string get_species_flags_string(uint flags) {
   DUMP_FLAG(flags, COUNT_HITS)
   DUMP_FLAG(flags, COUNT_RXNS)
   DUMP_FLAG(flags, COUNT_ENCLOSED)
-  DUMP_FLAG(flags, COUNT_SOME_MASK)
   DUMP_FLAG(flags, CAN_VOLSURFSURF)
   DUMP_FLAG(flags, CAN_SURFSURFSURF)
   DUMP_FLAG(flags, SET_MAX_STEP_LENGTH)
@@ -408,6 +411,21 @@ string get_release_shape_name(int8_t release_shape) {
   return res;
 }
 
+
+string get_release_number_method_string(release_number_type_t rt) {
+  string res;
+#define CASE_ITEM(n) case n: res = #n; break;
+  switch (rt) {
+    CASE_ITEM(CONSTNUM)
+    CASE_ITEM(GAUSSNUM)
+    CASE_ITEM(VOLNUM)
+    CASE_ITEM(CCNNUM)
+    CASE_ITEM(DENSITYNUM)
+    default: res = "unknown!"; break;
+  }
+#undef CASE_ITEM
+  return res;
+}
 
 
 void dump_double_array(int num, const char* num_name, double* values, const char* values_name, const char* comment, const char* ind, const int max = MAX_ARRAY_ITEMS) {
@@ -854,7 +872,7 @@ void dump_pathway(pathway* pathway_ptr, const char* ind) {
   dump_species(pathway_ptr->reactant3, "reactant3", "/* Third reactant in reaction pathway */", ind);
 
   cout << ind << "km: \t\t" << pathway_ptr->km << " [double] \t\t/* Rate constant */\n";
-  cout << ind << "km_filename: *\t\t" << ((pathway_ptr->km_filename == nullptr) ? "NULL" : pathway_ptr->km_filename) << " [char] \t\t/* Filename for time-varying rates */\n";
+  cout << ind << "km_filename: *\t\t" << ((pathway_ptr->km_filename == nullptr) ? "NULL" : pathway_ptr->km_filename) << " [char*] \t\t/* Filename for time-varying rates */\n";
   cout << ind << "orientation1: \t\t" << pathway_ptr->orientation1 << " [short] \t\t/* Orientation of first reactant */\n";
   cout << ind << "orientation2: \t\t" << pathway_ptr->orientation2 << " [short] \t\t/* Orientation of second reactant */\n";
   cout << ind << "orientation3: \t\t" << pathway_ptr->orientation3 << " [short] \t\t/* Orientation of third reactant */\n";
@@ -862,7 +880,8 @@ void dump_pathway(pathway* pathway_ptr, const char* ind) {
   cout << ind << "product_head: *\t\t" << (void*)pathway_ptr->product_head << " [product] \t\t/* Linked lists of species created */\n";
   dump_product_list(pathway_ptr->product_head, ind);
 
-  cout << ind << "prod_signature: *\t\t" << pathway_ptr->prod_signature << " [char] \t\t/* string created from the names of products put in alphabetical order */\n";
+
+  cout << ind << "prod_signature: *\t\t" << ((pathway_ptr->prod_signature == nullptr) ? "NULL" : pathway_ptr->prod_signature) << " [char*] \t\t/* string created from the names of products put in alphabetical order */\n";
   cout << ind << "flags: \t\t" << pathway_ptr->flags << " [short] \t\t/* flags describing special reactions - REFLECTIVE, TRANSPARENT, CLAMP_CONCENTRATION */\n";
 }
 
@@ -1116,7 +1135,7 @@ void dump_release_site_obj(release_site_obj* rel_site, const char* ind) {
   //dump_species(rel_site->mol_type, "mol_type", "/* species to be released */", ind2);
   cout << ind2 << "  mol_type (name): *\t\t" << rel_site->mol_type->sym->name << "\n";
 
-  cout << ind2 << "release_number_method: \t\t" << (unsigned)rel_site->release_number_method << " [byte] \t\t/* Release Number Flags: controls how release_number is used (enum release_number_type_t) */\n";
+  cout << ind2 << "release_number_method: \t\t" << get_release_number_method_string((release_number_type_t)rel_site->release_number_method) << " [byte] \t\t/* Release Number Flags: controls how release_number is used (enum release_number_type_t) */\n";
   cout << ind2 << "release_shape: \t\t" << get_release_shape_name(rel_site->release_shape) << " [int8_t] \t\t/* Release Shape Flags: controls shape over which to release (enum release_shape_t) */\n";
   cout << ind2 << "orientation: \t\t" << rel_site->orientation << " [short] \t\t/* Orientation of released surface molecules */\n";
   cout << ind2 << "release_number: \t\t" << rel_site->release_number << " [double] \t\t/* Number to release */\n";
@@ -1130,7 +1149,11 @@ void dump_release_site_obj(release_site_obj* rel_site, const char* ind) {
     cout << ind2 << "diameter: *\t\t" << (void*)rel_site->diameter << " [vector3*] \t\t/* x,y,z diameter for geometrical release shapes */\n";
   }
 
+#ifdef DUMP_RELEASE_REGION_DATA
   dump_release_region_data(rel_site->region_data, "region_data", "/* Information related to release on regions */", ind2);
+#else
+  cout << ind2 << "region_data: *\t\t" << (void*)rel_site->region_data << " [release_region_data] \t\t/* Information related to release on regions */\n";
+#endif
 
   cout << ind2 << "mol_list: *\t\t" << (void*)rel_site->mol_list << " [release_single_molecule] \t\t/* Information related to release by list */\n";
   cout << ind2 << "release_prob: \t\t" << rel_site->release_prob << " [double] \t\t/* Probability of releasing at scheduled time */\n";
@@ -1338,6 +1361,11 @@ void dump_frame_data_list(frame_data_list* frame_data_head, const char* name, co
   DECL_IND2(ind);
   cout << ind << name << ": *\t\t" << frame_data_head << " [frame_data_list] \t\t" << comment << "\n";
 
+  if (frame_data_head == nullptr) {
+    cout << ind2 << "NULL\n";
+    return;
+  }
+
   cout << ind2 << "next: *\t\t" << frame_data_head->next << " [frame_data_list] \t\t\n";
 
   cout << ind2 << "list_type: \t\t" << frame_data_head->list_type << " [output_timer_type_t] \t\t/* Data Output Timing Type (OUTPUT_BY_TIME_LIST, etc) */\n";
@@ -1442,10 +1470,9 @@ void dump_one_output_column(output_column* column, const char* ind) {
   cout << ind << "initial_value: \t\t" << column->initial_value << " [double] \t\t        /* To continue existing cumulative counts--not implemented yet--and keep track of triggered data */\n";
 
   //cout << ind << "buffer: \t\t" << column->buffer << " [output_buffer*] \t\t /* Output buffer array (cast based on data_type) */\n";
-  dump_output_buffer(column->buffer, "output_column", "/* Data for one output column *", ind);
+  dump_output_buffer(column->buffer, "buffer", "/* Data for one output column *", ind);
 
-  // todo
-  cout << ind << "expr: \t\t" << column->expr << " [output_expression*] \t\t /* Evaluate this to calculate our value (NULL if trigger) */\n";
+  cout << ind << "expr: \t\t" << column->expr << " (" << (void*)column->expr << ") [output_expression*] \t\t /* Evaluate this to calculate our value (NULL if trigger) */\n";
 }
 
 void dump_output_column(output_column* ocol, const char* name, const char* comment, const char* ind) {
@@ -1476,8 +1503,7 @@ void dump_one_output_set(output_set* block, const char* ind) {
   cout << ind << "exact_time_flag: \t\t" << block->exact_time_flag << " [int] \t\t  /* Boolean value; nonzero means print exact time in TRIGGER statements */\n";
 
   //cout << ind << "column_head: \t\t" << block->column_head << " [output_column*] \t\t /* Data for one output column */\n";
-  dump_output_column(block->column_head, "output_column", "/* Data for one output column */", ind);
-
+  dump_output_column(block->column_head, "column_head", "/* Data for one output column */", ind);
 }
 
 
@@ -1486,7 +1512,11 @@ void dump_output_set(output_set* oset, const char* name, const char* comment, co
 
   DECL_IND2(ind);
   output_set* curr = oset;
+
+  int i = 0;
   while (curr != nullptr) {
+    cout << ind << i << ": \n";
+    i++;
     dump_one_output_set(curr, ind2);
     curr = curr->next;
   }
@@ -1519,7 +1549,11 @@ void dump_output_blocks(output_block* output_block_head, const char* name, const
 
   DECL_IND2(ind);
   output_block* curr = output_block_head;
+
+  int i = 0;
   while (curr != nullptr) {
+    cout << ind << i << ": \n";
+    i++;
     dump_one_output_block(curr, ind2);
     curr = curr->next;
   }
@@ -1529,7 +1563,7 @@ void dump_output_blocks(output_block* output_block_head, const char* name, const
 
 void dump_one_output_request(output_request* req, const char* ind) {
   cout << ind << "next: \t\t" << (void*)req->next << " [output_request*] \t\t         /* Next request in global list */\n";
-  cout << ind << "requester: \t\t" << req->requester << " [output_expression*] \t\t /* Expression in which we appear */\n";
+  cout << ind << "requester: \t\t" << req->requester << " (" << (void*)req->requester << ") [output_expression*] \t\t /* Expression in which we appear */\n";
   cout << ind << "count_target: \t\t" << req->count_target << " [sym_entry*] \t\t      /* Mol/rxn we're supposed to count */\n";
   cout << ind << "count_orientation: \t\t" << req->count_orientation << " [short] \t\t             /* orientation of the molecule we are supposed to count */\n";
   cout << ind << "count_location: \t\t" << req->count_location << " [sym_entry*] \t\t    /* Object or region on which we're supposed to count it */\n";
@@ -1543,7 +1577,10 @@ void dump_output_requests(output_request* output_request_head, const char* name,
 
   DECL_IND2(ind);
   output_request* curr = output_request_head;
+  int i = 0;
   while (curr != nullptr) {
+    cout << ind << i << ": \n";
+    i++;
     dump_one_output_request(curr, ind2);
     curr = curr->next;
   }
@@ -1930,6 +1967,8 @@ void dump_dg_time_filename_list(dg_time_filename* fn, const char* name, const ch
   cout << "species_mesh_transp: *\t\t" << (void*)s->species_mesh_transp << " [pointer_hash] \n";
 
   cout << "********* volume dump :" << comment << "************ (END)\n";
+
+  cout.flush();
 }
 
 
@@ -2107,22 +2146,39 @@ void dump_processing_reaction(
     struct vector3 *hitpt, double t,
     struct rxn *rx, /*int path,*/
     struct abstract_molecule *reacA,
-    struct abstract_molecule *reacB
+    struct abstract_molecule *reacB,
+    struct wall *w
 ) {
   assert(reacA != nullptr);
-  bool bimol = (reacB != nullptr);
+  bool two_reactants = rx->n_reactants == 2;
 
   cout << "Processing reaction:it:" << it << ", ";
 
-  if (bimol) {
-    cout <<
-      "bimol rxn" <<
-      ", idA:"  << reacA->id <<
-      ", idB:"  << reacB->id <<
-      //TODO ", rxn: " << rx->to_string(p) <<
-      ", time: " << t;
-    if (hitpt != nullptr) {
-      cout << ", pos " << *hitpt;
+  if (two_reactants) {
+
+    if (reacB != nullptr) {
+      cout <<
+        "bimol rxn" <<
+        ", idA:"  << reacA->id <<
+        ", idB:"  << reacB->id <<
+        //TODO ", rxn: " << rx->to_string(p) <<
+        ", time: " << t;
+      if (hitpt != nullptr) {
+        cout << ", pos " << *hitpt;
+      }
+    }
+    else {
+      assert(w != nullptr);
+      cout <<
+        "wall collision" <<
+        ", idA:"  << reacA->id <<
+        //", wall_index:"  << w->side <<
+        //TODO ", rxn: " << rx->to_string(p) <<
+        ", time: " << t;
+
+      if (hitpt != nullptr) {
+        cout << ", pos " << *hitpt;
+      }
     }
   }
   else {

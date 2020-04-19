@@ -50,10 +50,10 @@ struct output_request *mcell_new_output_request(MCELL_STATE *state,
                                                 struct periodic_image *img,
                                                 int report_flags);
 
-struct output_set *mcell_create_new_output_set(char *comment, int exact_time,
+struct output_set *mcell_create_new_output_set(const char *comment, int exact_time,
                                                struct output_column *col_head,
                                                int file_flags,
-                                               char *outfile_name);
+                                               const char *outfile_name);
 
 MCELL_STATUS mcell_prepare_single_count_expr(struct output_column_list *list,
                                              struct output_expression *expr,

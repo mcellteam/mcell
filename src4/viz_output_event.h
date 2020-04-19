@@ -48,7 +48,7 @@ public:
 
   viz_mode_t viz_mode;
   std::string file_prefix_name;
-
+  uint_set<species_id_t> species_ids_to_visualize;
   World* world;
 
 private:

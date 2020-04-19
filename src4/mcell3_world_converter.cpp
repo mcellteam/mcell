@@ -25,6 +25,8 @@
 #include <stdlib.h>
 #include <set>
 
+#include "bng/bng.h"
+
 #include "logging.h"
 #include "mcell_structs.h"
 #include "mcell3_world_converter.h"
@@ -33,10 +35,13 @@
 #include "release_event.h"
 #include "diffuse_react_event.h"
 #include "viz_output_event.h"
+#include "mol_count_event.h"
+#include "count_buffer.h"
 
 #include "dump_state.h"
 
 using namespace std;
+using namespace BNG;
 
 const char* const ALL_MOLECULES = "ALL_MOLECULES";
 const char* const ALL_VOLUME_MOLECULES = "ALL_VOLUME_MOLECULES";
@@ -46,7 +51,7 @@ const char* const ALL_SURFACE_MOLECULES = "ALL_SURFACE_MOLECULES";
 #define CHECK(cond) do { if(!(cond)) { mcell_log_conv_error("Returning from %s after conversion error.\n", __FUNCTION__); return false; } } while (0)
 
 // checking assumptions
-#define CHECK_PROPERTY(cond) do { if(!(cond)) { mcell_log_conv_error("Expected '%s' is false. (%s - %s:%d)\n", #cond, __FUNCTION__, __FILE__, __LINE__); return false; } } while (0)
+#define CHECK_PROPERTY(cond) do { if(!(cond)) { mcell_log_conv_error("Expected '%s' is false. (%s - %s:%d)\n", #cond, __FUNCTION__, __FILE__, __LINE__); assert(false); return false; } } while (0)
 
 // asserts - things that can never occur and will 'never' be supported
 
@@ -67,7 +72,7 @@ bool mcell4_run_simulation(const bool dump_initial_state) {
 
 
 void mcell4_delete_world() {
-  return g_converter.reset();
+  g_converter.reset();
 }
 
 
@@ -124,14 +129,15 @@ bool MCell3WorldConverter::convert(volume* s) {
 
   CHECK(convert_simulation_setup(s));
 
-  CHECK(convert_species_and_create_diffusion_events(s));
+  CHECK(convert_species(s));
+  create_diffusion_events(); // cannot fail?
   CHECK(convert_reactions(s));
 
   // at this point, we need to create the first (and for now the only) partition
   // create initial partition with center at 0,0,0 - we woud like to have the partitions all the same,
   // not depend on some random initialization
-  partition_index_t index = world->add_partition(Vec3(0, 0, 0));
-  assert(index == PARTITION_INDEX_INITIAL);
+  partition_id_t index = world->add_partition(Vec3(0, 0, 0));
+  assert(index == PARTITION_ID_INITIAL);
 
   // convert geometry already puts geometry objects into partitions
   CHECK(convert_geometry_objects(s));
@@ -139,18 +145,64 @@ bool MCell3WorldConverter::convert(volume* s) {
   // release events require wall information
   CHECK(convert_release_events(s));
   CHECK(convert_viz_output_events(s));
-
-
+  CHECK(convert_mol_count_events(s));
 
   return true;
 }
 
 
+static float_t get_largest_abs_value(const vector3& v) {
+  float_t max = 0;
+  if (fabs_f(v.x) > max) {
+    max = fabs_f(v.x);
+  }
+  if (fabs_f(v.y) > max) {
+    max = fabs_f(v.y);
+  }
+  if (fabs_f(v.z) > max) {
+    max = fabs_f(v.z);
+  }
+  return max;
+}
+
+
+static float_t get_largest_distance_from_center(const vector3& llf, const vector3& urb) {
+  float_t max1 = get_largest_abs_value(llf);
+  float_t max2 = get_largest_abs_value(urb);
+  return max1 > max2 ? max1 : max2;
+}
+
+
+static uint get_even_higher_or_same_value(const uint val) {
+  if (val % 2 == 0) {
+    return val;
+  }
+  else {
+    return val + 1;
+  }
+}
+
+
+static float_t get_partition_edge_length(const World* world, const float_t largest_mcell3_distance_from_center) {
+  // some MCell models have their partition boundary set exactly. we need to add a bit of margin
+  return (largest_mcell3_distance_from_center + PARTITION_EDGE_EXTRA_MARGIN_UM / world->config.length_unit) * 2 ;
+}
+
+
+/**
+ * Partition conversion greatly simplifies the variability in MCell3 where the partition can be an arbitrary box.
+ * Here, it must be a cube and the first partition must be placed the way so that the coordinate origin
+ * is in its corner.
+ * The assumption (quite possibly premature) is that there will be big systems that are simulated
+ * and the whole space will be split into multiple partitions anyway. And we do not care about the
+ * number of subpartitions, they should only take up memory, not computation time.
+ */
 bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
   // TODO_CONVERSION: many items are not checked
   world->iterations = s->iterations;
   world->config.time_unit = s->time_unit;
   world->config.length_unit = s->length_unit;
+  world->config.grid_density = s->grid_density;
   world->config.rx_radius_3d = s->rx_radius_3d;
   world->config.vacancy_search_dist2 = s->vacancy_search_dist2 / s->length_unit;
   world->seed_seq = s->seed_seq;
@@ -158,18 +210,64 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
 
   // there seems to be just one partition in MCell but we interpret it as mcell4 partition size
   if (s->partitions_initialized) {
-    CHECK_PROPERTY(s->partition_llf[0] == s->partition_llf[1]);
-    CHECK_PROPERTY(s->partition_llf[1] == s->partition_llf[2]);
-    CHECK_PROPERTY(s->partition_urb[0] == s->partition_urb[1]);
-    CHECK_PROPERTY(s->partition_urb[1] == s->partition_urb[2]);
-    assert(s->partition_urb[0] > s->partition_llf[0]);
-    world->config.partition_edge_length = (s->partition_urb[0] - s->partition_llf[0]) / s->length_unit;
+    // assuming that the mcell's bounding box if it is bigger than the partition
+    if (
+        s->partition_llf.x <= s->bb_llf.x || s->bb_urb.x <= s->partition_urb.x ||
+        s->partition_llf.y <= s->bb_llf.y || s->bb_urb.y <= s->partition_urb.y ||
+        s->partition_llf.z <= s->bb_llf.z || s->bb_urb.z <= s->partition_urb.z
+    ) {
+      mcell_warn("Partitioning was specified, but it is smaller than the automatically determined bounding box.");
+
+      float_t lu = s->length_unit;
+      mcell_log("Bounding box in microns: [ %f, %f, %f ], [ %f, %f, %f ]",
+          s->bb_llf.x/lu, s->bb_llf.y/lu, s->bb_llf.z/lu, s->bb_urb.x/lu, s->bb_urb.y/lu, s->bb_urb.z/lu);
+      mcell_log("Partition box in microns: [ %f, %f, %f ], [ %f, %f, %f ]",
+          s->partition_llf.x/lu, s->partition_llf.y/lu, s->partition_llf.z/lu, s->partition_urb.x/lu, s->partition_urb.y/lu, s->partition_urb.z/lu);
+    }
+
+    CHECK_PROPERTY(s->partition_urb.x > s->partition_llf.x);
+    CHECK_PROPERTY(s->partition_urb.y > s->partition_llf.y);
+    CHECK_PROPERTY(s->partition_urb.z > s->partition_llf.z);
+
+    // simply choose the largest abs value from all the values
+    float_t largest_mcell3_distance_from_center = get_largest_distance_from_center(s->partition_llf, s->partition_urb);
+
+    world->config.partition_edge_length = get_partition_edge_length(world, largest_mcell3_distance_from_center);
+
+    mcell_log("Using manually specified partition size (with margin): %f.",
+      (double)world->config.partition_edge_length * world->config.length_unit);
+
+    // number of subparts must be even so that the central subparts are aligned with the axes and not shifted
+    world->config.subpartitions_per_partition_dimension = get_even_higher_or_same_value(s->num_subparts);
   }
   else {
-    world->config.partition_edge_length = PARTITION_EDGE_LENGTH_DEFAULT;
+    CHECK_PROPERTY(s->bb_urb.x >= s->bb_llf.x);
+    CHECK_PROPERTY(s->bb_urb.y >= s->bb_llf.y);
+    CHECK_PROPERTY(s->bb_urb.z >= s->bb_llf.z);
+
+    // use MCell's bounding box, however, we must make a cube out of it
+    float_t largest_mcell3_distance_from_center = get_largest_distance_from_center(s->bb_llf, s->bb_urb);
+    float_t auto_length = get_partition_edge_length(world, largest_mcell3_distance_from_center);
+
+    if (auto_length > PARTITION_EDGE_LENGTH_DEFAULT_UM / world->config.length_unit) {
+      world->config.partition_edge_length = auto_length;
+      mcell_log("Automatically determined partition size: %f.",
+        (double)auto_length * world->config.length_unit);
+    }
+    else {
+      world->config.partition_edge_length = PARTITION_EDGE_LENGTH_DEFAULT_UM / world->config.length_unit;
+      mcell_log("Automatically determined partition size %f is smaller than default %f, using default.",
+        (double)auto_length * world->config.length_unit, PARTITION_EDGE_LENGTH_DEFAULT_UM);
+    }
+
+    // nx_parts counts the number of boundaries, not subvolumes, also, there are always 2 extra subvolumes on the sides in mcell3
+    int max_n_p_parts = max3_i(IVec3(s->nx_parts, s->ny_parts, s->nz_parts));
+    world->config.subpartitions_per_partition_dimension = get_even_higher_or_same_value(max_n_p_parts - 3);
   }
-  CHECK_PROPERTY(s->nx_parts == s->ny_parts);
-  CHECK_PROPERTY(s->ny_parts == s->nz_parts);
+
+  float_t l = world->config.partition_edge_length / 2 * s->length_unit;
+  mcell_log("MCell4 partition bounding box in microns: [ %f, %f, %f ], [ %f, %f, %f ]", -l, -l, -l, l, l, l);
+
 
   world->config.randomize_smol_pos = s->randomize_smol_pos;
 
@@ -178,9 +276,6 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
   );
 
   world->config.use_expanded_list = s->use_expanded_list;
-
-  // this number counts the number of boundaries, not subvolumes, also, there are always 2 extra subvolumes on the sides in mcell3
-  world->config.subpartitions_per_partition_dimension = s->nx_parts - 3;
 
 	// compute other constants
   world->config.init();
@@ -274,24 +369,30 @@ void MCell3WorldConverter::create_uninitialized_walls_for_polygonal_object(const
     wall* w = o->wall_p[i];
 
     // which partition?
-    partition_index_t partition_index = world->get_partition_index(*w->vert[0]);
+    partition_id_t partition_id = world->get_partition_index(*w->vert[0]);
+    if (partition_id == PARTITION_ID_INVALID) {
+      Vec3 v(*w->vert[0]);
+      v = v * Vec3(world->config.length_unit);
+      mcell_error("Error: vertex %s does not fit any partition.", v.to_string().c_str());
+    }
 
     // check that the remaining vertices are in the same partition
     for (uint k = 1; k < VERTICES_IN_TRIANGLE; k++) {
-      partition_index_t curr_partition_index = world->get_partition_index(*w->vert[k]);
+      partition_id_t curr_partition_index = world->get_partition_index(*w->vert[k]);
 
-      if (partition_index != curr_partition_index) {
+      if (partition_id != curr_partition_index) {
         Vec3 pos(*w->vert[k]);
-        mcell_log("Error: whole walls must be in a single partition is for now, vertex %s is out of bounds", pos.to_string().c_str());
+        pos = pos * Vec3(world->config.length_unit);
+        mcell_error("Error: whole walls must be in a single partition is for now, vertex %s is out of bounds", pos.to_string().c_str());
       }
     }
 
     // create the wall in that partition but do not set anything else yet
-    Partition& p = world->get_partition(partition_index);
+    Partition& p = world->get_partition(partition_id);
     Wall& new_wall = p.add_uninitialized_wall(world->get_next_wall_id());
 
     // remember mapping
-    add_mcell4_wall_index_mapping(w, PartitionWallIndexPair(partition_index, new_wall.index));
+    add_mcell4_wall_index_mapping(w, PartitionWallIndexPair(partition_id, new_wall.index));
   }
 }
 
@@ -366,9 +467,12 @@ bool MCell3WorldConverter::convert_wall_and_update_regions(
   }
 
   CHECK_PROPERTY(w->grid == nullptr); // for now
-  CHECK_PROPERTY(w->flags == 4096); // not sure yet what flags are there for walls
 
-
+  // walls use some of the flags used by species
+  CHECK_PROPERTY(
+      w->flags == COUNT_CONTENTS ||
+      w->flags == (COUNT_CONTENTS | COUNT_ENCLOSED)
+  );
 
   // now let's handle regions
   std::set<species_id_t> region_species_from_mcell3;
@@ -455,6 +559,11 @@ bool MCell3WorldConverter::convert_region(Partition& p, const region* r, region_
   // CHECK_PROPERTY(r->flags == 0); // ignored for now
   // CHECK_PROPERTY(r->manifold_flag == 0); // ignored, do we care?
 
+  string parent_name = get_sym_name(r->parent->sym);
+  const GeometryObject* obj = world->get_partition(0).find_geometry_object_by_name(parent_name);
+  CHECK_PROPERTY(obj != nullptr);
+  new_region.geometry_object_id = obj->id;
+
   region_index = p.add_region(new_region);
   return true;
 }
@@ -467,7 +576,7 @@ bool MCell3WorldConverter::convert_polygonal_object(const geom_object* o) {
   // we already checked in create_uninitialized_walls_for_polygonal_object
   // that the specific walls of this fit into a single partition
   // TODO_CONVERSION: improve this check for the whole object
-  partition_index_t partition_index = world->get_partition_index(*o->vertices[0]);
+  partition_id_t partition_index = world->get_partition_index(*o->vertices[0]);
   Partition& p = world->get_partition(partition_index);
 
   GeometryObject& obj = p.add_uninitialized_geometry_object(world->get_next_geometry_object_id());
@@ -554,10 +663,10 @@ bool MCell3WorldConverter::convert_polygonal_object(const geom_object* o) {
 
 // cannot fail
 void MCell3WorldConverter::create_diffusion_events() {
-  assert(world->all_species.get_count() != 0 && "There must be at least 1 species");
+  assert(world->get_all_species().get_count() != 0 && "There must be at least 1 species");
 
   set<float_t> time_steps_set;
-  for (auto &species : world->all_species.get_species_vector() ) {
+  for (auto &species : world->get_all_species().get_species_vector() ) {
     time_steps_set.insert(species.time_step);
   }
 
@@ -572,84 +681,114 @@ static bool is_species_superclass(volume* s, species* spec) {
   return spec == s->all_mols || spec == s->all_volume_mols || spec == s->all_surface_mols;
 }
 
-bool MCell3WorldConverter::convert_species_and_create_diffusion_events(volume* s) {
+bool MCell3WorldConverter::convert_species(volume* s) {
+
   // TODO_CONVERSION: many items are not checked
   for (int i = 0; i < s->n_species; i++) {
     species* spec = s->species_list[i];
 
     Species new_species;
     new_species.name = get_sym_name(spec->sym);
-    new_species.species_id = world->all_species.get_count(); // id corresponds to the index in the species array
-
-    // check all species 'superclasses' classes
-    // these special species might be used in wall - surf|vol reactions
-    if (spec == s->all_mols) {
-      CHECK_PROPERTY(new_species.name == ALL_MOLECULES);
-      world->all_reactions.set_all_molecules_species_id(new_species.species_id);
-    }
-    else if (spec == s->all_volume_mols) {
-      CHECK_PROPERTY(new_species.name == ALL_VOLUME_MOLECULES);
-      world->all_reactions.set_all_volume_molecules_species_id(new_species.species_id);
-    }
-    else if (spec == s->all_surface_mols) {
-      CHECK_PROPERTY(new_species.name == ALL_SURFACE_MOLECULES);
-      world->all_reactions.set_all_surface_molecules_species_id(new_species.species_id);
-    }
-
-    new_species.mcell3_species_id = spec->species_id;
     new_species.D = spec->D;
     new_species.space_step = spec->space_step;
     new_species.time_step = spec->time_step;
 
+    CHECK_PROPERTY((spec->flags & CANT_INITIATE) == 0); // RxnClass::compute_pb_factor assumes this
+
     if (!(
         is_species_superclass(s, spec)
         || spec->flags == 0
+        || spec->flags == (SPECIES_FLAG_COUNT_ENCLOSED | COUNT_CONTENTS)
         || spec->flags == SPECIES_FLAG_CAN_VOLVOL
-        || spec->flags == SPECIES_FLAG_ON_GRID
-        || spec->flags == SPECIES_FLAG_IS_SURFACE
-        || spec->flags == (SPECIES_FLAG_ON_GRID | SPECIES_FLAG_CAN_SURFSURF)
-        || spec->flags == (SPECIES_FLAG_ON_GRID | SPECIES_FLAG_CAN_REGION_BORDER)
-        || spec->flags == (SPECIES_FLAG_ON_GRID | SPECIES_FLAG_CAN_SURFSURF | CAN_SURFWALL | SPECIES_FLAG_CAN_REGION_BORDER | REGION_PRESENT)
+        || spec->flags == (SPECIES_FLAG_CAN_VOLVOL | SPECIES_FLAG_CAN_VOLSURF)
+        || spec->flags == SPECIES_FLAG_CAN_VOLWALL
+        || spec->flags == (SPECIES_FLAG_CAN_VOLWALL | SPECIES_FLAG_COUNT_ENCLOSED | COUNT_CONTENTS)
+        || spec->flags == (SPECIES_FLAG_CAN_VOLWALL | SPECIES_FLAG_COUNT_ENCLOSED | COUNT_CONTENTS | REGION_PRESENT)
+        || spec->flags == (SPECIES_FLAG_CAN_VOLWALL | REGION_PRESENT)
+        || spec->flags == (SPECIES_FLAG_CAN_VOLWALL | SPECIES_FLAG_CAN_VOLSURF | REGION_PRESENT)
+        || spec->flags == SPECIES_CPLX_MOL_FLAG_SURF
+        || spec->flags == SPECIES_CPLX_MOL_FLAG_REACTIVE_SURFACE
+        || spec->flags == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_SURFSURF)
+        || spec->flags == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_REGION_BORDER)
+        || spec->flags == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_SURFSURF | CAN_SURFWALL | SPECIES_FLAG_CAN_REGION_BORDER | REGION_PRESENT)
         || spec->flags == SPECIES_FLAG_CAN_VOLSURF
       )) {
       mcell_log("Unsupported species flag for species %s: %s\n", new_species.name.c_str(), get_species_flags_string(spec->flags).c_str());
-      CHECK_PROPERTY(false && "Flags listed above are not supported yet");
+      CHECK_PROPERTY(false && "Flags listed in the message above are not supported yet");
     }
-    new_species.flags = spec->flags;
+    new_species.set_flags(spec->flags);
 
     CHECK_PROPERTY(spec->n_deceased == 0);
     CHECK_PROPERTY(spec->cum_lifetime_seconds == 0);
 
-    if (new_species.is_reactive_surface()) {
-      CHECK_PROPERTY(spec->refl_mols != nullptr);
-      CHECK_PROPERTY(spec->refl_mols->next == nullptr); // just one type for now
+    if ((spec->flags & IS_SURFACE) != 0) {
+      if (spec->refl_mols != nullptr) {
+        // just one type for now
+        CHECK_PROPERTY(spec->refl_mols == nullptr || spec->refl_mols->next == nullptr);
 
-      // reflective surface, seems that this information is transformed into reactions, so we do no need to store anything else
-      CHECK_PROPERTY(spec->refl_mols->orient == ORIENTATION_NONE);
+        // reflective surface, seems that this information is transformed into reactions, so we do no need to store anything else
+        CHECK_PROPERTY(spec->refl_mols->orient == ORIENTATION_NONE);
+      }
     }
     else {
       CHECK_PROPERTY(spec->refl_mols == nullptr);
     }
 
-    CHECK_PROPERTY(spec->transp_mols == nullptr);
-    CHECK_PROPERTY(spec->absorb_mols == nullptr);
+    // CHECK_PROPERTY(spec->transp_mols == nullptr);
+    // CHECK_PROPERTY(spec->absorb_mols == nullptr);
     CHECK_PROPERTY(spec->clamp_conc_mols == nullptr);
 
-    world->all_species.add(new_species);
+    // we must add a complex instance as the single molecule type in the new species
+    // define a molecule type with no components
+    MolType mol_type;
+    mol_type.name = new_species.name; // name of the mol type is the same as for our species
+    mol_type_id_t mol_type_id = world->bng_engine.get_data().find_or_add_molecule_type(mol_type);
 
-    mcell3_species_id_map[new_species.mcell3_species_id] = new_species.species_id;
+    MolInstance mol_inst;
+    mol_inst.mol_type_id = mol_type_id;
+    if ((spec->flags & ON_GRID) == 0 && (spec->flags & IS_SURFACE) == 0) {  //FIXME: ALL_SURF_MOLS have wrong flag
+      mol_inst.set_is_vol();
+    }
+    else if ((spec->flags & ON_GRID) != 0) {
+      mol_inst.set_is_surf();
+    }
+    else if ((spec->flags & IS_SURFACE) != 0) {
+      mol_inst.set_is_reactive_surface();
+    }
+    else {
+      assert(false);
+    }
+
+    new_species.mol_instances.push_back(mol_inst);
+
+    // and finally let's add our new species
+    new_species.finalize();
+    species_id_t new_species_id = world->get_all_species().find_or_add(new_species);
+
+    // set all species 'superclasses' ids
+    // these special species might be used in wall - surf|vol reactions
+    if (spec == s->all_mols) {
+      CHECK_PROPERTY(new_species.name == ALL_MOLECULES);
+      world->get_all_species().set_all_molecules_species_id(new_species_id);
+    }
+    else if (spec == s->all_volume_mols) {
+      CHECK_PROPERTY(new_species.name == ALL_VOLUME_MOLECULES);
+      world->get_all_species().set_all_volume_molecules_species_id(new_species_id);
+    }
+    else if (spec == s->all_surface_mols) {
+      CHECK_PROPERTY(new_species.name == ALL_SURFACE_MOLECULES);
+      world->get_all_species().set_all_surface_molecules_species_id(new_species_id);
+    }
+
+    // map for other conversion steps
+    mcell3_species_id_map[spec->species_id] = new_species_id;
   }
-
-  // TODO: really not sure why this is here... split
-  create_diffusion_events();
 
   return true;
 }
 
 
 bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
-  RxnClass rxn_class;
-
   // rx->next - handled in convert_reactions
   // rx->sym->name - ignored, name obtained from pathway
 
@@ -658,12 +797,14 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
   CHECK_PROPERTY(
       mcell3_rx->n_pathways >= 1
       || mcell3_rx->n_pathways == RX_REFLEC // reflections for surf mols
+      || mcell3_rx->n_pathways == RX_TRANSP
   ); // limited for now
 
   assert(mcell3_rx->cum_probs != nullptr);
 
-  rxn_class.max_fixed_p = mcell3_rx->max_fixed_p;
-  rxn_class.min_noreaction_p = mcell3_rx->min_noreaction_p;
+  // BNGTODO: create RXN classes!
+  // rxn_class.max_fixed_p = mcell3_rx->max_fixed_p;
+  // rxn_class.min_noreaction_p = mcell3_rx->min_noreaction_p;
 
   // ?? double pb_factor; /* Conversion factor from rxn rate to rxn probability (used for cooperativity) */
 
@@ -694,11 +835,14 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
 
     // -> pathway is renamed in MCell3 to reaction because pathway has a different meaning
     //    MCell3 rection is reaction class
-    Rxn rxn;
+    RxnRule rxn;
 
     if (current_pathway->pathname != nullptr) {
       assert(current_pathway->pathname->sym != nullptr);
-      rxn.name = current_pathway->pathname->sym->name;
+      rxn.name = get_sym_name(current_pathway->pathname->sym);
+    }
+    else if (mcell3_rx->sym != nullptr) {
+      rxn.name = get_sym_name(mcell3_rx->sym);
     }
     else {
       rxn.name = NAME_NOT_SET;
@@ -720,20 +864,11 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
     // reactants
     if (current_pathway->reactant1 != nullptr) {
       species_id_t reactant1_id = get_mcell4_species_id(current_pathway->reactant1->species_id);
-      SpeciesWithOrientation r1 = SpeciesWithOrientation(reactant1_id, current_pathway->orientation1);
-      rxn.reactants.push_back(r1);
-      if (pathway_index == 0) {
-        // reaction has the same reactants, storing only once
-        rxn_class.reactants.push_back(r1);
-      }
+      rxn.append_reactant(world->bng_engine.create_species_based_cplx_instance(reactant1_id, current_pathway->orientation1));
 
       if (current_pathway->reactant2 != nullptr) {
         species_id_t reactant2_id = get_mcell4_species_id(current_pathway->reactant2->species_id);
-        SpeciesWithOrientation r2 = SpeciesWithOrientation(reactant2_id, current_pathway->orientation2);
-        rxn.reactants.push_back(r2);
-        if (pathway_index == 0) {
-          rxn_class.reactants.push_back(r2);
-        }
+        rxn.append_reactant(world->bng_engine.create_species_based_cplx_instance(reactant2_id, current_pathway->orientation2));
 
         if (current_pathway->reactant3 != nullptr) {
           mcell_error("TODO_CONVERSION: reactions with 3 reactants are not supported");
@@ -753,40 +888,39 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
 
     if (mcell3_rx->n_pathways == RX_ABSORB_REGION_BORDER) {
       CHECK_PROPERTY(current_pathway->flags == PATHW_ABSORP);
-      rxn_class.type = RxnClassType::AbsorbRegionBorder;
+      rxn.type = RxnType::AbsorbRegionBorder;
     }
     else if (mcell3_rx->n_pathways == RX_TRANSP) {
       CHECK_PROPERTY(current_pathway->flags == PATHW_TRANSP);
-      rxn_class.type = RxnClassType::Transparent;
+      rxn.type = RxnType::Transparent;
     }
     else if (mcell3_rx->n_pathways == RX_REFLEC) {
       CHECK_PROPERTY(current_pathway->flags == PATHW_REFLEC);
-      rxn_class.type = RxnClassType::Reflect;
+      rxn.type = RxnType::Reflect;
     }
     else {
-      CHECK_PROPERTY(current_pathway->flags == 0);
-
-      rxn_class.type = RxnClassType::Standard;
+      CHECK_PROPERTY(current_pathway->flags == 0 || current_pathway->flags == PATHW_ABSORP);
+      rxn.type = RxnType::Standard;
 
       // products
       product *product_ptr = current_pathway->product_head;
       while (product_ptr != nullptr) {
-        species_id_t product_id = get_mcell4_species_id(product_ptr->prod->species_id);
         CHECK_PROPERTY(product_ptr->orientation == 0 || product_ptr->orientation == 1 || product_ptr->orientation == -1);
-
-        rxn.products.push_back(SpeciesWithOrientation(product_id, product_ptr->orientation));
+        species_id_t product_id = get_mcell4_species_id(product_ptr->prod->species_id);
+        rxn.append_product( world->bng_engine.create_species_based_cplx_instance(product_id, product_ptr->orientation) );
 
         product_ptr = product_ptr->next;
       }
     }
 
-    rxn_class.add_and_initialize_reaction(rxn, mcell3_rx->cum_probs[pathway_index]);
-
     pathway_index++;
+
+    // add our reaction, reaction classes are created on-the-fly
+    rxn.finalize();
+    world->get_all_rxns().add_no_update(rxn);
   }
 
 
-  world->all_reactions.add(rxn_class);
 
   return true;
 }
@@ -808,178 +942,264 @@ bool MCell3WorldConverter::convert_reactions(volume* s) {
   return true;
 }
 
+// returns false if conversion failed
+static RegionExprNode* create_release_region_terms_recursively(release_evaluator* expr, ReleaseEvent& event_data) {
+  RegionExprOperator new_op = RegionExprOperator::Invalid;
+
+  uint op_masked = expr->op & REXP_MASK;
+
+  switch (op_masked) {
+    case REXP_UNION:
+      new_op = RegionExprOperator::Union;
+      break;
+    case REXP_INTERSECTION:
+      new_op = RegionExprOperator::Intersection;
+      break;
+    case REXP_SUBTRACTION:
+      new_op = RegionExprOperator::Subtraction;
+      break;
+
+    case REXP_NO_OP:
+      // do nothing, the mcell3 expression tree has no leaves and regions are stored directly
+      break;
+
+    default:
+      assert(false && "Invalid region release_evaluator operator");
+  }
+
+  RegionExprNode* new_left;
+  RegionExprNode* new_right;
+
+  if ((expr->op & REXP_LEFT_REGION) != 0) {
+    // left node is a region
+    new_left = event_data.create_new_region_expr_node_leaf(get_sym_name(((region*)expr->left)->sym));
+  }
+  else if (new_op != RegionExprOperator::Invalid){
+    // there is an operator so we assume that the left node is a subexpr
+    new_left = create_release_region_terms_recursively((release_evaluator*)expr->left, event_data);
+  }
+  else {
+    new_left = nullptr;
+  }
+
+  if ((expr->op & REXP_RIGHT_REGION) != 0) {
+    new_right = event_data.create_new_region_expr_node_leaf(get_sym_name(((region*)expr->right)->sym));
+  }
+  else if (new_op != RegionExprOperator::Invalid) {
+    new_right = create_release_region_terms_recursively((release_evaluator*)expr->right, event_data);
+  }
+  else {
+    new_right = nullptr;
+  }
+
+  if (new_left != nullptr && new_right != nullptr) {
+    assert(new_op != RegionExprOperator::Invalid);
+    return event_data.create_new_region_expr_node_op(new_op, new_left, new_right);
+  }
+  else if (new_left != nullptr) {
+    return new_left;
+  }
+  else if (new_right != nullptr) {
+    return new_right;
+  }
+  else {
+    assert(false);
+    return nullptr;
+  }
+}
 
 // FIXME: thiscould use a cleanup and maybe redesign
 bool MCell3WorldConverter::convert_release_events(volume* s) {
 
+
   // -- schedule_helper -- (as volume.releaser)
-  schedule_helper* releaser = s->releaser;
+  for (schedule_helper* releaser = s->releaser; releaser != NULL; releaser = releaser->next_scale) {
 
-  CHECK_PROPERTY(releaser->next_scale == nullptr);
-  CHECK_PROPERTY(releaser->dt == 1);
-  CHECK_PROPERTY(releaser->dt_1 == 1);
-  CHECK_PROPERTY(releaser->now == 0);
-  //ok now: CHECK_PROPERTY(releaser->count == 1);
-  CHECK_PROPERTY(releaser->index == 0);
+    //CHECK_PROPERTY(releaser->dt == 1); // it seems that wecan safely ignore dt
+    //CHECK_PROPERTY(releaser->dt_1 == 1);
+    // CHECK_PROPERTY(releaser->now == 0); // and now as well?
+    //ok now: CHECK_PROPERTY(releaser->count == 1);
+    CHECK_PROPERTY(releaser->index == 0);
 
-  for (int i = -1; i < releaser->buf_len; i++) {
-    for (abstract_element *aep = (i < 0) ? releaser->current : releaser->circ_buf_head[i];
-         aep != NULL; aep = aep->next) {
+    for (int i = -1; i < releaser->buf_len; i++) {
+      for (abstract_element *aep = (i < 0) ? releaser->current : releaser->circ_buf_head[i]; aep != NULL; aep = aep->next) {
 
-      ReleaseEvent event_data(world); // used only locally to capture the information
+        ReleaseEvent event_data(world); // used only locally to capture the information
 
-      // -- release_event_queue --
-      release_event_queue *req = (release_event_queue *)aep;
+        // -- release_event_queue --
+        release_event_queue *req = (release_event_queue *)aep;
 
-      event_data.event_time = req->event_time;
+        // mcell3 has several independent scheduling queues, this means that a release scheduled for
+        // middle of of a timestep is executed at the beginning of a timestep, time is the number of iterations
+        // therefore to get the iteration time, we can simply floor the value
+        event_data.event_time = floor_to_multiple(req->event_time, 1);
+        event_data.actual_release_time = req->event_time;
 
-      // -- release_site --
-      release_site_obj* rel_site = req->release_site;
+        // -- release_site --
+        release_site_obj* rel_site = req->release_site;
 
-      CHECK_PROPERTY(rel_site->release_shape == SHAPE_SPHERICAL || rel_site->release_shape == SHAPE_REGION);
-      switch (rel_site->release_shape) {
-        case SHAPE_SPHERICAL:
-          event_data.release_shape = ReleaseShape::SPHERICAL;
-          break;
-        case SHAPE_REGION:
-          event_data.release_shape = ReleaseShape::REGION;
-          break;
-        default:
-          assert(false);
-      }
+        CHECK_PROPERTY(rel_site->release_shape == SHAPE_SPHERICAL || rel_site->release_shape == SHAPE_REGION);
+        switch (rel_site->release_shape) {
+          case SHAPE_SPHERICAL:
+            event_data.release_shape = ReleaseShape::SPHERICAL;
+            break;
+          case SHAPE_REGION:
+            event_data.release_shape = ReleaseShape::REGION;
+            break;
+          default:
+            assert(false);
+        }
 
-      if (rel_site->region_data == nullptr) {
-        assert(rel_site->location != nullptr);
-        event_data.location = Vec3(*rel_site->location); // might be NULL
-      }
-      else if (rel_site->location == nullptr) {
-        assert(rel_site->region_data != nullptr);
-        release_region_data* region_data = rel_site->region_data;
-        event_data.location = Vec3(POS_INVALID);
-
-        // CHECK_PROPERTY(region_data->in_release == nullptr); // not sure what this means yet
-
-
-        if (rel_site->region_data->cum_area_list != nullptr) {
-          // surface molecules release onto region
-
+        if (rel_site->region_data == nullptr) {
+          assert(rel_site->location != nullptr);
+          event_data.location = Vec3(*rel_site->location); // might be NULL
+        }
+        else if (rel_site->location == nullptr) {
+          assert(rel_site->region_data != nullptr);
           release_region_data* region_data = rel_site->region_data;
-          for (int wall_i = 0; wall_i < region_data->n_walls_included; wall_i++) {
+          event_data.location = Vec3(POS_INVALID);
 
-            wall* w = region_data->owners[region_data->obj_index[wall_i]]->wall_p[region_data->wall_index[wall_i]];
+          // CHECK_PROPERTY(region_data->in_release == nullptr); // not sure what this means yet
 
-            PartitionWallIndexPair wall_index = get_mcell4_wall_index(w);
 
-            event_data.cum_area_and_pwall_index_pairs.push_back(
-                CummAreaPWallIndexPair(region_data->cum_area_list[wall_i], wall_index)
-            );
+          if (rel_site->region_data->cum_area_list != nullptr) {
+            // surface molecules release onto region
+
+            release_region_data* region_data = rel_site->region_data;
+            for (int wall_i = 0; wall_i < region_data->n_walls_included; wall_i++) {
+
+              wall* w = region_data->owners[region_data->obj_index[wall_i]]->wall_p[region_data->wall_index[wall_i]];
+
+              PartitionWallIndexPair wall_index = get_mcell4_wall_index(w);
+
+              event_data.cum_area_and_pwall_index_pairs.push_back(
+                  CummAreaPWallIndexPair(region_data->cum_area_list[wall_i], wall_index)
+              );
+            }
+
           }
+          else {
+            // volume or surface molecules release into region
 
+            // this is quite limited for now, a single region is allowed
+            CHECK_PROPERTY(region_data->cum_area_list == nullptr);
+            CHECK_PROPERTY(region_data->wall_index == nullptr);
+            CHECK_PROPERTY(region_data->n_objects == -1);
+            CHECK_PROPERTY(region_data->owners == 0);
+            // CHECK_PROPERTY(region_data->walls_per_obj == 0); not sure what this does
+
+            CHECK_PROPERTY(region_data->expression != nullptr);
+            release_evaluator* expression = region_data->expression;
+
+            event_data.region_llf = region_data->llf;
+            event_data.region_urb = region_data->urb;
+
+            event_data.region_expr_root = create_release_region_terms_recursively(expression, event_data);
+          }
         }
         else {
-          // volume molecules release into region
-
-          // this is quite limited for now, a single region is allowed
-          CHECK_PROPERTY(region_data->cum_area_list == nullptr);
-          CHECK_PROPERTY(region_data->wall_index == nullptr);
-          CHECK_PROPERTY(region_data->n_objects == -1);
-          CHECK_PROPERTY(region_data->owners == 0);
-          // CHECK_PROPERTY(region_data->walls_per_obj == 0); not sure what this does
-
-          CHECK_PROPERTY(region_data->expression != nullptr);
-          release_evaluator* expression = region_data->expression;
-          CHECK_PROPERTY(expression->op == (REXP_NO_OP | REXP_LEFT_REGION));
-          CHECK_PROPERTY(expression->left != nullptr);
-          CHECK_PROPERTY(expression->right == nullptr);
-          region* left_region = (region*)expression->left;
-
-          event_data.region_llf = region_data->llf;
-          event_data.region_urb = region_data->urb;
-          event_data.region_name = get_sym_name(left_region->sym);
+          CHECK_PROPERTY(
+              false
+              && "So far supporting location for volume molecules and region for surface molecules"
+          );
         }
-      }
-      else {
-        CHECK_PROPERTY(
-            false
-            && "So far supporting location for volume molecules and region for surface molecules"
-        );
-      }
 
-      event_data.species_id = get_mcell4_species_id(rel_site->mol_type->species_id);
+        event_data.species_id = get_mcell4_species_id(rel_site->mol_type->species_id);
+        assert(world->get_all_species().is_valid_id(event_data.species_id));
 
-      CHECK_PROPERTY(rel_site->release_number_method == 0);
-
-      CHECK_PROPERTY(event_data.release_shape == ReleaseShape::REGION || rel_site->orientation == 0);
-      event_data.orientation = rel_site->orientation;
-
-      event_data.release_number = rel_site->release_number;
-
-      CHECK_PROPERTY(rel_site->mean_diameter == 0); // temporary
-      CHECK_PROPERTY(rel_site->concentration == 0); // temporary
-      CHECK_PROPERTY(rel_site->standard_deviation == 0); // temporary
-      CHECK_PROPERTY(event_data.release_shape == ReleaseShape::REGION || rel_site->diameter != nullptr);
-      if (rel_site->diameter != nullptr) {
-        event_data.diameter = *rel_site->diameter; // ignored for now
-      }
-      else {
-        event_data.diameter = Vec3(POS_INVALID);
-      }
+        CHECK_PROPERTY(rel_site->release_number_method == CONSTNUM || rel_site->release_number_method == DENSITYNUM);
+        switch(rel_site->release_number_method) {
+          case CONSTNUM:
+            event_data.release_number_method = ReleaseNumberMethod::ConstNum;
+            CHECK_PROPERTY(rel_site->concentration == 0);
+            break;
+          case DENSITYNUM:
+            event_data.release_number_method = ReleaseNumberMethod::DensityNum;
+            break;
+          default:
+            assert(false);
+        }
 
 
-      CHECK_PROPERTY(rel_site->mol_list == nullptr);
-      CHECK_PROPERTY(rel_site->release_prob == 1); // temporary
-      // rel_site->periodic_box - ignoring?
+        CHECK_PROPERTY(event_data.release_shape == ReleaseShape::REGION || rel_site->orientation == 0);
+        event_data.orientation = rel_site->orientation;
 
-      event_data.release_site_name = rel_site->name;
-      // rel_site->graph_pattern - ignored
+        event_data.release_number = rel_site->release_number;
 
-      // -- release_event_queue -- (again)
-      CHECK_PROPERTY(t_matrix_to_mat4x4(req->t_matrix) == mat4x4(1) && "only identity matrix for now");
-      CHECK_PROPERTY(req->train_counter == 0);
+        CHECK_PROPERTY(rel_site->mean_diameter == 0); // temporary
 
-      //release_pattern
-      assert(rel_site->pattern != nullptr);
-      release_pattern* rp = rel_site->pattern;
-      if (rp->sym != nullptr) {
-        event_data.release_pattern_name = get_sym_name(rp->sym);
-      }
-      else {
-        event_data.release_pattern_name = NAME_NOT_SET;
-      }
+        event_data.concentration = rel_site->concentration;
 
-      assert(rp->delay == req->event_time && "Release pattern must specify the same delay as for which the event is scheduled");
-      assert(rp->delay == req->train_high_time && "Initial train_high_time must be the same as delay");
+        CHECK_PROPERTY(rel_site->standard_deviation == 0); // temporary
 
-      // schedule all the needed release events based on release pattern
-      // note: there might be many of them but for now, we assume that not so many
-      // maybe we will need to change it in a way so that the event schedules itself, but this was
-      // a simpler solution for now
-      float_t next_time = rp->delay;
-      for (int train = 0; train < rp->number_of_trains; train++) {
+        CHECK_PROPERTY(event_data.release_shape == ReleaseShape::REGION || rel_site->diameter != nullptr);
+        if (rel_site->diameter != nullptr) {
+          event_data.diameter = *rel_site->diameter;
+        }
+        else {
+          event_data.diameter = Vec3(LENGTH_INVALID);
+        }
 
-        float_t train_start = rp->delay + train * rp->train_interval;
-        float_t train_end = train_start + rp->train_duration;
-        float_t current_time = train_start;
-        while (current_time < train_end) {
-          ReleaseEvent* event_to_schedule = new ReleaseEvent(world);
-          *event_to_schedule = event_data;
 
-          event_to_schedule->event_time = current_time;
-          world->scheduler.schedule_event(event_to_schedule); // we always need to schedule a new instance
+        CHECK_PROPERTY(rel_site->mol_list == nullptr);
+        CHECK_PROPERTY(rel_site->release_prob == 1); // temporary
+        // rel_site->periodic_box - ignoring?
 
-          current_time += rp->release_interval;
+        event_data.release_site_name = rel_site->name;
+        // rel_site->graph_pattern - ignored
+
+        // -- release_event_queue -- (again)
+        CHECK_PROPERTY(t_matrix_to_mat4x4(req->t_matrix) == mat4x4(1) && "only identity matrix for now");
+        CHECK_PROPERTY(req->train_counter == 0);
+
+        //release_pattern
+        assert(rel_site->pattern != nullptr);
+        release_pattern* rp = rel_site->pattern;
+        if (rp->sym != nullptr) {
+          event_data.release_pattern_name = get_sym_name(rp->sym);
+        }
+        else {
+          event_data.release_pattern_name = NAME_NOT_SET;
+        }
+
+        assert(rp->delay == req->event_time && "Release pattern must specify the same delay as for which the event is scheduled");
+        assert(rp->delay == req->train_high_time && "Initial train_high_time must be the same as delay");
+
+        // schedule all the needed release events based on release pattern
+        // note: there might be many of them but for now, we assume that not so many
+        // maybe we will need to change it in a way so that the event schedules itself, but this was
+        // a simpler solution for now
+        float_t next_time = rp->delay;
+        for (int train = 0; train < rp->number_of_trains; train++) {
+
+          float_t train_start = rp->delay + train * rp->train_interval;
+          float_t train_end = train_start + rp->train_duration;
+          float_t current_time = train_start;
+          while (current_time < train_end) {
+            ReleaseEvent* event_to_schedule = new ReleaseEvent(world);
+            *event_to_schedule = event_data;
+
+            // similar as above for releases without release patterns, we need to set time to the beginning of the iteration
+            event_to_schedule->event_time = floor_to_multiple(current_time, 1);
+            event_to_schedule->actual_release_time =
+                event_to_schedule->event_time + (event_data.actual_release_time - event_data.event_time);
+            world->scheduler.schedule_event(event_to_schedule); // we always need to schedule a new instance
+
+            current_time += rp->release_interval;
+          }
         }
       }
     }
-  }
 
-  // -- schedule_helper -- (again)
-  CHECK_PROPERTY(releaser->current_count ==  0);
-  CHECK_PROPERTY(releaser->current == nullptr);
-  CHECK_PROPERTY(releaser->current_tail == nullptr);
-  CHECK_PROPERTY(releaser->defunct_count == 0);
-  CHECK_PROPERTY(releaser->error == 0);
-  CHECK_PROPERTY(releaser->depth == 0);
+    // -- schedule_helper -- (again)
+    CHECK_PROPERTY(releaser->current_count ==  0);
+    CHECK_PROPERTY(releaser->current == nullptr);
+    CHECK_PROPERTY(releaser->current_tail == nullptr);
+    CHECK_PROPERTY(releaser->defunct_count == 0);
+    CHECK_PROPERTY(releaser->error == 0);
+    //CHECK_PROPERTY(releaser->depth == 0); // ignore
+
+  }
 
   return true;
 }
@@ -996,11 +1216,30 @@ bool MCell3WorldConverter::convert_viz_output_events(volume* s) {
   CHECK_PROPERTY(viz_blocks->viz_mode == NO_VIZ_MODE || viz_blocks->viz_mode  == ASCII_MODE || viz_blocks->viz_mode == CELLBLENDER_MODE); // just checking valid values
   viz_mode_t viz_mode = viz_blocks->viz_mode;
   // CHECK_PROPERTY(viz_blocks->viz_output_flag == VIZ_ALL_MOLECULES); // ignored (for now?)
-  CHECK_PROPERTY(viz_blocks->species_viz_states != nullptr && (*viz_blocks->species_viz_states == (int)0x80000000 || *viz_blocks->species_viz_states == 0x7FFFFFFF)); // NOTE: not sure what this means
-  // CHECK_PROPERTY(viz_blocks->default_mol_state == 0x7FFFFFFF); // ignored, not sure what this means
+
+  uint_set<species_id_t> species_ids_to_visualize;
+  assert((int)mcell3_species_id_map.size() == s->n_species);
+  for (int i = 0; i < s->n_species; i++) {
+    if (viz_blocks->species_viz_states[i] == INCLUDE_OBJ) {
+      species_ids_to_visualize.insert_unique( get_mcell4_species_id(i) );
+    }
+    else if (viz_blocks->species_viz_states[i] == EXCLUDE_OBJ) {
+      continue; // this species is not counted
+    }
+    else {
+      assert(false);
+    }
+  }
+
+  // CHECK_PROPERTY(viz_blocks->default_mol_state == INCLUDE_OBJ); // seems to be used only internally
 
   // -- frame_data_head --
   frame_data_list* frame_data_head = viz_blocks->frame_data_head;
+  if (frame_data_head == nullptr) {
+    // no events to log
+    return true;
+  }
+
   CHECK_PROPERTY(frame_data_head->next == nullptr);
   CHECK_PROPERTY(frame_data_head->list_type == OUTPUT_BY_ITERATION_LIST); // limited for now
   CHECK_PROPERTY(frame_data_head->type == ALL_MOL_DATA); // limited for now
@@ -1014,10 +1253,12 @@ bool MCell3WorldConverter::convert_viz_output_events(volume* s) {
     assert(iteration_ptr->value == curr_viz_iteration_ptr->value);
 
     // create an event for each iteration
+    // TODO: create just one repeating event for periodic events
     VizOutputEvent* event = new VizOutputEvent(world);
     event->event_time = iteration_ptr->value;
     event->viz_mode = viz_mode;
     event->file_prefix_name = viz_blocks->file_prefix_name;
+    event->species_ids_to_visualize = species_ids_to_visualize; // copying the whole map
 
     world->scheduler.schedule_event(event);
 
@@ -1028,5 +1269,189 @@ bool MCell3WorldConverter::convert_viz_output_events(volume* s) {
   return true;
 }
 
+
+static output_request* find_output_request_by_requester(volume* s, output_expression* expr) {
+  for (
+      output_request* req = s->output_request_head;
+      req != nullptr;
+      req = req->next) {
+
+    // pointer comparison
+    if (req->requester == expr) {
+      return req;
+    }
+  }
+
+  return nullptr;
+}
+
+// returns false if conversion failed
+static bool find_output_requests_terms_recursively(
+    volume* s, output_expression* expr, int sign, std::vector< pair<output_request*, int>>& requests_with_sign) {
+  assert(sign == -1 || sign == 1);
+
+  // operator must me one of +, -, #
+  // # - cast output_request to expr
+
+  switch (expr->oper) {
+    case '#': {
+      output_request* req = find_output_request_by_requester(s, expr);
+      CHECK_PROPERTY(req != nullptr);
+      requests_with_sign.push_back(make_pair(req, sign));
+      }
+      break;
+
+
+    case '+':
+    case '-': {
+        bool left_ok = find_output_requests_terms_recursively(s, (output_expression*)expr->left, sign, requests_with_sign);
+        if (!left_ok) {
+          return false;
+        }
+
+        if (expr->oper == '-') {
+          sign = -sign;
+        }
+        bool right_ok = find_output_requests_terms_recursively(s, (output_expression*)expr->right, sign, requests_with_sign);
+        if (!right_ok) {
+          return false;
+        }
+      }
+      break;
+    default:
+      CHECK_PROPERTY(false && "Invalid output request operator");
+  }
+
+  return true;
+}
+
+static bool ends_with(std::string const & value, std::string const & ending)
+{
+    if (ending.size() > value.size()) {
+      return false;
+    }
+    return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
+}
+
+bool MCell3WorldConverter::convert_mol_count_events(volume* s) {
+  output_block* output_blocks = s->output_block_head;
+
+  if (output_blocks == nullptr) {
+    return true;
+  }
+
+  CHECK_PROPERTY(output_blocks->next == nullptr); // for now just one block
+
+  MolCountEvent* event = new MolCountEvent(world);
+
+  CHECK_PROPERTY(output_blocks->timer_type == OUTPUT_BY_STEP);
+
+  CHECK_PROPERTY(output_blocks->t == 0);
+  event->event_time = 0;
+  event->periodicity_interval = output_blocks->step_time / world->config.time_unit;
+  size_t buffer_size = output_blocks->buffersize;
+
+  // we can check that the time_array contains expected values
+
+  for (
+      output_set* data_set = output_blocks->data_set_head;
+      data_set != nullptr;
+      data_set = data_set->next) {
+
+    CHECK_PROPERTY(data_set->outfile_name != nullptr);
+    // appending "4" to distinguish from
+    count_buffer_id_t buffer_id = world->create_count_buffer(string("4") + data_set->outfile_name, buffer_size);
+
+    // NOTE: FILE_SUBSTITUTE is interpreted in the same way as FILE_OVERWRITE
+    CHECK_PROPERTY(data_set->file_flags == FILE_OVERWRITE || data_set->file_flags == FILE_SUBSTITUTE);
+    CHECK_PROPERTY(data_set->chunk_count == 0);
+    CHECK_PROPERTY(data_set->header_comment == nullptr);
+    CHECK_PROPERTY(data_set->exact_time_flag == 1);
+
+    output_column* column_head = data_set->column_head;
+    CHECK_PROPERTY(column_head->next == nullptr);
+    CHECK_PROPERTY(column_head->initial_value == 0);
+
+    // TODO: we should better check column_head->expr contents
+
+    // this information is split in a weird way in MCell3,
+    // output request contains more information on what should be counted,
+    // there is a way how to get to the output_set from the expression
+    // but not how to the output_request
+    // we simplify it to a list of terms with their sign
+    // first is the output request, second is sign (-1 or +1)
+    std::vector< pair<output_request*, int>> requests_with_sign;
+    CHECK(find_output_requests_terms_recursively(s, column_head->expr, +1, requests_with_sign));
+
+    MolCountInfo info(buffer_id);
+
+    for (pair<output_request*, int>& req_w_sign: requests_with_sign) {
+
+      MolCountTerm term;
+
+      term.sign_in_expression = req_w_sign.second;
+
+      output_request* req = req_w_sign.first;
+      CHECK_PROPERTY(req != 0);
+
+      int o = req->count_orientation;
+      if (o == ORIENT_NOT_SET) {
+        term.orientation = ORIENTATION_NOT_SET;
+      }
+      else {
+        CHECK_PROPERTY(o == ORIENTATION_UP || o == ORIENTATION_NONE || o == ORIENTATION_DOWN);
+        term.orientation = o;
+      }
+
+      // report type
+      CHECK_PROPERTY(
+          req->report_type == (REPORT_CONTENTS | REPORT_ENCLOSED) ||
+          req->report_type == (REPORT_CONTENTS | REPORT_WORLD)
+      );
+
+
+      // count target (species)
+      CHECK_PROPERTY(req->count_target != 0);
+      string species_name = get_sym_name(req->count_target);
+
+      term.species_id = world->get_all_species().find_by_name(species_name);
+      CHECK_PROPERTY(term.species_id != SPECIES_ID_INVALID);
+
+      // set a flag that these species are to be counted
+      BNG::Species& species = world->get_all_species().get(term.species_id);
+      species.set_flag(BNG::SPECIES_FLAG_COUNT_ENCLOSED);
+
+      // count location
+      // only whole geom object for now
+      if ((req->report_type & REPORT_ENCLOSED) != 0) {
+        term.type = CountType::EnclosedInObject;
+        string reg_name = get_sym_name(req->count_location);
+        CHECK_PROPERTY(ends_with(reg_name, ",ALL")); // for now only whole objects
+
+        const Region* reg = world->get_partition(0).find_region_by_name(reg_name);
+        CHECK_PROPERTY(reg != nullptr);
+        assert(reg->geometry_object_id != GEOMETRY_OBJECT_ID_INVALID);
+        term.geometry_object_id = reg->geometry_object_id;
+
+        GeometryObject& obj = world->get_partition(0).get_geometry_object(term.geometry_object_id);
+
+        // set flag that we should include this object in counted volumes
+        obj.is_counted_volume = true;
+      }
+      else {
+        CHECK_PROPERTY(req->count_location == nullptr);
+        term.type = CountType::World;
+      }
+
+
+      info.terms.push_back(term);
+    }
+    event->add_mol_count_info(info);
+  }
+
+  world->scheduler.schedule_event(event);
+
+  return true;
+}
 
 } // namespace mcell

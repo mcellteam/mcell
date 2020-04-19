@@ -77,7 +77,7 @@
 
 /* these are needed for the chkpt signal handler */
 int *chkpt_continue_after_checkpoint;
-char **chkpt_initialization_state;
+const char **chkpt_initialization_state;
 enum checkpoint_request_type_t *chkpt_checkpoint_requested;
 
 /* ============================= */

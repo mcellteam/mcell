@@ -243,7 +243,7 @@ char *mcell_find_include_file(char const *path, char const *cur_path) {
   if (path[0] == '/')
     candidate = strdup(path);
   else {
-    char *last_slash = strrchr(cur_path, '/');
+    const char *last_slash = strrchr(cur_path, '/');
 #ifdef _WIN32
     char *last_bslash = strrchr(cur_path, '\\');
     if (last_bslash > last_slash)
