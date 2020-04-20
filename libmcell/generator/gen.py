@@ -75,6 +75,7 @@ YAML_TYPE_INT = 'int'
 YAML_TYPE_LONG = 'long'
 YAML_TYPE_VEC2 = 'Vec2'
 YAML_TYPE_VEC3 = 'Vec3'
+YAML_TYPE_LIST = 'List'
 
 CPP_TYPE_FLOAT = 'float_t'
 CPP_TYPE_STR = 'std::string'
@@ -82,8 +83,12 @@ CPP_TYPE_INT = 'int'
 CPP_TYPE_LONG = 'long'
 CPP_TYPE_VEC2 = 'Vec2'
 CPP_TYPE_VEC3 = 'Vec3'
+CPP_VECTOR_TYPE = 'std::vector'
 
 CPP_REFERENCE_TYPES = [CPP_TYPE_STR, CPP_TYPE_VEC2, CPP_TYPE_VEC3]
+
+UNSET_VALUE = 'unset'
+EMPTY_ARRAY = 'empty'
 
 UNSET_VALUE_FLOAT = 'FLT_UNSET'
 UNSET_VALUE_STR = 'STR_UNSET'
@@ -92,6 +97,7 @@ UNSET_VALUE_INT = 'LONG_UNSET'
 UNSET_VALUE_VEC2 = 'VEC2_UNSET'
 UNSET_VALUE_VEC3 = 'VEC3_UNSET'
 UNSET_VALUE_PTR = 'nullptr'
+
 
 GEN_PREFIX = 'gen_'
 GUARD_PREFIX = 'API_GEN_'
@@ -132,6 +138,12 @@ def get_gen_class_file_name_w_dir(class_name, extension):
 def get_api_class_file_name(class_name, extension):
     return os.path.join(API_DIRECTORY, get_underscored(class_name) + '.' + extension)
 
+def is_base_yaml_type(t):
+    return \
+        t == YAML_TYPE_FLOAT or t == YAML_TYPE_STR or t == YAML_TYPE_INT or t == YAML_TYPE_LONG or \
+        t == YAML_TYPE_VEC2 or t == YAML_TYPE_VEC3 or \
+        (t.startswith(YAML_TYPE_LIST) and is_base_yaml_type(t[len(YAML_TYPE_LIST)+1:-1]))
+
 def yaml_type_to_cpp_type(t):
     assert len(t) >= 1
     if t == YAML_TYPE_FLOAT:
@@ -146,8 +158,12 @@ def yaml_type_to_cpp_type(t):
         return CPP_TYPE_VEC2
     elif t == YAML_TYPE_VEC3:
         return CPP_TYPE_VEC3
+    elif t.startswith(YAML_TYPE_LIST):
+        assert len(t) > 7
+        inner_type = yaml_type_to_cpp_type(t[len(YAML_TYPE_LIST)+1:-1])
+        return CPP_VECTOR_TYPE + '<' + inner_type + '>'
     else:
-        return t + '*' # everything else is passed as a pointer
+        return t
     
 
 def get_type_as_ref_param(attr):
@@ -164,6 +180,11 @@ def get_type_as_ref_param(attr):
 
 
 def get_unset_value(attr):
+    if KEY_DEFAULT in attr:
+        default_value = attr[KEY_DEFAULT]
+        if default_value != UNSET_VALUE and default_value != EMPTY_ARRAY:
+            return str(default_value) 
+    
     assert KEY_TYPE in attr
     t = attr[KEY_TYPE]
     if t == YAML_TYPE_FLOAT:
@@ -178,6 +199,8 @@ def get_unset_value(attr):
         return UNSET_VALUE_VEC2
     elif t == YAML_TYPE_VEC3:
         return UNSET_VALUE_VEC3
+    elif t.startswith(YAML_TYPE_LIST):
+        return yaml_type_to_cpp_type(t) + '()'
     else:
         return UNSET_VALUE_PTR
 
@@ -185,10 +208,6 @@ def get_unset_value(attr):
 def is_cpp_ptr_type(t):
     assert len(t) >= 1
     return t[-1] == '*'
-
-
-def is_yaml_ptr_type(t):
-    return is_cpp_ptr_type(yaml_type_to_cpp_type(t))
 
     
 def is_cpp_ptr_or_ref_type(t):
@@ -341,32 +360,43 @@ def write_define_binding_decl(f, class_name):
     f.write('py::class_<' + class_name + '> define_pybinding_' + class_name + '(py::module& m)')           
 
 
-def get_all_used_pointer_types(class_def):
+def remove_ptr_mark(t):
+    assert len(t) > 1
+    if t[-1] == '*':
+        return t[0:-1]
+    else:
+        return t
+    
+
+def get_all_used_compound_types(class_def):
     types = set()
     for items in class_def[KEY_ITEMS]:
         assert KEY_TYPE in items
         t = items[KEY_TYPE]
-        if is_yaml_ptr_type(t):
-            types.add(t)
+        if not is_base_yaml_type(t):
+            types.add( remove_ptr_mark(t) )
 
     for method in class_def[KEY_METHODS]:
         if KEY_RETURN_TYPE in method:
             t = method[KEY_RETURN_TYPE]
-            if is_yaml_ptr_type(t):
-                types.add(t)
+            if not is_base_yaml_type(t):
+                types.add( remove_ptr_mark(t) )
             
         if KEY_PARAMS in method:
             for param in method[KEY_PARAMS]:
                 assert KEY_TYPE in param
                 t = param[KEY_TYPE]
-                if is_yaml_ptr_type(t):
-                    types.add(t)
-    return types
+                if not is_base_yaml_type(t):
+                    types.add( remove_ptr_mark(t) )
+                    
+    sorted_types = list(types)
+    sorted_types.sort()
+    return sorted_types
 
 
 def write_forward_decls(f, class_def):
     # first we need to collect all types that we will need
-    types = get_all_used_pointer_types(class_def);
+    types = get_all_used_compound_types(class_def)
     
     for t in types:
         f.write('class ' + t + ';\n')
@@ -429,7 +459,7 @@ def write_to_str_implemetation(f, class_name, items):
         f.write('      "' + name + '=" << ')
         
         type = items[i][KEY_TYPE]
-        if is_yaml_ptr_type(type):
+        if not is_base_yaml_type(type):
             f.write('((' + name + ' != nullptr) ? ' + name + '->to_str() : "null" )')
         else:
             f.write(name)
@@ -515,7 +545,7 @@ def write_pybind11_bindings(f, class_name, class_def):
     
                 
 def write_used_classes_includes(f, class_def):
-    types = get_all_used_pointer_types(class_def)
+    types = get_all_used_compound_types(class_def)
     for t in types:
         f.write('#include "' + get_api_class_file_name(t, EXT_H) + '"\n')
 

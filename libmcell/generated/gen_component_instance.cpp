@@ -1,0 +1,72 @@
+/******************************************************************************
+ *
+ * Copyright (C) 2020 by
+ * The Salk Institute for Biological Studies and
+ * Pittsburgh Supercomputing Center, Carnegie Mellon University
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+ * USA.
+ *
+******************************************************************************/
+
+#include <sstream>
+#include "gen_component_instance.h"
+#include "../api/component_instance.h"
+#include "../api/component_type.h"
+
+namespace MCell {
+namespace API {
+
+SemRes GenComponentInstance::check_semantics(std::ostream& out) const{
+  if (!is_set(component_type)) {
+    out << get_object_name() << ": Parameter 'component_type' must be set.\n";
+    return SemRes::ERROR;
+  }
+  return SemRes::OK;
+}
+
+std::string GenComponentInstance::to_str() const{
+  std::stringstream ss;
+  ss << get_object_name() << ": " <<
+      "component_type=" << ((component_type != nullptr) ? component_type->to_str() : "null" ) << ", " <<
+      "state=" << state << ", " <<
+      "bond=" << bond;
+  return ss.str();
+}
+
+py::class_<ComponentInstance> define_pybinding_ComponentInstance(py::module& m) {
+  return py::class_<ComponentInstance>(m, "ComponentInstance")
+      .def(
+          py::init<
+            const ComponentType*,
+            const std::string&,
+            const int
+          >()
+,          py::arg("component_type"),
+          py::arg("state") = STATE_UNSET,
+          py::arg("bond") = BOND_UNBOUND
+        )
+      .def("check_semantics", &ComponentInstance::check_semantics_cerr)
+      .def("__str__", &ComponentInstance::to_str)
+      .def("dump", &ComponentInstance::dump)
+      .def_property("component_type", &ComponentInstance::get_component_type, &ComponentInstance::set_component_type)
+      .def_property("state", &ComponentInstance::get_state, &ComponentInstance::set_state)
+      .def_property("bond", &ComponentInstance::get_bond, &ComponentInstance::set_bond)
+    ;
+}
+
+} // namespace API
+} // namespace MCell
+

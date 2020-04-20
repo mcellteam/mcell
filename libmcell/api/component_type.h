@@ -21,29 +21,29 @@
  *
 ******************************************************************************/
 
-/**
- * This header includes all C++ classes of MCell API.
- * File should be used only from outside of this library to avoid cyclic includes.
- */
+#ifndef API_COMPONENT_TYPE_H
+#define API_COMPONENT_TYPE_H
 
-#ifndef API_MCELL_H
-#define API_MCELL_H
+#include <string>
 
-#include "../api/common.h"
+#include "../generated/gen_component_type.h"
+#include "common.h"
+#include "component_instance.h"
+
+namespace MCell {
+namespace API {
+
+class ComponentType: public GenComponentType {
+public:
+  COMPONENT_TYPE_CTOR()
+
+  ComponentInstance inst(const std::string& state, const int bond) override {
+    return ComponentInstance(this, state, bond);
+  }
+};
 
 
-// data classes
-#include "../api/component_type.h"
-#include "../api/component_instance.h"
+} // namespace API
+} // namespace MCell
 
-#include "../api/geometry_object.h"
-#include "../api/release_site.h"
-#include "../api/species.h"
-
-
-// classes with methods
-#include "../api/model.h"
-#include "../api/subsystem.h"
-#include "../api/instantiation_data.h"
-
-#endif // API_MCELL_H
+#endif // API_COMPONENT_TYPE_H

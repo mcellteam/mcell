@@ -3,6 +3,53 @@
 # Static API definition 
 # - classes whose objects represent the static state of the model
 
+#constants:
+#    - name: STATE_UNSET
+#      type: str
+#      value: state_unset
+#
+#    - name: BOND_UNBOUND
+#      type: int
+#      value: 0
+
+ComponentType:
+    superclass: BaseDataClass
+    items:
+        - name: name
+          type: str
+
+        - name: states
+          type: List[str]
+          default: empty
+          
+    methods:
+        - name: inst
+          return_type: ComponentInstance
+          params:
+              - name: state
+                type: str
+                default: STATE_UNSET
+                
+              - name: bond
+                type: int
+                default: BOND_UNBOUND
+
+
+ComponentInstance:
+    superclass: BaseDataClass
+    items:
+        - name: component_type
+          type: ComponentType*
+
+        - name: state
+          type: str
+          default: STATE_UNSET
+          
+        - name: bond
+          type: int
+          default: BOND_UNBOUND
+               
+               
 Species:
     superclass: BaseDataClass
     items:
@@ -13,7 +60,7 @@ Species:
     
         - name: diffusion_constant_3d
           type: float
-          default: null # the value is optional and might need to be checked with a more complex check
+          default: unset # the value is optional and might need to be checked with a more complex check
           doc: > 
               This molecule diffuses in space with diffusion constant D. D can
               be zero, in which case the molecule doesn’t move.
@@ -21,7 +68,7 @@ Species:
     
         - name: diffusion_constant_2d
           type: float
-          default: null
+          default: unset
           doc: > 
               This molecule is constrained to a surface and diffuses with 
               diffusion constant D. 
@@ -42,7 +89,7 @@ ReleaseSite:
               name of region(s) on which to release.
     
         - name: molecule
-          type: Species  # Species must have beemn defined before
+          type: Species*  # Species must have beemn defined before
           doc: > 
               The named molecule is the one that will be released. Not used for 
               the 'list' shape. You must specify an orientation if the molecule 
@@ -50,19 +97,19 @@ ReleaseSite:
         
         - name: location
           type: Vec3  # Vec3 and Vec2 are built-in data types
-          default: null  # null is equivalent to None in YAML
+          default: unset  # null is equivalent to None in YAML
        
         - name: site_diameter
           type: float
-          default: null
+          default: unset
           
         - name: site_radius
           type: float
-          default: null       
+          default: unset       
           
         - name: release_probability
           type: float
-          default: null       
+          default: unset       
 
             
 GeometryObject:
@@ -90,10 +137,10 @@ Subsystem:
         - name: add_species
           params:
               - name: s
-                type: Species
+                type: Species*
 
         - name: find_species   # 'find' prefix is always used when the  
-          return_type: Species
+          return_type: Species*
           params:
               - name: name
                 type: str
@@ -104,10 +151,10 @@ InstantiationData:
         - name: add_release_site
           params:
               - name: s
-                type: Species            
+                type: Species*            
 
         - name: find_release_site
-          return_type: ReleaseSite
+          return_type: ReleaseSite*
           params:
               - name: name
                 type: str            
@@ -115,7 +162,7 @@ InstantiationData:
         - name: add_geometry_object
           params:
               - name: o
-                type: GeometryObject           
+                type: GeometryObject*           
 
         - name: find_geometry_object
           params:
@@ -139,10 +186,10 @@ Model:
         - name: add_subsystem
           params:
               - name: subsystem
-                type: Subsystem
+                type: Subsystem*
                 
         - name: add_instantiation_data
           params:
               - name: instantiation_data
-                type: InstantiationData
+                type: InstantiationData*
                 

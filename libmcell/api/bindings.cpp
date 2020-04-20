@@ -22,9 +22,14 @@
 ******************************************************************************/
 
 #include "mcell.h"
+
+#include "../generated/gen_component_type.h"
+#include "../generated/gen_component_instance.h"
+
 #include "../generated/gen_species.h"
 #include "../generated/gen_release_site.h"
 #include "../generated/gen_geometry_object.h"
+
 #include "../generated/gen_subsystem.h"
 #include "../generated/gen_instantiation_data.h"
 #include "../generated/gen_model.h"
@@ -61,6 +66,10 @@ PYBIND11_MODULE(mcell, m) {
       .export_values();
 
   define_pybinding_Vec3(m);
+
+  define_pybinding_ComponentType(m);
+  define_pybinding_ComponentInstance(m);
+
   define_pybinding_ReleaseSite(m);
   define_pybinding_Species(m);
   define_pybinding_GeometryObject(m);

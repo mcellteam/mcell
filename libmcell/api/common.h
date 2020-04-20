@@ -14,6 +14,12 @@ namespace py = pybind11;
 namespace MCell {
 namespace API {
 
+
+// TODO: generate
+const std::string STATE_UNSET = "state_unset";
+const int BOND_UNBOUND = 0;
+
+
 // semantic check error codes
 enum class SemRes {
   UNCHECKED, // not checked yet
@@ -47,6 +53,11 @@ static inline bool is_set(const void* a) {
 }
 static inline bool is_set(const std::string& a) {
   return a != STR_UNSET && a != "";
+}
+
+static inline std::ostream& operator << (std::ostream& out, const std::vector<std::string> arr) {
+  assert(false && "TODO");
+  return out;
 }
 
 // base class for all classes that hold the model input data

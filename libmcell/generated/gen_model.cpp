@@ -24,11 +24,11 @@
 #include <sstream>
 #include "gen_model.h"
 #include "../api/model.h"
-#include "../api/release_site.h"
-#include "../api/instantiation_data.h"
 #include "../api/geometry_object.h"
-#include "../api/subsystem.h"
+#include "../api/instantiation_data.h"
+#include "../api/release_site.h"
 #include "../api/species.h"
+#include "../api/subsystem.h"
 
 namespace MCell {
 namespace API {
