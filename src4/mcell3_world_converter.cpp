@@ -1173,7 +1173,9 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
         for (int train = 0; train < rp->number_of_trains; train++) {
 
           float_t train_start = rp->delay + train * rp->train_interval;
-          float_t train_end = train_start + rp->train_duration;
+          // -EPS is needed to deal with precision issues even when we 
+          // are strictly (<) comparing current and end time
+          float_t train_end = train_start + rp->train_duration - EPS; 
           float_t current_time = train_start;
           while (current_time < train_end) {
             ReleaseEvent* event_to_schedule = new ReleaseEvent(world);
