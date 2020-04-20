@@ -40,8 +40,8 @@ public:
       world(world_) {
   }
 
-  virtual void step();
-  virtual void dump(const std::string indent);
+  void step() override;
+  void dump(const std::string indent) const override;
 private:
   World* world;
 };

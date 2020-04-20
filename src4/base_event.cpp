@@ -29,10 +29,10 @@ using namespace std;
 
 namespace MCell {
 
-void BaseEvent::dump(const std::string indent) {
-  cout << indent << "event_time: \t\t" << event_time << " [float_t] \t\t\n";
-  cout << indent << "periodicity_interval: \t\t" << periodicity_interval << " [float_t] \t\t\n";
-  cout << indent << "type_index: \t\t" << type_index << " [event_type_index_t] \t\t\n";
+void BaseEvent::dump(const std::string ind) const {
+  cout << ind << "event_time: \t\t" << event_time << " [float_t] \t\t\n";
+  cout << ind << "periodicity_interval: \t\t" << periodicity_interval << " [float_t] \t\t\n";
+  cout << ind << "type_index: \t\t" << type_index << " [event_type_index_t] \t\t\n";
 }
 
 } // namespace mcell

@@ -44,9 +44,9 @@ using namespace std;
 
 namespace MCell {
 
-void VizOutputEvent::dump(const std::string indent) {
-  cout << indent << "Viz output event:\n";
-  std::string ind2 = indent + "  ";
+void VizOutputEvent::dump(const std::string ind) const {
+  cout << ind << "Viz output event:\n";
+  std::string ind2 = ind + "  ";
   BaseEvent::dump(ind2);
   cout << ind2 << "viz_mode: \t\t" << viz_mode << " [viz_mode_t] \t\t\n";
   cout << ind2 << "file_prefix_name: \t\t" << file_prefix_name << " [const char*] \t\t\n";

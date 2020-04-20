@@ -98,7 +98,7 @@ RegionExprNode* ReleaseEvent::create_new_region_expr_node_op(
 }
 
 
-void ReleaseEvent::dump(const string ind) {
+void ReleaseEvent::dump(const string ind) const {
   cout << "Release event:\n";
   string ind2 = ind + "  ";
   BaseEvent::dump(ind2);

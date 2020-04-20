@@ -2128,9 +2128,9 @@ bool DiffuseReactEvent::outcome_unimolecular(
 
 // ---------------------------------- dumping methods ----------------------------------
 
-void DiffuseReactEvent::dump(const std::string indent) {
-  cout << indent << "Diffuse-react event:\n";
-  std::string ind2 = indent + "  ";
+void DiffuseReactEvent::dump(const std::string ind) const {
+  cout << ind << "Diffuse-react event:\n";
+  std::string ind2 = ind + "  ";
   BaseEvent::dump(ind2);
   cout << ind2 << "diffusion_time_step: \t\t" << diffusion_time_step << " [float_t] \t\t\n";
 }

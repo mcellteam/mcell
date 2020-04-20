@@ -57,7 +57,7 @@ public:
   }
   virtual ~BaseEvent() {};
   virtual void step() = 0;
-  virtual void dump(const std::string indent);
+  virtual void dump(const std::string ind = "") const;
 
   // some events such as release events have their event time set for
   // the beginning of a timestep but internally they need to be ordered

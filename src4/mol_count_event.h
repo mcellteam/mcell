@@ -50,7 +50,7 @@ public:
       sign_in_expression(0) {
   }
 
-  void dump(const std::string ind);
+  void dump(const std::string ind = "") const;
 
   CountType type;
 
@@ -74,7 +74,7 @@ public:
     assert(buffer_id != COUNT_BUFFER_ID_INVALID);
   }
 
-  void dump(const std::string ind);
+  void dump(const std::string ind = "") const;
 
   // count buffer objects are owned by World
   count_buffer_id_t buffer_id;
@@ -96,10 +96,8 @@ public:
   }
   virtual ~MolCountEvent() {}
 
-  virtual void step();
-
-  // FIMXE: all events' dumps must be const and should use just 'ind' as arg name
-  virtual void dump(const std::string ind);
+  void step() override;
+  void dump(const std::string ind = "") const override;
 
   void add_mol_count_info(const MolCountInfo& info) {
     mol_count_infos.push_back(info);

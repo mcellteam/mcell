@@ -151,8 +151,8 @@ public:
     // repeat this event each time step
     periodicity_interval = diffusion_time_step;
   }
-  void step();
-  void dump(const std::string indent);
+  void step() override;
+  void dump(const std::string ind = "") const override;
 
   World* world;
 

@@ -43,8 +43,8 @@ public:
   }
   virtual ~VizOutputEvent() {}
 
-  virtual void step();
-  virtual void dump(const std::string indent);
+  void step() override;
+  void dump(const std::string ind = "") const override;
 
   viz_mode_t viz_mode;
   std::string file_prefix_name;
