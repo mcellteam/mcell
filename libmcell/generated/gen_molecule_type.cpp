@@ -51,16 +51,16 @@ std::string GenMoleculeType::to_str() const {
 }
 
 py::class_<MoleculeType> define_pybinding_MoleculeType(py::module& m) {
-  return py::class_<MoleculeType>(m, "MoleculeType")
+  return py::class_<MoleculeType, std::shared_ptr<MoleculeType>>(m, "MoleculeType")
       .def(
           py::init<
             const std::string&,
-            const std::vector<ComponentType*>,
+            const std::vector<std::shared_ptr<ComponentType>>,
             const float_t,
             const float_t
           >()
 ,          py::arg("name"),
-          py::arg("components") = std::vector<ComponentType*>(),
+          py::arg("components") = std::vector<std::shared_ptr<ComponentType>>(),
           py::arg("diffusion_constant_2d") = FLT_UNSET,
           py::arg("diffusion_constant_3d") = FLT_UNSET
         )

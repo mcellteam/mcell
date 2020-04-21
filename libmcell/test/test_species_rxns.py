@@ -10,7 +10,7 @@ print("ComponentType:")
 print(C)
 
 #C_inst = C.inst(state='1', bond=0)
-C_inst = C.inst('1', bond=0)
+C_inst = C.inst('1', 0)
 
 C_inst2 = C.inst(1)
 
@@ -29,10 +29,12 @@ print(CaM)
 C_inst0 = C.inst(0)
 N_inst1 = N.inst(1)
 
-CaM_inst = CaM.inst([C_inst0, N_inst1])
+#CaM_inst = CaM.inst([C_inst0])
+
+#CaM_inst = CaM.inst([C.inst(0)])
 
 # does not work..
-#CaM_inst = CaM.inst([C.inst(0), N.inst(1)])
+CaM_inst = CaM.inst([C.inst(0), N.inst(1)])
 
 print("MoleculeInstance:")
 print(CaM_inst)

@@ -60,12 +60,12 @@ std::string GenReleaseSite::to_str() const {
 }
 
 py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
-  return py::class_<ReleaseSite>(m, "ReleaseSite")
+  return py::class_<ReleaseSite, std::shared_ptr<ReleaseSite>>(m, "ReleaseSite")
       .def(
           py::init<
             const std::string&,
             const std::string&,
-            const Species*,
+            std::shared_ptr<Species>,
             const Vec3&,
             const float_t,
             const float_t,

@@ -36,8 +36,8 @@ public:
   virtual ~GenSubsystem() {}
   // --- attributes ---
   // --- methods ---
-  virtual void add_species(const Species* s) = 0;
-  virtual Species* find_species(const std::string& name) = 0;
+  virtual void add_species(std::shared_ptr<Species> s) = 0;
+  virtual std::shared_ptr<Species> find_species(const std::string& name) = 0;
 }; // GenSubsystem
 
 class Subsystem;

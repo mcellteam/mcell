@@ -33,7 +33,7 @@ namespace MCell {
 namespace API {
 
 py::class_<InstantiationData> define_pybinding_InstantiationData(py::module& m) {
-  return py::class_<InstantiationData>(m, "InstantiationData")
+  return py::class_<InstantiationData, std::shared_ptr<InstantiationData>>(m, "InstantiationData")
       .def(
           py::init<
           >()

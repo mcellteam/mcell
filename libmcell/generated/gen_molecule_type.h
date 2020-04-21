@@ -36,7 +36,7 @@ class MoleculeInstance;
 #define MOLECULE_TYPE_CTOR() \
     MoleculeType( \
         const std::string& name_, \
-        const std::vector<ComponentType*> components_ = std::vector<ComponentType*>(), \
+        const std::vector<std::shared_ptr<ComponentType>> components_ = std::vector<std::shared_ptr<ComponentType>>(), \
         const float_t diffusion_constant_2d_ = FLT_UNSET, \
         const float_t diffusion_constant_3d_ = FLT_UNSET \
     ) { \
@@ -53,11 +53,11 @@ public:
   std::string to_str() const override;
 
   // --- attributes ---
-  std::vector<ComponentType*> components;
-  virtual void set_components(const std::vector<ComponentType*> new_components_) {
+  std::vector<std::shared_ptr<ComponentType>> components;
+  virtual void set_components(const std::vector<std::shared_ptr<ComponentType>> new_components_) {
     components = new_components_;
   }
-  virtual std::vector<ComponentType*> get_components() const {
+  virtual std::vector<std::shared_ptr<ComponentType>> get_components() const {
     return components;
   }
 
@@ -78,7 +78,7 @@ public:
   }
 
   // --- methods ---
-  virtual MoleculeInstance inst(const std::vector<ComponentInstance*> components) = 0;
+  virtual MoleculeInstance inst(const std::vector<std::shared_ptr<ComponentInstance>> components) = 0;
 }; // GenMoleculeType
 
 class MoleculeType;

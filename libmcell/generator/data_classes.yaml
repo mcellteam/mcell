@@ -47,6 +47,21 @@ ComponentType:
       default: BOND_UNBOUND
       
       
+ComponentInstance:
+  superclass: BaseDataClass
+  items:
+  - name: component_type
+    type: ComponentType*
+
+  - name: state
+    type: str
+    default: STATE_UNSET
+    
+  - name: bond
+    type: int
+    default: BOND_UNBOUND      
+    
+      
 MoleculeType:
   superclass: BaseDataClass
   items:

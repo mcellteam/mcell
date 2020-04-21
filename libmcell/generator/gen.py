@@ -19,6 +19,7 @@ http://www.gnu.org/licenses/gpl-2.0.html
 
 # TODO: change 'items' to 'attributes'?
 # TODO: split to at least two files
+# TODO: cleanup const/nonconst handling
 
 import sys
 import os
@@ -117,6 +118,7 @@ RET_TYPE_CHECK_SEMANTICS = 'SemRes'
 DECL_CHECK_SEMANTICS = 'check_semantics(std::ostream& out) const'
 DECL_DEFINE_PYBINDIND_CONSTANTS = 'void define_pybinding_constants(py::module& m)'
 RET_TYPE_TO_STR = 'std::string'
+SHARED_PTR = 'std::shared_ptr'
 DECL_TO_STR = 'to_str() const'
 KEYWORD_OVERRIDE = 'override'
   
@@ -167,6 +169,10 @@ def is_base_yaml_type(t):
         (is_list(t) and is_base_yaml_type(get_inner_list_type(t)))
 
 
+def is_yaml_ptr_type(t):
+    return t[-1] == '*'
+
+
 def yaml_type_to_cpp_type(t):
     assert len(t) >= 1
     if t == YAML_TYPE_FLOAT:
@@ -186,7 +192,10 @@ def yaml_type_to_cpp_type(t):
         inner_type = yaml_type_to_cpp_type(get_inner_list_type(t))
         return CPP_VECTOR_TYPE + '<' + inner_type + '>'
     else:
-        return t
+        if is_yaml_ptr_type(t):
+            return SHARED_PTR + '<' + t[0:-1] + '>' 
+        else:
+            return t # standard ttype
     
     
 def yaml_type_to_pybind_type(t):
@@ -243,12 +252,11 @@ def get_default_or_unset_value(attr):
 
 
 def is_cpp_ptr_type(t):
-    assert len(t) >= 1
-    return t[-1] == '*'
+    return t.startswith(SHARED_PTR)
 
     
-def is_cpp_ptr_or_ref_type(t):
-    return is_cpp_ptr_type(t) or t in CPP_REFERENCE_TYPES
+def is_cpp_ref_type(t):
+    return t in CPP_REFERENCE_TYPES
 
 
 def write_generated_notice(f, input_file_name):
@@ -269,7 +277,8 @@ def write_ctor_define(f, class_name, items):
         assert KEY_NAME in attr
         name = attr[KEY_NAME]
 
-        f.write('        const ' + get_type_as_ref_param(attr) + ' ' + name + '_')
+        const_spec = 'const ' if not is_yaml_ptr_type(attr[KEY_TYPE]) else ''
+        f.write('        ' + const_spec + get_type_as_ref_param(attr) + ' ' + name + '_')
         
         if KEY_DEFAULT in attr:
             f.write(' = ' + get_default_or_unset_value(attr))
@@ -302,19 +311,20 @@ def write_attr_with_get_set(f, attr):
     yaml_type = attr[KEY_TYPE]
     cpp_type = yaml_type_to_cpp_type(yaml_type)
     
-    decl_const = 'const ' if is_cpp_ptr_type(cpp_type) else ''
-    decl_type = decl_const + cpp_type
+    #decl_const = 'const ' if is_cpp_ptr_type(cpp_type) else ''
+    decl_type = cpp_type
     
     # decl
     f.write('  ' + decl_type + ' ' + name + ';\n')
     
     # setter
-    f.write('  virtual void set_' + name + '(const ' + get_type_as_ref_param(attr) + ' new_' + name + '_) {\n')
+    arg_type_const = 'const ' if not is_cpp_ptr_type(cpp_type) else ''
+    f.write('  virtual void set_' + name + '(' + arg_type_const + get_type_as_ref_param(attr) + ' new_' + name + '_) {\n')
     f.write('    ' + name + ' = new_' + name + '_;\n')
     f.write('  }\n') 
 
     # getter
-    ret_type_const = 'const ' if is_cpp_ptr_or_ref_type(cpp_type) else ''
+    ret_type_const = 'const ' if is_cpp_ref_type(cpp_type) else ''
     
     f.write('  virtual ' + ret_type_const + get_type_as_ref_param(attr) + ' get_' + name + '() const {\n')
     f.write('    return ' + name + ';\n')
@@ -340,7 +350,8 @@ def write_method_signature(f, method):
             assert KEY_NAME in p
             assert KEY_TYPE in p
             t = get_type_as_ref_param(p)
-            f.write('const ' + t + ' ' + p[KEY_NAME])
+            const_spec = 'const ' if not is_yaml_ptr_type(p[KEY_TYPE]) else ''
+            f.write(const_spec + t + ' ' + p[KEY_NAME])
             if i != params_cnt - 1:
                 f.write(', ')
                 
@@ -498,7 +509,7 @@ def write_to_str_implemetation(f, class_name, items):
         type = items[i][KEY_TYPE]
         if is_list(type):
             underlying_type = get_inner_list_type(type)
-            if is_cpp_ptr_type(underlying_type):
+            if is_yaml_ptr_type(underlying_type):
                 f.write(VEC_PTR_TO_STR + '(' + name + ')')
             else:
                 f.write(VEC_NONPTR_TO_STR + '(' + name + ')')
@@ -575,7 +586,7 @@ def write_pybind11_bindings(f, class_name, class_def):
     
     write_define_binding_decl(f, class_name)
     f.write(' {\n')
-    f.write('  return py::class_<' + class_name + '>(m, "' + class_name + '")\n')
+    f.write('  return py::class_<' + class_name + ', ' + SHARED_PTR + '<' + class_name + '>>(m, "' + class_name + '")\n')
     f.write('      .def(\n')
     f.write('          py::init<\n')
 
@@ -583,7 +594,8 @@ def write_pybind11_bindings(f, class_name, class_def):
     num_items = len(items)
     for i in range(num_items):
         attr = items[i]
-        f.write('            const ' + get_type_as_ref_param(attr))
+        const_spec = 'const ' if not is_yaml_ptr_type(attr[KEY_TYPE]) else ''
+        f.write('            ' + const_spec + get_type_as_ref_param(attr))
         if i != num_items - 1:
             f.write(',\n')
     if num_items != 0:

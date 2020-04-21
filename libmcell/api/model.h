@@ -17,8 +17,8 @@ public:
 
   // from generated template
   void run_iterations(const long iterations) override {}
-  void add_subsystem(const Subsystem* subsystem) override {}
-  void add_instantiation_data(const InstantiationData* instantiation_data) override {}
+  void add_subsystem(std::shared_ptr<Subsystem> subsystem) override {}
+  void add_instantiation_data(std::shared_ptr<InstantiationData> instantiation_data) override {}
 
   // added manually
   void dump() const;

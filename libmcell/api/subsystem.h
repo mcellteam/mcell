@@ -35,8 +35,8 @@ namespace API {
 class Subsystem: public GenSubsystem {
 public:
   // from generated template
-  void add_species(const Species* s) override {}
-  Species* find_species(const std::string& name) override {return nullptr;}
+  void add_species(std::shared_ptr<Species> s) override {}
+  std::shared_ptr<Species> find_species(const std::string& name) override {return nullptr;}
 
   // added manually
   void dump() const;

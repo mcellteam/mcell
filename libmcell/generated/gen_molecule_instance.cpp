@@ -48,14 +48,14 @@ std::string GenMoleculeInstance::to_str() const {
 }
 
 py::class_<MoleculeInstance> define_pybinding_MoleculeInstance(py::module& m) {
-  return py::class_<MoleculeInstance>(m, "MoleculeInstance")
+  return py::class_<MoleculeInstance, std::shared_ptr<MoleculeInstance>>(m, "MoleculeInstance")
       .def(
           py::init<
-            const MoleculeType*,
-            const std::vector<ComponentInstance*>
+            std::shared_ptr<MoleculeType>,
+            const std::vector<std::shared_ptr<ComponentInstance>>
           >()
 ,          py::arg("molecule_type"),
-          py::arg("components") = std::vector<ComponentInstance*>()
+          py::arg("components") = std::vector<std::shared_ptr<ComponentInstance>>()
         )
       .def("check_semantics", &MoleculeInstance::check_semantics_cerr)
       .def("__str__", &MoleculeInstance::to_str)

@@ -33,7 +33,7 @@ class ComponentType;
 
 #define COMPONENT_INSTANCE_CTOR() \
     ComponentInstance( \
-        const ComponentType* component_type_, \
+        std::shared_ptr<ComponentType> component_type_, \
         const std::string& state_ = STATE_UNSET, \
         const int bond_ = BOND_UNBOUND \
     ) { \
@@ -49,11 +49,11 @@ public:
   std::string to_str() const override;
 
   // --- attributes ---
-  const ComponentType* component_type;
-  virtual void set_component_type(const ComponentType* new_component_type_) {
+  std::shared_ptr<ComponentType> component_type;
+  virtual void set_component_type(std::shared_ptr<ComponentType> new_component_type_) {
     component_type = new_component_type_;
   }
-  virtual const ComponentType* get_component_type() const {
+  virtual std::shared_ptr<ComponentType> get_component_type() const {
     return component_type;
   }
 

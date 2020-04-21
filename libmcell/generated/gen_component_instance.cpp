@@ -48,10 +48,10 @@ std::string GenComponentInstance::to_str() const {
 }
 
 py::class_<ComponentInstance> define_pybinding_ComponentInstance(py::module& m) {
-  return py::class_<ComponentInstance>(m, "ComponentInstance")
+  return py::class_<ComponentInstance, std::shared_ptr<ComponentInstance>>(m, "ComponentInstance")
       .def(
           py::init<
-            const ComponentType*,
+            std::shared_ptr<ComponentType>,
             const std::string&,
             const int
           >()

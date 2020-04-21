@@ -35,7 +35,7 @@ class Species;
     ReleaseSite( \
         const std::string& name_, \
         const std::string& shape_, \
-        const Species* molecule_, \
+        std::shared_ptr<Species> molecule_, \
         const Vec3& location_ = VEC3_UNSET, \
         const float_t site_diameter_ = FLT_UNSET, \
         const float_t site_radius_ = FLT_UNSET, \
@@ -65,11 +65,11 @@ public:
     return shape;
   }
 
-  const Species* molecule;
-  virtual void set_molecule(const Species* new_molecule_) {
+  std::shared_ptr<Species> molecule;
+  virtual void set_molecule(std::shared_ptr<Species> new_molecule_) {
     molecule = new_molecule_;
   }
-  virtual const Species* get_molecule() const {
+  virtual std::shared_ptr<Species> get_molecule() const {
     return molecule;
   }
 

@@ -34,8 +34,8 @@ class MoleculeType;
 
 #define MOLECULE_INSTANCE_CTOR() \
     MoleculeInstance( \
-        const MoleculeType* molecule_type_, \
-        const std::vector<ComponentInstance*> components_ = std::vector<ComponentInstance*>() \
+        std::shared_ptr<MoleculeType> molecule_type_, \
+        const std::vector<std::shared_ptr<ComponentInstance>> components_ = std::vector<std::shared_ptr<ComponentInstance>>() \
     ) { \
       class_name = "MoleculeInstance"; \
       molecule_type = molecule_type_; \
@@ -48,19 +48,19 @@ public:
   std::string to_str() const override;
 
   // --- attributes ---
-  const MoleculeType* molecule_type;
-  virtual void set_molecule_type(const MoleculeType* new_molecule_type_) {
+  std::shared_ptr<MoleculeType> molecule_type;
+  virtual void set_molecule_type(std::shared_ptr<MoleculeType> new_molecule_type_) {
     molecule_type = new_molecule_type_;
   }
-  virtual const MoleculeType* get_molecule_type() const {
+  virtual std::shared_ptr<MoleculeType> get_molecule_type() const {
     return molecule_type;
   }
 
-  std::vector<ComponentInstance*> components;
-  virtual void set_components(const std::vector<ComponentInstance*> new_components_) {
+  std::vector<std::shared_ptr<ComponentInstance>> components;
+  virtual void set_components(const std::vector<std::shared_ptr<ComponentInstance>> new_components_) {
     components = new_components_;
   }
-  virtual std::vector<ComponentInstance*> get_components() const {
+  virtual std::vector<std::shared_ptr<ComponentInstance>> get_components() const {
     return components;
   }
 

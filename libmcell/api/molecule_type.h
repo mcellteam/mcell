@@ -25,6 +25,7 @@
 #define API_MOLECULE_TYPE_H
 
 #include <string>
+#include <memory>
 
 #include "../generated/gen_molecule_type.h"
 #include "common.h"
@@ -33,12 +34,12 @@
 namespace MCell {
 namespace API {
 
-class MoleculeType: public GenMoleculeType {
+class MoleculeType: public GenMoleculeType, public std::enable_shared_from_this<MoleculeType> {
 public:
   MOLECULE_TYPE_CTOR()
 
-  MoleculeInstance inst(const std::vector<ComponentInstance*> components) override {
-    return MoleculeInstance(this, components);
+  MoleculeInstance inst(const std::vector<std::shared_ptr<ComponentInstance>> components) override {
+    return MoleculeInstance( shared_from_this(), components);
   }
 };
 

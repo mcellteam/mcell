@@ -47,7 +47,7 @@ std::string GenSpecies::to_str() const {
 }
 
 py::class_<Species> define_pybinding_Species(py::module& m) {
-  return py::class_<Species>(m, "Species")
+  return py::class_<Species, std::shared_ptr<Species>>(m, "Species")
       .def(
           py::init<
             const std::string&,

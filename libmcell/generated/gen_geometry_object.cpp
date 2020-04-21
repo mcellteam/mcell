@@ -45,7 +45,7 @@ std::string GenGeometryObject::to_str() const {
 }
 
 py::class_<GeometryObject> define_pybinding_GeometryObject(py::module& m) {
-  return py::class_<GeometryObject>(m, "GeometryObject")
+  return py::class_<GeometryObject, std::shared_ptr<GeometryObject>>(m, "GeometryObject")
       .def(
           py::init<
             const std::string&

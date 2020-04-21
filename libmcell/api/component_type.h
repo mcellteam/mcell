@@ -33,16 +33,16 @@
 namespace MCell {
 namespace API {
 
-class ComponentType: public GenComponentType {
+class ComponentType: public GenComponentType, public std::enable_shared_from_this<ComponentType> {
 public:
   COMPONENT_TYPE_CTOR()
 
   ComponentInstance inst(const std::string& state, const int bond) override {
-    return ComponentInstance(this, state, bond);
+    return ComponentInstance(shared_from_this(), state, bond);
   }
 
   ComponentInstance inst(const int state, const int bond) override {
-    return ComponentInstance(this, std::to_string(state), bond);
+    return ComponentInstance(shared_from_this(), std::to_string(state), bond);
   }
 };
 

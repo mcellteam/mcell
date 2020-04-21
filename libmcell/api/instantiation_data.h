@@ -36,9 +36,9 @@ class InstantiationData: public GenInstantiationData {
 public:
 
   // from generated template
-  void add_release_site(const Species* s) override {}
-  ReleaseSite* find_release_site(const std::string& name) override {return nullptr;}
-  void add_geometry_object(const GeometryObject* o) override {}
+  void add_release_site(std::shared_ptr<Species> s) override {}
+  std::shared_ptr<ReleaseSite> find_release_site(const std::string& name) override {return nullptr;}
+  void add_geometry_object(std::shared_ptr<GeometryObject> o) override {}
   void find_geometry_object(const std::string& name) override {}
 
   // added manually
