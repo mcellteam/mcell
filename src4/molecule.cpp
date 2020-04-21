@@ -45,8 +45,8 @@ string get_molecule_flags_string(uint flags, bool full_dump = true) {
 #define DUMP_FLAG(f, mask) if (((f) & (mask)) != 0) res += string(#mask) + ", ";
   DUMP_FLAG(flags, TYPE_SURF)
   DUMP_FLAG(flags, TYPE_VOL)
-  DUMP_FLAG(flags, ACT_DIFFUSE)
   if (full_dump) {
+    DUMP_FLAG(flags, ACT_DIFFUSE)
     DUMP_FLAG(flags, ACT_REACT)
 
     if ((flags & MOLECULE_FLAG_RESCHEDULE_UNIMOL_RX) != 0)

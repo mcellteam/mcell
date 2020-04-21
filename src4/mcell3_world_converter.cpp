@@ -216,7 +216,7 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
         s->partition_llf.y <= s->bb_llf.y || s->bb_urb.y <= s->partition_urb.y ||
         s->partition_llf.z <= s->bb_llf.z || s->bb_urb.z <= s->partition_urb.z
     ) {
-      mcell_warn("Partitioning was specified, but it is smaller than the automatically determined bounding box.");
+      mcell_log("Partitioning was specified, but it is smaller than the automatically determined bounding box.");
 
       float_t lu = s->length_unit;
       mcell_log("Bounding box in microns: [ %f, %f, %f ], [ %f, %f, %f ]",
