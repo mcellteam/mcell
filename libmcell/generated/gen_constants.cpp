@@ -21,30 +21,14 @@
  *
 ******************************************************************************/
 
-#include <sstream>
-#include <pybind11/stl.h>
-#include "gen_instantiation_data.h"
-#include "../api/instantiation_data.h"
-#include "../api/geometry_object.h"
-#include "../api/release_site.h"
-#include "../api/species.h"
+#include "../api/common.h"
 
 namespace MCell {
 namespace API {
 
-py::class_<InstantiationData> define_pybinding_InstantiationData(py::module& m) {
-  return py::class_<InstantiationData>(m, "InstantiationData")
-      .def(
-          py::init<
-          >()
-
-        )
-      .def("add_release_site", &InstantiationData::add_release_site, py::arg("s"))
-      .def("find_release_site", &InstantiationData::find_release_site, py::arg("name"))
-      .def("add_geometry_object", &InstantiationData::add_geometry_object, py::arg("o"))
-      .def("find_geometry_object", &InstantiationData::find_geometry_object, py::arg("name"))
-      .def("dump", &InstantiationData::dump)
-    ;
+void define_pybinding_constants(py::module& m) {
+  m.attr("STATE_UNSET") = py::str("state_unset");
+  m.attr("BOND_UNBOUND") = py::int_(0);
 }
 
 } // namespace API

@@ -22,13 +22,14 @@
 ******************************************************************************/
 
 #include <sstream>
+#include <pybind11/stl.h>
 #include "gen_species.h"
 #include "../api/species.h"
 
 namespace MCell {
 namespace API {
 
-SemRes GenSpecies::check_semantics(std::ostream& out) const{
+SemRes GenSpecies::check_semantics(std::ostream& out) const {
   if (!is_set(name)) {
     out << get_object_name() << ": Parameter 'name' must be set.\n";
     return SemRes::ERROR;
@@ -36,7 +37,7 @@ SemRes GenSpecies::check_semantics(std::ostream& out) const{
   return SemRes::OK;
 }
 
-std::string GenSpecies::to_str() const{
+std::string GenSpecies::to_str() const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
       "name=" << name << ", " <<

@@ -22,6 +22,7 @@
 ******************************************************************************/
 
 #include <sstream>
+#include <pybind11/stl.h>
 #include "gen_component_type.h"
 #include "../api/component_type.h"
 #include "../api/component_instance.h"
@@ -29,7 +30,7 @@
 namespace MCell {
 namespace API {
 
-SemRes GenComponentType::check_semantics(std::ostream& out) const{
+SemRes GenComponentType::check_semantics(std::ostream& out) const {
   if (!is_set(name)) {
     out << get_object_name() << ": Parameter 'name' must be set.\n";
     return SemRes::ERROR;
@@ -37,7 +38,7 @@ SemRes GenComponentType::check_semantics(std::ostream& out) const{
   return SemRes::OK;
 }
 
-std::string GenComponentType::to_str() const{
+std::string GenComponentType::to_str() const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
       "name=" << name << ", " <<
@@ -57,7 +58,7 @@ py::class_<ComponentType> define_pybinding_ComponentType(py::module& m) {
         )
       .def("check_semantics", &ComponentType::check_semantics_cerr)
       .def("__str__", &ComponentType::to_str)
-      .def("inst", &ComponentType::inst, py::arg("state"), py::arg("bond"))
+      .def("inst", &ComponentType::inst, py::arg("state") = "STATE_UNSET", py::arg("bond") = BOND_UNBOUND)
       .def("dump", &ComponentType::dump)
       .def_property("name", &ComponentType::get_name, &ComponentType::set_name)
       .def_property("states", &ComponentType::get_states, &ComponentType::set_states)

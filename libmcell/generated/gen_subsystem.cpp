@@ -22,6 +22,7 @@
 ******************************************************************************/
 
 #include <sstream>
+#include <pybind11/stl.h>
 #include "gen_subsystem.h"
 #include "../api/subsystem.h"
 #include "../api/species.h"

@@ -11,14 +11,10 @@
 namespace py = pybind11;
 #include <string>
 
+#include "../generated/gen_constants.h"
+
 namespace MCell {
 namespace API {
-
-
-// TODO: generate
-const std::string STATE_UNSET = "state_unset";
-const int BOND_UNBOUND = 0;
-
 
 // semantic check error codes
 enum class SemRes {
@@ -55,8 +51,16 @@ static inline bool is_set(const std::string& a) {
   return a != STR_UNSET && a != "";
 }
 
+// TODO: make a template out of this?
 static inline std::ostream& operator << (std::ostream& out, const std::vector<std::string> arr) {
-  assert(false && "TODO");
+  out << "[";
+  for (size_t i = 0; i < arr.size(); i++) {
+    out << arr[i];
+    if (i + 1 != arr.size()) {
+      out << ", ";
+    }
+  }
+  out << "]";
   return out;
 }
 

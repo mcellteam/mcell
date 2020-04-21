@@ -22,13 +22,14 @@
 ******************************************************************************/
 
 #include <sstream>
+#include <pybind11/stl.h>
 #include "gen_geometry_object.h"
 #include "../api/geometry_object.h"
 
 namespace MCell {
 namespace API {
 
-SemRes GenGeometryObject::check_semantics(std::ostream& out) const{
+SemRes GenGeometryObject::check_semantics(std::ostream& out) const {
   if (!is_set(name)) {
     out << get_object_name() << ": Parameter 'name' must be set.\n";
     return SemRes::ERROR;
@@ -36,7 +37,7 @@ SemRes GenGeometryObject::check_semantics(std::ostream& out) const{
   return SemRes::OK;
 }
 
-std::string GenGeometryObject::to_str() const{
+std::string GenGeometryObject::to_str() const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
       "name=" << name;

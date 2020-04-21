@@ -22,6 +22,7 @@
 ******************************************************************************/
 
 #include <sstream>
+#include <pybind11/stl.h>
 #include "gen_model.h"
 #include "../api/model.h"
 #include "../api/geometry_object.h"

@@ -22,6 +22,7 @@
 ******************************************************************************/
 
 #include <sstream>
+#include <pybind11/stl.h>
 #include "gen_component_instance.h"
 #include "../api/component_instance.h"
 #include "../api/component_type.h"
@@ -29,7 +30,7 @@
 namespace MCell {
 namespace API {
 
-SemRes GenComponentInstance::check_semantics(std::ostream& out) const{
+SemRes GenComponentInstance::check_semantics(std::ostream& out) const {
   if (!is_set(component_type)) {
     out << get_object_name() << ": Parameter 'component_type' must be set.\n";
     return SemRes::ERROR;
@@ -37,10 +38,10 @@ SemRes GenComponentInstance::check_semantics(std::ostream& out) const{
   return SemRes::OK;
 }
 
-std::string GenComponentInstance::to_str() const{
+std::string GenComponentInstance::to_str() const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
-      "component_type=" << ((component_type != nullptr) ? component_type->to_str() : "null" ) << ", " <<
+      "component_type=" << "(" << ((component_type != nullptr) ? component_type->to_str() : "null" ) << ")" << ", " <<
       "state=" << state << ", " <<
       "bond=" << bond;
   return ss.str();

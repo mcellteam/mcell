@@ -34,6 +34,8 @@
 #include "../generated/gen_instantiation_data.h"
 #include "../generated/gen_model.h"
 
+#include "../generated/gen_constants.h"
+
 namespace MCell {
 namespace API {
 
@@ -64,6 +66,8 @@ PYBIND11_MODULE(mcell, m) {
       .value("ERROR", SemRes::ERROR)
       .value("FATAL_ERROR", SemRes::FATAL_ERROR)
       .export_values();
+
+  define_pybinding_constants(m);
 
   define_pybinding_Vec3(m);
 

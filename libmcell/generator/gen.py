@@ -60,10 +60,13 @@ KEY_ITEMS = 'items'
 KEY_NAME = 'name'
 ATTR_NAME_NAME = 'name' # attrribute with name 'name' is already defined in BaseDataClass
 KEY_TYPE = 'type'
+KEY_VALUE = 'value'
 KEY_DEFAULT = 'default'
 
 KEY_SUPERCLASS = 'superclass'
 KEY_INHERITS_METHODS_FROM = 'inherits_methods_from'
+
+KEY_CONSTANTS = 'constants'
 
 KEY_METHODS = 'methods'
 KEY_PARAMS = 'params'
@@ -111,11 +114,15 @@ BASE_DATA_CLASS = 'BaseDataClass'
 
 RET_TYPE_CHECK_SEMANTICS = 'SemRes'
 DECL_CHECK_SEMANTICS = 'check_semantics(std::ostream& out) const'
+DECL_DEFINE_PYBINDIND_CONSTANTS = 'void define_pybinding_constants(py::module& m)'
 RET_TYPE_TO_STR = 'std::string'
 DECL_TO_STR = 'to_str() const'
 KEYWORD_OVERRIDE = 'override'
   
 CLASS_NAME_ATTR = 'class_name'
+
+GEN_CONSTANTS_H = 'gen_constants.h'
+GEN_CONSTANTS_CPP = 'gen_constants.cpp'
 
 INCLUDE_API_MCELL_H = '#include "../api/mcell.h"'
 INCLUDE_API_COMMON_H = '#include "../api/common.h"'
@@ -165,7 +172,21 @@ def yaml_type_to_cpp_type(t):
     else:
         return t
     
-
+    
+def yaml_type_to_pybind_type(t):
+    assert len(t) >= 1
+    if t == YAML_TYPE_FLOAT:
+        return CPP_TYPE_FLOAT
+    elif t == YAML_TYPE_STR:
+        return YAML_TYPE_STR
+    elif t == YAML_TYPE_INT:
+        return CPP_TYPE_INT + '_'
+    elif t == YAML_TYPE_LONG:
+        return CPP_TYPE_INT + '_'
+    else:
+        assert False, "Unsupported constant type " + t 
+    
+    
 def get_type_as_ref_param(attr):
     assert KEY_TYPE in attr
     
@@ -179,7 +200,7 @@ def get_type_as_ref_param(attr):
     return res
 
 
-def get_unset_value(attr):
+def get_default_or_unset_value(attr):
     if KEY_DEFAULT in attr:
         default_value = attr[KEY_DEFAULT]
         if default_value != UNSET_VALUE and default_value != EMPTY_ARRAY:
@@ -235,7 +256,7 @@ def write_ctor_define(f, class_name, items):
         f.write('        const ' + get_type_as_ref_param(attr) + ' ' + name + '_')
         
         if KEY_DEFAULT in attr:
-            f.write(' = ' + get_unset_value(attr))
+            f.write(' = ' + get_default_or_unset_value(attr))
         
         if i != num_items - 1:
             f.write(',')
@@ -339,7 +360,7 @@ def write_gen_class(f, class_name, class_def):
         
     if based_on_base_data_class(class_def):
         f.write('  ' + RET_TYPE_CHECK_SEMANTICS + ' ' + DECL_CHECK_SEMANTICS + ' ' + KEYWORD_OVERRIDE + ';\n')
-        f.write('  ' + RET_TYPE_TO_STR + ' ' +DECL_TO_STR + ' ' + KEYWORD_OVERRIDE + ';\n\n')
+        f.write('  ' + RET_TYPE_TO_STR + ' ' + DECL_TO_STR + ' ' + KEYWORD_OVERRIDE + ';\n\n')
         
     f.write('  // --- attributes ---\n')
     items = class_def[KEY_ITEMS]
@@ -439,7 +460,7 @@ def write_is_set_check(f, name):
   
 
 def write_check_semantics_implemetation(f, class_name, items):
-    f.write(RET_TYPE_CHECK_SEMANTICS + ' ' + GEN_CLASS_PREFIX + class_name + '::' + DECL_CHECK_SEMANTICS + '{\n') 
+    f.write(RET_TYPE_CHECK_SEMANTICS + ' ' + GEN_CLASS_PREFIX + class_name + '::' + DECL_CHECK_SEMANTICS + ' {\n') 
     for attr in items:
         if KEY_DEFAULT not in attr:
             write_is_set_check(f, attr[KEY_NAME])
@@ -449,7 +470,7 @@ def write_check_semantics_implemetation(f, class_name, items):
     
         
 def write_to_str_implemetation(f, class_name, items):
-    f.write(RET_TYPE_TO_STR + ' ' + GEN_CLASS_PREFIX + class_name + '::' + DECL_TO_STR + '{\n')
+    f.write(RET_TYPE_TO_STR + ' ' + GEN_CLASS_PREFIX + class_name + '::' + DECL_TO_STR + ' {\n')
     f.write('  std::stringstream ss;\n')
     f.write('  ss << get_object_name() << ": " <<\n')
     
@@ -460,7 +481,7 @@ def write_to_str_implemetation(f, class_name, items):
         
         type = items[i][KEY_TYPE]
         if not is_base_yaml_type(type):
-            f.write('((' + name + ' != nullptr) ? ' + name + '->to_str() : "null" )')
+            f.write('"(" << ((' + name + ' != nullptr) ? ' + name + '->to_str() : "null" ) << ")"')
         else:
             f.write(name)
 
@@ -486,6 +507,10 @@ def write_pybind11_method_bindings(f, class_name, method):
             p = params[i]
             assert KEY_NAME in p
             f.write('py::arg("' + p[KEY_NAME] + '")')
+            if KEY_DEFAULT in p:
+                q = '"' if p[KEY_TYPE] == YAML_TYPE_STR else ''
+                f.write(' = ' + q + get_default_or_unset_value(p) + q)
+                
     f.write(')\n')
     
     
@@ -518,7 +543,7 @@ def write_pybind11_bindings(f, class_name, class_def):
         name = attr[KEY_NAME]
         f.write('          py::arg("' + name + '")')
         if KEY_DEFAULT in attr:
-            f.write(' = ' + get_unset_value(attr))
+            f.write(' = ' + get_default_or_unset_value(attr))
         if i != num_items - 1:
             f.write(',\n')
     f.write('\n')            
@@ -556,7 +581,8 @@ def generate_class_implementation_and_bindings(class_name, class_def, input_file
         write_generated_notice(f, input_file_name)
         
         f.write('#include <sstream>\n')
-        
+        f.write('#include <pybind11/stl.h>\n')
+
         # includes for our class
         f.write('#include "' + get_gen_class_file_name(class_name, EXT_H) + '"\n')  
         f.write('#include "' + get_api_class_file_name(class_name, EXT_H) + '"\n')
@@ -611,13 +637,86 @@ def generate_class_files(data_classes, class_name, class_def, input_file_name):
     
     generate_class_implementation_and_bindings(class_name, class_def_w_method_inheritances, input_file_name)
     
+    
+def write_constant_def(f, constant_def):
+    assert KEY_NAME in constant_def
+    assert KEY_TYPE in constant_def
+    assert KEY_VALUE in constant_def
+    name = constant_def[KEY_NAME]
+    t = constant_def[KEY_TYPE]
+    value = constant_def[KEY_VALUE]
+    
+    q = '"' if t == YAML_TYPE_STR else ''
+    
+    f.write('const ' + yaml_type_to_cpp_type(t) + ' ' + name + ' = ' + q + str(value) + q + ';\n')
+        
+    
+def generate_constants_header(constants_items, input_file_name):
+    with open(os.path.join(TARGET_DIRECTORY, GEN_CONSTANTS_H), 'w') as f:
+        f.write(COPYRIGHT)
+        write_generated_notice(f, input_file_name)
+        
+        guard = 'API_GEN_CONSTANTS';
+        f.write('#ifndef ' + guard + '\n')
+        f.write('#define ' + guard + '\n\n')
+        
+        f.write('#include <string>\n')
+        f.write('\n' + NAMESPACES_BEGIN + '\n\n')
+        
+        for constant_def in constants_items:
+            write_constant_def(f, constant_def)
+
+        f.write('\n' + DECL_DEFINE_PYBINDIND_CONSTANTS + ';\n\n')
+        
+        f.write(NAMESPACES_END + '\n\n')
+        
+        f.write('#endif // ' + guard + '\n\n')
+
+
+def write_constant_binding(f, constant_def):
+    assert KEY_NAME in constant_def
+    assert KEY_TYPE in constant_def
+    assert KEY_VALUE in constant_def
+    name = constant_def[KEY_NAME]
+    t = constant_def[KEY_TYPE]
+    value = constant_def[KEY_VALUE]
+    
+    q = '"' if t == YAML_TYPE_STR else ''
+    
+    f.write('  m.attr("' + name + '") = py::' + yaml_type_to_pybind_type(t) + '(' + q + str(value) + q + ');\n')
+    
+        
+def generate_constants_implementation(constants_items, input_file_name):
+    with open(os.path.join(TARGET_DIRECTORY, GEN_CONSTANTS_CPP), 'w') as f:
+        f.write(COPYRIGHT)
+        write_generated_notice(f, input_file_name)
+        f.write(INCLUDE_API_COMMON_H + '\n')
+        f.write('\n' + NAMESPACES_BEGIN + '\n\n')
+        
+        f.write(DECL_DEFINE_PYBINDIND_CONSTANTS + ' {\n')
+        
+        for constant_def in constants_items:
+            write_constant_binding(f, constant_def)
+        
+        f.write('}\n\n')
+        
+        f.write(NAMESPACES_END + '\n\n')    
+
+
+def generate_constants(constants_items, input_file_name):
+    generate_constants_header(constants_items, input_file_name)
+    generate_constants_implementation(constants_items, input_file_name)
+
 
 def generate_data_classes(data_classes, input_file_name):
     assert type(data_classes) == dict
     for key, value in data_classes.items():
-        generate_class_files(data_classes, key, value, input_file_name)
+        if key != KEY_CONSTANTS:
+            generate_class_files(data_classes, key, value, input_file_name)
+        else:
+            generate_constants(value, input_file_name)
     
-    
+        
 def load_and_generate_data_classes():
     with open(DATA_CLASSES_FILE) as file:
         # The FullLoader parameter handles the conversion from YAML

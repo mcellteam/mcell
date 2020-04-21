@@ -3,14 +3,14 @@
 # Static API definition 
 # - classes whose objects represent the static state of the model
 
-#constants:
-#    - name: STATE_UNSET
-#      type: str
-#      value: state_unset
-#
-#    - name: BOND_UNBOUND
-#      type: int
-#      value: 0
+constants:
+    - name: STATE_UNSET
+      type: str
+      value: state_unset
+
+    - name: BOND_UNBOUND
+      type: int
+      value: 0
 
 ComponentType:
     superclass: BaseDataClass

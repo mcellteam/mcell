@@ -36,6 +36,8 @@ set(SOURCE_FILES
     generated/gen_subsystem.cpp
     generated/gen_instantiation_data.cpp
     generated/gen_model.cpp
+    
+    generated/gen_constants.cpp
 )
 
 set(ALL_SOURCES
