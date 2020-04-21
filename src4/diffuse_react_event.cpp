@@ -101,6 +101,76 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const std::vector<molecu
     }
   }
 
+#if 0
+  // we have two queues and we must execute items according to their time
+  // priority? released diffusions?
+
+  std::vector<DiffuseOrUnimolRxnAction>* queues[2] = {
+      &delayed_release_diffusions, &new_diffuse_or_unimol_react_actions
+  };
+  bool empty[2] = {queues[0]->empty(), queues[1]->empty() };
+  uint indices[2] = {0, 0};
+
+  while(!empty[0] || !empty[1]) {
+
+    DiffuseOrUnimolRxnAction* actions[2] = { nullptr, nullptr};
+
+    DiffuseOrUnimolRxnAction* selected_action;
+    uint selected_queue;
+
+    if (empty[0]) {
+      selected_action = &(*queues[1])[indices[1]];
+      selected_queue = 1;
+    }
+    else if (empty[1]) {
+      selected_action = &(*queues[0])[indices[0]];
+      selected_queue = 0;
+    }
+    else if ( (*queues[0])[indices[0]].scheduled_time < (*queues[1])[indices[1]].scheduled_time )  {
+      assert(!empty[0]);
+      selected_action = &(*queues[0])[indices[0]];
+      selected_queue = 0;
+    }
+    else {
+      assert(!empty[1]);
+      selected_action = &(*queues[1])[indices[1]];
+      selected_queue = 1;
+    }
+
+    if (selected_action->type == DiffuseOrUnimolRxnAction::Type::DIFFUSE) {
+      diffuse_single_molecule(
+          p, selected_action->id,
+          selected_action->scheduled_time,
+          selected_action->where_created_this_iteration // making a copy of this pair
+      );
+    }
+    else {
+      bool diffuse_right_away = react_unimol_single_molecule(
+          p, selected_action->id, selected_action->scheduled_time, selected_action->unimol_rx);
+
+      // get a fresh action reference - unimol reaction could have added some items into the array
+      const DiffuseOrUnimolRxnAction& new_ref_action = (*queues[selected_queue])[indices[selected_queue]];
+      if (diffuse_right_away) {
+        // if the molecule survived (e.g. in rxn like A -> A + B), then
+        // diffuse it right away
+        // (another option is to put it into the new_diffuse_or_unimol_react_actions
+        //  but MCell3 diffuses them right away)
+        diffuse_single_molecule(
+            p, new_ref_action.id,
+            new_ref_action.scheduled_time,
+            new_ref_action.where_created_this_iteration // making a copy of this pair
+        );
+      }
+    }
+
+    indices[selected_queue]++;
+
+    empty[0] = queues[0]->size() == indices[0];
+    empty[1] = queues[1]->size() == indices[1];
+  }
+
+#else
+
   // 2) mcell3 first handles diffusions of existing molecules, then the delayed diffusions
   // actions created by the diffusion of all these molecules are handled later
   for (uint i = 0; i < delayed_release_diffusions.size(); i++) {
@@ -152,7 +222,7 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const std::vector<molecu
       }
     }
   }
-
+#endif
   new_diffuse_or_unimol_react_actions.clear();
 }
 
