@@ -3846,7 +3846,11 @@ void run_timestep(struct volume *state, struct storage *local,
     struct wall *current_wall = NULL;
     // The maximum time we can spend diffusing or looking for reactions
     double max_time;
+#ifdef MCELL_ALWAYS_DIFFUSE
+    int can_diffuse = 1;
+#else
     int can_diffuse = ((am->flags & ACT_DIFFUSE) != 0);
+#endif
     if (can_diffuse) {
       max_time = checkpt_time - am->t;
       if (local->max_timestep < max_time)

@@ -45,8 +45,11 @@
 #define MCELL3_ONLY_ONE_MEMPART
 #define MCELL3_SORTED_VIZ_OUTPUT
 #define MCELL3_SORTED_WALLS_FOR_COLLISION
+// possibility of a bug when MCELL3_SORTED_MOLS_ON_RUN_TIMESTEP is enabled,
+// see /home/ahusar/src4_bng/mcell_tests/tests/mdl/4033_rat_nmj_all_releases_at_timestep_start
 #define MCELL3_SORTED_MOLS_ON_RUN_TIMESTEP  // sort molecules in schedule helper according to ID before a new timestep begins
 #define MCELL3_NEXT_BARRIER_IS_THE_NEXT_TIMESTEP // do not diffuse more than until the end of the timestep
+//#define MCELL3_ALWAYS_DIFFUSE // non-diffusable molecules are scheduled differently when there is a unimol reaction and ??
 #define ASSERT_FOR_MCELL4(...) assert(__VA_ARGS__)
 
 #else
@@ -63,11 +66,11 @@
 #if (!defined(NDEBUG) || defined(DUMP_ALWAYS)) && !defined(DUMP_NEVER)
 
 #define FROM_ITERATION 0
-#define TO_ITERATION 9
+#define TO_ITERATION 2
 
 #if 1
 #define DEBUG_DIFFUSION
-#define DEBUG_COLLISIONS
+//#define DEBUG_COLLISIONS
 #define DEBUG_REACTIONS
 #endif
 
@@ -81,13 +84,14 @@
 
 //#define DEBUG_EDGE_INITIALIZATION
 
+//#define DEBUG_SCHEDULER_ACTION
 //#define DEBUG_SCHEDULER
 
 //#define DEBUG_DEFRAGMENTATION
 
-//#define DEBUG_RELEASES // cannot be conditioned by iterations
+#define DEBUG_RELEASES // cannot be conditioned by iterations
 
-//#define DEBUG_RNG_CALLS // cannot be conditioned by iterations
+#define DEBUG_RNG_CALLS // cannot be conditioned by iterations
 
 // does not generate the same dump as mcell3
 //#define DEBUG_SUBPARTITIONS
