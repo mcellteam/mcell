@@ -211,6 +211,8 @@ void RxnRule::compute_cplx_reactants_products_mapping() {
 
       if (reactants[ri].equal_ignore_orientation(products[pi])) {
         cplx_mapping.push_back(CplxIndexPair(ri, pi));
+        // reactant was mapped, continue with the next reactant
+        break;
       }
     }
   }
