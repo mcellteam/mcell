@@ -25,6 +25,8 @@
 
 #include "../generated/gen_component_type.h"
 #include "../generated/gen_component_instance.h"
+#include "../generated/gen_molecule_type.h"
+#include "../generated/gen_molecule_instance.h"
 
 #include "../generated/gen_species.h"
 #include "../generated/gen_release_site.h"
@@ -35,6 +37,14 @@
 #include "../generated/gen_model.h"
 
 #include "../generated/gen_constants.h"
+
+#if __cplusplus < 201402L
+#error "Pybind11 overload requires at least C++14"
+#endif
+
+#ifndef PYBIND11_OVERLOAD_CAST
+#error "PYBIND11_OVERLOAD_CAST must be defined"
+#endif
 
 namespace MCell {
 namespace API {
@@ -73,6 +83,8 @@ PYBIND11_MODULE(mcell, m) {
 
   define_pybinding_ComponentType(m);
   define_pybinding_ComponentInstance(m);
+  define_pybinding_MoleculeType(m);
+  define_pybinding_MoleculeInstance(m);
 
   define_pybinding_ReleaseSite(m);
   define_pybinding_Species(m);

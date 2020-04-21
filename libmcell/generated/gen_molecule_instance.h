@@ -21,8 +21,8 @@
  *
 ******************************************************************************/
 
-#ifndef API_GEN_COMPONENT_TYPE_H
-#define API_GEN_COMPONENT_TYPE_H
+#ifndef API_GEN_MOLECULE_INSTANCE_H
+#define API_GEN_MOLECULE_INSTANCE_H
 
 #include "../api/common.h"
 
@@ -30,39 +30,46 @@ namespace MCell {
 namespace API {
 
 class ComponentInstance;
+class MoleculeType;
 
-#define COMPONENT_TYPE_CTOR() \
-    ComponentType( \
-        const std::string& name_, \
-        const std::vector<std::string> states_ = std::vector<std::string>() \
+#define MOLECULE_INSTANCE_CTOR() \
+    MoleculeInstance( \
+        const MoleculeType* molecule_type_, \
+        const std::vector<ComponentInstance*> components_ = std::vector<ComponentInstance*>() \
     ) { \
-      class_name = "ComponentType"; \
-      name = name_; \
-      states = states_; \
+      class_name = "MoleculeInstance"; \
+      molecule_type = molecule_type_; \
+      components = components_; \
     }
 
-class GenComponentType: public BaseDataClass {
+class GenMoleculeInstance: public BaseDataClass {
 public:
   SemRes check_semantics(std::ostream& out) const override;
   std::string to_str() const override;
 
   // --- attributes ---
-  std::vector<std::string> states;
-  virtual void set_states(const std::vector<std::string> new_states_) {
-    states = new_states_;
+  const MoleculeType* molecule_type;
+  virtual void set_molecule_type(const MoleculeType* new_molecule_type_) {
+    molecule_type = new_molecule_type_;
   }
-  virtual std::vector<std::string> get_states() const {
-    return states;
+  virtual const MoleculeType* get_molecule_type() const {
+    return molecule_type;
+  }
+
+  std::vector<ComponentInstance*> components;
+  virtual void set_components(const std::vector<ComponentInstance*> new_components_) {
+    components = new_components_;
+  }
+  virtual std::vector<ComponentInstance*> get_components() const {
+    return components;
   }
 
   // --- methods ---
-  virtual ComponentInstance inst(const std::string& state, const int bond) = 0;
-  virtual ComponentInstance inst(const int state, const int bond) = 0;
-}; // GenComponentType
+}; // GenMoleculeInstance
 
-class ComponentType;
-py::class_<ComponentType> define_pybinding_ComponentType(py::module& m);
+class MoleculeInstance;
+py::class_<MoleculeInstance> define_pybinding_MoleculeInstance(py::module& m);
 } // namespace API
 } // namespace MCell
 
-#endif // API_GEN_COMPONENT_TYPE_H
+#endif // API_GEN_MOLECULE_INSTANCE_H

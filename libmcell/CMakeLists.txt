@@ -28,6 +28,8 @@ set(SOURCE_FILES
 
     generated/gen_component_type.cpp
     generated/gen_component_instance.cpp
+    generated/gen_molecule_type.cpp
+    generated/gen_molecule_instance.cpp
 
     generated/gen_geometry_object.cpp
     generated/gen_release_site.cpp

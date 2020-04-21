@@ -17,7 +17,8 @@ For the complete terms of the GNU General Public License, please see this URL:
 http://www.gnu.org/licenses/gpl-2.0.html
 """
 
-# TODO: change 'items' to 'attributes'
+# TODO: change 'items' to 'attributes'?
+# TODO: split to at least two files
 
 import sys
 import os
@@ -129,6 +130,8 @@ INCLUDE_API_COMMON_H = '#include "../api/common.h"'
 NAMESPACES_BEGIN = 'namespace MCell {\nnamespace API {'
 NAMESPACES_END = '} // namespace API\n} // namespace MCell'
 
+VEC_NONPTR_TO_STR = 'vec_nonptr_to_str'
+VEC_PTR_TO_STR = 'vec_ptr_to_str'
 
 def get_underscored(class_name):
     return re.sub(r'(?<!^)(?=[A-Z])', '_', class_name).lower()
@@ -145,11 +148,24 @@ def get_gen_class_file_name_w_dir(class_name, extension):
 def get_api_class_file_name(class_name, extension):
     return os.path.join(API_DIRECTORY, get_underscored(class_name) + '.' + extension)
 
+def is_list(t):
+    return t.startswith(YAML_TYPE_LIST)
+
+
+# rename inner to underlying?
+def get_inner_list_type(t):
+    if is_list(t):
+        return t[len(YAML_TYPE_LIST)+1:-1]
+    else:
+        return t
+
+
 def is_base_yaml_type(t):
     return \
         t == YAML_TYPE_FLOAT or t == YAML_TYPE_STR or t == YAML_TYPE_INT or t == YAML_TYPE_LONG or \
         t == YAML_TYPE_VEC2 or t == YAML_TYPE_VEC3 or \
-        (t.startswith(YAML_TYPE_LIST) and is_base_yaml_type(t[len(YAML_TYPE_LIST)+1:-1]))
+        (is_list(t) and is_base_yaml_type(get_inner_list_type(t)))
+
 
 def yaml_type_to_cpp_type(t):
     assert len(t) >= 1
@@ -165,9 +181,9 @@ def yaml_type_to_cpp_type(t):
         return CPP_TYPE_VEC2
     elif t == YAML_TYPE_VEC3:
         return CPP_TYPE_VEC3
-    elif t.startswith(YAML_TYPE_LIST):
+    elif is_list(t):
         assert len(t) > 7
-        inner_type = yaml_type_to_cpp_type(t[len(YAML_TYPE_LIST)+1:-1])
+        inner_type = yaml_type_to_cpp_type(get_inner_list_type(t))
         return CPP_VECTOR_TYPE + '<' + inner_type + '>'
     else:
         return t
@@ -220,7 +236,7 @@ def get_default_or_unset_value(attr):
         return UNSET_VALUE_VEC2
     elif t == YAML_TYPE_VEC3:
         return UNSET_VALUE_VEC3
-    elif t.startswith(YAML_TYPE_LIST):
+    elif is_list(t):
         return yaml_type_to_cpp_type(t) + '()'
     else:
         return UNSET_VALUE_PTR
@@ -410,7 +426,7 @@ def get_all_used_compound_types(class_def):
                 if not is_base_yaml_type(t):
                     types.add( remove_ptr_mark(t) )
                     
-    sorted_types = list(types)
+    sorted_types = [ remove_ptr_mark( get_inner_list_type(t) ) for t in list(types) ]
     sorted_types.sort()
     return sorted_types
 
@@ -480,7 +496,13 @@ def write_to_str_implemetation(f, class_name, items):
         f.write('      "' + name + '=" << ')
         
         type = items[i][KEY_TYPE]
-        if not is_base_yaml_type(type):
+        if is_list(type):
+            underlying_type = get_inner_list_type(type)
+            if is_cpp_ptr_type(underlying_type):
+                f.write(VEC_PTR_TO_STR + '(' + name + ')')
+            else:
+                f.write(VEC_NONPTR_TO_STR + '(' + name + ')')
+        elif not is_base_yaml_type(type):
             f.write('"(" << ((' + name + ' != nullptr) ? ' + name + '->to_str() : "null" ) << ")"')
         else:
             f.write(name)
@@ -494,10 +516,44 @@ def write_to_str_implemetation(f, class_name, items):
     f.write('}\n\n')                
 
 
-def write_pybind11_method_bindings(f, class_name, method):
+def is_overloaded(method, class_def):
+    name = method[KEY_NAME] 
+    count = 0
+    for m in class_def[KEY_METHODS]:
+        if m[KEY_NAME] == name:
+            count += 1
+             
+    assert count >= 1
+    return count >= 2 
+
+
+def get_method_overload_cast(method):
+    res = 'py::overload_cast<'
+    
+    if KEY_PARAMS in method:
+        params = method[KEY_PARAMS]
+        params_cnt = len(params)
+        for i in range(params_cnt):
+            p = params[i]
+            assert KEY_TYPE in p
+            t = get_type_as_ref_param(p)
+            res += 'const ' + t
+            if i + 1 != params_cnt:
+                res += ', '
+    
+    res += '>'
+    return res
+
+def write_pybind11_method_bindings(f, class_name, method, class_def):
     assert KEY_NAME in method
     name = method[KEY_NAME]
-    f.write('      .def("' + name + '", &' + class_name + '::' + name)  
+    
+    full_method_name = '&' + class_name + '::' + name
+    if is_overloaded(method, class_def):
+        # overloaded method must be extra decorated with argument types for pybind11
+        full_method_name = get_method_overload_cast(method) + '(' + full_method_name + ')' 
+    
+    f.write('      .def("' + name + '", ' + full_method_name)  
     
     if KEY_PARAMS in method:
         params = method[KEY_PARAMS]
@@ -556,7 +612,7 @@ def write_pybind11_bindings(f, class_name, class_def):
         
     # declared methods
     for m in class_def[KEY_METHODS]:
-        write_pybind11_method_bindings(f, class_name, m)
+        write_pybind11_method_bindings(f, class_name, m, class_def)
 
     # dump needs to be always implemented
     f.write('      .def("dump", &' + class_name + '::dump)\n')

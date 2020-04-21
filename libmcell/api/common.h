@@ -3,6 +3,7 @@
 #define API_COMMON_H
 
 #include <ostream>
+#include <sstream>
 
 #include "defines.h"
 
@@ -10,6 +11,7 @@
 
 namespace py = pybind11;
 #include <string>
+#include <vector>
 
 #include "../generated/gen_constants.h"
 
@@ -51,10 +53,41 @@ static inline bool is_set(const std::string& a) {
   return a != STR_UNSET && a != "";
 }
 
-// TODO: make a template out of this?
-static inline std::ostream& operator << (std::ostream& out, const std::vector<std::string> arr) {
+template<typename T>
+static inline std::string vec_ptr_to_str(const std::vector<T>& arr) {
+  std::stringstream ss;
+  ss << "[";
+  for (size_t i = 0; i < arr.size(); i++) {
+    ss << i << ":" << arr[i]->to_str();
+    if (i + 1 != arr.size()) {
+      ss << ", ";
+    }
+  }
+  ss << "]";
+  return ss.str();
+}
+
+
+template<typename T>
+static inline std::string vec_nonptr_to_str(const std::vector<T>& arr) {
+  std::stringstream ss;
+  ss << "[";
+  for (size_t i = 0; i < arr.size(); i++) {
+    ss << i << ":" << arr[i];
+    if (i + 1 != arr.size()) {
+      ss << ", ";
+    }
+  }
+  ss << "]";
+  return ss.str();
+}
+
+/*
+template<typename T, typename std::enable_if_t<!std::is_pointer<T>::value>* = 0>
+static inline std::ostream& operator << (std::ostream& out, const std::vector<T>& arr) {
   out << "[";
   for (size_t i = 0; i < arr.size(); i++) {
+    std::cout << "\nmyprint2*\n";
     out << arr[i];
     if (i + 1 != arr.size()) {
       out << ", ";
@@ -63,6 +96,21 @@ static inline std::ostream& operator << (std::ostream& out, const std::vector<st
   out << "]";
   return out;
 }
+
+
+template<typename T, typename std::enable_if_t<std::is_pointer<T>::value>* = 0>
+static inline std::ostream& operator << (std::ostream& out, const std::vector<T*>& arr) {
+  out << "[";
+  for (size_t i = 0; i < arr.size(); i++) {
+    std::cout << "\nmyprint*\n" << arr[i];
+    out << arr[i]->to_str();
+    if (i + 1 != arr.size()) {
+      out << ", ";
+    }
+  }
+  out << "]";
+  return out;
+}*/
 
 // base class for all classes that hold the model input data
 class BaseDataClass {

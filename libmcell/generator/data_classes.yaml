@@ -1,195 +1,206 @@
-# TODO: rename - this file contains also dynamic API definition
-
-# Static API definition 
+# Static API definition
 # - classes whose objects represent the static state of the model
-
+# TODO: rename - this file contains also dynamic API definition
 constants:
-    - name: STATE_UNSET
-      type: str
-      value: state_unset
-
-    - name: BOND_UNBOUND
-      type: int
-      value: 0
-
+  - name: STATE_UNSET
+    type: str
+    value: state_unset
+    
+  - name: STATE_UNSET_INT
+    type: int
+    value: -1
+        
+  - name: BOND_UNBOUND
+    type: int
+    value: 0
+    
+    
 ComponentType:
-    superclass: BaseDataClass
-    items:
-        - name: name
-          type: str
+  superclass: BaseDataClass
+  items:
+  - name: name
+    type: str
+    
+  - name: states
+    type: List[str]
+    default: empty
+    
+  methods:
+  - name: inst
+    return_type: ComponentInstance
+    params:
+    - name: state
+      type: str
+      default: STATE_UNSET_INT
+    - name: bond
+      type: int
+      default: BOND_UNBOUND
 
-        - name: states
-          type: List[str]
-          default: empty
-          
-    methods:
-        - name: inst
-          return_type: ComponentInstance
-          params:
-              - name: state
-                type: str
-                default: STATE_UNSET
-                
-              - name: bond
-                type: int
-                default: BOND_UNBOUND
+  - name: inst
+    return_type: ComponentInstance
+    params:
+    - name: state
+      type: int
+      default: STATE_UNSET
+    - name: bond
+      type: int
+      default: BOND_UNBOUND
+      
+      
+MoleculeType:
+  superclass: BaseDataClass
+  items:
+  - name: name
+    type: str
+    
+  - name: components
+    type: List[ComponentType*]
+    default: empty
 
-
-ComponentInstance:
-    superclass: BaseDataClass
-    items:
-        - name: component_type
-          type: ComponentType*
-
-        - name: state
-          type: str
-          default: STATE_UNSET
-          
-        - name: bond
-          type: int
-          default: BOND_UNBOUND
-               
-               
+  - name: diffusion_constant_2d
+    type: float
+    default: unset
+    
+  - name: diffusion_constant_3d
+    type: float
+    default: unset
+    
+  methods:
+  - name: inst
+    return_type: MoleculeInstance
+    params:
+    - name: components
+      type: List[ComponentInstance*]
+      
+      
+MoleculeInstance:
+  superclass: BaseDataClass
+  items:
+  - name: molecule_type
+    type: MoleculeType*
+    
+  - name: components
+    type: List[ComponentInstance*]
+    default: empty
+    
+    
 Species:
-    superclass: BaseDataClass
-    items:
-        - name: name
-          type: str
-          # no default value, this value must be entered
-          doc: Name of the species
+  superclass: BaseDataClass
+  items:
+  - name: name
+    type: str
+    doc: Name of the species
     
-        - name: diffusion_constant_3d
-          type: float
-          default: unset # the value is optional and might need to be checked with a more complex check
-          doc: > 
-              This molecule diffuses in space with diffusion constant D. D can
-              be zero, in which case the molecule doesn’t move.
-              The units of D are cm 2 /s.
+  - name: diffusion_constant_3d
+    type: float
+    default: unset # the value is optional and might need to be checked with a more complex check
+    doc: This molecule diffuses in space with diffusion constant D. D can be zero, in which case the molecule doesn’t move. The units of D are cm 2 /s.
+      
+  - name: diffusion_constant_2d
+    type: float
+    default: unset
+    doc: This molecule is constrained to a surface and diffuses with  diffusion constant D.
     
-        - name: diffusion_constant_2d
-          type: float
-          default: unset
-          doc: > 
-              This molecule is constrained to a surface and diffuses with 
-              diffusion constant D. 
-
-# need to read items in order 
+    
 ReleaseSite:
-    superclass: BaseDataClass
-    items:
-        - name: name
-          type: str
-          doc: Name of the release site
-            
-        - name: shape
-          type: str
-          doc: >
-              Release molecules in the specified shape. Valid shapes are 'cubic',
-              spherical', 'spherical_shell', and 'list'; or the name of the 
-              name of region(s) on which to release.
+  superclass: BaseDataClass
+  items:
+  - name: name
+    type: str
+    doc: Name of the release site
     
-        - name: molecule
-          type: Species*  # Species must have beemn defined before
-          doc: > 
-              The named molecule is the one that will be released. Not used for 
-              the 'list' shape. You must specify an orientation if the molecule 
-                is a surface molecule.
-        
-        - name: location
-          type: Vec3  # Vec3 and Vec2 are built-in data types
-          default: unset  # null is equivalent to None in YAML
+  - name: shape
+    type: str
+    doc: |
+      Release molecules in the specified shape. Valid shapes are 'cubic', spherical', 'spherical_shell', and 'list'; or the name of the  name of region(s) on which to release.
+      
+  - name: molecule
+    type: Species* # Species must have beemn defined before
+    doc: | 
+      The named molecule is the one that will be released. Not used for  the 'list' shape. You must specify an orientation 
+      if the molecule is a surface molecule.
        
-        - name: site_diameter
-          type: float
-          default: unset
-          
-        - name: site_radius
-          type: float
-          default: unset       
-          
-        - name: release_probability
-          type: float
-          default: unset       
-
-            
+  - name: location
+    type: Vec3 # Vec3 and Vec2 are built-in data types
+    default: unset # null is equivalent to None in YAML
+    
+  - name: site_diameter
+    type: float
+    default: unset
+    
+  - name: site_radius
+    type: float
+    default: unset
+    
+  - name: release_probability
+    type: float
+    default: unset
+    
+    
 GeometryObject:
-    superclass: BaseDataClass
-    items:
-        - name: name
-          type: str
-          doc: Name of the object
-          
-          
+  superclass: BaseDataClass
+  items:
+  - name: name
+    type: str
+    doc: Name of the object
+    
+    
 # Dynamic API definition
-#
-# - the section below defines classes with their methods 
-# - the assumption is that the dynamic API does not change so often
-# 
-# - base classes are generated as a check for API consistency
-# - we will need to manually override all the methods, so this might seem as a double work,
-#   but with pybind011 we would be forced to repeat the work anyway and it would not help with 
-#   documentation generation 
-# 
-# distinguish data and manipulation classes?
-# 
-Subsystem:    
-    methods:
-        - name: add_species
-          params:
-              - name: s
-                type: Species*
-
-        - name: find_species   # 'find' prefix is always used when the  
-          return_type: Species*
-          params:
-              - name: name
-                type: str
-                
-
+Subsystem:
+  methods:
+  - name: add_species
+    params:
+    - name: s
+      type: Species*
+      
+  - name: find_species # 'find' prefix is always used when the  
+    return_type: Species*
+    params:
+    - name: name
+      type: str
+      
+      
 InstantiationData:
-    methods:
-        - name: add_release_site
-          params:
-              - name: s
-                type: Species*            
-
-        - name: find_release_site
-          return_type: ReleaseSite*
-          params:
-              - name: name
-                type: str            
-
-        - name: add_geometry_object
-          params:
-              - name: o
-                type: GeometryObject*           
-
-        - name: find_geometry_object
-          params:
-              - name: name
-                type: str            
-            
-            
+  methods:
+  - name: add_release_site
+    params:
+    - name: s
+      type: Species*
+      
+  - name: find_release_site
+    return_type: ReleaseSite*
+    params:
+    - name: name
+      type: str
+      
+  - name: add_geometry_object
+    params:
+    - name: o
+      type: GeometryObject*
+      
+  - name: find_geometry_object
+    params:
+    - name: name
+      type: str
+      
+      
 Model:
-     # inheritance information is provided only for the API generation,
-     # on the C++ level, inheritance is done manually 
-    inherits_methods_from: 
-        - name: Subsystem
-        - name: InstantiationData
-        
-    methods:
-        - name: run_iterations
-          params:
-              - name: iterations
-                type: long
-          
-        - name: add_subsystem
-          params:
-              - name: subsystem
-                type: Subsystem*
-                
-        - name: add_instantiation_data
-          params:
-              - name: instantiation_data
-                type: InstantiationData*
-                
+  inherits_methods_from:
+  - name: Subsystem
+  - name: InstantiationData
+  
+  methods:
+  - name: run_iterations
+    params:
+    - name: iterations
+      type: long
+      
+  - name: add_subsystem
+    params:
+    - name: subsystem
+      type: Subsystem*
+      
+  - name: add_instantiation_data
+    params:
+    - name: instantiation_data
+      type: InstantiationData*

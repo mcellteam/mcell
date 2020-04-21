@@ -21,22 +21,29 @@
  *
 ******************************************************************************/
 
-#ifndef API_GEN_CONSTANTS
-#define API_GEN_CONSTANTS
+#ifndef API_MOLECULE_TYPE_H
+#define API_MOLECULE_TYPE_H
 
 #include <string>
+
+#include "../generated/gen_molecule_type.h"
+#include "common.h"
+#include "molecule_instance.h"
 
 namespace MCell {
 namespace API {
 
-const std::string STATE_UNSET = "state_unset";
-const int STATE_UNSET_INT = -1;
-const int BOND_UNBOUND = 0;
+class MoleculeType: public GenMoleculeType {
+public:
+  MOLECULE_TYPE_CTOR()
 
-void define_pybinding_constants(py::module& m);
+  MoleculeInstance inst(const std::vector<ComponentInstance*> components) override {
+    return MoleculeInstance(this, components);
+  }
+};
+
 
 } // namespace API
 } // namespace MCell
 
-#endif // API_GEN_CONSTANTS
-
+#endif // API_MOLECULE_TYPE_H

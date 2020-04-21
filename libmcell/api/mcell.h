@@ -35,6 +35,8 @@
 // data classes
 #include "../api/component_type.h"
 #include "../api/component_instance.h"
+#include "../api/molecule_type.h"
+#include "../api/molecule_instance.h"
 
 #include "../api/geometry_object.h"
 #include "../api/release_site.h"

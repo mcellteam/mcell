@@ -23,14 +23,16 @@
 
 #include <sstream>
 #include <pybind11/stl.h>
-#include "gen_component_type.h"
-#include "../api/component_type.h"
+#include "gen_molecule_type.h"
+#include "../api/molecule_type.h"
 #include "../api/component_instance.h"
+#include "../api/component_type.h"
+#include "../api/molecule_instance.h"
 
 namespace MCell {
 namespace API {
 
-SemRes GenComponentType::check_semantics(std::ostream& out) const {
+SemRes GenMoleculeType::check_semantics(std::ostream& out) const {
   if (!is_set(name)) {
     out << get_object_name() << ": Parameter 'name' must be set.\n";
     return SemRes::ERROR;
@@ -38,31 +40,38 @@ SemRes GenComponentType::check_semantics(std::ostream& out) const {
   return SemRes::OK;
 }
 
-std::string GenComponentType::to_str() const {
+std::string GenMoleculeType::to_str() const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
       "name=" << name << ", " <<
-      "states=" << vec_nonptr_to_str(states);
+      "components=" << vec_ptr_to_str(components) << ", " <<
+      "diffusion_constant_2d=" << diffusion_constant_2d << ", " <<
+      "diffusion_constant_3d=" << diffusion_constant_3d;
   return ss.str();
 }
 
-py::class_<ComponentType> define_pybinding_ComponentType(py::module& m) {
-  return py::class_<ComponentType>(m, "ComponentType")
+py::class_<MoleculeType> define_pybinding_MoleculeType(py::module& m) {
+  return py::class_<MoleculeType>(m, "MoleculeType")
       .def(
           py::init<
             const std::string&,
-            const std::vector<std::string>
+            const std::vector<ComponentType*>,
+            const float_t,
+            const float_t
           >()
 ,          py::arg("name"),
-          py::arg("states") = std::vector<std::string>()
+          py::arg("components") = std::vector<ComponentType*>(),
+          py::arg("diffusion_constant_2d") = FLT_UNSET,
+          py::arg("diffusion_constant_3d") = FLT_UNSET
         )
-      .def("check_semantics", &ComponentType::check_semantics_cerr)
-      .def("__str__", &ComponentType::to_str)
-      .def("inst", py::overload_cast<const std::string&, const int>(&ComponentType::inst), py::arg("state") = "STATE_UNSET_INT", py::arg("bond") = BOND_UNBOUND)
-      .def("inst", py::overload_cast<const int, const int>(&ComponentType::inst), py::arg("state") = STATE_UNSET, py::arg("bond") = BOND_UNBOUND)
-      .def("dump", &ComponentType::dump)
-      .def_property("name", &ComponentType::get_name, &ComponentType::set_name)
-      .def_property("states", &ComponentType::get_states, &ComponentType::set_states)
+      .def("check_semantics", &MoleculeType::check_semantics_cerr)
+      .def("__str__", &MoleculeType::to_str)
+      .def("inst", &MoleculeType::inst, py::arg("components"))
+      .def("dump", &MoleculeType::dump)
+      .def_property("name", &MoleculeType::get_name, &MoleculeType::set_name)
+      .def_property("components", &MoleculeType::get_components, &MoleculeType::set_components)
+      .def_property("diffusion_constant_2d", &MoleculeType::get_diffusion_constant_2d, &MoleculeType::set_diffusion_constant_2d)
+      .def_property("diffusion_constant_3d", &MoleculeType::get_diffusion_constant_3d, &MoleculeType::set_diffusion_constant_3d)
     ;
 }
 

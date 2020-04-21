@@ -21,22 +21,24 @@
  *
 ******************************************************************************/
 
-#ifndef API_GEN_CONSTANTS
-#define API_GEN_CONSTANTS
+#ifndef API_MOLECULE_INSTANCE_H
+#define API_MOLECULE_INSTANCE_H
 
 #include <string>
+
+#include "../generated/gen_molecule_instance.h"
+#include "common.h"
 
 namespace MCell {
 namespace API {
 
-const std::string STATE_UNSET = "state_unset";
-const int STATE_UNSET_INT = -1;
-const int BOND_UNBOUND = 0;
+class MoleculeInstance: public GenMoleculeInstance {
+public:
+  MOLECULE_INSTANCE_CTOR()
+};
 
-void define_pybinding_constants(py::module& m);
 
 } // namespace API
 } // namespace MCell
 
-#endif // API_GEN_CONSTANTS
-
+#endif // API_MOLECULE_INSTANCE_H

@@ -40,6 +40,10 @@ public:
   ComponentInstance inst(const std::string& state, const int bond) override {
     return ComponentInstance(this, state, bond);
   }
+
+  ComponentInstance inst(const int state, const int bond) override {
+    return ComponentInstance(this, std::to_string(state), bond);
+  }
 };
 
 
