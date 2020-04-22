@@ -21,33 +21,24 @@
  *
 ******************************************************************************/
 
-#ifndef API_GEN_MODEL_H
-#define API_GEN_MODEL_H
+#ifndef API_COMPLEX_INSTANCE_H
+#define API_COMPLEX_INSTANCE_H
 
-#include "../api/common.h"
+#include <string>
+
+#include "../generated/gen_complex_instance.h"
+#include "common.h"
 
 namespace MCell {
 namespace API {
 
-class GeometryObject;
-class InstantiationData;
-class ReleaseSite;
-class Species;
-class Subsystem;
-
-class GenModel {
+class ComplexInstance: public GenComplexInstance {
 public:
-  virtual ~GenModel() {}
-  // --- attributes ---
-  // --- methods ---
-  virtual void run_iterations(const long iterations) = 0;
-  virtual void add_subsystem(std::shared_ptr<Subsystem> subsystem) = 0;
-  virtual void add_instantiation_data(std::shared_ptr<InstantiationData> instantiation_data) = 0;
-}; // GenModel
+  COMPLEX_INSTANCE_CTOR()
+};
 
-class Model;
-py::class_<Model> define_pybinding_Model(py::module& m);
+
 } // namespace API
 } // namespace MCell
 
-#endif // API_GEN_MODEL_H
+#endif // API_COMPLEX_INSTANCE_H

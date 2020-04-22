@@ -75,11 +75,13 @@ MoleculeType:
   - name: diffusion_constant_2d
     type: float
     default: unset
-    
+    doc: This molecule is constrained to a surface and diffuses with  diffusion constant D.
+      
   - name: diffusion_constant_3d
     type: float
-    default: unset
-    
+    default: unset # the value is optional and might need to be checked with a more complex check
+    doc: This molecule diffuses in space with diffusion constant D. D can be zero, in which case the molecule doesn’t move. The units of D are cm 2 /s.
+      
   methods:
   - name: inst
     return_type: MoleculeInstance
@@ -97,24 +99,22 @@ MoleculeInstance:
   - name: components
     type: List[ComponentInstance*]
     default: empty
+
     
+ComplexInstance:    
+  superclass: BaseDataClass
+  items:
+  - name: molecule_types
+    type: List[MoleculeType*]
+    default: empty
+
     
 Species:
-  superclass: BaseDataClass
+  superclass: ComplexInstance
   items:
   - name: name
     type: str
     doc: Name of the species
-    
-  - name: diffusion_constant_3d
-    type: float
-    default: unset # the value is optional and might need to be checked with a more complex check
-    doc: This molecule diffuses in space with diffusion constant D. D can be zero, in which case the molecule doesn’t move. The units of D are cm 2 /s.
-      
-  - name: diffusion_constant_2d
-    type: float
-    default: unset
-    doc: This molecule is constrained to a surface and diffuses with  diffusion constant D.
     
     
 ReleaseSite:
@@ -200,9 +200,7 @@ InstantiationData:
       
       
 Model:
-  inherits_methods_from:
-  - name: Subsystem
-  - name: InstantiationData
+  superclasses: [Subsystem, InstantiationData]
   
   methods:
   - name: run_iterations

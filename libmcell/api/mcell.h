@@ -37,10 +37,11 @@
 #include "../api/component_instance.h"
 #include "../api/molecule_type.h"
 #include "../api/molecule_instance.h"
+#include "../api/complex_instance.h"
+#include "../api/species.h"
 
 #include "../api/geometry_object.h"
 #include "../api/release_site.h"
-#include "../api/species.h"
 
 
 // classes with methods

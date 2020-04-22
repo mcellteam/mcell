@@ -20,12 +20,16 @@ http://www.gnu.org/licenses/gpl-2.0.html
 # TODO: change 'items' to 'attributes'?
 # TODO: split to at least two files
 # TODO: cleanup const/nonconst handling
+# TODO: unify superclass vs superclasses - 
+#       w superclasses, the objects are inherited manually now and it should be made automatic
+#       or maybe just rename it..
 
 import sys
 import os
 import yaml
 import re
 from datetime import datetime
+from copy import copy
 
 DATA_CLASSES_FILE = 'data_classes.yaml'
 
@@ -66,13 +70,15 @@ KEY_VALUE = 'value'
 KEY_DEFAULT = 'default'
 
 KEY_SUPERCLASS = 'superclass'
-KEY_INHERITS_METHODS_FROM = 'inherits_methods_from'
+KEY_SUPERCLASSES = 'superclasses'
 
 KEY_CONSTANTS = 'constants'
 
 KEY_METHODS = 'methods'
 KEY_PARAMS = 'params'
 KEY_RETURN_TYPE = 'return_type'
+
+KEY_INHERITED = 'inherited' # used only internally, not in input YAML
 
 YAML_TYPE_FLOAT = 'float'
 YAML_TYPE_STR = 'str'
@@ -265,8 +271,9 @@ def write_generated_notice(f, input_file_name):
     #date_time = now.strftime("%m/%d/%Y, %H:%M")
     #f.write('// This file was generated automatically on ' + date_time + ' from ' + '\'' + input_file_name + '\'\n\n')
 
+#def write_ctor_body():
 
-def write_ctor_define(f, class_name, items):
+def write_ctor_define(f, class_def, class_name, items):
     f.write('#define ' + get_underscored(class_name).upper() + CTOR_SUFFIX + '() \\\n')
     f.write('    ' + class_name + '( \\\n')
 
@@ -287,7 +294,24 @@ def write_ctor_define(f, class_name, items):
             f.write(',')
         f.write(' \\\n')
 
-    f.write('    ) { \\\n')
+    f.write('    ) ')
+    
+    if has_superclass_other_than_base(class_def):
+        # call superclass ctor
+        # only one, therefore all inherited attributes are its arguments
+        superclass_name = class_def[KEY_SUPERCLASS]
+        f.write(' : ' + superclass_name + '(')
+        
+        inherited_items = [ attr for attr in items if is_inherited(attr) ]
+        num_inherited_items = len(inherited_items)
+        for i in range(num_inherited_items):
+            f.write(inherited_items[i][KEY_NAME] + '_')
+            if i != num_inherited_items - 1:
+                f.write(',')
+                
+        f.write(') ')
+            
+    f.write('{ \\\n')
     
     # initialization code
     f.write('      ' + CLASS_NAME_ATTR + ' = "' + class_name + '"; \\\n')
@@ -362,12 +386,26 @@ def write_method_declaration(f, method):
     f.write('  virtual ')
     write_method_signature(f, method)
     f.write(' = 0;\n')
+
+
+def is_inherited(attr_or_method_def):
+    if KEY_INHERITED in attr_or_method_def:
+        return attr_or_method_def[KEY_INHERITED]
+    else:
+        return False
     
 
-def based_on_base_data_class(class_def):
+def has_superclass(class_def):
     if KEY_SUPERCLASS in class_def:
-        assert class_def[KEY_SUPERCLASS] == BASE_DATA_CLASS # the only supported superclass now
         return True
+    else:
+        return False
+
+
+def has_superclass_other_than_base(class_def):
+    # TODO: also deal with superclasses?
+    if has_superclass(class_def):
+        return class_def[KEY_SUPERCLASS] != BASE_DATA_CLASS
     else:
         return False
     
@@ -375,31 +413,37 @@ def based_on_base_data_class(class_def):
 def write_gen_class(f, class_name, class_def):
     f.write('class ' + GEN_CLASS_PREFIX + class_name)
     
-    if based_on_base_data_class(class_def):
-        f.write(': public ' + BASE_DATA_CLASS)
+    if has_superclass(class_def):
+        f.write(': public ' + class_def[KEY_SUPERCLASS])
         
     f.write( ' {\n')
     f.write('public:\n')
     
-    if not based_on_base_data_class(class_def):
+    if has_superclass_other_than_base(class_def):
+        #write_ctor_for_superclass(f, class_def)
+        pass
+    
+    if not has_superclass(class_def):
         # generate virtual destructor
         f.write('  virtual ~' + GEN_CLASS_PREFIX + class_name + '() {}\n')
         
-    if based_on_base_data_class(class_def):
+    if has_superclass(class_def):
         f.write('  ' + RET_TYPE_CHECK_SEMANTICS + ' ' + DECL_CHECK_SEMANTICS + ' ' + KEYWORD_OVERRIDE + ';\n')
         f.write('  ' + RET_TYPE_TO_STR + ' ' + DECL_TO_STR + ' ' + KEYWORD_OVERRIDE + ';\n\n')
         
     f.write('  // --- attributes ---\n')
     items = class_def[KEY_ITEMS]
     for attr in items:
-        written = write_attr_with_get_set(f, attr)
-        if written :
-            f.write('\n')
+        if not is_inherited(attr):
+            written = write_attr_with_get_set(f, attr)
+            if written :
+                f.write('\n')
 
     f.write('  // --- methods ---\n')
     methods = class_def[KEY_METHODS]
     for m in methods:
-        write_method_declaration(f, m)
+        if not is_inherited(m):
+            write_method_declaration(f, m)
         
     f.write('}; // ' + GEN_CLASS_PREFIX + class_name + '\n\n')
 
@@ -461,13 +505,17 @@ def generate_class_header(class_name, class_def, input_file_name):
         guard = get_header_guard_name(class_name);
         f.write('#ifndef ' + guard + '\n')
         f.write('#define ' + guard + '\n\n')
-        f.write(INCLUDE_API_COMMON_H + '\n\n')
-        f.write(NAMESPACES_BEGIN + '\n\n')
+        f.write(INCLUDE_API_COMMON_H + '\n')
+        
+        if has_superclass_other_than_base(class_def):
+            f.write('#include "' + get_api_class_file_name(class_def[KEY_SUPERCLASS], EXT_H) + '"\n\n')
+        
+        f.write('\n' + NAMESPACES_BEGIN + '\n\n')
         
         write_forward_decls(f, class_def)
         
-        if based_on_base_data_class(class_def):
-            write_ctor_define(f, class_name, class_def[KEY_ITEMS])
+        if has_superclass(class_def): # not sure about this condition
+            write_ctor_define(f, class_def, class_name, class_def[KEY_ITEMS])
         
         write_gen_class(f, class_name, class_def)
         
@@ -618,7 +666,7 @@ def write_pybind11_bindings(f, class_name, class_def):
     f.write('        )\n')            
     
     # common methods
-    if based_on_base_data_class(class_def):
+    if has_superclass(class_def):
         f.write('      .def("check_semantics", &' + class_name + '::check_semantics_cerr)\n')
         f.write('      .def("__str__", &' + class_name + '::to_str)\n')
         
@@ -660,7 +708,7 @@ def generate_class_implementation_and_bindings(class_name, class_def, input_file
         
         f.write('\n' + NAMESPACES_BEGIN + '\n\n')
         
-        if based_on_base_data_class(class_def):
+        if has_superclass(class_def):
             items = class_def[KEY_ITEMS]
             write_check_semantics_implemetation(f, class_name, items)
             write_to_str_implemetation(f, class_name, items)
@@ -672,22 +720,36 @@ def generate_class_implementation_and_bindings(class_name, class_def, input_file
 
 # class Model provides the same methods as Subsystem and InstantiationData, 
 # this function copies the definition for pybind11 API generation
-def inherits_methods(data_classes, class_name, class_def):
+def inherit_from_superclasses(data_classes, class_name, class_def):
     
     res = class_def.copy() 
     
-    if KEY_INHERITS_METHODS_FROM in class_def:
-        superclasses = class_def[KEY_INHERITS_METHODS_FROM]
-        for sc in superclasses:
-            assert KEY_NAME in sc
-            sc_name = sc[KEY_NAME]
-            assert sc_name in data_classes
-            sc_def = data_classes[sc_name]
-            
-            # we are not checking any duplicates
-            if KEY_METHODS in sc_def:
-                res[KEY_METHODS] += sc_def[KEY_METHODS]
-            
+    superclass_names = []
+    if has_superclass_other_than_base(class_def):
+        superclass_names.append(class_def[KEY_SUPERCLASS])
+        
+    if KEY_SUPERCLASSES in class_def:
+        superclass_names += class_def[KEY_SUPERCLASSES]
+        
+    for sc_name in superclass_names:
+        assert sc_name in data_classes
+        superclass_def = data_classes[sc_name]
+        assert not has_superclass_other_than_base(superclass_def), "Only one level of inheritance"
+        
+        # we are not checking any duplicates
+        if KEY_METHODS in superclass_def:
+            for method in superclass_def[KEY_METHODS]:
+                method_copy = copy(method)
+                method_copy[KEY_INHERITED] = True
+                res[KEY_METHODS].append(method_copy) 
+
+        if KEY_ITEMS in superclass_def:
+            for item in superclass_def[KEY_ITEMS]:
+                item_copy = copy(item)
+                item_copy[KEY_INHERITED] = True
+                res[KEY_ITEMS].append(item_copy) 
+        print(res)    
+        
     return res
 
 
@@ -698,12 +760,11 @@ def generate_class_files(data_classes, class_name, class_def, input_file_name):
         
     if KEY_METHODS not in class_def:
         class_def[KEY_METHODS] = []
+
+    class_def_w_inheritances = inherit_from_superclasses(data_classes, class_name, class_def)
     
-    generate_class_header(class_name, class_def, input_file_name)
-    
-    class_def_w_method_inheritances = inherits_methods(data_classes, class_name, class_def) 
-    
-    generate_class_implementation_and_bindings(class_name, class_def_w_method_inheritances, input_file_name)
+    generate_class_header(class_name, class_def_w_inheritances, input_file_name)
+    generate_class_implementation_and_bindings(class_name, class_def_w_inheritances, input_file_name)
     
     
 def write_constant_def(f, constant_def):

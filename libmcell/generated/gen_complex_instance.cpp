@@ -21,33 +21,41 @@
  *
 ******************************************************************************/
 
-#ifndef API_GEN_MODEL_H
-#define API_GEN_MODEL_H
-
-#include "../api/common.h"
+#include <sstream>
+#include <pybind11/stl.h>
+#include "gen_complex_instance.h"
+#include "../api/complex_instance.h"
+#include "../api/molecule_type.h"
 
 namespace MCell {
 namespace API {
 
-class GeometryObject;
-class InstantiationData;
-class ReleaseSite;
-class Species;
-class Subsystem;
+SemRes GenComplexInstance::check_semantics(std::ostream& out) const {
+  return SemRes::OK;
+}
 
-class GenModel {
-public:
-  virtual ~GenModel() {}
-  // --- attributes ---
-  // --- methods ---
-  virtual void run_iterations(const long iterations) = 0;
-  virtual void add_subsystem(std::shared_ptr<Subsystem> subsystem) = 0;
-  virtual void add_instantiation_data(std::shared_ptr<InstantiationData> instantiation_data) = 0;
-}; // GenModel
+std::string GenComplexInstance::to_str() const {
+  std::stringstream ss;
+  ss << get_object_name() << ": " <<
+      "molecule_types=" << vec_ptr_to_str(molecule_types);
+  return ss.str();
+}
 
-class Model;
-py::class_<Model> define_pybinding_Model(py::module& m);
+py::class_<ComplexInstance> define_pybinding_ComplexInstance(py::module& m) {
+  return py::class_<ComplexInstance, std::shared_ptr<ComplexInstance>>(m, "ComplexInstance")
+      .def(
+          py::init<
+            const std::vector<std::shared_ptr<MoleculeType>>
+          >()
+,          py::arg("molecule_types") = std::vector<std::shared_ptr<MoleculeType>>()
+        )
+      .def("check_semantics", &ComplexInstance::check_semantics_cerr)
+      .def("__str__", &ComplexInstance::to_str)
+      .def("dump", &ComplexInstance::dump)
+      .def_property("molecule_types", &ComplexInstance::get_molecule_types, &ComplexInstance::set_molecule_types)
+    ;
+}
+
 } // namespace API
 } // namespace MCell
 
-#endif // API_GEN_MODEL_H
