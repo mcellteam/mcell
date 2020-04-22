@@ -25,7 +25,7 @@
 #include <pybind11/stl.h>
 #include "gen_species.h"
 #include "../api/species.h"
-#include "../api/molecule_type.h"
+#include "../api/molecule_instance.h"
 
 namespace MCell {
 namespace API {
@@ -51,10 +51,10 @@ py::class_<Species> define_pybinding_Species(py::module& m) {
       .def(
           py::init<
             const std::string&,
-            const std::vector<std::shared_ptr<MoleculeType>>
+            const std::vector<std::shared_ptr<MoleculeInstance>>
           >()
 ,          py::arg("name"),
-          py::arg("molecule_types") = std::vector<std::shared_ptr<MoleculeType>>()
+          py::arg("molecule_types") = std::vector<std::shared_ptr<MoleculeInstance>>()
         )
       .def("check_semantics", &Species::check_semantics_cerr)
       .def("__str__", &Species::to_str)

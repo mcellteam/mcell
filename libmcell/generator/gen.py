@@ -271,38 +271,52 @@ def write_generated_notice(f, input_file_name):
     #date_time = now.strftime("%m/%d/%Y, %H:%M")
     #f.write('// This file was generated automatically on ' + date_time + ' from ' + '\'' + input_file_name + '\'\n\n')
 
-#def write_ctor_body():
+def write_ctor_body(f, class_def, class_name, append_backslash, indent, only_inherited):
+    items = class_def[KEY_ITEMS] if KEY_ITEMS in class_def else []
+    backshlash = '\\' if append_backslash else ''
+    
+    f.write(indent + class_name + '( ' + backshlash + '\n')
+     
+    inherited_items = [ attr for attr in items if is_inherited(attr) ]
 
-def write_ctor_define(f, class_def, class_name, items):
-    f.write('#define ' + get_underscored(class_name).upper() + CTOR_SUFFIX + '() \\\n')
-    f.write('    ' + class_name + '( \\\n')
-
+    if only_inherited:
+        # override also the original items list
+        items = inherited_items 
+     
     # ctor parameters    
     num_items = len(items)
     for i in range(num_items):
         attr = items[i]
+        
         assert KEY_NAME in attr
         name = attr[KEY_NAME]
 
         const_spec = 'const ' if not is_yaml_ptr_type(attr[KEY_TYPE]) else ''
-        f.write('        ' + const_spec + get_type_as_ref_param(attr) + ' ' + name + '_')
+        f.write(indent + '    ' + const_spec + get_type_as_ref_param(attr) + ' ' + name + '_')
         
         if KEY_DEFAULT in attr:
             f.write(' = ' + get_default_or_unset_value(attr))
         
         if i != num_items - 1:
             f.write(',')
-        f.write(' \\\n')
+        f.write(' ' + backshlash + '\n')
 
-    f.write('    ) ')
+    f.write(indent + ') ')
     
     if has_superclass_other_than_base(class_def):
         # call superclass ctor
         # only one, therefore all inherited attributes are its arguments
-        superclass_name = class_def[KEY_SUPERCLASS]
+        if only_inherited:
+            # we are generating ctor for the superclass of the Gen class, e.g. for GenSpecies 
+            # and we need to initialize ComplexInstance 
+            superclass_name = class_def[KEY_SUPERCLASS]
+        else:
+            # we are generating ctor for the superclass, e.g. for Species and we need to initialize 
+            # GenSpecies
+            superclass_name = GEN_CLASS_PREFIX + class_name
+            
         f.write(' : ' + superclass_name + '(')
         
-        inherited_items = [ attr for attr in items if is_inherited(attr) ]
         num_inherited_items = len(inherited_items)
         for i in range(num_inherited_items):
             f.write(inherited_items[i][KEY_NAME] + '_')
@@ -310,16 +324,30 @@ def write_ctor_define(f, class_def, class_name, items):
                 f.write(',')
                 
         f.write(') ')
-            
-    f.write('{ \\\n')
     
+
+def write_ctor_define(f, class_def, class_name):
+    f.write('#define ' + get_underscored(class_name).upper() + CTOR_SUFFIX + '() \\\n')
+
+    write_ctor_body(f, class_def, class_name, append_backslash=True, indent='    ', only_inherited=False)
+
+    f.write('{ \\\n')
+
     # initialization code
     f.write('      ' + CLASS_NAME_ATTR + ' = "' + class_name + '"; \\\n')
+    items = class_def[KEY_ITEMS] if KEY_ITEMS in class_def else []    
+    num_items = len(items)
     for i in range(num_items):
         assert KEY_NAME in items[i] 
         attr_name = items[i][KEY_NAME]
         f.write('      ' + attr_name + ' = ' + attr_name + '_; \\\n')
     f.write('    }\n\n')    
+    
+    
+def write_ctor_for_superclass(f, class_def, class_name):
+    write_ctor_body(f, class_def, GEN_CLASS_PREFIX + class_name, append_backslash=False, indent='  ', only_inherited=True)
+    f.write(' {\n')
+    f.write('  }\n')
     
 
 def write_attr_with_get_set(f, attr):
@@ -410,7 +438,7 @@ def has_superclass_other_than_base(class_def):
         return False
     
     
-def write_gen_class(f, class_name, class_def):
+def write_gen_class(f, class_def, class_name):
     f.write('class ' + GEN_CLASS_PREFIX + class_name)
     
     if has_superclass(class_def):
@@ -420,8 +448,7 @@ def write_gen_class(f, class_name, class_def):
     f.write('public:\n')
     
     if has_superclass_other_than_base(class_def):
-        #write_ctor_for_superclass(f, class_def)
-        pass
+        write_ctor_for_superclass(f, class_def, class_name)
     
     if not has_superclass(class_def):
         # generate virtual destructor
@@ -515,9 +542,9 @@ def generate_class_header(class_name, class_def, input_file_name):
         write_forward_decls(f, class_def)
         
         if has_superclass(class_def): # not sure about this condition
-            write_ctor_define(f, class_def, class_name, class_def[KEY_ITEMS])
+            write_ctor_define(f, class_def, class_name)
         
-        write_gen_class(f, class_name, class_def)
+        write_gen_class(f, class_def, class_name)
         
         f.write('class ' + class_name + ';\n')
         write_define_binding_decl(f, class_name)
@@ -748,7 +775,6 @@ def inherit_from_superclasses(data_classes, class_name, class_def):
                 item_copy = copy(item)
                 item_copy[KEY_INHERITED] = True
                 res[KEY_ITEMS].append(item_copy) 
-        print(res)    
         
     return res
 

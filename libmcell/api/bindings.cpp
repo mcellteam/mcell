@@ -85,9 +85,10 @@ PYBIND11_MODULE(mcell, m) {
   define_pybinding_ComponentInstance(m);
   define_pybinding_MoleculeType(m);
   define_pybinding_MoleculeInstance(m);
+  define_pybinding_ComplexInstance(m);
+  define_pybinding_Species(m);
 
   define_pybinding_ReleaseSite(m);
-  define_pybinding_Species(m);
   define_pybinding_GeometryObject(m);
 
   define_pybinding_Subsystem(m);

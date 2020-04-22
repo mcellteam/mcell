@@ -29,11 +29,11 @@
 namespace MCell {
 namespace API {
 
-class MoleculeType;
+class MoleculeInstance;
 
 #define COMPLEX_INSTANCE_CTOR() \
     ComplexInstance( \
-        const std::vector<std::shared_ptr<MoleculeType>> molecule_types_ = std::vector<std::shared_ptr<MoleculeType>>() \
+        const std::vector<std::shared_ptr<MoleculeInstance>> molecule_types_ = std::vector<std::shared_ptr<MoleculeInstance>>() \
     ) { \
       class_name = "ComplexInstance"; \
       molecule_types = molecule_types_; \
@@ -45,11 +45,11 @@ public:
   std::string to_str() const override;
 
   // --- attributes ---
-  std::vector<std::shared_ptr<MoleculeType>> molecule_types;
-  virtual void set_molecule_types(const std::vector<std::shared_ptr<MoleculeType>> new_molecule_types_) {
+  std::vector<std::shared_ptr<MoleculeInstance>> molecule_types;
+  virtual void set_molecule_types(const std::vector<std::shared_ptr<MoleculeInstance>> new_molecule_types_) {
     molecule_types = new_molecule_types_;
   }
-  virtual std::vector<std::shared_ptr<MoleculeType>> get_molecule_types() const {
+  virtual std::vector<std::shared_ptr<MoleculeInstance>> get_molecule_types() const {
     return molecule_types;
   }
 

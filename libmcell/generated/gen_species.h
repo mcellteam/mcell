@@ -31,13 +31,13 @@
 namespace MCell {
 namespace API {
 
-class MoleculeType;
+class MoleculeInstance;
 
 #define SPECIES_CTOR() \
     Species( \
         const std::string& name_, \
-        const std::vector<std::shared_ptr<MoleculeType>> molecule_types_ = std::vector<std::shared_ptr<MoleculeType>>() \
-    )  : ComplexInstance(molecule_types_) { \
+        const std::vector<std::shared_ptr<MoleculeInstance>> molecule_types_ = std::vector<std::shared_ptr<MoleculeInstance>>() \
+    )  : GenSpecies(molecule_types_) { \
       class_name = "Species"; \
       name = name_; \
       molecule_types = molecule_types_; \
@@ -45,6 +45,10 @@ class MoleculeType;
 
 class GenSpecies: public ComplexInstance {
 public:
+  GenSpecies( 
+      const std::vector<std::shared_ptr<MoleculeInstance>> molecule_types_ = std::vector<std::shared_ptr<MoleculeInstance>>() 
+  )  : ComplexInstance(molecule_types_)  {
+  }
   SemRes check_semantics(std::ostream& out) const override;
   std::string to_str() const override;
 

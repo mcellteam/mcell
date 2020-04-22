@@ -25,7 +25,7 @@
 #include <pybind11/stl.h>
 #include "gen_complex_instance.h"
 #include "../api/complex_instance.h"
-#include "../api/molecule_type.h"
+#include "../api/molecule_instance.h"
 
 namespace MCell {
 namespace API {
@@ -45,9 +45,9 @@ py::class_<ComplexInstance> define_pybinding_ComplexInstance(py::module& m) {
   return py::class_<ComplexInstance, std::shared_ptr<ComplexInstance>>(m, "ComplexInstance")
       .def(
           py::init<
-            const std::vector<std::shared_ptr<MoleculeType>>
+            const std::vector<std::shared_ptr<MoleculeInstance>>
           >()
-,          py::arg("molecule_types") = std::vector<std::shared_ptr<MoleculeType>>()
+,          py::arg("molecule_types") = std::vector<std::shared_ptr<MoleculeInstance>>()
         )
       .def("check_semantics", &ComplexInstance::check_semantics_cerr)
       .def("__str__", &ComplexInstance::to_str)

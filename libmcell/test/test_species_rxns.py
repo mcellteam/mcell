@@ -25,16 +25,19 @@ CaM = m.MoleculeType('CaM', [C, N])
 print("MoleculeType:")
 print(CaM)
 
-
-C_inst0 = C.inst(0)
-N_inst1 = N.inst(1)
-
-#CaM_inst = CaM.inst([C_inst0])
-
-#CaM_inst = CaM.inst([C.inst(0)])
-
-# does not work..
 CaM_inst = CaM.inst([C.inst(0), N.inst(1)])
 
 print("MoleculeInstance:")
 print(CaM_inst)
+
+
+cplx_inst = m.ComplexInstance([CaM.inst([C.inst(0), N.inst(1, bond=1)]), CaM.inst([C.inst(0), N.inst(1, bond=0)])])
+
+print("ComplexInstance:")
+print(cplx_inst)
+
+
+CaMC0N1_species = m.Species('CaM(C~0,N~1)', [ CaM.inst([C.inst(0), N.inst(1)]) ] )
+
+print("Species:")
+print(CaMC0N1_species)
