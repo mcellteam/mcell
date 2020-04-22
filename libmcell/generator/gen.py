@@ -351,8 +351,8 @@ def write_ctor_for_superclass(f, class_def, class_name):
     
 
 def write_attr_with_get_set(f, attr):
-    assert KEY_NAME in attr
-    assert KEY_TYPE in attr
+    assert KEY_NAME in attr, KEY_NAME + " is not set in " + str(attr) 
+    assert KEY_TYPE in attr, KEY_TYPE + " is not set in " + str(attr)
     
     name = attr[KEY_NAME]
     

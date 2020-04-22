@@ -13,6 +13,10 @@ constants:
   - name: BOND_UNBOUND
     type: int
     value: 0
+
+  - name: BOND_BOUND
+    type: int
+    value: -1
     
     
 ComponentType:
@@ -115,7 +119,33 @@ Species:
   - name: name
     type: str
     doc: Name of the species
+
+
+ReactionRule:    
+  superclass: BaseDataClass
+  items:
+  - name: name
+    type: str
+    default: unset
+    doc: Name of the reaction
     
+  - name: reactants
+    type: List[ComplexInstance*]
+    default: empty # must be set, but C++ ordering of arguments requires that all defaults are at the end
+    
+  - name: products
+    type: List[ComplexInstance*]
+    default: empty
+    
+  - name: fwd_rate
+    type: float
+    default: unset # must be set, but C++ ordering of arguments requires that all defaults are at the end
+    
+  - name: rev_rate
+    type: float
+    default: unset
+    doc: Reverse reactions rate, reaction is unidirectional when not specified 
+
     
 ReleaseSite:
   superclass: BaseDataClass

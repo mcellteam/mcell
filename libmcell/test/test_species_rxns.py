@@ -20,7 +20,7 @@ print(C_inst)
 
 # diffusion constant here or with the complex?
 # maybe here as well for automatic 
-CaM = m.MoleculeType('CaM', [C, N])
+CaM = m.MoleculeType('CaM', [C, N], diffusion_constant_3d = 1e-6)
 
 print("MoleculeType:")
 print(CaM)
@@ -31,7 +31,8 @@ print("MoleculeInstance:")
 print(CaM_inst)
 
 
-cplx_inst = m.ComplexInstance([CaM.inst([C.inst(0), N.inst(1, bond=1)]), CaM.inst([C.inst(0), N.inst(1, bond=0)])])
+cplx_inst = m.ComplexInstance(
+    [CaM.inst([C.inst(0), N.inst(1, bond=1)]), CaM.inst([C.inst(0), N.inst(1, bond=0)])])
 
 print("ComplexInstance:")
 print(cplx_inst)
@@ -41,3 +42,46 @@ CaMC0N1_species = m.Species('CaM(C~0,N~1)', [ CaM.inst([C.inst(0), N.inst(1)]) ]
 
 print("Species:")
 print(CaMC0N1_species)
+
+
+d = m.ComponentType('d') # no states  
+l = m.ComponentType('l')
+r = m.ComponentType('r')
+Y286 = m.ComponentType('Y286', ['0','P'])
+S306 = m.ComponentType('S306', ['0','P'])
+cam = m.ComponentType('cam')
+
+CaMKII = m.MoleculeType(
+    'CaMKII', 
+    [d, r, l, Y286, S306],    
+    diffusion_constant_3d = 1e-6
+)
+
+V = 0.125*1e-15 # um^3 -> liters
+NA = 6.022e23/1e6
+k_onCaMKII = 50/(NA*V) #1/uM 1/s 
+k_offCaMKII = 60 #1/s 
+
+rxn_rule = m.ReactionRule(
+    name = "sixth rxn",
+    reactants=[
+        m.ComplexInstance( 
+            [ CaMKII.inst( [ l.inst(), r.inst(), Y286.inst('0'), cam.inst(bond=m.BOND_BOUND) ] ) ] 
+        ),
+        m.ComplexInstance( 
+            [ CaMKII.inst( [ l.inst(), r.inst(), cam.inst(bond=m.BOND_BOUND) ] ) ]  
+        )
+    ], 
+    products=[
+        m.ComplexInstance( 
+            [ CaMKII.inst( [ l.inst(1, bond=1), r.inst(), Y286.inst('0'), cam.inst(bond=m.BOND_BOUND) ] ), 
+              CaMKII.inst( [ l.inst(), r.inst(bond=1), cam.inst(bond=m.BOND_BOUND) ] )
+            ]
+        )
+    ],
+    fwd_rate = k_onCaMKII,
+    rev_rate = k_offCaMKII
+)
+
+print("ReactionRule:")
+print(rxn_rule)

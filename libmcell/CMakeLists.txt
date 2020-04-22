@@ -32,6 +32,8 @@ set(SOURCE_FILES
     generated/gen_molecule_instance.cpp
     generated/gen_complex_instance.cpp
     generated/gen_species.cpp
+    
+    generated/gen_reaction_rule.cpp
 
     generated/gen_geometry_object.cpp
     generated/gen_release_site.cpp

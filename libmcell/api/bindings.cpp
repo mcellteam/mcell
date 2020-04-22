@@ -27,8 +27,10 @@
 #include "../generated/gen_component_instance.h"
 #include "../generated/gen_molecule_type.h"
 #include "../generated/gen_molecule_instance.h"
-
 #include "../generated/gen_species.h"
+
+#include "../generated/gen_reaction_rule.h"
+
 #include "../generated/gen_release_site.h"
 #include "../generated/gen_geometry_object.h"
 
@@ -87,6 +89,8 @@ PYBIND11_MODULE(mcell, m) {
   define_pybinding_MoleculeInstance(m);
   define_pybinding_ComplexInstance(m);
   define_pybinding_Species(m);
+
+  define_pybinding_ReactionRule(m);
 
   define_pybinding_ReleaseSite(m);
   define_pybinding_GeometryObject(m);
