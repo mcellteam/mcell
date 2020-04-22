@@ -38,11 +38,11 @@ SemRes GenComponentType::check_semantics(std::ostream& out) const {
   return SemRes::OK;
 }
 
-std::string GenComponentType::to_str() const {
+std::string GenComponentType::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
       "name=" << name << ", " <<
-      "states=" << vec_nonptr_to_str(states);
+      "states=" << vec_nonptr_to_str(states, ind + "  ");
   return ss.str();
 }
 
@@ -52,12 +52,12 @@ py::class_<ComponentType> define_pybinding_ComponentType(py::module& m) {
           py::init<
             const std::string&,
             const std::vector<std::string>
-          >()
-,          py::arg("name"),
+          >(),
+          py::arg("name"),
           py::arg("states") = std::vector<std::string>()
         )
       .def("check_semantics", &ComponentType::check_semantics_cerr)
-      .def("__str__", &ComponentType::to_str)
+      .def("__str__", &ComponentType::to_str, py::arg("ind") = std::string(""))
       .def("inst", py::overload_cast<const std::string&, const int>(&ComponentType::inst), py::arg("state") = "STATE_UNSET_INT", py::arg("bond") = BOND_UNBOUND)
       .def("inst", py::overload_cast<const int, const int>(&ComponentType::inst), py::arg("state") = STATE_UNSET, py::arg("bond") = BOND_UNBOUND)
       .def("dump", &ComponentType::dump)

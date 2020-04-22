@@ -40,11 +40,11 @@ SemRes GenMoleculeType::check_semantics(std::ostream& out) const {
   return SemRes::OK;
 }
 
-std::string GenMoleculeType::to_str() const {
+std::string GenMoleculeType::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
       "name=" << name << ", " <<
-      "components=" << vec_ptr_to_str(components) << ", " <<
+      "\n" << ind + "  " << "components=" << vec_ptr_to_str(components, ind + "  ") << ", " << "\n" << ind + "  " <<
       "diffusion_constant_2d=" << diffusion_constant_2d << ", " <<
       "diffusion_constant_3d=" << diffusion_constant_3d;
   return ss.str();
@@ -58,14 +58,14 @@ py::class_<MoleculeType> define_pybinding_MoleculeType(py::module& m) {
             const std::vector<std::shared_ptr<ComponentType>>,
             const float_t,
             const float_t
-          >()
-,          py::arg("name"),
+          >(),
+          py::arg("name"),
           py::arg("components") = std::vector<std::shared_ptr<ComponentType>>(),
           py::arg("diffusion_constant_2d") = FLT_UNSET,
           py::arg("diffusion_constant_3d") = FLT_UNSET
         )
       .def("check_semantics", &MoleculeType::check_semantics_cerr)
-      .def("__str__", &MoleculeType::to_str)
+      .def("__str__", &MoleculeType::to_str, py::arg("ind") = std::string(""))
       .def("inst", &MoleculeType::inst, py::arg("components"))
       .def("dump", &MoleculeType::dump)
       .def_property("name", &MoleculeType::get_name, &MoleculeType::set_name)

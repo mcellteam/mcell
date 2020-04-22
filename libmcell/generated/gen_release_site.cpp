@@ -46,12 +46,12 @@ SemRes GenReleaseSite::check_semantics(std::ostream& out) const {
   return SemRes::OK;
 }
 
-std::string GenReleaseSite::to_str() const {
+std::string GenReleaseSite::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
       "name=" << name << ", " <<
       "shape=" << shape << ", " <<
-      "molecule=" << "(" << ((molecule != nullptr) ? molecule->to_str() : "null" ) << ")" << ", " <<
+      "\n" << ind + "  " << "molecule=" << "(" << ((molecule != nullptr) ? molecule->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "location=" << location << ", " <<
       "site_diameter=" << site_diameter << ", " <<
       "site_radius=" << site_radius << ", " <<
@@ -70,8 +70,8 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
             const float_t,
             const float_t,
             const float_t
-          >()
-,          py::arg("name"),
+          >(),
+          py::arg("name"),
           py::arg("shape"),
           py::arg("molecule"),
           py::arg("location") = VEC3_UNSET,
@@ -80,7 +80,7 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
           py::arg("release_probability") = FLT_UNSET
         )
       .def("check_semantics", &ReleaseSite::check_semantics_cerr)
-      .def("__str__", &ReleaseSite::to_str)
+      .def("__str__", &ReleaseSite::to_str, py::arg("ind") = std::string(""))
       .def("dump", &ReleaseSite::dump)
       .def_property("name", &ReleaseSite::get_name, &ReleaseSite::set_name)
       .def_property("shape", &ReleaseSite::get_shape, &ReleaseSite::set_shape)

@@ -44,7 +44,7 @@ class ComponentInstance;
 class GenComponentType: public BaseDataClass {
 public:
   SemRes check_semantics(std::ostream& out) const override;
-  std::string to_str() const override;
+  std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---
   std::vector<std::string> states;

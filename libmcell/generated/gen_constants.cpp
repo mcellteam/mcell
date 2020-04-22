@@ -30,6 +30,7 @@ void define_pybinding_constants(py::module& m) {
   m.attr("STATE_UNSET") = py::str("state_unset");
   m.attr("STATE_UNSET_INT") = py::int_(-1);
   m.attr("BOND_UNBOUND") = py::int_(0);
+  m.attr("BOND_BOUND") = py::int_(-1);
 }
 
 } // namespace API

@@ -34,12 +34,12 @@ SemRes GenReactionRule::check_semantics(std::ostream& out) const {
   return SemRes::OK;
 }
 
-std::string GenReactionRule::to_str() const {
+std::string GenReactionRule::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
       "name=" << name << ", " <<
-      "reactants=" << vec_ptr_to_str(reactants) << ", " <<
-      "products=" << vec_ptr_to_str(products) << ", " <<
+      "\n" << ind + "  " << "reactants=" << vec_ptr_to_str(reactants, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "products=" << vec_ptr_to_str(products, ind + "  ") << ", " << "\n" << ind + "  " <<
       "fwd_rate=" << fwd_rate << ", " <<
       "rev_rate=" << rev_rate;
   return ss.str();
@@ -54,15 +54,15 @@ py::class_<ReactionRule> define_pybinding_ReactionRule(py::module& m) {
             const std::vector<std::shared_ptr<ComplexInstance>>,
             const float_t,
             const float_t
-          >()
-,          py::arg("name") = STR_UNSET,
+          >(),
+          py::arg("name") = STR_UNSET,
           py::arg("reactants") = std::vector<std::shared_ptr<ComplexInstance>>(),
           py::arg("products") = std::vector<std::shared_ptr<ComplexInstance>>(),
           py::arg("fwd_rate") = FLT_UNSET,
           py::arg("rev_rate") = FLT_UNSET
         )
       .def("check_semantics", &ReactionRule::check_semantics_cerr)
-      .def("__str__", &ReactionRule::to_str)
+      .def("__str__", &ReactionRule::to_str, py::arg("ind") = std::string(""))
       .def("dump", &ReactionRule::dump)
       .def_property("name", &ReactionRule::get_name, &ReactionRule::set_name)
       .def_property("reactants", &ReactionRule::get_reactants, &ReactionRule::set_reactants)

@@ -125,7 +125,8 @@ DECL_CHECK_SEMANTICS = 'check_semantics(std::ostream& out) const'
 DECL_DEFINE_PYBINDIND_CONSTANTS = 'void define_pybinding_constants(py::module& m)'
 RET_TYPE_TO_STR = 'std::string'
 SHARED_PTR = 'std::shared_ptr'
-DECL_TO_STR = 'to_str() const'
+DECL_TO_STR_W_DEFAULT = 'to_str(const std::string ind="") const'
+DECL_TO_STR = 'to_str(const std::string ind) const'
 KEYWORD_OVERRIDE = 'override'
   
 CLASS_NAME_ATTR = 'class_name'
@@ -456,7 +457,7 @@ def write_gen_class(f, class_def, class_name):
         
     if has_superclass(class_def):
         f.write('  ' + RET_TYPE_CHECK_SEMANTICS + ' ' + DECL_CHECK_SEMANTICS + ' ' + KEYWORD_OVERRIDE + ';\n')
-        f.write('  ' + RET_TYPE_TO_STR + ' ' + DECL_TO_STR + ' ' + KEYWORD_OVERRIDE + ';\n\n')
+        f.write('  ' + RET_TYPE_TO_STR + ' ' + DECL_TO_STR_W_DEFAULT + ' ' + KEYWORD_OVERRIDE + ';\n\n')
         
     f.write('  // --- attributes ---\n')
     items = class_def[KEY_ITEMS]
@@ -575,27 +576,41 @@ def write_to_str_implemetation(f, class_name, items):
     f.write(RET_TYPE_TO_STR + ' ' + GEN_CLASS_PREFIX + class_name + '::' + DECL_TO_STR + ' {\n')
     f.write('  std::stringstream ss;\n')
     f.write('  ss << get_object_name() << ": " <<\n')
+
+    last_print_nl = False  
     
     num_attrs = len(items) 
     for i in range(num_attrs):
         name = items[i][KEY_NAME]
-        f.write('      "' + name + '=" << ')
-        
         type = items[i][KEY_TYPE]
+        
+        print_nl = False
+        starting_nl = '"' if last_print_nl else '"\\n" << ind + "  " << "'
+        
         if is_list(type):
             underlying_type = get_inner_list_type(type)
             if is_yaml_ptr_type(underlying_type):
-                f.write(VEC_PTR_TO_STR + '(' + name + ')')
+                f.write('      ' + starting_nl + name + '=" << ' + VEC_PTR_TO_STR + '(' + name + ', ind + "  ")')
+                print_nl = True
             else:
-                f.write(VEC_NONPTR_TO_STR + '(' + name + ')')
+                f.write('      "' + name + '=" << ')
+                f.write(VEC_NONPTR_TO_STR + '(' + name + ', ind + "  ")')
         elif not is_base_yaml_type(type):
-            f.write('"(" << ((' + name + ' != nullptr) ? ' + name + '->to_str() : "null" ) << ")"')
+            f.write('      ' + starting_nl + name + '=" << "(" << ((' + name + ' != nullptr) ? ' + name + '->to_str(ind + "  ") : "null" ) << ")"')
+            print_nl = True
         else:
+            f.write('      "' + name + '=" << ')
             f.write(name)
 
         if i != num_attrs - 1:
-            f.write(' << ", " <<\n')
-            
+            f.write(' << ", " <<')
+            if print_nl:
+                f.write(' "\\n" << ind + "  " <<\n')
+            else:
+                f.write('\n')
+        
+        last_print_nl = print_nl
+        
     f.write(';\n')
     
     f.write('  return ss.str();\n')
@@ -675,10 +690,11 @@ def write_pybind11_bindings(f, class_name, class_def):
             f.write(',\n')
     if num_items != 0:
         f.write('\n')
-    f.write('          >()\n')
+    f.write('          >()')
         
     if num_items != 0:
         f.write(',')
+    f.write('\n')
     
     # init argument names and default values
     for i in range(num_items):
@@ -695,7 +711,7 @@ def write_pybind11_bindings(f, class_name, class_def):
     # common methods
     if has_superclass(class_def):
         f.write('      .def("check_semantics", &' + class_name + '::check_semantics_cerr)\n')
-        f.write('      .def("__str__", &' + class_name + '::to_str)\n')
+        f.write('      .def("__str__", &' + class_name + '::to_str, py::arg("ind") = std::string(""))\n')
         
     # declared methods
     for m in class_def[KEY_METHODS]:

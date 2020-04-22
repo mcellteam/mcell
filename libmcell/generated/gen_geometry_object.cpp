@@ -37,7 +37,7 @@ SemRes GenGeometryObject::check_semantics(std::ostream& out) const {
   return SemRes::OK;
 }
 
-std::string GenGeometryObject::to_str() const {
+std::string GenGeometryObject::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
       "name=" << name;
@@ -49,11 +49,11 @@ py::class_<GeometryObject> define_pybinding_GeometryObject(py::module& m) {
       .def(
           py::init<
             const std::string&
-          >()
-,          py::arg("name")
+          >(),
+          py::arg("name")
         )
       .def("check_semantics", &GeometryObject::check_semantics_cerr)
-      .def("__str__", &GeometryObject::to_str)
+      .def("__str__", &GeometryObject::to_str, py::arg("ind") = std::string(""))
       .def("dump", &GeometryObject::dump)
       .def_property("name", &GeometryObject::get_name, &GeometryObject::set_name)
     ;

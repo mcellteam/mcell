@@ -32,6 +32,7 @@ namespace API {
 const std::string STATE_UNSET = "state_unset";
 const int STATE_UNSET_INT = -1;
 const int BOND_UNBOUND = 0;
+const int BOND_BOUND = -1;
 
 void define_pybinding_constants(py::module& m);
 

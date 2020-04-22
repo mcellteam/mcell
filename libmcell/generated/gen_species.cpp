@@ -38,11 +38,11 @@ SemRes GenSpecies::check_semantics(std::ostream& out) const {
   return SemRes::OK;
 }
 
-std::string GenSpecies::to_str() const {
+std::string GenSpecies::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
       "name=" << name << ", " <<
-      "molecule_types=" << vec_ptr_to_str(molecule_types);
+      "\n" << ind + "  " << "molecule_types=" << vec_ptr_to_str(molecule_types, ind + "  ");
   return ss.str();
 }
 
@@ -52,12 +52,12 @@ py::class_<Species> define_pybinding_Species(py::module& m) {
           py::init<
             const std::string&,
             const std::vector<std::shared_ptr<MoleculeInstance>>
-          >()
-,          py::arg("name"),
+          >(),
+          py::arg("name"),
           py::arg("molecule_types") = std::vector<std::shared_ptr<MoleculeInstance>>()
         )
       .def("check_semantics", &Species::check_semantics_cerr)
-      .def("__str__", &Species::to_str)
+      .def("__str__", &Species::to_str, py::arg("ind") = std::string(""))
       .def("dump", &Species::dump)
       .def_property("name", &Species::get_name, &Species::set_name)
       .def_property("molecule_types", &Species::get_molecule_types, &Species::set_molecule_types)

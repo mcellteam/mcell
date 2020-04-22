@@ -38,10 +38,10 @@ SemRes GenComponentInstance::check_semantics(std::ostream& out) const {
   return SemRes::OK;
 }
 
-std::string GenComponentInstance::to_str() const {
+std::string GenComponentInstance::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
-      "component_type=" << "(" << ((component_type != nullptr) ? component_type->to_str() : "null" ) << ")" << ", " <<
+      "\n" << ind + "  " << "component_type=" << "(" << ((component_type != nullptr) ? component_type->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "state=" << state << ", " <<
       "bond=" << bond;
   return ss.str();
@@ -54,13 +54,13 @@ py::class_<ComponentInstance> define_pybinding_ComponentInstance(py::module& m) 
             std::shared_ptr<ComponentType>,
             const std::string&,
             const int
-          >()
-,          py::arg("component_type"),
+          >(),
+          py::arg("component_type"),
           py::arg("state") = STATE_UNSET,
           py::arg("bond") = BOND_UNBOUND
         )
       .def("check_semantics", &ComponentInstance::check_semantics_cerr)
-      .def("__str__", &ComponentInstance::to_str)
+      .def("__str__", &ComponentInstance::to_str, py::arg("ind") = std::string(""))
       .def("dump", &ComponentInstance::dump)
       .def_property("component_type", &ComponentInstance::get_component_type, &ComponentInstance::set_component_type)
       .def_property("state", &ComponentInstance::get_state, &ComponentInstance::set_state)

@@ -58,22 +58,23 @@ static inline bool is_set(const std::shared_ptr<T>& a) {
 }
 
 template<typename T>
-static inline std::string vec_ptr_to_str(const std::vector<T>& arr) {
+static inline std::string vec_ptr_to_str(const std::vector<T>& arr, const std::string ind="") {
   std::stringstream ss;
-  ss << "[";
+  ss << "[\n";
   for (size_t i = 0; i < arr.size(); i++) {
-    ss << i << ":(" << arr[i]->to_str() << ")";
+    ss << ind << " " << i << ":(" << arr[i]->to_str(ind) << ")";
     if (i + 1 != arr.size()) {
       ss << ", ";
     }
+    ss << "\n";
   }
-  ss << "]";
+  ss << ind << "]";
   return ss.str();
 }
 
 
 template<typename T>
-static inline std::string vec_nonptr_to_str(const std::vector<T>& arr) {
+static inline std::string vec_nonptr_to_str(const std::vector<T>& arr, const std::string ind="") {
   std::stringstream ss;
   ss << "[";
   for (size_t i = 0; i < arr.size(); i++) {
@@ -130,7 +131,7 @@ public:
   };
 
   // empty implementation, to be overridden in actual derived classes
-  virtual std::string to_str() const {
+  virtual std::string to_str(const std::string ind="") const {
     return "String dump for a derived class is not implemented.";
   }
 

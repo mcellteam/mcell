@@ -39,11 +39,11 @@ SemRes GenMoleculeInstance::check_semantics(std::ostream& out) const {
   return SemRes::OK;
 }
 
-std::string GenMoleculeInstance::to_str() const {
+std::string GenMoleculeInstance::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
-      "molecule_type=" << "(" << ((molecule_type != nullptr) ? molecule_type->to_str() : "null" ) << ")" << ", " <<
-      "components=" << vec_ptr_to_str(components);
+      "\n" << ind + "  " << "molecule_type=" << "(" << ((molecule_type != nullptr) ? molecule_type->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "components=" << vec_ptr_to_str(components, ind + "  ");
   return ss.str();
 }
 
@@ -53,12 +53,12 @@ py::class_<MoleculeInstance> define_pybinding_MoleculeInstance(py::module& m) {
           py::init<
             std::shared_ptr<MoleculeType>,
             const std::vector<std::shared_ptr<ComponentInstance>>
-          >()
-,          py::arg("molecule_type"),
+          >(),
+          py::arg("molecule_type"),
           py::arg("components") = std::vector<std::shared_ptr<ComponentInstance>>()
         )
       .def("check_semantics", &MoleculeInstance::check_semantics_cerr)
-      .def("__str__", &MoleculeInstance::to_str)
+      .def("__str__", &MoleculeInstance::to_str, py::arg("ind") = std::string(""))
       .def("dump", &MoleculeInstance::dump)
       .def_property("molecule_type", &MoleculeInstance::get_molecule_type, &MoleculeInstance::set_molecule_type)
       .def_property("components", &MoleculeInstance::get_components, &MoleculeInstance::set_components)
