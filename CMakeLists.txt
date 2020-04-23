@@ -256,14 +256,14 @@ if (NOT WIN32 AND NOT CYGWIN)
       LANGUAGE python
       SOURCES src/pymcell.i 
       ${SOURCE_FILES}
-      ${FLEX_mdlScanner_OUTPUTS}
+      ${BISON_dynGeomParser_OUTPUTS}  
   	  ${FLEX_dynGeomScanner_OUTPUTS}      
     )
   else()  
     SWIG_ADD_MODULE(pymcell python
       src/pymcell.i
       ${SOURCE_FILES}
-      ${FLEX_mdlScanner_OUTPUTS}
+  	  ${BISON_dynGeomParser_OUTPUTS}  
   	  ${FLEX_dynGeomScanner_OUTPUTS}      
       )
   endif()
