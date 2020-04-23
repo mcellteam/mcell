@@ -254,12 +254,18 @@ if (NOT WIN32 AND NOT CYGWIN)
     SWIG_ADD_LIBRARY(pymcell 
       TYPE SHARED 
       LANGUAGE python
-      SOURCES src/pymcell.i ${SOURCE_FILES}
+      SOURCES src/pymcell.i 
+      ${SOURCE_FILES}
+      ${FLEX_mdlScanner_OUTPUTS}
+  	  ${FLEX_dynGeomScanner_OUTPUTS}      
     )
   else()  
     SWIG_ADD_MODULE(pymcell python
       src/pymcell.i
-      ${SOURCE_FILES})
+      ${SOURCE_FILES}
+      ${FLEX_mdlScanner_OUTPUTS}
+  	  ${FLEX_dynGeomScanner_OUTPUTS}      
+      )
   endif()
   if (APPLE)
     SWIG_LINK_LIBRARIES(pymcell ${CMAKE_CURRENT_BINARY_DIR}/lib/libnfsim_c.dylib ${CMAKE_CURRENT_BINARY_DIR}/lib/libNFsim.dylib ${PYTHON_LIBRARIES})
