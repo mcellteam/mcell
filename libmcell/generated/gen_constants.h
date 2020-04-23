@@ -33,6 +33,10 @@ const std::string STATE_UNSET = "state_unset";
 const int STATE_UNSET_INT = -1;
 const int BOND_UNBOUND = 0;
 const int BOND_BOUND = -1;
+const int ORIENTATION_DOWN = -1;
+const int ORIENTATION_NONE = 0;
+const int ORIENTATION_UP = 1;
+const int ORIENTATION_NOT_SET = 2;
 
 void define_pybinding_constants(py::module& m);
 

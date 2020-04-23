@@ -49,10 +49,12 @@ class Species;
       site_diameter = site_diameter_; \
       site_radius = site_radius_; \
       release_probability = release_probability_; \
+      ctor_postprocess();\
     }
 
 class GenReleaseSite: public BaseDataClass {
 public:
+  void ctor_postprocess() override {}
   SemRes check_semantics(std::ostream& out) const override;
   std::string to_str(const std::string ind="") const override;
 

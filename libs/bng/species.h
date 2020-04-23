@@ -33,7 +33,7 @@ public:
 
   bool equal_except_for_id_base(const Species& s2) const {
     return
-        CplxInstance::equal(s2) &&
+        CplxInstance::equal(s2) &&  // FIXME: do we really want to distinguish by orientation at this stage?
         name == s2.name &&
         D == s2.D;;
   }

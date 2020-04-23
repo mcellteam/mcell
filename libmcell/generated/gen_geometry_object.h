@@ -35,10 +35,12 @@ namespace API {
     ) { \
       class_name = "GeometryObject"; \
       name = name_; \
+      ctor_postprocess();\
     }
 
 class GenGeometryObject: public BaseDataClass {
 public:
+  void ctor_postprocess() override {}
   SemRes check_semantics(std::ostream& out) const override;
   std::string to_str(const std::string ind="") const override;
 

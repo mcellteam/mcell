@@ -39,10 +39,12 @@ class ComponentInstance;
       class_name = "ComponentType"; \
       name = name_; \
       states = states_; \
+      ctor_postprocess();\
     }
 
 class GenComponentType: public BaseDataClass {
 public:
+  void ctor_postprocess() override {}
   SemRes check_semantics(std::ostream& out) const override;
   std::string to_str(const std::string ind="") const override;
 

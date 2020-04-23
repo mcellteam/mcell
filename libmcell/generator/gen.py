@@ -121,6 +121,8 @@ GEN_CLASS_PREFIX = 'Gen'
 BASE_DATA_CLASS = 'BaseDataClass'
 
 RET_TYPE_CHECK_SEMANTICS = 'SemRes'
+CTOR_POSTPROCESS = 'ctor_postprocess'
+RET_CTOR_POSTPROCESS = 'void' 
 DECL_CHECK_SEMANTICS = 'check_semantics(std::ostream& out) const'
 DECL_DEFINE_PYBINDIND_CONSTANTS = 'void define_pybinding_constants(py::module& m)'
 RET_TYPE_TO_STR = 'std::string'
@@ -342,6 +344,7 @@ def write_ctor_define(f, class_def, class_name):
         assert KEY_NAME in items[i] 
         attr_name = items[i][KEY_NAME]
         f.write('      ' + attr_name + ' = ' + attr_name + '_; \\\n')
+    f.write('      ' + CTOR_POSTPROCESS + '();\\\n')    
     f.write('    }\n\n')    
     
     
@@ -456,6 +459,7 @@ def write_gen_class(f, class_def, class_name):
         f.write('  virtual ~' + GEN_CLASS_PREFIX + class_name + '() {}\n')
         
     if has_superclass(class_def):
+        f.write('  ' + RET_CTOR_POSTPROCESS + ' ' + CTOR_POSTPROCESS + '() ' + KEYWORD_OVERRIDE + ' {}\n')
         f.write('  ' + RET_TYPE_CHECK_SEMANTICS + ' ' + DECL_CHECK_SEMANTICS + ' ' + KEYWORD_OVERRIDE + ';\n')
         f.write('  ' + RET_TYPE_TO_STR + ' ' + DECL_TO_STR_W_DEFAULT + ' ' + KEYWORD_OVERRIDE + ';\n\n')
         

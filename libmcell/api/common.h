@@ -4,6 +4,7 @@
 
 #include <ostream>
 #include <sstream>
+#include <exception>
 
 #include "defines.h"
 
@@ -87,6 +88,10 @@ static inline std::string vec_nonptr_to_str(const std::vector<T>& arr, const std
   return ss.str();
 }
 
+
+typedef std::invalid_argument SemanticException;
+
+
 // base class for all classes that hold the model input data
 class BaseDataClass {
 public:
@@ -118,6 +123,9 @@ public:
   virtual std::string get_object_name() const {
     return get_class_name() + " '" + get_name() + "'";
   }
+
+  // invalid implementation, to be overridden in actual derived classes
+  virtual void ctor_postprocess() { };
 
   // invalid implementation, to be overridden in actual derived classes
   virtual SemRes check_semantics(std::ostream& out) const {

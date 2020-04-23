@@ -31,16 +31,22 @@
 namespace MCell {
 namespace API {
 
+class ComplexInstance;
 class MoleculeInstance;
 
 #define SPECIES_CTOR() \
     Species( \
         const std::string& name_, \
+        const float_t diffusion_constant_2d_ = FLT_UNSET, \
+        const float_t diffusion_constant_3d_ = FLT_UNSET, \
         const std::vector<std::shared_ptr<MoleculeInstance>> molecule_types_ = std::vector<std::shared_ptr<MoleculeInstance>>() \
     )  : GenSpecies(molecule_types_) { \
       class_name = "Species"; \
       name = name_; \
+      diffusion_constant_2d = diffusion_constant_2d_; \
+      diffusion_constant_3d = diffusion_constant_3d_; \
       molecule_types = molecule_types_; \
+      ctor_postprocess();\
     }
 
 class GenSpecies: public ComplexInstance {
@@ -49,11 +55,29 @@ public:
       const std::vector<std::shared_ptr<MoleculeInstance>> molecule_types_ = std::vector<std::shared_ptr<MoleculeInstance>>() 
   )  : ComplexInstance(molecule_types_)  {
   }
+  void ctor_postprocess() override {}
   SemRes check_semantics(std::ostream& out) const override;
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---
+  float_t diffusion_constant_2d;
+  virtual void set_diffusion_constant_2d(const float_t new_diffusion_constant_2d_) {
+    diffusion_constant_2d = new_diffusion_constant_2d_;
+  }
+  virtual float_t get_diffusion_constant_2d() const {
+    return diffusion_constant_2d;
+  }
+
+  float_t diffusion_constant_3d;
+  virtual void set_diffusion_constant_3d(const float_t new_diffusion_constant_3d_) {
+    diffusion_constant_3d = new_diffusion_constant_3d_;
+  }
+  virtual float_t get_diffusion_constant_3d() const {
+    return diffusion_constant_3d;
+  }
+
   // --- methods ---
+  virtual ComplexInstance inst(const int orientation) = 0;
 }; // GenSpecies
 
 class Species;

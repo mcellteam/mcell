@@ -18,6 +18,22 @@ constants:
     type: int
     value: -1
     
+  - name: ORIENTATION_DOWN
+    type: int
+    value: -1
+    
+  - name: ORIENTATION_NONE
+    type: int
+    value: 0
+
+  - name: ORIENTATION_UP
+    type: int
+    value: 1
+
+  - name: ORIENTATION_NOT_SET
+    type: int
+    value: 2
+    
     
 ComponentType:
   superclass: BaseDataClass
@@ -120,6 +136,25 @@ Species:
     type: str
     doc: Name of the species
 
+  - name: diffusion_constant_2d
+    type: float
+    default: unset
+    doc: This molecule is constrained to a surface and diffuses with  diffusion constant D.
+      
+  - name: diffusion_constant_3d
+    type: float
+    default: unset # the value is optional and might need to be checked with a more complex check
+    doc: This molecule diffuses in space with diffusion constant D. D can be zero, in which case the molecule doesn’t move. The units of D are cm 2 /s.
+  
+  methods:
+  - name: inst
+    return_type: ComplexInstance
+    doc: Only for simple species (single molecule instance, no components)
+    params:
+    - name: orientation
+      type: int 
+      default: ORIENTATION_NOT_SET
+    
 
 ReactionRule:    
   superclass: BaseDataClass

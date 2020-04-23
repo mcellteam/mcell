@@ -45,10 +45,12 @@ class MoleculeInstance;
       components = components_; \
       diffusion_constant_2d = diffusion_constant_2d_; \
       diffusion_constant_3d = diffusion_constant_3d_; \
+      ctor_postprocess();\
     }
 
 class GenMoleculeType: public BaseDataClass {
 public:
+  void ctor_postprocess() override {}
   SemRes check_semantics(std::ostream& out) const override;
   std::string to_str(const std::string ind="") const override;
 

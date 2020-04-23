@@ -31,6 +31,10 @@ void define_pybinding_constants(py::module& m) {
   m.attr("STATE_UNSET_INT") = py::int_(-1);
   m.attr("BOND_UNBOUND") = py::int_(0);
   m.attr("BOND_BOUND") = py::int_(-1);
+  m.attr("ORIENTATION_DOWN") = py::int_(-1);
+  m.attr("ORIENTATION_NONE") = py::int_(0);
+  m.attr("ORIENTATION_UP") = py::int_(1);
+  m.attr("ORIENTATION_NOT_SET") = py::int_(2);
 }
 
 } // namespace API
