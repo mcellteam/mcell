@@ -33,10 +33,12 @@ class MoleculeInstance;
 
 #define COMPLEX_INSTANCE_CTOR() \
     ComplexInstance( \
-        const std::vector<std::shared_ptr<MoleculeInstance>> molecule_types_ = std::vector<std::shared_ptr<MoleculeInstance>>() \
+        const std::vector<std::shared_ptr<MoleculeInstance>> molecule_types_ = std::vector<std::shared_ptr<MoleculeInstance>>(), \
+        const Orientation orientation_ = Orientation::None \
     ) { \
       class_name = "ComplexInstance"; \
       molecule_types = molecule_types_; \
+      orientation = orientation_; \
       ctor_postprocess();\
     }
 
@@ -53,6 +55,14 @@ public:
   }
   virtual std::vector<std::shared_ptr<MoleculeInstance>> get_molecule_types() const {
     return molecule_types;
+  }
+
+  Orientation orientation;
+  virtual void set_orientation(const Orientation new_orientation_) {
+    orientation = new_orientation_;
+  }
+  virtual Orientation get_orientation() const {
+    return orientation;
   }
 
   // --- methods ---

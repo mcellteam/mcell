@@ -33,10 +33,40 @@ const std::string STATE_UNSET = "state_unset";
 const int STATE_UNSET_INT = -1;
 const int BOND_UNBOUND = 0;
 const int BOND_BOUND = -1;
-const int ORIENTATION_DOWN = -1;
-const int ORIENTATION_NONE = 0;
-const int ORIENTATION_UP = 1;
-const int ORIENTATION_NOT_SET = 2;
+
+enum class Orientation {
+  Down = -1,
+  None = 0,
+  Up = 1,
+  NotSet = 2
+};
+
+
+static inline  std::ostream& operator << (std::ostream& out, const Orientation v) {
+  switch (v) {
+    case Orientation::Down: out << "Orientation.Down (-1)"; break;
+    case Orientation::None: out << "Orientation.None (0)"; break;
+    case Orientation::Up: out << "Orientation.Up (1)"; break;
+    case Orientation::NotSet: out << "Orientation.NotSet (2)"; break;
+  }
+  return out;
+};
+
+enum class Notification {
+  None = 0,
+  Brief = 1,
+  Full = 2
+};
+
+
+static inline  std::ostream& operator << (std::ostream& out, const Notification v) {
+  switch (v) {
+    case Notification::None: out << "Notification.None (0)"; break;
+    case Notification::Brief: out << "Notification.Brief (1)"; break;
+    case Notification::Full: out << "Notification.Full (2)"; break;
+  }
+  return out;
+};
 
 void define_pybinding_constants(py::module& m);
 

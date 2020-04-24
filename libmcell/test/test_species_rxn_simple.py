@@ -13,8 +13,8 @@ C = m.Species('C', diffusion_constant_3d = 1e-6)
 # we still need to make instances 
 rxn_rule = m.ReactionRule(
     name = "a_plus_b_to_c",
-    reactants = [A.inst(orientation=m.ORIENTATION_UP), B.inst(orientation=m.ORIENTATION_UP)],
-    products = [C.inst(orientation=m.ORIENTATION_DOWN), B.inst(orientation=m.ORIENTATION_UP)],
+    reactants = [A.inst(orientation=m.Orientation.Up), B.inst(orientation=m.Orientation.Up)],
+    products = [C.inst(orientation=m.Orientation.Down), B.inst(orientation=m.Orientation.Up)],
     fwd_rate = 1e5
 )
 

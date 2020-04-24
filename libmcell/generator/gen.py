@@ -31,7 +31,15 @@ import re
 from datetime import datetime
 from copy import copy
 
+VERBOSE = False # may be overridden by argument -v 
+
+CONSTANTS_FILE = 'constants.yaml'
 DATA_CLASSES_FILE = 'data_classes.yaml'
+SIMULATION_SETUP_FILE = 'simulation_setup.yaml'
+SIMULATION_CONTROL_FILE = 'simulation_control.yaml'
+
+# order is not important
+ALL_INPUT_FILES = [CONSTANTS_FILE, DATA_CLASSES_FILE, SIMULATION_SETUP_FILE, SIMULATION_CONTROL_FILE]
 
 
 COPYRIGHT = \
@@ -67,12 +75,14 @@ KEY_NAME = 'name'
 ATTR_NAME_NAME = 'name' # attrribute with name 'name' is already defined in BaseDataClass
 KEY_TYPE = 'type'
 KEY_VALUE = 'value'
+KEY_VALUES = 'values'
 KEY_DEFAULT = 'default'
 
 KEY_SUPERCLASS = 'superclass'
 KEY_SUPERCLASSES = 'superclasses'
 
 KEY_CONSTANTS = 'constants'
+KEY_ENUMS = 'enums'
 
 KEY_METHODS = 'methods'
 KEY_PARAMS = 'params'
@@ -238,7 +248,8 @@ def get_default_or_unset_value(attr):
     if KEY_DEFAULT in attr:
         default_value = attr[KEY_DEFAULT]
         if default_value != UNSET_VALUE and default_value != EMPTY_ARRAY:
-            return str(default_value) 
+            # might need to convert enum.value into enum::value
+            return str(default_value).replace('.', '::') 
     
     assert KEY_TYPE in attr
     t = attr[KEY_TYPE]
@@ -492,7 +503,7 @@ def remove_ptr_mark(t):
         return t
     
 
-def get_all_used_compound_types(class_def):
+def get_all_used_compound_types(class_def, enums):
     types = set()
     for items in class_def[KEY_ITEMS]:
         assert KEY_TYPE in items
@@ -513,14 +524,15 @@ def get_all_used_compound_types(class_def):
                 if not is_base_yaml_type(t):
                     types.add( remove_ptr_mark(t) )
                     
-    sorted_types = [ remove_ptr_mark( get_inner_list_type(t) ) for t in list(types) ]
-    sorted_types.sort()
-    return sorted_types
+    cleaned_up_types = [ remove_ptr_mark( get_inner_list_type(t) ) for t in list(types) ]
+    sorted_types_no_enums = [ t for t in cleaned_up_types if t not in enums ]
+    sorted_types_no_enums.sort()
+    return sorted_types_no_enums
 
 
-def write_forward_decls(f, class_def):
+def write_forward_decls(f, class_def, enums):
     # first we need to collect all types that we will need
-    types = get_all_used_compound_types(class_def)
+    types = get_all_used_compound_types(class_def, enums)
     
     for t in types:
         f.write('class ' + t + ';\n')
@@ -529,7 +541,7 @@ def write_forward_decls(f, class_def):
         f.write('\n')
     
 
-def generate_class_header(class_name, class_def, input_file_name):
+def generate_class_header(class_name, class_def, input_file_name, enums):
     with open(get_gen_class_file_name_w_dir(class_name, EXT_H), 'w') as f:
         f.write(COPYRIGHT)
         write_generated_notice(f, input_file_name)
@@ -544,7 +556,7 @@ def generate_class_header(class_name, class_def, input_file_name):
         
         f.write('\n' + NAMESPACES_BEGIN + '\n\n')
         
-        write_forward_decls(f, class_def)
+        write_forward_decls(f, class_def, enums)
         
         if has_superclass(class_def): # not sure about this condition
             write_ctor_define(f, class_def, class_name)
@@ -576,7 +588,7 @@ def write_check_semantics_implemetation(f, class_name, items):
     f.write('}\n\n')    
     
         
-def write_to_str_implemetation(f, class_name, items):
+def write_to_str_implemetation(f, class_name, items, enums):
     f.write(RET_TYPE_TO_STR + ' ' + GEN_CLASS_PREFIX + class_name + '::' + DECL_TO_STR + ' {\n')
     f.write('  std::stringstream ss;\n')
     f.write('  ss << get_object_name() << ": " <<\n')
@@ -599,7 +611,7 @@ def write_to_str_implemetation(f, class_name, items):
             else:
                 f.write('      "' + name + '=" << ')
                 f.write(VEC_NONPTR_TO_STR + '(' + name + ', ind + "  ")')
-        elif not is_base_yaml_type(type):
+        elif not is_base_yaml_type(type) and type not in enums:
             f.write('      ' + starting_nl + name + '=" << "(" << ((' + name + ' != nullptr) ? ' + name + '->to_str(ind + "  ") : "null" ) << ")"')
             print_nl = True
         else:
@@ -732,13 +744,13 @@ def write_pybind11_bindings(f, class_name, class_def):
     f.write('}\n\n')
     
                 
-def write_used_classes_includes(f, class_def):
-    types = get_all_used_compound_types(class_def)
+def write_used_classes_includes(f, class_def, enums):
+    types = get_all_used_compound_types(class_def, enums)
     for t in types:
         f.write('#include "' + get_api_class_file_name(t, EXT_H) + '"\n')
 
             
-def generate_class_implementation_and_bindings(class_name, class_def, input_file_name):
+def generate_class_implementation_and_bindings(class_name, class_def, input_file_name, enums):
     with open(get_gen_class_file_name_w_dir(class_name, EXT_CPP), 'w') as f:
         f.write(COPYRIGHT)
         write_generated_notice(f, input_file_name)
@@ -751,14 +763,14 @@ def generate_class_implementation_and_bindings(class_name, class_def, input_file
         f.write('#include "' + get_api_class_file_name(class_name, EXT_H) + '"\n')
         
         # we also need includes for every type that we used
-        write_used_classes_includes(f, class_def)
+        write_used_classes_includes(f, class_def, enums)
         
         f.write('\n' + NAMESPACES_BEGIN + '\n\n')
         
         if has_superclass(class_def):
             items = class_def[KEY_ITEMS]
             write_check_semantics_implemetation(f, class_name, items)
-            write_to_str_implemetation(f, class_name, items)
+            write_to_str_implemetation(f, class_name, items, enums)
         
         write_pybind11_bindings(f, class_name, class_def)
         
@@ -799,7 +811,7 @@ def inherit_from_superclasses(data_classes, class_name, class_def):
     return res
 
 
-def generate_class_files(data_classes, class_name, class_def, input_file_name):
+def generate_class_files(data_classes, class_name, class_def, input_file_name, enums):
     # we need items and methods to be present 
     if KEY_ITEMS not in class_def:
         class_def[KEY_ITEMS] = []
@@ -809,8 +821,8 @@ def generate_class_files(data_classes, class_name, class_def, input_file_name):
 
     class_def_w_inheritances = inherit_from_superclasses(data_classes, class_name, class_def)
     
-    generate_class_header(class_name, class_def_w_inheritances, input_file_name)
-    generate_class_implementation_and_bindings(class_name, class_def_w_inheritances, input_file_name)
+    generate_class_header(class_name, class_def_w_inheritances, input_file_name, enums)
+    generate_class_implementation_and_bindings(class_name, class_def_w_inheritances, input_file_name, enums)
     
     
 def write_constant_def(f, constant_def):
@@ -825,8 +837,40 @@ def write_constant_def(f, constant_def):
     
     f.write('const ' + yaml_type_to_cpp_type(t) + ' ' + name + ' = ' + q + str(value) + q + ';\n')
         
+        
+def write_enum_def(f, enum_def):
+    assert KEY_NAME in enum_def
+    assert KEY_VALUES in enum_def, "Enum must have at least one value"
+    name = enum_def[KEY_NAME]
+    values = enum_def[KEY_VALUES]
     
-def generate_constants_header(constants_items, input_file_name):
+    f.write('\nenum class ' + name + ' {\n')
+    num = len(values)
+    for i in range(num):
+        v = values[i]
+        assert KEY_NAME in v
+        assert KEY_VALUE in v
+        assert type(v[KEY_VALUE]) == int  
+        f.write('  ' + v[KEY_NAME] + ' = ' + str(v[KEY_VALUE]))
+        if i + 1 != num:
+            f.write(',')
+        f.write('\n')    
+    f.write('};\n\n')
+
+    
+    f.write('\nstatic inline  std::ostream& operator << (std::ostream& out, const ' + name + ' v) {\n')
+    f.write('  switch (v) {\n');
+    for i in range(num):
+        v = values[i]
+        # dumping in Python style '.' that will be most probably more common as API  
+        f.write('    case ' + name + '::' + v[KEY_NAME] + ': out << "' + name + '.' + v[KEY_NAME] + ' (' + str(v[KEY_VALUE]) + ')"; break;\n')  
+        
+    f.write('  }\n')
+    f.write('  return out;\n')
+    f.write('};\n')
+        
+            
+def generate_constants_header(constants_items, enums_items, input_file_name):
     with open(os.path.join(TARGET_DIRECTORY, GEN_CONSTANTS_H), 'w') as f:
         f.write(COPYRIGHT)
         write_generated_notice(f, input_file_name)
@@ -840,6 +884,9 @@ def generate_constants_header(constants_items, input_file_name):
         
         for constant_def in constants_items:
             write_constant_def(f, constant_def)
+            
+        for enum_def in enums_items:
+            write_enum_def(f, enum_def)
 
         f.write('\n' + DECL_DEFINE_PYBINDIND_CONSTANTS + ';\n\n')
         
@@ -858,10 +905,26 @@ def write_constant_binding(f, constant_def):
     
     q = '"' if t == YAML_TYPE_STR else ''
     
-    f.write('  m.attr("' + name + '") = py::' + yaml_type_to_pybind_type(t) + '(' + q + str(value) + q + ');\n')
+    f.write('  m.attr("' + name + '") = py::' + yaml_type_to_pybind_type(t) + '(' + q + name + q + ');\n')
     
+
+def write_enum_binding(f, enum_def):
+    assert KEY_NAME in enum_def
+    assert KEY_VALUES in enum_def, "Enum must have at least one value"
+    name = enum_def[KEY_NAME]
+    values = enum_def[KEY_VALUES]
+    
+    f.write('  py::enum_<' + name + '>(m, "' + name + '", py::arithmetic())\n')
+    num = len(values)
+    for i in range(num):
+        v = values[i]
+        assert KEY_NAME in v
+        f.write('    .value("' + v[KEY_NAME] + '", ' + name + '::' + v[KEY_NAME] + ')\n')
         
-def generate_constants_implementation(constants_items, input_file_name):
+    f.write('    .export_values();\n')
+        
+        
+def generate_constants_implementation(constants_items, enums_items, input_file_name):
     with open(os.path.join(TARGET_DIRECTORY, GEN_CONSTANTS_CPP), 'w') as f:
         f.write(COPYRIGHT)
         write_generated_notice(f, input_file_name)
@@ -873,38 +936,61 @@ def generate_constants_implementation(constants_items, input_file_name):
         for constant_def in constants_items:
             write_constant_binding(f, constant_def)
         
+        for enum_def in enums_items:
+            write_enum_binding(f, enum_def)
+        
         f.write('}\n\n')
         
         f.write(NAMESPACES_END + '\n\n')    
 
 
-def generate_constants(constants_items, input_file_name):
-    generate_constants_header(constants_items, input_file_name)
-    generate_constants_implementation(constants_items, input_file_name)
+def generate_constants_and_enums(constants_items, enums_items, input_file_name):
+    generate_constants_header(constants_items, enums_items, input_file_name)
+    generate_constants_implementation(constants_items, enums_items, input_file_name)
 
+
+def get_enum_names(data_classes):
+    res = set()
+    enum_defs = data_classes[KEY_ENUMS] if KEY_ENUMS in data_classes else []
+    for enum in enum_defs:
+        assert KEY_NAME in enum
+        res.add(enum[KEY_NAME])
+    return res
 
 def generate_data_classes(data_classes, input_file_name):
-    assert type(data_classes) == dict
+    generate_constants_and_enums(
+        data_classes[KEY_CONSTANTS] if KEY_CONSTANTS in data_classes else [],
+        data_classes[KEY_ENUMS] if KEY_ENUMS in data_classes else [], 
+        input_file_name)
+
+    enums = get_enum_names(data_classes)
+
     for key, value in data_classes.items():
-        if key != KEY_CONSTANTS:
-            generate_class_files(data_classes, key, value, input_file_name)
-        else:
-            generate_constants(value, input_file_name)
+        if key != KEY_CONSTANTS and key != KEY_ENUMS:
+            if VERBOSE:
+                print("Generating class " + key)
+            generate_class_files(data_classes, key, value, input_file_name, enums)
     
         
 def load_and_generate_data_classes():
-    with open(DATA_CLASSES_FILE) as file:
-        # The FullLoader parameter handles the conversion from YAML
-        # scalar values to Python the dictionary format
-        data_classes = yaml.load(file, Loader=yaml.FullLoader)
-        if data_classes and type(data_classes) == dict:
-            #print(data_classes)
-            generate_data_classes(data_classes, DATA_CLASSES_FILE)
-        else:
-            print("Error while reading " + DATA_CLASSES_FILE + ".")
-            sys.exit(1)
+    data_classes = {}
+    
+    for input in ALL_INPUT_FILES:
+        with open(input) as file:
+            # The FullLoader parameter handles the conversion from YAML
+            # scalar values to Python the dictionary format
+            data_classes.update( yaml.load(file, Loader=yaml.FullLoader) )
+            if VERBOSE:
+                print("Loaded " + input)
+        
+    print(data_classes)
+    assert type(data_classes) == dict
+    generate_data_classes(data_classes, DATA_CLASSES_FILE)
 
 if __name__ == '__main__':
+    if len(sys.argv) == 2 and sys.argv[1] == '-v':
+        VERBOSE = True
+        
     load_and_generate_data_classes()
     
     

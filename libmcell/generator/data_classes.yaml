@@ -1,38 +1,7 @@
 # Static API definition
 # - classes whose objects represent the static state of the model
 # TODO: rename - this file contains also dynamic API definition
-constants:
-  - name: STATE_UNSET
-    type: str
-    value: state_unset
-    
-  - name: STATE_UNSET_INT
-    type: int
-    value: -1
-        
-  - name: BOND_UNBOUND
-    type: int
-    value: 0
 
-  - name: BOND_BOUND
-    type: int
-    value: -1
-    
-  - name: ORIENTATION_DOWN
-    type: int
-    value: -1
-    
-  - name: ORIENTATION_NONE
-    type: int
-    value: 0
-
-  - name: ORIENTATION_UP
-    type: int
-    value: 1
-
-  - name: ORIENTATION_NOT_SET
-    type: int
-    value: 2
     
     
 ComponentType:
@@ -128,6 +97,9 @@ ComplexInstance:
     type: List[MoleculeInstance*]
     default: empty
 
+  - name: orientation
+    type: Orientation 
+    default: Orientation.None
     
 Species:
   superclass: ComplexInstance
@@ -152,8 +124,8 @@ Species:
     doc: Only for simple species (single molecule instance, no components)
     params:
     - name: orientation
-      type: int 
-      default: ORIENTATION_NOT_SET
+      type: Orientation 
+      default: Orientation.NotSet
     
 
 ReactionRule:    
@@ -223,62 +195,4 @@ GeometryObject:
   - name: name
     type: str
     doc: Name of the object
-    
-    
-# Dynamic API definition
-Subsystem:
-  methods:
-  - name: add_species
-    params:
-    - name: s
-      type: Species*
-      
-  - name: find_species # 'find' prefix is always used when the  
-    return_type: Species*
-    params:
-    - name: name
-      type: str
-      
-      
-InstantiationData:
-  methods:
-  - name: add_release_site
-    params:
-    - name: s
-      type: Species*
-      
-  - name: find_release_site
-    return_type: ReleaseSite*
-    params:
-    - name: name
-      type: str
-      
-  - name: add_geometry_object
-    params:
-    - name: o
-      type: GeometryObject*
-      
-  - name: find_geometry_object
-    params:
-    - name: name
-      type: str
-      
-      
-Model:
-  superclasses: [Subsystem, InstantiationData]
-  
-  methods:
-  - name: run_iterations
-    params:
-    - name: iterations
-      type: long
-      
-  - name: add_subsystem
-    params:
-    - name: subsystem
-      type: Subsystem*
-      
-  - name: add_instantiation_data
-    params:
-    - name: instantiation_data
-      type: InstantiationData*
+        

@@ -1,0 +1,58 @@
+    
+# Dynamic API definition
+Subsystem:
+  methods:
+  - name: add_species
+    params:
+    - name: s
+      type: Species*
+      
+  - name: find_species # 'find' prefix is always used when the  
+    return_type: Species*
+    params:
+    - name: name
+      type: str
+      
+      
+InstantiationData:
+  methods:
+  - name: add_release_site
+    params:
+    - name: s
+      type: Species*
+      
+  - name: find_release_site
+    return_type: ReleaseSite*
+    params:
+    - name: name
+      type: str
+      
+  - name: add_geometry_object
+    params:
+    - name: o
+      type: GeometryObject*
+      
+  - name: find_geometry_object
+    params:
+    - name: name
+      type: str
+      
+      
+Model:
+  superclasses: [Subsystem, InstantiationData]
+  
+  methods:
+  - name: run_iterations
+    params:
+    - name: iterations
+      type: long
+      
+  - name: add_subsystem
+    params:
+    - name: subsystem
+      type: Subsystem*
+      
+  - name: add_instantiation_data
+    params:
+    - name: instantiation_data
+      type: InstantiationData*

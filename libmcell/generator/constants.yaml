@@ -1,0 +1,37 @@
+constants:
+  - name: STATE_UNSET
+    type: str
+    value: state_unset
+  - name: STATE_UNSET_INT
+    type: int
+    value: -1
+        
+  - name: BOND_UNBOUND
+    type: int
+    value: 0
+  - name: BOND_BOUND
+    type: int
+    value: -1
+
+    
+enums:
+  - name: Orientation
+    values:
+    - name: Down
+      value: -1
+    - name: None
+      value: 0     
+    - name: Up
+      value: 1
+    - name: NotSet
+      value: 2
+      
+  - name: Notification
+    values:
+    - name: None
+      value: 0
+    - name: Brief
+      value: 1
+    - name: Full
+      value: 2
+                

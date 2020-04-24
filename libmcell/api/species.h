@@ -68,10 +68,13 @@ public:
     }
   }
 
-  ComplexInstance inst(const int orientation) override {
+  ComplexInstance inst(const Orientation orientation) override {
     // simply downcast because the possible definition of an underlying
     // ComplexInstance was done in ctor_postprocess
-    return *dynamic_cast<ComplexInstance*>(this);
+    // TODO: store orientation
+    ComplexInstance res = *dynamic_cast<ComplexInstance*>(this);
+    res.orientation = orientation;
+    return res;
   }
 
 };

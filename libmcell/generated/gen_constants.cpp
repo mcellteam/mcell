@@ -27,14 +27,21 @@ namespace MCell {
 namespace API {
 
 void define_pybinding_constants(py::module& m) {
-  m.attr("STATE_UNSET") = py::str("state_unset");
-  m.attr("STATE_UNSET_INT") = py::int_(-1);
-  m.attr("BOND_UNBOUND") = py::int_(0);
-  m.attr("BOND_BOUND") = py::int_(-1);
-  m.attr("ORIENTATION_DOWN") = py::int_(-1);
-  m.attr("ORIENTATION_NONE") = py::int_(0);
-  m.attr("ORIENTATION_UP") = py::int_(1);
-  m.attr("ORIENTATION_NOT_SET") = py::int_(2);
+  m.attr("STATE_UNSET") = py::str("STATE_UNSET");
+  m.attr("STATE_UNSET_INT") = py::int_(STATE_UNSET_INT);
+  m.attr("BOND_UNBOUND") = py::int_(BOND_UNBOUND);
+  m.attr("BOND_BOUND") = py::int_(BOND_BOUND);
+  py::enum_<Orientation>(m, "Orientation", py::arithmetic())
+    .value("Down", Orientation::Down)
+    .value("None", Orientation::None)
+    .value("Up", Orientation::Up)
+    .value("NotSet", Orientation::NotSet)
+    .export_values();
+  py::enum_<Notification>(m, "Notification", py::arithmetic())
+    .value("None", Notification::None)
+    .value("Brief", Notification::Brief)
+    .value("Full", Notification::Full)
+    .export_values();
 }
 
 } // namespace API
