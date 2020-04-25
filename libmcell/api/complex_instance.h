@@ -24,10 +24,8 @@
 #ifndef API_COMPLEX_INSTANCE_H
 #define API_COMPLEX_INSTANCE_H
 
-#include <string>
-
 #include "../generated/gen_complex_instance.h"
-#include "common.h"
+#include "../api/common.h"
 
 namespace MCell {
 namespace API {
@@ -36,7 +34,6 @@ class ComplexInstance: public GenComplexInstance {
 public:
   COMPLEX_INSTANCE_CTOR()
 };
-
 
 } // namespace API
 } // namespace MCell

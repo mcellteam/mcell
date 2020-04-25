@@ -24,10 +24,8 @@
 #ifndef API_REACTION_RULE_H
 #define API_REACTION_RULE_H
 
-#include <string>
-
 #include "../generated/gen_reaction_rule.h"
-#include "common.h"
+#include "../api/common.h"
 
 namespace MCell {
 namespace API {
@@ -36,7 +34,6 @@ class ReactionRule: public GenReactionRule {
 public:
   REACTION_RULE_CTOR()
 };
-
 
 } // namespace API
 } // namespace MCell

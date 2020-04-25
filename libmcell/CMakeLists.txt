@@ -40,6 +40,12 @@ set(SOURCE_FILES
 
     generated/gen_subsystem.cpp
     generated/gen_instantiation_data.cpp
+    
+    generated/gen_config.cpp
+    generated/gen_notifications.cpp
+    generated/gen_warnings.cpp
+    generated/gen_partition.cpp
+    
     generated/gen_model.cpp
     
     generated/gen_constants.cpp

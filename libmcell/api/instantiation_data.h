@@ -24,10 +24,8 @@
 #ifndef API_INSTANTIATION_DATA_H
 #define API_INSTANTIATION_DATA_H
 
-#include <string>
-
 #include "../generated/gen_instantiation_data.h"
-#include "common.h"
+#include "../api/common.h"
 
 namespace MCell {
 namespace API {
@@ -44,7 +42,6 @@ public:
   // added manually
   void dump() const;
 };
-
 
 } // namespace API
 } // namespace MCell

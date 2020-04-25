@@ -24,10 +24,8 @@
 #ifndef API_MOLECULE_INSTANCE_H
 #define API_MOLECULE_INSTANCE_H
 
-#include <string>
-
 #include "../generated/gen_molecule_instance.h"
-#include "common.h"
+#include "../api/common.h"
 
 namespace MCell {
 namespace API {
@@ -36,7 +34,6 @@ class MoleculeInstance: public GenMoleculeInstance {
 public:
   MOLECULE_INSTANCE_CTOR()
 };
-
 
 } // namespace API
 } // namespace MCell

@@ -24,10 +24,8 @@
 #ifndef API_RELEASE_SITE_H
 #define API_RELEASE_SITE_H
 
-#include <string>
-
 #include "../generated/gen_release_site.h"
-#include "common.h"
+#include "../api/common.h"
 
 namespace MCell {
 namespace API {
@@ -51,8 +49,6 @@ public:
     return SemRes::OK;
   }
 };
-
-
 
 } // namespace API
 } // namespace MCell

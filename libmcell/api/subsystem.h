@@ -24,10 +24,8 @@
 #ifndef API_SUBSYSTEM_H
 #define API_SUBSYSTEM_H
 
-#include <string>
-
 #include "../generated/gen_subsystem.h"
-#include "common.h"
+#include "../api/common.h"
 
 namespace MCell {
 namespace API {
@@ -41,7 +39,6 @@ public:
   // added manually
   void dump() const;
 };
-
 
 } // namespace API
 } // namespace MCell

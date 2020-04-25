@@ -24,10 +24,8 @@
 #ifndef API_COMPONENT_TYPE_H
 #define API_COMPONENT_TYPE_H
 
-#include <string>
-
 #include "../generated/gen_component_type.h"
-#include "common.h"
+#include "../api/common.h"
 #include "component_instance.h"
 
 namespace MCell {
@@ -45,7 +43,6 @@ public:
     return ComponentInstance(shared_from_this(), std::to_string(state), bond);
   }
 };
-
 
 } // namespace API
 } // namespace MCell

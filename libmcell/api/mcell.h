@@ -31,8 +31,6 @@
 
 #include "../api/common.h"
 
-
-// data classes
 #include "../api/component_type.h"
 #include "../api/component_instance.h"
 #include "../api/molecule_type.h"
@@ -45,10 +43,14 @@
 #include "../api/geometry_object.h"
 #include "../api/release_site.h"
 
-
-// classes with methods
-#include "../api/model.h"
 #include "../api/subsystem.h"
 #include "../api/instantiation_data.h"
+
+#include "../api/config.h"
+#include "../api/notifications.h"
+#include "../api/warnings.h"
+#include "../api/partition.h"
+
+#include "../api/model.h"
 
 #endif // API_MCELL_H

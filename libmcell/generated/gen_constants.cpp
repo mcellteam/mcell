@@ -42,6 +42,11 @@ void define_pybinding_constants(py::module& m) {
     .value("Brief", Notification::Brief)
     .value("Full", Notification::Full)
     .export_values();
+  py::enum_<WarningLevel>(m, "WarningLevel", py::arithmetic())
+    .value("Ignore", WarningLevel::Ignore)
+    .value("Warning", WarningLevel::Warning)
+    .value("Error", WarningLevel::Error)
+    .export_values();
 }
 
 } // namespace API

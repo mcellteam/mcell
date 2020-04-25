@@ -69,6 +69,7 @@ COPYRIGHT = \
 
 TARGET_DIRECTORY = os.path.join('..', 'generated')
 API_DIRECTORY = os.path.join('..', 'api')
+WORK_DIRECTORY = os.path.join('..', 'work')
 
 KEY_ITEMS = 'items'
 KEY_NAME = 'name'
@@ -94,6 +95,7 @@ YAML_TYPE_FLOAT = 'float'
 YAML_TYPE_STR = 'str'
 YAML_TYPE_INT = 'int'
 YAML_TYPE_LONG = 'long'
+YAML_TYPE_BOOL = 'bool'
 YAML_TYPE_VEC2 = 'Vec2'
 YAML_TYPE_VEC3 = 'Vec3'
 YAML_TYPE_LIST = 'List'
@@ -102,6 +104,7 @@ CPP_TYPE_FLOAT = 'float_t'
 CPP_TYPE_STR = 'std::string'
 CPP_TYPE_INT = 'int'
 CPP_TYPE_LONG = 'long'
+CPP_TYPE_BOOL = 'bool'
 CPP_TYPE_VEC2 = 'Vec2'
 CPP_TYPE_VEC3 = 'Vec3'
 CPP_VECTOR_TYPE = 'std::vector'
@@ -114,14 +117,15 @@ EMPTY_ARRAY = 'empty'
 UNSET_VALUE_FLOAT = 'FLT_UNSET'
 UNSET_VALUE_STR = 'STR_UNSET'
 UNSET_VALUE_INT = 'INT_UNSET'
-UNSET_VALUE_INT = 'LONG_UNSET'
+UNSET_VALUE_LONG = 'LONG_UNSET'
 UNSET_VALUE_VEC2 = 'VEC2_UNSET'
 UNSET_VALUE_VEC3 = 'VEC3_UNSET'
 UNSET_VALUE_PTR = 'nullptr'
 
 
 GEN_PREFIX = 'gen_'
-GUARD_PREFIX = 'API_GEN_'
+GEN_GUARD_PREFIX = 'API_GEN_'
+API_GUARD_PREFIX = 'API_'
 GUARD_SUFFIX = '_H'
 CTOR_SUFFIX = '_CTOR'
 EXT_CPP = 'cpp'
@@ -157,8 +161,11 @@ VEC_PTR_TO_STR = 'vec_ptr_to_str'
 def get_underscored(class_name):
     return re.sub(r'(?<!^)(?=[A-Z])', '_', class_name).lower()
 
-def get_header_guard_name(class_name):
-    return GUARD_PREFIX + get_underscored(class_name).upper() + GUARD_SUFFIX
+def get_gen_header_guard_name(class_name):
+    return GEN_GUARD_PREFIX + get_underscored(class_name).upper() + GUARD_SUFFIX
+
+def get_api_header_guard_name(class_name):
+    return API_GUARD_PREFIX + get_underscored(class_name).upper() + GUARD_SUFFIX
 
 def get_gen_class_file_name(class_name, extension):
     return os.path.join(GEN_PREFIX + get_underscored(class_name) + '.' + extension)
@@ -167,7 +174,13 @@ def get_gen_class_file_name_w_dir(class_name, extension):
     return os.path.join(TARGET_DIRECTORY, get_gen_class_file_name(class_name, extension))
 
 def get_api_class_file_name(class_name, extension):
-    return os.path.join(API_DIRECTORY, get_underscored(class_name) + '.' + extension)
+    return get_underscored(class_name) + '.' + extension
+
+def get_api_class_file_name_w_dir(class_name, extension):
+    return os.path.join(API_DIRECTORY, get_api_class_file_name(class_name, extension))
+   
+def get_api_class_file_name_w_work_dir(class_name, extension):
+    return os.path.join(WORK_DIRECTORY, get_api_class_file_name(class_name, extension))
 
 def is_list(t):
     return t.startswith(YAML_TYPE_LIST)
@@ -184,7 +197,7 @@ def get_inner_list_type(t):
 def is_base_yaml_type(t):
     return \
         t == YAML_TYPE_FLOAT or t == YAML_TYPE_STR or t == YAML_TYPE_INT or t == YAML_TYPE_LONG or \
-        t == YAML_TYPE_VEC2 or t == YAML_TYPE_VEC3 or \
+        t == YAML_TYPE_BOOL or t == YAML_TYPE_VEC2 or t == YAML_TYPE_VEC3 or \
         (is_list(t) and is_base_yaml_type(get_inner_list_type(t)))
 
 
@@ -202,6 +215,8 @@ def yaml_type_to_cpp_type(t):
         return CPP_TYPE_INT
     elif t == YAML_TYPE_LONG:
         return CPP_TYPE_LONG
+    elif t == YAML_TYPE_LONG:
+        return CPP_TYPE_BOOL
     elif t == YAML_TYPE_VEC2:
         return CPP_TYPE_VEC2
     elif t == YAML_TYPE_VEC3:
@@ -217,12 +232,23 @@ def yaml_type_to_cpp_type(t):
             return t # standard ttype
     
     
+def get_cpp_bool_string(val):
+    if val == 'True':
+        return 'true'
+    elif val == 'False':
+        return 'false'
+    else:
+        assert false
+
+    
 def yaml_type_to_pybind_type(t):
     assert len(t) >= 1
     if t == YAML_TYPE_FLOAT:
         return CPP_TYPE_FLOAT
     elif t == YAML_TYPE_STR:
         return YAML_TYPE_STR
+    elif t == YAML_TYPE_BOOL:
+        return CPP_TYPE_BOOL
     elif t == YAML_TYPE_INT:
         return CPP_TYPE_INT + '_'
     elif t == YAML_TYPE_LONG:
@@ -245,14 +271,22 @@ def get_type_as_ref_param(attr):
 
 
 def get_default_or_unset_value(attr):
+    assert KEY_TYPE in attr
+    t = attr[KEY_TYPE]
+
     if KEY_DEFAULT in attr:
         default_value = attr[KEY_DEFAULT]
         if default_value != UNSET_VALUE and default_value != EMPTY_ARRAY:
+            res = str(default_value)
             # might need to convert enum.value into enum::value
-            return str(default_value).replace('.', '::') 
+            if not is_base_yaml_type(t):
+                print('Converting ' + res)
+                res = res.replace('.', '::')
+            elif t == YAML_TYPE_BOOL:
+                res = get_cpp_bool_string(res)
+                
+            return res 
     
-    assert KEY_TYPE in attr
-    t = attr[KEY_TYPE]
     if t == YAML_TYPE_FLOAT:
         return UNSET_VALUE_FLOAT
     elif t == YAML_TYPE_STR:
@@ -261,6 +295,9 @@ def get_default_or_unset_value(attr):
         return UNSET_VALUE_INT
     elif t == YAML_TYPE_LONG:
         return UNSET_VALUE_LONG
+    elif t == YAML_TYPE_BOOL:
+        assert False, "There is no unset value for bool"
+        return "error"
     elif t == YAML_TYPE_VEC2:
         return UNSET_VALUE_VEC2
     elif t == YAML_TYPE_VEC3:
@@ -546,13 +583,13 @@ def generate_class_header(class_name, class_def, input_file_name, enums):
         f.write(COPYRIGHT)
         write_generated_notice(f, input_file_name)
         
-        guard = get_header_guard_name(class_name);
+        guard = get_gen_header_guard_name(class_name);
         f.write('#ifndef ' + guard + '\n')
         f.write('#define ' + guard + '\n\n')
         f.write(INCLUDE_API_COMMON_H + '\n')
         
         if has_superclass_other_than_base(class_def):
-            f.write('#include "' + get_api_class_file_name(class_def[KEY_SUPERCLASS], EXT_H) + '"\n\n')
+            f.write('#include "' + get_api_class_file_name_w_dir(class_def[KEY_SUPERCLASS], EXT_H) + '"\n\n')
         
         f.write('\n' + NAMESPACES_BEGIN + '\n\n')
         
@@ -571,6 +608,32 @@ def generate_class_header(class_name, class_def, input_file_name, enums):
         f.write('#endif // ' + guard + '\n')
     
 
+def generate_class_template(class_name, class_def, input_file_name, enums):
+    with open(get_api_class_file_name_w_work_dir(class_name, EXT_H), 'w') as f:
+        f.write(COPYRIGHT)
+        write_generated_notice(f, input_file_name)
+        
+        guard = get_api_header_guard_name(class_name);
+        f.write('#ifndef ' + guard + '\n')
+        f.write('#define ' + guard + '\n\n')
+        f.write('#include "' + get_gen_class_file_name_w_dir(class_name, EXT_H) + '"\n')
+        f.write(INCLUDE_API_COMMON_H + '\n')
+        
+        if has_superclass_other_than_base(class_def):
+            f.write('#include "' + get_api_class_file_name_w_dir(class_def[KEY_SUPERCLASS], EXT_H) + '"\n\n')
+        
+        f.write('\n' + NAMESPACES_BEGIN + '\n\n')
+        
+        
+        f.write('class ' + class_name + ': public ' + GEN_CLASS_PREFIX + class_name + ' {\n')
+        f.write('public:\n')
+        f.write('  ' + get_underscored(class_name).upper() + CTOR_SUFFIX + '()\n')
+        f.write('};\n\n')
+        
+        f.write(NAMESPACES_END + '\n\n')
+        f.write('#endif // ' + guard + '\n')
+        
+        
 def write_is_set_check(f, name):
     f.write('  if (!is_set(' + name + ')) {\n')
     f.write('    out << get_object_name() << ": Parameter \'' + name + '\' must be set.\\n";\n')
@@ -747,7 +810,7 @@ def write_pybind11_bindings(f, class_name, class_def):
 def write_used_classes_includes(f, class_def, enums):
     types = get_all_used_compound_types(class_def, enums)
     for t in types:
-        f.write('#include "' + get_api_class_file_name(t, EXT_H) + '"\n')
+        f.write('#include "' + get_api_class_file_name_w_dir(t, EXT_H) + '"\n')
 
             
 def generate_class_implementation_and_bindings(class_name, class_def, input_file_name, enums):
@@ -760,7 +823,7 @@ def generate_class_implementation_and_bindings(class_name, class_def, input_file
 
         # includes for our class
         f.write('#include "' + get_gen_class_file_name(class_name, EXT_H) + '"\n')  
-        f.write('#include "' + get_api_class_file_name(class_name, EXT_H) + '"\n')
+        f.write('#include "' + get_api_class_file_name_w_dir(class_name, EXT_H) + '"\n')
         
         # we also need includes for every type that we used
         write_used_classes_includes(f, class_def, enums)
@@ -824,6 +887,8 @@ def generate_class_files(data_classes, class_name, class_def, input_file_name, e
     generate_class_header(class_name, class_def_w_inheritances, input_file_name, enums)
     generate_class_implementation_and_bindings(class_name, class_def_w_inheritances, input_file_name, enums)
     
+    generate_class_template(class_name, class_def_w_inheritances, input_file_name, enums)
+    
     
 def write_constant_def(f, constant_def):
     assert KEY_NAME in constant_def
@@ -867,7 +932,7 @@ def write_enum_def(f, enum_def):
         
     f.write('  }\n')
     f.write('  return out;\n')
-    f.write('};\n')
+    f.write('};\n\n')
         
             
 def generate_constants_header(constants_items, enums_items, input_file_name):
@@ -947,7 +1012,7 @@ def generate_constants_implementation(constants_items, enums_items, input_file_n
 def generate_constants_and_enums(constants_items, enums_items, input_file_name):
     generate_constants_header(constants_items, enums_items, input_file_name)
     generate_constants_implementation(constants_items, enums_items, input_file_name)
-
+    
 
 def get_enum_names(data_classes):
     res = set()

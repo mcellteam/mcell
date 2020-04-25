@@ -36,6 +36,12 @@
 
 #include "../generated/gen_subsystem.h"
 #include "../generated/gen_instantiation_data.h"
+
+#include "../generated/gen_config.h"
+#include "../generated/gen_notifications.h"
+#include "../generated/gen_warnings.h"
+#include "../generated/gen_partition.h"
+
 #include "../generated/gen_model.h"
 
 #include "../generated/gen_constants.h"
@@ -97,6 +103,11 @@ PYBIND11_MODULE(mcell, m) {
 
   define_pybinding_Subsystem(m);
   define_pybinding_InstantiationData(m);
+
+  define_pybinding_Config(m);
+  define_pybinding_Notifications(m);
+  define_pybinding_Warnings(m);
+  define_pybinding_Partition(m);
   define_pybinding_Model(m);
 
 }

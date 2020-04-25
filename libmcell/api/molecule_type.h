@@ -24,11 +24,8 @@
 #ifndef API_MOLECULE_TYPE_H
 #define API_MOLECULE_TYPE_H
 
-#include <string>
-#include <memory>
-
 #include "../generated/gen_molecule_type.h"
-#include "common.h"
+#include "../api/common.h"
 #include "molecule_instance.h"
 
 namespace MCell {
@@ -42,7 +39,6 @@ public:
     return MoleculeInstance( shared_from_this(), components);
   }
 };
-
 
 } // namespace API
 } // namespace MCell

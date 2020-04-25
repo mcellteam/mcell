@@ -21,24 +21,21 @@
  *
 ******************************************************************************/
 
-#ifndef API_UPPERCASE_H
-#define API_UPPERCASE_H
+#ifndef API_CONFIG_H
+#define API_CONFIG_H
 
-#include <string>
-
-#include "../generated/gen_lowercase.h"
-#include "common.h"
+#include "../generated/gen_config.h"
+#include "../api/common.h"
 
 namespace MCell {
 namespace API {
 
-class Capitalized: public GenCapitalized {
+class Config: public GenConfig {
 public:
-  UPPERCASE_CTOR()
+  CONFIG_CTOR()
 };
-
 
 } // namespace API
 } // namespace MCell
 
-#endif // API_UPPERCASE_H
+#endif // API_CONFIG_H

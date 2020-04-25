@@ -24,10 +24,8 @@
 #ifndef API_COMPONENT_INSTANCE_H
 #define API_COMPONENT_INSTANCE_H
 
-#include <string>
-
 #include "../generated/gen_component_instance.h"
-#include "common.h"
+#include "../api/common.h"
 
 namespace MCell {
 namespace API {
@@ -36,7 +34,6 @@ class ComponentInstance: public GenComponentInstance {
 public:
   COMPONENT_INSTANCE_CTOR()
 };
-
 
 } // namespace API
 } // namespace MCell

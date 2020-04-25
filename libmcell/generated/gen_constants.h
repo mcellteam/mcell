@@ -52,6 +52,7 @@ static inline  std::ostream& operator << (std::ostream& out, const Orientation v
   return out;
 };
 
+
 enum class Notification {
   None = 0,
   Brief = 1,
@@ -67,6 +68,24 @@ static inline  std::ostream& operator << (std::ostream& out, const Notification 
   }
   return out;
 };
+
+
+enum class WarningLevel {
+  Ignore = 0,
+  Warning = 1,
+  Error = 2
+};
+
+
+static inline  std::ostream& operator << (std::ostream& out, const WarningLevel v) {
+  switch (v) {
+    case WarningLevel::Ignore: out << "WarningLevel.Ignore (0)"; break;
+    case WarningLevel::Warning: out << "WarningLevel.Warning (1)"; break;
+    case WarningLevel::Error: out << "WarningLevel.Error (2)"; break;
+  }
+  return out;
+};
+
 
 void define_pybinding_constants(py::module& m);
 

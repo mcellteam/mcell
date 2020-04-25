@@ -24,10 +24,8 @@
 #ifndef API_SPECIES_H
 #define API_SPECIES_H
 
-#include <string>
-
 #include "../generated/gen_species.h"
-#include "common.h"
+#include "../api/common.h"
 #include "complex_instance.h"
 #include "molecule_type.h"
 
