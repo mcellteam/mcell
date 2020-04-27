@@ -43,6 +43,8 @@ public:
   ~Bucket();
   void insert(BaseEvent* event);
 
+  void dump() const;
+
   float_t start_time;
   std::list<BaseEvent*> events;
 };
@@ -66,6 +68,7 @@ public:
   float_t get_next_time();
   BaseEvent* pop_next();
 
+  void dump() const;
 private:
   float_t get_first_bucket_start_time() {
     assert(queue.size() != 0);
@@ -104,6 +107,8 @@ public:
 
   // returns time of the event that was handled
   EventExecutionInfo handle_next_event();
+
+  void dump() const;
 
 private:
   Calendar calendar;

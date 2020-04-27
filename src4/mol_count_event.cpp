@@ -31,7 +31,7 @@ using namespace std;
 
 namespace MCell {
 
-void MolCountTerm::dump(const std::string ind) {
+void MolCountTerm::dump(const std::string ind) const {
 
   cout << ind << "type: ";
   switch(type) {
@@ -55,7 +55,7 @@ void MolCountTerm::dump(const std::string ind) {
 }
 
 
-void MolCountInfo::dump(const std::string ind) {
+void MolCountInfo::dump(const std::string ind) const {
 
   cout << ind << "buffer_id: " << buffer_id << " [count_buffer_id_t] \t\t\n";
   cout << ind << "terms:\n";
@@ -141,7 +141,7 @@ void MolCountEvent::step() {
 }
 
 
-void MolCountEvent::dump(const std::string ind) {
+void MolCountEvent::dump(const std::string ind) const {
   cout << ind << "Mol count event:\n";
   std::string ind2 = ind + "  ";
   std::string ind4 = ind2 + "  ";

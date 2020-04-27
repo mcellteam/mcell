@@ -216,7 +216,7 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
         s->partition_llf.y <= s->bb_llf.y || s->bb_urb.y <= s->partition_urb.y ||
         s->partition_llf.z <= s->bb_llf.z || s->bb_urb.z <= s->partition_urb.z
     ) {
-      mcell_warn("Partitioning was specified, but it is smaller than the automatically determined bounding box.");
+      mcell_log("Partitioning was specified, but it is smaller than the automatically determined bounding box.");
 
       float_t lu = s->length_unit;
       mcell_log("Bounding box in microns: [ %f, %f, %f ], [ %f, %f, %f ]",
@@ -1173,7 +1173,9 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
         for (int train = 0; train < rp->number_of_trains; train++) {
 
           float_t train_start = rp->delay + train * rp->train_interval;
-          float_t train_end = train_start + rp->train_duration;
+          // -EPS is needed to deal with precision issues even when we 
+          // are strictly (<) comparing current and end time
+          float_t train_end = train_start + rp->train_duration - EPS; 
           float_t current_time = train_start;
           while (current_time < train_end) {
             ReleaseEvent* event_to_schedule = new ReleaseEvent(world);

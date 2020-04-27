@@ -337,8 +337,8 @@ string get_molecule_flags_string(short flags, bool full_dump = true) {
   string res;
   DUMP_FLAG(flags, TYPE_SURF)
   DUMP_FLAG(flags, TYPE_VOL)
-  DUMP_FLAG(flags, ACT_DIFFUSE)
   if (full_dump) {
+    DUMP_FLAG(flags, ACT_DIFFUSE)
     DUMP_FLAG(flags, ACT_REACT)
     DUMP_FLAG(flags, ACT_NEWBIE)
     DUMP_FLAG(flags, ACT_CHANGE)
@@ -1191,19 +1191,27 @@ void dump_release_event_queue(release_event_queue* req, const char* ind) {
 void dump_schedule_helper(schedule_helper* shp, const char* name, const char* comment, const char* ind, bool simplified_for_vm) {
   if (simplified_for_vm) {
     cout << "Scheduler '" << name << "', now: " << shp->now << "\n    ";
-    abstract_molecule* am = (abstract_molecule*)shp->current;
-    assert(shp->next_scale == NULL);
-    while (am != NULL) {
-      if (am->properties == NULL) {
-        cout << "!NULL properties!,";
+
+    for (schedule_helper* shp_curr = shp; shp_curr != NULL; shp_curr = shp_curr->next_scale) {
+
+      if (shp_curr->next_scale != NULL) {
+        cout << "\nnext_scale:\n";
       }
-      else {
-        volume_molecule* vm = (volume_molecule*)am;
-        cout << "(t: " << vm->t << ", t2: " << vm->t2 << ", id: " << vm->id << "), ";
+
+      abstract_molecule* am = (abstract_molecule*)shp_curr->current;
+
+      while (am != NULL) {
+        if (am->properties == NULL) {
+          cout << "!NULL properties!,";
+        }
+        else {
+          volume_molecule* vm = (volume_molecule*)am;
+          cout << "(t: " << vm->t << ", t2: " << vm->t2 << ", id: " << vm->id << "), ";
+        }
+        am = am->next;
       }
-      am = am->next;
+      cout << "\n";
     }
-    cout << "\n";
   }
   else {
     std::string inds = ind;

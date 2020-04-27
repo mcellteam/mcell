@@ -32,9 +32,9 @@ using namespace std;
 
 namespace MCell {
 
-void DefragmentationEvent::dump(const string indent) {
-  cout << indent << "Defragmentation event:\n";
-  string ind2 = indent + "  ";
+void DefragmentationEvent::dump(const string ind) const {
+  cout << ind << "Defragmentation event:\n";
+  string ind2 = ind + "  ";
   BaseEvent::dump(ind2);
 }
 

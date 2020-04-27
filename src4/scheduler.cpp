@@ -69,6 +69,12 @@ Bucket::~Bucket() {
 }
 
 
+void Bucket::dump() const {
+  for (const BaseEvent* event: events) {
+    event->dump();
+  }
+}
+
 // insert a new item with time event->event_time, create bucket if needed
 void Calendar::insert(BaseEvent* event) {
   float_t bucket_start_time = event_time_to_bucket_start_time(event->event_time);
@@ -121,6 +127,12 @@ float_t Calendar::get_next_time() {
   return next_event->event_time;
 }
 
+void Calendar::dump() const {
+  for (const Bucket& bucket: queue) {
+    bucket.dump();
+  }
+}
+
 void Scheduler::schedule_event(BaseEvent* event) {
   calendar.insert(event);
 }
@@ -152,6 +164,10 @@ EventExecutionInfo Scheduler::handle_next_event() {
   }
 
   return EventExecutionInfo(event_time, type_index);
+}
+
+void Scheduler::dump() const {
+  calendar.dump();
 }
 
 } // namespace mcell

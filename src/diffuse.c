@@ -3807,6 +3807,19 @@ void run_timestep(struct volume *state, struct storage *local,
 #ifdef DUMP_LOCAL_SCHEDULE_HELPER
     dump_schedule_helper(local->timer, "local", "", "", true);
 #endif
+
+#ifdef MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID
+#ifdef DUMP_LOCAL_SCHEDULE_HELPER
+  dump_schedule_helper(local->timer, "Before sorting", "", "", true);
+#endif
+
+  sort_schedule_by_time_and_id(local->timer);
+
+#ifdef DUMP_LOCAL_SCHEDULE_HELPER
+  dump_schedule_helper(local->timer, "After sorting", "", "", true);
+#endif
+#endif
+
     am = (struct abstract_molecule *)schedule_next(local->timer);
     if (am->properties == NULL) /* Defunct!  Remove molecule. */
     {
@@ -3846,7 +3859,11 @@ void run_timestep(struct volume *state, struct storage *local,
     struct wall *current_wall = NULL;
     // The maximum time we can spend diffusing or looking for reactions
     double max_time;
+#ifdef MCELL_ALWAYS_DIFFUSE
+    int can_diffuse = 1;
+#else
     int can_diffuse = ((am->flags & ACT_DIFFUSE) != 0);
+#endif
     if (can_diffuse) {
       max_time = checkpt_time - am->t;
       if (local->max_timestep < max_time)

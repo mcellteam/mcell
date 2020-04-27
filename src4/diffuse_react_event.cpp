@@ -70,6 +70,13 @@ void DiffuseReactEvent::step() {
   }
 }
 
+#ifdef MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID
+static bool less_time_and_id(const DiffuseOrUnimolRxnAction& a1, const DiffuseOrUnimolRxnAction& a2) {
+  // WARNING: this comparison is a bit 'shaky' - the constant 100*EPS_C there... (same in sched_util.c)
+  return (a1.scheduled_time  + 100*EPS_C < a2.scheduled_time) ||
+      (fabs(a1.scheduled_time - a2.scheduled_time) < 100*EPS_C && a1.id < a2.id);
+}
+#endif
 
 void DiffuseReactEvent::diffuse_molecules(Partition& p, const std::vector<molecule_id_t>& molecule_ids) {
 
@@ -101,6 +108,85 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const std::vector<molecu
     }
   }
 
+#if 0
+  // we have two queues and we must execute items according to their time
+  // priority? released diffusions?
+
+  std::vector<DiffuseOrUnimolRxnAction>* queues[2] = {
+      &delayed_release_diffusions, &new_diffuse_or_unimol_react_actions
+  };
+  bool empty[2] = {queues[0]->empty(), queues[1]->empty() };
+  uint indices[2] = {0, 0};
+
+  while(!empty[0] || !empty[1]) {
+
+    DiffuseOrUnimolRxnAction* actions[2] = { nullptr, nullptr};
+
+    DiffuseOrUnimolRxnAction* selected_action;
+    uint selected_queue;
+
+    if (empty[0]) {
+      selected_action = &(*queues[1])[indices[1]];
+      selected_queue = 1;
+    }
+    else if (empty[1]) {
+      selected_action = &(*queues[0])[indices[0]];
+      selected_queue = 0;
+    }
+    else if ( (*queues[0])[indices[0]].scheduled_time < (*queues[1])[indices[1]].scheduled_time )  {
+      assert(!empty[0]);
+      selected_action = &(*queues[0])[indices[0]];
+      selected_queue = 0;
+    }
+    else {
+      assert(!empty[1]);
+      selected_action = &(*queues[1])[indices[1]];
+      selected_queue = 1;
+    }
+
+    if (selected_action->type == DiffuseOrUnimolRxnAction::Type::DIFFUSE) {
+      diffuse_single_molecule(
+          p, selected_action->id,
+          selected_action->scheduled_time,
+          selected_action->where_created_this_iteration // making a copy of this pair
+      );
+    }
+    else {
+      bool diffuse_right_away = react_unimol_single_molecule(
+          p, selected_action->id, selected_action->scheduled_time, selected_action->unimol_rx);
+
+      // get a fresh action reference - unimol reaction could have added some items into the array
+      const DiffuseOrUnimolRxnAction& new_ref_action = (*queues[selected_queue])[indices[selected_queue]];
+      if (diffuse_right_away) {
+        // if the molecule survived (e.g. in rxn like A -> A + B), then
+        // diffuse it right away
+        // (another option is to put it into the new_diffuse_or_unimol_react_actions
+        //  but MCell3 diffuses them right away)
+        diffuse_single_molecule(
+            p, new_ref_action.id,
+            new_ref_action.scheduled_time,
+            new_ref_action.where_created_this_iteration // making a copy of this pair
+        );
+      }
+    }
+
+    indices[selected_queue]++;
+
+    empty[0] = queues[0]->size() == indices[0];
+    empty[1] = queues[1]->size() == indices[1];
+  }
+
+#else
+
+#ifdef MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID
+  // merge the two arrays with actions
+  new_diffuse_or_unimol_react_actions.insert(
+      new_diffuse_or_unimol_react_actions.begin(),
+      delayed_release_diffusions.begin(), delayed_release_diffusions.end()
+  );
+  delayed_release_diffusions.clear();
+#endif
+
   // 2) mcell3 first handles diffusions of existing molecules, then the delayed diffusions
   // actions created by the diffusion of all these molecules are handled later
   for (uint i = 0; i < delayed_release_diffusions.size(); i++) {
@@ -123,7 +209,19 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const std::vector<molecu
   // again, we are using it as a queue and we do not follow the time when
   // they were created
   for (uint i = 0; i < new_diffuse_or_unimol_react_actions.size(); i++) {
+
+#ifdef MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID
+    // sort by time and id, index is still fine because we cannot schedule anything
+    // to the past
+    sort(new_diffuse_or_unimol_react_actions.begin(), new_diffuse_or_unimol_react_actions.end(), less_time_and_id);
+#endif
+
     const DiffuseOrUnimolRxnAction& action = new_diffuse_or_unimol_react_actions[i];
+
+#ifdef MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID
+    Molecule& m = p.get_m(action.id);
+    m.release_delay = 0; // reset release_delay to specify that the delay was handled
+#endif
 
     assert(action.scheduled_time >= event_time && action.scheduled_time <= event_time + diffusion_time_step);
 
@@ -152,7 +250,7 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const std::vector<molecu
       }
     }
   }
-
+#endif
   new_diffuse_or_unimol_react_actions.clear();
 }
 
@@ -191,10 +289,18 @@ void DiffuseReactEvent::diffuse_single_molecule(
   const BNG::Species& debug_species = p.get_all_species().get(m.species_id);
   float_t event_time_end = event_time + diffusion_time_step;
   DUMP_CONDITION4(
+#ifdef DUMP_NONDIFFUSING_VMS
+    const char* title =
+        (debug_species.can_diffuse()) ?
+            (m.is_vol() ? "Diffusing vm:" : "Diffusing sm:") :
+            (m.is_vol() ? "Not diffusing vm:" : "Not diffusing sm:");
+    m.dump(p, "", title, world->get_current_iteration(), diffusion_start_time);
+#else
     if (debug_species.can_diffuse()) {
       const char* title = (m.is_vol() ? "Diffusing vm:" : "Diffusing sm:");
       m.dump(p, "", title, world->get_current_iteration(), diffusion_start_time);
     }
+#endif
   );
 #endif
 
@@ -1754,13 +1860,14 @@ static void update_vol_mol_after_rxn_with_surf_mol(
     Partition& p,
     const Molecule* surf_reac,
     const BNG::CplxInstance& product,
+    const orientation_t product_orientation,
     const Collision& collision,
     Molecule& vm
 ) {
   assert(surf_reac != nullptr);
   Wall& w = p.get_wall(surf_reac->s.wall_index);
 
-  float_t bump = (product.get_orientation() > 0) ? EPS : -EPS;
+  float_t bump = (product_orientation > 0) ? EPS : -EPS;
   Vec3 displacement = Vec3(2 * bump) * w.normal;
   Vec3 new_pos_after_diffuse;
 
@@ -1916,19 +2023,40 @@ int DiffuseReactEvent::outcome_products_random(
 
   int res = RX_A_OK;
 
+  // need to determine orientations before the products are created because mcell3 does this earlier as well
+  vector<orientation_t> product_orientations;
+  if (is_orientable) {
+    for (uint product_index = 0; product_index < rx->products.size(); product_index++) {
+      const BNG::CplxInstance& product = rx->products[product_index];
+      if (product.get_orientation() == ORIENTATION_NONE) {
+        product_orientations.push_back( (rng_uint(&world->rng) & 1) ? ORIENTATION_UP : ORIENTATION_DOWN);
+      }
+      else {
+        product_orientations.push_back(product.get_orientation());
+      }
+    }
+  }
+  else {
+    // no surface reactant, all products will have orientataion none
+    product_orientations.resize(rx->products.size(), ORIENTATION_NONE);
+  }
+
+
   for (uint product_index = 0; product_index < rx->products.size(); product_index++) {
     const BNG::CplxInstance& product = rx->products[product_index];
+    orientation_t product_orientation = product_orientations[product_index];
 
     // do not create anything new when the reactant is kept -
     // for bimol reactions - the diffusion simply continues
     // for unimol reactions - the unimol action action starts diffusion for the remaining timestep
     if (rx->is_cplx_product_on_both_sides_of_rxn(product_index)) {
 
+
       uint reactant_index;
       bool ok = rx->find_assigned_cplx_reactant_for_product(product_index, reactant_index);
       assert(reactant_index == 0 || reactant_index == 1);
 
-      if (rx->reactants[reactant_index].get_orientation() != product.get_orientation()) {
+      if (rx->reactants[reactant_index].get_orientation() != product_orientation) {
         // initiator volume molecule passes through wall?
         // any surf mol -> set new orient
 
@@ -1946,7 +2074,7 @@ int DiffuseReactEvent::outcome_products_random(
         }
         else if (reactant->is_surf()) {
           // surface mol - set new orientation
-          reactant->s.orientation = product.get_orientation();
+          reactant->s.orientation = product_orientation;
         }
         else {
           assert(false);
@@ -1992,7 +2120,7 @@ int DiffuseReactEvent::outcome_products_random(
       );
       if (is_orientable) {
         update_vol_mol_after_rxn_with_surf_mol(
-            p, surf_reac, product, collision, new_vm
+            p, surf_reac, product, product_orientation, collision, new_vm
         );
       }
 
@@ -2038,7 +2166,7 @@ int DiffuseReactEvent::outcome_products_random(
       grid.set_molecule_tile(new_sm.s.grid_tile_index, new_sm.id);
 
       // and finally orientation
-      new_sm.s.orientation = product.get_orientation();
+      new_sm.s.orientation = product_orientation;
 
       #ifdef DEBUG_REACTIONS
         DUMP_CONDITION4(
@@ -2088,7 +2216,21 @@ bool DiffuseReactEvent::outcome_unimolecular(
 ) {
   molecule_id_t id = m.id;
 
-  Collision collision(CollisionType::UNIMOLECULAR_VOLMOL, &p, m.id, scheduled_time, m.v.pos, unimol_rx);
+
+  Vec3 pos;
+  if (m.is_vol()) {
+    pos = m.v.pos;
+  }
+  else if (m.is_surf()) {
+    Wall& w = p.get_wall(m.s.wall_index);
+    const Vec3& wall_vert0 = p.get_geometry_vertex(w.vertex_indices[0]);
+    pos = GeometryUtil::uv2xyz(m.s.pos, w, wall_vert0);
+  }
+  else {
+    assert(false);
+  }
+
+  Collision collision(CollisionType::UNIMOLECULAR_VOLMOL, &p, m.id, scheduled_time, pos, unimol_rx);
 
   bool ignoredA, ignoredB;
   // creates new molecule(s) as output of the unimolecular reaction
@@ -2128,9 +2270,9 @@ bool DiffuseReactEvent::outcome_unimolecular(
 
 // ---------------------------------- dumping methods ----------------------------------
 
-void DiffuseReactEvent::dump(const std::string indent) {
-  cout << indent << "Diffuse-react event:\n";
-  std::string ind2 = indent + "  ";
+void DiffuseReactEvent::dump(const std::string ind) const {
+  cout << ind << "Diffuse-react event:\n";
+  std::string ind2 = ind + "  ";
   BaseEvent::dump(ind2);
   cout << ind2 << "diffusion_time_step: \t\t" << diffusion_time_step << " [float_t] \t\t\n";
 }

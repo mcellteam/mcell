@@ -674,6 +674,10 @@ void delete_scheduler(struct schedule_helper *sh) {
   }
 }
 
+#if defined(MCELL3_SORTED_MOLS_ON_RUN_TIMESTEP) || defined(MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID)
+
+#include <vector>
+#include <algorithm>
 
 static bool less_time_and_id(struct abstract_molecule* a1, struct abstract_molecule* a2) {
   assert(a1 != NULL);
@@ -682,40 +686,52 @@ static bool less_time_and_id(struct abstract_molecule* a1, struct abstract_molec
   return (a1->t + 100*EPS_C < a2->t) || (fabs(a1->t - a2->t) < 100*EPS_C && a1->id < a2->id);
 }
 
-// used only when MCELL3_SORTED_MOLS_ON_RUN_TIMESTEP is defined
-void sort_schedule_by_time_and_id(struct schedule_helper *sh) {
-  struct abstract_molecule* list = (struct abstract_molecule*)sh->current;
-
-  // used code from https://en.wikipedia.org/wiki/Insertion_sort#List_insertion_sort_code_in_C
-  // zero or one element in list
+static bool is_sorted(struct abstract_molecule* list) {
   if (list == NULL || list->next == NULL) {
-      return ;
+      return true;
   }
-  // head is the first element of resulting sorted list
-  struct abstract_molecule* head = NULL;
-  while (list != NULL) {
-      struct abstract_molecule* current = list;
-      list = list->next;
-      if (head == NULL || less_time_and_id(current, head)) {
-          // insert into the head of the sorted list
-          // or as the first element into an empty sorted list
-          current->next = head;
-          head = current;
-      } else {
-          // insert current element into proper position in non-empty sorted list
-          struct abstract_molecule* p = head;
-          while (p != NULL) {
-              if (p->next == NULL || // last element of the sorted list
-                  less_time_and_id(current, p->next)) // middle of the list
-              {
-                  // insert into middle of the sorted list or as the last element
-                  current->next = p->next;
-                  p->next = current;
-                  break; // done
-              }
-              p = p->next;
-          }
-      }
+  struct abstract_molecule* prev = list;
+  for (struct abstract_molecule* curr = list->next; curr != NULL; curr = curr->next) {
+    if (!less_time_and_id(prev, curr)) {
+      return false;
+    }
+    prev = curr;
   }
-  sh->current = (struct abstract_element*)head;
+  return true;
 }
+
+// used only when MCELL3_SORTED_MOLS_ON_RUN_TIMESTEP or MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_IDis defined
+void sort_schedule_by_time_and_id(struct schedule_helper *sh) {
+
+  for (struct schedule_helper* sh_current = sh; sh_current != NULL; sh_current = sh_current->next_scale) {
+
+    // we need abstract_molecule so that we are able to sort by id
+    struct abstract_molecule* list = (struct abstract_molecule*)sh_current->current;
+
+    // used code from https://en.wikipedia.org/wiki/Insertion_sort#List_insertion_sort_code_in_C
+    // zero or one element in list
+    if (list == NULL || list->next == NULL) {
+        return ;
+    }
+
+    if (is_sorted(list)) {
+      // conversion and sorting takes long time, a minor optimization for faster debugging
+      continue;
+    }
+
+    std::vector<struct abstract_molecule*> vec;
+    for (struct abstract_molecule* item = list; item != NULL; item = item->next) {
+      vec.push_back(item);
+    }
+    std::sort(vec.begin(), vec.end(), less_time_and_id);
+
+    sh_current->current = (struct abstract_element*)vec[0];
+    for (size_t i = 1; i < vec.size(); i++) {
+      vec[i - 1]->next = vec[i];
+    }
+    vec.back()->next = NULL;
+    sh_current->current_tail = (struct abstract_element*)vec.back();
+  }
+}
+
+#endif // defined(MCELL3_SORTED_MOLS_ON_RUN_TIMESTEP) || defined(MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID)

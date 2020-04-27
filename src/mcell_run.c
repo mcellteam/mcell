@@ -107,6 +107,16 @@ static void process_reaction_output(struct volume *wrld, double not_yet) {
                          "should never happen.");
 }
 
+#ifdef MCELL3_RELEASE_ACCORDING_TO_EVENT_TIME
+
+#include <vector>
+#include <algorithm>
+
+static bool less_release_time(release_event_queue* r1, release_event_queue* r2) {
+  return r1->event_time < r2->event_time;
+}
+#endif
+
 /***********************************************************************
  process_molecule_releases:
 
@@ -117,6 +127,10 @@ static void process_reaction_output(struct volume *wrld, double not_yet) {
  Out: none.  molecules are released into the world.
  ***********************************************************************/
 void process_molecule_releases(struct volume *wrld, double not_yet) {
+#ifdef MCELL3_RELEASE_ACCORDING_TO_EVENT_TIME
+  std::vector<release_event_queue *> releases;
+#endif
+
   for (struct release_event_queue *req = (struct release_event_queue *)schedule_next(wrld->releaser);
        req != NULL || not_yet >= wrld->releaser->now;
        req = (struct release_event_queue *)schedule_next(wrld->releaser)) {
@@ -124,12 +138,25 @@ void process_molecule_releases(struct volume *wrld, double not_yet) {
         !distinguishable(req->release_site->release_prob, MAGIC_PATTERN_PROBABILITY, EPS_C))
       continue;
 
+#ifndef MCELL3_RELEASE_ACCORDING_TO_EVENT_TIME
     if (release_molecules(wrld, req))
       mcell_error("Failed to release molecules of type '%s'.",
                   req->release_site->mol_type->sym->name);
+#else
+    releases.push_back(req);
+#endif
 
   }
 
+#ifdef MCELL3_RELEASE_ACCORDING_TO_EVENT_TIME
+  std::sort(releases.begin(), releases.end(), less_release_time);
+  for (release_event_queue* req: releases) {
+    if (release_molecules(wrld, req)) {
+      mcell_error("Failed to release molecules of type '%s'.",
+                  req->release_site->mol_type->sym->name);
+    }
+  }
+#endif
   if (wrld->releaser->error)
     mcell_internal_error("Scheduler reported an out-of-memory error while "
                          "retrieving next scheduled release event, but this "
