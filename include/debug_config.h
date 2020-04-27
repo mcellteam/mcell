@@ -53,7 +53,7 @@
 
 // sort molecules in schedule helper according to ID before a new timestep begins
 // testsuite for mcell4 won't pass
-//#define MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID
+#define MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID
 
 #define MCELL3_NEXT_BARRIER_IS_THE_NEXT_TIMESTEP // do not diffuse more than until the end of the timestep
 
@@ -75,8 +75,10 @@
 
 #if (!defined(NDEBUG) || defined(DUMP_ALWAYS)) && !defined(DUMP_NEVER)
 
-#define FROM_ITERATION 0
-#define TO_ITERATION 2
+#define FROM_ITERATION 7
+#define TO_ITERATION 8
+
+#define DUMP_NONDIFFUSING_VMS
 
 #if 1
 #define DEBUG_DIFFUSION
@@ -101,7 +103,7 @@
 
 //#define DEBUG_RELEASES // cannot be conditioned by iterations
 
-//#define DEBUG_RNG_CALLS // cannot be conditioned by iterations
+#define DEBUG_RNG_CALLS // cannot be conditioned by iterations
 
 // does not generate the same dump as mcell3
 //#define DEBUG_SUBPARTITIONS

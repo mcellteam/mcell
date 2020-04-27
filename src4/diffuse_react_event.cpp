@@ -289,10 +289,18 @@ void DiffuseReactEvent::diffuse_single_molecule(
   const BNG::Species& debug_species = p.get_all_species().get(m.species_id);
   float_t event_time_end = event_time + diffusion_time_step;
   DUMP_CONDITION4(
+#ifdef DUMP_NONDIFFUSING_VMS
+    const char* title =
+        (debug_species.can_diffuse()) ?
+            (m.is_vol() ? "Diffusing vm:" : "Diffusing sm:") :
+            (m.is_vol() ? "Not diffusing vm:" : "Not diffusing sm:");
+    m.dump(p, "", title, world->get_current_iteration(), diffusion_start_time);
+#else
     if (debug_species.can_diffuse()) {
       const char* title = (m.is_vol() ? "Diffusing vm:" : "Diffusing sm:");
       m.dump(p, "", title, world->get_current_iteration(), diffusion_start_time);
     }
+#endif
   );
 #endif
 
