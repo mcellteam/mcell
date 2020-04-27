@@ -56,6 +56,9 @@
 #define MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID
 
 #define MCELL3_NEXT_BARRIER_IS_THE_NEXT_TIMESTEP // do not diffuse more than until the end of the timestep
+
+#define MCELL3_RELEASE_ACCORDING_TO_EVENT_TIME
+
 //#define MCELL3_ALWAYS_DIFFUSE // non-diffusable molecules are scheduled differently when there is a unimol reaction and ??
 #define ASSERT_FOR_MCELL4(...) assert(__VA_ARGS__)
 
