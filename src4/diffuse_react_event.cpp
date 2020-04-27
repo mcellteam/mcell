@@ -1860,13 +1860,14 @@ static void update_vol_mol_after_rxn_with_surf_mol(
     Partition& p,
     const Molecule* surf_reac,
     const BNG::CplxInstance& product,
+    const orientation_t product_orientation,
     const Collision& collision,
     Molecule& vm
 ) {
   assert(surf_reac != nullptr);
   Wall& w = p.get_wall(surf_reac->s.wall_index);
 
-  float_t bump = (product.get_orientation() > 0) ? EPS : -EPS;
+  float_t bump = (product_orientation > 0) ? EPS : -EPS;
   Vec3 displacement = Vec3(2 * bump) * w.normal;
   Vec3 new_pos_after_diffuse;
 
@@ -2022,19 +2023,40 @@ int DiffuseReactEvent::outcome_products_random(
 
   int res = RX_A_OK;
 
+  // need to determine orientations before the products are created because mcell3 does this earlier as well
+  vector<orientation_t> product_orientations;
+  if (is_orientable) {
+    for (uint product_index = 0; product_index < rx->products.size(); product_index++) {
+      const BNG::CplxInstance& product = rx->products[product_index];
+      if (product.get_orientation() == ORIENTATION_NONE) {
+        product_orientations.push_back( (rng_uint(&world->rng) & 1) ? ORIENTATION_UP : ORIENTATION_DOWN);
+      }
+      else {
+        product_orientations.push_back(product.get_orientation());
+      }
+    }
+  }
+  else {
+    // no surface reactant, all products will have orientataion none
+    product_orientations.resize(rx->products.size(), ORIENTATION_NONE);
+  }
+
+
   for (uint product_index = 0; product_index < rx->products.size(); product_index++) {
     const BNG::CplxInstance& product = rx->products[product_index];
+    orientation_t product_orientation = product_orientations[product_index];
 
     // do not create anything new when the reactant is kept -
     // for bimol reactions - the diffusion simply continues
     // for unimol reactions - the unimol action action starts diffusion for the remaining timestep
     if (rx->is_cplx_product_on_both_sides_of_rxn(product_index)) {
 
+
       uint reactant_index;
       bool ok = rx->find_assigned_cplx_reactant_for_product(product_index, reactant_index);
       assert(reactant_index == 0 || reactant_index == 1);
 
-      if (rx->reactants[reactant_index].get_orientation() != product.get_orientation()) {
+      if (rx->reactants[reactant_index].get_orientation() != product_orientation) {
         // initiator volume molecule passes through wall?
         // any surf mol -> set new orient
 
@@ -2052,7 +2074,7 @@ int DiffuseReactEvent::outcome_products_random(
         }
         else if (reactant->is_surf()) {
           // surface mol - set new orientation
-          reactant->s.orientation = product.get_orientation();
+          reactant->s.orientation = product_orientation;
         }
         else {
           assert(false);
@@ -2098,7 +2120,7 @@ int DiffuseReactEvent::outcome_products_random(
       );
       if (is_orientable) {
         update_vol_mol_after_rxn_with_surf_mol(
-            p, surf_reac, product, collision, new_vm
+            p, surf_reac, product, product_orientation, collision, new_vm
         );
       }
 
@@ -2144,7 +2166,7 @@ int DiffuseReactEvent::outcome_products_random(
       grid.set_molecule_tile(new_sm.s.grid_tile_index, new_sm.id);
 
       // and finally orientation
-      new_sm.s.orientation = product.get_orientation();
+      new_sm.s.orientation = product_orientation;
 
       #ifdef DEBUG_REACTIONS
         DUMP_CONDITION4(
