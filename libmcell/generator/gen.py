@@ -98,6 +98,7 @@ YAML_TYPE_LONG = 'long'
 YAML_TYPE_BOOL = 'bool'
 YAML_TYPE_VEC2 = 'Vec2'
 YAML_TYPE_VEC3 = 'Vec3'
+YAML_TYPE_IVEC3 = 'IVec3'
 YAML_TYPE_LIST = 'List'
 
 CPP_TYPE_FLOAT = 'float_t'
@@ -107,9 +108,10 @@ CPP_TYPE_LONG = 'long'
 CPP_TYPE_BOOL = 'bool'
 CPP_TYPE_VEC2 = 'Vec2'
 CPP_TYPE_VEC3 = 'Vec3'
+CPP_TYPE_IVEC3 = 'IVec3'
 CPP_VECTOR_TYPE = 'std::vector'
 
-CPP_REFERENCE_TYPES = [CPP_TYPE_STR, CPP_TYPE_VEC2, CPP_TYPE_VEC3]
+CPP_REFERENCE_TYPES = [CPP_TYPE_STR, CPP_TYPE_VEC2, CPP_TYPE_VEC3, CPP_TYPE_IVEC3]
 
 UNSET_VALUE = 'unset'
 EMPTY_ARRAY = 'empty'
@@ -197,7 +199,7 @@ def get_inner_list_type(t):
 def is_base_yaml_type(t):
     return \
         t == YAML_TYPE_FLOAT or t == YAML_TYPE_STR or t == YAML_TYPE_INT or t == YAML_TYPE_LONG or \
-        t == YAML_TYPE_BOOL or t == YAML_TYPE_VEC2 or t == YAML_TYPE_VEC3 or \
+        t == YAML_TYPE_BOOL or t == YAML_TYPE_VEC2 or t == YAML_TYPE_VEC3 or t == YAML_TYPE_IVEC3 or \
         (is_list(t) and is_base_yaml_type(get_inner_list_type(t)))
 
 
@@ -221,6 +223,8 @@ def yaml_type_to_cpp_type(t):
         return CPP_TYPE_VEC2
     elif t == YAML_TYPE_VEC3:
         return CPP_TYPE_VEC3
+    elif t == YAML_TYPE_IVEC3:
+        return CPP_TYPE_IVEC3
     elif is_list(t):
         assert len(t) > 7
         inner_type = yaml_type_to_cpp_type(get_inner_list_type(t))
@@ -280,7 +284,6 @@ def get_default_or_unset_value(attr):
             res = str(default_value)
             # might need to convert enum.value into enum::value
             if not is_base_yaml_type(t):
-                print('Converting ' + res)
                 res = res.replace('.', '::')
             elif t == YAML_TYPE_BOOL:
                 res = get_cpp_bool_string(res)
@@ -302,6 +305,8 @@ def get_default_or_unset_value(attr):
         return UNSET_VALUE_VEC2
     elif t == YAML_TYPE_VEC3:
         return UNSET_VALUE_VEC3
+    elif t == YAML_TYPE_IVEC3:
+        return UNSET_VALUE_IVEC3
     elif is_list(t):
         return yaml_type_to_cpp_type(t) + '()'
     else:
@@ -1047,8 +1052,9 @@ def load_and_generate_data_classes():
             data_classes.update( yaml.load(file, Loader=yaml.FullLoader) )
             if VERBOSE:
                 print("Loaded " + input)
-        
-    print(data_classes)
+    
+    if VERBOSE:    
+        print(data_classes)
     assert type(data_classes) == dict
     generate_data_classes(data_classes, DATA_CLASSES_FILE)
 

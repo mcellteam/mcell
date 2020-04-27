@@ -35,8 +35,10 @@ set(SOURCE_FILES
     
     generated/gen_reaction_rule.cpp
 
-    generated/gen_geometry_object.cpp
     generated/gen_release_site.cpp
+    
+    generated/gen_surface_region.cpp
+    generated/gen_geometry_object.cpp
 
     generated/gen_subsystem.cpp
     generated/gen_instantiation_data.cpp

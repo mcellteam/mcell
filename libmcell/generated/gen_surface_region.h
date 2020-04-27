@@ -21,68 +21,46 @@
  *
 ******************************************************************************/
 
-#ifndef API_GEN_GEOMETRY_OBJECT_H
-#define API_GEN_GEOMETRY_OBJECT_H
+#ifndef API_GEN_SURFACE_REGION_H
+#define API_GEN_SURFACE_REGION_H
 
 #include "../api/common.h"
 
 namespace MCell {
 namespace API {
 
-class SurfaceRegion;
-
-#define GEOMETRY_OBJECT_CTOR() \
-    GeometryObject( \
+#define SURFACE_REGION_CTOR() \
+    SurfaceRegion( \
         const std::string& name_, \
-        const std::vector<Vec3> vertex_list_, \
-        const std::vector<IVec3> element_connections_, \
-        const std::vector<std::shared_ptr<SurfaceRegion>> surface_regions_ = std::vector<std::shared_ptr<SurfaceRegion>>() \
+        const std::vector<int> element_connections_ \
     ) { \
-      class_name = "GeometryObject"; \
+      class_name = "SurfaceRegion"; \
       name = name_; \
-      vertex_list = vertex_list_; \
       element_connections = element_connections_; \
-      surface_regions = surface_regions_; \
       ctor_postprocess();\
     }
 
-class GenGeometryObject: public BaseDataClass {
+class GenSurfaceRegion: public BaseDataClass {
 public:
   void ctor_postprocess() override {}
   SemRes check_semantics(std::ostream& out) const override;
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---
-  std::vector<Vec3> vertex_list;
-  virtual void set_vertex_list(const std::vector<Vec3> new_vertex_list_) {
-    vertex_list = new_vertex_list_;
-  }
-  virtual std::vector<Vec3> get_vertex_list() const {
-    return vertex_list;
-  }
-
-  std::vector<IVec3> element_connections;
-  virtual void set_element_connections(const std::vector<IVec3> new_element_connections_) {
+  std::vector<int> element_connections;
+  virtual void set_element_connections(const std::vector<int> new_element_connections_) {
     element_connections = new_element_connections_;
   }
-  virtual std::vector<IVec3> get_element_connections() const {
+  virtual std::vector<int> get_element_connections() const {
     return element_connections;
   }
 
-  std::vector<std::shared_ptr<SurfaceRegion>> surface_regions;
-  virtual void set_surface_regions(const std::vector<std::shared_ptr<SurfaceRegion>> new_surface_regions_) {
-    surface_regions = new_surface_regions_;
-  }
-  virtual std::vector<std::shared_ptr<SurfaceRegion>> get_surface_regions() const {
-    return surface_regions;
-  }
-
   // --- methods ---
-}; // GenGeometryObject
+}; // GenSurfaceRegion
 
-class GeometryObject;
-py::class_<GeometryObject> define_pybinding_GeometryObject(py::module& m);
+class SurfaceRegion;
+py::class_<SurfaceRegion> define_pybinding_SurfaceRegion(py::module& m);
 } // namespace API
 } // namespace MCell
 
-#endif // API_GEN_GEOMETRY_OBJECT_H
+#endif // API_GEN_SURFACE_REGION_H

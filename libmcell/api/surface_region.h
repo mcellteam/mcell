@@ -21,38 +21,21 @@
  *
 ******************************************************************************/
 
-/**
- * This header includes all C++ classes of MCell API.
- * File should be used only from outside of this library to avoid cyclic includes.
- */
+#ifndef API_SURFACE_REGION_H
+#define API_SURFACE_REGION_H
 
-#ifndef API_MCELL_H
-#define API_MCELL_H
-
+#include "../generated/gen_surface_region.h"
 #include "../api/common.h"
 
-#include "../api/component_type.h"
-#include "../api/component_instance.h"
-#include "../api/molecule_type.h"
-#include "../api/molecule_instance.h"
-#include "../api/complex_instance.h"
-#include "../api/species.h"
+namespace MCell {
+namespace API {
 
-#include "../api/reaction_rule.h"
+class SurfaceRegion: public GenSurfaceRegion {
+public:
+  SURFACE_REGION_CTOR()
+};
 
-#include "../api/release_site.h"
+} // namespace API
+} // namespace MCell
 
-#include "../api/surface_region.h"
-#include "../api/geometry_object.h"
-
-#include "../api/subsystem.h"
-#include "../api/instantiation_data.h"
-
-#include "../api/config.h"
-#include "../api/notifications.h"
-#include "../api/warnings.h"
-#include "../api/partition.h"
-
-#include "../api/model.h"
-
-#endif // API_MCELL_H
+#endif // API_SURFACE_REGION_H

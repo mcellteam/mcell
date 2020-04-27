@@ -306,11 +306,11 @@ struct Vec2: public glm_vec2_t {
   void dump(const std::string extra_comment, const std::string ind) const;
 };
 
-static inline std::ostream & operator<<(std::ostream &out, const Vec3 &a) {
+static inline std::ostream & operator<<(std::ostream &out, const Vec3& a) {
   out << "(" << a.x << ", " << a.y << ", " << a.z << ")";
   return out;
 }
-static inline std::ostream & operator<<(std::ostream &out, const Vec2 &a) {
+static inline std::ostream & operator<<(std::ostream &out, const Vec2& a) {
   out << "(" << a.u << ", " << a.v << ")";
   return out;
 }

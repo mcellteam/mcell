@@ -57,6 +57,17 @@ template<typename T>
 static inline bool is_set(const std::shared_ptr<T>& a) {
   return a.use_count() == 0;
 }
+template<typename T>
+static inline bool is_set(const std::vector<T>& a) {
+  return !a.empty();
+}
+
+// NOTE: for some reason a definition in defines.h is not found, although it works fine for Vec3
+static inline std::ostream & operator<<(std::ostream &out, const IVec3& a) {
+  out << "(" << a.x << ", " << a.y << ", " << a.z << ")";
+  return out;
+}
+
 
 template<typename T>
 static inline std::string vec_ptr_to_str(const std::vector<T>& arr, const std::string ind="") {

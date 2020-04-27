@@ -189,10 +189,37 @@ ReleaseSite:
     default: unset
     
     
+SurfaceRegion:
+  superclass: BaseDataClass
+  items:
+  - name: name
+    type: str
+    
+  - name: element_connections
+    type: List[int]
+    doc: |
+      Surface region must be a part of a GeometryObject, items in this list are indices to 
+      its element_connections array
+    
+    
 GeometryObject:
   superclass: BaseDataClass
   items:
   - name: name
     type: str
     doc: Name of the object
+
+  - name: vertex_list
+    type: List[Vec3]
+    doc: List of [x,y,z] triplets specifying positions of individual vertices
+        
+  # what about name, use a different one?
+  - name: element_connections
+    type: List[IVec3]
+    doc: List of [a,b,c] triplets specifying each wall, individual values are indices into the vertex list 
+        
+  - name: surface_regions
+    type: List[SurfaceRegion*]
+    default: empty
+        
         

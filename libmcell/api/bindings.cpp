@@ -32,6 +32,8 @@
 #include "../generated/gen_reaction_rule.h"
 
 #include "../generated/gen_release_site.h"
+
+#include "../generated/gen_surface_region.h"
 #include "../generated/gen_geometry_object.h"
 
 #include "../generated/gen_subsystem.h"
@@ -73,6 +75,22 @@ void define_pybinding_Vec3(py::module& m) {
   ;
 }
 
+void define_pybinding_IVec3(py::module& m) {
+  py::class_<MCell::IVec3>(m, "IVec3")
+      .def(
+          py::init<>()
+      )
+      .def(
+          py::init<const float_t>(),
+          py::arg("xyz")
+      )
+      .def(
+          py::init<const int, const int, const int>(),
+          py::arg("x"), py::arg("y"), py::arg("z")
+      )
+  ;
+}
+
 // all define_binding_* functions are called here
 PYBIND11_MODULE(mcell, m) {
 
@@ -88,6 +106,7 @@ PYBIND11_MODULE(mcell, m) {
   define_pybinding_constants(m);
 
   define_pybinding_Vec3(m);
+  define_pybinding_IVec3(m);
 
   define_pybinding_ComponentType(m);
   define_pybinding_ComponentInstance(m);
@@ -99,6 +118,8 @@ PYBIND11_MODULE(mcell, m) {
   define_pybinding_ReactionRule(m);
 
   define_pybinding_ReleaseSite(m);
+
+  define_pybinding_SurfaceRegion(m);
   define_pybinding_GeometryObject(m);
 
   define_pybinding_Subsystem(m);

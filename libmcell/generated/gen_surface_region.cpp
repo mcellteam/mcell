@@ -23,20 +23,15 @@
 
 #include <sstream>
 #include <pybind11/stl.h>
-#include "gen_geometry_object.h"
-#include "../api/geometry_object.h"
+#include "gen_surface_region.h"
 #include "../api/surface_region.h"
 
 namespace MCell {
 namespace API {
 
-SemRes GenGeometryObject::check_semantics(std::ostream& out) const {
+SemRes GenSurfaceRegion::check_semantics(std::ostream& out) const {
   if (!is_set(name)) {
     out << get_object_name() << ": Parameter 'name' must be set.\n";
-    return SemRes::ERROR;
-  }
-  if (!is_set(vertex_list)) {
-    out << get_object_name() << ": Parameter 'vertex_list' must be set.\n";
     return SemRes::ERROR;
   }
   if (!is_set(element_connections)) {
@@ -46,37 +41,29 @@ SemRes GenGeometryObject::check_semantics(std::ostream& out) const {
   return SemRes::OK;
 }
 
-std::string GenGeometryObject::to_str(const std::string ind) const {
+std::string GenSurfaceRegion::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
       "name=" << name << ", " <<
-      "vertex_list=" << vec_nonptr_to_str(vertex_list, ind + "  ") << ", " <<
-      "element_connections=" << vec_nonptr_to_str(element_connections, ind + "  ") << ", " <<
-      "\n" << ind + "  " << "surface_regions=" << vec_ptr_to_str(surface_regions, ind + "  ");
+      "element_connections=" << vec_nonptr_to_str(element_connections, ind + "  ");
   return ss.str();
 }
 
-py::class_<GeometryObject> define_pybinding_GeometryObject(py::module& m) {
-  return py::class_<GeometryObject, std::shared_ptr<GeometryObject>>(m, "GeometryObject")
+py::class_<SurfaceRegion> define_pybinding_SurfaceRegion(py::module& m) {
+  return py::class_<SurfaceRegion, std::shared_ptr<SurfaceRegion>>(m, "SurfaceRegion")
       .def(
           py::init<
             const std::string&,
-            const std::vector<Vec3>,
-            const std::vector<IVec3>,
-            const std::vector<std::shared_ptr<SurfaceRegion>>
+            const std::vector<int>
           >(),
           py::arg("name"),
-          py::arg("vertex_list"),
-          py::arg("element_connections"),
-          py::arg("surface_regions") = std::vector<std::shared_ptr<SurfaceRegion>>()
+          py::arg("element_connections")
         )
-      .def("check_semantics", &GeometryObject::check_semantics_cerr)
-      .def("__str__", &GeometryObject::to_str, py::arg("ind") = std::string(""))
-      .def("dump", &GeometryObject::dump)
-      .def_property("name", &GeometryObject::get_name, &GeometryObject::set_name)
-      .def_property("vertex_list", &GeometryObject::get_vertex_list, &GeometryObject::set_vertex_list)
-      .def_property("element_connections", &GeometryObject::get_element_connections, &GeometryObject::set_element_connections)
-      .def_property("surface_regions", &GeometryObject::get_surface_regions, &GeometryObject::set_surface_regions)
+      .def("check_semantics", &SurfaceRegion::check_semantics_cerr)
+      .def("__str__", &SurfaceRegion::to_str, py::arg("ind") = std::string(""))
+      .def("dump", &SurfaceRegion::dump)
+      .def_property("name", &SurfaceRegion::get_name, &SurfaceRegion::set_name)
+      .def_property("element_connections", &SurfaceRegion::get_element_connections, &SurfaceRegion::set_element_connections)
     ;
 }
 
