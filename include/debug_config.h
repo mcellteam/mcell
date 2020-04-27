@@ -38,7 +38,7 @@
 #include "dump_state.h"
 
 // when enabled, mcell3 produces identical result to the mcell master branch
-//#define MCELL3_IDENTICAL
+#define MCELL3_IDENTICAL
 
 #ifndef MCELL3_IDENTICAL
 // enable several things that make comparison with mcell4 easier
@@ -75,14 +75,14 @@
 
 #if (!defined(NDEBUG) || defined(DUMP_ALWAYS)) && !defined(DUMP_NEVER)
 
-#define FROM_ITERATION 7
-#define TO_ITERATION 8
+#define FROM_ITERATION 106
+#define TO_ITERATION 106
 
 #define DUMP_NONDIFFUSING_VMS
 
 #if 1
 #define DEBUG_DIFFUSION
-//#define DEBUG_COLLISIONS
+#define DEBUG_COLLISIONS
 #define DEBUG_REACTIONS
 #endif
 
@@ -103,7 +103,7 @@
 
 //#define DEBUG_RELEASES // cannot be conditioned by iterations
 
-#define DEBUG_RNG_CALLS // cannot be conditioned by iterations
+//#define DEBUG_RNG_CALLS // cannot be conditioned by iterations
 
 // does not generate the same dump as mcell3
 //#define DEBUG_SUBPARTITIONS
