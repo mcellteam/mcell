@@ -43,13 +43,14 @@ class SurfaceRegion;
       vertex_list = vertex_list_; \
       element_connections = element_connections_; \
       surface_regions = surface_regions_; \
-      ctor_postprocess();\
+      postprocess_in_ctor();\
+      check_semantics();\
     }
 
 class GenGeometryObject: public BaseDataClass {
 public:
-  void ctor_postprocess() override {}
-  SemRes check_semantics(std::ostream& out) const override;
+  void postprocess_in_ctor() override {}
+  void check_semantics() const override;
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---

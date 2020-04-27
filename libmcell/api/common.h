@@ -19,17 +19,6 @@ namespace py = pybind11;
 namespace MCell {
 namespace API {
 
-// semantic check error codes
-enum class SemRes {
-  UNCHECKED, // not checked yet
-  OK,        // nothing to do
-  MESSAGE,   // only
-  WARNING,   // print a warning
-  ERROR,     // terminate on initialization of the whole model/or when added to model
-             // (terminating right now would mean that the user can fix only one error at a time)
-  FATAL_ERROR // terminate right now, cannot continue
-};
-
 //
 const float_t FLT_UNSET = FLT_MAX;
 const int INT_UNSET = INT32_MAX;
@@ -55,7 +44,7 @@ static inline bool is_set(const std::string& a) {
 }
 template<typename T>
 static inline bool is_set(const std::shared_ptr<T>& a) {
-  return a.use_count() == 0;
+  return a.use_count() != 0;
 }
 template<typename T>
 static inline bool is_set(const std::vector<T>& a) {
@@ -113,7 +102,7 @@ static inline std::string vec_nonptr_to_str(const std::vector<std::vector<T>>& a
   return ss.str();
 }
 
-typedef std::invalid_argument SemanticException;
+typedef std::invalid_argument ValueError; // using naming from Python
 
 
 // base class for all classes that hold the model input data
@@ -148,19 +137,11 @@ public:
     return get_class_name() + " '" + get_name() + "'";
   }
 
-  // invalid implementation, to be overridden in actual derived classes
-  virtual void ctor_postprocess() { };
+  // empty implementation, to be overridden in actual derived classes
+  virtual void postprocess_in_ctor() { };
 
-  // invalid implementation, to be overridden in actual derived classes
-  virtual SemRes check_semantics(std::ostream& out) const {
-    out << "Semantic check for a derived class is not implemented.\n";
-    return SemRes::FATAL_ERROR; /* not implemented*/
-  };
-
-  // calls virtual method, usually no need to override
-  virtual SemRes check_semantics_cerr() const {
-    return check_semantics(std::cerr);
-  };
+  // empty implementation, to be overridden in actual derived classes
+  virtual void check_semantics() const { };
 
   // empty implementation, to be overridden in actual derived classes
   virtual std::string to_str(const std::string ind="") const {

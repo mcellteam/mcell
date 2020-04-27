@@ -29,8 +29,7 @@
 namespace MCell {
 namespace API {
 
-SemRes GenPartition::check_semantics(std::ostream& out) const {
-  return SemRes::OK;
+void GenPartition::check_semantics() const {
 }
 
 std::string GenPartition::to_str(const std::string ind) const {
@@ -51,7 +50,7 @@ py::class_<Partition> define_pybinding_Partition(py::module& m) {
           py::arg("parition_dimension") = 10,
           py::arg("subparition_dimension") = 0.5
         )
-      .def("check_semantics", &Partition::check_semantics_cerr)
+      .def("check_semantics", &Partition::check_semantics)
       .def("__str__", &Partition::to_str, py::arg("ind") = std::string(""))
       .def("dump", &Partition::dump)
       .def_property("parition_dimension", &Partition::get_parition_dimension, &Partition::set_parition_dimension)

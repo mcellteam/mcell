@@ -29,8 +29,7 @@
 namespace MCell {
 namespace API {
 
-SemRes GenConfig::check_semantics(std::ostream& out) const {
-  return SemRes::OK;
+void GenConfig::check_semantics() const {
 }
 
 std::string GenConfig::to_str(const std::string ind) const {
@@ -60,7 +59,7 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
           py::arg("center_molecules_on_grid") = false,
           py::arg("micrposcopic_reversibility") = false
         )
-      .def("check_semantics", &Config::check_semantics_cerr)
+      .def("check_semantics", &Config::check_semantics)
       .def("__str__", &Config::to_str, py::arg("ind") = std::string(""))
       .def("dump", &Config::dump)
       .def_property("time_step", &Config::get_time_step, &Config::set_time_step)

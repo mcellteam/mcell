@@ -30,8 +30,7 @@
 namespace MCell {
 namespace API {
 
-SemRes GenReactionRule::check_semantics(std::ostream& out) const {
-  return SemRes::OK;
+void GenReactionRule::check_semantics() const {
 }
 
 std::string GenReactionRule::to_str(const std::string ind) const {
@@ -61,7 +60,7 @@ py::class_<ReactionRule> define_pybinding_ReactionRule(py::module& m) {
           py::arg("fwd_rate") = FLT_UNSET,
           py::arg("rev_rate") = FLT_UNSET
         )
-      .def("check_semantics", &ReactionRule::check_semantics_cerr)
+      .def("check_semantics", &ReactionRule::check_semantics)
       .def("__str__", &ReactionRule::to_str, py::arg("ind") = std::string(""))
       .def("dump", &ReactionRule::dump)
       .def_property("name", &ReactionRule::get_name, &ReactionRule::set_name)

@@ -39,7 +39,7 @@ print(cplx_inst)
 
 # TODO: can I somehow reorder arguments so that molecule_types is second?
 # we will probably see according to other examples
-CaMC0N1_species = m.Species('CaM(C~0,N~1)', molecule_types = [ CaM.inst([C.inst(0), N.inst(1)]) ] )
+CaMC0N1_species = m.Species('CaM(C~0,N~1)', molecule_instances = [ CaM.inst([C.inst(0), N.inst(1)]) ] )
 
 print("** Species:")
 print(CaMC0N1_species)

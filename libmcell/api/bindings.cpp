@@ -102,15 +102,6 @@ void define_pybinding_IVec3(py::module& m) {
 // all define_binding_* functions are called here
 PYBIND11_MODULE(mcell, m) {
 
-  py::enum_<SemRes>(m, "SemRes", py::arithmetic())
-      .value("UNCHECKED", SemRes::UNCHECKED)
-      .value("OK", SemRes::OK)
-      .value("MESSAGE", SemRes::MESSAGE)
-      .value("WARNING", SemRes::WARNING)
-      .value("ERROR", SemRes::ERROR)
-      .value("FATAL_ERROR", SemRes::FATAL_ERROR)
-      .export_values();
-
   define_pybinding_constants(m);
 
   define_pybinding_Vec3(m);

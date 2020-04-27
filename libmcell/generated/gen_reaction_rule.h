@@ -45,13 +45,14 @@ class ComplexInstance;
       products = products_; \
       fwd_rate = fwd_rate_; \
       rev_rate = rev_rate_; \
-      ctor_postprocess();\
+      postprocess_in_ctor();\
+      check_semantics();\
     }
 
 class GenReactionRule: public BaseDataClass {
 public:
-  void ctor_postprocess() override {}
-  SemRes check_semantics(std::ostream& out) const override;
+  void postprocess_in_ctor() override {}
+  void check_semantics() const override;
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---

@@ -30,20 +30,16 @@
 namespace MCell {
 namespace API {
 
-SemRes GenReleaseSite::check_semantics(std::ostream& out) const {
+void GenReleaseSite::check_semantics() const {
   if (!is_set(name)) {
-    out << get_object_name() << ": Parameter 'name' must be set.\n";
-    return SemRes::ERROR;
+    throw ValueError("Parameter 'name' must be set.");
   }
   if (!is_set(shape)) {
-    out << get_object_name() << ": Parameter 'shape' must be set.\n";
-    return SemRes::ERROR;
+    throw ValueError("Parameter 'shape' must be set.");
   }
   if (!is_set(molecule)) {
-    out << get_object_name() << ": Parameter 'molecule' must be set.\n";
-    return SemRes::ERROR;
+    throw ValueError("Parameter 'molecule' must be set.");
   }
-  return SemRes::OK;
 }
 
 std::string GenReleaseSite::to_str(const std::string ind) const {
@@ -79,7 +75,7 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
           py::arg("site_radius") = FLT_UNSET,
           py::arg("release_probability") = FLT_UNSET
         )
-      .def("check_semantics", &ReleaseSite::check_semantics_cerr)
+      .def("check_semantics", &ReleaseSite::check_semantics)
       .def("__str__", &ReleaseSite::to_str, py::arg("ind") = std::string(""))
       .def("dump", &ReleaseSite::dump)
       .def_property("name", &ReleaseSite::get_name, &ReleaseSite::set_name)

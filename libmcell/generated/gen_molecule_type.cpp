@@ -32,12 +32,10 @@
 namespace MCell {
 namespace API {
 
-SemRes GenMoleculeType::check_semantics(std::ostream& out) const {
+void GenMoleculeType::check_semantics() const {
   if (!is_set(name)) {
-    out << get_object_name() << ": Parameter 'name' must be set.\n";
-    return SemRes::ERROR;
+    throw ValueError("Parameter 'name' must be set.");
   }
-  return SemRes::OK;
 }
 
 std::string GenMoleculeType::to_str(const std::string ind) const {
@@ -64,7 +62,7 @@ py::class_<MoleculeType> define_pybinding_MoleculeType(py::module& m) {
           py::arg("diffusion_constant_2d") = FLT_UNSET,
           py::arg("diffusion_constant_3d") = FLT_UNSET
         )
-      .def("check_semantics", &MoleculeType::check_semantics_cerr)
+      .def("check_semantics", &MoleculeType::check_semantics)
       .def("__str__", &MoleculeType::to_str, py::arg("ind") = std::string(""))
       .def("inst", &MoleculeType::inst, py::arg("components"))
       .def("dump", &MoleculeType::dump)

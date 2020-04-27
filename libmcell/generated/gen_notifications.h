@@ -49,13 +49,14 @@ namespace API {
       progress_report = progress_report_; \
       release_event_report = release_event_report_; \
       molecule_collision_report = molecule_collision_report_; \
-      ctor_postprocess();\
+      postprocess_in_ctor();\
+      check_semantics();\
     }
 
 class GenNotifications: public BaseDataClass {
 public:
-  void ctor_postprocess() override {}
-  SemRes check_semantics(std::ostream& out) const override;
+  void postprocess_in_ctor() override {}
+  void check_semantics() const override;
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---

@@ -33,28 +33,29 @@ class MoleculeInstance;
 
 #define COMPLEX_INSTANCE_CTOR() \
     ComplexInstance( \
-        const std::vector<std::shared_ptr<MoleculeInstance>> molecule_types_ = std::vector<std::shared_ptr<MoleculeInstance>>(), \
+        const std::vector<std::shared_ptr<MoleculeInstance>> molecule_instances_ = std::vector<std::shared_ptr<MoleculeInstance>>(), \
         const Orientation orientation_ = Orientation::None \
     ) { \
       class_name = "ComplexInstance"; \
-      molecule_types = molecule_types_; \
+      molecule_instances = molecule_instances_; \
       orientation = orientation_; \
-      ctor_postprocess();\
+      postprocess_in_ctor();\
+      check_semantics();\
     }
 
 class GenComplexInstance: public BaseDataClass {
 public:
-  void ctor_postprocess() override {}
-  SemRes check_semantics(std::ostream& out) const override;
+  void postprocess_in_ctor() override {}
+  void check_semantics() const override;
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---
-  std::vector<std::shared_ptr<MoleculeInstance>> molecule_types;
-  virtual void set_molecule_types(const std::vector<std::shared_ptr<MoleculeInstance>> new_molecule_types_) {
-    molecule_types = new_molecule_types_;
+  std::vector<std::shared_ptr<MoleculeInstance>> molecule_instances;
+  virtual void set_molecule_instances(const std::vector<std::shared_ptr<MoleculeInstance>> new_molecule_instances_) {
+    molecule_instances = new_molecule_instances_;
   }
-  virtual std::vector<std::shared_ptr<MoleculeInstance>> get_molecule_types() const {
-    return molecule_types;
+  virtual std::vector<std::shared_ptr<MoleculeInstance>> get_molecule_instances() const {
+    return molecule_instances;
   }
 
   Orientation orientation;

@@ -29,16 +29,13 @@
 namespace MCell {
 namespace API {
 
-SemRes GenSurfaceRegion::check_semantics(std::ostream& out) const {
+void GenSurfaceRegion::check_semantics() const {
   if (!is_set(name)) {
-    out << get_object_name() << ": Parameter 'name' must be set.\n";
-    return SemRes::ERROR;
+    throw ValueError("Parameter 'name' must be set.");
   }
   if (!is_set(element_connections)) {
-    out << get_object_name() << ": Parameter 'element_connections' must be set.\n";
-    return SemRes::ERROR;
+    throw ValueError("Parameter 'element_connections' must be set.");
   }
-  return SemRes::OK;
 }
 
 std::string GenSurfaceRegion::to_str(const std::string ind) const {
@@ -59,7 +56,7 @@ py::class_<SurfaceRegion> define_pybinding_SurfaceRegion(py::module& m) {
           py::arg("name"),
           py::arg("element_connections")
         )
-      .def("check_semantics", &SurfaceRegion::check_semantics_cerr)
+      .def("check_semantics", &SurfaceRegion::check_semantics)
       .def("__str__", &SurfaceRegion::to_str, py::arg("ind") = std::string(""))
       .def("dump", &SurfaceRegion::dump)
       .def_property("name", &SurfaceRegion::get_name, &SurfaceRegion::set_name)

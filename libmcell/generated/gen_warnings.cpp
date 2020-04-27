@@ -29,8 +29,7 @@
 namespace MCell {
 namespace API {
 
-SemRes GenWarnings::check_semantics(std::ostream& out) const {
-  return SemRes::OK;
+void GenWarnings::check_semantics() const {
 }
 
 std::string GenWarnings::to_str(const std::string ind) const {
@@ -78,7 +77,7 @@ py::class_<Warnings> define_pybinding_Warnings(py::module& m) {
           py::arg("missed_reactions") = WarningLevel::Warning,
           py::arg("missed_reactions_threshold") = 0.00100000004749745
         )
-      .def("check_semantics", &Warnings::check_semantics_cerr)
+      .def("check_semantics", &Warnings::check_semantics)
       .def("__str__", &Warnings::to_str, py::arg("ind") = std::string(""))
       .def("dump", &Warnings::dump)
       .def_property("molecule_collision_report", &Warnings::get_molecule_collision_report, &Warnings::set_molecule_collision_report)

@@ -43,13 +43,14 @@ namespace API {
       accurate_3d_reactions = accurate_3d_reactions_; \
       center_molecules_on_grid = center_molecules_on_grid_; \
       micrposcopic_reversibility = micrposcopic_reversibility_; \
-      ctor_postprocess();\
+      postprocess_in_ctor();\
+      check_semantics();\
     }
 
 class GenConfig: public BaseDataClass {
 public:
-  void ctor_postprocess() override {}
-  SemRes check_semantics(std::ostream& out) const override;
+  void postprocess_in_ctor() override {}
+  void check_semantics() const override;
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---

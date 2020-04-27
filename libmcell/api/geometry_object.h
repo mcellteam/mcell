@@ -33,6 +33,24 @@ namespace API {
 class GeometryObject: public GenGeometryObject {
 public:
   GEOMETRY_OBJECT_CTOR()
+
+  void check_semantics() const override {
+    for (auto& v: vertex_list) {
+      if (v.size() != 3) {
+        throw ValueError(
+            "Each item in the 'vertex_list' argument must be a triplet of floats, error for " +
+            vec_nonptr_to_str(v) + ".");
+      }
+    }
+
+    for (auto& e: element_connections) {
+      if (e.size() != 3) {
+        throw ValueError(
+            "Each item in the 'element_connections' argument must be a triplet of integers, error for " +
+            vec_nonptr_to_str(e) + ".");
+      }
+    }
+  }
 };
 
 } // namespace API

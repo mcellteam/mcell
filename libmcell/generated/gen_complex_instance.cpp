@@ -30,14 +30,13 @@
 namespace MCell {
 namespace API {
 
-SemRes GenComplexInstance::check_semantics(std::ostream& out) const {
-  return SemRes::OK;
+void GenComplexInstance::check_semantics() const {
 }
 
 std::string GenComplexInstance::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
-      "\n" << ind + "  " << "molecule_types=" << vec_ptr_to_str(molecule_types, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "\n" << ind + "  " << "molecule_instances=" << vec_ptr_to_str(molecule_instances, ind + "  ") << ", " << "\n" << ind + "  " <<
       "orientation=" << orientation;
   return ss.str();
 }
@@ -49,13 +48,13 @@ py::class_<ComplexInstance> define_pybinding_ComplexInstance(py::module& m) {
             const std::vector<std::shared_ptr<MoleculeInstance>>,
             const Orientation
           >(),
-          py::arg("molecule_types") = std::vector<std::shared_ptr<MoleculeInstance>>(),
+          py::arg("molecule_instances") = std::vector<std::shared_ptr<MoleculeInstance>>(),
           py::arg("orientation") = Orientation::None
         )
-      .def("check_semantics", &ComplexInstance::check_semantics_cerr)
+      .def("check_semantics", &ComplexInstance::check_semantics)
       .def("__str__", &ComplexInstance::to_str, py::arg("ind") = std::string(""))
       .def("dump", &ComplexInstance::dump)
-      .def_property("molecule_types", &ComplexInstance::get_molecule_types, &ComplexInstance::set_molecule_types)
+      .def_property("molecule_instances", &ComplexInstance::get_molecule_instances, &ComplexInstance::set_molecule_instances)
       .def_property("orientation", &ComplexInstance::get_orientation, &ComplexInstance::set_orientation)
     ;
 }

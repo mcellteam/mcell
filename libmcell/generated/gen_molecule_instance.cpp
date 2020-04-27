@@ -31,12 +31,10 @@
 namespace MCell {
 namespace API {
 
-SemRes GenMoleculeInstance::check_semantics(std::ostream& out) const {
+void GenMoleculeInstance::check_semantics() const {
   if (!is_set(molecule_type)) {
-    out << get_object_name() << ": Parameter 'molecule_type' must be set.\n";
-    return SemRes::ERROR;
+    throw ValueError("Parameter 'molecule_type' must be set.");
   }
-  return SemRes::OK;
 }
 
 std::string GenMoleculeInstance::to_str(const std::string ind) const {
@@ -57,7 +55,7 @@ py::class_<MoleculeInstance> define_pybinding_MoleculeInstance(py::module& m) {
           py::arg("molecule_type"),
           py::arg("components") = std::vector<std::shared_ptr<ComponentInstance>>()
         )
-      .def("check_semantics", &MoleculeInstance::check_semantics_cerr)
+      .def("check_semantics", &MoleculeInstance::check_semantics)
       .def("__str__", &MoleculeInstance::to_str, py::arg("ind") = std::string(""))
       .def("dump", &MoleculeInstance::dump)
       .def_property("molecule_type", &MoleculeInstance::get_molecule_type, &MoleculeInstance::set_molecule_type)

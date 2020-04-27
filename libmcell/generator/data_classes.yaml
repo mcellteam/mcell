@@ -93,7 +93,7 @@ MoleculeInstance:
 ComplexInstance:    
   superclass: BaseDataClass
   items:
-  - name: molecule_types
+  - name: molecule_instances
     type: List[MoleculeInstance*]
     default: empty
 

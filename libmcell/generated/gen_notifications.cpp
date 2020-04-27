@@ -29,8 +29,7 @@
 namespace MCell {
 namespace API {
 
-SemRes GenNotifications::check_semantics(std::ostream& out) const {
-  return SemRes::OK;
+void GenNotifications::check_semantics() const {
 }
 
 std::string GenNotifications::to_str(const std::string ind) const {
@@ -69,7 +68,7 @@ py::class_<Notifications> define_pybinding_Notifications(py::module& m) {
           py::arg("release_event_report") = true,
           py::arg("molecule_collision_report") = true
         )
-      .def("check_semantics", &Notifications::check_semantics_cerr)
+      .def("check_semantics", &Notifications::check_semantics)
       .def("__str__", &Notifications::to_str, py::arg("ind") = std::string(""))
       .def("dump", &Notifications::dump)
       .def_property("probability_report", &Notifications::get_probability_report, &Notifications::set_probability_report)

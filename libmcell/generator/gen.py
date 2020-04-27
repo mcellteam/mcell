@@ -136,11 +136,14 @@ EXT_H = 'h'
 GEN_CLASS_PREFIX = 'Gen'
 BASE_DATA_CLASS = 'BaseDataClass'
 
-RET_TYPE_CHECK_SEMANTICS = 'SemRes'
-CTOR_POSTPROCESS = 'ctor_postprocess'
+CTOR_POSTPROCESS = 'postprocess_in_ctor'
 RET_CTOR_POSTPROCESS = 'void' 
-DECL_CHECK_SEMANTICS = 'check_semantics(std::ostream& out) const'
+
+RET_TYPE_CHECK_SEMANTICS = 'void'
+CHECK_SEMANTICS = 'check_semantics'
+DECL_CHECK_SEMANTICS = CHECK_SEMANTICS + '() const'
 DECL_DEFINE_PYBINDIND_CONSTANTS = 'void define_pybinding_constants(py::module& m)'
+
 RET_TYPE_TO_STR = 'std::string'
 SHARED_PTR = 'std::shared_ptr'
 DECL_TO_STR_W_DEFAULT = 'to_str(const std::string ind="") const'
@@ -398,6 +401,7 @@ def write_ctor_define(f, class_def, class_name):
         attr_name = items[i][KEY_NAME]
         f.write('      ' + attr_name + ' = ' + attr_name + '_; \\\n')
     f.write('      ' + CTOR_POSTPROCESS + '();\\\n')    
+    f.write('      ' + CHECK_SEMANTICS + '();\\\n')
     f.write('    }\n\n')    
     
     
@@ -641,8 +645,7 @@ def generate_class_template(class_name, class_def, input_file_name, enums):
         
 def write_is_set_check(f, name):
     f.write('  if (!is_set(' + name + ')) {\n')
-    f.write('    out << get_object_name() << ": Parameter \'' + name + '\' must be set.\\n";\n')
-    f.write('    return SemRes::ERROR;\n')
+    f.write('    throw ValueError("Parameter \'' + name + '\' must be set.");\n')
     f.write('  }\n')
   
 
@@ -651,8 +654,6 @@ def write_check_semantics_implemetation(f, class_name, items):
     for attr in items:
         if KEY_DEFAULT not in attr:
             write_is_set_check(f, attr[KEY_NAME])
-    
-    f.write('  return SemRes::OK;\n')
     f.write('}\n\n')    
     
         
@@ -794,7 +795,7 @@ def write_pybind11_bindings(f, class_name, class_def):
     
     # common methods
     if has_superclass(class_def):
-        f.write('      .def("check_semantics", &' + class_name + '::check_semantics_cerr)\n')
+        f.write('      .def("check_semantics", &' + class_name + '::check_semantics)\n')
         f.write('      .def("__str__", &' + class_name + '::to_str, py::arg("ind") = std::string(""))\n')
         
     # declared methods

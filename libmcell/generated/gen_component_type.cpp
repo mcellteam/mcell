@@ -30,12 +30,10 @@
 namespace MCell {
 namespace API {
 
-SemRes GenComponentType::check_semantics(std::ostream& out) const {
+void GenComponentType::check_semantics() const {
   if (!is_set(name)) {
-    out << get_object_name() << ": Parameter 'name' must be set.\n";
-    return SemRes::ERROR;
+    throw ValueError("Parameter 'name' must be set.");
   }
-  return SemRes::OK;
 }
 
 std::string GenComponentType::to_str(const std::string ind) const {
@@ -56,7 +54,7 @@ py::class_<ComponentType> define_pybinding_ComponentType(py::module& m) {
           py::arg("name"),
           py::arg("states") = std::vector<std::string>()
         )
-      .def("check_semantics", &ComponentType::check_semantics_cerr)
+      .def("check_semantics", &ComponentType::check_semantics)
       .def("__str__", &ComponentType::to_str, py::arg("ind") = std::string(""))
       .def("inst", py::overload_cast<const std::string&, const int>(&ComponentType::inst), py::arg("state") = "STATE_UNSET_INT", py::arg("bond") = BOND_UNBOUND)
       .def("inst", py::overload_cast<const int, const int>(&ComponentType::inst), py::arg("state") = STATE_UNSET, py::arg("bond") = BOND_UNBOUND)

@@ -35,18 +35,11 @@ public:
   RELEASE_SITE_CTOR()
 
   // actual manual implementation of a semantic check
-  SemRes check_semantics(std::ostream& out) const override {
-    SemRes base_res = GenReleaseSite::check_semantics(out);
-    if (base_res != SemRes::OK) {
-      return base_res;
-    }
-
+  void check_semantics() const override {
+    GenReleaseSite::check_semantics();
     if (is_set(site_diameter) && is_set(site_radius)) {
-      out << "Only either 'site_diameter' or 'site_radius' can be set.\n";
-      return SemRes::ERROR;
+      throw ValueError("Only either 'site_diameter' or 'site_radius' can be set.");
     }
-
-    return SemRes::OK;
   }
 };
 
