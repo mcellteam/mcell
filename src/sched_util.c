@@ -686,6 +686,19 @@ static bool less_time_and_id(struct abstract_molecule* a1, struct abstract_molec
   return (a1->t + 100*EPS_C < a2->t) || (fabs(a1->t - a2->t) < 100*EPS_C && a1->id < a2->id);
 }
 
+static bool is_sorted(struct abstract_molecule* list) {
+  if (list == NULL || list->next == NULL) {
+      return true;
+  }
+  struct abstract_molecule* prev = list;
+  for (struct abstract_molecule* curr = list->next; curr != NULL; curr = curr->next) {
+    if (!less_time_and_id(prev, curr)) {
+      return false;
+    }
+    prev = curr;
+  }
+  return true;
+}
 
 // used only when MCELL3_SORTED_MOLS_ON_RUN_TIMESTEP or MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_IDis defined
 void sort_schedule_by_time_and_id(struct schedule_helper *sh) {
@@ -699,6 +712,11 @@ void sort_schedule_by_time_and_id(struct schedule_helper *sh) {
     // zero or one element in list
     if (list == NULL || list->next == NULL) {
         return ;
+    }
+
+    if (is_sorted(list)) {
+      // conversion and sorting takes long time, a minor optimization for faster debugging
+      continue;
     }
 
     std::vector<struct abstract_molecule*> vec;
