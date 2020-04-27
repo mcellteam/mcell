@@ -61,8 +61,8 @@ py::class_<GeometryObject> define_pybinding_GeometryObject(py::module& m) {
       .def(
           py::init<
             const std::string&,
-            const std::vector<Vec3>,
-            const std::vector<IVec3>,
+            const std::vector<std::vector<float_t>>,
+            const std::vector<std::vector<int>>,
             const std::vector<std::shared_ptr<SurfaceRegion>>
           >(),
           py::arg("name"),

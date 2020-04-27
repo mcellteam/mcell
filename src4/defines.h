@@ -271,11 +271,22 @@ typedef glm::fvec2 glm_vec2_t;
 typedef glm::fmat4x4 mat4x4;
 #endif
 
-typedef glm::ivec3 IVec3;
+typedef glm::ivec3 glm_ivec3_t;
 typedef glm::uvec3 UVec3;
 typedef glm::bvec3 BVec3;
 
-// NOTE: rename to Vec3? - not sure, this is a really simple object...
+struct IVec3: public glm_ivec3_t {
+  IVec3() = default;
+  IVec3(const glm_vec3_t& a) { x = a.x; y = a.y; z = a.z; }
+  IVec3(const IVec3& a) : glm_ivec3_t(a.x, a.y, a.z) { }
+  IVec3(const int x_, const int y_, const int z_) { x = x_; y = y_; z = z_; }
+  IVec3(const int xyz) { x = xyz; y = xyz; z = xyz; }
+  IVec3(const std::vector<int>& xyz) { assert(xyz.size() == 3); x = xyz[0]; y = xyz[1]; z = xyz[2]; }
+
+  /*std::string to_string() const;
+  void dump(const std::string extra_comment, const std::string ind) const;*/
+};
+
 struct Vec3: public glm_vec3_t {
   Vec3() = default;
   Vec3(const glm_vec3_t& a) { x = a.x; y = a.y; z = a.z; }
@@ -284,6 +295,7 @@ struct Vec3: public glm_vec3_t {
   Vec3(const vector3& a) { x = a.x; y = a.y; z = a.z; }
   Vec3(const float_t x_, const float_t y_, const float_t z_) { x = x_; y = y_; z = z_; }
   Vec3(const float_t xyz) { x = xyz; y = xyz; z = xyz; }
+  Vec3(const std::vector<float_t>& xyz) { assert(xyz.size() == 3); x = xyz[0]; y = xyz[1]; z = xyz[2]; }
 
   bool is_valid() const { return !(x == POS_INVALID || y == POS_INVALID || z == POS_INVALID); }
 
@@ -299,12 +311,15 @@ struct Vec2: public glm_vec2_t {
   Vec2(const vector2& a) { x = a.u; y = a.v; }
   Vec2(const float_t x_, const float_t y_) { x = x_; y = y_; }
   Vec2(const float_t xy) { x = xy; y = xy; }
+  Vec2(const std::vector<float_t>& xy) { assert(xy.size() == 2); x = xy[0]; y = xy[1]; }
 
   bool is_valid() const { return !(x == POS_INVALID || y == POS_INVALID); }
 
   std::string to_string() const;
   void dump(const std::string extra_comment, const std::string ind) const;
 };
+
+
 
 static inline std::ostream & operator<<(std::ostream &out, const Vec3& a) {
   out << "(" << a.x << ", " << a.y << ", " << a.z << ")";
@@ -414,7 +429,7 @@ static inline float_t max3(const Vec3& v) {
 }
 
 static inline int max3_i(const IVec3& v) {
-  return glm::compMax(v);
+  return glm::compMax((glm_ivec3_t)v);
 }
 
 static inline Vec3 abs3(const Vec3& v) {

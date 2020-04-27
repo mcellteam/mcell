@@ -72,6 +72,10 @@ void define_pybinding_Vec3(py::module& m) {
           py::init<const float_t, const float_t, const float_t>(),
           py::arg("x"), py::arg("y"), py::arg("z")
       )
+      /*.def(
+          py::init<const std::vector<float_t>>(),
+          py::arg("xyz")
+      )*/
   ;
 }
 
@@ -88,6 +92,10 @@ void define_pybinding_IVec3(py::module& m) {
           py::init<const int, const int, const int>(),
           py::arg("x"), py::arg("y"), py::arg("z")
       )
+      /*.def(
+          py::init<const std::vector<int>>(),
+          py::arg("xyz")
+      )*/
   ;
 }
 

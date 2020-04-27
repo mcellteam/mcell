@@ -34,8 +34,8 @@ class SurfaceRegion;
 #define GEOMETRY_OBJECT_CTOR() \
     GeometryObject( \
         const std::string& name_, \
-        const std::vector<Vec3> vertex_list_, \
-        const std::vector<IVec3> element_connections_, \
+        const std::vector<std::vector<float_t>> vertex_list_, \
+        const std::vector<std::vector<int>> element_connections_, \
         const std::vector<std::shared_ptr<SurfaceRegion>> surface_regions_ = std::vector<std::shared_ptr<SurfaceRegion>>() \
     ) { \
       class_name = "GeometryObject"; \
@@ -53,19 +53,19 @@ public:
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---
-  std::vector<Vec3> vertex_list;
-  virtual void set_vertex_list(const std::vector<Vec3> new_vertex_list_) {
+  std::vector<std::vector<float_t>> vertex_list;
+  virtual void set_vertex_list(const std::vector<std::vector<float_t>> new_vertex_list_) {
     vertex_list = new_vertex_list_;
   }
-  virtual std::vector<Vec3> get_vertex_list() const {
+  virtual std::vector<std::vector<float_t>> get_vertex_list() const {
     return vertex_list;
   }
 
-  std::vector<IVec3> element_connections;
-  virtual void set_element_connections(const std::vector<IVec3> new_element_connections_) {
+  std::vector<std::vector<int>> element_connections;
+  virtual void set_element_connections(const std::vector<std::vector<int>> new_element_connections_) {
     element_connections = new_element_connections_;
   }
-  virtual std::vector<IVec3> get_element_connections() const {
+  virtual std::vector<std::vector<int>> get_element_connections() const {
     return element_connections;
   }
 

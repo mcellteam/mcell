@@ -99,6 +99,19 @@ static inline std::string vec_nonptr_to_str(const std::vector<T>& arr, const std
   return ss.str();
 }
 
+template<typename T>
+static inline std::string vec_nonptr_to_str(const std::vector<std::vector<T>>& arr, const std::string ind="") {
+  std::stringstream ss;
+  ss << "[";
+  for (size_t i = 0; i < arr.size(); i++) {
+    ss << i << ":" << vec_nonptr_to_str(arr[i], ind + "  ");
+    if (i + 1 != arr.size()) {
+      ss << ", ";
+    }
+  }
+  ss << "]";
+  return ss.str();
+}
 
 typedef std::invalid_argument SemanticException;
 
