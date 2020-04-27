@@ -52,8 +52,8 @@
 //#define MCELL3_SORTED_MOLS_ON_RUN_TIMESTEP
 
 // sort molecules in schedule helper according to ID before a new timestep begins
-// testsuite won't pass
-#define MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID
+// testsuite for mcell4 won't pass
+//#define MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID
 
 #define MCELL3_NEXT_BARRIER_IS_THE_NEXT_TIMESTEP // do not diffuse more than until the end of the timestep
 

@@ -218,6 +218,11 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const std::vector<molecu
 
     const DiffuseOrUnimolRxnAction& action = new_diffuse_or_unimol_react_actions[i];
 
+#ifdef MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID
+    Molecule& m = p.get_m(action.id);
+    m.release_delay = 0; // reset release_delay to specify that the delay was handled
+#endif
+
     assert(action.scheduled_time >= event_time && action.scheduled_time <= event_time + diffusion_time_step);
 
     if (action.type == DiffuseOrUnimolRxnAction::Type::DIFFUSE) {
