@@ -70,6 +70,13 @@ void DiffuseReactEvent::step() {
   }
 }
 
+#ifdef MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID
+static bool less_time_and_id(const DiffuseOrUnimolRxnAction& a1, const DiffuseOrUnimolRxnAction& a2) {
+  // WARNING: this comparison is a bit 'shaky' - the constant 100*EPS_C there... (same in sched_util.c)
+  return (a1.scheduled_time  + 100*EPS_C < a2.scheduled_time) ||
+      (fabs(a1.scheduled_time - a2.scheduled_time) < 100*EPS_C && a1.id < a2.id);
+}
+#endif
 
 void DiffuseReactEvent::diffuse_molecules(Partition& p, const std::vector<molecule_id_t>& molecule_ids) {
 
@@ -171,6 +178,15 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const std::vector<molecu
 
 #else
 
+#ifdef MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID
+  // merge the two arrays with actions
+  new_diffuse_or_unimol_react_actions.insert(
+      new_diffuse_or_unimol_react_actions.begin(),
+      delayed_release_diffusions.begin(), delayed_release_diffusions.end()
+  );
+  delayed_release_diffusions.clear();
+#endif
+
   // 2) mcell3 first handles diffusions of existing molecules, then the delayed diffusions
   // actions created by the diffusion of all these molecules are handled later
   for (uint i = 0; i < delayed_release_diffusions.size(); i++) {
@@ -193,6 +209,13 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const std::vector<molecu
   // again, we are using it as a queue and we do not follow the time when
   // they were created
   for (uint i = 0; i < new_diffuse_or_unimol_react_actions.size(); i++) {
+
+#ifdef MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID
+    // sort by time and id, index is still fine because we cannot schedule anything
+    // to the past
+    sort(new_diffuse_or_unimol_react_actions.begin(), new_diffuse_or_unimol_react_actions.end(), less_time_and_id);
+#endif
+
     const DiffuseOrUnimolRxnAction& action = new_diffuse_or_unimol_react_actions[i];
 
     assert(action.scheduled_time >= event_time && action.scheduled_time <= event_time + diffusion_time_step);
