@@ -2194,7 +2194,21 @@ bool DiffuseReactEvent::outcome_unimolecular(
 ) {
   molecule_id_t id = m.id;
 
-  Collision collision(CollisionType::UNIMOLECULAR_VOLMOL, &p, m.id, scheduled_time, m.v.pos, unimol_rx);
+
+  Vec3 pos;
+  if (m.is_vol()) {
+    pos = m.v.pos;
+  }
+  else if (m.is_surf()) {
+    Wall& w = p.get_wall(m.s.wall_index);
+    const Vec3& wall_vert0 = p.get_geometry_vertex(w.vertex_indices[0]);
+    pos = GeometryUtil::uv2xyz(m.s.pos, w, wall_vert0);
+  }
+  else {
+    assert(false);
+  }
+
+  Collision collision(CollisionType::UNIMOLECULAR_VOLMOL, &p, m.id, scheduled_time, pos, unimol_rx);
 
   bool ignoredA, ignoredB;
   // creates new molecule(s) as output of the unimolecular reaction
