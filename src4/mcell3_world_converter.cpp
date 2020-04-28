@@ -701,6 +701,7 @@ bool MCell3WorldConverter::convert_species(volume* s) {
         || spec->flags == (SPECIES_FLAG_COUNT_ENCLOSED | COUNT_CONTENTS)
         || spec->flags == SPECIES_FLAG_CAN_VOLVOL
         || spec->flags == (SPECIES_FLAG_CAN_VOLVOL | SPECIES_FLAG_CAN_VOLSURF)
+        || spec->flags == (SPECIES_FLAG_CAN_VOLVOL | SPECIES_FLAG_CAN_VOLWALL)
         || spec->flags == SPECIES_FLAG_CAN_VOLWALL
         || spec->flags == (SPECIES_FLAG_CAN_VOLWALL | SPECIES_FLAG_COUNT_ENCLOSED | COUNT_CONTENTS)
         || spec->flags == (SPECIES_FLAG_CAN_VOLWALL | SPECIES_FLAG_COUNT_ENCLOSED | COUNT_CONTENTS | REGION_PRESENT)
