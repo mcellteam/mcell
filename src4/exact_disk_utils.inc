@@ -938,31 +938,26 @@ static float_t __attribute__((noinline)) exact_disk(
     if (a > 0 && a * a >= b)
       continue;
 
-    /* Ignore this wall if moving molecule can travel through it */
-
     /* Reject those that the moving particle can travel through */
-    assert(!moving.has_flag(CAN_VOLWALL));
-#if 0
-    // TODO_LATER: checked with assert in mcell3 that it does not occur
-    if ((moving->properties->flags & CAN_VOLWALL) != 0) {
-      num_matching_rxns = trigger_intersect(
-          world->reaction_hash, world->rx_hashsize, world->all_mols,
-          world->all_volume_mols, world->all_surface_mols,
-          moving->properties->hashval, (struct abstract_molecule *)moving, 0, w,
-          matching_rxns, 1, 1, 0);
-      if (num_matching_rxns == 0)
+    if (moving.has_flag(BNG::SPECIES_FLAG_CAN_VOLWALL)) {
+      BNG::RxnClassesVector matching_rxn_classes;
+      RxUtil::trigger_intersect(p, moving, w, matching_rxn_classes);
+
+      if (matching_rxn_classes.empty()) {
         continue;
-      int blocked = 0;
-      for (i = 0; i < num_matching_rxns; i++) {
-        if (matching_rxns[i]->n_pathways == RX_REFLEC) {
-          blocked = 1;
+      }
+      bool blocked = false;
+      for (const BNG::RxnClass* rxn_class: matching_rxn_classes) {
+        // NOTE: same as in mcell3, but some explanation would be useful,
+        // not sure hot the code corresponds with the comment above
+        if (rxn_class->is_reflect()) {
+          blocked = true;
         }
       }
       if (!blocked) {
         continue;
       }
     }
-#endif
 
     /* Find line of intersection between wall and disk */
     Vec3 v0muv, v1muv, v2muv;

@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2019 by
+ * Copyright (C) 2019,2020 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -413,7 +413,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
     state =
         ray_trace_vol(
             p, world->rng,
-            vm /* changes position */,
+            vm_id /* changes position */,
             last_hit_wall_index,
             remaining_displacement,
             molecule_collisions
@@ -570,7 +570,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
       DUMP_CONDITION4(
         // the subtraction of diffusion_time_step doesn't make much sense but is needed to make the dump the same as in mcell3
         // need to check it further
-        vm.dump(p, "", "- Final vm position:", world->get_current_iteration(), /*event_time_end*/ 0);
+          m_new_ref.dump(p, "", "- Final vm position:", world->get_current_iteration(), /*event_time_end*/ 0);
       );
 #endif
 
@@ -596,11 +596,12 @@ void DiffuseReactEvent::diffuse_vol_molecule(
 RayTraceState ray_trace_vol(
     Partition& p,
     rng_state& rng,
-    Molecule& vm, // molecule that we are diffusing, we are changing its pos  and possibly also subvolume
+    const molecule_id_t vm_id, // molecule that we are diffusing, we are changing its pos  and possibly also subvolume
     const wall_index_t last_hit_wall_index, // is WALL_INDEX_INVALID when our molecule did not reflect from anything this diffusion step yet
     Vec3& remaining_displacement, // in/out - recomputed if there was a reflection
     collision_vector_t& collisions // both mol mol and wall collisions
     ) {
+  Molecule& vm = p.get_m(vm_id);
   p.stats.inc_ray_voxel_tests();
 
   RayTraceState res_state = RayTraceState::FINISHED;
@@ -1076,7 +1077,7 @@ void DiffuseReactEvent::diffuse_surf_molecule(
       // ray_trace does the movement and all other stuff
       Vec2 new_loc;
       wall_index_t new_wall_index =
-          ray_trace_surf(p, species, sm, displacement, new_loc/*, elapsed_molecule_time*/);
+          ray_trace_surf(p, species, sm_id, displacement, new_loc/*, elapsed_molecule_time*/);
 
       // Either something ambiguous happened or we hit absorptive border
       if (new_wall_index == WALL_INDEX_INVALID) {
@@ -1336,11 +1337,12 @@ ray_trace_2D:
 wall_index_t DiffuseReactEvent::ray_trace_surf(
     Partition& p,
     const BNG::Species& species,
-    Molecule& sm,
+    const molecule_id_t sm_id,
     Vec2& remaining_displacement,
     Vec2& new_pos/*,
     float_t& elapsed_molecule_time*/
 ) {
+  Molecule& sm  = p.get_m(sm_id);
   const Wall* this_wall = &p.get_wall(sm.s.wall_index);
 
   Vec2 orig_pos = sm.s.pos;
@@ -2231,6 +2233,7 @@ bool DiffuseReactEvent::outcome_unimolecular(
     pos = GeometryUtil::uv2xyz(m.s.pos, w, wall_vert0);
   }
   else {
+    pos = Vec3(POS_INVALID);
     assert(false);
   }
 
