@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2019 by
+ * Copyright (C) 2019,2020 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -2227,6 +2227,7 @@ bool DiffuseReactEvent::outcome_unimolecular(
     pos = GeometryUtil::uv2xyz(m.s.pos, w, wall_vert0);
   }
   else {
+    pos = Vec3(POS_INVALID);
     assert(false);
   }
 
