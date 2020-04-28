@@ -1,12 +1,38 @@
+/******************************************************************************
+ *
+ * Copyright (C) 2020 by
+ * The Salk Institute for Biological Studies and
+ * Pittsburgh Supercomputing Center, Carnegie Mellon University
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+ * USA.
+ *
+******************************************************************************/
 
 #include "mcell.h"
-#include "../generated/gen_release_site.h"
 #include "../generated/gen_species.h"
+#include "../generated/gen_release_site.h"
+#include "../generated/gen_geometry_object.h"
+#include "../generated/gen_subsystem.h"
+#include "../generated/gen_instantiation_data.h"
+#include "../generated/gen_model.h"
 
 namespace MCell {
 namespace API {
 
-void define_binding_Vec3(py::module& m) {
+void define_pybinding_Vec3(py::module& m) {
   py::class_<MCell::Vec3>(m, "Vec3")
       .def(
           py::init<>()
@@ -34,9 +60,14 @@ PYBIND11_MODULE(mcell, m) {
       .value("FATAL_ERROR", SemRes::FATAL_ERROR)
       .export_values();
 
-  define_binding_Vec3(m);
-  define_binding_ReleaseSite(m);
-  define_binding_Species(m);
+  define_pybinding_Vec3(m);
+  define_pybinding_ReleaseSite(m);
+  define_pybinding_Species(m);
+  define_pybinding_GeometryObject(m);
+
+  define_pybinding_Subsystem(m);
+  define_pybinding_InstantiationData(m);
+  define_pybinding_Model(m);
 
 }
 

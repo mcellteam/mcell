@@ -42,8 +42,11 @@
 #include <iostream>
 #include <map>
 #include <unordered_map>
-#include "../libs/boost/container/small_vector.hpp"
-#include "../libs/boost/container/flat_set.hpp"
+
+#ifndef INDEXER_WA
+#include <boost/container/small_vector.hpp>
+#include <boost/container/flat_set.hpp>
+#endif
 
 #include "../libs/bng/defines_shared.h"
 

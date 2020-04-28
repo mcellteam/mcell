@@ -17,6 +17,7 @@ For the complete terms of the GNU General Public License, please see this URL:
 http://www.gnu.org/licenses/gpl-2.0.html
 """
 
+# TODO: change 'items' to 'attributes'
 
 import sys
 import os
@@ -53,21 +54,32 @@ COPYRIGHT = \
 """
 
 TARGET_DIRECTORY = os.path.join('..', 'generated')
+API_DIRECTORY = os.path.join('..', 'api')
 
 KEY_ITEMS = 'items'
 KEY_NAME = 'name'
+ATTR_NAME_NAME = 'name' # attrribute with name 'name' is already defined in BaseDataClass
 KEY_TYPE = 'type'
 KEY_DEFAULT = 'default'
+
+KEY_SUPERCLASS = 'superclass'
+KEY_INHERITS_METHODS_FROM = 'inherits_methods_from'
+
+KEY_METHODS = 'methods'
+KEY_PARAMS = 'params'
+KEY_RETURN_TYPE = 'return_type'
 
 YAML_TYPE_FLOAT = 'float'
 YAML_TYPE_STR = 'str'
 YAML_TYPE_INT = 'int'
+YAML_TYPE_LONG = 'long'
 YAML_TYPE_VEC2 = 'Vec2'
 YAML_TYPE_VEC3 = 'Vec3'
 
 CPP_TYPE_FLOAT = 'float_t'
 CPP_TYPE_STR = 'std::string'
 CPP_TYPE_INT = 'int'
+CPP_TYPE_LONG = 'long'
 CPP_TYPE_VEC2 = 'Vec2'
 CPP_TYPE_VEC3 = 'Vec3'
 
@@ -76,6 +88,7 @@ CPP_REFERENCE_TYPES = [CPP_TYPE_STR, CPP_TYPE_VEC2, CPP_TYPE_VEC3]
 UNSET_VALUE_FLOAT = 'FLT_UNSET'
 UNSET_VALUE_STR = 'STR_UNSET'
 UNSET_VALUE_INT = 'INT_UNSET'
+UNSET_VALUE_INT = 'LONG_UNSET'
 UNSET_VALUE_VEC2 = 'VEC2_UNSET'
 UNSET_VALUE_VEC3 = 'VEC3_UNSET'
 UNSET_VALUE_PTR = 'nullptr'
@@ -99,6 +112,7 @@ KEYWORD_OVERRIDE = 'override'
 CLASS_NAME_ATTR = 'class_name'
 
 INCLUDE_API_MCELL_H = '#include "../api/mcell.h"'
+INCLUDE_API_COMMON_H = '#include "../api/common.h"'
 NAMESPACES_BEGIN = 'namespace MCell {\nnamespace API {'
 NAMESPACES_END = '} // namespace API\n} // namespace MCell'
 
@@ -109,10 +123,16 @@ def get_underscored(class_name):
 def get_header_guard_name(class_name):
     return GUARD_PREFIX + get_underscored(class_name).upper() + GUARD_SUFFIX
 
-def get_class_file_name(class_name, extension):
-    return os.path.join(TARGET_DIRECTORY, GEN_PREFIX + get_underscored(class_name) + '.' + extension)
+def get_gen_class_file_name(class_name, extension):
+    return os.path.join(GEN_PREFIX + get_underscored(class_name) + '.' + extension)
 
-def yam_type_to_cpp_type(t):
+def get_gen_class_file_name_w_dir(class_name, extension):
+    return os.path.join(TARGET_DIRECTORY, get_gen_class_file_name(class_name, extension))
+
+def get_api_class_file_name(class_name, extension):
+    return os.path.join(API_DIRECTORY, get_underscored(class_name) + '.' + extension)
+
+def yaml_type_to_cpp_type(t):
     assert len(t) >= 1
     if t == YAML_TYPE_FLOAT:
         return CPP_TYPE_FLOAT
@@ -120,6 +140,8 @@ def yam_type_to_cpp_type(t):
         return CPP_TYPE_STR
     elif t == YAML_TYPE_INT:
         return CPP_TYPE_INT
+    elif t == YAML_TYPE_LONG:
+        return CPP_TYPE_LONG
     elif t == YAML_TYPE_VEC2:
         return CPP_TYPE_VEC2
     elif t == YAML_TYPE_VEC3:
@@ -132,7 +154,7 @@ def get_type_as_ref_param(attr):
     assert KEY_TYPE in attr
     
     yaml_type = attr[KEY_TYPE]
-    cpp_type = yam_type_to_cpp_type(yaml_type)
+    cpp_type = yaml_type_to_cpp_type(yaml_type)
     
     res = cpp_type
     if cpp_type in CPP_REFERENCE_TYPES:
@@ -150,6 +172,8 @@ def get_unset_value(attr):
         return UNSET_VALUE_STR
     elif t == YAML_TYPE_INT:
         return UNSET_VALUE_INT
+    elif t == YAML_TYPE_LONG:
+        return UNSET_VALUE_LONG
     elif t == YAML_TYPE_VEC2:
         return UNSET_VALUE_VEC2
     elif t == YAML_TYPE_VEC3:
@@ -164,7 +188,7 @@ def is_cpp_ptr_type(t):
 
 
 def is_yaml_ptr_type(t):
-    return is_cpp_ptr_type(yam_type_to_cpp_type(t))
+    return is_cpp_ptr_type(yaml_type_to_cpp_type(t))
 
     
 def is_cpp_ptr_or_ref_type(t):
@@ -173,8 +197,9 @@ def is_cpp_ptr_or_ref_type(t):
 
 def write_generated_notice(f, input_file_name):
     now = datetime.now()
-    date_time = now.strftime("%m/%d/%Y, %H:%M")
-    f.write('// This file was generated automatically on ' + date_time + ' from ' + '\'' + input_file_name + '\'\n\n')
+    # date printing is disabled during the development phase to minimize changes in files 
+    #date_time = now.strftime("%m/%d/%Y, %H:%M")
+    #f.write('// This file was generated automatically on ' + date_time + ' from ' + '\'' + input_file_name + '\'\n\n')
 
 
 def write_ctor_define(f, class_name, items):
@@ -213,8 +238,13 @@ def write_attr_with_get_set(f, attr):
     assert KEY_TYPE in attr
     
     name = attr[KEY_NAME]
+    
+    # skip attribute 'name'
+    if name == ATTR_NAME_NAME:
+        return False
+    
     yaml_type = attr[KEY_TYPE]
-    cpp_type = yam_type_to_cpp_type(yaml_type)
+    cpp_type = yaml_type_to_cpp_type(yaml_type)
     
     decl_const = 'const ' if is_cpp_ptr_type(cpp_type) else ''
     decl_type = decl_const + cpp_type
@@ -233,41 +263,137 @@ def write_attr_with_get_set(f, attr):
     f.write('  virtual ' + ret_type_const + get_type_as_ref_param(attr) + ' get_' + name + '() const {\n')
     f.write('    return ' + name + ';\n')
     f.write('  }\n') 
+    return True
+    
+   
+def write_method_signature(f, method):
+    
+    if KEY_RETURN_TYPE in method:
+        f.write(yaml_type_to_cpp_type(method[KEY_RETURN_TYPE]) + ' ')
+    else:
+        f.write('void ')
+    
+    assert KEY_NAME in method
+    f.write(method[KEY_NAME] + '(')
+    
+    if KEY_PARAMS in method:
+        params = method[KEY_PARAMS]
+        params_cnt = len(params)
+        for i in range(params_cnt):
+            p = params[i]
+            assert KEY_NAME in p
+            assert KEY_TYPE in p
+            t = get_type_as_ref_param(p)
+            f.write('const ' + t + ' ' + p[KEY_NAME])
+            if i != params_cnt - 1:
+                f.write(', ')
+                
+    f.write(')')
+    
+        
+def write_method_declaration(f, method):
+    f.write('  virtual ')
+    write_method_signature(f, method)
+    f.write(' = 0;\n')
+    
+
+def based_on_base_data_class(class_def):
+    if KEY_SUPERCLASS in class_def:
+        assert class_def[KEY_SUPERCLASS] == BASE_DATA_CLASS # the only supported superclass now
+        return True
+    else:
+        return False
     
     
-def write_gen_class(f, class_name, items):
-    f.write('class ' + GEN_CLASS_PREFIX + class_name + ": public " + BASE_DATA_CLASS + '{\n')
+def write_gen_class(f, class_name, class_def):
+    f.write('class ' + GEN_CLASS_PREFIX + class_name)
+    
+    if based_on_base_data_class(class_def):
+        f.write(': public ' + BASE_DATA_CLASS)
+        
+    f.write( ' {\n')
     f.write('public:\n')
-    f.write('  ' + RET_TYPE_CHECK_SEMANTICS + ' ' + DECL_CHECK_SEMANTICS + ' ' + KEYWORD_OVERRIDE + ';\n')
-    f.write('  ' + RET_TYPE_TO_STR + ' ' +DECL_TO_STR + ' ' + KEYWORD_OVERRIDE + ';\n\n')
     
+    if not based_on_base_data_class(class_def):
+        # generate virtual destructor
+        f.write('  virtual ~' + GEN_CLASS_PREFIX + class_name + '() {}\n')
+        
+    if based_on_base_data_class(class_def):
+        f.write('  ' + RET_TYPE_CHECK_SEMANTICS + ' ' + DECL_CHECK_SEMANTICS + ' ' + KEYWORD_OVERRIDE + ';\n')
+        f.write('  ' + RET_TYPE_TO_STR + ' ' +DECL_TO_STR + ' ' + KEYWORD_OVERRIDE + ';\n\n')
+        
     f.write('  // --- attributes ---\n')
+    items = class_def[KEY_ITEMS]
     for attr in items:
-        write_attr_with_get_set(f, attr)
-        f.write('\n')
+        written = write_attr_with_get_set(f, attr)
+        if written :
+            f.write('\n')
+
+    f.write('  // --- methods ---\n')
+    methods = class_def[KEY_METHODS]
+    for m in methods:
+        write_method_declaration(f, m)
         
     f.write('}; // ' + GEN_CLASS_PREFIX + class_name + '\n\n')
 
 
 def write_define_binding_decl(f, class_name):
-    f.write('void define_binding_' + class_name + '(py::module& m)')           
+    f.write('py::class_<' + class_name + '> define_pybinding_' + class_name + '(py::module& m)')           
 
 
-def generate_class_header(class_name, items, input_file_name):
-    with open(get_class_file_name(class_name, EXT_H), 'w') as f:
+def get_all_used_pointer_types(class_def):
+    types = set()
+    for items in class_def[KEY_ITEMS]:
+        assert KEY_TYPE in items
+        t = items[KEY_TYPE]
+        if is_yaml_ptr_type(t):
+            types.add(t)
+
+    for method in class_def[KEY_METHODS]:
+        if KEY_RETURN_TYPE in method:
+            t = method[KEY_RETURN_TYPE]
+            if is_yaml_ptr_type(t):
+                types.add(t)
+            
+        if KEY_PARAMS in method:
+            for param in method[KEY_PARAMS]:
+                assert KEY_TYPE in param
+                t = param[KEY_TYPE]
+                if is_yaml_ptr_type(t):
+                    types.add(t)
+    return types
+
+
+def write_forward_decls(f, class_def):
+    # first we need to collect all types that we will need
+    types = get_all_used_pointer_types(class_def);
+    
+    for t in types:
+        f.write('class ' + t + ';\n')
+        
+    if types:
+        f.write('\n')
+    
+
+def generate_class_header(class_name, class_def, input_file_name):
+    with open(get_gen_class_file_name_w_dir(class_name, EXT_H), 'w') as f:
         f.write(COPYRIGHT)
         write_generated_notice(f, input_file_name)
         
         guard = get_header_guard_name(class_name);
         f.write('#ifndef ' + guard + '\n')
         f.write('#define ' + guard + '\n\n')
-        f.write(INCLUDE_API_MCELL_H + '\n\n')
+        f.write(INCLUDE_API_COMMON_H + '\n\n')
         f.write(NAMESPACES_BEGIN + '\n\n')
         
-        write_ctor_define(f, class_name, items)
+        write_forward_decls(f, class_def)
         
-        write_gen_class(f, class_name, items)
+        if based_on_base_data_class(class_def):
+            write_ctor_define(f, class_name, class_def[KEY_ITEMS])
         
+        write_gen_class(f, class_name, class_def)
+        
+        f.write('class ' + class_name + ';\n')
         write_define_binding_decl(f, class_name)
         f.write(';\n')
         
@@ -317,10 +443,28 @@ def write_to_str_implemetation(f, class_name, items):
     f.write('}\n\n')                
 
 
-def write_pybind11_bindings(f, class_name, items):
+def write_pybind11_method_bindings(f, class_name, method):
+    assert KEY_NAME in method
+    name = method[KEY_NAME]
+    f.write('      .def("' + name + '", &' + class_name + '::' + name)  
+    
+    if KEY_PARAMS in method:
+        params = method[KEY_PARAMS]
+        params_cnt = len(params)
+        for i in range(params_cnt):
+            f.write(', ')
+            p = params[i]
+            assert KEY_NAME in p
+            f.write('py::arg("' + p[KEY_NAME] + '")')
+    f.write(')\n')
+    
+    
+def write_pybind11_bindings(f, class_name, class_def):
+    items = class_def[KEY_ITEMS]
+    
     write_define_binding_decl(f, class_name)
     f.write(' {\n')
-    f.write('  py::class_<' + class_name + '>(m, "' + class_name + '")\n')
+    f.write('  return py::class_<' + class_name + '>(m, "' + class_name + '")\n')
     f.write('      .def(\n')
     f.write('          py::init<\n')
 
@@ -331,9 +475,13 @@ def write_pybind11_bindings(f, class_name, items):
         f.write('            const ' + get_type_as_ref_param(attr))
         if i != num_items - 1:
             f.write(',\n')
-    f.write('\n')
-    f.write('          >(),\n')
+    if num_items != 0:
+        f.write('\n')
+    f.write('          >()\n')
         
+    if num_items != 0:
+        f.write(',')
+    
     # init argument names and default values
     for i in range(num_items):
         attr = items[i]
@@ -347,50 +495,97 @@ def write_pybind11_bindings(f, class_name, items):
     f.write('        )\n')            
     
     # common methods
-    f.write('      .def("check_semantics", &' + class_name + '::check_semantics_cerr)\n')
-    f.write('      .def("__str__", &' + class_name + '::to_str)\n')
+    if based_on_base_data_class(class_def):
+        f.write('      .def("check_semantics", &' + class_name + '::check_semantics_cerr)\n')
+        f.write('      .def("__str__", &' + class_name + '::to_str)\n')
+        
+    # declared methods
+    for m in class_def[KEY_METHODS]:
+        write_pybind11_method_bindings(f, class_name, m)
+
+    # dump needs to be always implemented
     f.write('      .def("dump", &' + class_name + '::dump)\n')
     
     # properties
     for i in range(num_items):
         name = items[i][KEY_NAME]
-        f.write('      .def_property("' + name + '", &' + class_name + '::get_name, &' + class_name + '::set_name)\n')
+        f.write('      .def_property("' + name + '", &' + class_name + '::get_' + name + ', &' + class_name + '::set_' + name + ')\n')
     f.write('    ;\n')
     f.write('}\n\n')
+    
                 
+def write_used_classes_includes(f, class_def):
+    types = get_all_used_pointer_types(class_def)
+    for t in types:
+        f.write('#include "' + get_api_class_file_name(t, EXT_H) + '"\n')
+
             
-def generate_class_implementation_and_bindings(class_name, items, input_file_name):
-    with open(get_class_file_name(class_name, EXT_CPP), 'w') as f:
+def generate_class_implementation_and_bindings(class_name, class_def, input_file_name):
+    with open(get_gen_class_file_name_w_dir(class_name, EXT_CPP), 'w') as f:
         f.write(COPYRIGHT)
         write_generated_notice(f, input_file_name)
         
         f.write('#include <sstream>\n')
-        f.write(INCLUDE_API_MCELL_H + '\n')
         
-        f.write(NAMESPACES_BEGIN + '\n\n')
-                
-        write_check_semantics_implemetation(f, class_name, items)
+        # includes for our class
+        f.write('#include "' + get_gen_class_file_name(class_name, EXT_H) + '"\n')  
+        f.write('#include "' + get_api_class_file_name(class_name, EXT_H) + '"\n')
         
-        write_to_str_implemetation(f, class_name, items)
+        # we also need includes for every type that we used
+        write_used_classes_includes(f, class_def)
         
-        write_pybind11_bindings(f, class_name, items)
+        f.write('\n' + NAMESPACES_BEGIN + '\n\n')
+        
+        if based_on_base_data_class(class_def):
+            items = class_def[KEY_ITEMS]
+            write_check_semantics_implemetation(f, class_name, items)
+            write_to_str_implemetation(f, class_name, items)
+        
+        write_pybind11_bindings(f, class_name, class_def)
         
         f.write(NAMESPACES_END + '\n\n')
         
 
-
-def generate_class_files(class_name, contents, input_file_name):
-    assert KEY_ITEMS in contents
-    items = contents[KEY_ITEMS]
+# class Model provides the same methods as Subsystem and InstantiationData, 
+# this function copies the definition for pybind11 API generation
+def inherits_methods(data_classes, class_name, class_def):
     
-    generate_class_header(class_name, items, input_file_name)
-    generate_class_implementation_and_bindings(class_name, items, input_file_name)
+    res = class_def.copy() 
+    
+    if KEY_INHERITS_METHODS_FROM in class_def:
+        superclasses = class_def[KEY_INHERITS_METHODS_FROM]
+        for sc in superclasses:
+            assert KEY_NAME in sc
+            sc_name = sc[KEY_NAME]
+            assert sc_name in data_classes
+            sc_def = data_classes[sc_name]
+            
+            # we are not checking any duplicates
+            if KEY_METHODS in sc_def:
+                res[KEY_METHODS] += sc_def[KEY_METHODS]
+            
+    return res
+
+
+def generate_class_files(data_classes, class_name, class_def, input_file_name):
+    # we need items and methods to be present 
+    if KEY_ITEMS not in class_def:
+        class_def[KEY_ITEMS] = []
+        
+    if KEY_METHODS not in class_def:
+        class_def[KEY_METHODS] = []
+    
+    generate_class_header(class_name, class_def, input_file_name)
+    
+    class_def_w_method_inheritances = inherits_methods(data_classes, class_name, class_def) 
+    
+    generate_class_implementation_and_bindings(class_name, class_def_w_method_inheritances, input_file_name)
     
 
 def generate_data_classes(data_classes, input_file_name):
     assert type(data_classes) == dict
     for key, value in data_classes.items():
-        generate_class_files(key, value, input_file_name)
+        generate_class_files(data_classes, key, value, input_file_name)
     
     
 def load_and_generate_data_classes():

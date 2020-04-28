@@ -21,40 +21,32 @@
  *
 ******************************************************************************/
 
-#ifndef API_RELEASE_SITE_H
-#define API_RELEASE_SITE_H
+#ifndef API_INSTANTIATION_DATA_H
+#define API_INSTANTIATION_DATA_H
 
 #include <string>
 
-#include "../generated/gen_release_site.h"
+#include "../generated/gen_instantiation_data.h"
 #include "common.h"
 
 namespace MCell {
 namespace API {
 
-class ReleaseSite: public GenReleaseSite {
+class InstantiationData: public GenInstantiationData {
 public:
-  RELEASE_SITE_CTOR()
 
-  // actual manual implementation of a semantic check
-  SemRes check_semantics(std::ostream& out) const override {
-    SemRes base_res = GenReleaseSite::check_semantics(out);
-    if (base_res != SemRes::OK) {
-      return base_res;
-    }
+  // from generated template
+  void add_release_site(const Species* s) override {}
+  ReleaseSite* find_release_site(const std::string& name) override {return nullptr;}
+  void add_geometry_object(const GeometryObject* o) override {}
+  void find_geometry_object(const std::string& name) override {}
 
-    if (is_set(site_diameter) && is_set(site_radius)) {
-      out << "Only either 'site_diameter' or 'site_radius' can be set.\n";
-      return SemRes::ERROR;
-    }
-
-    return SemRes::OK;
-  }
+  // added manually
+  void dump() const;
 };
-
 
 
 } // namespace API
 } // namespace MCell
 
-#endif // API_RELEASE_SITE_H
+#endif // API_INSTANTIATION_DATA_H

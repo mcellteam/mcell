@@ -21,40 +21,30 @@
  *
 ******************************************************************************/
 
-#ifndef API_RELEASE_SITE_H
-#define API_RELEASE_SITE_H
+#ifndef API_GEN_MODEL_H
+#define API_GEN_MODEL_H
 
-#include <string>
-
-#include "../generated/gen_release_site.h"
-#include "common.h"
+#include "../api/common.h"
 
 namespace MCell {
 namespace API {
 
-class ReleaseSite: public GenReleaseSite {
+class InstantiationData;
+class Subsystem;
+
+class GenModel {
 public:
-  RELEASE_SITE_CTOR()
+  virtual ~GenModel() {}
+  // --- attributes ---
+  // --- methods ---
+  virtual void run_iterations(const long iterations) = 0;
+  virtual void add_subsystem(const Subsystem* subsystem) = 0;
+  virtual void add_instantiation_data(const InstantiationData* instantiation_data) = 0;
+}; // GenModel
 
-  // actual manual implementation of a semantic check
-  SemRes check_semantics(std::ostream& out) const override {
-    SemRes base_res = GenReleaseSite::check_semantics(out);
-    if (base_res != SemRes::OK) {
-      return base_res;
-    }
-
-    if (is_set(site_diameter) && is_set(site_radius)) {
-      out << "Only either 'site_diameter' or 'site_radius' can be set.\n";
-      return SemRes::ERROR;
-    }
-
-    return SemRes::OK;
-  }
-};
-
-
-
+class Model;
+py::class_<Model> define_pybinding_Model(py::module& m);
 } // namespace API
 } // namespace MCell
 
-#endif // API_RELEASE_SITE_H
+#endif // API_GEN_MODEL_H

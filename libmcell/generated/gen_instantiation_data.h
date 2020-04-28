@@ -21,40 +21,32 @@
  *
 ******************************************************************************/
 
-#ifndef API_RELEASE_SITE_H
-#define API_RELEASE_SITE_H
+#ifndef API_GEN_INSTANTIATION_DATA_H
+#define API_GEN_INSTANTIATION_DATA_H
 
-#include <string>
-
-#include "../generated/gen_release_site.h"
-#include "common.h"
+#include "../api/common.h"
 
 namespace MCell {
 namespace API {
 
-class ReleaseSite: public GenReleaseSite {
+class GeometryObject;
+class ReleaseSite;
+class Species;
+
+class GenInstantiationData {
 public:
-  RELEASE_SITE_CTOR()
+  virtual ~GenInstantiationData() {}
+  // --- attributes ---
+  // --- methods ---
+  virtual void add_release_site(const Species* s) = 0;
+  virtual ReleaseSite* find_release_site(const std::string& name) = 0;
+  virtual void add_geometry_object(const GeometryObject* o) = 0;
+  virtual void find_geometry_object(const std::string& name) = 0;
+}; // GenInstantiationData
 
-  // actual manual implementation of a semantic check
-  SemRes check_semantics(std::ostream& out) const override {
-    SemRes base_res = GenReleaseSite::check_semantics(out);
-    if (base_res != SemRes::OK) {
-      return base_res;
-    }
-
-    if (is_set(site_diameter) && is_set(site_radius)) {
-      out << "Only either 'site_diameter' or 'site_radius' can be set.\n";
-      return SemRes::ERROR;
-    }
-
-    return SemRes::OK;
-  }
-};
-
-
-
+class InstantiationData;
+py::class_<InstantiationData> define_pybinding_InstantiationData(py::module& m);
 } // namespace API
 } // namespace MCell
 
-#endif // API_RELEASE_SITE_H
+#endif // API_GEN_INSTANTIATION_DATA_H

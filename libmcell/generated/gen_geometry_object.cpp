@@ -22,13 +22,13 @@
 ******************************************************************************/
 
 #include <sstream>
-#include "gen_species.h"
-#include "../api/species.h"
+#include "gen_geometry_object.h"
+#include "../api/geometry_object.h"
 
 namespace MCell {
 namespace API {
 
-SemRes GenSpecies::check_semantics(std::ostream& out) const{
+SemRes GenGeometryObject::check_semantics(std::ostream& out) const{
   if (!is_set(name)) {
     out << get_object_name() << ": Parameter 'name' must be set.\n";
     return SemRes::ERROR;
@@ -36,33 +36,25 @@ SemRes GenSpecies::check_semantics(std::ostream& out) const{
   return SemRes::OK;
 }
 
-std::string GenSpecies::to_str() const{
+std::string GenGeometryObject::to_str() const{
   std::stringstream ss;
   ss << get_object_name() << ": " <<
-      "name=" << name << ", " <<
-      "diffusion_constant_3d=" << diffusion_constant_3d << ", " <<
-      "diffusion_constant_2d=" << diffusion_constant_2d;
+      "name=" << name;
   return ss.str();
 }
 
-py::class_<Species> define_pybinding_Species(py::module& m) {
-  return py::class_<Species>(m, "Species")
+py::class_<GeometryObject> define_pybinding_GeometryObject(py::module& m) {
+  return py::class_<GeometryObject>(m, "GeometryObject")
       .def(
           py::init<
-            const std::string&,
-            const float_t,
-            const float_t
+            const std::string&
           >()
-,          py::arg("name"),
-          py::arg("diffusion_constant_3d") = FLT_UNSET,
-          py::arg("diffusion_constant_2d") = FLT_UNSET
+,          py::arg("name")
         )
-      .def("check_semantics", &Species::check_semantics_cerr)
-      .def("__str__", &Species::to_str)
-      .def("dump", &Species::dump)
-      .def_property("name", &Species::get_name, &Species::set_name)
-      .def_property("diffusion_constant_3d", &Species::get_diffusion_constant_3d, &Species::set_diffusion_constant_3d)
-      .def_property("diffusion_constant_2d", &Species::get_diffusion_constant_2d, &Species::set_diffusion_constant_2d)
+      .def("check_semantics", &GeometryObject::check_semantics_cerr)
+      .def("__str__", &GeometryObject::to_str)
+      .def("dump", &GeometryObject::dump)
+      .def_property("name", &GeometryObject::get_name, &GeometryObject::set_name)
     ;
 }
 

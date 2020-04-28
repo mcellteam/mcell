@@ -21,12 +21,10 @@
  *
 ******************************************************************************/
 
-// This file was generated automatically on 03/10/2020, 10:52 from 'data_classes.yaml'
-
 #ifndef API_GEN_SPECIES_H
 #define API_GEN_SPECIES_H
 
-#include "../api/mcell.h"
+#include "../api/common.h"
 
 namespace MCell {
 namespace API {
@@ -43,20 +41,12 @@ namespace API {
       diffusion_constant_2d = diffusion_constant_2d_; \
     }
 
-class GenSpecies: public BaseDataClass{
+class GenSpecies: public BaseDataClass {
 public:
   SemRes check_semantics(std::ostream& out) const override;
   std::string to_str() const override;
 
   // --- attributes ---
-  std::string name;
-  virtual void set_name(const std::string& new_name_) {
-    name = new_name_;
-  }
-  virtual const std::string& get_name() const {
-    return name;
-  }
-
   float_t diffusion_constant_3d;
   virtual void set_diffusion_constant_3d(const float_t new_diffusion_constant_3d_) {
     diffusion_constant_3d = new_diffusion_constant_3d_;
@@ -73,9 +63,11 @@ public:
     return diffusion_constant_2d;
   }
 
+  // --- methods ---
 }; // GenSpecies
 
-void define_binding_Species(py::module& m);
+class Species;
+py::class_<Species> define_pybinding_Species(py::module& m);
 } // namespace API
 } // namespace MCell
 

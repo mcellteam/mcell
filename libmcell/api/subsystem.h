@@ -21,40 +21,29 @@
  *
 ******************************************************************************/
 
-#ifndef API_RELEASE_SITE_H
-#define API_RELEASE_SITE_H
+#ifndef API_SUBSYSTEM_H
+#define API_SUBSYSTEM_H
 
 #include <string>
 
-#include "../generated/gen_release_site.h"
+#include "../generated/gen_subsystem.h"
 #include "common.h"
 
 namespace MCell {
 namespace API {
 
-class ReleaseSite: public GenReleaseSite {
+class Subsystem: public GenSubsystem {
 public:
-  RELEASE_SITE_CTOR()
+  // from generated template
+  void add_species(const Species* s) override {}
+  Species* find_species(const std::string& name) override {return nullptr;}
 
-  // actual manual implementation of a semantic check
-  SemRes check_semantics(std::ostream& out) const override {
-    SemRes base_res = GenReleaseSite::check_semantics(out);
-    if (base_res != SemRes::OK) {
-      return base_res;
-    }
-
-    if (is_set(site_diameter) && is_set(site_radius)) {
-      out << "Only either 'site_diameter' or 'site_radius' can be set.\n";
-      return SemRes::ERROR;
-    }
-
-    return SemRes::OK;
-  }
+  // added manually
+  void dump() const;
 };
-
 
 
 } // namespace API
 } // namespace MCell
 
-#endif // API_RELEASE_SITE_H
+#endif // API_SUBSYSTEM_H

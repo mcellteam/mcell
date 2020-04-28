@@ -21,40 +21,24 @@
  *
 ******************************************************************************/
 
-#ifndef API_RELEASE_SITE_H
-#define API_RELEASE_SITE_H
+#ifndef API_GEOMETRY_OBJECT_H
+#define API_GEOMETRY_OBJECT_H
 
 #include <string>
 
-#include "../generated/gen_release_site.h"
+#include "../generated/gen_geometry_object.h"
 #include "common.h"
 
 namespace MCell {
 namespace API {
 
-class ReleaseSite: public GenReleaseSite {
+class GeometryObject: public GenGeometryObject {
 public:
-  RELEASE_SITE_CTOR()
-
-  // actual manual implementation of a semantic check
-  SemRes check_semantics(std::ostream& out) const override {
-    SemRes base_res = GenReleaseSite::check_semantics(out);
-    if (base_res != SemRes::OK) {
-      return base_res;
-    }
-
-    if (is_set(site_diameter) && is_set(site_radius)) {
-      out << "Only either 'site_diameter' or 'site_radius' can be set.\n";
-      return SemRes::ERROR;
-    }
-
-    return SemRes::OK;
-  }
+  GEOMETRY_OBJECT_CTOR()
 };
-
 
 
 } // namespace API
 } // namespace MCell
 
-#endif // API_RELEASE_SITE_H
+#endif // API_GEOMETRY_OBJECT_H

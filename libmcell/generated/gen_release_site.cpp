@@ -21,10 +21,11 @@
  *
 ******************************************************************************/
 
-// This file was generated automatically on 03/10/2020, 10:52 from 'data_classes.yaml'
-
 #include <sstream>
-#include "../api/mcell.h"
+#include "gen_release_site.h"
+#include "../api/release_site.h"
+#include "../api/species.h"
+
 namespace MCell {
 namespace API {
 
@@ -57,8 +58,8 @@ std::string GenReleaseSite::to_str() const{
   return ss.str();
 }
 
-void define_binding_ReleaseSite(py::module& m) {
-  py::class_<ReleaseSite>(m, "ReleaseSite")
+py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
+  return py::class_<ReleaseSite>(m, "ReleaseSite")
       .def(
           py::init<
             const std::string&,
@@ -68,8 +69,8 @@ void define_binding_ReleaseSite(py::module& m) {
             const float_t,
             const float_t,
             const float_t
-          >(),
-          py::arg("name"),
+          >()
+,          py::arg("name"),
           py::arg("shape"),
           py::arg("molecule"),
           py::arg("location") = VEC3_UNSET,
@@ -81,12 +82,12 @@ void define_binding_ReleaseSite(py::module& m) {
       .def("__str__", &ReleaseSite::to_str)
       .def("dump", &ReleaseSite::dump)
       .def_property("name", &ReleaseSite::get_name, &ReleaseSite::set_name)
-      .def_property("shape", &ReleaseSite::get_name, &ReleaseSite::set_name)
-      .def_property("molecule", &ReleaseSite::get_name, &ReleaseSite::set_name)
-      .def_property("location", &ReleaseSite::get_name, &ReleaseSite::set_name)
-      .def_property("site_diameter", &ReleaseSite::get_name, &ReleaseSite::set_name)
-      .def_property("site_radius", &ReleaseSite::get_name, &ReleaseSite::set_name)
-      .def_property("release_probability", &ReleaseSite::get_name, &ReleaseSite::set_name)
+      .def_property("shape", &ReleaseSite::get_shape, &ReleaseSite::set_shape)
+      .def_property("molecule", &ReleaseSite::get_molecule, &ReleaseSite::set_molecule)
+      .def_property("location", &ReleaseSite::get_location, &ReleaseSite::set_location)
+      .def_property("site_diameter", &ReleaseSite::get_site_diameter, &ReleaseSite::set_site_diameter)
+      .def_property("site_radius", &ReleaseSite::get_site_radius, &ReleaseSite::set_site_radius)
+      .def_property("release_probability", &ReleaseSite::get_release_probability, &ReleaseSite::set_release_probability)
     ;
 }
 

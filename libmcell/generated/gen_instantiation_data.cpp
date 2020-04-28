@@ -21,40 +21,31 @@
  *
 ******************************************************************************/
 
-#ifndef API_RELEASE_SITE_H
-#define API_RELEASE_SITE_H
-
-#include <string>
-
-#include "../generated/gen_release_site.h"
-#include "common.h"
+#include <sstream>
+#include "gen_instantiation_data.h"
+#include "../api/instantiation_data.h"
+#include "../api/geometry_object.h"
+#include "../api/release_site.h"
+#include "../api/species.h"
 
 namespace MCell {
 namespace API {
 
-class ReleaseSite: public GenReleaseSite {
-public:
-  RELEASE_SITE_CTOR()
+py::class_<InstantiationData> define_pybinding_InstantiationData(py::module& m) {
+  return py::class_<InstantiationData>(m, "InstantiationData")
+      .def(
+          py::init<
+          >()
 
-  // actual manual implementation of a semantic check
-  SemRes check_semantics(std::ostream& out) const override {
-    SemRes base_res = GenReleaseSite::check_semantics(out);
-    if (base_res != SemRes::OK) {
-      return base_res;
-    }
-
-    if (is_set(site_diameter) && is_set(site_radius)) {
-      out << "Only either 'site_diameter' or 'site_radius' can be set.\n";
-      return SemRes::ERROR;
-    }
-
-    return SemRes::OK;
-  }
-};
-
-
+        )
+      .def("add_release_site", &InstantiationData::add_release_site, py::arg("s"))
+      .def("find_release_site", &InstantiationData::find_release_site, py::arg("name"))
+      .def("add_geometry_object", &InstantiationData::add_geometry_object, py::arg("o"))
+      .def("find_geometry_object", &InstantiationData::find_geometry_object, py::arg("name"))
+      .def("dump", &InstantiationData::dump)
+    ;
+}
 
 } // namespace API
 } // namespace MCell
 
-#endif // API_RELEASE_SITE_H
