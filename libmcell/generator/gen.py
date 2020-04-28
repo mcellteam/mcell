@@ -155,6 +155,10 @@ CLASS_NAME_ATTR = 'class_name'
 GEN_CONSTANTS_H = 'gen_constants.h'
 GEN_CONSTANTS_CPP = 'gen_constants.cpp'
 
+GEN_NAMES_H = 'gen_names.h'
+NAME_PREFIX = 'NAME_'
+CLASS_PREFIX = 'CLASS_'
+
 INCLUDE_API_MCELL_H = '#include "../api/mcell.h"'
 INCLUDE_API_COMMON_H = '#include "../api/common.h"'
 NAMESPACES_BEGIN = 'namespace MCell {\nnamespace API {'
@@ -324,8 +328,9 @@ def is_cpp_ref_type(t):
     return t in CPP_REFERENCE_TYPES
 
 
-def write_generated_notice(f, input_file_name):
+def write_generated_notice(f, input_file_name=''):
     now = datetime.now()
+    # probably get rid of the input_file_name
     # date printing is disabled during the development phase to minimize changes in files 
     #date_time = now.strftime("%m/%d/%Y, %H:%M")
     #f.write('// This file was generated automatically on ' + date_time + ' from ' + '\'' + input_file_name + '\'\n\n')
@@ -1042,6 +1047,69 @@ def generate_data_classes(data_classes, input_file_name):
                 print("Generating class " + key)
             generate_class_files(data_classes, key, value, input_file_name, enums)
     
+    
+def collect_all_names(data_classes):
+    all_class_names = set()    
+    all_item_param_names = set()
+    
+    for key, value in data_classes.items():
+        
+        if key != KEY_CONSTANTS and key != KEY_ENUMS:
+            all_class_names.add(key)
+            # items 
+            if KEY_ITEMS in value:
+                for item in value[KEY_ITEMS]:
+                    all_item_param_names.add(item[KEY_NAME])
+                    
+            # methods        
+            if KEY_METHODS in value:
+                for method in value[KEY_METHODS]:
+                    all_item_param_names.add(method[KEY_NAME])
+
+                    if KEY_PARAMS in method:
+                        for param in method[KEY_PARAMS]:
+                            all_item_param_names.add(param[KEY_NAME])
+        else:
+            # TODO: constants and enums
+            pass
+    
+    all_class_names = list(all_class_names)
+    all_class_names.sort(key=str.casefold)
+    
+    all_item_param_names_list = list(all_item_param_names)
+    all_item_param_names_list.sort(key=str.casefold)
+    return all_class_names, all_item_param_names_list
+  
+def write_name_def(f, name, extra_prefix=''):
+    upper_name = get_underscored(name).upper()
+    f.write('const char* const ' + NAME_PREFIX + extra_prefix + upper_name + ' = "' + name + '";\n')
+      
+# this function generates definitions for converter so that we can use constant strings 
+def generate_names_header(data_classes):
+
+    all_class_names, all_item_param_names_list = collect_all_names(data_classes)
+    
+    with open(os.path.join(TARGET_DIRECTORY, GEN_NAMES_H), 'w') as f:
+        f.write(COPYRIGHT)
+        write_generated_notice(f, '')
+        
+        guard = 'API_GEN_NAMES';
+        f.write('#ifndef ' + guard + '\n')
+        f.write('#define ' + guard + '\n\n')
+        
+        f.write('\n' + NAMESPACES_BEGIN + '\n\n')
+
+        for name in all_class_names:
+            write_name_def(f, name, CLASS_PREFIX)
+            
+        f.write('\n')
+        
+        for name in all_item_param_names_list:
+            write_name_def(f, name)
+        
+        f.write(NAMESPACES_END + '\n\n')
+        f.write('#endif // ' + guard + '\n\n')      
+    
         
 def load_and_generate_data_classes():
     data_classes = {}
@@ -1058,6 +1126,8 @@ def load_and_generate_data_classes():
         print(data_classes)
     assert type(data_classes) == dict
     generate_data_classes(data_classes, DATA_CLASSES_FILE)
+    
+    generate_names_header(data_classes)
 
 if __name__ == '__main__':
     if len(sys.argv) == 2 and sys.argv[1] == '-v':

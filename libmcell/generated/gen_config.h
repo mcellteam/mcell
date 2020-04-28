@@ -35,14 +35,14 @@ namespace API {
         const float_t surface_grid_density_ = 10000, \
         const bool accurate_3d_reactions_ = true, \
         const bool center_molecules_on_grid_ = false, \
-        const bool micrposcopic_reversibility_ = false \
+        const bool microscopic_reversibility_ = false \
     ) { \
       class_name = "Config"; \
       time_step = time_step_; \
       surface_grid_density = surface_grid_density_; \
       accurate_3d_reactions = accurate_3d_reactions_; \
       center_molecules_on_grid = center_molecules_on_grid_; \
-      micrposcopic_reversibility = micrposcopic_reversibility_; \
+      microscopic_reversibility = microscopic_reversibility_; \
       postprocess_in_ctor();\
       check_semantics();\
     }
@@ -86,12 +86,12 @@ public:
     return center_molecules_on_grid;
   }
 
-  bool micrposcopic_reversibility;
-  virtual void set_micrposcopic_reversibility(const bool new_micrposcopic_reversibility_) {
-    micrposcopic_reversibility = new_micrposcopic_reversibility_;
+  bool microscopic_reversibility;
+  virtual void set_microscopic_reversibility(const bool new_microscopic_reversibility_) {
+    microscopic_reversibility = new_microscopic_reversibility_;
   }
-  virtual bool get_micrposcopic_reversibility() const {
-    return micrposcopic_reversibility;
+  virtual bool get_microscopic_reversibility() const {
+    return microscopic_reversibility;
   }
 
   // --- methods ---

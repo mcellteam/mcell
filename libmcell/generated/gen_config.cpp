@@ -39,7 +39,7 @@ std::string GenConfig::to_str(const std::string ind) const {
       "surface_grid_density=" << surface_grid_density << ", " <<
       "accurate_3d_reactions=" << accurate_3d_reactions << ", " <<
       "center_molecules_on_grid=" << center_molecules_on_grid << ", " <<
-      "micrposcopic_reversibility=" << micrposcopic_reversibility;
+      "microscopic_reversibility=" << microscopic_reversibility;
   return ss.str();
 }
 
@@ -57,7 +57,7 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
           py::arg("surface_grid_density") = 10000,
           py::arg("accurate_3d_reactions") = true,
           py::arg("center_molecules_on_grid") = false,
-          py::arg("micrposcopic_reversibility") = false
+          py::arg("microscopic_reversibility") = false
         )
       .def("check_semantics", &Config::check_semantics)
       .def("__str__", &Config::to_str, py::arg("ind") = std::string(""))
@@ -66,7 +66,7 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
       .def_property("surface_grid_density", &Config::get_surface_grid_density, &Config::set_surface_grid_density)
       .def_property("accurate_3d_reactions", &Config::get_accurate_3d_reactions, &Config::set_accurate_3d_reactions)
       .def_property("center_molecules_on_grid", &Config::get_center_molecules_on_grid, &Config::set_center_molecules_on_grid)
-      .def_property("micrposcopic_reversibility", &Config::get_micrposcopic_reversibility, &Config::set_micrposcopic_reversibility)
+      .def_property("microscopic_reversibility", &Config::get_microscopic_reversibility, &Config::set_microscopic_reversibility)
     ;
 }
 
