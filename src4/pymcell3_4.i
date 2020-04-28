@@ -49,6 +49,9 @@ using namespace MCell;
 //%import "defines.h"
 typedef uint partition_index_t;
 typedef uint vertex_index_t;
+typedef uint molecule_id_t;
+typedef uint geometry_object_id_t;
+typedef uint wall_id_t;
 
 // FIXME: this does not work either
 //%import "callback_structs.h"
@@ -89,13 +92,14 @@ struct WallHitInfo {
   wall_id_t wall_id;
   float_t time;
   Vec3 pos;
+  float_t time_before_hit;
+  Vec3 pos_before_hit;
 };
 
 
 class SimulationConfig {
 public:
   float_t length_unit;
- 
 };
 
 class Partition {
@@ -117,6 +121,17 @@ public:
   
   void dump();
 };
+
+
+class SpeciesInfo { 
+	Species* find_species_by_name(const char* name);
+};
+  
+class Species {  
+public:
+  void set_color(float_t r, float_t g, float_t b);
+  void set_scale(float_t s);
+};
   
 class World {
 public:
@@ -124,13 +139,23 @@ public:
   void run_n_iterations(const uint64_t num_iterations, const uint64_t output_frequency);
   void end_simulation();
   
-  void register_wall_hit_callback_internal(wall_hit_callback_func func, void* clientdata_);
+  void register_wall_hit_callback_internal(wall_hit_callback_func func, void* clientdata_, const char* object_name);
+  
+  
+  void enable_wall_hit_counting();
+  uint get_wall_hit_array_size();
+  const WallHitInfo& get_wall_hit_array_item(uint index);
+  void clear_wall_hit_array();
   
   Partition& get_partition(partition_id_t i);
   
   void dump();
   
+  void export_visualization_datamodel_to_dir(const char* prefix);
+  void export_visualization_datamodel(const char* filename);
+  
   SimulationConfig config;
+  SpeciesInfo all_species;
 };
 
 class MCell3WorldConverter {
@@ -143,11 +168,16 @@ public:
 // Attach a new method to our plot widget for adding Python functions
 %extend World {
    // Set a Python function object as a callback function
-   // Note : PyObject *pyfunc is remapped with a typempap
-   void register_wall_hit_callback(PyObject *pyfunc) {
-     self->register_wall_hit_callback_internal(py_callback_wall_hit, (void *) pyfunc);
+   // Note : PyObject *pyfunc is remapped with a typemap
+   void register_wall_hit_callback(PyObject *pyfunc, const char* object_name = "") {
+     self->register_wall_hit_callback_internal(py_callback_wall_hit, (void *) pyfunc, object_name);
      Py_INCREF(pyfunc);
    }
+   
+    // only in Python API
+    Species* find_species_by_name(const char* name) {
+     	return self->all_species.find_species_by_name(name);
+    }
 }
 
 } // namespace MCell

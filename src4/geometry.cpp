@@ -30,6 +30,7 @@
 
 #include "partition.h"
 #include "geometry.h"
+#include "datamodel_defines.h"
 
 #include "geometry_utils.inc" // uses get_wall_bounding_box, maybe not include this file
 
@@ -56,6 +57,34 @@ void GeometryObject::dump_array(const Partition& p, const std::vector<GeometryOb
   }
 }
 
+void GeometryObject::to_data_model(Json::Value& object, const Partition& p, const SimulationConfig& config) const {
+
+  vector<uint> vertex_order;
+
+  object[KEY_NAME] = name;
+  object[KEY_MATERIAL_NAMES].append(Json::Value(KEY_VALUE_MEMBRANE));
+
+  Json::Value& element_connections = object[KEY_ELEMENT_CONNECTIONS];
+  bool first = true; // to indicate when to use a comma
+
+  // DMFIXME:
+  for (wall_index_t i: wall_indices) {
+    Json::Value one_connection;
+    p.get_wall(i).connection_to_data_model(one_connection);
+    element_connections.append(one_connection);
+  }
+  Json::Value& vertex_list = object[KEY_VERTEX_LIST];
+  vertices_to_data_model(vertex_list, p, config);
+}
+
+// outputs complete list of partition vertices to data_model
+void GeometryObject::vertices_to_data_model(Json::Value& vertex_list, const Partition& p, const SimulationConfig& config) const {
+  uint vertex_count = p.get_geometry_vertex_count();
+  for (uint i=0; i<vertex_count; i++){
+    Vec3 pos = p.get_geometry_vertex(i) * Vec3(config.length_unit);
+    json_append_triplet(vertex_list, pos.x, pos.y, pos.z);
+  }
+}
 
 void Region::dump(const std::string ind) const {
   cout << ind << "Region : " <<
@@ -154,14 +183,12 @@ init_edge_transform
   Note: Don't call this on a non-shared edge.
 ***************************************************************************/
 void Edge::reinit_edge_constants(const Partition& p) {
+  assert(is_shared_edge());
 
   if (!is_initialized()) {
     return;
   }
 
-  // not sure what to do if these asserts do not hold
-  assert(forward_index != WALL_INDEX_INVALID);
-  assert(backward_index != WALL_INDEX_INVALID);
   Wall wf = p.get_wall(forward_index);
   Wall wb = p.get_wall(backward_index);
 
@@ -251,8 +278,7 @@ void Edge::reinit_edge_constants(const Partition& p) {
 }
 
 void Edge::debug_check_values_are_uptodate(const Partition& p) {
-  if (edge_num_used_for_init != EDGE_INDEX_INVALID) {
-    // not initialized
+  if (!is_initialized()) {
     return;
   }
 #ifndef NDEBUG
@@ -336,7 +362,9 @@ void Wall::precompute_wall_constants(const Partition& p) {
 void Wall::reinit_edge_constants(const Partition& p) {
   // edges, uses info set by init_tri_wall
   for (uint edge_index = 0; edge_index < EDGES_IN_TRIANGLE; edge_index++) {
-    edges[edge_index].reinit_edge_constants(p);
+    if (edges[edge_index].is_shared_edge()) {
+      edges[edge_index].reinit_edge_constants(p);
+    }
   }
 }
 
@@ -393,6 +421,14 @@ void Wall::dump(const Partition& p, const std::string ind, const bool for_diff) 
       << "\n";
   }
 }
+
+
+void Wall::connection_to_data_model(Json::Value& one_connection) const {
+  for (uint i = 0; i < VERTICES_IN_TRIANGLE; i++) {
+    one_connection.append(vertex_indices[i]);
+  }
+}
+
 
 namespace Geometry {
 

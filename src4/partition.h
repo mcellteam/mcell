@@ -33,6 +33,10 @@
 #include "scheduler.h"
 #include "geometry.h"
 
+namespace Json {
+class Value;
+}
+
 namespace MCell {
 
 // class used to hold potential reactants of given species
@@ -52,7 +56,6 @@ public:
     assert(key < this->size());
     (*this)[key].erase_existing(id);
   }
-
   // key is created if it does not exist
   void insert_unique(const species_id_t key, const molecule_id_t id) {
     if (key >= this->size()) {
@@ -506,6 +509,15 @@ public:
     assert(index < geometry_objects.size());
     return geometry_objects[index];
   }
+  
+  const GeometryObject* find_geometry_object(const std::string& name) const {
+    for (auto& go: geometry_objects) {
+      if (go.name == name) {
+        return &go;
+      }
+    }
+    return nullptr;
+  }  
 
   const GeometryObjectVector& get_geometry_objects() const {
     return geometry_objects;
@@ -657,6 +669,7 @@ public:
   const BNG::RxnContainer& get_all_rxns() const { return bng_engine.get_all_rxns(); }
 
   void dump();
+  void to_data_model(Json::Value& mcell) const;
 
 private:
   // left, bottom, closest (lowest z) point of the partition

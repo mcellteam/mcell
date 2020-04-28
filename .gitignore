@@ -3,7 +3,6 @@ autom4te.cache
 compile
 depcomp
 ylwrap
-version.h
 mcell
 mdlparse.c
 mdlparse.h

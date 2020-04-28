@@ -27,6 +27,7 @@
 #include "logging.h"
 
 #include "partition.h"
+#include "datamodel_defines.h"
 
 #include "dyn_vertex_utils.inc"
 
@@ -262,5 +263,17 @@ geometry_object_id_t Partition::determine_counted_volume_id(const Vec3& pos) {
   return COUNTED_VOLUME_ID_OUTSIDE_ALL;
 }
 
+
+void Partition::to_data_model(Json::Value& mcell) const {
+
+  Json::Value& geometrical_objects = mcell[KEY_GEOMETRICAL_OBJECTS];
+  Json::Value& object_list = geometrical_objects[KEY_OBJECT_LIST];
+
+  for (const GeometryObject& g: geometry_objects) {
+    Json::Value object;
+    g.to_data_model(object, *this, config);
+    object_list.append(object);
+  }
+}
 
 } // namespace mcell

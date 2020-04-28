@@ -24,12 +24,17 @@
 #include <fenv.h> // Linux include
 #include <sys/resource.h> // Linux include
 
+#include <fstream>
+
 #include "rng.h" // MCell 3
 #include "logging.h"
 
-
 #include "world.h"
+#include "viz_output_event.h"
 #include "defragmentation_event.h"
+#include "datamodel_defines.h"
+#include "bng_data_to_datamodel_converter.h"
+
 
 using namespace std;
 
@@ -39,7 +44,7 @@ namespace MCell {
 
 World::World()
   : bng_engine(config),
-    iterations(0),
+    total_iterations(0),
     seed_seq(0),
     next_wall_id(0),
     next_geometry_object_id(0),
@@ -47,8 +52,11 @@ World::World()
     simulation_ended(false),
     previous_progress_report_time({0, 0}),
     previous_iteration(0),
+
+    // temporary solution of callbacks
     wall_hit_callback(nullptr),
-    wall_hit_callback_clientdata(nullptr)
+    wall_hit_callback_clientdata(nullptr),
+    wall_hit_object_id(GEOMETRY_OBJECT_ID_INVALID)
 {
   config.partition_edge_length = FLT_INVALID;
   config.subpartitions_per_partition_dimension = SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT;
@@ -169,7 +177,7 @@ void World::run_n_iterations(const uint64_t num_iterations, const uint64_t outpu
   uint64_t& current_iteration = stats.get_current_iteration();
 
   if (current_iteration == 0) {
-    cout << "Iterations: " << current_iteration << " of " << iterations << "\n";
+    cout << "Iterations: " << current_iteration << " of " << total_iterations << "\n";
   }
 
   uint64_t this_run_first_iteration = current_iteration;
@@ -195,7 +203,7 @@ void World::run_n_iterations(const uint64_t num_iterations, const uint64_t outpu
     if (current_iteration > previous_iteration) {
 
       if (current_iteration % output_frequency == 0) {
-        cout << "Iterations: " << current_iteration << " of " << iterations;
+        cout << "Iterations: " << current_iteration << " of " << total_iterations;
 
         timeval current_progress_report_time;
         gettimeofday(&current_progress_report_time, NULL);
@@ -273,10 +281,10 @@ void World::run_simulation(const bool dump_initial_state) {
     dump();
   }
 
-  uint output_frequency = determine_output_frequency(iterations);
+  uint output_frequency = determine_output_frequency(total_iterations);
 
   // simulating 1000 iterations means to simulate iterations 0 .. 1000
-  run_n_iterations(iterations + 1, output_frequency, true);
+  run_n_iterations(total_iterations + 1, output_frequency, true);
 
   end_simulation();
 }
@@ -292,6 +300,136 @@ void World::dump() {
   for (Partition& p: partitions) {
     p.dump();
   }
+}
+
+
+void World::export_visualization_datamodel_to_dir(const char* prefix) const {
+  // prefix should be the same directory that is used for viz_output,
+  // e.g. ./viz_data/seed_0001/Scene
+
+  stringstream path;
+  path <<
+      "4" << prefix << ".datamodel." <<
+      VizOutputEvent::iterations_to_string(stats.get_current_iteration(), total_iterations) <<
+      ".json";
+
+  // create directories if needed
+  ::make_parent_dir(path.str().c_str());
+
+  export_visualization_datamodel(path.str().c_str());
+}
+
+void World::export_visualization_datamodel(const char* filename) const {
+
+
+  Json::Value root;
+
+  to_data_model(root);
+
+
+  Json::StreamWriterBuilder wbuilder;
+  wbuilder["indentation"] = " ";
+  wbuilder.settings_["precision"] = 12;
+  wbuilder.settings_["precisionType"] = "decimal";
+  std::string document = Json::writeString(wbuilder, root);
+
+  // write result into a file
+  ofstream res_file(filename);
+  if (res_file.is_open())
+  {
+    res_file << document;
+    res_file.close();
+  }
+  else {
+    cout << "Unable to open file " << filename << " for writing.\n";
+  }
+}
+
+void World::to_data_model(Json::Value& root) const {
+  Json::Value& mcell = root[KEY_MCELL];
+
+  mcell[KEY_CELLBLENDER_VERSION] = VALUE_CELLBLENDER_VERSION;
+
+  // generate geometry information
+  bool first = true;
+  for (const Partition& p: partitions) {
+    p.to_data_model(mcell);
+  }
+
+  // generate species info
+  BngDataToDatamodelConverter bng_converter;
+  bng_converter.to_data_model(mcell, bng_engine);
+  //all_species.to_data_model(mcell);
+
+
+  // add other default values, might need to generate this better
+  Json::Value& materials = mcell[KEY_MATERIALS];
+  Json::Value& material_dict = materials[KEY_MATERIAL_DICT];
+  Json::Value& membrane = material_dict[KEY_VALUE_MEMBRANE];
+  Json::Value& diffuse_color = membrane[KEY_DIFFUSE_COLOR];
+  diffuse_color[KEY_R] = DEFAULT_OBJECT_COLOR_COMPONENT;
+  diffuse_color[KEY_G] = DEFAULT_OBJECT_COLOR_COMPONENT;
+  diffuse_color[KEY_B] = DEFAULT_OBJECT_COLOR_COMPONENT;
+  diffuse_color[KEY_A] = DEFAULT_OBJECT_ALPHA;
+
+  Json::Value& model_objects = mcell[KEY_MODEL_OBJECTS];
+  json_add_version(model_objects, JSON_DM_VERSION_1330);
+  Json::Value& model_object_list = model_objects[KEY_MODEL_OBJECT_LIST];
+
+  Json::Value empty_model_object;
+  empty_model_object[KEY_PARENT_OBJECT] = "";
+  empty_model_object[KEY_DESCRIPTION] = "";
+  empty_model_object[KEY_OBJECT_SOURCE] = VALUE_BLENDER;
+  empty_model_object[KEY_DYNAMIC_DISPLAY_SOURCE] = "script";
+  empty_model_object[KEY_SCRIPT_NAME] = "";
+  empty_model_object[KEY_MEMBRANE_NAME] = "";
+  empty_model_object[KEY_DYNAMIC] = false;
+  empty_model_object[KEY_NAME] = ""; // doesn't seem necessary to have a name
+  model_object_list.append(empty_model_object);
+
+  mcell[KEY_DEFINE_SURFACE_CLASSES] = Json::Value(Json::ValueType::objectValue); // empty dict
+
+  Json::Value& mol_viz = mcell[KEY_MOL_VIZ];
+  json_add_version(mol_viz, JSON_DM_VERSION_1700);
+  mol_viz[KEY_MANUAL_SELECT_VIZ_DIR] = false;
+  mol_viz[KEY_FILE_START_INDEX] = 0;
+  mol_viz[KEY_SEED_LIST] = Json::Value(Json::arrayValue); // empty array
+
+  Json::Value& color_list = mol_viz[KEY_COLOR_LIST];
+  json_append_triplet(color_list, 0.8, 0.0, 0.0);
+  json_append_triplet(color_list, 0.0, 0.8, 0.0);
+  json_append_triplet(color_list, 0.0, 0.0, 0.8);
+  json_append_triplet(color_list, 0.0, 0.8, 0.8);
+  json_append_triplet(color_list, 0.8, 0.0, 0.8);
+  json_append_triplet(color_list, 0.8, 0.8, 0.0);
+  json_append_triplet(color_list, 1.0, 1.0, 1.0);
+  json_append_triplet(color_list, 0.0, 0.0, 0.0);
+
+  mol_viz[KEY_ACTIVE_SEED_INDEX] = 0;
+  mol_viz[KEY_FILE_INDEX] = 959; // don't know what this means
+  mol_viz[KEY_FILE_NUM] = 1001; // don't know what this means
+  mol_viz[KEY_VIZ_ENABLE] = true;
+  mol_viz[KEY_FILE_NAME] = "";
+  mol_viz[KEY_COLOR_INDEX] = 0;
+  mol_viz[KEY_RENDER_AND_SAVE] = false;
+  mol_viz[KEY_FILE_STEP_INDEX] = 1; // don't know what this means
+  mol_viz[KEY_FILE_STOP_INDEX] = 1000; // don't know what this means
+  mol_viz[KEY_FILE_DIR] = ""; // does this need to be set?
+
+  mol_viz[KEY_VIZ_LIST] = Json::Value(Json::arrayValue); // empty array
+
+  mcell[KEY_MODEL_LANGUAGE] = VALUE_MCELL3;
+
+  mcell[KEY_PARAMETER_SYSTEM] = Json::Value(Json::ValueType::objectValue); // empty dict
+
+  json_add_version(mcell, JSON_DM_VERSION_1300);
+
+  mcell[KEY_INITIALIZATION] = Json::Value(Json::ValueType::objectValue); // empty dict
+
+  Json::Value& blender_version = mcell[KEY_BLENDER_VERSION];
+  blender_version.append(Json::Value(BLENDER_VERSION[0]));
+  blender_version.append(Json::Value(BLENDER_VERSION[1]));
+  blender_version.append(Json::Value(BLENDER_VERSION[2]));
 }
 
 } // namespace mcell

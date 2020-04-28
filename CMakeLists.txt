@@ -50,7 +50,7 @@ SET(COMMON_C_CXX_FLAGS "${WARNING_FLAGS} -fPIC -g3 ${OPTIMIZATION_FLAGS} ${INCLU
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMMON_C_CXX_FLAGS}  -std=c11 ")
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON_C_CXX_FLAGS} -std=c++14 -fpermissive")
 
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lm")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lm -L ${CMAKE_CURRENT_BINARY_DIR}/libs/jsoncpp/src/lib_json")
 
 if (CYGWIN)
     # cygwin app run in cygwin environment is somehow unable to load cygstdc++-6.dll
@@ -122,6 +122,7 @@ include_directories(
   "${CMAKE_SOURCE_DIR}/../nfsimCInterface/src/"
   "${CMAKE_SOURCE_DIR}/include"
   "${CMAKE_SOURCE_DIR}/libs/sparsehash/src/"
+  "${CMAKE_SOURCE_DIR}/libs/jsoncpp/include/"
 )
 
 
@@ -178,6 +179,7 @@ endif()
 add_subdirectory(${CMAKE_SOURCE_DIR}/libs/bng ${CMAKE_CURRENT_BINARY_DIR}/libs/bng)
 add_subdirectory(${CMAKE_SOURCE_DIR}/../nfsim ${CMAKE_CURRENT_BINARY_DIR}/nfsim)
 add_subdirectory(${CMAKE_SOURCE_DIR}/../nfsimCInterface ${CMAKE_CURRENT_BINARY_DIR}/nfsimCInterface)
+add_subdirectory(${CMAKE_SOURCE_DIR}/libs/jsoncpp ${CMAKE_CURRENT_BINARY_DIR}/libs/jsoncpp)
 
 set(SOURCE_FILES
     src/argparse.c
@@ -231,6 +233,7 @@ set(SOURCE_FILES
     src/wall_util.c
     
     src/dump_state.cpp
+    src/mdl2datamodel.cpp
     src/c_vector.cpp
     
     src4/base_event.cpp
@@ -264,6 +267,12 @@ set( SOURCE_FILES ${SOURCE_FILES} src/mdlparse.y src/dyngeom_parse.y )
 SET_SOURCE_FILES_PROPERTIES( ${SOURCE_FILES_ONLY_MCELL} PROPERTIES LANGUAGE CXX )
 
 link_directories(${CMAKE_BINARY_DIR}/lib)
+
+# fallback to a different swig version:
+if (NOT /usr/bin/swig2.0)
+  set(SWIG_EXECUTABLE /usr/bin/swig)
+endif()
+
 if (UNIX)
   SET(CMAKE_INSTALL_RPATH "$ORIGIN/./lib")
   SET(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
@@ -297,7 +306,7 @@ if (PYMCELL AND NOT WIN32 AND NOT CYGWIN)
   if (APPLE)
     SWIG_LINK_LIBRARIES(pymcell ${PYMCELL_ARCHIVES} ${CMAKE_CURRENT_BINARY_DIR}/lib/libnfsim_c.dylib ${CMAKE_CURRENT_BINARY_DIR}/lib/libNFsim.dylib ${PYTHON_LIBRARIES})
   else()
-    SWIG_LINK_LIBRARIES(pymcell  ${PYMCELL_ARCHIVES} ${CMAKE_CURRENT_BINARY_DIR}/lib/libnfsim_c.so ${CMAKE_CURRENT_BINARY_DIR}/lib/libNFsim.so ${PYTHON_LIBRARIES})
+    SWIG_LINK_LIBRARIES(pymcell  ${PYMCELL_ARCHIVES}  ${CMAKE_CURRENT_BINARY_DIR}/libs/jsoncpp/src/lib_json/libjsoncpp.a ${CMAKE_CURRENT_BINARY_DIR}/lib/libnfsim_c.so ${CMAKE_CURRENT_BINARY_DIR}/lib/libNFsim.so ${PYTHON_LIBRARIES})
   endif()
 
   # copy the pyMCell test scripts into place
@@ -344,11 +353,11 @@ add_executable(mcell
 add_dependencies(mcell version_h)
 
 if (PYMCELL AND NOT WIN32 AND NOT CYGWIN)
-    add_dependencies(pymcell version_h bng nfsim_c NFsim)
+    add_dependencies(pymcell version_h bng nfsim_c NFsim jsoncpp_lib)
     target_link_libraries(pymcell ${VTK_LIBRARIES})
 endif()
   
-target_link_libraries(mcell bng nfsim_c_static NFsim_static ${VTK_LIBRARIES})
+target_link_libraries(mcell bng nfsim_c_static NFsim_static jsoncpp_lib ${VTK_LIBRARIES})
 
 
 TARGET_COMPILE_DEFINITIONS(mcell PRIVATE NOSWIG=1)

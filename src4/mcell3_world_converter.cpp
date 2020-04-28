@@ -199,7 +199,7 @@ static float_t get_partition_edge_length(const World* world, const float_t large
  */
 bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
   // TODO_CONVERSION: many items are not checked
-  world->iterations = s->iterations;
+  world->total_iterations = s->iterations;
   world->config.time_unit = s->time_unit;
   world->config.length_unit = s->length_unit;
   world->config.grid_density = s->grid_density;
@@ -447,10 +447,17 @@ bool MCell3WorldConverter::convert_wall_and_update_regions(
     else {
       edge.backward_index = WALL_INDEX_INVALID;
     }
-    edge.translate = e->translate;
-    edge.cos_theta = e->cos_theta;
-    edge.sin_theta = e->sin_theta;
-    edge.edge_num_used_for_init = e->edge_num_used_for_init; // added only for mcell4
+    edge.set_translate(e->translate);
+    edge.set_cos_theta(e->cos_theta);
+    edge.set_sin_theta(e->sin_theta);
+
+    // e->edge_num_used_for_init is valid only if both fwd and backw walls are present
+    if (e->forward != nullptr && e->backward != nullptr) {
+      edge.edge_num_used_for_init = e->edge_num_used_for_init; // added only for mcell4
+    }
+    else {
+      edge.edge_num_used_for_init = EDGE_INDEX_INVALID;
+    }
   }
 
   for (uint i = 0; i < EDGES_IN_TRIANGLE; i++) {
