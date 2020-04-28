@@ -287,7 +287,7 @@ static void tiny_diffuse_3D(
   // NOTE: can be optimized by ignoring molecule collisions
   rng_state ignored_rng;
   ray_trace_vol(
-        p, ignored_rng, vm, previous_reflected_wall, ignored_displacement,
+        p, ignored_rng, vm.id, previous_reflected_wall, ignored_displacement,
         collisions
   );
   assert(vm.v.subpart_index == p.get_subpart_index(vm.v.pos));
