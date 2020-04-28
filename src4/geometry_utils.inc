@@ -159,8 +159,9 @@ static void wall_subparts_collision_test(
     leeway += p.config.rx_radius_3d;
   }
 
-  llf = llf - Vec3(leeway);
-  urb = urb + Vec3(leeway);
+  Vec3 leeway3 = Vec3(leeway);
+  llf = llf - leeway3;
+  urb = urb + leeway3;
 
   // let's assume for now that we are placing a cube with corners llf and urb,
   // fing what are the min and max parition indices
@@ -219,6 +220,9 @@ static void wall_subparts_collision_test(
         subpart_index_t subpart_index = p.get_subpart_index_from_3d_indices(x, y, z);
         p.get_subpart_llf_point(subpart_index, subpart_llf);
         p.get_subpart_urb_point_from_llf(subpart_llf, subpart_urb);
+
+        subpart_llf = subpart_llf - leeway3;
+        subpart_urb = subpart_urb + leeway3;
 
         if (WallUtil::wall_in_box(p, w, subpart_llf, subpart_urb) != 0) {
           colliding_subparts.push_back(subpart_index);
