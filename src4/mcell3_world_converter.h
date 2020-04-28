@@ -32,6 +32,7 @@
 // C-style interface
 bool mcell4_convert_mcell3_volume(struct volume* s);
 bool mcell4_run_simulation(const bool dump_initial_state);
+void mcell4_convert_to_datamodel();
 void mcell4_delete_world();
 
 

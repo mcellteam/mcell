@@ -42,9 +42,9 @@ namespace MCell {
  */
 class BngDataToDatamodelConverter {
 public:
-  void to_data_model(Json::Value& mcell_node, const BNG::BNGEngine& bng_engine) {
-    assert(false && "TODO");
-  }
+  // does nothing for now, there will be changes in BNG data and
+  // converting species is not needed at this point
+  void to_data_model(Json::Value& mcell_node, const BNG::BNGEngine& bng_engine);
 };
 
 } // namespace MCell

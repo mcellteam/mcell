@@ -1,28 +1,7 @@
-#if 0
-
-temporary storage of a file removed during merge
-
-
-void SpeciesInfo::to_data_model(Json::Value& mcell) const {
-  Json::Value& define_molecules = mcell[KEY_DEFINE_MOLECULES];
-  json_add_version(define_molecules, JSON_DM_VERSION_1638);
-  Json::Value& molecule_list = define_molecules[KEY_MOLECULE_LIST];
-
-  for (const Species &s: species) {
-    if (s.name == ALL_MOLECULES || s.name == ALL_VOLUME_MOLECULES || s.name == ALL_SURFACE_MOLECULES) {
-      continue;
-    }
-    Json::Value species_value;
-    s.to_data_model(species_value);
-    molecule_list.append(species_value);
-  }
-}
-
 /******************************************************************************
  *
- * Copyright (C) 2019 by
- * The Salk Institute for Biological Studies and
- * Pittsburgh Supercomputing Center, Carnegie Mellon University
+ * Copyright (C) 2020 by
+ * The Salk Institute for Biological Studies
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -40,6 +19,38 @@ void SpeciesInfo::to_data_model(Json::Value& mcell) const {
  * USA.
  *
 ******************************************************************************/
+
+#include "bng_data_to_datamodel_converter.h"
+
+#include "datamodel_defines.h"
+
+namespace MCell {
+
+void BngDataToDatamodelConverter::to_data_model(
+    Json::Value& mcell_node, const BNG::BNGEngine& bng_engine) {
+  return;
+}
+
+} // namespace MCell
+
+#if 0
+
+
+void SpeciesInfo::covert_species_cointainer(Json::Value& mcell) const {
+  Json::Value& define_molecules = mcell[KEY_DEFINE_MOLECULES];
+  json_add_version(define_molecules, JSON_DM_VERSION_1638);
+  Json::Value& molecule_list = define_molecules[KEY_MOLECULE_LIST];
+
+  for (const Species &s: species) {
+    if (s.name == ALL_MOLECULES || s.name == ALL_VOLUME_MOLECULES || s.name == ALL_SURFACE_MOLECULES) {
+      continue;
+    }
+    Json::Value species_value;
+    s.to_data_model(species_value);
+    molecule_list.append(species_value);
+  }
+}
+
 
 #ifndef SRC4_SPECIES_H_
 #define SRC4_SPECIES_H_
@@ -188,6 +199,5 @@ void Species::set_scale(float_t s) {
   assert(s > 0);
   scale = s;
 }
-
 
 #endif

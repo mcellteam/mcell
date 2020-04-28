@@ -99,17 +99,23 @@ int main(int argc, char **argv) {
 
   if (state->mdl2datamodel) {
     bool ok = convert_to_datamodel(state, "datamodel.json");
-    return (ok ? 0 : 1);
+    return ok ? 0 : 1;
   }
 
   if (state->dump_mcell3) {
     dump_volume(state, "initial", DUMP_EVERYTHING);
   }
   
-  if (state->use_mcell4) {
+  if (state->use_mcell4 || state->mdl2datamodel4) {
     if (!mcell4_convert_mcell3_volume(state)) {
       exit(EXIT_FAILURE);
     }
+
+		if (state->mdl2datamodel4) {
+		  mcell4_convert_to_datamodel();
+      mcell4_delete_world();
+      return 0;
+		}
 
     mcell4_run_simulation(state->dump_mcell4);
 

@@ -3,6 +3,13 @@
 
 #include "json/json.h"
 
+const char* const DEFAULT_DATAMODEL_FILENAME = "datamodel.json";
+
+// used also outside of datamodel, maybe move elsewhere
+const char* const ALL_MOLECULES = "ALL_MOLECULES";
+const char* const ALL_VOLUME_MOLECULES = "ALL_VOLUME_MOLECULES";
+const char* const ALL_SURFACE_MOLECULES = "ALL_SURFACE_MOLECULES";
+
 // ---------------------------------- datamodel constants----------------------------------
 
 const char* const JSON_DM_VERSION_1638 = "DM_2014_10_24_1638";
@@ -12,13 +19,6 @@ const char* const JSON_DM_VERSION_1700 = "DM_2015_04_13_1700";
 const char* const JSON_DM_VERSION_1300 = "DM_2017_06_23_1300";
 
 const int BLENDER_VERSION[] = {2, 79, 0};
-
-
-// TODO: move this into a different location
-const char* const ALL_MOLECULES = "ALL_MOLECULES";
-const char* const ALL_VOLUME_MOLECULES = "ALL_VOLUME_MOLECULES";
-const char* const ALL_SURFACE_MOLECULES = "ALL_SURFACE_MOLECULES";
-
 
 // all keys should be defined as a constant string
 const char* const KEY_MCELL = "mcell";

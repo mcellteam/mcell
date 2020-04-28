@@ -252,6 +252,7 @@ set(SOURCE_FILES
     src4/geometry.cpp
     src4/world.cpp
     src4/counted_volumes_util.cpp
+    src4/bng_data_to_datamodel_converter.cpp
     
     src4/callback_info.cpp    
 )

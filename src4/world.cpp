@@ -319,13 +319,11 @@ void World::export_visualization_datamodel_to_dir(const char* prefix) const {
   export_visualization_datamodel(path.str().c_str());
 }
 
+
 void World::export_visualization_datamodel(const char* filename) const {
 
-
   Json::Value root;
-
   to_data_model(root);
-
 
   Json::StreamWriterBuilder wbuilder;
   wbuilder["indentation"] = " ";
@@ -345,6 +343,7 @@ void World::export_visualization_datamodel(const char* filename) const {
   }
 }
 
+
 void World::to_data_model(Json::Value& root) const {
   Json::Value& mcell = root[KEY_MCELL];
 
@@ -359,8 +358,6 @@ void World::to_data_model(Json::Value& root) const {
   // generate species info
   BngDataToDatamodelConverter bng_converter;
   bng_converter.to_data_model(mcell, bng_engine);
-  //all_species.to_data_model(mcell);
-
 
   // add other default values, might need to generate this better
   Json::Value& materials = mcell[KEY_MATERIALS];

@@ -38,14 +38,12 @@
 #include "mol_count_event.h"
 #include "count_buffer.h"
 
+#include "datamodel_defines.h"
+
 #include "dump_state.h"
 
 using namespace std;
 using namespace BNG;
-
-const char* const ALL_MOLECULES = "ALL_MOLECULES";
-const char* const ALL_VOLUME_MOLECULES = "ALL_VOLUME_MOLECULES";
-const char* const ALL_SURFACE_MOLECULES = "ALL_SURFACE_MOLECULES";
 
 // checking major conversion blocks
 #define CHECK(cond) do { if(!(cond)) { mcell_log_conv_error("Returning from %s after conversion error.\n", __FUNCTION__); return false; } } while (0)
@@ -70,6 +68,10 @@ bool mcell4_run_simulation(const bool dump_initial_state) {
   return true;
 }
 
+void mcell4_convert_to_datamodel() {
+  g_converter.world->export_visualization_datamodel(DEFAULT_DATAMODEL_FILENAME);
+  mcell_log("Datamodel was exported to '%s'.", DEFAULT_DATAMODEL_FILENAME);
+}
 
 void mcell4_delete_world() {
   g_converter.reset();
