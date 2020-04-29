@@ -63,7 +63,7 @@ private:
       const region_list* rl
   );
   bool convert_region(Partition& p, const region* r, region_index_t& region_index);
-  bool convert_polygonal_object(const geom_object* o);
+  bool convert_polygonal_object(const geom_object* o, const std::string& instantiate_name);
   bool convert_geometry_objects(volume* s);
 
   void create_diffusion_events();

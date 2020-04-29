@@ -56,6 +56,7 @@ public:
   geometry_object_id_t id; // world-unique geometry object ID
   geometry_object_index_t index; // partition-unique geometry object index
   std::string name;
+  std::string parent_name;
 
   // all walls (triangles) that form this object
   std::vector<wall_index_t> wall_indices;

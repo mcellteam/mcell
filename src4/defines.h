@@ -707,9 +707,6 @@ public:
   bool use_expanded_list;
   bool randomize_smol_pos;
 
-  // diverse
-  std::string scene_name; // usually "Scene"
-
   void init() {
     init_subpartition_edge_length();
   }

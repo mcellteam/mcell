@@ -61,7 +61,7 @@ void GeometryObject::to_data_model(Json::Value& object, const Partition& p, cons
 
   vector<uint> vertex_order;
 
-  object[KEY_NAME] = DMUtil::remove_obj_name_prefix(p.config.scene_name, name);
+  object[KEY_NAME] = DMUtil::remove_obj_name_prefix(parent_name, name);
   object[KEY_MATERIAL_NAMES].append(Json::Value(KEY_VALUE_MEMBRANE));
 
   Json::Value& element_connections = object[KEY_ELEMENT_CONNECTIONS];

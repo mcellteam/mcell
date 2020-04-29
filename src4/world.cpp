@@ -384,7 +384,7 @@ void World::to_data_model(Json::Value& root) const {
       model_object[KEY_SCRIPT_NAME] = "";
       model_object[KEY_MEMBRANE_NAME] = "";
       model_object[KEY_DYNAMIC] = false;
-      model_object[KEY_NAME] = DMUtil::remove_obj_name_prefix(config.scene_name, obj.name);
+      model_object[KEY_NAME] = DMUtil::remove_obj_name_prefix(obj.parent_name, obj.name);
       model_object_list.append(model_object);
     }
   }

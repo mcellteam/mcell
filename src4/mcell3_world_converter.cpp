@@ -324,24 +324,15 @@ bool MCell3WorldConverter::convert_geometry_objects(volume* s) {
   CHECK_PROPERTY(check_meta_object(root_instance, "WORLD_INSTANCE"));
   CHECK_PROPERTY(root_instance->next == nullptr);
 
-  geom_object* scene_meta_obj = nullptr;
-  for (geom_object* scene = root_instance->first_child; scene != nullptr; scene = scene->next) {
-    // expecting just one META_OBJ
-    if (scene->object_type == META_OBJ) {
-      CHECK_PROPERTY(scene_meta_obj == nullptr && "Expecting just one main 'Scene' object");
-      scene_meta_obj = scene;
-    }
-  }
-  CHECK_PROPERTY(scene_meta_obj != nullptr && "Expecting one main 'Scene' object");
-  world->config.scene_name = get_sym_name(scene_meta_obj->sym);
+  for (geom_object* instantiate_obj = root_instance->first_child; instantiate_obj != nullptr; instantiate_obj = instantiate_obj->next) {
+    CHECK_PROPERTY(check_meta_object(instantiate_obj));
 
-
-  for (geom_object* scene = root_instance->first_child; scene != nullptr; scene = scene->next) {
-    CHECK_PROPERTY(check_meta_object(scene));
+    // this is the name of the INSTANTIATE section
+    std::string instantiate_name = get_sym_name(instantiate_obj->sym);
 
     // walls reference each other, therefore we must first create
     // empty wall objects in partitions,
-    geom_object* curr_obj = scene->first_child;
+    geom_object* curr_obj = instantiate_obj->first_child;
     while (curr_obj != nullptr) {
       if (curr_obj->object_type == POLY_OBJ) {
         create_uninitialized_walls_for_polygonal_object(curr_obj);
@@ -352,10 +343,10 @@ bool MCell3WorldConverter::convert_geometry_objects(volume* s) {
 
     // once all wall were created and mapping established,
     // we can fill-in all objects
-    curr_obj = scene->first_child;
+    curr_obj = instantiate_obj->first_child;
     while (curr_obj != nullptr) {
       if (curr_obj->object_type == POLY_OBJ) {
-        CHECK(convert_polygonal_object(curr_obj));
+        CHECK(convert_polygonal_object(curr_obj, instantiate_name));
       }
       else if (curr_obj->object_type == REL_SITE_OBJ) {
         // ignored
@@ -367,7 +358,7 @@ bool MCell3WorldConverter::convert_geometry_objects(volume* s) {
       curr_obj = curr_obj->next;
     }
 
-  } // for each scene
+  } // for each scene/INSTANTIATE section
 
   return true;
 }
@@ -590,7 +581,7 @@ bool MCell3WorldConverter::convert_region(Partition& p, const region* r, region_
 }
 
 
-bool MCell3WorldConverter::convert_polygonal_object(const geom_object* o) {
+bool MCell3WorldConverter::convert_polygonal_object(const geom_object* o, const std::string& instantiate_name) {
 
   // --- object ---
 
@@ -607,6 +598,7 @@ bool MCell3WorldConverter::convert_polygonal_object(const geom_object* o) {
   CHECK_PROPERTY(o->first_child == nullptr);
   CHECK_PROPERTY(o->last_child == nullptr);
   obj.name = get_sym_name(o->sym);
+  obj.parent_name = instantiate_name;
   // o->last_name - ignored
   CHECK_PROPERTY(o->object_type == POLY_OBJ);
   CHECK_PROPERTY(o->contents != nullptr); // ignored for now, not sure what is contained
