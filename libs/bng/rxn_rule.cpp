@@ -39,12 +39,12 @@ void RxnRule::finalize() {
   // for MCell3 compatibility
   move_products_that_are_also_reactants_to_be_the_first_products();
 
-  finalized = true;
+  set_finalized();
 }
 
 
 bool RxnRule::is_cplx_reactant_on_both_sides_of_rxn(const uint index) const {
-  assert(finalized);
+  assert(is_finalized());
   for (const CplxIndexPair& cplx_index_pair: cplx_mapping) {
     if (index == cplx_index_pair.reactant_index) {
       return true;
@@ -55,7 +55,7 @@ bool RxnRule::is_cplx_reactant_on_both_sides_of_rxn(const uint index) const {
 
 
 bool RxnRule::is_cplx_product_on_both_sides_of_rxn(const uint index) const {
-  assert(finalized);
+  assert(is_finalized());
   for (const CplxIndexPair& cplx_index_pair: cplx_mapping) {
     if (index == cplx_index_pair.product_index) {
       return true;

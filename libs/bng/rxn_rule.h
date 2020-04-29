@@ -109,20 +109,15 @@ public:
   float_t rate_constant;
 
 private:
-  bool finalized;
   uint num_surf_products;
 
 public:
   RxnRule()
     : id(RXN_RULE_ID_INVALID), type(RxnType::Invalid), mol_instances_are_fully_maintained(false), rate_constant(FLT_INVALID),
-     finalized(false), num_surf_products(UINT_INVALID) {
+      num_surf_products(UINT_INVALID) {
   }
 
   void finalize();
-
-  bool is_finalized() const {
-    return finalized;
-  }
 
   const CplxInstance& get_cplx_reactant(const uint index) const {
     assert(index <= reactants.size());
@@ -178,7 +173,7 @@ public:
   }
 
   uint get_num_surf_products() const { // we don't have probably the information that is needed
-    assert(finalized);
+    assert(is_finalized());
     return num_surf_products;
   }
 

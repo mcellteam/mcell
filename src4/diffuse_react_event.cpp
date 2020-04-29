@@ -1944,6 +1944,13 @@ int DiffuseReactEvent::outcome_products_random(
   }
   assert(rx != nullptr);
 
+  // count this reaction if needed
+  if (rx->is_counted()) {
+    assert(rx->id !=  BNG::RXN_RULE_ID_INVALID);
+    assert(reacA->is_vol() && "Counting of surf-surf rxns is not implemented yet");
+    p.inc_rxn_occured_count(rx->id, reacA->v.counted_volume_id);
+  }
+
   Molecule* surf_reac = nullptr;
 
   bool reactants_swapped = false;
