@@ -172,7 +172,7 @@ void MolOrRxnCountEvent::step() {
                   sum_all_map_items(counts_in_objects)
               );
             }
-            else if (term.type == CountType::EnclosedInObject) {
+            else if (term.type == CountType::RxnCountInObject) {
 
               for (const auto it: counts_in_objects) {
                 if (it.second != 0) {

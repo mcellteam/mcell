@@ -483,7 +483,10 @@ bool MCell3WorldConverter::convert_wall_and_update_regions(
   // walls use some of the flags used by species
   CHECK_PROPERTY(
       w->flags == COUNT_CONTENTS ||
-      w->flags == (COUNT_CONTENTS | COUNT_ENCLOSED)
+      w->flags == COUNT_RXNS ||
+      w->flags == (COUNT_CONTENTS | COUNT_ENCLOSED) ||
+      w->flags == (COUNT_RXNS | COUNT_ENCLOSED) ||
+      w->flags == (COUNT_CONTENTS | COUNT_RXNS | COUNT_ENCLOSED)
   );
 
   // now let's handle regions
@@ -718,6 +721,7 @@ bool MCell3WorldConverter::convert_species(volume* s) {
         || spec->flags == SPECIES_FLAG_CAN_VOLWALL
         || spec->flags == (SPECIES_FLAG_CAN_VOLWALL | SPECIES_FLAG_COUNT_ENCLOSED | COUNT_CONTENTS)
         || spec->flags == (SPECIES_FLAG_CAN_VOLWALL | SPECIES_FLAG_COUNT_ENCLOSED | COUNT_CONTENTS | REGION_PRESENT)
+        || spec->flags == (SPECIES_FLAG_CAN_VOLVOL | SPECIES_FLAG_CAN_VOLWALL | COUNT_CONTENTS | COUNT_ENCLOSED)
         || spec->flags == (SPECIES_FLAG_CAN_VOLWALL | REGION_PRESENT)
         || spec->flags == (SPECIES_FLAG_CAN_VOLWALL | SPECIES_FLAG_CAN_VOLSURF | REGION_PRESENT)
         || spec->flags == SPECIES_CPLX_MOL_FLAG_SURF
