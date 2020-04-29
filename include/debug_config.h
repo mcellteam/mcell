@@ -41,19 +41,21 @@
 #define MCELL3_IDENTICAL
 
 #ifndef MCELL3_IDENTICAL
+
+// sort molecules in schedule helper according to ID before a new timestep begins
+// testsuite for mcell4 won't pass
+//#define MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID
+
 // enable several things that make comparison with mcell4 easier
 #define MCELL3_ONLY_ONE_MEMPART
 #define MCELL3_SORTED_VIZ_OUTPUT
 #define MCELL3_SORTED_WALLS_FOR_COLLISION
 
-// possibility of a bug when MCELL3_SORTED_MOLS_ON_RUN_TIMESTEP is enabled,
-// see /home/ahusar/src4_bng/mcell_tests/tests/mdl/4033_rat_nmj_all_releases_at_timestep_start? maybe already fixed
-// in many cases identical to mcell4 without the need to change mcell4 ordering
-//#define MCELL3_SORTED_MOLS_ON_RUN_TIMESTEP
-
-// sort molecules in schedule helper according to ID before a new timestep begins
-// testsuite for mcell4 won't pass
-#define MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID
+#ifndef MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID
+// sort molecules when run_timestep is started, replaced by better MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID that
+// however changes ordering for mcell4
+#define MCELL3_SORTED_MOLS_ON_RUN_TIMESTEP
+#endif
 
 #define MCELL3_NEXT_BARRIER_IS_THE_NEXT_TIMESTEP // do not diffuse more than until the end of the timestep
 
