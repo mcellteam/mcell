@@ -370,37 +370,42 @@ void World::to_data_model(Json::Value& root) const {
   diffuse_color[KEY_A] = DEFAULT_OBJECT_ALPHA;
 
   Json::Value& model_objects = mcell[KEY_MODEL_OBJECTS];
-  json_add_version(model_objects, JSON_DM_VERSION_1330);
+  DMUtil::json_add_version(model_objects, JSON_DM_VERSION_1330);
   Json::Value& model_object_list = model_objects[KEY_MODEL_OBJECT_LIST];
 
-  Json::Value empty_model_object;
-  empty_model_object[KEY_PARENT_OBJECT] = "";
-  empty_model_object[KEY_DESCRIPTION] = "";
-  empty_model_object[KEY_OBJECT_SOURCE] = VALUE_BLENDER;
-  empty_model_object[KEY_DYNAMIC_DISPLAY_SOURCE] = "script";
-  empty_model_object[KEY_SCRIPT_NAME] = "";
-  empty_model_object[KEY_MEMBRANE_NAME] = "";
-  empty_model_object[KEY_DYNAMIC] = false;
-  empty_model_object[KEY_NAME] = ""; // doesn't seem necessary to have a name
-  model_object_list.append(empty_model_object);
+  // names of geometry objects need to be listed for the second time
+  for (const Partition& p: partitions) {
+    for (const GeometryObject& obj: p.get_geometry_objects()) {
+      Json::Value model_object;
+      model_object[KEY_PARENT_OBJECT] = "";
+      model_object[KEY_DESCRIPTION] = "";
+      model_object[KEY_OBJECT_SOURCE] = VALUE_BLENDER;
+      model_object[KEY_DYNAMIC_DISPLAY_SOURCE] = "script";
+      model_object[KEY_SCRIPT_NAME] = "";
+      model_object[KEY_MEMBRANE_NAME] = "";
+      model_object[KEY_DYNAMIC] = false;
+      model_object[KEY_NAME] = DMUtil::remove_obj_name_prefix(config.scene_name, obj.name);
+      model_object_list.append(model_object);
+    }
+  }
 
   mcell[KEY_DEFINE_SURFACE_CLASSES] = Json::Value(Json::ValueType::objectValue); // empty dict
 
   Json::Value& mol_viz = mcell[KEY_MOL_VIZ];
-  json_add_version(mol_viz, JSON_DM_VERSION_1700);
+  DMUtil::json_add_version(mol_viz, JSON_DM_VERSION_1700);
   mol_viz[KEY_MANUAL_SELECT_VIZ_DIR] = false;
   mol_viz[KEY_FILE_START_INDEX] = 0;
   mol_viz[KEY_SEED_LIST] = Json::Value(Json::arrayValue); // empty array
 
   Json::Value& color_list = mol_viz[KEY_COLOR_LIST];
-  json_append_triplet(color_list, 0.8, 0.0, 0.0);
-  json_append_triplet(color_list, 0.0, 0.8, 0.0);
-  json_append_triplet(color_list, 0.0, 0.0, 0.8);
-  json_append_triplet(color_list, 0.0, 0.8, 0.8);
-  json_append_triplet(color_list, 0.8, 0.0, 0.8);
-  json_append_triplet(color_list, 0.8, 0.8, 0.0);
-  json_append_triplet(color_list, 1.0, 1.0, 1.0);
-  json_append_triplet(color_list, 0.0, 0.0, 0.0);
+  DMUtil::json_append_triplet(color_list, 0.8, 0.0, 0.0);
+  DMUtil::json_append_triplet(color_list, 0.0, 0.8, 0.0);
+  DMUtil::json_append_triplet(color_list, 0.0, 0.0, 0.8);
+  DMUtil::json_append_triplet(color_list, 0.0, 0.8, 0.8);
+  DMUtil::json_append_triplet(color_list, 0.8, 0.0, 0.8);
+  DMUtil::json_append_triplet(color_list, 0.8, 0.8, 0.0);
+  DMUtil::json_append_triplet(color_list, 1.0, 1.0, 1.0);
+  DMUtil::json_append_triplet(color_list, 0.0, 0.0, 0.0);
 
   mol_viz[KEY_ACTIVE_SEED_INDEX] = 0;
   mol_viz[KEY_FILE_INDEX] = 959; // don't know what this means
@@ -419,7 +424,7 @@ void World::to_data_model(Json::Value& root) const {
 
   mcell[KEY_PARAMETER_SYSTEM] = Json::Value(Json::ValueType::objectValue); // empty dict
 
-  json_add_version(mcell, JSON_DM_VERSION_1300);
+  DMUtil::json_add_version(mcell, JSON_DM_VERSION_1300);
 
   mcell[KEY_INITIALIZATION] = Json::Value(Json::ValueType::objectValue); // empty dict
 

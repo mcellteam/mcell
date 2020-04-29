@@ -66,7 +66,7 @@ bool Mdl2DataModel::convert_molecule_list(Value& mcell) {
     convert_molecule(molecule_list, spec);
   }
 
-  json_add_version(define_molecules, JSON_DM_VERSION_1638);
+  DMUtil::json_add_version(define_molecules, JSON_DM_VERSION_1638);
 
   return true;
 }

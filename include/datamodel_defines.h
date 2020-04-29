@@ -113,6 +113,8 @@ const double DEFAULT_OBJECT_ALPHA = 0.25;
 
 // ---------------------------------- datamodel utilities----------------------------------
 
+namespace DMUtil {
+
 static inline void json_add_version(Json::Value& define_molecules, const char* ver) {
   define_molecules[KEY_DATA_MODEL_VERSION] = ver;
 }
@@ -124,5 +126,14 @@ static inline void json_append_triplet(Json::Value& list, const float x, const f
   list_triplet.append(Json::Value(z));
   list.append(list_triplet);
 }
+
+static inline std::string remove_obj_name_prefix(const std::string& prefix, const std::string& name) {
+  size_t pos = prefix.size() + 1;
+  assert(name.size() > pos);
+  assert(name.substr(0, pos) == prefix + ".");
+  return name.substr(pos);
+}
+
+} // namespace DataModel
 
 #endif // _DATAMODEL_DEFINES_H_

@@ -61,7 +61,7 @@ void GeometryObject::to_data_model(Json::Value& object, const Partition& p, cons
 
   vector<uint> vertex_order;
 
-  object[KEY_NAME] = name;
+  object[KEY_NAME] = DMUtil::remove_obj_name_prefix(p.config.scene_name, name);
   object[KEY_MATERIAL_NAMES].append(Json::Value(KEY_VALUE_MEMBRANE));
 
   Json::Value& element_connections = object[KEY_ELEMENT_CONNECTIONS];
@@ -82,7 +82,7 @@ void GeometryObject::vertices_to_data_model(Json::Value& vertex_list, const Part
   uint vertex_count = p.get_geometry_vertex_count();
   for (uint i=0; i<vertex_count; i++){
     Vec3 pos = p.get_geometry_vertex(i) * Vec3(config.length_unit);
-    json_append_triplet(vertex_list, pos.x, pos.y, pos.z);
+    DMUtil::json_append_triplet(vertex_list, pos.x, pos.y, pos.z);
   }
 }
 

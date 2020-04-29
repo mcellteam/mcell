@@ -324,6 +324,18 @@ bool MCell3WorldConverter::convert_geometry_objects(volume* s) {
   CHECK_PROPERTY(check_meta_object(root_instance, "WORLD_INSTANCE"));
   CHECK_PROPERTY(root_instance->next == nullptr);
 
+  geom_object* scene_meta_obj = nullptr;
+  for (geom_object* scene = root_instance->first_child; scene != nullptr; scene = scene->next) {
+    // expecting just one META_OBJ
+    if (scene->object_type == META_OBJ) {
+      CHECK_PROPERTY(scene_meta_obj == nullptr && "Expecting just one main 'Scene' object");
+      scene_meta_obj = scene;
+    }
+  }
+  CHECK_PROPERTY(scene_meta_obj != nullptr && "Expecting one main 'Scene' object");
+  world->config.scene_name = get_sym_name(scene_meta_obj->sym);
+
+
   for (geom_object* scene = root_instance->first_child; scene != nullptr; scene = scene->next) {
     CHECK_PROPERTY(check_meta_object(scene));
 
