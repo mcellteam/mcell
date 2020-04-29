@@ -39,6 +39,9 @@ class Value;
 
 namespace MCell {
 
+
+typedef std::map<geometry_object_id_t, uint> CountInGeomObjectMap;
+
 // class used to hold potential reactants of given species
 // performance critical, therefore we are using a vector for now,
 // will probably need to change in the future
@@ -676,11 +679,16 @@ public:
     auto& map_for_rxn = rxn_counts_per_counted_volume[rxn_id];
     auto it_counted_volume = map_for_rxn.find(counted_volume_id);
     if (it_counted_volume == map_for_rxn.end()) {
-      map_for_rxn[counted_volume_id] = 0;
+      map_for_rxn[counted_volume_id] = 1;
     }
     else {
       it_counted_volume->second++;
     }
+  }
+
+  const CountInGeomObjectMap& get_rxn_count_map(const BNG::rxn_rule_id_t rxn_rule_id) {
+    // creates a new map if it was not created before
+    return rxn_counts_per_counted_volume[rxn_rule_id];
   }
 
   void dump();
@@ -737,7 +745,7 @@ private:
   // ---------------------------------- counting ------------------------------------------
   // key is rxn rule id and its values are maps that contain current reaction counts for each counted volume
   // counts are reset every time MolOrRxnCountEvent is executed
-  std::map< BNG::rxn_rule_id_t, std::map<geometry_object_id_t, uint> > rxn_counts_per_counted_volume;
+  std::map< BNG::rxn_rule_id_t, CountInGeomObjectMap > rxn_counts_per_counted_volume;
 
   // ---------------------------------- dynamic vertices ----------------------------------
 private:

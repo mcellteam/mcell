@@ -59,6 +59,14 @@ public:
 
   CountType type;
 
+  bool is_mol_count() const {
+    return type == CountType::EnclosedInWorld || type == CountType::EnclosedInObject;
+  }
+
+  bool is_rxn_count() const {
+    return type == CountType::RxnCountInWorld || type == CountType::RxnCountInObject;
+  }
+
   // if sign_in_expression == +1 -> add to the total count
   // if sign_in_expression == -1 -> subtract from the total count
   // 0 - invalid

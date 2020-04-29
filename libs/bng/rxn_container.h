@@ -36,6 +36,8 @@ typedef std::map<species_id_t, RxnClass*> SpeciesRxnClassesMap;
 typedef std::map<species_id_t, SpeciesRxnClassesMap> BimolRxnClassesMap;
 typedef SpeciesRxnClassesMap UnimolRxnClassesMap;
 
+typedef std::vector<RxnClass*> RxnClassVector;
+typedef std::vector<RxnRule*> RxnRuleVector;
 
 /**
  * Owns information on reactions and species,
@@ -159,6 +161,10 @@ public:
     return nullptr;
   }
 
+  const RxnRuleVector& get_rxn_rules() const {
+    return rxn_rules;
+  }
+
   void dump() const;
 
 private:
@@ -172,11 +178,11 @@ private:
   // owns reaction classes
   // allocated in get_or_create_empty_bimol_rxn_class, deleted in destructor
   // the size of the vector will be changing, so we cannot take pointers to its elements
-  std::vector<RxnClass*> rxn_classes;
+  RxnClassVector rxn_classes;
 
   // RxnContainer owns Rxn rules,
   // RxnClasses use pointers to these objects
-  std::vector<RxnRule*> rxn_rules;
+  RxnRuleVector rxn_rules;
 
   // sets that remember which species were processed for rxn class generation
   uint_dense_hash_set<species_id_t> species_processed_for_bimol_rxn_classes;

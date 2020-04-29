@@ -39,9 +39,9 @@ public:
     : time(time_), int_value(value_) {
   }
 
-  void inc_or_dec(const int sign) {
+  void inc_or_dec(const int sign, const int count = 1) {
     assert(sign == 1 || sign == -1);
-    int_value += sign;
+    int_value += (sign * count);
   }
 
   float_t time; // time is in outside units, was already precomputed for printing

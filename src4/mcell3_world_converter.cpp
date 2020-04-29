@@ -1480,6 +1480,8 @@ bool MCell3WorldConverter::convert_mol_count_and_rxn_count_events(volume* s) {
         BNG::RxnRule* rxn_rule = world->get_all_rxns().find_rxn_rule_by_name(rxn_name);
         CHECK_PROPERTY(rxn_rule != nullptr && "Rxn rule with name was not found");
         rxn_rule->set_is_counted();
+
+        term.rxn_rule_id = rxn_rule->id;
       }
 
       info.terms.push_back(term);
