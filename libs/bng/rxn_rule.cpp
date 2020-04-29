@@ -19,6 +19,8 @@ using namespace std;
 namespace BNG {
 
 void RxnRule::finalize() {
+  assert(id != RXN_RULE_ID_INVALID);
+
   // finalize all reactants and products
   for (CplxInstance& ci: reactants) {
     ci.finalize();

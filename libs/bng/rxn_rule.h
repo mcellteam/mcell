@@ -78,6 +78,7 @@ enum class RxnType {
 class RxnRule {
 public:
   std::string name;
+  rxn_rule_id_t id;
 
   RxnType type;
 
@@ -113,7 +114,7 @@ private:
 
 public:
   RxnRule()
-    :type(RxnType::Invalid), mol_instances_are_fully_maintained(false), rate_constant(FLT_INVALID),
+    : id(RXN_RULE_ID_INVALID), type(RxnType::Invalid), mol_instances_are_fully_maintained(false), rate_constant(FLT_INVALID),
      finalized(false), num_surf_products(UINT_INVALID) {
   }
 

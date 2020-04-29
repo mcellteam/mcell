@@ -72,7 +72,7 @@ private:
   bool convert_reactions(volume* s);
   bool convert_release_events(volume* s);
   bool convert_viz_output_events(volume* s);
-  bool convert_mol_count_events(volume* s);
+  bool convert_mol_count_and_rxn_count_events(volume* s);
 
 public:
   // contained world object

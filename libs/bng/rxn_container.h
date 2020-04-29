@@ -57,12 +57,14 @@ public:
   ~RxnContainer();
 
   // this method is supposed to be used only during initialization
-  void add_no_update(const RxnRule& r) {
-    assert(r.is_finalized());
+  void add_finalized_no_update(const RxnRule& r) {
     // TODO LATER: check that we don't have this rule already
 
     // store a copy
-    rxns.push_back(new RxnRule(r));
+    RxnRule* new_r = new RxnRule(r);
+    new_r->id = rxns.size();
+    new_r->finalize();
+    rxns.push_back(new_r);
   }
 
   const RxnClass* get_unimol_rxn_class(const species_id_t id) {

@@ -90,8 +90,10 @@ rxn_rule_id_t BNGData::find_or_add_rxn_rule(const RxnRule& rr) {
   }
 
   // not found
+  rxn_rule_id_t id = rxn_rules.size();
   rxn_rules.push_back(rr);
-  return rxn_rules.size() - 1;
+  rxn_rules.back().id = id;
+  return id;
 }
 
 

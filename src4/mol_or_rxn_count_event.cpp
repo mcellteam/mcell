@@ -21,9 +21,10 @@
  *
 ******************************************************************************/
 
+#include "mol_or_rxn_count_event.h"
+
 #include <iostream>
 
-#include "mol_count_event.h"
 #include "world.h"
 #include "partition.h"
 
@@ -31,14 +32,14 @@ using namespace std;
 
 namespace MCell {
 
-void MolCountTerm::dump(const std::string ind) const {
+void MolOrRxnCountTerm::dump(const std::string ind) const {
 
   cout << ind << "type: ";
   switch(type) {
     case CountType::Invalid:
       cout << "Invalid";
       break;
-    case CountType::World:
+    case CountType::EnclosedInWorld:
       cout << "World";
       break;
     case CountType::EnclosedInObject:
@@ -55,7 +56,7 @@ void MolCountTerm::dump(const std::string ind) const {
 }
 
 
-void MolCountInfo::dump(const std::string ind) const {
+void MolOrRxnCountInfo::dump(const std::string ind) const {
 
   cout << ind << "buffer_id: " << buffer_id << " [count_buffer_id_t] \t\t\n";
   cout << ind << "terms:\n";
@@ -66,7 +67,7 @@ void MolCountInfo::dump(const std::string ind) const {
 }
 
 
-void MolCountEvent::step() {
+void MolOrRxnCountEvent::step() {
 
   // go through all molecules and count them
   PartitionVector& partitions = world->get_partitions();
@@ -104,9 +105,9 @@ void MolCountEvent::step() {
 
       // for each counting info
       for (uint i = 0; i < mol_count_infos.size(); i++) {
-        const MolCountInfo& info = mol_count_infos[i];
+        const MolOrRxnCountInfo& info = mol_count_infos[i];
 
-        for (const MolCountTerm& term: info.terms) {
+        for (const MolOrRxnCountTerm& term: info.terms) {
 
           // TODO: make a function for this
           if (term.species_id == m.species_id ||
@@ -114,7 +115,7 @@ void MolCountEvent::step() {
               (term.species_id == all_vol_id && m.is_vol()) ||
               (term.species_id == all_surf_id && m.is_surf())) {
 
-            if (term.type == CountType::World) {
+            if (term.type == CountType::EnclosedInWorld) {
               // count the molecule
               count_items[i].inc_or_dec(term.sign_in_expression);
             }
@@ -141,7 +142,7 @@ void MolCountEvent::step() {
 }
 
 
-void MolCountEvent::dump(const std::string ind) const {
+void MolOrRxnCountEvent::dump(const std::string ind) const {
   cout << ind << "Mol count event:\n";
   std::string ind2 = ind + "  ";
   std::string ind4 = ind2 + "  ";

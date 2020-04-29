@@ -35,7 +35,7 @@
 #include "release_event.h"
 #include "diffuse_react_event.h"
 #include "viz_output_event.h"
-#include "mol_count_event.h"
+#include "mol_or_rxn_count_event.h"
 #include "count_buffer.h"
 
 #include "datamodel_defines.h"
@@ -147,7 +147,7 @@ bool MCell3WorldConverter::convert(volume* s) {
   // release events require wall information
   CHECK(convert_release_events(s));
   CHECK(convert_viz_output_events(s));
-  CHECK(convert_mol_count_events(s));
+  CHECK(convert_mol_count_and_rxn_count_events(s));
 
   return true;
 }
@@ -930,8 +930,7 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
     pathway_index++;
 
     // add our reaction, reaction classes are created on-the-fly
-    rxn.finalize();
-    world->get_all_rxns().add_no_update(rxn);
+    world->get_all_rxns().add_finalized_no_update(rxn);
   }
 
 
@@ -1349,7 +1348,7 @@ static bool ends_with(std::string const & value, std::string const & ending)
     return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
 }
 
-bool MCell3WorldConverter::convert_mol_count_events(volume* s) {
+bool MCell3WorldConverter::convert_mol_count_and_rxn_count_events(volume* s) {
   output_block* output_blocks = s->output_block_head;
 
   if (output_blocks == nullptr) {
@@ -1358,7 +1357,7 @@ bool MCell3WorldConverter::convert_mol_count_events(volume* s) {
 
   CHECK_PROPERTY(output_blocks->next == nullptr); // for now just one block
 
-  MolCountEvent* event = new MolCountEvent(world);
+  MolOrRxnCountEvent* event = new MolOrRxnCountEvent(world);
 
   CHECK_PROPERTY(output_blocks->timer_type == OUTPUT_BY_STEP);
 
@@ -1399,11 +1398,11 @@ bool MCell3WorldConverter::convert_mol_count_events(volume* s) {
     std::vector< pair<output_request*, int>> requests_with_sign;
     CHECK(find_output_requests_terms_recursively(s, column_head->expr, +1, requests_with_sign));
 
-    MolCountInfo info(buffer_id);
+    MolOrRxnCountInfo info(buffer_id);
 
     for (pair<output_request*, int>& req_w_sign: requests_with_sign) {
 
-      MolCountTerm term;
+      MolOrRxnCountTerm term;
 
       term.sign_in_expression = req_w_sign.second;
 
@@ -1456,7 +1455,7 @@ bool MCell3WorldConverter::convert_mol_count_events(volume* s) {
       }
       else {
         CHECK_PROPERTY(req->count_location == nullptr);
-        term.type = CountType::World;
+        term.type = CountType::EnclosedInWorld;
       }
 
 

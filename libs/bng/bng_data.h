@@ -32,6 +32,7 @@ private:
   std::vector<MolType> molecule_types;
 
   // indexed with rxn_rule_id_t
+  // FIXME: rxn rules should be in rxn container only
   std::vector<RxnRule> rxn_rules;
   
 public:

@@ -128,6 +128,12 @@ void World::init_counted_volumes() {
 
 
 void World::init_simulation() {
+
+#ifdef MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID
+  // TODO: check this message in testsuite
+  mcell_log("!!! WARNING: Event sorting according to time and id was enabled for debugging, testing won't pass.");
+#endif
+
   assert(!simulation_initialized && "init_simulation must be called just once");
 
   if (get_all_species().get_count() == 0) {

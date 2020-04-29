@@ -21,11 +21,12 @@
  *
 ******************************************************************************/
 
-#ifndef SRC4_MOL_COUNT_EVENT_H_
-#define SRC4_MOL_COUNT_EVENT_H_
+#ifndef SRC4_MOL_OR_RXN_COUNT_EVENT_H_
+#define SRC4_MOL_OR_RXN_COUNT_EVENT_H_
+
+#include "bng/bng.h"
 
 #include "base_event.h"
-
 #include "count_buffer.h"
 
 namespace MCell {
@@ -35,41 +36,48 @@ class Molecule;
 
 enum class CountType {
   Invalid,
-  World,
-  EnclosedInObject
+  EnclosedInWorld,
+  EnclosedInObject,
+  RxnCount
 };
 
 
-class MolCountTerm {
+class MolOrRxnCountTerm {
 public:
-  MolCountTerm()
+  MolOrRxnCountTerm()
     : type(CountType::Invalid),
+      sign_in_expression(0),
       orientation(ORIENTATION_NOT_SET),
       species_id(SPECIES_ID_INVALID),
       geometry_object_id(GEOMETRY_OBJECT_ID_INVALID),
-      sign_in_expression(0) {
+      rxn_rule_id(BNG::RXN_RULE_ID_INVALID)
+     {
   }
 
   void dump(const std::string ind = "") const;
 
   CountType type;
 
+  // if sign_in_expression == +1 -> add to the total count
+  // if sign_in_expression == -1 -> subtract from the total count
+  // 0 - invalid
+  int sign_in_expression;
+
+  // valid when type is EnclosedInWorld or EnclosedInObject
   orientation_t orientation;
   species_id_t species_id;
 
   // valid when type is EnclosedInObject
   geometry_object_id_t geometry_object_id;
 
-  // if sign_in_expression == +1 -> add to the total count
-  // if sign_in_expression == -1 -> subtract from the total count
-  // 0 - invalid
-  int sign_in_expression;
+  // valid when type is RxnCount
+  BNG::rxn_rule_id_t rxn_rule_id;
 };
 
 
-class MolCountInfo {
+class MolOrRxnCountInfo {
 public:
-  MolCountInfo(const count_buffer_id_t buffer_id_)
+  MolOrRxnCountInfo(const count_buffer_id_t buffer_id_)
     : buffer_id(buffer_id_) {
     assert(buffer_id != COUNT_BUFFER_ID_INVALID);
   }
@@ -81,33 +89,33 @@ public:
 
   // note: items are shared in MCell3 but so far it seems that
   // we can just count them separately
-  std::vector<MolCountTerm> terms;
+  std::vector<MolOrRxnCountTerm> terms;
 };
 
 
 /**
  * Dumps counts of molecules.
  */
-class MolCountEvent: public BaseEvent {
+class MolOrRxnCountEvent: public BaseEvent {
 public:
-  MolCountEvent(World* world_)
+  MolOrRxnCountEvent(World* world_)
     : BaseEvent(EVENT_TYPE_INDEX_MOL_COUNT),
       world(world_) {
   }
-  virtual ~MolCountEvent() {}
+  virtual ~MolOrRxnCountEvent() {}
 
   void step() override;
   void dump(const std::string ind = "") const override;
 
-  void add_mol_count_info(const MolCountInfo& info) {
+  void add_mol_count_info(const MolOrRxnCountInfo& info) {
     mol_count_infos.push_back(info);
   }
 
-  std::vector<MolCountInfo> mol_count_infos;
+  std::vector<MolOrRxnCountInfo> mol_count_infos;
 
   World* world;
 };
 
 } // namespace mcell
 
-#endif // SRC4_MOL_COUNT_EVENT_H_
+#endif // SRC4_MOL_OR_RXN_COUNT_EVENT_H_
