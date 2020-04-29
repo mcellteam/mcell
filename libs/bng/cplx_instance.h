@@ -31,7 +31,7 @@ class BNGData;
  * Contains information on orientation, so two identical complexes but
  * with different orientation are different species.
  */
-class CplxInstance: public BaseFlag {
+class CplxInstance: public BaseSpeciesCplxMolFlag {
 public:
   MolInstanceVector mol_instances;
 

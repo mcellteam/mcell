@@ -72,7 +72,7 @@ public:
  * Instance of a molecule type.
  * Similarly as ComplexSpeciesInstance, it can be used as instance and as pattern.
  */
-class MolInstance: public BaseFlag {
+class MolInstance: public BaseSpeciesCplxMolFlag {
 public:
   // ID of this molecule type in BNGData::molecule_types
   mol_type_id_t mol_type_id;

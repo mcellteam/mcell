@@ -75,7 +75,7 @@ enum class RxnType {
 // rules are only unidirectional,
 // if there is a reversible reaction in BNGL definition,
 // two
-class RxnRule {
+class RxnRule: public BaseFlag {
 public:
   std::string name;
   rxn_rule_id_t id;
@@ -201,6 +201,14 @@ public:
   bool species_is_both_bimol_reactants(const species_id_t id, const SpeciesContainer& all_species);
 
   bool find_assigned_cplx_reactant_for_product(const uint product_index, uint& reactant_index) const;
+
+  void set_is_counted() {
+    set_flag(RXN_FLAG_COUNTED);
+  }
+
+  bool is_counted() const {
+    return has_flag(RXN_FLAG_COUNTED);
+  }
 
 private:
 

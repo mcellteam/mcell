@@ -6,7 +6,8 @@
 namespace BNG {
 
 // this single enum defines flags for species, complex instances and molecule instances
-enum species_cplx_mol_flag_t {
+// TODO: rename to somethign shorter
+enum species_cplx_mol_rxn_flag_t {
 
   // maintaining the same values as in MCell
 
@@ -28,12 +29,13 @@ enum species_cplx_mol_flag_t {
   SPECIES_FLAG_CAN_SURFSURFSURF = 0x20000, // 0x20000 - not supported - TODO LATER: remove
   SPECIES_FLAG_SET_MAX_STEP_LENGTH = 0x80000,
   SPECIES_FLAG_CAN_REGION_BORDER = 0x100000,
-  SPECIES_FLAG_EXTERNAL_SPECIES = 0x400000 // 0x400000 - not supported - TODO LATER: remove
+  SPECIES_FLAG_EXTERNAL_SPECIES = 0x400000, // 0x400000 - not supported - TODO LATER: remove
+
+  RXN_FLAG_COUNTED = 0x1000000,
 };
 
 
 // use bitfield?
-// TODO: rename to make it more specific
 class BaseFlag {
 private:
   bool finalized;
@@ -86,7 +88,11 @@ public:
   void set_flags(uint value) {
     flags = value;
   }
+};
 
+
+class BaseSpeciesCplxMolFlag: public BaseFlag {
+public:
   void set_is_vol() {
     clear_flag(SPECIES_CPLX_MOL_FLAG_SURF);
     clear_flag(SPECIES_CPLX_MOL_FLAG_REACTIVE_SURFACE);

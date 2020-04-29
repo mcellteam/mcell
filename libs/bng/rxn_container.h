@@ -62,9 +62,9 @@ public:
 
     // store a copy
     RxnRule* new_r = new RxnRule(r);
-    new_r->id = rxns.size();
+    new_r->id = rxn_rules.size();
     new_r->finalize();
-    rxns.push_back(new_r);
+    rxn_rules.push_back(new_r);
   }
 
   const RxnClass* get_unimol_rxn_class(const species_id_t id) {
@@ -149,6 +149,16 @@ public:
       const species_id_t reactant_a_species_id, const species_id_t reactant_b_species_id
   );
 
+  // returns nullptr if reaction rule was not found
+  RxnRule* find_rxn_rule_by_name(const std::string& name) {
+    for (RxnRule* rxn_rule: rxn_rules) {
+      if (rxn_rule->name == name) {
+        return rxn_rule;
+      }
+    }
+    return nullptr;
+  }
+
   void dump() const;
 
 private:
@@ -166,7 +176,7 @@ private:
 
   // RxnContainer owns Rxn rules,
   // RxnClasses use pointers to these objects
-  std::vector<RxnRule*> rxns;
+  std::vector<RxnRule*> rxn_rules;
 
   // sets that remember which species were processed for rxn class generation
   uint_dense_hash_set<species_id_t> species_processed_for_bimol_rxn_classes;

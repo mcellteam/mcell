@@ -38,7 +38,8 @@ enum class CountType {
   Invalid,
   EnclosedInWorld,
   EnclosedInObject,
-  RxnCount
+  RxnCountInWorld,
+  RxnCountInObject
 };
 
 
@@ -49,8 +50,8 @@ public:
       sign_in_expression(0),
       orientation(ORIENTATION_NOT_SET),
       species_id(SPECIES_ID_INVALID),
-      geometry_object_id(GEOMETRY_OBJECT_ID_INVALID),
-      rxn_rule_id(BNG::RXN_RULE_ID_INVALID)
+      rxn_rule_id(BNG::RXN_RULE_ID_INVALID),
+      geometry_object_id(GEOMETRY_OBJECT_ID_INVALID)
      {
   }
 
@@ -63,15 +64,17 @@ public:
   // 0 - invalid
   int sign_in_expression;
 
+  // TODO: add getters/setters with checks
+
   // valid when type is EnclosedInWorld or EnclosedInObject
   orientation_t orientation;
   species_id_t species_id;
 
-  // valid when type is EnclosedInObject
-  geometry_object_id_t geometry_object_id;
-
-  // valid when type is RxnCount
+  // valid when type is RxnCountInWorld or RxnCountInObject
   BNG::rxn_rule_id_t rxn_rule_id;
+
+  // valid when type is EnclosedInObject or RxnCountInObject
+  geometry_object_id_t geometry_object_id;
 };
 
 

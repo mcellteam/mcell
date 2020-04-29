@@ -719,6 +719,11 @@ private:
   // used when determining when counting the molecules
   CountedVolumesMap enclosing_counted_volume_objects;
 
+  // ---------------------------------- counting ------------------------------------------
+  // key is object id and its values are maps that contain current reaction counts
+  // counts are reset every time MolOrRxnCountEvent is executed
+  std::map< geometry_object_id_t, std::map<BNG::rxn_rule_id_t, uint> > counted_volume_rxn_counts;
+
   // ---------------------------------- dynamic vertices ----------------------------------
 private:
   std::vector<VertexMoveInfo> scheduled_vertex_moves;

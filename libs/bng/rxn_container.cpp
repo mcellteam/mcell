@@ -14,7 +14,7 @@ RxnContainer::~RxnContainer() {
     delete rc;
   }
 
-  for (RxnRule* rxn: rxns) {
+  for (RxnRule* rxn: rxn_rules) {
     delete rxn;
   }
 }
@@ -40,7 +40,7 @@ void RxnContainer::create_unimol_rxn_classes_for_new_species(const species_id_t 
 
   // find all reactions for species id
   small_vector<RxnRule*> rxns_for_new_species;
-  for (RxnRule* r: rxns) {
+  for (RxnRule* r: rxn_rules) {
     if (r->is_unimol() && r->species_can_be_reactant(new_id, all_species)) {
       rxns_for_new_species.push_back(r);
     }
@@ -108,7 +108,7 @@ void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t n
 
   // find all reactions for species id
   small_vector<RxnRule*> rxns_for_new_species;
-  for (RxnRule* r: rxns) {
+  for (RxnRule* r: rxn_rules) {
     if (r->is_bimol() && r->species_can_be_reactant(new_id, all_species)) {
       rxns_for_new_species.push_back(r);
     }

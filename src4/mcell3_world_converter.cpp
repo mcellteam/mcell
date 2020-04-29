@@ -133,7 +133,7 @@ bool MCell3WorldConverter::convert(volume* s) {
 
   CHECK(convert_species(s));
   create_diffusion_events(); // cannot fail?
-  CHECK(convert_reactions(s));
+  CHECK(convert_rxns(s));
 
   // at this point, we need to create the first (and for now the only) partition
   // create initial partition with center at 0,0,0 - we woud like to have the partitions all the same,
@@ -939,7 +939,7 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
 }
 
 
-bool MCell3WorldConverter::convert_reactions(volume* s) {
+bool MCell3WorldConverter::convert_rxns(volume* s) {
 
   rxn** reaction_hash = s->reaction_hash;
   int count = s->rx_hashsize;
@@ -1421,25 +1421,26 @@ bool MCell3WorldConverter::convert_mol_count_and_rxn_count_events(volume* s) {
       // report type
       CHECK_PROPERTY(
           req->report_type == (REPORT_CONTENTS | REPORT_ENCLOSED) ||
-          req->report_type == (REPORT_CONTENTS | REPORT_WORLD)
+          req->report_type == (REPORT_CONTENTS | REPORT_WORLD) ||
+          req->report_type == (REPORT_RXNS | REPORT_WORLD) ||
+          req->report_type == (REPORT_RXNS | REPORT_ENCLOSED)
       );
 
 
-      // count target (species)
-      CHECK_PROPERTY(req->count_target != 0);
-      string species_name = get_sym_name(req->count_target);
-
-      term.species_id = world->get_all_species().find_by_name(species_name);
-      CHECK_PROPERTY(term.species_id != SPECIES_ID_INVALID);
-
-      // set a flag that these species are to be counted
-      BNG::Species& species = world->get_all_species().get(term.species_id);
-      species.set_flag(BNG::SPECIES_FLAG_COUNT_ENCLOSED);
+      bool count_mols_not_rxns;
+      if ((req->report_type & REPORT_CONTENTS) != 0) {
+        count_mols_not_rxns = true;
+      }
+      else if ((req->report_type & REPORT_RXNS) != 0) {
+        count_mols_not_rxns = false;
+      }
 
       // count location
       // only whole geom object for now
       if ((req->report_type & REPORT_ENCLOSED) != 0) {
-        term.type = CountType::EnclosedInObject;
+
+        term.type = count_mols_not_rxns ? CountType::EnclosedInObject : CountType::RxnCountInObject;
+        
         string reg_name = get_sym_name(req->count_location);
         CHECK_PROPERTY(ends_with(reg_name, ",ALL")); // for now only whole objects
 
@@ -1455,9 +1456,31 @@ bool MCell3WorldConverter::convert_mol_count_and_rxn_count_events(volume* s) {
       }
       else {
         CHECK_PROPERTY(req->count_location == nullptr);
-        term.type = CountType::EnclosedInWorld;
+
+        term.type = count_mols_not_rxns ? CountType::EnclosedInWorld : CountType::RxnCountInWorld;
       }
 
+      if (count_mols_not_rxns) {
+        // count target (species)
+        CHECK_PROPERTY(req->count_target != 0);
+        string species_name = get_sym_name(req->count_target);
+
+        term.species_id = world->get_all_species().find_by_name(species_name);
+        CHECK_PROPERTY(term.species_id != SPECIES_ID_INVALID);
+
+        // set a flag that these species are to be counted
+        BNG::Species& species = world->get_all_species().get(term.species_id);
+        species.set_flag(BNG::SPECIES_FLAG_COUNT_ENCLOSED);
+      }
+      else {
+        // set that the reaction must be counted
+        CHECK_PROPERTY(req->count_target != nullptr);
+        string rxn_name = get_sym_name(req->count_target);
+
+        BNG::RxnRule* rxn_rule = world->get_all_rxns().find_rxn_rule_by_name(rxn_name);
+        CHECK_PROPERTY(rxn_rule != nullptr && "Rxn rule with name was not found");
+        rxn_rule->set_is_counted();
+      }
 
       info.terms.push_back(term);
     }

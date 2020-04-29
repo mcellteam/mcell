@@ -69,7 +69,7 @@ private:
   void create_diffusion_events();
   bool convert_species(volume* s);
   bool convert_single_reaction(const rxn *rx);
-  bool convert_reactions(volume* s);
+  bool convert_rxns(volume* s);
   bool convert_release_events(volume* s);
   bool convert_viz_output_events(volume* s);
   bool convert_mol_count_and_rxn_count_events(volume* s);
