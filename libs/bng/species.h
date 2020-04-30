@@ -42,6 +42,10 @@ public:
   float_t space_step;
   float_t time_step; // in standard time
 
+  bool has_count_contents_flag() const {
+    return has_flag(SPECIES_FLAG_COUNT_CONTENTS);
+  }
+
   bool has_count_enclosed_flag() const {
     return has_flag(SPECIES_FLAG_COUNT_ENCLOSED);
   }

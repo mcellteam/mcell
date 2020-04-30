@@ -38,8 +38,10 @@ enum class CountType {
   Invalid,
   EnclosedInWorld,
   EnclosedInObject,
+  PresentOnSurfaceRegion,
   RxnCountInWorld,
-  RxnCountInObject
+  RxnCountInObject,
+  RxnCountOnSurfaceRegion,
 };
 
 
@@ -51,7 +53,8 @@ public:
       orientation(ORIENTATION_NOT_SET),
       species_id(SPECIES_ID_INVALID),
       rxn_rule_id(BNG::RXN_RULE_ID_INVALID),
-      geometry_object_id(GEOMETRY_OBJECT_ID_INVALID)
+      geometry_object_id(GEOMETRY_OBJECT_ID_INVALID),
+      region_id(REGION_ID_INVALID)
      {
   }
 
@@ -60,11 +63,13 @@ public:
   CountType type;
 
   bool is_mol_count() const {
-    return type == CountType::EnclosedInWorld || type == CountType::EnclosedInObject;
+    return type == CountType::EnclosedInWorld || type == CountType::EnclosedInObject ||
+        type == CountType::PresentOnSurfaceRegion;
   }
 
   bool is_rxn_count() const {
-    return type == CountType::RxnCountInWorld || type == CountType::RxnCountInObject;
+    return type == CountType::RxnCountInWorld || type == CountType::RxnCountInObject ||
+        type == CountType::RxnCountOnSurfaceRegion;
   }
 
   // if sign_in_expression == +1 -> add to the total count
@@ -83,6 +88,9 @@ public:
 
   // valid when type is EnclosedInObject or RxnCountInObject
   geometry_object_id_t geometry_object_id;
+
+  // valid when type is PresentOnSurfaceRegion or RxnOnSurfaceRegion
+  region_id_t region_id;
 };
 
 

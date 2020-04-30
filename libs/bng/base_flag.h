@@ -6,7 +6,7 @@
 namespace BNG {
 
 // this single enum defines flags for species, complex instances and molecule instances
-// TODO: rename to somethign shorter
+// TODO: rename to something shorter
 enum species_cplx_mol_rxn_flag_t {
 
   // maintaining the same values as in MCell
@@ -25,7 +25,11 @@ enum species_cplx_mol_rxn_flag_t {
   SPECIES_FLAG_CAN_SURFSURF = 0x80, // can surf-surf react
   //SPECIES_FLAG_CAN_SURFWALL = 0x100, // can surf-surface react
   SPECIES_FLAG_CANT_INITIATE = 0x400, // must not be set, not sure what to do with this yet (at least for some cases)
+  
+  // TODO: can we get rid of one of these flags?
+  SPECIES_FLAG_COUNT_CONTENTS =  0x1000,
   SPECIES_FLAG_COUNT_ENCLOSED = 0x8000, // this species is marked to be counted inside of a volume
+
   SPECIES_FLAG_CAN_SURFSURFSURF = 0x20000, // 0x20000 - not supported - TODO LATER: remove
   SPECIES_FLAG_SET_MAX_STEP_LENGTH = 0x80000,
   SPECIES_FLAG_CAN_REGION_BORDER = 0x100000,

@@ -309,7 +309,7 @@ string get_species_flags_string(uint flags) {
   string res;
   DUMP_FLAG(flags, ON_GRID)
   DUMP_FLAG(flags, IS_SURFACE)
-  DUMP_FLAG(flags, NOT_FREE)
+  //DUMP_FLAG(flags, NOT_FREE) == ON_GRID | IS_SURFACE
   DUMP_FLAG(flags, TIME_VARY)
   DUMP_FLAG(flags, CAN_VOLVOLVOL)
   DUMP_FLAG(flags, CAN_VOLVOL)

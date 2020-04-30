@@ -226,6 +226,9 @@ public:
 typedef uint wall_id_t; // world-unique wall id
 const wall_id_t WALL_ID_INVALID = ID_INVALID;
 
+typedef uint region_id_t; // world-unique region id
+const region_id_t REGION_ID_INVALID = ID_INVALID;
+
 typedef uint region_index_t; // index in partition's regions
 const region_index_t REGION_INDEX_INVALID = INDEX_INVALID;
 

@@ -80,8 +80,12 @@ public:
 class Region {
 public:
   Region()
-    : name(""), species_id(SPECIES_ID_INVALID), geometry_object_id(GEOMETRY_OBJECT_ID_INVALID) {
+    : id(REGION_ID_INVALID), index(REGION_INDEX_INVALID), name(""),
+      species_id(SPECIES_ID_INVALID), geometry_object_id(GEOMETRY_OBJECT_ID_INVALID) {
   }
+
+  region_id_t id;
+  region_index_t index;
 
   std::string name;
 

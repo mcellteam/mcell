@@ -75,6 +75,20 @@ static uint sum_all_map_items(const CountInGeomObjectMap& map) {
   return res;
 }
 
+static bool is_on_region(const Partition& p, const Molecule& m, const region_id_t region_id) {
+  assert(m.is_surf());
+
+  // for all the regions of the current molecule
+  const Wall& w = p.get_wall(m.s.wall_index);
+  for (region_index_t ri: w.regions) {
+    if (p.get_region(ri).id == region_id) {
+      return true;
+    }
+  }
+  return false;
+}
+
+
 // TODO: refactor, too many levels of control logic
 void MolOrRxnCountEvent::step() {
 
@@ -105,20 +119,23 @@ void MolOrRxnCountEvent::step() {
       }
 
       const BNG::Species& species = world->get_all_species().get(m.species_id);
-      if (!species.has_count_enclosed_flag()) {
+      if (!species.has_count_enclosed_flag() && !species.has_count_contents_flag()) {
         continue;
       }
 
       // volumes that enclose the current molecule
-      // might be nullptr if not found
-      const uint_set<geometry_object_id_t>* enclosing_volumes =
-          p.get_enclosing_counted_volumes(m.v.counted_volume_id);
+      // might be nullptr if not found or mol is surface mol
+      const uint_set<geometry_object_id_t>* enclosing_volumes = nullptr;
+      if (m.is_vol()) {
+        enclosing_volumes = p.get_enclosing_counted_volumes(m.v.counted_volume_id);
+      }
 
       // for each counting info
       for (uint i = 0; i < mol_count_infos.size(); i++) {
         const MolOrRxnCountInfo& info = mol_count_infos[i];
 
         for (const MolOrRxnCountTerm& term: info.terms) {
+          assert(term.species_id != SPECIES_ID_INVALID);
 
           // does the current molecule match?
           if (term.is_mol_count() &&
@@ -133,11 +150,20 @@ void MolOrRxnCountEvent::step() {
               // count the molecule
               count_items[i].inc_or_dec(term.sign_in_expression);
             }
-            else if (term.type == CountType::EnclosedInObject) {
+            else if (m.is_vol() && term.type == CountType::EnclosedInObject) {
+              assert(term.geometry_object_id != GEOMETRY_OBJECT_ID_INVALID);
+
               // is the molecule inside of the object that we are checking?
               if (m.v.counted_volume_id == term.geometry_object_id ||
                   (enclosing_volumes != nullptr && enclosing_volumes->count(term.geometry_object_id))) {
 
+                count_items[i].inc_or_dec(term.sign_in_expression);
+              }
+            }
+            else if (m.is_surf() && term.type == CountType::PresentOnSurfaceRegion) {
+              assert(term.region_id != REGION_ID_INVALID);
+
+              if (is_on_region(p, m, term.region_id)) {
                 count_items[i].inc_or_dec(term.sign_in_expression);
               }
             }
@@ -157,6 +183,7 @@ void MolOrRxnCountEvent::step() {
         const MolOrRxnCountInfo& info = mol_count_infos[i];
 
         for (const MolOrRxnCountTerm& term: info.terms) {
+          assert(term.rxn_rule_id != BNG::RXN_RULE_ID_INVALID);
 
           // does the current reaction match?
           if (term.is_rxn_count() && term.rxn_rule_id == rxn->id) {
@@ -173,6 +200,7 @@ void MolOrRxnCountEvent::step() {
               );
             }
             else if (term.type == CountType::RxnCountInObject) {
+              assert(term.geometry_object_id != GEOMETRY_OBJECT_ID_INVALID);
 
               for (const auto it: counts_in_objects) {
                 if (it.second != 0) {

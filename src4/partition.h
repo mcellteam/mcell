@@ -467,8 +467,10 @@ public:
     return get_geometry_vertex(i);
   }
 
-  region_index_t add_region(const Region& reg) {
+  region_index_t add_region_and_set_its_index(Region& reg) {
+    assert(reg.id != REGION_ID_INVALID);
     region_index_t index = regions.size();
+    reg.index = index;
     regions.push_back(reg);
     return index;
   }

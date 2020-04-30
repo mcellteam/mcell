@@ -579,7 +579,8 @@ bool MCell3WorldConverter::convert_region(Partition& p, const region* r, region_
   CHECK_PROPERTY(obj != nullptr);
   new_region.geometry_object_id = obj->id;
 
-  region_index = p.add_region(new_region);
+  new_region.id = world->get_next_region_id();
+  region_index = p.add_region_and_set_its_index(new_region);
   return true;
 }
 
@@ -711,29 +712,39 @@ bool MCell3WorldConverter::convert_species(volume* s) {
 
     CHECK_PROPERTY((spec->flags & CANT_INITIATE) == 0); // RxnClass::compute_pb_factor assumes this
 
+    // remove some flags for check that are known to work in all cases
+    uint flags_check = spec->flags & ~REGION_PRESENT;
+
     if (!(
         is_species_superclass(s, spec)
-        || spec->flags == 0
-        || spec->flags == (SPECIES_FLAG_COUNT_ENCLOSED | COUNT_CONTENTS)
-        || spec->flags == SPECIES_FLAG_CAN_VOLVOL
-        || spec->flags == (SPECIES_FLAG_CAN_VOLVOL | SPECIES_FLAG_CAN_VOLSURF)
-        || spec->flags == (SPECIES_FLAG_CAN_VOLVOL | SPECIES_FLAG_CAN_VOLWALL)
-        || spec->flags == SPECIES_FLAG_CAN_VOLWALL
-        || spec->flags == (SPECIES_FLAG_CAN_VOLWALL | SPECIES_FLAG_COUNT_ENCLOSED | COUNT_CONTENTS)
-        || spec->flags == (SPECIES_FLAG_CAN_VOLWALL | SPECIES_FLAG_COUNT_ENCLOSED | COUNT_CONTENTS | REGION_PRESENT)
-        || spec->flags == (SPECIES_FLAG_CAN_VOLVOL | SPECIES_FLAG_CAN_VOLWALL | COUNT_CONTENTS | COUNT_ENCLOSED)
-        || spec->flags == (SPECIES_FLAG_CAN_VOLWALL | REGION_PRESENT)
-        || spec->flags == (SPECIES_FLAG_CAN_VOLWALL | SPECIES_FLAG_CAN_VOLSURF | REGION_PRESENT)
-        || spec->flags == SPECIES_CPLX_MOL_FLAG_SURF
-        || spec->flags == SPECIES_CPLX_MOL_FLAG_REACTIVE_SURFACE
-        || spec->flags == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_SURFSURF)
-        || spec->flags == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_REGION_BORDER)
-        || spec->flags == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_SURFSURF | CAN_SURFWALL | SPECIES_FLAG_CAN_REGION_BORDER | REGION_PRESENT)
-        || spec->flags == SPECIES_FLAG_CAN_VOLSURF
+        || flags_check == 0
+
+        || flags_check == SPECIES_CPLX_MOL_FLAG_SURF
+        || flags_check == SPECIES_CPLX_MOL_FLAG_REACTIVE_SURFACE
+
+        || flags_check == (SPECIES_FLAG_COUNT_ENCLOSED | COUNT_CONTENTS)
+
+        || flags_check == SPECIES_FLAG_CAN_VOLVOL
+        || flags_check == SPECIES_FLAG_CAN_VOLWALL
+        || flags_check == SPECIES_FLAG_CAN_VOLSURF
+        || flags_check == (SPECIES_FLAG_CAN_VOLVOL | SPECIES_FLAG_CAN_VOLSURF)
+        || flags_check == (SPECIES_FLAG_CAN_VOLVOL | SPECIES_FLAG_CAN_VOLWALL)
+        || flags_check == (SPECIES_FLAG_CAN_VOLWALL | SPECIES_FLAG_CAN_VOLSURF)
+
+        || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_SURFSURF)
+        || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_REGION_BORDER)
+
+        || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF | COUNT_CONTENTS)
+        || flags_check == (SPECIES_FLAG_CAN_VOLWALL | SPECIES_FLAG_COUNT_ENCLOSED | COUNT_CONTENTS)
+        || flags_check == (SPECIES_FLAG_CAN_VOLVOL | SPECIES_FLAG_CAN_VOLWALL | COUNT_CONTENTS | COUNT_ENCLOSED)
+        || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_SURFSURF | CAN_SURFWALL | SPECIES_FLAG_CAN_REGION_BORDER)
+
       )) {
       mcell_log("Unsupported species flag for species %s: %s\n", new_species.name.c_str(), get_species_flags_string(spec->flags).c_str());
       CHECK_PROPERTY(false && "Flags listed in the message above are not supported yet");
     }
+
+    // simply copy all the flags from mcell3
     new_species.set_flags(spec->flags);
 
     CHECK_PROPERTY(spec->n_deceased == 0);
@@ -1424,12 +1435,12 @@ bool MCell3WorldConverter::convert_mol_count_and_rxn_count_events(volume* s) {
 
       // report type
       CHECK_PROPERTY(
+          req->report_type == REPORT_CONTENTS ||
           req->report_type == (REPORT_CONTENTS | REPORT_ENCLOSED) ||
           req->report_type == (REPORT_CONTENTS | REPORT_WORLD) ||
           req->report_type == (REPORT_RXNS | REPORT_WORLD) ||
           req->report_type == (REPORT_RXNS | REPORT_ENCLOSED)
       );
-
 
       bool count_mols_not_rxns;
       if ((req->report_type & REPORT_CONTENTS) != 0) {
@@ -1446,7 +1457,7 @@ bool MCell3WorldConverter::convert_mol_count_and_rxn_count_events(volume* s) {
         term.type = count_mols_not_rxns ? CountType::EnclosedInObject : CountType::RxnCountInObject;
         
         string reg_name = get_sym_name(req->count_location);
-        CHECK_PROPERTY(ends_with(reg_name, ",ALL")); // for now only whole objects
+        CHECK_PROPERTY(ends_with(reg_name, ",ALL")); // enclused in object must be whole objects
 
         const Region* reg = world->get_partition(0).find_region_by_name(reg_name);
         CHECK_PROPERTY(reg != nullptr);
@@ -1459,9 +1470,18 @@ bool MCell3WorldConverter::convert_mol_count_and_rxn_count_events(volume* s) {
         obj.is_counted_volume = true;
       }
       else {
-        CHECK_PROPERTY(req->count_location == nullptr);
+        if (req->count_location == nullptr) {
+          term.type = count_mols_not_rxns ? CountType::EnclosedInWorld : CountType::RxnCountInWorld;
+        }
+        else {
+          CHECK_PROPERTY(req->report_type == REPORT_CONTENTS || req->report_type == REPORT_RXNS);
 
-        term.type = count_mols_not_rxns ? CountType::EnclosedInWorld : CountType::RxnCountInWorld;
+          string reg_name = get_sym_name(req->count_location);
+          const Region* reg = world->get_partition(0).find_region_by_name(reg_name);
+          term.region_id = reg->id;
+
+          term.type = count_mols_not_rxns ? CountType::PresentOnSurfaceRegion : CountType::RxnCountOnSurfaceRegion;
+        }
       }
 
       if (count_mols_not_rxns) {

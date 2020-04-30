@@ -129,6 +129,12 @@ public:
     return res;
   }
 
+  region_id_t get_next_region_id() {
+    region_id_t res = next_region_id;
+    next_region_id++;
+    return res;
+  }
+
   geometry_object_id_t get_next_geometry_object_id() {
     geometry_object_id_t res = next_geometry_object_id;
     next_geometry_object_id++;
@@ -245,6 +251,7 @@ private:
 
   // global ID counters
   wall_id_t next_wall_id;
+  region_id_t next_region_id;
   geometry_object_id_t next_geometry_object_id;
 
   // used by run_n_iterations to know whether the simulation was
