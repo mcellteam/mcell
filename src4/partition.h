@@ -41,6 +41,7 @@ namespace MCell {
 
 
 typedef std::map<geometry_object_id_t, uint> CountInGeomObjectMap;
+typedef std::map<wall_index_t, uint> CountOnWallMap;
 
 // class used to hold potential reactants of given species
 // performance critical, therefore we are using a vector for now,
@@ -673,8 +674,7 @@ public:
   BNG::RxnContainer& get_all_rxns() { return bng_engine.get_all_rxns(); }
   const BNG::RxnContainer& get_all_rxns() const { return bng_engine.get_all_rxns(); }
 
-
-  void inc_rxn_occured_count(const BNG::rxn_rule_id_t rxn_id, const geometry_object_id_t counted_volume_id) {
+  void inc_rxn_in_volume_occured_count(const BNG::rxn_rule_id_t rxn_id, const geometry_object_id_t counted_volume_id) {
     assert(rxn_id != BNG::RXN_RULE_ID_INVALID);
     assert(counted_volume_id != COUNTED_VOLUME_ID_INVALID);
 
@@ -688,9 +688,28 @@ public:
     }
   }
 
-  const CountInGeomObjectMap& get_rxn_count_map(const BNG::rxn_rule_id_t rxn_rule_id) {
+  const CountInGeomObjectMap& get_rxn_in_volume_count_map(const BNG::rxn_rule_id_t rxn_rule_id) {
     // creates a new map if it was not created before
     return rxn_counts_per_counted_volume[rxn_rule_id];
+  }
+
+  void inc_rxn_on_surface_occured_count(const BNG::rxn_rule_id_t rxn_id, const wall_index_t wall_index) {
+    assert(rxn_id != BNG::RXN_RULE_ID_INVALID);
+    assert(wall_index != WALL_INDEX_INVALID);
+
+    auto& map_for_rxn = rxn_counts_per_wall_volume[rxn_id];
+    auto it_wall = map_for_rxn.find(wall_index);
+    if (it_wall == map_for_rxn.end()) {
+      map_for_rxn[wall_index] = 1;
+    }
+    else {
+      it_wall->second++;
+    }
+  }
+
+  const CountInGeomObjectMap& get_rxn_on_surface_count_map(const BNG::rxn_rule_id_t rxn_rule_id) {
+    // creates a new map if it was not created before
+    return rxn_counts_per_wall_volume[rxn_rule_id];
   }
 
   void dump();
@@ -745,9 +764,11 @@ private:
   CountedVolumesMap enclosing_counted_volume_objects;
 
   // ---------------------------------- counting ------------------------------------------
-  // key is rxn rule id and its values are maps that contain current reaction counts for each counted volume
+  // key is rxn rule id and its values are maps that contain current reaction counts for each
+  // counted volume or wall
   // counts are reset every time MolOrRxnCountEvent is executed
   std::map< BNG::rxn_rule_id_t, CountInGeomObjectMap > rxn_counts_per_counted_volume;
+  std::map< BNG::rxn_rule_id_t, CountOnWallMap > rxn_counts_per_wall_volume;
 
   // ---------------------------------- dynamic vertices ----------------------------------
 private:

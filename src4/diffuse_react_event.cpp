@@ -1906,6 +1906,7 @@ int DiffuseReactEvent::outcome_products_random(
 #endif
 
   Molecule* reacA = &p.get_m(collision.diffused_molecule_id);
+  assert(reacA->is_vol() || reacA->is_surf());
   keep_reacA = false; // one product is the same as reacA
   assert(reacA != nullptr);
 
@@ -1947,8 +1948,12 @@ int DiffuseReactEvent::outcome_products_random(
   // count this reaction if needed
   if (rx->is_counted()) {
     assert(rx->id !=  BNG::RXN_RULE_ID_INVALID);
-    assert(reacA->is_vol() && "Counting of surf-surf rxns is not implemented yet");
-    p.inc_rxn_occured_count(rx->id, reacA->v.counted_volume_id);
+    if (reacA->is_vol()) {
+      p.inc_rxn_in_volume_occured_count(rx->id, reacA->v.counted_volume_id);
+    }
+    else if (reacA->is_surf()) {
+      p.inc_rxn_on_surface_occured_count(rx->id, reacA->s.wall_index);
+    }
   }
 
   Molecule* surf_reac = nullptr;

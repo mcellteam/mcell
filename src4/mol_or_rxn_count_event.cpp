@@ -67,7 +67,8 @@ void MolOrRxnCountInfo::dump(const std::string ind) const {
 }
 
 
-static uint sum_all_map_items(const CountInGeomObjectMap& map) {
+template<class T>
+static uint sum_all_map_items(const T& map) {
   uint res = 0;
   for (const auto it: map) {
     res += it.second;
@@ -75,11 +76,14 @@ static uint sum_all_map_items(const CountInGeomObjectMap& map) {
   return res;
 }
 
-static bool is_on_region(const Partition& p, const Molecule& m, const region_id_t region_id) {
-  assert(m.is_surf());
+static bool wall_is_part_of_region(
+    const Partition& p, const wall_index_t wall_index, const region_id_t region_id) {
+
+  assert(wall_index != WALL_INDEX_INVALID);
+  assert(region_id != REGION_ID_INVALID);
 
   // for all the regions of the current molecule
-  const Wall& w = p.get_wall(m.s.wall_index);
+  const Wall& w = p.get_wall(wall_index);
   for (region_index_t ri: w.regions) {
     if (p.get_region(ri).id == region_id) {
       return true;
@@ -135,7 +139,7 @@ void MolOrRxnCountEvent::step() {
         const MolOrRxnCountInfo& info = mol_count_infos[i];
 
         for (const MolOrRxnCountTerm& term: info.terms) {
-          assert(term.species_id != SPECIES_ID_INVALID);
+          assert(!term.is_mol_count() || term.species_id != SPECIES_ID_INVALID);
 
           // does the current molecule match?
           if (term.is_mol_count() &&
@@ -163,7 +167,7 @@ void MolOrRxnCountEvent::step() {
             else if (m.is_surf() && term.type == CountType::PresentOnSurfaceRegion) {
               assert(term.region_id != REGION_ID_INVALID);
 
-              if (is_on_region(p, m, term.region_id)) {
+              if (wall_is_part_of_region(p, m.s.wall_index, term.region_id)) {
                 count_items[i].inc_or_dec(term.sign_in_expression);
               }
             }
@@ -183,13 +187,14 @@ void MolOrRxnCountEvent::step() {
         const MolOrRxnCountInfo& info = mol_count_infos[i];
 
         for (const MolOrRxnCountTerm& term: info.terms) {
-          assert(term.rxn_rule_id != BNG::RXN_RULE_ID_INVALID);
+          assert(!term.is_rxn_count() || term.rxn_rule_id != BNG::RXN_RULE_ID_INVALID);
 
           // does the current reaction match?
           if (term.is_rxn_count() && term.rxn_rule_id == rxn->id) {
 
             // get counts from partition
-            const CountInGeomObjectMap& counts_in_objects = p.get_rxn_count_map(term.rxn_rule_id);
+            const CountInGeomObjectMap& counts_in_objects = p.get_rxn_in_volume_count_map(term.rxn_rule_id);
+            const CountOnWallMap& counts_on_walls = p.get_rxn_on_surface_count_map(term.rxn_rule_id);
 
             if (term.type == CountType::RxnCountInWorld) {
               // count all the occurrences
@@ -197,6 +202,10 @@ void MolOrRxnCountEvent::step() {
               count_items[i].inc_or_dec(
                   term.sign_in_expression,
                   sum_all_map_items(counts_in_objects)
+              );
+              count_items[i].inc_or_dec(
+                  term.sign_in_expression,
+                  sum_all_map_items(counts_on_walls)
               );
             }
             else if (term.type == CountType::RxnCountInObject) {
@@ -215,6 +224,20 @@ void MolOrRxnCountEvent::step() {
                   if (obj_id_for_this_count == term.geometry_object_id ||
                       (enclosing_volumes != nullptr && enclosing_volumes->count(term.geometry_object_id))
                   ) {
+                    count_items[i].inc_or_dec(term.sign_in_expression, it.second);
+                  }
+                }
+              }
+            }
+            else if (term.type == CountType::RxnCountOnSurfaceRegion) {
+              assert(term.region_id != REGION_ID_INVALID);
+
+              for (const auto it: counts_on_walls) {
+                if (it.second != 0) {
+                  wall_index_t wall_index_for_this_count = it.first;
+
+                  // did the reaction occur on the surface region that we are checking?
+                  if (wall_is_part_of_region(p, wall_index_for_this_count, term.region_id)) {
                     count_items[i].inc_or_dec(term.sign_in_expression, it.second);
                   }
                 }

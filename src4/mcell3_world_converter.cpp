@@ -484,6 +484,7 @@ bool MCell3WorldConverter::convert_wall_and_update_regions(
   CHECK_PROPERTY(
       w->flags == COUNT_CONTENTS ||
       w->flags == COUNT_RXNS ||
+      w->flags == (COUNT_CONTENTS | COUNT_RXNS) ||
       w->flags == (COUNT_CONTENTS | COUNT_ENCLOSED) ||
       w->flags == (COUNT_RXNS | COUNT_ENCLOSED) ||
       w->flags == (COUNT_CONTENTS | COUNT_RXNS | COUNT_ENCLOSED)
@@ -734,9 +735,12 @@ bool MCell3WorldConverter::convert_species(volume* s) {
         || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_SURFSURF)
         || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_REGION_BORDER)
 
-        || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF | COUNT_CONTENTS)
-        || flags_check == (SPECIES_FLAG_CAN_VOLWALL | SPECIES_FLAG_COUNT_ENCLOSED | COUNT_CONTENTS)
         || flags_check == (SPECIES_FLAG_CAN_VOLVOL | SPECIES_FLAG_CAN_VOLWALL | COUNT_CONTENTS | COUNT_ENCLOSED)
+        || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF | COUNT_CONTENTS)
+        || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_VOLVOL | COUNT_CONTENTS)
+        || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_SURFSURF | COUNT_CONTENTS)
+        || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_SURFSURF | SPECIES_FLAG_CAN_VOLWALL | COUNT_CONTENTS)
+        || flags_check == (SPECIES_FLAG_CAN_VOLWALL | SPECIES_FLAG_COUNT_ENCLOSED | COUNT_CONTENTS)
         || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_SURFSURF | CAN_SURFWALL | SPECIES_FLAG_CAN_REGION_BORDER)
 
       )) {
@@ -1436,6 +1440,7 @@ bool MCell3WorldConverter::convert_mol_count_and_rxn_count_events(volume* s) {
       // report type
       CHECK_PROPERTY(
           req->report_type == REPORT_CONTENTS ||
+          req->report_type == REPORT_RXNS ||
           req->report_type == (REPORT_CONTENTS | REPORT_ENCLOSED) ||
           req->report_type == (REPORT_CONTENTS | REPORT_WORLD) ||
           req->report_type == (REPORT_RXNS | REPORT_WORLD) ||
