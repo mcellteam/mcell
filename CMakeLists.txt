@@ -360,5 +360,8 @@ endif()
   
 target_link_libraries(mcell bng nfsim_c_static NFsim_static jsoncpp_lib ${VTK_LIBRARIES})
 
-
 TARGET_COMPILE_DEFINITIONS(mcell PRIVATE NOSWIG=1)
+
+# utils
+
+add_subdirectory(${CMAKE_SOURCE_DIR}/utils/datamodel_to_pymcell)

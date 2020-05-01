@@ -26,21 +26,27 @@
 #include <string>
 #include <fstream>
 
+#include "json/json.h"
+
 // use different namespace?
 namespace MCell {
 
-const char* const GEOMETRY_SUFFIX = "geometry";
-const char* const PY_EXT = ".py";
-
-const char* const MCELL_IMPORT = "import mcell as m\n\n";
-
 class PymcellConverter {
-  void convert(World* world_);
+public:
+  bool convert(
+      const std::string& input_file,
+      const std::string& output_file_prefix_
+  );
 
 private:
+  void convert_single_geomerty_object(
+      std::ostream& out, const int index, Json::Value& object);
   void convert_geometry();
 
-  std::string file_prefix;
+  std::string output_files_prefix;
+
+  // mcell node of the loaded JSON file
+  Json::Value mcell;
 };
 
 } /* namespace MCell */
