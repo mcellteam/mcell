@@ -57,32 +57,58 @@ void GeometryObject::dump_array(const Partition& p, const std::vector<GeometryOb
   }
 }
 
-void GeometryObject::to_data_model(Json::Value& object, const Partition& p, const SimulationConfig& config) const {
+void GeometryObject::to_data_model(
+    const Partition& p, const SimulationConfig& config, Json::Value& object) const {
 
   vector<uint> vertex_order;
 
   object[KEY_NAME] = DMUtil::remove_obj_name_prefix(parent_name, name);
   object[KEY_MATERIAL_NAMES].append(Json::Value(KEY_VALUE_MEMBRANE));
 
-  Json::Value& element_connections = object[KEY_ELEMENT_CONNECTIONS];
+
   bool first = true; // to indicate when to use a comma
 
-  // DMFIXME:
-  for (wall_index_t i: wall_indices) {
-    Json::Value one_connection;
-    p.get_wall(i).connection_to_data_model(one_connection);
-    element_connections.append(one_connection);
-  }
-  Json::Value& vertex_list = object[KEY_VERTEX_LIST];
-  vertices_to_data_model(vertex_list, p, config);
-}
+  // first process vertices
 
-// outputs complete list of partition vertices to data_model
-void GeometryObject::vertices_to_data_model(Json::Value& vertex_list, const Partition& p, const SimulationConfig& config) const {
-  uint vertex_count = p.get_geometry_vertex_count();
-  for (uint i=0; i<vertex_count; i++){
-    Vec3 pos = p.get_geometry_vertex(i) * Vec3(config.length_unit);
+  // we would like the vertices to be sorted in the same way as then used in
+  // element_connections
+  std::vector<vertex_index_t> unique_vertex_indices;
+  for (wall_index_t wall_index: wall_indices) {
+    const Wall& w = p.get_wall(wall_index);
+
+    for (vertex_index_t vertex_index: w.vertex_indices) {
+      // TODO: find other occurrences where I am searching through a vector and
+      // use find
+      if (find(unique_vertex_indices.begin(), unique_vertex_indices.end(), vertex_index) ==
+          unique_vertex_indices.end()) {
+        unique_vertex_indices.push_back(vertex_index);
+      }
+    }
+  }
+
+  Json::Value& vertex_list = object[KEY_VERTEX_LIST];
+  map<vertex_index_t, uint> map_vertex_index_to_vertex_list_index;
+  for (size_t i = 0; i < unique_vertex_indices.size(); i++) {
+    // define mapping vertex_index -> index in vertex array
+    map_vertex_index_to_vertex_list_index[unique_vertex_indices[i]] = i;
+
+    // append triple x, y, z
+    Vec3 pos = p.get_geometry_vertex(unique_vertex_indices[i]) * Vec3(p.config.length_unit);
     DMUtil::json_append_triplet(vertex_list, pos.x, pos.y, pos.z);
+  }
+
+  // element connections - they correspond to the ordering of walls
+  Json::Value& element_connections = object[KEY_ELEMENT_CONNECTIONS];
+  for (wall_index_t wall_index: wall_indices) {
+    const Wall& w = p.get_wall(wall_index);
+
+    Json::Value vertex_indices;
+    for (uint i = 0; i < VERTICES_IN_TRIANGLE; i++) {
+      assert(map_vertex_index_to_vertex_list_index.count(w.vertex_indices[i]) == 1);
+      vertex_indices.append(map_vertex_index_to_vertex_list_index[w.vertex_indices[i]]);
+    }
+
+    element_connections.append(vertex_indices);
   }
 }
 
@@ -419,13 +445,6 @@ void Wall::dump(const Partition& p, const std::string ind, const bool for_diff) 
       << ", unit_v: " << unit_v
       << ", distance_to_origin: " << distance_to_origin
       << "\n";
-  }
-}
-
-
-void Wall::connection_to_data_model(Json::Value& one_connection) const {
-  for (uint i = 0; i < VERTICES_IN_TRIANGLE; i++) {
-    one_connection.append(vertex_indices[i]);
   }
 }
 

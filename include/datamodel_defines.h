@@ -20,6 +20,8 @@ const char* const JSON_DM_VERSION_1300 = "DM_2017_06_23_1300";
 
 const int BLENDER_VERSION[] = {2, 79, 0};
 
+const char* const KEY_ROOT = "root"; // not used, mainly for error reporting
+
 // all keys should be defined as a constant string
 const char* const KEY_MCELL = "mcell";
 

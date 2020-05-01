@@ -271,7 +271,7 @@ void Partition::to_data_model(Json::Value& mcell) const {
 
   for (const GeometryObject& g: geometry_objects) {
     Json::Value object;
-    g.to_data_model(object, *this, config);
+    g.to_data_model(*this, config, object);
     object_list.append(object);
   }
 }

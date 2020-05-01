@@ -158,7 +158,7 @@ void PymcellConverter::convert_single_geomerty_object(
     print_comma(out, i, vertex_list);
     out << "\n";
   }
-  out << "] // " << id_vertex_list << "\n\n";
+  out << "] # " << id_vertex_list << "\n\n";
 
   // element_connections
   string id_element_connections = name_str + "_" + NAME_ELEMENT_CONNECTIONS;
@@ -174,7 +174,7 @@ void PymcellConverter::convert_single_geomerty_object(
     print_comma(out, i, element_connections);
     out << "\n";
   }
-  out << "] // " << id_element_connections << "\n";
+  out << "] # " << id_element_connections << "\n";
 
   out << BLOCK_END1 << name_str << BLOCK_END2;
 
