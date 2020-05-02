@@ -28,7 +28,7 @@ RxnClass* RxnContainer::get_or_create_empty_unimol_rxn_class(const species_id_t 
     return it->second;
   }
   else {
-    rxn_classes.push_back(new RxnClass(all_species, id));
+    rxn_classes.push_back(new RxnClass(all_species, bng_config, id));
     RxnClass* new_rxn_class = rxn_classes.back();
     unimol_rxn_class_map[id] = new_rxn_class;
     return new_rxn_class;
@@ -54,7 +54,7 @@ void RxnContainer::create_unimol_rxn_classes_for_new_species(const species_id_t 
     for (RxnRule* matching_rxn: rxns_for_new_species) {
       // 2) add the matching_rxn to our rxn class
       //    this also automatically updates the reaction class
-      rxn_class->add_rxn_rule(bng_config, matching_rxn);
+      rxn_class->add_rxn_rule(matching_rxn);
     }
 
     if (bng_config.debug_reactions) {
@@ -92,7 +92,7 @@ RxnClass* RxnContainer::get_or_create_empty_bimol_rxn_class(const species_id_t i
   }
   else {
     // create a new one
-    rxn_classes.push_back(new RxnClass(all_species, id1, id2));
+    rxn_classes.push_back(new RxnClass(all_species, bng_config, id1, id2));
     RxnClass* new_rxn_class = rxn_classes.back();
 
     // insert it into maps
@@ -153,7 +153,7 @@ void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t n
         RxnClass* rxn_class = get_or_create_empty_bimol_rxn_class(new_id, s.species_id);
 
         for (RxnRule* rxn: applicable_rxns) {
-          rxn_class->add_rxn_rule(bng_config, rxn);
+          rxn_class->add_rxn_rule(rxn);
         }
 
         if (bng_config.debug_reactions) {

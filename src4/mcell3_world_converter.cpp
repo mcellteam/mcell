@@ -821,6 +821,27 @@ bool MCell3WorldConverter::convert_species(volume* s) {
 }
 
 
+// variable_rates_per_pathway is already resized to the number of pathways
+static bool get_variable_rates(const t_func* prob_t, vector<vector<BNG::RxnRateInfo>>& variable_rates_per_pathway) {
+  for (const t_func* curr = prob_t; curr != nullptr; curr = curr->next) {
+    assert(curr->path >= 0 && curr->path < (int)variable_rates_per_pathway.size());
+
+    BNG::RxnRateInfo info;
+    info.time = curr->time;
+    info.rate_constant = curr->value;
+
+    variable_rates_per_pathway[curr->path].push_back(info);
+  }
+
+  // make sure that they are sorted by time
+  for (vector<BNG::RxnRateInfo>& rates: variable_rates_per_pathway) {
+    sort(variable_rates_per_pathway.begin(), variable_rates_per_pathway.end());
+  }
+
+  return true;
+}
+
+
 bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
   // rx->next - handled in convert_reactions
   // rx->sym->name - ignored, name obtained from pathway
@@ -851,7 +872,16 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
 
   CHECK_PROPERTY(mcell3_rx->n_occurred == 0);
   CHECK_PROPERTY(mcell3_rx->n_skipped == 0);
-  CHECK_PROPERTY(mcell3_rx->prob_t == nullptr);
+
+  vector<vector<BNG::RxnRateInfo>> variable_rates_per_pathway;
+  if (mcell3_rx->n_pathways > 0) {
+    variable_rates_per_pathway.resize(mcell3_rx->n_pathways);
+
+    get_variable_rates(mcell3_rx->prob_t, variable_rates_per_pathway);
+  }
+  else {
+    CHECK_PROPERTY(mcell3_rx->prob_t == nullptr);
+  }
 
   // TODO_CONVERSION: pathway_info *info - magic_list, also some checks might be useful
 

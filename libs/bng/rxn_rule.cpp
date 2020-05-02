@@ -9,6 +9,7 @@
 #include <sstream>
 
 #include "bng/rxn_rule.h"
+#include "bng/rxn_class.h"
 
 #include "bng/species.h"
 #include "bng/species_container.h"
@@ -364,6 +365,33 @@ void RxnRule::dump_complex_instance_vector(const BNGData& bng_data, const CplxIn
       cout << " + ";
     }
   }
+}
+
+
+bool RxnRule::update_variable_rxn_rate(const float_t current_time, const RxnClass* requester) {
+  if (!may_update_rxn_rate()) {
+    return false;
+  }
+  assert(!variable_rates.empty());
+  assert(last_variable_rate_index + 1 < (int)variable_rates.size());
+
+  if (variable_rates[last_variable_rate_index + 1].time < current_time) {
+    return false;
+  }
+
+  // current_time >= time for next change
+  rate_constant = variable_rates[last_variable_rate_index + 1].rate_constant;
+  last_variable_rate_index++;
+
+  // notify parents that update is needed
+  for (RxnClass* user: rxn_classes_where_used) {
+    // do not call update on the class that called us
+    if (user != requester) {
+      user->update_rxn_rates_if_needed(current_time);
+    }
+  }
+
+  return true;
 }
 
 

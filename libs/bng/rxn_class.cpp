@@ -44,7 +44,7 @@ float_t RxnClass::get_reactant_diffusion(const uint reactant_index) const {
 
 // function for computing the probability factor (pb_factor) used to
 // convert reaction rate constants into probabilities
-float_t RxnClass::compute_pb_factor(const BNGConfig& bng_config) const {
+float_t RxnClass::compute_pb_factor() const {
 
 #ifndef NDEBUG
   assert(get_num_reactions() >= 1);
@@ -187,7 +187,7 @@ float_t RxnClass::compute_pb_factor(const BNGConfig& bng_config) const {
 
 
 // based on mcell3's implementation init_reactions
-void RxnClass::update(const BNGConfig& bng_config) {
+void RxnClass::compute_initial_rxn_rates() {
 
   // alphabetize?
   // also, we might need to sort the reactions somehow (later, when input is from Python)
@@ -201,7 +201,7 @@ void RxnClass::update(const BNGConfig& bng_config) {
     cum_probs[i] = reactions[i]->rate_constant;
   }
 
-  float_t pb_factor = compute_pb_factor(bng_config);
+  float_t pb_factor = compute_pb_factor();
 
   // scale_rxn_probabilities
   // TODO LATER: info and warning printouts
@@ -241,6 +241,17 @@ void RxnClass::update(const BNGConfig& bng_config) {
       // type must be the same as before
       assert(type == reactions[i]->type);
     }
+  }
+}
+
+
+void RxnClass::update_variable_rxn_rates(const float_t current_time) {
+  bool changed = false;
+  for (RxnRule* rxn: reactions) {
+    changed |= rxn->update_variable_rxn_rate(current_time, this);
+  }
+  if (changed) {
+    compute_initial_rxn_rates();
   }
 }
 

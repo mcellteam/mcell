@@ -927,6 +927,16 @@ void dump_pathway_infos(int n_pathways, const char* count_name, pathway_info* pa
   }
 }
 
+void dump_variable_rxn_rates(t_func* prob_t, const char* name, const char* ind) {
+  DECL_IND2(ind);
+  cout << ind << "prob_t: *\t\t" << (void*)prob_t << " [t_func] \t\t/* List of probabilities changing over time, by pathway */\n";
+
+  int i = 0;
+  for (t_func* curr = prob_t; curr != nullptr; curr = curr->next) {
+    cout << ind2 << i << ": time: " << curr->time << ", value: " << curr->value << ", path: " << curr->path << "\n";
+    i++;
+  }
+}
 
 void dump_rxn(rxn* rx, const char* ind) {
 
@@ -975,8 +985,8 @@ void dump_rxn(rxn* rx, const char* ind) {
   cout << ind << "n_occurred: \t\t" << rx->n_occurred << " [long long] \t\t/* How many times has this reaction occurred? */\n";
   cout << ind << "n_skipped: \t\t" << rx->n_skipped << " [double] \t\t/* How many reactions were skipped due to probability overflow? */\n";
 
+  dump_variable_rxn_rates(rx->prob_t, "prob_t", "    ");
 
-  cout << ind << "prob_t: *\t\t" << (void*)rx->prob_t << " [t_func] \t\t/* List of probabilities changing over time, by pathway */\n";
 
   cout << ind << "pathway_head: *\t\t" << rx->pathway_head << " [pathway] \t\t/* List of pathways built at parse-time */\n";
 

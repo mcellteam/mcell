@@ -19,6 +19,7 @@ namespace BNG {
 
 class BNGData;
 class SpeciesContainer;
+class RxnClass;
 
 struct CplxMolIndex {
   CplxMolIndex()
@@ -61,6 +62,15 @@ struct CplxIndexPair {
   uint product_index;
 };
 
+
+struct RxnRateInfo {
+  float_t time;
+  float_t rate_constant;
+
+  bool operator < (const RxnRateInfo& ri2) const {
+    return time < ri2.time;
+  }
+};
 
 enum class RxnType {
   Invalid,
@@ -111,10 +121,19 @@ public:
 private:
   uint num_surf_products;
 
+  // variable reaction rate constants, sorted by time
+  // index is initialized to -1
+  int last_variable_rate_index;
+  small_vector<RxnRateInfo> variable_rates;
+
+  // maintain information on where this reaction was used in order to
+  // update all classes if this reaction's rate constant changes
+  std::set<RxnClass*> rxn_classes_where_used;
+
 public:
   RxnRule()
     : id(RXN_RULE_ID_INVALID), type(RxnType::Invalid), mol_instances_are_fully_maintained(false), rate_constant(FLT_INVALID),
-      num_surf_products(UINT_INVALID) {
+      num_surf_products(UINT_INVALID), last_variable_rate_index(-1) {
   }
 
   void finalize();
@@ -152,8 +171,6 @@ public:
         reactants == rr2.reactants && products == rr2.products &&
         rate_constant == rr2.rate_constant;
   }
-
-  void dump(const BNGData& bng_data, const std::string ind = "") const;
 
   // checks if it is possible to create a mapping from reactants to products and
   // sets members molecule_instances_are_maintained and mapping,
@@ -204,6 +221,21 @@ public:
   bool is_counted() const {
     return has_flag(RXN_FLAG_COUNTED);
   }
+
+  void add_rxn_class_where_used(RxnClass* rxn_class) {
+    rxn_classes_where_used.insert(rxn_class);
+  }
+
+  // returns false when there are no variable rates or we already processed all scheduled times
+  bool may_update_rxn_rate() const {
+    return last_variable_rate_index != (int)variable_rates.size() - 1;
+  }
+
+  // returns true if rate was updated
+  // requester is the rxn class that requested this update
+  bool update_variable_rxn_rate(const float_t current_time, const RxnClass* requester);
+
+  void dump(const BNGData& bng_data, const std::string ind = "") const;
 
 private:
 

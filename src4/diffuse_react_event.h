@@ -107,7 +107,7 @@ public:
       const DiffuseOrUnimolRxnAction::Type type_,
       const molecule_id_t id_,
       const float_t scheduled_time_,
-      const BNG::RxnClass* unimol_rx_)
+      BNG::RxnClass* unimol_rx_)
     :
       id(id_),
       scheduled_time(scheduled_time_),
@@ -128,7 +128,7 @@ public:
   Type type;
 
   // when type is UNIMOL_REACT
-  const BNG::RxnClass* unimol_rx;
+  BNG::RxnClass* unimol_rx;
 
   // when type is DIFFUSE
   // used to avoid rebinding for surf+vol->surf+vol reactions
@@ -255,7 +255,7 @@ private:
 
   int outcome_intersect(
       Partition& p,
-      const BNG::RxnClass* rxn_class,
+      BNG::RxnClass* rxn_class,
       const rxn_index_t rxn_index,
       Collision& collision,
       const float_t time
@@ -266,7 +266,7 @@ private:
       Partition& p,
       Molecule& vm,
       const float_t scheduled_time,
-      const BNG::RxnRule* unimol_rx
+      BNG::RxnRule* unimol_rx
   );
 
   int outcome_products_random(
@@ -288,7 +288,7 @@ private:
       Partition& p,
       const molecule_id_t vm_id,
       const float_t scheduled_time,
-      const BNG::RxnClass* unimol_rx
+      BNG::RxnClass* unimol_rx
   );
 };
 

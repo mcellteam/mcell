@@ -74,7 +74,7 @@ static void trigger_bimolecular(
     orientation_t orientA, orientation_t orientB,
     BNG::RxnClassesVector& matching_rxn_classes // items are appended
 ) {
-  const BNG::RxnClass* rxn_class = bng_engine.get_all_rxns().get_bimol_rxn_class(reacA.species_id, reacB.species_id);
+  BNG::RxnClass* rxn_class = bng_engine.get_all_rxns().get_bimol_rxn_class(reacA.species_id, reacB.species_id);
   if (rxn_class == nullptr) {
     // no reaction
     return;
@@ -145,7 +145,7 @@ static void find_surface_mol_reactions_with_surf_classes_for_rxn_class_map(
     return;
   }
 
-  const BNG::RxnClass* rxn_class = reactions_reacA_and_surface_it->second;
+  BNG::RxnClass* rxn_class = reactions_reacA_and_surface_it->second;
   assert(rxn_class->reactants.size() == 2);
   if (rxn_class->get_num_reactions() == 0) {
     return;
@@ -203,9 +203,9 @@ static void find_volume_mol_reactions_with_surf_classes(
   assert(reacA.is_vol());
 
   // for all reactions applicable to reacA and and wall
-  const BNG::SpeciesRxnClassesMap* species_rxns = p.get_all_rxns().get_bimol_rxns_for_reactant(reacA.species_id);
-  const BNG::SpeciesRxnClassesMap* all_molecules_rxns = p.get_all_rxns().get_bimol_rxns_for_reactant(p.get_all_species().get_all_molecules_species_id());
-  const BNG::SpeciesRxnClassesMap* all_vol_rxns = p.get_all_rxns().get_bimol_rxns_for_reactant(p.get_all_species().get_all_volume_molecules_species_id());
+  BNG::SpeciesRxnClassesMap* species_rxns = p.get_all_rxns().get_bimol_rxns_for_reactant(reacA.species_id);
+  BNG::SpeciesRxnClassesMap* all_molecules_rxns = p.get_all_rxns().get_bimol_rxns_for_reactant(p.get_all_species().get_all_molecules_species_id());
+  BNG::SpeciesRxnClassesMap* all_vol_rxns = p.get_all_rxns().get_bimol_rxns_for_reactant(p.get_all_species().get_all_volume_molecules_species_id());
 
   if (species_rxns == nullptr && all_molecules_rxns == nullptr && all_vol_rxns == nullptr) {
     // no reactions at all for reacA
@@ -421,15 +421,18 @@ test_bimolecular
         counters appropriately assuming that the reaction does take place.
 *************************************************************************/
 static int test_bimolecular(
-    const BNG::RxnClass* rxn_class,
+    BNG::RxnClass* rxn_class,
     rng_state& rng,
     const Molecule& a1, // unused for now
     const Molecule& a2, // unused for now
     const float_t scaling,
-    const float_t local_prob_factor
+    const float_t local_prob_factor,
+    const float_t current_time
 ) {
   assert(rxn_class != nullptr);
   assert(rxn_class->get_num_reactions() != 0);
+
+  rxn_class->update_rxn_rates_if_needed(current_time);
 
   /* rescale probabilities for the case of the reaction
      between two surface molecules */
@@ -520,17 +523,21 @@ test_many_bimolecular:
         such reactions local_prob_factor > 0.
 *************************************************************************/
 static int test_many_bimolecular(
-    const BNG::RxnClassesVector& rxn_classes,
+    BNG::RxnClassesVector& rxn_classes,
     const small_vector<float_t>& scaling,
-    float_t local_prob_factor,
+    const float_t local_prob_factor,
     rng_state& rng,
-    bool all_neighbors_flag,
+    const bool all_neighbors_flag,
+    const float_t current_time,
     rxn_index_t& chosen_reaction_index
 ) {
   assert(rxn_classes.size() == scaling.size());
   uint n = rxn_classes.size();
 
-  //TODO: use small vector
+  for (BNG::RxnClass* cls: rxn_classes) {
+    cls->update_rxn_rates_if_needed(current_time);
+  }
+
   /* array of cumulative rxn probabilities */
   std::vector<float_t> cum_rxn_class_probs; // rxn in mcell3
   cum_rxn_class_probs.resize(2 * n, 0.0);
@@ -548,10 +555,10 @@ static int test_many_bimolecular(
   if (n == 1) {
     Molecule dummy;
     if (all_neighbors_flag) {
-      return test_bimolecular(rxn_classes[0], rng, dummy, dummy, scaling[0], local_prob_factor);
+      return test_bimolecular(rxn_classes[0], rng, dummy, dummy, scaling[0], local_prob_factor, current_time);
     }
     else {
-      return test_bimolecular(rxn_classes[0], rng, dummy, dummy, scaling[0], 0);
+      return test_bimolecular(rxn_classes[0], rng, dummy, dummy, scaling[0], 0, current_time);
     }
   }
 
@@ -634,12 +641,17 @@ test_intersect
         update counters assuming the reaction will take place.
 *************************************************************************/
 // TODO LATER: see if it can be merged with test_bimolecular
-static rxn_index_t test_intersect(const BNG::RxnClass* rxn_class, const float_t scaling, rng_state& rng) {
+static rxn_index_t test_intersect(
+    BNG::RxnClass* rxn_class,
+    const float_t scaling,
+    const float_t current_time,
+    rng_state& rng) {
   float_t p;
 
   assert(rxn_class->type == BNG::RxnType::Standard &&
       "Reflect and Transparent should be handled elsewhere, AbsorbRegionBorder is not applicable here");
 
+  rxn_class->update_rxn_rates_if_needed(current_time);
 
   float_t max_prob = rxn_class->cum_probs.back();
   assert(max_prob == rxn_class->max_fixed_p);
@@ -685,14 +697,21 @@ test_many_intersect:
 *************************************************************************/
 // TODO LATER: see if it can be merged with test_many bimolecular
 static rxn_index_t test_many_intersect(
-    const BNG::RxnClassesVector& rxn_classes, const float_t scaling,
-    rxn_class_index_t& chosen_rxn_class_index, rng_state& rng) {
+    BNG::RxnClassesVector& rxn_classes,
+    const float_t scaling,
+    const float_t current_time,
+    rxn_class_index_t& chosen_rxn_class_index,
+    rng_state& rng) {
+
+  for (BNG::RxnClass* cls: rxn_classes) {
+    cls->update_rxn_rates_if_needed(current_time);
+  }
 
   uint num_classes = rxn_classes.size();
 
   if (num_classes == 1) {
     chosen_rxn_class_index = 0;
-    return test_intersect(rxn_classes[0], scaling, rng);
+    return test_intersect(rxn_classes[0], scaling, current_time, rng);
   }
 
   // array of cumulative rxn probabilities
@@ -743,7 +762,7 @@ static rxn_index_t test_many_intersect(
 // might return nullptr if there is no unimolecular reaction for this species
 // based on pick_unimolecular_reaction
 // TODO: remove this function
-static const BNG::RxnClass* pick_unimol_rx(
+static BNG::RxnClass* pick_unimol_rx(
     World* world,
     const species_id_t species_id
 ) {

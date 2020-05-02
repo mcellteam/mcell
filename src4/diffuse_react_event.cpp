@@ -216,7 +216,7 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const std::vector<molecu
     sort(new_diffuse_or_unimol_react_actions.begin(), new_diffuse_or_unimol_react_actions.end(), less_time_and_id);
 #endif
 
-    const DiffuseOrUnimolRxnAction& action = new_diffuse_or_unimol_react_actions[i];
+    DiffuseOrUnimolRxnAction& action = new_diffuse_or_unimol_react_actions[i];
 
 #ifdef MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID
     Molecule& m = p.get_m(action.id);
@@ -748,21 +748,23 @@ bool DiffuseReactEvent::collide_and_react_with_vol_mol(
 
   // TODO: unify usage to rxn and rxn class pointers,
   //       they might not be set in Collision struct, so pointers are the only way
-  const RxnClass* rxn_class = collision.rxn_class;
+  RxnClass* rxn_class = collision.rxn_class;
   assert(rxn_class != nullptr);
+
+  float_t absolute_collision_time = elapsed_molecule_time + t_steps * collision.time;
 
   //  rx->prob_t is always NULL in out case update_probs(world, rx, m->t);
   // returns which reaction pathway to take
   float_t scaling = factor * r_rate_factor;
   int i = RxUtil::test_bimolecular(
-      rxn_class, world->rng, colliding_molecule, diffused_molecule, scaling, 0);
+      rxn_class, world->rng, colliding_molecule, diffused_molecule, scaling, 0, absolute_collision_time);
 
   if (i < RX_LEAST_VALID_PATHWAY) {
     return false;
   }
   else {
     // might invalidate references
-    int j = outcome_bimolecular(p, collision, i, elapsed_molecule_time + t_steps * collision.time);
+    int j = outcome_bimolecular(p, collision, i, absolute_collision_time);
     assert(j == RX_DESTROY || j == RX_A_OK);
     return j == RX_DESTROY;
   }
@@ -848,12 +850,14 @@ int DiffuseReactEvent::collide_and_react_with_surf_mol(
     scaling_coefs.push_back(r_rate_factor / grid.binding_factor);
   }
 
+  float_t collision_time = elapsed_molecule_time + remaining_time_step * collision.time;
+
   int selected_rx_pathway;
   if (matching_rxn_classes.size() == 1) {
     selected_rx_pathway = RxUtil::test_bimolecular(
         matching_rxn_classes[0], world->rng,
         diffused_molecule, colliding_molecule,
-        scaling_coefs[0], 0);
+        scaling_coefs[0], 0, collision_time);
   }
   else {
     mcell_error("Internal error: multiple rxn classes should not be needed for surf mol rxn.");
@@ -864,7 +868,6 @@ int DiffuseReactEvent::collide_and_react_with_surf_mol(
   }
 
   /* run the reaction */
-  float_t collision_time = elapsed_molecule_time + remaining_time_step * collision.time;
 
   Collision rx_collision = Collision(
       CollisionType::VOLMOL_SURFMOL,
@@ -970,22 +973,24 @@ WallRxnResult DiffuseReactEvent::collide_and_react_with_walls(
   rxn_class_index_t rxn_class_index = RNX_CLASS_INDEX_INVALID;
   rxn_index_t rxn_index;
 
+  float_t current_time = elapsed_molecule_time + t_steps * collision.time;
+
   if (matching_rxn_classes.size() == 1) {
     rxn_class_index = 0;
-    rxn_index = RxUtil::test_intersect(matching_rxn_classes[0], r_rate_factor, world->rng);
+    rxn_index = RxUtil::test_intersect(matching_rxn_classes[0], r_rate_factor, current_time, world->rng);
   } else {
     rxn_index = RxUtil::test_many_intersect(
-        matching_rxn_classes, r_rate_factor, rxn_class_index, world->rng);
+        matching_rxn_classes, r_rate_factor, current_time, rxn_class_index, world->rng);
   }
 
 
   if (rxn_class_index != RNX_CLASS_INDEX_INVALID && rxn_index >= RNX_INDEX_LEAST_VALID_RXN) {
-    const BNG::RxnClass* rxn_class = matching_rxn_classes[rxn_class_index];
+    BNG::RxnClass* rxn_class = matching_rxn_classes[rxn_class_index];
 
     assert(collision.type == CollisionType::WALL_FRONT || collision.type == CollisionType::WALL_BACK);
 
     int j = outcome_intersect(
-        p, rxn_class, rxn_index, collision, elapsed_molecule_time + t_steps * collision.time);
+        p, rxn_class, rxn_index, collision, current_time);
 
     if (j == RX_FLIP) {
       return WallRxnResult::Transparent;
@@ -1269,6 +1274,8 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
   rxn_index_t selected_reaction_index;
   Collision collision;
 
+  float_t collision_time = diffusion_start_time + elapsed_molecule_time;
+
   /* Calculate local_prob_factor for the reaction probability.
      Here we convert from 3 neighbor tiles (upper probability
      limit) to the real "num_nbrs" neighbor tiles. */
@@ -1279,7 +1286,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
     selected_reaction_index = RxUtil::test_bimolecular(
         matching_rxn_classes[0], world->rng,
         sm, p.get_m(reactant_molecule_ids[0]),
-        correction_factors[0], local_prob_factor);
+        correction_factors[0], local_prob_factor, collision_time);
 
     // there is just one possible class == one pair of reactants
     rxn_class_index = 0;
@@ -1287,15 +1294,15 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
   else {
     bool all_neighbors_flag = true;
     rxn_class_index =
-        RxUtil::test_many_bimolecular(matching_rxn_classes, correction_factors, local_prob_factor, world->rng, all_neighbors_flag, selected_reaction_index);
+        RxUtil::test_many_bimolecular(
+            matching_rxn_classes, correction_factors, local_prob_factor,
+            world->rng, all_neighbors_flag, collision_time, selected_reaction_index);
     selected_reaction_index = 0; // TODO_PATHWAYS: use value from test_many_bimolecular
   }
 
   if (rxn_class_index == RX_NO_RX || selected_reaction_index < RX_LEAST_VALID_PATHWAY) {
     return true; /* No reaction */
   }
-
-  float_t collision_time = diffusion_start_time + elapsed_molecule_time;
 
   collision = Collision(
       CollisionType::SURFMOL_SURFMOL,
@@ -1507,19 +1514,19 @@ void DiffuseReactEvent::create_unimol_rx_action(
   float_t curr_time = event_time + diffusion_time_step - remaining_time_step;
   assert(curr_time >= 0);
 
-  const RxnClass* rx = RxUtil::pick_unimol_rx(world, m.species_id);
-  if (rx == nullptr) {
+  RxnClass* rxn = RxUtil::pick_unimol_rx(world, m.species_id);
+  if (rxn == nullptr) {
     return;
   }
 
-  float_t time_from_now = RxUtil::compute_unimol_lifetime(p, world->rng, m, rx);
+  float_t time_from_now = RxUtil::compute_unimol_lifetime(p, world->rng, m, rxn);
 
   float_t scheduled_time = curr_time + time_from_now; // TODO: this is weird... seems mcell uses t+t2?
 
   // we need to store the end time to the molecule because oit is needed in diffusion to
   // figure out whether we should do the whole time step
   m.unimol_rx_time = scheduled_time;
-  m.unimol_rx = rx;
+  m.unimol_rx = rxn;
 }
 
 
@@ -1530,7 +1537,7 @@ bool DiffuseReactEvent::react_unimol_single_molecule(
     Partition& p,
     const molecule_id_t m_id,
     const float_t scheduled_time,
-    const RxnClass* unimol_rxn_class
+    RxnClass* unimol_rxn_class
 ) {
   // the unimolecular reaction class was already selected
   assert(unimol_rxn_class != nullptr);
@@ -1550,7 +1557,7 @@ bool DiffuseReactEvent::react_unimol_single_molecule(
   assert(scheduled_time >= event_time && scheduled_time <= event_time + diffusion_time_step);
 
   rxn_index_t ri = RxUtil::which_unimolecular(unimol_rxn_class, world->rng);
-  return outcome_unimolecular(p, m, scheduled_time, unimol_rxn_class->get_reaction(ri));
+  return outcome_unimolecular(p, m, scheduled_time, unimol_rxn_class->get_rxn(ri));
 }
 
 
@@ -1640,7 +1647,7 @@ outcome_intersect:
 *************************************************************************/
 int DiffuseReactEvent::outcome_intersect(
     Partition& p,
-    const RxnClass* rxn_class,
+    RxnClass* rxn_class,
     const rxn_index_t rxn_index,
     Collision& collision, // rxn_class can be set
     const float_t time
@@ -1916,9 +1923,9 @@ int DiffuseReactEvent::outcome_products_random(
   // TODO: unify rx vs rxn
   const RxnRule* rx = nullptr;
   if (collision.is_mol_mol_reaction() || collision.is_wall_collision()) {
-    const RxnClass* rxn_class = collision.rxn_class;
+    RxnClass* rxn_class = collision.rxn_class;
     assert(rxn_class != nullptr);
-    rx = rxn_class->get_reaction(reaction_index);
+    rx = rxn_class->get_rxn(reaction_index);
 
     assert(rx->reactants.size() == 2);
 
@@ -2230,7 +2237,7 @@ bool DiffuseReactEvent::outcome_unimolecular(
     Partition& p,
     Molecule& m,
     const float_t scheduled_time,
-    const RxnRule* unimol_rx
+    RxnRule* unimol_rx
 ) {
   molecule_id_t id = m.id;
 

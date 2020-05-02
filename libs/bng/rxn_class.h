@@ -50,8 +50,11 @@ public:
   // ^^^^^^^^^^ MCell-specific ^^^^^^^^^^
 
 public:
-  RxnClass(const SpeciesContainer& all_species_, const species_id_t reactant_id1, const species_id_t reactant_id2 = SPECIES_ID_INVALID)
-    : type(RxnType::Invalid), max_fixed_p(FLT_INVALID), min_noreaction_p(FLT_INVALID), all_species(all_species_)
+  RxnClass(
+      const SpeciesContainer& all_species_, const BNGConfig& bng_config_,
+      const species_id_t reactant_id1, const species_id_t reactant_id2 = SPECIES_ID_INVALID)
+    : type(RxnType::Invalid), max_fixed_p(FLT_INVALID), min_noreaction_p(FLT_INVALID),
+      all_species(all_species_), bng_config(bng_config_)
     {
     assert(reactant_id1 != SPECIES_ID_INVALID);
     reactants.push_back(reactant_id1);
@@ -64,7 +67,7 @@ public:
     return reactions.size();
   }
 
-  const RxnRule* get_reaction(const rxn_index_t rx_index) const {
+  RxnRule* get_rxn(const rxn_index_t rx_index) {
     assert(rx_index < (int)reactions.size());
     return reactions[rx_index];
   }
@@ -75,7 +78,7 @@ public:
     return reactions[0]->reactants[reactant_index].get_orientation();
   }
 
-  void add_rxn_rule(const BNGConfig& bng_config, RxnRule* r) {
+  void add_rxn_rule(RxnRule* r) {
 
     // check that the rule was not added already,
     // for now simple pointer comparison
@@ -88,7 +91,20 @@ public:
 
     reactions.push_back(r);
 
-    update(bng_config);
+    // remember bidirectional mapping for rxn rate updates
+    r->add_rxn_class_where_used(this);
+
+    compute_initial_rxn_rates();
+  }
+
+  void update_rxn_rates_if_needed(const float_t current_time) {
+    // check if any of the reactions needs update
+    for (const RxnRule* rxn: reactions) {
+      if (rxn->may_update_rxn_rate()) {
+        update_variable_rxn_rates(current_time);
+        break;
+      }
+    }
   }
 
   bool is_standard() const {
@@ -121,22 +137,27 @@ public:
   void dump(const BNGData& bng_data, const std::string ind = "") const;
 
 private:
-  void update(const BNGConfig& bng_config);
+  void compute_initial_rxn_rates();
+
+  void update_variable_rxn_rates(const float_t current_time);
 
   // ----------- MCell-specific -----------
   float_t get_reactant_diffusion(const uint reactant_index) const;
   float_t get_reactant_space_step(const uint reactant_index) const;
   float_t get_reactant_time_step(const uint reactant_index) const;
 
-  float_t compute_pb_factor(const BNGConfig& bng_config) const;
+  float_t compute_pb_factor() const;
   // ^^^^^^^^^^ MCell-specific ^^^^^^^^^^
 
   // owned by BNGEngine
   const SpeciesContainer& all_species;
+
+  // owned by the simulation engine
+  const BNGConfig& bng_config;
 };
 
 
-typedef small_vector<const RxnClass*> RxnClassesVector;
+typedef small_vector<RxnClass*> RxnClassesVector;
 
 } /* namespace BNG */
 

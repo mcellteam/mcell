@@ -86,7 +86,7 @@ public:
       const float_t time_,
       const Vec3& pos_,
       const molecule_id_t colliding_molecule_id_,
-      const BNG::RxnClass* rxn_class_ptr
+      BNG::RxnClass* rxn_class_ptr
       )
     :
       type(type_),
@@ -108,7 +108,7 @@ public:
       const molecule_id_t diffused_molecule_id_,
       const float_t time_, // time from event start
       const molecule_id_t colliding_molecule_id_,
-      const BNG::RxnClass* rxn_class_ptr
+      BNG::RxnClass* rxn_class_ptr
       )
     :
       type(type_),
@@ -149,7 +149,7 @@ public:
       const molecule_id_t diffused_molecule_id_,
       const float_t time_,
       const Vec3& pos_,
-      const BNG::RxnRule* rx_ptr
+      BNG::RxnRule* rx_ptr
       )
     :
       type(type_),
@@ -173,11 +173,11 @@ public:
 
   // valid only for is_wall_collision
   molecule_id_t colliding_molecule_id;
-  const BNG::RxnRule* rxn;
+  BNG::RxnRule* rxn;
 
   // used for VOLMOL_VOLMOL or type == CollisionType::VOLMOL_SURFMOL
   // TODO: make them private? so that we can check access
-  const BNG::RxnClass* rxn_class;
+  BNG::RxnClass* rxn_class;
 
   // valid only for COLLISION_WALL*
   wall_index_t colliding_wall_index;

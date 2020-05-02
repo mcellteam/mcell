@@ -69,7 +69,7 @@ public:
     rxn_rules.push_back(new_r);
   }
 
-  const RxnClass* get_unimol_rxn_class(const species_id_t id) {
+  RxnClass* get_unimol_rxn_class(const species_id_t id) {
     auto it = unimol_rxn_class_map.find(id);
 
     // reaction maps get updated only when needed, it is not associated with addition of a new species
@@ -96,12 +96,12 @@ public:
   // does not take species superclasses such as ALL_MOLECULES into account
   // order of species ids does not matter
   // get_bimol_rxn_class
-  const RxnClass* get_bimol_rxn_class(const species_id_t id1, const species_id_t id2) {
+  RxnClass* get_bimol_rxn_class(const species_id_t id1, const species_id_t id2) {
     // species must exist
     assert(all_species.is_valid_id(id1));
     assert(all_species.is_valid_id(id2));
 
-    const BNG::SpeciesRxnClassesMap* rxn_class_map_for_id1 = get_bimol_rxns_for_reactant(id1);
+    BNG::SpeciesRxnClassesMap* rxn_class_map_for_id1 = get_bimol_rxns_for_reactant(id1);
     if (rxn_class_map_for_id1 == nullptr) {
       // no reactions for this species at all
       return nullptr;
@@ -123,7 +123,7 @@ public:
 
   // returns null if there is no reaction for this species?
   // no -> when there is no entry in the map, this meanbs that reactants were not determined yet
-  const BNG::SpeciesRxnClassesMap* get_bimol_rxns_for_reactant(const species_id_t id) {
+  BNG::SpeciesRxnClassesMap* get_bimol_rxns_for_reactant(const species_id_t id) {
 
     auto it = bimol_rxn_class_map.find(id);
 
