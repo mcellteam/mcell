@@ -262,6 +262,35 @@ typedef std::vector<subpart_index_t> SubpartIndicesVector;
 
 #endif
 
+template<typename T>
+class insertion_ordered_set {
+public:
+  void insert_ordered(const T& value) {
+    if (s.count(value) == 0) {
+      s.insert(value);
+      v.push_back(value);
+    }
+  }
+
+  const T& operator [] (const size_t i) const {
+    assert(i < size());
+    return v[i];
+  }
+
+  size_t size() const {
+    assert(v.size() == s.size());
+    return v.size();
+  }
+
+  const std::vector<T>& get_as_vector() const {
+    return v;
+  }
+
+private:
+  std::vector<T> v;
+  std::set<T> s;
+};
+
 // ---------------------------------- vector types ----------------------------------
 
 #if FLOAT_T_BYTES == 8

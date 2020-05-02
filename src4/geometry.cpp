@@ -72,17 +72,14 @@ void GeometryObject::to_data_model(
 
   // we would like the vertices to be sorted in the same way as then used in
   // element_connections
-  std::vector<vertex_index_t> unique_vertex_indices;
+  insertion_ordered_set<vertex_index_t> unique_vertex_indices;
   for (wall_index_t wall_index: wall_indices) {
     const Wall& w = p.get_wall(wall_index);
 
     for (vertex_index_t vertex_index: w.vertex_indices) {
       // TODO: find other occurrences where I am searching through a vector and
       // use find
-      if (find(unique_vertex_indices.begin(), unique_vertex_indices.end(), vertex_index) ==
-          unique_vertex_indices.end()) {
-        unique_vertex_indices.push_back(vertex_index);
-      }
+      unique_vertex_indices.insert_ordered(vertex_index);
     }
   }
 
@@ -109,6 +106,39 @@ void GeometryObject::to_data_model(
     }
 
     element_connections.append(vertex_indices);
+  }
+
+  // surface regions
+  insertion_ordered_set<region_index_t> region_indices;
+  map<wall_index_t, uint> map_wall_index_to_order_index_in_object;
+  for (size_t i = 0; i < wall_indices.size(); i++) {
+
+    map_wall_index_to_order_index_in_object[wall_indices[i]] = i;
+
+    const Wall& w = p.get_wall(wall_indices[i]);
+    for (region_index_t region_index: w.regions) {
+      region_indices.insert_ordered(region_index);
+    }
+  }
+
+  Json::Value& define_surface_regions = object[KEY_DEFINE_SURFACE_REGIONS];
+  for (region_index_t region_index: region_indices.get_as_vector()) {
+    const Region& reg = p.get_region(region_index);
+
+    if (reg.name_has_all_suffix()) {
+      continue;
+    }
+
+    Json::Value surface_region;
+    surface_region[KEY_NAME] = reg.name;
+
+    Json::Value include_elements;
+
+    for (auto it :reg.walls_and_edges) {
+       include_elements.append(map_wall_index_to_order_index_in_object[it.first]);
+    }
+    surface_region[KEY_INCLUDE_ELEMENTS] = include_elements;
+    define_surface_regions.append(surface_region);
   }
 }
 

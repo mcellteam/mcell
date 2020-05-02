@@ -39,6 +39,8 @@ const char* const KEY_GEOMETRICAL_OBJECTS = "geometrical_objects";
 const char* const KEY_OBJECT_LIST = "object_list";
 const char* const KEY_ELEMENT_CONNECTIONS = "element_connections";
 const char* const KEY_VERTEX_LIST = "vertex_list";
+const char* const KEY_DEFINE_SURFACE_REGIONS = "define_surface_regions";
+const char* const KEY_INCLUDE_ELEMENTS = "include_elements";
 
 const char* const KEY_MATERIAL_NAMES = "material_names";
 const char* const KEY_MATERIALS = "materials";

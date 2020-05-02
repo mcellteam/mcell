@@ -40,6 +40,8 @@ namespace MCell {
 
 class Partition;
 
+const char* const REGION_ALL_SUFFIX = ",ALL";
+
 /**
  * A single geometrical object composed of multiple walls.
  * Vertices are accessible through the wall indices.
@@ -112,6 +114,18 @@ public:
 
   bool is_reactive() const {
     return species_id != SPECIES_ID_INVALID;
+  }
+
+  // covers whole region
+  // TODO: bettter name?
+  bool name_has_all_suffix() const {
+    std::string all(REGION_ALL_SUFFIX);
+    if (name.size() > all.size()) {
+      return name.substr(name.size() - all.size()) == all;
+    }
+    else {
+      return false;
+    }
   }
 
   void dump(const std::string ind) const;
