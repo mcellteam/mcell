@@ -222,9 +222,9 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
 
       float_t lu = s->length_unit;
       mcell_log("Bounding box in microns: [ %f, %f, %f ], [ %f, %f, %f ]",
-          s->bb_llf.x/lu, s->bb_llf.y/lu, s->bb_llf.z/lu, s->bb_urb.x/lu, s->bb_urb.y/lu, s->bb_urb.z/lu);
+          s->bb_llf.x*lu, s->bb_llf.y*lu, s->bb_llf.z*lu, s->bb_urb.x*lu, s->bb_urb.y*lu, s->bb_urb.z*lu);
       mcell_log("Partition box in microns: [ %f, %f, %f ], [ %f, %f, %f ]",
-          s->partition_llf.x/lu, s->partition_llf.y/lu, s->partition_llf.z/lu, s->partition_urb.x/lu, s->partition_urb.y/lu, s->partition_urb.z/lu);
+          s->partition_llf.x*lu, s->partition_llf.y*lu, s->partition_llf.z*lu, s->partition_urb.x*lu, s->partition_urb.y*lu, s->partition_urb.z*lu);
     }
 
     CHECK_PROPERTY(s->partition_urb.x > s->partition_llf.x);
