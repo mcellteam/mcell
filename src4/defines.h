@@ -48,8 +48,6 @@
 #include <boost/container/flat_set.hpp>
 #endif
 
-#include "../libs/bng/defines_shared.h"
-
 #include "mcell_structs.h"
 #include "debug_config.h"
 
@@ -58,6 +56,8 @@
 #include "../libs/glm/glm.hpp"
 #define GLM_ENABLE_EXPERIMENTAL
 #include "../libs/glm/gtx/component_wise.hpp"
+
+#include "../libs/bng/defines_shared.h"
 
 // this file must not depend on any other from mcell4 otherwise there
 // might be some nasty cyclic include dependencies
@@ -101,6 +101,15 @@
 
 namespace MCell {
 
+// import shared declarations from BNG into our own namespace
+using BNGCommon::float_t;
+using BNGCommon::EPS;
+using BNGCommon::SQRT_EPS;
+using BNGCommon::FLT_GIGANTIC;
+using BNGCommon::fabs_f;
+using BNGCommon::cmp_eq;
+
+
 // ---------------------------------- optimization macros ----------------------------------
 #if defined(likely) or defined(unlikely)
 #error "Macros 'likely' or 'unlikely' are already defined"
@@ -110,23 +119,6 @@ namespace MCell {
 #define unlikely(x)     __builtin_expect((x),0)
 
 // ---------------------------------- float types ----------------------------------
-
-
-#define FLOAT_T_BYTES 8 // or 4 (not working yet)
-
-#if FLOAT_T_BYTES == 8
-typedef double float_t;
-const float_t EPS = 1e-12; // same as EPS_C
-const float_t SQRT_EPS = 1e-6;
-const float_t GIGANTIC4 = 1e140;
-#elif FLOAT_T_BYTES == 4
-typedef float float_t;
-const float_t EPS = 1e-6;
-const float_t SQRT_EPS = 1e-4;
-const float_t GIGANTIC4 = 1e38;
-#else
-#error "FLOAT_T_BYTES must be either 8 or 4"
-#endif
 
 const float_t SCHEDULER_COMPARISON_EPS = 1e-10;
 
@@ -390,29 +382,12 @@ static inline float_t ceil_f(const float_t x) {
 #endif
 }
 
-static inline float_t fabs_f(const float_t x) {
-#if FLOAT_T_BYTES == 8
-  return fabs(x);
-#else
-  return fabsf(x);
-#endif
-}
-
-
 static inline float_t floor_to_multiple(const float_t val, float_t multiple) {
   return (float_t)((int)((val + EPS)/ multiple)) * multiple;
 }
 
 static inline Vec3 floor_to_multiple(const Vec3& val, float_t multiple) {
   return (Vec3)((glm::ivec3)((val + EPS)/ multiple)) * multiple;
-}
-
-static inline bool cmp_eq(const float_t a, const float_t b, const float_t eps) {
-  return fabs_f(a - b) < eps;
-}
-
-static inline bool cmp_eq(float_t a, float_t b) {
-  return cmp_eq(a, b, EPS);
 }
 
 static inline bool cmp_eq(const Vec3& a, const Vec3& b, const float_t eps) {

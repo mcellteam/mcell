@@ -4,8 +4,8 @@
  * No namespace is used here (except for float_t that in enclosed in namespace Common).
  */
 
-#ifndef __SHARED_DEFINES_H__
-#define __SHARED_DEFINES_H__
+#ifndef __BNG_DEFINES_SHARED_H__
+#define __BNG_DEFINES_SHARED_H__
 
 #include <stdint.h>
 #include <climits>
@@ -16,6 +16,7 @@
 #include <iostream>
 #include <map>
 #include <unordered_map>
+#include <cmath>
 
 #include <boost/container/small_vector.hpp>
 #include <boost/container/flat_set.hpp>
@@ -30,42 +31,71 @@
 
 // float_t is also defined in mathdef.h, we need to enclose it into
 // a namespace and then copy the definition in all define headers
-namespace Common {
+namespace BNGCommon {
 
 #if FLOAT_T_BYTES == 8
-typedef double float_t; // will be changed to float
+typedef double float_t;
+#elif FLOAT_T_BYTES == 4
+#  error "Base type float32 is not supported yet"
+typedef float float_t;
 #else
-#error "Base type float32 is not supported yet"
+#  error "FLOAT_T_BYTES must be either 8 or 4"
 #endif
-
 }
 
 #include "bng/bng_config.h"
 
-const Common::float_t BNG_PI = 3.14159265358979323846;
-const Common::float_t BNG_N_AV = 6.0221417930e23;
+namespace BNGCommon {
 
+const float_t BNG_PI = 3.14159265358979323846;
+const float_t BNG_N_AV = 6.0221417930e23;
 
 #if FLOAT_T_BYTES == 8
-const Common::float_t EPS = 1e-12; // same as EPS_C
-const Common::float_t SQRT_EPS = 1e-6;
-const Common::float_t GIGANTIC_DBL = 1e140;
+
+const float_t EPS = 1e-12; // same as EPS_C
+const float_t SQRT_EPS = 1e-6;
+const float_t FLT_GIGANTIC = 1e140;
+
 #else
-#error "Base type float32 is not supported yet"
+
+const float_t EPS = 1e-6;
+const float_t SQRT_EPS = 1e-4;
+const float_t FLT_GIGANTIC = 1e38;
+
 #endif
 
+
+static inline float_t fabs_f(const float_t x) {
+#if FLOAT_T_BYTES == 8
+  return fabs(x);
+#else
+  return fabsf(x);
+#endif
+}
+
+static inline bool cmp_eq(const float_t a, const float_t b, const float_t eps) {
+  return fabs_f(a - b) < eps;
+}
+
+static inline bool cmp_eq(float_t a, float_t b) {
+  return cmp_eq(a, b, EPS);
+}
+
+} // namespace BNGCommon
+
+
 // ---------------------------------- fixed constants and specific typedefs -------------------
-const Common::float_t POS_INVALID = FLT_MAX; // cannot be NAN because we cannot do any comparison with NANs
+const float_t POS_INVALID = FLT_MAX; // cannot be NAN because we cannot do any comparison with NANs
 
-const Common::float_t FLT_INVALID = FLT_MAX;
+const float_t FLT_INVALID = FLT_MAX;
 
-const Common::float_t TIME_INVALID = -1;
-const Common::float_t TIME_FOREVER = FLT_MAX; // this max is sufficient for both float and double
-const Common::float_t TIME_SIMULATION_START = 0;
+const float_t TIME_INVALID = -1;
+const float_t TIME_FOREVER = FLT_MAX; // this max is sufficient for both float and double
+const float_t TIME_SIMULATION_START = 0;
 
-const Common::float_t UINT_INVALID = UINT32_MAX; // invalid value to be used for any invalid unsigned integer values
-const Common::float_t UINT_INVALID2 = UINT32_MAX - 1; // second invalid value not to be used, in this case for any purpose
-const Common::float_t INT_INVALID = INT32_MAX;
+const uint UINT_INVALID = UINT32_MAX; // invalid value to be used for any invalid unsigned integer values
+const uint UINT_INVALID2 = UINT32_MAX - 1; // second invalid value not to be used, in this case for any purpose
+const int INT_INVALID = INT32_MAX;
 
 const uint ID_INVALID = UINT_INVALID; // general invalid index, should not be used when a definition for a specific type is available
 const uint INDEX_INVALID = UINT_INVALID; // general invalid index, should not be used when a definition for a specific type is available
@@ -229,4 +259,4 @@ void uint_set<Key>::dump(const std::string comment) const {
 }
 
 
-#endif // __SHARED_DEFINES_H__
+#endif // __BNG_DEFINES_SHARED_H__

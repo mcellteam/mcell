@@ -1,10 +1,3 @@
-/*
- * config.h
- *
- *  Created on: Mar 26, 2020
- *      Author: ahusar
- */
-
 #ifndef LIBS_BNG_BNG_CONFIG_H_
 #define LIBS_BNG_BNG_CONFIG_H_
 
@@ -40,7 +33,7 @@
  */
 #define BNG_MCELL 1
 
-// included only in common_defines.h
+// included only in defines_shared.h
 
 namespace BNG {
 
@@ -62,17 +55,17 @@ public:
   bool mcell;
 
   // MCell
-  Common::float_t time_unit;
-  Common::float_t length_unit;
-  Common::float_t grid_density;
-  Common::float_t rx_radius_3d;
+  BNGCommon::float_t time_unit;
+  BNGCommon::float_t length_unit;
+  BNGCommon::float_t grid_density;
+  BNGCommon::float_t rx_radius_3d;
 
   // debug
   bool debug_reactions;
 
 };
 
-}
+} // namespace BNG
 
 
 #endif /* LIBS_BNG_BNG_CONFIG_H_ */

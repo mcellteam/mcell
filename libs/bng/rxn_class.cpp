@@ -206,7 +206,7 @@ void RxnClass::compute_initial_rxn_rates() {
   // scale_rxn_probabilities
   // TODO LATER: info and warning printouts
   for (uint i = 0; i < reactions.size(); i++) {
-    if (fabs(cum_probs[i] - GIGANTIC_DBL) < EPS) {
+    if (fabs(cum_probs[i] - FLT_GIGANTIC) < EPS) {
       // special surface reactions are not scaled because their pb_factor is 0
       continue;
     }

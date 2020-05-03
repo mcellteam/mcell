@@ -387,7 +387,7 @@ static void get_grid_neighbors_single_grid_and_index(
     Vec2 near2d;
     float_t d = GeometryUtil::closest_interior_point(p, loc3d, nb_wall, near2d);
 
-    if (!distinguishable_f(d, GIGANTIC4, EPS)) {
+    if (!distinguishable_f(d, FLT_GIGANTIC, EPS)) {
       res_nb_wall_index = WALL_INDEX_INVALID;
     }
     else {

@@ -649,7 +649,7 @@ static float_t find_closest_wall(
   const Wall& moved_wall = p.get_wall(wall_that_moved_molecule);
 
   best_wall_index = WALL_INDEX_INVALID;
-  float_t best_d2 = GIGANTIC4;
+  float_t best_d2 = FLT_GIGANTIC;
   best_wall_pos2d = Vec2(0);
 
   // NOTE: use wall_that_moved_molecule to optimize the search,
