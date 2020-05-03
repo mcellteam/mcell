@@ -5,6 +5,7 @@
 
 #include <stdint.h>
 #include <string>
+#include <iostream>
 
 #include "bng/defines_shared.h"
 
@@ -39,6 +40,11 @@ const mol_type_id_t MOL_TYPE_ID_INVALID = ID_INVALID;
 // rxn rules are always global and presumed to be constant
 typedef uint rxn_rule_id_t;
 const rxn_rule_id_t RXN_RULE_ID_INVALID = ID_INVALID;
+
+// output streams, all are std::count for now
+static inline std::ostream& notify() {
+  return std::cout;
+}
 
 }
 

@@ -11,6 +11,7 @@
 #include <vector>
 
 #include "bng/bng_defines.h"
+#include "bng/bng_data.h"
 #include "bng/species.h"
 
 namespace BNG {
@@ -20,8 +21,9 @@ namespace BNG {
 // objects by its own
 class SpeciesContainer {
 public:
-  SpeciesContainer()
-    : next_species_id(0),
+  SpeciesContainer(const BNGData& bng_data_)
+    : bng_data(bng_data_),
+      next_species_id(0),
       all_molecules_species_id(SPECIES_ID_INVALID),
       all_volume_molecules_species_id(SPECIES_ID_INVALID),
       all_surface_molecules_species_id(SPECIES_ID_INVALID) {
@@ -123,7 +125,12 @@ public:
     return all_surface_molecules_species_id;
   }
 
+  // TODO: remove tyhe bng_data argument
   void dump(const BNGData& bng_data) const;
+
+public:
+  // FIXME: temporary, need some 'context' easily accessible by all classes
+  const BNGData& bng_data;
 
 private:
   species_id_t next_species_id;

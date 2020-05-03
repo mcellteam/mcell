@@ -118,13 +118,13 @@ public:
 
   float_t rate_constant;
 
+  small_vector<RxnRateInfo> variable_rates;
 private:
   uint num_surf_products;
 
   // variable reaction rate constants, sorted by time
   // index is initialized to -1
-  int last_variable_rate_index;
-  small_vector<RxnRateInfo> variable_rates;
+  int next_variable_rate_index;
 
   // maintain information on where this reaction was used in order to
   // update all classes if this reaction's rate constant changes
@@ -133,7 +133,7 @@ private:
 public:
   RxnRule()
     : id(RXN_RULE_ID_INVALID), type(RxnType::Invalid), mol_instances_are_fully_maintained(false), rate_constant(FLT_INVALID),
-      num_surf_products(UINT_INVALID), last_variable_rate_index(-1) {
+      num_surf_products(UINT_INVALID), next_variable_rate_index(-1) {
   }
 
   void finalize();
@@ -228,13 +228,14 @@ public:
 
   // returns false when there are no variable rates or we already processed all scheduled times
   bool may_update_rxn_rate() const {
-    return last_variable_rate_index != (int)variable_rates.size() - 1;
+    return next_variable_rate_index < (int)variable_rates.size();
   }
 
   // returns true if rate was updated
   // requester is the rxn class that requested this update
   bool update_variable_rxn_rate(const float_t current_time, const RxnClass* requester);
 
+  std::string to_str(const BNGData& bng_data) const;
   void dump(const BNGData& bng_data, const std::string ind = "") const;
 
 private:
@@ -254,7 +255,7 @@ private:
 
   void move_products_that_are_also_reactants_to_be_the_first_products();
 
-  void dump_complex_instance_vector(const BNGData& bng_data, const CplxInstanceVector& complexes) const;
+  std::string complex_instance_vector_to_str(const BNGData& bng_data, const CplxInstanceVector& complexes) const;
 
 };
 

@@ -85,6 +85,7 @@ public:
     return equal(ci2);
   }
 
+  std::string to_str(const BNGData& bng_data) const;
   void dump(const BNGData& bng_data, std::string ind = "") const;
 };
 

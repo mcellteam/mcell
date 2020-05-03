@@ -40,7 +40,8 @@ private:
 
 public:
   BNGEngine(const BNGConfig& bng_config_)
-    : all_rxns(all_species, data, bng_config_), bng_config(bng_config_)
+    : all_species(data),
+      all_rxns(all_species, data, bng_config_), bng_config(bng_config_)
       {
   }
 

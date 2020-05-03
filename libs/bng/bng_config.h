@@ -37,6 +37,16 @@
 
 namespace BNG {
 
+class BNGNotifications {
+public:
+  BNGNotifications()
+    : rxn_probability_changed(true)
+    {
+  }
+
+  bool rxn_probability_changed; // related to MCell's varying_probability_report?
+};
+
 class BNGConfig {
 public:
   BNGConfig()
@@ -48,7 +58,7 @@ public:
       rx_radius_3d(0),
 
       debug_reactions(false)
-    {
+  {
   }
 
   // configuration
@@ -63,6 +73,7 @@ public:
   // debug
   bool debug_reactions;
 
+  BNGNotifications notifications;
 };
 
 } // namespace BNG

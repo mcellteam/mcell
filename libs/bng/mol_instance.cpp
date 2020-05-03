@@ -5,6 +5,7 @@
  *      Author: ahusar
  */
 #include <iostream>
+#include <sstream>
 
 #include "bng/ast.h"
 #include "bng/bng_engine.h"
@@ -16,23 +17,29 @@ using namespace std;
 namespace BNG {
 
 // ------------- ComponentInstance -------------
-void ComponentInstance::dump(const BNGData& bng_data, ostream& out) const {
+std::string ComponentInstance::to_str(const BNGData& bng_data) const {
+  stringstream ss;
 
   const ComponentType& ct = bng_data.get_component_type(component_type_id);
-  out << ct.name;
+  ss << ct.name;
 
   assert(state_id != STATE_ID_INVALID);
   if (state_id != STATE_ID_DONT_CARE) {
-    out << "~" << bng_data.get_state_name(state_id);
+    ss << "~" << bng_data.get_state_name(state_id);
   }
 
   assert(state_id != BOND_VALUE_INVALID);
   if (bond_value == BOND_VALUE_ANY) {
-    out << "!" + BOND_STR_ANY;
+    ss << "!" + BOND_STR_ANY;
   }
   else if (bond_value != BOND_VALUE_NO_BOND) {
-    out << "!"  << bond_value;
+    ss << "!"  << bond_value;
   }
+  return ss.str();
+}
+
+void ComponentInstance::dump(const BNGData& bng_data) const {
+  cout << to_str(bng_data);
 }
 
 
@@ -65,24 +72,31 @@ uint MolInstance::get_corresponding_component_index(
 }
 
 
-void MolInstance::dump(const BNGData& bng_data, const bool only_explicit, ostream& out) const {
+std::string MolInstance::to_str(const BNGData& bng_data, const bool only_explicit) const {
+  stringstream ss;
   const MolType& mt = bng_data.get_molecule_type(mol_type_id);
-  out << mt.name << "(";
+  ss << mt.name << "(";
 
   bool first_component = true;
   for (size_t i = 0; i < component_instances.size(); i++) {
 
     if (!only_explicit || component_instances[i].explicitly_listed_in_pattern) {
       if (!first_component) {
-        out << ",";
+        ss << ",";
       }
 
-      component_instances[i].dump(bng_data, out);
+      ss << component_instances[i].to_str(bng_data);
 
       first_component = false;
     }
   }
-  out << ")";
+  ss << ")";
+  return ss.str();
+}
+
+
+void MolInstance::dump(const BNGData& bng_data, const bool only_explicit) const {
+  cout << to_str(bng_data, only_explicit);
 }
 
 

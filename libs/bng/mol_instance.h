@@ -64,7 +64,8 @@ public:
     return state_id != STATE_ID_DONT_CARE;
   }
 
-  void dump(const BNGData& bng_data, std::ostream& out = std::cout) const;
+  std::string to_str(const BNGData& bng_data) const;
+  void dump(const BNGData& bng_data) const;
 };
 
 
@@ -110,7 +111,8 @@ public:
       const uint starting_index
   ) const;
 
-  void dump(const BNGData& bng_data, const bool only_explicit = false, std::ostream& out = std::cout) const;
+  std::string to_str(const BNGData& bng_data, const bool only_explicit = false) const;
+  void dump(const BNGData& bng_data, const bool only_explicit = false) const;
 };
 
 typedef small_vector<MolInstance> MolInstanceVector;

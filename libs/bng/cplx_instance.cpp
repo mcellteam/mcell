@@ -5,6 +5,7 @@
  *      Author: ahusar
  */
 #include <iostream>
+#include <sstream>
 
 #include "bng/ast.h"
 #include "bng/bng_engine.h"
@@ -67,15 +68,20 @@ bool CplxInstance::matches(const CplxInstance& inst, const bool ignore_orientati
 }
 
 
-void CplxInstance::dump(const BNGData& bng_data, std::string ind) const {
-  cout << ind;
+std::string CplxInstance::to_str(const BNGData& bng_data) const {
+  stringstream ss;
   for (size_t i = 0; i < mol_instances.size(); i++) {
-    mol_instances[i].dump(bng_data);
+    ss << mol_instances[i].to_str(bng_data);
 
     if (i != mol_instances.size() - 1) {
-      cout << ".";
+      ss << ".";
     }
   }
+  return ss.str();
+}
+
+void CplxInstance::dump(const BNGData& bng_data, std::string ind) const {
+  cout << ind << to_str(bng_data);
 }
 
 } /* namespace BNG */

@@ -246,12 +246,26 @@ void RxnClass::compute_initial_rxn_rates() {
 
 
 void RxnClass::update_variable_rxn_rates(const float_t current_time) {
-  bool changed = false;
+  bool any_changed = false;
+  vector<bool> specific_rxn_changed;
+
   for (RxnRule* rxn: reactions) {
-    changed |= rxn->update_variable_rxn_rate(current_time, this);
+    bool current_changed = rxn->update_variable_rxn_rate(current_time, this);
+    specific_rxn_changed.push_back(current_changed);
+    any_changed |= current_changed;
   }
-  if (changed) {
+  if (any_changed) {
     compute_initial_rxn_rates();
+  }
+
+  // report
+  for (size_t i = 0; i < specific_rxn_changed.size(); i++) {
+    if (specific_rxn_changed[i]) {
+      float_t prob = (i == 0) ? cum_probs[0] : cum_probs[i] - cum_probs[i - 1];
+      notify() <<
+          "Probability " << prob << " set for " << reactions[i]->to_str(all_species.bng_data) <<
+          " at time " << current_time << ".\n";
+    }
   }
 }
 

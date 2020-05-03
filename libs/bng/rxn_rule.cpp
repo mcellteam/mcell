@@ -275,7 +275,7 @@ bool RxnRule::compute_reactants_products_mapping_w_error_output(const BNGData& b
   bool ok = compute_mol_reactants_products_mapping(not_matching_mol_inst, not_matching_cmi);
   if (!ok) {
     out << "Did not find a matching molecule in products for reactant molecule ";
-    not_matching_mol_inst.dump(bng_data, true, out);
+    out << not_matching_mol_inst.to_str(bng_data, true);
     out << " listed as complex " << not_matching_cmi.cplx_index << " and molecule " << not_matching_cmi.mol_index << ".";
   }
   return ok;
@@ -356,15 +356,16 @@ bool RxnRule::species_is_both_bimol_reactants(const species_id_t id, const Speci
 }
 
 
-void RxnRule::dump_complex_instance_vector(const BNGData& bng_data, const CplxInstanceVector& complexes) const {
-
+std::string RxnRule::complex_instance_vector_to_str(const BNGData& bng_data, const CplxInstanceVector& complexes) const {
+  stringstream ss;
   for (size_t i = 0; i < complexes.size(); i++) {
-    complexes[i].dump(bng_data);
+    ss << complexes[i].to_str(bng_data);
 
     if (i != complexes.size() - 1) {
-      cout << " + ";
+      ss << " + ";
     }
   }
+  return ss.str();
 }
 
 
@@ -373,16 +374,16 @@ bool RxnRule::update_variable_rxn_rate(const float_t current_time, const RxnClas
     return false;
   }
   assert(!variable_rates.empty());
-  assert(last_variable_rate_index + 1 < (int)variable_rates.size());
+  assert(next_variable_rate_index < (int)variable_rates.size());
 
-  if (variable_rates[last_variable_rate_index + 1].time < current_time) {
+  if (variable_rates[next_variable_rate_index].time > current_time) {
     return false;
   }
 
   // find which time to use - the highest but still smaller than the following one
-  size_t current_index = last_variable_rate_index;
-  while (current_index + 1 < variable_rates.size() &&
-          (current_time < variable_rates[current_index + 1].time ||
+  size_t current_index = next_variable_rate_index;
+  while (current_index < variable_rates.size() &&
+          (current_time > variable_rates[current_index + 1].time ||
            cmp_eq(current_time, variable_rates[current_index + 1].time)
         )
   ) {
@@ -391,7 +392,7 @@ bool RxnRule::update_variable_rxn_rate(const float_t current_time, const RxnClas
 
   // current_time >= time for next change
   rate_constant = variable_rates[current_index + 1].rate_constant;
-  last_variable_rate_index = current_index;
+  next_variable_rate_index = current_index + 1;
 
   // notify parents that update is needed
   for (RxnClass* user: rxn_classes_where_used) {
@@ -405,16 +406,21 @@ bool RxnRule::update_variable_rxn_rate(const float_t current_time, const RxnClas
 }
 
 
+std::string RxnRule::to_str(const BNGData& bng_data) const {
+  stringstream ss;
+  ss << name << " ";
+
+  ss << complex_instance_vector_to_str(bng_data, reactants);
+  ss << " -> ";
+  ss << complex_instance_vector_to_str(bng_data, products);
+
+  ss << " " << rate_constant;
+  return ss.str();
+}
+
+
 void RxnRule::dump(const BNGData& bng_data, const std::string ind) const {
-  if (name != "") {
-    cout << ind << name << " ";
-  }
-  dump_complex_instance_vector(bng_data, reactants);
-
-  cout << " -> ";
-  dump_complex_instance_vector(bng_data, products);
-
-  cout << " " << rate_constant;
+  cout << ind << to_str(bng_data);
 }
 
 } /* namespace BNG */

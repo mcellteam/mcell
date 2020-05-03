@@ -830,6 +830,7 @@ static bool get_variable_rates(const t_func* prob_t, vector<vector<BNG::RxnRateI
     info.time = curr->time;
     info.rate_constant = curr->value;
 
+    assert(curr->path < (int)variable_rates_per_pathway.size());
     variable_rates_per_pathway[curr->path].push_back(info);
   }
 
@@ -912,6 +913,7 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
     }
 
     rxn.rate_constant = current_pathway->km;
+    rxn.variable_rates = variable_rates_per_pathway[pathway_index];
 
     CHECK_PROPERTY(current_pathway->reactant1 != nullptr);
     CHECK_PROPERTY(current_pathway->orientation1 == 0 || current_pathway->orientation1 == 1 || current_pathway->orientation1 == -1);
