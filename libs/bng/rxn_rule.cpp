@@ -379,9 +379,19 @@ bool RxnRule::update_variable_rxn_rate(const float_t current_time, const RxnClas
     return false;
   }
 
+  // find which time to use - the highest but still smaller than the following one
+  size_t current_index = last_variable_rate_index;
+  while (current_index + 1 < variable_rates.size() &&
+          (current_time < variable_rates[current_index + 1].time ||
+           cmp_eq(current_time, variable_rates[current_index + 1].time)
+        )
+  ) {
+    current_index++;
+  }
+
   // current_time >= time for next change
-  rate_constant = variable_rates[last_variable_rate_index + 1].rate_constant;
-  last_variable_rate_index++;
+  rate_constant = variable_rates[current_index + 1].rate_constant;
+  last_variable_rate_index = current_index;
 
   // notify parents that update is needed
   for (RxnClass* user: rxn_classes_where_used) {
