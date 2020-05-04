@@ -138,6 +138,14 @@ static inline std::string remove_obj_name_prefix(const std::string& prefix, cons
   return name.substr(pos);
 }
 
+static inline std::string get_surface_region_name(const std::string& name) {
+  size_t pos = name.find(',');
+  // TODO: these checks should be enabled also for release build
+  assert(pos != std::string::npos);
+  assert(pos + 1 < name.size());
+  return name.substr(pos + 1);
+}
+
 } // namespace DataModel
 
 #endif // _DATAMODEL_DEFINES_H_

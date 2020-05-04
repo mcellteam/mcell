@@ -77,8 +77,6 @@ void GeometryObject::to_data_model(
     const Wall& w = p.get_wall(wall_index);
 
     for (vertex_index_t vertex_index: w.vertex_indices) {
-      // TODO: find other occurrences where I am searching through a vector and
-      // use find
       unique_vertex_indices.insert_ordered(vertex_index);
     }
   }
@@ -130,11 +128,13 @@ void GeometryObject::to_data_model(
     }
 
     Json::Value surface_region;
-    surface_region[KEY_NAME] = reg.name;
+
+    string name = DMUtil::get_surface_region_name(reg.name);
+    surface_region[KEY_NAME] = name;
 
     Json::Value include_elements;
 
-    for (auto it :reg.walls_and_edges) {
+    for (auto it: reg.walls_and_edges) {
        include_elements.append(map_wall_index_to_order_index_in_object[it.first]);
     }
     surface_region[KEY_INCLUDE_ELEMENTS] = include_elements;
