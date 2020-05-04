@@ -189,7 +189,7 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const std::vector<molecu
 void DiffuseReactEvent::diffuse_single_molecule(
     Partition& p,
     const molecule_id_t m_id,
-    const float_t diffusion_start_time, // time for which was this event scheduled
+    const float_t diffusion_start_time, // time for which was this action scheduled
     WallTileIndexPair wall_tile_pair_where_created_this_iteration // set only for newly created molecules
 ) {
   assert(diffusion_start_time < event_time + diffusion_time_step);
@@ -203,16 +203,23 @@ void DiffuseReactEvent::diffuse_single_molecule(
 
   // if the molecule is a "newbie", its unimolecular reaction was not yet scheduled,
   // also it might be rescheduled if there was a change in this unimol's rxn rate
-  if (m.has_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RX) != 0) {
-    m.clear_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RX);
-    create_unimol_rx_action(p, time_up_to_event_end, m);
+  if (m.has_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN) != 0 ||
+      (m.has_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RXN_ON_NEXT_RXN_RATE_UPDATE) &&
+       m.unimol_rx_time < event_time + diffusion_time_step)
+  ) {
+    assert(
+        !(m.has_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN) && m.has_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RXN_ON_NEXT_RXN_RATE_UPDATE)) &&
+        "Only one of these flags may be set");
+    m.clear_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN);
+    m.clear_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RXN_ON_NEXT_RXN_RATE_UPDATE);
+    create_unimol_rx_action(p, time_up_to_event_end, m); // TODO: rename, this function does not create any action
   }
 
   // schedule unimol action if it is supposed to be executed in this timestep
   assert(m.unimol_rx_time == TIME_INVALID || m.unimol_rx_time >= event_time);
   if (m.unimol_rx_time != TIME_INVALID && m.unimol_rx != nullptr && m.unimol_rx_time < event_time + diffusion_time_step) {
 
-    assert(!m.has_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RX)
+    assert(!m.has_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN)
         && "This unimol rxn is still to be scheduled, unimol_rx_time only specifies the reschedule time.");
 
     DiffuseOrUnimolRxnAction unimol_react_action(
@@ -1095,7 +1102,7 @@ void DiffuseReactEvent::diffuse_surf_molecule(
       if ((!diffusible || changed_wall) &&
           new_m_ref.unimol_rx_time >= event_time + diffusion_time_step) {
         new_m_ref.unimol_rx_time = TIME_INVALID;
-        new_m_ref.set_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RX);
+        new_m_ref.set_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN);
       }
     }
   }
@@ -1489,11 +1496,23 @@ bool DiffuseReactEvent::react_unimol_single_molecule(
     return true;
   }
 
-  assert(!m.has_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RX) && "Time should differ?? - maybe rather just reschedule");
+  assert(!m.has_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN));
   assert(scheduled_time >= event_time && scheduled_time <= event_time + diffusion_time_step);
 
-  rxn_index_t ri = RxUtil::which_unimolecular(unimol_rxn_class, world->rng);
-  return outcome_unimolecular(p, m, scheduled_time, unimol_rxn_class->get_rxn(ri));
+  if (m.has_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RXN_ON_NEXT_RXN_RATE_UPDATE)) {
+    // this time event does not mean to execute the unimol action, but instead to
+    // update the scheduled time for the updated reaction rate
+    m.clear_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RXN_ON_NEXT_RXN_RATE_UPDATE);
+
+    // TODO: make the 2nd arg of create_unimol_rx_action to be current_time
+    create_unimol_rx_action(p, event_time + diffusion_time_step - scheduled_time, m);
+
+    return true;
+  }
+  else {
+    rxn_index_t ri = RxUtil::which_unimolecular(unimol_rxn_class, world->rng);
+    return outcome_unimolecular(p, m, scheduled_time, unimol_rxn_class->get_rxn(ri));
+  }
 }
 
 
@@ -2072,7 +2091,7 @@ int DiffuseReactEvent::outcome_products_random(
 
       new_vm.flags = IN_VOLUME | (species.can_diffuse() ? ACT_DIFFUSE : 0);
       new_vm.set_flag(MOLECULE_FLAG_VOL);
-      new_vm.set_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RX);
+      new_vm.set_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN);
 
       /* For an orientable reaction, we need to move products away from the surface
        * to ensure they end up on the correct side of the plane. */
@@ -2118,7 +2137,7 @@ int DiffuseReactEvent::outcome_products_random(
       new_m_id = new_sm.id;
       new_sm.flags = (species.can_diffuse() ? ACT_DIFFUSE : 0) | IN_SURFACE;
       new_sm.set_flag(MOLECULE_FLAG_SURF);
-      new_sm.set_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RX);
+      new_sm.set_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN);
 
       // set wall and grid information
       new_sm.s.wall_index = new_grid_pos.wall_index;
@@ -2216,7 +2235,7 @@ bool DiffuseReactEvent::outcome_unimolecular(
   else {
     // we must reschedule the molecule's unimol rxn, this will happen right away 
     // during the molecule's diffusion
-    m_new_ref.set_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RX);
+    m_new_ref.set_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN);
     
     // molecule survived
     return true;

@@ -810,7 +810,7 @@ static float_t compute_unimol_lifetime(
   // ignore if the is the next change if rxn probability closer than the scheduled time
   float_t update_time = rx->get_next_time_of_rxn_rate_update();
   if (current_time + unimol_time_from_now > update_time) {
-    m.set_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RX);
+    m.set_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RXN_ON_NEXT_RXN_RATE_UPDATE);
     unimol_time_from_now = update_time - current_time;
   }
 

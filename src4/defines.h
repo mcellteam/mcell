@@ -135,7 +135,7 @@ const float_t POS_INVALID = FLT_MAX; // cannot be NAN because we cannot do any c
 const float_t LENGTH_INVALID = FLT_MAX;
 
 const float_t TIME_INVALID = -256;
-const float_t TIME_FOREVER = FLT_MAX; // this max is sufficient for both float and double
+const float_t TIME_FOREVER = 1e20; // based on MCell3
 const float_t TIME_SIMULATION_START = 0;
 
 const float_t SQRT2 = 1.41421356238;

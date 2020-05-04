@@ -231,7 +231,7 @@ void ReleaseEvent::place_single_molecule_onto_grid(Partition& p, Wall& wall, til
 
   new_sm.flags = ACT_DIFFUSE | IN_SURFACE;
   new_sm.set_flag(MOLECULE_FLAG_SURF);
-  new_sm.set_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RX);
+  new_sm.set_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN);
 }
 
 
@@ -353,7 +353,7 @@ void ReleaseEvent::release_inside_regions(uint computed_release_number) {
     );
     new_vm.flags = IN_VOLUME | ACT_DIFFUSE;
     new_vm.set_flag(MOLECULE_FLAG_VOL);
-    new_vm.set_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RX);
+    new_vm.set_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN);
 
     n--;
   }
@@ -407,7 +407,7 @@ void ReleaseEvent::release_ellipsoid_or_rectcuboid(uint computed_release_number)
     );
     new_vm.flags = IN_VOLUME | ACT_DIFFUSE;
     new_vm.set_flag(MOLECULE_FLAG_VOL);
-    new_vm.set_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RX);
+    new_vm.set_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN);
 #ifdef DEBUG_RELEASES
     new_vm.dump(p, "Released vm:", "", p.stats.get_current_iteration(), actual_release_time, true);
 #endif
