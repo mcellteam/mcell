@@ -728,6 +728,7 @@ struct t_func {
   struct t_func *next;
   double time;  /* Time to switch to next rate */
   double value; /* Current rate */
+  double value_from_file; /* MCell4, rate value that was loaded from the file*/
   int path;     /* Which rxn pathway is this for? */
 };
 

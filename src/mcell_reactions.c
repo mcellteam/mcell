@@ -3868,6 +3868,7 @@ int load_rate_file(struct volume* state, struct rxn *rx, char *fname, int path) 
             state->chkpt_start_time_seconds, t);
 
         tp->value = rate_constant;
+        tp->value_from_file = rate_constant; // tp->value gets updated later, for MCell we need the value from file
 #ifdef DEBUG
         valid_linecount++;
 #endif

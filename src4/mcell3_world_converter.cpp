@@ -828,7 +828,7 @@ static bool get_variable_rates(const t_func* prob_t, vector<vector<BNG::RxnRateI
 
     BNG::RxnRateInfo info;
     info.time = curr->time;
-    info.rate_constant = curr->value;
+    info.rate_constant = curr->value_from_file;
 
     assert(curr->path < (int)variable_rates_per_pathway.size());
     variable_rates_per_pathway[curr->path].push_back(info);

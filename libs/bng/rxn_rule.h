@@ -123,8 +123,8 @@ private:
   uint num_surf_products;
 
   // variable reaction rate constants, sorted by time
-  // index is initialized to -1
-  int next_variable_rate_index;
+  // index is initialized to 0
+  uint next_variable_rate_index;
 
   // maintain information on where this reaction was used in order to
   // update all classes if this reaction's rate constant changes
@@ -133,7 +133,7 @@ private:
 public:
   RxnRule()
     : id(RXN_RULE_ID_INVALID), type(RxnType::Invalid), mol_instances_are_fully_maintained(false), rate_constant(FLT_INVALID),
-      num_surf_products(UINT_INVALID), next_variable_rate_index(-1) {
+      num_surf_products(UINT_INVALID), next_variable_rate_index(0) {
   }
 
   void finalize();

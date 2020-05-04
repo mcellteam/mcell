@@ -374,7 +374,7 @@ bool RxnRule::update_variable_rxn_rate(const float_t current_time, const RxnClas
     return false;
   }
   assert(!variable_rates.empty());
-  assert(next_variable_rate_index < (int)variable_rates.size());
+  assert(next_variable_rate_index < variable_rates.size());
 
   if (variable_rates[next_variable_rate_index].time > current_time) {
     return false;
@@ -390,8 +390,14 @@ bool RxnRule::update_variable_rxn_rate(const float_t current_time, const RxnClas
     current_index++;
   }
 
+  // should we use the last entry?
+  if (current_index == variable_rates.size() &&
+      next_variable_rate_index == current_index - 1) {
+    current_index = next_variable_rate_index;
+  }
+
   // current_time >= time for next change
-  rate_constant = variable_rates[current_index + 1].rate_constant;
+  rate_constant = variable_rates[current_index].rate_constant;
   next_variable_rate_index = current_index + 1;
 
   // notify parents that update is needed
