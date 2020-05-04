@@ -107,6 +107,20 @@ public:
     }
   }
 
+  // this function expects that update_rxn_rates_if_needed was called
+  // already for the current time
+  float_t get_next_time_of_rxn_rate_update() const {
+    float_t min = TIME_FOREVER;
+    for (const RxnRule* rxn: reactions) {
+
+      float_t t = rxn->get_next_time_of_rxn_rate_update();
+      if (t < min) {
+        min = t;
+      }
+    }
+    return min;
+  }
+
   bool is_standard() const {
     return type == RxnType::Standard;
   }

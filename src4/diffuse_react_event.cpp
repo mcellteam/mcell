@@ -108,75 +108,6 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const std::vector<molecu
     }
   }
 
-#if 0
-  // we have two queues and we must execute items according to their time
-  // priority? released diffusions?
-
-  std::vector<DiffuseOrUnimolRxnAction>* queues[2] = {
-      &delayed_release_diffusions, &new_diffuse_or_unimol_react_actions
-  };
-  bool empty[2] = {queues[0]->empty(), queues[1]->empty() };
-  uint indices[2] = {0, 0};
-
-  while(!empty[0] || !empty[1]) {
-
-    DiffuseOrUnimolRxnAction* actions[2] = { nullptr, nullptr};
-
-    DiffuseOrUnimolRxnAction* selected_action;
-    uint selected_queue;
-
-    if (empty[0]) {
-      selected_action = &(*queues[1])[indices[1]];
-      selected_queue = 1;
-    }
-    else if (empty[1]) {
-      selected_action = &(*queues[0])[indices[0]];
-      selected_queue = 0;
-    }
-    else if ( (*queues[0])[indices[0]].scheduled_time < (*queues[1])[indices[1]].scheduled_time )  {
-      assert(!empty[0]);
-      selected_action = &(*queues[0])[indices[0]];
-      selected_queue = 0;
-    }
-    else {
-      assert(!empty[1]);
-      selected_action = &(*queues[1])[indices[1]];
-      selected_queue = 1;
-    }
-
-    if (selected_action->type == DiffuseOrUnimolRxnAction::Type::DIFFUSE) {
-      diffuse_single_molecule(
-          p, selected_action->id,
-          selected_action->scheduled_time,
-          selected_action->where_created_this_iteration // making a copy of this pair
-      );
-    }
-    else {
-      bool diffuse_right_away = react_unimol_single_molecule(
-          p, selected_action->id, selected_action->scheduled_time, selected_action->unimol_rx);
-
-      // get a fresh action reference - unimol reaction could have added some items into the array
-      const DiffuseOrUnimolRxnAction& new_ref_action = (*queues[selected_queue])[indices[selected_queue]];
-      if (diffuse_right_away) {
-        // if the molecule survived (e.g. in rxn like A -> A + B), then
-        // diffuse it right away
-        // (another option is to put it into the new_diffuse_or_unimol_react_actions
-        //  but MCell3 diffuses them right away)
-        diffuse_single_molecule(
-            p, new_ref_action.id,
-            new_ref_action.scheduled_time,
-            new_ref_action.where_created_this_iteration // making a copy of this pair
-        );
-      }
-    }
-
-    indices[selected_queue]++;
-
-    empty[0] = queues[0]->size() == indices[0];
-    empty[1] = queues[1]->size() == indices[1];
-  }
-
-#else
 
 #ifdef MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID
   // merge the two arrays with actions
@@ -250,7 +181,7 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const std::vector<molecu
       }
     }
   }
-#endif
+
   new_diffuse_or_unimol_react_actions.clear();
 }
 
@@ -270,15 +201,19 @@ void DiffuseReactEvent::diffuse_single_molecule(
 
   float_t time_up_to_event_end =  event_time + diffusion_time_step - diffusion_start_time;
 
-  // if the molecule is a "newbie", its unimolecular reaction was not yet scheduled
+  // if the molecule is a "newbie", its unimolecular reaction was not yet scheduled,
+  // also it might be rescheduled if there was a change in this unimol's rxn rate
   if (m.has_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RX) != 0) {
-    create_unimol_rx_action(p, m, time_up_to_event_end);
     m.clear_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RX);
+    create_unimol_rx_action(p, time_up_to_event_end, m);
   }
 
   // schedule unimol action if it is supposed to be executed in this timestep
   assert(m.unimol_rx_time == TIME_INVALID || m.unimol_rx_time >= event_time);
   if (m.unimol_rx_time != TIME_INVALID && m.unimol_rx != nullptr && m.unimol_rx_time < event_time + diffusion_time_step) {
+
+    assert(!m.has_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RX)
+        && "This unimol rxn is still to be scheduled, unimol_rx_time only specifies the reschedule time.");
 
     DiffuseOrUnimolRxnAction unimol_react_action(
         DiffuseOrUnimolRxnAction::Type::UNIMOL_REACT, m.id, m.unimol_rx_time, m.unimol_rx);
@@ -1507,26 +1442,26 @@ wall_index_t DiffuseReactEvent::ray_trace_surf(
 
 
 void DiffuseReactEvent::create_unimol_rx_action(
-    Partition& p,
-    Molecule& m,
-    float_t remaining_time_step
+    const Partition& p,
+    const float_t remaining_time_step,
+    Molecule& m
 ) {
-  float_t curr_time = event_time + diffusion_time_step - remaining_time_step;
-  assert(curr_time >= 0);
+  float_t current_time = event_time + diffusion_time_step - remaining_time_step;
+  assert(current_time >= 0);
 
-  RxnClass* rxn = RxUtil::pick_unimol_rx(world, m.species_id);
-  if (rxn == nullptr) {
+  RxnClass* rxn_class = RxUtil::pick_unimol_rx(world, m.species_id, current_time);
+  if (rxn_class == nullptr) {
     return;
   }
 
-  float_t time_from_now = RxUtil::compute_unimol_lifetime(p, world->rng, m, rxn);
+  float_t time_from_now = RxUtil::compute_unimol_lifetime(p, world->rng, rxn_class, current_time, m);
 
-  float_t scheduled_time = curr_time + time_from_now; // TODO: this is weird... seems mcell uses t+t2?
+  float_t scheduled_time = current_time + time_from_now;
 
   // we need to store the end time to the molecule because oit is needed in diffusion to
   // figure out whether we should do the whole time step
   m.unimol_rx_time = scheduled_time;
-  m.unimol_rx = rxn;
+  m.unimol_rx = rxn_class;
 }
 
 
@@ -1551,9 +1486,10 @@ bool DiffuseReactEvent::react_unimol_single_molecule(
   // unimolecular reactions for surface molecules can be rescheduled,
   // ignore this action in this case
   if (scheduled_time != m.unimol_rx_time) {
-    return true; // TODO: check, we will probably need to return false here...
+    return true;
   }
 
+  assert(!m.has_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RX) && "Time should differ?? - maybe rather just reschedule");
   assert(scheduled_time >= event_time && scheduled_time <= event_time + diffusion_time_step);
 
   rxn_index_t ri = RxUtil::which_unimolecular(unimol_rxn_class, world->rng);
@@ -2281,11 +2217,6 @@ bool DiffuseReactEvent::outcome_unimolecular(
     // we must reschedule the molecule's unimol rxn, this will happen right away 
     // during the molecule's diffusion
     m_new_ref.set_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RX);
-    
-    // a cleaner way would be to schedule a new diffusion event but we must do the diffusion right away 
-    // to stay compatible with mcell3
-    // float_t time_up_to_event_end = diffusion_time_step - time_from_event_start;
-		// create_unimol_rx_action(p, m_new_ref, time_up_to_event_end);
     
     // molecule survived
     return true;

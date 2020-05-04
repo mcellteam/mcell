@@ -764,9 +764,14 @@ static rxn_index_t test_many_intersect(
 // TODO: remove this function
 static BNG::RxnClass* pick_unimol_rx(
     World* world,
-    const species_id_t species_id
+    const species_id_t species_id,
+    const float_t current_time
 ) {
-  return world->bng_engine.get_all_rxns().get_unimol_rxn_class(species_id);
+  BNG::RxnClass* rxn_class = world->bng_engine.get_all_rxns().get_unimol_rxn_class(species_id);
+  if (rxn_class != nullptr) {
+    rxn_class->update_rxn_rates_if_needed(current_time);
+  }
+  return rxn_class;
 }
 
 
@@ -775,8 +780,9 @@ static float_t time_of_unimol(const BNG::RxnClass* rxn_class, rng_state& rng) {
   double k_tot = rxn_class->max_fixed_p;
   double p = rng_dbl(&rng);
 
-  if ((k_tot <= 0) || (!distinguishable_f(p, 0, EPS)))
+  if ((k_tot <= 0) || (!distinguishable_f(p, 0, EPS))) {
     return TIME_FOREVER;
+  }
   return -log(p) / k_tot;
 }
 
@@ -785,22 +791,30 @@ static float_t time_of_unimol(const BNG::RxnClass* rxn_class, rng_state& rng) {
 static float_t compute_unimol_lifetime(
     const Partition& p,
     rng_state& rng,
-    const Molecule& vm,
-    const BNG::RxnClass* rx
+    const BNG::RxnClass* rx,
+    const float_t current_time,
+    Molecule& m
 ) {
   assert(rx != nullptr);
 
-  float_t res = time_of_unimol(rx, rng);
+  float_t unimol_time_from_now = time_of_unimol(rx, rng);
 
 #ifdef DEBUG_REACTIONS
   SimulationStats* world = &p.stats;
   DUMP_CONDITION4(
       // calling rng for unimolecular
-      vm.dump(p, "Assigned unimolecular time (prev rng):", "", p.stats.get_current_iteration(), res);
+      m.dump(p, "Assigned unimolecular time (prev rng):", "", p.stats.get_current_iteration(), unimol_time_from_now);
   );
 #endif
 
-  return res;
+  // ignore if the is the next change if rxn probability closer than the scheduled time
+  float_t update_time = rx->get_next_time_of_rxn_rate_update();
+  if (current_time + unimol_time_from_now > update_time) {
+    m.set_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RX);
+    unimol_time_from_now = update_time - current_time;
+  }
+
+  return unimol_time_from_now;
 }
 
 /*************************************************************************

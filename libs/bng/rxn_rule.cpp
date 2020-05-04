@@ -376,7 +376,8 @@ bool RxnRule::update_variable_rxn_rate(const float_t current_time, const RxnClas
   assert(!variable_rates.empty());
   assert(next_variable_rate_index < variable_rates.size());
 
-  if (variable_rates[next_variable_rate_index].time > current_time) {
+  if (variable_rates[next_variable_rate_index].time > current_time
+      && !cmp_eq(variable_rates[next_variable_rate_index].time, current_time) ) {
     return false;
   }
 

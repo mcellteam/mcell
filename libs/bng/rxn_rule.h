@@ -235,6 +235,15 @@ public:
   // requester is the rxn class that requested this update
   bool update_variable_rxn_rate(const float_t current_time, const RxnClass* requester);
 
+  float_t get_next_time_of_rxn_rate_update() const {
+    if (may_update_rxn_rate()) {
+      return variable_rates[next_variable_rate_index].time;
+    }
+    else {
+      return TIME_FOREVER;
+    }
+  }
+
   std::string to_str(const BNGData& bng_data) const;
   void dump(const BNGData& bng_data, const std::string ind = "") const;
 

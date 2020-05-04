@@ -279,9 +279,9 @@ private:
   );
 
   void create_unimol_rx_action(
-      Partition& p,
-      Molecule& vm,
-      float_t remaining_time_step
+      const Partition& p,
+      const float_t remaining_time_step,
+      Molecule& vm
   );
 
   bool react_unimol_single_molecule(
