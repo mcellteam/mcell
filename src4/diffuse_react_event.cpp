@@ -202,17 +202,20 @@ void DiffuseReactEvent::diffuse_single_molecule(
   float_t time_up_to_event_end =  event_time + diffusion_time_step - diffusion_start_time;
 
   // if the molecule is a "newbie", its unimolecular reaction was not yet scheduled,
-  // also it might be rescheduled if there was a change in this unimol's rxn rate
-  if (m.has_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN) != 0 ||
-      (m.has_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RXN_ON_NEXT_RXN_RATE_UPDATE) &&
-       m.unimol_rx_time < event_time + diffusion_time_step)
-  ) {
-    assert(
-        !(m.has_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN) && m.has_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RXN_ON_NEXT_RXN_RATE_UPDATE)) &&
-        "Only one of these flags may be set");
+  assert(
+      !(m.has_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN) && m.has_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RXN_ON_NEXT_RXN_RATE_UPDATE)) &&
+      "Only one of these flags may be set");
+  if (m.has_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN)) {
     m.clear_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN);
-    m.clear_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RXN_ON_NEXT_RXN_RATE_UPDATE);
     create_unimol_rx_action(p, time_up_to_event_end, m); // TODO: rename, this function does not create any action
+  }
+
+  // we might need to change the reaction rate right now
+  if (m.has_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RXN_ON_NEXT_RXN_RATE_UPDATE) && cmp_eq(m.unimol_rx_time, diffusion_start_time)) {
+    assert(m.unimol_rx_time != TIME_INVALID);
+    assert(m.unimol_rx != nullptr);
+    m.clear_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RXN_ON_NEXT_RXN_RATE_UPDATE);
+    create_unimol_rx_action(p, time_up_to_event_end, m);
   }
 
   // schedule unimol action if it is supposed to be executed in this timestep
