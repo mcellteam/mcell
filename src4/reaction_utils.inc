@@ -762,7 +762,7 @@ static rxn_index_t test_many_intersect(
 // might return nullptr if there is no unimolecular reaction for this species
 // based on pick_unimolecular_reaction
 // TODO: remove this function
-static BNG::RxnClass* pick_unimol_rx(
+static BNG::RxnClass* pick_unimol_rxn_class(
     World* world,
     const species_id_t species_id,
     const float_t current_time

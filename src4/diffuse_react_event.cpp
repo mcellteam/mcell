@@ -199,15 +199,13 @@ void DiffuseReactEvent::diffuse_single_molecule(
   if (m.is_defunct())
     return;
 
-  float_t time_up_to_event_end =  event_time + diffusion_time_step - diffusion_start_time;
-
   // if the molecule is a "newbie", its unimolecular reaction was not yet scheduled,
   assert(
       !(m.has_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN) && m.has_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RXN_ON_NEXT_RXN_RATE_UPDATE)) &&
       "Only one of these flags may be set");
   if (m.has_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN)) {
     m.clear_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN);
-    create_unimol_rx_action(p, time_up_to_event_end, m); // TODO: rename, this function does not create any action
+    pick_unimol_rxn_class_and_set_rxn_time(p, diffusion_start_time, m); // TODO: rename, this function does not create any action
   }
 
   // we might need to change the reaction rate right now
@@ -215,7 +213,7 @@ void DiffuseReactEvent::diffuse_single_molecule(
     assert(m.unimol_rx_time != TIME_INVALID);
     assert(m.unimol_rx != nullptr);
     m.clear_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RXN_ON_NEXT_RXN_RATE_UPDATE);
-    create_unimol_rx_action(p, time_up_to_event_end, m);
+    pick_unimol_rxn_class_and_set_rxn_time(p, diffusion_start_time, m);
   }
 
   // schedule unimol action if it is supposed to be executed in this timestep
@@ -250,7 +248,7 @@ void DiffuseReactEvent::diffuse_single_molecule(
 #endif
 
   // max_time is the time for which we should simulate the diffusion
-  float_t max_time = time_up_to_event_end;
+  float_t max_time = event_time + diffusion_time_step - diffusion_start_time;
   if (m.unimol_rx_time != TIME_INVALID && m.unimol_rx_time < diffusion_start_time + max_time) {
     assert(m.unimol_rx_time >= diffusion_start_time);
     max_time = m.unimol_rx_time - diffusion_start_time;
@@ -1451,15 +1449,14 @@ wall_index_t DiffuseReactEvent::ray_trace_surf(
 // ---------------------------------- other ----------------------------------
 
 
-void DiffuseReactEvent::create_unimol_rx_action(
+void DiffuseReactEvent::pick_unimol_rxn_class_and_set_rxn_time(
     const Partition& p,
-    const float_t remaining_time_step,
+    const float_t current_time,
     Molecule& m
 ) {
-  float_t current_time = event_time + diffusion_time_step - remaining_time_step;
   assert(current_time >= 0);
 
-  RxnClass* rxn_class = RxUtil::pick_unimol_rx(world, m.species_id, current_time);
+  RxnClass* rxn_class = RxUtil::pick_unimol_rxn_class(world, m.species_id, current_time);
   if (rxn_class == nullptr) {
     return;
   }
@@ -1507,8 +1504,7 @@ bool DiffuseReactEvent::react_unimol_single_molecule(
     // update the scheduled time for the updated reaction rate
     m.clear_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RXN_ON_NEXT_RXN_RATE_UPDATE);
 
-    // TODO: make the 2nd arg of create_unimol_rx_action to be current_time
-    create_unimol_rx_action(p, event_time + diffusion_time_step - scheduled_time, m);
+    pick_unimol_rxn_class_and_set_rxn_time(p, scheduled_time, m);
 
     return true;
   }

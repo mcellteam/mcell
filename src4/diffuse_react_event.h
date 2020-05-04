@@ -278,7 +278,7 @@ private:
       bool& keep_reacB
   );
 
-  void create_unimol_rx_action(
+  void pick_unimol_rxn_class_and_set_rxn_time(
       const Partition& p,
       const float_t remaining_time_step,
       Molecule& vm
