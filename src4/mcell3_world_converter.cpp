@@ -898,7 +898,7 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
     assert((pathway_index < mcell3_rx->n_pathways) || (pathway_index == 0 && mcell3_rx->n_pathways < 0));
 
     // -> pathway is renamed in MCell3 to reaction because pathway has a different meaning
-    //    MCell3 rection is reaction class
+    //    MCell3 reaction is reaction class
     RxnRule rxn;
 
     if (current_pathway->pathname != nullptr) {
@@ -912,7 +912,20 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
       rxn.name = NAME_NOT_SET;
     }
 
-    rxn.rate_constant = current_pathway->km;
+    if (mcell3_rx->prob_t == nullptr) {
+      rxn.rate_constant = current_pathway->km;
+    }
+    else {
+      CHECK_PROPERTY(mcell3_rx->n_pathways > 0);
+      CHECK_PROPERTY(mcell3_rx->pb_factor != 0);
+
+      // with variable rates, we may need to recompute the initial value for iteration 0
+      float_t prob = (pathway_index == 0) ?
+          mcell3_rx->cum_probs[0] : (mcell3_rx->cum_probs[pathway_index] - mcell3_rx->cum_probs[pathway_index-1]);
+
+      rxn.rate_constant = prob / mcell3_rx->pb_factor;
+    }
+
     if (!variable_rates_per_pathway.empty()) {
       assert(pathway_index < (int)variable_rates_per_pathway.size());
       rxn.variable_rates = variable_rates_per_pathway[pathway_index];
