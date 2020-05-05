@@ -23,181 +23,103 @@
 #include "bng_data_to_datamodel_converter.h"
 
 #include "datamodel_defines.h"
+#include "bng/bng.h"
+
+using namespace std;
+using namespace DMUtil;
+using Json::Value;
 
 namespace MCell {
 
+BngDataToDatamodelConverter::BngDataToDatamodelConverter() {
+  reset();
+
+  // list from https://www.rapidtables.com/web/color/RGB_Color.html
+  colors.push_back(Vec3(1, 0, 0));
+  colors.push_back(Vec3(0, 1, 0));
+  colors.push_back(Vec3(0, 0, 1));
+  colors.push_back(Vec3(1, 1, 0));
+  colors.push_back(Vec3(0, 1, 1));
+  colors.push_back(Vec3(1, 0, 1));
+  // ...
+}
+
+
+void BngDataToDatamodelConverter::reset() {
+  bng_engine = nullptr;
+  next_color_index = 0;
+}
+
+
 void BngDataToDatamodelConverter::to_data_model(
-    Json::Value& mcell_node, const BNG::BNGEngine& bng_engine) {
+    const BNG::BNGEngine& bng_engine_, Value& mcell_node) {
+
+  reset();
+
+  bng_engine = &bng_engine_;
+
+  convert_species(mcell_node);
+
+  //convert_reactions(mcell_node);
+
   return;
 }
 
-} // namespace MCell
 
-#if 0
+Vec3 BngDataToDatamodelConverter::get_next_color() {
+  Vec3 res = colors[next_color_index];
+  next_color_index++;
+  if (next_color_index == colors.size()) {
+    next_color_index = 0;
+  }
+  return res;
+}
 
 
-void SpeciesInfo::covert_species_cointainer(Json::Value& mcell) const {
-  Json::Value& define_molecules = mcell[KEY_DEFINE_MOLECULES];
+void BngDataToDatamodelConverter::convert_species(Value& mcell_node) {
+  //
+  Value& define_molecules = mcell_node[KEY_DEFINE_MOLECULES];
   json_add_version(define_molecules, JSON_DM_VERSION_1638);
-  Json::Value& molecule_list = define_molecules[KEY_MOLECULE_LIST];
+  Value& molecule_list = define_molecules[KEY_MOLECULE_LIST];
 
-  for (const Species &s: species) {
+  for (const BNG::Species& s: bng_engine->get_all_species().get_species_vector()) {
     if (s.name == ALL_MOLECULES || s.name == ALL_VOLUME_MOLECULES || s.name == ALL_SURFACE_MOLECULES) {
       continue;
     }
-    Json::Value species_value;
-    s.to_data_model(species_value);
-    molecule_list.append(species_value);
+    Value species_node;
+    convert_single_species(s, species_node);
+    molecule_list.append(species_node);
   }
 }
 
+void BngDataToDatamodelConverter::convert_single_species(const BNG::Species& s, Value& species_node) {
 
-#ifndef SRC4_SPECIES_H_
-#define SRC4_SPECIES_H_
+  json_add_version(species_node, JSON_DM_VERSION_1632);
 
-#include <string>
-#include <vector>
-#include "defines.h"
-
-#include "mcell_structs.h"
-
-namespace Json {
-class Value;
-}
-
-namespace MCell {
-
-// same as in mcell_structs but renamed to make sure it is used correctly
-enum species_flag_t {
-
-  SPECIES_FLAG_ON_GRID = ON_GRID, // 0x01
-  SPECIES_FLAG_IS_SURFACE = IS_SURFACE, // 0x02 - not stored
-  SPECIES_FLAG_CAN_VOLVOL = CAN_VOLVOL, // 0x10  - can vol vol react?
-  SPECIES_FLAG_CAN_VOLSURF = CAN_VOLSURF, // 0x20
-  SPECIES_FLAG_CAN_SURFSURF = CAN_SURFSURF, // 0x80
-  SPECIES_FLAG_CANT_INITIATE = CANT_INITIATE, // 0x400 - not sure what to do with this yet
-  SPECIES_FLAG_CAN_SURFSURFSURF = CAN_SURFSURFSURF, // 0x20000 - not supported
-  SPECIES_FLAG_SET_MAX_STEP_LENGTH = SET_MAX_STEP_LENGTH, // 0x80000
-  SPECIES_FLAG_CAN_REGION_BORDER = CAN_REGION_BORDER, // 0x100000
-  SPECIES_FLAG_EXTERNAL_SPECIES = EXTERNAL_SPECIES // 0x400000 - not supported
-};
-
-/**
- * Holds information on one species type.
- */
-class Species {
-public:
-  Species()
-  : species_id(SPECIES_ID_INVALID), mcell3_species_id(0),
-    D(FLT_INVALID), space_step(FLT_INVALID), time_step(FLT_INVALID),
-    flags(0), color(1, 0, 0), scale(1)
-    {
-  }
-
-  species_id_t species_id;
-
-  uint mcell3_species_id;
-  float_t D; // diffusion constant
-  std::string name;
-
-  // TODO: make private
-  float_t space_step;
-  float_t time_step; // in standard time
-
-  uint flags;
-
-  // DMFIXME: how to represent colors? what is the color format in datamodel?
-  Vec3 color;  // mol color default is red
-  float_t scale; // scale = 1 by default
-
-  bool has_flag(species_flag_t flag) const {
-    assert(__builtin_popcount(flag) == 1);
-    return (flags & flag) != 0;
-  }
-
-  bool is_surf() const {
-    return has_flag(SPECIES_FLAG_ON_GRID);
-  }
-
-  bool is_vol() const {
-    return !has_flag(SPECIES_FLAG_ON_GRID);
-  }
-
-  bool is_reactive_surface() const {
-    return has_flag(SPECIES_FLAG_IS_SURFACE);
-  }
-
-  // true if can interact with edge of an border
-  bool can_interact_with_border() const {
-    return has_flag(SPECIES_FLAG_CAN_REGION_BORDER);
-  }
-
-  bool can_diffuse() const {
-    return D != DIFFUSION_CONSTANT_ZER0;
-  }
-
-  float_t get_time_step() const {
-    return time_step;
-  }
-
-  float_t get_space_step() const {
-    return space_step;
-  }
-
-  void dump(const std::string ind) const;
-  static void dump_array(const std::vector<Species>& vec);
-
-  void to_data_model(Json::Value& species) const;
-
-  void set_color(float_t r, float_t g, float_t b);
-  void set_scale(float_t s);
-};
-
-} // namespace mcell
-
-#endif // SRC4_SPECIES_H_
-
-
-void Species::to_data_model(Json::Value& species) const{
-
-  json_add_version(species, JSON_DM_VERSION_1632);
-
-  Json::Value& display = species[KEY_DISPLAY];
+  Value& display = species_node[KEY_DISPLAY];
   display[KEY_EMIT] = 0.0;
-  Json::Value& color_value = display[KEY_COLOR];
-  color_value.append(color.r);
-  color_value.append(color.g);
-  color_value.append(color.b);
+  Value& color_value = display[KEY_COLOR];
+  Vec3 c = get_next_color();
+  color_value.append(c.r);
+  color_value.append(c.g);
+  color_value.append(c.b);
   display[KEY_GLYPH] = VALUE_GLYPH_SPHERE_1;
-  display[KEY_SCALE] = scale;
+  display[KEY_SCALE] = 1;
 
-
-  species[KEY_BNGL_COMPONENT_LIST] = Json::Value(Json::arrayValue); // empty array;
-  species[KEY_MOL_BNGL_LABEL] = "";
-  species[KEY_DESCRIPTION] = "";
-  species[KEY_MOL_TYPE] = is_vol() ? VALUE_MOL_TYPE_3D : VALUE_MOL_TYPE_2D;
-  species[KEY_EXPORT_VIZ] = false; // true causes error in cellblender
-  species[KEY_CUSTOM_SPACE_STEP] = "";
-  species[KEY_MAXIMUM_STEP_LENGTH] = "";
-  species[KEY_TARGET_ONLY] = false;
-  species[KEY_DIFFUSION_CONSTANT] = to_string(D);
-  species[KEY_SPATIAL_STRUCTURE] = "None";
-  species[KEY_MOL_NAME] = name;
-  species[KEY_CUSTOM_TIME_STEP] = "";
+  species_node[KEY_BNGL_COMPONENT_LIST] = Value(Json::arrayValue); // empty array;
+  species_node[KEY_MOL_BNGL_LABEL] = "";
+  species_node[KEY_DESCRIPTION] = "";
+  species_node[KEY_MOL_TYPE] = s.is_vol() ? VALUE_MOL_TYPE_3D : VALUE_MOL_TYPE_2D;
+  species_node[KEY_EXPORT_VIZ] = false; // true causes error in cellblender
+  species_node[KEY_CUSTOM_SPACE_STEP] = "";
+  species_node[KEY_MAXIMUM_STEP_LENGTH] = "";
+  species_node[KEY_TARGET_ONLY] = false;
+  species_node[KEY_DIFFUSION_CONSTANT] = to_string(s.D);
+  species_node[KEY_SPATIAL_STRUCTURE] = "None";
+  species_node[KEY_MOL_NAME] = s.name;
+  species_node[KEY_CUSTOM_TIME_STEP] = "";
 }
 
-// sets mol display color
-void Species::set_color(float_t r, float_t g, float_t b) {
-  assert((r <= 1 && r >= 0) && (g <= 1 && g >= 0) && (b <= 1 && b >= 0));
-  color.r = r;
-  color.g = g;
-  color.b = b;
-}
 
-// sets mol display size
-void Species::set_scale(float_t s) {
-  assert(s > 0);
-  scale = s;
-}
+} // namespace MCell
 
-#endif

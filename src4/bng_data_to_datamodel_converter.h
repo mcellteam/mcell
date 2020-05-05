@@ -24,6 +24,7 @@
 #define SRC4_BNGDATA_TO_DATAMODEL_CONVERTER_H_
 
 #include <cassert>
+#include "defines.h"
 
 namespace Json {
 class Value;
@@ -31,6 +32,7 @@ class Value;
 
 namespace BNG {
 class BNGEngine;
+class Species;
 }
 
 namespace MCell {
@@ -42,9 +44,23 @@ namespace MCell {
  */
 class BngDataToDatamodelConverter {
 public:
+  BngDataToDatamodelConverter();
+
   // does nothing for now, there will be changes in BNG data and
   // converting species is not needed at this point
-  void to_data_model(Json::Value& mcell_node, const BNG::BNGEngine& bng_engine);
+  void to_data_model(const BNG::BNGEngine& bng_engine, Json::Value& mcell_node);
+
+private:
+  void reset();
+
+  Vec3 get_next_color();
+  void BngDataToDatamodelConverter::convert_species(Json::Value& mcell_node);
+  void convert_single_species(const BNG::Species& s, Json::Value& species_node);
+
+  const BNG::BNGEngine* bng_engine;
+
+  uint next_color_index;
+  std::vector<Vec3> colors;
 };
 
 } // namespace MCell
