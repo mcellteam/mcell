@@ -54,7 +54,7 @@ private:
   void reset();
 
   Vec3 get_next_color();
-  void BngDataToDatamodelConverter::convert_species(Json::Value& mcell_node);
+  void convert_species(Json::Value& mcell_node);
   void convert_single_species(const BNG::Species& s, Json::Value& species_node);
 
   const BNG::BNGEngine* bng_engine;
