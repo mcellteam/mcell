@@ -143,7 +143,7 @@ bool PymcellConverter::convert(
 void PymcellConverter::convert_single_geomerty_object(
     ostream& out, const int index, Value& object) {
 
-  string parent_name = KEY_OBJECT_LIST + '[' + to_string(index) + ']';
+  string parent_name = S(KEY_OBJECT_LIST) + "[" + to_string(index) + "]";
 
   string name = get_node(parent_name, object, KEY_NAME).asString();
   Value& vertex_list = get_node(parent_name, object, KEY_VERTEX_LIST);

@@ -822,7 +822,7 @@ bool MCell3WorldConverter::convert_species(volume* s) {
 
 
 // variable_rates_per_pathway is already resized to the number of pathways
-static bool get_variable_rates(const t_func* prob_t, vector<vector<BNG::RxnRateInfo>>& variable_rates_per_pathway) {
+static bool get_variable_rates(const t_func* prob_t, small_vector<small_vector<BNG::RxnRateInfo>>& variable_rates_per_pathway) {
   for (const t_func* curr = prob_t; curr != nullptr; curr = curr->next) {
     assert(curr->path >= 0 && curr->path < (int)variable_rates_per_pathway.size());
 
@@ -835,7 +835,7 @@ static bool get_variable_rates(const t_func* prob_t, vector<vector<BNG::RxnRateI
   }
 
   // make sure that they are sorted by time
-  for (vector<BNG::RxnRateInfo>& rates: variable_rates_per_pathway) {
+  for (small_vector<BNG::RxnRateInfo>& rates: variable_rates_per_pathway) {
     sort(variable_rates_per_pathway.begin(), variable_rates_per_pathway.end());
   }
 
@@ -874,7 +874,7 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
   CHECK_PROPERTY(mcell3_rx->n_occurred == 0);
   CHECK_PROPERTY(mcell3_rx->n_skipped == 0);
 
-  vector<vector<BNG::RxnRateInfo>> variable_rates_per_pathway;
+  small_vector<small_vector<BNG::RxnRateInfo>> variable_rates_per_pathway;
   if (mcell3_rx->n_pathways > 0) {
     variable_rates_per_pathway.resize(mcell3_rx->n_pathways);
 
@@ -1501,6 +1501,10 @@ bool MCell3WorldConverter::convert_mol_count_and_rxn_count_events(volume* s) {
       }
       else if ((req->report_type & REPORT_RXNS) != 0) {
         count_mols_not_rxns = false;
+      }
+      else {
+        assert(false);
+        count_mols_not_rxns = true; // silence compilation warning
       }
 
       // count location
