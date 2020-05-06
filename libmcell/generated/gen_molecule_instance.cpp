@@ -54,7 +54,7 @@ py::class_<MoleculeInstance> define_pybinding_MoleculeInstance(py::module& m) {
           >(),
           py::arg("molecule_type"),
           py::arg("components") = std::vector<std::shared_ptr<ComponentInstance>>()
-        )
+      )
       .def("check_semantics", &MoleculeInstance::check_semantics)
       .def("__str__", &MoleculeInstance::to_str, py::arg("ind") = std::string(""))
       .def("dump", &MoleculeInstance::dump)

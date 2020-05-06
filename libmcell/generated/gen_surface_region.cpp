@@ -55,7 +55,7 @@ py::class_<SurfaceRegion> define_pybinding_SurfaceRegion(py::module& m) {
           >(),
           py::arg("name"),
           py::arg("element_connections")
-        )
+      )
       .def("check_semantics", &SurfaceRegion::check_semantics)
       .def("__str__", &SurfaceRegion::to_str, py::arg("ind") = std::string(""))
       .def("dump", &SurfaceRegion::dump)

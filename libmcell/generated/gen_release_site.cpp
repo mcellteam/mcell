@@ -74,7 +74,7 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
           py::arg("site_diameter") = FLT_UNSET,
           py::arg("site_radius") = FLT_UNSET,
           py::arg("release_probability") = FLT_UNSET
-        )
+      )
       .def("check_semantics", &ReleaseSite::check_semantics)
       .def("__str__", &ReleaseSite::to_str, py::arg("ind") = std::string(""))
       .def("dump", &ReleaseSite::dump)

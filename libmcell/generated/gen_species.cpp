@@ -63,7 +63,7 @@ py::class_<Species> define_pybinding_Species(py::module& m) {
           py::arg("diffusion_constant_3d") = FLT_UNSET,
           py::arg("molecule_instances") = std::vector<std::shared_ptr<MoleculeInstance>>(),
           py::arg("orientation") = Orientation::None
-        )
+      )
       .def("check_semantics", &Species::check_semantics)
       .def("__str__", &Species::to_str, py::arg("ind") = std::string(""))
       .def("inst", &Species::inst, py::arg("orientation") = Orientation::NotSet)

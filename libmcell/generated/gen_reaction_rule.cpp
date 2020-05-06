@@ -59,7 +59,7 @@ py::class_<ReactionRule> define_pybinding_ReactionRule(py::module& m) {
           py::arg("products") = std::vector<std::shared_ptr<ComplexInstance>>(),
           py::arg("fwd_rate") = FLT_UNSET,
           py::arg("rev_rate") = FLT_UNSET
-        )
+      )
       .def("check_semantics", &ReactionRule::check_semantics)
       .def("__str__", &ReactionRule::to_str, py::arg("ind") = std::string(""))
       .def("dump", &ReactionRule::dump)

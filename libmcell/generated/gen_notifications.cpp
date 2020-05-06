@@ -67,7 +67,7 @@ py::class_<Notifications> define_pybinding_Notifications(py::module& m) {
           py::arg("progress_report") = true,
           py::arg("release_event_report") = true,
           py::arg("molecule_collision_report") = true
-        )
+      )
       .def("check_semantics", &Notifications::check_semantics)
       .def("__str__", &Notifications::to_str, py::arg("ind") = std::string(""))
       .def("dump", &Notifications::dump)

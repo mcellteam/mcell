@@ -58,7 +58,7 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
           py::arg("accurate_3d_reactions") = true,
           py::arg("center_molecules_on_grid") = false,
           py::arg("microscopic_reversibility") = false
-        )
+      )
       .def("check_semantics", &Config::check_semantics)
       .def("__str__", &Config::to_str, py::arg("ind") = std::string(""))
       .def("dump", &Config::dump)

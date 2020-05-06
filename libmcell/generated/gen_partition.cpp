@@ -49,7 +49,7 @@ py::class_<Partition> define_pybinding_Partition(py::module& m) {
           >(),
           py::arg("parition_dimension") = 10,
           py::arg("subparition_dimension") = 0.5
-        )
+      )
       .def("check_semantics", &Partition::check_semantics)
       .def("__str__", &Partition::to_str, py::arg("ind") = std::string(""))
       .def("dump", &Partition::dump)

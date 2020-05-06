@@ -50,7 +50,7 @@ py::class_<ComplexInstance> define_pybinding_ComplexInstance(py::module& m) {
           >(),
           py::arg("molecule_instances") = std::vector<std::shared_ptr<MoleculeInstance>>(),
           py::arg("orientation") = Orientation::None
-        )
+      )
       .def("check_semantics", &ComplexInstance::check_semantics)
       .def("__str__", &ComplexInstance::to_str, py::arg("ind") = std::string(""))
       .def("dump", &ComplexInstance::dump)

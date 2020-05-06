@@ -61,7 +61,7 @@ py::class_<MoleculeType> define_pybinding_MoleculeType(py::module& m) {
           py::arg("components") = std::vector<std::shared_ptr<ComponentType>>(),
           py::arg("diffusion_constant_2d") = FLT_UNSET,
           py::arg("diffusion_constant_3d") = FLT_UNSET
-        )
+      )
       .def("check_semantics", &MoleculeType::check_semantics)
       .def("__str__", &MoleculeType::to_str, py::arg("ind") = std::string(""))
       .def("inst", &MoleculeType::inst, py::arg("components"))

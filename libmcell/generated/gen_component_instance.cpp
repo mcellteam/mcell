@@ -56,7 +56,7 @@ py::class_<ComponentInstance> define_pybinding_ComponentInstance(py::module& m) 
           py::arg("component_type"),
           py::arg("state") = STATE_UNSET,
           py::arg("bond") = BOND_UNBOUND
-        )
+      )
       .def("check_semantics", &ComponentInstance::check_semantics)
       .def("__str__", &ComponentInstance::to_str, py::arg("ind") = std::string(""))
       .def("dump", &ComponentInstance::dump)

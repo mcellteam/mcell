@@ -65,7 +65,7 @@ py::class_<GeometryObject> define_pybinding_GeometryObject(py::module& m) {
           py::arg("vertex_list"),
           py::arg("element_connections"),
           py::arg("surface_regions") = std::vector<std::shared_ptr<SurfaceRegion>>()
-        )
+      )
       .def("check_semantics", &GeometryObject::check_semantics)
       .def("__str__", &GeometryObject::to_str, py::arg("ind") = std::string(""))
       .def("dump", &GeometryObject::dump)
