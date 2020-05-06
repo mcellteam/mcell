@@ -245,6 +245,8 @@ public:
   }
 
   std::string to_str(const BNGData& bng_data) const;
+  std::string reactants_to_str(const BNGData& bng_data) const;
+  std::string products_to_str(const BNGData& bng_data) const;
   void dump(const BNGData& bng_data, const std::string ind = "") const;
 
 private:

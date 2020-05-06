@@ -33,6 +33,7 @@ class Value;
 namespace BNG {
 class BNGEngine;
 class Species;
+class RxnRule;
 }
 
 namespace MCell {
@@ -57,10 +58,15 @@ private:
   void convert_species(Json::Value& mcell_node);
   void convert_single_species(const BNG::Species& s, Json::Value& species_node);
 
+  void convert_single_rxn_rule(const BNG::RxnRule& r, Json::Value& species_node);
+  void convert_rxns(Json::Value& mcell_node);
+
   const BNG::BNGEngine* bng_engine;
 
   uint next_color_index;
   std::vector<Vec3> colors;
+
+  bool conversion_failed;
 };
 
 } // namespace MCell

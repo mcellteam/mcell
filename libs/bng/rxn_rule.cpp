@@ -359,7 +359,7 @@ bool RxnRule::species_is_both_bimol_reactants(const species_id_t id, const Speci
 std::string RxnRule::complex_instance_vector_to_str(const BNGData& bng_data, const CplxInstanceVector& complexes) const {
   stringstream ss;
   for (size_t i = 0; i < complexes.size(); i++) {
-    ss << complexes[i].to_str(bng_data);
+    ss << complexes[i].to_str(bng_data, true);
 
     if (i != complexes.size() - 1) {
       ss << " + ";
@@ -425,6 +425,14 @@ std::string RxnRule::to_str(const BNGData& bng_data) const {
   return ss.str();
 }
 
+
+std::string RxnRule::reactants_to_str(const BNGData& bng_data) const {
+  return complex_instance_vector_to_str(bng_data, reactants);
+}
+
+std::string RxnRule::products_to_str(const BNGData& bng_data) const {
+  return complex_instance_vector_to_str(bng_data, reactants);
+}
 
 void RxnRule::dump(const BNGData& bng_data, const std::string ind) const {
   cout << ind << to_str(bng_data);

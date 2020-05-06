@@ -75,7 +75,11 @@ uint MolInstance::get_corresponding_component_index(
 std::string MolInstance::to_str(const BNGData& bng_data, const bool only_explicit) const {
   stringstream ss;
   const MolType& mt = bng_data.get_molecule_type(mol_type_id);
-  ss << mt.name << "(";
+
+  ss << mt.name;
+  if (!component_instances.empty()) {
+    ss << "(";
+  }
 
   bool first_component = true;
   for (size_t i = 0; i < component_instances.size(); i++) {
@@ -90,7 +94,9 @@ std::string MolInstance::to_str(const BNGData& bng_data, const bool only_explici
       first_component = false;
     }
   }
-  ss << ")";
+  if (!component_instances.empty()) {
+    ss << ")";
+  }
   return ss.str();
 }
 

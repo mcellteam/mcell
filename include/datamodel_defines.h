@@ -33,14 +33,29 @@ const char* const KEY_DATA_MODEL_VERSION = "data_model_version";
 const char* const KEY_CELLBLENDER_VERSION = "cellblender_version";
 const char* const VALUE_CELLBLENDER_VERSION = "0.1.54";
 
-const char* const KEY_MOLECULE_LIST = "molecule_list";
 
 const char* const KEY_GEOMETRICAL_OBJECTS = "geometrical_objects";
 const char* const KEY_OBJECT_LIST = "object_list";
+const char* const KEY_LOCATION = "location";
 const char* const KEY_ELEMENT_CONNECTIONS = "element_connections";
 const char* const KEY_VERTEX_LIST = "vertex_list";
 const char* const KEY_DEFINE_SURFACE_REGIONS = "define_surface_regions";
 const char* const KEY_INCLUDE_ELEMENTS = "include_elements";
+
+const char* const KEY_REACTION_LIST = "reaction_list";
+const char* const KEY_DEFINE_REACTIONS = "define_reactions";
+const char* const KEY_RXN_NAME = "rxn_name";
+const char* const KEY_RXN_TYPE = "rxn_type";
+const char* const VALUE_REVERSIBLE = "reversible";
+const char* const VALUE_IRREVERSIBLE = "irreversible";
+const char* const KEY_REACTANTS = "reactants";
+const char* const KEY_PRODUCTS = "products";
+const char* const KEY_FWD_RATE= "fwd_rate";
+const char* const KEY_BKWD_RATE= "bkwd_rate";
+const char* const KEY_VARIABLE_RATE_VALID = "variable_rate_valid";
+const char* const KEY_VARIABLE_RATE = "variable_rate";
+const char* const KEY_VARIABLE_RATE_SWITCH = "variable_rate_switch";
+const char* const KEY_VARIABLE_RATE_TEXT = "variable_rate_text";
 
 const char* const KEY_MATERIAL_NAMES = "material_names";
 const char* const KEY_MATERIALS = "materials";
@@ -89,6 +104,7 @@ const char* const KEY_INITIALIZATION = "initialization";
 
 const char* const KEY_BLENDER_VERSION = "blender_version";
 
+const char* const KEY_MOLECULE_LIST = "molecule_list";
 const char* const KEY_DEFINE_MOLECULES = "define_molecules";
 const char* const KEY_DISPLAY = "display";
 const char* const KEY_EMIT = "emit";

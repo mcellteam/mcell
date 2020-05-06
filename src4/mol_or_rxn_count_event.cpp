@@ -177,7 +177,7 @@ void MolOrRxnCountEvent::step() {
     } // for molecules
 
     // TODO: optimize - we do not need this if we are counting just molecules
-    for (const BNG::RxnRule* rxn: world->get_all_rxns().get_rxn_rules()) {
+    for (const BNG::RxnRule* rxn: world->get_all_rxns().get_rxn_rules_vector()) {
       if (!rxn->is_counted()) {
         continue;
       }

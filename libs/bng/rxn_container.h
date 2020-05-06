@@ -161,7 +161,7 @@ public:
     return nullptr;
   }
 
-  const RxnRuleVector& get_rxn_rules() const {
+  const RxnRuleVector& get_rxn_rules_vector() const {
     return rxn_rules;
   }
 
