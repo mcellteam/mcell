@@ -470,6 +470,10 @@ def write_method_signature(f, method):
             t = get_type_as_ref_param(p)
             const_spec = 'const ' if not is_yaml_ptr_type(p[KEY_TYPE]) else ''
             f.write(const_spec + t + ' ' + p[KEY_NAME])
+            if KEY_DEFAULT in p:
+                q = '"' if p[KEY_TYPE] == YAML_TYPE_STR else ''
+                f.write(' = ' + q + get_default_or_unset_value(p) + q)
+            
             if i != params_cnt - 1:
                 f.write(', ')
                 
@@ -489,7 +493,7 @@ def is_inherited(attr_or_method_def):
         return False
     
 
-def has_superclass(class_def):
+def has_single_superclass(class_def):
     if KEY_SUPERCLASS in class_def:
         return True
     else:
@@ -498,7 +502,7 @@ def has_superclass(class_def):
 
 def has_superclass_other_than_base(class_def):
     # TODO: also deal with superclasses?
-    if has_superclass(class_def):
+    if has_single_superclass(class_def):
         return class_def[KEY_SUPERCLASS] != BASE_DATA_CLASS
     else:
         return False
@@ -507,7 +511,7 @@ def has_superclass_other_than_base(class_def):
 def write_gen_class(f, class_def, class_name):
     f.write('class ' + GEN_CLASS_PREFIX + class_name)
     
-    if has_superclass(class_def):
+    if has_single_superclass(class_def):
         f.write(': public ' + class_def[KEY_SUPERCLASS])
         
     f.write( ' {\n')
@@ -516,11 +520,11 @@ def write_gen_class(f, class_def, class_name):
     if has_superclass_other_than_base(class_def):
         write_ctor_for_superclass(f, class_def, class_name)
     
-    if not has_superclass(class_def):
+    if not has_single_superclass(class_def):
         # generate virtual destructor
         f.write('  virtual ~' + GEN_CLASS_PREFIX + class_name + '() {}\n')
         
-    if has_superclass(class_def):
+    if has_single_superclass(class_def):
         f.write('  ' + RET_CTOR_POSTPROCESS + ' ' + CTOR_POSTPROCESS + '() ' + KEYWORD_OVERRIDE + ' {}\n')
         f.write('  ' + RET_TYPE_CHECK_SEMANTICS + ' ' + DECL_CHECK_SEMANTICS + ' ' + KEYWORD_OVERRIDE + ';\n')
         f.write('  ' + RET_TYPE_TO_STR + ' ' + DECL_TO_STR_W_DEFAULT + ' ' + KEYWORD_OVERRIDE + ';\n\n')
@@ -609,7 +613,7 @@ def generate_class_header(class_name, class_def, input_file_name, enums):
         
         write_forward_decls(f, class_def, enums)
         
-        if has_superclass(class_def): # not sure about this condition
+        if has_single_superclass(class_def): # not sure about this condition
             write_ctor_define(f, class_def, class_name)
         
         write_gen_class(f, class_def, class_name)
@@ -770,36 +774,39 @@ def write_pybind11_bindings(f, class_name, class_def):
     f.write('      .def(\n')
     f.write('          py::init<\n')
 
-    # init operands
     num_items = len(items)
-    for i in range(num_items):
-        attr = items[i]
-        const_spec = 'const ' if not is_yaml_ptr_type(attr[KEY_TYPE]) else ''
-        f.write('            ' + const_spec + get_type_as_ref_param(attr))
-        if i != num_items - 1:
-            f.write(',\n')
-    if num_items != 0:
-        f.write('\n')
+    if has_single_superclass(class_def):
+        # init operands
+        for i in range(num_items):
+            attr = items[i]
+            const_spec = 'const ' if not is_yaml_ptr_type(attr[KEY_TYPE]) else ''
+            f.write('            ' + const_spec + get_type_as_ref_param(attr))
+            if i != num_items - 1:
+                f.write(',\n')
+        if num_items != 0:
+            f.write('\n')
+            
     f.write('          >()')
         
-    if num_items != 0:
-        f.write(',')
-    f.write('\n')
-    
     # init argument names and default values
-    for i in range(num_items):
-        attr = items[i]
-        name = attr[KEY_NAME]
-        f.write('          py::arg("' + name + '")')
-        if KEY_DEFAULT in attr:
-            f.write(' = ' + get_default_or_unset_value(attr))
-        if i != num_items - 1:
-            f.write(',\n')
-    f.write('\n')            
-    f.write('        )\n')            
+    if has_single_superclass(class_def):
+        if num_items != 0:
+            f.write(',')
+        f.write('\n')
+    
+        for i in range(num_items):
+            attr = items[i]
+            name = attr[KEY_NAME]
+            f.write('          py::arg("' + name + '")')
+            if KEY_DEFAULT in attr:
+                f.write(' = ' + get_default_or_unset_value(attr))
+            if i != num_items - 1:
+                f.write(',\n')
+    f.write('\n')          
+    f.write('      )\n')            
     
     # common methods
-    if has_superclass(class_def):
+    if has_single_superclass(class_def):
         f.write('      .def("check_semantics", &' + class_name + '::check_semantics)\n')
         f.write('      .def("__str__", &' + class_name + '::to_str, py::arg("ind") = std::string(""))\n')
         
@@ -841,7 +848,7 @@ def generate_class_implementation_and_bindings(class_name, class_def, input_file
         
         f.write('\n' + NAMESPACES_BEGIN + '\n\n')
         
-        if has_superclass(class_def):
+        if has_single_superclass(class_def):
             items = class_def[KEY_ITEMS]
             write_check_semantics_implemetation(f, class_name, items)
             write_to_str_implemetation(f, class_name, items, enums)

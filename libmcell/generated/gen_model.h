@@ -31,7 +31,11 @@ namespace API {
 
 class GeometryObject;
 class InstantiationData;
+class ReactionRule;
+class ReactionRule;
 class ReleaseSite;
+class ReleaseSite;
+class Species;
 class Species;
 class Subsystem;
 

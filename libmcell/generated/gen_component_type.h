@@ -59,8 +59,8 @@ public:
   }
 
   // --- methods ---
-  virtual ComponentInstance inst(const std::string& state, const int bond) = 0;
-  virtual ComponentInstance inst(const int state, const int bond) = 0;
+  virtual ComponentInstance inst(const std::string& state = "STATE_UNSET", const int bond = BOND_UNBOUND) = 0;
+  virtual ComponentInstance inst(const int state = STATE_UNSET_INT, const int bond = BOND_UNBOUND) = 0;
 }; // GenComponentType
 
 class ComponentType;

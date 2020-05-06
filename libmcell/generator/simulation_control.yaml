@@ -1,25 +1,54 @@
     
 # Dynamic API definition
 Subsystem:
+  items:
+  - name: reaction_rules
+    type: List[ReactionRule*]
+    default: empty
+
+  - name: species
+    type: List[Species*]
+    default: empty
+    
   methods:
   - name: add_species
     params:
     - name: s
       type: Species*
       
-  - name: find_species # 'find' prefix is always used when the  
+  - name: find_species
     return_type: Species*
     params:
     - name: name
       type: str
       
-      
-InstantiationData:
-  methods:
-  - name: add_release_site
+  - name: add_reaction_rule
     params:
     - name: s
-      type: Species*
+      type: ReactionRule*
+      
+  - name: find_reaction_rule  
+    return_type: ReactionRule*
+    params:
+    - name: name
+      type: str
+      
+InstantiationData:
+  items:
+  - name: release_sites
+    type: List[ReleaseSite*]
+    default: empty
+    
+  - name: geometry_objects
+    type: List[ReleaseSite*]
+    default: empty
+
+  methods:
+  - name: instantiate_release_site
+    doc: Makes a copy of the release site
+    params:
+    - name: s
+      type: ReleaseSite*
       
   - name: find_release_site
     return_type: ReleaseSite*
@@ -27,10 +56,16 @@ InstantiationData:
     - name: name
       type: str
       
-  - name: add_geometry_object
+  - name: instantiate_geometry_object
+    doc: Makes a copy of the geometry object, in the future we will probably add some transformations
     params:
     - name: o
       type: GeometryObject*
+
+    - name: name
+      type: str
+      default: ""
+      doc: When name is not set, the name of the object is used
       
   - name: find_geometry_object
     params:

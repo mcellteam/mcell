@@ -31,16 +31,32 @@ namespace API {
 
 class GeometryObject;
 class ReleaseSite;
-class Species;
+class ReleaseSite;
 
 class GenInstantiationData {
 public:
   virtual ~GenInstantiationData() {}
   // --- attributes ---
+  std::vector<std::shared_ptr<ReleaseSite>> release_sites;
+  virtual void set_release_sites(const std::vector<std::shared_ptr<ReleaseSite>> new_release_sites_) {
+    release_sites = new_release_sites_;
+  }
+  virtual std::vector<std::shared_ptr<ReleaseSite>> get_release_sites() const {
+    return release_sites;
+  }
+
+  std::vector<std::shared_ptr<ReleaseSite>> geometry_objects;
+  virtual void set_geometry_objects(const std::vector<std::shared_ptr<ReleaseSite>> new_geometry_objects_) {
+    geometry_objects = new_geometry_objects_;
+  }
+  virtual std::vector<std::shared_ptr<ReleaseSite>> get_geometry_objects() const {
+    return geometry_objects;
+  }
+
   // --- methods ---
-  virtual void add_release_site(std::shared_ptr<Species> s) = 0;
+  virtual void instantiate_release_site(std::shared_ptr<ReleaseSite> s) = 0;
   virtual std::shared_ptr<ReleaseSite> find_release_site(const std::string& name) = 0;
-  virtual void add_geometry_object(std::shared_ptr<GeometryObject> o) = 0;
+  virtual void instantiate_geometry_object(std::shared_ptr<GeometryObject> o, const std::string& name = "") = 0;
   virtual void find_geometry_object(const std::string& name) = 0;
 }; // GenInstantiationData
 

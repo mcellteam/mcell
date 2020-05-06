@@ -76,7 +76,7 @@ py::class_<Warnings> define_pybinding_Warnings(py::module& m) {
           py::arg("lifetime_threshold") = 50,
           py::arg("missed_reactions") = WarningLevel::Warning,
           py::arg("missed_reactions_threshold") = 0.00100000004749745
-        )
+      )
       .def("check_semantics", &Warnings::check_semantics)
       .def("__str__", &Warnings::to_str, py::arg("ind") = std::string(""))
       .def("dump", &Warnings::dump)

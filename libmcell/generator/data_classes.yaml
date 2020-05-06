@@ -13,14 +13,13 @@ ComponentType:
   - name: states
     type: List[str]
     default: empty
-    
   methods:
   - name: inst
     return_type: ComponentInstance
     params:
     - name: state
       type: str
-      default: STATE_UNSET_INT
+      default: STATE_UNSET
     - name: bond
       type: int
       default: BOND_UNBOUND
@@ -30,7 +29,7 @@ ComponentType:
     params:
     - name: state
       type: int
-      default: STATE_UNSET
+      default: STATE_UNSET_INT
     - name: bond
       type: int
       default: BOND_UNBOUND

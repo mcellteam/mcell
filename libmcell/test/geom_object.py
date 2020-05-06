@@ -32,3 +32,9 @@ obj = m.GeometryObject(
 )
 
 print(obj)
+
+instantiation = m.InstantiationData()
+
+instantiation.instantiate_geometry_object(obj)
+
+

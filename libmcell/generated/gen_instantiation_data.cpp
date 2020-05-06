@@ -27,7 +27,7 @@
 #include "../api/instantiation_data.h"
 #include "../api/geometry_object.h"
 #include "../api/release_site.h"
-#include "../api/species.h"
+#include "../api/release_site.h"
 
 namespace MCell {
 namespace API {
@@ -37,13 +37,14 @@ py::class_<InstantiationData> define_pybinding_InstantiationData(py::module& m) 
       .def(
           py::init<
           >()
-
-        )
-      .def("add_release_site", &InstantiationData::add_release_site, py::arg("s"))
+      )
+      .def("instantiate_release_site", &InstantiationData::instantiate_release_site, py::arg("s"))
       .def("find_release_site", &InstantiationData::find_release_site, py::arg("name"))
-      .def("add_geometry_object", &InstantiationData::add_geometry_object, py::arg("o"))
+      .def("instantiate_geometry_object", &InstantiationData::instantiate_geometry_object, py::arg("o"), py::arg("name") = "")
       .def("find_geometry_object", &InstantiationData::find_geometry_object, py::arg("name"))
       .def("dump", &InstantiationData::dump)
+      .def_property("release_sites", &InstantiationData::get_release_sites, &InstantiationData::set_release_sites)
+      .def_property("geometry_objects", &InstantiationData::get_geometry_objects, &InstantiationData::set_geometry_objects)
     ;
 }
 

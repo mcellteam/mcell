@@ -36,6 +36,9 @@ public:
   void add_species(std::shared_ptr<Species> s) override {}
   std::shared_ptr<Species> find_species(const std::string& name) override {return nullptr;}
 
+  void add_reaction_rule(std::shared_ptr<ReactionRule> s) override {};
+  std::shared_ptr<ReactionRule> find_reaction_rule(const std::string& name) override {return nullptr;}
+
   // added manually
   void dump() const;
 };

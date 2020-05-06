@@ -27,7 +27,11 @@
 #include "../api/model.h"
 #include "../api/geometry_object.h"
 #include "../api/instantiation_data.h"
+#include "../api/reaction_rule.h"
+#include "../api/reaction_rule.h"
 #include "../api/release_site.h"
+#include "../api/release_site.h"
+#include "../api/species.h"
 #include "../api/species.h"
 #include "../api/subsystem.h"
 
@@ -39,18 +43,23 @@ py::class_<Model> define_pybinding_Model(py::module& m) {
       .def(
           py::init<
           >()
-
-        )
+      )
       .def("run_iterations", &Model::run_iterations, py::arg("iterations"))
       .def("add_subsystem", &Model::add_subsystem, py::arg("subsystem"))
       .def("add_instantiation_data", &Model::add_instantiation_data, py::arg("instantiation_data"))
       .def("add_species", &Model::add_species, py::arg("s"))
       .def("find_species", &Model::find_species, py::arg("name"))
-      .def("add_release_site", &Model::add_release_site, py::arg("s"))
+      .def("add_reaction_rule", &Model::add_reaction_rule, py::arg("s"))
+      .def("find_reaction_rule", &Model::find_reaction_rule, py::arg("name"))
+      .def("instantiate_release_site", &Model::instantiate_release_site, py::arg("s"))
       .def("find_release_site", &Model::find_release_site, py::arg("name"))
-      .def("add_geometry_object", &Model::add_geometry_object, py::arg("o"))
+      .def("instantiate_geometry_object", &Model::instantiate_geometry_object, py::arg("o"), py::arg("name") = "")
       .def("find_geometry_object", &Model::find_geometry_object, py::arg("name"))
       .def("dump", &Model::dump)
+      .def_property("reaction_rules", &Model::get_reaction_rules, &Model::set_reaction_rules)
+      .def_property("species", &Model::get_species, &Model::set_species)
+      .def_property("release_sites", &Model::get_release_sites, &Model::set_release_sites)
+      .def_property("geometry_objects", &Model::get_geometry_objects, &Model::set_geometry_objects)
     ;
 }
 

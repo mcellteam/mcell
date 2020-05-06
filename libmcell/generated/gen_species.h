@@ -81,7 +81,7 @@ public:
   }
 
   // --- methods ---
-  virtual ComplexInstance inst(const Orientation orientation) = 0;
+  virtual ComplexInstance inst(const Orientation orientation = Orientation::NotSet) = 0;
 }; // GenSpecies
 
 class Species;

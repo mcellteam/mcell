@@ -49,7 +49,7 @@ public:
             "Each item in the 'element_connections' argument must be a triplet of integers, error for " +
             vec_nonptr_to_str(e) + ".");
         for (int vertex_index: e) {
-          if (vertex_index < 0 || vertex_index >= vertex_list.size()) {
+          if (vertex_index < 0 || vertex_index >= (int)vertex_list.size()) {
             throw ValueError(
                 "Vertex index the 'element_connections' is out of range, error for " +
                 std::to_string(vertex_index));

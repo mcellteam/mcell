@@ -53,11 +53,11 @@ py::class_<ComponentType> define_pybinding_ComponentType(py::module& m) {
           >(),
           py::arg("name"),
           py::arg("states") = std::vector<std::string>()
-        )
+      )
       .def("check_semantics", &ComponentType::check_semantics)
       .def("__str__", &ComponentType::to_str, py::arg("ind") = std::string(""))
-      .def("inst", py::overload_cast<const std::string&, const int>(&ComponentType::inst), py::arg("state") = "STATE_UNSET_INT", py::arg("bond") = BOND_UNBOUND)
-      .def("inst", py::overload_cast<const int, const int>(&ComponentType::inst), py::arg("state") = STATE_UNSET, py::arg("bond") = BOND_UNBOUND)
+      .def("inst", py::overload_cast<const std::string&, const int>(&ComponentType::inst), py::arg("state") = "STATE_UNSET", py::arg("bond") = BOND_UNBOUND)
+      .def("inst", py::overload_cast<const int, const int>(&ComponentType::inst), py::arg("state") = STATE_UNSET_INT, py::arg("bond") = BOND_UNBOUND)
       .def("dump", &ComponentType::dump)
       .def_property("name", &ComponentType::get_name, &ComponentType::set_name)
       .def_property("states", &ComponentType::get_states, &ComponentType::set_states)

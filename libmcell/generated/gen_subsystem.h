@@ -29,15 +29,36 @@
 namespace MCell {
 namespace API {
 
+class ReactionRule;
+class ReactionRule;
+class Species;
 class Species;
 
 class GenSubsystem {
 public:
   virtual ~GenSubsystem() {}
   // --- attributes ---
+  std::vector<std::shared_ptr<ReactionRule>> reaction_rules;
+  virtual void set_reaction_rules(const std::vector<std::shared_ptr<ReactionRule>> new_reaction_rules_) {
+    reaction_rules = new_reaction_rules_;
+  }
+  virtual std::vector<std::shared_ptr<ReactionRule>> get_reaction_rules() const {
+    return reaction_rules;
+  }
+
+  std::vector<std::shared_ptr<Species>> species;
+  virtual void set_species(const std::vector<std::shared_ptr<Species>> new_species_) {
+    species = new_species_;
+  }
+  virtual std::vector<std::shared_ptr<Species>> get_species() const {
+    return species;
+  }
+
   // --- methods ---
   virtual void add_species(std::shared_ptr<Species> s) = 0;
   virtual std::shared_ptr<Species> find_species(const std::string& name) = 0;
+  virtual void add_reaction_rule(std::shared_ptr<ReactionRule> s) = 0;
+  virtual std::shared_ptr<ReactionRule> find_reaction_rule(const std::string& name) = 0;
 }; // GenSubsystem
 
 class Subsystem;
