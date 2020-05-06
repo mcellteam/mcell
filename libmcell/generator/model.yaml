@@ -1,0 +1,31 @@
+Model:
+  superclasses: [Subsystem, InstantiationData]
+  
+  items:
+  - name: config
+    type: Config
+    default: Config()
+
+  - name: warnings
+    type: Warnings
+    default: Warnings()
+
+  - name: notifications
+    type: Notifications
+    default: Notifications()
+    
+  methods:
+  - name: run_iterations
+    params:
+    - name: iterations
+      type: long
+      
+  - name: add_subsystem
+    params:
+    - name: subsystem
+      type: Subsystem*
+      
+  - name: add_instantiation_data
+    params:
+    - name: instantiation_data
+      type: InstantiationData*

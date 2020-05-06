@@ -33,13 +33,15 @@ from copy import copy
 
 VERBOSE = False # may be overridden by argument -v 
 
-CONSTANTS_FILE = 'constants.yaml'
-DATA_CLASSES_FILE = 'data_classes.yaml'
-SIMULATION_SETUP_FILE = 'simulation_setup.yaml'
-SIMULATION_CONTROL_FILE = 'simulation_control.yaml'
-
 # order is not important
-ALL_INPUT_FILES = [CONSTANTS_FILE, DATA_CLASSES_FILE, SIMULATION_SETUP_FILE, SIMULATION_CONTROL_FILE]
+ALL_INPUT_FILES = [
+    'constants.yaml',
+    'subsystem.yaml', 
+    'instantiation.yaml',
+    'observables.yaml',
+    'simulation_setup.yaml',
+    'model.yaml'
+]
 
 
 COPYRIGHT = \
@@ -1159,18 +1161,22 @@ def generate_names_header(data_classes):
 def load_and_generate_data_classes():
     data_classes = {}
     
-    for input in ALL_INPUT_FILES:
-        with open(input) as file:
+    for input_file in ALL_INPUT_FILES:
+        with open(input_file) as file:
             # The FullLoader parameter handles the conversion from YAML
             # scalar values to Python the dictionary format
-            data_classes.update( yaml.load(file, Loader=yaml.FullLoader) )
+            loaded_data = yaml.load(file, Loader=yaml.FullLoader)
+            if loaded_data:
+                data_classes.update(loaded_data)
+            else:
+                print("File " + input_file + " is empty (or could not be loaded as yaml), ignoring it")
             if VERBOSE:
-                print("Loaded " + input)
+                print("Loaded " + input_file)
     
     if VERBOSE:    
         print(data_classes)
     assert type(data_classes) == dict
-    generate_data_classes(data_classes, DATA_CLASSES_FILE)
+    generate_data_classes(data_classes, "")
     
     generate_names_header(data_classes)
 
