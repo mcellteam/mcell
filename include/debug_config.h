@@ -61,6 +61,8 @@
 
 #define MCELL3_RELEASE_ACCORDING_TO_EVENT_TIME
 
+//#define MCELL3_ROUND_TSTEPS
+
 //#define MCELL3_ALWAYS_DIFFUSE // non-diffusable molecules are scheduled differently when there is a unimol reaction and ??
 #define ASSERT_FOR_MCELL4(...) assert(__VA_ARGS__)
 

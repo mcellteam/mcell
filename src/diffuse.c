@@ -5069,6 +5069,16 @@ void compute_displacement(struct volume* world, struct collision* shead,
     if (*t_steps > max_time) {
       *t_steps = max_time;
       *steps = max_time / m->get_time_step(m);
+      #ifdef MCELL3_ROUND_TSTEPS
+        // makes the floating point difference between mcell3 and 4 little smaller,
+        // but not completely
+        if (*t_steps > 1.0 - EPS_C && *t_steps < 1.0 + EPS_C) {
+          *t_steps = 1.0;
+        }
+        if (*steps > 1.0 - EPS_C && *steps < 1.0 + EPS_C) {
+          *steps = 1.0;
+        }
+      #endif
     }
     if (*steps < EPS_C) {
       *steps = EPS_C;
