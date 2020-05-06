@@ -37,7 +37,6 @@ std::string GenConfig::to_str(const std::string ind) const {
   ss << get_object_name() << ": " <<
       "time_step=" << time_step << ", " <<
       "surface_grid_density=" << surface_grid_density << ", " <<
-      "accurate_3d_reactions=" << accurate_3d_reactions << ", " <<
       "center_molecules_on_grid=" << center_molecules_on_grid << ", " <<
       "microscopic_reversibility=" << microscopic_reversibility;
   return ss.str();
@@ -50,12 +49,10 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
             const float_t,
             const float_t,
             const bool,
-            const bool,
             const bool
           >(),
           py::arg("time_step") = 1e-6,
           py::arg("surface_grid_density") = 10000,
-          py::arg("accurate_3d_reactions") = true,
           py::arg("center_molecules_on_grid") = false,
           py::arg("microscopic_reversibility") = false
       )
@@ -64,7 +61,6 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
       .def("dump", &Config::dump)
       .def_property("time_step", &Config::get_time_step, &Config::set_time_step)
       .def_property("surface_grid_density", &Config::get_surface_grid_density, &Config::set_surface_grid_density)
-      .def_property("accurate_3d_reactions", &Config::get_accurate_3d_reactions, &Config::set_accurate_3d_reactions)
       .def_property("center_molecules_on_grid", &Config::get_center_molecules_on_grid, &Config::set_center_molecules_on_grid)
       .def_property("microscopic_reversibility", &Config::get_microscopic_reversibility, &Config::set_microscopic_reversibility)
     ;

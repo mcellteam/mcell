@@ -28,6 +28,9 @@
 #include "../api/common.h"
 #include "subsystem.h"
 #include "instantiation_data.h"
+#include "config.h"
+#include "warnings.h"
+#include "notifications.h"
 
 namespace MCell {
 namespace API {

@@ -25,24 +25,51 @@
 #define API_GEN_MODEL_H
 
 #include "../api/common.h"
+#include "../api/config.h"
+#include "../api/notifications.h"
+#include "../api/warnings.h"
 
 namespace MCell {
 namespace API {
 
+class Config;
 class GeometryObject;
 class InstantiationData;
-class ReactionRule;
+class Notifications;
 class ReactionRule;
 class ReleaseSite;
-class ReleaseSite;
-class Species;
 class Species;
 class Subsystem;
+class Warnings;
 
 class GenModel {
 public:
   virtual ~GenModel() {}
   // --- attributes ---
+  Config config;
+  virtual void set_config(const Config& new_config_) {
+    config = new_config_;
+  }
+  virtual const Config& get_config() const {
+    return config;
+  }
+
+  Warnings warnings;
+  virtual void set_warnings(const Warnings& new_warnings_) {
+    warnings = new_warnings_;
+  }
+  virtual const Warnings& get_warnings() const {
+    return warnings;
+  }
+
+  Notifications notifications;
+  virtual void set_notifications(const Notifications& new_notifications_) {
+    notifications = new_notifications_;
+  }
+  virtual const Notifications& get_notifications() const {
+    return notifications;
+  }
+
   // --- methods ---
   virtual void run_iterations(const long iterations) = 0;
   virtual void add_subsystem(std::shared_ptr<Subsystem> subsystem) = 0;

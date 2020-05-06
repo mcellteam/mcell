@@ -25,6 +25,7 @@
 #define API_GEN_COMPONENT_TYPE_H
 
 #include "../api/common.h"
+#include "../api/component_instance.h"
 
 namespace MCell {
 namespace API {

@@ -40,7 +40,7 @@ InstantiationData:
     default: empty
     
   - name: geometry_objects
-    type: List[ReleaseSite*]
+    type: List[GeometryObject*]
     default: empty
 
   methods:
@@ -76,6 +76,19 @@ InstantiationData:
 Model:
   superclasses: [Subsystem, InstantiationData]
   
+  items:
+  - name: config
+    type: Config
+    default: Config()
+
+  - name: warnings
+    type: Warnings
+    default: Warnings()
+
+  - name: notifications
+    type: Notifications
+    default: Notifications()
+    
   methods:
   - name: run_iterations
     params:

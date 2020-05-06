@@ -46,7 +46,6 @@ const char* const NAME_CLASS_SUBSYSTEM = "Subsystem";
 const char* const NAME_CLASS_SURFACE_REGION = "SurfaceRegion";
 const char* const NAME_CLASS_WARNINGS = "Warnings";
 
-const char* const NAME_ACCURATE_3D_REACTIONS = "accurate_3d_reactions";
 const char* const NAME_ADD_INSTANTIATION_DATA = "add_instantiation_data";
 const char* const NAME_ADD_REACTION_RULE = "add_reaction_rule";
 const char* const NAME_ADD_SPECIES = "add_species";
@@ -55,6 +54,7 @@ const char* const NAME_BOND = "bond";
 const char* const NAME_CENTER_MOLECULES_ON_GRID = "center_molecules_on_grid";
 const char* const NAME_COMPONENT_TYPE = "component_type";
 const char* const NAME_COMPONENTS = "components";
+const char* const NAME_CONFIG = "config";
 const char* const NAME_DEGENERATE_POLYGONS = "degenerate_polygons";
 const char* const NAME_DIFFUSION_CONSTANT_2D = "diffusion_constant_2d";
 const char* const NAME_DIFFUSION_CONSTANT_3D = "diffusion_constant_3d";
@@ -88,6 +88,7 @@ const char* const NAME_MOLECULE_TYPE = "molecule_type";
 const char* const NAME_NAME = "name";
 const char* const NAME_NEGATIVE_DIFFUSION_CONSTANT = "negative_diffusion_constant";
 const char* const NAME_NEGATIVE_REACTION_RATE = "negative_reaction_rate";
+const char* const NAME_NOTIFICATIONS = "notifications";
 const char* const NAME_O = "o";
 const char* const NAME_ORIENTATION = "orientation";
 const char* const NAME_PARITION_DIMENSION = "parition_dimension";
@@ -116,6 +117,7 @@ const char* const NAME_TIME_STEP = "time_step";
 const char* const NAME_USELESS_VOLUME_ORIENTATION = "useless_volume_orientation";
 const char* const NAME_VARYING_PROBABILITY_REPORT = "varying_probability_report";
 const char* const NAME_VERTEX_LIST = "vertex_list";
+const char* const NAME_WARNINGS = "warnings";
 } // namespace API
 } // namespace MCell
 

@@ -27,7 +27,6 @@
 #include "../api/instantiation_data.h"
 #include "../api/geometry_object.h"
 #include "../api/release_site.h"
-#include "../api/release_site.h"
 
 namespace MCell {
 namespace API {

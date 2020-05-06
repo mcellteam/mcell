@@ -111,7 +111,8 @@ CPP_TYPE_VEC3 = 'Vec3'
 CPP_TYPE_IVEC3 = 'IVec3'
 CPP_VECTOR_TYPE = 'std::vector'
 
-CPP_REFERENCE_TYPES = [CPP_TYPE_STR, CPP_TYPE_VEC2, CPP_TYPE_VEC3, CPP_TYPE_IVEC3]
+CPP_NONREFERENCE_TYPES = [CPP_TYPE_FLOAT, CPP_TYPE_INT, CPP_TYPE_LONG, CPP_TYPE_BOOL] # + CPP_VECTOR_TYPE but it must be checked with .startswith
+CPP_REFERENCE_TYPES = [CPP_TYPE_STR, CPP_TYPE_VEC2, CPP_TYPE_VEC3, CPP_TYPE_IVEC3, CPP_VECTOR_TYPE]
 
 UNSET_VALUE = 'unset'
 EMPTY_ARRAY = 'empty'
@@ -166,6 +167,11 @@ NAMESPACES_END = '} // namespace API\n} // namespace MCell'
 
 VEC_NONPTR_TO_STR = 'vec_nonptr_to_str'
 VEC_PTR_TO_STR = 'vec_ptr_to_str'
+
+# --- some global data ---
+g_enums = set()
+
+# ------------------------
 
 def get_underscored(class_name):
     return re.sub(r'(?<!^)(?=[A-Z])', '_', class_name).lower()
@@ -267,6 +273,20 @@ def yaml_type_to_pybind_type(t):
     else:
         assert False, "Unsupported constant type " + t 
     
+
+def is_cpp_ptr_type(cpp_type):
+    return cpp_type.startswith(SHARED_PTR)
+
+    
+def is_cpp_ref_type(cpp_type):
+    not_reference = \
+            cpp_type in CPP_NONREFERENCE_TYPES or \
+            is_cpp_ptr_type(cpp_type) or \
+            cpp_type.startswith(CPP_VECTOR_TYPE) or \
+            cpp_type in g_enums
+    
+    return not not_reference
+    
     
 def get_type_as_ref_param(attr):
     assert KEY_TYPE in attr
@@ -275,7 +295,7 @@ def get_type_as_ref_param(attr):
     cpp_type = yaml_type_to_cpp_type(yaml_type)
     
     res = cpp_type
-    if cpp_type in CPP_REFERENCE_TYPES:
+    if is_cpp_ref_type(cpp_type):
         res += '&'
     
     return res
@@ -318,14 +338,6 @@ def get_default_or_unset_value(attr):
         return yaml_type_to_cpp_type(t) + '()'
     else:
         return UNSET_VALUE_PTR
-
-
-def is_cpp_ptr_type(t):
-    return t.startswith(SHARED_PTR)
-
-    
-def is_cpp_ref_type(t):
-    return t in CPP_REFERENCE_TYPES
 
 
 def write_generated_notice(f, input_file_name=''):
@@ -558,45 +570,68 @@ def remove_ptr_mark(t):
         return t
     
 
-def get_all_used_compound_types(class_def, enums):
+def get_all_used_nonbase_types(class_def):
     types = set()
     for items in class_def[KEY_ITEMS]:
         assert KEY_TYPE in items
         t = items[KEY_TYPE]
         if not is_base_yaml_type(t):
-            types.add( remove_ptr_mark(t) )
+            types.add( t )
 
     for method in class_def[KEY_METHODS]:
         if KEY_RETURN_TYPE in method:
             t = method[KEY_RETURN_TYPE]
             if not is_base_yaml_type(t):
-                types.add( remove_ptr_mark(t) )
+                types.add( t )
             
         if KEY_PARAMS in method:
             for param in method[KEY_PARAMS]:
                 assert KEY_TYPE in param
                 t = param[KEY_TYPE]
                 if not is_base_yaml_type(t):
-                    types.add( remove_ptr_mark(t) )
-                    
-    cleaned_up_types = [ remove_ptr_mark( get_inner_list_type(t) ) for t in list(types) ]
-    sorted_types_no_enums = [ t for t in cleaned_up_types if t not in enums ]
+                    types.add( t )
+
+    return types
+
+
+def get_all_used_compound_types_no_decorations(class_def):
+    types = get_all_used_nonbase_types(class_def)
+    cleaned_up_types = set()
+    for t in types:
+        # mus be set otherwise we get duplicates
+        cleaned_up_types.add(remove_ptr_mark( get_inner_list_type( remove_ptr_mark(t) ) ))
+    sorted_types_no_enums = [ t for t in cleaned_up_types if t not in g_enums ]
     sorted_types_no_enums.sort()
     return sorted_types_no_enums
 
 
-def write_forward_decls(f, class_def, enums):
+def write_required_includes(f, class_def):
+    types = get_all_used_nonbase_types(class_def)
+    inner_types = set()
+    for t in types:
+        # mus be set otherwise we get duplicates
+        inner_types.add( get_inner_list_type(t) )
+
+    types_no_ptrs = [ t for t in inner_types if not is_yaml_ptr_type(t) ] 
+    sorted_types_no_enums = [ t for t in types_no_ptrs if t not in g_enums ]
+    sorted_types_no_enums.sort()
+    
+    for t in sorted_types_no_enums:
+        f.write('#include "' + get_api_class_file_name_w_dir(t, EXT_H) + '"\n')
+
+
+def write_forward_decls(f, class_def):
     # first we need to collect all types that we will need
-    types = get_all_used_compound_types(class_def, enums)
+    types = get_all_used_compound_types_no_decorations(class_def)
     
     for t in types:
         f.write('class ' + t + ';\n')
         
     if types:
         f.write('\n')
-    
 
-def generate_class_header(class_name, class_def, input_file_name, enums):
+    
+def generate_class_header(class_name, class_def, input_file_name):
     with open(get_gen_class_file_name_w_dir(class_name, EXT_H), 'w') as f:
         f.write(COPYRIGHT)
         write_generated_notice(f, input_file_name)
@@ -609,9 +644,11 @@ def generate_class_header(class_name, class_def, input_file_name, enums):
         if has_superclass_other_than_base(class_def):
             f.write('#include "' + get_api_class_file_name_w_dir(class_def[KEY_SUPERCLASS], EXT_H) + '"\n\n')
         
+        write_required_includes(f, class_def)
+        
         f.write('\n' + NAMESPACES_BEGIN + '\n\n')
         
-        write_forward_decls(f, class_def, enums)
+        write_forward_decls(f, class_def)
         
         if has_single_superclass(class_def): # not sure about this condition
             write_ctor_define(f, class_def, class_name)
@@ -626,7 +663,7 @@ def generate_class_header(class_name, class_def, input_file_name, enums):
         f.write('#endif // ' + guard + '\n')
     
 
-def generate_class_template(class_name, class_def, input_file_name, enums):
+def generate_class_template(class_name, class_def, input_file_name):
     with open(get_api_class_file_name_w_work_dir(class_name, EXT_H), 'w') as f:
         f.write(COPYRIGHT)
         write_generated_notice(f, input_file_name)
@@ -666,7 +703,7 @@ def write_check_semantics_implemetation(f, class_name, items):
     f.write('}\n\n')    
     
         
-def write_to_str_implemetation(f, class_name, items, enums):
+def write_to_str_implemetation(f, class_name, items):
     f.write(RET_TYPE_TO_STR + ' ' + GEN_CLASS_PREFIX + class_name + '::' + DECL_TO_STR + ' {\n')
     f.write('  std::stringstream ss;\n')
     f.write('  ss << get_object_name() << ": " <<\n')
@@ -689,7 +726,7 @@ def write_to_str_implemetation(f, class_name, items, enums):
             else:
                 f.write('      "' + name + '=" << ')
                 f.write(VEC_NONPTR_TO_STR + '(' + name + ', ind + "  ")')
-        elif not is_base_yaml_type(type) and type not in enums:
+        elif not is_base_yaml_type(type) and type not in g_enums:
             f.write('      ' + starting_nl + name + '=" << "(" << ((' + name + ' != nullptr) ? ' + name + '->to_str(ind + "  ") : "null" ) << ")"')
             print_nl = True
         else:
@@ -825,13 +862,13 @@ def write_pybind11_bindings(f, class_name, class_def):
     f.write('}\n\n')
     
                 
-def write_used_classes_includes(f, class_def, enums):
-    types = get_all_used_compound_types(class_def, enums)
+def write_used_classes_includes(f, class_def):
+    types = get_all_used_compound_types_no_decorations(class_def)
     for t in types:
         f.write('#include "' + get_api_class_file_name_w_dir(t, EXT_H) + '"\n')
 
             
-def generate_class_implementation_and_bindings(class_name, class_def, input_file_name, enums):
+def generate_class_implementation_and_bindings(class_name, class_def, input_file_name):
     with open(get_gen_class_file_name_w_dir(class_name, EXT_CPP), 'w') as f:
         f.write(COPYRIGHT)
         write_generated_notice(f, input_file_name)
@@ -844,14 +881,14 @@ def generate_class_implementation_and_bindings(class_name, class_def, input_file
         f.write('#include "' + get_api_class_file_name_w_dir(class_name, EXT_H) + '"\n')
         
         # we also need includes for every type that we used
-        write_used_classes_includes(f, class_def, enums)
+        write_used_classes_includes(f, class_def)
         
         f.write('\n' + NAMESPACES_BEGIN + '\n\n')
         
         if has_single_superclass(class_def):
             items = class_def[KEY_ITEMS]
             write_check_semantics_implemetation(f, class_name, items)
-            write_to_str_implemetation(f, class_name, items, enums)
+            write_to_str_implemetation(f, class_name, items)
         
         write_pybind11_bindings(f, class_name, class_def)
         
@@ -891,8 +928,8 @@ def inherit_from_superclasses(data_classes, class_name, class_def):
         
     return res
 
-
-def generate_class_files(data_classes, class_name, class_def, input_file_name, enums):
+# TODO: remove input_file_name that is useless anyway
+def generate_class_files(data_classes, class_name, class_def, input_file_name):
     # we need items and methods to be present 
     if KEY_ITEMS not in class_def:
         class_def[KEY_ITEMS] = []
@@ -902,10 +939,10 @@ def generate_class_files(data_classes, class_name, class_def, input_file_name, e
 
     class_def_w_inheritances = inherit_from_superclasses(data_classes, class_name, class_def)
     
-    generate_class_header(class_name, class_def_w_inheritances, input_file_name, enums)
-    generate_class_implementation_and_bindings(class_name, class_def_w_inheritances, input_file_name, enums)
+    generate_class_header(class_name, class_def_w_inheritances, input_file_name)
+    generate_class_implementation_and_bindings(class_name, class_def_w_inheritances, input_file_name)
     
-    generate_class_template(class_name, class_def_w_inheritances, input_file_name, enums)
+    generate_class_template(class_name, class_def_w_inheritances, input_file_name)
     
     
 def write_constant_def(f, constant_def):
@@ -1032,13 +1069,14 @@ def generate_constants_and_enums(constants_items, enums_items, input_file_name):
     generate_constants_implementation(constants_items, enums_items, input_file_name)
     
 
-def get_enum_names(data_classes):
+def set_global_enums(data_classes):
+    global g_enums
     res = set()
     enum_defs = data_classes[KEY_ENUMS] if KEY_ENUMS in data_classes else []
     for enum in enum_defs:
         assert KEY_NAME in enum
         res.add(enum[KEY_NAME])
-    return res
+    g_enums = res
 
 def generate_data_classes(data_classes, input_file_name):
     generate_constants_and_enums(
@@ -1046,13 +1084,13 @@ def generate_data_classes(data_classes, input_file_name):
         data_classes[KEY_ENUMS] if KEY_ENUMS in data_classes else [], 
         input_file_name)
 
-    enums = get_enum_names(data_classes)
+    set_global_enums(data_classes)
 
     for key, value in data_classes.items():
         if key != KEY_CONSTANTS and key != KEY_ENUMS:
             if VERBOSE:
                 print("Generating class " + key)
-            generate_class_files(data_classes, key, value, input_file_name, enums)
+            generate_class_files(data_classes, key, value, input_file_name)
     
     
 def collect_all_names(data_classes):

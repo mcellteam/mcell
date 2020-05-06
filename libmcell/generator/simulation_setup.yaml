@@ -15,11 +15,11 @@ Config:
     type: float
     default: 10000
   
-  # remove and keep default?
-  - name: accurate_3d_reactions
-    # sets use_expanded_list, probably always True    
-    type: bool
-    default: True
+  # remove and keep default? - yes
+  #- name: accurate_3d_reactions
+  #  # sets use_expanded_list, probably always True    
+  #  type: bool
+  #  default: True
     
   # remove and keep default?
   - name: center_molecules_on_grid

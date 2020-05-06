@@ -26,8 +26,6 @@
 #include "gen_subsystem.h"
 #include "../api/subsystem.h"
 #include "../api/reaction_rule.h"
-#include "../api/reaction_rule.h"
-#include "../api/species.h"
 #include "../api/species.h"
 
 namespace MCell {

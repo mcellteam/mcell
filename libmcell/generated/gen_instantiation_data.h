@@ -31,7 +31,6 @@ namespace API {
 
 class GeometryObject;
 class ReleaseSite;
-class ReleaseSite;
 
 class GenInstantiationData {
 public:
@@ -45,11 +44,11 @@ public:
     return release_sites;
   }
 
-  std::vector<std::shared_ptr<ReleaseSite>> geometry_objects;
-  virtual void set_geometry_objects(const std::vector<std::shared_ptr<ReleaseSite>> new_geometry_objects_) {
+  std::vector<std::shared_ptr<GeometryObject>> geometry_objects;
+  virtual void set_geometry_objects(const std::vector<std::shared_ptr<GeometryObject>> new_geometry_objects_) {
     geometry_objects = new_geometry_objects_;
   }
-  virtual std::vector<std::shared_ptr<ReleaseSite>> get_geometry_objects() const {
+  virtual std::vector<std::shared_ptr<GeometryObject>> get_geometry_objects() const {
     return geometry_objects;
   }
 

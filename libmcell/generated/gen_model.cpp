@@ -25,15 +25,15 @@
 #include <pybind11/stl.h>
 #include "gen_model.h"
 #include "../api/model.h"
+#include "../api/config.h"
 #include "../api/geometry_object.h"
 #include "../api/instantiation_data.h"
-#include "../api/reaction_rule.h"
+#include "../api/notifications.h"
 #include "../api/reaction_rule.h"
 #include "../api/release_site.h"
-#include "../api/release_site.h"
-#include "../api/species.h"
 #include "../api/species.h"
 #include "../api/subsystem.h"
+#include "../api/warnings.h"
 
 namespace MCell {
 namespace API {
@@ -56,6 +56,9 @@ py::class_<Model> define_pybinding_Model(py::module& m) {
       .def("instantiate_geometry_object", &Model::instantiate_geometry_object, py::arg("o"), py::arg("name") = "")
       .def("find_geometry_object", &Model::find_geometry_object, py::arg("name"))
       .def("dump", &Model::dump)
+      .def_property("config", &Model::get_config, &Model::set_config)
+      .def_property("warnings", &Model::get_warnings, &Model::set_warnings)
+      .def_property("notifications", &Model::get_notifications, &Model::set_notifications)
       .def_property("reaction_rules", &Model::get_reaction_rules, &Model::set_reaction_rules)
       .def_property("species", &Model::get_species, &Model::set_species)
       .def_property("release_sites", &Model::get_release_sites, &Model::set_release_sites)

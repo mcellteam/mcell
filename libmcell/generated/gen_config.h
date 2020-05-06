@@ -33,14 +33,12 @@ namespace API {
     Config( \
         const float_t time_step_ = 1e-6, \
         const float_t surface_grid_density_ = 10000, \
-        const bool accurate_3d_reactions_ = true, \
         const bool center_molecules_on_grid_ = false, \
         const bool microscopic_reversibility_ = false \
     ) { \
       class_name = "Config"; \
       time_step = time_step_; \
       surface_grid_density = surface_grid_density_; \
-      accurate_3d_reactions = accurate_3d_reactions_; \
       center_molecules_on_grid = center_molecules_on_grid_; \
       microscopic_reversibility = microscopic_reversibility_; \
       postprocess_in_ctor();\
@@ -68,14 +66,6 @@ public:
   }
   virtual float_t get_surface_grid_density() const {
     return surface_grid_density;
-  }
-
-  bool accurate_3d_reactions;
-  virtual void set_accurate_3d_reactions(const bool new_accurate_3d_reactions_) {
-    accurate_3d_reactions = new_accurate_3d_reactions_;
-  }
-  virtual bool get_accurate_3d_reactions() const {
-    return accurate_3d_reactions;
   }
 
   bool center_molecules_on_grid;

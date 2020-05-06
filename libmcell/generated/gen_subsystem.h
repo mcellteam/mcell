@@ -30,8 +30,6 @@ namespace MCell {
 namespace API {
 
 class ReactionRule;
-class ReactionRule;
-class Species;
 class Species;
 
 class GenSubsystem {

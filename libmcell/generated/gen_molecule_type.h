@@ -25,6 +25,7 @@
 #define API_GEN_MOLECULE_TYPE_H
 
 #include "../api/common.h"
+#include "../api/molecule_instance.h"
 
 namespace MCell {
 namespace API {

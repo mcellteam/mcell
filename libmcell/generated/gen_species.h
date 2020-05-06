@@ -27,6 +27,7 @@
 #include "../api/common.h"
 #include "../api/complex_instance.h"
 
+#include "../api/complex_instance.h"
 
 namespace MCell {
 namespace API {
