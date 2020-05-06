@@ -342,9 +342,8 @@ def get_default_or_unset_value(attr):
         return UNSET_VALUE_PTR
 
 
-def write_generated_notice(f, input_file_name=''):
+def write_generated_notice(f):
     now = datetime.now()
-    # probably get rid of the input_file_name
     # date printing is disabled during the development phase to minimize changes in files 
     #date_time = now.strftime("%m/%d/%Y, %H:%M")
     #f.write('// This file was generated automatically on ' + date_time + ' from ' + '\'' + input_file_name + '\'\n\n')
@@ -633,10 +632,10 @@ def write_forward_decls(f, class_def):
         f.write('\n')
 
     
-def generate_class_header(class_name, class_def, input_file_name):
+def generate_class_header(class_name, class_def):
     with open(get_gen_class_file_name_w_dir(class_name, EXT_H), 'w') as f:
         f.write(COPYRIGHT)
-        write_generated_notice(f, input_file_name)
+        write_generated_notice(f)
         
         guard = get_gen_header_guard_name(class_name);
         f.write('#ifndef ' + guard + '\n')
@@ -665,10 +664,10 @@ def generate_class_header(class_name, class_def, input_file_name):
         f.write('#endif // ' + guard + '\n')
     
 
-def generate_class_template(class_name, class_def, input_file_name):
+def generate_class_template(class_name, class_def):
     with open(get_api_class_file_name_w_work_dir(class_name, EXT_H), 'w') as f:
         f.write(COPYRIGHT)
-        write_generated_notice(f, input_file_name)
+        write_generated_notice(f)
         
         guard = get_api_header_guard_name(class_name);
         f.write('#ifndef ' + guard + '\n')
@@ -870,10 +869,10 @@ def write_used_classes_includes(f, class_def):
         f.write('#include "' + get_api_class_file_name_w_dir(t, EXT_H) + '"\n')
 
             
-def generate_class_implementation_and_bindings(class_name, class_def, input_file_name):
+def generate_class_implementation_and_bindings(class_name, class_def):
     with open(get_gen_class_file_name_w_dir(class_name, EXT_CPP), 'w') as f:
         f.write(COPYRIGHT)
-        write_generated_notice(f, input_file_name)
+        write_generated_notice(f)
         
         f.write('#include <sstream>\n')
         f.write('#include <pybind11/stl.h>\n')
@@ -930,8 +929,8 @@ def inherit_from_superclasses(data_classes, class_name, class_def):
         
     return res
 
-# TODO: remove input_file_name that is useless anyway
-def generate_class_files(data_classes, class_name, class_def, input_file_name):
+
+def generate_class_files(data_classes, class_name, class_def):
     # we need items and methods to be present 
     if KEY_ITEMS not in class_def:
         class_def[KEY_ITEMS] = []
@@ -941,10 +940,10 @@ def generate_class_files(data_classes, class_name, class_def, input_file_name):
 
     class_def_w_inheritances = inherit_from_superclasses(data_classes, class_name, class_def)
     
-    generate_class_header(class_name, class_def_w_inheritances, input_file_name)
-    generate_class_implementation_and_bindings(class_name, class_def_w_inheritances, input_file_name)
+    generate_class_header(class_name, class_def_w_inheritances)
+    generate_class_implementation_and_bindings(class_name, class_def_w_inheritances)
     
-    generate_class_template(class_name, class_def_w_inheritances, input_file_name)
+    generate_class_template(class_name, class_def_w_inheritances)
     
     
 def write_constant_def(f, constant_def):
@@ -992,10 +991,10 @@ def write_enum_def(f, enum_def):
     f.write('};\n\n')
         
             
-def generate_constants_header(constants_items, enums_items, input_file_name):
+def generate_constants_header(constants_items, enums_items):
     with open(os.path.join(TARGET_DIRECTORY, GEN_CONSTANTS_H), 'w') as f:
         f.write(COPYRIGHT)
-        write_generated_notice(f, input_file_name)
+        write_generated_notice(f)
         
         guard = 'API_GEN_CONSTANTS';
         f.write('#ifndef ' + guard + '\n')
@@ -1046,10 +1045,10 @@ def write_enum_binding(f, enum_def):
     f.write('    .export_values();\n')
         
         
-def generate_constants_implementation(constants_items, enums_items, input_file_name):
+def generate_constants_implementation(constants_items, enums_items):
     with open(os.path.join(TARGET_DIRECTORY, GEN_CONSTANTS_CPP), 'w') as f:
         f.write(COPYRIGHT)
-        write_generated_notice(f, input_file_name)
+        write_generated_notice(f)
         f.write(INCLUDE_API_COMMON_H + '\n')
         f.write('\n' + NAMESPACES_BEGIN + '\n\n')
         
@@ -1066,9 +1065,9 @@ def generate_constants_implementation(constants_items, enums_items, input_file_n
         f.write(NAMESPACES_END + '\n\n')    
 
 
-def generate_constants_and_enums(constants_items, enums_items, input_file_name):
-    generate_constants_header(constants_items, enums_items, input_file_name)
-    generate_constants_implementation(constants_items, enums_items, input_file_name)
+def generate_constants_and_enums(constants_items, enums_items):
+    generate_constants_header(constants_items, enums_items)
+    generate_constants_implementation(constants_items, enums_items)
     
 
 def set_global_enums(data_classes):
@@ -1080,11 +1079,10 @@ def set_global_enums(data_classes):
         res.add(enum[KEY_NAME])
     g_enums = res
 
-def generate_data_classes(data_classes, input_file_name):
+def generate_data_classes(data_classes):
     generate_constants_and_enums(
         data_classes[KEY_CONSTANTS] if KEY_CONSTANTS in data_classes else [],
-        data_classes[KEY_ENUMS] if KEY_ENUMS in data_classes else [], 
-        input_file_name)
+        data_classes[KEY_ENUMS] if KEY_ENUMS in data_classes else [])
 
     set_global_enums(data_classes)
 
@@ -1092,7 +1090,7 @@ def generate_data_classes(data_classes, input_file_name):
         if key != KEY_CONSTANTS and key != KEY_ENUMS:
             if VERBOSE:
                 print("Generating class " + key)
-            generate_class_files(data_classes, key, value, input_file_name)
+            generate_class_files(data_classes, key, value)
     
     
 def collect_all_names(data_classes):
@@ -1138,7 +1136,7 @@ def generate_names_header(data_classes):
     
     with open(os.path.join(TARGET_DIRECTORY, GEN_NAMES_H), 'w') as f:
         f.write(COPYRIGHT)
-        write_generated_notice(f, '')
+        write_generated_notice(f)
         
         guard = 'API_GEN_NAMES';
         f.write('#ifndef ' + guard + '\n')
@@ -1176,8 +1174,7 @@ def load_and_generate_data_classes():
     if VERBOSE:    
         print(data_classes)
     assert type(data_classes) == dict
-    generate_data_classes(data_classes, "")
-    
+    generate_data_classes(data_classes)
     generate_names_header(data_classes)
 
 if __name__ == '__main__':
