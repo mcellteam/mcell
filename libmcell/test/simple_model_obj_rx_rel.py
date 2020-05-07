@@ -20,11 +20,10 @@ react_a_and_b = m.ReactionRule(
 # first we create a subsystem with
 subs = m.Subsystem()
 subs.add_species(a)
-subs.add_species([b, c]) # same name because species is both singular and plural
+subs.add_species(b)
+subs.add_species(c)
+#TODO: subs.add_species([b, c]) # same name because species is both singular and plural
 subs.add_reaction_rule(react_a_and_b)
-subs.add_viz_output(viz_output)
-subs.add_mol_rxn_count(rxn_count)
-subs.add_mol_rxn_count(mol_count)
 
 # subs.add_reaction_rules([react_a_and_b])
  
@@ -66,18 +65,18 @@ box = m.GeometryObject(
  
 rel_a = m.ReleaseSite(
     name = 'rel_a',
-    shape_type = Shape.Spherical, # second option is shape which accepts geometry object or region?, or use names?
-    location = Vec3(0, 0, 0),
-    molecule = a, # rather name this species...
-    number_to_release = 100,
-    release_probability = 1
+    species = a,
+    shape = m.Shape.Spherical, # second option is shape which accepts geometry object or region?, or use names?
+    #location = m.Vec3(0, 0, 0),
+    #number_to_release = 100,
+    #release_probability = 1
 )
  
 rel_b = m.ReleaseSite(
     name = 'rel_b',
-    shape_type = Shape.Spherical, # second option is shape which accepts geometry object or region?, or use names?
-    location = Vec3(0.005, 0, 0),
-    molecule = a, # rather name this species...
+    shape = m.Shape.Spherical, # second option is shape which accepts geometry object or region?, or use names?
+    location = m.Vec3(0.005, 0, 0),
+    species = a,
     number_to_release = 100,
     release_probability = 1
 )
@@ -90,7 +89,7 @@ inst.instantiate_release_site(rel_b) # TODO: lists will be allowed as well
 
 
 viz_output = m.VizOutput(
-    mode = VizMode.Ascii,
+    mode = m.VizMode.Ascii,
     filename = './viz_data/seed_' + str(SEED) + '/Scene',
     species_list = [a, b, c], # how top put 'all'?, maybe let's keep it explicit for now
     # species_patterns = [ '*' ] - do we want string pattern matching wildcards?, what about just BNG patterns?
@@ -113,12 +112,12 @@ count_a_in_world = m.Count(
     every_n_timesteps = 1 # default
 )
 
-count_term_b_in_world = CountTerm(
+count_term_b_in_world = m.CountTerm(
     species = b
 )
 
 
-count_term_b_in_box = CountTerm(
+count_term_b_in_box = m.CountTerm(
     species = b,
     enclosed_in_object = box
 )
@@ -127,7 +126,7 @@ count_term_b_in_box = CountTerm(
 # maybe we can change release of b
 # count is derived from CountTerm?
 count_b_not_in_box = m.Count(
-    count_terms_add = [count_term_b_in_world],  # include instead of add?
+    count_terms_include = [count_term_b_in_world],  # include instead of add?
     count_terms_subtract = [count_term_b_in_box], 
     # species_pattern / complex_pattern?
     filename = './react_data/seed_' + str(SEED) + '/b.World.dat', # try to deduce default filename? 
@@ -155,11 +154,3 @@ model.config.seed = SEED
 # does model initialization
 model.run_iterations(10)
 
-
-
-# !!! VIZ OUTPUT - where? subsystem or inst data
-# - rather subsystem, but there must be a way how to list and disable them
-
- 
-    
-     

@@ -21,21 +21,23 @@
  *
 ******************************************************************************/
 
-#ifndef API_PARTITION_H
-#define API_PARTITION_H
+#ifndef API_COUNT_H
+#define API_COUNT_H
 
-#include "../generated/gen_partition.h"
+#include "../generated/gen_count.h"
 #include "../api/common.h"
+#include "../api/count_term.h"
+
 
 namespace MCell {
 namespace API {
 
-class Partition: public GenPartition {
+class Count: public GenCount {
 public:
-  PARTITION_CTOR()
+  COUNT_CTOR()
 };
 
 } // namespace API
 } // namespace MCell
 
-#endif // API_PARTITION_H
+#endif // API_COUNT_H

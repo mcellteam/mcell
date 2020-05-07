@@ -29,22 +29,22 @@ set(SOURCE_FILES
     generated/gen_molecule_instance.cpp
     generated/gen_complex_instance.cpp
     generated/gen_species.cpp
-    
     generated/gen_reaction_rule.cpp
+    generated/gen_subsystem.cpp
 
     generated/gen_release_site.cpp
-    
     generated/gen_surface_region.cpp
     generated/gen_geometry_object.cpp
-
-    generated/gen_subsystem.cpp
     generated/gen_instantiation_data.cpp
+    
+    generated/gen_count_term.cpp
+    generated/gen_count.cpp
+    generated/gen_viz_output.cpp
+    generated/gen_observables.cpp
     
     generated/gen_config.cpp
     generated/gen_notifications.cpp
     generated/gen_warnings.cpp
-    generated/gen_partition.cpp
-    
     generated/gen_model.cpp
     
     generated/gen_constants.cpp

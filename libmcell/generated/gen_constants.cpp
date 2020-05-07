@@ -47,6 +47,14 @@ void define_pybinding_constants(py::module& m) {
     .value("Warning", WarningLevel::Warning)
     .value("Error", WarningLevel::Error)
     .export_values();
+  py::enum_<VizMode>(m, "VizMode", py::arithmetic())
+    .value("Ascii", VizMode::Ascii)
+    .value("Cellblender", VizMode::Cellblender)
+    .export_values();
+  py::enum_<Shape>(m, "Shape", py::arithmetic())
+    .value("Unset", Shape::Unset)
+    .value("Spherical", Shape::Spherical)
+    .export_values();
 }
 
 } // namespace API

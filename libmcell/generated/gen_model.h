@@ -36,6 +36,7 @@ class Config;
 class GeometryObject;
 class InstantiationData;
 class Notifications;
+class Observables;
 class ReactionRule;
 class ReleaseSite;
 class Species;
@@ -74,6 +75,7 @@ public:
   virtual void run_iterations(const long iterations) = 0;
   virtual void add_subsystem(std::shared_ptr<Subsystem> subsystem) = 0;
   virtual void add_instantiation_data(std::shared_ptr<InstantiationData> instantiation_data) = 0;
+  virtual void add_observables(std::shared_ptr<Observables> observables) = 0;
 }; // GenModel
 
 class Model;

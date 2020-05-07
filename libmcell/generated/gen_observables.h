@@ -21,34 +21,45 @@
  *
 ******************************************************************************/
 
-#ifndef API_MODEL_H
-#define API_MODEL_H
+#ifndef API_GEN_OBSERVABLES_H
+#define API_GEN_OBSERVABLES_H
 
-#include "../generated/gen_model.h"
 #include "../api/common.h"
-#include "subsystem.h"
-#include "instantiation_data.h"
-#include "config.h"
-#include "warnings.h"
-#include "notifications.h"
 
 namespace MCell {
 namespace API {
 
-class Model: public GenModel, public Subsystem, public InstantiationData {
+class Count;
+class VizOutput;
+
+class GenObservables {
 public:
+  virtual ~GenObservables() {}
+  // --- attributes ---
+  std::vector<std::shared_ptr<VizOutput>> viz_outputs;
+  virtual void set_viz_outputs(const std::vector<std::shared_ptr<VizOutput>> new_viz_outputs_) {
+    viz_outputs = new_viz_outputs_;
+  }
+  virtual std::vector<std::shared_ptr<VizOutput>> get_viz_outputs() const {
+    return viz_outputs;
+  }
 
-  // from generated template
-  void run_iterations(const long iterations) override {}
-  void add_subsystem(std::shared_ptr<Subsystem> subsystem) override {}
-  void add_instantiation_data(std::shared_ptr<InstantiationData> instantiation_data) override {}
-  void add_observables(std::shared_ptr<Observables> observables) override {};
+  std::vector<std::shared_ptr<Count>> counts;
+  virtual void set_counts(const std::vector<std::shared_ptr<Count>> new_counts_) {
+    counts = new_counts_;
+  }
+  virtual std::vector<std::shared_ptr<Count>> get_counts() const {
+    return counts;
+  }
 
-  // added manually
-  void dump() const;
-};
+  // --- methods ---
+  virtual void add_viz_output(std::shared_ptr<VizOutput> viz_output) = 0;
+  virtual void add_count(std::shared_ptr<Count> count) = 0;
+}; // GenObservables
 
+class Observables;
+py::class_<Observables> define_pybinding_Observables(py::module& m);
 } // namespace API
 } // namespace MCell
 
-#endif // API_MODEL_H
+#endif // API_GEN_OBSERVABLES_H

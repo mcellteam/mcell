@@ -31,16 +31,22 @@ namespace API {
 
 #define CONFIG_CTOR() \
     Config( \
+        const int seed_ = 1, \
         const float_t time_step_ = 1e-6, \
         const float_t surface_grid_density_ = 10000, \
         const bool center_molecules_on_grid_ = false, \
-        const bool microscopic_reversibility_ = false \
+        const bool microscopic_reversibility_ = false, \
+        const float_t partition_dimension_ = 10, \
+        const float_t subpartition_dimension_ = 0.5 \
     ) { \
       class_name = "Config"; \
+      seed = seed_; \
       time_step = time_step_; \
       surface_grid_density = surface_grid_density_; \
       center_molecules_on_grid = center_molecules_on_grid_; \
       microscopic_reversibility = microscopic_reversibility_; \
+      partition_dimension = partition_dimension_; \
+      subpartition_dimension = subpartition_dimension_; \
       postprocess_in_ctor();\
       check_semantics();\
     }
@@ -52,6 +58,14 @@ public:
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---
+  int seed;
+  virtual void set_seed(const int new_seed_) {
+    seed = new_seed_;
+  }
+  virtual int get_seed() const {
+    return seed;
+  }
+
   float_t time_step;
   virtual void set_time_step(const float_t new_time_step_) {
     time_step = new_time_step_;
@@ -82,6 +96,22 @@ public:
   }
   virtual bool get_microscopic_reversibility() const {
     return microscopic_reversibility;
+  }
+
+  float_t partition_dimension;
+  virtual void set_partition_dimension(const float_t new_partition_dimension_) {
+    partition_dimension = new_partition_dimension_;
+  }
+  virtual float_t get_partition_dimension() const {
+    return partition_dimension;
+  }
+
+  float_t subpartition_dimension;
+  virtual void set_subpartition_dimension(const float_t new_subpartition_dimension_) {
+    subpartition_dimension = new_subpartition_dimension_;
+  }
+  virtual float_t get_subpartition_dimension() const {
+    return subpartition_dimension;
   }
 
   // --- methods ---

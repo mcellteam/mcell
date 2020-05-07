@@ -1,0 +1,77 @@
+
+VizOutput:
+  superclass: BaseDataClass
+  items:
+  - name: filename
+    type: str
+
+  - name: species_list
+    type: List[Species*]
+    default: empty
+    doc: When not set, all species are visualized
+  
+  - name: mode
+    type: VizMode
+    default: VizMode.Ascii
+    
+  - name: every_n_timesteps
+    type: int
+    default: 1
+    
+
+CountTerm:
+  superclass: BaseDataClass
+  items:
+  - name: species
+    type: Species*
+    default: unset
+    
+  - name: reaction_rule
+    type: ReactionRule*
+    default: unset
+    
+  - name: enclosed_in_object
+    type: GeometryObject*
+    default: unset
+    
+    
+Count:
+  superclass: CountTerm
+  items:
+  - name: filename
+    type: str
+    
+  - name: count_terms_include 
+    type: List[CountTerm*]
+    default: empty
+
+  - name: count_terms_subtract 
+    type: List[CountTerm*]
+    default: empty
+
+  - name: every_n_timesteps
+    type: int
+    default: 1
+ 
+ 
+Observables:
+  items:
+  - name: viz_outputs
+    type: List[VizOutput*]
+    default: empty
+
+  - name: counts
+    type: List[Count*]
+    default: empty
+  
+  methods:
+  - name: add_viz_output
+    params:
+    - name: viz_output
+      type: VizOutput*
+  
+  - name: add_count
+    params:
+    - name: count
+      type: Count*
+     

@@ -34,11 +34,8 @@ void GenReleaseSite::check_semantics() const {
   if (!is_set(name)) {
     throw ValueError("Parameter 'name' must be set.");
   }
-  if (!is_set(shape)) {
-    throw ValueError("Parameter 'shape' must be set.");
-  }
-  if (!is_set(molecule)) {
-    throw ValueError("Parameter 'molecule' must be set.");
+  if (!is_set(species)) {
+    throw ValueError("Parameter 'species' must be set.");
   }
 }
 
@@ -46,11 +43,12 @@ std::string GenReleaseSite::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
       "name=" << name << ", " <<
+      "\n" << ind + "  " << "species=" << "(" << ((species != nullptr) ? species->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "shape=" << shape << ", " <<
-      "\n" << ind + "  " << "molecule=" << "(" << ((molecule != nullptr) ? molecule->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "location=" << location << ", " <<
       "site_diameter=" << site_diameter << ", " <<
       "site_radius=" << site_radius << ", " <<
+      "number_to_release=" << number_to_release << ", " <<
       "release_probability=" << release_probability;
   return ss.str();
 }
@@ -60,30 +58,33 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
       .def(
           py::init<
             const std::string&,
-            const std::string&,
             std::shared_ptr<Species>,
+            const Shape,
             const Vec3&,
             const float_t,
             const float_t,
+            const int,
             const float_t
           >(),
           py::arg("name"),
-          py::arg("shape"),
-          py::arg("molecule"),
+          py::arg("species"),
+          py::arg("shape") = Shape::Unset,
           py::arg("location") = VEC3_UNSET,
           py::arg("site_diameter") = FLT_UNSET,
           py::arg("site_radius") = FLT_UNSET,
+          py::arg("number_to_release") = INT_UNSET,
           py::arg("release_probability") = FLT_UNSET
       )
       .def("check_semantics", &ReleaseSite::check_semantics)
       .def("__str__", &ReleaseSite::to_str, py::arg("ind") = std::string(""))
       .def("dump", &ReleaseSite::dump)
       .def_property("name", &ReleaseSite::get_name, &ReleaseSite::set_name)
+      .def_property("species", &ReleaseSite::get_species, &ReleaseSite::set_species)
       .def_property("shape", &ReleaseSite::get_shape, &ReleaseSite::set_shape)
-      .def_property("molecule", &ReleaseSite::get_molecule, &ReleaseSite::set_molecule)
       .def_property("location", &ReleaseSite::get_location, &ReleaseSite::set_location)
       .def_property("site_diameter", &ReleaseSite::get_site_diameter, &ReleaseSite::set_site_diameter)
       .def_property("site_radius", &ReleaseSite::get_site_radius, &ReleaseSite::set_site_radius)
+      .def_property("number_to_release", &ReleaseSite::get_number_to_release, &ReleaseSite::set_number_to_release)
       .def_property("release_probability", &ReleaseSite::get_release_probability, &ReleaseSite::set_release_probability)
     ;
 }

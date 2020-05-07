@@ -29,3 +29,9 @@ Model:
     params:
     - name: instantiation_data
       type: InstantiationData*
+
+  - name: add_observables
+    params:
+    - name: observables
+      type: Observables*
+      

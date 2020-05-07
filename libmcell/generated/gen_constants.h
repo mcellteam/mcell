@@ -87,6 +87,36 @@ static inline  std::ostream& operator << (std::ostream& out, const WarningLevel 
 };
 
 
+enum class VizMode {
+  Ascii = 0,
+  Cellblender = 1
+};
+
+
+static inline  std::ostream& operator << (std::ostream& out, const VizMode v) {
+  switch (v) {
+    case VizMode::Ascii: out << "VizMode.Ascii (0)"; break;
+    case VizMode::Cellblender: out << "VizMode.Cellblender (1)"; break;
+  }
+  return out;
+};
+
+
+enum class Shape {
+  Unset = 0,
+  Spherical = 1
+};
+
+
+static inline  std::ostream& operator << (std::ostream& out, const Shape v) {
+  switch (v) {
+    case Shape::Unset: out << "Shape.Unset (0)"; break;
+    case Shape::Spherical: out << "Shape.Spherical (1)"; break;
+  }
+  return out;
+};
+
+
 void define_pybinding_constants(py::module& m);
 
 } // namespace API

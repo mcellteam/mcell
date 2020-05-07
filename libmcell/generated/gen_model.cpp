@@ -29,6 +29,7 @@
 #include "../api/geometry_object.h"
 #include "../api/instantiation_data.h"
 #include "../api/notifications.h"
+#include "../api/observables.h"
 #include "../api/reaction_rule.h"
 #include "../api/release_site.h"
 #include "../api/species.h"
@@ -47,6 +48,7 @@ py::class_<Model> define_pybinding_Model(py::module& m) {
       .def("run_iterations", &Model::run_iterations, py::arg("iterations"))
       .def("add_subsystem", &Model::add_subsystem, py::arg("subsystem"))
       .def("add_instantiation_data", &Model::add_instantiation_data, py::arg("instantiation_data"))
+      .def("add_observables", &Model::add_observables, py::arg("observables"))
       .def("add_species", &Model::add_species, py::arg("s"))
       .def("find_species", &Model::find_species, py::arg("name"))
       .def("add_reaction_rule", &Model::add_reaction_rule, py::arg("s"))

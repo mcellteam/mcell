@@ -5,16 +5,15 @@ ReleaseSite:
     type: str
     doc: Name of the release site
     
-  - name: shape
-    type: str
-    doc: |
-      Release molecules in the specified shape. Valid shapes are 'cubic', spherical', 'spherical_shell', and 'list'; or the name of the  name of region(s) on which to release.
-      
-  - name: molecule
+  - name: species
     type: Species* # Species must have beemn defined before
     doc: | 
       The named molecule is the one that will be released. Not used for  the 'list' shape. You must specify an orientation 
       if the molecule is a surface molecule.
+
+  - name: shape
+    type: Shape
+    default: Shape.Unset
        
   - name: location
     type: Vec3 # Vec3 and Vec2 are built-in data types
@@ -26,6 +25,10 @@ ReleaseSite:
     
   - name: site_radius
     type: float
+    default: unset
+
+  - name: number_to_release
+    type: int
     default: unset
     
   - name: release_probability

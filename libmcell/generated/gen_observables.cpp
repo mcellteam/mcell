@@ -23,38 +23,25 @@
 
 #include <sstream>
 #include <pybind11/stl.h>
-#include "gen_partition.h"
-#include "../api/partition.h"
+#include "gen_observables.h"
+#include "../api/observables.h"
+#include "../api/count.h"
+#include "../api/viz_output.h"
 
 namespace MCell {
 namespace API {
 
-void GenPartition::check_semantics() const {
-}
-
-std::string GenPartition::to_str(const std::string ind) const {
-  std::stringstream ss;
-  ss << get_object_name() << ": " <<
-      "parition_dimension=" << parition_dimension << ", " <<
-      "subparition_dimension=" << subparition_dimension;
-  return ss.str();
-}
-
-py::class_<Partition> define_pybinding_Partition(py::module& m) {
-  return py::class_<Partition, std::shared_ptr<Partition>>(m, "Partition")
+py::class_<Observables> define_pybinding_Observables(py::module& m) {
+  return py::class_<Observables, std::shared_ptr<Observables>>(m, "Observables")
       .def(
           py::init<
-            const float_t,
-            const float_t
-          >(),
-          py::arg("parition_dimension") = 10,
-          py::arg("subparition_dimension") = 0.5
+          >()
       )
-      .def("check_semantics", &Partition::check_semantics)
-      .def("__str__", &Partition::to_str, py::arg("ind") = std::string(""))
-      .def("dump", &Partition::dump)
-      .def_property("parition_dimension", &Partition::get_parition_dimension, &Partition::set_parition_dimension)
-      .def_property("subparition_dimension", &Partition::get_subparition_dimension, &Partition::set_subparition_dimension)
+      .def("add_viz_output", &Observables::add_viz_output, py::arg("viz_output"))
+      .def("add_count", &Observables::add_count, py::arg("count"))
+      .def("dump", &Observables::dump)
+      .def_property("viz_outputs", &Observables::get_viz_outputs, &Observables::set_viz_outputs)
+      .def_property("counts", &Observables::get_counts, &Observables::set_counts)
     ;
 }
 

@@ -47,3 +47,18 @@ enums:
       value: 2                
       doc: Treat the warning as an error and stop
       
+  - name: VizMode
+    values:
+    - name: Ascii
+      value: 0
+    - name: Cellblender
+      value: 1
+      
+  # other shapes are defined in in release_shape_t but only the spherical one is supported by mcell4 now
+  - name: Shape
+    values:
+    - name: Unset
+      value: 0
+    - name: Spherical
+      value: 1
+      

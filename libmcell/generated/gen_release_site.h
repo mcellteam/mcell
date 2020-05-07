@@ -34,20 +34,22 @@ class Species;
 #define RELEASE_SITE_CTOR() \
     ReleaseSite( \
         const std::string& name_, \
-        const std::string& shape_, \
-        std::shared_ptr<Species> molecule_, \
+        std::shared_ptr<Species> species_, \
+        const Shape shape_ = Shape::Unset, \
         const Vec3& location_ = VEC3_UNSET, \
         const float_t site_diameter_ = FLT_UNSET, \
         const float_t site_radius_ = FLT_UNSET, \
+        const int number_to_release_ = INT_UNSET, \
         const float_t release_probability_ = FLT_UNSET \
     ) { \
       class_name = "ReleaseSite"; \
       name = name_; \
+      species = species_; \
       shape = shape_; \
-      molecule = molecule_; \
       location = location_; \
       site_diameter = site_diameter_; \
       site_radius = site_radius_; \
+      number_to_release = number_to_release_; \
       release_probability = release_probability_; \
       postprocess_in_ctor();\
       check_semantics();\
@@ -60,20 +62,20 @@ public:
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---
-  std::string shape;
-  virtual void set_shape(const std::string& new_shape_) {
-    shape = new_shape_;
+  std::shared_ptr<Species> species;
+  virtual void set_species(std::shared_ptr<Species> new_species_) {
+    species = new_species_;
   }
-  virtual const std::string& get_shape() const {
-    return shape;
+  virtual std::shared_ptr<Species> get_species() const {
+    return species;
   }
 
-  std::shared_ptr<Species> molecule;
-  virtual void set_molecule(std::shared_ptr<Species> new_molecule_) {
-    molecule = new_molecule_;
+  Shape shape;
+  virtual void set_shape(const Shape new_shape_) {
+    shape = new_shape_;
   }
-  virtual std::shared_ptr<Species> get_molecule() const {
-    return molecule;
+  virtual Shape get_shape() const {
+    return shape;
   }
 
   Vec3 location;
@@ -98,6 +100,14 @@ public:
   }
   virtual float_t get_site_radius() const {
     return site_radius;
+  }
+
+  int number_to_release;
+  virtual void set_number_to_release(const int new_number_to_release_) {
+    number_to_release = new_number_to_release_;
+  }
+  virtual int get_number_to_release() const {
+    return number_to_release;
   }
 
   float_t release_probability;
