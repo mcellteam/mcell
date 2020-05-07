@@ -173,7 +173,7 @@ void BngDataToDatamodelConverter::convert_single_rxn_rule(const BNG::RxnRule& r,
   CHECK_PROPERTY_W_NAME(r.variable_rates.empty(), r.name);
   rxn_node[KEY_VARIABLE_RATE_VALID] = false;
   rxn_node[KEY_VARIABLE_RATE] = "";
-  rxn_node[KEY_VARIABLE_RATE_SWITCH] = "";
+  rxn_node[KEY_VARIABLE_RATE_SWITCH] = false;
   rxn_node[KEY_VARIABLE_RATE_TEXT] = "";
 }
 

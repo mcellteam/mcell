@@ -431,7 +431,7 @@ std::string RxnRule::reactants_to_str(const BNGData& bng_data) const {
 }
 
 std::string RxnRule::products_to_str(const BNGData& bng_data) const {
-  return complex_instance_vector_to_str(bng_data, reactants);
+  return complex_instance_vector_to_str(bng_data, products);
 }
 
 void RxnRule::dump(const BNGData& bng_data, const std::string ind) const {
