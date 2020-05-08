@@ -28,17 +28,15 @@
 #include <stdio.h>
 #include <errno.h>
 
-//extern "C" {
 #include "logging.h"
 #include "mem_util.h"
 #include "util.h"
 #include "mcell_structs.h"
-//}
 
 #include "viz_output_event.h"
 #include "geometry.h"
 #include "world.h"
-
+#include "datamodel_defines.h"
 
 #include "geometry_utils.inc"
 
@@ -265,6 +263,22 @@ void VizOutputEvent::output_cellblender_molecules() {
    }
 
   fclose(custom_file);
+}
+
+
+void VizOutputEvent::to_data_model(Json::Value& mcell_node) const {
+  // there can be just one viz_output section
+  CONVERSION_CHECK(!mcell_node.isMember(KEY_VIZ_OUTPUT), "Only one viz_output section is allowed");
+
+  Json::Value& viz_output = mcell_node[KEY_VIZ_OUTPUT];
+  DMUtil::json_add_version(viz_output, JSON_DM_VERSION_1638);
+
+  viz_output[KEY_EXPORT_ALL] = species_ids_to_visualize.size() == world->get_all_species().get_species_vector().size();
+  viz_output[KEY_START] = event_time;
+  viz_output[KEY_ALL_ITERATIONS] = cmp_eq(periodicity_interval, 1.0);
+  viz_output[KEY_STEP] = periodicity_interval;
+  viz_output[KEY_END] = world->total_iterations;
+
 }
 
 } // namespace mcell

@@ -151,6 +151,13 @@ const char* const VALUE_NUMBER_TO_RELEASE = "NUMBER_TO_RELEASE";
 const char* const VALUE_GAUSSIAN_RELEASE_NUMBER = "GAUSSIAN_RELEASE_NUMBER";
 const char* const VALUE_DENSITY = "DENSITY";
 
+const char* const KEY_VIZ_OUTPUT = "viz_output";
+const char* const KEY_EXPORT_ALL = "export_all";
+const char* const KEY_ALL_ITERATIONS = "all_iterations";
+const char* const KEY_START = "start";
+const char* const KEY_STEP = "step";
+const char* const KEY_END = "end";
+
 const char* const KEY_SCRIPTING = "scripting";
 const char* const KEY_IGNORE_CELLBLENDER_DATA = "ignore_cellblender_data";
 const char* const KEY_SCRIPTING_LIST = "scripting_list";
@@ -168,8 +175,8 @@ const double DEFAULT_OBJECT_ALPHA = 0.25;
 
 namespace DMUtil {
 
-static inline void json_add_version(Json::Value& define_molecules, const char* ver) {
-  define_molecules[KEY_DATA_MODEL_VERSION] = ver;
+static inline void json_add_version(Json::Value& node, const char* ver) {
+  node[KEY_DATA_MODEL_VERSION] = ver;
 }
 
 

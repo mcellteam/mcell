@@ -1329,26 +1329,44 @@ bool MCell3WorldConverter::convert_viz_output_events(volume* s) {
   CHECK_PROPERTY(frame_data_head->type == ALL_MOL_DATA); // limited for now
   CHECK_PROPERTY(frame_data_head->viz_iteration == 0); // must be zero at sim. start
 
-  num_expr_list* iteration_ptr = frame_data_head->iteration_list;
-  num_expr_list* curr_viz_iteration_ptr = frame_data_head->curr_viz_iteration;
-  for (long long i = 0; i < frame_data_head->n_viz_iterations; i++) {
-    assert(iteration_ptr != nullptr);
-    assert(curr_viz_iteration_ptr != nullptr);
-    assert(iteration_ptr->value == curr_viz_iteration_ptr->value);
+  // determine periodicity
+  CHECK_PROPERTY(frame_data_head->n_viz_iterations > 0);
 
-    // create an event for each iteration
-    // TODO: create just one repeating event for periodic events
-    VizOutputEvent* event = new VizOutputEvent(world);
-    event->event_time = iteration_ptr->value;
-    event->viz_mode = viz_mode;
-    event->file_prefix_name = viz_blocks->file_prefix_name;
-    event->species_ids_to_visualize = species_ids_to_visualize; // copying the whole map
+  float_t periodicity;
+  float_t start_time;
 
-    world->scheduler.schedule_event(event);
+  if (frame_data_head->n_viz_iterations > 1) {
+    num_expr_list* iteration_ptr = frame_data_head->iteration_list;
 
-    iteration_ptr = iteration_ptr->next;
-    curr_viz_iteration_ptr = curr_viz_iteration_ptr->next;
+    assert(iteration_ptr->next != nullptr);
+    periodicity = iteration_ptr->next->value - iteration_ptr->value;
+
+    // check that the first different in time is true for everything else
+    num_expr_list* curr_viz_iteration_ptr = frame_data_head->curr_viz_iteration;
+    for (long long i = 0; i < frame_data_head->n_viz_iterations; i++) {
+      assert(iteration_ptr != nullptr);
+      assert(curr_viz_iteration_ptr != nullptr);
+      assert(iteration_ptr->value == curr_viz_iteration_ptr->value);
+
+      if (iteration_ptr->next != nullptr) {
+        CHECK_PROPERTY(cmp_eq(periodicity, iteration_ptr->next->value - iteration_ptr->value));
+      }
+      iteration_ptr = iteration_ptr->next;
+      curr_viz_iteration_ptr = curr_viz_iteration_ptr->next;
+    }
   }
+  else {
+    periodicity = 0;
+  }
+
+  VizOutputEvent* event = new VizOutputEvent(world);
+  event->event_time = frame_data_head->iteration_list->value;
+  event->periodicity_interval = periodicity;
+  event->viz_mode = viz_mode;
+  event->file_prefix_name = viz_blocks->file_prefix_name;
+  event->species_ids_to_visualize = species_ids_to_visualize; // copying the whole map
+
+  world->scheduler.schedule_event(event);
 
   return true;
 }

@@ -400,8 +400,13 @@ void World::to_data_model(Json::Value& root) const {
     }
   }
 
-  mcell[KEY_DEFINE_SURFACE_CLASSES] = Json::Value(Json::ValueType::objectValue); // empty dict
+  if (!mcell.isMember(KEY_DEFINE_SURFACE_CLASSES)) {
+    mcell[KEY_DEFINE_SURFACE_CLASSES] = Json::Value(Json::ValueType::objectValue); // empty dict
+  }
 
+  // diverse settings not read from the mcell4 state
+
+  // --- mol_viz ---
   Json::Value& mol_viz = mcell[KEY_MOL_VIZ];
   DMUtil::json_add_version(mol_viz, JSON_DM_VERSION_1700);
   mol_viz[KEY_MANUAL_SELECT_VIZ_DIR] = false;
@@ -431,20 +436,20 @@ void World::to_data_model(Json::Value& root) const {
 
   mol_viz[KEY_VIZ_LIST] = Json::Value(Json::arrayValue); // empty array
 
-  // diverse settings not read from the mcell4 state
-  mcell[KEY_MODEL_LANGUAGE] = VALUE_MCELL3;
-
+  // --- parameter_system ---
   Json::Value& parameter_system = mcell[KEY_PARAMETER_SYSTEM];
   parameter_system[KEY_MODEL_PARAMETERS] = Json::Value(Json::ValueType::objectValue); // empty dict
 
+  // --- scripting ---
   Json::Value& scripting = mcell[KEY_SCRIPTING];
   scripting[KEY_IGNORE_CELLBLENDER_DATA] = false;
   scripting[KEY_SCRIPTING_LIST] = Json::Value(Json::arrayValue);
 
-
+  // --- simulation_control ---
   Json::Value& simulation_control = mcell[KEY_SIMULATION_CONTROL];
   simulation_control[KEY_EXPORT_FORMAT] = VALUE_MCELL_MDL_MODULAR;
 
+  mcell[KEY_MODEL_LANGUAGE] = VALUE_MCELL3;
   mcell[KEY_INITIALIZATION] = Json::Value(Json::ValueType::objectValue); // empty dict
 
   Json::Value& blender_version = mcell[KEY_BLENDER_VERSION];
