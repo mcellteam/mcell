@@ -268,6 +268,9 @@ void Partition::to_data_model(Json::Value& mcell) const {
 
   Json::Value& geometrical_objects = mcell[KEY_GEOMETRICAL_OBJECTS];
   Json::Value& object_list = geometrical_objects[KEY_OBJECT_LIST];
+  if (object_list.isNull()) {
+    object_list = Json::Value(Json::arrayValue);
+  }
 
   for (const GeometryObject& g: geometry_objects) {
     Json::Value object;

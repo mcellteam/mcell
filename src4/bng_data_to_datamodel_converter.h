@@ -64,6 +64,7 @@ private:
   const BNG::BNGEngine* bng_engine;
 
   uint next_color_index;
+  uint rxn_counter;
   std::vector<Vec3> colors;
 
   bool conversion_failed;

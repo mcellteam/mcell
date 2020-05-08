@@ -1,6 +1,8 @@
 #ifndef _DATAMODEL_DEFINES_H_
 #define _DATAMODEL_DEFINES_H_
 
+#include <cctype>
+
 #include "defines.h"
 #include "json/json.h"
 
@@ -100,6 +102,7 @@ const char* const KEY_FILE_DIR = "file_dir";
 const char* const KEY_MODEL_LANGUAGE = "model_language";
 const char* const VALUE_MCELL3 = "mcell3";
 const char* const KEY_PARAMETER_SYSTEM = "parameter_system";
+const char* const KEY_MODEL_PARAMETERS = "model_parameters";
 
 const char* const KEY_INITIALIZATION = "initialization";
 
@@ -148,18 +151,27 @@ const char* const VALUE_NUMBER_TO_RELEASE = "NUMBER_TO_RELEASE";
 const char* const VALUE_GAUSSIAN_RELEASE_NUMBER = "GAUSSIAN_RELEASE_NUMBER";
 const char* const VALUE_DENSITY = "DENSITY";
 
+const char* const KEY_SCRIPTING = "scripting";
+const char* const KEY_IGNORE_CELLBLENDER_DATA = "ignore_cellblender_data";
+const char* const KEY_SCRIPTING_LIST = "scripting_list";
+
+const char* const KEY_SIMULATION_CONTROL = "simulation_control";
+const char* const KEY_EXPORT_FORMAT = "export_format";
+const char* const VALUE_MCELL_MDL_MODULAR = "mcell_mdl_modular";
 
 const double DEFAULT_OBJECT_COLOR_COMPONENT = 0.8;
 const double DEFAULT_OBJECT_ALPHA = 0.25;
 
 
 // ---------------------------------- datamodel utilities----------------------------------
+// TODO: move the utility functions into a c++ file
 
 namespace DMUtil {
 
 static inline void json_add_version(Json::Value& define_molecules, const char* ver) {
   define_molecules[KEY_DATA_MODEL_VERSION] = ver;
 }
+
 
 static inline void json_append_triplet(Json::Value& list, const float x, const float y, const float z) {
   Json::Value list_triplet;
@@ -169,12 +181,14 @@ static inline void json_append_triplet(Json::Value& list, const float x, const f
   list.append(list_triplet);
 }
 
+
 static inline std::string remove_obj_name_prefix(const std::string& prefix, const std::string& name) {
   size_t pos = prefix.size() + 1;
   assert(name.size() > pos);
   assert(name.substr(0, pos) == prefix + ".");
   return name.substr(pos);
 }
+
 
 // we do not know the prefix in this case
 static inline std::string remove_obj_name_prefix(const std::string& name) {
@@ -183,6 +197,7 @@ static inline std::string remove_obj_name_prefix(const std::string& name) {
   assert(pos + 1 < name.size());
   return name.substr(pos + 1);
 }
+
 
 static inline std::string get_object_w_region_name(const std::string& name) {
 
@@ -196,6 +211,7 @@ static inline std::string get_object_w_region_name(const std::string& name) {
   return obj + "[" + reg + "]";
 }
 
+
 static inline std::string get_surface_region_name(const std::string& name) {
   size_t pos = name.find(',');
   // TODO: these checks should be enabled also for release build
@@ -203,6 +219,21 @@ static inline std::string get_surface_region_name(const std::string& name) {
   assert(pos + 1 < name.size());
   return name.substr(pos + 1);
 }
+
+
+static inline std::string to_id(const std::string& name) {
+  if (name == "") {
+    return "";
+  }
+  std::string res;
+  for (char c: name) {
+    if (isalnum(c) || c == '_') {
+      res += c;
+    }
+  }
+  return res;
+}
+
 
 static inline std::string orientation_to_str(const orientation_t o) {
   switch (o) {

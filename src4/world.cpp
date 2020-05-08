@@ -355,6 +355,7 @@ void World::to_data_model(Json::Value& root) const {
   Json::Value& mcell = root[KEY_MCELL];
 
   mcell[KEY_CELLBLENDER_VERSION] = VALUE_CELLBLENDER_VERSION;
+  DMUtil::json_add_version(mcell, JSON_DM_VERSION_1300);
 
   // generate geometry information
   bool first = true;
@@ -381,6 +382,7 @@ void World::to_data_model(Json::Value& root) const {
   Json::Value& model_objects = mcell[KEY_MODEL_OBJECTS];
   DMUtil::json_add_version(model_objects, JSON_DM_VERSION_1330);
   Json::Value& model_object_list = model_objects[KEY_MODEL_OBJECT_LIST];
+  model_object_list = Json::Value(Json::arrayValue);
 
   // names of geometry objects need to be listed for the second time
   for (const Partition& p: partitions) {
@@ -429,11 +431,19 @@ void World::to_data_model(Json::Value& root) const {
 
   mol_viz[KEY_VIZ_LIST] = Json::Value(Json::arrayValue); // empty array
 
+  // diverse settings not read from the mcell4 state
   mcell[KEY_MODEL_LANGUAGE] = VALUE_MCELL3;
 
-  mcell[KEY_PARAMETER_SYSTEM] = Json::Value(Json::ValueType::objectValue); // empty dict
+  Json::Value& parameter_system = mcell[KEY_PARAMETER_SYSTEM];
+  parameter_system[KEY_MODEL_PARAMETERS] = Json::Value(Json::ValueType::objectValue); // empty dict
 
-  DMUtil::json_add_version(mcell, JSON_DM_VERSION_1300);
+  Json::Value& scripting = mcell[KEY_SCRIPTING];
+  scripting[KEY_IGNORE_CELLBLENDER_DATA] = false;
+  scripting[KEY_SCRIPTING_LIST] = Json::Value(Json::arrayValue);
+
+
+  Json::Value& simulation_control = mcell[KEY_SIMULATION_CONTROL];
+  simulation_control[KEY_EXPORT_FORMAT] = VALUE_MCELL_MDL_MODULAR;
 
   mcell[KEY_INITIALIZATION] = Json::Value(Json::ValueType::objectValue); // empty dict
 

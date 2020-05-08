@@ -79,6 +79,7 @@ BngDataToDatamodelConverter::BngDataToDatamodelConverter() {
 void BngDataToDatamodelConverter::reset() {
   bng_engine = nullptr;
   next_color_index = 0;
+  rxn_counter = 0;
   conversion_failed = false;
 }
 
@@ -167,20 +168,41 @@ void BngDataToDatamodelConverter::convert_single_rxn_rule(const BNG::RxnRule& r,
   rxn_node[KEY_REACTANTS] = r.reactants_to_str(bng_engine->get_data());
   rxn_node[KEY_PRODUCTS] = r.products_to_str(bng_engine->get_data());
 
-  rxn_node[KEY_FWD_RATE] = to_string(r.rate_constant);
-  rxn_node[KEY_BKWD_RATE] = "";
+  if (r.variable_rates.empty()) {
+    rxn_node[KEY_FWD_RATE] = r.rate_constant;
+    rxn_node[KEY_BKWD_RATE] = "";
 
-  CHECK_PROPERTY_W_NAME(r.variable_rates.empty(), r.name);
-  rxn_node[KEY_VARIABLE_RATE_VALID] = false;
-  rxn_node[KEY_VARIABLE_RATE] = "";
-  rxn_node[KEY_VARIABLE_RATE_SWITCH] = false;
-  rxn_node[KEY_VARIABLE_RATE_TEXT] = "";
+    CHECK_PROPERTY_W_NAME(r.variable_rates.empty(), r.name);
+    rxn_node[KEY_VARIABLE_RATE_VALID] = false;
+    rxn_node[KEY_VARIABLE_RATE_SWITCH] = false;
+    rxn_node[KEY_VARIABLE_RATE] = "";
+    rxn_node[KEY_VARIABLE_RATE_TEXT] = "";
+  }
+  else {
+    rxn_node[KEY_FWD_RATE] = "0";
+    rxn_node[KEY_BKWD_RATE] = "";
+
+    rxn_node[KEY_VARIABLE_RATE_VALID] = true;
+    rxn_node[KEY_VARIABLE_RATE_SWITCH] = true;
+
+    rxn_node[KEY_VARIABLE_RATE] = "var_rate_" + DMUtil::to_id(r.name) + "_" + to_string(rxn_counter);
+    rxn_counter++;
+
+    stringstream text;
+    // initial value for time 0
+    text << 0.0 << "\t" << r.rate_constant << "\n";
+    for (const BNG::RxnRateInfo& ri: r.variable_rates) {
+      text << ri.time << "\t" << ri.rate_constant << "\n";
+    }
+    rxn_node[KEY_VARIABLE_RATE_TEXT] = text.str();
+  }
 }
 
 void BngDataToDatamodelConverter::convert_rxns(Value& mcell_node) {
   Value& define_reactions = mcell_node[KEY_DEFINE_REACTIONS];
   json_add_version(define_reactions, JSON_DM_VERSION_1638);
   Value& reaction_list = define_reactions[KEY_REACTION_LIST];
+  reaction_list = Value(Json::arrayValue);
 
   for (const BNG::RxnRule* rxn_rule: bng_engine->get_all_rxns().get_rxn_rules_vector()) {
     Value rxn_node;

@@ -190,10 +190,9 @@ void ReleaseEvent::to_data_model(Json::Value& mcell_node) const {
     release_site[KEY_LOCATION_X] = to_string(location.x);
     release_site[KEY_LOCATION_Y] = to_string(location.y);
     release_site[KEY_LOCATION_Z] = to_string(location.z);
-  }
 
-  if (diameter != Vec3(FLT_INVALID)) {
-    CONVERSION_UNSUPPORTED("Release event " + release_site_name + " has a set value of diameter.");
+    CONVERSION_CHECK(diameter.x == diameter.y && diameter.y == diameter.z, "Not sure if datamodel supports different diameters.");
+    release_site[KEY_SITE_DIAMETER] = diameter.x;
   }
 
   release_site_list.append(release_site);
