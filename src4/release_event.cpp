@@ -187,12 +187,12 @@ void ReleaseEvent::to_data_model(Json::Value& mcell_node) const {
   }
 
   if (release_shape != ReleaseShape::REGION) {
-    release_site[KEY_LOCATION_X] = to_string(location.x);
-    release_site[KEY_LOCATION_Y] = to_string(location.y);
-    release_site[KEY_LOCATION_Z] = to_string(location.z);
+    release_site[KEY_LOCATION_X] = to_string(location.x * world->config.length_unit);
+    release_site[KEY_LOCATION_Y] = to_string(location.y * world->config.length_unit);
+    release_site[KEY_LOCATION_Z] = to_string(location.z * world->config.length_unit);
 
     CONVERSION_CHECK(diameter.x == diameter.y && diameter.y == diameter.z, "Not sure if datamodel supports different diameters.");
-    release_site[KEY_SITE_DIAMETER] = diameter.x;
+    release_site[KEY_SITE_DIAMETER] = diameter.x * world->config.length_unit;
   }
 
   release_site_list.append(release_site);
