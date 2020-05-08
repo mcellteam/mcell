@@ -158,15 +158,17 @@ void BngDataToDatamodelConverter::convert_single_species(const BNG::Species& s, 
 void BngDataToDatamodelConverter::convert_single_rxn_rule(const BNG::RxnRule& r, Value& rxn_node) {
   json_add_version(rxn_node, JSON_DM_VERSION_1330);
 
-  rxn_node[KEY_DESCRIPTION] = "";
-  rxn_node[KEY_NAME] = r.name;
-  rxn_node[KEY_RXN_NAME] = ""; // not sure why there are two names
+  // name is put into rnx_name and name is the string of the reaction
+  rxn_node[KEY_RXN_NAME] = r.name;
 
   // LATER: maybe find an opposite reaction and generate it as reversible
   rxn_node[KEY_RXN_TYPE] = VALUE_IRREVERSIBLE;
 
-  rxn_node[KEY_REACTANTS] = r.reactants_to_str(bng_engine->get_data());
-  rxn_node[KEY_PRODUCTS] = r.products_to_str(bng_engine->get_data());
+  string reactants = r.reactants_to_str(bng_engine->get_data());
+  rxn_node[KEY_REACTANTS] = reactants;
+  string products = r.products_to_str(bng_engine->get_data());
+  rxn_node[KEY_PRODUCTS] = products;
+  rxn_node[KEY_NAME] = reactants + " -> " + products;
 
   if (r.variable_rates.empty()) {
     rxn_node[KEY_FWD_RATE] = r.rate_constant;
