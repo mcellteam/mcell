@@ -12,6 +12,7 @@ const char* const DEFAULT_DATAMODEL_FILENAME = "datamodel.json";
 const char* const ALL_MOLECULES = "ALL_MOLECULES";
 const char* const ALL_VOLUME_MOLECULES = "ALL_VOLUME_MOLECULES";
 const char* const ALL_SURFACE_MOLECULES = "ALL_SURFACE_MOLECULES";
+const int NUM_GENERAL_SPECIES = 3;
 
 // ---------------------------------- datamodel constants----------------------------------
 

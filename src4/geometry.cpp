@@ -119,7 +119,7 @@ void GeometryObject::to_data_model(
     }
   }
 
-  Json::Value& define_surface_regions = object[KEY_DEFINE_SURFACE_REGIONS];
+  vector<Json::Value> surface_regions_vec;
   for (region_index_t region_index: region_indices.get_as_vector()) {
     const Region& reg = p.get_region(region_index);
 
@@ -138,8 +138,18 @@ void GeometryObject::to_data_model(
        include_elements.append(map_wall_index_to_order_index_in_object[it.first]);
     }
     surface_region[KEY_INCLUDE_ELEMENTS] = include_elements;
-    define_surface_regions.append(surface_region);
+    surface_regions_vec.push_back(surface_region);
   }
+
+  // we may create the define_surface_regions only when there is at least one region
+  if (!surface_regions_vec.empty()) {
+    Json::Value& define_surface_regions = object[KEY_DEFINE_SURFACE_REGIONS];
+
+    for (auto& surface_region: surface_regions_vec) {
+      define_surface_regions.append(surface_region);
+    }
+  }
+
 }
 
 void Region::dump(const std::string ind) const {
