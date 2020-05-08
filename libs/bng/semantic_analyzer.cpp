@@ -35,7 +35,7 @@ ASTExprNode* SemanticAnalyzer::evaluate_to_dbl(ASTExprNode* root, set<string> us
   if (root->is_id()) {
     const string& id = root->get_id();
     if (used_ids.count(id) != 0) {
-      errs(root) <<
+      errs_loc(root) <<
           "Cyclic dependence while evaluating an expression, id '" << id << "' was already used.\n"; // test N0012
       ctx->inc_error_count();
       return ctx->new_dbl_node(0, root);
@@ -48,7 +48,7 @@ ASTExprNode* SemanticAnalyzer::evaluate_to_dbl(ASTExprNode* root, set<string> us
       return ctx->new_dbl_node(0, root);
     }
     if (!val->is_expr()) {
-      errs(root) <<
+      errs_loc(root) <<
           "Referenced id '" << id << "' cannot be used in an expression.\n";
       ctx->inc_error_count();
       return ctx->new_dbl_node(0, root);
@@ -75,14 +75,14 @@ void SemanticAnalyzer::resolve_rxn_rates() {
 
     // do we have the right number of rates?
     if (rule->reversible && rule->rates->size() != 2) {
-      errs(rule) <<
+      errs_loc(rule) <<
           "A reversible rule must have exactly 2 rates, "<<
           rule->rates->size() << " rate(s) provided.\n"; // test N0015
       ctx->inc_error_count();
     }
 
     if (!rule->reversible && rule->rates->size() != 1) {
-      errs(rule) <<
+      errs_loc(rule) <<
           "A unidirectional rule must have exactly 1 rate, " <<
           rule->rates->size() << " rate(s) provided.\n"; // test N0014
       ctx->inc_error_count();
@@ -118,7 +118,7 @@ component_type_id_t SemanticAnalyzer::convert_component_type(const ASTComponentN
 
   // bond - ignored, only error is printed
   if (c->bond->str != "") {
-    errs(c) <<
+    errs_loc(c) <<
         "Definition of a component in the molecule types section must not have a bond, "
         "error for '!" << c->bond->str << "'.\n"; // test N0100
     ctx->inc_error_count();
@@ -153,7 +153,7 @@ MolType SemanticAnalyzer::convert_molecule_type(const ASTMoleculeNode* n) {
       if (ct_i_id != ct_k_id && ct_i.name == ct_k.name) {
         // this is directly a conflict because if the components would have the same name and the same components,
         // their id would be the same
-        errs(n) <<
+        errs_loc(n) <<
             "Molecule type has 2 components with name '" << ct_i.name << "' but with different states, this is not allowed.\n"; // test N0101
         ctx->inc_error_count();
       }
@@ -190,7 +190,7 @@ MolInstance SemanticAnalyzer::convert_molecule_pattern(const ASTMoleculeNode* m)
   // process and remember ID
   mol_type_id_t molecule_type_id = bng_data->find_molecule_type_id(m->name);
   if (molecule_type_id == MOL_TYPE_ID_INVALID) {
-    errs(m) << "Molecule type with name '" + m->name + "' was not defined.\n"; // test N0200
+    errs_loc(m) << "Molecule type with name '" + m->name + "' was not defined.\n"; // test N0200
     ctx->inc_error_count();
     return mp;
   }
@@ -212,7 +212,7 @@ MolInstance SemanticAnalyzer::convert_molecule_pattern(const ASTMoleculeNode* m)
     //                       A(a, a,    b, c   ),
     current_component_index = mp.get_corresponding_component_index(*bng_data, mt, component->name, current_component_index);
     if (current_component_index == INDEX_INVALID) {
-      errs(m) <<
+      errs_loc(m) <<
           "Molecule type '" << mt.name << "' does not declare component '" << component->name <<
           "' or all instances of this component were already used.\n"; // test N0201
       ctx->inc_error_count();
@@ -223,7 +223,7 @@ MolInstance SemanticAnalyzer::convert_molecule_pattern(const ASTMoleculeNode* m)
 
     // state
     if (component->states->items.size() > 1) {
-      errs(component) << "A component might have max. 1 state specified, error for component " << component->name << ".\n"; // test N0202
+      errs_loc(component) << "A component might have max. 1 state specified, error for component " << component->name << ".\n"; // test N0202
       ctx->inc_error_count();
       return mp;
     }
@@ -235,7 +235,7 @@ MolInstance SemanticAnalyzer::convert_molecule_pattern(const ASTMoleculeNode* m)
       // does this state exist at all?
       state_id_t state_id = bng_data->find_state_id(state_name);
       if (state_id == STATE_ID_INVALID) {
-        errs(component) <<
+        errs_loc(component) <<
             "Unknown state name '" << state_name << "' for component '" << component->name <<
             "' (this state name was not found for any declared component).\n"; // test N0203
         ctx->inc_error_count();
@@ -245,7 +245,7 @@ MolInstance SemanticAnalyzer::convert_molecule_pattern(const ASTMoleculeNode* m)
       // is this state allowed for this component?
       const ComponentType& ct = bng_data->get_component_type(component_type_id);
       if (ct.allowed_state_ids.count(state_id) == 0) {
-        errs(component) <<
+        errs_loc(component) <<
             "State name '" << state_name << "' was not declared as allowed for component '" << component->name << "'.\n"; // test N0204
         ctx->inc_error_count();
         return mp;
@@ -303,7 +303,7 @@ void SemanticAnalyzer::convert_complex_pattern(const small_vector<const ASTMolec
     // each bond is used exactly twice
     if (it.second.size() != 2) {
       assert(complex_nodes.size() > 0);
-      errs(complex_nodes[0]) <<
+      errs_loc(complex_nodes[0]) <<
           "Bond with numerical value '" << it.first << "' must be used exactly twice in a complex pattern of a rule.\n"; // test N0206
       ctx->inc_error_count();
       return;
@@ -312,7 +312,7 @@ void SemanticAnalyzer::convert_complex_pattern(const small_vector<const ASTMolec
     // it is used in different molecules of a complex
     if (it.second[0] == it.second[1]) {
       assert(complex_nodes.size() > 0);
-      errs(complex_nodes[0]) <<
+      errs_loc(complex_nodes[0]) <<
           "Bond with numerical value '" << it.first << "' must bind different molecules of a complex pattern of a rule.\n"; // test N0208
       ctx->inc_error_count();
       return;
@@ -337,7 +337,7 @@ void SemanticAnalyzer::convert_rxn_rule_side(const ASTListNode* rule_side, CplxI
       // separator must separate molecule type patterns,
       // also the last item must not be a separator
       if (current_complex_nodes.empty() || i == rule_side->items.size() - 1) {
-        errs(n) <<
+        errs_loc(n) <<
             "Invalid use of reaction rule separator '" << sep->to_char() << "'. "
             "It must be used to separate molecule type patterns.\n"; // should be caught by parser, test N0210
         ctx->inc_error_count();
@@ -376,7 +376,7 @@ void SemanticAnalyzer::finalize_and_store_rxn_rule(const ASTRxnRuleNode* n, RxnR
   stringstream out;
   bool ok = r.compute_reactants_products_mapping_w_error_output(*bng_data, out);
   if (!ok) {
-    errs(n) << out.str() << " (in the " << direction_str << " direction, indices are counted from 0)\n"; // tests N0220, N0230, N0231, N0232
+    errs_loc(n) << out.str() << " (in the " << direction_str << " direction, indices are counted from 0)\n"; // tests N0220, N0230, N0231, N0232
     ctx->inc_error_count();
   }
 
@@ -410,7 +410,7 @@ void SemanticAnalyzer::convert_and_store_rxn_rules() {
       rev_rule.name = r->name;
 
       if (products.empty()) {
-        errs(r) <<
+        errs_loc(r) <<
             "A reversible rule must have at least one complex pattern " <<
             "on the right side of the reaction rule.\n"; // caught by parser, test N0211
         ctx->inc_error_count();

@@ -75,6 +75,7 @@ void Bucket::dump() const {
   }
 }
 
+
 // insert a new item with time event->event_time, create bucket if needed
 void Calendar::insert(BaseEvent* event) {
   float_t bucket_start_time = event_time_to_bucket_start_time(event->event_time);
@@ -114,6 +115,7 @@ void Calendar::clear_empty_buckets() {
   }
 }
 
+
 BaseEvent* Calendar::pop_next() {
   clear_empty_buckets();
   BaseEvent* next_event = queue.front().events.front();
@@ -121,11 +123,13 @@ BaseEvent* Calendar::pop_next() {
   return next_event;
 }
 
+
 float_t Calendar::get_next_time() {
   clear_empty_buckets();
   BaseEvent* next_event = queue.front().events.front();
   return next_event->event_time;
 }
+
 
 void Calendar::dump() const {
   for (const Bucket& bucket: queue) {
@@ -133,13 +137,25 @@ void Calendar::dump() const {
   }
 }
 
+
+void Calendar::to_data_model(Json::Value& mcell_node) const {
+  for (const Bucket& bucket: queue) {
+    for (const BaseEvent* event: bucket.events) {
+      event->to_data_model(mcell_node);
+    }
+  }
+}
+
+
 void Scheduler::schedule_event(BaseEvent* event) {
   calendar.insert(event);
 }
 
+
 float_t Scheduler::get_next_event_time() {
   return calendar.get_next_time();
 }
+
 
 // pop next scheduled event and run its step method
 EventExecutionInfo Scheduler::handle_next_event() {
@@ -166,8 +182,16 @@ EventExecutionInfo Scheduler::handle_next_event() {
   return EventExecutionInfo(event_time, type_index);
 }
 
+
 void Scheduler::dump() const {
   calendar.dump();
+}
+
+
+void Scheduler::to_data_model(Json::Value& mcell_node) const {
+  // go through all events and run their conversion,
+  // for many events, the conversion does nothing
+  calendar.to_data_model(mcell_node);
 }
 
 } // namespace mcell

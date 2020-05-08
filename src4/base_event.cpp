@@ -35,4 +35,8 @@ void BaseEvent::dump(const std::string ind) const {
   cout << ind << "type_index: \t\t" << type_index << " [event_type_index_t] \t\t\n";
 }
 
+void BaseEvent::to_data_model(Json::Value& mcell_node) const {
+  // does nothing by default
+}
+
 } // namespace mcell

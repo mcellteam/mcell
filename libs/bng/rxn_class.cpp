@@ -262,7 +262,7 @@ void RxnClass::update_variable_rxn_rates(const float_t current_time) {
   for (size_t i = 0; i < specific_rxn_changed.size(); i++) {
     if (specific_rxn_changed[i]) {
       float_t prob = (i == 0) ? cum_probs[0] : cum_probs[i] - cum_probs[i - 1];
-      notify() <<
+      notifys() <<
           "Probability " << prob << " set for " << reactions[i]->to_str(all_species.bng_data) <<
           " at time " << current_time << ".\n";
     }

@@ -109,7 +109,6 @@ using BNGCommon::FLT_GIGANTIC;
 using BNGCommon::fabs_f;
 using BNGCommon::cmp_eq;
 
-
 // ---------------------------------- optimization macros ----------------------------------
 #if defined(likely) or defined(unlikely)
 #error "Macros 'likely' or 'unlikely' are already defined"

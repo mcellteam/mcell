@@ -24,8 +24,11 @@
 #ifndef SRC4_BASE_EVENT_H_
 #define SRC4_BASE_EVENT_H_
 
-
 #include "defines.h"
+
+namespace Json {
+class Value;
+}
 
 namespace MCell {
 
@@ -58,6 +61,7 @@ public:
   virtual ~BaseEvent() {};
   virtual void step() = 0;
   virtual void dump(const std::string ind = "") const;
+  virtual void to_data_model(Json::Value& mcell_node) const;
 
   // some events such as release events have their event time set for
   // the beginning of a timestep but internally they need to be ordered

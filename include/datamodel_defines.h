@@ -1,6 +1,7 @@
 #ifndef _DATAMODEL_DEFINES_H_
 #define _DATAMODEL_DEFINES_H_
 
+#include "defines.h"
 #include "json/json.h"
 
 const char* const DEFAULT_DATAMODEL_FILENAME = "datamodel.json";
@@ -124,8 +125,29 @@ const char* const KEY_CUSTOM_SPACE_STEP = "custom_space_step";
 const char* const KEY_MAXIMUM_STEP_LENGTH = "maximum_step_length";
 const char* const KEY_TARGET_ONLY = "target_only";
 const char* const KEY_SPATIAL_STRUCTURE = "spatial_structure";
-
 const char* const KEY_CUSTOM_TIME_STEP = "custom_time_step";
+
+const char* const KEY_RELEASE_SITES = "release_sites";
+const char* const KEY_RELEASE_SITE_LIST = "release_site_list";
+const char* const KEY_POINTS_LIST = "points_list";
+const char* const KEY_PATTERN = "pattern";
+const char* const KEY_STDDEV = "stddev";
+const char* const KEY_QUANTITY = "quantity";
+const char* const KEY_MOLECULE = "molecule";
+const char* const KEY_SHAPE = "shape";
+const char* const VALUE_OBJECT = "OBJECT";
+const char* const KEY_RELEASE_PROBABILITY = "release_probability";
+const char* const KEY_OBJECT_EXPR = "object_expr";
+const char* const KEY_ORIENT = "orient";
+const char* const KEY_LOCATION_X = "location_x";
+const char* const KEY_LOCATION_Y = "location_y";
+const char* const KEY_LOCATION_Z = "location_z";
+const char* const KEY_SITE_DIAMETER = "site_diameter";
+const char* const KEY_QUANTITY_TYPE = "quantity_type";
+const char* const VALUE_NUMBER_TO_RELEASE = "NUMBER_TO_RELEASE";
+const char* const VALUE_GAUSSIAN_RELEASE_NUMBER = "GAUSSIAN_RELEASE_NUMBER";
+const char* const VALUE_DENSITY = "DENSITY";
+
 
 const double DEFAULT_OBJECT_COLOR_COMPONENT = 0.8;
 const double DEFAULT_OBJECT_ALPHA = 0.25;
@@ -154,6 +176,26 @@ static inline std::string remove_obj_name_prefix(const std::string& prefix, cons
   return name.substr(pos);
 }
 
+// we do not know the prefix in this case
+static inline std::string remove_obj_name_prefix(const std::string& name) {
+  size_t pos = name.find('.');
+  assert(pos != std::string::npos);
+  assert(pos + 1 < name.size());
+  return name.substr(pos + 1);
+}
+
+static inline std::string get_object_w_region_name(const std::string& name) {
+
+  std::string noprefix = remove_obj_name_prefix(name);
+  size_t pos = noprefix.find(',');
+  assert(pos != std::string::npos);
+  assert(pos + 1 < name.size());
+
+  std::string obj = noprefix.substr(0, pos);
+  std::string reg = noprefix.substr(pos + 1);
+  return obj + "[" + reg + "]";
+}
+
 static inline std::string get_surface_region_name(const std::string& name) {
   size_t pos = name.find(',');
   // TODO: these checks should be enabled also for release build
@@ -161,6 +203,23 @@ static inline std::string get_surface_region_name(const std::string& name) {
   assert(pos + 1 < name.size());
   return name.substr(pos + 1);
 }
+
+static inline std::string orientation_to_str(const orientation_t o) {
+  switch (o) {
+    case ORIENTATION_DOWN: return ",";
+    case ORIENTATION_UP: return "'";
+    case ORIENTATION_NONE: return ";"; // this character is used by cellblender for volume mols is release sites
+    default:
+      assert(false);
+      return "ERROR";
+  }
+}
+
+#define CONVERSION_UNSUPPORTED(msg) \
+  do { errs() << msg << " This is not supported yet.\n"; exit(1); } while (0)
+
+#define CONVERSION_CHECK(cond, msg) \
+  do { if (!(cond)) { errs() << "Check failed: " << #cond << ": " << msg << " This is not supported yet.\n"; exit(1); } } while (0)
 
 } // namespace DataModel
 

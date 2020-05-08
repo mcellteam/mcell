@@ -14,7 +14,7 @@ extern BNG::ParserContext* g_ctx;
 
 namespace BNG {
 
-ostream& errs() {
+ostream& errs_loc() {
   assert(g_ctx != nullptr);
   cerr <<
       g_ctx->get_current_file_name() << ":" << bngllineno <<
@@ -23,7 +23,7 @@ ostream& errs() {
 }
 
 
-ostream& errs(const ASTBaseNode* loc) {
+ostream& errs_loc(const ASTBaseNode* loc) {
   assert(loc != nullptr);
   assert(loc->has_loc);
   cerr <<
@@ -40,7 +40,7 @@ double convert_to_dbl(const char* str) {
   errno = 0; // note: errno is thread-local
   res = strtod(str, &end);
   if (errno != 0 || *end != '\0') {
-    errs() << "Could not convert floating point value '" << str << "'.\n";
+    errs_loc() << "Could not convert floating point value '" << str << "'.\n";
   }
 
   return res;
@@ -54,7 +54,7 @@ long long convert_dec_to_llong(const char* str) {
   errno = 0; // note: errno is thread-local
   res = strtoll(str, &end, 10);
   if (errno != 0 || *end != '\0') {
-    errs() << "Could not convert integer value '" << str << "'.\n";
+    errs_loc() << "Could not convert integer value '" << str << "'.\n";
   }
 
   return res;

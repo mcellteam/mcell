@@ -29,6 +29,10 @@
 
 #include "base_event.h"
 
+namespace Json {
+class Value;
+}
+
 namespace MCell {
 
 // we should represent the time interval with a precisely
@@ -69,6 +73,7 @@ public:
   BaseEvent* pop_next();
 
   void dump() const;
+  void to_data_model(Json::Value& mcell_node) const;
 private:
   float_t get_first_bucket_start_time() {
     assert(queue.size() != 0);
@@ -109,6 +114,8 @@ public:
   EventExecutionInfo handle_next_event();
 
   void dump() const;
+
+  void to_data_model(Json::Value& mcell_node) const;
 
 private:
   Calendar calendar;

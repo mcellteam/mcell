@@ -28,6 +28,10 @@
 
 #include "base_event.h"
 
+namespace Json {
+class Value;
+}
+
 namespace MCell {
 
 class Partition;
@@ -95,6 +99,8 @@ public:
     concentration(FLT_INVALID),
     orientation(ORIENTATION_NONE),
     release_shape(ReleaseShape::UNDEFINED),
+    location(FLT_INVALID),
+    diameter(FLT_INVALID),
     region_expr_root(nullptr),
     world(world_) {
   }
@@ -102,6 +108,7 @@ public:
 
   void step() override;
   void dump(const std::string indent) const override;
+  void to_data_model(Json::Value& mcell_node) const;
 
   // release events must be sorted by the actual release time as well
   bool needs_secondary_ordering() override {

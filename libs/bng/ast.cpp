@@ -130,7 +130,7 @@ void ASTRxnRuleNode::dump(const std::string ind) {
 // ------------------------------- ASTSymbolTable ------------------------
 void ASTSymbolTable::insert(const std::string id, ASTBaseNode* node, ParserContext* ctx) {
   if (table.count(id) != 0) {
-    errs() << "Symbol '" << id << "' was already defined.\n";
+    errs_loc() << "Symbol '" << id << "' was already defined.\n";
     ctx->inc_error_count();
   }
 
@@ -141,7 +141,7 @@ void ASTSymbolTable::insert(const std::string id, ASTBaseNode* node, ParserConte
 ASTBaseNode* ASTSymbolTable::get(const std::string& id, ASTBaseNode* loc, ParserContext* ctx) const {
   auto it = table.find(id);
   if (it == table.end()) {
-    errs() << "Symbol '" << id << "' is not defined.\n";
+    errs_loc() << "Symbol '" << id << "' is not defined.\n";
     ctx->inc_error_count();
     return nullptr;
   }
@@ -320,7 +320,7 @@ void ParserContext::print_error_report() {
 
 
 void ParserContext::internal_error(const ASTBaseNode* loc, const std::string msg) {
-  errs(loc) << "INTERNAL: " << msg;
+  errs_loc(loc) << "INTERNAL: " << msg;
   exit(2);
 }
 

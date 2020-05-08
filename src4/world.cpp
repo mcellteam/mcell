@@ -47,6 +47,7 @@ World::World()
     total_iterations(0),
     seed_seq(0),
     next_wall_id(0),
+    next_region_id(0),
     next_geometry_object_id(0),
     simulation_initialized(false),
     simulation_ended(false),
@@ -360,6 +361,8 @@ void World::to_data_model(Json::Value& root) const {
   for (const Partition& p: partitions) {
     p.to_data_model(mcell);
   }
+
+  scheduler.to_data_model(mcell);
 
   // generate species info
   BngDataToDatamodelConverter bng_converter;

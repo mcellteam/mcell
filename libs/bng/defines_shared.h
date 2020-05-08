@@ -156,6 +156,22 @@ template<typename T, typename _Compare = std::less<T>, typename _Alloc = std::al
 #endif
 
 
+// output streams, all are std::cout for now
+static inline std::ostream& errs() {
+  std::cout << "error: ";
+  return std::cout;
+}
+
+static inline std::ostream& warns() {
+  std::cout << "warning: ";
+  return std::cout;
+}
+
+static inline std::ostream& notifys() {
+  std::cout << "notification: ";
+  return std::cout;
+}
+
 /**
  * Set based on boost's flat_set. 
  * Used to hold sets of ids or indices of molecules or other items,

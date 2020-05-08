@@ -1024,6 +1024,7 @@ bool MCell3WorldConverter::convert_rxns(volume* s) {
 
 // returns false if conversion failed
 static RegionExprNode* create_release_region_terms_recursively(release_evaluator* expr, ReleaseEvent& event_data) {
+  assert(expr != nullptr);
   RegionExprOperator new_op = RegionExprOperator::Invalid;
 
   uint op_masked = expr->op & REXP_MASK;
@@ -1157,6 +1158,9 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
               );
             }
 
+            // also remember the expression, although the cum_area_and_pwall_index_pairs is what is currently used
+            CHECK_PROPERTY(region_data->expression != nullptr);
+            event_data.region_expr_root = create_release_region_terms_recursively(region_data->expression, event_data);
           }
           else {
             // volume or surface molecules release into region
@@ -1168,13 +1172,11 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
             CHECK_PROPERTY(region_data->owners == 0);
             // CHECK_PROPERTY(region_data->walls_per_obj == 0); not sure what this does
 
-            CHECK_PROPERTY(region_data->expression != nullptr);
-            release_evaluator* expression = region_data->expression;
-
             event_data.region_llf = region_data->llf;
             event_data.region_urb = region_data->urb;
 
-            event_data.region_expr_root = create_release_region_terms_recursively(expression, event_data);
+            CHECK_PROPERTY(region_data->expression != nullptr);
+            event_data.region_expr_root = create_release_region_terms_recursively(region_data->expression, event_data);
           }
         }
         else {

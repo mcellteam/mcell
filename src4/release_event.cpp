@@ -33,6 +33,7 @@
 #include "release_event.h"
 #include "world.h"
 #include "partition.h"
+#include "datamodel_defines.h"
 
 #include "collision_utils.inc"
 #include "geometry_utils.inc"
@@ -110,6 +111,92 @@ void ReleaseEvent::dump(const string ind) const {
   if (region_expr_root != nullptr) {
     region_expr_root->dump();
   }
+}
+
+
+static std::string region_expr_node_to_string(const RegionExprNode* node) {
+  assert(node != nullptr);
+  if (node->op == RegionExprOperator::Leaf) {
+    return DMUtil::get_object_w_region_name(node->region_name);
+  }
+  assert(false && "TODO");
+  return "TODO";
+}
+
+
+void ReleaseEvent::to_data_model(Json::Value& mcell_node) const {
+
+  if (event_time != 0 || actual_release_time != 0) {
+    CONVERSION_UNSUPPORTED("Release event " + release_site_name + " starts at time different from 0, this is not supported yet.");
+  }
+
+  // these items might already exist
+  Json::Value& release_sites = mcell_node[KEY_RELEASE_SITES];
+  DMUtil::json_add_version(release_sites, JSON_DM_VERSION_1638);
+  Json::Value& release_site_list = release_sites[KEY_RELEASE_SITE_LIST];
+
+  Json::Value release_site;
+  DMUtil::json_add_version(release_site, JSON_DM_VERSION_1330);
+  release_site[KEY_DESCRIPTION] = "";
+  release_site[KEY_POINTS_LIST] = Json::Value(Json::arrayValue); // not sure, empty array
+  release_site[KEY_NAME] = DMUtil::remove_obj_name_prefix(release_site_name);
+  release_site[KEY_MOLECULE] = world->get_all_species().get(species_id).name;
+  release_site[KEY_ORIENT] = DMUtil::orientation_to_str(orientation);
+
+  // how many to release
+  switch (release_number_method) {
+    case ReleaseNumberMethod::ConstNum:
+      release_site[KEY_QUANTITY_TYPE] = VALUE_NUMBER_TO_RELEASE;
+      break;
+    case ReleaseNumberMethod::GaussNum:
+      release_site[KEY_QUANTITY_TYPE] = VALUE_GAUSSIAN_RELEASE_NUMBER;
+      break;
+    case ReleaseNumberMethod::VolNum:
+      CONVERSION_UNSUPPORTED("Release event " + release_site_name + " has unsupported release_number_method VolNum.");
+      break;
+    case ReleaseNumberMethod::ConcNum:
+    case ReleaseNumberMethod::DensityNum:
+      release_site[KEY_QUANTITY_TYPE] = VALUE_DENSITY;
+      break;
+    default:
+      CONVERSION_UNSUPPORTED("Release event " + release_site_name + " has invalid release_number_method.");
+      break;
+  }
+
+  release_site[KEY_PATTERN] = "";
+  release_site[KEY_STDDEV] = "0"; // TODO
+  release_site[KEY_QUANTITY] = to_string(release_number);
+  release_site[KEY_RELEASE_PROBABILITY] = to_string(1.0);  // only 1 for now
+
+  // where to release
+  switch (release_shape) {
+    case ReleaseShape::SPHERICAL:
+      release_site[KEY_SHAPE] = "SPHERICAL";
+      break;
+    case ReleaseShape::SPHERICAL_SHELL:
+      release_site[KEY_SHAPE] = "SPHERICAL_SHELL";
+      break;
+    case ReleaseShape::REGION:
+      release_site[KEY_SHAPE] = "OBJECT";
+      CONVERSION_CHECK(region_expr_root->op == RegionExprOperator::Leaf, "Cannot convert complex region expressions for releases.");
+      release_site[KEY_OBJECT_EXPR] = region_expr_node_to_string(region_expr_root);
+      break;
+    default:
+      CONVERSION_UNSUPPORTED("Release event " + release_site_name + " has shape different from SHPERE and OBJECT.");
+      break;
+  }
+
+  if (release_shape != ReleaseShape::REGION) {
+    release_site[KEY_LOCATION_X] = to_string(location.x);
+    release_site[KEY_LOCATION_Y] = to_string(location.y);
+    release_site[KEY_LOCATION_Z] = to_string(location.z);
+  }
+
+  if (diameter != Vec3(FLT_INVALID)) {
+    CONVERSION_UNSUPPORTED("Release event " + release_site_name + " has a set value of diameter.");
+  }
+
+  release_site_list.append(release_site);
 }
 
 
