@@ -357,6 +357,8 @@ void World::to_data_model(Json::Value& root) const {
   mcell[KEY_CELLBLENDER_VERSION] = VALUE_CELLBLENDER_VERSION;
   DMUtil::json_add_version(mcell, JSON_DM_VERSION_1300);
 
+  initialization_to_data_model(mcell);
+
   // generate geometry information
   bool first = true;
   for (const Partition& p: partitions) {
@@ -450,13 +452,91 @@ void World::to_data_model(Json::Value& root) const {
   simulation_control[KEY_EXPORT_FORMAT] = VALUE_MCELL_MDL_MODULAR;
 
   mcell[KEY_MODEL_LANGUAGE] = VALUE_MCELL3;
-  mcell[KEY_INITIALIZATION] = Json::Value(Json::ValueType::objectValue); // empty dict
 
   Json::Value& blender_version = mcell[KEY_BLENDER_VERSION];
   blender_version.append(Json::Value(BLENDER_VERSION[0]));
   blender_version.append(Json::Value(BLENDER_VERSION[1]));
   blender_version.append(Json::Value(BLENDER_VERSION[2]));
 }
+
+
+void World::initialization_to_data_model(Json::Value& mcell_node) const {
+  // only setting defaults for now, most of these values are not used in mcell4
+
+  // --- initialization ---
+  Json::Value& initialization = mcell_node[KEY_INITIALIZATION];
+  DMUtil::json_add_version(initialization, JSON_DM_VERSION_0130);
+
+  initialization[KEY_TIME_STEP] = to_string(config.time_unit);
+  initialization[KEY_ITERATIONS] = to_string(total_iterations);
+
+  initialization[KEY_INTERACTION_RADIUS] = "";
+  initialization[KEY_ACCURATE_3D_REACTIONS] = true;
+  initialization[KEY_RADIAL_SUBDIVISIONS] = "";
+  initialization[KEY_RADIAL_DIRECTIONS] = "";
+  initialization[KEY_CENTER_MOLECULES_ON_GRID] = false;
+  initialization[KEY_COMMAND_OPTIONS] = "";
+  initialization[KEY_EXPORT_ALL_ASCII] = true; // for testing, cellblender generates false as default
+  initialization[KEY_MICROSCOPIC_REVERSIBILITY] = VALUE_OFF;
+  initialization[KEY_TIME_STEP_MAX] = "";
+  initialization[KEY_VACANCY_SEARCH_DISTANCE] = "";
+  initialization[KEY_SPACE_STEP] = "";
+  initialization[KEY_SURFACE_GRID_DENSITY] = to_string(config.grid_density);
+
+  // --- warnings ---
+  Json::Value& warnings = initialization[KEY_WARNINGS];
+  warnings[KEY_MISSED_REACTION_THRESHOLD] = "0.001";
+  warnings[KEY_LIFETIME_TOO_SHORT] = VALUE_WARNING;
+  warnings[KEY_LIFETIME_THRESHOLD] = "50";
+  warnings[KEY_ALL_WARNINGS] = VALUE_INDIVIDUAL;
+  warnings[KEY_MISSED_REACTIONS] = VALUE_WARNING;
+  warnings[KEY_NEGATIVE_DIFFUSION_CONSTANT] = VALUE_WARNING;
+  warnings[KEY_NEGATIVE_REACTION_RATE] = VALUE_WARNING;
+  warnings[KEY_HIGH_PROBABILITY_THRESHOLD] = "1";
+  warnings[KEY_DEGENERATE_POLYGONS] = VALUE_WARNING;
+  warnings[KEY_USELESS_VOLUME_ORIENTATION] = VALUE_WARNING;
+  warnings[KEY_HIGH_REACTION_PROBABILITY] = VALUE_IGNORED;
+  warnings[KEY_LARGE_MOLECULAR_DISPLACEMENT] = VALUE_WARNING;
+  warnings[KEY_MISSING_SURFACE_ORIENTATION] = VALUE_ERROR;
+
+  // --- notifications ---
+  Json::Value& notifications = initialization[KEY_NOTIFICATIONS];
+  notifications[KEY_FILE_OUTPUT_REPORT] = false;
+  notifications[KEY_ALL_NOTIFICATIONS] = VALUE_INDIVIDUAL;
+  notifications[KEY_PROBABILITY_REPORT_THRESHOLD] = "0";
+  notifications[KEY_BOX_TRIANGULATION_REPORT] = false;
+  notifications[KEY_RELEASE_EVENT_REPORT] = true;
+  notifications[KEY_PROGRESS_REPORT] = true;
+  notifications[KEY_MOLECULE_COLLISION_REPORT] = false;
+  notifications[KEY_ITERATION_REPORT] = true;
+  notifications[KEY_FINAL_SUMMARY] = true;
+  notifications[KEY_VARYING_PROBABILITY_REPORT] = true;
+  notifications[KEY_PROBABILITY_REPORT] = VALUE_ON;
+  notifications[KEY_PARTITION_LOCATION_REPORT] = false;
+  notifications[KEY_DIFFUSION_CONSTANT_REPORT] = VALUE_BRIEF;
+
+  // --- partitions ---
+  Json::Value& partitions = initialization[KEY_PARTITIONS];
+  // NOTE: mcell3_world_converter extends the partition info, so the result will be bigger than input
+  // probably ok because we don't plan long-term MDL support without previous conversion
+  partitions[KEY_INCLUDE] = true;
+  partitions[KEY_RECURSION_FLAG] = false;
+
+  float_t half_length = config.partition_edge_length * config.length_unit / 2;
+
+  partitions[KEY_X_START] = -half_length;
+  partitions[KEY_X_END] = half_length;
+  partitions[KEY_Y_START] = -half_length;
+  partitions[KEY_Y_END] = half_length;
+  partitions[KEY_Z_START] = -half_length;
+  partitions[KEY_Z_END] = half_length;
+
+  float_t step = config.subpartition_edge_length * config.length_unit;
+  partitions[KEY_X_STEP] = step;
+  partitions[KEY_Y_STEP] = step;
+  partitions[KEY_Z_STEP] = step;
+}
+
 
 } // namespace mcell
 

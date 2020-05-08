@@ -15,11 +15,13 @@ const char* const ALL_SURFACE_MOLECULES = "ALL_SURFACE_MOLECULES";
 
 // ---------------------------------- datamodel constants----------------------------------
 
-const char* const JSON_DM_VERSION_1638 = "DM_2014_10_24_1638";
-const char* const JSON_DM_VERSION_1632 = "DM_2018_10_16_1632";
-const char* const JSON_DM_VERSION_1330 = "DM_2018_01_11_1330";
-const char* const JSON_DM_VERSION_1700 = "DM_2015_04_13_1700";
+// TODO: rename, the last value seems to be hours+minutes, not some id...
+const char* const JSON_DM_VERSION_0130 = "DM_2017_11_18_0130";
 const char* const JSON_DM_VERSION_1300 = "DM_2017_06_23_1300";
+const char* const JSON_DM_VERSION_1330 = "DM_2018_01_11_1330";
+const char* const JSON_DM_VERSION_1632 = "DM_2018_10_16_1632";
+const char* const JSON_DM_VERSION_1638 = "DM_2014_10_24_1638";
+const char* const JSON_DM_VERSION_1700 = "DM_2015_04_13_1700";
 
 const int BLENDER_VERSION[] = {2, 79, 0};
 
@@ -104,8 +106,6 @@ const char* const VALUE_MCELL3 = "mcell3";
 const char* const KEY_PARAMETER_SYSTEM = "parameter_system";
 const char* const KEY_MODEL_PARAMETERS = "model_parameters";
 
-const char* const KEY_INITIALIZATION = "initialization";
-
 const char* const KEY_BLENDER_VERSION = "blender_version";
 
 const char* const KEY_MOLECULE_LIST = "molecule_list";
@@ -165,6 +165,74 @@ const char* const KEY_SCRIPTING_LIST = "scripting_list";
 const char* const KEY_SIMULATION_CONTROL = "simulation_control";
 const char* const KEY_EXPORT_FORMAT = "export_format";
 const char* const VALUE_MCELL_MDL_MODULAR = "mcell_mdl_modular";
+
+
+const char* const KEY_INITIALIZATION = "initialization";
+const char* const KEY_INTERACTION_RADIUS = "interaction_radius";
+const char* const KEY_ACCURATE_3D_REACTIONS = "accurate_3d_reactions";
+const char* const KEY_TIME_STEP = "time_step";
+const char* const KEY_RADIAL_SUBDIVISIONS = "radial_subdivisions";
+const char* const KEY_ITERATIONS = "iterations";
+const char* const KEY_RADIAL_DIRECTIONS = "radial_directions";
+const char* const KEY_CENTER_MOLECULES_ON_GRID = "center_molecules_on_grid";
+const char* const KEY_COMMAND_OPTIONS = "command_options";
+const char* const KEY_EXPORT_ALL_ASCII = "export_all_ascii";
+const char* const KEY_MICROSCOPIC_REVERSIBILITY = "microscopic_reversibility";
+const char* const KEY_TIME_STEP_MAX = "time_step_max";
+const char* const KEY_VACANCY_SEARCH_DISTANCE = "vacancy_search_distance";
+const char* const KEY_SPACE_STEP = "space_step";
+const char* const KEY_SURFACE_GRID_DENSITY = "surface_grid_density";
+
+const char* const VALUE_ON = "ON";
+const char* const VALUE_OFF = "OFF";
+const char* const VALUE_INDIVIDUAL = "INDIVIDUAL";
+const char* const VALUE_IGNORED = "IGNORED";
+const char* const VALUE_WARNING = "WARNING";
+const char* const VALUE_ERROR = "ERROR";
+
+const char* const KEY_WARNINGS = "warnings";
+const char* const KEY_MISSED_REACTION_THRESHOLD = "missed_reaction_threshold";
+const char* const KEY_LIFETIME_TOO_SHORT = "lifetime_too_short";
+const char* const KEY_LIFETIME_THRESHOLD = "lifetime_threshold";
+const char* const KEY_ALL_WARNINGS = "all_warnings";
+const char* const KEY_MISSED_REACTIONS = "missed_reactions";
+const char* const KEY_NEGATIVE_DIFFUSION_CONSTANT = "negative_diffusion_constant";
+const char* const KEY_NEGATIVE_REACTION_RATE = "negative_reaction_rate";
+const char* const KEY_HIGH_PROBABILITY_THRESHOLD = "high_probability_threshold";
+const char* const KEY_DEGENERATE_POLYGONS = "degenerate_polygons";
+const char* const KEY_USELESS_VOLUME_ORIENTATION = "useless_volume_orientation";
+const char* const KEY_HIGH_REACTION_PROBABILITY = "high_reaction_probability";
+const char* const KEY_LARGE_MOLECULAR_DISPLACEMENT = "large_molecular_displacement";
+const char* const KEY_MISSING_SURFACE_ORIENTATION = "missing_surface_orientation";
+
+const char* const KEY_PARTITIONS = "partitions";
+const char* const KEY_INCLUDE = "include";
+const char* const KEY_Z_END = "z_end";
+const char* const KEY_X_END = "x_end";
+const char* const KEY_X_START = "x_start";
+const char* const KEY_Z_START = "z_start";
+const char* const KEY_RECURSION_FLAG = "recursion_flag";
+const char* const KEY_Y_START = "y_start";
+const char* const KEY_X_STEP = "x_step";
+const char* const KEY_Y_END = "y_end";
+const char* const KEY_Z_STEP = "z_step";
+const char* const KEY_Y_STEP = "y_step";
+
+const char* const KEY_NOTIFICATIONS = "notifications";
+const char* const KEY_FILE_OUTPUT_REPORT = "file_output_report";
+const char* const KEY_ALL_NOTIFICATIONS = "all_notifications";
+const char* const KEY_PROBABILITY_REPORT_THRESHOLD = "probability_report_threshold";
+const char* const KEY_BOX_TRIANGULATION_REPORT = "box_triangulation_report";
+const char* const KEY_RELEASE_EVENT_REPORT = "release_event_report";
+const char* const KEY_PROGRESS_REPORT = "progress_report";
+const char* const KEY_MOLECULE_COLLISION_REPORT = "molecule_collision_report";
+const char* const KEY_ITERATION_REPORT = "iteration_report";
+const char* const KEY_FINAL_SUMMARY = "final_summary";
+const char* const KEY_VARYING_PROBABILITY_REPORT = "varying_probability_report";
+const char* const KEY_PROBABILITY_REPORT = "probability_report";
+const char* const KEY_PARTITION_LOCATION_REPORT = "partition_location_report";
+const char* const KEY_DIFFUSION_CONSTANT_REPORT = "diffusion_constant_report";
+const char* const VALUE_BRIEF = "BRIEF";
 
 const double DEFAULT_OBJECT_COLOR_COMPONENT = 0.8;
 const double DEFAULT_OBJECT_ALPHA = 0.25;
