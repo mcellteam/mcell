@@ -209,6 +209,7 @@ int mcell_generate_range_singleton(struct num_expr_list_head *lh,
   lh->shared = 0;
   lh->value_head->value = value;
   lh->value_head->next = NULL;
+  lh->start_end_step_set = false;
   return 0;
 }
 

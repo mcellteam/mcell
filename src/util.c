@@ -2051,6 +2051,13 @@ int generate_range(struct num_expr_list_head *list, double start, double end,
         return 1;
     }
   }
+
+  // MCell4
+  list->start_end_step_set = true;
+  list->start = start;
+  list->end = end;
+  list->step = step;
+
   return 0;
 }
 

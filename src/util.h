@@ -31,10 +31,23 @@
 #define BLOCK_SIZE 10000
 
 struct num_expr_list_head {
+  // we cannot define ctor because it is used in bison's uniopn for
+  // semantic values
+  // however, the start_end_step_set is used only for partition setup
+  // and for this case the structure is initialized correctly
+  /*num_expr_list_head()
+    : start_end_step_set(false) {}*/
+
   struct num_expr_list *value_head;
   struct num_expr_list *value_tail;
   int value_count;
   int shared;
+
+  // MCell4 - original values used to create the list
+  bool start_end_step_set;
+  double start;
+  double end;
+  double step;
 };
 
 struct iteration_counter {

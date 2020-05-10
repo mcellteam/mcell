@@ -35,6 +35,12 @@ struct num_expr_list_head {
   struct num_expr_list *value_tail;
   int value_count;
   int shared;
+  
+  // MCell4 - original values used to create the list
+  bool start_end_step_set;
+  double start;
+  double end;
+  double step;  
 };
 
 void mcell_set_seed(MCELL_STATE *state, int seed);

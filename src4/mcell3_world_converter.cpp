@@ -214,9 +214,9 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
   if (s->partitions_initialized) {
     // assuming that the mcell's bounding box if it is bigger than the partition
     if (
-        s->partition_llf.x <= s->bb_llf.x || s->bb_urb.x <= s->partition_urb.x ||
-        s->partition_llf.y <= s->bb_llf.y || s->bb_urb.y <= s->partition_urb.y ||
-        s->partition_llf.z <= s->bb_llf.z || s->bb_urb.z <= s->partition_urb.z
+        s->partition_llf.x >= s->bb_llf.x || s->bb_urb.x >= s->partition_urb.x ||
+        s->partition_llf.y >= s->bb_llf.y || s->bb_urb.y >= s->partition_urb.y ||
+        s->partition_llf.z >= s->bb_llf.z || s->bb_urb.z >= s->partition_urb.z
     ) {
       mcell_log("Partitioning was specified, but it is smaller than the automatically determined bounding box.");
 
@@ -240,6 +240,7 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
       (double)world->config.partition_edge_length * world->config.length_unit);
 
     // number of subparts must be even so that the central subparts are aligned with the axes and not shifted
+    assert(s->num_subparts > 0);
     world->config.subpartitions_per_partition_dimension = get_even_higher_or_same_value(s->num_subparts);
   }
   else {

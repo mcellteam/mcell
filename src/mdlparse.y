@@ -735,6 +735,7 @@ list_range_specs:
                                                             $$.value_count += $3.value_count;
                                                             $$.value_tail->next = $3.value_head;
                                                             $$.value_tail = $3.value_tail;
+                                                            $$.start_end_step_set = false;
                                                           }
                                                           else
                                                             $$ = $3;
@@ -792,6 +793,7 @@ array_value: array_expr_only
                                                             ++ $$.value_count;
                                                           $$.value_tail = elp;
                                                           $$.shared = 1;
+                                                          $$.start_end_step_set = false;
                                                       }
 ;
 

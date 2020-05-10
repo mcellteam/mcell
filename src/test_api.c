@@ -29,7 +29,11 @@ void test_api(MCELL_STATE *state) {
                     "Failed to set iterations");
 
   /* create range for partitions */
-  struct num_expr_list_head list = { NULL, NULL, 0, 1 };
+  struct num_expr_list_head list;
+  list.value_head = NULL;
+  list.value_tail = NULL;
+  list.value_count = 0;
+  list.shared = 1;
   mcell_generate_range(&list, -0.5, 0.5, 0.05);
   list.shared = 1;
   /* set partitions */
