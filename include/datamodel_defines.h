@@ -56,6 +56,7 @@ const char* const VALUE_REVERSIBLE = "reversible";
 const char* const VALUE_IRREVERSIBLE = "irreversible";
 const char* const KEY_REACTANTS = "reactants";
 const char* const KEY_PRODUCTS = "products";
+const char* const VALUE_NULL = "NULL";
 const char* const KEY_FWD_RATE= "fwd_rate";
 const char* const KEY_BKWD_RATE= "bkwd_rate";
 const char* const KEY_VARIABLE_RATE_VALID = "variable_rate_valid";

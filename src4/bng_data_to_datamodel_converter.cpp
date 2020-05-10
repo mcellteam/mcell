@@ -151,7 +151,7 @@ void BngDataToDatamodelConverter::convert_single_species(const BNG::Species& s, 
   species_node[KEY_MOL_TYPE] = s.is_vol() ? VALUE_MOL_TYPE_3D : VALUE_MOL_TYPE_2D;
 
   const VizOutputEvent* viz =
-      world->scheduler.find_next_event_with_type_index(EVENT_TYPE_INDEX_VIZ_OUTPUT);
+      dynamic_cast<const VizOutputEvent*>(world->scheduler.find_next_event_with_type_index(EVENT_TYPE_INDEX_VIZ_OUTPUT));
   if (viz == nullptr || viz->visualizes_all_species()) {
     // no visualization/or enabled globally
     species_node[KEY_EXPORT_VIZ] = false;
@@ -182,6 +182,9 @@ void BngDataToDatamodelConverter::convert_single_rxn_rule(const BNG::RxnRule& r,
   string reactants = r.reactants_to_str(bng_engine->get_data());
   rxn_node[KEY_REACTANTS] = reactants;
   string products = r.products_to_str(bng_engine->get_data());
+  if (products == "") {
+    products = VALUE_NULL;
+  }
   rxn_node[KEY_PRODUCTS] = products;
   rxn_node[KEY_NAME] = reactants + " -> " + products;
 
