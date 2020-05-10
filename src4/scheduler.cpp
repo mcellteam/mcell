@@ -146,6 +146,19 @@ void Calendar::to_data_model(Json::Value& mcell_node) const {
   }
 }
 
+const BaseEvent* Calendar::find_next_event_with_type_index(
+    const event_type_index_t event_type_index) const {
+
+  for (const Bucket& bucket: queue) {
+    for (const BaseEvent* event: bucket.events) {
+      if (event->type_index == event_type_index) {
+        return event;
+      }
+    }
+  }
+  return nullptr;
+}
+
 
 void Scheduler::schedule_event(BaseEvent* event) {
   calendar.insert(event);
@@ -193,5 +206,12 @@ void Scheduler::to_data_model(Json::Value& mcell_node) const {
   // for many events, the conversion does nothing
   calendar.to_data_model(mcell_node);
 }
+
+
+const BaseEvent* Scheduler::find_next_event_with_type_index(
+    const event_type_index_t event_type_index) const {
+  return calendar.find_next_event_with_type_index(event_type_index);
+}
+
 
 } // namespace mcell

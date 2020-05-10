@@ -38,6 +38,8 @@ class RxnRule;
 
 namespace MCell {
 
+class World;
+
 /**
  * We want to keep the BNG independent,
  * so this is an extra too to convert the GND data to the
@@ -49,7 +51,7 @@ public:
 
   // does nothing for now, there will be changes in BNG data and
   // converting species is not needed at this point
-  void to_data_model(const BNG::BNGEngine& bng_engine, Json::Value& mcell_node);
+  void to_data_model(const World* world_, Json::Value& mcell_node);
 
 private:
   void reset();
@@ -61,6 +63,7 @@ private:
   void convert_single_rxn_rule(const BNG::RxnRule& r, Json::Value& species_node);
   void convert_rxns(Json::Value& mcell_node);
 
+  const World* world;
   const BNG::BNGEngine* bng_engine;
 
   uint next_color_index;

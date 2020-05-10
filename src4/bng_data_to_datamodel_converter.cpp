@@ -28,6 +28,10 @@
 #include "datamodel_defines.h"
 #include "bng/bng.h"
 
+#include "viz_output_event.h"
+#include "scheduler.h"
+#include "world.h"
+
 using namespace std;
 using namespace DMUtil;
 using Json::Value;
@@ -77,6 +81,7 @@ BngDataToDatamodelConverter::BngDataToDatamodelConverter() {
 
 
 void BngDataToDatamodelConverter::reset() {
+  world = nullptr;
   bng_engine = nullptr;
   next_color_index = 0;
   rxn_counter = 0;
@@ -84,12 +89,12 @@ void BngDataToDatamodelConverter::reset() {
 }
 
 
-void BngDataToDatamodelConverter::to_data_model(
-    const BNG::BNGEngine& bng_engine_, Value& mcell_node) {
+void BngDataToDatamodelConverter::to_data_model(const World* world_, Value& mcell_node) {
 
   reset();
 
-  bng_engine = &bng_engine_;
+  world = world_;
+  bng_engine = &(world->bng_engine);
 
   // similarly as in pymcell converter, maximum effort is given to conversion and
   // if some parts won't go through, we are trying to generate
@@ -144,7 +149,17 @@ void BngDataToDatamodelConverter::convert_single_species(const BNG::Species& s, 
   species_node[KEY_MOL_BNGL_LABEL] = "";
   species_node[KEY_DESCRIPTION] = "";
   species_node[KEY_MOL_TYPE] = s.is_vol() ? VALUE_MOL_TYPE_3D : VALUE_MOL_TYPE_2D;
-  species_node[KEY_EXPORT_VIZ] = false; // true causes error in cellblender
+
+  const VizOutputEvent* viz =
+      world->scheduler.find_next_event_with_type_index(EVENT_TYPE_INDEX_VIZ_OUTPUT);
+  if (viz == nullptr || viz->visualizes_all_species()) {
+    // no visualization/or enabled globally
+    species_node[KEY_EXPORT_VIZ] = false;
+  }
+  else {
+    species_node[KEY_EXPORT_VIZ] = viz->species_ids_to_visualize.count(s.species_id) == 1;
+  }
+
   species_node[KEY_CUSTOM_SPACE_STEP] = "";
   species_node[KEY_MAXIMUM_STEP_LENGTH] = "";
   species_node[KEY_TARGET_ONLY] = false;

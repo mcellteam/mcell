@@ -74,6 +74,7 @@ public:
 
   void dump() const;
   void to_data_model(Json::Value& mcell_node) const;
+  const BaseEvent* find_next_event_with_type_index(const event_type_index_t event_type_index) const;
 private:
   float_t get_first_bucket_start_time() {
     assert(queue.size() != 0);
@@ -116,6 +117,9 @@ public:
   void dump() const;
 
   void to_data_model(Json::Value& mcell_node) const;
+
+  const BaseEvent* find_next_event_with_type_index(
+      const event_type_index_t event_type_index) const;
 
 private:
   Calendar calendar;

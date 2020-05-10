@@ -369,7 +369,7 @@ void World::to_data_model(Json::Value& root) const {
 
   // generate species info
   BngDataToDatamodelConverter bng_converter;
-  bng_converter.to_data_model(bng_engine, mcell);
+  bng_converter.to_data_model(this, mcell);
 
   // add other default values, might need to generate this better
   Json::Value& materials = mcell[KEY_MATERIALS];

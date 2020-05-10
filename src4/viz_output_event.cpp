@@ -266,6 +266,13 @@ void VizOutputEvent::output_cellblender_molecules() {
 }
 
 
+bool VizOutputEvent::visualizes_all_species() const {
+  return
+      species_ids_to_visualize.size() ==
+      world->get_all_species().get_species_vector().size() - NUM_GENERAL_SPECIES;
+}
+
+
 void VizOutputEvent::to_data_model(Json::Value& mcell_node) const {
   // there can be just one viz_output section
   CONVERSION_CHECK(!mcell_node.isMember(KEY_VIZ_OUTPUT), "Only one viz_output section is allowed");
@@ -273,7 +280,7 @@ void VizOutputEvent::to_data_model(Json::Value& mcell_node) const {
   Json::Value& viz_output = mcell_node[KEY_VIZ_OUTPUT];
   DMUtil::json_add_version(viz_output, JSON_DM_VERSION_1638);
 
-  viz_output[KEY_EXPORT_ALL] = species_ids_to_visualize.size() == world->get_all_species().get_species_vector().size() - NUM_GENERAL_SPECIES;
+  viz_output[KEY_EXPORT_ALL] = visualizes_all_species();
   viz_output[KEY_START] = DMUtil::f_to_string(event_time);
   viz_output[KEY_ALL_ITERATIONS] = cmp_eq(periodicity_interval, 1.0);
   viz_output[KEY_STEP] = DMUtil::f_to_string(periodicity_interval);
