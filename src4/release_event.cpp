@@ -166,7 +166,7 @@ void ReleaseEvent::to_data_model(Json::Value& mcell_node) const {
   release_site[KEY_PATTERN] = "";
   release_site[KEY_STDDEV] = "0"; // TODO
   release_site[KEY_QUANTITY] = to_string(release_number);
-  release_site[KEY_RELEASE_PROBABILITY] = to_string(1.0);  // only 1 for now
+  release_site[KEY_RELEASE_PROBABILITY] = DMUtil::f_to_string(1.0);  // only 1 for now
 
   // where to release
   switch (release_shape) {
@@ -187,9 +187,9 @@ void ReleaseEvent::to_data_model(Json::Value& mcell_node) const {
   }
 
   if (release_shape != ReleaseShape::REGION) {
-    release_site[KEY_LOCATION_X] = to_string(location.x * world->config.length_unit);
-    release_site[KEY_LOCATION_Y] = to_string(location.y * world->config.length_unit);
-    release_site[KEY_LOCATION_Z] = to_string(location.z * world->config.length_unit);
+    release_site[KEY_LOCATION_X] = DMUtil::f_to_string(location.x * world->config.length_unit);
+    release_site[KEY_LOCATION_Y] = DMUtil::f_to_string(location.y * world->config.length_unit);
+    release_site[KEY_LOCATION_Z] = DMUtil::f_to_string(location.z * world->config.length_unit);
 
     CONVERSION_CHECK(diameter.x == diameter.y && diameter.y == diameter.z, "Not sure if datamodel supports different diameters.");
     release_site[KEY_SITE_DIAMETER] = diameter.x * world->config.length_unit;

@@ -274,10 +274,10 @@ void VizOutputEvent::to_data_model(Json::Value& mcell_node) const {
   DMUtil::json_add_version(viz_output, JSON_DM_VERSION_1638);
 
   viz_output[KEY_EXPORT_ALL] = species_ids_to_visualize.size() == world->get_all_species().get_species_vector().size() - NUM_GENERAL_SPECIES;
-  viz_output[KEY_START] = event_time;
+  viz_output[KEY_START] = DMUtil::f_to_string(event_time);
   viz_output[KEY_ALL_ITERATIONS] = cmp_eq(periodicity_interval, 1.0);
-  viz_output[KEY_STEP] = periodicity_interval;
-  viz_output[KEY_END] = world->total_iterations;
+  viz_output[KEY_STEP] = DMUtil::f_to_string(periodicity_interval);
+  viz_output[KEY_END] = to_string(world->total_iterations);
 
 }
 

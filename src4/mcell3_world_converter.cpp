@@ -1133,7 +1133,7 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
 
         if (rel_site->region_data == nullptr) {
           assert(rel_site->location != nullptr);
-          event_data.location = Vec3(*rel_site->location); // might be NULL
+          event_data.location = Vec3(*rel_site->location);
         }
         else if (rel_site->location == nullptr) {
           assert(rel_site->region_data != nullptr);

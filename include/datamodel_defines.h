@@ -244,6 +244,8 @@ const double DEFAULT_OBJECT_ALPHA = 0.25;
 
 namespace DMUtil {
 
+using BNGCommon::float_t;
+
 static inline void json_add_version(Json::Value& node, const char* ver) {
   node[KEY_DATA_MODEL_VERSION] = ver;
 }
@@ -310,6 +312,22 @@ static inline std::string to_id(const std::string& name) {
   return res;
 }
 
+
+// NOTE: we must be sure to use our BNGCommon::float_t here otherwise 
+// there will be conversion imprecisions if float_t from 'math.h' is used
+static inline std::string f_to_string(const float_t val, const int n = 17)
+{
+  std::stringstream out;
+  if (val == 0.0) {
+    return "0";
+  }
+  else if (val <= 0.01 || val >= 100000) {
+    out << std::scientific;
+  }
+  out.precision(n);
+  out << val;
+  return out.str();
+}
 
 static inline std::string orientation_to_str(const orientation_t o) {
   switch (o) {

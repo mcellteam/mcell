@@ -148,7 +148,7 @@ void BngDataToDatamodelConverter::convert_single_species(const BNG::Species& s, 
   species_node[KEY_CUSTOM_SPACE_STEP] = "";
   species_node[KEY_MAXIMUM_STEP_LENGTH] = "";
   species_node[KEY_TARGET_ONLY] = false;
-  species_node[KEY_DIFFUSION_CONSTANT] = to_string(s.D);
+  species_node[KEY_DIFFUSION_CONSTANT] = DMUtil::f_to_string(s.D);
   species_node[KEY_SPATIAL_STRUCTURE] = "None";
   species_node[KEY_MOL_NAME] = s.name;
   species_node[KEY_CUSTOM_TIME_STEP] = "";
@@ -171,7 +171,7 @@ void BngDataToDatamodelConverter::convert_single_rxn_rule(const BNG::RxnRule& r,
   rxn_node[KEY_NAME] = reactants + " -> " + products;
 
   if (r.variable_rates.empty()) {
-    rxn_node[KEY_FWD_RATE] = r.rate_constant;
+    rxn_node[KEY_FWD_RATE] = DMUtil::f_to_string(r.rate_constant);
     rxn_node[KEY_BKWD_RATE] = "";
 
     CHECK_PROPERTY_W_NAME(r.variable_rates.empty(), r.name);

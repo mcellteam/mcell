@@ -334,7 +334,7 @@ void World::export_visualization_datamodel(const char* filename) const {
 
   Json::StreamWriterBuilder wbuilder;
   wbuilder["indentation"] = " ";
-  wbuilder.settings_["precision"] = 12;
+  wbuilder.settings_["precision"] = 17;
   wbuilder.settings_["precisionType"] = "decimal";
   std::string document = Json::writeString(wbuilder, root);
 
@@ -467,7 +467,8 @@ void World::initialization_to_data_model(Json::Value& mcell_node) const {
   Json::Value& initialization = mcell_node[KEY_INITIALIZATION];
   DMUtil::json_add_version(initialization, JSON_DM_VERSION_0130);
 
-  initialization[KEY_TIME_STEP] = to_string(config.time_unit);
+  // time step will most probably use rounded values, therefore we don't have to use full precision here
+  initialization[KEY_TIME_STEP] = DMUtil::f_to_string(config.time_unit, 8);
   initialization[KEY_ITERATIONS] = to_string(total_iterations);
 
   initialization[KEY_INTERACTION_RADIUS] = "";
@@ -481,7 +482,7 @@ void World::initialization_to_data_model(Json::Value& mcell_node) const {
   initialization[KEY_TIME_STEP_MAX] = "";
   initialization[KEY_VACANCY_SEARCH_DISTANCE] = "";
   initialization[KEY_SPACE_STEP] = "";
-  initialization[KEY_SURFACE_GRID_DENSITY] = to_string(config.grid_density);
+  initialization[KEY_SURFACE_GRID_DENSITY] = DMUtil::f_to_string(config.grid_density);
 
   // --- warnings ---
   Json::Value& warnings = initialization[KEY_WARNINGS];
@@ -523,15 +524,18 @@ void World::initialization_to_data_model(Json::Value& mcell_node) const {
   partitions[KEY_RECURSION_FLAG] = false;
 
   float_t half_length = config.partition_edge_length * config.length_unit / 2;
+  string phalf_str = DMUtil::f_to_string(half_length);
+  string mhalf_str = DMUtil::f_to_string(-half_length);
 
-  partitions[KEY_X_START] = -half_length;
-  partitions[KEY_X_END] = half_length;
-  partitions[KEY_Y_START] = -half_length;
-  partitions[KEY_Y_END] = half_length;
-  partitions[KEY_Z_START] = -half_length;
-  partitions[KEY_Z_END] = half_length;
+  partitions[KEY_X_START] = mhalf_str;
+  partitions[KEY_X_END] = phalf_str;
+  partitions[KEY_Y_START] = mhalf_str;
+  partitions[KEY_Y_END] = phalf_str;
+  partitions[KEY_Z_START] = mhalf_str;
+  partitions[KEY_Z_END] = phalf_str;
 
   float_t step = config.subpartition_edge_length * config.length_unit;
+  string step_str = DMUtil::f_to_string(step);
   partitions[KEY_X_STEP] = step;
   partitions[KEY_Y_STEP] = step;
   partitions[KEY_Z_STEP] = step;

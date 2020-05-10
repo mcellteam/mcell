@@ -305,9 +305,6 @@ struct IVec3: public glm_ivec3_t {
   IVec3(const int x_, const int y_, const int z_) { x = x_; y = y_; z = z_; }
   IVec3(const int xyz) { x = xyz; y = xyz; z = xyz; }
   IVec3(const std::vector<int>& xyz) { assert(xyz.size() == 3); x = xyz[0]; y = xyz[1]; z = xyz[2]; }
-
-  /*std::string to_string() const;
-  void dump(const std::string extra_comment, const std::string ind) const;*/
 };
 
 struct Vec3: public glm_vec3_t {
