@@ -774,6 +774,7 @@ def create_count(world, where, mol_sym, file_path, step, report_flags=0, exact_t
     # XXX: m.ORIENT_NOT_SET is using -100 instead of SHRT_MIN (used typemap
     # for mcell_create_count in mcell_react_out.i) because limits.h does not
     # work well with swig
+    c_list.thisown = 0
     count_list = m.mcell_create_count(
         world, mol_sym, m.ORIENT_NOT_SET, where, report_flags, None, c_list)
 
