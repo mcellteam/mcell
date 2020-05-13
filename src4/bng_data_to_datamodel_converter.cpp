@@ -174,7 +174,7 @@ void BngDataToDatamodelConverter::convert_single_rxn_rule(const BNG::RxnRule& r,
   json_add_version(rxn_node, JSON_DM_VERSION_1330);
 
   // name is put into rnx_name and name is the string of the reaction
-  rxn_node[KEY_RXN_NAME] = r.name;
+  rxn_node[KEY_RXN_NAME] = (r.name != NAME_NOT_SET) ? r.name : "";
 
   // LATER: maybe find an opposite reaction and generate it as reversible
   rxn_node[KEY_RXN_TYPE] = VALUE_IRREVERSIBLE;

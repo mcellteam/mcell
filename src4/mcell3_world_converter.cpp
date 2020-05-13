@@ -906,9 +906,6 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
       assert(current_pathway->pathname->sym != nullptr);
       rxn.name = get_sym_name(current_pathway->pathname->sym);
     }
-    else if (mcell3_rx->sym != nullptr) {
-      rxn.name = get_sym_name(mcell3_rx->sym);
-    }
     else {
       rxn.name = NAME_NOT_SET;
     }
