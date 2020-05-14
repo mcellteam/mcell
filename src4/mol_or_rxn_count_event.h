@@ -33,6 +33,7 @@ namespace MCell {
 
 class Partition;
 class Molecule;
+class World;
 
 enum class CountType {
   Invalid,
@@ -59,6 +60,7 @@ public:
   }
 
   void dump(const std::string ind = "") const;
+  std::string to_data_model_string(const World* world, bool print_positive_sign) const;
 
   CountType type;
 
@@ -79,11 +81,11 @@ public:
 
   // TODO: add getters/setters with checks
 
-  // valid when type is EnclosedInWorld or EnclosedInObject
+  // valid when type is EnclosedInWorld, EnclosedInObject or PresentOnSurfaceRegion
   orientation_t orientation;
   species_id_t species_id;
 
-  // valid when type is RxnCountInWorld or RxnCountInObject
+  // valid when type is RxnCountInWorld, RxnCountInObject or RxnOnSurfaceRegion
   BNG::rxn_rule_id_t rxn_rule_id;
 
   // valid when type is EnclosedInObject or RxnCountInObject
@@ -102,6 +104,7 @@ public:
   }
 
   void dump(const std::string ind = "") const;
+  void to_data_model(const World* world, Json::Value& reaction_output) const;
 
   // count buffer objects are owned by World
   count_buffer_id_t buffer_id;
@@ -125,6 +128,7 @@ public:
 
   void step() override;
   void dump(const std::string ind = "") const override;
+  void to_data_model(Json::Value& mcell_node) const;
 
   void add_mol_count_info(const MolOrRxnCountInfo& info) {
     mol_count_infos.push_back(info);

@@ -23,6 +23,7 @@ const char* const JSON_DM_VERSION_1330 = "DM_2018_01_11_1330";
 const char* const JSON_DM_VERSION_1632 = "DM_2018_10_16_1632";
 const char* const JSON_DM_VERSION_1638 = "DM_2014_10_24_1638";
 const char* const JSON_DM_VERSION_1700 = "DM_2015_04_13_1700";
+const char* const JSON_DM_VERSION_1800 = "DM_2016_03_15_1800";
 
 const int BLENDER_VERSION[] = {2, 79, 0};
 
@@ -34,6 +35,7 @@ const char* const KEY_MCELL = "mcell";
 const char* const KEY_NAME = "name";
 const char* const VALUE_NONE = "None";
 const char* const VALUE_BLENDER = "blender";
+const char* const VALUE_WORLD = "WORLD";
 
 const char* const KEY_DATA_MODEL_VERSION = "data_model_version";
 const char* const KEY_CELLBLENDER_VERSION = "cellblender_version";
@@ -110,6 +112,7 @@ const char* const KEY_MODEL_PARAMETERS = "model_parameters";
 
 const char* const KEY_BLENDER_VERSION = "blender_version";
 
+
 const char* const KEY_MOLECULE_LIST = "molecule_list";
 const char* const KEY_DEFINE_MOLECULES = "define_molecules";
 const char* const KEY_DISPLAY = "display";
@@ -132,6 +135,7 @@ const char* const KEY_TARGET_ONLY = "target_only";
 const char* const KEY_SPATIAL_STRUCTURE = "spatial_structure";
 const char* const KEY_CUSTOM_TIME_STEP = "custom_time_step";
 
+
 const char* const KEY_RELEASE_SITES = "release_sites";
 const char* const KEY_RELEASE_SITE_LIST = "release_site_list";
 const char* const KEY_POINTS_LIST = "points_list";
@@ -153,12 +157,37 @@ const char* const VALUE_NUMBER_TO_RELEASE = "NUMBER_TO_RELEASE";
 const char* const VALUE_GAUSSIAN_RELEASE_NUMBER = "GAUSSIAN_RELEASE_NUMBER";
 const char* const VALUE_DENSITY = "DENSITY";
 
+
 const char* const KEY_VIZ_OUTPUT = "viz_output";
 const char* const KEY_EXPORT_ALL = "export_all";
 const char* const KEY_ALL_ITERATIONS = "all_iterations";
 const char* const KEY_START = "start";
 const char* const KEY_STEP = "step";
 const char* const KEY_END = "end";
+
+
+const char* const KEY_REACTION_DATA_OUTPUT = "reaction_data_output";
+const char* const KEY_PLOT_LAYOUT = "plot_layout";
+const char* const KEY_PLOT_LEGEND = "plot_legend";
+const char* const KEY_MOL_COLORS = "mol_colors";
+const char* const KEY_ALWAYS_GENERATE = "always_generate";
+const char* const KEY_OUTPUT_BUF_SIZE = "output_buf_size";
+const char* const KEY_RXN_STEP = "rxn_step";
+const char* const KEY_COMBINE_SEEDS = "combine_seeds";
+
+const char* const KEY_REACTION_OUTPUT_LIST = "reaction_output_list";
+const char* const KEY_RXN_OR_MOL = "rxn_or_mol";
+const char* const VALUE_MDLSTRING = "MDLString";
+const char* const KEY_PLOTTING_ENABLED = "plotting_enabled";
+const char* const KEY_MDL_FILE_PREFIX = "mdl_file_prefix";
+const char* const KEY_MOLECULE_NAME = "molecule_name";
+const char* const KEY_REACTION_NAME = "reaction_name";
+const char* const KEY_OBJECT_NAME = "object_name";
+const char* const KEY_DATA_FILE_NAME = "data_file_name";
+const char* const KEY_COUNT_LOCATION = "count_location";
+const char* const KEY_MDL_STRING = "mdl_string";
+const char* const KEY_REGION_NAME = "region_name";
+
 
 const char* const KEY_SCRIPTING = "scripting";
 const char* const KEY_IGNORE_CELLBLENDER_DATA = "ignore_cellblender_data";

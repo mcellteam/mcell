@@ -68,6 +68,10 @@ public:
   // close, create an empty file
   void flush_and_close();
 
+  const std::string& get_filename() const {
+    return filename;
+  }
+
 private:
   // flush buffer, open output file if needed, keep file open afterwards
   void flush();

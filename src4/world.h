@@ -223,6 +223,19 @@ public:
     return count_buffers[id];
   }
 
+  const CountBuffer& get_count_buffer(const count_buffer_id_t id) const {
+    assert(id < count_buffers.size());
+    return count_buffers[id];
+  }
+
+  const GeometryObject& get_geometry_object(const geometry_object_id_t id) const {
+    // TODO: there will be multiple places where geom object id and index are mixed
+    return get_partition(0).get_geometry_object_by_id(id);
+  }
+
+  const Region& get_region(const region_id_t id) const {
+    return get_partition(0).get_region_by_id(id);
+  }
 
 private:
   void init_fpu();

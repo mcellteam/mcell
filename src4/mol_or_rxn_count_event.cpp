@@ -27,6 +27,7 @@
 
 #include "world.h"
 #include "partition.h"
+#include "datamodel_defines.h"
 
 using namespace std;
 
@@ -45,6 +46,18 @@ void MolOrRxnCountTerm::dump(const std::string ind) const {
     case CountType::EnclosedInObject:
       cout << "EnclosedInObject";
       break;
+    case CountType::PresentOnSurfaceRegion:
+      cout << "PresentOnSurfaceRegion";
+      break;
+    case CountType::RxnCountInWorld:
+      cout << "RxnCountInWorld";
+      break;
+    case CountType::RxnCountInObject:
+      cout << "RxnCountInObject";
+      break;
+    case CountType::RxnCountOnSurfaceRegion:
+      cout << "RxnCountOnSurfaceRegion";
+      break;
     default:
       assert(false);
   }
@@ -56,6 +69,65 @@ void MolOrRxnCountTerm::dump(const std::string ind) const {
 }
 
 
+std::string MolOrRxnCountTerm::to_data_model_string(const World* world, bool print_positive_sign) const {
+  stringstream res;
+  assert(sign_in_expression == -1 || sign_in_expression == 1);
+  res <<
+      ((sign_in_expression == 1) ?
+        (print_positive_sign) ? "+" : "":
+        "-"
+  );
+
+  res << "COUNT[";
+
+  switch(type) {
+    case CountType::EnclosedInWorld:
+    case CountType::EnclosedInObject:
+    case CountType::PresentOnSurfaceRegion:
+      res << world->get_all_species().get(species_id).name;
+      break;
+    case CountType::RxnCountInWorld:
+    case CountType::RxnCountInObject:
+    case CountType::RxnCountOnSurfaceRegion: {
+        string rxn_name = world->get_all_rxns().get_rxn_rule(rxn_rule_id)->name;
+        CONVERSION_CHECK(rxn_name != "", "Counted reaction has no name");
+        res << rxn_name;
+      }
+      break;
+    default:
+      assert(false);
+  }
+
+  res << ",";
+
+  switch(type) {
+    case CountType::EnclosedInWorld:
+    case CountType::RxnCountInWorld:
+      res << VALUE_WORLD;
+      break;
+    case CountType::EnclosedInObject:
+    case CountType::RxnCountInObject: {
+        string obj_name = world->get_geometry_object(geometry_object_id).name;
+        CONVERSION_CHECK(obj_name != "", "Counted object has no name");
+        res << obj_name;
+      }
+      break;
+    case CountType::PresentOnSurfaceRegion:
+    case CountType::RxnCountOnSurfaceRegion:{
+      string reg_name = world->get_region(region_id).name;
+      CONVERSION_CHECK(reg_name != "", "Counted region has no name");
+      res << reg_name;
+    }
+    break;
+
+    default:
+      assert(false);
+  }
+  res << "]";
+  return res.str();
+}
+
+
 void MolOrRxnCountInfo::dump(const std::string ind) const {
 
   cout << ind << "buffer_id: " << buffer_id << " [count_buffer_id_t] \t\t\n";
@@ -64,6 +136,65 @@ void MolOrRxnCountInfo::dump(const std::string ind) const {
     cout << i << ":\n";
     terms[i].dump(ind + "  ");
   }
+}
+
+static string basename(const string& s) {
+   char sep = '/'; // / is used on Windows as well in the rxn_output file path
+   size_t i = s.rfind(sep, s.length());
+   if (i != string::npos) {
+      return(s.substr(i+1, s.length() - i));
+   }
+   else {
+     return s;
+   }
+}
+
+static string noext(const string& s) {
+   char sep = '.'; // / is used on Windows as well in the rxn_output file path
+   size_t i = s.rfind(sep, s.length());
+   if (i != string::npos) {
+      return(s.substr(0, i));
+   }
+   else {
+     return s;
+   }
+}
+
+void MolOrRxnCountInfo::to_data_model(const World* world, Json::Value& reaction_output) const {
+  DMUtil::json_add_version(reaction_output, JSON_DM_VERSION_1330);
+
+  // MDLString is a general way how to capture the output
+  reaction_output[KEY_RXN_OR_MOL] = VALUE_MDLSTRING;
+  reaction_output[KEY_DESCRIPTION] = "";
+  reaction_output[KEY_PLOTTING_ENABLED] = true;
+
+  // file prefix
+  const CountBuffer& buff = world->get_count_buffer(buffer_id);
+  string prefix;
+  string filename = basename(buff.get_filename());
+  size_t pos = filename.find(VALUE_MDLSTRING);
+  if (pos > 1 && pos != string::npos) {
+    prefix = filename.substr(0, pos - 1);
+  }
+  else {
+    prefix = noext(filename);
+  }
+  reaction_output[KEY_MDL_FILE_PREFIX] = prefix;
+
+  // species or rxn name & location is in mdl_string
+  reaction_output[KEY_MOLECULE_NAME] = "";
+  reaction_output[KEY_REACTION_NAME] = "";
+  reaction_output[KEY_OBJECT_NAME] = "";
+  reaction_output[KEY_REGION_NAME] = "";
+
+  // handled by prefix
+  reaction_output[KEY_DATA_FILE_NAME] = "";
+
+  string mdl_string = "";
+  for (size_t i = 0; i < terms.size(); i++) {
+    mdl_string += terms[i].to_data_model_string(world, i != 0);
+  }
+  reaction_output[KEY_MDL_STRING] = mdl_string;
 }
 
 
@@ -276,5 +407,34 @@ void MolOrRxnCountEvent::dump(const std::string ind) const {
 
 }
 
+
+void MolOrRxnCountEvent::to_data_model(Json::Value& mcell_node) const {
+  if (mol_count_infos.empty()) {
+    return;
+  }
+
+  // set global reaction_data_output settings if this is the first
+  // counting event that we are converting
+  if (!mcell_node.isMember(KEY_REACTION_DATA_OUTPUT)) {
+    Json::Value& new_reaction_data_output = mcell_node[KEY_REACTION_DATA_OUTPUT];
+    DMUtil::json_add_version(new_reaction_data_output, JSON_DM_VERSION_1800);
+    new_reaction_data_output[KEY_PLOT_LAYOUT] = " ";
+    new_reaction_data_output[KEY_PLOT_LEGEND] = "0";
+    new_reaction_data_output[KEY_MOL_COLORS] = false;
+    new_reaction_data_output[KEY_ALWAYS_GENERATE] = true;
+    new_reaction_data_output[KEY_OUTPUT_BUF_SIZE] = "";
+    new_reaction_data_output[KEY_RXN_STEP] = "";
+    new_reaction_data_output[KEY_COMBINE_SEEDS] = true;
+  }
+
+  Json::Value& reaction_data_output = mcell_node[KEY_REACTION_DATA_OUTPUT];
+  Json::Value& reaction_output_list = reaction_data_output[KEY_REACTION_OUTPUT_LIST];
+
+  for (const MolOrRxnCountInfo& info: mol_count_infos) {
+    Json::Value reaction_output;
+    info.to_data_model(world, reaction_output);
+    reaction_output_list.append(reaction_output);
+  }
+}
 
 }

@@ -161,6 +161,11 @@ public:
     return nullptr;
   }
 
+  const RxnRule* get_rxn_rule(const rxn_rule_id_t rxn_rule_id) const {
+    assert(rxn_rule_id < rxn_rules.size());
+    return rxn_rules[rxn_rule_id];
+  }
+
   const RxnRuleVector& get_rxn_rules_vector() const {
     return rxn_rules;
   }
@@ -178,10 +183,12 @@ private:
   // owns reaction classes
   // allocated in get_or_create_empty_bimol_rxn_class, deleted in destructor
   // the size of the vector will be changing, so we cannot take pointers to its elements
+  // indexed by rxn_class_id_t
   RxnClassVector rxn_classes;
 
   // RxnContainer owns Rxn rules,
   // RxnClasses use pointers to these objects
+  // indexed by rxn_rule_id_t
   RxnRuleVector rxn_rules;
 
   // sets that remember which species were processed for rxn class generation
