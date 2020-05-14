@@ -100,7 +100,7 @@ viz_output = m.VizOutput(
 # Count is used both for molecules and reactions
 count_react_a_and_b_in_box = m.Count(
     reaction_rule = react_a_and_b,
-    enclosed_in_object = box, # rxn count in world if enclosed_in_object is not set
+    region = box, # rxn count in world if enclosed_in_object is not set
     filename = './react_data/seed_' + str(SEED) + '/react_a_and_b.World.dat',
     every_n_timesteps = 1 # default
 )
@@ -119,7 +119,7 @@ count_term_b_in_world = m.CountTerm(
 
 count_term_b_in_box = m.CountTerm(
     species = b,
-    enclosed_in_object = box
+    region = box
 )
 
 # will be zero because box is not transparent 
