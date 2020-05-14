@@ -43,33 +43,45 @@ using namespace std;
 
 namespace MCell {
 
-void RegionExprNode::dump() {
+string RegionExprNode::to_string(const bool for_datamodel) const {
+  stringstream out;
   assert(op != RegionExprOperator::Invalid);
 
   if (op == RegionExprOperator::Leaf) {
-    cout << region_name;
-    return;
+    if (for_datamodel) {
+      return DMUtil::get_object_w_region_name(region_name);
+    }
+    else {
+      return region_name;
+    }
   }
 
   assert(left != nullptr);
-  cout << "(";
-  left->dump();
+  out << "(";
+  out << left->to_string(for_datamodel);
 
   switch(op) {
-  case RegionExprOperator::Union:
-    cout << " + ";
-    break;
-  case RegionExprOperator::Intersection:
-    cout << " * ";
-    break;
-  case RegionExprOperator::Subtraction:
-    cout << " - ";
-    break;
-  default:
-    assert(false);
+    case RegionExprOperator::Union:
+      out << " + ";
+      break;
+    case RegionExprOperator::Intersection:
+      out << " * ";
+      break;
+    case RegionExprOperator::Subtraction:
+      out << " - ";
+      break;
+    default:
+      assert(false);
   }
-  right->dump();
-  cout << ")";
+  out << right->to_string(for_datamodel);
+  out << ")";
+  return out.str();
+}
+
+
+void RegionExprNode::dump() const {
+  cout << to_string();
+
 }
 
 
@@ -111,16 +123,6 @@ void ReleaseEvent::dump(const string ind) const {
   if (region_expr_root != nullptr) {
     region_expr_root->dump();
   }
-}
-
-
-static std::string region_expr_node_to_string(const RegionExprNode* node) {
-  assert(node != nullptr);
-  if (node->op == RegionExprOperator::Leaf) {
-    return DMUtil::get_object_w_region_name(node->region_name);
-  }
-  assert(false && "TODO");
-  return "TODO";
 }
 
 
@@ -178,8 +180,7 @@ void ReleaseEvent::to_data_model(Json::Value& mcell_node) const {
       break;
     case ReleaseShape::REGION:
       release_site[KEY_SHAPE] = "OBJECT";
-      CONVERSION_CHECK(region_expr_root->op == RegionExprOperator::Leaf, "Cannot convert complex region expressions for releases.");
-      release_site[KEY_OBJECT_EXPR] = region_expr_node_to_string(region_expr_root);
+      release_site[KEY_OBJECT_EXPR] = region_expr_root->to_string(true);
       break;
     default:
       CONVERSION_UNSUPPORTED("Release event " + release_site_name + " has shape different from SHPERE and OBJECT.");

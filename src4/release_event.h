@@ -80,7 +80,8 @@ public:
   RegionExprNode* left;
   RegionExprNode* right;
 
-  void dump(); // does not print any newlines
+  void dump() const; // does not print any newlines
+  std::string to_string(const bool for_datamodel = false) const;
 };
 
 
