@@ -23,6 +23,7 @@ const char* const JSON_DM_VERSION_1330 = "DM_2018_01_11_1330";
 const char* const JSON_DM_VERSION_1632 = "DM_2018_10_16_1632";
 const char* const JSON_DM_VERSION_1638 = "DM_2014_10_24_1638";
 const char* const JSON_DM_VERSION_1700 = "DM_2015_04_13_1700";
+const char* const JSON_DM_VERSION_1756 = "DM_2015_11_08_1756";
 const char* const JSON_DM_VERSION_1800 = "DM_2016_03_15_1800";
 
 const int BLENDER_VERSION[] = {2, 79, 0};
@@ -85,8 +86,6 @@ const char* const KEY_DYNAMIC_DISPLAY_SOURCE = "dynamic_display_source";
 const char* const KEY_SCRIPT_NAME = "script_name";
 const char* const KEY_MEMBRANE_NAME = "membrane_name";
 const char* const KEY_DYNAMIC = "dynamic";
-
-const char* const KEY_DEFINE_SURFACE_CLASSES = "define_surface_classes";
 
 const char* const KEY_MOL_VIZ = "mol_viz";
 const char* const KEY_MANUAL_SELECT_VIZ_DIR = "manual_select_viz_dir";
@@ -187,6 +186,18 @@ const char* const KEY_DATA_FILE_NAME = "data_file_name";
 const char* const KEY_COUNT_LOCATION = "count_location";
 const char* const KEY_MDL_STRING = "mdl_string";
 const char* const KEY_REGION_NAME = "region_name";
+
+
+const char* const KEY_DEFINE_SURFACE_CLASSES = "define_surface_classes";
+const char* const KEY_SURFACE_CLASS_LIST = "surface_class_list";
+const char* const KEY_SURFACE_CLASS_PROP_LIST = "surface_class_prop_list";
+const char* const KEY_SURF_CLASS_ORIENT = "surf_class_orient";
+const char* const KEY_SURF_CLASS_TYPE = "surf_class_type";
+const char* const VALUE_TRANSPARENT = "TRANSPARENT";
+const char* const VALUE_REFLECTIVE = "REFLECTIVE";
+const char* const KEY_AFFECTED_MOLS = "affected_mols";
+const char* const VALUE_SINGLE = "SINGLE";
+const char* const KEY_CLAMP_VALUE = "clamp_value";
 
 
 const char* const KEY_SCRIPTING = "scripting";
@@ -307,6 +318,14 @@ static inline std::string remove_obj_name_prefix(const std::string& name) {
 }
 
 
+static inline std::string remove_surf_class_prefix(const std::string& prefix, const std::string& name) {
+  size_t pos = prefix.size() + 1;
+  assert(name.size() > pos);
+  assert(name.substr(0, pos) == prefix + "+");
+  return name.substr(pos);
+}
+
+
 static inline std::string get_object_w_region_name(const std::string& name) {
 
   std::string noprefix = remove_obj_name_prefix(name);
@@ -359,6 +378,7 @@ static inline std::string f_to_string(const float_t val, const int n = 17)
   return out.str();
 }
 
+
 static inline std::string orientation_to_str(const orientation_t o) {
   switch (o) {
     case ORIENTATION_DOWN: return ",";
@@ -369,6 +389,12 @@ static inline std::string orientation_to_str(const orientation_t o) {
       return "ERROR";
   }
 }
+
+
+static bool is_species_superclass(const std::string& name) {
+  return name == ALL_MOLECULES || name == ALL_VOLUME_MOLECULES || name == ALL_SURFACE_MOLECULES;
+}
+
 
 #define CONVERSION_UNSUPPORTED(msg) \
   do { errs() << msg << " This is not supported yet.\n"; exit(1); } while (0)

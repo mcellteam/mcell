@@ -61,6 +61,7 @@ private:
   void convert_single_species(const BNG::Species& s, Json::Value& species_node);
 
   void convert_single_rxn_rule(const BNG::RxnRule& r, Json::Value& species_node);
+  void convert_single_surface_class(const BNG::RxnRule& r, Json::Value& rxn_node);
   void convert_rxns(Json::Value& mcell_node);
 
   const World* world;

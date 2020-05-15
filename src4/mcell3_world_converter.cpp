@@ -858,12 +858,6 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
 
   assert(mcell3_rx->cum_probs != nullptr);
 
-  // BNGTODO: create RXN classes!
-  // rxn_class.max_fixed_p = mcell3_rx->max_fixed_p;
-  // rxn_class.min_noreaction_p = mcell3_rx->min_noreaction_p;
-
-  // ?? double pb_factor; /* Conversion factor from rxn rate to rxn probability (used for cooperativity) */
-
   // int *product_idx_aux - ignored, post-processing information
   // u_int *product_idx - ignored, post-processing information
   // struct species **players - ignored, might check it but will contain the same info as pathways
@@ -901,14 +895,6 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
     // -> pathway is renamed in MCell3 to reaction because pathway has a different meaning
     //    MCell3 reaction is reaction class
     RxnRule rxn;
-
-    if (current_pathway->pathname != nullptr) {
-      assert(current_pathway->pathname->sym != nullptr);
-      rxn.name = get_sym_name(current_pathway->pathname->sym);
-    }
-    else {
-      rxn.name = NAME_NOT_SET;
-    }
 
     if (mcell3_rx->prob_t == nullptr) {
       rxn.rate_constant = current_pathway->km;
@@ -990,6 +976,17 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
 
         product_ptr = product_ptr->next;
       }
+    }
+
+    if (current_pathway->pathname != nullptr) {
+      assert(current_pathway->pathname->sym != nullptr);
+      rxn.name = get_sym_name(current_pathway->pathname->sym);
+    }
+    else if (rxn.type != RxnType::Standard && mcell3_rx->sym != nullptr) {
+      rxn.name = get_sym_name(mcell3_rx->sym);
+    }
+    else {
+      rxn.name = "";
     }
 
     pathway_index++;

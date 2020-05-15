@@ -121,7 +121,7 @@ void BngDataToDatamodelConverter::convert_species(Value& mcell_node) {
   Value& molecule_list = define_molecules[KEY_MOLECULE_LIST];
 
   for (const BNG::Species& s: bng_engine->get_all_species().get_species_vector()) {
-    if (s.name == ALL_MOLECULES || s.name == ALL_VOLUME_MOLECULES || s.name == ALL_SURFACE_MOLECULES) {
+    if (DMUtil::is_species_superclass(s.name)) {
       continue;
     }
     Value species_node;
@@ -171,6 +171,7 @@ void BngDataToDatamodelConverter::convert_single_species(const BNG::Species& s, 
 
 
 void BngDataToDatamodelConverter::convert_single_rxn_rule(const BNG::RxnRule& r, Value& rxn_node) {
+  assert(r.type == BNG::RxnType::Standard);
   json_add_version(rxn_node, JSON_DM_VERSION_1330);
 
   // name is put into rnx_name and name is the string of the reaction
@@ -218,16 +219,80 @@ void BngDataToDatamodelConverter::convert_single_rxn_rule(const BNG::RxnRule& r,
   }
 }
 
+
+void BngDataToDatamodelConverter::convert_single_surface_class(const BNG::RxnRule& r, Value& surface_class) {
+  assert(r.type != BNG::RxnType::Standard);
+  surface_class[KEY_DESCRIPTION] = "";
+  json_add_version(surface_class, JSON_DM_VERSION_1330);
+
+  Value& surface_class_prop_list = surface_class[KEY_SURFACE_CLASS_PROP_LIST];
+
+  Value sc_item;
+  json_add_version(sc_item, JSON_DM_VERSION_1756);
+  CONVERSION_CHECK(r.reactants[0].is_simple(), "Surface class reactant must be simple for now.");
+
+  const string& reactant_name = bng_engine->get_data().get_molecule_type(r.reactants[0].get_simple_species_mol_type_id()).name;
+
+  surface_class[KEY_NAME] = DMUtil::remove_surf_class_prefix(reactant_name, r.name);
+
+  if (DMUtil::is_species_superclass(reactant_name)) {
+    sc_item[KEY_AFFECTED_MOLS] = reactant_name;
+    sc_item[KEY_MOLECULE] = "";
+  }
+  else {
+    sc_item[KEY_AFFECTED_MOLS] = VALUE_SINGLE;
+    sc_item[KEY_MOLECULE] = reactant_name;
+  }
+
+  sc_item[KEY_SURF_CLASS_ORIENT] = DMUtil::orientation_to_str(r.reactants[0].get_orientation());
+
+  switch (r.type) {
+    case BNG::RxnType::Transparent:
+      sc_item[KEY_SURF_CLASS_TYPE] = VALUE_TRANSPARENT;
+      break;
+    case BNG::RxnType::Reflect:
+      sc_item[KEY_SURF_CLASS_TYPE] = VALUE_REFLECTIVE;
+      break;
+    default:
+      CONVERSION_UNSUPPORTED("TODO: edge absorptive");
+  }
+
+  sc_item[KEY_CLAMP_VALUE] = "0";
+  sc_item[KEY_NAME] = ""; // name is ignored by the datamodel to mdl converter anyway
+
+  surface_class_prop_list.append(sc_item);
+}
+
+
 void BngDataToDatamodelConverter::convert_rxns(Value& mcell_node) {
+
+  // --- define_reactions --- (this section is always present)
   Value& define_reactions = mcell_node[KEY_DEFINE_REACTIONS];
   json_add_version(define_reactions, JSON_DM_VERSION_1638);
   Value& reaction_list = define_reactions[KEY_REACTION_LIST];
   reaction_list = Value(Json::arrayValue);
 
+  // --- define_surface_classes --- (only when needed)
+  Value& define_surface_classes = mcell_node[KEY_DEFINE_SURFACE_CLASSES];
+  json_add_version(define_surface_classes, JSON_DM_VERSION_1638);
+  Value& surface_class_list = define_surface_classes[KEY_SURFACE_CLASS_LIST];
+  surface_class_list = Value(Json::arrayValue);
+
   for (const BNG::RxnRule* rxn_rule: bng_engine->get_all_rxns().get_rxn_rules_vector()) {
-    Value rxn_node;
-    CHECK(convert_single_rxn_rule(*rxn_rule, rxn_node));
-    reaction_list.append(rxn_node);
+    if (rxn_rule->type == BNG::RxnType::Standard) {
+      Value rxn_node;
+      CHECK(convert_single_rxn_rule(*rxn_rule, rxn_node));
+      reaction_list.append(rxn_node);
+    }
+    else if (rxn_rule->type == BNG::RxnType::Transparent || rxn_rule->type == BNG::RxnType::Reflect) {
+      // this rxn rule defines a surface class
+      Value surface_class;
+      CHECK(convert_single_surface_class(*rxn_rule, surface_class));
+      surface_class_list.append(surface_class);
+    }
+    else {
+      CONVERSION_UNSUPPORTED("AbsorbRegionBorder surf classes are not supported yet");
+    }
   }
 }
 

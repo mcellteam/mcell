@@ -402,10 +402,6 @@ void World::to_data_model(Json::Value& root) const {
     }
   }
 
-  if (!mcell.isMember(KEY_DEFINE_SURFACE_CLASSES)) {
-    mcell[KEY_DEFINE_SURFACE_CLASSES] = Json::Value(Json::ValueType::objectValue); // empty dict
-  }
-
   // diverse settings not read from the mcell4 state
 
   // --- mol_viz ---
