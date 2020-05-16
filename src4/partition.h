@@ -535,17 +535,17 @@ public:
     return geometry_objects;
   }
 
-  Region& get_region(const region_index_t i) {
-    assert(i < regions.size());
-    return regions[i];
+  Region& get_region(const region_index_t index) {
+    assert(index < regions.size());
+    return regions[index];
   }
 
-  const Region& get_region(const region_index_t i) const {
-    assert(i < regions.size());
-    return regions[i];
+  const Region& get_region(const region_index_t index) const {
+    assert(index < regions.size());
+    return regions[index];
   }
 
-  const Region& get_region_by_id(const region_id_t i) const {
+  const Region& get_region_by_id(const region_id_t id) const {
     const Region& res = get_region((region_index_t)id);
     assert(res.id == res.index && "With a single partition, region id == index");
     return res;
@@ -559,7 +559,6 @@ public:
     }
     return nullptr;
   }
-
 
   const Region* find_region_by_name(const std::string& name) const {
     for (const Region& r: regions) {

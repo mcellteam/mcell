@@ -328,7 +328,9 @@ static inline std::string remove_obj_name_prefix(const std::string& name) {
 }
 
 
-static inline std::string remove_surf_class_prefix(const std::string& prefix, const std::string& name) {
+static inline std::string remove_surf_class_prefix(
+    const std::string& prefix, const std::string& name) {
+
   size_t pos = prefix.size() + 1;
   assert(name.size() > pos);
   assert(name.substr(0, pos) == prefix + "+");
@@ -336,9 +338,16 @@ static inline std::string remove_surf_class_prefix(const std::string& prefix, co
 }
 
 
-static inline std::string get_object_w_region_name(const std::string& name) {
+static inline std::string get_object_w_region_name(
+    const std::string& name, const bool remove_prefix = true) {
 
-  std::string noprefix = remove_obj_name_prefix(name);
+  std::string noprefix;
+  if (remove_prefix) {
+    noprefix = remove_obj_name_prefix(name);
+  }
+  else {
+    noprefix = name;
+  }
   size_t pos = noprefix.find(',');
   assert(pos != std::string::npos);
   assert(pos + 1 < name.size());

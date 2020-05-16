@@ -116,7 +116,7 @@ std::string MolOrRxnCountTerm::to_data_model_string(const World* world, bool pri
     case CountType::RxnCountOnSurfaceRegion:{
       string reg_name = world->get_region(region_id).name;
       CONVERSION_CHECK(reg_name != "", "Counted region has no name");
-      res << reg_name;
+      res << DMUtil::get_object_w_region_name(reg_name, false);
     }
     break;
 
