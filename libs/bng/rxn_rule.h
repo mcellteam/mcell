@@ -206,6 +206,10 @@ public:
     return reactants.size() == 2;
   }
 
+  bool is_absorptive_region_rxn() const {
+    return is_bimol() && reactants[1].is_reactive_surface() && products.empty();
+  }
+
   // returns true if species 'id' matches one of the reactants
   bool species_can_be_reactant(const species_id_t id, const SpeciesContainer& all_species);
 

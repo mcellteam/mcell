@@ -196,6 +196,7 @@ const char* const KEY_SURF_CLASS_ORIENT = "surf_class_orient";
 const char* const KEY_SURF_CLASS_TYPE = "surf_class_type";
 const char* const VALUE_TRANSPARENT = "TRANSPARENT";
 const char* const VALUE_REFLECTIVE = "REFLECTIVE";
+const char* const VALUE_ABSORPTIVE = "ABSORPTIVE";
 const char* const KEY_AFFECTED_MOLS = "affected_mols";
 const char* const VALUE_SINGLE = "SINGLE";
 const char* const KEY_CLAMP_VALUE = "clamp_value";

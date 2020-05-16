@@ -222,7 +222,6 @@ void BngDataToDatamodelConverter::convert_single_rxn_rule(const BNG::RxnRule& r,
 
 
 void BngDataToDatamodelConverter::convert_single_surface_class(const BNG::RxnRule& r, Value& surface_class) {
-  assert(r.type != BNG::RxnType::Standard);
   surface_class[KEY_DESCRIPTION] = "";
   json_add_version(surface_class, JSON_DM_VERSION_1330);
 
@@ -254,8 +253,16 @@ void BngDataToDatamodelConverter::convert_single_surface_class(const BNG::RxnRul
     case BNG::RxnType::Reflect:
       sc_item[KEY_SURF_CLASS_TYPE] = VALUE_REFLECTIVE;
       break;
+    case BNG::RxnType::Standard:
+      if (r.is_absorptive_region_rxn()) {
+        sc_item[KEY_SURF_CLASS_TYPE] = VALUE_ABSORPTIVE;
+      }
+      else {
+        assert(false);
+      }
+      break;
     default:
-      CONVERSION_UNSUPPORTED("TODO: edge absorptive");
+      CONVERSION_UNSUPPORTED("Unexpected reaction type");
   }
 
   sc_item[KEY_CLAMP_VALUE] = "0";
@@ -281,9 +288,17 @@ void BngDataToDatamodelConverter::convert_rxns(Value& mcell_node) {
 
   for (const BNG::RxnRule* rxn_rule: bng_engine->get_all_rxns().get_rxn_rules_vector()) {
     if (rxn_rule->type == BNG::RxnType::Standard) {
-      Value rxn_node;
-      CHECK(convert_single_rxn_rule(*rxn_rule, rxn_node));
-      reaction_list.append(rxn_node);
+      // this might be a special case of absorptive reaction
+      if (!rxn_rule->is_absorptive_region_rxn()) {
+        Value rxn_node;
+        CHECK(convert_single_rxn_rule(*rxn_rule, rxn_node));
+        reaction_list.append(rxn_node);
+      }
+      else {
+        Value surface_class;
+        CHECK(convert_single_surface_class(*rxn_rule, surface_class));
+        surface_class_list.append(surface_class);
+      }
     }
     else if (rxn_rule->type == BNG::RxnType::Transparent || rxn_rule->type == BNG::RxnType::Reflect) {
       // this rxn rule defines a surface class
