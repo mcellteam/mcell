@@ -70,28 +70,31 @@ void GeometryObject::to_data_model(
 
   bool first = true; // to indicate when to use a comma
 
-  // first process vertices
-
-  // we would like the vertices to be sorted in the same way as then used in
-  // element_connections
-  insertion_ordered_set<vertex_index_t> unique_vertex_indices;
+  // first note which vertices this object uses
+  uint_set<vertex_index_t> used_vertex_indices;
   for (wall_index_t wall_index: wall_indices) {
     const Wall& w = p.get_wall(wall_index);
 
     for (vertex_index_t vertex_index: w.vertex_indices) {
-      unique_vertex_indices.insert_ordered(vertex_index);
+      used_vertex_indices.insert(vertex_index);
     }
   }
 
+  // then generate vertices and remember mapping
   Json::Value& vertex_list = object[KEY_VERTEX_LIST];
   map<vertex_index_t, uint> map_vertex_index_to_vertex_list_index;
-  for (size_t i = 0; i < unique_vertex_indices.size(); i++) {
-    // define mapping vertex_index -> index in vertex array
-    map_vertex_index_to_vertex_list_index[unique_vertex_indices[i]] = i;
+  uint current_index_in_vertex_list = 0;
+  for (vertex_index_t i = 0; i < p.get_geometry_vertex_count(); i++) {
 
-    // append triple x, y, z
-    Vec3 pos = p.get_geometry_vertex(unique_vertex_indices[i]) * Vec3(p.config.length_unit);
-    DMUtil::json_append_triplet(vertex_list, pos.x, pos.y, pos.z);
+    if (used_vertex_indices.count(i) == 1) {
+      // define mapping vertex_index -> index in vertex array
+      map_vertex_index_to_vertex_list_index[i] = current_index_in_vertex_list;
+      current_index_in_vertex_list++;
+
+      // append triple x, y, z
+      Vec3 pos = p.get_geometry_vertex(i) * Vec3(p.config.length_unit);
+      DMUtil::json_append_triplet(vertex_list, pos.x, pos.y, pos.z);
+    }
   }
 
   // element connections - they correspond to the ordering of walls
