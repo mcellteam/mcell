@@ -266,10 +266,17 @@ void VizOutputEvent::output_cellblender_molecules() {
 }
 
 
-bool VizOutputEvent::visualizes_all_species() const {
-  return
-      species_ids_to_visualize.size() ==
-      world->get_all_species().get_species_vector().size() - NUM_GENERAL_SPECIES;
+bool VizOutputEvent::should_visualize_all_species() const {
+
+  // we are counting only specific vol & surf species, not reactive surfaces
+  uint vol_surf_species_count = 0;
+  for (const BNG::Species& s: world->get_all_species().get_species_vector()) {
+    if (!DMUtil::is_species_superclass(s.name) && !s.is_reactive_surface()) {
+      vol_surf_species_count++;
+    }
+  }
+
+  return species_ids_to_visualize.size() == vol_surf_species_count;
 }
 
 
@@ -280,7 +287,7 @@ void VizOutputEvent::to_data_model(Json::Value& mcell_node) const {
   Json::Value& viz_output = mcell_node[KEY_VIZ_OUTPUT];
   DMUtil::json_add_version(viz_output, JSON_DM_VERSION_1638);
 
-  viz_output[KEY_EXPORT_ALL] = visualizes_all_species();
+  viz_output[KEY_EXPORT_ALL] = should_visualize_all_species();
   viz_output[KEY_START] = DMUtil::f_to_string(event_time);
   viz_output[KEY_ALL_ITERATIONS] = cmp_eq(periodicity_interval, 1.0);
   viz_output[KEY_STEP] = DMUtil::f_to_string(periodicity_interval);

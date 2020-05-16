@@ -153,7 +153,7 @@ void BngDataToDatamodelConverter::convert_single_species(const BNG::Species& s, 
 
   const VizOutputEvent* viz =
       dynamic_cast<const VizOutputEvent*>(world->scheduler.find_next_event_with_type_index(EVENT_TYPE_INDEX_VIZ_OUTPUT));
-  if (viz == nullptr || viz->visualizes_all_species()) {
+  if (viz == nullptr || viz->should_visualize_all_species()) {
     // no visualization/or enabled globally
     species_node[KEY_EXPORT_VIZ] = false;
   }
