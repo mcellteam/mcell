@@ -149,9 +149,11 @@ void ReleaseEvent::to_data_model(Json::Value& mcell_node) const {
   switch (release_number_method) {
     case ReleaseNumberMethod::ConstNum:
       release_site[KEY_QUANTITY_TYPE] = VALUE_NUMBER_TO_RELEASE;
+      release_site[KEY_QUANTITY] = to_string(release_number);
       break;
     case ReleaseNumberMethod::GaussNum:
       release_site[KEY_QUANTITY_TYPE] = VALUE_GAUSSIAN_RELEASE_NUMBER;
+      CONVERSION_UNSUPPORTED("Release event " + release_site_name + " has unsupported release_number_method GaussNum.");
       break;
     case ReleaseNumberMethod::VolNum:
       CONVERSION_UNSUPPORTED("Release event " + release_site_name + " has unsupported release_number_method VolNum.");
@@ -159,6 +161,7 @@ void ReleaseEvent::to_data_model(Json::Value& mcell_node) const {
     case ReleaseNumberMethod::ConcNum:
     case ReleaseNumberMethod::DensityNum:
       release_site[KEY_QUANTITY_TYPE] = VALUE_DENSITY;
+      release_site[KEY_QUANTITY] = to_string(concentration);
       break;
     default:
       CONVERSION_UNSUPPORTED("Release event " + release_site_name + " has invalid release_number_method.");
@@ -167,7 +170,6 @@ void ReleaseEvent::to_data_model(Json::Value& mcell_node) const {
 
   release_site[KEY_PATTERN] = "";
   release_site[KEY_STDDEV] = "0"; // TODO
-  release_site[KEY_QUANTITY] = to_string(release_number);
   release_site[KEY_RELEASE_PROBABILITY] = DMUtil::f_to_string(1.0);  // only 1 for now
 
   // where to release
