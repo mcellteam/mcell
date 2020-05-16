@@ -204,6 +204,8 @@ const char* const KEY_CLAMP_VALUE = "clamp_value";
 const char* const KEY_MODIFY_SURFACE_REGIONS = "modify_surface_regions";
 const char* const KEY_MODIFY_SURFACE_REGIONS_LIST = "modify_surface_regions_list";
 const char* const KEY_REGION_SELECTION = "region_selection";
+const char* const VALUE_ALL = "ALL";
+const char* const VALUE_SEL = "SEL";
 const char* const KEY_SURF_CLASS_NAME = "surf_class_name";
 
 
@@ -346,7 +348,7 @@ static inline std::string get_object_w_region_name(const std::string& name) {
 }
 
 
-static inline std::string get_region_selection_name(const std::string& name) {
+static inline std::string get_region_name(const std::string& name) {
 
   size_t pos = name.find(',');
   assert(pos != std::string::npos);

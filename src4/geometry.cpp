@@ -185,12 +185,20 @@ void Region::dump_array(const std::vector<Region>& vec) {
 
 void Region::to_data_model(const Partition& p, Json::Value& modify_surface_region) const {
   DMUtil::json_add_version(modify_surface_region, JSON_DM_VERSION_1330);
-  modify_surface_region[KEY_REGION_NAME] = ""; // not used //name; "Scene.Cube1,ALL",
   modify_surface_region[KEY_DESCRIPTION] = "";
   modify_surface_region[KEY_OBJECT_NAME] =
       DMUtil::remove_obj_name_prefix(p.get_geometry_object(geometry_object_id).name);
-  modify_surface_region[KEY_REGION_SELECTION] =
-      DMUtil::get_region_selection_name(name);
+
+  string region_name = DMUtil::get_region_name(name);
+  if (region_name == "ALL") {
+    modify_surface_region[KEY_REGION_SELECTION] = VALUE_ALL;
+    modify_surface_region[KEY_REGION_NAME] = "";
+  }
+  else {
+    modify_surface_region[KEY_REGION_SELECTION] = VALUE_SEL;
+    modify_surface_region[KEY_REGION_NAME] = region_name;
+  }
+
   modify_surface_region[KEY_NAME] = ""; // don't care
   CONVERSION_CHECK(species_id != SPECIES_ID_INVALID, "Can convert only reactive regions");
   modify_surface_region[KEY_SURF_CLASS_NAME] = p.get_all_species().get(species_id).name;
