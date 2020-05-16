@@ -130,6 +130,7 @@ public:
 
   void dump(const std::string ind) const;
   static void dump_array(const std::vector<Region>& vec);
+  void to_data_model(const Partition& p, Json::Value& modify_surface_region) const;
 };
 
 

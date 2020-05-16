@@ -21,12 +21,14 @@
  *
 ******************************************************************************/
 
+#include <iostream>
+
+#include "bng/bng.h"
+
 #include "rng.h" // MCell 3
 #include "isaac64.h"
 #include "mcell_structs.h"
 #include "logging.h"
-
-#include <iostream>
 
 #include "partition.h"
 #include "geometry.h"
@@ -176,6 +178,21 @@ void Region::dump_array(const std::vector<Region>& vec) {
     vec[i].dump("  ");
   }
 }
+
+
+void Region::to_data_model(const Partition& p, Json::Value& modify_surface_region) const {
+  DMUtil::json_add_version(modify_surface_region, JSON_DM_VERSION_1330);
+  modify_surface_region[KEY_REGION_NAME] = ""; // not used //name; "Scene.Cube1,ALL",
+  modify_surface_region[KEY_DESCRIPTION] = "";
+  modify_surface_region[KEY_OBJECT_NAME] =
+      DMUtil::remove_obj_name_prefix(p.get_geometry_object(geometry_object_id).name);
+  modify_surface_region[KEY_REGION_SELECTION] =
+      DMUtil::get_region_selection_name(name);
+  modify_surface_region[KEY_NAME] = ""; // don't care
+  CONVERSION_CHECK(species_id != SPECIES_ID_INVALID, "Can convert only reactive regions");
+  modify_surface_region[KEY_SURF_CLASS_NAME] = p.get_all_species().get(species_id).name;
+}
+
 
 
 // may be also used for reinitialization

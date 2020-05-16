@@ -108,7 +108,8 @@ typedef uint molecule_id_t;
 const molecule_id_t MOLECULE_ID_INVALID = ID_INVALID;
 
 // unique species id,
-// every distinct species that exists or
+// every distinct species that exists
+// TODO: move to bng
 typedef uint species_id_t;
 const species_id_t SPECIES_ID_INVALID = ID_INVALID;
 

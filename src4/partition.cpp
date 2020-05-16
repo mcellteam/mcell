@@ -277,6 +277,19 @@ void Partition::to_data_model(Json::Value& mcell) const {
     g.to_data_model(*this, config, object);
     object_list.append(object);
   }
+
+  // mod_surf_regions
+  Json::Value& modify_surface_regions = mcell[KEY_MODIFY_SURFACE_REGIONS];
+  DMUtil::json_add_version(modify_surface_regions, JSON_DM_VERSION_1638);
+  Json::Value& modify_surface_regions_list = modify_surface_regions[KEY_MODIFY_SURFACE_REGIONS_LIST];
+  modify_surface_regions_list = Json::Value(Json::arrayValue);
+  for (const Region& reg: regions) {
+    if (reg.is_reactive()) {
+      Json::Value modify_surface_region;
+      reg.to_data_model(*this, modify_surface_region);
+      modify_surface_regions_list.append(modify_surface_region);
+    }
+  }
 }
 
 } // namespace mcell

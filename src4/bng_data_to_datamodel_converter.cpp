@@ -121,7 +121,8 @@ void BngDataToDatamodelConverter::convert_species(Value& mcell_node) {
   Value& molecule_list = define_molecules[KEY_MOLECULE_LIST];
 
   for (const BNG::Species& s: bng_engine->get_all_species().get_species_vector()) {
-    if (DMUtil::is_species_superclass(s.name)) {
+    // ALL_* species re ignored and reactive surfaces are converted as surface classes
+    if (DMUtil::is_species_superclass(s.name) || s.is_reactive_surface()) {
       continue;
     }
     Value species_node;

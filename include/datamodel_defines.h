@@ -1,5 +1,6 @@
 #ifndef _DATAMODEL_DEFINES_H_
 #define _DATAMODEL_DEFINES_H_
+// TODO: rename to data_model_...
 
 #include <cctype>
 
@@ -200,6 +201,12 @@ const char* const VALUE_SINGLE = "SINGLE";
 const char* const KEY_CLAMP_VALUE = "clamp_value";
 
 
+const char* const KEY_MODIFY_SURFACE_REGIONS = "modify_surface_regions";
+const char* const KEY_MODIFY_SURFACE_REGIONS_LIST = "modify_surface_regions_list";
+const char* const KEY_REGION_SELECTION = "region_selection";
+const char* const KEY_SURF_CLASS_NAME = "surf_class_name";
+
+
 const char* const KEY_SCRIPTING = "scripting";
 const char* const KEY_IGNORE_CELLBLENDER_DATA = "ignore_cellblender_data";
 const char* const KEY_SCRIPTING_LIST = "scripting_list";
@@ -336,6 +343,17 @@ static inline std::string get_object_w_region_name(const std::string& name) {
   std::string obj = noprefix.substr(0, pos);
   std::string reg = noprefix.substr(pos + 1);
   return obj + "[" + reg + "]";
+}
+
+
+static inline std::string get_region_selection_name(const std::string& name) {
+
+  size_t pos = name.find(',');
+  assert(pos != std::string::npos);
+  assert(pos + 1 < name.size());
+
+  std::string reg_selection = name.substr(pos + 1);
+  return reg_selection;
 }
 
 
