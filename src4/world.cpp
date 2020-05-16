@@ -471,7 +471,7 @@ void World::initialization_to_data_model(Json::Value& mcell_node) const {
   initialization[KEY_ACCURATE_3D_REACTIONS] = true;
   initialization[KEY_RADIAL_SUBDIVISIONS] = "";
   initialization[KEY_RADIAL_DIRECTIONS] = "";
-  initialization[KEY_CENTER_MOLECULES_ON_GRID] = false;
+  initialization[KEY_CENTER_MOLECULES_ON_GRID] = !config.randomize_smol_pos;
   initialization[KEY_COMMAND_OPTIONS] = "";
   initialization[KEY_EXPORT_ALL_ASCII] = true; // for testing, cellblender generates false as default
   initialization[KEY_MICROSCOPIC_REVERSIBILITY] = VALUE_OFF;

@@ -272,7 +272,7 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
   mcell_log("MCell4 partition bounding box in microns: [ %f, %f, %f ], [ %f, %f, %f ]", -l, -l, -l, l, l, l);
 
 
-  world->config.randomize_smol_pos = s->randomize_smol_pos;
+  world->config.randomize_smol_pos = s->randomize_smol_pos; // set in MDL using negated value of CENTER_MOLECULES_ON_GRID
 
   CHECK_PROPERTY(s->dynamic_geometry_molecule_placement == 0
       && "DYNAMIC_GEOMETRY_MOLECULE_PLACEMENT '=' NEAREST_TRIANGLE is not supported yet"
