@@ -335,7 +335,7 @@ void World::export_visualization_datamodel(const char* filename) const {
   Json::StreamWriterBuilder wbuilder;
   wbuilder["indentation"] = " ";
   wbuilder.settings_["precision"] = 17;
-  wbuilder.settings_["precisionType"] = "decimal";
+  wbuilder.settings_["precisionType"] = "significant";
   std::string document = Json::writeString(wbuilder, root);
 
   // write result into a file
