@@ -172,13 +172,7 @@ void MolOrRxnCountInfo::to_data_model(const World* world, Json::Value& reaction_
   const CountBuffer& buff = world->get_count_buffer(buffer_id);
   string prefix;
   string filename = basename(buff.get_filename());
-  size_t pos = filename.find(VALUE_MDLSTRING);
-  if (pos > 1 && pos != string::npos) {
-    prefix = filename.substr(0, pos - 1);
-  }
-  else {
-    prefix = noext(filename);
-  }
+  prefix = noext(filename);
   reaction_output[KEY_MDL_FILE_PREFIX] = prefix;
 
   // species or rxn name & location is in mdl_string
