@@ -383,7 +383,7 @@ static inline void collect_crossed_subparts(
     start_positions[i] = start_pos;
   }
   // move wall detection point only a tiny bit back to deal with precision issues
-  start_positions[MOL_POS_POINT_INDEX] = vm.v.pos - displacement_unit * Vec3(EPS);
+  start_positions[MOL_POS_POINT_INDEX] = vm.v.pos - displacement_unit * Vec3(SQRT_EPS);
 
 #ifdef DEBUG_SUBPARTITIONS
   std::cout << "Corrected corner points for subpart colection:\n"
@@ -401,7 +401,7 @@ static inline void collect_crossed_subparts(
 
     if (i == MOL_POS_POINT_INDEX) {
       // similarly as we moved the start, let's move the move wall detection end point a bit further
-      dest_pos = start_positions[i] + displacement + displacement_unit * Vec3(EPS);;
+      dest_pos = start_positions[i] + displacement + displacement_unit * Vec3(SQRT_EPS);;
     }
     else {
       dest_pos = start_positions[i] + extended_displacement;
