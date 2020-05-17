@@ -214,7 +214,7 @@ void BngDataToDatamodelConverter::convert_single_rxn_rule(const BNG::RxnRule& r,
     // initial value for time 0
     text << 0.0 << "\t" << r.rate_constant << "\n";
     for (const BNG::RxnRateInfo& ri: r.variable_rates) {
-      text << ri.time << "\t" << ri.rate_constant << "\n";
+      text << ri.time * world->config.time_unit  << "\t" << ri.rate_constant << "\n";
     }
     rxn_node[KEY_VARIABLE_RATE_TEXT] = text.str();
   }
