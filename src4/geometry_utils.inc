@@ -169,14 +169,6 @@ static void wall_subparts_collision_test(
   p.get_subpart_3d_indices(llf, min_subpart_indices);
   p.get_subpart_3d_indices(urb, max_subpart_indices);
 
-  // do we fit into just one subparition?
-  if (max_subpart_indices == min_subpart_indices) {
-    colliding_subparts.push_back(
-        p.get_subpart_index_from_3d_indices(min_subpart_indices)
-    );
-    return;
-  }
-
 #if 0
   // don't know yet what is this doing, somehow it is trying to find some subvolume
   // but don't know which one

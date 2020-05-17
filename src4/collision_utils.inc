@@ -367,7 +367,7 @@ static inline void collect_crossed_subparts(
   Vec3 displacement_unit = displacement/Vec3(displacement_length);
   Vec3 displacement_of_radius_length = displacement_unit * Vec3(rx_radius * SQRT2 * RX_RADIUS_MULTIPLIER);
 
-  // move detection points a bit back
+  // move molecule collision detection points a bit back
   small_vector<subpart_index_t> start_subpart_indices;
   for (uint i = 0; i < NUM_CORNER_POINTS; i++) {
     Vec3 start_pos = start_positions[i] - displacement_of_radius_length;
@@ -382,7 +382,8 @@ static inline void collect_crossed_subparts(
 
     start_positions[i] = start_pos;
   }
-  start_positions[MOL_POS_POINT_INDEX] = vm.v.pos;
+  // move wall detection point only a tiny bit back to deal with precision issues
+  start_positions[MOL_POS_POINT_INDEX] = vm.v.pos - displacement_unit * Vec3(EPS);
 
 #ifdef DEBUG_SUBPARTITIONS
   std::cout << "Corrected corner points for subpart colection:\n"
@@ -398,9 +399,9 @@ static inline void collect_crossed_subparts(
   for (uint i = 0; i < num_points; i++) {
     Vec3 dest_pos;
 
-    // TODO: this might not be needed, try to remove
     if (i == MOL_POS_POINT_INDEX) {
-      dest_pos = start_positions[i] + displacement;
+      // similarly as we moved the start, let's move the move wall detection end point a bit further
+      dest_pos = start_positions[i] + displacement + displacement_unit * Vec3(EPS);;
     }
     else {
       dest_pos = start_positions[i] + extended_displacement;

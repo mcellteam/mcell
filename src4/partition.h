@@ -278,7 +278,7 @@ public:
     }
 #ifdef DEBUG_SUBPARTITIONS
     std::cout << "Molecule " << vm.id << " changed subpartition from "
-        <<  vm.v.subpart_index << " to " << new_subpartition_index << ".\n";
+        <<  vm.v.reactant_subpart_index << " to " << vm.v.subpart_index << ".\n";
 #endif
 
     change_vol_reactants_map_from_orig_to_current(vm, true, true);
