@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8.4)
 
-project(mcell)
+project(libmcell)
 
 find_package(Python3 COMPONENTS Interpreter Development)
 message("-- Python3 include dirs are ${Python3_INCLUDE_DIRS}")
@@ -56,6 +56,6 @@ set(ALL_SOURCES
     ${FLEX_bngl_scanner_OUTPUTS}    
 )
 
-add_library(${PROJECT_NAME} SHARED
+add_library(${PROJECT_NAME} STATIC
     ${ALL_SOURCES}
 )

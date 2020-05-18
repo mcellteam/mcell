@@ -122,7 +122,6 @@ include_directories(
   "${CMAKE_SOURCE_DIR}/../nfsimCInterface/src/"
   "${CMAKE_SOURCE_DIR}/include"
   "${CMAKE_SOURCE_DIR}/libs/sparsehash/src/"
-  "${CMAKE_SOURCE_DIR}/libs/jsoncpp/include/"
 )
 
 
@@ -181,6 +180,9 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/../nfsim ${CMAKE_CURRENT_BINARY_DIR}/nfsim)
 add_subdirectory(${CMAKE_SOURCE_DIR}/../nfsimCInterface ${CMAKE_CURRENT_BINARY_DIR}/nfsimCInterface)
 add_subdirectory(${CMAKE_SOURCE_DIR}/libs/jsoncpp ${CMAKE_CURRENT_BINARY_DIR}/libs/jsoncpp)
 
+add_subdirectory(${CMAKE_SOURCE_DIR}/libmcell ${CMAKE_CURRENT_BINARY_DIR}/libmcell)
+add_subdirectory(${CMAKE_SOURCE_DIR}/src4 ${CMAKE_CURRENT_BINARY_DIR}/src4)
+
 set(SOURCE_FILES
     src/argparse.c
     src/chkpt.c
@@ -235,26 +237,6 @@ set(SOURCE_FILES
     src/dump_state.cpp
     src/mdl2datamodel.cpp
     src/c_vector.cpp
-    
-    src4/base_event.cpp
-    src4/collision_structs.cpp
-    src4/defines.cpp
-    src4/diffuse_react_event.cpp
-    src4/mcell3_world_converter.cpp
-    src4/molecule.cpp
-    src4/partition.cpp
-    src4/release_event.cpp
-    src4/scheduler.cpp
-    src4/count_buffer.cpp
-    src4/mol_or_rxn_count_event.cpp
-    src4/viz_output_event.cpp
-    src4/defragmentation_event.cpp
-    src4/geometry.cpp
-    src4/world.cpp
-    src4/counted_volumes_util.cpp
-    src4/bng_data_to_datamodel_converter.cpp
-    
-    src4/callback_info.cpp    
 )
 
 set(SOURCE_FILES_ONLY_MCELL
@@ -307,7 +289,7 @@ if (PYMCELL AND NOT WIN32 AND NOT CYGWIN)
   if (APPLE)
     SWIG_LINK_LIBRARIES(pymcell ${PYMCELL_ARCHIVES} ${CMAKE_CURRENT_BINARY_DIR}/lib/libnfsim_c.dylib ${CMAKE_CURRENT_BINARY_DIR}/lib/libNFsim.dylib ${PYTHON_LIBRARIES})
   else()
-    SWIG_LINK_LIBRARIES(pymcell  ${PYMCELL_ARCHIVES}  ${CMAKE_CURRENT_BINARY_DIR}/libs/jsoncpp/src/lib_json/libjsoncpp.a ${CMAKE_CURRENT_BINARY_DIR}/lib/libnfsim_c.so ${CMAKE_CURRENT_BINARY_DIR}/lib/libNFsim.so ${PYTHON_LIBRARIES})
+    SWIG_LINK_LIBRARIES(pymcell ${PYMCELL_ARCHIVES} ${CMAKE_CURRENT_BINARY_DIR}/libs/jsoncpp/src/lib_json/libjsoncpp.a ${CMAKE_CURRENT_BINARY_DIR}/lib/libnfsim_c.so ${CMAKE_CURRENT_BINARY_DIR}/lib/libNFsim.so ${PYTHON_LIBRARIES})
   endif()
 
   # copy the pyMCell test scripts into place
@@ -342,6 +324,24 @@ configure_file(${MCELL_RULES_DIR}/write_mdl.py ${CMAKE_CURRENT_BINARY_DIR}/write
 # copy tools for MDLr to MDL
 file(COPY ${CMAKE_SOURCE_DIR}/../bionetgen/bng2/ DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/bng2/)
 
+add_library(pymcell4 SHARED 
+    # few files from mcell3 that are used
+    # TODO: get rid of all deps ex cept for the random generator 
+    src/isaac64.c
+    src/logging.c
+    src/mem_util.c
+    src/strfunc.c
+    
+    libmcell/api/exports.cpp
+)
+add_dependencies(pymcell4 libmcell mcell4 bng jsoncpp_lib)
+target_link_libraries(pymcell4 
+    PUBLIC libmcell
+    PRIVATE mcell4 bng jsoncpp_lib ${VTK_LIBRARIES}
+)
+set_property(TARGET pymcell4 PROPERTY POSITION_INDEPENDENT_CODE ON)
+
+
 # build executable
 add_executable(mcell
   ${SOURCE_FILES}
@@ -351,16 +351,14 @@ add_executable(mcell
   ${FLEX_mdlScanner_OUTPUTS}
   ${FLEX_dynGeomScanner_OUTPUTS})
 
-add_dependencies(mcell version_h)
+TARGET_COMPILE_DEFINITIONS(mcell PRIVATE NOSWIG=1)
+add_dependencies(mcell version_h mcell4)  
+target_link_libraries(mcell mcell4 bng nfsim_c_static NFsim_static jsoncpp_lib ${VTK_LIBRARIES})
 
 if (PYMCELL AND NOT WIN32 AND NOT CYGWIN)
-    add_dependencies(pymcell version_h bng nfsim_c NFsim jsoncpp_lib)
-    target_link_libraries(pymcell ${VTK_LIBRARIES})
+    add_dependencies(pymcell mcell4 version_h bng nfsim_c NFsim jsoncpp_lib)
+    target_link_libraries(pymcell mcell4 ${VTK_LIBRARIES})
 endif()
-  
-target_link_libraries(mcell bng nfsim_c_static NFsim_static jsoncpp_lib ${VTK_LIBRARIES})
-
-TARGET_COMPILE_DEFINITIONS(mcell PRIVATE NOSWIG=1)
 
 # utils
 

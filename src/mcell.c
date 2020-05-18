@@ -25,7 +25,7 @@
 
 #include <stdlib.h>
 
-#include "../src4/mcell3_world_converter.h"
+#include "../src4/mcell4_iface_for_mcell3.h"
 #include "mcell_init.h"
 #include "mcell_misc.h"
 #include "mcell_run.h"

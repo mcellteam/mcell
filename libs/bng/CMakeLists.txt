@@ -34,9 +34,11 @@ BISON_TARGET(bngl_parser ${CMAKE_CURRENT_SOURCE_DIR}/bngl_parser.y
 # the cmake flex plugin requires the flex file to be in the 'deps' directory
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/bngl_scanner.l ${CMAKE_CURRENT_BINARY_DIR}/deps/bngl_scanner.l COPYONLY)
 
-
 FLEX_TARGET(bngl_scanner ${CMAKE_CURRENT_SOURCE_DIR}/bngl_scanner.l
   ${CMAKE_CURRENT_BINARY_DIR}/deps/bngl_scanner.cpp)
+
+
+# TODO: add bngl_scanner.l|y dependencies
   
 ADD_FLEX_BISON_DEPENDENCY(bngl_scanner bngl_parser bngl_l)
 

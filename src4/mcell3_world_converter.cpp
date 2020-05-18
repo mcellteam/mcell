@@ -53,31 +53,6 @@ using namespace BNG;
 
 // asserts - things that can never occur and will 'never' be supported
 
-
-// holds global class
-MCell::MCell3WorldConverter g_converter;
-
-
-bool mcell4_convert_mcell3_volume(volume* s) {
-  return g_converter.convert(s);
-}
-
-
-bool mcell4_run_simulation(const bool dump_initial_state) {
-  g_converter.world->run_simulation(dump_initial_state);
-  return true;
-}
-
-void mcell4_convert_to_datamodel() {
-  g_converter.world->export_visualization_datamodel(DEFAULT_DATAMODEL_FILENAME);
-  mcell_log("Datamodel was exported to '%s'.", DEFAULT_DATAMODEL_FILENAME);
-}
-
-void mcell4_delete_world() {
-  g_converter.reset();
-}
-
-
 void mcell_log_conv_warning(char const *fmt, ...) {
   va_list args;
   va_start(args, fmt);
