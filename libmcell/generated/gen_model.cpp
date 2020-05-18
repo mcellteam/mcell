@@ -45,6 +45,7 @@ py::class_<Model> define_pybinding_Model(py::module& m) {
           py::init<
           >()
       )
+      .def("initialize", &Model::initialize)
       .def("run_iterations", &Model::run_iterations, py::arg("iterations"))
       .def("add_subsystem", &Model::add_subsystem, py::arg("subsystem"))
       .def("add_instantiation_data", &Model::add_instantiation_data, py::arg("instantiation_data"))

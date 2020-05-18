@@ -72,6 +72,7 @@ public:
   }
 
   // --- methods ---
+  virtual void initialize() = 0;
   virtual void run_iterations(const long iterations) = 0;
   virtual void add_subsystem(std::shared_ptr<Subsystem> subsystem) = 0;
   virtual void add_instantiation_data(std::shared_ptr<InstantiationData> instantiation_data) = 0;

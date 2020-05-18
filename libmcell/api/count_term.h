@@ -42,11 +42,11 @@ public:
     return res;
   }
 
-  virtual std::shared_ptr<CountTerm> __add__(std::shared_ptr<CountTerm> op2) {
+  std::shared_ptr<CountTerm> __add__(std::shared_ptr<CountTerm> op2) override {
     return create_expr_term(ExprNodeType::Add, op2);
   }
 
-  virtual std::shared_ptr<CountTerm> __sub__(std::shared_ptr<CountTerm> op2) {
+  std::shared_ptr<CountTerm> __sub__(std::shared_ptr<CountTerm> op2) override {
     return create_expr_term(ExprNodeType::Add, op2);
   }
 
