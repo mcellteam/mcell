@@ -67,13 +67,8 @@ void DefragmentationEvent::step() {
 
     while (it_first_defunct != it_end) {
 
-      // then find the next one that is not defunct
+      // then find the next one that is not defunct (might be it_end)
       vmit_t it_next_funct = find_if(it_first_defunct, it_end, [](const Molecule & m) -> bool { return !m.is_defunct(); });
-
-      if (it_next_funct == it_end) {
-        // are we finished?
-        break;
-      }
 
       // then again, find following defunct molecule
       vmit_t it_second_defunct = find_if(it_next_funct, it_end, [](const Molecule & m) -> bool { return m.is_defunct(); });
@@ -102,7 +97,7 @@ void DefragmentationEvent::step() {
       // and also move destination pointer
       it_copy_destination += it_second_defunct - it_next_funct;
 
-       it_first_defunct = it_second_defunct;
+      it_first_defunct = it_second_defunct;
     }
 
     // remove everything after it_copy_destination
