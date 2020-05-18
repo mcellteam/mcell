@@ -62,7 +62,7 @@ I ([0-9]+)
 "<->"           { LOC(); return TOK_ARROW_BIDIR; }
 [\~\,\!\.\(\)\/\+]  { LOC(); return bngltext[0];}
 
-.               { LOC(); BNG::errs() << "Unexpected character '" << bngltext[0] << "'.\n"; return bngltext[0]; }
+.               { LOC(); errs() << "Unexpected character '" << bngltext[0] << "'.\n"; return bngltext[0]; }
 %%
 
 
