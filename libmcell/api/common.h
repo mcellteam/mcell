@@ -123,7 +123,15 @@ static inline std::string vec_nonptr_to_str(const std::vector<std::vector<T>>& a
   return ss.str();
 }
 
+
+// Raised when an operation or function receives an argument that has the
+// right type but an inappropriate value, and the situation is not described
+// by a more precise exception such as IndexError.
 typedef std::invalid_argument ValueError; // using naming from Python
+
+// Raised when an error is detected that doesn’t fall in any of the other categories.
+// The associated value is a string indicating what precisely went wrong.
+typedef std::logic_error RuntimeError; // e.g. not defined?
 
 
 // base class for all classes that hold the model input data

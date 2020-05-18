@@ -1,7 +1,7 @@
 /******************************************************************************
  *
  * Copyright (C) 2020 by
- * The Salk Institute for Biological Studies and
+ * The Salk Institute for Biological Studies
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -20,37 +20,31 @@
  *
 ******************************************************************************/
 
-#include "model.h"
-#include "world.h"
-#include "mcell4_converter.h"
+#ifndef LIBMCELL_API_MCELL4_CONVERTER_H_
+#define LIBMCELL_API_MCELL4_CONVERTER_H_
 
 namespace MCell {
+
+class World;
+
 namespace API {
 
-Model::~Model() {
-  delete world;
-}
 
+class Model;
 
-void Model::initialize() {
-  if (world != nullptr) {
-    throw RuntimeError("Model.initialize can be called only once");
-  }
+class MCell4Converter {
+public:
+  // throws exception if anything went wrong
+  // modifies model as well where it stores information for cases
+  // when a value such a reaction rate was updated by the user
+  void convert(Model* model_, World* world_);
 
-  world = new World();
+private:
+  Model* model;
+  World* world;
+};
 
-  // semantic checks are done during conversion
-  MCell4Converter converter;
+} // namespace API
+} // namespace MCell
 
-  converter.convert(this, world);
-}
-
-
-void Model::dump() const {
-  // TODO
-  // std::cout << to_str() << "\n";
-}
-
-}
-}
-
+#endif /* LIBMCELL_API_MCELL4_CONVERTER_H_ */

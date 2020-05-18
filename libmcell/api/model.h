@@ -33,13 +33,20 @@
 #include "notifications.h"
 
 namespace MCell {
+
+class World;
+
 namespace API {
 
 class Model: public GenModel, public Subsystem, public InstantiationData {
 public:
 
+  Model() : world(nullptr) {
+  }
+  virtual ~Model();
+
   // from generated template
-  void initialize() override {}
+  void initialize() override;
   void run_iterations(const long iterations) override {}
   void add_subsystem(std::shared_ptr<Subsystem> subsystem) override {}
   void add_instantiation_data(std::shared_ptr<InstantiationData> instantiation_data) override {}
@@ -47,6 +54,9 @@ public:
 
   // added manually
   void dump() const;
+
+private:
+  World* world;
 };
 
 } // namespace API

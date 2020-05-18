@@ -2,6 +2,7 @@
  *
  * Copyright (C) 2020 by
  * The Salk Institute for Biological Studies and
+ * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -20,37 +21,19 @@
  *
 ******************************************************************************/
 
+#include "mcell4_converter.h"
 #include "model.h"
 #include "world.h"
-#include "mcell4_converter.h"
 
 namespace MCell {
 namespace API {
 
-Model::~Model() {
-  delete world;
-}
 
-
-void Model::initialize() {
-  if (world != nullptr) {
-    throw RuntimeError("Model.initialize can be called only once");
-  }
-
-  world = new World();
-
-  // semantic checks are done during conversion
-  MCell4Converter converter;
-
-  converter.convert(this, world);
-}
-
-
-void Model::dump() const {
-  // TODO
-  // std::cout << to_str() << "\n";
-}
+void MCell4Converter::convert(Model* model_, World* world_) {
+  model = model_;
+  world = world_;
 
 }
-}
 
+} // namespace API
+} // namespace MCell

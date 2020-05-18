@@ -122,6 +122,24 @@ include_directories(
   "${CMAKE_SOURCE_DIR}/../nfsimCInterface/src/"
   "${CMAKE_SOURCE_DIR}/include"
   "${CMAKE_SOURCE_DIR}/libs/sparsehash/src/"
+  
+      
+   # VTK - should be set by find_package but it does not work somehow...
+   "${CMAKE_SOURCE_DIR}/../VTK/Common/DataModel/"
+   "${VTK_DIR}/Common/DataModel/"
+   "${CMAKE_SOURCE_DIR}/../VTK/Common/Core/"
+   "${VTK_DIR}/Common/Core/"
+   "${CMAKE_SOURCE_DIR}/../VTK/Common/Transforms/"
+   "${VTK_DIR}/Common/Transforms/"
+   "${CMAKE_SOURCE_DIR}/../VTK/Common/Math/"
+   "${VTK_DIR}/Common/Math/"
+   "${CMAKE_SOURCE_DIR}/../VTK/Filters/Core/"
+   "${VTK_DIR}/Filters/Core/"
+   "${CMAKE_SOURCE_DIR}/../VTK/Filters/Modeling/"
+   "${VTK_DIR}/Filters/Modeling/"
+   "${CMAKE_SOURCE_DIR}/../VTK/Common/ExecutionModel/"
+   "${VTK_DIR}/Common/ExecutionModel/"
+   "${CMAKE_SOURCE_DIR}/../VTK/Utilities/KWIML/"
 )
 
 
@@ -326,11 +344,13 @@ file(COPY ${CMAKE_SOURCE_DIR}/../bionetgen/bng2/ DESTINATION ${CMAKE_CURRENT_BIN
 
 add_library(pymcell4 SHARED 
     # few files from mcell3 that are used
-    # TODO: get rid of all deps ex cept for the random generator 
+    # TODO: get rid of all deps except for the random generator
+    src/rng.c 
     src/isaac64.c
     src/logging.c
     src/mem_util.c
     src/strfunc.c
+    src/util.c
     
     libmcell/api/exports.cpp
 )
