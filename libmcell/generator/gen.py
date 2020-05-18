@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """
 Copyright (C) 2020 by
-The Salk Institute for Biological Studies and
-Pittsburgh Supercomputing Center, Carnegie Mellon University
+The Salk Institute for Biological Studies 
 
 This program is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free Software
@@ -48,8 +47,7 @@ COPYRIGHT = \
 """/******************************************************************************
  *
  * Copyright (C) 2020 by
- * The Salk Institute for Biological Studies and
- * Pittsburgh Supercomputing Center, Carnegie Mellon University
+ * The Salk Institute for Biological Studies
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
