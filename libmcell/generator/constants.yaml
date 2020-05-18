@@ -62,3 +62,14 @@ enums:
     - name: Spherical
       value: 1
       
+      
+  - name: ExprNodeType
+    doc: Used internally to represent expression trees
+    values:
+    - name: Leaf
+      value: 0
+    - name: Add
+      value: 1
+    - name: Sub
+      value: 2
+      

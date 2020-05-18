@@ -30,9 +30,38 @@ CountTerm:
     type: ReactionRule*
     default: unset
     
-  - name: enclosed_in_object
+  - name: region
     type: GeometryObject*
     default: unset
+  
+  - name: node_type
+    type: ExprNodeType
+    default: ExprNodeType.Leaf
+    doc: Internal, used to represent an expression
+    
+  - name: left_node
+    type: CountTerm*
+    default: unset
+    doc: Internal, when node_type is not Leaf, this is the left operand 
+
+  - name: right_node
+    type: CountTerm*
+    default: unset
+    doc: Internal, when node_type is not Leaf, this is the right operand 
+
+  methods:
+    # operator overloads follow the Python naming
+    - name: __add__
+      return_type: CountTerm*
+      params:
+      - name: op2
+        type: CountTerm*
+      
+    - name: __sub__
+      return_type: CountTerm*
+      params:
+      - name: op2
+        type: CountTerm*
     
     
 Count:
@@ -41,12 +70,8 @@ Count:
   - name: filename
     type: str
     
-  - name: count_terms_include 
-    type: List[CountTerm*]
-    default: empty
-
-  - name: count_terms_subtract 
-    type: List[CountTerm*]
+  - name: count_expression 
+    type: CountTerm*
     default: empty
 
   - name: every_n_timesteps

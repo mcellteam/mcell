@@ -25,6 +25,7 @@
 #include <pybind11/stl.h>
 #include "gen_count_term.h"
 #include "../api/count_term.h"
+#include "../api/count_term.h"
 #include "../api/geometry_object.h"
 #include "../api/reaction_rule.h"
 #include "../api/species.h"
@@ -40,7 +41,10 @@ std::string GenCountTerm::to_str(const std::string ind) const {
   ss << get_object_name() << ": " <<
       "\n" << ind + "  " << "species=" << "(" << ((species != nullptr) ? species->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "reaction_rule=" << "(" << ((reaction_rule != nullptr) ? reaction_rule->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      "enclosed_in_object=" << "(" << ((enclosed_in_object != nullptr) ? enclosed_in_object->to_str(ind + "  ") : "null" ) << ")";
+      "region=" << "(" << ((region != nullptr) ? region->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "node_type=" << node_type << ", " <<
+      "\n" << ind + "  " << "left_node=" << "(" << ((left_node != nullptr) ? left_node->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "right_node=" << "(" << ((right_node != nullptr) ? right_node->to_str(ind + "  ") : "null" ) << ")";
   return ss.str();
 }
 
@@ -50,18 +54,29 @@ py::class_<CountTerm> define_pybinding_CountTerm(py::module& m) {
           py::init<
             std::shared_ptr<Species>,
             std::shared_ptr<ReactionRule>,
-            std::shared_ptr<GeometryObject>
+            std::shared_ptr<GeometryObject>,
+            const ExprNodeType,
+            std::shared_ptr<CountTerm>,
+            std::shared_ptr<CountTerm>
           >(),
           py::arg("species") = nullptr,
           py::arg("reaction_rule") = nullptr,
-          py::arg("enclosed_in_object") = nullptr
+          py::arg("region") = nullptr,
+          py::arg("node_type") = ExprNodeType::Leaf,
+          py::arg("left_node") = nullptr,
+          py::arg("right_node") = nullptr
       )
       .def("check_semantics", &CountTerm::check_semantics)
       .def("__str__", &CountTerm::to_str, py::arg("ind") = std::string(""))
+      .def("__add__", &CountTerm::__add__, py::arg("op2"))
+      .def("__sub__", &CountTerm::__sub__, py::arg("op2"))
       .def("dump", &CountTerm::dump)
       .def_property("species", &CountTerm::get_species, &CountTerm::set_species)
       .def_property("reaction_rule", &CountTerm::get_reaction_rule, &CountTerm::set_reaction_rule)
-      .def_property("enclosed_in_object", &CountTerm::get_enclosed_in_object, &CountTerm::set_enclosed_in_object)
+      .def_property("region", &CountTerm::get_region, &CountTerm::set_region)
+      .def_property("node_type", &CountTerm::get_node_type, &CountTerm::set_node_type)
+      .def_property("left_node", &CountTerm::get_left_node, &CountTerm::set_left_node)
+      .def_property("right_node", &CountTerm::get_right_node, &CountTerm::set_right_node)
     ;
 }
 

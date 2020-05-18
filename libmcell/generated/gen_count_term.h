@@ -29,6 +29,7 @@
 namespace MCell {
 namespace API {
 
+class CountTerm;
 class GeometryObject;
 class ReactionRule;
 class Species;
@@ -37,12 +38,18 @@ class Species;
     CountTerm( \
         std::shared_ptr<Species> species_ = nullptr, \
         std::shared_ptr<ReactionRule> reaction_rule_ = nullptr, \
-        std::shared_ptr<GeometryObject> enclosed_in_object_ = nullptr \
+        std::shared_ptr<GeometryObject> region_ = nullptr, \
+        const ExprNodeType node_type_ = ExprNodeType::Leaf, \
+        std::shared_ptr<CountTerm> left_node_ = nullptr, \
+        std::shared_ptr<CountTerm> right_node_ = nullptr \
     ) { \
       class_name = "CountTerm"; \
       species = species_; \
       reaction_rule = reaction_rule_; \
-      enclosed_in_object = enclosed_in_object_; \
+      region = region_; \
+      node_type = node_type_; \
+      left_node = left_node_; \
+      right_node = right_node_; \
       postprocess_in_ctor();\
       check_semantics();\
     }
@@ -70,15 +77,41 @@ public:
     return reaction_rule;
   }
 
-  std::shared_ptr<GeometryObject> enclosed_in_object;
-  virtual void set_enclosed_in_object(std::shared_ptr<GeometryObject> new_enclosed_in_object_) {
-    enclosed_in_object = new_enclosed_in_object_;
+  std::shared_ptr<GeometryObject> region;
+  virtual void set_region(std::shared_ptr<GeometryObject> new_region_) {
+    region = new_region_;
   }
-  virtual std::shared_ptr<GeometryObject> get_enclosed_in_object() const {
-    return enclosed_in_object;
+  virtual std::shared_ptr<GeometryObject> get_region() const {
+    return region;
+  }
+
+  ExprNodeType node_type;
+  virtual void set_node_type(const ExprNodeType new_node_type_) {
+    node_type = new_node_type_;
+  }
+  virtual ExprNodeType get_node_type() const {
+    return node_type;
+  }
+
+  std::shared_ptr<CountTerm> left_node;
+  virtual void set_left_node(std::shared_ptr<CountTerm> new_left_node_) {
+    left_node = new_left_node_;
+  }
+  virtual std::shared_ptr<CountTerm> get_left_node() const {
+    return left_node;
+  }
+
+  std::shared_ptr<CountTerm> right_node;
+  virtual void set_right_node(std::shared_ptr<CountTerm> new_right_node_) {
+    right_node = new_right_node_;
+  }
+  virtual std::shared_ptr<CountTerm> get_right_node() const {
+    return right_node;
   }
 
   // --- methods ---
+  virtual std::shared_ptr<CountTerm> __add__(std::shared_ptr<CountTerm> op2) = 0;
+  virtual std::shared_ptr<CountTerm> __sub__(std::shared_ptr<CountTerm> op2) = 0;
 }; // GenCountTerm
 
 class CountTerm;

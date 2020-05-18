@@ -126,8 +126,7 @@ count_term_b_in_box = m.CountTerm(
 # maybe we can change release of b
 # count is derived from CountTerm?
 count_b_not_in_box = m.Count(
-    count_terms_include = [count_term_b_in_world],  # include instead of add?
-    count_terms_subtract = [count_term_b_in_box], 
+    count_expression = count_term_b_in_world - count_term_b_in_box, 
     # species_pattern / complex_pattern?
     filename = './react_data/seed_' + str(SEED) + '/b.World.dat', # try to deduce default filename? 
     every_n_timesteps = 1 # default

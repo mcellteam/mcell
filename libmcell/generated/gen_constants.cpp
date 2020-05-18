@@ -55,6 +55,11 @@ void define_pybinding_constants(py::module& m) {
     .value("Unset", Shape::Unset)
     .value("Spherical", Shape::Spherical)
     .export_values();
+  py::enum_<ExprNodeType>(m, "ExprNodeType", py::arithmetic())
+    .value("Leaf", ExprNodeType::Leaf)
+    .value("Add", ExprNodeType::Add)
+    .value("Sub", ExprNodeType::Sub)
+    .export_values();
 }
 
 } // namespace API

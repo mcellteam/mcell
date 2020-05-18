@@ -117,6 +117,23 @@ static inline  std::ostream& operator << (std::ostream& out, const Shape v) {
 };
 
 
+enum class ExprNodeType {
+  Leaf = 0,
+  Add = 1,
+  Sub = 2
+};
+
+
+static inline  std::ostream& operator << (std::ostream& out, const ExprNodeType v) {
+  switch (v) {
+    case ExprNodeType::Leaf: out << "ExprNodeType.Leaf (0)"; break;
+    case ExprNodeType::Add: out << "ExprNodeType.Add (1)"; break;
+    case ExprNodeType::Sub: out << "ExprNodeType.Sub (2)"; break;
+  }
+  return out;
+};
+
+
 void define_pybinding_constants(py::module& m);
 
 } // namespace API

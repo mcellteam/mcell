@@ -39,21 +39,25 @@ class Species;
 #define COUNT_CTOR() \
     Count( \
         const std::string& filename_, \
-        const std::vector<std::shared_ptr<CountTerm>> count_terms_include_ = std::vector<std::shared_ptr<CountTerm>>(), \
-        const std::vector<std::shared_ptr<CountTerm>> count_terms_subtract_ = std::vector<std::shared_ptr<CountTerm>>(), \
+        std::shared_ptr<CountTerm> count_expression_ = nullptr, \
         const int every_n_timesteps_ = 1, \
         std::shared_ptr<Species> species_ = nullptr, \
         std::shared_ptr<ReactionRule> reaction_rule_ = nullptr, \
-        std::shared_ptr<GeometryObject> enclosed_in_object_ = nullptr \
-    )  : GenCount(species_,reaction_rule_,enclosed_in_object_) { \
+        std::shared_ptr<GeometryObject> region_ = nullptr, \
+        const ExprNodeType node_type_ = ExprNodeType::Leaf, \
+        std::shared_ptr<CountTerm> left_node_ = nullptr, \
+        std::shared_ptr<CountTerm> right_node_ = nullptr \
+    )  : GenCount(species_,reaction_rule_,region_,node_type_,left_node_,right_node_) { \
       class_name = "Count"; \
       filename = filename_; \
-      count_terms_include = count_terms_include_; \
-      count_terms_subtract = count_terms_subtract_; \
+      count_expression = count_expression_; \
       every_n_timesteps = every_n_timesteps_; \
       species = species_; \
       reaction_rule = reaction_rule_; \
-      enclosed_in_object = enclosed_in_object_; \
+      region = region_; \
+      node_type = node_type_; \
+      left_node = left_node_; \
+      right_node = right_node_; \
       postprocess_in_ctor();\
       check_semantics();\
     }
@@ -63,8 +67,11 @@ public:
   GenCount( 
       std::shared_ptr<Species> species_ = nullptr, 
       std::shared_ptr<ReactionRule> reaction_rule_ = nullptr, 
-      std::shared_ptr<GeometryObject> enclosed_in_object_ = nullptr 
-  )  : CountTerm(species_,reaction_rule_,enclosed_in_object_)  {
+      std::shared_ptr<GeometryObject> region_ = nullptr, 
+      const ExprNodeType node_type_ = ExprNodeType::Leaf, 
+      std::shared_ptr<CountTerm> left_node_ = nullptr, 
+      std::shared_ptr<CountTerm> right_node_ = nullptr 
+  )  : CountTerm(species_,reaction_rule_,region_,node_type_,left_node_,right_node_)  {
   }
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
@@ -79,20 +86,12 @@ public:
     return filename;
   }
 
-  std::vector<std::shared_ptr<CountTerm>> count_terms_include;
-  virtual void set_count_terms_include(const std::vector<std::shared_ptr<CountTerm>> new_count_terms_include_) {
-    count_terms_include = new_count_terms_include_;
+  std::shared_ptr<CountTerm> count_expression;
+  virtual void set_count_expression(std::shared_ptr<CountTerm> new_count_expression_) {
+    count_expression = new_count_expression_;
   }
-  virtual std::vector<std::shared_ptr<CountTerm>> get_count_terms_include() const {
-    return count_terms_include;
-  }
-
-  std::vector<std::shared_ptr<CountTerm>> count_terms_subtract;
-  virtual void set_count_terms_subtract(const std::vector<std::shared_ptr<CountTerm>> new_count_terms_subtract_) {
-    count_terms_subtract = new_count_terms_subtract_;
-  }
-  virtual std::vector<std::shared_ptr<CountTerm>> get_count_terms_subtract() const {
-    return count_terms_subtract;
+  virtual std::shared_ptr<CountTerm> get_count_expression() const {
+    return count_expression;
   }
 
   int every_n_timesteps;

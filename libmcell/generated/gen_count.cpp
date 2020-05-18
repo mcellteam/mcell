@@ -43,12 +43,14 @@ std::string GenCount::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
       "filename=" << filename << ", " <<
-      "\n" << ind + "  " << "count_terms_include=" << vec_ptr_to_str(count_terms_include, ind + "  ") << ", " << "\n" << ind + "  " <<
-      "count_terms_subtract=" << vec_ptr_to_str(count_terms_subtract, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "\n" << ind + "  " << "count_expression=" << "(" << ((count_expression != nullptr) ? count_expression->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "every_n_timesteps=" << every_n_timesteps << ", " <<
       "\n" << ind + "  " << "species=" << "(" << ((species != nullptr) ? species->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "reaction_rule=" << "(" << ((reaction_rule != nullptr) ? reaction_rule->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      "enclosed_in_object=" << "(" << ((enclosed_in_object != nullptr) ? enclosed_in_object->to_str(ind + "  ") : "null" ) << ")";
+      "region=" << "(" << ((region != nullptr) ? region->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "node_type=" << node_type << ", " <<
+      "\n" << ind + "  " << "left_node=" << "(" << ((left_node != nullptr) ? left_node->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "right_node=" << "(" << ((right_node != nullptr) ? right_node->to_str(ind + "  ") : "null" ) << ")";
   return ss.str();
 }
 
@@ -57,31 +59,39 @@ py::class_<Count> define_pybinding_Count(py::module& m) {
       .def(
           py::init<
             const std::string&,
-            const std::vector<std::shared_ptr<CountTerm>>,
-            const std::vector<std::shared_ptr<CountTerm>>,
+            std::shared_ptr<CountTerm>,
             const int,
             std::shared_ptr<Species>,
             std::shared_ptr<ReactionRule>,
-            std::shared_ptr<GeometryObject>
+            std::shared_ptr<GeometryObject>,
+            const ExprNodeType,
+            std::shared_ptr<CountTerm>,
+            std::shared_ptr<CountTerm>
           >(),
           py::arg("filename"),
-          py::arg("count_terms_include") = std::vector<std::shared_ptr<CountTerm>>(),
-          py::arg("count_terms_subtract") = std::vector<std::shared_ptr<CountTerm>>(),
+          py::arg("count_expression") = nullptr,
           py::arg("every_n_timesteps") = 1,
           py::arg("species") = nullptr,
           py::arg("reaction_rule") = nullptr,
-          py::arg("enclosed_in_object") = nullptr
+          py::arg("region") = nullptr,
+          py::arg("node_type") = ExprNodeType::Leaf,
+          py::arg("left_node") = nullptr,
+          py::arg("right_node") = nullptr
       )
       .def("check_semantics", &Count::check_semantics)
       .def("__str__", &Count::to_str, py::arg("ind") = std::string(""))
+      .def("__add__", &Count::__add__, py::arg("op2"))
+      .def("__sub__", &Count::__sub__, py::arg("op2"))
       .def("dump", &Count::dump)
       .def_property("filename", &Count::get_filename, &Count::set_filename)
-      .def_property("count_terms_include", &Count::get_count_terms_include, &Count::set_count_terms_include)
-      .def_property("count_terms_subtract", &Count::get_count_terms_subtract, &Count::set_count_terms_subtract)
+      .def_property("count_expression", &Count::get_count_expression, &Count::set_count_expression)
       .def_property("every_n_timesteps", &Count::get_every_n_timesteps, &Count::set_every_n_timesteps)
       .def_property("species", &Count::get_species, &Count::set_species)
       .def_property("reaction_rule", &Count::get_reaction_rule, &Count::set_reaction_rule)
-      .def_property("enclosed_in_object", &Count::get_enclosed_in_object, &Count::set_enclosed_in_object)
+      .def_property("region", &Count::get_region, &Count::set_region)
+      .def_property("node_type", &Count::get_node_type, &Count::set_node_type)
+      .def_property("left_node", &Count::get_left_node, &Count::set_left_node)
+      .def_property("right_node", &Count::get_right_node, &Count::set_right_node)
     ;
 }
 

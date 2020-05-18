@@ -30,9 +30,26 @@
 namespace MCell {
 namespace API {
 
-class CountTerm: public GenCountTerm {
+class CountTerm: public GenCountTerm, public std::enable_shared_from_this<CountTerm> {
 public:
   COUNT_TERM_CTOR()
+
+  std::shared_ptr<CountTerm> create_expr_term(ExprNodeType op, std::shared_ptr<CountTerm> op2) {
+    std::shared_ptr<CountTerm> res = std::make_shared<CountTerm>();
+    res->node_type = op;
+    res->left_node = shared_from_this();
+    res->right_node = op2;
+    return res;
+  }
+
+  virtual std::shared_ptr<CountTerm> __add__(std::shared_ptr<CountTerm> op2) {
+    return create_expr_term(ExprNodeType::Add, op2);
+  }
+
+  virtual std::shared_ptr<CountTerm> __sub__(std::shared_ptr<CountTerm> op2) {
+    return create_expr_term(ExprNodeType::Add, op2);
+  }
+
 };
 
 } // namespace API
