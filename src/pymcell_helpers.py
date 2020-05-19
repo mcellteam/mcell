@@ -863,15 +863,16 @@ def create_reaction(
 
     arrow = m.reaction_arrow()
     # reversible reaction e.g. A<->B
-    if backward_rate_constant:
-        arrow.flags = m.ARROW_BIDIRECTIONAL
-        rate_constant = m.mcell_create_reaction_rates(
-            m.RATE_CONSTANT, rate_constant, m.RATE_CONSTANT,
-            backward_rate_constant)
+    if backward_rate_constant != 0.0:
+        arrow.flags = m.REGULAR_ARROW
+        new_fwd_rate_constant = m.mcell_create_reaction_rates(
+            m.RATE_CONSTANT, rate_constant, m.RATE_UNSET, 0)
+        new_bkwd_rate_constant = m.mcell_create_reaction_rates(
+            m.RATE_CONSTANT, backward_rate_constant, m.RATE_UNSET, 0)
     # irreversible reaction e.g. A->B
     else:
         arrow.flags = m.REGULAR_ARROW
-        rate_constant = m.mcell_create_reaction_rates(
+        new_fwd_rate_constant = m.mcell_create_reaction_rates(
             m.RATE_CONSTANT, rate_constant, m.RATE_UNSET, 0)
     arrow.catalyst = m.mcell_species()
     arrow.catalyst.next = None
@@ -879,12 +880,19 @@ def create_reaction(
     arrow.catalyst.orient_set = 0
     arrow.catalyst.orient = 0
 
-    if (name):
+    if name:
+        if backward_rate_constant:
+            raise ValueError("Name cannot be specified for reversible reactions because internally the reactions are split into two reactions.")
         name_sym = m.mcell_new_rxn_pathname(world, name)
     else:
         name_sym = None
     m.mcell_add_reaction_simplified(
-        world, reactants, arrow, surf_class, products, rate_constant, name_sym)
+        world, reactants, arrow, surf_class, products, new_fwd_rate_constant, name_sym)
+    
+    if backward_rate_constant:
+        m.mcell_add_reaction_simplified(
+            world, products, arrow, surf_class, reactants, new_bkwd_rate_constant, name_sym)
+        
 
 
 def create_instance_object(world, name):
