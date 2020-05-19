@@ -360,7 +360,8 @@ target_link_libraries(pymcell4
     PRIVATE mcell4 bng jsoncpp_lib ${VTK_LIBRARIES}
 )
 set_property(TARGET pymcell4 PROPERTY POSITION_INDEPENDENT_CODE ON)
-
+set_target_properties(pymcell4 PROPERTIES PREFIX "")
+set_target_properties(pymcell4 PROPERTIES OUTPUT_NAME "mcell")
 
 # build executable
 add_executable(mcell
