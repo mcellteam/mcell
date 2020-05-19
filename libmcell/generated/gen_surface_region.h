@@ -24,6 +24,7 @@
 #define API_GEN_SURFACE_REGION_H
 
 #include "../api/common.h"
+#include "../api/base_data_class.h"
 
 namespace MCell {
 namespace API {
@@ -46,6 +47,7 @@ public:
   void check_semantics() const override;
   std::string to_str(const std::string ind="") const override;
 
+  bool __eq__(const GenSurfaceRegion& other) const;
   // --- attributes ---
   std::vector<int> element_connections;
   virtual void set_element_connections(const std::vector<int> new_element_connections_) {

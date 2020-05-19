@@ -51,6 +51,15 @@ std::string GenGeometryObject::to_str(const std::string ind) const {
   return ss.str();
 }
 
+bool GenGeometryObject::__eq__(const GenGeometryObject& other) const {
+  return
+    name == other.name &&
+    name == other.name &&
+    vertex_list == other.vertex_list &&
+    element_connections == other.element_connections &&
+    vec_ptr_eq(surface_regions, other.surface_regions);
+}
+
 py::class_<GeometryObject> define_pybinding_GeometryObject(py::module& m) {
   return py::class_<GeometryObject, std::shared_ptr<GeometryObject>>(m, "GeometryObject")
       .def(

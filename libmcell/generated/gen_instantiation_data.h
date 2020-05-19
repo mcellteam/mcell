@@ -24,6 +24,7 @@
 #define API_GEN_INSTANTIATION_DATA_H
 
 #include "../api/common.h"
+#include "../api/base_data_class.h"
 
 namespace MCell {
 namespace API {

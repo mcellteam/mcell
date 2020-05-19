@@ -43,6 +43,16 @@ std::string GenReactionRule::to_str(const std::string ind) const {
   return ss.str();
 }
 
+bool GenReactionRule::__eq__(const GenReactionRule& other) const {
+  return
+    name == other.name &&
+    name == other.name &&
+    vec_ptr_eq(reactants, other.reactants) &&
+    vec_ptr_eq(products, other.products) &&
+    fwd_rate == other.fwd_rate &&
+    rev_rate == other.rev_rate;
+}
+
 py::class_<ReactionRule> define_pybinding_ReactionRule(py::module& m) {
   return py::class_<ReactionRule, std::shared_ptr<ReactionRule>>(m, "ReactionRule")
       .def(

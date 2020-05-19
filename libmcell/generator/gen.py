@@ -162,6 +162,7 @@ CLASS_PREFIX = 'CLASS_'
 
 INCLUDE_API_MCELL_H = '#include "../api/mcell.h"'
 INCLUDE_API_COMMON_H = '#include "../api/common.h"'
+INCLUDE_API_BASE_DATA_CLASS_H = '#include "../api/base_data_class.h"'
 NAMESPACES_BEGIN = 'namespace MCell {\nnamespace API {'
 NAMESPACES_END = '} // namespace API\n} // namespace MCell'
 
@@ -197,13 +198,13 @@ def get_api_class_file_name_w_dir(class_name, extension):
 def get_api_class_file_name_w_work_dir(class_name, extension):
     return os.path.join(WORK_DIRECTORY, get_api_class_file_name(class_name, extension))
 
-def is_list(t):
+def is_yaml_list_type(t):
     return t.startswith(YAML_TYPE_LIST)
 
 
 # rename inner to underlying?
 def get_inner_list_type(t):
-    if is_list(t):
+    if is_yaml_list_type(t):
         return t[len(YAML_TYPE_LIST)+1:-1]
     else:
         return t
@@ -213,7 +214,7 @@ def is_base_yaml_type(t):
     return \
         t == YAML_TYPE_FLOAT or t == YAML_TYPE_STR or t == YAML_TYPE_INT or t == YAML_TYPE_LONG or \
         t == YAML_TYPE_BOOL or t == YAML_TYPE_VEC2 or t == YAML_TYPE_VEC3 or t == YAML_TYPE_IVEC3 or \
-        (is_list(t) and is_base_yaml_type(get_inner_list_type(t)))
+        (is_yaml_list_type(t) and is_base_yaml_type(get_inner_list_type(t)))
 
 
 def is_yaml_ptr_type(t):
@@ -238,7 +239,7 @@ def yaml_type_to_cpp_type(t):
         return CPP_TYPE_VEC3
     elif t == YAML_TYPE_IVEC3:
         return CPP_TYPE_IVEC3
-    elif is_list(t):
+    elif is_yaml_list_type(t):
         assert len(t) > 7
         inner_type = yaml_type_to_cpp_type(get_inner_list_type(t))
         return CPP_VECTOR_TYPE + '<' + inner_type + '>'
@@ -334,7 +335,7 @@ def get_default_or_unset_value(attr):
         return UNSET_VALUE_VEC3
     elif t == YAML_TYPE_IVEC3:
         return UNSET_VALUE_IVEC3
-    elif is_list(t):
+    elif is_yaml_list_type(t):
         return yaml_type_to_cpp_type(t) + '()'
     else:
         return UNSET_VALUE_PTR
@@ -520,7 +521,8 @@ def has_superclass_other_than_base(class_def):
     
     
 def write_gen_class(f, class_def, class_name):
-    f.write('class ' + GEN_CLASS_PREFIX + class_name)
+    gen_class_name = GEN_CLASS_PREFIX + class_name
+    f.write('class ' + gen_class_name)
     
     if has_single_superclass(class_def):
         f.write(': public ' + class_def[KEY_SUPERCLASS])
@@ -533,12 +535,14 @@ def write_gen_class(f, class_def, class_name):
     
     if not has_single_superclass(class_def):
         # generate virtual destructor
-        f.write('  virtual ~' + GEN_CLASS_PREFIX + class_name + '() {}\n')
+        f.write('  virtual ~' + gen_class_name + '() {}\n')
         
     if has_single_superclass(class_def):
         f.write('  ' + RET_CTOR_POSTPROCESS + ' ' + CTOR_POSTPROCESS + '() ' + KEYWORD_OVERRIDE + ' {}\n')
         f.write('  ' + RET_TYPE_CHECK_SEMANTICS + ' ' + DECL_CHECK_SEMANTICS + ' ' + KEYWORD_OVERRIDE + ';\n')
         f.write('  ' + RET_TYPE_TO_STR + ' ' + DECL_TO_STR_W_DEFAULT + ' ' + KEYWORD_OVERRIDE + ';\n\n')
+        # not virtual because overrides need different parameter type
+        f.write('  bool __eq__(const ' + gen_class_name + '& other) const;\n')
         
     f.write('  // --- attributes ---\n')
     items = class_def[KEY_ITEMS]
@@ -639,6 +643,7 @@ def generate_class_header(class_name, class_def):
         f.write('#ifndef ' + guard + '\n')
         f.write('#define ' + guard + '\n\n')
         f.write(INCLUDE_API_COMMON_H + '\n')
+        f.write(INCLUDE_API_BASE_DATA_CLASS_H + '\n')
         
         if has_superclass_other_than_base(class_def):
             f.write('#include "' + get_api_class_file_name_w_dir(class_def[KEY_SUPERCLASS], EXT_H) + '"\n\n')
@@ -717,7 +722,7 @@ def write_to_str_implemetation(f, class_name, items):
         print_nl = False
         starting_nl = '"' if last_print_nl else '"\\n" << ind + "  " << "'
         
-        if is_list(type):
+        if is_yaml_list_type(type):
             underlying_type = get_inner_list_type(type)
             if is_yaml_ptr_type(underlying_type):
                 f.write('      ' + starting_nl + name + '=" << ' + VEC_PTR_TO_STR + '(' + name + ', ind + "  ")')
@@ -745,6 +750,35 @@ def write_to_str_implemetation(f, class_name, items):
     
     f.write('  return ss.str();\n')
     f.write('}\n\n')                
+
+
+def write_operator_equal_implemetation(f, class_name, items):
+    # originally was operator== used, but this causes too cryptic compilation errors, 
+    # so it was better to use python-style naming,
+    # also the __eq__ is aonly defined for the 'Gen' classes, so defining operator ==
+    # might have been more confusing 
+    gen_class_name = GEN_CLASS_PREFIX + class_name
+    f.write('bool ' + gen_class_name + '::__eq__(const ' + gen_class_name + '& other) const {\n')
+    f.write('  return\n') 
+    f.write('    name == other.name &&\n')
+    
+    num_attrs = len(items) 
+    for i in range(num_attrs):
+        name = items[i][KEY_NAME]
+        t = items[i][KEY_TYPE]
+        if is_yaml_ptr_type(t):
+            f.write('    ' + name + '->__eq__(*other.' + name + ')')
+        elif is_yaml_list_type(t) and is_yaml_ptr_type(get_inner_list_type(t)):
+            f.write('    vec_ptr_eq(' + name + ', other.' + name + ')')
+        else:
+            f.write('    ' + name + ' == other.' + name)
+        if i != num_attrs - 1:
+            f.write(' &&')
+        else: 
+            f.write(';')
+        f.write('\n')
+        
+    f.write('}\n\n')    
 
 
 def is_overloaded(method, class_def):
@@ -888,6 +922,7 @@ def generate_class_implementation_and_bindings(class_name, class_def):
             items = class_def[KEY_ITEMS]
             write_check_semantics_implemetation(f, class_name, items)
             write_to_str_implemetation(f, class_name, items)
+            write_operator_equal_implemetation(f, class_name, items)
         
         write_pybind11_bindings(f, class_name, class_def)
         

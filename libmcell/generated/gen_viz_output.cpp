@@ -45,6 +45,15 @@ std::string GenVizOutput::to_str(const std::string ind) const {
   return ss.str();
 }
 
+bool GenVizOutput::__eq__(const GenVizOutput& other) const {
+  return
+    name == other.name &&
+    filename == other.filename &&
+    vec_ptr_eq(species_list, other.species_list) &&
+    mode == other.mode &&
+    every_n_timesteps == other.every_n_timesteps;
+}
+
 py::class_<VizOutput> define_pybinding_VizOutput(py::module& m) {
   return py::class_<VizOutput, std::shared_ptr<VizOutput>>(m, "VizOutput")
       .def(

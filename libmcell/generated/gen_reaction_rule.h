@@ -24,6 +24,7 @@
 #define API_GEN_REACTION_RULE_H
 
 #include "../api/common.h"
+#include "../api/base_data_class.h"
 
 namespace MCell {
 namespace API {
@@ -54,6 +55,7 @@ public:
   void check_semantics() const override;
   std::string to_str(const std::string ind="") const override;
 
+  bool __eq__(const GenReactionRule& other) const;
   // --- attributes ---
   std::vector<std::shared_ptr<ComplexInstance>> reactants;
   virtual void set_reactants(const std::vector<std::shared_ptr<ComplexInstance>> new_reactants_) {

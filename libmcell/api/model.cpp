@@ -21,14 +21,30 @@
 ******************************************************************************/
 
 #include "model.h"
+
+#include <string>
+
 #include "world.h"
 #include "mcell4_converter.h"
+#include "api_utils.h"
+
+#include "species.h"
+#include "reaction_rule.h"
+
+using namespace std;
 
 namespace MCell {
 namespace API {
 
+
 Model::~Model() {
   delete world;
+}
+
+
+void Model::add_subsystem(std::shared_ptr<Subsystem> subsystem) {
+  append_vector_to_vector(species, subsystem->species);
+  append_vector_to_vector(reaction_rules, subsystem->reaction_rules);
 }
 
 

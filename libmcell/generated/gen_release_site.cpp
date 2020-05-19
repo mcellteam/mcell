@@ -52,6 +52,19 @@ std::string GenReleaseSite::to_str(const std::string ind) const {
   return ss.str();
 }
 
+bool GenReleaseSite::__eq__(const GenReleaseSite& other) const {
+  return
+    name == other.name &&
+    name == other.name &&
+    species->__eq__(*other.species) &&
+    shape == other.shape &&
+    location == other.location &&
+    site_diameter == other.site_diameter &&
+    site_radius == other.site_radius &&
+    number_to_release == other.number_to_release &&
+    release_probability == other.release_probability;
+}
+
 py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
   return py::class_<ReleaseSite, std::shared_ptr<ReleaseSite>>(m, "ReleaseSite")
       .def(

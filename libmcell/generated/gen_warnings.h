@@ -24,6 +24,7 @@
 #define API_GEN_WARNINGS_H
 
 #include "../api/common.h"
+#include "../api/base_data_class.h"
 
 namespace MCell {
 namespace API {
@@ -64,6 +65,7 @@ public:
   void check_semantics() const override;
   std::string to_str(const std::string ind="") const override;
 
+  bool __eq__(const GenWarnings& other) const;
   // --- attributes ---
   WarningLevel molecule_collision_report;
   virtual void set_molecule_collision_report(const WarningLevel new_molecule_collision_report_) {

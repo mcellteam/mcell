@@ -24,6 +24,7 @@
 #define API_GEN_COUNT_H
 
 #include "../api/common.h"
+#include "../api/base_data_class.h"
 #include "../api/count_term.h"
 
 
@@ -76,6 +77,7 @@ public:
   void check_semantics() const override;
   std::string to_str(const std::string ind="") const override;
 
+  bool __eq__(const GenCount& other) const;
   // --- attributes ---
   std::string filename;
   virtual void set_filename(const std::string& new_filename_) {

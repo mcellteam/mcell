@@ -47,6 +47,17 @@ std::string GenCountTerm::to_str(const std::string ind) const {
   return ss.str();
 }
 
+bool GenCountTerm::__eq__(const GenCountTerm& other) const {
+  return
+    name == other.name &&
+    species->__eq__(*other.species) &&
+    reaction_rule->__eq__(*other.reaction_rule) &&
+    region->__eq__(*other.region) &&
+    node_type == other.node_type &&
+    left_node->__eq__(*other.left_node) &&
+    right_node->__eq__(*other.right_node);
+}
+
 py::class_<CountTerm> define_pybinding_CountTerm(py::module& m) {
   return py::class_<CountTerm, std::shared_ptr<CountTerm>>(m, "CountTerm")
       .def(

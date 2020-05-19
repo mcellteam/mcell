@@ -27,6 +27,7 @@
 #include <sstream>
 #include <exception>
 #include <string>
+#include <memory>
 #include <pybind11/pybind11.h>
 
 namespace py = pybind11;
@@ -123,6 +124,20 @@ static inline std::string vec_nonptr_to_str(const std::vector<std::vector<T>>& a
 }
 
 
+template<typename T>
+static inline bool vec_ptr_eq(const std::vector<std::shared_ptr<T>>& vec1, const std::vector<std::shared_ptr<T>>& vec2) {
+  if (vec1.size() != vec2.size()) {
+    return false;
+  }
+  for (size_t i = 0; i < vec1.size(); i++) {
+    if (!vec1[i]->__eq__(*vec2[i])) {
+      return false;
+    }
+  }
+  return true;
+}
+
+
 // Raised when an operation or function receives an argument that has the
 // right type but an inappropriate value, and the situation is not described
 // by a more precise exception such as IndexError.
@@ -132,55 +147,6 @@ typedef std::invalid_argument ValueError; // using naming from Python
 // The associated value is a string indicating what precisely went wrong.
 typedef std::logic_error RuntimeError; // e.g. not defined?
 
-
-// base class for all classes that hold the model input data
-class BaseDataClass {
-public:
-  BaseDataClass()
-    : class_name(STR_UNSET), name(STR_UNSET) {
-  }
-  virtual ~BaseDataClass(){
-  }
-
-  // we are storing class name for reporting
-  std::string class_name;
-  virtual void set_class_name(const std::string& class_name_) {
-    class_name = class_name_;
-  }
-  virtual const std::string& get_class_name() const {
-    return class_name;
-  }
-
-  // every object defined by the MCell API might have its name
-  std::string name;
-  virtual void set_name(const std::string& name_) {
-    name = name_;
-  }
-  virtual const std::string& get_name() const {
-    return name;
-  }
-
-  // this method is used to identify this particular object in error messages
-  virtual std::string get_object_name() const {
-    return get_class_name() + " '" + get_name() + "'";
-  }
-
-  // empty implementation, to be overridden in actual derived classes
-  virtual void postprocess_in_ctor() { };
-
-  // empty implementation, to be overridden in actual derived classes
-  virtual void check_semantics() const { };
-
-  // empty implementation, to be overridden in actual derived classes
-  virtual std::string to_str(const std::string ind="") const {
-    return "String dump for a derived class is not implemented.";
-  }
-
-  // calls virtual method, usually no need to override
-  virtual void dump() const {
-    std::cout << to_str() << "\n";
-  }
-};
 
 } // namespace API
 } // namespace MCell

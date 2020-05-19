@@ -43,6 +43,13 @@ std::string GenComponentType::to_str(const std::string ind) const {
   return ss.str();
 }
 
+bool GenComponentType::__eq__(const GenComponentType& other) const {
+  return
+    name == other.name &&
+    name == other.name &&
+    states == other.states;
+}
+
 py::class_<ComponentType> define_pybinding_ComponentType(py::module& m) {
   return py::class_<ComponentType, std::shared_ptr<ComponentType>>(m, "ComponentType")
       .def(

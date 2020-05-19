@@ -24,6 +24,7 @@
 #define API_GEN_COMPONENT_TYPE_H
 
 #include "../api/common.h"
+#include "../api/base_data_class.h"
 #include "../api/component_instance.h"
 
 namespace MCell {
@@ -49,6 +50,7 @@ public:
   void check_semantics() const override;
   std::string to_str(const std::string ind="") const override;
 
+  bool __eq__(const GenComponentType& other) const;
   // --- attributes ---
   std::vector<std::string> states;
   virtual void set_states(const std::vector<std::string> new_states_) {

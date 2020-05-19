@@ -24,6 +24,7 @@
 #define API_GEN_COMPONENT_INSTANCE_H
 
 #include "../api/common.h"
+#include "../api/base_data_class.h"
 
 namespace MCell {
 namespace API {
@@ -50,6 +51,7 @@ public:
   void check_semantics() const override;
   std::string to_str(const std::string ind="") const override;
 
+  bool __eq__(const GenComponentInstance& other) const;
   // --- attributes ---
   std::shared_ptr<ComponentType> component_type;
   virtual void set_component_type(std::shared_ptr<ComponentType> new_component_type_) {

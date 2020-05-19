@@ -44,6 +44,18 @@ std::string GenConfig::to_str(const std::string ind) const {
   return ss.str();
 }
 
+bool GenConfig::__eq__(const GenConfig& other) const {
+  return
+    name == other.name &&
+    seed == other.seed &&
+    time_step == other.time_step &&
+    surface_grid_density == other.surface_grid_density &&
+    center_molecules_on_grid == other.center_molecules_on_grid &&
+    microscopic_reversibility == other.microscopic_reversibility &&
+    partition_dimension == other.partition_dimension &&
+    subpartition_dimension == other.subpartition_dimension;
+}
+
 py::class_<Config> define_pybinding_Config(py::module& m) {
   return py::class_<Config, std::shared_ptr<Config>>(m, "Config")
       .def(

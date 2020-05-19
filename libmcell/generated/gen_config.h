@@ -24,6 +24,7 @@
 #define API_GEN_CONFIG_H
 
 #include "../api/common.h"
+#include "../api/base_data_class.h"
 
 namespace MCell {
 namespace API {
@@ -56,6 +57,7 @@ public:
   void check_semantics() const override;
   std::string to_str(const std::string ind="") const override;
 
+  bool __eq__(const GenConfig& other) const;
   // --- attributes ---
   int seed;
   virtual void set_seed(const int new_seed_) {

@@ -45,6 +45,19 @@ std::string GenNotifications::to_str(const std::string ind) const {
   return ss.str();
 }
 
+bool GenNotifications::__eq__(const GenNotifications& other) const {
+  return
+    name == other.name &&
+    probability_report == other.probability_report &&
+    diffusion_constant_report == other.diffusion_constant_report &&
+    final_summary == other.final_summary &&
+    iteration_report == other.iteration_report &&
+    varying_probability_report == other.varying_probability_report &&
+    progress_report == other.progress_report &&
+    release_event_report == other.release_event_report &&
+    molecule_collision_report == other.molecule_collision_report;
+}
+
 py::class_<Notifications> define_pybinding_Notifications(py::module& m) {
   return py::class_<Notifications, std::shared_ptr<Notifications>>(m, "Notifications")
       .def(

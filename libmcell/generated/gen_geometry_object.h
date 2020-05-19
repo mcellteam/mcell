@@ -24,6 +24,7 @@
 #define API_GEN_GEOMETRY_OBJECT_H
 
 #include "../api/common.h"
+#include "../api/base_data_class.h"
 
 namespace MCell {
 namespace API {
@@ -52,6 +53,7 @@ public:
   void check_semantics() const override;
   std::string to_str(const std::string ind="") const override;
 
+  bool __eq__(const GenGeometryObject& other) const;
   // --- attributes ---
   std::vector<std::vector<float_t>> vertex_list;
   virtual void set_vertex_list(const std::vector<std::vector<float_t>> new_vertex_list_) {

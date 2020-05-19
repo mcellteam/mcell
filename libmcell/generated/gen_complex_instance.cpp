@@ -40,6 +40,13 @@ std::string GenComplexInstance::to_str(const std::string ind) const {
   return ss.str();
 }
 
+bool GenComplexInstance::__eq__(const GenComplexInstance& other) const {
+  return
+    name == other.name &&
+    vec_ptr_eq(molecule_instances, other.molecule_instances) &&
+    orientation == other.orientation;
+}
+
 py::class_<ComplexInstance> define_pybinding_ComplexInstance(py::module& m) {
   return py::class_<ComplexInstance, std::shared_ptr<ComplexInstance>>(m, "ComplexInstance")
       .def(

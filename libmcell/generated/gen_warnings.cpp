@@ -48,6 +48,22 @@ std::string GenWarnings::to_str(const std::string ind) const {
   return ss.str();
 }
 
+bool GenWarnings::__eq__(const GenWarnings& other) const {
+  return
+    name == other.name &&
+    molecule_collision_report == other.molecule_collision_report &&
+    degenerate_polygons == other.degenerate_polygons &&
+    negative_diffusion_constant == other.negative_diffusion_constant &&
+    missing_surface_orientation == other.missing_surface_orientation &&
+    negative_reaction_rate == other.negative_reaction_rate &&
+    useless_volume_orientation == other.useless_volume_orientation &&
+    high_reaction_probability == other.high_reaction_probability &&
+    lifetime_too_short == other.lifetime_too_short &&
+    lifetime_threshold == other.lifetime_threshold &&
+    missed_reactions == other.missed_reactions &&
+    missed_reactions_threshold == other.missed_reactions_threshold;
+}
+
 py::class_<Warnings> define_pybinding_Warnings(py::module& m) {
   return py::class_<Warnings, std::shared_ptr<Warnings>>(m, "Warnings")
       .def(

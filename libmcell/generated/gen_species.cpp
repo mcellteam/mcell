@@ -47,6 +47,16 @@ std::string GenSpecies::to_str(const std::string ind) const {
   return ss.str();
 }
 
+bool GenSpecies::__eq__(const GenSpecies& other) const {
+  return
+    name == other.name &&
+    name == other.name &&
+    diffusion_constant_2d == other.diffusion_constant_2d &&
+    diffusion_constant_3d == other.diffusion_constant_3d &&
+    vec_ptr_eq(molecule_instances, other.molecule_instances) &&
+    orientation == other.orientation;
+}
+
 py::class_<Species> define_pybinding_Species(py::module& m) {
   return py::class_<Species, std::shared_ptr<Species>>(m, "Species")
       .def(

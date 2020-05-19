@@ -45,6 +45,13 @@ std::string GenSurfaceRegion::to_str(const std::string ind) const {
   return ss.str();
 }
 
+bool GenSurfaceRegion::__eq__(const GenSurfaceRegion& other) const {
+  return
+    name == other.name &&
+    name == other.name &&
+    element_connections == other.element_connections;
+}
+
 py::class_<SurfaceRegion> define_pybinding_SurfaceRegion(py::module& m) {
   return py::class_<SurfaceRegion, std::shared_ptr<SurfaceRegion>>(m, "SurfaceRegion")
       .def(

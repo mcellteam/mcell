@@ -47,6 +47,15 @@ std::string GenMoleculeType::to_str(const std::string ind) const {
   return ss.str();
 }
 
+bool GenMoleculeType::__eq__(const GenMoleculeType& other) const {
+  return
+    name == other.name &&
+    name == other.name &&
+    vec_ptr_eq(components, other.components) &&
+    diffusion_constant_2d == other.diffusion_constant_2d &&
+    diffusion_constant_3d == other.diffusion_constant_3d;
+}
+
 py::class_<MoleculeType> define_pybinding_MoleculeType(py::module& m) {
   return py::class_<MoleculeType, std::shared_ptr<MoleculeType>>(m, "MoleculeType")
       .def(

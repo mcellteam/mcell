@@ -24,6 +24,7 @@
 #define API_GEN_VIZ_OUTPUT_H
 
 #include "../api/common.h"
+#include "../api/base_data_class.h"
 
 namespace MCell {
 namespace API {
@@ -52,6 +53,7 @@ public:
   void check_semantics() const override;
   std::string to_str(const std::string ind="") const override;
 
+  bool __eq__(const GenVizOutput& other) const;
   // --- attributes ---
   std::string filename;
   virtual void set_filename(const std::string& new_filename_) {

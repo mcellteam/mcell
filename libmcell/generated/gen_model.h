@@ -24,6 +24,7 @@
 #define API_GEN_MODEL_H
 
 #include "../api/common.h"
+#include "../api/base_data_class.h"
 #include "../api/config.h"
 #include "../api/notifications.h"
 #include "../api/warnings.h"

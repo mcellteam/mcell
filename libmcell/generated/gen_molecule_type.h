@@ -24,6 +24,7 @@
 #define API_GEN_MOLECULE_TYPE_H
 
 #include "../api/common.h"
+#include "../api/base_data_class.h"
 #include "../api/molecule_instance.h"
 
 namespace MCell {
@@ -55,6 +56,7 @@ public:
   void check_semantics() const override;
   std::string to_str(const std::string ind="") const override;
 
+  bool __eq__(const GenMoleculeType& other) const;
   // --- attributes ---
   std::vector<std::shared_ptr<ComponentType>> components;
   virtual void set_components(const std::vector<std::shared_ptr<ComponentType>> new_components_) {

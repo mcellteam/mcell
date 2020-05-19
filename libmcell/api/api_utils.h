@@ -20,45 +20,48 @@
  *
 ******************************************************************************/
 
-#ifndef API_MODEL_H
-#define API_MODEL_H
+#ifndef LIBMCELL_API_API_UTILS_H_
+#define LIBMCELL_API_API_UTILS_H_
 
-#include "../generated/gen_model.h"
-#include "../api/common.h"
-#include "subsystem.h"
-#include "instantiation_data.h"
-#include "config.h"
-#include "warnings.h"
-#include "notifications.h"
+#include <memory>
+#include <vector>
+
+#include "common.h"
 
 namespace MCell {
-
-class World;
-
 namespace API {
 
-class Model: public GenModel, public Subsystem, public InstantiationData {
-public:
+template<class T>
+void append_to_vector(
+    std::vector<std::shared_ptr<T>>& dst,
+    const std::shared_ptr<T>& item) {
 
-  Model() : world(nullptr) {
+  // check if item with this name already exists
+  for (std::shared_ptr<T>& existing: dst) {
+    if (item->name == existing->name) {
+      // must be identical
+      if (item->__eq__(*existing)) {
+        throw ValueError(
+            "Adding object of " + item->class_name +
+            " caused an error, object with the same name is already present but it is different."
+        );
+      }
+    }
   }
-  virtual ~Model();
+}
 
-  // from generated template
-  void initialize() override;
-  void run_iterations(const long iterations) override {}
-  void add_subsystem(std::shared_ptr<Subsystem> subsystem) override;
-  void add_instantiation_data(std::shared_ptr<InstantiationData> instantiation_data) override {}
-  void add_observables(std::shared_ptr<Observables> observables) override {};
 
-  // added manually
-  void dump() const;
+template<class T>
+void append_vector_to_vector(
+    std::vector<std::shared_ptr<T>>& dst,
+    const std::vector<std::shared_ptr<T>>& src) {
 
-private:
-  World* world;
-};
+  for (const std::shared_ptr<T>& item: src) {
+    append_to_vector(dst, item);
+  }
+}
 
-} // namespace API
-} // namespace MCell
+} /* namespace API */
+} /* namespace MCell */
 
-#endif // API_MODEL_H
+#endif /* LIBMCELL_API_API_UTILS_H_ */

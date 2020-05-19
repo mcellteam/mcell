@@ -53,6 +53,20 @@ std::string GenCount::to_str(const std::string ind) const {
   return ss.str();
 }
 
+bool GenCount::__eq__(const GenCount& other) const {
+  return
+    name == other.name &&
+    filename == other.filename &&
+    count_expression->__eq__(*other.count_expression) &&
+    every_n_timesteps == other.every_n_timesteps &&
+    species->__eq__(*other.species) &&
+    reaction_rule->__eq__(*other.reaction_rule) &&
+    region->__eq__(*other.region) &&
+    node_type == other.node_type &&
+    left_node->__eq__(*other.left_node) &&
+    right_node->__eq__(*other.right_node);
+}
+
 py::class_<Count> define_pybinding_Count(py::module& m) {
   return py::class_<Count, std::shared_ptr<Count>>(m, "Count")
       .def(

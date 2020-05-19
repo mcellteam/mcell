@@ -24,6 +24,7 @@
 #define API_GEN_NOTIFICATIONS_H
 
 #include "../api/common.h"
+#include "../api/base_data_class.h"
 
 namespace MCell {
 namespace API {
@@ -58,6 +59,7 @@ public:
   void check_semantics() const override;
   std::string to_str(const std::string ind="") const override;
 
+  bool __eq__(const GenNotifications& other) const;
   // --- attributes ---
   bool probability_report;
   virtual void set_probability_report(const bool new_probability_report_) {

@@ -24,6 +24,7 @@
 #define API_GEN_RELEASE_SITE_H
 
 #include "../api/common.h"
+#include "../api/base_data_class.h"
 
 namespace MCell {
 namespace API {
@@ -60,6 +61,7 @@ public:
   void check_semantics() const override;
   std::string to_str(const std::string ind="") const override;
 
+  bool __eq__(const GenReleaseSite& other) const;
   // --- attributes ---
   std::shared_ptr<Species> species;
   virtual void set_species(std::shared_ptr<Species> new_species_) {

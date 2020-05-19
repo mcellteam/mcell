@@ -44,6 +44,14 @@ std::string GenComponentInstance::to_str(const std::string ind) const {
   return ss.str();
 }
 
+bool GenComponentInstance::__eq__(const GenComponentInstance& other) const {
+  return
+    name == other.name &&
+    component_type->__eq__(*other.component_type) &&
+    state == other.state &&
+    bond == other.bond;
+}
+
 py::class_<ComponentInstance> define_pybinding_ComponentInstance(py::module& m) {
   return py::class_<ComponentInstance, std::shared_ptr<ComponentInstance>>(m, "ComponentInstance")
       .def(

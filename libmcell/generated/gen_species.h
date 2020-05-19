@@ -24,6 +24,7 @@
 #define API_GEN_SPECIES_H
 
 #include "../api/common.h"
+#include "../api/base_data_class.h"
 #include "../api/complex_instance.h"
 
 #include "../api/complex_instance.h"
@@ -63,6 +64,7 @@ public:
   void check_semantics() const override;
   std::string to_str(const std::string ind="") const override;
 
+  bool __eq__(const GenSpecies& other) const;
   // --- attributes ---
   float_t diffusion_constant_2d;
   virtual void set_diffusion_constant_2d(const float_t new_diffusion_constant_2d_) {

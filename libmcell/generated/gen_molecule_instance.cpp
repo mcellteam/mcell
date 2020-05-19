@@ -44,6 +44,13 @@ std::string GenMoleculeInstance::to_str(const std::string ind) const {
   return ss.str();
 }
 
+bool GenMoleculeInstance::__eq__(const GenMoleculeInstance& other) const {
+  return
+    name == other.name &&
+    molecule_type->__eq__(*other.molecule_type) &&
+    vec_ptr_eq(components, other.components);
+}
+
 py::class_<MoleculeInstance> define_pybinding_MoleculeInstance(py::module& m) {
   return py::class_<MoleculeInstance, std::shared_ptr<MoleculeInstance>>(m, "MoleculeInstance")
       .def(
