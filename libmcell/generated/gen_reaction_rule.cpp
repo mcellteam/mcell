@@ -53,6 +53,12 @@ bool GenReactionRule::__eq__(const GenReactionRule& other) const {
     rev_rate == other.rev_rate;
 }
 
+void GenReactionRule::set_initialized() {
+  vec_set_initialized(reactants);
+  vec_set_initialized(products);
+  initialized = true;
+}
+
 py::class_<ReactionRule> define_pybinding_ReactionRule(py::module& m) {
   return py::class_<ReactionRule, std::shared_ptr<ReactionRule>>(m, "ReactionRule")
       .def(

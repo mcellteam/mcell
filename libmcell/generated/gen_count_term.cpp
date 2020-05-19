@@ -58,6 +58,15 @@ bool GenCountTerm::__eq__(const GenCountTerm& other) const {
     right_node->__eq__(*other.right_node);
 }
 
+void GenCountTerm::set_initialized() {
+  species->set_initialized();
+  reaction_rule->set_initialized();
+  region->set_initialized();
+  left_node->set_initialized();
+  right_node->set_initialized();
+  initialized = true;
+}
+
 py::class_<CountTerm> define_pybinding_CountTerm(py::module& m) {
   return py::class_<CountTerm, std::shared_ptr<CountTerm>>(m, "CountTerm")
       .def(

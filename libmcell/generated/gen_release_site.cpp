@@ -65,6 +65,11 @@ bool GenReleaseSite::__eq__(const GenReleaseSite& other) const {
     release_probability == other.release_probability;
 }
 
+void GenReleaseSite::set_initialized() {
+  species->set_initialized();
+  initialized = true;
+}
+
 py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
   return py::class_<ReleaseSite, std::shared_ptr<ReleaseSite>>(m, "ReleaseSite")
       .def(

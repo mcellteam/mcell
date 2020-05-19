@@ -56,6 +56,11 @@ bool GenMoleculeType::__eq__(const GenMoleculeType& other) const {
     diffusion_constant_3d == other.diffusion_constant_3d;
 }
 
+void GenMoleculeType::set_initialized() {
+  vec_set_initialized(components);
+  initialized = true;
+}
+
 py::class_<MoleculeType> define_pybinding_MoleculeType(py::module& m) {
   return py::class_<MoleculeType, std::shared_ptr<MoleculeType>>(m, "MoleculeType")
       .def(

@@ -52,6 +52,10 @@ bool GenSurfaceRegion::__eq__(const GenSurfaceRegion& other) const {
     element_connections == other.element_connections;
 }
 
+void GenSurfaceRegion::set_initialized() {
+  initialized = true;
+}
+
 py::class_<SurfaceRegion> define_pybinding_SurfaceRegion(py::module& m) {
   return py::class_<SurfaceRegion, std::shared_ptr<SurfaceRegion>>(m, "SurfaceRegion")
       .def(

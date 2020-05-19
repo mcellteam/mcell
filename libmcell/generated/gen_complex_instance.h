@@ -49,10 +49,16 @@ public:
   void check_semantics() const override;
   std::string to_str(const std::string ind="") const override;
 
+  void set_initialized() override;
+
   bool __eq__(const GenComplexInstance& other) const;
   // --- attributes ---
   std::vector<std::shared_ptr<MoleculeInstance>> molecule_instances;
   virtual void set_molecule_instances(const std::vector<std::shared_ptr<MoleculeInstance>> new_molecule_instances_) {
+    if (initialized) {
+      throw RuntimeError("Value 'molecule_instances' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
     molecule_instances = new_molecule_instances_;
   }
   virtual std::vector<std::shared_ptr<MoleculeInstance>> get_molecule_instances() const {
@@ -61,6 +67,10 @@ public:
 
   Orientation orientation;
   virtual void set_orientation(const Orientation new_orientation_) {
+    if (initialized) {
+      throw RuntimeError("Value 'orientation' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
     orientation = new_orientation_;
   }
   virtual Orientation get_orientation() const {

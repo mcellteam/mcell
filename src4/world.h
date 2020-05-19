@@ -237,6 +237,8 @@ public:
     return get_partition(0).get_region_by_id(id);
   }
 
+  static uint64_t determine_output_frequency(uint64_t iterations);
+
 private:
   void init_fpu();
   void create_defragmentation_events();

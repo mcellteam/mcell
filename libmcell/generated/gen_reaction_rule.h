@@ -55,10 +55,16 @@ public:
   void check_semantics() const override;
   std::string to_str(const std::string ind="") const override;
 
+  void set_initialized() override;
+
   bool __eq__(const GenReactionRule& other) const;
   // --- attributes ---
   std::vector<std::shared_ptr<ComplexInstance>> reactants;
   virtual void set_reactants(const std::vector<std::shared_ptr<ComplexInstance>> new_reactants_) {
+    if (initialized) {
+      throw RuntimeError("Value 'reactants' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
     reactants = new_reactants_;
   }
   virtual std::vector<std::shared_ptr<ComplexInstance>> get_reactants() const {
@@ -67,6 +73,10 @@ public:
 
   std::vector<std::shared_ptr<ComplexInstance>> products;
   virtual void set_products(const std::vector<std::shared_ptr<ComplexInstance>> new_products_) {
+    if (initialized) {
+      throw RuntimeError("Value 'products' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
     products = new_products_;
   }
   virtual std::vector<std::shared_ptr<ComplexInstance>> get_products() const {
@@ -75,6 +85,10 @@ public:
 
   float_t fwd_rate;
   virtual void set_fwd_rate(const float_t new_fwd_rate_) {
+    if (initialized) {
+      throw RuntimeError("Value 'fwd_rate' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
     fwd_rate = new_fwd_rate_;
   }
   virtual float_t get_fwd_rate() const {
@@ -83,6 +97,10 @@ public:
 
   float_t rev_rate;
   virtual void set_rev_rate(const float_t new_rev_rate_) {
+    if (initialized) {
+      throw RuntimeError("Value 'rev_rate' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
     rev_rate = new_rev_rate_;
   }
   virtual float_t get_rev_rate() const {

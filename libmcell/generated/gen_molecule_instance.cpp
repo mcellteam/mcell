@@ -51,6 +51,12 @@ bool GenMoleculeInstance::__eq__(const GenMoleculeInstance& other) const {
     vec_ptr_eq(components, other.components);
 }
 
+void GenMoleculeInstance::set_initialized() {
+  molecule_type->set_initialized();
+  vec_set_initialized(components);
+  initialized = true;
+}
+
 py::class_<MoleculeInstance> define_pybinding_MoleculeInstance(py::module& m) {
   return py::class_<MoleculeInstance, std::shared_ptr<MoleculeInstance>>(m, "MoleculeInstance")
       .def(

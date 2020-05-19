@@ -33,7 +33,7 @@ namespace API {
 class BaseDataClass {
 public:
   BaseDataClass()
-    : class_name(STR_UNSET), name(STR_UNSET) {
+    : class_name(STR_UNSET), name(STR_UNSET), initialized(false) {
   }
   virtual ~BaseDataClass() {
   }
@@ -55,6 +55,9 @@ public:
   virtual const std::string& get_name() const {
     return name;
   }
+
+  bool initialized;
+  virtual void set_initialized() = 0;
 
   // this method is used to identify this particular object in error messages
   virtual std::string get_object_name() const {

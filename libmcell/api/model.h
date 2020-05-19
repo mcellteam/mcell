@@ -27,6 +27,7 @@
 #include "../api/common.h"
 #include "subsystem.h"
 #include "instantiation_data.h"
+#include "observables.h"
 #include "config.h"
 #include "warnings.h"
 #include "notifications.h"
@@ -37,7 +38,7 @@ class World;
 
 namespace API {
 
-class Model: public GenModel, public Subsystem, public InstantiationData {
+class Model: public GenModel, public Subsystem, public InstantiationData, public Observables {
 public:
 
   Model() : world(nullptr) {
@@ -46,10 +47,10 @@ public:
 
   // from generated template
   void initialize() override;
-  void run_iterations(const long iterations) override {}
+  void run_iterations(const long iterations) override;
   void add_subsystem(std::shared_ptr<Subsystem> subsystem) override;
-  void add_instantiation_data(std::shared_ptr<InstantiationData> instantiation_data) override {}
-  void add_observables(std::shared_ptr<Observables> observables) override {};
+  void add_instantiation_data(std::shared_ptr<InstantiationData> instantiation_data) override;
+  void add_observables(std::shared_ptr<Observables> observables) override;
 
   // added manually
   void dump() const;

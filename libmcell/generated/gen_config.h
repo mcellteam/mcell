@@ -57,10 +57,16 @@ public:
   void check_semantics() const override;
   std::string to_str(const std::string ind="") const override;
 
+  void set_initialized() override;
+
   bool __eq__(const GenConfig& other) const;
   // --- attributes ---
   int seed;
   virtual void set_seed(const int new_seed_) {
+    if (initialized) {
+      throw RuntimeError("Value 'seed' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
     seed = new_seed_;
   }
   virtual int get_seed() const {
@@ -69,6 +75,10 @@ public:
 
   float_t time_step;
   virtual void set_time_step(const float_t new_time_step_) {
+    if (initialized) {
+      throw RuntimeError("Value 'time_step' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
     time_step = new_time_step_;
   }
   virtual float_t get_time_step() const {
@@ -77,6 +87,10 @@ public:
 
   float_t surface_grid_density;
   virtual void set_surface_grid_density(const float_t new_surface_grid_density_) {
+    if (initialized) {
+      throw RuntimeError("Value 'surface_grid_density' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
     surface_grid_density = new_surface_grid_density_;
   }
   virtual float_t get_surface_grid_density() const {
@@ -85,6 +99,10 @@ public:
 
   bool center_molecules_on_grid;
   virtual void set_center_molecules_on_grid(const bool new_center_molecules_on_grid_) {
+    if (initialized) {
+      throw RuntimeError("Value 'center_molecules_on_grid' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
     center_molecules_on_grid = new_center_molecules_on_grid_;
   }
   virtual bool get_center_molecules_on_grid() const {
@@ -93,6 +111,10 @@ public:
 
   bool microscopic_reversibility;
   virtual void set_microscopic_reversibility(const bool new_microscopic_reversibility_) {
+    if (initialized) {
+      throw RuntimeError("Value 'microscopic_reversibility' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
     microscopic_reversibility = new_microscopic_reversibility_;
   }
   virtual bool get_microscopic_reversibility() const {
@@ -101,6 +123,10 @@ public:
 
   float_t partition_dimension;
   virtual void set_partition_dimension(const float_t new_partition_dimension_) {
+    if (initialized) {
+      throw RuntimeError("Value 'partition_dimension' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
     partition_dimension = new_partition_dimension_;
   }
   virtual float_t get_partition_dimension() const {
@@ -109,6 +135,10 @@ public:
 
   float_t subpartition_dimension;
   virtual void set_subpartition_dimension(const float_t new_subpartition_dimension_) {
+    if (initialized) {
+      throw RuntimeError("Value 'subpartition_dimension' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
     subpartition_dimension = new_subpartition_dimension_;
   }
   virtual float_t get_subpartition_dimension() const {

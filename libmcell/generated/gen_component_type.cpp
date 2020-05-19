@@ -50,6 +50,10 @@ bool GenComponentType::__eq__(const GenComponentType& other) const {
     states == other.states;
 }
 
+void GenComponentType::set_initialized() {
+  initialized = true;
+}
+
 py::class_<ComponentType> define_pybinding_ComponentType(py::module& m) {
   return py::class_<ComponentType, std::shared_ptr<ComponentType>>(m, "ComponentType")
       .def(

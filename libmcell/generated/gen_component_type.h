@@ -50,10 +50,16 @@ public:
   void check_semantics() const override;
   std::string to_str(const std::string ind="") const override;
 
+  void set_initialized() override;
+
   bool __eq__(const GenComponentType& other) const;
   // --- attributes ---
   std::vector<std::string> states;
   virtual void set_states(const std::vector<std::string> new_states_) {
+    if (initialized) {
+      throw RuntimeError("Value 'states' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
     states = new_states_;
   }
   virtual std::vector<std::string> get_states() const {

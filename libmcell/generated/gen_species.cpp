@@ -57,6 +57,11 @@ bool GenSpecies::__eq__(const GenSpecies& other) const {
     orientation == other.orientation;
 }
 
+void GenSpecies::set_initialized() {
+  vec_set_initialized(molecule_instances);
+  initialized = true;
+}
+
 py::class_<Species> define_pybinding_Species(py::module& m) {
   return py::class_<Species, std::shared_ptr<Species>>(m, "Species")
       .def(

@@ -150,6 +150,6 @@ model.add_observables(observables)
 model.config.time_step = 1e-6 # default
 model.config.seed = SEED
 
-# does model initialization
+model.initialize()
 model.run_iterations(10)
 

@@ -42,6 +42,16 @@ const double USEC_IN_SEC = 1000000.0;
 
 namespace MCell {
 
+static double tousecs(timeval& t) {
+  return (double)t.tv_sec * USEC_IN_SEC + (double)t.tv_usec;
+}
+
+
+static double tosecs(timeval& t) {
+  return (double)t.tv_sec + (double)t.tv_usec/USEC_IN_SEC;
+}
+
+
 World::World()
   : bng_engine(config),
     total_iterations(0),
@@ -87,7 +97,7 @@ void World::init_fpu() {
 #endif
 }
 
-static uint64_t determine_output_frequency(uint64_t iterations) {
+uint64_t World::determine_output_frequency(uint64_t iterations) {
   uint64_t frequency;
 
   if (iterations < 10)
@@ -105,17 +115,6 @@ static uint64_t determine_output_frequency(uint64_t iterations) {
 
   return frequency;
 }
-
-
-static double tousecs(timeval& t) {
-  return (double)t.tv_sec * USEC_IN_SEC + (double)t.tv_usec;
-}
-
-
-static double tosecs(timeval& t) {
-  return (double)t.tv_sec + (double)t.tv_usec/USEC_IN_SEC;
-}
-
 
 
 void World::init_counted_volumes() {
@@ -138,7 +137,7 @@ void World::init_simulation() {
   assert(!simulation_initialized && "init_simulation must be called just once");
 
   if (get_all_species().get_count() == 0) {
-    mcell_log("Error: there must be at lease one species!");
+    mcell_log("Error: there must be at least one species!");
     exit(1);
   }
 
@@ -288,7 +287,7 @@ void World::run_simulation(const bool dump_initial_state) {
     dump();
   }
 
-  uint output_frequency = determine_output_frequency(total_iterations);
+  uint output_frequency = World::determine_output_frequency(total_iterations);
 
   // simulating 1000 iterations means to simulate iterations 0 .. 1000
   run_n_iterations(total_iterations + 1, output_frequency, true);

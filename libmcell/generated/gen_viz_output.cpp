@@ -54,6 +54,11 @@ bool GenVizOutput::__eq__(const GenVizOutput& other) const {
     every_n_timesteps == other.every_n_timesteps;
 }
 
+void GenVizOutput::set_initialized() {
+  vec_set_initialized(species_list);
+  initialized = true;
+}
+
 py::class_<VizOutput> define_pybinding_VizOutput(py::module& m) {
   return py::class_<VizOutput, std::shared_ptr<VizOutput>>(m, "VizOutput")
       .def(

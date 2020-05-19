@@ -56,6 +56,10 @@ bool GenConfig::__eq__(const GenConfig& other) const {
     subpartition_dimension == other.subpartition_dimension;
 }
 
+void GenConfig::set_initialized() {
+  initialized = true;
+}
+
 py::class_<Config> define_pybinding_Config(py::module& m) {
   return py::class_<Config, std::shared_ptr<Config>>(m, "Config")
       .def(

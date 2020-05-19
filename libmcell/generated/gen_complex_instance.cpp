@@ -47,6 +47,11 @@ bool GenComplexInstance::__eq__(const GenComplexInstance& other) const {
     orientation == other.orientation;
 }
 
+void GenComplexInstance::set_initialized() {
+  vec_set_initialized(molecule_instances);
+  initialized = true;
+}
+
 py::class_<ComplexInstance> define_pybinding_ComplexInstance(py::module& m) {
   return py::class_<ComplexInstance, std::shared_ptr<ComplexInstance>>(m, "ComplexInstance")
       .def(

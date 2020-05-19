@@ -53,10 +53,16 @@ public:
   void check_semantics() const override;
   std::string to_str(const std::string ind="") const override;
 
+  void set_initialized() override;
+
   bool __eq__(const GenVizOutput& other) const;
   // --- attributes ---
   std::string filename;
   virtual void set_filename(const std::string& new_filename_) {
+    if (initialized) {
+      throw RuntimeError("Value 'filename' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
     filename = new_filename_;
   }
   virtual const std::string& get_filename() const {
@@ -65,6 +71,10 @@ public:
 
   std::vector<std::shared_ptr<Species>> species_list;
   virtual void set_species_list(const std::vector<std::shared_ptr<Species>> new_species_list_) {
+    if (initialized) {
+      throw RuntimeError("Value 'species_list' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
     species_list = new_species_list_;
   }
   virtual std::vector<std::shared_ptr<Species>> get_species_list() const {
@@ -73,6 +83,10 @@ public:
 
   VizMode mode;
   virtual void set_mode(const VizMode new_mode_) {
+    if (initialized) {
+      throw RuntimeError("Value 'mode' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
     mode = new_mode_;
   }
   virtual VizMode get_mode() const {
@@ -81,6 +95,10 @@ public:
 
   int every_n_timesteps;
   virtual void set_every_n_timesteps(const int new_every_n_timesteps_) {
+    if (initialized) {
+      throw RuntimeError("Value 'every_n_timesteps' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
     every_n_timesteps = new_every_n_timesteps_;
   }
   virtual int get_every_n_timesteps() const {

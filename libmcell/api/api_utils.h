@@ -28,11 +28,13 @@
 
 #include "common.h"
 
+// functions defined here are not used in generated files
+
 namespace MCell {
 namespace API {
 
 template<class T>
-void append_to_vector(
+void append_to_vec(
     std::vector<std::shared_ptr<T>>& dst,
     const std::shared_ptr<T>& item) {
 
@@ -52,12 +54,12 @@ void append_to_vector(
 
 
 template<class T>
-void append_vector_to_vector(
+void append_vec_to_vec(
     std::vector<std::shared_ptr<T>>& dst,
     const std::vector<std::shared_ptr<T>>& src) {
 
   for (const std::shared_ptr<T>& item: src) {
-    append_to_vector(dst, item);
+    append_to_vec(dst, item);
   }
 }
 

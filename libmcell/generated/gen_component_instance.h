@@ -51,10 +51,16 @@ public:
   void check_semantics() const override;
   std::string to_str(const std::string ind="") const override;
 
+  void set_initialized() override;
+
   bool __eq__(const GenComponentInstance& other) const;
   // --- attributes ---
   std::shared_ptr<ComponentType> component_type;
   virtual void set_component_type(std::shared_ptr<ComponentType> new_component_type_) {
+    if (initialized) {
+      throw RuntimeError("Value 'component_type' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
     component_type = new_component_type_;
   }
   virtual std::shared_ptr<ComponentType> get_component_type() const {
@@ -63,6 +69,10 @@ public:
 
   std::string state;
   virtual void set_state(const std::string& new_state_) {
+    if (initialized) {
+      throw RuntimeError("Value 'state' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
     state = new_state_;
   }
   virtual const std::string& get_state() const {
@@ -71,6 +81,10 @@ public:
 
   int bond;
   virtual void set_bond(const int new_bond_) {
+    if (initialized) {
+      throw RuntimeError("Value 'bond' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
     bond = new_bond_;
   }
   virtual int get_bond() const {

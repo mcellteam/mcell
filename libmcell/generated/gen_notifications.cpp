@@ -58,6 +58,10 @@ bool GenNotifications::__eq__(const GenNotifications& other) const {
     molecule_collision_report == other.molecule_collision_report;
 }
 
+void GenNotifications::set_initialized() {
+  initialized = true;
+}
+
 py::class_<Notifications> define_pybinding_Notifications(py::module& m) {
   return py::class_<Notifications, std::shared_ptr<Notifications>>(m, "Notifications")
       .def(

@@ -64,10 +64,16 @@ public:
   void check_semantics() const override;
   std::string to_str(const std::string ind="") const override;
 
+  void set_initialized() override;
+
   bool __eq__(const GenSpecies& other) const;
   // --- attributes ---
   float_t diffusion_constant_2d;
   virtual void set_diffusion_constant_2d(const float_t new_diffusion_constant_2d_) {
+    if (initialized) {
+      throw RuntimeError("Value 'diffusion_constant_2d' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
     diffusion_constant_2d = new_diffusion_constant_2d_;
   }
   virtual float_t get_diffusion_constant_2d() const {
@@ -76,6 +82,10 @@ public:
 
   float_t diffusion_constant_3d;
   virtual void set_diffusion_constant_3d(const float_t new_diffusion_constant_3d_) {
+    if (initialized) {
+      throw RuntimeError("Value 'diffusion_constant_3d' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
     diffusion_constant_3d = new_diffusion_constant_3d_;
   }
   virtual float_t get_diffusion_constant_3d() const {

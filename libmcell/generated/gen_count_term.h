@@ -60,10 +60,16 @@ public:
   void check_semantics() const override;
   std::string to_str(const std::string ind="") const override;
 
+  void set_initialized() override;
+
   bool __eq__(const GenCountTerm& other) const;
   // --- attributes ---
   std::shared_ptr<Species> species;
   virtual void set_species(std::shared_ptr<Species> new_species_) {
+    if (initialized) {
+      throw RuntimeError("Value 'species' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
     species = new_species_;
   }
   virtual std::shared_ptr<Species> get_species() const {
@@ -72,6 +78,10 @@ public:
 
   std::shared_ptr<ReactionRule> reaction_rule;
   virtual void set_reaction_rule(std::shared_ptr<ReactionRule> new_reaction_rule_) {
+    if (initialized) {
+      throw RuntimeError("Value 'reaction_rule' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
     reaction_rule = new_reaction_rule_;
   }
   virtual std::shared_ptr<ReactionRule> get_reaction_rule() const {
@@ -80,6 +90,10 @@ public:
 
   std::shared_ptr<GeometryObject> region;
   virtual void set_region(std::shared_ptr<GeometryObject> new_region_) {
+    if (initialized) {
+      throw RuntimeError("Value 'region' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
     region = new_region_;
   }
   virtual std::shared_ptr<GeometryObject> get_region() const {
@@ -88,6 +102,10 @@ public:
 
   ExprNodeType node_type;
   virtual void set_node_type(const ExprNodeType new_node_type_) {
+    if (initialized) {
+      throw RuntimeError("Value 'node_type' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
     node_type = new_node_type_;
   }
   virtual ExprNodeType get_node_type() const {
@@ -96,6 +114,10 @@ public:
 
   std::shared_ptr<CountTerm> left_node;
   virtual void set_left_node(std::shared_ptr<CountTerm> new_left_node_) {
+    if (initialized) {
+      throw RuntimeError("Value 'left_node' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
     left_node = new_left_node_;
   }
   virtual std::shared_ptr<CountTerm> get_left_node() const {
@@ -104,6 +126,10 @@ public:
 
   std::shared_ptr<CountTerm> right_node;
   virtual void set_right_node(std::shared_ptr<CountTerm> new_right_node_) {
+    if (initialized) {
+      throw RuntimeError("Value 'right_node' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
     right_node = new_right_node_;
   }
   virtual std::shared_ptr<CountTerm> get_right_node() const {

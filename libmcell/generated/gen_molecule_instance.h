@@ -50,10 +50,16 @@ public:
   void check_semantics() const override;
   std::string to_str(const std::string ind="") const override;
 
+  void set_initialized() override;
+
   bool __eq__(const GenMoleculeInstance& other) const;
   // --- attributes ---
   std::shared_ptr<MoleculeType> molecule_type;
   virtual void set_molecule_type(std::shared_ptr<MoleculeType> new_molecule_type_) {
+    if (initialized) {
+      throw RuntimeError("Value 'molecule_type' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
     molecule_type = new_molecule_type_;
   }
   virtual std::shared_ptr<MoleculeType> get_molecule_type() const {
@@ -62,6 +68,10 @@ public:
 
   std::vector<std::shared_ptr<ComponentInstance>> components;
   virtual void set_components(const std::vector<std::shared_ptr<ComponentInstance>> new_components_) {
+    if (initialized) {
+      throw RuntimeError("Value 'components' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
     components = new_components_;
   }
   virtual std::vector<std::shared_ptr<ComponentInstance>> get_components() const {

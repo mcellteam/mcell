@@ -138,6 +138,13 @@ static inline bool vec_ptr_eq(const std::vector<std::shared_ptr<T>>& vec1, const
 }
 
 
+template<typename T>
+static inline void vec_set_initialized(const std::vector<std::shared_ptr<T>>& vec) {
+  for (const std::shared_ptr<T>& item: vec) {
+    item->set_initialized();
+  }
+}
+
 // Raised when an operation or function receives an argument that has the
 // right type but an inappropriate value, and the situation is not described
 // by a more precise exception such as IndexError.

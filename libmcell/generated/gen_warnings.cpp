@@ -64,6 +64,10 @@ bool GenWarnings::__eq__(const GenWarnings& other) const {
     missed_reactions_threshold == other.missed_reactions_threshold;
 }
 
+void GenWarnings::set_initialized() {
+  initialized = true;
+}
+
 py::class_<Warnings> define_pybinding_Warnings(py::module& m) {
   return py::class_<Warnings, std::shared_ptr<Warnings>>(m, "Warnings")
       .def(

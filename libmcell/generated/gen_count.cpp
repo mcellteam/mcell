@@ -67,6 +67,16 @@ bool GenCount::__eq__(const GenCount& other) const {
     right_node->__eq__(*other.right_node);
 }
 
+void GenCount::set_initialized() {
+  count_expression->set_initialized();
+  species->set_initialized();
+  reaction_rule->set_initialized();
+  region->set_initialized();
+  left_node->set_initialized();
+  right_node->set_initialized();
+  initialized = true;
+}
+
 py::class_<Count> define_pybinding_Count(py::module& m) {
   return py::class_<Count, std::shared_ptr<Count>>(m, "Count")
       .def(

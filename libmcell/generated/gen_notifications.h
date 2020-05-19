@@ -59,10 +59,16 @@ public:
   void check_semantics() const override;
   std::string to_str(const std::string ind="") const override;
 
+  void set_initialized() override;
+
   bool __eq__(const GenNotifications& other) const;
   // --- attributes ---
   bool probability_report;
   virtual void set_probability_report(const bool new_probability_report_) {
+    if (initialized) {
+      throw RuntimeError("Value 'probability_report' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
     probability_report = new_probability_report_;
   }
   virtual bool get_probability_report() const {
@@ -71,6 +77,10 @@ public:
 
   Notification diffusion_constant_report;
   virtual void set_diffusion_constant_report(const Notification new_diffusion_constant_report_) {
+    if (initialized) {
+      throw RuntimeError("Value 'diffusion_constant_report' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
     diffusion_constant_report = new_diffusion_constant_report_;
   }
   virtual Notification get_diffusion_constant_report() const {
@@ -79,6 +89,10 @@ public:
 
   bool final_summary;
   virtual void set_final_summary(const bool new_final_summary_) {
+    if (initialized) {
+      throw RuntimeError("Value 'final_summary' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
     final_summary = new_final_summary_;
   }
   virtual bool get_final_summary() const {
@@ -87,6 +101,10 @@ public:
 
   bool iteration_report;
   virtual void set_iteration_report(const bool new_iteration_report_) {
+    if (initialized) {
+      throw RuntimeError("Value 'iteration_report' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
     iteration_report = new_iteration_report_;
   }
   virtual bool get_iteration_report() const {
@@ -95,6 +113,10 @@ public:
 
   bool varying_probability_report;
   virtual void set_varying_probability_report(const bool new_varying_probability_report_) {
+    if (initialized) {
+      throw RuntimeError("Value 'varying_probability_report' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
     varying_probability_report = new_varying_probability_report_;
   }
   virtual bool get_varying_probability_report() const {
@@ -103,6 +125,10 @@ public:
 
   bool progress_report;
   virtual void set_progress_report(const bool new_progress_report_) {
+    if (initialized) {
+      throw RuntimeError("Value 'progress_report' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
     progress_report = new_progress_report_;
   }
   virtual bool get_progress_report() const {
@@ -111,6 +137,10 @@ public:
 
   bool release_event_report;
   virtual void set_release_event_report(const bool new_release_event_report_) {
+    if (initialized) {
+      throw RuntimeError("Value 'release_event_report' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
     release_event_report = new_release_event_report_;
   }
   virtual bool get_release_event_report() const {
@@ -119,6 +149,10 @@ public:
 
   bool molecule_collision_report;
   virtual void set_molecule_collision_report(const bool new_molecule_collision_report_) {
+    if (initialized) {
+      throw RuntimeError("Value 'molecule_collision_report' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
     molecule_collision_report = new_molecule_collision_report_;
   }
   virtual bool get_molecule_collision_report() const {

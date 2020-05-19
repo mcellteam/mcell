@@ -47,10 +47,16 @@ public:
   void check_semantics() const override;
   std::string to_str(const std::string ind="") const override;
 
+  void set_initialized() override;
+
   bool __eq__(const GenSurfaceRegion& other) const;
   // --- attributes ---
   std::vector<int> element_connections;
   virtual void set_element_connections(const std::vector<int> new_element_connections_) {
+    if (initialized) {
+      throw RuntimeError("Value 'element_connections' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
     element_connections = new_element_connections_;
   }
   virtual std::vector<int> get_element_connections() const {

@@ -144,6 +144,7 @@ RET_TYPE_CHECK_SEMANTICS = 'void'
 CHECK_SEMANTICS = 'check_semantics'
 DECL_CHECK_SEMANTICS = CHECK_SEMANTICS + '() const'
 DECL_DEFINE_PYBINDIND_CONSTANTS = 'void define_pybinding_constants(py::module& m)'
+DECL_SET_INITIALIZED = 'set_initialized()'
 
 RET_TYPE_TO_STR = 'std::string'
 SHARED_PTR = 'std::shared_ptr'
@@ -428,7 +429,7 @@ def write_ctor_for_superclass(f, class_def, class_name):
     f.write('  }\n')
     
 
-def write_attr_with_get_set(f, attr):
+def write_attr_with_get_set(f, class_def, attr):
     assert KEY_NAME in attr, KEY_NAME + " is not set in " + str(attr) 
     assert KEY_TYPE in attr, KEY_TYPE + " is not set in " + str(attr)
     
@@ -450,6 +451,14 @@ def write_attr_with_get_set(f, attr):
     # setter
     arg_type_const = 'const ' if not is_cpp_ptr_type(cpp_type) else ''
     f.write('  virtual void set_' + name + '(' + arg_type_const + get_type_as_ref_param(attr) + ' new_' + name + '_) {\n')
+    # TODO: allow some values to be set even after initialization
+    
+    if has_single_superclass(class_def):
+        f.write('    if (initialized) {\n')
+        f.write('      throw RuntimeError("Value \'' + name + '\' of object with name " + name + " (class " + class_name + ")"\n')
+        f.write('                         "cannot be set after model was initialized.");\n')
+        f.write('    }\n')
+        
     f.write('    ' + name + ' = new_' + name + '_;\n')
     f.write('  }\n') 
 
@@ -541,14 +550,16 @@ def write_gen_class(f, class_def, class_name):
         f.write('  ' + RET_CTOR_POSTPROCESS + ' ' + CTOR_POSTPROCESS + '() ' + KEYWORD_OVERRIDE + ' {}\n')
         f.write('  ' + RET_TYPE_CHECK_SEMANTICS + ' ' + DECL_CHECK_SEMANTICS + ' ' + KEYWORD_OVERRIDE + ';\n')
         f.write('  ' + RET_TYPE_TO_STR + ' ' + DECL_TO_STR_W_DEFAULT + ' ' + KEYWORD_OVERRIDE + ';\n\n')
+        f.write('  void ' + DECL_SET_INITIALIZED + ' ' + KEYWORD_OVERRIDE + ';\n\n')
         # not virtual because overrides need different parameter type
         f.write('  bool __eq__(const ' + gen_class_name + '& other) const;\n')
+        
         
     f.write('  // --- attributes ---\n')
     items = class_def[KEY_ITEMS]
     for attr in items:
         if not is_inherited(attr):
-            written = write_attr_with_get_set(f, attr)
+            written = write_attr_with_get_set(f, class_def, attr)
             if written :
                 f.write('\n')
 
@@ -781,6 +792,26 @@ def write_operator_equal_implemetation(f, class_name, items):
     f.write('}\n\n')    
 
 
+def write_set_initialized_implemetation(f, class_name, items):
+    # originally was operator== used, but this causes too cryptic compilation errors, 
+    # so it was better to use python-style naming,
+    # also the __eq__ is aonly defined for the 'Gen' classes, so defining operator ==
+    # might have been more confusing 
+    gen_class_name = GEN_CLASS_PREFIX + class_name
+    f.write('void ' + gen_class_name + '::' + DECL_SET_INITIALIZED + ' {\n')
+    num_attrs = len(items) 
+    for i in range(num_attrs):
+        name = items[i][KEY_NAME]
+        t = items[i][KEY_TYPE]
+        if is_yaml_ptr_type(t):
+            f.write('  ' + name + '->set_initialized();\n')
+        elif is_yaml_list_type(t) and is_yaml_ptr_type(get_inner_list_type(t)):
+            f.write('  vec_set_initialized(' + name + ');\n')
+        
+    f.write('  initialized = true;\n')    
+    f.write('}\n\n')    
+    
+    
 def is_overloaded(method, class_def):
     name = method[KEY_NAME] 
     count = 0
@@ -923,6 +954,7 @@ def generate_class_implementation_and_bindings(class_name, class_def):
             write_check_semantics_implemetation(f, class_name, items)
             write_to_str_implemetation(f, class_name, items)
             write_operator_equal_implemetation(f, class_name, items)
+            write_set_initialized_implemetation(f, class_name, items)
         
         write_pybind11_bindings(f, class_name, class_def)
         

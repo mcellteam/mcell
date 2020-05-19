@@ -52,6 +52,11 @@ bool GenComponentInstance::__eq__(const GenComponentInstance& other) const {
     bond == other.bond;
 }
 
+void GenComponentInstance::set_initialized() {
+  component_type->set_initialized();
+  initialized = true;
+}
+
 py::class_<ComponentInstance> define_pybinding_ComponentInstance(py::module& m) {
   return py::class_<ComponentInstance, std::shared_ptr<ComponentInstance>>(m, "ComponentInstance")
       .def(

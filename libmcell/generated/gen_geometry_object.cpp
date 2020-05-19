@@ -60,6 +60,11 @@ bool GenGeometryObject::__eq__(const GenGeometryObject& other) const {
     vec_ptr_eq(surface_regions, other.surface_regions);
 }
 
+void GenGeometryObject::set_initialized() {
+  vec_set_initialized(surface_regions);
+  initialized = true;
+}
+
 py::class_<GeometryObject> define_pybinding_GeometryObject(py::module& m) {
   return py::class_<GeometryObject, std::shared_ptr<GeometryObject>>(m, "GeometryObject")
       .def(

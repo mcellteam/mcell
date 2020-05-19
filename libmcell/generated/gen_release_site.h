@@ -61,10 +61,16 @@ public:
   void check_semantics() const override;
   std::string to_str(const std::string ind="") const override;
 
+  void set_initialized() override;
+
   bool __eq__(const GenReleaseSite& other) const;
   // --- attributes ---
   std::shared_ptr<Species> species;
   virtual void set_species(std::shared_ptr<Species> new_species_) {
+    if (initialized) {
+      throw RuntimeError("Value 'species' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
     species = new_species_;
   }
   virtual std::shared_ptr<Species> get_species() const {
@@ -73,6 +79,10 @@ public:
 
   Shape shape;
   virtual void set_shape(const Shape new_shape_) {
+    if (initialized) {
+      throw RuntimeError("Value 'shape' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
     shape = new_shape_;
   }
   virtual Shape get_shape() const {
@@ -81,6 +91,10 @@ public:
 
   Vec3 location;
   virtual void set_location(const Vec3& new_location_) {
+    if (initialized) {
+      throw RuntimeError("Value 'location' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
     location = new_location_;
   }
   virtual const Vec3& get_location() const {
@@ -89,6 +103,10 @@ public:
 
   float_t site_diameter;
   virtual void set_site_diameter(const float_t new_site_diameter_) {
+    if (initialized) {
+      throw RuntimeError("Value 'site_diameter' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
     site_diameter = new_site_diameter_;
   }
   virtual float_t get_site_diameter() const {
@@ -97,6 +115,10 @@ public:
 
   float_t site_radius;
   virtual void set_site_radius(const float_t new_site_radius_) {
+    if (initialized) {
+      throw RuntimeError("Value 'site_radius' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
     site_radius = new_site_radius_;
   }
   virtual float_t get_site_radius() const {
@@ -105,6 +127,10 @@ public:
 
   int number_to_release;
   virtual void set_number_to_release(const int new_number_to_release_) {
+    if (initialized) {
+      throw RuntimeError("Value 'number_to_release' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
     number_to_release = new_number_to_release_;
   }
   virtual int get_number_to_release() const {
@@ -113,6 +139,10 @@ public:
 
   float_t release_probability;
   virtual void set_release_probability(const float_t new_release_probability_) {
+    if (initialized) {
+      throw RuntimeError("Value 'release_probability' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
     release_probability = new_release_probability_;
   }
   virtual float_t get_release_probability() const {
