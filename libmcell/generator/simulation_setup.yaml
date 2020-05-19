@@ -2,23 +2,49 @@ Config:
   superclass: BaseDataClass
   items:
 
-  # what to do with iterations? some of the reporting depends on it but pymcell controls it by itself 
-  #- name: iterations
-  #  type: long
-
   - name: seed
     type: int
     default: 1
+    min: 0  # TODO: min/max value check is not generated yet
+    max: 65535
   
   - name: time_step
     type: float
     default: 1e-6
+    min: 1e12
     doc: Default value is 1us, in seconds
       
   - name: surface_grid_density
     type: float
     default: 10000
+    min: 1
   
+  - name: interaction_radius
+    type: float
+    default: unset
+    min: 0
+    doc: |
+      Diffusing volume molecules will interact with each other when
+      they get within N microns of each other. The default is
+      1/sqrt(PI * Sigma_s) where Sigma_s is the surface grid density 
+      (default or userspecified)
+
+  - name: vacancy_search_distance
+    type: float
+    default: 0
+    min: 0 
+    doc: |
+      Normally, a reaction will not proceed on a surface unless there
+      is room to place all products on the single grid element where
+      the reaction is initiated. By increasing r from its default value
+      of 0, one can specify how far from the reaction’s location, in microns, the
+      reaction can place its products. To be useful, r must
+      be larger than the longest axis of the grid element on the triangle
+      in question. The reaction will then proceed if there is room to
+      place its products within a radius r, and will place those products as 
+      close as possible to the place where the reaction occurs
+      (deterministically, so small-scale directional bias is possible).
+
   # remove and keep default? - yes
   #- name: accurate_3d_reactions
   #  # sets use_expanded_list, probably always True    
@@ -38,10 +64,20 @@ Config:
   - name: partition_dimension
     type: float 
     default: 10 #um
+    min: 1e-5
    
   - name: subpartition_dimension
     type: float 
     default: 0.5 #um
+    min: 1e-6
+    
+  - name: total_iterations_hint
+    type: long
+    default: 1000000
+    min: 9
+    doc: |
+      Estimated value of total iterations, used when generating visualization data 
+      files and also for other reporting uses.
     
 # none of these notifications are currrently interpreted by mcell
 Notifications:

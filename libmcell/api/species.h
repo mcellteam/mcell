@@ -77,6 +77,8 @@ public:
     return res;
   }
 
+  // simulation engine mapping
+  species_id_t species_id;
 };
 
 } // namespace API

@@ -37,10 +37,13 @@ std::string GenConfig::to_str(const std::string ind) const {
       "seed=" << seed << ", " <<
       "time_step=" << time_step << ", " <<
       "surface_grid_density=" << surface_grid_density << ", " <<
+      "interaction_radius=" << interaction_radius << ", " <<
+      "vacancy_search_distance=" << vacancy_search_distance << ", " <<
       "center_molecules_on_grid=" << center_molecules_on_grid << ", " <<
       "microscopic_reversibility=" << microscopic_reversibility << ", " <<
       "partition_dimension=" << partition_dimension << ", " <<
-      "subpartition_dimension=" << subpartition_dimension;
+      "subpartition_dimension=" << subpartition_dimension << ", " <<
+      "total_iterations_hint=" << total_iterations_hint;
   return ss.str();
 }
 
@@ -50,10 +53,13 @@ bool GenConfig::__eq__(const GenConfig& other) const {
     seed == other.seed &&
     time_step == other.time_step &&
     surface_grid_density == other.surface_grid_density &&
+    interaction_radius == other.interaction_radius &&
+    vacancy_search_distance == other.vacancy_search_distance &&
     center_molecules_on_grid == other.center_molecules_on_grid &&
     microscopic_reversibility == other.microscopic_reversibility &&
     partition_dimension == other.partition_dimension &&
-    subpartition_dimension == other.subpartition_dimension;
+    subpartition_dimension == other.subpartition_dimension &&
+    total_iterations_hint == other.total_iterations_hint;
 }
 
 void GenConfig::set_initialized() {
@@ -67,18 +73,24 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
             const int,
             const float_t,
             const float_t,
+            const float_t,
+            const float_t,
             const bool,
             const bool,
             const float_t,
-            const float_t
+            const float_t,
+            const long
           >(),
           py::arg("seed") = 1,
           py::arg("time_step") = 1e-6,
           py::arg("surface_grid_density") = 10000,
+          py::arg("interaction_radius") = FLT_UNSET,
+          py::arg("vacancy_search_distance") = 0,
           py::arg("center_molecules_on_grid") = false,
           py::arg("microscopic_reversibility") = false,
           py::arg("partition_dimension") = 10,
-          py::arg("subpartition_dimension") = 0.5
+          py::arg("subpartition_dimension") = 0.5,
+          py::arg("total_iterations_hint") = 1000000
       )
       .def("check_semantics", &Config::check_semantics)
       .def("__str__", &Config::to_str, py::arg("ind") = std::string(""))
@@ -86,10 +98,13 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
       .def_property("seed", &Config::get_seed, &Config::set_seed)
       .def_property("time_step", &Config::get_time_step, &Config::set_time_step)
       .def_property("surface_grid_density", &Config::get_surface_grid_density, &Config::set_surface_grid_density)
+      .def_property("interaction_radius", &Config::get_interaction_radius, &Config::set_interaction_radius)
+      .def_property("vacancy_search_distance", &Config::get_vacancy_search_distance, &Config::set_vacancy_search_distance)
       .def_property("center_molecules_on_grid", &Config::get_center_molecules_on_grid, &Config::set_center_molecules_on_grid)
       .def_property("microscopic_reversibility", &Config::get_microscopic_reversibility, &Config::set_microscopic_reversibility)
       .def_property("partition_dimension", &Config::get_partition_dimension, &Config::set_partition_dimension)
       .def_property("subpartition_dimension", &Config::get_subpartition_dimension, &Config::set_subpartition_dimension)
+      .def_property("total_iterations_hint", &Config::get_total_iterations_hint, &Config::set_total_iterations_hint)
     ;
 }
 

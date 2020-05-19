@@ -43,6 +43,7 @@ namespace API {
 //
 const float_t FLT_UNSET = FLT_MAX;
 const int INT_UNSET = INT32_MAX;
+const long long LONG_UNSET = INT64_MAX;
 const Vec3 VEC3_UNSET(POS_INVALID);
 const void* const PTR_UNSET = nullptr;
 const std::string STR_UNSET = "unset";
@@ -52,7 +53,10 @@ static inline bool is_set(const float_t a) {
   return a != FLT_UNSET;
 }
 static inline bool is_set(const int a) {
-  return a != INT32_MAX; // Python does not use unsigned integers
+  return a != INT_UNSET; // Python does not use unsigned integers
+}
+static inline bool is_set(const long long a) {
+  return a != LONG_UNSET; // Python does not use unsigned integers
 }
 static inline bool is_set(const Vec3& a) {
   return a != VEC3_UNSET;

@@ -32,6 +32,14 @@ namespace API {
 class Config: public GenConfig {
 public:
   CONFIG_CTOR()
+
+  void check_semantics() const override {
+    GenConfig::check_semantics();
+    if (subpartition_dimension >= partition_dimension) {
+      throw ValueError("Value subpartition_dimension must be smaller or equal than partition_dimension.");
+    }
+  }
+
 };
 
 } // namespace API

@@ -108,6 +108,8 @@ using BNGCommon::SQRT_EPS;
 using BNGCommon::FLT_GIGANTIC;
 using BNGCommon::fabs_f;
 using BNGCommon::cmp_eq;
+using BNGCommon::distinguishable_f;
+using BNGCommon::sqrt_f;
 
 // ---------------------------------- optimization macros ----------------------------------
 #if defined(likely) or defined(unlikely)
@@ -353,14 +355,6 @@ static inline std::ostream & operator<<(std::ostream &out, const Vec2& a) {
 
 // ---------------------------------- auxiliary functions ----------------------------------
 
-static inline float_t sqrt_f(const float_t x) {
-#if FLOAT_T_BYTES == 8
-  return sqrt(x);
-#else
-  return sqrtf(x);
-#endif
-}
-
 static inline float_t log_f(const float_t x) {
   assert(x != 0);
 #if FLOAT_T_BYTES == 8
@@ -530,24 +524,6 @@ static inline bool point_in_box(const Vec3& pt, const Vec3& llf, const Vec3& urb
 static inline Vec3 cross(const Vec3& v1, const Vec3& v2) {
   return glm::cross((glm_vec3_t)v1, (glm_vec3_t)v2);
 }
-
-// returns true when whether two values are measurably different
-inline bool distinguishable_f(float_t a, float_t b, float_t eps) {
-  float_t c = fabs_f(a - b);
-  a = fabs_f(a);
-  if (a < 1) {
-    a = 1;
-  }
-  b = fabs_f(b);
-
-  if (b < a) {
-    eps *= a;
-  } else {
-    eps *= b;
-  }
-  return (c > eps);
-}
-
 
 
 static inline int distinguishable_vec2(const Vec2& a, const Vec2& b, float_t eps) {

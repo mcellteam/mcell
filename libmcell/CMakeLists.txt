@@ -7,9 +7,10 @@ message("-- Python3 include dirs are ${Python3_INCLUDE_DIRS}")
 include_directories(${Python3_INCLUDE_DIRS})
 
 include_directories(${CMAKE_SOURCE_DIR} 
+    ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/../src4 
     ${CMAKE_CURRENT_SOURCE_DIR}/../src 
-    ${CMAKE_CURRENT_SOURCE_DIR}/../include 
+    ${CMAKE_CURRENT_SOURCE_DIR}/../include
     
     ${CMAKE_CURRENT_SOURCE_DIR}/../../mcell_tools/work/build_mcell/deps/
     ${CMAKE_CURRENT_SOURCE_DIR}/../libs  

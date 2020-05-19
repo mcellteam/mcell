@@ -67,9 +67,9 @@ rel_a = m.ReleaseSite(
     name = 'rel_a',
     species = a,
     shape = m.Shape.Spherical, # second option is shape which accepts geometry object or region?, or use names?
-    #location = m.Vec3(0, 0, 0),
-    #number_to_release = 100,
-    #release_probability = 1
+    location = m.Vec3(0, 0, 0),
+    number_to_release = 100,
+    release_probability = 1
 )
  
 rel_b = m.ReleaseSite(

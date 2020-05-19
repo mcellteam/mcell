@@ -40,6 +40,10 @@ public:
   void convert(Model* model_, World* world_);
 
 private:
+
+  void convert_simulation_setup();
+  void convert_species();
+
   Model* model;
   World* world;
 };

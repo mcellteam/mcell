@@ -81,6 +81,32 @@ static inline bool cmp_eq(float_t a, float_t b) {
   return cmp_eq(a, b, EPS);
 }
 
+// returns true when whether two values are measurably different
+static inline bool distinguishable_f(float_t a, float_t b, float_t eps) {
+  float_t c = fabs_f(a - b);
+  a = fabs_f(a);
+  if (a < 1) {
+    a = 1;
+  }
+  b = fabs_f(b);
+
+  if (b < a) {
+    eps *= a;
+  } else {
+    eps *= b;
+  }
+  return (c > eps);
+}
+
+static inline float_t sqrt_f(const float_t x) {
+#if FLOAT_T_BYTES == 8
+  return sqrt(x);
+#else
+  return sqrtf(x);
+#endif
+}
+
+
 } // namespace BNGCommon
 
 

@@ -18,6 +18,8 @@ using BNGCommon::BNG_N_AV;
 using BNGCommon::FLT_GIGANTIC;
 using BNGCommon::fabs_f;
 using BNGCommon::cmp_eq;
+using BNGCommon::distinguishable_f;
+using BNGCommon::sqrt_f;
 
 typedef uint state_id_t;
 const state_id_t STATE_ID_INVALID = UINT32_MAX;

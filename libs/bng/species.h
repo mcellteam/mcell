@@ -79,6 +79,9 @@ public:
         get_flags() == s2.get_flags();
   }
 
+  // for initialization
+  void update_space_and_time_step(const float_t time_unit, const float_t length_unit);
+
   // ^^^^^^^^^^ MCell-specific ^^^^^^^^^^
 };
 
