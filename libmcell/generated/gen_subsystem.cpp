@@ -38,7 +38,7 @@ py::class_<Subsystem> define_pybinding_Subsystem(py::module& m) {
       )
       .def("add_species", &Subsystem::add_species, py::arg("s"))
       .def("find_species", &Subsystem::find_species, py::arg("name"))
-      .def("add_reaction_rule", &Subsystem::add_reaction_rule, py::arg("s"))
+      .def("add_reaction_rule", &Subsystem::add_reaction_rule, py::arg("r"))
       .def("find_reaction_rule", &Subsystem::find_reaction_rule, py::arg("name"))
       .def("dump", &Subsystem::dump)
       .def_property("reaction_rules", &Subsystem::get_reaction_rules, &Subsystem::set_reaction_rules)

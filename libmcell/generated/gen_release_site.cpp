@@ -43,6 +43,7 @@ std::string GenReleaseSite::to_str(const std::string ind) const {
   ss << get_object_name() << ": " <<
       "name=" << name << ", " <<
       "\n" << ind + "  " << "species=" << "(" << ((species != nullptr) ? species->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "initial_orientation=" << initial_orientation << ", " <<
       "shape=" << shape << ", " <<
       "location=" << location << ", " <<
       "site_diameter=" << site_diameter << ", " <<
@@ -57,6 +58,7 @@ bool GenReleaseSite::__eq__(const GenReleaseSite& other) const {
     name == other.name &&
     name == other.name &&
     species->__eq__(*other.species) &&
+    initial_orientation == other.initial_orientation &&
     shape == other.shape &&
     location == other.location &&
     site_diameter == other.site_diameter &&
@@ -76,6 +78,7 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
           py::init<
             const std::string&,
             std::shared_ptr<Species>,
+            const Orientation,
             const Shape,
             const Vec3&,
             const float_t,
@@ -85,6 +88,7 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
           >(),
           py::arg("name"),
           py::arg("species"),
+          py::arg("initial_orientation") = Orientation::None,
           py::arg("shape") = Shape::Unset,
           py::arg("location") = VEC3_UNSET,
           py::arg("site_diameter") = FLT_UNSET,
@@ -97,6 +101,7 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
       .def("dump", &ReleaseSite::dump)
       .def_property("name", &ReleaseSite::get_name, &ReleaseSite::set_name)
       .def_property("species", &ReleaseSite::get_species, &ReleaseSite::set_species)
+      .def_property("initial_orientation", &ReleaseSite::get_initial_orientation, &ReleaseSite::set_initial_orientation)
       .def_property("shape", &ReleaseSite::get_shape, &ReleaseSite::set_shape)
       .def_property("location", &ReleaseSite::get_location, &ReleaseSite::set_location)
       .def_property("site_diameter", &ReleaseSite::get_site_diameter, &ReleaseSite::set_site_diameter)

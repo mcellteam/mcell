@@ -30,15 +30,15 @@ namespace MCell {
 namespace API {
 
 void GenVizOutput::check_semantics() const {
-  if (!is_set(filename)) {
-    throw ValueError("Parameter 'filename' must be set.");
+  if (!is_set(filename_prefix)) {
+    throw ValueError("Parameter 'filename_prefix' must be set.");
   }
 }
 
 std::string GenVizOutput::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
-      "filename=" << filename << ", " <<
+      "filename_prefix=" << filename_prefix << ", " <<
       "\n" << ind + "  " << "species_list=" << vec_ptr_to_str(species_list, ind + "  ") << ", " << "\n" << ind + "  " <<
       "mode=" << mode << ", " <<
       "every_n_timesteps=" << every_n_timesteps;
@@ -48,7 +48,7 @@ std::string GenVizOutput::to_str(const std::string ind) const {
 bool GenVizOutput::__eq__(const GenVizOutput& other) const {
   return
     name == other.name &&
-    filename == other.filename &&
+    filename_prefix == other.filename_prefix &&
     vec_ptr_eq(species_list, other.species_list) &&
     mode == other.mode &&
     every_n_timesteps == other.every_n_timesteps;
@@ -68,7 +68,7 @@ py::class_<VizOutput> define_pybinding_VizOutput(py::module& m) {
             const VizMode,
             const int
           >(),
-          py::arg("filename"),
+          py::arg("filename_prefix"),
           py::arg("species_list") = std::vector<std::shared_ptr<Species>>(),
           py::arg("mode") = VizMode::Ascii,
           py::arg("every_n_timesteps") = 1
@@ -76,7 +76,7 @@ py::class_<VizOutput> define_pybinding_VizOutput(py::module& m) {
       .def("check_semantics", &VizOutput::check_semantics)
       .def("__str__", &VizOutput::to_str, py::arg("ind") = std::string(""))
       .def("dump", &VizOutput::dump)
-      .def_property("filename", &VizOutput::get_filename, &VizOutput::set_filename)
+      .def_property("filename_prefix", &VizOutput::get_filename_prefix, &VizOutput::set_filename_prefix)
       .def_property("species_list", &VizOutput::get_species_list, &VizOutput::set_species_list)
       .def_property("mode", &VizOutput::get_mode, &VizOutput::set_mode)
       .def_property("every_n_timesteps", &VizOutput::get_every_n_timesteps, &VizOutput::set_every_n_timesteps)
