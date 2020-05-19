@@ -38,6 +38,7 @@ class Partition;
 class Wall;
 class Grid;
 
+// TODO: replace with defines from API
 enum class ReleaseShape {
   UNDEFINED = -1,  /* Not specified */
   SPHERICAL,       /* Volume enclosed by a sphere */

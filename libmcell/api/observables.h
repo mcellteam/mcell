@@ -23,8 +23,11 @@
 #ifndef API_OBSERVABLES_H
 #define API_OBSERVABLES_H
 
-#include "../generated/gen_observables.h"
-#include "../api/common.h"
+#include "generated/gen_observables.h"
+#include "api/common.h"
+#include "api/api_utils.h"
+#include "api/viz_output.h"
+#include "api/count.h"
 
 namespace MCell {
 namespace API {
@@ -32,8 +35,13 @@ namespace API {
 class Observables: public GenObservables {
 public:
 
-  void add_viz_output(std::shared_ptr<VizOutput> viz_output) override {};
-  void add_count(std::shared_ptr<Count> count) override {};
+  void add_viz_output(std::shared_ptr<VizOutput> viz_output) override {
+    append_to_vec(viz_outputs, viz_output);
+  };
+
+  void add_count(std::shared_ptr<Count> count) override {
+    append_to_vec(counts, count);
+  };
 
   // added manually
   void dump() const {}

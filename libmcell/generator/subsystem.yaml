@@ -173,7 +173,7 @@ Subsystem:
       
   - name: add_reaction_rule
     params:
-    - name: s
+    - name: r
       type: ReactionRule*
       
   - name: find_reaction_rule  

@@ -90,7 +90,7 @@ inst.instantiate_release_site(rel_b) # TODO: lists will be allowed as well
 
 viz_output = m.VizOutput(
     mode = m.VizMode.Ascii,
-    filename = './viz_data/seed_' + str(SEED) + '/Scene',
+    filename_prefix = './viz_data/seed_' + str(SEED) + '/Scene',
     species_list = [a, b, c], # how top put 'all'?, maybe let's keep it explicit for now
     # species_patterns = [ '*' ] - do we want string pattern matching wildcards?, what about just BNG patterns?
     every_n_timesteps = 1 # do we need range? 

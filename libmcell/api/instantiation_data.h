@@ -23,8 +23,11 @@
 #ifndef API_INSTANTIATION_DATA_H
 #define API_INSTANTIATION_DATA_H
 
-#include "../generated/gen_instantiation_data.h"
-#include "../api/common.h"
+#include "generated/gen_instantiation_data.h"
+#include "api/common.h"
+#include "api/api_utils.h"
+#include "api/release_site.h"
+#include "api/geometry_object.h"
 
 namespace MCell {
 namespace API {
@@ -33,10 +36,24 @@ class InstantiationData: public GenInstantiationData {
 public:
 
   // from generated template
-  void instantiate_release_site(std::shared_ptr<ReleaseSite> s) override {}
-  std::shared_ptr<ReleaseSite> find_release_site(const std::string& name) override {return nullptr;}
-  void instantiate_geometry_object(std::shared_ptr<GeometryObject> o, const std::string& name = "") override {}
-  void find_geometry_object(const std::string& name) override {}
+  void add_release_site(std::shared_ptr<ReleaseSite> s) override {
+    append_to_vec(release_sites, s);
+  }
+
+  std::shared_ptr<ReleaseSite> find_release_site(const std::string& name) override {
+    assert(false && "TODO");
+    return nullptr;
+  }
+
+  void add_geometry_object(std::shared_ptr<GeometryObject> o, const std::string& name = "") override {
+    assert(name == "");
+    append_to_vec(geometry_objects, o);
+  }
+
+  std::shared_ptr<GeometryObject> find_geometry_object(const std::string& name) override {
+    assert(false && "TODO");
+    return nullptr;
+  }
 
   // added manually
   void dump() const;

@@ -1305,7 +1305,6 @@ bool MCell3WorldConverter::convert_viz_output_events(volume* s) {
   CHECK_PROPERTY(frame_data_head->n_viz_iterations > 0);
 
   float_t periodicity;
-  float_t start_time;
 
   if (frame_data_head->n_viz_iterations > 1) {
     num_expr_list* iteration_ptr = frame_data_head->iteration_list;

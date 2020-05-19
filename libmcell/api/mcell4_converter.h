@@ -44,6 +44,9 @@ private:
   void convert_simulation_setup();
   void convert_species();
 
+  void convert_release_events();
+  void convert_viz_output_events();
+
   Model* model;
   World* world;
 };

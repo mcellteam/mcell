@@ -55,7 +55,7 @@ public:
   // --- methods ---
   virtual void add_species(std::shared_ptr<Species> s) = 0;
   virtual std::shared_ptr<Species> find_species(const std::string& name) = 0;
-  virtual void add_reaction_rule(std::shared_ptr<ReactionRule> s) = 0;
+  virtual void add_reaction_rule(std::shared_ptr<ReactionRule> r) = 0;
   virtual std::shared_ptr<ReactionRule> find_reaction_rule(const std::string& name) = 0;
 }; // GenSubsystem
 

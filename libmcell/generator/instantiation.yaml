@@ -11,6 +11,12 @@ ReleaseSite:
       The named molecule is the one that will be released. Not used for  the 'list' shape. You must specify an orientation 
       if the molecule is a surface molecule.
 
+  - name: initial_orientation
+    type: Orientation
+    default: Orientation.None
+    doc: |
+      Must be set if the species represent surface molecules.
+
   - name: shape
     type: Shape
     default: Shape.Unset
@@ -86,7 +92,7 @@ InstantiationData:
     default: empty
 
   methods:
-  - name: instantiate_release_site
+  - name: add_release_site
     doc: Makes a copy of the release site
     params:
     - name: s
@@ -98,7 +104,7 @@ InstantiationData:
     - name: name
       type: str
       
-  - name: instantiate_geometry_object
+  - name: add_geometry_object
     doc: Makes a copy of the geometry object, in the future we will probably add some transformations
     params:
     - name: o
@@ -110,6 +116,7 @@ InstantiationData:
       doc: When name is not set, the name of the object is used
       
   - name: find_geometry_object
+    return_type: GeometryObject*
     params:
     - name: name
       type: str

@@ -2,7 +2,7 @@
 VizOutput:
   superclass: BaseDataClass
   items:
-  - name: filename
+  - name: filename_prefix
     type: str
 
   - name: species_list
