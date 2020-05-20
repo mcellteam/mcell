@@ -35,7 +35,7 @@ namespace API {
         const float_t time_step_ = 1e-6, \
         const float_t surface_grid_density_ = 10000, \
         const float_t interaction_radius_ = FLT_UNSET, \
-        const float_t vacancy_search_distance_ = 0, \
+        const float_t vacancy_search_distance_ = 1e+6, \
         const bool center_molecules_on_grid_ = false, \
         const bool microscopic_reversibility_ = false, \
         const float_t partition_dimension_ = 10, \
