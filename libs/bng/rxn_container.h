@@ -59,7 +59,7 @@ public:
   ~RxnContainer();
 
   // this method is supposed to be used only during initialization
-  void add_finalized_no_update(const RxnRule& r) {
+  rxn_rule_id_t add_finalized_no_update(const RxnRule& r) {
     // TODO LATER: check that we don't have this rule already
 
     // store a copy
@@ -67,6 +67,7 @@ public:
     new_r->id = rxn_rules.size();
     new_r->finalize();
     rxn_rules.push_back(new_r);
+    return new_r->id;
   }
 
   RxnClass* get_unimol_rxn_class(const species_id_t id) {

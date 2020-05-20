@@ -28,11 +28,7 @@
 #include "rng.h"
 #include "bng/bng.h"
 
-
-#include "api/config.h"
-#include "api/species.h"
-#include "api/release_site.h"
-#include "api/viz_output.h"
+#include "api/mcell.h"
 
 using namespace std;
 
@@ -82,6 +78,8 @@ void MCell4Converter::convert(Model* model_, World* world_) {
   partition_id_t index = world->add_partition(Vec3(0, 0, 0));
   assert(index == PARTITION_ID_INITIAL);
 
+  convert_geometry_objects();
+
   convert_release_events();
 
   convert_viz_output_events();
@@ -89,7 +87,7 @@ void MCell4Converter::convert(Model* model_, World* world_) {
 
 
 void MCell4Converter::convert_simulation_setup() {
-  const Config& config = model->config;
+  const API::Config& config = model->config;
 
   if (config.microscopic_reversibility) {
     throw ValueError("Setting config.microscopic_reversibility to True is not supported yet.");
@@ -278,12 +276,67 @@ void MCell4Converter::convert_rxns() {
       rxn_rev.products = rxn.reactants;
     }
 
-    // add reaction(s)
-    world->get_all_rxns().add_finalized_no_update(rxn);
+    // add reaction(s) and remember mapping
+    r->fwd_rxn_rule_id = world->get_all_rxns().add_finalized_no_update(rxn);
 
     if (is_reversible) {
-      world->get_all_rxns().add_finalized_no_update(rxn_rev);
+      r->rev_rxn_rule_id = world->get_all_rxns().add_finalized_no_update(rxn_rev);
     }
+  }
+}
+
+
+wall_index_t MCell4Converter::convert_wall_and_add_to_geom_object(
+    const API::GeometryObject& src_obj, const uint side,
+    MCell::Partition& p, MCell::GeometryObject& dst_obj) {
+
+  assert(src_obj.element_connections[side].size() == 3);
+
+  Wall& wall = p.add_uninitialized_wall(world->get_next_wall_id());
+
+  wall.object_id = dst_obj.id;
+  wall.object_index = dst_obj.index;
+  wall.side = side;
+
+  for (uint i = 0; i < VERTICES_IN_TRIANGLE; i++) {
+    wall.vertex_indices[i] = src_obj.vertex_indices[src_obj.element_connections[side][i]];
+  }
+
+  wall.precompute_wall_constants(p);
+
+  dst_obj.wall_indices.push_back(wall.index);
+  return wall.index;
+}
+
+
+void MCell4Converter::convert_geometry_objects() {
+  MCell::Partition& p = world->get_partition(0); // only partition 0 is supported for now
+
+  for (std::shared_ptr<API::GeometryObject>& o: model->geometry_objects) {
+
+    MCell::GeometryObject& obj = p.add_uninitialized_geometry_object(world->get_next_geometry_object_id());
+
+    obj.name = o->name;
+    obj.parent_name = ""; // empty, we do not really care
+
+    // vertices
+    for (auto& v: o->vertex_list) {
+      // add to partition and remember its index
+      vertex_index_t vi = p.add_or_find_geometry_vertex(Vec3(v[0], v[1], v[2]) / Vec3(world->config.length_unit));
+      o->vertex_indices.push_back(vi);
+    }
+
+    // walls (validity of indices is checked in API::GeometryObject::check_semantics)
+    for (size_t i = 0; i < o->element_connections.size(); i++) {
+      wall_index_t wi = convert_wall_and_add_to_geom_object(*o, i, p, obj);
+      o->wall_indices.push_back(wi);
+    }
+
+    // initialize edges
+    obj.initialize_neighboring_walls_and_their_edges(p);
+
+    // regions
+    assert(o->surface_regions.empty() && "TODO");
   }
 }
 
@@ -292,7 +345,7 @@ void MCell4Converter::convert_release_events() {
   // only initial support without any geometries
 
   for (std::shared_ptr<API::ReleaseSite>& r: model->release_sites) {
-    ReleaseEvent* rel_event = new ReleaseEvent(world);
+    MCell::ReleaseEvent* rel_event = new ReleaseEvent(world);
 
     // release patterns are not supported yet
     rel_event->release_site_name = r->name;
@@ -329,7 +382,7 @@ void MCell4Converter::convert_release_events() {
 
 void MCell4Converter::convert_viz_output_events() {
   for (std::shared_ptr<API::VizOutput>& v: model->viz_outputs) {
-    VizOutputEvent* viz_event = new VizOutputEvent(world);
+    MCell::VizOutputEvent* viz_event = new VizOutputEvent(world);
 
     viz_event->event_time = 0.0;
     viz_event->periodicity_interval = v->every_n_timesteps;
@@ -343,7 +396,6 @@ void MCell4Converter::convert_viz_output_events() {
     world->scheduler.schedule_event(viz_event);
   }
 }
-
 
 
 } // namespace API

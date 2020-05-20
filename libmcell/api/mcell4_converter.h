@@ -23,6 +23,9 @@
 #ifndef LIBMCELL_API_MCELL4_CONVERTER_H_
 #define LIBMCELL_API_MCELL4_CONVERTER_H_
 
+#include <vector>
+#include "defines.h"
+
 namespace BNG {
 class ComponentType;
 class ComponentInstance;
@@ -34,6 +37,8 @@ class CplxInstance;
 namespace MCell {
 
 class World;
+class Partition;
+class GeometryObject;
 
 namespace API {
 
@@ -44,6 +49,7 @@ class ComponentInstance;
 class MoleculeType;
 class MoleculeInstance;
 class ComplexInstance;
+class GeometryObject;
 
 class MCell4Converter {
 public:
@@ -55,6 +61,7 @@ public:
 private:
 
   void convert_simulation_setup();
+
   void convert_species();
 
   BNG::ComponentType convert_component_type(API::ComponentType& ct);
@@ -64,7 +71,14 @@ private:
   BNG::CplxInstance convert_complex_instance(API::ComplexInstance& inst);
   void convert_rxns();
 
+  wall_index_t convert_wall_and_add_to_geom_object(
+      const API::GeometryObject& src_obj, const uint side,
+      MCell::Partition& p, MCell::GeometryObject& dst_obj);
+
+  void convert_geometry_objects();
+
   void convert_release_events();
+
   void convert_viz_output_events();
 
   Model* model;

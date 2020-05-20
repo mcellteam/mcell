@@ -304,3 +304,13 @@ static inline void reset_rusage(rusage* r) {
   r->ru_stime.tv_sec = 0;
   r->ru_stime.tv_usec = 0;
 }
+
+
+#ifndef ISAAC64_H
+/* These guys come in for free if we're using Jenkins' random numbers */
+typedef uint32_t ub4;      /* unsigned 4-byte quantities */
+typedef unsigned char ub1; /* unsigned 1-byte quantities */
+#endif
+
+ub4 jenkins_hash(ub1 *sym, ub4 length);
+

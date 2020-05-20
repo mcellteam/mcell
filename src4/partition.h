@@ -442,6 +442,17 @@ public:
     return index;
   }
 
+  vertex_index_t add_or_find_geometry_vertex(const Vec3 pos) {
+    // using exact comparison
+    auto it = std::find(geometry_vertices.begin(), geometry_vertices.end(), pos);
+    if (it == geometry_vertices.end()) {
+      return add_geometry_vertex(pos);
+    }
+    else {
+      return it - geometry_vertices.begin();
+    }
+  }
+
   void remove_last_vertex(const vertex_index_t vertex_index) {
     assert(vertex_index == geometry_vertices.size() - 1 && "Check that we are removing known vertex failed");
     geometry_vertices.pop_back();

@@ -23,8 +23,9 @@
 #ifndef API_GEOMETRY_OBJECT_H
 #define API_GEOMETRY_OBJECT_H
 
-#include "../generated/gen_geometry_object.h"
-#include "../api/common.h"
+#include "generated/gen_geometry_object.h"
+#include "api/common.h"
+#include "defines.h"
 
 namespace MCell {
 namespace API {
@@ -32,6 +33,10 @@ namespace API {
 class GeometryObject: public GenGeometryObject {
 public:
   GEOMETRY_OBJECT_CTOR()
+
+  void postprocess_in_ctor() {
+    partition_id = PARTITION_ID_INVALID;
+  }
 
   void check_semantics() const override {
     for (auto& v: vertex_list) {
@@ -57,6 +62,11 @@ public:
       }
     }
   }
+
+  // simulation engine mapping
+  partition_id_t partition_id;
+  std::vector<vertex_index_t> vertex_indices; // vertex_list[i] has vertex index vertex_indices[i]
+  std::vector<wall_index_t> wall_indices; // element_connections[i] has wall index wall_indices[i]
 };
 
 } // namespace API

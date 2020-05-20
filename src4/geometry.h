@@ -71,6 +71,8 @@ public:
   // valid only if is_counted_volume is true
   vtkSmartPointer<vtkPolyData> counted_volume_polydata;
 
+  void initialize_neighboring_walls_and_their_edges(Partition& p);
+
   // p must be the partition that contains this object
   void dump(const Partition& p, const std::string ind) const;
   static void dump_array(const Partition& p, const std::vector<GeometryObject>& vec);
@@ -392,8 +394,6 @@ public:
     assert(!has_initialized_grid());
     grid.initialize(p, *this);
   }
-
-  void update_after_vertex_change(Partition& p);
 };
 
 

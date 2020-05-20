@@ -29,6 +29,7 @@
 #include "isaac64.h"
 #include "mcell_structs.h"
 #include "logging.h"
+#include "wall_util.h"
 
 #include "partition.h"
 #include "geometry.h"
@@ -39,6 +40,317 @@
 using namespace std;
 
 namespace MCell {
+
+// TODO: replace int with wall_index_t where possible
+
+/***************************************************************************
+compatible_edges:
+  In: array of pointers to walls
+      index of first wall
+      index of edge in first wall
+      index of second wall
+      index of edge in second wall
+  Out: 1 if the edge joins the two walls
+       0 if not (i.e. the wall doesn't contain the edge or the edge is
+       traversed in the same direction in each or the two walls are
+       actually the same wall)
+***************************************************************************/
+static int compatible_edges(
+    const Partition& p,
+    const vector<wall_index_t>& faces, int wA, int eA, int wB, int eB) {
+
+  const Vec3 *vA0, *vA1, *vA2, *vB0, *vB1, *vB2;
+
+  const Wall& wall_a = p.get_wall(faces[wA]);
+  const Wall& wall_b = p.get_wall(faces[wB]);
+
+  if ((wA < 0) || (eA < 0) || (wB < 0) || (eB < 0))
+    return 0;
+
+  vA0 = &p.get_wall_vertex(wall_a, eA);
+  if (eA == 2) {
+    vA1 = &p.get_wall_vertex(wall_a, 0);
+  }
+  else {
+    vA1 = &p.get_wall_vertex(wall_a, eA + 1);
+  }
+
+  if (eA == 0) {
+    vA2 = &p.get_wall_vertex(wall_a, 2);
+  }
+  else {
+    vA2 = &p.get_wall_vertex(wall_a, eA - 1);
+  }
+
+  vB0 = &p.get_wall_vertex(wall_b, eB);
+  if (eB == 2) {
+    vB1 = &p.get_wall_vertex(wall_b, 0);
+  }
+  else {
+    vB1 = &p.get_wall_vertex(wall_b, eB + 1);
+  }
+
+  if (eB == 0) {
+    vB2 = &p.get_wall_vertex(wall_b, 2);
+  }
+  else {
+    vB2 = &p.get_wall_vertex(wall_b, eB - 1);
+  }
+
+  return ((vA0 == vB1 && vA1 == vB0 && vA2 != vB2) ||
+          (vA0->x == vB1->x && vA0->y == vB1->y && vA0->z == vB1->z &&
+           vA1->x == vB0->x && vA1->y == vB0->y && vA1->z == vB0->z &&
+           !(vA2->x == vB2->x && vA2->y == vB2->y && vA2->z == vB2->z)));
+}
+
+
+/*****************************************************************************
+ have_common_region checks if wall1 and wall2 located on the (same) object
+ are part of a common region or not
+******************************************************************************/
+static bool have_common_region(
+    const Partition& p, const GeometryObject& obj, int wall1, int wall2) {
+
+  const Wall& w1 = p.get_wall(obj.wall_indices[wall1]);
+  const Wall& w2 = p.get_wall(obj.wall_indices[wall2]);
+
+  for (region_index_t index: w1.regions) {
+    if (w2.regions.count(index) == 1) {
+      return true;
+    }
+  }
+  return false;
+}
+
+
+/***************************************************************************
+refine_edge_pairs:
+  In: the head of a linked list of shared edges
+      array of pointers to walls
+  Out: No return value.  The best-matching pair of edges percolates up
+       to be first in the list.  "Best-matching" means that the edge
+       is traversed in different directions by each face, and that the
+       normals of the two faces are as divergent as possible.
+***************************************************************************/
+static void refine_edge_pairs(
+    const Partition& p, const GeometryObject& obj, poly_edge *pe, const vector<wall_index_t>& faces) {
+
+#define TSWAP(x, y) temp = (x); (x) = (y); (y) = temp
+
+  int temp;
+
+  float_t best_align = 2;
+  bool share_region = false;
+  poly_edge* best_p1 = pe;
+  poly_edge* best_p2 = pe;
+  int best_n1 = 1;
+  int best_n2 = 2;
+
+  poly_edge* p1 = pe;
+  int n1 = 1;
+  while (p1 != NULL && p1->n >= n1) {
+    int wA, eA;
+    if (n1 == 1) {
+      wA = p1->face[0];
+      eA = p1->edge[0];
+    } else {
+      wA = p1->face[1];
+      eA = p1->edge[1];
+    }
+
+    poly_edge* p2;
+    int n2;
+    if (n1 == 1) {
+      n2 = n1 + 1;
+      p2 = p1;
+    } else {
+      n2 = 1;
+      p2 = p1->next;
+    }
+    while (p2 != NULL && p2->n >= n2) {
+      int wB, eB;
+      if (n2 == 1) {
+        wB = p2->face[0];
+        eB = p2->edge[0];
+      } else {
+        wB = p2->face[1];
+        eB = p2->edge[1];
+      }
+
+      // as soon as we hit an incompatible edge we can break out of the p2 loop
+      // and continue scanning the next p1
+      if (compatible_edges(p, faces, wA, eA, wB, eB)) {
+        const Wall& wall_a = p.get_wall(wA);
+        const Wall& wall_b = p.get_wall(wB);
+        assert(wall_a.wall_constants_precomputed);
+        assert(wall_b.wall_constants_precomputed);
+
+        float_t align = dot(wall_a.normal, wall_b.normal);
+
+        // as soon as two walls have a common region we only consider walls who
+        // share (any) region. We need to reset the best_align to make sure we
+        // don't pick any wall that don't share a region discovered previously
+        bool common_region = have_common_region(p, obj, wA, wB);
+        if (common_region) {
+          if (!share_region) {
+            best_align = 2;
+          }
+          share_region = true;
+        }
+
+        if (common_region || !share_region) {
+          if (align < best_align) {
+            best_p1 = p1;
+            best_p2 = p2;
+            best_n1 = n1;
+            best_n2 = n2;
+            best_align = align;
+          }
+        }
+      } else {
+        break;
+      }
+
+      if (n2 == 1)
+        n2++;
+      else {
+        p2 = p2->next;
+        n2 = 1;
+      }
+    }
+
+    if (n1 == 1)
+      n1++;
+    else {
+      p1 = p1->next;
+      n1 = 1;
+    }
+  }
+
+  /* swap best match into top spot */
+  if (best_align > 1.0)
+    return; /* No good pairs. */
+
+  TSWAP(best_p1->face[best_n1-1], pe->face[0]);
+  TSWAP(best_p1->edge[best_n1-1], pe->edge[0]);
+  TSWAP(best_p2->face[best_n2-1], pe->face[1]);
+  TSWAP(best_p2->edge[best_n2-1], pe->edge[1]);
+
+#undef TSWAP
+}
+
+/***************************************************************************
+surface_net:
+  In: array of pointers to walls
+      integer length of array
+  Out: -1 if the surface is a manifold, 0 if it is not, 1 on malloc failure
+       Walls end up connected across their edges.
+  Note: Two edges must have their vertices listed in opposite order (i.e.
+        connect two faces pointing the same way) to be linked.  If more than
+        two faces share the same edge and can be linked, the faces with
+        normals closest to each other will be linked.  We do not assume that
+        the object is connected.  All pieces must be a manifold, however,
+        for the entire object to be a manifold.  (That is, there must not
+        be any free edges anywhere.)  It is possible to build weird, twisty
+        self-intersecting things.  The behavior of these things during a
+        simulation is not guaranteed to be well-defined.
+***************************************************************************/
+static int surface_net(Partition& p, GeometryObject& obj) {
+
+  uint nfaces = obj.wall_indices.size();
+  vector<wall_index_t> facelist = obj.wall_indices;
+
+  Edge *e;
+  int is_closed = 1;
+
+  struct edge_hashtable eht;
+  int nkeys = (3 * nfaces) / 2;
+  if (ehtable_init(&eht, nkeys))
+    return 1;
+
+  for (uint face_index = 0; face_index < nfaces; face_index++) {
+
+    Wall& w = p.get_wall(facelist[face_index]);
+
+    int k;
+    int nedge = 3;
+
+    for (int j = 0; j < nedge; j++) {
+
+      if (j + 1 < nedge)
+        k = j + 1;
+      else
+        k = 0;
+
+      struct poly_edge pe;
+      const Vec3& vert_j = p.get_wall_vertex(w, facelist[j]);
+      pe.v1x = vert_j.x;
+      pe.v1y = vert_j.y;
+      pe.v1z = vert_j.z;
+      const Vec3& vert_k = p.get_wall_vertex(w, facelist[k]);
+      pe.v2x = vert_k.x;
+      pe.v2y = vert_k.y;
+      pe.v2z = vert_k.z;
+      pe.face[0] = face_index;
+      pe.edge[0] = j;
+
+      if (ehtable_add(&eht, &pe))
+        return 1;
+    }
+  }
+
+  for (int i = 0; i < nkeys; i++) {
+    struct poly_edge *pep = (eht.data + i);
+    while (pep != NULL) {
+      if (pep->n > 2) {
+        refine_edge_pairs(p, obj, pep, facelist);
+      }
+      if (pep->n >= 2) {
+        if (pep->face[0] != -1 && pep->face[1] != -1) {
+          if (compatible_edges(p, facelist, pep->face[0], pep->edge[0], pep->face[1], pep->edge[1])) {
+
+            Wall& face0 = p.get_wall(pep->face[0]);
+            Wall& face1 = p.get_wall(pep->face[1]);
+
+            face0.nb_walls[pep->edge[0]] = facelist[pep->face[1]];
+            face1.nb_walls[pep->edge[1]] = facelist[pep->face[0]];
+
+            Edge e;
+            e.forward_index = facelist[pep->face[0]];
+            e.backward_index = facelist[pep->face[1]];
+            e.edge_num_used_for_init = pep->edge[0];
+
+            assert(face0.wall_constants_precomputed);
+            assert(face1.wall_constants_precomputed);
+            e.reinit_edge_constants(p);
+
+            face0.edges[pep->edge[0]] = e;
+            face1.edges[pep->edge[1]] = e;
+          }
+
+        } else {
+          is_closed = 0;
+        }
+      } else if (pep->n == 1) {
+        is_closed = 0;
+        Edge e;
+
+        e.forward_index = facelist[pep->face[0]];
+        e.backward_index = WALL_INDEX_INVALID;
+        /* Don't call reinit_edge_constants unless both edges are set */
+      }
+      pep = pep->next;
+    }
+  }
+
+  ehtable_kill(&eht);
+  return -is_closed; /* We use 1 to indicate malloc failure so return 0/-1 */
+}
+
+
+void GeometryObject::initialize_neighboring_walls_and_their_edges(Partition& p) {
+  surface_net(p, *this);
+}
 
 
 void GeometryObject::dump(const Partition& p, const std::string ind) const {

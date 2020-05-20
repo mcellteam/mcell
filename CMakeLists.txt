@@ -251,6 +251,7 @@ set(SOURCE_FILES
     src/vol_util.c
     src/volume_output.c
     src/wall_util.c
+    src/edge_util.c
     
     src/dump_state.cpp
     src/mdl2datamodel.cpp
@@ -351,7 +352,10 @@ add_library(pymcell4 SHARED
     src/mem_util.c
     src/strfunc.c
     src/util.c
-    
+    src/edge_util.c
+    src/sym_table.c
+    src/vector.c
+        
     libmcell/api/exports.cpp
 )
 add_dependencies(pymcell4 libmcell mcell4 bng jsoncpp_lib)

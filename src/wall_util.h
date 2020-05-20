@@ -25,30 +25,8 @@
 
 #include "mcell_structs.h"
 
-/* Temporary data stored about an edge of a polygon */
-struct poly_edge {
-  struct poly_edge *next; /* Next edge in a hash table. */
+#include "edge_util.h"
 
-  double v1x; /* X coord of starting point */
-  double v1y; /* Y coord of starting point */
-  double v1z; /* Z coord of starting point */
-  double v2x; /* X coord of ending point */
-  double v2y; /* Y coord of ending point */
-  double v2z; /* Z coord of ending point */
-
-  int face[2]; /* wall indices on side of edge */
-  int edge[2]; /* which edge of wall1/2 are we? */
-  int n;     /* How many walls share this edge? */
-};
-
-/* Hash table for rapid order-invariant lookup of edges. */
-struct edge_hashtable {
-  struct poly_edge *data; /* Array of polygon edges */
-
-  int nkeys;    /* Length of array */
-  int stored;   /* How many things do we have in the table? */
-  int distinct; /* How many of those are distinct? */
-};
 
 /* This linked list node is used in walls overlap test */
 struct wall_aux_list {
@@ -63,13 +41,6 @@ struct plane {
   double d; /* d = dot_prod(n,p) for a given point p on
                the plane */
 };
-
-int edge_equals(struct poly_edge *e1, struct poly_edge *e2);
-int edge_hash(struct poly_edge *pe, int nkeys);
-
-int ehtable_init(struct edge_hashtable *eht, int nkeys);
-int ehtable_add(struct edge_hashtable *eht, struct poly_edge *pe);
-void ehtable_kill(struct edge_hashtable *eht);
 
 int surface_net(struct wall **facelist, int nfaces);
 void init_edge_transform(struct edge *e, int edgenum);
