@@ -63,11 +63,11 @@ class GenWarnings: public BaseDataClass {
 public:
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
-  std::string to_str(const std::string ind="") const override;
-
   void set_initialized() override;
 
   bool __eq__(const GenWarnings& other) const;
+  std::string to_str(const std::string ind="") const override;
+
   // --- attributes ---
   WarningLevel molecule_collision_report;
   virtual void set_molecule_collision_report(const WarningLevel new_molecule_collision_report_) {

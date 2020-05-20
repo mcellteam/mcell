@@ -95,9 +95,23 @@ void Model::run_iterations(const long iterations) {
 }
 
 
+std::string Model::to_str(const std::string ind) const {
+  std::stringstream ss;
+  ss << "Model" << ": " <<
+      "\n" << ind + "  " <<
+      //"config=" << "(" << ((config != nullptr) ? config->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      //"warnings=" << "(" << ((warnings != nullptr) ? warnings->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      //"notifications=" << "(" << ((notifications != nullptr) ? notifications->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "reaction_rules=" << vec_ptr_to_str(reaction_rules, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "species=" << vec_ptr_to_str(species, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "release_sites=" << vec_ptr_to_str(release_sites, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "geometry_objects=" << vec_ptr_to_str(geometry_objects, ind + "  ");
+  return ss.str();
+}
+
+
 void Model::dump() const {
-  // TODO
-  // std::cout << to_str() << "\n";
+  cout << to_str();
 }
 
 }

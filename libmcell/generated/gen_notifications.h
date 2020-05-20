@@ -57,11 +57,11 @@ class GenNotifications: public BaseDataClass {
 public:
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
-  std::string to_str(const std::string ind="") const override;
-
   void set_initialized() override;
 
   bool __eq__(const GenNotifications& other) const;
+  std::string to_str(const std::string ind="") const override;
+
   // --- attributes ---
   bool probability_report;
   virtual void set_probability_report(const bool new_probability_report_) {

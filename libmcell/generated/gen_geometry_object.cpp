@@ -41,16 +41,6 @@ void GenGeometryObject::check_semantics() const {
   }
 }
 
-std::string GenGeometryObject::to_str(const std::string ind) const {
-  std::stringstream ss;
-  ss << get_object_name() << ": " <<
-      "name=" << name << ", " <<
-      "vertex_list=" << vec_nonptr_to_str(vertex_list, ind + "  ") << ", " <<
-      "element_connections=" << vec_nonptr_to_str(element_connections, ind + "  ") << ", " <<
-      "\n" << ind + "  " << "surface_regions=" << vec_ptr_to_str(surface_regions, ind + "  ");
-  return ss.str();
-}
-
 bool GenGeometryObject::__eq__(const GenGeometryObject& other) const {
   return
     name == other.name &&
@@ -63,6 +53,16 @@ bool GenGeometryObject::__eq__(const GenGeometryObject& other) const {
 void GenGeometryObject::set_initialized() {
   vec_set_initialized(surface_regions);
   initialized = true;
+}
+
+std::string GenGeometryObject::to_str(const std::string ind) const {
+  std::stringstream ss;
+  ss << get_object_name() << ": " <<
+      "name=" << name << ", " <<
+      "vertex_list=" << vec_nonptr_to_str(vertex_list, ind + "  ") << ", " <<
+      "element_connections=" << vec_nonptr_to_str(element_connections, ind + "  ") << ", " <<
+      "\n" << ind + "  " << "surface_regions=" << vec_ptr_to_str(surface_regions, ind + "  ");
+  return ss.str();
 }
 
 py::class_<GeometryObject> define_pybinding_GeometryObject(py::module& m) {

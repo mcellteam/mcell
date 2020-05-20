@@ -30,12 +30,21 @@
 namespace MCell {
 namespace API {
 
+std::string GenSubsystem::to_str(const std::string ind) const {
+  std::stringstream ss;
+  ss << "Subsystem" << ": " <<
+      "\n" << ind + "  " << "reaction_rules=" << vec_ptr_to_str(reaction_rules, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "species=" << vec_ptr_to_str(species, ind + "  ");
+  return ss.str();
+}
+
 py::class_<Subsystem> define_pybinding_Subsystem(py::module& m) {
   return py::class_<Subsystem, std::shared_ptr<Subsystem>>(m, "Subsystem")
       .def(
           py::init<
           >()
       )
+      .def("__str__", &Subsystem::to_str, py::arg("ind") = std::string(""))
       .def("add_species", &Subsystem::add_species, py::arg("s"))
       .def("find_species", &Subsystem::find_species, py::arg("name"))
       .def("add_reaction_rule", &Subsystem::add_reaction_rule, py::arg("r"))

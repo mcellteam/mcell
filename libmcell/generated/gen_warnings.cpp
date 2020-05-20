@@ -31,23 +31,6 @@ namespace API {
 void GenWarnings::check_semantics() const {
 }
 
-std::string GenWarnings::to_str(const std::string ind) const {
-  std::stringstream ss;
-  ss << get_object_name() << ": " <<
-      "molecule_collision_report=" << molecule_collision_report << ", " <<
-      "degenerate_polygons=" << degenerate_polygons << ", " <<
-      "negative_diffusion_constant=" << negative_diffusion_constant << ", " <<
-      "missing_surface_orientation=" << missing_surface_orientation << ", " <<
-      "negative_reaction_rate=" << negative_reaction_rate << ", " <<
-      "useless_volume_orientation=" << useless_volume_orientation << ", " <<
-      "high_reaction_probability=" << high_reaction_probability << ", " <<
-      "lifetime_too_short=" << lifetime_too_short << ", " <<
-      "lifetime_threshold=" << lifetime_threshold << ", " <<
-      "missed_reactions=" << missed_reactions << ", " <<
-      "missed_reactions_threshold=" << missed_reactions_threshold;
-  return ss.str();
-}
-
 bool GenWarnings::__eq__(const GenWarnings& other) const {
   return
     name == other.name &&
@@ -66,6 +49,23 @@ bool GenWarnings::__eq__(const GenWarnings& other) const {
 
 void GenWarnings::set_initialized() {
   initialized = true;
+}
+
+std::string GenWarnings::to_str(const std::string ind) const {
+  std::stringstream ss;
+  ss << get_object_name() << ": " <<
+      "molecule_collision_report=" << molecule_collision_report << ", " <<
+      "degenerate_polygons=" << degenerate_polygons << ", " <<
+      "negative_diffusion_constant=" << negative_diffusion_constant << ", " <<
+      "missing_surface_orientation=" << missing_surface_orientation << ", " <<
+      "negative_reaction_rate=" << negative_reaction_rate << ", " <<
+      "useless_volume_orientation=" << useless_volume_orientation << ", " <<
+      "high_reaction_probability=" << high_reaction_probability << ", " <<
+      "lifetime_too_short=" << lifetime_too_short << ", " <<
+      "lifetime_threshold=" << lifetime_threshold << ", " <<
+      "missed_reactions=" << missed_reactions << ", " <<
+      "missed_reactions_threshold=" << missed_reactions_threshold;
+  return ss.str();
 }
 
 py::class_<Warnings> define_pybinding_Warnings(py::module& m) {

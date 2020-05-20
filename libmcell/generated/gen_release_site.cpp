@@ -38,21 +38,6 @@ void GenReleaseSite::check_semantics() const {
   }
 }
 
-std::string GenReleaseSite::to_str(const std::string ind) const {
-  std::stringstream ss;
-  ss << get_object_name() << ": " <<
-      "name=" << name << ", " <<
-      "\n" << ind + "  " << "species=" << "(" << ((species != nullptr) ? species->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      "initial_orientation=" << initial_orientation << ", " <<
-      "shape=" << shape << ", " <<
-      "location=" << location << ", " <<
-      "site_diameter=" << site_diameter << ", " <<
-      "site_radius=" << site_radius << ", " <<
-      "number_to_release=" << number_to_release << ", " <<
-      "release_probability=" << release_probability;
-  return ss.str();
-}
-
 bool GenReleaseSite::__eq__(const GenReleaseSite& other) const {
   return
     name == other.name &&
@@ -70,6 +55,21 @@ bool GenReleaseSite::__eq__(const GenReleaseSite& other) const {
 void GenReleaseSite::set_initialized() {
   species->set_initialized();
   initialized = true;
+}
+
+std::string GenReleaseSite::to_str(const std::string ind) const {
+  std::stringstream ss;
+  ss << get_object_name() << ": " <<
+      "name=" << name << ", " <<
+      "\n" << ind + "  " << "species=" << "(" << ((species != nullptr) ? species->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "initial_orientation=" << initial_orientation << ", " <<
+      "shape=" << shape << ", " <<
+      "location=" << location << ", " <<
+      "site_diameter=" << site_diameter << ", " <<
+      "site_radius=" << site_radius << ", " <<
+      "number_to_release=" << number_to_release << ", " <<
+      "release_probability=" << release_probability;
+  return ss.str();
 }
 
 py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {

@@ -32,14 +32,6 @@ namespace API {
 void GenComplexInstance::check_semantics() const {
 }
 
-std::string GenComplexInstance::to_str(const std::string ind) const {
-  std::stringstream ss;
-  ss << get_object_name() << ": " <<
-      "\n" << ind + "  " << "molecule_instances=" << vec_ptr_to_str(molecule_instances, ind + "  ") << ", " << "\n" << ind + "  " <<
-      "orientation=" << orientation;
-  return ss.str();
-}
-
 bool GenComplexInstance::__eq__(const GenComplexInstance& other) const {
   return
     name == other.name &&
@@ -50,6 +42,14 @@ bool GenComplexInstance::__eq__(const GenComplexInstance& other) const {
 void GenComplexInstance::set_initialized() {
   vec_set_initialized(molecule_instances);
   initialized = true;
+}
+
+std::string GenComplexInstance::to_str(const std::string ind) const {
+  std::stringstream ss;
+  ss << get_object_name() << ": " <<
+      "\n" << ind + "  " << "molecule_instances=" << vec_ptr_to_str(molecule_instances, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "orientation=" << orientation;
+  return ss.str();
 }
 
 py::class_<ComplexInstance> define_pybinding_ComplexInstance(py::module& m) {

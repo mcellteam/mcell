@@ -35,6 +35,8 @@ class ReleaseSite;
 class GenInstantiationData {
 public:
   virtual ~GenInstantiationData() {}
+  std::string to_str(const std::string ind="") const ;
+
   // --- attributes ---
   std::vector<std::shared_ptr<ReleaseSite>> release_sites;
   virtual void set_release_sites(const std::vector<std::shared_ptr<ReleaseSite>> new_release_sites_) {

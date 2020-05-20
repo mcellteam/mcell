@@ -35,15 +35,6 @@ void GenComponentInstance::check_semantics() const {
   }
 }
 
-std::string GenComponentInstance::to_str(const std::string ind) const {
-  std::stringstream ss;
-  ss << get_object_name() << ": " <<
-      "\n" << ind + "  " << "component_type=" << "(" << ((component_type != nullptr) ? component_type->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      "state=" << state << ", " <<
-      "bond=" << bond;
-  return ss.str();
-}
-
 bool GenComponentInstance::__eq__(const GenComponentInstance& other) const {
   return
     name == other.name &&
@@ -55,6 +46,15 @@ bool GenComponentInstance::__eq__(const GenComponentInstance& other) const {
 void GenComponentInstance::set_initialized() {
   component_type->set_initialized();
   initialized = true;
+}
+
+std::string GenComponentInstance::to_str(const std::string ind) const {
+  std::stringstream ss;
+  ss << get_object_name() << ": " <<
+      "\n" << ind + "  " << "component_type=" << "(" << ((component_type != nullptr) ? component_type->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "state=" << state << ", " <<
+      "bond=" << bond;
+  return ss.str();
 }
 
 py::class_<ComponentInstance> define_pybinding_ComponentInstance(py::module& m) {

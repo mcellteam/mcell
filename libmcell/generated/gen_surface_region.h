@@ -45,11 +45,11 @@ class GenSurfaceRegion: public BaseDataClass {
 public:
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
-  std::string to_str(const std::string ind="") const override;
-
   void set_initialized() override;
 
   bool __eq__(const GenSurfaceRegion& other) const;
+  std::string to_str(const std::string ind="") const override;
+
   // --- attributes ---
   std::vector<int> element_connections;
   virtual void set_element_connections(const std::vector<int> new_element_connections_) {

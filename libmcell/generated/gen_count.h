@@ -75,11 +75,11 @@ public:
   }
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
-  std::string to_str(const std::string ind="") const override;
-
   void set_initialized() override;
 
   bool __eq__(const GenCount& other) const;
+  std::string to_str(const std::string ind="") const override;
+
   // --- attributes ---
   std::string filename;
   virtual void set_filename(const std::string& new_filename_) {

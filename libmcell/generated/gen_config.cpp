@@ -31,22 +31,6 @@ namespace API {
 void GenConfig::check_semantics() const {
 }
 
-std::string GenConfig::to_str(const std::string ind) const {
-  std::stringstream ss;
-  ss << get_object_name() << ": " <<
-      "seed=" << seed << ", " <<
-      "time_step=" << time_step << ", " <<
-      "surface_grid_density=" << surface_grid_density << ", " <<
-      "interaction_radius=" << interaction_radius << ", " <<
-      "vacancy_search_distance=" << vacancy_search_distance << ", " <<
-      "center_molecules_on_grid=" << center_molecules_on_grid << ", " <<
-      "microscopic_reversibility=" << microscopic_reversibility << ", " <<
-      "partition_dimension=" << partition_dimension << ", " <<
-      "subpartition_dimension=" << subpartition_dimension << ", " <<
-      "total_iterations_hint=" << total_iterations_hint;
-  return ss.str();
-}
-
 bool GenConfig::__eq__(const GenConfig& other) const {
   return
     name == other.name &&
@@ -64,6 +48,22 @@ bool GenConfig::__eq__(const GenConfig& other) const {
 
 void GenConfig::set_initialized() {
   initialized = true;
+}
+
+std::string GenConfig::to_str(const std::string ind) const {
+  std::stringstream ss;
+  ss << get_object_name() << ": " <<
+      "seed=" << seed << ", " <<
+      "time_step=" << time_step << ", " <<
+      "surface_grid_density=" << surface_grid_density << ", " <<
+      "interaction_radius=" << interaction_radius << ", " <<
+      "vacancy_search_distance=" << vacancy_search_distance << ", " <<
+      "center_molecules_on_grid=" << center_molecules_on_grid << ", " <<
+      "microscopic_reversibility=" << microscopic_reversibility << ", " <<
+      "partition_dimension=" << partition_dimension << ", " <<
+      "subpartition_dimension=" << subpartition_dimension << ", " <<
+      "total_iterations_hint=" << total_iterations_hint;
+  return ss.str();
 }
 
 py::class_<Config> define_pybinding_Config(py::module& m) {

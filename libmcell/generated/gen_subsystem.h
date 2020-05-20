@@ -35,6 +35,8 @@ class Species;
 class GenSubsystem {
 public:
   virtual ~GenSubsystem() {}
+  std::string to_str(const std::string ind="") const ;
+
   // --- attributes ---
   std::vector<std::shared_ptr<ReactionRule>> reaction_rules;
   virtual void set_reaction_rules(const std::vector<std::shared_ptr<ReactionRule>> new_reaction_rules_) {

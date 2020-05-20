@@ -61,11 +61,11 @@ class GenConfig: public BaseDataClass {
 public:
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
-  std::string to_str(const std::string ind="") const override;
-
   void set_initialized() override;
 
   bool __eq__(const GenConfig& other) const;
+  std::string to_str(const std::string ind="") const override;
+
   // --- attributes ---
   int seed;
   virtual void set_seed(const int new_seed_) {

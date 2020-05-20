@@ -32,17 +32,6 @@ namespace API {
 void GenReactionRule::check_semantics() const {
 }
 
-std::string GenReactionRule::to_str(const std::string ind) const {
-  std::stringstream ss;
-  ss << get_object_name() << ": " <<
-      "name=" << name << ", " <<
-      "\n" << ind + "  " << "reactants=" << vec_ptr_to_str(reactants, ind + "  ") << ", " << "\n" << ind + "  " <<
-      "products=" << vec_ptr_to_str(products, ind + "  ") << ", " << "\n" << ind + "  " <<
-      "fwd_rate=" << fwd_rate << ", " <<
-      "rev_rate=" << rev_rate;
-  return ss.str();
-}
-
 bool GenReactionRule::__eq__(const GenReactionRule& other) const {
   return
     name == other.name &&
@@ -57,6 +46,17 @@ void GenReactionRule::set_initialized() {
   vec_set_initialized(reactants);
   vec_set_initialized(products);
   initialized = true;
+}
+
+std::string GenReactionRule::to_str(const std::string ind) const {
+  std::stringstream ss;
+  ss << get_object_name() << ": " <<
+      "name=" << name << ", " <<
+      "\n" << ind + "  " << "reactants=" << vec_ptr_to_str(reactants, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "products=" << vec_ptr_to_str(products, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "fwd_rate=" << fwd_rate << ", " <<
+      "rev_rate=" << rev_rate;
+  return ss.str();
 }
 
 py::class_<ReactionRule> define_pybinding_ReactionRule(py::module& m) {

@@ -549,11 +549,12 @@ def write_gen_class(f, class_def, class_name):
     if has_single_superclass(class_def):
         f.write('  ' + RET_CTOR_POSTPROCESS + ' ' + CTOR_POSTPROCESS + '() ' + KEYWORD_OVERRIDE + ' {}\n')
         f.write('  ' + RET_TYPE_CHECK_SEMANTICS + ' ' + DECL_CHECK_SEMANTICS + ' ' + KEYWORD_OVERRIDE + ';\n')
-        f.write('  ' + RET_TYPE_TO_STR + ' ' + DECL_TO_STR_W_DEFAULT + ' ' + KEYWORD_OVERRIDE + ';\n\n')
         f.write('  void ' + DECL_SET_INITIALIZED + ' ' + KEYWORD_OVERRIDE + ';\n\n')
         # not virtual because overrides need different parameter type
         f.write('  bool __eq__(const ' + gen_class_name + '& other) const;\n')
-        
+
+    override = KEYWORD_OVERRIDE if has_single_superclass(class_def) else ''
+    f.write('  ' + RET_TYPE_TO_STR + ' ' + DECL_TO_STR_W_DEFAULT + ' ' + override + ';\n\n')
         
     f.write('  // --- attributes ---\n')
     items = class_def[KEY_ITEMS]
@@ -718,10 +719,18 @@ def write_check_semantics_implemetation(f, class_name, items):
     f.write('}\n\n')    
     
         
-def write_to_str_implemetation(f, class_name, items):
+def write_to_str_implementation(f, class_name, items, based_on_base_superclass):
     f.write(RET_TYPE_TO_STR + ' ' + GEN_CLASS_PREFIX + class_name + '::' + DECL_TO_STR + ' {\n')
+
+    # TODO: config etc from Model
+    if class_name == "Model":
+        f.write('  #if 0 // not generated correctly yet\n')
+
     f.write('  std::stringstream ss;\n')
-    f.write('  ss << get_object_name() << ": " <<\n')
+    if based_on_base_superclass:
+        f.write('  ss << get_object_name() << ": " <<\n')
+    else:
+        f.write('  ss << "' + class_name + '" << ": " <<\n')
 
     last_print_nl = False  
     
@@ -732,7 +741,7 @@ def write_to_str_implemetation(f, class_name, items):
         
         print_nl = False
         starting_nl = '"' if last_print_nl else '"\\n" << ind + "  " << "'
-        
+       
         if is_yaml_list_type(type):
             underlying_type = get_inner_list_type(type)
             if is_yaml_ptr_type(underlying_type):
@@ -760,6 +769,12 @@ def write_to_str_implemetation(f, class_name, items):
     f.write(';\n')
     
     f.write('  return ss.str();\n')
+    
+    if class_name == "Model":
+        f.write('  #else\n')
+        f.write('  return "";\n')
+        f.write('  #endif\n')
+    
     f.write('}\n\n')                
 
 
@@ -909,7 +924,8 @@ def write_pybind11_bindings(f, class_name, class_def):
     # common methods
     if has_single_superclass(class_def):
         f.write('      .def("check_semantics", &' + class_name + '::check_semantics)\n')
-        f.write('      .def("__str__", &' + class_name + '::to_str, py::arg("ind") = std::string(""))\n')
+    
+    f.write('      .def("__str__", &' + class_name + '::to_str, py::arg("ind") = std::string(""))\n')
         
     # declared methods
     for m in class_def[KEY_METHODS]:
@@ -949,12 +965,13 @@ def generate_class_implementation_and_bindings(class_name, class_def):
         
         f.write('\n' + NAMESPACES_BEGIN + '\n\n')
         
+        items = class_def[KEY_ITEMS]
         if has_single_superclass(class_def):
-            items = class_def[KEY_ITEMS]
             write_check_semantics_implemetation(f, class_name, items)
-            write_to_str_implemetation(f, class_name, items)
             write_operator_equal_implemetation(f, class_name, items)
             write_set_initialized_implemetation(f, class_name, items)
+
+        write_to_str_implementation(f, class_name, items, has_single_superclass(class_def))
         
         write_pybind11_bindings(f, class_name, class_def)
         

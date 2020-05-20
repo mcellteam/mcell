@@ -47,11 +47,11 @@ class GenComplexInstance: public BaseDataClass {
 public:
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
-  std::string to_str(const std::string ind="") const override;
-
   void set_initialized() override;
 
   bool __eq__(const GenComplexInstance& other) const;
+  std::string to_str(const std::string ind="") const override;
+
   // --- attributes ---
   std::vector<std::shared_ptr<MoleculeInstance>> molecule_instances;
   virtual void set_molecule_instances(const std::vector<std::shared_ptr<MoleculeInstance>> new_molecule_instances_) {

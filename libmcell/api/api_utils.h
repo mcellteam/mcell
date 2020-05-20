@@ -50,6 +50,8 @@ void append_to_vec(
       }
     }
   }
+
+  dst.push_back(item);
 }
 
 

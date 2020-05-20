@@ -36,14 +36,6 @@ void GenMoleculeInstance::check_semantics() const {
   }
 }
 
-std::string GenMoleculeInstance::to_str(const std::string ind) const {
-  std::stringstream ss;
-  ss << get_object_name() << ": " <<
-      "\n" << ind + "  " << "molecule_type=" << "(" << ((molecule_type != nullptr) ? molecule_type->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      "components=" << vec_ptr_to_str(components, ind + "  ");
-  return ss.str();
-}
-
 bool GenMoleculeInstance::__eq__(const GenMoleculeInstance& other) const {
   return
     name == other.name &&
@@ -55,6 +47,14 @@ void GenMoleculeInstance::set_initialized() {
   molecule_type->set_initialized();
   vec_set_initialized(components);
   initialized = true;
+}
+
+std::string GenMoleculeInstance::to_str(const std::string ind) const {
+  std::stringstream ss;
+  ss << get_object_name() << ": " <<
+      "\n" << ind + "  " << "molecule_type=" << "(" << ((molecule_type != nullptr) ? molecule_type->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "components=" << vec_ptr_to_str(components, ind + "  ");
+  return ss.str();
 }
 
 py::class_<MoleculeInstance> define_pybinding_MoleculeInstance(py::module& m) {

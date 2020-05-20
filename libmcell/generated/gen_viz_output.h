@@ -51,11 +51,11 @@ class GenVizOutput: public BaseDataClass {
 public:
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
-  std::string to_str(const std::string ind="") const override;
-
   void set_initialized() override;
 
   bool __eq__(const GenVizOutput& other) const;
+  std::string to_str(const std::string ind="") const override;
+
   // --- attributes ---
   std::string filename_prefix;
   virtual void set_filename_prefix(const std::string& new_filename_prefix_) {

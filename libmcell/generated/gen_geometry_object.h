@@ -51,11 +51,11 @@ class GenGeometryObject: public BaseDataClass {
 public:
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
-  std::string to_str(const std::string ind="") const override;
-
   void set_initialized() override;
 
   bool __eq__(const GenGeometryObject& other) const;
+  std::string to_str(const std::string ind="") const override;
+
   // --- attributes ---
   std::vector<std::vector<float_t>> vertex_list;
   virtual void set_vertex_list(const std::vector<std::vector<float_t>> new_vertex_list_) {

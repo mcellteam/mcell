@@ -49,11 +49,11 @@ class GenComponentInstance: public BaseDataClass {
 public:
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
-  std::string to_str(const std::string ind="") const override;
-
   void set_initialized() override;
 
   bool __eq__(const GenComponentInstance& other) const;
+  std::string to_str(const std::string ind="") const override;
+
   // --- attributes ---
   std::shared_ptr<ComponentType> component_type;
   virtual void set_component_type(std::shared_ptr<ComponentType> new_component_type_) {

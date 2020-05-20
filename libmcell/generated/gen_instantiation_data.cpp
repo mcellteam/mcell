@@ -30,12 +30,21 @@
 namespace MCell {
 namespace API {
 
+std::string GenInstantiationData::to_str(const std::string ind) const {
+  std::stringstream ss;
+  ss << "InstantiationData" << ": " <<
+      "\n" << ind + "  " << "release_sites=" << vec_ptr_to_str(release_sites, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "geometry_objects=" << vec_ptr_to_str(geometry_objects, ind + "  ");
+  return ss.str();
+}
+
 py::class_<InstantiationData> define_pybinding_InstantiationData(py::module& m) {
   return py::class_<InstantiationData, std::shared_ptr<InstantiationData>>(m, "InstantiationData")
       .def(
           py::init<
           >()
       )
+      .def("__str__", &InstantiationData::to_str, py::arg("ind") = std::string(""))
       .def("add_release_site", &InstantiationData::add_release_site, py::arg("s"))
       .def("find_release_site", &InstantiationData::find_release_site, py::arg("name"))
       .def("add_geometry_object", &InstantiationData::add_geometry_object, py::arg("o"), py::arg("name") = "")

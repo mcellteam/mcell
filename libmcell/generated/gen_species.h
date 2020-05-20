@@ -62,11 +62,11 @@ public:
   }
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
-  std::string to_str(const std::string ind="") const override;
-
   void set_initialized() override;
 
   bool __eq__(const GenSpecies& other) const;
+  std::string to_str(const std::string ind="") const override;
+
   // --- attributes ---
   float_t diffusion_constant_2d;
   virtual void set_diffusion_constant_2d(const float_t new_diffusion_constant_2d_) {

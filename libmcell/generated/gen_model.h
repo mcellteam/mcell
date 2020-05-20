@@ -46,6 +46,8 @@ class Warnings;
 class GenModel {
 public:
   virtual ~GenModel() {}
+  std::string to_str(const std::string ind="") const ;
+
   // --- attributes ---
   Config config;
   virtual void set_config(const Config& new_config_) {

@@ -48,11 +48,11 @@ class GenComponentType: public BaseDataClass {
 public:
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
-  std::string to_str(const std::string ind="") const override;
-
   void set_initialized() override;
 
   bool __eq__(const GenComponentType& other) const;
+  std::string to_str(const std::string ind="") const override;
+
   // --- attributes ---
   std::vector<std::string> states;
   virtual void set_states(const std::vector<std::string> new_states_) {

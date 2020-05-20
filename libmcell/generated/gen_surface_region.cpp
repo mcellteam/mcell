@@ -37,14 +37,6 @@ void GenSurfaceRegion::check_semantics() const {
   }
 }
 
-std::string GenSurfaceRegion::to_str(const std::string ind) const {
-  std::stringstream ss;
-  ss << get_object_name() << ": " <<
-      "name=" << name << ", " <<
-      "element_connections=" << vec_nonptr_to_str(element_connections, ind + "  ");
-  return ss.str();
-}
-
 bool GenSurfaceRegion::__eq__(const GenSurfaceRegion& other) const {
   return
     name == other.name &&
@@ -54,6 +46,14 @@ bool GenSurfaceRegion::__eq__(const GenSurfaceRegion& other) const {
 
 void GenSurfaceRegion::set_initialized() {
   initialized = true;
+}
+
+std::string GenSurfaceRegion::to_str(const std::string ind) const {
+  std::stringstream ss;
+  ss << get_object_name() << ": " <<
+      "name=" << name << ", " <<
+      "element_connections=" << vec_nonptr_to_str(element_connections, ind + "  ");
+  return ss.str();
 }
 
 py::class_<SurfaceRegion> define_pybinding_SurfaceRegion(py::module& m) {

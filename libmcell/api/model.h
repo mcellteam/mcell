@@ -53,6 +53,9 @@ public:
   void add_observables(std::shared_ptr<Observables> observables) override;
 
   // added manually
+  // shadows all inherited non-virtual to_str methods
+  std::string to_str(const std::string ind="") const;
+
   void dump() const;
 
 private:

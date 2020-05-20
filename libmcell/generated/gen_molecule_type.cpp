@@ -37,16 +37,6 @@ void GenMoleculeType::check_semantics() const {
   }
 }
 
-std::string GenMoleculeType::to_str(const std::string ind) const {
-  std::stringstream ss;
-  ss << get_object_name() << ": " <<
-      "name=" << name << ", " <<
-      "\n" << ind + "  " << "components=" << vec_ptr_to_str(components, ind + "  ") << ", " << "\n" << ind + "  " <<
-      "diffusion_constant_2d=" << diffusion_constant_2d << ", " <<
-      "diffusion_constant_3d=" << diffusion_constant_3d;
-  return ss.str();
-}
-
 bool GenMoleculeType::__eq__(const GenMoleculeType& other) const {
   return
     name == other.name &&
@@ -59,6 +49,16 @@ bool GenMoleculeType::__eq__(const GenMoleculeType& other) const {
 void GenMoleculeType::set_initialized() {
   vec_set_initialized(components);
   initialized = true;
+}
+
+std::string GenMoleculeType::to_str(const std::string ind) const {
+  std::stringstream ss;
+  ss << get_object_name() << ": " <<
+      "name=" << name << ", " <<
+      "\n" << ind + "  " << "components=" << vec_ptr_to_str(components, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "diffusion_constant_2d=" << diffusion_constant_2d << ", " <<
+      "diffusion_constant_3d=" << diffusion_constant_3d;
+  return ss.str();
 }
 
 py::class_<MoleculeType> define_pybinding_MoleculeType(py::module& m) {

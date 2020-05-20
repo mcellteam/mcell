@@ -36,17 +36,6 @@ void GenSpecies::check_semantics() const {
   }
 }
 
-std::string GenSpecies::to_str(const std::string ind) const {
-  std::stringstream ss;
-  ss << get_object_name() << ": " <<
-      "name=" << name << ", " <<
-      "diffusion_constant_2d=" << diffusion_constant_2d << ", " <<
-      "diffusion_constant_3d=" << diffusion_constant_3d << ", " <<
-      "\n" << ind + "  " << "molecule_instances=" << vec_ptr_to_str(molecule_instances, ind + "  ") << ", " << "\n" << ind + "  " <<
-      "orientation=" << orientation;
-  return ss.str();
-}
-
 bool GenSpecies::__eq__(const GenSpecies& other) const {
   return
     name == other.name &&
@@ -60,6 +49,17 @@ bool GenSpecies::__eq__(const GenSpecies& other) const {
 void GenSpecies::set_initialized() {
   vec_set_initialized(molecule_instances);
   initialized = true;
+}
+
+std::string GenSpecies::to_str(const std::string ind) const {
+  std::stringstream ss;
+  ss << get_object_name() << ": " <<
+      "name=" << name << ", " <<
+      "diffusion_constant_2d=" << diffusion_constant_2d << ", " <<
+      "diffusion_constant_3d=" << diffusion_constant_3d << ", " <<
+      "\n" << ind + "  " << "molecule_instances=" << vec_ptr_to_str(molecule_instances, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "orientation=" << orientation;
+  return ss.str();
 }
 
 py::class_<Species> define_pybinding_Species(py::module& m) {

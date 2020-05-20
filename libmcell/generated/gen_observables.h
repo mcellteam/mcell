@@ -35,6 +35,8 @@ class VizOutput;
 class GenObservables {
 public:
   virtual ~GenObservables() {}
+  std::string to_str(const std::string ind="") const ;
+
   // --- attributes ---
   std::vector<std::shared_ptr<VizOutput>> viz_outputs;
   virtual void set_viz_outputs(const std::vector<std::shared_ptr<VizOutput>> new_viz_outputs_) {

@@ -38,12 +38,30 @@
 namespace MCell {
 namespace API {
 
+std::string GenModel::to_str(const std::string ind) const {
+  #if 0 // not generated correctly yet
+  std::stringstream ss;
+  ss << "Model" << ": " <<
+      "\n" << ind + "  " << "config=" << "(" << ((config != nullptr) ? config->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "warnings=" << "(" << ((warnings != nullptr) ? warnings->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "notifications=" << "(" << ((notifications != nullptr) ? notifications->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "reaction_rules=" << vec_ptr_to_str(reaction_rules, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "species=" << vec_ptr_to_str(species, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "release_sites=" << vec_ptr_to_str(release_sites, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "geometry_objects=" << vec_ptr_to_str(geometry_objects, ind + "  ");
+  return ss.str();
+  #else
+  return "";
+  #endif
+}
+
 py::class_<Model> define_pybinding_Model(py::module& m) {
   return py::class_<Model, std::shared_ptr<Model>>(m, "Model")
       .def(
           py::init<
           >()
       )
+      .def("__str__", &Model::to_str, py::arg("ind") = std::string(""))
       .def("initialize", &Model::initialize)
       .def("run_iterations", &Model::run_iterations, py::arg("iterations"))
       .def("add_subsystem", &Model::add_subsystem, py::arg("subsystem"))

@@ -30,12 +30,21 @@
 namespace MCell {
 namespace API {
 
+std::string GenObservables::to_str(const std::string ind) const {
+  std::stringstream ss;
+  ss << "Observables" << ": " <<
+      "\n" << ind + "  " << "viz_outputs=" << vec_ptr_to_str(viz_outputs, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "counts=" << vec_ptr_to_str(counts, ind + "  ");
+  return ss.str();
+}
+
 py::class_<Observables> define_pybinding_Observables(py::module& m) {
   return py::class_<Observables, std::shared_ptr<Observables>>(m, "Observables")
       .def(
           py::init<
           >()
       )
+      .def("__str__", &Observables::to_str, py::arg("ind") = std::string(""))
       .def("add_viz_output", &Observables::add_viz_output, py::arg("viz_output"))
       .def("add_count", &Observables::add_count, py::arg("count"))
       .def("dump", &Observables::dump)

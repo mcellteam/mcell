@@ -35,14 +35,6 @@ void GenComponentType::check_semantics() const {
   }
 }
 
-std::string GenComponentType::to_str(const std::string ind) const {
-  std::stringstream ss;
-  ss << get_object_name() << ": " <<
-      "name=" << name << ", " <<
-      "states=" << vec_nonptr_to_str(states, ind + "  ");
-  return ss.str();
-}
-
 bool GenComponentType::__eq__(const GenComponentType& other) const {
   return
     name == other.name &&
@@ -52,6 +44,14 @@ bool GenComponentType::__eq__(const GenComponentType& other) const {
 
 void GenComponentType::set_initialized() {
   initialized = true;
+}
+
+std::string GenComponentType::to_str(const std::string ind) const {
+  std::stringstream ss;
+  ss << get_object_name() << ": " <<
+      "name=" << name << ", " <<
+      "states=" << vec_nonptr_to_str(states, ind + "  ");
+  return ss.str();
 }
 
 py::class_<ComponentType> define_pybinding_ComponentType(py::module& m) {

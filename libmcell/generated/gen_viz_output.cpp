@@ -35,16 +35,6 @@ void GenVizOutput::check_semantics() const {
   }
 }
 
-std::string GenVizOutput::to_str(const std::string ind) const {
-  std::stringstream ss;
-  ss << get_object_name() << ": " <<
-      "filename_prefix=" << filename_prefix << ", " <<
-      "\n" << ind + "  " << "species_list=" << vec_ptr_to_str(species_list, ind + "  ") << ", " << "\n" << ind + "  " <<
-      "mode=" << mode << ", " <<
-      "every_n_timesteps=" << every_n_timesteps;
-  return ss.str();
-}
-
 bool GenVizOutput::__eq__(const GenVizOutput& other) const {
   return
     name == other.name &&
@@ -57,6 +47,16 @@ bool GenVizOutput::__eq__(const GenVizOutput& other) const {
 void GenVizOutput::set_initialized() {
   vec_set_initialized(species_list);
   initialized = true;
+}
+
+std::string GenVizOutput::to_str(const std::string ind) const {
+  std::stringstream ss;
+  ss << get_object_name() << ": " <<
+      "filename_prefix=" << filename_prefix << ", " <<
+      "\n" << ind + "  " << "species_list=" << vec_ptr_to_str(species_list, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "mode=" << mode << ", " <<
+      "every_n_timesteps=" << every_n_timesteps;
+  return ss.str();
 }
 
 py::class_<VizOutput> define_pybinding_VizOutput(py::module& m) {

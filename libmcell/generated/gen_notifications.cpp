@@ -31,20 +31,6 @@ namespace API {
 void GenNotifications::check_semantics() const {
 }
 
-std::string GenNotifications::to_str(const std::string ind) const {
-  std::stringstream ss;
-  ss << get_object_name() << ": " <<
-      "probability_report=" << probability_report << ", " <<
-      "diffusion_constant_report=" << diffusion_constant_report << ", " <<
-      "final_summary=" << final_summary << ", " <<
-      "iteration_report=" << iteration_report << ", " <<
-      "varying_probability_report=" << varying_probability_report << ", " <<
-      "progress_report=" << progress_report << ", " <<
-      "release_event_report=" << release_event_report << ", " <<
-      "molecule_collision_report=" << molecule_collision_report;
-  return ss.str();
-}
-
 bool GenNotifications::__eq__(const GenNotifications& other) const {
   return
     name == other.name &&
@@ -60,6 +46,20 @@ bool GenNotifications::__eq__(const GenNotifications& other) const {
 
 void GenNotifications::set_initialized() {
   initialized = true;
+}
+
+std::string GenNotifications::to_str(const std::string ind) const {
+  std::stringstream ss;
+  ss << get_object_name() << ": " <<
+      "probability_report=" << probability_report << ", " <<
+      "diffusion_constant_report=" << diffusion_constant_report << ", " <<
+      "final_summary=" << final_summary << ", " <<
+      "iteration_report=" << iteration_report << ", " <<
+      "varying_probability_report=" << varying_probability_report << ", " <<
+      "progress_report=" << progress_report << ", " <<
+      "release_event_report=" << release_event_report << ", " <<
+      "molecule_collision_report=" << molecule_collision_report;
+  return ss.str();
 }
 
 py::class_<Notifications> define_pybinding_Notifications(py::module& m) {
