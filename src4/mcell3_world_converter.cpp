@@ -107,12 +107,11 @@ bool MCell3WorldConverter::convert(volume* s) {
   CHECK(convert_simulation_setup(s));
 
   CHECK(convert_species(s));
-  create_diffusion_events(); // cannot fail?
+  world->create_diffusion_events(); // cannot fail
   CHECK(convert_rxns(s));
 
   // at this point, we need to create the first (and for now the only) partition
-  // create initial partition with center at 0,0,0 - we woud like to have the partitions all the same,
-  // not depend on some random initialization
+  // create initial partition with center at 0,0,0
   partition_id_t index = world->add_partition(Vec3(0, 0, 0));
   assert(index == PARTITION_ID_INITIAL);
 
@@ -655,25 +654,10 @@ bool MCell3WorldConverter::convert_polygonal_object(const geom_object* o, const 
 }
 
 
-// cannot fail
-void MCell3WorldConverter::create_diffusion_events() {
-  assert(world->get_all_species().get_count() != 0 && "There must be at least 1 species");
-
-  set<float_t> time_steps_set;
-  for (auto &species : world->get_all_species().get_species_vector() ) {
-    time_steps_set.insert(species.time_step);
-  }
-
-  for (float_t time_step : time_steps_set) {
-    DiffuseReactEvent* event = new DiffuseReactEvent(world, time_step);
-    event->event_time = TIME_SIMULATION_START;
-    world->scheduler.schedule_event(event);
-  }
-}
-
 static bool is_species_superclass(volume* s, species* spec) {
   return spec == s->all_mols || spec == s->all_volume_mols || spec == s->all_surface_mols;
 }
+
 
 bool MCell3WorldConverter::convert_species(volume* s) {
 

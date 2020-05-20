@@ -95,6 +95,11 @@ void Model::run_iterations(const long iterations) {
 }
 
 
+void Model::end_simulation(const bool print_final_report) {
+  world->end_simulation(print_final_report);
+}
+
+
 std::string Model::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << "Model" << ": " <<
@@ -107,6 +112,11 @@ std::string Model::to_str(const std::string ind) const {
       "release_sites=" << vec_ptr_to_str(release_sites, ind + "  ") << ", " << "\n" << ind + "  " <<
       "geometry_objects=" << vec_ptr_to_str(geometry_objects, ind + "  ");
   return ss.str();
+}
+
+
+void Model::dump_internal_state() {
+  world->dump();
 }
 
 

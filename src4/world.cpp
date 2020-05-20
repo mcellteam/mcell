@@ -34,7 +34,7 @@
 #include "defragmentation_event.h"
 #include "datamodel_defines.h"
 #include "bng_data_to_datamodel_converter.h"
-
+#include "diffuse_react_event.h"
 
 using namespace std;
 
@@ -82,6 +82,10 @@ World::World()
 }
 
 
+World::~World() {
+  end_simulation(false);
+}
+
 void World::init_fpu() {
 #ifdef NDEBUG
   // we do not want to be making extra checks for division by zero
@@ -114,6 +118,22 @@ uint64_t World::determine_output_frequency(uint64_t iterations) {
     frequency = 100000;
 
   return frequency;
+}
+
+
+void World::create_diffusion_events() {
+  assert(get_all_species().get_count() != 0 && "There must be at least 1 species");
+
+  set<float_t> time_steps_set;
+  for (auto &species : get_all_species().get_species_vector() ) {
+    time_steps_set.insert(species.time_step);
+  }
+
+  for (float_t time_step : time_steps_set) {
+    DiffuseReactEvent* event = new DiffuseReactEvent(this, time_step);
+    event->event_time = TIME_SIMULATION_START;
+    scheduler.schedule_event(event);
+  }
 }
 
 
@@ -250,28 +270,30 @@ void World::run_n_iterations(const uint64_t num_iterations, const uint64_t outpu
 }
 
 
-void World::end_simulation() {
+void World::end_simulation(const bool print_final_report) {
   if (simulation_ended) {
     // already called, do nothing
     return;
   }
-
-  cout << "Iteration " << stats.get_current_iteration() << ", simulation finished successfully\n";
-
-  stats.dump();
 
   // flush and close count buffers
   for (CountBuffer& b: count_buffers) {
     b.flush_and_close();
   }
 
-  // report final time
-  rusage run_time;
-  reset_rusage(&run_time);
-  getrusage(RUSAGE_SELF, &run_time);
-  cout << "Simulation CPU time = "
-    << tosecs(run_time.ru_utime) - tosecs(sim_start_time.ru_utime) <<  "(user) and "
-    << tosecs(run_time.ru_stime) - tosecs(sim_start_time.ru_stime) <<  "(system)\n";
+  if (print_final_report) {
+    cout << "Iteration " << stats.get_current_iteration() << ", simulation finished successfully\n";
+
+    stats.dump();
+
+    // report final time
+    rusage run_time;
+    reset_rusage(&run_time);
+    getrusage(RUSAGE_SELF, &run_time);
+    cout << "Simulation CPU time = "
+      << tosecs(run_time.ru_utime) - tosecs(sim_start_time.ru_utime) <<  "(user) and "
+      << tosecs(run_time.ru_stime) - tosecs(sim_start_time.ru_stime) <<  "(system)\n";
+  }
 
   simulation_ended = true;
 }

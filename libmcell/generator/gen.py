@@ -22,6 +22,7 @@ http://www.gnu.org/licenses/gpl-2.0.html
 # TODO: unify superclass vs superclasses - 
 #       w superclasses, the objects are inherited manually now and it should be made automatic
 #       or maybe just rename it..
+# TODO: print unset constants as UNSET, not diffusion_constant_2d=3.40282e+38
 
 import sys
 import os

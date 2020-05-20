@@ -71,7 +71,12 @@ void MCell4Converter::convert(Model* model_, World* world_) {
 
   convert_simulation_setup();
   convert_species();
+  world->create_diffusion_events();
 
+  // at this point, we need to create the first (and for now the only) partition
+  // create initial partition with center at 0,0,0
+  partition_id_t index = world->add_partition(Vec3(0, 0, 0));
+  assert(index == PARTITION_ID_INITIAL);
 
   convert_release_events();
 
@@ -133,13 +138,18 @@ void MCell4Converter::convert_species() {
     new_species.name = s->name;
 
     bool is_vol;
-    if (is_set(s->diffusion_constant_2d)) {
-      new_species.D = s->diffusion_constant_2d;
-      new_species.set_is_vol();
-    }
-    else if (is_set(s->diffusion_constant_3d)) {
+    if (is_set(s->diffusion_constant_3d)) {
       new_species.D = s->diffusion_constant_3d;
+      new_species.set_is_vol();
+      is_vol = true;
+    }
+    else if (is_set(s->diffusion_constant_2d)) {
+      new_species.D = s->diffusion_constant_2d;
       new_species.set_is_surf();
+      is_vol = true;
+    }
+    else {
+      throw ValueError("Neither diffusion_constant_2d nor diffusion_constant_3d was set.");
     }
 	
 		// TODO: set all flags that are used in MCell4
@@ -154,14 +164,11 @@ void MCell4Converter::convert_species() {
 
     BNG::MolInstance mol_inst;
     mol_inst.mol_type_id = mol_type_id;
-    if (new_species.is_vol()) {
+    if (is_vol) {
       mol_inst.set_is_vol();
     }
-    else if (new_species.is_surf()) {
-      mol_inst.set_is_surf();
-    }
     else {
-      assert(false);
+      mol_inst.set_is_surf();
     }
 
     new_species.mol_instances.push_back(mol_inst);
@@ -192,6 +199,7 @@ void MCell4Converter::convert_release_events() {
       case Shape::Spherical:
         rel_event->release_shape = ReleaseShape::SPHERICAL;
         rel_event->location = r->location;
+        rel_event->diameter = r->site_diameter;
         break;
       default:
         // should be caught earlier

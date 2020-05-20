@@ -27,7 +27,10 @@ ReleaseSite:
     
   - name: site_diameter
     type: float
-    default: unset
+    default: 0
+    doc: |
+      For a geometrical release site, this releases molecules uniformly within
+      a diameter d or a radius r. Not used for releases on regions. 
     
   - name: site_radius
     type: float

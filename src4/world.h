@@ -55,6 +55,7 @@ namespace MCell {
 class World {
 public:
   World();
+  ~World();
   void init_simulation();
   void run_simulation(const bool dump_initial_state = false);
   void run_n_iterations(
@@ -62,7 +63,9 @@ public:
       const uint64_t output_frequency,
       const bool terminate_last_iteration_after_viz_output = false // needed for exact match with MCell3, must false when used from pymcell
   );
-  void end_simulation();
+  void end_simulation(const bool print_final_report = true);
+
+  void create_diffusion_events(); // used by converters
 
   // -------------- diverse getters -----------------------------
   const SimulationConfig& get_config() {

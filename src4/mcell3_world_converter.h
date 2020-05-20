@@ -65,8 +65,6 @@ private:
   bool convert_region(Partition& p, const region* r, region_index_t& region_index);
   bool convert_polygonal_object(const geom_object* o, const std::string& instantiate_name);
   bool convert_geometry_objects(volume* s);
-
-  void create_diffusion_events();
   bool convert_species(volume* s);
   bool convert_single_reaction(const rxn *rx);
   bool convert_rxns(volume* s);

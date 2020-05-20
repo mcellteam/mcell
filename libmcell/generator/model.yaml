@@ -21,6 +21,15 @@ Model:
     params:
     - name: iterations
       type: long
+
+  - name: end_simulation
+    doc: |
+      Flushes all buffers and optionally prints simulation report. 
+      Buffers are also flushed when the Model object is destroyed.   
+    params:
+    - name: print_final_report
+      type: bool
+      default: True
       
   - name: add_subsystem
     params:
@@ -36,4 +45,7 @@ Model:
     params:
     - name: observables
       type: Observables*
+      
+  - name: dump_internal_state
+    doc: Prints out the simulation engine's internal state, mainly for debugging.      
       
