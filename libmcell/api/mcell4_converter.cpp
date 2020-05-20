@@ -292,6 +292,8 @@ wall_index_t MCell4Converter::convert_wall_and_add_to_geom_object(
 
   assert(src_obj.element_connections[side].size() == 3);
 
+  // TODO LATER: there is really no reason to add walls in two steps,
+  // can be simplified
   Wall& wall = p.add_uninitialized_wall(world->get_next_wall_id());
 
   wall.object_id = dst_obj.id;
@@ -304,7 +306,10 @@ wall_index_t MCell4Converter::convert_wall_and_add_to_geom_object(
 
   wall.precompute_wall_constants(p);
 
+  // add wall to subpartitions
+  p.finalize_wall_creation(wall.index);
   dst_obj.wall_indices.push_back(wall.index);
+
   return wall.index;
 }
 
@@ -357,7 +362,7 @@ void MCell4Converter::convert_release_events() {
     switch (r->shape) {
       case Shape::Spherical:
         rel_event->release_shape = ReleaseShape::SPHERICAL;
-        rel_event->location = r->location;
+        rel_event->location = r->location / world->config.length_unit;
         rel_event->diameter = r->site_diameter;
         break;
       default:

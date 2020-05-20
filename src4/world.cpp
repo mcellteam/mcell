@@ -334,6 +334,8 @@ void World::dump() {
   for (Partition& p: partitions) {
     p.dump();
   }
+
+  scheduler.dump();
 }
 
 

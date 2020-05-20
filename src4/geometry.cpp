@@ -789,7 +789,9 @@ void Wall::dump(const Partition& p, const std::string ind, const bool for_diff) 
     cout << "\n";
   }
   else {
-    cout << ind << "id: " << id << ", side: " << side << ", object_id: " << object_id << "\n";
+    cout << ind <<
+        "id: " << id << ", index: " << index << ", side: " << side <<
+        ", object_id: " << object_id << ", object_index: " << object_index << "\n";
 
     for (uint i = 0; i < VERTICES_IN_TRIANGLE; i++) {
       vertex_index_t vertex_index = vertex_indices[i];
@@ -797,9 +799,10 @@ void Wall::dump(const Partition& p, const std::string ind, const bool for_diff) 
       cout << ind << "vertex_index: " << vertex_index << ":" << pos << "\n";
     }
 
+    cout << ind << "edges:\n";
     for (uint i = 0; i < EDGES_IN_TRIANGLE; i++) {
-      cout << ind << "edges:\n";
-      edges[i].dump("        ");
+      cout << ind << i << ":\n";
+      edges[i].dump(ind + "  ");
     }
 
     cout << ind;

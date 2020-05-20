@@ -115,10 +115,23 @@ void ReleaseEvent::dump(const string ind) const {
   cout << "Release event:\n";
   string ind2 = ind + "  ";
   BaseEvent::dump(ind2);
-  cout << ind2 << "location: \t\t" << location << " [vec3_t] \t\t\n";
-  cout << ind2 << "species_id: \t\t" << species_id << " [species_id_t] \t\t\n";
-  cout << ind2 << "release_number: \t\t" << release_number << " [uint] \t\t\n";
   cout << ind2 << "name: \t\t" << release_site_name << " [string] \t\t\n";
+  cout << ind2 << "species_id: \t\t" << species_id << " [species_id_t] \t\t\n";
+  cout << ind2 << "actual_release_time: \t\t" << location << " [float_t] \t\t\n";
+  cout << ind2 << "release_number_method: \t\t" << (int)release_number_method << " [ReleaseNumberMethod] \t\t\n";
+  cout << ind2 << "release_number: \t\t" << release_number << " [uint] \t\t\n";
+  cout << ind2 << "concentration: \t\t" << concentration << " [float_t] \t\t\n";
+  cout << ind2 << "orientation: \t\t" << orientation << " [float_t] \t\t\n";
+  cout << ind2 << "release_shape: \t\t" << (int)release_shape << " [ReleaseShape] \t\t\n";
+  cout << ind2 << "location: \t\t" << location << " [Vec3] \t\t\n";
+  cout << ind2 << "diameter: \t\t" << diameter << " [Vec3] \t\t\n";
+
+  // TODO:
+  //cum_area_and_pwall_index_pairs
+  //all_region_expr_nodes
+
+  cout << ind2 << "region_llf: \t\t" << region_llf << " [Vec3] \t\t\n";
+  cout << ind2 << "region_urb: \t\t" << region_urb << " [Vec3] \t\t\n";
 
   if (region_expr_root != nullptr) {
     region_expr_root->dump();
