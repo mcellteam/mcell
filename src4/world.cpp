@@ -270,10 +270,15 @@ void World::run_n_iterations(const uint64_t num_iterations, const uint64_t outpu
 }
 
 
-void World::end_simulation(const bool print_final_report) {
+void World::end_simulation(const bool run_up_to_last_count_and_viz_count_events, const bool print_final_report) {
   if (simulation_ended) {
     // already called, do nothing
     return;
+  }
+
+  if (run_up_to_last_count_and_viz_count_events) {
+    // executes all
+    run_n_iterations(1, determine_output_frequency(total_iterations), true);
   }
 
   // flush and close count buffers

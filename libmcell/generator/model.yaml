@@ -24,7 +24,8 @@ Model:
 
   - name: end_simulation
     doc: |
-      Flushes all buffers and optionally prints simulation report. 
+      Generates the last visualization and reaction output (if they were defined), then
+      flushes all buffers and optionally prints simulation report. 
       Buffers are also flushed when the Model object is destroyed.   
     params:
     - name: print_final_report
