@@ -264,7 +264,7 @@ def get_cpp_bool_string(val):
 def yaml_type_to_pybind_type(t):
     assert len(t) >= 1
     if t == YAML_TYPE_FLOAT:
-        return CPP_TYPE_FLOAT
+        return 'float_' 
     elif t == YAML_TYPE_STR:
         return YAML_TYPE_STR
     elif t == YAML_TYPE_BOOL:

@@ -13,6 +13,10 @@ constants:
     type: int
     value: -1
 
+  - name: PARTITION_EDGE_EXTRA_MARGIN_UM
+    type: float
+    value: 0.01
+    doc: Internal constant used to match partition setup when comparing models against their MDL variant. 
     
 enums:
   - name: Orientation

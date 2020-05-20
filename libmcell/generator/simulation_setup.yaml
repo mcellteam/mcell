@@ -31,7 +31,7 @@ Config:
 
   - name: vacancy_search_distance
     type: float
-    default: 0
+    default: 1e+6
     min: 0 
     doc: |
       Normally, a reaction will not proceed on a surface unless there

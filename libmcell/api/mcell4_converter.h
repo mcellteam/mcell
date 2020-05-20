@@ -23,6 +23,14 @@
 #ifndef LIBMCELL_API_MCELL4_CONVERTER_H_
 #define LIBMCELL_API_MCELL4_CONVERTER_H_
 
+namespace BNG {
+class ComponentType;
+class ComponentInstance;
+class MolType;
+class MolInstance;
+class CplxInstance;
+}
+
 namespace MCell {
 
 class World;
@@ -31,6 +39,11 @@ namespace API {
 
 
 class Model;
+class ComponentType;
+class ComponentInstance;
+class MoleculeType;
+class MoleculeInstance;
+class ComplexInstance;
 
 class MCell4Converter {
 public:
@@ -43,6 +56,13 @@ private:
 
   void convert_simulation_setup();
   void convert_species();
+
+  BNG::ComponentType convert_component_type(API::ComponentType& ct);
+  BNG::ComponentInstance convert_component_instance(API::ComponentInstance& ci);
+  BNG::MolType convert_molecule_type(API::MoleculeType& mt);
+  BNG::MolInstance convert_molecule_instance(API::MoleculeInstance& mi);
+  BNG::CplxInstance convert_complex_instance(API::ComplexInstance& inst);
+  void convert_rxns();
 
   void convert_release_events();
   void convert_viz_output_events();

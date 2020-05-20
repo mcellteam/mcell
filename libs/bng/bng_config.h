@@ -45,6 +45,8 @@ public:
   }
 
   bool rxn_probability_changed; // related to MCell's varying_probability_report?
+
+  void dump() const;
 };
 
 class BNGConfig {
@@ -74,6 +76,8 @@ public:
   bool debug_reactions;
 
   BNGNotifications notifications;
+
+  void dump() const;
 };
 
 } // namespace BNG

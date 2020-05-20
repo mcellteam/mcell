@@ -26,6 +26,8 @@
 #include "release_event.h"
 #include "viz_output_event.h"
 #include "rng.h"
+#include "bng/bng.h"
+
 
 #include "api/config.h"
 #include "api/species.h"
@@ -73,6 +75,8 @@ void MCell4Converter::convert(Model* model_, World* world_) {
   convert_species();
   world->create_diffusion_events();
 
+  convert_rxns();
+
   // at this point, we need to create the first (and for now the only) partition
   // create initial partition with center at 0,0,0
   partition_id_t index = world->add_partition(Vec3(0, 0, 0));
@@ -104,7 +108,7 @@ void MCell4Converter::convert_simulation_setup() {
     world->config.rx_radius_3d = config.interaction_radius / length_unit;
   }
   else {
-    world->config.rx_radius_3d = 1.0 / sqrt_f(MY_PI * grid_density);
+    world->config.rx_radius_3d = (1.0 / sqrt_f(MY_PI * grid_density)) / length_unit;
   }
 
   // TODO CHECK: converting to internal length units unlike as in mcell3
@@ -178,6 +182,108 @@ void MCell4Converter::convert_species() {
 
     // remember which species we created
     s->species_id = new_species_id;
+  }
+}
+
+
+BNG::ComponentType MCell4Converter::convert_component_type(API::ComponentType& ct) {
+  throw RuntimeError("Components are not supported yet");
+}
+
+
+BNG::ComponentInstance MCell4Converter::convert_component_instance(API::ComponentInstance& ci) {
+  throw RuntimeError("Components are not supported yet");
+}
+
+
+BNG::MolType MCell4Converter::convert_molecule_type(API::MoleculeType& mt) {
+  BNG::MolType res;
+
+  res.name = mt.name;
+  if (!mt.components.empty()) {
+    throw RuntimeError("Components are not supported yet");
+  }
+
+  return res;
+}
+
+
+BNG::MolInstance MCell4Converter::convert_molecule_instance(API::MoleculeInstance& mi) {
+  BNG::MolInstance res;
+
+  BNG::MolType mt = convert_molecule_type(*mi.molecule_type);
+  res.mol_type_id = world->bng_engine.get_data().find_or_add_molecule_type(mt);
+
+  if (!mi.components.empty()) {
+    throw RuntimeError("Components are not supported yet");
+  }
+
+  return res;
+}
+
+
+BNG::CplxInstance MCell4Converter::convert_complex_instance(API::ComplexInstance& inst) {
+  BNG::CplxInstance res;
+
+  for (std::shared_ptr<API::MoleculeInstance>& m: inst.molecule_instances) {
+    BNG::MolInstance mi = convert_molecule_instance(*m);
+
+    res.mol_instances.push_back(mi);
+  }
+
+  res.set_orientation(convert_orientation(inst.orientation));
+  res.finalize();
+  return res;
+}
+
+
+void MCell4Converter::convert_rxns() {
+  for (std::shared_ptr<API::ReactionRule>& r: model->reaction_rules) {
+
+    bool is_reversible = is_set(r->rev_rate);
+    if (is_reversible && is_set(r->name)) {
+        assert(false); // checked with semantic check
+    }
+
+    BNG::RxnRule rxn;
+
+    if (!is_reversible && is_set(r->name)) {
+      rxn.name = r->name;
+
+    }
+    rxn.type = BNG::RxnType::Standard;
+    rxn.rate_constant = r->fwd_rate;
+
+    for (std::shared_ptr<API::ComplexInstance>& rinst: r->reactants) {
+      // convert to BNG::ComplexInstance using existing or new BNG::molecule_id
+
+      BNG::CplxInstance reactant = convert_complex_instance(*rinst);
+      rxn.append_reactant(reactant);
+    }
+
+    for (std::shared_ptr<API::ComplexInstance>& pinst: r->products) {
+      // convert to BNG::ComplexInstance using existing or new BNG::molecule_id
+
+      BNG::CplxInstance product = convert_complex_instance(*pinst);
+      rxn.append_product(product);
+    }
+
+    // TODO: variable rates
+
+    // reverse reaction
+    BNG::RxnRule rxn_rev;
+    if (is_reversible) {
+      rxn_rev.rate_constant = r->rev_rate;
+      rxn_rev.reactants = rxn.products;
+      rxn_rev.products = rxn.reactants;
+    }
+
+    // add reaction(s)
+    world->get_all_rxns().add_finalized_no_update(rxn);
+
+    if (is_reversible) {
+      world->get_all_rxns().add_finalized_no_update(rxn_rev);
+    }
   }
 }
 

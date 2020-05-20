@@ -37,6 +37,9 @@ public:
   SPECIES_CTOR()
 
   void postprocess_in_ctor() override {
+    // initialization
+    species_id = SPECIES_ID_INVALID;
+
     // we can do semantic checks also in postprocess_in_ctor
     if (molecule_instances.empty()) {
       if (!is_set(diffusion_constant_2d) && !is_set(diffusion_constant_3d)) {

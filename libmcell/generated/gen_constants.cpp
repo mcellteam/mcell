@@ -30,6 +30,7 @@ void define_pybinding_constants(py::module& m) {
   m.attr("STATE_UNSET_INT") = py::int_(STATE_UNSET_INT);
   m.attr("BOND_UNBOUND") = py::int_(BOND_UNBOUND);
   m.attr("BOND_BOUND") = py::int_(BOND_BOUND);
+  m.attr("PARTITION_EDGE_EXTRA_MARGIN_UM") = py::float_(PARTITION_EDGE_EXTRA_MARGIN_UM);
   py::enum_<Orientation>(m, "Orientation", py::arithmetic())
     .value("Down", Orientation::Down)
     .value("None", Orientation::None)

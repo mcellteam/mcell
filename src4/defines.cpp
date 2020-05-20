@@ -68,12 +68,16 @@ void SimulationStats::dump() {
 
 
 void SimulationConfig::dump() {
-  cout << "time_unit: \t\t" << time_unit << " [float_t] \t\t\n";
-  cout << "length_unit: \t\t" << length_unit << " [float_t] \t\t\n";
-  cout << "rx_radius_3d: \t\t" << rx_radius_3d << " [float_t] \t\t\n";
-  cout << "partition_edge_length: \t\t" << partition_edge_length << " [float_t] \t\t\n";
-  cout << "subpartitions_per_partition_dimension: \t\t" << subpartitions_per_partition_dimension << " [uint] \t\t\n";
-  cout << "subpartition_edge_length: \t\t" << subpartition_edge_length << " [float_t] \t\t\n";
+  BNGConfig::dump();
+  cout << "SimulationConfig:\n";
+  cout << "  vacancy_search_dist2: \t\t" << vacancy_search_dist2 << " [float_t] \t\t\n";
+  cout << "  partition_edge_length: \t\t" << partition_edge_length << " [float_t] \t\t\n";
+  cout << "  subpartitions_per_partition_dimension: \t\t" << subpartitions_per_partition_dimension << " [uint] \t\t\n";
+  cout << "  subpartitions_per_partition_dimension_squared: \t\t" << subpartitions_per_partition_dimension_squared << " [uint] \t\t\n";
+  cout << "  subpartition_edge_length: \t\t" << subpartition_edge_length << " [float_t] \t\t\n";
+  cout << "  subpartition_edge_length_rcp: \t\t" << subpartition_edge_length_rcp << " [float_t] \t\t\n";
+  cout << "  use_expanded_list: \t\t" << use_expanded_list << " [bool] \t\t\n";
+  cout << "  randomize_smol_pos: \t\t" << randomize_smol_pos << " [bool] \t\t\n";
 }
 
 } // namespace mcell

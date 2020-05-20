@@ -23,8 +23,9 @@
 #ifndef API_REACTION_RULE_H
 #define API_REACTION_RULE_H
 
-#include "../generated/gen_reaction_rule.h"
-#include "../api/common.h"
+#include "generated/gen_reaction_rule.h"
+#include "api/common.h"
+#include "bng/bng.h"
 
 namespace MCell {
 namespace API {
@@ -32,6 +33,26 @@ namespace API {
 class ReactionRule: public GenReactionRule {
 public:
   REACTION_RULE_CTOR()
+
+  void postprocess_in_ctor() override {
+    fwd_rxn_rule_id = BNG::RXN_RULE_ID_INVALID;
+    rev_rxn_rule_id = BNG::RXN_RULE_ID_INVALID;
+  }
+
+  void check_semantics() const override {
+    GenReactionRule::check_semantics();
+
+    if (is_set(rev_rate) && is_set(name)) {
+      throw ValueError(
+          "Reversible reactions cannot have their name set because they are internally split into its forward and reverse variant. "
+          "Error for " + name + ". If name is needed, split the definition into its forward and reverse variant."
+      );
+    }
+  }
+
+  // simulation engine mapping
+  BNG::rxn_rule_id_t fwd_rxn_rule_id;
+  BNG::rxn_rule_id_t rev_rxn_rule_id;
 };
 
 } // namespace API

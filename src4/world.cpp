@@ -324,6 +324,7 @@ void World::run_simulation(const bool dump_initial_state) {
 
 
 void World::dump() {
+  config.dump();
   stats.dump();
 
   get_all_species().dump(bng_engine.get_data());
