@@ -38,7 +38,7 @@ class Species;
         const Orientation initial_orientation_ = Orientation::None, \
         const Shape shape_ = Shape::Unset, \
         const Vec3& location_ = VEC3_UNSET, \
-        const float_t site_diameter_ = FLT_UNSET, \
+        const float_t site_diameter_ = 0, \
         const float_t site_radius_ = FLT_UNSET, \
         const int number_to_release_ = INT_UNSET, \
         const float_t release_probability_ = FLT_UNSET \

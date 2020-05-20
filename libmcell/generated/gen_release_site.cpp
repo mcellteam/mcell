@@ -91,7 +91,7 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
           py::arg("initial_orientation") = Orientation::None,
           py::arg("shape") = Shape::Unset,
           py::arg("location") = VEC3_UNSET,
-          py::arg("site_diameter") = FLT_UNSET,
+          py::arg("site_diameter") = 0,
           py::arg("site_radius") = FLT_UNSET,
           py::arg("number_to_release") = INT_UNSET,
           py::arg("release_probability") = FLT_UNSET
