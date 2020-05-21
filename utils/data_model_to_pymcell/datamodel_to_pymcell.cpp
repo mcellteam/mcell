@@ -64,6 +64,9 @@ int process_args(
     string& input_file,
     string& output_files_prefix
 ) {
+  input_file = "";
+  output_files_prefix = "";
+
   assert(argc > 0);
   while (1) {
 
@@ -87,19 +90,13 @@ int process_args(
 
   if (optind < argc) {
     if (argc - optind > 1) {
-      cerr << "Only one input datamodel file can be specified.\n";
+      cerr << "Only one input data model file can be specified.\n";
       return ARG_PARSE_ERROR;
     }
     input_file = argv[optind];
   }
   else {
-    cerr << "Input datamodel file file was not specified.\n";
-    return ARG_PARSE_ERROR;
-  }
-
-
-  if (output_files_prefix == "") {
-    cerr << "Output files prefix must specified.\n";
+    cerr << "Input data model file file was not specified.\n";
     return ARG_PARSE_ERROR;
   }
 
