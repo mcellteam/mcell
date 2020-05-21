@@ -20,7 +20,7 @@
  *
 ******************************************************************************/
 
-#include <datamodel_to_pymcell/pymcell_generator.h>
+#include "pymcell_generator.h"
 #include <getopt.h>
 #include <iostream>
 #include <cassert>
