@@ -1102,7 +1102,7 @@ static bool find_plane_crossing_efop(
   bool t_out_of_range = false;
 
   float_t ft;
-  while (!cmp_eq(t, t_previous, EPS)) {
+  while (!cmp_eq(t, t_previous, SQRT_EPS)) {
     ft = Local::compute_f(e, f, k, l, m, n, t);
     float_t dft = Local::compute_df(e, f, k, l, m, n, t);
 
