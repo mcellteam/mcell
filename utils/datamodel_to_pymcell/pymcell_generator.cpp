@@ -112,7 +112,7 @@ bool PymcellGenerator::generate(
   CHECK(geometry_names = generate_geometry(), failed);
   CHECK(generate_instantiation(geometry_names), failed);
   CHECK(generate_observables(), failed);
-  //CHECK(generate_model(), failed);
+  CHECK(generate_model(), failed);
 
   return !failed;
 }
@@ -153,10 +153,10 @@ vector<string> PymcellGenerator::generate_species(ofstream& out) {
     string mol_type = molecule_list_item[KEY_MOL_TYPE].asString();
     CHECK_PROPERTY(mol_type == VALUE_MOL_TYPE_2D || mol_type == VALUE_MOL_TYPE_3D);
     if (mol_type == VALUE_MOL_TYPE_3D) {
-      gen_param(out, NAME_DIFFUSION_CONSTANT_3D, molecule_list_item[KEY_DIFFUSION_CONSTANT], false);
+      gen_param_double(out, NAME_DIFFUSION_CONSTANT_3D, molecule_list_item[KEY_DIFFUSION_CONSTANT], false);
     }
     else {
-      gen_param(out, NAME_DIFFUSION_CONSTANT_2D, molecule_list_item[KEY_DIFFUSION_CONSTANT], false);
+      gen_param_double(out, NAME_DIFFUSION_CONSTANT_2D, molecule_list_item[KEY_DIFFUSION_CONSTANT], false);
     }
     out << CTOR_END;
   }
@@ -186,7 +186,7 @@ vector<string> PymcellGenerator::generate_reaction_rules(ofstream& out) {
       unnamed_rxn_counter++;
     }
     rxn_names.push_back(name);
-    gen_ctor_call(out, name, NAME_CLASS_SPECIES);
+    gen_ctor_call(out, name, NAME_CLASS_REACTION_RULE);
     gen_param(out, NAME_NAME, name, true);
 
     // single line for now
@@ -204,9 +204,9 @@ vector<string> PymcellGenerator::generate_reaction_rules(ofstream& out) {
     CHECK_PROPERTY(rxn_type == VALUE_IRREVERSIBLE || rxn_type == VALUE_REVERSIBLE);
     bool is_reversible = rxn_type == VALUE_REVERSIBLE;
 
-    gen_param(out, NAME_FWD_RATE, reaction_list_item[KEY_FWD_RATE], is_reversible);
+    gen_param_double(out, NAME_FWD_RATE, reaction_list_item[KEY_FWD_RATE], is_reversible);
     if (is_reversible) {
-      gen_param(out, NAME_FWD_RATE, reaction_list_item[KEY_BKWD_RATE], false);
+      gen_param_double(out, NAME_FWD_RATE, reaction_list_item[KEY_BKWD_RATE], false);
     }
 
     out << CTOR_END;
@@ -320,8 +320,8 @@ string PymcellGenerator::generate_single_geometry_object(
   // object creation itself
   out << name << " = " << MDOT << NAME_CLASS_GEOMETRY_OBJECT << "(\n";
   gen_param(out, NAME_NAME, name, true);
-  gen_param(out, NAME_VERTEX_LIST, id_vertex_list, true);
-  gen_param(out, NAME_ELEMENT_CONNECTIONS, id_element_connections, true);
+  gen_param_id(out, NAME_VERTEX_LIST, id_vertex_list, true);
+  gen_param_id(out, NAME_ELEMENT_CONNECTIONS, id_element_connections, true);
   out << IND << NAME_SURFACE_REGIONS << " = [";
   for (size_t i = 0; i < sr_global_names.size(); i++) {
     out << sr_global_names[i];
@@ -386,11 +386,11 @@ vector<string> PymcellGenerator::generate_release_sites(ofstream& out) {
 
     gen_ctor_call(out, name, NAME_CLASS_RELEASE_SITE);
     gen_param(out, NAME_NAME, name, true);
-    gen_param(out, NAME_SPECIES, release_site_item[KEY_MOLECULE], true);
+    gen_param_id(out, NAME_SPECIES, release_site_item[KEY_MOLECULE], true);
 
     string shape = release_site_item[KEY_SHAPE].asString();
     if (shape == VALUE_SPHERICAL) {
-      gen_param(out, NAME_SHAPE, make_enum_value(NAME_ENUM_SHAPE, NAME_SPHERICAL), true);
+      gen_param_enum(out, NAME_SHAPE, NAME_ENUM_SHAPE, NAME_SPHERICAL, true);
       gen_param_vec3(
           out, NAME_LOCATION,
           release_site_item[KEY_LOCATION_X], release_site_item[KEY_LOCATION_Y], release_site_item[KEY_LOCATION_Z],
@@ -434,10 +434,10 @@ void PymcellGenerator::generate_instantiation(const vector<string>& geometry_obj
 
   gen_ctor_call(out, INSTANTIATION, NAME_CLASS_INSTANTIATION_DATA, false);
   for (const string& s: geometry_objects) {
-    gen_method_call(out, SUBSYSTEM, NAME_ADD_SPECIES, s);
+    gen_method_call(out, INSTANTIATION, NAME_ADD_GEOMETRY_OBJECT, s);
   }
   for (const string& r: release_sites) {
-    gen_method_call(out, SUBSYSTEM, NAME_ADD_REACTION_RULE, r);
+    gen_method_call(out, INSTANTIATION, NAME_ADD_RELEASE_SITE, r);
   }
 
   out.close();
@@ -500,7 +500,7 @@ void PymcellGenerator::generate_observables() {
     out << make_import(GEOMETRY);
   }
   out << "\n";
-  out << make_section_comment(INSTANTIATION);
+  out << make_section_comment(OBSERVABLES);
 
   vector<string> viz_outputs = generate_viz_outputs(out);
 
@@ -514,7 +514,86 @@ void PymcellGenerator::generate_observables() {
     gen_method_call(out, OBSERVABLES, NAME_ADD_COUNT, r);
   }
 
+  observables_generated = true;
+
   out.close();
 }
+
+
+void PymcellGenerator::generate_config(ofstream& out) {
+  out << make_section_comment("configuration");
+
+  // using values from generated parameters.py
+  gen_assign(out, MODEL, NAME_CONFIG, NAME_TIME_STEP, PARAM_TIME_STEP);
+  gen_assign(out, MODEL, NAME_CONFIG, NAME_SEED, PARAM_SEED);
+  gen_assign(out, MODEL, NAME_CONFIG, NAME_TOTAL_ITERATIONS_HINT, PARAM_ITERATIONS);
+  out << "\n";
+
+  Json::Value& initialization = mcell[KEY_INITIALIZATION];
+  Json::Value& partitions = initialization[KEY_PARTITIONS];
+
+  // check that all the x,y,z values are the same (comparing strings)
+  CHECK_PROPERTY(partitions[KEY_X_START].asString() == partitions[KEY_Y_START].asString());
+  CHECK_PROPERTY(partitions[KEY_Y_START].asString() == partitions[KEY_Z_START].asString());
+  CHECK_PROPERTY(partitions[KEY_X_END].asString() == partitions[KEY_Y_END].asString());
+  CHECK_PROPERTY(partitions[KEY_Y_END].asString() == partitions[KEY_Z_END].asString());
+  CHECK_PROPERTY(partitions[KEY_X_STEP].asString() == partitions[KEY_Y_STEP].asString());
+  CHECK_PROPERTY(partitions[KEY_Z_STEP].asString() == partitions[KEY_Z_STEP].asString());
+
+  double x_start = stod(partitions[KEY_X_START].asString());
+  double x_end = stod(partitions[KEY_X_END].asString());
+  double x_step = stod(partitions[KEY_X_STEP].asString());
+  CHECK_PROPERTY(fabs(x_start + x_end) < 1e-12 && "-x_start must be equal to x_end");
+
+  gen_assign(out, MODEL, NAME_CONFIG, NAME_PARTITION_DIMENSION, x_end * 2);
+  gen_assign(out, MODEL, NAME_CONFIG, NAME_SUBPARTITION_DIMENSION, x_step);
+}
+
+
+void PymcellGenerator::generate_model() {
+  ofstream out;
+  open_and_check_file(MODEL, out);
+
+  out << INTERPRETER;
+  out << BASE_MODEL_IMPORTS;
+  out << MCELL_DIR_SETUP;
+
+  out << MCELL_IMPORT;
+
+  out << make_import(PARAMETERS);
+  out << IMPORT << " " << get_module_name(SUBSYSTEM) << "\n";
+  out << IMPORT << " " << get_module_name(INSTANTIATION) << "\n";
+  if (observables_generated) {
+    out << IMPORT << " " << get_module_name(OBSERVABLES) << "\n";
+  }
+  out << "\n";
+
+  gen_ctor_call(out, MODEL, NAME_CLASS_MODEL, false);
+  out << "\n";
+
+  generate_config(out);
+  out << "\n";
+
+  out << make_section_comment("add components");
+  gen_method_call(out, MODEL, NAME_ADD_SUBSYSTEM, get_module_name(SUBSYSTEM) + "." + SUBSYSTEM);
+  gen_method_call(out, MODEL, NAME_ADD_INSTANTIATION_DATA, get_module_name(INSTANTIATION) + "." + INSTANTIATION);
+  if (observables_generated) {
+    gen_method_call(out, MODEL, NAME_ADD_OBSERVABLES, get_module_name(OBSERVABLES) + "." + OBSERVABLES);
+  }
+  out << "\n";
+
+  out << make_section_comment("initialization and execution");
+  gen_method_call(out, MODEL, NAME_INITIALIZE);
+  out << "\n";
+
+  out << "if " << PARAM_DUMP << ":\n";
+  out << IND;
+  gen_method_call(out, MODEL, NAME_DUMP_INTERNAL_STATE);
+  out << "\n";
+
+  gen_method_call(out, MODEL, NAME_RUN_ITERATIONS, PARAM_ITERATIONS);
+  gen_method_call(out, MODEL, NAME_END_SIMULATION);
+}
+
 
 } /* namespace MCell */

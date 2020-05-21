@@ -65,6 +65,10 @@ private:
   std::vector<std::string> generate_counts(std::ofstream& out);
   void generate_observables();
 
+  void generate_config(std::ofstream& out);
+  void generate_model();
+
+
   std::string output_files_prefix;
 
   // parameters, subsystem, and instantiation are always generated

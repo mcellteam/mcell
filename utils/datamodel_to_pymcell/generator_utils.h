@@ -36,7 +36,7 @@
 #include "../../libmcell/generated/gen_names.h"
 #include "../../include/datamodel_defines.h"
 
-#include "generator_consts.h"
+#include "generator_constants.h"
 
 using namespace std;
 
@@ -155,7 +155,7 @@ void gen_ctor_call(ofstream& out, string name, string class_name, bool has_param
 }
 
 
-void gen_method_call(ofstream& out, string obj, string method, string param) {
+void gen_method_call(ofstream& out, string obj, string method, string param = "") {
   out << obj << "." << method << "(" << param << ")\n";
 }
 
@@ -190,9 +190,25 @@ void gen_param(ofstream& out, string name, double value, bool comma) {
 }
 
 
+void gen_param_id(ofstream& out, string name, string id, bool comma) {
+  out << IND << name << " = " << id << (comma?",":"") << "\n";
+}
+
+
+void gen_param_id(ofstream& out, string name, Json::Value& id, bool comma) {
+  out << IND << name << " = " << id.asString() << (comma?",":"") << "\n";
+}
+
 void gen_param_int(ofstream& out, string name, Json::Value& value, bool comma) {
   string s = value.asString();
   int v = stoi(s);
+  gen_param(out, name, v, comma);
+}
+
+
+void gen_param_double(ofstream& out, string name, Json::Value& value, bool comma) {
+  string s = value.asString();
+  double v = stod(s);
   gen_param(out, name, v, comma);
 }
 
@@ -215,6 +231,12 @@ void gen_param_vec3(ofstream& out, string name, Json::Value& x, Json::Value& y, 
   out << IND <<
       name << " = " << MDOT << VEC3 <<
       "(" << x.asString() << ", " << y.asString() << ", " << z.asString() << ")" << (comma?",":"") << "\n";
+}
+
+
+template<typename T>
+void gen_assign(ofstream& out, string obj_name, string field_name1, string field_name2, T value) {
+  out << obj_name << "." << field_name1 << "." << field_name2 << " = " << value << "\n";
 }
 
 
@@ -305,7 +327,7 @@ static void gen_rxn_substance_inst(ofstream& out, Json::Value& substances_node) 
     out << substances[i] << "." << API::NAME_INST << "()";
     print_comma(out, i, substances);
   }
-  out << "]";
+  out << " ]";
 }
 
 } // namespace MCell
