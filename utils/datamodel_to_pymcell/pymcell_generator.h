@@ -50,22 +50,30 @@ private:
   // TODO: shorten the name to gen?
   void generate_parameters();
 
-  void generate_species(std::ofstream& out);
-  void generate_reaction_rules(std::ofstream& out);
+  std::vector<std::string> generate_species(std::ofstream& out);
+  std::vector<std::string> generate_reaction_rules(std::ofstream& out);
   void generate_subsystem();
 
-  void generate_single_geometry_object(
-      std::ostream& out, const int index, Json::Value& object);
-  void generate_geometry();
+  std::string generate_single_geometry_object(
+      std::ofstream& out, const int index, Json::Value& object);
+  std::vector<std::string> generate_geometry();
+
+  std::vector<std::string> generate_release_sites(std::ofstream& out);
+  void generate_instantiation(const std::vector<std::string>& geometry_objects);
+
+  std::vector<std::string> generate_viz_outputs(std::ofstream& out);
+  std::vector<std::string> generate_counts(std::ofstream& out);
+  void generate_observables();
 
   std::string output_files_prefix;
 
-  // parameters and subsystem are always generated
+  // parameters, subsystem, and instantiation are always generated
   bool geometry_generated;
-  bool instantiation_generated;
   bool observables_generated;
 
   uint unnamed_rxn_counter;
+
+  std::vector<std::string> all_species_names;
 
   // mcell node of the loaded JSON file
   Json::Value mcell;

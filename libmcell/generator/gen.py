@@ -161,6 +161,7 @@ GEN_CONSTANTS_CPP = 'gen_constants.cpp'
 GEN_NAMES_H = 'gen_names.h'
 NAME_PREFIX = 'NAME_'
 CLASS_PREFIX = 'CLASS_'
+ENUM_PREFIX = 'ENUM_'
 
 INCLUDE_API_MCELL_H = '#include "../api/mcell.h"'
 INCLUDE_API_COMMON_H = '#include "../api/common.h"'
@@ -1179,6 +1180,8 @@ def generate_data_classes(data_classes):
 def collect_all_names(data_classes):
     all_class_names = set()    
     all_item_param_names = set()
+    all_enum_value_names = set()
+    all_const_value_names = set()
     
     for key, value in data_classes.items():
         
@@ -1197,25 +1200,45 @@ def collect_all_names(data_classes):
                     if KEY_PARAMS in method:
                         for param in method[KEY_PARAMS]:
                             all_item_param_names.add(param[KEY_NAME])
+        elif key == KEY_ENUMS:
+            # enum names are in g_enums
+            for enum in value:
+                if KEY_VALUES in enum:
+                    for enum_item in enum[KEY_VALUES]:
+                        all_enum_value_names.add(enum_item[KEY_NAME])
+        elif key == KEY_CONSTANTS:
+            for const in value:
+                all_const_value_names.add(const[KEY_NAME])
         else:
-            # TODO: constants and enums
-            pass
+            print("Error: unexpected top level key " + key)
+            sys.exit(1)
     
     all_class_names = list(all_class_names)
     all_class_names.sort(key=str.casefold)
     
     all_item_param_names_list = list(all_item_param_names)
     all_item_param_names_list.sort(key=str.casefold)
-    return all_class_names, all_item_param_names_list
+    
+    all_enum_value_names_list = list(all_enum_value_names)
+    all_enum_value_names_list.sort(key=str.casefold)
+    
+    all_const_value_names_list = list(all_const_value_names)
+    all_const_value_names_list.sort(key=str.casefold)
+    
+    return all_class_names, all_item_param_names_list, all_enum_value_names_list, all_const_value_names_list
+
   
 def write_name_def(f, name, extra_prefix=''):
     upper_name = get_underscored(name).upper()
     f.write('const char* const ' + NAME_PREFIX + extra_prefix + upper_name + ' = "' + name + '";\n')
+
+def write_name_def_verbatim(f, name, extra_prefix=''):
+    f.write('const char* const ' + NAME_PREFIX + extra_prefix + name + ' = "' + name + '";\n')
       
 # this function generates definitions for converter so that we can use constant strings 
 def generate_names_header(data_classes):
 
-    all_class_names, all_item_param_names_list = collect_all_names(data_classes)
+    all_class_names, all_item_param_names_list, all_enum_value_names_list, all_const_value_names_list = collect_all_names(data_classes)
     
     with open(os.path.join(TARGET_DIRECTORY, GEN_NAMES_H), 'w') as f:
         f.write(COPYRIGHT)
@@ -1229,11 +1252,24 @@ def generate_names_header(data_classes):
 
         for name in all_class_names:
             write_name_def(f, name, CLASS_PREFIX)
-            
         f.write('\n')
-        
+
         for name in all_item_param_names_list:
             write_name_def(f, name)
+        f.write('\n')
+
+        for name in g_enums:
+            write_name_def(f, name, ENUM_PREFIX)
+        f.write('\n')
+        
+        # enum names and constants should be unique
+        for name in all_enum_value_names_list:
+            write_name_def(f, name)
+        f.write('\n')
+        
+        for name in all_const_value_names_list:
+            write_name_def_verbatim(f, name)
+        f.write('\n')
         
         f.write(NAMESPACES_END + '\n\n')
         f.write('#endif // ' + guard + '\n\n')      

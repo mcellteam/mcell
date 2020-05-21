@@ -21,13 +21,8 @@
 ******************************************************************************/
 
 #include <datamodel_to_pymcell/pymcell_generator.h>
-#include <exception>
-#include <iostream>
-#include <string>
-#include <cassert>
 
-#include "../../libmcell/generated/gen_names.h"
-#include "../../include/datamodel_defines.h"
+#include "generator_utils.h"
 
 using namespace std;
 using namespace MCell::API;
@@ -36,229 +31,8 @@ namespace MCell {
 
 using Json::Value;
 
-typedef std::invalid_argument ConversionError;
 
-
-const char* const PARAMETERS_SUFFIX = "parameters";
-const char* const SUBSYSTEM_SUFFIX = "subsystem";
-const char* const GEOMETRY_SUFFIX = "geometry";
-const char* const INSTANTIATION_SUFFIX = "instantiation";
-const char* const OBSERVABLES_SUFFIX = "observables";
-const char* const MODEL_SUFFIX = "model";
-
-const char* const PY_EXT = ".py";
-
-const char* const MDOT = "m.";
-const char* const MCELL_IMPORT = "import mcell as m\n\n";
-
-const char* const IND = "    ";
-const char* const BLOCK_BEGIN1 = "# ---- ";
-const char* const BLOCK_BEGIN2 = " ----\n";
-const char* const BLOCK_END1 = "# ^^^^ ";
-const char* const BLOCK_END2 = " ^^^^\n\n";
-const char* const CTOR_END = ")\n\n";
-
-const char* const PARAM_SEED = "SEED";
-const char* const PARAM_ITERATIONS = "ITERATIONS";
-const char* const PARAM_TIME_STEP = "TIME_STEP";
-const char* const PARAM_DUMP = "DUMP";
-
-const char* const UNNAMED_REACTION_RULE_PREFIX = "unnamed_reaction_rule_";
-
-// using exceptions to
-
-#define CHECK(stmt, failed) \
-  do { \
-    try { \
-      (stmt); \
-    } \
-    catch (exception& e) { \
-      cerr << e.what() << "\n"; \
-      cerr << "Exception caught in '" << __FUNCTION__ << "' after conversion error.\n"; \
-      failed = true; \
-    } \
-  } while (0)
-
-#define CHECK_PROPERTY(cond) \
-  do { \
-    if(!(cond)) { \
-      throw ConversionError(S("Expected '") + #cond + "' is false. (" + __FUNCTION__ + " - " + __FILE__ + ":" + to_string(__LINE__) + ")"); \
-    } \
-  } while (0)
-
-#define ERROR(msg) throw ConversionError(msg);
-
-
-// auxiliary method to simply convert to std::string for when concatenating string
-static string S(const char* s) {
-  return string(s);
-}
-
-
-// throws exception when the member is member is there
-static Value& get_node(const string parent_name, Value& parent, const string name) {
-  if (!parent.isMember(name)) {
-    throw ConversionError("Node '" + parent_name + "' does not contain expected node '" + name + "'.");
-  }
-  return parent[name];
-}
-
-
-// used when we know that the member is there
-static Value& get_node(Value& parent, const string name) {
-  assert(parent.isMember(name));
-  return parent[name];
-}
-
-
-static void print_comma(ostream& out, Value::ArrayIndex index, Value& array) {
-  if (index + 1 != array.size()) {
-    out << ", ";
-  }
-}
-
-
-template<typename T>
-void print_comma(ostream& out, size_t index, const vector<T>& array) {
-  if (index + 1 != array.size()) {
-    out << ", ";
-  }
-}
-
-
-static string make_section_comment(const string text) {
-  return BLOCK_BEGIN1 + text + BLOCK_BEGIN2 + "\n";
-}
-
-
-static string make_start_block_comment(const string text) {
-  return BLOCK_BEGIN1 + text + BLOCK_BEGIN2;
-}
-
-
-static string make_end_block_comment(const string text) {
-  return BLOCK_END1 + text + BLOCK_END2 + "\n";
-}
-
-
-static void check_version(const string node_name, Json::Value& node, const char* const version) {
-  if (node[KEY_DATA_MODEL_VERSION].asString() != version) {
-    throw ConversionError(
-        "Error: version for " + node_name + " is " + node[KEY_DATA_MODEL_VERSION].asString() +
-        ", expected" + version);
-  }
-}
-
-
-template<typename T>
-void gen_param(ofstream& out, std::string name, T value, bool comma) {
-  out << IND << name << " = " << value << (comma?",":"") << "\n";
-}
-
-
-template<>
-void gen_param(ofstream& out, std::string name, Json::Value& value, bool comma) {
-  out << IND << name << " = \"" << value.asString() << "\"" << (comma?",":"") << "\n";
-}
-
-
-template<>
-void gen_param(ofstream& out, std::string name, std::string value, bool comma) {
-  out << IND << name << " = \"" << value << "\"" << (comma?",":"") << "\n";
-}
-
-
-static void gen_rxn_substance_inst(ofstream& out, Json::Value& substances_node) {
-  string str = substances_node.asString();
-
-  vector<string> substances;
-
-  // finite automata to parse the reaction side string, e.g. "a + b"
-  enum state_t {
-    START,
-    ID,
-    AFTER_ID,
-    AFTER_PLUS
-  };
-
-  state_t state = START;
-  string current_id;
-  for (size_t i = 0; i < str.size(); i++) {
-    char c = str[i];
-    switch (state) {
-      case START:
-        if (isalnum(c)) {
-          state = ID;
-          current_id = c;
-        }
-        else if (isblank(c)) {
-          // ok
-        }
-        else {
-          ERROR("Could not parse reaction side " + str + " (START).");
-        }
-        break;
-
-      case ID:
-        if (isalnum(c)) {
-          current_id += c;
-        }
-        else if (isblank(c) || c == '+') {
-          substances.push_back(current_id);
-          current_id = "";
-          if (isblank(c)) {
-            state = AFTER_ID;
-          }
-          else {
-            state = AFTER_PLUS;
-          }
-        }
-        else {
-          ERROR("Could not parse reaction side " + str + " (ID).");
-        }
-        break;
-
-      case AFTER_ID:
-        if (c == '+') {
-          state = AFTER_PLUS;
-        }
-        else if (isblank(c)) {
-          // ok
-        }
-        else {
-          ERROR("Could not parse reaction side " + str + " (AFTER_ID).");
-        }
-        break;
-
-      case AFTER_PLUS:
-        if (isalnum(c)) {
-          state = ID;
-          current_id = c;
-        }
-        else if (isblank(c)) {
-          // ok
-        }
-        else {
-          ERROR("Could not parse reaction side " + str + " (AFTER_PLUS).");
-        }
-        break;
-      default:
-        assert(false);
-    }
-  }
-  if (current_id != "") {
-    substances.push_back(current_id);
-  }
-
-  out << "[ ";
-  for (size_t i = 0; i < substances.size(); i++) {
-    out << substances[i] << "." << NAME_INST << "()";
-    print_comma(out, i, substances);
-  }
-  out << "]";
-}
-
-std::string PymcellGenerator::get_filename(const string file_suffix) {
+string PymcellGenerator::get_filename(const string file_suffix) {
   if (output_files_prefix == "" || output_files_prefix.back() == '/' || output_files_prefix.back() == '\\') {
     return output_files_prefix + file_suffix + PY_EXT;
   }
@@ -268,7 +42,7 @@ std::string PymcellGenerator::get_filename(const string file_suffix) {
 }
 
 
-std::string PymcellGenerator::get_module_name(const string file_suffix) {
+string PymcellGenerator::get_module_name(const string file_suffix) {
   if (output_files_prefix == "" || output_files_prefix.back() == '/' || output_files_prefix.back() == '\\') {
     return file_suffix;
   }
@@ -284,14 +58,14 @@ std::string PymcellGenerator::get_module_name(const string file_suffix) {
 }
 
 
-std::string PymcellGenerator::make_import(const string file_suffix) {
+string PymcellGenerator::make_import(const string file_suffix) {
   return "from " + get_module_name(file_suffix) + " import *\n";
 }
 
 
 void PymcellGenerator::open_and_check_file(const string file_suffix, ofstream& out) {
   string file_name = get_filename(file_suffix);
-  cout << "Started to generate file " + file_name + ".\n";
+  cout << "Generating file " + file_name + ".\n";
   out.open(file_name);
   out.precision(17);
   if (!out.is_open()) {
@@ -302,10 +76,9 @@ void PymcellGenerator::open_and_check_file(const string file_suffix, ofstream& o
 
 void PymcellGenerator::reset() {
   geometry_generated = false;
-  instantiation_generated = false;
   observables_generated = false;
-
   unnamed_rxn_counter = 0;
+  all_species_names.clear();
 }
 
 
@@ -335,9 +108,10 @@ bool PymcellGenerator::generate(
 
   CHECK(generate_parameters(), failed);
   CHECK(generate_subsystem(), failed);
-  CHECK(generate_geometry(), failed);
-  //CHECK(generate_instantiation(), failed);
-  //CHECK(generate_observables(), failed);
+  std::vector<std::string> geometry_names;
+  CHECK(geometry_names = generate_geometry(), failed);
+  CHECK(generate_instantiation(geometry_names), failed);
+  CHECK(generate_observables(), failed);
   //CHECK(generate_model(), failed);
 
   return !failed;
@@ -346,7 +120,7 @@ bool PymcellGenerator::generate(
 
 void PymcellGenerator::generate_parameters() {
   ofstream out;
-  open_and_check_file(PARAMETERS_SUFFIX, out);
+  open_and_check_file(PARAMETERS, out);
 
   out << make_section_comment("simulation setup");
 
@@ -359,7 +133,8 @@ void PymcellGenerator::generate_parameters() {
 }
 
 
-void PymcellGenerator::generate_species(ofstream& out) {
+vector<string> PymcellGenerator::generate_species(ofstream& out) {
+  vector<string> species_names;
 
   // there must be at least one species
   Value& define_molecules = get_node(mcell, KEY_DEFINE_MOLECULES);
@@ -371,7 +146,8 @@ void PymcellGenerator::generate_species(ofstream& out) {
     check_version(KEY_MOLECULE_LIST, molecule_list_item, JSON_DM_VERSION_1632);
 
     string name = molecule_list_item[KEY_MOL_NAME].asString();
-    out << name << " = " << MDOT << NAME_CLASS_SPECIES << "(\n";
+    species_names.push_back(name);
+    gen_ctor_call(out, name, NAME_CLASS_SPECIES);
     gen_param(out, NAME_NAME, name, true);
 
     string mol_type = molecule_list_item[KEY_MOL_TYPE].asString();
@@ -384,13 +160,16 @@ void PymcellGenerator::generate_species(ofstream& out) {
     }
     out << CTOR_END;
   }
+
+  return species_names;
 }
 
 
-void PymcellGenerator::generate_reaction_rules(ofstream& out) {
+vector<string> PymcellGenerator::generate_reaction_rules(ofstream& out) {
+  vector<string> rxn_names;
 
   if (!mcell.isMember(KEY_DEFINE_REACTIONS)) {
-    return;
+    return rxn_names;
   }
 
   Value& define_reactions = get_node(mcell, KEY_DEFINE_REACTIONS);
@@ -406,7 +185,8 @@ void PymcellGenerator::generate_reaction_rules(ofstream& out) {
       name = UNNAMED_REACTION_RULE_PREFIX + to_string(unnamed_rxn_counter);
       unnamed_rxn_counter++;
     }
-    out << name << " = " << MDOT << NAME_CLASS_SPECIES << "(\n";
+    rxn_names.push_back(name);
+    gen_ctor_call(out, name, NAME_CLASS_SPECIES);
     gen_param(out, NAME_NAME, name, true);
 
     // single line for now
@@ -432,27 +212,36 @@ void PymcellGenerator::generate_reaction_rules(ofstream& out) {
     out << CTOR_END;
   }
 
+  return rxn_names;
 }
 
 
 void PymcellGenerator::generate_subsystem() {
   ofstream out;
-  open_and_check_file(SUBSYSTEM_SUFFIX, out);
+  open_and_check_file(SUBSYSTEM, out);
 
   out << MCELL_IMPORT;
-  out << make_import(PARAMETERS_SUFFIX);
+  out << make_import(PARAMETERS);
   out << "\n";
-  out << make_section_comment(SUBSYSTEM_SUFFIX);
+  out << make_section_comment(SUBSYSTEM);
 
-  generate_species(out);
-  generate_reaction_rules(out);
+  all_species_names = generate_species(out);
+  vector<string> rxn_names = generate_reaction_rules(out);
+
+  gen_ctor_call(out, SUBSYSTEM, NAME_CLASS_SUBSYSTEM, false);
+  for (string& s: all_species_names) {
+    gen_method_call(out, SUBSYSTEM, NAME_ADD_SPECIES, s);
+  }
+  for (string& r: rxn_names) {
+    gen_method_call(out, SUBSYSTEM, NAME_ADD_REACTION_RULE, r);
+  }
 
   out.close();
 }
 
 
-void PymcellGenerator::generate_single_geometry_object(
-    ostream& out, const int index, Value& object) {
+string PymcellGenerator::generate_single_geometry_object(
+    ofstream& out, const int index, Value& object) {
 
   string parent_name = S(KEY_OBJECT_LIST) + "[" + to_string(index) + "]";
 
@@ -471,10 +260,10 @@ void PymcellGenerator::generate_single_geometry_object(
     Value& vertex = vertex_list[i];
     for (Value::ArrayIndex k = 0; k < vertex.size(); k++) {
       out << vertex[k].asDouble();
-      print_comma(out, k, vertex);
+      gen_comma(out, k, vertex);
     }
     out << "]";
-    print_comma(out, i, vertex_list);
+    gen_comma(out, i, vertex_list);
     out << "\n";
   }
   out << "] # " << id_vertex_list << "\n\n";
@@ -487,10 +276,10 @@ void PymcellGenerator::generate_single_geometry_object(
     Value& element = element_connections[i];
     for (Value::ArrayIndex k = 0; k < element.size(); k++) {
       out << element[k].asInt();
-      print_comma(out, k, element);
+      gen_comma(out, k, element);
     }
     out << "]";
-    print_comma(out, i, element_connections);
+    gen_comma(out, i, element_connections);
     out << "\n";
   }
   out << "] # " << id_element_connections << "\n\n";
@@ -515,7 +304,7 @@ void PymcellGenerator::generate_single_geometry_object(
           out << "\n" << IND;
         }
         out << include_elements[k].asInt();
-        print_comma(out, k, include_elements);
+        gen_comma(out, k, include_elements);
       }
       out << "\n] #" << sr_element_connections_name << "\n\n";
 
@@ -530,9 +319,9 @@ void PymcellGenerator::generate_single_geometry_object(
 
   // object creation itself
   out << name << " = " << MDOT << NAME_CLASS_GEOMETRY_OBJECT << "(\n";
-  out << IND << NAME_NAME << " = '" << name << "',\n";
-  out << IND << NAME_VERTEX_LIST << " = " << id_vertex_list << ",\n";
-  out << IND << NAME_ELEMENT_CONNECTIONS << " = " << id_element_connections << ",\n";
+  gen_param(out, NAME_NAME, name, true);
+  gen_param(out, NAME_VERTEX_LIST, id_vertex_list, true);
+  gen_param(out, NAME_ELEMENT_CONNECTIONS, id_element_connections, true);
   out << IND << NAME_SURFACE_REGIONS << " = [";
   for (size_t i = 0; i < sr_global_names.size(); i++) {
     out << sr_global_names[i];
@@ -541,35 +330,191 @@ void PymcellGenerator::generate_single_geometry_object(
   out << "]\n)\n";
 
   out << make_end_block_comment(name);
+
+  return name;
 }
 
 
-void PymcellGenerator::generate_geometry() {
+vector<string> PymcellGenerator::generate_geometry() {
+
+  vector<string> geometry_objects;
 
   // TODO: check versions
 
   if (!mcell.isMember(KEY_GEOMETRICAL_OBJECTS)) {
-    return;
+    return geometry_objects;
   }
   Value& geometrical_objects = get_node(mcell, KEY_GEOMETRICAL_OBJECTS);
   if (!geometrical_objects.isMember(KEY_OBJECT_LIST)) {
-    return;
+    return geometry_objects;
   }
 
   ofstream out;
-  open_and_check_file(GEOMETRY_SUFFIX, out);
+  open_and_check_file(GEOMETRY, out);
 
   out << MCELL_IMPORT;
 
   Value& object_list = get_node(geometrical_objects, KEY_OBJECT_LIST);
   for (Value::ArrayIndex i = 0; i < object_list.size(); i++) {
     Value& object = object_list[i];
-    generate_single_geometry_object(out, i, object);
+    string name = generate_single_geometry_object(out, i, object);
+    geometry_objects.push_back(name);
   }
 
   out.close();
   geometry_generated = true;
+
+  return geometry_objects;
 }
 
+
+vector<string> PymcellGenerator::generate_release_sites(ofstream& out) {
+  vector<string> release_site_names;
+
+  if (!mcell.isMember(KEY_RELEASE_SITES)) {
+    return release_site_names;
+  }
+
+  Json::Value& release_sites = mcell[KEY_RELEASE_SITES];
+  check_version(KEY_RELEASE_SITES, release_sites, JSON_DM_VERSION_1638);
+  Json::Value& release_site_list = release_sites[KEY_RELEASE_SITE_LIST];
+  for (Value::ArrayIndex i = 0; i < release_site_list.size(); i++) {
+    Value& release_site_item = release_site_list[i];
+    check_version(KEY_RELEASE_SITE_LIST, release_site_item, JSON_DM_VERSION_1330);
+    string name = release_site_item[KEY_NAME].asString();
+    release_site_names.push_back(name);
+
+    gen_ctor_call(out, name, NAME_CLASS_RELEASE_SITE);
+    gen_param(out, NAME_NAME, name, true);
+    gen_param(out, NAME_SPECIES, release_site_item[KEY_MOLECULE], true);
+
+    string shape = release_site_item[KEY_SHAPE].asString();
+    if (shape == VALUE_SPHERICAL) {
+      gen_param(out, NAME_SHAPE, make_enum_value(NAME_ENUM_SHAPE, NAME_SPHERICAL), true);
+      gen_param_vec3(
+          out, NAME_LOCATION,
+          release_site_item[KEY_LOCATION_X], release_site_item[KEY_LOCATION_Y], release_site_item[KEY_LOCATION_Z],
+          true
+      );
+    }
+    else {
+      ERROR("Shape " + shape + " is not supported yet");
+    }
+
+    string quantity_type = release_site_item[KEY_QUANTITY_TYPE].asString();
+    if (quantity_type == VALUE_NUMBER_TO_RELEASE) {
+      gen_param_int(out, NAME_NUMBER_TO_RELEASE, release_site_item[KEY_QUANTITY], false);
+    }
+    else {
+      ERROR("Quantity type " + quantity_type + " is not supported yet");
+    }
+
+    out << ")\n\n";
+  }
+
+  return release_site_names;
+}
+
+
+void PymcellGenerator::generate_instantiation(const vector<string>& geometry_objects) {
+
+  ofstream out;
+  open_and_check_file(INSTANTIATION, out);
+
+  out << MCELL_IMPORT;
+  out << make_import(PARAMETERS);
+  out << make_import(SUBSYSTEM);
+  if (geometry_generated) {
+    out << make_import(GEOMETRY);
+  }
+  out << "\n";
+  out << make_section_comment(INSTANTIATION);
+
+  vector<string> release_sites = generate_release_sites(out);
+
+  gen_ctor_call(out, INSTANTIATION, NAME_CLASS_INSTANTIATION_DATA, false);
+  for (const string& s: geometry_objects) {
+    gen_method_call(out, SUBSYSTEM, NAME_ADD_SPECIES, s);
+  }
+  for (const string& r: release_sites) {
+    gen_method_call(out, SUBSYSTEM, NAME_ADD_REACTION_RULE, r);
+  }
+
+  out.close();
+}
+
+
+vector<string> PymcellGenerator::generate_viz_outputs(ofstream& out) {
+  vector<string> viz_output_names;
+
+  if (!mcell.isMember(KEY_VIZ_OUTPUT)) {
+    return viz_output_names;
+  }
+
+  Json::Value& viz_output = mcell[KEY_VIZ_OUTPUT];
+  check_version(KEY_VIZ_OUTPUT, viz_output, JSON_DM_VERSION_1638);
+
+  string name = VIZ_OUTPUT_NAME; // there is only one in datamodel now
+  viz_output_names.push_back(name);
+
+  CHECK_PROPERTY(viz_output[KEY_ALL_ITERATIONS].asBool());
+  CHECK_PROPERTY(viz_output[KEY_START].asString() == "0");
+
+  gen_ctor_call(out, name, NAME_CLASS_VIZ_OUTPUT);
+
+  // mode is ascii by default, this information is not in datamodel (AFAIK)
+  gen_param_enum(out, NAME_MODE, NAME_ENUM_VIZ_MODE, NAME_ASCII, true);
+  gen_param(out, NAME_FILENAME_PREFIX, DEFAULT_VIZ_OUTPUT_FILENAME_PREFIX, true);
+
+  // species_list
+  CHECK_PROPERTY(viz_output[KEY_EXPORT_ALL].asBool());
+
+  gen_param_list(out, NAME_SPECIES_LIST, all_species_names, true);
+
+  gen_param_int(out, NAME_EVERY_N_TIMESTEPS, viz_output[KEY_STEP], false);
+
+  // ignoring KEY_END
+  out << ")\n\n";
+
+  return viz_output_names;
+}
+
+
+vector<string> PymcellGenerator::generate_counts(ofstream& out) {
+  vector<string> counts;
+  // TODO
+
+  return counts;
+}
+
+
+void PymcellGenerator::generate_observables() {
+
+  ofstream out;
+  open_and_check_file(OBSERVABLES, out);
+
+  out << MCELL_IMPORT;
+  out << make_import(PARAMETERS);
+  out << make_import(SUBSYSTEM);
+  if (geometry_generated) {
+    out << make_import(GEOMETRY);
+  }
+  out << "\n";
+  out << make_section_comment(INSTANTIATION);
+
+  vector<string> viz_outputs = generate_viz_outputs(out);
+
+  vector<string> counts = generate_counts(out);
+
+  gen_ctor_call(out, OBSERVABLES, NAME_CLASS_OBSERVABLES, false);
+  for (const string& s: viz_outputs) {
+    gen_method_call(out, OBSERVABLES, NAME_ADD_VIZ_OUTPUT, s);
+  }
+  for (const string& r: counts) {
+    gen_method_call(out, OBSERVABLES, NAME_ADD_COUNT, r);
+  }
+
+  out.close();
+}
 
 } /* namespace MCell */

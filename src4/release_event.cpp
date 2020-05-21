@@ -188,10 +188,10 @@ void ReleaseEvent::to_data_model(Json::Value& mcell_node) const {
   // where to release
   switch (release_shape) {
     case ReleaseShape::SPHERICAL:
-      release_site[KEY_SHAPE] = "SPHERICAL";
+      release_site[KEY_SHAPE] = VALUE_SPHERICAL;
       break;
     case ReleaseShape::SPHERICAL_SHELL:
-      release_site[KEY_SHAPE] = "SPHERICAL_SHELL";
+      release_site[KEY_SHAPE] = VALUE_SPHERICAL_SHELL;
       break;
     case ReleaseShape::REGION:
       release_site[KEY_SHAPE] = "OBJECT";

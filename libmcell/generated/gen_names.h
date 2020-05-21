@@ -152,6 +152,37 @@ const char* const NAME_VERTEX_LIST = "vertex_list";
 const char* const NAME_VIZ_OUTPUT = "viz_output";
 const char* const NAME_VIZ_OUTPUTS = "viz_outputs";
 const char* const NAME_WARNINGS = "warnings";
+
+const char* const NAME_ENUM_WARNING_LEVEL = "WarningLevel";
+const char* const NAME_ENUM_ORIENTATION = "Orientation";
+const char* const NAME_ENUM_NOTIFICATION = "Notification";
+const char* const NAME_ENUM_EXPR_NODE_TYPE = "ExprNodeType";
+const char* const NAME_ENUM_VIZ_MODE = "VizMode";
+const char* const NAME_ENUM_SHAPE = "Shape";
+
+const char* const NAME_ADD = "Add";
+const char* const NAME_ASCII = "Ascii";
+const char* const NAME_BRIEF = "Brief";
+const char* const NAME_CELLBLENDER = "Cellblender";
+const char* const NAME_DOWN = "Down";
+const char* const NAME_ERROR = "Error";
+const char* const NAME_FULL = "Full";
+const char* const NAME_IGNORE = "Ignore";
+const char* const NAME_LEAF = "Leaf";
+const char* const NAME_NONE = "None";
+const char* const NAME_NOT_SET = "NotSet";
+const char* const NAME_SPHERICAL = "Spherical";
+const char* const NAME_SUB = "Sub";
+const char* const NAME_UNSET = "Unset";
+const char* const NAME_UP = "Up";
+const char* const NAME_WARNING = "Warning";
+
+const char* const NAME_BOND_BOUND = "BOND_BOUND";
+const char* const NAME_BOND_UNBOUND = "BOND_UNBOUND";
+const char* const NAME_PARTITION_EDGE_EXTRA_MARGIN_UM = "PARTITION_EDGE_EXTRA_MARGIN_UM";
+const char* const NAME_STATE_UNSET = "STATE_UNSET";
+const char* const NAME_STATE_UNSET_INT = "STATE_UNSET_INT";
+
 } // namespace API
 } // namespace MCell
 
