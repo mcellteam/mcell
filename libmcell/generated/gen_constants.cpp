@@ -54,6 +54,7 @@ void define_pybinding_constants(py::module& m) {
   py::enum_<Shape>(m, "Shape", py::arithmetic())
     .value("Unset", Shape::Unset)
     .value("Spherical", Shape::Spherical)
+    .value("Object", Shape::Object)
     .export_values();
   py::enum_<ExprNodeType>(m, "ExprNodeType", py::arithmetic())
     .value("Leaf", ExprNodeType::Leaf)

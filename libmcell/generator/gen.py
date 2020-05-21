@@ -162,6 +162,8 @@ GEN_NAMES_H = 'gen_names.h'
 NAME_PREFIX = 'NAME_'
 CLASS_PREFIX = 'CLASS_'
 ENUM_PREFIX = 'ENUM_'
+ENUM_VALUE_PREFIX = 'EV_'
+CONSTANT_VALUE_PREFIX = 'CV_'
 
 INCLUDE_API_MCELL_H = '#include "../api/mcell.h"'
 INCLUDE_API_COMMON_H = '#include "../api/common.h"'
@@ -1262,13 +1264,12 @@ def generate_names_header(data_classes):
             write_name_def(f, name, ENUM_PREFIX)
         f.write('\n')
         
-        # enum names and constants should be unique
         for name in all_enum_value_names_list:
-            write_name_def(f, name)
+            write_name_def(f, name, ENUM_VALUE_PREFIX)
         f.write('\n')
         
         for name in all_const_value_names_list:
-            write_name_def_verbatim(f, name)
+            write_name_def_verbatim(f, name, CONSTANT_VALUE_PREFIX)
         f.write('\n')
         
         f.write(NAMESPACES_END + '\n\n')

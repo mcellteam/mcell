@@ -29,6 +29,7 @@
 namespace MCell {
 namespace API {
 
+class GeometryObject;
 class Species;
 
 #define RELEASE_SITE_CTOR() \
@@ -37,6 +38,7 @@ class Species;
         std::shared_ptr<Species> species_, \
         const Orientation initial_orientation_ = Orientation::None, \
         const Shape shape_ = Shape::Unset, \
+        std::shared_ptr<GeometryObject> object_ = nullptr, \
         const Vec3& location_ = VEC3_UNSET, \
         const float_t site_diameter_ = 0, \
         const float_t site_radius_ = FLT_UNSET, \
@@ -48,6 +50,7 @@ class Species;
       species = species_; \
       initial_orientation = initial_orientation_; \
       shape = shape_; \
+      object = object_; \
       location = location_; \
       site_diameter = site_diameter_; \
       site_radius = site_radius_; \
@@ -101,6 +104,18 @@ public:
   }
   virtual Shape get_shape() const {
     return shape;
+  }
+
+  std::shared_ptr<GeometryObject> object;
+  virtual void set_object(std::shared_ptr<GeometryObject> new_object_) {
+    if (initialized) {
+      throw RuntimeError("Value 'object' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
+    object = new_object_;
+  }
+  virtual std::shared_ptr<GeometryObject> get_object() const {
+    return object;
   }
 
   Vec3 location;

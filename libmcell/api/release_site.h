@@ -23,8 +23,8 @@
 #ifndef API_RELEASE_SITE_H
 #define API_RELEASE_SITE_H
 
-#include "../generated/gen_release_site.h"
-#include "../api/common.h"
+#include "generated/gen_release_site.h"
+#include "api/common.h"
 
 namespace MCell {
 namespace API {
@@ -32,6 +32,15 @@ namespace API {
 class ReleaseSite: public GenReleaseSite {
 public:
   RELEASE_SITE_CTOR()
+
+  void postprocess_in_ctor() override {
+    if (is_set(object)) {
+      if (shape != Shape::Object) {
+        throw ValueError("When 'object' is set, shape must be either unset or set to 'Shape.Object'.");
+      }
+      shape = Shape::Object;
+    }
+  }
 
   // actual manual implementation of a semantic check
   void check_semantics() const override {

@@ -365,6 +365,9 @@ void MCell4Converter::convert_release_events() {
         rel_event->location = r->location / world->config.length_unit;
         rel_event->diameter = r->site_diameter;
         break;
+      case Shape::Object:
+
+        break;
       default:
         // should be caught earlier
         throw RuntimeError("The only supported shape now is Spherical.");

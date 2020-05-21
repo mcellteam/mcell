@@ -1,3 +1,51 @@
+Region:
+  superclass: BaseDataClass
+  doc: Represents region construted from 1 or more multiple, usually unnamed? 
+  items:
+  - name: node_type
+    type: RegionNodeType
+    default: RegionNodeType.Leaf
+
+  - name: geometry_object
+    type: GeometryObject*
+    default: unset
+    doc: Set only if this is a LeafGeometryObject
+    
+  - name: surface_region
+    type: SurfaceRegion*
+    default: unset
+    doc: Set only if this is a LeafSurfaceRegion
+      
+  - name: left_node
+    type: Region*
+    default: unset
+    doc: Internal, when node_type is not Leaf, this is the left operand 
+
+  - name: right_node
+    type: Region*
+    default: unset
+    doc: Internal, when node_type is not Leaf, this is the right operand 
+    
+  methods:
+  - name: union
+    return_type: Region*
+    params:
+    - name: second_region
+      type: Region* 
+    
+  - name: difference
+    return_type: Region*
+    params:
+    - name: second_region
+      type: Region* 
+
+  - name: intersect
+    return_type: Region*
+    params:
+    - name: second_region
+      type: Region* 
+
+    
 ReleaseSite:
   superclass: BaseDataClass
   items:
@@ -20,7 +68,19 @@ ReleaseSite:
   - name: shape
     type: Shape
     default: Shape.Unset
-       
+    
+  - name: region
+    type: Region*
+    default: unset
+    doc: When set, sets shape to Shape.Region 
+
+  - name: object
+    type: Object*
+    default: unset
+    doc: | 
+      When set, passed GeometryObject is converted into Region and shape is set to Shape.Region. 
+      Same as setting .region = obj.as_region().
+
   - name: location
     type: Vec3 # Vec3 and Vec2 are built-in data types
     default: unset # null is equivalent to None in YAML
@@ -44,7 +104,7 @@ ReleaseSite:
     type: float
     default: unset
     
-    
+#     
 SurfaceRegion:
   superclass: BaseDataClass
   items:
@@ -56,7 +116,16 @@ SurfaceRegion:
     doc: |
       Surface region must be a part of a GeometryObject, items in this list are indices to 
       its element_connections array
+      
+  - name: parent
+    type: GeometryObject*
+    default: unset
+    doc: Do not set this directly, set when a GeometryObject is constructed 
     
+  methods:
+  - name: as_region
+    return_type: Region*
+  
     
 GeometryObject:
   superclass: BaseDataClass
@@ -82,6 +151,10 @@ GeometryObject:
   - name: surface_regions
     type: List[SurfaceRegion*]
     default: empty
+    
+  methods:
+  - name: as_region
+    return_type: Region*
     
 
 InstantiationData:

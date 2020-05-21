@@ -65,6 +65,10 @@ enums:
       value: 0
     - name: Spherical
       value: 1
+    - name: Object
+      value: 2
+    - name: Region
+      value: 3
       
       
   - name: ExprNodeType
@@ -76,4 +80,18 @@ enums:
       value: 1
     - name: Sub
       value: 2
+      
+  - name: RegionNodeType
+    doc: Used internally to represent region trees
+    values:
+    - name: LeafGeometryObject
+      value: 0
+    - name: LeafSurfaceRegion
+      value: 1
+    - name: Union
+      value: 2
+    - name: Difference
+      value: 3      
+    - name: Intersect
+      value: 4
       

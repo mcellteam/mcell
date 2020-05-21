@@ -390,7 +390,7 @@ vector<string> PymcellGenerator::generate_release_sites(ofstream& out) {
 
     string shape = release_site_item[KEY_SHAPE].asString();
     if (shape == VALUE_SPHERICAL) {
-      gen_param_enum(out, NAME_SHAPE, NAME_ENUM_SHAPE, NAME_SPHERICAL, true);
+      gen_param_enum(out, NAME_SHAPE, NAME_ENUM_SHAPE, NAME_EV_SPHERICAL, true);
       gen_param_vec3(
           out, NAME_LOCATION,
           release_site_item[KEY_LOCATION_X], release_site_item[KEY_LOCATION_Y], release_site_item[KEY_LOCATION_Z],
@@ -463,7 +463,7 @@ vector<string> PymcellGenerator::generate_viz_outputs(ofstream& out) {
   gen_ctor_call(out, name, NAME_CLASS_VIZ_OUTPUT);
 
   // mode is ascii by default, this information is not in datamodel (AFAIK)
-  gen_param_enum(out, NAME_MODE, NAME_ENUM_VIZ_MODE, NAME_ASCII, true);
+  gen_param_enum(out, NAME_MODE, NAME_ENUM_VIZ_MODE, NAME_EV_ASCII, true);
   gen_param(out, NAME_FILENAME_PREFIX, DEFAULT_VIZ_OUTPUT_FILENAME_PREFIX, true);
 
   // species_list
