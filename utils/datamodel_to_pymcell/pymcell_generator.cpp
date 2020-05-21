@@ -20,12 +20,11 @@
  *
 ******************************************************************************/
 
+#include <datamodel_to_pymcell/pymcell_generator.h>
 #include <exception>
 #include <iostream>
 #include <string>
 #include <cassert>
-
-#include "pymcell_converter.h"
 
 #include "../../libmcell/generated/gen_names.h"
 #include "../../include/datamodel_defines.h"
@@ -40,7 +39,13 @@ using Json::Value;
 typedef std::invalid_argument ConversionError;
 
 
-const char* const GEOMETRY_SUFFIX = "_geometry";
+const char* const PARAMETERS_SUFFIX = "parameters";
+const char* const SUBSYSTEM_SUFFIX = "subsystem";
+const char* const GEOMETRY_SUFFIX = "geometry";
+const char* const INSTANTIATION_SUFFIX = "instantiation";
+const char* const OBSERVABLES_SUFFIX = "observables";
+const char* const MODEL_SUFFIX = "model";
+
 const char* const PY_EXT = ".py";
 
 const char* const MDOT = "m.";
@@ -51,6 +56,12 @@ const char* const BLOCK_BEGIN1 = "# ---- ";
 const char* const BLOCK_BEGIN2 = " ----\n";
 const char* const BLOCK_END1 = "# ^^^^ ";
 const char* const BLOCK_END2 = " ^^^^\n\n";
+
+const char* const PARAM_SEED = "SEED";
+const char* const PARAM_ITERATIONS = "ITERATIONS";
+const char* const PARAM_TIME_STEP = "TIME_STEP";
+const char* const PARAM_DUMP = "DUMP";
+
 
 // using exceptions to
 
@@ -74,16 +85,11 @@ const char* const BLOCK_END2 = " ^^^^\n\n";
   } while (0)
 
 
-// auxiliary method to simply convert to std::string for when concatenanting string
+// auxiliary method to simply convert to std::string for when concatenating string
 static string S(const char* s) {
   return string(s);
 }
 
-static void check_file(ofstream& out, const std::string& file_name) {
-  if (!out.is_open()) {
-    throw ConversionError("Could not open file '" + file_name + "' for writing.");
-  }
-}
 
 // throws exception when the member is member is there
 static Value& get_node(const string parent_name, Value& parent, const string name) {
@@ -93,17 +99,20 @@ static Value& get_node(const string parent_name, Value& parent, const string nam
   return parent[name];
 }
 
+
 // used when we know that the member is there
 static Value& get_node(Value& parent, const string name) {
   assert(parent.isMember(name));
   return parent[name];
 }
 
+
 static void print_comma(ostream& out, Value::ArrayIndex index, Value& array) {
   if (index + 1 != array.size()) {
     out << ", ";
   }
 }
+
 
 template<typename T>
 static void print_comma(ostream& out, size_t index, const vector<T>& array) {
@@ -112,12 +121,58 @@ static void print_comma(ostream& out, size_t index, const vector<T>& array) {
   }
 }
 
+
+static string make_section_comment(const string text) {
+  return BLOCK_BEGIN1 + text + BLOCK_BEGIN2 + "\n";
+}
+
+
+static string make_start_block_comment(const string text) {
+  return BLOCK_BEGIN1 + text + BLOCK_BEGIN2;
+}
+
+
+static string make_end_block_comment(const string text) {
+  return BLOCK_END1 + text + BLOCK_END2 + "\n";
+}
+
+
+std::string PymcellGenerator::get_filename(const string file_suffix) {
+  if (output_files_prefix == "" || output_files_prefix.back() == '/' || output_files_prefix.back() == '\\') {
+    return output_files_prefix + file_suffix + PY_EXT;
+  }
+  else {
+    return output_files_prefix + "_" + file_suffix + PY_EXT;
+  }
+}
+
+
+void PymcellGenerator::open_and_check_file(const string file_suffix, ofstream& out) {
+  string file_name = get_filename(file_suffix);
+  cout << "Started generating file " + file_name + ".\n";
+  out.open(file_name);
+  out.precision(17);
+  if (!out.is_open()) {
+    throw ConversionError("Could not open file '" + file_name + "' for writing.");
+  }
+}
+
+
+void PymcellGenerator::reset() {
+  geometry_generated = false;
+  instantiation_generated = false;
+  observables_generated = false;
+}
+
+
 // the aim is to generate as much of output as possible,
 // therefore we are using exceptions
-bool PymcellConverter::convert(
+bool PymcellGenerator::generate(
     const string& input_file,
     const string& output_files_prefix_
 ) {
+  reset();
+
   bool failed = false;
   output_files_prefix = output_files_prefix_;
 
@@ -134,13 +189,31 @@ bool PymcellConverter::convert(
 
   mcell = get_node(KEY_ROOT, root, KEY_MCELL);
 
-  CHECK(convert_geometry(), failed);
+  CHECK(generate_parameters(), failed);
+  //CHECK(generate_subsystem(), failed);
+  CHECK(generate_geometry(), failed);
+  //CHECK(generate_instantiation(), failed);
+  //CHECK(generate_observables(), failed);
+  //CHECK(generate_model(), failed);
 
   return !failed;
 }
 
 
-void PymcellConverter::convert_single_geomerty_object(
+void PymcellGenerator::generate_parameters() {
+  ofstream out;
+  open_and_check_file(PARAMETERS_SUFFIX, out);
+
+  out << make_section_comment("simulation setup");
+
+  out << PARAM_SEED << " = 1\n";
+  out << PARAM_ITERATIONS << " = " << mcell[KEY_INITIALIZATION][KEY_ITERATIONS].asString() << "\n";
+  out << PARAM_TIME_STEP << " = " << mcell[KEY_INITIALIZATION][KEY_TIME_STEP].asString() << "\n";
+  out << PARAM_DUMP << " = False\n";
+}
+
+
+void PymcellGenerator::generate_single_geometry_object(
     ostream& out, const int index, Value& object) {
 
   string parent_name = S(KEY_OBJECT_LIST) + "[" + to_string(index) + "]";
@@ -150,7 +223,7 @@ void PymcellConverter::convert_single_geomerty_object(
   Value& element_connections = get_node(parent_name, object, KEY_ELEMENT_CONNECTIONS);
   // TODO: material_names
 
-  out << BLOCK_BEGIN1 << name << BLOCK_BEGIN2;
+  out << make_start_block_comment(name);
 
   // vertex_list
   string id_vertex_list = name + "_" + NAME_VERTEX_LIST;
@@ -229,12 +302,11 @@ void PymcellConverter::convert_single_geomerty_object(
   }
   out << "]\n)\n";
 
-  out << BLOCK_END1 << name << BLOCK_END2;
+  out << make_end_block_comment(name);
 }
 
 
-
-void PymcellConverter::convert_geometry() {
+void PymcellGenerator::generate_geometry() {
 
   if (!mcell.isMember(KEY_GEOMETRICAL_OBJECTS)) {
     return;
@@ -243,22 +315,20 @@ void PymcellConverter::convert_geometry() {
   if (!geometrical_objects.isMember(KEY_OBJECT_LIST)) {
     return;
   }
-  Value& object_list = get_node(geometrical_objects, KEY_OBJECT_LIST);
 
-  string file_name = output_files_prefix + GEOMETRY_SUFFIX + PY_EXT;
   ofstream out;
-  out.open(file_name);
-  check_file(out, file_name);
+  open_and_check_file(GEOMETRY_SUFFIX, out);
 
   out << MCELL_IMPORT;
 
+  Value& object_list = get_node(geometrical_objects, KEY_OBJECT_LIST);
   for (Value::ArrayIndex i = 0; i < object_list.size(); i++) {
     Value& object = object_list[i];
-    convert_single_geomerty_object(out, i, object);
+    generate_single_geometry_object(out, i, object);
   }
 
   out.close();
-  cout << "Created file " + file_name + ".\n";
+  geometry_generated = true;
 }
 
 

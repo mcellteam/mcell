@@ -31,19 +31,30 @@
 // use different namespace?
 namespace MCell {
 
-class PymcellConverter {
+class PymcellGenerator {
 public:
-  bool convert(
+  bool generate(
       const std::string& input_file,
       const std::string& output_file_prefix_
   );
 
 private:
-  void convert_single_geomerty_object(
+  void reset();
+  std::string get_filename(const std::string file_suffix);
+  void open_and_check_file(const std::string file_suffix, std::ofstream& out);
+
+  void generate_parameters();
+
+  void generate_single_geometry_object(
       std::ostream& out, const int index, Json::Value& object);
-  void convert_geometry();
+  void generate_geometry();
 
   std::string output_files_prefix;
+
+  // parameters and subsystem are always generated
+  bool geometry_generated;
+  bool instantiation_generated;
+  bool observables_generated;
 
   // mcell node of the loaded JSON file
   Json::Value mcell;

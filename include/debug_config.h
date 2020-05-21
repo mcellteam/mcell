@@ -79,8 +79,8 @@
 
 #if (!defined(NDEBUG) || defined(DUMP_ALWAYS)) && !defined(DUMP_NEVER)
 
-#define FROM_ITERATION 106
-#define TO_ITERATION 106
+#define FROM_ITERATION 0
+#define TO_ITERATION 10
 
 #define DUMP_NONDIFFUSING_VMS
 

@@ -20,12 +20,12 @@
  *
 ******************************************************************************/
 
+#include <datamodel_to_pymcell/pymcell_generator.h>
 #include <getopt.h>
 #include <iostream>
 #include <cassert>
 #include <string>
 
-#include "pymcell_converter.h"
 
 using namespace std;
 
@@ -117,8 +117,8 @@ int main(const int argc, char* argv[]) {
     return arg_process_res;
   }
 
-  MCell::PymcellConverter converter;
-  bool ok = converter.convert(input_file, output_files_prefix);
+  MCell::PymcellGenerator converter;
+  bool ok = converter.generate(input_file, output_files_prefix);
 
   if (!ok) {
     cerr << "There was an error while converting " << input_file << " to pymcell code.\n";
