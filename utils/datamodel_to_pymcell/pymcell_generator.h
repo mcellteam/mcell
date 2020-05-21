@@ -40,10 +40,19 @@ public:
 
 private:
   void reset();
+
   std::string get_filename(const std::string file_suffix);
+  std::string get_module_name(const std::string file_suffix);
+  std::string make_import(const std::string file_suffix);
+
   void open_and_check_file(const std::string file_suffix, std::ofstream& out);
 
+  // TODO: shorten the name to gen?
   void generate_parameters();
+
+  void generate_species(std::ofstream& out);
+  void generate_reaction_rules(std::ofstream& out);
+  void generate_subsystem();
 
   void generate_single_geometry_object(
       std::ostream& out, const int index, Json::Value& object);
@@ -55,6 +64,8 @@ private:
   bool geometry_generated;
   bool instantiation_generated;
   bool observables_generated;
+
+  uint unnamed_rxn_counter;
 
   // mcell node of the loaded JSON file
   Json::Value mcell;
