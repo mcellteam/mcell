@@ -725,10 +725,14 @@ void Edge::debug_check_values_are_uptodate(const Partition& p) {
 
 
 void Edge::dump(const std::string ind) const {
+  Vec2 translate_rounded;
+  translate_rounded.x = (translate.x < EPS) ? 0.0 : translate.x;
+  translate_rounded.y = (translate.y < EPS) ? 0.0 : translate.y;
+
   cout << ind <<
-      "Edge: translate: " << translate <<
-      ", cos_theta: " << cos_theta <<
-      ", sin_theta: " << sin_theta <<
+      "Edge: translate: " << translate_rounded <<
+      ", cos_theta: " << ((cos_theta < EPS) ? 0.0 : cos_theta) <<
+      ", sin_theta: " << ((sin_theta < EPS) ? 0.0 : sin_theta) <<
       ", edge_num_used_for_init: " << edge_num_used_for_init << "\n";
 }
 
@@ -1097,6 +1101,77 @@ void update_moved_walls(
     Wall& w = p.get_wall(wall_index);
     w.reinit_edge_constants(p);
   }
+}
+
+
+
+/*****************************************************************
+check_for_overlapped_walls:
+  In: rng: random number generator
+      n_subvols: number of subvolumes
+      subvol: a subvolume
+  Out: 0 if no errors, the world geometry is successfully checked for
+       overlapped walls.
+       1 if there are any overlapped walls.
+******************************************************************/
+int check_for_overlapped_walls(World* world) {
+
+  /* pick up a random vector */
+  Vec3 rand_vector;
+  rand_vector.x = rng_dbl(&world->rng);
+  rand_vector.y = rng_dbl(&world->rng);
+  rand_vector.z = rng_dbl(&world->rng);
+
+  // TODO, it was included for now only because the rand gen was called
+#if 0
+  for (int i = 0; i < n_subvols; i++) {
+    struct subvolume *sv = &(subvol[i]);
+    struct wall_aux_list *head = NULL;
+
+    for (struct wall_list *wlp = sv->wall_head; wlp != NULL; wlp = wlp->next) {
+      double d_prod = dot_prod(&rand_vector, &(wlp->this_wall->normal));
+      /* we want to place walls with opposite normals into
+         neighboring positions in the sorted linked list */
+      if (d_prod < 0)
+        d_prod = -d_prod;
+
+      struct wall_aux_list *newNode;
+      newNode = CHECKED_MALLOC_STRUCT(struct wall_aux_list, "wall_aux_list");
+      newNode->this_wall = wlp->this_wall;
+      newNode->d_prod = d_prod;
+
+      sorted_insert_wall_aux_list(&head, newNode);
+    }
+
+    for (struct wall_aux_list *curr = head; curr != NULL; curr = curr->next) {
+      struct wall *w1 = curr->this_wall;
+
+      struct wall_aux_list *next_curr = curr->next;
+      while ((next_curr != NULL) &&
+             (!distinguishable(curr->d_prod, next_curr->d_prod, EPS_C))) {
+        /* there may be several walls with the same (or mirror)
+           oriented normals */
+        struct wall *w2 = next_curr->this_wall;
+
+        if (are_walls_coplanar(w1, w2, MESH_DISTINCTIVE)) {
+          if ((are_walls_coincident(w1, w2, MESH_DISTINCTIVE) ||
+               coplanar_tri_overlap(w1, w2))) {
+            mcell_error(
+                "walls are overlapped: wall %d from '%s' and wall "
+                "%d from '%s'.",
+                w1->side, w1->parent_object->sym->name, w2->side,
+                w2->parent_object->sym->name);
+          }
+        }
+        next_curr = next_curr->next;
+      }
+    }
+    /* free memory */
+    if (head != NULL)
+      delete_wall_aux_list(head);
+  }
+#endif
+  return 0;
 }
 
 } /* namespace Geometry */

@@ -83,6 +83,8 @@ void Model::initialize() {
   vec_set_initialized(geometry_objects);
   vec_set_initialized(viz_outputs);
   vec_set_initialized(counts);
+
+  world->init_simulation();
 }
 
 

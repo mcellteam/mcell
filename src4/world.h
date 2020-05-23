@@ -247,7 +247,6 @@ public:
 
 private:
   void init_fpu();
-  void create_defragmentation_events();
   void init_counted_volumes();
 
   void initialization_to_data_model(Json::Value& mcell_node) const;

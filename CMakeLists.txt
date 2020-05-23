@@ -355,7 +355,8 @@ add_library(pymcell4 SHARED
     src/edge_util.c
     src/sym_table.c
     src/vector.c
-        
+    src/dump_state.cpp
+            
     libmcell/api/exports.cpp
 )
 add_dependencies(pymcell4 libmcell mcell4 bng jsoncpp_lib)

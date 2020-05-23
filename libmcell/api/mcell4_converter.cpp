@@ -71,8 +71,9 @@ void MCell4Converter::convert(Model* model_, World* world_) {
   convert_simulation_setup();
   convert_species();
   world->create_diffusion_events();
-
   convert_rxns();
+
+  init_species_flags();
 
   // at this point, we need to create the first (and for now the only) partition
   // create initial partition with center at 0,0,0
@@ -81,11 +82,14 @@ void MCell4Converter::convert(Model* model_, World* world_) {
 
   convert_geometry_objects();
 
+  // uses random generator state
+  Geometry::check_for_overlapped_walls(world);
+
   convert_release_events();
 
   convert_viz_output_events();
 
-  finalize_conversion();
+  init_species_flags();
 }
 
 
@@ -137,7 +141,7 @@ void MCell4Converter::convert_simulation_setup() {
 }
 
 
-void MCell4Converter::finalize_conversion() {
+void MCell4Converter::init_species_flags() {
   BNG::SpeciesContainer& all_species = world->get_all_species();
   BNG::RxnContainer& all_rxns = world->get_all_rxns();
 

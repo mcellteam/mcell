@@ -64,7 +64,6 @@ public:
 private:
 
   void convert_simulation_setup();
-  void finalize_conversion();
 
   void convert_species();
 
@@ -74,6 +73,8 @@ private:
   BNG::MolInstance convert_molecule_instance(API::MoleculeInstance& mi);
   BNG::CplxInstance convert_complex_instance(API::ComplexInstance& inst);
   void convert_rxns();
+
+  void init_species_flags();
 
   MCell::wall_index_t convert_wall_and_add_to_geom_object(
       const API::GeometryObject& src_obj, const uint side,

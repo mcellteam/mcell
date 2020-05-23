@@ -458,6 +458,10 @@ public:
   Vec2 pos;
 };
 
+
+typedef std::vector<GeometryObject> GeometryObjectVector;
+
+
 // several utility functions related to geometry
 namespace Geometry {
 
@@ -476,10 +480,11 @@ void update_moved_walls(
     const WallsWithTheirMovesMap& walls_with_their_moves
 );
 
-}
 
-typedef std::vector<GeometryObject> GeometryObjectVector;
+int check_for_overlapped_walls(World* world);
 
-} /* namespace mcell */
+} // namespace Geometry
+
+} // namespace MCell
 
 #endif /* SRC4_GEOMETRY_H_ */
