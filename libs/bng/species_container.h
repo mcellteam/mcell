@@ -105,6 +105,10 @@ public:
     return species;
   }
 
+  SpeciesVector& get_species_vector() {
+    return species;
+  }
+
   void set_all_molecules_species_id(species_id_t id) {
     all_molecules_species_id = id;
   }
@@ -123,6 +127,14 @@ public:
   }
   species_id_t get_all_surface_molecules_species_id() const {
     return all_surface_molecules_species_id;
+  }
+
+  bool is_species_superclass(species_id_t id) const {
+    return
+        id == all_molecules_species_id ||
+        id == all_volume_molecules_species_id ||
+        id == all_surface_molecules_species_id;
+
   }
 
   // TODO: remove tyhe bng_data argument

@@ -64,6 +64,7 @@ public:
 private:
 
   void convert_simulation_setup();
+  void finalize_conversion();
 
   void convert_species();
 

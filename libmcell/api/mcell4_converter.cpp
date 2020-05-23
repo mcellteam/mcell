@@ -84,6 +84,8 @@ void MCell4Converter::convert(Model* model_, World* world_) {
   convert_release_events();
 
   convert_viz_output_events();
+
+  finalize_conversion();
 }
 
 
@@ -134,6 +136,68 @@ void MCell4Converter::convert_simulation_setup() {
   world->config.init();
 }
 
+
+void MCell4Converter::finalize_conversion() {
+  BNG::SpeciesContainer& all_species = world->get_all_species();
+  BNG::RxnContainer& all_rxns = world->get_all_rxns();
+
+  bool has_vol_vol_rxn = false;
+
+  // set species flags (we already have all the reactions)
+  for (BNG::Species& sp: all_species.get_species_vector()) {
+    if (all_species.is_species_superclass(sp.species_id)) {
+      // skip these?
+      continue;
+    }
+
+    // this also crates all reaction classes for the species that we currently have
+    BNG::SpeciesRxnClassesMap* rxn_classes =
+        all_rxns.get_bimol_rxns_for_reactant(sp.species_id);
+    if (rxn_classes == nullptr) {
+      continue;
+    }
+
+    // go through all applicable reactants
+    for (auto it: *rxn_classes) {
+      const BNG::RxnClass* rxn_class = it.second;
+      assert(rxn_class->reactants.size() == 2);
+
+      species_id_t second_species_id;
+      if (rxn_class->reactants[0] != sp.species_id) {
+        second_species_id = rxn_class->reactants[0];
+      }
+      else {
+        second_species_id = rxn_class->reactants[1];
+      }
+      const BNG::Species& sp2 = all_species.get(second_species_id);
+
+      if (sp.is_vol()) {
+        if (sp2.is_vol()) {
+          has_vol_vol_rxn = true;
+          sp.set_flag(BNG::SPECIES_FLAG_CAN_VOLVOL);
+        }
+        if (sp2.is_surf()) {
+          sp.set_flag(BNG::SPECIES_FLAG_CAN_VOLSURF);
+        }
+        if (sp2.is_reactive_surface()) {
+          sp.set_flag(BNG::SPECIES_FLAG_CAN_VOLWALL);
+        }
+      }
+
+      if (sp.is_surf() && sp2.is_surf()) {
+        sp.set_flag(BNG::SPECIES_FLAG_CAN_SURFSURF);
+      }
+    }
+    // TODO: unimol?
+  }
+
+  // for mcell3 compatibility
+  /* If there are no 3D molecules-reactants in the simulation
+     set up the "use_expanded_list" flag to zero. */
+  if (!has_vol_vol_rxn) {
+    world->config.use_expanded_list = 0;
+  }
+}
 
 void MCell4Converter::convert_species() {
   for (std::shared_ptr<API::Species>& s: model->species) {
