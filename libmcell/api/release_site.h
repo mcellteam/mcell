@@ -34,13 +34,13 @@ public:
   RELEASE_SITE_CTOR()
 
   void postprocess_in_ctor() override {
-    if (get_num_set(region, geometry_object, surface_area) > 1) {
+    uint num_objs_set = get_num_set(region, geometry_object, surface_area);
+    if (num_objs_set > 1) {
       throw ValueError(S("Only one or none of ") + NAME_REGION + ",  " + NAME_GEOMETRY_OBJECT + " or " + NAME_SURFACE_AREA + " surface_area can be set.");
     }
-
-    if (is_set(region) || is_set(geometry_object) || is_set(surface_area)) {
-      if (shape != Shape::RegionExpr) {
-        throw ValueError(S("When ") + NAME_REGION + ",  " + NAME_GEOMETRY_OBJECT + " or " + NAME_SURFACE_AREA + " is set, "
+    else if (num_objs_set == 1) {
+      if (shape != Shape::Unset) {
+        throw ValueError(S("When ") + NAME_REGION + ", " + NAME_GEOMETRY_OBJECT + " or " + NAME_SURFACE_AREA + " is set, "
             "shape must be either unset or set to " + NAME_ENUM_SHAPE + "." + NAME_EV_REGION_EXPR + ".");
       }
       shape = Shape::RegionExpr;

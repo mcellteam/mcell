@@ -39,6 +39,8 @@ class Value;
 namespace MCell {
 
 class Partition;
+class World;
+class RegionExprNode;
 
 const char* const REGION_ALL_SUFFIX = ",ALL";
 
@@ -119,7 +121,7 @@ public:
   }
 
   // covers whole region
-  // TODO: bettter name?
+  // TODO: better name?
   bool name_has_all_suffix() const {
     std::string all(REGION_ALL_SUFFIX);
     if (name.size() > all.size()) {
@@ -129,6 +131,8 @@ public:
       return false;
     }
   }
+
+  void init_from_whole_geom_object(const GeometryObject& obj);
 
   void dump(const std::string ind) const;
   static void dump_array(const std::vector<Region>& vec);
@@ -440,6 +444,12 @@ public:
 
 // several utility functions related to geometry
 namespace Geometry {
+
+// used when creating release event
+bool get_region_expr_bounding_box(
+    const World* world, const RegionExprNode* region_expr,
+    Vec3& llf, Vec3& urb
+);
 
 // this is the entry point called from Partition class
 void update_moved_walls(

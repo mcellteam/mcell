@@ -53,12 +53,24 @@ bool GenCount::__eq__(const GenCount& other) const {
 }
 
 void GenCount::set_initialized() {
-  count_expression->set_initialized();
-  species->set_initialized();
-  reaction_rule->set_initialized();
-  region->set_initialized();
-  left_node->set_initialized();
-  right_node->set_initialized();
+  if (is_set(count_expression)) {
+    count_expression->set_initialized();
+  }
+  if (is_set(species)) {
+    species->set_initialized();
+  }
+  if (is_set(reaction_rule)) {
+    reaction_rule->set_initialized();
+  }
+  if (is_set(region)) {
+    region->set_initialized();
+  }
+  if (is_set(left_node)) {
+    left_node->set_initialized();
+  }
+  if (is_set(right_node)) {
+    right_node->set_initialized();
+  }
   initialized = true;
 }
 

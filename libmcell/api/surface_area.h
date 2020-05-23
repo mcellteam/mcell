@@ -23,8 +23,9 @@
 #ifndef API_SURFACE_REGION_H
 #define API_SURFACE_REGION_H
 
-#include "../generated/gen_surface_area.h"
-#include "../api/common.h"
+#include "generated/gen_surface_area.h"
+#include "api/common.h"
+#include "defines.h"
 
 namespace MCell {
 namespace API {
@@ -33,10 +34,16 @@ class SurfaceArea: public GenSurfaceArea {
 public:
   SURFACE_AREA_CTOR()
 
-  virtual std::shared_ptr<Region> as_region() override {
+  void postprocess_in_ctor() {
+    region_id = REGION_ID_INVALID;
+  }
+
+  std::shared_ptr<Region> as_region() override {
     assert("TODO" && false);
   }
 
+  // simulation engine mapping
+  region_id_t region_id;
 };
 
 } // namespace API

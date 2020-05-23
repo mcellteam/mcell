@@ -96,7 +96,7 @@ int get_num_set(const T1& v1, const T2& v2) {
 
 
 template<typename T1, typename T2, typename T3>
-int get_num_set(const T1& v1, const T2& v2, const T3& v3) {
+uint get_num_set(const T1& v1, const T2& v2, const T3& v3) {
   int res = get_num_set(v1, v2);
   if (is_set(v3)) {
     res++;

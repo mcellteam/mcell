@@ -45,10 +45,18 @@ bool GenRegion::__eq__(const GenRegion& other) const {
 }
 
 void GenRegion::set_initialized() {
-  geometry_object->set_initialized();
-  surface_area->set_initialized();
-  left_node->set_initialized();
-  right_node->set_initialized();
+  if (is_set(geometry_object)) {
+    geometry_object->set_initialized();
+  }
+  if (is_set(surface_area)) {
+    surface_area->set_initialized();
+  }
+  if (is_set(left_node)) {
+    left_node->set_initialized();
+  }
+  if (is_set(right_node)) {
+    right_node->set_initialized();
+  }
   initialized = true;
 }
 

@@ -33,6 +33,7 @@
 
 #include "partition.h"
 #include "geometry.h"
+#include "release_event.h"
 #include "datamodel_defines.h"
 
 #include "geometry_utils.inc" // uses get_wall_bounding_box, maybe not include this file
@@ -283,11 +284,11 @@ static int surface_net(Partition& p, GeometryObject& obj) {
         k = 0;
 
       struct poly_edge pe;
-      const Vec3& vert_j = p.get_wall_vertex(w, facelist[j]);
+      const Vec3& vert_j = p.get_wall_vertex(w, j);
       pe.v1x = vert_j.x;
       pe.v1y = vert_j.y;
       pe.v1z = vert_j.z;
-      const Vec3& vert_k = p.get_wall_vertex(w, facelist[k]);
+      const Vec3& vert_k = p.get_wall_vertex(w, k);
       pe.v2x = vert_k.x;
       pe.v2y = vert_k.y;
       pe.v2z = vert_k.z;
@@ -466,8 +467,21 @@ void GeometryObject::to_data_model(
       define_surface_regions.append(surface_region);
     }
   }
-
 }
+
+
+void Region::init_from_whole_geom_object(const GeometryObject& obj) {
+  name = obj.name + REGION_ALL_SUFFIX;
+  geometry_object_id = obj.id;
+
+  // simply add all walls and their edges
+  for (const wall_index_t& wi: obj.wall_indices) {
+    walls_and_edges[wi].insert(EDGE_INDEX_0);
+    walls_and_edges[wi].insert(EDGE_INDEX_1);
+    walls_and_edges[wi].insert(EDGE_INDEX_2);
+  }
+}
+
 
 void Region::dump(const std::string ind) const {
   cout << ind << "Region : " <<
@@ -833,6 +847,193 @@ void Wall::dump(const Partition& p, const std::string ind, const bool for_diff) 
 
 
 namespace Geometry {
+
+
+/***************************************************************************
+create_region_bbox:
+  In: a region
+  Out: pointer to a 2-element array contining the LLF and URB corners of
+       a bounding box around the region, or NULL if out of memory.
+***************************************************************************/
+static void get_region_bounding_box(
+    const Partition& p, const Region *r,
+    Vec3& llf, Vec3& urb
+)
+{
+  bool found_first_wall = false;
+  for (auto it: r->walls_and_edges) {
+    const Wall& w = p.get_wall(it.first);
+    const Vec3* verts[VERTICES_IN_TRIANGLE];
+    verts[0] = &p.get_wall_vertex(w, 0);
+    verts[1] = &p.get_wall_vertex(w, 0);
+    verts[2] = &p.get_wall_vertex(w, 0);
+
+    if (!found_first_wall) {
+      llf = *verts[0];
+      urb = *verts[0];
+      found_first_wall = true;
+    }
+
+    for (uint i = 0; i < VERTICES_IN_TRIANGLE; i++) {
+      const Vec3* v = verts[i];
+      if (llf.x > v->x) {
+        llf.x = v->x;
+      }
+      else if (urb.x < v->x) {
+        urb.x = v->x;
+      }
+
+      if (llf.y > v->y) {
+        llf.y = v->y;
+      }
+      else if (urb.y < v->y) {
+        urb.y = v->y;
+      }
+
+      if (llf.z > v->z) {
+        llf.z = v->z;
+      }
+      else if (urb.z < v->z) {
+        urb.z = v->z;
+      }
+    }
+  }
+}
+
+
+/***************************************************************************
+eval_rel_region_bbox:
+  In: release expression for a 3D region release
+      place to store LLF corner of the bounding box for the release
+      place to store URB corner
+  Out: true on success, false on failure.  Bounding box is set based on release
+       expression (based boolean intersection of bounding boxes for each
+       region).  The function reports failure if any region is unclosed.
+***************************************************************************/
+// TODO: not checking whether object is closed
+bool get_region_expr_bounding_box(
+    const World* world, const RegionExprNode* expr,
+    Vec3& llf, Vec3& urb
+) {
+  int count_regions_flag = 1;
+  const Partition& p = world->get_partition(0);
+
+  if (expr->op == RegionExprOperator::Leaf) {
+    const Region* reg = p.find_region_by_name(expr->region_name);
+    assert(reg != nullptr);
+    get_region_bounding_box(p, reg, llf, urb);
+    return true;
+  }
+  else {
+    assert(false && "TODO");
+  }
+#if 0
+  if (expr->left != nullptr) {
+    if (expr->op & REXP_LEFT_REGION) {
+      r = (struct region *)(expr->left);
+
+      if (r->bbox == NULL)
+        r->bbox = create_region_bbox(r);
+
+      llf->x = r->bbox[0].x;
+      llf->y = r->bbox[0].y;
+      llf->z = r->bbox[0].z;
+      urb->x = r->bbox[1].x;
+      urb->y = r->bbox[1].y;
+      urb->z = r->bbox[1].z;
+
+      if (r->manifold_flag == MANIFOLD_UNCHECKED) {
+        if (is_manifold(r, count_regions_flag))
+          r->manifold_flag = IS_MANIFOLD;
+        else
+          mcell_error(
+              "Cannot release a 3D molecule inside the unclosed region '%s'.",
+              r->sym->name);
+      }
+
+    } else {
+      if (eval_rel_region_bbox((struct release_evaluator *)expr->left, llf, urb))
+        return 1;
+    }
+
+    if (expr->right == NULL) {
+      if (expr->op & REXP_NO_OP)
+        return 0;
+      else
+        mcell_internal_error(
+            "Right subtree of release expression is unexpectedly NULL.");
+    }
+
+    if (expr->op & REXP_SUBTRACTION)
+      return 0;
+    else {
+      struct vector3 llf2;
+      struct vector3 urb2;
+
+      if (expr->op & REXP_RIGHT_REGION) {
+        r = (struct region *)(expr->right);
+        if (r->manifold_flag == MANIFOLD_UNCHECKED) {
+          if (is_manifold(r, count_regions_flag))
+            r->manifold_flag = IS_MANIFOLD;
+          else
+            mcell_error(
+                "Cannot release a 3D molecule inside the unclosed region '%s'.",
+                r->sym->name);
+        }
+
+        if (r->bbox == NULL)
+          r->bbox = create_region_bbox(r);
+
+        llf2.x = r->bbox[0].x;
+        llf2.y = r->bbox[0].y;
+        llf2.z = r->bbox[0].z;
+        urb2.x = r->bbox[1].x;
+        urb2.y = r->bbox[1].y;
+        urb2.z = r->bbox[1].z;
+      } else {
+        if (eval_rel_region_bbox((struct release_evaluator *)expr->right, &llf2, &urb2))
+          return 1;
+      }
+
+      if (expr->op & REXP_UNION) {
+        if (llf->x > llf2.x)
+          llf->x = llf2.x;
+        if (llf->y > llf2.y)
+          llf->y = llf2.y;
+        if (llf->z > llf2.z)
+          llf->z = llf2.z;
+        if (urb->x < urb2.x)
+          urb->x = urb2.x;
+        if (urb->y < urb2.y)
+          urb->y = urb2.y;
+        if (urb->z < urb2.z)
+          urb->z = urb2.z;
+      } else if (expr->op & (REXP_INTERSECTION)) {
+        if (llf->x < llf2.x)
+          llf->x = llf2.x;
+        if (llf->y < llf2.y)
+          llf->y = llf2.y;
+        if (llf->z < llf2.z)
+          llf->z = llf2.z;
+        if (urb->x > urb2.x)
+          urb->x = urb2.x;
+        if (urb->y > urb2.y)
+          urb->y = urb2.y;
+        if (urb->z > urb2.z)
+          urb->z = urb2.z;
+      } else
+        mcell_internal_error("Release expression contains an unknown or "
+                             "unexpected operator: (%d).",
+                             expr->op);
+    }
+  } else
+    mcell_internal_error(
+        "Left subtree of release expression is unexpectedly NULL.");
+#endif
+  return 0;
+}
+
+
 
 // this is the entry point called from Partition class
 void update_moved_walls(

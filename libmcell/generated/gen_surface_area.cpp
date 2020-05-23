@@ -48,7 +48,9 @@ bool GenSurfaceArea::__eq__(const GenSurfaceArea& other) const {
 }
 
 void GenSurfaceArea::set_initialized() {
-  parent->set_initialized();
+  if (is_set(parent)) {
+    parent->set_initialized();
+  }
   initialized = true;
 }
 

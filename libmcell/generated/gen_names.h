@@ -162,13 +162,13 @@ const char* const NAME_VIZ_OUTPUT = "viz_output";
 const char* const NAME_VIZ_OUTPUTS = "viz_outputs";
 const char* const NAME_WARNINGS = "warnings";
 
+const char* const NAME_ENUM_ORIENTATION = "Orientation";
+const char* const NAME_ENUM_REGION_NODE_TYPE = "RegionNodeType";
+const char* const NAME_ENUM_VIZ_MODE = "VizMode";
 const char* const NAME_ENUM_NOTIFICATION = "Notification";
+const char* const NAME_ENUM_EXPR_NODE_TYPE = "ExprNodeType";
 const char* const NAME_ENUM_WARNING_LEVEL = "WarningLevel";
 const char* const NAME_ENUM_SHAPE = "Shape";
-const char* const NAME_ENUM_VIZ_MODE = "VizMode";
-const char* const NAME_ENUM_EXPR_NODE_TYPE = "ExprNodeType";
-const char* const NAME_ENUM_REGION_NODE_TYPE = "RegionNodeType";
-const char* const NAME_ENUM_ORIENTATION = "Orientation";
 
 const char* const NAME_EV_ADD = "Add";
 const char* const NAME_EV_ASCII = "Ascii";

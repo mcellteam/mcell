@@ -39,6 +39,7 @@ namespace MCell {
 class World;
 class Partition;
 class GeometryObject;
+class ReleaseEvent;
 
 namespace API {
 
@@ -49,7 +50,9 @@ class ComponentInstance;
 class MoleculeType;
 class MoleculeInstance;
 class ComplexInstance;
+class SurfaceArea;
 class GeometryObject;
+class ReleaseSite;
 
 class MCell4Converter {
 public:
@@ -75,8 +78,15 @@ private:
       const API::GeometryObject& src_obj, const uint side,
       MCell::Partition& p, MCell::GeometryObject& dst_obj);
 
+  void convert_surface_area(
+      MCell::Partition& p,
+      API::SurfaceArea& surface_area, API::GeometryObject& o,
+      MCell::GeometryObject& obj
+  );
   void convert_geometry_objects();
 
+  void convert_region_expr(
+      MCell::ReleaseEvent* rel_event, API::ReleaseSite& r);
   void convert_release_events();
 
   void convert_viz_output_events();

@@ -44,7 +44,9 @@ bool GenMoleculeInstance::__eq__(const GenMoleculeInstance& other) const {
 }
 
 void GenMoleculeInstance::set_initialized() {
-  molecule_type->set_initialized();
+  if (is_set(molecule_type)) {
+    molecule_type->set_initialized();
+  }
   vec_set_initialized(components);
   initialized = true;
 }

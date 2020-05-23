@@ -59,10 +59,18 @@ bool GenReleaseSite::__eq__(const GenReleaseSite& other) const {
 }
 
 void GenReleaseSite::set_initialized() {
-  species->set_initialized();
-  region->set_initialized();
-  geometry_object->set_initialized();
-  surface_area->set_initialized();
+  if (is_set(species)) {
+    species->set_initialized();
+  }
+  if (is_set(region)) {
+    region->set_initialized();
+  }
+  if (is_set(geometry_object)) {
+    geometry_object->set_initialized();
+  }
+  if (is_set(surface_area)) {
+    surface_area->set_initialized();
+  }
   initialized = true;
 }
 

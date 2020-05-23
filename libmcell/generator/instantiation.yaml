@@ -72,21 +72,17 @@ ReleaseSite:
   - name: region
     type: Region*
     default: unset
-    doc: When set, sets shape to Shape.Region 
+    doc: Only one of region, geometry_object, surface_area can be set, sets shape to Shape.RegionExpr. 
 
   - name: geometry_object
     type: GeometryObject*
     default: unset
-    doc: | 
-      When set, the passed GeometryObject is converted into Region and shape is set to Shape.Region. 
-      Same as setting .region = obj.as_region().
+    doc: Only one of region, geometry_object, surface_area can be set, sets shape to Shape.RegionExpr. 
 
   - name: surface_area
     type: SurfaceArea*
     default: unset
-    doc: | 
-      When set, the passed SurfaceArea is converted into Region and shape is set to Shape.Region. 
-      Same as setting .region = obj.as_region().
+    doc: Only one of region, geometry_object, surface_area can be set, sets shape to Shape.RegionExpr. 
     
   - name: location
     type: Vec3 # Vec3 and Vec2 are built-in data types

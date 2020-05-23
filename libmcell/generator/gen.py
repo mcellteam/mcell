@@ -830,7 +830,9 @@ def write_set_initialized_implemetation(f, class_name, items):
         name = items[i][KEY_NAME]
         t = items[i][KEY_TYPE]
         if is_yaml_ptr_type(t):
-            f.write('  ' + name + '->set_initialized();\n')
+            f.write('  if (is_set(' + name + ')) {\n')
+            f.write('    ' + name + '->set_initialized();\n')
+            f.write('  }\n')
         elif is_yaml_list_type(t) and is_yaml_ptr_type(get_inner_list_type(t)):
             f.write('  vec_set_initialized(' + name + ');\n')
         

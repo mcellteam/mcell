@@ -44,7 +44,9 @@ bool GenComponentInstance::__eq__(const GenComponentInstance& other) const {
 }
 
 void GenComponentInstance::set_initialized() {
-  component_type->set_initialized();
+  if (is_set(component_type)) {
+    component_type->set_initialized();
+  }
   initialized = true;
 }
 

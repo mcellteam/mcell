@@ -25,6 +25,7 @@
 #include "world.h"
 #include "release_event.h"
 #include "viz_output_event.h"
+#include "geometry.h"
 #include "rng.h"
 #include "bng/bng.h"
 
@@ -314,6 +315,29 @@ wall_index_t MCell4Converter::convert_wall_and_add_to_geom_object(
 }
 
 
+void MCell4Converter::convert_surface_area(
+    MCell::Partition& p,
+    API::SurfaceArea& surface_area, API::GeometryObject& o,
+    MCell::GeometryObject& obj) {
+
+  MCell::Region reg;
+  reg.name = obj.name + "," + surface_area.name;
+  reg.geometry_object_id = obj.id;
+
+  // simply add all walls and their edges
+  for (const int wall_in_object: surface_area.element_connections) {
+    wall_index_t wi = o.wall_indices[wall_in_object];
+    reg.walls_and_edges[wi].insert(EDGE_INDEX_0);
+    reg.walls_and_edges[wi].insert(EDGE_INDEX_1);
+    reg.walls_and_edges[wi].insert(EDGE_INDEX_2);
+  }
+
+  reg.id = world->get_next_region_id();
+  p.add_region_and_set_its_index(reg);
+  surface_area.region_id = reg.id;
+}
+
+
 void MCell4Converter::convert_geometry_objects() {
   MCell::Partition& p = world->get_partition(0); // only partition 0 is supported for now
 
@@ -340,8 +364,33 @@ void MCell4Converter::convert_geometry_objects() {
     // initialize edges
     obj.initialize_neighboring_walls_and_their_edges(p);
 
-    // regions
-    assert(o->surface_areas.empty() && "TODO");
+    // region "ALL"
+    MCell::Region reg_all;
+    reg_all.init_from_whole_geom_object(obj);
+    reg_all.id = world->get_next_region_id();
+    p.add_region_and_set_its_index(reg_all);
+
+    // regions from surface areas
+    for (std::shared_ptr<SurfaceArea> surface_area: o->surface_areas) {
+      convert_surface_area(p, *surface_area, *o, obj);
+    }
+  }
+}
+
+
+void MCell4Converter::convert_region_expr(
+    MCell::ReleaseEvent* rel_event, API::ReleaseSite& r) {
+
+  if (is_set(r.geometry_object)) {
+    rel_event->region_expr_root = rel_event->create_new_region_expr_node_leaf(r.geometry_object->name + REGION_ALL_SUFFIX);
+    // also set llf and urb
+    bool ok = Geometry::get_region_expr_bounding_box(world, rel_event->region_expr_root, rel_event->region_llf, rel_event->region_urb);
+    if (!ok) {
+      throw RuntimeError("Region for releases specified by " + rel_event->region_expr_root->region_name + " is not closed.");
+    }
+  }
+  else {
+    assert(false && "Regions TODO");
   }
 }
 
@@ -366,8 +415,8 @@ void MCell4Converter::convert_release_events() {
         rel_event->diameter = r->site_diameter;
         break;
       case Shape::RegionExpr:
-        assert(false && "TODO");
-
+        rel_event->release_shape = ReleaseShape::REGION;
+        convert_region_expr(rel_event, *r);
         break;
       default:
         // should be caught earlier
