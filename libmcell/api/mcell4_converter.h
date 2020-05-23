@@ -74,11 +74,11 @@ private:
   BNG::CplxInstance convert_complex_instance(API::ComplexInstance& inst);
   void convert_rxns();
 
-  wall_index_t convert_wall_and_add_to_geom_object(
+  MCell::wall_index_t convert_wall_and_add_to_geom_object(
       const API::GeometryObject& src_obj, const uint side,
       MCell::Partition& p, MCell::GeometryObject& dst_obj);
 
-  void convert_surface_area(
+  MCell::region_index_t convert_surface_area(
       MCell::Partition& p,
       API::SurfaceArea& surface_area, API::GeometryObject& o,
       MCell::GeometryObject& obj

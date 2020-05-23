@@ -133,6 +133,14 @@ public:
   }
 
   void init_from_whole_geom_object(const GeometryObject& obj);
+  void add_wall_to_walls_and_edges(const wall_index_t wi, const bool incl_edges = false) {
+    walls_and_edges.insert(std::make_pair(wi, std::set<edge_index_t>()));
+    if (incl_edges) {
+      walls_and_edges[wi].insert(EDGE_INDEX_0);
+      walls_and_edges[wi].insert(EDGE_INDEX_1);
+      walls_and_edges[wi].insert(EDGE_INDEX_2);
+    }
+  }
 
   void dump(const std::string ind) const;
   static void dump_array(const std::vector<Region>& vec);

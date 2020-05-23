@@ -474,11 +474,9 @@ void Region::init_from_whole_geom_object(const GeometryObject& obj) {
   name = obj.name + REGION_ALL_SUFFIX;
   geometry_object_id = obj.id;
 
-  // simply add all walls and their edges
+  // simply add all walls
   for (const wall_index_t& wi: obj.wall_indices) {
-    walls_and_edges[wi].insert(EDGE_INDEX_0);
-    walls_and_edges[wi].insert(EDGE_INDEX_1);
-    walls_and_edges[wi].insert(EDGE_INDEX_2);
+    add_wall_to_walls_and_edges(wi, false);
   }
 }
 

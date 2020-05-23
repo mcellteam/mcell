@@ -287,7 +287,7 @@ void MCell4Converter::convert_rxns() {
 }
 
 
-wall_index_t MCell4Converter::convert_wall_and_add_to_geom_object(
+MCell::wall_index_t MCell4Converter::convert_wall_and_add_to_geom_object(
     const API::GeometryObject& src_obj, const uint side,
     MCell::Partition& p, MCell::GeometryObject& dst_obj) {
 
@@ -295,7 +295,7 @@ wall_index_t MCell4Converter::convert_wall_and_add_to_geom_object(
 
   // TODO LATER: there is really no reason to add walls in two steps,
   // can be simplified
-  Wall& wall = p.add_uninitialized_wall(world->get_next_wall_id());
+  MCell::Wall& wall = p.add_uninitialized_wall(world->get_next_wall_id());
 
   wall.object_id = dst_obj.id;
   wall.object_index = dst_obj.index;
@@ -315,7 +315,7 @@ wall_index_t MCell4Converter::convert_wall_and_add_to_geom_object(
 }
 
 
-void MCell4Converter::convert_surface_area(
+MCell::region_index_t MCell4Converter::convert_surface_area(
     MCell::Partition& p,
     API::SurfaceArea& surface_area, API::GeometryObject& o,
     MCell::GeometryObject& obj) {
@@ -324,17 +324,16 @@ void MCell4Converter::convert_surface_area(
   reg.name = obj.name + "," + surface_area.name;
   reg.geometry_object_id = obj.id;
 
-  // simply add all walls and their edges
+  // simply add all walls
   for (const int wall_in_object: surface_area.element_connections) {
     wall_index_t wi = o.wall_indices[wall_in_object];
-    reg.walls_and_edges[wi].insert(EDGE_INDEX_0);
-    reg.walls_and_edges[wi].insert(EDGE_INDEX_1);
-    reg.walls_and_edges[wi].insert(EDGE_INDEX_2);
+    reg.add_wall_to_walls_and_edges(wi, false);
   }
 
   reg.id = world->get_next_region_id();
-  p.add_region_and_set_its_index(reg);
   surface_area.region_id = reg.id;
+  region_index_t ri = p.add_region_and_set_its_index(reg);
+  return ri;
 }
 
 
@@ -364,15 +363,30 @@ void MCell4Converter::convert_geometry_objects() {
     // initialize edges
     obj.initialize_neighboring_walls_and_their_edges(p);
 
+    vector<region_index_t> region_indices;
     // region "ALL"
     MCell::Region reg_all;
     reg_all.init_from_whole_geom_object(obj);
     reg_all.id = world->get_next_region_id();
-    p.add_region_and_set_its_index(reg_all);
+    region_index_t ri_all = p.add_region_and_set_its_index(reg_all);
+    region_indices.push_back(ri_all);
 
     // regions from surface areas
     for (std::shared_ptr<SurfaceArea> surface_area: o->surface_areas) {
-      convert_surface_area(p, *surface_area, *o, obj);
+      region_index_t ri = convert_surface_area(p, *surface_area, *o, obj);
+      region_indices.push_back(ri);
+    }
+
+    // and finally also set regions for walls
+    for (wall_index_t wi: obj.wall_indices) {
+      Wall& w = p.get_wall(wi);
+
+      for (region_index_t ri: region_indices) {
+        MCell::Region& reg = p.get_region(ri);
+        if (reg.walls_and_edges.count(wi) == 1) {
+          w.regions.insert(ri);
+        }
+      }
     }
   }
 }
