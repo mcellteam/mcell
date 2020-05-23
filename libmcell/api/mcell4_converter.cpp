@@ -372,7 +372,10 @@ void MCell4Converter::convert_geometry_objects() {
     region_indices.push_back(ri_all);
 
     // regions from surface areas
-    for (std::shared_ptr<SurfaceArea> surface_area: o->surface_areas) {
+    // mcell3 stores the regions in reverse, so we can too...
+    // (maybe change this in the mcell3 converter)
+    for (int k = (int)o->surface_areas.size() - 1; k >= 0; k--) {
+      std::shared_ptr<SurfaceArea> surface_area = o->surface_areas[k];
       region_index_t ri = convert_surface_area(p, *surface_area, *o, obj);
       region_indices.push_back(ri);
     }

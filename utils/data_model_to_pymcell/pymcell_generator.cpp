@@ -286,7 +286,7 @@ string PymcellGenerator::generate_single_geometry_object(
   }
   out << "] # " << id_element_connections << "\n\n";
 
-  // surface regions
+  // surface areas
   vector<string> sr_global_names;
   if (object.isMember(KEY_DEFINE_SURFACE_REGIONS)) {
     Value& define_surface_regions = object[KEY_DEFINE_SURFACE_REGIONS];
@@ -311,7 +311,7 @@ string PymcellGenerator::generate_single_geometry_object(
       out << "\n] #" << sr_element_connections_name << "\n\n";
 
       out << sr_global_name << " = " << MDOT << NAME_CLASS_SURFACE_AREA << "(\n";
-      out << IND << NAME_NAME << " = '" << name << "',\n";
+      out << IND << NAME_NAME << " = '" << sr_name << "',\n";
       out << IND << NAME_ELEMENT_CONNECTIONS << " = " << sr_element_connections_name << "\n";
       out << ")\n\n";
 
