@@ -37,6 +37,7 @@
 #include "datamodel_defines.h"
 
 #include "geometry_utils.inc" // uses get_wall_bounding_box, maybe not include this file
+#include "dump_state.h"
 
 using namespace std;
 
@@ -283,7 +284,7 @@ static int surface_net(Partition& p, GeometryObject& obj) {
       else
         k = 0;
 
-      struct poly_edge pe;
+      poly_edge pe;
       const Vec3& vert_j = p.get_wall_vertex(w, j);
       pe.v1x = vert_j.x;
       pe.v1y = vert_j.y;
@@ -301,7 +302,10 @@ static int surface_net(Partition& p, GeometryObject& obj) {
   }
 
   for (int i = 0; i < nkeys; i++) {
-    struct poly_edge *pep = (eht.data + i);
+    poly_edge *pep = (eht.data + i);
+#ifdef DEBUG_GEOM_OBJ_INITIALIZATION
+    dump_poly_edge(i, pep);
+#endif
     while (pep != NULL) {
       if (pep->n > 2) {
         refine_edge_pairs(p, obj, pep, facelist);
@@ -310,9 +314,11 @@ static int surface_net(Partition& p, GeometryObject& obj) {
         if (pep->face[0] != -1 && pep->face[1] != -1) {
           if (compatible_edges(p, facelist, pep->face[0], pep->edge[0], pep->face[1], pep->edge[1])) {
 
-            Wall& face0 = p.get_wall(pep->face[0]);
-            Wall& face1 = p.get_wall(pep->face[1]);
+            Wall& face0 = p.get_wall(facelist[pep->face[0]]);
+            Wall& face1 = p.get_wall(facelist[pep->face[1]]);
 
+            assert(pep->face[0] < (int)facelist.size());
+            assert(pep->face[1] < (int)facelist.size());
             face0.nb_walls[pep->edge[0]] = facelist[pep->face[1]];
             face1.nb_walls[pep->edge[1]] = facelist[pep->face[0]];
 
@@ -329,7 +335,8 @@ static int surface_net(Partition& p, GeometryObject& obj) {
             face1.edges[pep->edge[1]] = e;
           }
 
-        } else {
+        }
+        else {
           is_closed = 0;
         }
       } else if (pep->n == 1) {

@@ -27,6 +27,7 @@
 #include <iostream>
 
 #include "mcell_structs.h"
+#include "edge_util.h"
 #include "grid_util.h"
 
 #include "rng.h"
@@ -91,5 +92,35 @@ std::string get_species_flags_string(uint flags);
 
 std::ostream & operator<<(std::ostream &out, const vector2 &a);
 std::ostream & operator<<(std::ostream &out, const vector3 &a);
+
+
+// for now keeping dumps shared among mcell3 and mcell4 in header,
+// we do not want to increase the dependency of pymcell4 on mcell3
+static void dump_poly_edge(int i, poly_edge* pep, bool dump_only_init = true) {
+
+  if (!dump_only_init) {
+    std::cout << "next: \t\t" << pep->next << " [poly_edge*] \t\t /* Next edge in a hash table. */\n";
+  }
+
+  std::cout << "v1x: \t\t" << pep->v1x << " [double] \t\t /* X coord of starting point */\n";
+  std::cout << "v1y: \t\t" << pep->v1y << " [double] \t\t /* Y coord of starting point */\n";
+  std::cout << "v1z: \t\t" << pep->v1z << " [double] \t\t /* Z coord of starting point */\n";
+  std::cout << "v2x: \t\t" << pep->v2x << " [double] \t\t /* X coord of ending point */\n";
+  std::cout << "v2y: \t\t" << pep->v2y << " [double] \t\t /* Y coord of ending point */\n";
+  std::cout << "v2z: \t\t" << pep->v2z << " [double] \t\t /* Z coord of ending point */\n";
+
+  std::cout << "face[0]: \t\t" << pep->face[0] << " [int] \t\t /* wall indices on side of edge */\n";
+  if (!dump_only_init) {
+    std::cout << "face[1]: \t\t" << pep->face[1] << " [int] \t\t /* wall indices on side of edge */\n";
+    std::cout << "face[2]: \t\t" << pep->face[2] << " [int] \t\t /* wall indices on side of edge */\n";
+  }
+
+  std::cout << "edge[0]: \t\t" << pep->edge[0] << " [int] \t\t /* which edge of wall1/2 are we? */\n";
+  if (!dump_only_init) {
+    std::cout << "edge[1]: \t\t" << pep->edge[1] << " [int] \t\t /* which edge of wall1/2 are we? */\n";
+    std::cout << "edge[2]: \t\t" << pep->edge[2] << " [int] \t\t /* which edge of wall1/2 are we? */\n";
+    std::cout << "n: \t\t" << pep->n << " [int] \t\t     /* How many walls share this edge? */\n";
+  }
+}
 
 #endif

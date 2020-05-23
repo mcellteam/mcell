@@ -44,6 +44,7 @@
 #include "strfunc.h"
 
 #include "debug_config.h"
+#include "dump_state.h"
 
 /* tetrahedralVol returns the (signed) volume of the tetrahedron spanned by
  * the vertices a, b, c, and d.
@@ -311,6 +312,9 @@ int surface_net(struct wall **facelist, int nfaces) {
 
   for (int i = 0; i < nkeys; i++) {
     struct poly_edge *pep = (eht.data + i);
+#ifdef DEBUG_GEOM_OBJ_INITIALIZATION
+    dump_poly_edge(i, pep);
+#endif
     while (pep != NULL) {
       if (pep->n > 2) {
         refine_edge_pairs(pep, facelist);

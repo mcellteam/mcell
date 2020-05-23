@@ -22,10 +22,13 @@
 ******************************************************************************/
 
 #include <stdlib.h>
+#include <iostream>
 
 #include "edge_util.h"
 #include "mcell_structs.h"
 #include "sym_table.h"
+
+#include "debug_config.h"
 
 /**************************************************************************\
  ** Edge hash table section--finds common edges in polygons              **
@@ -141,6 +144,11 @@ ehtable_add:
        Edge is added to the hash table.
 ***************************************************************************/
 int ehtable_add(struct edge_hashtable *eht, struct poly_edge *pe) {
+
+#ifdef DEBUG_GEOM_OBJ_INITIALIZATION
+    std::cout << "ehtable_add:\n";
+    dump_poly_edge(0, pe);
+#endif
 
   int i = edge_hash(pe, eht->nkeys);
   struct poly_edge *pep = &(eht->data[i]);

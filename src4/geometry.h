@@ -320,6 +320,10 @@ public:
       area(POS_INVALID),
       normal(POS_INVALID), unit_u(POS_INVALID), unit_v(POS_INVALID), distance_to_origin(POS_INVALID)
     {
+
+    nb_walls[0] = WALL_INDEX_INVALID;
+    nb_walls[1] = WALL_INDEX_INVALID;
+    nb_walls[2] = WALL_INDEX_INVALID;
   }
 
   // the partition argument is used only to access vertices, wall is not aded to the partition
@@ -337,6 +341,10 @@ public:
     vertex_indices[0] = index0;
     vertex_indices[1] = index1;
     vertex_indices[2] = index2;
+
+    nb_walls[0] = WALL_INDEX_INVALID;
+    nb_walls[1] = WALL_INDEX_INVALID;
+    nb_walls[2] = WALL_INDEX_INVALID;
 
     if (do_precompute_wall_constants) {
       precompute_wall_constants(p);
