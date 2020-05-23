@@ -179,6 +179,13 @@ g_enums = set()
 
 # ------------------------
 
+def rename_cpp_reserved_id(name):
+    if (name == 'union'):
+        return 'union_'
+    else:
+        return name
+
+
 def get_underscored(class_name):
     return re.sub(r'(?<!^)(?=[A-Z])', '_', class_name).lower()
 
@@ -483,7 +490,7 @@ def write_method_signature(f, method):
         f.write('void ')
     
     assert KEY_NAME in method
-    f.write(method[KEY_NAME] + '(')
+    f.write(rename_cpp_reserved_id(method[KEY_NAME]) + '(')
     
     if KEY_PARAMS in method:
         params = method[KEY_PARAMS]
@@ -861,7 +868,7 @@ def get_method_overload_cast(method):
 
 def write_pybind11_method_bindings(f, class_name, method, class_def):
     assert KEY_NAME in method
-    name = method[KEY_NAME]
+    name = rename_cpp_reserved_id(method[KEY_NAME])
     
     full_method_name = '&' + class_name + '::' + name
     if is_overloaded(method, class_def):

@@ -330,6 +330,15 @@ static void gen_rxn_substance_inst(ofstream& out, Json::Value& substances_node) 
   out << " ]";
 }
 
+
+// NOTE: the same code is in mcell3_world_converter.cpp
+static bool ends_with(std::string const & value, std::string const & ending)
+{
+    if (ending.size() > value.size()) {
+      return false;
+    }
+    return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
+}
 } // namespace MCell
 
 #endif // SRC4_PYMCELLCONVERTER_GENERATOR_UTILS_H_

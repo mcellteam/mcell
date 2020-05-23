@@ -105,7 +105,7 @@ static inline  std::ostream& operator << (std::ostream& out, const VizMode v) {
 enum class Shape {
   Unset = 0,
   Spherical = 1,
-  Object = 2
+  RegionExpr = 2
 };
 
 
@@ -113,24 +113,49 @@ static inline  std::ostream& operator << (std::ostream& out, const Shape v) {
   switch (v) {
     case Shape::Unset: out << "Shape.Unset (0)"; break;
     case Shape::Spherical: out << "Shape.Spherical (1)"; break;
-    case Shape::Object: out << "Shape.Object (2)"; break;
+    case Shape::RegionExpr: out << "Shape.RegionExpr (2)"; break;
   }
   return out;
 };
 
 
 enum class ExprNodeType {
-  Leaf = 0,
-  Add = 1,
-  Sub = 2
+  Unset = 0,
+  Leaf = 1,
+  Add = 2,
+  Sub = 3
 };
 
 
 static inline  std::ostream& operator << (std::ostream& out, const ExprNodeType v) {
   switch (v) {
-    case ExprNodeType::Leaf: out << "ExprNodeType.Leaf (0)"; break;
-    case ExprNodeType::Add: out << "ExprNodeType.Add (1)"; break;
-    case ExprNodeType::Sub: out << "ExprNodeType.Sub (2)"; break;
+    case ExprNodeType::Unset: out << "ExprNodeType.Unset (0)"; break;
+    case ExprNodeType::Leaf: out << "ExprNodeType.Leaf (1)"; break;
+    case ExprNodeType::Add: out << "ExprNodeType.Add (2)"; break;
+    case ExprNodeType::Sub: out << "ExprNodeType.Sub (3)"; break;
+  }
+  return out;
+};
+
+
+enum class RegionNodeType {
+  Unset = 0,
+  LeafGeometryObject = 1,
+  LeafSurfaceArea = 2,
+  Union = 3,
+  Difference = 4,
+  Intersect = 5
+};
+
+
+static inline  std::ostream& operator << (std::ostream& out, const RegionNodeType v) {
+  switch (v) {
+    case RegionNodeType::Unset: out << "RegionNodeType.Unset (0)"; break;
+    case RegionNodeType::LeafGeometryObject: out << "RegionNodeType.LeafGeometryObject (1)"; break;
+    case RegionNodeType::LeafSurfaceArea: out << "RegionNodeType.LeafSurfaceArea (2)"; break;
+    case RegionNodeType::Union: out << "RegionNodeType.Union (3)"; break;
+    case RegionNodeType::Difference: out << "RegionNodeType.Difference (4)"; break;
+    case RegionNodeType::Intersect: out << "RegionNodeType.Intersect (5)"; break;
   }
   return out;
 };

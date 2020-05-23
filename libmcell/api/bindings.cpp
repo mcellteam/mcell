@@ -45,6 +45,8 @@
 #include "../generated/gen_warnings.h"
 #include "../generated/gen_model.h"
 
+#include "../generated/gen_region.h"
+
 #include "../generated/gen_constants.h"
 
 #if __cplusplus < 201402L
@@ -116,7 +118,8 @@ PYBIND11_MODULE(mcell, m) {
   define_pybinding_Subsystem(m);
 
   define_pybinding_ReleaseSite(m);
-  define_pybinding_SurfaceRegion(m);
+  define_pybinding_Region(m);
+  define_pybinding_SurfaceArea(m);
   define_pybinding_GeometryObject(m);
   define_pybinding_InstantiationData(m);
 
@@ -129,6 +132,7 @@ PYBIND11_MODULE(mcell, m) {
   define_pybinding_Notifications(m);
   define_pybinding_Warnings(m);
   define_pybinding_Model(m);
+
 }
 
 

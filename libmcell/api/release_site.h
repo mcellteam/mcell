@@ -34,19 +34,24 @@ public:
   RELEASE_SITE_CTOR()
 
   void postprocess_in_ctor() override {
-    if (is_set(object)) {
-      if (shape != Shape::Object) {
-        throw ValueError("When 'object' is set, shape must be either unset or set to 'Shape.Object'.");
+    if (get_num_set(region, geometry_object, surface_area) > 1) {
+      throw ValueError(S("Only one or none of ") + NAME_REGION + ",  " + NAME_GEOMETRY_OBJECT + " or " + NAME_SURFACE_AREA + " surface_area can be set.");
+    }
+
+    if (is_set(region) || is_set(geometry_object) || is_set(surface_area)) {
+      if (shape != Shape::RegionExpr) {
+        throw ValueError(S("When ") + NAME_REGION + ",  " + NAME_GEOMETRY_OBJECT + " or " + NAME_SURFACE_AREA + " is set, "
+            "shape must be either unset or set to " + NAME_ENUM_SHAPE + "." + NAME_EV_REGION_EXPR + ".");
       }
-      shape = Shape::Object;
+      shape = Shape::RegionExpr;
     }
   }
 
   // actual manual implementation of a semantic check
   void check_semantics() const override {
     GenReleaseSite::check_semantics();
-    if (is_set(site_diameter) && is_set(site_radius)) {
-      throw ValueError("Only either 'site_diameter' or 'site_radius' can be set.");
+    if (get_num_set(site_diameter, site_radius) > 1) {
+      throw ValueError(S("Only either ") + NAME_SITE_DIAMETER + " or " + NAME_SITE_RADIUS + " can be set.");
     }
   }
 };

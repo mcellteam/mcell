@@ -54,6 +54,8 @@ const char* const MCELL_DIR_SETUP =
 
 const char* const MCELL_IMPORT = "import mcell as m\n\n";
 
+const char* const REGION_ALL_SUFFIX = "[ALL]";
+
 } // namespace MCell
 
 #endif // SRC4_PYMCELLCONVERTER_GENERATOR_CONSTANTSS_H_

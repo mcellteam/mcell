@@ -65,33 +65,36 @@ enums:
       value: 0
     - name: Spherical
       value: 1
-    - name: Object
+    - name: RegionExpr
       value: 2
-    - name: Region
-      value: 3
+      internal: Cannot be named Region because such class already exists  
       
       
   - name: ExprNodeType
     doc: Used internally to represent expression trees
     values:
-    - name: Leaf
+    - name: Unset
       value: 0
-    - name: Add
+    - name: Leaf
       value: 1
-    - name: Sub
+    - name: Add
       value: 2
+    - name: Sub
+      value: 3
       
   - name: RegionNodeType
     doc: Used internally to represent region trees
     values:
+    - name: Unset
+      value: 0    
     - name: LeafGeometryObject
-      value: 0
-    - name: LeafSurfaceRegion
       value: 1
-    - name: Union
+    - name: LeafSurfaceArea
       value: 2
+    - name: Union
+      value: 3
     - name: Difference
-      value: 3      
+      value: 4      
     - name: Intersect
-      value: 4
+      value: 5
       

@@ -30,7 +30,9 @@ namespace MCell {
 namespace API {
 
 class GeometryObject;
+class Region;
 class Species;
+class SurfaceArea;
 
 #define RELEASE_SITE_CTOR() \
     ReleaseSite( \
@@ -38,7 +40,9 @@ class Species;
         std::shared_ptr<Species> species_, \
         const Orientation initial_orientation_ = Orientation::None, \
         const Shape shape_ = Shape::Unset, \
-        std::shared_ptr<GeometryObject> object_ = nullptr, \
+        std::shared_ptr<Region> region_ = nullptr, \
+        std::shared_ptr<GeometryObject> geometry_object_ = nullptr, \
+        std::shared_ptr<SurfaceArea> surface_area_ = nullptr, \
         const Vec3& location_ = VEC3_UNSET, \
         const float_t site_diameter_ = 0, \
         const float_t site_radius_ = FLT_UNSET, \
@@ -50,7 +54,9 @@ class Species;
       species = species_; \
       initial_orientation = initial_orientation_; \
       shape = shape_; \
-      object = object_; \
+      region = region_; \
+      geometry_object = geometry_object_; \
+      surface_area = surface_area_; \
       location = location_; \
       site_diameter = site_diameter_; \
       site_radius = site_radius_; \
@@ -106,16 +112,40 @@ public:
     return shape;
   }
 
-  std::shared_ptr<GeometryObject> object;
-  virtual void set_object(std::shared_ptr<GeometryObject> new_object_) {
+  std::shared_ptr<Region> region;
+  virtual void set_region(std::shared_ptr<Region> new_region_) {
     if (initialized) {
-      throw RuntimeError("Value 'object' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'region' of object with name " + name + " (class " + class_name + ")"
                          "cannot be set after model was initialized.");
     }
-    object = new_object_;
+    region = new_region_;
   }
-  virtual std::shared_ptr<GeometryObject> get_object() const {
-    return object;
+  virtual std::shared_ptr<Region> get_region() const {
+    return region;
+  }
+
+  std::shared_ptr<GeometryObject> geometry_object;
+  virtual void set_geometry_object(std::shared_ptr<GeometryObject> new_geometry_object_) {
+    if (initialized) {
+      throw RuntimeError("Value 'geometry_object' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
+    geometry_object = new_geometry_object_;
+  }
+  virtual std::shared_ptr<GeometryObject> get_geometry_object() const {
+    return geometry_object;
+  }
+
+  std::shared_ptr<SurfaceArea> surface_area;
+  virtual void set_surface_area(std::shared_ptr<SurfaceArea> new_surface_area_) {
+    if (initialized) {
+      throw RuntimeError("Value 'surface_area' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
+    surface_area = new_surface_area_;
+  }
+  virtual std::shared_ptr<SurfaceArea> get_surface_area() const {
+    return surface_area;
   }
 
   Vec3 location;

@@ -54,12 +54,21 @@ void define_pybinding_constants(py::module& m) {
   py::enum_<Shape>(m, "Shape", py::arithmetic())
     .value("Unset", Shape::Unset)
     .value("Spherical", Shape::Spherical)
-    .value("Object", Shape::Object)
+    .value("RegionExpr", Shape::RegionExpr)
     .export_values();
   py::enum_<ExprNodeType>(m, "ExprNodeType", py::arithmetic())
+    .value("Unset", ExprNodeType::Unset)
     .value("Leaf", ExprNodeType::Leaf)
     .value("Add", ExprNodeType::Add)
     .value("Sub", ExprNodeType::Sub)
+    .export_values();
+  py::enum_<RegionNodeType>(m, "RegionNodeType", py::arithmetic())
+    .value("Unset", RegionNodeType::Unset)
+    .value("LeafGeometryObject", RegionNodeType::LeafGeometryObject)
+    .value("LeafSurfaceArea", RegionNodeType::LeafSurfaceArea)
+    .value("Union", RegionNodeType::Union)
+    .value("Difference", RegionNodeType::Difference)
+    .value("Intersect", RegionNodeType::Intersect)
     .export_values();
 }
 

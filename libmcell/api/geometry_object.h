@@ -63,6 +63,10 @@ public:
     }
   }
 
+  std::shared_ptr<Region> as_region() override {
+    assert("TODO" && false);
+  }
+
   // simulation engine mapping
   partition_id_t partition_id;
   std::vector<vertex_index_t> vertex_indices; // vertex_list[i] has vertex index vertex_indices[i]

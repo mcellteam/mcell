@@ -33,14 +33,19 @@
 namespace py = pybind11;
 #include <vector>
 
-#include "../generated/gen_constants.h"
+#include "generated/gen_constants.h"
+#include "generated/gen_names.h"
 
 #include "defines.h"
 
 namespace MCell {
 namespace API {
 
-//
+// auxiliary method to simply convert to std::string for when concatenating string
+static std::string S(const char* s) {
+  return std::string(s);
+}
+
 const float_t FLT_UNSET = FLT_MAX;
 const int INT_UNSET = INT32_MAX;
 const long long LONG_UNSET = INT64_MAX;
@@ -75,6 +80,30 @@ template<typename T>
 static inline bool is_set(const std::vector<T>& a) {
   return !a.empty();
 }
+
+
+template<typename T1, typename T2>
+int get_num_set(const T1& v1, const T2& v2) {
+  int res = 0;
+  if (is_set(v1)) {
+    res++;
+  }
+  if (is_set(v2)) {
+    res++;
+  }
+  return res;
+}
+
+
+template<typename T1, typename T2, typename T3>
+int get_num_set(const T1& v1, const T2& v2, const T3& v3) {
+  int res = get_num_set(v1, v2);
+  if (is_set(v3)) {
+    res++;
+  }
+  return res;
+}
+
 
 // NOTE: for some reason a definition in defines.h is not found, although it works fine for Vec3
 static inline std::ostream & operator<<(std::ostream &out, const IVec3& a) {

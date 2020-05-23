@@ -20,8 +20,8 @@
  *
 ******************************************************************************/
 
-#ifndef API_GEN_GEOMETRY_OBJECT_H
-#define API_GEN_GEOMETRY_OBJECT_H
+#ifndef API_GEN_SURFACE_AREA_H
+#define API_GEN_SURFACE_AREA_H
 
 #include "../api/common.h"
 #include "../api/base_data_class.h"
@@ -29,78 +29,64 @@
 namespace MCell {
 namespace API {
 
+class GeometryObject;
 class Region;
-class SurfaceArea;
 
-#define GEOMETRY_OBJECT_CTOR() \
-    GeometryObject( \
+#define SURFACE_AREA_CTOR() \
+    SurfaceArea( \
         const std::string& name_, \
-        const std::vector<std::vector<float_t>> vertex_list_, \
-        const std::vector<std::vector<int>> element_connections_, \
-        const std::vector<std::shared_ptr<SurfaceArea>> surface_areas_ = std::vector<std::shared_ptr<SurfaceArea>>() \
+        const std::vector<int> element_connections_, \
+        std::shared_ptr<GeometryObject> parent_ = nullptr \
     ) { \
-      class_name = "GeometryObject"; \
+      class_name = "SurfaceArea"; \
       name = name_; \
-      vertex_list = vertex_list_; \
       element_connections = element_connections_; \
-      surface_areas = surface_areas_; \
+      parent = parent_; \
       postprocess_in_ctor();\
       check_semantics();\
     }
 
-class GenGeometryObject: public BaseDataClass {
+class GenSurfaceArea: public BaseDataClass {
 public:
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
 
-  bool __eq__(const GenGeometryObject& other) const;
+  bool __eq__(const GenSurfaceArea& other) const;
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---
-  std::vector<std::vector<float_t>> vertex_list;
-  virtual void set_vertex_list(const std::vector<std::vector<float_t>> new_vertex_list_) {
-    if (initialized) {
-      throw RuntimeError("Value 'vertex_list' of object with name " + name + " (class " + class_name + ")"
-                         "cannot be set after model was initialized.");
-    }
-    vertex_list = new_vertex_list_;
-  }
-  virtual std::vector<std::vector<float_t>> get_vertex_list() const {
-    return vertex_list;
-  }
-
-  std::vector<std::vector<int>> element_connections;
-  virtual void set_element_connections(const std::vector<std::vector<int>> new_element_connections_) {
+  std::vector<int> element_connections;
+  virtual void set_element_connections(const std::vector<int> new_element_connections_) {
     if (initialized) {
       throw RuntimeError("Value 'element_connections' of object with name " + name + " (class " + class_name + ")"
                          "cannot be set after model was initialized.");
     }
     element_connections = new_element_connections_;
   }
-  virtual std::vector<std::vector<int>> get_element_connections() const {
+  virtual std::vector<int> get_element_connections() const {
     return element_connections;
   }
 
-  std::vector<std::shared_ptr<SurfaceArea>> surface_areas;
-  virtual void set_surface_areas(const std::vector<std::shared_ptr<SurfaceArea>> new_surface_areas_) {
+  std::shared_ptr<GeometryObject> parent;
+  virtual void set_parent(std::shared_ptr<GeometryObject> new_parent_) {
     if (initialized) {
-      throw RuntimeError("Value 'surface_areas' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'parent' of object with name " + name + " (class " + class_name + ")"
                          "cannot be set after model was initialized.");
     }
-    surface_areas = new_surface_areas_;
+    parent = new_parent_;
   }
-  virtual std::vector<std::shared_ptr<SurfaceArea>> get_surface_areas() const {
-    return surface_areas;
+  virtual std::shared_ptr<GeometryObject> get_parent() const {
+    return parent;
   }
 
   // --- methods ---
   virtual std::shared_ptr<Region> as_region() = 0;
-}; // GenGeometryObject
+}; // GenSurfaceArea
 
-class GeometryObject;
-py::class_<GeometryObject> define_pybinding_GeometryObject(py::module& m);
+class SurfaceArea;
+py::class_<SurfaceArea> define_pybinding_SurfaceArea(py::module& m);
 } // namespace API
 } // namespace MCell
 
-#endif // API_GEN_GEOMETRY_OBJECT_H
+#endif // API_GEN_SURFACE_AREA_H

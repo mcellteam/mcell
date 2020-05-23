@@ -23,15 +23,20 @@
 #ifndef API_SURFACE_REGION_H
 #define API_SURFACE_REGION_H
 
-#include "../generated/gen_surface_region.h"
+#include "../generated/gen_surface_area.h"
 #include "../api/common.h"
 
 namespace MCell {
 namespace API {
 
-class SurfaceRegion: public GenSurfaceRegion {
+class SurfaceArea: public GenSurfaceArea {
 public:
-  SURFACE_REGION_CTOR()
+  SURFACE_AREA_CTOR()
+
+  virtual std::shared_ptr<Region> as_region() override {
+    assert("TODO" && false);
+  }
+
 };
 
 } // namespace API

@@ -22,72 +22,64 @@
 
 #include <sstream>
 #include <pybind11/stl.h>
-#include "gen_geometry_object.h"
+#include "gen_surface_area.h"
+#include "../api/surface_area.h"
 #include "../api/geometry_object.h"
 #include "../api/region.h"
-#include "../api/surface_area.h"
 
 namespace MCell {
 namespace API {
 
-void GenGeometryObject::check_semantics() const {
+void GenSurfaceArea::check_semantics() const {
   if (!is_set(name)) {
     throw ValueError("Parameter 'name' must be set.");
-  }
-  if (!is_set(vertex_list)) {
-    throw ValueError("Parameter 'vertex_list' must be set.");
   }
   if (!is_set(element_connections)) {
     throw ValueError("Parameter 'element_connections' must be set.");
   }
 }
 
-bool GenGeometryObject::__eq__(const GenGeometryObject& other) const {
+bool GenSurfaceArea::__eq__(const GenSurfaceArea& other) const {
   return
     name == other.name &&
     name == other.name &&
-    vertex_list == other.vertex_list &&
     element_connections == other.element_connections &&
-    vec_ptr_eq(surface_areas, other.surface_areas);
+    parent->__eq__(*other.parent);
 }
 
-void GenGeometryObject::set_initialized() {
-  vec_set_initialized(surface_areas);
+void GenSurfaceArea::set_initialized() {
+  parent->set_initialized();
   initialized = true;
 }
 
-std::string GenGeometryObject::to_str(const std::string ind) const {
+std::string GenSurfaceArea::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
       "name=" << name << ", " <<
-      "vertex_list=" << vec_nonptr_to_str(vertex_list, ind + "  ") << ", " <<
       "element_connections=" << vec_nonptr_to_str(element_connections, ind + "  ") << ", " <<
-      "\n" << ind + "  " << "surface_areas=" << vec_ptr_to_str(surface_areas, ind + "  ");
+      "\n" << ind + "  " << "parent=" << "(" << ((parent != nullptr) ? parent->to_str(ind + "  ") : "null" ) << ")";
   return ss.str();
 }
 
-py::class_<GeometryObject> define_pybinding_GeometryObject(py::module& m) {
-  return py::class_<GeometryObject, std::shared_ptr<GeometryObject>>(m, "GeometryObject")
+py::class_<SurfaceArea> define_pybinding_SurfaceArea(py::module& m) {
+  return py::class_<SurfaceArea, std::shared_ptr<SurfaceArea>>(m, "SurfaceArea")
       .def(
           py::init<
             const std::string&,
-            const std::vector<std::vector<float_t>>,
-            const std::vector<std::vector<int>>,
-            const std::vector<std::shared_ptr<SurfaceArea>>
+            const std::vector<int>,
+            std::shared_ptr<GeometryObject>
           >(),
           py::arg("name"),
-          py::arg("vertex_list"),
           py::arg("element_connections"),
-          py::arg("surface_areas") = std::vector<std::shared_ptr<SurfaceArea>>()
+          py::arg("parent") = nullptr
       )
-      .def("check_semantics", &GeometryObject::check_semantics)
-      .def("__str__", &GeometryObject::to_str, py::arg("ind") = std::string(""))
-      .def("as_region", &GeometryObject::as_region)
-      .def("dump", &GeometryObject::dump)
-      .def_property("name", &GeometryObject::get_name, &GeometryObject::set_name)
-      .def_property("vertex_list", &GeometryObject::get_vertex_list, &GeometryObject::set_vertex_list)
-      .def_property("element_connections", &GeometryObject::get_element_connections, &GeometryObject::set_element_connections)
-      .def_property("surface_areas", &GeometryObject::get_surface_areas, &GeometryObject::set_surface_areas)
+      .def("check_semantics", &SurfaceArea::check_semantics)
+      .def("__str__", &SurfaceArea::to_str, py::arg("ind") = std::string(""))
+      .def("as_region", &SurfaceArea::as_region)
+      .def("dump", &SurfaceArea::dump)
+      .def_property("name", &SurfaceArea::get_name, &SurfaceArea::set_name)
+      .def_property("element_connections", &SurfaceArea::get_element_connections, &SurfaceArea::set_element_connections)
+      .def_property("parent", &SurfaceArea::get_parent, &SurfaceArea::set_parent)
     ;
 }
 

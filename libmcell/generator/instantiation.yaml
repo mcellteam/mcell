@@ -4,15 +4,15 @@ Region:
   items:
   - name: node_type
     type: RegionNodeType
-    default: RegionNodeType.Leaf
+    default: RegionNodeType.Unset
 
   - name: geometry_object
     type: GeometryObject*
     default: unset
     doc: Set only if this is a LeafGeometryObject
     
-  - name: surface_region
-    type: SurfaceRegion*
+  - name: surface_area
+    type: SurfaceArea*
     default: unset
     doc: Set only if this is a LeafSurfaceRegion
       
@@ -74,13 +74,20 @@ ReleaseSite:
     default: unset
     doc: When set, sets shape to Shape.Region 
 
-  - name: object
-    type: Object*
+  - name: geometry_object
+    type: GeometryObject*
     default: unset
     doc: | 
-      When set, passed GeometryObject is converted into Region and shape is set to Shape.Region. 
+      When set, the passed GeometryObject is converted into Region and shape is set to Shape.Region. 
       Same as setting .region = obj.as_region().
 
+  - name: surface_area
+    type: SurfaceArea*
+    default: unset
+    doc: | 
+      When set, the passed SurfaceArea is converted into Region and shape is set to Shape.Region. 
+      Same as setting .region = obj.as_region().
+    
   - name: location
     type: Vec3 # Vec3 and Vec2 are built-in data types
     default: unset # null is equivalent to None in YAML
@@ -90,11 +97,15 @@ ReleaseSite:
     default: 0
     doc: |
       For a geometrical release site, this releases molecules uniformly within
-      a diameter d or a radius r. Not used for releases on regions. 
+      a radius r. Not used for releases on regions.
     
+  # do we need radius when we have diameter?
   - name: site_radius
     type: float
     default: unset
+    doc: |
+      For a geometrical release site, this releases molecules uniformly within
+      a radius r. Not used for releases on regions.
 
   - name: number_to_release
     type: int
@@ -104,8 +115,11 @@ ReleaseSite:
     type: float
     default: unset
     
-#     
-SurfaceRegion:
+    
+SurfaceArea:
+  doc: |
+    Surface region  in MDL, however a new class Region was instroduced in MCell4 so it was renamed 
+    to avoid confusion.
   superclass: BaseDataClass
   items:
   - name: name
@@ -148,8 +162,8 @@ GeometryObject:
       List of [a,b,c] triplets specifying each wall, individual values are indices into the vertex list.
       Equivalent to List[IVec3]. 
         
-  - name: surface_regions
-    type: List[SurfaceRegion*]
+  - name: surface_areas
+    type: List[SurfaceArea*]
     default: empty
     
   methods:

@@ -23,7 +23,8 @@
 #include <sstream>
 #include <pybind11/stl.h>
 #include "gen_surface_region.h"
-#include "../api/surface_region.h"
+
+#include "../api/surface_area.h"
 
 namespace MCell {
 namespace API {

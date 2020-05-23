@@ -30,15 +30,15 @@ namespace MCell {
 namespace API {
 
 class CountTerm;
-class GeometryObject;
 class ReactionRule;
+class Region;
 class Species;
 
 #define COUNT_TERM_CTOR() \
     CountTerm( \
         std::shared_ptr<Species> species_ = nullptr, \
         std::shared_ptr<ReactionRule> reaction_rule_ = nullptr, \
-        std::shared_ptr<GeometryObject> region_ = nullptr, \
+        std::shared_ptr<Region> region_ = nullptr, \
         const ExprNodeType node_type_ = ExprNodeType::Leaf, \
         std::shared_ptr<CountTerm> left_node_ = nullptr, \
         std::shared_ptr<CountTerm> right_node_ = nullptr \
@@ -88,15 +88,15 @@ public:
     return reaction_rule;
   }
 
-  std::shared_ptr<GeometryObject> region;
-  virtual void set_region(std::shared_ptr<GeometryObject> new_region_) {
+  std::shared_ptr<Region> region;
+  virtual void set_region(std::shared_ptr<Region> new_region_) {
     if (initialized) {
       throw RuntimeError("Value 'region' of object with name " + name + " (class " + class_name + ")"
                          "cannot be set after model was initialized.");
     }
     region = new_region_;
   }
-  virtual std::shared_ptr<GeometryObject> get_region() const {
+  virtual std::shared_ptr<Region> get_region() const {
     return region;
   }
 

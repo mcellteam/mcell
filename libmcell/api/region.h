@@ -20,43 +20,31 @@
  *
 ******************************************************************************/
 
-/**
- * This header includes all C++ classes of MCell API.
- * File should be used only from outside of this library to avoid cyclic includes.
- */
+#ifndef API_REGION_H
+#define API_REGION_H
 
-#ifndef API_MCELL_H
-#define API_MCELL_H
+#include "generated/gen_region.h"
+#include "api/common.h"
 
-#include "../api/common.h"
+namespace MCell {
+namespace API {
 
-#include "../api/component_type.h"
-#include "../api/component_instance.h"
-#include "../api/molecule_type.h"
-#include "../api/molecule_instance.h"
-#include "../api/complex_instance.h"
-#include "../api/species.h"
-#include "../api/reaction_rule.h"
-#include "../api/subsystem.h"
+class Region: public GenRegion {
+public:
+  REGION_CTOR()
 
-#include "../api/release_site.h"
-#include "../api/region.h"
-#include "../api/surface_area.h"
-#include "../api/geometry_object.h"
-#include "../api/instantiation_data.h"
+  std::shared_ptr<Region> union_(std::shared_ptr<Region> second_region) override {
+    assert("TODO" && false);
+  }
+  std::shared_ptr<Region> difference(std::shared_ptr<Region> second_region) override {
+    assert("TODO" && false);
+  }
+  std::shared_ptr<Region> intersect(std::shared_ptr<Region> second_region) override {
+    assert("TODO" && false);
+  }
+};
 
-#include "../api/count_term.h"
-#include "../api/count.h"
-#include "../api/viz_output.h"
-#include "../api/observables.h"
+} // namespace API
+} // namespace MCell
 
-#include "../api/config.h"
-#include "../api/notifications.h"
-#include "../api/warnings.h"
-#include "../api/model.h"
-
-
-
-#include "surface_area.h"
-
-#endif // API_MCELL_H
+#endif // API_REGION_H

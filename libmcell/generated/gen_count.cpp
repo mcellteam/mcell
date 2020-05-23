@@ -25,8 +25,8 @@
 #include "gen_count.h"
 #include "../api/count.h"
 #include "../api/count_term.h"
-#include "../api/geometry_object.h"
 #include "../api/reaction_rule.h"
+#include "../api/region.h"
 #include "../api/species.h"
 
 namespace MCell {
@@ -86,7 +86,7 @@ py::class_<Count> define_pybinding_Count(py::module& m) {
             const int,
             std::shared_ptr<Species>,
             std::shared_ptr<ReactionRule>,
-            std::shared_ptr<GeometryObject>,
+            std::shared_ptr<Region>,
             const ExprNodeType,
             std::shared_ptr<CountTerm>,
             std::shared_ptr<CountTerm>

@@ -32,8 +32,8 @@ namespace MCell {
 namespace API {
 
 class CountTerm;
-class GeometryObject;
 class ReactionRule;
+class Region;
 class Species;
 
 #define COUNT_CTOR() \
@@ -43,7 +43,7 @@ class Species;
         const int every_n_timesteps_ = 1, \
         std::shared_ptr<Species> species_ = nullptr, \
         std::shared_ptr<ReactionRule> reaction_rule_ = nullptr, \
-        std::shared_ptr<GeometryObject> region_ = nullptr, \
+        std::shared_ptr<Region> region_ = nullptr, \
         const ExprNodeType node_type_ = ExprNodeType::Leaf, \
         std::shared_ptr<CountTerm> left_node_ = nullptr, \
         std::shared_ptr<CountTerm> right_node_ = nullptr \
@@ -67,7 +67,7 @@ public:
   GenCount( 
       std::shared_ptr<Species> species_ = nullptr, 
       std::shared_ptr<ReactionRule> reaction_rule_ = nullptr, 
-      std::shared_ptr<GeometryObject> region_ = nullptr, 
+      std::shared_ptr<Region> region_ = nullptr, 
       const ExprNodeType node_type_ = ExprNodeType::Leaf, 
       std::shared_ptr<CountTerm> left_node_ = nullptr, 
       std::shared_ptr<CountTerm> right_node_ = nullptr 

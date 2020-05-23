@@ -341,7 +341,7 @@ void MCell4Converter::convert_geometry_objects() {
     obj.initialize_neighboring_walls_and_their_edges(p);
 
     // regions
-    assert(o->surface_regions.empty() && "TODO");
+    assert(o->surface_areas.empty() && "TODO");
   }
 }
 
@@ -365,7 +365,8 @@ void MCell4Converter::convert_release_events() {
         rel_event->location = r->location / world->config.length_unit;
         rel_event->diameter = r->site_diameter;
         break;
-      case Shape::Object:
+      case Shape::RegionExpr:
+        assert(false && "TODO");
 
         break;
       default:
