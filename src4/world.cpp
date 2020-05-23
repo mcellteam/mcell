@@ -559,11 +559,11 @@ void World::initialization_to_data_model(Json::Value& mcell_node) const {
   partitions[KEY_Z_START] = mhalf_str;
   partitions[KEY_Z_END] = phalf_str;
 
-  float_t step = config.partition_edge_length / config.subpartition_edge_length;
+  float_t step = config.subpartition_edge_length * config.length_unit;
   string step_str = DMUtil::f_to_string(step);
-  partitions[KEY_X_STEP] = step;
-  partitions[KEY_Y_STEP] = step;
-  partitions[KEY_Z_STEP] = step;
+  partitions[KEY_X_STEP] = step_str;
+  partitions[KEY_Y_STEP] = step_str;
+  partitions[KEY_Z_STEP] = step_str;
 }
 
 
