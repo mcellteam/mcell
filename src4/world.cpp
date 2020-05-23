@@ -70,7 +70,7 @@ World::World()
     wall_hit_object_id(GEOMETRY_OBJECT_ID_INVALID)
 {
   config.partition_edge_length = FLT_INVALID;
-  config.subpartitions_per_partition_dimension = SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT;
+  config.num_subpartitions_per_partition = SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT;
 
   // although the same thing is called in init_simulation, not reseting it causes weird valdrind reports on
   // uninitialized variable
@@ -170,7 +170,7 @@ void World::init_simulation() {
   init_counted_volumes();
 
   cout <<
-      "Partition contains " <<  config.subpartitions_per_partition_dimension << "^3 subpartitions, " <<
+      "Partition contains " <<  config.num_subpartitions_per_partition << "^3 subpartitions, " <<
       "subpartition size is " << config.subpartition_edge_length * config.length_unit << " microns.\n";
   assert(partitions.size() == 1 && "Initial partition must have been created, only 1 is allowed for now");
 
@@ -559,7 +559,7 @@ void World::initialization_to_data_model(Json::Value& mcell_node) const {
   partitions[KEY_Z_START] = mhalf_str;
   partitions[KEY_Z_END] = phalf_str;
 
-  float_t step = config.subpartition_edge_length * config.length_unit;
+  float_t step = config.partition_edge_length / config.subpartition_edge_length;
   string step_str = DMUtil::f_to_string(step);
   partitions[KEY_X_STEP] = step;
   partitions[KEY_Y_STEP] = step;

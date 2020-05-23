@@ -125,7 +125,7 @@ void MCell4Converter::convert_simulation_setup() {
     // the number of subparts must be even
     num_subparts++;
   }
-  world->config.subpartitions_per_partition_dimension = num_subparts;
+  world->config.num_subpartitions_per_partition = num_subparts;
 
   // this option in MCell3 was removed in MCell4
   world->config.use_expanded_list = true;

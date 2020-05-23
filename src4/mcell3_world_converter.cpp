@@ -215,7 +215,7 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
 
     // number of subparts must be even so that the central subparts are aligned with the axes and not shifted
     assert(s->num_subparts > 0);
-    world->config.subpartitions_per_partition_dimension = get_even_higher_or_same_value(s->num_subparts);
+    world->config.num_subpartitions_per_partition = get_even_higher_or_same_value(s->num_subparts);
   }
   else {
     CHECK_PROPERTY(s->bb_urb.x >= s->bb_llf.x);
@@ -239,7 +239,7 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
 
     // nx_parts counts the number of boundaries, not subvolumes, also, there are always 2 extra subvolumes on the sides in mcell3
     int max_n_p_parts = max3_i(IVec3(s->nx_parts, s->ny_parts, s->nz_parts));
-    world->config.subpartitions_per_partition_dimension = get_even_higher_or_same_value(max_n_p_parts - 3);
+    world->config.num_subpartitions_per_partition = get_even_higher_or_same_value(max_n_p_parts - 3);
   }
 
   float_t l = world->config.partition_edge_length / 2 * s->length_unit;

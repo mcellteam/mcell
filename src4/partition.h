@@ -107,7 +107,7 @@ public:
     opposite_corner = origin_corner + config.partition_edge_length;
 
     // pre-allocate volume_molecules arrays and also volume_molecule_indices_per_time_step
-    uint32_t num_subparts = powu(config.subpartitions_per_partition_dimension, 3);
+    uint32_t num_subparts = powu(config.num_subpartitions_per_partition, 3);
     volume_molecule_reactants_per_subpart.resize(num_subparts);
     walls_per_subpart.resize(num_subparts);
   }
@@ -172,7 +172,7 @@ public:
 
 
   bool is_subpart_index_in_range(const int index) const {
-    return index >= 0 && index < (int)config.subpartitions_per_partition_dimension;
+    return index >= 0 && index < (int)config.num_subpartitions_per_partition;
   }
 
 
@@ -188,8 +188,8 @@ public:
     // example: dim: 5x5x5,  (1, 2, 3) -> 1 + 2*5 + 3*5*5 = 86
     return
         indices.x +
-        indices.y * config.subpartitions_per_partition_dimension +
-        indices.z * config.subpartitions_per_partition_dimension_squared;
+        indices.y * config.num_subpartitions_per_partition +
+        indices.z * config.num_subpartitions_per_partition_squared;
   }
 
   subpart_index_t get_subpart_index_from_3d_indices(const int x, const int y, const int z) const {
@@ -198,11 +198,11 @@ public:
 
 
   void get_subpart_3d_indices_from_index(const subpart_index_t index, IVec3& indices) const {
-    uint32_t dim = config.subpartitions_per_partition_dimension;
+    uint32_t dim = config.num_subpartitions_per_partition;
     // example: dim: 5x5x5,  86 -> (86%5, (86/5)%5, (86/(5*5))%5) = (1, 2, 3)
     indices.x = index % dim;
     indices.y = (index / dim) % dim;
-    indices.z = (index / config.subpartitions_per_partition_dimension_squared) % dim;
+    indices.z = (index / config.num_subpartitions_per_partition_squared) % dim;
   }
 
   subpart_index_t get_subpart_index(const Vec3& pos) const {

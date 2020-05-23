@@ -677,8 +677,8 @@ public:
   float_t vacancy_search_dist2;
 
   float_t partition_edge_length; // TODO: rename to side
-  uint subpartitions_per_partition_dimension;
-  uint subpartitions_per_partition_dimension_squared;
+  uint num_subpartitions_per_partition;
+  uint num_subpartitions_per_partition_squared;
   float_t subpartition_edge_length; // == partition_edge_length / subpartitions_per_partition_dimension
   float_t subpartition_edge_length_rcp; // == 1/subpartition_edge_length
 
@@ -694,13 +694,13 @@ public:
 
 private:
   void init_subpartition_edge_length() {
-    assert(subpartitions_per_partition_dimension % 2 == 0
+    assert(num_subpartitions_per_partition % 2 == 0
         && "Implementation of raycast_with_endpoints requires that central subparts are aligned with the axes and not shifted");
     if (partition_edge_length != 0) {
-      subpartition_edge_length = partition_edge_length / (float_t)subpartitions_per_partition_dimension;
+      subpartition_edge_length = partition_edge_length / (float_t)num_subpartitions_per_partition;
       subpartition_edge_length_rcp = 1.0/subpartition_edge_length;
     }
-    subpartitions_per_partition_dimension_squared = powu(subpartitions_per_partition_dimension, 2);
+    num_subpartitions_per_partition_squared = powu(num_subpartitions_per_partition, 2);
   }
 
 };

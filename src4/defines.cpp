@@ -72,8 +72,8 @@ void SimulationConfig::dump() {
   cout << "SimulationConfig:\n";
   cout << "  vacancy_search_dist2: \t\t" << vacancy_search_dist2 << " [float_t] \t\t\n";
   cout << "  partition_edge_length: \t\t" << partition_edge_length << " [float_t] \t\t\n";
-  cout << "  subpartitions_per_partition_dimension: \t\t" << subpartitions_per_partition_dimension << " [uint] \t\t\n";
-  cout << "  subpartitions_per_partition_dimension_squared: \t\t" << subpartitions_per_partition_dimension_squared << " [uint] \t\t\n";
+  cout << "  num_subpartitions_per_partition: \t\t" << num_subpartitions_per_partition << " [uint] \t\t\n";
+  cout << "  num_subpartitions_per_partition_squared: \t\t" << num_subpartitions_per_partition_squared << " [uint] \t\t\n";
   cout << "  subpartition_edge_length: \t\t" << subpartition_edge_length << " [float_t] \t\t\n";
   cout << "  subpartition_edge_length_rcp: \t\t" << subpartition_edge_length_rcp << " [float_t] \t\t\n";
   cout << "  use_expanded_list: \t\t" << use_expanded_list << " [bool] \t\t\n";
