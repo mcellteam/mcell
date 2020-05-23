@@ -243,6 +243,12 @@ void gen_assign(ofstream& out, string obj_name, string field_name1, string field
 static void gen_rxn_substance_inst(ofstream& out, Json::Value& substances_node) {
   string str = substances_node.asString();
 
+  // special case for
+  if (str == NULL_PRODUCTS) {
+    out << "[ ]";
+    return;
+  }
+
   vector<string> substances;
 
   // finite automata to parse the reaction side string, e.g. "a + b"

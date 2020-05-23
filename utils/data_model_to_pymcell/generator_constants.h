@@ -55,6 +55,7 @@ const char* const MCELL_DIR_SETUP =
 const char* const MCELL_IMPORT = "import mcell as m\n\n";
 
 const char* const REGION_ALL_SUFFIX = "[ALL]";
+const char* const NULL_PRODUCTS = "NULL";
 
 } // namespace MCell
 
