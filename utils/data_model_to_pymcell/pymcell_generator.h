@@ -35,7 +35,8 @@ class PymcellGenerator {
 public:
   bool generate(
       const std::string& input_file,
-      const std::string& output_file_prefix_
+      const std::string& output_file_prefix_,
+      const bool debug_mode_
   );
 
 private:
@@ -70,6 +71,7 @@ private:
 
 
   std::string output_files_prefix;
+  bool debug_mode;
 
   // parameters, subsystem, and instantiation are always generated
   bool geometry_generated;

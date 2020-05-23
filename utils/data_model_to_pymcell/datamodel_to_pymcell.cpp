@@ -38,6 +38,7 @@ using namespace std;
 static const option long_options[] = {
     { "help", 0, 0, 'h' },
     { "version", 0, 0, 'v' },
+    { "debug", 0, 0, 'g' },
     { "output_file_prefix", 1, 0, 'o'},
     { nullptr, 0, 0, 0 }
 };
@@ -62,10 +63,12 @@ const int ARG_PARSE_OK = -1;
 int process_args(
     const int argc, char* argv[],
     string& input_file,
-    string& output_files_prefix
+    string& output_files_prefix,
+    bool& debug_mode
 ) {
   input_file = "";
   output_files_prefix = "";
+  debug_mode = false;
 
   assert(argc > 0);
   while (1) {
@@ -82,6 +85,9 @@ int process_args(
       case 'v':
         print_version(argv[0]);
         return ARG_PARSE_QUIT;
+      case 'g':
+        debug_mode = true;
+        break;
       case 'o':
         output_files_prefix = optarg;
         break;
@@ -108,14 +114,15 @@ int main(const int argc, char* argv[]) {
 
   string input_file;
   string output_files_prefix;
+  bool debug_mode;
 
-  int arg_process_res = process_args(argc, argv, input_file, output_files_prefix);
+  int arg_process_res = process_args(argc, argv, input_file, output_files_prefix, debug_mode);
   if (arg_process_res != ARG_PARSE_OK) {
     return arg_process_res;
   }
 
   MCell::PymcellGenerator converter;
-  bool ok = converter.generate(input_file, output_files_prefix);
+  bool ok = converter.generate(input_file, output_files_prefix, debug_mode);
 
   if (!ok) {
     cerr << "There was an error while converting " << input_file << " to pymcell code.\n";

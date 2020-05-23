@@ -86,12 +86,14 @@ void PymcellGenerator::reset() {
 // therefore we are using exceptions
 bool PymcellGenerator::generate(
     const string& input_file,
-    const string& output_files_prefix_
+    const string& output_files_prefix_,
+    const bool debug_mode_
 ) {
   reset();
 
   bool failed = false;
   output_files_prefix = output_files_prefix_;
+  debug_mode = true;
 
   // load json file
   ifstream file;
@@ -127,7 +129,7 @@ void PymcellGenerator::generate_parameters() {
   out << PARAM_SEED << " = 1\n";
   out << PARAM_ITERATIONS << " = " << mcell[KEY_INITIALIZATION][KEY_ITERATIONS].asString() << "\n";
   out << PARAM_TIME_STEP << " = " << mcell[KEY_INITIALIZATION][KEY_TIME_STEP].asString() << "\n";
-  out << PARAM_DUMP << " = False\n";
+  out << PARAM_DUMP << " = " << (debug_mode ? "True" : "False") << "\n";
 
   out.close();
 }
