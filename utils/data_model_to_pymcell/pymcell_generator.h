@@ -62,6 +62,7 @@ private:
   std::vector<std::string> generate_release_sites(std::ofstream& out);
   void generate_instantiation(const std::vector<std::string>& geometry_objects);
 
+  std::vector<std::string> get_species_to_visualize();
   std::vector<std::string> generate_viz_outputs(std::ofstream& out);
   std::vector<std::string> generate_counts(std::ofstream& out);
   void generate_observables();

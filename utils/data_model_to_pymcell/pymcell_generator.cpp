@@ -463,6 +463,26 @@ void PymcellGenerator::generate_instantiation(const vector<string>& geometry_obj
 }
 
 
+vector<string> PymcellGenerator::get_species_to_visualize() {
+  vector<string> res;
+
+  Value& define_molecules = get_node(mcell, KEY_DEFINE_MOLECULES);
+  check_version(KEY_DEFINE_MOLECULES, define_molecules, JSON_DM_VERSION_1638);
+
+  Value& molecule_list = get_node(define_molecules, KEY_MOLECULE_LIST);
+  for (Value::ArrayIndex i = 0; i < molecule_list.size(); i++) {
+    Value& molecule_list_item = molecule_list[i];
+    check_version(KEY_MOLECULE_LIST, molecule_list_item, JSON_DM_VERSION_1632);
+
+    if (molecule_list_item[KEY_EXPORT_VIZ].asBool()) {
+      res.push_back(molecule_list_item[KEY_MOL_NAME].asString());
+    }
+  }
+
+  return res;
+}
+
+
 vector<string> PymcellGenerator::generate_viz_outputs(ofstream& out) {
   vector<string> viz_output_names;
 
@@ -476,7 +496,7 @@ vector<string> PymcellGenerator::generate_viz_outputs(ofstream& out) {
   string name = VIZ_OUTPUT_NAME; // there is only one in datamodel now
   viz_output_names.push_back(name);
 
-  CHECK_PROPERTY(viz_output[KEY_ALL_ITERATIONS].asBool());
+  // CHECK_PROPERTY(viz_output[KEY_ALL_ITERATIONS].asBool()); // don't care
   CHECK_PROPERTY(viz_output[KEY_START].asString() == "0");
 
   gen_ctor_call(out, name, NAME_CLASS_VIZ_OUTPUT);
@@ -486,9 +506,14 @@ vector<string> PymcellGenerator::generate_viz_outputs(ofstream& out) {
   gen_param(out, NAME_FILENAME_PREFIX, DEFAULT_VIZ_OUTPUT_FILENAME_PREFIX, true);
 
   // species_list
-  CHECK_PROPERTY(viz_output[KEY_EXPORT_ALL].asBool());
-
-  gen_param_list(out, NAME_SPECIES_LIST, all_species_names, true);
+  std::vector<std::string> viz_species;
+  if (viz_output[KEY_EXPORT_ALL].asBool()) {
+    viz_species = all_species_names;
+  }
+  else {
+    viz_species = get_species_to_visualize();
+  }
+  gen_param_list(out, NAME_SPECIES_LIST, viz_species, true);
 
   gen_param_int(out, NAME_EVERY_N_TIMESTEPS, viz_output[KEY_STEP], false);
 
@@ -615,4 +640,4 @@ void PymcellGenerator::generate_model() {
 }
 
 
-} /* namespace MCell */
+} // namespace MCell
