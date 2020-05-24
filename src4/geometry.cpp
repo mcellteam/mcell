@@ -874,8 +874,8 @@ static void get_region_bounding_box(
     const Wall& w = p.get_wall(it.first);
     const Vec3* verts[VERTICES_IN_TRIANGLE];
     verts[0] = &p.get_wall_vertex(w, 0);
-    verts[1] = &p.get_wall_vertex(w, 0);
-    verts[2] = &p.get_wall_vertex(w, 0);
+    verts[1] = &p.get_wall_vertex(w, 1);
+    verts[2] = &p.get_wall_vertex(w, 2);
 
     if (!found_first_wall) {
       llf = *verts[0];
