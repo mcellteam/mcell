@@ -50,16 +50,18 @@ SurfaceRegion:
   - name: name
     type: str
     
-  - name: element_connections
+  - name: wall_indices
     type: List[int]
     doc: |
       Surface region must be a part of a GeometryObject, items in this list are indices to 
       its element_connections array
-      
-  - name: parent
-    type: GeometryObject*
-    default: unset
-    doc: Do not set this directly, set when a GeometryObject is constructed 
+
+# TODO: due to issues with shared pointer casts, it was not possible to make a shared pointer out of this     
+# any cast resulted into bad_weak_ptr exception
+#  - name: parent
+#    type: GeometryObject*
+#    default: unset
+#    doc: Do not set this directly, set when a GeometryObject is constructed 
     
 
 GeometryObject:

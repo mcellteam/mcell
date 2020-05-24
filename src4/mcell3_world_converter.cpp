@@ -990,10 +990,10 @@ static RegionExprNode* create_release_region_terms_recursively(release_evaluator
       new_op = RegionExprOperator::Union;
       break;
     case REXP_INTERSECTION:
-      new_op = RegionExprOperator::Intersection;
+      new_op = RegionExprOperator::Intersect;
       break;
     case REXP_SUBTRACTION:
-      new_op = RegionExprOperator::Subtraction;
+      new_op = RegionExprOperator::Difference;
       break;
 
     case REXP_NO_OP:

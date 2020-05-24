@@ -29,18 +29,18 @@
 namespace MCell {
 namespace API {
 
-class Region: public GenRegion {
+class Region: public GenRegion, public std::enable_shared_from_this<Region> {
 public:
   REGION_CTOR()
 
   std::shared_ptr<Region> __add__(std::shared_ptr<Region> other) override {
-    assert("TODO" && false);
+    return std::make_shared<Region>(RegionNodeType::Union, shared_from_this(), other);
   }
   std::shared_ptr<Region> __sub__(std::shared_ptr<Region> other) override {
-    assert("TODO" && false);
+    return std::make_shared<Region>(RegionNodeType::Difference, shared_from_this(), other);
   }
   std::shared_ptr<Region> __mul__(std::shared_ptr<Region> other) override {
-    assert("TODO" && false);
+    return std::make_shared<Region>(RegionNodeType::Intersect, shared_from_this(), other);
   }
 };
 

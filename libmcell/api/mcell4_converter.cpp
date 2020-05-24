@@ -393,7 +393,7 @@ MCell::region_index_t MCell4Converter::convert_surface_region(
   reg.geometry_object_id = obj.id;
 
   // simply add all walls
-  for (const int wall_in_object: surface_region.element_connections) {
+  for (const int wall_in_object: surface_region.wall_indices) {
     wall_index_t wi = o.wall_indices[wall_in_object];
     reg.add_wall_to_walls_and_edges(wi, false);
   }
@@ -463,24 +463,65 @@ void MCell4Converter::convert_geometry_objects() {
 }
 
 
-void MCell4Converter::convert_region_expr(
-    MCell::ReleaseEvent* rel_event, API::ReleaseSite& r) {
+static MCell::RegionExprOperator convert_region_node_type(API::RegionNodeType t) {
+  switch (t) {
+    case API::RegionNodeType::LeafGeometryObject:
+    case API::RegionNodeType::LeafSurfaceRegion:
+      return MCell::RegionExprOperator::Leaf;
 
-  if (!is_set(r.region)) {
-    throw RuntimeError("Region for release site " + r.name + " was not set.");
+    case API::RegionNodeType::Union:
+      return MCell::RegionExprOperator::Union;
+
+    case API::RegionNodeType::Difference:
+      return MCell::RegionExprOperator::Difference;
+
+    case API::RegionNodeType::Intersect:
+      return MCell::RegionExprOperator::Intersect;
+
+    default:
+      assert(false);
+      return MCell::RegionExprOperator::Invalid;
   }
+}
 
-  if (r.region->node_type == RegionNodeType::LeafGeometryObject) {
-    API::GeometryObject* geometry_object = dynamic_cast<API::GeometryObject*>(&*r.region);
-    rel_event->region_expr_root = rel_event->create_new_region_expr_node_leaf(geometry_object->name + REGION_ALL_SUFFIX);
-    // also set llf and urb
-    bool ok = Geometry::get_region_expr_bounding_box(world, rel_event->region_expr_root, rel_event->region_llf, rel_event->region_urb);
-    if (!ok) {
-      throw RuntimeError("Region for releases specified by " + rel_event->region_expr_root->region_name + " is not closed.");
-    }
+
+RegionExprNode* convert_region_expr_recursively(
+    const shared_ptr<API::Region>& region,
+    MCell::ReleaseEvent* rel_event
+) {
+  assert(is_set(region));
+  if (region->node_type == RegionNodeType::LeafGeometryObject) {
+    shared_ptr<API::GeometryObject> geometry_object = dynamic_pointer_cast<API::GeometryObject>(region);
+    assert(is_set(geometry_object));
+    return rel_event->create_new_region_expr_node_leaf(geometry_object->name + MCell::REGION_ALL_SUFFIX_W_COMMA);
+  }
+  else if (region->node_type == RegionNodeType::LeafSurfaceRegion) {
+    shared_ptr<API::SurfaceRegion> surface_region = dynamic_pointer_cast<API::SurfaceRegion>(region);
+    assert(is_set(surface_region));
+    return rel_event->create_new_region_expr_node_leaf(surface_region->parent->name + "," + surface_region->name);
   }
   else {
-    assert(false && "Regions TODO");
+    return rel_event->create_new_region_expr_node_op(
+        convert_region_node_type(region->node_type),
+        convert_region_expr_recursively(region->left_node, rel_event),
+        convert_region_expr_recursively(region->right_node, rel_event)
+    );
+  }
+}
+
+
+void MCell4Converter::convert_region_expr(API::ReleaseSite& rel_site, MCell::ReleaseEvent* rel_event) {
+
+  if (!is_set(rel_site.region)) {
+    throw RuntimeError("Region for release site " + rel_site.name + " was not set.");
+  }
+
+  rel_event->region_expr_root = convert_region_expr_recursively(rel_site.region, rel_event);
+
+  // also set llf and urb
+  bool ok = Geometry::get_region_expr_bounding_box(world, rel_event->region_expr_root, rel_event->region_llf, rel_event->region_urb);
+  if (!ok) {
+    throw RuntimeError("Region for releases specified by " + rel_event->region_expr_root->region_name + " is not closed.");
   }
 }
 
@@ -506,7 +547,7 @@ void MCell4Converter::convert_release_events() {
         break;
       case Shape::RegionExpr:
         rel_event->release_shape = ReleaseShape::REGION;
-        convert_region_expr(rel_event, *r);
+        convert_region_expr(*r, rel_event);
         break;
       default:
         // should be caught earlier

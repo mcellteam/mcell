@@ -30,6 +30,8 @@
 namespace MCell {
 namespace API {
 
+class GeometryObject;
+
 class SurfaceRegion: public GenSurfaceRegion {
 public:
   SURFACE_REGION_CTOR()
@@ -37,7 +39,10 @@ public:
   void postprocess_in_ctor() {
     region_id = REGION_ID_INVALID;
     node_type = RegionNodeType::LeafSurfaceRegion;
+    parent = nullptr;
   }
+
+  GeometryObject* parent;
 
   // simulation engine mapping
   region_id_t region_id;

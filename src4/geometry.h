@@ -42,7 +42,7 @@ class Partition;
 class World;
 class RegionExprNode;
 
-const char* const REGION_ALL_SUFFIX = ",ALL";
+const char* const REGION_ALL_SUFFIX_W_COMMA = ",ALL";
 
 /**
  * A single geometrical object composed of multiple walls.
@@ -123,7 +123,7 @@ public:
   // covers whole region
   // TODO: better name?
   bool name_has_all_suffix() const {
-    std::string all(REGION_ALL_SUFFIX);
+    std::string all(REGION_ALL_SUFFIX_W_COMMA);
     if (name.size() > all.size()) {
       return name.substr(name.size() - all.size()) == all;
     }

@@ -64,10 +64,10 @@ string RegionExprNode::to_string(const bool for_datamodel) const {
     case RegionExprOperator::Union:
       out << " + ";
       break;
-    case RegionExprOperator::Intersection:
+    case RegionExprOperator::Intersect:
       out << " * ";
       break;
-    case RegionExprOperator::Subtraction:
+    case RegionExprOperator::Difference:
       out << " - ";
       break;
     default:
@@ -418,9 +418,9 @@ static bool is_point_inside_region_expr_recursively(const Partition& p, const Ve
   switch (region_expr_node->op) {
     case RegionExprOperator::Union:
       return satisfies_l || satisfies_r;
-    case RegionExprOperator::Intersection:
+    case RegionExprOperator::Intersect:
       return satisfies_l && satisfies_r;
-    case RegionExprOperator::Subtraction:
+    case RegionExprOperator::Difference:
       return satisfies_l && !satisfies_r;
     default:
       assert(false);

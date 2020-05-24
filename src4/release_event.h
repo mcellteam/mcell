@@ -59,11 +59,13 @@ enum class ReleaseNumberMethod {
   DensityNum
 };
 
+
+// TODO: unify with API::RegionNodeType?
 enum class RegionExprOperator {
   Invalid,
   Union,
-  Intersection,
-  Subtraction,
+  Intersect,
+  Difference,
   Leaf
 };
 

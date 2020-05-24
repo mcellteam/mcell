@@ -478,7 +478,7 @@ void GeometryObject::to_data_model(
 
 
 void Region::init_from_whole_geom_object(const GeometryObject& obj) {
-  name = obj.name + REGION_ALL_SUFFIX;
+  name = obj.name + REGION_ALL_SUFFIX_W_COMMA;
   geometry_object_id = obj.id;
 
   // simply add all walls
@@ -919,7 +919,7 @@ eval_rel_region_bbox:
        expression (based boolean intersection of bounding boxes for each
        region).  The function reports failure if any region is unclosed.
 ***************************************************************************/
-// TODO: not checking whether object is closed
+// TODO: not checking whether object is closed - use some library for that
 bool get_region_expr_bounding_box(
     const World* world, const RegionExprNode* expr,
     Vec3& llf, Vec3& urb
@@ -934,112 +934,66 @@ bool get_region_expr_bounding_box(
     return true;
   }
   else {
-    assert(false && "TODO");
-  }
-#if 0
-  if (expr->left != nullptr) {
-    if (expr->op & REXP_LEFT_REGION) {
-      r = (struct region *)(expr->left);
+    Vec3 llf_left, urb_left;
+    get_region_expr_bounding_box(world, expr->left, llf_left, urb_left);
 
-      if (r->bbox == NULL)
-        r->bbox = create_region_bbox(r);
+    Vec3 llf_right, urb_right;
+    get_region_expr_bounding_box(world, expr->right, llf_right, urb_right);
 
-      llf->x = r->bbox[0].x;
-      llf->y = r->bbox[0].y;
-      llf->z = r->bbox[0].z;
-      urb->x = r->bbox[1].x;
-      urb->y = r->bbox[1].y;
-      urb->z = r->bbox[1].z;
+    llf = llf_left;
+    urb = urb_left;
 
-      if (r->manifold_flag == MANIFOLD_UNCHECKED) {
-        if (is_manifold(r, count_regions_flag))
-          r->manifold_flag = IS_MANIFOLD;
-        else
-          mcell_error(
-              "Cannot release a 3D molecule inside the unclosed region '%s'.",
-              r->sym->name);
+    if (expr->op == RegionExprOperator::Union) {
+      // TODO: make some function for it
+      if (llf.x > llf_right.x) {
+        llf.x = llf_right.x;
       }
-
-    } else {
-      if (eval_rel_region_bbox((struct release_evaluator *)expr->left, llf, urb))
-        return 1;
+      if (llf.y > llf_right.y) {
+        llf.y = llf_right.y;
+      }
+      if (llf.z > llf_right.z) {
+        llf.z = llf_right.z;
+      }
+      if (urb.x < urb_right.x) {
+        urb.x = urb_right.x;
+      }
+      if (urb.y < urb_right.y) {
+        urb.y = urb_right.y;
+      }
+      if (urb.z < urb_right.z) {
+        urb.z = urb_right.z;
+      }
     }
-
-    if (expr->right == NULL) {
-      if (expr->op & REXP_NO_OP)
-        return 0;
-      else
-        mcell_internal_error(
-            "Right subtree of release expression is unexpectedly NULL.");
+    else if (expr->op == RegionExprOperator::Difference) {
+      // for difference/subtraction the MCell3 implementation returns
+      // the llf_left/urb_left
     }
-
-    if (expr->op & REXP_SUBTRACTION)
-      return 0;
+    else if (expr->op == RegionExprOperator::Intersect) {
+      if (llf.x < llf_right.x) {
+        llf.x = llf_right.x;
+      }
+      if (llf.y < llf_right.y) {
+        llf.y = llf_right.y;
+      }
+      if (llf.z < llf_right.z) {
+        llf.z = llf_right.z;
+      }
+      if (urb.x > urb_right.x) {
+        urb.x = urb_right.x;
+      }
+      if (urb.y > urb_right.y) {
+        urb.y = urb_right.y;
+      }
+      if (urb.z > urb_right.z) {
+        urb.z = urb_right.z;
+      }
+    }
     else {
-      struct vector3 llf2;
-      struct vector3 urb2;
-
-      if (expr->op & REXP_RIGHT_REGION) {
-        r = (struct region *)(expr->right);
-        if (r->manifold_flag == MANIFOLD_UNCHECKED) {
-          if (is_manifold(r, count_regions_flag))
-            r->manifold_flag = IS_MANIFOLD;
-          else
-            mcell_error(
-                "Cannot release a 3D molecule inside the unclosed region '%s'.",
-                r->sym->name);
-        }
-
-        if (r->bbox == NULL)
-          r->bbox = create_region_bbox(r);
-
-        llf2.x = r->bbox[0].x;
-        llf2.y = r->bbox[0].y;
-        llf2.z = r->bbox[0].z;
-        urb2.x = r->bbox[1].x;
-        urb2.y = r->bbox[1].y;
-        urb2.z = r->bbox[1].z;
-      } else {
-        if (eval_rel_region_bbox((struct release_evaluator *)expr->right, &llf2, &urb2))
-          return 1;
-      }
-
-      if (expr->op & REXP_UNION) {
-        if (llf->x > llf2.x)
-          llf->x = llf2.x;
-        if (llf->y > llf2.y)
-          llf->y = llf2.y;
-        if (llf->z > llf2.z)
-          llf->z = llf2.z;
-        if (urb->x < urb2.x)
-          urb->x = urb2.x;
-        if (urb->y < urb2.y)
-          urb->y = urb2.y;
-        if (urb->z < urb2.z)
-          urb->z = urb2.z;
-      } else if (expr->op & (REXP_INTERSECTION)) {
-        if (llf->x < llf2.x)
-          llf->x = llf2.x;
-        if (llf->y < llf2.y)
-          llf->y = llf2.y;
-        if (llf->z < llf2.z)
-          llf->z = llf2.z;
-        if (urb->x > urb2.x)
-          urb->x = urb2.x;
-        if (urb->y > urb2.y)
-          urb->y = urb2.y;
-        if (urb->z > urb2.z)
-          urb->z = urb2.z;
-      } else
-        mcell_internal_error("Release expression contains an unknown or "
-                             "unexpected operator: (%d).",
-                             expr->op);
+      assert(false);
+      return false;
     }
-  } else
-    mcell_internal_error(
-        "Left subtree of release expression is unexpectedly NULL.");
-#endif
-  return 0;
+    return true;
+  }
 }
 
 

@@ -20,6 +20,8 @@
  *
 ******************************************************************************/
 
+#include <regex>
+
 #include "pymcell_generator.h"
 
 #include "generator_utils.h"
@@ -298,7 +300,7 @@ string PymcellGenerator::generate_single_geometry_object(
           KEY_DEFINE_SURFACE_REGIONS, define_surface_regions[i], KEY_INCLUDE_ELEMENTS);
 
       string sr_global_name = name + "_" + sr_name;
-      string sr_element_connections_name = sr_global_name + "_" + NAME_ELEMENT_CONNECTIONS;
+      string sr_element_connections_name = sr_global_name + "_" + NAME_WALL_INDICES;
       out << sr_element_connections_name << " = [";
       for (Value::ArrayIndex k = 0; k < include_elements.size(); k++) {
 
@@ -312,7 +314,7 @@ string PymcellGenerator::generate_single_geometry_object(
 
       out << sr_global_name << " = " << MDOT << NAME_CLASS_SURFACE_REGION << "(\n";
       out << IND << NAME_NAME << " = '" << sr_name << "',\n";
-      out << IND << NAME_ELEMENT_CONNECTIONS << " = " << sr_element_connections_name << "\n";
+      out << IND << NAME_WALL_INDICES << " = " << sr_element_connections_name << "\n";
       out << ")\n\n";
 
       sr_global_names.push_back(sr_global_name);
@@ -371,16 +373,18 @@ vector<string> PymcellGenerator::generate_geometry() {
 
 
 void gen_region_expr_assignment_for_rel_site(ofstream& out, string region_expr) {
-  // only simple expressions for now
-  // TODO: add parser (there can be parentheses...)
-  if (ends_with(region_expr, REGION_ALL_SUFFIX) &&
-      region_expr.find_first_of("+-*") == string::npos) {
-    string geom_obj_id = region_expr.substr(0, region_expr.size() - strlen(REGION_ALL_SUFFIX));
-    gen_param_id(out, NAME_REGION, geom_obj_id, true);
-  }
-  else {
-    ERROR("Region expression " + region_expr + " is not supported yet.");
-  }
+  // we don't really need to parse the expression, just dump it in a right way
+  // example: Cell[ALL] - (Organelle_1[ALL] + Organelle_2[ALL])
+  // remove [ALL]
+  // replace [text] with _text
+
+  regex pattern_all("\\[ALL\\]");
+  region_expr = regex_replace(region_expr, pattern_all, "");
+
+  regex pattern_surf_region("\\[(^\\])\\]");
+  region_expr = regex_replace(region_expr, pattern_surf_region, "_$1");
+
+  gen_param_id(out, NAME_REGION, region_expr, true);
 }
 
 

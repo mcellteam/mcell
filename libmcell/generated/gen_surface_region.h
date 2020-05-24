@@ -31,22 +31,19 @@
 namespace MCell {
 namespace API {
 
-class GeometryObject;
 class Region;
 
 #define SURFACE_REGION_CTOR() \
     SurfaceRegion( \
         const std::string& name_, \
-        const std::vector<int> element_connections_, \
-        std::shared_ptr<GeometryObject> parent_ = nullptr, \
+        const std::vector<int> wall_indices_, \
         const RegionNodeType node_type_ = RegionNodeType::Unset, \
         std::shared_ptr<Region> left_node_ = nullptr, \
         std::shared_ptr<Region> right_node_ = nullptr \
     )  : GenSurfaceRegion(node_type_,left_node_,right_node_) { \
       class_name = "SurfaceRegion"; \
       name = name_; \
-      element_connections = element_connections_; \
-      parent = parent_; \
+      wall_indices = wall_indices_; \
       node_type = node_type_; \
       left_node = left_node_; \
       right_node = right_node_; \
@@ -70,28 +67,16 @@ public:
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---
-  std::vector<int> element_connections;
-  virtual void set_element_connections(const std::vector<int> new_element_connections_) {
+  std::vector<int> wall_indices;
+  virtual void set_wall_indices(const std::vector<int> new_wall_indices_) {
     if (initialized) {
-      throw RuntimeError("Value 'element_connections' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'wall_indices' of object with name " + name + " (class " + class_name + ")"
                          "cannot be set after model was initialized.");
     }
-    element_connections = new_element_connections_;
+    wall_indices = new_wall_indices_;
   }
-  virtual std::vector<int> get_element_connections() const {
-    return element_connections;
-  }
-
-  std::shared_ptr<GeometryObject> parent;
-  virtual void set_parent(std::shared_ptr<GeometryObject> new_parent_) {
-    if (initialized) {
-      throw RuntimeError("Value 'parent' of object with name " + name + " (class " + class_name + ")"
-                         "cannot be set after model was initialized.");
-    }
-    parent = new_parent_;
-  }
-  virtual std::shared_ptr<GeometryObject> get_parent() const {
-    return parent;
+  virtual std::vector<int> get_wall_indices() const {
+    return wall_indices;
   }
 
   // --- methods ---

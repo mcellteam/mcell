@@ -87,8 +87,7 @@ private:
   );
   void convert_geometry_objects();
 
-  void convert_region_expr(
-      MCell::ReleaseEvent* rel_event, API::ReleaseSite& r);
+  void convert_region_expr(API::ReleaseSite& rel_site, MCell::ReleaseEvent* rel_event);
   void convert_release_events();
 
   void convert_viz_output_events();

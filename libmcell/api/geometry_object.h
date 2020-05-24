@@ -25,6 +25,7 @@
 
 #include "generated/gen_geometry_object.h"
 #include "api/common.h"
+#include "api/surface_region.h"
 #include "defines.h"
 
 namespace MCell {
@@ -34,16 +35,24 @@ class GeometryObject: public GenGeometryObject {
 public:
   GEOMETRY_OBJECT_CTOR()
 
+public:
   void postprocess_in_ctor() {
     node_type = RegionNodeType::LeafGeometryObject;
     partition_id = PARTITION_ID_INVALID;
+
+    for (auto& sr: surface_regions) {
+      // not using shared pointers here, any attempt so far resulted in bad_weak_ptr exception
+      // this is safe because the geometry object (parent) has a reference to the surface region
+      sr->parent = this;
+    }
   }
 
+  // TODO: move to c++
   void check_semantics() const override {
     for (auto& v: vertex_list) {
       if (v.size() != 3) {
         throw ValueError(
-            "Each item in the 'vertex_list' argument must be a triplet of floats, error for " +
+            S("Each item in the '") + NAME_VERTEX_LIST + "' argument must be a triplet of floats, error for " +
             vec_nonptr_to_str(v) + ".");
       }
     }
@@ -51,14 +60,24 @@ public:
     for (auto& e: element_connections) {
       if (e.size() != 3) {
         throw ValueError(
-            "Each item in the 'element_connections' argument must be a triplet of integers, error for " +
+            S("Each item in the '") + NAME_ELEMENT_CONNECTIONS + "' argument must be a triplet of integers, error for " +
             vec_nonptr_to_str(e) + ".");
         for (int vertex_index: e) {
           if (vertex_index < 0 || vertex_index >= (int)vertex_list.size()) {
             throw ValueError(
-                "Vertex index the 'element_connections' is out of range, error for " +
+                S("Vertex index the '") + NAME_ELEMENT_CONNECTIONS + "' is out of range, error for " +
                 std::to_string(vertex_index));
           }
+        }
+      }
+    }
+
+    for (auto& sr: surface_regions) {
+      for (int wall_index: sr->wall_indices) {
+        if (wall_index >= (int)element_connections.size()) {
+          throw ValueError(
+              S("Wall index in the '") + NAME_WALL_INDICES + "' of '" + sr->name + "' is out of range, error for " +
+              std::to_string(wall_index));
         }
       }
     }
