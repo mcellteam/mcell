@@ -25,24 +25,43 @@
 
 #include "../api/common.h"
 #include "../api/base_data_class.h"
+#include "../api/region.h"
+
 
 namespace MCell {
 namespace API {
 
+class GeometryObject;
+class Region;
+
 #define SURFACE_REGION_CTOR() \
     SurfaceRegion( \
         const std::string& name_, \
-        const std::vector<int> element_connections_ \
-    ) { \
+        const std::vector<int> element_connections_, \
+        std::shared_ptr<GeometryObject> parent_ = nullptr, \
+        const RegionNodeType node_type_ = RegionNodeType::Unset, \
+        std::shared_ptr<Region> left_node_ = nullptr, \
+        std::shared_ptr<Region> right_node_ = nullptr \
+    )  : GenSurfaceRegion(node_type_,left_node_,right_node_) { \
       class_name = "SurfaceRegion"; \
       name = name_; \
       element_connections = element_connections_; \
+      parent = parent_; \
+      node_type = node_type_; \
+      left_node = left_node_; \
+      right_node = right_node_; \
       postprocess_in_ctor();\
       check_semantics();\
     }
 
-class GenSurfaceRegion: public BaseDataClass {
+class GenSurfaceRegion: public Region {
 public:
+  GenSurfaceRegion( 
+      const RegionNodeType node_type_ = RegionNodeType::Unset, 
+      std::shared_ptr<Region> left_node_ = nullptr, 
+      std::shared_ptr<Region> right_node_ = nullptr 
+  )  : Region(node_type_,left_node_,right_node_)  {
+  }
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
@@ -61,6 +80,18 @@ public:
   }
   virtual std::vector<int> get_element_connections() const {
     return element_connections;
+  }
+
+  std::shared_ptr<GeometryObject> parent;
+  virtual void set_parent(std::shared_ptr<GeometryObject> new_parent_) {
+    if (initialized) {
+      throw RuntimeError("Value 'parent' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
+    parent = new_parent_;
+  }
+  virtual std::shared_ptr<GeometryObject> get_parent() const {
+    return parent;
   }
 
   // --- methods ---

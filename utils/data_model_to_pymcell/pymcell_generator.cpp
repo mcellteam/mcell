@@ -310,7 +310,7 @@ string PymcellGenerator::generate_single_geometry_object(
       }
       out << "\n] #" << sr_element_connections_name << "\n\n";
 
-      out << sr_global_name << " = " << MDOT << NAME_CLASS_SURFACE_AREA << "(\n";
+      out << sr_global_name << " = " << MDOT << NAME_CLASS_SURFACE_REGION << "(\n";
       out << IND << NAME_NAME << " = '" << sr_name << "',\n";
       out << IND << NAME_ELEMENT_CONNECTIONS << " = " << sr_element_connections_name << "\n";
       out << ")\n\n";
@@ -324,7 +324,7 @@ string PymcellGenerator::generate_single_geometry_object(
   gen_param(out, NAME_NAME, name, true);
   gen_param_id(out, NAME_VERTEX_LIST, id_vertex_list, true);
   gen_param_id(out, NAME_ELEMENT_CONNECTIONS, id_element_connections, true);
-  out << IND << NAME_SURFACE_AREAS << " = [";
+  out << IND << NAME_SURFACE_REGIONS << " = [";
   for (size_t i = 0; i < sr_global_names.size(); i++) {
     out << sr_global_names[i];
     print_comma(out, i, sr_global_names);
@@ -376,7 +376,7 @@ void gen_region_expr_assignment_for_rel_site(ofstream& out, string region_expr) 
   if (ends_with(region_expr, REGION_ALL_SUFFIX) &&
       region_expr.find_first_of("+-*") == string::npos) {
     string geom_obj_id = region_expr.substr(0, region_expr.size() - strlen(REGION_ALL_SUFFIX));
-    gen_param_id(out, NAME_GEOMETRY_OBJECT, geom_obj_id, true);
+    gen_param_id(out, NAME_REGION, geom_obj_id, true);
   }
   else {
     ERROR("Region expression " + region_expr + " is not supported yet.");

@@ -899,7 +899,13 @@ def write_pybind11_bindings(f, class_name, class_def):
     
     write_define_binding_decl(f, class_name)
     f.write(' {\n')
-    f.write('  return py::class_<' + class_name + ', ' + SHARED_PTR + '<' + class_name + '>>(m, "' + class_name + '")\n')
+    
+    superclass = ''
+    if has_superclass_other_than_base(class_def):
+        superclass = class_def[KEY_SUPERCLASS] + ', '
+    
+    f.write('  return py::class_<' + class_name + ', ' + superclass + \
+            SHARED_PTR + '<' + class_name + '>>(m, "' + class_name + '")\n')
     f.write('      .def(\n')
     f.write('          py::init<\n')
 
@@ -942,15 +948,17 @@ def write_pybind11_bindings(f, class_name, class_def):
         
     # declared methods
     for m in class_def[KEY_METHODS]:
-        write_pybind11_method_bindings(f, class_name, m, class_def)
+        if not has_single_superclass(class_def) or not is_inherited(m):
+            write_pybind11_method_bindings(f, class_name, m, class_def)
 
     # dump needs to be always implemented
     f.write('      .def("dump", &' + class_name + '::dump)\n')
     
     # properties
     for i in range(num_items):
-        name = items[i][KEY_NAME]
-        f.write('      .def_property("' + name + '", &' + class_name + '::get_' + name + ', &' + class_name + '::set_' + name + ')\n')
+        if not has_single_superclass(class_def) or not is_inherited(items[i]):
+            name = items[i][KEY_NAME]
+            f.write('      .def_property("' + name + '", &' + class_name + '::get_' + name + ', &' + class_name + '::set_' + name + ')\n')
     f.write('    ;\n')
     f.write('}\n\n')
     

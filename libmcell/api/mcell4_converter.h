@@ -50,7 +50,7 @@ class ComponentInstance;
 class MoleculeType;
 class MoleculeInstance;
 class ComplexInstance;
-class SurfaceArea;
+class SurfaceRegion;
 class GeometryObject;
 class ReleaseSite;
 
@@ -80,9 +80,9 @@ private:
       const API::GeometryObject& src_obj, const uint side,
       MCell::Partition& p, MCell::GeometryObject& dst_obj);
 
-  MCell::region_index_t convert_surface_area(
+  MCell::region_index_t convert_surface_region(
       MCell::Partition& p,
-      API::SurfaceArea& surface_area, API::GeometryObject& o,
+      API::SurfaceRegion& surface_region, API::GeometryObject& o,
       MCell::GeometryObject& obj
   );
   void convert_geometry_objects();

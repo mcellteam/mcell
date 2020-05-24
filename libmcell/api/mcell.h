@@ -41,7 +41,7 @@
 
 #include "../api/release_site.h"
 #include "../api/region.h"
-#include "../api/surface_area.h"
+#include "../api/surface_region.h"
 #include "../api/geometry_object.h"
 #include "../api/instantiation_data.h"
 
@@ -57,6 +57,7 @@
 
 
 
-#include "surface_area.h"
+#include "surface_region.h"
+#include "surface_region.h"
 
 #endif // API_MCELL_H

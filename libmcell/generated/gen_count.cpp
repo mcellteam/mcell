@@ -90,7 +90,7 @@ std::string GenCount::to_str(const std::string ind) const {
 }
 
 py::class_<Count> define_pybinding_Count(py::module& m) {
-  return py::class_<Count, std::shared_ptr<Count>>(m, "Count")
+  return py::class_<Count, CountTerm, std::shared_ptr<Count>>(m, "Count")
       .def(
           py::init<
             const std::string&,
@@ -115,18 +115,10 @@ py::class_<Count> define_pybinding_Count(py::module& m) {
       )
       .def("check_semantics", &Count::check_semantics)
       .def("__str__", &Count::to_str, py::arg("ind") = std::string(""))
-      .def("__add__", &Count::__add__, py::arg("op2"))
-      .def("__sub__", &Count::__sub__, py::arg("op2"))
       .def("dump", &Count::dump)
       .def_property("filename", &Count::get_filename, &Count::set_filename)
       .def_property("count_expression", &Count::get_count_expression, &Count::set_count_expression)
       .def_property("every_n_timesteps", &Count::get_every_n_timesteps, &Count::set_every_n_timesteps)
-      .def_property("species", &Count::get_species, &Count::set_species)
-      .def_property("reaction_rule", &Count::get_reaction_rule, &Count::set_reaction_rule)
-      .def_property("region", &Count::get_region, &Count::set_region)
-      .def_property("node_type", &Count::get_node_type, &Count::set_node_type)
-      .def_property("left_node", &Count::get_left_node, &Count::set_left_node)
-      .def_property("right_node", &Count::get_right_node, &Count::set_right_node)
     ;
 }
 

@@ -383,23 +383,23 @@ MCell::wall_index_t MCell4Converter::convert_wall_and_add_to_geom_object(
 }
 
 
-MCell::region_index_t MCell4Converter::convert_surface_area(
+MCell::region_index_t MCell4Converter::convert_surface_region(
     MCell::Partition& p,
-    API::SurfaceArea& surface_area, API::GeometryObject& o,
+    API::SurfaceRegion& surface_region, API::GeometryObject& o,
     MCell::GeometryObject& obj) {
 
   MCell::Region reg;
-  reg.name = obj.name + "," + surface_area.name;
+  reg.name = obj.name + "," + surface_region.name;
   reg.geometry_object_id = obj.id;
 
   // simply add all walls
-  for (const int wall_in_object: surface_area.element_connections) {
+  for (const int wall_in_object: surface_region.element_connections) {
     wall_index_t wi = o.wall_indices[wall_in_object];
     reg.add_wall_to_walls_and_edges(wi, false);
   }
 
   reg.id = world->get_next_region_id();
-  surface_area.region_id = reg.id;
+  surface_region.region_id = reg.id;
   region_index_t ri = p.add_region_and_set_its_index(reg);
   return ri;
 }
@@ -442,9 +442,9 @@ void MCell4Converter::convert_geometry_objects() {
     // regions from surface areas
     // mcell3 stores the regions in reverse, so we can too...
     // (maybe change this in the mcell3 converter)
-    for (int k = (int)o->surface_areas.size() - 1; k >= 0; k--) {
-      std::shared_ptr<SurfaceArea> surface_area = o->surface_areas[k];
-      region_index_t ri = convert_surface_area(p, *surface_area, *o, obj);
+    for (int k = (int)o->surface_regions.size() - 1; k >= 0; k--) {
+      std::shared_ptr<SurfaceRegion> surface_region = o->surface_regions[k];
+      region_index_t ri = convert_surface_region(p, *surface_region, *o, obj);
       region_indices.push_back(ri);
     }
 
@@ -466,8 +466,13 @@ void MCell4Converter::convert_geometry_objects() {
 void MCell4Converter::convert_region_expr(
     MCell::ReleaseEvent* rel_event, API::ReleaseSite& r) {
 
-  if (is_set(r.geometry_object)) {
-    rel_event->region_expr_root = rel_event->create_new_region_expr_node_leaf(r.geometry_object->name + REGION_ALL_SUFFIX);
+  if (!is_set(r.region)) {
+    throw RuntimeError("Region for release site " + r.name + " was not set.");
+  }
+
+  if (r.region->node_type == RegionNodeType::LeafGeometryObject) {
+    API::GeometryObject* geometry_object = dynamic_cast<API::GeometryObject*>(&*r.region);
+    rel_event->region_expr_root = rel_event->create_new_region_expr_node_leaf(geometry_object->name + REGION_ALL_SUFFIX);
     // also set llf and urb
     bool ok = Geometry::get_region_expr_bounding_box(world, rel_event->region_expr_root, rel_event->region_llf, rel_event->region_urb);
     if (!ok) {

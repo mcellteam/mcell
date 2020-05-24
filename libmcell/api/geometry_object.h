@@ -35,6 +35,7 @@ public:
   GEOMETRY_OBJECT_CTOR()
 
   void postprocess_in_ctor() {
+    node_type = RegionNodeType::LeafGeometryObject;
     partition_id = PARTITION_ID_INVALID;
   }
 
@@ -61,10 +62,6 @@ public:
         }
       }
     }
-  }
-
-  std::shared_ptr<Region> as_region() override {
-    assert("TODO" && false);
   }
 
   // simulation engine mapping

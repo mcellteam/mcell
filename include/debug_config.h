@@ -27,6 +27,8 @@
 #ifndef DEBUG_CONFIG_H
 #define DEBUG_CONFIG_H
 
+// TODO: do not include in defines.h for faster compilation
+
 // TODO: make the dumping system integrated and build it all for debug builds,
 //       enabled by cmdline arguments
 
@@ -107,9 +109,9 @@
 
 //#define DEBUG_DEFRAGMENTATION
 
-//#define DEBUG_RELEASES // cannot be conditioned by iterations
+#define DEBUG_RELEASES // cannot be conditioned by iterations
 
-//#define DEBUG_RNG_CALLS // cannot be conditioned by iterations
+#define DEBUG_RNG_CALLS // cannot be conditioned by iterations
 
 // does not generate the same dump as mcell3
 //#define DEBUG_SUBPARTITIONS

@@ -119,7 +119,7 @@ PYBIND11_MODULE(mcell, m) {
 
   define_pybinding_ReleaseSite(m);
   define_pybinding_Region(m);
-  define_pybinding_SurfaceArea(m);
+  define_pybinding_SurfaceRegion(m);
   define_pybinding_GeometryObject(m);
   define_pybinding_InstantiationData(m);
 

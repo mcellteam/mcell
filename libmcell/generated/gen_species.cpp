@@ -63,7 +63,7 @@ std::string GenSpecies::to_str(const std::string ind) const {
 }
 
 py::class_<Species> define_pybinding_Species(py::module& m) {
-  return py::class_<Species, std::shared_ptr<Species>>(m, "Species")
+  return py::class_<Species, ComplexInstance, std::shared_ptr<Species>>(m, "Species")
       .def(
           py::init<
             const std::string&,
@@ -85,8 +85,6 @@ py::class_<Species> define_pybinding_Species(py::module& m) {
       .def_property("name", &Species::get_name, &Species::set_name)
       .def_property("diffusion_constant_2d", &Species::get_diffusion_constant_2d, &Species::set_diffusion_constant_2d)
       .def_property("diffusion_constant_3d", &Species::get_diffusion_constant_3d, &Species::set_diffusion_constant_3d)
-      .def_property("molecule_instances", &Species::get_molecule_instances, &Species::set_molecule_instances)
-      .def_property("orientation", &Species::get_orientation, &Species::set_orientation)
     ;
 }
 

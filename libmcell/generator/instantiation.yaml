@@ -5,17 +5,10 @@ Region:
   - name: node_type
     type: RegionNodeType
     default: RegionNodeType.Unset
+    doc: | 
+      When this values is LeafGeometryObject, then this object is of class GeometryObject,
+      when LeafSurfaceRegion, then it is of class SurfaceRegion.
 
-  - name: geometry_object
-    type: GeometryObject*
-    default: unset
-    doc: Set only if this is a LeafGeometryObject
-    
-  - name: surface_area
-    type: SurfaceArea*
-    default: unset
-    doc: Set only if this is a LeafSurfaceRegion
-      
   - name: left_node
     type: Region*
     default: unset
@@ -27,25 +20,74 @@ Region:
     doc: Internal, when node_type is not Leaf, this is the right operand 
     
   methods:
-  - name: union
+  - name: __add__
+    doc: Computes union of thwo regions 
+    internal: Maybe add these explicitly named  
     return_type: Region*
     params:
-    - name: second_region
+    - name: other
       type: Region* 
-    
-  - name: difference
+          
+  - name: __sub__
     return_type: Region*
     params:
-    - name: second_region
-      type: Region* 
-
-  - name: intersect
-    return_type: Region*
-    params:
-    - name: second_region
+    - name: other
       type: Region* 
 
+  - name: __mul__
+    return_type: Region*
+    params:
+    - name: other
+      type: Region* 
     
+    
+SurfaceRegion:
+  superclass: Region
+  doc: |
+    Surface region  in MDL, however a new class Region was instroduced in MCell4 so it was renamed 
+    to avoid confusion.
+  items:
+  - name: name
+    type: str
+    
+  - name: element_connections
+    type: List[int]
+    doc: |
+      Surface region must be a part of a GeometryObject, items in this list are indices to 
+      its element_connections array
+      
+  - name: parent
+    type: GeometryObject*
+    default: unset
+    doc: Do not set this directly, set when a GeometryObject is constructed 
+    
+
+GeometryObject:
+  superclass: Region
+  items:
+  - name: name
+    type: str
+    doc: Name of the object
+
+  - name: vertex_list
+    type: List[List[float]]
+    doc: | 
+      List of [x,y,z] triplets specifying positions of individual vertices.
+      Equivalent to List[Vec3] however, defining a constructor Vec3(List[float]) then 
+      tries to convert all lists of floats to Vec3 
+        
+  # what about name, use a different one?
+  - name: element_connections
+    type: List[List[int]]
+    doc: | 
+      List of [a,b,c] triplets specifying each wall, individual values are indices into the vertex list.
+      Equivalent to List[IVec3]. 
+        
+  - name: surface_regions
+    type: List[SurfaceRegion*]
+    default: empty
+    
+
 ReleaseSite:
   superclass: BaseDataClass
   items:
@@ -72,18 +114,8 @@ ReleaseSite:
   - name: region
     type: Region*
     default: unset
-    doc: Only one of region, geometry_object, surface_area can be set, sets shape to Shape.RegionExpr. 
+    doc: Sets shape to Shape.RegionExpr. 
 
-  - name: geometry_object
-    type: GeometryObject*
-    default: unset
-    doc: Only one of region, geometry_object, surface_area can be set, sets shape to Shape.RegionExpr. 
-
-  - name: surface_area
-    type: SurfaceArea*
-    default: unset
-    doc: Only one of region, geometry_object, surface_area can be set, sets shape to Shape.RegionExpr. 
-    
   - name: location
     type: Vec3 # Vec3 and Vec2 are built-in data types
     default: unset # null is equivalent to None in YAML
@@ -110,62 +142,7 @@ ReleaseSite:
   - name: release_probability
     type: float
     default: unset
-    
-    
-SurfaceArea:
-  doc: |
-    Surface region  in MDL, however a new class Region was instroduced in MCell4 so it was renamed 
-    to avoid confusion.
-  superclass: BaseDataClass
-  items:
-  - name: name
-    type: str
-    
-  - name: element_connections
-    type: List[int]
-    doc: |
-      Surface region must be a part of a GeometryObject, items in this list are indices to 
-      its element_connections array
-      
-  - name: parent
-    type: GeometryObject*
-    default: unset
-    doc: Do not set this directly, set when a GeometryObject is constructed 
-    
-  methods:
-  - name: as_region
-    return_type: Region*
-  
-    
-GeometryObject:
-  superclass: BaseDataClass
-  items:
-  - name: name
-    type: str
-    doc: Name of the object
 
-  - name: vertex_list
-    type: List[List[float]]
-    doc: | 
-      List of [x,y,z] triplets specifying positions of individual vertices.
-      Equivalent to List[Vec3] however, defining a constructor Vec3(List[float]) then 
-      tries to convert all lists of floats to Vec3 
-        
-  # what about name, use a different one?
-  - name: element_connections
-    type: List[List[int]]
-    doc: | 
-      List of [a,b,c] triplets specifying each wall, individual values are indices into the vertex list.
-      Equivalent to List[IVec3]. 
-        
-  - name: surface_areas
-    type: List[SurfaceArea*]
-    default: empty
-    
-  methods:
-  - name: as_region
-    return_type: Region*
-    
 
 InstantiationData:
   items:
@@ -205,5 +182,4 @@ InstantiationData:
     return_type: GeometryObject*
     params:
     - name: name
-      type: str
-      
+      type: str          

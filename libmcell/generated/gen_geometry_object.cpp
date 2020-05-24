@@ -25,7 +25,7 @@
 #include "gen_geometry_object.h"
 #include "../api/geometry_object.h"
 #include "../api/region.h"
-#include "../api/surface_area.h"
+#include "../api/surface_region.h"
 
 namespace MCell {
 namespace API {
@@ -48,11 +48,20 @@ bool GenGeometryObject::__eq__(const GenGeometryObject& other) const {
     name == other.name &&
     vertex_list == other.vertex_list &&
     element_connections == other.element_connections &&
-    vec_ptr_eq(surface_areas, other.surface_areas);
+    vec_ptr_eq(surface_regions, other.surface_regions) &&
+    node_type == other.node_type &&
+    left_node->__eq__(*other.left_node) &&
+    right_node->__eq__(*other.right_node);
 }
 
 void GenGeometryObject::set_initialized() {
-  vec_set_initialized(surface_areas);
+  vec_set_initialized(surface_regions);
+  if (is_set(left_node)) {
+    left_node->set_initialized();
+  }
+  if (is_set(right_node)) {
+    right_node->set_initialized();
+  }
   initialized = true;
 }
 
@@ -62,32 +71,40 @@ std::string GenGeometryObject::to_str(const std::string ind) const {
       "name=" << name << ", " <<
       "vertex_list=" << vec_nonptr_to_str(vertex_list, ind + "  ") << ", " <<
       "element_connections=" << vec_nonptr_to_str(element_connections, ind + "  ") << ", " <<
-      "\n" << ind + "  " << "surface_areas=" << vec_ptr_to_str(surface_areas, ind + "  ");
+      "\n" << ind + "  " << "surface_regions=" << vec_ptr_to_str(surface_regions, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "node_type=" << node_type << ", " <<
+      "\n" << ind + "  " << "left_node=" << "(" << ((left_node != nullptr) ? left_node->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "right_node=" << "(" << ((right_node != nullptr) ? right_node->to_str(ind + "  ") : "null" ) << ")";
   return ss.str();
 }
 
 py::class_<GeometryObject> define_pybinding_GeometryObject(py::module& m) {
-  return py::class_<GeometryObject, std::shared_ptr<GeometryObject>>(m, "GeometryObject")
+  return py::class_<GeometryObject, Region, std::shared_ptr<GeometryObject>>(m, "GeometryObject")
       .def(
           py::init<
             const std::string&,
             const std::vector<std::vector<float_t>>,
             const std::vector<std::vector<int>>,
-            const std::vector<std::shared_ptr<SurfaceArea>>
+            const std::vector<std::shared_ptr<SurfaceRegion>>,
+            const RegionNodeType,
+            std::shared_ptr<Region>,
+            std::shared_ptr<Region>
           >(),
           py::arg("name"),
           py::arg("vertex_list"),
           py::arg("element_connections"),
-          py::arg("surface_areas") = std::vector<std::shared_ptr<SurfaceArea>>()
+          py::arg("surface_regions") = std::vector<std::shared_ptr<SurfaceRegion>>(),
+          py::arg("node_type") = RegionNodeType::Unset,
+          py::arg("left_node") = nullptr,
+          py::arg("right_node") = nullptr
       )
       .def("check_semantics", &GeometryObject::check_semantics)
       .def("__str__", &GeometryObject::to_str, py::arg("ind") = std::string(""))
-      .def("as_region", &GeometryObject::as_region)
       .def("dump", &GeometryObject::dump)
       .def_property("name", &GeometryObject::get_name, &GeometryObject::set_name)
       .def_property("vertex_list", &GeometryObject::get_vertex_list, &GeometryObject::set_vertex_list)
       .def_property("element_connections", &GeometryObject::get_element_connections, &GeometryObject::set_element_connections)
-      .def_property("surface_areas", &GeometryObject::get_surface_areas, &GeometryObject::set_surface_areas)
+      .def_property("surface_regions", &GeometryObject::get_surface_regions, &GeometryObject::set_surface_regions)
     ;
 }
 

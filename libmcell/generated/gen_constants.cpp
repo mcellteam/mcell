@@ -65,7 +65,7 @@ void define_pybinding_constants(py::module& m) {
   py::enum_<RegionNodeType>(m, "RegionNodeType", py::arithmetic())
     .value("Unset", RegionNodeType::Unset)
     .value("LeafGeometryObject", RegionNodeType::LeafGeometryObject)
-    .value("LeafSurfaceArea", RegionNodeType::LeafSurfaceArea)
+    .value("LeafSurfaceRegion", RegionNodeType::LeafSurfaceRegion)
     .value("Union", RegionNodeType::Union)
     .value("Difference", RegionNodeType::Difference)
     .value("Intersect", RegionNodeType::Intersect)

@@ -25,31 +25,45 @@
 
 #include "../api/common.h"
 #include "../api/base_data_class.h"
+#include "../api/region.h"
+
 
 namespace MCell {
 namespace API {
 
 class Region;
-class SurfaceArea;
+class SurfaceRegion;
 
 #define GEOMETRY_OBJECT_CTOR() \
     GeometryObject( \
         const std::string& name_, \
         const std::vector<std::vector<float_t>> vertex_list_, \
         const std::vector<std::vector<int>> element_connections_, \
-        const std::vector<std::shared_ptr<SurfaceArea>> surface_areas_ = std::vector<std::shared_ptr<SurfaceArea>>() \
-    ) { \
+        const std::vector<std::shared_ptr<SurfaceRegion>> surface_regions_ = std::vector<std::shared_ptr<SurfaceRegion>>(), \
+        const RegionNodeType node_type_ = RegionNodeType::Unset, \
+        std::shared_ptr<Region> left_node_ = nullptr, \
+        std::shared_ptr<Region> right_node_ = nullptr \
+    )  : GenGeometryObject(node_type_,left_node_,right_node_) { \
       class_name = "GeometryObject"; \
       name = name_; \
       vertex_list = vertex_list_; \
       element_connections = element_connections_; \
-      surface_areas = surface_areas_; \
+      surface_regions = surface_regions_; \
+      node_type = node_type_; \
+      left_node = left_node_; \
+      right_node = right_node_; \
       postprocess_in_ctor();\
       check_semantics();\
     }
 
-class GenGeometryObject: public BaseDataClass {
+class GenGeometryObject: public Region {
 public:
+  GenGeometryObject( 
+      const RegionNodeType node_type_ = RegionNodeType::Unset, 
+      std::shared_ptr<Region> left_node_ = nullptr, 
+      std::shared_ptr<Region> right_node_ = nullptr 
+  )  : Region(node_type_,left_node_,right_node_)  {
+  }
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
@@ -82,20 +96,19 @@ public:
     return element_connections;
   }
 
-  std::vector<std::shared_ptr<SurfaceArea>> surface_areas;
-  virtual void set_surface_areas(const std::vector<std::shared_ptr<SurfaceArea>> new_surface_areas_) {
+  std::vector<std::shared_ptr<SurfaceRegion>> surface_regions;
+  virtual void set_surface_regions(const std::vector<std::shared_ptr<SurfaceRegion>> new_surface_regions_) {
     if (initialized) {
-      throw RuntimeError("Value 'surface_areas' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'surface_regions' of object with name " + name + " (class " + class_name + ")"
                          "cannot be set after model was initialized.");
     }
-    surface_areas = new_surface_areas_;
+    surface_regions = new_surface_regions_;
   }
-  virtual std::vector<std::shared_ptr<SurfaceArea>> get_surface_areas() const {
-    return surface_areas;
+  virtual std::vector<std::shared_ptr<SurfaceRegion>> get_surface_regions() const {
+    return surface_regions;
   }
 
   // --- methods ---
-  virtual std::shared_ptr<Region> as_region() = 0;
 }; // GenGeometryObject
 
 class GeometryObject;

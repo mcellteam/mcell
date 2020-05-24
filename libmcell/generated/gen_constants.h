@@ -141,7 +141,7 @@ static inline  std::ostream& operator << (std::ostream& out, const ExprNodeType 
 enum class RegionNodeType {
   Unset = 0,
   LeafGeometryObject = 1,
-  LeafSurfaceArea = 2,
+  LeafSurfaceRegion = 2,
   Union = 3,
   Difference = 4,
   Intersect = 5
@@ -152,7 +152,7 @@ static inline  std::ostream& operator << (std::ostream& out, const RegionNodeTyp
   switch (v) {
     case RegionNodeType::Unset: out << "RegionNodeType.Unset (0)"; break;
     case RegionNodeType::LeafGeometryObject: out << "RegionNodeType.LeafGeometryObject (1)"; break;
-    case RegionNodeType::LeafSurfaceArea: out << "RegionNodeType.LeafSurfaceArea (2)"; break;
+    case RegionNodeType::LeafSurfaceRegion: out << "RegionNodeType.LeafSurfaceRegion (2)"; break;
     case RegionNodeType::Union: out << "RegionNodeType.Union (3)"; break;
     case RegionNodeType::Difference: out << "RegionNodeType.Difference (4)"; break;
     case RegionNodeType::Intersect: out << "RegionNodeType.Intersect (5)"; break;

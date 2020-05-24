@@ -33,13 +33,13 @@ class Region: public GenRegion {
 public:
   REGION_CTOR()
 
-  std::shared_ptr<Region> union_(std::shared_ptr<Region> second_region) override {
+  std::shared_ptr<Region> __add__(std::shared_ptr<Region> other) override {
     assert("TODO" && false);
   }
-  std::shared_ptr<Region> difference(std::shared_ptr<Region> second_region) override {
+  std::shared_ptr<Region> __sub__(std::shared_ptr<Region> other) override {
     assert("TODO" && false);
   }
-  std::shared_ptr<Region> intersect(std::shared_ptr<Region> second_region) override {
+  std::shared_ptr<Region> __mul__(std::shared_ptr<Region> other) override {
     assert("TODO" && false);
   }
 };

@@ -24,10 +24,8 @@
 #include <pybind11/stl.h>
 #include "gen_release_site.h"
 #include "../api/release_site.h"
-#include "../api/geometry_object.h"
 #include "../api/region.h"
 #include "../api/species.h"
-#include "../api/surface_area.h"
 
 namespace MCell {
 namespace API {
@@ -49,8 +47,6 @@ bool GenReleaseSite::__eq__(const GenReleaseSite& other) const {
     initial_orientation == other.initial_orientation &&
     shape == other.shape &&
     region->__eq__(*other.region) &&
-    geometry_object->__eq__(*other.geometry_object) &&
-    surface_area->__eq__(*other.surface_area) &&
     location == other.location &&
     site_diameter == other.site_diameter &&
     site_radius == other.site_radius &&
@@ -65,12 +61,6 @@ void GenReleaseSite::set_initialized() {
   if (is_set(region)) {
     region->set_initialized();
   }
-  if (is_set(geometry_object)) {
-    geometry_object->set_initialized();
-  }
-  if (is_set(surface_area)) {
-    surface_area->set_initialized();
-  }
   initialized = true;
 }
 
@@ -82,8 +72,6 @@ std::string GenReleaseSite::to_str(const std::string ind) const {
       "initial_orientation=" << initial_orientation << ", " <<
       "shape=" << shape << ", " <<
       "\n" << ind + "  " << "region=" << "(" << ((region != nullptr) ? region->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      "geometry_object=" << "(" << ((geometry_object != nullptr) ? geometry_object->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      "surface_area=" << "(" << ((surface_area != nullptr) ? surface_area->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "location=" << location << ", " <<
       "site_diameter=" << site_diameter << ", " <<
       "site_radius=" << site_radius << ", " <<
@@ -101,8 +89,6 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
             const Orientation,
             const Shape,
             std::shared_ptr<Region>,
-            std::shared_ptr<GeometryObject>,
-            std::shared_ptr<SurfaceArea>,
             const Vec3&,
             const float_t,
             const float_t,
@@ -114,8 +100,6 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
           py::arg("initial_orientation") = Orientation::None,
           py::arg("shape") = Shape::Unset,
           py::arg("region") = nullptr,
-          py::arg("geometry_object") = nullptr,
-          py::arg("surface_area") = nullptr,
           py::arg("location") = VEC3_UNSET,
           py::arg("site_diameter") = 0,
           py::arg("site_radius") = FLT_UNSET,
@@ -130,8 +114,6 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
       .def_property("initial_orientation", &ReleaseSite::get_initial_orientation, &ReleaseSite::set_initial_orientation)
       .def_property("shape", &ReleaseSite::get_shape, &ReleaseSite::set_shape)
       .def_property("region", &ReleaseSite::get_region, &ReleaseSite::set_region)
-      .def_property("geometry_object", &ReleaseSite::get_geometry_object, &ReleaseSite::set_geometry_object)
-      .def_property("surface_area", &ReleaseSite::get_surface_area, &ReleaseSite::set_surface_area)
       .def_property("location", &ReleaseSite::get_location, &ReleaseSite::set_location)
       .def_property("site_diameter", &ReleaseSite::get_site_diameter, &ReleaseSite::set_site_diameter)
       .def_property("site_radius", &ReleaseSite::get_site_radius, &ReleaseSite::set_site_radius)

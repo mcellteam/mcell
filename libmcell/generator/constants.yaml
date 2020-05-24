@@ -89,7 +89,7 @@ enums:
       value: 0    
     - name: LeafGeometryObject
       value: 1
-    - name: LeafSurfaceArea
+    - name: LeafSurfaceRegion
       value: 2
     - name: Union
       value: 3
