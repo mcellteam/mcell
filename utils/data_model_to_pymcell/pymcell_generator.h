@@ -64,7 +64,14 @@ private:
 
   std::vector<std::string> get_species_to_visualize();
   std::vector<std::string> generate_viz_outputs(std::ofstream& out);
+
+  void process_single_count_term(
+      const std::string& mdl_string,
+      bool& rxn_not_mol, std::string& what_to_count, std::string& where_to_count);
+  std::string generate_count_terms_for_expression(
+      std::ofstream& out, const std::string& mdl_string);
   std::vector<std::string> generate_counts(std::ofstream& out);
+
   void generate_observables();
 
   void generate_config(std::ofstream& out);
@@ -81,6 +88,8 @@ private:
   uint unnamed_rxn_counter;
 
   std::vector<std::string> all_species_names;
+  std::vector<std::string> all_reaction_rules_names;
+  std::vector<std::string> all_count_term_names;
 
   // mcell node of the loaded JSON file
   Json::Value mcell;

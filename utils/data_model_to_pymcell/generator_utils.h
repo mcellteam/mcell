@@ -199,9 +199,16 @@ void gen_param_id(ofstream& out, string name, Json::Value& id, bool comma) {
   out << IND << name << " = " << id.asString() << (comma?",":"") << "\n";
 }
 
+
 void gen_param_int(ofstream& out, string name, Json::Value& value, bool comma) {
   string s = value.asString();
   int v = stoi(s);
+  gen_param(out, name, v, comma);
+}
+
+
+void gen_param_int(ofstream& out, string name, const string& value, bool comma) {
+  int v = stoi(value);
   gen_param(out, name, v, comma);
 }
 
@@ -345,6 +352,19 @@ static bool ends_with(std::string const & value, std::string const & ending)
     }
     return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
 }
+
+
+string trim(const string& str)
+{
+    size_t first = str.find_first_not_of(' ');
+    if (string::npos == first)
+    {
+        return str;
+    }
+    size_t last = str.find_last_not_of(' ');
+    return str.substr(first, (last - first + 1));
+}
+
 } // namespace MCell
 
 #endif // SRC4_PYMCELLCONVERTER_GENERATOR_UTILS_H_

@@ -31,10 +31,13 @@ const char* const PARAM_DUMP = "DUMP";
 
 const char* const VEC3 = "Vec3";
 
+const char* const COUNT_PREFIX = "count_";
+const char* const COUNT_TERM_PREFIX = "cterm_";
 const char* const UNNAMED_REACTION_RULE_PREFIX = "unnamed_reaction_rule_";
 
 const char* const VIZ_OUTPUT_NAME = "viz_output";
 const char* const DEFAULT_VIZ_OUTPUT_FILENAME_PREFIX = "'./viz_data/seed_' + str(SEED).zfill(5) + '/Scene'";
+const char* const DEFAULT_RXN_OUTPUT_FILENAME_PREFIX = "'./react_data/seed_' + str(SEED) + '/";
 
 const char* const INTERPRETER = "#!/usr/bin/env python3\n\n";
 
@@ -56,6 +59,9 @@ const char* const MCELL_IMPORT = "import mcell as m\n\n";
 
 const char* const REGION_ALL_SUFFIX = "[ALL]";
 const char* const NULL_PRODUCTS = "NULL";
+
+const char* const COUNT = "COUNT";
+const char* const WORLD = "WORLD";
 
 } // namespace MCell
 

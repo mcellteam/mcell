@@ -21,6 +21,7 @@
 ******************************************************************************/
 
 #include <regex>
+#include <algorithm>
 
 #include "pymcell_generator.h"
 
@@ -81,6 +82,8 @@ void PymcellGenerator::reset() {
   observables_generated = false;
   unnamed_rxn_counter = 0;
   all_species_names.clear();
+  all_reaction_rules_names.clear();
+  all_count_term_names.clear();
 }
 
 
@@ -230,13 +233,13 @@ void PymcellGenerator::generate_subsystem() {
   out << make_section_comment(SUBSYSTEM);
 
   all_species_names = generate_species(out);
-  vector<string> rxn_names = generate_reaction_rules(out);
+  all_reaction_rules_names = generate_reaction_rules(out);
 
   gen_ctor_call(out, SUBSYSTEM, NAME_CLASS_SUBSYSTEM, false);
   for (string& s: all_species_names) {
     gen_method_call(out, SUBSYSTEM, NAME_ADD_SPECIES, s);
   }
-  for (string& r: rxn_names) {
+  for (string& r: all_reaction_rules_names) {
     gen_method_call(out, SUBSYSTEM, NAME_ADD_REACTION_RULE, r);
   }
 
@@ -528,9 +531,245 @@ vector<string> PymcellGenerator::generate_viz_outputs(ofstream& out) {
 }
 
 
+static uint get_num_counts_in_mdl_string(const string& mdl_string) {
+  uint res = 0;
+  size_t pos = 0;
+  while ((pos = mdl_string.find(COUNT, pos)) != string::npos) {
+    res++;
+    pos += strlen(COUNT);
+  }
+  return res;
+}
+
+
+static string create_count_name(string what_to_count, string where_to_count) {
+
+  // first remove all cterm_refixes
+  regex pattern_cterm(COUNT_TERM_PREFIX);
+  what_to_count = regex_replace(what_to_count, pattern_cterm, "");
+
+
+  string res = COUNT_PREFIX;
+  for (char c: what_to_count) {
+    if (c == '+') {
+      res += "_plus_";
+    }
+    else if (c == '-') {
+      res += "_minus_";
+    }
+    else if (c == '(') {
+      res += "_pstart_";
+    }
+    else if (c == ')') {
+      res += "_pend_";
+    }
+    else if (c == '.') {
+      res += "_";
+    }
+    else if (c == '_') {
+      res += "_";
+    }
+    else if (isalnum(c)) {
+      res += c;
+    }
+    // ignoring the rest of the characters
+  }
+
+  if (where_to_count != WORLD && where_to_count != "") {
+    res += "_" + where_to_count;
+  }
+
+  return res;
+}
+
+
+void PymcellGenerator::process_single_count_term(
+    const string& mdl_string,
+    bool& rxn_not_mol, string& what_to_count, string& where_to_count) {
+
+  // mdl_string is always in the form COUNT[what,where]
+  size_t start_brace = mdl_string.find('[');
+  size_t comma = mdl_string.find(',');
+  size_t end_brace = mdl_string.find(']');
+
+  if (mdl_string.find(COUNT) == string::npos) {
+    ERROR("String 'COUNT' was not found in mdl_string '" + mdl_string + "'.");
+  }
+  if (start_brace == string::npos || comma == string::npos || end_brace == string::npos ||
+      start_brace > comma || start_brace > end_brace || comma > end_brace
+  ) {
+    ERROR("Malformed mdl_string '" + mdl_string + "'.");
+  }
+
+  what_to_count = mdl_string.substr(start_brace + 1, comma - start_brace - 1);
+  what_to_count = trim(what_to_count);
+
+  if (find(all_species_names.begin(), all_species_names.end(), what_to_count) != all_species_names.end()) {
+    rxn_not_mol = false;
+  }
+  else if (find(all_reaction_rules_names.begin(), all_reaction_rules_names.end(), what_to_count) != all_reaction_rules_names.end()) {
+    rxn_not_mol = true;
+  }
+  else {
+    ERROR("Identifier '" + what_to_count + "' is neither species nor reaction, from mdl_string '" + mdl_string + "'.");
+  }
+
+  where_to_count = mdl_string.substr(comma + 1, end_brace - comma - 1);
+  size_t dot_pos = where_to_count.find('.');
+  if (dot_pos !=- string::npos) {
+    where_to_count = where_to_count.substr(dot_pos + 1);
+  }
+  where_to_count = trim(where_to_count);
+  if (where_to_count == WORLD) {
+    where_to_count = "";
+  }
+}
+
+
+string PymcellGenerator::generate_count_terms_for_expression(ofstream& out, const string& mdl_string) {
+  string res_expr;
+
+  size_t last_end = 0;
+  uint num_counts = get_num_counts_in_mdl_string(mdl_string);
+  // the first count term item must be positive
+  for (uint i = 0; i < num_counts; i++) {
+    size_t start = mdl_string.find(COUNT, last_end);
+
+    size_t end = mdl_string.find(']', start);
+    if (end == string::npos) {
+      end = mdl_string.size();
+    }
+
+    bool rxn_not_mol;
+    string what_to_count;
+    string where_to_count;
+
+    process_single_count_term(
+        mdl_string.substr(start, end - start + 1),
+        rxn_not_mol, what_to_count, where_to_count
+    );
+
+    string name = COUNT_TERM_PREFIX + what_to_count + ((where_to_count != "") ? ("_" + where_to_count) : "");
+
+    // generate the count term object definition if we don't already have it
+    if (find(all_count_term_names.begin(), all_count_term_names.end(), name) != all_count_term_names.end()) {
+      all_count_term_names.push_back(name);
+      gen_ctor_call(out, name, NAME_CLASS_COUNT_TERM);
+
+      if (rxn_not_mol) {
+        gen_param_id(out, NAME_REACTION_RULE, what_to_count, where_to_count != "");
+      }
+      else {
+        gen_param_id(out, NAME_SPECIES, what_to_count, where_to_count != "");
+      }
+
+      if (where_to_count != "") {
+        gen_param_id(out, NAME_REGION, where_to_count, false);
+      }
+
+      out << ")\n\n";
+    }
+
+    // for the res_expr, we cut all the COUNT[..] and replace them with
+    // the ids of the CountTerm objects
+    if (last_end != 0)
+      res_expr += " " + mdl_string.substr(last_end + 1, start - (last_end + 1)) + " " + name;
+    else {
+      res_expr += name;
+    }
+
+    last_end = end;
+  }
+
+  return res_expr;
+}
+
+
 vector<string> PymcellGenerator::generate_counts(ofstream& out) {
   vector<string> counts;
-  // TODO
+
+  if (!mcell.isMember(KEY_REACTION_DATA_OUTPUT)) {
+    return counts;
+  }
+
+  Value& reaction_data_output = get_node(mcell, KEY_REACTION_DATA_OUTPUT);
+  check_version(KEY_DEFINE_MOLECULES, reaction_data_output, JSON_DM_VERSION_1800);
+
+  string rxn_step = reaction_data_output[KEY_RXN_STEP].asString();
+
+  Value& reaction_output_list = get_node(reaction_data_output, KEY_REACTION_OUTPUT_LIST);
+  for (Value::ArrayIndex i = 0; i < reaction_output_list.size(); i++) {
+    Value& reaction_output_item = reaction_output_list[i];
+
+    string mdl_file_prefix = reaction_output_item[KEY_MDL_FILE_PREFIX].asString();
+
+    bool rxn_not_mol;
+    bool single_term;
+    string what_to_count;
+    string where_to_count; // empty for WORLD
+
+    string rxn_or_mol = reaction_output_item[KEY_RXN_OR_MOL].asString();
+    if (rxn_or_mol == VALUE_MDLSTRING) {
+      // first check whether we need to generate count_terms
+      string mdl_string = reaction_output_item[KEY_MDL_STRING].asString();
+      uint num_counts = get_num_counts_in_mdl_string(mdl_string);
+      if (num_counts == 0) {
+        ERROR("There is no 'COUNT' in mdl_string for output with filename " +  mdl_file_prefix + ".");
+      }
+      else if (num_counts == 1) {
+        single_term = true;
+        process_single_count_term(mdl_string, rxn_not_mol, what_to_count, where_to_count);
+      }
+      else {
+        single_term = false;
+        what_to_count = generate_count_terms_for_expression(out, mdl_string);
+        where_to_count = "";
+      }
+    }
+    else if (rxn_or_mol == VALUE_REACTION) {
+      rxn_not_mol = true;
+      what_to_count = reaction_output_item[KEY_REACTION_NAME].asString();
+      where_to_count = reaction_output_item[KEY_REGION_NAME].asString();
+    }
+    else if (rxn_or_mol == VALUE_MOLECULE) {
+      rxn_not_mol = false;
+      what_to_count = reaction_output_item[KEY_MOLECULE_NAME].asString();
+      where_to_count = reaction_output_item[KEY_REGION_NAME].asString();
+    }
+    else {
+      ERROR("Invalid rxn_or_mol '" + rxn_or_mol + "' in reaction_output_list for output with filename " +
+          mdl_file_prefix + ".");
+    }
+
+    string name = create_count_name(what_to_count, where_to_count);
+    counts.push_back(name);
+    gen_ctor_call(out, name, NAME_CLASS_COUNT);
+
+    if (single_term) {
+      if (rxn_not_mol) {
+        gen_param_id(out, NAME_REACTION_RULE, what_to_count, true);
+      }
+      else {
+        gen_param_id(out, NAME_SPECIES, what_to_count, true);
+      }
+    }
+    else {
+      gen_param_id(out, NAME_COUNT_EXPRESSION, what_to_count, true);
+    }
+
+    if (where_to_count != "") {
+      gen_param_id(out, NAME_REGION, where_to_count, true);
+    }
+
+    gen_param_id(out, NAME_FILENAME,
+        DEFAULT_RXN_OUTPUT_FILENAME_PREFIX + mdl_file_prefix + ".dat'", rxn_step != "");
+
+    if (rxn_step != "") {
+      gen_param_int(out, NAME_EVERY_N_TIMESTEPS, rxn_step, false);
+    }
+
+    out << ")\n\n";
+  }
 
   return counts;
 }
