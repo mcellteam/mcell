@@ -31,6 +31,7 @@ namespace API {
 
 class ReactionRule;
 class Species;
+class SurfaceClass;
 
 class GenSubsystem {
 public:
@@ -38,14 +39,6 @@ public:
   std::string to_str(const std::string ind="") const ;
 
   // --- attributes ---
-  std::vector<std::shared_ptr<ReactionRule>> reaction_rules;
-  virtual void set_reaction_rules(const std::vector<std::shared_ptr<ReactionRule>> new_reaction_rules_) {
-    reaction_rules = new_reaction_rules_;
-  }
-  virtual std::vector<std::shared_ptr<ReactionRule>> get_reaction_rules() const {
-    return reaction_rules;
-  }
-
   std::vector<std::shared_ptr<Species>> species;
   virtual void set_species(const std::vector<std::shared_ptr<Species>> new_species_) {
     species = new_species_;
@@ -54,11 +47,28 @@ public:
     return species;
   }
 
+  std::vector<std::shared_ptr<ReactionRule>> reaction_rules;
+  virtual void set_reaction_rules(const std::vector<std::shared_ptr<ReactionRule>> new_reaction_rules_) {
+    reaction_rules = new_reaction_rules_;
+  }
+  virtual std::vector<std::shared_ptr<ReactionRule>> get_reaction_rules() const {
+    return reaction_rules;
+  }
+
+  std::vector<std::shared_ptr<SurfaceClass>> surface_classes;
+  virtual void set_surface_classes(const std::vector<std::shared_ptr<SurfaceClass>> new_surface_classes_) {
+    surface_classes = new_surface_classes_;
+  }
+  virtual std::vector<std::shared_ptr<SurfaceClass>> get_surface_classes() const {
+    return surface_classes;
+  }
+
   // --- methods ---
   virtual void add_species(std::shared_ptr<Species> s) = 0;
   virtual std::shared_ptr<Species> find_species(const std::string& name) = 0;
   virtual void add_reaction_rule(std::shared_ptr<ReactionRule> r) = 0;
   virtual std::shared_ptr<ReactionRule> find_reaction_rule(const std::string& name) = 0;
+  virtual void add_surface_class(std::shared_ptr<SurfaceClass> sc) = 0;
 }; // GenSubsystem
 
 class Subsystem;

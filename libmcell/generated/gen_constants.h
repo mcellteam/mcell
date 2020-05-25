@@ -167,8 +167,6 @@ static inline  std::ostream& operator << (std::ostream& out, const RegionNodeTyp
 
 
 void define_pybinding_constants(py::module& m);
-
-
 void define_pybinding_enums(py::module& m);
 
 } // namespace API

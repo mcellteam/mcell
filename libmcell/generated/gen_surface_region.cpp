@@ -25,6 +25,7 @@
 #include "gen_surface_region.h"
 #include "../api/surface_region.h"
 #include "../api/region.h"
+#include "../api/surface_class.h"
 
 namespace MCell {
 namespace API {
@@ -43,12 +44,16 @@ bool GenSurfaceRegion::__eq__(const GenSurfaceRegion& other) const {
     name == other.name &&
     name == other.name &&
     wall_indices == other.wall_indices &&
+    surface_class->__eq__(*other.surface_class) &&
     node_type == other.node_type &&
     left_node->__eq__(*other.left_node) &&
     right_node->__eq__(*other.right_node);
 }
 
 void GenSurfaceRegion::set_initialized() {
+  if (is_set(surface_class)) {
+    surface_class->set_initialized();
+  }
   if (is_set(left_node)) {
     left_node->set_initialized();
   }
@@ -63,6 +68,7 @@ std::string GenSurfaceRegion::to_str(const std::string ind) const {
   ss << get_object_name() << ": " <<
       "name=" << name << ", " <<
       "wall_indices=" << vec_nonptr_to_str(wall_indices, ind + "  ") << ", " <<
+      "\n" << ind + "  " << "surface_class=" << "(" << ((surface_class != nullptr) ? surface_class->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "node_type=" << node_type << ", " <<
       "\n" << ind + "  " << "left_node=" << "(" << ((left_node != nullptr) ? left_node->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "right_node=" << "(" << ((right_node != nullptr) ? right_node->to_str(ind + "  ") : "null" ) << ")";
@@ -75,12 +81,14 @@ py::class_<SurfaceRegion> define_pybinding_SurfaceRegion(py::module& m) {
           py::init<
             const std::string&,
             const std::vector<int>,
+            std::shared_ptr<SurfaceClass>,
             const RegionNodeType,
             std::shared_ptr<Region>,
             std::shared_ptr<Region>
           >(),
           py::arg("name"),
           py::arg("wall_indices"),
+          py::arg("surface_class") = nullptr,
           py::arg("node_type") = RegionNodeType::Unset,
           py::arg("left_node") = nullptr,
           py::arg("right_node") = nullptr
@@ -90,6 +98,7 @@ py::class_<SurfaceRegion> define_pybinding_SurfaceRegion(py::module& m) {
       .def("dump", &SurfaceRegion::dump)
       .def_property("name", &SurfaceRegion::get_name, &SurfaceRegion::set_name)
       .def_property("wall_indices", &SurfaceRegion::get_wall_indices, &SurfaceRegion::set_wall_indices)
+      .def_property("surface_class", &SurfaceRegion::get_surface_class, &SurfaceRegion::set_surface_class)
     ;
 }
 

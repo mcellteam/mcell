@@ -41,6 +41,7 @@ class ReactionRule;
 class ReleaseSite;
 class Species;
 class Subsystem;
+class SurfaceClass;
 class Warnings;
 
 class GenModel {

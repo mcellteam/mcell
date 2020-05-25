@@ -56,6 +56,12 @@ SurfaceRegion:
       Surface region must be a part of a GeometryObject, items in this list are indices to 
       its element_connections array
 
+  - name: surface_class
+    type: SurfaceClass*
+    default: unset
+    doc: Has higher priority than the parent geometry object's surface class.
+
+
 # TODO: due to issues with shared pointer casts, it was not possible to make a shared pointer out of this     
 # any cast resulted into bad_weak_ptr exception
 #  - name: parent
@@ -88,6 +94,21 @@ GeometryObject:
   - name: surface_regions
     type: List[SurfaceRegion*]
     default: empty
+    
+  - name: surface_class
+    type: SurfaceClass*
+    default: unset
+    doc: |
+      Surface class for the whole object's surface. It is applied to the whole surface of this object 
+      except for those surface regions that have their specific surface class set explicitly.
+    
+  methods:
+  - name: set_surface_class
+    doc: | 
+      Sets  
+    params:
+    - name: surface_class
+      type: SurfaceClass*
     
 
 ReleaseSite:

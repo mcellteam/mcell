@@ -32,6 +32,7 @@ namespace MCell {
 namespace API {
 
 class Region;
+class SurfaceClass;
 class SurfaceRegion;
 
 #define GEOMETRY_OBJECT_CTOR() \
@@ -40,6 +41,7 @@ class SurfaceRegion;
         const std::vector<std::vector<float_t>> vertex_list_, \
         const std::vector<std::vector<int>> element_connections_, \
         const std::vector<std::shared_ptr<SurfaceRegion>> surface_regions_ = std::vector<std::shared_ptr<SurfaceRegion>>(), \
+        std::shared_ptr<SurfaceClass> surface_class_ = nullptr, \
         const RegionNodeType node_type_ = RegionNodeType::Unset, \
         std::shared_ptr<Region> left_node_ = nullptr, \
         std::shared_ptr<Region> right_node_ = nullptr \
@@ -49,6 +51,7 @@ class SurfaceRegion;
       vertex_list = vertex_list_; \
       element_connections = element_connections_; \
       surface_regions = surface_regions_; \
+      surface_class = surface_class_; \
       node_type = node_type_; \
       left_node = left_node_; \
       right_node = right_node_; \
@@ -106,6 +109,18 @@ public:
   }
   virtual std::vector<std::shared_ptr<SurfaceRegion>> get_surface_regions() const {
     return surface_regions;
+  }
+
+  std::shared_ptr<SurfaceClass> surface_class;
+  virtual void set_surface_class(std::shared_ptr<SurfaceClass> new_surface_class_) {
+    if (initialized) {
+      throw RuntimeError("Value 'surface_class' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
+    surface_class = new_surface_class_;
+  }
+  virtual std::shared_ptr<SurfaceClass> get_surface_class() const {
+    return surface_class;
   }
 
   // --- methods ---

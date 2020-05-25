@@ -33,6 +33,7 @@
 #include "../api/release_site.h"
 #include "../api/species.h"
 #include "../api/subsystem.h"
+#include "../api/surface_class.h"
 #include "../api/warnings.h"
 
 namespace MCell {
@@ -45,8 +46,9 @@ std::string GenModel::to_str(const std::string ind) const {
       "\n" << ind + "  " << "config=" << "(" << ((config != nullptr) ? config->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "warnings=" << "(" << ((warnings != nullptr) ? warnings->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "notifications=" << "(" << ((notifications != nullptr) ? notifications->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      "reaction_rules=" << vec_ptr_to_str(reaction_rules, ind + "  ") << ", " << "\n" << ind + "  " <<
       "species=" << vec_ptr_to_str(species, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "reaction_rules=" << vec_ptr_to_str(reaction_rules, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "surface_classes=" << vec_ptr_to_str(surface_classes, ind + "  ") << ", " << "\n" << ind + "  " <<
       "release_sites=" << vec_ptr_to_str(release_sites, ind + "  ") << ", " << "\n" << ind + "  " <<
       "geometry_objects=" << vec_ptr_to_str(geometry_objects, ind + "  ");
   return ss.str();
@@ -73,6 +75,7 @@ py::class_<Model> define_pybinding_Model(py::module& m) {
       .def("find_species", &Model::find_species, py::arg("name"))
       .def("add_reaction_rule", &Model::add_reaction_rule, py::arg("r"))
       .def("find_reaction_rule", &Model::find_reaction_rule, py::arg("name"))
+      .def("add_surface_class", &Model::add_surface_class, py::arg("sc"))
       .def("add_release_site", &Model::add_release_site, py::arg("s"))
       .def("find_release_site", &Model::find_release_site, py::arg("name"))
       .def("add_geometry_object", &Model::add_geometry_object, py::arg("o"), py::arg("name") = "")
@@ -81,8 +84,9 @@ py::class_<Model> define_pybinding_Model(py::module& m) {
       .def_property("config", &Model::get_config, &Model::set_config)
       .def_property("warnings", &Model::get_warnings, &Model::set_warnings)
       .def_property("notifications", &Model::get_notifications, &Model::set_notifications)
-      .def_property("reaction_rules", &Model::get_reaction_rules, &Model::set_reaction_rules)
       .def_property("species", &Model::get_species, &Model::set_species)
+      .def_property("reaction_rules", &Model::get_reaction_rules, &Model::set_reaction_rules)
+      .def_property("surface_classes", &Model::get_surface_classes, &Model::set_surface_classes)
       .def_property("release_sites", &Model::get_release_sites, &Model::set_release_sites)
       .def_property("geometry_objects", &Model::get_geometry_objects, &Model::set_geometry_objects)
     ;

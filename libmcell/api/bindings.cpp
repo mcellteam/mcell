@@ -22,32 +22,33 @@
 
 #include "mcell.h"
 
-#include "../generated/gen_component_type.h"
-#include "../generated/gen_component_instance.h"
-#include "../generated/gen_molecule_type.h"
-#include "../generated/gen_molecule_instance.h"
-#include "../generated/gen_species.h"
-#include "../generated/gen_reaction_rule.h"
-#include "../generated/gen_subsystem.h"
+#include "generated/gen_component_type.h"
+#include "generated/gen_component_instance.h"
+#include "generated/gen_molecule_type.h"
+#include "generated/gen_molecule_instance.h"
+#include "generated/gen_species.h"
+#include "generated/gen_surface_class.h"
+#include "generated/gen_reaction_rule.h"
+#include "generated/gen_subsystem.h"
 
-#include "../generated/gen_release_site.h"
-#include "../generated/gen_surface_region.h"
-#include "../generated/gen_geometry_object.h"
-#include "../generated/gen_instantiation_data.h"
+#include "generated/gen_release_site.h"
+#include "generated/gen_surface_region.h"
+#include "generated/gen_geometry_object.h"
+#include "generated/gen_instantiation_data.h"
 
-#include "../generated/gen_count_term.h"
-#include "../generated/gen_count.h"
-#include "../generated/gen_viz_output.h"
-#include "../generated/gen_observables.h"
+#include "generated/gen_count_term.h"
+#include "generated/gen_count.h"
+#include "generated/gen_viz_output.h"
+#include "generated/gen_observables.h"
 
-#include "../generated/gen_config.h"
-#include "../generated/gen_notifications.h"
-#include "../generated/gen_warnings.h"
-#include "../generated/gen_model.h"
+#include "generated/gen_config.h"
+#include "generated/gen_notifications.h"
+#include "generated/gen_warnings.h"
+#include "generated/gen_model.h"
 
-#include "../generated/gen_region.h"
+#include "generated/gen_region.h"
 
-#include "../generated/gen_constants.h"
+#include "generated/gen_constants.h"
 
 #if __cplusplus < 201402L
 #error "Pybind11 overload requires at least C++14"
@@ -115,6 +116,7 @@ PYBIND11_MODULE(mcell, m) {
   define_pybinding_MoleculeInstance(m);
   define_pybinding_ComplexInstance(m);
   define_pybinding_Species(m);
+  define_pybinding_SurfaceClass(m);
   define_pybinding_ReactionRule(m);
   define_pybinding_Subsystem(m);
 

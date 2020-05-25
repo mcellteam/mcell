@@ -120,7 +120,29 @@ Species:
     - name: orientation
       type: Orientation 
       default: Orientation.NotSet
+  
     
+SurfaceClass:
+  doc: Defining a surface class allows surfaces to behave like species (in a limited way).
+  superclass: BaseDataClass
+  items:
+  - name: name
+    type: str
+    doc: Name of the surface class
+
+  - name: reflective
+    type: Species*
+    default: unset
+  # TODO: add orientations for specific behaviors
+
+  - name: transparent
+    type: Species*
+    default: unset
+
+  - name: absorptive
+    type: Species*
+    default: unset
+
 
 ReactionRule:    
   superclass: BaseDataClass
@@ -151,13 +173,17 @@ ReactionRule:
 
 Subsystem:
   items:
+  - name: species
+    type: List[Species*]
+    default: empty
+    
   - name: reaction_rules
     type: List[ReactionRule*]
     default: empty
 
-  - name: species
-    type: List[Species*]
-    default: empty
+  - name: surface_classes
+    type: List[SurfaceClass*]
+    default: empty    
     
   methods:
   - name: add_species
@@ -181,3 +207,9 @@ Subsystem:
     params:
     - name: name
       type: str
+
+  - name: add_surface_class
+    params:
+    - name: sc
+      type: SurfaceClass*
+      

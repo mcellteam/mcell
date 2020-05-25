@@ -32,11 +32,13 @@ namespace MCell {
 namespace API {
 
 class Region;
+class SurfaceClass;
 
 #define SURFACE_REGION_CTOR() \
     SurfaceRegion( \
         const std::string& name_, \
         const std::vector<int> wall_indices_, \
+        std::shared_ptr<SurfaceClass> surface_class_ = nullptr, \
         const RegionNodeType node_type_ = RegionNodeType::Unset, \
         std::shared_ptr<Region> left_node_ = nullptr, \
         std::shared_ptr<Region> right_node_ = nullptr \
@@ -44,6 +46,7 @@ class Region;
       class_name = "SurfaceRegion"; \
       name = name_; \
       wall_indices = wall_indices_; \
+      surface_class = surface_class_; \
       node_type = node_type_; \
       left_node = left_node_; \
       right_node = right_node_; \
@@ -77,6 +80,18 @@ public:
   }
   virtual std::vector<int> get_wall_indices() const {
     return wall_indices;
+  }
+
+  std::shared_ptr<SurfaceClass> surface_class;
+  virtual void set_surface_class(std::shared_ptr<SurfaceClass> new_surface_class_) {
+    if (initialized) {
+      throw RuntimeError("Value 'surface_class' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
+    surface_class = new_surface_class_;
+  }
+  virtual std::shared_ptr<SurfaceClass> get_surface_class() const {
+    return surface_class;
   }
 
   // --- methods ---

@@ -25,6 +25,7 @@
 #include "gen_geometry_object.h"
 #include "../api/geometry_object.h"
 #include "../api/region.h"
+#include "../api/surface_class.h"
 #include "../api/surface_region.h"
 
 namespace MCell {
@@ -49,6 +50,7 @@ bool GenGeometryObject::__eq__(const GenGeometryObject& other) const {
     vertex_list == other.vertex_list &&
     element_connections == other.element_connections &&
     vec_ptr_eq(surface_regions, other.surface_regions) &&
+    surface_class->__eq__(*other.surface_class) &&
     node_type == other.node_type &&
     left_node->__eq__(*other.left_node) &&
     right_node->__eq__(*other.right_node);
@@ -56,6 +58,9 @@ bool GenGeometryObject::__eq__(const GenGeometryObject& other) const {
 
 void GenGeometryObject::set_initialized() {
   vec_set_initialized(surface_regions);
+  if (is_set(surface_class)) {
+    surface_class->set_initialized();
+  }
   if (is_set(left_node)) {
     left_node->set_initialized();
   }
@@ -72,6 +77,7 @@ std::string GenGeometryObject::to_str(const std::string ind) const {
       "vertex_list=" << vec_nonptr_to_str(vertex_list, ind + "  ") << ", " <<
       "element_connections=" << vec_nonptr_to_str(element_connections, ind + "  ") << ", " <<
       "\n" << ind + "  " << "surface_regions=" << vec_ptr_to_str(surface_regions, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "surface_class=" << "(" << ((surface_class != nullptr) ? surface_class->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "node_type=" << node_type << ", " <<
       "\n" << ind + "  " << "left_node=" << "(" << ((left_node != nullptr) ? left_node->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "right_node=" << "(" << ((right_node != nullptr) ? right_node->to_str(ind + "  ") : "null" ) << ")";
@@ -86,6 +92,7 @@ py::class_<GeometryObject> define_pybinding_GeometryObject(py::module& m) {
             const std::vector<std::vector<float_t>>,
             const std::vector<std::vector<int>>,
             const std::vector<std::shared_ptr<SurfaceRegion>>,
+            std::shared_ptr<SurfaceClass>,
             const RegionNodeType,
             std::shared_ptr<Region>,
             std::shared_ptr<Region>
@@ -94,6 +101,7 @@ py::class_<GeometryObject> define_pybinding_GeometryObject(py::module& m) {
           py::arg("vertex_list"),
           py::arg("element_connections"),
           py::arg("surface_regions") = std::vector<std::shared_ptr<SurfaceRegion>>(),
+          py::arg("surface_class") = nullptr,
           py::arg("node_type") = RegionNodeType::Unset,
           py::arg("left_node") = nullptr,
           py::arg("right_node") = nullptr
@@ -105,6 +113,7 @@ py::class_<GeometryObject> define_pybinding_GeometryObject(py::module& m) {
       .def_property("vertex_list", &GeometryObject::get_vertex_list, &GeometryObject::set_vertex_list)
       .def_property("element_connections", &GeometryObject::get_element_connections, &GeometryObject::set_element_connections)
       .def_property("surface_regions", &GeometryObject::get_surface_regions, &GeometryObject::set_surface_regions)
+      .def_property("surface_class", &GeometryObject::get_surface_class, &GeometryObject::set_surface_class)
     ;
 }
 

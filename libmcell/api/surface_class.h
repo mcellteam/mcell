@@ -20,49 +20,21 @@
  *
 ******************************************************************************/
 
-#ifndef API_SUBSYSTEM_H
-#define API_SUBSYSTEM_H
+#ifndef API_SURFACE_CLASS_H
+#define API_SURFACE_CLASS_H
 
-#include "generated/gen_subsystem.h"
+#include "generated/gen_surface_class.h"
 #include "api/common.h"
-#include "api/api_utils.h"
-#include "api/species.h"
-#include "api/surface_class.h"
-#include "api/reaction_rule.h"
 
 namespace MCell {
 namespace API {
 
-class Subsystem: public GenSubsystem {
+class SurfaceClass: public GenSurfaceClass {
 public:
-  // from generated template
-  void add_species(std::shared_ptr<Species> s) override {
-    append_to_vec(species, s);
-  }
-
-  std::shared_ptr<Species> find_species(const std::string& name) override {
-    assert(false && "TODO");
-    return nullptr;
-  }
-
-  void add_reaction_rule(std::shared_ptr<ReactionRule> r) override {
-    append_to_vec(reaction_rules, r);
-  }
-
-  std::shared_ptr<ReactionRule> find_reaction_rule(const std::string& name) override {
-    assert(false && "TODO");
-    return nullptr;
-  }
-
-  void add_surface_class(std::shared_ptr<SurfaceClass> sc) override {
-    append_to_vec(surface_classes, sc);
-  }
-
-  // added manually
-  void dump() const;
+  SURFACE_CLASS_CTOR()
 };
 
 } // namespace API
 } // namespace MCell
 
-#endif // API_SUBSYSTEM_H
+#endif // API_SURFACE_CLASS_H
