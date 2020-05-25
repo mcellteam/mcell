@@ -25,6 +25,7 @@
 
 #include "generated/gen_surface_class.h"
 #include "api/common.h"
+#include "api/surface_property.h"
 
 namespace MCell {
 namespace API {
@@ -32,6 +33,17 @@ namespace API {
 class SurfaceClass: public GenSurfaceClass {
 public:
   SURFACE_CLASS_CTOR()
+
+  void check_semantics() const override {
+    GenSurfaceClass::check_semantics(); // does not call further derived classes
+
+    if (properties.empty()) {
+      GenSurfaceProperty::check_semantics();
+    }
+    else {
+      // TODO: should each type be specified only once or not?
+    }
+  }
 };
 
 } // namespace API

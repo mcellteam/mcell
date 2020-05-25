@@ -36,6 +36,7 @@ public:
   COUNT_TERM_CTOR()
 
   void check_semantics() const override {
+    GenCountTerm::check_semantics();
     if (is_set(region)) {
       if (region->node_type != RegionNodeType::LeafGeometryObject && region->node_type != RegionNodeType::LeafSurfaceRegion) {
         throw ValueError(S("Only simple regions of type ") + NAME_CLASS_GEOMETRY_OBJECT + " and " + NAME_CLASS_REGION +

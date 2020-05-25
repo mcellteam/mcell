@@ -20,31 +20,24 @@
  *
 ******************************************************************************/
 
-#ifndef API_GEN_SURFACE_CLASS_H
-#define API_GEN_SURFACE_CLASS_H
+#ifndef API_GEN_SURFACE_PROPERTY_H
+#define API_GEN_SURFACE_PROPERTY_H
 
 #include "../api/common.h"
 #include "../api/base_data_class.h"
-#include "../api/surface_property.h"
-
 
 namespace MCell {
 namespace API {
 
 class Species;
-class SurfaceProperty;
 
-#define SURFACE_CLASS_CTOR() \
-    SurfaceClass( \
-        const std::string& name_, \
-        const std::vector<std::shared_ptr<SurfaceProperty>> properties_ = std::vector<std::shared_ptr<SurfaceProperty>>(), \
+#define SURFACE_PROPERTY_CTOR() \
+    SurfaceProperty( \
         const SurfacePropertyType type_ = SurfacePropertyType::Unset, \
         std::shared_ptr<Species> affected_species_ = nullptr, \
         const Orientation orientation_ = Orientation::NotSet \
-    )  : GenSurfaceClass(type_,affected_species_,orientation_) { \
-      class_name = "SurfaceClass"; \
-      name = name_; \
-      properties = properties_; \
+    ) { \
+      class_name = "SurfaceProperty"; \
       type = type_; \
       affected_species = affected_species_; \
       orientation = orientation_; \
@@ -52,40 +45,58 @@ class SurfaceProperty;
       check_semantics();\
     }
 
-class GenSurfaceClass: public SurfaceProperty {
+class GenSurfaceProperty: public BaseDataClass {
 public:
-  GenSurfaceClass( 
-      const SurfacePropertyType type_ = SurfacePropertyType::Unset, 
-      std::shared_ptr<Species> affected_species_ = nullptr, 
-      const Orientation orientation_ = Orientation::NotSet 
-  )  : SurfaceProperty(type_,affected_species_,orientation_)  {
-  }
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
 
-  bool __eq__(const GenSurfaceClass& other) const;
+  bool __eq__(const GenSurfaceProperty& other) const;
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---
-  std::vector<std::shared_ptr<SurfaceProperty>> properties;
-  virtual void set_properties(const std::vector<std::shared_ptr<SurfaceProperty>> new_properties_) {
+  SurfacePropertyType type;
+  virtual void set_type(const SurfacePropertyType new_type_) {
     if (initialized) {
-      throw RuntimeError("Value 'properties' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'type' of object with name " + name + " (class " + class_name + ")"
                          "cannot be set after model was initialized.");
     }
-    properties = new_properties_;
+    type = new_type_;
   }
-  virtual std::vector<std::shared_ptr<SurfaceProperty>> get_properties() const {
-    return properties;
+  virtual SurfacePropertyType get_type() const {
+    return type;
+  }
+
+  std::shared_ptr<Species> affected_species;
+  virtual void set_affected_species(std::shared_ptr<Species> new_affected_species_) {
+    if (initialized) {
+      throw RuntimeError("Value 'affected_species' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
+    affected_species = new_affected_species_;
+  }
+  virtual std::shared_ptr<Species> get_affected_species() const {
+    return affected_species;
+  }
+
+  Orientation orientation;
+  virtual void set_orientation(const Orientation new_orientation_) {
+    if (initialized) {
+      throw RuntimeError("Value 'orientation' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
+    orientation = new_orientation_;
+  }
+  virtual Orientation get_orientation() const {
+    return orientation;
   }
 
   // --- methods ---
-}; // GenSurfaceClass
+}; // GenSurfaceProperty
 
-class SurfaceClass;
-py::class_<SurfaceClass> define_pybinding_SurfaceClass(py::module& m);
+class SurfaceProperty;
+py::class_<SurfaceProperty> define_pybinding_SurfaceProperty(py::module& m);
 } // namespace API
 } // namespace MCell
 
-#endif // API_GEN_SURFACE_CLASS_H
+#endif // API_GEN_SURFACE_PROPERTY_H

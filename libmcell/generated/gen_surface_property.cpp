@@ -22,70 +22,58 @@
 
 #include <sstream>
 #include <pybind11/stl.h>
-#include "gen_surface_class.h"
-#include "../api/surface_class.h"
-#include "../api/species.h"
+#include "gen_surface_property.h"
 #include "../api/surface_property.h"
+#include "../api/species.h"
 
 namespace MCell {
 namespace API {
 
-void GenSurfaceClass::check_semantics() const {
-  if (!is_set(name)) {
-    throw ValueError("Parameter 'name' must be set.");
-  }
+void GenSurfaceProperty::check_semantics() const {
 }
 
-bool GenSurfaceClass::__eq__(const GenSurfaceClass& other) const {
+bool GenSurfaceProperty::__eq__(const GenSurfaceProperty& other) const {
   return
     name == other.name &&
-    name == other.name &&
-    vec_ptr_eq(properties, other.properties) &&
     type == other.type &&
     affected_species->__eq__(*other.affected_species) &&
     orientation == other.orientation;
 }
 
-void GenSurfaceClass::set_initialized() {
-  vec_set_initialized(properties);
+void GenSurfaceProperty::set_initialized() {
   if (is_set(affected_species)) {
     affected_species->set_initialized();
   }
   initialized = true;
 }
 
-std::string GenSurfaceClass::to_str(const std::string ind) const {
+std::string GenSurfaceProperty::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
-      "name=" << name << ", " <<
-      "\n" << ind + "  " << "properties=" << vec_ptr_to_str(properties, ind + "  ") << ", " << "\n" << ind + "  " <<
       "type=" << type << ", " <<
       "\n" << ind + "  " << "affected_species=" << "(" << ((affected_species != nullptr) ? affected_species->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "orientation=" << orientation;
   return ss.str();
 }
 
-py::class_<SurfaceClass> define_pybinding_SurfaceClass(py::module& m) {
-  return py::class_<SurfaceClass, SurfaceProperty, std::shared_ptr<SurfaceClass>>(m, "SurfaceClass")
+py::class_<SurfaceProperty> define_pybinding_SurfaceProperty(py::module& m) {
+  return py::class_<SurfaceProperty, std::shared_ptr<SurfaceProperty>>(m, "SurfaceProperty")
       .def(
           py::init<
-            const std::string&,
-            const std::vector<std::shared_ptr<SurfaceProperty>>,
             const SurfacePropertyType,
             std::shared_ptr<Species>,
             const Orientation
           >(),
-          py::arg("name"),
-          py::arg("properties") = std::vector<std::shared_ptr<SurfaceProperty>>(),
           py::arg("type") = SurfacePropertyType::Unset,
           py::arg("affected_species") = nullptr,
           py::arg("orientation") = Orientation::NotSet
       )
-      .def("check_semantics", &SurfaceClass::check_semantics)
-      .def("__str__", &SurfaceClass::to_str, py::arg("ind") = std::string(""))
-      .def("dump", &SurfaceClass::dump)
-      .def_property("name", &SurfaceClass::get_name, &SurfaceClass::set_name)
-      .def_property("properties", &SurfaceClass::get_properties, &SurfaceClass::set_properties)
+      .def("check_semantics", &SurfaceProperty::check_semantics)
+      .def("__str__", &SurfaceProperty::to_str, py::arg("ind") = std::string(""))
+      .def("dump", &SurfaceProperty::dump)
+      .def_property("type", &SurfaceProperty::get_type, &SurfaceProperty::set_type)
+      .def_property("affected_species", &SurfaceProperty::get_affected_species, &SurfaceProperty::set_affected_species)
+      .def_property("orientation", &SurfaceProperty::get_orientation, &SurfaceProperty::set_orientation)
     ;
 }
 

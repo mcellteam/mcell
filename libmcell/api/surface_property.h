@@ -20,41 +20,33 @@
  *
 ******************************************************************************/
 
-/**
- * This header includes all C++ classes of MCell API.
- * File should be used only from outside of this library to avoid cyclic includes.
- */
+#ifndef API_SURFACE_PROPERTY_H
+#define API_SURFACE_PROPERTY_H
 
-#ifndef API_MCELL_H
-#define API_MCELL_H
-
+#include "generated/gen_surface_property.h"
 #include "api/common.h"
 
-#include "api/component_type.h"
-#include "api/component_instance.h"
-#include "api/molecule_type.h"
-#include "api/molecule_instance.h"
-#include "api/complex_instance.h"
-#include "api/species.h"
-#include "api/surface_property.h"
-#include "api/surface_class.h"
-#include "api/reaction_rule.h"
-#include "api/subsystem.h"
+namespace MCell {
+namespace API {
 
-#include "api/release_site.h"
-#include "api/region.h"
-#include "api/surface_region.h"
-#include "api/geometry_object.h"
-#include "api/instantiation_data.h"
+class SurfaceProperty: public GenSurfaceProperty {
+public:
+  SURFACE_PROPERTY_CTOR()
 
-#include "api/count_term.h"
-#include "api/count.h"
-#include "api/viz_output.h"
-#include "api/observables.h"
+  void check_semantics() const override {
+    GenSurfaceProperty::check_semantics();
 
-#include "api/config.h"
-#include "api/notifications.h"
-#include "api/warnings.h"
-#include "api/model.h"
+    if (type == SurfacePropertyType::Unset) {
+      throw ValueError(S("Parameter '") + NAME_TYPE + "' must be set.");
+    }
 
-#endif // API_MCELL_H
+    if (!is_set(affected_species)) {
+      throw ValueError(S("Parameter '") + NAME_AFFECTED_SPECIES + "' must be set.");
+    }
+  }
+};
+
+} // namespace API
+} // namespace MCell
+
+#endif // API_SURFACE_PROPERTY_H

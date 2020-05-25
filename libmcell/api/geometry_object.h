@@ -50,6 +50,7 @@ public:
 
   // TODO: move to c++
   void check_semantics() const override {
+    GenGeometryObject::check_semantics();
     for (auto& v: vertex_list) {
       if (v.size() != 3) {
         throw ValueError(

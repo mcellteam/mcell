@@ -122,26 +122,39 @@ Species:
       default: Orientation.NotSet
   
     
+SurfaceProperty:
+  superclass: BaseDataClass
+  items:
+  - name: type
+    type: SurfacePropertyType
+    default: SurfacePropertyType.Unset
+    doc: Must be set.
+  
+  - name: affected_species
+    type: Species*
+    default: unset
+    doc: Must be set. 
+
+  - name: orientation
+    type: Orientation
+    default: Orientation.NotSet
+    
+    
 SurfaceClass:
   doc: Defining a surface class allows surfaces to behave like species (in a limited way).
-  superclass: BaseDataClass
+  superclass: SurfaceProperty
   items:
   - name: name
     type: str
     doc: Name of the surface class
-
-  - name: reflective
-    type: Species*
-    default: unset
-  # TODO: add orientations for specific behaviors
-
-  - name: transparent
-    type: Species*
-    default: unset
-
-  - name: absorptive
-    type: Species*
-    default: unset
+    
+  - name: properties
+    type: List[SurfaceProperty*]
+    default: empty
+    doc: | 
+      A surface class can either have a list of properties or just one property.
+      In the usual case of having one property, one can set the attributes 
+      type, affected_species, etc. inherited from SurfaceProperty directly.
 
 
 ReactionRule:    

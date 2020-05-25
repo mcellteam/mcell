@@ -124,6 +124,25 @@ static inline  std::ostream& operator << (std::ostream& out, const Shape v) {
 };
 
 
+enum class SurfacePropertyType {
+  Unset = 0,
+  Reflective = 1,
+  Transparent = 2,
+  Absorptive = 3
+};
+
+
+static inline  std::ostream& operator << (std::ostream& out, const SurfacePropertyType v) {
+  switch (v) {
+    case SurfacePropertyType::Unset: out << "SurfacePropertyType.Unset (0)"; break;
+    case SurfacePropertyType::Reflective: out << "SurfacePropertyType.Reflective (1)"; break;
+    case SurfacePropertyType::Transparent: out << "SurfacePropertyType.Transparent (2)"; break;
+    case SurfacePropertyType::Absorptive: out << "SurfacePropertyType.Absorptive (3)"; break;
+  }
+  return out;
+};
+
+
 enum class ExprNodeType {
   Unset = 0,
   Leaf = 1,

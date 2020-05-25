@@ -67,6 +67,12 @@ void define_pybinding_enums(py::module& m) {
     .value("Spherical", Shape::Spherical)
     .value("RegionExpr", Shape::RegionExpr)
     .export_values();
+  py::enum_<SurfacePropertyType>(m, "SurfacePropertyType", py::arithmetic())
+    .value("Unset", SurfacePropertyType::Unset)
+    .value("Reflective", SurfacePropertyType::Reflective)
+    .value("Transparent", SurfacePropertyType::Transparent)
+    .value("Absorptive", SurfacePropertyType::Absorptive)
+    .export_values();
   py::enum_<ExprNodeType>(m, "ExprNodeType", py::arithmetic())
     .value("Unset", ExprNodeType::Unset)
     .value("Leaf", ExprNodeType::Leaf)

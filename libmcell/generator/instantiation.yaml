@@ -101,15 +101,7 @@ GeometryObject:
     doc: |
       Surface class for the whole object's surface. It is applied to the whole surface of this object 
       except for those surface regions that have their specific surface class set explicitly.
-    
-  methods:
-  - name: set_surface_class
-    doc: | 
-      Sets  
-    params:
-    - name: surface_class
-      type: SurfaceClass*
-    
+
 
 ReleaseSite:
   superclass: BaseDataClass
