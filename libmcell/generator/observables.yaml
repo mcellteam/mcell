@@ -33,6 +33,13 @@ CountTerm:
   - name: region
     type: Region*
     default: unset
+    doc: | 
+      Only a GeometryObject or SurfaceRegion can be passed as the region argument, 
+      compound regions (created with +, -, *) are not supproted yet.   
+    
+  - name: orientation
+    type: Orientation
+    default: Orientation.NotSet
   
   - name: node_type
     type: ExprNodeType
@@ -72,7 +79,7 @@ Count:
     
   - name: count_expression 
     type: CountTerm*
-    default: empty
+    default: unset
 
   - name: every_n_timesteps
     type: int

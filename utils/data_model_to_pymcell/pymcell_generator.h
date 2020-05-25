@@ -27,6 +27,7 @@
 #include <fstream>
 
 #include "json/json.h"
+#include "defines.h"
 
 // use different namespace?
 namespace MCell {
@@ -67,7 +68,8 @@ private:
 
   void process_single_count_term(
       const std::string& mdl_string,
-      bool& rxn_not_mol, std::string& what_to_count, std::string& where_to_count);
+      bool& rxn_not_mol, std::string& what_to_count, std::string& where_to_count,
+      orientation_t& orientation);
   std::string generate_count_terms_for_expression(
       std::ofstream& out, const std::string& mdl_string);
   std::vector<std::string> generate_counts(std::ofstream& out);

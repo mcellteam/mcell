@@ -37,7 +37,7 @@ const char* const UNNAMED_REACTION_RULE_PREFIX = "unnamed_reaction_rule_";
 
 const char* const VIZ_OUTPUT_NAME = "viz_output";
 const char* const DEFAULT_VIZ_OUTPUT_FILENAME_PREFIX = "'./viz_data/seed_' + str(SEED).zfill(5) + '/Scene'";
-const char* const DEFAULT_RXN_OUTPUT_FILENAME_PREFIX = "'./react_data/seed_' + str(SEED) + '/";
+const char* const DEFAULT_RXN_OUTPUT_FILENAME_PREFIX = "'./react_data/seed_' + str(SEED).zfill(5) + '/";
 
 const char* const INTERPRETER = "#!/usr/bin/env python3\n\n";
 

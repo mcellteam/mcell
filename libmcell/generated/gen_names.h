@@ -157,13 +157,13 @@ const char* const NAME_VIZ_OUTPUTS = "viz_outputs";
 const char* const NAME_WALL_INDICES = "wall_indices";
 const char* const NAME_WARNINGS = "warnings";
 
-const char* const NAME_ENUM_SHAPE = "Shape";
+const char* const NAME_ENUM_VIZ_MODE = "VizMode";
+const char* const NAME_ENUM_REGION_NODE_TYPE = "RegionNodeType";
 const char* const NAME_ENUM_ORIENTATION = "Orientation";
 const char* const NAME_ENUM_WARNING_LEVEL = "WarningLevel";
-const char* const NAME_ENUM_VIZ_MODE = "VizMode";
 const char* const NAME_ENUM_NOTIFICATION = "Notification";
+const char* const NAME_ENUM_SHAPE = "Shape";
 const char* const NAME_ENUM_EXPR_NODE_TYPE = "ExprNodeType";
-const char* const NAME_ENUM_REGION_NODE_TYPE = "RegionNodeType";
 
 const char* const NAME_EV_ADD = "Add";
 const char* const NAME_EV_ASCII = "Ascii";
@@ -190,6 +190,7 @@ const char* const NAME_EV_WARNING = "Warning";
 
 const char* const NAME_CV_BOND_BOUND = "BOND_BOUND";
 const char* const NAME_CV_BOND_UNBOUND = "BOND_UNBOUND";
+const char* const NAME_CV_DEFAULT_COUNT_BUFFER_SIZE = "DEFAULT_COUNT_BUFFER_SIZE";
 const char* const NAME_CV_PARTITION_EDGE_EXTRA_MARGIN_UM = "PARTITION_EDGE_EXTRA_MARGIN_UM";
 const char* const NAME_CV_STATE_UNSET = "STATE_UNSET";
 const char* const NAME_CV_STATE_UNSET_INT = "STATE_UNSET_INT";

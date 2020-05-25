@@ -585,11 +585,16 @@ static string create_count_name(string what_to_count, string where_to_count) {
 
 void PymcellGenerator::process_single_count_term(
     const string& mdl_string,
-    bool& rxn_not_mol, string& what_to_count, string& where_to_count) {
+    bool& rxn_not_mol, string& what_to_count, string& where_to_count, orientation_t& orientation) {
 
   // mdl_string is always in the form COUNT[what,where]
   size_t start_brace = mdl_string.find('[');
   size_t comma = mdl_string.find(',');
+  size_t comma2 = mdl_string.find(',', comma + 1);
+  if (comma2 != string::npos) {
+    // the first comma is orientation
+    comma = comma2;
+  }
   size_t end_brace = mdl_string.find(']');
 
   if (mdl_string.find(COUNT) == string::npos) {
@@ -603,6 +608,22 @@ void PymcellGenerator::process_single_count_term(
 
   what_to_count = mdl_string.substr(start_brace + 1, comma - start_brace - 1);
   what_to_count = trim(what_to_count);
+
+  // process orientation
+  orientation = ORIENTATION_NONE;
+  assert(what_to_count != "");
+  char last_c = what_to_count.back();
+  if (last_c == '\'' || last_c == ',' || last_c == ';') {
+    if (last_c == '\'') {
+      orientation = ORIENTATION_UP;
+    }
+    else if (last_c == ',') {
+      orientation = ORIENTATION_DOWN;
+    }
+    // ; - ORIENTATION_NONE
+
+    what_to_count = what_to_count.substr(0, what_to_count.size() - 1);
+  }
 
   if (find(all_species_names.begin(), all_species_names.end(), what_to_count) != all_species_names.end()) {
     rxn_not_mol = false;
@@ -643,16 +664,17 @@ string PymcellGenerator::generate_count_terms_for_expression(ofstream& out, cons
     bool rxn_not_mol;
     string what_to_count;
     string where_to_count;
+    orientation_t orientation;
 
     process_single_count_term(
         mdl_string.substr(start, end - start + 1),
-        rxn_not_mol, what_to_count, where_to_count
+        rxn_not_mol, what_to_count, where_to_count, orientation
     );
 
     string name = COUNT_TERM_PREFIX + what_to_count + ((where_to_count != "") ? ("_" + where_to_count) : "");
 
     // generate the count term object definition if we don't already have it
-    if (find(all_count_term_names.begin(), all_count_term_names.end(), name) != all_count_term_names.end()) {
+    if (find(all_count_term_names.begin(), all_count_term_names.end(), name) == all_count_term_names.end()) {
       all_count_term_names.push_back(name);
       gen_ctor_call(out, name, NAME_CLASS_COUNT_TERM);
 
@@ -660,7 +682,13 @@ string PymcellGenerator::generate_count_terms_for_expression(ofstream& out, cons
         gen_param_id(out, NAME_REACTION_RULE, what_to_count, where_to_count != "");
       }
       else {
-        gen_param_id(out, NAME_SPECIES, what_to_count, where_to_count != "");
+        assert(orientation != ORIENTATION_NOT_SET);
+        gen_param_id(out, NAME_SPECIES, what_to_count, orientation == ORIENTATION_NONE && where_to_count != "");
+
+        if (orientation != ORIENTATION_NONE) {
+          gen_param_enum(out, NAME_ORIENTATION, NAME_ENUM_ORIENTATION,
+              (orientation == ORIENTATION_DOWN) ? NAME_EV_DOWN : NAME_EV_UP, where_to_count != "");
+        }
       }
 
       if (where_to_count != "") {
@@ -707,6 +735,7 @@ vector<string> PymcellGenerator::generate_counts(ofstream& out) {
     bool single_term;
     string what_to_count;
     string where_to_count; // empty for WORLD
+    orientation_t orientation;
 
     string rxn_or_mol = reaction_output_item[KEY_RXN_OR_MOL].asString();
     if (rxn_or_mol == VALUE_MDLSTRING) {
@@ -718,7 +747,7 @@ vector<string> PymcellGenerator::generate_counts(ofstream& out) {
       }
       else if (num_counts == 1) {
         single_term = true;
-        process_single_count_term(mdl_string, rxn_not_mol, what_to_count, where_to_count);
+        process_single_count_term(mdl_string, rxn_not_mol, what_to_count, where_to_count, orientation);
       }
       else {
         single_term = false;
@@ -751,6 +780,11 @@ vector<string> PymcellGenerator::generate_counts(ofstream& out) {
       }
       else {
         gen_param_id(out, NAME_SPECIES, what_to_count, true);
+
+        if (orientation != ORIENTATION_NONE) {
+          gen_param_enum(out, NAME_ORIENTATION, NAME_ENUM_ORIENTATION,
+              (orientation == ORIENTATION_DOWN) ? NAME_EV_DOWN : NAME_EV_UP, where_to_count != "");
+        }
       }
     }
     else {

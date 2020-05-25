@@ -18,6 +18,12 @@ constants:
     value: 0.01
     doc: Internal constant used to match partition setup when comparing models against their MDL variant. 
     
+  - name: DEFAULT_COUNT_BUFFER_SIZE 
+    type: int
+    value: 10000
+    doc: Internal constant used to initialize buffer size for mol and rxn counts.
+    
+    
 enums:
   - name: Orientation
     values:

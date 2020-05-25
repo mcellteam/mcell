@@ -27,7 +27,9 @@ enum species_cplx_mol_rxn_flag_t {
   SPECIES_FLAG_CANT_INITIATE = 0x400, // must not be set, not sure what to do with this yet (at least for some cases)
   
   // TODO: can we get rid of one of these flags?
+  // COUNT_CONTENTS is set if you're counting numbers of molecules in/on regions
   SPECIES_FLAG_COUNT_CONTENTS =  0x1000,
+  // COUNT_ENCLOSED set if you count what happens inside closed region
   SPECIES_FLAG_COUNT_ENCLOSED = 0x8000, // this species is marked to be counted inside of a volume
 
   SPECIES_FLAG_CAN_SURFSURFSURF = 0x20000, // 0x20000 - not supported - TODO LATER: remove

@@ -34,6 +34,19 @@ namespace API {
 class Count: public GenCount {
 public:
   COUNT_CTOR()
+
+  void check_semantics() const override {
+    uint num_set = get_num_set(count_expression, species, reaction_rule);
+    if (num_set != 1) {
+      throw ValueError(
+          S("Exactly one of ") + NAME_COUNT_EXPRESSION + ", " + NAME_SPECIES + " or " + NAME_REACTION_RULE +
+          " must be set.");
+    }
+
+    if (is_set(count_expression)) {
+      count_expression->check_that_species_or_reaction_rule_is_set();
+    }
+  }
 };
 
 } // namespace API

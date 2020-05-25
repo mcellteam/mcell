@@ -234,6 +234,11 @@ public:
     return count_buffers[id];
   }
 
+  GeometryObject& get_geometry_object(const geometry_object_id_t id) {
+    // TODO: there will be multiple places where geom object id and index are mixed
+    return get_partition(0).get_geometry_object_by_id(id);
+  }
+
   const GeometryObject& get_geometry_object(const geometry_object_id_t id) const {
     // TODO: there will be multiple places where geom object id and index are mixed
     return get_partition(0).get_geometry_object_by_id(id);

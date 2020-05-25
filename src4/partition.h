@@ -527,6 +527,12 @@ public:
     return geometry_objects[index];
   }
 
+  GeometryObject& get_geometry_object_by_id(const geometry_object_id_t id) {
+    GeometryObject& res = get_geometry_object((geometry_object_index_t)id);
+    assert(res.id == res.index && "With a single partition, geom obj id == index");
+    return res;
+  }
+
   const GeometryObject& get_geometry_object_by_id(const geometry_object_id_t id) const {
     const GeometryObject& res = get_geometry_object((geometry_object_index_t)id);
     assert(res.id == res.index && "With a single partition, geom obj id == index");

@@ -25,8 +25,11 @@
 #include "world.h"
 #include "release_event.h"
 #include "viz_output_event.h"
+#include "mol_or_rxn_count_event.h"
 #include "geometry.h"
 #include "rng.h"
+#include "isaac64.h"
+#include "mcell_structs.h"
 #include "bng/bng.h"
 
 #include "api/mcell.h"
@@ -72,8 +75,7 @@ void MCell4Converter::convert(Model* model_, World* world_) {
   convert_species();
   world->create_diffusion_events();
   convert_rxns();
-
-  init_species_flags();
+  init_species_rxn_flags();
 
   // at this point, we need to create the first (and for now the only) partition
   // create initial partition with center at 0,0,0
@@ -87,9 +89,9 @@ void MCell4Converter::convert(Model* model_, World* world_) {
 
   convert_release_events();
 
-  convert_viz_output_events();
+  convert_mol_or_rxn_count_events_and_init_species_counting_flags();
 
-  init_species_flags();
+  convert_viz_output_events();
 }
 
 
@@ -141,7 +143,7 @@ void MCell4Converter::convert_simulation_setup() {
 }
 
 
-void MCell4Converter::init_species_flags() {
+void MCell4Converter::init_species_rxn_flags() {
   BNG::SpeciesContainer& all_species = world->get_all_species();
   BNG::RxnContainer& all_rxns = world->get_all_rxns();
 
@@ -202,6 +204,7 @@ void MCell4Converter::init_species_flags() {
     world->config.use_expanded_list = 0;
   }
 }
+
 
 void MCell4Converter::convert_species() {
   for (std::shared_ptr<API::Species>& s: model->species) {
@@ -414,6 +417,7 @@ void MCell4Converter::convert_geometry_objects() {
 
     obj.name = o->name;
     obj.parent_name = ""; // empty, we do not really care
+    o->geometry_object_id = obj.id;
 
     // vertices
     for (auto& v: o->vertex_list) {
@@ -565,6 +569,153 @@ void MCell4Converter::convert_release_events() {
     }
 
     world->scheduler.schedule_event(rel_event);
+  }
+}
+
+
+MCell::MolOrRxnCountTerm MCell4Converter::convert_count_term_leaf_and_init_species_counting_flags(
+    const std::shared_ptr<API::CountTerm> ct,
+    const int sign
+) {
+  MCell::MolOrRxnCountTerm res;
+  res.sign_in_expression = sign;
+
+  assert(is_set(ct));
+  assert(ct->node_type == API::ExprNodeType::Leaf);
+
+  // where
+  bool is_obj_not_surf_reg;
+  geometry_object_id_t obj_id;
+  region_id_t reg_id;
+  if (is_set(ct->region)) {
+    if (ct->region->node_type == API::RegionNodeType::LeafGeometryObject) {
+      is_obj_not_surf_reg = true;
+      obj_id = dynamic_pointer_cast<GeometryObject>(ct->region)->geometry_object_id;
+    }
+    else if (ct->region->node_type == API::RegionNodeType::LeafSurfaceRegion) {
+      is_obj_not_surf_reg = false;
+      reg_id = dynamic_pointer_cast<SurfaceRegion>(ct->region)->region_id;
+    }
+    else {
+      // already checked in check_semantics
+      assert(false && "Invalid region node type.");
+    }
+  }
+
+  // what
+  if (is_set(ct->species)) {
+
+    res.species_id = ct->species->species_id;
+    BNG::Species& sp = world->get_all_species().get(res.species_id);
+
+    res.orientation = convert_orientation(ct->orientation);
+
+    if (is_set(ct->region)) {
+      if (is_obj_not_surf_reg) {
+        res.type = MCell::CountType::EnclosedInObject;
+        res.geometry_object_id = obj_id;
+
+        // set species flag
+        sp.set_flag(BNG::SPECIES_FLAG_COUNT_ENCLOSED);
+        sp.set_flag(BNG::SPECIES_FLAG_COUNT_CONTENTS);
+
+        // and also mark the object that we are counting molecules inside
+        world->get_geometry_object(res.geometry_object_id).is_counted_volume = true;
+      }
+      else {
+        res.type = MCell::CountType::PresentOnSurfaceRegion;
+        res.region_id = reg_id;
+        sp.set_flag(BNG::SPECIES_FLAG_COUNT_CONTENTS);
+      }
+    }
+    else {
+      res.type = MCell::CountType::EnclosedInWorld;
+      sp.set_flag(BNG::SPECIES_FLAG_COUNT_ENCLOSED);
+    }
+  }
+  else if (is_set(ct->reaction_rule))
+  {
+    assert(!is_set(ct->reaction_rule->rev_rate));
+    res.rxn_rule_id = ct->reaction_rule->fwd_rxn_rule_id;
+
+    if (is_set(ct->region)) {
+      if (is_obj_not_surf_reg) {
+        res.type = MCell::CountType::RxnCountInObject;
+        res.geometry_object_id = obj_id;
+      }
+      else {
+        res.type = MCell::CountType::RxnCountOnSurfaceRegion;
+        res.region_id = reg_id;
+      }
+    }
+    else {
+      res.type = MCell::CountType::RxnCountInWorld;
+    }
+  }
+  else {
+    assert(false);
+  }
+
+  return res;
+}
+
+
+void MCell4Converter::convert_count_terms_recursively(
+    const std::shared_ptr<API::CountTerm> ct,
+    const int sign,
+    MCell::MolOrRxnCountInfo& info
+) {
+  assert(is_set(ct));
+
+  if (ct->node_type == API::ExprNodeType::Leaf) {
+    MCell::MolOrRxnCountTerm term = convert_count_term_leaf_and_init_species_counting_flags(ct, sign);
+    info.terms.push_back(term);
+  }
+  else if (ct->node_type == API::ExprNodeType::Add || ct->node_type == API::ExprNodeType::Sub) {
+    convert_count_terms_recursively(ct->left_node, sign, info);
+
+    int next_sign;
+    if (ct->node_type == API::ExprNodeType::Sub) {
+      next_sign = -sign;
+    }
+    else {
+      next_sign = sign;
+    }
+
+    convert_count_terms_recursively(ct->right_node, next_sign, info);
+  }
+  else {
+    // cannot really happen
+    throw RuntimeError("Invalid node_type in CountTerm.");
+  }
+}
+
+
+void MCell4Converter::convert_mol_or_rxn_count_events_and_init_species_counting_flags() {
+  for (const std::shared_ptr<API::Count>& c: model->counts) {
+    MCell::MolOrRxnCountEvent* count_event = new MCell::MolOrRxnCountEvent(world);
+
+    count_event->event_time = 0;
+    count_event->periodicity_interval = c->every_n_timesteps;
+
+    // create buffer
+    count_buffer_id_t buffer_id =
+        world->create_count_buffer(string("4") + c->filename, API::DEFAULT_COUNT_BUFFER_SIZE);
+
+    MCell::MolOrRxnCountInfo info(buffer_id);
+
+    // process count terms
+    if (is_set(c->count_expression)) {
+      convert_count_terms_recursively(c->count_expression, +1, info);
+    }
+    else {
+      convert_count_terms_recursively(dynamic_pointer_cast<API::CountTerm>(c), +1, info);
+    }
+
+    // having multiple MolOrRxnCountInfo per MolOrRxnCountEvent
+    // was useful for MCell3 conversion, however for pymcell4 each count is a separate event
+    count_event->add_mol_count_info(info);
+    world->scheduler.schedule_event(count_event);
   }
 }
 

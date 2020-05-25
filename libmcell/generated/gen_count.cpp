@@ -47,6 +47,7 @@ bool GenCount::__eq__(const GenCount& other) const {
     species->__eq__(*other.species) &&
     reaction_rule->__eq__(*other.reaction_rule) &&
     region->__eq__(*other.region) &&
+    orientation == other.orientation &&
     node_type == other.node_type &&
     left_node->__eq__(*other.left_node) &&
     right_node->__eq__(*other.right_node);
@@ -83,6 +84,7 @@ std::string GenCount::to_str(const std::string ind) const {
       "\n" << ind + "  " << "species=" << "(" << ((species != nullptr) ? species->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "reaction_rule=" << "(" << ((reaction_rule != nullptr) ? reaction_rule->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "region=" << "(" << ((region != nullptr) ? region->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "orientation=" << orientation << ", " <<
       "node_type=" << node_type << ", " <<
       "\n" << ind + "  " << "left_node=" << "(" << ((left_node != nullptr) ? left_node->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "right_node=" << "(" << ((right_node != nullptr) ? right_node->to_str(ind + "  ") : "null" ) << ")";
@@ -99,6 +101,7 @@ py::class_<Count> define_pybinding_Count(py::module& m) {
             std::shared_ptr<Species>,
             std::shared_ptr<ReactionRule>,
             std::shared_ptr<Region>,
+            const Orientation,
             const ExprNodeType,
             std::shared_ptr<CountTerm>,
             std::shared_ptr<CountTerm>
@@ -109,6 +112,7 @@ py::class_<Count> define_pybinding_Count(py::module& m) {
           py::arg("species") = nullptr,
           py::arg("reaction_rule") = nullptr,
           py::arg("region") = nullptr,
+          py::arg("orientation") = Orientation::NotSet,
           py::arg("node_type") = ExprNodeType::Leaf,
           py::arg("left_node") = nullptr,
           py::arg("right_node") = nullptr

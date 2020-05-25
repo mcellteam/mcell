@@ -33,6 +33,7 @@ const int STATE_UNSET_INT = -1;
 const int BOND_UNBOUND = 0;
 const int BOND_BOUND = -1;
 const float_t PARTITION_EDGE_EXTRA_MARGIN_UM = 0.01;
+const int DEFAULT_COUNT_BUFFER_SIZE = 10000;
 
 enum class Orientation {
   Down = -1,

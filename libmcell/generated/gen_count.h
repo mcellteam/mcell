@@ -44,10 +44,11 @@ class Species;
         std::shared_ptr<Species> species_ = nullptr, \
         std::shared_ptr<ReactionRule> reaction_rule_ = nullptr, \
         std::shared_ptr<Region> region_ = nullptr, \
+        const Orientation orientation_ = Orientation::NotSet, \
         const ExprNodeType node_type_ = ExprNodeType::Leaf, \
         std::shared_ptr<CountTerm> left_node_ = nullptr, \
         std::shared_ptr<CountTerm> right_node_ = nullptr \
-    )  : GenCount(species_,reaction_rule_,region_,node_type_,left_node_,right_node_) { \
+    )  : GenCount(species_,reaction_rule_,region_,orientation_,node_type_,left_node_,right_node_) { \
       class_name = "Count"; \
       filename = filename_; \
       count_expression = count_expression_; \
@@ -55,6 +56,7 @@ class Species;
       species = species_; \
       reaction_rule = reaction_rule_; \
       region = region_; \
+      orientation = orientation_; \
       node_type = node_type_; \
       left_node = left_node_; \
       right_node = right_node_; \
@@ -68,10 +70,11 @@ public:
       std::shared_ptr<Species> species_ = nullptr, 
       std::shared_ptr<ReactionRule> reaction_rule_ = nullptr, 
       std::shared_ptr<Region> region_ = nullptr, 
+      const Orientation orientation_ = Orientation::NotSet, 
       const ExprNodeType node_type_ = ExprNodeType::Leaf, 
       std::shared_ptr<CountTerm> left_node_ = nullptr, 
       std::shared_ptr<CountTerm> right_node_ = nullptr 
-  )  : CountTerm(species_,reaction_rule_,region_,node_type_,left_node_,right_node_)  {
+  )  : CountTerm(species_,reaction_rule_,region_,orientation_,node_type_,left_node_,right_node_)  {
   }
   void postprocess_in_ctor() override {}
   void check_semantics() const override;

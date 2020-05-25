@@ -121,7 +121,7 @@ bool MCell3WorldConverter::convert(volume* s) {
   // release events require wall information
   CHECK(convert_release_events(s));
   CHECK(convert_viz_output_events(s));
-  CHECK(convert_mol_count_and_rxn_count_events(s));
+  CHECK(convert_mol_or_rxn_count_events(s));
 
   return true;
 }
@@ -1390,7 +1390,7 @@ static bool ends_with(std::string const & value, std::string const & ending)
     return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
 }
 
-bool MCell3WorldConverter::convert_mol_count_and_rxn_count_events(volume* s) {
+bool MCell3WorldConverter::convert_mol_or_rxn_count_events(volume* s) {
   output_block* output_blocks = s->output_block_head;
 
   if (output_blocks == nullptr) {
@@ -1416,7 +1416,7 @@ bool MCell3WorldConverter::convert_mol_count_and_rxn_count_events(volume* s) {
       data_set = data_set->next) {
 
     CHECK_PROPERTY(data_set->outfile_name != nullptr);
-    // appending "4" to distinguish from
+    // appending "4" to distinguish from mcell3
     count_buffer_id_t buffer_id = world->create_count_buffer(string("4") + data_set->outfile_name, buffer_size);
 
     // NOTE: FILE_SUBSTITUTE is interpreted in the same way as FILE_OVERWRITE

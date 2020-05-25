@@ -25,6 +25,7 @@
 
 #include <vector>
 #include "defines.h"
+#include "mol_or_rxn_count_event.h"
 
 namespace BNG {
 class ComponentType;
@@ -40,6 +41,8 @@ class World;
 class Partition;
 class GeometryObject;
 class ReleaseEvent;
+class MolOrRxnCountTerm;
+class MolOrRxnCountInfo;
 
 namespace API {
 
@@ -53,6 +56,7 @@ class ComplexInstance;
 class SurfaceRegion;
 class GeometryObject;
 class ReleaseSite;
+class CountTerm;
 
 class MCell4Converter {
 public:
@@ -73,8 +77,7 @@ private:
   BNG::MolInstance convert_molecule_instance(API::MoleculeInstance& mi);
   BNG::CplxInstance convert_complex_instance(API::ComplexInstance& inst);
   void convert_rxns();
-
-  void init_species_flags();
+  void init_species_rxn_flags();
 
   MCell::wall_index_t convert_wall_and_add_to_geom_object(
       const API::GeometryObject& src_obj, const uint side,
@@ -89,6 +92,17 @@ private:
 
   void convert_region_expr(API::ReleaseSite& rel_site, MCell::ReleaseEvent* rel_event);
   void convert_release_events();
+
+  MCell::MolOrRxnCountTerm convert_count_term_leaf_and_init_species_counting_flags(
+      const std::shared_ptr<API::CountTerm> ct, const int sign
+  );
+  void convert_count_terms_recursively(
+      const std::shared_ptr<API::CountTerm> ct,
+      const int sign,
+      MCell::MolOrRxnCountInfo& info
+  );
+  void convert_mol_or_rxn_count_events_and_init_species_counting_flags();
+  void init_species_counting_flags();
 
   void convert_viz_output_events();
 

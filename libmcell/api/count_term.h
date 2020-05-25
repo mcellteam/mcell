@@ -23,8 +23,10 @@
 #ifndef API_COUNT_TERM_H
 #define API_COUNT_TERM_H
 
-#include "../generated/gen_count_term.h"
-#include "../api/common.h"
+#include "generated/gen_count_term.h"
+#include "api/common.h"
+#include "api/region.h"
+#include "api/reaction_rule.h"
 
 namespace MCell {
 namespace API {
@@ -32,6 +34,39 @@ namespace API {
 class CountTerm: public GenCountTerm, public std::enable_shared_from_this<CountTerm> {
 public:
   COUNT_TERM_CTOR()
+
+  void check_semantics() const override {
+    if (is_set(region)) {
+      if (region->node_type != RegionNodeType::LeafGeometryObject && region->node_type != RegionNodeType::LeafSurfaceRegion) {
+        throw ValueError(S("Only simple regions of type ") + NAME_CLASS_GEOMETRY_OBJECT + " and " + NAME_CLASS_REGION +
+            " are supported now. Error for " + NAME_CLASS_COUNT_TERM + " " + name);
+      }
+    }
+
+    if (is_set(reaction_rule) && is_set(reaction_rule->rev_rate)) {
+      throw ValueError(S("Reversible reactions cannot counted because it is not clear which direction should be counted.") +
+          " Error for " + NAME_CLASS_COUNT_TERM + " " + name + ". Split the reaction rule into its forward and reverse variants if needed.");
+    }
+  }
+
+  // called from Count::check_semantics()
+  void check_that_species_or_reaction_rule_is_set() {
+
+    if (node_type == ExprNodeType::Leaf) {
+      uint num_set = get_num_set(species, reaction_rule);
+      if (num_set != 1) {
+        // NOTE: does not give much information on where to search for the error
+        throw ValueError(
+            S("Exactly one of ") + NAME_SPECIES + " or " + NAME_REACTION_RULE + " must be set for one of the " +
+            NAME_CLASS_COUNT_TERM + " used in " + NAME_CLASS_COUNT + ".");
+      }
+    }
+    else {
+      left_node->check_that_species_or_reaction_rule_is_set();
+      right_node->check_that_species_or_reaction_rule_is_set();
+    }
+
+  }
 
   std::shared_ptr<CountTerm> create_expr_term(ExprNodeType op, std::shared_ptr<CountTerm> op2) {
     std::shared_ptr<CountTerm> res = std::make_shared<CountTerm>();
@@ -46,7 +81,7 @@ public:
   }
 
   std::shared_ptr<CountTerm> __sub__(std::shared_ptr<CountTerm> op2) override {
-    return create_expr_term(ExprNodeType::Add, op2);
+    return create_expr_term(ExprNodeType::Sub, op2);
   }
 
 };
