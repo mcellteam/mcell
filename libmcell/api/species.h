@@ -23,8 +23,11 @@
 #ifndef API_SPECIES_H
 #define API_SPECIES_H
 
-#include "../generated/gen_species.h"
-#include "../api/common.h"
+#include <Python.h>
+
+#include "generated/gen_species.h"
+#include "generated/gen_constants.h"
+#include "api/common.h"
 #include "complex_instance.h"
 #include "molecule_type.h"
 
@@ -33,8 +36,17 @@ namespace API {
 
 class Species: public GenSpecies {
 public:
-  // having a generated ctor makes changes much simpler
   SPECIES_CTOR()
+
+  // ctor for special ALL_*MOLECULES species
+  Species(const char* name_) {
+    class_name = "Species";
+    name = name_;
+    // species_id on model initialization
+    species_id = SPECIES_ID_INVALID;
+    // no postprocessing or semantic checks, remaining
+    // members are uninitialized
+  }
 
   void postprocess_in_ctor() override {
     // initialization
@@ -78,6 +90,13 @@ public:
     ComplexInstance res = *dynamic_cast<ComplexInstance*>(this);
     res.orientation = orientation;
     return res;
+  }
+
+  bool is_species_superclass() const {
+    return
+        name == ALL_MOLECULES_NAME ||
+        name == ALL_VOLUME_MOLECULES_NAME ||
+        name == ALL_SURFACE_MOLECULES_NAME;
   }
 
   // simulation engine mapping

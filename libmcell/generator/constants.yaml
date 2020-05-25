@@ -23,6 +23,30 @@ constants:
     value: 10000
     doc: Internal constant used to initialize buffer size for mol and rxn counts.
     
+  - name: ALL_MOLECULES_NAME
+    type: str
+    value: ALL_MOLECULES
+
+  - name: ALL_VOLUME_MOLECULES_NAME
+    type: str
+    value: ALL_VOLUME_MOLECULES
+
+  - name: ALL_SURFACE_MOLECULES_NAME
+    type: str
+    value: ALL_SURFACE_MOLECULES
+  
+  - name: AllMolecules
+    type: Species
+    value: AllMolecules # object from api/globals.cpp
+
+  - name: AllVolumeMolecules
+    type: Species
+    value: AllVolumeMolecules # object from api/globals.cpp
+
+  - name: AllSurfaceMolecules
+    type: Species
+    value: AllSurfaceMolecules # object from api/globals.cpp
+
     
 enums:
   - name: Orientation

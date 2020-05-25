@@ -101,6 +101,10 @@ YAML_TYPE_VEC2 = 'Vec2'
 YAML_TYPE_VEC3 = 'Vec3'
 YAML_TYPE_IVEC3 = 'IVec3'
 YAML_TYPE_LIST = 'List'
+YAML_TYPE_SPECIES = 'Species'
+
+PYBIND_TYPE_OBJECT = 'object'
+PY_CAST = 'py::cast'
 
 CPP_TYPE_FLOAT = 'float_t'
 CPP_TYPE_STR = 'std::string'
@@ -145,6 +149,7 @@ RET_TYPE_CHECK_SEMANTICS = 'void'
 CHECK_SEMANTICS = 'check_semantics'
 DECL_CHECK_SEMANTICS = CHECK_SEMANTICS + '() const'
 DECL_DEFINE_PYBINDIND_CONSTANTS = 'void define_pybinding_constants(py::module& m)'
+DECL_DEFINE_PYBINDIND_ENUMS = 'void define_pybinding_enums(py::module& m)'
 DECL_SET_INITIALIZED = 'set_initialized()'
 
 RET_TYPE_TO_STR = 'std::string'
@@ -283,6 +288,8 @@ def yaml_type_to_pybind_type(t):
         return CPP_TYPE_INT + '_'
     elif t == YAML_TYPE_LONG:
         return CPP_TYPE_INT + '_'
+    elif t == YAML_TYPE_SPECIES:
+        return PYBIND_TYPE_OBJECT
     else:
         assert False, "Unsupported constant type " + t 
     
@@ -1057,9 +1064,10 @@ def write_constant_def(f, constant_def):
     t = constant_def[KEY_TYPE]
     value = constant_def[KEY_VALUE]
     
-    q = '"' if t == YAML_TYPE_STR else ''
-    
-    f.write('const ' + yaml_type_to_cpp_type(t) + ' ' + name + ' = ' + q + str(value) + q + ';\n')
+    # complex types are defined manually in globals.h
+    if is_base_yaml_type(t):
+        q = '"' if t == YAML_TYPE_STR else ''
+        f.write('const ' + yaml_type_to_cpp_type(t) + ' ' + name + ' = ' + q + str(value) + q + ';\n')
         
         
 def write_enum_def(f, enum_def):
@@ -1104,6 +1112,7 @@ def generate_constants_header(constants_items, enums_items):
         f.write('#define ' + guard + '\n\n')
         
         f.write('#include <string>\n')
+        f.write('#include "api/globals.h"\n')
         f.write('\n' + NAMESPACES_BEGIN + '\n\n')
         
         for constant_def in constants_items:
@@ -1112,7 +1121,8 @@ def generate_constants_header(constants_items, enums_items):
         for enum_def in enums_items:
             write_enum_def(f, enum_def)
 
-        f.write('\n' + DECL_DEFINE_PYBINDIND_CONSTANTS + ';\n\n')
+        f.write('\n' + DECL_DEFINE_PYBINDIND_CONSTANTS + ';\n')
+        f.write(DECL_DEFINE_PYBINDIND_ENUMS + ';\n\n')
         
         f.write(NAMESPACES_END + '\n\n')
         
@@ -1127,9 +1137,13 @@ def write_constant_binding(f, constant_def):
     t = constant_def[KEY_TYPE]
     value = constant_def[KEY_VALUE]
     
-    q = '"' if t == YAML_TYPE_STR else ''
+    #q = '"' if t == YAML_TYPE_STR else ''
     
-    f.write('  m.attr("' + name + '") = py::' + yaml_type_to_pybind_type(t) + '(' + q + name + q + ');\n')
+    pybind_type = yaml_type_to_pybind_type(t)
+    if pybind_type == PYBIND_TYPE_OBJECT:
+        f.write('  m.attr("' + name + '") = py::' + PYBIND_TYPE_OBJECT + '(' + PY_CAST + '(' + name + '));\n')
+    else:
+        f.write('  m.attr("' + name + '") = py::' + pybind_type + '(' + name + ');\n')
     
 
 def write_enum_binding(f, enum_def):
@@ -1153,12 +1167,27 @@ def generate_constants_implementation(constants_items, enums_items):
         f.write(COPYRIGHT)
         write_generated_notice(f)
         f.write(INCLUDE_API_COMMON_H + '\n')
+        
+        # includes for used classes
+        used_classes = set()
+        for constant_def in constants_items:
+            t = constant_def[KEY_TYPE]
+            pybind_type = yaml_type_to_pybind_type(t)
+            if pybind_type == PYBIND_TYPE_OBJECT:
+                used_classes.add(t)
+        for cls in used_classes:
+            f.write('#include "' + get_api_class_file_name_w_dir(t, EXT_H) + '"\n')
+        
         f.write('\n' + NAMESPACES_BEGIN + '\n\n')
         
         f.write(DECL_DEFINE_PYBINDIND_CONSTANTS + ' {\n')
         
         for constant_def in constants_items:
             write_constant_binding(f, constant_def)
+
+        f.write('}\n\n')
+
+        f.write(DECL_DEFINE_PYBINDIND_ENUMS + ' {\n')
         
         for enum_def in enums_items:
             write_enum_binding(f, enum_def)

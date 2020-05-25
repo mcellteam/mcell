@@ -23,14 +23,15 @@
 #ifndef API_MODEL_H
 #define API_MODEL_H
 
-#include "../generated/gen_model.h"
-#include "../api/common.h"
-#include "subsystem.h"
-#include "instantiation_data.h"
-#include "observables.h"
-#include "config.h"
-#include "warnings.h"
-#include "notifications.h"
+#include "generated/gen_model.h"
+#include "api/common.h"
+#include "api/globals.h"
+#include "api/subsystem.h"
+#include "api/instantiation_data.h"
+#include "api/observables.h"
+#include "api/config.h"
+#include "api/warnings.h"
+#include "api/notifications.h"
 
 namespace MCell {
 
@@ -42,6 +43,10 @@ class Model: public GenModel, public Subsystem, public InstantiationData, public
 public:
 
   Model() : world(nullptr) {
+    // add species superclasses (a copy of them)
+    species.push_back(std::make_shared<Species>(AllMolecules));
+    species.push_back(std::make_shared<Species>(AllVolumeMolecules));
+    species.push_back(std::make_shared<Species>(AllSurfaceMolecules));
   }
   virtual ~Model();
 

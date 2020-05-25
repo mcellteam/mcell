@@ -103,7 +103,8 @@ void define_pybinding_IVec3(py::module& m) {
 // all define_binding_* functions are called here
 PYBIND11_MODULE(mcell, m) {
 
-  define_pybinding_constants(m);
+  // some classes use enums, must be defined first
+  define_pybinding_enums(m);
 
   define_pybinding_Vec3(m);
   define_pybinding_IVec3(m);
@@ -133,6 +134,8 @@ PYBIND11_MODULE(mcell, m) {
   define_pybinding_Warnings(m);
   define_pybinding_Model(m);
 
+  // constants may reference existing types, must be "bound" later
+  define_pybinding_constants(m);
 }
 
 

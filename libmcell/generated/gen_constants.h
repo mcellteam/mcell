@@ -24,6 +24,7 @@
 #define API_GEN_CONSTANTS
 
 #include <string>
+#include "api/globals.h"
 
 namespace MCell {
 namespace API {
@@ -34,6 +35,9 @@ const int BOND_UNBOUND = 0;
 const int BOND_BOUND = -1;
 const float_t PARTITION_EDGE_EXTRA_MARGIN_UM = 0.01;
 const int DEFAULT_COUNT_BUFFER_SIZE = 10000;
+const std::string ALL_MOLECULES_NAME = "ALL_MOLECULES";
+const std::string ALL_VOLUME_MOLECULES_NAME = "ALL_VOLUME_MOLECULES";
+const std::string ALL_SURFACE_MOLECULES_NAME = "ALL_SURFACE_MOLECULES";
 
 enum class Orientation {
   Down = -1,
@@ -163,6 +167,9 @@ static inline  std::ostream& operator << (std::ostream& out, const RegionNodeTyp
 
 
 void define_pybinding_constants(py::module& m);
+
+
+void define_pybinding_enums(py::module& m);
 
 } // namespace API
 } // namespace MCell

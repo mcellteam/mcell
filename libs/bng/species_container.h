@@ -134,7 +134,6 @@ public:
         id == all_molecules_species_id ||
         id == all_volume_molecules_species_id ||
         id == all_surface_molecules_species_id;
-
   }
 
   // TODO: remove tyhe bng_data argument

@@ -23,6 +23,7 @@ set(SOURCE_FILES
     api/instantiation_data.cpp
     api/model.cpp
     api/subsystem.cpp
+    api/globals.cpp
     api/mcell4_converter.cpp
 
     generated/gen_component_type.cpp

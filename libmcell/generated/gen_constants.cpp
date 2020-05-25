@@ -21,17 +21,27 @@
 ******************************************************************************/
 
 #include "../api/common.h"
+#include "../api/species.h"
 
 namespace MCell {
 namespace API {
 
 void define_pybinding_constants(py::module& m) {
-  m.attr("STATE_UNSET") = py::str("STATE_UNSET");
+  m.attr("STATE_UNSET") = py::str(STATE_UNSET);
   m.attr("STATE_UNSET_INT") = py::int_(STATE_UNSET_INT);
   m.attr("BOND_UNBOUND") = py::int_(BOND_UNBOUND);
   m.attr("BOND_BOUND") = py::int_(BOND_BOUND);
   m.attr("PARTITION_EDGE_EXTRA_MARGIN_UM") = py::float_(PARTITION_EDGE_EXTRA_MARGIN_UM);
   m.attr("DEFAULT_COUNT_BUFFER_SIZE") = py::int_(DEFAULT_COUNT_BUFFER_SIZE);
+  m.attr("ALL_MOLECULES_NAME") = py::str(ALL_MOLECULES_NAME);
+  m.attr("ALL_VOLUME_MOLECULES_NAME") = py::str(ALL_VOLUME_MOLECULES_NAME);
+  m.attr("ALL_SURFACE_MOLECULES_NAME") = py::str(ALL_SURFACE_MOLECULES_NAME);
+  m.attr("AllMolecules") = py::object(py::cast(AllMolecules));
+  m.attr("AllVolumeMolecules") = py::object(py::cast(AllVolumeMolecules));
+  m.attr("AllSurfaceMolecules") = py::object(py::cast(AllSurfaceMolecules));
+}
+
+void define_pybinding_enums(py::module& m) {
   py::enum_<Orientation>(m, "Orientation", py::arithmetic())
     .value("Down", Orientation::Down)
     .value("None", Orientation::None)
