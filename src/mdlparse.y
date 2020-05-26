@@ -145,6 +145,8 @@ struct arg_list printfargs;
 %parse-param {yyscan_t scanner}
 %name-prefix "mdl"
 
+%error-verbose
+
 %token       ABS
 %token       ABSORPTIVE
 %token       ACCURATE_3D_REACTIONS
