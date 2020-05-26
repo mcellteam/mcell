@@ -271,7 +271,7 @@ bool VizOutputEvent::should_visualize_all_species() const {
   // we are counting only specific vol & surf species, not reactive surfaces
   uint vol_surf_species_count = 0;
   for (const BNG::Species& s: world->get_all_species().get_species_vector()) {
-    if (!DMUtil::is_species_superclass(s.name) && !s.is_reactive_surface()) {
+    if (!is_species_superclass(s.name) && !s.is_reactive_surface()) {
       vol_surf_species_count++;
     }
   }

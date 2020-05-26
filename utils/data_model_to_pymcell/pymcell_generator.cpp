@@ -81,6 +81,7 @@ void PymcellGenerator::reset() {
   geometry_generated = false;
   observables_generated = false;
   unnamed_rxn_counter = 0;
+  unnamed_surf_class_counter = 0;
   all_species_names.clear();
   all_reaction_rules_names.clear();
   all_count_term_names.clear();
@@ -172,6 +173,114 @@ vector<string> PymcellGenerator::generate_species(ofstream& out) {
 }
 
 
+void PymcellGenerator::get_surface_class_property_info(
+    Value& property,
+    string& name, string& type_name, string& affected_mols, string& orientation
+) {
+  check_version(KEY_SURFACE_CLASS_PROP_LIST, property, JSON_DM_VERSION_1756);
+  CHECK_PROPERTY(property[KEY_CLAMP_VALUE] = "0");
+
+  affected_mols = property[KEY_AFFECTED_MOLS].asString();
+  if (affected_mols == ALL_MOLECULES) {
+    affected_mols = S(MDOT) + NAME_CV_AllMolecules;
+  }
+  else if (affected_mols == ALL_VOLUME_MOLECULES) {
+    affected_mols = S(MDOT) + NAME_CV_AllVolumeMolecules;
+  }
+  else if (affected_mols == ALL_SURFACE_MOLECULES) {
+    affected_mols = S(MDOT) + NAME_CV_AllSurfaceMolecules;
+  }
+
+  orientation = convert_orientation(property[KEY_NAME].asString());
+
+  string surf_class_type = property[KEY_SURF_CLASS_TYPE].asString();
+  if (surf_class_type == VALUE_TRANSPARENT) {
+    type_name = NAME_EV_TRANSPARENT;
+  }
+  else if (surf_class_type == VALUE_REFLECTIVE) {
+    type_name = NAME_EV_REFLECTIVE;
+  }
+  else if (surf_class_type == VALUE_ABSORPTIVE) {
+    type_name = NAME_EV_ABSORPTIVE;
+  }
+  else {
+    ERROR(S("Invalid ") + KEY_SURF_CLASS_TYPE + " " + surf_class_type + ".");
+  }
+
+  name = property[KEY_NAME].asString();
+  if (name == "") {
+    string tn_lower = type_name;
+    transform(tn_lower.begin(), tn_lower.end(), tn_lower.begin(), ::tolower);
+    // to be sure that there is no conflict, let's put a number at the end
+    name = SURFACE_CLASS_PREFIX + tn_lower + "_" + affected_mols + to_string(unnamed_surf_class_counter);
+    unnamed_surf_class_counter++;
+  }
+}
+
+
+vector<string> PymcellGenerator::generate_surface_classes(ofstream& out) {
+  vector<string> sc_names;
+
+  if (!mcell.isMember(KEY_DEFINE_SURFACE_CLASSES)) {
+    return sc_names;
+  }
+
+  Value& define_surface_classes = get_node(mcell, KEY_DEFINE_SURFACE_CLASSES);
+  check_version(KEY_DEFINE_SURFACE_CLASSES, define_surface_classes, JSON_DM_VERSION_1638);
+  Value& surface_class_list = get_node(define_surface_classes, KEY_SURFACE_CLASS_LIST);
+
+  for (Value::ArrayIndex i = 0; i < surface_class_list.size(); i++) {
+    Value& surface_class_list_item = surface_class_list[i];
+
+    Value& surface_class_prop_list = get_node(surface_class_list_item, KEY_SURFACE_CLASS_PROP_LIST);
+
+    vector<string> sc_prop_names;
+    if (surface_class_prop_list.size() > 1) {
+      for (Value::ArrayIndex i = 0; i < surface_class_prop_list.size(); i++) {
+        Value& surface_class_prop_item = surface_class_prop_list[i];
+
+        string name, type_name, affected_mols, orientation_name;
+        get_surface_class_property_info(surface_class_prop_item, name, type_name, affected_mols, orientation_name);
+
+        sc_prop_names.push_back(name);
+        gen_ctor_call(out, name, NAME_CLASS_SURFACE_PROPERTY, true);
+        gen_param(out, NAME_NAME, name, true);
+        gen_param_enum(out, NAME_TYPE, NAME_ENUM_SURFACE_PROPERTY_TYPE, type_name, true);
+        gen_param_id(out, NAME_AFFECTED_SPECIES, affected_mols, orientation_name != "");
+        if (orientation_name != "") {
+          gen_param_id(out, NAME_ORIENTATION, orientation_name, false);
+        }
+        out << CTOR_END;
+      }
+    }
+
+    string name = surface_class_list_item[KEY_NAME].asString();
+    sc_names.push_back(name);
+    gen_ctor_call(out, name, NAME_CLASS_SURFACE_CLASS, true);
+    gen_param(out, NAME_NAME, name, true);
+
+    if (!sc_prop_names.empty()) {
+      // use a list of properties
+      gen_param_list(out, NAME_PROPERTIES, sc_prop_names, false);
+    }
+    else {
+      // simplified setup, directly set members
+      string name, type_name, affected_mols, orientation_name;
+      get_surface_class_property_info(surface_class_prop_list[0], name, type_name, affected_mols, orientation_name);
+
+      gen_param_enum(out, NAME_TYPE, NAME_ENUM_SURFACE_PROPERTY_TYPE, type_name, true);
+      gen_param_id(out, NAME_AFFECTED_SPECIES, affected_mols, orientation_name != "");
+      if (orientation_name != "") {
+        gen_param_id(out, NAME_ORIENTATION, orientation_name, false);
+      }
+    }
+    out << CTOR_END;
+  }
+
+  return sc_names;
+}
+
+
 vector<string> PymcellGenerator::generate_reaction_rules(ofstream& out) {
   vector<string> rxn_names;
 
@@ -233,11 +342,15 @@ void PymcellGenerator::generate_subsystem() {
   out << make_section_comment(SUBSYSTEM);
 
   all_species_names = generate_species(out);
+  vector<string> surface_class_names = generate_surface_classes(out);
   all_reaction_rules_names = generate_reaction_rules(out);
 
   gen_ctor_call(out, SUBSYSTEM, NAME_CLASS_SUBSYSTEM, false);
   for (string& s: all_species_names) {
     gen_method_call(out, SUBSYSTEM, NAME_ADD_SPECIES, s);
+  }
+  for (string& sc: surface_class_names) {
+    gen_method_call(out, SUBSYSTEM, NAME_ADD_SURFACE_CLASS, sc);
   }
   for (string& r: all_reaction_rules_names) {
     gen_method_call(out, SUBSYSTEM, NAME_ADD_REACTION_RULE, r);
@@ -398,9 +511,9 @@ vector<string> PymcellGenerator::generate_release_sites(ofstream& out) {
     return release_site_names;
   }
 
-  Json::Value& release_sites = mcell[KEY_RELEASE_SITES];
+  Value& release_sites = mcell[KEY_RELEASE_SITES];
   check_version(KEY_RELEASE_SITES, release_sites, JSON_DM_VERSION_1638);
-  Json::Value& release_site_list = release_sites[KEY_RELEASE_SITE_LIST];
+  Value& release_site_list = release_sites[KEY_RELEASE_SITE_LIST];
   for (Value::ArrayIndex i = 0; i < release_site_list.size(); i++) {
     Value& release_site_item = release_site_list[i];
     check_version(KEY_RELEASE_SITE_LIST, release_site_item, JSON_DM_VERSION_1330);
@@ -442,6 +555,42 @@ vector<string> PymcellGenerator::generate_release_sites(ofstream& out) {
 }
 
 
+void PymcellGenerator::generate_surface_classes_assignment(ofstream& out) {
+  if (!mcell.isMember(KEY_MODIFY_SURFACE_REGIONS)) {
+    return;
+  }
+
+  Value& modify_surface_regions = mcell[KEY_MODIFY_SURFACE_REGIONS];
+  check_version(KEY_MODIFY_SURFACE_REGIONS, modify_surface_regions, JSON_DM_VERSION_1638);
+  Value& modify_surface_regions_list = modify_surface_regions[KEY_MODIFY_SURFACE_REGIONS_LIST];
+  for (Value::ArrayIndex i = 0; i < modify_surface_regions_list.size(); i++) {
+    Value& modify_surface_regions_item = modify_surface_regions_list[i];
+    check_version(KEY_MODIFY_SURFACE_REGIONS_LIST, modify_surface_regions_item, JSON_DM_VERSION_1330);
+
+    CHECK_PROPERTY(modify_surface_regions_item[KEY_REGION_NAME].asString() == "" && "Not supported yet");
+
+    string object_name = modify_surface_regions_item[KEY_OBJECT_NAME].asString();
+    CHECK_PROPERTY(object_name != "");
+
+    string region_selection = modify_surface_regions_item[KEY_REGION_SELECTION].asString();
+
+    string obj_or_region_name;
+    if (region_selection != REGION_ALL_NAME) {
+      obj_or_region_name = object_name + "_" + region_selection;
+    }
+    else {
+      obj_or_region_name = object_name;
+    }
+
+    string surf_class_name = modify_surface_regions_item[KEY_SURF_CLASS_NAME].asString();
+
+    // generate the assignment
+    out << obj_or_region_name << "." << NAME_SURFACE_CLASS << " = " << surf_class_name << "\n";
+  }
+  out << "\n";
+}
+
+
 void PymcellGenerator::generate_instantiation(const vector<string>& geometry_objects) {
 
   ofstream out;
@@ -455,8 +604,14 @@ void PymcellGenerator::generate_instantiation(const vector<string>& geometry_obj
   }
   out << "\n";
   out << make_section_comment(INSTANTIATION);
+  out << make_section_comment("release sites");
 
   vector<string> release_sites = generate_release_sites(out);
+
+  out << make_section_comment("surface classes assignment");
+  generate_surface_classes_assignment(out);
+
+  out << make_section_comment("instantiation data");
 
   gen_ctor_call(out, INSTANTIATION, NAME_CLASS_INSTANTIATION_DATA, false);
   for (const string& s: geometry_objects) {
@@ -497,7 +652,7 @@ vector<string> PymcellGenerator::generate_viz_outputs(ofstream& out) {
     return viz_output_names;
   }
 
-  Json::Value& viz_output = mcell[KEY_VIZ_OUTPUT];
+  Value& viz_output = mcell[KEY_VIZ_OUTPUT];
   check_version(KEY_VIZ_OUTPUT, viz_output, JSON_DM_VERSION_1638);
 
   string name = VIZ_OUTPUT_NAME; // there is only one in datamodel now
@@ -585,7 +740,7 @@ static string create_count_name(string what_to_count, string where_to_count) {
 
 void PymcellGenerator::process_single_count_term(
     const string& mdl_string,
-    bool& rxn_not_mol, string& what_to_count, string& where_to_count, orientation_t& orientation) {
+    bool& rxn_not_mol, string& what_to_count, string& where_to_count, string& orientation) {
 
   // mdl_string is always in the form COUNT[what,where]
   size_t start_brace = mdl_string.find('[');
@@ -610,17 +765,13 @@ void PymcellGenerator::process_single_count_term(
   what_to_count = trim(what_to_count);
 
   // process orientation
-  orientation = ORIENTATION_NONE;
+  orientation = "";
   assert(what_to_count != "");
   char last_c = what_to_count.back();
   if (last_c == '\'' || last_c == ',' || last_c == ';') {
-    if (last_c == '\'') {
-      orientation = ORIENTATION_UP;
-    }
-    else if (last_c == ',') {
-      orientation = ORIENTATION_DOWN;
-    }
-    // ; - ORIENTATION_NONE
+    string s;
+    s = last_c;
+    orientation = convert_orientation(s);
 
     what_to_count = what_to_count.substr(0, what_to_count.size() - 1);
   }
@@ -664,7 +815,7 @@ string PymcellGenerator::generate_count_terms_for_expression(ofstream& out, cons
     bool rxn_not_mol;
     string what_to_count;
     string where_to_count;
-    orientation_t orientation;
+    string orientation;
 
     process_single_count_term(
         mdl_string.substr(start, end - start + 1),
@@ -682,12 +833,10 @@ string PymcellGenerator::generate_count_terms_for_expression(ofstream& out, cons
         gen_param_id(out, NAME_REACTION_RULE, what_to_count, where_to_count != "");
       }
       else {
-        assert(orientation != ORIENTATION_NOT_SET);
-        gen_param_id(out, NAME_SPECIES, what_to_count, orientation == ORIENTATION_NONE && where_to_count != "");
+        gen_param_id(out, NAME_SPECIES, what_to_count, orientation == "" && where_to_count != "");
 
-        if (orientation != ORIENTATION_NONE) {
-          gen_param_enum(out, NAME_ORIENTATION, NAME_ENUM_ORIENTATION,
-              (orientation == ORIENTATION_DOWN) ? NAME_EV_DOWN : NAME_EV_UP, where_to_count != "");
+        if (orientation != "") {
+          gen_param_enum(out, NAME_ORIENTATION, NAME_ENUM_ORIENTATION, orientation, where_to_count != "");
         }
       }
 
@@ -735,7 +884,7 @@ vector<string> PymcellGenerator::generate_counts(ofstream& out) {
     bool single_term;
     string what_to_count;
     string where_to_count; // empty for WORLD
-    orientation_t orientation;
+    string orientation;
 
     string rxn_or_mol = reaction_output_item[KEY_RXN_OR_MOL].asString();
     if (rxn_or_mol == VALUE_MDLSTRING) {
@@ -781,9 +930,8 @@ vector<string> PymcellGenerator::generate_counts(ofstream& out) {
       else {
         gen_param_id(out, NAME_SPECIES, what_to_count, true);
 
-        if (orientation != ORIENTATION_NONE) {
-          gen_param_enum(out, NAME_ORIENTATION, NAME_ENUM_ORIENTATION,
-              (orientation == ORIENTATION_DOWN) ? NAME_EV_DOWN : NAME_EV_UP, where_to_count != "");
+        if (orientation != "") {
+          gen_param_enum(out, NAME_ORIENTATION, NAME_ENUM_ORIENTATION, orientation, where_to_count != "");
         }
       }
     }
@@ -850,8 +998,8 @@ void PymcellGenerator::generate_config(ofstream& out) {
   gen_assign(out, MODEL, NAME_CONFIG, NAME_TOTAL_ITERATIONS_HINT, PARAM_ITERATIONS);
   out << "\n";
 
-  Json::Value& initialization = mcell[KEY_INITIALIZATION];
-  Json::Value& partitions = initialization[KEY_PARTITIONS];
+  Value& initialization = mcell[KEY_INITIALIZATION];
+  Value& partitions = initialization[KEY_PARTITIONS];
 
   // check that all the x,y,z values are the same (comparing strings)
   CHECK_PROPERTY(partitions[KEY_X_START].asString() == partitions[KEY_Y_START].asString());

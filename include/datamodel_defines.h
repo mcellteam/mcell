@@ -10,6 +10,7 @@
 const char* const DEFAULT_DATAMODEL_FILENAME = "datamodel.json";
 
 // used also outside of datamodel, maybe move elsewhere
+// TODO: use definition from libmcell constants
 const char* const ALL_MOLECULES = "ALL_MOLECULES";
 const char* const ALL_VOLUME_MOLECULES = "ALL_VOLUME_MOLECULES";
 const char* const ALL_SURFACE_MOLECULES = "ALL_SURFACE_MOLECULES";
@@ -425,11 +426,6 @@ static inline std::string orientation_to_str(const orientation_t o) {
 }
 
 
-static bool is_species_superclass(const std::string& name) {
-  return name == ALL_MOLECULES || name == ALL_VOLUME_MOLECULES || name == ALL_SURFACE_MOLECULES;
-}
-
-
 #define CONVERSION_UNSUPPORTED(msg) \
   do { errs() << msg << " This is not supported yet.\n"; exit(1); } while (0)
 
@@ -437,5 +433,14 @@ static bool is_species_superclass(const std::string& name) {
   do { if (!(cond)) { errs() << "Check failed: " << #cond << ": " << msg << " This is not supported yet.\n"; exit(1); } } while (0)
 
 } // namespace DataModel
+
+// TODO: make some common header with utilities and move this there
+namespace MCell {
+
+static bool is_species_superclass(const std::string& name) {
+  return name == ALL_MOLECULES || name == ALL_VOLUME_MOLECULES || name == ALL_SURFACE_MOLECULES;
+}
+
+} // namespace MCell
 
 #endif // _DATAMODEL_DEFINES_H_

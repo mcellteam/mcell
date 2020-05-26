@@ -27,9 +27,8 @@
 #include <fstream>
 
 #include "json/json.h"
-#include "defines.h"
 
-// use different namespace?
+// use a different namespace?
 namespace MCell {
 
 class PymcellGenerator {
@@ -53,7 +52,14 @@ private:
   void generate_parameters();
 
   std::vector<std::string> generate_species(std::ofstream& out);
+
+  void get_surface_class_property_info(
+      Json::Value& property,
+      std::string& name, std::string& type_name, std::string& affected_mols, std::string& orientation);
+  std::vector<std::string> generate_surface_classes(std::ofstream& out);
+
   std::vector<std::string> generate_reaction_rules(std::ofstream& out);
+
   void generate_subsystem();
 
   std::string generate_single_geometry_object(
@@ -61,6 +67,7 @@ private:
   std::vector<std::string> generate_geometry();
 
   std::vector<std::string> generate_release_sites(std::ofstream& out);
+  void generate_surface_classes_assignment(std::ofstream& out);
   void generate_instantiation(const std::vector<std::string>& geometry_objects);
 
   std::vector<std::string> get_species_to_visualize();
@@ -69,7 +76,7 @@ private:
   void process_single_count_term(
       const std::string& mdl_string,
       bool& rxn_not_mol, std::string& what_to_count, std::string& where_to_count,
-      orientation_t& orientation);
+      std::string& orientation);
   std::string generate_count_terms_for_expression(
       std::ofstream& out, const std::string& mdl_string);
   std::vector<std::string> generate_counts(std::ofstream& out);
@@ -88,6 +95,7 @@ private:
   bool observables_generated;
 
   uint unnamed_rxn_counter;
+  uint unnamed_surf_class_counter;
 
   std::vector<std::string> all_species_names;
   std::vector<std::string> all_reaction_rules_names;

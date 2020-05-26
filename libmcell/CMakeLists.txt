@@ -14,6 +14,7 @@ include_directories(${CMAKE_SOURCE_DIR}
     
     ${CMAKE_CURRENT_SOURCE_DIR}/../../mcell_tools/work/build_mcell/deps/
     ${CMAKE_CURRENT_SOURCE_DIR}/../libs  
+    ${CMAKE_CURRENT_SOURCE_DIR}/../libs/jsoncpp/include
 )
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g3 -O0 -isystem ${CMAKE_CURRENT_SOURCE_DIR}/../libs/sparsehash/src -Wall -std=c++17 ${PYTHON_INCLUDES}")

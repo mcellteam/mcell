@@ -122,7 +122,7 @@ void BngDataToDatamodelConverter::convert_species(Value& mcell_node) {
 
   for (const BNG::Species& s: bng_engine->get_all_species().get_species_vector()) {
     // ALL_* species re ignored and reactive surfaces are converted as surface classes
-    if (DMUtil::is_species_superclass(s.name) || s.is_reactive_surface()) {
+    if (is_species_superclass(s.name) || s.is_reactive_surface()) {
       continue;
     }
     Value species_node;
@@ -235,7 +235,7 @@ void BngDataToDatamodelConverter::convert_single_surface_class(const BNG::RxnRul
 
   surface_class[KEY_NAME] = DMUtil::remove_surf_class_prefix(reactant_name, r.name);
 
-  if (DMUtil::is_species_superclass(reactant_name)) {
+  if (is_species_superclass(reactant_name)) {
     sc_item[KEY_AFFECTED_MOLS] = reactant_name;
     sc_item[KEY_MOLECULE] = "";
   }

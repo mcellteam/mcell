@@ -31,6 +31,8 @@
 #include "complex_instance.h"
 #include "molecule_type.h"
 
+#include "include/datamodel_defines.h"
+
 namespace MCell {
 namespace API {
 
@@ -93,10 +95,7 @@ public:
   }
 
   bool is_species_superclass() const {
-    return
-        name == ALL_MOLECULES_NAME ||
-        name == ALL_VOLUME_MOLECULES_NAME ||
-        name == ALL_SURFACE_MOLECULES_NAME;
+    return MCell::is_species_superclass(name);
   }
 
   // simulation engine mapping

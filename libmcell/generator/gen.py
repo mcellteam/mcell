@@ -1306,7 +1306,9 @@ def generate_names_header(data_classes):
             write_name_def(f, name)
         f.write('\n')
 
-        for name in g_enums:
+        all_enums_list = list(g_enums)
+        all_enums_list.sort(key=str.casefold)
+        for name in all_enums_list:
             write_name_def(f, name, ENUM_PREFIX)
         f.write('\n')
         

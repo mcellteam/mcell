@@ -33,8 +33,8 @@
 #include <string>
 #include <cassert>
 
-#include "../../libmcell/generated/gen_names.h"
-#include "../../include/datamodel_defines.h"
+#include "libmcell/generated/gen_names.h"
+#include "include/datamodel_defines.h"
 
 #include "generator_constants.h"
 
@@ -139,7 +139,7 @@ static void check_version(const string node_name, Json::Value& node, const char*
   if (node[KEY_DATA_MODEL_VERSION].asString() != version) {
     throw ConversionError(
         "Error: version for " + node_name + " is " + node[KEY_DATA_MODEL_VERSION].asString() +
-        ", expected" + version);
+        ", expected " + version);
   }
 }
 
@@ -343,6 +343,22 @@ static void gen_rxn_substance_inst(ofstream& out, Json::Value& substances_node) 
   out << " ]";
 }
 
+
+static string convert_orientation(string s) {
+  if (s == "\'") {
+    return API::NAME_EV_UP;
+  }
+  else if (s == ",") {
+    return API::NAME_EV_DOWN;
+  }
+  else if (s == ";" || s == "") {
+    return "";
+  }
+  else {
+    ERROR("Invalid orientation '" + s + "'.");
+    return "INVALID_ORIENTATION";
+  }
+}
 
 // NOTE: the same code is in mcell3_world_converter.cpp
 static bool ends_with(std::string const & value, std::string const & ending)
