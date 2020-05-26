@@ -889,7 +889,8 @@ WallRxnResult DiffuseReactEvent::collide_and_react_with_walls(
 
   RxnClassesVector matching_rxn_classes;
   RxUtil::trigger_intersect(p, diffused_molecule, wall, matching_rxn_classes);
-  if (matching_rxn_classes.empty()) {
+  if (matching_rxn_classes.empty() ||
+      (matching_rxn_classes.size() == 1 && matching_rxn_classes[0]->type == BNG::RxnType::Reflect)) {
     return WallRxnResult::Reflect;
   }
 
