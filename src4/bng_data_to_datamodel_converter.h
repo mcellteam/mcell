@@ -61,6 +61,7 @@ private:
   void convert_single_species(const BNG::Species& s, Json::Value& species_node);
 
   void convert_single_rxn_rule(const BNG::RxnRule& r, Json::Value& species_node);
+  std::string get_surface_class_name(const BNG::RxnRule& r);
   void convert_single_surface_class(const BNG::RxnRule& r, Json::Value& rxn_node);
   void convert_rxns(Json::Value& mcell_node);
 
@@ -69,6 +70,7 @@ private:
 
   uint next_color_index;
   uint rxn_counter;
+  std::set<std::string> processed_surface_classes;
   std::vector<Vec3> colors;
 
   bool conversion_failed;
