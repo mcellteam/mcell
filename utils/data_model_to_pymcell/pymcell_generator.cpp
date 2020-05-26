@@ -190,6 +190,9 @@ void PymcellGenerator::get_surface_class_property_info(
   else if (affected_mols == ALL_SURFACE_MOLECULES) {
     affected_mols = S(MDOT) + NAME_CV_AllSurfaceMolecules;
   }
+  else if (affected_mols == VALUE_SINGLE) {
+    affected_mols = property[KEY_MOLECULE].asString();
+  }
 
   orientation = convert_orientation(property[KEY_NAME].asString());
 
@@ -244,7 +247,6 @@ vector<string> PymcellGenerator::generate_surface_classes(ofstream& out) {
 
         sc_prop_names.push_back(name);
         gen_ctor_call(out, name, NAME_CLASS_SURFACE_PROPERTY, true);
-        gen_param(out, NAME_NAME, name, true);
         gen_param_enum(out, NAME_TYPE, NAME_ENUM_SURFACE_PROPERTY_TYPE, type_name, true);
         gen_param_id(out, NAME_AFFECTED_SPECIES, affected_mols, orientation_name != "");
         if (orientation_name != "") {

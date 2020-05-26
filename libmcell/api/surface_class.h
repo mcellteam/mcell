@@ -41,7 +41,15 @@ public:
       GenSurfaceProperty::check_semantics();
     }
     else {
-      // TODO: should each type be specified only once or not?
+      // type of used properties must be set
+      for (std::shared_ptr<SurfaceProperty> property: properties) {
+        if (property->type == SurfacePropertyType::Unset) {
+          throw ValueError(S("Parameter '") + NAME_TYPE + "' of SurfaceProperty objects contained in SurfaceClass must be set.");
+        }
+        if (!is_set(property->affected_species)) {
+          throw ValueError(S("Parameter '") + NAME_AFFECTED_SPECIES + "' of SurfaceProperty objects contained in SurfaceClass must be set.");
+        }
+      }
     }
   }
 };

@@ -35,14 +35,7 @@ public:
 
   void check_semantics() const override {
     GenSurfaceProperty::check_semantics();
-
-    if (type == SurfacePropertyType::Unset) {
-      throw ValueError(S("Parameter '") + NAME_TYPE + "' must be set.");
-    }
-
-    if (!is_set(affected_species)) {
-      throw ValueError(S("Parameter '") + NAME_AFFECTED_SPECIES + "' must be set.");
-    }
+    // all checks are done in SurfaceClass::check_semantics
   }
 };
 
