@@ -337,10 +337,15 @@ static inline std::string remove_obj_name_prefix(const std::string& name) {
 static inline std::string remove_surf_class_prefix(
     const std::string& prefix, const std::string& name) {
 
-  size_t pos = prefix.size() + 1;
-  assert(name.size() > pos);
-  assert(name.substr(0, pos) == prefix + "+");
-  return name.substr(pos);
+  size_t pos = name.find('+');
+  if (pos != std::string::npos && name.find(prefix) == 0) {
+    size_t pos_prefix = prefix.size() + 1;
+    assert(name.size() > pos_prefix);
+    assert(name.substr(0, pos_prefix) == prefix + "+");
+    return name.substr(pos_prefix);  }
+  else {
+    return name;
+  }
 }
 
 
