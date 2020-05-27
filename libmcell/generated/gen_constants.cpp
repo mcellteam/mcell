@@ -47,6 +47,7 @@ void define_pybinding_enums(py::module& m) {
     .value("None", Orientation::None)
     .value("Up", Orientation::Up)
     .value("NotSet", Orientation::NotSet)
+    .value("Any", Orientation::Any)
     .export_values();
   py::enum_<Notification>(m, "Notification", py::arithmetic())
     .value("None", Notification::None)

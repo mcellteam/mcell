@@ -246,10 +246,34 @@ void gen_assign(ofstream& out, string obj_name, string field_name1, string field
   out << obj_name << "." << field_name1 << "." << field_name2 << " = " << value << "\n";
 }
 
+
 template<>
 void gen_assign(ofstream& out, string obj_name, string field_name1, string field_name2, bool value) {
   out << obj_name << "." << field_name1 << "." << field_name2 << " = " << (value ? "True" : "False") << "\n";
 }
+
+
+static string convert_orientation(const string s, const bool return_any_orientation = false) {
+  if (s == "\'") {
+    return API::NAME_EV_UP;
+  }
+  else if (s == ",") {
+    return API::NAME_EV_DOWN;
+  }
+  else if (s == ";" || s == "") {
+    if (return_any_orientation && s == ";") {
+      return API::NAME_EV_ANY;
+    }
+    else {
+      return "";
+    }
+  }
+  else {
+    ERROR("Invalid orientation '" + s + "'.");
+    return "INVALID_ORIENTATION";
+  }
+}
+
 
 static void gen_rxn_substance_inst(ofstream& out, Json::Value& substances_node) {
   string str = substances_node.asString();
@@ -261,12 +285,14 @@ static void gen_rxn_substance_inst(ofstream& out, Json::Value& substances_node) 
   }
 
   vector<string> substances;
+  vector<string> orientations;
 
   // finite automata to parse the reaction side string, e.g. "a + b"
   enum state_t {
     START,
     ID,
     AFTER_ID,
+    AFTER_ORIENT,
     AFTER_PLUS
   };
 
@@ -292,14 +318,15 @@ static void gen_rxn_substance_inst(ofstream& out, Json::Value& substances_node) 
         if (isalnum(c)) {
           current_id += c;
         }
-        else if (isblank(c) || c == '+') {
+        else if (isblank(c) || c == '+' || c == '\'' || c == ',' || c == ';') {
           substances.push_back(current_id);
+          orientations.push_back("");
           current_id = "";
-          if (isblank(c)) {
-            state = AFTER_ID;
+          if (c == '+') {
+            state = AFTER_PLUS;
           }
           else {
-            state = AFTER_PLUS;
+            state = AFTER_ID;
           }
         }
         else {
@@ -308,6 +335,30 @@ static void gen_rxn_substance_inst(ofstream& out, Json::Value& substances_node) 
         break;
 
       case AFTER_ID:
+        if (c == '+') {
+          state = AFTER_PLUS;
+        }
+        else if (c == '\'') {
+          state = AFTER_ORIENT;
+          orientations.back() = c;
+        }
+        else if (c == ',') {
+          state = AFTER_ORIENT;
+          orientations.back() = c;
+        }
+        else if (c == ';') {
+          state = AFTER_ORIENT;
+          orientations.back() = c;
+        }
+        else if (isblank(c)) {
+          // ok
+        }
+        else {
+          ERROR("Could not parse reaction side " + str + " (AFTER_ID).");
+        }
+        break;
+
+      case AFTER_ORIENT:
         if (c == '+') {
           state = AFTER_PLUS;
         }
@@ -341,28 +392,19 @@ static void gen_rxn_substance_inst(ofstream& out, Json::Value& substances_node) 
 
   out << "[ ";
   for (size_t i = 0; i < substances.size(); i++) {
-    out << substances[i] << "." << API::NAME_INST << "()";
+    out << substances[i] << "." << API::NAME_INST << "(";
+
+    string orient = convert_orientation(orientations[i], true);
+    if (orient != "") {
+      out << API::NAME_ORIENTATION << " = " << MDOT << API::NAME_ENUM_ORIENTATION << orient;
+    }
+
+    out << ")";
     print_comma(out, i, substances);
   }
   out << " ]";
 }
 
-
-static string convert_orientation(string s) {
-  if (s == "\'") {
-    return API::NAME_EV_UP;
-  }
-  else if (s == ",") {
-    return API::NAME_EV_DOWN;
-  }
-  else if (s == ";" || s == "") {
-    return "";
-  }
-  else {
-    ERROR("Invalid orientation '" + s + "'.");
-    return "INVALID_ORIENTATION";
-  }
-}
 
 // NOTE: the same code is in mcell3_world_converter.cpp
 static bool ends_with(std::string const & value, std::string const & ending)

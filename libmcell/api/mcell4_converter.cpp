@@ -54,6 +54,8 @@ static orientation_t convert_orientation(const Orientation o, const bool not_set
       else {
         return ORIENTATION_NOT_SET;
       }
+    case Orientation::Any:
+      return ORIENTATION_NONE;
     default:
       throw ValueError("Invalid Orientation value " + to_string((int)o) + ".");
   }
@@ -105,10 +107,6 @@ void MCell4Converter::convert(Model* model_, World* world_) {
 
 void MCell4Converter::convert_simulation_setup() {
   const API::Config& config = model->config;
-
-  if (config.microscopic_reversibility) {
-    throw ValueError("Setting config.microscopic_reversibility to True is not supported yet.");
-  }
 
   world->total_iterations = config.total_iterations_hint;
   world->config.time_unit = config.time_step;

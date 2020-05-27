@@ -61,6 +61,8 @@ enums:
       value: 1
     - name: NotSet
       value: 2
+    - name: Any
+      value: 3    
       
   - name: Notification
     values:

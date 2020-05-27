@@ -101,7 +101,6 @@ const char* const NAME_LEFT_NODE = "left_node";
 const char* const NAME_LIFETIME_THRESHOLD = "lifetime_threshold";
 const char* const NAME_LIFETIME_TOO_SHORT = "lifetime_too_short";
 const char* const NAME_LOCATION = "location";
-const char* const NAME_MICROSCOPIC_REVERSIBILITY = "microscopic_reversibility";
 const char* const NAME_MISSED_REACTIONS = "missed_reactions";
 const char* const NAME_MISSED_REACTIONS_THRESHOLD = "missed_reactions_threshold";
 const char* const NAME_MISSING_SURFACE_ORIENTATION = "missing_surface_orientation";
@@ -176,6 +175,7 @@ const char* const NAME_ENUM_WARNING_LEVEL = "WarningLevel";
 
 const char* const NAME_EV_ABSORPTIVE = "Absorptive";
 const char* const NAME_EV_ADD = "Add";
+const char* const NAME_EV_ANY = "Any";
 const char* const NAME_EV_ASCII = "Ascii";
 const char* const NAME_EV_BRIEF = "Brief";
 const char* const NAME_EV_CELLBLENDER = "Cellblender";

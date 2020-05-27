@@ -37,7 +37,6 @@ namespace API {
         const float_t interaction_radius_ = FLT_UNSET, \
         const float_t vacancy_search_distance_ = 1e+6, \
         const bool center_molecules_on_grid_ = false, \
-        const bool microscopic_reversibility_ = false, \
         const float_t partition_dimension_ = 10, \
         const float_t subpartition_dimension_ = 0.5, \
         const long total_iterations_hint_ = 1000000 \
@@ -49,7 +48,6 @@ namespace API {
       interaction_radius = interaction_radius_; \
       vacancy_search_distance = vacancy_search_distance_; \
       center_molecules_on_grid = center_molecules_on_grid_; \
-      microscopic_reversibility = microscopic_reversibility_; \
       partition_dimension = partition_dimension_; \
       subpartition_dimension = subpartition_dimension_; \
       total_iterations_hint = total_iterations_hint_; \
@@ -137,18 +135,6 @@ public:
   }
   virtual bool get_center_molecules_on_grid() const {
     return center_molecules_on_grid;
-  }
-
-  bool microscopic_reversibility;
-  virtual void set_microscopic_reversibility(const bool new_microscopic_reversibility_) {
-    if (initialized) {
-      throw RuntimeError("Value 'microscopic_reversibility' of object with name " + name + " (class " + class_name + ")"
-                         "cannot be set after model was initialized.");
-    }
-    microscopic_reversibility = new_microscopic_reversibility_;
-  }
-  virtual bool get_microscopic_reversibility() const {
-    return microscopic_reversibility;
   }
 
   float_t partition_dimension;
