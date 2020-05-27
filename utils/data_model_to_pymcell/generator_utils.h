@@ -321,6 +321,9 @@ static void gen_rxn_substance_inst(ofstream& out, Json::Value& substances_node) 
         else if (isblank(c) || c == '+' || c == '\'' || c == ',' || c == ';') {
           substances.push_back(current_id);
           orientations.push_back("");
+          if (c == '\'' || c == ',' || c == ';') {
+            orientations.back() = c;
+          }
           current_id = "";
           if (c == '+') {
             state = AFTER_PLUS;
@@ -396,7 +399,7 @@ static void gen_rxn_substance_inst(ofstream& out, Json::Value& substances_node) 
 
     string orient = convert_orientation(orientations[i], true);
     if (orient != "") {
-      out << API::NAME_ORIENTATION << " = " << MDOT << API::NAME_ENUM_ORIENTATION << orient;
+      out << API::NAME_ORIENTATION << " = " << MDOT << API::NAME_ENUM_ORIENTATION << "." << orient;
     }
 
     out << ")";
