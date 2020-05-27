@@ -219,9 +219,10 @@ void MCell4Converter::convert_species() {
 
 
 void MCell4Converter::convert_surface_class_rxn(
-    API::SurfaceProperty& sp,
-    const BNG::Species& affected_species,
-    const BNG::Species& surface_reactant) {
+    API::SurfaceProperty& sp, const BNG::Species& surface_reactant) {
+
+  assert(sp.affected_species->species_id != SPECIES_ID_INVALID);
+  BNG::Species& affected_species = world->get_all_species().get(sp.affected_species->species_id);
 
   BNG::RxnRule rxn;
 
@@ -281,16 +282,13 @@ void MCell4Converter::convert_surface_classes() {
     // remember which species we created
     sc->species_id = new_species_id;
 
-    assert(sc->affected_species->species_id != SPECIES_ID_INVALID);
-    BNG::Species& affected_species = world->get_all_species().get(sc->affected_species->species_id);
-
     // and we also need to add a reaction for each property
     if (sc->properties.empty()) {
-      convert_surface_class_rxn(*dynamic_pointer_cast<SurfaceProperty>(sc), affected_species, sc_species);
+      convert_surface_class_rxn(*dynamic_pointer_cast<SurfaceProperty>(sc), sc_species);
     }
     else {
       for (shared_ptr<SurfaceProperty>& sp: sc->properties) {
-        convert_surface_class_rxn(*sp, affected_species, sc_species);
+        convert_surface_class_rxn(*sp, sc_species);
       }
     }
   }

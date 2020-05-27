@@ -73,10 +73,7 @@ private:
 
   void convert_species();
 
-  void convert_surface_class_rxn(
-      API::SurfaceProperty& sp,
-      const BNG::Species& affected_species,
-      const BNG::Species& surface_reactant);
+  void convert_surface_class_rxn(API::SurfaceProperty& sp, const BNG::Species& surface_reactant);
   void convert_surface_classes();
 
   BNG::ComponentType convert_component_type(API::ComponentType& ct);
