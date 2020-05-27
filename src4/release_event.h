@@ -145,7 +145,14 @@ public:
 
   // SHAPE_REGION
   // for surface molecule releases
-  std::vector<CummAreaPWallIndexPair> cum_area_and_pwall_index_pairs;
+
+  // limited initialization for pymcell4
+  // return true if initialization passed
+  bool initialize_walls_for_release();
+
+  // initialized from mcell3 state or in initialize_walls_for_release()
+  // TODO: replace with some reasonale strcucture
+  std::vector<CummAreaPWallIndexPair> cumm_area_and_pwall_index_pairs;
 
 
   // constructor and container for all region expr nodes

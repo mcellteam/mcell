@@ -126,9 +126,14 @@ void ReleaseEvent::dump(const string ind) const {
   cout << ind2 << "location: \t\t" << location << " [Vec3] \t\t\n";
   cout << ind2 << "diameter: \t\t" << diameter << " [Vec3] \t\t\n";
 
-  // TODO:
-  //cum_area_and_pwall_index_pairs
-  //all_region_expr_nodes
+  cout << ind2 << "cumm_area_and_pwall_index_pairs:\n";
+  for (size_t i = 0; i < cumm_area_and_pwall_index_pairs.size(); i++) {
+    cout << ind2 << i << ": ";
+    const CummAreaPWallIndexPair& area_wall = cumm_area_and_pwall_index_pairs[i];
+    cout <<
+        "area: " << area_wall.first << ", partition_id: " << area_wall.second.first <<
+        ", wall_index: " << area_wall.second.first << "\n";
+  }
 
   cout << ind2 << "region_llf: \t\t" << region_llf << " [Vec3] \t\t\n";
   cout << ind2 << "region_urb: \t\t" << region_urb << " [Vec3] \t\t\n";
@@ -215,6 +220,37 @@ void ReleaseEvent::to_data_model(Json::Value& mcell_node) const {
 }
 
 
+bool ReleaseEvent::initialize_walls_for_release() {
+  cumm_area_and_pwall_index_pairs.clear();
+  // only a single region for now
+  if (region_expr_root->op != RegionExprOperator::Leaf) {
+    return false;
+  }
+
+  const Region* reg = world->get_partition(0).find_region_by_name(region_expr_root->region_name);
+  if (reg == nullptr) {
+    return false;
+  }
+
+  for (auto& it: reg->walls_and_edges) {
+    wall_index_t wi = it.first;
+    const Wall& w = world->get_partition(PARTITION_ID_INITIAL).get_wall(wi);
+
+    CummAreaPWallIndexPair item;
+    item.first = w.area;
+    item.second.first = PARTITION_ID_INITIAL;
+    item.second.second = wi;
+
+    if (!cumm_area_and_pwall_index_pairs.empty()) {
+      item.first += cumm_area_and_pwall_index_pairs.back().first;
+    }
+    cumm_area_and_pwall_index_pairs.push_back(item);
+  }
+
+  return true;
+}
+
+
 static void check_max_release_count(double num_to_release, const std::string& name) {
   int num = (int)num_to_release;
   if (num < 0 || num > INT_MAX) {
@@ -268,8 +304,8 @@ uint ReleaseEvent::calculate_number_to_release() {
 
     case ReleaseNumberMethod::DensityNum: {
         // computed in release_onto_regions in MCell3
-        assert(!cum_area_and_pwall_index_pairs.empty());
-        float_t max_A = cum_area_and_pwall_index_pairs.back().first;
+        assert(!cumm_area_and_pwall_index_pairs.empty());
+        float_t max_A = cumm_area_and_pwall_index_pairs.back().first;
         float_t est_sites_avail = (int)max_A;
 
         assert(concentration != FLT_INVALID);
@@ -348,8 +384,8 @@ void ReleaseEvent::release_onto_regions(uint computed_release_number) {
   // TODO_LATER: for now we are assuming that we have just a single partition
   // and releases do not cross partition boundary
 
-  assert(!cum_area_and_pwall_index_pairs.empty());
-  float_t total_area = cum_area_and_pwall_index_pairs.back().first;
+  assert(!cumm_area_and_pwall_index_pairs.empty());
+  float_t total_area = cumm_area_and_pwall_index_pairs.back().first;
   float_t est_sites_avail = (int)total_area;
   const float_t rel_list_gen_cost = 10.0; /* Just a guess */
   float_t pick_cost = rel_list_gen_cost * est_sites_avail;
@@ -365,8 +401,8 @@ void ReleaseEvent::release_onto_regions(uint computed_release_number) {
 
     if (seek_cost < pick_cost) {
       float_t A = rng_dbl(&world->rng) * total_area;
-      size_t cum_area_index = cum_area_bisect_high(cum_area_and_pwall_index_pairs, A);
-      PartitionWallIndexPair pw = cum_area_and_pwall_index_pairs[cum_area_index].second;
+      size_t cum_area_index = cum_area_bisect_high(cumm_area_and_pwall_index_pairs, A);
+      PartitionWallIndexPair pw = cumm_area_and_pwall_index_pairs[cum_area_index].second;
       Partition& p = world->get_partition(pw.first);
       Wall& wall = p.get_wall(pw.second);
 
@@ -378,7 +414,7 @@ void ReleaseEvent::release_onto_regions(uint computed_release_number) {
 
       // get the random number for the current wall
       if (cum_area_index != 0) {
-        A -= cum_area_and_pwall_index_pairs[cum_area_index - 1].first;
+        A -= cumm_area_and_pwall_index_pairs[cum_area_index - 1].first;
       }
 
       tile_index_t tile_index = (grid.num_tiles_along_axis * grid.num_tiles_along_axis) * (A / wall.area);

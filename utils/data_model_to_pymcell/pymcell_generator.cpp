@@ -526,6 +526,11 @@ vector<string> PymcellGenerator::generate_release_sites(ofstream& out) {
     gen_param(out, NAME_NAME, name, true);
     gen_param_id(out, NAME_SPECIES, release_site_item[KEY_MOLECULE], true);
 
+    string orientation = convert_orientation(release_site_item[KEY_ORIENT].asString());
+    if (orientation != "") {
+      gen_param_enum(out, NAME_ORIENTATION, NAME_ENUM_ORIENTATION, orientation, true);
+    }
+
     string shape = release_site_item[KEY_SHAPE].asString();
     if (shape == VALUE_SPHERICAL) {
       gen_param_enum(out, NAME_SHAPE, NAME_ENUM_SHAPE, NAME_EV_SPHERICAL, true);

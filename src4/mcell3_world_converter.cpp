@@ -1151,7 +1151,7 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
 
               PartitionWallIndexPair wall_index = get_mcell4_wall_index(w);
 
-              event_data.cum_area_and_pwall_index_pairs.push_back(
+              event_data.cumm_area_and_pwall_index_pairs.push_back(
                   CummAreaPWallIndexPair(region_data->cum_area_list[wall_i], wall_index)
               );
             }

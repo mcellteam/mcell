@@ -681,7 +681,22 @@ void MCell4Converter::convert_release_events() {
     rel_event->event_time = 0.0;
     rel_event->actual_release_time = 0.0;
     rel_event->species_id = r->species->species_id;
-    rel_event->orientation = convert_orientation(r->initial_orientation);
+    rel_event->orientation = convert_orientation(r->orientation);
+
+    // FIXME: this should belong in the ReleaseSite ctor
+    if (world->get_all_species().get(rel_event->species_id).is_surf() &&
+        rel_event->orientation != ORIENTATION_UP && rel_event->orientation != ORIENTATION_DOWN) {
+      throw ValueError(
+          S(NAME_CLASS_RELEASE_SITE) + " " + r->name +
+          " releases a surface molecule but orientation is not set.");
+    }
+
+    if (world->get_all_species().get(rel_event->species_id).is_vol() &&
+        rel_event->orientation != ORIENTATION_NONE && rel_event->orientation != ORIENTATION_NOT_SET) {
+      throw ValueError(
+          S(NAME_CLASS_RELEASE_SITE) + " " + r->name +
+          " releases a volume molecule but orientation is set.");
+    }
 
     switch (r->shape) {
       case Shape::Spherical:
@@ -689,9 +704,14 @@ void MCell4Converter::convert_release_events() {
         rel_event->location = r->location / world->config.length_unit;
         rel_event->diameter = r->site_diameter / world->config.length_unit;
         break;
-      case Shape::RegionExpr:
-        rel_event->release_shape = ReleaseShape::REGION;
-        convert_region_expr(*r, rel_event);
+      case Shape::RegionExpr: {
+          rel_event->release_shape = ReleaseShape::REGION;
+          convert_region_expr(*r, rel_event);
+          bool ok = rel_event->initialize_walls_for_release();
+          if (!ok) {
+            throw RuntimeError("Only simple surface regions are supported now, error for " + r->name + ".");
+          }
+        }
         break;
       default:
         // should be caught earlier
@@ -704,7 +724,7 @@ void MCell4Converter::convert_release_events() {
     }
     else {
       throw RuntimeError(
-          "The only supported release number type now is constant number specified with 'number_to_release'."
+          S("The only supported release number type now is constant number specified with ") + NAME_NUMBER_TO_RELEASE + "."
       );
     }
 

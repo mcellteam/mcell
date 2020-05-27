@@ -12,7 +12,7 @@ ReleaseSite:
       The named molecule is the one that will be released. Not used for  the 'list' shape. You must specify an orientation 
       if the molecule is a surface molecule.
 
-  - name: initial_orientation
+  - name: orientation
     type: Orientation
     default: Orientation.None
     doc: |
