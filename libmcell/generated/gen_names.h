@@ -201,9 +201,9 @@ const char* const NAME_EV_UNSET = "Unset";
 const char* const NAME_EV_UP = "Up";
 const char* const NAME_EV_WARNING = "Warning";
 
-const char* const NAME_CV_ALL_MOLECULES_NAME = "ALL_MOLECULES_NAME";
-const char* const NAME_CV_ALL_SURFACE_MOLECULES_NAME = "ALL_SURFACE_MOLECULES_NAME";
-const char* const NAME_CV_ALL_VOLUME_MOLECULES_NAME = "ALL_VOLUME_MOLECULES_NAME";
+const char* const NAME_CV_ALL_MOLECULES = "ALL_MOLECULES";
+const char* const NAME_CV_ALL_SURFACE_MOLECULES = "ALL_SURFACE_MOLECULES";
+const char* const NAME_CV_ALL_VOLUME_MOLECULES = "ALL_VOLUME_MOLECULES";
 const char* const NAME_CV_AllMolecules = "AllMolecules";
 const char* const NAME_CV_AllSurfaceMolecules = "AllSurfaceMolecules";
 const char* const NAME_CV_AllVolumeMolecules = "AllVolumeMolecules";

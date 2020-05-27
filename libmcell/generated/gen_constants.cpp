@@ -33,9 +33,9 @@ void define_pybinding_constants(py::module& m) {
   m.attr("BOND_BOUND") = py::int_(BOND_BOUND);
   m.attr("PARTITION_EDGE_EXTRA_MARGIN_UM") = py::float_(PARTITION_EDGE_EXTRA_MARGIN_UM);
   m.attr("DEFAULT_COUNT_BUFFER_SIZE") = py::int_(DEFAULT_COUNT_BUFFER_SIZE);
-  m.attr("ALL_MOLECULES_NAME") = py::str(ALL_MOLECULES_NAME);
-  m.attr("ALL_VOLUME_MOLECULES_NAME") = py::str(ALL_VOLUME_MOLECULES_NAME);
-  m.attr("ALL_SURFACE_MOLECULES_NAME") = py::str(ALL_SURFACE_MOLECULES_NAME);
+  m.attr("ALL_MOLECULES") = py::str(ALL_MOLECULES);
+  m.attr("ALL_VOLUME_MOLECULES") = py::str(ALL_VOLUME_MOLECULES);
+  m.attr("ALL_SURFACE_MOLECULES") = py::str(ALL_SURFACE_MOLECULES);
   m.attr("AllMolecules") = py::object(py::cast(AllMolecules));
   m.attr("AllVolumeMolecules") = py::object(py::cast(AllVolumeMolecules));
   m.attr("AllSurfaceMolecules") = py::object(py::cast(AllSurfaceMolecules));
