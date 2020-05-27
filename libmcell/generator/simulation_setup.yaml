@@ -51,14 +51,14 @@ Config:
   #  type: bool
   #  default: True
     
-  # remove and keep default?
   - name: center_molecules_on_grid
     type: bool
     default: False
 
-  - name: microscopic_reversibility
-    type: bool
-    default: False
+  # remove and keep default?
+  #- name: microscopic_reversibility
+  #  type: bool
+  #  default: False
 
   # already using mcell4 simplification that the partition must be a cube    
   - name: partition_dimension

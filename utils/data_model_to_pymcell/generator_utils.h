@@ -246,11 +246,15 @@ void gen_assign(ofstream& out, string obj_name, string field_name1, string field
   out << obj_name << "." << field_name1 << "." << field_name2 << " = " << value << "\n";
 }
 
+template<>
+void gen_assign(ofstream& out, string obj_name, string field_name1, string field_name2, bool value) {
+  out << obj_name << "." << field_name1 << "." << field_name2 << " = " << (value ? "True" : "False") << "\n";
+}
 
 static void gen_rxn_substance_inst(ofstream& out, Json::Value& substances_node) {
   string str = substances_node.asString();
 
-  // special case for
+  // special case for rxns without products
   if (str == NULL_PRODUCTS) {
     out << "[ ]";
     return;

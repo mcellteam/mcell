@@ -1024,6 +1024,25 @@ void PymcellGenerator::generate_config(ofstream& out) {
 
   gen_assign(out, MODEL, NAME_CONFIG, NAME_PARTITION_DIMENSION, x_end * 2);
   gen_assign(out, MODEL, NAME_CONFIG, NAME_SUBPARTITION_DIMENSION, x_step);
+
+  out << "\n";
+  out << make_section_comment("default configuration overrides");
+
+  // TODO: check the value against the default in
+  bool center_molecules_on_grid = initialization[KEY_CENTER_MOLECULES_ON_GRID].asBool();
+  if (center_molecules_on_grid) {
+    gen_assign(out, MODEL, NAME_CONFIG, NAME_CENTER_MOLECULES_ON_GRID, center_molecules_on_grid);
+  }
+
+  string radius = initialization[KEY_INTERACTION_RADIUS].asString();
+  if (radius != "") {
+    gen_assign(out, MODEL, NAME_CONFIG, NAME_CENTER_MOLECULES_ON_GRID, stod(radius));
+  }
+
+  string surf_grid_density = initialization[KEY_SURFACE_GRID_DENSITY].asString();
+  if (surf_grid_density != "10000") {
+    gen_assign(out, MODEL, NAME_CONFIG, NAME_CENTER_MOLECULES_ON_GRID, stoi(surf_grid_density));
+  }
 }
 
 
