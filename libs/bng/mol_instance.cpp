@@ -101,8 +101,14 @@ std::string MolInstance::to_str(const BNGData& bng_data, const bool only_explici
 }
 
 
-void MolInstance::dump(const BNGData& bng_data, const bool only_explicit) const {
-  cout << to_str(bng_data, only_explicit);
+void MolInstance::dump(const BNGData& bng_data, const bool for_diff, const bool only_explicit, const std::string ind) const {
+  if (!for_diff) {
+    cout << to_str(bng_data, only_explicit);
+  }
+  else {
+    const MolType& mt = bng_data.get_molecule_type(mol_type_id);
+    cout << ind << "mol_type_id: " << mol_type_id << " (" << mt.name << ")";
+  }
 }
 
 

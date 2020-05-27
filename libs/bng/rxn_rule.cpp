@@ -356,19 +356,6 @@ bool RxnRule::species_is_both_bimol_reactants(const species_id_t id, const Speci
 }
 
 
-std::string RxnRule::complex_instance_vector_to_str(const BNGData& bng_data, const CplxInstanceVector& complexes) const {
-  stringstream ss;
-  for (size_t i = 0; i < complexes.size(); i++) {
-    ss << complexes[i].to_str(bng_data, true);
-
-    if (i != complexes.size() - 1) {
-      ss << " + ";
-    }
-  }
-  return ss.str();
-}
-
-
 bool RxnRule::update_variable_rxn_rate(const float_t current_time, const RxnClass* requester) {
   if (!may_update_rxn_rate()) {
     return false;
@@ -415,13 +402,27 @@ bool RxnRule::update_variable_rxn_rate(const float_t current_time, const RxnClas
 
 std::string RxnRule::to_str(const BNGData& bng_data) const {
   stringstream ss;
-  ss << name << " ";
+  ss << name << ": ";
 
   ss << complex_instance_vector_to_str(bng_data, reactants);
   ss << " -> ";
   ss << complex_instance_vector_to_str(bng_data, products);
 
   ss << " " << rate_constant;
+
+  return ss.str();
+}
+
+
+std::string RxnRule::complex_instance_vector_to_str(const BNGData& bng_data, const CplxInstanceVector& complexes) const {
+  stringstream ss;
+  for (size_t i = 0; i < complexes.size(); i++) {
+    ss << complexes[i].to_str(bng_data, true);
+
+    if (i != complexes.size() - 1) {
+      ss << " + ";
+    }
+  }
   return ss.str();
 }
 
@@ -430,12 +431,59 @@ std::string RxnRule::reactants_to_str(const BNGData& bng_data) const {
   return complex_instance_vector_to_str(bng_data, reactants);
 }
 
+
 std::string RxnRule::products_to_str(const BNGData& bng_data) const {
   return complex_instance_vector_to_str(bng_data, products);
 }
 
-void RxnRule::dump(const BNGData& bng_data, const std::string ind) const {
-  cout << ind << to_str(bng_data);
+
+void RxnRule::dump_complex_instance_vector(
+    const BNGData& bng_data, const CplxInstanceVector& complexes,
+    const std::string ind) const {
+
+  for (size_t i = 0; i < complexes.size(); i++) {
+    cout << ind << "complex " << i << ":\n";
+    complexes[i].dump(bng_data, true, ind + "  ");
+  }
+}
+
+
+void RxnRule::dump(const BNGData& bng_data, const bool for_diff, const std::string ind) const {
+  if (!for_diff) {
+    cout << ind << to_str(bng_data);
+  }
+  else {
+    cout << ind << "name: " << name << "\n";
+    cout << ind << "id: " << id << "\n";
+
+    cout << ind << "type: ";
+    switch (type) {
+      case RxnType::Standard:
+        cout << "Standard";
+        break;
+      case RxnType::AbsorbRegionBorder:
+        cout << "AbsorbRegionBorder";
+        break;
+      case RxnType::Reflect:
+        cout << "Reflect";
+        break;
+      case RxnType::Transparent:
+        cout << "Transparent";
+        break;
+      default:
+        assert(false);
+    }
+    cout << "\n";
+
+    cout << ind << "rate_constant: " << rate_constant << "\n";
+    cout << ind << "variable_rates.size: " << variable_rates.size() << "\n";
+    cout << ind << "mol_instances_are_fully_maintained: " << mol_instances_are_fully_maintained << "\n";
+
+    cout << ind << "reactants:\n";
+    dump_complex_instance_vector(bng_data, reactants, ind);
+    cout << ind << "products:\n";
+    dump_complex_instance_vector(bng_data, products, ind);
+  }
 }
 
 } /* namespace BNG */

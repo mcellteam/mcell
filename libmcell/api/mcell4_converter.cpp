@@ -74,6 +74,9 @@ void MCell4Converter::convert(Model* model_, World* world_) {
   convert_simulation_setup();
   convert_species();
   world->create_diffusion_events();
+
+  convert_surface_classes();
+
   convert_rxns();
   init_species_rxn_flags();
 
@@ -226,8 +229,6 @@ void MCell4Converter::convert_species() {
       throw ValueError("Neither diffusion_constant_2d nor diffusion_constant_3d was set.");
     }
 	
-		// TODO: set all flags that are used in MCell4
-
     new_species.update_space_and_time_step(world->config.time_unit, world->config.length_unit);
 
     // we must add a complex instance as the single molecule type in the new species
@@ -252,6 +253,84 @@ void MCell4Converter::convert_species() {
 
     // remember which species we created
     s->species_id = new_species_id;
+  }
+}
+
+
+void MCell4Converter::convert_surface_class_rxn(
+    API::SurfaceProperty& sp,
+    const BNG::Species& affected_species,
+    const BNG::Species& surface_reactant) {
+
+  BNG::RxnRule rxn;
+
+  rxn.name = affected_species.name + "+" + surface_reactant.name;
+
+  switch (sp.type) {
+    case API::SurfacePropertyType::Absorptive:
+      rxn.type = BNG::RxnType::Standard;
+      break;
+    case API::SurfacePropertyType::Reflective:
+      rxn.type = BNG::RxnType::Reflect;
+      break;
+    case API::SurfacePropertyType::Transparent:
+      rxn.type = BNG::RxnType::Transparent;
+      break;
+    default:
+      throw ValueError("Invalid SurfaceProperty type for " + surface_reactant.name + ".");
+  }
+
+  // all these reactions happen always
+  rxn.rate_constant = FLT_GIGANTIC;
+
+  rxn.append_reactant(affected_species);
+  rxn.append_reactant(surface_reactant);
+
+  // add reaction and remember mapping
+  sp.rxn_rule_id = world->get_all_rxns().add_finalized_no_update(rxn);
+}
+
+
+void MCell4Converter::convert_surface_classes() {
+  for (std::shared_ptr<API::SurfaceClass>& sc: model->surface_classes) {
+    // each surface class is represented by a species
+    BNG::Species sc_species;
+    sc_species.name = sc->name;
+
+    sc_species.set_is_reactive_surface();
+    // sets steps to 0
+    sc_species.space_step = 0;
+    sc_species.time_step = 0;
+
+    // we must add a complex instance as the single molecule type in the new species
+    // define a molecule type with no components
+    BNG::MolType mol_type;
+    mol_type.name = sc_species.name; // name of the mol type is the same as for our species
+    BNG::mol_type_id_t mol_type_id = world->bng_engine.get_data().find_or_add_molecule_type(mol_type);
+
+    BNG::MolInstance mol_inst;
+    mol_inst.mol_type_id = mol_type_id;
+    mol_inst.set_is_reactive_surface();
+    sc_species.mol_instances.push_back(mol_inst);
+
+    sc_species.finalize();
+    species_id_t new_species_id = world->get_all_species().find_or_add(sc_species);
+
+    // remember which species we created
+    sc->species_id = new_species_id;
+
+    assert(sc->affected_species->species_id != SPECIES_ID_INVALID);
+    BNG::Species& affected_species = world->get_all_species().get(sc->affected_species->species_id);
+
+    // and we also need to add a reaction for each property
+    if (sc->properties.empty()) {
+      convert_surface_class_rxn(*dynamic_pointer_cast<SurfaceProperty>(sc), affected_species, sc_species);
+    }
+    else {
+      for (shared_ptr<SurfaceProperty>& sp: sc->properties) {
+        convert_surface_class_rxn(*sp, affected_species, sc_species);
+      }
+    }
   }
 }
 

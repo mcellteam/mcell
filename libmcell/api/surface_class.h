@@ -34,6 +34,11 @@ class SurfaceClass: public GenSurfaceClass {
 public:
   SURFACE_CLASS_CTOR()
 
+  void postprocess_in_ctor() override {
+    // initialization
+    species_id = SPECIES_ID_INVALID;
+  }
+
   void check_semantics() const override {
     GenSurfaceClass::check_semantics(); // does not call further derived classes
 
@@ -52,6 +57,9 @@ public:
       }
     }
   }
+
+  // simulation engine mapping
+  species_id_t species_id;
 };
 
 } // namespace API

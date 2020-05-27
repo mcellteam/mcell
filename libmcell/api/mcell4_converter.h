@@ -33,6 +33,7 @@ class ComponentInstance;
 class MolType;
 class MolInstance;
 class CplxInstance;
+class Species;
 }
 
 namespace MCell {
@@ -53,6 +54,7 @@ class ComponentInstance;
 class MoleculeType;
 class MoleculeInstance;
 class ComplexInstance;
+class SurfaceProperty;
 class SurfaceRegion;
 class GeometryObject;
 class ReleaseSite;
@@ -70,6 +72,12 @@ private:
   void convert_simulation_setup();
 
   void convert_species();
+
+  void convert_surface_class_rxn(
+      API::SurfaceProperty& sp,
+      const BNG::Species& affected_species,
+      const BNG::Species& surface_reactant);
+  void convert_surface_classes();
 
   BNG::ComponentType convert_component_type(API::ComponentType& ct);
   BNG::ComponentInstance convert_component_instance(API::ComponentInstance& ci);

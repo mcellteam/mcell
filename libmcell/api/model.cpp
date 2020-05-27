@@ -49,6 +49,7 @@ Model::~Model() {
 void Model::add_subsystem(std::shared_ptr<Subsystem> subsystem) {
   append_vec_to_vec(species, subsystem->species);
   append_vec_to_vec(reaction_rules, subsystem->reaction_rules);
+  append_vec_to_vec(surface_classes, subsystem->surface_classes);
 }
 
 

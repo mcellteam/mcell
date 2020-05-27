@@ -43,10 +43,10 @@ class Model: public GenModel, public Subsystem, public InstantiationData, public
 public:
 
   Model() : world(nullptr) {
-    // add species superclasses (a copy of them)
-    species.push_back(std::make_shared<Species>(AllMolecules));
-    species.push_back(std::make_shared<Species>(AllVolumeMolecules));
-    species.push_back(std::make_shared<Species>(AllSurfaceMolecules));
+    // add species superclasses
+    species.push_back(AllMolecules);
+    species.push_back(AllVolumeMolecules);
+    species.push_back(AllSurfaceMolecules);
   }
   virtual ~Model();
 

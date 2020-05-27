@@ -193,7 +193,7 @@ species_id_t RxnContainer::get_rxn_product_species_id(
 }
 
 
-void RxnContainer::dump() const {
+void RxnContainer::dump(const bool including_rxn_rules) const {
 
   for (auto it_reac2: unimol_rxn_class_map) {
     cout <<
@@ -216,6 +216,15 @@ void RxnContainer::dump() const {
       const RxnClass* rxn_class = it_reac2.second;
       assert(rxn_class != nullptr);
       rxn_class->dump(bng_data, "  ");
+      cout << "\n";
+    }
+  }
+
+  if (including_rxn_rules) {
+    for (uint i = 0; i < rxn_rules.size(); i++) {
+      const RxnRule* r = rxn_rules[i];
+      cout << "RxnRule " << i << ": \n";
+      r->dump(bng_data, true, "  ");
       cout << "\n";
     }
   }

@@ -112,7 +112,8 @@ public:
   ) const;
 
   std::string to_str(const BNGData& bng_data, const bool only_explicit = false) const;
-  void dump(const BNGData& bng_data, const bool only_explicit = false) const;
+  //void dump(const BNGData& bng_data, const bool for_diff = false, const bool only_explicit = false) const;
+  void dump(const BNGData& bng_data, const bool for_diff, const bool only_explicit, const std::string ind = "") const;
 };
 
 typedef small_vector<MolInstance> MolInstanceVector;

@@ -28,14 +28,16 @@
 #ifndef API_GLOBALS_H
 #define API_GLOBALS_H
 
+#include <memory>
+
 namespace MCell {
 namespace API {
 
 class Species;
 
-extern const Species AllMolecules;
-extern const Species AllVolumeMolecules;
-extern const Species AllSurfaceMolecules;
+extern std::shared_ptr<Species> AllMolecules;
+extern std::shared_ptr<Species> AllVolumeMolecules;
+extern std::shared_ptr<Species> AllSurfaceMolecules;
 
 }
 }

@@ -171,7 +171,7 @@ public:
     return rxn_rules;
   }
 
-  void dump() const;
+  void dump(const bool including_rxn_rules = false) const;
 
 private:
   RxnClass* get_or_create_empty_unimol_rxn_class(const species_id_t id);

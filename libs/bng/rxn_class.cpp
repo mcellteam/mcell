@@ -304,7 +304,7 @@ void RxnClass::dump(const BNGData& bng_data, const std::string ind) const {
   cout << "\n";
 
   for (const RxnRule* rxn: reactions) {
-    rxn->dump(bng_data, ind);
+    rxn->dump(bng_data, false, ind);
     cout << "\n";
   }
 }

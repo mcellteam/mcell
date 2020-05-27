@@ -86,7 +86,7 @@ public:
   }
 
   std::string to_str(const BNGData& bng_data, bool in_reaction = false) const;
-  void dump(const BNGData& bng_data, std::string ind = "") const;
+  void dump(const BNGData& bng_data, const bool for_diff, const std::string ind = "") const;
 };
 
 typedef small_vector<CplxInstance> CplxInstanceVector;

@@ -251,7 +251,7 @@ public:
   std::string to_str(const BNGData& bng_data) const;
   std::string reactants_to_str(const BNGData& bng_data) const;
   std::string products_to_str(const BNGData& bng_data) const;
-  void dump(const BNGData& bng_data, const std::string ind = "") const;
+  void dump(const BNGData& bng_data, const bool for_diff = false, const std::string ind = "") const;
 
 private:
 
@@ -271,6 +271,9 @@ private:
   void move_products_that_are_also_reactants_to_be_the_first_products();
 
   std::string complex_instance_vector_to_str(const BNGData& bng_data, const CplxInstanceVector& complexes) const;
+  void dump_complex_instance_vector(
+      const BNGData& bng_data, const CplxInstanceVector& complexes,
+      const std::string ind) const;
 
 };
 

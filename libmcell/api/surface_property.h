@@ -25,6 +25,7 @@
 
 #include "generated/gen_surface_property.h"
 #include "api/common.h"
+#include "bng/bng_defines.h"
 
 namespace MCell {
 namespace API {
@@ -33,10 +34,16 @@ class SurfaceProperty: public GenSurfaceProperty {
 public:
   SURFACE_PROPERTY_CTOR()
 
+  void postprocess_in_ctor() {
+    rxn_rule_id = BNG::RXN_RULE_ID_INVALID;
+  }
+
   void check_semantics() const override {
     GenSurfaceProperty::check_semantics();
     // all checks are done in SurfaceClass::check_semantics
   }
+
+  BNG::rxn_rule_id_t rxn_rule_id;
 };
 
 } // namespace API

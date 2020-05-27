@@ -89,8 +89,17 @@ std::string CplxInstance::to_str(const BNGData& bng_data, bool in_reaction) cons
   return ss.str();
 }
 
-void CplxInstance::dump(const BNGData& bng_data, std::string ind) const {
-  cout << ind << to_str(bng_data);
+void CplxInstance::dump(const BNGData& bng_data, const bool for_diff, const std::string ind) const {
+  if (!for_diff) {
+    cout << ind << to_str(bng_data);
+  }
+  else {
+    cout << ind << "mol_instances:\n";
+    for (size_t i = 0; i < mol_instances.size(); i++) {
+      cout << ind << i << ":\n";
+      mol_instances[i].dump(bng_data, true, false, ind + "  ");
+    }
+  }
 }
 
 } /* namespace BNG */
