@@ -9,8 +9,9 @@
 
 const char* const DEFAULT_DATAMODEL_FILENAME = "datamodel.json";
 
-// used also outside of datamodel, maybe move elsewhere
-// TODO: use definition from libmcell constants
+// same string are defined as API::ALL... in libmcell's gen_constants.h, but
+// using them brigs for now many dependencies in the generated gen_constants.h
+// so at least for now, the definitions are repeated
 const char* const ALL_MOLECULES = "ALL_MOLECULES";
 const char* const ALL_VOLUME_MOLECULES = "ALL_VOLUME_MOLECULES";
 const char* const ALL_SURFACE_MOLECULES = "ALL_SURFACE_MOLECULES";
@@ -432,7 +433,7 @@ static inline std::string orientation_to_str(const orientation_t o) {
 #define CONVERSION_CHECK(cond, msg) \
   do { if (!(cond)) { errs() << "Check failed: " << #cond << ": " << msg << " This is not supported yet.\n"; exit(1); } } while (0)
 
-} // namespace DataModel
+} // namespace DMUtil
 
 // TODO: make some common header with utilities and move this there
 namespace MCell {

@@ -35,7 +35,7 @@ public:
     species_id_t res = SPECIES_ID_INVALID;
 
     // check that this species does not exist already
-    if (new_species.species_id != SPECIES_ID_INVALID) {
+    if (new_species.id != SPECIES_ID_INVALID) {
       res = find(new_species);
     }
 
@@ -44,7 +44,7 @@ public:
       res = next_species_id;
       next_species_id++;
       species.push_back(new_species);
-      species.back().species_id = res;
+      species.back().id = res;
     }
 
     return res;
@@ -55,7 +55,7 @@ public:
     // simple equality comparison for now, some hashing will be needed
     for (const Species& s: species) {
       if (species_to_find.equal_except_for_id(s)) {
-        return s.species_id;
+        return s.id;
       }
     }
     return SPECIES_ID_INVALID;
@@ -65,7 +65,7 @@ public:
   species_id_t find_by_name(const std::string& name) {
     for (const Species& s: species) {
       if (s.name == name) {
-        return s.species_id;
+        return s.id;
       }
     }
     return SPECIES_ID_INVALID;
@@ -136,8 +136,7 @@ public:
         id == all_surface_molecules_species_id;
   }
 
-  // TODO: remove tyhe bng_data argument
-  void dump(const BNGData& bng_data) const;
+  void dump() const;
 
 public:
   // FIXME: temporary, need some 'context' easily accessible by all classes

@@ -23,17 +23,17 @@ constants:
     value: 10000
     doc: Internal constant used to initialize buffer size for mol and rxn counts.
     
-  - name: ALL_MOLECULES_NAME
+  - name: ALL_MOLECULES
     type: str
-    value: ALL_MOLECULES
+    value: "ALL_MOLECULES"
 
-  - name: ALL_VOLUME_MOLECULES_NAME
+  - name: ALL_VOLUME_MOLECULES
     type: str
-    value: ALL_VOLUME_MOLECULES
+    value: "ALL_VOLUME_MOLECULES"
 
-  - name: ALL_SURFACE_MOLECULES_NAME
+  - name: ALL_SURFACE_MOLECULES
     type: str
-    value: ALL_SURFACE_MOLECULES
+    value: "ALL_SURFACE_MOLECULES"
   
   # TODO: maybe rename to AllSpecies ...
   - name: AllMolecules

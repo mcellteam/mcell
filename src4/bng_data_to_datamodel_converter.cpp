@@ -159,7 +159,7 @@ void BngDataToDatamodelConverter::convert_single_species(const BNG::Species& s, 
     species_node[KEY_EXPORT_VIZ] = false;
   }
   else {
-    species_node[KEY_EXPORT_VIZ] = viz->species_ids_to_visualize.count(s.species_id) == 1;
+    species_node[KEY_EXPORT_VIZ] = viz->species_ids_to_visualize.count(s.id) == 1;
   }
 
   species_node[KEY_CUSTOM_SPACE_STEP] = "";

@@ -19,13 +19,13 @@ typedef small_vector<Species> SpeciesVector;
 class Species: public CplxInstance {
 public:
   Species()
-    : species_id(SPECIES_ID_INVALID), D(FLT_INVALID),
+    : id(SPECIES_ID_INVALID), D(FLT_INVALID),
       // MCell-specific
       space_step(FLT_INVALID), time_step(TIME_INVALID)
     {
   }
 
-  species_id_t species_id;
+  species_id_t id;
 
   std::string name; // string representation of the complex instance
 

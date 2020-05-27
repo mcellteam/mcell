@@ -26,6 +26,9 @@
 #include "bng/species.h"
 #include "bng/bng_defines.h"
 
+#include <numeric>      // std::iota
+#include <algorithm>    // std::sort, std::stable_sort
+
 using namespace std;
 
 namespace BNG {
@@ -89,7 +92,7 @@ void Species::update_space_and_time_step(const float_t time_unit, const float_t 
 
 
 void Species::dump(const BNGData& bng_data, const string ind) const {
-  cout << ind << "species_id: \t\t" << species_id << " [uint16_t] \t\t/* Unique ID for this species */\n";
+  cout << ind << "species_id: \t\t" << id << " [uint16_t] \t\t/* Unique ID for this species */\n";
   cout << ind << "name: *\t\t" << name << " [string] \t\t/* Symbol table entry (name) */\n";
   cout << ind << "D: \t\t" << D << " [float_t] \t\t/* Diffusion constant */\n";
   cout << ind << "space_step: \t\t" << space_step << " [float_t] \t\t/* Characteristic step length */\n";
@@ -100,10 +103,31 @@ void Species::dump(const BNGData& bng_data, const string ind) const {
   cout << "\n";
 }
 
+
+template <typename T>
+vector<size_t> sort_indexes(const vector<T> &v) {
+
+  // initialize original index locations
+  vector<size_t> idx(v.size());
+  iota(idx.begin(), idx.end(), 0);
+
+  // sort indexes based on comparing values in v
+  // using std::stable_sort instead of std::sort
+  // to avoid unnecessary index re-orderings
+  // when v contains elements of equal values
+  stable_sort(idx.begin(), idx.end(),
+       [&v](size_t i1, size_t i2) {return v[i1].name < v[i2].name;});
+
+  return idx;
+}
+
+
 void Species::dump_array(const BNGData& bng_data, const SpeciesVector& vec) {
   cout << "Species array: " << (vec.empty() ? "EMPTY" : "") << "\n";
 
-  for (size_t i = 0; i < vec.size(); i++) {
+  // dump it sorted by name
+  vector<size_t> sorted_indices = sort_indexes(vec);
+  for (auto i: sorted_indices) {
     cout << i << ":\n";
     vec[i].dump(bng_data, "  ");
   }

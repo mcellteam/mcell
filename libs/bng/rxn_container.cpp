@@ -133,14 +133,14 @@ void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t n
 
       for (RxnRule* matching_rxn: rxns_for_new_species) {
 
-        species_id_t second_id = s.species_id;
+        species_id_t second_id = s.id;
 
         // usually the species must be different but reactions of type A + A are allowed
         if (new_id == second_id && !matching_rxn->species_is_both_bimol_reactants(new_id, all_species)) {
           continue;
         }
 
-        if (matching_rxn->species_can_be_reactant(s.species_id, all_species)) {
+        if (matching_rxn->species_can_be_reactant(s.id, all_species)) {
           // ok, we have a reaction applicable both to new_id and second_id
           // we need to add this rxn to a rxn class for these reactants
 
@@ -150,7 +150,7 @@ void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t n
 
       if (!applicable_rxns.empty()) {
         // get to the instance of the reaction class for (new_id, second_id) or (second_id, new_id)
-        RxnClass* rxn_class = get_or_create_empty_bimol_rxn_class(new_id, s.species_id);
+        RxnClass* rxn_class = get_or_create_empty_bimol_rxn_class(new_id, s.id);
 
         for (RxnRule* rxn: applicable_rxns) {
           rxn_class->add_rxn_rule(rxn);

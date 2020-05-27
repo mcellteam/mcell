@@ -31,9 +31,9 @@ namespace API {
 // we need to have global shared pointers, they are added to Model in its constructor
 // having simple global variables would mean that we need to make a copy
 // and in model initialization we would be updating the copy (which will not reflect changes to our globals)
-std::shared_ptr<Species> AllMolecules(new Species(ALL_MOLECULES_NAME.c_str()));
-std::shared_ptr<Species> AllVolumeMolecules(new Species(ALL_VOLUME_MOLECULES_NAME.c_str()));
-std::shared_ptr<Species> AllSurfaceMolecules(new Species(ALL_SURFACE_MOLECULES_NAME.c_str()));
+std::shared_ptr<Species> AllMolecules(new Species(ALL_MOLECULES.c_str()));
+std::shared_ptr<Species> AllVolumeMolecules(new Species(ALL_VOLUME_MOLECULES.c_str()));
+std::shared_ptr<Species> AllSurfaceMolecules(new Species(ALL_SURFACE_MOLECULES.c_str()));
 
 } // API
 } // MCell

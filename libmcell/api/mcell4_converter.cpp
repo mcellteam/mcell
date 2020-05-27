@@ -146,91 +146,36 @@ void MCell4Converter::convert_simulation_setup() {
 }
 
 
-void MCell4Converter::init_species_rxn_flags() {
-  BNG::SpeciesContainer& all_species = world->get_all_species();
-  BNG::RxnContainer& all_rxns = world->get_all_rxns();
-
-  bool has_vol_vol_rxn = false;
-
-  // set species flags (we already have all the reactions)
-  for (BNG::Species& sp: all_species.get_species_vector()) {
-    if (all_species.is_species_superclass(sp.species_id)) {
-      // skip these?
-      continue;
-    }
-
-    // this also crates all reaction classes for the species that we currently have
-    BNG::SpeciesRxnClassesMap* rxn_classes =
-        all_rxns.get_bimol_rxns_for_reactant(sp.species_id);
-    if (rxn_classes == nullptr) {
-      continue;
-    }
-
-    // go through all applicable reactants
-    for (auto it: *rxn_classes) {
-      const BNG::RxnClass* rxn_class = it.second;
-      assert(rxn_class->reactants.size() == 2);
-
-      species_id_t second_species_id;
-      if (rxn_class->reactants[0] != sp.species_id) {
-        second_species_id = rxn_class->reactants[0];
-      }
-      else {
-        second_species_id = rxn_class->reactants[1];
-      }
-      const BNG::Species& sp2 = all_species.get(second_species_id);
-
-      if (sp.is_vol()) {
-        if (sp2.is_vol()) {
-          has_vol_vol_rxn = true;
-          sp.set_flag(BNG::SPECIES_FLAG_CAN_VOLVOL);
-        }
-        if (sp2.is_surf()) {
-          sp.set_flag(BNG::SPECIES_FLAG_CAN_VOLSURF);
-        }
-        if (sp2.is_reactive_surface()) {
-          sp.set_flag(BNG::SPECIES_FLAG_CAN_VOLWALL);
-        }
-      }
-
-      if (sp.is_surf() && sp2.is_surf()) {
-        sp.set_flag(BNG::SPECIES_FLAG_CAN_SURFSURF);
-      }
-    }
-    // TODO: unimol?
-  }
-
-  // for mcell3 compatibility
-  /* If there are no 3D molecules-reactants in the simulation
-     set up the "use_expanded_list" flag to zero. */
-  if (!has_vol_vol_rxn) {
-    world->config.use_expanded_list = 0;
-  }
-}
-
-
 void MCell4Converter::convert_species() {
   for (std::shared_ptr<API::Species>& s: model->species) {
     BNG::Species new_species;
     new_species.name = s->name;
 
-    bool is_vol;
+    bool is_vol = false;
     if (is_set(s->diffusion_constant_3d)) {
+      is_vol = true;
       new_species.D = s->diffusion_constant_3d;
       new_species.set_is_vol();
-      is_vol = true;
+      new_species.update_space_and_time_step(world->config.time_unit, world->config.length_unit);
     }
     else if (is_set(s->diffusion_constant_2d)) {
+      is_vol = false;
       new_species.D = s->diffusion_constant_2d;
       new_species.set_is_surf();
-      is_vol = true;
+      new_species.update_space_and_time_step(world->config.time_unit, world->config.length_unit);
     }
-    else {
+    else if (is_species_superclass(new_species.name)) {
+      is_vol = new_species.name != ALL_SURFACE_MOLECULES;
+      // these values are not really used, they are initialized for comparisons
+      new_species.D = 0;
+      new_species.space_step = 0;
+      new_species.time_step = 0;
+    }
+    else
+    {
       throw ValueError("Neither diffusion_constant_2d nor diffusion_constant_3d was set.");
     }
 	
-    new_species.update_space_and_time_step(world->config.time_unit, world->config.length_unit);
-
     // we must add a complex instance as the single molecule type in the new species
     // define a molecule type with no components
     BNG::MolType mol_type;
@@ -253,6 +198,17 @@ void MCell4Converter::convert_species() {
 
     // remember which species we created
     s->species_id = new_species_id;
+
+    // and also set superclass id for container if needed
+    if (new_species.name == ALL_MOLECULES) {
+      world->get_all_species().set_all_molecules_species_id(new_species_id);
+    }
+    else if (new_species.name == ALL_VOLUME_MOLECULES) {
+      world->get_all_species().set_all_volume_molecules_species_id(new_species_id);
+    }
+    else if (new_species.name == ALL_SURFACE_MOLECULES) {
+      world->get_all_species().set_all_surface_molecules_species_id(new_species_id);
+    }
   }
 }
 
@@ -301,6 +257,7 @@ void MCell4Converter::convert_surface_classes() {
     // sets steps to 0
     sc_species.space_step = 0;
     sc_species.time_step = 0;
+    sc_species.D = 0;
 
     // we must add a complex instance as the single molecule type in the new species
     // define a molecule type with no components
@@ -437,6 +394,94 @@ void MCell4Converter::convert_rxns() {
 }
 
 
+
+void MCell4Converter::init_species_rxn_flags() {
+  BNG::SpeciesContainer& all_species = world->get_all_species();
+  BNG::RxnContainer& all_rxns = world->get_all_rxns();
+
+
+  species_id_t all_molecules_species_id = all_species.get_all_molecules_species_id();
+  species_id_t all_volume_molecules_species_id = all_species.get_all_volume_molecules_species_id();
+  species_id_t all_surface_molecules_species_id = all_species.get_all_surface_molecules_species_id();
+
+  bool has_vol_vol_rxn = false;
+
+  bool all_vol_mols_can_react_with_surface = false;
+
+  vector<BNG::Species>& species_vector = all_species.get_species_vector();
+
+  // the first three classes are the superclasses
+  assert(species_vector.size() > 3 &&
+      species_vector[0].id == all_molecules_species_id &&
+      species_vector[1].id == all_volume_molecules_species_id &&
+      species_vector[2].id == all_surface_molecules_species_id
+  );
+
+  // set species flags (we already have all the reactions)
+  for (BNG::Species& sp: species_vector) {
+    // setup for ordinary molecules run after ALL_MOLECULES and ALL_VOLUME_MOLECULES
+    // were processed
+    if (sp.is_vol() && all_vol_mols_can_react_with_surface) {
+      sp.set_flag(BNG::SPECIES_FLAG_CAN_VOLWALL);
+    }
+
+    // get reactions, this also creates all reaction classes for the species that we currently have
+    BNG::SpeciesRxnClassesMap* rxn_classes =
+        all_rxns.get_bimol_rxns_for_reactant(sp.id);
+    if (rxn_classes == nullptr) {
+      continue;
+    }
+
+    // go through all applicable reactants
+    for (auto it: *rxn_classes) {
+      const BNG::RxnClass* rxn_class = it.second;
+      assert(rxn_class->reactants.size() == 2);
+
+      species_id_t second_species_id;
+      if (rxn_class->reactants[0] != sp.id) {
+        second_species_id = rxn_class->reactants[0];
+      }
+      else {
+        second_species_id = rxn_class->reactants[1];
+      }
+      const BNG::Species& sp2 = all_species.get(second_species_id);
+
+      // we can use is_vol/is_surf for ALL_VOLUME_MOLECULES and ALL_SURFACE_MOLECULES
+      if (sp.is_vol() || sp.id == all_molecules_species_id) {
+        if (sp2.is_vol() || sp2.id == all_molecules_species_id) {
+          has_vol_vol_rxn = true;
+          sp.set_flag(BNG::SPECIES_FLAG_CAN_VOLVOL);
+        }
+        if (sp2.is_surf() || sp2.id == all_molecules_species_id) {
+          sp.set_flag(BNG::SPECIES_FLAG_CAN_VOLSURF);
+        }
+        if (sp2.is_reactive_surface()) {
+          sp.set_flag(BNG::SPECIES_FLAG_CAN_VOLWALL);
+          if (sp.id == all_molecules_species_id || sp.id == all_volume_molecules_species_id) {
+            // superclasses are processed first, this setting is then passed-on on all subsequent vol species
+            all_vol_mols_can_react_with_surface = true;
+          }
+        }
+      }
+
+      if ((sp.is_surf() || sp.id == all_molecules_species_id) &&
+          (sp2.is_surf() || sp2.id == all_molecules_species_id)) {
+
+        sp.set_flag(BNG::SPECIES_FLAG_CAN_SURFSURF);
+      }
+    }
+    // TODO: unimol?
+  }
+
+  // for mcell3 compatibility
+  /* If there are no 3D molecules-reactants in the simulation
+     set up the "use_expanded_list" flag to zero. */
+  if (!has_vol_vol_rxn) {
+    world->config.use_expanded_list = 0;
+  }
+}
+
+
 MCell::wall_index_t MCell4Converter::convert_wall_and_add_to_geom_object(
     const API::GeometryObject& src_obj, const uint side,
     MCell::Partition& p, MCell::GeometryObject& dst_obj) {
@@ -480,6 +525,11 @@ MCell::region_index_t MCell4Converter::convert_surface_region(
     reg.add_wall_to_walls_and_edges(wi, false);
   }
 
+  if (is_set(surface_region.surface_class)) {
+    assert(surface_region.surface_class->species_id != SPECIES_ID_INVALID);
+    reg.species_id = surface_region.surface_class->species_id;
+  }
+
   reg.id = world->get_next_region_id();
   surface_region.region_id = reg.id;
   region_index_t ri = p.add_region_and_set_its_index(reg);
@@ -519,6 +569,12 @@ void MCell4Converter::convert_geometry_objects() {
     MCell::Region reg_all;
     reg_all.init_from_whole_geom_object(obj);
     reg_all.id = world->get_next_region_id();
+    if (is_set(o->surface_class)) {
+      assert(o->surface_class->species_id != SPECIES_ID_INVALID);
+      reg_all.species_id = o->surface_class->species_id;
+    }
+
+
     region_index_t ri_all = p.add_region_and_set_its_index(reg_all);
     region_indices.push_back(ri_all);
 
@@ -531,7 +587,7 @@ void MCell4Converter::convert_geometry_objects() {
       region_indices.push_back(ri);
     }
 
-    // and finally also set regions for walls
+    // also set regions for walls
     for (wall_index_t wi: obj.wall_indices) {
       Wall& w = p.get_wall(wi);
 
@@ -542,6 +598,8 @@ void MCell4Converter::convert_geometry_objects() {
         }
       }
     }
+
+    // and assign surface class species to regions
   }
 }
 

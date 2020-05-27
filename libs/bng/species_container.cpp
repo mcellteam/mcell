@@ -13,14 +13,14 @@ species_id_t SpeciesContainer::find_simple_species_id(const CplxInstance& inst) 
 
   for (const Species& s: species) {
     if (s.matches(inst, true)) {
-      return s.species_id;
+      return s.id;
     }
   }
   return SPECIES_ID_INVALID;
 }
 
 
-void SpeciesContainer::dump(const BNGData& bng_data) const {
+void SpeciesContainer::dump() const {
   Species::dump_array(bng_data, species);
 }
 
