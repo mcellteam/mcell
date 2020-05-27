@@ -37,6 +37,7 @@ VERBOSE = False # may be overridden by argument -v
 ALL_INPUT_FILES = [
     'constants.yaml',
     'subsystem.yaml', 
+    'geometry.yaml',
     'instantiation.yaml',
     'observables.yaml',
     'simulation_setup.yaml',
