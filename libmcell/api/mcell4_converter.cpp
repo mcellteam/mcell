@@ -92,7 +92,7 @@ void MCell4Converter::convert(Model* model_, World* world_) {
 
   convert_release_events();
 
-  convert_mol_or_rxn_count_events_and_init_species_counting_flags();
+  convert_mol_or_rxn_count_events_and_init_counting_flags();
 
   convert_viz_output_events();
 }
@@ -710,7 +710,7 @@ void MCell4Converter::convert_release_events() {
 }
 
 
-MCell::MolOrRxnCountTerm MCell4Converter::convert_count_term_leaf_and_init_species_counting_flags(
+MCell::MolOrRxnCountTerm MCell4Converter::convert_count_term_leaf_and_init_counting_flags(
     const std::shared_ptr<API::CountTerm> ct,
     const int sign
 ) {
@@ -775,6 +775,9 @@ MCell::MolOrRxnCountTerm MCell4Converter::convert_count_term_leaf_and_init_speci
     assert(!is_set(ct->reaction_rule->rev_rate));
     res.rxn_rule_id = ct->reaction_rule->fwd_rxn_rule_id;
 
+    // need to set flag
+    world->get_all_rxns().get_rxn_rule(res.rxn_rule_id)->set_is_counted();
+
     if (is_set(ct->region)) {
       if (is_obj_not_surf_reg) {
         res.type = MCell::CountType::RxnCountInObject;
@@ -805,7 +808,7 @@ void MCell4Converter::convert_count_terms_recursively(
   assert(is_set(ct));
 
   if (ct->node_type == API::ExprNodeType::Leaf) {
-    MCell::MolOrRxnCountTerm term = convert_count_term_leaf_and_init_species_counting_flags(ct, sign);
+    MCell::MolOrRxnCountTerm term = convert_count_term_leaf_and_init_counting_flags(ct, sign);
     info.terms.push_back(term);
   }
   else if (ct->node_type == API::ExprNodeType::Add || ct->node_type == API::ExprNodeType::Sub) {
@@ -828,7 +831,7 @@ void MCell4Converter::convert_count_terms_recursively(
 }
 
 
-void MCell4Converter::convert_mol_or_rxn_count_events_and_init_species_counting_flags() {
+void MCell4Converter::convert_mol_or_rxn_count_events_and_init_counting_flags() {
   for (const std::shared_ptr<API::Count>& c: model->counts) {
     MCell::MolOrRxnCountEvent* count_event = new MCell::MolOrRxnCountEvent(world);
 

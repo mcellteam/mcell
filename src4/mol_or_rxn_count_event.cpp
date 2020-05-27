@@ -66,6 +66,7 @@ void MolOrRxnCountTerm::dump(const std::string ind) const {
   cout << ind << "sign_in_expression: " << sign_in_expression << " [int]\n";
   cout << ind << "orientation: " << orientation << " [orientation_t]\n";
   cout << ind << "species_id: " << species_id << " [species_id_t]\n";
+  cout << ind << "rxn_rule_id: " << rxn_rule_id << " [rxn_rule_id_t]\n";
   cout << ind << "geometry_object_id: " << geometry_object_id << " [geometry_object_id_t]\n";
 }
 

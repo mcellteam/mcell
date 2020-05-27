@@ -101,7 +101,7 @@ private:
   void convert_region_expr(API::ReleaseSite& rel_site, MCell::ReleaseEvent* rel_event);
   void convert_release_events();
 
-  MCell::MolOrRxnCountTerm convert_count_term_leaf_and_init_species_counting_flags(
+  MCell::MolOrRxnCountTerm convert_count_term_leaf_and_init_counting_flags(
       const std::shared_ptr<API::CountTerm> ct, const int sign
   );
   void convert_count_terms_recursively(
@@ -109,7 +109,7 @@ private:
       const int sign,
       MCell::MolOrRxnCountInfo& info
   );
-  void convert_mol_or_rxn_count_events_and_init_species_counting_flags();
+  void convert_mol_or_rxn_count_events_and_init_counting_flags();
   void init_species_counting_flags();
 
   void convert_viz_output_events();
