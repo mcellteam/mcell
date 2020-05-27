@@ -36,7 +36,7 @@ class Species;
     ReleaseSite( \
         const std::string& name_, \
         std::shared_ptr<Species> species_, \
-        const Orientation initial_orientation_ = Orientation::None, \
+        const Orientation orientation_ = Orientation::None, \
         const Shape shape_ = Shape::Unset, \
         std::shared_ptr<Region> region_ = nullptr, \
         const Vec3& location_ = VEC3_UNSET, \
@@ -48,7 +48,7 @@ class Species;
       class_name = "ReleaseSite"; \
       name = name_; \
       species = species_; \
-      initial_orientation = initial_orientation_; \
+      orientation = orientation_; \
       shape = shape_; \
       region = region_; \
       location = location_; \
@@ -82,16 +82,16 @@ public:
     return species;
   }
 
-  Orientation initial_orientation;
-  virtual void set_initial_orientation(const Orientation new_initial_orientation_) {
+  Orientation orientation;
+  virtual void set_orientation(const Orientation new_orientation_) {
     if (initialized) {
-      throw RuntimeError("Value 'initial_orientation' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'orientation' of object with name " + name + " (class " + class_name + ")"
                          "cannot be set after model was initialized.");
     }
-    initial_orientation = new_initial_orientation_;
+    orientation = new_orientation_;
   }
-  virtual Orientation get_initial_orientation() const {
-    return initial_orientation;
+  virtual Orientation get_orientation() const {
+    return orientation;
   }
 
   Shape shape;

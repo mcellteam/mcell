@@ -91,7 +91,6 @@ const char* const NAME_FIND_SPECIES = "find_species";
 const char* const NAME_FWD_RATE = "fwd_rate";
 const char* const NAME_GEOMETRY_OBJECTS = "geometry_objects";
 const char* const NAME_HIGH_REACTION_PROBABILITY = "high_reaction_probability";
-const char* const NAME_INITIAL_ORIENTATION = "initial_orientation";
 const char* const NAME_INITIALIZE = "initialize";
 const char* const NAME_INST = "inst";
 const char* const NAME_INSTANTIATION_DATA = "instantiation_data";

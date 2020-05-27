@@ -44,7 +44,7 @@ bool GenReleaseSite::__eq__(const GenReleaseSite& other) const {
     name == other.name &&
     name == other.name &&
     species->__eq__(*other.species) &&
-    initial_orientation == other.initial_orientation &&
+    orientation == other.orientation &&
     shape == other.shape &&
     region->__eq__(*other.region) &&
     location == other.location &&
@@ -69,7 +69,7 @@ std::string GenReleaseSite::to_str(const std::string ind) const {
   ss << get_object_name() << ": " <<
       "name=" << name << ", " <<
       "\n" << ind + "  " << "species=" << "(" << ((species != nullptr) ? species->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      "initial_orientation=" << initial_orientation << ", " <<
+      "orientation=" << orientation << ", " <<
       "shape=" << shape << ", " <<
       "\n" << ind + "  " << "region=" << "(" << ((region != nullptr) ? region->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "location=" << location << ", " <<
@@ -97,7 +97,7 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
           >(),
           py::arg("name"),
           py::arg("species"),
-          py::arg("initial_orientation") = Orientation::None,
+          py::arg("orientation") = Orientation::None,
           py::arg("shape") = Shape::Unset,
           py::arg("region") = nullptr,
           py::arg("location") = VEC3_UNSET,
@@ -111,7 +111,7 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
       .def("dump", &ReleaseSite::dump)
       .def_property("name", &ReleaseSite::get_name, &ReleaseSite::set_name)
       .def_property("species", &ReleaseSite::get_species, &ReleaseSite::set_species)
-      .def_property("initial_orientation", &ReleaseSite::get_initial_orientation, &ReleaseSite::set_initial_orientation)
+      .def_property("orientation", &ReleaseSite::get_orientation, &ReleaseSite::set_orientation)
       .def_property("shape", &ReleaseSite::get_shape, &ReleaseSite::set_shape)
       .def_property("region", &ReleaseSite::get_region, &ReleaseSite::set_region)
       .def_property("location", &ReleaseSite::get_location, &ReleaseSite::set_location)
