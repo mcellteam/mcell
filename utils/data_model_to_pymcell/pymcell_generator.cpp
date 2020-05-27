@@ -534,6 +534,7 @@ vector<string> PymcellGenerator::generate_release_sites(ofstream& out) {
           release_site_item[KEY_LOCATION_X], release_site_item[KEY_LOCATION_Y], release_site_item[KEY_LOCATION_Z],
           true
       );
+      gen_param_double(out, NAME_SITE_DIAMETER, release_site_item[KEY_SITE_DIAMETER], true);
     }
     else if (shape == VALUE_OBJECT) {
       gen_region_expr_assignment_for_rel_site(out, release_site_item[KEY_OBJECT_EXPR].asString());

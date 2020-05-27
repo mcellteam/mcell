@@ -74,6 +74,9 @@
 
 #endif
 
+// needed for easier diff between mcell4 and pymcell4
+#define SORT_MCELL4_SPECIES_BY_NAME
+
 //#define COLLECT_SUBPARTS_LEGACY
 
 //#define DUMP_ALWAYS

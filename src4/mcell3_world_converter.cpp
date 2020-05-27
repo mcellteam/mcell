@@ -658,12 +658,54 @@ static bool is_species_superclass(volume* s, species* spec) {
   return spec == s->all_mols || spec == s->all_volume_mols || spec == s->all_surface_mols;
 }
 
+static bool compare_species_name_less(species* s1, species* s2) {
+  string n1 = get_sym_name(s1->sym);
+  string n2 = get_sym_name(s2->sym);
+
+  return n1 < n2;
+}
 
 bool MCell3WorldConverter::convert_species(volume* s) {
 
-  // TODO_CONVERSION: many items are not checked
+  vector<species*> species_list;
+  species_list.resize(s->n_species);
+  for (int i = 0; i < s->n_species; i++) {
+    species_list[i] = s->species_list[i];
+  }
+
+#ifdef SORT_MCELL4_SPECIES_BY_NAME
+  // copy all pointers except for superclasses and then sort
+  uint std_species_idx = 3;
   for (int i = 0; i < s->n_species; i++) {
     species* spec = s->species_list[i];
+    if (is_species_superclass(s, spec)) {
+      string n = get_sym_name(spec->sym);
+      if (n == ALL_MOLECULES) {
+        species_list[0] = spec;
+      }
+      else if (n == ALL_VOLUME_MOLECULES) {
+        species_list[1] = spec;
+      }
+      else if (n == ALL_SURFACE_MOLECULES) {
+        species_list[2] = spec;
+      }
+      else {
+        assert(false);
+      }
+    }
+    else {
+      assert(std_species_idx < species_list.size());
+      species_list[std_species_idx] = spec;
+      std_species_idx++;
+    }
+  }
+
+  sort(species_list.begin() + 3, species_list.end(), compare_species_name_less);
+#endif
+
+  // TODO_CONVERSION: many items are not checked
+  for (int i = 0; i < s->n_species; i++) {
+    species* spec = species_list[i];
 
     Species new_species;
     new_species.name = get_sym_name(spec->sym);

@@ -444,6 +444,7 @@ void RxnRule::dump_complex_instance_vector(
   for (size_t i = 0; i < complexes.size(); i++) {
     cout << ind << "complex " << i << ":\n";
     complexes[i].dump(bng_data, true, ind + "  ");
+    cout << "\n";
   }
 }
 

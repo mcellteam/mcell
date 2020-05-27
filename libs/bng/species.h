@@ -68,7 +68,7 @@ public:
   }
 
   void dump(const BNGData& bng_data, const std::string ind = "") const;
-  static void dump_array(const BNGData& bng_data, const SpeciesVector& vec);
+  static void dump_array(const BNGData& bng_data, const SpeciesVector& vec, const bool sorted = false);
 
   // not virtual
   bool equal_except_for_id(const Species& s2) const {

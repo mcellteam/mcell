@@ -122,14 +122,22 @@ vector<size_t> sort_indexes(const vector<T> &v) {
 }
 
 
-void Species::dump_array(const BNGData& bng_data, const SpeciesVector& vec) {
+void Species::dump_array(const BNGData& bng_data, const SpeciesVector& vec, const bool sorted) {
   cout << "Species array: " << (vec.empty() ? "EMPTY" : "") << "\n";
 
-  // dump it sorted by name
-  vector<size_t> sorted_indices = sort_indexes(vec);
-  for (auto i: sorted_indices) {
-    cout << i << ":\n";
-    vec[i].dump(bng_data, "  ");
+  if (sorted) {
+    // dump sorted by name
+    vector<size_t> sorted_indices = sort_indexes(vec);
+    for (auto i: sorted_indices) {
+      cout << i << ":\n";
+      vec[i].dump(bng_data, "  ");
+    }
+  }
+  else {
+    for (size_t i = 0; i < vec.size(); i++) {
+      cout << i << ":\n";
+      vec[i].dump(bng_data, "  ");
+    }
   }
 }
 

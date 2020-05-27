@@ -47,7 +47,9 @@ public:
     // species_id on model initialization
     species_id = SPECIES_ID_INVALID;
     // no postprocessing or semantic checks, remaining
-    // members are uninitialized
+    // members are unset
+    diffusion_constant_2d = FLT_UNSET;
+    diffusion_constant_3d = FLT_UNSET;
   }
 
   void postprocess_in_ctor() override {

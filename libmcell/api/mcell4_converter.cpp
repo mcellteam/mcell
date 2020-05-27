@@ -39,7 +39,7 @@ using namespace std;
 namespace MCell {
 namespace API {
 
-static orientation_t convert_orientation(const Orientation o) {
+static orientation_t convert_orientation(const Orientation o, const bool not_set_is_none = false) {
   switch (o) {
     case Orientation::Down:
       return ORIENTATION_DOWN;
@@ -48,7 +48,12 @@ static orientation_t convert_orientation(const Orientation o) {
     case Orientation::Up:
       return ORIENTATION_UP;
     case Orientation::NotSet:
-      return ORIENTATION_NOT_SET;
+      if (not_set_is_none) {
+        return ORIENTATION_NONE;
+      }
+      else {
+        return ORIENTATION_NOT_SET;
+      }
     default:
       throw ValueError("Invalid Orientation value " + to_string((int)o) + ".");
   }
@@ -337,7 +342,7 @@ BNG::CplxInstance MCell4Converter::convert_complex_instance(API::ComplexInstance
     res.mol_instances.push_back(mi);
   }
 
-  res.set_orientation(convert_orientation(inst.orientation));
+  res.set_orientation(convert_orientation(inst.orientation, true));
   res.finalize();
   return res;
 }
@@ -684,7 +689,7 @@ void MCell4Converter::convert_release_events() {
       case Shape::Spherical:
         rel_event->release_shape = ReleaseShape::SPHERICAL;
         rel_event->location = r->location / world->config.length_unit;
-        rel_event->diameter = r->site_diameter;
+        rel_event->diameter = r->site_diameter / world->config.length_unit;
         break;
       case Shape::RegionExpr:
         rel_event->release_shape = ReleaseShape::REGION;
@@ -763,6 +768,8 @@ MCell::MolOrRxnCountTerm MCell4Converter::convert_count_term_leaf_and_init_count
         res.type = MCell::CountType::PresentOnSurfaceRegion;
         res.region_id = reg_id;
         sp.set_flag(BNG::SPECIES_FLAG_COUNT_CONTENTS);
+
+        // these are only surface regions and there is no need to set that they are counted
       }
     }
     else {
@@ -782,10 +789,14 @@ MCell::MolOrRxnCountTerm MCell4Converter::convert_count_term_leaf_and_init_count
       if (is_obj_not_surf_reg) {
         res.type = MCell::CountType::RxnCountInObject;
         res.geometry_object_id = obj_id;
+
+        world->get_geometry_object(res.geometry_object_id).is_counted_volume = true;
       }
       else {
         res.type = MCell::CountType::RxnCountOnSurfaceRegion;
         res.region_id = reg_id;
+
+        // these are only surface regions and there is no need to set that they are counted
       }
     }
     else {

@@ -94,6 +94,7 @@ void CplxInstance::dump(const BNGData& bng_data, const bool for_diff, const std:
     cout << ind << to_str(bng_data);
   }
   else {
+    cout << ind << "orientation: " << orientation << "\n";
     cout << ind << "mol_instances:\n";
     for (size_t i = 0; i < mol_instances.size(); i++) {
       cout << ind << i << ":\n";

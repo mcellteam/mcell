@@ -208,7 +208,7 @@ void ReleaseEvent::to_data_model(Json::Value& mcell_node) const {
     release_site[KEY_LOCATION_Z] = DMUtil::f_to_string(location.z * world->config.length_unit);
 
     CONVERSION_CHECK(diameter.x == diameter.y && diameter.y == diameter.z, "Not sure if datamodel supports different diameters.");
-    release_site[KEY_SITE_DIAMETER] = diameter.x * world->config.length_unit;
+    release_site[KEY_SITE_DIAMETER] = DMUtil::f_to_string(diameter.x * world->config.length_unit);
   }
 
   release_site_list.append(release_site);
