@@ -635,8 +635,8 @@ static float_t closest_interior_point(
 
 // returns the closest distance
 // wall must belong to the same object and region
-static float_t find_closest_wall(
-    const Partition& p,
+static float_t find_closest_available_wall(
+    Partition& p,
     const Vec3& pos, const wall_index_t wall_that_moved_molecule,
     wall_index_t& best_wall_index,
     Vec2& best_wall_pos2d
@@ -654,11 +654,21 @@ static float_t find_closest_wall(
   const GeometryObject& obj = p.get_geometry_object(moved_wall.object_index);
 
   for (const wall_index_t wall_index: obj.wall_indices) {
-    const Wall& w = p.get_wall(wall_index);
+    Wall& w = p.get_wall(wall_index);
 
     if (!moved_wall.is_same_region(w)) {
       continue;
     }
+
+    if (!w.has_initialized_grid()) {
+      w.initialize_grid(p);
+    }
+
+    // check that the grid has space
+    if (w.grid.is_full()) {
+      continue;
+    }
+
 
     Vec2 wall_pos2d;
     float_t d2 = closest_interior_point(p, pos, w, wall_pos2d);
