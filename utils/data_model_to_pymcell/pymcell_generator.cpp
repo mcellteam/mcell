@@ -70,7 +70,7 @@ void PymcellGenerator::open_and_check_file(const string file_suffix, ofstream& o
   string file_name = get_filename(file_suffix);
   cout << "Generating file " + file_name + ".\n";
   out.open(file_name);
-  out.precision(17);
+  out.precision(FLOAT_OUT_PRECISION);
   if (!out.is_open()) {
     throw ConversionError("Could not open file '" + file_name + "' for writing.");
   }

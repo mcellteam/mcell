@@ -154,6 +154,10 @@ void World::init_simulation() {
   mcell_log("!!! WARNING: Event sorting according to time and id was enabled for debugging, testing won't pass.");
 #endif
 
+  if (DUMP4_PRECISION != DUMP4_PRECISION_DEFAULT) {
+    cout.precision(DUMP4_PRECISION);
+  }
+
   assert(!simulation_initialized && "init_simulation must be called just once");
 
   if (get_all_species().get_count() == 0) {
@@ -363,7 +367,7 @@ void World::export_visualization_datamodel(const char* filename) const {
 
   Json::StreamWriterBuilder wbuilder;
   wbuilder["indentation"] = " ";
-  wbuilder.settings_["precision"] = 17;
+  wbuilder.settings_["precision"] = 15; // this is the precision that is used by mdl_to_data_model.py script
   wbuilder.settings_["precisionType"] = "significant";
   std::string document = Json::writeString(wbuilder, root);
 

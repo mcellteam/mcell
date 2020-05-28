@@ -77,6 +77,9 @@
 // needed for easier diff between mcell4 and pymcell4
 #define SORT_MCELL4_SPECIES_BY_NAME
 
+#define DUMP4_PRECISION_DEFAULT 5
+#define DUMP4_PRECISION 17
+
 //#define COLLECT_SUBPARTS_LEGACY
 
 //#define DUMP_ALWAYS
@@ -84,8 +87,8 @@
 
 #if (!defined(NDEBUG) || defined(DUMP_ALWAYS)) && !defined(DUMP_NEVER)
 
-#define FROM_ITERATION 0
-#define TO_ITERATION 10
+#define FROM_ITERATION 13
+#define TO_ITERATION 14
 
 #define DUMP_NONDIFFUSING_VMS
 

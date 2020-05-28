@@ -391,6 +391,7 @@ static void gen_rxn_substance_inst(ofstream& out, Json::Value& substances_node) 
   }
   if (current_id != "") {
     substances.push_back(current_id);
+    orientations.push_back("");
   }
 
   out << "[ ";

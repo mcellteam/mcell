@@ -56,6 +56,7 @@ public:
 
       time_unit(0),
       length_unit(0),
+      rcp_length_unit(0),
       grid_density(0),
       rx_radius_3d(0),
 
@@ -69,6 +70,7 @@ public:
   // MCell
   BNGCommon::float_t time_unit;
   BNGCommon::float_t length_unit;
+  BNGCommon::float_t rcp_length_unit;
   BNGCommon::float_t grid_density;
   BNGCommon::float_t rx_radius_3d;
 
@@ -76,6 +78,10 @@ public:
   bool debug_reactions;
 
   BNGNotifications notifications;
+
+  void init() {
+    rcp_length_unit = 1/length_unit;
+  }
 
   void dump() const;
 };

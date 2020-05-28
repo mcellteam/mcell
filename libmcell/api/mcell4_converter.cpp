@@ -118,13 +118,15 @@ void MCell4Converter::convert_simulation_setup() {
   world->config.length_unit = length_unit;
 
   if (is_set(config.interaction_radius)) {
+    // NOTE: mcell3 does not convert the unit of the interaction radius in parser which
+    // seems a bit weird
     world->config.rx_radius_3d = config.interaction_radius / length_unit;
   }
   else {
     world->config.rx_radius_3d = (1.0 / sqrt_f(MY_PI * grid_density)) / length_unit;
   }
 
-  // TODO CHECK: converting to internal length units unlike as in mcell3
+  // TODO CHECK: converting to internal length units unlike as in mcell3 (similar as rx_radius_3d)
   world->config.vacancy_search_dist2 = config.vacancy_search_distance / length_unit;
 
   world->config.randomize_smol_pos = !config.center_molecules_on_grid;
@@ -561,7 +563,8 @@ void MCell4Converter::convert_geometry_objects() {
     // vertices
     for (auto& v: o->vertex_list) {
       // add to partition and remember its index
-      vertex_index_t vi = p.add_or_find_geometry_vertex(Vec3(v[0], v[1], v[2]) / Vec3(world->config.length_unit));
+      // must use rcp_length_unit to be identical to mcell4 with mdl
+      vertex_index_t vi = p.add_or_find_geometry_vertex(Vec3(v[0], v[1], v[2]) * Vec3(world->config.rcp_length_unit));
       o->vertex_indices.push_back(vi);
     }
 
@@ -708,8 +711,8 @@ void MCell4Converter::convert_release_events() {
     switch (r->shape) {
       case Shape::Spherical:
         rel_event->release_shape = ReleaseShape::SPHERICAL;
-        rel_event->location = r->location / world->config.length_unit;
-        rel_event->diameter = r->site_diameter / world->config.length_unit;
+        rel_event->location = r->location * world->config.rcp_length_unit;
+        rel_event->diameter = r->site_diameter * world->config.rcp_length_unit;
         break;
       case Shape::RegionExpr: {
           rel_event->release_shape = ReleaseShape::REGION;

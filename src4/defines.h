@@ -687,6 +687,7 @@ public:
   bool randomize_smol_pos;
 
   void init() {
+    BNGConfig::init();
     init_subpartition_edge_length();
   }
 
