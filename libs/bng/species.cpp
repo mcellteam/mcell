@@ -97,8 +97,8 @@ void Species::dump(const BNGData& bng_data, const string ind) const {
   cout << ind << "D: \t\t" << D << " [float_t] \t\t/* Diffusion constant */\n";
   cout << ind << "space_step: \t\t" << space_step << " [float_t] \t\t/* Characteristic step length */\n";
   cout << ind << "time_step: \t\t" << time_step << " [float_t] \t\t/* Minimum (maximum?) sensible timestep */\n";
-  cout << ind << "flags: \t\t0x" << hex << get_flags() << dec << " [uint] \t\t/* Flags */\n";
-  cout << ind << "CplxInstance: ";
+  cout << ind << "flags: \t\t" << BaseSpeciesCplxMolFlag::to_str() << "\n";
+  cout << ind << "CplxInstance:\n";
   CplxInstance::dump(bng_data, true, ind + "  ");
   cout << "\n";
 }

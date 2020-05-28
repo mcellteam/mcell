@@ -107,7 +107,8 @@ void MolInstance::dump(const BNGData& bng_data, const bool for_diff, const bool 
   }
   else {
     const MolType& mt = bng_data.get_molecule_type(mol_type_id);
-    cout << ind << "mol_type_id: " << mol_type_id << " (" << mt.name << ")";
+    cout << ind << "mol_type_id: " << mol_type_id << " (" << mt.name << ")\n";
+    cout << ind << "flags: " << BaseSpeciesCplxMolFlag::to_str() << "\n";
   }
 }
 

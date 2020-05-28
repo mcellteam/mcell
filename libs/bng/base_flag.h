@@ -32,26 +32,20 @@ enum species_cplx_mol_rxn_flag_t {
   // COUNT_ENCLOSED set if you count what happens inside closed region
   SPECIES_FLAG_COUNT_ENCLOSED = 0x8000, // this species is marked to be counted inside of a volume
 
-  SPECIES_FLAG_CAN_SURFSURFSURF = 0x20000, // 0x20000 - not supported - TODO LATER: remove
-  SPECIES_FLAG_SET_MAX_STEP_LENGTH = 0x80000,
-  SPECIES_FLAG_CAN_REGION_BORDER = 0x100000,
-  SPECIES_FLAG_EXTERNAL_SPECIES = 0x400000, // 0x400000 - not supported - TODO LATER: remove
+  SPECIES_FLAG_CAN_SURFSURFSURF = 0x20000, // not supported - TODO LATER: remove
+  SPECIES_FLAG_SET_MAX_STEP_LENGTH = 0x80000, // not supported
+  SPECIES_FLAG_CAN_REGION_BORDER = 0x100000, // used
+  SPECIES_FLAG_EXTERNAL_SPECIES = 0x400000, // not supported - TODO LATER: remove
 
   RXN_FLAG_COUNTED = 0x1000000,
 };
 
 
-// use bitfield?
 class BaseFlag {
 private:
   bool finalized;
 
-  union {
-    uint flags;
-    struct {
-
-    };
-  };
+  uint flags;
 
 public:
   BaseFlag()
@@ -125,6 +119,8 @@ public:
   bool is_reactive_surface() const {
     return has_flag(SPECIES_CPLX_MOL_FLAG_REACTIVE_SURFACE);
   }
+
+  std::string to_str() const;
 };
 
 } // namespace BNG

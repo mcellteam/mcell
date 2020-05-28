@@ -330,17 +330,26 @@ BNG::MolInstance MCell4Converter::convert_molecule_instance(API::MoleculeInstanc
 
 
 BNG::CplxInstance MCell4Converter::convert_complex_instance(API::ComplexInstance& inst) {
-  BNG::CplxInstance res;
+  // create a temporary cplx instance that we will use for search
+  BNG::CplxInstance cplx_inst;
 
   for (std::shared_ptr<API::MoleculeInstance>& m: inst.molecule_instances) {
     BNG::MolInstance mi = convert_molecule_instance(*m);
 
-    res.mol_instances.push_back(mi);
+    cplx_inst.mol_instances.push_back(mi);
   }
+  orientation_t orient = convert_orientation(inst.orientation, true);
+  cplx_inst.set_orientation(orient);
+  cplx_inst.finalize();
 
-  res.set_orientation(convert_orientation(inst.orientation, true));
-  res.finalize();
-  return res;
+  // we need to find existing species that we match
+  // at least for now until full BNG support will be ready
+  species_id_t species_id = world->get_all_species().find_simple_species_id(cplx_inst);
+  if (species_id == SPECIES_ID_INVALID) {
+    throw ("Could not match reactant or product " + cplx_inst.to_str(world->bng_engine.get_data(), true) +
+        " to any existing species.");
+  }
+  return world->bng_engine.create_cplx_instance_for_species(species_id, orient);
 }
 
 
