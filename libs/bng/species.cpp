@@ -105,7 +105,7 @@ void Species::dump(const BNGData& bng_data, const string ind) const {
 
 
 template <typename T>
-vector<size_t> sort_indexes(const vector<T> &v) {
+vector<size_t> sort_indexes(const T &v) {
 
   // initialize original index locations
   vector<size_t> idx(v.size());

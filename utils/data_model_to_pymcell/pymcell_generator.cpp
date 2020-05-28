@@ -913,11 +913,13 @@ vector<string> PymcellGenerator::generate_counts(ofstream& out) {
       }
     }
     else if (rxn_or_mol == VALUE_REACTION) {
+      single_term = true;
       rxn_not_mol = true;
       what_to_count = reaction_output_item[KEY_REACTION_NAME].asString();
       where_to_count = reaction_output_item[KEY_REGION_NAME].asString();
     }
     else if (rxn_or_mol == VALUE_MOLECULE) {
+      single_term = true;
       rxn_not_mol = false;
       what_to_count = reaction_output_item[KEY_MOLECULE_NAME].asString();
       where_to_count = reaction_output_item[KEY_REGION_NAME].asString();

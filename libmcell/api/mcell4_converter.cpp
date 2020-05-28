@@ -409,7 +409,7 @@ void MCell4Converter::init_species_rxn_flags() {
 
   bool all_vol_mols_can_react_with_surface = false;
 
-  vector<BNG::Species>& species_vector = all_species.get_species_vector();
+  auto& species_vector = all_species.get_species_vector();
 
   // the first three classes are the superclasses
   assert(species_vector.size() > 3 &&
@@ -743,8 +743,8 @@ MCell::MolOrRxnCountTerm MCell4Converter::convert_count_term_leaf_and_init_count
 
   // where
   bool is_obj_not_surf_reg;
-  geometry_object_id_t obj_id;
-  region_id_t reg_id;
+  geometry_object_id_t obj_id = GEOMETRY_OBJECT_ID_INVALID;
+  region_id_t reg_id = REGION_ID_INVALID;
   if (is_set(ct->region)) {
     if (ct->region->node_type == API::RegionNodeType::LeafGeometryObject) {
       is_obj_not_surf_reg = true;
