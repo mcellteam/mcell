@@ -210,6 +210,19 @@ public:
     return is_bimol() && reactants[1].is_reactive_surface() && products.empty();
   }
 
+  bool is_surf_rxn() const {
+    if (is_unimol()) {
+      return reactants[0].is_surf();
+    }
+    else if (is_bimol()) {
+      return reactants[0].is_surf() || reactants[1].is_surf();
+    }
+    else {
+      assert(false);
+      return false;
+    }
+  }
+
   // returns true if species 'id' matches one of the reactants
   bool species_can_be_reactant(const species_id_t id, const SpeciesContainer& all_species);
 

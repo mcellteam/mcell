@@ -846,17 +846,29 @@ MCell::MolOrRxnCountTerm MCell4Converter::convert_count_term_leaf_and_init_count
     assert(!is_set(ct->reaction_rule->rev_rate));
     res.rxn_rule_id = ct->reaction_rule->fwd_rxn_rule_id;
 
+    // is this a surface rxn? -> at least one of the reactants is a surface mol
+    BNG::RxnRule* rxn = world->get_all_rxns().get_rxn_rule(res.rxn_rule_id);
+
     // need to set flag
     world->get_all_rxns().get_rxn_rule(res.rxn_rule_id)->set_is_counted();
 
     if (is_set(ct->region)) {
-      if (is_obj_not_surf_reg) {
-        res.type = MCell::CountType::RxnCountInObject;
-        res.geometry_object_id = obj_id;
+      if (!rxn->is_surf_rxn()) {
+        if (is_obj_not_surf_reg) {
+          res.type = MCell::CountType::RxnCountInObject;
+          res.geometry_object_id = obj_id;
 
-        world->get_geometry_object(res.geometry_object_id).is_counted_volume = true;
+          world->get_geometry_object(res.geometry_object_id).is_counted_volume = true;
+        }
       }
       else {
+        if (is_obj_not_surf_reg) {
+          // need to get the region of this object
+          MCell::GeometryObject& obj = world->get_geometry_object(obj_id);
+          assert(obj.encompassing_region_id != MCell::REGION_ID_INVALID);
+          reg_id = obj.encompassing_region_id;
+        }
+
         res.type = MCell::CountType::RxnCountOnSurfaceRegion;
         res.region_id = reg_id;
 
