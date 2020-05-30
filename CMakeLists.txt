@@ -64,7 +64,7 @@ option(ENABLE_GCOV "Use gcc coverage" OFF)
 option(ENABLE_GPROF "Use gprof profiling" OFF)
 option(ENABLE_GPERFTOOLS "Build with gperftools profiling" OFF)  
 option(ENABLE_SANITIZER "Use address sanitizer" OFF)
-option(PYMCELL "Build also PyMCell" OFF) 
+option(PYMCELL "Build also PyMCell" ON) 
 
 
 if (ENABLE_LTO)
@@ -303,12 +303,26 @@ if (PYMCELL AND NOT WIN32 AND NOT CYGWIN)
     SOURCES src/pymcell.i ${SOURCE_FILES}  ${BISON_dynGeomParser_OUTPUTS} ${FLEX_dynGeomScanner_OUTPUTS}  
   )
   
-  set(PYMCELL_ARCHIVES ${CMAKE_CURRENT_BINARY_DIR}/libs/bng/libbng.a)
+  set(PYMCELL_ARCHIVES ${CMAKE_CURRENT_BINARY_DIR}/libs/bng/libbng.a ${CMAKE_CURRENT_BINARY_DIR}/libs/jsoncpp/src/lib_json/libjsoncpp.a)
   
   if (APPLE)
-    SWIG_LINK_LIBRARIES(pymcell ${PYMCELL_ARCHIVES} ${CMAKE_CURRENT_BINARY_DIR}/lib/libnfsim_c.dylib ${CMAKE_CURRENT_BINARY_DIR}/lib/libNFsim.dylib ${PYTHON_LIBRARIES})
+    SWIG_LINK_LIBRARIES(pymcell 
+        -Wl,--whole-archive
+        ${PYMCELL_ARCHIVES} 
+        -Wl,--no-whole-archive         
+        ${CMAKE_CURRENT_BINARY_DIR}/lib/libnfsim_c.dylib 
+        ${CMAKE_CURRENT_BINARY_DIR}/lib/libNFsim.dylib 
+        ${PYTHON_LIBRARIES}
+    )
   else()
-    SWIG_LINK_LIBRARIES(pymcell ${PYMCELL_ARCHIVES} ${CMAKE_CURRENT_BINARY_DIR}/libs/jsoncpp/src/lib_json/libjsoncpp.a ${CMAKE_CURRENT_BINARY_DIR}/lib/libnfsim_c.so ${CMAKE_CURRENT_BINARY_DIR}/lib/libNFsim.so ${PYTHON_LIBRARIES})
+    SWIG_LINK_LIBRARIES(pymcell 
+        -Wl,--whole-archive
+        ${PYMCELL_ARCHIVES} 
+        -Wl,--no-whole-archive 
+        ${CMAKE_CURRENT_BINARY_DIR}/lib/libnfsim_c.so 
+        ${CMAKE_CURRENT_BINARY_DIR}/lib/libNFsim.so 
+        ${PYTHON_LIBRARIES}
+    )
   endif()
 
   # copy the pyMCell test scripts into place

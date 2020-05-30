@@ -21,7 +21,8 @@ public:
   Species()
     : id(SPECIES_ID_INVALID), D(FLT_INVALID),
       // MCell-specific
-      space_step(FLT_INVALID), time_step(TIME_INVALID)
+      space_step(FLT_INVALID), time_step(TIME_INVALID),
+      color_set(false), color_r(1), color_g(0), color_b(0), scale(1)
     {
   }
 
@@ -83,6 +84,21 @@ public:
   void update_space_and_time_step(const float_t time_unit, const float_t length_unit);
 
   // ^^^^^^^^^^ MCell-specific ^^^^^^^^^^
+
+  // visualization
+  void set_color(float_t r, float_t g, float_t b) {
+    color_r = r;
+    color_g = g;
+    color_b = b;
+    color_set = true;
+  }
+  void set_scale(float_t s) {
+    scale = s;
+  }
+
+  bool color_set;
+  float_t color_r, color_g, color_b ;  // mol color default is red
+  float_t scale; // scale = 1 by default
 };
 
 } // namespace BNG

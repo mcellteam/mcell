@@ -47,7 +47,7 @@ using namespace MCell;
 
 // TODO: why does simple import not work?
 //%import "defines.h"
-typedef uint partition_index_t;
+typedef uint partition_id_t;
 typedef uint vertex_index_t;
 typedef uint molecule_id_t;
 typedef uint geometry_object_id_t;
@@ -74,6 +74,26 @@ typedef uint wall_id_t;
   }
   $target = PyFile_AsFile($source);
 }
+
+namespace BNG {
+  typedef double float_t;
+
+  class SpeciesContainer { 
+    Species* find_species_by_name(const char* name);
+  };
+      
+  %extend SpeciesContainer {      
+    SpeciesContainer() {
+     // not really used
+    } 
+  }
+      
+  class Species {  
+  public:
+    void set_color(float_t r, float_t g, float_t b);
+    void set_scale(float_t s);
+  };
+} // namespace BNG
 
 namespace MCell {
 
@@ -123,16 +143,6 @@ public:
 };
 
 
-class SpeciesInfo { 
-	Species* find_species_by_name(const char* name);
-};
-  
-class Species {  
-public:
-  void set_color(float_t r, float_t g, float_t b);
-  void set_scale(float_t s);
-};
-  
 class World {
 public:
   void run_simulation(const bool dump_initial_state = false);
@@ -154,8 +164,9 @@ public:
   void export_visualization_datamodel_to_dir(const char* prefix);
   void export_visualization_datamodel(const char* filename);
   
+  BNG::SpeciesContainer& get_all_species();
+  
   SimulationConfig config;
-  SpeciesInfo all_species;
 };
 
 class MCell3WorldConverter {
@@ -175,8 +186,8 @@ public:
    }
    
     // only in Python API
-    Species* find_species_by_name(const char* name) {
-     	return self->all_species.find_species_by_name(name);
+    BNG::Species* find_species_by_name(const char* name) {
+     	return self->get_all_species().find_species_by_name(name);
     }
 }
 

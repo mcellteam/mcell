@@ -140,12 +140,21 @@ void BngDataToDatamodelConverter::convert_single_species(const BNG::Species& s, 
   Value& display = species_node[KEY_DISPLAY];
   display[KEY_EMIT] = 0.0;
   Value& color_value = display[KEY_COLOR];
-  Vec3 c = get_next_color();
-  color_value.append(c.r);
-  color_value.append(c.g);
-  color_value.append(c.b);
+
+  if (s.color_set) {
+    color_value.append(s.color_r);
+    color_value.append(s.color_g);
+    color_value.append(s.color_b);
+  }
+  else {
+    // automatic color
+    Vec3 c = get_next_color();
+    color_value.append(c.r);
+    color_value.append(c.g);
+    color_value.append(c.b);
+  }
   display[KEY_GLYPH] = VALUE_GLYPH_SPHERE_1;
-  display[KEY_SCALE] = 1;
+  display[KEY_SCALE] = s.scale;
 
   species_node[KEY_BNGL_COMPONENT_LIST] = Value(Json::arrayValue); // empty array;
   species_node[KEY_MOL_BNGL_LABEL] = "";

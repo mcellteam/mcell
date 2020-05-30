@@ -71,6 +71,17 @@ public:
     return SPECIES_ID_INVALID;
   }
 
+  // used from pymcell3_4
+  Species* find_species_by_name(const char* name) {
+    species_id_t id = find_by_name(name);
+    if (id != SPECIES_ID_INVALID) {
+      return &get(id);
+    }
+    else {
+      return nullptr;
+    }
+  }
+
   species_id_t find_simple_species_id(const CplxInstance& inst);
 
   Species& get(const species_id_t id) {
