@@ -82,7 +82,7 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
           py::arg("time_step") = 1e-6,
           py::arg("surface_grid_density") = 10000,
           py::arg("interaction_radius") = FLT_UNSET,
-          py::arg("vacancy_search_distance") = 1e+6,
+          py::arg("vacancy_search_distance") = 10,
           py::arg("center_molecules_on_grid") = false,
           py::arg("partition_dimension") = 10,
           py::arg("subpartition_dimension") = 0.5,
