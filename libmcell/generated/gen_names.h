@@ -74,6 +74,7 @@ const char* const NAME_COUNT = "count";
 const char* const NAME_COUNT_EXPRESSION = "count_expression";
 const char* const NAME_COUNTS = "counts";
 const char* const NAME_DEGENERATE_POLYGONS = "degenerate_polygons";
+const char* const NAME_DENSITY = "density";
 const char* const NAME_DIFFUSION_CONSTANT_2D = "diffusion_constant_2d";
 const char* const NAME_DIFFUSION_CONSTANT_3D = "diffusion_constant_3d";
 const char* const NAME_DIFFUSION_CONSTANT_REPORT = "diffusion_constant_report";

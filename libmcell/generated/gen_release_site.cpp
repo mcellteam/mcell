@@ -51,6 +51,7 @@ bool GenReleaseSite::__eq__(const GenReleaseSite& other) const {
     site_diameter == other.site_diameter &&
     site_radius == other.site_radius &&
     number_to_release == other.number_to_release &&
+    density == other.density &&
     release_probability == other.release_probability;
 }
 
@@ -76,6 +77,7 @@ std::string GenReleaseSite::to_str(const std::string ind) const {
       "site_diameter=" << site_diameter << ", " <<
       "site_radius=" << site_radius << ", " <<
       "number_to_release=" << number_to_release << ", " <<
+      "density=" << density << ", " <<
       "release_probability=" << release_probability;
   return ss.str();
 }
@@ -93,6 +95,7 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
             const float_t,
             const float_t,
             const int,
+            const float_t,
             const float_t
           >(),
           py::arg("name"),
@@ -104,6 +107,7 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
           py::arg("site_diameter") = 0,
           py::arg("site_radius") = FLT_UNSET,
           py::arg("number_to_release") = INT_UNSET,
+          py::arg("density") = FLT_UNSET,
           py::arg("release_probability") = FLT_UNSET
       )
       .def("check_semantics", &ReleaseSite::check_semantics)
@@ -118,6 +122,7 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
       .def_property("site_diameter", &ReleaseSite::get_site_diameter, &ReleaseSite::set_site_diameter)
       .def_property("site_radius", &ReleaseSite::get_site_radius, &ReleaseSite::set_site_radius)
       .def_property("number_to_release", &ReleaseSite::get_number_to_release, &ReleaseSite::set_number_to_release)
+      .def_property("density", &ReleaseSite::get_density, &ReleaseSite::set_density)
       .def_property("release_probability", &ReleaseSite::get_release_probability, &ReleaseSite::set_release_probability)
     ;
 }

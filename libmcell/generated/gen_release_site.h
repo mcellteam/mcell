@@ -43,6 +43,7 @@ class Species;
         const float_t site_diameter_ = 0, \
         const float_t site_radius_ = FLT_UNSET, \
         const int number_to_release_ = INT_UNSET, \
+        const float_t density_ = FLT_UNSET, \
         const float_t release_probability_ = FLT_UNSET \
     ) { \
       class_name = "ReleaseSite"; \
@@ -55,6 +56,7 @@ class Species;
       site_diameter = site_diameter_; \
       site_radius = site_radius_; \
       number_to_release = number_to_release_; \
+      density = density_; \
       release_probability = release_probability_; \
       postprocess_in_ctor();\
       check_semantics();\
@@ -164,6 +166,18 @@ public:
   }
   virtual int get_number_to_release() const {
     return number_to_release;
+  }
+
+  float_t density;
+  virtual void set_density(const float_t new_density_) {
+    if (initialized) {
+      throw RuntimeError("Value 'density' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
+    density = new_density_;
+  }
+  virtual float_t get_density() const {
+    return density;
   }
 
   float_t release_probability;

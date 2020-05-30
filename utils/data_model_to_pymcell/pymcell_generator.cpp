@@ -552,6 +552,9 @@ vector<string> PymcellGenerator::generate_release_sites(ofstream& out) {
     if (quantity_type == VALUE_NUMBER_TO_RELEASE) {
       gen_param_int(out, NAME_NUMBER_TO_RELEASE, release_site_item[KEY_QUANTITY], false);
     }
+    else if (quantity_type == VALUE_DENSITY) {
+      gen_param_double(out, NAME_DENSITY, release_site_item[KEY_QUANTITY], false);
+    }
     else {
       ERROR("Quantity type " + quantity_type + " is not supported yet");
     }

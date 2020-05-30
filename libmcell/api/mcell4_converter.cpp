@@ -749,6 +749,10 @@ void MCell4Converter::convert_release_events() {
       rel_event->release_number_method = ReleaseNumberMethod::ConstNum;
       rel_event->release_number = r->number_to_release;
     }
+    else if (is_set(r->density)) {
+      rel_event->release_number_method = ReleaseNumberMethod::DensityNum;
+      rel_event->concentration = r->density;
+    }
     else {
       throw RuntimeError(
           S("The only supported release number type now is constant number specified with ") + NAME_NUMBER_TO_RELEASE + "."
