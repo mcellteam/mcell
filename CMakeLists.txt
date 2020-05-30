@@ -64,7 +64,7 @@ option(ENABLE_GCOV "Use gcc coverage" OFF)
 option(ENABLE_GPROF "Use gprof profiling" OFF)
 option(ENABLE_GPERFTOOLS "Build with gperftools profiling" OFF)  
 option(ENABLE_SANITIZER "Use address sanitizer" OFF)
-option(PYMCELL "Build also PyMCell" ON) 
+option(PYMCELL "Build also PyMCell" OFF) 
 
 
 if (ENABLE_LTO)
