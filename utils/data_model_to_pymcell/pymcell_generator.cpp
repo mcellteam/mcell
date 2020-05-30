@@ -499,7 +499,7 @@ void gen_region_expr_assignment_for_rel_site(ofstream& out, string region_expr) 
   regex pattern_all("\\[ALL\\]");
   region_expr = regex_replace(region_expr, pattern_all, "");
 
-  regex pattern_surf_region("\\[(^\\])\\]");
+  regex pattern_surf_region("\\[([^\\]]*)\\]");
   region_expr = regex_replace(region_expr, pattern_surf_region, "_$1");
 
   gen_param_id(out, NAME_REGION, region_expr, true);
@@ -575,19 +575,20 @@ void PymcellGenerator::generate_surface_classes_assignment(ofstream& out) {
     Value& modify_surface_regions_item = modify_surface_regions_list[i];
     check_version(KEY_MODIFY_SURFACE_REGIONS_LIST, modify_surface_regions_item, JSON_DM_VERSION_1330);
 
-    CHECK_PROPERTY(modify_surface_regions_item[KEY_REGION_NAME].asString() == "" && "Not supported yet");
-
     string object_name = modify_surface_regions_item[KEY_OBJECT_NAME].asString();
     CHECK_PROPERTY(object_name != "");
 
     string region_selection = modify_surface_regions_item[KEY_REGION_SELECTION].asString();
 
     string obj_or_region_name;
-    if (region_selection != REGION_ALL_NAME) {
-      obj_or_region_name = object_name + "_" + region_selection;
+    if (region_selection == VALUE_ALL) {
+      obj_or_region_name = object_name;
+    }
+    else if (region_selection == VALUE_SEL) {
+      obj_or_region_name = object_name + "_" + modify_surface_regions_item[KEY_REGION_NAME].asString();
     }
     else {
-      obj_or_region_name = object_name;
+      ERROR("Unexpected value " + region_selection + " of " + KEY_REGION_SELECTION + ".");
     }
 
     string surf_class_name = modify_surface_regions_item[KEY_SURF_CLASS_NAME].asString();
