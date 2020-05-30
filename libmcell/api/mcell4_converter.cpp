@@ -608,6 +608,9 @@ void MCell4Converter::convert_geometry_objects() {
     region_index_t ri_all = p.add_region_and_set_its_index(reg_all);
     region_indices.push_back(ri_all);
 
+    // we must remember that this region belongs to our object
+    obj.encompassing_region_id = ri_all;
+
     // regions from surface areas
     // mcell3 stores the regions in reverse, so we can too...
     // (maybe change this in the mcell3 converter)
@@ -802,7 +805,11 @@ MCell::MolOrRxnCountTerm MCell4Converter::convert_count_term_leaf_and_init_count
     res.orientation = convert_orientation(ct->orientation);
 
     if (is_set(ct->region)) {
-      if (is_obj_not_surf_reg) {
+      if (sp.is_vol()) {
+        if (!is_obj_not_surf_reg) {
+          throw ValueError("Counting surface molecules " + sp.name + " on a surface is not allowed.");
+        }
+
         res.type = MCell::CountType::EnclosedInObject;
         res.geometry_object_id = obj_id;
 
@@ -814,6 +821,14 @@ MCell::MolOrRxnCountTerm MCell4Converter::convert_count_term_leaf_and_init_count
         world->get_geometry_object(res.geometry_object_id).is_counted_volume = true;
       }
       else {
+        // surf mols
+        if (is_obj_not_surf_reg) {
+          // need to get the region of this object
+          MCell::GeometryObject& obj = world->get_geometry_object(obj_id);
+          assert(obj.encompassing_region_id != MCell::REGION_ID_INVALID);
+          reg_id = obj.encompassing_region_id;
+        }
+
         res.type = MCell::CountType::PresentOnSurfaceRegion;
         res.region_id = reg_id;
         sp.set_flag(BNG::SPECIES_FLAG_COUNT_CONTENTS);

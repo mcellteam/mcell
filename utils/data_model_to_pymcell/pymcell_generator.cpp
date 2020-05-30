@@ -807,6 +807,16 @@ void PymcellGenerator::process_single_count_term(
   if (where_to_count == WORLD) {
     where_to_count = "";
   }
+  // where_to_count can now look like this: "Cube[ALL"
+  size_t brace = where_to_count.find('[');
+  if (brace != string::npos) {
+    if (where_to_count.substr(brace + 1) == REGION_ALL_NAME) {
+      where_to_count = where_to_count.substr(0, brace);
+    }
+    else {
+      where_to_count[brace] = '_';
+    }
+  }
 }
 
 

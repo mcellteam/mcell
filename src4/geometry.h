@@ -53,12 +53,16 @@ class GeometryObject {
 public:
   GeometryObject()
     : id(GEOMETRY_OBJECT_ID_INVALID), index(GEOMETRY_OBJECT_INDEX_INVALID),
+      encompassing_region_id(REGION_ID_INVALID),
       is_counted_volume(false),
       counted_volume_id_outside(GEOMETRY_OBJECT_ID_INVALID) {
   }
 
   geometry_object_id_t id; // world-unique geometry object ID
   geometry_object_index_t index; // partition-unique geometry object index
+
+  region_id_t encompassing_region_id; // ID of Region that represents this whole object, used only in pymcell4 for now
+
   std::string name;
   std::string parent_name;
 
