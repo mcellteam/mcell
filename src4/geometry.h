@@ -132,7 +132,13 @@ public:
     }
   }
 
+  // for regions that encompass the whole geometry object ([ALL])
   void init_from_whole_geom_object(const GeometryObject& obj);
+
+  // for regions that represent a surface region ([xxx])
+  // walls must be already set
+  void init_surface_region_edges(const Partition& p);
+
   void add_wall_to_walls_and_edges(const wall_index_t wi, const bool incl_edges = false) {
     walls_and_edges.insert(std::make_pair(wi, std::set<edge_index_t>()));
     if (incl_edges) {

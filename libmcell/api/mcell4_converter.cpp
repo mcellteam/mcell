@@ -246,7 +246,10 @@ void MCell4Converter::convert_surface_class_rxn(
   rxn.rate_constant = FLT_GIGANTIC;
 
   rxn.append_reactant(affected_species);
-  rxn.append_reactant(surface_reactant);
+  rxn.append_reactant(surface_reactant); // copies the input reactant
+
+  // this is the default orientation used for surfaces in a reaction
+  rxn.reactants[1].set_orientation(ORIENTATION_UP);
 
   // add reaction and remember mapping
   sp.rxn_rule_id = world->get_all_rxns().add_finalized_no_update(rxn);
@@ -553,6 +556,8 @@ MCell::region_index_t MCell4Converter::convert_surface_region(
     assert(surface_region.surface_class->species_id != SPECIES_ID_INVALID);
     reg.species_id = surface_region.surface_class->species_id;
   }
+
+  reg.init_surface_region_edges(p);
 
   reg.id = world->get_next_region_id();
   surface_region.region_id = reg.id;

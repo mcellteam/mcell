@@ -491,6 +491,32 @@ void Region::init_from_whole_geom_object(const GeometryObject& obj) {
 }
 
 
+void Region::init_surface_region_edges(const Partition& p) {
+  assert(!walls_and_edges.empty());
+
+  // must be run after edge must be initializaion,
+  // however, not all edges need to be initialized
+  for (auto& it: walls_and_edges) {
+    const Wall& w = p.get_wall(it.first);
+    for (edge_index_t ei = 0; ei < EDGES_IN_TRIANGLE; ei++) {
+      const Edge& edge = w.edges[ei];
+      // uninitialized edges are considered to be bordering
+      if (!edge.is_initialized()) {
+        it.second.insert(ei);
+      }
+      else {
+        // is one of the forward or backward walls in our region?
+        // if not, then the edge is on the border of this region
+        if (walls_and_edges.count(edge.forward_index) == 0 ||
+            walls_and_edges.count(edge.backward_index) == 0) {
+          it.second.insert(ei);
+        }
+      }
+    }
+  }
+}
+
+
 void Region::dump(const std::string ind) const {
   cout << ind << "Region : " <<
       "name:" << name <<
@@ -733,7 +759,10 @@ void Edge::dump(const std::string ind) const {
   translate_rounded.y = (translate.y < EPS) ? 0.0 : translate.y;
 
   cout << ind <<
-      "Edge: translate: " << translate_rounded <<
+      "Edge: "
+      "forward_index: " << forward_index <<
+      ", backward_index: " << backward_index <<
+      ", translate: " << translate_rounded <<
       ", cos_theta: " << ((cos_theta < EPS) ? 0.0 : cos_theta) <<
       ", sin_theta: " << ((sin_theta < EPS) ? 0.0 : sin_theta) <<
       ", edge_num_used_for_init: " << edge_num_used_for_init << "\n";
