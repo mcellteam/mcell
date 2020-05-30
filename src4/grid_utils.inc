@@ -133,6 +133,8 @@ static tile_index_t uv2grid_tile_index(
     const Wall& w
 ) {
   const Grid& g = w.grid;
+  assert(g.is_initialized());
+  assert(g.num_tiles > 0);
   float_t i, j;
   float_t u0, u1_u0;
   float_t striploc, striprem, stripeloc, striperem;
