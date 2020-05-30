@@ -419,6 +419,7 @@ void MCell4Converter::init_species_rxn_flags() {
   bool has_vol_vol_rxn = false;
 
   bool all_vol_mols_can_react_with_surface = false;
+  bool all_surf_mols_can_react_with_surface = false;
 
   auto& species_vector = all_species.get_species_vector();
 
@@ -435,6 +436,10 @@ void MCell4Converter::init_species_rxn_flags() {
     // were processed
     if (sp.is_vol() && all_vol_mols_can_react_with_surface) {
       sp.set_flag(BNG::SPECIES_FLAG_CAN_VOLWALL);
+    }
+
+    if (sp.is_surf() && all_surf_mols_can_react_with_surface) {
+      sp.set_flag(BNG::SPECIES_FLAG_CAN_REGION_BORDER);
     }
 
     // get reactions, this also creates all reaction classes for the species that we currently have
@@ -476,13 +481,20 @@ void MCell4Converter::init_species_rxn_flags() {
         }
       }
 
-      if ((sp.is_surf() || sp.id == all_molecules_species_id) &&
-          (sp2.is_surf() || sp2.id == all_molecules_species_id)) {
+      if ((sp.is_surf() || sp.id == all_molecules_species_id)) {
 
-        sp.set_flag(BNG::SPECIES_FLAG_CAN_SURFSURF);
+        if (sp2.is_surf() || sp2.id == all_molecules_species_id) {
+          sp.set_flag(BNG::SPECIES_FLAG_CAN_SURFSURF);
+        }
+
+        if (sp2.is_reactive_surface()) {
+          sp.set_flag(BNG::SPECIES_FLAG_CAN_REGION_BORDER);
+          if (sp.id == all_surface_molecules_species_id || sp.id == all_molecules_species_id) {
+            all_surf_mols_can_react_with_surface = true;
+          }
+        }
       }
     }
-    // TODO: unimol?
   }
 
   // for mcell3 compatibility
