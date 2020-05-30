@@ -1030,7 +1030,7 @@ void PymcellGenerator::generate_config(ofstream& out) {
   out << "\n";
   out << make_section_comment("default configuration overrides");
 
-  // TODO: check the value against the default in
+  // FIXME: check the value against the default in the yaml API file
   bool center_molecules_on_grid = initialization[KEY_CENTER_MOLECULES_ON_GRID].asBool();
   if (center_molecules_on_grid) {
     gen_assign(out, MODEL, NAME_CONFIG, NAME_CENTER_MOLECULES_ON_GRID, center_molecules_on_grid);
@@ -1042,8 +1042,13 @@ void PymcellGenerator::generate_config(ofstream& out) {
   }
 
   string surf_grid_density = initialization[KEY_SURFACE_GRID_DENSITY].asString();
-  if (surf_grid_density != "10000") {
-    gen_assign(out, MODEL, NAME_CONFIG, NAME_CENTER_MOLECULES_ON_GRID, stoi(surf_grid_density));
+  if (surf_grid_density != "" && surf_grid_density != "10000") {
+    gen_assign(out, MODEL, NAME_CONFIG, NAME_CENTER_MOLECULES_ON_GRID, stod(surf_grid_density));
+  }
+
+  string vacancy_search_distance = initialization[KEY_VACANCY_SEARCH_DISTANCE].asString();
+  if (vacancy_search_distance != "" && vacancy_search_distance != "10") {
+    gen_assign(out, MODEL, NAME_CONFIG, NAME_VACANCY_SEARCH_DISTANCE, stod(vacancy_search_distance));
   }
 }
 

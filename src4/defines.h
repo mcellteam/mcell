@@ -674,7 +674,8 @@ class SimulationConfig: public BNG::BNGConfig {
 public:
   // configuration
 
-  float_t vacancy_search_dist2;
+  float_t vacancy_search_dist2; /* Square of distance to search for free grid
+                                  location to place surface product */
 
   float_t partition_edge_length; // TODO: rename to side
   uint num_subpartitions_per_partition;
@@ -683,8 +684,10 @@ public:
   float_t subpartition_edge_length_rcp; // == 1/subpartition_edge_length
 
   // other options
-  bool use_expanded_list;
-  bool randomize_smol_pos;
+  bool use_expanded_list; /* If set, check neighboring subvolumes for mol-mol
+                            interactions */
+  bool randomize_smol_pos; /* If set, always place surface molecule at random
+                             location instead of center of grid */
 
   void init() {
     BNGConfig::init();

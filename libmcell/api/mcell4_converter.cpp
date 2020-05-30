@@ -126,8 +126,8 @@ void MCell4Converter::convert_simulation_setup() {
     world->config.rx_radius_3d = (1.0 / sqrt_f(MY_PI * grid_density)) / length_unit;
   }
 
-  // TODO CHECK: converting to internal length units unlike as in mcell3 (similar as rx_radius_3d)
-  world->config.vacancy_search_dist2 = config.vacancy_search_distance / length_unit;
+  float_t vacancy_search_dist = config.vacancy_search_distance / length_unit; // Convert units
+  world->config.vacancy_search_dist2 = vacancy_search_dist * vacancy_search_dist; // and take square
 
   world->config.randomize_smol_pos = !config.center_molecules_on_grid;
 

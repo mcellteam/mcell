@@ -509,7 +509,11 @@ void World::initialization_to_data_model(Json::Value& mcell_node) const {
   initialization[KEY_EXPORT_ALL_ASCII] = true; // for testing, cellblender generates false as default
   initialization[KEY_MICROSCOPIC_REVERSIBILITY] = VALUE_OFF;
   initialization[KEY_TIME_STEP_MAX] = "";
-  initialization[KEY_VACANCY_SEARCH_DISTANCE] = "";
+
+  // reversed computation from mcell3's init_reactions
+  float_t vsd = sqrt(config.vacancy_search_dist2) * config.length_unit;
+  initialization[KEY_VACANCY_SEARCH_DISTANCE] = DMUtil::f_to_string(vsd);
+
   initialization[KEY_SPACE_STEP] = "";
   initialization[KEY_SURFACE_GRID_DENSITY] = DMUtil::f_to_string(config.grid_density);
 

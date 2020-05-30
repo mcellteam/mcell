@@ -247,6 +247,19 @@ void gen_assign(ofstream& out, string obj_name, string field_name1, string field
 }
 
 
+// for some reason the template above casts double to int..
+template<>
+void gen_assign(ofstream& out, string obj_name, string field_name1, string field_name2, double value) {
+  out << obj_name << "." << field_name1 << "." << field_name2 << " = " << value << "\n";
+}
+
+
+template<>
+void gen_assign(ofstream& out, string obj_name, string field_name1, string field_name2, float value) {
+  out << obj_name << "." << field_name1 << "." << field_name2 << " = " << value << "\n";
+}
+
+
 template<>
 void gen_assign(ofstream& out, string obj_name, string field_name1, string field_name2, bool value) {
   out << obj_name << "." << field_name1 << "." << field_name2 << " = " << (value ? "True" : "False") << "\n";
