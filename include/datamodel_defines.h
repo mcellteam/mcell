@@ -28,6 +28,7 @@ const char* const JSON_DM_VERSION_1638 = "DM_2014_10_24_1638";
 const char* const JSON_DM_VERSION_1700 = "DM_2015_04_13_1700";
 const char* const JSON_DM_VERSION_1756 = "DM_2015_11_08_1756";
 const char* const JSON_DM_VERSION_1800 = "DM_2016_03_15_1800";
+const char* const JSON_DM_VERSION_1830 = "DM_2017_11_30_1830";
 
 const int BLENDER_VERSION[] = {2, 79, 0};
 
@@ -191,6 +192,9 @@ const char* const KEY_REACTION_NAME = "reaction_name";
 const char* const KEY_OBJECT_NAME = "object_name";
 const char* const KEY_DATA_FILE_NAME = "data_file_name";
 const char* const KEY_COUNT_LOCATION = "count_location";
+const char* const VALUE_COUNT_LOCATION_WORLD = "World";
+const char* const VALUE_COUNT_LOCATION_OBJECT = "Object";
+const char* const VALUE_COUNT_LOCATION_REGION = "Region";
 const char* const KEY_MDL_STRING = "mdl_string";
 const char* const KEY_REGION_NAME = "region_name";
 
@@ -217,8 +221,12 @@ const char* const KEY_SURF_CLASS_NAME = "surf_class_name";
 
 
 const char* const KEY_SCRIPTING = "scripting";
-const char* const KEY_IGNORE_CELLBLENDER_DATA = "ignore_cellblender_data";
 const char* const KEY_SCRIPTING_LIST = "scripting_list";
+const char* const KEY_SCRIPT_TEXTS = "script_texts";
+const char* const KEY_DM_INTERNAL_FILE_NAME = "dm_internal_file_name";
+const char* const KEY_FORCE_PROPERTY_UPDATE = "force_property_update";
+const char* const KEY_DM_EXTERNAL_FILE_NAME = "dm_external_file_name";
+const char* const KEY_IGNORE_CELLBLENDER_DATA = "ignore_cellblender_data";
 
 const char* const KEY_SIMULATION_CONTROL = "simulation_control";
 const char* const KEY_EXPORT_FORMAT = "export_format";

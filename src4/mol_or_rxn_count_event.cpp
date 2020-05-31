@@ -178,10 +178,38 @@ void MolOrRxnCountInfo::to_data_model(const World* world, Json::Value& reaction_
   reaction_output[KEY_MDL_FILE_PREFIX] = prefix;
 
   // species or rxn name & location is in mdl_string
+  reaction_output[KEY_NAME] = "";
   reaction_output[KEY_MOLECULE_NAME] = "";
   reaction_output[KEY_REACTION_NAME] = "";
   reaction_output[KEY_OBJECT_NAME] = "";
   reaction_output[KEY_REGION_NAME] = "";
+
+  if (terms.size() == 1) {
+    string val;
+    switch (terms[0].type) {
+      case CountType::EnclosedInWorld:
+      case CountType::RxnCountInWorld:
+        val = VALUE_COUNT_LOCATION_WORLD;
+        break;
+      case CountType::EnclosedInObject:
+      case CountType::RxnCountInObject:
+        val = VALUE_COUNT_LOCATION_OBJECT;
+        break;
+      case CountType::PresentOnSurfaceRegion:
+      case CountType::RxnCountOnSurfaceRegion:
+        val = VALUE_COUNT_LOCATION_REGION;
+        break;
+      default:
+        assert(false);
+    }
+    reaction_output[KEY_COUNT_LOCATION] = val;
+  }
+  else {
+    cerr <<
+        "Warning: conversion of count expression with multiple terms to data model's " << KEY_COUNT_LOCATION <<
+        " is not fully supported, defaulting to " << VALUE_COUNT_LOCATION_REGION << ".\n";
+    reaction_output[KEY_COUNT_LOCATION] = VALUE_COUNT_LOCATION_REGION;
+  }
 
   // handled by prefix
   reaction_output[KEY_DATA_FILE_NAME] = "";
@@ -405,22 +433,10 @@ void MolOrRxnCountEvent::dump(const std::string ind) const {
 
 
 void MolOrRxnCountEvent::to_data_model(Json::Value& mcell_node) const {
-  if (mol_count_infos.empty()) {
-    return;
-  }
-
   // set global reaction_data_output settings if this is the first
   // counting event that we are converting
-  if (!mcell_node.isMember(KEY_REACTION_DATA_OUTPUT)) {
-    Json::Value& new_reaction_data_output = mcell_node[KEY_REACTION_DATA_OUTPUT];
-    DMUtil::json_add_version(new_reaction_data_output, JSON_DM_VERSION_1800);
-    new_reaction_data_output[KEY_PLOT_LAYOUT] = " ";
-    new_reaction_data_output[KEY_PLOT_LEGEND] = "0";
-    new_reaction_data_output[KEY_MOL_COLORS] = false;
-    new_reaction_data_output[KEY_ALWAYS_GENERATE] = true;
-    new_reaction_data_output[KEY_OUTPUT_BUF_SIZE] = "";
-    new_reaction_data_output[KEY_RXN_STEP] = "";
-    new_reaction_data_output[KEY_COMBINE_SEEDS] = true;
+  if (mol_count_infos.empty()) {
+    return;
   }
 
   Json::Value& reaction_data_output = mcell_node[KEY_REACTION_DATA_OUTPUT];

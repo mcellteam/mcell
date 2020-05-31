@@ -398,6 +398,19 @@ void World::to_data_model(Json::Value& root) const {
     p.to_data_model(mcell);
   }
 
+  // base information for reaction_data_output must be set even when there are no such events
+  Json::Value& reaction_data_output = mcell[KEY_REACTION_DATA_OUTPUT];
+  DMUtil::json_add_version(reaction_data_output, JSON_DM_VERSION_1800);
+  reaction_data_output[KEY_PLOT_LAYOUT] = " ";
+  reaction_data_output[KEY_PLOT_LEGEND] = "0";
+  reaction_data_output[KEY_MOL_COLORS] = false;
+  reaction_data_output[KEY_ALWAYS_GENERATE] = true;
+  reaction_data_output[KEY_OUTPUT_BUF_SIZE] = "";
+  reaction_data_output[KEY_RXN_STEP] = "";
+  reaction_data_output[KEY_COMBINE_SEEDS] = true;
+  Json::Value& reaction_output_list = reaction_data_output[KEY_REACTION_OUTPUT_LIST];
+  reaction_output_list = Json::Value(Json::arrayValue); // empty array
+
   scheduler.to_data_model(mcell);
 
   // generate species info
@@ -473,8 +486,13 @@ void World::to_data_model(Json::Value& root) const {
 
   // --- scripting ---
   Json::Value& scripting = mcell[KEY_SCRIPTING];
-  scripting[KEY_IGNORE_CELLBLENDER_DATA] = false;
+  DMUtil::json_add_version(scripting, JSON_DM_VERSION_1830);
   scripting[KEY_SCRIPTING_LIST] = Json::Value(Json::arrayValue);
+  scripting[KEY_SCRIPT_TEXTS] = Json::Value(Json::objectValue);
+  scripting[KEY_DM_INTERNAL_FILE_NAME] = "";
+  scripting[KEY_FORCE_PROPERTY_UPDATE] = true;
+  scripting[KEY_DM_EXTERNAL_FILE_NAME] = "";
+  scripting[KEY_IGNORE_CELLBLENDER_DATA] = false;
 
   // --- simulation_control ---
   Json::Value& simulation_control = mcell[KEY_SIMULATION_CONTROL];
