@@ -315,7 +315,7 @@ static void gen_rxn_substance_inst(ofstream& out, Json::Value& substances_node) 
     char c = str[i];
     switch (state) {
       case START:
-        if (isalnum(c)) {
+        if (isalnum(c) || c == '_') {
           state = ID;
           current_id = c;
         }
@@ -328,7 +328,7 @@ static void gen_rxn_substance_inst(ofstream& out, Json::Value& substances_node) 
         break;
 
       case ID:
-        if (isalnum(c)) {
+        if (isalnum(c) || c == '_') {
           current_id += c;
         }
         else if (isblank(c) || c == '+' || c == '\'' || c == ',' || c == ';') {
@@ -387,7 +387,7 @@ static void gen_rxn_substance_inst(ofstream& out, Json::Value& substances_node) 
         break;
 
       case AFTER_PLUS:
-        if (isalnum(c)) {
+        if (isalnum(c) || c == '_') {
           state = ID;
           current_id = c;
         }
