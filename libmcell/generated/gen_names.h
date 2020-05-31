@@ -158,6 +158,7 @@ const char* const NAME_TOTAL_ITERATIONS_HINT = "total_iterations_hint";
 const char* const NAME_TYPE = "type";
 const char* const NAME_USELESS_VOLUME_ORIENTATION = "useless_volume_orientation";
 const char* const NAME_VACANCY_SEARCH_DISTANCE = "vacancy_search_distance";
+const char* const NAME_VARIABLE_RATE = "variable_rate";
 const char* const NAME_VARYING_PROBABILITY_REPORT = "varying_probability_report";
 const char* const NAME_VERTEX_LIST = "vertex_list";
 const char* const NAME_VIZ_OUTPUT = "viz_output";

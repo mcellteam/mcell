@@ -370,10 +370,23 @@ void MCell4Converter::convert_rxns() {
 
     if (!is_reversible && is_set(r->name)) {
       rxn.name = r->name;
-
     }
     rxn.type = BNG::RxnType::Standard;
-    rxn.rate_constant = r->fwd_rate;
+
+    if (is_set(r->fwd_rate)) {
+      rxn.rate_constant = r->fwd_rate;
+    }
+    else {
+      assert(!r->variable_rate.empty());
+      for (auto& time_and_rate: r->variable_rate) {
+        assert(time_and_rate.size() == 2);
+        BNG::RxnRateInfo info;
+        info.time = time_and_rate[0] / world->config.time_unit;
+        info.rate_constant = time_and_rate[1];
+        rxn.variable_rates.push_back(info);
+      }
+      rxn.update_variable_rxn_rate(0, nullptr);
+    }
 
     for (std::shared_ptr<API::ComplexInstance>& rinst: r->reactants) {
       // convert to BNG::ComplexInstance using existing or new BNG::molecule_id

@@ -478,6 +478,13 @@ void RxnRule::dump(const BNGData& bng_data, const bool for_diff, const std::stri
 
     cout << ind << "rate_constant: " << rate_constant << "\n";
     cout << ind << "variable_rates.size: " << variable_rates.size() << "\n";
+
+    if (!variable_rates.empty()) {
+      for (size_t i = 0; i < variable_rates.size(); i++) {
+        cout << ind + "  " << "t: " << variable_rates[i].time << ", r: " << variable_rates[i].rate_constant << "\n";
+      }
+    }
+
     cout << ind << "mol_instances_are_fully_maintained: " << mol_instances_are_fully_maintained << "\n";
 
     cout << ind << "reactants:\n";

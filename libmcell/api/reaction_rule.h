@@ -48,6 +48,22 @@ public:
           "Error for " + name + ". If name is needed, split the definition into its forward and reverse variant."
       );
     }
+
+    if (is_set(variable_rate)) {
+      if (is_set(fwd_rate) || is_set(rev_rate)) {
+        throw ValueError("Variable rates cannot be set along with fwd_rate or rev_rate.");
+      }
+
+      for (auto& time_and_rate: variable_rate) {
+        if (time_and_rate.size() != 2) {
+          std::string msg = "[]";
+          if (time_and_rate.size() >= 1) {
+            msg = " item with time " + std::to_string(time_and_rate[0]);
+          }
+          throw ValueError("Variable rate array must contain pairs [time, rate], error for " + msg + ".");
+        }
+      }
+    }
   }
 
   // simulation engine mapping

@@ -66,10 +66,16 @@ string PymcellGenerator::make_import(const string file_suffix) {
 }
 
 
-void PymcellGenerator::open_and_check_file(const string file_suffix, ofstream& out) {
+void PymcellGenerator::open_and_check_file(const string file_suffix, ofstream& out, const bool for_append) {
   string file_name = get_filename(file_suffix);
-  cout << "Generating file " + file_name + ".\n";
-  out.open(file_name);
+  if (for_append) {
+    cout << "Appending to " + file_name + ".\n";
+    out.open(file_name, ios::app);
+  }
+  else {
+    cout << "Generating file " + file_name + ".\n";
+    out.open(file_name);
+  }
   out.precision(FLOAT_OUT_PRECISION);
   if (!out.is_open()) {
     throw ConversionError("Could not open file '" + file_name + "' for writing.");
@@ -283,6 +289,49 @@ vector<string> PymcellGenerator::generate_surface_classes(ofstream& out) {
 }
 
 
+void PymcellGenerator::generate_variable_rate(const std::string& rate_array_name, Json::Value& variable_rate_text) {
+  // append to the parameters file
+  ofstream out;
+  open_and_check_file(PARAMETERS, out, true);
+
+  out << "\n" << make_section_comment("variable rate");
+  out << rate_array_name << " = [\n";
+
+  string vr = variable_rate_text.asString();
+  size_t pos = 0;
+  bool print_comma = false;
+  while (pos < vr.size()) {
+    size_t tab = vr.find('\t', pos + 1);
+    size_t nl = vr.find('\n', pos + 1);
+    if (nl == string::npos) {
+      nl = vr.size();
+    }
+    if (tab > nl || tab == pos || nl == pos) {
+      ERROR("Malformed variable_rate_text in datamodel.");
+    }
+    if (tab == string::npos) {
+      break; // end of input
+    }
+
+    string time = vr.substr(pos, tab - pos);
+    string rate = vr.substr(tab + 1, nl - (tab + 1));
+
+    if (print_comma) {
+      out << ",\n";
+    }
+    print_comma = true;
+
+    out << "  [" << time << ", " << rate << "]";
+
+    pos = nl;
+    pos++;
+  }
+  out << "\n] # " << rate_array_name << "\n\n";
+
+  out.close();
+}
+
+
 vector<string> PymcellGenerator::generate_reaction_rules(ofstream& out) {
   vector<string> rxn_names;
 
@@ -316,15 +365,23 @@ vector<string> PymcellGenerator::generate_reaction_rules(ofstream& out) {
     gen_rxn_substance_inst(out, reaction_list_item[KEY_PRODUCTS]);
     out << ",\n";
 
-    CHECK_PROPERTY(reaction_list_item[KEY_VARIABLE_RATE_SWITCH].asBool() == false && "Not supported yet");
+    if (reaction_list_item[KEY_VARIABLE_RATE_SWITCH].asBool()) {
+      // variable rates
+      CHECK_PROPERTY(reaction_list_item[KEY_VARIABLE_RATE_VALID].asBool() && "variable_rate_switch must be equal to variable_rate_valid");
+      string rate_array_name = reaction_list_item[KEY_VARIABLE_RATE].asString();
+      generate_variable_rate(rate_array_name, reaction_list_item[KEY_VARIABLE_RATE_TEXT]);
+      gen_param_id(out, NAME_VARIABLE_RATE, rate_array_name, false); // module parameters is imported as *
+    }
+    else {
+      // fwd or rev rates
+      string rxn_type = reaction_list_item[KEY_RXN_TYPE].asString();
+      CHECK_PROPERTY(rxn_type == VALUE_IRREVERSIBLE || rxn_type == VALUE_REVERSIBLE);
+      bool is_reversible = rxn_type == VALUE_REVERSIBLE;
 
-    string rxn_type = reaction_list_item[KEY_RXN_TYPE].asString();
-    CHECK_PROPERTY(rxn_type == VALUE_IRREVERSIBLE || rxn_type == VALUE_REVERSIBLE);
-    bool is_reversible = rxn_type == VALUE_REVERSIBLE;
-
-    gen_param_double(out, NAME_FWD_RATE, reaction_list_item[KEY_FWD_RATE], is_reversible);
-    if (is_reversible) {
-      gen_param_double(out, NAME_FWD_RATE, reaction_list_item[KEY_BKWD_RATE], false);
+      gen_param_double(out, NAME_FWD_RATE, reaction_list_item[KEY_FWD_RATE], is_reversible);
+      if (is_reversible) {
+        gen_param_double(out, NAME_FWD_RATE, reaction_list_item[KEY_BKWD_RATE], false);
+      }
     }
 
     out << CTOR_END;

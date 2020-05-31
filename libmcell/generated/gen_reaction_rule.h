@@ -37,7 +37,8 @@ class ComplexInstance;
         const std::vector<std::shared_ptr<ComplexInstance>> reactants_ = std::vector<std::shared_ptr<ComplexInstance>>(), \
         const std::vector<std::shared_ptr<ComplexInstance>> products_ = std::vector<std::shared_ptr<ComplexInstance>>(), \
         const float_t fwd_rate_ = FLT_UNSET, \
-        const float_t rev_rate_ = FLT_UNSET \
+        const float_t rev_rate_ = FLT_UNSET, \
+        const std::vector<std::vector<float_t>> variable_rate_ = std::vector<std::vector<float_t>>() \
     ) { \
       class_name = "ReactionRule"; \
       name = name_; \
@@ -45,6 +46,7 @@ class ComplexInstance;
       products = products_; \
       fwd_rate = fwd_rate_; \
       rev_rate = rev_rate_; \
+      variable_rate = variable_rate_; \
       postprocess_in_ctor();\
       check_semantics();\
     }
@@ -105,6 +107,18 @@ public:
   }
   virtual float_t get_rev_rate() const {
     return rev_rate;
+  }
+
+  std::vector<std::vector<float_t>> variable_rate;
+  virtual void set_variable_rate(const std::vector<std::vector<float_t>> new_variable_rate_) {
+    if (initialized) {
+      throw RuntimeError("Value 'variable_rate' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
+    variable_rate = new_variable_rate_;
+  }
+  virtual std::vector<std::vector<float_t>> get_variable_rate() const {
+    return variable_rate;
   }
 
   // --- methods ---

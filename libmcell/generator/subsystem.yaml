@@ -181,8 +181,13 @@ ReactionRule:
     type: float
     default: unset
     doc: Reverse reactions rate, reaction is unidirectional when not specified 
-
-
+    
+  - name: variable_rate
+    type: List[List[float]]
+    default: empty
+    doc: | 
+      Variable rate is applicable only for irreversible reactions. Members fwd_rate and rev_rate 
+      must not be set. The array passed as this argument must have as its items a pair of floats (time, rate).     
 
 Subsystem:
   items:
