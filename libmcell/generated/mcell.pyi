@@ -76,6 +76,20 @@ class ComponentType():
         self.states = states
 
 
+    def inst(
+            self,
+            state : str = STATE_UNSET,
+            bond : int = BOND_UNBOUND
+        ) -> 'ComponentInstance':
+        pass
+
+    def inst(
+            self,
+            state : int = STATE_UNSET_INT,
+            bond : int = BOND_UNBOUND
+        ) -> 'ComponentInstance':
+        pass
+
 class ComponentInstance():
     def __init__(
             self,
@@ -101,6 +115,12 @@ class MoleculeType():
         self.diffusion_constant_2d = diffusion_constant_2d
         self.diffusion_constant_3d = diffusion_constant_3d
 
+
+    def inst(
+            self,
+            components : List[ComponentInstance]
+        ) -> 'MoleculeInstance':
+        pass
 
 class MoleculeInstance():
     def __init__(
@@ -137,6 +157,12 @@ class Species():
         self.molecule_instances = molecule_instances
         self.orientation = orientation
 
+
+    def inst(
+            self,
+            orientation : Orientation = Orientation.NOT_SET
+        ) -> 'ComplexInstance':
+        pass
 
 class SurfaceProperty():
     def __init__(
@@ -196,6 +222,36 @@ class Subsystem():
         self.surface_classes = surface_classes
 
 
+    def add_species(
+            self,
+            s : Species
+        ) -> None:
+        pass
+
+    def find_species(
+            self,
+            name : str
+        ) -> 'Species':
+        pass
+
+    def add_reaction_rule(
+            self,
+            r : ReactionRule
+        ) -> None:
+        pass
+
+    def find_reaction_rule(
+            self,
+            name : str
+        ) -> 'ReactionRule':
+        pass
+
+    def add_surface_class(
+            self,
+            sc : SurfaceClass
+        ) -> None:
+        pass
+
 class Region():
     def __init__(
             self,
@@ -207,6 +263,24 @@ class Region():
         self.left_node = left_node
         self.right_node = right_node
 
+
+    def __add__(
+            self,
+            other : 'Region'
+        ) -> 'Region':
+        pass
+
+    def __sub__(
+            self,
+            other : 'Region'
+        ) -> 'Region':
+        pass
+
+    def __mul__(
+            self,
+            other : 'Region'
+        ) -> 'Region':
+        pass
 
 class SurfaceRegion():
     def __init__(
@@ -225,6 +299,24 @@ class SurfaceRegion():
         self.left_node = left_node
         self.right_node = right_node
 
+
+    def __add__(
+            self,
+            other : Region
+        ) -> 'Region':
+        pass
+
+    def __sub__(
+            self,
+            other : Region
+        ) -> 'Region':
+        pass
+
+    def __mul__(
+            self,
+            other : Region
+        ) -> 'Region':
+        pass
 
 class GeometryObject():
     def __init__(
@@ -247,6 +339,24 @@ class GeometryObject():
         self.left_node = left_node
         self.right_node = right_node
 
+
+    def __add__(
+            self,
+            other : Region
+        ) -> 'Region':
+        pass
+
+    def __sub__(
+            self,
+            other : Region
+        ) -> 'Region':
+        pass
+
+    def __mul__(
+            self,
+            other : Region
+        ) -> 'Region':
+        pass
 
 class ReleaseSite():
     def __init__(
@@ -286,6 +396,30 @@ class InstantiationData():
         self.geometry_objects = geometry_objects
 
 
+    def add_release_site(
+            self,
+            s : ReleaseSite
+        ) -> None:
+        pass
+
+    def find_release_site(
+            self,
+            name : str
+        ) -> 'ReleaseSite':
+        pass
+
+    def add_geometry_object(
+            self,
+            o : GeometryObject
+        ) -> None:
+        pass
+
+    def find_geometry_object(
+            self,
+            name : str
+        ) -> 'GeometryObject':
+        pass
+
 class VizOutput():
     def __init__(
             self,
@@ -320,6 +454,18 @@ class CountTerm():
         self.right_node = right_node
 
 
+    def __add__(
+            self,
+            op2 : 'CountTerm'
+        ) -> 'CountTerm':
+        pass
+
+    def __sub__(
+            self,
+            op2 : 'CountTerm'
+        ) -> 'CountTerm':
+        pass
+
 class Count():
     def __init__(
             self,
@@ -346,6 +492,18 @@ class Count():
         self.right_node = right_node
 
 
+    def __add__(
+            self,
+            op2 : CountTerm
+        ) -> 'CountTerm':
+        pass
+
+    def __sub__(
+            self,
+            op2 : CountTerm
+        ) -> 'CountTerm':
+        pass
+
 class Observables():
     def __init__(
             self,
@@ -355,6 +513,18 @@ class Observables():
         self.viz_outputs = viz_outputs
         self.counts = counts
 
+
+    def add_viz_output(
+            self,
+            viz_output : VizOutput
+        ) -> None:
+        pass
+
+    def add_count(
+            self,
+            count : Count
+        ) -> None:
+        pass
 
 class Config():
     def __init__(
@@ -451,6 +621,100 @@ class Model():
         self.release_sites = release_sites
         self.geometry_objects = geometry_objects
 
+
+    def initialize(
+            self,
+        ) -> None:
+        pass
+
+    def run_iterations(
+            self,
+            iterations : int
+        ) -> None:
+        pass
+
+    def end_simulation(
+            self,
+            print_final_report : bool = True
+        ) -> None:
+        pass
+
+    def add_subsystem(
+            self,
+            subsystem : Subsystem
+        ) -> None:
+        pass
+
+    def add_instantiation_data(
+            self,
+            instantiation_data : InstantiationData
+        ) -> None:
+        pass
+
+    def add_observables(
+            self,
+            observables : Observables
+        ) -> None:
+        pass
+
+    def dump_internal_state(
+            self,
+        ) -> None:
+        pass
+
+    def add_species(
+            self,
+            s : Species
+        ) -> None:
+        pass
+
+    def find_species(
+            self,
+            name : str
+        ) -> 'Species':
+        pass
+
+    def add_reaction_rule(
+            self,
+            r : ReactionRule
+        ) -> None:
+        pass
+
+    def find_reaction_rule(
+            self,
+            name : str
+        ) -> 'ReactionRule':
+        pass
+
+    def add_surface_class(
+            self,
+            sc : SurfaceClass
+        ) -> None:
+        pass
+
+    def add_release_site(
+            self,
+            s : ReleaseSite
+        ) -> None:
+        pass
+
+    def find_release_site(
+            self,
+            name : str
+        ) -> 'ReleaseSite':
+        pass
+
+    def add_geometry_object(
+            self,
+            o : GeometryObject
+        ) -> None:
+        pass
+
+    def find_geometry_object(
+            self,
+            name : str
+        ) -> 'GeometryObject':
+        pass
 
 AllMolecules = Species('ALL_MOLECULES')
 AllVolumeMolecules = Species('ALL_VOLUME_MOLECULES')

@@ -1387,13 +1387,41 @@ def generate_pyi_class(f, name, class_def):
     if KEY_ITEMS in class_def:
         num_items = len(class_def[KEY_ITEMS])
         for i in range(0, num_items):
-            name = class_def[KEY_ITEMS][i][KEY_NAME]
-            f.write('        self.' + name + ' = ' + name + '\n')
+            member_name = class_def[KEY_ITEMS][i][KEY_NAME]
+            f.write('        self.' + member_name + ' = ' + member_name + '\n')
     else:
         f.write('        pass')
     f.write('\n\n')        
         
-    
+        
+    if KEY_METHODS in class_def:
+        for method in class_def[KEY_METHODS]:
+            f.write('    def ' + method[KEY_NAME] + '(\n')
+            f.write(param_ind + 'self,\n')
+            
+            if KEY_PARAMS in method:
+                num_params = len(method[KEY_PARAMS])
+                for i in range(0, num_params):
+                    param = method[KEY_PARAMS][i]
+                    f.write(param_ind + param[KEY_NAME])
+                    t = yaml_type_to_py_type(param[KEY_TYPE])
+                    q = '\'' if t == name else ''
+                    f.write(' : ' + q + t + q)
+                    if KEY_DEFAULT in param:
+                        f.write(' = ' + get_default_or_unset_value_py(param))
+                    if i + 1 != num_params:
+                        f.write(',')       
+                    f.write('\n')   
+            f.write('        )')
+            
+            if KEY_RETURN_TYPE in method:
+                f.write(' -> \'' + yaml_type_to_py_type(method[KEY_RETURN_TYPE]) + '\'')
+            else:
+                f.write(' -> ' + PY_NONE)
+            f.write(':\n')
+            f.write('        pass\n\n')
+            
+                
 def generate_pyi_file(data_classes):
     with open(os.path.join(TARGET_DIRECTORY, MCELL_PYI), 'w') as f:
         
@@ -1436,15 +1464,6 @@ def generate_pyi_file(data_classes):
         for key, value in data_classes.items():
             if key != KEY_CONSTANTS and key != KEY_ENUMS:
                 generate_pyi_class(f, key, value)
-                                    
-            # methods        
-            #    if KEY_METHODS in value:
-            #        for method in value[KEY_METHODS]:
-            #            all_item_param_names.add(method[KEY_NAME])
-            # 
-            #            if KEY_PARAMS in method:
-            #                for param in method[KEY_PARAMS]:
-            #                    all_item_param_names.add(param[KEY_NAME])
 
         # we need to define the Species contants after they were defined
         f.write(species_def)

@@ -45,8 +45,7 @@ public:
     return nullptr;
   }
 
-  void add_geometry_object(std::shared_ptr<GeometryObject> o, const std::string& name = "") override {
-    assert(name == "");
+  void add_geometry_object(std::shared_ptr<GeometryObject> o) override {
     append_to_vec(geometry_objects, o);
   }
 
