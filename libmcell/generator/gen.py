@@ -300,7 +300,10 @@ def yaml_type_to_pybind_type(t):
     
 def yaml_type_to_py_type(t):
     assert len(t) >= 1
-    return t.replace('*', '')
+    if t == YAML_TYPE_LONG:
+        return YAML_TYPE_INT # not sure what should be the name
+    else:
+        return t.replace('*', '')
 
         
 def is_cpp_ptr_type(cpp_type):
@@ -1360,27 +1363,76 @@ def generate_pyi_class(f, name, class_def):
     param_ind = '            ' 
     f.write(param_ind + 'self,\n')
     
+    # ctor
     if KEY_ITEMS in class_def:
         num_items = len(class_def[KEY_ITEMS])
         for i in range(0, num_items):
             item = class_def[KEY_ITEMS][i]
             f.write(param_ind + item[KEY_NAME])
-            f.write(' : ' + yaml_type_to_py_type(item[KEY_TYPE]))
+            
+            # self-referencing classes must usestring type reference
+            # https://www.python.org/dev/peps/pep-0484/#forward-references
+            t = yaml_type_to_py_type(item[KEY_TYPE])
+            q = '\'' if t == name else ''
+            f.write(' : ' + q + t + q)
+            
             if KEY_DEFAULT in item:
                 f.write(' = ' + get_default_or_unset_value_py(item))
             if i + 1 != num_items:
                 f.write(',')
             f.write('\n')
     f.write('        ):\n')
-    f.write('        pass')
+
+    # class members
+    if KEY_ITEMS in class_def:
+        num_items = len(class_def[KEY_ITEMS])
+        for i in range(0, num_items):
+            name = class_def[KEY_ITEMS][i][KEY_NAME]
+            f.write('        self.' + name + ' = ' + name + '\n')
+    else:
+        f.write('        pass')
     f.write('\n\n')        
-    
+        
     
 def generate_pyi_file(data_classes):
     with open(os.path.join(TARGET_DIRECTORY, MCELL_PYI), 'w') as f:
         
-        f.write('from typing import List\n\n')
+        f.write('from typing import List\n')
+        f.write('from enum import Enum\n\n')
         
+        species_def = ''
+        
+        # Vec3
+        f.write(
+            'class Vec3():\n'
+            '    def __init__(self, x : float = 0, y : float = 0, z : float = 0):\n'
+            '        self.x = x\n'
+            '        self.y = y\n'
+            '        self.z = z\n'
+            '\n'
+        )
+        
+        # generate enums first, then constants
+        enums = data_classes[KEY_ENUMS]
+        for enum in enums:
+            f.write('class ' + enum[KEY_NAME] + '(Enum):\n')
+            for enum_item in enum[KEY_VALUES]:
+                f.write('    ' + enum_item[KEY_NAME] + ' = ' + str(enum_item[KEY_VALUE]) + '\n')
+            f.write('\n')
+        f.write('\n\n')
+        
+        constants = data_classes[KEY_CONSTANTS]
+        for const in constants:
+            if const[KEY_TYPE] == YAML_TYPE_SPECIES:
+                # Species constants are a bit special
+                ctor_param = get_underscored(const[KEY_VALUE]).upper()
+                species_def += const[KEY_NAME] + ' = ' + YAML_TYPE_SPECIES + '(\'' + ctor_param + '\')\n'
+            elif const[KEY_TYPE] == YAML_TYPE_STR:
+                f.write(const[KEY_NAME] + ' = \'' + str(const[KEY_VALUE]) + '\'\n')
+            else:
+                f.write(const[KEY_NAME] + ' = ' + str(const[KEY_VALUE]) + '\n')
+        f.write('\n\n')
+            
         for key, value in data_classes.items():
             if key != KEY_CONSTANTS and key != KEY_ENUMS:
                 generate_pyi_class(f, key, value)
@@ -1393,21 +1445,10 @@ def generate_pyi_file(data_classes):
             #            if KEY_PARAMS in method:
             #                for param in method[KEY_PARAMS]:
             #                    all_item_param_names.add(param[KEY_NAME])
-            elif key == KEY_ENUMS:
-                pass
-                # enum names are in g_enums
-                #for enum in value:
-                #    if KEY_VALUES in enum:
-                #        for enum_item in enum[KEY_VALUES]:
-                #            all_enum_value_names.add(enum_item[KEY_NAME])
-            elif key == KEY_CONSTANTS:
-                pass
-                #for const in value:
-                #    all_const_value_names.add(const[KEY_NAME])
-            else:
-                print("Error: unexpected top level key " + key)
-                sys.exit(1)
-    
+
+        # we need to define the Species contants after they were defined
+        f.write(species_def)
+        
         
 def load_and_generate_data_classes():
     data_classes = {}
