@@ -160,6 +160,7 @@ vector<string> PymcellGenerator::generate_species(ofstream& out) {
     check_version(KEY_MOLECULE_LIST, molecule_list_item, JSON_DM_VERSION_1632);
 
     string name = molecule_list_item[KEY_MOL_NAME].asString();
+    replace(name.begin(), name.end(), '.', '_');
     species_names.push_back(name);
     gen_ctor_call(out, name, NAME_CLASS_SPECIES);
     gen_param(out, NAME_NAME, name, true);

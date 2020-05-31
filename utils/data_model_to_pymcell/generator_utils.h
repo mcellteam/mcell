@@ -319,6 +319,10 @@ static void gen_rxn_substance_inst(ofstream& out, Json::Value& substances_node) 
           state = ID;
           current_id = c;
         }
+        else if (c == '.') {
+          state = ID;
+          current_id = '_';
+        }
         else if (isblank(c)) {
           // ok
         }
@@ -330,6 +334,10 @@ static void gen_rxn_substance_inst(ofstream& out, Json::Value& substances_node) 
       case ID:
         if (isalnum(c) || c == '_') {
           current_id += c;
+        }
+        else if (c == '.') {
+          state = ID;
+          current_id += '_';
         }
         else if (isblank(c) || c == '+' || c == '\'' || c == ',' || c == ';') {
           substances.push_back(current_id);
@@ -390,6 +398,10 @@ static void gen_rxn_substance_inst(ofstream& out, Json::Value& substances_node) 
         if (isalnum(c) || c == '_') {
           state = ID;
           current_id = c;
+        }
+        else if (c == '.') {
+          state = ID;
+          current_id = '_';
         }
         else if (isblank(c)) {
           // ok
