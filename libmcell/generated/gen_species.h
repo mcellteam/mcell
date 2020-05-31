@@ -41,7 +41,7 @@ class MoleculeInstance;
         const float_t diffusion_constant_2d_ = FLT_UNSET, \
         const float_t diffusion_constant_3d_ = FLT_UNSET, \
         const std::vector<std::shared_ptr<MoleculeInstance>> molecule_instances_ = std::vector<std::shared_ptr<MoleculeInstance>>(), \
-        const Orientation orientation_ = Orientation::None \
+        const Orientation orientation_ = Orientation::NONE \
     )  : GenSpecies(molecule_instances_,orientation_) { \
       class_name = "Species"; \
       name = name_; \
@@ -57,7 +57,7 @@ class GenSpecies: public ComplexInstance {
 public:
   GenSpecies( 
       const std::vector<std::shared_ptr<MoleculeInstance>> molecule_instances_ = std::vector<std::shared_ptr<MoleculeInstance>>(), 
-      const Orientation orientation_ = Orientation::None 
+      const Orientation orientation_ = Orientation::NONE 
   )  : ComplexInstance(molecule_instances_,orientation_)  {
   }
   void postprocess_in_ctor() override {}
@@ -93,7 +93,7 @@ public:
   }
 
   // --- methods ---
-  virtual ComplexInstance inst(const Orientation orientation = Orientation::NotSet) = 0;
+  virtual ComplexInstance inst(const Orientation orientation = Orientation::NOT_SET) = 0;
 }; // GenSpecies
 
 class Species;

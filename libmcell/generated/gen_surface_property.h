@@ -33,9 +33,9 @@ class Species;
 
 #define SURFACE_PROPERTY_CTOR() \
     SurfaceProperty( \
-        const SurfacePropertyType type_ = SurfacePropertyType::Unset, \
+        const SurfacePropertyType type_ = SurfacePropertyType::UNSET, \
         std::shared_ptr<Species> affected_species_ = nullptr, \
-        const Orientation orientation_ = Orientation::NotSet \
+        const Orientation orientation_ = Orientation::NOT_SET \
     ) { \
       class_name = "SurfaceProperty"; \
       type = type_; \

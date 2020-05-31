@@ -91,7 +91,7 @@ Notifications:
     
   - name: diffusion_constant_report
     type: Notification
-    default: Notification.Brief
+    default: Notification.BRIEF
     
   # FILE_OUTPUT_REPORT - to be removed, controls only how many lines are to be printed to reac_output
   
@@ -129,35 +129,35 @@ Warnings:
   items:
   - name: molecule_collision_report
     type: WarningLevel
-    default: WarningLevel.Warning
+    default: WarningLevel.WARNING
      
   - name: degenerate_polygons
     type: WarningLevel
-    default: WarningLevel.Warning
+    default: WarningLevel.WARNING
 
   - name: negative_diffusion_constant
     type: WarningLevel
-    default: WarningLevel.Warning
+    default: WarningLevel.WARNING
 
   - name: missing_surface_orientation
     type: WarningLevel
-    default: WarningLevel.Error
+    default: WarningLevel.ERROR
 
   - name: negative_reaction_rate
     type: WarningLevel
-    default: WarningLevel.Warning
+    default: WarningLevel.WARNING
 
   - name: useless_volume_orientation
     type: WarningLevel
-    default: WarningLevel.Warning
+    default: WarningLevel.WARNING
 
   - name: high_reaction_probability
     type: WarningLevel
-    default: WarningLevel.Ignore
+    default: WarningLevel.IGNORE
 
   - name: lifetime_too_short
     type: WarningLevel
-    default: WarningLevel.Warning
+    default: WarningLevel.WARNING
 
   - name: lifetime_threshold
     type: float
@@ -165,7 +165,7 @@ Warnings:
 
   - name: missed_reactions
     type: WarningLevel
-    default: WarningLevel.Warning
+    default: WarningLevel.WARNING
 
   - name: missed_reactions_threshold
     type: float

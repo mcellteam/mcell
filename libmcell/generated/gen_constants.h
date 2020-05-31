@@ -40,148 +40,148 @@ const std::string ALL_VOLUME_MOLECULES = "ALL_VOLUME_MOLECULES";
 const std::string ALL_SURFACE_MOLECULES = "ALL_SURFACE_MOLECULES";
 
 enum class Orientation {
-  Down = -1,
-  None = 0,
-  Up = 1,
-  NotSet = 2,
-  Any = 3
+  DOWN = -1,
+  NONE = 0,
+  UP = 1,
+  NOT_SET = 2,
+  ANY = 3
 };
 
 
 static inline  std::ostream& operator << (std::ostream& out, const Orientation v) {
   switch (v) {
-    case Orientation::Down: out << "Orientation.Down (-1)"; break;
-    case Orientation::None: out << "Orientation.None (0)"; break;
-    case Orientation::Up: out << "Orientation.Up (1)"; break;
-    case Orientation::NotSet: out << "Orientation.NotSet (2)"; break;
-    case Orientation::Any: out << "Orientation.Any (3)"; break;
+    case Orientation::DOWN: out << "Orientation.DOWN (-1)"; break;
+    case Orientation::NONE: out << "Orientation.NONE (0)"; break;
+    case Orientation::UP: out << "Orientation.UP (1)"; break;
+    case Orientation::NOT_SET: out << "Orientation.NOT_SET (2)"; break;
+    case Orientation::ANY: out << "Orientation.ANY (3)"; break;
   }
   return out;
 };
 
 
 enum class Notification {
-  None = 0,
-  Brief = 1,
-  Full = 2
+  NONE = 0,
+  BRIEF = 1,
+  FULL = 2
 };
 
 
 static inline  std::ostream& operator << (std::ostream& out, const Notification v) {
   switch (v) {
-    case Notification::None: out << "Notification.None (0)"; break;
-    case Notification::Brief: out << "Notification.Brief (1)"; break;
-    case Notification::Full: out << "Notification.Full (2)"; break;
+    case Notification::NONE: out << "Notification.NONE (0)"; break;
+    case Notification::BRIEF: out << "Notification.BRIEF (1)"; break;
+    case Notification::FULL: out << "Notification.FULL (2)"; break;
   }
   return out;
 };
 
 
 enum class WarningLevel {
-  Ignore = 0,
-  Warning = 1,
-  Error = 2
+  IGNORE = 0,
+  WARNING = 1,
+  ERROR = 2
 };
 
 
 static inline  std::ostream& operator << (std::ostream& out, const WarningLevel v) {
   switch (v) {
-    case WarningLevel::Ignore: out << "WarningLevel.Ignore (0)"; break;
-    case WarningLevel::Warning: out << "WarningLevel.Warning (1)"; break;
-    case WarningLevel::Error: out << "WarningLevel.Error (2)"; break;
+    case WarningLevel::IGNORE: out << "WarningLevel.IGNORE (0)"; break;
+    case WarningLevel::WARNING: out << "WarningLevel.WARNING (1)"; break;
+    case WarningLevel::ERROR: out << "WarningLevel.ERROR (2)"; break;
   }
   return out;
 };
 
 
 enum class VizMode {
-  Ascii = 0,
-  Cellblender = 1
+  ASCII = 0,
+  CELLBLENDER = 1
 };
 
 
 static inline  std::ostream& operator << (std::ostream& out, const VizMode v) {
   switch (v) {
-    case VizMode::Ascii: out << "VizMode.Ascii (0)"; break;
-    case VizMode::Cellblender: out << "VizMode.Cellblender (1)"; break;
+    case VizMode::ASCII: out << "VizMode.ASCII (0)"; break;
+    case VizMode::CELLBLENDER: out << "VizMode.CELLBLENDER (1)"; break;
   }
   return out;
 };
 
 
 enum class Shape {
-  Unset = 0,
-  Spherical = 1,
-  RegionExpr = 2
+  UNSET = 0,
+  SPHERICAL = 1,
+  REGION_EXPR = 2
 };
 
 
 static inline  std::ostream& operator << (std::ostream& out, const Shape v) {
   switch (v) {
-    case Shape::Unset: out << "Shape.Unset (0)"; break;
-    case Shape::Spherical: out << "Shape.Spherical (1)"; break;
-    case Shape::RegionExpr: out << "Shape.RegionExpr (2)"; break;
+    case Shape::UNSET: out << "Shape.UNSET (0)"; break;
+    case Shape::SPHERICAL: out << "Shape.SPHERICAL (1)"; break;
+    case Shape::REGION_EXPR: out << "Shape.REGION_EXPR (2)"; break;
   }
   return out;
 };
 
 
 enum class SurfacePropertyType {
-  Unset = 0,
-  Reflective = 1,
-  Transparent = 2,
-  Absorptive = 3
+  UNSET = 0,
+  REFLECTIVE = 1,
+  TRANSPARENT = 2,
+  ABSORPTIVE = 3
 };
 
 
 static inline  std::ostream& operator << (std::ostream& out, const SurfacePropertyType v) {
   switch (v) {
-    case SurfacePropertyType::Unset: out << "SurfacePropertyType.Unset (0)"; break;
-    case SurfacePropertyType::Reflective: out << "SurfacePropertyType.Reflective (1)"; break;
-    case SurfacePropertyType::Transparent: out << "SurfacePropertyType.Transparent (2)"; break;
-    case SurfacePropertyType::Absorptive: out << "SurfacePropertyType.Absorptive (3)"; break;
+    case SurfacePropertyType::UNSET: out << "SurfacePropertyType.UNSET (0)"; break;
+    case SurfacePropertyType::REFLECTIVE: out << "SurfacePropertyType.REFLECTIVE (1)"; break;
+    case SurfacePropertyType::TRANSPARENT: out << "SurfacePropertyType.TRANSPARENT (2)"; break;
+    case SurfacePropertyType::ABSORPTIVE: out << "SurfacePropertyType.ABSORPTIVE (3)"; break;
   }
   return out;
 };
 
 
 enum class ExprNodeType {
-  Unset = 0,
-  Leaf = 1,
-  Add = 2,
-  Sub = 3
+  UNSET = 0,
+  LEAF = 1,
+  ADD = 2,
+  SUB = 3
 };
 
 
 static inline  std::ostream& operator << (std::ostream& out, const ExprNodeType v) {
   switch (v) {
-    case ExprNodeType::Unset: out << "ExprNodeType.Unset (0)"; break;
-    case ExprNodeType::Leaf: out << "ExprNodeType.Leaf (1)"; break;
-    case ExprNodeType::Add: out << "ExprNodeType.Add (2)"; break;
-    case ExprNodeType::Sub: out << "ExprNodeType.Sub (3)"; break;
+    case ExprNodeType::UNSET: out << "ExprNodeType.UNSET (0)"; break;
+    case ExprNodeType::LEAF: out << "ExprNodeType.LEAF (1)"; break;
+    case ExprNodeType::ADD: out << "ExprNodeType.ADD (2)"; break;
+    case ExprNodeType::SUB: out << "ExprNodeType.SUB (3)"; break;
   }
   return out;
 };
 
 
 enum class RegionNodeType {
-  Unset = 0,
-  LeafGeometryObject = 1,
-  LeafSurfaceRegion = 2,
-  Union = 3,
-  Difference = 4,
-  Intersect = 5
+  UNSET = 0,
+  LEAF_GEOMETRY_OBJECT = 1,
+  LEAF_SURFACE_REGION = 2,
+  UNION = 3,
+  DIFFERENCE = 4,
+  INTERSECT = 5
 };
 
 
 static inline  std::ostream& operator << (std::ostream& out, const RegionNodeType v) {
   switch (v) {
-    case RegionNodeType::Unset: out << "RegionNodeType.Unset (0)"; break;
-    case RegionNodeType::LeafGeometryObject: out << "RegionNodeType.LeafGeometryObject (1)"; break;
-    case RegionNodeType::LeafSurfaceRegion: out << "RegionNodeType.LeafSurfaceRegion (2)"; break;
-    case RegionNodeType::Union: out << "RegionNodeType.Union (3)"; break;
-    case RegionNodeType::Difference: out << "RegionNodeType.Difference (4)"; break;
-    case RegionNodeType::Intersect: out << "RegionNodeType.Intersect (5)"; break;
+    case RegionNodeType::UNSET: out << "RegionNodeType.UNSET (0)"; break;
+    case RegionNodeType::LEAF_GEOMETRY_OBJECT: out << "RegionNodeType.LEAF_GEOMETRY_OBJECT (1)"; break;
+    case RegionNodeType::LEAF_SURFACE_REGION: out << "RegionNodeType.LEAF_SURFACE_REGION (2)"; break;
+    case RegionNodeType::UNION: out << "RegionNodeType.UNION (3)"; break;
+    case RegionNodeType::DIFFERENCE: out << "RegionNodeType.DIFFERENCE (4)"; break;
+    case RegionNodeType::INTERSECT: out << "RegionNodeType.INTERSECT (5)"; break;
   }
   return out;
 };

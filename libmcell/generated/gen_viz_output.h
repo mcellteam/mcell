@@ -35,7 +35,7 @@ class Species;
     VizOutput( \
         const std::string& filename_prefix_, \
         const std::vector<std::shared_ptr<Species>> species_list_ = std::vector<std::shared_ptr<Species>>(), \
-        const VizMode mode_ = VizMode::Ascii, \
+        const VizMode mode_ = VizMode::ASCII, \
         const int every_n_timesteps_ = 1 \
     ) { \
       class_name = "VizOutput"; \

@@ -84,16 +84,16 @@ py::class_<Warnings> define_pybinding_Warnings(py::module& m) {
             const WarningLevel,
             const float_t
           >(),
-          py::arg("molecule_collision_report") = WarningLevel::Warning,
-          py::arg("degenerate_polygons") = WarningLevel::Warning,
-          py::arg("negative_diffusion_constant") = WarningLevel::Warning,
-          py::arg("missing_surface_orientation") = WarningLevel::Error,
-          py::arg("negative_reaction_rate") = WarningLevel::Warning,
-          py::arg("useless_volume_orientation") = WarningLevel::Warning,
-          py::arg("high_reaction_probability") = WarningLevel::Ignore,
-          py::arg("lifetime_too_short") = WarningLevel::Warning,
+          py::arg("molecule_collision_report") = WarningLevel::WARNING,
+          py::arg("degenerate_polygons") = WarningLevel::WARNING,
+          py::arg("negative_diffusion_constant") = WarningLevel::WARNING,
+          py::arg("missing_surface_orientation") = WarningLevel::ERROR,
+          py::arg("negative_reaction_rate") = WarningLevel::WARNING,
+          py::arg("useless_volume_orientation") = WarningLevel::WARNING,
+          py::arg("high_reaction_probability") = WarningLevel::IGNORE,
+          py::arg("lifetime_too_short") = WarningLevel::WARNING,
           py::arg("lifetime_threshold") = 50,
-          py::arg("missed_reactions") = WarningLevel::Warning,
+          py::arg("missed_reactions") = WarningLevel::WARNING,
           py::arg("missed_reactions_threshold") = 0.00100000004749745
       )
       .def("check_semantics", &Warnings::check_semantics)

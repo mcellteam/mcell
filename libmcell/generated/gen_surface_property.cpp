@@ -64,9 +64,9 @@ py::class_<SurfaceProperty> define_pybinding_SurfaceProperty(py::module& m) {
             std::shared_ptr<Species>,
             const Orientation
           >(),
-          py::arg("type") = SurfacePropertyType::Unset,
+          py::arg("type") = SurfacePropertyType::UNSET,
           py::arg("affected_species") = nullptr,
-          py::arg("orientation") = Orientation::NotSet
+          py::arg("orientation") = Orientation::NOT_SET
       )
       .def("check_semantics", &SurfaceProperty::check_semantics)
       .def("__str__", &SurfaceProperty::to_str, py::arg("ind") = std::string(""))

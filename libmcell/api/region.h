@@ -34,13 +34,13 @@ public:
   REGION_CTOR()
 
   std::shared_ptr<Region> __add__(std::shared_ptr<Region> other) override {
-    return std::make_shared<Region>(RegionNodeType::Union, shared_from_this(), other);
+    return std::make_shared<Region>(RegionNodeType::UNION, shared_from_this(), other);
   }
   std::shared_ptr<Region> __sub__(std::shared_ptr<Region> other) override {
-    return std::make_shared<Region>(RegionNodeType::Difference, shared_from_this(), other);
+    return std::make_shared<Region>(RegionNodeType::DIFFERENCE, shared_from_this(), other);
   }
   std::shared_ptr<Region> __mul__(std::shared_ptr<Region> other) override {
-    return std::make_shared<Region>(RegionNodeType::Intersect, shared_from_this(), other);
+    return std::make_shared<Region>(RegionNodeType::INTERSECT, shared_from_this(), other);
   }
 };
 

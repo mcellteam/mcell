@@ -102,7 +102,7 @@ py::class_<GeometryObject> define_pybinding_GeometryObject(py::module& m) {
           py::arg("element_connections"),
           py::arg("surface_regions") = std::vector<std::shared_ptr<SurfaceRegion>>(),
           py::arg("surface_class") = nullptr,
-          py::arg("node_type") = RegionNodeType::Unset,
+          py::arg("node_type") = RegionNodeType::UNSET,
           py::arg("left_node") = nullptr,
           py::arg("right_node") = nullptr
       )

@@ -38,7 +38,7 @@ public:
 
   void postprocess_in_ctor() {
     region_id = REGION_ID_INVALID;
-    node_type = RegionNodeType::LeafSurfaceRegion;
+    node_type = RegionNodeType::LEAF_SURFACE_REGION;
     parent = nullptr;
   }
 

@@ -14,18 +14,18 @@ ReleaseSite:
 
   - name: orientation
     type: Orientation
-    default: Orientation.None
+    default: Orientation.NONE
     doc: |
       Must be set if the species represent surface molecules.
 
   - name: shape
     type: Shape
-    default: Shape.Unset
+    default: Shape.UNSET
     
   - name: region
     type: Region*
     default: unset
-    doc: Sets shape to Shape.RegionExpr. 
+    doc: Sets shape to Shape.REGION_EXPR. 
 
   - name: location
     type: Vec3 # Vec3 and Vec2 are built-in data types

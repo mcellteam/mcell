@@ -67,7 +67,7 @@ py::class_<Region> define_pybinding_Region(py::module& m) {
             std::shared_ptr<Region>,
             std::shared_ptr<Region>
           >(),
-          py::arg("node_type") = RegionNodeType::Unset,
+          py::arg("node_type") = RegionNodeType::UNSET,
           py::arg("left_node") = nullptr,
           py::arg("right_node") = nullptr
       )

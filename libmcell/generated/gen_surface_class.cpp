@@ -77,9 +77,9 @@ py::class_<SurfaceClass> define_pybinding_SurfaceClass(py::module& m) {
           >(),
           py::arg("name"),
           py::arg("properties") = std::vector<std::shared_ptr<SurfaceProperty>>(),
-          py::arg("type") = SurfacePropertyType::Unset,
+          py::arg("type") = SurfacePropertyType::UNSET,
           py::arg("affected_species") = nullptr,
-          py::arg("orientation") = Orientation::NotSet
+          py::arg("orientation") = Orientation::NOT_SET
       )
       .def("check_semantics", &SurfaceClass::check_semantics)
       .def("__str__", &SurfaceClass::to_str, py::arg("ind") = std::string(""))

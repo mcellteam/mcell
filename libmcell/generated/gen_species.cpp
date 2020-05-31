@@ -76,11 +76,11 @@ py::class_<Species> define_pybinding_Species(py::module& m) {
           py::arg("diffusion_constant_2d") = FLT_UNSET,
           py::arg("diffusion_constant_3d") = FLT_UNSET,
           py::arg("molecule_instances") = std::vector<std::shared_ptr<MoleculeInstance>>(),
-          py::arg("orientation") = Orientation::None
+          py::arg("orientation") = Orientation::NONE
       )
       .def("check_semantics", &Species::check_semantics)
       .def("__str__", &Species::to_str, py::arg("ind") = std::string(""))
-      .def("inst", &Species::inst, py::arg("orientation") = Orientation::NotSet)
+      .def("inst", &Species::inst, py::arg("orientation") = Orientation::NOT_SET)
       .def("dump", &Species::dump)
       .def_property("name", &Species::get_name, &Species::set_name)
       .def_property("diffusion_constant_2d", &Species::get_diffusion_constant_2d, &Species::set_diffusion_constant_2d)

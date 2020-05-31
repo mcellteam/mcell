@@ -33,7 +33,7 @@ class Region;
 
 #define REGION_CTOR() \
     Region( \
-        const RegionNodeType node_type_ = RegionNodeType::Unset, \
+        const RegionNodeType node_type_ = RegionNodeType::UNSET, \
         std::shared_ptr<Region> left_node_ = nullptr, \
         std::shared_ptr<Region> right_node_ = nullptr \
     ) { \

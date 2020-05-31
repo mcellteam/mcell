@@ -42,7 +42,7 @@ class SurfaceRegion;
         const std::vector<std::vector<int>> element_connections_, \
         const std::vector<std::shared_ptr<SurfaceRegion>> surface_regions_ = std::vector<std::shared_ptr<SurfaceRegion>>(), \
         std::shared_ptr<SurfaceClass> surface_class_ = nullptr, \
-        const RegionNodeType node_type_ = RegionNodeType::Unset, \
+        const RegionNodeType node_type_ = RegionNodeType::UNSET, \
         std::shared_ptr<Region> left_node_ = nullptr, \
         std::shared_ptr<Region> right_node_ = nullptr \
     )  : GenGeometryObject(node_type_,left_node_,right_node_) { \
@@ -62,7 +62,7 @@ class SurfaceRegion;
 class GenGeometryObject: public Region {
 public:
   GenGeometryObject( 
-      const RegionNodeType node_type_ = RegionNodeType::Unset, 
+      const RegionNodeType node_type_ = RegionNodeType::UNSET, 
       std::shared_ptr<Region> left_node_ = nullptr, 
       std::shared_ptr<Region> right_node_ = nullptr 
   )  : Region(node_type_,left_node_,right_node_)  {

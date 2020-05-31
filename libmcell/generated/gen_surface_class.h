@@ -38,9 +38,9 @@ class SurfaceProperty;
     SurfaceClass( \
         const std::string& name_, \
         const std::vector<std::shared_ptr<SurfaceProperty>> properties_ = std::vector<std::shared_ptr<SurfaceProperty>>(), \
-        const SurfacePropertyType type_ = SurfacePropertyType::Unset, \
+        const SurfacePropertyType type_ = SurfacePropertyType::UNSET, \
         std::shared_ptr<Species> affected_species_ = nullptr, \
-        const Orientation orientation_ = Orientation::NotSet \
+        const Orientation orientation_ = Orientation::NOT_SET \
     )  : GenSurfaceClass(type_,affected_species_,orientation_) { \
       class_name = "SurfaceClass"; \
       name = name_; \
@@ -55,9 +55,9 @@ class SurfaceProperty;
 class GenSurfaceClass: public SurfaceProperty {
 public:
   GenSurfaceClass( 
-      const SurfacePropertyType type_ = SurfacePropertyType::Unset, 
+      const SurfacePropertyType type_ = SurfacePropertyType::UNSET, 
       std::shared_ptr<Species> affected_species_ = nullptr, 
-      const Orientation orientation_ = Orientation::NotSet 
+      const Orientation orientation_ = Orientation::NOT_SET 
   )  : SurfaceProperty(type_,affected_species_,orientation_)  {
   }
   void postprocess_in_ctor() override {}

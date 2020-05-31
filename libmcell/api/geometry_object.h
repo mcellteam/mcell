@@ -37,7 +37,7 @@ public:
 
 public:
   void postprocess_in_ctor() {
-    node_type = RegionNodeType::LeafGeometryObject;
+    node_type = RegionNodeType::LEAF_GEOMETRY_OBJECT;
     partition_id = PARTITION_ID_INVALID;
     geometry_object_id = GEOMETRY_OBJECT_ID_INVALID;
 

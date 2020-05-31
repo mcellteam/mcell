@@ -39,7 +39,7 @@ class SurfaceClass;
         const std::string& name_, \
         const std::vector<int> wall_indices_, \
         std::shared_ptr<SurfaceClass> surface_class_ = nullptr, \
-        const RegionNodeType node_type_ = RegionNodeType::Unset, \
+        const RegionNodeType node_type_ = RegionNodeType::UNSET, \
         std::shared_ptr<Region> left_node_ = nullptr, \
         std::shared_ptr<Region> right_node_ = nullptr \
     )  : GenSurfaceRegion(node_type_,left_node_,right_node_) { \
@@ -57,7 +57,7 @@ class SurfaceClass;
 class GenSurfaceRegion: public Region {
 public:
   GenSurfaceRegion( 
-      const RegionNodeType node_type_ = RegionNodeType::Unset, 
+      const RegionNodeType node_type_ = RegionNodeType::UNSET, 
       std::shared_ptr<Region> left_node_ = nullptr, 
       std::shared_ptr<Region> right_node_ = nullptr 
   )  : Region(node_type_,left_node_,right_node_)  {

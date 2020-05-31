@@ -32,7 +32,7 @@ namespace API {
 #define NOTIFICATIONS_CTOR() \
     Notifications( \
         const bool probability_report_ = true, \
-        const Notification diffusion_constant_report_ = Notification::Brief, \
+        const Notification diffusion_constant_report_ = Notification::BRIEF, \
         const bool final_summary_ = true, \
         const bool iteration_report_ = true, \
         const bool varying_probability_report_ = true, \

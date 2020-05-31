@@ -31,16 +31,16 @@ namespace API {
 
 #define WARNINGS_CTOR() \
     Warnings( \
-        const WarningLevel molecule_collision_report_ = WarningLevel::Warning, \
-        const WarningLevel degenerate_polygons_ = WarningLevel::Warning, \
-        const WarningLevel negative_diffusion_constant_ = WarningLevel::Warning, \
-        const WarningLevel missing_surface_orientation_ = WarningLevel::Error, \
-        const WarningLevel negative_reaction_rate_ = WarningLevel::Warning, \
-        const WarningLevel useless_volume_orientation_ = WarningLevel::Warning, \
-        const WarningLevel high_reaction_probability_ = WarningLevel::Ignore, \
-        const WarningLevel lifetime_too_short_ = WarningLevel::Warning, \
+        const WarningLevel molecule_collision_report_ = WarningLevel::WARNING, \
+        const WarningLevel degenerate_polygons_ = WarningLevel::WARNING, \
+        const WarningLevel negative_diffusion_constant_ = WarningLevel::WARNING, \
+        const WarningLevel missing_surface_orientation_ = WarningLevel::ERROR, \
+        const WarningLevel negative_reaction_rate_ = WarningLevel::WARNING, \
+        const WarningLevel useless_volume_orientation_ = WarningLevel::WARNING, \
+        const WarningLevel high_reaction_probability_ = WarningLevel::IGNORE, \
+        const WarningLevel lifetime_too_short_ = WarningLevel::WARNING, \
         const float_t lifetime_threshold_ = 50, \
-        const WarningLevel missed_reactions_ = WarningLevel::Warning, \
+        const WarningLevel missed_reactions_ = WarningLevel::WARNING, \
         const float_t missed_reactions_threshold_ = 0.00100000004749745 \
     ) { \
       class_name = "Warnings"; \

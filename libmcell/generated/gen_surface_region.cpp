@@ -89,7 +89,7 @@ py::class_<SurfaceRegion> define_pybinding_SurfaceRegion(py::module& m) {
           py::arg("name"),
           py::arg("wall_indices"),
           py::arg("surface_class") = nullptr,
-          py::arg("node_type") = RegionNodeType::Unset,
+          py::arg("node_type") = RegionNodeType::UNSET,
           py::arg("left_node") = nullptr,
           py::arg("right_node") = nullptr
       )

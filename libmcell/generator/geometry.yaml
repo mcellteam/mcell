@@ -4,7 +4,7 @@ Region:
   items:
   - name: node_type
     type: RegionNodeType
-    default: RegionNodeType.Unset
+    default: RegionNodeType.UNSET
     doc: | 
       When this values is LeafGeometryObject, then this object is of class GeometryObject,
       when LeafSurfaceRegion, then it is of class SurfaceRegion.

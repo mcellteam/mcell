@@ -41,20 +41,20 @@ namespace API {
 
 static orientation_t convert_orientation(const Orientation o, const bool not_set_is_none = false) {
   switch (o) {
-    case Orientation::Down:
+    case Orientation::DOWN:
       return ORIENTATION_DOWN;
-    case Orientation::None:
+    case Orientation::NONE:
       return ORIENTATION_NONE;
-    case Orientation::Up:
+    case Orientation::UP:
       return ORIENTATION_UP;
-    case Orientation::NotSet:
+    case Orientation::NOT_SET:
       if (not_set_is_none) {
         return ORIENTATION_NONE;
       }
       else {
         return ORIENTATION_NOT_SET;
       }
-    case Orientation::Any:
+    case Orientation::ANY:
       return ORIENTATION_NONE;
     default:
       throw ValueError("Invalid Orientation value " + to_string((int)o) + ".");
@@ -64,9 +64,9 @@ static orientation_t convert_orientation(const Orientation o, const bool not_set
 
 static viz_mode_t convert_viz_mode(const VizMode m) {
   switch (m) {
-    case VizMode::Ascii:
+    case VizMode::ASCII:
       return ASCII_MODE;
-    case VizMode::Cellblender:
+    case VizMode::CELLBLENDER:
       return CELLBLENDER_MODE;
     default:
       throw ValueError("Invalid VizMode value " + to_string((int)m) + ".");
@@ -229,13 +229,13 @@ void MCell4Converter::convert_surface_class_rxn(
   rxn.name = affected_species.name + "+" + surface_reactant.name;
 
   switch (sp.type) {
-    case API::SurfacePropertyType::Absorptive:
+    case API::SurfacePropertyType::ABSORPTIVE:
       rxn.type = BNG::RxnType::Standard;
       break;
-    case API::SurfacePropertyType::Reflective:
+    case API::SurfacePropertyType::REFLECTIVE:
       rxn.type = BNG::RxnType::Reflect;
       break;
-    case API::SurfacePropertyType::Transparent:
+    case API::SurfacePropertyType::TRANSPARENT:
       rxn.type = BNG::RxnType::Transparent;
       break;
     default:
@@ -652,17 +652,17 @@ void MCell4Converter::convert_geometry_objects() {
 
 static MCell::RegionExprOperator convert_region_node_type(API::RegionNodeType t) {
   switch (t) {
-    case API::RegionNodeType::LeafGeometryObject:
-    case API::RegionNodeType::LeafSurfaceRegion:
+    case API::RegionNodeType::LEAF_GEOMETRY_OBJECT:
+    case API::RegionNodeType::LEAF_SURFACE_REGION:
       return MCell::RegionExprOperator::Leaf;
 
-    case API::RegionNodeType::Union:
+    case API::RegionNodeType::UNION:
       return MCell::RegionExprOperator::Union;
 
-    case API::RegionNodeType::Difference:
+    case API::RegionNodeType::DIFFERENCE:
       return MCell::RegionExprOperator::Difference;
 
-    case API::RegionNodeType::Intersect:
+    case API::RegionNodeType::INTERSECT:
       return MCell::RegionExprOperator::Intersect;
 
     default:
@@ -677,12 +677,12 @@ RegionExprNode* convert_region_expr_recursively(
     MCell::ReleaseEvent* rel_event
 ) {
   assert(is_set(region));
-  if (region->node_type == RegionNodeType::LeafGeometryObject) {
+  if (region->node_type == RegionNodeType::LEAF_GEOMETRY_OBJECT) {
     shared_ptr<API::GeometryObject> geometry_object = dynamic_pointer_cast<API::GeometryObject>(region);
     assert(is_set(geometry_object));
     return rel_event->create_new_region_expr_node_leaf(geometry_object->name + MCell::REGION_ALL_SUFFIX_W_COMMA);
   }
-  else if (region->node_type == RegionNodeType::LeafSurfaceRegion) {
+  else if (region->node_type == RegionNodeType::LEAF_SURFACE_REGION) {
     shared_ptr<API::SurfaceRegion> surface_region = dynamic_pointer_cast<API::SurfaceRegion>(region);
     assert(is_set(surface_region));
     return rel_event->create_new_region_expr_node_leaf(surface_region->parent->name + "," + surface_region->name);
@@ -742,12 +742,12 @@ void MCell4Converter::convert_release_events() {
     }
 
     switch (r->shape) {
-      case Shape::Spherical:
+      case Shape::SPHERICAL:
         rel_event->release_shape = ReleaseShape::SPHERICAL;
         rel_event->location = r->location * world->config.rcp_length_unit;
         rel_event->diameter = r->site_diameter * world->config.rcp_length_unit;
         break;
-      case Shape::RegionExpr: {
+      case Shape::REGION_EXPR: {
           rel_event->release_shape = ReleaseShape::REGION;
           convert_region_expr(*r, rel_event);
           bool ok = rel_event->initialize_walls_for_release();
@@ -788,18 +788,18 @@ MCell::MolOrRxnCountTerm MCell4Converter::convert_count_term_leaf_and_init_count
   res.sign_in_expression = sign;
 
   assert(is_set(ct));
-  assert(ct->node_type == API::ExprNodeType::Leaf);
+  assert(ct->node_type == API::ExprNodeType::LEAF);
 
   // where
   bool is_obj_not_surf_reg;
   geometry_object_id_t obj_id = GEOMETRY_OBJECT_ID_INVALID;
   region_id_t reg_id = REGION_ID_INVALID;
   if (is_set(ct->region)) {
-    if (ct->region->node_type == API::RegionNodeType::LeafGeometryObject) {
+    if (ct->region->node_type == API::RegionNodeType::LEAF_GEOMETRY_OBJECT) {
       is_obj_not_surf_reg = true;
       obj_id = dynamic_pointer_cast<GeometryObject>(ct->region)->geometry_object_id;
     }
-    else if (ct->region->node_type == API::RegionNodeType::LeafSurfaceRegion) {
+    else if (ct->region->node_type == API::RegionNodeType::LEAF_SURFACE_REGION) {
       is_obj_not_surf_reg = false;
       reg_id = dynamic_pointer_cast<SurfaceRegion>(ct->region)->region_id;
     }
@@ -907,15 +907,15 @@ void MCell4Converter::convert_count_terms_recursively(
 ) {
   assert(is_set(ct));
 
-  if (ct->node_type == API::ExprNodeType::Leaf) {
+  if (ct->node_type == API::ExprNodeType::LEAF) {
     MCell::MolOrRxnCountTerm term = convert_count_term_leaf_and_init_counting_flags(ct, sign);
     info.terms.push_back(term);
   }
-  else if (ct->node_type == API::ExprNodeType::Add || ct->node_type == API::ExprNodeType::Sub) {
+  else if (ct->node_type == API::ExprNodeType::ADD || ct->node_type == API::ExprNodeType::SUB) {
     convert_count_terms_recursively(ct->left_node, sign, info);
 
     int next_sign;
-    if (ct->node_type == API::ExprNodeType::Sub) {
+    if (ct->node_type == API::ExprNodeType::SUB) {
       next_sign = -sign;
     }
     else {

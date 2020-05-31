@@ -38,7 +38,7 @@ public:
   void check_semantics() const override {
     GenCountTerm::check_semantics();
     if (is_set(region)) {
-      if (region->node_type != RegionNodeType::LeafGeometryObject && region->node_type != RegionNodeType::LeafSurfaceRegion) {
+      if (region->node_type != RegionNodeType::LEAF_GEOMETRY_OBJECT && region->node_type != RegionNodeType::LEAF_SURFACE_REGION) {
         throw ValueError(S("Only simple regions of type ") + NAME_CLASS_GEOMETRY_OBJECT + " and " + NAME_CLASS_REGION +
             " are supported now. Error for " + NAME_CLASS_COUNT_TERM + " " + name);
       }
@@ -53,7 +53,7 @@ public:
   // called from Count::check_semantics()
   void check_that_species_or_reaction_rule_is_set() {
 
-    if (node_type == ExprNodeType::Leaf) {
+    if (node_type == ExprNodeType::LEAF) {
       uint num_set = get_num_set(species, reaction_rule);
       if (num_set != 1) {
         // NOTE: does not give much information on where to search for the error
@@ -78,11 +78,11 @@ public:
   }
 
   std::shared_ptr<CountTerm> __add__(std::shared_ptr<CountTerm> op2) override {
-    return create_expr_term(ExprNodeType::Add, op2);
+    return create_expr_term(ExprNodeType::ADD, op2);
   }
 
   std::shared_ptr<CountTerm> __sub__(std::shared_ptr<CountTerm> op2) override {
-    return create_expr_term(ExprNodeType::Sub, op2);
+    return create_expr_term(ExprNodeType::SUB, op2);
   }
 
 };

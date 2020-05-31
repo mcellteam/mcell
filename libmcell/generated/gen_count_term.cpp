@@ -94,8 +94,8 @@ py::class_<CountTerm> define_pybinding_CountTerm(py::module& m) {
           py::arg("species") = nullptr,
           py::arg("reaction_rule") = nullptr,
           py::arg("region") = nullptr,
-          py::arg("orientation") = Orientation::NotSet,
-          py::arg("node_type") = ExprNodeType::Leaf,
+          py::arg("orientation") = Orientation::NOT_SET,
+          py::arg("node_type") = ExprNodeType::LEAF,
           py::arg("left_node") = nullptr,
           py::arg("right_node") = nullptr
       )

@@ -12,7 +12,7 @@ VizOutput:
   
   - name: mode
     type: VizMode
-    default: VizMode.Ascii
+    default: VizMode.ASCII
     
   - name: every_n_timesteps
     type: int
@@ -39,11 +39,11 @@ CountTerm:
     
   - name: orientation
     type: Orientation
-    default: Orientation.NotSet
+    default: Orientation.NOT_SET
   
   - name: node_type
     type: ExprNodeType
-    default: ExprNodeType.Leaf
+    default: ExprNodeType.LEAF
     doc: Internal, used to represent an expression
     
   - name: left_node

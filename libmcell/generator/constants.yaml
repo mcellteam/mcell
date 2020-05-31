@@ -51,94 +51,94 @@ constants:
     
 enums:
   - name: Orientation
-    # TODO: consider asdding/changing orientation don't care, this might make things a bit clearer 
+    # TODO: consider adding/changing orientation don't care, this might make things a bit clearer 
     values:
-    - name: Down
+    - name: DOWN
       value: -1
-    - name: None
-      value: 0     
-    - name: Up
+    - name: NONE
+      value: 0
+    - name: UP
       value: 1
-    - name: NotSet
+    - name: NOT_SET
       value: 2
-    - name: Any
+    - name: ANY
       value: 3    
       
   - name: Notification
     values:
-    - name: None
+    - name: NONE
       value: 0
-    - name: Brief
+    - name: BRIEF
       value: 1
-    - name: Full
+    - name: FULL
       value: 2
         
   - name: WarningLevel
     values:
-    - name: Ignore
+    - name: IGNORE
       value: 0
       doc: Do something sensible and continue silently
-    - name: Warning
+    - name: WARNING
       value: 1
       doc: Do something sensible but emit a warning message
-    - name: Error
+    - name: ERROR
       value: 2                
       doc: Treat the warning as an error and stop
       
   - name: VizMode
     values:
-    - name: Ascii
+    - name: ASCII
       value: 0
-    - name: Cellblender
+    - name: CELLBLENDER
       value: 1
       
   # other shapes are defined in in release_shape_t but only the spherical one is supported by mcell4 now
   - name: Shape
     values:
-    - name: Unset
+    - name: UNSET
       value: 0
-    - name: Spherical
+    - name: SPHERICAL
       value: 1
-    - name: RegionExpr
+    - name: REGION_EXPR
       value: 2
       internal: Cannot be named Region because such class already exists  
       
   - name: SurfacePropertyType
     values:
-    - name: Unset
+    - name: UNSET
       value: 0
-    - name: Reflective
+    - name: REFLECTIVE
       value: 1
-    - name: Transparent
+    - name: TRANSPARENT
       value: 2
-    - name: Absorptive
+    - name: ABSORPTIVE
       value: 3
       
   - name: ExprNodeType
     doc: Used internally to represent expression trees
     values:
-    - name: Unset
+    - name: UNSET
       value: 0
-    - name: Leaf
+    - name: LEAF
       value: 1
-    - name: Add
+    - name: ADD
       value: 2
-    - name: Sub
+    - name: SUB
       value: 3
       
   - name: RegionNodeType
     doc: Used internally to represent region trees
     values:
-    - name: Unset
+    - name: UNSET
       value: 0    
-    - name: LeafGeometryObject
+    - name: LEAF_GEOMETRY_OBJECT
       value: 1
-    - name: LeafSurfaceRegion
+    - name: LEAF_SURFACE_REGION
       value: 2
-    - name: Union
+    - name: UNION
       value: 3
-    - name: Difference
+    - name: DIFFERENCE
       value: 4      
-    - name: Intersect
+    - name: INTERSECT
       value: 5
       

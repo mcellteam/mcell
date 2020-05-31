@@ -35,11 +35,11 @@ public:
 
   void postprocess_in_ctor() override {
     if (is_set(region)) {
-      if (shape != Shape::Unset) {
+      if (shape != Shape::UNSET) {
         throw ValueError(S("When ") + NAME_REGION + " is set, "
             "shape must be either unset or set to " + NAME_ENUM_SHAPE + "." + NAME_EV_REGION_EXPR + ".");
       }
-      shape = Shape::RegionExpr;
+      shape = Shape::REGION_EXPR;
     }
   }
 

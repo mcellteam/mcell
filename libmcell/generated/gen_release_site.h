@@ -36,8 +36,8 @@ class Species;
     ReleaseSite( \
         const std::string& name_, \
         std::shared_ptr<Species> species_, \
-        const Orientation orientation_ = Orientation::None, \
-        const Shape shape_ = Shape::Unset, \
+        const Orientation orientation_ = Orientation::NONE, \
+        const Shape shape_ = Shape::UNSET, \
         std::shared_ptr<Region> region_ = nullptr, \
         const Vec3& location_ = VEC3_UNSET, \
         const float_t site_diameter_ = 0, \

@@ -131,6 +131,7 @@ UNSET_VALUE_VEC2 = 'VEC2_UNSET'
 UNSET_VALUE_VEC3 = 'VEC3_UNSET'
 UNSET_VALUE_PTR = 'nullptr'
 
+PY_NONE = 'None'
 
 GEN_PREFIX = 'gen_'
 GEN_GUARD_PREFIX = 'API_GEN_'
@@ -163,6 +164,8 @@ CLASS_NAME_ATTR = 'class_name'
 
 GEN_CONSTANTS_H = 'gen_constants.h'
 GEN_CONSTANTS_CPP = 'gen_constants.cpp'
+
+MCELL_PYI = 'mcell.pyi'
 
 GEN_NAMES_H = 'gen_names.h'
 NAME_PREFIX = 'NAME_'
@@ -294,7 +297,12 @@ def yaml_type_to_pybind_type(t):
     else:
         assert False, "Unsupported constant type " + t 
     
+    
+def yaml_type_to_py_type(t):
+    assert len(t) >= 1
+    return t.replace('*', '')
 
+        
 def is_cpp_ptr_type(cpp_type):
     return cpp_type.startswith(SHARED_PTR)
 
@@ -359,6 +367,24 @@ def get_default_or_unset_value(attr):
         return yaml_type_to_cpp_type(t) + '()'
     else:
         return UNSET_VALUE_PTR
+
+def get_default_or_unset_value_py(attr):
+    assert KEY_TYPE in attr
+    t = attr[KEY_TYPE]
+
+    if KEY_DEFAULT in attr:
+        default_value = attr[KEY_DEFAULT]
+        if default_value != UNSET_VALUE and default_value != EMPTY_ARRAY:
+            res = str(default_value)
+            # might need to convert enum.value into enum::value
+            #if not is_base_yaml_type(t):
+            #    res = res.replace('.', '::')
+            #elif t == YAML_TYPE_BOOL:
+            #    res = get_cpp_bool_string(res)
+                
+            return res 
+    
+    return PY_NONE
 
 
 def write_generated_notice(f):
@@ -1212,6 +1238,7 @@ def set_global_enums(data_classes):
         res.add(enum[KEY_NAME])
     g_enums = res
 
+
 def generate_data_classes(data_classes):
     generate_constants_and_enums(
         data_classes[KEY_CONSTANTS] if KEY_CONSTANTS in data_classes else [],
@@ -1281,8 +1308,10 @@ def write_name_def(f, name, extra_prefix=''):
     upper_name = get_underscored(name).upper()
     f.write('const char* const ' + NAME_PREFIX + extra_prefix + upper_name + ' = "' + name + '";\n')
 
+
 def write_name_def_verbatim(f, name, extra_prefix=''):
     f.write('const char* const ' + NAME_PREFIX + extra_prefix + name + ' = "' + name + '";\n')
+      
       
 # this function generates definitions for converter so that we can use constant strings 
 def generate_names_header(data_classes):
@@ -1314,7 +1343,7 @@ def generate_names_header(data_classes):
         f.write('\n')
         
         for name in all_enum_value_names_list:
-            write_name_def(f, name, ENUM_VALUE_PREFIX)
+            write_name_def_verbatim(f, name, ENUM_VALUE_PREFIX)
         f.write('\n')
         
         for name in all_const_value_names_list:
@@ -1323,6 +1352,61 @@ def generate_names_header(data_classes):
         
         f.write(NAMESPACES_END + '\n\n')
         f.write('#endif // ' + guard + '\n\n')      
+    
+    
+def generate_pyi_class(f, name, class_def):
+    f.write('class ' + name + '():\n')
+    f.write('    def __init__(\n')
+    param_ind = '            ' 
+    f.write(param_ind + 'self,\n')
+    
+    if KEY_ITEMS in class_def:
+        num_items = len(class_def[KEY_ITEMS])
+        for i in range(0, num_items):
+            item = class_def[KEY_ITEMS][i]
+            f.write(param_ind + item[KEY_NAME])
+            f.write(' : ' + yaml_type_to_py_type(item[KEY_TYPE]))
+            if KEY_DEFAULT in item:
+                f.write(' = ' + get_default_or_unset_value_py(item))
+            if i + 1 != num_items:
+                f.write(',')
+            f.write('\n')
+    f.write('        ):\n')
+    f.write('        pass')
+    f.write('\n\n')        
+    
+    
+def generate_pyi_file(data_classes):
+    with open(os.path.join(TARGET_DIRECTORY, MCELL_PYI), 'w') as f:
+        
+        f.write('from typing import List\n\n')
+        
+        for key, value in data_classes.items():
+            if key != KEY_CONSTANTS and key != KEY_ENUMS:
+                generate_pyi_class(f, key, value)
+                                    
+            # methods        
+            #    if KEY_METHODS in value:
+            #        for method in value[KEY_METHODS]:
+            #            all_item_param_names.add(method[KEY_NAME])
+            # 
+            #            if KEY_PARAMS in method:
+            #                for param in method[KEY_PARAMS]:
+            #                    all_item_param_names.add(param[KEY_NAME])
+            elif key == KEY_ENUMS:
+                pass
+                # enum names are in g_enums
+                #for enum in value:
+                #    if KEY_VALUES in enum:
+                #        for enum_item in enum[KEY_VALUES]:
+                #            all_enum_value_names.add(enum_item[KEY_NAME])
+            elif key == KEY_CONSTANTS:
+                pass
+                #for const in value:
+                #    all_const_value_names.add(const[KEY_NAME])
+            else:
+                print("Error: unexpected top level key " + key)
+                sys.exit(1)
     
         
 def load_and_generate_data_classes():
@@ -1345,6 +1429,7 @@ def load_and_generate_data_classes():
     assert type(data_classes) == dict
     generate_data_classes(data_classes)
     generate_names_header(data_classes)
+    generate_pyi_file(data_classes)
 
 if __name__ == '__main__':
     if len(sys.argv) == 2 and sys.argv[1] == '-v':

@@ -70,7 +70,7 @@ py::class_<VizOutput> define_pybinding_VizOutput(py::module& m) {
           >(),
           py::arg("filename_prefix"),
           py::arg("species_list") = std::vector<std::shared_ptr<Species>>(),
-          py::arg("mode") = VizMode::Ascii,
+          py::arg("mode") = VizMode::ASCII,
           py::arg("every_n_timesteps") = 1
       )
       .def("check_semantics", &VizOutput::check_semantics)

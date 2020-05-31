@@ -39,8 +39,8 @@ class Species;
         std::shared_ptr<Species> species_ = nullptr, \
         std::shared_ptr<ReactionRule> reaction_rule_ = nullptr, \
         std::shared_ptr<Region> region_ = nullptr, \
-        const Orientation orientation_ = Orientation::NotSet, \
-        const ExprNodeType node_type_ = ExprNodeType::Leaf, \
+        const Orientation orientation_ = Orientation::NOT_SET, \
+        const ExprNodeType node_type_ = ExprNodeType::LEAF, \
         std::shared_ptr<CountTerm> left_node_ = nullptr, \
         std::shared_ptr<CountTerm> right_node_ = nullptr \
     ) { \

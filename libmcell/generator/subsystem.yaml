@@ -93,7 +93,7 @@ ComplexInstance:
 
   - name: orientation
     type: Orientation 
-    default: Orientation.None
+    default: Orientation.NONE
     
 Species:
   superclass: ComplexInstance
@@ -119,7 +119,7 @@ Species:
     params:
     - name: orientation
       type: Orientation 
-      default: Orientation.NotSet
+      default: Orientation.NOT_SET
   
     
 SurfaceProperty:
@@ -127,7 +127,7 @@ SurfaceProperty:
   items:
   - name: type
     type: SurfacePropertyType
-    default: SurfacePropertyType.Unset
+    default: SurfacePropertyType.UNSET
     doc: Must be set.
   
   - name: affected_species
@@ -137,7 +137,7 @@ SurfaceProperty:
 
   - name: orientation
     type: Orientation
-    default: Orientation.NotSet
+    default: Orientation.NOT_SET
     
     
 SurfaceClass:

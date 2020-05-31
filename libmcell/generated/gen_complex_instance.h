@@ -34,7 +34,7 @@ class MoleculeInstance;
 #define COMPLEX_INSTANCE_CTOR() \
     ComplexInstance( \
         const std::vector<std::shared_ptr<MoleculeInstance>> molecule_instances_ = std::vector<std::shared_ptr<MoleculeInstance>>(), \
-        const Orientation orientation_ = Orientation::None \
+        const Orientation orientation_ = Orientation::NONE \
     ) { \
       class_name = "ComplexInstance"; \
       molecule_instances = molecule_instances_; \

@@ -76,7 +76,7 @@ py::class_<Notifications> define_pybinding_Notifications(py::module& m) {
             const bool
           >(),
           py::arg("probability_report") = true,
-          py::arg("diffusion_constant_report") = Notification::Brief,
+          py::arg("diffusion_constant_report") = Notification::BRIEF,
           py::arg("final_summary") = true,
           py::arg("iteration_report") = true,
           py::arg("varying_probability_report") = true,
