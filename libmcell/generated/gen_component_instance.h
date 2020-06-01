@@ -34,7 +34,7 @@ class ComponentType;
 #define COMPONENT_INSTANCE_CTOR() \
     ComponentInstance( \
         std::shared_ptr<ComponentType> component_type_, \
-        const std::string& state_ = STATE_UNSET, \
+        const std::string& state_ = "STATE_UNSET", \
         const int bond_ = BOND_UNBOUND \
     ) { \
       class_name = "ComponentInstance"; \

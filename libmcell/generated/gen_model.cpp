@@ -75,7 +75,7 @@ py::class_<Model> define_pybinding_Model(py::module& m) {
       .def("add_instantiation_data", &Model::add_instantiation_data, py::arg("instantiation_data"))
       .def("add_observables", &Model::add_observables, py::arg("observables"))
       .def("dump_internal_state", &Model::dump_internal_state)
-      .def("export_data_model", &Model::export_data_model, py::arg("file") = "STR_UNSET")
+      .def("export_data_model", &Model::export_data_model, py::arg("file") = STR_UNSET)
       .def("add_species", &Model::add_species, py::arg("s"))
       .def("find_species", &Model::find_species, py::arg("name"))
       .def("add_reaction_rule", &Model::add_reaction_rule, py::arg("r"))

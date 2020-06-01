@@ -68,7 +68,7 @@ py::class_<ComponentInstance> define_pybinding_ComponentInstance(py::module& m) 
             const int
           >(),
           py::arg("component_type"),
-          py::arg("state") = STATE_UNSET,
+          py::arg("state") = "STATE_UNSET",
           py::arg("bond") = BOND_UNBOUND
       )
       .def("check_semantics", &ComponentInstance::check_semantics)

@@ -346,6 +346,9 @@ def get_default_or_unset_value(attr):
                 res = res.replace('.', '::')
             elif t == YAML_TYPE_BOOL:
                 res = get_cpp_bool_string(res)
+            elif t == YAML_TYPE_STR:
+                # default strings must be quoted (not the 'unset' one because the UNSET_STR is a constant)
+                res = '"' + res + '"'
                 
             return res 
     
@@ -540,8 +543,7 @@ def write_method_signature(f, method):
             const_spec = 'const ' if not is_yaml_ptr_type(p[KEY_TYPE]) else ''
             f.write(const_spec + t + ' ' + p[KEY_NAME])
             if KEY_DEFAULT in p:
-                q = '"' if p[KEY_TYPE] == YAML_TYPE_STR else ''
-                f.write(' = ' + q + get_default_or_unset_value(p) + q)
+                f.write(' = ' + get_default_or_unset_value(p))
             
             if i != params_cnt - 1:
                 f.write(', ')
@@ -925,8 +927,7 @@ def write_pybind11_method_bindings(f, class_name, method, class_def):
             assert KEY_NAME in p
             f.write('py::arg("' + p[KEY_NAME] + '")')
             if KEY_DEFAULT in p:
-                q = '"' if p[KEY_TYPE] == YAML_TYPE_STR else ''
-                f.write(' = ' + q + get_default_or_unset_value(p) + q)
+                f.write(' = ' + get_default_or_unset_value(p))
                 
     f.write(')\n')
     
