@@ -806,6 +806,7 @@ MCell::MolOrRxnCountTerm MCell4Converter::convert_count_term_leaf_and_init_count
     else {
       // already checked in check_semantics
       assert(false && "Invalid region node type.");
+      is_obj_not_surf_reg = false;
     }
   }
 
