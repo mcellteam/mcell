@@ -200,6 +200,12 @@ void gen_param_id(ofstream& out, string name, Json::Value& id, bool comma) {
 }
 
 
+// this should be used when printing out floating point values (doubles)
+void gen_param_verbatim(ofstream& out, string name, Json::Value& value, bool comma) {
+  gen_param_id(out, name, value, comma);
+}
+
+
 void gen_param_int(ofstream& out, string name, Json::Value& value, bool comma) {
   string s = value.asString();
   int v = stoi(s);
@@ -209,13 +215,6 @@ void gen_param_int(ofstream& out, string name, Json::Value& value, bool comma) {
 
 void gen_param_int(ofstream& out, string name, const string& value, bool comma) {
   int v = stoi(value);
-  gen_param(out, name, v, comma);
-}
-
-
-void gen_param_double(ofstream& out, string name, Json::Value& value, bool comma) {
-  string s = value.asString();
-  double v = stod(s);
   gen_param(out, name, v, comma);
 }
 

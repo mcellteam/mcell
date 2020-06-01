@@ -22,6 +22,7 @@
 ******************************************************************************/
 
 #include <iostream>
+#include <sstream>
 
 #include "bng/species.h"
 #include "bng/bng_defines.h"
@@ -91,10 +92,27 @@ void Species::update_space_and_time_step(const float_t time_unit, const float_t 
 }
 
 
+// temporary, to make the diff const same in dump as in data model
+// TODO: move this to a shared library, the same function is in datamodel_defines.h
+static inline std::string f_to_string(const float_t val, const int n = 17)
+{
+  std::stringstream out;
+  if (val == 0.0) {
+    return "0";
+  }
+  else if (val <= 0.01 || val >= 100000) {
+    out << std::scientific;
+  }
+  out.precision(n);
+  out << val;
+  return out.str();
+}
+
+
 void Species::dump(const BNGData& bng_data, const string ind) const {
   cout << ind << "species_id: \t\t" << id << " [uint16_t] \t\t/* Unique ID for this species */\n";
   cout << ind << "name: *\t\t" << name << " [string] \t\t/* Symbol table entry (name) */\n";
-  cout << ind << "D: \t\t" << D << " [float_t] \t\t/* Diffusion constant */\n";
+  cout << ind << "D: \t\t" << f_to_string(D) << " [float_t] \t\t/* Diffusion constant */\n";
   cout << ind << "space_step: \t\t" << space_step << " [float_t] \t\t/* Characteristic step length */\n";
   cout << ind << "time_step: \t\t" << time_step << " [float_t] \t\t/* Minimum (maximum?) sensible timestep */\n";
   cout << ind << "flags: \t\t" << BaseSpeciesCplxMolFlag::to_str() << "\n";
