@@ -326,6 +326,9 @@ static inline void json_append_triplet(Json::Value& list, const float x, const f
 
 
 static inline std::string remove_obj_name_prefix(const std::string& prefix, const std::string& name) {
+  if (prefix == "") {
+    return name;
+  }
   size_t pos = prefix.size() + 1;
   assert(name.size() > pos);
   assert(name.substr(0, pos) == prefix + ".");
@@ -336,7 +339,9 @@ static inline std::string remove_obj_name_prefix(const std::string& prefix, cons
 // we do not know the prefix in this case
 static inline std::string remove_obj_name_prefix(const std::string& name) {
   size_t pos = name.find('.');
-  assert(pos != std::string::npos);
+  if (pos == std::string::npos) {
+    return name;
+  }
   assert(pos + 1 < name.size());
   return name.substr(pos + 1);
 }

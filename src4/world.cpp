@@ -343,7 +343,7 @@ void World::dump() {
 }
 
 
-void World::export_visualization_datamodel_to_dir(const char* prefix) const {
+void World::export_data_model_to_dir(const std::string& prefix) const {
   // prefix should be the same directory that is used for viz_output,
   // e.g. ./viz_data/seed_0001/Scene
 
@@ -356,11 +356,11 @@ void World::export_visualization_datamodel_to_dir(const char* prefix) const {
   // create directories if needed
   ::make_parent_dir(path.str().c_str());
 
-  export_visualization_datamodel(path.str().c_str());
+  export_data_model(path.str().c_str());
 }
 
 
-void World::export_visualization_datamodel(const char* filename) const {
+void World::export_data_model(const std::string& filename) const {
 
   Json::Value root;
   to_data_model(root);

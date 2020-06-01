@@ -662,6 +662,12 @@ class Model():
         ) -> None:
         pass
 
+    def export_data_model(
+            self,
+            file : str = None
+        ) -> None:
+        pass
+
     def add_species(
             self,
             s : Species

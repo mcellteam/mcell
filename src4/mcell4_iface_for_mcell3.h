@@ -27,7 +27,7 @@
 
 bool mcell4_convert_mcell3_volume(struct volume* s);
 bool mcell4_run_simulation(const bool dump_initial_state);
-void mcell4_convert_to_datamodel();
+void mcell4_convert_to_data_model();
 void mcell4_delete_world();
 
 #endif // SRC4_MCELL4_IFACE_FOR_MCELL3_H_

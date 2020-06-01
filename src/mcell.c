@@ -112,7 +112,7 @@ int main(int argc, char **argv) {
     }
 
 		if (state->mdl2datamodel4) {
-		  mcell4_convert_to_datamodel();
+		  mcell4_convert_to_data_model();
       mcell4_delete_world();
       return 0;
 		}

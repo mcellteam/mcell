@@ -61,6 +61,8 @@ public:
 
   void dump_internal_state() override;
 
+  void export_data_model(const std::string& file = "STR_UNSET") override;
+
   // added manually
   // shadows all inherited non-virtual to_str methods
   std::string to_str(const std::string ind="") const;

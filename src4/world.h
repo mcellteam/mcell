@@ -149,8 +149,8 @@ public:
 
   void dump();
 
-  void export_visualization_datamodel_to_dir(const char* prefix) const;
-  void export_visualization_datamodel(const char* filename) const;
+  void export_data_model_to_dir(const std::string& prefix) const;
+  void export_data_model(const std::string& filename) const;
 
   void to_data_model(Json::Value& root) const;
 

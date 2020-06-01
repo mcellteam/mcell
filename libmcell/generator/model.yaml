@@ -50,3 +50,14 @@ Model:
   - name: dump_internal_state
     doc: Prints out the simulation engine's internal state, mainly for debugging.      
       
+  - name: export_data_model
+    doc: | 
+      If file is not set, then uses the first VizOutput to determine the target directory 
+      and creates name using the cutrrent iteration. Fails if argument file is not set and there is no VizOutput.
+      Must be called after initialization.
+      Always exports the current state, i.e. with the current . 
+      Events (ReleaseSites and VizOutputs) with scheduled time other than zero cannot be imported correectly yet.  
+    params: 
+    - name: file
+      type: str
+      default: unset
