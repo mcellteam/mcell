@@ -33,6 +33,7 @@ namespace MCell {
 namespace API {
 
 class Config;
+class Count;
 class GeometryObject;
 class InstantiationData;
 class Notifications;
@@ -42,6 +43,7 @@ class ReleaseSite;
 class Species;
 class Subsystem;
 class SurfaceClass;
+class VizOutput;
 class Warnings;
 
 class GenModel {

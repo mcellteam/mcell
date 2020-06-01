@@ -25,6 +25,7 @@
 #include "gen_model.h"
 #include "../api/model.h"
 #include "../api/config.h"
+#include "../api/count.h"
 #include "../api/geometry_object.h"
 #include "../api/instantiation_data.h"
 #include "../api/notifications.h"
@@ -34,6 +35,7 @@
 #include "../api/species.h"
 #include "../api/subsystem.h"
 #include "../api/surface_class.h"
+#include "../api/viz_output.h"
 #include "../api/warnings.h"
 
 namespace MCell {
@@ -50,7 +52,9 @@ std::string GenModel::to_str(const std::string ind) const {
       "reaction_rules=" << vec_ptr_to_str(reaction_rules, ind + "  ") << ", " << "\n" << ind + "  " <<
       "surface_classes=" << vec_ptr_to_str(surface_classes, ind + "  ") << ", " << "\n" << ind + "  " <<
       "release_sites=" << vec_ptr_to_str(release_sites, ind + "  ") << ", " << "\n" << ind + "  " <<
-      "geometry_objects=" << vec_ptr_to_str(geometry_objects, ind + "  ");
+      "geometry_objects=" << vec_ptr_to_str(geometry_objects, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "viz_outputs=" << vec_ptr_to_str(viz_outputs, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "counts=" << vec_ptr_to_str(counts, ind + "  ");
   return ss.str();
   #else
   return "";
@@ -81,6 +85,8 @@ py::class_<Model> define_pybinding_Model(py::module& m) {
       .def("find_release_site", &Model::find_release_site, py::arg("name"))
       .def("add_geometry_object", &Model::add_geometry_object, py::arg("o"))
       .def("find_geometry_object", &Model::find_geometry_object, py::arg("name"))
+      .def("add_viz_output", &Model::add_viz_output, py::arg("viz_output"))
+      .def("add_count", &Model::add_count, py::arg("count"))
       .def("dump", &Model::dump)
       .def_property("config", &Model::get_config, &Model::set_config)
       .def_property("warnings", &Model::get_warnings, &Model::set_warnings)
@@ -90,6 +96,8 @@ py::class_<Model> define_pybinding_Model(py::module& m) {
       .def_property("surface_classes", &Model::get_surface_classes, &Model::set_surface_classes)
       .def_property("release_sites", &Model::get_release_sites, &Model::set_release_sites)
       .def_property("geometry_objects", &Model::get_geometry_objects, &Model::set_geometry_objects)
+      .def_property("viz_outputs", &Model::get_viz_outputs, &Model::set_viz_outputs)
+      .def_property("counts", &Model::get_counts, &Model::set_counts)
     ;
 }
 

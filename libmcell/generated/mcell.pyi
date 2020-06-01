@@ -610,7 +610,9 @@ class Model():
             reaction_rules : List[ReactionRule] = None,
             surface_classes : List[SurfaceClass] = None,
             release_sites : List[ReleaseSite] = None,
-            geometry_objects : List[GeometryObject] = None
+            geometry_objects : List[GeometryObject] = None,
+            viz_outputs : List[VizOutput] = None,
+            counts : List[Count] = None
         ):
         self.config = config
         self.warnings = warnings
@@ -620,6 +622,8 @@ class Model():
         self.surface_classes = surface_classes
         self.release_sites = release_sites
         self.geometry_objects = geometry_objects
+        self.viz_outputs = viz_outputs
+        self.counts = counts
 
 
     def initialize(
@@ -720,6 +724,18 @@ class Model():
             self,
             name : str
         ) -> 'GeometryObject':
+        pass
+
+    def add_viz_output(
+            self,
+            viz_output : VizOutput
+        ) -> None:
+        pass
+
+    def add_count(
+            self,
+            count : Count
+        ) -> None:
         pass
 
 AllMolecules = Species('ALL_MOLECULES')
