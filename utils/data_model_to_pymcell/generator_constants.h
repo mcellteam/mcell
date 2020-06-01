@@ -30,6 +30,7 @@ const char* const PARAM_SEED = "SEED";
 const char* const PARAM_ITERATIONS = "ITERATIONS";
 const char* const PARAM_TIME_STEP = "TIME_STEP";
 const char* const PARAM_DUMP = "DUMP";
+const char* const PARAM_EXPORT_DATA_MODEL = "EXPORT_DATA_MODEL";
 
 const char* const VEC3 = "Vec3";
 

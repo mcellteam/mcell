@@ -142,7 +142,7 @@ void PymcellGenerator::generate_parameters() {
   out << PARAM_ITERATIONS << " = " << mcell[KEY_INITIALIZATION][KEY_ITERATIONS].asString() << "\n";
   out << PARAM_TIME_STEP << " = " << mcell[KEY_INITIALIZATION][KEY_TIME_STEP].asString() << "\n";
   out << PARAM_DUMP << " = " << (debug_mode ? "True" : "False") << "\n";
-
+  out << PARAM_EXPORT_DATA_MODEL << " = " << "True\n";
   out.close();
 }
 
@@ -1164,6 +1164,12 @@ void PymcellGenerator::generate_model() {
   out << "if " << PARAM_DUMP << ":\n";
   out << IND;
   gen_method_call(out, MODEL, NAME_DUMP_INTERNAL_STATE);
+  out << "\n";
+
+  // method export_data_model uses target directory from viz_outputs
+  out << "if " << PARAM_EXPORT_DATA_MODEL << " and " << MODEL << "." << NAME_VIZ_OUTPUTS << ":\n";
+  out << IND;
+  gen_method_call(out, MODEL, NAME_EXPORT_DATA_MODEL);
   out << "\n";
 
   gen_method_call(out, MODEL, NAME_RUN_ITERATIONS, PARAM_ITERATIONS);
