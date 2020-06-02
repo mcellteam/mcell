@@ -46,6 +46,21 @@ const char* const KEY_DATA_MODEL_VERSION = "data_model_version";
 const char* const KEY_CELLBLENDER_VERSION = "cellblender_version";
 const char* const VALUE_CELLBLENDER_VERSION = "0.1.54";
 
+const char* const KEY_MODEL_LANGUAGE = "model_language";
+const char* const VALUE_MCELL3 = "mcell3";
+const char* const KEY_PARAMETER_SYSTEM = "parameter_system";
+
+const char* const KEY_BLENDER_VERSION = "blender_version";
+
+const char* const KEY_MODEL_PARAMETERS = "model_parameters";
+const char* const KEY__EXTRAS = "_extras";
+const char* const KEY_PAR_VALID = "par_valid";
+const char* const KEY_PAR_ID_NAME = "par_id_name";
+const char* const KEY_PAR_VALUE = "par_value";
+const char* const KEY_PAR_DESCRIPTION = "par_description";
+const char* const KEY_PAR_EXPRESSION = "par_expression";
+const char* const KEY_PAR_NAME = "par_name";
+const char* const KEY_PAR_UNITS = "par_units";
 
 const char* const KEY_GEOMETRICAL_OBJECTS = "geometrical_objects";
 const char* const KEY_OBJECT_LIST = "object_list";
@@ -107,14 +122,6 @@ const char* const KEY_FILE_STEP_INDEX = "file_step_index";
 const char* const KEY_VIZ_LIST = "viz_list";
 const char* const KEY_FILE_STOP_INDEX = "file_stop_index";
 const char* const KEY_FILE_DIR = "file_dir";
-
-const char* const KEY_MODEL_LANGUAGE = "model_language";
-const char* const VALUE_MCELL3 = "mcell3";
-const char* const KEY_PARAMETER_SYSTEM = "parameter_system";
-const char* const KEY_MODEL_PARAMETERS = "model_parameters";
-
-const char* const KEY_BLENDER_VERSION = "blender_version";
-
 
 const char* const KEY_MOLECULE_LIST = "molecule_list";
 const char* const KEY_DEFINE_MOLECULES = "define_molecules";

@@ -205,19 +205,9 @@ void gen_param_verbatim(ofstream& out, string name, Json::Value& value, bool com
   gen_param_id(out, name, value, comma);
 }
 
-
-void gen_param_int(ofstream& out, string name, Json::Value& value, bool comma) {
-  string s = value.asString();
-  int v = stoi(s);
-  gen_param(out, name, v, comma);
+void gen_param_verbatim(ofstream& out, string name, const string& value, bool comma) {
+  gen_param_id(out, name, value, comma);
 }
-
-
-void gen_param_int(ofstream& out, string name, const string& value, bool comma) {
-  int v = stoi(value);
-  gen_param(out, name, v, comma);
-}
-
 
 void gen_param_enum(ofstream& out, string name, string enum_name, string enum_value, bool comma) {
   out << IND << name << " = " << make_enum_value(enum_name, enum_value) << (comma?",":"") << "\n";

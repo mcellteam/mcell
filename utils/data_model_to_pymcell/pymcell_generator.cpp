@@ -132,9 +132,33 @@ bool PymcellGenerator::generate(
 }
 
 
+void PymcellGenerator::generate_single_parameter(ofstream& out, Value& parameter) {
+  out << "# " << parameter[KEY_PAR_DESCRIPTION].asString() << "\n";
+  out << parameter[KEY_PAR_NAME].asString() << " = " << parameter[KEY_PAR_EXPRESSION].asString();
+  string units = parameter[KEY_PAR_UNITS].asString();
+  if (units != "") {
+    out << " # units: " << units;
+  }
+  out << "\n\n";
+}
+
+
 void PymcellGenerator::generate_parameters() {
   ofstream out;
   open_and_check_file(PARAMETERS, out);
+
+  out << make_section_comment("model parameters");
+
+  if (mcell.isMember(KEY_PARAMETER_SYSTEM)) {
+    Value& parameter_system = get_node(mcell, KEY_PARAMETER_SYSTEM);
+      if (parameter_system.isMember(KEY_MODEL_PARAMETERS)) {
+      Value& parameter_list = get_node(parameter_system, KEY_MODEL_PARAMETERS);
+      for (Value::ArrayIndex i = 0; i < parameter_list.size(); i++) {
+        generate_single_parameter(out, parameter_list[i]);
+      }
+    }
+    out << "\n";
+  }
 
   out << make_section_comment("simulation setup");
 
@@ -143,6 +167,8 @@ void PymcellGenerator::generate_parameters() {
   out << PARAM_TIME_STEP << " = " << mcell[KEY_INITIALIZATION][KEY_TIME_STEP].asString() << "\n";
   out << PARAM_DUMP << " = " << (debug_mode ? "True" : "False") << "\n";
   out << PARAM_EXPORT_DATA_MODEL << " = " << "True\n";
+  out << "\n";
+
   out.close();
 }
 
@@ -201,7 +227,7 @@ void PymcellGenerator::get_surface_class_property_info(
     affected_mols = property[KEY_MOLECULE].asString();
   }
 
-  orientation = convert_orientation(property[KEY_NAME].asString());
+  orientation = convert_orientation(property[KEY_SURF_CLASS_ORIENT].asString());
 
   string surf_class_type = property[KEY_SURF_CLASS_TYPE].asString();
   if (surf_class_type == VALUE_TRANSPARENT) {
@@ -646,7 +672,7 @@ vector<string> PymcellGenerator::generate_release_sites(ofstream& out) {
 
     string quantity_type = release_site_item[KEY_QUANTITY_TYPE].asString();
     if (quantity_type == VALUE_NUMBER_TO_RELEASE) {
-      gen_param_int(out, NAME_NUMBER_TO_RELEASE, release_site_item[KEY_QUANTITY], false);
+      gen_param_verbatim(out, NAME_NUMBER_TO_RELEASE, release_site_item[KEY_QUANTITY], false);
     }
     else if (quantity_type == VALUE_DENSITY) {
       gen_param_verbatim(out, NAME_DENSITY, release_site_item[KEY_QUANTITY], false);
@@ -785,7 +811,7 @@ vector<string> PymcellGenerator::generate_viz_outputs(ofstream& out) {
   }
   gen_param_list(out, NAME_SPECIES_LIST, viz_species, true);
 
-  gen_param_int(out, NAME_EVERY_N_TIMESTEPS, viz_output[KEY_STEP], false);
+  gen_param_verbatim(out, NAME_EVERY_N_TIMESTEPS, viz_output[KEY_STEP], false);
 
   // ignoring KEY_END
   out << ")\n\n";
@@ -1067,7 +1093,7 @@ vector<string> PymcellGenerator::generate_counts(ofstream& out) {
         DEFAULT_RXN_OUTPUT_FILENAME_PREFIX + mdl_file_prefix + ".dat'", rxn_step != "");
 
     if (rxn_step != "") {
-      gen_param_int(out, NAME_EVERY_N_TIMESTEPS, rxn_step, false);
+      gen_param_verbatim(out, NAME_EVERY_N_TIMESTEPS, rxn_step, false);
     }
 
     out << ")\n\n";

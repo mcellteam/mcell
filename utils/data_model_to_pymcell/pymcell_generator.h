@@ -48,6 +48,7 @@ private:
 
   void open_and_check_file(const std::string file_suffix, std::ofstream& out, const bool for_append = false);
 
+  void generate_single_parameter(std::ofstream& out, Json::Value& parameter);
   void generate_parameters();
 
   std::vector<std::string> generate_species(std::ofstream& out);
