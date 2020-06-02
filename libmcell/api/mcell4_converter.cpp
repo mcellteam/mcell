@@ -158,8 +158,8 @@ void MCell4Converter::convert_simulation_setup() {
 
   if (auto_partition_dimension > config.partition_dimension) {
     cout <<
-        "Set " << NAME_CLASS_MODEL << "." << NAME_CONFIG << "." << NAME_PARTITION_DIMENSION <<
-        " value " << config.partition_dimension <<
+        "Value of " << NAME_CLASS_MODEL << "." << NAME_CONFIG << "." << NAME_PARTITION_DIMENSION <<
+        " " << config.partition_dimension <<
         " is smaller than the automatically determined value " << auto_partition_dimension <<
         ", using the automatic value.\n";
     world->config.partition_edge_length = auto_partition_dimension / length_unit;
@@ -824,7 +824,7 @@ MCell::MolOrRxnCountTerm MCell4Converter::convert_count_term_leaf_and_init_count
   assert(ct->node_type == API::ExprNodeType::LEAF);
 
   // where
-  bool is_obj_not_surf_reg;
+  bool is_obj_not_surf_reg = false; // to silence compiler warning
   geometry_object_id_t obj_id = GEOMETRY_OBJECT_ID_INVALID;
   region_id_t reg_id = REGION_ID_INVALID;
   if (is_set(ct->region)) {
@@ -839,7 +839,6 @@ MCell::MolOrRxnCountTerm MCell4Converter::convert_count_term_leaf_and_init_count
     else {
       // already checked in check_semantics
       assert(false && "Invalid region node type.");
-      is_obj_not_surf_reg = false;
     }
   }
 
