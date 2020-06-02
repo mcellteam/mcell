@@ -345,7 +345,13 @@ void PymcellGenerator::generate_variable_rate(const std::string& rate_array_name
   size_t pos = 0;
   bool print_comma = false;
   while (pos < vr.size()) {
+
     size_t tab = vr.find('\t', pos + 1);
+    size_t space = vr.find(' ', pos + 1);
+    if (tab == string::npos || space < tab) {
+      tab = space;
+    }
+
     size_t nl = vr.find('\n', pos + 1);
     if (nl == string::npos) {
       nl = vr.size();
@@ -359,6 +365,8 @@ void PymcellGenerator::generate_variable_rate(const std::string& rate_array_name
 
     string time = vr.substr(pos, tab - pos);
     string rate = vr.substr(tab + 1, nl - (tab + 1));
+    time = trim(time);
+    rate = trim(rate);
 
     if (print_comma) {
       out << ",\n";
@@ -417,6 +425,13 @@ vector<string> PymcellGenerator::generate_reaction_rules(ofstream& out) {
       // variable rates
       CHECK_PROPERTY(reaction_list_item[KEY_VARIABLE_RATE_VALID].asBool() && "variable_rate_switch must be equal to variable_rate_valid");
       string rate_array_name = reaction_list_item[KEY_VARIABLE_RATE].asString();
+      size_t dot = rate_array_name.rfind('.');
+      if (dot != string::npos) {
+        // remove file extension
+        rate_array_name = rate_array_name.substr(0, dot);
+      }
+      // and remove possibly other dots in the name
+      replace(rate_array_name.begin(), rate_array_name.end(), '.', '_');
       generate_variable_rate(rate_array_name, reaction_list_item[KEY_VARIABLE_RATE_TEXT]);
       gen_param_id(out, NAME_VARIABLE_RATE, rate_array_name, false); // module parameters is imported as *
     }
