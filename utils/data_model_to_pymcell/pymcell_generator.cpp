@@ -350,8 +350,12 @@ vector<string> PymcellGenerator::generate_reaction_rules(ofstream& out) {
 
     string name = reaction_list_item[KEY_RXN_NAME].asString();
     if (name == "") {
-      name = UNNAMED_REACTION_RULE_PREFIX + to_string(unnamed_rxn_counter);
-      unnamed_rxn_counter++;
+      bool ok = convert_reaction_name(reaction_list_item[KEY_NAME].asString(), name);
+
+      if (!ok) {
+        name = UNNAMED_REACTION_RULE_PREFIX + to_string(unnamed_rxn_counter);
+        unnamed_rxn_counter++;
+      }
     }
     rxn_names.push_back(name);
     gen_ctor_call(out, name, NAME_CLASS_REACTION_RULE);

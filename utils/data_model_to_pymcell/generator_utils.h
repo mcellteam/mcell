@@ -434,6 +434,27 @@ static void gen_rxn_substance_inst(ofstream& out, Json::Value& substances_node) 
 }
 
 
+bool convert_reaction_name(const string& json_name, string& res_name) {
+  res_name = json_name;
+  replace(res_name.begin(), res_name.end(), ' ', '_');
+  replace(res_name.begin(), res_name.end(), '.', '_');
+  replace(res_name.begin(), res_name.end(), ')', '_');
+  replace(res_name.begin(), res_name.end(), '(', '_');
+
+  res_name = regex_replace(res_name, regex("<->"), "to");
+  res_name = regex_replace(res_name, regex("->"), "to");
+  res_name = regex_replace(res_name, regex("\\+"), "plus");
+  res_name = regex_replace(res_name, regex("'"), "_up");
+  res_name = regex_replace(res_name, regex(","), "_down");
+  res_name = regex_replace(res_name, regex(";"), "_any");
+
+  // TODO: check for invalid cases
+  // return false in that case
+
+  return true; // ok
+}
+
+
 // NOTE: the same code is in mcell3_world_converter.cpp
 static bool ends_with(std::string const & value, std::string const & ending)
 {
