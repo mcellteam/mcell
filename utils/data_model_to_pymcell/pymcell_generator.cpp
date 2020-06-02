@@ -105,7 +105,7 @@ bool PymcellGenerator::generate(
 
   bool failed = false;
   output_files_prefix = output_files_prefix_;
-  debug_mode = true;
+  debug_mode = debug_mode_;
 
   // load json file
   ifstream file;
