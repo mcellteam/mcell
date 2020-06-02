@@ -564,6 +564,30 @@ void gen_region_expr_assignment_for_rel_site(ofstream& out, string region_expr) 
 }
 
 
+bool PymcellGenerator::is_volume_species(const string& species_name) {
+  // there must be at least one species
+  Value& define_molecules = get_node(mcell, KEY_DEFINE_MOLECULES);
+  check_version(KEY_DEFINE_MOLECULES, define_molecules, JSON_DM_VERSION_1638);
+
+  Value& molecule_list = get_node(define_molecules, KEY_MOLECULE_LIST);
+  for (Value::ArrayIndex i = 0; i < molecule_list.size(); i++) {
+    Value& molecule_list_item = molecule_list[i];
+    check_version(KEY_MOLECULE_LIST, molecule_list_item, JSON_DM_VERSION_1632);
+
+    string name = molecule_list_item[KEY_MOL_NAME].asString();
+    if (name != species_name) {
+      continue;
+    }
+
+    string mol_type = molecule_list_item[KEY_MOL_TYPE].asString();
+    CHECK_PROPERTY(mol_type == VALUE_MOL_TYPE_2D || mol_type == VALUE_MOL_TYPE_3D);
+    return mol_type == VALUE_MOL_TYPE_3D;
+  }
+
+  ERROR("Could not find species " + species_name + ".");
+}
+
+
 vector<string> PymcellGenerator::generate_release_sites(ofstream& out) {
   vector<string> release_site_names;
 
@@ -582,11 +606,21 @@ vector<string> PymcellGenerator::generate_release_sites(ofstream& out) {
 
     gen_ctor_call(out, name, NAME_CLASS_RELEASE_SITE);
     gen_param(out, NAME_NAME, name, true);
-    gen_param_id(out, NAME_SPECIES, release_site_item[KEY_MOLECULE], true);
+    string species_name = release_site_item[KEY_MOLECULE].asString();
+    gen_param_id(out, NAME_SPECIES, species_name, true);
 
     string orientation = convert_orientation(release_site_item[KEY_ORIENT].asString());
     if (orientation != "") {
-      gen_param_enum(out, NAME_ORIENTATION, NAME_ENUM_ORIENTATION, orientation, true);
+      // check that this is not a volume molecule
+      bool is_vol = is_volume_species(species_name);
+      if (is_vol) {
+        cout <<
+            "Ignoring orientation set for release site " << name << " with species " << species_name <<
+            ", this species represent volume molecules.\n";
+      }
+      else {
+        gen_param_enum(out, NAME_ORIENTATION, NAME_ENUM_ORIENTATION, orientation, true);
+      }
     }
 
     string shape = release_site_item[KEY_SHAPE].asString();

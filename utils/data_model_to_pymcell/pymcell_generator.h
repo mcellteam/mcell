@@ -66,6 +66,7 @@ private:
       std::ofstream& out, const int index, Json::Value& object);
   std::vector<std::string> generate_geometry();
 
+  bool is_volume_species(const std::string& species_name);
   std::vector<std::string> generate_release_sites(std::ofstream& out);
   void generate_surface_classes_assignment(std::ofstream& out);
   void generate_instantiation(const std::vector<std::string>& geometry_objects);
