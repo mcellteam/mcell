@@ -36,7 +36,17 @@ bool GenSurfaceProperty::__eq__(const GenSurfaceProperty& other) const {
   return
     name == other.name &&
     type == other.type &&
-    affected_species->__eq__(*other.affected_species) &&
+    (
+      (affected_species != nullptr) ?
+        ( (other.affected_species != nullptr) ?
+          (affected_species->__eq__(*other.affected_species)) : 
+          false
+        ) :
+        ( (other.affected_species != nullptr) ?
+          false :
+          true
+        )
+     )  &&
     orientation == other.orientation;
 }
 

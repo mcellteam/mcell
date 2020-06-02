@@ -39,7 +39,17 @@ void GenMoleculeInstance::check_semantics() const {
 bool GenMoleculeInstance::__eq__(const GenMoleculeInstance& other) const {
   return
     name == other.name &&
-    molecule_type->__eq__(*other.molecule_type) &&
+    (
+      (molecule_type != nullptr) ?
+        ( (other.molecule_type != nullptr) ?
+          (molecule_type->__eq__(*other.molecule_type)) : 
+          false
+        ) :
+        ( (other.molecule_type != nullptr) ?
+          false :
+          true
+        )
+     )  &&
     vec_ptr_eq(components, other.components);
 }
 

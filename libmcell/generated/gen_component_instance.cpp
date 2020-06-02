@@ -38,7 +38,17 @@ void GenComponentInstance::check_semantics() const {
 bool GenComponentInstance::__eq__(const GenComponentInstance& other) const {
   return
     name == other.name &&
-    component_type->__eq__(*other.component_type) &&
+    (
+      (component_type != nullptr) ?
+        ( (other.component_type != nullptr) ?
+          (component_type->__eq__(*other.component_type)) : 
+          false
+        ) :
+        ( (other.component_type != nullptr) ?
+          false :
+          true
+        )
+     )  &&
     state == other.state &&
     bond == other.bond;
 }

@@ -843,7 +843,21 @@ def write_operator_equal_implemetation(f, class_name, items):
         name = items[i][KEY_NAME]
         t = items[i][KEY_TYPE]
         if is_yaml_ptr_type(t):
-            f.write('    ' + name + '->__eq__(*other.' + name + ')')
+            
+            f.write(
+                '    (\n' 
+                '      (' + name + ' != nullptr) ?\n'  
+                '        ( (other.' + name + ' != nullptr) ?\n'
+                '          (' + name + '->__eq__(*other.' + name + ')) : \n'
+                '          false\n' 
+                '        ) :\n'
+                '        ( (other.' + name + ' != nullptr) ?\n'
+                '          false :\n'
+                '          true\n'
+                '        )\n'
+                '     ) '
+            )
+            
         elif is_yaml_list_type(t) and is_yaml_ptr_type(get_inner_list_type(t)):
             f.write('    vec_ptr_eq(' + name + ', other.' + name + ')')
         else:

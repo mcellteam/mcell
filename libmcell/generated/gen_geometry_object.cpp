@@ -50,10 +50,40 @@ bool GenGeometryObject::__eq__(const GenGeometryObject& other) const {
     vertex_list == other.vertex_list &&
     element_connections == other.element_connections &&
     vec_ptr_eq(surface_regions, other.surface_regions) &&
-    surface_class->__eq__(*other.surface_class) &&
+    (
+      (surface_class != nullptr) ?
+        ( (other.surface_class != nullptr) ?
+          (surface_class->__eq__(*other.surface_class)) : 
+          false
+        ) :
+        ( (other.surface_class != nullptr) ?
+          false :
+          true
+        )
+     )  &&
     node_type == other.node_type &&
-    left_node->__eq__(*other.left_node) &&
-    right_node->__eq__(*other.right_node);
+    (
+      (left_node != nullptr) ?
+        ( (other.left_node != nullptr) ?
+          (left_node->__eq__(*other.left_node)) : 
+          false
+        ) :
+        ( (other.left_node != nullptr) ?
+          false :
+          true
+        )
+     )  &&
+    (
+      (right_node != nullptr) ?
+        ( (other.right_node != nullptr) ?
+          (right_node->__eq__(*other.right_node)) : 
+          false
+        ) :
+        ( (other.right_node != nullptr) ?
+          false :
+          true
+        )
+     ) ;
 }
 
 void GenGeometryObject::set_initialized() {

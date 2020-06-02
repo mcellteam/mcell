@@ -43,10 +43,30 @@ bool GenReleaseSite::__eq__(const GenReleaseSite& other) const {
   return
     name == other.name &&
     name == other.name &&
-    species->__eq__(*other.species) &&
+    (
+      (species != nullptr) ?
+        ( (other.species != nullptr) ?
+          (species->__eq__(*other.species)) : 
+          false
+        ) :
+        ( (other.species != nullptr) ?
+          false :
+          true
+        )
+     )  &&
     orientation == other.orientation &&
     shape == other.shape &&
-    region->__eq__(*other.region) &&
+    (
+      (region != nullptr) ?
+        ( (other.region != nullptr) ?
+          (region->__eq__(*other.region)) : 
+          false
+        ) :
+        ( (other.region != nullptr) ?
+          false :
+          true
+        )
+     )  &&
     location == other.location &&
     site_diameter == other.site_diameter &&
     site_radius == other.site_radius &&

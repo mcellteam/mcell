@@ -44,10 +44,40 @@ bool GenSurfaceRegion::__eq__(const GenSurfaceRegion& other) const {
     name == other.name &&
     name == other.name &&
     wall_indices == other.wall_indices &&
-    surface_class->__eq__(*other.surface_class) &&
+    (
+      (surface_class != nullptr) ?
+        ( (other.surface_class != nullptr) ?
+          (surface_class->__eq__(*other.surface_class)) : 
+          false
+        ) :
+        ( (other.surface_class != nullptr) ?
+          false :
+          true
+        )
+     )  &&
     node_type == other.node_type &&
-    left_node->__eq__(*other.left_node) &&
-    right_node->__eq__(*other.right_node);
+    (
+      (left_node != nullptr) ?
+        ( (other.left_node != nullptr) ?
+          (left_node->__eq__(*other.left_node)) : 
+          false
+        ) :
+        ( (other.left_node != nullptr) ?
+          false :
+          true
+        )
+     )  &&
+    (
+      (right_node != nullptr) ?
+        ( (other.right_node != nullptr) ?
+          (right_node->__eq__(*other.right_node)) : 
+          false
+        ) :
+        ( (other.right_node != nullptr) ?
+          false :
+          true
+        )
+     ) ;
 }
 
 void GenSurfaceRegion::set_initialized() {

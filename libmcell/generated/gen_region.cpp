@@ -36,8 +36,28 @@ bool GenRegion::__eq__(const GenRegion& other) const {
   return
     name == other.name &&
     node_type == other.node_type &&
-    left_node->__eq__(*other.left_node) &&
-    right_node->__eq__(*other.right_node);
+    (
+      (left_node != nullptr) ?
+        ( (other.left_node != nullptr) ?
+          (left_node->__eq__(*other.left_node)) : 
+          false
+        ) :
+        ( (other.left_node != nullptr) ?
+          false :
+          true
+        )
+     )  &&
+    (
+      (right_node != nullptr) ?
+        ( (other.right_node != nullptr) ?
+          (right_node->__eq__(*other.right_node)) : 
+          false
+        ) :
+        ( (other.right_node != nullptr) ?
+          false :
+          true
+        )
+     ) ;
 }
 
 void GenRegion::set_initialized() {

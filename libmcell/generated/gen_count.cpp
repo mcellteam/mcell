@@ -42,15 +42,75 @@ bool GenCount::__eq__(const GenCount& other) const {
   return
     name == other.name &&
     filename == other.filename &&
-    count_expression->__eq__(*other.count_expression) &&
+    (
+      (count_expression != nullptr) ?
+        ( (other.count_expression != nullptr) ?
+          (count_expression->__eq__(*other.count_expression)) : 
+          false
+        ) :
+        ( (other.count_expression != nullptr) ?
+          false :
+          true
+        )
+     )  &&
     every_n_timesteps == other.every_n_timesteps &&
-    species->__eq__(*other.species) &&
-    reaction_rule->__eq__(*other.reaction_rule) &&
-    region->__eq__(*other.region) &&
+    (
+      (species != nullptr) ?
+        ( (other.species != nullptr) ?
+          (species->__eq__(*other.species)) : 
+          false
+        ) :
+        ( (other.species != nullptr) ?
+          false :
+          true
+        )
+     )  &&
+    (
+      (reaction_rule != nullptr) ?
+        ( (other.reaction_rule != nullptr) ?
+          (reaction_rule->__eq__(*other.reaction_rule)) : 
+          false
+        ) :
+        ( (other.reaction_rule != nullptr) ?
+          false :
+          true
+        )
+     )  &&
+    (
+      (region != nullptr) ?
+        ( (other.region != nullptr) ?
+          (region->__eq__(*other.region)) : 
+          false
+        ) :
+        ( (other.region != nullptr) ?
+          false :
+          true
+        )
+     )  &&
     orientation == other.orientation &&
     node_type == other.node_type &&
-    left_node->__eq__(*other.left_node) &&
-    right_node->__eq__(*other.right_node);
+    (
+      (left_node != nullptr) ?
+        ( (other.left_node != nullptr) ?
+          (left_node->__eq__(*other.left_node)) : 
+          false
+        ) :
+        ( (other.left_node != nullptr) ?
+          false :
+          true
+        )
+     )  &&
+    (
+      (right_node != nullptr) ?
+        ( (other.right_node != nullptr) ?
+          (right_node->__eq__(*other.right_node)) : 
+          false
+        ) :
+        ( (other.right_node != nullptr) ?
+          false :
+          true
+        )
+     ) ;
 }
 
 void GenCount::set_initialized() {
