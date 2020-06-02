@@ -4,11 +4,10 @@ CHANGELOG
 Changes in MCell 3.5.1
 -------------------------------------------------------------------------------
 
-* TODOs:
-  * Integrate and check BNGL import 
-
 * Major changes:
   * Integration of mesh processing tool GAMer 2
+  * Integration of mesh import tool Neuropil Tools
+  * Using BNGSim library for compartmental BNGL import
 
 * Bug Fixes:
   * Fixed multiple surface-surface reaction handling when the reactions had the same reactants
@@ -20,6 +19,7 @@ Changes in MCell 3.5.1
 
 * Known limitations:
   * MacOS version must be extracted into the /Applications/ directory manually and must be run from terminal with working directory being the root directory '/' 
+  * Windows version does not contain the Neuropil Tools plugin 
   
   
 Changes in MCell 3.5.0
