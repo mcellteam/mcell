@@ -1286,6 +1286,13 @@ void PymcellGenerator::generate_model(const bool print_failed_marker) {
   out << MCELL_IMPORT;
 
   out << make_import(PARAMETERS);
+
+  out <<
+      "\n"
+      "if len(sys.argv) == 3 and sys.argv[1] == '-seed\':\n"
+      "    # overwrite value SEED defined in module " + get_module_name(PARAMETERS) + "\n"
+      "    SEED = int(sys.argv[2])\n\n";
+
   out << IMPORT << " " << get_module_name(SUBSYSTEM) << "\n";
   out << IMPORT << " " << get_module_name(INSTANTIATION) << "\n";
   if (observables_generated) {
