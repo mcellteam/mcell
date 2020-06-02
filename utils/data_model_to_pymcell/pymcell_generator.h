@@ -48,6 +48,8 @@ private:
 
   void open_and_check_file(const std::string file_suffix, std::ofstream& out, const bool for_append = false);
 
+  void check_scripting();
+
   void generate_single_parameter(std::ofstream& out, Json::Value& parameter);
   void generate_parameters();
 
@@ -86,7 +88,7 @@ private:
   void generate_observables();
 
   void generate_config(std::ofstream& out);
-  void generate_model();
+  void generate_model(const bool print_failed_marker);
 
 
   std::string output_files_prefix;

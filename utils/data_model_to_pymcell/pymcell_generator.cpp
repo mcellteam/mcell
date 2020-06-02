@@ -120,15 +120,32 @@ bool PymcellGenerator::generate(
 
   mcell = get_node(KEY_ROOT, root, KEY_MCELL);
 
+  CHECK(check_scripting(), failed);
+
   CHECK(generate_parameters(), failed);
   CHECK(generate_subsystem(), failed);
   std::vector<std::string> geometry_names;
   CHECK(geometry_names = generate_geometry(), failed);
   CHECK(generate_instantiation(geometry_names), failed);
   CHECK(generate_observables(), failed);
-  CHECK(generate_model(), failed);
+  CHECK(generate_model(failed), failed);
 
   return !failed;
+}
+
+void PymcellGenerator::check_scripting() {
+  if (mcell.isMember(KEY_SCRIPTING)) {
+    Value& scripting = get_node(mcell, KEY_SCRIPTING);
+    if (scripting.isMember(KEY_SCRIPTING_LIST)) {
+      Value& scripting_list = get_node(scripting, KEY_SCRIPTING_LIST);
+      if (!scripting_list.empty()) {
+        ERROR("Data model contains scripting. To convert this model, generate first MDL, "
+            "then  convert MDL to data model and then use this converter. "
+            "Conversion will continue, but it will be wrong."
+        );
+      }
+    }
+  }
 }
 
 
@@ -1135,6 +1152,28 @@ void PymcellGenerator::generate_observables() {
 }
 
 
+static float_t get_largest_abs_value(const Vec3& v) {
+  float_t max = 0;
+  if (fabs_f(v.x) > max) {
+    max = fabs_f(v.x);
+  }
+  if (fabs_f(v.y) > max) {
+    max = fabs_f(v.y);
+  }
+  if (fabs_f(v.z) > max) {
+    max = fabs_f(v.z);
+  }
+  return max;
+}
+
+
+static float_t get_largest_distance_from_center(const Vec3& llf, const Vec3& urb) {
+  float_t max1 = get_largest_abs_value(llf);
+  float_t max2 = get_largest_abs_value(urb);
+  return max1 > max2 ? max1 : max2;
+}
+
+
 void PymcellGenerator::generate_config(ofstream& out) {
   out << make_section_comment("configuration");
 
@@ -1147,21 +1186,46 @@ void PymcellGenerator::generate_config(ofstream& out) {
   Value& initialization = mcell[KEY_INITIALIZATION];
   Value& partitions = initialization[KEY_PARTITIONS];
 
-  // check that all the x,y,z values are the same (comparing strings)
-  CHECK_PROPERTY(partitions[KEY_X_START].asString() == partitions[KEY_Y_START].asString());
-  CHECK_PROPERTY(partitions[KEY_Y_START].asString() == partitions[KEY_Z_START].asString());
-  CHECK_PROPERTY(partitions[KEY_X_END].asString() == partitions[KEY_Y_END].asString());
-  CHECK_PROPERTY(partitions[KEY_Y_END].asString() == partitions[KEY_Z_END].asString());
-  CHECK_PROPERTY(partitions[KEY_X_STEP].asString() == partitions[KEY_Y_STEP].asString());
-  CHECK_PROPERTY(partitions[KEY_Z_STEP].asString() == partitions[KEY_Z_STEP].asString());
+  // choose the largest value for partition size and the smallest step
+  float_t x_start = stod(partitions[KEY_X_START].asString());
+  float_t x_end = stod(partitions[KEY_X_END].asString());
+  float_t x_step = stod(partitions[KEY_X_STEP].asString());
+  float_t y_start = stod(partitions[KEY_Y_START].asString());
+  float_t y_end = stod(partitions[KEY_Y_END].asString());
+  float_t y_step = stod(partitions[KEY_Y_STEP].asString());
+  float_t z_start = stod(partitions[KEY_Z_START].asString());
+  float_t z_end = stod(partitions[KEY_Z_END].asString());
+  float_t z_step = stod(partitions[KEY_Z_STEP].asString());
 
-  double x_start = stod(partitions[KEY_X_START].asString());
-  double x_end = stod(partitions[KEY_X_END].asString());
-  double x_step = stod(partitions[KEY_X_STEP].asString());
-  CHECK_PROPERTY(fabs(x_start + x_end) < 1e-12 && "-x_start must be equal to x_end");
+  float_t partition_dimension;
+  if (!cmp_eq(x_start, -x_end) || !cmp_eq(y_start, -y_end) || !cmp_eq(y_start, -y_end) ||
+      !cmp_eq(x_start, y_start) || !cmp_eq(y_start, z_start) ||
+      !cmp_eq(x_end, y_end) || !cmp_eq(y_end, z_end)
+  ) {
+    cout <<
+        "Message: Partition's center is not on (0, 0, 0), changing the partition setup to be a cube "
+        "centered at (0, 0, 0).\n";
 
-  gen_assign(out, MODEL, NAME_CONFIG, NAME_PARTITION_DIMENSION, x_end * 2);
-  gen_assign(out, MODEL, NAME_CONFIG, NAME_SUBPARTITION_DIMENSION, x_step);
+    float_t max = get_largest_distance_from_center(Vec3(x_start, y_start, z_start), Vec3(x_end, y_end, z_end));
+    partition_dimension = max * 2;
+  }
+  else {
+    partition_dimension = x_end * 2;
+  }
+
+
+  float_t partition_step;
+  if (!cmp_eq(x_step, y_step) || !cmp_eq(y_step, z_step)) {
+    cout << "Message: Partition's step sizes are different, changing the step to be the smallest of them.";
+
+    partition_step = min3d(x_step, y_step, z_step);
+  }
+  else {
+    partition_step = x_step;
+  }
+
+  gen_assign(out, MODEL, NAME_CONFIG, NAME_PARTITION_DIMENSION, partition_dimension);
+  gen_assign(out, MODEL, NAME_CONFIG, NAME_SUBPARTITION_DIMENSION, partition_step);
 
   out << "\n";
   out << make_section_comment("default configuration overrides");
@@ -1189,11 +1253,18 @@ void PymcellGenerator::generate_config(ofstream& out) {
 }
 
 
-void PymcellGenerator::generate_model() {
+void PymcellGenerator::generate_model(const bool print_failed_marker) {
   ofstream out;
   open_and_check_file(MODEL, out);
 
   out << INTERPRETER;
+
+  if (print_failed_marker) {
+    out <<
+        "ERROR: Conversion from data model failed, these generated sources are result of a "
+        "best-effort conversion and will contain errors that might need to be fixed manually.\n\n";
+  }
+
   out << BASE_MODEL_IMPORTS;
   out << MCELL_DIR_SETUP;
 
