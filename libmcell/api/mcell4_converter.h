@@ -69,6 +69,7 @@ public:
 
 private:
 
+  float_t get_max_abs_dimension_of_any_vertex();
   void convert_simulation_setup();
 
   void convert_species();

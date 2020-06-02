@@ -105,6 +105,25 @@ void MCell4Converter::convert(Model* model_, World* world_) {
 }
 
 
+float_t MCell4Converter::get_max_abs_dimension_of_any_vertex() {
+  float_t max = 0;
+
+  for (std::shared_ptr<API::GeometryObject>& o: model->geometry_objects) {
+    // go through all vertices
+    for (auto& v: o->vertex_list) {
+      for (float_t dim: v) {
+        float_t abs_dim = MCell::fabs_f(dim);
+        if (abs_dim > max) {
+          max = abs_dim;
+        }
+      }
+    }
+  }
+
+  return max;
+}
+
+
 void MCell4Converter::convert_simulation_setup() {
   const API::Config& config = model->config;
 
@@ -134,7 +153,21 @@ void MCell4Converter::convert_simulation_setup() {
   world->seed_seq = config.seed;
   rng_init(&world->rng, world->seed_seq);
 
-  world->config.partition_edge_length = config.partition_dimension / length_unit;
+  float_t max_dimension = get_max_abs_dimension_of_any_vertex();
+  float_t auto_partition_dimension = (max_dimension + PARTITION_EDGE_EXTRA_MARGIN_UM) * 2;
+
+  if (auto_partition_dimension > config.partition_dimension) {
+    cout <<
+        "Set " << NAME_CLASS_MODEL << "." << NAME_CONFIG << "." << NAME_PARTITION_DIMENSION <<
+        " value " << config.partition_dimension <<
+        " is smaller than the automatically determined value " << auto_partition_dimension <<
+        ", using the automatic value.\n";
+    world->config.partition_edge_length = auto_partition_dimension / length_unit;
+  }
+  else {
+    world->config.partition_edge_length = config.partition_dimension / length_unit;
+  }
+
   int num_subparts = config.partition_dimension / config.subpartition_dimension;
   assert(num_subparts > 0);
   if (num_subparts % 2 == 1) {
