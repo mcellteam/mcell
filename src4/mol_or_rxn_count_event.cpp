@@ -205,9 +205,11 @@ void MolOrRxnCountInfo::to_data_model(const World* world, Json::Value& reaction_
     reaction_output[KEY_COUNT_LOCATION] = val;
   }
   else {
-    cerr <<
-        "Warning: conversion of count expression with multiple terms to data model's " << KEY_COUNT_LOCATION <<
-        " is not fully supported, defaulting to " << VALUE_COUNT_LOCATION_REGION << ".\n";
+    #ifndef NDEBUG
+        cerr <<
+            "Warning: conversion of count expression with multiple terms to data model's " << KEY_COUNT_LOCATION <<
+            " is not fully supported, defaulting to " << VALUE_COUNT_LOCATION_REGION << ".\n";
+    #endif
     reaction_output[KEY_COUNT_LOCATION] = VALUE_COUNT_LOCATION_REGION;
   }
 
