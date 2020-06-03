@@ -136,6 +136,7 @@ const char* const NAME_REGION = "region";
 const char* const NAME_RELEASE_EVENT_REPORT = "release_event_report";
 const char* const NAME_RELEASE_PROBABILITY = "release_probability";
 const char* const NAME_RELEASE_SITES = "release_sites";
+const char* const NAME_REV_NAME = "rev_name";
 const char* const NAME_REV_RATE = "rev_rate";
 const char* const NAME_RIGHT_NODE = "right_node";
 const char* const NAME_RUN_ITERATIONS = "run_iterations";

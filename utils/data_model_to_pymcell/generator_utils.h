@@ -200,14 +200,18 @@ void gen_param_id(ofstream& out, string name, Json::Value& id, bool comma) {
 }
 
 
-// this should be used when printing out floating point values (doubles)
-void gen_param_verbatim(ofstream& out, string name, Json::Value& value, bool comma) {
-  gen_param_id(out, name, value, comma);
+void gen_param_expr(ofstream& out, string name, const string& value, bool comma) {
+  string python_expr;
+  // replace operator ^ with operator **
+  python_expr = regex_replace(value, regex("\\^"), "**");
+  gen_param_id(out, name, python_expr, comma);
 }
 
-void gen_param_verbatim(ofstream& out, string name, const string& value, bool comma) {
-  gen_param_id(out, name, value, comma);
+// this should be used when printing out floating point values (doubles)
+void gen_param_expr(ofstream& out, string name, Json::Value& value, bool comma) {
+  gen_param_expr(out, name, value.asString(), comma);
 }
+
 
 void gen_param_enum(ofstream& out, string name, string enum_name, string enum_value, bool comma) {
   out << IND << name << " = " << make_enum_value(enum_name, enum_value) << (comma?",":"") << "\n";

@@ -42,10 +42,19 @@ public:
   void check_semantics() const override {
     GenReactionRule::check_semantics();
 
-    if (is_set(rev_rate) && is_set(name)) {
+    if (is_set(name) && is_set(rev_rate)) {
+      if (!is_set(rev_name)) {
+        throw ValueError(
+            S("If name of a reaction is set, reversible reaction must have its ") + NAME_REV_NAME + " set as well."
+            " Error for " + name + "."
+        );
+      }
+    }
+
+    if (is_set(rev_name) && !is_set(rev_rate)) {
       throw ValueError(
-          "Reversible reactions cannot have their name set because they are internally split into its forward and reverse variant. "
-          "Error for " + name + ". If name is needed, split the definition into its forward and reverse variant."
+          S("Parameter ") + NAME_REV_NAME + " must not be set when " + NAME_REV_RATE + " is not set."
+          " Error for " + name + "."
       );
     }
 

@@ -68,6 +68,7 @@ const char* const NULL_PRODUCTS = "NULL";
 const char* const COUNT = "COUNT";
 const char* const WORLD = "WORLD";
 
+const char* const REV_RXN_SUFFIX = "_rev";
 } // namespace MCell
 
 #endif // SRC4_PYMCELLCONVERTER_GENERATOR_CONSTANTSS_H_

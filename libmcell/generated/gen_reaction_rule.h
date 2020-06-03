@@ -37,6 +37,7 @@ class ComplexInstance;
         const std::vector<std::shared_ptr<ComplexInstance>> reactants_ = std::vector<std::shared_ptr<ComplexInstance>>(), \
         const std::vector<std::shared_ptr<ComplexInstance>> products_ = std::vector<std::shared_ptr<ComplexInstance>>(), \
         const float_t fwd_rate_ = FLT_UNSET, \
+        const std::string& rev_name_ = STR_UNSET, \
         const float_t rev_rate_ = FLT_UNSET, \
         const std::vector<std::vector<float_t>> variable_rate_ = std::vector<std::vector<float_t>>() \
     ) { \
@@ -45,6 +46,7 @@ class ComplexInstance;
       reactants = reactants_; \
       products = products_; \
       fwd_rate = fwd_rate_; \
+      rev_name = rev_name_; \
       rev_rate = rev_rate_; \
       variable_rate = variable_rate_; \
       postprocess_in_ctor();\
@@ -95,6 +97,18 @@ public:
   }
   virtual float_t get_fwd_rate() const {
     return fwd_rate;
+  }
+
+  std::string rev_name;
+  virtual void set_rev_name(const std::string& new_rev_name_) {
+    if (initialized) {
+      throw RuntimeError("Value 'rev_name' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
+    rev_name = new_rev_name_;
+  }
+  virtual const std::string& get_rev_name() const {
+    return rev_name;
   }
 
   float_t rev_rate;

@@ -199,6 +199,7 @@ class ReactionRule():
             reactants : List[ComplexInstance] = None,
             products : List[ComplexInstance] = None,
             fwd_rate : float = None,
+            rev_name : str = None,
             rev_rate : float = None,
             variable_rate : List[List[float]] = None
         ):
@@ -206,6 +207,7 @@ class ReactionRule():
         self.reactants = reactants
         self.products = products
         self.fwd_rate = fwd_rate
+        self.rev_name = rev_name
         self.rev_rate = rev_rate
         self.variable_rate = variable_rate
 

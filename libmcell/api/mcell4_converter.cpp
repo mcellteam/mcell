@@ -395,13 +395,10 @@ void MCell4Converter::convert_rxns() {
   for (std::shared_ptr<API::ReactionRule>& r: model->reaction_rules) {
 
     bool is_reversible = is_set(r->rev_rate);
-    if (is_reversible && is_set(r->name)) {
-        assert(false); // checked with semantic check
-    }
 
     BNG::RxnRule rxn;
 
-    if (!is_reversible && is_set(r->name)) {
+    if (is_set(r->name)) {
       rxn.name = r->name;
     }
     rxn.type = BNG::RxnType::Standard;
@@ -435,11 +432,13 @@ void MCell4Converter::convert_rxns() {
       rxn.append_product(product);
     }
 
-    // TODO: variable rates
-
     // reverse reaction
     BNG::RxnRule rxn_rev;
     if (is_reversible) {
+      rxn_rev.type = BNG::RxnType::Standard;
+      if (is_set(r->rev_name)) {
+        rxn.name = r->rev_name;
+      }
       rxn_rev.rate_constant = r->rev_rate;
       rxn_rev.reactants = rxn.products;
       rxn_rev.products = rxn.reactants;

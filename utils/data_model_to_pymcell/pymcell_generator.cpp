@@ -211,10 +211,10 @@ vector<string> PymcellGenerator::generate_species(ofstream& out) {
     string mol_type = molecule_list_item[KEY_MOL_TYPE].asString();
     CHECK_PROPERTY(mol_type == VALUE_MOL_TYPE_2D || mol_type == VALUE_MOL_TYPE_3D);
     if (mol_type == VALUE_MOL_TYPE_3D) {
-      gen_param_verbatim(out, NAME_DIFFUSION_CONSTANT_3D, molecule_list_item[KEY_DIFFUSION_CONSTANT], false);
+      gen_param_expr(out, NAME_DIFFUSION_CONSTANT_3D, molecule_list_item[KEY_DIFFUSION_CONSTANT], false);
     }
     else {
-      gen_param_verbatim(out, NAME_DIFFUSION_CONSTANT_2D, molecule_list_item[KEY_DIFFUSION_CONSTANT], false);
+      gen_param_expr(out, NAME_DIFFUSION_CONSTANT_2D, molecule_list_item[KEY_DIFFUSION_CONSTANT], false);
     }
     out << CTOR_END;
   }
@@ -441,9 +441,10 @@ vector<string> PymcellGenerator::generate_reaction_rules(ofstream& out) {
       CHECK_PROPERTY(rxn_type == VALUE_IRREVERSIBLE || rxn_type == VALUE_REVERSIBLE);
       bool is_reversible = rxn_type == VALUE_REVERSIBLE;
 
-      gen_param_verbatim(out, NAME_FWD_RATE, reaction_list_item[KEY_FWD_RATE], is_reversible);
+      gen_param_expr(out, NAME_FWD_RATE, reaction_list_item[KEY_FWD_RATE], is_reversible);
       if (is_reversible) {
-        gen_param_verbatim(out, NAME_FWD_RATE, reaction_list_item[KEY_BKWD_RATE], false);
+        gen_param(out, NAME_REV_NAME, name + REV_RXN_SUFFIX, true);
+        gen_param_expr(out, NAME_REV_RATE, reaction_list_item[KEY_BKWD_RATE], false);
       }
     }
 
@@ -693,7 +694,7 @@ vector<string> PymcellGenerator::generate_release_sites(ofstream& out) {
           release_site_item[KEY_LOCATION_X], release_site_item[KEY_LOCATION_Y], release_site_item[KEY_LOCATION_Z],
           true
       );
-      gen_param_verbatim(out, NAME_SITE_DIAMETER, release_site_item[KEY_SITE_DIAMETER], true);
+      gen_param_expr(out, NAME_SITE_DIAMETER, release_site_item[KEY_SITE_DIAMETER], true);
     }
     else if (shape == VALUE_OBJECT) {
       gen_region_expr_assignment_for_rel_site(out, release_site_item[KEY_OBJECT_EXPR].asString());
@@ -704,10 +705,10 @@ vector<string> PymcellGenerator::generate_release_sites(ofstream& out) {
 
     string quantity_type = release_site_item[KEY_QUANTITY_TYPE].asString();
     if (quantity_type == VALUE_NUMBER_TO_RELEASE) {
-      gen_param_verbatim(out, NAME_NUMBER_TO_RELEASE, release_site_item[KEY_QUANTITY], false);
+      gen_param_expr(out, NAME_NUMBER_TO_RELEASE, release_site_item[KEY_QUANTITY], false);
     }
     else if (quantity_type == VALUE_DENSITY) {
-      gen_param_verbatim(out, NAME_DENSITY, release_site_item[KEY_QUANTITY], false);
+      gen_param_expr(out, NAME_DENSITY, release_site_item[KEY_QUANTITY], false);
     }
     else {
       ERROR("Quantity type " + quantity_type + " is not supported yet");
@@ -843,7 +844,7 @@ vector<string> PymcellGenerator::generate_viz_outputs(ofstream& out) {
   }
   gen_param_list(out, NAME_SPECIES_LIST, viz_species, true);
 
-  gen_param_verbatim(out, NAME_EVERY_N_TIMESTEPS, viz_output[KEY_STEP], false);
+  gen_param_expr(out, NAME_EVERY_N_TIMESTEPS, viz_output[KEY_STEP], false);
 
   // ignoring KEY_END
   out << ")\n\n";
@@ -1125,7 +1126,7 @@ vector<string> PymcellGenerator::generate_counts(ofstream& out) {
         DEFAULT_RXN_OUTPUT_FILENAME_PREFIX + mdl_file_prefix + ".dat'", rxn_step != "");
 
     if (rxn_step != "") {
-      gen_param_verbatim(out, NAME_EVERY_N_TIMESTEPS, rxn_step, false);
+      gen_param_expr(out, NAME_EVERY_N_TIMESTEPS, rxn_step, false);
     }
 
     out << ")\n\n";

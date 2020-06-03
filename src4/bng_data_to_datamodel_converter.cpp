@@ -340,8 +340,11 @@ void BngDataToDatamodelConverter::convert_rxns(Value& mcell_node) {
         surface_class_list.append(surface_class);
       }
     }
+    else if (rxn_rule->type == BNG::RxnType::AbsorbRegionBorder) {
+      CONVERSION_UNSUPPORTED("AbsorbRegionBorder surf classes are not supported yet.");
+    }
     else {
-      CONVERSION_UNSUPPORTED("AbsorbRegionBorder surf classes are not supported yet");
+      CONVERSION_UNSUPPORTED("Invalid reaction type");
     }
   }
 }

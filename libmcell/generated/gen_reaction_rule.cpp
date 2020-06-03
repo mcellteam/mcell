@@ -39,6 +39,7 @@ bool GenReactionRule::__eq__(const GenReactionRule& other) const {
     vec_ptr_eq(reactants, other.reactants) &&
     vec_ptr_eq(products, other.products) &&
     fwd_rate == other.fwd_rate &&
+    rev_name == other.rev_name &&
     rev_rate == other.rev_rate &&
     variable_rate == other.variable_rate;
 }
@@ -56,6 +57,7 @@ std::string GenReactionRule::to_str(const std::string ind) const {
       "\n" << ind + "  " << "reactants=" << vec_ptr_to_str(reactants, ind + "  ") << ", " << "\n" << ind + "  " <<
       "products=" << vec_ptr_to_str(products, ind + "  ") << ", " << "\n" << ind + "  " <<
       "fwd_rate=" << fwd_rate << ", " <<
+      "rev_name=" << rev_name << ", " <<
       "rev_rate=" << rev_rate << ", " <<
       "variable_rate=" << vec_nonptr_to_str(variable_rate, ind + "  ");
   return ss.str();
@@ -69,6 +71,7 @@ py::class_<ReactionRule> define_pybinding_ReactionRule(py::module& m) {
             const std::vector<std::shared_ptr<ComplexInstance>>,
             const std::vector<std::shared_ptr<ComplexInstance>>,
             const float_t,
+            const std::string&,
             const float_t,
             const std::vector<std::vector<float_t>>
           >(),
@@ -76,6 +79,7 @@ py::class_<ReactionRule> define_pybinding_ReactionRule(py::module& m) {
           py::arg("reactants") = std::vector<std::shared_ptr<ComplexInstance>>(),
           py::arg("products") = std::vector<std::shared_ptr<ComplexInstance>>(),
           py::arg("fwd_rate") = FLT_UNSET,
+          py::arg("rev_name") = STR_UNSET,
           py::arg("rev_rate") = FLT_UNSET,
           py::arg("variable_rate") = std::vector<std::vector<float_t>>()
       )
@@ -86,6 +90,7 @@ py::class_<ReactionRule> define_pybinding_ReactionRule(py::module& m) {
       .def_property("reactants", &ReactionRule::get_reactants, &ReactionRule::set_reactants)
       .def_property("products", &ReactionRule::get_products, &ReactionRule::set_products)
       .def_property("fwd_rate", &ReactionRule::get_fwd_rate, &ReactionRule::set_fwd_rate)
+      .def_property("rev_name", &ReactionRule::get_rev_name, &ReactionRule::set_rev_name)
       .def_property("rev_rate", &ReactionRule::get_rev_rate, &ReactionRule::set_rev_rate)
       .def_property("variable_rate", &ReactionRule::get_variable_rate, &ReactionRule::set_variable_rate)
     ;
