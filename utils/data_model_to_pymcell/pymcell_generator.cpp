@@ -1122,6 +1122,19 @@ vector<string> PymcellGenerator::generate_counts(ofstream& out) {
       gen_param_id(out, NAME_REGION, where_to_count, true);
     }
 
+    if (mdl_file_prefix == "") {
+      string where = where_to_count;
+      if (where == "") {
+        where = WORLD_FIRST_UPPER;
+      }
+      mdl_file_prefix = what_to_count + "." + where;
+
+      // TODO: this might need further checks
+      if (mdl_file_prefix.find_first_of(" ,+*/\\")) {
+        cout << "Warning: count file prefix '" + mdl_file_prefix + "' is probably invalid.\n";
+      }
+    }
+
     gen_param_id(out, NAME_FILENAME,
         DEFAULT_RXN_OUTPUT_FILENAME_PREFIX + mdl_file_prefix + ".dat'", rxn_step != "");
 

@@ -67,6 +67,7 @@ const char* const NULL_PRODUCTS = "NULL";
 
 const char* const COUNT = "COUNT";
 const char* const WORLD = "WORLD";
+const char* const WORLD_FIRST_UPPER = "World";
 
 const char* const REV_RXN_SUFFIX = "_rev";
 } // namespace MCell
