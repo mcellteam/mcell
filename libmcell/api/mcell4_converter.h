@@ -51,8 +51,8 @@ namespace API {
 class Model;
 class ComponentType;
 class ComponentInstance;
-class MoleculeType;
-class MoleculeInstance;
+class ElementaryMoleculeType;
+class ElementaryMoleculeInstance;
 class ComplexInstance;
 class SurfaceProperty;
 class SurfaceRegion;
@@ -79,8 +79,8 @@ private:
 
   BNG::ComponentType convert_component_type(API::ComponentType& ct);
   BNG::ComponentInstance convert_component_instance(API::ComponentInstance& ci);
-  BNG::MolType convert_molecule_type(API::MoleculeType& mt);
-  BNG::MolInstance convert_molecule_instance(API::MoleculeInstance& mi);
+  BNG::MolType convert_molecule_type(API::ElementaryMoleculeType& mt);
+  BNG::MolInstance convert_molecule_instance(API::ElementaryMoleculeInstance& mi);
   BNG::CplxInstance convert_complex_instance(API::ComplexInstance& inst);
   void convert_rxns();
   void init_species_rxn_flags();

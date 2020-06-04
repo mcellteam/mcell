@@ -102,7 +102,7 @@ class ComponentInstance():
         self.bond = bond
 
 
-class MoleculeType():
+class ElementaryMoleculeType():
     def __init__(
             self,
             name : str,
@@ -119,23 +119,23 @@ class MoleculeType():
     def inst(
             self,
             components : List[ComponentInstance]
-        ) -> 'MoleculeInstance':
+        ) -> 'ElementaryMoleculeInstance':
         pass
 
-class MoleculeInstance():
+class ElementaryMoleculeInstance():
     def __init__(
             self,
-            molecule_type : MoleculeType,
+            elementary_molecule_type : ElementaryMoleculeType,
             components : List[ComponentInstance] = None
         ):
-        self.molecule_type = molecule_type
+        self.elementary_molecule_type = elementary_molecule_type
         self.components = components
 
 
 class ComplexInstance():
     def __init__(
             self,
-            molecule_instances : List[MoleculeInstance] = None,
+            molecule_instances : List[ElementaryMoleculeInstance] = None,
             orientation : Orientation = Orientation.NONE
         ):
         self.molecule_instances = molecule_instances
@@ -148,7 +148,7 @@ class Species():
             name : str,
             diffusion_constant_2d : float = None,
             diffusion_constant_3d : float = None,
-            molecule_instances : List[MoleculeInstance] = None,
+            molecule_instances : List[ElementaryMoleculeInstance] = None,
             orientation : Orientation = Orientation.NONE
         ):
         self.name = name

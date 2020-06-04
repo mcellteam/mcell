@@ -341,7 +341,7 @@ BNG::ComponentInstance MCell4Converter::convert_component_instance(API::Componen
 }
 
 
-BNG::MolType MCell4Converter::convert_molecule_type(API::MoleculeType& mt) {
+BNG::MolType MCell4Converter::convert_molecule_type(API::ElementaryMoleculeType& mt) {
   BNG::MolType res;
 
   res.name = mt.name;
@@ -353,10 +353,10 @@ BNG::MolType MCell4Converter::convert_molecule_type(API::MoleculeType& mt) {
 }
 
 
-BNG::MolInstance MCell4Converter::convert_molecule_instance(API::MoleculeInstance& mi) {
+BNG::MolInstance MCell4Converter::convert_molecule_instance(API::ElementaryMoleculeInstance& mi) {
   BNG::MolInstance res;
 
-  BNG::MolType mt = convert_molecule_type(*mi.molecule_type);
+  BNG::MolType mt = convert_molecule_type(*mi.elementary_molecule_type);
   res.mol_type_id = world->bng_engine.get_data().find_or_add_molecule_type(mt);
 
   if (!mi.components.empty()) {
@@ -371,7 +371,7 @@ BNG::CplxInstance MCell4Converter::convert_complex_instance(API::ComplexInstance
   // create a temporary cplx instance that we will use for search
   BNG::CplxInstance cplx_inst;
 
-  for (std::shared_ptr<API::MoleculeInstance>& m: inst.molecule_instances) {
+  for (std::shared_ptr<API::ElementaryMoleculeInstance>& m: inst.molecule_instances) {
     BNG::MolInstance mi = convert_molecule_instance(*m);
 
     cplx_inst.mol_instances.push_back(mi);

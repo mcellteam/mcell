@@ -45,7 +45,7 @@ ComponentInstance:
     default: BOND_UNBOUND      
     
       
-MoleculeType:
+ElementaryMoleculeType:
   superclass: BaseDataClass
   items:
   - name: name
@@ -67,17 +67,17 @@ MoleculeType:
       
   methods:
   - name: inst
-    return_type: MoleculeInstance
+    return_type: ElementaryMoleculeInstance
     params:
     - name: components
       type: List[ComponentInstance*]
       
       
-MoleculeInstance:
+ElementaryMoleculeInstance:
   superclass: BaseDataClass
   items:
-  - name: molecule_type
-    type: MoleculeType*
+  - name: elementary_molecule_type
+    type: ElementaryMoleculeType*
     
   - name: components
     type: List[ComponentInstance*]
@@ -88,7 +88,7 @@ ComplexInstance:
   superclass: BaseDataClass
   items:
   - name: molecule_instances
-    type: List[MoleculeInstance*]
+    type: List[ElementaryMoleculeInstance*]
     default: empty
 
   - name: orientation

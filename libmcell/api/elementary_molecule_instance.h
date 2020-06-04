@@ -20,21 +20,21 @@
  *
 ******************************************************************************/
 
-#ifndef API_MOLECULE_INSTANCE_H
-#define API_MOLECULE_INSTANCE_H
+#ifndef API_ELEMENTARY_MOLECULE_INSTANCE_H
+#define API_ELEMENTARY_MOLECULE_INSTANCE_H
 
-#include "../generated/gen_molecule_instance.h"
-#include "../api/common.h"
+#include "generated/gen_elementary_molecule_instance.h"
+#include "api/common.h"
 
 namespace MCell {
 namespace API {
 
-class MoleculeInstance: public GenMoleculeInstance {
+class ElementaryMoleculeInstance: public GenElementaryMoleculeInstance {
 public:
-  MOLECULE_INSTANCE_CTOR()
+  ELEMENTARY_MOLECULE_INSTANCE_CTOR()
 };
 
 } // namespace API
 } // namespace MCell
 
-#endif // API_MOLECULE_INSTANCE_H
+#endif // API_ELEMENTARY_MOLECULE_INSTANCE_H

@@ -29,7 +29,7 @@
 #include "generated/gen_constants.h"
 #include "api/common.h"
 #include "complex_instance.h"
-#include "molecule_type.h"
+#include "elementary_molecule_type.h"
 
 #include "include/datamodel_defines.h"
 
@@ -65,15 +65,15 @@ public:
         throw ValueError("Only one of fields diffusion_constant_2d or diffusion_constant_3d can be set for simple species.");
       }
 
-      // create a single MoleculeType
-      auto mt = std::make_shared<MoleculeType>(
+      // create a single ElementaryMoleculeType
+      auto mt = std::make_shared<ElementaryMoleculeType>(
           name, std::vector<std::shared_ptr<ComponentType>>(),
           diffusion_constant_2d, diffusion_constant_3d
       );
 
       // and then molecule instance out of it
       molecule_instances.push_back(
-          std::make_shared<MoleculeInstance>(mt)
+          std::make_shared<ElementaryMoleculeInstance>(mt)
       );
     }
     else {

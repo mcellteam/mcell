@@ -29,8 +29,8 @@ set(SOURCE_FILES
 
     generated/gen_component_type.cpp
     generated/gen_component_instance.cpp
-    generated/gen_molecule_type.cpp
-    generated/gen_molecule_instance.cpp
+    generated/gen_elementary_molecule_type.cpp
+    generated/gen_elementary_molecule_instance.cpp
     generated/gen_complex_instance.cpp
     generated/gen_species.cpp
     generated/gen_surface_property.cpp

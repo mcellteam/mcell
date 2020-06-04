@@ -20,28 +20,28 @@
  *
 ******************************************************************************/
 
-#ifndef API_GEN_MOLECULE_TYPE_H
-#define API_GEN_MOLECULE_TYPE_H
+#ifndef API_GEN_ELEMENTARY_MOLECULE_TYPE_H
+#define API_GEN_ELEMENTARY_MOLECULE_TYPE_H
 
 #include "../api/common.h"
 #include "../api/base_data_class.h"
-#include "../api/molecule_instance.h"
+#include "../api/elementary_molecule_instance.h"
 
 namespace MCell {
 namespace API {
 
 class ComponentInstance;
 class ComponentType;
-class MoleculeInstance;
+class ElementaryMoleculeInstance;
 
-#define MOLECULE_TYPE_CTOR() \
-    MoleculeType( \
+#define ELEMENTARY_MOLECULE_TYPE_CTOR() \
+    ElementaryMoleculeType( \
         const std::string& name_, \
         const std::vector<std::shared_ptr<ComponentType>> components_ = std::vector<std::shared_ptr<ComponentType>>(), \
         const float_t diffusion_constant_2d_ = FLT_UNSET, \
         const float_t diffusion_constant_3d_ = FLT_UNSET \
     ) { \
-      class_name = "MoleculeType"; \
+      class_name = "ElementaryMoleculeType"; \
       name = name_; \
       components = components_; \
       diffusion_constant_2d = diffusion_constant_2d_; \
@@ -50,13 +50,13 @@ class MoleculeInstance;
       check_semantics();\
     }
 
-class GenMoleculeType: public BaseDataClass {
+class GenElementaryMoleculeType: public BaseDataClass {
 public:
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
 
-  bool __eq__(const GenMoleculeType& other) const;
+  bool __eq__(const GenElementaryMoleculeType& other) const;
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---
@@ -97,12 +97,12 @@ public:
   }
 
   // --- methods ---
-  virtual MoleculeInstance inst(const std::vector<std::shared_ptr<ComponentInstance>> components) = 0;
-}; // GenMoleculeType
+  virtual ElementaryMoleculeInstance inst(const std::vector<std::shared_ptr<ComponentInstance>> components) = 0;
+}; // GenElementaryMoleculeType
 
-class MoleculeType;
-py::class_<MoleculeType> define_pybinding_MoleculeType(py::module& m);
+class ElementaryMoleculeType;
+py::class_<ElementaryMoleculeType> define_pybinding_ElementaryMoleculeType(py::module& m);
 } // namespace API
 } // namespace MCell
 
-#endif // API_GEN_MOLECULE_TYPE_H
+#endif // API_GEN_ELEMENTARY_MOLECULE_TYPE_H

@@ -22,22 +22,22 @@
 
 #include <sstream>
 #include <pybind11/stl.h>
-#include "gen_molecule_type.h"
-#include "../api/molecule_type.h"
+#include "gen_elementary_molecule_type.h"
+#include "../api/elementary_molecule_type.h"
 #include "../api/component_instance.h"
 #include "../api/component_type.h"
-#include "../api/molecule_instance.h"
+#include "../api/elementary_molecule_instance.h"
 
 namespace MCell {
 namespace API {
 
-void GenMoleculeType::check_semantics() const {
+void GenElementaryMoleculeType::check_semantics() const {
   if (!is_set(name)) {
     throw ValueError("Parameter 'name' must be set.");
   }
 }
 
-bool GenMoleculeType::__eq__(const GenMoleculeType& other) const {
+bool GenElementaryMoleculeType::__eq__(const GenElementaryMoleculeType& other) const {
   return
     name == other.name &&
     name == other.name &&
@@ -46,12 +46,12 @@ bool GenMoleculeType::__eq__(const GenMoleculeType& other) const {
     diffusion_constant_3d == other.diffusion_constant_3d;
 }
 
-void GenMoleculeType::set_initialized() {
+void GenElementaryMoleculeType::set_initialized() {
   vec_set_initialized(components);
   initialized = true;
 }
 
-std::string GenMoleculeType::to_str(const std::string ind) const {
+std::string GenElementaryMoleculeType::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
       "name=" << name << ", " <<
@@ -61,8 +61,8 @@ std::string GenMoleculeType::to_str(const std::string ind) const {
   return ss.str();
 }
 
-py::class_<MoleculeType> define_pybinding_MoleculeType(py::module& m) {
-  return py::class_<MoleculeType, std::shared_ptr<MoleculeType>>(m, "MoleculeType")
+py::class_<ElementaryMoleculeType> define_pybinding_ElementaryMoleculeType(py::module& m) {
+  return py::class_<ElementaryMoleculeType, std::shared_ptr<ElementaryMoleculeType>>(m, "ElementaryMoleculeType")
       .def(
           py::init<
             const std::string&,
@@ -75,14 +75,14 @@ py::class_<MoleculeType> define_pybinding_MoleculeType(py::module& m) {
           py::arg("diffusion_constant_2d") = FLT_UNSET,
           py::arg("diffusion_constant_3d") = FLT_UNSET
       )
-      .def("check_semantics", &MoleculeType::check_semantics)
-      .def("__str__", &MoleculeType::to_str, py::arg("ind") = std::string(""))
-      .def("inst", &MoleculeType::inst, py::arg("components"))
-      .def("dump", &MoleculeType::dump)
-      .def_property("name", &MoleculeType::get_name, &MoleculeType::set_name)
-      .def_property("components", &MoleculeType::get_components, &MoleculeType::set_components)
-      .def_property("diffusion_constant_2d", &MoleculeType::get_diffusion_constant_2d, &MoleculeType::set_diffusion_constant_2d)
-      .def_property("diffusion_constant_3d", &MoleculeType::get_diffusion_constant_3d, &MoleculeType::set_diffusion_constant_3d)
+      .def("check_semantics", &ElementaryMoleculeType::check_semantics)
+      .def("__str__", &ElementaryMoleculeType::to_str, py::arg("ind") = std::string(""))
+      .def("inst", &ElementaryMoleculeType::inst, py::arg("components"))
+      .def("dump", &ElementaryMoleculeType::dump)
+      .def_property("name", &ElementaryMoleculeType::get_name, &ElementaryMoleculeType::set_name)
+      .def_property("components", &ElementaryMoleculeType::get_components, &ElementaryMoleculeType::set_components)
+      .def_property("diffusion_constant_2d", &ElementaryMoleculeType::get_diffusion_constant_2d, &ElementaryMoleculeType::set_diffusion_constant_2d)
+      .def_property("diffusion_constant_3d", &ElementaryMoleculeType::get_diffusion_constant_3d, &ElementaryMoleculeType::set_diffusion_constant_3d)
     ;
 }
 

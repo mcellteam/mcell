@@ -20,26 +20,27 @@
  *
 ******************************************************************************/
 
-#ifndef API_MOLECULE_TYPE_H
-#define API_MOLECULE_TYPE_H
+#ifndef API_ELEMENTARY_MOLECULE_TYPE_H
+#define API_ELEMENTARY_MOLECULE_TYPE_H
 
-#include "../generated/gen_molecule_type.h"
-#include "../api/common.h"
-#include "molecule_instance.h"
+#include "generated/gen_elementary_molecule_type.h"
+#include "api/common.h"
+#include "api/elementary_molecule_instance.h"
 
 namespace MCell {
 namespace API {
 
-class MoleculeType: public GenMoleculeType, public std::enable_shared_from_this<MoleculeType> {
+class ElementaryMoleculeType:
+    public GenElementaryMoleculeType, public std::enable_shared_from_this<ElementaryMoleculeType> {
 public:
-  MOLECULE_TYPE_CTOR()
+  ELEMENTARY_MOLECULE_TYPE_CTOR()
 
-  MoleculeInstance inst(const std::vector<std::shared_ptr<ComponentInstance>> components) override {
-    return MoleculeInstance( shared_from_this(), components);
+  ElementaryMoleculeInstance inst(const std::vector<std::shared_ptr<ComponentInstance>> components) override {
+    return ElementaryMoleculeInstance( shared_from_this(), components);
   }
 };
 
 } // namespace API
 } // namespace MCell
 
-#endif // API_MOLECULE_TYPE_H
+#endif // API_ELEMENTARY_MOLECULE_TYPE_H

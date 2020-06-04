@@ -24,8 +24,8 @@
 
 #include "generated/gen_component_type.h"
 #include "generated/gen_component_instance.h"
-#include "generated/gen_molecule_type.h"
-#include "generated/gen_molecule_instance.h"
+#include "generated/gen_elementary_molecule_type.h"
+#include "generated/gen_elementary_molecule_instance.h"
 #include "generated/gen_species.h"
 #include "generated/gen_surface_class.h"
 #include "generated/gen_reaction_rule.h"
@@ -112,8 +112,8 @@ PYBIND11_MODULE(mcell, m) {
 
   define_pybinding_ComponentType(m);
   define_pybinding_ComponentInstance(m);
-  define_pybinding_MoleculeType(m);
-  define_pybinding_MoleculeInstance(m);
+  define_pybinding_ElementaryMoleculeType(m);
+  define_pybinding_ElementaryMoleculeInstance(m);
   define_pybinding_ComplexInstance(m);
   define_pybinding_Species(m);
   define_pybinding_SurfaceProperty(m);

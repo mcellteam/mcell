@@ -33,14 +33,14 @@ namespace MCell {
 namespace API {
 
 class ComplexInstance;
-class MoleculeInstance;
+class ElementaryMoleculeInstance;
 
 #define SPECIES_CTOR() \
     Species( \
         const std::string& name_, \
         const float_t diffusion_constant_2d_ = FLT_UNSET, \
         const float_t diffusion_constant_3d_ = FLT_UNSET, \
-        const std::vector<std::shared_ptr<MoleculeInstance>> molecule_instances_ = std::vector<std::shared_ptr<MoleculeInstance>>(), \
+        const std::vector<std::shared_ptr<ElementaryMoleculeInstance>> molecule_instances_ = std::vector<std::shared_ptr<ElementaryMoleculeInstance>>(), \
         const Orientation orientation_ = Orientation::NONE \
     )  : GenSpecies(molecule_instances_,orientation_) { \
       class_name = "Species"; \
@@ -56,7 +56,7 @@ class MoleculeInstance;
 class GenSpecies: public ComplexInstance {
 public:
   GenSpecies( 
-      const std::vector<std::shared_ptr<MoleculeInstance>> molecule_instances_ = std::vector<std::shared_ptr<MoleculeInstance>>(), 
+      const std::vector<std::shared_ptr<ElementaryMoleculeInstance>> molecule_instances_ = std::vector<std::shared_ptr<ElementaryMoleculeInstance>>(), 
       const Orientation orientation_ = Orientation::NONE 
   )  : ComplexInstance(molecule_instances_,orientation_)  {
   }

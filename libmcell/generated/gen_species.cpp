@@ -25,7 +25,7 @@
 #include "gen_species.h"
 #include "../api/species.h"
 #include "../api/complex_instance.h"
-#include "../api/molecule_instance.h"
+#include "../api/elementary_molecule_instance.h"
 
 namespace MCell {
 namespace API {
@@ -69,13 +69,13 @@ py::class_<Species> define_pybinding_Species(py::module& m) {
             const std::string&,
             const float_t,
             const float_t,
-            const std::vector<std::shared_ptr<MoleculeInstance>>,
+            const std::vector<std::shared_ptr<ElementaryMoleculeInstance>>,
             const Orientation
           >(),
           py::arg("name"),
           py::arg("diffusion_constant_2d") = FLT_UNSET,
           py::arg("diffusion_constant_3d") = FLT_UNSET,
-          py::arg("molecule_instances") = std::vector<std::shared_ptr<MoleculeInstance>>(),
+          py::arg("molecule_instances") = std::vector<std::shared_ptr<ElementaryMoleculeInstance>>(),
           py::arg("orientation") = Orientation::NONE
       )
       .def("check_semantics", &Species::check_semantics)

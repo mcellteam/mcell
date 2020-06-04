@@ -20,8 +20,8 @@
  *
 ******************************************************************************/
 
-#ifndef API_GEN_MOLECULE_INSTANCE_H
-#define API_GEN_MOLECULE_INSTANCE_H
+#ifndef API_GEN_ELEMENTARY_MOLECULE_INSTANCE_H
+#define API_GEN_ELEMENTARY_MOLECULE_INSTANCE_H
 
 #include "../api/common.h"
 #include "../api/base_data_class.h"
@@ -30,40 +30,40 @@ namespace MCell {
 namespace API {
 
 class ComponentInstance;
-class MoleculeType;
+class ElementaryMoleculeType;
 
-#define MOLECULE_INSTANCE_CTOR() \
-    MoleculeInstance( \
-        std::shared_ptr<MoleculeType> molecule_type_, \
+#define ELEMENTARY_MOLECULE_INSTANCE_CTOR() \
+    ElementaryMoleculeInstance( \
+        std::shared_ptr<ElementaryMoleculeType> elementary_molecule_type_, \
         const std::vector<std::shared_ptr<ComponentInstance>> components_ = std::vector<std::shared_ptr<ComponentInstance>>() \
     ) { \
-      class_name = "MoleculeInstance"; \
-      molecule_type = molecule_type_; \
+      class_name = "ElementaryMoleculeInstance"; \
+      elementary_molecule_type = elementary_molecule_type_; \
       components = components_; \
       postprocess_in_ctor();\
       check_semantics();\
     }
 
-class GenMoleculeInstance: public BaseDataClass {
+class GenElementaryMoleculeInstance: public BaseDataClass {
 public:
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
 
-  bool __eq__(const GenMoleculeInstance& other) const;
+  bool __eq__(const GenElementaryMoleculeInstance& other) const;
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---
-  std::shared_ptr<MoleculeType> molecule_type;
-  virtual void set_molecule_type(std::shared_ptr<MoleculeType> new_molecule_type_) {
+  std::shared_ptr<ElementaryMoleculeType> elementary_molecule_type;
+  virtual void set_elementary_molecule_type(std::shared_ptr<ElementaryMoleculeType> new_elementary_molecule_type_) {
     if (initialized) {
-      throw RuntimeError("Value 'molecule_type' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'elementary_molecule_type' of object with name " + name + " (class " + class_name + ")"
                          "cannot be set after model was initialized.");
     }
-    molecule_type = new_molecule_type_;
+    elementary_molecule_type = new_elementary_molecule_type_;
   }
-  virtual std::shared_ptr<MoleculeType> get_molecule_type() const {
-    return molecule_type;
+  virtual std::shared_ptr<ElementaryMoleculeType> get_elementary_molecule_type() const {
+    return elementary_molecule_type;
   }
 
   std::vector<std::shared_ptr<ComponentInstance>> components;
@@ -79,11 +79,11 @@ public:
   }
 
   // --- methods ---
-}; // GenMoleculeInstance
+}; // GenElementaryMoleculeInstance
 
-class MoleculeInstance;
-py::class_<MoleculeInstance> define_pybinding_MoleculeInstance(py::module& m);
+class ElementaryMoleculeInstance;
+py::class_<ElementaryMoleculeInstance> define_pybinding_ElementaryMoleculeInstance(py::module& m);
 } // namespace API
 } // namespace MCell
 
-#endif // API_GEN_MOLECULE_INSTANCE_H
+#endif // API_GEN_ELEMENTARY_MOLECULE_INSTANCE_H
