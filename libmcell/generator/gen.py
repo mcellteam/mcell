@@ -41,7 +41,8 @@ ALL_INPUT_FILES = [
     'instantiation.yaml',
     'observables.yaml',
     'simulation_setup.yaml',
-    'model.yaml'
+    'model.yaml',
+    'introspection.yaml'
 ]
 
 
@@ -143,6 +144,7 @@ EXT_H = 'h'
 
 GEN_CLASS_PREFIX = 'Gen'
 BASE_DATA_CLASS = 'BaseDataClass'
+BASE_INTROSPECTION_CLASS = 'BaseIntrospectionClass'
 
 CTOR_POSTPROCESS = 'postprocess_in_ctor'
 RET_CTOR_POSTPROCESS = 'void' 
@@ -177,6 +179,7 @@ CONSTANT_VALUE_PREFIX = 'CV_'
 INCLUDE_API_MCELL_H = '#include "../api/mcell.h"'
 INCLUDE_API_COMMON_H = '#include "../api/common.h"'
 INCLUDE_API_BASE_DATA_CLASS_H = '#include "../api/base_data_class.h"'
+INCLUDE_API_BASE_INTROSPECTION_CLASS_H = '#include "../api/base_introspection_class.h"'
 NAMESPACES_BEGIN = 'namespace MCell {\nnamespace API {'
 NAMESPACES_END = '} // namespace API\n} // namespace MCell'
 
@@ -574,7 +577,9 @@ def has_single_superclass(class_def):
 def has_superclass_other_than_base(class_def):
     # TODO: also deal with superclasses?
     if has_single_superclass(class_def):
-        return class_def[KEY_SUPERCLASS] != BASE_DATA_CLASS
+        return \
+            class_def[KEY_SUPERCLASS] != BASE_DATA_CLASS and \
+            class_def[KEY_SUPERCLASS] != BASE_INTROSPECTION_CLASS
     else:
         return False
     
@@ -705,7 +710,12 @@ def generate_class_header(class_name, class_def):
         f.write('#ifndef ' + guard + '\n')
         f.write('#define ' + guard + '\n\n')
         f.write(INCLUDE_API_COMMON_H + '\n')
-        f.write(INCLUDE_API_BASE_DATA_CLASS_H + '\n')
+        
+        if KEY_SUPERCLASS in class_def:
+            if class_def[KEY_SUPERCLASS] == BASE_DATA_CLASS:
+                f.write(INCLUDE_API_BASE_DATA_CLASS_H + '\n')
+            elif class_def[KEY_SUPERCLASS] == BASE_INTROSPECTION_CLASS:
+                f.write(INCLUDE_API_BASE_INTROSPECTION_CLASS_H + '\n')
         
         if has_superclass_other_than_base(class_def):
             f.write('#include "' + get_api_class_file_name_w_dir(class_def[KEY_SUPERCLASS], EXT_H) + '"\n\n')
@@ -1221,7 +1231,7 @@ def generate_constants_implementation(constants_items, enums_items):
             if pybind_type == PYBIND_TYPE_OBJECT:
                 used_classes.add(t)
         for cls in used_classes:
-            f.write('#include "' + get_api_class_file_name_w_dir(t, EXT_H) + '"\n')
+            f.write('#include "' + get_api_class_file_name_w_dir(cls, EXT_H) + '"\n')
         
         f.write('\n' + NAMESPACES_BEGIN + '\n\n')
         

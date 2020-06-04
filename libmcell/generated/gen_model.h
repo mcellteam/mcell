@@ -24,7 +24,6 @@
 #define API_GEN_MODEL_H
 
 #include "../api/common.h"
-#include "../api/base_data_class.h"
 #include "../api/config.h"
 #include "../api/notifications.h"
 #include "../api/warnings.h"
@@ -36,6 +35,7 @@ class Config;
 class Count;
 class GeometryObject;
 class InstantiationData;
+class Molecule;
 class Notifications;
 class Observables;
 class ReactionRule;
@@ -85,6 +85,8 @@ public:
   virtual void add_observables(std::shared_ptr<Observables> observables) = 0;
   virtual void dump_internal_state() = 0;
   virtual void export_data_model(const std::string& file = STR_UNSET) = 0;
+  virtual std::vector<int> get_molecule_ids(std::shared_ptr<Species> species = nullptr) = 0;
+  virtual std::shared_ptr<Molecule> get_molecule(const int id) = 0;
 }; // GenModel
 
 class Model;

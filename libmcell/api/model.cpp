@@ -60,8 +60,8 @@ void Model::add_instantiation_data(std::shared_ptr<InstantiationData> instantiat
 
 
 void Model::add_observables(std::shared_ptr<Observables> observables) {
-  append_vec_to_vec(viz_outputs, observables->viz_outputs);
-  append_vec_to_vec(counts, observables->counts);
+  append_vec_to_vec(viz_outputs, observables->viz_outputs, true);
+  append_vec_to_vec(counts, observables->counts, true);
 }
 
 
@@ -146,6 +146,20 @@ void Model::export_data_model(const std::string& file) {
     world->export_data_model_to_dir(viz_outputs[0]->filename_prefix);
   }
 
+}
+
+
+std::vector<int> Model::get_molecule_ids(std::shared_ptr<Species> species) {
+  std::vector<int> res;
+  assert(false && "TODO");
+  return res;
+}
+
+
+std::shared_ptr<Molecule> Model::get_molecule(const int id) {
+  std::shared_ptr<Molecule> res;
+  assert(false && "TODO");
+  return res;
 }
 
 

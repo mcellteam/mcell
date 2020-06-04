@@ -24,7 +24,6 @@
 #define API_GEN_SPECIES_H
 
 #include "../api/common.h"
-#include "../api/base_data_class.h"
 #include "../api/complex_instance.h"
 
 #include "../api/complex_instance.h"

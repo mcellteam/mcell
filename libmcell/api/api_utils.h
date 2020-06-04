@@ -36,17 +36,20 @@ namespace API {
 template<class T>
 void append_to_vec(
     std::vector<std::shared_ptr<T>>& dst,
-    const std::shared_ptr<T>& item) {
+    const std::shared_ptr<T>& item,
+    const bool allow_same_name_different_contents = false) {
 
-  // check if item with this name already exists
-  for (std::shared_ptr<T>& existing: dst) {
-    if (item->name == existing->name) {
-      // must be identical
-      if (!item->__eq__(*existing)) {
-        throw ValueError(
-            "Adding object of " + item->class_name +
-            " caused an error, object with the same name is already present but it is different."
-        );
+  if (!allow_same_name_different_contents) {
+    // check if item with this name already exists
+    for (std::shared_ptr<T>& existing: dst) {
+      if (item->name == existing->name) {
+        // must be identical
+        if (!item->__eq__(*existing)) {
+          throw ValueError(
+              "Adding object of " + item->class_name +
+              " caused an error, object with the same name is already present but it is different."
+          );
+        }
       }
     }
   }
@@ -58,10 +61,11 @@ void append_to_vec(
 template<class T>
 void append_vec_to_vec(
     std::vector<std::shared_ptr<T>>& dst,
-    const std::vector<std::shared_ptr<T>>& src) {
+    const std::vector<std::shared_ptr<T>>& src,
+    const bool allow_same_name_different_contents = false) {
 
   for (const std::shared_ptr<T>& item: src) {
-    append_to_vec(dst, item);
+    append_to_vec(dst, item, allow_same_name_different_contents);
   }
 }
 

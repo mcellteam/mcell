@@ -744,6 +744,20 @@ public:
   void dump();
   void to_data_model(Json::Value& mcell) const;
 
+  // ------------ Pymcell4 API ------------
+  bool does_molecule_exist(const molecule_id_t id) {
+    if (id == MOLECULE_ID_INVALID) {
+      return false;
+    }
+    uint32_t vm_vec_index = molecule_id_to_index_mapping[id];
+    if (vm_vec_index == MOLECULE_INDEX_INVALID) {
+      return false;
+    }
+    return !get_m(id).is_defunct();
+  }
+
+
+
 private:
   // left, bottom, closest (lowest z) point of the partition
   Vec3 origin_corner;

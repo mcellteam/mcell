@@ -26,6 +26,8 @@ set(SOURCE_FILES
     api/subsystem.cpp
     api/globals.cpp
     api/mcell4_converter.cpp
+    
+    api/molecule.cpp
 
     generated/gen_component_type.cpp
     generated/gen_component_instance.cpp
@@ -54,6 +56,8 @@ set(SOURCE_FILES
     generated/gen_warnings.cpp
     generated/gen_model.cpp
     
+    generated/gen_molecule.cpp
+
     generated/gen_constants.cpp
 )
 

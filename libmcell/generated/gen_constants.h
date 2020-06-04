@@ -38,6 +38,7 @@ const int DEFAULT_COUNT_BUFFER_SIZE = 10000;
 const std::string ALL_MOLECULES = "ALL_MOLECULES";
 const std::string ALL_VOLUME_MOLECULES = "ALL_VOLUME_MOLECULES";
 const std::string ALL_SURFACE_MOLECULES = "ALL_SURFACE_MOLECULES";
+const int MOLECULE_ID_INVALID = -1;
 
 enum class Orientation {
   DOWN = -1,

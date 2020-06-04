@@ -61,3 +61,24 @@ Model:
     - name: file
       type: str
       default: unset
+
+  # TODO: can we make some faster interface? however, we do not want to be bound to 
+  # the internal implementation and we must abstract away the partitions      
+  - name: get_molecule_ids
+    doc: | 
+      Returns a list of ids of molecules of given Species existing in the simulated environment,
+      if the argument species is not set, returns list of all molecules.      
+    return_type: List[int]
+    params:
+    - name: species
+      type: Species*
+      default: unset
+  
+  - name: get_molecule
+    doc: Returns a molecule from the simulated environment, None if the molecule does not exist 
+    return_type: Molecule*
+    params: 
+    - name: id
+      type: int
+      
+     

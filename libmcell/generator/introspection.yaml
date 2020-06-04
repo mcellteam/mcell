@@ -1,0 +1,39 @@
+# TODO: how should we call this part of API that allows to see what's 
+# going on during simulation and allowws to read and change state?
+
+Molecule:
+  superclass: BaseIntrospectionClass 
+  doc: |
+    This is a Python representation of a molecule obtained from Model 
+    during simulation.
+    
+  items:
+  - name: id
+    type: int
+    default: MOLECULE_ID_INVALID
+    doc: Unique id of this molecule
+     
+  - name: species
+    type: Species*
+    default: unset
+    
+  - name: pos3d
+    type: Vec3
+    default: unset
+    doc: | 
+      Contains position in space both for surface and volume molecules,
+      it won't be possible to change it for surface molecules.
+      
+  - name: orientation
+    type: Orientation
+    default: Orientation.NOT_SET
+    doc: |
+      Contains orientation for surface molecule. Volume molecules 
+      have always orientation set to Orientation.NONE.
+      
+  methods:
+  - name: remove
+    # TODO: better name?
+    doc: | 
+      Removes this molecule from simulation. Any subsequent modifications
+      of this object won't have any effect.  

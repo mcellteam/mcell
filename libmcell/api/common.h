@@ -53,6 +53,8 @@ const Vec3 VEC3_UNSET(POS_INVALID);
 const void* const PTR_UNSET = nullptr;
 const std::string STR_UNSET = "unset";
 
+const std::string INTROSPECTED_OBJECT = "introspected object";
+
 // specialization for each type
 static inline bool is_set(const float_t a) {
   return a != FLT_UNSET;

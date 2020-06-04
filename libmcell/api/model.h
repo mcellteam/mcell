@@ -63,6 +63,10 @@ public:
 
   void export_data_model(const std::string& file = STR_UNSET) override;
 
+  std::vector<int> get_molecule_ids(std::shared_ptr<Species> species = nullptr) override;
+  std::shared_ptr<Molecule> get_molecule(const int id) override;
+
+
   // added manually
   // shadows all inherited non-virtual to_str methods
   std::string to_str(const std::string ind="") const;

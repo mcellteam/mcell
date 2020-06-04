@@ -20,34 +20,27 @@
  *
 ******************************************************************************/
 
-#ifndef API_OBSERVABLES_H
-#define API_OBSERVABLES_H
+#include "molecule.h"
 
-#include "generated/gen_observables.h"
-#include "api/common.h"
-#include "api/api_utils.h"
-#include "api/viz_output.h"
-#include "api/count.h"
+#include "world.h"
+#include "partition.h"
 
 namespace MCell {
 namespace API {
 
-class Observables: public GenObservables {
-public:
+void Molecule::remove() {
+  check_initialization();
 
-  void add_viz_output(std::shared_ptr<VizOutput> viz_output) override {
-    append_to_vec(viz_outputs, viz_output, true);
-  };
+  Partition& p = world->get_partition(PARTITION_ID_INITIAL);
 
-  void add_count(std::shared_ptr<Count> count) override {
-    append_to_vec(counts, count, true);
-  };
+  if (!p.does_molecule_exist(id)) {
+    throw RuntimeError("Molecule with id " + std::to_string(id) + " does not exist anymore.");
+  }
 
-  // added manually
-  void dump() const {}
-};
+  // set that this molecule is defunct
+  world->get_partition(PARTITION_ID_INITIAL).get_m(id).set_is_defunct();
+}
 
-} // namespace API
-} // namespace MCell
+}
+}
 
-#endif // API_OBSERVABLES_H

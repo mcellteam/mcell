@@ -64,6 +64,7 @@ DEFAULT_COUNT_BUFFER_SIZE = 10000
 ALL_MOLECULES = 'ALL_MOLECULES'
 ALL_VOLUME_MOLECULES = 'ALL_VOLUME_MOLECULES'
 ALL_SURFACE_MOLECULES = 'ALL_SURFACE_MOLECULES'
+MOLECULE_ID_INVALID = -1
 
 
 class ComponentType():
@@ -680,6 +681,18 @@ class Model():
         ) -> None:
         pass
 
+    def get_molecule_ids(
+            self,
+            species : Species = None
+        ) -> 'List[int]':
+        pass
+
+    def get_molecule(
+            self,
+            id : int
+        ) -> 'Molecule':
+        pass
+
     def add_species(
             self,
             s : Species
@@ -749,6 +762,25 @@ class Model():
     def add_count(
             self,
             count : Count
+        ) -> None:
+        pass
+
+class Molecule():
+    def __init__(
+            self,
+            id : int = MOLECULE_ID_INVALID,
+            species : Species = None,
+            pos3d : Vec3 = None,
+            orientation : Orientation = Orientation.NOT_SET
+        ):
+        self.id = id
+        self.species = species
+        self.pos3d = pos3d
+        self.orientation = orientation
+
+
+    def remove(
+            self,
         ) -> None:
         pass
 

@@ -24,7 +24,6 @@
 #define API_GEN_SUBSYSTEM_H
 
 #include "../api/common.h"
-#include "../api/base_data_class.h"
 
 namespace MCell {
 namespace API {

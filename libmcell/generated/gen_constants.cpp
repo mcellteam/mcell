@@ -39,6 +39,7 @@ void define_pybinding_constants(py::module& m) {
   m.attr("AllMolecules") = py::object(py::cast(AllMolecules));
   m.attr("AllVolumeMolecules") = py::object(py::cast(AllVolumeMolecules));
   m.attr("AllSurfaceMolecules") = py::object(py::cast(AllSurfaceMolecules));
+  m.attr("MOLECULE_ID_INVALID") = py::int_(MOLECULE_ID_INVALID);
 }
 
 void define_pybinding_enums(py::module& m) {

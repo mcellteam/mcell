@@ -48,7 +48,10 @@
 
 #include "generated/gen_region.h"
 
+#include "generated/gen_molecule.h"
+
 #include "generated/gen_constants.h"
+
 
 #if __cplusplus < 201402L
 #error "Pybind11 overload requires at least C++14"
@@ -136,6 +139,8 @@ PYBIND11_MODULE(mcell, m) {
   define_pybinding_Notifications(m);
   define_pybinding_Warnings(m);
   define_pybinding_Model(m);
+
+  define_pybinding_Molecule(m);
 
   // constants may reference existing types, must be "bound" later
   define_pybinding_constants(m);

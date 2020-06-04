@@ -48,6 +48,9 @@ constants:
     type: Species
     value: AllSurfaceMolecules # object from api/globals.cpp
 
+  - name: MOLECULE_ID_INVALID
+    type: int
+    value: -1 
     
 enums:
   - name: Orientation
