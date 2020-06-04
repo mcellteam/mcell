@@ -223,12 +223,6 @@ void ReleaseEvent::to_data_model(Json::Value& mcell_node) const {
 bool ReleaseEvent::initialize_walls_for_release() {
   cumm_area_and_pwall_index_pairs.clear();
 
-  const BNG::Species& species = world->get_all_species().get(species_id);
-  if (species.is_vol()) {
-    // no need to initialize walls for volume mol releases
-    return true;
-  }
-
   // only a single region for now
   if (region_expr_root->op != RegionExprOperator::Leaf) {
     return false;
