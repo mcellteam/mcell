@@ -40,7 +40,10 @@
 #include "dump_state.h"
 
 // when enabled, mcell3 produces identical result to the mcell master branch
-#define MCELL3_IDENTICAL
+//#define MCELL3_IDENTICAL
+
+// define when comparin mcell4 and pymcell4 outputs
+// #define PYMCELL4_TESTING
 
 #ifndef MCELL3_IDENTICAL
 
@@ -74,11 +77,16 @@
 
 #endif
 
-// needed for easier diff between mcell4 and pymcell4
-#define SORT_MCELL4_SPECIES_BY_NAME
 
 #define DUMP4_PRECISION_DEFAULT 5
+
+#ifdef PYMCELL4_TESTING
+// needed for easier diff between mcell4 and pymcell4
+#define SORT_MCELL4_SPECIES_BY_NAME
 #define DUMP4_PRECISION 17
+#else
+#define DUMP4_PRECISION DUMP4_PRECISION_DEFAULT
+#endif
 
 //#define COLLECT_SUBPARTS_LEGACY
 
@@ -87,8 +95,8 @@
 
 #if (!defined(NDEBUG) || defined(DUMP_ALWAYS)) && !defined(DUMP_NEVER)
 
-#define FROM_ITERATION 13
-#define TO_ITERATION 14
+#define FROM_ITERATION 0
+#define TO_ITERATION 1
 
 #define DUMP_NONDIFFUSING_VMS
 
