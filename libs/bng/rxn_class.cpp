@@ -9,8 +9,8 @@
 #include <cmath>
 
 #include "bng/rxn_class.h"
-
 #include "bng/species_container.h"
+#include "debug_config.h"
 
 using namespace std;
 
@@ -189,8 +189,15 @@ float_t RxnClass::compute_pb_factor() const {
 // based on mcell3's implementation init_reactions
 void RxnClass::compute_initial_rxn_rates() {
 
-  // alphabetize?
-  // also, we might need to sort the reactions somehow (later, when input is from Python)
+#ifdef ORDER_RXNS_IN_RXN_CLASS_BY_NAME
+  sort(reactions.begin(), reactions.end(),
+      [](const RxnRule* a, const RxnRule* b) -> bool {
+          return a->name < b->name;
+      }
+  );
+#endif
+
+  // alphabetize? - order of reactants
 
   // TODO LATER: check_reaction_for_duplicate_pathways
 

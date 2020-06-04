@@ -83,6 +83,10 @@
 #ifdef PYMCELL4_TESTING
 // needed for easier diff between mcell4 and pymcell4
 #define SORT_MCELL4_SPECIES_BY_NAME
+
+// testsuite for mcell4 won't pass
+// #define ORDER_RXNS_IN_RXN_CLASS_BY_NAME
+
 #define DUMP4_PRECISION 17
 #else
 #define DUMP4_PRECISION DUMP4_PRECISION_DEFAULT
