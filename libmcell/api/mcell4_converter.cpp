@@ -773,6 +773,22 @@ void MCell4Converter::convert_release_events() {
           " releases a volume molecule but orientation is set.");
     }
 
+    // release_number_method
+    if (is_set(r->number_to_release)) {
+      rel_event->release_number_method = ReleaseNumberMethod::ConstNum;
+      rel_event->release_number = r->number_to_release;
+    }
+    else if (is_set(r->density)) {
+      rel_event->release_number_method = ReleaseNumberMethod::DensityNum;
+      rel_event->concentration = r->density;
+    }
+    else {
+      throw RuntimeError(
+          S("The only supported release number type now is constant number specified with ") + NAME_NUMBER_TO_RELEASE + "."
+      );
+    }
+
+    // release_shape
     switch (r->shape) {
       case Shape::SPHERICAL:
         rel_event->release_shape = ReleaseShape::SPHERICAL;
@@ -791,20 +807,6 @@ void MCell4Converter::convert_release_events() {
       default:
         // should be caught earlier
         throw RuntimeError("The only supported shape now is Spherical.");
-    }
-
-    if (is_set(r->number_to_release)) {
-      rel_event->release_number_method = ReleaseNumberMethod::ConstNum;
-      rel_event->release_number = r->number_to_release;
-    }
-    else if (is_set(r->density)) {
-      rel_event->release_number_method = ReleaseNumberMethod::DensityNum;
-      rel_event->concentration = r->density;
-    }
-    else {
-      throw RuntimeError(
-          S("The only supported release number type now is constant number specified with ") + NAME_NUMBER_TO_RELEASE + "."
-      );
     }
 
     world->scheduler.schedule_event(rel_event);
