@@ -72,15 +72,7 @@ py::class_<Molecule> define_pybinding_Molecule(py::module& m) {
   return py::class_<Molecule, std::shared_ptr<Molecule>>(m, "Molecule")
       .def(
           py::init<
-            const int,
-            std::shared_ptr<Species>,
-            const Vec3&,
-            const Orientation
-          >(),
-          py::arg("id") = MOLECULE_ID_INVALID,
-          py::arg("species") = nullptr,
-          py::arg("pos3d") = VEC3_UNSET,
-          py::arg("orientation") = Orientation::NOT_SET
+          >()
       )
       .def("check_semantics", &Molecule::check_semantics)
       .def("__str__", &Molecule::to_str, py::arg("ind") = std::string(""))

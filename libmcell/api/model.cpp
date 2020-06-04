@@ -24,16 +24,19 @@
 
 #include <string>
 
-#include "world.h"
-#include "mcell4_converter.h"
-#include "api_utils.h"
+#include "api/mcell4_converter.h"
+#include "api/api_utils.h"
+#include "api/molecule.h"
 
-#include "species.h"
-#include "reaction_rule.h"
-#include "release_site.h"
-#include "geometry_object.h"
-#include "viz_output.h"
-#include "count.h"
+#include "api/species.h"
+#include "api/reaction_rule.h"
+#include "api/release_site.h"
+#include "api/geometry_object.h"
+#include "api/viz_output.h"
+#include "api/count.h"
+
+#include "world.h"
+
 
 using namespace std;
 
@@ -150,15 +153,52 @@ void Model::export_data_model(const std::string& file) {
 
 
 std::vector<int> Model::get_molecule_ids(std::shared_ptr<Species> species) {
+  // NOTE: not very efficient
   std::vector<int> res;
-  assert(false && "TODO");
+
+  Partition& p = world->get_partition(PARTITION_ID_INITIAL);
+  std::vector<MCell::Molecule>& molecules = p.get_molecules();
+  for (MCell::Molecule& m: molecules) {
+    if (m.is_defunct()) {
+      continue;
+    }
+
+    if (is_set(species) && species->species_id == m.species_id) {
+      res.push_back(m.id);
+    }
+    else {
+      res.push_back(m.id);
+    }
+  }
+
   return res;
 }
 
 
-std::shared_ptr<Molecule> Model::get_molecule(const int id) {
-  std::shared_ptr<Molecule> res;
-  assert(false && "TODO");
+std::shared_ptr<API::Molecule> Model::get_molecule(const int id) {
+  std::shared_ptr<API::Molecule> res;
+  Partition& p = world->get_partition(PARTITION_ID_INITIAL);
+  if (!p.does_molecule_exist(id)) {
+    throw RuntimeError("Molecule with id " + to_string(id) + " does not exist.");
+  }
+  MCell::Molecule& m = p.get_m(id);
+  if (m.is_defunct()) {
+    throw RuntimeError("Molecule with id " + to_string(id) + " was removed.");
+  }
+
+  res = make_shared<API::Molecule>();
+  res->id = m.id;
+  if (m.is_surf()) {
+    // TODO: res->pos3d
+    res->orientation = convert_orientation(m.s.orientation);
+  }
+  else {
+    res->pos3d = m.v.pos;
+    res->orientation = Orientation::NONE;
+  }
+  res->world = world;
+  res->set_initialized();
+
   return res;
 }
 

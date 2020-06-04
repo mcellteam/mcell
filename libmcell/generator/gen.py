@@ -139,6 +139,7 @@ GEN_GUARD_PREFIX = 'API_GEN_'
 API_GUARD_PREFIX = 'API_'
 GUARD_SUFFIX = '_H'
 CTOR_SUFFIX = '_CTOR'
+CTOR_NOARGS_SUFFIX = '_CTOR_NOARGS'
 EXT_CPP = 'cpp'
 EXT_H = 'h'
 
@@ -402,7 +403,7 @@ def write_generated_notice(f):
     #date_time = now.strftime("%m/%d/%Y, %H:%M")
     #f.write('// This file was generated automatically on ' + date_time + ' from ' + '\'' + input_file_name + '\'\n\n')
 
-def write_ctor_body(f, class_def, class_name, append_backslash, indent, only_inherited):
+def write_ctor_decl(f, class_def, class_name, append_backslash, indent, only_inherited, with_args=True):
     items = class_def[KEY_ITEMS] if KEY_ITEMS in class_def else []
     backshlash = '\\' if append_backslash else ''
     
@@ -415,23 +416,24 @@ def write_ctor_body(f, class_def, class_name, append_backslash, indent, only_inh
         items = inherited_items 
      
     # ctor parameters    
-    num_items = len(items)
-    for i in range(num_items):
-        attr = items[i]
-        
-        assert KEY_NAME in attr
-        name = attr[KEY_NAME]
-
-        const_spec = 'const ' if not is_yaml_ptr_type(attr[KEY_TYPE]) else ''
-        f.write(indent + '    ' + const_spec + get_type_as_ref_param(attr) + ' ' + name + '_')
-        
-        if KEY_DEFAULT in attr:
-            f.write(' = ' + get_default_or_unset_value(attr))
-        
-        if i != num_items - 1:
-            f.write(',')
-        f.write(' ' + backshlash + '\n')
-
+    if with_args:
+        num_items = len(items)
+        for i in range(num_items):
+            attr = items[i]
+            
+            assert KEY_NAME in attr
+            name = attr[KEY_NAME]
+    
+            const_spec = 'const ' if not is_yaml_ptr_type(attr[KEY_TYPE]) else ''
+            f.write(indent + '    ' + const_spec + get_type_as_ref_param(attr) + ' ' + name + '_')
+            
+            if KEY_DEFAULT in attr:
+                f.write(' = ' + get_default_or_unset_value(attr))
+            
+            if i != num_items - 1:
+                f.write(',')
+            f.write(' ' + backshlash + '\n')
+    
     f.write(indent + ') ')
     
     if has_superclass_other_than_base(class_def):
@@ -458,9 +460,14 @@ def write_ctor_body(f, class_def, class_name, append_backslash, indent, only_inh
     
 
 def write_ctor_define(f, class_def, class_name):
-    f.write('#define ' + get_underscored(class_name).upper() + CTOR_SUFFIX + '() \\\n')
+    with_args = True
+    if KEY_SUPERCLASS in class_def and class_def[KEY_SUPERCLASS] == BASE_INTROSPECTION_CLASS:
+        with_args = False
+        
+    suffix = CTOR_SUFFIX if with_args else CTOR_NOARGS_SUFFIX
+    f.write('#define ' + get_underscored(class_name).upper() + suffix + '() \\\n')
 
-    write_ctor_body(f, class_def, class_name, append_backslash=True, indent='    ', only_inherited=False)
+    write_ctor_decl(f, class_def, class_name, append_backslash=True, indent='    ', only_inherited=False, with_args=with_args)
 
     f.write('{ \\\n')
 
@@ -471,14 +478,18 @@ def write_ctor_define(f, class_def, class_name):
     for i in range(num_items):
         assert KEY_NAME in items[i] 
         attr_name = items[i][KEY_NAME]
-        f.write('      ' + attr_name + ' = ' + attr_name + '_; \\\n')
+        if with_args:
+            f.write('      ' + attr_name + ' = ' + attr_name + '_; \\\n')
+        else:
+            f.write('      ' + attr_name + ' = ' + get_default_or_unset_value(items[i]) + '; \\\n')
+            
     f.write('      ' + CTOR_POSTPROCESS + '();\\\n')    
     f.write('      ' + CHECK_SEMANTICS + '();\\\n')
     f.write('    }\n\n')    
     
     
 def write_ctor_for_superclass(f, class_def, class_name):
-    write_ctor_body(f, class_def, GEN_CLASS_PREFIX + class_name, append_backslash=False, indent='  ', only_inherited=True)
+    write_ctor_decl(f, class_def, GEN_CLASS_PREFIX + class_name, append_backslash=False, indent='  ', only_inherited=True)
     f.write(' {\n')
     f.write('  }\n')
     
@@ -965,6 +976,11 @@ def write_pybind11_bindings(f, class_name, class_def):
     superclass = ''
     if has_superclass_other_than_base(class_def):
         superclass = class_def[KEY_SUPERCLASS] + ', '
+
+    ctor_has_args = True   
+    if KEY_SUPERCLASS in class_def and class_def[KEY_SUPERCLASS] == BASE_INTROSPECTION_CLASS:
+        ctor_has_args = False
+
     
     f.write('  return py::class_<' + class_name + ', ' + superclass + \
             SHARED_PTR + '<' + class_name + '>>(m, "' + class_name + '")\n')
@@ -972,33 +988,35 @@ def write_pybind11_bindings(f, class_name, class_def):
     f.write('          py::init<\n')
 
     num_items = len(items)
-    if has_single_superclass(class_def):
-        # init operands
-        for i in range(num_items):
-            attr = items[i]
-            const_spec = 'const ' if not is_yaml_ptr_type(attr[KEY_TYPE]) else ''
-            f.write('            ' + const_spec + get_type_as_ref_param(attr))
-            if i != num_items - 1:
-                f.write(',\n')
-        if num_items != 0:
-            f.write('\n')
+    if ctor_has_args:
+        if has_single_superclass(class_def):
+            # init operands
+            for i in range(num_items):
+                attr = items[i]
+                const_spec = 'const ' if not is_yaml_ptr_type(attr[KEY_TYPE]) else ''
+                f.write('            ' + const_spec + get_type_as_ref_param(attr))
+                if i != num_items - 1:
+                    f.write(',\n')
+            if num_items != 0:
+                f.write('\n')
             
     f.write('          >()')
-        
-    # init argument names and default values
-    if has_single_superclass(class_def):
-        if num_items != 0:
-            f.write(',')
-        f.write('\n')
     
-        for i in range(num_items):
-            attr = items[i]
-            name = attr[KEY_NAME]
-            f.write('          py::arg("' + name + '")')
-            if KEY_DEFAULT in attr:
-                f.write(' = ' + get_default_or_unset_value(attr))
-            if i != num_items - 1:
-                f.write(',\n')
+    if ctor_has_args:    
+        # init argument names and default values
+        if has_single_superclass(class_def):
+            if num_items != 0:
+                f.write(',')
+            f.write('\n')
+        
+            for i in range(num_items):
+                attr = items[i]
+                name = attr[KEY_NAME]
+                f.write('          py::arg("' + name + '")')
+                if KEY_DEFAULT in attr:
+                    f.write(' = ' + get_default_or_unset_value(attr))
+                if i != num_items - 1:
+                    f.write(',\n')
     f.write('\n')          
     f.write('      )\n')            
     

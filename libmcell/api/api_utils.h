@@ -69,6 +69,24 @@ void append_vec_to_vec(
   }
 }
 
+
+static Orientation convert_orientation(const orientation_t o) {
+  switch (o) {
+    case ORIENTATION_DOWN:
+      return Orientation::DOWN;
+    case ORIENTATION_NONE:
+      return Orientation::NONE;
+    case ORIENTATION_UP:
+      return Orientation::UP;
+    case ORIENTATION_NOT_SET:
+      return Orientation::NOT_SET;
+    default:
+      assert(false);
+      return Orientation::NOT_SET;
+  }
+}
+
+
 } /* namespace API */
 } /* namespace MCell */
 

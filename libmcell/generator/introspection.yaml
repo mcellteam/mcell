@@ -20,9 +20,11 @@ Molecule:
   - name: pos3d
     type: Vec3
     default: unset
-    doc: | 
+    doc: |
+      TODO - Right now, contains only position of this is a volume molecule 
       Contains position in space both for surface and volume molecules,
       it won't be possible to change it for surface molecules.
+       
       
   - name: orientation
     type: Orientation

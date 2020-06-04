@@ -32,7 +32,7 @@ namespace API {
 
 class Molecule: public GenMolecule {
 public:
-  MOLECULE_CTOR()
+  MOLECULE_CTOR_NOARGS()
 
   void remove() override;
 };

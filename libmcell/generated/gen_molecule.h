@@ -31,18 +31,14 @@ namespace API {
 
 class Species;
 
-#define MOLECULE_CTOR() \
+#define MOLECULE_CTOR_NOARGS() \
     Molecule( \
-        const int id_ = MOLECULE_ID_INVALID, \
-        std::shared_ptr<Species> species_ = nullptr, \
-        const Vec3& pos3d_ = VEC3_UNSET, \
-        const Orientation orientation_ = Orientation::NOT_SET \
     ) { \
       class_name = "Molecule"; \
-      id = id_; \
-      species = species_; \
-      pos3d = pos3d_; \
-      orientation = orientation_; \
+      id = MOLECULE_ID_INVALID; \
+      species = nullptr; \
+      pos3d = VEC3_UNSET; \
+      orientation = Orientation::NOT_SET; \
       postprocess_in_ctor();\
       check_semantics();\
     }
