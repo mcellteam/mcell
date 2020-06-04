@@ -2129,6 +2129,7 @@ void dump_surface_molecule(
         << ", species: " << get_species_name(sm);
     if (print_position) {
         cout << ", pos:" << sm->s_pos
+            << ", orient:" << sm->orient
             << ", wall side: " << ((sm->grid == nullptr || sm->grid->surface == nullptr) ? -1 : sm->grid->surface->side)
             << ", grid index: " << sm->grid_index;
     }

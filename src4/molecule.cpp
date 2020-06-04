@@ -100,6 +100,7 @@ void Molecule::dump(
     }
     else if (is_surf()) {
       cout << s.pos;
+      cout << ", orient: " << s.orientation;
       const Wall& w = p.get_wall(s.wall_index);
       cout << ", wall side: " << w.side;
       cout << ", grid index: " << s.grid_tile_index;
