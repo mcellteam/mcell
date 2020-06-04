@@ -42,7 +42,7 @@ void append_to_vec(
   for (std::shared_ptr<T>& existing: dst) {
     if (item->name == existing->name) {
       // must be identical
-      if (item->__eq__(*existing)) {
+      if (!item->__eq__(*existing)) {
         throw ValueError(
             "Adding object of " + item->class_name +
             " caused an error, object with the same name is already present but it is different."
