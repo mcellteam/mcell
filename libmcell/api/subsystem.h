@@ -23,6 +23,8 @@
 #ifndef API_SUBSYSTEM_H
 #define API_SUBSYSTEM_H
 
+#include <functional>
+
 #include "generated/gen_subsystem.h"
 #include "api/common.h"
 #include "api/api_utils.h"
@@ -41,8 +43,7 @@ public:
   }
 
   std::shared_ptr<Species> find_species(const std::string& name) override {
-    assert(false && "TODO");
-    return nullptr;
+    return vec_find_by_name(species, name);
   }
 
   void add_reaction_rule(std::shared_ptr<ReactionRule> r) override {
@@ -50,12 +51,15 @@ public:
   }
 
   std::shared_ptr<ReactionRule> find_reaction_rule(const std::string& name) override {
-    assert(false && "TODO");
-    return nullptr;
+    return vec_find_by_name(reaction_rules, name);
   }
 
   void add_surface_class(std::shared_ptr<SurfaceClass> sc) override {
     append_to_vec(surface_classes, sc);
+  }
+
+  std::shared_ptr<SurfaceClass> find_surface_class(const std::string& name) override {
+    return vec_find_by_name(surface_classes, name);
   }
 
   // added manually

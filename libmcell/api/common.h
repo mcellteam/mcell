@@ -178,6 +178,21 @@ static inline void vec_set_initialized(const std::vector<std::shared_ptr<T>>& ve
   }
 }
 
+
+// find item with name in a vector, returns shared null if not found
+template<typename T>
+static inline std::shared_ptr<T> vec_find_by_name(
+    const std::vector<std::shared_ptr<T>>& vec, const std::string& name) {
+
+  for (auto& item: vec) {
+    if (item->name == name) {
+      return item;
+    }
+  }
+  return std::shared_ptr<T>(nullptr);
+}
+
+
 // Raised when an operation or function receives an argument that has the
 // right type but an inappropriate value, and the situation is not described
 // by a more precise exception such as IndexError.

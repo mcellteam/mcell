@@ -41,8 +41,7 @@ public:
   }
 
   std::shared_ptr<ReleaseSite> find_release_site(const std::string& name) override {
-    assert(false && "TODO");
-    return nullptr;
+    return vec_find_by_name(release_sites, name);
   }
 
   void add_geometry_object(std::shared_ptr<GeometryObject> o) override {
@@ -50,8 +49,7 @@ public:
   }
 
   std::shared_ptr<GeometryObject> find_geometry_object(const std::string& name) override {
-    assert(false && "TODO");
-    return nullptr;
+    return vec_find_by_name(geometry_objects, name);
   }
 
   // added manually

@@ -254,6 +254,12 @@ class Subsystem():
         ) -> None:
         pass
 
+    def find_surface_class(
+            self,
+            name : str
+        ) -> 'SurfaceClass':
+        pass
+
 class Region():
     def __init__(
             self,
@@ -702,6 +708,12 @@ class Model():
             self,
             sc : SurfaceClass
         ) -> None:
+        pass
+
+    def find_surface_class(
+            self,
+            name : str
+        ) -> 'SurfaceClass':
         pass
 
     def add_release_site(

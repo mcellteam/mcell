@@ -91,6 +91,7 @@ const char* const NAME_FIND_GEOMETRY_OBJECT = "find_geometry_object";
 const char* const NAME_FIND_REACTION_RULE = "find_reaction_rule";
 const char* const NAME_FIND_RELEASE_SITE = "find_release_site";
 const char* const NAME_FIND_SPECIES = "find_species";
+const char* const NAME_FIND_SURFACE_CLASS = "find_surface_class";
 const char* const NAME_FWD_RATE = "fwd_rate";
 const char* const NAME_GEOMETRY_OBJECTS = "geometry_objects";
 const char* const NAME_HIGH_REACTION_PROBABILITY = "high_reaction_probability";

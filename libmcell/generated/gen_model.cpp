@@ -81,6 +81,7 @@ py::class_<Model> define_pybinding_Model(py::module& m) {
       .def("add_reaction_rule", &Model::add_reaction_rule, py::arg("r"))
       .def("find_reaction_rule", &Model::find_reaction_rule, py::arg("name"))
       .def("add_surface_class", &Model::add_surface_class, py::arg("sc"))
+      .def("find_surface_class", &Model::find_surface_class, py::arg("name"))
       .def("add_release_site", &Model::add_release_site, py::arg("s"))
       .def("find_release_site", &Model::find_release_site, py::arg("name"))
       .def("add_geometry_object", &Model::add_geometry_object, py::arg("o"))

@@ -238,3 +238,9 @@ Subsystem:
     - name: sc
       type: SurfaceClass*
       
+  - name: find_surface_class  
+    return_type: SurfaceClass*
+    params:
+    - name: name
+      type: str      
+      

@@ -87,6 +87,9 @@ Count:
  
  
 Observables:
+  doc: |
+    Neither VizOutput, nor Count have name, therefore there are no find_* methods.
+    
   items:
   - name: viz_outputs
     type: List[VizOutput*]

@@ -69,6 +69,7 @@ public:
   virtual void add_reaction_rule(std::shared_ptr<ReactionRule> r) = 0;
   virtual std::shared_ptr<ReactionRule> find_reaction_rule(const std::string& name) = 0;
   virtual void add_surface_class(std::shared_ptr<SurfaceClass> sc) = 0;
+  virtual std::shared_ptr<SurfaceClass> find_surface_class(const std::string& name) = 0;
 }; // GenSubsystem
 
 class Subsystem;
