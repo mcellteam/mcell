@@ -202,6 +202,9 @@ vector<string> PymcellGenerator::generate_species(ofstream& out) {
     Value& molecule_list_item = molecule_list[i];
     check_version(KEY_MOLECULE_LIST, molecule_list_item, JSON_DM_VERSION_1632);
 
+    CHECK_PROPERTY(molecule_list_item[KEY_CUSTOM_SPACE_STEP] == "");
+    CHECK_PROPERTY(molecule_list_item[KEY_CUSTOM_TIME_STEP] == "");
+
     string name = molecule_list_item[KEY_MOL_NAME].asString();
     replace(name.begin(), name.end(), '.', '_');
     species_names.push_back(name);
@@ -1130,7 +1133,7 @@ vector<string> PymcellGenerator::generate_counts(ofstream& out) {
       mdl_file_prefix = what_to_count + "." + where;
 
       // TODO: this might need further checks
-      if (mdl_file_prefix.find_first_of(" ,+*/\\")) {
+      if (mdl_file_prefix.find_first_of(" ,+*/\\") != string::npos) {
         cout << "Warning: count file prefix '" + mdl_file_prefix + "' is probably invalid.\n";
       }
     }
