@@ -112,6 +112,8 @@ private:
 
   void convert_viz_output_events();
 
+  void add_ctrl_c_termination_event();
+
   Model* model;
   World* world;
 };

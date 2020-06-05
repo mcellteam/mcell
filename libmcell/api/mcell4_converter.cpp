@@ -26,6 +26,7 @@
 #include "release_event.h"
 #include "viz_output_event.h"
 #include "mol_or_rxn_count_event.h"
+#include "periodic_call_event.h"
 #include "geometry.h"
 #include "rng.h"
 #include "isaac64.h"
@@ -33,6 +34,7 @@
 #include "bng/bng.h"
 
 #include "api/mcell.h"
+#include "api/bindings.h"
 
 using namespace std;
 
@@ -102,6 +104,8 @@ void MCell4Converter::convert(Model* model_, World* world_) {
   convert_mol_or_rxn_count_events_and_init_counting_flags();
 
   convert_viz_output_events();
+
+  add_ctrl_c_termination_event();
 }
 
 
@@ -1011,6 +1015,15 @@ void MCell4Converter::convert_viz_output_events() {
   }
 }
 
+
+void MCell4Converter::add_ctrl_c_termination_event() {
+  MCell::PeriodicCallEvent* event = new PeriodicCallEvent(world);
+  event->event_time = 0;
+  event->periodicity_interval = 1;
+  event->function_ptr = check_ctrl_c;
+
+  world->scheduler.schedule_event(event);
+}
 
 } // namespace API
 } // namespace MCell

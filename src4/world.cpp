@@ -83,7 +83,7 @@ World::World()
 
 
 World::~World() {
-  end_simulation(false);
+  flush_buffers();
 }
 
 void World::init_fpu() {
@@ -274,6 +274,14 @@ void World::run_n_iterations(const uint64_t num_iterations, const uint64_t outpu
 }
 
 
+void World::flush_buffers() {
+  // flush and close count buffers
+  for (CountBuffer& b: count_buffers) {
+    b.flush_and_close();
+  }
+}
+
+
 void World::end_simulation(const bool run_up_to_last_count_and_viz_count_events, const bool print_final_report) {
   if (simulation_ended) {
     // already called, do nothing
@@ -285,10 +293,7 @@ void World::end_simulation(const bool run_up_to_last_count_and_viz_count_events,
     run_n_iterations(1, determine_output_frequency(total_iterations), true);
   }
 
-  // flush and close count buffers
-  for (CountBuffer& b: count_buffers) {
-    b.flush_and_close();
-  }
+  flush_buffers();
 
   if (print_final_report) {
     cout << "Iteration " << stats.get_current_iteration() << ", simulation finished successfully\n";

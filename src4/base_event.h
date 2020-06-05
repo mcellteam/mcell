@@ -39,6 +39,7 @@ typedef int event_type_index_t;
 // Value specifies ordering when two events are scheduled for exactly the same time
 // The 'holes' are there on purpose for ordering of external events
 const event_type_index_t EVENT_TYPE_INDEX_INVALID = -1;
+const event_type_index_t EVENT_TYPE_INDEX_PERIODIC_CALL = 0;
 const event_type_index_t EVENT_TYPE_INDEX_RELEASE = 200;
 // first counting and visualization output is done after release
 const event_type_index_t EVENT_TYPE_INDEX_MOL_COUNT = 290;

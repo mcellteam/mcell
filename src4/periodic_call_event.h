@@ -1,0 +1,64 @@
+/******************************************************************************
+ *
+ * Copyright (C) 2019 by
+ * The Salk Institute for Biological Studies and
+ * Pittsburgh Supercomputing Center, Carnegie Mellon University
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version 2
+ * of the License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301,
+ * USA.
+ *
+******************************************************************************/
+
+#ifndef SRC4_DEFRAGMENTATION_EVENT_H_
+#define SRC4_DEFRAGMENTATION_EVENT_H_
+
+#include "base_event.h"
+
+namespace MCell {
+
+/**
+ * General event that allows to call a function periodically.
+ * Used for example to check that the user pressed ctrl-c
+ * when running inside the Python interpreter
+ */
+class PeriodicCallEvent: public BaseEvent {
+public:
+  PeriodicCallEvent(World* world_)
+    : BaseEvent(EVENT_TYPE_INDEX_PERIODIC_CALL),
+      function_ptr(nullptr),
+      world(world_) {
+  }
+
+  // pointer to a function to be periodically called
+  void (*function_ptr)(float_t);
+
+  void step() override {
+    assert(function_ptr != nullptr);
+    function_ptr(event_time);
+  }
+
+  void dump(const std::string ind) const override {
+    std::cout << ind << "Periodic Call Event:\n";
+    std::string ind2 = ind + "  ";
+    BaseEvent::dump(ind2);
+    std::cout << ind2 << "0x" << std::hex << (void*)function_ptr << std::dec << "\n";
+  }
+private:
+  World* world;
+};
+
+} // namespace mcell
+
+#endif // SRC4_DEFRAGMENTATION_EVENT_H_

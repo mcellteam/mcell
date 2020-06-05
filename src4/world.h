@@ -255,6 +255,8 @@ private:
   void init_counted_volumes();
 
   void initialization_to_data_model(Json::Value& mcell_node) const;
+
+  void flush_buffers();
 public:
   // single instance for the whole mcell simulator,
   // used as constants during simulation

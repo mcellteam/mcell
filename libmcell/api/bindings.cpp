@@ -147,6 +147,14 @@ PYBIND11_MODULE(mcell, m) {
 }
 
 
+void check_ctrl_c(const float_t current_time) {
+  if (PyErr_CheckSignals() != 0) {
+    std::cout << " Caught Ctrl-C signal in iteration " << current_time << ".\n";
+    throw py::error_already_set();
+  }
+}
+
+
 } // API
 } // MCell
 
