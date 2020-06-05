@@ -392,6 +392,12 @@ void World::export_data_model(const std::string& filename) const {
   else {
     cout << "Unable to open file " << filename << " for writing.\n";
   }
+
+  // also, if rxn_output was enabled and in the first iteration, generate data_layout.json file
+  // in the current directory
+  if (stats.get_current_iteration() == 0) {
+    export_data_layout();
+  }
 }
 
 
@@ -603,6 +609,60 @@ void World::initialization_to_data_model(Json::Value& mcell_node) const {
   partitions[KEY_Z_STEP] = step_str;
 }
 
+
+void World::export_data_layout() const {
+
+  Json::Value root;
+
+  root[KEY_VERSION] = 2;
+  root[KEY_MCELL4_MODE] = true;
+  Json::Value& data_layout = root[KEY_DATA_LAYOUT];
+
+  Json::Value dir;
+  dir.append(VALUE_DIR);
+  Json::Value dir_value;
+  dir_value.append(".");
+  dir.append(dir_value);
+  data_layout.append(dir);
+
+  // TODO: to go through viz and rxn outputs to
+  // figure out what the directories should be, for now using the defaults
+  Json::Value file_type;
+  file_type.append(VALUE_FILE_TYPE);
+
+  Json::Value file_type_contents;
+  file_type_contents.append(VALUE_REACT_DATA);
+  file_type_contents.append(VALUE_VIZ_DATA);
+
+  file_type.append(file_type_contents);
+  data_layout.append(file_type);
+
+  Json::Value seed;
+  seed.append(VALUE_SEED);
+  Json::Value seed_value;
+  seed_value.append(to_string(seed_seq));
+  seed.append(seed_value);
+  data_layout.append(seed);
+
+  Json::StreamWriterBuilder wbuilder;
+  wbuilder["indentation"] = " ";
+  wbuilder.settings_["precision"] = 15; // this is the precision that is used by mdl_to_data_model.py script
+  wbuilder.settings_["precisionType"] = "significant";
+  std::string document = Json::writeString(wbuilder, root);
+
+  // write result into a file
+  ofstream res_file(DEFAULT_DATA_LAYOUT_FILENAME);
+  if (res_file.is_open())
+  {
+    // maybe enable this message only in some verbose mode
+    cout << "Generated file " << DEFAULT_DATA_LAYOUT_FILENAME << " for plotting in CellBlender.\n";
+    res_file << document;
+    res_file.close();
+  }
+  else {
+    cout << "Unable to open file " << DEFAULT_DATA_LAYOUT_FILENAME << " for writing.\n";
+  }
+}
 
 } // namespace mcell
 

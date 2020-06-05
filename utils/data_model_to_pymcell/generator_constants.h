@@ -2,6 +2,8 @@
 #ifndef SRC4_PYMCELLCONVERTER_GENERATOR_CONSTANTSS_H_
 #define SRC4_PYMCELLCONVERTER_GENERATOR_CONSTANTSS_H_
 
+#include "datamodel_defines.h"
+
 namespace MCell {
 
 const int FLOAT_OUT_PRECISION = 15; // this is the precision that is used by mdl_to_data_model.py script
@@ -40,8 +42,8 @@ const char* const UNNAMED_REACTION_RULE_PREFIX = "unnamed_reaction_rule_";
 const char* const SURFACE_CLASS_PREFIX = "surface_class_";
 
 const char* const VIZ_OUTPUT_NAME = "viz_output";
-const char* const DEFAULT_VIZ_OUTPUT_FILENAME_PREFIX = "'./viz_data/seed_' + str(SEED).zfill(5) + '/Scene'";
-const char* const DEFAULT_RXN_OUTPUT_FILENAME_PREFIX = "'./react_data/seed_' + str(SEED).zfill(5) + '/";
+const char* const DEFAULT_VIZ_OUTPUT_FILENAME_PREFIX = "'./" VALUE_VIZ_DATA "/seed_' + str(SEED).zfill(5) + '/Scene'";
+const char* const DEFAULT_RXN_OUTPUT_FILENAME_PREFIX = "'./" VALUE_REACT_DATA "/seed_' + str(SEED).zfill(5) + '/";
 
 const char* const INTERPRETER = "#!/usr/bin/env python3\n\n";
 

@@ -7,7 +7,10 @@
 #include "defines.h"
 #include "json/json.h"
 
+// TODO: rename to data_model
 const char* const DEFAULT_DATAMODEL_FILENAME = "datamodel.json";
+
+const char* const DEFAULT_DATA_LAYOUT_FILENAME = "data_layout.json";
 
 // same string are defined as API::ALL... in libmcell's gen_constants.h, but
 // using them brigs for now many dependencies in the generated gen_constants.h
@@ -310,6 +313,17 @@ const char* const VALUE_BRIEF = "BRIEF";
 const double DEFAULT_OBJECT_COLOR_COMPONENT = 0.8;
 const double DEFAULT_OBJECT_ALPHA = 0.25;
 
+
+// --------------------------------- data layout defines --------------
+const char* const KEY_VERSION = "version";
+const char* const KEY_MCELL4_MODE = "mcell4_mode";
+const char* const KEY_DATA_LAYOUT = "data_layout";
+const char* const VALUE_DIR = "/DIR";
+const char* const VALUE_FILE_TYPE = "/FILE_TYPE";
+// using define because of usage in another definition
+#define VALUE_VIZ_DATA "viz_data"
+#define VALUE_REACT_DATA "react_data"
+const char* const VALUE_SEED = "/SEED";
 
 // ---------------------------------- datamodel utilities----------------------------------
 // TODO: move the utility functions into a c++ file
