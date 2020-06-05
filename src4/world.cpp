@@ -61,6 +61,7 @@ World::World()
     next_geometry_object_id(0),
     simulation_initialized(false),
     simulation_ended(false),
+    buffers_flushed(false),
     previous_progress_report_time({0, 0}),
     previous_iteration(0),
 
@@ -83,7 +84,9 @@ World::World()
 
 
 World::~World() {
-  flush_buffers();
+  if (!buffers_flushed) {
+    flush_buffers();
+  }
 }
 
 void World::init_fpu() {
@@ -275,10 +278,13 @@ void World::run_n_iterations(const uint64_t num_iterations, const uint64_t outpu
 
 
 void World::flush_buffers() {
+  assert(!buffers_flushed && "Buffers can be flushed only once");
+
   // flush and close count buffers
   for (CountBuffer& b: count_buffers) {
     b.flush_and_close();
   }
+  buffers_flushed = true;
 }
 
 
@@ -354,7 +360,7 @@ void World::export_data_model_to_dir(const std::string& prefix) const {
 
   stringstream path;
   path <<
-      "4" << prefix << ".datamodel." <<
+      prefix << ".datamodel." <<
       VizOutputEvent::iterations_to_string(stats.get_current_iteration(), total_iterations) <<
       ".json";
 

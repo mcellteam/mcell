@@ -290,6 +290,9 @@ private:
   // used to know whether we already reported final simulation stats
   bool simulation_ended;
 
+  // buffers can be flushed only once
+  bool buffers_flushed;
+
   // several variables to report simulation time
   timeval previous_progress_report_time;
   rusage sim_start_time;

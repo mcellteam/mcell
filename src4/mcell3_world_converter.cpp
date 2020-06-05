@@ -1458,8 +1458,7 @@ bool MCell3WorldConverter::convert_mol_or_rxn_count_events(volume* s) {
       data_set = data_set->next) {
 
     CHECK_PROPERTY(data_set->outfile_name != nullptr);
-    // appending "4" to distinguish from mcell3
-    count_buffer_id_t buffer_id = world->create_count_buffer(string("4") + data_set->outfile_name, buffer_size);
+    count_buffer_id_t buffer_id = world->create_count_buffer(data_set->outfile_name, buffer_size);
 
     // NOTE: FILE_SUBSTITUTE is interpreted in the same way as FILE_OVERWRITE
     CHECK_PROPERTY(data_set->file_flags == FILE_OVERWRITE || data_set->file_flags == FILE_SUBSTITUTE);

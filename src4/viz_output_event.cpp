@@ -89,7 +89,7 @@ FILE* VizOutputEvent::create_and_open_output_file_name() {
   //fprintf(stderr, "***dumps: %lld\n", current_iteration);
   const char* type_name = (viz_mode == ASCII_MODE) ? "ascii" : "cellbin";
   char* cf_name = CHECKED_SPRINTF(
-      "4%s.%s.%s.dat",
+      "%s.%s.%s.dat",
       file_prefix_name.c_str(),
       type_name,
       iterations_to_string(world->stats.get_current_iteration(), world->total_iterations).c_str()
