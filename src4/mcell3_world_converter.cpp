@@ -1103,16 +1103,10 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
     for (int i = -1; i < releaser->buf_len; i++) {
       for (abstract_element *aep = (i < 0) ? releaser->current : releaser->circ_buf_head[i]; aep != NULL; aep = aep->next) {
 
-        ReleaseEvent event_data(world); // used only locally to capture the information
+        ReleaseEvent* rel_event = new ReleaseEvent(world); // used only locally to capture the information
 
         // -- release_event_queue --
         release_event_queue *req = (release_event_queue *)aep;
-
-        // mcell3 has several independent scheduling queues, this means that a release scheduled for
-        // middle of of a timestep is executed at the beginning of a timestep, time is the number of iterations
-        // therefore to get the iteration time, we can simply floor the value
-        event_data.event_time = floor_to_multiple(req->event_time, 1);
-        event_data.actual_release_time = req->event_time;
 
         // -- release_site --
         release_site_obj* rel_site = req->release_site;
@@ -1120,10 +1114,10 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
         CHECK_PROPERTY(rel_site->release_shape == SHAPE_SPHERICAL || rel_site->release_shape == SHAPE_REGION);
         switch (rel_site->release_shape) {
           case SHAPE_SPHERICAL:
-            event_data.release_shape = ReleaseShape::SPHERICAL;
+            rel_event->release_shape = ReleaseShape::SPHERICAL;
             break;
           case SHAPE_REGION:
-            event_data.release_shape = ReleaseShape::REGION;
+            rel_event->release_shape = ReleaseShape::REGION;
             break;
           default:
             assert(false);
@@ -1131,12 +1125,12 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
 
         if (rel_site->region_data == nullptr) {
           assert(rel_site->location != nullptr);
-          event_data.location = Vec3(*rel_site->location);
+          rel_event->location = Vec3(*rel_site->location);
         }
         else if (rel_site->location == nullptr) {
           assert(rel_site->region_data != nullptr);
           release_region_data* region_data = rel_site->region_data;
-          event_data.location = Vec3(POS_INVALID);
+          rel_event->location = Vec3(POS_INVALID);
 
           // CHECK_PROPERTY(region_data->in_release == nullptr); // not sure what this means yet
 
@@ -1151,14 +1145,14 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
 
               PartitionWallIndexPair wall_index = get_mcell4_wall_index(w);
 
-              event_data.cumm_area_and_pwall_index_pairs.push_back(
+              rel_event->cumm_area_and_pwall_index_pairs.push_back(
                   CummAreaPWallIndexPair(region_data->cum_area_list[wall_i], wall_index)
               );
             }
 
             // also remember the expression, although the cum_area_and_pwall_index_pairs is what is currently used
             CHECK_PROPERTY(region_data->expression != nullptr);
-            event_data.region_expr_root = create_release_region_terms_recursively(region_data->expression, event_data);
+            rel_event->region_expr_root = create_release_region_terms_recursively(region_data->expression, *rel_event);
           }
           else {
             // volume or surface molecules release into region
@@ -1170,11 +1164,11 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
             CHECK_PROPERTY(region_data->owners == 0);
             // CHECK_PROPERTY(region_data->walls_per_obj == 0); not sure what this does
 
-            event_data.region_llf = region_data->llf;
-            event_data.region_urb = region_data->urb;
+            rel_event->region_llf = region_data->llf;
+            rel_event->region_urb = region_data->urb;
 
             CHECK_PROPERTY(region_data->expression != nullptr);
-            event_data.region_expr_root = create_release_region_terms_recursively(region_data->expression, event_data);
+            rel_event->region_expr_root = create_release_region_terms_recursively(region_data->expression, *rel_event);
           }
         }
         else {
@@ -1184,40 +1178,40 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
           );
         }
 
-        event_data.species_id = get_mcell4_species_id(rel_site->mol_type->species_id);
-        assert(world->get_all_species().is_valid_id(event_data.species_id));
+        rel_event->species_id = get_mcell4_species_id(rel_site->mol_type->species_id);
+        assert(world->get_all_species().is_valid_id(rel_event->species_id));
 
         CHECK_PROPERTY(rel_site->release_number_method == CONSTNUM || rel_site->release_number_method == DENSITYNUM);
         switch(rel_site->release_number_method) {
           case CONSTNUM:
-            event_data.release_number_method = ReleaseNumberMethod::ConstNum;
+            rel_event->release_number_method = ReleaseNumberMethod::ConstNum;
             CHECK_PROPERTY(rel_site->concentration == 0);
             break;
           case DENSITYNUM:
-            event_data.release_number_method = ReleaseNumberMethod::DensityNum;
+            rel_event->release_number_method = ReleaseNumberMethod::DensityNum;
             break;
           default:
             assert(false);
         }
 
 
-        CHECK_PROPERTY(event_data.release_shape == ReleaseShape::REGION || rel_site->orientation == 0);
-        event_data.orientation = rel_site->orientation;
+        CHECK_PROPERTY(rel_event->release_shape == ReleaseShape::REGION || rel_site->orientation == 0);
+        rel_event->orientation = rel_site->orientation;
 
-        event_data.release_number = rel_site->release_number;
+        rel_event->release_number = rel_site->release_number;
 
         CHECK_PROPERTY(rel_site->mean_diameter == 0); // temporary
 
-        event_data.concentration = rel_site->concentration;
+        rel_event->concentration = rel_site->concentration;
 
         CHECK_PROPERTY(rel_site->standard_deviation == 0); // temporary
 
-        CHECK_PROPERTY(event_data.release_shape == ReleaseShape::REGION || rel_site->diameter != nullptr);
+        CHECK_PROPERTY(rel_event->release_shape == ReleaseShape::REGION || rel_site->diameter != nullptr);
         if (rel_site->diameter != nullptr) {
-          event_data.diameter = *rel_site->diameter;
+          rel_event->diameter = *rel_site->diameter;
         }
         else {
-          event_data.diameter = Vec3(LENGTH_INVALID);
+          rel_event->diameter = Vec3(LENGTH_INVALID);
         }
 
 
@@ -1225,7 +1219,7 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
         CHECK_PROPERTY(rel_site->release_prob == 1); // temporary
         // rel_site->periodic_box - ignoring?
 
-        event_data.release_site_name = rel_site->name;
+        rel_event->release_site_name = rel_site->name;
         // rel_site->graph_pattern - ignored
 
         // -- release_event_queue -- (again)
@@ -1236,40 +1230,25 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
         assert(rel_site->pattern != nullptr);
         release_pattern* rp = rel_site->pattern;
         if (rp->sym != nullptr) {
-          event_data.release_pattern_name = get_sym_name(rp->sym);
+          rel_event->release_pattern_name = get_sym_name(rp->sym);
         }
         else {
-          event_data.release_pattern_name = NAME_NOT_SET;
+          rel_event->release_pattern_name = NAME_NOT_SET;
         }
 
         assert(rp->delay == req->event_time && "Release pattern must specify the same delay as for which the event is scheduled");
         assert(rp->delay == req->train_high_time && "Initial train_high_time must be the same as delay");
 
-        // schedule all the needed release events based on release pattern
-        // note: there might be many of them but for now, we assume that not so many
-        // maybe we will need to change it in a way so that the event schedules itself, but this was
-        // a simpler solution for now
-        float_t next_time = rp->delay;
-        for (int train = 0; train < rp->number_of_trains; train++) {
+				// all these variables affect scheduling and are handled internally in the event
+        rel_event->delay = rp->delay;
+        rel_event->train_interval = rp->train_interval;
+        rel_event->number_of_trains = rp->number_of_trains;
+        rel_event->train_duration = rp->train_duration;
+        rel_event->release_interval = rp->release_interval;
 
-          float_t train_start = rp->delay + train * rp->train_interval;
-          // -EPS is needed to deal with precision issues even when we 
-          // are strictly (<) comparing current and end time
-          float_t train_end = train_start + rp->train_duration - EPS; 
-          float_t current_time = train_start;
-          while (current_time < train_end) {
-            ReleaseEvent* event_to_schedule = new ReleaseEvent(world);
-            *event_to_schedule = event_data;
+        rel_event->update_event_time_for_next_scheduled_time(); // sets the first event_time according to the setup
 
-            // similar as above for releases without release patterns, we need to set time to the beginning of the iteration
-            event_to_schedule->event_time = floor_to_multiple(current_time, 1);
-            event_to_schedule->actual_release_time =
-                event_to_schedule->event_time + (event_data.actual_release_time - event_data.event_time);
-            world->scheduler.schedule_event(event_to_schedule); // we always need to schedule a new instance
-
-            current_time += rp->release_interval;
-          }
-        }
+        world->scheduler.schedule_event(rel_event);
       }
     }
 

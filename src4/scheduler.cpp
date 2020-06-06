@@ -186,9 +186,8 @@ EventExecutionInfo Scheduler::handle_next_event() {
 
   // schedule itself for the next period or just delete
   float_t next_time;
-  bool to_schedule = event->get_next_scheduled_time(next_time);
+  bool to_schedule = event->update_event_time_for_next_scheduled_time();
   if (to_schedule) {
-    event->event_time = next_time;
     calendar.insert(event);
   }
   else {

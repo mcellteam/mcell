@@ -106,13 +106,21 @@ public:
     location(FLT_INVALID),
     diameter(FLT_INVALID),
     region_expr_root(nullptr),
-    world(world_) {
+    // the default values for release pattern are such that there is
+    // just one release
+    delay(0),
+    train_interval(EPS),
+    number_of_trains(1),
+    train_duration(EPS),
+    release_interval(FLT_GIGANTIC),
+    current_train_from_0(0),
+    current_release_in_train_from_0(0),
+    world(world_)
+     {
   }
   virtual ~ReleaseEvent();
 
   void step() override;
-  void dump(const std::string indent) const override;
-  void to_data_model(Json::Value& mcell_node) const;
 
   // release events must be sorted by the actual release time as well
   bool needs_secondary_ordering() override {
@@ -123,6 +131,15 @@ public:
     assert(actual_release_time != TIME_INVALID);
     return actual_release_time;
   }
+
+  // handles release patterns,
+  // must be called before the first insertion into the scheduler,
+  // when no release pattern is set, simply sets event_time to 0
+  // and on the second call it returns false
+  bool update_event_time_for_next_scheduled_time();
+
+  void dump(const std::string indent) const override;
+  void to_data_model(Json::Value& mcell_node) const;
 
 public:
   std::string release_site_name; // name of releaser site from which was this event created
@@ -171,7 +188,19 @@ public:
 
   std::string release_pattern_name; // unused
 
+  // --- release pattern information ---
+  float_t delay;
+  float_t train_interval;
+  uint number_of_trains;
+  float_t train_duration;
+  float_t release_interval;
+
+
 private:
+  // both values are initialized to 0 and counted from 0
+  uint current_train_from_0;
+  uint current_release_in_train_from_0;
+
   World* world;
 
 private:

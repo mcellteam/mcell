@@ -92,6 +92,41 @@ ReleaseEvent::~ReleaseEvent() {
 }
 
 
+bool ReleaseEvent::update_event_time_for_next_scheduled_time() {
+  // see https://mcell.org/tutorials/_images/plot.png
+
+  assert(current_train_from_0 <= number_of_trains);
+
+  // did we process all trains?
+  if (current_train_from_0 == number_of_trains) {
+    return false;
+  }
+
+  // set the new times for schedule
+  actual_release_time =
+      delay +
+      current_train_from_0 * train_interval +
+      current_release_in_train_from_0 * release_interval;
+
+  event_time = floor_f(actual_release_time);
+
+  // increment release counter
+  current_release_in_train_from_0++;
+
+  // should we start a new train next time this method is called?
+  uint number_of_releases_per_train = ceil_f(train_duration / release_interval);
+  assert(number_of_releases_per_train >= 1);
+  assert(current_release_in_train_from_0 <= number_of_releases_per_train);
+
+  if (current_release_in_train_from_0 == number_of_releases_per_train) {
+    current_train_from_0++;
+    current_release_in_train_from_0 = 0;
+  }
+
+  return true;
+}
+
+
 RegionExprNode* ReleaseEvent::create_new_region_expr_node_leaf(const std::string region_name) {
   RegionExprNode* res = new RegionExprNode;
   res->op = RegionExprOperator::Leaf;

@@ -372,6 +372,14 @@ static inline float_t ceil_f(const float_t x) {
 #endif
 }
 
+static inline float_t floor_f(const float_t x) {
+#if FLOAT_T_BYTES == 8
+  return floor(x);
+#else
+  return floorf(x);
+#endif
+}
+
 static inline float_t floor_to_multiple(const float_t val, float_t multiple) {
   return (float_t)((int)((val + EPS)/ multiple)) * multiple;
 }
