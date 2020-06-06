@@ -30,7 +30,9 @@
 
 // assert not conditioned by NDEBUG
 #define release_assert(expr) \
-  __assert_fail(#expr, __FILE__, __LINE__, __ASSERT_FUNCTION)
+  (static_cast <bool> (expr)                                            \
+      ? void (0)                                                        \
+      : __assert_fail(#expr, __FILE__, __LINE__, __ASSERT_FUNCTION))
 
 // ---------------------------------- float types ----------------------------------
 
