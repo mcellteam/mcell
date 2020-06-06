@@ -197,13 +197,13 @@ std::string ReleaseEvent::release_pattern_to_data_model(Json::Value& mcell_node)
   Json::Value& define_release_patterns = mcell_node[KEY_DEFINE_RELEASE_PATTERNS];
   // version might be already there
   if (define_release_patterns.isMember(KEY_DATA_MODEL_VERSION)) {
-    DMUtil::json_add_version(define_release_patterns, JSON_DM_VERSION_1638);
+    DMUtil::add_version(define_release_patterns, VER_DM_2014_10_24_1638);
   }
   Json::Value& release_pattern_list = define_release_patterns[KEY_RELEASE_PATTERN_LIST];
 
   Json::Value release_pattern_item;
 
-  DMUtil::json_add_version(release_pattern_item, JSON_DM_VERSION_1330);
+  DMUtil::add_version(release_pattern_item, VER_DM_2018_01_11_1330);
 
   release_pattern_item[KEY_DELAY] = DMUtil::f_to_string(delay * world->config.time_unit);
   release_pattern_item[KEY_NUMBER_OF_TRAINS] = to_string(number_of_trains);
@@ -237,11 +237,11 @@ void ReleaseEvent::to_data_model(Json::Value& mcell_node) const {
 
   // these items might already exist
   Json::Value& release_sites = mcell_node[KEY_RELEASE_SITES];
-  DMUtil::json_add_version(release_sites, JSON_DM_VERSION_1638);
+  DMUtil::add_version(release_sites, VER_DM_2014_10_24_1638);
   Json::Value& release_site_list = release_sites[KEY_RELEASE_SITE_LIST];
 
   Json::Value release_site;
-  DMUtil::json_add_version(release_site, JSON_DM_VERSION_1330);
+  DMUtil::add_version(release_site, VER_DM_2018_01_11_1330);
   release_site[KEY_DESCRIPTION] = "";
   release_site[KEY_POINTS_LIST] = Json::Value(Json::arrayValue); // not sure, empty array
   release_site[KEY_NAME] = DMUtil::remove_obj_name_prefix(release_site_name);

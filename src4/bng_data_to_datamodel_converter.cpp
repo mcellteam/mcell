@@ -118,7 +118,7 @@ Vec3 BngDataToDatamodelConverter::get_next_color() {
 
 void BngDataToDatamodelConverter::convert_species(Value& mcell_node) {
   Value& define_molecules = mcell_node[KEY_DEFINE_MOLECULES];
-  json_add_version(define_molecules, JSON_DM_VERSION_1638);
+  add_version(define_molecules, VER_DM_2014_10_24_1638);
   Value& molecule_list = define_molecules[KEY_MOLECULE_LIST];
 
   for (const BNG::Species& s: bng_engine->get_all_species().get_species_vector()) {
@@ -135,7 +135,7 @@ void BngDataToDatamodelConverter::convert_species(Value& mcell_node) {
 
 void BngDataToDatamodelConverter::convert_single_species(const BNG::Species& s, Value& species_node) {
 
-  json_add_version(species_node, JSON_DM_VERSION_1632);
+  add_version(species_node, VER_DM_2018_10_16_1632);
 
   Value& display = species_node[KEY_DISPLAY];
   display[KEY_EMIT] = 0.0;
@@ -183,7 +183,7 @@ void BngDataToDatamodelConverter::convert_single_species(const BNG::Species& s, 
 
 void BngDataToDatamodelConverter::convert_single_rxn_rule(const BNG::RxnRule& r, Value& rxn_node) {
   assert(r.type == BNG::RxnType::Standard);
-  json_add_version(rxn_node, JSON_DM_VERSION_1330);
+  add_version(rxn_node, VER_DM_2018_01_11_1330);
 
   // name is put into rnx_name and name is the string of the reaction
   rxn_node[KEY_RXN_NAME] = (r.name != NAME_NOT_SET) ? r.name : "";
@@ -240,7 +240,7 @@ string BngDataToDatamodelConverter::get_surface_class_name(const BNG::RxnRule& r
 
 void BngDataToDatamodelConverter::convert_single_surface_class(const BNG::RxnRule& base_rxn, Value& surface_class) {
   surface_class[KEY_DESCRIPTION] = "";
-  json_add_version(surface_class, JSON_DM_VERSION_1330);
+  add_version(surface_class, VER_DM_2018_01_11_1330);
 
   string name = get_surface_class_name(base_rxn);
   assert(processed_surface_classes.count(name) == 0 && "This surface class was already processed");
@@ -260,7 +260,7 @@ void BngDataToDatamodelConverter::convert_single_surface_class(const BNG::RxnRul
   // and convert them all as properties of this surface class
   for (const BNG::RxnRule* rxn_rule: rxns_belonging_to_surf_class) {
     Value sc_item;
-    json_add_version(sc_item, JSON_DM_VERSION_1756);
+    add_version(sc_item, VER_DM_2015_11_08_1756);
     CONVERSION_CHECK(rxn_rule->reactants[0].is_simple(), "Surface class reactant must be simple for now.");
 
     const string& reactant_name = bng_engine->get_data().get_molecule_type(rxn_rule->reactants[0].get_simple_species_mol_type_id()).name;
@@ -306,13 +306,13 @@ void BngDataToDatamodelConverter::convert_rxns(Value& mcell_node) {
 
   // --- define_reactions --- (this section is always present)
   Value& define_reactions = mcell_node[KEY_DEFINE_REACTIONS];
-  json_add_version(define_reactions, JSON_DM_VERSION_1638);
+  add_version(define_reactions, VER_DM_2014_10_24_1638);
   Value& reaction_list = define_reactions[KEY_REACTION_LIST];
   reaction_list = Value(Json::arrayValue);
 
   // --- define_surface_classes --- (only when needed)
   Value& define_surface_classes = mcell_node[KEY_DEFINE_SURFACE_CLASSES];
-  json_add_version(define_surface_classes, JSON_DM_VERSION_1638);
+  add_version(define_surface_classes, VER_DM_2014_10_24_1638);
   Value& surface_class_list = define_surface_classes[KEY_SURFACE_CLASS_LIST];
   surface_class_list = Value(Json::arrayValue);
 

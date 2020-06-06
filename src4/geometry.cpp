@@ -416,7 +416,7 @@ void GeometryObject::to_data_model(
 
       // append triple x, y, z
       Vec3 pos = p.get_geometry_vertex(i) * Vec3(p.config.length_unit);
-      DMUtil::json_append_triplet(vertex_list, pos.x, pos.y, pos.z);
+      DMUtil::append_triplet(vertex_list, pos.x, pos.y, pos.z);
     }
   }
 
@@ -544,7 +544,7 @@ void Region::dump_array(const std::vector<Region>& vec) {
 
 
 void Region::to_data_model(const Partition& p, Json::Value& modify_surface_region) const {
-  DMUtil::json_add_version(modify_surface_region, JSON_DM_VERSION_1330);
+  DMUtil::add_version(modify_surface_region, VER_DM_2018_01_11_1330);
   modify_surface_region[KEY_DESCRIPTION] = "";
   modify_surface_region[KEY_OBJECT_NAME] =
       DMUtil::remove_obj_name_prefix(p.get_geometry_object(geometry_object_id).name);

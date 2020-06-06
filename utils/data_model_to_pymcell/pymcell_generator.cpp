@@ -195,12 +195,12 @@ vector<string> PymcellGenerator::generate_species(ofstream& out) {
 
   // there must be at least one species
   Value& define_molecules = get_node(mcell, KEY_DEFINE_MOLECULES);
-  check_version(KEY_DEFINE_MOLECULES, define_molecules, JSON_DM_VERSION_1638);
+  check_version(KEY_DEFINE_MOLECULES, define_molecules, VER_DM_2014_10_24_1638);
 
   Value& molecule_list = get_node(define_molecules, KEY_MOLECULE_LIST);
   for (Value::ArrayIndex i = 0; i < molecule_list.size(); i++) {
     Value& molecule_list_item = molecule_list[i];
-    check_version(KEY_MOLECULE_LIST, molecule_list_item, JSON_DM_VERSION_1632);
+    check_version(KEY_MOLECULE_LIST, molecule_list_item, VER_DM_2018_10_16_1632);
 
     CHECK_PROPERTY(molecule_list_item[KEY_CUSTOM_SPACE_STEP] == "");
     CHECK_PROPERTY(molecule_list_item[KEY_CUSTOM_TIME_STEP] == "");
@@ -230,7 +230,7 @@ void PymcellGenerator::get_surface_class_property_info(
     Value& property,
     string& name, string& type_name, string& affected_mols, string& orientation
 ) {
-  check_version(KEY_SURFACE_CLASS_PROP_LIST, property, JSON_DM_VERSION_1756);
+  check_version(KEY_SURFACE_CLASS_PROP_LIST, property, VER_DM_2015_11_08_1756);
   CHECK_PROPERTY(property[KEY_CLAMP_VALUE] = "0");
 
   affected_mols = property[KEY_AFFECTED_MOLS].asString();
@@ -282,7 +282,7 @@ vector<string> PymcellGenerator::generate_surface_classes(ofstream& out) {
   }
 
   Value& define_surface_classes = get_node(mcell, KEY_DEFINE_SURFACE_CLASSES);
-  check_version(KEY_DEFINE_SURFACE_CLASSES, define_surface_classes, JSON_DM_VERSION_1638);
+  check_version(KEY_DEFINE_SURFACE_CLASSES, define_surface_classes, VER_DM_2014_10_24_1638);
   Value& surface_class_list = get_node(define_surface_classes, KEY_SURFACE_CLASS_LIST);
 
   for (Value::ArrayIndex i = 0; i < surface_class_list.size(); i++) {
@@ -395,12 +395,12 @@ vector<string> PymcellGenerator::generate_reaction_rules(ofstream& out) {
   }
 
   Value& define_reactions = get_node(mcell, KEY_DEFINE_REACTIONS);
-  check_version(KEY_DEFINE_REACTIONS, define_reactions, JSON_DM_VERSION_1638);
+  check_version(KEY_DEFINE_REACTIONS, define_reactions, VER_DM_2014_10_24_1638);
 
   Value& reaction_list = get_node(define_reactions, KEY_REACTION_LIST);
   for (Value::ArrayIndex i = 0; i < reaction_list.size(); i++) {
     Value& reaction_list_item = reaction_list[i];
-    check_version(KEY_MOLECULE_LIST, reaction_list_item, JSON_DM_VERSION_1330);
+    check_version(KEY_MOLECULE_LIST, reaction_list_item, VER_DM_2018_01_11_1330);
 
     string name = reaction_list_item[KEY_RXN_NAME].asString();
     if (name == "") {
@@ -650,7 +650,7 @@ void PymcellGenerator::generate_release_pattern(ofstream& out, const string& nam
     }
 
     // we found the release pattern
-    check_version(KEY_RELEASE_PATTERN_LIST, release_pattern_item, JSON_DM_VERSION_1300);
+    check_version(KEY_RELEASE_PATTERN_LIST, release_pattern_item, VER_DM_2018_01_11_1330);
 
     gen_ctor_call(out, name, NAME_CLASS_RELEASE_PATTERN);
     gen_param(out, NAME_NAME, name, true);
@@ -670,12 +670,12 @@ void PymcellGenerator::generate_release_pattern(ofstream& out, const string& nam
 bool PymcellGenerator::is_volume_species(const string& species_name) {
   // there must be at least one species
   Value& define_molecules = get_node(mcell, KEY_DEFINE_MOLECULES);
-  check_version(KEY_DEFINE_MOLECULES, define_molecules, JSON_DM_VERSION_1638);
+  check_version(KEY_DEFINE_MOLECULES, define_molecules, VER_DM_2014_10_24_1638);
 
   Value& molecule_list = get_node(define_molecules, KEY_MOLECULE_LIST);
   for (Value::ArrayIndex i = 0; i < molecule_list.size(); i++) {
     Value& molecule_list_item = molecule_list[i];
-    check_version(KEY_MOLECULE_LIST, molecule_list_item, JSON_DM_VERSION_1632);
+    check_version(KEY_MOLECULE_LIST, molecule_list_item, VER_DM_2018_10_16_1632);
 
     string name = molecule_list_item[KEY_MOL_NAME].asString();
     if (name != species_name) {
@@ -699,11 +699,11 @@ vector<string> PymcellGenerator::generate_release_sites(ofstream& out) {
   }
 
   Value& release_sites = mcell[KEY_RELEASE_SITES];
-  check_version(KEY_RELEASE_SITES, release_sites, JSON_DM_VERSION_1638);
+  check_version(KEY_RELEASE_SITES, release_sites, VER_DM_2014_10_24_1638);
   Value& release_site_list = release_sites[KEY_RELEASE_SITE_LIST];
   for (Value::ArrayIndex i = 0; i < release_site_list.size(); i++) {
     Value& release_site_item = release_site_list[i];
-    check_version(KEY_RELEASE_SITE_LIST, release_site_item, JSON_DM_VERSION_1330);
+    check_version(KEY_RELEASE_SITE_LIST, release_site_item, VER_DM_2018_01_11_1330);
 
     // generate release pattern if needed
     string rel_pat_name = release_site_item[KEY_PATTERN].asString();
@@ -779,11 +779,11 @@ void PymcellGenerator::generate_surface_classes_assignment(ofstream& out) {
   }
 
   Value& modify_surface_regions = mcell[KEY_MODIFY_SURFACE_REGIONS];
-  check_version(KEY_MODIFY_SURFACE_REGIONS, modify_surface_regions, JSON_DM_VERSION_1638);
+  check_version(KEY_MODIFY_SURFACE_REGIONS, modify_surface_regions, VER_DM_2014_10_24_1638);
   Value& modify_surface_regions_list = modify_surface_regions[KEY_MODIFY_SURFACE_REGIONS_LIST];
   for (Value::ArrayIndex i = 0; i < modify_surface_regions_list.size(); i++) {
     Value& modify_surface_regions_item = modify_surface_regions_list[i];
-    check_version(KEY_MODIFY_SURFACE_REGIONS_LIST, modify_surface_regions_item, JSON_DM_VERSION_1330);
+    check_version(KEY_MODIFY_SURFACE_REGIONS_LIST, modify_surface_regions_item, VER_DM_2018_01_11_1330);
 
     string object_name = modify_surface_regions_item[KEY_OBJECT_NAME].asString();
     CHECK_PROPERTY(object_name != "");
@@ -848,12 +848,12 @@ vector<string> PymcellGenerator::get_species_to_visualize() {
   vector<string> res;
 
   Value& define_molecules = get_node(mcell, KEY_DEFINE_MOLECULES);
-  check_version(KEY_DEFINE_MOLECULES, define_molecules, JSON_DM_VERSION_1638);
+  check_version(KEY_DEFINE_MOLECULES, define_molecules, VER_DM_2014_10_24_1638);
 
   Value& molecule_list = get_node(define_molecules, KEY_MOLECULE_LIST);
   for (Value::ArrayIndex i = 0; i < molecule_list.size(); i++) {
     Value& molecule_list_item = molecule_list[i];
-    check_version(KEY_MOLECULE_LIST, molecule_list_item, JSON_DM_VERSION_1632);
+    check_version(KEY_MOLECULE_LIST, molecule_list_item, VER_DM_2018_10_16_1632);
 
     if (molecule_list_item[KEY_EXPORT_VIZ].asBool()) {
       res.push_back(molecule_list_item[KEY_MOL_NAME].asString());
@@ -872,7 +872,7 @@ vector<string> PymcellGenerator::generate_viz_outputs(ofstream& out) {
   }
 
   Value& viz_output = mcell[KEY_VIZ_OUTPUT];
-  check_version(KEY_VIZ_OUTPUT, viz_output, JSON_DM_VERSION_1638);
+  check_version(KEY_VIZ_OUTPUT, viz_output, VER_DM_2014_10_24_1638);
 
   string name = VIZ_OUTPUT_NAME; // there is only one in datamodel now
   viz_output_names.push_back(name);
@@ -1099,7 +1099,7 @@ vector<string> PymcellGenerator::generate_counts(ofstream& out) {
   }
 
   Value& reaction_data_output = get_node(mcell, KEY_REACTION_DATA_OUTPUT);
-  check_version(KEY_DEFINE_MOLECULES, reaction_data_output, JSON_DM_VERSION_1800);
+  check_version(KEY_DEFINE_MOLECULES, reaction_data_output, VER_DM_2016_03_15_1800);
 
   string rxn_step = reaction_data_output[KEY_RXN_STEP].asString();
 

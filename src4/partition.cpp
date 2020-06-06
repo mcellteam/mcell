@@ -280,7 +280,7 @@ void Partition::to_data_model(Json::Value& mcell) const {
 
   // mod_surf_regions
   Json::Value& modify_surface_regions = mcell[KEY_MODIFY_SURFACE_REGIONS];
-  DMUtil::json_add_version(modify_surface_regions, JSON_DM_VERSION_1638);
+  DMUtil::add_version(modify_surface_regions, VER_DM_2014_10_24_1638);
   Json::Value& modify_surface_regions_list = modify_surface_regions[KEY_MODIFY_SURFACE_REGIONS_LIST];
   modify_surface_regions_list = Json::Value(Json::arrayValue);
   for (const Region& reg: regions) {

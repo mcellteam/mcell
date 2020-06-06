@@ -285,7 +285,7 @@ void VizOutputEvent::to_data_model(Json::Value& mcell_node) const {
   CONVERSION_CHECK(!mcell_node.isMember(KEY_VIZ_OUTPUT), "Only one viz_output section is allowed");
 
   Json::Value& viz_output = mcell_node[KEY_VIZ_OUTPUT];
-  DMUtil::json_add_version(viz_output, JSON_DM_VERSION_1638);
+  DMUtil::add_version(viz_output, VER_DM_2014_10_24_1638);
 
   viz_output[KEY_EXPORT_ALL] = should_visualize_all_species();
   viz_output[KEY_START] = DMUtil::f_to_string(event_time);

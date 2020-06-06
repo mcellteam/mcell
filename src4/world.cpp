@@ -405,7 +405,7 @@ void World::to_data_model(Json::Value& root) const {
   Json::Value& mcell = root[KEY_MCELL];
 
   mcell[KEY_CELLBLENDER_VERSION] = VALUE_CELLBLENDER_VERSION;
-  DMUtil::json_add_version(mcell, JSON_DM_VERSION_1300);
+  DMUtil::add_version(mcell, VER_DM_2017_06_23_1300);
 
   initialization_to_data_model(mcell);
 
@@ -417,7 +417,7 @@ void World::to_data_model(Json::Value& root) const {
 
   // base information for reaction_data_output must be set even when there are no such events
   Json::Value& reaction_data_output = mcell[KEY_REACTION_DATA_OUTPUT];
-  DMUtil::json_add_version(reaction_data_output, JSON_DM_VERSION_1800);
+  DMUtil::add_version(reaction_data_output, VER_DM_2016_03_15_1800);
   reaction_data_output[KEY_PLOT_LAYOUT] = " ";
   reaction_data_output[KEY_PLOT_LEGEND] = "0";
   reaction_data_output[KEY_MOL_COLORS] = false;
@@ -445,7 +445,7 @@ void World::to_data_model(Json::Value& root) const {
   diffuse_color[KEY_A] = DEFAULT_OBJECT_ALPHA;
 
   Json::Value& model_objects = mcell[KEY_MODEL_OBJECTS];
-  DMUtil::json_add_version(model_objects, JSON_DM_VERSION_1330);
+  DMUtil::add_version(model_objects, VER_DM_2018_01_11_1330);
   Json::Value& model_object_list = model_objects[KEY_MODEL_OBJECT_LIST];
   model_object_list = Json::Value(Json::arrayValue);
 
@@ -469,20 +469,20 @@ void World::to_data_model(Json::Value& root) const {
 
   // --- mol_viz ---
   Json::Value& mol_viz = mcell[KEY_MOL_VIZ];
-  DMUtil::json_add_version(mol_viz, JSON_DM_VERSION_1700);
+  DMUtil::add_version(mol_viz, VER_DM_2015_04_13_1700);
   mol_viz[KEY_MANUAL_SELECT_VIZ_DIR] = false;
   mol_viz[KEY_FILE_START_INDEX] = 0;
   mol_viz[KEY_SEED_LIST] = Json::Value(Json::arrayValue); // empty array
 
   Json::Value& color_list = mol_viz[KEY_COLOR_LIST];
-  DMUtil::json_append_triplet(color_list, 0.8, 0.0, 0.0);
-  DMUtil::json_append_triplet(color_list, 0.0, 0.8, 0.0);
-  DMUtil::json_append_triplet(color_list, 0.0, 0.0, 0.8);
-  DMUtil::json_append_triplet(color_list, 0.0, 0.8, 0.8);
-  DMUtil::json_append_triplet(color_list, 0.8, 0.0, 0.8);
-  DMUtil::json_append_triplet(color_list, 0.8, 0.8, 0.0);
-  DMUtil::json_append_triplet(color_list, 1.0, 1.0, 1.0);
-  DMUtil::json_append_triplet(color_list, 0.0, 0.0, 0.0);
+  DMUtil::append_triplet(color_list, 0.8, 0.0, 0.0);
+  DMUtil::append_triplet(color_list, 0.0, 0.8, 0.0);
+  DMUtil::append_triplet(color_list, 0.0, 0.0, 0.8);
+  DMUtil::append_triplet(color_list, 0.0, 0.8, 0.8);
+  DMUtil::append_triplet(color_list, 0.8, 0.0, 0.8);
+  DMUtil::append_triplet(color_list, 0.8, 0.8, 0.0);
+  DMUtil::append_triplet(color_list, 1.0, 1.0, 1.0);
+  DMUtil::append_triplet(color_list, 0.0, 0.0, 0.0);
 
   mol_viz[KEY_ACTIVE_SEED_INDEX] = 0;
   mol_viz[KEY_FILE_INDEX] = 959; // don't know what this means
@@ -503,7 +503,7 @@ void World::to_data_model(Json::Value& root) const {
 
   // --- scripting ---
   Json::Value& scripting = mcell[KEY_SCRIPTING];
-  DMUtil::json_add_version(scripting, JSON_DM_VERSION_1830);
+  DMUtil::add_version(scripting, VER_DM_2017_11_30_1830);
   scripting[KEY_SCRIPTING_LIST] = Json::Value(Json::arrayValue);
   scripting[KEY_SCRIPT_TEXTS] = Json::Value(Json::objectValue);
   scripting[KEY_DM_INTERNAL_FILE_NAME] = "";
@@ -529,7 +529,7 @@ void World::initialization_to_data_model(Json::Value& mcell_node) const {
 
   // --- initialization ---
   Json::Value& initialization = mcell_node[KEY_INITIALIZATION];
-  DMUtil::json_add_version(initialization, JSON_DM_VERSION_0130);
+  DMUtil::add_version(initialization, VER_DM_2017_11_18_0130);
 
   // time step will most probably use rounded values, therefore we don't have to use full precision here
   initialization[KEY_TIME_STEP] = DMUtil::f_to_string(config.time_unit, 8);

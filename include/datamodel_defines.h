@@ -22,16 +22,15 @@ const int NUM_GENERAL_SPECIES = 3;
 
 // ---------------------------------- datamodel constants----------------------------------
 
-// TODO: rename, the last value seems to be hours+minutes, not some id...
-const char* const JSON_DM_VERSION_0130 = "DM_2017_11_18_0130";
-const char* const JSON_DM_VERSION_1300 = "DM_2017_06_23_1300";
-const char* const JSON_DM_VERSION_1330 = "DM_2018_01_11_1330";
-const char* const JSON_DM_VERSION_1632 = "DM_2018_10_16_1632";
-const char* const JSON_DM_VERSION_1638 = "DM_2014_10_24_1638";
-const char* const JSON_DM_VERSION_1700 = "DM_2015_04_13_1700";
-const char* const JSON_DM_VERSION_1756 = "DM_2015_11_08_1756";
-const char* const JSON_DM_VERSION_1800 = "DM_2016_03_15_1800";
-const char* const JSON_DM_VERSION_1830 = "DM_2017_11_30_1830";
+const char* const VER_DM_2017_11_18_0130 = "DM_2017_11_18_0130";
+const char* const VER_DM_2017_06_23_1300 = "DM_2017_06_23_1300";
+const char* const VER_DM_2018_01_11_1330 = "DM_2018_01_11_1330";
+const char* const VER_DM_2018_10_16_1632 = "DM_2018_10_16_1632";
+const char* const VER_DM_2014_10_24_1638 = "DM_2014_10_24_1638";
+const char* const VER_DM_2015_04_13_1700 = "DM_2015_04_13_1700";
+const char* const VER_DM_2015_11_08_1756 = "DM_2015_11_08_1756";
+const char* const VER_DM_2016_03_15_1800 = "DM_2016_03_15_1800";
+const char* const VER_DM_2017_11_30_1830 = "DM_2017_11_30_1830";
 
 const int BLENDER_VERSION[] = {2, 79, 0};
 
@@ -344,12 +343,12 @@ namespace DMUtil {
 
 using BNGCommon::float_t;
 
-static inline void json_add_version(Json::Value& node, const char* ver) {
+static inline void add_version(Json::Value& node, const char* ver) {
   node[KEY_DATA_MODEL_VERSION] = ver;
 }
 
 
-static inline void json_append_triplet(Json::Value& list, const float x, const float y, const float z) {
+static inline void append_triplet(Json::Value& list, const float x, const float y, const float z) {
   Json::Value list_triplet;
   list_triplet.append(Json::Value(x));
   list_triplet.append(Json::Value(y));

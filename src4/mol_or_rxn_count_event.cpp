@@ -163,7 +163,7 @@ static string noext(const string& s) {
 }
 
 void MolOrRxnCountInfo::to_data_model(const World* world, Json::Value& reaction_output) const {
-  DMUtil::json_add_version(reaction_output, JSON_DM_VERSION_1330);
+  DMUtil::add_version(reaction_output, VER_DM_2018_01_11_1330);
 
   // MDLString is a general way how to capture the output
   reaction_output[KEY_RXN_OR_MOL] = VALUE_MDLSTRING;
