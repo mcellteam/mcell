@@ -227,7 +227,16 @@ private:
 
   uint get_num_releases_per_train() const {
     assert(release_interval != 0);
-    return ceil_f(train_duration / release_interval);
+
+    if (train_duration > EPS) {
+      // -EPS is needed to deal with precision issues even when we
+      // are strictly (<) comparing current and end time
+      return ceil_f((train_duration - EPS) / release_interval);
+    }
+    else {
+      // however, there must be at least one release
+      return ceil_f(train_duration / release_interval);
+    }
   }
 
   std::string release_pattern_to_data_model(Json::Value& mcell_node) const;

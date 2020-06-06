@@ -108,7 +108,8 @@ bool ReleaseEvent::update_event_time_for_next_scheduled_time() {
       current_train_from_0 * train_interval +
       current_release_in_train_from_0 * release_interval;
 
-  event_time = floor_f(actual_release_time);
+  // floor_to_multiple adds EPS to the value before flooring
+  event_time = floor_to_multiple(actual_release_time, 1);
 
   // increment release counter
   current_release_in_train_from_0++;
@@ -150,16 +151,16 @@ void ReleaseEvent::dump(const string ind) const {
   cout << "Release event:\n";
   string ind2 = ind + "  ";
   BaseEvent::dump(ind2);
-  cout << ind2 << "name: \t\t" << release_site_name << " [string] \t\t\n";
-  cout << ind2 << "species_id: \t\t" << species_id << " [species_id_t] \t\t\n";
-  cout << ind2 << "actual_release_time: \t\t" << location << " [float_t] \t\t\n";
-  cout << ind2 << "release_number_method: \t\t" << (int)release_number_method << " [ReleaseNumberMethod] \t\t\n";
-  cout << ind2 << "release_number: \t\t" << release_number << " [uint] \t\t\n";
-  cout << ind2 << "concentration: \t\t" << concentration << " [float_t] \t\t\n";
-  cout << ind2 << "orientation: \t\t" << orientation << " [float_t] \t\t\n";
-  cout << ind2 << "release_shape: \t\t" << (int)release_shape << " [ReleaseShape] \t\t\n";
-  cout << ind2 << "location: \t\t" << location << " [Vec3] \t\t\n";
-  cout << ind2 << "diameter: \t\t" << diameter << " [Vec3] \t\t\n";
+  cout << ind2 << "name: \t\t" << release_site_name << " [string]\n";
+  cout << ind2 << "species_id: \t\t" << species_id << " [species_id_t]\n";
+  cout << ind2 << "actual_release_time: \t\t" << location << " [float_t]\n";
+  cout << ind2 << "release_number_method: \t\t" << (int)release_number_method << " [ReleaseNumberMethod]\n";
+  cout << ind2 << "release_number: \t\t" << release_number << " [uint]\n";
+  cout << ind2 << "concentration: \t\t" << concentration << " [float_t]\n";
+  cout << ind2 << "orientation: \t\t" << orientation << " [float_t]\n";
+  cout << ind2 << "release_shape: \t\t" << (int)release_shape << " [ReleaseShape]\n";
+  cout << ind2 << "location: \t\t" << location << " [Vec3]\n";
+  cout << ind2 << "diameter: \t\t" << diameter << " [Vec3]\n";
 
   cout << ind2 << "cumm_area_and_pwall_index_pairs:\n";
   for (size_t i = 0; i < cumm_area_and_pwall_index_pairs.size(); i++) {
@@ -170,12 +171,18 @@ void ReleaseEvent::dump(const string ind) const {
         ", wall_index: " << area_wall.second.first << "\n";
   }
 
-  cout << ind2 << "region_llf: \t\t" << region_llf << " [Vec3] \t\t\n";
-  cout << ind2 << "region_urb: \t\t" << region_urb << " [Vec3] \t\t\n";
+  cout << ind2 << "region_llf: \t\t" << region_llf << " [Vec3]\n";
+  cout << ind2 << "region_urb: \t\t" << region_urb << " [Vec3]\n";
 
   if (region_expr_root != nullptr) {
     region_expr_root->dump();
   }
+
+  cout << ind2 << "delay: \t\t" << delay << " [float_t]\n";
+  cout << ind2 << "number_of_trains: \t\t" << number_of_trains << " [uint]\n";
+  cout << ind2 << "train_interval: \t\t" << train_interval << " [float_t]\n";
+  cout << ind2 << "train_duration: \t\t" << train_duration << " [float_t]\n";
+  cout << ind2 << "release_interval: \t\t" << release_interval << " [float_t]\n";
 }
 
 
