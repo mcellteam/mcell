@@ -557,7 +557,7 @@ string PymcellGenerator::generate_single_geometry_object(
       out << sr_global_name << " = " << MDOT << NAME_CLASS_SURFACE_REGION << "(\n";
       out << IND << NAME_NAME << " = '" << sr_name << "',\n";
       out << IND << NAME_WALL_INDICES << " = " << sr_element_connections_name << "\n";
-      out << ")\n\n";
+      out << CTOR_END;
 
       sr_global_names.push_back(sr_global_name);
     }
@@ -658,6 +658,7 @@ void PymcellGenerator::generate_release_pattern(ofstream& out, const string& nam
     gen_param_expr(out, NAME_TRAIN_DURATION, release_pattern_item[KEY_TRAIN_DURATION], true);
     gen_param_expr(out, NAME_TRAIN_INTERVAL, release_pattern_item[KEY_TRAIN_INTERVAL], true);
     gen_param_expr(out, NAME_NUMBER_OF_TRAINS, release_pattern_item[KEY_NUMBER_OF_TRAINS], false);
+    out << CTOR_END;
 
     delay_string = release_pattern_item[KEY_DELAY].asString();
     return;
@@ -766,7 +767,7 @@ vector<string> PymcellGenerator::generate_release_sites(ofstream& out) {
       ERROR("Quantity type " + quantity_type + " is not supported yet");
     }
 
-    out << ")\n\n";
+    out << CTOR_END;
   }
 
   return release_site_names;
@@ -899,7 +900,7 @@ vector<string> PymcellGenerator::generate_viz_outputs(ofstream& out) {
   gen_param_expr(out, NAME_EVERY_N_TIMESTEPS, viz_output[KEY_STEP], false);
 
   // ignoring KEY_END
-  out << ")\n\n";
+  out << CTOR_END;
 
   return viz_output_names;
 }
@@ -1073,7 +1074,7 @@ string PymcellGenerator::generate_count_terms_for_expression(ofstream& out, cons
         gen_param_id(out, NAME_REGION, where_to_count, false);
       }
 
-      out << ")\n\n";
+      out << CTOR_END;
     }
 
     // for the res_expr, we cut all the COUNT[..] and replace them with
@@ -1194,7 +1195,7 @@ vector<string> PymcellGenerator::generate_counts(ofstream& out) {
       gen_param_expr(out, NAME_EVERY_N_TIMESTEPS, rxn_step, false);
     }
 
-    out << ")\n\n";
+    out << CTOR_END;
   }
 
   return counts;
