@@ -735,8 +735,12 @@ vector<string> PymcellGenerator::generate_release_sites(ofstream& out) {
       }
     }
 
-    if (delay_string != "") {
+    if (delay_string != "" && delay_string != "0") {
       gen_param_expr(out, NAME_RELEASE_TIME, delay_string, true);
+    }
+
+    if (rel_pat_name != "") {
+      gen_param_id(out, NAME_RELEASE_PATTERN, rel_pat_name, true);
     }
 
     string shape = release_site_item[KEY_SHAPE].asString();

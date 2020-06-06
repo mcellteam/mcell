@@ -755,12 +755,10 @@ void MCell4Converter::convert_release_events() {
   for (std::shared_ptr<API::ReleaseSite>& r: model->release_sites) {
     MCell::ReleaseEvent* rel_event = new ReleaseEvent(world);
 
-    // release patterns are not supported yet
     rel_event->release_site_name = r->name;
-    rel_event->event_time = 0.0;
-    rel_event->actual_release_time = 0.0;
     rel_event->species_id = r->species->species_id;
     rel_event->orientation = convert_orientation(r->orientation);
+    rel_event->delay = r->release_time / world->config.time_unit;
 
     // FIXME: this should belong in the ReleaseSite ctor
     if (world->get_all_species().get(rel_event->species_id).is_surf() &&
@@ -775,6 +773,15 @@ void MCell4Converter::convert_release_events() {
       throw ValueError(
           S(NAME_CLASS_RELEASE_SITE) + " " + r->name +
           " releases a volume molecule but orientation is set.");
+    }
+
+    // release pattern
+    if (is_set(r->release_pattern)) {
+      API::ReleasePattern rp = *r->release_pattern;
+      rel_event->number_of_trains = rp.number_of_trains;
+      rel_event->train_interval = rp.train_interval / world->config.time_unit;
+      rel_event->train_duration = rp.train_duration / world->config.time_unit;
+      rel_event->release_interval = rp.release_interval / world->config.time_unit;
     }
 
     // release_number_method
