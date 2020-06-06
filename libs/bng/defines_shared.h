@@ -9,6 +9,7 @@
 
 #include <stdint.h>
 #include <climits>
+#include <cassert>
 #include <cfloat>
 #include <vector>
 #include <set>
@@ -24,6 +25,12 @@
 
 #include <google/dense_hash_map>
 #include <google/dense_hash_set>
+
+// ---------------------------------- debug ----------------------------------------
+
+// assert not conditioned by NDEBUG
+#define release_assert(expr) \
+  __assert_fail(#expr, __FILE__, __LINE__, __ASSERT_FUNCTION)
 
 // ---------------------------------- float types ----------------------------------
 
