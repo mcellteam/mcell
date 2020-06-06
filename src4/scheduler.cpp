@@ -183,9 +183,12 @@ EventExecutionInfo Scheduler::handle_next_event() {
 
   event_type_index_t type_index = event->type_index;
 
+
   // schedule itself for the next period or just delete
-  if (event->periodicity_interval != 0) {
-    event->event_time += event->periodicity_interval;
+  float_t next_time;
+  bool to_schedule = event->get_next_scheduled_time(next_time);
+  if (to_schedule) {
+    event->event_time = next_time;
     calendar.insert(event);
   }
   else {

@@ -70,6 +70,23 @@ public:
   virtual bool needs_secondary_ordering() { return false; }
   virtual float_t get_secondary_ordering_value() { return 0; }
 
+  // some events needs fully custom periodicity
+  // (in this case again release events and their release patterns)
+  virtual bool has_custom_periodicity() { return false; }
+
+  virtual bool get_next_scheduled_time(float_t& time) {
+    assert(!has_custom_periodicity() && "Method must be overridden for events with custom periodicity");
+
+    // handling the simple case when periodicity_interval is 0 or not
+    if (periodicity_interval == 0) {
+      return false;
+    }
+    else {
+      time = event_time + periodicity_interval;
+      return true;
+    }
+  }
+
   // time when this object;s step() method will be callled
   float_t event_time;
 
