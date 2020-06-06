@@ -69,6 +69,7 @@ enum class RegionExprOperator {
   Leaf
 };
 
+const int NUMBER_OF_TRAINS_UNLIMITED = -1;
 
 class RegionExprNode {
 public:
@@ -190,7 +191,7 @@ public:
 
   // --- release pattern information ---
   float_t delay;
-  uint number_of_trains;
+  int number_of_trains; // -1 means that the number of trains is unlimited
   float_t train_interval;
   float_t train_duration;
   float_t release_interval;
@@ -198,8 +199,8 @@ public:
 
 private:
   // both values are initialized to 0 and counted from 0
-  uint current_train_from_0;
-  uint current_release_in_train_from_0;
+  int current_train_from_0;
+  int current_release_in_train_from_0;
 
   World* world;
 
@@ -225,7 +226,7 @@ private:
     }
   }
 
-  uint get_num_releases_per_train() const {
+  int get_num_releases_per_train() const {
     assert(release_interval != 0);
 
     if (train_duration > EPS) {

@@ -52,6 +52,14 @@ constants:
     type: int
     value: -1 
     
+  - name: NUMBER_OF_TRAINS_UNLIMITED
+    type: int
+    value: -1     
+    
+  - name: TIME_INFINITY
+    type: float
+    value: 1e140
+    
 enums:
   - name: Orientation
     # TODO: consider adding/changing orientation don't care, this might make things a bit clearer 

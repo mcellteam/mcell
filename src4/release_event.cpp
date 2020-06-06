@@ -95,7 +95,7 @@ ReleaseEvent::~ReleaseEvent() {
 bool ReleaseEvent::update_event_time_for_next_scheduled_time() {
   // see https://mcell.org/tutorials/_images/plot.png
 
-  assert(current_train_from_0 <= number_of_trains);
+  assert(number_of_trains == NUMBER_OF_TRAINS_UNLIMITED || current_train_from_0 <= number_of_trains);
 
   // did we process all trains?
   if (current_train_from_0 == number_of_trains) {
@@ -115,7 +115,7 @@ bool ReleaseEvent::update_event_time_for_next_scheduled_time() {
   current_release_in_train_from_0++;
 
   // should we start a new train next time this method is called?
-  uint number_of_releases_per_train = get_num_releases_per_train();
+  int number_of_releases_per_train = get_num_releases_per_train();
   assert(number_of_releases_per_train >= 1);
   assert(current_release_in_train_from_0 <= number_of_releases_per_train);
 

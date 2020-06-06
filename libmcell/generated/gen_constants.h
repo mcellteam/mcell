@@ -39,6 +39,8 @@ const std::string ALL_MOLECULES = "ALL_MOLECULES";
 const std::string ALL_VOLUME_MOLECULES = "ALL_VOLUME_MOLECULES";
 const std::string ALL_SURFACE_MOLECULES = "ALL_SURFACE_MOLECULES";
 const int MOLECULE_ID_INVALID = -1;
+const int NUMBER_OF_TRAINS_UNLIMITED = -1;
+const float_t TIME_INFINITY = 1e140;
 
 enum class Orientation {
   DOWN = -1,

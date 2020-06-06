@@ -813,6 +813,7 @@ void MCell4Converter::convert_release_events() {
         throw RuntimeError("The only supported shape now is Spherical.");
     }
 
+    rel_event->update_event_time_for_next_scheduled_time();
     world->scheduler.schedule_event(rel_event);
   }
 }

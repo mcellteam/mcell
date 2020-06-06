@@ -1,4 +1,42 @@
 
+ReleasePattern:
+  superclass: BaseDataClass
+  items:
+  - name: name
+    type: str
+    default: unset
+    doc: Name of the release pattern
+    
+  - name: release_interval
+    type: float
+    default: TIME_INFINITY
+    doc: | 
+      During a train of releases, release molecules after every t seconds. 
+      Default is to release only once.
+    
+  - name: train_duration
+    type: float
+    default: TIME_INFINITY
+    doc: |
+      The train of releases lasts for t seconds before turning off. 
+      Default is to never turn off.
+      
+  - name: train_interval
+    type: float
+    default: TIME_INFINITY
+    doc: |
+      A new train of releases happens every t seconds. 
+      Default is to never have a new train. 
+      The train interval must not be shorter than the train duration.
+  
+  - name: number_of_trains
+    type: int
+    default: 1 
+    doc: | 
+      Repeat the release process for n trains of releases. Default is one train.
+      For unlimited number of trains use constant NUMBER_OF_TRAINS_UNLIMITED.
+    
+    
 ReleaseSite:
   superclass: BaseDataClass
   items:
@@ -17,6 +55,21 @@ ReleaseSite:
     default: Orientation.NONE
     doc: |
       Must be set if the species represent surface molecules.
+
+  - name: release_time
+    type: float
+    default: 0
+    doc: | 
+      Specifies time in seconds when the release event is executed.
+      In case when a release pattern is used, this is the time of the first release.      
+      Equivalent to MDL's RELEASE_PATTERN command DELAY.
+
+  - name: release_pattern
+    type: ReleasePattern*
+    default: unset 
+    doc: | 
+      Use the release pattern to define schedule of releases. 
+      The default is to release the specified number of molecules at the set release_time. 
 
   - name: shape
     type: Shape

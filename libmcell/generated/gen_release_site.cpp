@@ -25,6 +25,7 @@
 #include "gen_release_site.h"
 #include "../api/release_site.h"
 #include "../api/region.h"
+#include "../api/release_pattern.h"
 #include "../api/species.h"
 
 namespace MCell {
@@ -55,6 +56,18 @@ bool GenReleaseSite::__eq__(const GenReleaseSite& other) const {
         )
      )  &&
     orientation == other.orientation &&
+    release_time == other.release_time &&
+    (
+      (release_pattern != nullptr) ?
+        ( (other.release_pattern != nullptr) ?
+          (release_pattern->__eq__(*other.release_pattern)) : 
+          false
+        ) :
+        ( (other.release_pattern != nullptr) ?
+          false :
+          true
+        )
+     )  &&
     shape == other.shape &&
     (
       (region != nullptr) ?
@@ -79,6 +92,9 @@ void GenReleaseSite::set_initialized() {
   if (is_set(species)) {
     species->set_initialized();
   }
+  if (is_set(release_pattern)) {
+    release_pattern->set_initialized();
+  }
   if (is_set(region)) {
     region->set_initialized();
   }
@@ -91,6 +107,8 @@ std::string GenReleaseSite::to_str(const std::string ind) const {
       "name=" << name << ", " <<
       "\n" << ind + "  " << "species=" << "(" << ((species != nullptr) ? species->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "orientation=" << orientation << ", " <<
+      "release_time=" << release_time << ", " <<
+      "\n" << ind + "  " << "release_pattern=" << "(" << ((release_pattern != nullptr) ? release_pattern->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "shape=" << shape << ", " <<
       "\n" << ind + "  " << "region=" << "(" << ((region != nullptr) ? region->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "location=" << location << ", " <<
@@ -109,6 +127,8 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
             const std::string&,
             std::shared_ptr<Species>,
             const Orientation,
+            const float_t,
+            std::shared_ptr<ReleasePattern>,
             const Shape,
             std::shared_ptr<Region>,
             const Vec3&,
@@ -121,6 +141,8 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
           py::arg("name"),
           py::arg("species"),
           py::arg("orientation") = Orientation::NONE,
+          py::arg("release_time") = 0,
+          py::arg("release_pattern") = nullptr,
           py::arg("shape") = Shape::UNSET,
           py::arg("region") = nullptr,
           py::arg("location") = VEC3_UNSET,
@@ -136,6 +158,8 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
       .def_property("name", &ReleaseSite::get_name, &ReleaseSite::set_name)
       .def_property("species", &ReleaseSite::get_species, &ReleaseSite::set_species)
       .def_property("orientation", &ReleaseSite::get_orientation, &ReleaseSite::set_orientation)
+      .def_property("release_time", &ReleaseSite::get_release_time, &ReleaseSite::set_release_time)
+      .def_property("release_pattern", &ReleaseSite::get_release_pattern, &ReleaseSite::set_release_pattern)
       .def_property("shape", &ReleaseSite::get_shape, &ReleaseSite::set_shape)
       .def_property("region", &ReleaseSite::get_region, &ReleaseSite::set_region)
       .def_property("location", &ReleaseSite::get_location, &ReleaseSite::set_location)

@@ -65,6 +65,8 @@ ALL_MOLECULES = 'ALL_MOLECULES'
 ALL_VOLUME_MOLECULES = 'ALL_VOLUME_MOLECULES'
 ALL_SURFACE_MOLECULES = 'ALL_SURFACE_MOLECULES'
 MOLECULE_ID_INVALID = -1
+NUMBER_OF_TRAINS_UNLIMITED = -1
+TIME_INFINITY = 1e140
 
 
 class ComponentType():
@@ -367,12 +369,30 @@ class GeometryObject():
         ) -> 'Region':
         pass
 
+class ReleasePattern():
+    def __init__(
+            self,
+            name : str = None,
+            release_interval : float = TIME_INFINITY,
+            train_duration : float = TIME_INFINITY,
+            train_interval : float = TIME_INFINITY,
+            number_of_trains : int = 1
+        ):
+        self.name = name
+        self.release_interval = release_interval
+        self.train_duration = train_duration
+        self.train_interval = train_interval
+        self.number_of_trains = number_of_trains
+
+
 class ReleaseSite():
     def __init__(
             self,
             name : str,
             species : Species,
             orientation : Orientation = Orientation.NONE,
+            release_time : float = 0,
+            release_pattern : ReleasePattern = None,
             shape : Shape = Shape.UNSET,
             region : Region = None,
             location : Vec3 = None,
@@ -385,6 +405,8 @@ class ReleaseSite():
         self.name = name
         self.species = species
         self.orientation = orientation
+        self.release_time = release_time
+        self.release_pattern = release_pattern
         self.shape = shape
         self.region = region
         self.location = location

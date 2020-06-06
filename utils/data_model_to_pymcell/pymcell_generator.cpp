@@ -630,6 +630,43 @@ void gen_region_expr_assignment_for_rel_site(ofstream& out, string region_expr) 
 }
 
 
+static void error_release_pattern(const string& name) {
+  ERROR("Requested release pattern " + name + " not found in data model.");
+}
+
+
+void PymcellGenerator::generate_release_pattern(ofstream& out, const string& name, string& delay_string) {
+
+  if (!mcell.isMember(KEY_DEFINE_RELEASE_PATTERNS)) {
+    error_release_pattern(name);
+  }
+  Value& define_release_patterns = get_node(mcell, KEY_DEFINE_RELEASE_PATTERNS);
+  Value& release_pattern_list = get_node(define_release_patterns, KEY_RELEASE_PATTERN_LIST);
+
+  for (Value::ArrayIndex i = 0; i < release_pattern_list.size(); i++) {
+    Value& release_pattern_item = release_pattern_list[i];
+    if (release_pattern_item[KEY_NAME].asString() != name) {
+      continue;
+    }
+
+    // we found the release pattern
+    check_version(KEY_RELEASE_PATTERN_LIST, release_pattern_item, JSON_DM_VERSION_1300);
+
+    gen_ctor_call(out, name, NAME_CLASS_RELEASE_PATTERN);
+    gen_param(out, NAME_NAME, name, true);
+    gen_param_expr(out, NAME_RELEASE_INTERVAL, release_pattern_item[KEY_RELEASE_INTERVAL], true);
+    gen_param_expr(out, NAME_TRAIN_DURATION, release_pattern_item[KEY_TRAIN_DURATION], true);
+    gen_param_expr(out, NAME_TRAIN_INTERVAL, release_pattern_item[KEY_TRAIN_INTERVAL], true);
+    gen_param_expr(out, NAME_NUMBER_OF_TRAINS, release_pattern_item[KEY_NUMBER_OF_TRAINS], false);
+
+    delay_string = release_pattern_item[KEY_DELAY].asString();
+    return;
+  }
+
+  error_release_pattern(name);
+}
+
+
 bool PymcellGenerator::is_volume_species(const string& species_name) {
   // there must be at least one species
   Value& define_molecules = get_node(mcell, KEY_DEFINE_MOLECULES);
@@ -667,6 +704,14 @@ vector<string> PymcellGenerator::generate_release_sites(ofstream& out) {
   for (Value::ArrayIndex i = 0; i < release_site_list.size(); i++) {
     Value& release_site_item = release_site_list[i];
     check_version(KEY_RELEASE_SITE_LIST, release_site_item, JSON_DM_VERSION_1330);
+
+    // generate release pattern if needed
+    string rel_pat_name = release_site_item[KEY_PATTERN].asString();
+    string delay_string = "";
+    if (rel_pat_name != "") {
+      generate_release_pattern(out, rel_pat_name, delay_string);
+    }
+
     string name = release_site_item[KEY_NAME].asString();
     release_site_names.push_back(name);
 
@@ -687,6 +732,10 @@ vector<string> PymcellGenerator::generate_release_sites(ofstream& out) {
       else {
         gen_param_enum(out, NAME_ORIENTATION, NAME_ENUM_ORIENTATION, orientation, true);
       }
+    }
+
+    if (delay_string != "") {
+      gen_param_expr(out, NAME_RELEASE_TIME, delay_string, true);
     }
 
     string shape = release_site_item[KEY_SHAPE].asString();

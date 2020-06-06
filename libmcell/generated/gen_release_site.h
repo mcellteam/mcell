@@ -30,6 +30,7 @@ namespace MCell {
 namespace API {
 
 class Region;
+class ReleasePattern;
 class Species;
 
 #define RELEASE_SITE_CTOR() \
@@ -37,6 +38,8 @@ class Species;
         const std::string& name_, \
         std::shared_ptr<Species> species_, \
         const Orientation orientation_ = Orientation::NONE, \
+        const float_t release_time_ = 0, \
+        std::shared_ptr<ReleasePattern> release_pattern_ = nullptr, \
         const Shape shape_ = Shape::UNSET, \
         std::shared_ptr<Region> region_ = nullptr, \
         const Vec3& location_ = VEC3_UNSET, \
@@ -50,6 +53,8 @@ class Species;
       name = name_; \
       species = species_; \
       orientation = orientation_; \
+      release_time = release_time_; \
+      release_pattern = release_pattern_; \
       shape = shape_; \
       region = region_; \
       location = location_; \
@@ -94,6 +99,30 @@ public:
   }
   virtual Orientation get_orientation() const {
     return orientation;
+  }
+
+  float_t release_time;
+  virtual void set_release_time(const float_t new_release_time_) {
+    if (initialized) {
+      throw RuntimeError("Value 'release_time' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
+    release_time = new_release_time_;
+  }
+  virtual float_t get_release_time() const {
+    return release_time;
+  }
+
+  std::shared_ptr<ReleasePattern> release_pattern;
+  virtual void set_release_pattern(std::shared_ptr<ReleasePattern> new_release_pattern_) {
+    if (initialized) {
+      throw RuntimeError("Value 'release_pattern' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
+    release_pattern = new_release_pattern_;
+  }
+  virtual std::shared_ptr<ReleasePattern> get_release_pattern() const {
+    return release_pattern;
   }
 
   Shape shape;

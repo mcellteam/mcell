@@ -20,40 +20,25 @@
  *
 ******************************************************************************/
 
-#ifndef API_RELEASE_SITE_H
-#define API_RELEASE_SITE_H
+#ifndef API_RELEASE_PATTERN_H
+#define API_RELEASE_PATTERN_H
 
-#include "generated/gen_release_site.h"
+#include "generated/gen_release_pattern.h"
 #include "api/common.h"
 
 namespace MCell {
 namespace API {
 
-class ReleaseSite: public GenReleaseSite {
+class ReleasePattern: public GenReleasePattern {
 public:
-  RELEASE_SITE_CTOR()
+  RELEASE_PATTERN_CTOR()
 
-  void postprocess_in_ctor() override {
-    if (is_set(region)) {
-      if (shape != Shape::UNSET) {
-        throw ValueError(S("When ") + NAME_REGION + " is set, "
-            "shape must be either unset or set to " + NAME_ENUM_SHAPE + "." + NAME_EV_REGION_EXPR + ".");
-      }
-      shape = Shape::REGION_EXPR;
-    }
-  }
-
-  // actual manual implementation of a semantic check
   void check_semantics() const override {
-    GenReleaseSite::check_semantics();
-    if (release_time < 0) {
-      throw ValueError(S("Value of ") + NAME_RELEASE_TIME + " must not be smaller than 0.");
-    }
-    if (get_num_set(site_diameter, site_radius) > 1) {
-      throw ValueError(S("Only either ") + NAME_SITE_DIAMETER + " or " + NAME_SITE_RADIUS + " can be set.");
-    }
-    if (get_num_set(number_to_release, density) != 1) {
-      throw ValueError(S("Exactly one of ") + NAME_NUMBER_TO_RELEASE + " or " + NAME_DENSITY + " must be set.");
+    GenReleasePattern::check_semantics();
+
+    if (train_interval < train_duration) {
+      throw ValueError(S(NAME_RELEASE_PATTERN) + name + ": " +
+          NAME_TRAIN_INTERVAL + " is shorter than " + NAME_TRAIN_DURATION + ".");
     }
   }
 };
@@ -61,4 +46,4 @@ public:
 } // namespace API
 } // namespace MCell
 
-#endif // API_RELEASE_SITE_H
+#endif // API_RELEASE_PATTERN_H

@@ -40,6 +40,8 @@ void define_pybinding_constants(py::module& m) {
   m.attr("AllVolumeMolecules") = py::object(py::cast(AllVolumeMolecules));
   m.attr("AllSurfaceMolecules") = py::object(py::cast(AllSurfaceMolecules));
   m.attr("MOLECULE_ID_INVALID") = py::int_(MOLECULE_ID_INVALID);
+  m.attr("NUMBER_OF_TRAINS_UNLIMITED") = py::int_(NUMBER_OF_TRAINS_UNLIMITED);
+  m.attr("TIME_INFINITY") = py::float_(TIME_INFINITY);
 }
 
 void define_pybinding_enums(py::module& m) {
