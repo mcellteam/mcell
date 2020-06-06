@@ -42,6 +42,12 @@ void DefragmentationEvent::dump(const string ind) const {
 void DefragmentationEvent::step() {
   for (Partition& p: world->get_partitions()) {
     vector<Molecule>& volume_molecules = p.get_molecules();
+
+    if (volume_molecules.empty()) {
+      // simply skip if there are no volume molecules
+      continue;
+    }
+
     vector<molecule_index_t>& volume_molecules_id_to_index_mapping = p.get_molecule_id_to_index_mapping();
 
     vector<Partition::TimeStepMoleculesData>& mols_per_time_step = p.get_molecule_data_per_time_step_array();
