@@ -50,6 +50,8 @@ Model::~Model() {
 
 
 void Model::add_subsystem(std::shared_ptr<Subsystem> subsystem) {
+  error_if_initialized(NAME_CLASS_SUBSYSTEM);
+
   append_vec_to_vec(species, subsystem->species);
   append_vec_to_vec(reaction_rules, subsystem->reaction_rules);
   append_vec_to_vec(surface_classes, subsystem->surface_classes);
@@ -57,12 +59,16 @@ void Model::add_subsystem(std::shared_ptr<Subsystem> subsystem) {
 
 
 void Model::add_instantiation_data(std::shared_ptr<InstantiationData> instantiation_data) {
+  error_if_initialized(NAME_CLASS_INSTANTIATION_DATA);
+
   append_vec_to_vec(release_sites, instantiation_data->release_sites);
   append_vec_to_vec(geometry_objects, instantiation_data->geometry_objects);
 }
 
 
 void Model::add_observables(std::shared_ptr<Observables> observables) {
+  error_if_initialized(NAME_CLASS_OBSERVABLES);
+
   append_vec_to_vec(viz_outputs, observables->viz_outputs, true);
   append_vec_to_vec(counts, observables->counts, true);
 }
@@ -89,6 +95,8 @@ void Model::initialize() {
   vec_set_initialized(counts);
 
   world->init_simulation();
+
+  initialized = true;
 }
 
 

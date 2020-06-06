@@ -42,7 +42,7 @@ namespace API {
 class Model: public GenModel, public Subsystem, public InstantiationData, public Observables {
 public:
 
-  Model() : world(nullptr) {
+  Model() : initialized(false), world(nullptr) {
     // add species superclasses
     species.push_back(AllMolecules);
     species.push_back(AllVolumeMolecules);
@@ -66,6 +66,47 @@ public:
   std::vector<int> get_molecule_ids(std::shared_ptr<Species> species = nullptr) override;
   std::shared_ptr<Molecule> get_molecule(const int id) override;
 
+  void error_if_initialized(const char* what) {
+    if (initialized) {
+      throw(S("It is not possible to add ") + what + " once a model was initialized.");
+    }
+  }
+
+  // overrides from derived classes Subsystem, InstantiationData, and Observables
+  void add_species(std::shared_ptr<Species> s) override {
+    error_if_initialized(NAME_CLASS_SPECIES);
+    Subsystem::add_species(s);
+  }
+
+  void add_reaction_rule(std::shared_ptr<ReactionRule> r) override {
+    error_if_initialized(NAME_CLASS_REACTION_RULE);
+    Subsystem::add_reaction_rule(r);
+  }
+
+  void add_surface_class(std::shared_ptr<SurfaceClass> sc) override {
+    error_if_initialized(NAME_CLASS_SURFACE_CLASS);
+    Subsystem::add_surface_class(sc);
+  }
+
+  void add_release_site(std::shared_ptr<ReleaseSite> s) override {
+    error_if_initialized(NAME_CLASS_RELEASE_SITE);
+    InstantiationData::add_release_site(s);
+  }
+
+  void add_geometry_object(std::shared_ptr<GeometryObject> o) override {
+    error_if_initialized(NAME_CLASS_GEOMETRY_OBJECT);
+    InstantiationData::add_geometry_object(o);
+  }
+
+  void add_viz_output(std::shared_ptr<VizOutput> viz_output) override {
+    error_if_initialized(NAME_CLASS_VIZ_OUTPUT);
+    Observables::add_viz_output(viz_output);
+  };
+
+  void add_count(std::shared_ptr<Count> count) override {
+    error_if_initialized(NAME_CLASS_OBSERVABLES);
+    Observables::add_count(count);
+  };
 
   // added manually
   // shadows all inherited non-virtual to_str methods
@@ -74,6 +115,7 @@ public:
   void dump() const;
 
 private:
+  bool initialized;
   World* world;
 };
 
