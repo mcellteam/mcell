@@ -74,7 +74,7 @@ int process_args(
   while (1) {
 
     // get the next argument
-    int c = getopt_long_only(argc, argv, "?h", long_options, nullptr);
+    int c = getopt_long_only(argc, argv, "hvgo:", long_options, nullptr);
     if (c == -1)
       break;
 
