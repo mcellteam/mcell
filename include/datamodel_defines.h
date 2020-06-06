@@ -172,6 +172,14 @@ const char* const VALUE_NUMBER_TO_RELEASE = "NUMBER_TO_RELEASE";
 const char* const VALUE_GAUSSIAN_RELEASE_NUMBER = "GAUSSIAN_RELEASE_NUMBER";
 const char* const VALUE_DENSITY = "DENSITY";
 
+const char* const KEY_DEFINE_RELEASE_PATTERNS = "define_release_patterns";
+const char* const KEY_RELEASE_PATTERN_LIST = "release_pattern_list";
+const char* const KEY_NUMBER_OF_TRAINS = "number_of_trains";
+const char* const KEY_DELAY = "delay";
+const char* const KEY_TRAIN_DURATION = "train_duration";
+const char* const KEY_TRAIN_INTERVAL = "train_interval";
+const char* const KEY_RELEASE_INTERVAL = "release_interval";
+
 
 const char* const KEY_VIZ_OUTPUT = "viz_output";
 const char* const KEY_EXPORT_ALL = "export_all";
@@ -324,6 +332,10 @@ const char* const VALUE_FILE_TYPE = "/FILE_TYPE";
 #define VALUE_VIZ_DATA "viz_data"
 #define VALUE_REACT_DATA "react_data"
 const char* const VALUE_SEED = "/SEED";
+
+// ---------------------------------- other --------------------------
+
+const char* const RELEASE_PATTERN_PREFIX = "release_pattern_";
 
 // ---------------------------------- datamodel utilities----------------------------------
 // TODO: move the utility functions into a c++ file

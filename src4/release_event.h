@@ -109,8 +109,8 @@ public:
     // the default values for release pattern are such that there is
     // just one release
     delay(0),
-    train_interval(EPS),
     number_of_trains(1),
+    train_interval(EPS),
     train_duration(EPS),
     release_interval(FLT_GIGANTIC),
     current_train_from_0(0),
@@ -186,12 +186,12 @@ public:
   Vec3 region_urb; // note: this is fully specified by the region above as well
 
 
-  std::string release_pattern_name; // unused
+  std::string release_pattern_name;
 
   // --- release pattern information ---
   float_t delay;
-  float_t train_interval;
   uint number_of_trains;
+  float_t train_interval;
   float_t train_duration;
   float_t release_interval;
 
@@ -224,6 +224,13 @@ private:
       return actual_release_time - event_time;
     }
   }
+
+  uint get_num_releases_per_train() const {
+    assert(release_interval != 0);
+    return ceil_f(train_duration / release_interval);
+  }
+
+  std::string release_pattern_to_data_model(Json::Value& mcell_node) const;
 };
 
 } // namespace mcell

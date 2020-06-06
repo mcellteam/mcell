@@ -114,7 +114,7 @@ bool ReleaseEvent::update_event_time_for_next_scheduled_time() {
   current_release_in_train_from_0++;
 
   // should we start a new train next time this method is called?
-  uint number_of_releases_per_train = ceil_f(train_duration / release_interval);
+  uint number_of_releases_per_train = get_num_releases_per_train();
   assert(number_of_releases_per_train >= 1);
   assert(current_release_in_train_from_0 <= number_of_releases_per_train);
 
@@ -179,10 +179,53 @@ void ReleaseEvent::dump(const string ind) const {
 }
 
 
+// returns the name of the release pattern,
+// empty string if release pattern is not needed
+std::string ReleaseEvent::release_pattern_to_data_model(Json::Value& mcell_node) const {
+  if (delay == 0 && number_of_trains == 1 && get_num_releases_per_train() == 1) {
+    // no release pattern is needed
+    return "";
+  }
+
+  Json::Value& define_release_patterns = mcell_node[KEY_DEFINE_RELEASE_PATTERNS];
+  // version might be already there
+  if (define_release_patterns.isMember(KEY_DATA_MODEL_VERSION)) {
+    DMUtil::json_add_version(define_release_patterns, JSON_DM_VERSION_1638);
+  }
+  Json::Value& release_pattern_list = define_release_patterns[KEY_RELEASE_PATTERN_LIST];
+
+  Json::Value release_pattern_item;
+
+  DMUtil::json_add_version(release_pattern_item, JSON_DM_VERSION_1330);
+
+  release_pattern_item[KEY_DELAY] = DMUtil::f_to_string(delay);
+  release_pattern_item[KEY_NUMBER_OF_TRAINS] = to_string(number_of_trains);
+  release_pattern_item[KEY_TRAIN_INTERVAL] = DMUtil::f_to_string(train_interval);
+  release_pattern_item[KEY_TRAIN_DURATION] = DMUtil::f_to_string(train_duration);
+  release_pattern_item[KEY_RELEASE_INTERVAL] = DMUtil::f_to_string(release_interval);
+
+  string name;
+  if (release_pattern_name != "") {
+    // should be usually set when rel pat is needed
+    name = release_pattern_name;
+  }
+  else {
+    name = RELEASE_PATTERN_PREFIX + release_site_name;
+  }
+  release_pattern_item[KEY_NAME] = name;
+  release_pattern_item[KEY_DESCRIPTION] = "";
+
+  release_pattern_list.append(release_pattern_item);
+
+  return name;
+}
+
+
 void ReleaseEvent::to_data_model(Json::Value& mcell_node) const {
 
-  if (event_time != 0 || actual_release_time != 0) {
-    CONVERSION_UNSUPPORTED("Release event " + release_site_name + " starts at time different from 0, this is not supported yet.");
+  if (event_time != 0) {
+    // FIXME: this is still an issue, but it would be blocking any data model exports after iteration 0
+    // CONVERSION_UNSUPPORTED("Release event " + release_site_name + " starts at time different from 0, this is not supported yet.");
   }
 
   // these items might already exist
@@ -221,7 +264,11 @@ void ReleaseEvent::to_data_model(Json::Value& mcell_node) const {
       break;
   }
 
-  release_site[KEY_PATTERN] = "";
+
+  string data_model_release_pattern_name = release_pattern_to_data_model(mcell_node);
+  release_site[KEY_PATTERN] = data_model_release_pattern_name;
+
+
   release_site[KEY_STDDEV] = "0"; // TODO
   release_site[KEY_RELEASE_PROBABILITY] = DMUtil::f_to_string(1.0);  // only 1 for now
 
