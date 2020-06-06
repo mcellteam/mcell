@@ -198,11 +198,11 @@ std::string ReleaseEvent::release_pattern_to_data_model(Json::Value& mcell_node)
 
   DMUtil::json_add_version(release_pattern_item, JSON_DM_VERSION_1330);
 
-  release_pattern_item[KEY_DELAY] = DMUtil::f_to_string(delay);
+  release_pattern_item[KEY_DELAY] = DMUtil::f_to_string(delay * world->config.time_unit);
   release_pattern_item[KEY_NUMBER_OF_TRAINS] = to_string(number_of_trains);
-  release_pattern_item[KEY_TRAIN_INTERVAL] = DMUtil::f_to_string(train_interval);
-  release_pattern_item[KEY_TRAIN_DURATION] = DMUtil::f_to_string(train_duration);
-  release_pattern_item[KEY_RELEASE_INTERVAL] = DMUtil::f_to_string(release_interval);
+  release_pattern_item[KEY_TRAIN_INTERVAL] = DMUtil::f_to_string(train_interval * world->config.time_unit);
+  release_pattern_item[KEY_TRAIN_DURATION] = DMUtil::f_to_string(train_duration * world->config.time_unit);
+  release_pattern_item[KEY_RELEASE_INTERVAL] = DMUtil::f_to_string(release_interval * world->config.time_unit);
 
   string name;
   if (release_pattern_name != "") {
