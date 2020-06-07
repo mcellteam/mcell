@@ -177,7 +177,8 @@ public:
 
 
   void get_subpart_3d_indices(const Vec3& pos, IVec3& res) const {
-    assert(in_this_partition(pos));
+    release_assert(in_this_partition(pos) &&
+        "Requested position is outside of a partition, usually a molecule diffused there. Please enlarge the partition size.");
     Vec3 relative_position = pos - origin_corner;
     res = relative_position * config.subpartition_edge_length_rcp;
   }
