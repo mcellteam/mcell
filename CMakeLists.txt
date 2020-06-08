@@ -64,7 +64,7 @@ option(ENABLE_GCOV "Use gcc coverage" OFF)
 option(ENABLE_GPROF "Use gprof profiling" OFF)
 option(ENABLE_GPERFTOOLS "Build with gperftools profiling" OFF)  
 option(ENABLE_SANITIZER "Use address sanitizer" OFF)
-option(PYMCELL "Build also PyMCell" OFF) 
+option(PYMCELL "Build also PyMCell" ON) 
 
 
 if (ENABLE_LTO)
@@ -270,11 +270,6 @@ SET_SOURCE_FILES_PROPERTIES( ${SOURCE_FILES_ONLY_MCELL} PROPERTIES LANGUAGE CXX 
 
 link_directories(${CMAKE_BINARY_DIR}/lib)
 
-# fallback to a different swig version:
-if (NOT /usr/bin/swig2.0)
-  set(SWIG_EXECUTABLE /usr/bin/swig)
-endif()
-
 if (UNIX)
   SET(CMAKE_INSTALL_RPATH "$ORIGIN/./lib")
   SET(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
@@ -290,7 +285,7 @@ if (PYMCELL AND NOT WIN32 AND NOT CYGWIN)
   SET(CMAKE_SWIG_FLAGS "-c++;-ltypemaps;-py3")
 
   SET(CMAKE_SWIG_OUTDIR "${CMAKE_BINARY_DIR}/python")
-  SET(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/python")
+  #SET(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/python")
 
   file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/python)
   SET_SOURCE_FILES_PROPERTIES(src/pymcell.i PROPERTIES CPLUSPLUS ON)
@@ -398,6 +393,7 @@ target_link_libraries(mcell mcell4 bng nfsim_c_static NFsim_static jsoncpp_lib $
 if (PYMCELL AND NOT WIN32 AND NOT CYGWIN)
     add_dependencies(pymcell mcell4 version_h bng nfsim_c NFsim jsoncpp_lib)
     target_link_libraries(pymcell mcell4 ${VTK_LIBRARIES})
+    set_target_properties(pymcell PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/python)	
 endif()
 
 # utils

@@ -161,8 +161,8 @@ public:
   
   void dump();
   
-  void export_visualization_datamodel_to_dir(const char* prefix);
-  void export_visualization_datamodel(const char* filename);
+  void export_data_model_to_dir(const std::string& prefix);
+  void export_data_model(const std::string& filename);
   
   BNG::SpeciesContainer& get_all_species();
   
