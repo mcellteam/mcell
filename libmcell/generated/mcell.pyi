@@ -270,19 +270,19 @@ class Region():
 
     def __add__(
             self,
-            other : Region
+            other : 'Region'
         ) -> 'Region':
         pass
 
     def __sub__(
             self,
-            other : Region
+            other : 'Region'
         ) -> 'Region':
         pass
 
     def __mul__(
             self,
-            other : Region
+            other : 'Region'
         ) -> 'Region':
         pass
 
@@ -480,13 +480,13 @@ class CountTerm():
 
     def __add__(
             self,
-            op2 : CountTerm
+            op2 : 'CountTerm'
         ) -> 'CountTerm':
         pass
 
     def __sub__(
             self,
-            op2 : CountTerm
+            op2 : 'CountTerm'
         ) -> 'CountTerm':
         pass
 

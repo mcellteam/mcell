@@ -1442,10 +1442,10 @@ def generate_pyi_class(f, name, class_def):
         printed_methods = set()
         
         for method in class_def[KEY_METHODS]:
-            name = method[KEY_NAME]
-            if name in printed_methods:
+            method_name = method[KEY_NAME]
+            if method_name in printed_methods:
                 continue
-            printed_methods.add(name)
+            printed_methods.add(method_name)
             
             f.write('    def ' + method[KEY_NAME] + '(\n')
             f.write(param_ind + 'self,\n')
