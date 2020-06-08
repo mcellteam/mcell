@@ -68,7 +68,7 @@ bool CplxInstance::matches(const CplxInstance& inst, const bool ignore_orientati
 }
 
 
-std::string CplxInstance::to_str(const BNGData& bng_data, bool in_reaction) const {
+std::string CplxInstance::to_str(const BNGData& bng_data, bool in_surf_reaction) const {
   stringstream ss;
   for (size_t i = 0; i < mol_instances.size(); i++) {
     ss << mol_instances[i].to_str(bng_data);
@@ -83,7 +83,7 @@ std::string CplxInstance::to_str(const BNGData& bng_data, bool in_reaction) cons
   else if (orientation == ORIENTATION_DOWN) {
     ss << ",";
   }
-  else if (is_surf() && in_reaction && orientation == ORIENTATION_NONE) {
+  else if (in_surf_reaction && orientation == ORIENTATION_NONE) {
     ss << ";";
   }
   return ss.str();

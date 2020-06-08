@@ -417,7 +417,7 @@ std::string RxnRule::to_str(const BNGData& bng_data) const {
 std::string RxnRule::complex_instance_vector_to_str(const BNGData& bng_data, const CplxInstanceVector& complexes) const {
   stringstream ss;
   for (size_t i = 0; i < complexes.size(); i++) {
-    ss << complexes[i].to_str(bng_data, true);
+    ss << complexes[i].to_str(bng_data, is_surf_rxn());
 
     if (i != complexes.size() - 1) {
       ss << " + ";
