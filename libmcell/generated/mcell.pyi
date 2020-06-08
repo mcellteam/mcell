@@ -86,13 +86,6 @@ class ComponentType():
         ) -> 'ComponentInstance':
         pass
 
-    def inst(
-            self,
-            state : int = STATE_UNSET_INT,
-            bond : int = BOND_UNBOUND
-        ) -> 'ComponentInstance':
-        pass
-
 class ComponentInstance():
     def __init__(
             self,
@@ -277,19 +270,19 @@ class Region():
 
     def __add__(
             self,
-            other : 'Region'
+            other : Region
         ) -> 'Region':
         pass
 
     def __sub__(
             self,
-            other : 'Region'
+            other : Region
         ) -> 'Region':
         pass
 
     def __mul__(
             self,
-            other : 'Region'
+            other : Region
         ) -> 'Region':
         pass
 
@@ -487,13 +480,13 @@ class CountTerm():
 
     def __add__(
             self,
-            op2 : 'CountTerm'
+            op2 : CountTerm
         ) -> 'CountTerm':
         pass
 
     def __sub__(
             self,
-            op2 : 'CountTerm'
+            op2 : CountTerm
         ) -> 'CountTerm':
         pass
 

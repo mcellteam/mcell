@@ -1438,7 +1438,15 @@ def generate_pyi_class(f, name, class_def):
         
         
     if KEY_METHODS in class_def:
+        # for now, we just simply print the first variant oif there are multiple methods with the same name
+        printed_methods = set()
+        
         for method in class_def[KEY_METHODS]:
+            name = method[KEY_NAME]
+            if name in printed_methods:
+                continue
+            printed_methods.add(name)
+            
             f.write('    def ' + method[KEY_NAME] + '(\n')
             f.write(param_ind + 'self,\n')
             
@@ -1513,6 +1521,11 @@ def generate_pyi_file(data_classes):
         
         
 def load_and_generate_data_classes():
+    # create work directory
+    work_dir = os.path.join('..', 'work')
+    if not os.path.exists(work_dir):
+        os.mkdir(work_dir)
+    
     data_classes = {}
     
     for input_file in ALL_INPUT_FILES:
