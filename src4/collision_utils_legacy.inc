@@ -188,7 +188,7 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
 
     subpart_index_t curr_subpart_index;
 
-    Vec3 displacement_rcp = 1.0/displacement_nonzero; // POSSIBLE ZERO DIV
+    Vec3 displacement_rcp = 1.0/displacement_nonzero;
 
     do {
       // subpartition edges

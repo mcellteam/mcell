@@ -90,18 +90,7 @@ World::~World() {
 }
 
 void World::init_fpu() {
-#ifdef NDEBUG
-  // we do not want to be making extra checks for division by zero
-  // all places where such a case can occur is marked with comment POSSIBLE ZERO DIV
-  fedisableexcept(FE_DIVBYZERO);
-
-  static float_t a = 1;
-  static float_t b = 0;
-  if (a/b != INFINITY) {
-    mcell_error("Error: division by zero is expected to return INFINITY but does not!");
-    exit(1);
-  }
-#endif
+  // empty
 }
 
 uint64_t World::determine_output_frequency(uint64_t iterations) {
