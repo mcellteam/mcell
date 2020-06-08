@@ -39,7 +39,7 @@ __assert_fail_bng (const char *assertion, const char *file, unsigned int line,
          const char *function)
 {
   // assuming that the assertion is internal and malloc and other parts still work
-  std::cout << file << ":" << line << ": " << function << ": Assertion `" << assertion << "' failed.\n";
+  std::cerr << file << ":" << line << ": " << function << ": Assertion `" << assertion << "' failed.\n";
   std::flush(std::cout);
   abort();
 }
