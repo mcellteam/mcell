@@ -192,6 +192,10 @@ def construct_mcell(xml_structs, mdlr_path, output_file_name, nauty_dict):
 
     for bngseed, mdlrseed in zip(xml_structs['seedspecies'], mdlrseeds):
 
+        if bngseed['structure'].trueName not in nauty_dict:
+            # skipping seeds/releases whose number to release is 0, nfsim ignores them
+            continue
+            
         seed_mdl.write('\t{0} {1} //{2}\n'.format(mdlrseed[0], mdlrseed[1], str(bngseed['structure'])))
         seed_mdl.write('\t{\n')
         # print the shape option first

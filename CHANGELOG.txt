@@ -1,7 +1,28 @@
 CHANGELOG
 ===============================================================================
 
-Changes in MCell 3.5
+Changes in MCell 3.5.1
+-------------------------------------------------------------------------------
+
+* Major changes:
+  * Integration of mesh processing tool GAMer 2
+  * Integration of mesh import tool Neuropil Tools
+  * Using BNGSim library for compartmental BNGL import
+
+* Bug Fixes:
+  * Fixed multiple surface-surface reaction handling when the reactions had the same reactants
+  * Fixed MCell-R conversion step when the number of molecules to release was 0
+
+* Minor changes:
+  * MCell-R/NFsim now prints out less messages
+  * Integrated tck-tk for Linux and MacOS builds so the base operating system does not need to provide them 
+
+* Known limitations:
+  * MacOS version must be extracted into the /Applications/ directory manually and must be run from terminal with working directory being the root directory '/' 
+  * Windows version does not contain the Neuropil Tools plugin 
+  
+  
+Changes in MCell 3.5.0
 -------------------------------------------------------------------------------
 
 * Requirements:
@@ -21,14 +42,9 @@ Changes in MCell 3.5
 * Bug Fixes:
   * Fixed several issues for BNGL type reactions in compartments support 
   * Fixed case when memory usage grew indefinitely when logging BNGL type reactions
+  * Fixed variable release scheduling rate when checkpoint with different timestep is loaded
   
 * Optimizations:
   * Optimized search in nfSim reaction cache (up to 2x speedup for some MCellR models)
 
 
-Changes in MCell 3.5.1
--------------------------------------------------------------------------------
-
-* Bug Fixes:
-  *  Fixed multiple surface-surface reaction handling when the reactions had the same reactants, 
-     previous implementation assigned too low probability to the last reaction with the same reactants.  

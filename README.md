@@ -66,10 +66,10 @@ mcell_tools repo and run:
 
     git clone https://github.com/mcellteam/mcell_tools.git
     cd mcell_tools
-    python run.py
+    python3 run.py
 
 This will clone all the required repositories and run build of all the components.
-Running 'python run.py --help' shows other options.
+Running 'python3 run.py --help' shows other options.
 
 To build just MCell, run these commands after you ran the 'python run.py'.
 
@@ -80,6 +80,6 @@ To build just MCell, run these commands after you ran the 'python run.py'.
 ### Testing MCell
 
     cd mcell_tests
-    python run_tests.py
+    python3 run_tests.py
 
-Running 'python run_tests.py --help' shows other options. 
+Running 'python3 run_tests.py --help' shows other options. 
