@@ -32,7 +32,17 @@
 #define release_assert(expr) \
   (static_cast <bool> (expr)                                            \
       ? void (0)                                                        \
-      : __assert_fail(#expr, __FILE__, __LINE__, __ASSERT_FUNCTION))
+      : __assert_fail_bng(#expr, __FILE__, __LINE__, __PRETTY_FUNCTION__))
+
+static inline void
+__assert_fail_bng (const char *assertion, const char *file, unsigned int line,
+         const char *function)
+{
+  // assuming that the assertion is internal and malloc and other parts still work
+  std::cout << file << ":" << line << ": " << function << ": Assertion `" << assertion << "' failed.\n";
+  std::flush(std::cout);
+  abort();
+}
 
 // ---------------------------------- float types ----------------------------------
 
