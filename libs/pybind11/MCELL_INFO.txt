@@ -1,0 +1,6 @@
+Cloned on June 9, 2020 from https://github.com/pybind/pybind11.git, 
+tag v2.5.0, hash 3b1dbeb
+
+CMake on MacOS is unable to find pybind installed in anaconda and
+building pybind11 along with other sources seems to be the common approach 
+(e.g. in Gamer)  
