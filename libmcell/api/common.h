@@ -28,7 +28,7 @@
 #include <exception>
 #include <string>
 #include <memory>
-#include <pybind11/pybind11.h>
+#include "libs/pybind11/include/pybind11/pybind11.h" // make sure we won't include the system header
 
 namespace py = pybind11;
 #include <vector>

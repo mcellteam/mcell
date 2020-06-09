@@ -21,7 +21,7 @@
 ******************************************************************************/
 
 #include <sstream>
-#include <pybind11/stl.h>
+#include "libs/pybind11/include/pybind11/stl.h"
 #include "gen_complex_instance.h"
 #include "../api/complex_instance.h"
 #include "../api/elementary_molecule_instance.h"

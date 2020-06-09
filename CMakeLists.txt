@@ -193,6 +193,7 @@ elseif (WIN32)
                      copy ${CMAKE_SOURCE_DIR}/appveyor_windows/version.h ${CMAKE_CURRENT_BINARY_DIR}/deps )
 endif()
 
+add_subdirectory(${CMAKE_SOURCE_DIR}/libs/pybind11 ${CMAKE_CURRENT_BINARY_DIR}/libs/pybind11)
 add_subdirectory(${CMAKE_SOURCE_DIR}/libs/bng ${CMAKE_CURRENT_BINARY_DIR}/libs/bng)
 add_subdirectory(${CMAKE_SOURCE_DIR}/../nfsim ${CMAKE_CURRENT_BINARY_DIR}/nfsim)
 add_subdirectory(${CMAKE_SOURCE_DIR}/../nfsimCInterface ${CMAKE_CURRENT_BINARY_DIR}/nfsimCInterface)
@@ -352,7 +353,7 @@ configure_file(${MCELL_RULES_DIR}/write_mdl.py ${CMAKE_CURRENT_BINARY_DIR}/write
 # copy tools for MDLr to MDL
 file(COPY ${CMAKE_SOURCE_DIR}/../bionetgen/bng2/ DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/bng2/)
 
-add_library(pymcell4 SHARED 
+pybind11_add_module(pymcell4 MODULE  
     # few files from mcell3 that are used
     # TODO: get rid of all deps except for the random generator
     src/rng.c 
@@ -368,6 +369,7 @@ add_library(pymcell4 SHARED
             
     libmcell/api/exports.cpp
 )
+
 add_dependencies(pymcell4 libmcell mcell4 bng jsoncpp_lib)
 target_link_libraries(pymcell4 
     PUBLIC libmcell

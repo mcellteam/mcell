@@ -21,7 +21,7 @@
 ******************************************************************************/
 
 #include <sstream>
-#include <pybind11/stl.h>
+#include "libs/pybind11/include/pybind11/stl.h"
 #include "gen_reaction_rule.h"
 #include "../api/reaction_rule.h"
 #include "../api/complex_instance.h"
