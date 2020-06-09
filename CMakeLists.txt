@@ -378,6 +378,7 @@ target_link_libraries(pymcell4
 set_property(TARGET pymcell4 PROPERTY POSITION_INDEPENDENT_CODE ON)
 set_target_properties(pymcell4 PROPERTIES PREFIX "")
 set_target_properties(pymcell4 PROPERTIES OUTPUT_NAME "mcell")
+set_target_properties(pymcell4 PROPERTIES SUFFIX "${CMAKE_SHARED_LIBRARY_SUFFIX}")
 
 # build executable
 add_executable(mcell
