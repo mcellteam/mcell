@@ -193,6 +193,8 @@ elseif (WIN32)
                      copy ${CMAKE_SOURCE_DIR}/appveyor_windows/version.h ${CMAKE_CURRENT_BINARY_DIR}/deps )
 endif()
 
+# linking on centos7 with 7.3.1 fails with undefined reference to `casc::detail::asc_NodeBase::~asc_NodeBase()'
+set(PYBIND11_LTO_CXX_FLAGS "")
 add_subdirectory(${CMAKE_SOURCE_DIR}/libs/pybind11 ${CMAKE_CURRENT_BINARY_DIR}/libs/pybind11)
 add_subdirectory(${CMAKE_SOURCE_DIR}/libs/bng ${CMAKE_CURRENT_BINARY_DIR}/libs/bng)
 add_subdirectory(${CMAKE_SOURCE_DIR}/../nfsim ${CMAKE_CURRENT_BINARY_DIR}/nfsim)
