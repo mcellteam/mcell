@@ -303,9 +303,7 @@ if (PYMCELL AND NOT WIN32 AND NOT CYGWIN)
   
   if (APPLE)
     SWIG_LINK_LIBRARIES(pymcell 
-        -Wl,--whole-archive
-        ${PYMCELL_ARCHIVES} 
-        -Wl,--no-whole-archive         
+        ${PYMCELL_ARCHIVES}         
         ${CMAKE_CURRENT_BINARY_DIR}/lib/libnfsim_c.dylib 
         ${CMAKE_CURRENT_BINARY_DIR}/lib/libNFsim.dylib 
         ${PYTHON_LIBRARIES}

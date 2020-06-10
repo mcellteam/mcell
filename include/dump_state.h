@@ -97,7 +97,7 @@ std::ostream & operator<<(std::ostream &out, const vector3 &a);
 // for now keeping dumps shared among mcell3 and mcell4 in header,
 // we do not want to increase the dependency of pymcell4 on mcell3
 static void dump_poly_edge(int i, poly_edge* pep, bool dump_only_init = true) {
-
+#if 0
   if (!dump_only_init) {
     std::cout << "next: \t\t" << pep->next << " [poly_edge*] \t\t /* Next edge in a hash table. */\n";
   }
@@ -121,6 +121,7 @@ static void dump_poly_edge(int i, poly_edge* pep, bool dump_only_init = true) {
     std::cout << "edge[2]: \t\t" << pep->edge[2] << " [int] \t\t /* which edge of wall1/2 are we? */\n";
     std::cout << "n: \t\t" << pep->n << " [int] \t\t     /* How many walls share this edge? */\n";
   }
+#endif
 }
 
 #endif

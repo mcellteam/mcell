@@ -137,10 +137,10 @@ public:
   // must be called before the first insertion into the scheduler,
   // when no release pattern is set, simply sets event_time to 0
   // and on the second call it returns false
-  bool update_event_time_for_next_scheduled_time();
+  bool update_event_time_for_next_scheduled_time() override;
 
   void dump(const std::string indent) const override;
-  void to_data_model(Json::Value& mcell_node) const;
+  void to_data_model(Json::Value& mcell_node) const override;
 
 public:
   std::string release_site_name; // name of releaser site from which was this event created

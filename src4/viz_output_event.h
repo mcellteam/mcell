@@ -45,7 +45,7 @@ public:
 
   void step() override;
   void dump(const std::string ind = "") const override;
-  void to_data_model(Json::Value& mcell_node) const;
+  void to_data_model(Json::Value& mcell_node) const override;
   bool should_visualize_all_species() const;
 
   static std::string iterations_to_string(const uint64_t current_iterations, const uint64_t total_iterations);
