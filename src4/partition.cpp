@@ -30,6 +30,7 @@
 #include "datamodel_defines.h"
 
 #include "dyn_vertex_utils.inc"
+#include "collision_utils.inc"
 
 using namespace std;
 
@@ -167,7 +168,7 @@ void Partition::apply_vertex_moves() {
   scheduled_vertex_moves.clear();
 }
 
-
+/*
 static void dump_counted_volumes_map(const std::string name, const CountedVolumesMap& map) {
   cout << name << ": ";
   if (map.empty()) {
@@ -183,19 +184,10 @@ static void dump_counted_volumes_map(const std::string name, const CountedVolume
     cout << "}\n";
   }
 }
+*/
 
 void Partition::dump() {
   GeometryObject::dump_array(*this, geometry_objects);
-
-  // dump
-  dump_counted_volumes_map(
-      "directly_contained_counted_volume_objects",
-      directly_contained_counted_volume_objects
-  );
-  dump_counted_volumes_map(
-      "enclosing_counted_volume_objects",
-      enclosing_counted_volume_objects
-  );
 
   Region::dump_array(regions);
 
@@ -211,7 +203,7 @@ void Partition::dump() {
   }
 }
 
-
+/*
 geometry_object_id_t Partition::find_smallest_counted_volume_recursively(const GeometryObject& obj, const Vec3& pos) {
 
   assert(obj.is_counted_volume);
@@ -235,9 +227,13 @@ geometry_object_id_t Partition::find_smallest_counted_volume_recursively(const G
   // none of the contained objects contains point at 'pos'
   return obj.id;
 }
+*/
+/*
+counted_volume_index_t Partition::determine_counted_volume_index(const Vec3& pos) {
+
+  // construct CountedVolume
 
 
-geometry_object_id_t Partition::determine_counted_volume_id(const Vec3& pos) {
   // find the first object we are in
   for (GeometryObject& obj: geometry_objects) {
     if (obj.is_counted_volume && CountedVolumesUtil::is_point_inside_counted_volume(obj, pos)) {
@@ -261,8 +257,30 @@ geometry_object_id_t Partition::determine_counted_volume_id(const Vec3& pos) {
 
   // nothing found
   return COUNTED_VOLUME_ID_OUTSIDE_ALL;
+}*/
+
+counted_volume_index_t Partition::get_counted_volume_index(const Vec3& pos) {
+  CountedVolume cv;
+  CollisionUtil::get_counted_volume_for_pos(*this, pos, cv);
+  return find_or_add_counted_volume(cv);
 }
 
+counted_volume_index_t Partition::find_or_add_counted_volume(const CountedVolume& cv) {
+  assert(counted_volumes_vector.size() == counted_volumes_set.size());
+
+  auto it = counted_volumes_set.find(cv);
+  if (it != counted_volumes_set.end()) {
+    return it->index;
+  }
+  else {
+    // we must add this new item
+    CountedVolume cv_copy = cv;
+    cv_copy.index = counted_volumes_set.size();
+    counted_volumes_set.insert(cv_copy);
+    counted_volumes_vector.push_back(cv_copy);
+    return cv_copy.index;
+  }
+}
 
 void Partition::to_data_model(Json::Value& mcell) const {
 

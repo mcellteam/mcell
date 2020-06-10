@@ -44,6 +44,23 @@ class RegionExprNode;
 
 const char* const REGION_ALL_SUFFIX_W_COMMA = ",ALL";
 
+// counted volumes are represented as a set of all counted
+// geometry objects that wholly contain the volume region
+class CountedVolume {
+public:
+  CountedVolume()
+    : index(COUNTED_VOLUME_INDEX_INVALID) {
+  }
+
+  counted_volume_index_t index;
+  uint_set<geometry_object_index_t> contained_in_objects;
+
+  // for search in a map, does not compare index
+  bool operator < (const CountedVolume& other) const {
+    return contained_in_objects < other.contained_in_objects;
+  }
+};
+
 /**
  * A single geometrical object composed of multiple walls.
  * Vertices are accessible through the wall indices.
@@ -55,7 +72,8 @@ public:
     : id(GEOMETRY_OBJECT_ID_INVALID), index(GEOMETRY_OBJECT_INDEX_INVALID),
       encompassing_region_id(REGION_ID_INVALID),
       is_counted_volume(false),
-      counted_volume_id_outside(GEOMETRY_OBJECT_ID_INVALID) {
+      counted_volume_index_inside(COUNTED_VOLUME_INDEX_INVALID),
+      counted_volume_index_outside(COUNTED_VOLUME_INDEX_INVALID) {
   }
 
   geometry_object_id_t id; // world-unique geometry object ID
@@ -72,8 +90,17 @@ public:
   // for now, intersections of counted objects are not allowed,
   // so we do not need to create new objects for volumes
   bool is_counted_volume;
-  // counted_volume_id_inside - same id as this object
-  geometry_object_id_t counted_volume_id_outside;
+
+  // counted volume to be set when a molecule goes inside of this object
+  // might be set to COUNTED_VOLUME_INDEX_INTERSECTS if this object intersects
+  // with another object
+  counted_volume_index_t counted_volume_index_inside;
+
+  // counted volume to be set when a molecule goes outside of this object
+  // might be set to COUNTED_VOLUME_INDEX_INTERSECTS if the direct parent of
+  // this object intersects with another object
+  counted_volume_index_t counted_volume_index_outside;
+
   // valid only if is_counted_volume is true
   vtkSmartPointer<vtkPolyData> counted_volume_polydata;
 

@@ -143,9 +143,10 @@ const float_t SQRT2 = 1.41421356238;
 const float_t RX_RADIUS_MULTIPLIER = 1.3; // TEMPORARY - we should figure out why some collisions with subparts are missed..., but maybe it won't have big perf impact...
 
 const uint INT_INVALID = INT32_MAX;
-const uint ID_INVALID = UINT32_MAX; // general invalid index, should not be used when a definition for a specific type is available
-const uint ID_INVALID2 = UINT32_MAX - 1; // second general invalid index, might be used for special values
+const uint ID_INVALID = UINT32_MAX; // general invalid id, should not be used when a definition for a specific type is available
+const uint ID_INVALID2 = UINT32_MAX - 1; // second general invalid id, might be used for special values
 const uint INDEX_INVALID = UINT32_MAX; // general invalid index, should not be used when a definition for a specific type is available
+const uint INDEX_INVALID2 = UINT32_MAX - 2; // second general invalid index, might be used for special values
 
 // molecule id is a unique identifier of a molecule,
 // no 2 molecules may have the same ID in the course of a simulation (at least for now)
@@ -231,9 +232,20 @@ const geometry_object_index_t GEOMETRY_OBJECT_INDEX_INVALID = INDEX_INVALID;
 typedef uint geometry_object_id_t; // world-unique unique geometry object id
 const geometry_object_id_t GEOMETRY_OBJECT_ID_INVALID = ID_INVALID;
 
-// volume outside of all objects, i.e. WORLD-all objects
-const geometry_object_id_t COUNTED_VOLUME_ID_INVALID = ID_INVALID;
-const geometry_object_id_t COUNTED_VOLUME_ID_OUTSIDE_ALL = ID_INVALID2;
+// each partition has a list of volumes that are counted
+// each counted volume is identified by a set of geometry objects it is in
+// completely
+typedef uint counted_volume_index_t;
+// volume outside of all objects, i.e. WORLD-all objects,
+// this is a special counted volume that has no geometry objects
+const counted_volume_index_t COUNTED_VOLUME_INDEX_OUTSIDE_ALL = 0;
+
+// special value that tells that the specific index must be computed
+// based on the specific position
+const counted_volume_index_t COUNTED_VOLUME_INDEX_INTERSECTS = INDEX_INVALID2;
+
+const counted_volume_index_t COUNTED_VOLUME_INDEX_INVALID = INDEX_INVALID;
+
 
 typedef std::pair<partition_id_t, wall_index_t> PartitionWallIndexPair;
 typedef std::pair<partition_id_t, region_index_t> PartitionRegionIndexPair;

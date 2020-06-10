@@ -104,7 +104,7 @@ public:
     v.pos = pos_;
     v.subpart_index = SUBPART_INDEX_INVALID;
     v.reactant_subpart_index = SUBPART_INDEX_INVALID;
-    v.counted_volume_id = COUNTED_VOLUME_ID_INVALID;
+    v.counted_volume_index = COUNTED_VOLUME_INDEX_INVALID;
   }
 
   // surface molecule
@@ -134,7 +134,7 @@ public:
       v.pos = m.v.pos;
       v.subpart_index = m.v.subpart_index;
       v.reactant_subpart_index = m.v.reactant_subpart_index;
-      v.counted_volume_id = m.v.counted_volume_id;
+      v.counted_volume_index = m.v.counted_volume_index;
     }
     else if (m.is_surf()) {
       s.pos = m.s.pos;
@@ -167,7 +167,7 @@ public:
       // during diffusion the molecules' subpart index might change but the reactant_subpart_index
       // stays the same until its moved in the Partition's volume_molecule_reactants_per_subpart[] array
       subpart_index_t reactant_subpart_index;
-      geometry_object_id_t counted_volume_id;
+      geometry_object_id_t counted_volume_index;
     } v;
 
     // surface molecule data

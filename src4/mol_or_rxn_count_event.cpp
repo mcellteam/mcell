@@ -284,13 +284,6 @@ void MolOrRxnCountEvent::step() {
         continue;
       }
 
-      // volumes that enclose the current molecule
-      // might be nullptr if not found or mol is surface mol
-      const uint_set<geometry_object_id_t>* enclosing_volumes = nullptr;
-      if (m.is_vol()) {
-        enclosing_volumes = p.get_enclosing_counted_volumes(m.v.counted_volume_id);
-      }
-
       // for each counting info
       for (uint i = 0; i < mol_count_infos.size(); i++) {
         const MolOrRxnCountInfo& info = mol_count_infos[i];
@@ -315,8 +308,8 @@ void MolOrRxnCountEvent::step() {
               assert(term.geometry_object_id != GEOMETRY_OBJECT_ID_INVALID);
 
               // is the molecule inside of the object that we are checking?
-              if (m.v.counted_volume_id == term.geometry_object_id ||
-                  (enclosing_volumes != nullptr && enclosing_volumes->count(term.geometry_object_id))) {
+              const CountedVolume& enclosing_volumes = p.get_counted_volume(m.v.counted_volume_index);
+              if (enclosing_volumes.contained_in_objects.count(term.geometry_object_id)) {
 
                 count_items[i].inc_or_dec(term.sign_in_expression);
               }
@@ -370,17 +363,14 @@ void MolOrRxnCountEvent::step() {
 
               for (const auto it: counts_in_objects) {
                 if (it.second != 0) {
-                  geometry_object_id_t obj_id_for_this_count = it.first;
+                  counted_volume_index_t counted_volume_index_for_this_count = it.first;
 
                   // volumes that enclose the location where reaction occurred
                   // might be nullptr if not found
-                  const uint_set<geometry_object_id_t>* enclosing_volumes =
-                      p.get_enclosing_counted_volumes(obj_id_for_this_count);
+                  const CountedVolume& enclosing_volumes = p.get_counted_volume(counted_volume_index_for_this_count);
 
                   // did the reaction occur in the object that we are checking?
-                  if (obj_id_for_this_count == term.geometry_object_id ||
-                      (enclosing_volumes != nullptr && enclosing_volumes->count(term.geometry_object_id))
-                  ) {
+                  if (enclosing_volumes.contained_in_objects.count(term.geometry_object_id) != 0) {
                     count_items[i].inc_or_dec(term.sign_in_expression, it.second);
                   }
                 }

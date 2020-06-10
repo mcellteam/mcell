@@ -40,7 +40,7 @@ class Value;
 namespace MCell {
 
 
-typedef std::map<geometry_object_id_t, uint> CountInGeomObjectMap;
+typedef std::map<counted_volume_index_t, uint> CountInGeomObjectMap;
 typedef std::map<wall_index_t, uint> CountOnWallMap;
 
 // class used to hold potential reactants of given species
@@ -110,6 +110,11 @@ public:
     uint32_t num_subparts = powu(config.num_subpartitions_per_partition, 3);
     volume_molecule_reactants_per_subpart.resize(num_subparts);
     walls_per_subpart.resize(num_subparts);
+
+    // create an empty counted volume
+    CountedVolume counted_volume_outside_all;
+    counted_volume_index_t index = find_or_add_counted_volume(counted_volume_outside_all);
+    assert(index == COUNTED_VOLUME_INDEX_OUTSIDE_ALL && "The empty counted volume must have index 0");
   }
 
 
@@ -332,10 +337,12 @@ private:
 
   // returns counted volume id for this position,
   // member function of Partition because some caching might be useful in the future
-  geometry_object_id_t determine_counted_volume_id(const Vec3& pos);
+  counted_volume_index_t get_counted_volume_index(const Vec3& pos);
 
+  /*
   // auxiliary method for determine_counted_volume_id
   geometry_object_id_t find_smallest_counted_volume_recursively(const GeometryObject& obj, const Vec3& pos);
+  */
 
 public:
   // any molecule flags are set by caller after the molecule is created by this method
@@ -348,8 +355,8 @@ public:
     change_vol_reactants_map_from_orig_to_current(new_vm, true, false);
 
     // compute counted volume id for a new molecule
-    if (new_vm.v.counted_volume_id == COUNTED_VOLUME_ID_INVALID) {
-      new_vm.v.counted_volume_id = determine_counted_volume_id(new_vm.v.pos);
+    if (new_vm.v.counted_volume_index == COUNTED_VOLUME_INDEX_INVALID) {
+      new_vm.v.counted_volume_index = get_counted_volume_index(new_vm.v.pos);
     }
 
     return new_vm;
@@ -553,6 +560,10 @@ public:
     return geometry_objects;
   }
 
+  GeometryObjectVector& get_geometry_objects() {
+    return geometry_objects;
+  }
+
   Region& get_region(const region_index_t index) {
     assert(index < regions.size());
     return regions[index];
@@ -640,42 +651,6 @@ public:
     return walls_using_vertex_mapping[vertex_index];
   }
 
-  void add_child_of_directly_contained_counted_volume(
-      const geometry_object_id_t parent_id,
-      const geometry_object_id_t child_id) {
-    // both must be counted volumes
-    assert(get_geometry_object(parent_id).is_counted_volume);
-    assert(get_geometry_object(child_id).is_counted_volume);
-    directly_contained_counted_volume_objects[parent_id].insert(child_id);
-  }
-
-  void add_parent_that_encloses_counted_volume(
-      const geometry_object_id_t child_id,
-      const geometry_object_id_t parent_id) {
-    // both must be counted volumes
-    assert(get_geometry_object(parent_id).is_counted_volume);
-    assert(get_geometry_object(child_id).is_counted_volume);
-    enclosing_counted_volume_objects[child_id].insert(parent_id);
-  }
-
-  const uint_set<geometry_object_id_t>* get_enclosing_counted_volumes(
-      const geometry_object_id_t child_id) const {
-
-    if (child_id == COUNTED_VOLUME_ID_OUTSIDE_ALL) {
-      // special case for "outside"
-      return nullptr;
-    }
-    else {
-      auto it = enclosing_counted_volume_objects.find(child_id);
-      if (it != enclosing_counted_volume_objects.end()) {
-        return &it->second;
-      }
-      else {
-        return nullptr;
-      }
-    }
-  }
-
   // ---------------------------------- dynamic vertices ----------------------------------
   // add information about a change of a specific vertex
   // order of calls is important (at least for now)
@@ -704,14 +679,25 @@ public:
   BNG::RxnContainer& get_all_rxns() { return bng_engine.get_all_rxns(); }
   const BNG::RxnContainer& get_all_rxns() const { return bng_engine.get_all_rxns(); }
 
-  void inc_rxn_in_volume_occured_count(const BNG::rxn_rule_id_t rxn_id, const geometry_object_id_t counted_volume_id) {
+  // ---------------------------------- counting ----------------------------------
+
+  counted_volume_index_t find_or_add_counted_volume(const CountedVolume& cv);
+  const CountedVolume& get_counted_volume(const counted_volume_index_t counted_volume_index) const {
+    assert(counted_volumes_vector.size() == counted_volumes_set.size());
+    assert(counted_volume_index < counted_volumes_vector.size());
+    assert(counted_volumes_vector[counted_volume_index].index == counted_volume_index);
+    return counted_volumes_vector[counted_volume_index];
+  }
+
+  void inc_rxn_in_volume_occured_count(
+      const BNG::rxn_rule_id_t rxn_id, const counted_volume_index_t counted_volume_index) {
     assert(rxn_id != BNG::RXN_RULE_ID_INVALID);
-    assert(counted_volume_id != COUNTED_VOLUME_ID_INVALID);
+    assert(counted_volume_index != COUNTED_VOLUME_INDEX_INVALID);
 
     auto& map_for_rxn = rxn_counts_per_counted_volume[rxn_id];
-    auto it_counted_volume = map_for_rxn.find(counted_volume_id);
+    auto it_counted_volume = map_for_rxn.find(counted_volume_index);
     if (it_counted_volume == map_for_rxn.end()) {
-      map_for_rxn[counted_volume_id] = 1;
+      map_for_rxn[counted_volume_index] = 1;
     }
     else {
       it_counted_volume->second++;
@@ -799,20 +785,17 @@ private:
   // indexed by subpartition index, contains a set of wall indices (wall_index_t)
   std::vector< uint_set<wall_index_t> > walls_per_subpart;
 
-  // key is object id and its values are objects ids directly contained in it,
-  // defines a containment tree this way, used when placing a new molecule
-  CountedVolumesMap directly_contained_counted_volume_objects;
-
-  // key is object id and its values are objects ids that contain this volume
-  // used when determining when counting the molecules
-  CountedVolumesMap enclosing_counted_volume_objects;
-
   // ---------------------------------- counting ------------------------------------------
   // key is rxn rule id and its values are maps that contain current reaction counts for each
   // counted volume or wall
   // counts are reset every time MolOrRxnCountEvent is executed
   std::map< BNG::rxn_rule_id_t, CountInGeomObjectMap > rxn_counts_per_counted_volume;
   std::map< BNG::rxn_rule_id_t, CountOnWallMap > rxn_counts_per_wall_volume;
+
+  // indexed by counted_volume_index_t
+  std::vector<CountedVolume> counted_volumes_vector;
+  // set for fast search
+  std::set<CountedVolume> counted_volumes_set;
 
   // ---------------------------------- dynamic vertices ----------------------------------
 private:

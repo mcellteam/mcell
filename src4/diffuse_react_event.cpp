@@ -1911,7 +1911,7 @@ int DiffuseReactEvent::outcome_products_random(
   if (rx->is_counted()) {
     assert(rx->id !=  BNG::RXN_RULE_ID_INVALID);
     if (reacA->is_vol()) {
-      p.inc_rxn_in_volume_occured_count(rx->id, reacA->v.counted_volume_id);
+      p.inc_rxn_in_volume_occured_count(rx->id, reacA->v.counted_volume_index);
     }
     else if (reacA->is_surf()) {
       p.inc_rxn_on_surface_occured_count(rx->id, reacA->s.wall_index);

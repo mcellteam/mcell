@@ -21,6 +21,9 @@
  *
 ******************************************************************************/
 
+#ifndef SRC4_COLLISION_UTILS_INC_
+#define SRC4_COLLISION_UTILS_INC_
+
 /**
  * This file is directly included into diffuse_react_event.cpp.
  * The reason why this is not a standard .cpp + .h file is to gove the compiler
@@ -322,6 +325,25 @@ static void raycast_with_endpoints(
 }
 
 
+static inline void compute_inputs_for_raycast_with_endpoints(
+    const float_t subpartition_edge_length, const Vec3& displacement,
+    Vec3& dir, Vec3& abs_d_rcp, Vec3& deltat
+) {
+  const int di = ((displacement.x > 0) ? 1 : ((displacement.x < 0) ? -1 : 0)); // displacement direction
+  const int dj = ((displacement.y > 0) ? 1 : ((displacement.y < 0) ? -1 : 0));
+  const int dk = ((displacement.z > 0) ? 1 : ((displacement.z < 0) ? -1 : 0));
+  dir = Vec3(di, dj, dk);
+
+  // corner points
+  Vec3 abs_d = abs3(displacement);
+  abs_d.x = (abs_d.x == 0) ? EPS : abs_d.x;
+  abs_d.y = (abs_d.y == 0) ? EPS : abs_d.y;
+  abs_d.z = (abs_d.z == 0) ? EPS : abs_d.z;
+
+  abs_d_rcp = float_t(1.0)/abs_d;
+  deltat = Vec3(subpartition_edge_length) * abs_d_rcp;
+}
+
 
 #ifndef COLLECT_SUBPARTS_LEGACY
 static inline void collect_crossed_subparts(
@@ -426,19 +448,13 @@ static inline void collect_crossed_subparts(
   // collect subpartitions on the way by always finding the point where a subpartition boundary is hit
   // we must do it even when we are crossing just one subpartition because we might hit others while
   // moving along them
-  const int di = ((displacement.x > 0) ? 1 : ((displacement.x < 0) ? -1 : 0)); // displacement direction
-  const int dj = ((displacement.y > 0) ? 1 : ((displacement.y < 0) ? -1 : 0));
-  const int dk = ((displacement.z > 0) ? 1 : ((displacement.z < 0) ? -1 : 0));
-  Vec3 dir(di, dj, dk);
-
-  // corner points
-  Vec3 abs_d = abs3(extended_displacement);
-  abs_d.x = (abs_d.x == 0) ? EPS : abs_d.x;
-  abs_d.y = (abs_d.y == 0) ? EPS : abs_d.y;
-  abs_d.z = (abs_d.z == 0) ? EPS : abs_d.z;
-
-  Vec3 abs_d_rcp = float_t(1.0)/abs_d;
-  Vec3 deltat = Vec3(p.config.subpartition_edge_length) * abs_d_rcp;
+  Vec3 dir;
+  Vec3 abs_d_rcp;
+  Vec3 deltat;
+  compute_inputs_for_raycast_with_endpoints(
+      p.config.subpartition_edge_length, extended_displacement,
+      dir, abs_d_rcp, deltat
+  );
 
   for (uint i = 0; i < start_positions.size(); i++){
     raycast_with_endpoints(
@@ -1262,16 +1278,36 @@ static void update_counted_volume_id_when_crossing_wall(
 ) {
   const GeometryObject& obj = p.get_geometry_object(w.object_id);
   if (obj.is_counted_volume) {
+    
+    assert(obj.counted_volume_index_inside != COUNTED_VOLUME_INDEX_INVALID);
+    assert(obj.counted_volume_index_outside != COUNTED_VOLUME_INDEX_INVALID);
+
     // which direction?
     if (collision.type == CollisionType::WALL_BACK) {
       // going outside
-      assert(vm.v.counted_volume_id == obj.id);
-      vm.v.counted_volume_id = obj.counted_volume_id_outside;
+      assert(obj.counted_volume_index_inside == COUNTED_VOLUME_INDEX_INTERSECTS ||
+          obj.counted_volume_index_inside == vm.v.counted_volume_index);
+
+      if (obj.counted_volume_index_outside != COUNTED_VOLUME_INDEX_INTERSECTS) {
+        // no intersect - it is clear what is outside
+        vm.v.counted_volume_index = obj.counted_volume_index_outside;
+      }
+      else {
+        assert(false && "TODO");
+      }
     }
     else if (collision.type == CollisionType::WALL_FRONT) {
       // going inside
-      assert(vm.v.counted_volume_id == obj.counted_volume_id_outside);
-      vm.v.counted_volume_id = obj.id;
+      assert(obj.counted_volume_index_outside == COUNTED_VOLUME_INDEX_INTERSECTS ||
+          obj.counted_volume_index_outside == vm.v.counted_volume_index);
+
+      if (obj.counted_volume_index_outside != COUNTED_VOLUME_INDEX_INTERSECTS) {
+        // no intersect - it is clear what is inside
+        vm.v.counted_volume_index = obj.counted_volume_index_inside;
+      }
+      else {
+        assert(false && "TODO");
+      }
     }
     else {
       assert(false);
@@ -1363,7 +1399,125 @@ static int reflect_or_periodic_bc(
   return 0;
 }
 
+// does not set res.index
+static void get_counted_volume_for_pos(Partition& p, const Vec3& pos, CountedVolume& res) {
 
-} // namespace coll_util
+#if 0
+  // send a ray trace and collect all walls we crossed,
+  // then if we hit wall of an object odd number of times, we are inside of an object
 
-} // namespace mcell
+  // assuming that the whole object fits into our partition
+  // can be optimized by choosing some close object
+  Vec3 dst = p.get_origin_corner();
+  Vec3 displacement = dst - pos - Vec3(EPS); // from here up to a corner of the partition
+
+  // collect which subpartitions we crossed
+  Vec3 dir;
+  Vec3 abs_d_rcp;
+  Vec3 deltat;
+  compute_inputs_for_raycast_with_endpoints(
+      p.config.subpartition_edge_length, displacement,
+      dir, abs_d_rcp, deltat
+  );
+
+  SubpartIndicesVector crossed_subparts_for_walls;
+  subpart_indices_set_t crossed_subparts_for_molecules_ignored;
+  raycast_with_endpoints(
+      p, pos, dst,
+      0, true,
+      dir, abs_d_rcp, deltat,
+      crossed_subparts_for_walls, crossed_subparts_for_molecules_ignored
+  );
+
+  // now check which walls we hit
+  map<geometry_object_index_t, uint> crossed_wall_per_object;
+  uint_set<wall_index_t> already_checked_walls;
+  for (subpart_index_t subpart_w_walls_index: crossed_subparts_for_walls) {
+
+    // check each wall in this subpartition
+    const uint_set<wall_index_t>& wall_indices = p.get_subpart_wall_indices(subpart_w_walls_index);
+
+    for (auto it = wall_indices.begin(); it != wall_indices.end(); it++) {
+      wall_index_t wall_index = *it;
+
+      if (already_checked_walls.count(wall_index) != 0) {
+        // we already checked this wall - the same wall can be in multiple subparts
+        continue;
+      }
+      already_checked_walls.insert(wall_index);
+
+      const Wall& w = p.get_wall(wall_index);
+
+      // do we care about this object?
+      if (!p.get_geometry_object(w.object_index).is_counted_volume) {
+        continue;
+      }
+
+      float_t collision_time_ignored;
+      Vec3 collision_pos_ignored;
+
+      rng_state rng; // using a separate random generator for jump_away lines
+      rng_init(&rng, 0);
+
+      CollisionType collision_type;
+      uint num_tries = 0;
+      do {
+        collision_type = collide_wall(
+              p, pos, w, rng, true, displacement,
+              collision_time_ignored, collision_pos_ignored);
+
+        num_tries++;
+        release_assert(num_tries < 100 && "Cannot determine molecule or waypoint position.");
+      } while (collision_type == CollisionType::WALL_REDO);
+
+      if (collision_type == CollisionType::WALL_FRONT || collision_type == CollisionType::WALL_BACK) {
+        auto it = crossed_wall_per_object.find(w.object_index);
+        if (it == crossed_wall_per_object.end()) {
+          crossed_wall_per_object[w.object_index] = 1;
+        }
+        else {
+          it->second++;
+        }
+      }
+    }
+  }
+
+  // finally construct the set of object indices that encompass the position
+  res.contained_in_objects.clear();
+  for (auto it: crossed_wall_per_object) {
+    assert(it.second != 0);
+    // hit object odd number of times - pos is inside
+    if (it.second % 2 == 1) {
+      // inside of this object
+      res.contained_in_objects.insert(it.first);
+    }
+  }
+#endif
+  // the implementation above does not work correctly in all cases,
+  // the WALL_REDO handling is wrong and not sure how it can be fixed
+  // using VTK to make sure that we get correct result
+  // maybe we can use the implementation above to optimize the counting,
+  // but for now let's keep it simple
+
+  res.contained_in_objects.clear();
+  for (GeometryObject& obj: p.get_geometry_objects()) {
+    if (obj.is_counted_volume) {
+      if (CountedVolumesUtil::is_point_inside_counted_volume(obj, pos)) {
+        res.contained_in_objects.insert(obj.index);
+      }
+    }
+  }
+}
+
+/*
+static CountedVolumesMask get_counted_volumes_for_pos_using_waypoint(
+    const Partition& p, const Vec3& pos, const ) {
+
+}
+*/
+
+} // namespace CollisionUtil
+
+} // namespace MCell
+
+#endif // SRC4_COLLISION_UTILS_INC_
