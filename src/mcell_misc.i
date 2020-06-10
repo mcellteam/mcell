@@ -29,7 +29,7 @@ void mcell_print_stats();
 
 void mcell_dump_state(MCELL_STATE *state);
 
-int mcell_argparse(int argc, char **argv, MCELL_STATE *state);
+//int mcell_argparse(int argc, char **argv, MCELL_STATE *state); // swig-generated code cannot be built on macos
 
 struct num_expr_list *mcell_copysort_numeric_list(struct num_expr_list *head);
 

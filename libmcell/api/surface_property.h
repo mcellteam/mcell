@@ -34,7 +34,7 @@ class SurfaceProperty: public GenSurfaceProperty {
 public:
   SURFACE_PROPERTY_CTOR()
 
-  void postprocess_in_ctor() {
+  void postprocess_in_ctor() override {
     rxn_rule_id = BNG::RXN_RULE_ID_INVALID;
   }
 
