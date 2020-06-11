@@ -40,7 +40,7 @@
 #include "dump_state.h"
 
 // when enabled, mcell3 produces identical result to the mcell master branch
-//#define MCELL3_IDENTICAL
+#define MCELL3_IDENTICAL
 
 // define when comparin mcell4 and pymcell4 outputs
 //#define PYMCELL4_TESTING

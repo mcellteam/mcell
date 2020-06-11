@@ -185,7 +185,7 @@ void Partition::dump() {
   }
 }
 
-
+// NOTE: can be optimized by using previously computed waypoints
 void Partition::create_waypoint(const IVec3& index3d) {
   // array was allocated
   Waypoint& waypoint = get_waypoint(index3d);
@@ -203,7 +203,7 @@ void Partition::create_waypoint(const IVec3& index3d) {
   }
 
   // figure out in which counted volumes is this waypoint present
-  waypoint.counted_volume_index = compute_counted_volume_index(waypoint.pos);
+  waypoint.counted_volume_index = compute_counted_volume_from_scratch(waypoint.pos);
 }
 
 
@@ -232,12 +232,15 @@ void Partition::initialize_waypoints() {
 
 
 // method is in .cpp file because it uses inlined implementation
-// TODO: can be optimized using waypoints
-counted_volume_index_t Partition::compute_counted_volume_index(const Vec3& pos) {
-  CountedVolume cv;
-  CollisionUtil::compute_counted_volume_for_pos(*this, pos, cv);
-  return find_or_add_counted_volume(cv);
+counted_volume_index_t Partition::compute_counted_volume_from_scratch(const Vec3& pos) {
+  return CollisionUtil::compute_counted_volume_for_pos(*this, pos);
 }
+
+
+counted_volume_index_t Partition::compute_counted_volume_using_waypoints(const Vec3& pos) {
+  return CollisionUtil::compute_counted_volume_using_waypoints(*this, pos);
+}
+
 
 counted_volume_index_t Partition::find_or_add_counted_volume(const CountedVolume& cv) {
   assert(counted_volumes_vector.size() == counted_volumes_set.size());

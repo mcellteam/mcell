@@ -1281,8 +1281,9 @@ static bool is_point_inside_region(const Partition& p, const Vec3& pos, const Re
 // ---------------------------------- counting ----------------------------------
 
 // does not set res.index, the index needs to be obtained from partition
-static void compute_counted_volume_for_pos(Partition& p, const Vec3& pos, CountedVolume& res) {
+static counted_volume_index_t compute_counted_volume_for_pos(Partition& p, const Vec3& pos) {
 
+  CountedVolume cv;
 #if 1
   // send a ray trace and collect all walls we crossed,
   // then if we hit wall of an object odd number of times, we are inside of an object
@@ -1372,13 +1373,13 @@ static void compute_counted_volume_for_pos(Partition& p, const Vec3& pos, Counte
   }
 
   // finally construct the set of object indices that encompass the position
-  res.contained_in_objects.clear();
+  cv.contained_in_objects.clear();
   for (auto it: crossed_wall_per_object) {
     assert(it.second != 0);
     // hit object odd number of times - pos is inside
     if (it.second % 2 == 1) {
       // inside of this object
-      res.contained_in_objects.insert(it.first);
+      cv.contained_in_objects.insert(it.first);
     }
   }
 #else
@@ -1388,15 +1389,17 @@ static void compute_counted_volume_for_pos(Partition& p, const Vec3& pos, Counte
   // maybe we can use the implementation above to optimize the counting,
   // but for now let's keep it simple
 
-  res.contained_in_objects.clear();
+  cv.contained_in_objects.clear();
   for (GeometryObject& obj: p.get_geometry_objects()) {
     if (obj.is_counted_volume) {
       if (CountedVolumesUtil::is_point_inside_counted_volume(obj, pos)) {
-        res.contained_in_objects.insert(obj.index);
+        cv.contained_in_objects.insert(obj.index);
       }
     }
   }
 #endif
+
+  return p.find_or_add_counted_volume(cv);
 }
 
 
@@ -1406,72 +1409,79 @@ static counted_volume_index_t compute_counted_volume_using_waypoints(
     Partition& p,
     const Vec3& pos) {
 
-  // subpartition origin point
-  IVec3 index3d;
-  subpart_index_t subpart_index = p.get_subpart_index(pos);
-  p.get_subpart_3d_indices_from_index(subpart_index, index3d);
-  Vec3 subpart_origin =
-      p.get_origin_corner() + Vec3(index3d) * p.config.subpartition_edge_length;
-
-  float_t half_subpart_length = p.config.subpartition_edge_length / 2;
-
-  // find the closest waypoint
-  Vec3 rel_pos = pos - subpart_origin;
-  if (rel_pos.x > half_subpart_length) {
-    index3d.x++;
-  }
-  if (rel_pos.y > half_subpart_length) {
-    index3d.y++;
-  }
-  if (rel_pos.z > half_subpart_length) {
-    index3d.z++;
-  }
-
-  // waypoint is always on the edge of a subpartition
-  const Waypoint& waypoint = p.get_waypoint(index3d);
-
-  // there must not be a counted wall between our point and the waypoint
   bool wall_found = false;
-  Vec3 displacement = waypoint.pos - pos;
-  const uint_set<wall_index_t>& wall_indices = p.get_subpart_wall_indices(subpart_index);
-  for (auto it = wall_indices.begin(); it != wall_indices.end(); it++) {
-    const Wall& w = p.get_wall(*it);
+  const Waypoint* waypoint = nullptr;
 
-    // do we care about this object?
-    if (!p.get_geometry_object(w.object_index).is_counted_volume) {
-      continue;
+  if (p.config.has_intersecting_counted_objects) {
+
+    // subpartition origin point
+    IVec3 index3d;
+    subpart_index_t subpart_index = p.get_subpart_index(pos);
+    p.get_subpart_3d_indices_from_index(subpart_index, index3d);
+    Vec3 subpart_origin =
+        p.get_origin_corner() + Vec3(index3d) * p.config.subpartition_edge_length;
+
+    float_t half_subpart_length = p.config.subpartition_edge_length / 2;
+
+    // find the closest waypoint
+    Vec3 rel_pos = pos - subpart_origin;
+    if (rel_pos.x > half_subpart_length) {
+      index3d.x++;
+    }
+    if (rel_pos.y > half_subpart_length) {
+      index3d.y++;
+    }
+    if (rel_pos.z > half_subpart_length) {
+      index3d.z++;
     }
 
-    float_t collision_time_ignored;
-    Vec3 collision_pos_ignored;
+    // waypoint is always on the edge of a subpartition
+    waypoint = &p.get_waypoint(index3d);
 
-    rng_state rng; // using a separate random generator for jump_away lines
-    rng_init(&rng, 0);
+    // there must not be a counted wall between our point and the waypoint
+    Vec3 displacement = waypoint->pos - pos;
+    const uint_set<wall_index_t>& wall_indices = p.get_subpart_wall_indices(subpart_index);
+    for (auto it = wall_indices.begin(); it != wall_indices.end(); it++) {
+      const Wall& w = p.get_wall(*it);
 
-    CollisionType collision_type;
-    collision_type = collide_wall(
-          p, pos, w, rng, true, displacement,
-          collision_time_ignored, collision_pos_ignored
-    );
+      // do we care about this object?
+      if (!p.get_geometry_object(w.object_index).is_counted_volume) {
+        continue;
+      }
 
-    if (collision_type == CollisionType::WALL_FRONT ||
-        collision_type == CollisionType::WALL_BACK ||
-        collision_type == CollisionType::WALL_REDO) {
-      wall_found = true;
-      break;
+      float_t collision_time_ignored;
+      Vec3 collision_pos_ignored;
+
+      rng_state rng; // using a separate random generator for jump_away lines
+      rng_init(&rng, 0);
+
+      CollisionType collision_type;
+      collision_type = collide_wall(
+            p, pos, w, rng, true, displacement,
+            collision_time_ignored, collision_pos_ignored
+      );
+
+      if (collision_type == CollisionType::WALL_FRONT ||
+          collision_type == CollisionType::WALL_BACK ||
+          collision_type == CollisionType::WALL_REDO) {
+        wall_found = true;
+        break;
+      }
     }
-  }
+  } // check with
 
-  if (!wall_found) {
+  if (p.config.has_intersecting_counted_objects && !wall_found) {
+    assert(waypoint != nullptr);
     // nothing is obstructing,
     // we can simply copy counted volume index from the waypoint
     p.stats.inc_num_waypoints_used();
-    return waypoint.counted_volume_index;
+    return waypoint->counted_volume_index;
   }
   else {
-    // we need to recompute the position
+    // either we have no waypoints or we need to recompute the position
+    // because a wall is obstructing
     p.stats.inc_recomputations_of_counted_volume();
-    return p.compute_counted_volume_index(pos);
+    return CollisionUtil::compute_counted_volume_for_pos(p, pos);
   }
 }
 

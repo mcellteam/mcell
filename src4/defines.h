@@ -725,6 +725,7 @@ public:
                              location instead of center of grid */
 
   // initialized in World::init_counted_volumes
+  // also tells whether waypoints in a partition were initialized
   bool has_intersecting_counted_objects;
 
 

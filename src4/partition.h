@@ -353,8 +353,7 @@ public:
 
     // compute counted volume id for a new molecule
     if (new_vm.v.counted_volume_index == COUNTED_VOLUME_INDEX_INVALID) {
-      // TODO: use waypoints
-      new_vm.v.counted_volume_index = compute_counted_volume_index(new_vm.v.pos);
+      new_vm.v.counted_volume_index = compute_counted_volume_using_waypoints(new_vm.v.pos);
     }
 
     return new_vm;
@@ -687,7 +686,8 @@ public:
   // ---------------------------------- counting ----------------------------------
 
   // returns counted volume index for this position,
-  counted_volume_index_t compute_counted_volume_index(const Vec3& pos);
+  counted_volume_index_t compute_counted_volume_from_scratch(const Vec3& pos);
+  counted_volume_index_t compute_counted_volume_using_waypoints(const Vec3& pos);
 
   void initialize_waypoints();
 
