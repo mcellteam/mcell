@@ -387,7 +387,12 @@ static inline std::string remove_surf_class_prefix(
     size_t pos_prefix = prefix.size() + 1;
     assert(name.size() > pos_prefix);
     assert(name.substr(0, pos_prefix) == prefix + "+");
-    return name.substr(pos_prefix);  }
+    return name.substr(pos_prefix);
+  }
+  // the prefix can be also at the end as suffix
+  else if (pos != std::string::npos && name.substr(pos + 1) == prefix) {
+    return name.substr(0, pos);
+  }
   else {
     return name;
   }
