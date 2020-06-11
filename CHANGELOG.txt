@@ -18,9 +18,17 @@ Changes in MCell 3.5.1
   * Integrated tck-tk for Linux and MacOS builds so the base operating system does not need to provide them 
 
 * Known limitations:
-  * MacOS version must be extracted into the /Applications/ directory manually and must be run from terminal with working directory being the root directory '/' 
+  * MacOS version must be extracted into the /Applications/ directory manually and should be run from 
+    terminal with the current directory being the root directory '/'
+  * Part of Neuropil Tools volFixAll might not work out of the box on all MacOS instalation and tweaking 
+    to install Qt4 correctly is needed, however, this tool is not needed for all the use cases for Neuropil Tools
   * Windows version does not contain the Neuropil Tools plugin 
   
+* Known issues:
+  * Some models stored a a .blend file from 3.5.0 and older releases might fail to import, 
+    it is possible to export them as data model and import data model
+  * Adding surface regions before creating an object might cause an error, it is possible 
+    to create an object first 
   
 Changes in MCell 3.5.0
 -------------------------------------------------------------------------------
