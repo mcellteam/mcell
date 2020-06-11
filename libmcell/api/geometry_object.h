@@ -36,7 +36,7 @@ public:
   GEOMETRY_OBJECT_CTOR()
 
 public:
-  void postprocess_in_ctor() {
+  void postprocess_in_ctor() override {
     node_type = RegionNodeType::LEAF_GEOMETRY_OBJECT;
     partition_id = PARTITION_ID_INVALID;
     geometry_object_id = GEOMETRY_OBJECT_ID_INVALID;

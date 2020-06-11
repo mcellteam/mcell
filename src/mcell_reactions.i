@@ -68,8 +68,10 @@ struct reaction_rates {
   struct reaction_rate backward_rate;
 };
 
-MCELL_STATUS
-mcell_modify_multiple_rate_constants(struct volume *world, char **names, double *rate_constants, int n_rxns);
+// cannot be compiled on MacOS
+//MCELL_STATUS
+//mcell_modify_multiple_rate_constants(struct volume *world, char **names, double *rate_constants, int n_rxns);
+
 
 MCELL_STATUS
 mcell_modify_rate_constant(struct volume *world, char *name, double rate);

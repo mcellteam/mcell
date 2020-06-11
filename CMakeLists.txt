@@ -193,6 +193,9 @@ elseif (WIN32)
                      copy ${CMAKE_SOURCE_DIR}/appveyor_windows/version.h ${CMAKE_CURRENT_BINARY_DIR}/deps )
 endif()
 
+# linking on centos7 with 7.3.1 fails with undefined reference to `casc::detail::asc_NodeBase::~asc_NodeBase()'
+set(PYBIND11_LTO_CXX_FLAGS "")
+add_subdirectory(${CMAKE_SOURCE_DIR}/libs/pybind11 ${CMAKE_CURRENT_BINARY_DIR}/libs/pybind11)
 add_subdirectory(${CMAKE_SOURCE_DIR}/libs/bng ${CMAKE_CURRENT_BINARY_DIR}/libs/bng)
 add_subdirectory(${CMAKE_SOURCE_DIR}/../nfsim ${CMAKE_CURRENT_BINARY_DIR}/nfsim)
 add_subdirectory(${CMAKE_SOURCE_DIR}/../nfsimCInterface ${CMAKE_CURRENT_BINARY_DIR}/nfsimCInterface)
@@ -302,9 +305,7 @@ if (PYMCELL AND NOT WIN32 AND NOT CYGWIN)
   
   if (APPLE)
     SWIG_LINK_LIBRARIES(pymcell 
-        -Wl,--whole-archive
-        ${PYMCELL_ARCHIVES} 
-        -Wl,--no-whole-archive         
+        ${PYMCELL_ARCHIVES}         
         ${CMAKE_CURRENT_BINARY_DIR}/lib/libnfsim_c.dylib 
         ${CMAKE_CURRENT_BINARY_DIR}/lib/libNFsim.dylib 
         ${PYTHON_LIBRARIES}
@@ -352,7 +353,7 @@ configure_file(${MCELL_RULES_DIR}/write_mdl.py ${CMAKE_CURRENT_BINARY_DIR}/write
 # copy tools for MDLr to MDL
 file(COPY ${CMAKE_SOURCE_DIR}/../bionetgen/bng2/ DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/bng2/)
 
-add_library(pymcell4 SHARED 
+pybind11_add_module(pymcell4 MODULE  
     # few files from mcell3 that are used
     # TODO: get rid of all deps except for the random generator
     src/rng.c 
@@ -368,6 +369,7 @@ add_library(pymcell4 SHARED
             
     libmcell/api/exports.cpp
 )
+
 add_dependencies(pymcell4 libmcell mcell4 bng jsoncpp_lib)
 target_link_libraries(pymcell4 
     PUBLIC libmcell
@@ -376,6 +378,7 @@ target_link_libraries(pymcell4
 set_property(TARGET pymcell4 PROPERTY POSITION_INDEPENDENT_CODE ON)
 set_target_properties(pymcell4 PROPERTIES PREFIX "")
 set_target_properties(pymcell4 PROPERTIES OUTPUT_NAME "mcell")
+set_target_properties(pymcell4 PROPERTIES SUFFIX ".so") # must be .so on MacOS as well, TODO fix for Wßindows
 
 # build executable
 add_executable(mcell

@@ -5,7 +5,7 @@
 #include "callback_info.h"
 
 #ifndef NOSWIG
-#include "Python.h"
+#include <Python.h>
 
 using namespace std;
 

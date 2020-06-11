@@ -21,7 +21,7 @@
 ******************************************************************************/
 
 #include <sstream>
-#include <pybind11/stl.h>
+#include "libs/pybind11/include/pybind11/stl.h"
 #include "gen_surface_property.h"
 #include "../api/surface_property.h"
 #include "../api/species.h"

@@ -21,7 +21,7 @@
 ******************************************************************************/
 
 #include <sstream>
-#include <pybind11/stl.h>
+#include "libs/pybind11/include/pybind11/stl.h"
 #include "gen_instantiation_data.h"
 #include "../api/instantiation_data.h"
 #include "../api/geometry_object.h"

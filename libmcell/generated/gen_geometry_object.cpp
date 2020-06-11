@@ -21,7 +21,7 @@
 ******************************************************************************/
 
 #include <sstream>
-#include <pybind11/stl.h>
+#include "libs/pybind11/include/pybind11/stl.h"
 #include "gen_geometry_object.h"
 #include "../api/geometry_object.h"
 #include "../api/region.h"
