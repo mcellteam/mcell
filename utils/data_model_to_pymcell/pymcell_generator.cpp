@@ -1120,6 +1120,8 @@ vector<string> PymcellGenerator::generate_counts(ofstream& out) {
     string where_to_count; // empty for WORLD
     string orientation;
 
+    string count_location = reaction_output_item[KEY_COUNT_LOCATION].asString();
+
     string rxn_or_mol = reaction_output_item[KEY_RXN_OR_MOL].asString();
     if (rxn_or_mol == VALUE_MDLSTRING) {
       // first check whether we need to generate count_terms
@@ -1142,13 +1144,31 @@ vector<string> PymcellGenerator::generate_counts(ofstream& out) {
       single_term = true;
       rxn_not_mol = true;
       what_to_count = reaction_output_item[KEY_REACTION_NAME].asString();
-      where_to_count = reaction_output_item[KEY_REGION_NAME].asString();
+
+      if (count_location == VALUE_COUNT_LOCATION_OBJECT) {
+        where_to_count = reaction_output_item[KEY_OBJECT_NAME].asString();
+      }
+      else if (count_location == VALUE_COUNT_LOCATION_REGION) {
+        where_to_count = reaction_output_item[KEY_REGION_NAME].asString();
+      }
+      else {
+        assert(count_location == VALUE_COUNT_LOCATION_WORLD);
+      }
     }
     else if (rxn_or_mol == VALUE_MOLECULE) {
       single_term = true;
       rxn_not_mol = false;
       what_to_count = reaction_output_item[KEY_MOLECULE_NAME].asString();
-      where_to_count = reaction_output_item[KEY_REGION_NAME].asString();
+
+      if (count_location == VALUE_COUNT_LOCATION_OBJECT) {
+        where_to_count = reaction_output_item[KEY_OBJECT_NAME].asString();
+      }
+      else if (count_location == VALUE_COUNT_LOCATION_REGION) {
+        where_to_count = reaction_output_item[KEY_REGION_NAME].asString();
+      }
+      else {
+        assert(count_location == VALUE_COUNT_LOCATION_WORLD);
+      }
     }
     else {
       ERROR("Invalid rxn_or_mol '" + rxn_or_mol + "' in reaction_output_list for output with filename " +
