@@ -614,8 +614,8 @@ RayTraceState ray_trace_vol(
       );
 
       // stop at first crossing because crossed_subparts_for_walls are ordered
-      // and we are sure that if we hit a wall in the actual supartition, we cannot
-      // possibly hit another wall in a subparition that follows
+      // and we are sure that if we hit a wall in the actual subpartition, we cannot
+      // possibly hit another wall in a subpartition that follows
       if (!collisions.empty()) {
         res_state = RayTraceState::RAY_TRACE_HIT_WALL;
         break;

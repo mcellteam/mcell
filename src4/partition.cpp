@@ -191,6 +191,17 @@ void Partition::create_waypoint(const IVec3& index3d) {
   Waypoint& waypoint = get_waypoint(index3d);
   waypoint.pos = origin_corner + Vec3(config.subpartition_edge_length) * Vec3(index3d);
 
+  // move a bit back if we are on the edge
+  if (waypoint.pos.x >= opposite_corner.x) {
+    waypoint.pos.x -= EPS;
+  }
+  if (waypoint.pos.y >= opposite_corner.y) {
+    waypoint.pos.y -= EPS;
+  }
+  if (waypoint.pos.z >= opposite_corner.z) {
+    waypoint.pos.z -= EPS;
+  }
+
   // figure out in which counted volumes is this waypoint present
   waypoint.counted_volume_index = compute_counted_volume_index(waypoint.pos);
 }
@@ -215,7 +226,7 @@ void Partition::initialize_waypoints() {
 
 counted_volume_index_t Partition::compute_counted_volume_index(const Vec3& pos) {
   CountedVolume cv;
-  CollisionUtil::get_counted_volume_for_pos(*this, pos, cv);
+  CollisionUtil::compute_counted_volume_for_pos(*this, pos, cv);
   return find_or_add_counted_volume(cv);
 }
 

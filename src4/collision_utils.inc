@@ -787,7 +787,7 @@ static bool is_immediate_collision(const float_t time) {
 static void collect_wall_collisions(
     Partition& p,
     const Molecule& vm, // molecule that we are diffusing, we are changing its pos  and possibly also subvolume
-    const subpart_index_t subpart_index,
+    const subpart_index_t subpart_index, // the wall that we hit must be inside of this partition
     const wall_index_t last_hit_wall_index,
     rng_state& rng,
     // displacement can be changed in case we needed to 'REDO' the collision, also,
@@ -843,6 +843,15 @@ static void collect_wall_collisions(
       it = wall_indices.begin();
     }
     else if (collision_type != CollisionType::WALL_MISS) {
+
+      // the hit must be inside this subpartition otherwise an optimization in ray_trace()
+      // that tells to end searching for hits in other subparts once a hit was found won't work
+      // (we might have walls that are in the current subpart but a hit will actually occur later
+      //  than a hit in another subpart)
+      if (p.get_subpart_index(collision_pos) != subpart_index) {
+        continue;
+      }
+
       // remember the closest hit position, but ignore immediate
       if (collision_time < closest_hit_time && !is_immediate_collision(collision_time)) {
         closest_hit_pos = collision_pos;
@@ -1270,15 +1279,9 @@ static bool is_point_inside_region(const Partition& p, const Vec3& pos, const Re
 
 // ---------------------------------- reflections and other wall interactions ----------------------------------
 
-static void update_counted_volume_using_waypoints(
+static counted_volume_index_t compute_counted_volume_using_waypoints(
     Partition& p,
-    const Vec3& displacement, // we need to know which direction we are heading
-    Molecule& vm) {
-  assert(vm.is_vol());
-  assert(p.get_subpart_index(vm.v.pos) == vm.v.subpart_index);
-
-  Vec3 pos_slightly_later = vm.v.pos + displacement * Vec3(EPS);
-
+    const Vec3& pos) {
 #if 0
   // subpartition origin point
   IVec3 index3d;
@@ -1343,7 +1346,7 @@ static void update_counted_volume_using_waypoints(
 #endif
     // we need to recompute
     p.stats.inc_recomputation_of_counted_volume();
-    vm.v.counted_volume_index = p.compute_counted_volume_index(pos_slightly_later);
+    return p.compute_counted_volume_index(pos);
 //  }
 }
 
@@ -1355,6 +1358,8 @@ static void update_counted_volume_id_when_crossing_wall(
     const Vec3& displacement, // TODO: not sure if really needed
     Molecule& vm
 ) {
+  assert(vm.is_vol());
+
   const GeometryObject& obj = p.get_geometry_object(w.object_id);
   if (obj.is_counted_volume) {
     
@@ -1372,8 +1377,13 @@ static void update_counted_volume_id_when_crossing_wall(
         vm.v.counted_volume_index = obj.counted_volume_index_outside;
       }
       else {
+
+        float_t bump = EPS; // hit from back - we go in the direction of the normal
+        Vec3 displacement = Vec3(2 * bump) * w.normal;
+
         // intersect - need to check waypoints or simply recompute the counted volumes
-        update_counted_volume_using_waypoints(p, displacement, vm);
+        vm.v.counted_volume_index =
+            compute_counted_volume_using_waypoints(p, vm.v.pos + displacement);
       }
     }
     else if (collision.type == CollisionType::WALL_FRONT) {
@@ -1386,7 +1396,11 @@ static void update_counted_volume_id_when_crossing_wall(
         vm.v.counted_volume_index = obj.counted_volume_index_inside;
       }
       else {
-        update_counted_volume_using_waypoints(p, displacement, vm);
+        float_t bump = -EPS; // hit from front - we go against the direction of the normal
+        Vec3 displacement = Vec3(2 * bump) * w.normal;
+
+        vm.v.counted_volume_index =
+            compute_counted_volume_using_waypoints(p, vm.v.pos + displacement);
       }
     }
     else {
@@ -1399,7 +1413,7 @@ static void update_counted_volume_id_when_crossing_wall(
 static void cross_transparent_wall(
     Partition& p,
     const Collision& collision,
-    const Vec3& full_displacement, // whole displacement computed for this molecule
+    const Vec3& full_displacement, // whole displacement computed for this molecule // TODO: not used
     Molecule& vm, // moves vm to the reflection point
     Vec3& remaining_displacement,
     float_t& t_steps,
@@ -1488,15 +1502,21 @@ static int reflect_or_periodic_bc(
 
 
 // does not set res.index
-static void get_counted_volume_for_pos(Partition& p, const Vec3& pos, CountedVolume& res) {
+static void compute_counted_volume_for_pos(Partition& p, const Vec3& pos, CountedVolume& res) {
 
-#if 0
+#if 1
   // send a ray trace and collect all walls we crossed,
   // then if we hit wall of an object odd number of times, we are inside of an object
 
   // assuming that the whole object fits into our partition
   // can be optimized by choosing some close object
   Vec3 dst = p.get_origin_corner();
+
+  // move a bit along the side of the partition so that the ray trace hits correctly
+  // this is a temporary measure to minimize REDOs with wall collision
+  dst.x += p.config.subpartition_edge_length / 10;
+  dst.y += p.config.subpartition_edge_length / 20;
+
   Vec3 displacement = dst - pos - Vec3(EPS); // from here up to a corner of the partition
 
   // collect which subpartitions we crossed
@@ -1556,6 +1576,8 @@ static void get_counted_volume_for_pos(Partition& p, const Vec3& pos, CountedVol
 
         num_tries++;
         release_assert(num_tries < 100 && "Cannot determine molecule or waypoint position.");
+        // FIXME: we really do not want REDO, it is highly unreliable
+        assert(collision_type != CollisionType::WALL_REDO);
       } while (collision_type == CollisionType::WALL_REDO);
 
       if (collision_type == CollisionType::WALL_FRONT || collision_type == CollisionType::WALL_BACK) {
@@ -1580,7 +1602,7 @@ static void get_counted_volume_for_pos(Partition& p, const Vec3& pos, CountedVol
       res.contained_in_objects.insert(it.first);
     }
   }
-#endif
+#else
   // the implementation above does not work correctly in all cases,
   // the WALL_REDO handling is wrong and not sure how it can be fixed
   // using VTK to make sure that we get correct result
@@ -1595,6 +1617,7 @@ static void get_counted_volume_for_pos(Partition& p, const Vec3& pos, CountedVol
       }
     }
   }
+#endif
 }
 
 /*

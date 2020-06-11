@@ -2062,9 +2062,11 @@ void dump_collisions(collision* shead) {
             || (ptr->what & COLLIDE_BACK) != 0
            )
     ) {
+      const char* name = ((wall*)ptr->target)->parent_object->sym->name;
       cout << "  " << "wall collision " << i << ": "
           //<< "diff_idx: " << ptr-> diffused_molecule_idx
-          << "wall side: " << ((wall*)ptr->target)->side
+          << "obj name: " << ((name != nullptr) ? name : "")
+          << ", wall side: " << ((wall*)ptr->target)->side
           << ", time: " << ptr->t
           << ", pos: " << ptr->loc
           << "\n";

@@ -881,7 +881,6 @@ int collide_wall(struct vector3 *point, struct vector3 *move, struct wall *face,
 
     if (update_move) {
       a = (abs_max_2vec(point, move) + 1.0) * EPS_C;
-      ASSERT_FOR_MCELL4(false && "Used rng in collide_wall");
       if ((rng_uint(rng) & 1) == 0)
         a = -a;
       if (dd == 0.0) {
