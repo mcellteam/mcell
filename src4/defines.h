@@ -659,6 +659,10 @@ public:
     mol_moves_between_walls++;
   }
 
+  void inc_recomputation_of_counted_volume() {
+    recomputation_of_counted_volume++;
+  }
+
   void dump();
 
   const uint64_t& get_current_iteration() const {
@@ -684,6 +688,8 @@ private:
   uint64_t ray_polygon_tests;
   uint64_t ray_polygon_colls;
   uint64_t mol_moves_between_walls;
+
+  uint64_t recomputation_of_counted_volume;
 };
 
 /*
@@ -720,10 +726,9 @@ private:
   void init_subpartition_edge_length() {
     assert(num_subpartitions_per_partition % 2 == 0
         && "Implementation of raycast_with_endpoints requires that central subparts are aligned with the axes and not shifted");
-    if (partition_edge_length != 0) {
-      subpartition_edge_length = partition_edge_length / (float_t)num_subpartitions_per_partition;
-      subpartition_edge_length_rcp = 1.0/subpartition_edge_length;
-    }
+    release_assert(partition_edge_length > 0);
+    subpartition_edge_length = partition_edge_length / (float_t)num_subpartitions_per_partition;
+    subpartition_edge_length_rcp = 1.0/subpartition_edge_length;
     num_subpartitions_per_partition_squared = powu(num_subpartitions_per_partition, 2);
   }
 

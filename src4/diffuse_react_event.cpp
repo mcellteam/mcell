@@ -839,7 +839,7 @@ int DiffuseReactEvent::collide_and_react_with_surf_mol(
     vm.v.pos = collision.pos;
     vm.v.subpart_index = p.get_subpart_index(vm.v.pos);
     //p.update_molecule_reactants_map(vm);
-    CollisionUtil::update_counted_volume_id_when_crossing_wall(p, wall, collision, vm);
+    CollisionUtil::update_counted_volume_id_when_crossing_wall(p, wall, collision, remaining_displacement, vm);
 
     // TODO: same code is on multiple places, e.g. in cross_transparent_wall,
     // make a function for it
@@ -1845,7 +1845,7 @@ static void update_vol_mol_after_rxn_with_surf_mol(
   vm.v.pos = new_pos_after_diffuse;
   vm.v.subpart_index = p.get_subpart_index(vm.v.pos);
   p.update_molecule_reactants_map(vm);
-  CollisionUtil::update_counted_volume_id_when_crossing_wall(p, w, collision, vm);
+  CollisionUtil::update_counted_volume_id_when_crossing_wall(p, w, collision, displacement, vm);
 }
 
 

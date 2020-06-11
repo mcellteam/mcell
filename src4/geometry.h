@@ -59,6 +59,10 @@ public:
   bool operator < (const CountedVolume& other) const {
     return contained_in_objects < other.contained_in_objects;
   }
+
+  void dump() const {
+    contained_in_objects.dump();
+  }
 };
 
 /**

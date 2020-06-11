@@ -168,24 +168,6 @@ void Partition::apply_vertex_moves() {
   scheduled_vertex_moves.clear();
 }
 
-/*
-static void dump_counted_volumes_map(const std::string name, const CountedVolumesMap& map) {
-  cout << name << ": ";
-  if (map.empty()) {
-    cout << "empty\n";
-  }
-  else {
-    cout << "\n";
-  }
-
-  for (auto it: map) {
-    cout << "  " << it.first << " -> {";
-    it.second.dump();
-    cout << "}\n";
-  }
-}
-*/
-
 void Partition::dump() {
   GeometryObject::dump_array(*this, geometry_objects);
 
@@ -203,63 +185,35 @@ void Partition::dump() {
   }
 }
 
-/*
-geometry_object_id_t Partition::find_smallest_counted_volume_recursively(const GeometryObject& obj, const Vec3& pos) {
 
-  assert(obj.is_counted_volume);
-  auto it = directly_contained_counted_volume_objects.find(obj.id);
-  if (it == directly_contained_counted_volume_objects.end()) {
-    // there are no contained objects
-    return obj.id;
-  }
+void Partition::create_waypoint(const IVec3& index3d) {
+  // array was allocated
+  Waypoint& waypoint = get_waypoint(index3d);
+  waypoint.pos = origin_corner + Vec3(config.subpartition_edge_length) * Vec3(index3d);
 
-  const uint_set<geometry_object_id_t>& subobject_ids = it->second;
-
-  for (geometry_object_id_t subobj_id: subobject_ids) {
-    assert(subobj_id != obj.id);
-    GeometryObject& subobj = get_geometry_object(subobj_id);
-    if (CountedVolumesUtil::is_point_inside_counted_volume(subobj, pos)) {
-      // the hierarchy must be a tree, so we directly find the path to the leaf of the object 'containment' tree
-      return find_smallest_counted_volume_recursively(subobj, pos);
-    }
-  }
-
-  // none of the contained objects contains point at 'pos'
-  return obj.id;
+  // figure out in which counted volumes is this waypoint present
+  waypoint.counted_volume_index = compute_counted_volume_index(waypoint.pos);
 }
-*/
-/*
-counted_volume_index_t Partition::determine_counted_volume_index(const Vec3& pos) {
-
-  // construct CountedVolume
 
 
-  // find the first object we are in
-  for (GeometryObject& obj: geometry_objects) {
-    if (obj.is_counted_volume && CountedVolumesUtil::is_point_inside_counted_volume(obj, pos)) {
+void Partition::initialize_waypoints() {
+  // each corner of a subpartition has a waypoint
+  uint num_waypoints_per_dimension = config.num_subpartitions_per_partition + 1;
 
-      // follow the containment graph to determine the smallest counted volume
-      geometry_object_id_t res = find_smallest_counted_volume_recursively(obj, pos);
-
-#ifdef DEBUG_COUNTED_VOLUMES
-      cout <<
-          "Counted volumes: assigned obj " << get_geometry_object(res).name << " (id:" << res << ")" <<
-          " for pos " << pos << "\n";
-#endif
-
-			return res;
+  waypoints.resize(num_waypoints_per_dimension);
+  for (uint x = 0; x < num_waypoints_per_dimension; x++) {
+    waypoints[x].resize(num_waypoints_per_dimension);
+    for (uint y = 0; y < num_waypoints_per_dimension; y++) {
+      waypoints[x][y].resize(num_waypoints_per_dimension);
+      for (uint z = 0; z < num_waypoints_per_dimension; z++) {
+        create_waypoint(IVec3(x, y, z));
+      }
     }
   }
+}
 
-#ifdef DEBUG_COUNTED_VOLUMES
-      cout << "Counted volumes: assigned 'outside' for pos " << pos << "\n";
-#endif
 
-  // nothing found
-  return COUNTED_VOLUME_ID_OUTSIDE_ALL;
-}*/
-
-counted_volume_index_t Partition::get_counted_volume_index(const Vec3& pos) {
+counted_volume_index_t Partition::compute_counted_volume_index(const Vec3& pos) {
   CountedVolume cv;
   CollisionUtil::get_counted_volume_for_pos(*this, pos, cv);
   return find_or_add_counted_volume(cv);

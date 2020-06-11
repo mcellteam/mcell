@@ -1270,10 +1270,89 @@ static bool is_point_inside_region(const Partition& p, const Vec3& pos, const Re
 
 // ---------------------------------- reflections and other wall interactions ----------------------------------
 
+static void update_counted_volume_using_waypoints(
+    Partition& p,
+    const Vec3& displacement, // we need to know which direction we are heading
+    Molecule& vm) {
+  assert(vm.is_vol());
+  assert(p.get_subpart_index(vm.v.pos) == vm.v.subpart_index);
+
+  Vec3 pos_slightly_later = vm.v.pos + displacement * Vec3(EPS);
+
+#if 0
+  // subpartition origin point
+  IVec3 index3d;
+  p.get_subpart_3d_indices_from_index(vm.v.subpart_index, index3d);
+  Vec3 subpart_origin =
+      p.get_origin_corner() + Vec3(index3d) * p.config.subpartition_edge_length;
+
+  float_t half_subpart_length = p.config.subpartition_edge_length / 2;
+
+  // find the closest waypoint
+  Vec3 rel_pos = vm.v.pos - subpart_origin;
+  if (rel_pos.x > half_subpart_length) {
+    index3d.x++;
+  }
+  if (rel_pos.y > half_subpart_length) {
+    index3d.y++;
+  }
+  if (rel_pos.z > half_subpart_length) {
+    index3d.z++;
+  }
+
+  const Waypoint& waypoint = p.get_waypoint(index3d);
+
+  // there must not be a counted wall between our point and the checkpoint
+  bool wall_found = false;
+  Vec3 displacement = vm.v.pos - waypoint.pos;
+  const uint_set<wall_index_t>& wall_indices = p.get_subpart_wall_indices(vm.v.subpart_index);
+  for (auto it = wall_indices.begin(); it != wall_indices.end(); it++) {
+    const Wall& w = p.get_wall(*it);
+
+    // do we care about this object?
+    if (!p.get_geometry_object(w.object_index).is_counted_volume) {
+      continue;
+    }
+
+    float_t collision_time_ignored;
+    Vec3 collision_pos_ignored;
+
+    rng_state rng; // using a separate random generator for jump_away lines
+    rng_init(&rng, 0);
+
+    CollisionType collision_type;
+    collision_type = collide_wall(
+          p, vm.v.pos, w, rng, true, displacement,
+          collision_time_ignored, collision_pos_ignored
+    );
+
+    if (collision_type == CollisionType::WALL_FRONT ||
+        collision_type == CollisionType::WALL_BACK ||
+        collision_type == CollisionType::WALL_REDO) {
+      wall_found = true;
+      break;
+    }
+  }
+
+  if (!wall_found) {
+    // nothing is obstructing,
+    // we can simply copy counted volume index from the waypoint
+    vm.v.counted_volume_index = waypoint.counted_volume_index;
+  }
+  else {
+#endif
+    // we need to recompute
+    p.stats.inc_recomputation_of_counted_volume();
+    vm.v.counted_volume_index = p.compute_counted_volume_index(pos_slightly_later);
+//  }
+}
+
+
 static void update_counted_volume_id_when_crossing_wall(
-    const Partition& p,
+    Partition& p,
     const Wall& w,
     const Collision& collision,
+    const Vec3& displacement, // TODO: not sure if really needed
     Molecule& vm
 ) {
   const GeometryObject& obj = p.get_geometry_object(w.object_id);
@@ -1293,7 +1372,8 @@ static void update_counted_volume_id_when_crossing_wall(
         vm.v.counted_volume_index = obj.counted_volume_index_outside;
       }
       else {
-        assert(false && "TODO");
+        // intersect - need to check waypoints or simply recompute the counted volumes
+        update_counted_volume_using_waypoints(p, displacement, vm);
       }
     }
     else if (collision.type == CollisionType::WALL_FRONT) {
@@ -1306,7 +1386,7 @@ static void update_counted_volume_id_when_crossing_wall(
         vm.v.counted_volume_index = obj.counted_volume_index_inside;
       }
       else {
-        assert(false && "TODO");
+        update_counted_volume_using_waypoints(p, displacement, vm);
       }
     }
     else {
@@ -1317,7 +1397,7 @@ static void update_counted_volume_id_when_crossing_wall(
 
 
 static void cross_transparent_wall(
-    const Partition& p,
+    Partition& p,
     const Collision& collision,
     const Vec3& full_displacement, // whole displacement computed for this molecule
     Molecule& vm, // moves vm to the reflection point
@@ -1326,10 +1406,17 @@ static void cross_transparent_wall(
     float_t& elapsed_molecule_time,
     wall_index_t& last_hit_wall_index
 ) {
+#ifdef DEBUG_COUNTED_VOLUMES
+  vm.dump(p, "- Before crossing: ");
+#endif
 
   const Wall& w = p.get_wall(collision.colliding_wall_index);
 
-  update_counted_volume_id_when_crossing_wall(p, w, collision, vm);
+  // Update molecule location to the point of wall crossing
+  vm.v.pos = collision.pos;
+  vm.v.subpart_index = p.get_subpart_index(vm.v.pos);
+
+  update_counted_volume_id_when_crossing_wall(p, w, collision, remaining_displacement, vm);
 
 #ifdef DEBUG_TRANSPARENT_SURFACES
   std::cout << "Crossed a transparent wall, side: " << w.side << "\n";
@@ -1340,11 +1427,6 @@ static void cross_transparent_wall(
   float_t t_smash = collision.time;
 
   remaining_displacement = remaining_displacement * Vec3(1.0 - t_smash);
-
-  // Update molecule location to the point of wall crossing
-  vm.v.pos = collision.pos;
-  vm.v.subpart_index = p.get_subpart_index(vm.v.pos);
-
   elapsed_molecule_time += t_steps * t_smash;
 
   t_steps *= (1.0 - t_smash);
@@ -1353,6 +1435,10 @@ static void cross_transparent_wall(
   }
 
   last_hit_wall_index = w.index;
+
+#ifdef DEBUG_COUNTED_VOLUMES
+  vm.dump(p, "- After crossing: ");
+#endif
 }
 
 /******************************************************************************
@@ -1398,6 +1484,8 @@ static int reflect_or_periodic_bc(
 
   return 0;
 }
+
+
 
 // does not set res.index
 static void get_counted_volume_for_pos(Partition& p, const Vec3& pos, CountedVolume& res) {

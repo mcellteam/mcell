@@ -236,8 +236,8 @@ public:
   void dump(
       const Partition& p,
       const std::string extra_comment,
-      const std::string ind,
-      const uint64_t iteration,
+      const std::string ind = "  ",
+      const uint64_t iteration = 0,
       const float_t time = 0,
       const bool print_position = true
   ) const;

@@ -84,6 +84,12 @@ private:
 };
 
 
+struct Waypoint {
+  Vec3 pos;
+  counted_volume_index_t counted_volume_index;
+};
+
+
 /**
  * Partition class contains all molecules and other data contained in
  * one simulation block.
@@ -335,15 +341,6 @@ private:
     return new_m;
   }
 
-  // returns counted volume id for this position,
-  // member function of Partition because some caching might be useful in the future
-  counted_volume_index_t get_counted_volume_index(const Vec3& pos);
-
-  /*
-  // auxiliary method for determine_counted_volume_id
-  geometry_object_id_t find_smallest_counted_volume_recursively(const GeometryObject& obj, const Vec3& pos);
-  */
-
 public:
   // any molecule flags are set by caller after the molecule is created by this method
   Molecule& add_volume_molecule(const Molecule& vm_copy) {
@@ -356,7 +353,8 @@ public:
 
     // compute counted volume id for a new molecule
     if (new_vm.v.counted_volume_index == COUNTED_VOLUME_INDEX_INVALID) {
-      new_vm.v.counted_volume_index = get_counted_volume_index(new_vm.v.pos);
+      // TODO: use waypoints
+      new_vm.v.counted_volume_index = compute_counted_volume_index(new_vm.v.pos);
     }
 
     return new_vm;
@@ -671,6 +669,13 @@ private:
     }
     walls_using_vertex_mapping[vertex_index].push_back(wall_index);
   }
+
+  void create_waypoint(const IVec3& index3d);
+  void check_waypoint_index(const IVec3& index3d) const {
+    assert(index3d.x < (int)waypoints.size());
+    assert(index3d.y < (int)waypoints[index3d.x].size());
+    assert(index3d.z < (int)waypoints[index3d.x][index3d.y].size());
+  }
 public:
   // ---------------------------------- other ----------------------------------
   BNG::SpeciesContainer& get_all_species() { return bng_engine.get_all_species(); }
@@ -680,6 +685,21 @@ public:
   const BNG::RxnContainer& get_all_rxns() const { return bng_engine.get_all_rxns(); }
 
   // ---------------------------------- counting ----------------------------------
+
+  // returns counted volume index for this position,
+  counted_volume_index_t compute_counted_volume_index(const Vec3& pos);
+
+  void initialize_waypoints();
+
+  Waypoint& get_waypoint(const IVec3& index3d) {
+    check_waypoint_index(index3d);
+    return waypoints[index3d.x][index3d.y][index3d.z];
+  }
+
+  const Waypoint& get_waypoint(const IVec3& index3d) const {
+    check_waypoint_index(index3d);
+    return waypoints[index3d.x][index3d.y][index3d.z];
+  }
 
   counted_volume_index_t find_or_add_counted_volume(const CountedVolume& cv);
   const CountedVolume& get_counted_volume(const counted_volume_index_t counted_volume_index) const {
@@ -796,6 +816,9 @@ private:
   std::vector<CountedVolume> counted_volumes_vector;
   // set for fast search
   std::set<CountedVolume> counted_volumes_set;
+
+  // indexed by [x][y][z]
+  std::vector< std::vector< std::vector< Waypoint > > > waypoints;
 
   // ---------------------------------- dynamic vertices ----------------------------------
 private:

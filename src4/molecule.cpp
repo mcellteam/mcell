@@ -116,6 +116,13 @@ void Molecule::dump(
   }
 #endif
 
+#ifdef DEBUG_COUNTED_VOLUMES
+  if (is_vol()) {
+    cout << ", counted vols id: " << v.counted_volume_index;
+    p.get_counted_volume(v.counted_volume_index).dump();
+  }
+#endif
+
   cout
       << ", time: " << time
       << "\n";
