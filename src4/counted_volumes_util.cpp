@@ -510,7 +510,7 @@ static void define_counted_volumes(
 
 // return true if counted volumes were correctly set up
 // the only entry point to this utility file (so far)
-bool initialize_counted_volumes(World* world) {
+bool initialize_counted_volumes(World* world, bool& has_intersecting_counted_objects) {
 
   GeomObjectInfoVector counted_objects;
 
@@ -541,6 +541,8 @@ bool initialize_counted_volumes(World* world) {
   // define counted volumes, sets inside and outside volume id for geometry objects
   uint_set<geometry_object_id_t> already_processed_objects;
   define_counted_volumes(world, counted_objects, contained_in_mapping, intersecting_objects);
+
+  has_intersecting_counted_objects = !intersecting_objects.empty();
 
   return true;
 }

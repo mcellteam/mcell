@@ -132,7 +132,7 @@ void World::create_diffusion_events() {
 void World::init_counted_volumes() {
   assert(partitions.size() == 1);
 
-  bool ok = CountedVolumesUtil::initialize_counted_volumes(this);
+  bool ok = CountedVolumesUtil::initialize_counted_volumes(this, config.has_intersecting_counted_objects);
   if (!ok) {
     mcell_error("Processing of counted volumes failed, terminating.");
   }

@@ -208,8 +208,15 @@ void Partition::create_waypoint(const IVec3& index3d) {
 
 
 void Partition::initialize_waypoints() {
+  if (!config.has_intersecting_counted_objects) {
+    // no need to initialize
+    return;
+  }
+
   // each corner of a subpartition has a waypoint
   uint num_waypoints_per_dimension = config.num_subpartitions_per_partition + 1;
+
+  mcell_log("Initializing %d waypoints...", powu(num_waypoints_per_dimension, 3));
 
   waypoints.resize(num_waypoints_per_dimension);
   for (uint x = 0; x < num_waypoints_per_dimension; x++) {
@@ -224,6 +231,8 @@ void Partition::initialize_waypoints() {
 }
 
 
+// method is in .cpp file because it uses inlined implementation
+// TODO: can be optimized using waypoints
 counted_volume_index_t Partition::compute_counted_volume_index(const Vec3& pos) {
   CountedVolume cv;
   CollisionUtil::compute_counted_volume_for_pos(*this, pos, cv);

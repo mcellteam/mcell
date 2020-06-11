@@ -659,8 +659,12 @@ public:
     mol_moves_between_walls++;
   }
 
-  void inc_recomputation_of_counted_volume() {
-    recomputation_of_counted_volume++;
+  void inc_recomputations_of_counted_volume() {
+    recomputations_of_counted_volume++;
+  }
+
+  void inc_num_waypoints_used() {
+    num_waypoints_used++;
   }
 
   void dump();
@@ -679,6 +683,8 @@ public:
     ray_polygon_tests = 0;
     ray_polygon_colls = 0;
     mol_moves_between_walls = 0;
+    num_waypoints_used = 0;
+    recomputations_of_counted_volume = 0;
   }
 
 private:
@@ -689,7 +695,8 @@ private:
   uint64_t ray_polygon_colls;
   uint64_t mol_moves_between_walls;
 
-  uint64_t recomputation_of_counted_volume;
+  uint64_t num_waypoints_used;
+  uint64_t recomputations_of_counted_volume;
 };
 
 /*
@@ -698,6 +705,8 @@ private:
 // TODO: cleanup all unnecessary argument passing, e.g. in diffuse_react_event.cpp
 class SimulationConfig: public BNG::BNGConfig {
 public:
+  // TODO: add ctor
+
   // configuration
 
   float_t vacancy_search_dist2; /* Square of distance to search for free grid
@@ -714,6 +723,10 @@ public:
                             interactions */
   bool randomize_smol_pos; /* If set, always place surface molecule at random
                              location instead of center of grid */
+
+  // initialized in World::init_counted_volumes
+  bool has_intersecting_counted_objects;
+
 
   void init() {
     BNGConfig::init();

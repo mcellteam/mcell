@@ -692,11 +692,13 @@ public:
   void initialize_waypoints();
 
   Waypoint& get_waypoint(const IVec3& index3d) {
+    assert(config.has_intersecting_counted_objects);
     check_waypoint_index(index3d);
     return waypoints[index3d.x][index3d.y][index3d.z];
   }
 
   const Waypoint& get_waypoint(const IVec3& index3d) const {
+    assert(config.has_intersecting_counted_objects);
     check_waypoint_index(index3d);
     return waypoints[index3d.x][index3d.y][index3d.z];
   }

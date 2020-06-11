@@ -1266,6 +1266,7 @@ static bool is_point_inside_region(const Partition& p, const Vec3& pos, const Re
 
     // check collision with each wall
     // TODO LATER: optimize with subparts
+    // FIXME: the collide_Wall_test is not reliable in all cases
     const Wall& w = p.get_wall(wall_edges_pair.first);
     bool collides = CollisionUtil::collide_wall_test(p, pos, w, move);
     if (collides) {
@@ -1277,231 +1278,9 @@ static bool is_point_inside_region(const Partition& p, const Vec3& pos, const Re
   return num_hits % 2 == 1;
 }
 
-// ---------------------------------- reflections and other wall interactions ----------------------------------
+// ---------------------------------- counting ----------------------------------
 
-static counted_volume_index_t compute_counted_volume_using_waypoints(
-    Partition& p,
-    const Vec3& pos) {
-#if 0
-  // subpartition origin point
-  IVec3 index3d;
-  p.get_subpart_3d_indices_from_index(vm.v.subpart_index, index3d);
-  Vec3 subpart_origin =
-      p.get_origin_corner() + Vec3(index3d) * p.config.subpartition_edge_length;
-
-  float_t half_subpart_length = p.config.subpartition_edge_length / 2;
-
-  // find the closest waypoint
-  Vec3 rel_pos = vm.v.pos - subpart_origin;
-  if (rel_pos.x > half_subpart_length) {
-    index3d.x++;
-  }
-  if (rel_pos.y > half_subpart_length) {
-    index3d.y++;
-  }
-  if (rel_pos.z > half_subpart_length) {
-    index3d.z++;
-  }
-
-  const Waypoint& waypoint = p.get_waypoint(index3d);
-
-  // there must not be a counted wall between our point and the checkpoint
-  bool wall_found = false;
-  Vec3 displacement = vm.v.pos - waypoint.pos;
-  const uint_set<wall_index_t>& wall_indices = p.get_subpart_wall_indices(vm.v.subpart_index);
-  for (auto it = wall_indices.begin(); it != wall_indices.end(); it++) {
-    const Wall& w = p.get_wall(*it);
-
-    // do we care about this object?
-    if (!p.get_geometry_object(w.object_index).is_counted_volume) {
-      continue;
-    }
-
-    float_t collision_time_ignored;
-    Vec3 collision_pos_ignored;
-
-    rng_state rng; // using a separate random generator for jump_away lines
-    rng_init(&rng, 0);
-
-    CollisionType collision_type;
-    collision_type = collide_wall(
-          p, vm.v.pos, w, rng, true, displacement,
-          collision_time_ignored, collision_pos_ignored
-    );
-
-    if (collision_type == CollisionType::WALL_FRONT ||
-        collision_type == CollisionType::WALL_BACK ||
-        collision_type == CollisionType::WALL_REDO) {
-      wall_found = true;
-      break;
-    }
-  }
-
-  if (!wall_found) {
-    // nothing is obstructing,
-    // we can simply copy counted volume index from the waypoint
-    vm.v.counted_volume_index = waypoint.counted_volume_index;
-  }
-  else {
-#endif
-    // we need to recompute
-    p.stats.inc_recomputation_of_counted_volume();
-    return p.compute_counted_volume_index(pos);
-//  }
-}
-
-
-static void update_counted_volume_id_when_crossing_wall(
-    Partition& p,
-    const Wall& w,
-    const Collision& collision,
-    const Vec3& displacement, // TODO: not sure if really needed
-    Molecule& vm
-) {
-  assert(vm.is_vol());
-
-  const GeometryObject& obj = p.get_geometry_object(w.object_id);
-  if (obj.is_counted_volume) {
-    
-    assert(obj.counted_volume_index_inside != COUNTED_VOLUME_INDEX_INVALID);
-    assert(obj.counted_volume_index_outside != COUNTED_VOLUME_INDEX_INVALID);
-
-    // which direction?
-    if (collision.type == CollisionType::WALL_BACK) {
-      // going outside
-      assert(obj.counted_volume_index_inside == COUNTED_VOLUME_INDEX_INTERSECTS ||
-          obj.counted_volume_index_inside == vm.v.counted_volume_index);
-
-      if (obj.counted_volume_index_outside != COUNTED_VOLUME_INDEX_INTERSECTS) {
-        // no intersect - it is clear what is outside
-        vm.v.counted_volume_index = obj.counted_volume_index_outside;
-      }
-      else {
-
-        float_t bump = EPS; // hit from back - we go in the direction of the normal
-        Vec3 displacement = Vec3(2 * bump) * w.normal;
-
-        // intersect - need to check waypoints or simply recompute the counted volumes
-        vm.v.counted_volume_index =
-            compute_counted_volume_using_waypoints(p, vm.v.pos + displacement);
-      }
-    }
-    else if (collision.type == CollisionType::WALL_FRONT) {
-      // going inside
-      assert(obj.counted_volume_index_outside == COUNTED_VOLUME_INDEX_INTERSECTS ||
-          obj.counted_volume_index_outside == vm.v.counted_volume_index);
-
-      if (obj.counted_volume_index_outside != COUNTED_VOLUME_INDEX_INTERSECTS) {
-        // no intersect - it is clear what is inside
-        vm.v.counted_volume_index = obj.counted_volume_index_inside;
-      }
-      else {
-        float_t bump = -EPS; // hit from front - we go against the direction of the normal
-        Vec3 displacement = Vec3(2 * bump) * w.normal;
-
-        vm.v.counted_volume_index =
-            compute_counted_volume_using_waypoints(p, vm.v.pos + displacement);
-      }
-    }
-    else {
-      assert(false);
-    }
-  }
-}
-
-
-static void cross_transparent_wall(
-    Partition& p,
-    const Collision& collision,
-    const Vec3& full_displacement, // whole displacement computed for this molecule // TODO: not used
-    Molecule& vm, // moves vm to the reflection point
-    Vec3& remaining_displacement,
-    float_t& t_steps,
-    float_t& elapsed_molecule_time,
-    wall_index_t& last_hit_wall_index
-) {
-#ifdef DEBUG_COUNTED_VOLUMES
-  vm.dump(p, "- Before crossing: ");
-#endif
-
-  const Wall& w = p.get_wall(collision.colliding_wall_index);
-
-  // Update molecule location to the point of wall crossing
-  vm.v.pos = collision.pos;
-  vm.v.subpart_index = p.get_subpart_index(vm.v.pos);
-
-  update_counted_volume_id_when_crossing_wall(p, w, collision, remaining_displacement, vm);
-
-#ifdef DEBUG_TRANSPARENT_SURFACES
-  std::cout << "Crossed a transparent wall, side: " << w.side << "\n";
-#endif
-
-  // ignore the collision time, it is a bit earlier and does not fit for multiple collisions in the
-  // same time step
-  float_t t_smash = collision.time;
-
-  remaining_displacement = remaining_displacement * Vec3(1.0 - t_smash);
-  elapsed_molecule_time += t_steps * t_smash;
-
-  t_steps *= (1.0 - t_smash);
-  if (t_steps < EPS) {
-    t_steps = EPS;
-  }
-
-  last_hit_wall_index = w.index;
-
-#ifdef DEBUG_COUNTED_VOLUMES
-  vm.dump(p, "- After crossing: ");
-#endif
-}
-
-/******************************************************************************
- *
- * the reflect_or_periodic_bc helper function is used in diffuse_3D to handle
- * either reflections or periodic boundary conditions for a diffusing molecule
- * encountering a wall
- *
- * Return values:
- *
- *  0 : indicates that the molecule reflected off a wall
- *  1 : indicates that the molecule hit a periodic box and was moved to a
- *      position in the neighboring image
- *
- ******************************************************************************/
-static int reflect_or_periodic_bc(
-    const Partition& p,
-    const Collision& collision,
-    Molecule& vm, // moves vm to the reflection point
-    Vec3& displacement,
-    float_t& remaining_time_step, // same as t_steps
-    wall_index_t& last_hit_wall_index
-) {
-
-  const Wall& w = p.get_wall(collision.colliding_wall_index);
-  wall_index_t reflect_w = collision.colliding_wall_index;
-  float_t t_reflect = collision.time;
-
-  /* Update molecule location to the point of reflection (originally in register_hits) */
-  vm.v.pos = collision.pos;
-  vm.v.subpart_index = p.get_subpart_index(vm.v.pos);
-
-  /* Reduce our remaining available time. */
-  remaining_time_step *= (1.0 - t_reflect);
-
-  last_hit_wall_index = reflect_w;
-
-  float_t reflect_factor = -2.0 * glm::dot((glm_vec3_t)displacement, (glm_vec3_t)w.normal);
-
-  // Set displacement for remainder of step length
-  // No PBCs or non-traditional PBCs
-  displacement = (displacement + Vec3(reflect_factor) * w.normal) * Vec3(1.0 - t_reflect);
-
-  return 0;
-}
-
-
-
-// does not set res.index
+// does not set res.index, the index needs to be obtained from partition
 static void compute_counted_volume_for_pos(Partition& p, const Vec3& pos, CountedVolume& res) {
 
 #if 1
@@ -1512,7 +1291,7 @@ static void compute_counted_volume_for_pos(Partition& p, const Vec3& pos, Counte
   // can be optimized by choosing some close object
   Vec3 dst = p.get_origin_corner();
 
-  // move a bit along the side of the partition so that the ray trace hits correctly
+  // move a bit along by a magic number the side of the partition so that the ray trace hits correctly
   // this is a temporary measure to minimize REDOs with wall collision
   dst.x += p.config.subpartition_edge_length / 10;
   dst.y += p.config.subpartition_edge_length / 20;
@@ -1620,12 +1399,231 @@ static void compute_counted_volume_for_pos(Partition& p, const Vec3& pos, Counte
 #endif
 }
 
-/*
-static CountedVolumesMask get_counted_volumes_for_pos_using_waypoint(
-    const Partition& p, const Vec3& pos, const ) {
 
+// TODO: optimization - search in a direction where a molecule is moving,
+// we must probably just crossed a wall
+static counted_volume_index_t compute_counted_volume_using_waypoints(
+    Partition& p,
+    const Vec3& pos) {
+
+  // subpartition origin point
+  IVec3 index3d;
+  subpart_index_t subpart_index = p.get_subpart_index(pos);
+  p.get_subpart_3d_indices_from_index(subpart_index, index3d);
+  Vec3 subpart_origin =
+      p.get_origin_corner() + Vec3(index3d) * p.config.subpartition_edge_length;
+
+  float_t half_subpart_length = p.config.subpartition_edge_length / 2;
+
+  // find the closest waypoint
+  Vec3 rel_pos = pos - subpart_origin;
+  if (rel_pos.x > half_subpart_length) {
+    index3d.x++;
+  }
+  if (rel_pos.y > half_subpart_length) {
+    index3d.y++;
+  }
+  if (rel_pos.z > half_subpart_length) {
+    index3d.z++;
+  }
+
+  // waypoint is always on the edge of a subpartition
+  const Waypoint& waypoint = p.get_waypoint(index3d);
+
+  // there must not be a counted wall between our point and the waypoint
+  bool wall_found = false;
+  Vec3 displacement = waypoint.pos - pos;
+  const uint_set<wall_index_t>& wall_indices = p.get_subpart_wall_indices(subpart_index);
+  for (auto it = wall_indices.begin(); it != wall_indices.end(); it++) {
+    const Wall& w = p.get_wall(*it);
+
+    // do we care about this object?
+    if (!p.get_geometry_object(w.object_index).is_counted_volume) {
+      continue;
+    }
+
+    float_t collision_time_ignored;
+    Vec3 collision_pos_ignored;
+
+    rng_state rng; // using a separate random generator for jump_away lines
+    rng_init(&rng, 0);
+
+    CollisionType collision_type;
+    collision_type = collide_wall(
+          p, pos, w, rng, true, displacement,
+          collision_time_ignored, collision_pos_ignored
+    );
+
+    if (collision_type == CollisionType::WALL_FRONT ||
+        collision_type == CollisionType::WALL_BACK ||
+        collision_type == CollisionType::WALL_REDO) {
+      wall_found = true;
+      break;
+    }
+  }
+
+  if (!wall_found) {
+    // nothing is obstructing,
+    // we can simply copy counted volume index from the waypoint
+    p.stats.inc_num_waypoints_used();
+    return waypoint.counted_volume_index;
+  }
+  else {
+    // we need to recompute the position
+    p.stats.inc_recomputations_of_counted_volume();
+    return p.compute_counted_volume_index(pos);
+  }
 }
-*/
+
+
+static void update_counted_volume_id_when_crossing_wall(
+    Partition& p,
+    const Wall& w,
+    const Collision& collision,
+    const Vec3& displacement, // TODO: not sure if really needed
+    Molecule& vm
+) {
+  assert(vm.is_vol());
+
+  const GeometryObject& obj = p.get_geometry_object(w.object_id);
+  if (obj.is_counted_volume) {
+    
+    assert(obj.counted_volume_index_inside != COUNTED_VOLUME_INDEX_INVALID);
+    assert(obj.counted_volume_index_outside != COUNTED_VOLUME_INDEX_INVALID);
+
+    // which direction?
+    if (collision.type == CollisionType::WALL_BACK) {
+      // going outside
+      assert(obj.counted_volume_index_inside == COUNTED_VOLUME_INDEX_INTERSECTS ||
+          obj.counted_volume_index_inside == vm.v.counted_volume_index);
+
+      if (obj.counted_volume_index_outside != COUNTED_VOLUME_INDEX_INTERSECTS) {
+        // no intersect - it is clear what is outside
+        vm.v.counted_volume_index = obj.counted_volume_index_outside;
+      }
+      else {
+
+        float_t bump = EPS; // hit from back - we go in the direction of the normal
+        Vec3 displacement = Vec3(2 * bump) * w.normal;
+
+        // intersect - need to check waypoints or simply recompute the counted volumes
+        vm.v.counted_volume_index =
+            compute_counted_volume_using_waypoints(p, vm.v.pos + displacement);
+      }
+    }
+    else if (collision.type == CollisionType::WALL_FRONT) {
+      // going inside
+      assert(obj.counted_volume_index_outside == COUNTED_VOLUME_INDEX_INTERSECTS ||
+          obj.counted_volume_index_outside == vm.v.counted_volume_index);
+
+      if (obj.counted_volume_index_outside != COUNTED_VOLUME_INDEX_INTERSECTS) {
+        // no intersect - it is clear what is inside
+        vm.v.counted_volume_index = obj.counted_volume_index_inside;
+      }
+      else {
+        float_t bump = -EPS; // hit from front - we go against the direction of the normal
+        Vec3 displacement = Vec3(2 * bump) * w.normal;
+
+        vm.v.counted_volume_index =
+            compute_counted_volume_using_waypoints(p, vm.v.pos + displacement);
+      }
+    }
+    else {
+      assert(false);
+    }
+  }
+}
+
+// ---------------------------------- reflections and other wall interactions ----------------------------------
+
+static void cross_transparent_wall(
+    Partition& p,
+    const Collision& collision,
+    const Vec3& full_displacement, // whole displacement computed for this molecule // TODO: not used
+    Molecule& vm, // moves vm to the reflection point
+    Vec3& remaining_displacement,
+    float_t& t_steps,
+    float_t& elapsed_molecule_time,
+    wall_index_t& last_hit_wall_index
+) {
+#ifdef DEBUG_COUNTED_VOLUMES
+  vm.dump(p, "- Before crossing: ");
+#endif
+
+  const Wall& w = p.get_wall(collision.colliding_wall_index);
+
+  // Update molecule location to the point of wall crossing
+  vm.v.pos = collision.pos;
+  vm.v.subpart_index = p.get_subpart_index(vm.v.pos);
+
+  update_counted_volume_id_when_crossing_wall(p, w, collision, remaining_displacement, vm);
+
+#ifdef DEBUG_TRANSPARENT_SURFACES
+  std::cout << "Crossed a transparent wall, side: " << w.side << "\n";
+#endif
+
+  // ignore the collision time, it is a bit earlier and does not fit for multiple collisions in the
+  // same time step
+  float_t t_smash = collision.time;
+
+  remaining_displacement = remaining_displacement * Vec3(1.0 - t_smash);
+  elapsed_molecule_time += t_steps * t_smash;
+
+  t_steps *= (1.0 - t_smash);
+  if (t_steps < EPS) {
+    t_steps = EPS;
+  }
+
+  last_hit_wall_index = w.index;
+
+#ifdef DEBUG_COUNTED_VOLUMES
+  vm.dump(p, "- After crossing: ");
+#endif
+}
+
+/******************************************************************************
+ *
+ * the reflect_or_periodic_bc helper function is used in diffuse_3D to handle
+ * either reflections or periodic boundary conditions for a diffusing molecule
+ * encountering a wall
+ *
+ * Return values:
+ *
+ *  0 : indicates that the molecule reflected off a wall
+ *  1 : indicates that the molecule hit a periodic box and was moved to a
+ *      position in the neighboring image
+ *
+ ******************************************************************************/
+static int reflect_or_periodic_bc(
+    const Partition& p,
+    const Collision& collision,
+    Molecule& vm, // moves vm to the reflection point
+    Vec3& displacement,
+    float_t& remaining_time_step, // same as t_steps
+    wall_index_t& last_hit_wall_index
+) {
+
+  const Wall& w = p.get_wall(collision.colliding_wall_index);
+  wall_index_t reflect_w = collision.colliding_wall_index;
+  float_t t_reflect = collision.time;
+
+  /* Update molecule location to the point of reflection (originally in register_hits) */
+  vm.v.pos = collision.pos;
+  vm.v.subpart_index = p.get_subpart_index(vm.v.pos);
+
+  /* Reduce our remaining available time. */
+  remaining_time_step *= (1.0 - t_reflect);
+
+  last_hit_wall_index = reflect_w;
+
+  float_t reflect_factor = -2.0 * glm::dot((glm_vec3_t)displacement, (glm_vec3_t)w.normal);
+
+  // Set displacement for remainder of step length
+  // No PBCs or non-traditional PBCs
+  displacement = (displacement + Vec3(reflect_factor) * w.normal) * Vec3(1.0 - t_reflect);
+
+  return 0;
+}
 
 } // namespace CollisionUtil
 

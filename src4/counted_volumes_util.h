@@ -32,7 +32,7 @@ class GeometryObject;
 namespace CountedVolumesUtil {
 
 // return true if counted volumes were correctly set up
-bool initialize_counted_volumes(World* world);
+bool initialize_counted_volumes(World* world, bool& has_intersecting_counted_objects);
 
 bool is_point_inside_counted_volume(GeometryObject& obj, const Vec3& point);
 

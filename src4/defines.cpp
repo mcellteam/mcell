@@ -64,7 +64,8 @@ void SimulationStats::dump() {
   cout << "Total number of ray-polygon intersection tests: " << ray_polygon_tests << "\n";
   cout << "Total number of ray-polygon intersections: " << ray_polygon_colls << "\n";
   cout << "Total number of molecule moves between walls: " << mol_moves_between_walls << "\n";
-  cout << "Total number of counted volume recomputations: " << recomputation_of_counted_volume << "\n";
+  cout << "Total number of usages of waypoints for counted volumes: " << num_waypoints_used << "\n";
+  cout << "Total number of counted volume recomputations: " << recomputations_of_counted_volume << "\n";
 }
 
 
