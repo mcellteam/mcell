@@ -173,7 +173,7 @@ void BngDataToDatamodelConverter::convert_single_species(const BNG::Species& s, 
 
   species_node[KEY_CUSTOM_SPACE_STEP] = "";
   species_node[KEY_MAXIMUM_STEP_LENGTH] = "";
-  species_node[KEY_TARGET_ONLY] = false;
+  species_node[KEY_TARGET_ONLY] = s.cant_initiate();
   species_node[KEY_DIFFUSION_CONSTANT] = DMUtil::f_to_string(s.D);
   species_node[KEY_SPATIAL_STRUCTURE] = "None";
   species_node[KEY_MOL_NAME] = s.name;

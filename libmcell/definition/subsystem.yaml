@@ -111,7 +111,17 @@ Species:
     type: float
     default: unset # the value is optional and might need to be checked with a more complex check
     doc: This molecule diffuses in space with diffusion constant D. D can be zero, in which case the molecule doesn’t move. The units of D are cm 2 /s.
-  
+        
+  - name: target_only
+    type: bool
+    default: False
+    doc: |
+      This molecule will not initiate reactions when it runs into other molecules. This
+      setting can speed up simulations when applied to a molecule at high concentrations 
+      that reacts with a molecule at low concentrations (it is more efficient for
+      the low-concentration molecule to trigger the reactions). This directive does
+      not affect unimolecular reactions.
+      
   methods:
   - name: inst
     return_type: ComplexInstance

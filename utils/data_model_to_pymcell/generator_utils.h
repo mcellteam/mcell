@@ -189,6 +189,10 @@ void gen_param(ofstream& out, string name, double value, bool comma) {
   out << IND << name << " = " << value << (comma?",":"") << "\n";
 }
 
+template<>
+void gen_param(ofstream& out, string name, bool value, bool comma) {
+  out << IND << name << " = " << (value ? "True" : "False") << (comma?",":"") << "\n";
+}
 
 void gen_param_id(ofstream& out, string name, string id, bool comma) {
   out << IND << name << " = " << id << (comma?",":"") << "\n";

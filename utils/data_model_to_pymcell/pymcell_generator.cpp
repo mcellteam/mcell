@@ -211,14 +211,21 @@ vector<string> PymcellGenerator::generate_species(ofstream& out) {
     gen_ctor_call(out, name, NAME_CLASS_SPECIES);
     gen_param(out, NAME_NAME, molecule_list_item[KEY_MOL_NAME].asString(), true); // using original name
 
+    bool has_target_only = molecule_list_item[KEY_TARGET_ONLY].asBool();
+
     string mol_type = molecule_list_item[KEY_MOL_TYPE].asString();
     CHECK_PROPERTY(mol_type == VALUE_MOL_TYPE_2D || mol_type == VALUE_MOL_TYPE_3D);
     if (mol_type == VALUE_MOL_TYPE_3D) {
-      gen_param_expr(out, NAME_DIFFUSION_CONSTANT_3D, molecule_list_item[KEY_DIFFUSION_CONSTANT], false);
+      gen_param_expr(out, NAME_DIFFUSION_CONSTANT_3D, molecule_list_item[KEY_DIFFUSION_CONSTANT], has_target_only);
     }
     else {
-      gen_param_expr(out, NAME_DIFFUSION_CONSTANT_2D, molecule_list_item[KEY_DIFFUSION_CONSTANT], false);
+      gen_param_expr(out, NAME_DIFFUSION_CONSTANT_2D, molecule_list_item[KEY_DIFFUSION_CONSTANT], has_target_only);
     }
+
+    if (has_target_only) {
+      gen_param(out, NAME_TARGET_ONLY, has_target_only, false);
+    }
+
     out << CTOR_END;
   }
 

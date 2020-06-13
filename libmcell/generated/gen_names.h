@@ -168,6 +168,7 @@ const char* const NAME_SURFACE_CLASS = "surface_class";
 const char* const NAME_SURFACE_CLASSES = "surface_classes";
 const char* const NAME_SURFACE_GRID_DENSITY = "surface_grid_density";
 const char* const NAME_SURFACE_REGIONS = "surface_regions";
+const char* const NAME_TARGET_ONLY = "target_only";
 const char* const NAME_TIME_STEP = "time_step";
 const char* const NAME_TOTAL_ITERATIONS_HINT = "total_iterations_hint";
 const char* const NAME_TRAIN_DURATION = "train_duration";

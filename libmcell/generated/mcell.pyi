@@ -144,12 +144,14 @@ class Species():
             name : str,
             diffusion_constant_2d : float = None,
             diffusion_constant_3d : float = None,
+            target_only : bool = False,
             molecule_instances : List[ElementaryMoleculeInstance] = None,
             orientation : Orientation = Orientation.NONE
         ):
         self.name = name
         self.diffusion_constant_2d = diffusion_constant_2d
         self.diffusion_constant_3d = diffusion_constant_3d
+        self.target_only = target_only
         self.molecule_instances = molecule_instances
         self.orientation = orientation
 

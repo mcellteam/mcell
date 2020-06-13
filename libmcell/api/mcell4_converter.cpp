@@ -218,6 +218,8 @@ void MCell4Converter::convert_species() {
       throw ValueError("Neither diffusion_constant_2d nor diffusion_constant_3d was set.");
     }
 	
+    new_species.set_flag(BNG::SPECIES_FLAG_CANT_INITIATE, s->target_only); // default is false
+
     // we must add a complex instance as the single molecule type in the new species
     // define a molecule type with no components
     BNG::MolType mol_type;
@@ -251,6 +253,7 @@ void MCell4Converter::convert_species() {
     else if (new_species.name == ALL_SURFACE_MOLECULES) {
       world->get_all_species().set_all_surface_molecules_species_id(new_species_id);
     }
+
   }
 }
 

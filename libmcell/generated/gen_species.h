@@ -39,6 +39,7 @@ class ElementaryMoleculeInstance;
         const std::string& name_, \
         const float_t diffusion_constant_2d_ = FLT_UNSET, \
         const float_t diffusion_constant_3d_ = FLT_UNSET, \
+        const bool target_only_ = false, \
         const std::vector<std::shared_ptr<ElementaryMoleculeInstance>> molecule_instances_ = std::vector<std::shared_ptr<ElementaryMoleculeInstance>>(), \
         const Orientation orientation_ = Orientation::NONE \
     )  : GenSpecies(molecule_instances_,orientation_) { \
@@ -46,6 +47,7 @@ class ElementaryMoleculeInstance;
       name = name_; \
       diffusion_constant_2d = diffusion_constant_2d_; \
       diffusion_constant_3d = diffusion_constant_3d_; \
+      target_only = target_only_; \
       molecule_instances = molecule_instances_; \
       orientation = orientation_; \
       postprocess_in_ctor();\
@@ -89,6 +91,18 @@ public:
   }
   virtual float_t get_diffusion_constant_3d() const {
     return diffusion_constant_3d;
+  }
+
+  bool target_only;
+  virtual void set_target_only(const bool new_target_only_) {
+    if (initialized) {
+      throw RuntimeError("Value 'target_only' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
+    target_only = new_target_only_;
+  }
+  virtual bool get_target_only() const {
+    return target_only;
   }
 
   // --- methods ---
