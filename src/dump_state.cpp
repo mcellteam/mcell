@@ -1143,7 +1143,12 @@ void dump_release_site_obj(release_site_obj* rel_site, const char* ind) {
   }
   cout << ind2 << "mol_type: *\t\t" << (void*)rel_site->mol_type << " [species] \t\t/* species to be released */\n";
   //dump_species(rel_site->mol_type, "mol_type", "/* species to be released */", ind2);
-  cout << ind2 << "  mol_type (name): *\t\t" << rel_site->mol_type->sym->name << "\n";
+  if (rel_site->mol_type != nullptr) {
+    cout << ind2 << "  mol_type (name): *\t\t" << rel_site->mol_type->sym->name << "\n";
+  }
+  else {
+    cout << ind2 << "  mol_type: *\t\t" << "NULL " << "\n";
+  }
 
   cout << ind2 << "release_number_method: \t\t" << get_release_number_method_string((release_number_type_t)rel_site->release_number_method) << " [byte] \t\t/* Release Number Flags: controls how release_number is used (enum release_number_type_t) */\n";
   cout << ind2 << "release_shape: \t\t" << get_release_shape_name(rel_site->release_shape) << " [int8_t] \t\t/* Release Shape Flags: controls shape over which to release (enum release_shape_t) */\n";

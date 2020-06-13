@@ -715,7 +715,7 @@ bool MCell3WorldConverter::convert_species(volume* s) {
 
     // remove some flags for check that are known to work in all cases
     uint flags_check = spec->flags & ~REGION_PRESENT;
-    flags_check = spec->flags & ~CANT_INITIATE;
+    flags_check = flags_check & ~CANT_INITIATE;
 
     if (!(
         is_species_superclass(s, spec)
@@ -1110,29 +1110,24 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
         // -- release_site --
         release_site_obj* rel_site = req->release_site;
 
-        CHECK_PROPERTY(rel_site->release_shape == SHAPE_SPHERICAL || rel_site->release_shape == SHAPE_REGION);
-        switch (rel_site->release_shape) {
-          case SHAPE_SPHERICAL:
-            rel_event->release_shape = ReleaseShape::SPHERICAL;
-            break;
-          case SHAPE_REGION:
-            rel_event->release_shape = ReleaseShape::REGION;
-            break;
-          default:
-            assert(false);
-        }
+        CHECK_PROPERTY(
+            rel_site->release_shape == SHAPE_SPHERICAL || rel_site->release_shape == SHAPE_REGION ||
+            rel_site->release_shape == SHAPE_LIST
+        );
 
-        if (rel_site->region_data == nullptr) {
+        if (rel_site->release_shape == SHAPE_SPHERICAL) {
+          rel_event->release_shape = ReleaseShape::SPHERICAL;
           assert(rel_site->location != nullptr);
           rel_event->location = Vec3(*rel_site->location);
         }
-        else if (rel_site->location == nullptr) {
+        else if (rel_site->release_shape == SHAPE_REGION) {
+          rel_event->release_shape = ReleaseShape::REGION;
+
           assert(rel_site->region_data != nullptr);
           release_region_data* region_data = rel_site->region_data;
           rel_event->location = Vec3(POS_INVALID);
 
           // CHECK_PROPERTY(region_data->in_release == nullptr); // not sure what this means yet
-
 
           if (rel_site->region_data->cum_area_list != nullptr) {
             // surface molecules release onto region
@@ -1170,15 +1165,28 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
             rel_event->region_expr_root = create_release_region_terms_recursively(region_data->expression, *rel_event);
           }
         }
+        else if (rel_site->release_shape == SHAPE_LIST) {
+          rel_event->release_shape = ReleaseShape::LIST;
+          CHECK_PROPERTY(rel_site->mol_list != nullptr && "There must be at least one molecule to be released with MOLECULE_LIST");
+
+          // convert info on single molecule release
+          for (release_single_molecule* item = rel_site->mol_list; item != nullptr; item = item->next) {
+            SingleMoleculeReleaseInfo info;
+            info.species_id = get_mcell4_species_id(item->mol_type->species_id);
+            info.orientation = item->orient;
+            info.pos = item->loc;
+            rel_event->molecule_list.push_back(info);
+          }
+        }
         else {
-          CHECK_PROPERTY(
-              false
-              && "So far supporting location for volume molecules and region for surface molecules"
-          );
+          assert(false);
         }
 
-        rel_event->species_id = get_mcell4_species_id(rel_site->mol_type->species_id);
-        assert(world->get_all_species().is_valid_id(rel_event->species_id));
+        if (rel_site->release_shape != SHAPE_LIST) {
+          CHECK_PROPERTY(rel_site->mol_type != nullptr);
+          rel_event->species_id = get_mcell4_species_id(rel_site->mol_type->species_id);
+          assert(world->get_all_species().is_valid_id(rel_event->species_id));
+        }
 
         CHECK_PROPERTY(rel_site->release_number_method == CONSTNUM || rel_site->release_number_method == DENSITYNUM);
         switch(rel_site->release_number_method) {
@@ -1205,7 +1213,6 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
 
         CHECK_PROPERTY(rel_site->standard_deviation == 0); // temporary
 
-        CHECK_PROPERTY(rel_event->release_shape == ReleaseShape::REGION || rel_site->diameter != nullptr);
         if (rel_site->diameter != nullptr) {
           rel_event->diameter = *rel_site->diameter;
         }
@@ -1213,8 +1220,6 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
           rel_event->diameter = Vec3(LENGTH_INVALID);
         }
 
-
-        CHECK_PROPERTY(rel_site->mol_list == nullptr);
         CHECK_PROPERTY(rel_site->release_prob == 1); // temporary
         // rel_site->periodic_box - ignoring?
 

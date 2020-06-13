@@ -47,7 +47,7 @@ enum class ReleaseShape {
   // RECTANGULAR,     /* Volume enclosed by a rect. solid */ (might be supported, needs to be tested)
   SPHERICAL_SHELL, /* Surface of a sphere */ // not tested yet
   REGION,          /* Inside/on the surface of an arbitrary region */
-  // LIST             /* Individiaul mol. placement by list */
+  LIST             /* Individual mol. placement by list */
 };
 
 enum class ReleaseNumberMethod {
@@ -86,6 +86,20 @@ public:
 
   void dump() const; // does not print any newlines
   std::string to_string(const bool for_datamodel = false) const;
+};
+
+
+// Data structure used to store LIST releases
+class SingleMoleculeReleaseInfo {
+public:
+  SingleMoleculeReleaseInfo()
+    : species_id(SPECIES_ID_INVALID), orientation(ORIENTATION_NONE),
+      pos(POS_INVALID) {
+  }
+
+  species_id_t species_id;
+  orientation_t orientation;
+  Vec3 pos;
 };
 
 
@@ -178,14 +192,15 @@ public:
   RegionExprNode* create_new_region_expr_node_op(const RegionExprOperator op, RegionExprNode* left, RegionExprNode* right);
   std::vector<RegionExprNode*> all_region_expr_nodes;
 
-  // only when release_shape is SHAPE_REGION
+  // used when release_shape is ReleaseShape::Region
   RegionExprNode* region_expr_root;
 
   // for volume molecule releases into a region
-
   Vec3 region_llf; // note: this is fully specified by the region above, maybe remove in the future
   Vec3 region_urb; // note: this is fully specified by the region above as well
 
+  // used when release_shape is ReleaseShape::List
+  std::vector<SingleMoleculeReleaseInfo> molecule_list;
 
   std::string release_pattern_name;
 
@@ -216,6 +231,9 @@ private:
 
   // for volume molecule releases
   void release_ellipsoid_or_rectcuboid(uint computed_release_number);
+
+  // for list releases
+  void release_list();
 
   float_t get_release_delay_time() const {
     if (cmp_eq(actual_release_time, event_time)) {

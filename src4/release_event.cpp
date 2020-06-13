@@ -660,15 +660,37 @@ void ReleaseEvent::release_ellipsoid_or_rectcuboid(uint computed_release_number)
 }
 
 
+void ReleaseEvent::release_list() {
+  for (const SingleMoleculeReleaseInfo& info: molecule_list) {
+    BNG::Species& species = world->get_all_species().get(info.species_id);
+    if (species.is_vol()) {
+      Partition& p = world->get_partition(world->get_or_add_partition_index(info.pos));
+      Molecule& new_vm = p.add_volume_molecule(
+          Molecule(MOLECULE_ID_INVALID, info.species_id, info.pos, get_release_delay_time())
+      );
+      new_vm.flags = IN_VOLUME | ACT_DIFFUSE; // TODO: not sure if these flags are used in MCell4
+      new_vm.set_flag(MOLECULE_FLAG_VOL);
+      new_vm.set_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN);
+
+      cout
+        << "Released 1 " << species.name << " from \"" << release_site_name << "\""
+        << " at iteration " << world->get_current_iteration() << ".\n";
+    }
+    else {
+      assert(false);
+    }
+  }
+}
+
+
 void ReleaseEvent::step() {
   // for now, let's simply release 'release_number' of molecules of 'species_id'
   // at 'location'
 
   uint number = calculate_number_to_release();
 
-  const BNG::Species& species = world->get_all_species().get(species_id);
-
   if (release_shape == ReleaseShape::REGION) {
+    const BNG::Species& species = world->get_all_species().get(species_id);
     if (species.is_surf()) {
       release_onto_regions(number);
     }
@@ -680,13 +702,19 @@ void ReleaseEvent::step() {
     assert(diameter.is_valid());
     release_ellipsoid_or_rectcuboid(number);
   }
+  else if (release_shape == ReleaseShape::LIST) {
+    release_list();
+  }
   else {
     assert(false);
   }
 
-  cout
-    << "Released " << number << " " << species.name << " from \"" << release_site_name << "\""
-    << " at iteration " << world->get_current_iteration() << ".\n";
+  if (release_shape != ReleaseShape::LIST) {
+    const BNG::Species& species = world->get_all_species().get(species_id);
+    cout
+      << "Released " << number << " " << species.name << " from \"" << release_site_name << "\""
+      << " at iteration " << world->get_current_iteration() << ".\n";
+  }
 }
 
 
