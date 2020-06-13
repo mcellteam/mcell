@@ -185,22 +185,14 @@ void Partition::dump() {
   }
 }
 
-// NOTE: can be optimized by using previously computed waypoints
+
 void Partition::create_waypoint(const IVec3& index3d) {
   // array was allocated
   Waypoint& waypoint = get_waypoint(index3d);
-  waypoint.pos = origin_corner + Vec3(config.subpartition_edge_length) * Vec3(index3d);
-
-  // move a bit back if we are on the edge
-  if (waypoint.pos.x >= opposite_corner.x) {
-    waypoint.pos.x -= EPS;
-  }
-  if (waypoint.pos.y >= opposite_corner.y) {
-    waypoint.pos.y -= EPS;
-  }
-  if (waypoint.pos.z >= opposite_corner.z) {
-    waypoint.pos.z -= EPS;
-  }
+  waypoint.pos =
+      origin_corner +
+      Vec3(config.subpartition_edge_length) * Vec3(index3d) +
+      Vec3(config.subpartition_edge_length / 2);
 
   // figure out in which counted volumes is this waypoint present
   waypoint.counted_volume_index = compute_counted_volume_from_scratch(waypoint.pos);
@@ -213,10 +205,14 @@ void Partition::initialize_waypoints() {
     return;
   }
 
-  // each corner of a subpartition has a waypoint
-  uint num_waypoints_per_dimension = config.num_subpartitions_per_partition + 1;
+  // each center of a subpartition has a waypoint
+  uint num_waypoints_per_dimension = config.num_subpartitions_per_partition;
 
-  mcell_log("Initializing %d waypoints...", powu(num_waypoints_per_dimension, 3));
+  mcell_log(
+      "Initializing %d waypoints... "
+      "(note: the current implementation is not very efficient, if you encounter performance issues, "
+      "please contact the MCell team or consider not using overlapping counted objects)",
+      powu(num_waypoints_per_dimension, 3));
 
   waypoints.resize(num_waypoints_per_dimension);
   for (uint x = 0; x < num_waypoints_per_dimension; x++) {

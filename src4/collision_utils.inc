@@ -1418,24 +1418,8 @@ static counted_volume_index_t compute_counted_volume_using_waypoints(
     IVec3 index3d;
     subpart_index_t subpart_index = p.get_subpart_index(pos);
     p.get_subpart_3d_indices_from_index(subpart_index, index3d);
-    Vec3 subpart_origin =
-        p.get_origin_corner() + Vec3(index3d) * p.config.subpartition_edge_length;
 
-    float_t half_subpart_length = p.config.subpartition_edge_length / 2;
-
-    // find the closest waypoint
-    Vec3 rel_pos = pos - subpart_origin;
-    if (rel_pos.x > half_subpart_length) {
-      index3d.x++;
-    }
-    if (rel_pos.y > half_subpart_length) {
-      index3d.y++;
-    }
-    if (rel_pos.z > half_subpart_length) {
-      index3d.z++;
-    }
-
-    // waypoint is always on the edge of a subpartition
+    // waypoint is always in the center of a subpartition
     waypoint = &p.get_waypoint(index3d);
 
     // there must not be a counted wall between our point and the waypoint
