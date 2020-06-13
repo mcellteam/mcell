@@ -95,12 +95,12 @@
 //#define COLLECT_SUBPARTS_LEGACY
 
 //#define DUMP_ALWAYS
-#define DUMP_NEVER
+//#define DUMP_NEVER
 
 #if (!defined(NDEBUG) || defined(DUMP_ALWAYS)) && !defined(DUMP_NEVER)
 
 #define FROM_ITERATION 0
-#define TO_ITERATION 10
+#define TO_ITERATION 100
 
 #define DUMP_NONDIFFUSING_VMS
 
@@ -129,7 +129,7 @@
 
 //#define DEBUG_RELEASES // cannot be conditioned by iterations
 
-#define DEBUG_RNG_CALLS // cannot be conditioned by iterations
+//#define DEBUG_RNG_CALLS // cannot be conditioned by iterations
 
 // does not generate the same dump as mcell3
 //#define DEBUG_SUBPARTITIONS
@@ -140,7 +140,7 @@
 //#define DEBUG_TIMING
 
 //#define DEBUG_DIFFUSION_EXTRA
-#define DEBUG_COLLISIONS_WALL_EXTRA
+//#define DEBUG_COLLISIONS_WALL_EXTRA
 
 //#define DEBUG_COUNTED_VOLUMES
 

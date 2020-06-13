@@ -713,10 +713,9 @@ bool MCell3WorldConverter::convert_species(volume* s) {
     new_species.space_step = spec->space_step;
     new_species.time_step = spec->time_step;
 
-    CHECK_PROPERTY((spec->flags & CANT_INITIATE) == 0); // RxnClass::compute_pb_factor assumes this
-
     // remove some flags for check that are known to work in all cases
     uint flags_check = spec->flags & ~REGION_PRESENT;
+    flags_check = spec->flags & ~CANT_INITIATE;
 
     if (!(
         is_species_superclass(s, spec)

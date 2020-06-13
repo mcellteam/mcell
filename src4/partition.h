@@ -242,7 +242,6 @@ public:
     assert(vm.v.reactant_subpart_index != SUBPART_INDEX_INVALID);
     assert(vm.v.subpart_index == get_subpart_index(vm.v.pos) && "Position and subpart must match all the time");
 
-
     if (vm.is_surf()) {
       // nothing to do
       return;
@@ -268,6 +267,13 @@ public:
       if (second_reactant_info.second->get_num_reactions() == 0) {
         // there is a reaction class, but it has no reactions
         continue;
+      }
+
+      // can the second reactant initiate a reaction with me?
+      const BNG::Species& initiator_reactant_species = get_all_species().get(second_reactant_info.first);
+      if (initiator_reactant_species.cant_initiate()) {
+        // nothing to do
+        return;
       }
 
       if (removing) {

@@ -105,7 +105,19 @@ float_t RxnClass::compute_pb_factor() const {
 
     if (num_surf_reactants == 2) {
       /* this is a reaction between two surface molecules */
-      pb_factor = bng_config.time_unit * bng_config.grid_density / 6; /* 2 molecules, 3 neighbors each */
+      if (reactant_species[0]->cant_initiate() && reactant_species[1]->cant_initiate()) {
+        warns() <<
+            "There is a surface reaction between " << reactant_species[0]->name << " and " <<
+            reactant_species[1]->name << ", but neither of them can initiate this reaction " <<
+            "(they are marked as target_only)\n";
+      }
+
+      if (reactant_species[0]->cant_initiate() || reactant_species[1]->cant_initiate()) {
+        pb_factor = bng_config.time_unit * bng_config.grid_density / 3; /* 3 neighbors */
+      }
+      else {
+        pb_factor = bng_config.time_unit * bng_config.grid_density / 6; /* 2 molecules, 3 neighbors each */
+      }
     }
     else if (
         (reactant_species[0]->is_reactive_surface() && reactant_species[1]->is_surf()) ||
@@ -121,6 +133,7 @@ float_t RxnClass::compute_pb_factor() const {
     ) {
       /* this is a reaction between "vol_mol" and "surf_mol" */
       /* or reaction between "vol_mol" and SURFACE           */
+      // NOTE: we do not care about cant_initiate here, is this correct?
 
       float_t D_tot = 0.0;
       float_t t_step = 0.0;
@@ -168,6 +181,19 @@ float_t RxnClass::compute_pb_factor() const {
     float_t eff_vel_a = get_reactant_space_step(0) / get_reactant_time_step(0);
     float_t eff_vel_b = get_reactant_space_step(1) / get_reactant_time_step(1);
     float_t eff_vel;
+
+    if (reactant_species[0]->cant_initiate() && reactant_species[1]->cant_initiate()) {
+      warns() <<
+          "There is a volume reaction between " << reactant_species[0]->name << " and " <<
+          reactant_species[1]->name << ", but neither of them can initiate this reaction " <<
+          "(they are marked as target_only)\n";
+    }
+    else if (reactant_species[0]->cant_initiate()) {
+      eff_vel_a = 0;
+    }
+    else if (reactant_species[1]->cant_initiate()) {
+      eff_vel_b = 0;
+    }
 
     if (eff_vel_a + eff_vel_b > 0) {
       eff_vel = (eff_vel_a + eff_vel_b) * bng_config.length_unit / bng_config.time_unit; /* Units=um/sec */

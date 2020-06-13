@@ -1079,7 +1079,7 @@ void DiffuseReactEvent::diffuse_surf_molecule(
   // NOTE: what about molecules that cannot diffuse?
   bool sm_still_exists = true;
   assert(!species.has_flag(SPECIES_FLAG_CAN_SURFSURFSURF) && "Not supported");
-  if (species.has_flag(SPECIES_FLAG_CAN_SURFSURF)) {
+  if (species.has_flag(SPECIES_FLAG_CAN_SURFSURF) && !species.cant_initiate()) {
     assert(!species.has_flag(SPECIES_FLAG_CANT_INITIATE) && "Not sure what to do here");
 
     // the time t_steps should tell when the reaction occurred and it is quite weird because
