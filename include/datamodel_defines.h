@@ -159,6 +159,7 @@ const char* const KEY_SHAPE = "shape";
 const char* const VALUE_OBJECT = "OBJECT";
 const char* const VALUE_SPHERICAL = "SPHERICAL";
 const char* const VALUE_SPHERICAL_SHELL = "SPHERICAL_SHELL";
+const char* const VALUE_LIST = "LIST";
 const char* const KEY_RELEASE_PROBABILITY = "release_probability";
 const char* const KEY_OBJECT_EXPR = "object_expr";
 const char* const KEY_ORIENT = "orient";

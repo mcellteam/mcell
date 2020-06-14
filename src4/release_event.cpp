@@ -230,12 +230,16 @@ std::string ReleaseEvent::release_pattern_to_data_model(Json::Value& mcell_node)
 }
 
 
-void ReleaseEvent::to_data_model(Json::Value& mcell_node) const {
-
-  if (event_time != 0) {
-    // FIXME: this is still an issue, but it would be blocking any data model exports after iteration 0
-    // CONVERSION_UNSUPPORTED("Release event " + release_site_name + " starts at time different from 0, this is not supported yet.");
-  }
+void ReleaseEvent::to_data_model_as_one_release_site(
+    Json::Value& mcell_node,
+    const species_id_t species_id_override,
+    const orientation_t orientation_override,
+    // points_list indices are set only when
+    // release_shape == ReleaseShape::LIST
+    const string& name_override,
+    const uint points_list_begin_index,
+    const uint points_list_end_index
+) const {
 
   // these items might already exist
   Json::Value& release_sites = mcell_node[KEY_RELEASE_SITES];
@@ -245,16 +249,20 @@ void ReleaseEvent::to_data_model(Json::Value& mcell_node) const {
   Json::Value release_site;
   DMUtil::add_version(release_site, VER_DM_2018_01_11_1330);
   release_site[KEY_DESCRIPTION] = "";
-  release_site[KEY_POINTS_LIST] = Json::Value(Json::arrayValue); // not sure, empty array
-  release_site[KEY_NAME] = DMUtil::remove_obj_name_prefix(release_site_name);
-  release_site[KEY_MOLECULE] = world->get_all_species().get(species_id).name;
-  release_site[KEY_ORIENT] = DMUtil::orientation_to_str(orientation);
+  release_site[KEY_NAME] = DMUtil::remove_obj_name_prefix(name_override);
+  release_site[KEY_MOLECULE] = world->get_all_species().get(species_id_override).name;
+  release_site[KEY_ORIENT] = DMUtil::orientation_to_str(orientation_override);
 
   // how many to release
   switch (release_number_method) {
     case ReleaseNumberMethod::ConstNum:
       release_site[KEY_QUANTITY_TYPE] = VALUE_NUMBER_TO_RELEASE;
-      release_site[KEY_QUANTITY] = to_string(release_number);
+      if (release_shape != ReleaseShape::LIST) {
+        release_site[KEY_QUANTITY] = to_string(release_number);
+      }
+      else {
+        release_site[KEY_QUANTITY] = ""; // number for release of LIST is given by the number of points
+      }
       break;
     case ReleaseNumberMethod::GaussNum:
       release_site[KEY_QUANTITY_TYPE] = VALUE_GAUSSIAN_RELEASE_NUMBER;
@@ -277,7 +285,6 @@ void ReleaseEvent::to_data_model(Json::Value& mcell_node) const {
   string data_model_release_pattern_name = release_pattern_to_data_model(mcell_node);
   release_site[KEY_PATTERN] = data_model_release_pattern_name;
 
-
   release_site[KEY_STDDEV] = "0"; // TODO
   release_site[KEY_RELEASE_PROBABILITY] = DMUtil::f_to_string(1.0);  // only 1 for now
 
@@ -290,8 +297,11 @@ void ReleaseEvent::to_data_model(Json::Value& mcell_node) const {
       release_site[KEY_SHAPE] = VALUE_SPHERICAL_SHELL;
       break;
     case ReleaseShape::REGION:
-      release_site[KEY_SHAPE] = "OBJECT";
+      release_site[KEY_SHAPE] = VALUE_OBJECT;
       release_site[KEY_OBJECT_EXPR] = region_expr_root->to_string(true);
+      break;
+    case ReleaseShape::LIST:
+      release_site[KEY_SHAPE] = VALUE_LIST;
       break;
     default:
       CONVERSION_UNSUPPORTED("Release event " + release_site_name + " has shape different from SHPERE and OBJECT.");
@@ -299,15 +309,83 @@ void ReleaseEvent::to_data_model(Json::Value& mcell_node) const {
   }
 
   if (release_shape != ReleaseShape::REGION) {
-    release_site[KEY_LOCATION_X] = DMUtil::f_to_string(location.x * world->config.length_unit);
-    release_site[KEY_LOCATION_Y] = DMUtil::f_to_string(location.y * world->config.length_unit);
-    release_site[KEY_LOCATION_Z] = DMUtil::f_to_string(location.z * world->config.length_unit);
+    if (release_shape != ReleaseShape::LIST) {
+      release_site[KEY_LOCATION_X] = DMUtil::f_to_string(location.x * world->config.length_unit);
+      release_site[KEY_LOCATION_Y] = DMUtil::f_to_string(location.y * world->config.length_unit);
+      release_site[KEY_LOCATION_Z] = DMUtil::f_to_string(location.z * world->config.length_unit);
+    }
+    else {
+      assert(points_list_begin_index < points_list_end_index);
+      Json::Value& points_list = release_site[KEY_POINTS_LIST];
+      for (uint i = points_list_begin_index; i < points_list_end_index; i++) {
+        assert(i < molecule_list.size());
+        Vec3 pos_scaled = molecule_list[i].pos * Vec3(world->config.length_unit);
+        DMUtil::append_triplet(points_list, pos_scaled.x, pos_scaled.y, pos_scaled.z);
+      }
+    }
 
-    CONVERSION_CHECK(diameter.x == diameter.y && diameter.y == diameter.z, "Not sure if datamodel supports different diameters.");
+    CONVERSION_CHECK(diameter.x == diameter.y && diameter.y == diameter.z, "Datamodel does not support different diameters.");
     release_site[KEY_SITE_DIAMETER] = DMUtil::f_to_string(diameter.x * world->config.length_unit);
   }
 
   release_site_list.append(release_site);
+}
+
+
+void ReleaseEvent::to_data_model(Json::Value& mcell_node) const {
+
+  if (event_time != 0) {
+    // the MCell4 API supports this, but there is not way how to store it into data model
+    // TODO: extend data model?
+    mcell_warn(
+        "Release event %s starts at time different from 0, conversion to data model is not supported yet, ignoring it.",
+        release_site_name.c_str()
+    );
+    return;
+  }
+
+  if (release_shape == ReleaseShape::LIST) {
+    // this release event needs to be split into chunks that use the same
+    // species and orientation
+    uint release_site_index = 0;
+    uint current_index = 0;
+    do {
+      uint begin_index = current_index;
+      species_id_t current_species_id = molecule_list[current_index].species_id;
+      orientation_t current_orientation = molecule_list[current_index].orientation;
+
+      // find the largest chunk we can convert as a single release site
+      do {
+        current_index++;
+      } while (
+          current_index < molecule_list.size() &&
+          molecule_list[current_index].species_id == current_species_id &&
+          molecule_list[current_index].orientation == current_orientation
+      );
+
+      string name;
+      if (begin_index == 0 && current_index == molecule_list.size()) {
+        // we are going to generate a single release site
+        name = release_site_name;
+      }
+      else {
+        // more release sites - append index
+        name = release_site_name + "_" + to_string(release_site_index);
+      }
+
+      to_data_model_as_one_release_site(
+          mcell_node, current_species_id, current_orientation, name, begin_index, current_index
+      );
+
+      release_site_index++;
+    } while (current_index < molecule_list.size());
+  }
+  else {
+    // usual case, generate a single release site
+    to_data_model_as_one_release_site(
+        mcell_node, species_id, orientation, release_site_name, 0, 0
+    );
+  }
 }
 
 

@@ -259,6 +259,17 @@ private:
   }
 
   std::string release_pattern_to_data_model(Json::Value& mcell_node) const;
+
+  void to_data_model_as_one_release_site(
+      Json::Value& mcell_node,
+      const species_id_t species_id_override,
+      const orientation_t orientation_override,
+      // points_list indices are set only when
+      // release_shape == ReleaseShape::LIST
+      const std::string& name_override,
+      const uint points_list_begin_index,
+      const uint points_list_end_index
+  ) const;
 };
 
 } // namespace mcell

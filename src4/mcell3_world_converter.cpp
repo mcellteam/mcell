@@ -1217,7 +1217,7 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
           rel_event->diameter = *rel_site->diameter;
         }
         else {
-          rel_event->diameter = Vec3(LENGTH_INVALID);
+          rel_event->diameter = Vec3(0); // this is the default needed for example for list release
         }
 
         CHECK_PROPERTY(rel_site->release_prob == 1); // temporary
