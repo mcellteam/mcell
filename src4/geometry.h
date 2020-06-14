@@ -287,7 +287,7 @@ public:
     assert(tile_index != TILE_INDEX_INVALID);
     assert(num_tiles == molecules_per_tile.size());
     assert(tile_index < molecules_per_tile.size());
-    assert(molecules_per_tile[tile_index] == MOLECULE_INDEX_INVALID && "Cannot overwite a molecule that is already on tile");
+    assert(molecules_per_tile[tile_index] == MOLECULE_ID_INVALID && "Cannot overwite a molecule that is already on tile");
 
     molecules_per_tile[tile_index] = id;
     num_occupied++;
@@ -298,12 +298,13 @@ public:
     assert(tile_index != TILE_INDEX_INVALID);
     assert(num_tiles == molecules_per_tile.size());
     assert(tile_index < molecules_per_tile.size());
-    assert(molecules_per_tile[tile_index] != MOLECULE_INDEX_INVALID && "Cannot reset a tile that has no molecule");
+    assert(molecules_per_tile[tile_index] != MOLECULE_ID_INVALID && "Cannot reset a tile that has no molecule");
 
-    molecules_per_tile[tile_index] = MOLECULE_INDEX_INVALID;
+    molecules_per_tile[tile_index] = MOLECULE_ID_INVALID;
     num_occupied--;
   }
 
+  // returns MOLECULE_ID_INVALID when tile is not occupied
   molecule_id_t get_molecule_on_tile(tile_index_t tile_index) const {
     assert(is_initialized());
     assert(tile_index != TILE_INDEX_INVALID);
@@ -318,7 +319,7 @@ public:
   ) const;
 
   void reset_all_tiles() {
-    std::fill(molecules_per_tile.begin(), molecules_per_tile.end(), MOLECULE_INDEX_INVALID);
+    std::fill(molecules_per_tile.begin(), molecules_per_tile.end(), MOLECULE_ID_INVALID);
     num_occupied = 0;
   }
 

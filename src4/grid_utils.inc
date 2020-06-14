@@ -2073,6 +2073,8 @@ static molecule_id_t place_single_molecule_onto_grid(
     rng_state& rng,
     Wall& wall,
     const tile_index_t tile_index,
+    const bool override_pos_on_wall,
+    const Vec2& pos_on_wall_override_value,
     const species_id_t species_id,
     const orientation_t orientation,
     const float_t release_delay_time
@@ -2080,11 +2082,18 @@ static molecule_id_t place_single_molecule_onto_grid(
 ) {
 
   Vec2 pos_on_wall;
-  if (p.config.randomize_smol_pos) {
-    pos_on_wall = GridUtil::grid2uv_random(wall, tile_index, rng);
+  if (override_pos_on_wall) {
+    // MCell3 does not recompute the position when surface molecules are released
+    // in the LIST mode/shape
+    pos_on_wall = pos_on_wall_override_value;
   }
   else {
-    pos_on_wall = GridUtil::grid2uv(wall, tile_index);
+    if (p.config.randomize_smol_pos) {
+      pos_on_wall = GridUtil::grid2uv_random(wall, tile_index, rng);
+    }
+    else {
+      pos_on_wall = GridUtil::grid2uv(wall, tile_index);
+    }
   }
 
   Molecule& new_sm = p.add_surface_molecule(
@@ -2129,38 +2138,65 @@ static molecule_id_t place_surface_molecule_to_closest_pos(
     const float_t search_diam,
     const float_t release_delay_time
 ) {
-
-  struct vector2 best_uv;
-  struct vector3 best_xyz;
   int grid_index = 0;
   int *grid_index_p = &grid_index;
+
+  float_t search_d2;
+  if (search_diam <= EPS_C) {
+    search_d2 = EPS_C * EPS_C;
+  }
+  else {
+    search_d2 = search_diam * search_diam;
+  }
 
   wall_index_t best_wall_index;
   Vec2 best_wall_pos2d;
   float_t best_d2 = WallUtil::find_closest_wall_any_object(
-      p, pos, search_diam, true, best_wall_index, best_wall_pos2d);
+      p, pos, search_d2, true, best_wall_index, best_wall_pos2d);
 
   if (best_wall_index == WALL_INDEX_INVALID) {
     return MOLECULE_ID_INVALID;
   }
+  // best wall might be full
+  Wall& best_w = p.get_wall(best_wall_index);
 
   // place molecule onto the found wall, all the remaining information about the molecule stays the same
   wall_index_t found_wall_index;
   tile_index_t found_tile_index;
-  Vec2 found_pos2d(FLT_INVALID);
 
-  GridUtil::find_closest_tile_on_wall(
-      p, best_wall_index, best_wall_pos2d, best_d2, search_diam * search_diam,
-      found_wall_index, found_tile_index, found_pos2d
-  );
+  if (!best_w.has_initialized_grid()) {
+    best_w.initialize_grid(p);
+  }
+
+  found_tile_index = GridUtil::uv2grid_tile_index(best_wall_pos2d, best_w);
+
+  if (best_w.grid.get_molecule_on_tile(found_tile_index) != MOLECULE_ID_INVALID) {
+    float_t d2 = search_d2 - best_d2;
+
+    if (d2 <= EPS_C * EPS_C) {
+      // no free tile close enough was found
+      return MOLECULE_ID_INVALID;
+    }
+    else {
+      search_nbhd_for_free(
+          p, best_w.index, best_wall_pos2d, d2,
+          found_wall_index, found_tile_index);
+
+      if (found_wall_index == WALL_INDEX_INVALID) {
+        return MOLECULE_ID_INVALID;
+      }
+    }
+  }
+  else {
+    found_wall_index = best_wall_index;
+  }
+
   assert(found_wall_index != WALL_INDEX_INVALID);
   assert(found_tile_index != TILE_INDEX_INVALID);
-  assert(found_pos2d != Vec2(FLT_INVALID));
 
-  Wall& w = p.get_wall(found_wall_index);
-
+  Wall& found_w = p.get_wall(found_wall_index);
   return place_single_molecule_onto_grid(
-      p, rng, w, found_tile_index, species_id, orientation, release_delay_time);
+      p, rng, found_w, found_tile_index, true, best_wall_pos2d, species_id, orientation, release_delay_time);
 }
 
 

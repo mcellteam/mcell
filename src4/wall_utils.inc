@@ -702,7 +702,7 @@ static float_t find_closest_wall(
 static float_t find_closest_wall_any_object(
     Partition& p,
     const Vec3& pos,
-    const float_t search_diam,
+    const float_t search_d2, // squared search diameter
     const bool must_have_at_least_one_tile,
     wall_index_t& best_wall_index,
     Vec2& best_wall_pos2d
@@ -711,14 +711,6 @@ static float_t find_closest_wall_any_object(
   best_wall_index = WALL_INDEX_INVALID;
   float_t best_d2 = FLT_GIGANTIC;
   best_wall_pos2d = Vec2(0);
-
-  float_t search_d2;
-  if (search_diam <= EPS_C) {
-    search_d2 = EPS_C * EPS_C;
-  }
-  else {
-    search_d2 = search_diam * search_diam;
-  }
 
   for (Wall& w: p.get_walls()) {
 

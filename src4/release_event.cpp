@@ -499,7 +499,9 @@ void ReleaseEvent::release_onto_regions(uint computed_release_number) {
 
       molecule_id_t sm_id =
           GridUtil::place_single_molecule_onto_grid(
-              p, world->rng, wall, tile_index, species_id, orientation, get_release_delay_time());
+              p, world->rng, wall, tile_index, false, Vec2(),
+              species_id, orientation, get_release_delay_time()
+          );
 
       #ifdef DEBUG_RELEASES
         p.get_m(sm_id).dump(p, "Released sm:", "", p.stats.get_current_iteration(), actual_release_time, true);
@@ -668,14 +670,23 @@ void ReleaseEvent::release_list() {
 
       float_t diam = diameter.x;
       assert(diam != FLT_INVALID);
-      GridUtil::place_surface_molecule_to_closest_pos(
+      molecule_id_t sm_id = GridUtil::place_surface_molecule_to_closest_pos(
           p, world->rng, info.pos, info.species_id, orient,
           diameter.x, get_release_delay_time()
       );
 
-      cout
-        << "Released 1 " << species.name << " from \"" << release_site_name << "\""
-        << " at iteration " << world->get_current_iteration() << ".\n";
+      if (sm_id != MOLECULE_ID_INVALID) {
+        cout
+          << "Released 1 " << species.name << " from \"" << release_site_name << "\""
+          << " at iteration " << world->get_current_iteration() << ".\n";
+      }
+      else {
+        // TODO: unify logging, have some C++ streams,,,
+        // TODO: copy message from MCell3
+        mcell_error("Could not release %s from %s, possibly the release diameter is too short.",
+            species.name.c_str(), release_site_name.c_str()
+        );
+      }
 
     }
   }
