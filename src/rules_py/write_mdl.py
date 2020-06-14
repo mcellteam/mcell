@@ -202,7 +202,8 @@ def construct_mcell(xml_structs, mdlr_path, output_file_name, nauty_dict):
         for element in mdlrseed[2]:
             if element[0] == 'SHAPE':
                 seed_mdl.write('\t\t{0} = {1}\n'.format(element[0].strip(), element[1].strip()))
-        if compartmentDict[bngseed['structure'].compartment]['dimensions'] in ['3', 3]:
+        # volume molecules are default
+        if bngseed['structure'].compartment == '' or compartmentDict[bngseed['structure'].compartment]['dimensions'] in ['3', 3]:
             seed_mdl.write('\t\tMOLECULE = {0}\n'.format('volume_proxy'))
         else:
             seed_mdl.write('\t\tMOLECULE = {0}{1}\n'.format('surface_proxy', "'"))
