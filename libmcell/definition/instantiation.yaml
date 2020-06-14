@@ -90,6 +90,7 @@ ReleaseSite:
     doc: |
       For a geometrical release site, this releases molecules uniformly within
       a radius r. Not used for releases on regions.
+      Usually required for Shape.List type of releases.
     
   # do we need radius when we have diameter?
   - name: site_radius

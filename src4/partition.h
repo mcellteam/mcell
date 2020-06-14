@@ -605,6 +605,14 @@ public:
     return walls.size();
   }
 
+  const std::vector<Wall>& get_walls() const {
+    return walls;
+  }
+
+  std::vector<Wall>& get_walls() {
+    return walls;
+  }
+
   const Wall& get_wall(const wall_index_t i) const {
     assert(i < walls.size());
     const Wall& res = walls[i];

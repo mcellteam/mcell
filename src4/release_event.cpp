@@ -35,9 +35,11 @@
 #include "partition.h"
 #include "datamodel_defines.h"
 
-#include "collision_utils.inc"
+#include "geometry_utils.h"
 #include "geometry_utils.inc"
+#include "collision_utils.inc"
 #include "grid_utils.inc"
+
 
 using namespace std;
 
@@ -445,36 +447,6 @@ static size_t cum_area_bisect_high(const vector<CummAreaPWallIndexPair>& array, 
 }
 
 
-void ReleaseEvent::place_single_molecule_onto_grid(Partition& p, Wall& wall, tile_index_t tile_index) {
-
-  Vec2 pos_on_wall;
-  if (p.config.randomize_smol_pos) {
-    pos_on_wall = GridUtil::grid2uv_random(wall, tile_index, world->rng);
-  }
-  else {
-    pos_on_wall = GridUtil::grid2uv(wall, tile_index);
-  }
-
-  Molecule& new_sm = p.add_surface_molecule(
-      Molecule(MOLECULE_ID_INVALID, species_id, pos_on_wall, get_release_delay_time())
-  );
-
-  new_sm.s.wall_index = wall.index;
-  new_sm.s.orientation = orientation;
-
-  new_sm.s.grid_tile_index = tile_index;
-  wall.grid.set_molecule_tile(tile_index, new_sm.id);
-
-  new_sm.flags = ACT_DIFFUSE | IN_SURFACE;
-  new_sm.set_flag(MOLECULE_FLAG_SURF);
-  new_sm.set_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN);
-
-#ifdef DEBUG_RELEASES
-  new_sm.dump(p, "Released vm:", "", p.stats.get_current_iteration(), actual_release_time, true);
-#endif
-}
-
-
 void ReleaseEvent::release_onto_regions(uint computed_release_number) {
   int success = 0, failure = 0;
   float_t seek_cost = 0;
@@ -525,7 +497,13 @@ void ReleaseEvent::release_onto_regions(uint computed_release_number) {
         continue;
       }
 
-      place_single_molecule_onto_grid(p, wall, tile_index);
+      molecule_id_t sm_id =
+          GridUtil::place_single_molecule_onto_grid(
+              p, world->rng, wall, tile_index, species_id, orientation, get_release_delay_time());
+
+      #ifdef DEBUG_RELEASES
+        p.get_m(sm_id).dump(p, "Released sm:", "", p.stats.get_current_iteration(), actual_release_time, true);
+      #endif
 
       success++;
       n--;
@@ -662,9 +640,11 @@ void ReleaseEvent::release_ellipsoid_or_rectcuboid(uint computed_release_number)
 
 void ReleaseEvent::release_list() {
   for (const SingleMoleculeReleaseInfo& info: molecule_list) {
+
     BNG::Species& species = world->get_all_species().get(info.species_id);
+    Partition& p = world->get_partition(world->get_or_add_partition_index(info.pos));
+
     if (species.is_vol()) {
-      Partition& p = world->get_partition(world->get_or_add_partition_index(info.pos));
       Molecule& new_vm = p.add_volume_molecule(
           Molecule(MOLECULE_ID_INVALID, info.species_id, info.pos, get_release_delay_time())
       );
@@ -677,7 +657,26 @@ void ReleaseEvent::release_list() {
         << " at iteration " << world->get_current_iteration() << ".\n";
     }
     else {
-      assert(false);
+      orientation_t orient;
+      assert(info.orientation != ORIENTATION_NOT_SET);
+      if (info.orientation == ORIENTATION_NONE) {
+        orient = (rng_uint(&world->rng) & 1) ? 1 : -1;
+      }
+      else {
+        orient = info.orientation;
+      }
+
+      float_t diam = diameter.x;
+      assert(diam != FLT_INVALID);
+      GridUtil::place_surface_molecule_to_closest_pos(
+          p, world->rng, info.pos, info.species_id, orient,
+          diameter.x, get_release_delay_time()
+      );
+
+      cout
+        << "Released 1 " << species.name << " from \"" << release_site_name << "\""
+        << " at iteration " << world->get_current_iteration() << ".\n";
+
     }
   }
 }

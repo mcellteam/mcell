@@ -29,8 +29,10 @@
 #include "partition.h"
 #include "datamodel_defines.h"
 
+#include "wall_utils.h"
 #include "dyn_vertex_utils.inc"
 #include "collision_utils.inc"
+#include "wall_utils.inc"
 
 using namespace std;
 

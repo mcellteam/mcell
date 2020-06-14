@@ -42,6 +42,7 @@
 #include "debug_config.h"
 
 #include "reaction_utils.inc"
+#include "geometry_utils.inc"
 
 namespace MCell {
 
@@ -643,6 +644,105 @@ static bool walls_belong_to_at_least_one_different_restricted_region(
 
   return false;
 }
+
+
+
+// returns the closest distance
+// wall must belong to the same object and region
+static float_t find_closest_wall(
+    Partition& p,
+    const Vec3& pos, const wall_index_t wall_that_moved_molecule,
+    const bool must_have_at_least_one_tile,
+    wall_index_t& best_wall_index,
+    Vec2& best_wall_pos2d
+) {
+
+  const Wall& moved_wall = p.get_wall(wall_that_moved_molecule);
+
+  best_wall_index = WALL_INDEX_INVALID;
+  float_t best_d2 = FLT_GIGANTIC;
+  best_wall_pos2d = Vec2(0);
+
+  // NOTE: use wall_that_moved_molecule to optimize the search,
+  // however for now we are using the same approach as in mcell3 because
+  // we need to match the behavior
+  const GeometryObject& obj = p.get_geometry_object(moved_wall.object_index);
+
+  for (const wall_index_t wall_index: obj.wall_indices) {
+    Wall& w = p.get_wall(wall_index);
+
+    if (!moved_wall.is_same_region(w)) {
+      continue;
+    }
+
+    if (!w.has_initialized_grid()) {
+      w.initialize_grid(p);
+    }
+
+    if (must_have_at_least_one_tile && w.grid.num_tiles == 0) {
+      continue;
+    }
+
+    Vec2 wall_pos2d;
+    float_t d2 = GeometryUtil::closest_interior_point(p, pos, w, wall_pos2d);
+
+    if (d2 <= best_d2) { // the <= is to emulate behavior of mcell3 that goes through the walls in opposite order
+      best_d2 = d2;
+      best_wall_index = w.index;
+      best_wall_pos2d = wall_pos2d;
+    }
+  }
+
+  return best_d2;
+}
+
+
+// returns the closest distance
+//
+static float_t find_closest_wall_any_object(
+    Partition& p,
+    const Vec3& pos,
+    const float_t search_diam,
+    const bool must_have_at_least_one_tile,
+    wall_index_t& best_wall_index,
+    Vec2& best_wall_pos2d
+) {
+
+  best_wall_index = WALL_INDEX_INVALID;
+  float_t best_d2 = FLT_GIGANTIC;
+  best_wall_pos2d = Vec2(0);
+
+  float_t search_d2;
+  if (search_diam <= EPS_C) {
+    search_d2 = EPS_C * EPS_C;
+  }
+  else {
+    search_d2 = search_diam * search_diam;
+  }
+
+  for (Wall& w: p.get_walls()) {
+
+    if (!w.has_initialized_grid()) {
+      w.initialize_grid(p);
+    }
+
+    if (must_have_at_least_one_tile && w.grid.num_tiles == 0) {
+      continue;
+    }
+
+    Vec2 wall_pos2d;
+    float_t d2 = GeometryUtil::closest_interior_point(p, pos, w, wall_pos2d);
+
+    if (d2 <= best_d2 && d2 <= search_d2) { // the <= is to emulate behavior of mcell3 that goes through the walls in opposite order
+      best_d2 = d2;
+      best_wall_index = w.index;
+      best_wall_pos2d = wall_pos2d;
+    }
+  }
+
+  return best_d2;
+}
+
 
 } // namespace WallUtil
 

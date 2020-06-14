@@ -36,6 +36,7 @@
 #include "release_event.h"
 #include "datamodel_defines.h"
 
+#include "geometry_utils.h"
 #include "geometry_utils.inc" // uses get_wall_bounding_box, maybe not include this file
 #include "dump_state.h"
 

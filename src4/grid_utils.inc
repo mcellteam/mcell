@@ -2068,6 +2068,102 @@ static void find_closest_tile_on_wall(
 }
 
 
+static molecule_id_t place_single_molecule_onto_grid(
+    Partition& p,
+    rng_state& rng,
+    Wall& wall,
+    const tile_index_t tile_index,
+    const species_id_t species_id,
+    const orientation_t orientation,
+    const float_t release_delay_time
+
+) {
+
+  Vec2 pos_on_wall;
+  if (p.config.randomize_smol_pos) {
+    pos_on_wall = GridUtil::grid2uv_random(wall, tile_index, rng);
+  }
+  else {
+    pos_on_wall = GridUtil::grid2uv(wall, tile_index);
+  }
+
+  Molecule& new_sm = p.add_surface_molecule(
+      Molecule(MOLECULE_ID_INVALID, species_id, pos_on_wall, release_delay_time)
+  );
+
+  new_sm.s.wall_index = wall.index;
+  new_sm.s.orientation = orientation;
+
+  new_sm.s.grid_tile_index = tile_index;
+  wall.grid.set_molecule_tile(tile_index, new_sm.id);
+
+  new_sm.flags = ACT_DIFFUSE | IN_SURFACE;
+  new_sm.set_flag(MOLECULE_FLAG_SURF);
+  new_sm.set_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN);
+
+  return new_sm.id;
+}
+
+
+/*************************************************************************
+place_surface_molecule
+  In: species for the new molecule
+      3D location of the new molecule
+      orientation of the new molecule
+      diameter to search for a free surface spot
+      schedule time for the new molecule
+  Out: pointer to the new molecule, or NULL if no free spot was found.
+  Note: This function halts the program if it runs out of memory.
+        This function is similar to insert_surface_molecule, but it does
+        not schedule the molecule or add it to the count.  This is done
+        to simplify the logic when placing a surface macromolecule.
+        (i.e. place all molecules, and once we're sure we've succeeded,
+        schedule them all and count them all.)
+ *************************************************************************/
+static molecule_id_t place_surface_molecule_to_closest_pos(
+    Partition& p,
+    rng_state& rng,
+    const Vec3& pos,
+    const species_id_t species_id,
+    const orientation_t orientation,
+    const float_t search_diam,
+    const float_t release_delay_time
+) {
+
+  struct vector2 best_uv;
+  struct vector3 best_xyz;
+  int grid_index = 0;
+  int *grid_index_p = &grid_index;
+
+  wall_index_t best_wall_index;
+  Vec2 best_wall_pos2d;
+  float_t best_d2 = WallUtil::find_closest_wall_any_object(
+      p, pos, search_diam, true, best_wall_index, best_wall_pos2d);
+
+  if (best_wall_index == WALL_INDEX_INVALID) {
+    return MOLECULE_ID_INVALID;
+  }
+
+  // place molecule onto the found wall, all the remaining information about the molecule stays the same
+  wall_index_t found_wall_index;
+  tile_index_t found_tile_index;
+  Vec2 found_pos2d(FLT_INVALID);
+
+  GridUtil::find_closest_tile_on_wall(
+      p, best_wall_index, best_wall_pos2d, best_d2, search_diam * search_diam,
+      found_wall_index, found_tile_index, found_pos2d
+  );
+  assert(found_wall_index != WALL_INDEX_INVALID);
+  assert(found_tile_index != TILE_INDEX_INVALID);
+  assert(found_pos2d != Vec2(FLT_INVALID));
+
+  Wall& w = p.get_wall(found_wall_index);
+
+  return place_single_molecule_onto_grid(
+      p, rng, w, found_tile_index, species_id, orientation, release_delay_time);
+}
+
+
 } // namespace GridUtil
 
 } // namespace MCell

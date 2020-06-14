@@ -43,6 +43,7 @@
 #include "debug.h"
 
 // include implementations of utility functions
+#include "geometry_utils.h"
 #include "geometry_utils.inc"
 #include "reaction_utils.inc"
 #include "collision_utils.inc"

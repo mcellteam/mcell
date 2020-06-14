@@ -38,6 +38,7 @@
 #include "world.h"
 #include "datamodel_defines.h"
 
+#include "geometry_utils.h"
 #include "geometry_utils.inc"
 
 using namespace std;

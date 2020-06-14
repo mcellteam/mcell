@@ -35,6 +35,7 @@
 #include "geometry_utils.inc"
 #include "diffusion_utils.inc"
 #include "collision_utils.inc"
+#include "wall_utils.inc"
 
 using namespace std;
 
@@ -53,7 +54,7 @@ static void move_volume_molecule_to_closest_wall_point(Partition& p, const Volum
   //  then try to limit only to wall's neighbors - we would really like to avoid any regions (maybe...?)
   wall_index_t best_wall_index;
   Vec2 best_wall_pos2d;
-  GeometryUtil::find_closest_wall(p, vm.v.pos, molecule_move_info.wall_index, false, best_wall_index, best_wall_pos2d);
+  WallUtil::find_closest_wall(p, vm.v.pos, molecule_move_info.wall_index, false, best_wall_index, best_wall_pos2d);
 
   if (best_wall_index == WALL_INDEX_INVALID) {
     mcell_error("Could not find a wall close to volume molecule with id %d.\n", vm.id);
@@ -97,6 +98,8 @@ static void move_volume_molecule_to_closest_wall_point(Partition& p, const Volum
 
 
 // insert_surface_molecule & place_surface_molecule in mcell3
+// TODO: quite similar code as in WallUtil::place_surface_molecule,
+// can be it be somehow merged?
 static void move_surface_molecule_to_closest_wall_point(
     Partition& p,
     const SurfaceMoleculeMoveInfo& molecule_move_info) {
@@ -112,7 +115,7 @@ static void move_surface_molecule_to_closest_wall_point(
   //  then try to limit only to wall's neighbors - we would really like to avoid any regions (maybe...?)
   wall_index_t best_wall_index;
   Vec2 best_wall_pos2d;
-  float_t best_d2 = GeometryUtil::find_closest_wall(
+  float_t best_d2 = WallUtil::find_closest_wall(
       p, molecule_move_info.pos3d, molecule_move_info.wall_index, true, best_wall_index, best_wall_pos2d);
 
   if (best_wall_index == WALL_INDEX_INVALID) {
