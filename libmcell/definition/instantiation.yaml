@@ -37,6 +37,28 @@ ReleasePattern:
       For unlimited number of trains use constant NUMBER_OF_TRAINS_UNLIMITED.
     
     
+SingleMoleculeReleaseInfo:
+  superclass: BaseDataClass
+  items:
+  - name: species
+    type: Species*
+    doc: | 
+      The species of the molecule that will be released.
+
+  - name: location
+    type: Vec3
+    doc: | 
+      3D position where the molecule will be released. 
+      If a molecule has a 2D diffusion constant, it will be
+      placed on the surface closest to the coordinate given. 
+
+  - name: orientation
+    type: Orientation
+    default: Orientation.NONE
+    doc: |
+      Must be set if the species represent surface molecules.     
+        
+    
 ReleaseSite:
   superclass: BaseDataClass
   items:
@@ -45,16 +67,24 @@ ReleaseSite:
     doc: Name of the release site
     
   - name: species
-    type: Species* # Species must have beemn defined before
+    type: Species*
+    default: unset
     doc: | 
-      The named molecule is the one that will be released. Not used for  the 'list' shape. You must specify an orientation 
-      if the molecule is a surface molecule.
+      The species of the molecule that will be released. Not used for the LIST shape. 
+      You must specify an orientation if the molecule is a surface molecule.
+      Must be set when molecule_list is empty and unset when molecule_list is not empty.
 
   - name: orientation
     type: Orientation
     default: Orientation.NONE
     doc: |
       Must be set if the species represent surface molecules.
+      
+  - name: molecule_list
+    type: List[SingleMoleculeReleaseInfo*]
+    default: empty
+    doc: |
+      Used for LIST shape release mode. 
 
   - name: release_time
     type: float
@@ -74,6 +104,8 @@ ReleaseSite:
   - name: shape
     type: Shape
     default: Shape.UNSET
+    doc: |
+      Set automatically when 
     
   - name: region
     type: Region*

@@ -24,6 +24,7 @@
 #define API_RELEASE_SITE_H
 
 #include "generated/gen_release_site.h"
+#include "api/single_molecule_release_info.h"
 #include "api/common.h"
 
 namespace MCell {
@@ -40,6 +41,14 @@ public:
             "shape must be either unset or set to " + NAME_ENUM_SHAPE + "." + NAME_EV_REGION_EXPR + ".");
       }
       shape = Shape::REGION_EXPR;
+    }
+
+    if (is_set(molecule_list)) {
+      if (shape != Shape::UNSET) {
+        throw ValueError(S("When ") + NAME_MOLECULE_LIST + " is set, "
+            "shape must be either unset or set to " + NAME_ENUM_SHAPE + "." + NAME_EV_LIST + ".");
+      }
+      shape = Shape::LIST;
     }
   }
 
