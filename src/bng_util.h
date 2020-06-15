@@ -1,8 +1,7 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2017 by
- * The Salk Institute for Biological Studies and
- * Pittsburgh Supercomputing Center, Carnegie Mellon University
+ * Copyright (C) 2020 by
+ * The Salk Institute for Biological Studies
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -21,17 +20,7 @@
  *
 ******************************************************************************/
 
-#pragma once
+#include <string>
 
-#define ASCII_VIZ_EXTERNAL_SPECIES_NAME
-
-#include "mcell_structs.h"
-
-/* Header file for visualization output routines */
-
-int update_frame_data_list(struct volume *world,
-                           struct viz_output_block *vizblk);
-
-int init_frame_data_list(struct volume *world, struct viz_output_block *vizblk);
-
-int finalize_viz_output(struct volume *world, struct viz_output_block *vizblk);
+// transforms graph pattern into a more readable BNGL representation
+std::string graph_pattern_to_bngl(const char* graph_pattern);

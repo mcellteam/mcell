@@ -16,6 +16,17 @@ void calculate_reactant_orientation(struct abstract_molecule *reac,
         extractSpeciesCompartmentFromNauty_c(reac->graph_data->graph_pattern);
     const char *compartment2 =
         extractSpeciesCompartmentFromNauty_c(reac2->graph_data->graph_pattern);
+
+    if (strcmp(compartment1, "") == 0 && strcmp(compartment2, "") == 0) {
+      // no compartment
+      // both volume molecules
+      *orientation_flag1 = 0;
+      *orientation_flag2 = 0;
+      *reactantOrientation1 = 0;
+      *reactantOrientation2 = 0;
+      return;
+    }
+
     compartmentStruct reactantCompartmentInfo1;
     compartmentStruct reactantCompartmentInfo2;
 

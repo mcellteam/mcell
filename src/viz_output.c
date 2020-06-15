@@ -55,6 +55,8 @@
 #include "vol_util.h"
 #include "sym_table.h"
 
+#include "bng_util.h"
+
 /***  Temporary Viz Options compared to world->viz_options ***/
 
 #define VIZ_OPTS_NONE        0x00L
@@ -446,17 +448,16 @@ static int output_ascii_molecules(struct volume *world,
                   fprintf(custom_file,"%d %15.8e %15.8e %15.8e
          %2d\n",id,where.x,where.y,where.z,orient);
       */
-      const char *external_name = "";
-      const char *space_before = "";
+      std::string external_name = "";
+      std::string space_before = "";
 
       #ifdef ASCII_VIZ_EXTERNAL_SPECIES_NAME
         if ((amp->properties->flags & EXTERNAL_SPECIES) != 0) {
           /* This is complex molecule, so add a new viz molecule for each molecule in the complex */
           /* The graph pattern will be something like: */
           /*    c:SH2~NO_STATE!5,c:U~NO_STATE!5!3,c:a~NO_STATE!6,c:b~Y!6!1,c:g~Y!6,m:Lyn@PM!0!1,m:Rec@PM!2!3!4, */
-          external_name = amp->graph_data->graph_pattern;
-          assert(external_name != NULL);
-          space_before = ""
+          external_name = graph_pattern_to_bngl(amp->graph_data->graph_pattern);
+          space_before = " ";
         }
       #endif
 
@@ -464,14 +465,13 @@ static int output_ascii_molecules(struct volume *world,
         /* write name of molecule */
         fprintf(custom_file, "%s %lu %.9g %.9g %.9g %.9g %.9g %.9g%s%s\n",
                 amp->properties->sym->name, amp->id, where.x, where.y,
-                where.z, norm.x, norm.y, norm.z, space_before, external_name);
+                where.z, norm.x, norm.y, norm.z, space_before.c_str(), external_name.c_str());
       } else {
         /* write state value of molecule */
         fprintf(custom_file, "%d %lu %.9g %.9g %.9g %.9g %.9g %.9g%s%s\n", id,
                 amp->id, where.x, where.y, where.z, norm.x, norm.y,
-                norm.z, space_before, external_name);
+                norm.z, space_before.c_str(), external_name.c_str());
       }
-
     }
 
     vector_delete(vec);

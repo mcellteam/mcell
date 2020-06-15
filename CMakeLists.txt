@@ -255,7 +255,8 @@ set(SOURCE_FILES
     src/volume_output.c
     src/wall_util.c
     src/edge_util.c
-    
+
+    src/bng_util.cpp
     src/dump_state.cpp
     src/mdl2datamodel.cpp
     src/c_vector.cpp
