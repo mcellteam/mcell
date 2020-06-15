@@ -45,7 +45,7 @@
 #include "api/surface_region.h"
 #include "api/geometry_object.h"
 #include "api/release_pattern.h"
-#include "api/single_molecule_release_info.h"
+#include "api/molecule_release_info.h"
 #include "api/release_site.h"
 #include "api/instantiation_data.h"
 

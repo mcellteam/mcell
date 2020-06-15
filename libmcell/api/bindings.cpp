@@ -35,7 +35,7 @@
 #include "generated/gen_surface_region.h"
 #include "generated/gen_geometry_object.h"
 #include "generated/gen_release_pattern.h"
-#include "generated/gen_single_molecule_release_info.h"
+#include "generated/gen_molecule_release_info.h"
 #include "generated/gen_release_site.h"
 #include "generated/gen_instantiation_data.h"
 
@@ -128,7 +128,7 @@ PYBIND11_MODULE(mcell, m) {
   define_pybinding_Subsystem(m);
 
   define_pybinding_ReleasePattern(m);
-  define_pybinding_SingleMoleculeReleaseInfo(m);
+  define_pybinding_MoleculeReleaseInfo(m);
   define_pybinding_ReleaseSite(m);
   define_pybinding_Region(m);
   define_pybinding_SurfaceRegion(m);

@@ -24,9 +24,9 @@
 #include "libs/pybind11/include/pybind11/stl.h"
 #include "gen_release_site.h"
 #include "../api/release_site.h"
+#include "../api/molecule_release_info.h"
 #include "../api/region.h"
 #include "../api/release_pattern.h"
-#include "../api/single_molecule_release_info.h"
 #include "../api/species.h"
 
 namespace MCell {
@@ -128,7 +128,7 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
             const std::string&,
             std::shared_ptr<Species>,
             const Orientation,
-            const std::vector<std::shared_ptr<SingleMoleculeReleaseInfo>>,
+            const std::vector<std::shared_ptr<MoleculeReleaseInfo>>,
             const float_t,
             std::shared_ptr<ReleasePattern>,
             const Shape,
@@ -143,7 +143,7 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
           py::arg("name"),
           py::arg("species") = nullptr,
           py::arg("orientation") = Orientation::NONE,
-          py::arg("molecule_list") = std::vector<std::shared_ptr<SingleMoleculeReleaseInfo>>(),
+          py::arg("molecule_list") = std::vector<std::shared_ptr<MoleculeReleaseInfo>>(),
           py::arg("release_time") = 0,
           py::arg("release_pattern") = nullptr,
           py::arg("shape") = Shape::UNSET,

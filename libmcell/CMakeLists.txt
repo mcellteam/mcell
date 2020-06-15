@@ -44,7 +44,7 @@ set(SOURCE_FILES
     generated/gen_surface_region.cpp
     generated/gen_geometry_object.cpp
     generated/gen_release_pattern.cpp
-    generated/gen_single_molecule_release_info.cpp
+    generated/gen_molecule_release_info.cpp
     generated/gen_release_site.cpp
     generated/gen_instantiation_data.cpp
     

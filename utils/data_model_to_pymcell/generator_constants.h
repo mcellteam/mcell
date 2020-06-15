@@ -40,6 +40,8 @@ const char* const COUNT_PREFIX = "count_";
 const char* const COUNT_TERM_PREFIX = "cterm_";
 const char* const UNNAMED_REACTION_RULE_PREFIX = "unnamed_reaction_rule_";
 const char* const SURFACE_CLASS_PREFIX = "surface_class_";
+const char* const MOLECULE_LIST_PREFIX = "molecule_list_";
+
 
 const char* const VIZ_OUTPUT_NAME = "viz_output";
 const char* const DEFAULT_VIZ_OUTPUT_FILENAME_PREFIX = "'./" VALUE_VIZ_DATA "/seed_' + str(SEED).zfill(5) + '/Scene'";

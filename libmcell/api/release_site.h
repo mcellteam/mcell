@@ -24,7 +24,7 @@
 #define API_RELEASE_SITE_H
 
 #include "generated/gen_release_site.h"
-#include "api/single_molecule_release_info.h"
+#include "api/molecule_release_info.h"
 #include "api/common.h"
 
 namespace MCell {

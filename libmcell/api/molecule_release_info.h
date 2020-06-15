@@ -20,21 +20,21 @@
  *
 ******************************************************************************/
 
-#ifndef API_SINGLE_MOLECULE_RELEASE_INFO_H
-#define API_SINGLE_MOLECULE_RELEASE_INFO_H
+#ifndef API_MOLECULE_RELEASE_INFO_H
+#define API_MOLECULE_RELEASE_INFO_H
 
-#include "../generated/gen_single_molecule_release_info.h"
-#include "../api/common.h"
+#include "generated/gen_molecule_release_info.h"
+#include "api/common.h"
 
 namespace MCell {
 namespace API {
 
-class SingleMoleculeReleaseInfo: public GenSingleMoleculeReleaseInfo {
+class MoleculeReleaseInfo: public GenMoleculeReleaseInfo {
 public:
-  SINGLE_MOLECULE_RELEASE_INFO_CTOR()
+  MOLECULE_RELEASE_INFO_CTOR()
 };
 
 } // namespace API
 } // namespace MCell
 
-#endif // API_SINGLE_MOLECULE_RELEASE_INFO_H
+#endif // API_MOLECULE_RELEASE_INFO_H

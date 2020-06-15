@@ -20,8 +20,8 @@
  *
 ******************************************************************************/
 
-#ifndef API_GEN_SINGLE_MOLECULE_RELEASE_INFO_H
-#define API_GEN_SINGLE_MOLECULE_RELEASE_INFO_H
+#ifndef API_GEN_MOLECULE_RELEASE_INFO_H
+#define API_GEN_MOLECULE_RELEASE_INFO_H
 
 #include "../api/common.h"
 #include "../api/base_data_class.h"
@@ -31,13 +31,13 @@ namespace API {
 
 class Species;
 
-#define SINGLE_MOLECULE_RELEASE_INFO_CTOR() \
-    SingleMoleculeReleaseInfo( \
+#define MOLECULE_RELEASE_INFO_CTOR() \
+    MoleculeReleaseInfo( \
         std::shared_ptr<Species> species_, \
-        const Vec3& location_, \
+        const std::vector<float_t> location_, \
         const Orientation orientation_ = Orientation::NONE \
     ) { \
-      class_name = "SingleMoleculeReleaseInfo"; \
+      class_name = "MoleculeReleaseInfo"; \
       species = species_; \
       location = location_; \
       orientation = orientation_; \
@@ -45,13 +45,13 @@ class Species;
       check_semantics();\
     }
 
-class GenSingleMoleculeReleaseInfo: public BaseDataClass {
+class GenMoleculeReleaseInfo: public BaseDataClass {
 public:
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
 
-  bool __eq__(const GenSingleMoleculeReleaseInfo& other) const;
+  bool __eq__(const GenMoleculeReleaseInfo& other) const;
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---
@@ -67,15 +67,15 @@ public:
     return species;
   }
 
-  Vec3 location;
-  virtual void set_location(const Vec3& new_location_) {
+  std::vector<float_t> location;
+  virtual void set_location(const std::vector<float_t> new_location_) {
     if (initialized) {
       throw RuntimeError("Value 'location' of object with name " + name + " (class " + class_name + ")"
                          "cannot be set after model was initialized.");
     }
     location = new_location_;
   }
-  virtual const Vec3& get_location() const {
+  virtual std::vector<float_t> get_location() const {
     return location;
   }
 
@@ -92,11 +92,11 @@ public:
   }
 
   // --- methods ---
-}; // GenSingleMoleculeReleaseInfo
+}; // GenMoleculeReleaseInfo
 
-class SingleMoleculeReleaseInfo;
-py::class_<SingleMoleculeReleaseInfo> define_pybinding_SingleMoleculeReleaseInfo(py::module& m);
+class MoleculeReleaseInfo;
+py::class_<MoleculeReleaseInfo> define_pybinding_MoleculeReleaseInfo(py::module& m);
 } // namespace API
 } // namespace MCell
 
-#endif // API_GEN_SINGLE_MOLECULE_RELEASE_INFO_H
+#endif // API_GEN_MOLECULE_RELEASE_INFO_H

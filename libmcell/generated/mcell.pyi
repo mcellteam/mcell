@@ -381,11 +381,11 @@ class ReleasePattern():
         self.number_of_trains = number_of_trains
 
 
-class SingleMoleculeReleaseInfo():
+class MoleculeReleaseInfo():
     def __init__(
             self,
             species : Species,
-            location : Vec3,
+            location : List[float],
             orientation : Orientation = Orientation.NONE
         ):
         self.species = species
@@ -399,7 +399,7 @@ class ReleaseSite():
             name : str,
             species : Species = None,
             orientation : Orientation = Orientation.NONE,
-            molecule_list : List[SingleMoleculeReleaseInfo] = None,
+            molecule_list : List[MoleculeReleaseInfo] = None,
             release_time : float = 0,
             release_pattern : ReleasePattern = None,
             shape : Shape = Shape.UNSET,

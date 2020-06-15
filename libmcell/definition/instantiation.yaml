@@ -37,7 +37,7 @@ ReleasePattern:
       For unlimited number of trains use constant NUMBER_OF_TRAINS_UNLIMITED.
     
     
-SingleMoleculeReleaseInfo:
+MoleculeReleaseInfo:
   superclass: BaseDataClass
   items:
   - name: species
@@ -46,11 +46,12 @@ SingleMoleculeReleaseInfo:
       The species of the molecule that will be released.
 
   - name: location
-    type: Vec3
+    type: List[float]
     doc: | 
       3D position where the molecule will be released. 
       If a molecule has a 2D diffusion constant, it will be
       placed on the surface closest to the coordinate given. 
+      Argument must have exactly three floating point values.
 
   - name: orientation
     type: Orientation
@@ -81,7 +82,7 @@ ReleaseSite:
       Must be set if the species represent surface molecules.
       
   - name: molecule_list
-    type: List[SingleMoleculeReleaseInfo*]
+    type: List[MoleculeReleaseInfo*]
     default: empty
     doc: |
       Used for LIST shape release mode. 

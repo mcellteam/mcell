@@ -29,9 +29,9 @@
 namespace MCell {
 namespace API {
 
+class MoleculeReleaseInfo;
 class Region;
 class ReleasePattern;
-class SingleMoleculeReleaseInfo;
 class Species;
 
 #define RELEASE_SITE_CTOR() \
@@ -39,7 +39,7 @@ class Species;
         const std::string& name_, \
         std::shared_ptr<Species> species_ = nullptr, \
         const Orientation orientation_ = Orientation::NONE, \
-        const std::vector<std::shared_ptr<SingleMoleculeReleaseInfo>> molecule_list_ = std::vector<std::shared_ptr<SingleMoleculeReleaseInfo>>(), \
+        const std::vector<std::shared_ptr<MoleculeReleaseInfo>> molecule_list_ = std::vector<std::shared_ptr<MoleculeReleaseInfo>>(), \
         const float_t release_time_ = 0, \
         std::shared_ptr<ReleasePattern> release_pattern_ = nullptr, \
         const Shape shape_ = Shape::UNSET, \
@@ -104,15 +104,15 @@ public:
     return orientation;
   }
 
-  std::vector<std::shared_ptr<SingleMoleculeReleaseInfo>> molecule_list;
-  virtual void set_molecule_list(const std::vector<std::shared_ptr<SingleMoleculeReleaseInfo>> new_molecule_list_) {
+  std::vector<std::shared_ptr<MoleculeReleaseInfo>> molecule_list;
+  virtual void set_molecule_list(const std::vector<std::shared_ptr<MoleculeReleaseInfo>> new_molecule_list_) {
     if (initialized) {
       throw RuntimeError("Value 'molecule_list' of object with name " + name + " (class " + class_name + ")"
                          "cannot be set after model was initialized.");
     }
     molecule_list = new_molecule_list_;
   }
-  virtual std::vector<std::shared_ptr<SingleMoleculeReleaseInfo>> get_molecule_list() const {
+  virtual std::vector<std::shared_ptr<MoleculeReleaseInfo>> get_molecule_list() const {
     return molecule_list;
   }
 

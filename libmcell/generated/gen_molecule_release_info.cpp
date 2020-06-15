@@ -22,14 +22,14 @@
 
 #include <sstream>
 #include "libs/pybind11/include/pybind11/stl.h"
-#include "gen_single_molecule_release_info.h"
-#include "../api/single_molecule_release_info.h"
+#include "gen_molecule_release_info.h"
+#include "../api/molecule_release_info.h"
 #include "../api/species.h"
 
 namespace MCell {
 namespace API {
 
-void GenSingleMoleculeReleaseInfo::check_semantics() const {
+void GenMoleculeReleaseInfo::check_semantics() const {
   if (!is_set(species)) {
     throw ValueError("Parameter 'species' must be set.");
   }
@@ -38,7 +38,7 @@ void GenSingleMoleculeReleaseInfo::check_semantics() const {
   }
 }
 
-bool GenSingleMoleculeReleaseInfo::__eq__(const GenSingleMoleculeReleaseInfo& other) const {
+bool GenMoleculeReleaseInfo::__eq__(const GenMoleculeReleaseInfo& other) const {
   return
     name == other.name &&
     (
@@ -56,40 +56,40 @@ bool GenSingleMoleculeReleaseInfo::__eq__(const GenSingleMoleculeReleaseInfo& ot
     orientation == other.orientation;
 }
 
-void GenSingleMoleculeReleaseInfo::set_initialized() {
+void GenMoleculeReleaseInfo::set_initialized() {
   if (is_set(species)) {
     species->set_initialized();
   }
   initialized = true;
 }
 
-std::string GenSingleMoleculeReleaseInfo::to_str(const std::string ind) const {
+std::string GenMoleculeReleaseInfo::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
       "\n" << ind + "  " << "species=" << "(" << ((species != nullptr) ? species->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      "location=" << location << ", " <<
+      "location=" << vec_nonptr_to_str(location, ind + "  ") << ", " <<
       "orientation=" << orientation;
   return ss.str();
 }
 
-py::class_<SingleMoleculeReleaseInfo> define_pybinding_SingleMoleculeReleaseInfo(py::module& m) {
-  return py::class_<SingleMoleculeReleaseInfo, std::shared_ptr<SingleMoleculeReleaseInfo>>(m, "SingleMoleculeReleaseInfo")
+py::class_<MoleculeReleaseInfo> define_pybinding_MoleculeReleaseInfo(py::module& m) {
+  return py::class_<MoleculeReleaseInfo, std::shared_ptr<MoleculeReleaseInfo>>(m, "MoleculeReleaseInfo")
       .def(
           py::init<
             std::shared_ptr<Species>,
-            const Vec3&,
+            const std::vector<float_t>,
             const Orientation
           >(),
           py::arg("species"),
           py::arg("location"),
           py::arg("orientation") = Orientation::NONE
       )
-      .def("check_semantics", &SingleMoleculeReleaseInfo::check_semantics)
-      .def("__str__", &SingleMoleculeReleaseInfo::to_str, py::arg("ind") = std::string(""))
-      .def("dump", &SingleMoleculeReleaseInfo::dump)
-      .def_property("species", &SingleMoleculeReleaseInfo::get_species, &SingleMoleculeReleaseInfo::set_species)
-      .def_property("location", &SingleMoleculeReleaseInfo::get_location, &SingleMoleculeReleaseInfo::set_location)
-      .def_property("orientation", &SingleMoleculeReleaseInfo::get_orientation, &SingleMoleculeReleaseInfo::set_orientation)
+      .def("check_semantics", &MoleculeReleaseInfo::check_semantics)
+      .def("__str__", &MoleculeReleaseInfo::to_str, py::arg("ind") = std::string(""))
+      .def("dump", &MoleculeReleaseInfo::dump)
+      .def_property("species", &MoleculeReleaseInfo::get_species, &MoleculeReleaseInfo::set_species)
+      .def_property("location", &MoleculeReleaseInfo::get_location, &MoleculeReleaseInfo::set_location)
+      .def_property("orientation", &MoleculeReleaseInfo::get_orientation, &MoleculeReleaseInfo::set_orientation)
     ;
 }
 
