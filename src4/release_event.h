@@ -52,7 +52,7 @@ enum class ReleaseShape {
 
 enum class ReleaseNumberMethod {
   Invalid,
-  ConstNum,
+  ConstNum, // used also for ReleaseShape::LIST
   GaussNum,
   VolNum,
   ConcNum,

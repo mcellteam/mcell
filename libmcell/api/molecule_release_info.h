@@ -32,6 +32,12 @@ namespace API {
 class MoleculeReleaseInfo: public GenMoleculeReleaseInfo {
 public:
   MOLECULE_RELEASE_INFO_CTOR()
+
+  void check_semantics() const override {
+    if (location.size() != 3) {
+      throw ValueError(S("Value of ") + NAME_LOCATION + " must be a triplet of floats.");
+    }
+  }
 };
 
 } // namespace API

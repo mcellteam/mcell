@@ -729,7 +729,7 @@ string generate_single_molecule_release_info_array(
     Value& points_list = release_site_item[KEY_POINTS_LIST];
 
     for (Value::ArrayIndex i = 0; i < points_list.size(); i++) {
-      out << "    " << NAME_CLASS_MOLECULE_RELEASE_INFO << "(";
+      out << "    " << MDOT << NAME_CLASS_MOLECULE_RELEASE_INFO << "(";
       out << NAME_SPECIES << " = " << release_site_item[KEY_MOLECULE].asString() << ", ";
 
       Value& point = points_list[i];
@@ -855,7 +855,11 @@ vector<string> PymcellGenerator::generate_release_sites(ofstream& out) {
     }
     else if (shape == VALUE_LIST) {
       assert(molecule_list_name != "");
-      gen_param_id(out, NAME_MOLECULE_LIST, molecule_list_name, false);
+      bool diam_is_zero = release_site_item[KEY_SITE_DIAMETER] == "0";
+      gen_param_id(out, NAME_MOLECULE_LIST, molecule_list_name, !diam_is_zero);
+      if (!diam_is_zero) {
+        gen_param_expr(out, NAME_SITE_DIAMETER, release_site_item[KEY_SITE_DIAMETER], false);
+      }
     }
     else {
       ERROR("Shape " + shape + " is not supported yet");
