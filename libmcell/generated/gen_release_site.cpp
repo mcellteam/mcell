@@ -24,6 +24,7 @@
 #include "libs/pybind11/include/pybind11/stl.h"
 #include "gen_release_site.h"
 #include "../api/release_site.h"
+#include "../api/molecule_release_info.h"
 #include "../api/region.h"
 #include "../api/release_pattern.h"
 #include "../api/species.h"
@@ -34,9 +35,6 @@ namespace API {
 void GenReleaseSite::check_semantics() const {
   if (!is_set(name)) {
     throw ValueError("Parameter 'name' must be set.");
-  }
-  if (!is_set(species)) {
-    throw ValueError("Parameter 'species' must be set.");
   }
 }
 
@@ -56,6 +54,7 @@ bool GenReleaseSite::__eq__(const GenReleaseSite& other) const {
         )
      )  &&
     orientation == other.orientation &&
+    vec_ptr_eq(molecule_list, other.molecule_list) &&
     release_time == other.release_time &&
     (
       (release_pattern != nullptr) ?
@@ -92,6 +91,7 @@ void GenReleaseSite::set_initialized() {
   if (is_set(species)) {
     species->set_initialized();
   }
+  vec_set_initialized(molecule_list);
   if (is_set(release_pattern)) {
     release_pattern->set_initialized();
   }
@@ -107,6 +107,7 @@ std::string GenReleaseSite::to_str(const std::string ind) const {
       "name=" << name << ", " <<
       "\n" << ind + "  " << "species=" << "(" << ((species != nullptr) ? species->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "orientation=" << orientation << ", " <<
+      "\n" << ind + "  " << "molecule_list=" << vec_ptr_to_str(molecule_list, ind + "  ") << ", " << "\n" << ind + "  " <<
       "release_time=" << release_time << ", " <<
       "\n" << ind + "  " << "release_pattern=" << "(" << ((release_pattern != nullptr) ? release_pattern->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "shape=" << shape << ", " <<
@@ -127,6 +128,7 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
             const std::string&,
             std::shared_ptr<Species>,
             const Orientation,
+            const std::vector<std::shared_ptr<MoleculeReleaseInfo>>,
             const float_t,
             std::shared_ptr<ReleasePattern>,
             const Shape,
@@ -139,8 +141,9 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
             const float_t
           >(),
           py::arg("name"),
-          py::arg("species"),
+          py::arg("species") = nullptr,
           py::arg("orientation") = Orientation::NONE,
+          py::arg("molecule_list") = std::vector<std::shared_ptr<MoleculeReleaseInfo>>(),
           py::arg("release_time") = 0,
           py::arg("release_pattern") = nullptr,
           py::arg("shape") = Shape::UNSET,
@@ -158,6 +161,7 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
       .def_property("name", &ReleaseSite::get_name, &ReleaseSite::set_name)
       .def_property("species", &ReleaseSite::get_species, &ReleaseSite::set_species)
       .def_property("orientation", &ReleaseSite::get_orientation, &ReleaseSite::set_orientation)
+      .def_property("molecule_list", &ReleaseSite::get_molecule_list, &ReleaseSite::set_molecule_list)
       .def_property("release_time", &ReleaseSite::get_release_time, &ReleaseSite::set_release_time)
       .def_property("release_pattern", &ReleaseSite::get_release_pattern, &ReleaseSite::set_release_pattern)
       .def_property("shape", &ReleaseSite::get_shape, &ReleaseSite::set_shape)

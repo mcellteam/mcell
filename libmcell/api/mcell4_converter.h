@@ -57,6 +57,7 @@ class ComplexInstance;
 class SurfaceProperty;
 class SurfaceRegion;
 class GeometryObject;
+class MoleculeReleaseInfo;
 class ReleaseSite;
 class CountTerm;
 
@@ -97,6 +98,9 @@ private:
   void convert_geometry_objects();
 
   void convert_region_expr(API::ReleaseSite& rel_site, MCell::ReleaseEvent* rel_event);
+  void convert_molecule_list(
+      const std::vector<std::shared_ptr<MoleculeReleaseInfo>>& molecule_list,
+      MCell::ReleaseEvent* rel_event);
   void convert_release_events();
 
   MCell::MolOrRxnCountTerm convert_count_term_leaf_and_init_counting_flags(

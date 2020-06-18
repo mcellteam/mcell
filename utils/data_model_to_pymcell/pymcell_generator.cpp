@@ -699,6 +699,67 @@ bool PymcellGenerator::is_volume_species(const string& species_name) {
 }
 
 
+// returns true if the two release sites can be merged into a single one
+static bool can_be_in_same_list_release_site(Value& rs1, Value& rs2) {
+  return
+      rs1[KEY_SHAPE].asString() == VALUE_LIST &&
+      rs2[KEY_SHAPE].asString() == VALUE_LIST &&
+      rs1[KEY_PATTERN].asString() == rs2[KEY_PATTERN].asString() &&
+      rs1[KEY_QUANTITY].asString() == rs2[KEY_QUANTITY].asString() &&
+      rs1[KEY_QUANTITY_TYPE].asString() == rs2[KEY_QUANTITY_TYPE].asString() &&
+      rs1[KEY_RELEASE_PROBABILITY].asString() == rs2[KEY_RELEASE_PROBABILITY].asString() &&
+      rs1[KEY_SITE_DIAMETER].asString() == rs2[KEY_SITE_DIAMETER].asString() &&
+      rs1[KEY_STDDEV].asString() == rs2[KEY_STDDEV].asString();
+}
+
+
+string generate_single_molecule_release_info_array(
+    ofstream& out,
+    string& rel_site_name,
+    Value& release_site_list,
+    Value::ArrayIndex begin,
+    Value::ArrayIndex end) {
+
+  string name = MOLECULE_LIST_PREFIX + rel_site_name;
+
+  out << name << " = [\n";
+  for (Value::ArrayIndex rs_index = begin; rs_index < end; rs_index++) {
+    Value& release_site_item = release_site_list[rs_index];
+
+    Value& points_list = release_site_item[KEY_POINTS_LIST];
+
+    for (Value::ArrayIndex i = 0; i < points_list.size(); i++) {
+      out << "    " << MDOT << NAME_CLASS_MOLECULE_RELEASE_INFO << "(";
+      out << NAME_SPECIES << " = " << release_site_item[KEY_MOLECULE].asString() << ", ";
+
+      Value& point = points_list[i];
+      if (point.size() != 3) {
+        ERROR("Release site " + rel_site_name + ": points_list item does not have three values.");
+      }
+      out << NAME_LOCATION << " = [" << point[0].asDouble() << ", " << point[1].asDouble() << ", " << point[2].asDouble() << "]";
+
+      string orient = convert_orientation(release_site_item[KEY_ORIENT].asString());
+      if (orient != "") {
+        out << ", " << NAME_ORIENTATION << " = " << MDOT << NAME_ENUM_ORIENTATION << "." << orient;
+      }
+
+      out << ")";
+      if (i + 1 != points_list.size()) {
+        out << ", ";
+      }
+    }
+
+    if (rs_index + 1 != end) {
+      out << ", ";
+    }
+    out << "\n";
+  }
+  out << "] # " << name << "\n\n";
+
+  return name;
+}
+
+
 vector<string> PymcellGenerator::generate_release_sites(ofstream& out) {
   vector<string> release_site_names;
 
@@ -709,9 +770,36 @@ vector<string> PymcellGenerator::generate_release_sites(ofstream& out) {
   Value& release_sites = mcell[KEY_RELEASE_SITES];
   check_version(KEY_RELEASE_SITES, release_sites, VER_DM_2014_10_24_1638);
   Value& release_site_list = release_sites[KEY_RELEASE_SITE_LIST];
-  for (Value::ArrayIndex i = 0; i < release_site_list.size(); i++) {
+
+  Value::ArrayIndex i = 0;
+  while (i < release_site_list.size()) {
     Value& release_site_item = release_site_list[i];
     check_version(KEY_RELEASE_SITE_LIST, release_site_item, VER_DM_2018_01_11_1330);
+
+    string name = release_site_item[KEY_NAME].asString();
+    string shape = release_site_item[KEY_SHAPE].asString();
+    string molecule_list_name = "";
+    if (shape == VALUE_LIST) {
+      // 1) try to find the largest number of subsequent
+      // release sites that can be represented by a single ReleaseSite
+      Value::ArrayIndex matching_end = i + 1;
+      while (matching_end < release_site_list.size() &&
+          can_be_in_same_list_release_site(release_site_item, release_site_list[matching_end])) {
+        matching_end++;
+      }
+
+      // remove suffix from release name
+      if (i < matching_end - 1 && name.substr(name.size() - 2) == "_0") {
+        name = name.substr(0, name.size() - 2);
+      }
+
+      // 2) generate an array of SingleMoleculeReleaseInfo objects
+      molecule_list_name =
+          generate_single_molecule_release_info_array(out, name, release_site_list, i, matching_end);
+
+      // skip all release sites we handled here
+      i = matching_end - 1;
+    }
 
     // generate release pattern if needed
     string rel_pat_name = release_site_item[KEY_PATTERN].asString();
@@ -720,25 +808,28 @@ vector<string> PymcellGenerator::generate_release_sites(ofstream& out) {
       generate_release_pattern(out, rel_pat_name, delay_string);
     }
 
-    string name = release_site_item[KEY_NAME].asString();
     release_site_names.push_back(name);
 
     gen_ctor_call(out, name, NAME_CLASS_RELEASE_SITE);
     gen_param(out, NAME_NAME, name, true);
-    string species_name = release_site_item[KEY_MOLECULE].asString();
-    gen_param_id(out, NAME_SPECIES, species_name, true);
 
-    string orientation = convert_orientation(release_site_item[KEY_ORIENT].asString());
-    if (orientation != "") {
-      // check that this is not a volume molecule
-      bool is_vol = is_volume_species(species_name);
-      if (is_vol) {
-        cout <<
-            "Ignoring orientation set for release site " << name << " with species " << species_name <<
-            ", this species represent volume molecules.\n";
-      }
-      else {
-        gen_param_enum(out, NAME_ORIENTATION, NAME_ENUM_ORIENTATION, orientation, true);
+    if (shape != VALUE_LIST) {
+      string species_name = release_site_item[KEY_MOLECULE].asString();
+      gen_param_id(out, NAME_SPECIES, species_name, true);
+
+
+      string orientation = convert_orientation(release_site_item[KEY_ORIENT].asString());
+      if (orientation != "") {
+        // check that this is not a volume molecule
+        bool is_vol = is_volume_species(species_name);
+        if (is_vol) {
+          cout <<
+              "Ignoring orientation set for release site " << name << " with species " << species_name <<
+              ", this species represent volume molecules.\n";
+        }
+        else {
+          gen_param_enum(out, NAME_ORIENTATION, NAME_ENUM_ORIENTATION, orientation, true);
+        }
       }
     }
 
@@ -750,7 +841,6 @@ vector<string> PymcellGenerator::generate_release_sites(ofstream& out) {
       gen_param_id(out, NAME_RELEASE_PATTERN, rel_pat_name, true);
     }
 
-    string shape = release_site_item[KEY_SHAPE].asString();
     if (shape == VALUE_SPHERICAL) {
       gen_param_enum(out, NAME_SHAPE, NAME_ENUM_SHAPE, NAME_EV_SPHERICAL, true);
       gen_param_vec3(
@@ -763,22 +853,33 @@ vector<string> PymcellGenerator::generate_release_sites(ofstream& out) {
     else if (shape == VALUE_OBJECT) {
       gen_region_expr_assignment_for_rel_site(out, release_site_item[KEY_OBJECT_EXPR].asString());
     }
+    else if (shape == VALUE_LIST) {
+      assert(molecule_list_name != "");
+      bool diam_is_zero = release_site_item[KEY_SITE_DIAMETER] == "0";
+      gen_param_id(out, NAME_MOLECULE_LIST, molecule_list_name, !diam_is_zero);
+      if (!diam_is_zero) {
+        gen_param_expr(out, NAME_SITE_DIAMETER, release_site_item[KEY_SITE_DIAMETER], false);
+      }
+    }
     else {
       ERROR("Shape " + shape + " is not supported yet");
     }
 
-    string quantity_type = release_site_item[KEY_QUANTITY_TYPE].asString();
-    if (quantity_type == VALUE_NUMBER_TO_RELEASE) {
-      gen_param_expr(out, NAME_NUMBER_TO_RELEASE, release_site_item[KEY_QUANTITY], false);
-    }
-    else if (quantity_type == VALUE_DENSITY) {
-      gen_param_expr(out, NAME_DENSITY, release_site_item[KEY_QUANTITY], false);
-    }
-    else {
-      ERROR("Quantity type " + quantity_type + " is not supported yet");
+    if (shape != VALUE_LIST) {
+      string quantity_type = release_site_item[KEY_QUANTITY_TYPE].asString();
+      if (quantity_type == VALUE_NUMBER_TO_RELEASE) {
+        gen_param_expr(out, NAME_NUMBER_TO_RELEASE, release_site_item[KEY_QUANTITY], false);
+      }
+      else if (quantity_type == VALUE_DENSITY) {
+        gen_param_expr(out, NAME_DENSITY, release_site_item[KEY_QUANTITY], false);
+      }
+      else {
+        ERROR("Quantity type " + quantity_type + " is not supported yet");
+      }
     }
 
     out << CTOR_END;
+    i++;
   }
 
   return release_site_names;

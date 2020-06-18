@@ -115,7 +115,8 @@ static inline  std::ostream& operator << (std::ostream& out, const VizMode v) {
 enum class Shape {
   UNSET = 0,
   SPHERICAL = 1,
-  REGION_EXPR = 2
+  REGION_EXPR = 2,
+  LIST = 3
 };
 
 
@@ -124,6 +125,7 @@ static inline  std::ostream& operator << (std::ostream& out, const Shape v) {
     case Shape::UNSET: out << "Shape.UNSET (0)"; break;
     case Shape::SPHERICAL: out << "Shape.SPHERICAL (1)"; break;
     case Shape::REGION_EXPR: out << "Shape.REGION_EXPR (2)"; break;
+    case Shape::LIST: out << "Shape.LIST (3)"; break;
   }
   return out;
 };

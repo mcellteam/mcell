@@ -32,6 +32,7 @@ class Shape(Enum):
     UNSET = 0
     SPHERICAL = 1
     REGION_EXPR = 2
+    LIST = 3
 
 class SurfacePropertyType(Enum):
     UNSET = 0
@@ -400,12 +401,25 @@ class ReleasePattern():
         self.number_of_trains = number_of_trains
 
 
+class MoleculeReleaseInfo():
+    def __init__(
+            self,
+            species : Species,
+            location : List[float],
+            orientation : Orientation = Orientation.NONE
+        ):
+        self.species = species
+        self.location = location
+        self.orientation = orientation
+
+
 class ReleaseSite():
     def __init__(
             self,
             name : str,
-            species : Species,
+            species : Species = None,
             orientation : Orientation = Orientation.NONE,
+            molecule_list : List[MoleculeReleaseInfo] = None,
             release_time : float = 0,
             release_pattern : ReleasePattern = None,
             shape : Shape = Shape.UNSET,
@@ -420,6 +434,7 @@ class ReleaseSite():
         self.name = name
         self.species = species
         self.orientation = orientation
+        self.molecule_list = molecule_list
         self.release_time = release_time
         self.release_pattern = release_pattern
         self.shape = shape

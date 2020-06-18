@@ -112,7 +112,8 @@ enums:
       value: 1
     - name: REGION_EXPR
       value: 2
-      internal: Cannot be named Region because such class already exists  
+    - name: LIST
+      value: 3
       
   - name: SurfacePropertyType
     values:

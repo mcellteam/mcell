@@ -24,6 +24,7 @@
 #define API_RELEASE_SITE_H
 
 #include "generated/gen_release_site.h"
+#include "api/molecule_release_info.h"
 #include "api/common.h"
 
 namespace MCell {
@@ -41,6 +42,14 @@ public:
       }
       shape = Shape::REGION_EXPR;
     }
+
+    if (is_set(molecule_list)) {
+      if (shape != Shape::UNSET) {
+        throw ValueError(S("When ") + NAME_MOLECULE_LIST + " is set, "
+            "shape must be either unset or set to " + NAME_ENUM_SHAPE + "." + NAME_EV_LIST + ".");
+      }
+      shape = Shape::LIST;
+    }
   }
 
   // actual manual implementation of a semantic check
@@ -52,8 +61,10 @@ public:
     if (get_num_set(site_diameter, site_radius) > 1) {
       throw ValueError(S("Only either ") + NAME_SITE_DIAMETER + " or " + NAME_SITE_RADIUS + " can be set.");
     }
-    if (get_num_set(number_to_release, density) != 1) {
-      throw ValueError(S("Exactly one of ") + NAME_NUMBER_TO_RELEASE + " or " + NAME_DENSITY + " must be set.");
+    if (get_num_set(number_to_release, density, molecule_list) != 1) {
+      throw ValueError(
+          S("Exactly one of ") + NAME_NUMBER_TO_RELEASE + ", " + NAME_DENSITY + " or " +
+          NAME_MOLECULE_LIST + " must be set.");
     }
   }
 };

@@ -29,6 +29,7 @@
 namespace MCell {
 namespace API {
 
+class MoleculeReleaseInfo;
 class Region;
 class ReleasePattern;
 class Species;
@@ -36,8 +37,9 @@ class Species;
 #define RELEASE_SITE_CTOR() \
     ReleaseSite( \
         const std::string& name_, \
-        std::shared_ptr<Species> species_, \
+        std::shared_ptr<Species> species_ = nullptr, \
         const Orientation orientation_ = Orientation::NONE, \
+        const std::vector<std::shared_ptr<MoleculeReleaseInfo>> molecule_list_ = std::vector<std::shared_ptr<MoleculeReleaseInfo>>(), \
         const float_t release_time_ = 0, \
         std::shared_ptr<ReleasePattern> release_pattern_ = nullptr, \
         const Shape shape_ = Shape::UNSET, \
@@ -53,6 +55,7 @@ class Species;
       name = name_; \
       species = species_; \
       orientation = orientation_; \
+      molecule_list = molecule_list_; \
       release_time = release_time_; \
       release_pattern = release_pattern_; \
       shape = shape_; \
@@ -99,6 +102,18 @@ public:
   }
   virtual Orientation get_orientation() const {
     return orientation;
+  }
+
+  std::vector<std::shared_ptr<MoleculeReleaseInfo>> molecule_list;
+  virtual void set_molecule_list(const std::vector<std::shared_ptr<MoleculeReleaseInfo>> new_molecule_list_) {
+    if (initialized) {
+      throw RuntimeError("Value 'molecule_list' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
+    molecule_list = new_molecule_list_;
+  }
+  virtual std::vector<std::shared_ptr<MoleculeReleaseInfo>> get_molecule_list() const {
+    return molecule_list;
   }
 
   float_t release_time;

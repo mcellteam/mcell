@@ -191,7 +191,7 @@ void ReleaseEvent::dump(const string ind) const {
 // returns the name of the release pattern,
 // empty string if release pattern is not needed
 std::string ReleaseEvent::release_pattern_to_data_model(Json::Value& mcell_node) const {
-  if (delay == 0 && number_of_trains == 1 && get_num_releases_per_train() == 1) {
+  if (!needs_release_pattern()) {
     // no release pattern is needed
     return "";
   }
@@ -334,9 +334,9 @@ void ReleaseEvent::to_data_model_as_one_release_site(
 
 void ReleaseEvent::to_data_model(Json::Value& mcell_node) const {
 
-  if (event_time != 0) {
+  if (event_time != 0 && !needs_release_pattern()) {
     // the MCell4 API supports this, but there is not way how to store it into data model
-    // TODO: extend data model?
+    // TODO: extend data model? - or implement using release patterns?
     mcell_warn(
         "Release event %s starts at time different from 0, conversion to data model is not supported yet, ignoring it.",
         release_site_name.c_str()

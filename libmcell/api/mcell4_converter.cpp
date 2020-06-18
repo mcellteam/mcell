@@ -752,6 +752,30 @@ void MCell4Converter::convert_region_expr(API::ReleaseSite& rel_site, MCell::Rel
 }
 
 
+void MCell4Converter::convert_molecule_list(
+    const std::vector<std::shared_ptr<MoleculeReleaseInfo>>& molecule_list,
+    MCell::ReleaseEvent* rel_event) {
+
+  for (auto& item: molecule_list) {
+    MCell::SingleMoleculeReleaseInfo info;
+    info.species_id = item->species->species_id;
+    assert(item->location.size() == 3);
+    info.pos.x = item->location[0] * world->config.rcp_length_unit;
+    info.pos.y = item->location[1] * world->config.rcp_length_unit;
+    info.pos.z = item->location[2] * world->config.rcp_length_unit;
+    info.orientation = convert_orientation(item->orientation); // not set means random orientation for surf mols
+
+    if (world->get_all_species().get(info.species_id).is_vol() &&
+        rel_event->orientation != ORIENTATION_NONE && rel_event->orientation != ORIENTATION_NOT_SET) {
+      throw ValueError(
+          S(NAME_CLASS_RELEASE_SITE) + " releases a volume molecule but orientation is set.");
+    }
+
+    rel_event->molecule_list.push_back(info);
+  }
+}
+
+
 void MCell4Converter::convert_release_events() {
   // only initial support without any geometries
 
@@ -759,24 +783,28 @@ void MCell4Converter::convert_release_events() {
     MCell::ReleaseEvent* rel_event = new ReleaseEvent(world);
 
     rel_event->release_site_name = r->name;
-    rel_event->species_id = r->species->species_id;
-    rel_event->orientation = convert_orientation(r->orientation);
+
+    if (!is_set(r->molecule_list)) {
+      rel_event->species_id = r->species->species_id;
+      rel_event->orientation = convert_orientation(r->orientation);
+
+      // FIXME: this should belong in the ReleaseSite ctor
+      if (world->get_all_species().get(rel_event->species_id).is_surf() &&
+          rel_event->orientation != ORIENTATION_UP && rel_event->orientation != ORIENTATION_DOWN) {
+        throw ValueError(
+            S(NAME_CLASS_RELEASE_SITE) + " " + r->name +
+            " releases a surface molecule but orientation is not set.");
+      }
+
+      if (world->get_all_species().get(rel_event->species_id).is_vol() &&
+          rel_event->orientation != ORIENTATION_NONE && rel_event->orientation != ORIENTATION_NOT_SET) {
+        throw ValueError(
+            S(NAME_CLASS_RELEASE_SITE) + " " + r->name +
+            " releases a volume molecule but orientation is set.");
+      }
+    }
+
     rel_event->delay = r->release_time / world->config.time_unit;
-
-    // FIXME: this should belong in the ReleaseSite ctor
-    if (world->get_all_species().get(rel_event->species_id).is_surf() &&
-        rel_event->orientation != ORIENTATION_UP && rel_event->orientation != ORIENTATION_DOWN) {
-      throw ValueError(
-          S(NAME_CLASS_RELEASE_SITE) + " " + r->name +
-          " releases a surface molecule but orientation is not set.");
-    }
-
-    if (world->get_all_species().get(rel_event->species_id).is_vol() &&
-        rel_event->orientation != ORIENTATION_NONE && rel_event->orientation != ORIENTATION_NOT_SET) {
-      throw ValueError(
-          S(NAME_CLASS_RELEASE_SITE) + " " + r->name +
-          " releases a volume molecule but orientation is set.");
-    }
 
     // release pattern
     if (is_set(r->release_pattern)) {
@@ -795,6 +823,10 @@ void MCell4Converter::convert_release_events() {
     else if (is_set(r->density)) {
       rel_event->release_number_method = ReleaseNumberMethod::DensityNum;
       rel_event->concentration = r->density;
+    }
+    else if (is_set(r->molecule_list)) {
+      rel_event->release_number_method = ReleaseNumberMethod::ConstNum;
+      convert_molecule_list(r->molecule_list, rel_event);
     }
     else {
       throw RuntimeError(
@@ -817,6 +849,10 @@ void MCell4Converter::convert_release_events() {
             throw RuntimeError("Only simple surface regions are supported now, error for " + r->name + ".");
           }
         }
+        break;
+      case Shape::LIST:
+        rel_event->release_shape = ReleaseShape::LIST;
+        rel_event->diameter = r->site_diameter * world->config.rcp_length_unit;
         break;
       default:
         // should be caught earlier
