@@ -39,6 +39,7 @@ public:
 
 private:
   // not read from BNG yet, but proposal is on its way
+  // used in reactions, not in species
   orientation_t orientation;
 
 public:

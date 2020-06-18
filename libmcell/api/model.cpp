@@ -52,9 +52,10 @@ Model::~Model() {
 void Model::add_subsystem(std::shared_ptr<Subsystem> subsystem) {
   error_if_initialized(NAME_CLASS_SUBSYSTEM);
 
+  append_vec_to_vec(elementary_molecule_types, subsystem->elementary_molecule_types);
   append_vec_to_vec(species, subsystem->species);
-  append_vec_to_vec(reaction_rules, subsystem->reaction_rules);
   append_vec_to_vec(surface_classes, subsystem->surface_classes);
+  append_vec_to_vec(reaction_rules, subsystem->reaction_rules);
 }
 
 
@@ -122,8 +123,10 @@ std::string Model::to_str(const std::string ind) const {
       //"config=" << "(" << ((config != nullptr) ? config->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       //"warnings=" << "(" << ((warnings != nullptr) ? warnings->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       //"notifications=" << "(" << ((notifications != nullptr) ? notifications->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      "reaction_rules=" << vec_ptr_to_str(reaction_rules, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "elementary_molecule_types=" << vec_ptr_to_str(elementary_molecule_types, ind + "  ") << ", " << "\n" << ind + "  " <<
       "species=" << vec_ptr_to_str(species, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "surface_classes=" << vec_ptr_to_str(surface_classes, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "reaction_rules=" << vec_ptr_to_str(reaction_rules, ind + "  ") << ", " << "\n" << ind + "  " <<
       "release_sites=" << vec_ptr_to_str(release_sites, ind + "  ") << ", " << "\n" << ind + "  " <<
       "geometry_objects=" << vec_ptr_to_str(geometry_objects, ind + "  ");
   return ss.str();

@@ -80,6 +80,8 @@ public:
   BNGData& get_data() { return data; }
   const BNGData& get_data() const { return data; }
 
+  const BNGConfig& get_config() const { return bng_config; }
+
   CplxInstance create_cplx_instance_for_species(const species_id_t id, const orientation_t o) const;
 };
 

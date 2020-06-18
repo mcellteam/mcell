@@ -82,7 +82,9 @@ public:
     }
   }
 
-  species_id_t find_simple_species_id(const CplxInstance& inst);
+  species_id_t find_species_id(const CplxInstance& inst);
+
+  species_id_t find_or_add_species(const CplxInstance& inst);
 
   Species& get(const species_id_t id) {
     assert(id < species.size());

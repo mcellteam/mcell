@@ -11,6 +11,7 @@
 #include <string>
 
 #include "bng/bng_defines.h"
+#include "bng/base_flag.h"
 
 namespace BNG {
 
@@ -34,14 +35,21 @@ public:
 // Molecule type determines all allowed components and states of these components.
 // It is only used to check that reactions and instantiations (releases) follow the
 // allowed components and states.
-class MolType {
+class MolType: public BaseSpeciesCplxMolFlag {
 public:
+  MolType()
+    : D(FLT_INVALID) {
+  }
+
   std::string name;
   small_vector<component_type_id_t> component_type_ids;
+
+  float_t D; // diffusion constant
 
   bool operator ==(const MolType& mt2) const {
     // ordering of components in a molecule is important
     // two component types must have the same id, this is ensured in find_or_add_component_type
+    // diffusion constant is ignored
     return name == mt2.name && component_type_ids == mt2.component_type_ids;
   }
 

@@ -78,6 +78,26 @@ void Subsystem::convert_molecule_type(const BNG::BNGData& bng_data, const BNG::M
   const string& name = bng_mt.name;
   auto res_mt = make_shared<API::ElementaryMoleculeType>(name);
 
+  // using the MCELL_* parameters for now, see if the diffusion rate was
+  // specified in the model
+  float_t D2;
+  bool found2 = bng_data.get_parameter_value(MCELL_DIFFUSION_CONSTANT_2D_PREFIX + name, D2);
+  float_t D3;
+  bool found3 = bng_data.get_parameter_value(MCELL_DIFFUSION_CONSTANT_3D_PREFIX + name, D3);
+
+  if (found2 && found3) {
+    throw RuntimeError("Molecule type " + name + " has both 2d and 3d diffusion constants specified.");
+  }
+  if (!found2 && !found3) {
+    throw RuntimeError("Molecule type " + name + " does not have its diffusion constant specified.");
+  }
+  if (found2) {
+    res_mt->diffusion_constant_2d = D2;
+  }
+  else if (found3) {
+    res_mt->diffusion_constant_3d = D3;
+  }
+
   // process components
   for (BNG::component_type_id_t ct_id: bng_mt.component_type_ids) {
     const BNG::ComponentType bng_ct = bng_data.get_component_type(ct_id);
@@ -87,26 +107,6 @@ void Subsystem::convert_molecule_type(const BNG::BNGData& bng_data, const BNG::M
     // and allowed states
     for (BNG::state_id_t state_id: bng_ct.allowed_state_ids) {
       ct->states.push_back(bng_data.get_state_name(state_id));
-    }
-
-    // using the MCELL_* parameters for now, see if the diffusion rate was
-    // specified in the model
-    float_t D2;
-    bool found2 = bng_data.get_parameter_value(MCELL_DIFFUSION_CONSTANT_2D_PREFIX + name, D2);
-    float_t D3;
-    bool found3 = bng_data.get_parameter_value(MCELL_DIFFUSION_CONSTANT_3D_PREFIX + name, D3);
-
-    if (found2 && found3) {
-      throw RuntimeError("Molecule type " + name + " has both 2d and 3d diffusion constants specified.");
-    }
-    if (!found2 && !found3) {
-      throw RuntimeError("Molecule type " + name + " does not have its diffusion constant specified.");
-    }
-    if (found2) {
-      res_mt->diffusion_constant_2d = D2;
-    }
-    else if (found3) {
-      res_mt->diffusion_constant_3d = D3;
     }
 
     res_mt->components.push_back(ct);

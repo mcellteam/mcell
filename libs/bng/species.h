@@ -26,11 +26,20 @@ public:
     {
   }
 
+  // create species from a complex instance
+  // id is not set and name is determined automatically
+  Species(const CplxInstance& cplx_inst, const BNGData& data, const BNGConfig& config) {
+    mol_instances = cplx_inst.mol_instances;
+    update_diffusion_constant(data, config);
+    name = cplx_inst.to_str(data);
+    finalize();
+  }
+
   species_id_t id;
 
   std::string name; // string representation of the complex instance
 
-  float_t D; // diffusion constant
+  float_t D; // diffusion constant, entered by user in MCell3 mode, computed in MCell4 BNG model
 
   bool equal_except_for_id_base(const Species& s2) const {
     return
@@ -86,7 +95,12 @@ public:
   }
 
   // for initialization
-  void update_space_and_time_step(const float_t time_unit, const float_t length_unit);
+  void update_space_and_time_step(const BNGConfig& config);
+
+  // use information from contained molecule types to compute diffusion constant
+  // calls update_space_and_time_step
+  void update_diffusion_constant(const BNGData& data, const BNGConfig& config);
+
 
   // ^^^^^^^^^^ MCell-specific ^^^^^^^^^^
 

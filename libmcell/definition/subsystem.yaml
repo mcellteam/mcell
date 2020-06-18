@@ -71,6 +71,7 @@ ElementaryMoleculeType:
     params:
     - name: components
       type: List[ComponentInstance*]
+      default: empty
       
       
 ElementaryMoleculeInstance:
@@ -94,6 +95,7 @@ ComplexInstance:
   - name: orientation
     type: Orientation 
     default: Orientation.NONE
+    
     
 Species:
   superclass: ComplexInstance
@@ -205,6 +207,7 @@ ReactionRule:
     doc: | 
       Variable rate is applicable only for irreversible reactions. Members fwd_rate and rev_rate 
       must not be set. The array passed as this argument must have as its items a pair of floats (time, rate).     
+
 
 Subsystem:
   items:

@@ -74,6 +74,15 @@ ReleaseSite:
       The species of the molecule that will be released. Not used for the LIST shape. 
       You must specify an orientation if the molecule is a surface molecule.
       Must be set when molecule_list is empty and unset when molecule_list is not empty.
+      
+  - name: complex_instance
+    type: ComplexInstance*
+    default: unset
+    internal: maybe remove the species argument? 
+    doc: | 
+      Defines the species of the molecule that will be released. Not used for the LIST shape. 
+      You must specify an orientation if the molecule is a surface molecule.
+      Must be set when molecule_list is empty and unset when molecule_list is not empty.
 
   - name: orientation
     type: Orientation

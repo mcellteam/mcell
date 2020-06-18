@@ -58,12 +58,20 @@ public:
     if (release_time < 0) {
       throw ValueError(S("Value of ") + NAME_RELEASE_TIME + " must not be smaller than 0.");
     }
+
     if (get_num_set(site_diameter, site_radius) > 1) {
       throw ValueError(S("Only either ") + NAME_SITE_DIAMETER + " or " + NAME_SITE_RADIUS + " can be set.");
     }
+
     if (get_num_set(number_to_release, density, molecule_list) != 1) {
       throw ValueError(
           S("Exactly one of ") + NAME_NUMBER_TO_RELEASE + ", " + NAME_DENSITY + " or " +
+          NAME_MOLECULE_LIST + " must be set.");
+    }
+
+    if (get_num_set(species, complex_instance, molecule_list) != 1) {
+      throw ValueError(
+          S("Exactly one of ") + NAME_SPECIES + ", " + NAME_COMPLEX_INSTANCE + " or " +
           NAME_MOLECULE_LIST + " must be set.");
     }
   }

@@ -81,6 +81,9 @@ void MCell4Converter::convert(Model* model_, World* world_) {
   world = world_;
 
   convert_simulation_setup();
+
+  convert_elementary_molecule_types();
+
   convert_species();
   world->create_diffusion_events();
 
@@ -188,6 +191,59 @@ void MCell4Converter::convert_simulation_setup() {
 }
 
 
+BNG::mol_type_id_t MCell4Converter::convert_elementary_molecule_type(API::ElementaryMoleculeType& api_mt, const bool in_rxn) {
+  if (api_mt.mol_type_id != BNG::MOL_TYPE_ID_INVALID) {
+    // already converted
+    return api_mt.mol_type_id;
+  }
+
+
+  BNG::BNGData& bng_data = world->bng_engine.get_data();
+
+  BNG::MolType bng_mt;
+
+  bng_mt.name = api_mt.name;
+
+  if (!in_rxn) {
+    if (is_set(api_mt.diffusion_constant_2d)) {
+      bng_mt.set_is_surf();
+      bng_mt.D = api_mt.diffusion_constant_2d;
+    }
+    else if (is_set(api_mt.diffusion_constant_3d)) {
+      bng_mt.set_is_vol();
+      bng_mt.D = api_mt.diffusion_constant_3d;
+    }
+    else {
+      throw RuntimeError(S("Diffusion constant for ") + NAME_CLASS_ELEMENTARY_MOLECULE_TYPE + " was not set.");
+    }
+  }
+
+  // components
+  for (std::shared_ptr<API::ComponentType> api_ct: api_mt.components) {
+    BNG::ComponentType bng_ct;
+
+    bng_ct.name = api_ct->name;
+
+    for (const string& state: api_ct->states) {
+      bng_ct.allowed_state_ids.insert_unique(bng_data.find_or_add_state_name(state));
+    }
+
+    bng_mt.component_type_ids.push_back(bng_data.find_or_add_component_type(bng_ct));
+  }
+
+  return bng_data.find_or_add_molecule_type(bng_mt);
+}
+
+
+void MCell4Converter::convert_elementary_molecule_types() {
+  BNG::BNGData& bng_data = world->bng_engine.get_data();
+
+  for (std::shared_ptr<API::ElementaryMoleculeType>& api_mt: model->elementary_molecule_types) {
+    convert_elementary_molecule_type(*api_mt);
+  }
+}
+
+
 void MCell4Converter::convert_species() {
   for (std::shared_ptr<API::Species>& s: model->species) {
     BNG::Species new_species;
@@ -198,13 +254,13 @@ void MCell4Converter::convert_species() {
       is_vol = true;
       new_species.D = s->diffusion_constant_3d;
       new_species.set_is_vol();
-      new_species.update_space_and_time_step(world->config.time_unit, world->config.length_unit);
+      new_species.update_space_and_time_step(world->bng_engine.get_config());
     }
     else if (is_set(s->diffusion_constant_2d)) {
       is_vol = false;
       new_species.D = s->diffusion_constant_2d;
       new_species.set_is_surf();
-      new_species.update_space_and_time_step(world->config.time_unit, world->config.length_unit);
+      new_species.update_space_and_time_step(world->bng_engine.get_config());
     }
     else if (is_species_superclass(new_species.name)) {
       is_vol = new_species.name != ALL_SURFACE_MOLECULES;
@@ -338,33 +394,15 @@ void MCell4Converter::convert_surface_classes() {
 }
 
 
-BNG::ComponentType MCell4Converter::convert_component_type(API::ComponentType& ct) {
+/*BNG::ComponentInstance MCell4Converter::convert_component_instance(API::ComponentInstance& ci) {
   throw RuntimeError("Components are not supported yet");
-}
+}*/
 
 
-BNG::ComponentInstance MCell4Converter::convert_component_instance(API::ComponentInstance& ci) {
-  throw RuntimeError("Components are not supported yet");
-}
-
-
-BNG::MolType MCell4Converter::convert_molecule_type(API::ElementaryMoleculeType& mt) {
-  BNG::MolType res;
-
-  res.name = mt.name;
-  if (!mt.components.empty()) {
-    throw RuntimeError("Components are not supported yet");
-  }
-
-  return res;
-}
-
-
-BNG::MolInstance MCell4Converter::convert_molecule_instance(API::ElementaryMoleculeInstance& mi) {
+BNG::MolInstance MCell4Converter::convert_molecule_instance(API::ElementaryMoleculeInstance& mi, const bool in_rxn) {
   BNG::MolInstance res;
 
-  BNG::MolType mt = convert_molecule_type(*mi.elementary_molecule_type);
-  res.mol_type_id = world->bng_engine.get_data().find_or_add_molecule_type(mt);
+  res.mol_type_id = convert_elementary_molecule_type(*mi.elementary_molecule_type, in_rxn);
 
   if (!mi.components.empty()) {
     throw RuntimeError("Components are not supported yet");
@@ -374,12 +412,12 @@ BNG::MolInstance MCell4Converter::convert_molecule_instance(API::ElementaryMolec
 }
 
 
-BNG::CplxInstance MCell4Converter::convert_complex_instance(API::ComplexInstance& inst) {
+BNG::CplxInstance MCell4Converter::convert_complex_instance(API::ComplexInstance& inst, const bool in_rxn) {
   // create a temporary cplx instance that we will use for search
   BNG::CplxInstance cplx_inst;
 
   for (std::shared_ptr<API::ElementaryMoleculeInstance>& m: inst.molecule_instances) {
-    BNG::MolInstance mi = convert_molecule_instance(*m);
+    BNG::MolInstance mi = convert_molecule_instance(*m, in_rxn);
 
     cplx_inst.mol_instances.push_back(mi);
   }
@@ -387,13 +425,10 @@ BNG::CplxInstance MCell4Converter::convert_complex_instance(API::ComplexInstance
   cplx_inst.set_orientation(orient);
   cplx_inst.finalize();
 
-  // we need to find existing species that we match
-  // at least for now until full BNG support will be ready
-  species_id_t species_id = world->get_all_species().find_simple_species_id(cplx_inst);
-  if (species_id == SPECIES_ID_INVALID) {
-    throw ("Could not match reactant or product " + cplx_inst.to_str(world->bng_engine.get_data(), true) +
-        " to any existing species.");
-  }
+  // we need to find or add existing species that we match
+  species_id_t species_id = world->get_all_species().find_or_add(
+      BNG::Species(cplx_inst, world->bng_engine.get_data(), world->bng_engine.get_config()));
+  assert(species_id != SPECIES_ID_INVALID);
   return world->bng_engine.create_cplx_instance_for_species(species_id, orient);
 }
 
@@ -428,14 +463,14 @@ void MCell4Converter::convert_rxns() {
     for (std::shared_ptr<API::ComplexInstance>& rinst: r->reactants) {
       // convert to BNG::ComplexInstance using existing or new BNG::molecule_id
 
-      BNG::CplxInstance reactant = convert_complex_instance(*rinst);
+      BNG::CplxInstance reactant = convert_complex_instance(*rinst, true);
       rxn.append_reactant(reactant);
     }
 
     for (std::shared_ptr<API::ComplexInstance>& pinst: r->products) {
       // convert to BNG::ComplexInstance using existing or new BNG::molecule_id
 
-      BNG::CplxInstance product = convert_complex_instance(*pinst);
+      BNG::CplxInstance product = convert_complex_instance(*pinst, true);
       rxn.append_product(product);
     }
 
@@ -785,7 +820,23 @@ void MCell4Converter::convert_release_events() {
     rel_event->release_site_name = r->name;
 
     if (!is_set(r->molecule_list)) {
-      rel_event->species_id = r->species->species_id;
+
+      if (is_set(r->species)) {
+        rel_event->species_id = r->species->species_id;
+      }
+      else if (is_set(r->complex_instance)) {
+        // we need to define species for our complex instance
+        BNG::Species s = BNG::Species(
+            convert_complex_instance(*r->complex_instance),
+            world->bng_engine.get_data(),
+            world->bng_engine.get_config()
+        );
+        rel_event->species_id = world->bng_engine.get_all_species().find_or_add(s);
+      }
+      else {
+        assert(false);
+      }
+
       rel_event->orientation = convert_orientation(r->orientation);
 
       // FIXME: this should belong in the ReleaseSite ctor
@@ -1054,8 +1105,13 @@ void MCell4Converter::convert_viz_output_events() {
     viz_event->viz_mode = convert_viz_mode(v->mode);
     viz_event->file_prefix_name = v->filename_prefix;
 
-    for (std::shared_ptr<API::Species>& s: v->species_list) {
-      viz_event->species_ids_to_visualize.insert(s->species_id);
+    if (is_set(v->species_list)) {
+      for (std::shared_ptr<API::Species>& s: v->species_list) {
+        viz_event->species_ids_to_visualize.insert(s->species_id);
+      }
+    }
+    else {
+      viz_event->visualize_all_species = true;
     }
 
     world->scheduler.schedule_event(viz_event);

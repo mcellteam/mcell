@@ -96,7 +96,7 @@ public:
   }
 
   // --- methods ---
-  virtual std::shared_ptr<ElementaryMoleculeInstance> inst(const std::vector<std::shared_ptr<ComponentInstance>> components) = 0;
+  virtual std::shared_ptr<ElementaryMoleculeInstance> inst(const std::vector<std::shared_ptr<ComponentInstance>> components = std::vector<std::shared_ptr<ComponentInstance>>()) = 0;
 }; // GenElementaryMoleculeType
 
 class ElementaryMoleculeType;

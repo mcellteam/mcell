@@ -23,6 +23,8 @@
 #ifndef API_ELEMENTARY_MOLECULE_TYPE_H
 #define API_ELEMENTARY_MOLECULE_TYPE_H
 
+#include "bng/bng_defines.h"
+
 #include "generated/gen_elementary_molecule_type.h"
 #include "api/common.h"
 #include "api/elementary_molecule_instance.h"
@@ -35,9 +37,16 @@ class ElementaryMoleculeType:
 public:
   ELEMENTARY_MOLECULE_TYPE_CTOR()
 
+  void postprocess_in_ctor() override {
+    mol_type_id = BNG::MOL_TYPE_ID_INVALID;
+  }
+
   std::shared_ptr<ElementaryMoleculeInstance> inst(const std::vector<std::shared_ptr<ComponentInstance>> components) override {
     return std::make_shared<ElementaryMoleculeInstance>( shared_from_this(), components);
   }
+
+  // mapping to MCell4
+  BNG::mol_type_id_t mol_type_id;
 };
 
 } // namespace API

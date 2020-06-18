@@ -26,6 +26,7 @@
 
 #include "bng/species.h"
 #include "bng/bng_defines.h"
+#include "bng/bng_data.h"
 
 #include <numeric>      // std::iota
 #include <algorithm>    // std::sort, std::stable_sort
@@ -35,7 +36,8 @@ using namespace std;
 namespace BNG {
 
 // based on assemble_mol_species
-void Species::update_space_and_time_step(const float_t time_unit, const float_t length_unit) {
+// time_unit and length_unit are coming from the simulation configuration
+void Species::update_space_and_time_step(const BNGConfig& config) {
   // Immobile (boring)
   if (!distinguishable_f(D, 0, EPS)) {
     space_step = 0.0;
@@ -69,7 +71,7 @@ void Species::update_space_and_time_step(const float_t time_unit, const float_t 
   }*/
   // Global timestep (this is the typical case)
   else /*if (!distinguishable(state->space_step, 0, EPS_C))*/ {
-    space_step = sqrt_f(4.0 * 1.0e8 * D * time_unit) / length_unit;
+    space_step = sqrt_f(4.0 * 1.0e8 * D * config.time_unit) / config.length_unit;
     time_step = 1.0;
   }
   /*// Global spacestep
@@ -91,6 +93,13 @@ void Species::update_space_and_time_step(const float_t time_unit, const float_t 
   }*/
 }
 
+
+void Species::update_diffusion_constant(const BNGData& data, const BNGConfig& config) {
+  assert(mol_instances.size() == 1 && "TODO");
+  D = data.get_molecule_type(mol_instances[0].mol_type_id).D;
+  assert(D != FLT_INVALID);
+  update_space_and_time_step(config);
+}
 
 // temporary, to make the diff const same in dump as in data model
 // TODO: move this to a shared library, the same function is in datamodel_defines.h

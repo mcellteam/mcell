@@ -39,6 +39,7 @@ public:
   VizOutputEvent(World* world_)
     : BaseEvent(EVENT_TYPE_INDEX_VIZ_OUTPUT),
       viz_mode(NO_VIZ_MODE),
+      visualize_all_species(false),
       world(world_) {
   }
   virtual ~VizOutputEvent() {}
@@ -52,6 +53,7 @@ public:
 
   viz_mode_t viz_mode;
   std::string file_prefix_name;
+  bool visualize_all_species;
   uint_set<species_id_t> species_ids_to_visualize;
   World* world;
 

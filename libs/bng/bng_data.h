@@ -25,7 +25,8 @@ private:
   // indexed with state_id_t
   std::vector<std::string> state_names;
 
-  // indexed with component_type_id_t
+  // indexed with component_type_id_t,
+  // contains unique component types even though their name may be identical
   std::vector<ComponentType> component_types;
 
   // indexed with molecule_type_id_t

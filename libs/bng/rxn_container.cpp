@@ -179,7 +179,7 @@ species_id_t RxnContainer::get_rxn_product_species_id(
 
   if (product.is_simple()) {
     // simple species must be already defined (they are based on molecule types)
-    res = all_species.find_simple_species_id(product);
+    res = all_species.find_species_id(product);
     assert(res != SPECIES_ID_INVALID);
   }
   else {

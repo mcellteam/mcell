@@ -29,6 +29,7 @@
 namespace MCell {
 namespace API {
 
+class ComplexInstance;
 class MoleculeReleaseInfo;
 class Region;
 class ReleasePattern;
@@ -38,6 +39,7 @@ class Species;
     ReleaseSite( \
         const std::string& name_, \
         std::shared_ptr<Species> species_ = nullptr, \
+        std::shared_ptr<ComplexInstance> complex_instance_ = nullptr, \
         const Orientation orientation_ = Orientation::NONE, \
         const std::vector<std::shared_ptr<MoleculeReleaseInfo>> molecule_list_ = std::vector<std::shared_ptr<MoleculeReleaseInfo>>(), \
         const float_t release_time_ = 0, \
@@ -54,6 +56,7 @@ class Species;
       class_name = "ReleaseSite"; \
       name = name_; \
       species = species_; \
+      complex_instance = complex_instance_; \
       orientation = orientation_; \
       molecule_list = molecule_list_; \
       release_time = release_time_; \
@@ -90,6 +93,18 @@ public:
   }
   virtual std::shared_ptr<Species> get_species() const {
     return species;
+  }
+
+  std::shared_ptr<ComplexInstance> complex_instance;
+  virtual void set_complex_instance(std::shared_ptr<ComplexInstance> new_complex_instance_) {
+    if (initialized) {
+      throw RuntimeError("Value 'complex_instance' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
+    complex_instance = new_complex_instance_;
+  }
+  virtual std::shared_ptr<ComplexInstance> get_complex_instance() const {
+    return complex_instance;
   }
 
   Orientation orientation;

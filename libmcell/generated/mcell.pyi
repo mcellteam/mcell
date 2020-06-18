@@ -115,7 +115,7 @@ class ElementaryMoleculeType():
 
     def inst(
             self,
-            components : List[ComponentInstance]
+            components : List[ComponentInstance] = None
         ) -> 'ElementaryMoleculeInstance':
         pass
 
@@ -418,6 +418,7 @@ class ReleaseSite():
             self,
             name : str,
             species : Species = None,
+            complex_instance : ComplexInstance = None,
             orientation : Orientation = Orientation.NONE,
             molecule_list : List[MoleculeReleaseInfo] = None,
             release_time : float = 0,
@@ -433,6 +434,7 @@ class ReleaseSite():
         ):
         self.name = name
         self.species = species
+        self.complex_instance = complex_instance
         self.orientation = orientation
         self.molecule_list = molecule_list
         self.release_time = release_time

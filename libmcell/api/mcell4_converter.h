@@ -73,16 +73,17 @@ private:
   float_t get_max_abs_dimension_of_any_vertex();
   void convert_simulation_setup();
 
+  void convert_elementary_molecule_types();
   void convert_species();
 
   void convert_surface_class_rxn(API::SurfaceProperty& sp, const BNG::Species& surface_reactant);
   void convert_surface_classes();
 
-  BNG::ComponentType convert_component_type(API::ComponentType& ct);
-  BNG::ComponentInstance convert_component_instance(API::ComponentInstance& ci);
-  BNG::MolType convert_molecule_type(API::ElementaryMoleculeType& mt);
-  BNG::MolInstance convert_molecule_instance(API::ElementaryMoleculeInstance& mi);
-  BNG::CplxInstance convert_complex_instance(API::ComplexInstance& inst);
+  //BNG::ComponentType convert_component_type(API::ComponentType& ct);
+  //BNG::ComponentInstance convert_component_instance(API::ComponentInstance& ci);
+  BNG::mol_type_id_t convert_elementary_molecule_type(API::ElementaryMoleculeType& mt, const bool in_rxn = false);
+  BNG::MolInstance convert_molecule_instance(API::ElementaryMoleculeInstance& mi, const bool in_rxn = false);
+  BNG::CplxInstance convert_complex_instance(API::ComplexInstance& inst, const bool in_rxn = false);
   void convert_rxns();
   void init_species_rxn_flags();
 
