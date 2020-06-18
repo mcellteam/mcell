@@ -182,3 +182,19 @@ InstantiationData:
     params:
     - name: name
       type: str          
+      
+#  - name: load_bngl_seed_species
+#    doc: | 
+#      Loads section seed species from a BNGL file and creates release sites according to it.
+#      All elementary molecule types used in the seed species section must be defined in subsystem.
+#      If an item in the seed species section does not have its compartment set,
+#      the argument default_region must be set and the molecules are released into or onto the 
+#      default_region. 
+#    params:
+#    - name: file_name
+#      type: str  
+#    - name: subsystem
+#      type: Subsystem*
+#    - name: default_release_region
+#      type: Region*
+#      default: unset
