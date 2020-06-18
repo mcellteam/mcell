@@ -26,6 +26,7 @@
 #include "../api/model.h"
 #include "../api/config.h"
 #include "../api/count.h"
+#include "../api/elementary_molecule_type.h"
 #include "../api/geometry_object.h"
 #include "../api/instantiation_data.h"
 #include "../api/molecule.h"
@@ -52,6 +53,7 @@ std::string GenModel::to_str(const std::string ind) const {
       "species=" << vec_ptr_to_str(species, ind + "  ") << ", " << "\n" << ind + "  " <<
       "reaction_rules=" << vec_ptr_to_str(reaction_rules, ind + "  ") << ", " << "\n" << ind + "  " <<
       "surface_classes=" << vec_ptr_to_str(surface_classes, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "elementary_molecule_types=" << vec_ptr_to_str(elementary_molecule_types, ind + "  ") << ", " << "\n" << ind + "  " <<
       "release_sites=" << vec_ptr_to_str(release_sites, ind + "  ") << ", " << "\n" << ind + "  " <<
       "geometry_objects=" << vec_ptr_to_str(geometry_objects, ind + "  ") << ", " << "\n" << ind + "  " <<
       "viz_outputs=" << vec_ptr_to_str(viz_outputs, ind + "  ") << ", " << "\n" << ind + "  " <<
@@ -85,6 +87,9 @@ py::class_<Model> define_pybinding_Model(py::module& m) {
       .def("find_reaction_rule", &Model::find_reaction_rule, py::arg("name"))
       .def("add_surface_class", &Model::add_surface_class, py::arg("sc"))
       .def("find_surface_class", &Model::find_surface_class, py::arg("name"))
+      .def("add_elementary_molecule_type", &Model::add_elementary_molecule_type, py::arg("mt"))
+      .def("find_elementary_molecule_type", &Model::find_elementary_molecule_type, py::arg("name"))
+      .def("load_bngl_molecule_types_and_reaction_rules", &Model::load_bngl_molecule_types_and_reaction_rules, py::arg("file_name"))
       .def("add_release_site", &Model::add_release_site, py::arg("s"))
       .def("find_release_site", &Model::find_release_site, py::arg("name"))
       .def("add_geometry_object", &Model::add_geometry_object, py::arg("o"))
@@ -98,6 +103,7 @@ py::class_<Model> define_pybinding_Model(py::module& m) {
       .def_property("species", &Model::get_species, &Model::set_species)
       .def_property("reaction_rules", &Model::get_reaction_rules, &Model::set_reaction_rules)
       .def_property("surface_classes", &Model::get_surface_classes, &Model::set_surface_classes)
+      .def_property("elementary_molecule_types", &Model::get_elementary_molecule_types, &Model::set_elementary_molecule_types)
       .def_property("release_sites", &Model::get_release_sites, &Model::set_release_sites)
       .def_property("geometry_objects", &Model::get_geometry_objects, &Model::set_geometry_objects)
       .def_property("viz_outputs", &Model::get_viz_outputs, &Model::set_viz_outputs)

@@ -28,6 +28,7 @@
 namespace MCell {
 namespace API {
 
+class ElementaryMoleculeType;
 class ReactionRule;
 class Species;
 class SurfaceClass;
@@ -62,6 +63,14 @@ public:
     return surface_classes;
   }
 
+  std::vector<std::shared_ptr<ElementaryMoleculeType>> elementary_molecule_types;
+  virtual void set_elementary_molecule_types(const std::vector<std::shared_ptr<ElementaryMoleculeType>> new_elementary_molecule_types_) {
+    elementary_molecule_types = new_elementary_molecule_types_;
+  }
+  virtual std::vector<std::shared_ptr<ElementaryMoleculeType>> get_elementary_molecule_types() const {
+    return elementary_molecule_types;
+  }
+
   // --- methods ---
   virtual void add_species(std::shared_ptr<Species> s) = 0;
   virtual std::shared_ptr<Species> find_species(const std::string& name) = 0;
@@ -69,6 +78,9 @@ public:
   virtual std::shared_ptr<ReactionRule> find_reaction_rule(const std::string& name) = 0;
   virtual void add_surface_class(std::shared_ptr<SurfaceClass> sc) = 0;
   virtual std::shared_ptr<SurfaceClass> find_surface_class(const std::string& name) = 0;
+  virtual void add_elementary_molecule_type(std::shared_ptr<ElementaryMoleculeType> mt) = 0;
+  virtual std::shared_ptr<ElementaryMoleculeType> find_elementary_molecule_type(const std::string& name) = 0;
+  virtual void load_bngl_molecule_types_and_reaction_rules(const std::string& file_name) = 0;
 }; // GenSubsystem
 
 class Subsystem;

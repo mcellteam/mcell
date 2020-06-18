@@ -95,7 +95,7 @@
 //#define COLLECT_SUBPARTS_LEGACY
 
 //#define DUMP_ALWAYS
-#define DUMP_NEVER
+//#define DUMP_NEVER
 
 #if (!defined(NDEBUG) || defined(DUMP_ALWAYS)) && !defined(DUMP_NEVER)
 
@@ -107,6 +107,7 @@
 #if 1
 #define DEBUG_DIFFUSION
 #define DEBUG_COLLISIONS
+#define NODEBUG_WALL_COLLISIONS
 #define DEBUG_REACTIONS
 #endif
 

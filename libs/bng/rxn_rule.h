@@ -84,7 +84,7 @@ enum class RxnType {
 // BNG reaction rule
 // rules are only unidirectional,
 // if there is a reversible reaction in BNGL definition,
-// two
+// two RxnRules are created
 class RxnRule: public BaseFlag {
 public:
   std::string name;
@@ -99,6 +99,10 @@ public:
   // for later
   CplxInstanceVector reactants;
   CplxInstanceVector products;
+
+  float_t rate_constant;
+
+  small_vector<RxnRateInfo> variable_rates;
 
   // set to true if it was possible to do a mapping between reactants and products
   bool mol_instances_are_fully_maintained;
@@ -116,9 +120,6 @@ public:
   uint_set<species_id_t> species_applicable_as_reactants;
   uint_set<species_id_t> species_not_applicable_as_reactants;
 
-  float_t rate_constant;
-
-  small_vector<RxnRateInfo> variable_rates;
 private:
   uint num_surf_products;
 

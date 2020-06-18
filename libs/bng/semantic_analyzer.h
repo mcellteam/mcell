@@ -25,6 +25,8 @@ private:
   ASTExprNode* evaluate_to_dbl(ASTExprNode* root, std::set<std::string> used_ids={});
   void resolve_rxn_rates();
 
+  void convert_parameters();
+
   state_id_t convert_state_name(const ASTStrNode* s);
   component_type_id_t convert_component_type(const ASTComponentNode* c);
   MolType convert_molecule_type(const ASTMoleculeNode* n);

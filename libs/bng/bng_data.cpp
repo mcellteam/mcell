@@ -13,6 +13,14 @@ using namespace std;
 
 namespace BNG {
 
+void BNGData::clear() {
+  state_names.clear();
+  component_types.clear();
+  molecule_types.clear();
+  rxn_rules.clear();
+}
+
+
 state_id_t BNGData::find_or_add_state_name(const std::string& s) {
   // rather inefficient search but most probably sufficient for now
   for (state_id_t i = 0; i < state_names.size(); i++) {

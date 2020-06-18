@@ -25,7 +25,6 @@
 
 #include "../api/common.h"
 #include "../api/base_data_class.h"
-#include "../api/component_instance.h"
 
 namespace MCell {
 namespace API {
@@ -67,8 +66,8 @@ public:
   }
 
   // --- methods ---
-  virtual ComponentInstance inst(const std::string& state = "STATE_UNSET", const int bond = BOND_UNBOUND) = 0;
-  virtual ComponentInstance inst(const int state = STATE_UNSET_INT, const int bond = BOND_UNBOUND) = 0;
+  virtual std::shared_ptr<ComponentInstance> inst(const std::string& state = "STATE_UNSET", const int bond = BOND_UNBOUND) = 0;
+  virtual std::shared_ptr<ComponentInstance> inst(const int state = STATE_UNSET_INT, const int bond = BOND_UNBOUND) = 0;
 }; // GenComponentType
 
 class ComponentType;

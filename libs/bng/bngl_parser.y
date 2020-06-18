@@ -324,7 +324,7 @@ expr:
 %%
 
 void bnglerror(char const *s) {
-  errs() << s << "\n";
+  BNG::errs_loc() << s << "\n";
   g_ctx->inc_error_count();
 }
 

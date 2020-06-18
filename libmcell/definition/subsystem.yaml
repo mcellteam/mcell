@@ -10,7 +10,7 @@ ComponentType:
     default: empty
   methods:
   - name: inst
-    return_type: ComponentInstance
+    return_type: ComponentInstance*
     params:
     - name: state
       type: str
@@ -20,7 +20,7 @@ ComponentType:
       default: BOND_UNBOUND
 
   - name: inst
-    return_type: ComponentInstance
+    return_type: ComponentInstance*
     params:
     - name: state
       type: int
@@ -67,7 +67,7 @@ ElementaryMoleculeType:
       
   methods:
   - name: inst
-    return_type: ElementaryMoleculeInstance
+    return_type: ElementaryMoleculeInstance*
     params:
     - name: components
       type: List[ComponentInstance*]
@@ -220,6 +220,13 @@ Subsystem:
     type: List[SurfaceClass*]
     default: empty    
     
+  - name: elementary_molecule_types
+    type: List[ElementaryMoleculeType*]
+    default: empty
+    doc: | 
+      Used mainly when a BNGL file is loaded, if BNGL species is defined through 
+      Python API, this array is populated automatically 
+    
   methods:
   - name: add_species
     params:
@@ -252,5 +259,26 @@ Subsystem:
     return_type: SurfaceClass*
     params:
     - name: name
+      type: str      
+      
+  - name: add_elementary_molecule_type
+    params:
+    - name: mt
+      type: ElementaryMoleculeType*
+      
+  - name: find_elementary_molecule_type  
+    return_type: ElementaryMoleculeType*
+    params:
+    - name: name
+      type: str            
+      
+  - name: load_bngl_molecule_types_and_reaction_rules
+    doc: | 
+      Parses a BNGL file and only reads molecule types and
+      reaction rules sections, e.g. ignores observables. 
+      Parameter values are evaluated and the result value 
+      is directly used.  
+    params:
+    - name: file_name
       type: str      
       

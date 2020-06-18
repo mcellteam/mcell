@@ -25,7 +25,6 @@
 
 #include "../api/common.h"
 #include "../api/base_data_class.h"
-#include "../api/elementary_molecule_instance.h"
 
 namespace MCell {
 namespace API {
@@ -97,7 +96,7 @@ public:
   }
 
   // --- methods ---
-  virtual ElementaryMoleculeInstance inst(const std::vector<std::shared_ptr<ComponentInstance>> components) = 0;
+  virtual std::shared_ptr<ElementaryMoleculeInstance> inst(const std::vector<std::shared_ptr<ComponentInstance>> components) = 0;
 }; // GenElementaryMoleculeType
 
 class ElementaryMoleculeType;

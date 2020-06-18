@@ -32,8 +32,15 @@
 #include "api/surface_class.h"
 #include "api/reaction_rule.h"
 
+namespace BNG {
+class MolType;
+class RxnRule;
+}
+
 namespace MCell {
 namespace API {
+
+class ComplexInstance;
 
 class Subsystem: public GenSubsystem {
 public:
@@ -62,8 +69,26 @@ public:
     return vec_find_by_name(surface_classes, name);
   }
 
+  void add_elementary_molecule_type(std::shared_ptr<ElementaryMoleculeType> mt) {
+    append_to_vec(elementary_molecule_types, mt);
+  }
+
+  std::shared_ptr<ElementaryMoleculeType> find_elementary_molecule_type(const std::string& name) {
+    return vec_find_by_name(elementary_molecule_types, name);
+  }
+
+
+  void load_bngl_molecule_types_and_reaction_rules(const std::string& file_name) override;
+
   // added manually
   void dump() const;
+
+private:
+  void convert_bng_data_to_subsystem_data(const BNG::BNGData& bng_data);
+  void convert_molecule_type(const BNG::BNGData& bng_data, const BNG::MolType& bng_mt);
+  void convert_reaction_rule(const BNG::BNGData& bng_data, const BNG::RxnRule& bng_rr);
+  std::shared_ptr<API::ComplexInstance> convert_reaction_rule_substance(
+      const BNG::BNGData& bng_data, const BNG::CplxInstance& bng_inst);
 };
 
 } // namespace API

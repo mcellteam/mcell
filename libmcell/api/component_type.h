@@ -34,12 +34,12 @@ class ComponentType: public GenComponentType, public std::enable_shared_from_thi
 public:
   COMPONENT_TYPE_CTOR()
 
-  ComponentInstance inst(const std::string& state, const int bond) override {
-    return ComponentInstance(shared_from_this(), state, bond);
+  std::shared_ptr<ComponentInstance> inst(const std::string& state, const int bond) override {
+    return std::make_shared<ComponentInstance>(shared_from_this(), state, bond);
   }
 
-  ComponentInstance inst(const int state, const int bond) override {
-    return ComponentInstance(shared_from_this(), std::to_string(state), bond);
+  std::shared_ptr<ComponentInstance> inst(const int state, const int bond) override {
+    return std::make_shared<ComponentInstance>(shared_from_this(), std::to_string(state), bond);
   }
 };
 

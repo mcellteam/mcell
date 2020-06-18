@@ -24,6 +24,7 @@
 #include "libs/pybind11/include/pybind11/stl.h"
 #include "gen_subsystem.h"
 #include "../api/subsystem.h"
+#include "../api/elementary_molecule_type.h"
 #include "../api/reaction_rule.h"
 #include "../api/species.h"
 #include "../api/surface_class.h"
@@ -36,7 +37,8 @@ std::string GenSubsystem::to_str(const std::string ind) const {
   ss << "Subsystem" << ": " <<
       "\n" << ind + "  " << "species=" << vec_ptr_to_str(species, ind + "  ") << ", " << "\n" << ind + "  " <<
       "reaction_rules=" << vec_ptr_to_str(reaction_rules, ind + "  ") << ", " << "\n" << ind + "  " <<
-      "surface_classes=" << vec_ptr_to_str(surface_classes, ind + "  ");
+      "surface_classes=" << vec_ptr_to_str(surface_classes, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "elementary_molecule_types=" << vec_ptr_to_str(elementary_molecule_types, ind + "  ");
   return ss.str();
 }
 
@@ -53,10 +55,14 @@ py::class_<Subsystem> define_pybinding_Subsystem(py::module& m) {
       .def("find_reaction_rule", &Subsystem::find_reaction_rule, py::arg("name"))
       .def("add_surface_class", &Subsystem::add_surface_class, py::arg("sc"))
       .def("find_surface_class", &Subsystem::find_surface_class, py::arg("name"))
+      .def("add_elementary_molecule_type", &Subsystem::add_elementary_molecule_type, py::arg("mt"))
+      .def("find_elementary_molecule_type", &Subsystem::find_elementary_molecule_type, py::arg("name"))
+      .def("load_bngl_molecule_types_and_reaction_rules", &Subsystem::load_bngl_molecule_types_and_reaction_rules, py::arg("file_name"))
       .def("dump", &Subsystem::dump)
       .def_property("species", &Subsystem::get_species, &Subsystem::set_species)
       .def_property("reaction_rules", &Subsystem::get_reaction_rules, &Subsystem::set_reaction_rules)
       .def_property("surface_classes", &Subsystem::get_surface_classes, &Subsystem::set_surface_classes)
+      .def_property("elementary_molecule_types", &Subsystem::get_elementary_molecule_types, &Subsystem::set_elementary_molecule_types)
     ;
 }
 

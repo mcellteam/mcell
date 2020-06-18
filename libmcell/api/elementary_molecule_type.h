@@ -35,8 +35,8 @@ class ElementaryMoleculeType:
 public:
   ELEMENTARY_MOLECULE_TYPE_CTOR()
 
-  ElementaryMoleculeInstance inst(const std::vector<std::shared_ptr<ComponentInstance>> components) override {
-    return ElementaryMoleculeInstance( shared_from_this(), components);
+  std::shared_ptr<ElementaryMoleculeInstance> inst(const std::vector<std::shared_ptr<ComponentInstance>> components) override {
+    return std::make_shared<ElementaryMoleculeInstance>( shared_from_this(), components);
   }
 };
 

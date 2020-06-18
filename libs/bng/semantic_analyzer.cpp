@@ -99,6 +99,20 @@ void SemanticAnalyzer::resolve_rxn_rates() {
 }
 
 
+// the following conversions do not use the bng_data.parameters map
+void SemanticAnalyzer::convert_parameters() {
+  // every symbol that maps directly into a value is a parameter
+  for (auto it: ctx->symtab.get_as_map()) {
+    if (it.second->is_expr()) {
+      ASTExprNode* orig_expr = to_expr_node(it.second);
+      ASTExprNode* new_expr = evaluate_to_dbl(orig_expr);
+
+      bng_data->add_parameter(it.first, new_expr->get_dbl());
+    }
+  }
+}
+
+
 state_id_t SemanticAnalyzer::convert_state_name(const ASTStrNode* s) {
   assert(s != nullptr);
   return bng_data->find_or_add_state_name(s->str);
@@ -397,6 +411,7 @@ void SemanticAnalyzer::convert_and_store_rxn_rules() {
     convert_rxn_rule_side(r->products, products);
 
     RxnRule fwd_rule;
+    fwd_rule.type = RxnType::Standard;
     fwd_rule.name = r->name;
     assert(r->rates->items.size() >= 1);
     fwd_rule.rate_constant = to_expr_node(r->rates->items[0])->get_dbl();
@@ -407,6 +422,7 @@ void SemanticAnalyzer::convert_and_store_rxn_rules() {
 
     if (r->reversible) {
       RxnRule rev_rule;
+      rev_rule.type = RxnType::Standard;
       rev_rule.name = r->name;
 
       if (products.empty()) {
@@ -434,6 +450,9 @@ bool SemanticAnalyzer::check_and_convert(ParserContext* ctx_, BNGData* res_bng) 
 
   ctx = ctx_;
   bng_data = res_bng;
+
+  // the following conversions do not use the bng_data.parameters map
+  convert_parameters();
 
   // first compute all expressions - there are only rxn rates for now
   resolve_rxn_rates();

@@ -215,11 +215,13 @@ class Subsystem():
             self,
             species : List[Species] = None,
             reaction_rules : List[ReactionRule] = None,
-            surface_classes : List[SurfaceClass] = None
+            surface_classes : List[SurfaceClass] = None,
+            elementary_molecule_types : List[ElementaryMoleculeType] = None
         ):
         self.species = species
         self.reaction_rules = reaction_rules
         self.surface_classes = surface_classes
+        self.elementary_molecule_types = elementary_molecule_types
 
 
     def add_species(
@@ -256,6 +258,24 @@ class Subsystem():
             self,
             name : str
         ) -> 'SurfaceClass':
+        pass
+
+    def add_elementary_molecule_type(
+            self,
+            mt : ElementaryMoleculeType
+        ) -> None:
+        pass
+
+    def find_elementary_molecule_type(
+            self,
+            name : str
+        ) -> 'ElementaryMoleculeType':
+        pass
+
+    def load_bngl_molecule_types_and_reaction_rules(
+            self,
+            file_name : str
+        ) -> None:
         pass
 
 class Region():
@@ -635,6 +655,7 @@ class Model():
             species : List[Species] = None,
             reaction_rules : List[ReactionRule] = None,
             surface_classes : List[SurfaceClass] = None,
+            elementary_molecule_types : List[ElementaryMoleculeType] = None,
             release_sites : List[ReleaseSite] = None,
             geometry_objects : List[GeometryObject] = None,
             viz_outputs : List[VizOutput] = None,
@@ -646,6 +667,7 @@ class Model():
         self.species = species
         self.reaction_rules = reaction_rules
         self.surface_classes = surface_classes
+        self.elementary_molecule_types = elementary_molecule_types
         self.release_sites = release_sites
         self.geometry_objects = geometry_objects
         self.viz_outputs = viz_outputs
@@ -744,6 +766,24 @@ class Model():
             self,
             name : str
         ) -> 'SurfaceClass':
+        pass
+
+    def add_elementary_molecule_type(
+            self,
+            mt : ElementaryMoleculeType
+        ) -> None:
+        pass
+
+    def find_elementary_molecule_type(
+            self,
+            name : str
+        ) -> 'ElementaryMoleculeType':
+        pass
+
+    def load_bngl_molecule_types_and_reaction_rules(
+            self,
+            file_name : str
+        ) -> None:
         pass
 
     def add_release_site(

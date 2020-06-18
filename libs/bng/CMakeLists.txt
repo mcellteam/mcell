@@ -18,6 +18,7 @@ set(SOURCE_FILES
 	mol_instance.cpp
 	mol_type.cpp
 	parser_utils.cpp
+	parser.cpp
 	rxn_class.cpp
 	rxn_container.cpp
 	rxn_rule.cpp

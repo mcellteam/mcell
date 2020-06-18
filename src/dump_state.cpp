@@ -44,6 +44,8 @@ Regex to replace struct member definition by dumping code:
 
 #include "dyngeom_parse_extras.h"
 
+#include "debug_config.h"
+
 #define MAX_ARRAY_ITEMS 16
 #define MAX_SUBVOLUMES 27
 #define DUMP_ARRAY_NEWLINE_COUNT 8
@@ -2067,6 +2069,7 @@ void dump_collisions(collision* shead) {
             || (ptr->what & COLLIDE_BACK) != 0
            )
     ) {
+#ifndef NODEBUG_WALL_COLLISIONS
       const char* name = ((wall*)ptr->target)->parent_object->sym->name;
       cout << "  " << "wall collision " << i << ": "
           //<< "diff_idx: " << ptr-> diffused_molecule_idx
@@ -2075,6 +2078,7 @@ void dump_collisions(collision* shead) {
           << ", time: " << ptr->t
           << ", pos: " << ptr->loc
           << "\n";
+#endif
       i++;
     }
     ptr = ptr->next;

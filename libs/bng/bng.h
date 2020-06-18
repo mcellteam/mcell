@@ -12,5 +12,6 @@
 #include "bng/rxn_class.h"
 #include "bng/rxn_container.h"
 #include "bng/species.h"
+#include "bng/parser.h"
 
 #endif // LIBS_BNG_H_

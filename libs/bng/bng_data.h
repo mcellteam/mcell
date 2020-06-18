@@ -32,10 +32,17 @@ private:
   std::vector<MolType> molecule_types;
 
   // indexed with rxn_rule_id_t
-  // FIXME: rxn rules should be in rxn container only
+  // rxn rules are then in rxn container, this is a temporary placeholder
+  // for parsing result
   std::vector<RxnRule> rxn_rules;
   
+  // not referenced by any other data in this class,
+  // keeping for cases when the parameter values might be needed for other purposes
+  std::map<std::string, float_t> parameters;
+
 public:
+  void clear();
+
   // -------- component state names --------
 
   state_id_t find_or_add_state_name(const std::string& s);
@@ -71,10 +78,36 @@ public:
     return molecule_types[id];
   }
 
+  const std::vector<MolType>& get_molecule_types() const {
+    return molecule_types;
+  }
 
   // -------- reaction rules --------
 
   rxn_rule_id_t find_or_add_rxn_rule(const RxnRule& rr);
+
+  const std::vector<RxnRule>& get_rxn_rules() const {
+    return rxn_rules;
+  }
+
+  // -------- parameters --------
+
+  void add_parameter(const std::string& name, const float_t& value) {
+    assert(parameters.count(name) == 0);
+    parameters[name] = value;
+  }
+
+  // returns true and sets value if found, returns falser otherwise
+  bool get_parameter_value(const std::string& name, float_t& value) const {
+    auto it = parameters.find(name);
+    if (it == parameters.end()) {
+      return false;
+    }
+    else {
+      value = it->second;
+      return true;
+    }
+  }
 
   // -------- utilities --------
   void dump();

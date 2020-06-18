@@ -33,6 +33,7 @@ namespace API {
 
 class Config;
 class Count;
+class ElementaryMoleculeType;
 class GeometryObject;
 class InstantiationData;
 class Molecule;
