@@ -49,6 +49,8 @@ I ([0-9]+)
 "types"         { LOC(); return TOK_TYPES; }
 "reaction"      { LOC(); return TOK_REACTION; }
 "rules"         { LOC(); return TOK_RULES; }
+"seed"          { LOC(); return TOK_SEED; }
+"species"       { LOC(); return TOK_SPECIES; }
 
     /* numbers and identifiers */
 

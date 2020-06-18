@@ -93,6 +93,8 @@ namespace BNG {
 %token TOK_TYPES "types"
 %token TOK_REACTION "reaction"
 %token TOK_RULES "rules"
+%token TOK_SEED "seed"
+%token TOK_SPECIES "species"
 
 %token <str> TOK_ID "identifier"
 %token <dbl> TOK_DBL "floating point constant"
@@ -116,6 +118,7 @@ namespace BNG {
 %type <list_node> rxn_rule_side
 %type <list_node> rates
 %type <boolean> rxn_rule_direction
+%type <list_node> cplx_instance
 
 %start start
 
@@ -140,6 +143,7 @@ section:
         g_ctx->symtab.insert_molecule_declarations($4, g_ctx);
       }
     | TOK_BEGIN TOK_REACTION TOK_RULES rxn_rule_list_maybe_empty TOK_END TOK_REACTION TOK_RULES 
+    | TOK_BEGIN TOK_SEED TOK_SPECIES seed_species_list_maybe_empty TOK_END TOK_SEED TOK_SPECIES
 ;
 
 // ---------------- parameters ------------------- 
@@ -182,6 +186,10 @@ molecule_list:
 molecule:
       TOK_ID '(' component_list_maybe_empty ')' {
         $$ = g_ctx->new_molecule_node($1, $3, @1);    
+      }
+    | TOK_ID {
+        // no components neither parentheses
+        $$ = g_ctx->new_molecule_node($1, g_ctx->new_list_node(), @1);    
       }
 ;
 
@@ -306,7 +314,39 @@ rates:
         $$ = g_ctx->new_list_node()->append($1);
       }
 ;
+
+// ---------------- seed species ---------------------
+
+seed_species_list_maybe_empty:
+    seed_species_list
+    | /* empty */ 
+;
+
+seed_species_list:
+      seed_species_list seed_species_item 
+    | seed_species_item
+;
+
+seed_species_item:
+    cplx_instance expr {
     
+       BNG::ASTSeedSpeciesNode* n = g_ctx->new_seed_species_node($1, $2); 
+       g_ctx->add_seed_species(n);
+    }
+;
+
+// similar to rxn_rule_side only contains one complex instance
+cplx_instance:
+      cplx_instance '.' molecule {
+        $1->append(g_ctx->new_separator_node(BNG::SeparatorType::Dot, @2));
+        $1->append($3);
+        $$ = $1;
+      }
+    | molecule {
+        $$ = g_ctx->new_list_node()->append($1);
+      }
+;
+      
 // ---------------- expressions --------------------- 
 // TODO: expressions are just IDs and constants for now
 expr:

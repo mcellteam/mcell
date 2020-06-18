@@ -39,6 +39,7 @@ enum class NodeType {
   Molecule,
   Component,
   RxnRule,
+  SeedSpecies,
   Str,
   Separator
 };
@@ -100,6 +101,10 @@ public:
 
   bool is_rxn_rule() const {
     return node_type == NodeType::RxnRule;
+  }
+
+  bool is_seed_species() const {
+    return node_type == NodeType::SeedSpecies;
   }
 
   bool is_separator() const {
@@ -286,6 +291,19 @@ public:
 };
 
 
+class ASTSeedSpeciesNode: public ASTBaseNode {
+public:
+  ASTSeedSpeciesNode()
+    : cplx_instance(nullptr), count(nullptr) {
+    node_type = NodeType::SeedSpecies;
+  }
+  void dump(const std::string ind) override;
+
+  ASTListNode* cplx_instance;
+  ASTExprNode* count;
+};
+
+
 class ASTSymbolTable {
 public:
   typedef std::map<std::string, ASTBaseNode*> IdToNodeMap;
@@ -354,9 +372,19 @@ public:
       ASTListNode* rates
   );
 
+  ASTSeedSpeciesNode* new_seed_species_node(
+      ASTListNode* cplx_instance,
+      ASTExprNode* count
+  );
+
   void add_rxn_rule(ASTRxnRuleNode* n) {
     assert(n != nullptr);
     rxn_rules.append(n);
+  }
+
+  void add_seed_species(ASTSeedSpeciesNode* n) {
+    assert(n != nullptr);
+    seed_species.append(n);
   }
 
   // contains parameters from parameters sections
@@ -365,6 +393,8 @@ public:
   ASTSymbolTable symtab;
 
   ASTListNode rxn_rules;
+
+  ASTListNode seed_species;
 
   // ------------- other parsing utilities -----------------
 
@@ -465,6 +495,12 @@ static inline const ASTRxnRuleNode* to_rxn_rule_node(const ASTBaseNode* n) {
   assert(n != nullptr);
   assert(n->is_rxn_rule());
   return dynamic_cast<const ASTRxnRuleNode*>(n);
+}
+
+static inline const ASTSeedSpeciesNode* to_seed_species_node(const ASTBaseNode* n) {
+  assert(n != nullptr);
+  assert(n->is_seed_species());
+  return dynamic_cast<const ASTSeedSpeciesNode*>(n);
 }
 
 static inline const ASTSeparatorNode* to_separator(const ASTBaseNode* n) {

@@ -127,6 +127,19 @@ void ASTRxnRuleNode::dump(const std::string ind) {
 }
 
 
+// ------------------------------- ASTSeedSpeciesNode ------------------------
+void ASTSeedSpeciesNode::dump(const std::string ind) {
+  cout << ind << "seed species item:\n";
+  cout << ind << "  complex_inst:\n";
+  assert(cplx_instance != nullptr);
+  cplx_instance->dump(ind + IND4);
+  cout << ind << "  count:\n";
+  assert(count != nullptr);
+  count->dump(ind + IND4);
+  ASTBaseNode::dump(ind);
+}
+
+
 // ------------------------------- ASTSymbolTable ------------------------
 void ASTSymbolTable::insert(const std::string id, ASTBaseNode* node, ParserContext* ctx) {
   if (table.count(id) != 0) {
@@ -312,6 +325,27 @@ ASTRxnRuleNode* ParserContext::new_rxn_rule_node(
 }
 
 
+ASTSeedSpeciesNode* ParserContext::new_seed_species_node(
+    ASTListNode* cplx_instance,
+    ASTExprNode* count
+) {
+  ASTSeedSpeciesNode* n = new ASTSeedSpeciesNode();
+  n->cplx_instance = cplx_instance;
+  n->count = count;
+
+  // use the complex instance as the location
+  assert(cplx_instance->items.size() >= 1);
+  assert(cplx_instance->items[0]->node_type == NodeType::Molecule);
+  assert(cplx_instance->items[0]->has_loc);
+  BNGLLTYPE loc;
+  loc.first_line = cplx_instance->items[0]->line;
+  n->set_loc(current_file, loc);
+
+  remember_node(n);
+  return n;
+}
+
+
 void ParserContext::print_error_report() {
   if (errors != 0) {
     cerr << "Compilation failed, there were " << errors << " errors.\n";
@@ -330,6 +364,8 @@ void ParserContext::dump() {
   symtab.dump();
   cout << "reaction rules:\n";
   rxn_rules.dump(IND2);
+  cout << "seed species:\n";
+  seed_species.dump(IND2);
 }
 
 

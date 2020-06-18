@@ -34,9 +34,16 @@ private:
 
   MolInstance convert_molecule_pattern(const ASTMoleculeNode* m);
   void convert_complex_pattern(const small_vector<const ASTMoleculeNode*>& complex_nodes, CplxInstance& pattern);
-  void convert_rxn_rule_side(const ASTListNode* rule_side, CplxInstanceVector& pattern);
+  void convert_cplx_inst_or_rxn_rule_side(
+      const ASTListNode* rule_side,
+      const bool convert_single_cplx_inst,
+      CplxInstanceVector& pattern
+  );
+
   void finalize_and_store_rxn_rule(const ASTRxnRuleNode* n, RxnRule& r, const char* direction_str);
   void convert_and_store_rxn_rules();
+
+  void convert_seed_species();
 
   // local copies so that we don't have to pass everything
   // as arguments

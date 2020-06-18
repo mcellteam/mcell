@@ -338,7 +338,10 @@ void SemanticAnalyzer::convert_complex_pattern(const small_vector<const ASTMolec
 
 
 // take one side of a reaction rule and create pattern for rule matching
-void SemanticAnalyzer::convert_rxn_rule_side(const ASTListNode* rule_side, CplxInstanceVector& patterns) {
+void SemanticAnalyzer::convert_cplx_inst_or_rxn_rule_side(
+    const ASTListNode* rule_side,
+    const bool convert_single_cplx_inst,
+    CplxInstanceVector& patterns) {
 
   // we need to check each molecule type from each complex
   small_vector<const ASTMoleculeNode*> current_complex_nodes;
@@ -359,6 +362,12 @@ void SemanticAnalyzer::convert_rxn_rule_side(const ASTListNode* rule_side, CplxI
       }
 
       if (sep->is_plus()) {
+        if (convert_single_cplx_inst) {
+          errs_loc(n) << "Complex instance specification cannot use '" << sep->to_char() << "'.\n"; // TODO test
+          ctx->inc_error_count();
+          continue;
+        }
+
         CplxInstance pattern;
         convert_complex_pattern(current_complex_nodes, pattern);
         patterns.push_back(pattern);
@@ -381,6 +390,10 @@ void SemanticAnalyzer::convert_rxn_rule_side(const ASTListNode* rule_side, CplxI
     CplxInstance pattern;
     convert_complex_pattern(current_complex_nodes, pattern);
     patterns.push_back(pattern);
+  }
+
+  if (convert_single_cplx_inst) {
+    assert(patterns.size() == 1 && "Expected a single complex instance");
   }
 }
 
@@ -405,10 +418,10 @@ void SemanticAnalyzer::convert_and_store_rxn_rules() {
     const ASTRxnRuleNode* r = to_rxn_rule_node(n);
 
     CplxInstanceVector reactants;
-    convert_rxn_rule_side(r->reactants, reactants);
+    convert_cplx_inst_or_rxn_rule_side(r->reactants, false, reactants);
 
     CplxInstanceVector products;
-    convert_rxn_rule_side(r->products, products);
+    convert_cplx_inst_or_rxn_rule_side(r->products, false, products);
 
     RxnRule fwd_rule;
     fwd_rule.type = RxnType::Standard;
@@ -443,6 +456,26 @@ void SemanticAnalyzer::convert_and_store_rxn_rules() {
 }
 
 
+void SemanticAnalyzer::convert_seed_species() {
+  for (const ASTBaseNode* n: ctx->seed_species.items) {
+    const ASTSeedSpeciesNode* ss_node = to_seed_species_node(n);
+
+    SeedSpecies ss;
+
+    CplxInstanceVector cplx_vec;
+    convert_cplx_inst_or_rxn_rule_side(ss_node->cplx_instance, true, cplx_vec);
+    assert(cplx_vec.size() == 1);
+    ss.cplx_instance = cplx_vec[0];
+
+    float_t count;
+    ASTExprNode* orig_expr = to_expr_node(ss_node->count);
+    ASTExprNode* new_expr = evaluate_to_dbl(orig_expr);
+    ss.count = new_expr->get_dbl();
+
+    bng_data->add_seed_species(ss);
+  }
+}
+
 // returns true if conversion and semantic checks passed
 bool SemanticAnalyzer::check_and_convert(ParserContext* ctx_, BNGData* res_bng) {
   assert(ctx_ != nullptr);
@@ -474,6 +507,10 @@ bool SemanticAnalyzer::check_and_convert(ParserContext* ctx_, BNGData* res_bng) 
     return false;
   }
 
+  convert_seed_species();
+  if (ctx->get_error_count() != 0) {
+    return false;
+  }
 
   return true;
 }

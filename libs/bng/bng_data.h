@@ -16,6 +16,13 @@
 
 namespace BNG {
 
+
+class SeedSpecies {
+public:
+  CplxInstance cplx_instance;
+  float_t count; // count of molecules to be released, TODO: what about concentrations?
+};
+
 /**
  * Data shared among all instances of BNGEngines
  * Usually constant, initialized when BNGL is parsed
@@ -40,6 +47,10 @@ private:
   // not referenced by any other data in this class,
   // keeping for cases when the parameter values might be needed for other purposes
   std::map<std::string, float_t> parameters;
+
+  // contents of the seed species section
+  // not used during simulation in MCell but can be converted to other representations
+  std::vector<SeedSpecies> seed_species;
 
 public:
   void clear();
@@ -89,6 +100,17 @@ public:
 
   const std::vector<RxnRule>& get_rxn_rules() const {
     return rxn_rules;
+  }
+
+
+  // -------- seed species --------
+
+  void add_seed_species(const SeedSpecies& ss) {
+    seed_species.push_back(ss);
+  }
+
+  const std::vector<SeedSpecies>& get_seed_species() const {
+    return seed_species;
   }
 
   // -------- parameters --------

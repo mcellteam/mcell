@@ -17,10 +17,10 @@ begin molecule types
 	C()
 end molecule types
 
-#begin seed species
-#	 A  10
-#	 B  10
-#end seed species
+begin seed species
+	A  10
+    B  10
+end seed species
 
 #begin observables
 #    Molecules _MDLString A, B
