@@ -80,9 +80,9 @@ void Subsystem::convert_molecule_type(const BNG::BNGData& bng_data, const BNG::M
 
   // using the MCELL_* parameters for now, see if the diffusion rate was
   // specified in the model
-  float_t D2;
+  float_t D2 = FLT_INVALID; // init to silence compiler warning
   bool found2 = bng_data.get_parameter_value(MCELL_DIFFUSION_CONSTANT_2D_PREFIX + name, D2);
-  float_t D3;
+  float_t D3 = FLT_INVALID;
   bool found3 = bng_data.get_parameter_value(MCELL_DIFFUSION_CONSTANT_3D_PREFIX + name, D3);
 
   if (found2 && found3) {
