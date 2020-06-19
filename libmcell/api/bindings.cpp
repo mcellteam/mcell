@@ -53,6 +53,9 @@
 
 #include "generated/gen_molecule.h"
 
+#include "generated/gen_geometry_utils.h"
+
+
 #include "generated/gen_constants.h"
 
 
@@ -149,6 +152,8 @@ PYBIND11_MODULE(mcell, m) {
 
   // constants may reference existing types, must be "bound" later
   define_pybinding_constants(m);
+
+  define_pybinding_geometry_utils(m);
 }
 
 

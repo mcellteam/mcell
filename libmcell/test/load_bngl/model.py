@@ -12,6 +12,11 @@ else:
 
 import mcell as m
 
+
+res = m.geometry_utils.create_box(1)
+print(res)
+sys.exit(0)
+
 from parameters import *
 
 if len(sys.argv) == 3 and sys.argv[1] == '-seed':
@@ -37,6 +42,9 @@ rel_a = m.ReleaseSite(
 """
 
 import geometry # TODO: rather parametrize with size than - create_box?
+
+# 
+# m.
 
 instantiation = m.InstantiationData()
 

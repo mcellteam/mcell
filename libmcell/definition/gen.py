@@ -42,7 +42,8 @@ ALL_INPUT_FILES = [
     'observables.yaml',
     'simulation_setup.yaml',
     'model.yaml',
-    'introspection.yaml'
+    'introspection.yaml',
+    'submodules.yaml'
 ]
 
 
@@ -93,6 +94,10 @@ KEY_PARAMS = 'params'
 KEY_RETURN_TYPE = 'return_type'
 
 KEY_INHERITED = 'inherited' # used only internally, not in input YAML
+
+VALUE_CLASS = 'class'
+VALUE_SUBMODULE = 'submodule'
+
 
 YAML_TYPE_FLOAT = 'float'
 YAML_TYPE_STR = 'str'
@@ -644,8 +649,13 @@ def write_gen_class(f, class_def, class_name):
     f.write('}; // ' + GEN_CLASS_PREFIX + class_name + '\n\n')
 
 
-def write_define_binding_decl(f, class_name):
-    f.write('py::class_<' + class_name + '> define_pybinding_' + class_name + '(py::module& m)')           
+def write_define_binding_decl(f, class_name, ret_type_void = False):
+    if ret_type_void:
+        f.write('void ')
+    else:
+        f.write('py::class_<' + class_name + '> ') 
+    
+    f.write('define_pybinding_' + class_name + '(py::module& m)')           
 
 
 def remove_ptr_mark(t):
@@ -722,19 +732,22 @@ def generate_class_header(class_name, class_def):
         f.write(COPYRIGHT)
         write_generated_notice(f)
         
+        def_type = class_def[KEY_TYPE]
+        
         guard = get_gen_header_guard_name(class_name);
         f.write('#ifndef ' + guard + '\n')
         f.write('#define ' + guard + '\n\n')
         f.write(INCLUDE_API_COMMON_H + '\n')
         
-        if KEY_SUPERCLASS in class_def:
-            if class_def[KEY_SUPERCLASS] == BASE_DATA_CLASS:
-                f.write(INCLUDE_API_BASE_DATA_CLASS_H + '\n')
-            elif class_def[KEY_SUPERCLASS] == BASE_INTROSPECTION_CLASS:
-                f.write(INCLUDE_API_BASE_INTROSPECTION_CLASS_H + '\n')
+        if def_type == VALUE_CLASS:
+            if KEY_SUPERCLASS in class_def:
+                if class_def[KEY_SUPERCLASS] == BASE_DATA_CLASS:
+                    f.write(INCLUDE_API_BASE_DATA_CLASS_H + '\n')
+                elif class_def[KEY_SUPERCLASS] == BASE_INTROSPECTION_CLASS:
+                    f.write(INCLUDE_API_BASE_INTROSPECTION_CLASS_H + '\n')
         
-        if has_superclass_other_than_base(class_def):
-            f.write('#include "' + get_api_class_file_name_w_dir(class_def[KEY_SUPERCLASS], EXT_H) + '"\n\n')
+            if has_superclass_other_than_base(class_def):
+                f.write('#include "' + get_api_class_file_name_w_dir(class_def[KEY_SUPERCLASS], EXT_H) + '"\n\n')
         
         write_required_includes(f, class_def)
         
@@ -745,10 +758,20 @@ def generate_class_header(class_name, class_def):
         if has_single_superclass(class_def): # not sure about this condition
             write_ctor_define(f, class_def, class_name)
         
-        write_gen_class(f, class_def, class_name)
+        if def_type == VALUE_CLASS:
+            write_gen_class(f, class_def, class_name)
         
-        f.write('class ' + class_name + ';\n')
-        write_define_binding_decl(f, class_name)
+            f.write('class ' + class_name + ';\n')
+        elif def_type == VALUE_SUBMODULE:
+            f.write('namespace ' + class_name + ' {\n\n')
+            # submodules have only functions
+            methods = class_def[KEY_METHODS]
+            for m in methods:
+                write_method_signature(f, m)
+                f.write(";\n")
+            f.write('\n} // namespace ' + class_name + '\n\n')
+            
+        write_define_binding_decl(f, class_name, def_type == VALUE_SUBMODULE)
         f.write(';\n')
         
         f.write(NAMESPACES_END + '\n\n')
@@ -973,9 +996,11 @@ def write_pybind11_method_bindings(f, class_name, method, class_def):
     
     
 def write_pybind11_bindings(f, class_name, class_def):
+    def_type = class_def[KEY_TYPE]
     items = class_def[KEY_ITEMS]
     
-    write_define_binding_decl(f, class_name)
+    
+    write_define_binding_decl(f, class_name, def_type != VALUE_CLASS)
     f.write(' {\n')
     
     superclass = ''
@@ -986,64 +1011,67 @@ def write_pybind11_bindings(f, class_name, class_def):
     if KEY_SUPERCLASS in class_def and class_def[KEY_SUPERCLASS] == BASE_INTROSPECTION_CLASS:
         ctor_has_args = False
 
+    if def_type == VALUE_CLASS:
+        f.write('  return py::class_<' + class_name + ', ' + superclass + \
+                SHARED_PTR + '<' + class_name + '>>(m, "' + class_name + '")\n')
+        f.write('      .def(\n')
+        f.write('          py::init<\n')
     
-    f.write('  return py::class_<' + class_name + ', ' + superclass + \
-            SHARED_PTR + '<' + class_name + '>>(m, "' + class_name + '")\n')
-    f.write('      .def(\n')
-    f.write('          py::init<\n')
-
-    num_items = len(items)
-    if ctor_has_args:
-        if has_single_superclass(class_def):
-            # init operands
-            for i in range(num_items):
-                attr = items[i]
-                const_spec = 'const ' if not is_yaml_ptr_type(attr[KEY_TYPE]) else ''
-                f.write('            ' + const_spec + get_type_as_ref_param(attr))
-                if i != num_items - 1:
-                    f.write(',\n')
-            if num_items != 0:
+        num_items = len(items)
+        if ctor_has_args:
+            if has_single_superclass(class_def):
+                # init operands
+                for i in range(num_items):
+                    attr = items[i]
+                    const_spec = 'const ' if not is_yaml_ptr_type(attr[KEY_TYPE]) else ''
+                    f.write('            ' + const_spec + get_type_as_ref_param(attr))
+                    if i != num_items - 1:
+                        f.write(',\n')
+                if num_items != 0:
+                    f.write('\n')
+                
+        f.write('          >()')
+        
+        if ctor_has_args:    
+            # init argument names and default values
+            if has_single_superclass(class_def):
+                if num_items != 0:
+                    f.write(',')
                 f.write('\n')
             
-    f.write('          >()')
-    
-    if ctor_has_args:    
-        # init argument names and default values
-        if has_single_superclass(class_def):
-            if num_items != 0:
-                f.write(',')
-            f.write('\n')
+                for i in range(num_items):
+                    attr = items[i]
+                    name = attr[KEY_NAME]
+                    f.write('          py::arg("' + name + '")')
+                    if KEY_DEFAULT in attr:
+                        f.write(' = ' + get_default_or_unset_value(attr))
+                    if i != num_items - 1:
+                        f.write(',\n')
+        f.write('\n')          
+        f.write('      )\n')            
         
-            for i in range(num_items):
-                attr = items[i]
-                name = attr[KEY_NAME]
-                f.write('          py::arg("' + name + '")')
-                if KEY_DEFAULT in attr:
-                    f.write(' = ' + get_default_or_unset_value(attr))
-                if i != num_items - 1:
-                    f.write(',\n')
-    f.write('\n')          
-    f.write('      )\n')            
-    
-    # common methods
-    if has_single_superclass(class_def):
-        f.write('      .def("check_semantics", &' + class_name + '::check_semantics)\n')
-    
-    f.write('      .def("__str__", &' + class_name + '::to_str, py::arg("ind") = std::string(""))\n')
+        # common methods
+        if has_single_superclass(class_def):
+            f.write('      .def("check_semantics", &' + class_name + '::check_semantics)\n')
+        
+        f.write('      .def("__str__", &' + class_name + '::to_str, py::arg("ind") = std::string(""))\n')
+    else:
+        f.write('  m.def_submodule("' + class_name + '")\n')
         
     # declared methods
     for m in class_def[KEY_METHODS]:
         if not has_single_superclass(class_def) or not is_inherited(m):
             write_pybind11_method_bindings(f, class_name, m, class_def)
 
-    # dump needs to be always implemented
-    f.write('      .def("dump", &' + class_name + '::dump)\n')
+    if def_type == VALUE_CLASS:
+        # dump needs to be always implemented
+        f.write('      .def("dump", &' + class_name + '::dump)\n')
     
-    # properties
-    for i in range(num_items):
-        if not has_single_superclass(class_def) or not is_inherited(items[i]):
-            name = items[i][KEY_NAME]
-            f.write('      .def_property("' + name + '", &' + class_name + '::get_' + name + ', &' + class_name + '::set_' + name + ')\n')
+        # properties
+        for i in range(num_items):
+            if not has_single_superclass(class_def) or not is_inherited(items[i]):
+                name = items[i][KEY_NAME]
+                f.write('      .def_property("' + name + '", &' + class_name + '::get_' + name + ', &' + class_name + '::set_' + name + ')\n')
     f.write('    ;\n')
     f.write('}\n\n')
     
@@ -1075,6 +1103,8 @@ def write_set_all_default_or_unset(f, class_name, class_def):
             
 def generate_class_implementation_and_bindings(class_name, class_def):
     with open(get_gen_class_file_name_w_dir(class_name, EXT_CPP), 'w') as f:
+        def_type = class_def[KEY_TYPE]
+        
         f.write(COPYRIGHT)
         write_generated_notice(f)
         
@@ -1082,22 +1112,25 @@ def generate_class_implementation_and_bindings(class_name, class_def):
         f.write('#include "libs/pybind11/include/pybind11/stl.h"\n')
 
         # includes for our class
-        f.write('#include "' + get_gen_class_file_name(class_name, EXT_H) + '"\n')  
-        f.write('#include "' + get_api_class_file_name_w_dir(class_name, EXT_H) + '"\n')
+        f.write('#include "' + get_gen_class_file_name(class_name, EXT_H) + '"\n')
+        
+        if def_type == VALUE_CLASS:
+            f.write('#include "' + get_api_class_file_name_w_dir(class_name, EXT_H) + '"\n')
         
         # we also need includes for every type that we used
         write_used_classes_includes(f, class_def)
         
         f.write('\n' + NAMESPACES_BEGIN + '\n\n')
         
-        items = class_def[KEY_ITEMS]
-        if has_single_superclass(class_def):
-            write_check_semantics_implemetation(f, class_name, items)
-            write_operator_equal_implemetation(f, class_name, items)
-            write_set_initialized_implemetation(f, class_name, items)
-            write_set_all_default_or_unset(f, class_name, class_def)
-
-        write_to_str_implementation(f, class_name, items, has_single_superclass(class_def))
+        if def_type == VALUE_CLASS:
+            items = class_def[KEY_ITEMS]
+            if has_single_superclass(class_def):
+                write_check_semantics_implemetation(f, class_name, items)
+                write_operator_equal_implemetation(f, class_name, items)
+                write_set_initialized_implemetation(f, class_name, items)
+                write_set_all_default_or_unset(f, class_name, class_def)
+    
+            write_to_str_implementation(f, class_name, items, has_single_superclass(class_def))
         
         write_pybind11_bindings(f, class_name, class_def)
         
@@ -1319,8 +1352,18 @@ def generate_data_classes(data_classes):
 
     for key, value in data_classes.items():
         if key != KEY_CONSTANTS and key != KEY_ENUMS:
+            # set default definition type
+            if not KEY_TYPE in value:
+                value[KEY_TYPE] = VALUE_CLASS
+            
             if VERBOSE:
-                print("Generating class " + key)
+                if value[KEY_TYPE] == VALUE_CLASS:
+                    print("Generating class " + key)
+                elif value[KEY_TYPE] == VALUE_SUBMODULE:
+                    print("Generating submodule " + key)
+                else:
+                    assert False, "Unknown definition type"     
+            
             generate_class_files(data_classes, key, value)
     
     

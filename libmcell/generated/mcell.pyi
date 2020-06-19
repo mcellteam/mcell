@@ -896,6 +896,18 @@ class Molecule():
         ) -> None:
         pass
 
+class geometry_utils():
+    def __init__(
+            self,
+        ):
+
+
+    def create_box(
+            self,
+            edge_length : float
+        ) -> 'GeometryObject':
+        pass
+
 AllMolecules = Species('ALL_MOLECULES')
 AllVolumeMolecules = Species('ALL_VOLUME_MOLECULES')
 AllSurfaceMolecules = Species('ALL_SURFACE_MOLECULES')

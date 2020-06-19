@@ -30,6 +30,8 @@ set(SOURCE_FILES
     api/instantiation_data.cpp
     api/model.cpp
     
+    api/geometry_utils.cpp
+    
     api/globals.cpp
     api/mcell4_converter.cpp
     
@@ -67,6 +69,8 @@ set(SOURCE_FILES
     generated/gen_molecule.cpp
 
     generated/gen_constants.cpp
+
+    generated/gen_geometry_utils.cpp
 )
 
 set(ALL_SOURCES

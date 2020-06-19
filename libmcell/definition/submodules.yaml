@@ -1,0 +1,12 @@
+
+geometry_utils:
+  type: submodule  # default type is class
+  methods:
+  - name: create_box
+    doc: Creates a GeometryObject whose center is at (0, 0, 0).
+    return_type: GeometryObject*
+    params:
+    - name: edge_length
+      type: float
+      doc: Specifies length of each edge of the box.
+      
