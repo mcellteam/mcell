@@ -33,11 +33,11 @@ class ElementaryMoleculeInstance;
 
 #define COMPLEX_INSTANCE_CTOR() \
     ComplexInstance( \
-        const std::vector<std::shared_ptr<ElementaryMoleculeInstance>> molecule_instances_ = std::vector<std::shared_ptr<ElementaryMoleculeInstance>>(), \
+        const std::vector<std::shared_ptr<ElementaryMoleculeInstance>> elementary_molecule_instances_ = std::vector<std::shared_ptr<ElementaryMoleculeInstance>>(), \
         const Orientation orientation_ = Orientation::NONE \
     ) { \
       class_name = "ComplexInstance"; \
-      molecule_instances = molecule_instances_; \
+      elementary_molecule_instances = elementary_molecule_instances_; \
       orientation = orientation_; \
       postprocess_in_ctor();\
       check_semantics();\
@@ -53,16 +53,16 @@ public:
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---
-  std::vector<std::shared_ptr<ElementaryMoleculeInstance>> molecule_instances;
-  virtual void set_molecule_instances(const std::vector<std::shared_ptr<ElementaryMoleculeInstance>> new_molecule_instances_) {
+  std::vector<std::shared_ptr<ElementaryMoleculeInstance>> elementary_molecule_instances;
+  virtual void set_elementary_molecule_instances(const std::vector<std::shared_ptr<ElementaryMoleculeInstance>> new_elementary_molecule_instances_) {
     if (initialized) {
-      throw RuntimeError("Value 'molecule_instances' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'elementary_molecule_instances' of object with name " + name + " (class " + class_name + ")"
                          "cannot be set after model was initialized.");
     }
-    molecule_instances = new_molecule_instances_;
+    elementary_molecule_instances = new_elementary_molecule_instances_;
   }
-  virtual std::vector<std::shared_ptr<ElementaryMoleculeInstance>> get_molecule_instances() const {
-    return molecule_instances;
+  virtual std::vector<std::shared_ptr<ElementaryMoleculeInstance>> get_elementary_molecule_instances() const {
+    return elementary_molecule_instances;
   }
 
   Orientation orientation;
@@ -78,6 +78,7 @@ public:
   }
 
   // --- methods ---
+  virtual std::string to_bngl_str() = 0;
 }; // GenComplexInstance
 
 class ComplexInstance;

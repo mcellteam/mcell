@@ -29,8 +29,15 @@
 #include "api/release_site.h"
 #include "api/geometry_object.h"
 
+namespace BNG {
+class BNGData;
+class SeedSpecies;
+}
+
 namespace MCell {
 namespace API {
+
+class Subsystem;
 
 class InstantiationData: public GenInstantiationData {
 public:
@@ -52,8 +59,25 @@ public:
     return vec_find_by_name(geometry_objects, name);
   }
 
+  void load_bngl_seed_species(
+      const std::string& file_name,
+      std::shared_ptr<Subsystem> subsystem,
+      std::shared_ptr<Region> default_release_region = nullptr) override;
+
   // added manually
   void dump() const;
+
+private:
+  void convert_bng_data_to_instantiation_data(
+      const BNG::BNGData& bng_data,
+      std::shared_ptr<Subsystem> subsystem,
+      std::shared_ptr<Region> default_release_region);
+
+  void convert_single_seed_species_to_release_site(
+      const BNG::BNGData& bng_data,
+      const BNG::SeedSpecies& bng_ss,
+      std::shared_ptr<Subsystem> subsystem,
+      std::shared_ptr<Region> default_release_region);
 };
 
 } // namespace API

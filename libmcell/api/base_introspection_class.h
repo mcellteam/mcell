@@ -53,6 +53,11 @@ public:
     }
   }
 
+  void set_all_attributes_as_default_or_unset() {
+    BaseDataClass::set_all_attributes_as_default_or_unset();
+    world = nullptr;
+  }
+
   // internal World pointer
   World* world;
 };

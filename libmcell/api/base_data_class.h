@@ -75,6 +75,13 @@ public:
     return "String dump for a derived class is not implemented.";
   }
 
+  // initialization for custom constructors
+  virtual void set_all_attributes_as_default_or_unset() {
+    name = STR_UNSET;
+    initialized = false;
+  };
+
+
   // calls virtual method, usually no need to override
   virtual void dump() const {
     std::cout << to_str() << "\n";

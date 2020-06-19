@@ -92,6 +92,7 @@ public:
   }
 
   // --- methods ---
+  virtual std::string to_bngl_str() = 0;
 }; // GenComponentInstance
 
 class ComponentInstance;

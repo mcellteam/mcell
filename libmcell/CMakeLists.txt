@@ -21,9 +21,15 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g3 -O0 -isystem ${CMAKE_CURRENT_SOURCE_
 
 set(SOURCE_FILES
     api/bindings.cpp
+    
+    api/component_instance.cpp
+    api/elementary_molecule_instance.cpp
+    api/complex_instance.cpp
+    
+    api/subsystem.cpp
     api/instantiation_data.cpp
     api/model.cpp
-    api/subsystem.cpp
+    
     api/globals.cpp
     api/mcell4_converter.cpp
     

@@ -283,6 +283,7 @@ void MCell4Converter::convert_species() {
     // define a molecule type with no components
     BNG::MolType mol_type;
     mol_type.name = new_species.name; // name of the mol type is the same as for our species
+    mol_type.D = new_species.D; // we must also set the diffusion constant - simply inherit from this simple species
     BNG::mol_type_id_t mol_type_id = world->bng_engine.get_data().find_or_add_molecule_type(mol_type);
 
     BNG::MolInstance mol_inst;
@@ -419,7 +420,7 @@ BNG::CplxInstance MCell4Converter::convert_complex_instance(API::ComplexInstance
   // create a temporary cplx instance that we will use for search
   BNG::CplxInstance cplx_inst;
 
-  for (std::shared_ptr<API::ElementaryMoleculeInstance>& m: inst.molecule_instances) {
+  for (std::shared_ptr<API::ElementaryMoleculeInstance>& m: inst.elementary_molecule_instances) {
     BNG::MolInstance mi = convert_molecule_instance(*m, in_rxn);
 
     cplx_inst.mol_instances.push_back(mi);

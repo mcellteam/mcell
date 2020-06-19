@@ -20,16 +20,89 @@
  *
 ******************************************************************************/
 
-#include "instantiation_data.h"
+#include "api/instantiation_data.h"
+
+#include "bng/bng.h"
+
+#include "api/subsystem.h"
+#include "api/complex_instance.h"
+
+using namespace std;
 
 namespace MCell {
 namespace API {
 
+const char* const RELEASE_SITE_PREFIX = "rel_";
+
+
 void InstantiationData::dump() const {
-  // TODO
-  // std::cout << to_str() << "\n";
+  std::cout << to_str() << "\n";
+}
+
+
+void InstantiationData::load_bngl_seed_species(
+    const std::string& file_name,
+    std::shared_ptr<Subsystem> subsystem,
+    std::shared_ptr<Region> default_release_region) {
+
+  BNG::BNGData bng_data;
+
+  int num_errors = BNG::parse_bngl_file(file_name, bng_data);
+  if (num_errors != 0) {
+    throw RuntimeError("Could not parse BNGL file " + file_name + ".");
+  }
+
+  // now convert everything we parsed into the API classes so that the user can
+  // inspect or manipulate it if needed
+  convert_bng_data_to_instantiation_data(bng_data, subsystem, default_release_region);
+}
+
+
+void InstantiationData::convert_bng_data_to_instantiation_data(
+    const BNG::BNGData& bng_data,
+    std::shared_ptr<Subsystem> subsystem,
+    std::shared_ptr<Region> default_release_region) {
+
+  for (const BNG::SeedSpecies& bng_ss: bng_data.get_seed_species()) {
+    convert_single_seed_species_to_release_site(bng_data, bng_ss, subsystem, default_release_region);
+  }
+}
+
+void InstantiationData::convert_single_seed_species_to_release_site(
+    const BNG::BNGData& bng_data,
+    const BNG::SeedSpecies& bng_ss,
+    std::shared_ptr<Subsystem> subsystem,
+    std::shared_ptr<Region> default_release_region) {
+
+  if (!is_set(default_release_region)) {
+    throw ValueError(S("Parameter ") + NAME_DEFAULT_RELEASE_REGION +
+        " must be currently always set because compartments are not supported yet.");
+  }
+
+  auto rel_site = make_shared<API::ReleaseSite>();
+
+  // we need to create API representation for the cplx instance we got
+  rel_site->complex_instance =
+      Subsystem::convert_reaction_rule_substance(subsystem, bng_data, bng_ss.cplx_instance);
+
+  rel_site->name =
+      "Release of " + rel_site->complex_instance->to_bngl_str() +
+      " at " + default_release_region->name;
+
+  rel_site->region = default_release_region;
+
+  if (bng_ss.count != (int)bng_ss.count) {
+    throw ValueError("Release count of complex instance created from loaded BNGL file '" +
+        rel_site->name + "' must be an integer.");
+  }
+  rel_site->number_to_release = bng_ss.count;
+
+  rel_site->check_semantics(); // only for internal checks
+  rel_site->postprocess_in_ctor(); // sets shape
+
+  release_sites.push_back(rel_site);
 }
 
 }
-}
-
+// namespace API
+} // namespace MCell

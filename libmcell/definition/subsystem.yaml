@@ -42,8 +42,13 @@ ComponentInstance:
     
   - name: bond
     type: int
-    default: BOND_UNBOUND      
-    
+    default: BOND_UNBOUND
+          
+  methods:    
+  - name: to_bngl_str
+    return_type: str
+    doc: Creates a string that corresponds to its BNGL representation     
+      
       
 ElementaryMoleculeType:
   superclass: BaseDataClass
@@ -84,11 +89,16 @@ ElementaryMoleculeInstance:
     type: List[ComponentInstance*]
     default: empty
 
+  methods:
+  - name: to_bngl_str
+    return_type: str
+    doc: Creates a string that corresponds to its BNGL representation 
+    
     
 ComplexInstance:    
   superclass: BaseDataClass
   items:
-  - name: molecule_instances
+  - name: elementary_molecule_instances
     type: List[ElementaryMoleculeInstance*]
     default: empty
 
@@ -96,7 +106,12 @@ ComplexInstance:
     type: Orientation 
     default: Orientation.NONE
     
-    
+  methods:
+  - name: to_bngl_str
+    return_type: str
+    doc: Creates a string that corresponds to its BNGL representation 
+      
+      
 Species:
   superclass: ComplexInstance
   items:

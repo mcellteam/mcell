@@ -99,6 +99,11 @@ class ComponentInstance():
         self.bond = bond
 
 
+    def to_bngl_str(
+            self,
+        ) -> 'str':
+        pass
+
 class ElementaryMoleculeType():
     def __init__(
             self,
@@ -129,15 +134,25 @@ class ElementaryMoleculeInstance():
         self.components = components
 
 
+    def to_bngl_str(
+            self,
+        ) -> 'str':
+        pass
+
 class ComplexInstance():
     def __init__(
             self,
-            molecule_instances : List[ElementaryMoleculeInstance] = None,
+            elementary_molecule_instances : List[ElementaryMoleculeInstance] = None,
             orientation : Orientation = Orientation.NONE
         ):
-        self.molecule_instances = molecule_instances
+        self.elementary_molecule_instances = elementary_molecule_instances
         self.orientation = orientation
 
+
+    def to_bngl_str(
+            self,
+        ) -> 'str':
+        pass
 
 class Species():
     def __init__(
@@ -146,14 +161,14 @@ class Species():
             diffusion_constant_2d : float = None,
             diffusion_constant_3d : float = None,
             target_only : bool = False,
-            molecule_instances : List[ElementaryMoleculeInstance] = None,
+            elementary_molecule_instances : List[ElementaryMoleculeInstance] = None,
             orientation : Orientation = Orientation.NONE
         ):
         self.name = name
         self.diffusion_constant_2d = diffusion_constant_2d
         self.diffusion_constant_3d = diffusion_constant_3d
         self.target_only = target_only
-        self.molecule_instances = molecule_instances
+        self.elementary_molecule_instances = elementary_molecule_instances
         self.orientation = orientation
 
 
@@ -161,6 +176,11 @@ class Species():
             self,
             orientation : Orientation = Orientation.NOT_SET
         ) -> 'ComplexInstance':
+        pass
+
+    def to_bngl_str(
+            self,
+        ) -> 'str':
         pass
 
 class SurfaceProperty():
@@ -481,6 +501,14 @@ class InstantiationData():
             self,
             name : str
         ) -> 'GeometryObject':
+        pass
+
+    def load_bngl_seed_species(
+            self,
+            file_name : str,
+            subsystem : Subsystem,
+            default_release_region : Region = None
+        ) -> None:
         pass
 
 class VizOutput():
@@ -825,6 +853,14 @@ class Model():
             self,
             name : str
         ) -> 'GeometryObject':
+        pass
+
+    def load_bngl_seed_species(
+            self,
+            file_name : str,
+            subsystem : Subsystem,
+            default_release_region : Region = None
+        ) -> None:
         pass
 
     def add_viz_output(

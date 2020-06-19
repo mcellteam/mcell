@@ -20,23 +20,35 @@
  *
 ******************************************************************************/
 
-#ifndef API_COMPLEX_INSTANCE_H
-#define API_COMPLEX_INSTANCE_H
+#include "api/component_instance.h"
+#include "api/component_type.h"
 
-#include "../generated/gen_complex_instance.h"
-#include "../api/common.h"
+
+using namespace std;
 
 namespace MCell {
 namespace API {
 
-class ComplexInstance: public GenComplexInstance {
-public:
-  COMPLEX_INSTANCE_CTOR()
+std::string ComponentInstance::to_bngl_str() {
+  std::string res;
 
-  std::string to_bngl_str() override;
-};
+  res = component_type->name;
+
+  if (state != STATE_UNSET) {
+    res += "~" + state;
+  }
+
+  if (bond != BOND_UNBOUND) {
+    if (bond == BOND_BOUND) {
+      res += "!+";
+    }
+    else {
+      res += "!" + std::to_string(bond);
+    }
+  }
+
+  return res;
+}
 
 } // namespace API
 } // namespace MCell
-
-#endif // API_COMPLEX_INSTANCE_H

@@ -33,6 +33,7 @@
 #include "../api/notifications.h"
 #include "../api/observables.h"
 #include "../api/reaction_rule.h"
+#include "../api/region.h"
 #include "../api/release_site.h"
 #include "../api/species.h"
 #include "../api/subsystem.h"
@@ -94,6 +95,7 @@ py::class_<Model> define_pybinding_Model(py::module& m) {
       .def("find_release_site", &Model::find_release_site, py::arg("name"))
       .def("add_geometry_object", &Model::add_geometry_object, py::arg("o"))
       .def("find_geometry_object", &Model::find_geometry_object, py::arg("name"))
+      .def("load_bngl_seed_species", &Model::load_bngl_seed_species, py::arg("file_name"), py::arg("subsystem"), py::arg("default_release_region") = nullptr)
       .def("add_viz_output", &Model::add_viz_output, py::arg("viz_output"))
       .def("add_count", &Model::add_count, py::arg("count"))
       .def("dump", &Model::dump)

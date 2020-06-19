@@ -57,7 +57,7 @@ public:
     species_id = SPECIES_ID_INVALID;
 
     // we can do semantic checks also in postprocess_in_ctor
-    if (molecule_instances.empty()) {
+    if (elementary_molecule_instances.empty()) {
       if (!is_set(diffusion_constant_2d) && !is_set(diffusion_constant_3d)) {
         throw ValueError("Field diffusion_constant_2d or diffusion_constant_3d must be set for simple species.");
       }
@@ -72,7 +72,7 @@ public:
       );
 
       // and then molecule instance out of it
-      molecule_instances.push_back(
+      elementary_molecule_instances.push_back(
           std::make_shared<ElementaryMoleculeInstance>(mt)
       );
     }

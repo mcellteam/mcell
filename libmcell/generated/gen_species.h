@@ -40,15 +40,15 @@ class ElementaryMoleculeInstance;
         const float_t diffusion_constant_2d_ = FLT_UNSET, \
         const float_t diffusion_constant_3d_ = FLT_UNSET, \
         const bool target_only_ = false, \
-        const std::vector<std::shared_ptr<ElementaryMoleculeInstance>> molecule_instances_ = std::vector<std::shared_ptr<ElementaryMoleculeInstance>>(), \
+        const std::vector<std::shared_ptr<ElementaryMoleculeInstance>> elementary_molecule_instances_ = std::vector<std::shared_ptr<ElementaryMoleculeInstance>>(), \
         const Orientation orientation_ = Orientation::NONE \
-    )  : GenSpecies(molecule_instances_,orientation_) { \
+    )  : GenSpecies(elementary_molecule_instances_,orientation_) { \
       class_name = "Species"; \
       name = name_; \
       diffusion_constant_2d = diffusion_constant_2d_; \
       diffusion_constant_3d = diffusion_constant_3d_; \
       target_only = target_only_; \
-      molecule_instances = molecule_instances_; \
+      elementary_molecule_instances = elementary_molecule_instances_; \
       orientation = orientation_; \
       postprocess_in_ctor();\
       check_semantics();\
@@ -57,9 +57,9 @@ class ElementaryMoleculeInstance;
 class GenSpecies: public ComplexInstance {
 public:
   GenSpecies( 
-      const std::vector<std::shared_ptr<ElementaryMoleculeInstance>> molecule_instances_ = std::vector<std::shared_ptr<ElementaryMoleculeInstance>>(), 
+      const std::vector<std::shared_ptr<ElementaryMoleculeInstance>> elementary_molecule_instances_ = std::vector<std::shared_ptr<ElementaryMoleculeInstance>>(), 
       const Orientation orientation_ = Orientation::NONE 
-  )  : ComplexInstance(molecule_instances_,orientation_)  {
+  )  : ComplexInstance(elementary_molecule_instances_,orientation_)  {
   }
   void postprocess_in_ctor() override {}
   void check_semantics() const override;

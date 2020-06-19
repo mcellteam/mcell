@@ -43,12 +43,12 @@ bool GenSpecies::__eq__(const GenSpecies& other) const {
     diffusion_constant_2d == other.diffusion_constant_2d &&
     diffusion_constant_3d == other.diffusion_constant_3d &&
     target_only == other.target_only &&
-    vec_ptr_eq(molecule_instances, other.molecule_instances) &&
+    vec_ptr_eq(elementary_molecule_instances, other.elementary_molecule_instances) &&
     orientation == other.orientation;
 }
 
 void GenSpecies::set_initialized() {
-  vec_set_initialized(molecule_instances);
+  vec_set_initialized(elementary_molecule_instances);
   initialized = true;
 }
 
@@ -59,7 +59,7 @@ std::string GenSpecies::to_str(const std::string ind) const {
       "diffusion_constant_2d=" << diffusion_constant_2d << ", " <<
       "diffusion_constant_3d=" << diffusion_constant_3d << ", " <<
       "target_only=" << target_only << ", " <<
-      "\n" << ind + "  " << "molecule_instances=" << vec_ptr_to_str(molecule_instances, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "\n" << ind + "  " << "elementary_molecule_instances=" << vec_ptr_to_str(elementary_molecule_instances, ind + "  ") << ", " << "\n" << ind + "  " <<
       "orientation=" << orientation;
   return ss.str();
 }
@@ -79,7 +79,7 @@ py::class_<Species> define_pybinding_Species(py::module& m) {
           py::arg("diffusion_constant_2d") = FLT_UNSET,
           py::arg("diffusion_constant_3d") = FLT_UNSET,
           py::arg("target_only") = false,
-          py::arg("molecule_instances") = std::vector<std::shared_ptr<ElementaryMoleculeInstance>>(),
+          py::arg("elementary_molecule_instances") = std::vector<std::shared_ptr<ElementaryMoleculeInstance>>(),
           py::arg("orientation") = Orientation::NONE
       )
       .def("check_semantics", &Species::check_semantics)

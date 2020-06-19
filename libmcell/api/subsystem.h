@@ -42,7 +42,7 @@ namespace API {
 
 class ComplexInstance;
 
-class Subsystem: public GenSubsystem {
+class Subsystem: public GenSubsystem, public std::enable_shared_from_this<Subsystem> {
 public:
   // from generated template
   void add_species(std::shared_ptr<Species> s) override {
@@ -83,12 +83,16 @@ public:
   // added manually
   void dump() const;
 
+  // auxiliary method used also from InstantiationData
+  static std::shared_ptr<API::ComplexInstance> convert_reaction_rule_substance(
+      std::shared_ptr<API::Subsystem> subsystem,
+      const BNG::BNGData& bng_data,
+      const BNG::CplxInstance& bng_inst);
+
 private:
   void convert_bng_data_to_subsystem_data(const BNG::BNGData& bng_data);
   void convert_molecule_type(const BNG::BNGData& bng_data, const BNG::MolType& bng_mt);
   void convert_reaction_rule(const BNG::BNGData& bng_data, const BNG::RxnRule& bng_rr);
-  std::shared_ptr<API::ComplexInstance> convert_reaction_rule_substance(
-      const BNG::BNGData& bng_data, const BNG::CplxInstance& bng_inst);
 };
 
 } // namespace API

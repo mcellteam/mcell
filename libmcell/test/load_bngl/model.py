@@ -20,41 +20,30 @@ if len(sys.argv) == 3 and sys.argv[1] == '-seed':
 
 
 subsystem = m.Subsystem()
-
 subsystem.load_bngl_molecule_types_and_reaction_rules('test.bngl')
 
-#print(subsystem)
 
-print(subsystem.find_elementary_molecule_type('A'))
-
+"""
 cplx_inst_A = m.ComplexInstance([subsystem.find_elementary_molecule_type('A').inst()])
 
 import geometry
 
-
 rel_a = m.ReleaseSite(
     name = 'rel_a',
     complex_instance = cplx_inst_A,
-    region = geometry.Cube,
-    location = m.Vec3(0, 0, 0),
-    site_diameter = 0,
+    region = geometry.single_compartment,
     number_to_release = 10
 )
+"""
 
-#print(rel_a)
-
-#print(subsystem)
-
-#sys.exit(0)
-
-# ---- surface classes assignment ----
-
-
-# ---- instantiation data ----
+import geometry # TODO: rather parametrize with size than - create_box?
 
 instantiation = m.InstantiationData()
-instantiation.add_geometry_object(geometry.Cube)
-instantiation.add_release_site(rel_a)
+
+instantiation.load_bngl_seed_species('test.bngl', subsystem, geometry.single_compartment)
+
+instantiation.add_geometry_object(geometry.single_compartment)
+
 
 
 viz_output = m.VizOutput(
@@ -78,16 +67,9 @@ model.config.total_iterations_hint = ITERATIONS
 model.config.partition_dimension = 20.02
 model.config.subpartition_dimension = 2.002
 
-# ---- default configuration overrides ----
-
-
-# ---- add components ----
-
 model.add_subsystem(subsystem)
 model.add_instantiation_data(instantiation)
 model.add_observables(observables)
-
-# ---- initialization and execution ----
 
 print(model)
 

@@ -32,6 +32,11 @@ namespace API {
 
 class ReleaseSite: public GenReleaseSite {
 public:
+  // empty ctor to be used internally
+  ReleaseSite() {
+    set_all_attributes_as_default_or_unset();
+  }
+
   RELEASE_SITE_CTOR()
 
   void postprocess_in_ctor() override {

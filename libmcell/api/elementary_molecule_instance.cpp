@@ -20,23 +20,34 @@
  *
 ******************************************************************************/
 
-#ifndef API_COMPLEX_INSTANCE_H
-#define API_COMPLEX_INSTANCE_H
+#include "api/elementary_molecule_instance.h"
+#include "api/elementary_molecule_type.h"
+#include "api/component_type.h"
+#include "api/component_instance.h"
 
-#include "../generated/gen_complex_instance.h"
-#include "../api/common.h"
+using namespace std;
 
 namespace MCell {
 namespace API {
 
-class ComplexInstance: public GenComplexInstance {
-public:
-  COMPLEX_INSTANCE_CTOR()
+std::string ElementaryMoleculeInstance::to_bngl_str() {
+  std::string res;
 
-  std::string to_bngl_str() override;
-};
+  res = elementary_molecule_type->name;
+
+  if (!components.empty()) {
+    res += "(";
+    for (size_t i = 0; i < components.size(); i++) {
+      res += components[i]->to_bngl_str();
+      if (i + 1 != components.size()) {
+        res += ",";
+      }
+    }
+    res += ")";
+  }
+
+  return res;
+}
 
 } // namespace API
 } // namespace MCell
-
-#endif // API_COMPLEX_INSTANCE_H

@@ -40,6 +40,7 @@ class Molecule;
 class Notifications;
 class Observables;
 class ReactionRule;
+class Region;
 class ReleaseSite;
 class Species;
 class Subsystem;
