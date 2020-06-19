@@ -76,7 +76,7 @@ public:
         orientation == ci2.orientation;
   }
 
-  bool equal_ignore_orientation(const CplxInstance& ci2) const {
+  bool equal_ignore_orientation_and_flags(const CplxInstance& ci2) const {
     return mol_instances == ci2.mol_instances;
   }
 

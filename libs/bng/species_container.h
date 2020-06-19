@@ -29,6 +29,7 @@ public:
       all_surface_molecules_species_id(SPECIES_ID_INVALID) {
   }
 
+
   species_id_t find_or_add(const Species& new_species) {
     assert(new_species.is_finalized());
 
@@ -41,6 +42,14 @@ public:
     if (res == SPECIES_ID_INVALID) {
       res = next_species_id;
       next_species_id++;
+
+      #ifndef DEBUG
+        // we do not want species with the same name
+        for (const Species& s: species) {
+          assert(s.name != new_species.name && "Adding species with identical name");
+        }
+      #endif
+
       species.push_back(new_species);
       species.back().id = res;
     }
@@ -48,11 +57,22 @@ public:
     return res;
   }
 
+  // searches for identical species
   // returns SPECIES_ID_INVALID if not found
   species_id_t find(const Species& species_to_find) {
     // simple equality comparison for now, some hashing will be needed
     for (const Species& s: species) {
-      if (species_to_find.equal_except_for_id_and_flags(s)) {
+      if (species_to_find.equal_ignore_id_and_flags(s)) {
+        return s.id;
+      }
+    }
+    return SPECIES_ID_INVALID;
+  }
+
+  species_id_t find(const CplxInstance& cplx_inst) {
+    // simple equality comparison for now, some hashing will be needed
+    for (const Species& s: species) {
+      if (s.equal_cplx_instance_ignore_orientation_and_flags(cplx_inst)) {
         return s.id;
       }
     }

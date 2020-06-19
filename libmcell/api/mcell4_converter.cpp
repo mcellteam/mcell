@@ -430,8 +430,15 @@ BNG::CplxInstance MCell4Converter::convert_complex_instance(API::ComplexInstance
   cplx_inst.finalize();
 
   // we need to find or add existing species that we match
-  species_id_t species_id = world->get_all_species().find_or_add(
+  species_id_t species_id = world->get_all_species().find(cplx_inst);
+
+  if (species_id == SPECIES_ID_INVALID) {
+    // FIXME: can we have just one method to compare the cplx and create
+    // species if needed?
+    // cplx inst should clearly identify the species...
+    species_id = world->get_all_species().find_or_add(
       BNG::Species(cplx_inst, world->bng_engine.get_data(), world->bng_engine.get_config()));
+  }
   assert(species_id != SPECIES_ID_INVALID);
   return world->bng_engine.create_cplx_instance_for_species(species_id, orient);
 }
@@ -1007,14 +1014,22 @@ MCell::MolOrRxnCountTerm MCell4Converter::convert_count_term_leaf_and_init_count
 
     if (is_set(ct->region)) {
       if (!rxn->is_surf_rxn()) {
+        // volume reaction
         if (is_obj_not_surf_reg) {
           res.type = MCell::CountType::RxnCountInObject;
           res.geometry_object_id = obj_id;
 
           world->get_geometry_object(res.geometry_object_id).is_counted_volume = true;
         }
+        else {
+          throw RuntimeError("Cannot count volume reaction " + rxn->name + " on surface " +
+              ct->region->name + ".");
+        }
       }
       else {
+        // surface reaction
+        res.type = MCell::CountType::RxnCountOnSurfaceRegion;
+
         if (is_obj_not_surf_reg) {
           // need to get the region of this object
           MCell::GeometryObject& obj = world->get_geometry_object(obj_id);
@@ -1022,7 +1037,6 @@ MCell::MolOrRxnCountTerm MCell4Converter::convert_count_term_leaf_and_init_count
           reg_id = obj.encompassing_region_id;
         }
 
-        res.type = MCell::CountType::RxnCountOnSurfaceRegion;
         res.region_id = reg_id;
 
         // these are only surface regions and there is no need to set that they are counted

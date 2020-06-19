@@ -46,13 +46,6 @@ public:
 
   float_t D; // diffusion constant, entered by user in MCell3 mode, computed in MCell4 BNG model
 
-  bool equal_except_for_id_base(const Species& s2) const {
-    return
-        CplxInstance::equal(s2) &&  // FIXME: do we really want to distinguish by orientation at this stage?
-        name == s2.name &&
-        D == s2.D;;
-  }
-
   // ----------- MCell-specific -----------
   float_t space_step;
   float_t time_step; // in standard time
@@ -91,11 +84,17 @@ public:
   static void dump_array(const BNGData& bng_data, const SpeciesVector& vec, const bool sorted = false);
 
   // not virtual
-  bool equal_except_for_id_and_flags(const Species& s2) const {
+  bool equal_ignore_id_and_flags(const Species& s2) const {
     return
-        equal_except_for_id_base(s2) &&
+        CplxInstance::equal(s2) &&
+        name == s2.name &&
+        D == s2.D &&
         space_step == s2.space_step &&
         time_step == s2.time_step;
+  }
+
+  bool equal_cplx_instance_ignore_orientation_and_flags(const CplxInstance& cplx_inst) const {
+    return CplxInstance::equal_ignore_orientation_and_flags(cplx_inst);
   }
 
   // for initialization
