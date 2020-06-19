@@ -32,6 +32,15 @@ namespace API {
 class VizOutput: public GenVizOutput {
 public:
   VIZ_OUTPUT_CTOR()
+
+  void check_semantics() const override {
+    GenVizOutput::check_semantics();
+
+    if (all_species && !species_list.empty()) {
+      throw ValueError(S("When ") + NAME_ALL_SPECIES + " is set to true, " +
+          NAME_SPECIES_LIST + " must be empty.");
+    }
+  }
 };
 
 } // namespace API

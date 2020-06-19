@@ -516,11 +516,13 @@ class VizOutput():
             self,
             filename_prefix : str,
             species_list : List[Species] = None,
+            all_species : bool = False,
             mode : VizMode = VizMode.ASCII,
             every_n_timesteps : int = 1
         ):
         self.filename_prefix = filename_prefix
         self.species_list = species_list
+        self.all_species = all_species
         self.mode = mode
         self.every_n_timesteps = every_n_timesteps
 

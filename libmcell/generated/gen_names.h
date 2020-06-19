@@ -69,6 +69,7 @@ const char* const NAME_ADD_SUBSYSTEM = "add_subsystem";
 const char* const NAME_ADD_SURFACE_CLASS = "add_surface_class";
 const char* const NAME_ADD_VIZ_OUTPUT = "add_viz_output";
 const char* const NAME_AFFECTED_SPECIES = "affected_species";
+const char* const NAME_ALL_SPECIES = "all_species";
 const char* const NAME_BOND = "bond";
 const char* const NAME_CENTER_MOLECULES_ON_GRID = "center_molecules_on_grid";
 const char* const NAME_COMPLEX_INSTANCE = "complex_instance";

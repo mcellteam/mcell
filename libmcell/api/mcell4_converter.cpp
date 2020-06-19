@@ -1128,8 +1128,11 @@ void MCell4Converter::convert_viz_output_events() {
         viz_event->species_ids_to_visualize.insert(s->species_id);
       }
     }
-    else {
+    else if (v->all_species) {
       viz_event->visualize_all_species = true;
+    }
+    else {
+      // empty, files will be created but there will be nothing to visualize
     }
 
     world->scheduler.schedule_event(viz_event);

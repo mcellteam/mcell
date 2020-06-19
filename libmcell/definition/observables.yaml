@@ -8,7 +8,12 @@ VizOutput:
   - name: species_list
     type: List[Species*]
     default: empty
-    doc: When not set, all species are visualized
+    doc: When empty and all_species is false, empty files will be generated
+  
+  - name: all_species
+    type: bool
+    default: false
+    doc: Visualize all species 
   
   - name: mode
     type: VizMode

@@ -1000,14 +1000,15 @@ vector<string> PymcellGenerator::generate_viz_outputs(ofstream& out) {
   gen_param(out, NAME_FILENAME_PREFIX, DEFAULT_VIZ_OUTPUT_FILENAME_PREFIX, true);
 
   // species_list
-  std::vector<std::string> viz_species;
+
   if (viz_output[KEY_EXPORT_ALL].asBool()) {
-    viz_species = all_species_names;
+    gen_param(out, NAME_ALL_SPECIES, true, true);
   }
   else {
-    viz_species = get_species_to_visualize();
+    vector<string> viz_species = get_species_to_visualize();
+    gen_param_list(out, NAME_SPECIES_LIST, viz_species, true);
   }
-  gen_param_list(out, NAME_SPECIES_LIST, viz_species, true);
+
 
   gen_param_expr(out, NAME_EVERY_N_TIMESTEPS, viz_output[KEY_STEP], false);
 
