@@ -35,9 +35,7 @@ public:
     species_id_t res = SPECIES_ID_INVALID;
 
     // check that this species does not exist already
-    if (new_species.id != SPECIES_ID_INVALID) {
-      res = find(new_species);
-    }
+    res = find(new_species);
 
     // add if not found
     if (res == SPECIES_ID_INVALID) {
@@ -54,7 +52,7 @@ public:
   species_id_t find(const Species& species_to_find) {
     // simple equality comparison for now, some hashing will be needed
     for (const Species& s: species) {
-      if (species_to_find.equal_except_for_id(s)) {
+      if (species_to_find.equal_except_for_id_and_flags(s)) {
         return s.id;
       }
     }

@@ -122,6 +122,10 @@ void World::create_diffusion_events() {
   }
 
   for (float_t time_step : time_steps_set) {
+    if (time_step == 0) {
+      // ignore this species
+      continue;
+    }
     DiffuseReactEvent* event = new DiffuseReactEvent(this, time_step);
     event->event_time = TIME_SIMULATION_START;
     scheduler.schedule_event(event);

@@ -28,7 +28,12 @@ public:
 
   // create species from a complex instance
   // id is not set and name is determined automatically
-  Species(const CplxInstance& cplx_inst, const BNGData& data, const BNGConfig& config) {
+  Species(const CplxInstance& cplx_inst, const BNGData& data, const BNGConfig& config)
+    : id(SPECIES_ID_INVALID), D(FLT_INVALID),
+      // MCell-specific
+      space_step(FLT_INVALID), time_step(TIME_INVALID),
+      color_set(false), color_r(1), color_g(0), color_b(0), scale(1)  {
+
     mol_instances = cplx_inst.mol_instances;
     update_diffusion_constant(data, config);
     name = cplx_inst.to_str(data);
@@ -86,12 +91,11 @@ public:
   static void dump_array(const BNGData& bng_data, const SpeciesVector& vec, const bool sorted = false);
 
   // not virtual
-  bool equal_except_for_id(const Species& s2) const {
+  bool equal_except_for_id_and_flags(const Species& s2) const {
     return
         equal_except_for_id_base(s2) &&
         space_step == s2.space_step &&
-        time_step == s2.time_step &&
-        get_flags() == s2.get_flags();
+        time_step == s2.time_step;
   }
 
   // for initialization
