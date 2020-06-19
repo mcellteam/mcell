@@ -6,6 +6,10 @@ geometry_utils:
     doc: Creates a GeometryObject whose center is at (0, 0, 0).
     return_type: GeometryObject*
     params:
+    - name: name
+      type: str
+      doc: Name of the created geometry object
+
     - name: edge_length
       type: float
       doc: Specifies length of each edge of the box.

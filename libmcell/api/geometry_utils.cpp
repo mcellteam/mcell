@@ -22,15 +22,51 @@
 
 #include "generated/gen_geometry_utils.h"
 
+#include "api/geometry_object.h"
+
+using namespace std;
+
 namespace MCell {
 namespace API {
 
-class GeometryObject;
-
 namespace geometry_utils {
 
-std::shared_ptr<GeometryObject> create_box(const float_t edge_length) {
-  return nullptr;
+std::shared_ptr<GeometryObject> create_box(const std::string& name, const float_t edge_length) {
+  float_t hl = edge_length / 2;
+
+  vector<vector<float_t>> vertex_list {
+      {-hl, -hl, -hl},
+      {-hl, -hl,  hl},
+      {-hl,  hl, -hl},
+      {-hl,  hl,  hl},
+      { hl, -hl, -hl},
+      { hl, -hl,  hl},
+      { hl,  hl, -hl},
+      { hl,  hl,  hl}
+  };
+
+  vector<vector<int>> element_connections {
+      {1, 2, 0},
+      {3, 6, 2},
+      {7, 4, 6},
+      {5, 0, 4},
+      {6, 0, 2},
+      {3, 5, 7},
+      {1, 3, 2},
+      {3, 7, 6},
+      {7, 5, 4},
+      {5, 1, 0},
+      {6, 4, 0},
+      {3, 1, 5}
+  };
+
+  auto res = make_shared<GeometryObject>(
+      name,
+      vertex_list,
+      element_connections
+  );
+
+  return res;
 }
 
 } // namespace geometry_utils

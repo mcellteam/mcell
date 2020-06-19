@@ -13,7 +13,7 @@ else:
 import mcell as m
 
 
-res = m.geometry_utils.create_box(1)
+res = m.geometry_utils.create_box('box', 1)
 print(res)
 sys.exit(0)
 

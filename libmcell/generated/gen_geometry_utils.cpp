@@ -30,7 +30,7 @@ namespace API {
 
 void define_pybinding_geometry_utils(py::module& m) {
   m.def_submodule("geometry_utils")
-      .def("create_box", &geometry_utils::create_box, py::arg("edge_length"))
+      .def("create_box", &geometry_utils::create_box, py::arg("name"), py::arg("edge_length"))
     ;
 }
 
