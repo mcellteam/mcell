@@ -51,6 +51,21 @@ void GenWarnings::set_initialized() {
   initialized = true;
 }
 
+void GenWarnings::set_all_attributes_as_default_or_unset() {
+  class_name = "Warnings";
+  molecule_collision_report = WarningLevel::WARNING;
+  degenerate_polygons = WarningLevel::WARNING;
+  negative_diffusion_constant = WarningLevel::WARNING;
+  missing_surface_orientation = WarningLevel::ERROR;
+  negative_reaction_rate = WarningLevel::WARNING;
+  useless_volume_orientation = WarningLevel::WARNING;
+  high_reaction_probability = WarningLevel::IGNORE;
+  lifetime_too_short = WarningLevel::WARNING;
+  lifetime_threshold = 50;
+  missed_reactions = WarningLevel::WARNING;
+  missed_reactions_threshold = 0.00100000004749745;
+}
+
 std::string GenWarnings::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<

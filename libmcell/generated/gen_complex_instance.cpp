@@ -44,6 +44,12 @@ void GenComplexInstance::set_initialized() {
   initialized = true;
 }
 
+void GenComplexInstance::set_all_attributes_as_default_or_unset() {
+  class_name = "ComplexInstance";
+  elementary_molecule_instances = std::vector<std::shared_ptr<ElementaryMoleculeInstance>>();
+  orientation = Orientation::NONE;
+}
+
 std::string GenComplexInstance::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<

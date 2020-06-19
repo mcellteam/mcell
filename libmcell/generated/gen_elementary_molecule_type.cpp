@@ -51,6 +51,14 @@ void GenElementaryMoleculeType::set_initialized() {
   initialized = true;
 }
 
+void GenElementaryMoleculeType::set_all_attributes_as_default_or_unset() {
+  class_name = "ElementaryMoleculeType";
+  name = STR_UNSET;
+  components = std::vector<std::shared_ptr<ComponentType>>();
+  diffusion_constant_2d = FLT_UNSET;
+  diffusion_constant_3d = FLT_UNSET;
+}
+
 std::string GenElementaryMoleculeType::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<

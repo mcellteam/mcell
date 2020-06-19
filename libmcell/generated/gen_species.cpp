@@ -52,6 +52,16 @@ void GenSpecies::set_initialized() {
   initialized = true;
 }
 
+void GenSpecies::set_all_attributes_as_default_or_unset() {
+  class_name = "Species";
+  name = STR_UNSET;
+  diffusion_constant_2d = FLT_UNSET;
+  diffusion_constant_3d = FLT_UNSET;
+  target_only = false;
+  elementary_molecule_instances = std::vector<std::shared_ptr<ElementaryMoleculeInstance>>();
+  orientation = Orientation::NONE;
+}
+
 std::string GenSpecies::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<

@@ -135,6 +135,20 @@ void GenCount::set_initialized() {
   initialized = true;
 }
 
+void GenCount::set_all_attributes_as_default_or_unset() {
+  class_name = "Count";
+  filename = STR_UNSET;
+  count_expression = nullptr;
+  every_n_timesteps = 1;
+  species = nullptr;
+  reaction_rule = nullptr;
+  region = nullptr;
+  orientation = Orientation::NOT_SET;
+  node_type = ExprNodeType::LEAF;
+  left_node = nullptr;
+  right_node = nullptr;
+}
+
 std::string GenCount::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<

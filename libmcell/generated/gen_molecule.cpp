@@ -58,6 +58,14 @@ void GenMolecule::set_initialized() {
   initialized = true;
 }
 
+void GenMolecule::set_all_attributes_as_default_or_unset() {
+  class_name = "Molecule";
+  id = MOLECULE_ID_INVALID;
+  species = nullptr;
+  pos3d = VEC3_UNSET;
+  orientation = Orientation::NOT_SET;
+}
+
 std::string GenMolecule::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<

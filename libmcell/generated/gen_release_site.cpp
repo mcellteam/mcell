@@ -116,6 +116,25 @@ void GenReleaseSite::set_initialized() {
   initialized = true;
 }
 
+void GenReleaseSite::set_all_attributes_as_default_or_unset() {
+  class_name = "ReleaseSite";
+  name = STR_UNSET;
+  species = nullptr;
+  complex_instance = nullptr;
+  orientation = Orientation::NONE;
+  molecule_list = std::vector<std::shared_ptr<MoleculeReleaseInfo>>();
+  release_time = 0;
+  release_pattern = nullptr;
+  shape = Shape::UNSET;
+  region = nullptr;
+  location = VEC3_UNSET;
+  site_diameter = 0;
+  site_radius = FLT_UNSET;
+  number_to_release = INT_UNSET;
+  density = FLT_UNSET;
+  release_probability = FLT_UNSET;
+}
+
 std::string GenReleaseSite::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<

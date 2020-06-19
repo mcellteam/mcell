@@ -61,6 +61,12 @@ void GenElementaryMoleculeInstance::set_initialized() {
   initialized = true;
 }
 
+void GenElementaryMoleculeInstance::set_all_attributes_as_default_or_unset() {
+  class_name = "ElementaryMoleculeInstance";
+  elementary_molecule_type = nullptr;
+  components = std::vector<std::shared_ptr<ComponentInstance>>();
+}
+
 std::string GenElementaryMoleculeInstance::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<

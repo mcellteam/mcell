@@ -49,6 +49,19 @@ void GenConfig::set_initialized() {
   initialized = true;
 }
 
+void GenConfig::set_all_attributes_as_default_or_unset() {
+  class_name = "Config";
+  seed = 1;
+  time_step = 1e-6;
+  surface_grid_density = 10000;
+  interaction_radius = FLT_UNSET;
+  vacancy_search_distance = 10;
+  center_molecules_on_grid = false;
+  partition_dimension = 10;
+  subpartition_dimension = 0.5;
+  total_iterations_hint = 1000000;
+}
+
 std::string GenConfig::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<

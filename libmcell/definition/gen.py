@@ -157,6 +157,9 @@ DECL_DEFINE_PYBINDIND_CONSTANTS = 'void define_pybinding_constants(py::module& m
 DECL_DEFINE_PYBINDIND_ENUMS = 'void define_pybinding_enums(py::module& m)'
 DECL_SET_INITIALIZED = 'set_initialized()'
 
+RET_TYPE_SET_ALL_DEFAULT_OR_UNSET = 'void'
+SET_ALL_DEFAULT_OR_UNSET_DECL = 'set_all_attributes_as_default_or_unset()'
+
 RET_TYPE_TO_STR = 'std::string'
 SHARED_PTR = 'std::shared_ptr'
 DECL_TO_STR_W_DEFAULT = 'to_str(const std::string ind="") const'
@@ -615,12 +618,14 @@ def write_gen_class(f, class_def, class_name):
     if has_single_superclass(class_def):
         f.write('  ' + RET_CTOR_POSTPROCESS + ' ' + CTOR_POSTPROCESS + '() ' + KEYWORD_OVERRIDE + ' {}\n')
         f.write('  ' + RET_TYPE_CHECK_SEMANTICS + ' ' + DECL_CHECK_SEMANTICS + ' ' + KEYWORD_OVERRIDE + ';\n')
-        f.write('  void ' + DECL_SET_INITIALIZED + ' ' + KEYWORD_OVERRIDE + ';\n\n')
+        f.write('  void ' + DECL_SET_INITIALIZED + ' ' + KEYWORD_OVERRIDE + ';\n')
         # not virtual because overrides need different parameter type
         f.write('  bool __eq__(const ' + gen_class_name + '& other) const;\n')
+        f.write('  ' +  RET_TYPE_SET_ALL_DEFAULT_OR_UNSET + ' ' + SET_ALL_DEFAULT_OR_UNSET_DECL + ' ' + KEYWORD_OVERRIDE + ';\n\n')
 
     override = KEYWORD_OVERRIDE if has_single_superclass(class_def) else ''
     f.write('  ' + RET_TYPE_TO_STR + ' ' + DECL_TO_STR_W_DEFAULT + ' ' + override + ';\n\n')
+    
         
     f.write('  // --- attributes ---\n')
     items = class_def[KEY_ITEMS]
@@ -1048,6 +1053,25 @@ def write_used_classes_includes(f, class_def):
     for t in types:
         f.write('#include "' + get_api_class_file_name_w_dir(t, EXT_H) + '"\n')
 
+
+def write_set_all_default_or_unset(f, class_name, class_def):
+    f.write(
+        RET_TYPE_SET_ALL_DEFAULT_OR_UNSET + ' ' + GEN_CLASS_PREFIX + class_name + '::' + 
+        SET_ALL_DEFAULT_OR_UNSET_DECL + ' {' + '\n'
+    )
+    
+    # we do not need to call the derived methods because all members were inherited 
+    
+    f.write('  ' + CLASS_NAME_ATTR + ' = "' + class_name + '";\n')
+    items = class_def[KEY_ITEMS]
+    num_items = len(items)
+    for i in range(num_items):
+        assert KEY_NAME in items[i] 
+        attr_name = items[i][KEY_NAME]
+        f.write('  ' + attr_name + ' = ' + get_default_or_unset_value(items[i]) + ';\n')
+        
+    f.write('}\n\n')
+
             
 def generate_class_implementation_and_bindings(class_name, class_def):
     with open(get_gen_class_file_name_w_dir(class_name, EXT_CPP), 'w') as f:
@@ -1071,6 +1095,7 @@ def generate_class_implementation_and_bindings(class_name, class_def):
             write_check_semantics_implemetation(f, class_name, items)
             write_operator_equal_implemetation(f, class_name, items)
             write_set_initialized_implemetation(f, class_name, items)
+            write_set_all_default_or_unset(f, class_name, class_def)
 
         write_to_str_implementation(f, class_name, items, has_single_superclass(class_def))
         

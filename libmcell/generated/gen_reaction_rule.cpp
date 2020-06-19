@@ -50,6 +50,17 @@ void GenReactionRule::set_initialized() {
   initialized = true;
 }
 
+void GenReactionRule::set_all_attributes_as_default_or_unset() {
+  class_name = "ReactionRule";
+  name = STR_UNSET;
+  reactants = std::vector<std::shared_ptr<ComplexInstance>>();
+  products = std::vector<std::shared_ptr<ComplexInstance>>();
+  fwd_rate = FLT_UNSET;
+  rev_name = STR_UNSET;
+  rev_rate = FLT_UNSET;
+  variable_rate = std::vector<std::vector<float_t>>();
+}
+
 std::string GenReactionRule::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<

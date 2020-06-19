@@ -70,6 +70,13 @@ void GenRegion::set_initialized() {
   initialized = true;
 }
 
+void GenRegion::set_all_attributes_as_default_or_unset() {
+  class_name = "Region";
+  node_type = RegionNodeType::UNSET;
+  left_node = nullptr;
+  right_node = nullptr;
+}
+
 std::string GenRegion::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<

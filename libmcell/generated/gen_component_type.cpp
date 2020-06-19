@@ -46,6 +46,12 @@ void GenComponentType::set_initialized() {
   initialized = true;
 }
 
+void GenComponentType::set_all_attributes_as_default_or_unset() {
+  class_name = "ComponentType";
+  name = STR_UNSET;
+  states = std::vector<std::string>();
+}
+
 std::string GenComponentType::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<

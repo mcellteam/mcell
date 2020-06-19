@@ -48,6 +48,18 @@ void GenNotifications::set_initialized() {
   initialized = true;
 }
 
+void GenNotifications::set_all_attributes_as_default_or_unset() {
+  class_name = "Notifications";
+  probability_report = true;
+  diffusion_constant_report = Notification::BRIEF;
+  final_summary = true;
+  iteration_report = true;
+  varying_probability_report = true;
+  progress_report = true;
+  release_event_report = true;
+  molecule_collision_report = true;
+}
+
 std::string GenNotifications::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<

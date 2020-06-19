@@ -116,6 +116,17 @@ void GenCountTerm::set_initialized() {
   initialized = true;
 }
 
+void GenCountTerm::set_all_attributes_as_default_or_unset() {
+  class_name = "CountTerm";
+  species = nullptr;
+  reaction_rule = nullptr;
+  region = nullptr;
+  orientation = Orientation::NOT_SET;
+  node_type = ExprNodeType::LEAF;
+  left_node = nullptr;
+  right_node = nullptr;
+}
+
 std::string GenCountTerm::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<

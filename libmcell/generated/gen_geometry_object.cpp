@@ -100,6 +100,18 @@ void GenGeometryObject::set_initialized() {
   initialized = true;
 }
 
+void GenGeometryObject::set_all_attributes_as_default_or_unset() {
+  class_name = "GeometryObject";
+  name = STR_UNSET;
+  vertex_list = std::vector<std::vector<float_t>>();
+  element_connections = std::vector<std::vector<int>>();
+  surface_regions = std::vector<std::shared_ptr<SurfaceRegion>>();
+  surface_class = nullptr;
+  node_type = RegionNodeType::UNSET;
+  left_node = nullptr;
+  right_node = nullptr;
+}
+
 std::string GenGeometryObject::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<

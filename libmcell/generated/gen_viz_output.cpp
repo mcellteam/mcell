@@ -49,6 +49,14 @@ void GenVizOutput::set_initialized() {
   initialized = true;
 }
 
+void GenVizOutput::set_all_attributes_as_default_or_unset() {
+  class_name = "VizOutput";
+  filename_prefix = STR_UNSET;
+  species_list = std::vector<std::shared_ptr<Species>>();
+  mode = VizMode::ASCII;
+  every_n_timesteps = 1;
+}
+
 std::string GenVizOutput::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<

@@ -64,6 +64,15 @@ void GenSurfaceClass::set_initialized() {
   initialized = true;
 }
 
+void GenSurfaceClass::set_all_attributes_as_default_or_unset() {
+  class_name = "SurfaceClass";
+  name = STR_UNSET;
+  properties = std::vector<std::shared_ptr<SurfaceProperty>>();
+  type = SurfacePropertyType::UNSET;
+  affected_species = nullptr;
+  orientation = Orientation::NOT_SET;
+}
+
 std::string GenSurfaceClass::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<

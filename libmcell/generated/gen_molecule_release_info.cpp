@@ -63,6 +63,13 @@ void GenMoleculeReleaseInfo::set_initialized() {
   initialized = true;
 }
 
+void GenMoleculeReleaseInfo::set_all_attributes_as_default_or_unset() {
+  class_name = "MoleculeReleaseInfo";
+  species = nullptr;
+  location = std::vector<float_t>();
+  orientation = Orientation::NONE;
+}
+
 std::string GenMoleculeReleaseInfo::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<

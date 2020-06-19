@@ -45,6 +45,15 @@ void GenReleasePattern::set_initialized() {
   initialized = true;
 }
 
+void GenReleasePattern::set_all_attributes_as_default_or_unset() {
+  class_name = "ReleasePattern";
+  name = STR_UNSET;
+  release_interval = TIME_INFINITY;
+  train_duration = TIME_INFINITY;
+  train_interval = TIME_INFINITY;
+  number_of_trains = 1;
+}
+
 std::string GenReleasePattern::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<

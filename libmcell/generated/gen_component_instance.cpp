@@ -60,6 +60,13 @@ void GenComponentInstance::set_initialized() {
   initialized = true;
 }
 
+void GenComponentInstance::set_all_attributes_as_default_or_unset() {
+  class_name = "ComponentInstance";
+  component_type = nullptr;
+  state = "STATE_UNSET";
+  bond = BOND_UNBOUND;
+}
+
 std::string GenComponentInstance::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<

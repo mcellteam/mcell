@@ -69,8 +69,9 @@ public:
   void postprocess_in_ctor() override {}
   void check_semantics() const override;
   void set_initialized() override;
-
   bool __eq__(const GenGeometryObject& other) const;
+  void set_all_attributes_as_default_or_unset() override;
+
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---

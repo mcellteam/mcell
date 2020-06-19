@@ -93,6 +93,16 @@ void GenSurfaceRegion::set_initialized() {
   initialized = true;
 }
 
+void GenSurfaceRegion::set_all_attributes_as_default_or_unset() {
+  class_name = "SurfaceRegion";
+  name = STR_UNSET;
+  wall_indices = std::vector<int>();
+  surface_class = nullptr;
+  node_type = RegionNodeType::UNSET;
+  left_node = nullptr;
+  right_node = nullptr;
+}
+
 std::string GenSurfaceRegion::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
