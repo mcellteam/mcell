@@ -31,6 +31,7 @@ set(SOURCE_FILES
     api/model.cpp
     
     api/geometry_utils.cpp
+    api/bngl_utils.cpp
     
     api/globals.cpp
     api/mcell4_converter.cpp
@@ -71,6 +72,7 @@ set(SOURCE_FILES
     generated/gen_constants.cpp
 
     generated/gen_geometry_utils.cpp
+    generated/gen_bngl_utils.cpp
 )
 
 set(ALL_SOURCES

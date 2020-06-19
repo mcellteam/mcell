@@ -909,6 +909,18 @@ class geometry_utils():
         ) -> 'GeometryObject':
         pass
 
+class bngl_utils():
+    def __init__(
+            self,
+        ):
+
+
+    def load_bngl_parameters(
+            self,
+            file_name : str
+        ) -> 'Dict[str, float]':
+        pass
+
 AllMolecules = Species('ALL_MOLECULES')
 AllVolumeMolecules = Species('ALL_VOLUME_MOLECULES')
 AllSurfaceMolecules = Species('ALL_SURFACE_MOLECULES')

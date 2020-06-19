@@ -14,3 +14,12 @@ geometry_utils:
       type: float
       doc: Specifies length of each edge of the box.
       
+      
+bngl_utils:
+  type: submodule 
+  methods:
+  - name: load_bngl_parameters
+    return_type: Dict[str, float]
+    params:
+    - name: file_name
+      type: str

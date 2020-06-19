@@ -27,6 +27,7 @@
 namespace MCell {
 namespace API {
 
+const char* const NAME_CLASS_BNGL_UTILS = "bngl_utils";
 const char* const NAME_CLASS_COMPLEX_INSTANCE = "ComplexInstance";
 const char* const NAME_CLASS_COMPONENT_INSTANCE = "ComponentInstance";
 const char* const NAME_CLASS_COMPONENT_TYPE = "ComponentType";
@@ -123,6 +124,7 @@ const char* const NAME_LEFT_NODE = "left_node";
 const char* const NAME_LIFETIME_THRESHOLD = "lifetime_threshold";
 const char* const NAME_LIFETIME_TOO_SHORT = "lifetime_too_short";
 const char* const NAME_LOAD_BNGL_MOLECULE_TYPES_AND_REACTION_RULES = "load_bngl_molecule_types_and_reaction_rules";
+const char* const NAME_LOAD_BNGL_PARAMETERS = "load_bngl_parameters";
 const char* const NAME_LOAD_BNGL_SEED_SPECIES = "load_bngl_seed_species";
 const char* const NAME_LOCATION = "location";
 const char* const NAME_MISSED_REACTIONS = "missed_reactions";

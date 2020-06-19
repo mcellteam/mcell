@@ -154,6 +154,7 @@ PYBIND11_MODULE(mcell, m) {
   define_pybinding_constants(m);
 
   define_pybinding_geometry_utils(m);
+  define_pybinding_bngl_utils(m);
 }
 
 

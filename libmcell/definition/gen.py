@@ -108,6 +108,7 @@ YAML_TYPE_VEC2 = 'Vec2'
 YAML_TYPE_VEC3 = 'Vec3'
 YAML_TYPE_IVEC3 = 'IVec3'
 YAML_TYPE_LIST = 'List'
+YAML_TYPE_DICT = 'Dict'
 YAML_TYPE_SPECIES = 'Species'
 
 PYBIND_TYPE_OBJECT = 'object'
@@ -122,6 +123,7 @@ CPP_TYPE_VEC2 = 'Vec2'
 CPP_TYPE_VEC3 = 'Vec3'
 CPP_TYPE_IVEC3 = 'IVec3'
 CPP_VECTOR_TYPE = 'std::vector'
+CPP_MAP_TYPE = 'std::map'
 
 CPP_NONREFERENCE_TYPES = [CPP_TYPE_FLOAT, CPP_TYPE_INT, CPP_TYPE_LONG, CPP_TYPE_BOOL] # + CPP_VECTOR_TYPE but it must be checked with .startswith
 CPP_REFERENCE_TYPES = [CPP_TYPE_STR, CPP_TYPE_VEC2, CPP_TYPE_VEC3, CPP_TYPE_IVEC3, CPP_VECTOR_TYPE]
@@ -234,6 +236,8 @@ def get_api_class_file_name_w_work_dir(class_name, extension):
 def is_yaml_list_type(t):
     return t.startswith(YAML_TYPE_LIST)
 
+def is_yaml_dict_type(t):
+    return t.startswith(YAML_TYPE_DICT)
 
 # rename inner to underlying?
 def get_inner_list_type(t):
@@ -242,12 +246,24 @@ def get_inner_list_type(t):
     else:
         return t
 
+def get_inner_dict_key_type(t):
+    if is_yaml_dict_type(t):
+        return t.replace('[', ',').replace(']', ',').split(',')[1].strip()
+    else:
+        return t
+
+def get_inner_dict_value_type(t):
+    if is_yaml_dict_type(t):
+        return t.replace('[', ',').replace(']', ',').split(',')[2].strip()
+    else:
+        return t
 
 def is_base_yaml_type(t):
     return \
         t == YAML_TYPE_FLOAT or t == YAML_TYPE_STR or t == YAML_TYPE_INT or t == YAML_TYPE_LONG or \
         t == YAML_TYPE_BOOL or t == YAML_TYPE_VEC2 or t == YAML_TYPE_VEC3 or t == YAML_TYPE_IVEC3 or \
-        (is_yaml_list_type(t) and is_base_yaml_type(get_inner_list_type(t)))
+        (is_yaml_list_type(t) and is_base_yaml_type(get_inner_list_type(t))) or \
+        (is_yaml_dict_type(t) and is_base_yaml_type(get_inner_dict_key_type(t)) and is_base_yaml_type(get_inner_dict_value_type(t)))
 
 
 def is_yaml_ptr_type(t):
@@ -276,6 +292,11 @@ def yaml_type_to_cpp_type(t):
         assert len(t) > 7
         inner_type = yaml_type_to_cpp_type(get_inner_list_type(t))
         return CPP_VECTOR_TYPE + '<' + inner_type + '>'
+    elif is_yaml_dict_type(t):
+        key_type = yaml_type_to_cpp_type(get_inner_dict_key_type(t))
+        value_type = yaml_type_to_cpp_type(get_inner_dict_value_type(t))
+        return CPP_MAP_TYPE + '<' + key_type + ', ' + value_type + '>'
+        
     else:
         if is_yaml_ptr_type(t):
             return SHARED_PTR + '<' + t[0:-1] + '>' 

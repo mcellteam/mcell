@@ -132,6 +132,10 @@ public:
     }
   }
 
+  const std::map<std::string, float_t>& get_parameters() const {
+    return parameters;
+  }
+
   // -------- utilities --------
   void dump();
 
