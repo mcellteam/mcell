@@ -183,7 +183,9 @@ shared_ptr<API::ComplexInstance> Subsystem::convert_reaction_rule_substance(
       std::shared_ptr<API::ComponentType> api_ct = vec_find_by_name(api_emt->components, ct_name);
       auto api_comp_inst = make_shared<API::ComponentInstance>(api_ct);
 
-      api_comp_inst->state = bng_data.get_state_name(bng_ci.component_type_id);
+      if (bng_ci.state_id != BNG::STATE_ID_DONT_CARE) {
+        api_comp_inst->state = bng_data.get_state_name(bng_ci.state_id);
+      }
       api_comp_inst->bond = convert_bond_value(bng_ci.bond_value);
 
       api_comp_instances.push_back(api_comp_inst);

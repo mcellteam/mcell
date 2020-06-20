@@ -398,9 +398,45 @@ void MCell4Converter::convert_surface_classes() {
 }
 
 
-/*BNG::ComponentInstance MCell4Converter::convert_component_instance(API::ComponentInstance& ci) {
-  throw RuntimeError("Components are not supported yet");
-}*/
+BNG::component_type_id_t MCell4Converter::convert_component_type(API::ComponentType& api_ct) {
+  // component types are identified by their name and set of allowed states, not just by their name
+  BNG::ComponentType bng_ct;
+
+  bng_ct.name = api_ct.name;
+
+  for (string& s: api_ct.states) {
+    bng_ct.allowed_state_ids.insert( world->bng_engine.get_data().find_or_add_state_name(s) );
+  }
+
+  return world->bng_engine.get_data().find_or_add_component_type(bng_ct);
+}
+
+
+BNG::ComponentInstance MCell4Converter::convert_component_instance(API::ComponentInstance& api_ci) {
+
+  BNG::ComponentInstance res(convert_component_type(*api_ci.component_type));
+
+  if (api_ci.state == STATE_UNSET) {
+    res.state_id = BNG::STATE_ID_DONT_CARE;
+  }
+  else {
+    res.state_id = world->bng_engine.get_data().find_state_id(api_ci.state);
+    assert(res.state_id != BNG::STATE_ID_INVALID);
+  }
+
+  if (api_ci.bond == BOND_BOUND) {
+    res.bond_value = BNG::BOND_VALUE_ANY;
+  }
+  else if (api_ci.bond == BOND_UNBOUND) {
+    res.bond_value = BNG::BOND_VALUE_NO_BOND;
+  }
+  else {
+    res.bond_value = api_ci.bond;
+    assert(res.bond_value != BNG::BOND_VALUE_INVALID);
+  }
+
+  return res;
+}
 
 
 BNG::MolInstance MCell4Converter::convert_molecule_instance(API::ElementaryMoleculeInstance& mi, const bool in_rxn) {
@@ -408,8 +444,8 @@ BNG::MolInstance MCell4Converter::convert_molecule_instance(API::ElementaryMolec
 
   res.mol_type_id = convert_elementary_molecule_type(*mi.elementary_molecule_type, in_rxn);
 
-  if (!mi.components.empty()) {
-    throw RuntimeError("Components are not supported yet");
+  for (std::shared_ptr<API::ComponentInstance>& api_ci: mi.components) {
+    res.component_instances.push_back(convert_component_instance(*api_ci));
   }
 
   return res;

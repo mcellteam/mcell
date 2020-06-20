@@ -36,7 +36,7 @@ public:
   // maybe remove
   component_type_id_t component_type_id;
 
-  // specific state or STATE_ID_DONT_CARE if we don't care
+  // specific state or STATE_ID_DONT_CARE if we don't care or unset
   state_id_t state_id;
 
   // number for bonds (0, 1, ...),

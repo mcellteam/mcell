@@ -29,7 +29,7 @@
 namespace MCell {
 namespace API {
 
-const std::string STATE_UNSET = "state_unset";
+const std::string STATE_UNSET = "STATE_UNSET";
 const int STATE_UNSET_INT = -1;
 const int BOND_UNBOUND = 0;
 const int BOND_BOUND = -1;

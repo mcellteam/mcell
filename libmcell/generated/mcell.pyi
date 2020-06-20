@@ -56,7 +56,7 @@ class RegionNodeType(Enum):
 
 
 
-STATE_UNSET = 'state_unset'
+STATE_UNSET = 'STATE_UNSET'
 STATE_UNSET_INT = -1
 BOND_UNBOUND = 0
 BOND_BOUND = -1
