@@ -95,6 +95,7 @@ namespace BNG {
 %token TOK_RULES "rules"
 %token TOK_SEED "seed"
 %token TOK_SPECIES "species"
+%token TOK_OBSERVABLES "observables"
 
 %token <str> TOK_ID "identifier"
 %token <dbl> TOK_DBL "floating point constant"
@@ -144,6 +145,7 @@ section:
       }
     | TOK_BEGIN TOK_REACTION TOK_RULES rxn_rule_list_maybe_empty TOK_END TOK_REACTION TOK_RULES 
     | TOK_BEGIN TOK_SEED TOK_SPECIES seed_species_list_maybe_empty TOK_END TOK_SEED TOK_SPECIES
+    | TOK_BEGIN TOK_OBSERVABLES observables_list_maybe_empty TOK_END TOK_OBSERVABLES
 ;
 
 // ---------------- parameters ------------------- 
@@ -346,6 +348,28 @@ cplx_instance:
         $$ = g_ctx->new_list_node()->append($1);
       }
 ;
+      
+      
+// ---------------- observables ---------------------
+// ignored for now
+      
+observables_list_maybe_empty:
+    observables_list
+    | /* empty */ 
+;
+
+observables_list:
+      observables_list observables_item 
+    | observables_item
+;
+      
+observables_item:
+      TOK_ID TOK_ID cplx_instance_list
+;
+
+cplx_instance_list:
+      cplx_instance_list ',' cplx_instance
+    | cplx_instance
       
 // ---------------- expressions --------------------- 
 // TODO: expressions are just IDs and constants for now

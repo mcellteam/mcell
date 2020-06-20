@@ -51,6 +51,7 @@ I ([0-9]+)
 "rules"         { LOC(); return TOK_RULES; }
 "seed"          { LOC(); return TOK_SEED; }
 "species"       { LOC(); return TOK_SPECIES; }
+"observables"       { LOC(); return TOK_OBSERVABLES; }
 
     /* numbers and identifiers */
 
