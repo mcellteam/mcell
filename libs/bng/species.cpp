@@ -95,9 +95,77 @@ void Species::update_space_and_time_step(const BNGConfig& config) {
 
 
 void Species::update_diffusion_constant(const BNGData& data, const BNGConfig& config) {
-  assert(mol_instances.size() == 1 && "TODO");
-  D = data.get_molecule_type(mol_instances[0].mol_type_id).D;
-  assert(D != FLT_INVALID);
+  if (mol_instances.size() == 1) {
+    // nothing to compute if we have just one molecule instance
+    D = data.get_molecule_type(mol_instances[0].mol_type_id).D;
+    assert(D != FLT_INVALID);
+  }
+  else {
+    // based on NFSim DerivedDiffusion::getDiffusionValue
+    // For large complex aggregates (1 um) diffusing on 2D surface:
+    //D_2D = KB*T*LOG((eta_PM*h/(Rc*(eta_EC+eta_CP)/2))-gamma)/(4*PI*eta_PM*h) (Saffman Delbruck)
+    //  combining rule for this case is not elaborated here.
+
+    // For small complexes diffusing on 2D surface:
+    //D_2D = ~1/Rc  (ref?)
+    //  combining rule for this case is the squareroot of the sum of the squares
+
+    // For complexes diffusing in 3D:
+    //D_3D = KB*T/(6*PI*eta_EC*Rs) (Einstein Stokes)
+    //  combining rule for this case is the cuberoot of the sum of the cubes
+
+    if (is_surf()) {
+      // if complex contains any 2D subunits then the whole complex is considered to be a surface complex.
+      // in this case combine only the 2D subunits to derive the 2D diffusion constant
+      bool is_immobile = false;
+      float_t acc = 0;
+      for (const MolInstance& mi: mol_instances) {
+        if (mi.is_surf()) {
+          float_t mol_type_D = data.get_molecule_type(mi.mol_type_id).D;
+
+          // if diffusion constant of any 2D member is zero (i.e. is immobile) then whole complex should be immobile
+          if (mol_type_D == 0) {
+            is_immobile = true;
+            break;
+          }
+
+          acc += pow_f(mol_type_D, -2.0);
+        }
+      }
+      if (is_immobile) {
+        D = 0;
+      }
+      else {
+        D = pow(acc, -0.5);
+      }
+    }
+    else {
+      // Only if there are no 2D subunits should the complex be considered to be a volume complex.
+      // in this case combine all the 3D subunits to derive the 3D diffusion constant
+
+      // 3D combining rule: compute cuberoot of the sum of the cubes
+      bool is_immobile = false;
+      float_t acc = 0;
+      for (const MolInstance& mi: mol_instances) {
+        assert(!mi.is_surf());
+        float_t mol_type_D = data.get_molecule_type(mi.mol_type_id).D;
+
+        //  if diffusion constant of any 3D member is zero (i.e. is immobile) then whole complex should be immobile
+        if (mol_type_D == 0) {
+          is_immobile = true;
+          break;
+        }
+      }
+
+      if (is_immobile) {
+        D = 0;
+      }
+      else {
+        D = pow(acc, -1/3); // NFSim uses constant -0.3333333333333
+      }
+    }
+  }
+
   update_space_and_time_step(config);
 }
 

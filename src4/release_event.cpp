@@ -474,7 +474,7 @@ uint ReleaseEvent::calculate_number_to_release() {
         }
         assert(concentration != FLT_INVALID);
         float_t num_to_release =
-            N_AV * 1e-15 * concentration * vol * pow_f(world->config.length_unit, 3) + 0.5;
+            N_AV * 1e-15 * concentration * vol * pow_f(world->config.length_unit, 3.0) + 0.5;
         check_max_release_count(num_to_release, release_site_name);
         return (uint)num_to_release;
       }

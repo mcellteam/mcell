@@ -94,8 +94,12 @@
 
 //#define COLLECT_SUBPARTS_LEGACY
 
-//#define DUMP_ALWAYS
+#ifdef NDEBUG
 #define DUMP_NEVER
+#endif
+
+//#define DUMP_ALWAYS
+//#define DUMP_NEVER
 
 #if (!defined(NDEBUG) || defined(DUMP_ALWAYS)) && !defined(DUMP_NEVER)
 
@@ -107,9 +111,11 @@
 #if 1
 #define DEBUG_DIFFUSION
 #define DEBUG_COLLISIONS
-#define NODEBUG_WALL_COLLISIONS
+//#define NODEBUG_WALL_COLLISIONS
 #define DEBUG_REACTIONS
 #endif
+
+#define DEBUG_RNG_CALLS // cannot be conditioned by iterations
 
 //#define DEBUG_WALL_COLLISIONS
 
@@ -130,7 +136,6 @@
 
 //#define DEBUG_RELEASES // cannot be conditioned by iterations
 
-//#define DEBUG_RNG_CALLS // cannot be conditioned by iterations
 
 // does not generate the same dump as mcell3
 //#define DEBUG_SUBPARTITIONS

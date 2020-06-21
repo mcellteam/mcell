@@ -367,6 +367,7 @@ pybind11_add_module(pymcell4 MODULE
     src/sym_table.c
     src/vector.c
     src/dump_state.cpp
+    src/bng_util.cpp
             
     libmcell/api/exports.cpp
 )

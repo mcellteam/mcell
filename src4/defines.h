@@ -110,6 +110,7 @@ using BNGCommon::fabs_f;
 using BNGCommon::cmp_eq;
 using BNGCommon::distinguishable_f;
 using BNGCommon::sqrt_f;
+using BNGCommon::pow_f;
 
 // ---------------------------------- optimization macros ----------------------------------
 #if defined(likely) or defined(unlikely)
@@ -433,13 +434,6 @@ static inline uint powu(const uint a, const uint n) {
   return res;
 }
 
-static inline uint pow_f(const uint a, const uint n) {
-  float_t res = a;
-  for (uint i = 1; i < n; i++) {
-    res *= a;
-  }
-  return res;
-}
 
 static inline float_t max3(const Vec3& v) {
   return glm::compMax((glm_vec3_t)v);

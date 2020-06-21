@@ -172,6 +172,7 @@ static std::string nodes_to_bngl(const vector<Node>& nodes) {
 
 
 std::string graph_pattern_to_bngl(const char* graph_pattern) {
+  assert(graph_pattern != nullptr);
 
   // each c: or m: is a node on graph, ! specifies to what it is connected
   // c:a~R!2!1,c:b~T!3!0,m:A@NOCOMPARTMENT!0,m:B@NOCOMPARTMENT!1

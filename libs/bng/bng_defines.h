@@ -20,6 +20,7 @@ using BNGCommon::fabs_f;
 using BNGCommon::cmp_eq;
 using BNGCommon::distinguishable_f;
 using BNGCommon::sqrt_f;
+using BNGCommon::pow_f;
 
 typedef uint state_id_t;
 const state_id_t STATE_ID_INVALID = UINT32_MAX;

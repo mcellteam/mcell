@@ -126,6 +126,14 @@ static inline float_t sqrt_f(const float_t x) {
 }
 
 
+static inline float_t pow_f(const float_t a, const float_t n) {
+#if FLOAT_T_BYTES == 8
+  return pow(a, n);
+#else
+  return powf(a, n);
+#endif
+}
+
 } // namespace BNGCommon
 
 
