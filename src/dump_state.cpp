@@ -43,6 +43,7 @@ Regex to replace struct member definition by dumping code:
 #include <string.h>
 
 #include "dyngeom_parse_extras.h"
+#include "bng_util.h"
 
 #include "debug_config.h"
 
@@ -2111,8 +2112,14 @@ void dump_volume_molecule(
     cout << ind << "  species name: *\t\t" << vm->properties->sym->name << " [char] \t\t\n";
   }
   else {
-    cout << extra_comment << "it:" << iteration << ", idx:" << vm->id
-        << ", species: " << get_species_name(vm);
+    cout << extra_comment << "it:" << iteration << ", idx:" << vm->id;
+
+    if ((vm->properties->flags & EXTERNAL_SPECIES) == 0) {
+      cout << ", species: " << get_species_name(vm);
+    }
+    else {
+      cout << ", species: " << graph_pattern_to_bngl(vm->graph_data->graph_pattern);
+    }
     if (print_position) {
       cout << ", pos:" << vm->pos;
     }
