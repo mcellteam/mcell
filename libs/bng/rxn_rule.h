@@ -165,7 +165,7 @@ public:
   bool is_cplx_product_on_both_sides_of_rxn(const uint index) const;
 
   bool operator ==(const RxnRule& rr2) {
-    // ordering of components in a molecule is important
+    // ordering of components in a molecule is not important
     // two component types must have the same id, this is ensured in find_or_add_component_type
     return
         name == rr2.name &&

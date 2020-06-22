@@ -92,10 +92,14 @@ public:
         (!ignore_orientation || (orientation == other.orientation));
   }
 
-  bool operator ==(const CplxInstance& ci2) const {
-    // ordering of components in a molecule is important
-    // two component types must have the same id, this is ensured in find_or_add_component_type
-    return matches_fully(ci2);
+  // full match & all other members must me equal
+  bool operator ==(const CplxInstance& other) const {
+    // ordering of components in a molecule is not important
+
+    return
+        orientation == other.orientation &&
+        get_flags() == other.get_flags() &&
+        matches_fully(other);
   }
 
   std::string to_str(const BNGData& bng_data, bool in_reaction = false) const;

@@ -45,20 +45,7 @@ public:
       {
   }
 
-  // TODO CPLX: remove these methods
-
-  // NOTE: use IDs for rxn patterns?
-  // this function will be needed anyway
-  // checks if species_id matches the reaction pattern
-  bool matches(
-      const CplxInstance& cplx_pattern,
-      const species_id_t species_id
-  ) {
-    // NOTE: probably some caching will be needed
-    const CplxInstance& cplx_inst = all_species.get_as_cplx_instance(species_id);
-    return cplx_pattern.matches_pattern(cplx_inst);
-  }
-
+  // TODO CPLX: remove this method
   bool matches_ignore_orientation(
       const CplxInstance& cplx_pattern,
       const species_id_t species_id

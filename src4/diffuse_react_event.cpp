@@ -1938,7 +1938,7 @@ int DiffuseReactEvent::outcome_products_random(
 
     /* Ensure that reacA and reacB are sorted in the same order as the rxn players. */
     /* Needed to maintain the same behavior as in mcell3 */
-    if (!p.bng_engine.matches(rx->reactants[0], reacA->species_id)) {
+    if (!p.bng_engine.matches_ignore_orientation(rx->reactants[0], reacA->species_id)) {
       Molecule* tmp_mol = reacA;
       reacA = reacB;
       reacB = tmp_mol;
