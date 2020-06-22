@@ -34,7 +34,7 @@ struct property_map_molecule_type_matching {
   bool operator()(const ItemFirst item1, const ItemSecond item2) {
     char n1 = get(m_property_map1, item1);
     char n2 = get(m_property_map2, item2);
-    cout << "Comparing " << item1 << " " << n1 << " and " << item2 << " " << n1 << "\n";
+    cout << "Comparing " << item1 << " " << n1 << " and " << item2 << " " << n2 << "\n";
 
     return n1 == n2;
   }
