@@ -176,6 +176,38 @@ property_map_molecule_type_matching make_property_map_molecule_type_matching(
 
 using namespace Graph;
 
+typedef std::vector <std::pair<graph_type::vertex_descriptor, graph_type::vertex_descriptor>> MappingVector;
+
+class my_call_back {
+
+public:
+  typedef graph_type::vertex_descriptor vertex_descriptor;
+
+
+  // constructor
+  my_call_back(const graph_type& graph1, const graph_type& graph2) : graph1_(graph1), graph2_(graph2) {}
+
+  template <typename CorrespondenceMap1To2, typename CorrespondenceMap2To1>
+  bool operator()(CorrespondenceMap1To2 f, CorrespondenceMap2To1) {
+
+    set_of_vertex_iso_map.push_back(MappingVector());
+    BGL_FORALL_VERTICES_T(v, graph1_, graph_type) {
+      set_of_vertex_iso_map.back().push_back(
+          std::make_pair(
+              get(boost::vertex_index_t(), graph1_, v) ,
+              get(boost::vertex_index_t(), graph2_, get(f, v))));
+    }
+
+    return true;
+  }
+  std::vector<MappingVector>& get_setvmap() { return set_of_vertex_iso_map; }
+
+private:
+  const graph_type& graph1_;
+  const graph_type& graph2_;
+  std::vector<MappingVector> set_of_vertex_iso_map;
+};
+
 int main()
 {
   // Build graph_small
@@ -200,13 +232,17 @@ int main()
 
   add_edge(0, 1, graph_pattern);
 
+
+  my_call_back callback(graph_pattern, graph_complex);
+
   // Create callback
-  vf2_print_callback< Graph::graph_type, Graph::graph_type > callback(graph_pattern, graph_complex);
+  //vf2_print_callback< Graph::graph_type, Graph::graph_type > callback(graph_pattern, graph_complex);
 
   //typedef Graph::property_map_molecule_type_matching< Graph::vertex_name_map_t, Graph::vertex_name_map_t > vertex_comp_t;
   typedef Graph::property_map_molecule_type_matching vertex_comp_t;
 
-  vertex_comp_t vertex_comp = Graph::make_property_map_molecule_type_matching(get(vertex_name, graph_pattern), get(vertex_name, graph_complex));
+  vertex_comp_t vertex_comp =
+      Graph::make_property_map_molecule_type_matching(get(vertex_name, graph_pattern), get(vertex_name, graph_complex));
 
   // Print out all subgraph isomorphism mappings between graph1 and graph_small.
   // Function vertex_order_by_mult is used to compute the order of
@@ -215,10 +251,21 @@ int main()
   // might need to use mono
 
   vf2_subgraph_iso(
-      graph_pattern, graph_complex, callback,
+      graph_pattern, graph_complex, std::ref(callback),
       vertex_order_by_mult(graph_pattern),
       vertices_equivalent(vertex_comp)
   );
+
+  int i = 0;
+  for (std::vector <std::pair<graph_type::vertex_descriptor, graph_type::vertex_descriptor>>& vec: callback.get_setvmap()) {
+    cout << i << ": ";
+    for (std::pair<graph_type::vertex_descriptor, graph_type::vertex_descriptor> item: vec) {
+      cout << "(" << item.first << "," << item.second << ")" << " ";
+    }
+
+    i++;
+    cout << "\n";
+  }
 
   return 0;
 }

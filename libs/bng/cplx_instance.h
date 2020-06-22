@@ -13,12 +13,12 @@
 #include "bng/bng_defines.h"
 #include "bng/base_flag.h"
 #include "bng/mol_instance.h"
+#include "bng/graph.h"
 
 namespace BNG {
 
 class MolType;
 class BNGData;
-
 
 /**
  * Complex instance or pattern.
@@ -50,6 +50,13 @@ public:
   // must be called after initialization, sets up flags
   // also creates graphs for non-simple complexes
   void finalize();
+
+  void create_graph();
+
+  const Graph& get_graph() const {
+    assert(is_finalized());
+    return graph;
+  }
 
   bool is_simple() const {
     return has_flag(SPECIES_CPLX_FLAG_ONE_MOL_NO_COMPONENTS);
@@ -90,9 +97,12 @@ public:
     if (is_simple() && other.is_simple()) {
       return matches_simple(other, ignore_orientation);
     }
-    return
-        mol_instances == other.mol_instances && // XXX this must be a graph comparison
-        (!ignore_orientation || (orientation == other.orientation));
+    else if (is_simple() != other.is_simple()) {
+      // cannot be identical when
+      return false;
+    }
+    return (!ignore_orientation || (orientation == other.orientation)) &&
+        matches_complex_fully_ignore_orientation(other);
   }
 
   // full match & all other members must me equal
@@ -123,6 +133,10 @@ private:
   bool matches_complex_pattern_ignore_orientation(const CplxInstance& pattern) const;
   bool matches_complex_fully_ignore_orientation(const CplxInstance& pattern) const;
 
+  // boost's graph isomorphism does not cope with constant graphs
+  // TODO: not sure of the internal representation really changes, might have
+  // impact on parallel execution
+  mutable Graph graph;
 };
 
 typedef small_vector<CplxInstance> CplxInstanceVector;

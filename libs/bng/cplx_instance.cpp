@@ -6,15 +6,24 @@
  */
 #include <iostream>
 #include <sstream>
+#include <map>
 
 #include "bng/ast.h"
 #include "bng/bng_engine.h"
 #include "bng/cplx_instance.h"
 #include "bng/mol_type.h"
+#include "bng/mol_instance.h"
+
+#include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/vf2_sub_graph_iso.hpp>
+
+using namespace boost;
 
 using namespace std;
 
 namespace BNG {
+
+// ------------------------------------ CplxInstance -------------------------
 
 void CplxInstance::finalize() {
   assert(!mol_instances.empty() && "There must be at least one molecule type");
@@ -51,8 +60,42 @@ void CplxInstance::finalize() {
   }
   set_flag(SPECIES_CPLX_FLAG_ONE_MOL_NO_COMPONENTS, is_simple);
 
+  // we need graphs even for simple complexes because they can be used in reaction patterns
+  create_graph();
+
   set_finalized();
 }
+
+
+void CplxInstance::create_graph() {
+  // convert molecule instances and their bonds into the boost graph representation
+
+  map<bond_value_t, vector<Graph::vertex_descriptor>> bonds_to_vertices_map;
+
+  // add all molecules with their components and remomber how they should be bound
+  for (const MolInstance& mi: mol_instances) {
+    Graph::vertex_descriptor mol_desc = boost::add_vertex(MtVertexProperty(Node(&mi)), graph);
+
+    for (const ComponentInstance& ci: mi.component_instances) {
+      Graph::vertex_descriptor comp_desc = boost::add_vertex(MtVertexProperty(Node(&ci)), graph);
+
+      // connect the component to its molecule
+      boost::add_edge(mol_desc, comp_desc, graph);
+
+      // and remember its bond
+      if (ci.bond_has_numeric_value()) {
+        bonds_to_vertices_map[ci.bond_value].push_back(comp_desc);
+      }
+    }
+  }
+
+  // connect components
+  for (auto it: bonds_to_vertices_map) {
+    release_assert(it.second.size() != 2 && "There must be exactly pairs of components connected with numbered bonds.");
+    boost::add_edge(it.second[0], it.second[1], graph);
+  }
+}
+
 
 
 bool CplxInstance::matches_complex_pattern_ignore_orientation(const CplxInstance& pattern) const {
@@ -62,8 +105,16 @@ bool CplxInstance::matches_complex_pattern_ignore_orientation(const CplxInstance
 
 
 bool CplxInstance::matches_complex_fully_ignore_orientation(const CplxInstance& pattern) const {
-  assert(false && "Support for BNG style matching is not implemented yet");
-  return false;
+  if (graph.m_vertices.size() != pattern.graph.m_vertices.size()) {
+    // we need full match
+    return false;
+  }
+
+  MultipleMappingsVector res;
+  get_subgraph_isomorphism_mappings(pattern.graph, graph, res);
+
+  // at least one mapping found and all nodes are covered
+  return res.size() > 1 && res[0].size() == graph.m_vertices.size();
 }
 
 

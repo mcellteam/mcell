@@ -25,6 +25,7 @@ set(SOURCE_FILES
 	species.cpp
 	species_container.cpp
 	semantic_analyzer.cpp
+	graph.cpp
 )
 
 

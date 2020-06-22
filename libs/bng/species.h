@@ -35,9 +35,11 @@ public:
       color_set(false), color_r(1), color_g(0), color_b(0), scale(1)  {
 
     mol_instances = cplx_inst.mol_instances;
+    // the only finalize method, but showing that we are finalizing
+    // just the CplxInstance part of the Species
+    CplxInstance::finalize();
     update_diffusion_constant(data, config);
     name = cplx_inst.to_str(data);
-    finalize();
   }
 
   species_id_t id;
