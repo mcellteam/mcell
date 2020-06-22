@@ -62,17 +62,17 @@ public:
   species_id_t find(const Species& species_to_find) {
     // simple equality comparison for now, some hashing will be needed
     for (const Species& s: species) {
-      if (species_to_find.equal_ignore_id_and_flags(s)) {
+      if (species_to_find.matches_fully_ignore_id_and_flags(s)) {
         return s.id;
       }
     }
     return SPECIES_ID_INVALID;
   }
 
-  species_id_t find(const CplxInstance& cplx_inst) {
+  species_id_t find_full_match(const CplxInstance& cplx_inst) {
     // simple equality comparison for now, some hashing will be needed
     for (const Species& s: species) {
-      if (s.equal_cplx_instance_ignore_orientation_and_flags(cplx_inst)) {
+      if (s.cplx_matches_fully_ignore_orientation_and_flags(cplx_inst)) {
         return s.id;
       }
     }
@@ -100,9 +100,9 @@ public:
     }
   }
 
-  species_id_t find_species_id(const CplxInstance& inst);
+  //species_id_t find_species_id(const CplxInstance& inst);
 
-  species_id_t find_or_add_species(const CplxInstance& inst);
+  //species_id_t find_or_add_species(const CplxInstance& inst);
 
   Species& get(const species_id_t id) {
     assert(id < species.size());
@@ -126,7 +126,7 @@ public:
     return get(id);
   }
 
-  orientation_t get_single_orientation(const species_id_t id) const;
+  //orientation_t get_single_orientation(const species_id_t id) const;
 
   uint get_count() const {
     return species.size();

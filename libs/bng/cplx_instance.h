@@ -68,26 +68,53 @@ public:
   }
 
   // returns true if this object as a pattern matches second instance
-  bool matches(const CplxInstance& inst, const bool ignore_orientation = false) const;
-
-  bool equal(const CplxInstance& ci2) const {
-    return
-        mol_instances == ci2.mol_instances &&
-        orientation == ci2.orientation;
+  bool matches_pattern(const CplxInstance& pattern, const bool ignore_orientation = false) const {
+    if (is_simple() && pattern.is_simple()) {
+      return matches_simple(pattern, ignore_orientation);
+    }
+    else {
+      if (!ignore_orientation && orientation != pattern.orientation) {
+        return false;
+      }
+      else {
+        return matches_complex_pattern_ignore_orientation(pattern);
+      }
+    }
   }
 
-  bool equal_ignore_orientation_and_flags(const CplxInstance& ci2) const {
-    return mol_instances == ci2.mol_instances;
+  // returns true if this complex is equivalent
+  bool matches_fully(const CplxInstance& other, const bool ignore_orientation = false) const {
+    if (is_simple() && other.is_simple()) {
+      return matches_simple(other, ignore_orientation);
+    }
+    return
+        mol_instances == other.mol_instances && // XXX this must be a graph comparison
+        (!ignore_orientation || (orientation == other.orientation));
   }
 
   bool operator ==(const CplxInstance& ci2) const {
     // ordering of components in a molecule is important
     // two component types must have the same id, this is ensured in find_or_add_component_type
-    return equal(ci2);
+    return matches_fully(ci2);
   }
 
   std::string to_str(const BNGData& bng_data, bool in_reaction = false) const;
   void dump(const BNGData& bng_data, const bool for_diff, const std::string ind = "") const;
+
+private:
+  bool matches_simple(const CplxInstance& other, const bool ignore_orientation = false) const {
+    assert(is_simple() && other.is_simple());
+    assert(mol_instances.size() == 1 && other.mol_instances.size() == 1);
+
+    if (!ignore_orientation && orientation != other.orientation) {
+      return false;
+    }
+    return mol_instances[0].matches_simple(other.mol_instances[0]);
+  }
+
+  bool matches_complex_pattern_ignore_orientation(const CplxInstance& pattern) const;
+  bool matches_complex_fully_ignore_orientation(const CplxInstance& pattern) const;
+
 };
 
 typedef small_vector<CplxInstance> CplxInstanceVector;

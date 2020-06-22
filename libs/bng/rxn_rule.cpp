@@ -212,7 +212,7 @@ void RxnRule::compute_cplx_reactants_products_mapping() {
         continue;
       }
 
-      if (reactants[ri].equal_ignore_orientation_and_flags(products[pi])) {
+      if (reactants[ri].matches_fully(products[pi], true)) {
         cplx_mapping.push_back(CplxIndexPair(ri, pi));
         // reactant was mapped, continue with the next reactant
         break;
@@ -318,7 +318,7 @@ bool RxnRule::species_can_be_reactant(const species_id_t id, const SpeciesContai
   // at least one should match
   bool matches = false;
   for (const CplxInstance& reactant: reactants) {
-    if (reactant.matches(inst)) {
+    if (reactant.matches_pattern(inst, true)) {
       matches = true;
       break;
     }
@@ -350,8 +350,8 @@ bool RxnRule::species_is_both_bimol_reactants(const species_id_t id, const Speci
   }
 
   // then the reactants must be identical (this can be precomputed)
-  bool res = reactants[0].matches(reactants[1]);
-  assert(res == reactants[1].matches(reactants[0]) && "Pattern identity must be bijective");
+  bool res = reactants[0].matches_pattern(reactants[1], true);
+  assert(res == reactants[1].matches_pattern(reactants[0], true) && "Pattern identity must be bijective");
   return res;
 }
 

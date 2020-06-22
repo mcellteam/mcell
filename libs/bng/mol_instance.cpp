@@ -113,20 +113,4 @@ void MolInstance::dump(const BNGData& bng_data, const bool for_diff, const bool 
 }
 
 
-bool MolInstance::matches(const MolInstance& inst, const bool ignore_orientation) const {
-  if (component_instances.size() == 0 && inst.component_instances.size() == 0) {
-
-    if (ignore_orientation) {
-      return mol_type_id == inst.mol_type_id;
-    }
-    else {
-      return *this == inst;
-    }
-  }
-  else {
-    assert(false && "Support for BNG style matching is not implemented yet");
-    return false;
-  }
-}
-
 } /* namespace BNG */

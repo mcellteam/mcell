@@ -466,7 +466,7 @@ BNG::CplxInstance MCell4Converter::convert_complex_instance(API::ComplexInstance
   cplx_inst.finalize_flags();
 
   // we need to find or add existing species that we match
-  species_id_t species_id = world->get_all_species().find(cplx_inst);
+  species_id_t species_id = world->get_all_species().find_full_match(cplx_inst);
 
   if (species_id == SPECIES_ID_INVALID) {
     // FIXME: can we have just one method to compare the cplx and create

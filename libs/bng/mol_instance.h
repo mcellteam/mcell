@@ -86,15 +86,21 @@ public:
     : mol_type_id(MOL_TYPE_ID_INVALID) {
   }
 
-  void finalize() {
+  void finalize_flags() {
     set_finalized();
     // flag about molecule type must be set
     assert(is_vol() || is_surf() || is_reactive_surface());
   }
 
   // returns true if this object as a pattern matches second instance
-  bool matches(const MolInstance& inst, const bool ignore_orientation = false) const;
+  bool matches_simple(const MolInstance& inst) const {
+    assert(component_instances.size() == 0 && inst.component_instances.size() == 0 &&
+        "Method can be used only for simple complexes, i.e. without components.");
 
+    return mol_type_id == inst.mol_type_id;
+  }
+
+  // XXX: try to remove
   bool operator ==(const MolInstance& mi2) const  {
     return
         mol_type_id == mi2.mol_type_id &&

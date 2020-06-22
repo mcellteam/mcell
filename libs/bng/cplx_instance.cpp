@@ -21,13 +21,13 @@ void CplxInstance::finalize_flags() {
 
   // finalize mol instances first
   for (MolInstance& mp: mol_instances) {
-    mp.finalize();
+    mp.finalize_flags();
   }
 
   // volume or surface type
   bool vol_type = true;
   for (MolInstance& mp: mol_instances) {
-    mp.finalize();
+    mp.finalize_flags();
     if (mp.is_surf()) {
       vol_type = false;
     }
@@ -55,16 +55,15 @@ void CplxInstance::finalize_flags() {
 }
 
 
-bool CplxInstance::matches(const CplxInstance& inst, const bool ignore_orientation) const {
-  if (is_simple() && inst.is_simple()) {
-    // keep it simple for now...
-    assert(mol_instances.size() == 1 && inst.mol_instances.size() == 1);
-    return mol_instances[0].matches(inst.mol_instances[0], ignore_orientation);
-  }
-  else {
-    assert(false && "Support for BNG style matching is not implemented yet");
-    return false;
-  }
+bool CplxInstance::matches_complex_pattern_ignore_orientation(const CplxInstance& pattern) const {
+  assert(false && "Support for BNG style matching is not implemented yet");
+  return false;
+}
+
+
+bool CplxInstance::matches_complex_fully_ignore_orientation(const CplxInstance& pattern) const {
+  assert(false && "Support for BNG style matching is not implemented yet");
+  return false;
 }
 
 

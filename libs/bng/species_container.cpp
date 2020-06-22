@@ -6,7 +6,7 @@ using namespace std;
 
 namespace BNG {
 
-species_id_t SpeciesContainer::find_species_id(const CplxInstance& inst) {
+/*species_id_t SpeciesContainer::find_species_id(const CplxInstance& inst) {
 
   // TODO LATER: we will need to use some hashing here, but let's keep it simple for now
   // see BNGEngine::matches
@@ -17,7 +17,7 @@ species_id_t SpeciesContainer::find_species_id(const CplxInstance& inst) {
     }
   }
   return SPECIES_ID_INVALID;
-}
+}*/
 
 
 void SpeciesContainer::dump() const {

@@ -35,9 +35,9 @@ public:
       color_set(false), color_r(1), color_g(0), color_b(0), scale(1)  {
 
     mol_instances = cplx_inst.mol_instances;
-    finalize_flags(); // eed to finalize flags before other steps
     update_diffusion_constant(data, config);
     name = cplx_inst.to_str(data);
+    finalize_flags();
   }
 
   species_id_t id;
@@ -84,17 +84,17 @@ public:
   static void dump_array(const BNGData& bng_data, const SpeciesVector& vec, const bool sorted = false);
 
   // not virtual
-  bool equal_ignore_id_and_flags(const Species& s2) const {
+  bool matches_fully_ignore_id_and_flags(const Species& s2) const {
     return
-        CplxInstance::equal(s2) &&
+        CplxInstance::matches_fully(s2) &&
         name == s2.name &&
         D == s2.D &&
         space_step == s2.space_step &&
         time_step == s2.time_step;
   }
 
-  bool equal_cplx_instance_ignore_orientation_and_flags(const CplxInstance& cplx_inst) const {
-    return CplxInstance::equal_ignore_orientation_and_flags(cplx_inst);
+  bool cplx_matches_fully_ignore_orientation_and_flags(const CplxInstance& cplx_inst) const {
+    return CplxInstance::matches_fully(cplx_inst, true);
   }
 
   // for initialization
