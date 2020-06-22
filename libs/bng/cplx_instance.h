@@ -48,7 +48,7 @@ public:
   }
 
   // must be called after initialization, sets up flags
-  void finalize();
+  void finalize_flags();
 
   bool is_simple() const {
     return has_flag(SPECIES_CPLX_FLAG_ONE_MOL_NO_COMPONENTS);

@@ -35,9 +35,9 @@ public:
       color_set(false), color_r(1), color_g(0), color_b(0), scale(1)  {
 
     mol_instances = cplx_inst.mol_instances;
+    finalize_flags(); // eed to finalize flags before other steps
     update_diffusion_constant(data, config);
     name = cplx_inst.to_str(data);
-    finalize();
   }
 
   species_id_t id;

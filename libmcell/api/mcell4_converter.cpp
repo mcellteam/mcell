@@ -297,7 +297,7 @@ void MCell4Converter::convert_species() {
 
     new_species.mol_instances.push_back(mol_inst);
 
-    new_species.finalize();
+    new_species.finalize_flags();
     species_id_t new_species_id = world->get_all_species().find_or_add(new_species);
 
     // remember which species we created
@@ -379,7 +379,7 @@ void MCell4Converter::convert_surface_classes() {
     mol_inst.set_is_reactive_surface();
     sc_species.mol_instances.push_back(mol_inst);
 
-    sc_species.finalize();
+    sc_species.finalize_flags();
     species_id_t new_species_id = world->get_all_species().find_or_add(sc_species);
 
     // remember which species we created
@@ -463,7 +463,7 @@ BNG::CplxInstance MCell4Converter::convert_complex_instance(API::ComplexInstance
   }
   orientation_t orient = convert_orientation(inst.orientation, true);
   cplx_inst.set_orientation(orient);
-  cplx_inst.finalize();
+  cplx_inst.finalize_flags();
 
   // we need to find or add existing species that we match
   species_id_t species_id = world->get_all_species().find(cplx_inst);
