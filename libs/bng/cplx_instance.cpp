@@ -16,7 +16,7 @@ using namespace std;
 
 namespace BNG {
 
-void CplxInstance::finalize_flags() {
+void CplxInstance::finalize() {
   assert(!mol_instances.empty() && "There must be at least one molecule type");
 
   // finalize mol instances first

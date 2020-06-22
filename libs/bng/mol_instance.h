@@ -47,7 +47,7 @@ public:
   // true if this component was explicitly listed in a pattern
   bool explicitly_listed_in_pattern;
 
-  bool operator ==(const ComponentInstance& comp2) const  {
+  bool operator == (const ComponentInstance& comp2) const  {
     return
         component_type_id == comp2.component_type_id &&
         state_id == comp2.state_id &&
@@ -100,11 +100,11 @@ public:
     return mol_type_id == inst.mol_type_id;
   }
 
-  // XXX: try to remove
-  bool operator ==(const MolInstance& mi2) const  {
+  bool operator == (const MolInstance& other) const  {
     return
-        mol_type_id == mi2.mol_type_id &&
-        component_instances == mi2.component_instances;
+        mol_type_id == other.mol_type_id &&
+        component_instances == other.component_instances &&
+        get_flags() == other.get_flags();
   }
 
   void initialize_components_types(const MolType& mt);

@@ -37,7 +37,7 @@ public:
     mol_instances = cplx_inst.mol_instances;
     update_diffusion_constant(data, config);
     name = cplx_inst.to_str(data);
-    finalize_flags();
+    finalize();
   }
 
   species_id_t id;

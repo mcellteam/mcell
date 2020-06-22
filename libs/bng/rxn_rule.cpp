@@ -24,12 +24,12 @@ void RxnRule::finalize() {
 
   // finalize all reactants and products
   for (CplxInstance& ci: reactants) {
-    ci.finalize_flags();
+    ci.finalize();
   }
 
   num_surf_products = 0;
   for (CplxInstance& ci: products) {
-    ci.finalize_flags();
+    ci.finalize();
     if (ci.is_surf()) {
       num_surf_products++;
     }

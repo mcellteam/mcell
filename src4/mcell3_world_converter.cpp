@@ -796,7 +796,7 @@ bool MCell3WorldConverter::convert_species(volume* s) {
     new_species.mol_instances.push_back(mol_inst);
 
     // and finally let's add our new species
-    new_species.finalize_flags();
+    new_species.finalize();
     species_id_t new_species_id = world->get_all_species().find_or_add(new_species);
 
     // set all species 'superclasses' ids

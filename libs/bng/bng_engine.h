@@ -45,7 +45,6 @@ public:
       {
   }
 
-  // TODO CPLX: remove this method
   bool matches_ignore_orientation(
       const CplxInstance& cplx_pattern,
       const species_id_t species_id

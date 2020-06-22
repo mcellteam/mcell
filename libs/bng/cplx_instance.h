@@ -48,7 +48,8 @@ public:
   }
 
   // must be called after initialization, sets up flags
-  void finalize_flags();
+  // also creates graphs for non-simple complexes
+  void finalize();
 
   bool is_simple() const {
     return has_flag(SPECIES_CPLX_FLAG_ONE_MOL_NO_COMPONENTS);
@@ -69,6 +70,7 @@ public:
 
   // returns true if this object as a pattern matches second instance
   bool matches_pattern(const CplxInstance& pattern, const bool ignore_orientation = false) const {
+    assert(is_finalized() && pattern.is_finalized());
     if (is_simple() && pattern.is_simple()) {
       return matches_simple(pattern, ignore_orientation);
     }
@@ -84,6 +86,7 @@ public:
 
   // returns true if this complex is equivalent
   bool matches_fully(const CplxInstance& other, const bool ignore_orientation = false) const {
+    assert(is_finalized() && other.is_finalized());
     if (is_simple() && other.is_simple()) {
       return matches_simple(other, ignore_orientation);
     }
@@ -93,9 +96,10 @@ public:
   }
 
   // full match & all other members must me equal
-  bool operator ==(const CplxInstance& other) const {
-    // ordering of components in a molecule is not important
+  bool operator == (const CplxInstance& other) const {
+    assert(is_finalized() && other.is_finalized());
 
+    // ordering of components in a molecule is not important
     return
         orientation == other.orientation &&
         get_flags() == other.get_flags() &&
