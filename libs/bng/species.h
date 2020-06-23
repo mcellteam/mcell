@@ -18,8 +18,9 @@ typedef small_vector<Species> SpeciesVector;
 
 class Species: public CplxInstance {
 public:
-  Species()
-    : id(SPECIES_ID_INVALID), D(FLT_INVALID),
+  Species(const BNGData& data)
+    : CplxInstance(&data),
+      id(SPECIES_ID_INVALID), D(FLT_INVALID),
       // MCell-specific
       space_step(FLT_INVALID), time_step(TIME_INVALID),
       color_set(false), color_r(1), color_g(0), color_b(0), scale(1)
@@ -29,7 +30,8 @@ public:
   // create species from a complex instance
   // id is not set and name is determined automatically
   Species(const CplxInstance& cplx_inst, const BNGData& data, const BNGConfig& config)
-    : id(SPECIES_ID_INVALID), D(FLT_INVALID),
+    : CplxInstance(&data),
+      id(SPECIES_ID_INVALID), D(FLT_INVALID),
       // MCell-specific
       space_step(FLT_INVALID), time_step(TIME_INVALID),
       color_set(false), color_r(1), color_g(0), color_b(0), scale(1)  {
@@ -89,7 +91,7 @@ public:
   bool matches_fully_ignore_id_and_flags(const Species& s2) const {
     return
         CplxInstance::matches_fully(s2) &&
-        name == s2.name &&
+        name == s2.name && // name comparison is probably wrong here,
         D == s2.D &&
         space_step == s2.space_step &&
         time_step == s2.time_step;

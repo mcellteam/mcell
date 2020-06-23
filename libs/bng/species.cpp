@@ -194,7 +194,7 @@ void Species::dump(const BNGData& bng_data, const string ind) const {
   cout << ind << "time_step: \t\t" << time_step << " [float_t] \t\t/* Minimum (maximum?) sensible timestep */\n";
   cout << ind << "flags: \t\t" << BaseSpeciesCplxMolFlag::to_str() << "\n";
   cout << ind << "CplxInstance:\n";
-  CplxInstance::dump(bng_data, true, ind + "  ");
+  CplxInstance::dump(true, ind + "  ");
   cout << "\n";
 }
 

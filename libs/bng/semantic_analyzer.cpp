@@ -368,7 +368,7 @@ void SemanticAnalyzer::convert_cplx_inst_or_rxn_rule_side(
           continue;
         }
 
-        CplxInstance pattern;
+        CplxInstance pattern(bng_data);
         convert_complex_pattern(current_complex_nodes, pattern);
         patterns.push_back(pattern);
 
@@ -387,7 +387,7 @@ void SemanticAnalyzer::convert_cplx_inst_or_rxn_rule_side(
   // process final complex
   assert(current_complex_nodes.empty() == rule_side->items.empty() && "Last set can be empty only if the patterns are empty");
   if (!current_complex_nodes.empty()) {
-    CplxInstance pattern;
+    CplxInstance pattern(bng_data);
     convert_complex_pattern(current_complex_nodes, pattern);
     patterns.push_back(pattern);
   }
@@ -460,7 +460,7 @@ void SemanticAnalyzer::convert_seed_species() {
   for (const ASTBaseNode* n: ctx->seed_species.items) {
     const ASTSeedSpeciesNode* ss_node = to_seed_species_node(n);
 
-    SeedSpecies ss;
+    SeedSpecies ss(bng_data);
 
     CplxInstanceVector cplx_vec;
     convert_cplx_inst_or_rxn_rule_side(ss_node->cplx_instance, true, cplx_vec);

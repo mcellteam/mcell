@@ -707,7 +707,7 @@ bool MCell3WorldConverter::convert_species(volume* s) {
   for (int i = 0; i < s->n_species; i++) {
     species* spec = species_list[i];
 
-    Species new_species;
+    Species new_species(world->bng_engine.get_data());
     new_species.name = get_sym_name(spec->sym);
     new_species.D = spec->D;
     new_species.space_step = spec->space_step;

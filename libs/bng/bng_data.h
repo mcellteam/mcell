@@ -19,6 +19,11 @@ namespace BNG {
 
 class SeedSpecies {
 public:
+  SeedSpecies(const BNGData* bng_data)
+    : cplx_instance(bng_data),
+      count(0) {
+  }
+
   CplxInstance cplx_instance;
   float_t count; // count of molecules to be released, TODO: what about concentrations?
 };

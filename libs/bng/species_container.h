@@ -35,6 +35,10 @@ public:
 
     species_id_t res = SPECIES_ID_INVALID;
 
+#ifdef DEBUG_CPLX_MATCHING
+    std::cout << "Looking for new species:\n";
+    new_species.dump(bng_data);
+#endif
     // check that this species does not exist already
     res = find(new_species);
 
@@ -49,6 +53,11 @@ public:
           assert(s.name != new_species.name && "Adding species with identical name");
         }
       #endif
+
+#ifdef DEBUG_CPLX_MATCHING
+      std::cout << "Added new species:\n";
+      new_species.dump(bng_data);
+#endif
 
       species.push_back(new_species);
       species.back().id = res;

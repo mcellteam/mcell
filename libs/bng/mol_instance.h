@@ -27,9 +27,22 @@ class BNGData;
  */
 class ComponentInstance {
 public:
+  ComponentInstance()
+    : component_type_id(COMPONENT_TYPE_ID_INVALID), state_id(STATE_ID_DONT_CARE), bond_value(BOND_VALUE_ANY),
+      explicitly_listed_in_pattern(false) {
+  }
+
   ComponentInstance(const component_type_id_t id)
     : component_type_id(id), state_id(STATE_ID_DONT_CARE), bond_value(BOND_VALUE_ANY),
       explicitly_listed_in_pattern(false) {
+  }
+
+  ComponentInstance(const ComponentInstance& other)
+    : component_type_id(other.component_type_id),
+      state_id(other.state_id),
+      bond_value(other.bond_value),
+      explicitly_listed_in_pattern(other.explicitly_listed_in_pattern)
+    {
   }
 
   // type id can be also found from parent's MoleculeInstance::molecule_type_id
@@ -65,7 +78,7 @@ public:
   }
 
   std::string to_str(const BNGData& bng_data) const;
-  void dump(const BNGData& bng_data) const;
+  void dump(const BNGData& bng_data, const std::string& ind = "") const;
 };
 
 
@@ -84,6 +97,11 @@ public:
 public:
   MolInstance()
     : mol_type_id(MOL_TYPE_ID_INVALID) {
+  }
+
+  MolInstance(const MolInstance& other)
+    : mol_type_id(other.mol_type_id),
+      component_instances(other.component_instances) {
   }
 
   void finalize_flags() {

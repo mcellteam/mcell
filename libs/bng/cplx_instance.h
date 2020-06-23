@@ -43,9 +43,21 @@ private:
   orientation_t orientation;
 
 public:
-  CplxInstance()
-    : orientation(ORIENTATION_NONE) {
+  CplxInstance(const BNGData* bng_data_)
+    : orientation(ORIENTATION_NONE),
+      bng_data(bng_data_)
+      {
   }
+
+  /*
+  CplxInstance(const CplxInstance& other)
+    : mol_instances(other.mol_instances),
+      orientation(other.orientation),
+      graph(other.graph),
+      bng_data(other.bng_data)
+      {
+  }
+  */
 
   // must be called after initialization, sets up flags
   // also creates graphs for non-simple complexes
@@ -93,6 +105,12 @@ public:
 
   // returns true if this complex is equivalent
   bool matches_fully(const CplxInstance& other, const bool ignore_orientation = false) const {
+#ifdef DEBUG_CPLX_MATCHING_EXTRA_COMPARE
+      std::cout << "Comparing: ";
+      dump(false);
+      std::cout << " with: ";
+      other.dump(false); std::cout << "\n";
+#endif
     assert(is_finalized() && other.is_finalized());
     if (is_simple() && other.is_simple()) {
       return matches_simple(other, ignore_orientation);
@@ -117,7 +135,7 @@ public:
   }
 
   std::string to_str(const BNGData& bng_data, bool in_reaction = false) const;
-  void dump(const BNGData& bng_data, const bool for_diff, const std::string ind = "") const;
+  void dump(const bool for_diff = false, const std::string ind = "") const;
 
 private:
   bool matches_simple(const CplxInstance& other, const bool ignore_orientation = false) const {
@@ -137,6 +155,8 @@ private:
   // TODO: not sure of the internal representation really changes, might have
   // impact on parallel execution
   mutable Graph graph;
+
+  const BNGData* bng_data; // needed mainly for dumps and debugging
 };
 
 typedef small_vector<CplxInstance> CplxInstanceVector;

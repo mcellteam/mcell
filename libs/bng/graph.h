@@ -20,15 +20,15 @@ namespace BNG {
 
 struct Node {
   Node()
-    : is_mol(true), mol(nullptr), component(nullptr) {
+    : is_mol(true) {
   }
 
-  Node(const MolInstance* mol_)
-    : is_mol(true), mol(mol_), component(nullptr) {
+  Node(const MolInstance mol_)
+    : is_mol(true), mol(mol_) {
   }
 
-  Node(const ComponentInstance* component_)
-    : is_mol(false), mol(nullptr), component(component_) {
+  Node(const ComponentInstance component_)
+    : is_mol(false), component(component_) {
   }
 
   bool compare(const Node& n2) const {
@@ -39,39 +39,35 @@ struct Node {
     }
     else if (n1.is_mol) {
       assert(n2.is_mol);
-      assert(n1.mol != nullptr);
-      assert(n2.mol != nullptr);
 
       // molecule
-      return n1.mol->mol_type_id == n2.mol->mol_type_id;
+      return n1.mol.mol_type_id == n2.mol.mol_type_id;
     }
     else {
       assert(!n1.is_mol && !n2.is_mol);
-      assert(n1.component != nullptr);
-      assert(n2.component != nullptr);
 
       // component
-      if (n1.component->component_type_id != n2.component->component_type_id) {
+      if (n1.component.component_type_id != n2.component.component_type_id) {
         // must be the same
         return false;
       }
 
       // state
-      if (n1.component->state_id != STATE_ID_DONT_CARE && n2.component->state_id != STATE_ID_DONT_CARE) {
+      if (n1.component.state_id != STATE_ID_DONT_CARE && n2.component.state_id != STATE_ID_DONT_CARE) {
         // must be the same or don't care for one of the compared nodes
-        if (n1.component->state_id != n2.component->state_id) {
+        if (n1.component.state_id != n2.component.state_id) {
           return false;
         }
       }
 
       // bond
       // comparing !+
-      if (n1.component->bond_value == BOND_VALUE_ANY) {
+      if (n1.component.bond_value == BOND_VALUE_ANY) {
         // it is ok when the second node has !+ as well
-        return n2.component->bond_value != BOND_VALUE_NO_BOND;
+        return n2.component.bond_value != BOND_VALUE_NO_BOND;
       }
-      if (n2.component->bond_value == BOND_VALUE_ANY) {
-        return n1.component->bond_value != BOND_VALUE_NO_BOND;
+      if (n2.component.bond_value == BOND_VALUE_ANY) {
+        return n1.component.bond_value != BOND_VALUE_NO_BOND;
       }
 
       // we do not care about actual bond values because to what is the component connected is
@@ -81,8 +77,9 @@ struct Node {
   }
 
   bool is_mol;
-  const MolInstance* mol;
-  const ComponentInstance* component;
+  // a copy is stored because when a ComplexInstance is copied pointers would be holding wrong value
+  MolInstance mol;
+  ComponentInstance component;
 };
 
 static std::ostream & operator<<(std::ostream &out, const Node& n);

@@ -249,7 +249,7 @@ void MCell4Converter::convert_elementary_molecule_types() {
 
 void MCell4Converter::convert_species() {
   for (std::shared_ptr<API::Species>& s: model->species) {
-    BNG::Species new_species;
+    BNG::Species new_species(world->bng_engine.get_data());
     new_species.name = s->name;
 
     bool is_vol = false;
@@ -359,7 +359,7 @@ void MCell4Converter::convert_surface_class_rxn(
 void MCell4Converter::convert_surface_classes() {
   for (std::shared_ptr<API::SurfaceClass>& sc: model->surface_classes) {
     // each surface class is represented by a species
-    BNG::Species sc_species;
+    BNG::Species sc_species(world->bng_engine.get_data());
     sc_species.name = sc->name;
 
     sc_species.set_is_reactive_surface();
@@ -454,7 +454,7 @@ BNG::MolInstance MCell4Converter::convert_molecule_instance(API::ElementaryMolec
 
 BNG::CplxInstance MCell4Converter::convert_complex_instance(API::ComplexInstance& inst, const bool in_rxn) {
   // create a temporary cplx instance that we will use for search
-  BNG::CplxInstance cplx_inst;
+  BNG::CplxInstance cplx_inst(&world->bng_engine.get_data());
 
   for (std::shared_ptr<API::ElementaryMoleculeInstance>& m: inst.elementary_molecule_instances) {
     BNG::MolInstance mi = convert_molecule_instance(*m, in_rxn);

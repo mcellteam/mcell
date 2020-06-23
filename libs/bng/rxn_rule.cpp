@@ -443,7 +443,7 @@ void RxnRule::dump_complex_instance_vector(
 
   for (size_t i = 0; i < complexes.size(); i++) {
     cout << ind << "CplxInstance " << i << ":\n";
-    complexes[i].dump(bng_data, true, ind + "  ");
+    complexes[i].dump(true, ind + "  ");
     cout << "\n";
   }
 }

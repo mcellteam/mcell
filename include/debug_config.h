@@ -99,7 +99,7 @@
 #endif
 
 //#define DUMP_ALWAYS
-#define DUMP_NEVER
+//#define DUMP_NEVER
 
 #if (!defined(NDEBUG) || defined(DUMP_ALWAYS)) && !defined(DUMP_NEVER)
 
@@ -116,6 +116,9 @@
 #endif
 
 #define DEBUG_RNG_CALLS // cannot be conditioned by iterations
+
+#define DEBUG_CPLX_MATCHING
+#define DEBUG_CPLX_MATCHING_EXTRA_COMPARE
 
 //#define DEBUG_WALL_COLLISIONS
 

@@ -38,8 +38,8 @@ std::string ComponentInstance::to_str(const BNGData& bng_data) const {
   return ss.str();
 }
 
-void ComponentInstance::dump(const BNGData& bng_data) const {
-  cout << to_str(bng_data);
+void ComponentInstance::dump(const BNGData& bng_data, const string& ind) const {
+  cout << ind << to_str(bng_data);
 }
 
 
@@ -109,6 +109,10 @@ void MolInstance::dump(const BNGData& bng_data, const bool for_diff, const bool 
     const MolType& mt = bng_data.get_molecule_type(mol_type_id);
     cout << ind << "mol_type_id: " << mol_type_id << " (" << mt.name << ")\n";
     cout << ind << "flags: " << BaseSpeciesCplxMolFlag::to_str() << "\n";
+    cout << ind << "components: \n";
+    for (const ComponentInstance& ci: component_instances) {
+      ci.dump(bng_data, ind + "  ");
+    }
   }
 }
 

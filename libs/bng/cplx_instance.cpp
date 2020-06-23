@@ -74,10 +74,10 @@ void CplxInstance::create_graph() {
 
   // add all molecules with their components and remomber how they should be bound
   for (const MolInstance& mi: mol_instances) {
-    Graph::vertex_descriptor mol_desc = boost::add_vertex(MtVertexProperty(Node(&mi)), graph);
+    Graph::vertex_descriptor mol_desc = boost::add_vertex(MtVertexProperty(Node(mi)), graph);
 
     for (const ComponentInstance& ci: mi.component_instances) {
-      Graph::vertex_descriptor comp_desc = boost::add_vertex(MtVertexProperty(Node(&ci)), graph);
+      Graph::vertex_descriptor comp_desc = boost::add_vertex(MtVertexProperty(Node(ci)), graph);
 
       // connect the component to its molecule
       boost::add_edge(mol_desc, comp_desc, graph);
@@ -91,16 +91,21 @@ void CplxInstance::create_graph() {
 
   // connect components
   for (auto it: bonds_to_vertices_map) {
-    release_assert(it.second.size() != 2 && "There must be exactly pairs of components connected with numbered bonds.");
+    release_assert(it.second.size() == 2 && "There must be exactly pairs of components connected with numbered bonds.");
     boost::add_edge(it.second[0], it.second[1], graph);
   }
 }
 
 
-
 bool CplxInstance::matches_complex_pattern_ignore_orientation(const CplxInstance& pattern) const {
-  assert(false && "Support for BNG style matching is not implemented yet");
-  return false;
+  // this result cannot be cached because it might not be and applicable for other equivalent complexes,
+  // we might need to impose some ordering on elementary molecules and then we can reuse the result when
+  // creating products
+  MultipleMappingsVector res;
+  get_subgraph_isomorphism_mappings(pattern.graph, graph, res);
+
+  // we need at least one match
+  return res.size() > 1;
 }
 
 
@@ -110,11 +115,11 @@ bool CplxInstance::matches_complex_fully_ignore_orientation(const CplxInstance& 
     return false;
   }
 
-  MultipleMappingsVector res;
-  get_subgraph_isomorphism_mappings(pattern.graph, graph, res);
+  MultipleMappingsVector mappings;
+  get_subgraph_isomorphism_mappings(pattern.graph, graph, mappings);
 
   // at least one mapping found and all nodes are covered
-  return res.size() > 1 && res[0].size() == graph.m_vertices.size();
+  return mappings.size() >= 1 && mappings[0].size() == graph.m_vertices.size();
 }
 
 
@@ -139,16 +144,17 @@ std::string CplxInstance::to_str(const BNGData& bng_data, bool in_surf_reaction)
   return ss.str();
 }
 
-void CplxInstance::dump(const BNGData& bng_data, const bool for_diff, const std::string ind) const {
+
+void CplxInstance::dump(const bool for_diff, const std::string ind) const {
   if (!for_diff) {
-    cout << ind << to_str(bng_data);
+    cout << ind << to_str(*bng_data);
   }
   else {
     cout << ind << "orientation: " << orientation << "\n";
     cout << ind << "mol_instances:\n";
     for (size_t i = 0; i < mol_instances.size(); i++) {
       cout << ind << i << ":\n";
-      mol_instances[i].dump(bng_data, true, false, ind + "  ");
+      mol_instances[i].dump(*bng_data, true, false, ind + "  ");
     }
   }
 }

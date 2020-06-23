@@ -10,6 +10,8 @@
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/vf2_sub_graph_iso.hpp>
 
+#include "debug_config.h"
+
 using namespace std;
 using namespace boost;
 
@@ -17,24 +19,24 @@ namespace BNG {
 
 std::ostream & operator<<(std::ostream &out, const Node& n) {
   if (n.is_mol) {
-    std::cout << "m:" << n.mol->mol_type_id;
+    std::cout << "m:" << n.mol.mol_type_id;
   }
   else {
-    cout << "c:" << n.component->component_type_id;
-    if (n.component->state_id == STATE_ID_DONT_CARE) {
+    cout << "c:" << n.component.component_type_id;
+    if (n.component.state_id == STATE_ID_DONT_CARE) {
       cout << "~" << "DONT_CARE";
     }
     else {
-      cout << "~" << n.component->state_id;
+      cout << "~" << n.component.state_id;
     }
-    if (n.component->bond_value == BOND_VALUE_ANY) {
+    if (n.component.bond_value == BOND_VALUE_ANY) {
       cout << "!+";
     }
-    else if (n.component->bond_value == BOND_VALUE_NO_BOND) {
+    else if (n.component.bond_value == BOND_VALUE_NO_BOND) {
       cout << "!NO_BOND";
     }
     else {
-      cout << "!" << n.component->bond_value;
+      cout << "!" << n.component.bond_value;
     }
   }
   return out;
@@ -131,9 +133,9 @@ void get_subgraph_isomorphism_mappings(Graph& pattern, Graph& cplx, MultipleMapp
 
 #ifdef DEBUG_CPLX_MATCHING
   int i = 0;
-  for (std::vector <std::pair<graph_type::vertex_descriptor, graph_type::vertex_descriptor>>& vec: callback.get_setvmap()) {
+  for (MappingVector& vec: callback.get_setvmap()) {
     cout << i << ": ";
-    for (std::pair<graph_type::vertex_descriptor, graph_type::vertex_descriptor> item: vec) {
+    for (std::pair<Graph::vertex_descriptor, Graph::vertex_descriptor> item: vec) {
       cout << "(" << item.first << "," << item.second << ")" << " ";
     }
 
