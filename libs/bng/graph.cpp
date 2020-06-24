@@ -50,8 +50,8 @@ public:
 
   // constructor, result is stored into mappings_
   CallBackToCollectMapping(
-      const Graph& graph1_, const Graph& graph2_, MultipleMappingsVector& mappings_)
-    : graph1(graph1_), graph2(graph2_), mappings(mappings_) {}
+      const Graph& graph1_, const Graph& graph2_, const bool only_first_match_, MultipleMappingsVector& mappings_)
+    : graph1(graph1_), graph2(graph2_), only_first_match(only_first_match_), mappings(mappings_) {}
 
   template <typename CorrespondenceMap1To2, typename CorrespondenceMap2To1>
   bool operator()(CorrespondenceMap1To2 f, CorrespondenceMap2To1) {
@@ -64,13 +64,19 @@ public:
               get(boost::vertex_index_t(), graph2, get(f, v))));
     }
 
-    return true;
+    if (only_first_match) {
+      return false; // terminates search
+    }
+    else {
+      return true;
+    }
   }
   std::vector<MappingVector> get_setvmap() { return mappings; }
 
 private:
   const Graph& graph1;
   const Graph& graph2;
+  bool only_first_match;
   MultipleMappingsVector& mappings; // result is stored here
 };
 
@@ -115,12 +121,12 @@ PropertyMapMoleculeTypeMatching make_property_map_molecule_type_matching(
 
 // TODO LATER: can we make the arguments constant?
 // using mutable graph now
-void get_subgraph_isomorphism_mappings(Graph& pattern, Graph& cplx, MultipleMappingsVector& res) {
+void get_subgraph_isomorphism_mappings(Graph& pattern, Graph& cplx, const bool only_first_match, MultipleMappingsVector& res) {
 
   res.clear();
 
   // setting result to store the resulting mappings
-  CallBackToCollectMapping callback(pattern, cplx, res);
+  CallBackToCollectMapping callback(pattern, cplx,  only_first_match, res);
 
   PropertyMapMoleculeTypeMatching vertex_comp =
       make_property_map_molecule_type_matching(get(vertex_name, pattern), get(vertex_name, cplx));

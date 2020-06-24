@@ -2022,6 +2022,14 @@ int DiffuseReactEvent::outcome_products_random(
     product_orientations.resize(rx->products.size(), ORIENTATION_NONE);
   }
 
+  vector<species_id_t> product_species_ids;
+  // get all products that the reaction creates
+  p.get_all_rxns().get_rxn_product_species_ids(
+      rx, reacA->species_id, (reacB != nullptr) ? reacB->species_id : SPECIES_ID_INVALID,
+      product_species_ids
+  );
+  assert(product_species_ids.size() == rx->products.size());
+
 
   for (uint product_index = 0; product_index < rx->products.size(); product_index++) {
     const BNG::CplxInstance& product = rx->products[product_index];
@@ -2031,8 +2039,6 @@ int DiffuseReactEvent::outcome_products_random(
     // for bimol reactions - the diffusion simply continues
     // for unimol reactions - the unimol action action starts diffusion for the remaining timestep
     if (rx->is_cplx_product_on_both_sides_of_rxn(product_index)) {
-
-
       uint reactant_index;
       bool ok = rx->find_assigned_cplx_reactant_for_product(product_index, reactant_index);
       assert(reactant_index == 0 || reactant_index == 1);
@@ -2065,8 +2071,7 @@ int DiffuseReactEvent::outcome_products_random(
       continue;
     }
 
-    species_id_t product_species_id = p.get_all_rxns().get_rxn_product_species_id(
-        rx, product_index, reacA->species_id, (reacB != nullptr) ? reacB->species_id : SPECIES_ID_INVALID); // p.all_species.get(product.species_id);
+    species_id_t product_species_id = product_species_ids[product_index];
     const BNG::Species& species = p.get_all_species().get(product_species_id);
 
     molecule_id_t new_m_id;

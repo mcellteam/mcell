@@ -22,17 +22,25 @@ namespace BNG {
 void RxnRule::finalize() {
   assert(id != RXN_RULE_ID_INVALID);
 
+  bool simple = true;
+
   // finalize all reactants and products
   for (CplxInstance& ci: reactants) {
     ci.finalize();
+    simple &= ci.is_simple();
   }
 
   num_surf_products = 0;
   for (CplxInstance& ci: products) {
     ci.finalize();
+    simple &= ci.is_simple();
     if (ci.is_surf()) {
       num_surf_products++;
     }
+  }
+
+  if (simple) {
+    set_flag(RXN_FLAG_SIMPLE);
   }
 
   compute_reactants_products_mapping();
@@ -41,6 +49,15 @@ void RxnRule::finalize() {
   move_products_that_are_also_reactants_to_be_the_first_products();
 
   set_finalized();
+}
+
+
+void RxnRule::create_products_for_complex_rxn(
+    const std::vector<const CplxInstance*>& reactants,
+    std::vector<CplxInstance>& products
+) const {
+
+  assert(false);
 }
 
 
@@ -493,5 +510,6 @@ void RxnRule::dump(const BNGData& bng_data, const bool for_diff, const std::stri
     dump_complex_instance_vector(bng_data, products, ind);
   }
 }
+
 
 } /* namespace BNG */

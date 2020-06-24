@@ -38,6 +38,7 @@ enum species_cplx_mol_rxn_flag_t {
   SPECIES_FLAG_EXTERNAL_SPECIES = 0x400000, // not supported - TODO LATER: remove
 
   RXN_FLAG_COUNTED = 0x1000000,
+  RXN_FLAG_SIMPLE = 0x2000000, // reactants and products are only simple complexes
 };
 
 

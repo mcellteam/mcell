@@ -147,9 +147,11 @@ public:
     }
   }
 
-  species_id_t get_rxn_product_species_id(
-      const RxnRule* rxn, const uint product_index,
-      const species_id_t reactant_a_species_id, const species_id_t reactant_b_species_id
+  void get_rxn_product_species_ids(
+      const RxnRule* rxn,
+      const species_id_t reactant_a_species_id,
+      const species_id_t reactant_b_species_id, // set to SPECIES_ID_INVALID for unimol rxns
+      std::vector<species_id_t>& res
   );
 
   // returns nullptr if reaction rule was not found

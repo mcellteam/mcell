@@ -139,6 +139,12 @@ public:
 
   void finalize();
 
+  // BNGL style reaction handling is implemented in this method
+  void create_products_for_complex_rxn(
+      const std::vector<const CplxInstance*>& reactants,
+      std::vector<CplxInstance>& products
+  ) const;
+
   const CplxInstance& get_cplx_reactant(const uint index) const {
     assert(index <= reactants.size());
     return reactants[index];
@@ -238,6 +244,10 @@ public:
 
   bool is_counted() const {
     return has_flag(RXN_FLAG_COUNTED);
+  }
+
+  bool is_simple() const {
+    return has_flag(RXN_FLAG_SIMPLE);
   }
 
   void add_rxn_class_where_used(RxnClass* rxn_class) {

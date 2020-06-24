@@ -72,11 +72,17 @@ void CplxInstance::create_graph() {
 
   map<bond_value_t, vector<Graph::vertex_descriptor>> bonds_to_vertices_map;
 
-  // add all molecules with their components and remomber how they should be bound
+  // add all molecules with their components and remember how they should be bound
   for (const MolInstance& mi: mol_instances) {
     Graph::vertex_descriptor mol_desc = boost::add_vertex(MtVertexProperty(Node(mi)), graph);
 
     for (const ComponentInstance& ci: mi.component_instances) {
+      if (!ci.explicitly_listed_in_pattern) {
+        // this is a pattern and we can ignore the component that was not listed in
+        // the reaction rule
+        continue;
+      }
+
       Graph::vertex_descriptor comp_desc = boost::add_vertex(MtVertexProperty(Node(ci)), graph);
 
       // connect the component to its molecule
@@ -101,11 +107,11 @@ bool CplxInstance::matches_complex_pattern_ignore_orientation(const CplxInstance
   // this result cannot be cached because it might not be and applicable for other equivalent complexes,
   // we might need to impose some ordering on elementary molecules and then we can reuse the result when
   // creating products
-  MultipleMappingsVector res;
-  get_subgraph_isomorphism_mappings(pattern.graph, graph, res);
-
+  MultipleMappingsVector mappings;
+  get_subgraph_isomorphism_mappings(pattern.graph, graph, true, mappings);
+  assert((mappings.size() == 0 || mappings.size() == 1) && "We are searching only for the first match");
   // we need at least one match
-  return res.size() > 1;
+  return !mappings.empty();
 }
 
 
@@ -116,10 +122,10 @@ bool CplxInstance::matches_complex_fully_ignore_orientation(const CplxInstance& 
   }
 
   MultipleMappingsVector mappings;
-  get_subgraph_isomorphism_mappings(pattern.graph, graph, mappings);
+  get_subgraph_isomorphism_mappings(pattern.graph, graph, true, mappings);
+  assert((mappings.size() == 0 || mappings.size()) == 1 && "We are searching only for the first match");
 
-  // at least one mapping found and all nodes are covered
-  return mappings.size() >= 1 && mappings[0].size() == graph.m_vertices.size();
+  return mappings.size() == 1 && mappings[0].size() == graph.m_vertices.size();
 }
 
 

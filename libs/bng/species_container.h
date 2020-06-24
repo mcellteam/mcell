@@ -71,7 +71,7 @@ public:
   species_id_t find(const Species& species_to_find) {
     // simple equality comparison for now, some hashing will be needed
     for (const Species& s: species) {
-      if (species_to_find.matches_fully_ignore_id_and_flags(s)) {
+      if (species_to_find.matches_fully_ignore_name_id_and_flags(s)) {
         return s.id;
       }
     }

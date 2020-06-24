@@ -47,6 +47,9 @@ struct Node {
       assert(!n1.is_mol && !n2.is_mol);
 
       // component
+      // NOTE: no component nodes are created when component.explicitly_listed_in_pattern
+      // is false
+
       if (n1.component.component_type_id != n2.component.component_type_id) {
         // must be the same
         return false;
@@ -97,7 +100,7 @@ typedef std::vector<std::pair<Graph::vertex_descriptor, Graph::vertex_descriptor
 typedef std::vector<MappingVector> MultipleMappingsVector;
 
 // finds all subgraph isomorphism mappings of pattern graph on cplx graph
-void get_subgraph_isomorphism_mappings(Graph& pattern, Graph& cplx, MultipleMappingsVector& res);
+void get_subgraph_isomorphism_mappings(Graph& pattern, Graph& cplx, const bool only_first_match, MultipleMappingsVector& res);
 
 } // namespace BNG
 

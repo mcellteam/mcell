@@ -88,10 +88,11 @@ public:
   static void dump_array(const BNGData& bng_data, const SpeciesVector& vec, const bool sorted = false);
 
   // not virtual
-  bool matches_fully_ignore_id_and_flags(const Species& s2) const {
+  bool matches_fully_ignore_name_id_and_flags(const Species& s2) const {
+    // we do not want to compare by name because name is defined
+    // by the complex and depends on ordering of molecules and components
     return
         CplxInstance::matches_fully(s2) &&
-        name == s2.name && // name comparison is probably wrong here,
         D == s2.D &&
         space_step == s2.space_step &&
         time_step == s2.time_step;

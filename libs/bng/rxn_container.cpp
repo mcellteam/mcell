@@ -168,28 +168,70 @@ void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t n
 }
 
 
-species_id_t RxnContainer::get_rxn_product_species_id(
-    const RxnRule* rxn, const uint product_index,
-    const species_id_t reactant_a_species_id, const species_id_t reactant_b_species_id
+// NOTE: where should this method belong?
+void RxnContainer::get_rxn_product_species_ids(
+    const RxnRule* rxn,
+    const species_id_t reactant_a_species_id,
+    const species_id_t reactant_b_species_id,
+    std::vector<species_id_t>& res
 ) {
-  // limited for now, no components allowed
-  const CplxInstance& product = rxn->get_cplx_product(product_index);
+  assert(
+      (rxn->is_unimol() && reactant_b_species_id == SPECIES_ID_INVALID) ||
+      (rxn->is_bimol() && reactant_b_species_id != SPECIES_ID_INVALID)
+  );
 
-  species_id_t res;
+  res.clear();
 
-  if (product.is_simple()) {
-    // simple species must be already defined (they are based on molecule types)
-    res = all_species.find_full_match(product);
-    assert(res != SPECIES_ID_INVALID);
+  if (rxn->is_simple()) {
+    for (const CplxInstance& product: rxn->products) {
+      // simple product is deterministic
+      // simple species must be already defined (they are based on molecule types)
+      species_id_t id = all_species.find_full_match(product);
+      assert(id != SPECIES_ID_INVALID);
+      res.push_back(id);
+    }
   }
   else {
-    // do we have such species already or we must define a new set?
-    // here are all the other tricks with components and bonds
-    assert(false && "Support for BNG style products generation is not implemented yet");
-    res = SPECIES_ID_INVALID;
-  }
+    // for a complex product, there might be multiple results
+    // TODO LATER: we also need to maintain the IDs of the elementary molecules
+    // but such a thing is not supported at all yet
+    //
+    // when the rule modifies an elementary molecule, but there is multiple
+    // elementary molecules that match the reaction pattern such as in:
+    // complex A(a,b~X).A(a,b~Y) and rule A(a) -> A(a!1).B(b!1).
+    // there the rule can be applied to one of the distinct elementary molecules
+    //
+    // also having identical components inside of an elementary molecule
+    // may lead to nondeterminism:
+    // complex A(a,a~X) and rule A(a) -> A(a~Y),
+    // there the rule can be applied to one of the distinct components
 
-  return res;
+    // for now, we support reaction with a single outcome
+    // and since we will depend on the input (once we will be maintaining IDs
+    // of the elementary molecules), we do this computation on the fly
+    vector<const CplxInstance*> reactants;
+    // downcast, CplxInstance is sufficient for product computation
+    reactants.push_back(dynamic_cast<const CplxInstance*>(&all_species.get(reactant_a_species_id)));
+    if (rxn->is_bimol()) {
+      reactants.push_back(dynamic_cast<const CplxInstance*>(&all_species.get(reactant_b_species_id)));
+    }
+
+    // we might get multiple matches on reactant(s), the numbers
+    // of matches multiplied give us the total number of variants
+    // a single random number then is used to choose a single variant
+    // TODO: how to match this to NFSim?
+    vector<CplxInstance> products;
+    rxn->create_products_for_complex_rxn(
+        reactants,
+        products
+    );
+
+    for (const CplxInstance& product: products) {
+      species_id_t id = all_species.find_or_add(Species(product, bng_data, bng_config));
+      assert(id != SPECIES_ID_INVALID);
+      res.push_back(id);
+    }
+  }
 }
 
 
