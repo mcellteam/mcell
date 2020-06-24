@@ -49,15 +49,16 @@ public:
       {
   }
 
-  /*
   CplxInstance(const CplxInstance& other)
     : mol_instances(other.mol_instances),
       orientation(other.orientation),
-      graph(other.graph),
       bng_data(other.bng_data)
       {
+    // copy ctor is needed because we must recreate graph that has pointers to
+    // molecule and complex instances, finalize also sets flags
+    finalize();
   }
-  */
+
 
   // must be called after initialization, sets up flags
   // also creates graphs for non-simple complexes

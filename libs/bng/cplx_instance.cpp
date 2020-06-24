@@ -74,7 +74,7 @@ void CplxInstance::create_graph() {
 
   // add all molecules with their components and remember how they should be bound
   for (const MolInstance& mi: mol_instances) {
-    Graph::vertex_descriptor mol_desc = boost::add_vertex(MtVertexProperty(Node(mi)), graph);
+    Graph::vertex_descriptor mol_desc = boost::add_vertex(MtVertexProperty(Node(&mi)), graph);
 
     for (const ComponentInstance& ci: mi.component_instances) {
       if (!ci.explicitly_listed_in_pattern) {
@@ -83,7 +83,7 @@ void CplxInstance::create_graph() {
         continue;
       }
 
-      Graph::vertex_descriptor comp_desc = boost::add_vertex(MtVertexProperty(Node(ci)), graph);
+      Graph::vertex_descriptor comp_desc = boost::add_vertex(MtVertexProperty(Node(&ci)), graph);
 
       // connect the component to its molecule
       boost::add_edge(mol_desc, comp_desc, graph);

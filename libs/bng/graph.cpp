@@ -19,28 +19,29 @@ namespace BNG {
 
 std::ostream & operator<<(std::ostream &out, const Node& n) {
   if (n.is_mol) {
-    std::cout << "m:" << n.mol.mol_type_id;
+    std::cout << "m:" << n.mol->mol_type_id;
   }
   else {
-    cout << "c:" << n.component.component_type_id;
-    if (n.component.state_id == STATE_ID_DONT_CARE) {
+    cout << "c:" << n.component->component_type_id;
+    if (n.component->state_id == STATE_ID_DONT_CARE) {
       cout << "~" << "DONT_CARE";
     }
     else {
-      cout << "~" << n.component.state_id;
+      cout << "~" << n.component->state_id;
     }
-    if (n.component.bond_value == BOND_VALUE_ANY) {
+    if (n.component->bond_value == BOND_VALUE_ANY) {
       cout << "!+";
     }
-    else if (n.component.bond_value == BOND_VALUE_NO_BOND) {
+    else if (n.component->bond_value == BOND_VALUE_NO_BOND) {
       cout << "!NO_BOND";
     }
     else {
-      cout << "!" << n.component.bond_value;
+      cout << "!" << n.component->bond_value;
     }
   }
   return out;
 }
+
 
 
 class CallBackToCollectMapping {
