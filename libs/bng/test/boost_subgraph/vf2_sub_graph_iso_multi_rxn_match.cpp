@@ -215,7 +215,8 @@ int main()
 
   // A(c0~R,c1~T,c0~S)
   // using different numbers just for clarity
-  add_vertex(Graph::mt_vertex_property(Node::CreateMol(0/*A*/)), graph_complex); //0
+  graph_type::vertex_descriptor nodeA;
+  nodeA = add_vertex(Graph::mt_vertex_property(Node::CreateMol(0/*A*/)), graph_complex); //0
   add_vertex(Graph::mt_vertex_property(Node::CreateComponent(1/*c0*/, 2/*R*/, BOND_VALUE_NO_BOND)), graph_complex); //1
   add_vertex(Graph::mt_vertex_property(Node::CreateComponent(3/*c1*/, 4/*T*/, BOND_VALUE_NO_BOND)), graph_complex); //2
   add_vertex(Graph::mt_vertex_property(Node::CreateComponent(1/*c0*/, 5/*S*/, BOND_VALUE_NO_BOND)), graph_complex); //3
@@ -223,6 +224,24 @@ int main()
   add_edge(0, 1, graph_complex);
   add_edge(0, 2, graph_complex);
   add_edge(0, 3, graph_complex);
+
+  // which edges lead from A
+  graph_traits<graph_type>::vertex_iterator i, end;
+  graph_traits<graph_type>::out_edge_iterator ei, edge_end;
+  for (boost::tie(i,end) = vertices(graph_complex); i != end; ++i) {
+    graph_type::vertex_descriptor desc = *i;
+    cout << desc << " ";
+    for (boost::tie(ei,edge_end) = out_edges(*i, graph_complex); ei != edge_end; ++ei) {
+      graph_type::edge_descriptor e1 = *ei;
+
+      graph_type::vertex_descriptor v2 = target(*ei, graph_complex);
+
+      cout << " --" << *ei << "--> " << target(*ei, graph_complex) << "  ";
+    }
+    cout << endl;
+  }
+  //graph_type::vertex_bundled& vi = graph_complex[nodeA];
+  //vi
 
   // Build graph_large
   Graph::graph_type graph_pattern; // pattern
@@ -256,14 +275,14 @@ int main()
       vertices_equivalent(vertex_comp)
   );
 
-  int i = 0;
+  int z = 0;
   for (std::vector <std::pair<graph_type::vertex_descriptor, graph_type::vertex_descriptor>>& vec: callback.get_setvmap()) {
-    cout << i << ": ";
+    cout << z << ": ";
     for (std::pair<graph_type::vertex_descriptor, graph_type::vertex_descriptor> item: vec) {
       cout << "(" << item.first << "," << item.second << ")" << " ";
     }
 
-    i++;
+    z++;
     cout << "\n";
   }
 

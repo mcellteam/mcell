@@ -90,7 +90,7 @@ static std::ostream & operator<<(std::ostream &out, const Node& n);
 // molecule instance/pattern is a node in the complex graph, edge is a bond
 typedef boost::property<boost::vertex_name_t, Node, boost::property< boost::vertex_index_t, int > > MtVertexProperty;
 
-// using a vecS graphs => the index maps are implicit.
+// NOTE: we can experiment which underlying types are more efficient (vecS/listS/setS...)
 // we are not using any edge property
 typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::bidirectionalS, MtVertexProperty> Graph;
 

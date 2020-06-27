@@ -141,8 +141,8 @@ public:
 
   // BNGL style reaction handling is implemented in this method
   void create_products_for_complex_rxn(
-      const std::vector<const CplxInstance*>& reactants,
-      std::vector<CplxInstance>& products
+      const std::vector<const CplxInstance*>& input_reactants,
+      std::vector<CplxInstance>& created_products
   ) const;
 
   const CplxInstance& get_cplx_reactant(const uint index) const {

@@ -54,10 +54,13 @@ public:
 
   // number for bonds (0, 1, ...),
   // BOND_VALUE_ANY for patterns (+),
-  // BOND_VALUE_NO_BOND if this component has no bond
+  // BOND_VALUE_NO_BOND if this component has no bond or a
+  //    when used in a pattern that it must not have a bond
+  //    (in cases where we do not care, the component is not listed at all)
   bond_value_t bond_value;
 
   // true if this component was explicitly listed in a pattern
+  // TODO: get rid of this
   bool explicitly_listed_in_pattern;
 
   bool operator == (const ComponentInstance& comp2) const  {
@@ -92,7 +95,11 @@ public:
   mol_type_id_t mol_type_id;
 
   // has the same number of elements as MoleculeType::component_type_ids
+  // TODO: remove when switched to component graphs only
+  // TODO: only components
   small_vector<ComponentInstance> component_instances;
+
+  // TODO: mol instance ID
 
 public:
   MolInstance()

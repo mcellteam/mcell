@@ -14,6 +14,7 @@
 #include "bng/species.h"
 #include "bng/species_container.h"
 
+#include "bng/graph.h"
 
 using namespace std;
 
@@ -52,12 +53,84 @@ void RxnRule::finalize() {
 }
 
 
+static void merge_graphs(Graph& srcdst, const Graph& src) {
+  assert(false && "TODO");
+}
+
+
 void RxnRule::create_products_for_complex_rxn(
-    const std::vector<const CplxInstance*>& reactants,
-    std::vector<CplxInstance>& products
+    const std::vector<const CplxInstance*>& input_reactants,
+    std::vector<CplxInstance>& created_products
 ) const {
 
-  assert(false);
+  assert(mol_instances_are_fully_maintained && "Assuming this for now");
+
+  assert(input_reactants.size() == reactants.size());
+  assert(input_reactants.size() == 1 || input_reactants.size() == 2);
+
+  // merge input reactant graphs
+  Graph reactants_graph = input_reactants[0]->get_graph();
+  if (input_reactants.size() == 2) {
+    merge_graphs(reactants_graph, input_reactants[1]->get_graph());
+  }
+
+  // merge reactant reactant patterns
+  // this can be precomputed
+  Graph pattern_graph = reactants[0].get_graph();
+  if (reactants.size() == 2) {
+    merge_graphs(pattern_graph, reactants[1].get_graph());
+  }
+
+  // compute mapping reactant pattern -> reactant
+  MultipleMappingsVector pattern_to_reactants_mappings;
+  get_subgraph_isomorphism_mappings(
+      pattern_graph, // pattern
+      reactants_graph, // actual reactant
+      false, // do not stop with first match
+      pattern_to_reactants_mappings
+  );
+  assert(pattern_to_reactants_mappings.size() == 1 &&
+      "We do not support multiple matches yet and then there must be at least one match.");
+
+
+  // create graph from products
+
+
+  // compute mapping reactant patterns -> product patterns
+  // this can be precomputed
+  // nodes in the reaction products graph have an extra option that they can ignore the state
+  // find all mappings and compute score for each of those mappings so that we get the best match
+  // -> each matching state is a positive point
+
+  //find_best_reactants_to_product_mapping()
+
+
+  // manipulate nodes using information about products
+  //
+  // for each component in product graph:
+  //   find corresponding component in reactant pattern
+  //     if there is no such mapping, ignore it because it might be a component of a
+  //     new molecule instance
+  //   find component corresponding to reactant pattern in reactants_graph
+  //     this mapping must exist because we matched the pattern graph to reactants graph
+  //   manipulate state and or bond
+  //     removal of a bond should be ok
+  //
+  // for each molecule in product graph:
+  //   if there is no mapping to reactant pattern graph:
+  //     check that all components that have state are connected and defined in the product graph
+  //     create a new molecule instance in the reactants_graph
+  //     for each component of the molecule in product graph:
+  //       add it and connect to molecule
+  //       if it has a bond:
+  //         if does the second target already exist:
+  //           create a bond
+  //
+
+
+  // and create products, each disconnected graph in the result is a
+  // separate complex instance
+
 }
 
 

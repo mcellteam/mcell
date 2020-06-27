@@ -57,6 +57,8 @@ public:
   template <typename CorrespondenceMap1To2, typename CorrespondenceMap2To1>
   bool operator()(CorrespondenceMap1To2 f, CorrespondenceMap2To1) {
 
+    // TODO: handle maximal number of matches, some counter
+
     mappings.push_back(MappingVector());
     BGL_FORALL_VERTICES_T(v, graph1, Graph) {
       mappings.back().push_back(
