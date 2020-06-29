@@ -2051,11 +2051,9 @@ static void find_closest_tile_on_wall(
     Vec2 new_pos2d;
     const Wall& w = p.get_wall(new_wall_index);
     if (p.config.randomize_smol_pos) {
-      // molecules are processed in different order than in mcell3...
-      // although, maybe not anymore due to sort in Partition::apply_vertex_moves,
-      // revisit if needed
-      assert(false && "Need RNG for dynamic vertices and surface molecules that would however break consistency with mcell3");
-      // new_pos2d = GridUtil::grid2uv_random(w, new_tile_index, rng);
+      // molecules are processed in different order than in mcell3, this might break
+      // compatibility, but the behavior is the same here
+      new_pos2d = GridUtil::grid2uv_random(w, new_tile_index, p.rng);
     }
     else {
       new_pos2d = GridUtil::grid2uv(w, new_tile_index);

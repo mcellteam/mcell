@@ -105,7 +105,7 @@ public:
         floor_to_multiple(pos, config.partition_edge_length)
         - Vec3(config.partition_edge_length/2);
 
-    partitions.push_back(Partition(origin, config, all_reactions, all_species, stats));
+    partitions.push_back(Partition(origin, config, all_reactions, all_species, stats, rng));
     return partitions.size() - 1;
   }
 

@@ -53,14 +53,16 @@ public:
       const SimulationConfig& config_,
       const ReactionsInfo& reactions_,
       const SpeciesInfo& species_,
-      SimulationStats& stats_
+      SimulationStats& stats_,
+      rng_state& rng_
   )
     : origin_corner(origin_),
       next_molecule_id(0),
       config(config_),
       all_reactions(reactions_),
       all_species(species_),
-      stats(stats_) {
+      stats(stats_),
+      rng(rng_) {
 
     opposite_corner = origin_corner + config.partition_edge_length;
 
@@ -606,6 +608,11 @@ public:
   const ReactionsInfo& all_reactions;
   const SpeciesInfo& all_species; // species_info? - species is both singular and plural...
   SimulationStats& stats;
+
+  // random number generator states
+  // TODO: RNG should belong to partition (this will change anyway with paralellization)
+  // use only when really needed
+  rng_state& rng;
 };
 
 } // namespace mcell
