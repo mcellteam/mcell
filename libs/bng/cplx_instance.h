@@ -54,8 +54,10 @@ public:
       orientation(other.orientation),
       bng_data(other.bng_data)
       {
+    set_flags(other.get_flags());
+
     // copy ctor is needed because we must recreate graph that has pointers to
-    // molecule and complex instances, finalize also sets flags
+    // molecule and complex instances, finalize also sets some flags
     finalize();
   }
 

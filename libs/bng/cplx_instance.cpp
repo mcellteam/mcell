@@ -34,15 +34,26 @@ void CplxInstance::finalize() {
   }
 
   // volume or surface type
-  bool vol_type = true;
+  bool surf_type = false;
+  bool reactive_surf_type = false;
   for (MolInstance& mp: mol_instances) {
     mp.finalize_flags();
+    // if at least one is a surface molecule then the whole cplx is surface molecule
     if (mp.is_surf()) {
-      vol_type = false;
+      surf_type = true;
+    }
+
+    // if at least one is a reactive surface then the whole cplx is reactive surface
+    if (mp.is_reactive_surface()) {
+      reactive_surf_type = true;
     }
   }
-  if (!vol_type) {
+  if (surf_type) {
+    release_assert(!reactive_surf_type && "Species cannot be both reactive surface and surface molecule.");
     set_flag(SPECIES_CPLX_MOL_FLAG_SURF);
+  }
+  else if (reactive_surf_type) {
+    set_flag(SPECIES_CPLX_MOL_FLAG_REACTIVE_SURFACE);
   }
 
   // CPLX_FLAG_SINGLE_MOL_NO_COMPONENTS

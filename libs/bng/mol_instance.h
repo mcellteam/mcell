@@ -37,14 +37,6 @@ public:
       explicitly_listed_in_pattern(false) {
   }
 
-  ComponentInstance(const ComponentInstance& other)
-    : component_type_id(other.component_type_id),
-      state_id(other.state_id),
-      bond_value(other.bond_value),
-      explicitly_listed_in_pattern(other.explicitly_listed_in_pattern)
-    {
-  }
-
   // type id can be also found from parent's MoleculeInstance::molecule_type_id
   // maybe remove
   component_type_id_t component_type_id;
@@ -104,11 +96,6 @@ public:
 public:
   MolInstance()
     : mol_type_id(MOL_TYPE_ID_INVALID) {
-  }
-
-  MolInstance(const MolInstance& other)
-    : mol_type_id(other.mol_type_id),
-      component_instances(other.component_instances) {
   }
 
   void finalize_flags() {
