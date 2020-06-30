@@ -230,6 +230,19 @@ public:
     }
   }
 
+  bool is_reactive_surface_rxn() const {
+    if (is_unimol()) {
+      return false;
+    }
+    else if (is_bimol()) {
+      return reactants[0].is_reactive_surface() || reactants[1].is_reactive_surface();
+    }
+    else {
+      assert(false);
+      return false;
+    }
+  }
+
   // returns true if species 'id' matches one of the reactants
   bool species_can_be_reactant(const species_id_t id, const SpeciesContainer& all_species);
 

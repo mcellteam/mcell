@@ -177,7 +177,7 @@ void RxnContainer::get_rxn_product_species_ids(
 ) {
   assert(
       (rxn->is_unimol() && reactant_b_species_id == SPECIES_ID_INVALID) ||
-      (rxn->is_bimol() && reactant_b_species_id != SPECIES_ID_INVALID)
+      (rxn->is_bimol() && (reactant_b_species_id != SPECIES_ID_INVALID || rxn->is_reactive_surface_rxn()))
   );
 
   res.clear();
