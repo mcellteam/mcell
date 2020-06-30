@@ -72,6 +72,7 @@ void CplxInstance::finalize() {
   set_flag(SPECIES_CPLX_FLAG_ONE_MOL_NO_COMPONENTS, is_simple);
 
   // we need graphs even for simple complexes because they can be used in reaction patterns
+  graph.clear();
   create_graph();
 
   set_finalized();
@@ -88,11 +89,7 @@ void CplxInstance::create_graph() {
     Graph::vertex_descriptor mol_desc = boost::add_vertex(MtVertexProperty(Node(&mi)), graph);
 
     for (const ComponentInstance& ci: mi.component_instances) {
-      if (!ci.explicitly_listed_in_pattern) {
-        // this is a pattern and we can ignore the component that was not listed in
-        // the reaction rule
-        continue;
-      }
+      // for patterns, only components that were explicitly listed are in component instances
 
       Graph::vertex_descriptor comp_desc = boost::add_vertex(MtVertexProperty(Node(&ci)), graph);
 

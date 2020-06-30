@@ -8,13 +8,22 @@
 #include <iostream>
 #include <sstream>
 
+
+#include "bng/graph.h" // must be included before boost
+
+#include <boost/graph/copy.hpp>
+#include <boost/graph/properties.hpp>
+#include <boost/graph/adjacency_list.hpp>
+#include <boost/graph/graph_utility.hpp>
+
 #include "bng/rxn_rule.h"
 #include "bng/rxn_class.h"
 
 #include "bng/species.h"
 #include "bng/species_container.h"
 
-#include "bng/graph.h"
+#include "debug_config.h"
+
 
 using namespace std;
 
@@ -54,7 +63,81 @@ void RxnRule::finalize() {
 
 
 static void merge_graphs(Graph& srcdst, const Graph& src) {
-  assert(false && "TODO");
+  boost::copy_graph(src, srcdst);
+}
+
+
+static int get_rxn_mol_instance_matching_score(
+    Graph& pattern_graph,
+    Graph::vertex_descriptor pattern_desc,
+    Graph& products_graph,
+    Graph::vertex_descriptor product_desc
+) {
+  return -1;
+}
+
+
+static void find_best_reactants_to_product_mapping(
+    Graph& pattern_graph,
+    Graph& products_graph,
+    MappingVector& reactant_prod_mapping) {
+
+  reactant_prod_mapping.clear();
+
+  set<Graph::vertex_descriptor> mapped_reactants;
+
+  // get the property map for vertex indices
+  VertexNameMap index = boost::get(boost::vertex_name, pattern_graph);
+
+  // for each molecule instance in pattern_graph
+  typedef boost::graph_traits<Graph>::vertex_iterator vertex_iter;
+  std::pair<vertex_iter, vertex_iter> reac_it;
+  for (reac_it = boost::vertices(pattern_graph); reac_it.first != reac_it.second; ++reac_it.first) {
+    Graph::vertex_descriptor reac_desc = *reac_it.first;
+    const Node& reac_mi = index[reac_desc];
+    if (reac_mi.is_mol) {
+
+      // find the best match for this molecule instance
+      // in products graph
+      std::pair<vertex_iter, vertex_iter> prod_it;
+      int best_score = -1; // not found
+      Graph::vertex_descriptor best_prod_match;
+      for (prod_it = boost::vertices(pattern_graph); prod_it.first != prod_it.second; ++prod_it.first) {
+        const Node& prod_mi = index[*prod_it.first];
+        if (prod_mi.is_mol &&
+            prod_mi.mol->mol_type_id == reac_mi.mol->mol_type_id &&
+            mapped_reactants.count(*prod_it.first) == 0 // not mapped yet
+        ) {
+
+          int current_score = get_rxn_mol_instance_matching_score(
+              pattern_graph,
+              *reac_it.first,
+              products_graph,
+              *prod_it.first
+          );
+
+          if (current_score > best_score) {
+            best_prod_match = *prod_it.first;
+            best_score = current_score;
+          }
+        }
+      }
+
+      // remember this mapping
+      // XX
+      //assert(reactant_prod_mapping.count(reac_desc) == 0);
+      //reactant_prod_mapping[reac_desc] = best_prod_match;
+
+      // we mapped this reactant
+      mapped_reactants.insert(reac_desc);
+
+      // now also define mapping for the components of this molecule instance
+
+
+      //
+
+    }
+  }
 }
 
 
@@ -74,14 +157,32 @@ void RxnRule::create_products_for_complex_rxn(
     merge_graphs(reactants_graph, input_reactants[1]->get_graph());
   }
 
-  // merge reactant reactant patterns
+  // merge reactant patterns
   // this can be precomputed
   Graph pattern_graph = reactants[0].get_graph();
+
+#ifdef DEBUG_CPLX_MATCHING
+  cout << "Base pattern:\n";
+  dump_graph(reactants[0].get_graph());
+#endif
+
   if (reactants.size() == 2) {
+    #ifdef DEBUG_CPLX_MATCHING
+      cout << "Merging with:\n";
+      dump_graph(reactants[1].get_graph());
+    #endif
     merge_graphs(pattern_graph, reactants[1].get_graph());
   }
 
   // compute mapping reactant pattern -> reactant
+#ifdef DEBUG_CPLX_MATCHING
+  cout << "Pattern:\n";
+  dump_graph(pattern_graph);
+
+  cout << "Reactants:\n";
+  dump_graph(reactants_graph);
+#endif
+
   MultipleMappingsVector pattern_to_reactants_mappings;
   get_subgraph_isomorphism_mappings(
       pattern_graph, // pattern
@@ -89,12 +190,25 @@ void RxnRule::create_products_for_complex_rxn(
       false, // do not stop with first match
       pattern_to_reactants_mappings
   );
+  assert(pattern_to_reactants_mappings.size() != 0 &&
+      "Did not find a match of patterns onto reaction.");
   assert(pattern_to_reactants_mappings.size() == 1 &&
       "We do not support multiple matches yet and then there must be at least one match.");
 
 
   // create graph from products
-
+  // this can be precomputed
+  Graph products_graph;
+  if (products.size() > 0) {
+    products_graph = products[0].get_graph();
+  }
+  for (size_t i = 1; i < products.size(); i++) {
+    merge_graphs(products_graph, products[i].get_graph());
+  }
+#ifdef DEBUG_CPLX_MATCHING
+  cout << "Products:\n";
+  dump_graph(products_graph);
+#endif
 
   // compute mapping reactant patterns -> product patterns
   // this can be precomputed
@@ -102,7 +216,14 @@ void RxnRule::create_products_for_complex_rxn(
   // find all mappings and compute score for each of those mappings so that we get the best match
   // -> each matching state is a positive point
 
-  //find_best_reactants_to_product_mapping()
+  MappingVector reactant_prod_mapping;
+  // TODO: boost subgraph won't find a mapping of one of the reactants is not present in products,
+  // we will need to write this manually, hopefully the graphs won't be too large
+  // still must avoid exponential complexity...
+  find_best_reactants_to_product_mapping(pattern_graph, products_graph, reactant_prod_mapping);
+
+  // for now, let's use the mapping we have in cplx_mapping and mol_mapping
+  //convert_cplx_mol_mapping_to_graph_mapping(reactant_prod_mapping);
 
 
   // manipulate nodes using information about products
@@ -126,10 +247,13 @@ void RxnRule::create_products_for_complex_rxn(
   //         if does the second target already exist:
   //           create a bond
   //
+  //XX apply_rxn_on_reactants_graph(reactants_graph);
 
 
   // and create products, each disconnected graph in the result is a
   // separate complex instance
+  created_products.clear();
+  //XX create_products_from_reactants_graph(reactants_graph, created_products);
 
 }
 

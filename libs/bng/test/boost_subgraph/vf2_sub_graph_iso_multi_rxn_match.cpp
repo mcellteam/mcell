@@ -6,6 +6,7 @@
 #include <iostream>
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/vf2_sub_graph_iso.hpp>
+#include <boost/graph/copy.hpp>
 using namespace boost;
 using namespace std;
 
@@ -21,7 +22,6 @@ const uint BOND_VALUE_NO_BOND = UINT32_MAX - 3;
 typedef uint component_type_id_t;
 typedef uint mol_type_id_t;
 
-namespace Graph {
 
 struct Node {
   // default ctor that sets ids to invalid?
@@ -133,9 +133,9 @@ typedef property< vertex_name_t, Node, property< vertex_index_t, int > > mt_vert
 
 // using a vecS graphs => the index maps are implicit.
 // we are not using any edge property
-typedef adjacency_list< vecS, vecS, bidirectionalS, mt_vertex_property> graph_type;
+typedef adjacency_list< vecS, vecS, bidirectionalS, mt_vertex_property> Graph;
 
-typedef property_map< graph_type, vertex_name_t >::type vertex_name_map_t;
+typedef property_map< Graph, vertex_name_t >::type vertex_name_map_t;
 
 // Binary function object that returns true if the values for item1
 // in property_map1 and item2 in property_map2 are equivalent.
@@ -171,27 +171,22 @@ property_map_molecule_type_matching make_property_map_molecule_type_matching(
 }
 
 
-} // namespace Graph
-
-
-using namespace Graph;
-
-typedef std::vector <std::pair<graph_type::vertex_descriptor, graph_type::vertex_descriptor>> MappingVector;
+typedef std::vector <std::pair<Graph::vertex_descriptor, Graph::vertex_descriptor>> MappingVector;
 
 class my_call_back {
 
 public:
-  typedef graph_type::vertex_descriptor vertex_descriptor;
+  typedef Graph::vertex_descriptor vertex_descriptor;
 
 
   // constructor
-  my_call_back(const graph_type& graph1, const graph_type& graph2) : graph1_(graph1), graph2_(graph2) {}
+  my_call_back(const Graph& graph1, const Graph& graph2) : graph1_(graph1), graph2_(graph2) {}
 
   template <typename CorrespondenceMap1To2, typename CorrespondenceMap2To1>
   bool operator()(CorrespondenceMap1To2 f, CorrespondenceMap2To1) {
 
     set_of_vertex_iso_map.push_back(MappingVector());
-    BGL_FORALL_VERTICES_T(v, graph1_, graph_type) {
+    BGL_FORALL_VERTICES_T(v, graph1_, Graph) {
       set_of_vertex_iso_map.back().push_back(
           std::make_pair(
               get(boost::vertex_index_t(), graph1_, v) ,
@@ -203,65 +198,83 @@ public:
   std::vector<MappingVector>& get_setvmap() { return set_of_vertex_iso_map; }
 
 private:
-  const graph_type& graph1_;
-  const graph_type& graph2_;
+  const Graph& graph1_;
+  const Graph& graph2_;
   std::vector<MappingVector> set_of_vertex_iso_map;
 };
 
-int main()
-{
-  // Build graph_small
-  Graph::graph_type graph_complex; // molecule
+//merge_graph(graph_complex, graph_pattern);
 
-  // A(c0~R,c1~T,c0~S)
-  // using different numbers just for clarity
-  graph_type::vertex_descriptor nodeA;
-  nodeA = add_vertex(Graph::mt_vertex_property(Node::CreateMol(0/*A*/)), graph_complex); //0
-  add_vertex(Graph::mt_vertex_property(Node::CreateComponent(1/*c0*/, 2/*R*/, BOND_VALUE_NO_BOND)), graph_complex); //1
-  add_vertex(Graph::mt_vertex_property(Node::CreateComponent(3/*c1*/, 4/*T*/, BOND_VALUE_NO_BOND)), graph_complex); //2
-  add_vertex(Graph::mt_vertex_property(Node::CreateComponent(1/*c0*/, 5/*S*/, BOND_VALUE_NO_BOND)), graph_complex); //3
-
-  add_edge(0, 1, graph_complex);
-  add_edge(0, 2, graph_complex);
-  add_edge(0, 3, graph_complex);
-
+void print_edges(Graph& graph_complex) {
   // which edges lead from A
-  graph_traits<graph_type>::vertex_iterator i, end;
-  graph_traits<graph_type>::out_edge_iterator ei, edge_end;
+  graph_traits<Graph>::vertex_iterator i, end;
+  graph_traits<Graph>::out_edge_iterator ei, edge_end;
   for (boost::tie(i,end) = vertices(graph_complex); i != end; ++i) {
-    graph_type::vertex_descriptor desc = *i;
+    Graph::vertex_descriptor desc = *i;
     cout << desc << " ";
     for (boost::tie(ei,edge_end) = out_edges(*i, graph_complex); ei != edge_end; ++ei) {
-      graph_type::edge_descriptor e1 = *ei;
+      Graph::edge_descriptor e1 = *ei;
 
-      graph_type::vertex_descriptor v2 = target(*ei, graph_complex);
+      Graph::vertex_descriptor v2 = target(*ei, graph_complex);
 
       cout << " --" << *ei << "--> " << target(*ei, graph_complex) << "  ";
     }
     cout << endl;
   }
+}
+
+
+void merge_graph(Graph& dstsrc, Graph& src) {
+  copy_graph(src, dstsrc);
+}
+
+
+int main()
+{
+  // Build graph_small
+  Graph graph_complex; // molecule
+
+  // A(c0~R,c1~T,c0~S)
+  // using different numbers just for clarity
+  Graph::vertex_descriptor nodeA;
+  nodeA = add_vertex(mt_vertex_property(Node::CreateMol(0/*A*/)), graph_complex); //0
+  add_vertex(mt_vertex_property(Node::CreateComponent(1/*c0*/, 2/*R*/, BOND_VALUE_NO_BOND)), graph_complex); //1
+  add_vertex(mt_vertex_property(Node::CreateComponent(3/*c1*/, 4/*T*/, BOND_VALUE_NO_BOND)), graph_complex); //2
+  add_vertex(mt_vertex_property(Node::CreateComponent(1/*c0*/, 5/*S*/, BOND_VALUE_NO_BOND)), graph_complex); //3
+
+  add_edge(0, 1, graph_complex);
+  add_edge(0, 2, graph_complex);
+  add_edge(0, 3, graph_complex);
+
+
   //graph_type::vertex_bundled& vi = graph_complex[nodeA];
   //vi
 
   // Build graph_large
-  Graph::graph_type graph_pattern; // pattern
+  Graph graph_pattern; // pattern
 
-  add_vertex(Graph::mt_vertex_property(Node::CreateMol(0/*A*/)), graph_pattern); //0
-  add_vertex(Graph::mt_vertex_property(Node::CreateComponent(1/*c0*/, STATE_ID_DONT_CARE, BOND_VALUE_NO_BOND)), graph_pattern); //1
+  add_vertex(mt_vertex_property(Node::CreateMol(0/*A*/)), graph_pattern); //0
+  add_vertex(mt_vertex_property(Node::CreateComponent(1/*c0*/, STATE_ID_DONT_CARE, BOND_VALUE_NO_BOND)), graph_pattern); //1
 
   add_edge(0, 1, graph_pattern);
 
 
+  merge_graph(graph_complex, graph_pattern);
+
+  print_graph(graph_complex);
+
+  return 0;
+
   my_call_back callback(graph_pattern, graph_complex);
 
   // Create callback
-  //vf2_print_callback< Graph::graph_type, Graph::graph_type > callback(graph_pattern, graph_complex);
+  //vf2_print_callback< graph_type, graph_type > callback(graph_pattern, graph_complex);
 
-  //typedef Graph::property_map_molecule_type_matching< Graph::vertex_name_map_t, Graph::vertex_name_map_t > vertex_comp_t;
-  typedef Graph::property_map_molecule_type_matching vertex_comp_t;
+  //typedef property_map_molecule_type_matching< vertex_name_map_t, vertex_name_map_t > vertex_comp_t;
+  typedef property_map_molecule_type_matching vertex_comp_t;
 
   vertex_comp_t vertex_comp =
-      Graph::make_property_map_molecule_type_matching(get(vertex_name, graph_pattern), get(vertex_name, graph_complex));
+      make_property_map_molecule_type_matching(get(vertex_name, graph_pattern), get(vertex_name, graph_complex));
 
   // Print out all subgraph isomorphism mappings between graph1 and graph_small.
   // Function vertex_order_by_mult is used to compute the order of
@@ -276,9 +289,9 @@ int main()
   );
 
   int z = 0;
-  for (std::vector <std::pair<graph_type::vertex_descriptor, graph_type::vertex_descriptor>>& vec: callback.get_setvmap()) {
+  for (std::vector <std::pair<Graph::vertex_descriptor, Graph::vertex_descriptor>>& vec: callback.get_setvmap()) {
     cout << z << ": ";
-    for (std::pair<graph_type::vertex_descriptor, graph_type::vertex_descriptor> item: vec) {
+    for (std::pair<Graph::vertex_descriptor, Graph::vertex_descriptor> item: vec) {
       cout << "(" << item.first << "," << item.second << ")" << " ";
     }
 

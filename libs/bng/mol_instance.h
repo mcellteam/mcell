@@ -52,7 +52,7 @@ public:
   bond_value_t bond_value;
 
   // true if this component was explicitly listed in a pattern
-  // TODO: get rid of this
+  // TODO: get rid of this XXX
   bool explicitly_listed_in_pattern;
 
   bool operator == (const ComponentInstance& comp2) const  {

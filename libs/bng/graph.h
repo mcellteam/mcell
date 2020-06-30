@@ -92,15 +92,18 @@ typedef boost::property<boost::vertex_name_t, Node, boost::property< boost::vert
 
 // NOTE: we can experiment which underlying types are more efficient (vecS/listS/setS...)
 // we are not using any edge property
-typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::bidirectionalS, MtVertexProperty> Graph;
+typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS, MtVertexProperty> Graph;
 
 typedef boost::property_map<Graph, boost::vertex_name_t >::type VertexNameMap;
 
-typedef std::vector<std::pair<Graph::vertex_descriptor, Graph::vertex_descriptor>> MappingVector;
+// FIXME: this has to be a map, not a vector of pairs..
+typedef std::map<Graph::vertex_descriptor, Graph::vertex_descriptor> MappingVector;
 typedef std::vector<MappingVector> MultipleMappingsVector;
 
 // finds all subgraph isomorphism mappings of pattern graph on cplx graph
 void get_subgraph_isomorphism_mappings(Graph& pattern, Graph& cplx, const bool only_first_match, MultipleMappingsVector& res);
+
+void dump_graph(const Graph& g_const);
 
 } // namespace BNG
 
