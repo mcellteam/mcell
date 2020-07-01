@@ -71,7 +71,7 @@ namespace BNG {
 // end reaction rules
 //
 %glr-parser
-%expect 1
+%expect 3
 
 %union {
   const char* str;
@@ -120,6 +120,13 @@ namespace BNG {
 %type <list_node> rates
 %type <boolean> rxn_rule_direction
 %type <list_node> cplx_instance
+
+// operator associativities and precendences
+// unary minus has really lower precendence than power 
+%left '+' '-'
+%left '*' '/'
+%left UNARYPLUS UNARYMINUS
+%left '^'   
 
 %start start
 
@@ -374,15 +381,17 @@ cplx_instance_list:
 // ---------------- expressions --------------------- 
 // TODO: expressions are just IDs and constants for now
 expr:
-      TOK_ID { 
-        $$ = g_ctx->new_id_node($1, @1); 
-      } 
-    | TOK_DBL { 
-        $$ = g_ctx->new_dbl_node($1, @1); 
-      } 
-    | TOK_LLONG { 
-        $$ = g_ctx->new_llong_node($1, @1); 
-      } 
+      TOK_ID                        { $$ = g_ctx->new_id_node($1, @1); } 
+    | TOK_DBL                       { $$ = g_ctx->new_dbl_node($1, @1); } 
+    | TOK_LLONG                     { $$ = g_ctx->new_llong_node($1, @1); }
+    | '(' expr ')'                  { $$ = $2; } 
+    | expr '+' expr                 { $$ = g_ctx->new_expr_node($1, BNG::ExprType::Add, $3, @2); }
+    | expr '-' expr                 { $$ = g_ctx->new_expr_node($1, BNG::ExprType::Sub, $3, @2); }
+    | expr '*' expr                 { $$ = g_ctx->new_expr_node($1, BNG::ExprType::Mul, $3, @2); }
+    | expr '/' expr                 { $$ = g_ctx->new_expr_node($1, BNG::ExprType::Div, $3, @2); }
+    | expr '^' expr                 { $$ = g_ctx->new_expr_node($1, BNG::ExprType::Pow, $3, @2); }
+    | '+' expr %prec UNARYPLUS      { $$ = g_ctx->new_expr_node($2, BNG::ExprType::UnaryPlus, nullptr, @1); }
+    | '-' expr %prec UNARYMINUS     { $$ = g_ctx->new_expr_node($2, BNG::ExprType::UnaryMinus, nullptr, @1); }
 ;
     
 %%

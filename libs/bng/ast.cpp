@@ -228,6 +228,19 @@ ASTExprNode* ParserContext::new_llong_node(const long long val, const BNGLLTYPE&
 }
 
 
+ASTExprNode* ParserContext::new_expr_node(
+    ASTExprNode* left, const ExprType op, ASTExprNode* right, const BNGLLTYPE& loc) {
+  assert((op == ExprType::UnaryPlus || op == ExprType::UnaryMinus) == (right == nullptr));
+  ASTExprNode* n = new ASTExprNode;
+  n->set_left(left);
+  n->set_type(op); // operator
+  n->set_right(right);
+  n->set_loc(current_file, loc);
+  remember_node(n);
+  return n;
+}
+
+
 ASTStrNode* ParserContext::new_empty_str_node() {
   ASTStrNode* n = new ASTStrNode;
   n->str = "";

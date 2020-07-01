@@ -58,6 +58,47 @@ ASTExprNode* SemanticAnalyzer::evaluate_to_dbl(ASTExprNode* root, set<string> us
     return evaluate_to_dbl(to_expr_node(val), used_ids);
   }
 
+  if (root->is_unary_expr()) {
+    assert(root->get_left() != nullptr);
+    assert(root->get_right() == nullptr);
+    double res = evaluate_to_dbl(root->get_left(), used_ids)->get_dbl();
+    return ctx->new_dbl_node( (root->get_op() == ExprType::UnaryMinus) ? -res : res, root);
+  }
+
+  if (root->is_binary_expr()) {
+    assert(root->get_left() != nullptr);
+    assert(root->get_right() != nullptr);
+    double res_left = evaluate_to_dbl(root->get_left(), used_ids)->get_dbl();
+    double res_right = evaluate_to_dbl(root->get_right(), used_ids)->get_dbl();
+    double res = 0;
+    switch (root->get_op()) {
+      case ExprType::Add:
+        res = res_left + res_right;
+        break;
+      case ExprType::Sub:
+        res = res_left - res_right;
+        break;
+      case ExprType::Mul:
+        res = res_left * res_right;
+        break;
+      case ExprType::Div:
+        if (res_right == 0) {
+          errs_loc(root) << "Division by zero, left operand evaluated to " << res_left << " and right to 0.\n";
+          ctx->inc_error_count();
+        }
+        else {
+          res = res_left / res_right;
+        }
+        break;
+      case ExprType::Pow:
+        res = pow(res_left, res_right);
+        break;
+      default:
+        release_assert(false && "Invalid operator");
+    }
+    return ctx->new_dbl_node(res, root);
+  }
+
   assert(false && "unreachable");
   return nullptr;
 }

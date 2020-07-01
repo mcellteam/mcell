@@ -49,7 +49,16 @@ enum class ExprType {
   Invalid,
   Id,
   Dbl,
-  Llong
+  Llong,
+  // operators
+  UnaryPlus,
+  UnaryMinus,
+
+  Add,
+  Sub,
+  Mul,
+  Div,
+  Pow
 };
 
 
@@ -144,6 +153,18 @@ public:
     llong = llong_;
   }
 
+  void set_left(ASTExprNode* left_) {
+    left = left_;
+  }
+
+  void set_right(ASTExprNode* right_) {
+    right = right_;
+  }
+
+  void set_type(const ExprType op) {
+    expr_type = op;
+  }
+
   bool is_id() const {
     return expr_type == ExprType::Id;
   }
@@ -154,6 +175,21 @@ public:
 
   bool is_llong() const {
     return expr_type == ExprType::Llong;
+  }
+
+  bool is_unary_expr() const {
+    return
+        expr_type == ExprType::UnaryPlus ||
+        expr_type == ExprType::UnaryMinus;
+  }
+
+  bool is_binary_expr() const {
+    return
+        expr_type == ExprType::Add ||
+        expr_type == ExprType::Sub ||
+        expr_type == ExprType::Mul ||
+        expr_type == ExprType::Div ||
+        expr_type == ExprType::Pow;
   }
 
   const std::string& get_id() const {
@@ -169,6 +205,19 @@ public:
   double get_llong() const {
     assert(is_llong());
     return llong;
+  }
+
+  ASTExprNode* get_left() const {
+    return left;
+  }
+
+  ASTExprNode* get_right() const {
+    return right;
+  }
+
+  ExprType get_op() const {
+    assert(is_unary_expr() || is_binary_expr());
+    return expr_type;
   }
 
   // getters that check the type
@@ -343,6 +392,13 @@ public:
   ASTExprNode* new_dbl_node(const double val, const BNGLLTYPE& loc);
   ASTExprNode* new_dbl_node(const double val, const ASTBaseNode* loc);
   ASTExprNode* new_llong_node(const long long val, const BNGLLTYPE& loc);
+
+  ASTExprNode* new_expr_node(
+      ASTExprNode* left,
+      const ExprType op,
+      ASTExprNode* right,
+      const BNGLLTYPE& loc
+  );
 
   ASTStrNode* new_empty_str_node();
   ASTStrNode* new_str_node(const std::string str, const BNGLLTYPE& loc);
