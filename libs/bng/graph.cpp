@@ -7,38 +7,71 @@
 
 #include "graph.h"
 
+#include <sstream>
+
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/vf2_sub_graph_iso.hpp>
 
+#include "bng/bng_data.h"
+
 #include "debug_config.h"
+
+
 
 using namespace std;
 using namespace boost;
 
 namespace BNG {
 
-std::ostream & operator<<(std::ostream &out, const Node& n) {
-  if (n.is_mol) {
-    std::cout << "m:" << n.mol->mol_type_id;
+string Node::to_str(const BNGData* bng_data) const {
+  stringstream out;
+
+  if (is_mol) {
+    out << "m:";
+    if (bng_data != nullptr) {
+      out << bng_data->get_molecule_type(mol->mol_type_id).name;
+    }
+    else {
+      out << mol->mol_type_id;
+    }
   }
   else {
-    cout << "c:" << n.component->component_type_id;
-    if (n.component->state_id == STATE_ID_DONT_CARE) {
-      cout << "~" << "DONT_CARE";
+    out << "c:";
+    if (bng_data != nullptr) {
+      out << bng_data->get_component_type(component->component_type_id).name;
     }
     else {
-      cout << "~" << n.component->state_id;
+      out << component->component_type_id;
     }
-    if (n.component->bond_value == BOND_VALUE_ANY) {
-      cout << "!+";
-    }
-    else if (n.component->bond_value == BOND_VALUE_NO_BOND) {
-      cout << "!NO_BOND";
+    if (component->state_id == STATE_ID_DONT_CARE) {
+      out << "~" << "DONT_CARE";
     }
     else {
-      cout << "!" << n.component->bond_value;
+      out << "~";
+      if (bng_data != nullptr) {
+        out << bng_data->get_state_name(component->state_id);
+      }
+      else {
+        out << component->state_id;
+      }
+
+    }
+    if (component->bond_value == BOND_VALUE_ANY) {
+      out << "!+";
+    }
+    else if (component->bond_value == BOND_VALUE_NO_BOND) {
+      out << "!NO_BOND";
+    }
+    else {
+      out << "!" << component->bond_value;
     }
   }
+  return out.str();
+}
+
+
+ostream & operator<<(ostream &out, const Node& n) {
+  out << n.to_str();
   return out;
 }
 
@@ -141,7 +174,7 @@ void get_subgraph_isomorphism_mappings(Graph& pattern, Graph& cplx, const bool o
   int i = 0;
   for (VertexMapping& vec: res) {
     cout << i << ": ";
-    for (std::pair<Graph::vertex_descriptor, Graph::vertex_descriptor> item: vec) {
+    for (pair<Graph::vertex_descriptor, Graph::vertex_descriptor> item: vec) {
       cout << "(" << item.first << "," << item.second << ")" << " ";
     }
 
@@ -151,7 +184,8 @@ void get_subgraph_isomorphism_mappings(Graph& pattern, Graph& cplx, const bool o
 #endif
 }
 
-void dump_graph(const Graph& g_const) {
+// bng_data might be nullptr
+void dump_graph(const Graph& g_const, const BNGData* bng_data) {
 
   // not manipulating with the graph in any way, but boost needs
   // non-const variant
@@ -166,7 +200,7 @@ void dump_graph(const Graph& g_const) {
     Graph::vertex_descriptor desc = *it.first;
     const Node& mol = index[desc];
     if (mol.is_mol) {
-      cout << (int)desc << ": " << mol << "\n";
+      cout << (int)desc << ": " << mol.to_str(bng_data) << "\n";
 
       // also print connected components
       graph_traits<Graph>::out_edge_iterator ei, edge_end;
@@ -176,7 +210,7 @@ void dump_graph(const Graph& g_const) {
 
         const Node& comp = index[comp_desc];
         assert(!comp.is_mol && "Only a component may be connected to a molecule.");
-        cout << " -> " << (int)comp_desc << ": " << comp << ", connections: ";
+        cout << " -> " << (int)comp_desc << ": " << comp.to_str(bng_data) << ", connections: ";
 
         // and to which components they are connected
         graph_traits<Graph>::out_edge_iterator ei_comp, edge_end2;
