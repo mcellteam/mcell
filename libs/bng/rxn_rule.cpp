@@ -15,6 +15,7 @@
 #include <boost/graph/properties.hpp>
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/graph_utility.hpp>
+#include <boost/graph/connected_components.hpp>
 
 #include "bng/rxn_rule.h"
 #include "bng/rxn_class.h"
@@ -28,6 +29,25 @@
 using namespace std;
 
 namespace BNG {
+
+
+// used in set to represent edges
+class UnorderedPair {
+public:
+  UnorderedPair(const vertex_descriptor_t a, const vertex_descriptor_t b) : first(std::min(a,b)), second(std::max(a,b)) {
+  }
+  bool operator == (const UnorderedPair& b) const {
+    return first == b.first && second == b.second;
+  }
+  bool operator < (const UnorderedPair& b) const {
+    return first < b.first && second < b.second;
+  }
+
+  vertex_descriptor_t first;
+  vertex_descriptor_t second;
+};
+
+
 
 void RxnRule::finalize() {
   assert(id != RXN_RULE_ID_INVALID);
@@ -280,15 +300,19 @@ static void find_best_product_to_pattern_mapping(
 // vertex pointed to by reac_desc
 // must be a component and must have a single bond
 // to another component and also a bond to its molecule instance
+// returns -1 when the component is not connected to another component,
+// asserts in debug mode when must_exist is set to true and target was not found
+const vertex_descriptor_t TARGET_NOT_FOUND = -1;
 static vertex_descriptor_t get_bond_target(
     const Graph& graph,
     const VertexNameMap& index,
-    const vertex_descriptor_t desc
+    const vertex_descriptor_t desc,
+    const bool must_exist = true
 ) {
 
   bool comp_found = false;
   bool mol_found = false;
-  vertex_descriptor_t res;
+  vertex_descriptor_t res = TARGET_NOT_FOUND;
 
   boost::graph_traits<Graph>::out_edge_iterator ei, edge_end;
   for (boost::tie(ei,edge_end) = boost::out_edges(desc, graph); ei != edge_end; ++ei) {
@@ -305,6 +329,11 @@ static vertex_descriptor_t get_bond_target(
       comp_found = true;
       res = n_desc;
     }
+  }
+
+  assert(mol_found && "Component must be connected to its molecule");
+  if (must_exist) {
+    assert(comp_found);
   }
 
   return res;
@@ -332,22 +361,6 @@ vertex_descriptor_t get_new_bond_target(
   return target_pat_reac_it->second;
 }
 
-// used in set to represent edges
-class UnorderedPair {
-public:
-  UnorderedPair(const vertex_descriptor_t a, const vertex_descriptor_t b) : first(std::min(a,b)), second(std::max(a,b)) {
-  }
-  bool operator == (const UnorderedPair& b) const {
-    return first == b.first && second == b.second;
-  }
-  bool operator < (const UnorderedPair& b) const {
-    return first < b.first && second < b.second;
-  }
-
-  vertex_descriptor_t first;
-  vertex_descriptor_t second;
-};
-
 
 static void apply_rxn_on_reactants_graph(
     Graph& reactants_graph,
@@ -361,7 +374,8 @@ static void apply_rxn_on_reactants_graph(
   VertexNameMap reactants_index = boost::get(boost::vertex_name, reactants_graph);
   VertexNameMap products_index = boost::get(boost::vertex_name, products_graph);
 
-  // TODO: remove all disconnected graphs whose molecule instance is not mapped to
+  // TODO: needed when molecules are removed
+  // remove all disconnected graphs whose molecule instance is not mapped to
   // by products
 
 
@@ -493,6 +507,7 @@ static void apply_rxn_on_reactants_graph(
     boost::add_edge(p.first, p.second, reactants_graph);
   }
 
+  // TODO: needed when molecules are added
   //
   // for each molecule in product graph:
   //   if there is no mapping to reactant pattern graph:
@@ -507,9 +522,103 @@ static void apply_rxn_on_reactants_graph(
 }
 
 
+static void convert_graph_component_to_cplx_inst(
+    Graph& graph,
+    const vector<int>& graph_components,
+    const int graph_component_index,
+    CplxInstance& cplx
+) {
+  VertexNameMap index = boost::get(boost::vertex_name, graph);
+
+  map<UnorderedPair, int> bonds;
+
+  // for each molecule instance
+  typedef boost::graph_traits<Graph>::vertex_iterator vertex_iter;
+  std::pair<vertex_iter, vertex_iter> mol_it;
+  for (mol_it = boost::vertices(graph); mol_it.first != mol_it.second; ++mol_it.first) {
+    Graph::vertex_descriptor mol_desc = *mol_it.first;
+
+    if (graph_components[mol_desc] != graph_component_index) {
+      continue;
+    }
+
+    const Node& mol = index[mol_desc];
+    if (!mol.is_mol) {
+      continue;
+    }
+
+    cplx.mol_instances.push_back(*mol.mol);
+    MolInstance& mi = cplx.mol_instances.back();
+
+    // we will recreate components because they might have changed
+    mi.component_instances.clear();
+
+    // for each of its components
+    boost::graph_traits<Graph>::out_edge_iterator ei, edge_end;
+    for (boost::tie(ei,edge_end) = boost::out_edges(mol_desc, graph); ei != edge_end; ++ei) {
+      Graph::edge_descriptor e_mol_comp = *ei;
+      Graph::vertex_descriptor comp_desc = boost::target(e_mol_comp, graph);
+
+      const Node& comp = index[comp_desc];
+      assert(!comp.is_mol && "Only a component may be connected to a molecule.");
+
+      mi.component_instances.push_back(*comp.component); // we use state as it its
+      ComponentInstance& compi = mi.component_instances.back();
+
+      // we need to set bonds
+      Graph::vertex_descriptor bound_comp_desc = get_bond_target(graph, index, comp_desc, false);
+      if (bound_comp_desc == TARGET_NOT_FOUND) {
+        compi.bond_value = BOND_VALUE_NO_BOND;
+      }
+      else {
+        UnorderedPair bond(comp_desc, bound_comp_desc);
+        auto it = bonds.find(bond);
+        if (it != bonds.end()) {
+          compi.bond_value = it->second;
+        }
+        else {
+          int next_bond_index = bonds.size() + 1; // we start from 1
+          bonds[bond] = next_bond_index;
+          compi.bond_value = next_bond_index;
+        }
+      }
+    }
+
+  } // for each vertex
+
+
+  cplx.finalize();
+}
+
+
+static void create_products_from_reactants_graph(
+    const BNGData* bng_data,
+    Graph& reactants_graph,
+    vector<CplxInstance>& created_products
+) {
+  created_products.clear();
+
+  // the output of the algorithm is recorded in the component property map comp,
+  // which will contain numbers giving the component number assigned to each vertex
+  // the resulting vector is indexed by vertex_descriptor
+  vector<int> comp(boost::num_vertices(reactants_graph));
+  int num_components = boost::connected_components(
+      reactants_graph,
+      boost::make_iterator_property_map(
+          comp.begin(), boost::get(boost::vertex_index, reactants_graph), comp[0]
+      )
+  );
+
+  for (int i = 0; i < num_components; i++) {
+    created_products.push_back(CplxInstance(bng_data));
+    CplxInstance& new_cplx = created_products.back();
+    convert_graph_component_to_cplx_inst(reactants_graph, comp, i, new_cplx);
+  }
+}
+
 void RxnRule::create_products_for_complex_rxn(
-    const std::vector<const CplxInstance*>& input_reactants,
-    std::vector<CplxInstance>& created_products
+    const vector<const CplxInstance*>& input_reactants,
+    vector<CplxInstance>& created_products
 ) const {
 
   assert(mol_instances_are_fully_maintained && "Assuming this for now");
@@ -588,11 +697,9 @@ void RxnRule::create_products_for_complex_rxn(
   // still must avoid exponential complexity...
   find_best_product_to_pattern_mapping(products_graph, reactants_graph, product_pattern_mapping);
 
+#ifdef DEBUG_CPLX_MATCHING
   dump_graph_mapping(product_pattern_mapping);
-
-  // for now, let's use the mapping we have in cplx_mapping and mol_mapping
-  //convert_cplx_mol_mapping_to_graph_mapping(reactant_prod_mapping);
-
+#endif
 
   // manipulate nodes using information about products
   apply_rxn_on_reactants_graph(
@@ -604,14 +711,21 @@ void RxnRule::create_products_for_complex_rxn(
   );
 
 #ifdef DEBUG_CPLX_MATCHING
-  cout << "Reactants after applying rxn:\n";
+  cout << "\nReactants after applying rxn:\n";
   dump_graph(products_graph);
 #endif
 
-  // and create products, each disconnected graph in the result is a
+  // and finally create products, each disconnected graph in the result is a
   // separate complex instance
-  created_products.clear();
-  //XX create_products_from_reactants_graph(reactants_graph, created_products);
+  create_products_from_reactants_graph(bng_data, reactants_graph, created_products);
+
+#ifdef DEBUG_CPLX_MATCHING
+  cout << "Resulting products:\n";
+  for (auto& c: created_products) {
+    c.dump(false);
+    cout << "\n";
+  }
+#endif
 
 }
 

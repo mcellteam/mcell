@@ -26,7 +26,9 @@ namespace BNG {
 // ------------------------------------ CplxInstance -------------------------
 
 void CplxInstance::finalize() {
-  assert(!mol_instances.empty() && "There must be at least one molecule type");
+  if (mol_instances.empty()) {
+    return; // empty complex, ignoring finalization
+  }
 
   // finalize mol instances first
   for (MolInstance& mp: mol_instances) {
