@@ -1015,7 +1015,7 @@ bool RxnRule::species_can_be_reactant(const species_id_t id, const SpeciesContai
   // at least one should match
   bool matches = false;
   for (const CplxInstance& reactant: reactants) {
-    if (reactant.matches_pattern(inst, true)) {
+    if (inst.matches_pattern(reactant, true)) { // reactant is the pattern to be matched
       matches = true;
       break;
     }

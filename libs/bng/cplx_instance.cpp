@@ -134,6 +134,10 @@ bool CplxInstance::matches_complex_pattern_ignore_orientation(const CplxInstance
   VertexMappingVector mappings;
   get_subgraph_isomorphism_mappings(pattern.graph, graph, true, mappings);
   assert((mappings.size() == 0 || mappings.size() == 1) && "We are searching only for the first match");
+
+#ifdef DEBUG_CPLX_MATCHING
+  cout << "** result: " << !mappings.empty() << "\n";
+#endif
   // we need at least one match
   return !mappings.empty();
 }

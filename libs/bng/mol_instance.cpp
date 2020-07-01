@@ -39,7 +39,7 @@ std::string ComponentInstance::to_str(const BNGData& bng_data) const {
 }
 
 void ComponentInstance::dump(const BNGData& bng_data, const string& ind) const {
-  cout << ind << to_str(bng_data);
+  cout << ind << to_str(bng_data) << "\n";
 }
 
 

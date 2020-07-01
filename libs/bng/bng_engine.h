@@ -51,7 +51,7 @@ public:
   ) {
     // NOTE: probably some caching will be needed
     const CplxInstance& cplx_inst = all_species.get_as_cplx_instance(species_id);
-    return cplx_pattern.matches_pattern(cplx_inst, true);
+    return cplx_inst.matches_pattern(cplx_pattern, true);
   }
 
   species_id_t get_rxn_product_species_id(
