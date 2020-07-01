@@ -24,6 +24,7 @@
 
 #include <vector>
 #include <cassert>
+#include <map>
 
 using namespace std;
 
@@ -33,6 +34,23 @@ struct Node {
   string state; // for component
   string compartment; // for molecule
   vector<size_t> connections;
+};
+
+
+// used in set to represent edges
+class UnorderedPair {
+public:
+  UnorderedPair(const int a, const int b) : first(std::min(a,b)), second(std::max(a,b)) {
+  }
+  bool operator == (const UnorderedPair& b) const {
+    return first == b.first && second == b.second;
+  }
+  bool operator < (const UnorderedPair& b) const {
+    return first < b.first && second < b.second;
+  }
+
+  int first;
+  int second;
 };
 
 
@@ -129,6 +147,8 @@ static void graph_pattern_to_nodes(const string pat, vector<Node>& nodes) {
 static std::string nodes_to_bngl(const vector<Node>& nodes) {
   string res;
 
+  map<UnorderedPair, int> bonds;
+
   for (size_t mol_index = 0; mol_index < nodes.size(); mol_index++) {
     const Node& mol = nodes[mol_index];
     if (mol.is_mol) {
@@ -149,7 +169,18 @@ static std::string nodes_to_bngl(const vector<Node>& nodes) {
               // connection to myself
               continue;
             }
-            res += "!" + to_string(conn);
+            UnorderedPair bond(component_index, conn);
+            int bond_value;
+            auto it = bonds.find(bond);
+            if (it != bonds.end()) {
+              bond_value = it->second;
+            }
+            else {
+              int next_bond_index = bonds.size() + 1; // we start from 1
+              bonds[bond] = next_bond_index;
+              bond_value = next_bond_index;
+            }
+            res += "!" + to_string(bond_value);
           }
 
         }
