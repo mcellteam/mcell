@@ -711,6 +711,8 @@ void RxnRule::create_products_for_complex_rxn(
 #endif
 
   // manipulate nodes using information about products
+  release_assert(mol_instances_are_fully_maintained &&
+      "Creating or removing molecule instances is not supported yet in complex rules.");
   apply_rxn_on_reactants_graph(
       reactants_graph,
       pattern_reactant_mappings[0],
@@ -1095,7 +1097,7 @@ bool RxnRule::update_variable_rxn_rate(const float_t current_time, const RxnClas
 }
 
 
-std::string RxnRule::to_str() const {
+std::string RxnRule::to_str(const bool with_rate_constant) const {
   stringstream ss;
   ss << name << ": ";
 
@@ -1103,7 +1105,9 @@ std::string RxnRule::to_str() const {
   ss << " -> ";
   ss << complex_instance_vector_to_str(products);
 
-  ss << " " << rate_constant;
+  if (with_rate_constant) {
+    ss << " " << rate_constant;
+  }
 
   return ss.str();
 }

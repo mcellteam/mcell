@@ -13,6 +13,8 @@
 #include "bng/mol_type.h"
 #include "bng/parser_utils.h"
 
+const char* const DIR_FORWARD = "forward";
+const char* const DIR_REVERSE = "reverse";
 
 // each semantic check has in comment the name of a test for it
 
@@ -439,13 +441,24 @@ void SemanticAnalyzer::convert_cplx_inst_or_rxn_rule_side(
 }
 
 
-void SemanticAnalyzer::finalize_and_store_rxn_rule(const ASTRxnRuleNode* n, RxnRule& r, const char* direction_str) {
+void SemanticAnalyzer::finalize_and_store_rxn_rule(const ASTRxnRuleNode* n, RxnRule& r, const string direction_str) {
   // determine mapping from molecule instances on one side to another
   stringstream out;
   bool ok = r.compute_reactants_products_mapping_w_error_output(*bng_data, out);
   if (!ok) {
     errs_loc(n) << out.str() << " (in the " << direction_str << " direction, indices are counted from 0)\n"; // tests N0220, N0230, N0231, N0232
     ctx->inc_error_count();
+  }
+
+  // set name if it is not set
+  if (r.name == "") {
+    string n = r.to_str();
+    if (direction_str == DIR_REVERSE) {
+      r.name = "rev " + n;
+    }
+    else {
+      r.name = n;
+    }
   }
 
   bng_data->find_or_add_rxn_rule(r);
@@ -472,7 +485,7 @@ void SemanticAnalyzer::convert_and_store_rxn_rules() {
     fwd_rule.reactants = reactants;
     fwd_rule.products = products;
 
-    finalize_and_store_rxn_rule(r, fwd_rule, "forward");
+    finalize_and_store_rxn_rule(r, fwd_rule, DIR_FORWARD);
 
     if (r->reversible) {
       RxnRule rev_rule(bng_data);
@@ -491,7 +504,7 @@ void SemanticAnalyzer::convert_and_store_rxn_rules() {
       rev_rule.reactants = products;
       rev_rule.products = reactants;
 
-      finalize_and_store_rxn_rule(r, rev_rule, "reverse");
+      finalize_and_store_rxn_rule(r, rev_rule, DIR_REVERSE);
     }
   }
 }

@@ -287,7 +287,7 @@ public:
     }
   }
 
-  std::string to_str() const;
+  std::string to_str(const bool with_rate_constant = true) const;
   std::string reactants_to_str() const;
   std::string products_to_str() const;
   void dump(const bool for_diff = false, const std::string ind = "") const;

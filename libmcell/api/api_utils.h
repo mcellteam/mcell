@@ -46,8 +46,8 @@ void append_to_vec(
         // must be identical
         if (!item->__eq__(*existing)) {
           throw ValueError(
-              "Adding object of " + item->class_name +
-              " caused an error, object with the same name is already present but it is different."
+              "Adding object of " + item->class_name + " with name '" + item->name +
+              "' caused an error, object with the same name is already present but it is different."
           );
         }
       }
