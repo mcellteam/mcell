@@ -146,9 +146,9 @@ public:
     return type == RxnType::AbsorbRegionBorder;
   }
 
-  static void dump_array(const BNGData& bng_data, const std::vector<RxnClass>& vec);
+  static void dump_array(const std::vector<RxnClass>& vec);
 
-  void dump(const BNGData& bng_data, const std::string ind = "") const;
+  void dump(const std::string ind = "") const;
 
 private:
   void compute_initial_rxn_rates();

@@ -44,10 +44,10 @@ void Collision::dump(Partition& p, const std::string ind) const {
     cout << ind << "reaction:";
 
     if (rxn != nullptr) {
-      rxn->dump(p.bng_engine.get_data(), false, ind + "  ");
+      rxn->dump(false, ind + "  ");
     }
     else if (rxn_class != nullptr) {
-      rxn_class->dump(p.bng_engine.get_data(), ind + "  ");
+      rxn_class->dump(ind + "  ");
     }
   }
   else {

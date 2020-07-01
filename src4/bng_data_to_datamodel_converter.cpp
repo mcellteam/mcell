@@ -192,9 +192,9 @@ void BngDataToDatamodelConverter::convert_single_rxn_rule(const BNG::RxnRule& r,
   // LATER: maybe find an opposite reaction and generate it as reversible
   rxn_node[KEY_RXN_TYPE] = VALUE_IRREVERSIBLE;
 
-  string reactants = r.reactants_to_str(bng_engine->get_data());
+  string reactants = r.reactants_to_str();
   rxn_node[KEY_REACTANTS] = reactants;
-  string products = r.products_to_str(bng_engine->get_data());
+  string products = r.products_to_str();
   if (products == "") {
     products = VALUE_NULL;
   }

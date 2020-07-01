@@ -123,7 +123,7 @@ void BNGData::dump_reaction_rules_as_bngl() {
 
   for (const RxnRule& rr: rxn_rules) {
     cout << "  ";
-    rr.dump(*this);
+    rr.dump();
     cout << "\n";
   }
 

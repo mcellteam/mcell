@@ -1908,6 +1908,10 @@ int DiffuseReactEvent::outcome_products_random(
   }
   assert(rx != nullptr);
 
+#ifdef DEBUG_CPLX_MATCHING
+  rx->dump();
+#endif
+
   // count this reaction if needed
   if (rx->is_counted()) {
     assert(rx->id !=  BNG::RXN_RULE_ID_INVALID);

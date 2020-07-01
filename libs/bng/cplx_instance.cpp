@@ -17,6 +17,8 @@
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/vf2_sub_graph_iso.hpp>
 
+#include "debug_config.h"
+
 using namespace boost;
 
 using namespace std;
@@ -114,6 +116,18 @@ void CplxInstance::create_graph() {
 
 
 bool CplxInstance::matches_complex_pattern_ignore_orientation(const CplxInstance& pattern) const {
+
+#ifdef DEBUG_CPLX_MATCHING
+  cout << "** matches_complex_pattern_ignore_orientation:\n";
+  cout << "pattern:\n";
+  pattern.dump(false); cout << "\n";
+  pattern.dump(true);
+  dump_graph(pattern.graph);
+  cout << "this instance:\n";
+  dump(false); cout << "\n";
+  dump(true);
+  dump_graph(graph);
+#endif
   // this result cannot be cached because it might not be and applicable for other equivalent complexes,
   // we might need to impose some ordering on elementary molecules and then we can reuse the result when
   // creating products

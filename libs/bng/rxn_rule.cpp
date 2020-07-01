@@ -1086,13 +1086,13 @@ bool RxnRule::update_variable_rxn_rate(const float_t current_time, const RxnClas
 }
 
 
-std::string RxnRule::to_str(const BNGData& bng_data) const {
+std::string RxnRule::to_str() const {
   stringstream ss;
   ss << name << ": ";
 
-  ss << complex_instance_vector_to_str(bng_data, reactants);
+  ss << complex_instance_vector_to_str(reactants);
   ss << " -> ";
-  ss << complex_instance_vector_to_str(bng_data, products);
+  ss << complex_instance_vector_to_str(products);
 
   ss << " " << rate_constant;
 
@@ -1100,10 +1100,10 @@ std::string RxnRule::to_str(const BNGData& bng_data) const {
 }
 
 
-std::string RxnRule::complex_instance_vector_to_str(const BNGData& bng_data, const CplxInstanceVector& complexes) const {
+std::string RxnRule::complex_instance_vector_to_str(const CplxInstanceVector& complexes) const {
   stringstream ss;
   for (size_t i = 0; i < complexes.size(); i++) {
-    ss << complexes[i].to_str(bng_data, is_surf_rxn());
+    ss << complexes[i].to_str(*bng_data, is_surf_rxn());
 
     if (i != complexes.size() - 1) {
       ss << " + ";
@@ -1113,18 +1113,18 @@ std::string RxnRule::complex_instance_vector_to_str(const BNGData& bng_data, con
 }
 
 
-std::string RxnRule::reactants_to_str(const BNGData& bng_data) const {
-  return complex_instance_vector_to_str(bng_data, reactants);
+std::string RxnRule::reactants_to_str() const {
+  return complex_instance_vector_to_str(reactants);
 }
 
 
-std::string RxnRule::products_to_str(const BNGData& bng_data) const {
-  return complex_instance_vector_to_str(bng_data, products);
+std::string RxnRule::products_to_str() const {
+  return complex_instance_vector_to_str(products);
 }
 
 
 void RxnRule::dump_complex_instance_vector(
-    const BNGData& bng_data, const CplxInstanceVector& complexes,
+    const CplxInstanceVector& complexes,
     const std::string ind) const {
 
   for (size_t i = 0; i < complexes.size(); i++) {
@@ -1135,9 +1135,9 @@ void RxnRule::dump_complex_instance_vector(
 }
 
 
-void RxnRule::dump(const BNGData& bng_data, const bool for_diff, const std::string ind) const {
+void RxnRule::dump(const bool for_diff, const std::string ind) const {
   if (!for_diff) {
-    cout << ind << to_str(bng_data);
+    cout << ind << to_str();
   }
   else {
     cout << ind << "name: " << name << "\n";
@@ -1174,9 +1174,9 @@ void RxnRule::dump(const BNGData& bng_data, const bool for_diff, const std::stri
     cout << ind << "mol_instances_are_fully_maintained: " << mol_instances_are_fully_maintained << "\n";
 
     cout << ind << "reactants:\n";
-    dump_complex_instance_vector(bng_data, reactants, ind);
+    dump_complex_instance_vector(reactants, ind);
     cout << ind << "products:\n";
-    dump_complex_instance_vector(bng_data, products, ind);
+    dump_complex_instance_vector(products, ind);
   }
 }
 

@@ -296,24 +296,24 @@ void RxnClass::update_variable_rxn_rates(const float_t current_time) {
     if (specific_rxn_changed[i]) {
       float_t prob = (i == 0) ? cum_probs[0] : cum_probs[i] - cum_probs[i - 1];
       notifys() <<
-          "Probability " << prob << " set for " << reactions[i]->to_str(all_species.bng_data) <<
+          "Probability " << prob << " set for " << reactions[i]->to_str() <<
           " at time " << current_time << ".\n";
     }
   }
 }
 
 
-void RxnClass::dump_array(const BNGData& bng_data, const vector<RxnClass>& vec) {
+void RxnClass::dump_array(const vector<RxnClass>& vec) {
   cout << "Reaction class array: " << (vec.empty() ? "EMPTY" : "") << "\n";
 
   for (size_t i = 0; i < vec.size(); i++) {
     cout << i << ":\n";
-    vec[i].dump(bng_data, "  ");
+    vec[i].dump("  ");
   }
 }
 
 
-void RxnClass::dump(const BNGData& bng_data, const std::string ind) const {
+void RxnClass::dump(const std::string ind) const {
   assert(reactants.size() == 1 || reactants.size() == 2);
   cout << ind <<
       all_species.get(reactants[0]).name << " (" << reactants[0] << ")";
@@ -337,7 +337,7 @@ void RxnClass::dump(const BNGData& bng_data, const std::string ind) const {
   cout << "\n";
 
   for (const RxnRule* rxn: reactions) {
-    rxn->dump(bng_data, false, ind);
+    rxn->dump(false, ind);
     cout << "\n";
   }
 }

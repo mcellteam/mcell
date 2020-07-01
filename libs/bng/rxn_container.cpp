@@ -59,7 +59,7 @@ void RxnContainer::create_unimol_rxn_classes_for_new_species(const species_id_t 
 
     if (bng_config.debug_reactions) {
       cout << "BNG: Created a new unimolecular reaction class:\n";
-      rxn_class->dump(bng_data);
+      rxn_class->dump();
     }
   }
 
@@ -158,7 +158,7 @@ void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t n
 
         if (bng_config.debug_reactions) {
           cout << "BNG: Created or updated a new bimolecular reaction class:\n";
-          rxn_class->dump(bng_data, "  ");
+          rxn_class->dump("  ");
         }
       }
     } // for rxns_for_new_species
@@ -244,7 +244,7 @@ void RxnContainer::dump(const bool including_rxn_rules) const {
 
     const RxnClass* rxn_class = it_reac2.second;
     assert(rxn_class != nullptr);
-    rxn_class->dump(bng_data, "  ");
+    rxn_class->dump("  ");
     cout << "\n";
   }
 
@@ -257,7 +257,7 @@ void RxnContainer::dump(const bool including_rxn_rules) const {
 
       const RxnClass* rxn_class = it_reac2.second;
       assert(rxn_class != nullptr);
-      rxn_class->dump(bng_data, "  ");
+      rxn_class->dump("  ");
       cout << "\n";
     }
   }
@@ -266,7 +266,7 @@ void RxnContainer::dump(const bool including_rxn_rules) const {
     for (uint i = 0; i < rxn_rules.size(); i++) {
       const RxnRule* r = rxn_rules[i];
       cout << "RxnRule " << i << ": \n";
-      r->dump(bng_data, true, "  ");
+      r->dump(true, "  ");
       cout << "\n";
     }
   }
