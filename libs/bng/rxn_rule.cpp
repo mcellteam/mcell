@@ -620,16 +620,25 @@ void RxnRule::create_products_for_complex_rxn(
     const vector<const CplxInstance*>& input_reactants,
     vector<CplxInstance>& created_products
 ) const {
-
+  // NOTE: this all can be precomputed but we will need to be doing this on the fly
+  // once we will want to be maintaining molecule IDs
   assert(mol_instances_are_fully_maintained && "Assuming this for now");
 
   assert(input_reactants.size() == reactants.size());
   assert(input_reactants.size() == 1 || input_reactants.size() == 2);
 
+  // we need to make a copy of the reactants since they
+  // reference a constant cplx instance based on species
+  // and we will be modifying them
+  vector<CplxInstance> input_reactants_copy;
+  for (const CplxInstance* ci: input_reactants) {
+    input_reactants_copy.push_back(*ci);
+  }
+
   // merge input reactant graphs
-  Graph reactants_graph = input_reactants[0]->get_graph();
+  Graph reactants_graph = input_reactants_copy[0].get_graph();
   if (input_reactants.size() == 2) {
-    merge_graphs(reactants_graph, input_reactants[1]->get_graph());
+    merge_graphs(reactants_graph, input_reactants_copy[1].get_graph());
   }
 
   // merge reactant patterns
