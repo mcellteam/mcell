@@ -155,13 +155,15 @@ void Species::update_diffusion_constant(const BNGData& data, const BNGConfig& co
           is_immobile = true;
           break;
         }
+
+        acc += pow_f(mol_type_D, -3.0);
       }
 
       if (is_immobile) {
         D = 0;
       }
       else {
-        D = pow(acc, -1/3); // NFSim uses constant -0.3333333333333
+        D = pow_f(acc, -1.0/3.0); // NFSim uses constant -0.3333333333333
       }
     }
   }
