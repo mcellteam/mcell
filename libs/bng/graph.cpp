@@ -185,7 +185,7 @@ void get_subgraph_isomorphism_mappings(Graph& pattern, Graph& cplx, const bool o
 }
 
 // bng_data might be nullptr
-void dump_graph(const Graph& g_const, const BNGData* bng_data) {
+void dump_graph(const Graph& g_const, const BNGData* bng_data, const std::string ind) {
 
   // not manipulating with the graph in any way, but boost needs
   // non-const variant
@@ -200,7 +200,7 @@ void dump_graph(const Graph& g_const, const BNGData* bng_data) {
     Graph::vertex_descriptor desc = *it.first;
     const Node& mol = index[desc];
     if (mol.is_mol) {
-      cout << (int)desc << ": " << mol.to_str(bng_data) << "\n";
+      cout << ind << (int)desc << ": " << mol.to_str(bng_data) << "\n";
 
       // also print connected components
       graph_traits<Graph>::out_edge_iterator ei, edge_end;
@@ -210,7 +210,7 @@ void dump_graph(const Graph& g_const, const BNGData* bng_data) {
 
         const Node& comp = index[comp_desc];
         assert(!comp.is_mol && "Only a component may be connected to a molecule.");
-        cout << " -> " << (int)comp_desc << ": " << comp.to_str(bng_data) << ", connections: ";
+        cout << ind << " -> " << (int)comp_desc << ": " << comp.to_str(bng_data) << ", connections: ";
 
         // and to which components they are connected
         graph_traits<Graph>::out_edge_iterator ei_comp, edge_end2;

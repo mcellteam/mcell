@@ -1910,7 +1910,8 @@ int DiffuseReactEvent::outcome_products_random(
 
 #ifdef DEBUG_CPLX_MATCHING
   cout << "Reaction to be executed:\n";
-  rx->dump(); cout << "\n";
+  rx->dump(false); cout << "\n";
+  rx->dump(true); cout << "\n";
 #endif
 
   // count this reaction if needed

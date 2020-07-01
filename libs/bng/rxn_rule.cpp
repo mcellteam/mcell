@@ -1130,6 +1130,11 @@ void RxnRule::dump_complex_instance_vector(
   for (size_t i = 0; i < complexes.size(); i++) {
     cout << ind << "CplxInstance " << i << ":\n";
     complexes[i].dump(true, ind + "  ");
+
+    if (!is_simple()) {
+      cout << ind + "  " << "  graph:\n";
+      dump_graph(complexes[i].get_graph(), bng_data, ind + "  ");
+    }
     cout << "\n";
   }
 }

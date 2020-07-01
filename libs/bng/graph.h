@@ -110,7 +110,7 @@ typedef Graph::edge_descriptor edge_descriptor_t;
 // finds all subgraph isomorphism mappings of pattern graph on cplx graph
 void get_subgraph_isomorphism_mappings(Graph& pattern, Graph& cplx, const bool only_first_match, VertexMappingVector& res);
 
-void dump_graph(const Graph& g_const, const BNGData* bng_data = nullptr);
+void dump_graph(const Graph& g_const, const BNGData* bng_data = nullptr, const std::string ind = "");
 void dump_graph_mapping(const VertexMapping& mapping);
 
 } // namespace BNG
