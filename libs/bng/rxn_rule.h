@@ -132,9 +132,11 @@ private:
   std::set<RxnClass*> rxn_classes_where_used;
 
 public:
-  RxnRule()
+  RxnRule(const BNGData* bng_data_)
     : id(RXN_RULE_ID_INVALID), type(RxnType::Invalid), mol_instances_are_fully_maintained(false), rate_constant(FLT_INVALID),
-      num_surf_products(UINT_INVALID), next_variable_rate_index(0) {
+      num_surf_products(UINT_INVALID), next_variable_rate_index(0),
+      bng_data(bng_data_)
+      {
   }
 
   void finalize();
@@ -312,6 +314,7 @@ private:
       const BNGData& bng_data, const CplxInstanceVector& complexes,
       const std::string ind) const;
 
+  const BNGData* bng_data; // needed to create results of complex reactions
 };
 
 } /* namespace BNG */

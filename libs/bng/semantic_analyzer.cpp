@@ -423,7 +423,7 @@ void SemanticAnalyzer::convert_and_store_rxn_rules() {
     CplxInstanceVector products;
     convert_cplx_inst_or_rxn_rule_side(r->products, false, products);
 
-    RxnRule fwd_rule;
+    RxnRule fwd_rule(bng_data);
     fwd_rule.type = RxnType::Standard;
     fwd_rule.name = r->name;
     assert(r->rates->items.size() >= 1);
@@ -434,7 +434,7 @@ void SemanticAnalyzer::convert_and_store_rxn_rules() {
     finalize_and_store_rxn_rule(r, fwd_rule, "forward");
 
     if (r->reversible) {
-      RxnRule rev_rule;
+      RxnRule rev_rule(bng_data);
       rev_rule.type = RxnType::Standard;
       rev_rule.name = r->name;
 

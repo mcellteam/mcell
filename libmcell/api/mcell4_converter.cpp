@@ -324,7 +324,7 @@ void MCell4Converter::convert_surface_class_rxn(
   assert(sp.affected_species->species_id != SPECIES_ID_INVALID);
   BNG::Species& affected_species = world->get_all_species().get(sp.affected_species->species_id);
 
-  BNG::RxnRule rxn;
+  BNG::RxnRule rxn(&world->bng_engine.get_data());
 
   rxn.name = affected_species.name + "+" + surface_reactant.name;
 
@@ -485,7 +485,7 @@ void MCell4Converter::convert_rxns() {
 
     bool is_reversible = is_set(r->rev_rate);
 
-    BNG::RxnRule rxn;
+    BNG::RxnRule rxn(&world->bng_engine.get_data());
 
     if (is_set(r->name)) {
       rxn.name = r->name;
@@ -522,7 +522,7 @@ void MCell4Converter::convert_rxns() {
     }
 
     // reverse reaction
-    BNG::RxnRule rxn_rev;
+    BNG::RxnRule rxn_rev(&world->bng_engine.get_data());
     if (is_reversible) {
       rxn_rev.type = BNG::RxnType::Standard;
       if (is_set(r->rev_name)) {

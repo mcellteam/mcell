@@ -895,7 +895,7 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
 
     // -> pathway is renamed in MCell3 to reaction because pathway has a different meaning
     //    MCell3 reaction is reaction class
-    RxnRule rxn;
+    RxnRule rxn(&world->bng_engine.get_data());
 
     if (mcell3_rx->prob_t == nullptr) {
       rxn.rate_constant = current_pathway->km;
