@@ -85,10 +85,10 @@ void CplxInstance::create_graph() {
   map<bond_value_t, vector<Graph::vertex_descriptor>> bonds_to_vertices_map;
 
   // add all molecules with their components and remember how they should be bound
-  for (const MolInstance& mi: mol_instances) {
+  for (MolInstance& mi: mol_instances) {
     Graph::vertex_descriptor mol_desc = boost::add_vertex(MtVertexProperty(Node(&mi)), graph);
 
-    for (const ComponentInstance& ci: mi.component_instances) {
+    for (ComponentInstance& ci: mi.component_instances) {
       // for patterns, only components that were explicitly listed are in component instances
 
       Graph::vertex_descriptor comp_desc = boost::add_vertex(MtVertexProperty(Node(&ci)), graph);

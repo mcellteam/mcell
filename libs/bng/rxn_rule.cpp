@@ -277,19 +277,96 @@ static void find_best_product_to_pattern_mapping(
 }
 
 
-void apply_rxn_on_reactants_graph(
+// vertex pointed to by reac_desc
+// must be a component and must have a single bond
+// to another component and also a bond to its molecule instance
+static vertex_descriptor_t get_bond_target(
+    const Graph& graph,
+    const VertexNameMap& index,
+    const vertex_descriptor_t desc
+) {
+
+  bool comp_found = false;
+  bool mol_found = false;
+  vertex_descriptor_t res;
+
+  boost::graph_traits<Graph>::out_edge_iterator ei, edge_end;
+  for (boost::tie(ei,edge_end) = boost::out_edges(desc, graph); ei != edge_end; ++ei) {
+    Graph::edge_descriptor e_desc = *ei;
+    Graph::vertex_descriptor n_desc = boost::target(e_desc, graph);
+    const Node& n = index[n_desc];
+
+    if (n.is_mol) {
+      assert(!mol_found);
+      mol_found = true; // just for debug
+    }
+    else {
+      assert(!comp_found);
+      comp_found = true;
+      res = n_desc;
+    }
+  }
+
+  return res;
+}
+
+
+vertex_descriptor_t get_new_bond_target(
+    const Graph& reactants_graph,
+    const VertexMapping& pattern_reactant_mapping,
+    const VertexMapping& prod_pattern_mapping,
+    const Graph& products_graph,
+    const VertexNameMap& products_index,
+    const vertex_descriptor_t prod_desc
+) {
+
+  // to which node we should connect?
+  vertex_descriptor_t prog_target_desc = get_bond_target(products_graph, products_index, prod_desc);
+
+  // to which reactant we will point?
+  auto target_prod_pat_it = prod_pattern_mapping.find(prog_target_desc);
+  assert(target_prod_pat_it != prod_pattern_mapping.end() && "Mapping must exist");
+  auto target_pat_reac_it = pattern_reactant_mapping.find(target_prod_pat_it->second);
+  assert(target_pat_reac_it != pattern_reactant_mapping.end() && "Mapping must exist");
+
+  return target_pat_reac_it->second;
+}
+
+// used in set to represent edges
+class UnorderedPair {
+public:
+  UnorderedPair(const vertex_descriptor_t a, const vertex_descriptor_t b) : first(std::min(a,b)), second(std::max(a,b)) {
+  }
+  bool operator == (const UnorderedPair& b) const {
+    return first == b.first && second == b.second;
+  }
+  bool operator < (const UnorderedPair& b) const {
+    return first < b.first && second < b.second;
+  }
+
+  vertex_descriptor_t first;
+  vertex_descriptor_t second;
+};
+
+
+static void apply_rxn_on_reactants_graph(
     Graph& reactants_graph,
-    VertexMapping& pattern_reactant_mapping,
-    Graph& pattern_graph,
-    VertexMapping& prod_pattern_mapping,
+    const VertexMapping& pattern_reactant_mapping,
+    const Graph& pattern_graph,
+    const VertexMapping& prod_pattern_mapping,
     Graph& products_graph
 ) {
   set<vertex_descriptor_t> mol_instances_to_keep;
 
-  const VertexNameMap& products_index = boost::get(boost::vertex_name, products_graph);
+  VertexNameMap reactants_index = boost::get(boost::vertex_name, reactants_graph);
+  VertexNameMap products_index = boost::get(boost::vertex_name, products_graph);
 
   // TODO: remove all disconnected graphs whose molecule instance is not mapped to
   // by products
+
+
+  set<UnorderedPair> bonds_to_remove;
+  set<UnorderedPair> bonds_to_add;
 
   //
   // for each component in product graph:
@@ -297,8 +374,9 @@ void apply_rxn_on_reactants_graph(
   //     if there is no such mapping, ignore it because it might be a component of a
   //     new molecule instance
   for (auto prod_pat_it: prod_pattern_mapping) {
-    const Node& prod = products_index[prod_pat_it.first];
-    if (prod.is_mol) {
+    vertex_descriptor_t prod_desc = prod_pat_it.first;
+    const Node& prod_comp = products_index[prod_pat_it.first];
+    if (!prod_comp.is_mol) {
       // product->pattern
       vertex_descriptor_t pat_desc = prod_pat_it.second;
 
@@ -310,9 +388,109 @@ void apply_rxn_on_reactants_graph(
       vertex_descriptor_t reac_desc = pat_reac_it->second;
 
       //   manipulate state and or bond
-      //     removal of a bond should be ok
+      Node& reac_comp = reactants_index[reac_desc];
+      assert(!reac_comp.is_mol);
+      const ComponentInstance& prod_ci = *prod_comp.component;
+      ComponentInstance& reac_ci = *reac_comp.component;
 
-    }
+      // update state
+      if (prod_ci.state_is_set() && prod_ci.state_id != reac_ci.state_id) {
+        reac_ci.state_id = prod_ci.state_id;
+      }
+
+      // and bond
+      // TODO: not handling !? yet
+      if (prod_ci.bond_value != reac_ci.bond_value) {
+        // orig: !+
+        if (reac_ci.bond_value == BOND_VALUE_ANY) {
+          // new: (no bond)
+          if (prod_ci.bond_value == BOND_VALUE_NO_BOND) {
+            bonds_to_remove.insert(UnorderedPair(
+                reac_desc,
+                get_bond_target(reactants_graph, reactants_index, reac_desc)
+            ));
+          }
+          // new: !1
+          else if (prod_ci.bond_has_numeric_value()) {
+            assert(false && "Cannot change bond from !+ to !1");
+          }
+          else {
+            assert(false); // no other option
+          }
+        }
+        // orig: (no bond)
+        else if (reac_ci.bond_value == BOND_VALUE_NO_BOND) {
+          // new: !1
+          if (prod_ci.bond_has_numeric_value()) {
+
+            vertex_descriptor_t target_reac_desc = get_new_bond_target(
+                reactants_graph,
+                pattern_reactant_mapping,
+                prod_pattern_mapping,
+                products_graph,
+                products_index,
+                prod_desc
+            );
+
+            bonds_to_add.insert(UnorderedPair(reac_desc, target_reac_desc));
+          }
+          // new: !+
+          else if (prod_ci.bond_value == BOND_VALUE_ANY){
+            assert(false && "Cannot change bond from to !+");
+          }
+          else {
+            assert(false);
+          }
+        }
+        // orig: !1
+        else if (reac_ci.bond_has_numeric_value()) {
+          // new: (no bond)
+          if (prod_ci.bond_value == BOND_VALUE_NO_BOND) {
+            bonds_to_remove.insert(UnorderedPair(
+                reac_desc,
+                get_bond_target(reactants_graph, reactants_index, reac_desc)
+            ));
+          }
+          // new: !2
+          else if (prod_ci.bond_has_numeric_value()) {
+            assert(prod_ci.bond_value != reac_ci.bond_value);
+            // remove original one
+            bonds_to_remove.insert(UnorderedPair(
+                reac_desc,
+                get_bond_target(reactants_graph, reactants_index, reac_desc)
+            ));
+
+            // and create a new one
+            vertex_descriptor_t target_reac_desc = get_new_bond_target(
+                reactants_graph,
+                pattern_reactant_mapping,
+                prod_pattern_mapping,
+                products_graph,
+                products_index,
+                prod_desc
+            );
+            bonds_to_add.insert(UnorderedPair(reac_desc, target_reac_desc));
+          }
+          // new: !+
+          else if (prod_ci.bond_value == BOND_VALUE_ANY){
+            assert(false && "Cannot change bond from !1 to !+");
+          }
+          else {
+            assert(false);
+          }
+        }
+      } // if (prod_ci.bond_value != reac_ci.bond_value)
+    } // if (!prod_comp.is_mol)
+  } // for (auto prod_pat_it: prod_pattern_mapping)
+
+  // remove bonds
+  for (auto p: bonds_to_remove) {
+    boost::remove_edge(p.first, p.second, reactants_graph);
+  }
+
+  // add bonds
+  for (auto p: bonds_to_add) {
+    boost::add_edge(p.first, p.second, reactants_graph);
   }
 
   //
@@ -425,6 +603,10 @@ void RxnRule::create_products_for_complex_rxn(
       products_graph
   );
 
+#ifdef DEBUG_CPLX_MATCHING
+  cout << "Reactants after applying rxn:\n";
+  dump_graph(products_graph);
+#endif
 
   // and create products, each disconnected graph in the result is a
   // separate complex instance

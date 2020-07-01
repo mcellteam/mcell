@@ -23,11 +23,11 @@ struct Node {
     : is_mol(true), mol(nullptr), component(nullptr) {
   }
 
-  Node(const MolInstance* mol_)
+  Node(MolInstance* mol_)
     : is_mol(true), mol(mol_), component(nullptr) {
   }
 
-  Node(const ComponentInstance* component_)
+  Node(ComponentInstance* component_)
     : is_mol(false), mol(nullptr), component(component_) {
   }
 
@@ -81,8 +81,8 @@ struct Node {
   }
 
   bool is_mol;
-  const MolInstance* mol;
-  const ComponentInstance* component;
+  MolInstance* mol;
+  ComponentInstance* component;
 };
 
 static std::ostream & operator<<(std::ostream &out, const Node& n);
@@ -101,6 +101,7 @@ typedef std::map<Graph::vertex_descriptor, Graph::vertex_descriptor> VertexMappi
 typedef std::vector<VertexMapping> VertexMappingVector;
 
 typedef Graph::vertex_descriptor vertex_descriptor_t;
+typedef Graph::edge_descriptor edge_descriptor_t;
 
 // finds all subgraph isomorphism mappings of pattern graph on cplx graph
 void get_subgraph_isomorphism_mappings(Graph& pattern, Graph& cplx, const bool only_first_match, VertexMappingVector& res);
