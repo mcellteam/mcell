@@ -97,13 +97,16 @@ typedef boost::adjacency_list<boost::vecS, boost::vecS, boost::undirectedS, MtVe
 typedef boost::property_map<Graph, boost::vertex_name_t >::type VertexNameMap;
 
 // FIXME: this has to be a map, not a vector of pairs..
-typedef std::map<Graph::vertex_descriptor, Graph::vertex_descriptor> MappingVector;
-typedef std::vector<MappingVector> MultipleMappingsVector;
+typedef std::map<Graph::vertex_descriptor, Graph::vertex_descriptor> VertexMapping;
+typedef std::vector<VertexMapping> VertexMappingVector;
+
+typedef Graph::vertex_descriptor vertex_descriptor_t;
 
 // finds all subgraph isomorphism mappings of pattern graph on cplx graph
-void get_subgraph_isomorphism_mappings(Graph& pattern, Graph& cplx, const bool only_first_match, MultipleMappingsVector& res);
+void get_subgraph_isomorphism_mappings(Graph& pattern, Graph& cplx, const bool only_first_match, VertexMappingVector& res);
 
 void dump_graph(const Graph& g_const);
+void dump_graph_mapping(const VertexMapping& mapping);
 
 } // namespace BNG
 

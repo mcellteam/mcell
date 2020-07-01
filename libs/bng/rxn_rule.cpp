@@ -66,78 +66,266 @@ static void merge_graphs(Graph& srcdst, const Graph& src) {
   boost::copy_graph(src, srcdst);
 }
 
+// TODO: use BGL_FORALL_VERTICES_T
 
-static int get_rxn_mol_instance_matching_score(
-    Graph& pattern_graph,
-    Graph::vertex_descriptor pattern_desc,
-    Graph& products_graph,
-    Graph::vertex_descriptor product_desc
+static int get_rxn_component_instance_matching_score(
+    const Node& prod_comp,
+    const Node& reac_comp
 ) {
-  return -1;
+  assert(!prod_comp.is_mol);
+  assert(!reac_comp.is_mol);
+
+  const ComponentInstance& ci1 = *prod_comp.component;
+  const ComponentInstance& ci2 = *reac_comp.component;
+
+  if (ci1.component_type_id != ci2.component_type_id) {
+    return -1; // not a match
+  }
+
+  int res = 0;
+  if (ci1.state_id == ci2.state_id) {
+    res++;
+  }
+
+  if (ci1.bond_value == ci2.bond_value) {
+    res++;
+  }
+
+  // note: maybe we will need to make the scoring more fine grained
+  return res;
 }
 
 
-static void find_best_reactants_to_product_mapping(
-    Graph& pattern_graph,
+static int get_rxn_mol_instance_matching_score(
     Graph& products_graph,
-    MappingVector& reactant_prod_mapping) {
+    const vertex_descriptor_t prod_mi_desc,
+    Graph& reactants_graph,
+    const vertex_descriptor_t reac_mi_desc,
+    const VertexNameMap& index
+) {
+  // similar code as in find_best_component_mapping
+  // FIXME: find a way how to merge it
 
-  reactant_prod_mapping.clear();
+  int res = 0;
 
-  set<Graph::vertex_descriptor> mapped_reactants;
+  set<vertex_descriptor_t> mapped_components;
+
+  boost::graph_traits<Graph>::out_edge_iterator prod_ei, prod_edge_end;
+  for (boost::tie(prod_ei, prod_edge_end) = boost::out_edges(prod_mi_desc, products_graph); prod_ei != prod_edge_end; ++prod_ei) {
+    vertex_descriptor_t prod_comp_desc = boost::target(*prod_ei, products_graph);
+    const Node& prod_comp = index[prod_comp_desc];
+
+    int best_comp_score = -1; // not found
+    vertex_descriptor_t best_comp_reac_desc;
+
+    // compare against components of the best match
+    boost::graph_traits<Graph>::out_edge_iterator reac_ei, reac_edge_end;
+    for (boost::tie(reac_ei, reac_edge_end) = boost::out_edges(reac_mi_desc, reactants_graph); reac_ei != reac_edge_end; ++reac_ei) {
+      vertex_descriptor_t reac_comp_desc = boost::target(*reac_ei, products_graph);
+      const Node& reac_comp = index[reac_comp_desc];
+
+      if (!reac_comp.is_mol &&
+          reac_comp.component->component_type_id == prod_comp.component->component_type_id &&
+          mapped_components.count(reac_comp_desc) == 0 // not mapped yet
+      ) {
+
+        int current_score = get_rxn_component_instance_matching_score(
+            prod_comp,
+            reac_comp
+        );
+        if (current_score > best_comp_score) {
+          best_comp_reac_desc = reac_comp_desc;
+          best_comp_score = current_score;
+        }
+      }
+    }
+
+    if (best_comp_score >= 0) {
+      // remember score of this mapping
+      res += best_comp_score;
+
+      // we used this reactant's component
+      assert(mapped_components.count(best_comp_reac_desc) == 0);
+      mapped_components.insert(best_comp_reac_desc);
+    }
+  }
+
+  return res;
+}
+
+
+static void find_best_component_mapping(
+    Graph& products_graph,
+    vertex_descriptor_t prod_mi_desc,
+    Graph& reactants_graph,
+    vertex_descriptor_t reac_mi_desc,
+    const VertexNameMap& index,
+    VertexMapping& prod_reac_mapping
+) {
+  set<vertex_descriptor_t> mapped_components;
+
+  // now also define mapping for the components of this molecule instance
+  boost::graph_traits<Graph>::out_edge_iterator prod_ei, prod_edge_end;
+  for (boost::tie(prod_ei, prod_edge_end) = boost::out_edges(prod_mi_desc, products_graph); prod_ei != prod_edge_end; ++prod_ei) {
+    vertex_descriptor_t prod_comp_desc = boost::target(*prod_ei, products_graph);
+    const Node& prod_comp = index[prod_comp_desc];
+
+    int best_comp_score = -1; // not found
+    vertex_descriptor_t best_comp_reac_desc;
+
+    // compare against components of the best match
+    boost::graph_traits<Graph>::out_edge_iterator reac_ei, reac_edge_end;
+    for (boost::tie(reac_ei, reac_edge_end) = boost::out_edges(reac_mi_desc, reactants_graph); reac_ei != reac_edge_end; ++reac_ei) {
+      vertex_descriptor_t reac_comp_desc = boost::target(*reac_ei, products_graph);
+      const Node& reac_comp = index[reac_comp_desc];
+
+      if (!reac_comp.is_mol &&
+          reac_comp.component->component_type_id == prod_comp.component->component_type_id &&
+          mapped_components.count(reac_comp_desc) == 0 // not mapped yet
+      ) {
+
+        int current_score = get_rxn_component_instance_matching_score(
+            prod_comp,
+            reac_comp
+        );
+        if (current_score > best_comp_score) {
+          best_comp_reac_desc = reac_comp_desc;
+          best_comp_score = current_score;
+        }
+      }
+    }
+
+    if (best_comp_score >= 0) {
+      // remember this mapping
+      assert(prod_reac_mapping.count(prod_comp_desc) == 0);
+      prod_reac_mapping[prod_comp_desc] = best_comp_reac_desc;
+
+      // we mapped this component reactant
+      assert(mapped_components.count(best_comp_reac_desc) == 0);
+      mapped_components.insert(best_comp_reac_desc);
+    }
+  }
+}
+
+static void find_best_product_to_pattern_mapping(
+    Graph& products_graph,
+    Graph& reactants_graph,
+    VertexMapping& prod_reac_mapping) {
+
+  prod_reac_mapping.clear();
+
+  set<vertex_descriptor_t> mapped_reactants;
 
   // get the property map for vertex indices
-  VertexNameMap index = boost::get(boost::vertex_name, pattern_graph);
+  const VertexNameMap& index = boost::get(boost::vertex_name, reactants_graph);
 
   // for each molecule instance in pattern_graph
   typedef boost::graph_traits<Graph>::vertex_iterator vertex_iter;
-  std::pair<vertex_iter, vertex_iter> reac_it;
-  for (reac_it = boost::vertices(pattern_graph); reac_it.first != reac_it.second; ++reac_it.first) {
-    Graph::vertex_descriptor reac_desc = *reac_it.first;
-    const Node& reac_mi = index[reac_desc];
-    if (reac_mi.is_mol) {
+  std::pair<vertex_iter, vertex_iter> prod_it;
+  for (prod_it = boost::vertices(products_graph); prod_it.first != prod_it.second; ++prod_it.first) {
+    vertex_descriptor_t prod_desc = *prod_it.first;
+    const Node& prod_mi = index[prod_desc];
+    if (prod_mi.is_mol) {
 
       // find the best match for this molecule instance
       // in products graph
-      std::pair<vertex_iter, vertex_iter> prod_it;
-      int best_score = -1; // not found
-      Graph::vertex_descriptor best_prod_match;
-      for (prod_it = boost::vertices(pattern_graph); prod_it.first != prod_it.second; ++prod_it.first) {
-        const Node& prod_mi = index[*prod_it.first];
-        if (prod_mi.is_mol &&
-            prod_mi.mol->mol_type_id == reac_mi.mol->mol_type_id &&
-            mapped_reactants.count(*prod_it.first) == 0 // not mapped yet
+      int best_mol_score = -1; // not found
+      vertex_descriptor_t best_mol_reac_desc;
+      std::pair<vertex_iter, vertex_iter> reac_it;
+      for (reac_it = boost::vertices(reactants_graph); reac_it.first != reac_it.second; ++reac_it.first) {
+        const Node& reac_mi = index[*reac_it.first];
+        if (reac_mi.is_mol &&
+            reac_mi.mol->mol_type_id == prod_mi.mol->mol_type_id &&
+            mapped_reactants.count(*reac_it.first) == 0 // not mapped yet
         ) {
 
           int current_score = get_rxn_mol_instance_matching_score(
-              pattern_graph,
-              *reac_it.first,
               products_graph,
-              *prod_it.first
+              *reac_it.first,
+              reactants_graph,
+              *prod_it.first,
+              index
           );
 
-          if (current_score > best_score) {
-            best_prod_match = *prod_it.first;
-            best_score = current_score;
+          if (current_score > best_mol_score) {
+            best_mol_reac_desc = *reac_it.first;
+            best_mol_score = current_score;
           }
         }
       }
 
-      // remember this mapping
-      // XX
-      //assert(reactant_prod_mapping.count(reac_desc) == 0);
-      //reactant_prod_mapping[reac_desc] = best_prod_match;
+      if (best_mol_score >= 0) {
+        // remember this mapping
+        assert(prod_reac_mapping.count(prod_desc) == 0);
+        prod_reac_mapping[prod_desc] = best_mol_reac_desc;
 
-      // we mapped this reactant
-      mapped_reactants.insert(reac_desc);
+        // we mapped this reactant
+        assert(mapped_reactants.count(best_mol_reac_desc) == 0);
+        mapped_reactants.insert(best_mol_reac_desc);
 
-      // now also define mapping for the components of this molecule instance
+        find_best_component_mapping(
+            products_graph,
+            prod_desc,
+            reactants_graph,
+            best_mol_reac_desc,
+            index,
+            prod_reac_mapping
+        );
+      } // ^^^ handling of found reactants
+    } // is mol
+  }
+}
 
 
-      //
+void apply_rxn_on_reactants_graph(
+    Graph& reactants_graph,
+    VertexMapping& pattern_reactant_mapping,
+    Graph& pattern_graph,
+    VertexMapping& prod_pattern_mapping,
+    Graph& products_graph
+) {
+  set<vertex_descriptor_t> mol_instances_to_keep;
+
+  const VertexNameMap& products_index = boost::get(boost::vertex_name, products_graph);
+
+  // TODO: remove all disconnected graphs whose molecule instance is not mapped to
+  // by products
+
+  //
+  // for each component in product graph:
+  //   find corresponding component in reactant pattern
+  //     if there is no such mapping, ignore it because it might be a component of a
+  //     new molecule instance
+  for (auto prod_pat_it: prod_pattern_mapping) {
+    const Node& prod = products_index[prod_pat_it.first];
+    if (prod.is_mol) {
+      // product->pattern
+      vertex_descriptor_t pat_desc = prod_pat_it.second;
+
+      //   find component corresponding to reactant pattern in reactants_graph
+      //     this mapping must exist because we matched the pattern graph to reactants graph
+      auto pat_reac_it = pattern_reactant_mapping.find(pat_desc);
+      assert(pat_reac_it != pattern_reactant_mapping.end() && "Mapping should exist?");
+
+      vertex_descriptor_t reac_desc = pat_reac_it->second;
+
+      //   manipulate state and or bond
+      //     removal of a bond should be ok
 
     }
   }
+
+  //
+  // for each molecule in product graph:
+  //   if there is no mapping to reactant pattern graph:
+  //     check that all components that have state are connected and defined in the product graph
+  //     create a new molecule instance in the reactants_graph
+  //     for each component of the molecule in product graph:
+  //       add it and connect to molecule
+  //       if it has a bond:
+  //         if does the second target already exist:
+  //           create a bond
+  //
 }
 
 
@@ -183,16 +371,16 @@ void RxnRule::create_products_for_complex_rxn(
   dump_graph(reactants_graph);
 #endif
 
-  MultipleMappingsVector pattern_to_reactants_mappings;
+  VertexMappingVector pattern_reactant_mappings;
   get_subgraph_isomorphism_mappings(
       pattern_graph, // pattern
       reactants_graph, // actual reactant
       false, // do not stop with first match
-      pattern_to_reactants_mappings
+      pattern_reactant_mappings
   );
-  assert(pattern_to_reactants_mappings.size() != 0 &&
+  assert(pattern_reactant_mappings.size() != 0 &&
       "Did not find a match of patterns onto reaction.");
-  assert(pattern_to_reactants_mappings.size() == 1 &&
+  assert(pattern_reactant_mappings.size() == 1 &&
       "We do not support multiple matches yet and then there must be at least one match.");
 
 
@@ -216,38 +404,26 @@ void RxnRule::create_products_for_complex_rxn(
   // find all mappings and compute score for each of those mappings so that we get the best match
   // -> each matching state is a positive point
 
-  MappingVector reactant_prod_mapping;
+  VertexMapping product_pattern_mapping;
   // TODO: boost subgraph won't find a mapping of one of the reactants is not present in products,
   // we will need to write this manually, hopefully the graphs won't be too large
   // still must avoid exponential complexity...
-  find_best_reactants_to_product_mapping(pattern_graph, products_graph, reactant_prod_mapping);
+  find_best_product_to_pattern_mapping(products_graph, reactants_graph, product_pattern_mapping);
+
+  dump_graph_mapping(product_pattern_mapping);
 
   // for now, let's use the mapping we have in cplx_mapping and mol_mapping
   //convert_cplx_mol_mapping_to_graph_mapping(reactant_prod_mapping);
 
 
   // manipulate nodes using information about products
-  //
-  // for each component in product graph:
-  //   find corresponding component in reactant pattern
-  //     if there is no such mapping, ignore it because it might be a component of a
-  //     new molecule instance
-  //   find component corresponding to reactant pattern in reactants_graph
-  //     this mapping must exist because we matched the pattern graph to reactants graph
-  //   manipulate state and or bond
-  //     removal of a bond should be ok
-  //
-  // for each molecule in product graph:
-  //   if there is no mapping to reactant pattern graph:
-  //     check that all components that have state are connected and defined in the product graph
-  //     create a new molecule instance in the reactants_graph
-  //     for each component of the molecule in product graph:
-  //       add it and connect to molecule
-  //       if it has a bond:
-  //         if does the second target already exist:
-  //           create a bond
-  //
-  //XX apply_rxn_on_reactants_graph(reactants_graph);
+  apply_rxn_on_reactants_graph(
+      reactants_graph,
+      pattern_reactant_mappings[0],
+      pattern_graph,
+      product_pattern_mapping,
+      products_graph
+  );
 
 
   // and create products, each disconnected graph in the result is a

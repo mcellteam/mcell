@@ -115,7 +115,7 @@ bool CplxInstance::matches_complex_pattern_ignore_orientation(const CplxInstance
   // this result cannot be cached because it might not be and applicable for other equivalent complexes,
   // we might need to impose some ordering on elementary molecules and then we can reuse the result when
   // creating products
-  MultipleMappingsVector mappings;
+  VertexMappingVector mappings;
   get_subgraph_isomorphism_mappings(pattern.graph, graph, true, mappings);
   assert((mappings.size() == 0 || mappings.size() == 1) && "We are searching only for the first match");
   // we need at least one match
@@ -129,7 +129,7 @@ bool CplxInstance::matches_complex_fully_ignore_orientation(const CplxInstance& 
     return false;
   }
 
-  MultipleMappingsVector mappings;
+  VertexMappingVector mappings;
   get_subgraph_isomorphism_mappings(pattern.graph, graph, true, mappings);
   assert((mappings.size() == 0 || mappings.size()) == 1 && "We are searching only for the first match");
 

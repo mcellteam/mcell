@@ -51,7 +51,7 @@ public:
 
   // constructor, result is stored into mappings_
   CallBackToCollectMapping(
-      const Graph& graph1_, const Graph& graph2_, const bool only_first_match_, MultipleMappingsVector& mappings_)
+      const Graph& graph1_, const Graph& graph2_, const bool only_first_match_, VertexMappingVector& mappings_)
     : graph1(graph1_), graph2(graph2_), only_first_match(only_first_match_), mappings(mappings_) {}
 
   template <typename CorrespondenceMap1To2, typename CorrespondenceMap2To1>
@@ -59,7 +59,7 @@ public:
 
     // TODO: handle maximal number of matches, some counter
 
-    mappings.push_back(MappingVector());
+    mappings.push_back(VertexMapping());
     BGL_FORALL_VERTICES_T(v, graph1, Graph) {
       mappings.back()[get(boost::vertex_index_t(), graph1, v)] =
               get(boost::vertex_index_t(), graph2, get(f, v));
@@ -72,13 +72,12 @@ public:
       return true;
     }
   }
-  std::vector<MappingVector> get_setvmap() { return mappings; }
 
 private:
   const Graph& graph1;
   const Graph& graph2;
   bool only_first_match;
-  MultipleMappingsVector& mappings; // result is stored here
+  VertexMappingVector& mappings; // result is stored here
 };
 
 // Binary function object that returns true if the values for item1
@@ -94,11 +93,11 @@ struct PropertyMapMoleculeTypeMatching {
   bool operator()(const ItemFirst item1, const ItemSecond item2) {
     const Node& n1 = get(property_map1, item1);
     const Node& n2 = get(property_map2, item2);
-#ifdef DEBUG_CPLX_MATCHING
+#ifdef DEBUG_CPLX_MATCHING_EXTRA_COMPARE
     cout << "Comparing " << item1 << ": " << n1 << " and " << item2 << ": " << n2 << "\n";
 #endif
     bool res = n1.compare(n2);
-#ifdef DEBUG_CPLX_MATCHING
+#ifdef DEBUG_CPLX_MATCHING_EXTRA_COMPARE
     cout << "  " << (res ? "true" : "false") << "\n";
 #endif
     return res;
@@ -122,7 +121,7 @@ PropertyMapMoleculeTypeMatching make_property_map_molecule_type_matching(
 
 // TODO LATER: can we make the arguments constant?
 // using mutable graph now
-void get_subgraph_isomorphism_mappings(Graph& pattern, Graph& cplx, const bool only_first_match, MultipleMappingsVector& res) {
+void get_subgraph_isomorphism_mappings(Graph& pattern, Graph& cplx, const bool only_first_match, VertexMappingVector& res) {
 
   res.clear();
 
@@ -140,7 +139,7 @@ void get_subgraph_isomorphism_mappings(Graph& pattern, Graph& cplx, const bool o
 
 #ifdef DEBUG_CPLX_MATCHING
   int i = 0;
-  for (MappingVector& vec: callback.get_setvmap()) {
+  for (VertexMapping& vec: res) {
     cout << i << ": ";
     for (std::pair<Graph::vertex_descriptor, Graph::vertex_descriptor> item: vec) {
       cout << "(" << item.first << "," << item.second << ")" << " ";
@@ -195,5 +194,13 @@ void dump_graph(const Graph& g_const) {
     }
   }
 }
+
+
+void dump_graph_mapping(const VertexMapping& mapping) {
+  for (auto it: mapping) {
+    cout << "(" << (int)it.first << ", " << it.second << "), ";
+  }
+}
+
 
 } // namespace BNG
