@@ -737,13 +737,14 @@ bool MCell3WorldConverter::convert_species(volume* s) {
         || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_REGION_BORDER)
 
         || flags_check == (SPECIES_FLAG_CAN_VOLVOL | SPECIES_FLAG_CAN_VOLWALL | COUNT_CONTENTS | COUNT_ENCLOSED)
+        || flags_check == (SPECIES_FLAG_CAN_VOLVOL | SPECIES_FLAG_CAN_VOLSURF | SPECIES_FLAG_CAN_VOLWALL | COUNT_CONTENTS | COUNT_ENCLOSED)
         || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF | COUNT_CONTENTS)
+        || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF | COUNT_CONTENTS | COUNT_ENCLOSED | SPECIES_FLAG_CAN_REGION_BORDER)
         || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_VOLVOL | COUNT_CONTENTS)
         || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_SURFSURF | COUNT_CONTENTS)
         || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_SURFSURF | SPECIES_FLAG_CAN_VOLWALL | COUNT_CONTENTS)
         || flags_check == (SPECIES_FLAG_CAN_VOLWALL | SPECIES_FLAG_COUNT_ENCLOSED | COUNT_CONTENTS)
         || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_SURFSURF | CAN_SURFWALL | SPECIES_FLAG_CAN_REGION_BORDER)
-
       )) {
       mcell_log("Unsupported species flag for species %s: %s\n", new_species.name.c_str(), get_species_flags_string(spec->flags).c_str());
       CHECK_PROPERTY(false && "Flags listed in the message above are not supported yet");
