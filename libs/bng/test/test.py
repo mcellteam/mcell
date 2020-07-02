@@ -48,7 +48,8 @@ def run_single_test(test_app, test_file):
     ec = utils.run(cmd, cwd=WORK_DIR, fout_name=log_file, verbose=False)
     
     if (ec != expected_ec):
-        print("!FAIL " + test_file + ": exit code was " + str(ec) + ", expected " + str(expected_ec))
+        print("!FAIL " + test_file + ": exit code was " + str(ec) + ", expected " + str(expected_ec) + 
+              ", log: " + log_file)
         return False
     
     with open(log_file, 'r') as f:

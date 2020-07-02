@@ -281,13 +281,11 @@ MolInstance SemanticAnalyzer::convert_molecule_pattern(const ASTMoleculeNode* m)
       // is it allowed at all?
       if (allowed_component_ids.count(component_type_id) == 0) {
         errs_loc(m) <<
-            "Molecule type '" << mt.name << "' does not declare component '" << component->name <<
-            "' or all instances of this component were already used.\n"; // test N0201
+            "Molecule type '" << mt.name << "' does not declare component '" << component->name << "'.\n"; // test N0201
       }
       else {
         errs_loc(m) <<
-            "Molecule type's '" << mt.name << "' component '" << component->name <<
-            "' is used too many times.\n";
+            "Molecule type's '" << mt.name << "' component '" << component->name << "' is used too many times.\n";
       }
       ctx->inc_error_count();
       return mi;
@@ -450,6 +448,9 @@ void SemanticAnalyzer::convert_cplx_inst_or_rxn_rule_side(
   if (!current_complex_nodes.empty()) {
     CplxInstance pattern(bng_data);
     convert_complex_pattern(current_complex_nodes, pattern);
+    if (ctx->get_error_count() != 0) {
+      return;
+    }
     patterns.push_back(pattern);
   }
 
@@ -468,8 +469,8 @@ void SemanticAnalyzer::finalize_and_store_rxn_rule(const ASTRxnRuleNode* n, RxnR
     ctx->inc_error_count();
   }
 
-  // set name if it is not set
-  if (r.name == "") {
+  // set name if it is not set, also errors could have left the rxn in invalid state
+  if (r.name == "" && ctx->get_error_count() == 0) {
     string n = r.to_str();
     if (direction_str == DIR_REVERSE) {
       r.name = "rev " + n;
@@ -494,6 +495,10 @@ void SemanticAnalyzer::convert_and_store_rxn_rules() {
 
     CplxInstanceVector products;
     convert_cplx_inst_or_rxn_rule_side(r->products, false, products);
+
+    if (ctx->get_error_count() > 0) {
+      return;
+    }
 
     RxnRule fwd_rule(bng_data);
     fwd_rule.type = RxnType::Standard;

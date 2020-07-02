@@ -1,6 +1,5 @@
 # FAIL
-# OUTPUT: error: Molecule type 'A' does not declare component 'a' or all instances of this component were already used.
-# OUTPUT: error: Molecule type 'A' does not declare component 'q' or all instances of this component were already used.
+# OUTPUT: error: Molecule type 'A' does not declare component 'q'.
 
 begin parameters
    kp 0.00001

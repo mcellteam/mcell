@@ -778,8 +778,10 @@ bool RxnRule::find_assigned_mol_reactant_for_product(const CplxMolIndex& product
 
 // Finds a matching already not assigned product,
 // the product must be
-// NOTE: BNGL2.pl provides more detailed reporting, see tests N220, N230-N232
-bool RxnRule::find_most_fitting_unassigned_mol_product(const CplxMolIndex& reactant_cmi, CplxMolIndex& best_product_cmi) const {
+// Return true if the the product was found
+// NOTE: BNGL2.pl provides more detailed reporting, see tests N0220, N0230-N0232
+bool RxnRule::find_most_fitting_unassigned_mol_product(
+    const CplxMolIndex& reactant_cmi, CplxMolIndex& best_product_cmi) const {
   const MolInstance& reactant_mol_inst = get_mol_reactant(reactant_cmi);
 
   int best_score = -1;
@@ -808,7 +810,10 @@ bool RxnRule::find_most_fitting_unassigned_mol_product(const CplxMolIndex& react
       int num_same_explicitly_listed_components = 0;
       int num_same_component_states = 0; // when the components are expl. listed
 
-      assert(reactant_mol_inst.component_instances.size() == product_mol_inst.component_instances.size());
+      if (reactant_mol_inst.component_instances.size() != product_mol_inst.component_instances.size()) {
+        // probably a wrong molecule
+        continue;
+      }
       for (uint i = 0; i < reactant_mol_inst.component_instances.size(); i++) {
 
         const ComponentInstance& reactant_comp_inst = reactant_mol_inst.component_instances[i];
@@ -920,7 +925,9 @@ void RxnRule::compute_cplx_reactants_products_mapping() {
 }
 
 
-bool RxnRule::compute_mol_reactants_products_mapping(MolInstance& not_matching_mol_inst, CplxMolIndex& not_matching_cmi) {
+// returns false if there was an error
+bool RxnRule::compute_mol_reactants_products_mapping(
+    MolInstance& not_matching_mol_inst, CplxMolIndex& not_matching_cmi) {
   mol_mapping.clear();
 
   mol_instances_are_fully_maintained = has_same_mols_in_reactants_and_products();
@@ -972,6 +979,8 @@ bool RxnRule::compute_reactants_products_mapping_w_error_output(const BNGData& b
   CplxMolIndex not_matching_cmi;
   bool ok = compute_mol_reactants_products_mapping(not_matching_mol_inst, not_matching_cmi);
   if (!ok) {
+    // TODO: this message should be improved
+    //out << "Did not find a matching molecule in products for reaction rule.";
     out << "Did not find a matching molecule in products for reactant molecule ";
     out << not_matching_mol_inst.to_str(bng_data, true);
     out << " listed as complex " << not_matching_cmi.cplx_index << " and molecule " << not_matching_cmi.mol_index << ".";

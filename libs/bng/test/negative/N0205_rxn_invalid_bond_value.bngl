@@ -1,5 +1,5 @@
 # FAIL
-# OUTPUT: error: Unexpected character '-'.
+# OUTPUT: error: syntax error, unexpected '-'
 # NOTE: parser already reports this error
 
 begin parameters
