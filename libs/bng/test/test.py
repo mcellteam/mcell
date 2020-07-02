@@ -92,7 +92,8 @@ def run_tests(test_app):
 if __name__ == '__main__':
     
     if len(sys.argv) == 2:
-        test_app = sys.argv[1]
+        test_dir = sys.argv[1]
+        test_app = os.path.join(test_dir, 'libs', 'bng', 'test_bng')
     else:     
         test_app = TEST_APP
         
