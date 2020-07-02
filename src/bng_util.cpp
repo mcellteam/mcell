@@ -156,7 +156,8 @@ static std::string nodes_to_bngl(const vector<Node>& nodes) {
       if (!mol.connections.empty()) {
         res += "(";
 
-        for (size_t component_index: mol.connections) {
+        for (size_t i = 0; i < mol.connections.size(); i++) {
+          size_t component_index = mol.connections[i];
           const Node& comp = nodes[component_index];
 
           res += comp.name;
@@ -183,6 +184,9 @@ static std::string nodes_to_bngl(const vector<Node>& nodes) {
             res += "!" + to_string(bond_value);
           }
 
+          if (i + 1!= mol.connections.size()) {
+            res += ",";
+          }
         }
         res += ")";
       }

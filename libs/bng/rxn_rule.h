@@ -185,6 +185,7 @@ public:
   // sets members molecule_instances_are_maintained and mapping,
   // might write some error messages to the msgs stream,
   // returns true if errors were encountered
+  // TODO: replace with find_best_product_to_pattern_mapping
   bool compute_reactants_products_mapping();
 
   bool compute_reactants_products_mapping_w_error_output(const BNGData& bng_data, std::ostream& out);

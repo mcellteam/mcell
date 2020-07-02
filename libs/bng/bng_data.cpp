@@ -60,6 +60,16 @@ component_type_id_t BNGData::find_or_add_component_type(const ComponentType& ct)
 }
 
 
+component_type_id_t BNGData::find_component_type_id(const std::string& name) const {
+  for (component_type_id_t i = 0; i < component_types.size(); i++) {
+    if (component_types[i].name == name) {
+      return i;
+    }
+  }
+  return COMPONENT_TYPE_ID_INVALID;
+}
+
+
 mol_type_id_t BNGData::find_or_add_molecule_type(const MolType& mt) {
   // TODO LATER: check that if there is a molecule type with the same name,
   // it has the same components and allowed states

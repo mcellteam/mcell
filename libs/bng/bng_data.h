@@ -77,6 +77,9 @@ public:
 
   component_type_id_t find_or_add_component_type(const ComponentType& ct);
 
+  // may return COMPONENT_TYPE_ID_INVALID when the name was not found
+  component_type_id_t find_component_type_id(const std::string& name) const;
+
   const ComponentType& get_component_type(const component_type_id_t id) const {
     assert(id < component_types.size());
     return component_types[id];

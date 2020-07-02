@@ -240,22 +240,31 @@ void SemanticAnalyzer::convert_and_store_molecule_types() {
 
 MolInstance SemanticAnalyzer::convert_molecule_pattern(const ASTMoleculeNode* m) {
 
-  MolInstance mp;
+  MolInstance mi;
   // there is no support for surface molecules in BNGL yet, so everything must be volume molecule
-  mp.set_is_vol();
+  mi.set_is_vol();
 
   // process and remember ID
   mol_type_id_t molecule_type_id = bng_data->find_molecule_type_id(m->name);
   if (molecule_type_id == MOL_TYPE_ID_INVALID) {
     errs_loc(m) << "Molecule type with name '" + m->name + "' was not defined.\n"; // test N0200
     ctx->inc_error_count();
-    return mp;
+    return mi;
   }
 
   const MolType& mt = bng_data->get_molecule_type(molecule_type_id);
-  mp.mol_type_id = molecule_type_id;
+  mi.mol_type_id = molecule_type_id;
 
-  mp.initialize_components_types(mt);
+
+  // make a multiset of components type ids so that we can check that
+  // out molecule instance does not use wrong or too many components
+  multiset<component_type_id_t> remaining_component_ids;
+  set<component_type_id_t> allowed_component_ids;
+  for (component_type_id_t component_type_id: mt.component_type_ids) {
+    remaining_component_ids.insert(component_type_id);
+    allowed_component_ids.insert(component_type_id);
+  }
+
 
   uint current_component_index = 0;
 
@@ -264,25 +273,34 @@ MolInstance SemanticAnalyzer::convert_molecule_pattern(const ASTMoleculeNode* m)
     // component_instances
     const ASTComponentNode* component = to_component_node(m->components->items[i]);
 
-    // which component in the type it is?
-    // E.g. when the type is A(a, a, a, b, c, b) then the pattern mathes like this:
-    //                       A(a, a,    b, c   ),
-    current_component_index = mp.get_corresponding_component_index(*bng_data, mt, component->name, current_component_index);
-    if (current_component_index == INDEX_INVALID) {
-      errs_loc(m) <<
-          "Molecule type '" << mt.name << "' does not declare component '" << component->name <<
-          "' or all instances of this component were already used.\n"; // test N0201
+    component_type_id_t component_type_id = bng_data->find_component_type_id(component->name);
+
+    // can we use this component?
+    if (remaining_component_ids.count(component_type_id) == 0) {
+
+      // is it allowed at all?
+      if (allowed_component_ids.count(component_type_id) == 0) {
+        errs_loc(m) <<
+            "Molecule type '" << mt.name << "' does not declare component '" << component->name <<
+            "' or all instances of this component were already used.\n"; // test N0201
+      }
+      else {
+        errs_loc(m) <<
+            "Molecule type's '" << mt.name << "' component '" << component->name <<
+            "' is used too many times.\n";
+      }
       ctx->inc_error_count();
-      return mp;
+      return mi;
     }
 
-    component_type_id_t component_type_id = mt.component_type_ids[current_component_index];
+    // add this new component
+    mi.component_instances.push_back(ComponentInstance(component_type_id));
 
     // state
     if (component->states->items.size() > 1) {
       errs_loc(component) << "A component might have max. 1 state specified, error for component " << component->name << ".\n"; // test N0202
       ctx->inc_error_count();
-      return mp;
+      return mi;
     }
 
     // check and set if state is specified
@@ -296,7 +314,7 @@ MolInstance SemanticAnalyzer::convert_molecule_pattern(const ASTMoleculeNode* m)
             "Unknown state name '" << state_name << "' for component '" << component->name <<
             "' (this state name was not found for any declared component).\n"; // test N0203
         ctx->inc_error_count();
-        return mp;
+        return mi;
       }
 
       // is this state allowed for this component?
@@ -305,11 +323,11 @@ MolInstance SemanticAnalyzer::convert_molecule_pattern(const ASTMoleculeNode* m)
         errs_loc(component) <<
             "State name '" << state_name << "' was not declared as allowed for component '" << component->name << "'.\n"; // test N0204
         ctx->inc_error_count();
-        return mp;
+        return mi;
       }
 
       // finally set the component's state
-      mp.component_instances[current_component_index].state_id = state_id;
+      mi.component_instances[current_component_index].state_id = state_id;
     }
 
     // bond
@@ -321,17 +339,17 @@ MolInstance SemanticAnalyzer::convert_molecule_pattern(const ASTMoleculeNode* m)
       ctx->internal_error(component->bond, "Invalid bond index");
     }
 
-    mp.component_instances[current_component_index].bond_value = b;
+    mi.component_instances.back().bond_value = b;
 
     // we also need to remember for further checks that this component was explicitly
     // specified
-    mp.component_instances[current_component_index].explicitly_listed_in_pattern = true;
+    mi.component_instances.back().explicitly_listed_in_pattern = true;
 
     // need to move component index because we processed this component
     current_component_index++;
   }
 
-  return mp;
+  return mi;
 }
 
 

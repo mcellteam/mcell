@@ -44,14 +44,16 @@ void ComponentInstance::dump(const BNGData& bng_data, const string& ind) const {
 
 
 // ------------- MoleculeInstance -------------
+/*
 void MolInstance::initialize_components_types(const MolType& mt) {
   for (component_type_id_t component_type_id: mt.component_type_ids) {
     // state is don't care, no bond
-    component_instances.push_back(component_type_id);
+    component_instances.push_back(ComponentInstance(component_type_id));
   }
 }
+*/
 
-
+/*
 // searches for component with name
 uint MolInstance::get_corresponding_component_index(
     const BNGData& bng_data,
@@ -70,7 +72,7 @@ uint MolInstance::get_corresponding_component_index(
 
   return INDEX_INVALID;
 }
-
+*/
 
 std::string MolInstance::to_str(const BNGData& bng_data, const bool only_explicit) const {
   stringstream ss;

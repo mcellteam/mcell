@@ -119,16 +119,6 @@ public:
         get_flags() == other.get_flags();
   }
 
-  void initialize_components_types(const MolType& mt);
-
-  // searches for component with name
-  uint get_corresponding_component_index(
-      const BNGData& bng_data,
-      const MolType& mt,
-      const std::string& name,
-      const uint starting_index
-  ) const;
-
   std::string to_str(const BNGData& bng_data, const bool only_explicit = false) const;
   //void dump(const BNGData& bng_data, const bool for_diff = false, const bool only_explicit = false) const;
   void dump(const BNGData& bng_data, const bool for_diff, const bool only_explicit, const std::string ind = "") const;

@@ -701,9 +701,10 @@ void RxnRule::create_products_for_complex_rxn(
   // -> each matching state is a positive point
 
   VertexMapping product_pattern_mapping;
-  // TODO: boost subgraph won't find a mapping of one of the reactants is not present in products,
-  // we will need to write this manually, hopefully the graphs won't be too large
-  // still must avoid exponential complexity...
+  // boost subgraph won't find a mapping of one of the reactants is not present in products,
+  // so we need to do this manually, we always stop branching at components of a single molecule
+  // so the complexity can be handled in reasonable time because there won't be usually may identical
+  // molecules
   find_best_product_to_pattern_mapping(products_graph, reactants_graph, product_pattern_mapping);
 
 #ifdef DEBUG_CPLX_MATCHING
