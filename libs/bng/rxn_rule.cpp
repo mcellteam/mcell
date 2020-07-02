@@ -676,8 +676,12 @@ void RxnRule::create_products_for_complex_rxn(
   );
   assert(pattern_reactant_mappings.size() != 0 &&
       "Did not find a match of patterns onto reaction.");
-  assert(pattern_reactant_mappings.size() == 1 &&
-      "We do not support multiple matches yet and then there must be at least one match.");
+  if (pattern_reactant_mappings.size() > 1) {
+    // are the reactants identical?
+    if (is_unimol() || !input_reactants_copy[0].matches_fully(input_reactants_copy[1])) {
+      assert("We do not support multiple matches yet.");
+    }
+  }
 
 
   // create graph from products
@@ -705,7 +709,7 @@ void RxnRule::create_products_for_complex_rxn(
   // so we need to do this manually, we always stop branching at components of a single molecule
   // so the complexity can be handled in reasonable time because there won't be usually may identical
   // molecules
-  find_best_product_to_pattern_mapping(products_graph, reactants_graph, product_pattern_mapping);
+  find_best_product_to_pattern_mapping(products_graph, pattern_graph, product_pattern_mapping);
 
 #ifdef DEBUG_CPLX_MATCHING
   dump_graph_mapping(product_pattern_mapping);
