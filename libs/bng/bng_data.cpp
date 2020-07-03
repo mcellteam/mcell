@@ -70,14 +70,14 @@ component_type_id_t BNGData::find_component_type_id(const std::string& name) con
 }
 
 
+// compares only name
 mol_type_id_t BNGData::find_or_add_molecule_type(const MolType& mt) {
   // TODO LATER: check that if there is a molecule type with the same name,
-  // it has the same components and allowed states
+  // it a subset of the same components and allowed states
 
-  for (component_type_id_t i = 0; i < molecule_types.size(); i++) {
-    if (molecule_types[i] == mt) {
-      return i;
-    }
+  mol_type_id_t existing_mt_id = find_molecule_type_id(mt.name);
+  if (existing_mt_id != MOL_TYPE_ID_INVALID) {
+    return existing_mt_id;
   }
 
   // not found

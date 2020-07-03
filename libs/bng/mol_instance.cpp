@@ -74,6 +74,16 @@ uint MolInstance::get_corresponding_component_index(
 }
 */
 
+void MolInstance::finalize_flags(const BNGData& bng_data) {
+  // copy flags from molecule type
+  set_flags(bng_data.get_molecule_type(mol_type_id).get_flags());
+
+  set_finalized();
+  // flag about molecule type must be set
+  assert(is_vol() || is_surf() || is_reactive_surface());
+}
+
+
 std::string MolInstance::to_str(const BNGData& bng_data, const bool only_explicit) const {
   stringstream ss;
   const MolType& mt = bng_data.get_molecule_type(mol_type_id);

@@ -98,11 +98,7 @@ public:
     : mol_type_id(MOL_TYPE_ID_INVALID) {
   }
 
-  void finalize_flags() {
-    set_finalized();
-    // flag about molecule type must be set
-    assert(is_vol() || is_surf() || is_reactive_surface());
-  }
+  void finalize_flags(const BNGData& bng_data);
 
   // returns true if this object as a pattern matches second instance
   bool matches_simple(const MolInstance& inst) const {

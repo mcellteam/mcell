@@ -32,16 +32,12 @@ void CplxInstance::finalize() {
     return; // empty complex, ignoring finalization
   }
 
-  // finalize mol instances first
-  for (MolInstance& mp: mol_instances) {
-    mp.finalize_flags();
-  }
-
   // volume or surface type
   bool surf_type = false;
   bool reactive_surf_type = false;
   for (MolInstance& mp: mol_instances) {
-    mp.finalize_flags();
+    // need to finalize flags - copy them from molecule type
+    mp.finalize_flags(*bng_data);
     // if at least one is a surface molecule then the whole cplx is surface molecule
     if (mp.is_surf()) {
       surf_type = true;

@@ -658,12 +658,14 @@ static bool is_species_superclass(volume* s, species* spec) {
   return spec == s->all_mols || spec == s->all_volume_mols || spec == s->all_surface_mols;
 }
 
+#ifdef SORT_MCELL4_SPECIES_BY_NAME
 static bool compare_species_name_less(species* s1, species* s2) {
   string n1 = get_sym_name(s1->sym);
   string n2 = get_sym_name(s2->sym);
 
   return n1 < n2;
 }
+#endif
 
 bool MCell3WorldConverter::convert_species(volume* s) {
 

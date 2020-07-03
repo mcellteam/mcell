@@ -287,16 +287,16 @@ void MCell4Converter::convert_species() {
     BNG::MolType mol_type;
     mol_type.name = new_species.name; // name of the mol type is the same as for our species
     mol_type.D = new_species.D; // we must also set the diffusion constant - simply inherit from this simple species
+    if (is_vol) {
+      mol_type.set_is_vol();
+    }
+    else {
+      mol_type.set_is_surf();
+    }
     BNG::mol_type_id_t mol_type_id = world->bng_engine.get_data().find_or_add_molecule_type(mol_type);
 
     BNG::MolInstance mol_inst;
     mol_inst.mol_type_id = mol_type_id;
-    if (is_vol) {
-      mol_inst.set_is_vol();
-    }
-    else {
-      mol_inst.set_is_surf();
-    }
 
     new_species.mol_instances.push_back(mol_inst);
 
@@ -375,14 +375,14 @@ void MCell4Converter::convert_surface_classes() {
     // define a molecule type with no components
     BNG::MolType mol_type;
     mol_type.name = sc_species.name; // name of the mol type is the same as for our species
+    mol_type.set_is_reactive_surface();
     BNG::mol_type_id_t mol_type_id = world->bng_engine.get_data().find_or_add_molecule_type(mol_type);
 
     BNG::MolInstance mol_inst;
     mol_inst.mol_type_id = mol_type_id;
-    mol_inst.set_is_reactive_surface();
     sc_species.mol_instances.push_back(mol_inst);
-
     sc_species.finalize();
+
     species_id_t new_species_id = world->get_all_species().find_or_add(sc_species);
 
     // remember which species we created
@@ -450,6 +450,9 @@ BNG::MolInstance MCell4Converter::convert_molecule_instance(API::ElementaryMolec
   for (std::shared_ptr<API::ComponentInstance>& api_ci: mi.components) {
     res.component_instances.push_back(convert_component_instance(*api_ci));
   }
+
+  // we must also copy flags from the mol type
+  res.finalize_flags(world->bng_engine.get_data());
 
   return res;
 }
