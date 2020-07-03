@@ -89,6 +89,9 @@ if (ENABLE_GPROF)
   SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${COMMON_PROFILING_FLAGS}")
 endif()
 
+# jsoncpp_test cannot be built with gperftools linking options
+add_subdirectory(${CMAKE_SOURCE_DIR}/libs/jsoncpp ${CMAKE_CURRENT_BINARY_DIR}/libs/jsoncpp)
+
 if (ENABLE_GPERFTOOLS)
   # build and install gperftools, for now it is done manually
   # usign script build_gperftools.sh
@@ -99,9 +102,9 @@ if (ENABLE_GPERFTOOLS)
   # pprof --gv <app> ./prof.out # graphical output, requires gv installed
   # (http://euccas.github.io/blog/20170827/cpu-profiling-tools-on-linux.html)
   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DWITHGPERFTOOLS -I${CMAKE_CURRENT_BINARY_DIR}/libs/")
-  SET(CMAKE_EXE_LINKER_FLAGS 
-  	"${CMAKE_EXE_LINKER_FLAGS} -L${CMAKE_CURRENT_BINARY_DIR}/libs/install_gperftools/lib/ -L${CMAKE_CURRENT_SOURCE_DIR}/build/install_gperftools/lib/ -lprofiler")
-
+  SET(CMAKE_LD_GPERF_FLAGS "-L${CMAKE_CURRENT_BINARY_DIR}/libs/install_gperftools/lib/ -L${CMAKE_CURRENT_SOURCE_DIR}/build/install_gperftools/lib/ -lprofiler")
+  SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${CMAKE_LD_GPERF_FLAGS}")
+  SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${CMAKE_LD_GPERF_FLAGS}")
 endif()
 	
 if (ENABLE_SANITIZER)
@@ -200,7 +203,6 @@ add_subdirectory(${CMAKE_SOURCE_DIR}/libs/pybind11 ${CMAKE_CURRENT_BINARY_DIR}/l
 add_subdirectory(${CMAKE_SOURCE_DIR}/libs/bng ${CMAKE_CURRENT_BINARY_DIR}/libs/bng)
 add_subdirectory(${CMAKE_SOURCE_DIR}/../nfsim ${CMAKE_CURRENT_BINARY_DIR}/nfsim)
 add_subdirectory(${CMAKE_SOURCE_DIR}/../nfsimCInterface ${CMAKE_CURRENT_BINARY_DIR}/nfsimCInterface)
-add_subdirectory(${CMAKE_SOURCE_DIR}/libs/jsoncpp ${CMAKE_CURRENT_BINARY_DIR}/libs/jsoncpp)
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/libmcell ${CMAKE_CURRENT_BINARY_DIR}/libmcell)
 add_subdirectory(${CMAKE_SOURCE_DIR}/src4 ${CMAKE_CURRENT_BINARY_DIR}/src4)
