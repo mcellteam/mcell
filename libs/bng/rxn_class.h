@@ -27,7 +27,10 @@ class SpeciesContainer;
 class RxnClass {
 public:
   // keeping just IDs, with IDs unlike with pointers we are able to check that the species was 'discarded'
-  std::vector<species_id_t> reactants;
+  // the rxn class was created specifically for a single or a pair of reactants, therefore
+  // the species id is is a specific instance of a complex that matches our pattern
+  // and if there are multiple species that match, multiple rxn classes are created
+  std::vector<species_id_t> specific_reactants;
 
   // reactions are owned by RxnContainer
   // order in this vector is important
@@ -57,9 +60,9 @@ public:
       all_species(all_species_), bng_config(bng_config_)
     {
     assert(reactant_id1 != SPECIES_ID_INVALID);
-    reactants.push_back(reactant_id1);
+    specific_reactants.push_back(reactant_id1);
     if (reactant_id2 != SPECIES_ID_INVALID) {
-      reactants.push_back(reactant_id2);
+      specific_reactants.push_back(reactant_id2);
     }
   }
 
@@ -135,15 +138,25 @@ public:
   }
 
   bool is_unimol() const {
-    return reactants.size() == 1;
+    return specific_reactants.size() == 1;
   }
 
   bool is_bimol() const {
-    return reactants.size() == 2;
+    return specific_reactants.size() == 2;
   }
 
   bool is_absorb_region_border() const {
     return type == RxnType::AbsorbRegionBorder;
+  }
+
+  bool is_simple() const {
+    // mostly for debug purposes
+    for (auto rxn: reactions) {
+      if (!rxn->is_simple()) {
+        return false;
+      }
+    }
+    return true;
   }
 
   static void dump_array(const std::vector<RxnClass>& vec);

@@ -544,10 +544,11 @@ static void find_restricted_regions_by_wall(
   // collect species that can react
   uint_set<species_id_t> restricted_surf_classes;
   for (const BNG::RxnClass* rxn: matching_rxns) {
+    release_assert(rxn->is_simple() && "BNG not supported here yet");
     if (rxn->is_reflect() || rxn->is_absorb_region_border()) {
-      assert(rxn->reactants.size() == 2);
+      assert(rxn->is_bimol());
 
-      restricted_surf_classes.insert(rxn->reactants[1]);
+      restricted_surf_classes.insert(rxn->specific_reactants[1]);
     }
   }
 

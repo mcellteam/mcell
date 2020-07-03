@@ -79,7 +79,7 @@ static void trigger_bimolecular(
     // no reaction
     return;
   }
-  assert(rxn_class->reactants.size() == 2 && "We already checked that there must be 2 reactants");
+  assert(rxn_class->is_bimol() && "We already checked that there must be 2 reactants");
 
   /* Check to see if orientation classes are zero/different */
   int test_wall = 0;
@@ -146,7 +146,7 @@ static void find_surface_mol_reactions_with_surf_classes_for_rxn_class_map(
   }
 
   BNG::RxnClass* rxn_class = reactions_reacA_and_surface_it->second;
-  assert(rxn_class->reactants.size() == 2);
+  assert(rxn_class->is_bimol());
   if (rxn_class->get_num_reactions() == 0) {
     return;
   }

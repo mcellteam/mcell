@@ -1636,9 +1636,9 @@ int DiffuseReactEvent::outcome_intersect(
   bool keep_reacA = true, keep_reacB = true;
 
   // expecting that the surface is always the second reactant
-  assert(p.get_all_species().get(rxn_class->reactants[1]).is_reactive_surface());
+  assert(p.get_all_species().get(rxn_class->specific_reactants[1]).is_reactive_surface());
 
-  if (rxn_class->reactants[0] == all_molecules_id || rxn_class->reactants[0] == all_volume_molecules_id) {
+  if (rxn_class->specific_reactants[0] == all_molecules_id || rxn_class->specific_reactants[0] == all_volume_molecules_id) {
     assert(rxn_class->get_num_reactions() == 1);
     keep_reacA = false;
     result = RX_DESTROY;
