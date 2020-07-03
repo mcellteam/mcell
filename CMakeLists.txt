@@ -90,7 +90,8 @@ if (ENABLE_GPROF)
 endif()
 
 if (ENABLE_GPERFTOOLS)
-  # TODO: build and install gperftools, for now it is done manually
+  # build and install gperftools, for now it is done manually
+  # usign script build_gperftools.sh
   # then to run profiling 
   # export CPUPROFILE=./prof.out 
   # mcell
@@ -99,7 +100,7 @@ if (ENABLE_GPERFTOOLS)
   # (http://euccas.github.io/blog/20170827/cpu-profiling-tools-on-linux.html)
   SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DWITHGPERFTOOLS -I${CMAKE_CURRENT_BINARY_DIR}/libs/")
   SET(CMAKE_EXE_LINKER_FLAGS 
-  	"${CMAKE_EXE_LINKER_FLAGS} -L${CMAKE_CURRENT_BINARY_DIR}/libs/install_gperftools/lib/ -L${CMAKE_CURRENT_SOURCE_DIR}/../../src4_bng/other/install_gperftools/lib/ -lprofiler")
+  	"${CMAKE_EXE_LINKER_FLAGS} -L${CMAKE_CURRENT_BINARY_DIR}/libs/install_gperftools/lib/ -L${CMAKE_CURRENT_SOURCE_DIR}/build/install_gperftools/lib/ -lprofiler")
 
 endif()
 	
