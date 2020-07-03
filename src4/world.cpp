@@ -337,8 +337,10 @@ void World::dump() {
   config.dump();
   stats.dump();
 
+  bng_engine.get_data().dump();
   get_all_species().dump();
   get_all_rxns().dump(true);
+
 
   // partitions
   for (Partition& p: partitions) {

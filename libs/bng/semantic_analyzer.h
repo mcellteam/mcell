@@ -29,11 +29,25 @@ private:
 
   state_id_t convert_state_name(const ASTStrNode* s);
   component_type_id_t convert_component_type(const ASTComponentNode* c);
-  MolType convert_molecule_type(const ASTMoleculeNode* n);
+  MolType convert_molecule_type(
+      const ASTMoleculeNode* n,
+      const bool allow_same_component_different_state = false
+  );
   void convert_and_store_molecule_types();
 
+  void merge_molecule_type_definition(MolType& dstsrc, const MolType& src);
+  void collect_molecule_types_molecule_list(
+      const ASTListNode* molecule_list,
+      std::vector<const ASTMoleculeNode*>& molecule_nodes
+  );
+  void collect_and_store_implicit_molecule_types();
+
+
   MolInstance convert_molecule_pattern(const ASTMoleculeNode* m);
-  void convert_complex_pattern(const small_vector<const ASTMoleculeNode*>& complex_nodes, CplxInstance& pattern);
+  void convert_complex_pattern(
+      const small_vector<const ASTMoleculeNode*>& complex_nodes,
+      CplxInstance& pattern
+  );
   void convert_cplx_inst_or_rxn_rule_side(
       const ASTListNode* rule_side,
       const bool convert_single_cplx_inst,

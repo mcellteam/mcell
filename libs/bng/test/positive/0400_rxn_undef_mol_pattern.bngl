@@ -1,5 +1,6 @@
-# FAIL
-# OUTPUT: error: Molecule type with name 'B' was not defined.
+# OK
+#
+# NOTE: B(a) is defined automatically 
 
 begin parameters
    kp 0.00001

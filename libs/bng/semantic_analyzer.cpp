@@ -185,7 +185,7 @@ component_type_id_t SemanticAnalyzer::convert_component_type(const ASTComponentN
 }
 
 
-MolType SemanticAnalyzer::convert_molecule_type(const ASTMoleculeNode* n) {
+MolType SemanticAnalyzer::convert_molecule_type(const ASTMoleculeNode* n, bool allow_same_component_different_state) {
   MolType mt;
   mt.name = n->name;
 
@@ -208,11 +208,13 @@ MolType SemanticAnalyzer::convert_molecule_type(const ASTMoleculeNode* n) {
       const ComponentType& ct_k = bng_data->get_component_type(ct_k_id);
 
       if (ct_i_id != ct_k_id && ct_i.name == ct_k.name) {
-        // this is directly a conflict because if the components would have the same name and the same components,
-        // their id would be the same
-        errs_loc(n) <<
-            "Molecule type has 2 components with name '" << ct_i.name << "' but with different states, this is not allowed.\n"; // test N0101
-        ctx->inc_error_count();
+        if (!allow_same_component_different_state) {
+          // this is directly a conflict because if the components would have the same name and the same components,
+          // their id would be the same
+          errs_loc(n) <<
+              "Molecule type has 2 components with name '" << ct_i.name << "' but with different states, this is not allowed.\n"; // test N0101
+          ctx->inc_error_count();
+        }
       }
     }
   }
@@ -234,6 +236,117 @@ void SemanticAnalyzer::convert_and_store_molecule_types() {
 
       bng_data->find_or_add_molecule_type(mt);
     }
+  }
+}
+
+
+void SemanticAnalyzer::collect_molecule_types_molecule_list(
+    const ASTListNode* molecule_list,
+    vector<const ASTMoleculeNode*>& molecule_nodes
+) {
+  for (size_t i = 0; i < molecule_list->items.size(); i++) {
+    const ASTBaseNode* n = molecule_list->items[i];
+
+    if (!n->is_separator()) {
+      assert(n->is_molecule());
+      molecule_nodes.push_back(to_molecule_node(n));
+    }
+  }
+}
+
+
+void SemanticAnalyzer::collect_and_store_implicit_molecule_types() {
+  // go through reaction rules and seed species to define molecule types
+
+  // first collect all molecule nodes
+  vector<const ASTMoleculeNode*> found_mol_nodes;
+  for (const ASTBaseNode* n: ctx->rxn_rules.items) {
+    const ASTRxnRuleNode* r = to_rxn_rule_node(n);
+    collect_molecule_types_molecule_list(r->reactants, found_mol_nodes);
+    collect_molecule_types_molecule_list(r->products, found_mol_nodes);
+  }
+
+  for (const ASTBaseNode* n: ctx->seed_species.items) {
+    const ASTSeedSpeciesNode* ss = to_seed_species_node(n);
+    collect_molecule_types_molecule_list(ss->cplx_instance, found_mol_nodes);
+  }
+
+  // sort by name and skip those that are already known
+  map<string, vector<const ASTMoleculeNode*>> mol_uses_with_same_name;
+  for (const ASTMoleculeNode* n: found_mol_nodes) {
+    mol_type_id_t mt_id = bng_data->find_molecule_type_id(n->name);
+    if (mt_id == MOL_TYPE_ID_INVALID) {
+      mol_uses_with_same_name[n->name].push_back(n);
+    }
+  }
+
+  // and merge into a single definition
+  // for each different name
+  for (auto same_name_it: mol_uses_with_same_name) {
+
+    // create a map of used states per each component
+    map<string, set<string>> component_state_names;
+    // also count the maximum number of components
+    map<string, uint> max_component_count_per_all_mts;
+    for (const ASTMoleculeNode* mn: same_name_it.second) {
+
+      map<string, uint> max_component_count_per_single_mt;
+      for (const ASTBaseNode* cnb: mn->components->items) {
+        const ASTComponentNode* cn = to_component_node(cnb);
+
+        // count occurrence
+        if (max_component_count_per_single_mt.count(cn->name) == 0) {
+          max_component_count_per_single_mt[cn->name] = 1;
+        }
+        else {
+          max_component_count_per_single_mt[cn->name]++;
+        }
+
+        // collect state names
+        for (const ASTBaseNode* snb: cn->states->items) {
+          const ASTStrNode* sn = to_str_node(snb);
+          component_state_names[cn->name].insert(sn->str);
+        }
+      }
+
+      // update max count of these components
+      for (auto single_max: max_component_count_per_single_mt) {
+        const string& comp_name = single_max.first;
+        if (max_component_count_per_all_mts.count(comp_name) == 0) {
+          // count for this component was not set
+          max_component_count_per_all_mts[comp_name] = single_max.second;
+        }
+        else {
+          // overwrite smaller
+          if (max_component_count_per_all_mts[comp_name] < single_max.second) {
+            max_component_count_per_all_mts[comp_name] = single_max.second;
+          }
+        }
+      }
+    }
+
+    // we finally know how the components will look like, lets create it
+    // component_state_names - component name and allowed states
+    // max_component_count_per_all_mts - how many components per molecule type are there
+    MolType new_mt;
+    new_mt.name = same_name_it.first;
+
+    for (auto comp_info_it: max_component_count_per_all_mts) {
+      ComponentType new_ct;
+      new_ct.name = comp_info_it.first;
+
+      for (const string& s: component_state_names[new_ct.name]) {
+        state_id_t s_id = bng_data->find_or_add_state_name(s);
+        new_ct.allowed_state_ids.insert(s_id);
+      }
+
+      component_type_id_t ct_id = bng_data->find_or_add_component_type(new_ct);
+      for (uint i = 0; i < comp_info_it.second; i++) {
+        new_mt.component_type_ids.push_back(ct_id);
+      }
+    }
+
+    bng_data->find_or_add_molecule_type(new_mt);
   }
 }
 
@@ -564,7 +677,7 @@ bool SemanticAnalyzer::check_and_convert(ParserContext* ctx_, BNGData* res_bng) 
   // the following conversions do not use the bng_data.parameters map
   convert_parameters();
 
-  // first compute all expressions - there are only rxn rates for now
+  // first compute all reaction rates
   resolve_rxn_rates();
   if (ctx->get_error_count() != 0) {
     return false;
@@ -574,6 +687,14 @@ bool SemanticAnalyzer::check_and_convert(ParserContext* ctx_, BNGData* res_bng) 
   // the single purpose of molecule types is to be able to check
   // that reaction rules and also new releases adhere to the molecule type template
   convert_and_store_molecule_types();
+  if (ctx->get_error_count() != 0) {
+    return false;
+  }
+
+  // molecule types do not have to be defined,
+  // in this case we will define them based on what we found in the
+  // seed species, reactions (and observables - not supported yet)
+  collect_and_store_implicit_molecule_types();
   if (ctx->get_error_count() != 0) {
     return false;
   }
