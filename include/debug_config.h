@@ -45,6 +45,12 @@
 // define when comparin mcell4 and pymcell4 outputs
 //#define PYMCELL4_TESTING
 
+// bug in mcellr - exact disk
+// most probably mcell3r ever had support for reactive surfaces,
+// but keeping this as a macro to maintain compatibility
+// if needed
+#define FIX_EXTERNAL_SPECIES_WO_RXS_IN_EXACT_DISK
+
 #ifndef MCELL3_IDENTICAL
 
 // sort molecules in schedule helper according to ID before a new timestep begins
@@ -94,17 +100,13 @@
 
 //#define COLLECT_SUBPARTS_LEGACY
 
-#ifdef NDEBUG
-#define DUMP_NEVER
-#endif
-
 //#define DUMP_ALWAYS
-#define DUMP_NEVER
+//#define DUMP_NEVER
 
 #if (!defined(NDEBUG) || defined(DUMP_ALWAYS)) && !defined(DUMP_NEVER)
 
-#define FROM_ITERATION 0
-#define TO_ITERATION 100
+#define FROM_ITERATION 8
+#define TO_ITERATION 10
 
 #define DUMP_NONDIFFUSING_VMS
 
@@ -117,8 +119,8 @@
 
 //#define DEBUG_RNG_CALLS // cannot be conditioned by iterations
 
-#define DEBUG_CPLX_MATCHING
-#define DEBUG_CPLX_MATCHING_EXTRA_COMPARE
+//#define DEBUG_CPLX_MATCHING
+//#define DEBUG_CPLX_MATCHING_EXTRA_COMPARE
 
 //#define DEBUG_WALL_COLLISIONS
 
@@ -136,6 +138,9 @@
 //#define DEBUG_SCHEDULER
 
 //#define DEBUG_DEFRAGMENTATION
+
+#define DEBUG_EXACT_DISK
+
 
 //#define DEBUG_RELEASES // cannot be conditioned by iterations
 
