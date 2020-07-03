@@ -44,24 +44,26 @@ public:
 
     // add if not found
     if (res == SPECIES_ID_INVALID) {
-      res = next_species_id;
-      next_species_id++;
-
-      #ifndef DEBUG
-        // we do not want species with the same name
-        for (const Species& s: species) {
-          assert(s.name != new_species.name && "Adding species with identical name");
-        }
-      #endif
-
-#ifdef DEBUG_CPLX_MATCHING
-      std::cout << "Added new species:\n";
-      new_species.dump(bng_data);
-#endif
-
-      species.push_back(new_species);
-      species.back().id = res;
+      res = add(new_species);
     }
+
+    return res;
+  }
+
+  species_id_t add(const Species& new_species) {
+
+  #ifndef DEBUG
+    assert(find_full_match(new_species) == SPECIES_ID_INVALID && "Species must not exist");
+    // we also don't want species with the same name
+    for (const Species& s: species) {
+      assert(s.name != new_species.name && "Adding species with identical name");
+    }
+  #endif
+
+    species_id_t res = next_species_id;
+    next_species_id++;
+    species.push_back(new_species);
+    species.back().id = res;
 
     return res;
   }

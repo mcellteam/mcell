@@ -242,9 +242,13 @@ void RxnContainer::get_rxn_product_species_ids(
   if (rxn->is_simple()) {
     for (const CplxInstance& product: rxn->products) {
       // simple product is deterministic
-      // simple species must be already defined (they are based on molecule types)
+      // simple species are defined mcell3 mode but in BNG mode they
+      // may not have been created (they are based on molecule types)
       species_id_t id = all_species.find_full_match(product);
-      assert(id != SPECIES_ID_INVALID);
+      if (id == SPECIES_ID_INVALID) {
+        id = all_species.add(Species(product, bng_data, bng_config));
+        assert(id != SPECIES_ID_INVALID);
+      }
       res.push_back(id);
     }
   }
