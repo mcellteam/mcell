@@ -152,6 +152,7 @@ section:
       }
     | TOK_BEGIN TOK_REACTION TOK_RULES rxn_rule_list_maybe_empty TOK_END TOK_REACTION TOK_RULES 
     | TOK_BEGIN TOK_SEED TOK_SPECIES seed_species_list_maybe_empty TOK_END TOK_SEED TOK_SPECIES
+    | TOK_BEGIN TOK_SPECIES seed_species_list_maybe_empty TOK_END TOK_SPECIES
     | TOK_BEGIN TOK_OBSERVABLES observables_list_maybe_empty TOK_END TOK_OBSERVABLES
 ;
 
