@@ -1017,6 +1017,8 @@ bool MCell3WorldConverter::convert_rxns(volume* s) {
     }
   }
 
+  world->get_all_rxns().update_all_mols_flags();
+
   return true;
 }
 

@@ -89,7 +89,6 @@ void MCell4Converter::convert(Model* model_, World* world_) {
   convert_surface_classes();
 
   convert_rxns();
-  init_species_rxn_flags();
 
   // at this point, we need to create the first (and for now the only) partition
   // create initial partition with center at 0,0,0
@@ -102,6 +101,10 @@ void MCell4Converter::convert(Model* model_, World* world_) {
   Geometry::check_for_overlapped_walls(world);
 
   convert_release_events();
+
+  // must be called after release events define species because they don't have to be
+  // defined
+  init_rxn_related_flags();
 
   // diffusion events must be created after reactions and release events
   // since they may define the initial species in when BNGL reactions are used
@@ -465,18 +468,24 @@ BNG::CplxInstance MCell4Converter::convert_complex_instance(API::ComplexInstance
   cplx_inst.set_orientation(orient);
   cplx_inst.finalize();
 
-  // we need to find or add existing species that we match
-  species_id_t species_id = world->get_all_species().find_full_match(cplx_inst);
+  if (!in_rxn) {
+    // we need to find or add existing species that we match
+    species_id_t species_id = world->get_all_species().find_full_match(cplx_inst);
 
-  if (species_id == SPECIES_ID_INVALID) {
-    // FIXME: can we have just one method to compare the cplx and create
-    // species if needed?
-    // cplx inst should clearly identify the species...
-    species_id = world->get_all_species().find_or_add(
-      BNG::Species(cplx_inst, world->bng_engine.get_data(), world->bng_engine.get_config()));
+    if (species_id == SPECIES_ID_INVALID) {
+      // FIXME: can we have just one method to compare the cplx and create
+      // species if needed?
+      // cplx inst should clearly identify the species...
+      species_id = world->get_all_species().find_or_add(
+        BNG::Species(cplx_inst, world->bng_engine.get_data(), world->bng_engine.get_config())
+      );
+    }
+    assert(species_id != SPECIES_ID_INVALID);
+    return world->bng_engine.create_cplx_instance_for_species(species_id, orient);
   }
-  assert(species_id != SPECIES_ID_INVALID);
-  return world->bng_engine.create_cplx_instance_for_species(species_id, orient);
+  else {
+    return cplx_inst;
+  }
 }
 
 
@@ -543,8 +552,7 @@ void MCell4Converter::convert_rxns() {
 }
 
 
-
-void MCell4Converter::init_species_rxn_flags() {
+void MCell4Converter::init_rxn_related_flags() {
   BNG::SpeciesContainer& all_species = world->get_all_species();
   BNG::RxnContainer& all_rxns = world->get_all_rxns();
 
@@ -555,29 +563,11 @@ void MCell4Converter::init_species_rxn_flags() {
 
   bool has_vol_vol_rxn = false;
 
-  bool all_vol_mols_can_react_with_surface = false;
-  bool all_surf_mols_can_react_with_surface = false;
+  all_rxns.update_all_mols_flags();
 
-  auto& species_vector = all_species.get_species_vector();
-
-  // the first three classes are the superclasses
-  assert(species_vector.size() > 3 &&
-      species_vector[0].id == all_molecules_species_id &&
-      species_vector[1].id == all_volume_molecules_species_id &&
-      species_vector[2].id == all_surface_molecules_species_id
-  );
-
-  // set species flags (we already have all the reactions)
-  for (BNG::Species& sp: species_vector) {
-    // setup for ordinary molecules run after ALL_MOLECULES and ALL_VOLUME_MOLECULES
-    // were processed
-    if (sp.is_vol() && all_vol_mols_can_react_with_surface) {
-      sp.set_flag(BNG::SPECIES_FLAG_CAN_VOLWALL);
-    }
-
-    if (sp.is_surf() && all_surf_mols_can_react_with_surface) {
-      sp.set_flag(BNG::SPECIES_FLAG_CAN_REGION_BORDER);
-    }
+  // find out whether we have a vol vol rxn for all current species (for mcell3 compatibility)
+  // in BNG mode this finds a reaction as well
+  for (BNG::Species& sp: all_species.get_species_vector()) {
 
     // get reactions, this also creates all reaction classes for the species that we currently have
     BNG::SpeciesRxnClassesMap* rxn_classes =
@@ -589,14 +579,14 @@ void MCell4Converter::init_species_rxn_flags() {
     // go through all applicable reactants
     for (auto it: *rxn_classes) {
       const BNG::RxnClass* rxn_class = it.second;
-      assert(rxn_class->reactants.size() == 2);
+      assert(rxn_class->is_bimol());
 
       species_id_t second_species_id;
-      if (rxn_class->reactants[0] != sp.id) {
-        second_species_id = rxn_class->reactants[0];
+      if (rxn_class->specific_reactants[0] != sp.id) {
+        second_species_id = rxn_class->specific_reactants[0];
       }
       else {
-        second_species_id = rxn_class->reactants[1];
+        second_species_id = rxn_class->specific_reactants[1];
       }
       const BNG::Species& sp2 = all_species.get(second_species_id);
 
@@ -604,41 +594,17 @@ void MCell4Converter::init_species_rxn_flags() {
       if (sp.is_vol() || sp.id == all_molecules_species_id) {
         if (sp2.is_vol() || sp2.id == all_molecules_species_id) {
           has_vol_vol_rxn = true;
-          sp.set_flag(BNG::SPECIES_FLAG_CAN_VOLVOL);
-        }
-        if (sp2.is_surf() || sp2.id == all_molecules_species_id) {
-          sp.set_flag(BNG::SPECIES_FLAG_CAN_VOLSURF);
-        }
-        if (sp2.is_reactive_surface()) {
-          sp.set_flag(BNG::SPECIES_FLAG_CAN_VOLWALL);
-          if (sp.id == all_molecules_species_id || sp.id == all_volume_molecules_species_id) {
-            // superclasses are processed first, this setting is then passed-on on all subsequent vol species
-            all_vol_mols_can_react_with_surface = true;
-          }
-        }
-      }
-
-      if ((sp.is_surf() || sp.id == all_molecules_species_id)) {
-
-        if (sp2.is_surf() || sp2.id == all_molecules_species_id) {
-          sp.set_flag(BNG::SPECIES_FLAG_CAN_SURFSURF);
-        }
-
-        if (sp2.is_reactive_surface()) {
-          sp.set_flag(BNG::SPECIES_FLAG_CAN_REGION_BORDER);
-          if (sp.id == all_surface_molecules_species_id || sp.id == all_molecules_species_id) {
-            all_surf_mols_can_react_with_surface = true;
-          }
+          // for consistency, let's process all species this way
         }
       }
     }
   }
 
   // for mcell3 compatibility
-  /* If there are no 3D molecules-reactants in the simulation
-     set up the "use_expanded_list" flag to zero. */
+  // works only because in mcell3 reaction mode we directly defined species
+  // if there are no 3D molecules-reactants in the simulation set up the "use_expanded_list" flag to zero
   if (!has_vol_vol_rxn) {
-    world->config.use_expanded_list = 0;
+    world->config.use_expanded_list = false;
   }
 }
 

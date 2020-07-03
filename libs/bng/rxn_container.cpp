@@ -20,6 +20,63 @@ RxnContainer::~RxnContainer() {
 }
 
 
+void RxnContainer::update_all_mols_flags() {
+
+  species_id_t all_mols_id = all_species.get_all_molecules_species_id();
+  species_id_t all_vol_mols_id = all_species.get_all_volume_molecules_species_id();
+  species_id_t all_surf_mols_id = all_species.get_all_surface_molecules_species_id();
+
+  vector<species_id_t> superspecies {
+    all_mols_id, all_vol_mols_id, all_surf_mols_id
+  };
+
+  // set species flags (we already have all the reactions)
+  for (species_id_t species_id: superspecies) {
+    BNG::Species& sp = all_species.get(species_id);
+
+    // get reactions, this also creates all reaction classes for the species that we are processing
+    BNG::SpeciesRxnClassesMap* rxn_classes = get_bimol_rxns_for_reactant(sp.id);
+    if (rxn_classes == nullptr) {
+      continue;
+    }
+
+    // go through all applicable reactants
+    for (auto it: *rxn_classes) {
+      const BNG::RxnClass* rxn_class = it.second;
+      assert(rxn_class->is_bimol());
+
+      species_id_t second_species_id;
+      if (rxn_class->specific_reactants[0] != sp.id) {
+        second_species_id = rxn_class->specific_reactants[0];
+      }
+      else {
+        second_species_id = rxn_class->specific_reactants[1];
+      }
+      const BNG::Species& sp2 = all_species.get(second_species_id);
+
+      // we can use is_vol/is_surf for ALL_VOLUME_MOLECULES and ALL_SURFACE_MOLECULES
+      // but not for all_volume molecules because there is no
+      if (sp.is_vol() || sp.id == all_mols_id) {
+        if (sp2.is_reactive_surface()) {
+          sp.set_flag(BNG::SPECIES_FLAG_CAN_VOLWALL);
+          if (sp.id == all_mols_id || sp.id == all_vol_mols_id) {
+            all_vol_mols_can_react_with_surface = true;
+          }
+        }
+      }
+
+      if ((sp.is_surf() || sp.id == all_mols_id)) {
+        if (sp2.is_reactive_surface()) {
+          if (sp.id == all_surf_mols_id || sp.id == all_mols_id) {
+            all_surf_mols_can_react_with_surface = true;
+          }
+        }
+      }
+    }
+  }
+}
+
+
 RxnClass* RxnContainer::get_or_create_empty_unimol_rxn_class(const species_id_t id) {
 
   auto it = unimol_rxn_class_map.find(id);
@@ -226,6 +283,7 @@ void RxnContainer::get_rxn_product_species_ids(
         products
     );
 
+    // define the products as species
     for (const CplxInstance& product: products) {
       species_id_t id = all_species.find_or_add(Species(product, bng_data, bng_config));
       assert(id != SPECIES_ID_INVALID);

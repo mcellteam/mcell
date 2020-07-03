@@ -27,6 +27,8 @@
 #include "bng/species.h"
 #include "bng/bng_defines.h"
 #include "bng/bng_data.h"
+#include "bng/species_container.h"
+#include "bng/rxn_container.h"
 
 #include <numeric>      // std::iota
 #include <algorithm>    // std::sort, std::stable_sort
@@ -34,6 +36,82 @@
 using namespace std;
 
 namespace BNG {
+
+// sets SPECIES_FLAG_CAN_VOLVOL, SPECIES_FLAG_CAN_VOLSURF, SPECIES_FLAG_CAN_VOLWALL,
+// SPECIES_FLAG_CAN_SURFSURF, and/or SPECIES_FLAG_CAN_REGION_BORDER
+// flags according to reactions in the system
+void Species::update_rxn_flags(const SpeciesContainer& all_species, RxnContainer& all_rxns) {
+  assert(id != SPECIES_ID_INVALID);
+#ifndef NDEBUG
+  all_species.get(id); // must not fail
+#endif
+  species_id_t all_molecules_species_id = all_species.get_all_molecules_species_id();
+  species_id_t all_volume_molecules_species_id = all_species.get_all_volume_molecules_species_id();
+  species_id_t all_surface_molecules_species_id = all_species.get_all_surface_molecules_species_id();
+
+  bool all_vol_mols_can_react_with_surface = all_rxns.all_vol_mols_can_react_with_surface;
+  bool all_surf_mols_can_react_with_surface = all_rxns.all_surf_mols_can_react_with_surface;
+
+  set_flag(BNG::SPECIES_FLAG_CAN_VOLVOL, false);
+  set_flag(BNG::SPECIES_FLAG_CAN_VOLSURF, false);
+  set_flag(BNG::SPECIES_FLAG_CAN_VOLWALL, false);
+  set_flag(BNG::SPECIES_FLAG_CAN_SURFSURF, false);
+  set_flag(BNG::SPECIES_FLAG_CAN_REGION_BORDER, false);
+
+  if (is_vol() && all_vol_mols_can_react_with_surface) {
+    set_flag(BNG::SPECIES_FLAG_CAN_VOLWALL);
+  }
+
+  if (is_surf() && all_surf_mols_can_react_with_surface) {
+    set_flag(BNG::SPECIES_FLAG_CAN_REGION_BORDER);
+  }
+
+  // get reactions, this also creates all reaction classes for the species that we currently have
+  BNG::SpeciesRxnClassesMap* rxn_classes =
+      all_rxns.get_bimol_rxns_for_reactant(id);
+  if (rxn_classes == nullptr) {
+    return;
+  }
+
+  // go through all applicable reactants
+  for (auto it: *rxn_classes) {
+    const BNG::RxnClass* rxn_class = it.second;
+    assert(rxn_class->is_bimol());
+
+    species_id_t second_species_id;
+    if (rxn_class->specific_reactants[0] != id) {
+      second_species_id = rxn_class->specific_reactants[0];
+    }
+    else {
+      second_species_id = rxn_class->specific_reactants[1];
+    }
+    const BNG::Species& sp2 = all_species.get(second_species_id);
+
+    // we can use is_vol/is_surf for ALL_VOLUME_MOLECULES and ALL_SURFACE_MOLECULES
+    if (is_vol()) {
+      if (sp2.is_vol() || sp2.id == all_molecules_species_id) {
+        set_flag(BNG::SPECIES_FLAG_CAN_VOLVOL);
+      }
+      if (sp2.is_surf() || sp2.id == all_molecules_species_id) {
+        set_flag(BNG::SPECIES_FLAG_CAN_VOLSURF);
+      }
+      if (sp2.is_reactive_surface()) {
+        set_flag(BNG::SPECIES_FLAG_CAN_VOLWALL);
+      }
+    }
+
+    if ((is_surf() || id == all_molecules_species_id)) {
+      if (sp2.is_surf() || sp2.id == all_molecules_species_id) {
+        set_flag(BNG::SPECIES_FLAG_CAN_SURFSURF);
+      }
+
+      if (sp2.is_reactive_surface()) {
+        set_flag(BNG::SPECIES_FLAG_CAN_REGION_BORDER);
+      }
+    }
+  }
+}
+
 
 // based on assemble_mol_species
 // time_unit and length_unit are coming from the simulation configuration

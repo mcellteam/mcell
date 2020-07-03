@@ -50,13 +50,18 @@ typedef std::vector<RxnRule*> RxnRuleVector;
 class RxnContainer {
 public:
   RxnContainer(SpeciesContainer& all_species_, const BNGData& bng_data_, const BNGConfig& bng_config_)
-    : all_species(all_species_),
+    : all_vol_mols_can_react_with_surface(false),
+      all_surf_mols_can_react_with_surface(false),
+      all_species(all_species_),
       bng_data(bng_data_),
       bng_config(bng_config_)
       {
   }
 
   ~RxnContainer();
+
+  // must be called once all reactions were added or were updated
+  void update_all_mols_flags();
 
   // this method is supposed to be used only during initialization
   rxn_rule_id_t add_finalized_no_update(const RxnRule& r) {
@@ -135,6 +140,10 @@ public:
     // since only reactions of B with A were considered (not B + C or or similar)
     if (species_processed_for_bimol_rxn_classes.count(id) == 0) {
       create_bimol_rxn_classes_for_new_species(id);
+
+      // at this point we must update species flags
+      all_species.get(id).update_rxn_flags(all_species, *this);
+
       it = bimol_rxn_class_map.find(id);
     }
 
@@ -207,6 +216,13 @@ private:
 
   BimolRxnClassesMap bimol_rxn_class_map;
 
+public:
+  // TODO: make private
+  // set in update_all_mols_flags
+  bool all_vol_mols_can_react_with_surface;
+  bool all_surf_mols_can_react_with_surface;
+
+private:
   // owned by BNGEngine
   SpeciesContainer& all_species;
   const BNGData& bng_data;

@@ -14,6 +14,9 @@
 namespace BNG {
 
 class Species;
+class SpeciesContainer;
+class RxnContainer;
+
 typedef small_vector<Species> SpeciesVector;
 
 class Species: public CplxInstance {
@@ -53,6 +56,11 @@ public:
   // ----------- MCell-specific -----------
   float_t space_step;
   float_t time_step; // in standard time
+
+  // sets SPECIES_FLAG_CAN_VOLVOL, SPECIES_FLAG_CAN_VOLSURF, SPECIES_FLAG_CAN_VOLWALL,
+  // SPECIES_FLAG_CAN_SURFSURF, and/or SPECIES_FLAG_CAN_REGION_BORDER
+  // flags according to reactions in the system
+  void update_rxn_flags(const SpeciesContainer& all_species, RxnContainer& all_rxns);
 
   bool has_count_contents_flag() const {
     return has_flag(SPECIES_FLAG_COUNT_CONTENTS);
