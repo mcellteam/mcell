@@ -452,7 +452,7 @@ BNG::MolInstance MCell4Converter::convert_molecule_instance(API::ElementaryMolec
   }
 
   // we must also copy flags from the mol type
-  res.finalize_flags(world->bng_engine.get_data());
+  res.finalize_flags_and_sort_components(world->bng_engine.get_data());
 
   return res;
 }

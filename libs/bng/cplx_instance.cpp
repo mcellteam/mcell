@@ -37,7 +37,7 @@ void CplxInstance::finalize() {
   bool reactive_surf_type = false;
   for (MolInstance& mp: mol_instances) {
     // need to finalize flags - copy them from molecule type
-    mp.finalize_flags(*bng_data);
+    mp.finalize_flags_and_sort_components(*bng_data);
     // if at least one is a surface molecule then the whole cplx is surface molecule
     if (mp.is_surf()) {
       surf_type = true;
