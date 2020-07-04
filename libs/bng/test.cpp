@@ -52,7 +52,7 @@ int parse_bngl(char const *name, const bool dump_ast, const bool dump_bng_data) 
   return errors != 0;
 }
 
-extern int bngldebug;
+//extern int bngldebug;
 
 int main(int argc, const char* argv[]) {
 
@@ -69,7 +69,7 @@ int main(int argc, const char* argv[]) {
     dump_bng = true;
   }
 
-  bngldebug = 1;
+  //bngldebug = 1;
 
   return parse_bngl(argv[1], dump_ast, dump_bng);
 }
