@@ -88,8 +88,12 @@ namespace BNG {
     } 
   }
       
+  class BNGData {
+  };
+      
   class Species {  
   public:
+    Species(const BNGData& data);
     void set_color(float_t r, float_t g, float_t b);
     void set_scale(float_t s);
   };
@@ -121,6 +125,7 @@ class SimulationConfig {
 public:
   float_t length_unit;
 };
+
 
 class Partition {
 public:
@@ -189,6 +194,10 @@ public:
     BNG::Species* find_species_by_name(const char* name) {
      	return self->get_all_species().find_species_by_name(name);
     }
+}
+
+%extend Species {
+    Species();
 }
 
 } // namespace MCell
