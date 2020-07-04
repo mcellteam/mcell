@@ -63,7 +63,9 @@ I ([0-9]+)
     
 "->"            { LOC(); return TOK_ARROW_RIGHT; }
 "<->"           { LOC(); return TOK_ARROW_BIDIR; }
-[\~\,\!\.\(\)\/\+\-\*\^]  { LOC(); return bngltext[0];}
+"=>"            { LOC(); return TOK_ARG_ASSIGN; }
+
+[\~\,\!\.\(\)\/\+\-\*\^\{\}\"]  { LOC(); return bngltext[0];}
 
 .               { LOC(); errs() << "Unexpected character '" << bngltext[0] << "'.\n"; return bngltext[0]; }
 %%

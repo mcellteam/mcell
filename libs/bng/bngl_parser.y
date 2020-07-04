@@ -44,7 +44,10 @@ namespace BNG {
 
 %require "3.0"
 
-// add debug output code to generated parser. disable this for release versions. 
+// add debug output code to generated parser 
+// one also needs to set bngldebug to 1
+// extern int bngldebug;
+// bngldebug = 1;
 //%debug
 
 // write out a header file containing the token defines 
@@ -101,8 +104,9 @@ namespace BNG {
 %token <dbl> TOK_DBL "floating point constant"
 %token <llong> TOK_LLONG "integer constant"
 
-%token <llong> TOK_ARROW_RIGHT "->"
-%token <llong> TOK_ARROW_BIDIR "<->"
+%token TOK_ARROW_RIGHT "->"
+%token TOK_ARROW_BIDIR "<->"
+%token TOK_ARG_ASSIGN  "=>"
 
 %type <expr_node> expr
 %type <str_node> bond_maybe_empty
@@ -135,8 +139,8 @@ namespace BNG {
 // TODO: error recovery 
 
 start: 
-      section_list
-    | TOK_BEGIN TOK_MODEL section_list TOK_END TOK_MODEL
+      section_list action_call_list_maybe_empty
+    | TOK_BEGIN TOK_MODEL section_list TOK_END TOK_MODEL action_call_list_maybe_empty
     | /* empty - end of file */
 ;
 
@@ -362,7 +366,7 @@ cplx_instance:
 // ignored for now
       
 observables_list_maybe_empty:
-    observables_list
+      observables_list
     | /* empty */ 
 ;
 
@@ -378,6 +382,41 @@ observables_item:
 cplx_instance_list:
       cplx_instance_list ',' cplx_instance
     | cplx_instance
+      
+// ---------------- action calls ------------------
+// ignored
+
+action_call_list_maybe_empty:
+      action_call_list
+    | /* empty */
+;
+
+action_call_list:
+      action_call_list action_call
+    | action_call
+;
+
+action_call:
+      TOK_ID '(' action_arg_list_maybe_empty ')'
+
+action_arg_list_maybe_empty:
+      '{' action_arg_list '}'
+    | /* empty */
+;
+
+action_arg_list:
+      action_arg_list ',' action_arg
+    | action_arg
+;
+
+action_arg:
+      TOK_ID TOK_ARG_ASSIGN expr_or_str
+;
+ 
+expr_or_str:
+      expr 
+    | '"' TOK_ID '"'  // for now just id, we will need full string parsing in scanner      
+;
       
 // ---------------- expressions --------------------- 
 // TODO: expressions are just IDs and constants for now
