@@ -96,7 +96,7 @@ struct Node {
   ComponentInstance* component;
 };
 
-static std::ostream & operator<<(std::ostream &out, const Node& n);
+std::ostream & operator<<(std::ostream &out, const Node& n);
 
 // molecule instance/pattern is a node in the complex graph, edge is a bond
 typedef boost::property<boost::vertex_name_t, Node, boost::property< boost::vertex_index_t, int > > MtVertexProperty;

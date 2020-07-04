@@ -118,7 +118,7 @@ private:
 // TODO: add references where possible
 struct PropertyMapMoleculeTypeMatching {
 
-  PropertyMapMoleculeTypeMatching(const VertexNameMap& property_map1_, const VertexNameMap& property_map2_) :
+  PropertyMapMoleculeTypeMatching(VertexNameMap property_map1_, VertexNameMap property_map2_) :
     property_map1(property_map1_),
     property_map2(property_map2_) { }
 
@@ -137,16 +137,16 @@ struct PropertyMapMoleculeTypeMatching {
   }
 
 private:
-  const VertexNameMap& property_map1;
-  const VertexNameMap& property_map2;
+  VertexNameMap property_map1;
+  VertexNameMap property_map2;
 };
 
 
 // Returns a property_map_equivalent object that compares the values
 // of property_map1 and property_map2.
 PropertyMapMoleculeTypeMatching make_property_map_molecule_type_matching(
-    const VertexNameMap& property_map1,
-    const VertexNameMap& property_map2
+    VertexNameMap property_map1,
+    VertexNameMap property_map2
 ) {
   return PropertyMapMoleculeTypeMatching(property_map1, property_map2);
 }

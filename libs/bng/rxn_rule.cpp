@@ -237,7 +237,7 @@ static void find_best_product_to_pattern_mapping(
   set<vertex_descriptor_t> mapped_reactants;
 
   // get the property map for vertex indices
-  const VertexNameMap& index = boost::get(boost::vertex_name, reactants_graph);
+  VertexNameMap index = boost::get(boost::vertex_name, reactants_graph);
 
   // for each molecule instance in pattern_graph
   typedef boost::graph_traits<Graph>::vertex_iterator vertex_iter;
@@ -302,17 +302,26 @@ static void find_best_product_to_pattern_mapping(
 // to another component and also a bond to its molecule instance
 // returns -1 when the component is not connected to another component,
 // asserts in debug mode when must_exist is set to true and target was not found
+//
+// the release_assert calls are here because boost's library produced
+// weird errors with release build, they are cheap anyway so they are kept there
 const vertex_descriptor_t TARGET_NOT_FOUND = -1;
 static vertex_descriptor_t get_bond_target(
-    const Graph& graph,
-    const VertexNameMap& index,
+    Graph& graph,
     const vertex_descriptor_t desc,
     const bool must_exist = true
 ) {
+  #ifdef DEBUG_CPLX_RXNS
+    cout << "get_bond_target:\n";
+    dump_graph(graph);
+    cout << "desc:" << (int)desc << "\n";
+  #endif
 
   bool comp_found = false;
   bool mol_found = false;
+
   vertex_descriptor_t res = TARGET_NOT_FOUND;
+  VertexNameMap index = boost::get(boost::vertex_name, graph);
 
   boost::graph_traits<Graph>::out_edge_iterator ei, edge_end;
   for (boost::tie(ei,edge_end) = boost::out_edges(desc, graph); ei != edge_end; ++ei) {
@@ -320,20 +329,24 @@ static vertex_descriptor_t get_bond_target(
     Graph::vertex_descriptor n_desc = boost::target(e_desc, graph);
     const Node& n = index[n_desc];
 
+    #ifdef DEBUG_CPLX_RXNS
+      cout << "  checking " << n << "\n";
+    #endif
+
     if (n.is_mol) {
-      assert(!mol_found);
+      release_assert(!mol_found);
       mol_found = true; // just for debug
     }
     else {
-      assert(!comp_found);
+      release_assert(!comp_found);
       comp_found = true;
       res = n_desc;
     }
   }
 
-  assert(mol_found && "Component must be connected to its molecule");
+  release_assert(mol_found && "Component must be connected to its molecule");
   if (must_exist) {
-    assert(comp_found);
+    release_assert(comp_found);
   }
 
   return res;
@@ -344,13 +357,14 @@ vertex_descriptor_t get_new_bond_target(
     const Graph& reactants_graph,
     const VertexMapping& pattern_reactant_mapping,
     const VertexMapping& prod_pattern_mapping,
-    const Graph& products_graph,
-    const VertexNameMap& products_index,
+    Graph& products_graph,
     const vertex_descriptor_t prod_desc
 ) {
 
   // to which node we should connect?
-  vertex_descriptor_t prog_target_desc = get_bond_target(products_graph, products_index, prod_desc);
+  vertex_descriptor_t prog_target_desc = get_bond_target(products_graph, prod_desc);
+  cout << "For " << (int)prod_desc << " found " << (int)prog_target_desc << "\n";
+  release_assert(prog_target_desc != TARGET_NOT_FOUND);
 
   // to which reactant we will point?
   auto target_prod_pat_it = prod_pattern_mapping.find(prog_target_desc);
@@ -421,7 +435,7 @@ static void apply_rxn_on_reactants_graph(
           if (prod_ci.bond_value == BOND_VALUE_NO_BOND) {
             bonds_to_remove.insert(UnorderedPair(
                 reac_desc,
-                get_bond_target(reactants_graph, reactants_index, reac_desc)
+                get_bond_target(reactants_graph, reac_desc)
             ));
           }
           // new: !1
@@ -442,7 +456,6 @@ static void apply_rxn_on_reactants_graph(
                 pattern_reactant_mapping,
                 prod_pattern_mapping,
                 products_graph,
-                products_index,
                 prod_desc
             );
 
@@ -462,7 +475,7 @@ static void apply_rxn_on_reactants_graph(
           if (prod_ci.bond_value == BOND_VALUE_NO_BOND) {
             bonds_to_remove.insert(UnorderedPair(
                 reac_desc,
-                get_bond_target(reactants_graph, reactants_index, reac_desc)
+                get_bond_target(reactants_graph, reac_desc)
             ));
           }
           // new: !2
@@ -471,7 +484,7 @@ static void apply_rxn_on_reactants_graph(
             // remove original one
             bonds_to_remove.insert(UnorderedPair(
                 reac_desc,
-                get_bond_target(reactants_graph, reactants_index, reac_desc)
+                get_bond_target(reactants_graph, reac_desc)
             ));
 
             // and create a new one
@@ -480,7 +493,6 @@ static void apply_rxn_on_reactants_graph(
                 pattern_reactant_mapping,
                 prod_pattern_mapping,
                 products_graph,
-                products_index,
                 prod_desc
             );
             bonds_to_add.insert(UnorderedPair(reac_desc, target_reac_desc));
@@ -566,7 +578,7 @@ static void convert_graph_component_to_cplx_inst(
       ComponentInstance& compi = mi.component_instances.back();
 
       // we need to set bonds
-      Graph::vertex_descriptor bound_comp_desc = get_bond_target(graph, index, comp_desc, false);
+      Graph::vertex_descriptor bound_comp_desc = get_bond_target(graph, comp_desc, false);
       if (bound_comp_desc == TARGET_NOT_FOUND) {
         compi.bond_value = BOND_VALUE_NO_BOND;
       }
