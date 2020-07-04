@@ -37,7 +37,7 @@ SET(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0 ")
 SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 ")
 
 if (CMAKE_BUILD_TYPE STREQUAL "Release")
-  SET(OPTIMIZATION_FLAGS " -O3 -march=core2 -finline-limit=10000 ")
+  SET(OPTIMIZATION_FLAGS " -O3 -g -march=core2 -finline-limit=10000 ")
   
   # must not be used for pymcell (at least for now)
   SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -no-pie ")
