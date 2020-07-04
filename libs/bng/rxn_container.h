@@ -216,6 +216,8 @@ private:
 
   BimolRxnClassesMap bimol_rxn_class_map;
 
+  std::map<rxn_rule_id_t, std::vector<species_id_t>> cached_product_species;
+
 public:
   // TODO: make private
   // set in update_all_mols_flags

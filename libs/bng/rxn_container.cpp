@@ -225,7 +225,11 @@ void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t n
 }
 
 
-// NOTE: where should this method belong?
+// this method belongs to the rxn class because reactions can have multiple
+// species that it can be applied to, so caching of product species ids
+// must be done here
+// result must be computed on the fly because its computation may involve definition
+// of new species and we must define a reaction class for them only when needed
 void RxnContainer::get_rxn_product_species_ids(
     const RxnRule* rxn,
     const species_id_t reactant_a_species_id,
@@ -236,6 +240,12 @@ void RxnContainer::get_rxn_product_species_ids(
       (rxn->is_unimol() && reactant_b_species_id == SPECIES_ID_INVALID) ||
       (rxn->is_bimol() && (reactant_b_species_id != SPECIES_ID_INVALID || rxn->is_reactive_surface_rxn()))
   );
+
+  // check if we did not compute this before
+  auto cached_it = cached_product_species.find(rxn->id);
+  if (cached_it != cached_product_species.end()) {
+    res = cached_it->second;
+  }
 
   res.clear();
 
@@ -294,6 +304,9 @@ void RxnContainer::get_rxn_product_species_ids(
       res.push_back(id);
     }
   }
+
+  // cache the result
+  cached_product_species[rxn->id] = res;
 }
 
 

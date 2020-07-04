@@ -363,7 +363,9 @@ vertex_descriptor_t get_new_bond_target(
 
   // to which node we should connect?
   vertex_descriptor_t prog_target_desc = get_bond_target(products_graph, prod_desc);
-  cout << "For " << (int)prod_desc << " found " << (int)prog_target_desc << "\n";
+  #ifdef DEBUG_CPLX_RXNS
+    cout << "For " << (int)prod_desc << " found " << (int)prog_target_desc << "\n";
+  #endif
   release_assert(prog_target_desc != TARGET_NOT_FOUND);
 
   // to which reactant we will point?
@@ -632,8 +634,8 @@ void RxnRule::create_products_for_complex_rxn(
     const vector<const CplxInstance*>& input_reactants,
     vector<CplxInstance>& created_products
 ) const {
-  // NOTE: this all can be precomputed but we will need to be doing this on the fly
-  // once we will want to be maintaining molecule IDs
+  // the result of this function is cached in rxnclass
+
   assert(mol_instances_are_fully_maintained && "Assuming this for now");
 
   assert(input_reactants.size() == reactants.size());
@@ -654,19 +656,9 @@ void RxnRule::create_products_for_complex_rxn(
   }
 
   // merge reactant patterns
-  // this can be precomputed
   Graph pattern_graph = reactants[0].get_graph();
 
-#ifdef DEBUG_CPLX_MATCHING
-  cout << "Base pattern:\n";
-  dump_graph(reactants[0].get_graph());
-#endif
-
   if (reactants.size() == 2) {
-    #ifdef DEBUG_CPLX_MATCHING
-      cout << "Merging with:\n";
-      dump_graph(reactants[1].get_graph());
-    #endif
     merge_graphs(pattern_graph, reactants[1].get_graph());
   }
 
@@ -695,9 +687,7 @@ void RxnRule::create_products_for_complex_rxn(
     }
   }
 
-
   // create graph from products
-  // this can be precomputed
   Graph products_graph;
   if (products.size() > 0) {
     products_graph = products[0].get_graph();
@@ -711,10 +701,8 @@ void RxnRule::create_products_for_complex_rxn(
 #endif
 
   // compute mapping reactant patterns -> product patterns
-  // this can be precomputed
   // nodes in the reaction products graph have an extra option that they can ignore the state
   // find all mappings and compute score for each of those mappings so that we get the best match
-  // -> each matching state is a positive point
 
   VertexMapping product_pattern_mapping;
   // boost subgraph won't find a mapping of one of the reactants is not present in products,
