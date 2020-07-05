@@ -184,7 +184,7 @@ void CplxInstance::dump(const bool for_diff, const std::string ind) const {
     cout << ind << "mol_instances:\n";
     for (size_t i = 0; i < mol_instances.size(); i++) {
       cout << ind << i << ":\n";
-      mol_instances[i].dump(*bng_data, true, false, ind + "  ");
+      mol_instances[i].dump(*bng_data, true, ind + "  ");
     }
   }
 }

@@ -120,7 +120,7 @@ void MolInstance::finalize_flags_and_sort_components(const BNGData& bng_data) {
 }
 
 
-std::string MolInstance::to_str(const BNGData& bng_data, const bool only_explicit) const {
+std::string MolInstance::to_str(const BNGData& bng_data) const {
   stringstream ss;
   const MolType& mt = bng_data.get_molecule_type(mol_type_id);
 
@@ -132,15 +132,13 @@ std::string MolInstance::to_str(const BNGData& bng_data, const bool only_explici
   bool first_component = true;
   for (size_t i = 0; i < component_instances.size(); i++) {
 
-    if (!only_explicit || component_instances[i].explicitly_listed_in_pattern) {
-      if (!first_component) {
-        ss << ",";
-      }
-
-      ss << component_instances[i].to_str(bng_data);
-
-      first_component = false;
+    if (!first_component) {
+      ss << ",";
     }
+
+    ss << component_instances[i].to_str(bng_data);
+
+    first_component = false;
   }
   if (!component_instances.empty()) {
     ss << ")";
@@ -149,9 +147,9 @@ std::string MolInstance::to_str(const BNGData& bng_data, const bool only_explici
 }
 
 
-void MolInstance::dump(const BNGData& bng_data, const bool for_diff, const bool only_explicit, const std::string ind) const {
+void MolInstance::dump(const BNGData& bng_data, const bool for_diff, const std::string ind) const {
   if (!for_diff) {
-    cout << to_str(bng_data, only_explicit);
+    cout << to_str(bng_data);
   }
   else {
     const MolType& mt = bng_data.get_molecule_type(mol_type_id);

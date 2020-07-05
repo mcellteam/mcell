@@ -28,13 +28,11 @@ class BNGData;
 class ComponentInstance {
 public:
   ComponentInstance()
-    : component_type_id(COMPONENT_TYPE_ID_INVALID), state_id(STATE_ID_DONT_CARE), bond_value(BOND_VALUE_ANY),
-      explicitly_listed_in_pattern(false) {
+    : component_type_id(COMPONENT_TYPE_ID_INVALID), state_id(STATE_ID_DONT_CARE), bond_value(BOND_VALUE_ANY) {
   }
 
   ComponentInstance(const component_type_id_t id)
-    : component_type_id(id), state_id(STATE_ID_DONT_CARE), bond_value(BOND_VALUE_ANY),
-      explicitly_listed_in_pattern(false) {
+    : component_type_id(id), state_id(STATE_ID_DONT_CARE), bond_value(BOND_VALUE_ANY) {
   }
 
   // type id can be also found from parent's MoleculeInstance::molecule_type_id
@@ -50,10 +48,6 @@ public:
   //    when used in a pattern that it must not have a bond
   //    (in cases where we do not care, the component is not listed at all)
   bond_value_t bond_value;
-
-  // true if this component was explicitly listed in a pattern
-  // TODO: get rid of this XXX
-  bool explicitly_listed_in_pattern;
 
   bool operator == (const ComponentInstance& comp2) const  {
     return
@@ -115,9 +109,8 @@ public:
         get_flags() == other.get_flags();
   }
 
-  std::string to_str(const BNGData& bng_data, const bool only_explicit = false) const;
-  //void dump(const BNGData& bng_data, const bool for_diff = false, const bool only_explicit = false) const;
-  void dump(const BNGData& bng_data, const bool for_diff, const bool only_explicit, const std::string ind = "") const;
+  std::string to_str(const BNGData& bng_data) const;
+  void dump(const BNGData& bng_data, const bool for_diff, const std::string ind = "") const;
 };
 
 typedef small_vector<MolInstance> MolInstanceVector;

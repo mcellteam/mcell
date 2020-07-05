@@ -823,33 +823,18 @@ bool RxnRule::find_most_fitting_unassigned_mol_product(
         const ComponentInstance& reactant_comp_inst = reactant_mol_inst.component_instances[i];
         const ComponentInstance& product_comp_inst = product_mol_inst.component_instances[i];
 
-        // component must be explicitly listed on both sides to be considered
-        if (reactant_comp_inst.explicitly_listed_in_pattern) {
-          num_explicitly_listed_components_in_reactant++;
-
-          // the same component must be explicitly listed and
-          // if state is specified, it must be set on both sides
-          if (product_comp_inst.explicitly_listed_in_pattern &&
-              reactant_comp_inst.state_is_set() == product_comp_inst.state_is_set())  {
-
-            num_same_explicitly_listed_components++;
-            if (reactant_comp_inst.state_id == product_comp_inst.state_id) {
-              num_same_component_states++;
-            }
+        // if state is specified, it must be set on both sides
+        if (reactant_comp_inst.state_is_set() == product_comp_inst.state_is_set())  {
+          if (reactant_comp_inst.state_id == product_comp_inst.state_id) {
+            num_same_component_states++;
           }
-        }
-        else if (product_comp_inst.explicitly_listed_in_pattern) {
-          // component is not listed in reactants, just in products
-          num_same_explicitly_listed_components--;
         }
       }
 
       // all listed components match?
-      if (num_explicitly_listed_components_in_reactant == num_same_explicitly_listed_components) {
-        if (num_same_component_states > best_score) {
-          best_score = num_same_component_states;
-          best_cmi = product_cmi;
-        }
+      if (num_same_component_states > best_score) {
+        best_score = num_same_component_states;
+        best_cmi = product_cmi;
       }
     }
   }
@@ -986,7 +971,7 @@ bool RxnRule::compute_reactants_products_mapping_w_error_output(const BNGData& b
     // TODO: this message should be improved
     //out << "Did not find a matching molecule in products for reaction rule.";
     out << "Did not find a matching molecule in products for reactant molecule ";
-    out << not_matching_mol_inst.to_str(bng_data, true);
+    out << not_matching_mol_inst.to_str(bng_data);
     out << " listed as complex " << not_matching_cmi.cplx_index << " and molecule " << not_matching_cmi.mol_index << ".";
   }
   return ok;

@@ -452,10 +452,6 @@ MolInstance SemanticAnalyzer::convert_molecule_pattern(const ASTMoleculeNode* m)
 
     mi.component_instances.back().bond_value = b;
 
-    // we also need to remember for further checks that this component was explicitly
-    // specified
-    mi.component_instances.back().explicitly_listed_in_pattern = true;
-
     // need to move component index because we processed this component
     current_component_index++;
   }
