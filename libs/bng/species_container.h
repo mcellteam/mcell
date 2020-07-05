@@ -65,6 +65,8 @@ public:
     species.push_back(new_species);
     species.back().id = res;
 
+    std::cout << "Defined new species " << new_species.name << " with id " << res << "\n";
+
     return res;
   }
 

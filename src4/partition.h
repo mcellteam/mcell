@@ -43,23 +43,28 @@ namespace MCell {
 typedef std::map<counted_volume_index_t, uint> CountInGeomObjectMap;
 typedef std::map<wall_index_t, uint> CountOnWallMap;
 
-// class used to hold potential reactants of given species
+// class used to hold potential reactants of given species in a single subpart
 // performance critical, therefore we are using a vector for now,
-// will probably need to change in the future
+// we will probably need to change it in the future by deriving it from
+//   std::map<species_id_t, uint_set<molecule_id_t> >,
 class SpeciesReactantsMap:
-    // public std::map<species_id_t, uint_set<molecule_id_t> > {
+    // vector is indexed by species_id
     public std::vector<uint_set<molecule_id_t> > {
 
 public:
   // key must exist
   void erase_existing(const species_id_t key, const molecule_id_t id) {
-    //auto it = find(key);
-    //assert(it != end() && "Key must exist");
-    //it->second.erase_existing(id);
-
     assert(key < this->size());
     (*this)[key].erase_existing(id);
   }
+
+  void erase(const species_id_t key, const molecule_id_t id) {
+    if (key >= this->size()) {
+      return;
+    }
+    (*this)[key].erase(id);
+  }
+
   // key is created if it does not exist
   void insert_unique(const species_id_t key, const molecule_id_t id) {
     if (key >= this->size()) {
@@ -67,6 +72,18 @@ public:
       this->resize(key + 1);
     }
     (*this)[key].insert_unique(id);
+  }
+
+  void insert(const species_id_t key, const molecule_id_t id) {
+    if (key >= this->size()) {
+      // resize vector
+      this->resize(key + 1);
+    }
+    (*this)[key].insert(id);
+  }
+
+  bool contains(const species_id_t key, const molecule_id_t id) const {
+    return (*this)[key].count(id) != 0;
   }
 
   const uint_set<molecule_id_t>& get_set(const species_id_t key) {
@@ -234,6 +251,53 @@ public:
     urb = llf + Vec3(config.subpartition_edge_length);
   }
 
+
+  // called when a volume molecule is added and it is detected that
+  // this is a new species
+  void update_reactants_maps_for_new_species(
+      const species_id_t new_species_id
+  ) {
+    // can the new species initiate a reaction?
+    const BNG::Species& initiator_reactant_species = get_all_species().get(new_species_id);
+    if (initiator_reactant_species.cant_initiate()) {
+      // nothing to do
+      return;
+    }
+    assert(initiator_reactant_species.is_vol());
+
+    const BNG::SpeciesRxnClassesMap* reactions_map = get_all_rxns().get_bimol_rxns_for_reactant(new_species_id);
+    if (reactions_map == nullptr) {
+      // nothing to do
+      return;
+    }
+
+    // let's go through all molecules and update whether they can react with our new species
+    for (const Molecule& m: molecules) {
+      if (!m.is_vol()) {
+        continue;
+      }
+
+      assert(m.v.reactant_subpart_index != SUBPART_INDEX_INVALID);
+      SpeciesReactantsMap& subpart_reactants_sp = volume_molecule_reactants_per_subpart[m.v.reactant_subpart_index];
+
+      for (const auto& second_reactant_info: *reactions_map) {
+        if (second_reactant_info.second->get_num_reactions() == 0) {
+          // there is a reaction class, but it has no reactions
+          continue;
+        }
+
+        // find all molecules in this subpart that match the second reactant
+        species_id_t second_species_id = second_reactant_info.first;
+        if (m.species_id == second_species_id) {
+          // this mapping may already exist because the new_species_id was known
+          // when 'm' was added
+          subpart_reactants_sp.insert(new_species_id, m.id);
+        }
+      }
+    }
+  }
+
+
   // the reactant_subpart_index is index where the molecule was originally created,
   // it might have moved to subpart_index in the meantime
   void change_vol_reactants_map_from_orig_to_current(Molecule& vm, bool adding, bool removing) {
@@ -252,6 +316,7 @@ public:
     // and these are indices of possible reactants with our reactant_species_id
     // NOTE: this must be fast, bng engine must have this map/vector already ready
     // TODO: we can optimize this by taking just volume reactants into account
+    //       - simply reject if the second reactant is surf mol
     const BNG::SpeciesRxnClassesMap* reactions_map = get_all_rxns().get_bimol_rxns_for_reactant(vm.species_id);
     if (reactions_map == nullptr) {
       // nothing to do
@@ -264,23 +329,25 @@ public:
 
     // we need to set/clear flag that says that second_reactant_info.first can react with reactant_species_id
     for (const auto& second_reactant_info: *reactions_map) {
+      species_id_t second_species_id = second_reactant_info.first;
+
       if (second_reactant_info.second->get_num_reactions() == 0) {
         // there is a reaction class, but it has no reactions
         continue;
       }
 
       // can the second reactant initiate a reaction with me?
-      const BNG::Species& initiator_reactant_species = get_all_species().get(second_reactant_info.first);
+      const BNG::Species& initiator_reactant_species = get_all_species().get(second_species_id);
       if (initiator_reactant_species.cant_initiate()) {
         // nothing to do
         return;
       }
 
       if (removing) {
-        subpart_reactants_orig_sp.erase_existing(second_reactant_info.first, vm.id);
+        subpart_reactants_orig_sp.erase_existing(second_species_id, vm.id);
       }
       if (adding) {
-        subpart_reactants_new_sp.insert_unique(second_reactant_info.first, vm.id);
+        subpart_reactants_new_sp.insert_unique(second_species_id, vm.id);
       }
     }
 
@@ -351,8 +418,16 @@ public:
   // any molecule flags are set by caller after the molecule is created by this method
   Molecule& add_volume_molecule(const Molecule& vm_copy) {
 
+    if (known_vol_species.count(vm_copy.species_id) == 0) {
+      // we must update reactant maps if new species were added
+      update_reactants_maps_for_new_species(vm_copy.species_id);
+      known_vol_species.insert(vm_copy.species_id);
+    }
+
+    // molecule must be added after the update because it was not fully set up
     Molecule& new_vm = add_molecule(vm_copy, true);
 
+    // and add this molecule to a map that tells which species can react with it
     new_vm.v.subpart_index = get_subpart_index(vm_copy.v.pos);
     new_vm.v.reactant_subpart_index = new_vm.v.subpart_index;
     change_vol_reactants_map_from_orig_to_current(new_vm, true, false);
@@ -803,6 +878,10 @@ private:
 
   // indexed with subpartition index, only for vol-vol reactions
   std::vector<SpeciesReactantsMap> volume_molecule_reactants_per_subpart;
+
+  // set that remembers which species we already saw, used to update
+  // volume_molecule_reactants_per_subpart when needed
+  std::set<species_id_t> known_vol_species;
 
   // ---------------------------------- geometry objects ----------------------------------
 
