@@ -21,8 +21,9 @@ namespace BNG {
 // objects by its own
 class SpeciesContainer {
 public:
-  SpeciesContainer(const BNGData& bng_data_)
+  SpeciesContainer(const BNGData& bng_data_, const BNGConfig& bng_config_)
     : bng_data(bng_data_),
+      bng_config(bng_config_),
       next_species_id(0),
       all_molecules_species_id(SPECIES_ID_INVALID),
       all_volume_molecules_species_id(SPECIES_ID_INVALID),
@@ -65,7 +66,9 @@ public:
     species.push_back(new_species);
     species.back().id = res;
 
-    std::cout << "Defined new species " << new_species.name << " with id " << res << "\n";
+    if (bng_config.debug_reactions) {
+      std::cout << "Defined new species " << new_species.name << " with id " << res << "\n";
+    }
 
     return res;
   }
@@ -183,8 +186,8 @@ public:
   void dump() const;
 
 public:
-  // FIXME: temporary, need some 'context' easily accessible by all classes
   const BNGData& bng_data;
+  const BNGConfig& bng_config; // only debug flags is used now
 
 private:
   species_id_t next_species_id;
