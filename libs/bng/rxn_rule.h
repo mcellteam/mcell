@@ -21,38 +21,6 @@ class BNGData;
 class SpeciesContainer;
 class RxnClass;
 
-struct CplxMolIndex {
-  CplxMolIndex()
-  : cplx_index(INDEX_INVALID), mol_index(INDEX_INVALID) {
-  }
-
-  CplxMolIndex(const uint complex_index_, const uint molecule_index_)
-    : cplx_index(complex_index_), mol_index(molecule_index_) {
-  }
-
-  uint cplx_index;
-  uint mol_index;
-
-  bool operator==(const CplxMolIndex& cmi2) const {
-    return cplx_index == cmi2.cplx_index && mol_index == cmi2.mol_index;
-  }
-};
-
-
-struct CMIndexPair {
-  CMIndexPair(const CplxMolIndex& reactant_cmi_, const CplxMolIndex& product_cmi_)
-    : reactant_cmi(reactant_cmi_), product_cmi(product_cmi_) {
-  }
-
-  CplxMolIndex reactant_cmi;
-  CplxMolIndex product_cmi;
-
-  bool operator==(const CMIndexPair& cmi_pair2) const {
-    return reactant_cmi == cmi_pair2.reactant_cmi && product_cmi == cmi_pair2.product_cmi;
-  }
-};
-
-
 struct CplxIndexPair {
   CplxIndexPair(const uint reactant_index_, const uint product_index_)
     : reactant_index(reactant_index_), product_index(product_index_) {
@@ -92,11 +60,7 @@ public:
 
   RxnType type;
 
-  // the complex species are patterns
-  //
-  // there is a potential for optimizations, e.g.
-  // to make a set of species that match the patterns, but let's keep it
-  // for later
+  // the complex species of reactants are patterns
   CplxInstanceVector reactants;
   CplxInstanceVector products;
 
@@ -106,15 +70,6 @@ public:
 
   // set to true if it was possible to do a mapping between reactants and products
   bool mol_instances_are_fully_maintained;
-
-  // matching between molecules of reactants and molecules of products,
-  // contains info on what we were able to match, even if
-  // mol_instances_are_fully_maintained is false
-  small_vector<CMIndexPair> mol_mapping;
-
-  // matching between complexes
-  // set only if the complex patterns are identical (MCell-style rxns)
-  small_vector<CplxIndexPair> cplx_mapping;
 
   // caching
   uint_set<species_id_t> species_applicable_as_reactants;
@@ -157,16 +112,6 @@ public:
     return products[index];
   }
 
-  const MolInstance& get_mol_reactant(const CplxMolIndex& cmi) const {
-    assert(cmi.mol_index <= reactants[cmi.cplx_index].mol_instances.size());
-    return get_cplx_reactant(cmi.cplx_index).mol_instances[cmi.mol_index];
-  }
-
-  const MolInstance& get_mol_product(const CplxMolIndex& cmi) const {
-    assert(cmi.mol_index <= products[cmi.cplx_index].mol_instances.size());
-    return get_cplx_product(cmi.cplx_index).mol_instances[cmi.mol_index];
-  }
-
   // mcell3 variant of maintaining substances,
   // e.g. for A + B -> A : reactant A is maintained
   bool is_cplx_reactant_on_both_sides_of_rxn(const uint index) const;
@@ -182,13 +127,11 @@ public:
   }
 
   // checks if it is possible to create a mapping from reactants to products and
-  // sets members molecule_instances_are_maintained and mapping,
-  // might write some error messages to the msgs stream,
-  // returns true if errors were encountered
-  // TODO: replace with find_best_product_to_pattern_mapping
-  bool compute_reactants_products_mapping();
+  // sets members molecule_instances_are_maintained and mapping
+  void compute_reactants_products_mapping();
 
-  bool compute_reactants_products_mapping_w_error_output(const BNGData& bng_data, std::ostream& out);
+  // used in semantic check
+  bool check_reactants_products_mapping(std::ostream& out);
 
 
   void append_reactant(const CplxInstance& inst) {
@@ -252,7 +195,7 @@ public:
   // returns true if two reactants match each other and species 'id' matches one of the reactants
   bool species_is_both_bimol_reactants(const species_id_t id, const SpeciesContainer& all_species);
 
-  bool find_assigned_cplx_reactant_for_product(const uint product_index, uint& reactant_index) const;
+  bool get_assigned_simple_cplx_reactant_for_product(const uint product_index, uint& reactant_index) const;
 
   void set_is_counted() {
     set_flag(RXN_FLAG_COUNTED);
@@ -294,26 +237,34 @@ public:
   void dump(const bool for_diff = false, const std::string ind = "") const;
 
 private:
-
-  // returns false if cmi was not found in mapping,
-  bool find_assigned_mol_reactant_for_product(const CplxMolIndex& product_cmi, CplxMolIndex& reactant_cmi) const;
-
-  // check if it makes sense to compute mapping at all
-  bool has_same_mols_in_reactants_and_products() const;
-
-  // returns false if no fitting product was found
-  bool find_most_fitting_unassigned_mol_product(const CplxMolIndex& reactant_cmi, CplxMolIndex& best_product_cmi) const;
-
-  bool compute_mol_reactants_products_mapping(MolInstance& not_matching_mol_inst, CplxMolIndex& not_matching_cmi);
-
-  void compute_cplx_reactants_products_mapping();
+  void create_patterns_graph();
+  void create_products_graph();
 
   void move_products_that_are_also_reactants_to_be_the_first_products();
+
+  bool check_components_mapping(
+      const MolInstance& first_mi,
+      const MolInstance& second_mi,
+      const char* msg,
+      std::ostream& out
+  );
 
   std::string complex_instance_vector_to_str(const CplxInstanceVector& complexes) const;
   void dump_complex_instance_vector(
       const CplxInstanceVector& complexes,
       const std::string ind) const;
+
+
+  // mutable is needed because of usage in create_products_for_complex_rxn
+  // the graphs are not modified, but boost cannot use them as const
+  mutable Graph patterns_graph; // graphs based on reactants
+  mutable Graph products_graph;
+  VertexMapping products_to_patterns_mapping;
+
+  // information for MCell3 reactions,
+  // maps simple complexes from their pattern to the product
+  // ignores complex complexes
+  small_vector<CplxIndexPair> simple_cplx_mapping;
 
   const BNGData* bng_data; // needed to create results of complex reactions
 };

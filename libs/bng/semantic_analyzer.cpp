@@ -13,14 +13,14 @@
 #include "bng/mol_type.h"
 #include "bng/parser_utils.h"
 
-const char* const DIR_FORWARD = "forward";
-const char* const DIR_REVERSE = "reverse";
-
 // each semantic check has in comment the name of a test for it
 
 using namespace std;
 
 namespace BNG {
+
+const char* const DIR_FORWARD = "forward";
+const char* const DIR_REVERSE = "reverse";
 
 // returns new node, owned by ctx if any new nodes were created
 // called recursively, the set used_ids is copied intentionally every call
@@ -569,19 +569,24 @@ void SemanticAnalyzer::convert_cplx_inst_or_rxn_rule_side(
 }
 
 
-void SemanticAnalyzer::finalize_and_store_rxn_rule(const ASTRxnRuleNode* n, RxnRule& r, const string direction_str) {
+void SemanticAnalyzer::finalize_and_store_rxn_rule(const ASTRxnRuleNode* n, RxnRule& r, const bool forward_direction) {
+
+  r.finalize();
+
   // determine mapping from molecule instances on one side to another
   stringstream out;
-  bool ok = r.compute_reactants_products_mapping_w_error_output(*bng_data, out);
+  bool ok = r.check_reactants_products_mapping(out);
   if (!ok) {
-    errs_loc(n) << out.str() << " (in the " << direction_str << " direction, indices are counted from 0)\n"; // tests N0220, N0230, N0231, N0232
+    // tests N0220, N0230, N0231, N0232
+    errs_loc(n) << out.str() <<
+        " (in the " << (forward_direction ? DIR_FORWARD : DIR_REVERSE) << " direction)\n";
     ctx->inc_error_count();
   }
 
   // set name if it is not set, also errors could have left the rxn in invalid state
   if (r.name == "" && ctx->get_error_count() == 0) {
     string n = r.to_str();
-    if (direction_str == DIR_REVERSE) {
+    if (!forward_direction) {
       r.name = "rev " + n;
     }
     else {
@@ -617,7 +622,7 @@ void SemanticAnalyzer::convert_and_store_rxn_rules() {
     fwd_rule.reactants = reactants;
     fwd_rule.products = products;
 
-    finalize_and_store_rxn_rule(r, fwd_rule, DIR_FORWARD);
+    finalize_and_store_rxn_rule(r, fwd_rule, true);
 
     if (r->reversible) {
       RxnRule rev_rule(bng_data);
@@ -636,7 +641,7 @@ void SemanticAnalyzer::convert_and_store_rxn_rules() {
       rev_rule.reactants = products;
       rev_rule.products = reactants;
 
-      finalize_and_store_rxn_rule(r, rev_rule, DIR_REVERSE);
+      finalize_and_store_rxn_rule(r, rev_rule, false);
     }
   }
 }

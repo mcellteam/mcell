@@ -80,6 +80,8 @@ void CplxInstance::finalize() {
 
 
 void CplxInstance::create_graph() {
+  graph.clear();
+
   // convert molecule instances and their bonds into the boost graph representation
 
   map<bond_value_t, vector<Graph::vertex_descriptor>> bonds_to_vertices_map;

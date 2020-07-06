@@ -54,7 +54,7 @@ private:
       CplxInstanceVector& pattern
   );
 
-  void finalize_and_store_rxn_rule(const ASTRxnRuleNode* n, RxnRule& r, const std::string direction_str);
+  void finalize_and_store_rxn_rule(const ASTRxnRuleNode* n, RxnRule& r, const bool forward_direction);
   void convert_and_store_rxn_rules();
 
   void convert_seed_species();

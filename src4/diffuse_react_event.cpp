@@ -2046,7 +2046,7 @@ int DiffuseReactEvent::outcome_products_random(
     // for unimol reactions - the unimol action action starts diffusion for the remaining timestep
     if (rx->is_cplx_product_on_both_sides_of_rxn(product_index)) {
       uint reactant_index;
-      bool ok = rx->find_assigned_cplx_reactant_for_product(product_index, reactant_index);
+      bool ok = rx->get_assigned_simple_cplx_reactant_for_product(product_index, reactant_index);
       assert(reactant_index == 0 || reactant_index == 1);
 
       if (rx->reactants[reactant_index].get_orientation() != product_orientation) {

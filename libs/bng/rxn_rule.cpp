@@ -48,10 +48,33 @@ public:
 };
 
 
+static void merge_graphs(Graph& srcdst, const Graph& src) {
+  boost::copy_graph(src, srcdst);
+}
+
+
+void RxnRule::create_patterns_graph() {
+  patterns_graph.clear();
+  // create graph for reactant patterns
+  patterns_graph = reactants[0].get_graph();
+  if (reactants.size() == 2) {
+    merge_graphs(patterns_graph, reactants[1].get_graph());
+  }
+}
+
+
+void RxnRule::create_products_graph() {
+  // create graph from products
+  if (products.size() > 0) {
+    products_graph = products[0].get_graph();
+  }
+  for (size_t i = 1; i < products.size(); i++) {
+    merge_graphs(products_graph, products[i].get_graph());
+  }
+}
+
 
 void RxnRule::finalize() {
-  assert(id != RXN_RULE_ID_INVALID);
-
   bool simple = true;
 
   // finalize all reactants and products
@@ -73,100 +96,120 @@ void RxnRule::finalize() {
     set_flag(RXN_FLAG_SIMPLE);
   }
 
+  create_patterns_graph();
+  create_products_graph();
   compute_reactants_products_mapping();
 
-  // for MCell3 compatibility
+  // for MCell3 compatibility, updates mapping when needed
   move_products_that_are_also_reactants_to_be_the_first_products();
 
   set_finalized();
 }
 
 
-static void merge_graphs(Graph& srcdst, const Graph& src) {
-  boost::copy_graph(src, srcdst);
-}
-
-// TODO: use BGL_FORALL_VERTICES_T
-
-static int get_rxn_component_instance_matching_score(
-    const Node& prod_comp,
-    const Node& reac_comp
-) {
-  assert(!prod_comp.is_mol);
-  assert(!reac_comp.is_mol);
-
-  const ComponentInstance& ci1 = *prod_comp.component;
-  const ComponentInstance& ci2 = *reac_comp.component;
-
-  if (ci1.component_type_id != ci2.component_type_id) {
-    return -1; // not a match
+struct MolCompInfo {
+  MolCompInfo(const vertex_descriptor_t desc_, const MolInstance* mi_)
+    : desc(desc_), already_matched(false), mi(mi_), ci(nullptr) {
+  }
+  MolCompInfo(const vertex_descriptor_t desc_, const ComponentInstance* ci_)
+    : desc(desc_), already_matched(false), mi(nullptr), ci(ci_) {
   }
 
-  int res = 0;
+  const MolInstance* get_mi() const {
+    assert(mi != nullptr);
+    return mi;
+  }
+
+  const ComponentInstance* get_ci() const {
+    assert(ci != nullptr);
+    return ci;
+  }
+
+  vertex_descriptor_t desc;
+
+  vector<int> matching_score;
+  bool already_matched;
+private:
+  const MolInstance* mi;
+  const ComponentInstance* ci;
+};
+
+
+static void get_all_mol_instances_from_graph(
+    Graph& graph,
+    vector<MolCompInfo>& res
+) {
+  VertexNameMap index = boost::get(boost::vertex_name, graph);
+  typedef boost::graph_traits<Graph>::vertex_iterator vertex_iter;
+  std::pair<vertex_iter, vertex_iter> it;
+  for (it = boost::vertices(graph); it.first != it.second; ++it.first) {
+    vertex_descriptor_t desc = *it.first;
+    const Node& mi_node = index[desc];
+    if (mi_node.is_mol) {
+      res.push_back(MolCompInfo(desc, mi_node.mol));
+    }
+  }
+}
+
+
+static void get_all_component_instances_of_mol_from_graph(
+    Graph& graph,
+    const vertex_descriptor_t mol_desc, // specifies molecule whose components we are collecting
+    vector<MolCompInfo>& res
+) {
+  VertexNameMap index = boost::get(boost::vertex_name, graph);
+
+  boost::graph_traits<Graph>::out_edge_iterator pat_ei, pat_edge_end;
+  for (boost::tie(pat_ei, pat_edge_end) = boost::out_edges(mol_desc, graph); pat_ei != pat_edge_end; ++pat_ei) {
+    vertex_descriptor_t connected_node_desc = boost::target(*pat_ei, graph);
+    const Node& mi_node = index[connected_node_desc];
+    assert(!mi_node.is_mol);
+    res.push_back(MolCompInfo(connected_node_desc, mi_node.component));
+  }
+}
+
+
+static int get_component_instance_matching_score(
+    const ComponentInstance& ci1,
+    const ComponentInstance& ci2
+) {
+  if (ci1.component_type_id != ci2.component_type_id) {
+    return 0; // not a match
+  }
+
+  int res = 1;
   if (ci1.state_id == ci2.state_id) {
     res++;
   }
 
+  // NOTE: bond matching needs to be improved
   if (ci1.bond_value == ci2.bond_value) {
     res++;
   }
 
-  // note: maybe we will need to make the scoring more fine grained
   return res;
 }
 
 
-static int get_rxn_mol_instance_matching_score(
-    Graph& products_graph,
-    const vertex_descriptor_t prod_mi_desc,
-    Graph& reactants_graph,
-    const vertex_descriptor_t reac_mi_desc,
-    const VertexNameMap& index
-) {
-  // similar code as in find_best_component_mapping
-  // FIXME: find a way how to merge it
-
+static int get_mol_instance_matching_score(const MolInstance& pat, const MolInstance& prod) {
+  if (pat.mol_type_id != prod.mol_type_id) {
+    return -1;
+  }
   int res = 0;
 
-  set<vertex_descriptor_t> mapped_components;
+  // add a lot of points if we have the same number of components
+  if (pat.component_instances.size() == prod.component_instances.size()) {
+    res += pat.component_instances.size();
+  }
 
-  boost::graph_traits<Graph>::out_edge_iterator prod_ei, prod_edge_end;
-  for (boost::tie(prod_ei, prod_edge_end) = boost::out_edges(prod_mi_desc, products_graph); prod_ei != prod_edge_end; ++prod_ei) {
-    vertex_descriptor_t prod_comp_desc = boost::target(*prod_ei, products_graph);
-    const Node& prod_comp = index[prod_comp_desc];
+  // and add points for each matching component, they are ordered according to
+  // the MolType
+  // TODO: probably use the same approach for matching components that is done later
+  for (size_t i = 0; i < pat.component_instances.size(); i++) {
+    const ComponentInstance& pat_compi = pat.component_instances[i];
 
-    int best_comp_score = -1; // not found
-    vertex_descriptor_t best_comp_reac_desc;
-
-    // compare against components of the best match
-    boost::graph_traits<Graph>::out_edge_iterator reac_ei, reac_edge_end;
-    for (boost::tie(reac_ei, reac_edge_end) = boost::out_edges(reac_mi_desc, reactants_graph); reac_ei != reac_edge_end; ++reac_ei) {
-      vertex_descriptor_t reac_comp_desc = boost::target(*reac_ei, products_graph);
-      const Node& reac_comp = index[reac_comp_desc];
-
-      if (!reac_comp.is_mol &&
-          reac_comp.component->component_type_id == prod_comp.component->component_type_id &&
-          mapped_components.count(reac_comp_desc) == 0 // not mapped yet
-      ) {
-
-        int current_score = get_rxn_component_instance_matching_score(
-            prod_comp,
-            reac_comp
-        );
-        if (current_score > best_comp_score) {
-          best_comp_reac_desc = reac_comp_desc;
-          best_comp_score = current_score;
-        }
-      }
-    }
-
-    if (best_comp_score >= 0) {
-      // remember score of this mapping
-      res += best_comp_score;
-
-      // we used this reactant's component
-      assert(mapped_components.count(best_comp_reac_desc) == 0);
-      mapped_components.insert(best_comp_reac_desc);
+    if (i < prod.component_instances.size()) {
+      res += get_component_instance_matching_score(pat_compi, prod.component_instances[i]);
     }
   }
 
@@ -174,125 +217,116 @@ static int get_rxn_mol_instance_matching_score(
 }
 
 
-static void find_best_component_mapping(
-    Graph& products_graph,
-    vertex_descriptor_t prod_mi_desc,
-    Graph& reactants_graph,
-    vertex_descriptor_t reac_mi_desc,
-    const VertexNameMap& index,
-    VertexMapping& prod_reac_mapping
+// returns true if the next mapping was found and indices were set
+static bool get_best_not_matched_mapping(
+    const vector<MolCompInfo>& patterns,
+    const vector<MolCompInfo>& products,
+    size_t& highest_pat_index,
+    size_t& highest_prod_index
 ) {
-  set<vertex_descriptor_t> mapped_components;
+  int best_score = -1;
 
-  // now also define mapping for the components of this molecule instance
-  boost::graph_traits<Graph>::out_edge_iterator prod_ei, prod_edge_end;
-  for (boost::tie(prod_ei, prod_edge_end) = boost::out_edges(prod_mi_desc, products_graph); prod_ei != prod_edge_end; ++prod_ei) {
-    vertex_descriptor_t prod_comp_desc = boost::target(*prod_ei, products_graph);
-    const Node& prod_comp = index[prod_comp_desc];
-
-    int best_comp_score = -1; // not found
-    vertex_descriptor_t best_comp_reac_desc;
-
-    // compare against components of the best match
-    boost::graph_traits<Graph>::out_edge_iterator reac_ei, reac_edge_end;
-    for (boost::tie(reac_ei, reac_edge_end) = boost::out_edges(reac_mi_desc, reactants_graph); reac_ei != reac_edge_end; ++reac_ei) {
-      vertex_descriptor_t reac_comp_desc = boost::target(*reac_ei, products_graph);
-      const Node& reac_comp = index[reac_comp_desc];
-
-      if (!reac_comp.is_mol &&
-          reac_comp.component->component_type_id == prod_comp.component->component_type_id &&
-          mapped_components.count(reac_comp_desc) == 0 // not mapped yet
-      ) {
-
-        int current_score = get_rxn_component_instance_matching_score(
-            prod_comp,
-            reac_comp
-        );
-        if (current_score > best_comp_score) {
-          best_comp_reac_desc = reac_comp_desc;
-          best_comp_score = current_score;
+  for (size_t pat_i = 0; pat_i < patterns.size(); pat_i++) {
+    if (!patterns[pat_i].already_matched) {
+      for (size_t prod_i = 0; prod_i < patterns[pat_i].matching_score.size(); prod_i++) {
+        if (!products[prod_i].already_matched && patterns[pat_i].matching_score[prod_i] > best_score) {
+          best_score = patterns[pat_i].matching_score[prod_i];
+          highest_pat_index = pat_i;
+          highest_prod_index = prod_i;
         }
       }
     }
+  }
 
-    if (best_comp_score >= 0) {
-      // remember this mapping
-      assert(prod_reac_mapping.count(prod_comp_desc) == 0);
-      prod_reac_mapping[prod_comp_desc] = best_comp_reac_desc;
+  return best_score != -1;
+}
 
-      // we mapped this component reactant
-      assert(mapped_components.count(best_comp_reac_desc) == 0);
-      mapped_components.insert(best_comp_reac_desc);
+
+static void select_best_mapping(
+    vector<MolCompInfo>& patterns,
+    vector<MolCompInfo>& products,
+    VertexMapping& prod_reac_mapping
+) {
+  // sort the score and select the best 'global' match
+  // find the globally highest score
+  for (MolCompInfo& pat: patterns) {
+    size_t highest_pat_index;
+    size_t highest_prod_index;
+    bool found = get_best_not_matched_mapping(
+        patterns, products, highest_pat_index, highest_prod_index);
+    if (!found) {
+      break;
     }
+
+    // define this mapping, it is in the product->pattern direction
+    vertex_descriptor_t prod_desc = products[highest_prod_index].desc;
+    assert(prod_reac_mapping.count(prod_desc) == 0);
+    prod_reac_mapping[prod_desc] = patterns[highest_pat_index].desc;
+
+    // and mark that we used these molecule instances
+    patterns[highest_pat_index].already_matched = true;
+    products[highest_prod_index].already_matched = true;
   }
 }
+
 
 static void find_best_product_to_pattern_mapping(
     Graph& products_graph,
-    Graph& reactants_graph,
-    VertexMapping& prod_reac_mapping) {
+    Graph& patterns_graph,
+    VertexMapping& prod_reac_mapping
+) {
 
   prod_reac_mapping.clear();
 
-  set<vertex_descriptor_t> mapped_reactants;
+  // prepare arrays of patterns and products
+  vector<MolCompInfo> pattern_mols;
+  get_all_mol_instances_from_graph(patterns_graph, pattern_mols);
+  vector<MolCompInfo> product_mols;
+  get_all_mol_instances_from_graph(products_graph, product_mols);
 
-  // get the property map for vertex indices
-  VertexNameMap index = boost::get(boost::vertex_name, reactants_graph);
 
-  // for each molecule instance in pattern_graph
-  typedef boost::graph_traits<Graph>::vertex_iterator vertex_iter;
-  std::pair<vertex_iter, vertex_iter> prod_it;
-  for (prod_it = boost::vertices(products_graph); prod_it.first != prod_it.second; ++prod_it.first) {
-    vertex_descriptor_t prod_desc = *prod_it.first;
-    const Node& prod_mi = index[prod_desc];
-    if (prod_mi.is_mol) {
+  // compute matching score for each pair of patterns and products
+  for (MolCompInfo& pat: pattern_mols) {
+    pat.matching_score.resize(product_mols.size());
+    for (size_t i = 0; i < product_mols.size(); i++) {
+      MolCompInfo& prod = product_mols[i];
+      // TODO: deal also with bonds, when a molecule instance is connected to
+      // certain molecules and the product as well, this should give it higher score
+      pat.matching_score[i] = get_mol_instance_matching_score(*pat.get_mi(), *prod.get_mi());
+    }
+  }
 
-      // find the best match for this molecule instance
-      // in products graph
-      int best_mol_score = -1; // not found
-      vertex_descriptor_t best_mol_reac_desc;
-      std::pair<vertex_iter, vertex_iter> reac_it;
-      for (reac_it = boost::vertices(reactants_graph); reac_it.first != reac_it.second; ++reac_it.first) {
-        const Node& reac_mi = index[*reac_it.first];
-        if (reac_mi.is_mol &&
-            reac_mi.mol->mol_type_id == prod_mi.mol->mol_type_id &&
-            mapped_reactants.count(*reac_it.first) == 0 // not mapped yet
-        ) {
+  // get best mapping for molecule instances
+  select_best_mapping(
+      pattern_mols,
+      product_mols,
+      prod_reac_mapping
+  );
 
-          int current_score = get_rxn_mol_instance_matching_score(
-              products_graph,
-              *reac_it.first,
-              reactants_graph,
-              *prod_it.first,
-              index
-          );
+  // ok, we matched molecules, now we need to match components as well
+  // we are adding to the prod_reac_mapping, so we will make a copy to iterate over it
+  VertexMapping mol_prod_reac_mapping = prod_reac_mapping;
+  for (auto pair_it: mol_prod_reac_mapping) {
+    vector<MolCompInfo> pattern_comps;
+    get_all_component_instances_of_mol_from_graph(patterns_graph, pair_it.second, pattern_comps);
+    vector<MolCompInfo> product_comps;
+    get_all_component_instances_of_mol_from_graph(products_graph, pair_it.first, product_comps);
 
-          if (current_score > best_mol_score) {
-            best_mol_reac_desc = *reac_it.first;
-            best_mol_score = current_score;
-          }
-        }
+    // compute matching score for each pair of patterns and products
+    for (MolCompInfo& pat: pattern_comps) {
+      pat.matching_score.resize(product_comps.size());
+      for (size_t i = 0; i < product_comps.size(); i++) {
+        MolCompInfo& prod = product_comps[i];
+        pat.matching_score[i] = get_component_instance_matching_score(*pat.get_ci(), *prod.get_ci());
       }
+    }
 
-      if (best_mol_score >= 0) {
-        // remember this mapping
-        assert(prod_reac_mapping.count(prod_desc) == 0);
-        prod_reac_mapping[prod_desc] = best_mol_reac_desc;
-
-        // we mapped this reactant
-        assert(mapped_reactants.count(best_mol_reac_desc) == 0);
-        mapped_reactants.insert(best_mol_reac_desc);
-
-        find_best_component_mapping(
-            products_graph,
-            prod_desc,
-            reactants_graph,
-            best_mol_reac_desc,
-            index,
-            prod_reac_mapping
-        );
-      } // ^^^ handling of found reactants
-    } // is mol
+    // get best mapping for component instances
+    select_best_mapping(
+        pattern_comps,
+        product_comps,
+        prod_reac_mapping
+    );
   }
 }
 
@@ -655,17 +689,11 @@ void RxnRule::create_products_for_complex_rxn(
     merge_graphs(reactants_graph, input_reactants_copy[1].get_graph());
   }
 
-  // merge reactant patterns
-  Graph pattern_graph = reactants[0].get_graph();
-
-  if (reactants.size() == 2) {
-    merge_graphs(pattern_graph, reactants[1].get_graph());
-  }
 
   // compute mapping reactant pattern -> reactant
 #ifdef DEBUG_CPLX_MATCHING
   cout << "Pattern:\n";
-  dump_graph(pattern_graph);
+  dump_graph(patterns_graph);
 
   cout << "Reactants:\n";
   dump_graph(reactants_graph);
@@ -673,7 +701,7 @@ void RxnRule::create_products_for_complex_rxn(
 
   VertexMappingVector pattern_reactant_mappings;
   get_subgraph_isomorphism_mappings(
-      pattern_graph, // pattern
+      patterns_graph, // pattern
       reactants_graph, // actual reactant
       false, // do not stop with first match
       pattern_reactant_mappings
@@ -687,32 +715,9 @@ void RxnRule::create_products_for_complex_rxn(
     }
   }
 
-  // create graph from products
-  Graph products_graph;
-  if (products.size() > 0) {
-    products_graph = products[0].get_graph();
-  }
-  for (size_t i = 1; i < products.size(); i++) {
-    merge_graphs(products_graph, products[i].get_graph());
-  }
 #ifdef DEBUG_CPLX_MATCHING
   cout << "Products:\n";
   dump_graph(products_graph);
-#endif
-
-  // compute mapping reactant patterns -> product patterns
-  // nodes in the reaction products graph have an extra option that they can ignore the state
-  // find all mappings and compute score for each of those mappings so that we get the best match
-
-  VertexMapping product_pattern_mapping;
-  // boost subgraph won't find a mapping of one of the reactants is not present in products,
-  // so we need to do this manually, we always stop branching at components of a single molecule
-  // so the complexity can be handled in reasonable time because there won't be usually may identical
-  // molecules
-  find_best_product_to_pattern_mapping(products_graph, pattern_graph, product_pattern_mapping);
-
-#ifdef DEBUG_CPLX_MATCHING
-  dump_graph_mapping(product_pattern_mapping);
 #endif
 
   // manipulate nodes using information about products
@@ -721,8 +726,8 @@ void RxnRule::create_products_for_complex_rxn(
   apply_rxn_on_reactants_graph(
       reactants_graph,
       pattern_reactant_mappings[0],
-      pattern_graph,
-      product_pattern_mapping,
+      patterns_graph,
+      products_to_patterns_mapping,
       products_graph
   );
 
@@ -748,7 +753,7 @@ void RxnRule::create_products_for_complex_rxn(
 
 bool RxnRule::is_cplx_reactant_on_both_sides_of_rxn(const uint index) const {
   assert(is_finalized());
-  for (const CplxIndexPair& cplx_index_pair: cplx_mapping) {
+  for (const CplxIndexPair& cplx_index_pair: simple_cplx_mapping) {
     if (index == cplx_index_pair.reactant_index) {
       return true;
     }
@@ -759,7 +764,7 @@ bool RxnRule::is_cplx_reactant_on_both_sides_of_rxn(const uint index) const {
 
 bool RxnRule::is_cplx_product_on_both_sides_of_rxn(const uint index) const {
   assert(is_finalized());
-  for (const CplxIndexPair& cplx_index_pair: cplx_mapping) {
+  for (const CplxIndexPair& cplx_index_pair: simple_cplx_mapping) {
     if (index == cplx_index_pair.product_index) {
       return true;
     }
@@ -768,120 +773,9 @@ bool RxnRule::is_cplx_product_on_both_sides_of_rxn(const uint index) const {
 }
 
 
-bool RxnRule::find_assigned_mol_reactant_for_product(const CplxMolIndex& product_cmi, CplxMolIndex& reactant_cmi) const {
+bool RxnRule::get_assigned_simple_cplx_reactant_for_product(const uint product_index, uint& reactant_index) const {
   // this is not a time critical search
-  for (const CMIndexPair& cmi_pair: mol_mapping) {
-    if (product_cmi == cmi_pair.product_cmi) {
-      reactant_cmi = cmi_pair.reactant_cmi;
-      return true;
-    }
-  }
-  return false;
-}
-
-
-// Finds a matching already not assigned product,
-// the product must be
-// Return true if the the product was found
-// NOTE: BNGL2.pl provides more detailed reporting, see tests N0220, N0230-N0232
-bool RxnRule::find_most_fitting_unassigned_mol_product(
-    const CplxMolIndex& reactant_cmi, CplxMolIndex& best_product_cmi) const {
-  const MolInstance& reactant_mol_inst = get_mol_reactant(reactant_cmi);
-
-  int best_score = -1;
-  CplxMolIndex best_cmi;
-
-  for (uint complex_index = 0; complex_index < products.size(); complex_index++) {
-    for (uint molecule_index = 0; molecule_index < products[complex_index].mol_instances.size(); molecule_index++) {
-
-      CplxMolIndex product_cmi(complex_index, molecule_index);
-
-      // must have the same molecule type
-      const MolInstance& product_mol_inst = get_mol_product(product_cmi);
-      if (reactant_mol_inst.mol_type_id != product_mol_inst.mol_type_id) {
-        continue;
-      }
-
-      // and must not be assigned
-      CplxMolIndex found_cmi_ignored;
-      bool found = find_assigned_mol_reactant_for_product(product_cmi, found_cmi_ignored);
-      if (found) {
-        continue;
-      }
-
-      // ok, this product was not mapped yet
-      int num_explicitly_listed_components_in_reactant = 0;
-      int num_same_explicitly_listed_components = 0;
-      int num_same_component_states = 0; // when the components are expl. listed
-
-      if (reactant_mol_inst.component_instances.size() != product_mol_inst.component_instances.size()) {
-        // probably a wrong molecule
-        continue;
-      }
-      for (uint i = 0; i < reactant_mol_inst.component_instances.size(); i++) {
-
-        const ComponentInstance& reactant_comp_inst = reactant_mol_inst.component_instances[i];
-        const ComponentInstance& product_comp_inst = product_mol_inst.component_instances[i];
-
-        // if state is specified, it must be set on both sides
-        if (reactant_comp_inst.state_is_set() == product_comp_inst.state_is_set())  {
-          if (reactant_comp_inst.state_id == product_comp_inst.state_id) {
-            num_same_component_states++;
-          }
-        }
-      }
-
-      // all listed components match?
-      if (num_same_component_states > best_score) {
-        best_score = num_same_component_states;
-        best_cmi = product_cmi;
-      }
-    }
-  }
-
-  if (best_score != -1) {
-    best_product_cmi = best_cmi;
-    return true;
-  }
-  else {
-    return false;
-  }
-}
-
-
-// check if it makes sense to compute molecule_mapping at all
-bool RxnRule::has_same_mols_in_reactants_and_products() const {
-  map<mol_type_id_t, int> reactant_types, product_types;
-
-  for (const CplxInstance& ci: reactants) {
-    for (const MolInstance& mi: ci.mol_instances) {
-      if (reactant_types.count(mi.mol_type_id)) {
-        reactant_types[mi.mol_type_id]++;
-      }
-      else {
-        reactant_types[mi.mol_type_id] = 1;
-      }
-    }
-  }
-
-  for (const CplxInstance& ci: products) {
-    for (const MolInstance& mi: ci.mol_instances) {
-      if (product_types.count(mi.mol_type_id)) {
-        product_types[mi.mol_type_id]++;
-      }
-      else {
-        product_types[mi.mol_type_id] = 1;
-      }
-    }
-  }
-
-  return reactant_types == product_types;
-}
-
-
-bool RxnRule::find_assigned_cplx_reactant_for_product(const uint product_index, uint& reactant_index) const {
-  // this is not a time critical search
-  for (const CplxIndexPair& cplx_index_pair: cplx_mapping) {
+  for (const CplxIndexPair& cplx_index_pair: simple_cplx_mapping) {
     if (product_index == cplx_index_pair.product_index) {
       reactant_index = cplx_index_pair.reactant_index;
       return true;
@@ -891,89 +785,164 @@ bool RxnRule::find_assigned_cplx_reactant_for_product(const uint product_index, 
 }
 
 
-// a matching reactant and product must be identical
-void RxnRule::compute_cplx_reactants_products_mapping() {
-
-  cplx_mapping.clear();
-
-  for (uint ri = 0; ri < reactants.size(); ri++) {
-    for (uint pi = 0; pi < products.size(); pi++) {
-      uint index_ignored;
-      if (find_assigned_cplx_reactant_for_product(pi, index_ignored)) {
-        // already used
-        continue;
-      }
-
-      if (reactants[ri].matches_fully(products[pi], true)) {
-        cplx_mapping.push_back(CplxIndexPair(ri, pi));
-        // reactant was mapped, continue with the next reactant
-        break;
+static size_t find_mol_instance_with_address(const CplxInstanceVector& cplx_vex, const MolInstance* mi_addr) {
+  for (size_t i = 0; i < cplx_vex.size(); i++) {
+    const CplxInstance& ci = cplx_vex[i];
+    for (size_t k = 0; k < ci.mol_instances.size(); k++) {
+      if (mi_addr == &ci.mol_instances[k]) {
+        return i;
       }
     }
   }
+  release_assert(false && "Molecule instance must be found.");
+  return 0;
 }
 
 
-// returns false if there was an error
-bool RxnRule::compute_mol_reactants_products_mapping(
-    MolInstance& not_matching_mol_inst, CplxMolIndex& not_matching_cmi) {
-  mol_mapping.clear();
+void RxnRule::compute_reactants_products_mapping() {
 
-  mol_instances_are_fully_maintained = has_same_mols_in_reactants_and_products();
+  // compute mapping reactant patterns -> product patterns
+  // nodes in the reaction products graph have an extra option that they can ignore the state
+  // find all mappings and compute score for each of those mappings so that we get the best match
 
-  for (uint complex_index = 0; complex_index < reactants.size(); complex_index++) {
-    for (uint molecule_index = 0; molecule_index < reactants[complex_index].mol_instances.size(); molecule_index++) {
+  // boost subgraph won't find a mapping of one of the reactants is not present in products,
+  // so we need to do this manually, we always stop branching at components of a single molecule
+  // so the complexity can be handled in reasonable time because there won't be usually may identical
+  // molecules
+  find_best_product_to_pattern_mapping(
+      products_graph,
+      patterns_graph,
+      products_to_patterns_mapping
+  );
 
-      CplxMolIndex reactant_cmi = CplxMolIndex(complex_index, molecule_index);
-      CplxMolIndex product_cmi;
-      bool found = find_most_fitting_unassigned_mol_product(reactant_cmi, product_cmi);
+#ifdef DEBUG_CPLX_MATCHING
+  dump_graph_mapping(products_to_patterns_mapping);
+#endif
 
-      if (found) {
-        mol_mapping.push_back(CMIndexPair(reactant_cmi, product_cmi));
-      }
-      else if (mol_instances_are_fully_maintained) {
-        // reporting error only if there should be a full match
-        not_matching_mol_inst = get_mol_reactant(reactant_cmi);
-        not_matching_cmi = reactant_cmi;
+  VertexNameMap patterns_index = boost::get(boost::vertex_name, patterns_graph);
+  VertexNameMap products_index = boost::get(boost::vertex_name, products_graph);
 
-        return false;
-      }
+  // also compute simple_cplx_mapping
+  simple_cplx_mapping.clear();
+  // and set mol_instances_are_fully_maintained
+  uint num_prod_molecule_instances = 0;
+  uint num_mapped_molecule_instances = 0;
+  // for each molecule instance
+  typedef boost::graph_traits<Graph>::vertex_iterator vertex_iter;
+  std::pair<vertex_iter, vertex_iter> prod_mol_it;
+  for (prod_mol_it = boost::vertices(products_graph); prod_mol_it.first != prod_mol_it.second; ++prod_mol_it.first) {
+    Graph::vertex_descriptor prod_mol_desc = *prod_mol_it.first;
+
+    const Node& prod_mol = products_index[prod_mol_desc];
+    if (!prod_mol.is_mol) {
+      continue;
+    }
+
+    num_prod_molecule_instances++;
+
+    // is it mapped?
+    auto map_it = products_to_patterns_mapping.find(prod_mol_desc);
+    if (map_it == products_to_patterns_mapping.end()) {
+      continue;
+    }
+
+    // count that we have a mapping for this molecule instance
+    num_mapped_molecule_instances++;
+
+    // the complex must be simple for the simple_cplx_mapping, i.e. have no edge
+    // note that we could compute the full mapping but we need this just for mcell3
+    // and code for complexes that are not simple would be longer
+    boost::graph_traits<Graph>::out_edge_iterator ei, edge_end;
+    boost::tie(ei,edge_end) = boost::out_edges(prod_mol_desc, products_graph);
+    if (ei != edge_end) {
+      continue;
+    }
+
+    // ok, we can finally define our mapping
+    const Node& pat_mol = patterns_index[map_it->second];
+    assert(pat_mol.is_mol);
+
+
+    // the graph has just a pointer to the molecule instance and since the graph
+    // should be independent on the reactions, we are not storing any indices there
+    uint reac_cplx_index = find_mol_instance_with_address(reactants, pat_mol.mol);
+    uint prod_cplx_index = find_mol_instance_with_address(products, prod_mol.mol);
+
+
+    simple_cplx_mapping.push_back(CplxIndexPair(reac_cplx_index, prod_cplx_index));
+  }
+
+  // count number of molecules in pattern
+  uint num_pat_molecule_instances = 0;
+  std::pair<vertex_iter, vertex_iter> pat_mol_it;
+  for (pat_mol_it = boost::vertices(products_graph); pat_mol_it.first != pat_mol_it.second; ++pat_mol_it.first) {
+    Graph::vertex_descriptor pat_mol_desc = *pat_mol_it.first;
+    const Node& pat_mol = patterns_index[pat_mol_desc];
+    if (!pat_mol.is_mol) {
+      continue;
+    }
+
+    num_pat_molecule_instances++;
+  }
+
+  mol_instances_are_fully_maintained =
+      num_pat_molecule_instances == num_prod_molecule_instances &&
+      num_prod_molecule_instances == num_mapped_molecule_instances;
+}
+
+
+bool RxnRule::check_components_mapping(
+    const MolInstance& first_mi,
+    const MolInstance& second_mi,
+    const char* msg,
+    std::ostream& out
+) {
+  bool ok = true;
+  for (size_t i = 0; i < first_mi.component_instances.size(); i++) {
+    const ComponentInstance& pat_compi = first_mi.component_instances[i];
+
+    if (i >= second_mi.component_instances.size() ||
+        second_mi.component_instances[i].component_type_id != pat_compi.component_type_id
+    ) {
+      out << "Molecule " << msg <<
+          ": Component(s) " <<
+          bng_data->get_component_type(first_mi.component_instances[i].component_type_id).name <<
+          " missing from molecule " <<
+          second_mi.to_str(*bng_data) << ".";
+      ok = false;
     }
   }
 
-  return true;
-}
-
-
-bool RxnRule::compute_reactants_products_mapping() {
-
-  compute_cplx_reactants_products_mapping();
-
-  MolInstance not_matching_mol_inst_ignored;
-  CplxMolIndex not_matching_cmi_ignored;
-  bool ok = compute_mol_reactants_products_mapping(not_matching_mol_inst_ignored, not_matching_cmi_ignored);
-  assert(ok);
   return ok;
 }
 
 
-bool RxnRule::compute_reactants_products_mapping_w_error_output(const BNGData& bng_data, std::ostream& out) {
+// called from semantic analyzer
+bool RxnRule::check_reactants_products_mapping(std::ostream& out) {
+  assert(is_finalized());
 
-  compute_cplx_reactants_products_mapping();
+  VertexNameMap products_index = boost::get(boost::vertex_name, products_graph);
+  VertexNameMap patterns_index = boost::get(boost::vertex_name, patterns_graph);
 
-  // NOTE: we might need to direct the molecule mapping using cplx mapping,
-  // but let's see later
+  bool ok = true;
 
-  MolInstance not_matching_mol_inst;
-  CplxMolIndex not_matching_cmi;
-  bool ok = compute_mol_reactants_products_mapping(not_matching_mol_inst, not_matching_cmi);
-  if (!ok) {
-    // TODO: this message should be improved
-    //out << "Did not find a matching molecule in products for reaction rule.";
-    out << "Did not find a matching molecule in products for reactant molecule ";
-    out << not_matching_mol_inst.to_str(bng_data);
-    out << " listed as complex " << not_matching_cmi.cplx_index << " and molecule " << not_matching_cmi.mol_index << ".";
+  for (auto map_it: products_to_patterns_mapping) {
+    const Node& prod_node = products_index[map_it.first];
+    if (!prod_node.is_mol) {
+      continue;
+    }
+    const MolInstance& prod_mi = *prod_node.mol;
+
+    const Node& pat_node = patterns_index[map_it.second];
+    assert(prod_node.is_mol);
+    const MolInstance& pat_mi = *pat_node.mol;
+
+    // check that this molecule uses the same components in both directions
+    // the components are ordered according to the definition in MolType
+    ok = ok && check_components_mapping(pat_mi, prod_mi, "created in reaction rule", out);
+    ok = ok && check_components_mapping(prod_mi, pat_mi, "used as pattern in reaction rule", out);
   }
+
   return ok;
 }
 
@@ -983,13 +952,22 @@ void RxnRule::move_products_that_are_also_reactants_to_be_the_first_products() {
   // for each reactant (from the end since we want the products to be ordered in the same way)
   for (int pi = products.size() - 1; pi > 0; pi--) {
     uint ri;
-    bool found = find_assigned_cplx_reactant_for_product(pi, ri);
+    bool found = get_assigned_simple_cplx_reactant_for_product(pi, ri);
 
     if (found) {
       // move product to the front
       CplxInstance prod = products[pi];
       products.erase(products.begin() + pi);
       products.insert(products.begin(), prod);
+
+      // this swap does not seem to to call the CplxInstancer copy ctor, so
+      // we must call graph update manually...
+      // TODO: this is a bit weird, needs to be checked better, e.g. test mdl/2200 failed without this update
+      for (size_t pi_update = 0; pi_update < products.size(); pi_update++) {
+        products[pi_update].create_graph();
+      }
+      // then we need to recompute the products_graph
+      create_products_graph();
 
       // update mapping
       compute_reactants_products_mapping();
