@@ -147,7 +147,15 @@ void ASTSymbolTable::insert(const std::string id, ASTBaseNode* node, ParserConte
     ctx->inc_error_count();
   }
 
-  table[id] = node;
+  // special handling of MCELL_REDEFINE_ symbols
+  if (id.find(MCELL_REDEFINE_PREFIX) == 0) {
+    // if symbol starts with the redefine prefix, overwrite it
+    string id_to_redefine = id.substr(strlen(MCELL_REDEFINE_PREFIX));
+    table[id_to_redefine] = node;
+  }
+  else {
+    table[id] = node;
+  }
 }
 
 

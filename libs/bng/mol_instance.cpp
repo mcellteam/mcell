@@ -44,35 +44,6 @@ void ComponentInstance::dump(const BNGData& bng_data, const string& ind) const {
 
 
 // ------------- MoleculeInstance -------------
-/*
-void MolInstance::initialize_components_types(const MolType& mt) {
-  for (component_type_id_t component_type_id: mt.component_type_ids) {
-    // state is don't care, no bond
-    component_instances.push_back(ComponentInstance(component_type_id));
-  }
-}
-*/
-
-/*
-// searches for component with name
-uint MolInstance::get_corresponding_component_index(
-    const BNGData& bng_data,
-    const MolType& mt,
-    const std::string& name,
-    const uint starting_index
-) const {
-  for (uint i = starting_index; i < mt.component_type_ids.size(); i++) {
-    const ComponentType& ct = bng_data.get_component_type(mt.component_type_ids[i]);
-
-    // we are looking for the first component with the same name
-    if (ct.name == name) {
-      return i;
-    }
-  }
-
-  return INDEX_INVALID;
-}
-*/
 
 void MolInstance::finalize_flags_and_sort_components(const BNGData& bng_data) {
 
@@ -92,7 +63,7 @@ void MolInstance::finalize_flags_and_sort_components(const BNGData& bng_data) {
 
     vector<bool> used_component_instances;
     used_component_instances.resize(component_instances.size(), false);
-    vector<ComponentInstance> new_component_instances;
+    small_vector<ComponentInstance> new_component_instances;
 
     for (size_t template_index = 0; template_index < mt.component_type_ids.size(); template_index++) {
       // try to find component that matches the current template position

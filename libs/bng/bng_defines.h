@@ -23,6 +23,8 @@ using BNGCommon::sqrt_f;
 using BNGCommon::pow_f;
 using BNGCommon::round_f;
 
+const char* const MCELL_REDEFINE_PREFIX = "MCELL_REDEFINE_";
+
 typedef uint state_id_t;
 const state_id_t STATE_ID_INVALID = UINT32_MAX;
 
