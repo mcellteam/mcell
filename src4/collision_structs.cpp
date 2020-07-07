@@ -30,6 +30,8 @@
 #include "partition.h"
 #include "molecule.h"
 
+#include "debug_config.h"
+
 using namespace std;
 
 namespace MCell {
@@ -86,6 +88,7 @@ void Collision::dump(
       //TODO in mcell3 ", rxn: " << rx->to_string(p) <<
       ", time: " << ((time_override == TIME_INVALID) ? time : time_override);
   }
+#ifndef NODEBUG_WALL_COLLISIONS
   else if (is_wall_collision()) {
     cout << "wall collision" <<
         ", idA:"  << diffused_molecule_id <<
@@ -93,6 +96,7 @@ void Collision::dump(
         ", time: " << ((time_override == TIME_INVALID) ? time : time_override) <<
         ", pos " << pos;
   }
+#endif
   else {
     assert(false);
   }
@@ -121,6 +125,12 @@ string Collision::to_string(const Partition& p) const {
 void Collision::dump_array(Partition& p, const collision_vector_t& vec) {
   // printed in reverse - same as
   for (size_t i = 0; i < vec.size(); i++) {
+    #ifdef NODEBUG_WALL_COLLISIONS
+      if (vec[i].type == CollisionType::WALL_FRONT || vec[i].type == CollisionType::WALL_BACK) {
+        continue;
+      }
+    #endif
+
     const char* str_type = (vec[i].type == CollisionType::VOLMOL_VOLMOL) ? "mol collision " : "wall collision ";
     cout << "  " << str_type << i << ": " << vec[i].to_string(p) << "\n";
   }
