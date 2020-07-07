@@ -197,7 +197,7 @@ void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t n
           continue;
         }
 
-        if (matching_rxn->species_can_be_reactant(s.id, all_species)) {
+        if (matching_rxn->species_can_be_bimol_reactants(new_id, s.id, all_species)) {
           // ok, we have a reaction applicable both to new_id and second_id
           // we need to add this rxn to a rxn class for these reactants
 
@@ -214,7 +214,9 @@ void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t n
         }
 
         if (bng_config.debug_reactions) {
-          cout << "BNG: Created or updated a new bimolecular reaction class:\n";
+          cout <<
+              "BNG: Created or updated a new bimolecular reaction class for species " <<
+              all_species.get(new_id).name << " (" << new_id << "):\n";
           rxn_class->dump("  ");
         }
       }

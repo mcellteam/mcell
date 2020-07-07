@@ -192,6 +192,11 @@ public:
   // returns true if species 'id' matches one of the reactants
   bool species_can_be_reactant(const species_id_t id, const SpeciesContainer& all_species);
 
+  // returns true if both species can be used as separate reactants for a bimol rxn
+  bool species_can_be_bimol_reactants(
+      const species_id_t id1, const species_id_t id2, const SpeciesContainer& all_species
+  );
+
   // returns true if two reactants match each other and species 'id' matches one of the reactants
   bool species_is_both_bimol_reactants(const species_id_t id, const SpeciesContainer& all_species);
 

@@ -1046,6 +1046,38 @@ bool RxnRule::species_can_be_reactant(const species_id_t id, const SpeciesContai
 }
 
 
+bool RxnRule::species_can_be_bimol_reactants(
+    const species_id_t id1, const species_id_t id2, const SpeciesContainer& all_species
+) {
+  assert(is_bimol());
+
+  // check whether either of the species can be reactant
+  if (!species_can_be_reactant(id1, all_species)) {
+    return false;
+  }
+  if (!species_can_be_reactant(id2, all_species)) {
+    return false;
+  }
+
+  // need to find out whether both can be used at the same time
+  const CplxInstance& inst1 = all_species.get_as_cplx_instance(id1);
+  const CplxInstance& inst2 = all_species.get_as_cplx_instance(id2);
+
+  // which reactants match id1?
+  bool id1_matches[2] = {false, false};
+  bool id2_matches[2] = {false, false};
+  for (size_t i = 0; i < reactants.size(); i++) {
+    id1_matches[i] = inst1.matches_pattern(reactants[i], true);
+    id2_matches[i] = inst2.matches_pattern(reactants[i], true);
+  }
+
+  // there must be direct or crossed covering of the reactants, i.e.
+  // id1 -> patA && id2 -> patB or
+  // id1 -> patB && id2 -> patA
+  return (id1_matches[0] && id2_matches[1]) || (id1_matches[1] && id2_matches[0]);
+}
+
+// returns true when the species matches both reactants
 bool RxnRule::species_is_both_bimol_reactants(const species_id_t id, const SpeciesContainer& all_species) {
 
   if (!is_bimol()) {
