@@ -8,7 +8,7 @@ import utils
 THIS_DIR = os.path.dirname(os.path.realpath(__file__))
 WORK_DIR = os.path.join(THIS_DIR, 'work')
 BNGL_EXT = '.bngl'
-TEST_APP = os.path.join(THIS_DIR, '..', 'build', 'test_bng')
+DEFAULT_TEST_APP = os.path.join(THIS_DIR, '..', '..', '..', 'build', 'debug', 'libs', 'bng', 'test_bng')
 
 # returns a list of TestInfo objects
 def get_test_files(dir):
@@ -95,7 +95,7 @@ if __name__ == '__main__':
         test_dir = sys.argv[1]
         test_app = os.path.join(test_dir, 'libs', 'bng', 'test_bng')
     else:     
-        test_app = TEST_APP
+        test_app = DEFAULT_TEST_APP
         
     print("Using test application " + test_app)  
     ec = run_tests(test_app)

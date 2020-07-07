@@ -249,6 +249,12 @@ private:
       std::ostream& out
   );
 
+  bool RxnRule::check_components_states(
+      const MolInstance& prod_mi,
+      const MolInstance& pat_mi,
+      std::ostream& out
+  );
+
   std::string complex_instance_vector_to_str(const CplxInstanceVector& complexes) const;
   void dump_complex_instance_vector(
       const CplxInstanceVector& complexes,

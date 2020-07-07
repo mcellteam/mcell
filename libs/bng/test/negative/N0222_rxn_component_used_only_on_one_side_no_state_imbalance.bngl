@@ -1,7 +1,7 @@
 # FAIL
 # OUTPUT: error: Molecule created in reaction rule: Component(s) p missing from molecule A(a!1). (in the forward direction)
 # OUTPUT: error: Molecule used as pattern in reaction rule: Component(s) p missing from molecule A(a!1). (in the reverse direction)
-# 
+
 # NOTE: BNG2.pl reports Molecule created in reaction rule: Component(s) p missing from molecule A(a!1)
 
 begin parameters
@@ -14,5 +14,5 @@ begin molecule types
 end molecule types
 
 begin reaction rules
-  A(a,p~0) + A(a) <-> A(a!1).A(a!1) kp, km
+  A(a,p) + A(a,p) <-> A(a!1,p).A(a!1) kp, km
 end reaction rules

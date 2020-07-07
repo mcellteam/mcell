@@ -305,6 +305,8 @@ static void find_best_product_to_pattern_mapping(
 
   // ok, we matched molecules, now we need to match components as well
   // we are adding to the prod_reac_mapping, so we will make a copy to iterate over it
+  // NOTE: in other places we use just order, we must use a similar approach
+  // probably just define some sorting...
   VertexMapping mol_prod_reac_mapping = prod_reac_mapping;
   for (auto pair_it: mol_prod_reac_mapping) {
     vector<MolCompInfo> pattern_comps;
@@ -689,7 +691,6 @@ void RxnRule::create_products_for_complex_rxn(
     merge_graphs(reactants_graph, input_reactants_copy[1].get_graph());
   }
 
-
   // compute mapping reactant pattern -> reactant
 #ifdef DEBUG_CPLX_MATCHING
   cout << "Pattern:\n";
@@ -897,15 +898,17 @@ bool RxnRule::check_components_mapping(
     const char* msg,
     std::ostream& out
 ) {
+  // TODO: use computed component ordering from products_to_patterns_mapping
+  // maybe store vertex descriptor along with molecule and component instances
   bool ok = true;
   for (size_t i = 0; i < first_mi.component_instances.size(); i++) {
-    const ComponentInstance& pat_compi = first_mi.component_instances[i];
+    const ComponentInstance& first_compi = first_mi.component_instances[i];
 
     if (i >= second_mi.component_instances.size() ||
-        second_mi.component_instances[i].component_type_id != pat_compi.component_type_id
+        second_mi.component_instances[i].component_type_id != first_compi.component_type_id
     ) {
-      out << "Molecule " << msg <<
-          ": Component(s) " <<
+      out <<
+          "Molecule " << msg << ": Component(s) " <<
           bng_data->get_component_type(first_mi.component_instances[i].component_type_id).name <<
           " missing from molecule " <<
           second_mi.to_str(*bng_data) << ".";
@@ -916,6 +919,35 @@ bool RxnRule::check_components_mapping(
   return ok;
 }
 
+
+bool RxnRule::check_components_states(
+    const MolInstance& prod_mi,
+    const MolInstance& pat_mi,
+    std::ostream& out
+) {
+  // TODO: use computed component ordering from products_to_patterns_mapping
+  bool ok = true;
+  for (size_t i = 0; i < prod_mi.component_instances.size(); i++) {
+    const ComponentInstance& prod_compi = prod_mi.component_instances[i];
+
+    if (i >= pat_mi.component_instances.size() ||
+        pat_mi.component_instances[i].component_type_id == prod_compi.component_type_id
+    ) {
+      const ComponentInstance& pat_compi = pat_mi.component_instances[i];
+
+      // ok, components have the same type, we need to check state
+      if (pat_compi.state_is_set() && !prod_compi.state_is_set()) {
+        out <<
+            "Component " << bng_data->get_component_type(pat_compi.component_type_id).name <<
+            " with state attribute defined in reactant pattern cannot map to component with undefined state attribute in product pattern," <<
+            " error for pattern molecule " <<  pat_mi.to_str(*bng_data) << ".";
+        ok = false;
+      }
+    }
+  }
+
+  return ok;
+}
 
 // called from semantic analyzer
 bool RxnRule::check_reactants_products_mapping(std::ostream& out) {
@@ -941,6 +973,8 @@ bool RxnRule::check_reactants_products_mapping(std::ostream& out) {
     // the components are ordered according to the definition in MolType
     ok = ok && check_components_mapping(pat_mi, prod_mi, "created in reaction rule", out);
     ok = ok && check_components_mapping(prod_mi, pat_mi, "used as pattern in reaction rule", out);
+
+    ok = ok && check_components_states(prod_mi, pat_mi, out);
   }
 
   return ok;
