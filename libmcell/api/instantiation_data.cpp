@@ -91,11 +91,12 @@ void InstantiationData::convert_single_seed_species_to_release_site(
 
   rel_site->region = default_release_region;
 
-  if (bng_ss.count != (int)bng_ss.count) {
-    throw ValueError("Release count of complex instance created from loaded BNGL file '" +
-        rel_site->name + "' must be an integer.");
+  uint rounded_count = BNG::round_f(bng_ss.count);
+  if (bng_ss.count != rounded_count) {
+    cout << "Warning: Release count of complex instance created from loaded BNGL file '" +
+        rel_site->name + "' was rounded from " << bng_ss.count << " to " << rounded_count << ".\n";
   }
-  rel_site->number_to_release = bng_ss.count;
+  rel_site->number_to_release = rounded_count;
 
   rel_site->check_semantics(); // only for internal checks
   rel_site->postprocess_in_ctor(); // sets shape

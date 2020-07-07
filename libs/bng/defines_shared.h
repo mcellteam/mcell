@@ -134,6 +134,15 @@ static inline float_t pow_f(const float_t a, const float_t n) {
 #endif
 }
 
+
+static inline float_t round_f(const float_t a) {
+#if FLOAT_T_BYTES == 8
+  return round(a);
+#else
+  return roundf(a, n);
+#endif
+}
+
 } // namespace BNGCommon
 
 
