@@ -90,32 +90,28 @@ void MolInstance::finalize_flags_and_sort_components(const BNGData& bng_data) {
   // can be easily compared
   if (component_instances.size() > 1) {
 
-    // last item is skipped because it will be in the right position already
-    size_t template_pos = 0;
-    for (size_t pos_to_assign = 0; pos_to_assign < component_instances.size() - 1; pos_to_assign++) {
+    vector<bool> used_component_instances;
+    used_component_instances.resize(component_instances.size(), false);
+    vector<ComponentInstance> new_component_instances;
 
-      assert(template_pos < mt.component_type_ids.size());
-
-      // use template to find which item to swap
-      size_t pos_to_swap = pos_to_assign;
-      bool found = false;
-      do {
-        while (
-            pos_to_swap < component_instances.size() &&
-            mt.component_type_ids[template_pos] != component_instances[pos_to_swap].component_type_id
-        ) {
-          pos_to_swap++;
+    for (size_t template_index = 0; template_index < mt.component_type_ids.size(); template_index++) {
+      // try to find component that matches the current template position
+      size_t instance_index;
+      for (instance_index = 0; instance_index < component_instances.size(); instance_index++) {
+        if (!used_component_instances[instance_index] &&
+            component_instances[instance_index].component_type_id == mt.component_type_ids[template_index]) {
+          break;
         }
-        found = pos_to_swap != component_instances.size();
-        template_pos++;
-      } while (!found);
-
-      if (pos_to_assign != pos_to_swap) {
-        ComponentInstance tmp = component_instances[pos_to_assign];
-        component_instances[pos_to_assign] = component_instances[pos_to_swap];
-        component_instances[pos_to_swap] = tmp;
+      }
+      if (instance_index < component_instances.size()) {
+        // found
+        used_component_instances[instance_index] = true;
+        new_component_instances.push_back(component_instances[instance_index]);
       }
     }
+
+    // update the component instance array
+    component_instances = new_component_instances;
   }
 }
 
