@@ -175,6 +175,9 @@ parameter:
       TOK_ID expr {
         g_ctx->symtab.insert($1, $2, g_ctx);
       }
+    | TOK_ID '=' expr {
+        g_ctx->symtab.insert($1, $3, g_ctx);
+      }
 ;
       
 // ---------------- molecules -------------------     
