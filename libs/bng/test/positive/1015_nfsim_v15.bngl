@@ -1,0 +1,25 @@
+# OK
+# homodimer
+begin model
+begin parameters
+
+end parameters
+begin species
+	A(b)  500
+end species
+begin reaction rules
+	A(b) + A(b)  <->  A(b!1).A(b!1)    10, 10
+end reaction rules
+begin observables
+    Molecules Complex A(b!1).A(b!1)
+    Molecules Free    A(b)
+end observables
+end model
+
+generate_network({overwrite=>1})
+simulate_ode({suffix=>"ode",t_end=>1,n_steps=>100})
+resetConcentrations()
+simulate_ssa({suffix=>"ssa",t_end=>1,n_steps=>100})
+resetConcentrations()
+writeXML()
+

@@ -1,0 +1,38 @@
+# OK
+begin model
+begin parameters
+
+end parameters
+begin species
+    DNA()        500
+    RNA()        0
+    Protein1(y)  0
+    Protein2(y)  0 
+end species
+begin reaction rules
+	DNA()  ->  DNA() + RNA()        10
+	RNA()  ->  Protein1(y) + RNA()  5
+	RNA()  ->  RNA() + Protein2(y)  2.5
+	
+	RNA()      -> Trash()    5
+	Protein1() -> Trash()    7
+	Protein2() -> Trash()    5
+	
+	Protein1(y) + Protein2(y)  <->  Protein1(y!1).Protein2(y!1)    0.2, 3
+end reaction rules
+begin observables
+    Molecules RNA         RNA()
+    Molecules Protein1    Protein1()
+    Molecules Protein2    Protein2()
+    Molecules ProtComplex Protein1(y!1).Protein2(y!1)
+end observables
+end model
+
+generate_network({overwrite=>1})
+simulate_ode({suffix=>"ode",t_end=>20,n_steps=>100})
+resetConcentrations()
+simulate_ssa({suffix=>"ssa",t_end=>20,n_steps=>100})
+resetConcentrations()
+writeXML()
+
+

@@ -1,0 +1,25 @@
+# OK
+# simple_system.bngl
+begin model
+begin parameters
+
+end parameters
+begin species
+	A(b)  2000
+end species
+begin reaction rules
+	A(b) + A(b)  <->  A(b!1).A(b!1)    0.5, 0.5
+end reaction rules
+begin observables
+    Molecules Complex     A(b!1).A(b!1)
+    Species   SpecComplex A(b!+)
+end observables
+end model
+
+generate_network({overwrite=>1})
+simulate_ode({suffix=>"ode",t_end=>1,n_steps=>100})
+resetConcentrations()
+simulate_ssa({suffix=>"ssa",t_end=>1,n_steps=>100})
+resetConcentrations()
+writeXML()
+

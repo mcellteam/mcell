@@ -1,0 +1,24 @@
+# OK
+# intramolecular bond
+begin model
+begin parameters
+
+end parameters
+begin species
+	A(b,c)  2000
+end species
+begin reaction rules
+    A(b,c)  <->  A(b!1,c!1)    1, 0.3
+end reaction rules
+begin observables
+    Molecules A_withBond A(b!1,c!1)
+end observables
+end model
+
+generate_network({overwrite=>1})
+simulate_ode({suffix=>"ode",t_end=>30,n_steps=>100})
+resetConcentrations()
+simulate_ssa({suffix=>"ssa",t_end=>30,n_steps=>100})
+resetConcentrations()
+writeXML()
+

@@ -1,0 +1,33 @@
+# OK
+# simple_system.bngl
+begin model
+begin parameters
+	kon     15
+	koff    10
+	kcat    0.6
+	dephos  0.5
+end parameters
+begin species
+	X(y,p~0)  5000
+	X(y,p~1)  0
+	Y(x)      500
+end species
+begin reaction rules
+	X(p~1)             ->  X(p~0)               dephos
+	X(y,p~0) + Y(x)    ->  X(y!1,p~0).Y(x!1)    kon
+	X(y!1,p~0).Y(x!1)  ->  X(y,p~0) + Y(x)      koff
+	X(y!1,p~0).Y(x!1)  ->  X(y,p~1) + Y(x)      kcat
+end reaction rules
+begin observables
+    #Molecules X_free  X(p~0,y)
+    Molecules Xp_free X(p~1,y)
+    #Molecules XY      X(y!1).Y(x!1)
+end observables
+end model
+
+generate_network({overwrite=>1})
+simulate_ode({suffix=>"ode",t_end=>100,n_steps=>100})
+resetConcentrations()
+simulate_ssa({suffix=>"ssa",t_end=>100,n_steps=>100})
+resetConcentrations()
+writeXML()

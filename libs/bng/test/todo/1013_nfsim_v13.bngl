@@ -1,0 +1,28 @@
+# OK
+# transcription + phos + deletion
+begin model
+begin parameters
+
+end parameters
+begin species
+	A(b,b,b,c,c,p~P)  2000
+    DNA() 1
+end species
+begin reaction rules
+    DNA()        ->  DNA() + A(b,b,b,c,c,p~P)    50
+    A(b,c,p~U)  <->  A(b,c,p~P)                  1, 1
+    A(p~P)       ->  0                           0.5
+end reaction rules
+begin observables
+    Molecules Aphos  A(p~P)
+    Molecules Atotal A()
+end observables
+end model
+
+generate_network({overwrite=>1})
+simulate_ode({suffix=>"ode",t_end=>30,n_steps=>100})
+resetConcentrations()
+simulate_ssa({suffix=>"ssa",t_end=>30,n_steps=>100})
+resetConcentrations()
+writeXML()
+

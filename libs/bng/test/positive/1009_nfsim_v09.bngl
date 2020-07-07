@@ -1,0 +1,27 @@
+# OK
+begin model
+begin parameters
+
+end parameters
+begin species
+    A(a1,a2)  1000
+end species
+begin reaction rules
+    A(a1,a2) + A(a1,a2)                 <->  A(a1!1,a2).A(a1!1,a2)                     0.01, 0.11
+    A(a1!1,a2).A(a1!1,a2) + A(a1,a2)    <->  A(a1!1,a2).A(a1!1,a2!2).A(a1!2,a2)        0.01, 0.1
+    A(a1!1,a2).A(a1!1,a2!2).A(a1!2,a2)  <->  A(a1!1,a2!3).A(a1!1,a2!2).A(a1!2,a2!3)    1, 0.4
+end reaction rules
+begin observables
+    Molecules bond A(a1!1).A(a2!1), A(a1!1).A(a1!1), A(a2!1).A(a2!1)
+    Molecules ring A(a1!1,a2!3).A(a1!1,a2!2).A(a1!2,a2!3)
+end observables
+end model
+
+generate_network({overwrite=>1})
+simulate_ode({suffix=>"ode",t_end=>100,n_steps=>100})
+resetConcentrations()
+simulate_ssa({suffix=>"ssa",t_end=>100,n_steps=>100})
+resetConcentrations()
+writeXML()
+
+

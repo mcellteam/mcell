@@ -1,0 +1,29 @@
+# OK
+begin model
+begin parameters
+
+end parameters
+begin species
+   A(x!0,x!1).B(y!1,y!0)   1000
+end species
+begin reaction rules    
+   # Ring formation
+   A(x!0,x).B(y,y!0)  <->  A(x!0,x!1).B(y!1,y!0)    1, 2
+   # A(x!0,x!1).B(y!1,y!0) -> A(x!0,x).B(y,y!0) 5
+end reaction rules
+begin observables
+    Molecules xy_bonds   A(x!0).B(y!0)
+    Molecules small_ring A(x!0,x!1).B(y!1,y!0)
+    Molecules big_ring   A(x!0,x!1).B(y!1,y!2).A(x!2,x!3).B(y!3,y!0)
+end observables
+end model
+
+generate_network({overwrite=>1})
+simulate_ode({suffix=>"ode",t_end=>100,n_steps=>100})
+resetConcentrations()
+simulate_ssa({suffix=>"ssa",t_end=>100,n_steps=>100})
+resetConcentrations()
+writeXML()
+
+
+

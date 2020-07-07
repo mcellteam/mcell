@@ -1,0 +1,31 @@
+# OK
+# simple_system.bngl
+begin model
+begin parameters
+
+end parameters
+begin species
+	A(b,p~U) 2000
+    A(b,p~P) 2000
+    DNA() 1
+end species
+begin reaction rules
+	A(b,p~U) + A(b,p~P)    <->  A(b!1,p~U).A(b!1,p~P)    0.05, 10
+    A(b!1,p~U).A(b!1,p~P)   ->  0                        0.5
+    DNA()                   ->  DNA() + A(b,p~U)         1
+    A(b,p~U)               <->  A(b,p~P)                 1, 1
+end reaction rules
+begin observables
+    Molecules Dimer A(b!1).A(b!1)
+    Molecules DimerOnePhosOneNotPhos A(b!1,p~U).A(b!1,p~P)
+    Species   SpecComplex A(b!+)
+    Molecules Atotal A()
+end observables
+
+generate_network({overwrite=>1})
+simulate_ode({suffix=>"ode",t_end=>10,n_steps=>100})
+resetConcentrations()
+simulate_ssa({suffix=>"ssa",t_end=>10,n_steps=>100})
+resetConcentrations()
+writeXML()
+

@@ -1,0 +1,36 @@
+# OK
+begin model
+begin parameters
+
+end parameters
+begin species
+    anti(r,r)   500
+    rec(a,b,b)  1000
+	B(c,p~U)    2000
+end species
+begin reaction rules	
+	rec(b)+B(c)     <->  rec(b!1).B(c!1)       1, 1
+	rec(a)+anti(r)  <->  rec(a!1).anti(r!1)    1, 1
+
+	B(c!1,p~U).rec(b!1,a!2).anti(r!2,r!3).rec(b!4,a!3).B(c!4,p~U)  ->  B(c!1,p~U).rec(b!1,a!2).anti(r!2,r!3).rec(b!4,a!3).B(c!4,p~P)    5
+	
+	B(c!1,p~U).rec(b!1,b!2).B(c!2,p~P)  ->  B(c!1,p~PP).rec(b!1,b!2).B(c!2,p~PP)    100
+	
+	B(p~U)   ->  B(p~P)    2
+	B(p~PP)  ->  B(p~P)    2
+end reaction rules
+begin observables
+    Molecules Bphos    B(p~P)
+    Molecules BphosP   B(p~PP)
+    Molecules B_rec    rec(b!1).B(c!1)
+    Molecules anti_rec rec(a!1).anti(r!1)
+    Molecules full     B(c!1).rec(b!1,a!2).anti(r!2,r!3).rec(b!4,a!3).B(c!4)
+end observables
+end model
+
+generate_network({overwrite=>1})
+simulate_ode({suffix=>"ode",t_end=>20,n_steps=>100})
+resetConcentrations()
+simulate_ssa({suffix=>"ssa",t_end=>20,n_steps=>100})
+resetConcentrations()
+writeXML()

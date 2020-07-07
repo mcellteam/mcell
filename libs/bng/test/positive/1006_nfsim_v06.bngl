@@ -1,0 +1,32 @@
+# OK
+begin model
+begin parameters
+
+end parameters
+begin species
+    Cross(b,b)  500
+	B(c,p~U)    2000
+end species
+begin reaction rules
+	B(c) + Cross(b)  <->  B(c!1).Cross(b!1)    5, 5
+	
+	B(p~U,c!1).Cross(b!1,b!2).B(p~U,c!2)  ->  B(p~U,c!1).Cross(b!1,b!2).B(p~P,c!2)    10
+	B(p~P,c!1).Cross(b!1,b!2).B(p~U,c!2)  ->  B(p~P,c!1).Cross(b!1,b!2).B(p~P,c!2)    1
+
+	B(p~U)  ->  B(p~P)    2
+end reaction rules
+begin observables
+    Molecules Bphos     B(p~P)
+    Molecules Complex   B(c!1).Cross(b!1,b!2).B(c!2)
+    Molecules ComplexUP B(p~P,c!1).Cross(b!1,b!2).B(p~U,c!2)
+    Molecules Complex2  Cross(b!+,b!+)
+end observables
+end model
+
+generate_network({overwrite=>1})
+simulate_ode({suffix=>"ode",t_end=>20,n_steps=>100})
+resetConcentrations()
+simulate_ssa({suffix=>"ssa",t_end=>20,n_steps=>100})
+resetConcentrations()
+writeXML()
+
