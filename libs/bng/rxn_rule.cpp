@@ -468,6 +468,73 @@ static void mark_consumed_reactants(
 }
 
 
+static void add_new_products(
+    Graph& reactants_graph,
+    const VertexMapping& pattern_reactant_mapping,
+    const VertexMapping& product_pattern_mapping,
+    Graph& products_graph,
+    const VertexNameMap& products_index
+) {
+  // this set will contain a pair of product graph_descriptors for bonds between components
+  set<UnorderedPair> product_bonds_to_add_to_reactants;
+
+  // we also create a new mapping directly from all products onto reactants (bypassing patterns)
+  VertexMapping product_reactant_mapping;
+
+  // for each molecule in product graph:
+  std::pair<vertex_iter_t, vertex_iter_t> mol_it;
+  for (mol_it = boost::vertices(products_graph); mol_it.first != mol_it.second; ++mol_it.first) {
+    vertex_descriptor_t prod_desc = *mol_it.first;
+    const Node& mol_node = products_index[prod_desc];
+    if (mol_node.is_mol) {
+      // if there is no mapping to reactant pattern graph
+      auto prod_pat_it = product_pattern_mapping.find(prod_desc);
+      if (prod_pat_it == product_pattern_mapping.end()) {
+        // create a new molecule instance in the reactants_graph
+        // (the node points to a MolInst owned by products of this rxn)
+        vertex_descriptor_t new_reac_desc = boost::add_vertex(mol_node, reactants_graph);
+        product_reactant_mapping[prod_desc] = new_reac_desc;
+
+        // for each component of the molecule in product graph
+        boost::graph_traits<Graph>::out_edge_iterator ei, edge_end;
+        for (boost::tie(ei,edge_end) = boost::out_edges(prod_desc, products_graph); ei != edge_end; ++ei) {
+          Graph::edge_descriptor e_desc = *ei;
+          Graph::vertex_descriptor prod_comp_desc = boost::target(e_desc, products_graph);
+          const Node& comp_node = products_index[prod_comp_desc];
+          assert(!comp_node.is_mol);
+
+          // add this component and connect it to the molecule
+          vertex_descriptor_t new_comp_desc = boost::add_vertex(comp_node, reactants_graph);
+          boost::add_edge(new_reac_desc, new_comp_desc, reactants_graph);
+          product_reactant_mapping[prod_comp_desc] = new_comp_desc;
+
+          vertex_descriptor_t prod_bond_target = get_bond_target(products_graph, prod_comp_desc, false);
+          if (prod_bond_target != TARGET_NOT_FOUND) {
+            // the target component might have not been created, so we must remember to make the bond later
+            product_bonds_to_add_to_reactants.insert(UnorderedPair(prod_comp_desc, prod_bond_target));
+          }
+        }
+
+      }
+      else {
+        auto pat_reac_it = pattern_reactant_mapping.find(prod_pat_it->second);
+        assert(pat_reac_it != pattern_reactant_mapping.end());
+        product_reactant_mapping[prod_pat_it->first] = pat_reac_it->second;
+      }
+    }
+  }
+
+  // create bonds between new components
+  for (auto p: product_bonds_to_add_to_reactants) {
+    assert(product_reactant_mapping.count(p.first) != 0);
+    assert(product_reactant_mapping.count(p.second) != 0);
+    vertex_descriptor_t reac_comp_desc1 = product_reactant_mapping[p.first];
+    vertex_descriptor_t reac_comp_desc2 = product_reactant_mapping[p.second];
+    boost::add_edge(reac_comp_desc1, reac_comp_desc2, reactants_graph);
+  }
+}
+
+
 static void apply_rxn_on_reactants_graph(
     Graph& reactants_graph,
     const VertexMapping& pattern_reactant_mapping,
@@ -610,18 +677,12 @@ static void apply_rxn_on_reactants_graph(
     boost::add_edge(p.first, p.second, reactants_graph);
   }
 
-  // TODO: needed when molecules are added
-  //
-  // for each molecule in product graph:
-  //   if there is no mapping to reactant pattern graph:
-  //     check that all components that have state are connected and defined in the product graph
-  //     create a new molecule instance in the reactants_graph
-  //     for each component of the molecule in product graph:
-  //       add it and connect to molecule
-  //       if it has a bond:
-  //         if does the second target already exist:
-  //           create a bond
-  //
+  // add new products for molecules and components present in the
+  // products graph but missing in the pattern graph
+  add_new_products(
+      reactants_graph, pattern_reactant_mapping,
+      product_pattern_mapping, products_graph, products_index
+  );
 }
 
 
