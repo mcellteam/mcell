@@ -414,11 +414,65 @@ vertex_descriptor_t get_new_bond_target(
 }
 
 
+static void mark_consumed_reactants(
+    Graph& reactants_graph,
+    const VertexMapping& pattern_reactant_mapping,
+    const VertexMapping& product_pattern_mapping
+) {
+  // we need to remove anything that forms a disconnected graph and is
+  // not matched by the pattern
+
+  size_t num_vertices = boost::num_vertices(reactants_graph);
+  // compute connected components
+  vector<int> component_per_vertex(num_vertices);
+  int num_components = boost::connected_components(
+      reactants_graph,
+      boost::make_iterator_property_map(
+          component_per_vertex.begin(), boost::get(boost::vertex_index, reactants_graph), component_per_vertex[0]
+      )
+  );
+
+  // which of the components are unused
+  vector<bool> used_components(num_components);
+
+  // we start from products, and go through all the mappings from the product
+  // to the pattern
+  for (auto prod_pat_it: product_pattern_mapping) {
+    vertex_descriptor_t pat_desc = prod_pat_it.second;
+    // ok, we know that a product maps to this pattern vertex,
+    // there must a be mapping onto the reactant otherwise this rxn cound
+    // not have been triggered
+    auto pat_reac_it = pattern_reactant_mapping.find(pat_desc);
+    assert(pat_reac_it != pattern_reactant_mapping.end());
+    vertex_descriptor_t reac_desc = pat_reac_it->second;
+
+    // and mark that we must keep this graph component, i.e. at least
+    // one of the graph components is kept
+    used_components[component_per_vertex[reac_desc]] = true;
+  }
+
+  // we must not remove any vertices here because it would break the pattern_reactant_mapping,
+  // simply mark the nodes that we do not want to include
+  VertexNameMap index = boost::get(boost::vertex_name, reactants_graph);
+
+  // and now mark each vertex based on whether it belongs to a component that we will keep
+  // this information is used later in convert_graph_component_to_product_cplx_inst
+  typedef boost::graph_traits<Graph>::vertex_iterator vertex_iter;
+  std::pair<vertex_iter, vertex_iter> mol_it;
+  for (mol_it = boost::vertices(reactants_graph); mol_it.first != mol_it.second; ++mol_it.first) {
+    Graph::vertex_descriptor reac_desc = *mol_it.first;
+
+    Node& mol = index[reac_desc];
+    mol.used_in_rxn_product = used_components[component_per_vertex[reac_desc]];
+  }
+}
+
+
 static void apply_rxn_on_reactants_graph(
     Graph& reactants_graph,
     const VertexMapping& pattern_reactant_mapping,
     const Graph& pattern_graph,
-    const VertexMapping& prod_pattern_mapping,
+    const VertexMapping& product_pattern_mapping,
     Graph& products_graph
 ) {
   set<vertex_descriptor_t> mol_instances_to_keep;
@@ -426,10 +480,9 @@ static void apply_rxn_on_reactants_graph(
   VertexNameMap reactants_index = boost::get(boost::vertex_name, reactants_graph);
   VertexNameMap products_index = boost::get(boost::vertex_name, products_graph);
 
-  // TODO: needed when molecules are removed
-  // remove all disconnected graphs whose molecule instance is not mapped to
+  // mark all disconnected graphs whose molecule instance is not mapped to
   // by products
-
+  mark_consumed_reactants(reactants_graph, pattern_reactant_mapping, product_pattern_mapping);
 
   set<UnorderedPair> bonds_to_remove;
   set<UnorderedPair> bonds_to_add;
@@ -439,7 +492,7 @@ static void apply_rxn_on_reactants_graph(
   //   find corresponding component in reactant pattern
   //     if there is no such mapping, ignore it because it might be a component of a
   //     new molecule instance
-  for (auto prod_pat_it: prod_pattern_mapping) {
+  for (auto prod_pat_it: product_pattern_mapping) {
     vertex_descriptor_t prod_desc = prod_pat_it.first;
     const Node& prod_comp = products_index[prod_pat_it.first];
     if (!prod_comp.is_mol) {
@@ -492,7 +545,7 @@ static void apply_rxn_on_reactants_graph(
             vertex_descriptor_t target_reac_desc = get_new_bond_target(
                 reactants_graph,
                 pattern_reactant_mapping,
-                prod_pattern_mapping,
+                product_pattern_mapping,
                 products_graph,
                 prod_desc
             );
@@ -529,7 +582,7 @@ static void apply_rxn_on_reactants_graph(
             vertex_descriptor_t target_reac_desc = get_new_bond_target(
                 reactants_graph,
                 pattern_reactant_mapping,
-                prod_pattern_mapping,
+                product_pattern_mapping,
                 products_graph,
                 prod_desc
             );
@@ -572,7 +625,10 @@ static void apply_rxn_on_reactants_graph(
 }
 
 
-static void convert_graph_component_to_cplx_inst(
+// returns false if any of the encountered nodes has its
+// used_in_rxn_product set to false which means that this is
+// a reactant that was consumed by a reaction
+static bool convert_graph_component_to_product_cplx_inst(
     Graph& graph,
     const vector<int>& graph_components,
     const int graph_component_index,
@@ -593,6 +649,12 @@ static void convert_graph_component_to_cplx_inst(
     }
 
     const Node& mol = index[mol_desc];
+
+    if (!mol.used_in_rxn_product) {
+      // this is a consumed reactant
+      return false;
+    }
+
     if (!mol.is_mol) {
       continue;
     }
@@ -636,8 +698,9 @@ static void convert_graph_component_to_cplx_inst(
 
   } // for each vertex
 
-
   cplx.finalize();
+
+  return true;
 }
 
 
@@ -651,18 +714,24 @@ static void create_products_from_reactants_graph(
   // the output of the algorithm is recorded in the component property map comp,
   // which will contain numbers giving the component number assigned to each vertex
   // the resulting vector is indexed by vertex_descriptor
-  vector<int> comp(boost::num_vertices(reactants_graph));
+  vector<int> graph_components(boost::num_vertices(reactants_graph));
   int num_components = boost::connected_components(
       reactants_graph,
       boost::make_iterator_property_map(
-          comp.begin(), boost::get(boost::vertex_index, reactants_graph), comp[0]
+          graph_components.begin(), boost::get(boost::vertex_index, reactants_graph), graph_components[0]
       )
   );
 
   for (int i = 0; i < num_components; i++) {
-    created_products.push_back(CplxInstance(bng_data));
-    CplxInstance& new_cplx = created_products.back();
-    convert_graph_component_to_cplx_inst(reactants_graph, comp, i, new_cplx);
+    CplxInstance product_cplx(bng_data);
+
+    // some reactants may have been removed
+    bool is_rxn_product =
+        convert_graph_component_to_product_cplx_inst(reactants_graph, graph_components, i, product_cplx);
+
+    if (is_rxn_product) {
+      created_products.push_back(product_cplx);
+    }
   }
 }
 
@@ -671,9 +740,6 @@ void RxnRule::create_products_for_complex_rxn(
     vector<CplxInstance>& created_products
 ) const {
   // the result of this function is cached in rxnclass
-
-  assert(mol_instances_are_fully_maintained && "Assuming this for now");
-
   assert(input_reactants.size() == reactants.size());
   assert(input_reactants.size() == 1 || input_reactants.size() == 2);
 
@@ -722,8 +788,6 @@ void RxnRule::create_products_for_complex_rxn(
 #endif
 
   // manipulate nodes using information about products
-  release_assert(mol_instances_are_fully_maintained &&
-      "Creating or removing molecule instances is not supported yet in complex rules.");
   apply_rxn_on_reactants_graph(
       reactants_graph,
       pattern_reactant_mappings[0],
@@ -876,7 +940,7 @@ void RxnRule::compute_reactants_products_mapping() {
   // count number of molecules in pattern
   uint num_pat_molecule_instances = 0;
   std::pair<vertex_iter, vertex_iter> pat_mol_it;
-  for (pat_mol_it = boost::vertices(products_graph); pat_mol_it.first != pat_mol_it.second; ++pat_mol_it.first) {
+  for (pat_mol_it = boost::vertices(patterns_graph); pat_mol_it.first != pat_mol_it.second; ++pat_mol_it.first) {
     Graph::vertex_descriptor pat_mol_desc = *pat_mol_it.first;
     const Node& pat_mol = patterns_index[pat_mol_desc];
     if (!pat_mol.is_mol) {

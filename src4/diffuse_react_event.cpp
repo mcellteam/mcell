@@ -2034,7 +2034,7 @@ int DiffuseReactEvent::outcome_products_random(
       rx, reacA->species_id, (reacB != nullptr) ? reacB->species_id : SPECIES_ID_INVALID,
       product_species_ids
   );
-  assert(product_species_ids.size() == rx->products.size());
+  release_assert(product_species_ids.size() == rx->products.size());
 
 
   for (uint product_index = 0; product_index < rx->products.size(); product_index++) {

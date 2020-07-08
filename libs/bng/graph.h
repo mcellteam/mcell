@@ -22,15 +22,15 @@ class BNGData;
 
 struct Node {
   Node()
-    : is_mol(true), mol(nullptr), component(nullptr) {
+    : is_mol(true), mol(nullptr), component(nullptr), used_in_rxn_product(true) {
   }
 
   Node(MolInstance* mol_)
-    : is_mol(true), mol(mol_), component(nullptr) {
+    : is_mol(true), mol(mol_), component(nullptr), used_in_rxn_product(true) {
   }
 
   Node(ComponentInstance* component_)
-    : is_mol(false), mol(nullptr), component(component_) {
+    : is_mol(false), mol(nullptr), component(component_), used_in_rxn_product(true) {
   }
 
   bool compare(const Node& n2) const {
@@ -94,6 +94,9 @@ struct Node {
   bool is_mol;
   MolInstance* mol;
   ComponentInstance* component;
+
+  // for reaction handling, default is true
+  bool used_in_rxn_product;
 };
 
 std::ostream & operator<<(std::ostream &out, const Node& n);
@@ -113,6 +116,8 @@ typedef std::vector<VertexMapping> VertexMappingVector;
 
 typedef Graph::vertex_descriptor vertex_descriptor_t;
 typedef Graph::edge_descriptor edge_descriptor_t;
+
+typedef boost::graph_traits<Graph>::vertex_iterator vertex_iter_t; // TODO: use this typedef wherever needed
 
 // finds all subgraph isomorphism mappings of pattern graph on cplx graph
 void get_subgraph_isomorphism_mappings(Graph& pattern, Graph& cplx, const bool only_first_match, VertexMappingVector& res);
