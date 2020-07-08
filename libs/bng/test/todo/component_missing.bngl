@@ -1,0 +1,34 @@
+# BNG2.pl reports: Component(s) b missing from molecule B()
+
+begin model
+begin parameters
+	ITERATIONS  10
+	#TIME_STEP  1e-6
+	VACANCY_SEARCH_DISTANCE  10
+	
+    MCELL_DIFFUSION_CONSTANT_3D_A 1e-6
+    MCELL_DIFFUSION_CONSTANT_3D_B 5e-5
+    
+    MCELL_NO_COMPARTMENT_SIZE 0.0625
+end parameters
+
+begin molecule types
+	A(a~0~1)
+	B(b)
+end molecule types
+
+begin seed species
+	 A(a~1)  10
+	 B        0 # this is the problematic line
+end seed species
+
+begin observables
+	Molecules _MDLString A, B
+end observables
+
+begin reaction rules
+	
+	A(a~1) -> A(a~0!1).B(b!1) 1e5
+	   
+end reaction rules
+end model
