@@ -388,7 +388,7 @@ static vertex_descriptor_t get_bond_target(
   return res;
 }
 
-
+// returns TARGET_NOT_FOUND when there is no mapping from products to pattern
 vertex_descriptor_t get_new_bond_target(
     const Graph& reactants_graph,
     const VertexMapping& pattern_reactant_mapping,
@@ -406,7 +406,9 @@ vertex_descriptor_t get_new_bond_target(
 
   // to which reactant we will point?
   auto target_prod_pat_it = prod_pattern_mapping.find(prog_target_desc);
-  assert(target_prod_pat_it != prod_pattern_mapping.end() && "Mapping must exist");
+  if (target_prod_pat_it == prod_pattern_mapping.end()) {
+    return TARGET_NOT_FOUND;
+  }
   auto target_pat_reac_it = pattern_reactant_mapping.find(target_prod_pat_it->second);
   assert(target_pat_reac_it != pattern_reactant_mapping.end() && "Mapping must exist");
 
@@ -485,38 +487,39 @@ static void add_new_products(
   std::pair<vertex_iter_t, vertex_iter_t> mol_it;
   for (mol_it = boost::vertices(products_graph); mol_it.first != mol_it.second; ++mol_it.first) {
     vertex_descriptor_t prod_desc = *mol_it.first;
+    auto prod_pat_it = product_pattern_mapping.find(prod_desc);
     const Node& mol_node = products_index[prod_desc];
-    if (mol_node.is_mol) {
-      // if there is no mapping to reactant pattern graph
-      auto prod_pat_it = product_pattern_mapping.find(prod_desc);
-      if (prod_pat_it == product_pattern_mapping.end()) {
-        // create a new molecule instance in the reactants_graph
-        // (the node points to a MolInst owned by products of this rxn)
-        vertex_descriptor_t new_reac_desc = boost::add_vertex(mol_node, reactants_graph);
-        product_reactant_mapping[prod_desc] = new_reac_desc;
 
-        // for each component of the molecule in product graph
-        boost::graph_traits<Graph>::out_edge_iterator ei, edge_end;
-        for (boost::tie(ei,edge_end) = boost::out_edges(prod_desc, products_graph); ei != edge_end; ++ei) {
-          Graph::edge_descriptor e_desc = *ei;
-          Graph::vertex_descriptor prod_comp_desc = boost::target(e_desc, products_graph);
-          const Node& comp_node = products_index[prod_comp_desc];
-          assert(!comp_node.is_mol);
+    // if we are dealing with a molecule and there is no mapping to reactant pattern graph
+    if (mol_node.is_mol && prod_pat_it == product_pattern_mapping.end()) {
+      // create a new molecule instance in the reactants_graph
+      // (the node points to a MolInst owned by products of this rxn)
+      vertex_descriptor_t new_reac_desc = boost::add_vertex(mol_node, reactants_graph);
+      product_reactant_mapping[prod_desc] = new_reac_desc;
 
-          // add this component and connect it to the molecule
-          vertex_descriptor_t new_comp_desc = boost::add_vertex(comp_node, reactants_graph);
-          boost::add_edge(new_reac_desc, new_comp_desc, reactants_graph);
-          product_reactant_mapping[prod_comp_desc] = new_comp_desc;
+      // for each component of the molecule in product graph
+      boost::graph_traits<Graph>::out_edge_iterator ei, edge_end;
+      for (boost::tie(ei,edge_end) = boost::out_edges(prod_desc, products_graph); ei != edge_end; ++ei) {
+        Graph::edge_descriptor e_desc = *ei;
+        Graph::vertex_descriptor prod_comp_desc = boost::target(e_desc, products_graph);
+        const Node& comp_node = products_index[prod_comp_desc];
+        assert(!comp_node.is_mol);
 
-          vertex_descriptor_t prod_bond_target = get_bond_target(products_graph, prod_comp_desc, false);
-          if (prod_bond_target != TARGET_NOT_FOUND) {
-            // the target component might have not been created, so we must remember to make the bond later
-            product_bonds_to_add_to_reactants.insert(UnorderedPair(prod_comp_desc, prod_bond_target));
-          }
+        // add this component and connect it to the molecule
+        vertex_descriptor_t new_comp_desc = boost::add_vertex(comp_node, reactants_graph);
+        boost::add_edge(new_reac_desc, new_comp_desc, reactants_graph);
+        product_reactant_mapping[prod_comp_desc] = new_comp_desc;
+
+        vertex_descriptor_t prod_bond_target = get_bond_target(products_graph, prod_comp_desc, false);
+        if (prod_bond_target != TARGET_NOT_FOUND) {
+          // the target component might have not been created, so we must remember to make the bond later
+          product_bonds_to_add_to_reactants.insert(UnorderedPair(prod_comp_desc, prod_bond_target));
         }
-
       }
-      else {
+    }
+    else {
+      // mapped molecule or mapped component - need to define direct mapping as well
+      if (prod_pat_it != product_pattern_mapping.end()) {
         auto pat_reac_it = pattern_reactant_mapping.find(prod_pat_it->second);
         assert(pat_reac_it != pattern_reactant_mapping.end());
         product_reactant_mapping[prod_pat_it->first] = pat_reac_it->second;
@@ -617,7 +620,11 @@ static void apply_rxn_on_reactants_graph(
                 prod_desc
             );
 
-            bonds_to_add.insert(UnorderedPair(reac_desc, target_reac_desc));
+            // target does not have to exist when this is a new product,
+            // it will be added to the reactants graph later
+            if (target_reac_desc != TARGET_NOT_FOUND) {
+              bonds_to_add.insert(UnorderedPair(reac_desc, target_reac_desc));
+            }
           }
           // new: !+
           else if (prod_ci.bond_value == BOND_VALUE_ANY){
@@ -653,7 +660,11 @@ static void apply_rxn_on_reactants_graph(
                 products_graph,
                 prod_desc
             );
-            bonds_to_add.insert(UnorderedPair(reac_desc, target_reac_desc));
+            // target does not have to exist when this is a new product,
+            // it will be added to the reactants graph later
+            if (target_reac_desc != TARGET_NOT_FOUND) {
+              bonds_to_add.insert(UnorderedPair(reac_desc, target_reac_desc));
+            }
           }
           // new: !+
           else if (prod_ci.bond_value == BOND_VALUE_ANY){
