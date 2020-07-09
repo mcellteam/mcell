@@ -5,7 +5,7 @@
 # NFsim doesn't believe in this weird behavior, so NFsim enforces the use of the DeleteMolecules 
 # keyword in such situations, as in this rule.  So go update your rule now.
 
-# this should be probably supported
+# maybe we can disable this behavior completely
 # pymcel4 currently asserts with
 # ../../src4/diffuse_react_event.cpp:2037: int
 # MCell::DiffuseReactEvent::outcome_products_random(MCell::Partition&, const MCell::Collision&, BNGCommon::float_t, rxn_index_t, bool&, bool&): Assertion `product_species_ids.size() == rx->products.size()' failed.
