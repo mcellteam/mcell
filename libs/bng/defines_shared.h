@@ -135,6 +135,15 @@ static inline float_t pow_f(const float_t a, const float_t n) {
 }
 
 
+static inline float_t floor_f(const float_t a) {
+#if FLOAT_T_BYTES == 8
+  return floor(a);
+#else
+  return floorf(a, n);
+#endif
+}
+
+
 static inline float_t round_f(const float_t a) {
 #if FLOAT_T_BYTES == 8
   return round(a);

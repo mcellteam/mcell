@@ -21,6 +21,7 @@ using BNGCommon::cmp_eq;
 using BNGCommon::distinguishable_f;
 using BNGCommon::sqrt_f;
 using BNGCommon::pow_f;
+using BNGCommon::floor_f;
 using BNGCommon::round_f;
 
 const char* const MCELL_REDEFINE_PREFIX = "MCELL_REDEFINE_";
