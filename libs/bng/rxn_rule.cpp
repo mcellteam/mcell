@@ -100,6 +100,8 @@ void RxnRule::finalize() {
   create_products_graph();
   compute_reactants_products_mapping();
 
+  compute_rate_constant_multiplier();
+
   // for MCell3 compatibility, updates mapping when needed
   move_products_that_are_also_reactants_to_be_the_first_products();
 
@@ -1031,6 +1033,56 @@ void RxnRule::compute_reactants_products_mapping() {
 }
 
 
+void RxnRule::compute_rate_constant_multiplier() {
+  assert(!patterns_graph.m_vertices.empty() && "Graphs must be initialized");
+
+  // prepare a graph with Complexes based on molecule types of reactants
+  Graph reactants_graph;
+  // graph references objects in complexes, the cplx instances must exist
+  // when the graph is used
+  vector<CplxInstance> reactants_full;
+  for (const CplxInstance& reac: reactants) {
+    reactants_full.push_back(reac);
+    CplxInstance& cplx = reactants_full.back();
+
+    // need to modify pattern so that all components are present
+    for (MolInstance& mi: cplx.mol_instances) {
+      // the new components will have any type specification
+      mi.insert_missing_components_as_any_state_pattern(*bng_data);
+    }
+
+    // update graph
+    cplx.create_graph();
+    merge_graphs(reactants_graph, cplx.get_graph());
+  }
+
+#if 0
+  cout << "Pattern:\n";
+  dump_graph(patterns_graph);
+
+  cout << "Reactants:\n";
+  dump_graph(reactants_graph);
+#endif
+
+  VertexMappingVector pattern_reactant_mappings;
+  get_subgraph_isomorphism_mappings(
+      patterns_graph, // pattern
+      reactants_graph, // computed base reactant
+      false, // do not stop with first match
+      pattern_reactant_mappings
+  );
+  assert(pattern_reactant_mappings.size() >= 1 && "Reactants were created from patter, it must therefore match");
+
+  rate_constant_multiplier = pattern_reactant_mappings.size();
+
+  // if the reactants are identical, divide the rate by 2
+  if (is_bimol() && reactants[0].matches_fully(reactants[1])) {
+    rate_constant_multiplier /= 2.0;
+  }
+}
+
+
+
 bool RxnRule::check_components_mapping(
     const MolInstance& first_mi,
     const MolInstance& second_mi,
@@ -1239,32 +1291,32 @@ bool RxnRule::update_variable_rxn_rate(const float_t current_time, const RxnClas
   if (!may_update_rxn_rate()) {
     return false;
   }
-  assert(!variable_rates.empty());
-  assert(next_variable_rate_index < variable_rates.size());
+  assert(!base_variable_rates.empty());
+  assert(next_variable_rate_index < base_variable_rates.size());
 
-  if (variable_rates[next_variable_rate_index].time > current_time
-      && !cmp_eq(variable_rates[next_variable_rate_index].time, current_time) ) {
+  if (base_variable_rates[next_variable_rate_index].time > current_time
+      && !cmp_eq(base_variable_rates[next_variable_rate_index].time, current_time) ) {
     return false;
   }
 
   // find which time to use - the highest but still smaller than the following one
   size_t current_index = next_variable_rate_index;
-  while (current_index < variable_rates.size() &&
-          (current_time > variable_rates[current_index + 1].time ||
-           cmp_eq(current_time, variable_rates[current_index + 1].time)
+  while (current_index < base_variable_rates.size() &&
+          (current_time > base_variable_rates[current_index + 1].time ||
+           cmp_eq(current_time, base_variable_rates[current_index + 1].time)
         )
   ) {
     current_index++;
   }
 
   // should we use the last entry?
-  if (current_index == variable_rates.size() &&
+  if (current_index == base_variable_rates.size() &&
       next_variable_rate_index == current_index - 1) {
     current_index = next_variable_rate_index;
   }
 
   // current_time >= time for next change
-  rate_constant = variable_rates[current_index].rate_constant;
+  base_rate_constant = base_variable_rates[current_index].rate_constant;
   next_variable_rate_index = current_index + 1;
 
   // notify parents that update is needed
@@ -1288,7 +1340,7 @@ std::string RxnRule::to_str(const bool with_rate_constant) const {
   ss << complex_instance_vector_to_str(products);
 
   if (with_rate_constant) {
-    ss << " " << rate_constant;
+    ss << " " << base_rate_constant;
   }
 
   return ss.str();
@@ -1362,12 +1414,13 @@ void RxnRule::dump(const bool for_diff, const std::string ind) const {
     }
     cout << "\n";
 
-    cout << ind << "rate_constant: " << rate_constant << "\n";
-    cout << ind << "variable_rates.size: " << variable_rates.size() << "\n";
+    cout << ind << "base_rate_constant: " << base_rate_constant << "\n";
+    cout << ind << "rate_constant_multiplier: " << rate_constant_multiplier << "\n";
+    cout << ind << "variable_rates.size: " << base_variable_rates.size() << "\n";
 
-    if (!variable_rates.empty()) {
-      for (size_t i = 0; i < variable_rates.size(); i++) {
-        cout << ind + "  " << "t: " << variable_rates[i].time << ", r: " << variable_rates[i].rate_constant << "\n";
+    if (!base_variable_rates.empty()) {
+      for (size_t i = 0; i < base_variable_rates.size(); i++) {
+        cout << ind + "  " << "t: " << base_variable_rates[i].time << ", r: " << base_variable_rates[i].rate_constant << "\n";
       }
     }
 

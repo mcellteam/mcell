@@ -64,9 +64,22 @@ public:
   CplxInstanceVector reactants;
   CplxInstanceVector products;
 
-  float_t rate_constant;
+  // base rate constant for this reaction as obtained from the BNGL or other input
+  float_t base_rate_constant;
 
-  small_vector<RxnRateInfo> variable_rates;
+  // rate constant multiplier that must be used to
+  // adjusted to the multiplicity of the reaction,
+  // examples:
+  // unimolecular reaction X(p~0) -> X(p~1) on molecule type X(p~0~1,p~0~1)
+  // has multiplier of 2 because it can be applied to either one of the components
+  // bimolecular reaction ?? TODO - example
+
+  // on the other hand, bimolecular reaction X(a) + Y -> X(a!1) applied on complex X(a,b!1).X(a,b!1)
+  // has multiplier of 1 because the reactant is not known until the actual reaction occurs
+  //
+  float_t rate_constant_multiplier;
+
+  small_vector<RxnRateInfo> base_variable_rates;
 
   // set to true if it was possible to do a mapping between reactants and products
   bool mol_instances_are_fully_maintained;
@@ -88,7 +101,8 @@ private:
 
 public:
   RxnRule(const BNGData* bng_data_)
-    : id(RXN_RULE_ID_INVALID), type(RxnType::Invalid), mol_instances_are_fully_maintained(false), rate_constant(FLT_INVALID),
+    : id(RXN_RULE_ID_INVALID), type(RxnType::Invalid), mol_instances_are_fully_maintained(false),
+      base_rate_constant(FLT_INVALID), rate_constant_multiplier(1),
       num_surf_products(UINT_INVALID), next_variable_rate_index(0),
       bng_data(bng_data_)
       {
@@ -101,6 +115,10 @@ public:
       const std::vector<const CplxInstance*>& input_reactants,
       std::vector<CplxInstance>& created_products
   ) const;
+
+  float_t get_rate_constant() const {
+    return base_rate_constant * rate_constant_multiplier;
+  }
 
   const CplxInstance& get_cplx_reactant(const uint index) const {
     assert(index <= reactants.size());
@@ -123,12 +141,8 @@ public:
     return
         name == rr2.name &&
         reactants == rr2.reactants && products == rr2.products &&
-        rate_constant == rr2.rate_constant;
+        base_rate_constant == rr2.base_rate_constant;
   }
-
-  // checks if it is possible to create a mapping from reactants to products and
-  // sets members molecule_instances_are_maintained and mapping
-  void compute_reactants_products_mapping();
 
   // used in semantic check
   bool check_reactants_products_mapping(std::ostream& out);
@@ -233,7 +247,7 @@ public:
 
   // returns false when there are no variable rates or we already processed all scheduled times
   bool may_update_rxn_rate() const {
-    return next_variable_rate_index < (int)variable_rates.size();
+    return next_variable_rate_index < (int)base_variable_rates.size();
   }
 
   // returns true if rate was updated
@@ -242,7 +256,7 @@ public:
 
   float_t get_next_time_of_rxn_rate_update() const {
     if (may_update_rxn_rate()) {
-      return variable_rates[next_variable_rate_index].time;
+      return base_variable_rates[next_variable_rate_index].time;
     }
     else {
       return TIME_FOREVER;
@@ -260,6 +274,12 @@ private:
 
   void move_products_that_are_also_reactants_to_be_the_first_products();
 
+  // checks if it is possible to create a mapping from reactants to products and
+  // sets members molecule_instances_are_maintained and mapping
+  void compute_reactants_products_mapping();
+
+  void compute_rate_constant_multiplier();
+
   bool check_components_mapping(
       const MolInstance& first_mi,
       const MolInstance& second_mi,
@@ -267,7 +287,7 @@ private:
       std::ostream& out
   );
 
-  bool RxnRule::check_components_states(
+  bool check_components_states(
       const MolInstance& prod_mi,
       const MolInstance& pat_mi,
       std::ostream& out

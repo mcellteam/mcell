@@ -93,6 +93,35 @@ void MolInstance::finalize_flags_and_sort_components(const BNGData& bng_data) {
 }
 
 
+// this is a method used when computing rxn rate multiplier,
+// we transform this mol instance pattern in a similar one only
+// each added component has any state and any bond specifier
+void MolInstance::insert_missing_components_as_any_state_pattern(const BNGData& bng_data) {
+  assert(is_finalized() && "Components must be sorted");
+
+  const MolType& mt = bng_data.get_molecule_type(mol_type_id);
+
+  size_t instance_index = 0;
+  for (size_t template_index = 0; template_index < mt.component_type_ids.size(); template_index++) {
+    component_type_id_t template_component_id = mt.component_type_ids[template_index];
+    if (component_instances[instance_index].component_type_id != template_component_id) {
+      // missing - need to insert
+      ComponentInstance ci = ComponentInstance(template_component_id);
+      ci.state_id = STATE_ID_DONT_CARE;
+      ci.bond_value = BOND_VALUE_ANY;
+      component_instances.push_back(ci);
+    }
+    else {
+      // ok, present
+      instance_index++;
+    }
+  }
+
+  // sort components
+  finalize_flags_and_sort_components(bng_data);
+}
+
+
 std::string MolInstance::to_str(const BNGData& bng_data) const {
   stringstream ss;
   const MolType& mt = bng_data.get_molecule_type(mol_type_id);

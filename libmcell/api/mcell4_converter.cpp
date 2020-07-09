@@ -346,7 +346,7 @@ void MCell4Converter::convert_surface_class_rxn(
   }
 
   // all these reactions happen always
-  rxn.rate_constant = FLT_GIGANTIC;
+  rxn.base_rate_constant = FLT_GIGANTIC;
 
   rxn.append_reactant(affected_species);
   rxn.append_reactant(surface_reactant); // copies the input reactant
@@ -508,7 +508,7 @@ void MCell4Converter::convert_rxns() {
     rxn.type = BNG::RxnType::Standard;
 
     if (is_set(r->fwd_rate)) {
-      rxn.rate_constant = r->fwd_rate;
+      rxn.base_rate_constant = r->fwd_rate;
     }
     else {
       assert(!r->variable_rate.empty());
@@ -517,7 +517,7 @@ void MCell4Converter::convert_rxns() {
         BNG::RxnRateInfo info;
         info.time = time_and_rate[0] / world->config.time_unit;
         info.rate_constant = time_and_rate[1];
-        rxn.variable_rates.push_back(info);
+        rxn.base_variable_rates.push_back(info);
       }
       rxn.update_variable_rxn_rate(0, nullptr);
     }
@@ -543,7 +543,7 @@ void MCell4Converter::convert_rxns() {
       if (is_set(r->rev_name)) {
         rxn.name = r->rev_name;
       }
-      rxn_rev.rate_constant = r->rev_rate;
+      rxn_rev.base_rate_constant = r->rev_rate;
       rxn_rev.reactants = rxn.products;
       rxn_rev.products = rxn.reactants;
     }

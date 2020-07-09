@@ -201,11 +201,11 @@ void BngDataToDatamodelConverter::convert_single_rxn_rule(const BNG::RxnRule& r,
   rxn_node[KEY_PRODUCTS] = products;
   rxn_node[KEY_NAME] = reactants + " -> " + products;
 
-  if (r.variable_rates.empty()) {
-    rxn_node[KEY_FWD_RATE] = DMUtil::f_to_string(r.rate_constant);
+  if (r.base_variable_rates.empty()) {
+    rxn_node[KEY_FWD_RATE] = DMUtil::f_to_string(r.base_rate_constant);
     rxn_node[KEY_BKWD_RATE] = "";
 
-    CHECK_PROPERTY_W_NAME(r.variable_rates.empty(), r.name);
+    CHECK_PROPERTY_W_NAME(r.base_variable_rates.empty(), r.name);
     rxn_node[KEY_VARIABLE_RATE_VALID] = false;
     rxn_node[KEY_VARIABLE_RATE_SWITCH] = false;
     rxn_node[KEY_VARIABLE_RATE] = "";
@@ -223,8 +223,8 @@ void BngDataToDatamodelConverter::convert_single_rxn_rule(const BNG::RxnRule& r,
 
     stringstream text;
     // initial value for time 0
-    text << 0.0 << "\t" << r.rate_constant << "\n";
-    for (const BNG::RxnRateInfo& ri: r.variable_rates) {
+    text << 0.0 << "\t" << r.base_rate_constant << "\n";
+    for (const BNG::RxnRateInfo& ri: r.base_variable_rates) {
       text << ri.time * world->config.time_unit  << "\t" << ri.rate_constant << "\n";
     }
     rxn_node[KEY_VARIABLE_RATE_TEXT] = text.str();

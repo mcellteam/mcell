@@ -127,7 +127,7 @@ void Subsystem::convert_reaction_rule(const BNG::BNGData& bng_data, const BNG::R
   res_rr->name = bng_rr.name;
 
   // RxnRule
-  res_rr->fwd_rate = bng_rr.rate_constant;
+  res_rr->fwd_rate = bng_rr.base_rate_constant;
 
   for (const BNG::CplxInstance& inst: bng_rr.reactants) {
     res_rr->reactants.push_back(convert_reaction_rule_substance(shared_from_this(), bng_data, inst));

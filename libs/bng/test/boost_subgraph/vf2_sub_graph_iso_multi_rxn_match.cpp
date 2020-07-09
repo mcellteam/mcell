@@ -224,7 +224,7 @@ void print_edges(Graph& graph_complex) {
 }
 
 
-void merge_graph(Graph& dstsrc, Graph& src) {
+void merge_graphs(Graph& dstsrc, Graph& src) {
   copy_graph(src, dstsrc);
 }
 
@@ -259,7 +259,7 @@ int main()
   add_edge(0, 1, graph_pattern);
 
 
-  merge_graph(graph_complex, graph_pattern);
+  merge_graphs(graph_complex, graph_pattern);
 
   print_graph(graph_complex);
 

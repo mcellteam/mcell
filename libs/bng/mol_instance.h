@@ -98,6 +98,8 @@ public:
 
   void finalize_flags_and_sort_components(const BNGData& bng_data);
 
+  void insert_missing_components_as_any_state_pattern(const BNGData& bng_data);
+
   // returns true if this object as a pattern matches second instance
   bool matches_simple(const MolInstance& inst) const {
     assert(component_instances.size() == 0 && inst.component_instances.size() == 0 &&

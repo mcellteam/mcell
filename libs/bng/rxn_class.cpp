@@ -231,7 +231,7 @@ void RxnClass::compute_initial_rxn_rates() {
 
   // initialize rates
   for (uint i = 0; i < reactions.size(); i++) {
-    cum_probs[i] = reactions[i]->rate_constant;
+    cum_probs[i] = reactions[i]->get_rate_constant();
   }
 
   float_t pb_factor = compute_pb_factor();

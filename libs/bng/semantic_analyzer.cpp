@@ -618,7 +618,7 @@ void SemanticAnalyzer::convert_and_store_rxn_rules() {
     fwd_rule.type = RxnType::Standard;
     fwd_rule.name = r->name;
     assert(r->rates->items.size() >= 1);
-    fwd_rule.rate_constant = to_expr_node(r->rates->items[0])->get_dbl();
+    fwd_rule.base_rate_constant = to_expr_node(r->rates->items[0])->get_dbl();
     fwd_rule.reactants = reactants;
     fwd_rule.products = products;
 
@@ -637,7 +637,7 @@ void SemanticAnalyzer::convert_and_store_rxn_rules() {
       }
 
       assert(r->rates->items.size() == 2);
-      rev_rule.rate_constant = to_expr_node(r->rates->items[1])->get_dbl();
+      rev_rule.base_rate_constant = to_expr_node(r->rates->items[1])->get_dbl();
       rev_rule.reactants = products;
       rev_rule.products = reactants;
 

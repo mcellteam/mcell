@@ -59,6 +59,9 @@ string Node::to_str(const BNGData* bng_data) const {
     if (component->bond_value == BOND_VALUE_BOUND) {
       out << "!+";
     }
+    else if (component->bond_value == BOND_VALUE_ANY) {
+      out << "!?";
+    }
     else if (component->bond_value == BOND_VALUE_UNBOUND) {
       out << "!NO_BOND";
     }

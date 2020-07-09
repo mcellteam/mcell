@@ -900,7 +900,7 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
     RxnRule rxn(&world->bng_engine.get_data());
 
     if (mcell3_rx->prob_t == nullptr) {
-      rxn.rate_constant = current_pathway->km;
+      rxn.base_rate_constant = current_pathway->km;
     }
     else {
       CHECK_PROPERTY(mcell3_rx->n_pathways > 0);
@@ -910,12 +910,12 @@ bool MCell3WorldConverter::convert_single_reaction(const rxn *mcell3_rx) {
       float_t prob = (pathway_index == 0) ?
           mcell3_rx->cum_probs[0] : (mcell3_rx->cum_probs[pathway_index] - mcell3_rx->cum_probs[pathway_index-1]);
 
-      rxn.rate_constant = prob / mcell3_rx->pb_factor;
+      rxn.base_rate_constant = prob / mcell3_rx->pb_factor;
     }
 
     if (!variable_rates_per_pathway.empty()) {
       assert(pathway_index < (int)variable_rates_per_pathway.size());
-      rxn.variable_rates = variable_rates_per_pathway[pathway_index];
+      rxn.base_variable_rates = variable_rates_per_pathway[pathway_index];
     }
 
     CHECK_PROPERTY(current_pathway->reactant1 != nullptr);
