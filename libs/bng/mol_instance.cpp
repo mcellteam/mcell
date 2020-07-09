@@ -104,7 +104,8 @@ void MolInstance::insert_missing_components_as_any_state_pattern(const BNGData& 
   size_t instance_index = 0;
   for (size_t template_index = 0; template_index < mt.component_type_ids.size(); template_index++) {
     component_type_id_t template_component_id = mt.component_type_ids[template_index];
-    if (component_instances[instance_index].component_type_id != template_component_id) {
+    if (instance_index < component_instances.size() &&
+        component_instances[instance_index].component_type_id != template_component_id) {
       // missing - need to insert
       ComponentInstance ci = ComponentInstance(template_component_id);
       ci.state_id = STATE_ID_DONT_CARE;
