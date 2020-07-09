@@ -1870,7 +1870,12 @@ int DiffuseReactEvent::outcome_products_random(
 #ifdef DEBUG_RXNS
   DUMP_CONDITION4(
     collision.dump(p, "Processing reaction:", p.stats.get_current_iteration(), time);
-    cout <<  "reaction_index: " << rxn_index << "\n";
+    cout << p.get_all_species().get(p.get_m(collision.diffused_molecule_id).species_id).name;
+    if (collision.is_mol_mol_reaction()) {
+      cout << " + " <<
+          p.get_all_species().get(p.get_m(collision.colliding_molecule_id).species_id).name;
+    }
+    cout << "\nreaction_index: " << rxn_index << "\n";
     if (collision.rxn_class != nullptr) {
       collision.rxn_class->dump();
     }

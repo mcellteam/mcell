@@ -48,6 +48,10 @@ void dump_processing_reaction(
     struct wall *w
 );
 
+void dump_rxn(rxn* rx, const char* ind, bool for_diff=false);
+
+void dump_molecule_species(struct abstract_molecule *reac);
+
 void dump_surface_molecule(
     struct surface_molecule* amp,
     const char* ind,

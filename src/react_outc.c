@@ -356,8 +356,16 @@ static int outcome_products_random(struct volume *world, struct wall *w,
                                    short orientA, short orientB) {
 
 #ifdef DEBUG_RXNS
+  // NOTE: maybe make a single dump call out of this
   DUMP_CONDITION3(
-      dump_processing_reaction(world->current_iterations, hitpt, t, rx, reacA, reacB, w);
+    dump_processing_reaction(world->current_iterations, hitpt, t, rx, reacA, reacB, w);
+    dump_molecule_species(reacA);
+    if (reacB != nullptr) {
+      mcell_log(" + ");
+      dump_molecule_species(reacB);
+    }
+    mcell_log("\nreaction_index: %d\n", path);
+    dump_rxn(rx, "", true);
   );
 #endif
 

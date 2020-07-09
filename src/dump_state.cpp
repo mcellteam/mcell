@@ -941,8 +941,68 @@ void dump_variable_rxn_rates(t_func* prob_t, const char* name, const char* ind) 
   }
 }
 
-void dump_rxn(rxn* rx, const char* ind) {
 
+void dump_molecule_species(abstract_molecule *m) {
+  if ((m->properties->flags & EXTERNAL_SPECIES) == 0) {
+    cout << get_sym_name(m->properties->sym);
+  }
+  else {
+    assert(m->graph_data != nullptr);
+    cout << graph_pattern_to_bngl(m->graph_data->graph_pattern);
+  }
+}
+
+
+void dump_rxn_substance(species* s, short orient) {
+  if ((s->flags & EXTERNAL_SPECIES) == 0) {
+    cout << get_sym_name(s->sym);
+  }
+  else {
+    cout << "BNG";
+  }
+}
+
+
+void dump_rxn_pathway_for_diff(pathway* pw) {
+  dump_rxn_substance(pw->reactant1, pw->orientation1);
+  if (pw->reactant2 != nullptr) {
+    cout << " + ";
+    dump_rxn_substance(pw->reactant2, pw->orientation2);
+  }
+
+  cout << " -> ";
+
+  product* prod = pw->product_head;
+  while (prod != nullptr) {
+    dump_rxn_substance(prod->prod, prod->orientation);
+  }
+  cout << "\n";
+}
+
+
+void dump_rxn_for_diff(rxn* rx) {
+  cout << "max_fixed_p: \t\t" << rx->max_fixed_p << " [float_t]\n";
+  cout << "min_noreaction_p: \t\t" << rx->min_noreaction_p << " [float_t]\n";
+
+  cout << "cum_probs: ";
+  for (int i = 0; i < rx->n_pathways; i++) {
+    cout << rx->cum_probs[i] << ", ";
+  }
+  cout << "\n";
+
+  pathway* current_pathway = rx->pathway_head;
+  for (int i = 0; i < rx->n_pathways && current_pathway != nullptr; i++) {
+    dump_rxn_pathway_for_diff(current_pathway);
+    current_pathway = current_pathway->next;
+  }
+}
+
+void dump_rxn(rxn* rx, const char* ind, bool for_diff) {
+
+  if (for_diff) {
+    dump_rxn_for_diff(rx);
+    return;
+  }
   cout << ind << "sym: *\t\t" << rx->sym << " [sym_entry] \t\t/* Ptr to symbol table entry for this rxn */\n";
 
   cout << ind << "n_reactants: \t\t" << rx->n_reactants << " [u_int] \t\t/* How many reactants? (At least 1.) */\n";
