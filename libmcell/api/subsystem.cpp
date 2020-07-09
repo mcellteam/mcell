@@ -148,9 +148,9 @@ static int convert_bond_value(const BNG::bond_value_t bng_bond_value) {
     case BNG::BOND_VALUE_INVALID:
       release_assert("Invalid bond value"); // should not really happen
       return -2;
-    case BNG::BOND_VALUE_ANY: // represents !+
+    case BNG::BOND_VALUE_BOUND: // represents !+
       return BOND_BOUND;
-    case BNG::BOND_VALUE_NO_BOND: // no
+    case BNG::BOND_VALUE_UNBOUND: // no
       return BOND_UNBOUND;
     default:
       return bng_bond_value;

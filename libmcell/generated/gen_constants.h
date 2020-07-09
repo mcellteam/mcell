@@ -31,8 +31,9 @@ namespace API {
 
 const std::string STATE_UNSET = "STATE_UNSET";
 const int STATE_UNSET_INT = -1;
-const int BOND_UNBOUND = 0;
-const int BOND_BOUND = -1;
+const int BOND_UNBOUND = -1;
+const int BOND_BOUND = -2;
+const int BOND_ANY = -3;
 const float_t PARTITION_EDGE_EXTRA_MARGIN_UM = 0.01;
 const int DEFAULT_COUNT_BUFFER_SIZE = 10000;
 const std::string ALL_MOLECULES = "ALL_MOLECULES";

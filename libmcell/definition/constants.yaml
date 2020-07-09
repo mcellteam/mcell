@@ -8,10 +8,16 @@ constants:
         
   - name: BOND_UNBOUND
     type: int
-    value: 0
+    value: -1
+    doc: Represents cases when a component must not be bound in a pattern
   - name: BOND_BOUND
     type: int
-    value: -1
+    value: -2
+    doc: Represents bond type !+ in a pattern
+  - name: BOND_ANY
+    type: int
+    value: -3
+    doc: Represents bond type !? in a pattern
 
   - name: PARTITION_EDGE_EXTRA_MARGIN_UM
     type: float

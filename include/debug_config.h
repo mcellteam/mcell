@@ -40,7 +40,7 @@
 #include "dump_state.h"
 
 // when enabled, mcell3 produces identical result to the mcell master branch
-#define MCELL3_IDENTICAL
+//#define MCELL3_IDENTICAL
 
 // define when comparin mcell4 and pymcell4 outputs
 //#define PYMCELL4_TESTING
@@ -102,12 +102,12 @@
 
 
 //#define DUMP_ALWAYS
-#define DUMP_NEVER
+//#define DUMP_NEVER
 
 #if (!defined(NDEBUG) || defined(DUMP_ALWAYS)) && !defined(DUMP_NEVER)
 
 #define FROM_ITERATION 0
-#define TO_ITERATION 10
+#define TO_ITERATION 7
 
 #define DUMP_NONDIFFUSING_VMS
 
@@ -118,7 +118,7 @@
 #define DEBUG_REACTIONS
 #endif
 
-#define DEBUG_RNG_CALLS // cannot be conditioned by iterations
+//#define DEBUG_RNG_CALLS // cannot be conditioned by iterations
 
 //#define DEBUG_CPLX_RXNS
 //#define DEBUG_CPLX_MATCHING

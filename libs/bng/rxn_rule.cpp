@@ -591,9 +591,9 @@ static void apply_rxn_on_reactants_graph(
       // TODO: not handling !? yet
       if (prod_ci.bond_value != reac_ci.bond_value) {
         // orig: !+
-        if (reac_ci.bond_value == BOND_VALUE_ANY) {
+        if (reac_ci.bond_value == BOND_VALUE_BOUND) {
           // new: (no bond)
-          if (prod_ci.bond_value == BOND_VALUE_NO_BOND) {
+          if (prod_ci.bond_value == BOND_VALUE_UNBOUND) {
             bonds_to_remove.insert(UnorderedPair(
                 reac_desc,
                 get_bond_target(reactants_graph, reac_desc)
@@ -608,7 +608,7 @@ static void apply_rxn_on_reactants_graph(
           }
         }
         // orig: (no bond)
-        else if (reac_ci.bond_value == BOND_VALUE_NO_BOND) {
+        else if (reac_ci.bond_value == BOND_VALUE_UNBOUND) {
           // new: !1
           if (prod_ci.bond_has_numeric_value()) {
 
@@ -627,7 +627,7 @@ static void apply_rxn_on_reactants_graph(
             }
           }
           // new: !+
-          else if (prod_ci.bond_value == BOND_VALUE_ANY){
+          else if (prod_ci.bond_value == BOND_VALUE_BOUND){
             assert(false && "Cannot change bond from to !+");
           }
           else {
@@ -637,7 +637,7 @@ static void apply_rxn_on_reactants_graph(
         // orig: !1
         else if (reac_ci.bond_has_numeric_value()) {
           // new: (no bond)
-          if (prod_ci.bond_value == BOND_VALUE_NO_BOND) {
+          if (prod_ci.bond_value == BOND_VALUE_UNBOUND) {
             bonds_to_remove.insert(UnorderedPair(
                 reac_desc,
                 get_bond_target(reactants_graph, reac_desc)
@@ -667,7 +667,7 @@ static void apply_rxn_on_reactants_graph(
             }
           }
           // new: !+
-          else if (prod_ci.bond_value == BOND_VALUE_ANY){
+          else if (prod_ci.bond_value == BOND_VALUE_BOUND){
             assert(false && "Cannot change bond from !1 to !+");
           }
           else {
@@ -752,7 +752,7 @@ static bool convert_graph_component_to_product_cplx_inst(
       // we need to set bonds
       Graph::vertex_descriptor bound_comp_desc = get_bond_target(graph, comp_desc, false);
       if (bound_comp_desc == TARGET_NOT_FOUND) {
-        compi.bond_value = BOND_VALUE_NO_BOND;
+        compi.bond_value = BOND_VALUE_UNBOUND;
       }
       else {
         UnorderedPair bond(comp_desc, bound_comp_desc);

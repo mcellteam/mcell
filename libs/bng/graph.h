@@ -68,19 +68,19 @@ struct Node {
 
       // bond
       // comparing !+
-      if (n1.component->bond_value == BOND_VALUE_ANY) {
+      if (n1.component->bond_value == BOND_VALUE_BOUND) {
         // it is ok when the second node has !+ as well
-        return n2.component->bond_value != BOND_VALUE_NO_BOND;
+        return n2.component->bond_value != BOND_VALUE_UNBOUND;
       }
-      else if (n1.component->bond_value == BOND_VALUE_NO_BOND) {
+      else if (n1.component->bond_value == BOND_VALUE_UNBOUND) {
         // no bond means that there must be no bond on the other side either
-        return n2.component->bond_value == BOND_VALUE_NO_BOND;
+        return n2.component->bond_value == BOND_VALUE_UNBOUND;
       }
-      if (n2.component->bond_value == BOND_VALUE_ANY) {
-        return n1.component->bond_value != BOND_VALUE_NO_BOND;
+      if (n2.component->bond_value == BOND_VALUE_BOUND) {
+        return n1.component->bond_value != BOND_VALUE_UNBOUND;
       }
-      else if (n2.component->bond_value == BOND_VALUE_NO_BOND) {
-        return n1.component->bond_value == BOND_VALUE_NO_BOND;
+      else if (n2.component->bond_value == BOND_VALUE_UNBOUND) {
+        return n1.component->bond_value == BOND_VALUE_UNBOUND;
       }
 
       // we do not care about actual bond values because to what is the component connected is

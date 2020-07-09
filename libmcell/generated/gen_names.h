@@ -245,6 +245,7 @@ const char* const NAME_CV_ALL_VOLUME_MOLECULES = "ALL_VOLUME_MOLECULES";
 const char* const NAME_CV_AllMolecules = "AllMolecules";
 const char* const NAME_CV_AllSurfaceMolecules = "AllSurfaceMolecules";
 const char* const NAME_CV_AllVolumeMolecules = "AllVolumeMolecules";
+const char* const NAME_CV_BOND_ANY = "BOND_ANY";
 const char* const NAME_CV_BOND_BOUND = "BOND_BOUND";
 const char* const NAME_CV_BOND_UNBOUND = "BOND_UNBOUND";
 const char* const NAME_CV_DEFAULT_COUNT_BUFFER_SIZE = "DEFAULT_COUNT_BUFFER_SIZE";

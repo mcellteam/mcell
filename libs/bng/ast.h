@@ -565,7 +565,7 @@ static inline const ASTSeparatorNode* to_separator(const ASTBaseNode* n) {
   return dynamic_cast<const ASTSeparatorNode*>(n);
 }
 
-// returns bond index, BOND_VALUE_NO_BOND, BOND_VALUE_ANY or BOND_VALUE_INVALID
+// returns bond index, BOND_VALUE_BOUND, BOND_VALUE_ANY or BOND_VALUE_UNBOUND
 bond_value_t str_to_bond_value(const std::string& s);
 
 } // namespace BNG

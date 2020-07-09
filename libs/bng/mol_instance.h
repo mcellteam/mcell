@@ -28,11 +28,11 @@ class BNGData;
 class ComponentInstance {
 public:
   ComponentInstance()
-    : component_type_id(COMPONENT_TYPE_ID_INVALID), state_id(STATE_ID_DONT_CARE), bond_value(BOND_VALUE_ANY) {
+    : component_type_id(COMPONENT_TYPE_ID_INVALID), state_id(STATE_ID_DONT_CARE), bond_value(BOND_VALUE_BOUND) {
   }
 
   ComponentInstance(const component_type_id_t id)
-    : component_type_id(id), state_id(STATE_ID_DONT_CARE), bond_value(BOND_VALUE_ANY) {
+    : component_type_id(id), state_id(STATE_ID_DONT_CARE), bond_value(BOND_VALUE_BOUND) {
   }
 
   // type id can be also found from parent's MoleculeInstance::molecule_type_id
@@ -43,8 +43,9 @@ public:
   state_id_t state_id;
 
   // number for bonds (0, 1, ...),
-  // BOND_VALUE_ANY for patterns (+),
-  // BOND_VALUE_NO_BOND if this component has no bond or a
+  // BOND_VALUE_BOUND for patterns (+),
+  // BOND_VALUE_ANY for patterns (?),
+  // BOND_VALUE_UNBOND if this component has no bond or a
   //    when used in a pattern that it must not have a bond
   //    (in cases where we do not care, the component is not listed at all)
   bond_value_t bond_value;
@@ -58,7 +59,7 @@ public:
 
   bool bond_has_numeric_value() const {
     assert(bond_value != BOND_VALUE_INVALID);
-    return bond_value != BOND_VALUE_ANY && bond_value != BOND_VALUE_NO_BOND;
+    return bond_value != BOND_VALUE_BOUND && bond_value != BOND_VALUE_UNBOUND;
   }
 
   bool state_is_set() const {

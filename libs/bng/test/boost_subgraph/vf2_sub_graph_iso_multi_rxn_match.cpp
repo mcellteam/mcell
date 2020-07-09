@@ -16,8 +16,8 @@ const uint STATE_ID_DONT_CARE = UINT32_MAX - 2;
 
 typedef uint bond_value_t;
 
-const uint BOND_VALUE_ANY = UINT32_MAX - 2; // for '+' in patterns such as a!+
-const uint BOND_VALUE_NO_BOND = UINT32_MAX - 3;
+const uint BOND_VALUE_BOUND = UINT32_MAX - 2; // for '+' in patterns such as a!+
+const uint BOND_VALUE_UNBOUND = UINT32_MAX - 3;
 
 typedef uint component_type_id_t;
 typedef uint mol_type_id_t;
@@ -77,12 +77,12 @@ struct Node {
 
       // bond
       // comparing !+
-      if (n1.bond_value == BOND_VALUE_ANY) {
+      if (n1.bond_value == BOND_VALUE_BOUND) {
         // it is ok when the second node has !+ as well
-        return n2.bond_value != BOND_VALUE_NO_BOND;
+        return n2.bond_value != BOND_VALUE_UNBOUND;
       }
-      if (n2.bond_value == BOND_VALUE_ANY) {
-        return n1.bond_value != BOND_VALUE_NO_BOND;
+      if (n2.bond_value == BOND_VALUE_BOUND) {
+        return n1.bond_value != BOND_VALUE_UNBOUND;
       }
 
       // we do not care about actual bond values because to what is the component connected is
@@ -114,10 +114,10 @@ struct Node {
     else {
       cout << "~" << n.state_id;
     }
-    if (n.bond_value == BOND_VALUE_ANY) {
+    if (n.bond_value == BOND_VALUE_BOUND) {
       cout << "!+";
     }
-    else if (n.bond_value == BOND_VALUE_NO_BOND) {
+    else if (n.bond_value == BOND_VALUE_UNBOUND) {
       cout << "!NO_BOND";
     }
     else {
@@ -238,9 +238,9 @@ int main()
   // using different numbers just for clarity
   Graph::vertex_descriptor nodeA;
   nodeA = add_vertex(mt_vertex_property(Node::CreateMol(0/*A*/)), graph_complex); //0
-  add_vertex(mt_vertex_property(Node::CreateComponent(1/*c0*/, 2/*R*/, BOND_VALUE_NO_BOND)), graph_complex); //1
-  add_vertex(mt_vertex_property(Node::CreateComponent(3/*c1*/, 4/*T*/, BOND_VALUE_NO_BOND)), graph_complex); //2
-  add_vertex(mt_vertex_property(Node::CreateComponent(1/*c0*/, 5/*S*/, BOND_VALUE_NO_BOND)), graph_complex); //3
+  add_vertex(mt_vertex_property(Node::CreateComponent(1/*c0*/, 2/*R*/, BOND_VALUE_UNBOUND)), graph_complex); //1
+  add_vertex(mt_vertex_property(Node::CreateComponent(3/*c1*/, 4/*T*/, BOND_VALUE_UNBOUND)), graph_complex); //2
+  add_vertex(mt_vertex_property(Node::CreateComponent(1/*c0*/, 5/*S*/, BOND_VALUE_UNBOUND)), graph_complex); //3
 
   add_edge(0, 1, graph_complex);
   add_edge(0, 2, graph_complex);
@@ -254,7 +254,7 @@ int main()
   Graph graph_pattern; // pattern
 
   add_vertex(mt_vertex_property(Node::CreateMol(0/*A*/)), graph_pattern); //0
-  add_vertex(mt_vertex_property(Node::CreateComponent(1/*c0*/, STATE_ID_DONT_CARE, BOND_VALUE_NO_BOND)), graph_pattern); //1
+  add_vertex(mt_vertex_property(Node::CreateComponent(1/*c0*/, STATE_ID_DONT_CARE, BOND_VALUE_UNBOUND)), graph_pattern); //1
 
   add_edge(0, 1, graph_pattern);
 

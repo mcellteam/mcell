@@ -392,10 +392,10 @@ void ParserContext::dump() {
 
 bond_value_t str_to_bond_value(const std::string& s) {
   if (s == "") {
-    return BOND_VALUE_NO_BOND;
+    return BOND_VALUE_UNBOUND;
   }
   else if (s == BOND_STR_ANY) {
-    return BOND_VALUE_ANY;
+    return BOND_VALUE_BOUND;
   }
   else {
     // try to convert
@@ -412,7 +412,7 @@ bond_value_t str_to_bond_value(const std::string& s) {
     }
 
     // range check
-    if (res < 0 || res >= BOND_VALUE_NO_BOND) {
+    if (res < 0 || res >= BOND_VALUE_UNBOUND) {
       return BOND_VALUE_INVALID;
     }
 
