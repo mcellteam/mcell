@@ -115,8 +115,9 @@
 #define DEBUG_DIFFUSION
 #define DEBUG_COLLISIONS
 #define NODEBUG_WALL_COLLISIONS
-#define DEBUG_REACTIONS
 #endif
+
+#define DEBUG_RXNS
 
 //#define DEBUG_RNG_CALLS // cannot be conditioned by iterations
 

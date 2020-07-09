@@ -1036,14 +1036,22 @@ void RxnRule::compute_reactants_products_mapping() {
 void RxnRule::compute_rate_constant_multiplier() {
   assert(!patterns_graph.m_vertices.empty() && "Graphs must be initialized");
 
+  // for now, we compute the multiplier only for unimol reactions with a single result,
+  // it should be applied when components change
+  // not sure yet how this should work for bimol reactions
+  if (!(is_unimol() && products.size() == 1)) {
+    rate_constant_multiplier = 1;
+    return;
+  }
+
   // prepare a graph with Complexes based on molecule types of reactants
   Graph reactants_graph;
   // graph references objects in complexes, the cplx instances must exist
-  // when the graph is used
-  vector<CplxInstance> reactants_full;
-  for (const CplxInstance& reac: reactants) {
-    reactants_full.push_back(reac);
-    CplxInstance& cplx = reactants_full.back();
+  // when the graph is used and must not be moved (the array must have the right size)
+  vector<CplxInstance> reactants_full(reactants.size(), CplxInstance(bng_data));
+  for (size_t i = 0; i < reactants.size(); i++) {
+    reactants_full[i] = reactants[i];
+    CplxInstance& cplx = reactants_full[i];
 
     // need to modify pattern so that all components are present
     for (MolInstance& mi: cplx.mol_instances) {
@@ -1071,14 +1079,15 @@ void RxnRule::compute_rate_constant_multiplier() {
       false, // do not stop with first match
       pattern_reactant_mappings
   );
-  assert(pattern_reactant_mappings.size() >= 1 && "Reactants were created from patter, it must therefore match");
+  assert(pattern_reactant_mappings.size() >= 1 && "Reactants were created from pattern, it must therefore match");
 
   rate_constant_multiplier = pattern_reactant_mappings.size();
 
   // if the reactants are identical, divide the rate by 2
-  if (is_bimol() && reactants[0].matches_fully(reactants[1])) {
+  // NOTE: this check is not needed right now necause we do not compute this for bimol rxns
+  /*if (is_bimol() && reactants[0].matches_fully(reactants[1])) {
     rate_constant_multiplier /= 2.0;
-  }
+  }*/
 }
 
 
