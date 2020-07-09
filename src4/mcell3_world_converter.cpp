@@ -779,23 +779,23 @@ bool MCell3WorldConverter::convert_species(volume* s) {
     // define a molecule type with no components
     MolType mol_type;
     mol_type.name = new_species.name; // name of the mol type is the same as for our species
-    mol_type_id_t mol_type_id = world->bng_engine.get_data().find_or_add_molecule_type(mol_type);
 
-    MolInstance mol_inst;
-    mol_inst.mol_type_id = mol_type_id;
     if ((spec->flags & ON_GRID) == 0 && (spec->flags & IS_SURFACE) == 0) {  //FIXME: ALL_SURF_MOLS have wrong flag
-      mol_inst.set_is_vol();
+      mol_type.set_is_vol();
     }
     else if ((spec->flags & ON_GRID) != 0) {
-      mol_inst.set_is_surf();
+      mol_type.set_is_surf();
     }
     else if ((spec->flags & IS_SURFACE) != 0) {
-      mol_inst.set_is_reactive_surface();
+      mol_type.set_is_reactive_surface();
     }
     else {
       assert(false);
     }
+    mol_type_id_t mol_type_id = world->bng_engine.get_data().find_or_add_molecule_type(mol_type);
 
+    MolInstance mol_inst;
+    mol_inst.mol_type_id = mol_type_id;
     new_species.mol_instances.push_back(mol_inst);
 
     // and finally let's add our new species

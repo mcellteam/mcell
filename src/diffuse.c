@@ -3628,7 +3628,7 @@ react_2D_all_neighbors(struct volume *world, struct surface_molecule *sm,
       continue;
     struct surface_molecule *smp = curr->grid->sm_list[curr->idx]->sm;
 
-#ifdef DEBUG_REACTIONS
+#ifdef DEBUG_RXNS
     DUMP_CONDITION3(
         dump_surface_molecule(smp, "", true, "  checking in react_2D_all_neighbors: ", world->current_iterations, 0.0, true);
     );

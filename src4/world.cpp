@@ -77,7 +77,7 @@ World::World()
   // uninitialized variable
   reset_rusage(&sim_start_time);
 
-#ifdef DEBUG_REACTIONS
+#ifdef DEBUG_RXNS
   config.debug_reactions = true;
 #endif
 }

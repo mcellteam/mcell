@@ -799,7 +799,7 @@ static float_t compute_unimol_lifetime(
 
   float_t unimol_time_from_now = time_of_unimol(rx, rng);
 
-#ifdef DEBUG_REACTIONS
+#ifdef DEBUG_RXNS
   SimulationStats* world = &p.stats;
   DUMP_CONDITION4(
       // calling rng for unimolecular

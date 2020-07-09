@@ -70,9 +70,9 @@ public:
     return reactions.size();
   }
 
-  RxnRule* get_rxn(const rxn_index_t rx_index) {
-    assert(rx_index < (int)reactions.size());
-    return reactions[rx_index];
+  RxnRule* get_rxn(const rxn_index_t rxn_index) {
+    assert(rxn_index >= 0 && rxn_index < (int)reactions.size());
+    return reactions[rxn_index];
   }
 
   orientation_t get_reactant_orientation(uint reactant_index) const {

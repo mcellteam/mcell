@@ -199,6 +199,7 @@ typedef int rxn_index_t;
 // TODO: originally RX_NO_RX, fix all cases in MCell
 const rxn_index_t RNX_INDEX_LEAST_VALID_RXN = 0;
 const rxn_index_t RNX_INDEX_NO_RXN = -2;
+const rxn_index_t RNX_INDEX_INVALID = -11; // just some ad-hoc value, MCell3 might be using -1
 
 // index of a reaction classes in an array of reaction classes
 typedef int rxn_class_index_t;

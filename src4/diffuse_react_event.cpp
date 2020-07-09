@@ -1165,7 +1165,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
     Molecule& nsm = p.get_m(nid);
     const BNG::Species& nsm_species = p.get_all_species().get(nsm.species_id);
 
-#ifdef DEBUG_REACTIONS
+#ifdef DEBUG_RXNS
     DUMP_CONDITION4(
       // the subtraction of diffusion_time_step doesn't make much sense but is needed to make the dump the same as in mcell3
       // need to check it further
@@ -1512,7 +1512,7 @@ bool DiffuseReactEvent::react_unimol_single_molecule(
   }
   else {
     rxn_index_t ri = RxUtil::which_unimolecular(unimol_rxn_class, world->rng);
-    return outcome_unimolecular(p, m, scheduled_time, unimol_rxn_class->get_rxn(ri));
+    return outcome_unimolecular(p, m, scheduled_time, unimol_rxn_class, ri);
   }
 }
 
@@ -1549,7 +1549,7 @@ int DiffuseReactEvent::outcome_bimolecular(
     Molecule& reacA = p.get_m(collision.diffused_molecule_id);
     Molecule& reacB = p.get_m(collision.colliding_molecule_id);
 
-#ifdef DEBUG_REACTIONS
+#ifdef DEBUG_RXNS
     // reference printout first destroys B then A
     DUMP_CONDITION4(
       if (!keep_reacB) {
@@ -1655,7 +1655,7 @@ int DiffuseReactEvent::outcome_intersect(
   }
 
   if (!keep_reacA) {
-#ifdef DEBUG_REACTIONS
+#ifdef DEBUG_RXNS
     const Molecule& reacA = p.get_m(collision.diffused_molecule_id);
     DUMP_CONDITION4(
       if (!keep_reacA) {
@@ -1858,13 +1858,25 @@ int DiffuseReactEvent::outcome_products_random(
     Partition& p,
     const Collision& collision,
     const float_t time,
-    const rxn_index_t reaction_index,
+    const rxn_index_t rxn_index,
     bool& keep_reacA,
     bool& keep_reacB
 ) {
-#ifdef DEBUG_REACTIONS
+  assert(collision.is_mol_mol_reaction() ||
+      collision.is_unimol_reaction() ||
+      collision.is_wall_collision()
+  );
+
+#ifdef DEBUG_RXNS
   DUMP_CONDITION4(
-      collision.dump(p, "Processing reaction:", p.stats.get_current_iteration(), time);
+    collision.dump(p, "Processing reaction:", p.stats.get_current_iteration(), time);
+    cout <<  "reaction_index: " << rxn_index << "\n";
+    if (collision.rxn_class != nullptr) {
+      collision.rxn_class->dump();
+    }
+    else {
+      cout << "rxn_class is nullptr\n";
+    }
   );
 #endif
 
@@ -1877,35 +1889,23 @@ int DiffuseReactEvent::outcome_products_random(
   keep_reacB = false; // one product is the same as reacB
 
   // TODO: unify rx vs rxn
-  const RxnRule* rx = nullptr;
-  if (collision.is_mol_mol_reaction() || collision.is_wall_collision()) {
-    RxnClass* rxn_class = collision.rxn_class;
-    assert(rxn_class != nullptr);
-    rx = rxn_class->get_rxn(reaction_index);
+  RxnClass* rxn_class = collision.rxn_class;
+  assert(rxn_class != nullptr);
+  const RxnRule* rx = rxn_class->get_rxn(rxn_index);
 
-    assert(rx->reactants.size() == 2);
+  assert(rx->reactants.size() == 1 || rx->reactants.size() == 2);
 
-    if (collision.is_wall_collision()) {
-      keep_reacB = true;
-#ifndef NDEBUG
+  if (collision.is_wall_collision()) {
+    keep_reacB = true;
+    #ifndef NDEBUG
       // check that the second reactant is a reactive surface
       assert(rx->reactants[1].is_simple());
       BNG::mol_type_id_t mol_type_id = rx->reactants[1].get_simple_species_mol_type_id();
       const BNG::MolType& mt = p.bng_engine.get_data().get_molecule_type(mol_type_id);
-      species_id_t sid = p.get_all_species().find_by_name(mt.name);
-      assert(p.get_all_species().get(sid).is_reactive_surface());
-#endif
-    }
+      assert(mt.is_reactive_surface());
+    #endif
   }
-  else if (collision.is_unimol_reaction()) {
-    assert(reaction_index == 0 &&
-        "For unimol rxn the selected reaction index must be 0 because the rxn was chosen already before");
-    rx = collision.rxn;
-    assert(rx->reactants.size() == 1);
-  }
-  else {
-  	assert(false && "Invalid collision type");
-  }
+
   assert(rx != nullptr);
 
 #ifdef DEBUG_CPLX_MATCHING
@@ -2117,7 +2117,7 @@ int DiffuseReactEvent::outcome_products_random(
       }
 
 
-    #ifdef DEBUG_REACTIONS
+    #ifdef DEBUG_RXNS
       DUMP_CONDITION4(
         new_vm.dump(p, "", "  created vm:", world->get_current_iteration(), scheduled_time);
       );
@@ -2160,7 +2160,7 @@ int DiffuseReactEvent::outcome_products_random(
       // and finally orientation
       new_sm.s.orientation = product_orientation;
 
-      #ifdef DEBUG_REACTIONS
+      #ifdef DEBUG_RXNS
         DUMP_CONDITION4(
           new_sm.dump(p, "", "  created sm:", world->get_current_iteration(), scheduled_time);
         );
@@ -2204,7 +2204,8 @@ bool DiffuseReactEvent::outcome_unimolecular(
     Partition& p,
     Molecule& m,
     const float_t scheduled_time,
-    RxnRule* unimol_rx
+    RxnClass* rxn_class,
+    const rxn_index_t rxn_index
 ) {
   molecule_id_t id = m.id;
 
@@ -2223,20 +2224,23 @@ bool DiffuseReactEvent::outcome_unimolecular(
     assert(false);
   }
 
-  Collision collision(CollisionType::UNIMOLECULAR_VOLMOL, &p, m.id, scheduled_time, pos, unimol_rx);
+  Collision collision(
+      CollisionType::UNIMOLECULAR_VOLMOL, &p, m.id, scheduled_time, pos, rxn_class);
 
   bool ignoredA, ignoredB;
   // creates new molecule(s) as output of the unimolecular reaction
   // !! might invalidate references (we might reorder defuncting and outcome call later)
-  int outcome_res = outcome_products_random(p, collision, scheduled_time, 0, ignoredA, ignoredB);
+  int outcome_res = outcome_products_random(p, collision, scheduled_time, rxn_index, ignoredA, ignoredB);
   assert(outcome_res == RX_A_OK);
 
   Molecule& m_new_ref = p.get_m(id);
 
+  const RxnRule* unimol_rx = rxn_class->get_rxn(rxn_index);
+
   // and defunct this molecule if it was not kept
   assert(unimol_rx->reactants.size() == 1);
   if (!unimol_rx->is_cplx_reactant_on_both_sides_of_rxn(0)) {
-  #ifdef DEBUG_REACTIONS
+  #ifdef DEBUG_RXNS
     DUMP_CONDITION4(
       m_new_ref.dump(p, "", m_new_ref.is_vol() ? "Unimolecular vm defunct:" : "Unimolecular sm defunct:", world->get_current_iteration(), scheduled_time, false);
     );

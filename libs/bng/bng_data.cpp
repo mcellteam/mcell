@@ -82,6 +82,7 @@ mol_type_id_t BNGData::find_or_add_molecule_type(const MolType& mt) {
 
   // not found
   molecule_types.push_back(mt);
+  molecule_types.back().set_finalized();
   return molecule_types.size() - 1;
 }
 

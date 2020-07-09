@@ -266,7 +266,8 @@ private:
       Partition& p,
       Molecule& vm,
       const float_t scheduled_time,
-      BNG::RxnRule* unimol_rx
+      BNG::RxnClass* rxn_class,
+      const rxn_index_t rxn_index
   );
 
   int outcome_products_random(

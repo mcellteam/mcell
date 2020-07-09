@@ -1023,7 +1023,7 @@ void compute_lifetime(struct volume *state,
 
     am->t2 = timeof_unimolecular(r, am, state->rng);
 
-#ifdef DEBUG_REACTIONS
+#ifdef DEBUG_RXNS
     struct volume *world = state;
     if ((am->flags & TYPE_VOL) != 0) {
       DUMP_CONDITION3(
