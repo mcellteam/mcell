@@ -559,56 +559,29 @@ void MCell4Converter::init_rxn_related_flags() {
   BNG::SpeciesContainer& all_species = world->get_all_species();
   BNG::RxnContainer& all_rxns = world->get_all_rxns();
 
-
   species_id_t all_molecules_species_id = all_species.get_all_molecules_species_id();
   species_id_t all_volume_molecules_species_id = all_species.get_all_volume_molecules_species_id();
   species_id_t all_surface_molecules_species_id = all_species.get_all_surface_molecules_species_id();
-
-  bool has_vol_vol_rxn = false;
 
   all_rxns.update_all_mols_flags();
 
   // find out whether we have a vol vol rxn for all current species (for mcell3 compatibility)
   // in BNG mode this finds a reaction as well
-  for (BNG::Species& sp: all_species.get_species_vector()) {
+  bool has_vol_vol_rxn = false;
 
-    // get reactions, this also creates all reaction classes for the species that we currently have
-    BNG::SpeciesRxnClassesMap* rxn_classes =
-        all_rxns.get_bimol_rxns_for_reactant(sp.id);
-    if (rxn_classes == nullptr) {
-      continue;
-    }
-
-    // go through all applicable reactants
-    for (auto it: *rxn_classes) {
-      const BNG::RxnClass* rxn_class = it.second;
-      assert(rxn_class->is_bimol());
-
-      species_id_t second_species_id;
-      if (rxn_class->specific_reactants[0] != sp.id) {
-        second_species_id = rxn_class->specific_reactants[0];
-      }
-      else {
-        second_species_id = rxn_class->specific_reactants[1];
-      }
-      const BNG::Species& sp2 = all_species.get(second_species_id);
-
-      // we can use is_vol/is_surf for ALL_VOLUME_MOLECULES and ALL_SURFACE_MOLECULES
-      if (sp.is_vol() || sp.id == all_molecules_species_id) {
-        if (sp2.is_vol() || sp2.id == all_molecules_species_id) {
-          has_vol_vol_rxn = true;
-          // for consistency, let's process all species this way
-        }
-      }
+  for (const BNG::RxnRule* r: all_rxns.get_rxn_rules_vector()) {
+    if (r->is_bimol_vol_rxn()) {
+      has_vol_vol_rxn = true;
     }
   }
 
-  // for mcell3 compatibility
-  // works only because in mcell3 reaction mode we directly defined species
-  // if there are no 3D molecules-reactants in the simulation set up the "use_expanded_list" flag to zero
+  // this is an optimization to tell that we don't need to check the 
+  // surroundings of subpartitions in case when there are no vol-vol rxns
+  // needed for mcell3 binary compatibility
   if (!has_vol_vol_rxn) {
-    world->config.use_expanded_list = false;
-  }
+    // the default is true (or read from user)
+	  world->config.use_expanded_list = false;
+	}
 }
 
 

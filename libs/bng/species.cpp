@@ -41,6 +41,10 @@ namespace BNG {
 // SPECIES_FLAG_CAN_SURFSURF, and/or SPECIES_FLAG_CAN_REGION_BORDER
 // flags according to reactions in the system
 void Species::update_rxn_flags(const SpeciesContainer& all_species, RxnContainer& all_rxns) {
+  if (rxn_flags_were_updated) {
+    return;
+  }
+
   assert(id != SPECIES_ID_INVALID);
 #ifndef NDEBUG
   all_species.get(id); // must not fail
@@ -70,6 +74,7 @@ void Species::update_rxn_flags(const SpeciesContainer& all_species, RxnContainer
   BNG::SpeciesRxnClassesMap* rxn_classes =
       all_rxns.get_bimol_rxns_for_reactant(id);
   if (rxn_classes == nullptr) {
+    rxn_flags_were_updated = true;
     return;
   }
 
@@ -110,6 +115,8 @@ void Species::update_rxn_flags(const SpeciesContainer& all_species, RxnContainer
       }
     }
   }
+
+  rxn_flags_were_updated = true;
 }
 
 

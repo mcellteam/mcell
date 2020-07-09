@@ -88,15 +88,15 @@ void Collision::dump(
       //TODO in mcell3 ", rxn: " << rx->to_string(p) <<
       ", time: " << ((time_override == TIME_INVALID) ? time : time_override);
   }
-#ifndef NODEBUG_WALL_COLLISIONS
   else if (is_wall_collision()) {
-    cout << "wall collision" <<
-        ", idA:"  << diffused_molecule_id <<
-        //", wall index:"  << colliding_wall_index <<
-        ", time: " << ((time_override == TIME_INVALID) ? time : time_override) <<
-        ", pos " << pos;
+    #ifndef NODEBUG_WALL_COLLISIONS
+      cout << "wall collision" <<
+          ", idA:"  << diffused_molecule_id <<
+          //", wall index:"  << colliding_wall_index <<
+          ", time: " << ((time_override == TIME_INVALID) ? time : time_override) <<
+          ", pos " << pos;
+    #endif
   }
-#endif
   else {
     assert(false);
   }

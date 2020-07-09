@@ -26,7 +26,8 @@ public:
       id(SPECIES_ID_INVALID), D(FLT_INVALID),
       // MCell-specific
       space_step(FLT_INVALID), time_step(TIME_INVALID),
-      color_set(false), color_r(1), color_g(0), color_b(0), scale(1)
+      color_set(false), color_r(1), color_g(0), color_b(0), scale(1),
+      rxn_flags_were_updated(false)
     {
   }
 
@@ -37,7 +38,9 @@ public:
       id(SPECIES_ID_INVALID), D(FLT_INVALID),
       // MCell-specific
       space_step(FLT_INVALID), time_step(TIME_INVALID),
-      color_set(false), color_r(1), color_g(0), color_b(0), scale(1)  {
+      color_set(false), color_r(1), color_g(0), color_b(0), scale(1),
+      rxn_flags_were_updated(false)
+  {
 
     mol_instances = cplx_inst.mol_instances;
     // the only finalize method, but showing that we are finalizing
@@ -92,6 +95,18 @@ public:
     return space_step;
   }
 
+  bool has_flag(uint flag) const override {
+    // check that rxn flags are up-to-date
+    if (flag == SPECIES_FLAG_CAN_VOLVOL ||
+        flag == SPECIES_FLAG_CAN_VOLSURF ||
+        flag == SPECIES_FLAG_CAN_VOLWALL ||
+        flag == SPECIES_FLAG_CAN_SURFSURF
+    ) {
+      assert(rxn_flags_were_updated);
+    }
+    return BaseFlag::has_flag(flag);
+  }
+
   void dump(const BNGData& bng_data, const std::string ind = "") const;
   static void dump_array(const BNGData& bng_data, const SpeciesVector& vec, const bool sorted = false);
 
@@ -134,6 +149,10 @@ public:
   bool color_set;
   float_t color_r, color_g, color_b ;  // mol color default is red
   float_t scale; // scale = 1 by default
+
+private:
+  // rxn flags are updated when a molecule of this species is added to world
+  bool rxn_flags_were_updated;
 };
 
 } // namespace BNG

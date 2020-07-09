@@ -163,6 +163,19 @@ public:
     return is_bimol() && reactants[1].is_reactive_surface() && products.empty();
   }
 
+  bool is_bimol_vol_rxn() const {
+    if (is_unimol()) {
+      return false;
+    }
+    else if (is_bimol()) {
+      return reactants[0].is_vol() && reactants[1].is_vol();
+    }
+    else {
+      assert(false);
+      return false;
+    }
+  }
+
   bool is_surf_rxn() const {
     if (is_unimol()) {
       return reactants[0].is_surf();

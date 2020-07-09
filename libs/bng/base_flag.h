@@ -53,7 +53,14 @@ public:
     : finalized(false), flags(0) {
   }
 
-  bool has_flag(uint flag) const {
+  virtual ~BaseFlag() {
+  }
+
+  // Species has an extra check that when asked for rxn flags,
+  // it checks whether the rxn flags were initialized,
+  // the rxn flags must be initialized in runtime because
+  // they check reactions
+  virtual bool has_flag(uint flag) const {
     assert(finalized);
     assert(__builtin_popcount(flag) == 1);
     return (flags & flag) != 0;

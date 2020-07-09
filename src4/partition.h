@@ -417,6 +417,8 @@ private:
 public:
   // any molecule flags are set by caller after the molecule is created by this method
   Molecule& add_volume_molecule(const Molecule& vm_copy) {
+    // make sure that the rxn for this species flags are up-to-date
+    get_all_species().get(vm_copy.species_id).update_rxn_flags(get_all_species(), get_all_rxns());
 
     if (known_vol_species.count(vm_copy.species_id) == 0) {
       // we must update reactant maps if new species were added
@@ -442,6 +444,8 @@ public:
 
 
   Molecule& add_surface_molecule(const Molecule& sm_copy) {
+    // make sure that the rxn for this species flags are up-to-date
+    get_all_species().get(sm_copy.species_id).update_rxn_flags(get_all_species(), get_all_rxns());
 
     Molecule& new_sm = add_molecule(sm_copy, false);
     return new_sm;
