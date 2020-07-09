@@ -395,7 +395,10 @@ bond_value_t str_to_bond_value(const std::string& s) {
     return BOND_VALUE_UNBOUND;
   }
   else if (s == BOND_STR_ANY) {
-    return BOND_VALUE_BOUND;
+    return BOND_VALUE_ANY; // !?
+  }
+  else if (s == BOND_STR_BOUND) {
+    return BOND_VALUE_BOUND; // !+
   }
   else {
     // try to convert

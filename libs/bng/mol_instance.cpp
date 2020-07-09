@@ -30,9 +30,15 @@ std::string ComponentInstance::to_str(const BNGData& bng_data) const {
 
   assert(state_id != BOND_VALUE_INVALID);
   if (bond_value == BOND_VALUE_BOUND) {
+    ss << "!" + BOND_STR_BOUND;
+  }
+  else if (bond_value == BOND_VALUE_ANY) {
     ss << "!" + BOND_STR_ANY;
   }
-  else if (bond_value != BOND_VALUE_UNBOUND) {
+  else if (bond_value == BOND_VALUE_UNBOUND) {
+    // nothing to print
+  }
+  else {
     ss << "!"  << bond_value;
   }
   return ss.str();

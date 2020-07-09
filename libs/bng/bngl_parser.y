@@ -264,8 +264,11 @@ bond_maybe_empty:
         $$ = g_ctx->new_str_node($2, @2);
       }
     | '!' '+' {
-        $$ = g_ctx->new_str_node(BNG::BOND_STR_ANY, @2);
+        $$ = g_ctx->new_str_node(BNG::BOND_STR_BOUND, @2);
       }
+    | '!' '?' {
+        $$ = g_ctx->new_str_node(BNG::BOND_STR_ANY, @2);
+      }      
     | /* empty */ {
         $$ = g_ctx->new_empty_str_node();
     }

@@ -150,6 +150,8 @@ static int convert_bond_value(const BNG::bond_value_t bng_bond_value) {
       return -2;
     case BNG::BOND_VALUE_BOUND: // represents !+
       return BOND_BOUND;
+    case BNG::BOND_VALUE_ANY: // represents !+
+      return BOND_ANY;
     case BNG::BOND_VALUE_UNBOUND: // no
       return BOND_UNBOUND;
     default:

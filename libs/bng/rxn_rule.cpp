@@ -587,9 +587,12 @@ static void apply_rxn_on_reactants_graph(
         reac_ci.state_id = prod_ci.state_id;
       }
 
-      // and bond
-      // TODO: not handling !? yet
-      if (prod_ci.bond_value != reac_ci.bond_value) {
+      // and bond,
+      // assuming that there will be no change for !?
+      if (prod_ci.bond_value != reac_ci.bond_value &&
+          prod_ci.bond_value != BOND_VALUE_ANY &&
+          reac_ci.bond_value != BOND_VALUE_ANY
+      ) {
         // orig: !+
         if (reac_ci.bond_value == BOND_VALUE_BOUND) {
           // new: (no bond)

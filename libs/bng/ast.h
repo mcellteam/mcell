@@ -69,7 +69,8 @@ enum class SeparatorType {
 };
 
 
-static const std::string BOND_STR_ANY = "+";
+static const std::string BOND_STR_ANY = "?";
+static const std::string BOND_STR_BOUND = "+";
 
 
 class ASTBaseNode {

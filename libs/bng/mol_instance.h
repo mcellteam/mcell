@@ -59,7 +59,10 @@ public:
 
   bool bond_has_numeric_value() const {
     assert(bond_value != BOND_VALUE_INVALID);
-    return bond_value != BOND_VALUE_BOUND && bond_value != BOND_VALUE_UNBOUND;
+    return
+        bond_value != BOND_VALUE_UNBOUND &&
+        bond_value != BOND_VALUE_BOUND &&
+        bond_value != BOND_VALUE_ANY;
   }
 
   bool state_is_set() const {
@@ -86,7 +89,7 @@ public:
   // TODO: only components
   small_vector<ComponentInstance> component_instances;
 
-  // TODO: mol instance ID
+  // TODO LATER: mol instance ID - to track individual elementary molecules
 
 public:
   MolInstance()

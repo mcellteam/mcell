@@ -433,6 +433,9 @@ BNG::ComponentInstance MCell4Converter::convert_component_instance(API::Componen
   else if (api_ci.bond == BOND_UNBOUND) {
     res.bond_value = BNG::BOND_VALUE_UNBOUND;
   }
+  else if (api_ci.bond == BOND_ANY) {
+    res.bond_value = BNG::BOND_VALUE_ANY;
+  }
   else {
     res.bond_value = api_ci.bond;
     assert(res.bond_value != BNG::BOND_VALUE_INVALID);

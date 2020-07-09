@@ -1,0 +1,33 @@
+# OK
+
+begin model
+begin parameters
+	ITERATIONS  10
+	#TIME_STEP  1e-6
+	VACANCY_SEARCH_DISTANCE  10
+	
+    MCELL_DIFFUSION_CONSTANT_3D_A 1e-6
+    MCELL_DIFFUSION_CONSTANT_3D_B 5e-5
+    
+    MCELL_NO_COMPARTMENT_SIZE 0.0625
+end parameters
+
+begin molecule types
+	A(a,b~0~1)
+end molecule types
+
+begin seed species
+	A(a!1,b~0).A(a!1,b~0)  10
+	A(a,b~0)  10
+end seed species
+
+begin observables
+	Molecules _MDLString A
+end observables
+
+begin reaction rules
+	
+	A(a!?,b~0) -> A(a!?,b~1) 1e6
+	   
+end reaction rules
+end model

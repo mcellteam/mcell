@@ -67,6 +67,12 @@ struct Node {
       }
 
       // bond
+      // comparing !?
+      if (n1.component->bond_value == BOND_VALUE_ANY ||
+        n2.component->bond_value == BOND_VALUE_ANY) {
+        return true;
+      }
+
       // comparing !+
       if (n1.component->bond_value == BOND_VALUE_BOUND) {
         // it is ok when the second node has !+ as well
