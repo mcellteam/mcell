@@ -1,0 +1,43 @@
+# NFSim reports:
+# ERROR!  You created a reaction (_R1) that deletes a molecule, but you did not use
+# the 'DeleteMolecules' keyword.  Thus, conforming with BNGL specification, this rule will not
+# delete the molecule IF the deletion creates two disjoint species that are no longer connected.
+# NFsim doesn't believe in this weird behavior, so NFsim enforces the use of the DeleteMolecules 
+# keyword in such situations, as in this rule.  So go update your rule now.
+
+# this should be probably supported
+# pymcel4 currently asserts with
+# ../../src4/diffuse_react_event.cpp:2037: int
+# MCell::DiffuseReactEvent::outcome_products_random(MCell::Partition&, const MCell::Collision&, BNGCommon::float_t, rxn_index_t, bool&, bool&): Assertion `product_species_ids.size() == rx->products.size()' failed.
+
+begin model
+begin parameters
+	ITERATIONS  10
+	#TIME_STEP  1e-6
+	VACANCY_SEARCH_DISTANCE  10
+	
+    MCELL_DIFFUSION_CONSTANT_3D_A 1e-6
+    MCELL_DIFFUSION_CONSTANT_3D_B 5e-5
+    
+    MCELL_NO_COMPARTMENT_SIZE 0.0625
+end parameters
+
+begin molecule types
+	A(a~0~1)
+	B(b)
+end molecule types
+
+begin seed species
+	 A(a~0!1).B(b!1)  10
+end seed species
+
+begin observables
+	Molecules _MDLString A, B
+end observables
+
+begin reaction rules
+	
+	A(a~0!1).B(b!1) -> A(a~1) 1e9
+	   
+end reaction rules
+end model
