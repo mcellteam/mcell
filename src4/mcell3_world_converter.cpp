@@ -563,14 +563,17 @@ bool MCell3WorldConverter::convert_region(Partition& p, const region* r, region_
     species_id_t species_id = get_mcell4_species_id(current_sm_dat->sm->species_id);
 
     if (current_sm_dat->quantity_type == SURFMOLNUM) {
-      new_region.initial_region_molecules.push_back(
+      // inserting from front because the order in r->sm_dat_head is reversed
+      new_region.initial_region_molecules.insert(
+          new_region.initial_region_molecules.begin(),
           InitialRegionMolecules(
               species_id, current_sm_dat->orientation, true, (uint)current_sm_dat->quantity
           )
       );
     }
     else if (current_sm_dat->quantity_type == SURFMOLDENS) {
-      new_region.initial_region_molecules.push_back(
+      new_region.initial_region_molecules.insert(
+          new_region.initial_region_molecules.begin(),
           InitialRegionMolecules(
               species_id, current_sm_dat->orientation, false, (float_t)current_sm_dat->quantity
           )

@@ -37,6 +37,8 @@
 #include <sys/resource.h>
 #endif
 
+#include <vector>
+
 #include "version_info.h"
 #include "logging.h"
 #include "rng.h"
@@ -2850,6 +2852,7 @@ int init_surf_mols_by_number(struct volume *world, struct geom_object *objp,
   unsigned int n_free_sm;
   // struct subvolume *gsv = NULL;
 
+
   no_printf("Initializing surface molecules by number...\n");
   /* traverse region list and add surface molecule sites by number to whole
     regions as appropriate */
@@ -2909,12 +2912,27 @@ int init_surf_mols_by_number(struct volume *world, struct geom_object *objp,
         }
       }
 
+
+      // reverse - by default release by density are in correct order, but
+      // release by num in opposite,
+      // we do not want to introduce this into MCell3 so this is a permanent change
+      #ifdef MCELL3_REVERSE_INITIAL_SURF_MOL_PLACEMENT_BY_NUM
+        std::vector<sm_dat*> sm_dat_vec;
+        for (struct sm_dat *smdp = rp->sm_dat_head; smdp != NULL; smdp = smdp->next) {
+          sm_dat_vec.insert(sm_dat_vec.begin(), smdp);
+        }
+      #else
+        vector<sm_dat*> sm_dat_vec;
+        for (struct sm_dat *smdp = rp->sm_dat_head; smdp != NULL; smdp = smdp->next) {
+          sm_dat_vec.push_back(smdp);
+        }
+      #endif
+
       /* distribute desired number of surface molecule sites */
       /* for each surface molecule type to add */
       /* place molecules BY NUMBER when it is defined through
        * DEFINE_SURFACE_REGION */
-      for (struct sm_dat *smdp = rp->sm_dat_head; smdp != NULL;
-           smdp = smdp->next) {
+      for (struct sm_dat *smdp: sm_dat_vec) {
         if (smdp->quantity_type == SURFMOLNUM) {
           struct species *sm = smdp->sm;
           short orientation;

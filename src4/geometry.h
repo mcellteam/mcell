@@ -138,7 +138,7 @@ public:
     float_t release_density_)
     : species_id(species_id_), orientation(orientation_), const_num_not_density(const_num_not_density_),
       release_num(UINT_INVALID), release_density(release_density_) {
-    assert(const_num_not_density_ && "This ctor is for const_num");
+    assert(!const_num_not_density_ && "This ctor is for density");
   }
 
   bool is_release_by_num() const {

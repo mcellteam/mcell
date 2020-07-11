@@ -51,6 +51,10 @@
 // if needed
 #define FIX_EXTERNAL_SPECIES_WO_RXS_IN_EXACT_DISK
 
+// number placement are in reverse order, but densitty placement are in correct order, 
+// enabling this macro unifies it
+#define MCELL3_REVERSE_INITIAL_SURF_MOL_PLACEMENT_BY_NUM
+
 #ifndef MCELL3_IDENTICAL
 
 // sort molecules in schedule helper according to ID before a new timestep begins

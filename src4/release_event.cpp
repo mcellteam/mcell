@@ -805,8 +805,6 @@ void ReleaseEvent::init_surf_mols_by_number(Partition& p, const Region& reg, con
     mcell_warn("Implementation of filling more than half of free tiles is different in MCell4 from MCell3.");
   }
 
-
-
   for (uint i = 0; i < info.release_num; i++) {
     uint num_attempts = 0;
     /* Loop until we find a vacant tile. */
@@ -832,21 +830,33 @@ void ReleaseEvent::init_surf_mols_by_number(Partition& p, const Region& reg, con
   }
 }
 
-/*
-void ReleaseEvent::init_surf_mols_by_density(Partition& p, Wall& w) {
+
+void ReleaseEvent::init_surf_mols_by_density(Partition& p, const Region& reg, Wall& w) {
   if (!w.has_initialized_grid()) {
     w.initialize_grid(p);
   }
 
-  unsigned int n_sm_entry = 0;
-  double tot_prob = 0;
-  double tot_density = 0;
+  float_t tot_prob = 0;
+  float_t tot_density = 0;
+
+  vector<pair<float_t, InitialRegionMolecules>> prob_info_pairs;
 
   // in MCell3, this is done for all mod surf regions at once,
   // we might need to mix this was well...
   // first implementation just 1
-  double tot_prob = (w.area * concentration) / (w.grid.num_tiles * world->config.grid_density);
-  double tot_density = concentration;
+  for (const InitialRegionMolecules& info: reg.initial_region_molecules) {
+    if (!info.is_release_by_density()) {
+      // skip num, they will be handled later
+      continue;
+    }
+
+    tot_prob += (w.area * info.release_density) / (w.grid.num_tiles * world->config.grid_density);
+
+    // make an array with cummulative probs
+    prob_info_pairs.push_back(make_pair(tot_prob, info));
+
+    tot_density += info.release_density;
+  }
 
   if (tot_density > world->config.grid_density) {
     mcell_warn(
@@ -855,8 +865,33 @@ void ReleaseEvent::init_surf_mols_by_density(Partition& p, Wall& w) {
         tot_density);
   }
 
+  if (prob_info_pairs.empty()) {
+    // nothing to do
+    return;
+  }
 
-}*/
+  // for each tile of the wall
+  for (tile_index_t ti = 0; ti < w.grid.num_tiles; ti++) {
+    float_t rnd = rng_dbl(&world->rng);
+
+    size_t index;
+    for (index = 0; index < prob_info_pairs.size(); ++index) {
+      if (rnd <= prob_info_pairs[index].first) {
+        break;
+      }
+    }
+
+    if (index >= prob_info_pairs.size()) {
+      continue;
+    }
+
+    GridUtil::place_single_molecule_onto_grid(
+        p, world->rng, w, ti, false, Vec2(),
+        prob_info_pairs[index].second.species_id, prob_info_pairs[index].second.orientation,
+        get_release_delay_time()
+    );
+  }
+}
 
 
 void ReleaseEvent::release_initial_molecules_onto_surf_regions() {
@@ -868,10 +903,10 @@ void ReleaseEvent::release_initial_molecules_onto_surf_regions() {
     if (!reg.has_initial_molecules()) {
       continue;
     }
-    /*for (auto wall_edge_it: reg->walls_and_edges) {
+    for (auto wall_edge_it: reg.walls_and_edges) {
       Wall& w = p.get_wall(wall_edge_it.first);
-      init_surf_mols_by_density(p, w);
-    }*/
+      init_surf_mols_by_density(p, reg, w);
+    }
 
     // for each specifies initial molecules
     for (const InitialRegionMolecules& info: reg.initial_region_molecules) {
