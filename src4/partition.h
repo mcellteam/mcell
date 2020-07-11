@@ -340,7 +340,7 @@ public:
       const BNG::Species& initiator_reactant_species = get_all_species().get(second_species_id);
       if (initiator_reactant_species.cant_initiate()) {
         // nothing to do
-        return;
+        continue;
       }
 
       if (removing) {
