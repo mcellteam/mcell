@@ -335,8 +335,21 @@ bool MCell3WorldConverter::convert_geometry_objects(volume* s) {
 
   } // for each scene/INSTANTIATE section
 
-  // schedule molecule releases defined through  DEFINE_SURFACE_REGIONS
-  assert(initial_region_releases_to_be_scheduled.size() <= 1 && "TODO - sort");
+  // schedule molecule releases defined through DEFINE_SURFACE_REGIONS
+  // they need to be sorted because mcell3 first executes density-based specifications
+  vector<ReleaseEvent*> sorted_releases;
+  for (ReleaseEvent* re: initial_region_releases_to_be_scheduled) {
+    if (re->release_number_method == ReleaseNumberMethod::DensityNum) {
+      sorted_releases.push_back(re);
+    }
+  }
+  for (ReleaseEvent* re: initial_region_releases_to_be_scheduled) {
+    if (re->release_number_method == ReleaseNumberMethod::ConstNum) {
+      sorted_releases.push_back(re);
+    }
+  }
+  assert(sorted_releases.size() == initial_region_releases_to_be_scheduled.size());
+
   for (ReleaseEvent* rel_event: initial_region_releases_to_be_scheduled) {
     world->scheduler.schedule_event(rel_event);
   }
