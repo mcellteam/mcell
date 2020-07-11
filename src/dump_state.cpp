@@ -759,7 +759,26 @@ void dump_molecules(int num_all_molecules, molecule_info **all_molecules) {
     cout << "pos: \t\t" << curr->pos << " [vector3] \t\t /* Position in space */\n";
     cout << "orient: \t\t" << curr->orient << " [short] \t\t /* Which way do we point? */\n";
   }
+}
 
+
+void dump_sm_dat(sm_dat* smd, const char* name, const char* comment, const char* ind) {
+  DECL_IND2(ind)
+  cout << ind << name << ": *\t\t" << (void*)smd << " [sm_dat] \t\t " << comment << "\n";
+
+  sm_dat* curr = smd;
+  int i = 0;
+  while (curr != nullptr) {
+    cout << ind << i << ":\n";
+
+    cout << ind2 << "sm: *\t\t" << get_sym_name(curr->sm->sym) << " [species name] \t\t /* Species to place on surface */\n";
+    cout << ind2 << "quantity_type: *\t\t" << ((curr->quantity_type == SURFMOLDENS) ? "SURFMOLDENS" : "SURFMOLNUM") << " [byte] \t\t  // Placement Type Flags: either SURFMOLDENS or SURFMOLNUM\n";
+    cout << ind2 << "quantity: \t\t" << curr->quantity << " [double] \t\t // Amount of surface molecules to place by density or number\n";
+    cout << ind2 << "orientation: \t\t" << curr->orientation << " [short] \t\t /* Orientation of molecules to place */\n";
+
+    i++;
+    curr = curr->next;
+  }
 }
 
 
@@ -777,7 +796,10 @@ void dump_region(region* reg, const char* ind) {
   cout << ind << "  " << "parent: *\t\t" << (void*)reg->parent << " [object] \t\t  /* Parent of this region */\n";
   cout << ind << "  " << "element_list_head: *\t\t" << (void*)reg->element_list_head << " [element_list] \t\t /* List of element ranges comprising this region (used at parse time) */\n";
   cout << ind << "  " << "membership: *\t\t" << (void*)reg->membership << " [bit_array] \t\t /* Each bit indicates whether the corresponding wall is in the region */\n";
-  cout << ind << "  " << "sm_dat_head: *\t\t" << (void*)reg->sm_dat_head << " [sm_dat] \t\t /* List of surface molecules to add to region */\n";
+
+  //cout << ind << "  " << "sm_dat_head: *\t\t" << (void*)reg->sm_dat_head << " [sm_dat] \t\t /* List of surface molecules to add to region */\n";
+  dump_sm_dat(reg->sm_dat_head, "sm_dat_head", "/* List of surface molecules to add to region */", ind2);
+
   dump_species(reg->surf_class, "surf_class", "/* Surface class of this region */", ind2);
   cout << ind << "  " << "bbox: *\t\t" << (void*)reg->bbox << " [vector3] \t\t /* Array of length 2 to hold corners of region bounding box (used for release in region) */\n";
   cout << ind << "  " << "area: \t\t" << reg->area << " [double] \t\t          /* Area of region */\n";

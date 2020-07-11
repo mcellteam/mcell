@@ -35,6 +35,7 @@ class Value;
 namespace MCell {
 
 class Partition;
+class Region;
 class Wall;
 class Grid;
 
@@ -47,8 +48,15 @@ enum class ReleaseShape {
   // RECTANGULAR,     /* Volume enclosed by a rect. solid */ (might be supported, needs to be tested)
   SPHERICAL_SHELL, /* Surface of a sphere */ // not tested yet
   REGION,          /* Inside/on the surface of an arbitrary region */
-  LIST             /* Individual mol. placement by list */
+
+  // Individual mol. placement by list
+  LIST,
+
+  // Special case for MCell3 compatibility, supports handling of MOLECULE_NUMBER and MOLECULE_DENSITY
+  // Same functionality as REGION, however implemented slightly differently
+  INITIAL_SURF_REGION,
 };
+
 
 enum class ReleaseNumberMethod {
   Invalid,
@@ -148,7 +156,7 @@ public:
   }
 
   // handles release patterns,
-  // must be called before the first insertion into the scheduler,
+  // WARNING: must be called before the first insertion into the scheduler,
   // when no release pattern is set, simply sets event_time to 0
   // and on the second call it returns false
   bool update_event_time_for_next_scheduled_time() override;
@@ -223,7 +231,6 @@ private:
   uint calculate_number_to_release();
 
   // for surface molecule releases
-  void place_single_molecule_onto_grid(Partition& p, Wall& wall, uint tile_index);
   void release_onto_regions(uint computed_release_number);
 
   // for volume molecule releases into a region
@@ -234,6 +241,10 @@ private:
 
   // for list releases
   void release_list();
+
+  // for releases specified by MODIFY_SURFACE_REGIONS -> MOLECULE_NUMBER or MOLECULE_DENSITY
+  void init_surf_mols_by_number(Partition& p, const Region& reg);
+  void release_onto_initial_surf_region();
 
   float_t get_release_delay_time() const {
     if (cmp_eq(actual_release_time, event_time)) {

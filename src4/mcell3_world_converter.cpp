@@ -335,6 +335,12 @@ bool MCell3WorldConverter::convert_geometry_objects(volume* s) {
 
   } // for each scene/INSTANTIATE section
 
+  // schedule molecule releases defined through  DEFINE_SURFACE_REGIONS
+  assert(initial_region_releases_to_be_scheduled.size() <= 1 && "TODO - sort");
+  for (ReleaseEvent* rel_event: initial_region_releases_to_be_scheduled) {
+    world->scheduler.schedule_event(rel_event);
+  }
+
   return true;
 }
 
@@ -453,7 +459,7 @@ bool MCell3WorldConverter::convert_wall_and_update_regions(
     }
   }
 
-  CHECK_PROPERTY(w->grid == nullptr); // for now
+  // CHECK_PROPERTY(w->grid == nullptr); // don't care, we will create grid if needed
 
   // walls use some of the flags used by species
   CHECK_PROPERTY(
@@ -535,8 +541,6 @@ bool MCell3WorldConverter::convert_region(Partition& p, const region* r, region_
   // r->membership - Each bit indicates whether the corresponding wall is in the region */
   // and r->boundaries - edges of region are handled in convert_wall_and_update_regions
 
-  CHECK_PROPERTY(r->sm_dat_head == nullptr); // should be null during initial conversion
-
   if (r->surf_class != nullptr) {
     new_region.species_id = get_mcell4_species_id(r->surf_class->species_id);
   }
@@ -557,6 +561,46 @@ bool MCell3WorldConverter::convert_region(Partition& p, const region* r, region_
 
   new_region.id = world->get_next_region_id();
   region_index = p.add_region_and_set_its_index(new_region);
+
+  sm_dat* current_sm_dat = r->sm_dat_head;
+  while (current_sm_dat != nullptr) {
+
+    // create an initial release event for this initial setup
+    // created before
+    ReleaseEvent* rel_event = new ReleaseEvent(world);
+    rel_event->event_time = 0;
+    rel_event->actual_release_time = 0;
+    rel_event->release_shape = ReleaseShape::INITIAL_SURF_REGION;
+
+    CHECK_PROPERTY(current_sm_dat->sm != nullptr);
+    rel_event->species_id = get_mcell4_species_id(current_sm_dat->sm->species_id);
+
+    if (current_sm_dat->quantity_type == SURFMOLDENS) {
+      rel_event->release_number_method = ReleaseNumberMethod::DensityNum;
+      rel_event->concentration = current_sm_dat->quantity;
+    }
+    else if (current_sm_dat->quantity_type == SURFMOLNUM) {
+      rel_event->release_number_method = ReleaseNumberMethod::ConstNum;
+      rel_event->release_number = current_sm_dat->quantity;
+    }
+    else {
+      CHECK(false);
+    }
+
+    rel_event->orientation = current_sm_dat->orientation;
+
+    rel_event->region_expr_root = rel_event->create_new_region_expr_node_leaf(new_region.name);
+
+    rel_event->release_site_name = "Initial release at " + new_region.name;
+
+    // remember to schedule, all these release events need
+    // to be sorted and scheduled after all geometry is initialized
+    rel_event->update_event_time_for_next_scheduled_time();
+    initial_region_releases_to_be_scheduled.push_back(rel_event);
+
+    current_sm_dat = current_sm_dat->next;
+  }
+
   return true;
 }
 
@@ -586,6 +630,8 @@ bool MCell3WorldConverter::convert_polygonal_object(const geom_object* o, const 
   CHECK_PROPERTY(o->n_walls == o->n_walls_actual); // ignored
   CHECK_PROPERTY(o->walls == nullptr); // this is null for some reason
   CHECK_PROPERTY(o->wall_p != nullptr);
+
+  vector<ReleaseEvent*> region_releases_to_be_initialized;
 
   // --- regions ---
   uint reg_cnt = 0;
@@ -628,6 +674,12 @@ bool MCell3WorldConverter::convert_polygonal_object(const geom_object* o, const 
   }
 
 
+  // after wall conversion, we can initialize the walls for this release event created from
+  // MOLECULE_DENSITY or MOLECULE_NUMBER
+  for (ReleaseEvent* re: region_releases_to_be_initialized) {
+    re->initialize_walls_for_release();
+  }
+
   // check that our reinit function works correctly
 #ifndef NDEBUG
   for (wall_index_t i = 0; i < p.get_wall_count(); i++) {
@@ -641,9 +693,8 @@ bool MCell3WorldConverter::convert_polygonal_object(const geom_object* o, const 
 
   // --- back to object ---
 
-  CHECK_PROPERTY(o->n_tiles == 0);
-  CHECK_PROPERTY(o->n_occupied_tiles == 0);
-  CHECK_PROPERTY(o->n_occupied_tiles == 0);
+  // CHECK_PROPERTY(o->n_tiles == 0); // don't care, we will create grid if needed
+  // CHECK_PROPERTY(o->n_occupied_tiles == 0);
   CHECK_PROPERTY(t_matrix_to_mat4x4(o->t_matrix) == mat4x4(1) && "only identity matrix for now");
   // root->is_closed - not checked
   CHECK_PROPERTY(o->periodic_x == false);
@@ -1257,7 +1308,6 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
         rel_event->release_interval = rp->release_interval;
 
         rel_event->update_event_time_for_next_scheduled_time(); // sets the first event_time according to the setup
-
         world->scheduler.schedule_event(rel_event);
       }
     }

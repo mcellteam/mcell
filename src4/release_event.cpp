@@ -390,6 +390,7 @@ void ReleaseEvent::to_data_model(Json::Value& mcell_node) const {
 
 
 bool ReleaseEvent::initialize_walls_for_release() {
+  assert(region_expr_root != nullptr);
   assert(release_number_method != ReleaseNumberMethod::Invalid);
   cumm_area_and_pwall_index_pairs.clear();
 
@@ -771,6 +772,88 @@ void ReleaseEvent::release_list() {
 }
 
 
+void ReleaseEvent::init_surf_mols_by_number(Partition& p, const Region& reg) {
+  uint n_free_sm = 0;
+
+  /* initialize surface molecule grids in region as needed and */
+  /* count total number of free surface molecule sites in region */
+
+  vector<WallTileIndexPair> free_tiles;
+
+  for (auto wall_edge_it: reg.walls_and_edges) {
+    Wall& w = p.get_wall(wall_edge_it.first);
+    if (!w.has_initialized_grid()) {
+      w.initialize_grid(p);
+    }
+
+    Grid& g = w.grid;
+    n_free_sm += g.get_num_free_tiles();
+
+    for (tile_index_t ti = 0; ti < g.num_tiles; ti++) {
+      if (g.get_molecule_on_tile(ti) == MOLECULE_ID_INVALID) {
+        free_tiles.push_back(WallTileIndexPair(w.index, ti));
+      }
+    }
+  }
+  assert(n_free_sm == free_tiles.size() && "Num free tiles does not match");
+
+  if (release_number > 0 && n_free_sm == 0) {
+    mcell_error("Number of free surface molecule tiles in region %s = %d", reg.name.c_str(), n_free_sm);
+  }
+
+  if (release_number > n_free_sm / 2) {
+    mcell_warn("Implementation of filling more than half of free tiles is different in MCell4 from MCell3.");
+  }
+
+  for (uint i = 0; i < release_number; i++) {
+    uint num_attempts = 0;
+    /* Loop until we find a vacant tile. */
+    while (1) {
+      uint slot_num = (int)(rng_dbl(&world->rng) * n_free_sm);
+
+      const WallTileIndexPair& wip = free_tiles[slot_num];
+      Wall& w = p.get_wall(wip.wall_index);
+
+      if (w.grid.get_molecule_on_tile(wip.tile_index) == MOLECULE_ID_INVALID) {
+        GridUtil::place_single_molecule_onto_grid(
+            p, world->rng, w, wip.tile_index, false, Vec2(),
+            species_id, orientation, get_release_delay_time()
+        );
+        break;
+      }
+
+      if (num_attempts != 0 && num_attempts % 10000 == 0) {
+        mcell_warn("Made %d of attempts while placing molecule in release event %s.",
+            num_attempts, reg.name.c_str());
+      }
+    }
+  }
+}
+
+
+// init_surf_mols_by_number
+// init_surf_mols_by_density
+void ReleaseEvent::release_onto_initial_surf_region() {
+  assert(region_expr_root != nullptr && region_expr_root->op == RegionExprOperator::Leaf);
+  Partition& p = world->get_partition(PARTITION_ID_INITIAL);
+  const Region* reg = p.find_region_by_name(region_expr_root->region_name);
+  assert(reg != nullptr);
+
+  if (release_number_method == ReleaseNumberMethod::DensityNum) {
+    // NOTE: MCell3 first places all surf mols by density,
+    // we do not do such sorting (yet), can be done in MCell3 converter,
+    // the scheduler should not know about this
+    //init_surf_mols_by_density(reg);
+  }
+  else if (release_number_method == ReleaseNumberMethod::ConstNum) {
+    init_surf_mols_by_number(p, *reg);
+  }
+  else {
+    assert(false);
+  }
+}
+
+
 void ReleaseEvent::step() {
   // for now, let's simply release 'release_number' of molecules of 'species_id'
   // at 'location'
@@ -792,6 +875,9 @@ void ReleaseEvent::step() {
   }
   else if (release_shape == ReleaseShape::LIST) {
     release_list();
+  }
+  else if (release_shape == ReleaseShape::INITIAL_SURF_REGION) {
+    release_onto_initial_surf_region();
   }
   else {
     assert(false);
