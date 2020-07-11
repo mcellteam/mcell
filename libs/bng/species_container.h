@@ -67,7 +67,7 @@ public:
     species.back().id = res;
 
     if (bng_config.debug_reactions) {
-      std::cout << "Defined new species " << new_species.name << " with id " << res << "\n";
+      std::cout << "BNG: Defined new species " << new_species.name << " with id " << res << "\n";
     }
 
     return res;

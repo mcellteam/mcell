@@ -975,6 +975,7 @@ void dump_rxn_pathway_for_diff(pathway* pw) {
   product* prod = pw->product_head;
   while (prod != nullptr) {
     dump_rxn_substance(prod->prod, prod->orientation);
+    prod = prod->next;
   }
   cout << "\n";
 }
