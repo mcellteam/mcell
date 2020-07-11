@@ -32,6 +32,7 @@
 #include "world.h"
 #include "viz_output_event.h"
 #include "defragmentation_event.h"
+#include "release_event.h"
 #include "datamodel_defines.h"
 #include "bng_data_to_datamodel_converter.h"
 #include "diffuse_react_event.h"
@@ -130,6 +131,16 @@ void World::create_diffusion_events() {
     event->event_time = TIME_SIMULATION_START;
     scheduler.schedule_event(event);
   }
+}
+
+
+void World::create_initial_surface_region_release_event() {
+  ReleaseEvent* rel_event = new ReleaseEvent(this);
+  rel_event->event_time = 0;
+  rel_event->actual_release_time = 0;
+  rel_event->release_shape = ReleaseShape::INITIAL_SURF_REGION;
+  rel_event->update_event_time_for_next_scheduled_time();
+  scheduler.schedule_event(rel_event);
 }
 
 

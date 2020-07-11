@@ -117,6 +117,46 @@ public:
 };
 
 
+// this class holds information for initial release of molecules onto regions specified by
+// MDL's MODIFY_SURFACE_REGIONS/MOLECULE_DENSITY or MOLECULE_NUMBER
+class InitialRegionMolecules {
+public:
+  InitialRegionMolecules(
+    species_id_t species_id_,
+    orientation_t orientation_,
+    bool const_num_not_density_,
+    uint release_num_)
+    : species_id(species_id_), orientation(orientation_), const_num_not_density(const_num_not_density_),
+      release_num(release_num_), release_density(FLT_INVALID) {
+    assert(const_num_not_density_ && "This ctor is for const_num");
+  }
+
+  InitialRegionMolecules(
+    species_id_t species_id_,
+    orientation_t orientation_,
+    bool const_num_not_density_,
+    float_t release_density_)
+    : species_id(species_id_), orientation(orientation_), const_num_not_density(const_num_not_density_),
+      release_num(UINT_INVALID), release_density(release_density_) {
+    assert(const_num_not_density_ && "This ctor is for const_num");
+  }
+
+  bool is_release_by_num() const {
+    return const_num_not_density;
+  }
+
+  bool is_release_by_density() const {
+    return !const_num_not_density;
+  }
+
+  species_id_t species_id;
+  orientation_t orientation;
+  bool const_num_not_density;
+  uint release_num;
+  float_t release_density;
+};
+
+
 class Region {
 public:
   Region()
@@ -140,6 +180,9 @@ public:
   // the vector of edge indices may be empty but if not, it specifies the
   // edge od the wall that is a border of the region
   std::map<wall_index_t, std::set<edge_index_t>> walls_and_edges;
+
+  // initial counts of molecules for this region
+  std::vector<InitialRegionMolecules> initial_region_molecules;
 
   bool is_edge(wall_index_t wall_index, edge_index_t edge_index) const {
     auto it = walls_and_edges.find(wall_index);
@@ -181,6 +224,10 @@ public:
       walls_and_edges[wi].insert(EDGE_INDEX_1);
       walls_and_edges[wi].insert(EDGE_INDEX_2);
     }
+  }
+
+  bool has_initial_molecules() const {
+    return !initial_region_molecules.empty();
   }
 
   void dump(const std::string ind) const;

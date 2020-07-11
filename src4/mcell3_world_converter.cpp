@@ -108,6 +108,7 @@ bool MCell3WorldConverter::convert(volume* s) {
 
   CHECK(convert_species(s));
   world->create_diffusion_events(); // cannot fail
+  world->create_initial_surface_region_release_event(); // cannot fail
   CHECK(convert_rxns(s));
 
   // at this point, we need to create the first (and for now the only) partition
@@ -335,25 +336,6 @@ bool MCell3WorldConverter::convert_geometry_objects(volume* s) {
 
   } // for each scene/INSTANTIATE section
 
-  // schedule molecule releases defined through DEFINE_SURFACE_REGIONS
-  // they need to be sorted because mcell3 first executes density-based specifications
-  vector<ReleaseEvent*> sorted_releases;
-  for (ReleaseEvent* re: initial_region_releases_to_be_scheduled) {
-    if (re->release_number_method == ReleaseNumberMethod::DensityNum) {
-      sorted_releases.push_back(re);
-    }
-  }
-  for (ReleaseEvent* re: initial_region_releases_to_be_scheduled) {
-    if (re->release_number_method == ReleaseNumberMethod::ConstNum) {
-      sorted_releases.push_back(re);
-    }
-  }
-  assert(sorted_releases.size() == initial_region_releases_to_be_scheduled.size());
-
-  for (ReleaseEvent* rel_event: initial_region_releases_to_be_scheduled) {
-    world->scheduler.schedule_event(rel_event);
-  }
-
   return true;
 }
 
@@ -573,46 +555,35 @@ bool MCell3WorldConverter::convert_region(Partition& p, const region* r, region_
   new_region.geometry_object_id = obj->id;
 
   new_region.id = world->get_next_region_id();
-  region_index = p.add_region_and_set_its_index(new_region);
 
   sm_dat* current_sm_dat = r->sm_dat_head;
   while (current_sm_dat != nullptr) {
 
-    // create an initial release event for this initial setup
-    // created before
-    ReleaseEvent* rel_event = new ReleaseEvent(world);
-    rel_event->event_time = 0;
-    rel_event->actual_release_time = 0;
-    rel_event->release_shape = ReleaseShape::INITIAL_SURF_REGION;
-
     CHECK_PROPERTY(current_sm_dat->sm != nullptr);
-    rel_event->species_id = get_mcell4_species_id(current_sm_dat->sm->species_id);
+    species_id_t species_id = get_mcell4_species_id(current_sm_dat->sm->species_id);
 
-    if (current_sm_dat->quantity_type == SURFMOLDENS) {
-      rel_event->release_number_method = ReleaseNumberMethod::DensityNum;
-      rel_event->concentration = current_sm_dat->quantity;
+    if (current_sm_dat->quantity_type == SURFMOLNUM) {
+      new_region.initial_region_molecules.push_back(
+          InitialRegionMolecules(
+              species_id, current_sm_dat->orientation, true, (uint)current_sm_dat->quantity
+          )
+      );
     }
-    else if (current_sm_dat->quantity_type == SURFMOLNUM) {
-      rel_event->release_number_method = ReleaseNumberMethod::ConstNum;
-      rel_event->release_number = current_sm_dat->quantity;
+    else if (current_sm_dat->quantity_type == SURFMOLDENS) {
+      new_region.initial_region_molecules.push_back(
+          InitialRegionMolecules(
+              species_id, current_sm_dat->orientation, false, (float_t)current_sm_dat->quantity
+          )
+      );
     }
     else {
       CHECK(false);
     }
 
-    rel_event->orientation = current_sm_dat->orientation;
-
-    rel_event->region_expr_root = rel_event->create_new_region_expr_node_leaf(new_region.name);
-
-    rel_event->release_site_name = "Initial release at " + new_region.name;
-
-    // remember to schedule, all these release events need
-    // to be sorted and scheduled after all geometry is initialized
-    rel_event->update_event_time_for_next_scheduled_time();
-    initial_region_releases_to_be_scheduled.push_back(rel_event);
-
     current_sm_dat = current_sm_dat->next;
   }
+
+  region_index = p.add_region_and_set_its_index(new_region);
 
   return true;
 }

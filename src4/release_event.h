@@ -38,6 +38,7 @@ class Partition;
 class Region;
 class Wall;
 class Grid;
+class InitialRegionMolecules;
 
 // TODO: replace with defines from API
 enum class ReleaseShape {
@@ -243,8 +244,8 @@ private:
   void release_list();
 
   // for releases specified by MODIFY_SURFACE_REGIONS -> MOLECULE_NUMBER or MOLECULE_DENSITY
-  void init_surf_mols_by_number(Partition& p, const Region& reg);
-  void release_onto_initial_surf_region();
+  void init_surf_mols_by_number(Partition& p, const Region& reg, const InitialRegionMolecules& info);
+  void release_initial_molecules_onto_surf_regions();
 
   float_t get_release_delay_time() const {
     if (cmp_eq(actual_release_time, event_time)) {

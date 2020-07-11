@@ -68,7 +68,9 @@ public:
       const bool print_final_report = true
   );
 
-  void create_diffusion_events(); // used by converters
+  // used by converters
+  void create_diffusion_events();
+  void create_initial_surface_region_release_event();
 
   // -------------- diverse getters -----------------------------
   const SimulationConfig& get_config() {

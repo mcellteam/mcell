@@ -772,7 +772,7 @@ void ReleaseEvent::release_list() {
 }
 
 
-void ReleaseEvent::init_surf_mols_by_number(Partition& p, const Region& reg) {
+void ReleaseEvent::init_surf_mols_by_number(Partition& p, const Region& reg, const InitialRegionMolecules& info) {
   uint n_free_sm = 0;
 
   /* initialize surface molecule grids in region as needed and */
@@ -805,7 +805,9 @@ void ReleaseEvent::init_surf_mols_by_number(Partition& p, const Region& reg) {
     mcell_warn("Implementation of filling more than half of free tiles is different in MCell4 from MCell3.");
   }
 
-  for (uint i = 0; i < release_number; i++) {
+
+
+  for (uint i = 0; i < info.release_num; i++) {
     uint num_attempts = 0;
     /* Loop until we find a vacant tile. */
     while (1) {
@@ -817,7 +819,7 @@ void ReleaseEvent::init_surf_mols_by_number(Partition& p, const Region& reg) {
       if (w.grid.get_molecule_on_tile(wip.tile_index) == MOLECULE_ID_INVALID) {
         GridUtil::place_single_molecule_onto_grid(
             p, world->rng, w, wip.tile_index, false, Vec2(),
-            species_id, orientation, get_release_delay_time()
+            info.species_id, info.orientation, get_release_delay_time()
         );
         break;
       }
@@ -830,37 +832,64 @@ void ReleaseEvent::init_surf_mols_by_number(Partition& p, const Region& reg) {
   }
 }
 
+/*
+void ReleaseEvent::init_surf_mols_by_density(Partition& p, Wall& w) {
+  if (!w.has_initialized_grid()) {
+    w.initialize_grid(p);
+  }
 
-// init_surf_mols_by_number
-// init_surf_mols_by_density
-void ReleaseEvent::release_onto_initial_surf_region() {
-  assert(region_expr_root != nullptr && region_expr_root->op == RegionExprOperator::Leaf);
+  unsigned int n_sm_entry = 0;
+  double tot_prob = 0;
+  double tot_density = 0;
+
+  // in MCell3, this is done for all mod surf regions at once,
+  // we might need to mix this was well...
+  // first implementation just 1
+  double tot_prob = (w.area * concentration) / (w.grid.num_tiles * world->config.grid_density);
+  double tot_density = concentration;
+
+  if (tot_density > world->config.grid_density) {
+    mcell_warn(
+        "Total surface molecule density too high: %f.  Filling all available "
+        "surface molecule sites.",
+        tot_density);
+  }
+
+
+}*/
+
+
+void ReleaseEvent::release_initial_molecules_onto_surf_regions() {
   Partition& p = world->get_partition(PARTITION_ID_INITIAL);
-  const Region* reg = p.find_region_by_name(region_expr_root->region_name);
-  assert(reg != nullptr);
 
-  if (release_number_method == ReleaseNumberMethod::DensityNum) {
-    // NOTE: MCell3 first places all surf mols by density,
-    // we do not do such sorting (yet), can be done in MCell3 converter,
-    // the scheduler should not know about this
-    //init_surf_mols_by_density(reg);
-  }
-  else if (release_number_method == ReleaseNumberMethod::ConstNum) {
-    init_surf_mols_by_number(p, *reg);
-  }
-  else {
-    assert(false);
+  // let's iterate over regions for now,
+  // MCell3 might have a it a bit different but this should be ok
+  for (const Region& reg: p.get_regions()) {
+    if (!reg.has_initial_molecules()) {
+      continue;
+    }
+    /*for (auto wall_edge_it: reg->walls_and_edges) {
+      Wall& w = p.get_wall(wall_edge_it.first);
+      init_surf_mols_by_density(p, w);
+    }*/
+
+    // for each specifies initial molecules
+    for (const InitialRegionMolecules& info: reg.initial_region_molecules) {
+      if (!info.is_release_by_num()) {
+        // skip density, they were already handled
+        continue;
+      }
+      init_surf_mols_by_number(p, reg, info);
+    }
   }
 }
 
 
 void ReleaseEvent::step() {
-  // for now, let's simply release 'release_number' of molecules of 'species_id'
-  // at 'location'
 
-  uint number = calculate_number_to_release();
-
+  uint num_released = UINT_INVALID;
   if (release_shape == ReleaseShape::REGION) {
+    uint number = calculate_number_to_release();
     const BNG::Species& species = world->get_all_species().get(species_id);
     if (species.is_surf()) {
       release_onto_regions(number);
@@ -868,25 +897,28 @@ void ReleaseEvent::step() {
     else {
       release_inside_regions(number);
     }
+    num_released = number;
   }
   else if (release_shape == ReleaseShape::SPHERICAL) {
+    uint number = calculate_number_to_release();
     assert(diameter.is_valid());
     release_ellipsoid_or_rectcuboid(number);
+    num_released = number;
   }
   else if (release_shape == ReleaseShape::LIST) {
     release_list();
   }
   else if (release_shape == ReleaseShape::INITIAL_SURF_REGION) {
-    release_onto_initial_surf_region();
+    release_initial_molecules_onto_surf_regions();
   }
   else {
     assert(false);
   }
 
-  if (release_shape != ReleaseShape::LIST) {
+  if (release_shape == ReleaseShape::REGION || release_shape == ReleaseShape::SPHERICAL) {
     const BNG::Species& species = world->get_all_species().get(species_id);
     cout
-      << "Released " << number << " " << species.name << " from \"" << release_site_name << "\""
+      << "Released " << num_released << " " << species.name << " from \"" << release_site_name << "\""
       << " at iteration " << world->get_current_iteration() << ".\n";
   }
 }

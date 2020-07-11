@@ -139,9 +139,6 @@ private:
 
   // use only through add_mcell4_region_index_mapping, get_mcell4_region_index
   std::map<const region*, PartitionRegionIndexPair> region_ptr_to_region_index_map;
-
-
-  std::vector<ReleaseEvent*> initial_region_releases_to_be_scheduled;
 };
 
 
