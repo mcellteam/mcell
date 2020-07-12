@@ -747,6 +747,9 @@ bool MCell3WorldConverter::convert_species(volume* s) {
   for (int i = 0; i < s->n_species; i++) {
     species* spec = species_list[i];
 
+    CHECK_PROPERTY(spec->sm_dat_head == nullptr &&
+        "MOLECULE_DENSITY and MOLECULE_NUMBER are not supported in DEFINE_SURFACE_CLASSES.");
+
     Species new_species(world->bng_engine.get_data());
     new_species.name = get_sym_name(spec->sym);
     new_species.D = spec->D;

@@ -31,6 +31,7 @@ const char* const VER_DM_2015_04_13_1700 = "DM_2015_04_13_1700";
 const char* const VER_DM_2015_11_08_1756 = "DM_2015_11_08_1756";
 const char* const VER_DM_2016_03_15_1800 = "DM_2016_03_15_1800";
 const char* const VER_DM_2017_11_30_1830 = "DM_2017_11_30_1830";
+const char* const VER_DM_2020_07_12_1600 = "DM_2020_07_12_1600";
 
 const int BLENDER_VERSION[] = {2, 79, 0};
 
@@ -236,6 +237,10 @@ const char* const KEY_REGION_SELECTION = "region_selection";
 const char* const VALUE_ALL = "ALL";
 const char* const VALUE_SEL = "SEL";
 const char* const KEY_SURF_CLASS_NAME = "surf_class_name";
+
+const char* const KEY_INITIAL_REGION_MOLECULES_LIST = "initial_region_molecules_list";
+const char* const KEY_MOLECULE_NUMBER = "molecule_number";
+const char* const KEY_MOLECULE_DENSITY = "molecule_density";
 
 
 const char* const KEY_SCRIPTING = "scripting";

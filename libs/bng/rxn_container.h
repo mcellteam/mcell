@@ -187,6 +187,10 @@ public:
     return rxn_rules;
   }
 
+  const BNGData& get_bng_data() {
+    return bng_data;
+  }
+
   void dump(const bool including_rxn_rules = false) const;
 
 private:

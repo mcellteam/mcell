@@ -277,7 +277,7 @@ void Partition::to_data_model(Json::Value& mcell) const {
   Json::Value& modify_surface_regions_list = modify_surface_regions[KEY_MODIFY_SURFACE_REGIONS_LIST];
   modify_surface_regions_list = Json::Value(Json::arrayValue);
   for (const Region& reg: regions) {
-    if (reg.is_reactive()) {
+    if (reg.is_reactive() || reg.has_initial_molecules()) {
       Json::Value modify_surface_region;
       reg.to_data_model(*this, modify_surface_region);
       modify_surface_regions_list.append(modify_surface_region);

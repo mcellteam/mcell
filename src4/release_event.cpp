@@ -344,7 +344,10 @@ void ReleaseEvent::to_data_model(Json::Value& mcell_node) const {
     return;
   }
 
-  if (release_shape == ReleaseShape::LIST) {
+  if (release_shape == ReleaseShape::INITIAL_SURF_REGION) {
+    // not converting this one - is default
+  }
+  else if (release_shape == ReleaseShape::LIST) {
     // this release event needs to be split into chunks that use the same
     // species and orientation
     uint release_site_index = 0;

@@ -481,6 +481,21 @@ void GeometryObject::to_data_model(
 }
 
 
+void InitialRegionMolecules::to_data_model(
+    const BNG::SpeciesContainer& all_species,
+    Json::Value& initial_region_molecules
+) const {
+  initial_region_molecules[KEY_MOLECULE] = all_species.get(species_id).name;
+  initial_region_molecules[KEY_ORIENT] = DMUtil::orientation_to_str(orientation);
+  if (const_num_not_density) {
+    initial_region_molecules[KEY_MOLECULE_NUMBER] = to_string(release_num);
+  }
+  else {
+    initial_region_molecules[KEY_MOLECULE_DENSITY] = DMUtil::f_to_string(release_density);
+  }
+}
+
+
 void Region::init_from_whole_geom_object(const GeometryObject& obj) {
   name = obj.name + REGION_ALL_SUFFIX_W_COMMA;
   geometry_object_id = obj.id;
@@ -545,7 +560,14 @@ void Region::dump_array(const std::vector<Region>& vec) {
 
 
 void Region::to_data_model(const Partition& p, Json::Value& modify_surface_region) const {
-  DMUtil::add_version(modify_surface_region, VER_DM_2018_01_11_1330);
+
+  if (initial_region_molecules.empty()) {
+    DMUtil::add_version(modify_surface_region, VER_DM_2018_01_11_1330);
+  }
+  else {
+    DMUtil::add_version(modify_surface_region, VER_DM_2020_07_12_1600);
+  }
+
   modify_surface_region[KEY_DESCRIPTION] = "";
   modify_surface_region[KEY_OBJECT_NAME] =
       DMUtil::remove_obj_name_prefix(p.get_geometry_object(geometry_object_id).name);
@@ -561,8 +583,19 @@ void Region::to_data_model(const Partition& p, Json::Value& modify_surface_regio
   }
 
   modify_surface_region[KEY_NAME] = ""; // don't care
-  CONVERSION_CHECK(species_id != SPECIES_ID_INVALID, "Can convert only reactive regions");
-  modify_surface_region[KEY_SURF_CLASS_NAME] = p.get_all_species().get(species_id).name;
+
+  if (species_id != SPECIES_ID_INVALID) {
+    modify_surface_region[KEY_SURF_CLASS_NAME] = p.get_all_species().get(species_id).name;
+  }
+
+  if (!initial_region_molecules.empty()) {
+    Json::Value& initial_region_molecules_list = modify_surface_region[KEY_INITIAL_REGION_MOLECULES_LIST];
+    for (const InitialRegionMolecules& info: initial_region_molecules) {
+      Json::Value initial_region_molecules_item;
+      info.to_data_model(p.get_all_species(), initial_region_molecules_item);
+      initial_region_molecules_list.append(initial_region_molecules_item);
+    }
+  }
 }
 
 

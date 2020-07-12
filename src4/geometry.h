@@ -149,6 +149,11 @@ public:
     return !const_num_not_density;
   }
 
+  void to_data_model(
+      const BNG::SpeciesContainer& all_species,
+      Json::Value& initial_region_molecules
+  ) const;
+
   species_id_t species_id;
   orientation_t orientation;
   bool const_num_not_density;
