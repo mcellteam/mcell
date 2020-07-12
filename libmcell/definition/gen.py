@@ -110,6 +110,7 @@ YAML_TYPE_IVEC3 = 'IVec3'
 YAML_TYPE_LIST = 'List'
 YAML_TYPE_DICT = 'Dict'
 YAML_TYPE_SPECIES = 'Species'
+YAML_TYPE_ORIENTATION = 'Orientation'
 
 PYBIND_TYPE_OBJECT = 'object'
 PY_CAST = 'py::cast'
@@ -137,6 +138,7 @@ UNSET_VALUE_INT = 'INT_UNSET'
 UNSET_VALUE_LONG = 'LONG_UNSET'
 UNSET_VALUE_VEC2 = 'VEC2_UNSET'
 UNSET_VALUE_VEC3 = 'VEC3_UNSET'
+UNSET_VALUE_ORIENTATION = 'Orientation::NOT_SET'
 UNSET_VALUE_PTR = 'nullptr'
 
 PY_NONE = 'None'
@@ -402,6 +404,8 @@ def get_default_or_unset_value(attr):
         return UNSET_VALUE_VEC3
     elif t == YAML_TYPE_IVEC3:
         return UNSET_VALUE_IVEC3
+    elif t == YAML_TYPE_ORIENTATION:
+        return UNSET_VALUE_ORIENTATION
     elif is_yaml_list_type(t):
         return yaml_type_to_cpp_type(t) + '()'
     else:

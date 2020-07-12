@@ -157,6 +157,31 @@ ReleaseSite:
     default: unset
 
 
+InitialSurfaceRelease:
+  superclass: BaseDataClass
+  doc: Defines molecules to be released onto a SurfaceRegion right when simulation starts
+  items:
+  - name: species
+    type: Species*
+  
+  - name: orientation
+    type: Orientation
+  
+  - name: number_to_release
+    type: int
+    default: unset
+    doc: |
+      Number of molecules to be released onto a region,
+      only one of number_to_release and density can be set.
+    
+  - name: density
+    type: float
+    default: unset
+    doc: |
+      Density of molecules to be released onto a region,
+      only one of number_to_release and density can be set.
+      
+      
 InstantiationData:
   items:
   - name: release_sites

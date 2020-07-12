@@ -336,6 +336,7 @@ class SurfaceRegion():
             name : str,
             wall_indices : List[int],
             surface_class : SurfaceClass = None,
+            initial_releases : List[InitialSurfaceRelease] = None,
             node_type : RegionNodeType = RegionNodeType.UNSET,
             left_node : Region = None,
             right_node : Region = None
@@ -343,6 +344,7 @@ class SurfaceRegion():
         self.name = name
         self.wall_indices = wall_indices
         self.surface_class = surface_class
+        self.initial_releases = initial_releases
         self.node_type = node_type
         self.left_node = left_node
         self.right_node = right_node
@@ -468,6 +470,20 @@ class ReleaseSite():
         self.number_to_release = number_to_release
         self.density = density
         self.release_probability = release_probability
+
+
+class InitialSurfaceRelease():
+    def __init__(
+            self,
+            species : Species,
+            orientation : Orientation,
+            number_to_release : int = None,
+            density : float = None
+        ):
+        self.species = species
+        self.orientation = orientation
+        self.number_to_release = number_to_release
+        self.density = density
 
 
 class InstantiationData():

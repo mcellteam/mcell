@@ -50,6 +50,7 @@ set(SOURCE_FILES
     generated/gen_subsystem.cpp
 
     generated/gen_region.cpp
+    generated/gen_initial_surface_release.cpp
     generated/gen_surface_region.cpp
     generated/gen_geometry_object.cpp
     generated/gen_release_pattern.cpp

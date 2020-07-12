@@ -30,6 +30,7 @@
 namespace MCell {
 namespace API {
 
+class InitialSurfaceRelease;
 class Region;
 class SurfaceClass;
 
@@ -38,6 +39,7 @@ class SurfaceClass;
         const std::string& name_, \
         const std::vector<int> wall_indices_, \
         std::shared_ptr<SurfaceClass> surface_class_ = nullptr, \
+        const std::vector<std::shared_ptr<InitialSurfaceRelease>> initial_releases_ = std::vector<std::shared_ptr<InitialSurfaceRelease>>(), \
         const RegionNodeType node_type_ = RegionNodeType::UNSET, \
         std::shared_ptr<Region> left_node_ = nullptr, \
         std::shared_ptr<Region> right_node_ = nullptr \
@@ -46,6 +48,7 @@ class SurfaceClass;
       name = name_; \
       wall_indices = wall_indices_; \
       surface_class = surface_class_; \
+      initial_releases = initial_releases_; \
       node_type = node_type_; \
       left_node = left_node_; \
       right_node = right_node_; \
@@ -92,6 +95,18 @@ public:
   }
   virtual std::shared_ptr<SurfaceClass> get_surface_class() const {
     return surface_class;
+  }
+
+  std::vector<std::shared_ptr<InitialSurfaceRelease>> initial_releases;
+  virtual void set_initial_releases(const std::vector<std::shared_ptr<InitialSurfaceRelease>> new_initial_releases_) {
+    if (initialized) {
+      throw RuntimeError("Value 'initial_releases' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
+    initial_releases = new_initial_releases_;
+  }
+  virtual std::vector<std::shared_ptr<InitialSurfaceRelease>> get_initial_releases() const {
+    return initial_releases;
   }
 
   // --- methods ---

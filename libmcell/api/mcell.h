@@ -42,6 +42,7 @@
 #include "api/subsystem.h"
 
 #include "api/region.h"
+#include "api/initial_surface_release.h"
 #include "api/surface_region.h"
 #include "api/geometry_object.h"
 #include "api/release_pattern.h"

@@ -61,6 +61,15 @@ SurfaceRegion:
     default: unset
     doc: Has higher priority than the parent geometry object's surface class.
 
+  - name: initial_releases
+    type: List[InitialSurfaceRelease*]
+    default: empty
+    doc: |
+      Equivalent to MDL's MODIFY_SURFACE_REGIONS/MOLECULE_DENSITY or MOLECULE_NUMBER,
+      each item defines either density or number of molecules to be released on this surface 
+      regions when simulation starts. 
+    
+
 
 # TODO: due to issues with shared pointer casts, it was not possible to make a shared pointer out of this     
 # any cast resulted into bad_weak_ptr exception

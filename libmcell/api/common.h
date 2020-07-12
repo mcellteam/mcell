@@ -74,6 +74,9 @@ static inline bool is_set(const void* a) {
 static inline bool is_set(const std::string& a) {
   return a != STR_UNSET && a != "";
 }
+static inline bool is_set(const Orientation& a) {
+  return a != Orientation::NOT_SET;
+}
 template<typename T>
 static inline bool is_set(const std::shared_ptr<T>& a) {
   return a.use_count() != 0;
