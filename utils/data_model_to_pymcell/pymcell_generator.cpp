@@ -777,6 +777,7 @@ vector<string> PymcellGenerator::generate_release_sites(ofstream& out) {
     check_version(KEY_RELEASE_SITE_LIST, release_site_item, VER_DM_2018_01_11_1330);
 
     string name = release_site_item[KEY_NAME].asString();
+    replace(name.begin(), name.end(), '.', '_');
     string shape = release_site_item[KEY_SHAPE].asString();
     string molecule_list_name = "";
     if (shape == VALUE_LIST) {
