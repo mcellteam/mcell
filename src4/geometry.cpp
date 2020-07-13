@@ -533,6 +533,71 @@ void Region::init_surface_region_edges(const Partition& p) {
 }
 
 
+/* tetrahedralVol returns the (signed) volume of the tetrahedron spanned by
+ * the vertices a, b, c, and d.
+ * The formula was taken from "Computational Geometry" (2nd Ed) by J. O'Rourke
+ */
+static float_t tetrahedral_volume(
+    const Vec3& a, const Vec3& b,
+    const Vec3& c, const Vec3& d
+) {
+  // TODO: maybe use vector operators
+  return 1.0 / 6.0 *
+      (-1 * (a.z - d.z) * (b.y - d.y) * (c.x - d.x) +
+      (a.y - d.y) * (b.z - d.z) * (c.x - d.x) +
+      (a.z - d.z) * (b.x - d.x) * (c.y - d.y) -
+      (a.x - d.x) * (b.z - d.z) * (c.y - d.y) -
+      (a.y - d.y) * (b.x - d.x) * (c.z - d.z) +
+      (a.x - d.x) * (b.y - d.y) * (c.z - d.z));
+}
+
+
+/***************************************************************************
+  Based on is_manifold:
+  In: r: A region. This region must already be painted on walls. The edges must
+         have already been added to the object (i.e. sharpened).
+      count_regions_flag: This is usually set, unless we are only checking
+                          volumes for dynamic geometries.
+  Out: 1 if the region is a manifold, 0 otherwise.
+  Note: by "manifold" we mean "orientable compact two-dimensional
+        manifold without boundaries embedded in R3"
+***************************************************************************/
+void Region::update_volume_info(const Partition& p) {
+
+  if (walls_and_edges.empty()) {
+    mcell_internal_error("Region '%s' has NULL wall array!", name.c_str());
+  }
+
+  // initialize bounding box
+  Geometry::compute_region_bounding_box(p, this, bounding_box_llf, bounding_box_urb);
+
+  // use the center of the region bounding box as reference point for
+  // computing the volume
+  Vec3 d = (bounding_box_llf + bounding_box_urb) * Vec3(0.5);
+
+  volume = 0;
+  float_t current_volume = 0;
+  for (auto it: walls_and_edges) {
+
+    if (!it.second.empty()) {
+      // does this wall represent a region border?
+      region_is_manifold = false;
+      volume_info_uptodate = true;
+    }
+
+    const Wall& w = p.get_wall(it.first);
+
+    // compute volume of tetrahedron with w as its face
+    current_volume += tetrahedral_volume(
+        p.get_wall_vertex(w, 0), p.get_wall_vertex(w, 1), p.get_wall_vertex(w, 2), d);
+  }
+
+  volume = current_volume;
+  region_is_manifold = true;
+  volume_info_uptodate = true;
+}
+
+
 void Region::dump(const std::string ind) const {
   cout << ind << "Region : " <<
       "name:" << name <<
@@ -930,7 +995,7 @@ create_region_bbox:
   Out: pointer to a 2-element array contining the LLF and URB corners of
        a bounding box around the region, or NULL if out of memory.
 ***************************************************************************/
-static void get_region_bounding_box(
+void compute_region_bounding_box(
     const Partition& p, const Region *r,
     Vec3& llf, Vec3& urb
 )
@@ -986,7 +1051,7 @@ eval_rel_region_bbox:
        region).  The function reports failure if any region is unclosed.
 ***************************************************************************/
 // TODO: not checking whether object is closed - use some library for that
-bool get_region_expr_bounding_box(
+bool compute_region_expr_bounding_box(
     const World* world, const RegionExprNode* expr,
     Vec3& llf, Vec3& urb
 ) {
@@ -996,15 +1061,15 @@ bool get_region_expr_bounding_box(
   if (expr->op == RegionExprOperator::Leaf) {
     const Region* reg = p.find_region_by_name(expr->region_name);
     assert(reg != nullptr);
-    get_region_bounding_box(p, reg, llf, urb);
+    compute_region_bounding_box(p, reg, llf, urb);
     return true;
   }
   else {
     Vec3 llf_left, urb_left;
-    get_region_expr_bounding_box(world, expr->left, llf_left, urb_left);
+    compute_region_expr_bounding_box(world, expr->left, llf_left, urb_left);
 
     Vec3 llf_right, urb_right;
-    get_region_expr_bounding_box(world, expr->right, llf_right, urb_right);
+    compute_region_expr_bounding_box(world, expr->right, llf_right, urb_right);
 
     llf = llf_left;
     urb = urb_left;
@@ -1193,6 +1258,7 @@ int check_for_overlapped_walls(World* world) {
 #endif
   return 0;
 }
+
 
 } /* namespace Geometry */
 

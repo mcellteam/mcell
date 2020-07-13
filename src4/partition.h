@@ -684,6 +684,15 @@ public:
     return nullptr;
   }
 
+  Region* find_region_by_name(const std::string& name) {
+    for (Region& r: regions) {
+      if (r.name == name) {
+        return &r;
+      }
+    }
+    return nullptr;
+  }
+
   uint get_wall_count() const {
     return walls.size();
   }

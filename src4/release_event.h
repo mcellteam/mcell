@@ -58,7 +58,7 @@ enum class ReleaseShape {
   INITIAL_SURF_REGION,
 };
 
-
+// TODO: rename to uppercase
 enum class ReleaseNumberMethod {
   Invalid,
   ConstNum, // used also for ReleaseShape::LIST
@@ -235,7 +235,8 @@ private:
   void release_onto_regions(uint computed_release_number);
 
   // for volume molecule releases into a region
-  void release_inside_regions(uint computed_release_number);
+  uint num_vol_mols_from_conc(bool &exact_number);
+  void release_inside_regions(uint& computed_release_number);
 
   // for volume molecule releases
   void release_ellipsoid_or_rectcuboid(uint computed_release_number);

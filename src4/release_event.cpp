@@ -433,7 +433,7 @@ bool ReleaseEvent::initialize_walls_for_release() {
 }
 
 
-static void check_max_release_count(double num_to_release, const std::string& name) {
+static void check_max_release_count(float_t num_to_release, const std::string& name) {
   int num = (int)num_to_release;
   if (num < 0 || num > INT_MAX) {
     mcell_error(
@@ -451,30 +451,35 @@ uint ReleaseEvent::calculate_number_to_release() {
 
     case ReleaseNumberMethod::ConcNum:
       if (diameter == Vec3(LENGTH_INVALID)) {
+        // set for instance for ReleaseShape::SPHERICAL
         return 0;
       }
       else {
         float_t vol;
         switch (release_shape) {
-        case ReleaseShape::SPHERICAL:
-        //case ReleaseShape::ELLIPTIC:
-          vol = (1.0 / 6.0) * MY_PI * diameter.x * diameter.y * diameter.z;
-          break;
-        /*case SHAPE_RECTANGULAR:
-        case SHAPE_CUBIC:
-          vol = rso->diameter->x * rso->diameter->y * rso->diameter->z;
-          break;*/
+          case ReleaseShape::SPHERICAL:
+          //case ReleaseShape::ELLIPTIC:
+            vol = (1.0 / 6.0) * MY_PI * diameter.x * diameter.y * diameter.z;
+            break;
+          /*case SHAPE_RECTANGULAR:
+          case SHAPE_CUBIC:
+            vol = rso->diameter->x * rso->diameter->y * rso->diameter->z;
+            break;*/
 
-        case ReleaseShape::SPHERICAL_SHELL:
-          mcell_error("Release site \"%s\" tries to release a concentration on a "
-                      "spherical shell.", release_site_name.c_str());
-          break;
+          case ReleaseShape::SPHERICAL_SHELL:
+            mcell_error("Release site \"%s\" tries to release a concentration on a "
+                        "spherical shell.", release_site_name.c_str());
+            break;
 
-        default:
-          mcell_internal_error("Release by concentration on invalid release site "
-                               "shape (%d) for release site \"%s\".",
-                               (int)release_shape, release_site_name.c_str());
-          break;
+          case ReleaseShape::REGION:
+            // number is computed in release_inside_regions
+            return 0;
+
+          default:
+            mcell_internal_error("Release by concentration on invalid release site "
+                                 "shape (%d) for release site \"%s\".",
+                                 (int)release_shape, release_site_name.c_str());
+            break;
         }
         assert(concentration != FLT_INVALID);
         float_t num_to_release =
@@ -625,17 +630,62 @@ static bool is_point_inside_region_expr_recursively(const Partition& p, const Ve
 }
 
 
-void ReleaseEvent::release_inside_regions(uint computed_release_number) {
+/*
+ * num_vol_mols_from_conc computes the number of volume molecules to be
+ * released within a closed object. There are two cases:
+ * - for a single closed object we know the exact volume and can thus compute
+ *   the exact number of molecules required and release them by setting
+ *   exactNumber to true.
+ * - for a release object consisting of a boolean expression of closed objects
+ *   we are currently not able to compute the volume exactly. Instead we compute
+ *   the number of molecules in the bounding box and then release an approximate
+ *   number by setting exactNumber to false.
+ */
+uint ReleaseEvent::num_vol_mols_from_conc(bool &exact_number) {
+  Partition& p = world->get_partition(PARTITION_ID_INITIAL);
+  float_t vol = 0.0;
+  if (region_expr_root->op == RegionExprOperator::Leaf) {
+    Region *r = p.find_region_by_name(region_expr_root->region_name);
+    if (!r->is_volume_info_uptodate())
+      r->update_volume_info(p);
+    release_assert(r->is_manifold() && "Trying to release into a regions that is not a manifold and has no volume");
+    vol = r->get_volume();
+    exact_number = true;
+  }
+  else {
+    // estimate the volume
+    vol =
+        (region_urb.x - region_llf.x) *
+        (region_urb.y - region_llf.y) *
+        (region_urb.z - region_llf.z);
+    exact_number = false;
+  }
+
+  float_t num_to_release =
+      N_AV * 1e-15 * concentration * vol * pow_f(world->config.length_unit, 3) + 0.5;
+
+  check_max_release_count(num_to_release, release_site_name);
+  return num_to_release;
+}
+
+
+/*************************************************************************
+release_inside_regions:
+  Note: if the CCNNUM release method is used, the number of molecules
+        passed in is ignored.
+*************************************************************************/
+void ReleaseEvent::release_inside_regions(uint& computed_release_number) {
 
   assert(region_expr_root != nullptr);
 
   Partition& p = world->get_partition(0);
 
-  /*if (rso->release_number_method == CCNNUM) {
-    n = num_vol_mols_from_conc(rso, state->length_unit, &exactNumber);
-  }*/
+  bool exact_number = false;
+  if (release_number_method == ReleaseNumberMethod::ConcNum) {
+    computed_release_number = num_vol_mols_from_conc(exact_number);
+  }
 
-  int n = computed_release_number;
+  uint n = computed_release_number;
 
   while (n > 0) {
     Vec3 pos;
@@ -644,8 +694,10 @@ void ReleaseEvent::release_inside_regions(uint computed_release_number) {
     pos.z = region_llf.z + (region_urb.z - region_llf.z) * rng_dbl(&world->rng);
 
     if (!is_point_inside_region_expr_recursively(p, pos, region_expr_root)) {
-      /*if (rso->release_number_method == CCNNUM && !exactNumber)
-        n--;*/
+      if (release_number_method == ReleaseNumberMethod::ConcNum && !exact_number) {
+        computed_release_number--;
+        n--;
+      }
       continue;
     }
 
@@ -922,7 +974,7 @@ void ReleaseEvent::release_initial_molecules_onto_surf_regions() {
   }
 }
 
-
+// TODO: cleanup the release number computation
 void ReleaseEvent::step() {
 
   uint num_released = UINT_INVALID;

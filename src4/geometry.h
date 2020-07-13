@@ -167,7 +167,9 @@ class Region {
 public:
   Region()
     : id(REGION_ID_INVALID), index(REGION_INDEX_INVALID), name(""),
-      species_id(SPECIES_ID_INVALID), geometry_object_id(GEOMETRY_OBJECT_ID_INVALID) {
+      species_id(SPECIES_ID_INVALID), geometry_object_id(GEOMETRY_OBJECT_ID_INVALID),
+      volume_info_uptodate(false), region_is_manifold(false), volume(FLT_INVALID)
+      {
   }
 
   region_id_t id;
@@ -190,6 +192,31 @@ public:
   // initial counts of molecules for this region
   std::vector<InitialRegionMolecules> initial_region_molecules;
 
+private:
+  bool volume_info_uptodate;
+  Vec3 bounding_box_llf;
+  Vec3 bounding_box_urb;
+  bool region_is_manifold;
+  float_t volume;
+
+public:
+
+  void update_volume_info(const Partition& p);
+
+  bool is_volume_info_uptodate() const {
+    return volume_info_uptodate;
+  }
+
+  bool is_manifold() const {
+    assert(volume_info_uptodate);
+    return region_is_manifold;
+  }
+
+  float_t get_volume() const {
+    assert(volume_info_uptodate);
+    return volume;
+  }
+
   bool is_edge(wall_index_t wall_index, edge_index_t edge_index) const {
     auto it = walls_and_edges.find(wall_index);
     if (it != walls_and_edges.end()) {
@@ -203,6 +230,8 @@ public:
   bool is_reactive() const {
     return species_id != SPECIES_ID_INVALID;
   }
+
+
 
   // covers whole region
   // TODO: better name?
@@ -563,10 +592,16 @@ typedef std::vector<GeometryObject> GeometryObjectVector;
 
 
 // several utility functions related to geometry
+// TODO: move this to a separate file
 namespace Geometry {
 
+void compute_region_bounding_box(
+    const Partition& p, const Region *r,
+    Vec3& llf, Vec3& urb
+);
+
 // used when creating release event
-bool get_region_expr_bounding_box(
+bool compute_region_expr_bounding_box(
     const World* world, const RegionExprNode* region_expr,
     Vec3& llf, Vec3& urb
 );

@@ -1238,7 +1238,11 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
           assert(world->get_all_species().is_valid_id(rel_event->species_id));
         }
 
-        CHECK_PROPERTY(rel_site->release_number_method == CONSTNUM || rel_site->release_number_method == DENSITYNUM);
+        CHECK_PROPERTY(
+            rel_site->release_number_method == CONSTNUM ||
+            rel_site->release_number_method == DENSITYNUM ||
+            rel_site->release_number_method == CCNNUM
+        );
         switch(rel_site->release_number_method) {
           case CONSTNUM:
             rel_event->release_number_method = ReleaseNumberMethod::ConstNum;
@@ -1246,6 +1250,9 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
             break;
           case DENSITYNUM:
             rel_event->release_number_method = ReleaseNumberMethod::DensityNum;
+            break;
+          case CCNNUM:
+            rel_event->release_number_method = ReleaseNumberMethod::ConcNum;
             break;
           default:
             assert(false);

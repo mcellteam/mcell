@@ -809,7 +809,7 @@ void MCell4Converter::convert_region_expr(API::ReleaseSite& rel_site, MCell::Rel
   rel_event->region_expr_root = convert_region_expr_recursively(rel_site.region, rel_event);
 
   // also set llf and urb
-  bool ok = Geometry::get_region_expr_bounding_box(world, rel_event->region_expr_root, rel_event->region_llf, rel_event->region_urb);
+  bool ok = Geometry::compute_region_expr_bounding_box(world, rel_event->region_expr_root, rel_event->region_llf, rel_event->region_urb);
   if (!ok) {
     throw RuntimeError("Region for releases specified by " + rel_event->region_expr_root->region_name + " is not closed.");
   }
