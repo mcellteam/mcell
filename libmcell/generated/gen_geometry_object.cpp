@@ -24,6 +24,7 @@
 #include "libs/pybind11/include/pybind11/stl.h"
 #include "gen_geometry_object.h"
 #include "../api/geometry_object.h"
+#include "../api/initial_surface_release.h"
 #include "../api/region.h"
 #include "../api/surface_class.h"
 #include "../api/surface_region.h"
@@ -61,6 +62,7 @@ bool GenGeometryObject::__eq__(const GenGeometryObject& other) const {
           true
         )
      )  &&
+    vec_ptr_eq(initial_surface_releases, other.initial_surface_releases) &&
     node_type == other.node_type &&
     (
       (left_node != nullptr) ?
@@ -91,6 +93,7 @@ void GenGeometryObject::set_initialized() {
   if (is_set(surface_class)) {
     surface_class->set_initialized();
   }
+  vec_set_initialized(initial_surface_releases);
   if (is_set(left_node)) {
     left_node->set_initialized();
   }
@@ -107,6 +110,7 @@ void GenGeometryObject::set_all_attributes_as_default_or_unset() {
   element_connections = std::vector<std::vector<int>>();
   surface_regions = std::vector<std::shared_ptr<SurfaceRegion>>();
   surface_class = nullptr;
+  initial_surface_releases = std::vector<std::shared_ptr<InitialSurfaceRelease>>();
   node_type = RegionNodeType::UNSET;
   left_node = nullptr;
   right_node = nullptr;
@@ -120,6 +124,7 @@ std::string GenGeometryObject::to_str(const std::string ind) const {
       "element_connections=" << vec_nonptr_to_str(element_connections, ind + "  ") << ", " <<
       "\n" << ind + "  " << "surface_regions=" << vec_ptr_to_str(surface_regions, ind + "  ") << ", " << "\n" << ind + "  " <<
       "surface_class=" << "(" << ((surface_class != nullptr) ? surface_class->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "initial_surface_releases=" << vec_ptr_to_str(initial_surface_releases, ind + "  ") << ", " << "\n" << ind + "  " <<
       "node_type=" << node_type << ", " <<
       "\n" << ind + "  " << "left_node=" << "(" << ((left_node != nullptr) ? left_node->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "right_node=" << "(" << ((right_node != nullptr) ? right_node->to_str(ind + "  ") : "null" ) << ")";
@@ -135,6 +140,7 @@ py::class_<GeometryObject> define_pybinding_GeometryObject(py::module& m) {
             const std::vector<std::vector<int>>,
             const std::vector<std::shared_ptr<SurfaceRegion>>,
             std::shared_ptr<SurfaceClass>,
+            const std::vector<std::shared_ptr<InitialSurfaceRelease>>,
             const RegionNodeType,
             std::shared_ptr<Region>,
             std::shared_ptr<Region>
@@ -144,6 +150,7 @@ py::class_<GeometryObject> define_pybinding_GeometryObject(py::module& m) {
           py::arg("element_connections"),
           py::arg("surface_regions") = std::vector<std::shared_ptr<SurfaceRegion>>(),
           py::arg("surface_class") = nullptr,
+          py::arg("initial_surface_releases") = std::vector<std::shared_ptr<InitialSurfaceRelease>>(),
           py::arg("node_type") = RegionNodeType::UNSET,
           py::arg("left_node") = nullptr,
           py::arg("right_node") = nullptr
@@ -156,6 +163,7 @@ py::class_<GeometryObject> define_pybinding_GeometryObject(py::module& m) {
       .def_property("element_connections", &GeometryObject::get_element_connections, &GeometryObject::set_element_connections)
       .def_property("surface_regions", &GeometryObject::get_surface_regions, &GeometryObject::set_surface_regions)
       .def_property("surface_class", &GeometryObject::get_surface_class, &GeometryObject::set_surface_class)
+      .def_property("initial_surface_releases", &GeometryObject::get_initial_surface_releases, &GeometryObject::set_initial_surface_releases)
     ;
 }
 

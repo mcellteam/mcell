@@ -336,7 +336,7 @@ class SurfaceRegion():
             name : str,
             wall_indices : List[int],
             surface_class : SurfaceClass = None,
-            initial_releases : List[InitialSurfaceRelease] = None,
+            initial_surface_releases : List[InitialSurfaceRelease] = None,
             node_type : RegionNodeType = RegionNodeType.UNSET,
             left_node : Region = None,
             right_node : Region = None
@@ -344,7 +344,7 @@ class SurfaceRegion():
         self.name = name
         self.wall_indices = wall_indices
         self.surface_class = surface_class
-        self.initial_releases = initial_releases
+        self.initial_surface_releases = initial_surface_releases
         self.node_type = node_type
         self.left_node = left_node
         self.right_node = right_node
@@ -376,6 +376,7 @@ class GeometryObject():
             element_connections : List[List[int]],
             surface_regions : List[SurfaceRegion] = None,
             surface_class : SurfaceClass = None,
+            initial_surface_releases : List[InitialSurfaceRelease] = None,
             node_type : RegionNodeType = RegionNodeType.UNSET,
             left_node : Region = None,
             right_node : Region = None
@@ -385,6 +386,7 @@ class GeometryObject():
         self.element_connections = element_connections
         self.surface_regions = surface_regions
         self.surface_class = surface_class
+        self.initial_surface_releases = initial_surface_releases
         self.node_type = node_type
         self.left_node = left_node
         self.right_node = right_node

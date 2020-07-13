@@ -61,7 +61,7 @@ SurfaceRegion:
     default: unset
     doc: Has higher priority than the parent geometry object's surface class.
 
-  - name: initial_releases
+  - name: initial_surface_releases
     type: List[InitialSurfaceRelease*]
     default: empty
     doc: |
@@ -110,4 +110,14 @@ GeometryObject:
     doc: |
       Surface class for the whole object's surface. It is applied to the whole surface of this object 
       except for those surface regions that have their specific surface class set explicitly.
+    internal: Shouldn't we be inheriting this from Region? 
+
+  - name: initial_surface_releases
+    type: List[InitialSurfaceRelease*]
+    default: empty
+    doc: |
+      Equivalent to MDL's MODIFY_SURFACE_REGIONS/MOLECULE_DENSITY or MOLECULE_NUMBER,
+      each item defines either density or number of molecules to be released on this surface 
+      regions when simulation starts.
+    internal: Shouldn't we be inheriting this from Region?
 

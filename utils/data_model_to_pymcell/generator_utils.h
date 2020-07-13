@@ -135,17 +135,35 @@ static string make_enum_value(const string enum_name, const string value) {
 }
 
 
-static void check_version(const string node_name, Json::Value& node, const char* const version) {
-  if (node[KEY_DATA_MODEL_VERSION].asString() != version) {
+static void check_versions(
+    const string node_name, Json::Value& node,
+    const char* const version1, const char* const version2) {
+  if (node[KEY_DATA_MODEL_VERSION].asString() != version1 &&
+      node[KEY_DATA_MODEL_VERSION].asString() != version2) {
     throw ConversionError(
         "Error: version for " + node_name + " is " + node[KEY_DATA_MODEL_VERSION].asString() +
-        ", expected " + version);
+        ", expected " + version1 + " or " + version2 + ".");
   }
 }
 
 
+static void check_version(const string node_name, Json::Value& node, const char* const version) {
+  if (node[KEY_DATA_MODEL_VERSION].asString() != version) {
+    throw ConversionError(
+        "Error: version for " + node_name + " is " + node[KEY_DATA_MODEL_VERSION].asString() +
+        ", expected " + version + ".");
+  }
+}
+
+
+// name might be empty
 void gen_ctor_call(ofstream& out, string name, string class_name, bool has_params = true) {
-  out << name << " = " << MDOT << class_name;
+  if (name != "") {
+    out << name << " = " << MDOT << class_name;
+  }
+  else {
+    out << MDOT << class_name;
+  }
   if (has_params) {
     out << "(\n";
   }

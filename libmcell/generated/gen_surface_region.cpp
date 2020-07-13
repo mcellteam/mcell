@@ -56,7 +56,7 @@ bool GenSurfaceRegion::__eq__(const GenSurfaceRegion& other) const {
           true
         )
      )  &&
-    vec_ptr_eq(initial_releases, other.initial_releases) &&
+    vec_ptr_eq(initial_surface_releases, other.initial_surface_releases) &&
     node_type == other.node_type &&
     (
       (left_node != nullptr) ?
@@ -86,7 +86,7 @@ void GenSurfaceRegion::set_initialized() {
   if (is_set(surface_class)) {
     surface_class->set_initialized();
   }
-  vec_set_initialized(initial_releases);
+  vec_set_initialized(initial_surface_releases);
   if (is_set(left_node)) {
     left_node->set_initialized();
   }
@@ -101,7 +101,7 @@ void GenSurfaceRegion::set_all_attributes_as_default_or_unset() {
   name = STR_UNSET;
   wall_indices = std::vector<int>();
   surface_class = nullptr;
-  initial_releases = std::vector<std::shared_ptr<InitialSurfaceRelease>>();
+  initial_surface_releases = std::vector<std::shared_ptr<InitialSurfaceRelease>>();
   node_type = RegionNodeType::UNSET;
   left_node = nullptr;
   right_node = nullptr;
@@ -113,7 +113,7 @@ std::string GenSurfaceRegion::to_str(const std::string ind) const {
       "name=" << name << ", " <<
       "wall_indices=" << vec_nonptr_to_str(wall_indices, ind + "  ") << ", " <<
       "\n" << ind + "  " << "surface_class=" << "(" << ((surface_class != nullptr) ? surface_class->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      "initial_releases=" << vec_ptr_to_str(initial_releases, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "initial_surface_releases=" << vec_ptr_to_str(initial_surface_releases, ind + "  ") << ", " << "\n" << ind + "  " <<
       "node_type=" << node_type << ", " <<
       "\n" << ind + "  " << "left_node=" << "(" << ((left_node != nullptr) ? left_node->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "right_node=" << "(" << ((right_node != nullptr) ? right_node->to_str(ind + "  ") : "null" ) << ")";
@@ -135,7 +135,7 @@ py::class_<SurfaceRegion> define_pybinding_SurfaceRegion(py::module& m) {
           py::arg("name"),
           py::arg("wall_indices"),
           py::arg("surface_class") = nullptr,
-          py::arg("initial_releases") = std::vector<std::shared_ptr<InitialSurfaceRelease>>(),
+          py::arg("initial_surface_releases") = std::vector<std::shared_ptr<InitialSurfaceRelease>>(),
           py::arg("node_type") = RegionNodeType::UNSET,
           py::arg("left_node") = nullptr,
           py::arg("right_node") = nullptr
@@ -146,7 +146,7 @@ py::class_<SurfaceRegion> define_pybinding_SurfaceRegion(py::module& m) {
       .def_property("name", &SurfaceRegion::get_name, &SurfaceRegion::set_name)
       .def_property("wall_indices", &SurfaceRegion::get_wall_indices, &SurfaceRegion::set_wall_indices)
       .def_property("surface_class", &SurfaceRegion::get_surface_class, &SurfaceRegion::set_surface_class)
-      .def_property("initial_releases", &SurfaceRegion::get_initial_releases, &SurfaceRegion::set_initial_releases)
+      .def_property("initial_surface_releases", &SurfaceRegion::get_initial_surface_releases, &SurfaceRegion::set_initial_surface_releases)
     ;
 }
 
