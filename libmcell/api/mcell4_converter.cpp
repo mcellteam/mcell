@@ -904,6 +904,10 @@ void MCell4Converter::convert_release_events() {
       rel_event->release_number_method = ReleaseNumberMethod::DensityNum;
       rel_event->concentration = r->density;
     }
+    else if (is_set(r->concentration)) {
+      rel_event->release_number_method = ReleaseNumberMethod::ConcentrationNum;
+      rel_event->concentration = r->concentration;
+    }
     else if (is_set(r->molecule_list)) {
       rel_event->release_number_method = ReleaseNumberMethod::ConstNum;
       convert_molecule_list(r->molecule_list, rel_event);
@@ -926,7 +930,7 @@ void MCell4Converter::convert_release_events() {
           convert_region_expr(*r, rel_event);
           bool ok = rel_event->initialize_walls_for_release();
           if (!ok) {
-            throw RuntimeError("Only simple surface regions are supported now, error for " + r->name + ".");
+            throw RuntimeError("Only simple surface regions are supported for surface releases currently, error for " + r->name + ".");
           }
         }
         break;

@@ -78,6 +78,7 @@ const char* const NAME_CENTER_MOLECULES_ON_GRID = "center_molecules_on_grid";
 const char* const NAME_COMPLEX_INSTANCE = "complex_instance";
 const char* const NAME_COMPONENT_TYPE = "component_type";
 const char* const NAME_COMPONENTS = "components";
+const char* const NAME_CONCENTRATION = "concentration";
 const char* const NAME_CONFIG = "config";
 const char* const NAME_COUNT = "count";
 const char* const NAME_COUNT_EXPRESSION = "count_expression";

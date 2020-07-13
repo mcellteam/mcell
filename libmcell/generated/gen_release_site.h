@@ -51,6 +51,7 @@ class Species;
         const float_t site_radius_ = FLT_UNSET, \
         const int number_to_release_ = INT_UNSET, \
         const float_t density_ = FLT_UNSET, \
+        const float_t concentration_ = FLT_UNSET, \
         const float_t release_probability_ = FLT_UNSET \
     ) { \
       class_name = "ReleaseSite"; \
@@ -68,6 +69,7 @@ class Species;
       site_radius = site_radius_; \
       number_to_release = number_to_release_; \
       density = density_; \
+      concentration = concentration_; \
       release_probability = release_probability_; \
       postprocess_in_ctor();\
       check_semantics();\
@@ -238,6 +240,18 @@ public:
   }
   virtual float_t get_density() const {
     return density;
+  }
+
+  float_t concentration;
+  virtual void set_concentration(const float_t new_concentration_) {
+    if (initialized) {
+      throw RuntimeError("Value 'concentration' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
+    concentration = new_concentration_;
+  }
+  virtual float_t get_concentration() const {
+    return concentration;
   }
 
   float_t release_probability;

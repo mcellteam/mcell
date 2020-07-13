@@ -1252,7 +1252,7 @@ bool MCell3WorldConverter::convert_release_events(volume* s) {
             rel_event->release_number_method = ReleaseNumberMethod::DensityNum;
             break;
           case CCNNUM:
-            rel_event->release_number_method = ReleaseNumberMethod::ConcNum;
+            rel_event->release_number_method = ReleaseNumberMethod::ConcentrationNum;
             break;
           default:
             assert(false);

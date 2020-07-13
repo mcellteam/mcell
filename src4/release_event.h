@@ -64,7 +64,7 @@ enum class ReleaseNumberMethod {
   ConstNum, // used also for ReleaseShape::LIST
   GaussNum,
   VolNum,
-  ConcNum,
+  ConcentrationNum,
   DensityNum
 };
 
@@ -174,7 +174,7 @@ public:
 
   ReleaseNumberMethod release_number_method; // specifies what does the release_number mean
   uint release_number; // number of molecules to release
-  float_t concentration;
+  float_t concentration; // or density for surface releases
 
   orientation_t orientation;
 

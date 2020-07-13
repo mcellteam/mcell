@@ -96,6 +96,7 @@ bool GenReleaseSite::__eq__(const GenReleaseSite& other) const {
     site_radius == other.site_radius &&
     number_to_release == other.number_to_release &&
     density == other.density &&
+    concentration == other.concentration &&
     release_probability == other.release_probability;
 }
 
@@ -132,6 +133,7 @@ void GenReleaseSite::set_all_attributes_as_default_or_unset() {
   site_radius = FLT_UNSET;
   number_to_release = INT_UNSET;
   density = FLT_UNSET;
+  concentration = FLT_UNSET;
   release_probability = FLT_UNSET;
 }
 
@@ -152,6 +154,7 @@ std::string GenReleaseSite::to_str(const std::string ind) const {
       "site_radius=" << site_radius << ", " <<
       "number_to_release=" << number_to_release << ", " <<
       "density=" << density << ", " <<
+      "concentration=" << concentration << ", " <<
       "release_probability=" << release_probability;
   return ss.str();
 }
@@ -174,6 +177,7 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
             const float_t,
             const int,
             const float_t,
+            const float_t,
             const float_t
           >(),
           py::arg("name"),
@@ -190,6 +194,7 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
           py::arg("site_radius") = FLT_UNSET,
           py::arg("number_to_release") = INT_UNSET,
           py::arg("density") = FLT_UNSET,
+          py::arg("concentration") = FLT_UNSET,
           py::arg("release_probability") = FLT_UNSET
       )
       .def("check_semantics", &ReleaseSite::check_semantics)
@@ -209,6 +214,7 @@ py::class_<ReleaseSite> define_pybinding_ReleaseSite(py::module& m) {
       .def_property("site_radius", &ReleaseSite::get_site_radius, &ReleaseSite::set_site_radius)
       .def_property("number_to_release", &ReleaseSite::get_number_to_release, &ReleaseSite::set_number_to_release)
       .def_property("density", &ReleaseSite::get_density, &ReleaseSite::set_density)
+      .def_property("concentration", &ReleaseSite::get_concentration, &ReleaseSite::set_concentration)
       .def_property("release_probability", &ReleaseSite::get_release_probability, &ReleaseSite::set_release_probability)
     ;
 }

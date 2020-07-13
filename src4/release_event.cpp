@@ -271,10 +271,10 @@ void ReleaseEvent::to_data_model_as_one_release_site(
     case ReleaseNumberMethod::VolNum:
       CONVERSION_UNSUPPORTED("Release event " + release_site_name + " has unsupported release_number_method VolNum.");
       break;
-    case ReleaseNumberMethod::ConcNum:
+    case ReleaseNumberMethod::ConcentrationNum:
     case ReleaseNumberMethod::DensityNum:
       release_site[KEY_QUANTITY_TYPE] = VALUE_DENSITY;
-      release_site[KEY_QUANTITY] = to_string(concentration);
+      release_site[KEY_QUANTITY] = DMUtil::f_to_string(concentration);
       break;
     default:
       CONVERSION_UNSUPPORTED("Release event " + release_site_name + " has invalid release_number_method.");
@@ -399,7 +399,11 @@ bool ReleaseEvent::initialize_walls_for_release() {
 
   // no need to initialize
   const BNG::Species& species = world->get_all_species().get(species_id);
-  if (species.is_vol() && release_number_method == ReleaseNumberMethod::ConstNum) {
+  if (species.is_vol() &&
+      (release_number_method == ReleaseNumberMethod::ConstNum ||
+       release_number_method == ReleaseNumberMethod::ConcentrationNum
+      )
+  ) {
     // no need to initialize walls for this case
     return true;
   }
@@ -449,7 +453,7 @@ uint ReleaseEvent::calculate_number_to_release() {
     case ReleaseNumberMethod::ConstNum:
       return release_number;
 
-    case ReleaseNumberMethod::ConcNum:
+    case ReleaseNumberMethod::ConcentrationNum:
       if (diameter == Vec3(LENGTH_INVALID)) {
         // set for instance for ReleaseShape::SPHERICAL
         return 0;
@@ -681,7 +685,7 @@ void ReleaseEvent::release_inside_regions(uint& computed_release_number) {
   Partition& p = world->get_partition(0);
 
   bool exact_number = false;
-  if (release_number_method == ReleaseNumberMethod::ConcNum) {
+  if (release_number_method == ReleaseNumberMethod::ConcentrationNum) {
     computed_release_number = num_vol_mols_from_conc(exact_number);
   }
 
@@ -694,7 +698,7 @@ void ReleaseEvent::release_inside_regions(uint& computed_release_number) {
     pos.z = region_llf.z + (region_urb.z - region_llf.z) * rng_dbl(&world->rng);
 
     if (!is_point_inside_region_expr_recursively(p, pos, region_expr_root)) {
-      if (release_number_method == ReleaseNumberMethod::ConcNum && !exact_number) {
+      if (release_number_method == ReleaseNumberMethod::ConcentrationNum && !exact_number) {
         computed_release_number--;
         n--;
       }

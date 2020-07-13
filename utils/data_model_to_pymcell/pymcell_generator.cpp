@@ -813,6 +813,7 @@ vector<string> PymcellGenerator::generate_release_sites(ofstream& out) {
     gen_ctor_call(out, name, NAME_CLASS_RELEASE_SITE);
     gen_param(out, NAME_NAME, name, true);
 
+    bool is_vol;
     if (shape != VALUE_LIST) {
       string species_name = release_site_item[KEY_MOLECULE].asString();
       gen_param_id(out, NAME_SPECIES, species_name, true);
@@ -821,7 +822,7 @@ vector<string> PymcellGenerator::generate_release_sites(ofstream& out) {
       string orientation = convert_orientation(release_site_item[KEY_ORIENT].asString());
       if (orientation != "") {
         // check that this is not a volume molecule
-        bool is_vol = is_volume_species(species_name);
+        is_vol = is_volume_species(species_name);
         if (is_vol) {
           cout <<
               "Ignoring orientation set for release site " << name << " with species " << species_name <<
@@ -871,7 +872,13 @@ vector<string> PymcellGenerator::generate_release_sites(ofstream& out) {
         gen_param_expr(out, NAME_NUMBER_TO_RELEASE, release_site_item[KEY_QUANTITY], false);
       }
       else if (quantity_type == VALUE_DENSITY) {
-        gen_param_expr(out, NAME_DENSITY, release_site_item[KEY_QUANTITY], false);
+        string species_name = release_site_item[KEY_MOLECULE].asString();
+        if (is_volume_species(species_name)) {
+          gen_param_expr(out, NAME_CONCENTRATION, release_site_item[KEY_QUANTITY], false);
+        }
+        else {
+          gen_param_expr(out, NAME_DENSITY, release_site_item[KEY_QUANTITY], false);
+        }
       }
       else {
         ERROR("Quantity type " + quantity_type + " is not supported yet");

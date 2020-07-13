@@ -68,10 +68,10 @@ public:
       throw ValueError(S("Only either ") + NAME_SITE_DIAMETER + " or " + NAME_SITE_RADIUS + " can be set.");
     }
 
-    if (get_num_set(number_to_release, density, molecule_list) != 1) {
+    if (get_num_set(number_to_release, density, concentration, molecule_list) != 1) {
       throw ValueError(
-          S("Exactly one of ") + NAME_NUMBER_TO_RELEASE + ", " + NAME_DENSITY + " or " +
-          NAME_MOLECULE_LIST + " must be set.");
+          S("Exactly one of ") + NAME_NUMBER_TO_RELEASE + ", " + NAME_DENSITY + ", " + NAME_CONCENTRATION +
+          " or " + NAME_MOLECULE_LIST + " must be set.");
     }
 
     if (get_num_set(species, complex_instance, molecule_list) != 1) {

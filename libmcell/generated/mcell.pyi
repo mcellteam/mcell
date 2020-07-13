@@ -455,6 +455,7 @@ class ReleaseSite():
             site_radius : float = None,
             number_to_release : int = None,
             density : float = None,
+            concentration : float = None,
             release_probability : float = None
         ):
         self.name = name
@@ -471,6 +472,7 @@ class ReleaseSite():
         self.site_radius = site_radius
         self.number_to_release = number_to_release
         self.density = density
+        self.concentration = concentration
         self.release_probability = release_probability
 
 
