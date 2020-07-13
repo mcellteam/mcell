@@ -896,7 +896,10 @@ void PymcellGenerator::generate_surface_classes_assignment(ofstream& out) {
   Value& modify_surface_regions_list = modify_surface_regions[KEY_MODIFY_SURFACE_REGIONS_LIST];
   for (Value::ArrayIndex i = 0; i < modify_surface_regions_list.size(); i++) {
     Value& modify_surface_regions_item = modify_surface_regions_list[i];
-    check_version(KEY_MODIFY_SURFACE_REGIONS_LIST, modify_surface_regions_item, VER_DM_2018_01_11_1330);
+    check_versions(
+        KEY_MODIFY_SURFACE_REGIONS_LIST, modify_surface_regions_item,
+        VER_DM_2018_01_11_1330, VER_DM_2020_07_12_1600
+    );
 
     string object_name = modify_surface_regions_item[KEY_OBJECT_NAME].asString();
     CHECK_PROPERTY(object_name != "");
@@ -914,10 +917,48 @@ void PymcellGenerator::generate_surface_classes_assignment(ofstream& out) {
       ERROR("Unexpected value " + region_selection + " of " + KEY_REGION_SELECTION + ".");
     }
 
-    string surf_class_name = modify_surface_regions_item[KEY_SURF_CLASS_NAME].asString();
+    // handle initial_region_molecules_list if present
+    if (modify_surface_regions_item.isMember(KEY_INITIAL_REGION_MOLECULES_LIST)) {
+      string initial_region_molecules_name = obj_or_region_name + "_" + NAME_INITIAL_SURFACE_RELEASES;
+      out << initial_region_molecules_name << " = [\n";
 
-    // generate the assignment
-    out << obj_or_region_name << "." << NAME_SURFACE_CLASS << " = " << surf_class_name << "\n";
+      Value& initial_region_molecules_list = modify_surface_regions_item[KEY_INITIAL_REGION_MOLECULES_LIST];
+      for (Value::ArrayIndex rel_i = 0; rel_i < initial_region_molecules_list.size(); rel_i++) {
+        Value& item = initial_region_molecules_list[rel_i];
+        out << "    ";
+        gen_ctor_call(out, "", NAME_CLASS_INITIAL_SURFACE_RELEASE, true);
+        out << "    ";
+        gen_param_id(out, NAME_SPECIES, item[KEY_MOLECULE], true);
+        out << "    ";
+        gen_param_enum(out, NAME_ORIENTATION, NAME_ENUM_ORIENTATION, convert_orientation(item[KEY_ORIENT].asString()), true);
+        out << "    ";
+        if (item.isMember(KEY_MOLECULE_NUMBER)) {
+          gen_param_expr(out, NAME_NUMBER_TO_RELEASE, item[KEY_MOLECULE_NUMBER], false);
+        }
+        else if (item.isMember(KEY_MOLECULE_DENSITY)) {
+          gen_param_expr(out, NAME_DENSITY, item[KEY_MOLECULE_DENSITY], false);
+        }
+        else {
+          ERROR(
+              S("Missing ") + KEY_MOLECULE_NUMBER + " or " + KEY_MOLECULE_DENSITY +
+              " in " + KEY_INITIAL_REGION_MOLECULES_LIST + "."
+          );
+        }
+        out << "    )";
+        gen_comma(out, rel_i, initial_region_molecules_list);
+        out << "\n";
+      }
+      out << "]\n\n";
+
+      out << obj_or_region_name << "." << NAME_INITIAL_SURFACE_RELEASES << " = " << initial_region_molecules_name << "\n";
+    }
+
+    // and also surface class name
+    if (modify_surface_regions_item.isMember(KEY_SURF_CLASS_NAME)) {
+      string surf_class_name = modify_surface_regions_item[KEY_SURF_CLASS_NAME].asString();
+      out << obj_or_region_name << "." << NAME_SURFACE_CLASS << " = " << surf_class_name << "\n";
+    }
+
   }
   out << "\n";
 }
