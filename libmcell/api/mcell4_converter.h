@@ -40,6 +40,7 @@ namespace MCell {
 
 class World;
 class Partition;
+class InitialRegionMolecules;
 class GeometryObject;
 class ReleaseEvent;
 class MolOrRxnCountTerm;
@@ -55,6 +56,7 @@ class ElementaryMoleculeType;
 class ElementaryMoleculeInstance;
 class ComplexInstance;
 class SurfaceProperty;
+class InitialSurfaceRelease;
 class SurfaceRegion;
 class GeometryObject;
 class MoleculeReleaseInfo;
@@ -91,7 +93,13 @@ private:
 
   MCell::wall_index_t convert_wall_and_add_to_geom_object(
       const API::GeometryObject& src_obj, const uint side,
-      MCell::Partition& p, MCell::GeometryObject& dst_obj);
+      MCell::Partition& p, MCell::GeometryObject& dst_obj
+  );
+
+  void convert_initial_surface_releases(
+      const std::vector<std::shared_ptr<API::InitialSurfaceRelease>>& api_releases,
+      std::vector<MCell::InitialRegionMolecules>& mcell_releases
+  );
 
   MCell::region_index_t convert_surface_region(
       MCell::Partition& p,

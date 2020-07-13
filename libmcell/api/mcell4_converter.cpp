@@ -110,6 +110,9 @@ void MCell4Converter::convert(Model* model_, World* world_) {
   // since they may define the initial species in when BNGL reactions are used
   world->create_diffusion_events();
 
+  // we also need to schedule the initial release for surfaces
+  world->create_initial_surface_region_release_event();
+
   convert_mol_or_rxn_count_events_and_init_counting_flags();
 
   convert_viz_output_events();
@@ -615,6 +618,30 @@ MCell::wall_index_t MCell4Converter::convert_wall_and_add_to_geom_object(
   return wall.index;
 }
 
+void MCell4Converter::convert_initial_surface_releases(
+    const std::vector<std::shared_ptr<API::InitialSurfaceRelease>>& api_releases,
+    std::vector<MCell::InitialRegionMolecules>& mcell_releases
+) {
+  for (auto api_rel: api_releases) {
+    species_id_t species_id = api_rel->species->species_id;
+    orientation_t orientation = convert_orientation(api_rel->orientation);
+
+    if (is_set(api_rel->number_to_release)) {
+      mcell_releases.push_back(
+          InitialRegionMolecules(species_id, orientation, true, (uint)api_rel->number_to_release)
+      );
+    }
+    else if (is_set(api_rel->density)) {
+      mcell_releases.push_back(
+          InitialRegionMolecules(species_id, orientation, false, (float_t)api_rel->density)
+      );
+    }
+    else {
+      assert(false);
+    }
+  }
+}
+
 
 MCell::region_index_t MCell4Converter::convert_surface_region(
     MCell::Partition& p,
@@ -634,6 +661,12 @@ MCell::region_index_t MCell4Converter::convert_surface_region(
   if (is_set(surface_region.surface_class)) {
     assert(surface_region.surface_class->species_id != SPECIES_ID_INVALID);
     reg.species_id = surface_region.surface_class->species_id;
+  }
+  if (is_set(surface_region.initial_surface_releases)) {
+    convert_initial_surface_releases(
+        surface_region.initial_surface_releases,
+        reg.initial_region_molecules
+    );
   }
 
   reg.init_surface_region_edges(p);
@@ -660,7 +693,8 @@ void MCell4Converter::convert_geometry_objects() {
     for (auto& v: o->vertex_list) {
       // add to partition and remember its index
       // must use rcp_length_unit to be identical to mcell4 with mdl
-      vertex_index_t vi = p.add_or_find_geometry_vertex(Vec3(v[0], v[1], v[2]) * Vec3(world->config.rcp_length_unit));
+      vertex_index_t vi =
+          p.add_or_find_geometry_vertex(Vec3(v[0], v[1], v[2]) * Vec3(world->config.rcp_length_unit));
       o->vertex_indices.push_back(vi);
     }
 
@@ -681,6 +715,9 @@ void MCell4Converter::convert_geometry_objects() {
     if (is_set(o->surface_class)) {
       assert(o->surface_class->species_id != SPECIES_ID_INVALID);
       reg_all.species_id = o->surface_class->species_id;
+    }
+    if (is_set(o->initial_surface_releases)) {
+      convert_initial_surface_releases(o->initial_surface_releases, reg_all.initial_region_molecules);
     }
 
 

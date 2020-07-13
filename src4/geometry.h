@@ -119,6 +119,7 @@ public:
 
 // this class holds information for initial release of molecules onto regions specified by
 // MDL's MODIFY_SURFACE_REGIONS/MOLECULE_DENSITY or MOLECULE_NUMBER
+// TODO: rename to initial_surface_releases?
 class InitialRegionMolecules {
 public:
   InitialRegionMolecules(
