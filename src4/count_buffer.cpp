@@ -28,7 +28,7 @@
 namespace MCell {
 
 void CountItem::write(std::ostream& out) const {
-  out << time << " " << int_value << "\n";
+  out << time << " " << value << "\n";
 }
 
 void CountBuffer::flush() {

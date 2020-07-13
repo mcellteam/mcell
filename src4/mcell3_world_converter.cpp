@@ -1408,9 +1408,9 @@ bool MCell3WorldConverter::convert_viz_output_events(volume* s) {
 }
 
 
-static output_request* find_output_request_by_requester(volume* s, output_expression* expr) {
+static const output_request* find_output_request_by_requester(const volume* s, const output_expression* expr) {
   for (
-      output_request* req = s->output_request_head;
+      const output_request* req = s->output_request_head;
       req != nullptr;
       req = req->next) {
 
@@ -1425,37 +1425,86 @@ static output_request* find_output_request_by_requester(volume* s, output_expres
 
 // returns false if conversion failed
 static bool find_output_requests_terms_recursively(
-    volume* s, output_expression* expr, int sign, std::vector< pair<output_request*, int>>& requests_with_sign) {
+    const volume* s, const output_expression* expr, const int sign, const bool top_level,
+    std::vector< pair<const output_request*, int>>& requests_with_sign,
+    float_t& multiplier
+) {
   assert(sign == -1 || sign == 1);
 
   // operator must me one of +, -, #
   // # - cast output_request to expr
+  float_t ignored;
 
   switch (expr->oper) {
     case '#': {
-      output_request* req = find_output_request_by_requester(s, expr);
-      CHECK_PROPERTY(req != nullptr);
-      requests_with_sign.push_back(make_pair(req, sign));
+        const output_request* req = find_output_request_by_requester(s, expr);
+        CHECK_PROPERTY(req != nullptr);
+        requests_with_sign.push_back(make_pair(req, sign));
       }
       break;
 
+    case '(': {
+        // parentheses are encoded explicitly, we can ignore them
+        bool left_ok = find_output_requests_terms_recursively(
+          s, (const output_expression*)expr->left, sign, false, requests_with_sign, ignored);
+        if (!left_ok) {
+          return false;
+        }
+      }
+      break;
 
     case '+':
     case '-': {
-        bool left_ok = find_output_requests_terms_recursively(s, (output_expression*)expr->left, sign, requests_with_sign);
+        bool left_ok = find_output_requests_terms_recursively(
+            s, (const output_expression*)expr->left, sign, false, requests_with_sign, ignored);
         if (!left_ok) {
           return false;
         }
 
+        int new_sign = sign;
         if (expr->oper == '-') {
-          sign = -sign;
+          new_sign = -sign;
         }
-        bool right_ok = find_output_requests_terms_recursively(s, (output_expression*)expr->right, sign, requests_with_sign);
+        bool right_ok = find_output_requests_terms_recursively(
+            s, (const output_expression*)expr->right, new_sign, false, requests_with_sign, ignored);
         if (!right_ok) {
           return false;
         }
       }
       break;
+
+    case '*': {
+        CHECK_PROPERTY(top_level && "In a count term, only the whole count expression can be multiplied");
+
+        // which of the operands is the constant multiplier?
+        const output_expression* left = (const output_expression*)expr->left;
+        const output_expression* right = (const output_expression*)expr->right;
+
+        const output_expression* count_term;
+
+        if (left->oper == '#' || left->oper == '+' || left->oper == '-' || left->oper == '(') {
+          count_term = left;
+          CHECK_PROPERTY(right->oper == '=');
+          multiplier = right->value;
+        }
+        else if (right->oper == '#' || right->oper == '+' || right->oper == '-' || right->oper == '(') {
+          count_term = right;
+          CHECK_PROPERTY(left->oper == '=');
+          multiplier = left->value;
+        }
+        else {
+          CHECK_PROPERTY(false && "Could not process count expression");
+        }
+
+        assert(sign == +1);
+        bool right_ok = find_output_requests_terms_recursively(
+          s, count_term, sign, false, requests_with_sign, ignored);
+        if (!right_ok) {
+          return false;
+        }
+      }
+      break;
+
     default:
       CHECK_PROPERTY(false && "Invalid output request operator");
   }
@@ -1512,18 +1561,20 @@ bool MCell3WorldConverter::convert_mol_or_rxn_count_events(volume* s) {
       // but not how to the output_request
       // we simplify it to a list of terms with their sign
       // first is the output request, second is sign (-1 or +1)
-      std::vector< pair<output_request*, int>> requests_with_sign;
-      CHECK(find_output_requests_terms_recursively(s, column_head->expr, +1, requests_with_sign));
+      std::vector< pair<const output_request*, int>> requests_with_sign;
+      float_t multiplier = 1;
+      CHECK(find_output_requests_terms_recursively(s, column_head->expr, +1, true, requests_with_sign, multiplier));
 
       MolOrRxnCountInfo info(buffer_id);
+      info.multiplier = multiplier;
 
-      for (pair<output_request*, int>& req_w_sign: requests_with_sign) {
+      for (pair<const output_request*, int>& req_w_sign: requests_with_sign) {
 
         MolOrRxnCountTerm term;
 
         term.sign_in_expression = req_w_sign.second;
 
-        output_request* req = req_w_sign.first;
+        const output_request* req = req_w_sign.first;
         CHECK_PROPERTY(req != 0);
 
         int o = req->count_orientation;

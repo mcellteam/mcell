@@ -99,7 +99,7 @@ public:
 class MolOrRxnCountInfo {
 public:
   MolOrRxnCountInfo(const count_buffer_id_t buffer_id_)
-    : buffer_id(buffer_id_) {
+    : buffer_id(buffer_id_), multiplier(1) {
     assert(buffer_id != COUNT_BUFFER_ID_INVALID);
   }
 
@@ -112,6 +112,9 @@ public:
   // note: items are shared in MCell3 but so far it seems that
   // we can just count them separately
   std::vector<MolOrRxnCountTerm> terms;
+
+  // value used to multiply the whole result
+  float_t multiplier;
 };
 
 

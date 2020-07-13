@@ -85,11 +85,22 @@ Count:
   - name: count_expression 
     type: CountTerm*
     default: unset
+    doc: | 
+      The count expression must be composed only from CountTerm objects that are added or 
+      subtracted.  
 
+  - name: multiplier
+    type: float
+    default: 1
+    doc: |
+      In some cases it might be useful to multiply the whole count by a constant to get 
+      for instance concentration. The count_expression is not an arbitrary expression
+      and such multiplication can be done through this attribute.  
+      
   - name: every_n_timesteps
     type: int
     default: 1
- 
+      
  
 Observables:
   doc: |

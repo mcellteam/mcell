@@ -220,6 +220,11 @@ void MolOrRxnCountInfo::to_data_model(const World* world, Json::Value& reaction_
   for (size_t i = 0; i < terms.size(); i++) {
     mdl_string += terms[i].to_data_model_string(world, i != 0);
   }
+
+  if (multiplier != 1) {
+    mdl_string = DMUtil::f_to_string(multiplier) + "*(" + mdl_string + ")";
+  }
+
   reaction_output[KEY_MDL_STRING] = mdl_string;
 }
 
@@ -261,7 +266,7 @@ void MolOrRxnCountEvent::step() {
   // initialize new count items
   for (uint i = 0; i < mol_count_infos.size(); i++) {
     count_items[i].time = event_time * world->config.time_unit;
-    count_items[i].int_value = 0;
+    count_items[i].value = 0;
   }
 
   species_id_t all_mol_id = world->get_all_species().get_all_molecules_species_id();
@@ -403,6 +408,10 @@ void MolOrRxnCountEvent::step() {
 
   // check each molecule against what we are checking
   for (uint i = 0; i < mol_count_infos.size(); i++) {
+
+    // multiply by a constant (not 1 when the count expression in MDL had a top level multiplication)
+    count_items[i].value *= mol_count_infos[i].multiplier;
+
     world->get_count_buffer(mol_count_infos[i].buffer_id).add(count_items[i]);
   }
 

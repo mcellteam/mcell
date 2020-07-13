@@ -137,6 +137,7 @@ const char* const NAME_MODE = "mode";
 const char* const NAME_MOLECULE_COLLISION_REPORT = "molecule_collision_report";
 const char* const NAME_MOLECULE_LIST = "molecule_list";
 const char* const NAME_MT = "mt";
+const char* const NAME_MULTIPLIER = "multiplier";
 const char* const NAME_NAME = "name";
 const char* const NAME_NEGATIVE_DIFFUSION_CONSTANT = "negative_diffusion_constant";
 const char* const NAME_NEGATIVE_REACTION_RATE = "negative_reaction_rate";

@@ -82,8 +82,7 @@ private:
       const std::string& mdl_string,
       bool& rxn_not_mol, std::string& what_to_count, std::string& where_to_count,
       std::string& orientation);
-  std::string generate_count_terms_for_expression(
-      std::ofstream& out, const std::string& mdl_string);
+  std::string generate_count_terms_for_expression(std::ofstream& out, const std::string& mdl_string);
   std::vector<std::string> generate_counts(std::ofstream& out);
 
   void generate_observables();

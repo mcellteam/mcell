@@ -32,20 +32,20 @@ namespace MCell {
 class CountItem {
 public:
   CountItem()
-    : time(TIME_INVALID), int_value(0) {
+    : time(TIME_INVALID), value(0) {
   }
 
-  CountItem(const float_t time_, const uint64_t value_)
-    : time(time_), int_value(value_) {
+  CountItem(const float_t time_, const float_t value_)
+    : time(time_), value(value_) {
   }
 
   void inc_or_dec(const int sign, const int count = 1) {
     assert(sign == 1 || sign == -1);
-    int_value += (sign * count);
+    value += (sign * count);
   }
 
   float_t time; // time is in outside units, was already precomputed for printing
-  uint64_t int_value; // e.g. count, using float even for integer values here (maybe use union)
+  float_t value; // e.g. count
 
   void write(std::ostream& out) const;
 };

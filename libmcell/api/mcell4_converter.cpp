@@ -1128,6 +1128,8 @@ void MCell4Converter::convert_mol_or_rxn_count_events_and_init_counting_flags() 
       convert_count_terms_recursively(dynamic_pointer_cast<API::CountTerm>(c), +1, info);
     }
 
+    info.multiplier = c->multiplier;
+
     // having multiple MolOrRxnCountInfo per MolOrRxnCountEvent
     // was useful for MCell3 conversion, however for pymcell4 each count is a separate event
     count_event->add_mol_count_info(info);
