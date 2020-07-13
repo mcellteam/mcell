@@ -1472,160 +1472,159 @@ static bool ends_with(std::string const & value, std::string const & ending)
 }
 
 bool MCell3WorldConverter::convert_mol_or_rxn_count_events(volume* s) {
+
   output_block* output_blocks = s->output_block_head;
+  while (output_blocks != nullptr) {
+    MolOrRxnCountEvent* event = new MolOrRxnCountEvent(world);
 
-  if (output_blocks == nullptr) {
-    return true;
-  }
+    CHECK_PROPERTY(output_blocks->timer_type == OUTPUT_BY_STEP);
 
-  CHECK_PROPERTY(output_blocks->next == nullptr); // for now just one block
+    CHECK_PROPERTY(output_blocks->t == 0);
+    event->event_time = 0;
+    event->periodicity_interval = output_blocks->step_time / world->config.time_unit;
+    size_t buffer_size = output_blocks->buffersize;
 
-  MolOrRxnCountEvent* event = new MolOrRxnCountEvent(world);
+    // we can check that the time_array contains expected values
 
-  CHECK_PROPERTY(output_blocks->timer_type == OUTPUT_BY_STEP);
+    for (
+        output_set* data_set = output_blocks->data_set_head;
+        data_set != nullptr;
+        data_set = data_set->next) {
 
-  CHECK_PROPERTY(output_blocks->t == 0);
-  event->event_time = 0;
-  event->periodicity_interval = output_blocks->step_time / world->config.time_unit;
-  size_t buffer_size = output_blocks->buffersize;
+      CHECK_PROPERTY(data_set->outfile_name != nullptr);
+      count_buffer_id_t buffer_id = world->create_count_buffer(data_set->outfile_name, buffer_size);
 
-  // we can check that the time_array contains expected values
+      // NOTE: FILE_SUBSTITUTE is interpreted in the same way as FILE_OVERWRITE
+      CHECK_PROPERTY(data_set->file_flags == FILE_OVERWRITE || data_set->file_flags == FILE_SUBSTITUTE);
+      CHECK_PROPERTY(data_set->chunk_count == 0);
+      CHECK_PROPERTY(data_set->header_comment == nullptr);
+      CHECK_PROPERTY(data_set->exact_time_flag == 1);
 
-  for (
-      output_set* data_set = output_blocks->data_set_head;
-      data_set != nullptr;
-      data_set = data_set->next) {
+      output_column* column_head = data_set->column_head;
+      CHECK_PROPERTY(column_head->next == nullptr);
+      CHECK_PROPERTY(column_head->initial_value == 0);
 
-    CHECK_PROPERTY(data_set->outfile_name != nullptr);
-    count_buffer_id_t buffer_id = world->create_count_buffer(data_set->outfile_name, buffer_size);
+      // TODO: we should better check column_head->expr contents
 
-    // NOTE: FILE_SUBSTITUTE is interpreted in the same way as FILE_OVERWRITE
-    CHECK_PROPERTY(data_set->file_flags == FILE_OVERWRITE || data_set->file_flags == FILE_SUBSTITUTE);
-    CHECK_PROPERTY(data_set->chunk_count == 0);
-    CHECK_PROPERTY(data_set->header_comment == nullptr);
-    CHECK_PROPERTY(data_set->exact_time_flag == 1);
+      // this information is split in a weird way in MCell3,
+      // output request contains more information on what should be counted,
+      // there is a way how to get to the output_set from the expression
+      // but not how to the output_request
+      // we simplify it to a list of terms with their sign
+      // first is the output request, second is sign (-1 or +1)
+      std::vector< pair<output_request*, int>> requests_with_sign;
+      CHECK(find_output_requests_terms_recursively(s, column_head->expr, +1, requests_with_sign));
 
-    output_column* column_head = data_set->column_head;
-    CHECK_PROPERTY(column_head->next == nullptr);
-    CHECK_PROPERTY(column_head->initial_value == 0);
+      MolOrRxnCountInfo info(buffer_id);
 
-    // TODO: we should better check column_head->expr contents
+      for (pair<output_request*, int>& req_w_sign: requests_with_sign) {
 
-    // this information is split in a weird way in MCell3,
-    // output request contains more information on what should be counted,
-    // there is a way how to get to the output_set from the expression
-    // but not how to the output_request
-    // we simplify it to a list of terms with their sign
-    // first is the output request, second is sign (-1 or +1)
-    std::vector< pair<output_request*, int>> requests_with_sign;
-    CHECK(find_output_requests_terms_recursively(s, column_head->expr, +1, requests_with_sign));
+        MolOrRxnCountTerm term;
 
-    MolOrRxnCountInfo info(buffer_id);
+        term.sign_in_expression = req_w_sign.second;
 
-    for (pair<output_request*, int>& req_w_sign: requests_with_sign) {
+        output_request* req = req_w_sign.first;
+        CHECK_PROPERTY(req != 0);
 
-      MolOrRxnCountTerm term;
-
-      term.sign_in_expression = req_w_sign.second;
-
-      output_request* req = req_w_sign.first;
-      CHECK_PROPERTY(req != 0);
-
-      int o = req->count_orientation;
-      if (o == ORIENT_NOT_SET) {
-        term.orientation = ORIENTATION_NOT_SET;
-      }
-      else {
-        CHECK_PROPERTY(o == ORIENTATION_UP || o == ORIENTATION_NONE || o == ORIENTATION_DOWN);
-        term.orientation = o;
-      }
-
-      // report type
-      CHECK_PROPERTY(
-          req->report_type == REPORT_CONTENTS ||
-          req->report_type == REPORT_RXNS ||
-          req->report_type == (REPORT_CONTENTS | REPORT_ENCLOSED) ||
-          req->report_type == (REPORT_CONTENTS | REPORT_WORLD) ||
-          req->report_type == (REPORT_RXNS | REPORT_WORLD) ||
-          req->report_type == (REPORT_RXNS | REPORT_ENCLOSED)
-      );
-
-      bool count_mols_not_rxns;
-      if ((req->report_type & REPORT_CONTENTS) != 0) {
-        count_mols_not_rxns = true;
-      }
-      else if ((req->report_type & REPORT_RXNS) != 0) {
-        count_mols_not_rxns = false;
-      }
-      else {
-        assert(false);
-        count_mols_not_rxns = true; // silence compilation warning
-      }
-
-      // count location
-      // only whole geom object for now
-      if ((req->report_type & REPORT_ENCLOSED) != 0) {
-
-        term.type = count_mols_not_rxns ? CountType::EnclosedInObject : CountType::RxnCountInObject;
-        
-        string reg_name = get_sym_name(req->count_location);
-        CHECK_PROPERTY(ends_with(reg_name, ",ALL")); // enclused in object must be whole objects
-
-        const Region* reg = world->get_partition(0).find_region_by_name(reg_name);
-        CHECK_PROPERTY(reg != nullptr);
-        assert(reg->geometry_object_id != GEOMETRY_OBJECT_ID_INVALID);
-        term.geometry_object_id = reg->geometry_object_id;
-
-        GeometryObject& obj = world->get_partition(0).get_geometry_object(term.geometry_object_id);
-
-        // set flag that we should include this object in counted volumes
-        obj.is_counted_volume = true;
-      }
-      else {
-        if (req->count_location == nullptr) {
-          term.type = count_mols_not_rxns ? CountType::EnclosedInWorld : CountType::RxnCountInWorld;
+        int o = req->count_orientation;
+        if (o == ORIENT_NOT_SET) {
+          term.orientation = ORIENTATION_NOT_SET;
         }
         else {
-          CHECK_PROPERTY(req->report_type == REPORT_CONTENTS || req->report_type == REPORT_RXNS);
+          CHECK_PROPERTY(o == ORIENTATION_UP || o == ORIENTATION_NONE || o == ORIENTATION_DOWN);
+          term.orientation = o;
+        }
+
+        // report type
+        CHECK_PROPERTY(
+            req->report_type == REPORT_CONTENTS ||
+            req->report_type == REPORT_RXNS ||
+            req->report_type == (REPORT_CONTENTS | REPORT_ENCLOSED) ||
+            req->report_type == (REPORT_CONTENTS | REPORT_WORLD) ||
+            req->report_type == (REPORT_RXNS | REPORT_WORLD) ||
+            req->report_type == (REPORT_RXNS | REPORT_ENCLOSED)
+        );
+
+        bool count_mols_not_rxns;
+        if ((req->report_type & REPORT_CONTENTS) != 0) {
+          count_mols_not_rxns = true;
+        }
+        else if ((req->report_type & REPORT_RXNS) != 0) {
+          count_mols_not_rxns = false;
+        }
+        else {
+          assert(false);
+          count_mols_not_rxns = true; // silence compilation warning
+        }
+
+        // count location
+        // only whole geom object for now
+        if ((req->report_type & REPORT_ENCLOSED) != 0) {
+
+          term.type = count_mols_not_rxns ? CountType::EnclosedInObject : CountType::RxnCountInObject;
 
           string reg_name = get_sym_name(req->count_location);
+          CHECK_PROPERTY(ends_with(reg_name, ",ALL")); // enclused in object must be whole objects
+
           const Region* reg = world->get_partition(0).find_region_by_name(reg_name);
-          term.region_id = reg->id;
+          CHECK_PROPERTY(reg != nullptr);
+          assert(reg->geometry_object_id != GEOMETRY_OBJECT_ID_INVALID);
+          term.geometry_object_id = reg->geometry_object_id;
 
-          term.type = count_mols_not_rxns ? CountType::PresentOnSurfaceRegion : CountType::RxnCountOnSurfaceRegion;
+          GeometryObject& obj = world->get_partition(0).get_geometry_object(term.geometry_object_id);
+
+          // set flag that we should include this object in counted volumes
+          obj.is_counted_volume = true;
         }
+        else {
+          if (req->count_location == nullptr) {
+            term.type = count_mols_not_rxns ? CountType::EnclosedInWorld : CountType::RxnCountInWorld;
+          }
+          else {
+            CHECK_PROPERTY(req->report_type == REPORT_CONTENTS || req->report_type == REPORT_RXNS);
+
+            string reg_name = get_sym_name(req->count_location);
+            const Region* reg = world->get_partition(0).find_region_by_name(reg_name);
+            term.region_id = reg->id;
+
+            term.type = count_mols_not_rxns ? CountType::PresentOnSurfaceRegion : CountType::RxnCountOnSurfaceRegion;
+          }
+        }
+
+        if (count_mols_not_rxns) {
+          // count target (species)
+          CHECK_PROPERTY(req->count_target != 0);
+          string species_name = get_sym_name(req->count_target);
+
+          term.species_id = world->get_all_species().find_by_name(species_name);
+          CHECK_PROPERTY(term.species_id != SPECIES_ID_INVALID);
+
+          // set a flag that these species are to be counted
+          BNG::Species& species = world->get_all_species().get(term.species_id);
+          species.set_flag(BNG::SPECIES_FLAG_COUNT_ENCLOSED);
+        }
+        else {
+          // set that the reaction must be counted
+          CHECK_PROPERTY(req->count_target != nullptr);
+          string rxn_name = get_sym_name(req->count_target);
+
+          BNG::RxnRule* rxn_rule = world->get_all_rxns().find_rxn_rule_by_name(rxn_name);
+          CHECK_PROPERTY(rxn_rule != nullptr && "Rxn rule with name was not found");
+          rxn_rule->set_is_counted();
+
+          term.rxn_rule_id = rxn_rule->id;
+        }
+
+        info.terms.push_back(term);
       }
-
-      if (count_mols_not_rxns) {
-        // count target (species)
-        CHECK_PROPERTY(req->count_target != 0);
-        string species_name = get_sym_name(req->count_target);
-
-        term.species_id = world->get_all_species().find_by_name(species_name);
-        CHECK_PROPERTY(term.species_id != SPECIES_ID_INVALID);
-
-        // set a flag that these species are to be counted
-        BNG::Species& species = world->get_all_species().get(term.species_id);
-        species.set_flag(BNG::SPECIES_FLAG_COUNT_ENCLOSED);
-      }
-      else {
-        // set that the reaction must be counted
-        CHECK_PROPERTY(req->count_target != nullptr);
-        string rxn_name = get_sym_name(req->count_target);
-
-        BNG::RxnRule* rxn_rule = world->get_all_rxns().find_rxn_rule_by_name(rxn_name);
-        CHECK_PROPERTY(rxn_rule != nullptr && "Rxn rule with name was not found");
-        rxn_rule->set_is_counted();
-
-        term.rxn_rule_id = rxn_rule->id;
-      }
-
-      info.terms.push_back(term);
+      event->add_mol_count_info(info);
     }
-    event->add_mol_count_info(info);
-  }
 
-  world->scheduler.schedule_event(event);
+    world->scheduler.schedule_event(event);
+
+    // process next output block
+    output_blocks = output_blocks->next;
+  }
 
   return true;
 }
