@@ -324,11 +324,14 @@ bool MCell3WorldConverter::convert_geometry_objects(volume* s) {
       if (curr_obj->object_type == POLY_OBJ) {
         CHECK(convert_polygonal_object(curr_obj, instantiate_name));
       }
-      else if (curr_obj->object_type == REL_SITE_OBJ) {
+      else if (curr_obj->object_type == REL_SITE_OBJ || curr_obj->object_type == META_OBJ) {
         // ignored
       }
       else {
-        CHECK_PROPERTY(false && "Unexpected type of object");
+        mcell_error(
+            "Unexpected type of object %d with name %s.",
+            (int)curr_obj->object_type, get_sym_name(curr_obj->sym)
+        );
       }
 
       curr_obj = curr_obj->next;
