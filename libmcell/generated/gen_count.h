@@ -40,6 +40,7 @@ class Species;
         const std::string& filename_, \
         std::shared_ptr<CountTerm> count_expression_ = nullptr, \
         const int every_n_timesteps_ = 1, \
+        const float_t multiplier_ = 1, \
         std::shared_ptr<Species> species_ = nullptr, \
         std::shared_ptr<ReactionRule> reaction_rule_ = nullptr, \
         std::shared_ptr<Region> region_ = nullptr, \
@@ -52,6 +53,7 @@ class Species;
       filename = filename_; \
       count_expression = count_expression_; \
       every_n_timesteps = every_n_timesteps_; \
+      multiplier = multiplier_; \
       species = species_; \
       reaction_rule = reaction_rule_; \
       region = region_; \
@@ -118,6 +120,18 @@ public:
   }
   virtual int get_every_n_timesteps() const {
     return every_n_timesteps;
+  }
+
+  float_t multiplier;
+  virtual void set_multiplier(const float_t new_multiplier_) {
+    if (initialized) {
+      throw RuntimeError("Value 'multiplier' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
+    multiplier = new_multiplier_;
+  }
+  virtual float_t get_multiplier() const {
+    return multiplier;
   }
 
   // --- methods ---

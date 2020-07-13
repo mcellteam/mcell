@@ -586,6 +586,7 @@ class Count():
             filename : str,
             count_expression : CountTerm = None,
             every_n_timesteps : int = 1,
+            multiplier : float = 1,
             species : Species = None,
             reaction_rule : ReactionRule = None,
             region : Region = None,
@@ -597,6 +598,7 @@ class Count():
         self.filename = filename
         self.count_expression = count_expression
         self.every_n_timesteps = every_n_timesteps
+        self.multiplier = multiplier
         self.species = species
         self.reaction_rule = reaction_rule
         self.region = region

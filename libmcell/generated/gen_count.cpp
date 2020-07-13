@@ -54,6 +54,7 @@ bool GenCount::__eq__(const GenCount& other) const {
         )
      )  &&
     every_n_timesteps == other.every_n_timesteps &&
+    multiplier == other.multiplier &&
     (
       (species != nullptr) ?
         ( (other.species != nullptr) ?
@@ -140,6 +141,7 @@ void GenCount::set_all_attributes_as_default_or_unset() {
   filename = STR_UNSET;
   count_expression = nullptr;
   every_n_timesteps = 1;
+  multiplier = 1;
   species = nullptr;
   reaction_rule = nullptr;
   region = nullptr;
@@ -155,6 +157,7 @@ std::string GenCount::to_str(const std::string ind) const {
       "filename=" << filename << ", " <<
       "\n" << ind + "  " << "count_expression=" << "(" << ((count_expression != nullptr) ? count_expression->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "every_n_timesteps=" << every_n_timesteps << ", " <<
+      "multiplier=" << multiplier << ", " <<
       "\n" << ind + "  " << "species=" << "(" << ((species != nullptr) ? species->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "reaction_rule=" << "(" << ((reaction_rule != nullptr) ? reaction_rule->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "region=" << "(" << ((region != nullptr) ? region->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
@@ -172,6 +175,7 @@ py::class_<Count> define_pybinding_Count(py::module& m) {
             const std::string&,
             std::shared_ptr<CountTerm>,
             const int,
+            const float_t,
             std::shared_ptr<Species>,
             std::shared_ptr<ReactionRule>,
             std::shared_ptr<Region>,
@@ -183,6 +187,7 @@ py::class_<Count> define_pybinding_Count(py::module& m) {
           py::arg("filename"),
           py::arg("count_expression") = nullptr,
           py::arg("every_n_timesteps") = 1,
+          py::arg("multiplier") = 1,
           py::arg("species") = nullptr,
           py::arg("reaction_rule") = nullptr,
           py::arg("region") = nullptr,
@@ -197,6 +202,7 @@ py::class_<Count> define_pybinding_Count(py::module& m) {
       .def_property("filename", &Count::get_filename, &Count::set_filename)
       .def_property("count_expression", &Count::get_count_expression, &Count::set_count_expression)
       .def_property("every_n_timesteps", &Count::get_every_n_timesteps, &Count::set_every_n_timesteps)
+      .def_property("multiplier", &Count::get_multiplier, &Count::set_multiplier)
     ;
 }
 
