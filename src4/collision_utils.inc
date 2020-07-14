@@ -1280,22 +1280,11 @@ static bool is_point_inside_region(const Partition& p, const Vec3& pos, const Re
 
 // ---------------------------------- counting ----------------------------------
 
-// does not set res.index, the index needs to be obtained from partition
-static counted_volume_index_t compute_counted_volume_for_pos(Partition& p, const Vec3& pos) {
-
-  CountedVolume cv;
-#if 1
-  // send a ray trace and collect all walls we crossed,
-  // then if we hit wall of an object odd number of times, we are inside of an object
-
-  // assuming that the whole object fits into our partition
-  // can be optimized by choosing some close object
-  Vec3 dst = p.get_origin_corner();
-
-  // move a bit along by a magic number the side of the partition so that the ray trace hits correctly
-  // this is a temporary measure to minimize REDOs with wall collision
-  dst.x += p.config.subpartition_edge_length / 10;
-  dst.y += p.config.subpartition_edge_length / 20;
+static void get_num_crossed_counted_walls_per_object(
+    const Partition& p, const Vec3& pos, const Vec3& dst,
+    map<geometry_object_index_t, uint>& num_crossed_walls_per_object
+) {
+  num_crossed_walls_per_object.clear();
 
   Vec3 displacement = dst - pos - Vec3(EPS); // from here up to a corner of the partition
 
@@ -1318,7 +1307,6 @@ static counted_volume_index_t compute_counted_volume_for_pos(Partition& p, const
   );
 
   // now check which walls we hit
-  map<geometry_object_index_t, uint> crossed_wall_per_object;
   uint_set<wall_index_t> already_checked_walls;
   for (subpart_index_t subpart_w_walls_index: crossed_subparts_for_walls) {
 
@@ -1361,9 +1349,9 @@ static counted_volume_index_t compute_counted_volume_for_pos(Partition& p, const
       } while (collision_type == CollisionType::WALL_REDO);
 
       if (collision_type == CollisionType::WALL_FRONT || collision_type == CollisionType::WALL_BACK) {
-        auto it = crossed_wall_per_object.find(w.object_index);
-        if (it == crossed_wall_per_object.end()) {
-          crossed_wall_per_object[w.object_index] = 1;
+        auto it = num_crossed_walls_per_object.find(w.object_index);
+        if (it == num_crossed_walls_per_object.end()) {
+          num_crossed_walls_per_object[w.object_index] = 1;
         }
         else {
           it->second++;
@@ -1371,10 +1359,35 @@ static counted_volume_index_t compute_counted_volume_for_pos(Partition& p, const
       }
     }
   }
+}
+
+
+// does not set res.index, the index needs to be obtained from partition
+static counted_volume_index_t compute_counted_volume_for_pos(
+    Partition& p, const Vec3& pos) {
+
+  map<geometry_object_index_t, uint> num_crossed_walls_per_object;
+
+  CountedVolume cv;
+#if 1
+  // send a ray trace and collect all walls we crossed,
+  // then if we hit wall of an object odd number of times, we are inside of an object
+
+  // assuming that the whole object fits into our partition
+  // can be optimized by choosing some close object
+  Vec3 dst = p.get_origin_corner();
+
+  // move a bit along by a magic number the side of the partition so that the ray trace hits correctly
+  // this is a temporary measure to minimize REDOs with wall collision
+  // TODO:
+  dst.x += p.config.subpartition_edge_length / 10;
+  dst.y += p.config.subpartition_edge_length / 20;
+
+  get_num_crossed_counted_walls_per_object(p, pos, dst, num_crossed_walls_per_object);
 
   // finally construct the set of object indices that encompass the position
   cv.contained_in_objects.clear();
-  for (auto it: crossed_wall_per_object) {
+  for (auto it: num_crossed_walls_per_object) {
     assert(it.second != 0);
     // hit object odd number of times - pos is inside
     if (it.second % 2 == 1) {

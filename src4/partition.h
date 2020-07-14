@@ -775,7 +775,12 @@ private:
     walls_using_vertex_mapping[vertex_index].push_back(wall_index);
   }
 
-  void create_waypoint(const IVec3& index3d);
+  void create_waypoint(
+      const IVec3& index3d,
+      const bool use_previous_waypoint,
+      const IVec3& previous_waypoint_index
+  );
+
   void check_waypoint_index(const IVec3& index3d) const {
     assert(index3d.x < (int)waypoints.size());
     assert(index3d.y < (int)waypoints[index3d.x].size());

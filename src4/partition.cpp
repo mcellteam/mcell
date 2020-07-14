@@ -188,13 +188,33 @@ void Partition::dump() {
 }
 
 
-void Partition::create_waypoint(const IVec3& index3d) {
+void Partition::create_waypoint(
+    const IVec3& index3d,
+    const bool use_previous_waypoint,
+    const IVec3& previous_waypoint_index
+) {
   // array was allocated
   Waypoint& waypoint = get_waypoint(index3d);
   waypoint.pos =
       origin_corner +
       Vec3(config.subpartition_edge_length) * Vec3(index3d) +
       Vec3(config.subpartition_edge_length / 2);
+
+  // see if we can reuse the previous waypoint to accelerate computation
+  if (use_previous_waypoint) {
+    Waypoint& previous_waypoint = get_waypoint(previous_waypoint_index);
+    map<geometry_object_index_t, uint> num_crossed_walls_per_object;
+
+    CollisionUtil::get_num_crossed_counted_walls_per_object(
+        *this, waypoint.pos, previous_waypoint.pos,
+        num_crossed_walls_per_object
+    );
+    if (num_crossed_walls_per_object.empty()) {
+      // ok, we can simply copy counted volume from the previous waypoint
+      waypoint.counted_volume_index = previous_waypoint.counted_volume_index;
+      return;
+    }
+  }
 
   // figure out in which counted volumes is this waypoint present
   waypoint.counted_volume_index = compute_counted_volume_from_scratch(waypoint.pos);
@@ -210,11 +230,10 @@ void Partition::initialize_waypoints() {
   // each center of a subpartition has a waypoint
   uint num_waypoints_per_dimension = config.num_subpartitions_per_partition;
 
-  mcell_log(
-      "Initializing %d waypoints... "
-      "(note: the current implementation is not very efficient, if you encounter performance issues, "
-      "please contact the MCell team or consider not using overlapping counted objects)",
-      powu(num_waypoints_per_dimension, 3));
+  mcell_log("Initializing %d waypoints... ", powu(num_waypoints_per_dimension, 3));
+
+  bool use_previous_waypoint = false;
+  IVec3 previous_waypoint_index;
 
   waypoints.resize(num_waypoints_per_dimension);
   for (uint x = 0; x < num_waypoints_per_dimension; x++) {
@@ -222,8 +241,14 @@ void Partition::initialize_waypoints() {
     for (uint y = 0; y < num_waypoints_per_dimension; y++) {
       waypoints[x][y].resize(num_waypoints_per_dimension);
       for (uint z = 0; z < num_waypoints_per_dimension; z++) {
-        create_waypoint(IVec3(x, y, z));
+        create_waypoint(IVec3(x, y, z), use_previous_waypoint, previous_waypoint_index);
+
+        use_previous_waypoint = true;
+        previous_waypoint_index = IVec3(x, y, z);
       }
+
+      // starting a new line - start from scratch
+      use_previous_waypoint = false;
     }
   }
 }
