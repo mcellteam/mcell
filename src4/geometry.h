@@ -168,7 +168,8 @@ public:
   Region()
     : id(REGION_ID_INVALID), index(REGION_INDEX_INVALID), name(""),
       species_id(SPECIES_ID_INVALID), geometry_object_id(GEOMETRY_OBJECT_ID_INVALID),
-      volume_info_uptodate(false), region_is_manifold(false), volume(FLT_INVALID)
+      volume_info_initialized(false), region_is_manifold(false), volume(FLT_INVALID),
+      region_waypoints_initialized(false)
       {
   }
 
@@ -193,28 +194,39 @@ public:
   std::vector<InitialRegionMolecules> initial_region_molecules;
 
 private:
-  bool volume_info_uptodate;
+  bool volume_info_initialized;
   Vec3 bounding_box_llf;
   Vec3 bounding_box_urb;
   bool region_is_manifold;
   float_t volume;
 
+  // points known to be inside of this region, optimization
+  // for checking whether a point is inside of this region
+  bool region_waypoints_initialized;
+  std::set<IVec3> waypoints_in_this_region;
+
 public:
 
-  void update_volume_info(const Partition& p);
-
-  bool is_volume_info_uptodate() const {
-    return volume_info_uptodate;
-  }
+  void initialize_volume_info_if_needed(const Partition& p);
 
   bool is_manifold() const {
-    assert(volume_info_uptodate);
+    assert(volume_info_initialized);
     return region_is_manifold;
   }
 
   float_t get_volume() const {
-    assert(volume_info_uptodate);
+    assert(volume_info_initialized);
     return volume;
+  }
+
+  const Vec3& get_bounding_box_llf() const {
+    assert(volume_info_initialized);
+    return bounding_box_llf;
+  }
+
+  const Vec3& get_bounding_box_urb() const {
+    assert(volume_info_initialized);
+    return bounding_box_urb;
   }
 
   bool is_edge(wall_index_t wall_index, edge_index_t edge_index) const {
@@ -231,7 +243,7 @@ public:
     return species_id != SPECIES_ID_INVALID;
   }
 
-
+  bool is_point_inside(const Partition& p, const Vec3& pos);
 
   // covers whole region
   // TODO: better name?
@@ -268,6 +280,9 @@ public:
   void dump(const std::string ind) const;
   static void dump_array(const std::vector<Region>& vec);
   void to_data_model(const Partition& p, Json::Value& modify_surface_region) const;
+
+private:
+  void initialize_region_waypoints(const Partition& p);
 };
 
 

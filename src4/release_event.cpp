@@ -608,13 +608,13 @@ void ReleaseEvent::release_onto_regions(uint computed_release_number) {
 }
 
 
-static bool is_point_inside_region_expr_recursively(const Partition& p, const Vec3& pos, const RegionExprNode* region_expr_node) {
+static bool is_point_inside_region_expr_recursively(Partition& p, const Vec3& pos, const RegionExprNode* region_expr_node) {
   assert(region_expr_node->op != RegionExprOperator::Invalid);
 
   if (region_expr_node->op == RegionExprOperator::Leaf) {
-    const Region* reg = p.find_region_by_name(region_expr_node->region_name);
+    Region* reg = p.find_region_by_name(region_expr_node->region_name);
     assert(reg != nullptr && "Region for release must exist");
-    return CollisionUtil::is_point_inside_region(p, pos, *reg);
+    return CollisionUtil::is_point_inside_region_no_waypoints(p, pos, *reg);
   }
 
   bool satisfies_l = is_point_inside_region_expr_recursively(p, pos, region_expr_node->left);
@@ -650,8 +650,7 @@ uint ReleaseEvent::num_vol_mols_from_conc(bool &exact_number) {
   float_t vol = 0.0;
   if (region_expr_root->op == RegionExprOperator::Leaf) {
     Region *r = p.find_region_by_name(region_expr_root->region_name);
-    if (!r->is_volume_info_uptodate())
-      r->update_volume_info(p);
+    r->initialize_volume_info_if_needed(p);
     release_assert(r->is_manifold() && "Trying to release into a regions that is not a manifold and has no volume");
     vol = r->get_volume();
     exact_number = true;
@@ -980,6 +979,8 @@ void ReleaseEvent::release_initial_molecules_onto_surf_regions() {
 
 // TODO: cleanup the release number computation
 void ReleaseEvent::step() {
+
+  cout << "Starting release from \"" << release_site_name << "\".\n";
 
   uint num_released = UINT_INVALID;
   if (release_shape == ReleaseShape::REGION) {

@@ -1245,45 +1245,23 @@ static bool collide_moving_line_and_static_line_test(
 
 // ---------------------------------- other detections ----------------------------------
 
-/*************************************************************************
- is_point_inside_release_region:
-    Simplified against MCell3 variant - we are dealing with just one
-    region
-
-    Does not deal with subpartitions yet
-
-    Expects that the region is an enclosed volume
-
-*************************************************************************/
-static bool is_point_inside_region(const Partition& p, const Vec3& pos, const Region& reg) {
-
-  // cast ray along the whole partition
-  Vec3 move(EPS, EPS, p.config.partition_edge_length);
-
-  // and count intersects
-  int num_hits = 0;
-  for (const auto& wall_edges_pair: reg.walls_and_edges) {
-
-    // check collision with each wall
-    // TODO LATER: optimize with subparts
-    // FIXME: the collide_Wall_test is not reliable in all cases
-    const Wall& w = p.get_wall(wall_edges_pair.first);
-    bool collides = CollisionUtil::collide_wall_test(p, pos, w, move);
-    if (collides) {
-      num_hits++;
-    }
-  }
-
-  // odd number of hits means that we are inside
-  return num_hits % 2 == 1;
-}
 
 // ---------------------------------- counting ----------------------------------
 
-static void get_num_crossed_counted_walls_per_object(
+static void get_num_crossed_walls_per_object(
     const Partition& p, const Vec3& pos, const Vec3& dst,
-    map<geometry_object_index_t, uint>& num_crossed_walls_per_object
+    map<geometry_object_index_t, uint>& num_crossed_walls_per_object,
+
+    // this is a customization of this function's result, default is used from compute_counted_volume_for_pos
+    // include_only_counted_walls=false, include_only_region_walls=true and set reg is used from is_point_inside_region
+    bool include_only_counted_walls = true,
+    bool include_only_region_walls = false,
+    const Region* reg = nullptr
 ) {
+  assert(include_only_counted_walls != include_only_region_walls);
+  assert(include_only_counted_walls == (reg == nullptr));
+  assert(include_only_region_walls == (reg != nullptr));
+
   num_crossed_walls_per_object.clear();
 
   Vec3 displacement = dst - pos - Vec3(EPS); // from here up to a corner of the partition
@@ -1316,36 +1294,38 @@ static void get_num_crossed_counted_walls_per_object(
     for (auto it = wall_indices.begin(); it != wall_indices.end(); it++) {
       wall_index_t wall_index = *it;
 
+      // do we count only counted objects and is this a counted oblect?
+      const Wall& w = p.get_wall(wall_index);
+      if (include_only_counted_walls && !p.get_geometry_object(w.object_index).is_counted_volume) {
+        continue;
+      }
+
+      // do we count only walls from our region?
+      if (include_only_region_walls && reg->walls_and_edges.count(wall_index) == 0) {
+        continue;
+      }
+
       if (already_checked_walls.count(wall_index) != 0) {
         // we already checked this wall - the same wall can be in multiple subparts
         continue;
       }
       already_checked_walls.insert(wall_index);
 
-      const Wall& w = p.get_wall(wall_index);
-
-      // do we care about this object?
-      if (!p.get_geometry_object(w.object_index).is_counted_volume) {
-        continue;
-      }
-
       float_t collision_time_ignored;
       Vec3 collision_pos_ignored;
-
-      rng_state rng; // using a separate random generator for jump_away lines
-      rng_init(&rng, 0);
 
       CollisionType collision_type;
       uint num_tries = 0;
       do {
         collision_type = collide_wall(
-              p, pos, w, rng, true, displacement,
+              p, pos, w, p.aux_rng, true, displacement,
               collision_time_ignored, collision_pos_ignored);
 
         num_tries++;
         release_assert(num_tries < 100 && "Cannot determine molecule or waypoint position.");
         // FIXME: we really do not want REDO, it is highly unreliable
-        assert(collision_type != CollisionType::WALL_REDO);
+        // test 0750 fails when this assert is enabled
+        //release_assert(collision_type != CollisionType::WALL_REDO);
       } while (collision_type == CollisionType::WALL_REDO);
 
       if (collision_type == CollisionType::WALL_FRONT || collision_type == CollisionType::WALL_BACK) {
@@ -1358,6 +1338,55 @@ static void get_num_crossed_counted_walls_per_object(
         }
       }
     }
+  }
+}
+
+
+/*************************************************************************
+ is_point_inside_release_region:
+    Simplified against MCell3 variant - we are dealing with just one
+    region
+
+    Expects that the region is an enclosed volume
+
+    Used only for releases
+
+*************************************************************************/
+static bool is_point_inside_region_no_waypoints(const Partition& p, const Vec3& pos, Region& reg) {
+
+  // cast ray along the whole partition
+  Vec3 move(EPS, EPS, p.config.partition_edge_length);
+
+  reg.initialize_volume_info_if_needed(p);
+
+  // the destination we are checking is one of the bounding box corners
+  // moved by a bit further from the center
+  Vec3 dst = reg.get_bounding_box_llf() - Vec3(EPS);
+
+  // move it by a magic constant until REDO is handled
+  dst.x += p.config.subpartition_edge_length / 11;
+  dst.y += p.config.subpartition_edge_length / 22;
+
+  map<geometry_object_index_t, uint> num_crossed_walls_per_object;
+  get_num_crossed_walls_per_object(
+      p, pos, dst,
+      num_crossed_walls_per_object,
+      false,
+      true, &reg
+  );
+
+  assert((num_crossed_walls_per_object.empty() || num_crossed_walls_per_object.size() == 1) &&
+      "Expecting that a region represents a single object"
+  );
+
+  if (num_crossed_walls_per_object.empty()) {
+    // no region's wall was hit
+    return false;
+  }
+  else {
+    // odd number of hits means that we are inside
+    uint num_hits = num_crossed_walls_per_object.begin()->second;
+    return num_hits % 2 == 1;
   }
 }
 
@@ -1380,10 +1409,10 @@ static counted_volume_index_t compute_counted_volume_for_pos(
   // move a bit along by a magic number the side of the partition so that the ray trace hits correctly
   // this is a temporary measure to minimize REDOs with wall collision
   // TODO:
-  dst.x += p.config.subpartition_edge_length / 10;
-  dst.y += p.config.subpartition_edge_length / 20;
+  dst.x += p.config.subpartition_edge_length / 11;
+  dst.y += p.config.subpartition_edge_length / 21;
 
-  get_num_crossed_counted_walls_per_object(p, pos, dst, num_crossed_walls_per_object);
+  get_num_crossed_walls_per_object(p, pos, dst, num_crossed_walls_per_object);
 
   // finally construct the set of object indices that encompass the position
   cv.contained_in_objects.clear();

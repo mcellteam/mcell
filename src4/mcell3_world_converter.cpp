@@ -111,10 +111,14 @@ bool MCell3WorldConverter::convert(volume* s) {
   world->create_initial_surface_region_release_event(); // cannot fail
   CHECK(convert_rxns(s));
 
+  mcell_log("Creating initial partition...");
+
   // at this point, we need to create the first (and for now the only) partition
   // create initial partition with center at 0,0,0
   partition_id_t index = world->add_partition(Vec3(0, 0, 0));
   assert(index == PARTITION_ID_INITIAL);
+
+  mcell_log("Converting geometry...");
 
   // convert geometry already puts geometry objects into partitions
   CHECK(convert_geometry_objects(s));
@@ -244,8 +248,8 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
   }
 
   float_t l = world->config.partition_edge_length / 2 * s->length_unit;
-  mcell_log("MCell4 partition bounding box in microns: [ %f, %f, %f ], [ %f, %f, %f ]", -l, -l, -l, l, l, l);
-
+  mcell_log("MCell4 partition bounding box in microns: [ %f, %f, %f ], [ %f, %f, %f ], with %d subpartitions per dimension",
+      -l, -l, -l, l, l, l, (int)world->config.num_subpartitions_per_partition);
 
   world->config.randomize_smol_pos = s->randomize_smol_pos; // set in MDL using negated value of CENTER_MOLECULES_ON_GRID
 

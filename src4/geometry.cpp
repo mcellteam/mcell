@@ -38,6 +38,7 @@
 
 #include "geometry_utils.h"
 #include "geometry_utils.inc" // uses get_wall_bounding_box, maybe not include this file
+#include "collision_utils.inc"
 #include "dump_state.h"
 
 using namespace std;
@@ -562,7 +563,11 @@ static float_t tetrahedral_volume(
   Note: by "manifold" we mean "orientable compact two-dimensional
         manifold without boundaries embedded in R3"
 ***************************************************************************/
-void Region::update_volume_info(const Partition& p) {
+// TODO: call with initialization?
+void Region::initialize_volume_info_if_needed(const Partition& p) {
+  if (volume_info_initialized) {
+    return;
+  }
 
   if (walls_and_edges.empty()) {
     mcell_internal_error("Region '%s' has NULL wall array!", name.c_str());
@@ -582,7 +587,7 @@ void Region::update_volume_info(const Partition& p) {
     if (!it.second.empty()) {
       // does this wall represent a region border?
       region_is_manifold = false;
-      volume_info_uptodate = true;
+      volume_info_initialized = true;
     }
 
     const Wall& w = p.get_wall(it.first);
@@ -594,7 +599,82 @@ void Region::update_volume_info(const Partition& p) {
 
   volume = current_volume;
   region_is_manifold = true;
-  volume_info_uptodate = true;
+  volume_info_initialized = true;
+}
+
+
+void Region::initialize_region_waypoints(const Partition& p) {
+
+  initialize_volume_info_if_needed(p);
+
+  // get initial waypoint
+  IVec3 llf_waypoint_index;
+  subpart_index_t subpart_index = p.get_subpart_index(bounding_box_llf);
+  p.get_subpart_3d_indices_from_index(subpart_index, llf_waypoint_index);
+
+  // then compute ho many waypoints in each dimension we need to check
+  Vec3 region_dims = bounding_box_urb - bounding_box_llf;
+  IVec3 num_waypoints = region_dims / Vec3(p.config.subpartition_edge_length) + Vec3(1);
+
+  for (int x = 0; x < num_waypoints.x; x++) {
+    for (int y = 0; y < num_waypoints.y; y++) {
+      for (int z = 0; z < num_waypoints.z; z++) {
+        // waypoint is always in the center of a subpartition
+        IVec3 current_waypoint_index( llf_waypoint_index + IVec3(x, y, z) );
+        const Waypoint& waypoint = p.get_waypoint(current_waypoint_index);
+
+        if (CollisionUtil::is_point_inside_region_no_waypoints(p, waypoint.pos, *this)) {
+          waypoints_in_this_region.insert(current_waypoint_index);
+        }
+      }
+    }
+  }
+
+  region_waypoints_initialized = true;
+}
+
+
+bool Region::is_point_inside(const Partition& p, const Vec3& pos) {
+
+  // for now not using the optimization below
+  return CollisionUtil::is_point_inside_region_no_waypoints(p, pos, *this);
+
+  // TODO: decide whether to keep this optimization
+
+  assert(is_manifold() && "Not sure what to do here yet");
+
+  // find out which waypoints are inside this region
+  if (!region_waypoints_initialized) {
+    initialize_region_waypoints(p);
+  }
+
+  // get a waypoint close to this position
+  IVec3 waypoint_index;
+  subpart_index_t subpart_index = p.get_subpart_index(pos);
+  p.get_subpart_3d_indices_from_index(subpart_index, waypoint_index);
+  const Waypoint& waypoint = p.get_waypoint(waypoint_index);
+
+  map<geometry_object_index_t, uint> num_crossed_walls_per_object;
+  CollisionUtil::get_num_crossed_walls_per_object(
+      p, pos, waypoint.pos,
+      num_crossed_walls_per_object,
+      false,
+      true,
+      this
+  );
+  assert((num_crossed_walls_per_object.empty() || num_crossed_walls_per_object.size() == 1) &&
+      "Expecting that a region represents a single object"
+  );
+  if (num_crossed_walls_per_object.empty()) {
+    // no region's wall was hit, we are inside if waypoint is inside
+    bool waypoint_is_inside_this_region = waypoints_in_this_region.count(waypoint_index) != 0;
+    return waypoint_is_inside_this_region;
+  }
+  else {
+    // fallback to full computation
+    return CollisionUtil::is_point_inside_region_no_waypoints(p, pos, *this);
+  }
+
 }
 
 

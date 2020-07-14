@@ -138,6 +138,8 @@ public:
     CountedVolume counted_volume_outside_all;
     counted_volume_index_t index = find_or_add_counted_volume(counted_volume_outside_all);
     assert(index == COUNTED_VOLUME_INDEX_OUTSIDE_ALL && "The empty counted volume must have index 0");
+
+    rng_init(&aux_rng, 0);
   }
 
 
@@ -803,13 +805,11 @@ public:
   void initialize_waypoints();
 
   Waypoint& get_waypoint(const IVec3& index3d) {
-    assert(config.has_intersecting_counted_objects);
     check_waypoint_index(index3d);
     return waypoints[index3d.x][index3d.y][index3d.z];
   }
 
   const Waypoint& get_waypoint(const IVec3& index3d) const {
-    assert(config.has_intersecting_counted_objects);
     check_waypoint_index(index3d);
     return waypoints[index3d.x][index3d.y][index3d.z];
   }
@@ -944,6 +944,9 @@ private:
   // ---------------------------------- shared simulation configuration -------------------
 public:
   partition_id_t id;
+
+  // auxiliary random generator state
+  mutable rng_state aux_rng;
 
   // all these reference an object owned by a single World instance
   // enclose into something?

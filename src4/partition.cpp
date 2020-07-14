@@ -205,7 +205,7 @@ void Partition::create_waypoint(
     Waypoint& previous_waypoint = get_waypoint(previous_waypoint_index);
     map<geometry_object_index_t, uint> num_crossed_walls_per_object;
 
-    CollisionUtil::get_num_crossed_counted_walls_per_object(
+    CollisionUtil::get_num_crossed_walls_per_object(
         *this, waypoint.pos, previous_waypoint.pos,
         num_crossed_walls_per_object
     );
@@ -222,10 +222,9 @@ void Partition::create_waypoint(
 
 
 void Partition::initialize_waypoints() {
-  if (!config.has_intersecting_counted_objects) {
-    // no need to initialize
-    return;
-  }
+  // we need waypoints to be initialized all the time because they
+  // are used not just when dealing with counted volumes, but also
+  // by regions when detecting whether a point is inside
 
   // each center of a subpartition has a waypoint
   uint num_waypoints_per_dimension = config.num_subpartitions_per_partition;

@@ -320,6 +320,32 @@ struct IVec3: public glm_ivec3_t {
   IVec3(const int x_, const int y_, const int z_) { x = x_; y = y_; z = z_; }
   IVec3(const int xyz) { x = xyz; y = xyz; z = xyz; }
   IVec3(const std::vector<int>& xyz) { assert(xyz.size() == 3); x = xyz[0]; y = xyz[1]; z = xyz[2]; }
+
+  // arbitrary ordering in order to use IVec3 as keys in sets and maps
+  bool operator < (const IVec3& other) const {
+    if (x < other.x) {
+      return true;
+    }
+    else if (x == other.x) {
+      if (y < other.y) {
+        return true;
+      }
+      else if (y == other.y) {
+        if (z < other.z) {
+          return true;
+        }
+        else {
+          return false;
+        }
+      }
+      else {
+        return false;
+      }
+    }
+    else {
+      return false;
+    }
+  }
 };
 
 struct Vec3: public glm_vec3_t {
