@@ -1282,7 +1282,6 @@ static bool sets_intersect(const subpart_indices_set_t& s1, const subpart_indice
   }
   else {
     // NOTE: std::set_intersection does not work correctly with google::dense_hash_set
-    return it != res.begin();*/
     for (subpart_index_t si: s1) {
       if (s2.count(si) != 0) {
         return true;
