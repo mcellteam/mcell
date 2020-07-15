@@ -116,7 +116,7 @@ public:
   void to_data_model(const Partition& p, const SimulationConfig& config, Json::Value& object) const;
 };
 
-typedef std::map<subpart_index_t, uint_set<wall_index_t>> WallsPerSubpartMap;
+typedef uint_flat_map<subpart_index_t, small_vector<wall_index_t>> WallsPerSubpartMap;
 
 // this class holds information for initial release of molecules onto regions specified by
 // MDL's MODIFY_SURFACE_REGIONS/MOLECULE_DENSITY or MOLECULE_NUMBER
@@ -627,14 +627,16 @@ typedef std::vector<GeometryObject> GeometryObjectVector;
 // TODO: move this to a separate file
 namespace Geometry {
 
+
+// TODO: move under Region
 void compute_region_bounding_box(
-    const Partition& p, const Region *r,
+    const Partition& p, const Region& r,
     Vec3& llf, Vec3& urb
 );
 
 // used when creating release event
 bool compute_region_expr_bounding_box(
-    const World* world, const RegionExprNode* region_expr,
+    World* world, const RegionExprNode* region_expr,
     Vec3& llf, Vec3& urb
 );
 

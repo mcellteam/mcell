@@ -775,7 +775,7 @@ static MCell::RegionExprOperator convert_region_node_type(API::RegionNodeType t)
 }
 
 
-RegionExprNode* convert_region_expr_recursively(
+RegionExprNode* MCell4Converter::convert_region_expr_recursively(
     const shared_ptr<API::Region>& region,
     MCell::ReleaseEvent* rel_event
 ) {
@@ -783,12 +783,16 @@ RegionExprNode* convert_region_expr_recursively(
   if (region->node_type == RegionNodeType::LEAF_GEOMETRY_OBJECT) {
     shared_ptr<API::GeometryObject> geometry_object = dynamic_pointer_cast<API::GeometryObject>(region);
     assert(is_set(geometry_object));
-    return rel_event->create_new_region_expr_node_leaf(geometry_object->name + MCell::REGION_ALL_SUFFIX_W_COMMA);
+    const MCell::Region* reg = world->find_region_by_name(geometry_object->name + MCell::REGION_ALL_SUFFIX_W_COMMA);
+    release_assert(reg != nullptr);
+    return rel_event->create_new_region_expr_node_leaf(reg->id);
   }
   else if (region->node_type == RegionNodeType::LEAF_SURFACE_REGION) {
     shared_ptr<API::SurfaceRegion> surface_region = dynamic_pointer_cast<API::SurfaceRegion>(region);
     assert(is_set(surface_region));
-    return rel_event->create_new_region_expr_node_leaf(surface_region->parent->name + "," + surface_region->name);
+    const MCell::Region* reg = world->find_region_by_name(surface_region->parent->name + "," + surface_region->name);
+    release_assert(reg != nullptr);
+    return rel_event->create_new_region_expr_node_leaf(reg->id);
   }
   else {
     return rel_event->create_new_region_expr_node_op(
@@ -809,9 +813,10 @@ void MCell4Converter::convert_region_expr(API::ReleaseSite& rel_site, MCell::Rel
   rel_event->region_expr_root = convert_region_expr_recursively(rel_site.region, rel_event);
 
   // also set llf and urb
+  // TODO: this does not check anything yet
   bool ok = Geometry::compute_region_expr_bounding_box(world, rel_event->region_expr_root, rel_event->region_llf, rel_event->region_urb);
   if (!ok) {
-    throw RuntimeError("Region for releases specified by " + rel_event->region_expr_root->region_name + " is not closed.");
+    throw RuntimeError("Region for releases specified by " + rel_event->region_expr_root->to_string(world) + " is not closed.");
   }
 }
 

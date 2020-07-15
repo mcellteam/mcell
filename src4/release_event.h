@@ -83,18 +83,21 @@ const int NUMBER_OF_TRAINS_UNLIMITED = -1;
 class RegionExprNode {
 public:
   RegionExprNode()
-    : op(RegionExprOperator::Invalid), left(nullptr), right(nullptr) {
+    : op(RegionExprOperator::Invalid),
+      region_id(REGION_INDEX_INVALID),
+      left(nullptr), right(nullptr) {
   }
 
   RegionExprOperator op;
 
-  std::string region_name; // name of the region into which we should release the molecules
+  region_id_t region_id;
+  //std::string region_name; // name of the region into which we should release the molecules
 
   RegionExprNode* left;
   RegionExprNode* right;
 
-  void dump() const; // does not print any newlines
-  std::string to_string(const bool for_datamodel = false) const;
+  void dump(const World* world) const; // does not print any newlines
+  std::string to_string(const World* world, const bool for_datamodel = false) const;
 };
 
 
@@ -197,7 +200,7 @@ public:
 
 
   // constructor and container for all region expr nodes
-  RegionExprNode* create_new_region_expr_node_leaf(const std::string region_name);
+  RegionExprNode* create_new_region_expr_node_leaf(const region_id_t region_id);
   RegionExprNode* create_new_region_expr_node_op(const RegionExprOperator op, RegionExprNode* left, RegionExprNode* right);
   std::vector<RegionExprNode*> all_region_expr_nodes;
 
@@ -235,6 +238,9 @@ private:
   void release_onto_regions(uint computed_release_number);
 
   // for volume molecule releases into a region
+  bool is_point_inside_region_expr_recursively(
+      Partition& p, const Vec3& pos, const RegionExprNode* region_expr_node
+  );
   uint num_vol_mols_from_conc(bool &exact_number);
   void release_inside_regions(uint& computed_release_number);
 

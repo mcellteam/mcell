@@ -574,7 +574,7 @@ void Region::initialize_volume_info_if_needed(const Partition& p) {
   }
 
   // initialize bounding box
-  Geometry::compute_region_bounding_box(p, this, bounding_box_llf, bounding_box_urb);
+  Geometry::compute_region_bounding_box(p, *this, bounding_box_llf, bounding_box_urb);
 
   // use the center of the region bounding box as reference point for
   // computing the volume
@@ -615,7 +615,7 @@ void Region::initialize_wall_subpart_mapping_if_needed(const Partition& p) {
   for (const auto& wall_and_edges_pair: walls_and_edges) {
     const Wall& w = p.get_wall(wall_and_edges_pair.first);
     for (subpart_index_t si: w.present_in_subparts) {
-      walls_per_subpart[si].insert(w.index);
+      walls_per_subpart[si].push_back(w.index);
     }
   }
   walls_per_subpart_initialized = true;
@@ -1104,12 +1104,12 @@ create_region_bbox:
        a bounding box around the region, or NULL if out of memory.
 ***************************************************************************/
 void compute_region_bounding_box(
-    const Partition& p, const Region *r,
+    const Partition& p, const Region& r,
     Vec3& llf, Vec3& urb
 )
 {
   bool found_first_wall = false;
-  for (auto it: r->walls_and_edges) {
+  for (auto it: r.walls_and_edges) {
     const Wall& w = p.get_wall(it.first);
     const Vec3* verts[VERTICES_IN_TRIANGLE];
     verts[0] = &p.get_wall_vertex(w, 0);
@@ -1160,15 +1160,14 @@ eval_rel_region_bbox:
 ***************************************************************************/
 // TODO: not checking whether object is closed - use some library for that
 bool compute_region_expr_bounding_box(
-    const World* world, const RegionExprNode* expr,
+    World* world, const RegionExprNode* expr,
     Vec3& llf, Vec3& urb
 ) {
   int count_regions_flag = 1;
-  const Partition& p = world->get_partition(0);
+  Partition& p = world->get_partition(0);
 
   if (expr->op == RegionExprOperator::Leaf) {
-    const Region* reg = p.find_region_by_name(expr->region_name);
-    assert(reg != nullptr);
+    Region& reg = p.get_region_by_id(expr->region_id);
     compute_region_bounding_box(p, reg, llf, urb);
     return true;
   }

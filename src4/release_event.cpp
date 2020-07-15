@@ -45,11 +45,12 @@ using namespace std;
 
 namespace MCell {
 
-string RegionExprNode::to_string(const bool for_datamodel) const {
+string RegionExprNode::to_string(const World* world, const bool for_datamodel) const {
   stringstream out;
   assert(op != RegionExprOperator::Invalid);
 
   if (op == RegionExprOperator::Leaf) {
+    const string& region_name = world->get_region(region_id).name;
     if (for_datamodel) {
       return DMUtil::get_object_w_region_name(region_name);
     }
@@ -60,7 +61,7 @@ string RegionExprNode::to_string(const bool for_datamodel) const {
 
   assert(left != nullptr);
   out << "(";
-  out << left->to_string(for_datamodel);
+  out << left->to_string(world, for_datamodel);
 
   switch(op) {
     case RegionExprOperator::Union:
@@ -75,14 +76,14 @@ string RegionExprNode::to_string(const bool for_datamodel) const {
     default:
       assert(false);
   }
-  out << right->to_string(for_datamodel);
+  out << right->to_string(world, for_datamodel);
   out << ")";
   return out.str();
 }
 
 
-void RegionExprNode::dump() const {
-  cout << to_string();
+void RegionExprNode::dump(const World* world) const {
+  cout << to_string(world);
 
 }
 
@@ -130,10 +131,10 @@ bool ReleaseEvent::update_event_time_for_next_scheduled_time() {
 }
 
 
-RegionExprNode* ReleaseEvent::create_new_region_expr_node_leaf(const std::string region_name) {
+RegionExprNode* ReleaseEvent::create_new_region_expr_node_leaf(const region_id_t region_id) {
   RegionExprNode* res = new RegionExprNode;
   res->op = RegionExprOperator::Leaf;
-  res->region_name = region_name;
+  res->region_id = region_id;
   return res;
 }
 
@@ -177,7 +178,7 @@ void ReleaseEvent::dump(const string ind) const {
   cout << ind2 << "region_urb: \t\t" << region_urb << " [Vec3]\n";
 
   if (region_expr_root != nullptr) {
-    region_expr_root->dump();
+    region_expr_root->dump(world);
   }
 
   cout << ind2 << "delay: \t\t" << delay << " [float_t]\n";
@@ -298,7 +299,7 @@ void ReleaseEvent::to_data_model_as_one_release_site(
       break;
     case ReleaseShape::REGION:
       release_site[KEY_SHAPE] = VALUE_OBJECT;
-      release_site[KEY_OBJECT_EXPR] = region_expr_root->to_string(true);
+      release_site[KEY_OBJECT_EXPR] = region_expr_root->to_string(world, true);
       break;
     case ReleaseShape::LIST:
       release_site[KEY_SHAPE] = VALUE_LIST;
@@ -413,12 +414,9 @@ bool ReleaseEvent::initialize_walls_for_release() {
     return false;
   }
 
-  const Region* reg = world->get_partition(0).find_region_by_name(region_expr_root->region_name);
-  if (reg == nullptr) {
-    return false;
-  }
+  const Region& reg = world->get_region(region_expr_root->region_id);
 
-  for (auto& it: reg->walls_and_edges) {
+  for (auto& it: reg.walls_and_edges) {
     wall_index_t wi = it.first;
     const Wall& w = world->get_partition(PARTITION_ID_INITIAL).get_wall(wi);
 
@@ -608,14 +606,12 @@ void ReleaseEvent::release_onto_regions(uint computed_release_number) {
 }
 
 
-static bool is_point_inside_region_expr_recursively(Partition& p, const Vec3& pos, const RegionExprNode* region_expr_node) {
+bool ReleaseEvent::is_point_inside_region_expr_recursively(Partition& p, const Vec3& pos, const RegionExprNode* region_expr_node) {
   assert(region_expr_node->op != RegionExprOperator::Invalid);
 
   if (region_expr_node->op == RegionExprOperator::Leaf) {
-    Region* reg = p.find_region_by_name(region_expr_node->region_name);
-    assert(reg != nullptr && "Region for release must exist");
-    //return CollisionUtil::is_point_inside_region_no_waypoints(p, pos, *reg);
-    return reg->is_point_inside(p, pos);
+    Region& reg = p.get_region_by_id(region_expr_node->region_id);
+    return reg.is_point_inside(p, pos);
   }
 
   bool satisfies_l = is_point_inside_region_expr_recursively(p, pos, region_expr_node->left);
@@ -650,10 +646,10 @@ uint ReleaseEvent::num_vol_mols_from_conc(bool &exact_number) {
   Partition& p = world->get_partition(PARTITION_ID_INITIAL);
   float_t vol = 0.0;
   if (region_expr_root->op == RegionExprOperator::Leaf) {
-    Region *r = p.find_region_by_name(region_expr_root->region_name);
-    r->initialize_volume_info_if_needed(p);
-    release_assert(r->is_manifold() && "Trying to release into a regions that is not a manifold and has no volume");
-    vol = r->get_volume();
+    Region& r = p.get_region_by_id(region_expr_root->region_id);
+    r.initialize_volume_info_if_needed(p);
+    release_assert(r.is_manifold() && "Trying to release into a regions that is not a manifold and has no volume");
+    vol = r.get_volume();
     exact_number = true;
   }
   else {

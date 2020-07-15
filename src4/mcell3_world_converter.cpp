@@ -1073,8 +1073,10 @@ bool MCell3WorldConverter::convert_rxns(volume* s) {
   return true;
 }
 
-// returns false if conversion failed
-static RegionExprNode* create_release_region_terms_recursively(release_evaluator* expr, ReleaseEvent& event_data) {
+// returns nullptr if conversion failed
+RegionExprNode* MCell3WorldConverter::create_release_region_terms_recursively(
+    release_evaluator* expr, ReleaseEvent& event_data
+) {
   assert(expr != nullptr);
   RegionExprOperator new_op = RegionExprOperator::Invalid;
 
@@ -1104,7 +1106,9 @@ static RegionExprNode* create_release_region_terms_recursively(release_evaluator
 
   if ((expr->op & REXP_LEFT_REGION) != 0) {
     // left node is a region
-    new_left = event_data.create_new_region_expr_node_leaf(get_sym_name(((region*)expr->left)->sym));
+    const Region* reg = world->find_region_by_name(get_sym_name(((region*)expr->left)->sym));
+    release_assert(reg != nullptr);
+    new_left = event_data.create_new_region_expr_node_leaf(reg->id);
   }
   else if (new_op != RegionExprOperator::Invalid){
     // there is an operator so we assume that the left node is a subexpr
@@ -1115,7 +1119,9 @@ static RegionExprNode* create_release_region_terms_recursively(release_evaluator
   }
 
   if ((expr->op & REXP_RIGHT_REGION) != 0) {
-    new_right = event_data.create_new_region_expr_node_leaf(get_sym_name(((region*)expr->right)->sym));
+    const Region* reg = world->find_region_by_name(get_sym_name(((region*)expr->right)->sym));
+    release_assert(reg != nullptr);
+    new_right = event_data.create_new_region_expr_node_leaf(reg->id);
   }
   else if (new_op != RegionExprOperator::Invalid) {
     new_right = create_release_region_terms_recursively((release_evaluator*)expr->right, event_data);

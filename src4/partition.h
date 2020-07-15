@@ -668,6 +668,12 @@ public:
     return res;
   }
 
+  Region& get_region_by_id(const region_id_t id) {
+    Region& res = get_region((region_index_t)id);
+    assert(res.id == res.index && "With a single partition, region id == index");
+    return res;
+  }
+
   const GeometryObject* find_geometry_object_by_name(const std::string& name) const {
     for (const GeometryObject& o: geometry_objects) {
       if (o.name == name) {

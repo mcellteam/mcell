@@ -250,6 +250,10 @@ public:
     return get_partition(0).get_region_by_id(id);
   }
 
+  const Region* find_region_by_name(const std::string& name) const {
+    return get_partition(0).find_region_by_name(name);
+  }
+
   static uint64_t determine_output_frequency(uint64_t iterations);
 
 private:

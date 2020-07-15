@@ -1302,7 +1302,7 @@ static uint get_num_crossed_region_walls(
     if (reg_subpart_walls_it == walls_per_subpart.end()) {
       continue;
     }
-    const uint_set<wall_index_t>& walls = reg_subpart_walls_it->second;
+    const small_vector<wall_index_t>& walls = reg_subpart_walls_it->second;
 
     for (const wall_index_t& wall_index: walls) {
 

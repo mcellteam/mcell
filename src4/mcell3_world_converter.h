@@ -39,6 +39,7 @@ void mcell4_delete_world();
 namespace MCell {
 
 class ReleaseEvent;
+class RegionExprNode;
 
 class MCell3WorldConverter {
 public:
@@ -70,6 +71,10 @@ private:
   bool convert_species(volume* s);
   bool convert_single_reaction(const rxn *rx);
   bool convert_rxns(volume* s);
+
+  RegionExprNode* create_release_region_terms_recursively(
+      release_evaluator* expr, ReleaseEvent& event_data
+  );
   bool convert_release_events(volume* s);
   bool convert_viz_output_events(volume* s);
   bool convert_mol_or_rxn_count_events(volume* s);

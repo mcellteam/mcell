@@ -42,6 +42,7 @@ class World;
 class Partition;
 class InitialRegionMolecules;
 class GeometryObject;
+class RegionExprNode;
 class ReleaseEvent;
 class MolOrRxnCountTerm;
 class MolOrRxnCountInfo;
@@ -57,6 +58,7 @@ class ElementaryMoleculeInstance;
 class ComplexInstance;
 class SurfaceProperty;
 class InitialSurfaceRelease;
+class Region;
 class SurfaceRegion;
 class GeometryObject;
 class MoleculeReleaseInfo;
@@ -108,6 +110,10 @@ private:
   );
   void convert_geometry_objects();
 
+  MCell::RegionExprNode* convert_region_expr_recursively(
+      const std::shared_ptr<API::Region>& region,
+      MCell::ReleaseEvent* rel_event
+  );
   void convert_region_expr(API::ReleaseSite& rel_site, MCell::ReleaseEvent* rel_event);
   void convert_molecule_list(
       const std::vector<std::shared_ptr<MoleculeReleaseInfo>>& molecule_list,
