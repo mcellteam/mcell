@@ -24,14 +24,6 @@
 #ifndef SRC4_DEFINES_H_
 #define SRC4_DEFINES_H_
 
-#ifndef NDEBUG
-#define INDEXER_WA // Don't know yet how to convince Eclipse to correctly index boost containers
-#endif
-
-#if defined(NDEBUG) && defined(INDEXER_WA)
-#warning "INDEXER_WA is enabled and this will lead to lower performance"
-#endif
-
 #include <stdint.h>
 #include <vector>
 #include <set>
@@ -43,11 +35,6 @@
 #include <map>
 #include <unordered_map>
 
-#ifndef INDEXER_WA
-#include <boost/container/small_vector.hpp>
-#include <boost/container/flat_set.hpp>
-#endif
-
 #include "mcell_structs.h"
 #include "debug_config.h"
 
@@ -57,7 +44,17 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include "../libs/glm/gtx/component_wise.hpp"
 
-#include "../libs/bng/defines_shared.h"
+#include "../libs/bng/defines_shared.h" // may define INDEXER_WA
+
+#if defined(NDEBUG) && defined(INDEXER_WA)
+#warning "INDEXER_WA is enabled and this will lead to lower performance"
+#endif
+
+#ifndef INDEXER_WA
+#include <boost/container/small_vector.hpp>
+#include <boost/container/flat_set.hpp>
+#endif
+
 
 // this file must not depend on any other from mcell4 otherwise there
 // might be some nasty cyclic include dependencies
@@ -260,13 +257,20 @@ const int BASE_CONTAINER_ALLOC = 16;
 
 #ifndef INDEXER_WA
 
+// WARNING: std::set_intersection and possibly other algorithms do not work correctly with dense_hash_set
+typedef google::dense_hash_set<subpart_index_t> subpart_indices_set_t;
+#define SUBPART_SET_INITIALIZE(container, size, invalid_value) container.set_empty_key(invalid_value)
+
 typedef boost::container::small_vector<subpart_index_t, BASE_CONTAINER_ALLOC>  SubpartIndicesVector;
 
 #else
-
+// TODO: use uint_dense_hash_set
 typedef std::vector<subpart_index_t> SubpartIndicesVector;
+typedef std::set<subpart_index_t> subpart_indices_set_t;
+#define SUBPART_SET_INITIALIZE(container, size, invalid_value) do { } while(0)
 
 #endif
+
 
 template<typename T>
 class insertion_ordered_set {

@@ -1248,25 +1248,12 @@ static bool collide_moving_line_and_static_line_test(
 
 // ---------------------------------- counting ----------------------------------
 
-static void get_num_crossed_walls_per_object(
-    const Partition& p, const Vec3& pos, const Vec3& dst,
-    map<geometry_object_index_t, uint>& num_crossed_walls_per_object,
 
-    // this is a customization of this function's result, default is used from compute_counted_volume_for_pos
-    // include_only_counted_walls=false, include_only_region_walls=true and set reg is used from is_point_inside_region
-    bool include_only_counted_walls = true,
-    bool include_only_region_walls = false,
-    const Region* reg = nullptr
+static void get_crossed_subparts_for_walls(
+    const Partition& p,
+    const Vec3& pos, const Vec3& dst, const Vec3& displacement,
+    SubpartIndicesVector& crossed_subparts_for_walls
 ) {
-  assert(include_only_counted_walls != include_only_region_walls);
-  assert(include_only_counted_walls == (reg == nullptr));
-  assert(include_only_region_walls == (reg != nullptr));
-
-  num_crossed_walls_per_object.clear();
-
-  Vec3 displacement = dst - pos - Vec3(EPS); // from here up to a corner of the partition
-
-  // collect which subpartitions we crossed
   Vec3 dir;
   Vec3 abs_d_rcp;
   Vec3 deltat;
@@ -1275,7 +1262,6 @@ static void get_num_crossed_walls_per_object(
       dir, abs_d_rcp, deltat
   );
 
-  SubpartIndicesVector crossed_subparts_for_walls;
   subpart_indices_set_t crossed_subparts_for_molecules_ignored;
   raycast_with_endpoints(
       p, pos, dst,
@@ -1283,6 +1269,96 @@ static void get_num_crossed_walls_per_object(
       dir, abs_d_rcp, deltat,
       crossed_subparts_for_walls, crossed_subparts_for_molecules_ignored
   );
+}
+
+
+// NOTE: can be optimized further if needed
+static bool sets_intersect(const subpart_indices_set_t& s1, const subpart_indices_set_t& s2) {
+  if (s1.size() == 1 && s2.count(*s1.begin()) != 0) {
+    return true;
+  }
+  else if (s2.size() == 1 && s1.count(*s2.begin()) != 0) {
+    return true;
+  }
+  else {
+    // NOTE: std::set_intersection does not work correctly with google::dense_hash_set
+    return it != res.begin();*/
+    for (subpart_index_t si: s1) {
+      if (s2.count(si) != 0) {
+        return true;
+      }
+    }
+    return false;
+  }
+}
+
+
+static uint get_num_crossed_region_walls(
+    const Partition& p, const Vec3& pos, const Vec3& dst,
+    const Region& reg
+) {
+  Vec3 displacement = dst - pos - Vec3(EPS); // from here up to a corner of the partition
+
+  // collect which subpartitions we crossed
+  SubpartIndicesVector crossed_subparts_for_walls;
+  get_crossed_subparts_for_walls(p, pos, dst, displacement, crossed_subparts_for_walls);
+
+  subpart_indices_set_t subparts_set;
+  SUBPART_SET_INITIALIZE(subparts_set, BASE_CONTAINER_ALLOC, SUBPART_INDEX_INVALID);
+  for (subpart_index_t si: crossed_subparts_for_walls) {
+    subparts_set.insert(si);
+  }
+
+  uint num_crossed = 0;
+
+  // now check which walls we hit
+  for (const auto& wall_edges_pair: reg.walls_and_edges) {
+
+    const Wall& w = p.get_wall(wall_edges_pair.first);
+
+    // is the wall in one of the subparts that we are crossing?
+    // maybe sort the walls in a region according to subparts?
+    if (!sets_intersect(w.present_in_subparts, subparts_set)) {
+      continue;
+    }
+
+    float_t collision_time_ignored;
+    Vec3 collision_pos_ignored;
+
+    CollisionType collision_type;
+    uint num_tries = 0;
+    do {
+      collision_type = collide_wall(
+            p, pos, w, p.aux_rng, true, displacement,
+            collision_time_ignored, collision_pos_ignored);
+
+      num_tries++;
+      release_assert(num_tries < 100 && "Cannot determine molecule or waypoint position.");
+      // FIXME: we really do not want REDO, it is highly unreliable
+      // test 0750 fails when this assert is enabled
+      //release_assert(collision_type != CollisionType::WALL_REDO);
+    } while (collision_type == CollisionType::WALL_REDO);
+
+    if (collision_type == CollisionType::WALL_FRONT || collision_type == CollisionType::WALL_BACK) {
+      num_crossed++;
+    }
+  }
+
+  return num_crossed;
+}
+
+
+static void get_num_crossed_walls_per_object(
+    const Partition& p, const Vec3& pos, const Vec3& dst,
+    map<geometry_object_index_t, uint>& num_crossed_walls_per_object
+) {
+  num_crossed_walls_per_object.clear();
+
+  Vec3 displacement = dst - pos - Vec3(EPS); // from here up to a corner of the partition
+
+  // collect which subpartitions we crossed
+  SubpartIndicesVector crossed_subparts_for_walls;
+  get_crossed_subparts_for_walls(p, pos, dst, displacement, crossed_subparts_for_walls);
 
   // now check which walls we hit
   uint_set<wall_index_t> already_checked_walls;
@@ -1296,12 +1372,7 @@ static void get_num_crossed_walls_per_object(
 
       // do we count only counted objects and is this a counted oblect?
       const Wall& w = p.get_wall(wall_index);
-      if (include_only_counted_walls && !p.get_geometry_object(w.object_index).is_counted_volume) {
-        continue;
-      }
-
-      // do we count only walls from our region?
-      if (include_only_region_walls && reg->walls_and_edges.count(wall_index) == 0) {
+      if (!p.get_geometry_object(w.object_index).is_counted_volume) {
         continue;
       }
 
@@ -1367,26 +1438,15 @@ static bool is_point_inside_region_no_waypoints(const Partition& p, const Vec3& 
   dst.x += p.config.subpartition_edge_length / 11;
   dst.y += p.config.subpartition_edge_length / 22;
 
-  map<geometry_object_index_t, uint> num_crossed_walls_per_object;
-  get_num_crossed_walls_per_object(
-      p, pos, dst,
-      num_crossed_walls_per_object,
-      false,
-      true, &reg
-  );
+  uint num_crossed = get_num_crossed_region_walls(p, pos, dst, reg);
 
-  assert((num_crossed_walls_per_object.empty() || num_crossed_walls_per_object.size() == 1) &&
-      "Expecting that a region represents a single object"
-  );
-
-  if (num_crossed_walls_per_object.empty()) {
+  if (num_crossed == 0) {
     // no region's wall was hit
     return false;
   }
   else {
     // odd number of hits means that we are inside
-    uint num_hits = num_crossed_walls_per_object.begin()->second;
-    return num_hits % 2 == 1;
+    return num_crossed % 2 == 1;
   }
 }
 

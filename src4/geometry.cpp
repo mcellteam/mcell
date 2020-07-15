@@ -637,7 +637,7 @@ void Region::initialize_region_waypoints(const Partition& p) {
 bool Region::is_point_inside(const Partition& p, const Vec3& pos) {
 
   // for now not using the optimization below
-  return CollisionUtil::is_point_inside_region_no_waypoints(p, pos, *this);
+  //return CollisionUtil::is_point_inside_region_no_waypoints(p, pos, *this);
 
   // TODO: decide whether to keep this optimization
 
@@ -655,17 +655,20 @@ bool Region::is_point_inside(const Partition& p, const Vec3& pos) {
   const Waypoint& waypoint = p.get_waypoint(waypoint_index);
 
   map<geometry_object_index_t, uint> num_crossed_walls_per_object;
-  CollisionUtil::get_num_crossed_walls_per_object(
+  uint num_crossed = CollisionUtil::get_num_crossed_region_walls(
       p, pos, waypoint.pos,
-      num_crossed_walls_per_object,
-      false,
-      true,
-      this
+      *this
   );
-  assert((num_crossed_walls_per_object.empty() || num_crossed_walls_per_object.size() == 1) &&
-      "Expecting that a region represents a single object"
-  );
-  if (num_crossed_walls_per_object.empty()) {
+
+  bool waypoint_is_inside_this_region = waypoints_in_this_region.count(waypoint_index) != 0;
+  if (waypoint_is_inside_this_region) {
+    return num_crossed % 2 == 0;
+  }
+  else {
+    return num_crossed % 2 == 1;
+  }
+
+  /*if (num_crossed == 0) {
     // no region's wall was hit, we are inside if waypoint is inside
     bool waypoint_is_inside_this_region = waypoints_in_this_region.count(waypoint_index) != 0;
     return waypoint_is_inside_this_region;
@@ -673,7 +676,7 @@ bool Region::is_point_inside(const Partition& p, const Vec3& pos) {
   else {
     // fallback to full computation
     return CollisionUtil::is_point_inside_region_no_waypoints(p, pos, *this);
-  }
+  }*/
 
 }
 

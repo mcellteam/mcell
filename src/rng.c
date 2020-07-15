@@ -29,7 +29,6 @@
 #include "mcell_structs.h"
 
 #include "dump_state.h"
-#include "debug_config.h"
 
 /*************************************************************************
  * Ziggurat Gaussian generator
@@ -225,7 +224,7 @@ double rng_gauss(struct rng_state *rng) {
   return sign * x;
 }
 
-#ifndef NDEBUG
+#if !defined(NDEBUG) || defined(DEBUG_RNG_CALLS)
 double rng_dbl(struct rng_state *rng) {
 
 #ifdef DEBUG_RNG_CALLS
@@ -235,7 +234,7 @@ double rng_dbl(struct rng_state *rng) {
 }
 #endif
 
-#ifndef NDEBUG
+#if !defined(NDEBUG) || defined(DEBUG_RNG_CALLS)
 unsigned int rng_uint(struct rng_state *rng) {
 
 #ifdef DEBUG_RNG_CALLS

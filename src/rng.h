@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "debug_config.h"
 
 #define ONE_OVER_2_TO_THE_33RD 1.16415321826934814453125e-10
 
@@ -44,13 +45,13 @@
   ((RANDMAX *((x)->rngblocks - 1)) + (long long)(RANDMAX - (x)->randcnt))
 #define rng_init(x, y) isaac64_init((x), (y))
 
-#ifdef NDEBUG
-#define rng_dbl(x) isaac64_dbl32((x))
-#define rng_uint(x) isaac64_uint32((x))
-#else 
+#if !defined(NDEBUG) || defined(DEBUG_RNG_CALLS)
 // we need functions to be able to dump the random number gen. info
 double rng_dbl(struct rng_state *rng);
 unsigned int rng_uint(struct rng_state *rng);
+#else
+#define rng_dbl(x) isaac64_dbl32((x))
+#define rng_uint(x) isaac64_uint32((x))
 #endif
 /***********************************************/
 

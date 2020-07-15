@@ -48,12 +48,19 @@ void Partition::finalize_wall_creation(const wall_index_t wall_index) {
     add_wall_using_vertex_mapping(vi, wall_index);
   }
 
+  w.present_in_subparts.clear();
+
   // also insert this triangle into walls per subpartition
   SubpartIndicesVector colliding_subparts;
   GeometryUtil::wall_subparts_collision_test(*this, w, colliding_subparts);
   for (subpart_index_t subpart_index: colliding_subparts) {
     assert(subpart_index < walls_per_subpart.size());
+
+    // mapping subpart->wall
     walls_per_subpart[subpart_index].insert_unique(wall_index);
+
+    // mapping wall->subpart
+    w.present_in_subparts.insert(subpart_index); // TODO: use insert_unique
   }
 }
 
@@ -69,9 +76,11 @@ void Partition::update_walls_per_subpart(const WallsWithTheirMovesMap& walls_wit
 
       if (insert) {
         walls_per_subpart[subpart_index].insert_unique(wall_index);
+        w.present_in_subparts.insert(subpart_index);
       }
       else {
         walls_per_subpart[subpart_index].erase_existing(wall_index);
+        w.present_in_subparts.erase(subpart_index);
       }
     }
   }

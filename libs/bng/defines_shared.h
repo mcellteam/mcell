@@ -206,6 +206,7 @@ typedef int rxn_class_index_t;
 const rxn_class_index_t RNX_CLASS_INDEX_INVALID = INT_INVALID;
 
 #ifndef NDEBUG
+// FIXME: disable this even for debug build
 #define INDEXER_WA // Don't know yet how to convince Eclipse to correctly index boost containers
 #endif
 

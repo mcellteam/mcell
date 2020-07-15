@@ -59,14 +59,10 @@ class Partition;
 #ifndef INDEXER_WA
 typedef boost::container::small_vector<Collision, 16> collision_vector_t;
 
-typedef google::dense_hash_set<subpart_index_t> subpart_indices_set_t;
-#define SUBPART_SET_INITIALIZE(container, size, invalid_value) container.set_empty_key(invalid_value)
-
 #else
 typedef std::vector<Collision> collision_vector_t; // FIXME: shoudl be UpperCase
-typedef std::set<subpart_index_t> subpart_indices_set_t;
-#define SUBPART_SET_INITIALIZE(container, size, invalid_value) do { } while(0)
 #endif
+
 /**
  * Information about collision of 2 volume/surface molecules or a of a wall collision,
  * used in diffuse_react and in partition.
