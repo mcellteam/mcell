@@ -138,6 +138,7 @@ void World::create_initial_surface_region_release_event() {
   ReleaseEvent* rel_event = new ReleaseEvent(this);
   rel_event->event_time = 0;
   rel_event->actual_release_time = 0;
+  rel_event->release_site_name = "initial surface releases";
   rel_event->release_shape = ReleaseShape::INITIAL_SURF_REGION;
   rel_event->update_event_time_for_next_scheduled_time();
   scheduler.schedule_event(rel_event);
@@ -199,6 +200,13 @@ void World::init_simulation() {
   rusage sim_start_time;
   reset_rusage(&sim_start_time);
   getrusage(RUSAGE_SELF, &sim_start_time);
+
+  if (!config.use_expanded_list) {
+    cout <<
+        "Warning: configuration 'use_expanded_list' (ACCURATE_3D_REACTIONS) set to false is compatible "
+        "with MCell3 only in simple cases and usually MCell4 produces different results. "
+        "Search for potential reactions is always based on reaction radius, not on the subpartition size.\n";
+  }
 
   // iteration counter to report progress
   previous_iteration = 0;

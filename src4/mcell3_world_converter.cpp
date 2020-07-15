@@ -343,6 +343,17 @@ bool MCell3WorldConverter::convert_geometry_objects(volume* s) {
 
   } // for each scene/INSTANTIATE section
 
+  // check that our reinit function works correctly
+#if !defined(NDEBUG) and defined(DEBUG_EXTRA_CHECKS)
+  for (wall_index_t i = 0; i < p.get_wall_count(); i++) {
+    Wall& w = p.get_wall(i);
+    for (edge_index_t k = 0; k < EDGES_IN_TRIANGLE; k++) {
+      Edge& e = w.edges[k];
+      e.debug_check_values_are_uptodate(p);
+    }
+  }
+#endif
+
   return true;
 }
 
@@ -673,17 +684,6 @@ bool MCell3WorldConverter::convert_polygonal_object(const geom_object* o, const 
   for (ReleaseEvent* re: region_releases_to_be_initialized) {
     re->initialize_walls_for_release();
   }
-
-  // check that our reinit function works correctly
-#ifndef NDEBUG
-  for (wall_index_t i = 0; i < p.get_wall_count(); i++) {
-    Wall& w = p.get_wall(i);
-    for (edge_index_t k = 0; k < EDGES_IN_TRIANGLE; k++) {
-      Edge& e = w.edges[k];
-      e.debug_check_values_are_uptodate(p);
-    }
-  }
-#endif
 
   // --- back to object ---
 
