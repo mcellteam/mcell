@@ -603,11 +603,36 @@ void Region::initialize_volume_info_if_needed(const Partition& p) {
 }
 
 
-void Region::initialize_region_waypoints(const Partition& p) {
+void Region::initialize_wall_subpart_mapping_if_needed(const Partition& p) {
+  if (walls_per_subpart_initialized) {
+    return;
+  }
 
-  initialize_volume_info_if_needed(p);
+  // first initialize region wall subpart mapping
+  walls_per_subpart.clear();
+
+  // FIXME: update when a wall of this region is moved
+  for (const auto& wall_and_edges_pair: walls_and_edges) {
+    const Wall& w = p.get_wall(wall_and_edges_pair.first);
+    for (subpart_index_t si: w.present_in_subparts) {
+      walls_per_subpart[si].insert(w.index);
+    }
+  }
+  walls_per_subpart_initialized = true;
+
+}
+
+void Region::initialize_region_waypoints_if_needed(const Partition& p) {
+
+  if (region_waypoints_initialized) {
+    return;
+  }
+
+  assert(walls_per_subpart_initialized);
 
   // get initial waypoint
+  waypoints_in_this_region.clear();
+
   IVec3 llf_waypoint_index;
   subpart_index_t subpart_index = p.get_subpart_index(bounding_box_llf);
   p.get_subpart_3d_indices_from_index(subpart_index, llf_waypoint_index);
@@ -634,19 +659,19 @@ void Region::initialize_region_waypoints(const Partition& p) {
 }
 
 
+
 bool Region::is_point_inside(const Partition& p, const Vec3& pos) {
+
+  initialize_volume_info_if_needed(p);
+  initialize_wall_subpart_mapping_if_needed(p);
+  initialize_region_waypoints_if_needed(p);
 
   // for now not using the optimization below
   //return CollisionUtil::is_point_inside_region_no_waypoints(p, pos, *this);
 
-  // TODO: decide whether to keep this optimization
 
   assert(is_manifold() && "Not sure what to do here yet");
 
-  // find out which waypoints are inside this region
-  if (!region_waypoints_initialized) {
-    initialize_region_waypoints(p);
-  }
 
   // get a waypoint close to this position
   IVec3 waypoint_index;

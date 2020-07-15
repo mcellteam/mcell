@@ -116,6 +116,7 @@ public:
   void to_data_model(const Partition& p, const SimulationConfig& config, Json::Value& object) const;
 };
 
+typedef std::map<subpart_index_t, uint_set<wall_index_t>> WallsPerSubpartMap;
 
 // this class holds information for initial release of molecules onto regions specified by
 // MDL's MODIFY_SURFACE_REGIONS/MOLECULE_DENSITY or MOLECULE_NUMBER
@@ -169,7 +170,7 @@ public:
     : id(REGION_ID_INVALID), index(REGION_INDEX_INVALID), name(""),
       species_id(SPECIES_ID_INVALID), geometry_object_id(GEOMETRY_OBJECT_ID_INVALID),
       volume_info_initialized(false), region_is_manifold(false), volume(FLT_INVALID),
-      region_waypoints_initialized(false)
+      walls_per_subpart_initialized(false), region_waypoints_initialized(false)
       {
   }
 
@@ -194,11 +195,17 @@ public:
   std::vector<InitialRegionMolecules> initial_region_molecules;
 
 private:
+  // TODO: initialize all this when a region is created/finalized
+  // and get rid of the *_initialized values
+
   bool volume_info_initialized;
   Vec3 bounding_box_llf;
   Vec3 bounding_box_urb;
   bool region_is_manifold;
   float_t volume;
+
+  bool walls_per_subpart_initialized;
+  WallsPerSubpartMap walls_per_subpart;
 
   // points known to be inside of this region, optimization
   // for checking whether a point is inside of this region
@@ -227,6 +234,11 @@ public:
   const Vec3& get_bounding_box_urb() const {
     assert(volume_info_initialized);
     return bounding_box_urb;
+  }
+
+  const WallsPerSubpartMap& get_walls_per_subpart() const {
+    assert(walls_per_subpart_initialized);
+    return walls_per_subpart;
   }
 
   bool is_edge(wall_index_t wall_index, edge_index_t edge_index) const {
@@ -282,7 +294,8 @@ public:
   void to_data_model(const Partition& p, Json::Value& modify_surface_region) const;
 
 private:
-  void initialize_region_waypoints(const Partition& p);
+  void initialize_wall_subpart_mapping_if_needed(const Partition& p);
+  void initialize_region_waypoints_if_needed(const Partition& p);
 };
 
 

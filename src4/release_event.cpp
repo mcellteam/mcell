@@ -614,7 +614,8 @@ static bool is_point_inside_region_expr_recursively(Partition& p, const Vec3& po
   if (region_expr_node->op == RegionExprOperator::Leaf) {
     Region* reg = p.find_region_by_name(region_expr_node->region_name);
     assert(reg != nullptr && "Region for release must exist");
-    return CollisionUtil::is_point_inside_region_no_waypoints(p, pos, *reg);
+    //return CollisionUtil::is_point_inside_region_no_waypoints(p, pos, *reg);
+    return reg->is_point_inside(p, pos);
   }
 
   bool satisfies_l = is_point_inside_region_expr_recursively(p, pos, region_expr_node->left);

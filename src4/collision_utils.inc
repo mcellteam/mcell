@@ -1271,27 +1271,7 @@ static void get_crossed_subparts_for_walls(
   );
 }
 
-
-// NOTE: can be optimized further if needed
-static bool sets_intersect(const subpart_indices_set_t& s1, const subpart_indices_set_t& s2) {
-  if (s1.size() == 1 && s2.count(*s1.begin()) != 0) {
-    return true;
-  }
-  else if (s2.size() == 1 && s1.count(*s2.begin()) != 0) {
-    return true;
-  }
-  else {
-    // NOTE: std::set_intersection does not work correctly with google::dense_hash_set
-    for (subpart_index_t si: s1) {
-      if (s2.count(si) != 0) {
-        return true;
-      }
-    }
-    return false;
-  }
-}
-
-
+// TODO REG: move as private into Region
 static uint get_num_crossed_region_walls(
     const Partition& p, const Vec3& pos, const Vec3& dst,
     const Region& reg
@@ -1310,36 +1290,50 @@ static uint get_num_crossed_region_walls(
 
   uint num_crossed = 0;
 
+  const WallsPerSubpartMap& walls_per_subpart = reg.get_walls_per_subpart();
+
+
   // now check which walls we hit
-  for (const auto& wall_edges_pair: reg.walls_and_edges) {
+  uint_set<wall_index_t> already_checked_walls;
+  for (subpart_index_t subpart_w_walls_index: crossed_subparts_for_walls) {
 
-    const Wall& w = p.get_wall(wall_edges_pair.first);
+    auto reg_subpart_walls_it = walls_per_subpart.find(subpart_w_walls_index);
 
-    // is the wall in one of the subparts that we are crossing?
-    // maybe sort the walls in a region according to subparts?
-    if (!sets_intersect(w.present_in_subparts, subparts_set)) {
+    if (reg_subpart_walls_it == walls_per_subpart.end()) {
       continue;
     }
+    const uint_set<wall_index_t>& walls = reg_subpart_walls_it->second;
 
-    float_t collision_time_ignored;
-    Vec3 collision_pos_ignored;
+    for (const wall_index_t& wall_index: walls) {
 
-    CollisionType collision_type;
-    uint num_tries = 0;
-    do {
-      collision_type = collide_wall(
-            p, pos, w, p.aux_rng, true, displacement,
-            collision_time_ignored, collision_pos_ignored);
+      const Wall& w = p.get_wall(wall_index);
 
-      num_tries++;
-      release_assert(num_tries < 100 && "Cannot determine molecule or waypoint position.");
-      // FIXME: we really do not want REDO, it is highly unreliable
-      // test 0750 fails when this assert is enabled
-      //release_assert(collision_type != CollisionType::WALL_REDO);
-    } while (collision_type == CollisionType::WALL_REDO);
+      if (already_checked_walls.count(wall_index) != 0) {
+        // we already checked this wall - the same wall can be in multiple subparts
+        continue;
+      }
+      already_checked_walls.insert(wall_index);
 
-    if (collision_type == CollisionType::WALL_FRONT || collision_type == CollisionType::WALL_BACK) {
-      num_crossed++;
+      float_t collision_time_ignored;
+      Vec3 collision_pos_ignored;
+
+      CollisionType collision_type;
+      uint num_tries = 0;
+      do {
+        collision_type = collide_wall(
+              p, pos, w, p.aux_rng, true, displacement,
+              collision_time_ignored, collision_pos_ignored);
+
+        num_tries++;
+        release_assert(num_tries < 100 && "Cannot determine molecule or waypoint position.");
+        // FIXME: we really do not want REDO, it is highly unreliable
+        // test 0750 fails when this assert is enabled
+        //release_assert(collision_type != CollisionType::WALL_REDO);
+      } while (collision_type == CollisionType::WALL_REDO);
+
+      if (collision_type == CollisionType::WALL_FRONT || collision_type == CollisionType::WALL_BACK) {
+        num_crossed++;
+      }
     }
   }
 
@@ -1422,6 +1416,7 @@ static void get_num_crossed_walls_per_object(
     Used only for releases
 
 *************************************************************************/
+// TODO: move as private into Region
 static bool is_point_inside_region_no_waypoints(const Partition& p, const Vec3& pos, Region& reg) {
 
   // cast ray along the whole partition
