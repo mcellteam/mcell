@@ -156,10 +156,21 @@ static void check_version(const string node_name, Json::Value& node, const char*
 }
 
 
+// replaces '.' with '_' and does potentially other conversions
+string make_id(const string& s) {
+  string res = s;
+  // do not do changes if the ID starts with 'm.' -> constant from
+  // the mcell module ID that cannot have dots that we need to replace in it anyway
+  if (res.size() <= 2 || (res.size() > 2 && res.substr(0, strlen(MDOT)) != MDOT)) {
+    replace(res.begin(), res.end(), '.', '_');
+  }
+  return res;
+}
+
 // name might be empty
 void gen_ctor_call(ofstream& out, string name, string class_name, bool has_params = true) {
   if (name != "") {
-    out << name << " = " << MDOT << class_name;
+    out << make_id(name) << " = " << MDOT << class_name;
   }
   else {
     out << MDOT << class_name;
@@ -197,6 +208,12 @@ void gen_param(ofstream& out, string name, string value, bool comma) {
 
 
 template<>
+void gen_param(ofstream& out, string name, const char* const value, bool comma) {
+  out << IND << name << " = '" << value << "'" << (comma?",":"") << "\n";
+}
+
+
+template<>
 void gen_param(ofstream& out, string name, int value, bool comma) {
   out << IND << name << " = " << value << (comma?",":"") << "\n";
 }
@@ -213,12 +230,12 @@ void gen_param(ofstream& out, string name, bool value, bool comma) {
 }
 
 void gen_param_id(ofstream& out, string name, string id, bool comma) {
-  out << IND << name << " = " << id << (comma?",":"") << "\n";
+  out << IND << name << " = " << make_id(id) << (comma?",":"") << "\n";
 }
 
 
 void gen_param_id(ofstream& out, string name, Json::Value& id, bool comma) {
-  out << IND << name << " = " << id.asString() << (comma?",":"") << "\n";
+  out << IND << name << " = " << make_id(id.asString()) << (comma?",":"") << "\n";
 }
 
 
@@ -226,7 +243,7 @@ void gen_param_expr(ofstream& out, string name, const string& value, bool comma)
   string python_expr;
   // replace operator ^ with operator **
   python_expr = regex_replace(value, regex("\\^"), "**");
-  gen_param_id(out, name, python_expr, comma);
+  out << IND << name << " = " << value << (comma?",":"") << "\n";
 }
 
 // this should be used when printing out floating point values (doubles)

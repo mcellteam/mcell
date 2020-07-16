@@ -205,8 +205,8 @@ vector<string> PymcellGenerator::generate_species(ofstream& out) {
     CHECK_PROPERTY(molecule_list_item[KEY_CUSTOM_SPACE_STEP] == "");
     CHECK_PROPERTY(molecule_list_item[KEY_CUSTOM_TIME_STEP] == "");
 
-    string name = molecule_list_item[KEY_MOL_NAME].asString();
-    replace(name.begin(), name.end(), '.', '_');
+    string name = make_id(molecule_list_item[KEY_MOL_NAME].asString());
+
     species_names.push_back(name);
     gen_ctor_call(out, name, NAME_CLASS_SPECIES);
     gen_param(out, NAME_NAME, molecule_list_item[KEY_MOL_NAME].asString(), true); // using original name
@@ -270,7 +270,7 @@ void PymcellGenerator::get_surface_class_property_info(
     ERROR(S("Invalid ") + KEY_SURF_CLASS_TYPE + " " + surf_class_type + ".");
   }
 
-  name = property[KEY_NAME].asString();
+  name = make_id(property[KEY_NAME].asString());
   if (name == "") {
     string tn_lower = type_name;
     transform(tn_lower.begin(), tn_lower.end(), tn_lower.begin(), ::tolower);
@@ -316,7 +316,7 @@ vector<string> PymcellGenerator::generate_surface_classes(ofstream& out) {
       }
     }
 
-    string name = surface_class_list_item[KEY_NAME].asString();
+    string name = make_id(surface_class_list_item[KEY_NAME].asString());
     sc_names.push_back(name);
     gen_ctor_call(out, name, NAME_CLASS_SURFACE_CLASS, true);
     gen_param(out, NAME_NAME, name, true);
@@ -441,7 +441,7 @@ vector<string> PymcellGenerator::generate_reaction_rules(ofstream& out) {
         rate_array_name = rate_array_name.substr(0, dot);
       }
       // and remove possibly other dots in the name
-      replace(rate_array_name.begin(), rate_array_name.end(), '.', '_');
+      rate_array_name = make_id(rate_array_name);
       generate_variable_rate(rate_array_name, reaction_list_item[KEY_VARIABLE_RATE_TEXT]);
       gen_param_id(out, NAME_VARIABLE_RATE, rate_array_name, false); // module parameters is imported as *
     }
@@ -498,7 +498,7 @@ string PymcellGenerator::generate_single_geometry_object(
 
   string parent_name = S(KEY_OBJECT_LIST) + "[" + to_string(index) + "]";
 
-  string name = get_node(parent_name, object, KEY_NAME).asString();
+  string name = make_id(get_node(parent_name, object, KEY_NAME).asString());
   Value& vertex_list = get_node(parent_name, object, KEY_VERTEX_LIST);
   Value& element_connections = get_node(parent_name, object, KEY_ELEMENT_CONNECTIONS);
   // TODO: material_names
@@ -543,8 +543,8 @@ string PymcellGenerator::generate_single_geometry_object(
     Value& define_surface_regions = object[KEY_DEFINE_SURFACE_REGIONS];
     for (Value::ArrayIndex i = 0; i < define_surface_regions.size(); i++) {
 
-      string sr_name = get_node(
-          KEY_DEFINE_SURFACE_REGIONS, define_surface_regions[i], KEY_NAME).asString();
+      string sr_name = make_id(get_node(
+          KEY_DEFINE_SURFACE_REGIONS, define_surface_regions[i], KEY_NAME).asString());
       Value& include_elements = get_node(
           KEY_DEFINE_SURFACE_REGIONS, define_surface_regions[i], KEY_INCLUDE_ELEMENTS);
 
@@ -776,8 +776,7 @@ vector<string> PymcellGenerator::generate_release_sites(ofstream& out) {
     Value& release_site_item = release_site_list[i];
     check_version(KEY_RELEASE_SITE_LIST, release_site_item, VER_DM_2018_01_11_1330);
 
-    string name = release_site_item[KEY_NAME].asString();
-    replace(name.begin(), name.end(), '.', '_');
+    string name = make_id(release_site_item[KEY_NAME].asString());
     string shape = release_site_item[KEY_SHAPE].asString();
     string molecule_list_name = "";
     if (shape == VALUE_LIST) {
@@ -1395,8 +1394,8 @@ vector<string> PymcellGenerator::generate_counts(ofstream& out) {
       }
     }
 
-    gen_param_id(out, NAME_FILENAME,
-        DEFAULT_RXN_OUTPUT_FILENAME_PREFIX + mdl_file_prefix + ".dat'", multiplier_str != "" || rxn_step != "");
+    gen_param(out, NAME_FILENAME,
+        DEFAULT_RXN_OUTPUT_FILENAME_PREFIX + mdl_file_prefix + ".dat", multiplier_str != "" || rxn_step != "");
 
     if (multiplier_str != "") {
       gen_param_expr(out, NAME_MULTIPLIER, multiplier_str, rxn_step != "");
