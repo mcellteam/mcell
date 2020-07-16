@@ -209,24 +209,32 @@ void Partition::create_waypoint(
       Vec3(config.subpartition_edge_length) * Vec3(index3d) +
       Vec3(config.subpartition_edge_length / 2);
 
-  // see if we can reuse the previous waypoint to accelerate computation
-  if (use_previous_waypoint) {
-    Waypoint& previous_waypoint = get_waypoint(previous_waypoint_index);
-    map<geometry_object_index_t, uint> num_crossed_walls_per_object;
 
-    CollisionUtil::get_num_crossed_walls_per_object(
-        *this, waypoint.pos, previous_waypoint.pos,
-        num_crossed_walls_per_object
-    );
-    if (num_crossed_walls_per_object.empty()) {
-      // ok, we can simply copy counted volume from the previous waypoint
-      waypoint.counted_volume_index = previous_waypoint.counted_volume_index;
-      return;
+  // it makes sense to compute counted_volume_index if there are any
+  // counted objects
+  if (config.has_intersecting_counted_objects) {
+    // see if we can reuse the previous waypoint to accelerate computation
+    if (use_previous_waypoint) {
+      Waypoint& previous_waypoint = get_waypoint(previous_waypoint_index);
+      map<geometry_object_index_t, uint> num_crossed_walls_per_object;
+
+      CollisionUtil::get_num_crossed_walls_per_object(
+          *this, waypoint.pos, previous_waypoint.pos,
+          num_crossed_walls_per_object
+      );
+      if (num_crossed_walls_per_object.empty()) {
+        // ok, we can simply copy counted volume from the previous waypoint
+        waypoint.counted_volume_index = previous_waypoint.counted_volume_index;
+        return;
+      }
     }
-  }
 
-  // figure out in which counted volumes is this waypoint present
-  waypoint.counted_volume_index = compute_counted_volume_from_scratch(waypoint.pos);
+    // figure out in which counted volumes is this waypoint present
+    waypoint.counted_volume_index = compute_counted_volume_from_scratch(waypoint.pos);
+  }
+  else {
+    waypoint.counted_volume_index = COUNTED_VOLUME_INDEX_OUTSIDE_ALL;
+  }
 }
 
 

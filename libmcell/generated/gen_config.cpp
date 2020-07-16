@@ -40,6 +40,7 @@ bool GenConfig::__eq__(const GenConfig& other) const {
     interaction_radius == other.interaction_radius &&
     vacancy_search_distance == other.vacancy_search_distance &&
     center_molecules_on_grid == other.center_molecules_on_grid &&
+    initial_partition_origin == other.initial_partition_origin &&
     partition_dimension == other.partition_dimension &&
     subpartition_dimension == other.subpartition_dimension &&
     total_iterations_hint == other.total_iterations_hint;
@@ -57,6 +58,7 @@ void GenConfig::set_all_attributes_as_default_or_unset() {
   interaction_radius = FLT_UNSET;
   vacancy_search_distance = 10;
   center_molecules_on_grid = false;
+  initial_partition_origin = std::vector<float_t>();
   partition_dimension = 10;
   subpartition_dimension = 0.5;
   total_iterations_hint = 1000000;
@@ -71,6 +73,7 @@ std::string GenConfig::to_str(const std::string ind) const {
       "interaction_radius=" << interaction_radius << ", " <<
       "vacancy_search_distance=" << vacancy_search_distance << ", " <<
       "center_molecules_on_grid=" << center_molecules_on_grid << ", " <<
+      "initial_partition_origin=" << vec_nonptr_to_str(initial_partition_origin, ind + "  ") << ", " <<
       "partition_dimension=" << partition_dimension << ", " <<
       "subpartition_dimension=" << subpartition_dimension << ", " <<
       "total_iterations_hint=" << total_iterations_hint;
@@ -87,6 +90,7 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
             const float_t,
             const float_t,
             const bool,
+            const std::vector<float_t>,
             const float_t,
             const float_t,
             const long
@@ -97,6 +101,7 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
           py::arg("interaction_radius") = FLT_UNSET,
           py::arg("vacancy_search_distance") = 10,
           py::arg("center_molecules_on_grid") = false,
+          py::arg("initial_partition_origin") = std::vector<float_t>(),
           py::arg("partition_dimension") = 10,
           py::arg("subpartition_dimension") = 0.5,
           py::arg("total_iterations_hint") = 1000000
@@ -110,6 +115,7 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
       .def_property("interaction_radius", &Config::get_interaction_radius, &Config::set_interaction_radius)
       .def_property("vacancy_search_distance", &Config::get_vacancy_search_distance, &Config::set_vacancy_search_distance)
       .def_property("center_molecules_on_grid", &Config::get_center_molecules_on_grid, &Config::set_center_molecules_on_grid)
+      .def_property("initial_partition_origin", &Config::get_initial_partition_origin, &Config::set_initial_partition_origin)
       .def_property("partition_dimension", &Config::get_partition_dimension, &Config::set_partition_dimension)
       .def_property("subpartition_dimension", &Config::get_subpartition_dimension, &Config::set_subpartition_dimension)
       .def_property("total_iterations_hint", &Config::get_total_iterations_hint, &Config::set_total_iterations_hint)

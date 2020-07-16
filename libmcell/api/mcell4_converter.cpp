@@ -92,7 +92,7 @@ void MCell4Converter::convert(Model* model_, World* world_) {
 
   // at this point, we need to create the first (and for now the only) partition
   // create initial partition with center at 0,0,0
-  partition_id_t index = world->add_partition(Vec3(0, 0, 0));
+  partition_id_t index = world->add_partition(world->config.partition0_llf);
   assert(index == PARTITION_ID_INITIAL);
 
   convert_geometry_objects();
@@ -182,6 +182,14 @@ void MCell4Converter::convert_simulation_setup() {
   }
   else {
     world->config.partition_edge_length = config.partition_dimension / length_unit;
+  }
+
+  if (is_set(config.initial_partition_origin)) {
+    release_assert(false && "TODO");
+  }
+  else {
+    // place the parittion to the center
+    world->config.partition0_llf = -Vec3(world->config.partition_edge_length) / Vec3(2);
   }
 
   int num_subparts = config.partition_dimension / config.subpartition_dimension;

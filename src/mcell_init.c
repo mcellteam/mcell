@@ -459,7 +459,7 @@ MCELL_STATUS mcell_set_partition(MCELL_STATE *state, int dim,
     double urb = head->end * state->r_length_unit;
 
     // get approximate number of subparts the user requested
-    state->num_subparts = round((head->end - head->start) / head->step);
+    set_vec3(&state->num_subparts, dim, round((head->end - head->start) / head->step));
 
     set_vec3(&state->partition_llf, dim, llf);
     set_vec3(&state->partition_urb, dim, urb);

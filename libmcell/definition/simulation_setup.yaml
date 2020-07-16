@@ -60,6 +60,14 @@ Config:
   #  type: bool
   #  default: False
 
+  - name: initial_partition_origin
+    type: List[float] 
+    default: unset
+    doc: | 
+      Optional placement of the partition 0 placement, specifies the left, lower and front 
+      point. If not set, value -partition_dimension/2 is used for each of the dimensions 
+      placing the center of the partition to (0, 0, 0).   
+    
   # already using mcell4 simplification that the partition must be a cube    
   - name: partition_dimension
     type: float 

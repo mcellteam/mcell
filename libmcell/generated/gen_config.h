@@ -37,6 +37,7 @@ namespace API {
         const float_t interaction_radius_ = FLT_UNSET, \
         const float_t vacancy_search_distance_ = 10, \
         const bool center_molecules_on_grid_ = false, \
+        const std::vector<float_t> initial_partition_origin_ = std::vector<float_t>(), \
         const float_t partition_dimension_ = 10, \
         const float_t subpartition_dimension_ = 0.5, \
         const long total_iterations_hint_ = 1000000 \
@@ -48,6 +49,7 @@ namespace API {
       interaction_radius = interaction_radius_; \
       vacancy_search_distance = vacancy_search_distance_; \
       center_molecules_on_grid = center_molecules_on_grid_; \
+      initial_partition_origin = initial_partition_origin_; \
       partition_dimension = partition_dimension_; \
       subpartition_dimension = subpartition_dimension_; \
       total_iterations_hint = total_iterations_hint_; \
@@ -136,6 +138,18 @@ public:
   }
   virtual bool get_center_molecules_on_grid() const {
     return center_molecules_on_grid;
+  }
+
+  std::vector<float_t> initial_partition_origin;
+  virtual void set_initial_partition_origin(const std::vector<float_t> new_initial_partition_origin_) {
+    if (initialized) {
+      throw RuntimeError("Value 'initial_partition_origin' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
+    initial_partition_origin = new_initial_partition_origin_;
+  }
+  virtual std::vector<float_t> get_initial_partition_origin() const {
+    return initial_partition_origin;
   }
 
   float_t partition_dimension;

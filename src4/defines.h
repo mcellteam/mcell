@@ -324,6 +324,7 @@ struct IVec3: public glm_ivec3_t {
   IVec3(const int x_, const int y_, const int z_) { x = x_; y = y_; z = z_; }
   IVec3(const int xyz) { x = xyz; y = xyz; z = xyz; }
   IVec3(const std::vector<int>& xyz) { assert(xyz.size() == 3); x = xyz[0]; y = xyz[1]; z = xyz[2]; }
+  IVec3(const vector3& v3) { x = v3.z; y = v3.y; z = v3.z; }
 
   // arbitrary ordering in order to use IVec3 as keys in sets and maps
   bool operator < (const IVec3& other) const {
@@ -424,11 +425,48 @@ static inline float_t floor_f(const float_t x) {
 }
 
 static inline float_t floor_to_multiple(const float_t val, float_t multiple) {
+  assert(val >= 0);
   return (float_t)((int)((val + EPS)/ multiple)) * multiple;
 }
 
+static inline float_t floor_to_multiple_allow_negative(const float_t val, float_t multiple) {
+  if (val >= 0) {
+    return (float_t)((int)((val + EPS)/ multiple)) * multiple;
+  }
+  else {
+    // we need to floor towards the lower negative value, the code above would
+    // ceil the value for negative inputs
+    return (float_t)((int)((val + EPS - multiple)/ multiple)) * multiple;
+  }
+}
+
 static inline Vec3 floor_to_multiple(const Vec3& val, float_t multiple) {
-  return (Vec3)((glm::ivec3)((val + EPS)/ multiple)) * multiple;
+  assert(val.x >= 0 && val.y >=0 && val.z >= 0);
+  return (Vec3)((glm::ivec3)((val + Vec3(EPS))/ multiple)) * multiple;
+}
+
+static inline Vec3 floor_to_multiple_allow_negative(const Vec3& val, float_t multiple) {
+  Vec3 res;
+  res.x = floor_to_multiple_allow_negative(val.x, multiple);
+  res.y = floor_to_multiple_allow_negative(val.y, multiple);
+  res.z = floor_to_multiple_allow_negative(val.z, multiple);
+  return res;
+}
+
+static inline Vec3 ceil_to_multiple(const Vec3& val, float_t multiple) {
+  assert(val.x >= 0 && val.y >=0 && val.z >= 0);
+  Vec3 res = floor_to_multiple(val, multiple);
+  // increment by multiple if value was floored
+  if (!cmp_eq(val.x, res.x)) {
+    res.x += multiple;
+  }
+  if (!cmp_eq(val.y, res.y)) {
+    res.y += multiple;
+  }
+  if (!cmp_eq(val.z, res.z)) {
+    res.z += multiple;
+  }
+  return res;
 }
 
 static inline bool cmp_eq(const Vec3& a, const Vec3& b, const float_t eps) {
@@ -469,8 +507,16 @@ static inline float_t max3(const Vec3& v) {
   return glm::compMax((glm_vec3_t)v);
 }
 
+static inline float_t min3(const Vec3& v) {
+  return glm::compMin((glm_vec3_t)v);
+}
+
 static inline int max3_i(const IVec3& v) {
   return glm::compMax((glm_ivec3_t)v);
+}
+
+static inline int min3_i(const IVec3& v) {
+  return glm::compMin((glm_ivec3_t)v);
 }
 
 static inline Vec3 abs3(const Vec3& v) {
@@ -735,6 +781,8 @@ public:
 
   float_t vacancy_search_dist2; /* Square of distance to search for free grid
                                   location to place surface product */
+
+  Vec3 partition0_llf;
 
   float_t partition_edge_length; // TODO: rename to side
   uint num_subpartitions_per_partition;

@@ -116,6 +116,7 @@ const char* const NAME_GET_MOLECULE = "get_molecule";
 const char* const NAME_GET_MOLECULE_IDS = "get_molecule_ids";
 const char* const NAME_HIGH_REACTION_PROBABILITY = "high_reaction_probability";
 const char* const NAME_ID = "id";
+const char* const NAME_INITIAL_PARTITION_ORIGIN = "initial_partition_origin";
 const char* const NAME_INITIAL_SURFACE_RELEASES = "initial_surface_releases";
 const char* const NAME_INITIALIZE = "initialize";
 const char* const NAME_INST = "inst";

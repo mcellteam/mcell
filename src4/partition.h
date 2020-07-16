@@ -115,12 +115,12 @@ class Partition {
 public:
   Partition(
       const partition_id_t id_,
-      const Vec3 origin_,
+      const Vec3& origin_corner_,
       const SimulationConfig& config_,
       BNG::BNGEngine& bng_engine_,
       SimulationStats& stats_
   )
-    : origin_corner(origin_),
+    : origin_corner(origin_corner_),
       next_molecule_id(0),
       id(id_),
       config(config_),
@@ -128,6 +128,14 @@ public:
       stats(stats_) {
 
     opposite_corner = origin_corner + config.partition_edge_length;
+
+    // check that the subpart grid goes through (0, 0, 0),
+    // (this point does not have to be contained in this partition)
+    // required for correct function of
+    Vec3 how_many_subparts_from_000 = origin_corner/Vec3(config.subpartition_edge_length);
+    release_assert(cmp_eq(floor3(how_many_subparts_from_000), how_many_subparts_from_000) &&
+        "Partition is not aligned to the subpartition grid."
+    );
 
     // pre-allocate volume_molecules arrays and also volume_molecule_indices_per_time_step
     uint32_t num_subparts = powu(config.num_subpartitions_per_partition, 3);

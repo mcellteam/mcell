@@ -115,7 +115,7 @@ bool MCell3WorldConverter::convert(volume* s) {
 
   // at this point, we need to create the first (and for now the only) partition
   // create initial partition with center at 0,0,0
-  partition_id_t index = world->add_partition(Vec3(0, 0, 0));
+  partition_id_t index = world->add_partition(world->config.partition0_llf);
   assert(index == PARTITION_ID_INITIAL);
 
   mcell_log("Converting geometry...");
@@ -170,6 +170,18 @@ static float_t get_partition_edge_length(const World* world, const float_t large
 }
 
 
+static float_t get_shortest_subvol_step(volume* s) {
+  float_t shortest_step = FLT_GIGANTIC;
+  release_assert(s->num_subparts.x != 0 && s->num_subparts.y != 0 && s->num_subparts.z != 0);
+  Vec3 step;
+  step.x = (s->partition_urb.x - s->partition_llf.x)/s->num_subparts.x;
+  step.y = (s->partition_urb.y - s->partition_llf.y)/s->num_subparts.y;
+  step.z = (s->partition_urb.z - s->partition_llf.z)/s->num_subparts.z;
+
+  return min3(step);
+}
+
+
 /**
  * Partition conversion greatly simplifies the variability in MCell3 where the partition can be an arbitrary box.
  * Here, it must be a cube and the first partition must be placed the way so that the coordinate origin
@@ -189,6 +201,8 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
   world->seed_seq = s->seed_seq;
   world->rng = *s->rng;
 
+  float_t sp_len;
+
   // there seems to be just one partition in MCell but we interpret it as mcell4 partition size
   if (s->partitions_initialized) {
     // assuming that the mcell's bounding box if it is bigger than the partition
@@ -197,6 +211,7 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
         s->partition_llf.y >= s->bb_llf.y || s->bb_urb.y >= s->partition_urb.y ||
         s->partition_llf.z >= s->bb_llf.z || s->bb_urb.z >= s->partition_urb.z
     ) {
+      // just to inform the user
       mcell_log("Partitioning was specified, but it is smaller than the automatically determined bounding box.");
 
       float_t lu = s->length_unit;
@@ -210,6 +225,33 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
     CHECK_PROPERTY(s->partition_urb.y > s->partition_llf.y);
     CHECK_PROPERTY(s->partition_urb.z > s->partition_llf.z);
 
+    // determine partition 0 llf origin
+    // it must be placed in the way that subpartitions boundaries go through (0, 0, 0)
+    // and in the same time the partition 0 llf origin is on a multiple of the partition length
+
+    // first we need to determine the subpart length - use the value that user specified in the PARTITION_* section
+    Vec3 mcell3_llf = s->partition_llf;
+    Vec3 mcell3_urb = s->partition_urb;
+    Vec3 mcell3_box_size = mcell3_urb - mcell3_llf;
+
+    IVec3 num_subparts = IVec3(s->num_subparts);
+
+    // the shortest subpart step will be used
+    // value of world->config.subpartition_edge_length is set in SimulationConfig::init
+    sp_len = min3(mcell3_box_size / Vec3(num_subparts));
+
+    // origin of the initial partition
+    world->config.partition0_llf = floor_to_multiple_allow_negative(mcell3_llf, sp_len);
+    Vec3 llf_moved = mcell3_llf - world->config.partition0_llf;
+    Vec3 box_size_enlarged = mcell3_box_size + llf_moved;
+    // size of the partition
+    Vec3 box_size_ceiled = ceil_to_multiple(box_size_enlarged, sp_len);
+    world->config.partition_edge_length = max3(box_size_ceiled);
+
+    // and how many subparts per dimension
+    world->config.num_subpartitions_per_partition = world->config.partition_edge_length / sp_len;
+
+#if 0
     // simply choose the largest abs value from all the values
     float_t largest_mcell3_distance_from_center = get_largest_distance_from_center(s->partition_llf, s->partition_urb);
 
@@ -221,6 +263,7 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
     // number of subparts must be even so that the central subparts are aligned with the axes and not shifted
     assert(s->num_subparts > 0);
     world->config.num_subpartitions_per_partition = get_even_higher_or_same_value(s->num_subparts);
+#endif
   }
   else {
     CHECK_PROPERTY(s->bb_urb.x >= s->bb_llf.x);
@@ -245,6 +288,11 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
     // nx_parts counts the number of boundaries, not subvolumes, also, there are always 2 extra subvolumes on the sides in mcell3
     int max_n_p_parts = max3_i(IVec3(s->nx_parts, s->ny_parts, s->nz_parts));
     world->config.num_subpartitions_per_partition = get_even_higher_or_same_value(max_n_p_parts - 3);
+
+    world->config.partition0_llf = Vec3(-world->config.partition_edge_length/2);
+
+    // temporary, for the check after init
+    sp_len = world->config.partition_edge_length / world->config.num_subpartitions_per_partition;
   }
 
   float_t l = world->config.partition_edge_length / 2 * s->length_unit;
@@ -261,6 +309,7 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
 
 	// compute other constants
   world->config.init();
+  assert(cmp_eq(sp_len, world->config.subpartition_edge_length));
 
   return true;
 }

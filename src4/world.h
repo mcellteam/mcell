@@ -103,16 +103,12 @@ public:
     return res;
   }
 
-  // add a partition in a predefined 'lattice' that contains point pos
-  partition_id_t add_partition(const Vec3& pos) {
+  // add a partition in a predefined 'lattice' that contains point pos as its llf point
+  // size is given by config
+  partition_id_t add_partition(const Vec3& partition_llf) {
     assert(config.partition_edge_length != 0);
-    assert(get_partition_index(pos) == PARTITION_ID_INVALID && "Partition must not exist");
-
-    Vec3 origin =
-        floor_to_multiple(pos, config.partition_edge_length)
-        - Vec3(config.partition_edge_length/2);
-
-    partitions.push_back(Partition(partitions.size(), origin, config, bng_engine, stats));
+    assert(get_partition_index(partition_llf) == PARTITION_ID_INVALID && "Partition must not exist");
+    partitions.push_back(Partition(partitions.size(), partition_llf, config, bng_engine, stats));
     return partitions.size() - 1;
   }
 

@@ -1418,7 +1418,8 @@ struct volume {
   bool partitions_initialized;
   struct vector3 partition_llf;
   struct vector3 partition_urb;
-  int num_subparts;
+  struct vector3 partition_step;
+  struct vector3 num_subparts;
 };
 
 /* Data structure to store information about collisions. */

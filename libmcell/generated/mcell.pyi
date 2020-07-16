@@ -585,8 +585,8 @@ class Count():
             self,
             filename : str,
             count_expression : CountTerm = None,
-            every_n_timesteps : int = 1,
             multiplier : float = 1,
+            every_n_timesteps : int = 1,
             species : Species = None,
             reaction_rule : ReactionRule = None,
             region : Region = None,
@@ -597,8 +597,8 @@ class Count():
         ):
         self.filename = filename
         self.count_expression = count_expression
-        self.every_n_timesteps = every_n_timesteps
         self.multiplier = multiplier
+        self.every_n_timesteps = every_n_timesteps
         self.species = species
         self.reaction_rule = reaction_rule
         self.region = region
@@ -651,6 +651,7 @@ class Config():
             interaction_radius : float = None,
             vacancy_search_distance : float = 10,
             center_molecules_on_grid : bool = False,
+            initial_partition_origin : List[float] = None,
             partition_dimension : float = 10,
             subpartition_dimension : float = 0.5,
             total_iterations_hint : int = 1000000
@@ -661,6 +662,7 @@ class Config():
         self.interaction_radius = interaction_radius
         self.vacancy_search_distance = vacancy_search_distance
         self.center_molecules_on_grid = center_molecules_on_grid
+        self.initial_partition_origin = initial_partition_origin
         self.partition_dimension = partition_dimension
         self.subpartition_dimension = subpartition_dimension
         self.total_iterations_hint = total_iterations_hint
