@@ -324,7 +324,7 @@ struct IVec3: public glm_ivec3_t {
   IVec3(const int x_, const int y_, const int z_) { x = x_; y = y_; z = z_; }
   IVec3(const int xyz) { x = xyz; y = xyz; z = xyz; }
   IVec3(const std::vector<int>& xyz) { assert(xyz.size() == 3); x = xyz[0]; y = xyz[1]; z = xyz[2]; }
-  IVec3(const vector3& v3) { x = v3.z; y = v3.y; z = v3.z; }
+  IVec3(const vector3& v3) { x = v3.x; y = v3.y; z = v3.z; }
 
   // arbitrary ordering in order to use IVec3 as keys in sets and maps
   bool operator < (const IVec3& other) const {
@@ -525,6 +525,10 @@ static inline Vec3 abs3(const Vec3& v) {
 
 static inline Vec3 floor3(const Vec3& v) {
   return glm::floor((glm_vec3_t)v);
+}
+
+static inline Vec3 round3(const Vec3& v) {
+  return glm::round((glm_vec3_t)v);
 }
 
 /* abs_max_2vec picks out the largest (absolute) value found among two vectors
@@ -810,8 +814,9 @@ public:
 
 private:
   void init_subpartition_edge_length() {
-    assert(num_subpartitions_per_partition % 2 == 0
-        && "Implementation of raycast_with_endpoints requires that central subparts are aligned with the axes and not shifted");
+    // probably not needed anymore
+    //assert(num_subpartitions_per_partition % 2 == 0
+    //    && "Implementation of raycast_with_endpoints requires that central subparts are aligned with the axes and not shifted");
     release_assert(partition_edge_length > 0);
     subpartition_edge_length = partition_edge_length / (float_t)num_subpartitions_per_partition;
     subpartition_edge_length_rcp = 1.0/subpartition_edge_length;

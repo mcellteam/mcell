@@ -230,9 +230,10 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
     // and in the same time the partition 0 llf origin is on a multiple of the partition length
 
     // first we need to determine the subpart length - use the value that user specified in the PARTITION_* section
-    Vec3 mcell3_llf = s->partition_llf;
-    Vec3 mcell3_urb = s->partition_urb;
-    Vec3 mcell3_box_size = mcell3_urb - mcell3_llf;
+    Vec3 margin = Vec3(PARTITION_EDGE_EXTRA_MARGIN_UM/world->config.length_unit);
+    Vec3 mcell3_llf_w_margin = Vec3(s->partition_llf) - margin;
+    Vec3 mcell3_urb_w_margin = Vec3(s->partition_urb) + margin;
+    Vec3 mcell3_box_size = mcell3_urb_w_margin - mcell3_llf_w_margin;
 
     IVec3 num_subparts = IVec3(s->num_subparts);
 
@@ -241,15 +242,19 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
     sp_len = min3(mcell3_box_size / Vec3(num_subparts));
 
     // origin of the initial partition
-    world->config.partition0_llf = floor_to_multiple_allow_negative(mcell3_llf, sp_len);
-    Vec3 llf_moved = mcell3_llf - world->config.partition0_llf;
+    world->config.partition0_llf = floor_to_multiple_allow_negative(mcell3_llf_w_margin, sp_len);
+    Vec3 llf_moved = mcell3_llf_w_margin - world->config.partition0_llf;
     Vec3 box_size_enlarged = mcell3_box_size + llf_moved;
     // size of the partition
     Vec3 box_size_ceiled = ceil_to_multiple(box_size_enlarged, sp_len);
     world->config.partition_edge_length = max3(box_size_ceiled);
 
+    mcell_log("Using manually specified partition size (with margin): %f.",
+      (double)world->config.partition_edge_length * world->config.length_unit);
+
     // and how many subparts per dimension
-    world->config.num_subpartitions_per_partition = world->config.partition_edge_length / sp_len;
+    // the roundin is needed because we can get a result like .99999999 from the division
+    world->config.num_subpartitions_per_partition = round_f(world->config.partition_edge_length / sp_len);
 
 #if 0
     // simply choose the largest abs value from all the values
@@ -295,9 +300,13 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
     sp_len = world->config.partition_edge_length / world->config.num_subpartitions_per_partition;
   }
 
-  float_t l = world->config.partition_edge_length / 2 * s->length_unit;
+  Vec3 partition0_llf_microns = world->config.partition0_llf * s->length_unit;
+  Vec3 partition0_urb_microns = partition0_llf_microns + (world->config.partition_edge_length * s->length_unit);
   mcell_log("MCell4 partition bounding box in microns: [ %f, %f, %f ], [ %f, %f, %f ], with %d subpartitions per dimension",
-      -l, -l, -l, l, l, l, (int)world->config.num_subpartitions_per_partition);
+      partition0_llf_microns.x, partition0_llf_microns.y, partition0_llf_microns.z,
+      partition0_urb_microns.x, partition0_urb_microns.y, partition0_urb_microns.z,
+      (int)world->config.num_subpartitions_per_partition
+  );
 
   world->config.randomize_smol_pos = s->randomize_smol_pos; // set in MDL using negated value of CENTER_MOLECULES_ON_GRID
 

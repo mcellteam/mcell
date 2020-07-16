@@ -131,9 +131,10 @@ public:
 
     // check that the subpart grid goes through (0, 0, 0),
     // (this point does not have to be contained in this partition)
-    // required for correct function of
+    // required for correct function of raycast_with_endpoints,
+    // round is required because values might be negative
     Vec3 how_many_subparts_from_000 = origin_corner/Vec3(config.subpartition_edge_length);
-    release_assert(cmp_eq(floor3(how_many_subparts_from_000), how_many_subparts_from_000) &&
+    release_assert(cmp_eq(round3(how_many_subparts_from_000), how_many_subparts_from_000, SQRT_EPS) &&
         "Partition is not aligned to the subpartition grid."
     );
 
@@ -797,11 +798,6 @@ private:
       const IVec3& previous_waypoint_index
   );
 
-  void check_waypoint_index(const IVec3& index3d) const {
-    assert(index3d.x < (int)waypoints.size());
-    assert(index3d.y < (int)waypoints[index3d.x].size());
-    assert(index3d.z < (int)waypoints[index3d.x][index3d.y].size());
-  }
 public:
   // ---------------------------------- other ----------------------------------
   BNG::SpeciesContainer& get_all_species() { return bng_engine.get_all_species(); }
@@ -818,13 +814,24 @@ public:
 
   void initialize_waypoints();
 
+
+  bool is_valid_waypoint_index(const IVec3& index3d) const {
+    return
+        index3d.x >= 0 &&
+        index3d.x < (int)waypoints.size() &&
+        index3d.y >= 0 &&
+        index3d.y < (int)waypoints[index3d.x].size() &&
+        index3d.z >= 0 &&
+        index3d.z < (int)waypoints[index3d.x][index3d.y].size();
+  }
+
   Waypoint& get_waypoint(const IVec3& index3d) {
-    check_waypoint_index(index3d);
+    assert(is_valid_waypoint_index(index3d));
     return waypoints[index3d.x][index3d.y][index3d.z];
   }
 
   const Waypoint& get_waypoint(const IVec3& index3d) const {
-    check_waypoint_index(index3d);
+    assert(is_valid_waypoint_index(index3d));
     return waypoints[index3d.x][index3d.y][index3d.z];
   }
 
