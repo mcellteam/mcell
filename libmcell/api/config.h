@@ -36,7 +36,13 @@ public:
   void check_semantics() const override {
     GenConfig::check_semantics();
     if (subpartition_dimension >= partition_dimension) {
-      throw ValueError("Value subpartition_dimension must be smaller or equal than partition_dimension.");
+      throw ValueError(S("Value ") + NAME_SUBPARTITION_DIMENSION + " must be smaller or equal than " + NAME_PARTITION_DIMENSION + ".");
+    }
+
+    if (is_set(initial_partition_origin)) {
+      if (initial_partition_origin.size() != 3) {
+        throw ValueError(S("Value ") + NAME_INITIAL_PARTITION_ORIGIN + " must be a vector of three floating point values.");
+      }
     }
   }
 

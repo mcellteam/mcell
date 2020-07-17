@@ -1494,12 +1494,10 @@ void PymcellGenerator::generate_config(ofstream& out) {
       !cmp_eq(x_start, y_start) || !cmp_eq(y_start, z_start) ||
       !cmp_eq(x_end, y_end) || !cmp_eq(y_end, z_end)
   ) {
-    cout <<
-        "Message: Partition's center is not on (0, 0, 0), changing the partition setup to be a cube "
-        "centered at (0, 0, 0).\n";
-
-    float_t max = get_largest_distance_from_center(Vec3(x_start, y_start, z_start), Vec3(x_end, y_end, z_end));
-    partition_dimension = max * 2;
+    gen_assign_vec3(out, MODEL, NAME_CONFIG, NAME_INITIAL_PARTITION_ORIGIN, x_start, y_start, z_start);
+    // select the largest difference as partition dimension
+    Vec3 dims = Vec3(x_end - x_start, y_end - y_start, z_end - z_start);
+    partition_dimension = max3(dims);
   }
   else {
     partition_dimension = x_end * 2;

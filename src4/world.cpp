@@ -607,16 +607,15 @@ void World::initialization_to_data_model(Json::Value& mcell_node) const {
   partitions[KEY_INCLUDE] = true;
   partitions[KEY_RECURSION_FLAG] = false;
 
-  float_t half_length = config.partition_edge_length * config.length_unit / 2;
-  string phalf_str = DMUtil::f_to_string(half_length);
-  string mhalf_str = DMUtil::f_to_string(-half_length);
+  const Vec3& origin = (config.partition0_llf * config.length_unit);
+  float_t length = config.partition_edge_length * config.length_unit;
 
-  partitions[KEY_X_START] = mhalf_str;
-  partitions[KEY_X_END] = phalf_str;
-  partitions[KEY_Y_START] = mhalf_str;
-  partitions[KEY_Y_END] = phalf_str;
-  partitions[KEY_Z_START] = mhalf_str;
-  partitions[KEY_Z_END] = phalf_str;
+  partitions[KEY_X_START] = DMUtil::f_to_string(origin.x);
+  partitions[KEY_X_END] = DMUtil::f_to_string(origin.x + length);
+  partitions[KEY_Y_START] = DMUtil::f_to_string(origin.y);
+  partitions[KEY_Y_END] = DMUtil::f_to_string(origin.y + length);
+  partitions[KEY_Z_START] = DMUtil::f_to_string(origin.z);
+  partitions[KEY_Z_END] = DMUtil::f_to_string(origin.z + length);
 
   float_t step = config.subpartition_edge_length * config.length_unit;
   string step_str = DMUtil::f_to_string(step);

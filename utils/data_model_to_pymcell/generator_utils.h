@@ -298,6 +298,16 @@ void gen_assign(ofstream& out, string obj_name, string field_name1, string field
 }
 
 
+void gen_assign_vec3(ofstream& out, string obj_name, string field_name1, string field_name2, double x, double y, double z) {
+  out << obj_name << "." << field_name1 << "." << field_name2 << " = [" << x << ", " << y << ", " << z  << "]\n";
+}
+
+
+void gen_assign_vec3(ofstream& out, string obj_name, string field_name1, string field_name2, float x, float y, float z) {
+  out << obj_name << "." << field_name1 << "." << field_name2 << " = [" << x << ", " << y << ", " << z  << "]\n";
+}
+
+
 static string convert_orientation(const string s, const bool return_any_orientation = false) {
   if (s == "\'") {
     return API::NAME_EV_UP;

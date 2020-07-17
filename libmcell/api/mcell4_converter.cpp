@@ -185,20 +185,25 @@ void MCell4Converter::convert_simulation_setup() {
   }
 
   if (is_set(config.initial_partition_origin)) {
-    release_assert(false && "TODO");
+    world->config.partition0_llf = Vec3(config.initial_partition_origin) / Vec3(length_unit);
   }
   else {
-    // place the parittion to the center
+    // place the partition to the center
     world->config.partition0_llf = -Vec3(world->config.partition_edge_length) / Vec3(2);
   }
 
-  int num_subparts = config.partition_dimension / config.subpartition_dimension;
-  assert(num_subparts > 0);
-  if (num_subparts % 2 == 1) {
-    // the number of subparts must be even
-    num_subparts++;
-  }
-  world->config.num_subpartitions_per_partition = num_subparts;
+  // align the origin to a multiple of subpartition length
+  float_t sp_len = config.subpartition_dimension / length_unit;
+  Vec3 orig_origin = world->config.partition0_llf;
+  world->config.partition0_llf =
+      floor_to_multiple_allow_negative(orig_origin, sp_len);
+
+  // enlarge the partition by size we moved it in order to be aligned
+  Vec3 llf_moved = orig_origin - world->config.partition0_llf;
+  world->config.partition_edge_length += max3(llf_moved);
+
+  world->config.num_subpartitions_per_partition =
+      world->config.partition_edge_length / sp_len;
 
   // this option in MCell3 was removed in MCell4
   world->config.use_expanded_list = true;
