@@ -255,7 +255,7 @@ public:
     return species_id != SPECIES_ID_INVALID;
   }
 
-  bool is_point_inside(const Partition& p, const Vec3& pos);
+  bool is_point_inside(Partition& p, const Vec3& pos);
 
   // covers whole region
   // TODO: better name?
@@ -297,13 +297,13 @@ private:
   void initialize_wall_subpart_mapping_if_needed(const Partition& p);
 
   bool initialize_region_waypoint(
-      const Partition& p,
+      Partition& p,
       const IVec3& current_waypoint_index,
       const bool use_previous_waypoint,
       const IVec3& previous_waypoint_index,
       const bool previous_waypoint_present
   );
-  void initialize_region_waypoints_if_needed(const Partition& p);
+  void initialize_region_waypoints_if_needed(Partition& p);
 };
 
 

@@ -634,7 +634,7 @@ void Region::initialize_wall_subpart_mapping_if_needed(const Partition& p) {
 // returns true if the waypoint with current_waypoint_index is in this region
 // similar code as in Partition::create_waypoint
 bool Region::initialize_region_waypoint(
-    const Partition& p,
+    Partition& p,
     const IVec3& current_waypoint_index,
     const bool use_previous_waypoint,
     const IVec3& previous_waypoint_index,
@@ -644,17 +644,25 @@ bool Region::initialize_region_waypoint(
   // waypoint is always in the center of a subpartition
   // thanks to the extra margin on each side, we might be out of the partition
   if (p.is_valid_waypoint_index(current_waypoint_index)) {
-    const Waypoint& waypoint = p.get_waypoint(current_waypoint_index);
+    Waypoint& waypoint = p.get_waypoint(current_waypoint_index);
 
     if (use_previous_waypoint) {
       const Waypoint& previous_waypoint = p.get_waypoint(previous_waypoint_index);
 
+      bool must_redo_test = false;
+
       uint num_crossed = CollisionUtil::get_num_crossed_region_walls(
           p, waypoint.pos, previous_waypoint.pos,
-          *this
+          *this, must_redo_test
       );
-
-      if ((num_crossed % 2 == 0 && previous_waypoint_present_in_region) ||
+      if (must_redo_test) {
+        // updates values referenced by waypoint
+        // the redo can be also due to the previous waypoint, so we
+        // will check whether the waypoint is contained without the previous waypoint
+        p.move_waypoint_because_positioned_on_wall(current_waypoint_index);
+      }
+      // ok, test passed safely
+      else if ((num_crossed % 2 == 0 && previous_waypoint_present_in_region) ||
           (num_crossed % 2 == 1 && !previous_waypoint_present_in_region)) {
 
         // still in the same region
@@ -664,10 +672,19 @@ bool Region::initialize_region_waypoint(
       else {
         return false;
       }
-
     }
 
-    if (CollisionUtil::is_point_inside_region_no_waypoints(p, waypoint.pos, *this)) {
+    bool must_redo_test = false;
+    bool inside = false;
+    do {
+      inside = CollisionUtil::is_point_inside_region_no_waypoints(p, waypoint.pos, *this, must_redo_test);
+      if (must_redo_test) {
+        // updates values referenced by waypoint
+        p.move_waypoint_because_positioned_on_wall(current_waypoint_index);
+      }
+    } while (must_redo_test);
+
+    if (inside) {
       waypoints_in_this_region.insert(current_waypoint_index);
       return true;
     }
@@ -676,7 +693,7 @@ bool Region::initialize_region_waypoint(
   return false;
 }
 
-void Region::initialize_region_waypoints_if_needed(const Partition& p) {
+void Region::initialize_region_waypoints_if_needed(Partition& p) {
 
   if (region_waypoints_initialized) {
     return;
@@ -731,7 +748,7 @@ void Region::initialize_region_waypoints_if_needed(const Partition& p) {
 
 
 
-bool Region::is_point_inside(const Partition& p, const Vec3& pos) {
+bool Region::is_point_inside(Partition& p, const Vec3& pos) {
 
   initialize_volume_info_if_needed(p);
   initialize_wall_subpart_mapping_if_needed(p);
@@ -750,10 +767,12 @@ bool Region::is_point_inside(const Partition& p, const Vec3& pos) {
   const Waypoint& waypoint = p.get_waypoint(waypoint_index);
 
   map<geometry_object_index_t, uint> num_crossed_walls_per_object;
+  bool must_redo_test = false;
   uint num_crossed = CollisionUtil::get_num_crossed_region_walls(
       p, pos, waypoint.pos,
-      *this
+      *this, must_redo_test
   );
+  release_assert(!must_redo_test);
 
   bool waypoint_is_inside_this_region = waypoints_in_this_region.count(waypoint_index) != 0;
   if (waypoint_is_inside_this_region) {

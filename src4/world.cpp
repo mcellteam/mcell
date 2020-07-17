@@ -153,7 +153,7 @@ void World::init_counted_volumes() {
     mcell_error("Processing of counted volumes failed, terminating.");
   }
 
-  partitions[PARTITION_ID_INITIAL].initialize_waypoints();
+  partitions[PARTITION_ID_INITIAL].initialize_all_waypoints();
 }
 
 

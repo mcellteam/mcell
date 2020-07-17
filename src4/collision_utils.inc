@@ -1274,8 +1274,13 @@ static void get_crossed_subparts_for_walls(
 // TODO REG: move as private into Region
 static uint get_num_crossed_region_walls(
     const Partition& p, const Vec3& pos, const Vec3& dst,
-    const Region& reg
+    const Region& reg,
+    // if wall REDO was encountered, the result cannot be safely determined,
+    // one needs to move either pos or dst
+    bool& must_redo_test
 ) {
+  must_redo_test = false;
+
   Vec3 displacement = dst - pos - Vec3(EPS); // from here up to a corner of the partition
 
   // collect which subpartitions we crossed
@@ -1291,7 +1296,6 @@ static uint get_num_crossed_region_walls(
   uint num_crossed = 0;
 
   const WallsPerSubpartMap& walls_per_subpart = reg.get_walls_per_subpart();
-
 
   // now check which walls we hit
   uint_set<wall_index_t> already_checked_walls;
@@ -1318,18 +1322,15 @@ static uint get_num_crossed_region_walls(
       Vec3 collision_pos_ignored;
 
       CollisionType collision_type;
-      uint num_tries = 0;
-      do {
-        collision_type = collide_wall(
-              p, pos, w, p.aux_rng, true, displacement,
-              collision_time_ignored, collision_pos_ignored);
 
-        num_tries++;
-        release_assert(num_tries < 100 && "Cannot determine molecule or waypoint position.");
-        // FIXME: we really do not want REDO, it is highly unreliable
-        // test 0750 fails when this assert is enabled
-        //release_assert(collision_type != CollisionType::WALL_REDO);
-      } while (collision_type == CollisionType::WALL_REDO);
+      collision_type = collide_wall(
+            p, pos, w, p.aux_rng, true, displacement,
+            collision_time_ignored, collision_pos_ignored);
+
+      if (collision_type == CollisionType::WALL_REDO) {
+        must_redo_test = true;
+        return UINT_INVALID;
+      }
 
       if (collision_type == CollisionType::WALL_FRONT || collision_type == CollisionType::WALL_BACK) {
         num_crossed++;
@@ -1343,8 +1344,10 @@ static uint get_num_crossed_region_walls(
 
 static void get_num_crossed_walls_per_object(
     const Partition& p, const Vec3& pos, const Vec3& dst,
-    map<geometry_object_index_t, uint>& num_crossed_walls_per_object
+    map<geometry_object_index_t, uint>& num_crossed_walls_per_object,
+    bool& must_redo_test
 ) {
+  must_redo_test = false;
   num_crossed_walls_per_object.clear();
 
   Vec3 displacement = dst - pos - Vec3(EPS); // from here up to a corner of the partition
@@ -1379,20 +1382,16 @@ static void get_num_crossed_walls_per_object(
       Vec3 collision_pos_ignored;
 
       CollisionType collision_type;
-      uint num_tries = 0;
-      do {
-        collision_type = collide_wall(
-              p, pos, w, p.aux_rng, true, displacement,
-              collision_time_ignored, collision_pos_ignored);
 
-        num_tries++;
-        release_assert(num_tries < 100 && "Cannot determine molecule or waypoint position.");
-        // FIXME: we really do not want REDO, it is highly unreliable
-        // test 0750 fails when this assert is enabled
-        //release_assert(collision_type != CollisionType::WALL_REDO);
-      } while (collision_type == CollisionType::WALL_REDO);
+      collision_type = collide_wall(
+            p, pos, w, p.aux_rng, true, displacement,
+            collision_time_ignored, collision_pos_ignored);
 
-      if (collision_type == CollisionType::WALL_FRONT || collision_type == CollisionType::WALL_BACK) {
+      if (collision_type == CollisionType::WALL_REDO) {
+        must_redo_test = true;
+        return;
+      }
+      else if (collision_type == CollisionType::WALL_FRONT || collision_type == CollisionType::WALL_BACK) {
         auto it = num_crossed_walls_per_object.find(w.object_index);
         if (it == num_crossed_walls_per_object.end()) {
           num_crossed_walls_per_object[w.object_index] = 1;
@@ -1417,7 +1416,12 @@ static void get_num_crossed_walls_per_object(
 
 *************************************************************************/
 // TODO: move as private into Region
-static bool is_point_inside_region_no_waypoints(const Partition& p, const Vec3& pos, Region& reg) {
+static bool is_point_inside_region_no_waypoints(
+    const Partition& p, const Vec3& pos, Region& reg,
+    // if wall REDO was encountered, the result cannot be safely determined,
+    // one needs to move pos
+    bool& must_redo_test
+) {
 
   // cast ray along the whole partition
   Vec3 move(EPS, EPS, p.config.partition_edge_length);
@@ -1432,7 +1436,10 @@ static bool is_point_inside_region_no_waypoints(const Partition& p, const Vec3& 
   dst.x += p.config.subpartition_edge_length / 11;
   dst.y += p.config.subpartition_edge_length / 22;
 
-  uint num_crossed = get_num_crossed_region_walls(p, pos, dst, reg);
+  uint num_crossed = get_num_crossed_region_walls(p, pos, dst, reg, must_redo_test);
+  if (must_redo_test) {
+    return false;
+  }
 
   // odd number of hits means that we are inside
   return num_crossed % 2 == 1;
@@ -1460,7 +1467,9 @@ static counted_volume_index_t compute_counted_volume_for_pos(
   dst.x += p.config.subpartition_edge_length / 11;
   dst.y += p.config.subpartition_edge_length / 21;
 
-  get_num_crossed_walls_per_object(p, pos, dst, num_crossed_walls_per_object);
+  bool must_redo_test;
+  get_num_crossed_walls_per_object(p, pos, dst, num_crossed_walls_per_object, must_redo_test);
+  release_assert(!must_redo_test);
 
   // finally construct the set of object indices that encompass the position
   cv.contained_in_objects.clear();

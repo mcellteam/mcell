@@ -781,8 +781,14 @@ public:
   // do the actual changes of vertices
   void apply_vertex_moves();
 
+  void move_waypoint_because_positioned_on_wall(
+      const IVec3& waypoint_index, const bool reinitialize = true
+  );
+
 private:
-  void update_walls_per_subpart(const WallsWithTheirMovesMap& walls_with_their_moves, const bool insert);
+  void update_walls_per_subpart(
+      const WallsWithTheirMovesMap& walls_with_their_moves, const bool insert
+  );
 
   // automatically enlarges walls_using_vertex array
   void add_wall_using_vertex_mapping(vertex_index_t vertex_index, wall_index_t wall_index) {
@@ -792,10 +798,11 @@ private:
     walls_using_vertex_mapping[vertex_index].push_back(wall_index);
   }
 
-  void create_waypoint(
-      const IVec3& index3d,
+  void initialize_waypoint(
+      const IVec3& waypoint_index,
       const bool use_previous_waypoint,
-      const IVec3& previous_waypoint_index
+      const IVec3& previous_waypoint_index,
+      const bool keep_pos = false
   );
 
 public:
@@ -812,7 +819,7 @@ public:
   counted_volume_index_t compute_counted_volume_from_scratch(const Vec3& pos);
   counted_volume_index_t compute_counted_volume_using_waypoints(const Vec3& pos);
 
-  void initialize_waypoints();
+  void initialize_all_waypoints();
 
 
   bool is_valid_waypoint_index(const IVec3& index3d) const {

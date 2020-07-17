@@ -197,21 +197,37 @@ void Partition::dump() {
 }
 
 
-void Partition::create_waypoint(
-    const IVec3& index3d,
+// methods get_num_crossed_region_walls and get_num_crossed_walls_per_object (TODO)
+// may fail with WALL_REDO, this means that a point is on a wall and
+// therefore it cannot be safely determined where it belongs
+// waypoints are used as an optimization so we can place them anywhere we like
+void Partition::move_waypoint_because_positioned_on_wall(
+    const IVec3& waypoint_index, const bool reinitialize) {
+  Waypoint& waypoint = get_waypoint(waypoint_index);
+  waypoint.pos = waypoint.pos + Vec3(SQRT_EPS);
+  if (reinitialize) {
+    initialize_waypoint(waypoint_index, false, IVec3(0), true);
+  }
+}
+
+
+// keep_pos is false by default, when true, the waypoint position is reused and
+// this function only updates the counted_volume_index for the new position
+void Partition::initialize_waypoint(
+    const IVec3& waypoint_index,
     const bool use_previous_waypoint,
-    const IVec3& previous_waypoint_index
+    const IVec3& previous_waypoint_index,
+    const bool keep_pos
 ) {
   // array was allocated
-  Waypoint& waypoint = get_waypoint(index3d);
-  waypoint.pos =
-      origin_corner +
-      Vec3(config.subpartition_edge_length) * Vec3(index3d) + // llf of a subpart
-      Vec3(config.subpartition_edge_length / 2) + // middle of a subpart
-      Vec3(SQRT_EPS) // and move it a bit - geometry may be placed directly in the center
-                     // NOTE: we may need to move waypoints if they are exactly by a wall
-  ;
-
+  Waypoint& waypoint = get_waypoint(waypoint_index);
+  if (!keep_pos) {
+    waypoint.pos =
+        origin_corner +
+        Vec3(config.subpartition_edge_length) * Vec3(waypoint_index) + // llf of a subpart
+        Vec3(config.subpartition_edge_length / 2)
+    ;
+  }
 
   // it makes sense to compute counted_volume_index if there are any
   // counted objects
@@ -221,11 +237,20 @@ void Partition::create_waypoint(
       Waypoint& previous_waypoint = get_waypoint(previous_waypoint_index);
       map<geometry_object_index_t, uint> num_crossed_walls_per_object;
 
+      bool must_redo_test = false;
       CollisionUtil::get_num_crossed_walls_per_object(
           *this, waypoint.pos, previous_waypoint.pos,
-          num_crossed_walls_per_object
+          num_crossed_walls_per_object, must_redo_test
       );
-      if (num_crossed_walls_per_object.empty()) {
+      if (must_redo_test) {
+        // updates values referenced by waypoint
+        // the redo can be also due to the previous waypoint, so we
+        // will check whether the waypoint is contained without the previous waypoint
+        // do not call reinitialize to avoid recursion
+        move_waypoint_because_positioned_on_wall(waypoint_index, false);
+      }
+      // ok, test passed safely
+      else if (num_crossed_walls_per_object.empty()) {
         // ok, we can simply copy counted volume from the previous waypoint
         waypoint.counted_volume_index = previous_waypoint.counted_volume_index;
         return;
@@ -241,7 +266,7 @@ void Partition::create_waypoint(
 }
 
 
-void Partition::initialize_waypoints() {
+void Partition::initialize_all_waypoints() {
   // we need waypoints to be initialized all the time because they
   // are used not just when dealing with counted volumes, but also
   // by regions when detecting whether a point is inside
@@ -260,7 +285,7 @@ void Partition::initialize_waypoints() {
     for (uint y = 0; y < num_waypoints_per_dimension; y++) {
       waypoints[x][y].resize(num_waypoints_per_dimension);
       for (uint z = 0; z < num_waypoints_per_dimension; z++) {
-        create_waypoint(IVec3(x, y, z), use_previous_waypoint, previous_waypoint_index);
+        initialize_waypoint(IVec3(x, y, z), use_previous_waypoint, previous_waypoint_index);
 
         use_previous_waypoint = true;
         previous_waypoint_index = IVec3(x, y, z);
