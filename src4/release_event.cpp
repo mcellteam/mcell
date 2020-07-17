@@ -977,7 +977,7 @@ void ReleaseEvent::release_initial_molecules_onto_surf_regions() {
 // TODO: cleanup the release number computation
 void ReleaseEvent::step() {
 
-  cout << "Starting release from \"" << release_site_name << "\".\n";
+  perf() << "Starting release from \"" << release_site_name << "\".\n";
 
   uint num_released = UINT_INVALID;
   if (release_shape == ReleaseShape::REGION) {

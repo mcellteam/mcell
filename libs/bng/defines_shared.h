@@ -18,6 +18,8 @@
 #include <map>
 #include <unordered_map>
 #include <cmath>
+#include <chrono>
+#include <ctime>
 
 #include <boost/container/small_vector.hpp>
 #include <boost/container/flat_set.hpp>
@@ -243,6 +245,14 @@ static inline std::ostream& warns() {
 
 static inline std::ostream& notifys() {
   std::cout << "notification: ";
+  return std::cout;
+}
+
+static inline std::ostream& perf() {
+  std::time_t now = std::time(nullptr);
+  char time_str[64];
+  std::strftime(time_str, sizeof(time_str), "%M:%S", std::localtime(&now));
+  std::cout << "perf: (" << time_str << ") ";
   return std::cout;
 }
 

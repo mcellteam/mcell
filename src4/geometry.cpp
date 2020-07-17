@@ -580,6 +580,8 @@ void Region::initialize_volume_info_if_needed(const Partition& p) {
   // computing the volume
   Vec3 d = (bounding_box_llf + bounding_box_urb) * Vec3(0.5);
 
+  perf() << "Computing volume of region " << name << "\n";
+
   volume = 0;
   float_t current_volume = 0;
   for (auto it: walls_and_edges) {
@@ -597,6 +599,8 @@ void Region::initialize_volume_info_if_needed(const Partition& p) {
         p.get_wall_vertex(w, 0), p.get_wall_vertex(w, 1), p.get_wall_vertex(w, 2), d);
   }
 
+  perf() << "  - volume computed\n";
+
   volume = current_volume;
   region_is_manifold = true;
   volume_info_initialized = true;
@@ -608,18 +612,68 @@ void Region::initialize_wall_subpart_mapping_if_needed(const Partition& p) {
     return;
   }
 
+  perf() << "Preparing wall subpart mapping for region " << name << "\n";
+
   // first initialize region wall subpart mapping
   walls_per_subpart.clear();
 
   // FIXME: update when a wall of this region is moved
   for (const auto& wall_and_edges_pair: walls_and_edges) {
     const Wall& w = p.get_wall(wall_and_edges_pair.first);
+
     for (subpart_index_t si: w.present_in_subparts) {
       walls_per_subpart[si].push_back(w.index);
     }
   }
-  walls_per_subpart_initialized = true;
 
+  perf() << "  - wall subpart mapping prepared\n";
+
+  walls_per_subpart_initialized = true;
+}
+
+// returns true if the waypoint with current_waypoint_index is in this region
+// similar code as in Partition::create_waypoint
+bool Region::initialize_region_waypoint(
+    const Partition& p,
+    const IVec3& current_waypoint_index,
+    const bool use_previous_waypoint,
+    const IVec3& previous_waypoint_index,
+    const bool previous_waypoint_present_in_region
+) {
+
+  // waypoint is always in the center of a subpartition
+  // thanks to the extra margin on each side, we might be out of the partition
+  if (p.is_valid_waypoint_index(current_waypoint_index)) {
+    const Waypoint& waypoint = p.get_waypoint(current_waypoint_index);
+
+    if (use_previous_waypoint) {
+      const Waypoint& previous_waypoint = p.get_waypoint(previous_waypoint_index);
+
+      uint num_crossed = CollisionUtil::get_num_crossed_region_walls(
+          p, waypoint.pos, previous_waypoint.pos,
+          *this
+      );
+
+      if ((num_crossed % 2 == 0 && previous_waypoint_present_in_region) ||
+          (num_crossed % 2 == 1 && !previous_waypoint_present_in_region)) {
+
+        // still in the same region
+        waypoints_in_this_region.insert(current_waypoint_index);
+        return true;
+      }
+      else {
+        return false;
+      }
+
+    }
+
+    if (CollisionUtil::is_point_inside_region_no_waypoints(p, waypoint.pos, *this)) {
+      waypoints_in_this_region.insert(current_waypoint_index);
+      return true;
+    }
+  }
+
+  return false;
 }
 
 void Region::initialize_region_waypoints_if_needed(const Partition& p) {
@@ -627,6 +681,8 @@ void Region::initialize_region_waypoints_if_needed(const Partition& p) {
   if (region_waypoints_initialized) {
     return;
   }
+
+  perf() << "Initializing waypoints for region " << name << "\n";
 
   assert(walls_per_subpart_initialized);
 
@@ -642,25 +698,35 @@ void Region::initialize_region_waypoints_if_needed(const Partition& p) {
   // num_waypoints need to be incremented by 2 - for each of the side regions
   IVec3 num_waypoints = region_dims / Vec3(p.config.subpartition_edge_length) + Vec3(2);
 
+  bool previous_waypoint_present = false;
+  bool use_previous_waypoint = false;
+  IVec3 previous_waypoint_index;
+
   for (int x = 0; x < num_waypoints.x; x++) {
     for (int y = 0; y < num_waypoints.y; y++) {
       for (int z = 0; z < num_waypoints.z; z++) {
-        // waypoint is always in the center of a subpartition
+
         IVec3 current_waypoint_index( llf_waypoint_index + IVec3(x, y, z) );
 
-        // thanks to the extra margin on each side, we might be out of the partition
-        if (p.is_valid_waypoint_index(current_waypoint_index)) {
-          const Waypoint& waypoint = p.get_waypoint(current_waypoint_index);
+        previous_waypoint_present = initialize_region_waypoint(
+            p, current_waypoint_index,
+            use_previous_waypoint, previous_waypoint_index, previous_waypoint_present
+        );
 
-          if (CollisionUtil::is_point_inside_region_no_waypoints(p, waypoint.pos, *this)) {
-            waypoints_in_this_region.insert(current_waypoint_index);
-          }
-        }
+        use_previous_waypoint = true;
+        previous_waypoint_index = current_waypoint_index;
       }
+
+      // starting a new line - start from scratch
+      // NOTE: maybe we do not need to restart this every line
+      use_previous_waypoint = false;
+      previous_waypoint_present = false;
     }
   }
 
   region_waypoints_initialized = true;
+
+  perf() << "  - region waypoints initialized\n";
 }
 
 
