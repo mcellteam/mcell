@@ -886,7 +886,10 @@ void ReleaseEvent::init_surf_mols_by_number(Partition& p, const Region& reg, con
 }
 
 
-void ReleaseEvent::init_surf_mols_by_density(Partition& p, const Region& reg, Wall& w) {
+void ReleaseEvent::init_surf_mols_by_density(
+    Partition& p, const Region& reg, Wall& w,
+    map<species_id_t, uint>& num_released_per_species
+) {
   if (!w.has_initialized_grid()) {
     w.initialize_grid(p);
   }
@@ -940,11 +943,20 @@ void ReleaseEvent::init_surf_mols_by_density(Partition& p, const Region& reg, Wa
       continue;
     }
 
+    species_id_t species_id = prob_info_pairs[index].second.species_id;
     GridUtil::place_single_molecule_onto_grid(
         p, world->rng, w, ti, false, Vec2(),
         prob_info_pairs[index].second.species_id, prob_info_pairs[index].second.orientation,
         get_release_delay_time()
     );
+
+    auto it = num_released_per_species.find(species_id);
+    if (it != num_released_per_species.end()) {
+      it->second++;
+    }
+    else {
+      num_released_per_species[species_id] = 1;
+    }
   }
 }
 
@@ -958,9 +970,16 @@ void ReleaseEvent::release_initial_molecules_onto_surf_regions() {
     if (!reg.has_initial_molecules()) {
       continue;
     }
+
+    map<species_id_t, uint> num_released_per_species;
     for (auto wall_edge_it: reg.walls_and_edges) {
       Wall& w = p.get_wall(wall_edge_it.first);
-      init_surf_mols_by_density(p, reg, w);
+      init_surf_mols_by_density(p, reg, w, num_released_per_species);
+    }
+    for (auto it: num_released_per_species) {
+      cout
+        << "Released " << it.second << " " << world->get_all_species().get(it.first).name << " on region \"" << reg.name << "\""
+        << " at iteration " << world->get_current_iteration() << " (specified with density).\n";
     }
 
     // for each specifies initial molecules
@@ -970,6 +989,10 @@ void ReleaseEvent::release_initial_molecules_onto_surf_regions() {
         continue;
       }
       init_surf_mols_by_number(p, reg, info);
+
+      cout
+        << "Released " << info.release_num << " " << world->get_all_species().get(info.species_id).name << " on region \"" << reg.name << "\""
+        << " at iteration " << world->get_current_iteration() << " (specified with number).\n";
     }
   }
 }

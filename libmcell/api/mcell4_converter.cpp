@@ -100,6 +100,9 @@ void MCell4Converter::convert(Model* model_, World* world_) {
   // uses random generator state
   Geometry::check_for_overlapped_walls(world);
 
+  // we need to schedule the initial release for surfaces before the other releases
+  world->create_initial_surface_region_release_event();
+
   convert_release_events();
 
   // must be called after release events define species because they don't have to be
@@ -109,9 +112,6 @@ void MCell4Converter::convert(Model* model_, World* world_) {
   // diffusion events must be created after reactions and release events
   // since they may define the initial species in when BNGL reactions are used
   world->create_diffusion_events();
-
-  // we also need to schedule the initial release for surfaces
-  world->create_initial_surface_region_release_event();
 
   convert_mol_or_rxn_count_events_and_init_counting_flags();
 

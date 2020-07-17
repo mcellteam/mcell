@@ -252,7 +252,7 @@ private:
 
   // for releases specified by MODIFY_SURFACE_REGIONS -> MOLECULE_NUMBER or MOLECULE_DENSITY
   void init_surf_mols_by_number(Partition& p, const Region& reg, const InitialRegionMolecules& info);
-  void init_surf_mols_by_density(Partition& p, const Region& reg, Wall& w);
+  void init_surf_mols_by_density(Partition& p, const Region& reg, Wall& w, std::map<species_id_t, uint>& num_released_per_species);
   void release_initial_molecules_onto_surf_regions();
 
   float_t get_release_delay_time() const {
