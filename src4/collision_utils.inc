@@ -1434,14 +1434,8 @@ static bool is_point_inside_region_no_waypoints(const Partition& p, const Vec3& 
 
   uint num_crossed = get_num_crossed_region_walls(p, pos, dst, reg);
 
-  if (num_crossed == 0) {
-    // no region's wall was hit
-    return false;
-  }
-  else {
-    // odd number of hits means that we are inside
-    return num_crossed % 2 == 1;
-  }
+  // odd number of hits means that we are inside
+  return num_crossed % 2 == 1;
 }
 
 

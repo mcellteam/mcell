@@ -53,7 +53,7 @@ public:
     std::cout << ind << "Periodic Call Event:\n";
     std::string ind2 = ind + "  ";
     BaseEvent::dump(ind2);
-    std::cout << ind2 << "0x" << std::hex << (void*)function_ptr << std::dec << "\n";
+    std::cout << ind2 << "function_ptr:\t\t" << std::hex << (void*)function_ptr << std::dec << "\n";
   }
 private:
   World* world;

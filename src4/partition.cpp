@@ -206,8 +206,11 @@ void Partition::create_waypoint(
   Waypoint& waypoint = get_waypoint(index3d);
   waypoint.pos =
       origin_corner +
-      Vec3(config.subpartition_edge_length) * Vec3(index3d) +
-      Vec3(config.subpartition_edge_length / 2);
+      Vec3(config.subpartition_edge_length) * Vec3(index3d) + // llf of a subpart
+      Vec3(config.subpartition_edge_length / 2) + // middle of a subpart
+      Vec3(SQRT_EPS) // and move it a bit - geometry may be placed directly in the center
+                     // NOTE: we may need to move waypoints if they are exactly by a wall
+  ;
 
 
   // it makes sense to compute counted_volume_index if there are any
