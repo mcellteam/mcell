@@ -108,6 +108,8 @@ using BNGCommon::cmp_eq;
 using BNGCommon::distinguishable_f;
 using BNGCommon::sqrt_f;
 using BNGCommon::pow_f;
+using BNGCommon::floor_f;
+using BNGCommon::round_f;
 
 // ---------------------------------- optimization macros ----------------------------------
 #if defined(likely) or defined(unlikely)
@@ -416,14 +418,6 @@ static inline float_t ceil_f(const float_t x) {
 #endif
 }
 
-static inline float_t floor_f(const float_t x) {
-#if FLOAT_T_BYTES == 8
-  return floor(x);
-#else
-  return floorf(x);
-#endif
-}
-
 static inline float_t floor_to_multiple(const float_t val, float_t multiple) {
   assert(val >= 0);
   return (float_t)((int)((val + EPS)/ multiple)) * multiple;
@@ -453,8 +447,17 @@ static inline Vec3 floor_to_multiple_allow_negative(const Vec3& val, float_t mul
   return res;
 }
 
+static inline float_t ceil_to_multiple(const float_t val, float_t multiple) {
+  assert(val >= 0);
+  float_t res = floor_to_multiple(val, multiple);
+  if (!cmp_eq(val, res)) {
+    res += multiple;
+  }
+  return res;
+}
+
 static inline Vec3 ceil_to_multiple(const Vec3& val, float_t multiple) {
-  assert(val.x >= 0 && val.y >=0 && val.z >= 0);
+  /*assert(val.x >= 0 && val.y >=0 && val.z >= 0);
   Vec3 res = floor_to_multiple(val, multiple);
   // increment by multiple if value was floored
   if (!cmp_eq(val.x, res.x)) {
@@ -465,7 +468,11 @@ static inline Vec3 ceil_to_multiple(const Vec3& val, float_t multiple) {
   }
   if (!cmp_eq(val.z, res.z)) {
     res.z += multiple;
-  }
+  }*/
+  Vec3 res;
+  res.x = ceil_to_multiple(val.x, multiple);
+  res.y = ceil_to_multiple(val.y, multiple);
+  res.z = ceil_to_multiple(val.z, multiple);
   return res;
 }
 

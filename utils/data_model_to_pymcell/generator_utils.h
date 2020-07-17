@@ -243,7 +243,7 @@ void gen_param_expr(ofstream& out, string name, const string& value, bool comma)
   string python_expr;
   // replace operator ^ with operator **
   python_expr = regex_replace(value, regex("\\^"), "**");
-  out << IND << name << " = " << value << (comma?",":"") << "\n";
+  out << IND << name << " = " << python_expr << (comma?",":"") << "\n";
 }
 
 // this should be used when printing out floating point values (doubles)

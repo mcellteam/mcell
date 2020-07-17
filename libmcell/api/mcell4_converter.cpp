@@ -172,6 +172,8 @@ void MCell4Converter::convert_simulation_setup() {
   float_t max_dimension = get_max_abs_dimension_of_any_vertex();
   float_t auto_partition_dimension = (max_dimension + PARTITION_EDGE_EXTRA_MARGIN_UM) * 2;
 
+  float_t partition_dimension_increment = 0;
+
   if (auto_partition_dimension > config.partition_dimension) {
     cout <<
         "Value of " << NAME_CLASS_MODEL << "." << NAME_CONFIG << "." << NAME_PARTITION_DIMENSION <<
@@ -179,13 +181,19 @@ void MCell4Converter::convert_simulation_setup() {
         " is smaller than the automatically determined value " << auto_partition_dimension <<
         ", using the automatic value.\n";
     world->config.partition_edge_length = auto_partition_dimension / length_unit;
+    // we need to move the origin, if specified, by half of this increment
+    partition_dimension_increment =
+        world->config.partition_edge_length - (config.partition_dimension / length_unit);
   }
   else {
     world->config.partition_edge_length = config.partition_dimension / length_unit;
   }
 
   if (is_set(config.initial_partition_origin)) {
-    world->config.partition0_llf = Vec3(config.initial_partition_origin) / Vec3(length_unit);
+    // origin set manually
+    world->config.partition0_llf =
+        Vec3(config.initial_partition_origin) / Vec3(length_unit) -
+        partition_dimension_increment / 2;
   }
   else {
     // place the partition to the center
@@ -200,10 +208,11 @@ void MCell4Converter::convert_simulation_setup() {
 
   // enlarge the partition by size we moved it in order to be aligned
   Vec3 llf_moved = orig_origin - world->config.partition0_llf;
-  world->config.partition_edge_length += max3(llf_moved);
+  float_t partition_edge_length_enlarged = world->config.partition_edge_length + max3(llf_moved);
+  world->config.partition_edge_length = ceil_to_multiple(partition_edge_length_enlarged, sp_len);
 
   world->config.num_subpartitions_per_partition =
-      world->config.partition_edge_length / sp_len;
+      round_f(world->config.partition_edge_length / sp_len);
 
   // this option in MCell3 was removed in MCell4
   world->config.use_expanded_list = true;
