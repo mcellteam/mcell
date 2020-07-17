@@ -754,11 +754,9 @@ bool Region::is_point_inside(Partition& p, const Vec3& pos) {
   initialize_wall_subpart_mapping_if_needed(p);
   initialize_region_waypoints_if_needed(p);
 
-  // as a fallback for debugging one can call directly
-  //return CollisionUtil::is_point_inside_region_no_waypoints(p, pos, *this);
-
-  assert(is_manifold() && "Not sure what to do here yet");
-
+  if (!is_manifold()) {
+    mcell_error("Cannot check whether a point is a non-manifold volumetric region %s. (possibly during a molecule release)", name.c_str());
+  }
 
   // get a waypoint close to this position
   IVec3 waypoint_index;
@@ -772,14 +770,21 @@ bool Region::is_point_inside(Partition& p, const Vec3& pos) {
       p, pos, waypoint.pos,
       *this, must_redo_test
   );
-  release_assert(!must_redo_test);
-
-  bool waypoint_is_inside_this_region = waypoints_in_this_region.count(waypoint_index) != 0;
-  if (waypoint_is_inside_this_region) {
-    return num_crossed % 2 == 0;
+  if (!must_redo_test) {
+    // ok, using waypoint passed
+    bool waypoint_is_inside_this_region = waypoints_in_this_region.count(waypoint_index) != 0;
+    if (waypoint_is_inside_this_region) {
+      return num_crossed % 2 == 0;
+    }
+    else {
+      return num_crossed % 2 == 1;
+    }
   }
   else {
-    return num_crossed % 2 == 1;
+    // let's try to compute the containment without waypoints as a fallback
+    bool inside = CollisionUtil::is_point_inside_region_no_waypoints(p, pos, *this, must_redo_test);
+    release_assert(!must_redo_test);
+    return inside;
   }
 }
 
