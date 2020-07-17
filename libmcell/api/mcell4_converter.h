@@ -74,7 +74,7 @@ public:
 
 private:
 
-  float_t get_max_abs_dimension_of_any_vertex();
+  void get_geometry_bounding_box(Vec3& llf, Vec3& urb);
   void convert_simulation_setup();
 
   void convert_elementary_molecule_types();

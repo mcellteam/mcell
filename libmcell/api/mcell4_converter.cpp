@@ -121,22 +121,37 @@ void MCell4Converter::convert(Model* model_, World* world_) {
 }
 
 
-float_t MCell4Converter::get_max_abs_dimension_of_any_vertex() {
-  float_t max = 0;
+void MCell4Converter::get_geometry_bounding_box(Vec3& llf, Vec3& urb) {
+
+  llf = Vec3(FLT_GIGANTIC);
+  urb = Vec3(-FLT_GIGANTIC);
 
   for (std::shared_ptr<API::GeometryObject>& o: model->geometry_objects) {
     // go through all vertices
-    for (auto& v: o->vertex_list) {
-      for (float_t dim: v) {
-        float_t abs_dim = MCell::fabs_f(dim);
-        if (abs_dim > max) {
-          max = abs_dim;
-        }
+    for (auto& vert: o->vertex_list) {
+      Vec3 v(vert);
+
+      if (v.x < llf.x) {
+        llf.x = v.x;
       }
+      if (v.x > urb.x) {
+        urb.x = v.x;
+      }
+      if (v.y < llf.y) {
+        llf.y = v.y;
+      }
+      if (v.y > urb.y) {
+        urb.y = v.y;
+      }
+      if (v.z < llf.z) {
+        llf.z = v.z;
+      }
+      if (v.z > urb.z) {
+        urb.z = v.z;
+      }
+
     }
   }
-
-  return max;
 }
 
 
@@ -169,11 +184,17 @@ void MCell4Converter::convert_simulation_setup() {
   world->seed_seq = config.seed;
   rng_init(&world->rng, world->seed_seq);
 
-  float_t max_dimension = get_max_abs_dimension_of_any_vertex();
-  float_t auto_partition_dimension = (max_dimension + PARTITION_EDGE_EXTRA_MARGIN_UM) * 2;
 
-  float_t partition_dimension_increment = 0;
+  Vec3 llf, urb;
+  get_geometry_bounding_box(llf, urb);
+  Vec3 llf_w_margin = llf - Vec3(PARTITION_EDGE_EXTRA_MARGIN_UM);
+  Vec3 urb_w_margin = urb + Vec3(PARTITION_EDGE_EXTRA_MARGIN_UM);
 
+  float_t llf_partition_dimension_diff = 0;
+
+  // TODO: should we be modifying the values user provided?
+
+  float_t auto_partition_dimension = max3(urb_w_margin) - min3(llf_w_margin);
   if (!is_set(config.initial_partition_origin) && auto_partition_dimension > config.partition_dimension) {
     cout <<
         "Value of " << NAME_CLASS_MODEL << "." << NAME_CONFIG << "." << NAME_PARTITION_DIMENSION <<
@@ -182,8 +203,58 @@ void MCell4Converter::convert_simulation_setup() {
         ", using the automatic value.\n";
     world->config.partition_edge_length = auto_partition_dimension / length_unit;
     // we need to move the origin, if specified, by half of this increment
-    partition_dimension_increment =
-        world->config.partition_edge_length - (config.partition_dimension / length_unit);
+    llf_partition_dimension_diff =
+        -(world->config.partition_edge_length - (config.partition_dimension / length_unit)) / 2;
+  }
+  else if (is_set(config.initial_partition_origin) &&
+      (config.initial_partition_origin[0] > llf_w_margin.x ||
+       config.initial_partition_origin[1] > llf_w_margin.y ||
+       config.initial_partition_origin[2] > llf_w_margin.z ||
+       config.initial_partition_origin[0] + config.partition_dimension < urb_w_margin.x ||
+       config.initial_partition_origin[1] + config.partition_dimension < urb_w_margin.y ||
+       config.initial_partition_origin[2] + config.partition_dimension < urb_w_margin.z
+      )
+  ) {
+    Vec3 origin(config.initial_partition_origin);
+    Vec3 llf_diff(0);
+    if (origin.x > llf_w_margin.x) {
+      llf_diff.x = origin.x - llf_w_margin.x;
+    }
+    if (origin.y > llf_w_margin.y) {
+      llf_diff.y = origin.y - llf_w_margin.y;
+    }
+    if (origin.z > llf_w_margin.z) {
+      llf_diff.z = origin.z - llf_w_margin.z;
+    }
+    llf_partition_dimension_diff = max3(llf_diff);
+
+    Vec3 opposite(Vec3(config.initial_partition_origin) + Vec3(config.partition_dimension));
+    Vec3 urb_diff(0);
+    if (opposite.x < urb_w_margin.x) {
+      urb_diff.x = urb_w_margin.x - opposite.x;
+    }
+    if (opposite.y < urb_w_margin.y) {
+      urb_diff.y = urb_w_margin.y - opposite.y;
+    }
+    if (opposite.z < urb_w_margin.z) {
+      urb_diff.z = urb_w_margin.z - opposite.z;
+    }
+    float_t max_urb_diff = max3(urb_diff);
+
+    world->config.partition_edge_length =
+        (config.partition_dimension + llf_partition_dimension_diff + max_urb_diff)/ length_unit;
+    // we need to move the origin, if specified, by half of this increment
+
+    Vec3 new_origin = origin - Vec3(llf_partition_dimension_diff);
+
+    cout <<
+        "Value of " << NAME_INITIAL_PARTITION_ORIGIN << " " << origin <<
+        " does not provide enough margin"
+        " for model's geometry bounding box lower, left, front point " << llf << " "
+        " and upper, right, back " << urb << "."
+        " Moving the origin to " << new_origin << " and increasing " <<
+        NAME_PARTITION_DIMENSION << " to " <<
+        world->config.partition_edge_length * length_unit << ".\n";
   }
   else {
     world->config.partition_edge_length = config.partition_dimension / length_unit;
@@ -192,8 +263,7 @@ void MCell4Converter::convert_simulation_setup() {
   if (is_set(config.initial_partition_origin)) {
     // origin set manually
     world->config.partition0_llf =
-        Vec3(config.initial_partition_origin) / Vec3(length_unit) -
-        partition_dimension_increment / 2;
+        (Vec3(config.initial_partition_origin) - Vec3(llf_partition_dimension_diff))/ Vec3(length_unit);
   }
   else {
     // place the partition to the center
