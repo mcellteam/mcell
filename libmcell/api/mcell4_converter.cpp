@@ -202,6 +202,15 @@ void MCell4Converter::convert_simulation_setup() {
 
   // align the origin to a multiple of subpartition length
   float_t sp_len = config.subpartition_dimension / length_unit;
+
+  uint tentative_subparts = world->config.partition_edge_length / sp_len;
+  if (tentative_subparts > MAX_SUBPARTS_PER_PARTITION) {
+    cout <<
+      "Approximate number of subpartitions " << tentative_subparts <<
+      " is too high, lowering it to a limit of " << MAX_SUBPARTS_PER_PARTITION << ".\n";
+    sp_len = world->config.partition_edge_length / MAX_SUBPARTS_PER_PARTITION;
+  }
+
   Vec3 orig_origin = world->config.partition0_llf;
   world->config.partition0_llf =
       floor_to_multiple_allow_negative(orig_origin, sp_len);
@@ -213,6 +222,7 @@ void MCell4Converter::convert_simulation_setup() {
 
   world->config.num_subpartitions_per_partition =
       round_f(world->config.partition_edge_length / sp_len);
+
 
   // this option in MCell3 was removed in MCell4
   world->config.use_expanded_list = true;

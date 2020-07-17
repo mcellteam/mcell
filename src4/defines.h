@@ -130,6 +130,7 @@ const float_t PARTITION_EDGE_LENGTH_DEFAULT_UM = 10; // large for now because we
 const float_t PARTITION_EDGE_EXTRA_MARGIN_UM = 0.01;
 const float_t SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT = 1;
 
+const uint MAX_SUBPARTS_PER_PARTITION = 300;
 
 // ---------------------------------- fixed constants and specific typedefs -------------------
 const float_t POS_INVALID = FLT_MAX; // cannot be NAN because we cannot do any comparison with NANs

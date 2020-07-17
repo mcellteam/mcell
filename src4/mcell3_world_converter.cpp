@@ -241,6 +241,14 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
     // value of world->config.subpartition_edge_length is set in SimulationConfig::init
     sp_len = min3(mcell3_box_size / Vec3(num_subparts));
 
+    uint tentative_subparts = max3(mcell3_box_size) / sp_len;
+    if (tentative_subparts > MAX_SUBPARTS_PER_PARTITION) {
+      cout <<
+        "Approximate number of subpartitions " << tentative_subparts <<
+        " is too high, lowering it to a limit of " << MAX_SUBPARTS_PER_PARTITION << ".\n";
+      sp_len = world->config.partition_edge_length / MAX_SUBPARTS_PER_PARTITION;
+    }
+
     // origin of the initial partition
     world->config.partition0_llf = floor_to_multiple_allow_negative(mcell3_llf_w_margin, sp_len);
     Vec3 llf_moved = mcell3_llf_w_margin - world->config.partition0_llf;
