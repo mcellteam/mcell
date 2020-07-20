@@ -45,6 +45,14 @@
 using namespace std;
 using namespace BNG;
 
+#define EXTRA_LOGGING
+
+#ifdef EXTRA_LOGGING
+#define LOG(msg) cout << msg << "\n"
+#else
+#define LOG(msg) do { } while (0)
+#endif
+
 // checking major conversion blocks
 #define CHECK(cond) do { if(!(cond)) { mcell_log_conv_error("Returning from %s after conversion error.\n", __FUNCTION__); return false; } } while (0)
 
@@ -364,6 +372,51 @@ bool check_meta_object(geom_object* o, string expected_name = "") {
 }
 
 
+// inst must be a meta object, converts all contained geometrical objects
+bool MCell3WorldConverter::convert_geometry_meta_object_recursively(volume* s, geom_object* meta_inst) {
+  CHECK_PROPERTY(check_meta_object(meta_inst));
+
+  // this is the name of the INSTANTIATE section
+  std::string instantiate_name = get_sym_name(meta_inst->sym);
+
+  // walls reference each other, therefore we must first create
+  // empty wall objects in partitions,
+  geom_object* curr_obj = meta_inst->first_child;
+  while (curr_obj != nullptr) {
+    if (curr_obj->object_type == POLY_OBJ) {
+      create_uninitialized_walls_for_polygonal_object(curr_obj);
+    }
+
+    curr_obj = curr_obj->next;
+  }
+
+  // once all wall were created and mapping established,
+  // we can fill-in all objects
+  curr_obj = meta_inst->first_child;
+  while (curr_obj != nullptr) {
+    if (curr_obj->object_type == POLY_OBJ) {
+      CHECK(convert_polygonal_object(curr_obj, instantiate_name));
+    }
+    else if (curr_obj->object_type == META_OBJ) {
+      convert_geometry_meta_object_recursively(s, curr_obj);
+    }
+    else if (curr_obj->object_type == REL_SITE_OBJ) {
+      // ignored
+    }
+    else {
+      mcell_error(
+          "Unexpected type of object %d with name %s.",
+          (int)curr_obj->object_type, get_sym_name(curr_obj->sym)
+      );
+    }
+
+    curr_obj = curr_obj->next;
+  }
+
+  return true;
+}
+
+
 bool MCell3WorldConverter::convert_geometry_objects(volume* s) {
 
   geom_object* root_instance = s->root_instance;
@@ -372,41 +425,7 @@ bool MCell3WorldConverter::convert_geometry_objects(volume* s) {
 
   for (geom_object* instantiate_obj = root_instance->first_child; instantiate_obj != nullptr; instantiate_obj = instantiate_obj->next) {
     CHECK_PROPERTY(check_meta_object(instantiate_obj));
-
-    // this is the name of the INSTANTIATE section
-    std::string instantiate_name = get_sym_name(instantiate_obj->sym);
-
-    // walls reference each other, therefore we must first create
-    // empty wall objects in partitions,
-    geom_object* curr_obj = instantiate_obj->first_child;
-    while (curr_obj != nullptr) {
-      if (curr_obj->object_type == POLY_OBJ) {
-        create_uninitialized_walls_for_polygonal_object(curr_obj);
-      }
-
-      curr_obj = curr_obj->next;
-    }
-
-    // once all wall were created and mapping established,
-    // we can fill-in all objects
-    curr_obj = instantiate_obj->first_child;
-    while (curr_obj != nullptr) {
-      if (curr_obj->object_type == POLY_OBJ) {
-        CHECK(convert_polygonal_object(curr_obj, instantiate_name));
-      }
-      else if (curr_obj->object_type == REL_SITE_OBJ || curr_obj->object_type == META_OBJ) {
-        // ignored
-      }
-      else {
-        mcell_error(
-            "Unexpected type of object %d with name %s.",
-            (int)curr_obj->object_type, get_sym_name(curr_obj->sym)
-        );
-      }
-
-      curr_obj = curr_obj->next;
-    }
-
+    convert_geometry_meta_object_recursively(s, root_instance);
   } // for each scene/INSTANTIATE section
 
   // check that our reinit function works correctly
@@ -611,6 +630,8 @@ bool MCell3WorldConverter::convert_region(Partition& p, const region* r, region_
   Region new_region;
 
   new_region.name = get_sym_name(r->sym);
+
+  LOG("Converting region " << new_region.name);
 
   // u_int hashval;          // ignored
   // char *region_last_name; // ignored
@@ -1694,7 +1715,9 @@ bool MCell3WorldConverter::convert_mol_or_rxn_count_events(volume* s) {
           CHECK_PROPERTY(ends_with(reg_name, ",ALL")); // enclused in object must be whole objects
 
           const Region* reg = world->get_partition(0).find_region_by_name(reg_name);
-          CHECK_PROPERTY(reg != nullptr);
+          if (reg == nullptr) {
+            mcell_error("Could not find a counted region with name %s.", reg_name.c_str());
+          }
           assert(reg->geometry_object_id != GEOMETRY_OBJECT_ID_INVALID);
           term.geometry_object_id = reg->geometry_object_id;
 
