@@ -852,11 +852,11 @@ void ReleaseEvent::init_surf_mols_by_number(Partition& p, const Region& reg, con
   }
   assert(n_free_sm == free_tiles.size() && "Num free tiles does not match");
 
-  if (release_number > 0 && n_free_sm == 0) {
+  if (info.release_num > 0 && n_free_sm == 0) {
     mcell_error("Number of free surface molecule tiles in region %s = %d", reg.name.c_str(), n_free_sm);
   }
 
-  if (release_number > n_free_sm / 2) {
+  if (info.release_num > n_free_sm / 2) {
     mcell_warn("Implementation of filling more than half of free tiles is different in MCell4 from MCell3.");
   }
 
