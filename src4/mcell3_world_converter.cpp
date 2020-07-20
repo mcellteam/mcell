@@ -45,7 +45,7 @@
 using namespace std;
 using namespace BNG;
 
-#define EXTRA_LOGGING
+//#define EXTRA_LOGGING
 
 #ifdef EXTRA_LOGGING
 #define LOG(msg) cout << msg << "\n"
@@ -425,7 +425,7 @@ bool MCell3WorldConverter::convert_geometry_objects(volume* s) {
 
   for (geom_object* instantiate_obj = root_instance->first_child; instantiate_obj != nullptr; instantiate_obj = instantiate_obj->next) {
     CHECK_PROPERTY(check_meta_object(instantiate_obj));
-    convert_geometry_meta_object_recursively(s, root_instance);
+    convert_geometry_meta_object_recursively(s, instantiate_obj);
   } // for each scene/INSTANTIATE section
 
   // check that our reinit function works correctly
@@ -776,7 +776,7 @@ bool MCell3WorldConverter::convert_polygonal_object(const geom_object* o, const 
 
   // CHECK_PROPERTY(o->n_tiles == 0); // don't care, we will create grid if needed
   // CHECK_PROPERTY(o->n_occupied_tiles == 0);
-  CHECK_PROPERTY(t_matrix_to_mat4x4(o->t_matrix) == mat4x4(1) && "only identity matrix for now");
+  // CHECK_PROPERTY(t_matrix_to_mat4x4(o->t_matrix) == mat4x4(1) && "only identity matrix for now"); // ignored, this tranformation was already applied
   // root->is_closed - not checked
   CHECK_PROPERTY(o->periodic_x == false);
   CHECK_PROPERTY(o->periodic_y == false);
