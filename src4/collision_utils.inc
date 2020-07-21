@@ -492,6 +492,7 @@ static bool collide_mol(
     float_t& rel_collision_time,
     Vec3& rel_collision_pos
 ) {
+  assert(!colliding_vm.is_defunct());
 
   const Vec3& pos = colliding_vm.v.pos; /* Position of target molecule */
   Vec3 dir = pos - diffused_vm.v.pos;  /* From starting point of moving molecule to target */

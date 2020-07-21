@@ -284,7 +284,7 @@ public:
 
     // let's go through all molecules and update whether they can react with our new species
     for (const Molecule& m: molecules) {
-      if (!m.is_vol()) {
+      if (!m.is_vol() || m.is_defunct()) {
         continue;
       }
 
@@ -361,6 +361,19 @@ public:
         subpart_reactants_new_sp.insert_unique(second_species_id, vm.id);
       }
     }
+
+#ifdef DEBUG_EXTRA_CHECKS
+    // check that we don't have any defunct mols
+    if (!adding && removing) {
+      for (auto subpart_vec: volume_molecule_reactants_per_subpart) {
+        for (auto species_reactants: subpart_vec) {
+          for (molecule_id_t id: species_reactants) {
+            assert(!get_m(id).is_defunct());
+          }
+        }
+      }
+    }
+#endif
 
     vm.v.reactant_subpart_index = vm.v.subpart_index;
   }

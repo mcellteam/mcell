@@ -429,7 +429,8 @@ bool MCell3WorldConverter::convert_geometry_objects(volume* s) {
   } // for each scene/INSTANTIATE section
 
   // check that our reinit function works correctly
-#if !defined(NDEBUG) and defined(DEBUG_EXTRA_CHECKS)
+#ifdef DEBUG_EXTRA_CHECKS
+  Partition& p = world->get_partition(PARTITION_ID_INITIAL);
   for (wall_index_t i = 0; i < p.get_wall_count(); i++) {
     Wall& w = p.get_wall(i);
     for (edge_index_t k = 0; k < EDGES_IN_TRIANGLE; k++) {
