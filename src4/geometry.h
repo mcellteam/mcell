@@ -116,7 +116,7 @@ public:
   void to_data_model(const Partition& p, const SimulationConfig& config, Json::Value& object) const;
 };
 
-typedef uint_flat_map<subpart_index_t, small_vector<wall_index_t>> WallsPerSubpartMap;
+typedef std::map<subpart_index_t, small_vector<wall_index_t>> WallsPerSubpartMap;
 
 // this class holds information for initial release of molecules onto regions specified by
 // MDL's MODIFY_SURFACE_REGIONS/MOLECULE_DENSITY or MOLECULE_NUMBER
