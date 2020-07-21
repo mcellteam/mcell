@@ -79,7 +79,7 @@ py::class_<Model> define_pybinding_Model(py::module& m) {
       .def("add_instantiation_data", &Model::add_instantiation_data, py::arg("instantiation_data"))
       .def("add_observables", &Model::add_observables, py::arg("observables"))
       .def("dump_internal_state", &Model::dump_internal_state)
-      .def("export_data_model", &Model::export_data_model, py::arg("file") = STR_UNSET)
+      .def("export_data_model", &Model::export_data_model, py::arg("file") = STR_UNSET, py::arg("only_for_visualization") = false)
       .def("get_molecule_ids", &Model::get_molecule_ids, py::arg("species") = nullptr)
       .def("get_molecule", &Model::get_molecule, py::arg("id"))
       .def("add_species", &Model::add_species, py::arg("s"))

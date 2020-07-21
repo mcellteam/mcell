@@ -74,6 +74,7 @@ static struct option long_options[] = { { "help", 0, 0, 'h' },
 																				{ "dump_mcell4", 0, 0, 'o'},
                                         { "mdl2datamodel", 0, 0, 'm'},
                                         { "mdl2datamodel4", 0, 0, 'u'},
+                                        { "mdl2datamodel4viz", 0, 0, 'a'},
                                         { NULL, 0, 0, 0 } };
 
 /* print_usage: Write the usage message for mcell to a file handle.
@@ -106,7 +107,8 @@ void print_usage(FILE *f, char const *argv0) {
       "     [-dump_mcell3]           dump initial MCell 3 state for MCell 4 development\n"
 			"     [-dump_mcell4]           dump initial MCell 4 state\n"
       "     [-mdl2datamodel]         convert MDL to datamodel, the resulting file will be called 'datamodel.json'\n"
-      "     [-mdl2datamodel4]        convert MDL to datamodel using mcell 4 state, the resulting file will be called 'datamodel.json'\n"
+      "     [-mdl2datamodel4]        convert MDL to datamodel using mcell 4 state, the resulting file will be called 'data_model.json'\n"
+      "     [-mdl2datamodel4viz]     convert MDL to datamodel using mcell 4 state, only for visualization purposes the resulting file will be called 'data_model_viz.json'\n"
       "\n");
 }
 
@@ -366,6 +368,12 @@ int argparse_init(int argc, char *const argv[], struct volume *vol) {
 
     case 'u':
       vol->mdl2datamodel4 = 1;
+      vol->mdl2datamodel4_only_viz = 0;
+      break;
+
+    case 'a':
+      vol->mdl2datamodel4 = 1;
+      vol->mdl2datamodel4_only_viz = 1;
       break;
 
     default:

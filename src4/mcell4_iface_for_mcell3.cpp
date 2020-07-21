@@ -38,9 +38,16 @@ bool mcell4_run_simulation(const bool dump_initial_state) {
   return true;
 }
 
-void mcell4_convert_to_data_model() {
-  g_converter.world->export_data_model(DEFAULT_DATAMODEL_FILENAME);
-  mcell_log("Datamodel was exported to '%s'.", DEFAULT_DATAMODEL_FILENAME);
+void mcell4_convert_to_data_model(const bool only_for_viz) {
+  const char* fname;
+  if (only_for_viz) {
+    fname = DEFAULT_DATA_MODEL_VIZ_FILENAME;
+  }
+  else {
+    fname = DEFAULT_DATA_MODEL_FILENAME;
+  }
+  g_converter.world->export_data_model(fname, only_for_viz);
+  mcell_log("Datamodel was exported to '%s'.", fname);
 }
 
 void mcell4_delete_world() {

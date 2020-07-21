@@ -62,6 +62,14 @@ Model:
       type: str
       default: unset
 
+    - name: only_for_visualization
+      type: bool
+      default: false
+      doc: |
+        The created data model will contain only information required for visualization in CellBlender.
+        This makes the loading ofthemodel by CellBlender faster and also allows to avoid potential 
+        compatibility issues. 
+
   # TODO: can we make some faster interface? however, we do not want to be bound to 
   # the internal implementation and we must abstract away the partitions      
   - name: get_molecule_ids

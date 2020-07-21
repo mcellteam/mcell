@@ -7,8 +7,8 @@
 #include "defines.h"
 #include "json/json.h"
 
-// TODO: rename to data_model
-const char* const DEFAULT_DATAMODEL_FILENAME = "datamodel.json";
+const char* const DEFAULT_DATA_MODEL_FILENAME = "data_model.json";
+const char* const DEFAULT_DATA_MODEL_VIZ_FILENAME = "data_model_viz.json";
 
 const char* const DEFAULT_DATA_LAYOUT_FILENAME = "data_layout.json";
 

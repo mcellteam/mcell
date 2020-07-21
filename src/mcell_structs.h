@@ -1411,6 +1411,7 @@ struct volume {
   int dump_mcell3;
   int dump_mcell4;
   int mdl2datamodel4;
+  int mdl2datamodel4_only_viz;
 
   // min and max values from PARTITION_X|Y|Z settings,
   // these are processed already in parser and are not accessible through other variables

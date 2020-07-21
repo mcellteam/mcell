@@ -90,7 +90,7 @@ void BngDataToDatamodelConverter::reset() {
 }
 
 
-void BngDataToDatamodelConverter::to_data_model(const World* world_, Value& mcell_node) {
+void BngDataToDatamodelConverter::to_data_model(const World* world_, Value& mcell_node, const bool only_for_viz) {
 
   reset();
 
@@ -100,7 +100,10 @@ void BngDataToDatamodelConverter::to_data_model(const World* world_, Value& mcel
   // similarly as in pymcell converter, maximum effort is given to conversion and
   // if some parts won't go through, we are trying to generate
   CHECK(convert_species(mcell_node));
-  CHECK(convert_rxns(mcell_node));
+
+  if (!only_for_viz) {
+    CHECK(convert_rxns(mcell_node));
+  }
 
   return;
 }

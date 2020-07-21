@@ -86,7 +86,7 @@ public:
   virtual void add_instantiation_data(std::shared_ptr<InstantiationData> instantiation_data) = 0;
   virtual void add_observables(std::shared_ptr<Observables> observables) = 0;
   virtual void dump_internal_state() = 0;
-  virtual void export_data_model(const std::string& file = STR_UNSET) = 0;
+  virtual void export_data_model(const std::string& file = STR_UNSET, const bool only_for_visualization = false) = 0;
   virtual std::vector<int> get_molecule_ids(std::shared_ptr<Species> species = nullptr) = 0;
   virtual std::shared_ptr<Molecule> get_molecule(const int id) = 0;
 }; // GenModel

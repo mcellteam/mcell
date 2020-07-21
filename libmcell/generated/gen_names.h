@@ -148,6 +148,7 @@ const char* const NAME_NUMBER_OF_TRAINS = "number_of_trains";
 const char* const NAME_NUMBER_TO_RELEASE = "number_to_release";
 const char* const NAME_O = "o";
 const char* const NAME_OBSERVABLES = "observables";
+const char* const NAME_ONLY_FOR_VISUALIZATION = "only_for_visualization";
 const char* const NAME_OP2 = "op2";
 const char* const NAME_ORIENTATION = "orientation";
 const char* const NAME_OTHER = "other";

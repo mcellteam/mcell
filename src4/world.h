@@ -148,9 +148,9 @@ public:
   void dump();
 
   void export_data_model_to_dir(const std::string& prefix) const;
-  void export_data_model(const std::string& filename) const;
+  void export_data_model(const std::string& filename, const bool only_for_viz) const;
 
-  void to_data_model(Json::Value& root) const;
+  void to_data_model(Json::Value& root, const bool only_for_viz) const;
 
   // -------------- callback registration -------------------------
   // move into cpp file

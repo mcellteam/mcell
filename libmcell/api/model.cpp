@@ -137,9 +137,9 @@ void Model::dump_internal_state() {
   world->dump();
 }
 
-void Model::export_data_model(const std::string& file) {
+void Model::export_data_model(const std::string& file, const bool only_for_visualization) {
   if (is_set(file)) {
-    world->export_data_model(file);
+    world->export_data_model(file, only_for_visualization);
   }
   else {
     // use the first viz_output

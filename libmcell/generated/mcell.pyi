@@ -788,7 +788,8 @@ class Model():
 
     def export_data_model(
             self,
-            file : str = None
+            file : str = None,
+            only_for_visualization : bool = False
         ) -> None:
         pass
 

@@ -376,21 +376,21 @@ void World::export_data_model_to_dir(const std::string& prefix) const {
 
   stringstream path;
   path <<
-      prefix << ".datamodel." <<
+      prefix << ".data_model." <<
       VizOutputEvent::iterations_to_string(stats.get_current_iteration(), total_iterations) <<
       ".json";
 
   // create directories if needed
   ::make_parent_dir(path.str().c_str());
 
-  export_data_model(path.str().c_str());
+  export_data_model(path.str().c_str(), false); // in this case, we are generating the data model only for visualization
 }
 
 
-void World::export_data_model(const std::string& filename) const {
+void World::export_data_model(const std::string& filename, const bool only_for_viz) const {
 
   Json::Value root;
-  to_data_model(root);
+  to_data_model(root, only_for_viz);
 
   Json::StreamWriterBuilder wbuilder;
   wbuilder["indentation"] = " ";
@@ -417,7 +417,7 @@ void World::export_data_model(const std::string& filename) const {
 }
 
 
-void World::to_data_model(Json::Value& root) const {
+void World::to_data_model(Json::Value& root, const bool only_for_viz) const {
   Json::Value& mcell = root[KEY_MCELL];
 
   mcell[KEY_CELLBLENDER_VERSION] = VALUE_CELLBLENDER_VERSION;
@@ -431,24 +431,28 @@ void World::to_data_model(Json::Value& root) const {
     p.to_data_model(mcell);
   }
 
-  // base information for reaction_data_output must be set even when there are no such events
-  Json::Value& reaction_data_output = mcell[KEY_REACTION_DATA_OUTPUT];
-  DMUtil::add_version(reaction_data_output, VER_DM_2016_03_15_1800);
-  reaction_data_output[KEY_PLOT_LAYOUT] = " ";
-  reaction_data_output[KEY_PLOT_LEGEND] = "0";
-  reaction_data_output[KEY_MOL_COLORS] = false;
-  reaction_data_output[KEY_ALWAYS_GENERATE] = true;
-  reaction_data_output[KEY_OUTPUT_BUF_SIZE] = "";
-  reaction_data_output[KEY_RXN_STEP] = "";
-  reaction_data_output[KEY_COMBINE_SEEDS] = true;
-  Json::Value& reaction_output_list = reaction_data_output[KEY_REACTION_OUTPUT_LIST];
-  reaction_output_list = Json::Value(Json::arrayValue); // empty array
+  if (!only_for_viz) {
+    // base information for reaction_data_output must be set even when there are no such events
+    Json::Value& reaction_data_output = mcell[KEY_REACTION_DATA_OUTPUT];
+    DMUtil::add_version(reaction_data_output, VER_DM_2016_03_15_1800);
+    reaction_data_output[KEY_PLOT_LAYOUT] = " ";
+    reaction_data_output[KEY_PLOT_LEGEND] = "0";
+    reaction_data_output[KEY_MOL_COLORS] = false;
+    reaction_data_output[KEY_ALWAYS_GENERATE] = true;
+    reaction_data_output[KEY_OUTPUT_BUF_SIZE] = "";
+    reaction_data_output[KEY_RXN_STEP] = "";
+    reaction_data_output[KEY_COMBINE_SEEDS] = true;
+    Json::Value& reaction_output_list = reaction_data_output[KEY_REACTION_OUTPUT_LIST];
+    reaction_output_list = Json::Value(Json::arrayValue); // empty array
 
-  scheduler.to_data_model(mcell);
+    scheduler.to_data_model(mcell);
 
-  // generate species info
+  }
+
+  // generate species and rxn info
   BngDataToDatamodelConverter bng_converter;
-  bng_converter.to_data_model(this, mcell);
+  bng_converter.to_data_model(this, mcell, only_for_viz);
+
 
   // add other default values, might need to generate this better
   Json::Value& materials = mcell[KEY_MATERIALS];

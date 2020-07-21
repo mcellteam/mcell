@@ -31,6 +31,7 @@ Regex to replace struct member definition by dumping code:
  */
 
 #define DUMP_SCHEDULERS
+//#define DUMP_WALLS
 //#define DUMP_WAYPOINTS
 //#define DUMP_SUBVOLUMES
 //#define DUMP_RELEASE_REGION_DATA
@@ -530,9 +531,11 @@ void dump_object(geom_object* o, const char* ind) {
 
   dump_object_list(o->first_child, "first_child", "", ind2);
 
+#ifdef DUMP_WALLS
   cout << ind << "walls: *\t\t" << o->walls << " [wall] \t\t/* Array of walls in object */\n";
   cout << ind << "wall_p: **\t\t" << o->wall_p << " [wall] \t\t// Array of ptrs to walls in object (used at run-time)\n";
   dump_wall_array(o->n_walls, o->wall_p, ind2);
+#endif
 }
 
 
@@ -842,8 +845,10 @@ void dump_one_subvolume(subvolume* sv, const char* ind) {
   DECL_IND2(ind);
   cout << ind << "subvolume: *\t\t" << (void*)sv << " [subvolume] \t\t\n";
 
+#ifdef DUMP_WALLS
   cout << ind << "  " << "wall_head: *\t\t" << (void*)sv->wall_head << " [wall_list] \t\t /* Head of linked list of intersecting walls */\n";
   dump_wall_list(sv->wall_head, ind2);
+#endif
 
   cout << ind << "  " << "mol_by_species: \t\t" << sv->mol_by_species << " [pointer_hash] \t\t /* table of speciesv->molecule list */\n";
   cout << ind << "  " << "species_head: *\t\t" << (void*)sv->species_head << " [per_species_list] \t\t\n";
@@ -1715,7 +1720,9 @@ void dump_sym_table(sym_table_head* t, const char* name, const char* comment, co
     }
   }
 
-  assert(dumped_symbols == t->n_entries);
+  if (dumped_symbols != t->n_entries) {
+    cout << "internal warning: when dumping symbol table: dumped_symbols != t->n_entries\n";
+  }
 }
 
 
@@ -1822,7 +1829,9 @@ void dump_dg_time_filename_list(dg_time_filename* fn, const char* name, const ch
 
   dump_vector3_array(s->n_verts, "n_verts", s->all_vertices, "all_vertices", "/* Central repository of vertices with a partial order imposed by natural ordering of storages*/", "");
 
+#ifdef DUMP_WALLS
   dump_wall_list_array(s->n_verts, "n_verts", s->walls_using_vertex, "walls_using_vertex", "/* Array of linked lists of walls using a vertex (has the size of all_vertices array) */", "");
+#endif
 
   cout << "rx_hashsize: \t\t" << s->rx_hashsize << " [int] \t\t/* How many slots in our reaction hash table? */\n";
   cout << "n_reactions: \t\t" << s->n_reactions << " [int] \t\t/* How many reactions are there, total? */\n";

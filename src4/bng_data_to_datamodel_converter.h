@@ -51,7 +51,7 @@ public:
 
   // does nothing for now, there will be changes in BNG data and
   // converting species is not needed at this point
-  void to_data_model(const World* world_, Json::Value& mcell_node);
+  void to_data_model(const World* world_, Json::Value& mcell_node, const bool only_for_viz);
 
 private:
   void reset();
