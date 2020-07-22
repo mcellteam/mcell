@@ -380,6 +380,8 @@ void DiffuseReactEvent::diffuse_vol_molecule(
       assert(collision.time >= 0 && collision.time <= 1);
 
       if (collision.is_vol_mol_vol_mol_collision()) {
+        p.stats.inc_vol_mol_vol_mol_collisions();
+
         // ignoring immediate collisions
         if (CollisionUtil::is_immediate_collision(collision.time)) {
           continue;

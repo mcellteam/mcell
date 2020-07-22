@@ -740,6 +740,10 @@ public:
     mol_wall_reflections++;
   }
 
+  void inc_vol_mol_vol_mol_collisions() {
+    vol_mol_vol_mol_collisions++;
+  }
+
   // new mcell4 stats
   void inc_mol_moves_between_walls() {
     mol_moves_between_walls++;
@@ -772,6 +776,7 @@ public:
     ray_polygon_tests = 0;
     ray_polygon_colls = 0;
     mol_wall_reflections = 0;
+    vol_mol_vol_mol_collisions = 0;
     mol_moves_between_walls = 0;
     num_waypoints_used = 0;
     recomputations_of_counted_volume = 0;
@@ -786,6 +791,8 @@ private:
   uint64_t ray_polygon_colls;
 
   uint64_t mol_wall_reflections;
+  uint64_t vol_mol_vol_mol_collisions;
+
   uint64_t mol_moves_between_walls;
 
   uint64_t num_waypoints_used;
