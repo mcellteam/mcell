@@ -762,6 +762,8 @@ mcell_print_final_statistics(MCELL_STATE *world) {
               world->ray_polygon_colls);
     mcell_log("Total number of dynamic geometry molecule displacements: %lld",
               world->dyngeom_molec_displacements);
+    mcell_log("Total number of diffuse 3d calls: %lld", world->diffuse_3d_calls);;
+
     print_molecule_collision_report(
         world->notify->molecule_collision_report,
         world->vol_vol_colls,

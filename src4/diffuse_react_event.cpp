@@ -304,6 +304,8 @@ void DiffuseReactEvent::diffuse_vol_molecule(
     const float_t diffusion_start_time,
     WallTileIndexPair& wall_tile_pair_where_created_this_iteration
 ) {
+  p.stats.inc_diffuse_3d_calls();
+
   Molecule& vm = p.get_m(vm_id);
   const BNG::Species& species = p.get_all_species().get(vm.species_id);
 
@@ -484,6 +486,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
               p, collision,
               vm_new_ref, remaining_displacement, t_steps, last_hit_wall_index
           );
+          p.stats.inc_mol_wall_reflections();
           assert(res == 0 && "Periodic box BCs are not supported yet");
         }
 

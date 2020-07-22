@@ -1312,6 +1312,7 @@ struct volume {
                                     occured */
   long long surf_surf_surf_colls; /* How many surf-surf-surf collisions have
                                      occured */
+  long long diffuse_3d_calls;
 
   struct vector3 bb_llf; /* llf corner of world bounding box */
   struct vector3 bb_urb; /* urb corner of world bounding box */

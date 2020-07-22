@@ -2985,6 +2985,8 @@ struct volume_molecule *diffuse_3D(
     struct volume_molecule *vm,
     double max_time) {
 
+  world->diffuse_3d_calls++;
+
   struct species* spec = vm->properties;
   if (spec == NULL) {
     mcell_internal_error(

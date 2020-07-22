@@ -736,6 +736,10 @@ public:
     ray_polygon_colls++;
   }
 
+  void inc_mol_wall_reflections() {
+    mol_wall_reflections++;
+  }
+
   // new mcell4 stats
   void inc_mol_moves_between_walls() {
     mol_moves_between_walls++;
@@ -747,6 +751,9 @@ public:
 
   void inc_num_waypoints_used() {
     num_waypoints_used++;
+  }
+  void inc_diffuse_3d_calls() {
+    diffuse_3d_calls++;
   }
 
   void dump();
@@ -764,9 +771,11 @@ public:
     ray_voxel_tests = 0;
     ray_polygon_tests = 0;
     ray_polygon_colls = 0;
+    mol_wall_reflections = 0;
     mol_moves_between_walls = 0;
     num_waypoints_used = 0;
     recomputations_of_counted_volume = 0;
+    diffuse_3d_calls = 0;
   }
 
 private:
@@ -775,10 +784,14 @@ private:
   uint64_t ray_voxel_tests;
   uint64_t ray_polygon_tests;
   uint64_t ray_polygon_colls;
+
+  uint64_t mol_wall_reflections;
   uint64_t mol_moves_between_walls;
 
   uint64_t num_waypoints_used;
   uint64_t recomputations_of_counted_volume;
+
+  uint64_t diffuse_3d_calls;
 };
 
 /*
