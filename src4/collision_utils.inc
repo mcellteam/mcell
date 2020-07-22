@@ -803,7 +803,7 @@ static void collect_wall_collisions(
   Vec3 closest_hit_pos(0);
 
   // check each wall in this subpartition
-  const uint_set<wall_index_t>& wall_indices = p.get_subpart_wall_indices(subpart_index);
+  const WallsInSubpart& wall_indices = p.get_subpart_wall_indices(subpart_index);
 
   for (auto it = wall_indices.begin(); it != wall_indices.end(); it++) {
     wall_index_t wall_index = *it;
@@ -1362,7 +1362,7 @@ static void get_num_crossed_walls_per_object(
   for (subpart_index_t subpart_w_walls_index: crossed_subparts_for_walls) {
 
     // check each wall in this subpartition
-    const uint_set<wall_index_t>& wall_indices = p.get_subpart_wall_indices(subpart_w_walls_index);
+    const WallsInSubpart& wall_indices = p.get_subpart_wall_indices(subpart_w_walls_index);
 
     for (auto it = wall_indices.begin(); it != wall_indices.end(); it++) {
       wall_index_t wall_index = *it;
@@ -1524,7 +1524,7 @@ static counted_volume_index_t compute_counted_volume_using_waypoints(
 
     // there must not be a counted wall between our point and the waypoint
     Vec3 displacement = waypoint->pos - pos;
-    const uint_set<wall_index_t>& wall_indices = p.get_subpart_wall_indices(subpart_index);
+    const WallsInSubpart& wall_indices = p.get_subpart_wall_indices(subpart_index);
     for (auto it = wall_indices.begin(); it != wall_indices.end(); it++) {
       const Wall& w = p.get_wall(*it);
 

@@ -43,6 +43,8 @@ namespace MCell {
 typedef std::map<counted_volume_index_t, uint> CountInGeomObjectMap;
 typedef std::map<wall_index_t, uint> CountOnWallMap;
 
+typedef uint_set<wall_index_t> WallsInSubpart;
+
 // class used to hold potential reactants of given species in a single subpart
 // performance critical, therefore we are using a vector for now,
 // we will probably need to change it in the future by deriving it from
@@ -760,7 +762,7 @@ public:
   }
 
   // maybe we will need to filter out, e.g. just reflective surfaces
-  const uint_set<wall_index_t>& get_subpart_wall_indices(const subpart_index_t subpart_index) const {
+  const WallsInSubpart& get_subpart_wall_indices(const subpart_index_t subpart_index) const {
     return walls_per_subpart[subpart_index];
   }
 
@@ -960,8 +962,8 @@ private:
   // indexed by vertex_index_t
   std::vector< std::vector<wall_index_t>> walls_using_vertex_mapping;
 
-  // indexed by subpartition index, contains a set of wall indices (wall_index_t)
-  std::vector< uint_set<wall_index_t> > walls_per_subpart;
+  // indexed by subpartition index, contains a container wall indices (wall_index_t)
+  std::vector< WallsInSubpart > walls_per_subpart;
 
   // ---------------------------------- counting ------------------------------------------
   // key is rxn rule id and its values are maps that contain current reaction counts for each
