@@ -131,7 +131,7 @@ public:
 
   void step() override;
   void dump(const std::string ind = "") const override;
-  void to_data_model(Json::Value& mcell_node) const;
+  void to_data_model(Json::Value& mcell_node) const override;
 
   void add_mol_count_info(const MolOrRxnCountInfo& info) {
     mol_count_infos.push_back(info);

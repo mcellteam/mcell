@@ -30,8 +30,8 @@ namespace MCell {
 
 class Partition;
 class Wall;
-class Vec3;
-class Vec2;
+struct Vec3;
+struct Vec2;
 
 namespace GeometryUtil {
 
