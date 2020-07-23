@@ -36,7 +36,37 @@
 
 namespace MCell {
 
-#define CHECK() assert(rtcGetDeviceError(device) == RTC_ERROR_NONE)
+static void print_embree_error(const RTCError code)
+{
+  if (code == RTC_ERROR_NONE) {
+    return;
+  }
+
+  cout << "Embree error code:";
+  switch (code) {
+    case RTC_ERROR_UNKNOWN          : cout << "RTC_ERROR_UNKNOWN"; break;
+    case RTC_ERROR_INVALID_ARGUMENT : cout << "RTC_ERROR_INVALID_ARGUMENT"; break;
+    case RTC_ERROR_INVALID_OPERATION: cout << "RTC_ERROR_INVALID_OPERATION"; break;
+    case RTC_ERROR_OUT_OF_MEMORY    : cout << "RTC_ERROR_OUT_OF_MEMORY"; break;
+    case RTC_ERROR_UNSUPPORTED_CPU  : cout << "RTC_ERROR_UNSUPPORTED_CPU"; break;
+    case RTC_ERROR_CANCELLED        : cout << "RTC_ERROR_CANCELLED"; break;
+    default                         : cout << "invalid error code"; break;
+  }
+  cout << "\n";
+}
+
+
+#define CHECK() do { \
+    RTCError code = rtcGetDeviceError(device); \
+    if (code != RTC_ERROR_NONE) { \
+      print_embree_error(code); \
+      assert(code == RTC_ERROR_NONE); \
+      exit(1); \
+    } \
+  } while (0)
+
+
+//#define CHECK() assert(rtcGetDeviceError(device) == RTC_ERROR_NONE);
 
 // extra data used and created when intersecting hits
 struct UserContext {
@@ -146,27 +176,31 @@ void RayTracer::initialize_and_create_geometry() {
         3*sizeof(float), // stride
         partition_verts.size() // count of vertices
     );
+    CHECK();
 
     for (size_t i = 0; i < partition_verts.size(); i++) {
       const Vec3& v = partition_verts[i];
-      vertices[i + 0] = v.x;
-      vertices[i + 1] = v.y;
-      vertices[i + 2] = v.z;
+      size_t base = i*3;
+      vertices[base + 0] = v.x;
+      vertices[base + 1] = v.y;
+      vertices[base + 2] = v.z;
     }
 
     // walls
     const std::vector<Wall>& partition_walls = p.get_walls();
     uint* indices = (uint*)rtcSetNewGeometryBuffer(
-        walls_geom, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_FLOAT3,
+        walls_geom, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3,
         3*sizeof(uint), // stride
         partition_walls.size() // count of walls
     );
+    CHECK();
 
     for (size_t i = 0; i < partition_walls.size(); i++) {
       const Wall& w = partition_walls[i];
-      vertices[i + 0] = w.vertex_indices[0];
-      vertices[i + 1] = w.vertex_indices[1];
-      vertices[i + 2] = w.vertex_indices[2];
+      size_t base = i*3;
+      indices[base + 0] = w.vertex_indices[0];
+      indices[base + 1] = w.vertex_indices[1];
+      indices[base + 2] = w.vertex_indices[2];
     }
 
     // define a callback that skips hits of wall that we already hit
@@ -209,8 +243,16 @@ static void molecule_intersection_filter(const RTCFilterFunctionNArguments* args
     return; // this is the default handling in Embree tutorials
   }
 
+  // we will ignore this hit
+  args->valid[0] = 0;
+
   RTCRay* ray = (RTCRay*)args->ray;
   RTCHit* hit = (RTCHit*)args->hit;
+
+  // aren't we over the set distance
+  if (ray->tfar) {
+    return;
+  }
 
   // what species is this
   // TODO: , can we react?
@@ -219,7 +261,7 @@ static void molecule_intersection_filter(const RTCFilterFunctionNArguments* args
 
   HitInfo hit_info;
   hit_info.molecule_id = mols[hit->primID].molecule_id;
-  hit_info.time_of_hit = ray->tfar;
+  hit_info.ray_tfar = ray->tfar;
   user_context->add_hit(hit_info);
 
   /*
@@ -230,9 +272,6 @@ static void molecule_intersection_filter(const RTCFilterFunctionNArguments* args
       user_context->diffused_species_id,
       mols[hit->primID].id
   );*/
-
-  // ignore this hit and continue until we hit a wall
-  args->valid[0] = 0;
 }
 
 
@@ -339,6 +378,7 @@ void RayTracer::store_molecule_collision(
   float_t time;
   Vec3 pos;
   bool hit_ok = CollisionUtil::collide_mol(diffused_vm, displacement, colliding_vm, p.config.rx_radius_3d, time, pos);
+  assert(hit_ok);
   // TODO: some molecules are found even when collide_mol rejects them,
   // find out why
   if (!hit_ok) {
@@ -377,6 +417,7 @@ RayTraceState RayTracer::ray_trace_vol(
     collision_vector_t& collisions // both mol mol and wall collisions
 ) {
   assert(initialized);
+  collisions.clear();
 
   Molecule& vm = p.get_m(vm_id); // we need to update the position of this molecule
 
@@ -397,12 +438,18 @@ RayTraceState RayTracer::ray_trace_vol(
   rayhit.ray.dir_y = remaining_displacement.y;
   rayhit.ray.dir_z = remaining_displacement.z;
   rayhit.ray.tnear = 0;
-  rayhit.ray.tfar = len3(remaining_displacement);
+  // although we are setting here the max distance to be traveled,
+  // we get back time [0..]
+  float_t max_dist = len3(remaining_displacement) + EPS;
+  rayhit.ray.tfar = max_dist;
   rayhit.ray.mask = -1;
   rayhit.ray.flags = 0;
 
   rayhit.hit.geomID = RTC_INVALID_GEOMETRY_ID;
   rayhit.hit.instID[0] = RTC_INVALID_GEOMETRY_ID;
+
+  // TODO:
+  // rtcSetGeometryMask
 
   // cast ray
   rtcIntersect1(scene, &context.rtc_context, &rayhit);
@@ -411,7 +458,9 @@ RayTraceState RayTracer::ray_trace_vol(
   // handle molecule collisions
   uint_set<molecule_id_t> already_processed_mols;
   for (const HitInfo& h: user_context.hits) {
-    // we may hit the front and the back side of a partition
+    assert(h.ray_tfar <= 1.0 && "Hits behind our displacement should have been already filtered out.");
+
+    // we may also hit the front and the back side of a molecule sphere
     if (already_processed_mols.count(h.molecule_id) != 0) {
       continue;
     }
@@ -421,8 +470,11 @@ RayTraceState RayTracer::ray_trace_vol(
 
   // and check if we hit a wall
   RayTraceState res_state;
-  if (rayhit.hit.geomID != RTC_INVALID_GEOMETRY_ID) {
-    store_wall_collision(rayhit.hit.geomID, vm, remaining_displacement, collisions);
+  if (rayhit.hit.geomID == walls_geometry_id &&
+      rayhit.hit.primID != RTC_INVALID_GEOMETRY_ID &&
+      rayhit.ray.tfar <= 1.0
+  ) {
+    store_wall_collision(rayhit.hit.primID, vm, remaining_displacement, collisions);
 
     res_state = RayTraceState::RAY_TRACE_HIT_WALL;
   }

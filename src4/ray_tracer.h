@@ -42,7 +42,7 @@ struct RayTraceMoleculeData {
 
 struct HitInfo {
   uint molecule_id; // molecule ID that was hit
-  float time_of_hit;
+  float ray_tfar;
   // probably additional info is needed
 };
 
