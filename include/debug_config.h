@@ -104,7 +104,7 @@
 
 //#define COLLECT_SUBPARTS_LEGACY
 
-//#define DEBUG_EXTRA_CHECKS
+//#define DEBUG_EXTRA_CHECKS // may slow down simulation a lot
 
 //#define DUMP_ALWAYS
 #define DUMP_NEVER
@@ -122,7 +122,7 @@
 //#define NODEBUG_WALL_COLLISIONS
 #endif
 
-//#define DEBUG_RXNS
+#define DEBUG_RXNS
 
 //#define DEBUG_RNG_CALLS // cannot be conditioned by iterations
 

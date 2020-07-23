@@ -32,6 +32,7 @@
 #include "molecule.h"
 #include "scheduler.h"
 #include "geometry.h"
+#include "ray_tracer.h"
 
 namespace Json {
 class Value;
@@ -127,7 +128,8 @@ public:
       id(id_),
       config(config_),
       bng_engine(bng_engine_),
-      stats(stats_) {
+      stats(stats_),
+      ray_tracer(nullptr) {
 
     opposite_corner = origin_corner + config.partition_edge_length;
 
@@ -151,6 +153,16 @@ public:
     assert(index == COUNTED_VOLUME_INDEX_OUTSIDE_ALL && "The empty counted volume must have index 0");
 
     rng_init(&aux_rng, 0);
+  }
+
+  ~Partition() {
+    delete ray_tracer;
+  }
+
+  // initialize items that need complete geometry
+  void initialize() {
+    ray_tracer = new RayTracer(*this);
+    ray_tracer->initialize_and_create_geometry();
   }
 
 
@@ -465,6 +477,11 @@ public:
       new_vm.v.counted_volume_index = compute_counted_volume_using_waypoints(new_vm.v.pos);
     }
 
+    #ifdef USE_EMBREE_RAY_TRACE
+      assert(ray_tracer != nullptr);
+      ray_tracer->add_molecule(new_vm);
+    #endif
+
     return new_vm;
   }
 
@@ -491,6 +508,11 @@ public:
       Grid& g = get_wall(m.s.wall_index).grid;
       g.reset_molecule_tile(m.s.grid_tile_index);
     }
+
+  #ifdef USE_EMBREE_RAY_TRACE
+    assert(ray_tracer != nullptr);
+    ray_tracer->remove_molecule(m);
+  #endif
   }
 
 
@@ -586,6 +608,10 @@ public:
   Vec3& get_geometry_vertex(vertex_index_t i) {
     assert(i < geometry_vertices.size());
     return geometry_vertices[i];
+  }
+
+  const std::vector<Vec3>& get_geometry_vertices() const {
+    return geometry_vertices;
   }
 
   const Vec3& get_wall_vertex(const Wall& w, uint vertex_in_wall_index) const {
@@ -996,6 +1022,10 @@ public:
   const SimulationConfig& config;
   BNG::BNGEngine& bng_engine;
   SimulationStats& stats;
+
+  // allocated dynamically because we would like to avoid deep copy
+  // when copying partition
+  RayTracer* ray_tracer;
 };
 
 typedef std::vector<Partition> PartitionVector;

@@ -37,6 +37,17 @@ class RxnClass;
 
 namespace MCell {
 
+
+
+enum class RayTraceState {
+  // TODO: use UpperCase
+  UNDEFINED,
+  HIT_SUBPARTITION,
+  RAY_TRACE_HIT_WALL,
+  FINISHED
+};
+
+
 enum class CollisionType {
   INVALID,
 

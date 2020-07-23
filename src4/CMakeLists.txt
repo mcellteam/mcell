@@ -21,6 +21,7 @@ set(SRC4_SOURCE_FILES
     mcell4_iface_for_mcell3.cpp
     molecule.cpp
     partition.cpp
+    ray_tracer.cpp
     release_event.cpp
     scheduler.cpp
     count_buffer.cpp

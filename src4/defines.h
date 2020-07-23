@@ -56,6 +56,8 @@
 #endif
 
 
+#define USE_EMBREE_RAY_TRACE
+
 // this file must not depend on any other from mcell4 otherwise there
 // might be some nasty cyclic include dependencies
 

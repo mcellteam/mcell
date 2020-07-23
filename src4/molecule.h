@@ -168,6 +168,7 @@ public:
       // stays the same until its moved in the Partition's volume_molecule_reactants_per_subpart[] array
       subpart_index_t reactant_subpart_index;
       geometry_object_id_t counted_volume_index;
+      uint embree_geom_id;
     } v;
 
     // surface molecule data

@@ -188,6 +188,10 @@ void World::init_simulation() {
       "subpartition size is " << config.subpartition_edge_length * config.length_unit << " microns.\n";
   assert(partitions.size() == 1 && "Initial partition must have been created, only 1 is allowed for now");
 
+  for (Partition& p: partitions) {
+    p.initialize();
+  }
+
   // create defragmentation events
   DefragmentationEvent* defragmentation_event = new DefragmentationEvent(this);
   defragmentation_event->event_time = DEFRAGMENTATION_PERIODICITY;

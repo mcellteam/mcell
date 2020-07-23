@@ -42,6 +42,8 @@
 #include "debug_config.h"
 #include "debug.h"
 
+#include "ray_tracer.h"
+
 // include implementations of utility functions
 #include "geometry_utils.h"
 #include "geometry_utils.inc"
@@ -356,6 +358,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
   float_t elapsed_molecule_time = diffusion_start_time; // == vm->t
 
   do {
+#ifndef USE_EMBREE_RAY_TRACE
     state =
         ray_trace_vol(
             p, world->rng,
@@ -364,6 +367,16 @@ void DiffuseReactEvent::diffuse_vol_molecule(
             remaining_displacement,
             molecule_collisions
         );
+#else
+    state =
+        p.ray_tracer->ray_trace_vol(
+            world->rng,
+            vm_id /* changes position */,
+            last_hit_wall_index,
+            remaining_displacement,
+            molecule_collisions
+        );
+#endif
 
     sort_collisions_by_time(molecule_collisions);
 
@@ -532,6 +545,11 @@ void DiffuseReactEvent::diffuse_vol_molecule(
 
       // change subpartition
       p.update_molecule_reactants_map(m_new_ref);
+
+      #ifdef USE_EMBREE_RAY_TRACE
+        p.ray_tracer->update_molecule_position(m_new_ref);
+      #endif
+
     }
   }
 }
