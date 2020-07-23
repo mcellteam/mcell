@@ -416,6 +416,7 @@ RayTraceState RayTracer::ray_trace_vol(
       continue;
     }
     store_molecule_collision(h, vm, remaining_displacement, collisions);
+    already_processed_mols.insert(h.molecule_id);
   }
 
   // and check if we hit a wall
