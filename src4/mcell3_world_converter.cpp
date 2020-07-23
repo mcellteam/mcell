@@ -337,7 +337,13 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
   assert(cmp_eq(sp_len, world->config.subpartition_edge_length));
 
   // other settings
-  world->config.use_embree = s->embree;
+  world->config.use_embree = !s->not_embree;
+  if (world->config.use_embree) {
+    mcell_log("Using Embree for collision detection.");
+  }
+  else {
+    mcell_log("Not using Embree for collision detection.");
+  }
 
   return true;
 }

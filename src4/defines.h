@@ -806,7 +806,10 @@ private:
 // TODO: cleanup all unnecessary argument passing, e.g. in diffuse_react_event.cpp
 class SimulationConfig: public BNG::BNGConfig {
 public:
-  // TODO: add ctor
+  // TODO: add initialization
+  SimulationConfig()
+    : use_embree(true) {
+  }
 
   // configuration
 
@@ -832,7 +835,7 @@ public:
   bool has_intersecting_counted_objects;
 
 
-  bool use_embree; // enabled with cmdline argument -x
+  bool use_embree; // true by default, disabled with -not_embree
 
 
   void init() {
