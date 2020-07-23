@@ -167,7 +167,7 @@ public:
   void dump();
   
   void export_data_model_to_dir(const std::string& prefix);
-  void export_data_model(const std::string& filename);
+  void export_data_model(const std::string& filename, const bool for_viz);
   
   BNG::SpeciesContainer& get_all_species();
   
