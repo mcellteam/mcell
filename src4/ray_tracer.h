@@ -50,7 +50,7 @@ struct HitInfo {
 class RayTracer {
 public:
   RayTracer(Partition& p_)
-    : p(p_), initialized(false), device(nullptr), scene(nullptr), walls_geometry_id(UINT_INVALID) {
+    : p(p_), initialized(false), device(nullptr), scene(nullptr), walls_created(false), walls_geometry_id(0) {
   }
   ~RayTracer();
 
@@ -85,6 +85,7 @@ private:
   RTCDevice device;
   RTCScene scene;
 
+  bool walls_created;
   uint walls_geometry_id;
 
   // extra data for each molecule, managed by this class

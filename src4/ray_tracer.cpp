@@ -224,9 +224,11 @@ void RayTracer::initialize_and_create_geometry() {
     CHECK();
     rtcCommitScene(scene);
     CHECK();
+    walls_created = true;
   }
   else {
-    walls_geometry_id = UINT_INVALID;
+    walls_created = false;
+    walls_geometry_id = UINT_INVALID - 1;
   }
 }
 
@@ -250,7 +252,7 @@ static void molecule_intersection_filter(const RTCFilterFunctionNArguments* args
   RTCHit* hit = (RTCHit*)args->hit;
 
   // aren't we over the set distance
-  if (ray->tfar) {
+  if (ray->tfar > 1) {
     return;
   }
 
@@ -470,7 +472,8 @@ RayTraceState RayTracer::ray_trace_vol(
 
   // and check if we hit a wall
   RayTraceState res_state;
-  if (rayhit.hit.geomID == walls_geometry_id &&
+  if (walls_created &&
+      rayhit.hit.geomID == walls_geometry_id &&
       rayhit.hit.primID != RTC_INVALID_GEOMETRY_ID &&
       rayhit.ray.tfar <= 1.0
   ) {
