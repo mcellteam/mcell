@@ -105,6 +105,7 @@ public:
     v.subpart_index = SUBPART_INDEX_INVALID;
     v.reactant_subpart_index = SUBPART_INDEX_INVALID;
     v.counted_volume_index = COUNTED_VOLUME_INDEX_INVALID;
+    v.embree_geom_id = UINT_INVALID;
   }
 
   // surface molecule
@@ -135,6 +136,7 @@ public:
       v.subpart_index = m.v.subpart_index;
       v.reactant_subpart_index = m.v.reactant_subpart_index;
       v.counted_volume_index = m.v.counted_volume_index;
+      v.embree_geom_id = m.v.embree_geom_id;
     }
     else if (m.is_surf()) {
       s.pos = m.s.pos;

@@ -71,7 +71,7 @@ static RTCDevice initialize_device() {
   _MM_SET_DENORMALS_ZERO_MODE(_MM_DENORMALS_ZERO_ON);
 
 
-  RTCDevice device = rtcNewDevice("threads=1,verbose=3"); // disabling verbose causes an issue
+  RTCDevice device = rtcNewDevice("threads=1"); // disabling verbose causes an issue
   CHECK();
   if (!device) {
     mcell_log("error %d: cannot create device", rtcGetDeviceError(NULL));
@@ -287,6 +287,7 @@ void RayTracer::update_molecule_position(Molecule& vm) {
   assert(initialized);
 
   // get geometry assigned to this molecule
+  assert(vm.v.embree_geom_id != UINT_INVALID);
   RTCGeometry geom = rtcGetGeometry(scene, vm.v.embree_geom_id);
   CHECK();
   assert(geom != nullptr);
