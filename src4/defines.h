@@ -55,9 +55,6 @@
 #include <boost/container/flat_set.hpp>
 #endif
 
-
-#define USE_EMBREE_RAY_TRACE
-
 // this file must not depend on any other from mcell4 otherwise there
 // might be some nasty cyclic include dependencies
 
@@ -833,6 +830,9 @@ public:
   // initialized in World::init_counted_volumes
   // also tells whether waypoints in a partition were initialized
   bool has_intersecting_counted_objects;
+
+
+  bool use_embree; // enabled with cmdline argument -x
 
 
   void init() {

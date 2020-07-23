@@ -161,8 +161,10 @@ public:
 
   // initialize items that need complete geometry
   void initialize() {
-    ray_tracer = new RayTracer(*this);
-    ray_tracer->initialize_and_create_geometry();
+    if (config.use_embree) {
+      ray_tracer = new RayTracer(*this);
+      ray_tracer->initialize_and_create_geometry();
+    }
   }
 
 
@@ -477,10 +479,10 @@ public:
       new_vm.v.counted_volume_index = compute_counted_volume_using_waypoints(new_vm.v.pos);
     }
 
-    #ifdef USE_EMBREE_RAY_TRACE
+    if (config.use_embree) {
       assert(ray_tracer != nullptr);
       ray_tracer->add_molecule(new_vm);
-    #endif
+    }
 
     return new_vm;
   }
@@ -509,10 +511,10 @@ public:
       g.reset_molecule_tile(m.s.grid_tile_index);
     }
 
-  #ifdef USE_EMBREE_RAY_TRACE
-    assert(ray_tracer != nullptr);
-    ray_tracer->remove_molecule(m);
-  #endif
+    if (config.use_embree) {
+      assert(ray_tracer != nullptr);
+      ray_tracer->remove_molecule(m);
+    }
   }
 
 

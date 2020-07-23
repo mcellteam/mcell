@@ -336,6 +336,9 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
   world->config.init();
   assert(cmp_eq(sp_len, world->config.subpartition_edge_length));
 
+  // other settings
+  world->config.use_embree = s->embree;
+
   return true;
 }
 

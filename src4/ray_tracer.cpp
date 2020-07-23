@@ -338,8 +338,12 @@ void RayTracer::store_molecule_collision(
   // time in HitInfo is when the sphere was hit
   float_t time;
   Vec3 pos;
-  bool ok = CollisionUtil::collide_mol(diffused_vm, displacement, colliding_vm, p.config.rx_radius_3d, time, pos);
-  assert(ok);
+  bool hit_ok = CollisionUtil::collide_mol(diffused_vm, displacement, colliding_vm, p.config.rx_radius_3d, time, pos);
+  // TODO: some molecules are found even when collide_mol rejects them,
+  // find out why
+  if (!hit_ok) {
+    return;
+  }
 
   collisions.push_back(
       Collision(CollisionType::VOLMOL_VOLMOL, &p, diffused_vm.id, time, pos, colliding_vm.id, rxn_class)
