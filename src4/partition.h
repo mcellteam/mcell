@@ -218,7 +218,8 @@ public:
 
 
   void get_subpart_3d_indices(const Vec3& pos, IVec3& res) const {
-    release_assert(in_this_partition(pos) &&
+    // FIXME: make two variants ofhtis function - with and without release check
+    assert(in_this_partition(pos) &&
         "Requested position is outside of a partition, usually a molecule diffused there. Please enlarge the partition size.");
     Vec3 relative_position = pos - origin_corner;
     res = relative_position * config.subpartition_edge_length_rcp;
@@ -351,7 +352,7 @@ public:
 
       // can the second reactant initiate a reaction with me?
       const BNG::Species& initiator_reactant_species = get_all_species().get(second_species_id);
-      if (initiator_reactant_species.cant_initiate()) {
+      if (!initiator_reactant_species.is_vol() || initiator_reactant_species.cant_initiate()) {
         // nothing to do
         continue;
       }
