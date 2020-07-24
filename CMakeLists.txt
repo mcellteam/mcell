@@ -50,13 +50,13 @@ SET(COMMON_C_CXX_FLAGS "${WARNING_FLAGS} -fPIC -g3 ${OPTIMIZATION_FLAGS} ${INCLU
 SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMMON_C_CXX_FLAGS}  -std=c11 ")
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON_C_CXX_FLAGS} -std=c++14 -fpermissive")
 
-set(CMAKE_EXE_LINKER_FLAGS 
-    "${CMAKE_EXE_LINKER_FLAGS} -lm -L ${CMAKE_CURRENT_BINARY_DIR}/libs/jsoncpp/src/lib_json -L/home/ahusar/src4_ref/embree_test/embree_debug_install/lib -lembree3"
-)
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -lm -L ${CMAKE_CURRENT_BINARY_DIR}/libs/jsoncpp/src/lib_json" )
 
-#set(CMAKE_EXE_LINKER_FLAGS 
-#    "${CMAKE_EXE_LINKER_FLAGS} -L/home/ahusar/src4_ref/embree_test/embree-3.11.0.x86_64.linux/lib -lembree3"
-#)
+if (CMAKE_BUILD_TYPE STREQUAL "Release")
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L/home/ahusar/src4_ref/embree_test/embree-3.11.0.x86_64.linux/lib -lembree3" )
+else()
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L/home/ahusar/src4_ref/embree_test/embree_debug_install/lib -lembree3" )
+endif()
 
 if (CYGWIN)
     # cygwin app run in cygwin environment is somehow unable to load cygstdc++-6.dll
