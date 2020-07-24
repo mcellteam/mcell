@@ -29,18 +29,25 @@ static void collect_neighboring_subparts(
     const float_t subpart_edge_len,
     subpart_indices_set_t& crossed_subpart_indices
 ) {
+  const float_t part_len = p.config.partition_edge_length;
+  const Vec3& origin = p.get_origin_corner();
+
   Vec3 rel_pos = pos - p.get_origin_corner();
+
+  Vec3 rel_pos_plus_radius = rel_pos + Vec3(rx_radius);
+  Vec3 rel_pos_minus_radius = rel_pos - Vec3(rx_radius);
+
+  Vec3 boundary = Vec3(subpart_indices) * Vec3(subpart_edge_len);
 
   // left (x)
   int x_dir_used = 0;
-  float_t x_boundary = subpart_indices.x * subpart_edge_len;
-  if (rel_pos.x - rx_radius < x_boundary) {
+  if (rel_pos_minus_radius.x < boundary.x && rel_pos_minus_radius.x > 0.0) {
     crossed_subpart_indices.insert(
         p.get_subpart_index_from_3d_indices(subpart_indices.x - 1, subpart_indices.y, subpart_indices.z));
     x_dir_used = -1;
   }
   // right (x)
-  else if (rel_pos.x + rx_radius > x_boundary + subpart_edge_len) { // assuming that subpartitions are larger than radius
+  else if (rel_pos_plus_radius.x > boundary.x + subpart_edge_len && rel_pos_plus_radius.x < part_len) { // assuming that subpartitions are larger than radius
     crossed_subpart_indices.insert(
         p.get_subpart_index_from_3d_indices(subpart_indices.x + 1, subpart_indices.y, subpart_indices.z));
     x_dir_used = +1;
@@ -48,14 +55,13 @@ static void collect_neighboring_subparts(
 
   // upper (y)
   int y_dir_used = 0;
-  float_t y_boundary = subpart_indices.y * subpart_edge_len;
-  if (rel_pos.y - rx_radius < y_boundary) {
+  if (rel_pos_minus_radius.y < boundary.y && rel_pos_minus_radius.y > 0.0) {
     crossed_subpart_indices.insert(
         p.get_subpart_index_from_3d_indices(subpart_indices.x, subpart_indices.y - 1, subpart_indices.z));
     y_dir_used = -1;
   }
   // right (y)
-  else if (rel_pos.y + rx_radius > y_boundary + subpart_edge_len) {
+  else if (rel_pos_plus_radius.y > boundary.y + subpart_edge_len && rel_pos_plus_radius.y < part_len) {
     crossed_subpart_indices.insert(
         p.get_subpart_index_from_3d_indices(subpart_indices.x, subpart_indices.y + 1, subpart_indices.z));
     y_dir_used = +1;
@@ -63,14 +69,13 @@ static void collect_neighboring_subparts(
 
   // front (z)
   int z_dir_used = 0;
-  float_t z_boundary = subpart_indices.z * subpart_edge_len;
-  if (rel_pos.z - rx_radius < z_boundary) {
+  if (rel_pos_minus_radius.z < boundary.z && rel_pos_minus_radius.z > 0.0) {
     crossed_subpart_indices.insert(
         p.get_subpart_index_from_3d_indices(subpart_indices.x, subpart_indices.y, subpart_indices.z - 1));
     z_dir_used = -1;
   }
   // back (z)
-  else if (rel_pos.z + rx_radius > z_boundary + subpart_edge_len) {
+  else if (rel_pos_plus_radius.z > boundary.z + subpart_edge_len && rel_pos_plus_radius.z < part_len) {
     crossed_subpart_indices.insert(
         p.get_subpart_index_from_3d_indices(subpart_indices.x, subpart_indices.y, subpart_indices.z + 1));
     z_dir_used = +1;

@@ -229,6 +229,9 @@ public:
   // TODO: consider using bitfields, this recomputation can be slow
   subpart_index_t get_subpart_index_from_3d_indices(const IVec3& indices) const {
     // example: dim: 5x5x5,  (1, 2, 3) -> 1 + 2*5 + 3*5*5 = 86
+    assert(indices.x < (int)config.num_subpartitions_per_partition);
+    assert(indices.y < (int)config.num_subpartitions_per_partition);
+    assert(indices.z < (int)config.num_subpartitions_per_partition);
     return
         indices.x +
         indices.y * config.num_subpartitions_per_partition +
@@ -534,6 +537,7 @@ public:
   }
 
   const uint_set<molecule_id_t>& get_volume_molecule_reactants(subpart_index_t subpart_index, species_id_t species_id) {
+    assert(subpart_index < volume_molecule_reactants_per_subpart.size());
     return volume_molecule_reactants_per_subpart[subpart_index].get_set(species_id);
   }
 
