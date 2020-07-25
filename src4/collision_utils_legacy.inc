@@ -171,10 +171,12 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
   float_t rx_radius_for_neighbors = rx_radius * SQRT2;
 
   // first check what's around the starting point
-  collect_neighboring_subparts(
-      p, vm.v.pos, src_subpart_indices, rx_radius_for_neighbors, sp_edge_length,
-      crossed_subparts_for_molecules
-  );
+  if (p.config.use_expanded_list) {
+    collect_neighboring_subparts(
+        p, vm.v.pos, src_subpart_indices, rx_radius_for_neighbors, sp_edge_length,
+        crossed_subparts_for_molecules
+    );
+  }
 
   // collect subpartitions on the way by always finding the point where a subpartition boundary is hit
   // we must do it even when we are crossing just one subpartition because we might hit others while
@@ -279,19 +281,23 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
       crossed_subparts_for_molecules.insert(curr_subpart_index);
 
       // also neighbors
-      collect_neighboring_subparts(
-          p, curr_pos, curr_subpart_indices, rx_radius_for_neighbors, sp_edge_length,
-          crossed_subparts_for_molecules
-      );
+      if (p.config.use_expanded_list) {
+        collect_neighboring_subparts(
+            p, curr_pos, curr_subpart_indices, rx_radius_for_neighbors, sp_edge_length,
+            crossed_subparts_for_molecules
+        );
+      }
 
     } while (curr_subpart_index != dest_subpart_index);
   }
 
   // finally check also neighbors in destination
-  collect_neighboring_subparts(
-      p, dest_pos, dest_subpart_indices, rx_radius_for_neighbors, sp_edge_length,
-      crossed_subparts_for_molecules
-  );
+  if (p.config.use_expanded_list) {
+    collect_neighboring_subparts(
+        p, dest_pos, dest_subpart_indices, rx_radius_for_neighbors, sp_edge_length,
+        crossed_subparts_for_molecules
+    );
+  }
 }
 
 } // namespace CollisionUtil
