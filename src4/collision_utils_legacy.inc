@@ -185,10 +185,11 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
 
     subpart_index_t dest_subpart_index = p.get_subpart_index_from_3d_indices(dest_subpart_indices);
 
-    IVec3 dir_urb_addend;
-    dir_urb_addend.x = (dir_urb_direction.x == 0) ? -1 : 1;
-    dir_urb_addend.y = (dir_urb_direction.y == 0) ? -1 : 1;
-    dir_urb_addend.z = (dir_urb_direction.z == 0) ? -1 : 1;
+    IVec3 dir_urb_addend(
+        (dir_urb_direction.x == 0) ? -1 : 1,
+        (dir_urb_direction.y == 0) ? -1 : 1,
+        (dir_urb_direction.z == 0) ? -1 : 1
+    );
 
     Vec3 curr_pos = vm.v.pos;
     IVec3 curr_subpart_indices = src_subpart_indices;
@@ -202,7 +203,7 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
       // = origin + subparition index * length + is_urb * length
 
       // NOTE: some of these computation can be moved out of the loop, not sure if it will improve performance
-      Vec3 sp_len_as_vec3 = Vec3(sp_edge_length);
+      Vec3 sp_len_as_vec3(sp_edge_length);
       Vec3 sp_edges =
           p.get_origin_corner()
           +  Vec3(curr_subpart_indices) * sp_len_as_vec3 // llf edge
