@@ -32,6 +32,7 @@
 #include "world.h"
 #include "viz_output_event.h"
 #include "defragmentation_event.h"
+#include "sort_mols_by_subpart_event.h"
 #include "release_event.h"
 #include "datamodel_defines.h"
 #include "bng_data_to_datamodel_converter.h"
@@ -193,6 +194,13 @@ void World::init_simulation() {
   defragmentation_event->event_time = DEFRAGMENTATION_PERIODICITY;
   defragmentation_event->periodicity_interval = DEFRAGMENTATION_PERIODICITY;
   scheduler.schedule_event(defragmentation_event);
+
+  // create subpart sorting events
+  // -- worse... why???
+  /*SortMolsBySubpartEvent* sort_event = new SortMolsBySubpartEvent(this);
+  sort_event->event_time = 0;
+  sort_event->periodicity_interval = 0;
+  scheduler.schedule_event(sort_event);*/
 
   // initialize timing
   previous_progress_report_time = {0, 0};

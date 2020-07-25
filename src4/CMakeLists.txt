@@ -27,6 +27,7 @@ set(SRC4_SOURCE_FILES
     mol_or_rxn_count_event.cpp
     viz_output_event.cpp
     defragmentation_event.cpp
+    sort_mols_by_subpart_event.cpp
     geometry.cpp
     world.cpp
     counted_volumes_util.cpp
