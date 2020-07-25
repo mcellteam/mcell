@@ -69,9 +69,8 @@ typedef std::vector<Collision> collision_vector_t; // FIXME: shoudl be UpperCase
  */
 class Collision {
 public:
-  Collision()
-    : type(CollisionType::INVALID), partition(nullptr),
-      diffused_molecule_id(MOLECULE_ID_INVALID), time(TIME_INVALID),
+  Collision() : type(CollisionType::INVALID), partition(nullptr),
+      diffused_molecule_id(MOLECULE_ID_INVALID), time(TIME_INVALID), pos(POS_INVALID),
       colliding_molecule_id(MOLECULE_ID_INVALID),
       rxn_class(nullptr),
       colliding_wall_index(WALL_INDEX_INVALID) {

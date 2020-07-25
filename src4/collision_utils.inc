@@ -785,7 +785,7 @@ static bool is_immediate_collision(const float_t time) {
 }
 
 // called only from ray_trace_vol
-static void collect_wall_collisions(
+static void collect_closest_wall_collision(
     Partition& p,
     const Molecule& vm, // molecule that we are diffusing, we are changing its pos  and possibly also subvolume
     const subpart_index_t subpart_index, // the wall that we hit must be inside of this partition
@@ -800,12 +800,16 @@ static void collect_wall_collisions(
 
   // remember which was the closest hit to update displacement
   float_t closest_hit_time = TIME_FOREVER;
-  Vec3 closest_hit_pos(0);
+  //Vec3 closest_hit_pos(0);
+
+  bool collision_found = false;
+  Collision closest_collision;
 
   // check each wall in this subpartition
   const WallsInSubpart& wall_indices = p.get_subpart_wall_indices(subpart_index);
 
-  for (auto it = wall_indices.begin(); it != wall_indices.end(); it++) {
+  WallsInSubpart::const_iterator it_end = wall_indices.end();
+  for (auto it = wall_indices.begin(); it != it_end; it++) {
     wall_index_t wall_index = *it;
 
     if (wall_index == last_hit_wall_index) {
@@ -841,9 +845,10 @@ static void collect_wall_collisions(
     if (collision_type == CollisionType::WALL_REDO) {
       // molecule was 'jumped' and we need to run collision detection over all walls again
       wall_collisions.clear();
-      it = wall_indices.begin();
+      it = wall_indices.begin(); // executed rarely
     }
     else if (collision_type != CollisionType::WALL_MISS) {
+      p.stats.inc_ray_polygon_colls();
 
       // the hit must be inside this subpartition otherwise an optimization in ray_trace()
       // that tells to end searching for hits in other subparts once a hit was found won't work
@@ -853,22 +858,40 @@ static void collect_wall_collisions(
         continue;
       }
 
-      // remember the closest hit position, but ignore immediate
-      if (collision_time < closest_hit_time && !is_immediate_collision(collision_time)) {
+#if 1
+      // remember only the closest hit position
+      if (collision_time < closest_hit_time) {
+        collision_found = true;
+        closest_hit_time = collision_time;
+        closest_collision = Collision(collision_type, &p, vm.id, collision_time, collision_pos, wall_index);
+      }
+#else
+
+      if (collision_time < closest_hit_time /*&& !is_immediate_collision(collision_time)*/) {
         closest_hit_pos = collision_pos;
       }
-
-      p.stats.inc_ray_polygon_colls();
+      else {
+        continue; // not the best solution
+      }
       wall_collisions.push_back(
           Collision(collision_type, &p, vm.id, collision_time, collision_pos, wall_index)
       );
+#endif
     }
   }
 
+#if 1
+  if (collision_found) {
+    assert(closest_hit_time == closest_collision.time);
+    displacement_up_to_wall_collision = closest_collision.pos - vm.v.pos;
+    wall_collisions.push_back(closest_collision);
+  }
+#else
   if (!wall_collisions.empty()) {
     // update displacement up to the wall collision
     displacement_up_to_wall_collision = closest_hit_pos - vm.v.pos;
   }
+#endif
 }
 
 
