@@ -607,23 +607,26 @@ RayTraceState ray_trace_vol(
 
   // check wall collisions in the crossed subparitions,
   if (!crossed_subparts_for_walls.empty()) {
+    Collision closest_collision;
     for (subpart_index_t subpart_w_walls_index: crossed_subparts_for_walls) {
 
-      CollisionUtil::collect_closest_wall_collision( // mcell3 does this only for the current subvol
-          p,
-          vm,
-          subpart_w_walls_index,
-          last_hit_wall_index,
-          rng,
-          corrected_displacement,
-          displacement_up_to_wall_collision, // may be update in case we need to 'redo' the collision detection
-          collisions
-      );
+      bool collision_found =
+          CollisionUtil::collect_closest_wall_collision( // mcell3 does this only for the current subvol
+              p,
+              vm,
+              subpart_w_walls_index,
+              last_hit_wall_index,
+              rng,
+              corrected_displacement,
+              displacement_up_to_wall_collision, // may be update in case we need to 'redo' the collision detection
+              closest_collision
+          );
 
       // stop at first crossing because crossed_subparts_for_walls are ordered
       // and we are sure that if we hit a wall in the actual subpartition, we cannot
       // possibly hit another wall in a subpartition that follows
-      if (!collisions.empty()) {
+      if (collision_found) {
+        collisions.push_back(closest_collision);
         res_state = RayTraceState::RAY_TRACE_HIT_WALL;
         break;
       }
