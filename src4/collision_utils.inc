@@ -24,9 +24,12 @@
 #ifndef SRC4_COLLISION_UTILS_INC_
 #define SRC4_COLLISION_UTILS_INC_
 
+//#define INLINE_ATTR __attribute__((always_inline))
+#define INLINE_ATTR __attribute__((noinline))
+
 /**
  * This file is directly included into diffuse_react_event.cpp.
- * The reason why this is not a standard .cpp + .h file is to gove the compiler
+ * The reason why this is not a standard .cpp + .h file is to give the compiler
  * the opportunity to inline these functions into methods of diffuse&react event.
  */
 #include <vector>
@@ -632,7 +635,7 @@ collide_wall:
         early to avoid rounding errors with superimposed planes).
 ***************************************************************************/
 // OPT: the always_inline gives almost 2%
-static inline CollisionType __attribute__((always_inline)) collide_wall(
+static inline CollisionType INLINE_ATTR collide_wall(
     const Partition& p,
     const Vec3& pos, const Wall& face,
     rng_state &rng,
@@ -704,12 +707,9 @@ static inline CollisionType __attribute__((always_inline)) collide_wall(
 
   collision_pos = pos + a * move;
 
-  Vec3 face_vert[VERTICES_IN_TRIANGLE];
-  face_vert[0] = p.get_geometry_vertex(face.vertex_indices[0]);
-  face_vert[1] = p.get_geometry_vertex(face.vertex_indices[1]);
-  face_vert[2] = p.get_geometry_vertex(face.vertex_indices[2]);
+  const Vec3& face_vert0 = p.get_geometry_vertex(face.vertex_indices[0]);
 
-  Vec3 local = collision_pos - face_vert[0];
+  Vec3 local = collision_pos - face_vert0;
 
   float_t b = dot(local, face.unit_u);
   float_t c = dot(local, face.unit_v);
@@ -741,7 +741,9 @@ static inline CollisionType __attribute__((always_inline)) collide_wall(
           h + face.uv_vert1_u * face.uv_vert2.v,
           EPS))) {
         if (update_move) {
-          jump_away_line(pos, a, face_vert[1], face_vert[2], face.normal, rng, move);
+          const Vec3& face_vert1 = p.get_geometry_vertex(face.vertex_indices[1]);
+          const Vec3& face_vert2 = p.get_geometry_vertex(face.vertex_indices[2]);
+          jump_away_line(pos, a, face_vert1, face_vert2, face.normal, rng, move);
           return CollisionType::WALL_REDO;
         }
         else {
@@ -754,7 +756,8 @@ static inline CollisionType __attribute__((always_inline)) collide_wall(
     }
     else if (!distinguishable_f(g, h, EPS)) {
       if (update_move) {
-        jump_away_line(pos, a, face_vert[2], face_vert[0], face.normal, rng, move);
+        const Vec3& face_vert2 = p.get_geometry_vertex(face.vertex_indices[2]);
+        jump_away_line(pos, a, face_vert2, face_vert0, face.normal, rng, move);
         return CollisionType::WALL_REDO;
       }
       else {
@@ -768,7 +771,8 @@ static inline CollisionType __attribute__((always_inline)) collide_wall(
   else if (!distinguishable_f(c, 0, EPS)) /* Hit first edge! */
   {
     if (update_move) {
-      jump_away_line(pos, a, face_vert[0], face_vert[1], face.normal, rng, move);
+      const Vec3& face_vert1 = p.get_geometry_vertex(face.vertex_indices[1]);
+      jump_away_line(pos, a, face_vert0, face_vert1, face.normal, rng, move);
       return CollisionType::WALL_REDO;
     }
     else {
@@ -786,7 +790,7 @@ static bool is_immediate_collision(const float_t time) {
 }
 
 // called only from ray_trace_vol
-static inline bool __attribute__((always_inline)) collect_closest_wall_collision(
+static inline bool INLINE_ATTR collect_closest_wall_collision(
     Partition& p,
     const Molecule& vm, // molecule that we are diffusing, we are changing its pos  and possibly also subvolume
     const subpart_index_t subpart_index, // the wall that we hit must be inside of this partition
