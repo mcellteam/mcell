@@ -631,7 +631,8 @@ collide_wall:
         the value of t returned, not hitpt (reflections happen slightly
         early to avoid rounding errors with superimposed planes).
 ***************************************************************************/
-static CollisionType collide_wall(
+// OPT: the always_inline gives almost 2%
+static inline CollisionType __attribute__((always_inline)) collide_wall(
     const Partition& p,
     const Vec3& pos, const Wall& face,
     rng_state &rng,
@@ -785,7 +786,7 @@ static bool is_immediate_collision(const float_t time) {
 }
 
 // called only from ray_trace_vol
-static bool collect_closest_wall_collision(
+static inline bool __attribute__((always_inline)) collect_closest_wall_collision(
     Partition& p,
     const Molecule& vm, // molecule that we are diffusing, we are changing its pos  and possibly also subvolume
     const subpart_index_t subpart_index, // the wall that we hit must be inside of this partition
