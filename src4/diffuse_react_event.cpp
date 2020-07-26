@@ -90,11 +90,7 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const std::vector<molecu
   uint existing_mols_count = molecule_ids.size();
   for (uint i = 0; i < existing_mols_count; i++) {
     molecule_id_t id = molecule_ids[i];
-    const Molecule& m = p.get_m(id);
-    if (m.is_defunct()) {
-      continue;
-    }
-    float_t release_delay =  m.release_delay;
+    float_t release_delay =  p.get_m(id).release_delay;
 
     if (release_delay == 0.0) {
       // existing molecules or created at the beginning of this timestep
@@ -200,6 +196,9 @@ void DiffuseReactEvent::diffuse_single_molecule(
   assert(diffusion_start_time < event_time + diffusion_time_step);
 
   Molecule& m = p.get_m(m_id);
+
+  if (m.is_defunct())
+    return;
 
   // if the molecule is a "newbie", its unimolecular reaction was not yet scheduled,
   assert(
