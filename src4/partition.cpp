@@ -57,7 +57,7 @@ void Partition::finalize_wall_creation(const wall_index_t wall_index) {
     assert(subpart_index < walls_per_subpart.size());
 
     // mapping subpart->wall
-    walls_per_subpart[subpart_index].insert_unique(wall_index);
+    walls_per_subpart[subpart_index].push_back(wall_index);
 
     // mapping wall->subpart
     w.present_in_subparts.insert(subpart_index); // TODO: use insert_unique
@@ -74,14 +74,15 @@ void Partition::update_walls_per_subpart(const WallsWithTheirMovesMap& walls_wit
     for (subpart_index_t subpart_index: colliding_subparts) {
       assert(subpart_index < walls_per_subpart.size());
 
-      if (insert) {
+      release_assert(false);
+      /*if (insert) {
         walls_per_subpart[subpart_index].insert_unique(wall_index);
         w.present_in_subparts.insert(subpart_index);
       }
       else {
         walls_per_subpart[subpart_index].erase_existing(wall_index);
         w.present_in_subparts.erase(subpart_index);
-      }
+      }*/
     }
   }
 }
@@ -191,7 +192,7 @@ void Partition::dump() {
       urb = llf + Vec3(config.subpartition_edge_length);
 
       cout << "subpart: " << i << ", llf: " << llf << ", urb: " << urb << "\n";
-      walls_per_subpart[i].dump("Indices contained in a subpartition");
+      //walls_per_subpart[i].dump("Indices contained in a subpartition");
     }
   }
 }

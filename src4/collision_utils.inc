@@ -24,8 +24,8 @@
 #ifndef SRC4_COLLISION_UTILS_INC_
 #define SRC4_COLLISION_UTILS_INC_
 
-//#define INLINE_ATTR __attribute__((always_inline))
-#define INLINE_ATTR __attribute__((noinline))
+#define INLINE_ATTR __attribute__((always_inline))
+//#define INLINE_ATTR __attribute__((noinline))
 
 /**
  * This file is directly included into diffuse_react_event.cpp.
@@ -802,6 +802,10 @@ static inline bool INLINE_ATTR collect_closest_wall_collision(
     Vec3& displacement_up_to_wall_collision, // overwritten only when there is a wall collision
     Collision& closest_collision
 ) {
+
+  // optimization of the main loop
+restart_on_redo:
+
   bool collision_found = false;
 
 
@@ -811,10 +815,9 @@ static inline bool INLINE_ATTR collect_closest_wall_collision(
   // check each wall in this subpartition
   const WallsInSubpart& wall_indices = p.get_subpart_wall_indices(subpart_index);
 
-  WallsInSubpart::const_iterator it_end = wall_indices.end();
-  for (auto it = wall_indices.begin(); it != it_end; it++) {
-    wall_index_t wall_index = *it;
-
+  //WallsInSubpart::const_iterator it_end = wall_indices.end();
+  //for (auto it = wall_indices.begin(); it != it_end; it++) {
+  for (wall_index_t wall_index: wall_indices) {
     if (wall_index == last_hit_wall_index) {
       continue;
     }
@@ -848,7 +851,7 @@ static inline bool INLINE_ATTR collect_closest_wall_collision(
     if (collision_type == CollisionType::WALL_REDO) {
       // molecule was 'jumped' and we need to run collision detection over all walls again
       collision_found = false;
-      it = wall_indices.begin(); // executed rarely
+      goto restart_on_redo;
     }
     else if (collision_type != CollisionType::WALL_MISS) {
       p.stats.inc_ray_polygon_colls();
