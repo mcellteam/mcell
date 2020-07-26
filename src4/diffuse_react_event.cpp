@@ -218,15 +218,17 @@ void DiffuseReactEvent::diffuse_single_molecule(
     pick_unimol_rxn_class_and_set_rxn_time(p, diffusion_start_time, m);
   }
 
+  float_t unimol_rx_time = m.unimol_rx_time;
+
   // schedule unimol action if it is supposed to be executed in this timestep
-  assert(m.unimol_rx_time == TIME_INVALID || m.unimol_rx_time >= event_time);
-  if (m.unimol_rx_time != TIME_INVALID && m.unimol_rx != nullptr && m.unimol_rx_time < event_time + diffusion_time_step) {
+  assert(unimol_rx_time == TIME_INVALID || unimol_rx_time >= event_time);
+  if (unimol_rx_time != TIME_INVALID && m.unimol_rx != nullptr && unimol_rx_time < event_time + diffusion_time_step) {
 
     assert(!m.has_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN)
         && "This unimol rxn is still to be scheduled, unimol_rx_time only specifies the reschedule time.");
 
     DiffuseOrUnimolRxnAction unimol_react_action(
-        DiffuseOrUnimolRxnAction::Type::UNIMOL_REACT, m.id, m.unimol_rx_time, m.unimol_rx);
+        DiffuseOrUnimolRxnAction::Type::UNIMOL_REACT, m.id, unimol_rx_time, m.unimol_rx);
     new_diffuse_or_unimol_react_actions.push_back(unimol_react_action);
   }
 
@@ -251,9 +253,9 @@ void DiffuseReactEvent::diffuse_single_molecule(
 
   // max_time is the time for which we should simulate the diffusion
   float_t max_time = event_time + diffusion_time_step - diffusion_start_time;
-  if (m.unimol_rx_time != TIME_INVALID && m.unimol_rx_time < diffusion_start_time + max_time) {
-    assert(m.unimol_rx_time >= diffusion_start_time);
-    max_time = m.unimol_rx_time - diffusion_start_time;
+  if (unimol_rx_time != TIME_INVALID && unimol_rx_time < diffusion_start_time + max_time) {
+    assert(unimol_rx_time >= diffusion_start_time);
+    max_time = unimol_rx_time - diffusion_start_time;
   }
 
   if (m.is_vol()) {
