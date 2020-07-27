@@ -378,8 +378,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
 #endif
 
     // evaluate and possible execute collisions and reactions
-    for (size_t collision_index = 0; collision_index < molecule_collisions.size(); collision_index++) {
-      Collision& collision = molecule_collisions[collision_index];
+    for (Collision& collision: molecule_collisions) {
 
       assert(collision.time >= 0 && collision.time <= 1);
 
@@ -495,13 +494,6 @@ void DiffuseReactEvent::diffuse_vol_molecule(
           p.stats.inc_mol_wall_reflections();
           assert(res == 0 && "Periodic box BCs are not supported yet");
         }
-
-        /*
-        // molecule could have been moved
-        subpart_index_t subpart_after_wall_hit = p.get_subpart_index(vm_new_ref.v.pos);
-        // change subpartition if needed
-        p.change_molecule_subpartition(vm_new_ref, subpart_after_wall_hit);
-        */
 
         break; // we reflected and did not react, do ray_trace again
       }
