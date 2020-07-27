@@ -367,7 +367,9 @@ void DiffuseReactEvent::diffuse_vol_molecule(
             molecule_collisions
         );
 
-    sort_collisions_by_time(molecule_collisions);
+    if (molecule_collisions.size() > 1) {
+      sort_collisions_by_time(molecule_collisions);
+    }
 
 #ifdef DEBUG_COLLISIONS
     DUMP_CONDITION4(
@@ -888,7 +890,7 @@ int DiffuseReactEvent::collide_and_react_with_surf_mol(
  *  1 : reaction happened and we are destroyed
  *
  ******************************************************************************/
-WallRxnResult DiffuseReactEvent::collide_and_react_with_walls(
+inline WallRxnResult DiffuseReactEvent::collide_and_react_with_walls(
     Partition& p,
     Collision& collision,
     const float_t r_rate_factor,
