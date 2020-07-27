@@ -69,12 +69,24 @@ typedef std::vector<Collision> collision_vector_t; // FIXME: shoudl be UpperCase
  */
 class Collision {
 public:
-  Collision() : type(CollisionType::INVALID), partition(nullptr),
-      diffused_molecule_id(MOLECULE_ID_INVALID), time(TIME_INVALID), pos(POS_INVALID),
-      colliding_molecule_id(MOLECULE_ID_INVALID),
-      rxn_class(nullptr),
-      colliding_wall_index(WALL_INDEX_INVALID) {
-  }
+  Collision()
+#ifdef NDEBUG
+    :
+    type(CollisionType::INVALID), partition(nullptr),
+    diffused_molecule_id(0), time(0), pos(0),
+    colliding_molecule_id(0),
+    rxn_class(nullptr),
+    colliding_wall_index(0)
+#else
+    :
+    type(CollisionType::INVALID), partition(nullptr),
+    diffused_molecule_id(MOLECULE_ID_INVALID), time(TIME_INVALID), pos(POS_INVALID),
+    colliding_molecule_id(MOLECULE_ID_INVALID),
+    rxn_class(nullptr),
+    colliding_wall_index(WALL_INDEX_INVALID)
+#endif
+    {
+     }
 
   // maybe create some static constructors with better names
   Collision(
