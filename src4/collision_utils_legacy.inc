@@ -27,7 +27,7 @@ static void collect_neighboring_subparts(
     const IVec3& subpart_indices,
     const float_t rx_radius,
     const float_t subpart_edge_len,
-    subpart_indices_set_t& crossed_subpart_indices
+    SubpartIndicesSet& crossed_subpart_indices
 ) {
   const float_t part_len = p.config.partition_edge_length;
   const Vec3& origin = p.get_origin_corner();
@@ -118,7 +118,7 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
   const float_t sp_edge_length,
   const bool collect_for_walls,
   SubpartIndicesVector& crossed_subparts_for_walls, // crossed subparts considered for wall collision
-  subpart_indices_set_t& crossed_subparts_for_molecules // crossed subparts considered for molecule collisions
+  SubpartIndicesSet& crossed_subparts_for_molecules // crossed subparts considered for molecule collisions
 ) {
   subpart_index_t current_subpart_index = vm.v.subpart_index;
 

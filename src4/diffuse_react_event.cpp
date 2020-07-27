@@ -566,8 +566,7 @@ RayTraceState ray_trace_vol(
 
   // first get what subpartitions might be relevant
   SubpartIndicesVector crossed_subparts_for_walls;
-  subpart_indices_set_t crossed_subparts_for_molecules;
-  SUBPART_SET_INITIALIZE(crossed_subparts_for_molecules, BASE_CONTAINER_ALLOC, SUBPART_INDEX_INVALID); // FIXME: use uint_dense_hash_map
+  SubpartIndicesSet crossed_subparts_for_molecules;
 
   CollisionUtil::collect_crossed_subparts(
       p, vm, partition_displacement,

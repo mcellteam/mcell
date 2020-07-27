@@ -489,8 +489,6 @@ public:
     nb_walls[0] = WALL_INDEX_INVALID;
     nb_walls[1] = WALL_INDEX_INVALID;
     nb_walls[2] = WALL_INDEX_INVALID;
-
-    SUBPART_SET_INITIALIZE(present_in_subparts, BASE_CONTAINER_ALLOC, SUBPART_INDEX_INVALID); // FIXME: use uint_dense_hash_map
   }
 
   // the partition argument is used only to access vertices, wall is not aded to the partition
@@ -570,7 +568,7 @@ public:
   Vec3 unit_v; /* V basis vector for this wall */
   float_t distance_to_origin; // distance to origin (point normal form)
 
-  subpart_indices_set_t present_in_subparts; // in what subpartitions is this wall located
+  SubpartIndicesSet present_in_subparts; // in what subpartitions is this wall located
 
   // p must be the partition that contains this object
   void dump(const Partition& p, const std::string ind, const bool for_diff = false) const;

@@ -261,16 +261,14 @@ const int BASE_CONTAINER_ALLOC = 16;
 #ifndef INDEXER_WA
 
 // WARNING: std::set_intersection and possibly other algorithms do not work correctly with dense_hash_set
-typedef google::dense_hash_set<subpart_index_t> subpart_indices_set_t;
-#define SUBPART_SET_INITIALIZE(container, size, invalid_value) container.set_empty_key(invalid_value)
+typedef uint_dense_hash_set<subpart_index_t> SubpartIndicesSet;
 
 typedef boost::container::small_vector<subpart_index_t, BASE_CONTAINER_ALLOC>  SubpartIndicesVector;
 
 #else
 // TODO: use uint_dense_hash_set
 typedef std::vector<subpart_index_t> SubpartIndicesVector;
-typedef std::set<subpart_index_t> subpart_indices_set_t;
-#define SUBPART_SET_INITIALIZE(container, size, invalid_value) do { } while(0)
+typedef std::set<subpart_index_t> SubpartIndicesSet;
 
 #endif
 

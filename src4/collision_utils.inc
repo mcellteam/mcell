@@ -245,7 +245,7 @@ static void raycast_with_endpoints(
     const uint pt_index /*only for debug*/, const bool collect_for_walls, /* wall subparts are collected for the internal ray */
     const IVec3& dir, const Vec3& abs_d_rcp, const Vec3& deltat,
     SubpartIndicesVector& crossed_subparts_for_walls,
-    subpart_indices_set_t& crossed_subparts_for_molecules
+    SubpartIndicesSet& crossed_subparts_for_molecules
 )
 {
   // FIXME: used lower case, these are not really contants...
@@ -356,7 +356,7 @@ static inline void collect_crossed_subparts(
   const float_t rx_radius,
   const float_t sp_edge_length,
   SubpartIndicesVector& crossed_subparts_for_walls, // crossed subparts considered for wall collision
-  subpart_indices_set_t& crossed_subparts_for_molecules // crossed subparts considered for molecule collisions
+  SubpartIndicesSet& crossed_subparts_for_molecules // crossed subparts considered for molecule collisions
 ) {
   assert(p.in_this_partition(vm.v.pos));
   assert(crossed_subparts_for_walls.empty());
@@ -1273,7 +1273,7 @@ static void get_crossed_subparts_for_walls(
       dir, abs_d_rcp, deltat
   );
 
-  subpart_indices_set_t crossed_subparts_for_molecules_ignored;
+  SubpartIndicesSet crossed_subparts_for_molecules_ignored;
   raycast_with_endpoints(
       p, pos, dst,
       0, true,
@@ -1298,8 +1298,7 @@ static uint get_num_crossed_region_walls(
   SubpartIndicesVector crossed_subparts_for_walls;
   get_crossed_subparts_for_walls(p, pos, dst, displacement, crossed_subparts_for_walls);
 
-  subpart_indices_set_t subparts_set;
-  SUBPART_SET_INITIALIZE(subparts_set, BASE_CONTAINER_ALLOC, SUBPART_INDEX_INVALID);
+  SubpartIndicesSet subparts_set;
   for (subpart_index_t si: crossed_subparts_for_walls) {
     subparts_set.insert(si);
   }
