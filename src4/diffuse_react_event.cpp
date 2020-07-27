@@ -980,20 +980,25 @@ inline void DiffuseReactEvent::diffuse_surf_molecule(
   /* Where are we going? */
   if (species.get_time_step() > max_time) {
     t_steps = max_time;
-    steps = max_time / species.get_time_step() ;
   }
   else {
     t_steps = species.get_time_step();
-    steps = 1.0;
-  }
-  if (steps < EPS) {
-    t_steps = EPS * species.get_time_step();
-    steps = EPS;
   }
 
   bool diffusible = species.can_diffuse();
 
   if (diffusible) {
+    if (species.get_time_step() > max_time) {
+      steps = max_time / species.get_time_step() ;
+      if (steps < EPS) {
+        t_steps = EPS * species.get_time_step();
+        steps = EPS;
+      }
+    }
+    else {
+      steps = 1.0;
+    }
+
     float_t space_factor = 0.0;
 
     if (steps == 1.0) {
