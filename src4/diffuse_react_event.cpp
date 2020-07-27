@@ -1090,7 +1090,7 @@ void DiffuseReactEvent::diffuse_surf_molecule(
 
     // the time t_steps should tell when the reaction occurred and it is quite weird because
     // it has nothing to do with the time spent diffusing
-    sm_still_exists = react_2D_all_neighbors(p, sm, t_steps, diffusion_start_time, elapsed_molecule_time);
+    sm_still_exists = react_2D_all_neighbors(p, sm, t_steps, diffusion_start_time);
   }
 
   if (sm_still_exists) {
@@ -1124,10 +1124,8 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
     Partition& p,
     Molecule& sm,
     const float_t time, // same argument as t passed in mcell3 (come up with a better name)
-    const float_t diffusion_start_time, // diffusion_start_time + elapsed_molecule_time should be the time when reaction occurred
-    const float_t elapsed_molecule_time
+    const float_t diffusion_start_time // diffusion_start_time + elapsed_molecule_time should be the time when reaction occurred
 ) {
-  assert(elapsed_molecule_time == 0 && "This is weird - mcell3 does not care about the time of diffusion on surface when creating products");
 
 #ifdef DEBUG_TIMING
   DUMP_CONDITION4(
@@ -1224,7 +1222,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
   rxn_index_t selected_reaction_index;
   Collision collision;
 
-  float_t collision_time = diffusion_start_time + elapsed_molecule_time;
+  float_t collision_time = diffusion_start_time;
 
   /* Calculate local_prob_factor for the reaction probability.
      Here we convert from 3 neighbor tiles (upper probability

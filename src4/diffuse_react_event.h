@@ -232,8 +232,7 @@ private:
       Partition& p,
       Molecule& sm,
       const float_t time, // same argument as t passed in mcell3 (come up with a better name)
-      const float_t diffusion_start_time, // diffusion_start_time + elapsed_molecule_time should be the time when reaction occurred
-      const float_t elapsed_molecule_time
+      const float_t diffusion_start_time // diffusion_start_time + elapsed_molecule_time should be the time when reaction occurred
   );
 
   // ---------------------------------- reactions ----------------------------------
