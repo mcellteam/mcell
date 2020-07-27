@@ -962,8 +962,8 @@ inline WallRxnResult DiffuseReactEvent::collide_and_react_with_walls(
 
 
 // ---------------------------------- surface diffusion ----------------------------------
-
-void DiffuseReactEvent::diffuse_surf_molecule(
+// maybe force inline
+inline void DiffuseReactEvent::diffuse_surf_molecule(
     Partition& p,
     const molecule_id_t sm_id,
     const float_t max_time,
