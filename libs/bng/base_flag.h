@@ -25,6 +25,7 @@ enum species_cplx_mol_rxn_flag_t {
   SPECIES_FLAG_CAN_SURFSURF = 0x80, // can surf-surf react
   //SPECIES_FLAG_CAN_SURFWALL = 0x100, // can surf-surface react
   SPECIES_FLAG_CANT_INITIATE = 0x400, // this molecule may not trigger a reaction with another molecule
+  SPECIES_FLAG_CAN_DIFFUSE = 0x800, // value used as COUNT_TRIGGER in MCell3
   
   // TODO: can we get rid of one of these flags?
   // COUNT_CONTENTS is set if you're counting numbers of molecules in/on regions

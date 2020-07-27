@@ -48,6 +48,14 @@ public:
     CplxInstance::finalize();
     update_diffusion_constant(data, config);
     name = cplx_inst.to_str(data);
+
+  }
+
+
+  void finalize() {
+    // set flag on whether D is 0
+    set_flag(BNG::SPECIES_FLAG_CAN_DIFFUSE, D != 0);
+    CplxInstance::finalize();
   }
 
   species_id_t id;
@@ -84,7 +92,7 @@ public:
   }
 
   bool can_diffuse() const {
-    return D != 0;
+    return has_flag(SPECIES_FLAG_CAN_DIFFUSE);
   }
 
   float_t get_time_step() const {
