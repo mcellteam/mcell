@@ -206,7 +206,7 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
       Vec3 sp_len_as_vec3(sp_edge_length);
       Vec3 sp_edges =
           p.get_origin_corner()
-          +  Vec3(curr_subpart_indices) * sp_len_as_vec3 // llf edge
+          + Vec3(curr_subpart_indices) * sp_len_as_vec3 // llf edge
           + Vec3(dir_urb_direction) * sp_len_as_vec3; // move if we go urb
 
       Vec3 diff = sp_edges - curr_pos;
