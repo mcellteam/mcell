@@ -974,8 +974,6 @@ void DiffuseReactEvent::diffuse_surf_molecule(
 
   float_t steps = 0.0;
   float_t t_steps = 0.0;
-  float_t space_factor = 0.0;
-  float_t elapsed_molecule_time = 0.0;
 
   wall_index_t original_wall_index = sm.s.wall_index;
 
@@ -993,7 +991,10 @@ void DiffuseReactEvent::diffuse_surf_molecule(
     steps = EPS;
   }
 
-  if (species.get_space_step() != 0) {
+  bool diffusible = species.can_diffuse();
+
+  if (diffusible) {
+    float_t space_factor = 0.0;
 
     if (steps == 1.0) {
       space_factor = species.get_space_step();
@@ -1099,7 +1100,6 @@ void DiffuseReactEvent::diffuse_surf_molecule(
 
     // for some reason, mcell3 defines a new unimol time if the molecule has moved
     bool changed_wall = new_m_ref.s.wall_index != original_wall_index;
-    bool diffusible = species.can_diffuse();
     bool can_surf_surf_react = species.has_flag(SPECIES_FLAG_CAN_SURFSURF);
 
     if (diffusible || can_surf_surf_react) {
