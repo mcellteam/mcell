@@ -1107,17 +1107,15 @@ inline void DiffuseReactEvent::diffuse_surf_molecule(
     // for some reason, mcell3 defines a new unimol time if the molecule has moved
     bool changed_wall = new_m_ref.s.wall_index != original_wall_index;
 
-
-    if (diffusible || can_surf_surf_react) {
-
-      // we don't have to remove the molecule from the schedule, we can just change its unimol_rx_time,
-      // this time is checked and against the scheduled time
-      // mcell3 compatibility: we might change the schedule only if it is not already scheduled for this time step
-      if ((!diffusible || changed_wall) &&
-          new_m_ref.unimol_rx_time >= event_time + diffusion_time_step) {
-        new_m_ref.unimol_rx_time = TIME_INVALID;
-        new_m_ref.set_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN);
-      }
+    // we don't have to remove the molecule from the schedule, we can just change its unimol_rx_time,
+    // this time is checked and against the scheduled time
+    // mcell3 compatibility: we might change the schedule only if it is not already scheduled for this time step
+    // NOTE: this condition looks a bit weird, some explanation would be useful
+    if ((diffusible || can_surf_surf_react) &&
+        ((!diffusible || changed_wall) &&
+          new_m_ref.unimol_rx_time >= event_time + diffusion_time_step)) {
+      new_m_ref.unimol_rx_time = TIME_INVALID;
+      new_m_ref.set_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN);
     }
   }
 
