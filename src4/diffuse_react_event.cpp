@@ -203,7 +203,8 @@ void DiffuseReactEvent::diffuse_single_molecule(
   // if the molecule is a "newbie", its unimolecular reaction was not yet scheduled,
   assert(
       !(m.has_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN) && m.has_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RXN_ON_NEXT_RXN_RATE_UPDATE)) &&
-      "Only one of these flags may be set");
+      "Only one of these flags may be set"
+  );
   if (m.has_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN)) {
     m.clear_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN);
     pick_unimol_rxn_class_and_set_rxn_time(p, diffusion_start_time, m); // TODO: rename, this function does not create any action
@@ -213,6 +214,7 @@ void DiffuseReactEvent::diffuse_single_molecule(
   if (m.has_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RXN_ON_NEXT_RXN_RATE_UPDATE) && cmp_eq(m.unimol_rx_time, diffusion_start_time)) {
     assert(m.unimol_rx_time != TIME_INVALID);
     assert(m.unimol_rx != nullptr);
+
     m.clear_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RXN_ON_NEXT_RXN_RATE_UPDATE);
     pick_unimol_rxn_class_and_set_rxn_time(p, diffusion_start_time, m);
   }
@@ -1038,36 +1040,10 @@ inline void DiffuseReactEvent::diffuse_surf_molecule(
       // ray_trace does the movement and all other stuff
       Vec2 new_loc;
       wall_index_t new_wall_index =
-          ray_trace_surf(p, species, sm_id, displacement, new_loc/*, elapsed_molecule_time*/);
+          ray_trace_surf(p, species, sm_id, displacement, new_loc);
 
       // Either something ambiguous happened or we hit absorptive border
       if (new_wall_index == WALL_INDEX_INVALID) {
-  #if 0
-        if (kill_me == 1) {
-          /* molecule hit ABSORPTIVE region border */
-          if (rxp == NULL) {
-            mcell_internal_error("Error in 'ray_trace_2D()' after hitting "
-                                 "ABSORPTIVE region border.");
-          }
-          if (hd_info != NULL) {
-            count_region_border_update(world, sm->properties, hd_info, sm->id);
-          }
-          int result = outcome_unimolecular(world, rxp, 0,
-                                        (struct abstract_molecule *)sm, sm->t);
-          if (result != RX_DESTROY) {
-            mcell_internal_error("Molecule should disappear after hitting "
-                                 "ABSORPTIVE region border.");
-          }
-          delete_void_list((struct void_list *)hd_info);
-          hd_info = NULL;
-          return NULL;
-        }
-
-        if (hd_info != NULL) {
-          delete_void_list((struct void_list *)hd_info);
-          hd_info = NULL;
-        }
-  #endif
         continue; /* Something went wrong--try again */
       }
 
