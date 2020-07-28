@@ -1088,12 +1088,13 @@ inline void DiffuseReactEvent::diffuse_surf_molecule(
   } // if (species.space_step != 0)
 
 
-  // NOTE: what about molecules that cannot diffuse?
+  // TODO: what about molecules that cannot diffuse? they should not react,
+  // but in MCell3 they do
   bool sm_still_exists = true;
   assert(!species.has_flag(SPECIES_FLAG_CAN_SURFSURFSURF) && "Not supported");
-  if (species.has_flag(SPECIES_FLAG_CAN_SURFSURF) && !species.cant_initiate()) {
+  bool can_surf_surf_react = species.has_flag(SPECIES_FLAG_CAN_SURFSURF);
+  if (can_surf_surf_react && !species.cant_initiate()) {
     assert(!species.has_flag(SPECIES_FLAG_CANT_INITIATE) && "Not sure what to do here");
-
     // the time t_steps should tell when the reaction occurred and it is quite weird because
     // it has nothing to do with the time spent diffusing
     sm_still_exists = react_2D_all_neighbors(p, sm, t_steps, diffusion_start_time);
@@ -1105,7 +1106,7 @@ inline void DiffuseReactEvent::diffuse_surf_molecule(
 
     // for some reason, mcell3 defines a new unimol time if the molecule has moved
     bool changed_wall = new_m_ref.s.wall_index != original_wall_index;
-    bool can_surf_surf_react = species.has_flag(SPECIES_FLAG_CAN_SURFSURF);
+
 
     if (diffusible || can_surf_surf_react) {
 
