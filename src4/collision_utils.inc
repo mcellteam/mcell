@@ -355,6 +355,8 @@ static inline void collect_crossed_subparts(
   const Vec3& displacement,
   const float_t rx_radius,
   const float_t sp_edge_length,
+  const bool collect_for_molecules,
+  const bool collect_for_walls,
   SubpartIndicesVector& crossed_subparts_for_walls, // crossed subparts considered for wall collision
   SubpartIndicesSet& crossed_subparts_for_molecules // crossed subparts considered for molecule collisions
 ) {
