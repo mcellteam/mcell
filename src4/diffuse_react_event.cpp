@@ -524,8 +524,9 @@ void DiffuseReactEvent::diffuse_vol_molecule(
       // are we still in the same partition or do we need to move?
       bool move_to_another_partition = !p.in_this_partition(m_new_ref.v.pos);
       if (move_to_another_partition) {
-        mcell_log("Error: Crossing partitions is not supported yet.\n");
-        exit(1);
+        release_assert(false &&
+            "Error: Crossing partitions when molecules diffuse is not supported yet. Please enlarge the partition size.\n"
+        );
       }
 
       // change subpartition
