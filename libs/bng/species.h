@@ -47,15 +47,15 @@ public:
     // just the CplxInstance part of the Species
     CplxInstance::finalize();
     update_diffusion_constant(data, config);
+    set_flag(BNG::SPECIES_FLAG_CAN_DIFFUSE, D != 0);
+    finalize();
     name = cplx_inst.to_str(data);
-
   }
 
 
   void finalize() {
-    // set flag on whether D is 0
-    set_flag(BNG::SPECIES_FLAG_CAN_DIFFUSE, D != 0);
     CplxInstance::finalize();
+    set_flag(BNG::SPECIES_FLAG_CAN_DIFFUSE, D != 0);
   }
 
   species_id_t id;

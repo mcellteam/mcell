@@ -508,6 +508,7 @@ static bool collide_mol(
   }
 
   float_t movelen2 = glm::dot((glm_vec3_t)displacement, (glm_vec3_t)displacement); /* Square of distance the moving molecule travels */
+  assert(movelen2 != 0);
 
   /* check whether the test molecule is further than the displacement. */
   if (d > movelen2) {
