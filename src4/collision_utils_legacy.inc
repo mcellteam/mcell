@@ -174,7 +174,6 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
   float_t rx_radius_for_neighbors = rx_radius * SQRT2;
 
   // first check what's around the starting point
-  assert(!collect_for_molecules || p.config.use_expanded_list); // implication
   if (p.config.use_expanded_list) {
     collect_neighboring_subparts(
         p, vm.v.pos, src_subpart_indices, rx_radius_for_neighbors, sp_edge_length,
