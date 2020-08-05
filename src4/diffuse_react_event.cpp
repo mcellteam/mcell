@@ -630,21 +630,22 @@ RayTraceState ray_trace_vol(
     }
   }
 
-  if (res_state == RayTraceState::RAY_TRACE_HIT_WALL) {
-    // recompute collect_crossed_subparts if there was a wall collision
-    // NOTE: this can be in theory done more efficiently if we knew the order of subpartitions that we hit in the previous call
-    crossed_subparts_for_molecules.clear();
-    crossed_subparts_for_walls.clear();
-    CollisionUtil::collect_crossed_subparts(
-        p, vm, displacement_up_to_wall_collision,
-        radius, p.config.subpartition_edge_length,
-        false,
-        crossed_subparts_for_walls, crossed_subparts_for_molecules
-    );
-  }
+  if (p.config.has_bimol_vol_rxns) {
+    if (res_state == RayTraceState::RAY_TRACE_HIT_WALL) {
+      // recompute collect_crossed_subparts if there was a wall collision
+      // NOTE: this can be in theory done more efficiently if we knew the order of subpartitions that we hit in the previous call
+      crossed_subparts_for_molecules.clear();
+      crossed_subparts_for_walls.clear();
+      CollisionUtil::collect_crossed_subparts(
+          p, vm, displacement_up_to_wall_collision,
+          radius, p.config.subpartition_edge_length,
+          false,
+          crossed_subparts_for_walls, crossed_subparts_for_molecules
+      );
+    }
 
-  // check molecule collisions for each SP
-  if (/*p.config.has_bimol_vol_rxns*/ true) {
+    // check molecule collisions for each SP
+
     for (subpart_index_t subpart_index: crossed_subparts_for_molecules) {
       // get cached reacting molecules for this SP
       const uint_set<molecule_id_t>& sp_reactants = p.get_volume_molecule_reactants(subpart_index, vm.species_id);
