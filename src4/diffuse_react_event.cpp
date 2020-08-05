@@ -578,20 +578,22 @@ RayTraceState ray_trace_vol(
   );
 
 #ifndef NDEBUG
-  // crossed subparts must contain our own subpart
-  assert(crossed_subparts_for_molecules.count(vm.v.subpart_index) == 1);
-  bool debug_found = false;
-  for (subpart_index_t debug_index: crossed_subparts_for_walls) {
-    if (debug_index == vm.v.subpart_index) {
-      debug_found = true;
-      break;
+  if (p.config.has_bimol_vol_rxns) {
+    // crossed subparts must contain our own subpart
+    assert(crossed_subparts_for_molecules.count(vm.v.subpart_index) == 1);
+    bool debug_found = false;
+    for (subpart_index_t debug_index: crossed_subparts_for_walls) {
+      if (debug_index == vm.v.subpart_index) {
+        debug_found = true;
+        break;
+      }
     }
-  }
-  assert(debug_found && "Did not find the starting subpartition in crossed subparts for walls");
+    assert(debug_found && "Did not find the starting subpartition in crossed subparts for walls");
 
-  // also, each subpart from a wall must be present when checking molecules
-  for (subpart_index_t debug_index: crossed_subparts_for_walls) {
-    assert(crossed_subparts_for_molecules.count(debug_index) == 1);
+    // also, each subpart from a wall must be present when checking molecules
+    for (subpart_index_t debug_index: crossed_subparts_for_walls) {
+      assert(crossed_subparts_for_molecules.count(debug_index) == 1);
+    }
   }
 #endif
 
