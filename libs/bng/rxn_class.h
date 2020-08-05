@@ -163,6 +163,16 @@ public:
     return true;
   }
 
+  species_id_t get_second_species_id(species_id_t reactant_id) const {
+    assert(is_bimol());
+    if (specific_reactants[0] != reactant_id) {
+      return specific_reactants[0];
+    }
+    else {
+      return specific_reactants[1];
+    }
+  }
+
   static void dump_array(const std::vector<RxnClass>& vec);
 
   void dump(const std::string ind = "") const;

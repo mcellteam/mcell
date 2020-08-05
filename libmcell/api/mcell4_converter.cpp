@@ -684,6 +684,9 @@ void MCell4Converter::init_rxn_related_flags() {
     // the default is true (or read from user)
 	  world->config.use_expanded_list = false;
 	}
+
+  // to update counting flags
+  world->get_all_species().recompute_species_flags(world->get_all_rxns());
 }
 
 

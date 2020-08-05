@@ -538,17 +538,20 @@ static void find_restricted_regions_by_wall(
   }
 
   // get all possible molecule-surface reactions
-  BNG::RxnClassesVector matching_rxns;
-  RxUtil::trigger_intersect(p, sm, this_wall, matching_rxns);
+  BNG::RxnClassesVector matching_rxn_classes;
+  RxUtil::trigger_intersect(p, sm, this_wall, matching_rxn_classes);
 
   // collect species that can react
   uint_set<species_id_t> restricted_surf_classes;
-  for (const BNG::RxnClass* rxn: matching_rxns) {
-    release_assert(rxn->is_simple() && "BNG not supported here yet");
-    if (rxn->is_reflect() || rxn->is_absorb_region_border()) {
-      assert(rxn->is_bimol());
+  for (const BNG::RxnClass* rxn_class: matching_rxn_classes) {
+    release_assert(rxn_class->is_simple() && "BNG not supported here yet");
+    if (rxn_class->is_reflect() || rxn_class->is_absorb_region_border()) {
+      assert(rxn_class->is_bimol());
 
-      restricted_surf_classes.insert(rxn->specific_reactants[1]);
+      species_id_t second_reactant_id = rxn_class->get_second_species_id(sm.species_id);
+      assert(p.get_all_species().get(second_reactant_id).is_reactive_surface());
+
+      restricted_surf_classes.insert(second_reactant_id);
     }
   }
 

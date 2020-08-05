@@ -1,14 +1,15 @@
 
 #include <string>
+#include <sstream>
 
 #include "base_flag.h"
 
 namespace BNG {
 
-#define FLAG_TO_STR(mask) if (((get_flags()) & (mask)) != 0) res += std::string(#mask) + ", ";
+#define FLAG_TO_STR(mask) if (((get_flags()) & (mask)) != 0) res << std::string(#mask) + ", ";
 
 std::string BaseSpeciesCplxMolFlag::to_str() const {
-  std::string res;
+  std::stringstream res;
 
   FLAG_TO_STR(SPECIES_CPLX_MOL_FLAG_SURF)
   FLAG_TO_STR(SPECIES_CPLX_MOL_FLAG_REACTIVE_SURFACE)
@@ -30,7 +31,9 @@ std::string BaseSpeciesCplxMolFlag::to_str() const {
 	FLAG_TO_STR(RXN_FLAG_COUNTED_ON_SURFACE_REGIONS)
 	FLAG_TO_STR(RXN_FLAG_SIMPLE)
 
-  return res;
+	res << " (0x" << std::hex << get_flags() << ")";
+
+  return res.str();
 }
 
 

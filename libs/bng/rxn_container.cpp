@@ -45,14 +45,7 @@ void RxnContainer::update_all_mols_flags() {
       const BNG::RxnClass* rxn_class = it.second;
       assert(rxn_class->is_bimol());
 
-      species_id_t second_species_id;
-      if (rxn_class->specific_reactants[0] != sp.id) {
-        second_species_id = rxn_class->specific_reactants[0];
-      }
-      else {
-        second_species_id = rxn_class->specific_reactants[1];
-      }
-      const BNG::Species& sp2 = all_species.get(second_species_id);
+      const BNG::Species& sp2 = all_species.get(rxn_class->get_second_species_id(sp.id));
 
       // we can use is_vol/is_surf for ALL_VOLUME_MOLECULES and ALL_SURFACE_MOLECULES
       // but not for all_volume molecules because there is no
