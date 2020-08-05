@@ -1093,12 +1093,14 @@ MCell::MolOrRxnCountTerm MCell4Converter::convert_count_term_leaf_and_init_count
           throw ValueError("Counting surface molecules " + sp.name + " on a surface is not allowed.");
         }
 
-        res.type = MCell::CountType::EnclosedInObject;
+        res.type = MCell::CountType::EnclosedInVolumeRegion;
         res.geometry_object_id = obj_id;
 
         // set species flag
         sp.set_flag(BNG::SPECIES_FLAG_COUNT_ENCLOSED);
         sp.set_flag(BNG::SPECIES_FLAG_COUNT_CONTENTS);
+
+        sp.set_flag(BNG::SPECIES_FLAG_NEEDS_COUNTED_VOLUME);
 
         // and also mark the object that we are counting molecules inside
         world->get_geometry_object(res.geometry_object_id).is_counted_volume = true;
@@ -1132,16 +1134,14 @@ MCell::MolOrRxnCountTerm MCell4Converter::convert_count_term_leaf_and_init_count
     // is this a surface rxn? -> at least one of the reactants is a surface mol
     BNG::RxnRule* rxn = world->get_all_rxns().get_rxn_rule(res.rxn_rule_id);
 
-    // need to set flag
-    world->get_all_rxns().get_rxn_rule(res.rxn_rule_id)->set_is_counted();
-
     if (is_set(ct->region)) {
       if (!rxn->is_surf_rxn()) {
         // volume reaction
         if (is_obj_not_surf_reg) {
-          res.type = MCell::CountType::RxnCountInObject;
-          res.geometry_object_id = obj_id;
+          res.type = MCell::CountType::RxnCountInVolumeRegion;
+          rxn->set_is_counted_in_volume_regions();
 
+          res.geometry_object_id = obj_id;
           world->get_geometry_object(res.geometry_object_id).is_counted_volume = true;
         }
         else {
@@ -1152,6 +1152,7 @@ MCell::MolOrRxnCountTerm MCell4Converter::convert_count_term_leaf_and_init_count
       else {
         // surface reaction
         res.type = MCell::CountType::RxnCountOnSurfaceRegion;
+        rxn->set_is_counted_on_surface_regions();
 
         if (is_obj_not_surf_reg) {
           // need to get the region of this object
@@ -1167,6 +1168,7 @@ MCell::MolOrRxnCountTerm MCell4Converter::convert_count_term_leaf_and_init_count
     }
     else {
       res.type = MCell::CountType::RxnCountInWorld;
+      rxn->set_is_counted_in_world();
     }
   }
   else {

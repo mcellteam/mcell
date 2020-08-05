@@ -75,6 +75,10 @@ public:
     return reactions[rxn_index];
   }
 
+  const std::vector<RxnRule*>& get_rxns() const {
+    return reactions;
+  }
+
   orientation_t get_reactant_orientation(uint reactant_index) const {
     assert(!reactions.empty());
     assert(reactant_index < reactions[0]->reactants.size());

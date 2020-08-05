@@ -449,7 +449,8 @@ public:
   // any molecule flags are set by caller after the molecule is created by this method
   Molecule& add_volume_molecule(const Molecule& vm_copy) {
     // make sure that the rxn for this species flags are up-to-date
-    get_all_species().get(vm_copy.species_id).update_rxn_flags(get_all_species(), get_all_rxns());
+    BNG::Species& sp = get_all_species().get(vm_copy.species_id);
+    sp.update_flags_based_on_rxns(get_all_species(), get_all_rxns());
 
     if (known_vol_species.count(vm_copy.species_id) == 0) {
       // we must update reactant maps if new species were added
@@ -465,8 +466,8 @@ public:
     new_vm.v.reactant_subpart_index = new_vm.v.subpart_index;
     change_vol_reactants_map_from_orig_to_current(new_vm, true, false);
 
-    // compute counted volume id for a new molecule
-    if (new_vm.v.counted_volume_index == COUNTED_VOLUME_INDEX_INVALID) {
+    // compute counted volume id for a new molecule, may define a new counted volume
+    if (sp.needs_counted_colume() && new_vm.v.counted_volume_index == COUNTED_VOLUME_INDEX_INVALID) {
       new_vm.v.counted_volume_index = compute_counted_volume_using_waypoints(new_vm.v.pos);
     }
 
@@ -476,7 +477,7 @@ public:
 
   Molecule& add_surface_molecule(const Molecule& sm_copy) {
     // make sure that the rxn for this species flags are up-to-date
-    get_all_species().get(sm_copy.species_id).update_rxn_flags(get_all_species(), get_all_rxns());
+    get_all_species().get(sm_copy.species_id).update_flags_based_on_rxns(get_all_species(), get_all_rxns());
 
     Molecule& new_sm = add_molecule(sm_copy, false);
     return new_sm;
@@ -874,7 +875,11 @@ public:
   void inc_rxn_in_volume_occured_count(
       const BNG::rxn_rule_id_t rxn_id, const counted_volume_index_t counted_volume_index) {
     assert(rxn_id != BNG::RXN_RULE_ID_INVALID);
-    assert(counted_volume_index != COUNTED_VOLUME_INDEX_INVALID);
+
+    // counted_volume_index may be invalid when we are counting reactions in the whole world
+    assert(counted_volume_index != COUNTED_VOLUME_INDEX_INVALID ||
+        !get_all_rxns().get_rxn_rule(rxn_id)->is_counted_in_volume_regions()
+    );
 
     auto& map_for_rxn = rxn_counts_per_counted_volume[rxn_id];
     auto it_counted_volume = map_for_rxn.find(counted_volume_index);

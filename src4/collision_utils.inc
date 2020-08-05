@@ -1659,7 +1659,10 @@ static void cross_transparent_wall(
   vm.v.pos = collision.pos;
   vm.v.subpart_index = p.get_subpart_index(vm.v.pos);
 
-  update_counted_volume_id_when_crossing_wall(p, w, collision, remaining_displacement, vm);
+  const BNG::Species& sp = p.bng_engine.get_all_species().get(vm.species_id);
+  if (sp.needs_counted_colume()) {
+    update_counted_volume_id_when_crossing_wall(p, w, collision, remaining_displacement, vm);
+  }
 
 #ifdef DEBUG_TRANSPARENT_SURFACES
   std::cout << "Crossed a transparent wall, side: " << w.side << "\n";

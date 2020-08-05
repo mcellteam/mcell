@@ -40,8 +40,8 @@ namespace BNG {
 // sets SPECIES_FLAG_CAN_VOLVOL, SPECIES_FLAG_CAN_VOLSURF, SPECIES_FLAG_CAN_VOLWALL,
 // SPECIES_FLAG_CAN_SURFSURF, and/or SPECIES_FLAG_CAN_REGION_BORDER
 // flags according to reactions in the system
-void Species::update_rxn_flags(const SpeciesContainer& all_species, RxnContainer& all_rxns) {
-  if (rxn_flags_were_updated) {
+void Species::update_flags_based_on_rxns(const SpeciesContainer& all_species, RxnContainer& all_rxns, const bool force_update) {
+  if (!force_update && rxn_flags_were_updated) {
     return;
   }
 
@@ -56,32 +56,50 @@ void Species::update_rxn_flags(const SpeciesContainer& all_species, RxnContainer
   bool all_vol_mols_can_react_with_surface = all_rxns.all_vol_mols_can_react_with_surface;
   bool all_surf_mols_can_react_with_surface = all_rxns.all_surf_mols_can_react_with_surface;
 
-  set_flag(BNG::SPECIES_FLAG_CAN_VOLVOL, false);
-  set_flag(BNG::SPECIES_FLAG_CAN_VOLSURF, false);
-  set_flag(BNG::SPECIES_FLAG_CAN_VOLWALL, false);
-  set_flag(BNG::SPECIES_FLAG_CAN_SURFSURF, false);
-  set_flag(BNG::SPECIES_FLAG_CAN_REGION_BORDER, false);
+  set_flag(SPECIES_FLAG_CAN_VOLVOL, false);
+  set_flag(SPECIES_FLAG_CAN_VOLSURF, false);
+  set_flag(SPECIES_FLAG_CAN_VOLWALL, false);
+  set_flag(SPECIES_FLAG_CAN_SURFSURF, false);
+  set_flag(SPECIES_FLAG_CAN_REGION_BORDER, false);
+  // flag SPECIES_FLAG_NEEDS_COUNTED_VOLUME - must not be cleared because
+  // it might have been set when processing observables
 
   if (is_vol() && all_vol_mols_can_react_with_surface) {
-    set_flag(BNG::SPECIES_FLAG_CAN_VOLWALL);
+    set_flag(SPECIES_FLAG_CAN_VOLWALL);
   }
 
   if (is_surf() && all_surf_mols_can_react_with_surface) {
-    set_flag(BNG::SPECIES_FLAG_CAN_REGION_BORDER);
+    set_flag(SPECIES_FLAG_CAN_REGION_BORDER);
+  }
+
+  // first go through unimol rxns - checking only whether we need to count rxns
+  const RxnClass* unimol_rxn_class = all_rxns.get_unimol_rxn_class(id);
+  if (unimol_rxn_class != nullptr) {
+    for (const RxnRule* rxn: unimol_rxn_class->get_rxns()) {
+      if (rxn->is_counted_in_volume_regions()) {
+        set_flag(SPECIES_FLAG_NEEDS_COUNTED_VOLUME, true);
+      }
+    }
   }
 
   // get reactions, this also creates all reaction classes for the species that we currently have
-  BNG::SpeciesRxnClassesMap* rxn_classes =
+  SpeciesRxnClassesMap* bimol_rxn_classes =
       all_rxns.get_bimol_rxns_for_reactant(id);
-  if (rxn_classes == nullptr) {
+  if (bimol_rxn_classes == nullptr) {
     rxn_flags_were_updated = true;
     return;
   }
 
   // go through all applicable reactants
-  for (auto it: *rxn_classes) {
-    const BNG::RxnClass* rxn_class = it.second;
+  for (auto it: *bimol_rxn_classes) {
+    const RxnClass* rxn_class = it.second;
     assert(rxn_class->is_bimol());
+
+    for (const RxnRule* rxn: rxn_class->get_rxns()) {
+      if (rxn->is_counted_in_volume_regions()) {
+        set_flag(SPECIES_FLAG_NEEDS_COUNTED_VOLUME, true);
+      }
+    }
 
     species_id_t second_species_id;
     if (rxn_class->specific_reactants[0] != id) {
@@ -90,28 +108,28 @@ void Species::update_rxn_flags(const SpeciesContainer& all_species, RxnContainer
     else {
       second_species_id = rxn_class->specific_reactants[1];
     }
-    const BNG::Species& sp2 = all_species.get(second_species_id);
+    const Species& sp2 = all_species.get(second_species_id);
 
     // we can use is_vol/is_surf for ALL_VOLUME_MOLECULES and ALL_SURFACE_MOLECULES
     if (is_vol()) {
       if (sp2.is_vol() || sp2.id == all_molecules_species_id) {
-        set_flag(BNG::SPECIES_FLAG_CAN_VOLVOL);
+        set_flag(SPECIES_FLAG_CAN_VOLVOL);
       }
       if (sp2.is_surf() || sp2.id == all_molecules_species_id) {
-        set_flag(BNG::SPECIES_FLAG_CAN_VOLSURF);
+        set_flag(SPECIES_FLAG_CAN_VOLSURF);
       }
       if (sp2.is_reactive_surface()) {
-        set_flag(BNG::SPECIES_FLAG_CAN_VOLWALL);
+        set_flag(SPECIES_FLAG_CAN_VOLWALL);
       }
     }
 
     if ((is_surf() || id == all_molecules_species_id)) {
       if (sp2.is_surf() || sp2.id == all_molecules_species_id) {
-        set_flag(BNG::SPECIES_FLAG_CAN_SURFSURF);
+        set_flag(SPECIES_FLAG_CAN_SURFSURF);
       }
 
       if (sp2.is_reactive_surface()) {
-        set_flag(BNG::SPECIES_FLAG_CAN_REGION_BORDER);
+        set_flag(SPECIES_FLAG_CAN_REGION_BORDER);
       }
     }
   }

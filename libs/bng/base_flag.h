@@ -27,19 +27,28 @@ enum species_cplx_mol_rxn_flag_t {
   SPECIES_FLAG_CANT_INITIATE = 0x400, // this molecule may not trigger a reaction with another molecule
   SPECIES_FLAG_CAN_DIFFUSE = 0x800, // value used as COUNT_TRIGGER in MCell3
   
-  // TODO: can we get rid of one of these flags?
+  // TODO: unify COUNT_CONTENTS and COUNT_ENCLOSED with reaction flags (mcell3 converter copies mcell3 flags)
+  // world - ENCLOSED
+  // vol regions - ENCLOSED+CONTENTS
+  // surf regions - CONTENTS
+
   // COUNT_CONTENTS is set if you're counting numbers of molecules in/on regions
   SPECIES_FLAG_COUNT_CONTENTS =  0x1000,
+
   // COUNT_ENCLOSED set if you count what happens inside closed region
   SPECIES_FLAG_COUNT_ENCLOSED = 0x8000, // this species is marked to be counted inside of a volume
+
+  SPECIES_FLAG_NEEDS_COUNTED_VOLUME = 0x10000, // CAN_VOLSURFSURF in MCell3
 
   SPECIES_FLAG_CAN_SURFSURFSURF = 0x20000, // not supported - TODO LATER: remove
   SPECIES_FLAG_SET_MAX_STEP_LENGTH = 0x80000, // not supported
   SPECIES_FLAG_CAN_REGION_BORDER = 0x100000, // used
   SPECIES_FLAG_EXTERNAL_SPECIES = 0x400000, // not supported - TODO LATER: remove
 
-  RXN_FLAG_COUNTED = 0x1000000,
-  RXN_FLAG_SIMPLE = 0x2000000, // reactants and products are only simple complexes
+  RXN_FLAG_COUNTED_IN_WORLD = 0x1000000,
+  RXN_FLAG_COUNTED_IN_VOLUME_REGIONS = 0x2000000,
+  RXN_FLAG_COUNTED_ON_SURFACE_REGIONS = 0x4000000,
+  RXN_FLAG_SIMPLE = 0x8000000, // reactants and products are only simple complexes
 };
 
 

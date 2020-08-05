@@ -43,7 +43,7 @@ void MolOrRxnCountTerm::dump(const std::string ind) const {
     case CountType::EnclosedInWorld:
       cout << "World";
       break;
-    case CountType::EnclosedInObject:
+    case CountType::EnclosedInVolumeRegion:
       cout << "EnclosedInObject";
       break;
     case CountType::PresentOnSurfaceRegion:
@@ -52,7 +52,7 @@ void MolOrRxnCountTerm::dump(const std::string ind) const {
     case CountType::RxnCountInWorld:
       cout << "RxnCountInWorld";
       break;
-    case CountType::RxnCountInObject:
+    case CountType::RxnCountInVolumeRegion:
       cout << "RxnCountInObject";
       break;
     case CountType::RxnCountOnSurfaceRegion:
@@ -84,12 +84,12 @@ std::string MolOrRxnCountTerm::to_data_model_string(const World* world, bool pri
 
   switch(type) {
     case CountType::EnclosedInWorld:
-    case CountType::EnclosedInObject:
+    case CountType::EnclosedInVolumeRegion:
     case CountType::PresentOnSurfaceRegion:
       res << world->get_all_species().get(species_id).name;
       break;
     case CountType::RxnCountInWorld:
-    case CountType::RxnCountInObject:
+    case CountType::RxnCountInVolumeRegion:
     case CountType::RxnCountOnSurfaceRegion: {
         string rxn_name = world->get_all_rxns().get_rxn_rule(rxn_rule_id)->name;
         CONVERSION_CHECK(rxn_name != "", "Counted reaction has no name");
@@ -107,8 +107,8 @@ std::string MolOrRxnCountTerm::to_data_model_string(const World* world, bool pri
     case CountType::RxnCountInWorld:
       res << VALUE_WORLD;
       break;
-    case CountType::EnclosedInObject:
-    case CountType::RxnCountInObject: {
+    case CountType::EnclosedInVolumeRegion:
+    case CountType::RxnCountInVolumeRegion: {
         string obj_name = world->get_geometry_object(geometry_object_id).name;
         CONVERSION_CHECK(obj_name != "", "Counted object has no name");
         res << obj_name;
@@ -191,8 +191,8 @@ void MolOrRxnCountInfo::to_data_model(const World* world, Json::Value& reaction_
       case CountType::RxnCountInWorld:
         val = VALUE_COUNT_LOCATION_WORLD;
         break;
-      case CountType::EnclosedInObject:
-      case CountType::RxnCountInObject:
+      case CountType::EnclosedInVolumeRegion:
+      case CountType::RxnCountInVolumeRegion:
         val = VALUE_COUNT_LOCATION_OBJECT;
         break;
       case CountType::PresentOnSurfaceRegion:
@@ -309,7 +309,7 @@ void MolOrRxnCountEvent::step() {
               // count the molecule
               count_items[i].inc_or_dec(term.sign_in_expression);
             }
-            else if (m.is_vol() && term.type == CountType::EnclosedInObject) {
+            else if (m.is_vol() && term.type == CountType::EnclosedInVolumeRegion) {
               assert(term.geometry_object_id != GEOMETRY_OBJECT_ID_INVALID);
 
               // is the molecule inside of the object that we are checking?
@@ -363,7 +363,7 @@ void MolOrRxnCountEvent::step() {
                   sum_all_map_items(counts_on_walls)
               );
             }
-            else if (term.type == CountType::RxnCountInObject) {
+            else if (term.type == CountType::RxnCountInVolumeRegion) {
               assert(term.geometry_object_id != GEOMETRY_OBJECT_ID_INVALID);
 
               for (const auto it: counts_in_objects) {

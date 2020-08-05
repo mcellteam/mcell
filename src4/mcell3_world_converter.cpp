@@ -137,6 +137,7 @@ bool MCell3WorldConverter::convert(volume* s) {
   CHECK(convert_mol_or_rxn_count_events(s));
 
   // additional flags
+  world->get_all_species().recompute_species_flags(world->get_all_rxns()); // counting flags must be updated
   world->config.has_bimol_vol_rxns = world->get_all_rxns().has_bimol_vol_rxns();
 
   return true;
@@ -1713,7 +1714,7 @@ bool MCell3WorldConverter::convert_mol_or_rxn_count_events(volume* s) {
         // only whole geom object for now
         if ((req->report_type & REPORT_ENCLOSED) != 0) {
 
-          term.type = count_mols_not_rxns ? CountType::EnclosedInObject : CountType::RxnCountInObject;
+          term.type = count_mols_not_rxns ? CountType::EnclosedInVolumeRegion : CountType::RxnCountInVolumeRegion;
 
           string reg_name = get_sym_name(req->count_location);
           CHECK_PROPERTY(ends_with(reg_name, ",ALL")); // enclused in object must be whole objects
@@ -1756,6 +1757,10 @@ bool MCell3WorldConverter::convert_mol_or_rxn_count_events(volume* s) {
           // set a flag that these species are to be counted
           BNG::Species& species = world->get_all_species().get(term.species_id);
           species.set_flag(BNG::SPECIES_FLAG_COUNT_ENCLOSED);
+
+          if (term.type == CountType::EnclosedInVolumeRegion) {
+            species.set_flag(BNG::SPECIES_FLAG_NEEDS_COUNTED_VOLUME);
+          }
         }
         else {
           // set that the reaction must be counted
@@ -1764,7 +1769,21 @@ bool MCell3WorldConverter::convert_mol_or_rxn_count_events(volume* s) {
 
           BNG::RxnRule* rxn_rule = world->get_all_rxns().find_rxn_rule_by_name(rxn_name);
           CHECK_PROPERTY(rxn_rule != nullptr && "Rxn rule with name was not found");
-          rxn_rule->set_is_counted();
+
+          // set rxn counting flag
+          switch (term.type) {
+            case CountType::RxnCountInWorld:
+              rxn_rule->set_is_counted_in_world();
+              break;
+            case CountType::RxnCountInVolumeRegion:
+              rxn_rule->set_is_counted_in_volume_regions();
+              break;
+            case CountType::RxnCountOnSurfaceRegion:
+              rxn_rule->set_is_counted_on_surface_regions();
+              break;
+            default:
+              assert(false);
+          }
 
           term.rxn_rule_id = rxn_rule->id;
         }

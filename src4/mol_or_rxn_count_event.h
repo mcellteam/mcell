@@ -38,10 +38,10 @@ class World;
 enum class CountType {
   Invalid,
   EnclosedInWorld,
-  EnclosedInObject,
+  EnclosedInVolumeRegion,
   PresentOnSurfaceRegion,
   RxnCountInWorld,
-  RxnCountInObject,
+  RxnCountInVolumeRegion,
   RxnCountOnSurfaceRegion,
 };
 
@@ -65,12 +65,12 @@ public:
   CountType type;
 
   bool is_mol_count() const {
-    return type == CountType::EnclosedInWorld || type == CountType::EnclosedInObject ||
+    return type == CountType::EnclosedInWorld || type == CountType::EnclosedInVolumeRegion ||
         type == CountType::PresentOnSurfaceRegion;
   }
 
   bool is_rxn_count() const {
-    return type == CountType::RxnCountInWorld || type == CountType::RxnCountInObject ||
+    return type == CountType::RxnCountInWorld || type == CountType::RxnCountInVolumeRegion ||
         type == CountType::RxnCountOnSurfaceRegion;
   }
 

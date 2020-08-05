@@ -183,6 +183,12 @@ public:
         id == all_surface_molecules_species_id;
   }
 
+  void recompute_species_flags(RxnContainer& all_rxns) {
+    for (Species& sp: species) {
+      sp.update_flags_based_on_rxns(*this, all_rxns, true);
+    }
+  }
+
   void dump() const;
 
 public:

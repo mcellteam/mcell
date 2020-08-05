@@ -229,12 +229,31 @@ public:
 
   bool get_assigned_simple_cplx_reactant_for_product(const uint product_index, uint& reactant_index) const;
 
-  void set_is_counted() {
-    set_flag(RXN_FLAG_COUNTED);
+  void set_is_counted_in_world() {
+    set_flag(RXN_FLAG_COUNTED_IN_WORLD);
+  }
+
+  void set_is_counted_in_volume_regions() {
+    set_flag(RXN_FLAG_COUNTED_IN_VOLUME_REGIONS);
+  }
+
+  void set_is_counted_on_surface_regions() {
+    set_flag(RXN_FLAG_COUNTED_ON_SURFACE_REGIONS);
   }
 
   bool is_counted() const {
-    return has_flag(RXN_FLAG_COUNTED);
+    return
+        has_flag(RXN_FLAG_COUNTED_IN_WORLD) ||
+        has_flag(RXN_FLAG_COUNTED_IN_VOLUME_REGIONS) ||
+        has_flag(RXN_FLAG_COUNTED_ON_SURFACE_REGIONS);
+  }
+
+  bool is_counted_in_volume_regions() const {
+    return has_flag(RXN_FLAG_COUNTED_IN_VOLUME_REGIONS);
+  }
+
+  bool is_counted_on_surface_regions() const {
+    return has_flag(RXN_FLAG_COUNTED_ON_SURFACE_REGIONS);
   }
 
   bool is_simple() const {
