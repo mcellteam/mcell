@@ -116,6 +116,7 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
   const Vec3& displacement,
   const float_t rx_radius,
   const float_t sp_edge_length,
+  const bool collect_for_molecules,
   const bool collect_for_walls,
   SubpartIndicesVector& crossed_subparts_for_walls, // crossed subparts considered for wall collision
   SubpartIndicesSet& crossed_subparts_for_molecules // crossed subparts considered for molecule collisions
@@ -131,7 +132,9 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
   if (collect_for_walls) {
     crossed_subparts_for_walls.push_back(current_subpart_index);
   }
-  crossed_subparts_for_molecules.insert(current_subpart_index);
+  if (collect_for_molecules) {
+    crossed_subparts_for_molecules.insert(current_subpart_index);
+  }
 
   // destination
   Vec3 dest_pos = vm.v.pos + displacement;
@@ -171,6 +174,7 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
   float_t rx_radius_for_neighbors = rx_radius * SQRT2;
 
   // first check what's around the starting point
+  assert(!collect_for_molecules || p.config.use_expanded_list); // implication
   if (p.config.use_expanded_list) {
     collect_neighboring_subparts(
         p, vm.v.pos, src_subpart_indices, rx_radius_for_neighbors, sp_edge_length,
@@ -279,7 +283,9 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
       if (collect_for_walls) {
         crossed_subparts_for_walls.push_back(curr_subpart_index);
       }
-      crossed_subparts_for_molecules.insert(curr_subpart_index);
+      if (collect_for_molecules) {
+        crossed_subparts_for_molecules.insert(curr_subpart_index);
+      }
 
       // also neighbors
       if (p.config.use_expanded_list) {

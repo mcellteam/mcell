@@ -573,7 +573,7 @@ RayTraceState ray_trace_vol(
   CollisionUtil::collect_crossed_subparts(
       p, vm, partition_displacement,
       radius, p.config.subpartition_edge_length,
-      true,
+      p.config.has_bimol_vol_rxns, true,
       crossed_subparts_for_walls, crossed_subparts_for_molecules
   );
 
@@ -639,7 +639,7 @@ RayTraceState ray_trace_vol(
       CollisionUtil::collect_crossed_subparts(
           p, vm, displacement_up_to_wall_collision,
           radius, p.config.subpartition_edge_length,
-          false,
+          true, false,
           crossed_subparts_for_walls, crossed_subparts_for_molecules
       );
     }
