@@ -821,6 +821,8 @@ public:
   float_t subpartition_edge_length_rcp; // == 1/subpartition_edge_length
 
   // other options
+  bool has_bimol_vol_rxns;
+
   bool use_expanded_list; /* If set, check neighboring subvolumes for mol-mol
                             interactions */
   bool randomize_smol_pos; /* If set, always place surface molecule at random

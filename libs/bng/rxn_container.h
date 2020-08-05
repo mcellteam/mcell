@@ -191,6 +191,8 @@ public:
     return bng_data;
   }
 
+  bool has_bimol_vol_rxns() const;
+
   void dump(const bool including_rxn_rules = false) const;
 
 private:

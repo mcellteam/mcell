@@ -312,6 +312,16 @@ void RxnContainer::get_rxn_product_species_ids(
 }
 
 
+bool RxnContainer::has_bimol_vol_rxns() const {
+  for (const BNG::RxnRule* r: rxn_rules) {
+    if (r->is_bimol_vol_rxn()) {
+      return true;
+    }
+  }
+  return false;
+}
+
+
 void RxnContainer::dump(const bool including_rxn_rules) const {
 
   for (auto it_reac2: unimol_rxn_class_map) {

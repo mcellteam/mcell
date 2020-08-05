@@ -136,6 +136,9 @@ bool MCell3WorldConverter::convert(volume* s) {
   CHECK(convert_viz_output_events(s));
   CHECK(convert_mol_or_rxn_count_events(s));
 
+  // additional flags
+  world->config.has_bimol_vol_rxns = world->get_all_rxns().has_bimol_vol_rxns();
+
   return true;
 }
 

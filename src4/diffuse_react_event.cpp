@@ -644,20 +644,22 @@ RayTraceState ray_trace_vol(
   }
 
   // check molecule collisions for each SP
-  for (subpart_index_t subpart_index: crossed_subparts_for_molecules) {
-    // get cached reacting molecules for this SP
-    const uint_set<molecule_id_t>& sp_reactants = p.get_volume_molecule_reactants(subpart_index, vm.species_id);
+  if (/*p.config.has_bimol_vol_rxns*/ true) {
+    for (subpart_index_t subpart_index: crossed_subparts_for_molecules) {
+      // get cached reacting molecules for this SP
+      const uint_set<molecule_id_t>& sp_reactants = p.get_volume_molecule_reactants(subpart_index, vm.species_id);
 
-    // for each molecule in this SP
-    for (molecule_id_t colliding_vm_id: sp_reactants) {
-      CollisionUtil::collide_mol_loop_body(
-          p,
-          vm,
-          colliding_vm_id,
-          corrected_displacement,// needs the full displacement to compute reaction time displacement_up_to_wall_collision,
-          radius,
-          collisions
-      );
+      // for each molecule in this SP
+      for (molecule_id_t colliding_vm_id: sp_reactants) {
+        CollisionUtil::collide_mol_loop_body(
+            p,
+            vm,
+            colliding_vm_id,
+            corrected_displacement,// needs the full displacement to compute reaction time displacement_up_to_wall_collision,
+            radius,
+            collisions
+        );
+      }
     }
   }
 
