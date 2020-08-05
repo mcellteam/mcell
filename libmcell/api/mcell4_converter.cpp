@@ -105,10 +105,6 @@ void MCell4Converter::convert(Model* model_, World* world_) {
 
   convert_release_events();
 
-  // must be called after release events define species because they don't have to be
-  // defined
-  init_rxn_related_flags();
-
   // diffusion events must be created after reactions and release events
   // since they may define the initial species in when BNGL reactions are used
   world->create_diffusion_events();
@@ -116,6 +112,10 @@ void MCell4Converter::convert(Model* model_, World* world_) {
   convert_mol_or_rxn_count_events_and_init_counting_flags();
 
   convert_viz_output_events();
+
+  // must be called after release events define species because they don't have to be
+  // defined, also after count events were defined
+  init_rxn_related_flags();
 
   add_ctrl_c_termination_event();
 }
@@ -685,7 +685,7 @@ void MCell4Converter::init_rxn_related_flags() {
 	  world->config.use_expanded_list = false;
 	}
 
-  // to update counting flags
+  // needed to update counting flags
   world->get_all_species().recompute_species_flags(world->get_all_rxns());
 }
 
