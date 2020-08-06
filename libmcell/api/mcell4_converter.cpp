@@ -118,6 +118,12 @@ void MCell4Converter::convert(Model* model_, World* world_) {
   init_rxn_related_flags();
 
   add_ctrl_c_termination_event();
+
+  // some general checks
+  if (world->config.rx_radius_3d >= world->config.subpartition_edge_length) {
+    throw ValueError(S("Reaction radius ") + to_string(world->config.rx_radius_3d * world->config.length_unit) +
+        " is larger than subpartition edge length " + to_string(world->config.subpartition_edge_length * world->config.length_unit) + ".");
+  }
 }
 
 
