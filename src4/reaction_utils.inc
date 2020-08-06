@@ -131,9 +131,6 @@ static void trigger_bimolecular_orientation_from_mols(
 static void find_reactions_with_surf_classes_for_rxn_class_map(
     const Partition& p,
     const Molecule& reacA,
-    const bool allow_rx_transp,
-    const bool allow_rx_reflec,
-    const bool allow_rx_absorb_reg_border,
     const Region& reg,
     const BNG::SpeciesRxnClassesMap& potential_reactions,
     BNG::RxnClassesVector& matching_rxn_classes
@@ -159,14 +156,7 @@ static void find_reactions_with_surf_classes_for_rxn_class_map(
        (orient1 == 0 || (orient0 + orient1) * (orient0 - orient1) != 0) ||
        (reacA.s.orientation * orient0 * orient1 > 0) ) {
 
-    bool reject_reaction =
-        (rxn_class->is_transparent() && !allow_rx_transp) ||
-        (rxn_class->is_reflect() && !allow_rx_reflec) ||
-        (rxn_class->is_absorb_region_border() && !allow_rx_absorb_reg_border);
-
-    if (!reject_reaction) {
-      matching_rxn_classes.push_back(rxn_class);
-    }
+    matching_rxn_classes.push_back(rxn_class);
   }
 }
 
@@ -218,7 +208,7 @@ static void find_volume_mol_reactions_with_surf_classes(
 
     if (species_rxns != nullptr) {
       find_reactions_with_surf_classes_for_rxn_class_map(
-          p, reacA, true, true, true, reg,
+          p, reacA, reg,
           *species_rxns,
           matching_rxns
       );
@@ -226,7 +216,7 @@ static void find_volume_mol_reactions_with_surf_classes(
 
     if (all_molecules_rxns != nullptr) {
       find_reactions_with_surf_classes_for_rxn_class_map(
-          p, reacA, true, true, true, reg,
+          p, reacA, reg,
           *all_molecules_rxns,
           matching_rxns
       );
@@ -234,7 +224,7 @@ static void find_volume_mol_reactions_with_surf_classes(
 
     if (all_vol_rxns != nullptr) {
       find_reactions_with_surf_classes_for_rxn_class_map(
-          p, reacA, true, true, true, reg,
+          p, reacA, reg,
           *all_vol_rxns,
           matching_rxns
       );
@@ -265,9 +255,6 @@ static void find_surface_mol_reactions_with_surf_classes(
     Partition& p,
     const Molecule& reacA,
     const Wall& w,
-    const bool allow_rx_transp,
-    const bool allow_rx_reflec,
-    const bool allow_rx_absorb_reg_border,
     BNG::RxnClassesVector& matching_rxns
 ) {
 
@@ -292,7 +279,7 @@ static void find_surface_mol_reactions_with_surf_classes(
 
     if (species_rxns != nullptr) {
       find_reactions_with_surf_classes_for_rxn_class_map(
-          p, reacA, allow_rx_transp, allow_rx_reflec, allow_rx_absorb_reg_border, reg,
+          p, reacA, reg,
           *species_rxns,
           matching_rxns
       );
@@ -300,7 +287,7 @@ static void find_surface_mol_reactions_with_surf_classes(
 
     if (all_molecules_rxns != nullptr) {
       find_reactions_with_surf_classes_for_rxn_class_map(
-          p, reacA, allow_rx_transp, allow_rx_reflec, allow_rx_absorb_reg_border, reg,
+          p, reacA, reg,
           *all_molecules_rxns,
           matching_rxns
       );
@@ -308,7 +295,7 @@ static void find_surface_mol_reactions_with_surf_classes(
 
     if (all_surf_rxns != nullptr) {
       find_reactions_with_surf_classes_for_rxn_class_map(
-          p, reacA, allow_rx_transp, allow_rx_reflec, allow_rx_absorb_reg_border, reg,
+          p, reacA, reg,
           *all_surf_rxns,
           matching_rxns
       );
@@ -356,7 +343,7 @@ static void trigger_intersect(
   }
   else if (reacA.is_surf()) {
     find_surface_mol_reactions_with_surf_classes(
-        p, reacA, w, true, true, true, matching_rxns
+        p, reacA, w, matching_rxns
     );
   }
   else {
