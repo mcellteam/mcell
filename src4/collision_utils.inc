@@ -793,7 +793,7 @@ static bool is_immediate_collision(const float_t time) {
 }
 
 // called only from ray_trace_vol
-static inline bool INLINE_ATTR collect_closest_wall_collision(
+static inline bool INLINE_ATTR get_closest_wall_collision(
     Partition& p,
     const Molecule& vm, // molecule that we are diffusing, we are changing its pos  and possibly also subvolume
     const subpart_index_t subpart_index, // the wall that we hit must be inside of this partition
@@ -818,8 +818,6 @@ restart_on_redo:
   // check each wall in this subpartition
   const WallsInSubpart& wall_indices = p.get_subpart_wall_indices(subpart_index);
 
-  //WallsInSubpart::const_iterator it_end = wall_indices.end();
-  //for (auto it = wall_indices.begin(); it != it_end; it++) {
   for (wall_index_t wall_index: wall_indices) {
     if (wall_index == last_hit_wall_index) {
       continue;

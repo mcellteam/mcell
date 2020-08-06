@@ -613,7 +613,7 @@ RayTraceState ray_trace_vol(
     for (subpart_index_t subpart_w_walls_index: crossed_subparts_for_walls) {
 
       bool collision_found =
-          CollisionUtil::collect_closest_wall_collision( // mcell3 does this only for the current subvol
+          CollisionUtil::get_closest_wall_collision( // mcell3 does this only for the current subvol
               p,
               vm,
               subpart_w_walls_index,
