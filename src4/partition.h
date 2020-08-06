@@ -319,16 +319,9 @@ public:
   // the reactant_subpart_index is index where the molecule was originally created,
   // it might have moved to subpart_index in the meantime
   void change_vol_reactants_map_from_orig_to_current(Molecule& vm, bool adding, bool removing) {
-    assert(vm.is_vol());
     assert(vm.v.subpart_index != SUBPART_INDEX_INVALID);
     assert(vm.v.reactant_subpart_index != SUBPART_INDEX_INVALID);
     assert(vm.v.subpart_index == get_subpart_index(vm.v.pos) && "Position and subpart must match all the time");
-
-    if (vm.is_surf()) {
-      // nothing to do
-      return;
-    }
-
     assert(vm.is_vol() && "This function is applicable only to volume mols and ignored for surface mols");
 
     // and these are indices of possible reactants with our reactant_species_id
@@ -349,14 +342,16 @@ public:
     for (const auto& second_reactant_info: *reactions_map) {
       species_id_t second_species_id = second_reactant_info.first;
 
-      if (second_reactant_info.second->get_num_reactions() == 0) {
+      if (second_reactant_info.second->get_num_reactions() == 0 ||
+          !second_reactant_info.second->is_bimol_vol_rxn_class()) {
         // there is a reaction class, but it has no reactions
         continue;
       }
 
       // can the second reactant initiate a reaction with me?
       const BNG::Species& initiator_reactant_species = get_all_species().get(second_species_id);
-      if (!initiator_reactant_species.is_vol() || initiator_reactant_species.cant_initiate()) {
+      assert(!initiator_reactant_species.is_vol());
+      if (initiator_reactant_species.cant_initiate()) {
         // nothing to do
         continue;
       }

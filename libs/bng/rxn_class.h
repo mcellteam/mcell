@@ -57,7 +57,7 @@ public:
       const SpeciesContainer& all_species_, const BNGConfig& bng_config_,
       const species_id_t reactant_id1, const species_id_t reactant_id2 = SPECIES_ID_INVALID)
     : type(RxnType::Invalid), max_fixed_p(FLT_INVALID), min_noreaction_p(FLT_INVALID),
-      all_species(all_species_), bng_config(bng_config_)
+      all_species(all_species_), bng_config(bng_config_), bimol_vol_rxn_flag(false)
     {
     assert(reactant_id1 != SPECIES_ID_INVALID);
     specific_reactants.push_back(reactant_id1);
@@ -86,6 +86,13 @@ public:
   }
 
   void add_rxn_rule(RxnRule* r) {
+
+    if (reactions.empty()) {
+      bimol_vol_rxn_flag = r->is_bimol_vol_rxn();
+    }
+    else {
+      assert(bimol_vol_rxn_flag == r->is_bimol_vol_rxn());
+    }
 
     // check that the rule was not added already,
     // for now simple pointer comparison
@@ -149,6 +156,12 @@ public:
     return specific_reactants.size() == 2;
   }
 
+  bool is_bimol_vol_rxn_class() const {
+    assert(!reactions.empty() &&
+        reactions[0]->is_bimol_vol_rxn() == bimol_vol_rxn_flag);
+    return bimol_vol_rxn_flag;
+  }
+
   bool is_absorb_region_border() const {
     return type == RxnType::AbsorbRegionBorder;
   }
@@ -195,6 +208,9 @@ private:
 
   // owned by the simulation engine
   const BNGConfig& bng_config;
+
+  // flag for optimized testing of this rxn class
+  bool bimol_vol_rxn_flag;
 };
 
 
