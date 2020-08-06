@@ -128,7 +128,7 @@ static void trigger_bimolecular_orientation_from_mols(
  *************************************************************************/
 
 // to be called only from find_surface_mol_reactions_with_surf_classes
-static void find_surface_mol_reactions_with_surf_classes_for_rxn_class_map(
+static void find_reactions_with_surf_classes_for_rxn_class_map(
     const Partition& p,
     const Molecule& reacA,
     const bool allow_rx_transp,
@@ -194,9 +194,6 @@ static void find_volume_mol_reactions_with_surf_classes(
     Partition& p,
     const Molecule& reacA,
     const Wall& w,
-    const bool allow_rx_transp,
-    const bool allow_rx_reflec,
-    const bool allow_rx_absorb_reg_border,
     BNG::RxnClassesVector& matching_rxns
 ) {
 
@@ -220,24 +217,24 @@ static void find_volume_mol_reactions_with_surf_classes(
     }
 
     if (species_rxns != nullptr) {
-      find_surface_mol_reactions_with_surf_classes_for_rxn_class_map(
-          p, reacA, allow_rx_transp, allow_rx_reflec, allow_rx_absorb_reg_border, reg,
+      find_reactions_with_surf_classes_for_rxn_class_map(
+          p, reacA, true, true, true, reg,
           *species_rxns,
           matching_rxns
       );
     }
 
     if (all_molecules_rxns != nullptr) {
-      find_surface_mol_reactions_with_surf_classes_for_rxn_class_map(
-          p, reacA, allow_rx_transp, allow_rx_reflec, allow_rx_absorb_reg_border, reg,
+      find_reactions_with_surf_classes_for_rxn_class_map(
+          p, reacA, true, true, true, reg,
           *all_molecules_rxns,
           matching_rxns
       );
     }
 
     if (all_vol_rxns != nullptr) {
-      find_surface_mol_reactions_with_surf_classes_for_rxn_class_map(
-          p, reacA, allow_rx_transp, allow_rx_reflec, allow_rx_absorb_reg_border, reg,
+      find_reactions_with_surf_classes_for_rxn_class_map(
+          p, reacA, true, true, true, reg,
           *all_vol_rxns,
           matching_rxns
       );
@@ -294,7 +291,7 @@ static void find_surface_mol_reactions_with_surf_classes(
     }
 
     if (species_rxns != nullptr) {
-      find_surface_mol_reactions_with_surf_classes_for_rxn_class_map(
+      find_reactions_with_surf_classes_for_rxn_class_map(
           p, reacA, allow_rx_transp, allow_rx_reflec, allow_rx_absorb_reg_border, reg,
           *species_rxns,
           matching_rxns
@@ -302,7 +299,7 @@ static void find_surface_mol_reactions_with_surf_classes(
     }
 
     if (all_molecules_rxns != nullptr) {
-      find_surface_mol_reactions_with_surf_classes_for_rxn_class_map(
+      find_reactions_with_surf_classes_for_rxn_class_map(
           p, reacA, allow_rx_transp, allow_rx_reflec, allow_rx_absorb_reg_border, reg,
           *all_molecules_rxns,
           matching_rxns
@@ -310,7 +307,7 @@ static void find_surface_mol_reactions_with_surf_classes(
     }
 
     if (all_surf_rxns != nullptr) {
-      find_surface_mol_reactions_with_surf_classes_for_rxn_class_map(
+      find_reactions_with_surf_classes_for_rxn_class_map(
           p, reacA, allow_rx_transp, allow_rx_reflec, allow_rx_absorb_reg_border, reg,
           *all_surf_rxns,
           matching_rxns
@@ -340,10 +337,7 @@ static void trigger_intersect(
     Partition& p,
     const Molecule& reacA,
     const Wall& w,
-    BNG::RxnClassesVector& matching_rxns,
-    const bool allow_rx_transp = true,
-    const bool allow_rx_reflec = true,
-    const bool allow_rx_absorb_reg_border = true
+    BNG::RxnClassesVector& matching_rxns
 ) {
   /*
    * ??? how are unimol reactions related to molecule - surface reactions?
@@ -357,14 +351,12 @@ static void trigger_intersect(
 
   if (reacA.is_vol()) {
     find_volume_mol_reactions_with_surf_classes(
-        p, reacA, w, allow_rx_transp, allow_rx_reflec,
-        allow_rx_absorb_reg_border, matching_rxns
+        p, reacA, w, matching_rxns
     );
   }
   else if (reacA.is_surf()) {
     find_surface_mol_reactions_with_surf_classes(
-        p, reacA, w, allow_rx_transp, allow_rx_reflec,
-        allow_rx_absorb_reg_border, matching_rxns
+        p, reacA, w, true, true, true, matching_rxns
     );
   }
   else {

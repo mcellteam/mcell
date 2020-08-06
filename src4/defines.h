@@ -259,19 +259,13 @@ typedef std::map<geometry_object_id_t, uint_set<geometry_object_id_t>> CountedVo
 const int BASE_CONTAINER_ALLOC = 16;
 
 #ifndef INDEXER_WA
-
 // WARNING: std::set_intersection and possibly other algorithms do not work correctly with dense_hash_set
-typedef uint_dense_hash_set<subpart_index_t> SubpartIndicesSet;
-
+typedef uint_dense_hash_set<subpart_index_t> SubpartIndicesSet; // boost-based uint_set is worse on average
 typedef boost::container::small_vector<subpart_index_t, BASE_CONTAINER_ALLOC>  SubpartIndicesVector;
-
 #else
-// TODO: use uint_dense_hash_set
 typedef std::vector<subpart_index_t> SubpartIndicesVector;
 typedef std::set<subpart_index_t> SubpartIndicesSet;
-
 #endif
-
 
 template<typename T>
 class insertion_ordered_set {
