@@ -167,17 +167,16 @@ public:
 class Region {
 public:
   Region()
-    : id(REGION_ID_INVALID), index(REGION_INDEX_INVALID), name(""),
-      species_id(SPECIES_ID_INVALID), geometry_object_id(GEOMETRY_OBJECT_ID_INVALID),
-      volume_info_initialized(false), region_is_manifold(false), volume(FLT_INVALID),
-      walls_per_subpart_initialized(false), region_waypoints_initialized(false)
+    : id(REGION_ID_INVALID), index(REGION_INDEX_INVALID), species_id(SPECIES_ID_INVALID),
+      geometry_object_id(GEOMETRY_OBJECT_ID_INVALID), name(""),
+      volume_info_initialized(false), region_is_manifold(false),
+      walls_per_subpart_initialized(false), region_waypoints_initialized(false),
+      volume(FLT_INVALID)
       {
   }
 
   region_id_t id;
   region_index_t index;
-
-  std::string name;
 
   // the reactivity of the region is modeled using reactions and
   // this region has its species specified
@@ -185,6 +184,8 @@ public:
 
   // to which object this region belongs
   geometry_object_id_t geometry_object_id;
+
+  std::string name;
 
   // each wall contained in this map is a part of this region
   // the vector of edge indices may be empty but if not, it specifies the
@@ -199,19 +200,19 @@ private:
   // and get rid of the *_initialized values
 
   bool volume_info_initialized;
+  bool region_is_manifold;
+  bool walls_per_subpart_initialized;
+  bool region_waypoints_initialized;
+
   Vec3 bounding_box_llf;
   Vec3 bounding_box_urb;
-  bool region_is_manifold;
   float_t volume;
 
-  bool walls_per_subpart_initialized;
   WallsPerSubpartMap walls_per_subpart;
 
   // points known to be inside of this region, optimization
   // for checking whether a point is inside of this region
-  bool region_waypoints_initialized;
   std::set<IVec3> waypoints_in_this_region;
-
 public:
 
   void initialize_volume_info_if_needed(const Partition& p);
