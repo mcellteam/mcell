@@ -197,8 +197,9 @@ void DiffuseReactEvent::diffuse_single_molecule(
 
   Molecule& m = p.get_m(m_id);
 
-  if (m.is_defunct())
+  if (m.is_defunct()) {
     return;
+  }
 
   // if the molecule is a "newbie", its unimolecular reaction was not yet scheduled,
   assert(
@@ -541,6 +542,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
 // index of the new subparition in new_subpart_index
 // later, this will check collisions until a wall is hit
 // we assume that wall collisions do not occur so often
+// inlining of this function does not help with performance
 RayTraceState ray_trace_vol(
     Partition& p,
     rng_state& rng,
