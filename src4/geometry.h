@@ -467,6 +467,29 @@ private:
 
 
 /**
+ * Data that are used for fast rejection of wall collisions, 
+ * stored as a copy in partition to optimize cache performance.
+ */
+class WallCollisionRejectionData {
+public:
+  WallCollisionRejectionData()
+    : normal(POS_INVALID), distance_to_origin(POS_INVALID) {
+  }
+
+  WallCollisionRejectionData(const Vec3& normal_, const float_t& distance_to_origin_)
+    : normal(normal_), distance_to_origin(distance_to_origin_) {
+  }
+
+  // for checking of consistency, the argument is usually Wall
+  bool has_identical_data_as_wall(const WallCollisionRejectionData& w) const {
+    return normal == w.normal && distance_to_origin == w.distance_to_origin;
+  }
+
+  Vec3 normal; /* Normal vector for this wall */
+  float_t distance_to_origin; // distance to origin (point normal form)
+};
+
+/**
  * Single instance of a wall.
  * Owned by partition, also its vertices are owned by partition.
  *
@@ -476,7 +499,7 @@ private:
  * state of this object is consistent. However, how to do it without
  * making the attributes private?
  */
-class Wall {
+class Wall : public WallCollisionRejectionData {
 public:
   Wall()
     : id(WALL_ID_INVALID), index(WALL_INDEX_INVALID), side(0),
@@ -484,8 +507,7 @@ public:
       wall_constants_precomputed(false),
       uv_vert1_u(POS_INVALID), uv_vert2(POS_INVALID),
       area(POS_INVALID),
-      normal(POS_INVALID), unit_u(POS_INVALID), unit_v(POS_INVALID), distance_to_origin(POS_INVALID)
-    {
+      unit_u(POS_INVALID), unit_v(POS_INVALID) {
 
     nb_walls[0] = WALL_INDEX_INVALID;
     nb_walls[1] = WALL_INDEX_INVALID;
@@ -502,7 +524,7 @@ public:
       wall_constants_precomputed(false),
       uv_vert1_u(POS_INVALID), uv_vert2(POS_INVALID),
       area(POS_INVALID),
-      normal(POS_INVALID), unit_u(POS_INVALID), unit_v(POS_INVALID), distance_to_origin(POS_INVALID)
+      unit_u(POS_INVALID), unit_v(POS_INVALID)
     {
     vertex_indices[0] = index0;
     vertex_indices[1] = index1;
@@ -564,10 +586,8 @@ public:
   Vec2 uv_vert2;      /* Surface coords of third corner */
 
   float_t area;  /* Area of this element */
-  Vec3 normal; /* Normal vector for this wall */
   Vec3 unit_u; /* U basis vector for this wall */
   Vec3 unit_v; /* V basis vector for this wall */
-  float_t distance_to_origin; // distance to origin (point normal form)
 
   SubpartIndicesSet present_in_subparts; // in what subpartitions is this wall located
 

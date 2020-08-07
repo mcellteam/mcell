@@ -788,6 +788,160 @@ static inline CollisionType INLINE_ATTR collide_wall(
 }
 
 
+
+static inline CollisionType INLINE_ATTR collide_wall_cache_optimized(
+    const Partition& p,
+    const Vec3& pos, const wall_index_t wall_index,
+    rng_state &rng,
+    const bool update_move,
+    Vec3& move,
+    float_t& collision_time, Vec3& collision_pos
+) {
+  p.stats.inc_ray_polygon_tests();
+
+  float_t dp, dv, dd;
+  float_t d_eps;
+
+  const WallCollisionRejectionData& rejection_data =
+      p.get_wall_collision_rejection_data(wall_index);
+
+  const Vec3& normal = rejection_data.normal;
+
+  dp = dot(normal, pos);
+  dv = dot(normal, move);
+  dd = dp - rejection_data.distance_to_origin;
+
+  if (dd > 0) {
+    d_eps = EPS;
+    if (dd < d_eps)
+      d_eps = 0.5 * dd;
+
+    /* Start & end above plane */
+    if (dd + dv > d_eps) {
+      return CollisionType::WALL_MISS;
+    }
+  }
+  else {
+    d_eps = -EPS;
+    if (dd > d_eps)
+      d_eps = 0.5 * dd;
+
+    /* Start & end below plane */
+    if (dd < 0.0 && dd + dv < d_eps) {
+      return CollisionType::WALL_MISS;
+    }
+  }
+
+  float_t a;
+
+  if (dd == 0.0) {
+    /* Start beside plane, end above or below */
+    if (dv != 0.0)
+      return CollisionType::WALL_MISS;
+
+    // in case that the trajectory is parallel to the wall?
+    // update the displacement a bit
+    if (update_move) {
+      a = (MCell::abs_max_2vec(pos, move) + 1.0) * EPS;
+      if ((rng_uint(&rng) & 1) == 0)
+        a = -a;
+      if (dd == 0.0) {
+        move = move - Vec3(a) * normal;
+      }
+      else {
+        move = move * Vec3(1.0 - a);
+      }
+      return CollisionType::WALL_REDO;
+    }
+    else {
+      return CollisionType::WALL_MISS;
+    }
+  }
+
+  a = 1.0 / dv;
+  a *= -dd; /* Time we actually hit */
+  collision_time = a;
+
+  collision_pos = pos + a * move;
+
+  const Wall& face = p.get_wall(wall_index);
+  const Vec3& face_vert0 = p.get_geometry_vertex(face.vertex_indices[0]);
+
+  Vec3 local = collision_pos - face_vert0;
+
+  float_t b = dot(local, face.unit_u);
+  float_t c = dot(local, face.unit_v);
+
+  float_t f;
+  if (face.uv_vert2.v < 0.0) {
+    c = -c;
+    f = -face.uv_vert2.v;
+  }
+  else {
+    f = face.uv_vert2.v;
+  }
+
+  if (c > 0) {
+    float_t g, h;
+    g = b * f;
+    h = c * face.uv_vert2.u;
+    if (g > h) {
+      if (c * face.uv_vert1_u + g < h + face.uv_vert1_u * face.uv_vert2.v) {
+        if (dv > 0) {
+          return CollisionType::WALL_BACK;
+        }
+        else {
+          return CollisionType::WALL_FRONT;
+        }
+      }
+      else if ((!distinguishable_f(
+          c * face.uv_vert1_u + g,
+          h + face.uv_vert1_u * face.uv_vert2.v,
+          EPS))) {
+        if (update_move) {
+          const Vec3& face_vert1 = p.get_geometry_vertex(face.vertex_indices[1]);
+          const Vec3& face_vert2 = p.get_geometry_vertex(face.vertex_indices[2]);
+          jump_away_line(pos, a, face_vert1, face_vert2, face.normal, rng, move);
+          return CollisionType::WALL_REDO;
+        }
+        else {
+          return CollisionType::WALL_MISS;
+        }
+      }
+      else {
+        return CollisionType::WALL_MISS;
+      }
+    }
+    else if (!distinguishable_f(g, h, EPS)) {
+      if (update_move) {
+        const Vec3& face_vert2 = p.get_geometry_vertex(face.vertex_indices[2]);
+        jump_away_line(pos, a, face_vert2, face_vert0, face.normal, rng, move);
+        return CollisionType::WALL_REDO;
+      }
+      else {
+        return CollisionType::WALL_MISS;
+      }
+    }
+    else {
+      return CollisionType::WALL_MISS;
+    }
+  }
+  else if (!distinguishable_f(c, 0, EPS)) /* Hit first edge! */
+  {
+    if (update_move) {
+      const Vec3& face_vert1 = p.get_geometry_vertex(face.vertex_indices[1]);
+      jump_away_line(pos, a, face_vert0, face_vert1, face.normal, rng, move);
+      return CollisionType::WALL_REDO;
+    }
+    else {
+      return CollisionType::WALL_MISS;
+    }
+  }
+  else {
+    return CollisionType::WALL_MISS;
+  }
+}
+
 static bool is_immediate_collision(const float_t time) {
   return time < EPS;
 }
@@ -823,7 +977,7 @@ restart_on_redo:
       continue;
     }
 
-    const Wall& w = p.get_wall(wall_index);
+    //const Wall& w = p.get_wall(wall_index);
     float_t collision_time;
     Vec3 collision_pos;
 
@@ -837,7 +991,7 @@ restart_on_redo:
 #endif
 
     CollisionType collision_type =
-        collide_wall(p, vm.v.pos, w, rng, true, displacement, collision_time, collision_pos);
+        collide_wall_cache_optimized(p, vm.v.pos, wall_index, rng, true, displacement, collision_time, collision_pos);
 
 #ifdef DEBUG_COLLISIONS_WALL_EXTRA
     DUMP_CONDITION4(

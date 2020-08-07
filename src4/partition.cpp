@@ -62,6 +62,11 @@ void Partition::finalize_wall_creation(const wall_index_t wall_index) {
     // mapping wall->subpart
     w.present_in_subparts.insert(subpart_index); // TODO: use insert_unique
   }
+
+  // make a cache-optimized copy of certain fields from Wall
+  assert(wall_collision_rejection_data.size() == wall_index);
+  wall_collision_rejection_data.push_back(
+      WallCollisionRejectionData(w.normal, w.distance_to_origin));
 }
 
 // remove items when 'insert' is false

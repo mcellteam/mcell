@@ -350,7 +350,7 @@ public:
 
       // can the second reactant initiate a reaction with me?
       const BNG::Species& initiator_reactant_species = get_all_species().get(second_species_id);
-      assert(!initiator_reactant_species.is_vol());
+      assert(initiator_reactant_species.is_vol());
       if (initiator_reactant_species.cant_initiate()) {
         // nothing to do
         continue;
@@ -763,6 +763,14 @@ public:
     return &res;
   }
 
+  const WallCollisionRejectionData& get_wall_collision_rejection_data(const wall_index_t i) const {
+    assert(i < walls.size());
+    assert(wall_collision_rejection_data.size() == walls.size());
+    const WallCollisionRejectionData& res = wall_collision_rejection_data[i];
+    assert(res.has_identical_data_as_wall(walls[i]));
+    return res;
+  }
+
   // maybe we will need to filter out, e.g. just reflective surfaces
   const WallsInSubpart& get_subpart_wall_indices(const subpart_index_t subpart_index) const {
     return walls_per_subpart[subpart_index];
@@ -958,10 +966,13 @@ private:
 
   std::vector<Vec3> geometry_vertices;
 
-  // we must plan for dynamic geometry but for now its just static
   std::vector<GeometryObject> geometry_objects;
 
   std::vector<Wall> walls;
+
+  // this is a copy of normal and distance from origin for fast wall collision rejection,
+  // stored in separate array to optimize cache performance in collide_wall
+  std::vector<WallCollisionRejectionData> wall_collision_rejection_data;
 
   std::vector<Region> regions;
 
