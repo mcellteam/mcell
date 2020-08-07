@@ -637,159 +637,7 @@ collide_wall:
         the value of t returned, not hitpt (reflections happen slightly
         early to avoid rounding errors with superimposed planes).
 ***************************************************************************/
-// OPT: the always_inline gives almost 2%
 static inline CollisionType INLINE_ATTR collide_wall(
-    const Partition& p,
-    const Vec3& pos, const Wall& face,
-    rng_state &rng,
-    const bool update_move,
-    Vec3& move,
-    float_t& collision_time, Vec3& collision_pos
-) {
-  p.stats.inc_ray_polygon_tests();
-
-  float_t dp, dv, dd;
-  float_t d_eps;
-
-  const Vec3& normal = face.normal;
-
-  dp = dot(normal, pos);
-  dv = dot(normal, move);
-  dd = dp - face.distance_to_origin;
-
-  if (dd > 0) {
-    d_eps = EPS;
-    if (dd < d_eps)
-      d_eps = 0.5 * dd;
-
-    /* Start & end above plane */
-    if (dd + dv > d_eps) {
-      return CollisionType::WALL_MISS;
-    }
-  }
-  else {
-    d_eps = -EPS;
-    if (dd > d_eps)
-      d_eps = 0.5 * dd;
-
-    /* Start & end below plane */
-    if (dd < 0.0 && dd + dv < d_eps) {
-      return CollisionType::WALL_MISS;
-    }
-  }
-
-  float_t a;
-
-  if (dd == 0.0) {
-    /* Start beside plane, end above or below */
-    if (dv != 0.0)
-      return CollisionType::WALL_MISS;
-
-    // in case that the trajectory is parallel to the wall?
-    // update the displacement a bit
-    if (update_move) {
-      a = (MCell::abs_max_2vec(pos, move) + 1.0) * EPS;
-      if ((rng_uint(&rng) & 1) == 0)
-        a = -a;
-      if (dd == 0.0) {
-        move = move - Vec3(a) * normal;
-      }
-      else {
-        move = move * Vec3(1.0 - a);
-      }
-      return CollisionType::WALL_REDO;
-    }
-    else {
-      return CollisionType::WALL_MISS;
-    }
-  }
-
-  a = 1.0 / dv;
-  a *= -dd; /* Time we actually hit */
-  collision_time = a;
-
-  collision_pos = pos + a * move;
-
-  const Vec3& face_vert0 = p.get_geometry_vertex(face.vertex_indices[0]);
-
-  Vec3 local = collision_pos - face_vert0;
-
-  float_t b = dot(local, face.unit_u);
-  float_t c = dot(local, face.unit_v);
-
-  float_t f;
-  if (face.uv_vert2.v < 0.0) {
-    c = -c;
-    f = -face.uv_vert2.v;
-  }
-  else {
-    f = face.uv_vert2.v;
-  }
-
-  if (c > 0) {
-    float_t g, h;
-    g = b * f;
-    h = c * face.uv_vert2.u;
-    if (g > h) {
-      if (c * face.uv_vert1_u + g < h + face.uv_vert1_u * face.uv_vert2.v) {
-        if (dv > 0) {
-          return CollisionType::WALL_BACK;
-        }
-        else {
-          return CollisionType::WALL_FRONT;
-        }
-      }
-      else if ((!distinguishable_f(
-          c * face.uv_vert1_u + g,
-          h + face.uv_vert1_u * face.uv_vert2.v,
-          EPS))) {
-        if (update_move) {
-          const Vec3& face_vert1 = p.get_geometry_vertex(face.vertex_indices[1]);
-          const Vec3& face_vert2 = p.get_geometry_vertex(face.vertex_indices[2]);
-          jump_away_line(pos, a, face_vert1, face_vert2, face.normal, rng, move);
-          return CollisionType::WALL_REDO;
-        }
-        else {
-          return CollisionType::WALL_MISS;
-        }
-      }
-      else {
-        return CollisionType::WALL_MISS;
-      }
-    }
-    else if (!distinguishable_f(g, h, EPS)) {
-      if (update_move) {
-        const Vec3& face_vert2 = p.get_geometry_vertex(face.vertex_indices[2]);
-        jump_away_line(pos, a, face_vert2, face_vert0, face.normal, rng, move);
-        return CollisionType::WALL_REDO;
-      }
-      else {
-        return CollisionType::WALL_MISS;
-      }
-    }
-    else {
-      return CollisionType::WALL_MISS;
-    }
-  }
-  else if (!distinguishable_f(c, 0, EPS)) /* Hit first edge! */
-  {
-    if (update_move) {
-      const Vec3& face_vert1 = p.get_geometry_vertex(face.vertex_indices[1]);
-      jump_away_line(pos, a, face_vert0, face_vert1, face.normal, rng, move);
-      return CollisionType::WALL_REDO;
-    }
-    else {
-      return CollisionType::WALL_MISS;
-    }
-  }
-  else {
-    return CollisionType::WALL_MISS;
-  }
-}
-
-
-
-static inline CollisionType INLINE_ATTR collide_wall_cache_optimized(
     const Partition& p,
     const Vec3& pos, const wall_index_t wall_index,
     rng_state &rng,
@@ -991,7 +839,7 @@ restart_on_redo:
 #endif
 
     CollisionType collision_type =
-        collide_wall_cache_optimized(p, vm.v.pos, wall_index, rng, true, displacement, collision_time, collision_pos);
+        collide_wall(p, vm.v.pos, wall_index, rng, true, displacement, collision_time, collision_pos);
 
 #ifdef DEBUG_COLLISIONS_WALL_EXTRA
     DUMP_CONDITION4(
@@ -1055,7 +903,7 @@ static bool collide_wall_test(
   uint orig_randcnt = unused_rng_state.randcnt;
 #endif
   res = CollisionUtil::collide_wall(
-      p, pos, face, unused_rng_state, false, tmp_move,
+      p, pos, face.index, unused_rng_state, false, tmp_move,
       ignored_collision_time, ignored_collision_pos
   );
 #ifndef NDEBUG
@@ -1475,8 +1323,6 @@ static uint get_num_crossed_region_walls(
 
     for (const wall_index_t& wall_index: walls) {
 
-      const Wall& w = p.get_wall(wall_index);
-
       if (already_checked_walls.count(wall_index) != 0) {
         // we already checked this wall - the same wall can be in multiple subparts
         continue;
@@ -1489,7 +1335,7 @@ static uint get_num_crossed_region_walls(
       CollisionType collision_type;
 
       collision_type = collide_wall(
-            p, pos, w, p.aux_rng, true, displacement,
+            p, pos, wall_index, p.aux_rng, true, displacement,
             collision_time_ignored, collision_pos_ignored);
 
       if (collision_type == CollisionType::WALL_REDO) {
@@ -1549,7 +1395,7 @@ static void get_num_crossed_walls_per_object(
       CollisionType collision_type;
 
       collision_type = collide_wall(
-            p, pos, w, p.aux_rng, true, displacement,
+            p, pos, wall_index, p.aux_rng, true, displacement,
             collision_time_ignored, collision_pos_ignored);
 
       if (collision_type == CollisionType::WALL_REDO) {
@@ -1689,8 +1535,9 @@ static counted_volume_index_t compute_counted_volume_using_waypoints(
     // there must not be a counted wall between our point and the waypoint
     Vec3 displacement = waypoint->pos - pos;
     const WallsInSubpart& wall_indices = p.get_subpart_wall_indices(subpart_index);
-    for (auto it = wall_indices.begin(); it != wall_indices.end(); it++) {
-      const Wall& w = p.get_wall(*it);
+    for (const wall_index_t wall_index: wall_indices) {
+
+      const Wall& w = p.get_wall(wall_index);
 
       // do we care about this object?
       if (!p.get_geometry_object(w.object_index).is_counted_volume) {
@@ -1705,7 +1552,7 @@ static counted_volume_index_t compute_counted_volume_using_waypoints(
 
       CollisionType collision_type;
       collision_type = collide_wall(
-            p, pos, w, rng, true, displacement,
+            p, pos, wall_index, rng, true, displacement,
             collision_time_ignored, collision_pos_ignored
       );
 
