@@ -41,35 +41,67 @@ void DefragmentationEvent::dump(const string ind) const {
 
 void DefragmentationEvent::step() {
   for (Partition& p: world->get_partitions()) {
-    vector<Molecule>& volume_molecules = p.get_molecules();
+    vector<Molecule>& molecules = p.get_molecules();
 
-    if (volume_molecules.empty()) {
+    if (molecules.empty()) {
       // simply skip if there are no volume molecules
       continue;
     }
 
-    vector<molecule_index_t>& volume_molecules_id_to_index_mapping = p.get_molecule_id_to_index_mapping();
-
+    // first remove all defunct molecules from mols_per_time_step
     vector<Partition::TimeStepMoleculesData>& mols_per_time_step = p.get_molecule_data_per_time_step_array();
-    release_assert(mols_per_time_step.size() == 1 && mols_per_time_step[0].molecule_ids.size() == volume_molecules.size()
-        && "For now, volume_molecule_indices_per_time_step[0] must be identical to volume_molecules");
-    vector<molecule_id_t>& volume_molecule_ids_per_time_step = mols_per_time_step[0].molecule_ids;
+    for (Partition::TimeStepMoleculesData& timestep_mol_ids: mols_per_time_step) {
+      size_t ids_removed = 0;
+
+      vector<molecule_id_t>& molecule_ids = timestep_mol_ids.molecule_ids;
+
+      typedef vector<molecule_id_t>::iterator id_it_t;
+      id_it_t id_it_end = molecule_ids.end();
+
+      // find first defunct molecule
+      id_it_t id_it_first_defunct =  find_if(molecule_ids.begin(), id_it_end, [&p](const molecule_id_t id) -> bool { return p.get_m(id).is_defunct(); });
+      id_it_t id_it_copy_destination = id_it_first_defunct;
+
+      while (id_it_first_defunct != id_it_end) {
+        // then find the next one that is not defunct (might be it_end)
+        id_it_t id_it_next_funct = find_if(id_it_first_defunct, id_it_end, [&p](const molecule_id_t id) -> bool { return !p.get_m(id).is_defunct(); });
+
+        // then again, find following defunct molecule
+        id_it_t id_it_second_defunct = find_if(id_it_next_funct, id_it_end, [&p](const molecule_id_t id) -> bool { return p.get_m(id).is_defunct(); });
+
+        // move data: from, to, into position
+        std::copy(id_it_next_funct, id_it_second_defunct, id_it_copy_destination);
+
+        ids_removed += id_it_next_funct - id_it_first_defunct;
+
+        // and also move destination pointer
+        id_it_copy_destination += id_it_second_defunct - id_it_next_funct;
+
+        id_it_first_defunct = id_it_second_defunct;
+      }
+
+      // remove everything after it_copy_destination
+      if (ids_removed != 0) {
+        molecule_ids.resize(molecule_ids.size() - ids_removed);
+      }
+    }
+
+    // then follow with the molecules array
+    vector<molecule_index_t>& molecule_id_to_index_mapping = p.get_molecule_id_to_index_mapping();
 
 #ifdef DEBUG_DEFRAGMENTATION
     cout << "Defragmentation before sort:\n";
-    Molecule::dump_array(volume_molecules);
+    Molecule::dump_array(molecules);
 #endif
 
-    typedef vector<Molecule>::iterator vmit_t;
-    vmit_t it_begin = volume_molecules.begin();
-    vmit_t it_end = volume_molecules.end();
-
-    // find first defunct molecule
-    vmit_t it_first_defunct =  find_if(volume_molecules.begin(), it_end, [](const Molecule & m) -> bool { return m.is_defunct(); });
-    vmit_t it_copy_destination = it_first_defunct;
     size_t removed = 0;
 
-    vector<molecule_id_t>::iterator it_indices_begin = volume_molecule_ids_per_time_step.begin();
+    typedef vector<Molecule>::iterator vmit_t;
+    vmit_t it_end = molecules.end();
+
+    // find first defunct molecule
+    vmit_t it_first_defunct =  find_if(molecules.begin(), it_end, [](const Molecule & m) -> bool { return m.is_defunct(); });
+    vmit_t it_copy_destination = it_first_defunct;
 
     while (it_first_defunct != it_end) {
 
@@ -85,18 +117,12 @@ void DefragmentationEvent::step() {
       for (vmit_t it_update_mapping = it_first_defunct; it_update_mapping != it_next_funct; it_update_mapping++) {
         const Molecule& vm = *it_update_mapping;
         assert(vm.is_defunct());
-        volume_molecules_id_to_index_mapping[vm.id] = MOLECULE_INDEX_INVALID;
+        molecule_id_to_index_mapping[vm.id] = MOLECULE_INDEX_INVALID;
       }
 #endif
 
       // move data: from, to, into position
       std::copy(it_next_funct, it_second_defunct, it_copy_destination);
-
-      // do the same thing to the volume_molecules_per_time_step
-      size_t next_funct_index = it_next_funct - it_begin;
-      size_t second_defunct_index = it_second_defunct - it_begin;
-      size_t copy_destination_index = it_copy_destination - it_begin;
-      std::copy(it_indices_begin + next_funct_index, it_indices_begin + second_defunct_index, it_indices_begin + copy_destination_index);
 
       removed += it_next_funct - it_first_defunct;
 
@@ -108,24 +134,23 @@ void DefragmentationEvent::step() {
 
     // remove everything after it_copy_destination
     if (removed != 0) {
-      volume_molecules.resize(volume_molecules.size() - removed);
-      volume_molecule_ids_per_time_step.resize(volume_molecule_ids_per_time_step.size() - removed);
+      molecules.resize(molecules.size() - removed);
     }
 
 #ifdef DEBUG_DEFRAGMENTATION
     cout << "Defragmentation after defunct removal:\n";
-    Molecule::dump_array(volume_molecules);
+    Molecule::dump_array(molecules);
 #endif
 
     // update mapping
-    size_t new_count = volume_molecules.size();
+    size_t new_count = molecules.size();
     for (size_t i = 0; i < new_count; i++) {
-      const Molecule& vm = volume_molecules[i];
+      const Molecule& vm = molecules[i];
       if (vm.is_defunct()) {
         break;
       }
       // correct index because the molecule could have been moved
-      volume_molecules_id_to_index_mapping[vm.id] = i;
+      molecule_id_to_index_mapping[vm.id] = i;
     }
   }
 }
