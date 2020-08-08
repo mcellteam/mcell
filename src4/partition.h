@@ -403,6 +403,20 @@ private:
 
   void add_molecule_to_diffusion_list(const Molecule& m, const uint32_t time_step_index) {
 
+    /**
+     TODO: this breaks mcell_tests_private/tests/mdl/3610_neuropil_decimated_geom_it_10,
+     not sure why
+    const BNG::Species& species = get_all_species().get(m.species_id);
+    if (
+        species.is_vol() &&
+        !species.can_diffuse() &&
+        !species.has_unimol_rxn()
+    ) {
+      // no need to handle diffusion of vol species that cannot diffuse and have no unimol rxns
+      return;
+    }
+    */
+
     // and its index to the list sorted by time step
     // this is an array that changes only when molecule leaves this partition or is defunct
     assert(time_step_index <= molecules_data_per_time_step_array.size());

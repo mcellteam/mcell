@@ -82,6 +82,10 @@ void Species::update_flags_based_on_rxns(const SpeciesContainer& all_species, Rx
     }
   }
 
+  if (unimol_rxn_class != nullptr && unimol_rxn_class->get_num_reactions() == 0) {
+    set_flag(SPECIES_FLAG_HAS_UNIMOL_RXN);
+  }
+
   // get reactions, this also creates all reaction classes for the species that we currently have
   SpeciesRxnClassesMap* bimol_rxn_classes =
       all_rxns.get_bimol_rxns_for_reactant(id);

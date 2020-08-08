@@ -107,6 +107,10 @@ public:
     return has_flag(SPECIES_FLAG_NEEDS_COUNTED_VOLUME);
   }
 
+  bool has_unimol_rxn() const {
+    return has_flag(SPECIES_FLAG_HAS_UNIMOL_RXN);
+  }
+
   bool has_flag(uint flag) const override {
     // check that rxn flags are up-to-date
     if (flag == SPECIES_FLAG_CAN_VOLVOL ||

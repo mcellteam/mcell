@@ -893,8 +893,10 @@ bool MCell3WorldConverter::convert_species(volume* s) {
       CHECK_PROPERTY(false && "Flags listed in the message above are not supported yet");
     }
 
-    // simply copy all the flags from mcell3
-    new_species.set_flags(spec->flags);
+    // simply copy all the flags from mcell3 except for a few one that we really don't need
+    // TODO: copy only those that are supported
+    uint cleaned_flags = spec->flags & ~REGION_PRESENT;
+    new_species.set_flags(cleaned_flags);
 
     CHECK_PROPERTY(spec->n_deceased == 0);
     CHECK_PROPERTY(spec->cum_lifetime_seconds == 0);
