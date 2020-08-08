@@ -45,8 +45,7 @@ enum species_cplx_mol_rxn_flag_t {
 
   SPECIES_FLAG_CAN_REGION_BORDER = 0x100000,
   SPECIES_FLAG_HAS_UNIMOL_RXN = 0x200000, // collides with mcell3's REGION_PRESENT, but this flag is not copied
-
-  SPECIES_FLAG_EXTERNAL_SPECIES = 0x400000, // not supported - TODO LATER: remove
+  SPECIES_FLAG_HAS_BIMOL_VOL_RXN = 0x400000, // collides with mcell3's SPECIES_FLAG_EXTERNAL_SPECIES, but this flag is not supported at alkl
 
   RXN_FLAG_COUNTED_IN_WORLD = 0x1000000,
   RXN_FLAG_COUNTED_IN_VOLUME_REGIONS = 0x2000000,

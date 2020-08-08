@@ -363,12 +363,13 @@ void DiffuseReactEvent::diffuse_vol_molecule(
   //float_t updated_remaining_time_step = remaining_time_step; // == t_steps
 
   float_t elapsed_molecule_time = diffusion_start_time; // == vm->t
-
+  bool can_vol_react = species.can_vol_react();
   do {
     state =
         ray_trace_vol(
             p, world->rng,
             vm_id /* changes position */,
+            can_vol_react,
             last_hit_wall_index,
             remaining_displacement,
             molecule_collisions
@@ -551,6 +552,7 @@ RayTraceState ray_trace_vol(
     Partition& p,
     rng_state& rng,
     const molecule_id_t vm_id, // molecule that we are diffusing, we are changing its pos  and possibly also subvolume
+    const bool can_vol_react,
     const wall_index_t last_hit_wall_index, // is WALL_INDEX_INVALID when our molecule did not reflect from anything this diffusion step yet
     Vec3& remaining_displacement, // in/out - recomputed if there was a reflection
     collision_vector_t& collisions // both mol mol and wall collisions
@@ -580,12 +582,12 @@ RayTraceState ray_trace_vol(
   CollisionUtil::collect_crossed_subparts(
       p, vm, partition_displacement,
       radius, p.config.subpartition_edge_length,
-      p.config.has_bimol_vol_rxns, true,
+      can_vol_react, true,
       crossed_subparts_for_walls, crossed_subparts_for_molecules
   );
 
 #ifndef NDEBUG
-  if (p.config.has_bimol_vol_rxns) {
+  if (can_vol_react) {
     // crossed subparts must contain our own subpart
     assert(crossed_subparts_for_molecules.count(vm.v.subpart_index) == 1);
     bool debug_found = false;
@@ -639,7 +641,7 @@ RayTraceState ray_trace_vol(
     }
   }
 
-  if (p.config.has_bimol_vol_rxns) {
+  if (can_vol_react) {
     if (res_state == RayTraceState::RAY_TRACE_HIT_WALL) {
       // recompute collect_crossed_subparts if there was a wall collision
       // NOTE: this can be in theory done more efficiently if we knew the order of subpartitions that we hit in the previous call
@@ -1184,8 +1186,6 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
         continue;
       }
     }
-
-    assert(!nsm_species.has_flag(SPECIES_FLAG_EXTERNAL_SPECIES) && "TODO_LATER");
 
     // returns value >=1 if there can be a reaction
     size_t orig_num_rxsn = matching_rxn_classes.size();

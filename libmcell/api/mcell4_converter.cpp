@@ -681,12 +681,10 @@ void MCell4Converter::init_rxn_related_flags() {
 
   // find out whether we have a vol vol rxn for all current species (for mcell3 compatibility)
   // in BNG mode this finds a reaction as well
-  world->config.has_bimol_vol_rxns = all_rxns.has_bimol_vol_rxns();
-
   // this is an optimization to tell that we don't need to check the 
   // surroundings of subpartitions in case when there are no vol-vol rxns
   // needed for mcell3 binary compatibility
-  if (!world->config.has_bimol_vol_rxns) {
+  if (!all_rxns.has_bimol_vol_rxns()) {
     // the default is true (or read from user)
 	  world->config.use_expanded_list = false;
 	}

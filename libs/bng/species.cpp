@@ -82,7 +82,8 @@ void Species::update_flags_based_on_rxns(const SpeciesContainer& all_species, Rx
     }
   }
 
-  if (unimol_rxn_class != nullptr && unimol_rxn_class->get_num_reactions() == 0) {
+  if (unimol_rxn_class != nullptr) {
+    assert(unimol_rxn_class->get_num_reactions() > 0);
     set_flag(SPECIES_FLAG_HAS_UNIMOL_RXN);
   }
 
@@ -99,9 +100,14 @@ void Species::update_flags_based_on_rxns(const SpeciesContainer& all_species, Rx
     const RxnClass* rxn_class = it.second;
     assert(rxn_class->is_bimol());
 
+    // check individual reactions in the reaction class
     for (const RxnRule* rxn: rxn_class->get_rxns()) {
       if (rxn->is_counted_in_volume_regions()) {
-        set_flag(SPECIES_FLAG_NEEDS_COUNTED_VOLUME, true);
+        set_flag(SPECIES_FLAG_NEEDS_COUNTED_VOLUME);
+      }
+
+      if (rxn->is_bimol_vol_rxn()) {
+        set_flag(SPECIES_FLAG_HAS_BIMOL_VOL_RXN);
       }
     }
 

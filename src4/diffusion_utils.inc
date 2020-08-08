@@ -275,15 +275,18 @@ static void tiny_diffuse_3D(
   assert(vm.is_vol());
   assert(vm.v.subpart_index != SUBPART_INDEX_INVALID && "Molecule must be already placed into a subvolume");
 
+  const BNG::Species& species = p.get_all_species().get(vm.species_id);
   Vec3 ignored_displacement = displacement;
   subpart_index_t new_subpart_index;
-
   collision_vector_t collisions;
 
   // NOTE: can be optimized by ignoring molecule collisions
   rng_state ignored_rng;
   ray_trace_vol(
-        p, ignored_rng, vm.id, previous_reflected_wall, ignored_displacement,
+        p, ignored_rng,
+        vm.id, species.can_vol_react(),
+        previous_reflected_wall,
+        ignored_displacement,
         collisions
   );
   assert(vm.v.subpart_index == p.get_subpart_index(vm.v.pos));

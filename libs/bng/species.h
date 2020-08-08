@@ -111,6 +111,19 @@ public:
     return has_flag(SPECIES_FLAG_HAS_UNIMOL_RXN);
   }
 
+  bool has_bimol_vol_rxn() const {
+    return has_flag(SPECIES_FLAG_HAS_BIMOL_VOL_RXN);
+  }
+
+  bool can_vol_react() const {
+    if (cant_initiate()) {
+      return false;
+    }
+    else {
+      return has_bimol_vol_rxn();
+    }
+  }
+
   bool has_flag(uint flag) const override {
     // check that rxn flags are up-to-date
     if (flag == SPECIES_FLAG_CAN_VOLVOL ||

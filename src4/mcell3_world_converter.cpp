@@ -138,7 +138,6 @@ bool MCell3WorldConverter::convert(volume* s) {
 
   // additional flags
   world->get_all_species().recompute_species_flags(world->get_all_rxns()); // counting flags must be updated
-  world->config.has_bimol_vol_rxns = world->get_all_rxns().has_bimol_vol_rxns();
 
   return true;
 }

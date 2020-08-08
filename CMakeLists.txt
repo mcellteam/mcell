@@ -187,23 +187,17 @@ ADD_FLEX_BISON_DEPENDENCY(dynGeomScanner dynGeomParser dyngeomlex_l)
 
 
 # create version.h target
-if (CMAKE_BUILD_TYPE STREQUAL "Release")
-  if (NOT WIN32)
-    add_custom_target(
-      version_h
-      COMMAND ${CMAKE_SOURCE_DIR}/src/version.sh > ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h
-      DEPENDS ${CMAKE_SOURCE_DIR}/src/version.sh
-      VERBATIM)
-  elseif (WIN32)
-    add_custom_target(version_h)
-    add_custom_command(TARGET version_h COMMAND ${CMAKE_COMMAND} -E
-                     copy ${CMAKE_SOURCE_DIR}/appveyor_windows/version.h ${CMAKE_CURRENT_BINARY_DIR}/deps )
-  endif()                    
-else()
+if (NOT WIN32)
+  add_custom_target(
+    version_h
+    COMMAND ${CMAKE_SOURCE_DIR}/src/version.sh > ${CMAKE_CURRENT_BINARY_DIR}/deps/version.h
+    DEPENDS ${CMAKE_SOURCE_DIR}/src/version.sh
+    VERBATIM)
+elseif (WIN32)
   add_custom_target(version_h)
   add_custom_command(TARGET version_h COMMAND ${CMAKE_COMMAND} -E
-                   copy ${CMAKE_SOURCE_DIR}/appveyor_windows/debug_version.h ${CMAKE_CURRENT_BINARY_DIR}/deps )
-endif()
+                   copy ${CMAKE_SOURCE_DIR}/appveyor_windows/version.h ${CMAKE_CURRENT_BINARY_DIR}/deps )
+endif()                    
 
 # linking on centos7 with 7.3.1 fails with undefined reference to `casc::detail::asc_NodeBase::~asc_NodeBase()'
 set(PYBIND11_LTO_CXX_FLAGS "")
