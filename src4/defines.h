@@ -55,7 +55,6 @@
 #include <boost/container/flat_set.hpp>
 #endif
 
-
 // this file must not depend on any other from mcell4 otherwise there
 // might be some nasty cyclic include dependencies
 
@@ -124,6 +123,9 @@ using BNGCommon::round_f;
 const float_t SCHEDULER_COMPARISON_EPS = 1e-10;
 
 // ---------------------------------- configurable constants----------------------------------
+
+//#define ENABLE_SORT_MOLS_BY_SUBPART
+const uint SORT_MOLS_BY_SUBPART_PERIODICITY = 10;
 
 const uint DEFRAGMENTATION_PERIODICITY = 100;
 const float_t PARTITION_EDGE_LENGTH_DEFAULT_UM = 10; // large for now because we have just one partition

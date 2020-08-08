@@ -49,9 +49,7 @@ struct SubpartComparator
   bool operator () (const molecule_id_t id1, const molecule_id_t id2) const
   {
     const Molecule& m1 = p.get_m(id1);
-    assert(m1.is_vol());
     const Molecule& m2 = p.get_m(id2);
-    assert(m2.is_vol());
 
     if (m1.is_vol() && m2.is_vol()) {
       if (m1.v.subpart_index != m2.v.subpart_index) {
