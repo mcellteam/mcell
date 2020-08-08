@@ -309,10 +309,14 @@ void DiffuseReactEvent::diffuse_vol_molecule(
     const float_t diffusion_start_time,
     WallTileIndexPair& wall_tile_pair_where_created_this_iteration
 ) {
-  p.stats.inc_diffuse_3d_calls();
-
   Molecule& vm = p.get_m(vm_id);
   const BNG::Species& species = p.get_all_species().get(vm.species_id);
+
+  if (!species.can_diffuse()) {
+    return;
+  }
+
+  p.stats.inc_diffuse_3d_calls();
 
   // diffuse each molecule - get information on position change
   Vec3 displacement;

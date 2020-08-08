@@ -53,14 +53,10 @@ namespace DiffusionUtil {
 // get displacement based on scale (related to diffusion constant) and gauss random number
 static void pick_vol_displacement(const BNG::Species& sp, const float_t scale, rng_state& rng, Vec3& displacement) {
 
-  if (!sp.can_diffuse()) {
-    displacement = Vec3(0);
-  }
-  else {
-    displacement.x = scale * rng_gauss(&rng) * .70710678118654752440;
-    displacement.y = scale * rng_gauss(&rng) * .70710678118654752440;
-    displacement.z = scale * rng_gauss(&rng) * .70710678118654752440;
-  }
+  assert(sp.can_diffuse());
+  displacement.x = scale * rng_gauss(&rng) * .70710678118654752440;
+  displacement.y = scale * rng_gauss(&rng) * .70710678118654752440;
+  displacement.z = scale * rng_gauss(&rng) * .70710678118654752440;
 }
 
 
