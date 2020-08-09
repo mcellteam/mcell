@@ -2255,10 +2255,6 @@ void dump_vector3(struct vector3 vec, const char* extra_comment) {
   cout << extra_comment << vec << "\n";
 }
 
-void dump_rng_call_info(struct isaac64_state* rng, const char* extra_comment) {
-  cout << "  " << extra_comment << "randcnt:" << rng->randcnt << ", aa:" << (unsigned)rng->aa << ", bb:" << (unsigned)rng->bb << ", cc:" << (unsigned)rng->cc << "\n";
-}
-
 void dump_tile_neighbors_list(struct tile_neighbor *tile_nbr_head, const char* extra_comment, const char* ind) {
   struct tile_neighbor *curr = tile_nbr_head;
   int i = 0;

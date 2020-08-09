@@ -24,12 +24,15 @@
 #include "config.h"
 
 #include <math.h>
+#include <iostream>
 
 #include "rng.h"
 //#include "mcell_structs.h"
 
-//#include "dump_state.h"
-void dump_rng_call_info(struct isaac64_state* rng, const char* extra_comment);
+static void dump_rng_call_info(struct isaac64_state* rng, const char* extra_comment) {
+  std::cout << "  " << extra_comment << "randcnt:" << rng->randcnt << ", aa:" <<
+      (unsigned)rng->aa << ", bb:" << (unsigned)rng->bb << ", cc:" << (unsigned)rng->cc << "\n";
+}
 
 /*************************************************************************
  * Ziggurat Gaussian generator

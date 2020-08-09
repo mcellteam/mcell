@@ -362,8 +362,6 @@ file(COPY ${CMAKE_SOURCE_DIR}/../bionetgen/bng2/ DESTINATION ${CMAKE_CURRENT_BIN
 pybind11_add_module(pymcell4 MODULE  
     # few files from mcell3 that are used
     # TODO: get rid of all deps except for the random generator
-    src/rng.c 
-    src/isaac64.c
     src/logging.c
     src/mem_util.c
     src/strfunc.c
