@@ -216,6 +216,9 @@ public:
     }
   }
 
+  // returns reactant index, -1 if inst cannot be a reactant
+  int get_reactant_index(const CplxInstance& inst, const SpeciesContainer& all_species);
+
   // returns true if species 'id' matches one of the reactants
   bool species_can_be_reactant(const species_id_t id, const SpeciesContainer& all_species);
 

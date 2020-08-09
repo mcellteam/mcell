@@ -40,7 +40,9 @@ namespace BNG {
 // sets SPECIES_FLAG_CAN_VOLVOL, SPECIES_FLAG_CAN_VOLSURF, SPECIES_FLAG_CAN_VOLWALL,
 // SPECIES_FLAG_CAN_SURFSURF, and/or SPECIES_FLAG_CAN_REGION_BORDER
 // flags according to reactions in the system
-void Species::update_flags_based_on_rxns(const SpeciesContainer& all_species, RxnContainer& all_rxns, const bool force_update) {
+void Species::update_flags_based_on_rxns(
+    const SpeciesContainer& all_species, RxnContainer& all_rxns, const bool force_update) {
+
   if (!force_update && rxn_flags_were_updated) {
     return;
   }
@@ -49,9 +51,6 @@ void Species::update_flags_based_on_rxns(const SpeciesContainer& all_species, Rx
 #ifndef NDEBUG
   all_species.get(id); // must not fail
 #endif
-  species_id_t all_molecules_species_id = all_species.get_all_molecules_species_id();
-  species_id_t all_volume_molecules_species_id = all_species.get_all_volume_molecules_species_id();
-  species_id_t all_surface_molecules_species_id = all_species.get_all_surface_molecules_species_id();
 
   bool all_vol_mols_can_react_with_surface = all_rxns.all_vol_mols_can_react_with_surface;
   bool all_surf_mols_can_react_with_surface = all_rxns.all_surf_mols_can_react_with_surface;
@@ -62,7 +61,8 @@ void Species::update_flags_based_on_rxns(const SpeciesContainer& all_species, Rx
   set_flag(SPECIES_FLAG_CAN_SURFSURF, false);
   set_flag(SPECIES_FLAG_CAN_REGION_BORDER, false);
   // flag SPECIES_FLAG_NEEDS_COUNTED_VOLUME - must not be cleared because
-  // it might have been set when processing observables
+  // it might have been set when processing observables,
+  // here we are dealing only with flags related to reactions
 
   if (is_vol() && all_vol_mols_can_react_with_surface) {
     set_flag(SPECIES_FLAG_CAN_VOLWALL);
@@ -72,73 +72,62 @@ void Species::update_flags_based_on_rxns(const SpeciesContainer& all_species, Rx
     set_flag(SPECIES_FLAG_CAN_REGION_BORDER);
   }
 
-  // first go through unimol rxns - checking only whether we need to count rxns
-  const RxnClass* unimol_rxn_class = all_rxns.get_unimol_rxn_class(id);
-  if (unimol_rxn_class != nullptr) {
-    for (const RxnRule* rxn: unimol_rxn_class->get_rxns()) {
+  // go through all applicable reactions
+  // it does not make sense to create reaction classes now because
+  // we might not have all the reactant species and when reactant species do not exist,
+  // there are no bimol reaction classes, so we must really go through all the reactions
+  for (RxnRule* rxn: all_rxns.get_rxn_rules_vector()) {
+    if (!rxn->species_can_be_reactant(id, all_species)) {
+      continue;
+    }
+
+    if (rxn->is_unimol()) {
+      set_flag(SPECIES_FLAG_HAS_UNIMOL_RXN);
+
       if (rxn->is_counted_in_volume_regions()) {
         set_flag(SPECIES_FLAG_NEEDS_COUNTED_VOLUME, true);
       }
-    }
-  }
-
-  if (unimol_rxn_class != nullptr) {
-    assert(unimol_rxn_class->get_num_reactions() > 0);
-    set_flag(SPECIES_FLAG_HAS_UNIMOL_RXN);
-  }
-
-  // get reactions, this also creates all reaction classes for the species that we currently have
-  SpeciesRxnClassesMap* bimol_rxn_classes =
-      all_rxns.get_bimol_rxns_for_reactant(id);
-  if (bimol_rxn_classes == nullptr) {
-    rxn_flags_were_updated = true;
-    return;
-  }
-
-  // go through all applicable reactants
-  for (auto it: *bimol_rxn_classes) {
-    const RxnClass* rxn_class = it.second;
-    assert(rxn_class->is_bimol());
-
-    // check individual reactions in the reaction class
-    for (const RxnRule* rxn: rxn_class->get_rxns()) {
-      if (rxn->is_counted_in_volume_regions()) {
-        set_flag(SPECIES_FLAG_NEEDS_COUNTED_VOLUME);
-      }
-
-      if (rxn->is_bimol_vol_rxn()) {
-        set_flag(SPECIES_FLAG_HAS_BIMOL_VOL_RXN);
-      }
+      continue;
     }
 
-    species_id_t second_species_id;
-    if (rxn_class->specific_reactants[0] != id) {
-      second_species_id = rxn_class->specific_reactants[0];
+    assert(rxn->is_bimol());
+
+    if (rxn->is_counted_in_volume_regions()) {
+      set_flag(SPECIES_FLAG_NEEDS_COUNTED_VOLUME);
     }
-    else {
-      second_species_id = rxn_class->specific_reactants[1];
+
+    if (rxn->is_bimol_vol_rxn()) {
+      set_flag(SPECIES_FLAG_HAS_BIMOL_VOL_RXN);
     }
-    const Species& sp2 = all_species.get(second_species_id);
+
+    // second reactant - we must not define new species for reactant here
+    // because adding it to the species array might invalidate *this,
+    // we must analyze the cplx instance
+    int my_index = rxn->get_reactant_index(*this, all_species);
+    assert(my_index == 0 || my_index == 1);
+    int second_index = (my_index + 1) % 2;
+
+    const CplxInstance& second_reactant_inst = rxn->reactants[second_index];
 
     // we can use is_vol/is_surf for ALL_VOLUME_MOLECULES and ALL_SURFACE_MOLECULES
     if (is_vol()) {
-      if (sp2.is_vol() || sp2.id == all_molecules_species_id) {
+      if (second_reactant_inst.is_vol()) {
         set_flag(SPECIES_FLAG_CAN_VOLVOL);
       }
-      if (sp2.is_surf() || sp2.id == all_molecules_species_id) {
+      if (second_reactant_inst.is_surf()) {
         set_flag(SPECIES_FLAG_CAN_VOLSURF);
       }
-      if (sp2.is_reactive_surface()) {
+      if (second_reactant_inst.is_reactive_surface()) {
         set_flag(SPECIES_FLAG_CAN_VOLWALL);
       }
     }
 
-    if ((is_surf() || id == all_molecules_species_id)) {
-      if (sp2.is_surf() || sp2.id == all_molecules_species_id) {
+    if (is_surf()) {
+      if (second_reactant_inst.is_surf()) {
         set_flag(SPECIES_FLAG_CAN_SURFSURF);
       }
 
-      if (sp2.is_reactive_surface()) {
+      if (second_reactant_inst.is_reactive_surface()) {
         set_flag(SPECIES_FLAG_CAN_REGION_BORDER);
       }
     }

@@ -1209,6 +1209,19 @@ void RxnRule::move_products_that_are_also_reactants_to_be_the_first_products() {
   }
 }
 
+// returns -1 if the species cannot be a reactant
+// returns 0 if this is an unimol rxn or it is the first reactant of a bimol reaction
+// returns 1 if this is the second reactant of a bimol reaction
+int RxnRule::get_reactant_index(const CplxInstance& inst, const SpeciesContainer& all_species) {
+  for (size_t i = 0; i < reactants.size(); i++) {
+    const CplxInstance& reactant = reactants[i];
+    if (inst.matches_pattern(reactant, true)) { // reactant is the pattern to be matched
+      return i;
+    }
+  }
+  return -1;
+}
+
 
 bool RxnRule::species_can_be_reactant(const species_id_t id, const SpeciesContainer& all_species) {
 
@@ -1220,20 +1233,12 @@ bool RxnRule::species_can_be_reactant(const species_id_t id, const SpeciesContai
     return false;
   }
 
-  // need to find out
+  // need to check whether the complex instance can be a reactant
   const CplxInstance& inst = all_species.get_as_cplx_instance(id);
 
-  // at least one should match
-  bool matches = false;
-  for (const CplxInstance& reactant: reactants) {
-    if (inst.matches_pattern(reactant, true)) { // reactant is the pattern to be matched
-      matches = true;
-      break;
-    }
-    else {
-      matches = false;
-    }
-  }
+  int index = get_reactant_index(inst, all_species);
+  assert(index >= -1 && index <= 1);
+  bool matches = index != -1;
 
   if (matches) {
     species_applicable_as_reactants.insert_unique(id);

@@ -141,9 +141,6 @@ public:
     if (species_processed_for_bimol_rxn_classes.count(id) == 0) {
       create_bimol_rxn_classes_for_new_species(id);
 
-      // at this point we must update species flags
-      all_species.get(id).update_flags_based_on_rxns(all_species, *this);
-
       it = bimol_rxn_class_map.find(id);
     }
 
