@@ -26,9 +26,10 @@
 #include <math.h>
 
 #include "rng.h"
-#include "mcell_structs.h"
+//#include "mcell_structs.h"
 
-#include "dump_state.h"
+//#include "dump_state.h"
+void dump_rng_call_info(struct isaac64_state* rng, const char* extra_comment);
 
 /*************************************************************************
  * Ziggurat Gaussian generator
@@ -177,7 +178,7 @@ rng_gauss:
   In:  struct rng_state *rng - uniform RNG state
   Out: Returns a Gaussian variate (mean 0, variance 1)
  *************************************************************************/
-double rng_gauss(struct rng_state *rng) {
+static double rng_gauss(struct rng_state *rng) {
   double x, y;
   double sign = 1.0;
 
@@ -225,7 +226,7 @@ double rng_gauss(struct rng_state *rng) {
 }
 
 #if !defined(NDEBUG) || defined(DEBUG_RNG_CALLS)
-double rng_dbl(struct rng_state *rng) {
+static double rng_dbl(struct rng_state *rng) {
 
 #ifdef DEBUG_RNG_CALLS
   dump_rng_call_info(rng, "");
@@ -235,7 +236,7 @@ double rng_dbl(struct rng_state *rng) {
 #endif
 
 #if !defined(NDEBUG) || defined(DEBUG_RNG_CALLS)
-unsigned int rng_uint(struct rng_state *rng) {
+static unsigned int rng_uint(struct rng_state *rng) {
 
 #ifdef DEBUG_RNG_CALLS
   dump_rng_call_info(rng, "");

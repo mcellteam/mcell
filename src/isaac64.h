@@ -58,9 +58,9 @@ struct isaac64_state {
   ub8 rngblocks;
 };
 
-void isaac64_init(struct isaac64_state *rng, ub4 seed);
+static void isaac64_init(struct isaac64_state *rng, ub4 seed);
 
-void isaac64_generate(struct isaac64_state *rng);
+static void isaac64_generate(struct isaac64_state *rng);
 
 /*
 ------------------------------------------------------------------------------
@@ -99,3 +99,5 @@ Macros to get individual random numbers
        ? (DBL64 *(*((ub8 *)(((ub4 *)(rng->randrsl)) + (rng->randcnt -= 2)))))  \
        : (isaac64_generate(rng), rng->randcnt = RANDMAX - 2,                   \
           DBL64 * (*((ub8 *)(((ub4 *)(rng->randrsl)) + rng->randcnt)))))
+
+#include "isaac64.c"

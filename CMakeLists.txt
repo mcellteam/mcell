@@ -221,7 +221,7 @@ set(SOURCE_FILES
     src/grid_util.c
     src/map_c.cpp
     src/init.c
-    src/isaac64.c
+    #src/isaac64.c
     src/logging.c
     src/mcell_dyngeom.c
     src/mcell_init.c
@@ -246,7 +246,7 @@ set(SOURCE_FILES
     src/react_trig_nfsim.c
     src/react_util.c
     src/react_util_nfsim.c
-    src/rng.c
+    #src/rng.c
     src/sched_util.c
     src/strfunc.c
     src/sym_table.c

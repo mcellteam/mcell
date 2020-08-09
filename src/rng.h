@@ -47,8 +47,8 @@
 
 #if !defined(NDEBUG) || defined(DEBUG_RNG_CALLS)
 // we need functions to be able to dump the random number gen. info
-double rng_dbl(struct rng_state *rng);
-unsigned int rng_uint(struct rng_state *rng);
+static double rng_dbl(struct rng_state *rng);
+static unsigned int rng_uint(struct rng_state *rng);
 #else
 #define rng_dbl(x) isaac64_dbl32((x))
 #define rng_uint(x) isaac64_uint32((x))
@@ -59,4 +59,7 @@ unsigned int rng_uint(struct rng_state *rng);
 
 #define rng_open_dbl(x) (rng_dbl(x) + ONE_OVER_2_TO_THE_33RD)
 
-double rng_gauss(struct rng_state *rng);
+static double rng_gauss(struct rng_state *rng);
+
+#include "rng.c"
+
