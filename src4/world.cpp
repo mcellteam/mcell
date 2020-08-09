@@ -196,10 +196,12 @@ void World::init_simulation() {
   scheduler.schedule_event(defragmentation_event);
 
   // create subpart sorting events
-  /*SortMolsBySubpartEvent* sort_event = new SortMolsBySubpartEvent(this);
+#ifdef ENABLE_SORT_MOLS_BY_SUBPART
+  SortMolsBySubpartEvent* sort_event = new SortMolsBySubpartEvent(this);
   sort_event->event_time = 0;
   sort_event->periodicity_interval = 10;
-  scheduler.schedule_event(sort_event);*/
+  scheduler.schedule_event(sort_event);
+#endif
 
   // initialize timing
   previous_progress_report_time = {0, 0};

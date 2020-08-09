@@ -50,8 +50,10 @@ struct SubpartComparator
   {
     const Molecule& m1 = p.get_m(id1);
     const Molecule& m2 = p.get_m(id2);
+    const BNG::Species& s1 = p.get_all_species().get(m1.species_id);
+    const BNG::Species& s2 = p.get_all_species().get(m2.species_id);
 
-    if (m1.is_vol() && m2.is_vol()) {
+    if (m1.is_vol() && m2.is_vol() && s1.can_diffuse() && s2.can_diffuse()) {
       if (m1.v.subpart_index != m2.v.subpart_index) {
         return m1.v.subpart_index < m2.v.subpart_index;
       }

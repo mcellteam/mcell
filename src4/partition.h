@@ -403,9 +403,9 @@ private:
 
   void add_molecule_to_diffusion_list(const Molecule& m, const uint32_t time_step_index) {
 
-    /**
-     TODO: this breaks mcell_tests_private/tests/mdl/3610_neuropil_decimated_geom_it_10,
-     not sure why
+
+		/*
+		 this can possibly help with performance in some cases, but so far it had negligible effect 
     const BNG::Species& species = get_all_species().get(m.species_id);
     if (
         species.is_vol() &&

@@ -124,7 +124,7 @@ const float_t SCHEDULER_COMPARISON_EPS = 1e-10;
 
 // ---------------------------------- configurable constants----------------------------------
 
-//#define ENABLE_SORT_MOLS_BY_SUBPART
+//#define ENABLE_SORT_MOLS_BY_SUBPART - helps but produces different result
 const uint SORT_MOLS_BY_SUBPART_PERIODICITY = 10;
 
 const uint DEFRAGMENTATION_PERIODICITY = 100;
