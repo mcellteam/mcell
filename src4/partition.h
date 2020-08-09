@@ -319,10 +319,15 @@ public:
   // the reactant_subpart_index is index where the molecule was originally created,
   // it might have moved to subpart_index in the meantime
   void change_vol_reactants_map_from_orig_to_current(Molecule& vm, bool adding, bool removing) {
+    assert(vm.is_vol() && "This function is applicable only to volume mols and ignored for surface mols");
     assert(vm.v.subpart_index != SUBPART_INDEX_INVALID);
     assert(vm.v.reactant_subpart_index != SUBPART_INDEX_INVALID);
     assert(vm.v.subpart_index == get_subpart_index(vm.v.pos) && "Position and subpart must match all the time");
-    assert(vm.is_vol() && "This function is applicable only to volume mols and ignored for surface mols");
+
+    const BNG::Species& vm_species = get_all_species().get(vm.species_id);
+    if (!vm_species.has_bimol_vol_rxn()) {
+      return;
+    }
 
     // and these are indices of possible reactants with our reactant_species_id
     // NOTE: this must be fast, bng engine must have this map/vector already ready
