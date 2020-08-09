@@ -37,9 +37,10 @@ SET(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0 ")
 SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -O0 ")
 
 if (CMAKE_BUILD_TYPE STREQUAL "Release")
-  # when -march=native is enabled, there is some error in MCell3 wall 
-  # overlap detection 
-  SET(OPTIMIZATION_FLAGS " -O3 -g -march=core2 -finline-limit=10000 ")
+  # when -march=native or -march=haswell is enabled, there is some error in MCell3 wall 
+  # overlap detection, can be checked with mcell_tests_private/benchmarks/mdl/B4110_neuropil_no_custom_timestep 
+  # seems to be related to AVX2, maybe gcc issue
+  SET(OPTIMIZATION_FLAGS " -O3 -g -march=sandybridge -finline-limit=10000 ")
   
   # must not be used for pymcell (at least for now)
   SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -no-pie ")
