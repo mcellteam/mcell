@@ -99,7 +99,7 @@ public:
       const molecule_id_t id_, const species_id_t species_id_,
       const Vec3& pos_, const float_t release_delay_=0
     )
-    : id(id_), species_id(species_id_), flags(MOLECULE_FLAG_VOL),
+    : id(id_), species_id(species_id_), flags(MOLECULE_FLAG_VOL), mempart_index(0),
       release_delay(release_delay_), unimol_rx_time(TIME_INVALID), unimol_rx(nullptr) {
     v.pos = pos_;
     v.subpart_index = SUBPART_INDEX_INVALID;
@@ -112,7 +112,7 @@ public:
       const molecule_id_t id_, const species_id_t species_id_,
       const Vec2& pos2d, const float_t release_delay_=0
     )
-    : id(id_), species_id(species_id_), flags(MOLECULE_FLAG_SURF),
+    : id(id_), species_id(species_id_), flags(MOLECULE_FLAG_SURF), mempart_index(0),
       release_delay(release_delay_), unimol_rx_time(TIME_INVALID), unimol_rx(nullptr) {
     s.pos = pos2d;
     //s.subpart_index = SUBPART_INDEX_INVALID;
@@ -121,33 +121,16 @@ public:
     s.grid_tile_index = TILE_INDEX_INVALID;
   }
 
-  // WARNING: this method must be updated when a new attribute is added
+  // assuming that this function has no virtual methods and has only POD types
   void operator = (const Molecule& m) {
-    id = m.id;
-    flags = m.flags;
-    species_id = m.species_id;
-    release_delay = m.release_delay;
-    unimol_rx_time = m.unimol_rx_time;
-    unimol_rx = m.unimol_rx;
-
-    if (m.is_vol()) {
-      v.pos = m.v.pos;
-      v.subpart_index = m.v.subpart_index;
-      v.reactant_subpart_index = m.v.reactant_subpart_index;
-      v.counted_volume_index = m.v.counted_volume_index;
-    }
-    else if (m.is_surf()) {
-      s.pos = m.s.pos;
-      s.orientation = m.s.orientation;
-      s.wall_index = m.s.wall_index;
-      s.grid_tile_index = m.s.grid_tile_index;
-    }
+    memcpy(this, &m, sizeof(Molecule));
   }
 
   // data is ordered to avoid alignment holes (for 64-bit floats)
   molecule_id_t id; // unique molecule id (for now it is unique per partition but should be world-wide unique)
   species_id_t species_id;
   uint flags;
+  uint mempart_index; // auxiliary value used for sorting of molecules for cache optimization in SortMolsBySubpartEvent
 
   // set when the molecule was released this iteration and the actual release time was delayed compared to the
   // release event time

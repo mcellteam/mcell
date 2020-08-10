@@ -28,12 +28,6 @@
 #include "world.h"
 #include "partition.h"
 
-// only one can be defined
-#define SORT_BY_SUBPART_INDEX
-//#define SORT_BY_MEM_CUBE
-
-const int SUBPARTS_PER_MEM_CUBE = 4;
-
 using namespace std;
 
 namespace MCell {
@@ -45,69 +39,17 @@ void SortMolsBySubpartEvent::dump(const string ind) const {
 }
 
 
-uint subpart_index_to_mem_cube_index(const Partition& p, const subpart_index_t subpart_index) {
-  IVec3 indices;
-  p.get_subpart_3d_indices_from_index(subpart_index, indices);
-
-  // "decimate" the subpart indices
-  indices = IVec3(indices / IVec3(SUBPARTS_PER_MEM_CUBE));
-
-  assert(indices.x < 256 && indices.y < 256 && indices.z < 256);
-  // we just need to encode the memory subpart number in some way
-  return indices.x + (indices.y << 8) + (indices.z << 16);
-}
-
-
-inline bool compare_mols(
-    const Partition& p,
-    const Molecule& m1,
-    const Molecule& m2
-) {
-  const BNG::Species& s1 = p.get_all_species().get(m1.species_id);
-  const BNG::Species& s2 = p.get_all_species().get(m2.species_id);
-
-  if (m1.is_vol() && m2.is_vol() && s1.can_diffuse() && s2.can_diffuse()) {
-#ifndef SORT_BY_MEM_CUBE
-    if (m1.v.subpart_index != m2.v.subpart_index) {
-      return m1.v.subpart_index < m2.v.subpart_index;
-    }
-    else {
-      return m1.id < m2.id;
-    }
-#else
-    uint mem_index1 = subpart_index_to_mem_cube_index(p, m1.v.subpart_index);
-    uint mem_index2 = subpart_index_to_mem_cube_index(p, m2.v.subpart_index);
-    if (mem_index1 != mem_index2) {
-      return mem_index1 < mem_index2;
-    }
-# ifdef SORT_BY_SUBPART_INDEX
-    else if (m1.v.subpart_index != m2.v.subpart_index) {
-      return m1.v.subpart_index < m2.v.subpart_index;
-    }
-# endif
-    else {
-      return m1.id < m2.id;
-    }
-#endif
-  }
-  else {
-    return m1.id < m2.id;
-  }
-}
-
-
 struct SubpartComparatorForId
 {
   SubpartComparatorForId(const Partition& p_)
     : p(p_) {
   }
 
-  bool operator () (const molecule_id_t id1, const molecule_id_t id2) const
-  {
+  bool operator () (const molecule_id_t id1, const molecule_id_t id2) const {
     const Molecule& m1 = p.get_m(id1);
     const Molecule& m2 = p.get_m(id2);
 
-    return compare_mols(p, m1, m2);
+    return m1.mempart_index < m2.mempart_index;
   }
 
   const Partition& p;
@@ -116,28 +58,37 @@ struct SubpartComparatorForId
 
 struct SubpartComparatorForMol
 {
-  SubpartComparatorForMol(const Partition& p_)
-    : p(p_) {
+  SubpartComparatorForMol(){
   }
 
-  bool operator () (const Molecule& m1, const Molecule& m2) const
-  {
-    return compare_mols(p, m1, m2);
+  bool operator () (const Molecule& m1, const Molecule& m2) const {
+    return m1.mempart_index < m2.mempart_index;
   }
-
-  const Partition& p;
 };
+
 
 void SortMolsBySubpartEvent::step() {
   for (Partition& p: world->get_partitions()) {
     vector<Molecule>& molecules = p.get_molecules();
 
     if (molecules.empty()) {
-      // simply skip if there are no volume molecules
+      // simply skip if there are no molecules
       continue;
     }
 
-    // NOTE: this can be optimized if we would take just volume mols into account
+    // update mempart_index
+    for (Molecule& m: molecules) {
+      const BNG::Species& sp = p.get_all_species().get(m.species_id);
+      if (m.is_vol() && sp.can_diffuse()) {
+        m.mempart_index = m.v.subpart_index;
+      }
+      else {
+        // set some value that should not collide with subpart indices
+        m.mempart_index = 0x80000000;
+      }
+    }
+
+    // this can be optimized if we would take just volume mols into account
     vector<Partition::TimeStepMoleculesData>& mols_per_time_step = p.get_molecule_data_per_time_step_array();
 
     for (Partition::TimeStepMoleculesData& time_step_data: mols_per_time_step) {
@@ -147,7 +98,7 @@ void SortMolsBySubpartEvent::step() {
     }
 
     // also sort molecules in the molecules array
-    sort(molecules.begin(), molecules.end(), SubpartComparatorForMol(p));
+    sort(molecules.begin(), molecules.end(), SubpartComparatorForMol());
 
     // and update their indices in the molecule_id_to_index_mapping
     std::vector<molecule_index_t>& molecule_id_to_index_mapping = p.get_molecule_id_to_index_mapping();
