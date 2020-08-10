@@ -99,7 +99,7 @@ public:
       const molecule_id_t id_, const species_id_t species_id_,
       const Vec3& pos_, const float_t release_delay_=0
     )
-    : id(id_), species_id(species_id_), flags(MOLECULE_FLAG_VOL), mempart_index(0),
+    : id(id_), species_id(species_id_), flags(MOLECULE_FLAG_VOL),
       release_delay(release_delay_), unimol_rx_time(TIME_INVALID), unimol_rx(nullptr) {
     v.pos = pos_;
     v.subpart_index = SUBPART_INDEX_INVALID;
@@ -112,7 +112,7 @@ public:
       const molecule_id_t id_, const species_id_t species_id_,
       const Vec2& pos2d, const float_t release_delay_=0
     )
-    : id(id_), species_id(species_id_), flags(MOLECULE_FLAG_SURF), mempart_index(0),
+    : id(id_), species_id(species_id_), flags(MOLECULE_FLAG_SURF),
       release_delay(release_delay_), unimol_rx_time(TIME_INVALID), unimol_rx(nullptr) {
     s.pos = pos2d;
     //s.subpart_index = SUBPART_INDEX_INVALID;
@@ -130,7 +130,6 @@ public:
   molecule_id_t id; // unique molecule id (for now it is unique per partition but should be world-wide unique)
   species_id_t species_id;
   uint flags;
-  uint mempart_index; // auxiliary value used for sorting of molecules for cache optimization in SortMolsBySubpartEvent
 
   // set when the molecule was released this iteration and the actual release time was delayed compared to the
   // release event time

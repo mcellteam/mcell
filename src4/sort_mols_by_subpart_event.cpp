@@ -41,33 +41,38 @@ void SortMolsBySubpartEvent::dump(const string ind) const {
 
 struct SubpartComparatorForId
 {
-  SubpartComparatorForId(const Partition& p_)
-    : p(p_) {
+  SubpartComparatorForId(const vector<uint>& mempart_indices_)
+    : mempart_indices(mempart_indices_) {
   }
 
   bool operator () (const molecule_id_t id1, const molecule_id_t id2) const {
-    const Molecule& m1 = p.get_m(id1);
-    const Molecule& m2 = p.get_m(id2);
-
-    return m1.mempart_index < m2.mempart_index;
+    assert(id1 < mempart_indices.size());
+    assert(id2 < mempart_indices.size());
+    return mempart_indices[id1] < mempart_indices[id2];
   }
 
-  const Partition& p;
+  const vector<uint>& mempart_indices;
 };
 
 
 struct SubpartComparatorForMol
 {
-  SubpartComparatorForMol(){
+  SubpartComparatorForMol(const vector<uint>& mempart_indices_)
+    : mempart_indices(mempart_indices_) {
   }
 
   bool operator () (const Molecule& m1, const Molecule& m2) const {
-    return m1.mempart_index < m2.mempart_index;
+    assert(m1.id < mempart_indices.size());
+    assert(m2.id < mempart_indices.size());
+    return mempart_indices[m1.id] < mempart_indices[m2.id];
   }
+
+  const vector<uint>& mempart_indices;
 };
 
 
 void SortMolsBySubpartEvent::step() {
+
   for (Partition& p: world->get_partitions()) {
     vector<Molecule>& molecules = p.get_molecules();
 
@@ -76,15 +81,18 @@ void SortMolsBySubpartEvent::step() {
       continue;
     }
 
-    // update mempart_index
+    // may create too large array when multiple partitions will be used
+    // but currently the molecule ID assignment is done in partitions anyway
+    vector<uint> mempart_indices(p.get_next_molecule_id_no_increment());
+
     for (Molecule& m: molecules) {
       const BNG::Species& sp = p.get_all_species().get(m.species_id);
       if (m.is_vol() && sp.can_diffuse()) {
-        m.mempart_index = m.v.subpart_index;
+        mempart_indices[m.id] = m.v.subpart_index;
       }
       else {
         // set some value that should not collide with subpart indices
-        m.mempart_index = 0x80000000;
+        mempart_indices[m.id] = 0x80000000;
       }
     }
 
@@ -94,11 +102,11 @@ void SortMolsBySubpartEvent::step() {
     for (Partition::TimeStepMoleculesData& time_step_data: mols_per_time_step) {
       vector<molecule_id_t>& molecule_ids = time_step_data.molecule_ids;
 
-      sort(molecule_ids.begin(), molecule_ids.end(), SubpartComparatorForId(p));
+      sort(molecule_ids.begin(), molecule_ids.end(), SubpartComparatorForId(mempart_indices));
     }
 
     // also sort molecules in the molecules array
-    sort(molecules.begin(), molecules.end(), SubpartComparatorForMol());
+    sort(molecules.begin(), molecules.end(), SubpartComparatorForMol(mempart_indices));
 
     // and update their indices in the molecule_id_to_index_mapping
     std::vector<molecule_index_t>& molecule_id_to_index_mapping = p.get_molecule_id_to_index_mapping();

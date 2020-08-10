@@ -400,7 +400,9 @@ public:
     change_vol_reactants_map_from_orig_to_current(vm, true, true);
   }
 
-
+  molecule_id_t get_next_molecule_id_no_increment() {
+    return next_molecule_id;
+  }
 
 private:
   // internal methods that sets molecule's id and
@@ -435,6 +437,7 @@ private:
     assert((is_vol && species.is_vol()) || (!is_vol && species.is_surf()));
     uint32_t time_step_index = get_or_add_molecule_list_index_for_time_step(species.time_step);
 
+    // TODO: molecule IDs must be assigned by World
     molecule_id_t molecule_id = next_molecule_id;
     next_molecule_id++;
 
