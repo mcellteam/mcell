@@ -379,7 +379,7 @@ void World::dump() {
 }
 
 
-void World::export_data_model_to_dir(const std::string& prefix) const {
+void World::export_data_model_to_dir(const std::string& prefix, const bool only_for_viz) const {
   // prefix should be the same directory that is used for viz_output,
   // e.g. ./viz_data/seed_0001/Scene
 
@@ -392,7 +392,7 @@ void World::export_data_model_to_dir(const std::string& prefix) const {
   // create directories if needed
   ::make_parent_dir(path.str().c_str());
 
-  export_data_model(path.str().c_str(), false); // in this case, we are generating the data model only for visualization
+  export_data_model(path.str().c_str(), only_for_viz);
 }
 
 

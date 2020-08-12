@@ -144,8 +144,7 @@ public:
       const Vec3 origin_,
       const SimulationConfig& config_,
       BNG::BNGEngine& bng_engine_,
-      SimulationStats& stats_,
-      rng_state& rng_
+      SimulationStats& stats_
   );
   
   int get_geometry_vertex_count();
@@ -176,9 +175,6 @@ public:
   
   void dump();
   
-  void export_data_model_to_dir(const std::string& prefix);
-  void export_data_model(const std::string& filename, const bool for_viz);
-  
   BNG::SpeciesContainer& get_all_species();
   
   SimulationConfig config;
@@ -199,15 +195,15 @@ public:
      self->register_wall_hit_callback_internal(py_callback_wall_hit, (void *) pyfunc, object_name);
      Py_INCREF(pyfunc);
    }
+
+  void export_visualization_datamodel_to_dir(const char* prefix) {
+  	self->export_data_model_to_dir(std::string(prefix), true);
+  }
    
     // only in Python API
     BNG::Species* find_species_by_name(const char* name) {
      	return self->get_all_species().find_species_by_name(name);
     }
-}
-
-%extend Species {
-    Species();
 }
 
 } // namespace MCell
