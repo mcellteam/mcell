@@ -107,18 +107,8 @@ public:
   // size is given by config
   partition_id_t add_partition(const Vec3& partition_llf) {
     assert(config.partition_edge_length != 0);
-<<<<<<< HEAD
     assert(get_partition_index(partition_llf) == PARTITION_ID_INVALID && "Partition must not exist");
     partitions.push_back(Partition(partitions.size(), partition_llf, config, bng_engine, stats));
-=======
-    assert(get_partition_index(pos) == PARTITION_INDEX_INVALID && "Partition must not exist");
-
-    Vec3 origin =
-        floor_to_multiple(pos, config.partition_edge_length)
-        - Vec3(config.partition_edge_length/2);
-
-    partitions.push_back(Partition(origin, config, all_reactions, all_species, stats, rng));
->>>>>>> refs/remotes/origin/mcell4_display
     return partitions.size() - 1;
   }
 

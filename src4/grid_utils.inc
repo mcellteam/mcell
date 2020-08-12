@@ -2053,7 +2053,7 @@ static void find_closest_tile_on_wall(
     if (p.config.randomize_smol_pos) {
       // molecules are processed in different order than in mcell3, this might break
       // compatibility, but the behavior is the same here
-      new_pos2d = GridUtil::grid2uv_random(w, new_tile_index, p.rng);
+      new_pos2d = GridUtil::grid2uv_random(w, new_tile_index, p.aux_rng);
     }
     else {
       new_pos2d = GridUtil::grid2uv(w, new_tile_index);
