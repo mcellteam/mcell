@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8.4)
 
 project(libmcell)
 
-find_package(Python3 COMPONENTS Interpreter Development)
+find_package(Python3 ${PYBIND11_PYTHON_VERSION} EXACT REQUIRED COMPONENTS Interpreter Development)
 message("-- Python3 include dirs are ${Python3_INCLUDE_DIRS}")
 include_directories(${Python3_INCLUDE_DIRS})
 
