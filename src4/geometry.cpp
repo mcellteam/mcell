@@ -1064,7 +1064,7 @@ void Wall::precompute_wall_constants(const Partition& p) {
   const Vec3* v0;
   const Vec3* v1;
   const Vec3* v2;
-  if (id != WALL_ID_NOT_IN_PARTITION) {
+  if (exists_in_partition()) {
     v0 = &p.get_geometry_vertex(vertex_indices[0]);
     v1 = &p.get_geometry_vertex(vertex_indices[1]);
     v2 = &p.get_geometry_vertex(vertex_indices[2]);
@@ -1074,7 +1074,7 @@ void Wall::precompute_wall_constants(const Partition& p) {
     assert(wall_w_vertices != nullptr);
     v0 = &wall_w_vertices->vertices[0];
     v1 = &wall_w_vertices->vertices[1];
-    v2 = &wall_w_vertices->vertices[3];
+    v2 = &wall_w_vertices->vertices[2];
   }
 
   Vec3 vA, vB, vX;

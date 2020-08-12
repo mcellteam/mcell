@@ -42,8 +42,7 @@ namespace MCell {
 
 typedef std::map<counted_volume_index_t, uint> CountInGeomObjectMap;
 typedef std::map<wall_index_t, uint> CountOnWallMap;
-
-typedef uint_set<wall_index_t> WallsInSubpart; // XXX
+typedef uint_set<wall_index_t> WallsInSubpart; 
 
 // class used to hold potential reactants of given species in a single subpart
 // performance critical, therefore we are using a vector for now,
