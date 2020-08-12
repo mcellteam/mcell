@@ -610,15 +610,7 @@ void dump_wall(wall* w, const char* ind, const bool for_diff) {
     cout << ind << "num_surf_classes: \t\t" << w->num_surf_classes << " [int] \t\t/* number of attached surface classes */\n";
 
     cout << ind << "side: \t\t" << w->side << " [int] \t\t/* index of this wall in its parent object */\n";
-
-    if (w->vert != NULL) {
-      cout << ind << "vert[3]: 0: " << *w->vert[0] << ", 1: " << *w->vert[1] << ", 2: " << *w->vert[2] << "\n";
-    }
-    else {
-      cout << ind << "vert: \t\t" << (void*)w->vert << " [vector[3]] \t\t/* Array of pointers to vertices */\n";
-    }
-
-
+    cout << ind << "vert[3]: 0: " << *w->vert[0] << ", 1: " << *w->vert[1] << ", 2: " << *w->vert[2] << "\n";
     cout << ind << "uv_vert1_u: \t\t" << w->uv_vert1_u << " [double] \t\t/* Surface u-coord of 2nd corner (v=0) */\n";
     cout << ind << "uv_vert2: \t\t" << w->uv_vert2 << " [vector2] \t\t/* Surface coords of third corner */\n";
 

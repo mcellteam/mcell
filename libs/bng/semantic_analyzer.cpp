@@ -658,7 +658,6 @@ void SemanticAnalyzer::convert_seed_species() {
     assert(cplx_vec.size() == 1);
     ss.cplx_instance = cplx_vec[0];
 
-    float_t count;
     ASTExprNode* orig_expr = to_expr_node(ss_node->count);
     ASTExprNode* new_expr = evaluate_to_dbl(orig_expr);
     ss.count = new_expr->get_dbl();

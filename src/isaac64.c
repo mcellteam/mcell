@@ -69,7 +69,7 @@ By Bob Jenkins, 1996.  Public Domain.
   }
 
 static void isaac64_generate(struct isaac64_state *rng) {
-  register ub8 a, b, x, y, *m, *m2, *r, *mend;
+  ub8 a, b, x, y, *m, *m2, *r, *mend;
 
   m = rng->mm;
   r = rng->randrsl;

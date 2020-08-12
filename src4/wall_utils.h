@@ -28,7 +28,7 @@ namespace MCell {
 
 class Partition;
 class Wall;
-class Vec3;
+struct Vec3;
 
 namespace WallUtil {
 

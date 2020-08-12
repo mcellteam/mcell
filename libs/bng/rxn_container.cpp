@@ -164,7 +164,7 @@ void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t n
     }
   }
 
-  // don't do anything if this species cannot react
+  // do nothing if this species cannot react
   if (!rxns_for_new_species.empty()) {
 
     // create or get rxn class map for id
@@ -173,7 +173,6 @@ void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t n
       auto it_pair = bimol_rxn_class_map.insert( make_pair(new_id, SpeciesRxnClassesMap()) );
       it = it_pair.first;
     }
-    SpeciesRxnClassesMap& rxn_class_map = it->second;
 
     // create reactions classes specific for our species
     const SpeciesVector& species_vec = all_species.get_species_vector();
