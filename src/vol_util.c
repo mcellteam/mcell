@@ -52,6 +52,7 @@
 #include "diffuse.h"
 
 #include "debug_config.h"
+#include "dump_state.h"
 
 static int test_max_release(double num_to_release, char *name);
 

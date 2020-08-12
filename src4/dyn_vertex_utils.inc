@@ -228,11 +228,8 @@ static void collect_volume_molecules_moved_due_to_moving_wall(
 
   const vertex_index_t* orig_indices = orig_wall.vertex_indices;
 
-  // create 3 new temporary vertices and insert them into the partition,
-  // we will create them and then erase, so we will create a new vertex even if
-  // it is the same one
-  // we will need them for our arbitrary walls
-  vertex_index_t new_indices[VERTICES_IN_TRIANGLE];
+  // create 3 new temporary vertices
+  Vec3 n[VERTICES_IN_TRIANGLE];
   for (uint i = 0; i < VERTICES_IN_TRIANGLE; i++) {
 
     // copy position of the original vertex
@@ -250,7 +247,7 @@ static void collect_volume_molecules_moved_due_to_moving_wall(
       }
     }
 
-    new_indices[i] = p.add_geometry_vertex(new_vertex);
+    n[i] = new_vertex;
   }
 
   const Vec3* o[VERTICES_IN_TRIANGLE] = {
@@ -259,16 +256,10 @@ static void collect_volume_molecules_moved_due_to_moving_wall(
       &p.get_geometry_vertex(orig_indices[2])
   };
 
-  const Vec3* n[VERTICES_IN_TRIANGLE] = {
-      &p.get_geometry_vertex(new_indices[0]),
-      &p.get_geometry_vertex(new_indices[1]),
-      &p.get_geometry_vertex(new_indices[2])
-  };
-
   // opposite triangle (wall after being moved)
   // first true argument - we need the wall constants to be precomputed,
   // second false argument - we do not care about edge information
-  Wall new_wall = Wall(p, new_indices[0], new_indices[1], new_indices[2], true, false);
+  WallWithVertices new_wall = WallWithVertices(p, n[0], n[1], n[2], true);
 
   #ifdef DEBUG_DYNAMIC_GEOMETRY_COLLISION_DETECTIONS
     Local::dump_blender_display_code(p, orig_wall, orig_indices, new_wall, new_indices);
@@ -281,8 +272,8 @@ static void collect_volume_molecules_moved_due_to_moving_wall(
   for (uint i1 = 0; i1 < EDGES_IN_TRIANGLE; i1++) {
     uint i2 = (i1 + 1) % EDGES_IN_TRIANGLE;
 
-    bool v1_same = *o[i1] == *n[i1];
-    bool v2_same = *o[i2] == *n[i2];
+    bool v1_same = *o[i1] == n[i1];
+    bool v2_same = *o[i2] == n[i2];
 
     if (v1_same && v2_same) {
       egde_moved[i1] = false;
@@ -290,11 +281,11 @@ static void collect_volume_molecules_moved_due_to_moving_wall(
     }
     else if (v1_same) {
       egde_moved[i1] = true;
-      wall_if_edge_defines_triangle[i1] = new Wall(p, orig_indices[i1], orig_indices[i2], new_indices[i2], true, false);
+      wall_if_edge_defines_triangle[i1] = new WallWithVertices(p, *o[i1], *o[i2], n[i2], true);
     }
     else if (v2_same) {
       egde_moved[i1] = true;
-      wall_if_edge_defines_triangle[i1] = new Wall(p, orig_indices[i1], orig_indices[i2], new_indices[i1], true, false);
+      wall_if_edge_defines_triangle[i1] = new WallWithVertices(p, *o[i1], *o[i2], n[i1], true);
     }
     else {
       egde_moved[i1] = true;
@@ -328,11 +319,11 @@ static void collect_volume_molecules_moved_due_to_moving_wall(
     Vec3 move(0, 0, p.config.partition_edge_length);
 
     // check collision with the original wall
-    bool collides = CollisionUtil::collide_wall_test(p, m.v.pos, orig_wall, move);
+    bool collides = CollisionUtil::collide_wall_test(p, orig_wall, m.v.pos, move);
     if (collides) { num_hits++; }
 
-    // and with the new wall as well
-    collides = CollisionUtil::collide_wall_test(p, m.v.pos, new_wall, move);
+    // and with the new wall as well, the wall does not exist in the partition
+    collides = CollisionUtil::collide_wall_test(p, new_wall, m.v.pos, move);
     if (collides) { num_hits++; }
 
     // now, let's deal with the areas that are 'drawn' by the moving edges
@@ -343,7 +334,7 @@ static void collect_volume_molecules_moved_due_to_moving_wall(
       collides = CollisionUtil::collide_moving_line_and_static_line_test(
           p,
           m.v.pos, move,
-          *o[i1], *n[i1], *o[i2], *n[i2],
+          *o[i1], n[i1], *o[i2], n[i2],
           egde_moved[i1], wall_if_edge_defines_triangle[i1]
       );
       if (collides) {
@@ -377,12 +368,6 @@ static void collect_volume_molecules_moved_due_to_moving_wall(
       delete wall_if_edge_defines_triangle[i];
     }
   }
-
-  // and remove added vertices (checking that we are removing the right ones)
-  for (int i = VERTICES_IN_TRIANGLE - 1; i >= 0; i--) {
-    p.remove_last_vertex(new_indices[i]);
-  }
-
 }
 
 

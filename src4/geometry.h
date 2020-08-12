@@ -543,6 +543,10 @@ public:
     }
   }
 
+  bool exists_in_partition() const {
+    return id != WALL_ID_NOT_IN_PARTITION;
+  }
+
   // needs vertex indices to be set
   void precompute_wall_constants(const Partition& p);
 
@@ -602,6 +606,32 @@ public:
     assert(!has_initialized_grid());
     grid.initialize(p, *this);
   }
+};
+
+
+// variant of a wall but this version has its vertices stored in its object,
+// not in the partition,
+// a Wall reference based on WallWithVertices has its id == WALL_ID_NOT_IN_PARTITION because it was
+// not inserted into a partition
+class WallWithVertices: public Wall {
+public:
+  // edge constants initialization is not supported
+  WallWithVertices(const Partition& p,
+      const Vec3& v0, const Vec3& v1, const Vec3& v2,
+      const bool do_precompute_wall_constants) {
+
+    id = WALL_ID_NOT_IN_PARTITION;
+
+    vertices[0] = v0;
+    vertices[1] = v1;
+    vertices[2] = v2;
+
+    if (do_precompute_wall_constants) {
+      precompute_wall_constants(p);
+    }
+  }
+
+  Vec3 vertices[VERTICES_IN_TRIANGLE];
 };
 
 

@@ -43,8 +43,7 @@ namespace MCell {
 typedef std::map<counted_volume_index_t, uint> CountInGeomObjectMap;
 typedef std::map<wall_index_t, uint> CountOnWallMap;
 
-//typedef uint_set<wall_index_t> WallsInSubpart; // XXX
-typedef std::vector<wall_index_t> WallsInSubpart;
+typedef uint_set<wall_index_t> WallsInSubpart; // XXX
 
 // class used to hold potential reactants of given species in a single subpart
 // performance critical, therefore we are using a vector for now,
@@ -593,11 +592,6 @@ public:
     }
   }
 
-  void remove_last_vertex(const vertex_index_t vertex_index) {
-    assert(vertex_index == geometry_vertices.size() - 1 && "Check that we are removing known vertex failed");
-    geometry_vertices.pop_back();
-  }
-
   uint get_geometry_vertex_count() const {
     return geometry_vertices.size();
   }
@@ -786,11 +780,17 @@ public:
   }
 
   const WallCollisionRejectionData& get_wall_collision_rejection_data(const wall_index_t i) const {
-    assert(i < walls.size());
+    assert(i < wall_collision_rejection_data.size());
     assert(wall_collision_rejection_data.size() == walls.size());
     const WallCollisionRejectionData& res = wall_collision_rejection_data[i];
     assert(res.has_identical_data_as_wall(walls[i]));
     return res;
+  }
+
+  void update_wall_collision_rejection_data(const Wall& w) {
+    assert(w.index < wall_collision_rejection_data.size());
+    assert(wall_collision_rejection_data.size() == walls.size());
+    wall_collision_rejection_data[w.index] = w;
   }
 
   // maybe we will need to filter out, e.g. just reflective surfaces

@@ -1061,13 +1061,25 @@ void Edge::dump(const std::string ind) const {
 
 void Wall::precompute_wall_constants(const Partition& p) {
 
-  const Vec3& v0 = p.get_geometry_vertex(vertex_indices[0]);
-  const Vec3& v1 = p.get_geometry_vertex(vertex_indices[1]);
-  const Vec3& v2 = p.get_geometry_vertex(vertex_indices[2]);
+  const Vec3* v0;
+  const Vec3* v1;
+  const Vec3* v2;
+  if (id != WALL_ID_NOT_IN_PARTITION) {
+    v0 = &p.get_geometry_vertex(vertex_indices[0]);
+    v1 = &p.get_geometry_vertex(vertex_indices[1]);
+    v2 = &p.get_geometry_vertex(vertex_indices[2]);
+  }
+  else {
+    WallWithVertices* wall_w_vertices = static_cast<WallWithVertices*>(this);
+    assert(wall_w_vertices != nullptr);
+    v0 = &wall_w_vertices->vertices[0];
+    v1 = &wall_w_vertices->vertices[1];
+    v2 = &wall_w_vertices->vertices[3];
+  }
 
   Vec3 vA, vB, vX;
-  vA = v1 - v0;
-  vB = v2 - v0;
+  vA = *v1 - *v0;
+  vB = *v2 - *v0;
   vX = cross(vA, vB);
 
   area = 0.5 * len3(vX);
@@ -1084,14 +1096,14 @@ void Wall::precompute_wall_constants(const Partition& p) {
     return;
   }
 
-  Vec3 f1 = v1 - v0;
+  Vec3 f1 = *v1 - *v0;
   float_t f1_len_squared = len3_squared(f1);
   assert(f1_len_squared != 0);
   float_t inv_f1_len = 1 / sqrt_f(f1_len_squared);
 
   unit_u = f1 * Vec3(inv_f1_len);
 
-  Vec3 f2 = v2 - v0;
+  Vec3 f2 = *v2 - *v0;
   normal = cross(unit_u, f2);
 
   float_t norm_len_squared = len3_squared(normal);
@@ -1101,7 +1113,7 @@ void Wall::precompute_wall_constants(const Partition& p) {
 
   unit_v = cross(normal, unit_u);
 
-  distance_to_origin =  dot(v0, normal);
+  distance_to_origin =  dot(*v0, normal);
 
   uv_vert1_u = dot(f1, unit_u);
   uv_vert2.u = dot(f2, unit_u);
@@ -1346,6 +1358,9 @@ void update_moved_walls(
 
     // first we need to update all wall constants
     w.precompute_wall_constants(p);
+
+    // then update wall_collision_rejection_data that hold a copy
+    p.update_wall_collision_rejection_data(w);
 
     // reinitialize grid
     if (w.grid.is_initialized()) {

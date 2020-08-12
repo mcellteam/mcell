@@ -637,27 +637,40 @@ collide_wall:
         the value of t returned, not hitpt (reflections happen slightly
         early to avoid rounding errors with superimposed planes).
 ***************************************************************************/
+
 static inline CollisionType INLINE_ATTR collide_wall(
     const Partition& p,
     const Vec3& pos, const wall_index_t wall_index,
     rng_state &rng,
     const bool update_move,
     Vec3& move,
-    float_t& collision_time, Vec3& collision_pos
+    float_t& collision_time, Vec3& collision_pos,
+    const bool wall_exists_in_partition = true, // wall_index is ignored when this is set to false
+    const WallWithVertices* wall_outside_partition = nullptr
 ) {
   p.stats.inc_ray_polygon_tests();
 
   float_t dp, dv, dd;
   float_t d_eps;
 
-  const WallCollisionRejectionData& rejection_data =
-      p.get_wall_collision_rejection_data(wall_index);
+  const WallCollisionRejectionData* rejection_data;
+  if (wall_exists_in_partition) {
+    // use cache-optimized variant, compiler does cloning of this function
+    // so this condition gets optimized away
+    rejection_data = &p.get_wall_collision_rejection_data(wall_index);
+  }
+  else {
+    // read these data from the wall (do not use the cache optimization)
+    assert(wall_outside_partition != nullptr);
+    rejection_data = wall_outside_partition;
+    assert(!update_move && "Update move is currently supported only for walls in partition");
+  }
 
-  const Vec3& normal = rejection_data.normal;
+  const Vec3& normal = rejection_data->normal;
 
   dp = dot(normal, pos);
   dv = dot(normal, move);
-  dd = dp - rejection_data.distance_to_origin;
+  dd = dp - rejection_data->distance_to_origin;
 
   if (dd > 0) {
     d_eps = EPS;
@@ -712,29 +725,37 @@ static inline CollisionType INLINE_ATTR collide_wall(
 
   collision_pos = pos + a * move;
 
-  const Wall& face = p.get_wall(wall_index);
-  const Vec3& face_vert0 = p.get_geometry_vertex(face.vertex_indices[0]);
-
-  Vec3 local = collision_pos - face_vert0;
-
-  float_t b = dot(local, face.unit_u);
-  float_t c = dot(local, face.unit_v);
-
-  float_t f;
-  if (face.uv_vert2.v < 0.0) {
-    c = -c;
-    f = -face.uv_vert2.v;
+  const Wall* face;
+  const Vec3* face_vert0;
+  if (wall_exists_in_partition) {
+    face = &p.get_wall(wall_index);
+    face_vert0 = &p.get_geometry_vertex(face->vertex_indices[0]);
   }
   else {
-    f = face.uv_vert2.v;
+    face = wall_outside_partition;
+    face_vert0 = &wall_outside_partition->vertices[0];
+  }
+
+  Vec3 local = collision_pos - *face_vert0;
+
+  float_t b = dot(local, face->unit_u);
+  float_t c = dot(local, face->unit_v);
+
+  float_t f;
+  if (face->uv_vert2.v < 0.0) {
+    c = -c;
+    f = -face->uv_vert2.v;
+  }
+  else {
+    f = face->uv_vert2.v;
   }
 
   if (c > 0) {
     float_t g, h;
     g = b * f;
-    h = c * face.uv_vert2.u;
+    h = c * face->uv_vert2.u;
     if (g > h) {
-      if (c * face.uv_vert1_u + g < h + face.uv_vert1_u * face.uv_vert2.v) {
+      if (c * face->uv_vert1_u + g < h + face->uv_vert1_u * face->uv_vert2.v) {
         if (dv > 0) {
           return CollisionType::WALL_BACK;
         }
@@ -743,13 +764,13 @@ static inline CollisionType INLINE_ATTR collide_wall(
         }
       }
       else if ((!distinguishable_f(
-          c * face.uv_vert1_u + g,
-          h + face.uv_vert1_u * face.uv_vert2.v,
+          c * face->uv_vert1_u + g,
+          h + face->uv_vert1_u * face->uv_vert2.v,
           EPS))) {
         if (update_move) {
-          const Vec3& face_vert1 = p.get_geometry_vertex(face.vertex_indices[1]);
-          const Vec3& face_vert2 = p.get_geometry_vertex(face.vertex_indices[2]);
-          jump_away_line(pos, a, face_vert1, face_vert2, face.normal, rng, move);
+          const Vec3& face_vert1 = p.get_geometry_vertex(face->vertex_indices[1]);
+          const Vec3& face_vert2 = p.get_geometry_vertex(face->vertex_indices[2]);
+          jump_away_line(pos, a, face_vert1, face_vert2, face->normal, rng, move);
           return CollisionType::WALL_REDO;
         }
         else {
@@ -762,8 +783,8 @@ static inline CollisionType INLINE_ATTR collide_wall(
     }
     else if (!distinguishable_f(g, h, EPS)) {
       if (update_move) {
-        const Vec3& face_vert2 = p.get_geometry_vertex(face.vertex_indices[2]);
-        jump_away_line(pos, a, face_vert2, face_vert0, face.normal, rng, move);
+        const Vec3& face_vert2 = p.get_geometry_vertex(face->vertex_indices[2]);
+        jump_away_line(pos, a, face_vert2, *face_vert0, face->normal, rng, move);
         return CollisionType::WALL_REDO;
       }
       else {
@@ -777,8 +798,8 @@ static inline CollisionType INLINE_ATTR collide_wall(
   else if (!distinguishable_f(c, 0, EPS)) /* Hit first edge! */
   {
     if (update_move) {
-      const Vec3& face_vert1 = p.get_geometry_vertex(face.vertex_indices[1]);
-      jump_away_line(pos, a, face_vert0, face_vert1, face.normal, rng, move);
+      const Vec3& face_vert1 = p.get_geometry_vertex(face->vertex_indices[1]);
+      jump_away_line(pos, a, *face_vert0, face_vert1, face->normal, rng, move);
       return CollisionType::WALL_REDO;
     }
     else {
@@ -889,7 +910,8 @@ restart_on_redo:
 // HIT REDO is not supported
 static bool collide_wall_test(
     const Partition& p,
-    const Vec3& pos, const Wall& face,
+    const Wall& face, // might be WallWithVertices
+    const Vec3& pos,
     const Vec3& move
 ) {
   rng_state unused_rng_state;
@@ -902,9 +924,17 @@ static bool collide_wall_test(
   unused_rng_state.randcnt = 0;
   uint orig_randcnt = unused_rng_state.randcnt;
 #endif
+
+  const WallWithVertices* w_with_vertices = nullptr;
+  if (!face.exists_in_partition()) {
+    w_with_vertices = static_cast<const WallWithVertices*>(&face);
+    assert(w_with_vertices != nullptr);
+  }
+
   res = CollisionUtil::collide_wall(
       p, pos, face.index, unused_rng_state, false, tmp_move,
-      ignored_collision_time, ignored_collision_pos
+      ignored_collision_time, ignored_collision_pos,
+      face.exists_in_partition(), w_with_vertices
   );
 #ifndef NDEBUG
   assert(orig_randcnt == unused_rng_state.randcnt && "collide_wall_test should not trigger usage of rng");
@@ -1230,7 +1260,7 @@ static bool collide_moving_line_and_static_line_test(
 
   // 1) if klmn creates a triangle, one of the arguments kmml or kmn is not nullptr
   if (wall_if_edge_defines_triangle) {
-    return collide_wall_test(part, e, *wall_if_edge_defines_triangle, move);
+    return collide_wall_test(part, *wall_if_edge_defines_triangle, e, move);
   }
 
   // 2) if klmn is more complex and possibly these points do not lie on the same plane, therefore simple triangle

@@ -222,6 +222,7 @@ public:
 
 typedef uint wall_id_t; // world-unique wall id
 const wall_id_t WALL_ID_INVALID = ID_INVALID;
+const wall_id_t WALL_ID_NOT_IN_PARTITION = ID_INVALID2;
 
 typedef uint region_id_t; // world-unique region id
 const region_id_t REGION_ID_INVALID = ID_INVALID;
