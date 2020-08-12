@@ -119,14 +119,16 @@ public:
       const Vec3& origin_corner_,
       const SimulationConfig& config_,
       BNG::BNGEngine& bng_engine_,
-      SimulationStats& stats_
+      SimulationStats& stats_,
+      rng_state& rng_
   )
     : origin_corner(origin_corner_),
       next_molecule_id(0),
       id(id_),
       config(config_),
       bng_engine(bng_engine_),
-      stats(stats_) {
+      stats(stats_),
+      rng(rng_) {
 
     opposite_corner = origin_corner + config.partition_edge_length;
 
@@ -1034,6 +1036,11 @@ public:
   const SimulationConfig& config;
   BNG::BNGEngine& bng_engine;
   SimulationStats& stats;
+
+  // random number generator states
+  // TODO: RNG should belong to partition (this will change anyway with paralellization)
+  // use only when really needed
+  rng_state& rng;
 };
 
 typedef std::vector<Partition> PartitionVector;

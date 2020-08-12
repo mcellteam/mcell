@@ -21,8 +21,6 @@
  *
  ******************************************************************************/
 
-
-
 %module pymcell3_4 
 
 %import stdint.i
@@ -52,6 +50,17 @@ typedef uint vertex_index_t;
 typedef uint molecule_id_t;
 typedef uint geometry_object_id_t;
 typedef uint wall_id_t;
+
+
+struct rng_state {
+  unsigned int randcnt;
+  unsigned long long aa;
+  unsigned long long bb;
+  unsigned long long cc;
+  unsigned long long randrsl[256];
+  unsigned long long mm[256];
+  unsigned long long rngblocks;
+};
 
 // FIXME: this does not work either
 //%import "callback_structs.h"
@@ -135,7 +144,8 @@ public:
       const Vec3 origin_,
       const SimulationConfig& config_,
       BNG::BNGEngine& bng_engine_,
-      SimulationStats& stats_
+      SimulationStats& stats_,
+      rng_state& rng_
   );
   
   int get_geometry_vertex_count();
