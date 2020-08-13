@@ -2184,7 +2184,7 @@ acceptable.  Do NOT use for cryptographic purposes.
 --------------------------------------------------------------------*/
 
 ub4 jenkins_hash(ub1 *k, ub4 length) {
-  register ub4 a, b, c, len, initval;
+  ub4 a, b, c, len, initval;
   /* Set up the internal state */
   initval = 0;
   len = length;

@@ -69,11 +69,11 @@ public:
     return vec_find_by_name(surface_classes, name);
   }
 
-  void add_elementary_molecule_type(std::shared_ptr<ElementaryMoleculeType> mt) {
+  void add_elementary_molecule_type(std::shared_ptr<ElementaryMoleculeType> mt) override {
     append_to_vec(elementary_molecule_types, mt);
   }
 
-  std::shared_ptr<ElementaryMoleculeType> find_elementary_molecule_type(const std::string& name) {
+  std::shared_ptr<ElementaryMoleculeType> find_elementary_molecule_type(const std::string& name) override {
     return vec_find_by_name(elementary_molecule_types, name);
   }
 

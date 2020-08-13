@@ -1,7 +1,8 @@
 cmake_minimum_required(VERSION 3.14)
 project(mcell)
 
-find_package(Python3 COMPONENTS Interpreter Development)
+set(PYBIND11_PYTHON_VERSION 3.5)
+find_package(Python3 ${PYBIND11_PYTHON_VERSION} EXACT REQUIRED COMPONENTS Interpreter Development)
 message("-- Python3 include dirs are ${Python3_INCLUDE_DIRS}")
 include_directories(${Python3_INCLUDE_DIRS})
 
@@ -40,13 +41,13 @@ if (CMAKE_BUILD_TYPE STREQUAL "Release")
   # when -march=native or -march=haswell is enabled, there is some error in MCell3 wall 
   # overlap detection, can be checked with mcell_tests_private/benchmarks/mdl/B4110_neuropil_no_custom_timestep 
   # seems to be related to AVX2, maybe gcc issue
-  SET(OPTIMIZATION_FLAGS " -O3 -g -march=sandybridge -finline-limit=10000 ")
+  SET(OPTIMIZATION_FLAGS " -O3 -g -march=core2 -finline-limit=10000 ")
   
   # must not be used for pymcell (at least for now)
   SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -no-pie ")
 endif()
 
-set(WARNING_FLAGS "-Wall -Wextra -Wno-unused-parameter -Wno-unused-function -Wno-unused-variable ")
+set(WARNING_FLAGS "-Wall -Wextra -Wno-unused-parameter -Wno-unused-function -Wno-unused-variable -Wno-ignored-optimization-argument ")
 
 set(INCLUDE_DIRS " -isystem ${CMAKE_SOURCE_DIR}/libs/")
 SET(COMMON_C_CXX_FLAGS "${WARNING_FLAGS} -fPIC -g3 ${OPTIMIZATION_FLAGS} ${INCLUDE_DIRS} -D_GNU_SOURCE=1 ")

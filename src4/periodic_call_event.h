@@ -35,10 +35,9 @@ namespace MCell {
  */
 class PeriodicCallEvent: public BaseEvent {
 public:
-  PeriodicCallEvent(World* world_)
+  PeriodicCallEvent(World* /*world_*/)
     : BaseEvent(EVENT_TYPE_INDEX_PERIODIC_CALL),
-      function_ptr(nullptr),
-      world(world_) {
+      function_ptr(nullptr) {
   }
 
   // pointer to a function to be periodically called
@@ -55,8 +54,6 @@ public:
     BaseEvent::dump(ind2);
     std::cout << ind2 << "function_ptr:\t\t" << std::hex << (void*)function_ptr << std::dec << "\n";
   }
-private:
-  World* world;
 };
 
 } // namespace mcell

@@ -251,7 +251,8 @@ static void select_best_mapping(
 ) {
   // sort the score and select the best 'global' match
   // find the globally highest score
-  for (MolCompInfo& pat: patterns) {
+  // TODO: check why we are not using the loop induction var.
+  for (size_t i = 0; i < patterns.size(); i++) {
     size_t highest_pat_index;
     size_t highest_prod_index;
     bool found = get_best_not_matched_mapping(

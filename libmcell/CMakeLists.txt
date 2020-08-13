@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8.4)
 
 project(libmcell)
 
-find_package(Python3 COMPONENTS Interpreter Development)
+find_package(Python3 ${PYBIND11_PYTHON_VERSION} EXACT REQUIRED COMPONENTS Interpreter Development)
 message("-- Python3 include dirs are ${Python3_INCLUDE_DIRS}")
 include_directories(${Python3_INCLUDE_DIRS})
 
@@ -17,7 +17,7 @@ include_directories(${CMAKE_SOURCE_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}/../libs/jsoncpp/include
 )
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g3 -O0 -isystem ${CMAKE_CURRENT_SOURCE_DIR}/../libs/sparsehash/src -Wall -std=c++17 ${PYTHON_INCLUDES}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g3 -O0 -isystem ${CMAKE_CURRENT_SOURCE_DIR}/../libs/sparsehash/src -std=c++17 ${PYTHON_INCLUDES}")
 
 set(SOURCE_FILES
     api/bindings.cpp
