@@ -199,6 +199,10 @@ public:
   void export_visualization_datamodel_to_dir(const char* prefix) {
   	self->export_data_model_to_dir(std::string(prefix), true);
   }
+
+  void export_datamodel(const char* file) {
+  	self->export_data_model(std::string(file), false);
+  }
    
     // only in Python API
     BNG::Species* find_species_by_name(const char* name) {
