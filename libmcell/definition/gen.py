@@ -1520,7 +1520,7 @@ def generate_pyi_class(f, name, class_def):
     f.write('        ):\n')
 
     # class members
-    if KEY_ITEMS in class_def:
+    if KEY_ITEMS in class_def and class_def[KEY_ITEMS]:
         num_items = len(class_def[KEY_ITEMS])
         for i in range(0, num_items):
             member_name = class_def[KEY_ITEMS][i][KEY_NAME]
@@ -1572,6 +1572,12 @@ def generate_pyi_file(data_classes):
         f.write('from typing import List\n')
         f.write('from enum import Enum\n\n')
         
+        f.write('# "forward" declarations to make the type hints valid\n')
+        for key, value in data_classes.items():
+            if key != KEY_CONSTANTS and key != KEY_ENUMS:
+                f.write('class ' + key + '():\n    pass\n')
+        f.write('\n')
+            
         species_def = ''
         
         # Vec3
