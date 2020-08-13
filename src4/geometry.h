@@ -577,7 +577,9 @@ public:
   // so when a position of one vertex changes, it should affect all the triangles that use it
   vertex_index_t vertex_indices[VERTICES_IN_TRIANGLE]; // order is important since is specifies orientation
 
-  Edge edges[EDGES_IN_TRIANGLE]; // note: edges can be shared among walls to save memory
+  // note: edges can be shared among walls to save memory
+  // also they may be stored using std::vector to make the Wall object smaller
+  Edge edges[EDGES_IN_TRIANGLE];
 
   // NOTE: what about walls that are neighboring over a partition edge?
   wall_index_t nb_walls[EDGES_IN_TRIANGLE]; // neighboring wall indices

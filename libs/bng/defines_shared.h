@@ -342,13 +342,12 @@ public:
 };
 
 
-
-template<typename Key>
-void uint_set<Key>::dump(const std::string comment) const {
+template<typename T>
+void dump_container(const T& s, std::string comment = "") {
   std::cout << comment << ": ";
   int cnt = 0;
-  for (const Key& idx: *this) {
-    std::cout << idx << ", ";
+  for (auto value: s) {
+    std::cout << value << ", ";
 
     if (cnt %20 == 0 && cnt != 0) {
       std::cout << "\n";
@@ -356,6 +355,12 @@ void uint_set<Key>::dump(const std::string comment) const {
     cnt++;
   }
   std::cout << "\n";
+}
+
+
+template<typename Key>
+void uint_set<Key>::dump(const std::string comment) const {
+  dump_container(*this, comment);
 }
 
 

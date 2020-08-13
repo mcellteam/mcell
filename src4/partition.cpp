@@ -75,9 +75,10 @@ void Partition::update_walls_per_subpart(const WallsWithTheirMovesMap& walls_wit
     SubpartIndicesVector colliding_subparts;
     Wall& w = get_wall(wall_index);
     GeometryUtil::wall_subparts_collision_test(*this, w, colliding_subparts);
+    assert(insert || SubpartIndicesSet(colliding_subparts.begin(), colliding_subparts.end()) == w.present_in_subparts);
+
     for (subpart_index_t subpart_index: colliding_subparts) {
       assert(subpart_index < walls_per_subpart.size());
-
       if (insert) {
         walls_per_subpart[subpart_index].insert_unique(wall_index);
         w.present_in_subparts.insert(subpart_index);

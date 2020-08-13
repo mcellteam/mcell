@@ -90,6 +90,17 @@ void MCell4Converter::convert(Model* model_, World* world_) {
 
   convert_rxns();
 
+  // find out whether we have a vol vol rxn for all current species (for mcell3 compatibility)
+  // in BNG mode this finds a reaction as well
+  // this is an optimization to tell that we don't need to check the
+  // surroundings of subpartitions in case when there are no vol-vol rxns
+  // WARNING: must be done before geometry objects are converted because wall_subparts_collision_test
+  // depends on it
+  if (!world->get_all_rxns().has_bimol_vol_rxns()) {
+    // the default is true (or read from user)
+    world->config.use_expanded_list = false;
+  }
+
   // at this point, we need to create the first (and for now the only) partition
   // create initial partition with center at 0,0,0
   partition_id_t index = world->add_partition(world->config.partition0_llf);
@@ -678,16 +689,6 @@ void MCell4Converter::init_rxn_related_flags() {
   species_id_t all_surface_molecules_species_id = all_species.get_all_surface_molecules_species_id();
 
   all_rxns.update_all_mols_flags();
-
-  // find out whether we have a vol vol rxn for all current species (for mcell3 compatibility)
-  // in BNG mode this finds a reaction as well
-  // this is an optimization to tell that we don't need to check the 
-  // surroundings of subpartitions in case when there are no vol-vol rxns
-  // needed for mcell3 binary compatibility
-  if (!all_rxns.has_bimol_vol_rxns()) {
-    // the default is true (or read from user)
-	  world->config.use_expanded_list = false;
-	}
 
   // needed to update counting flags
   world->get_all_species().recompute_species_flags(world->get_all_rxns());
