@@ -89,6 +89,8 @@ public:
   virtual void export_data_model(const std::string& file = STR_UNSET, const bool only_for_visualization = false) = 0;
   virtual std::vector<int> get_molecule_ids(std::shared_ptr<Species> species = nullptr) = 0;
   virtual std::shared_ptr<Molecule> get_molecule(const int id) = 0;
+  virtual void add_vertex_move(std::shared_ptr<GeometryObject> object, const int index, const Vec3& displacement) = 0;
+  virtual void apply_vertex_moves() = 0;
 }; // GenModel
 
 class Model;

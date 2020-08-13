@@ -89,6 +89,22 @@ Model:
     - name: id
       type: int
       
+  - name: add_vertex_move
+    doc: Adds a displacement for given object's vertex, only stored until apply_vertex_moves is called
+    params: 
+    - name: object
+      type: GeometryObject*
+      doc: Object whose vertex will be changed
+    - name: index
+      type: int
+      doc: Index of vertex in object's vertex list that will be changed
+    - name: displacement
+      type: Vec3
+      doc: Change of vertex coordinates (in um), will be added to the current coordinates of the vertex 
+      
+  - name: apply_vertex_moves
+    doc: Applies all the vertex moves specified with add_vertex_move call  
+  
 #  - name: load_bngl
 #    doc: | 
 #      Loads sections: molecule types, reaction rules, seed species, and observables from a BNGL file

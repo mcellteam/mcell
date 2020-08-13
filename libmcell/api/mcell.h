@@ -61,8 +61,9 @@
 #include "api/model.h"
 
 #include "api/molecule.h"
-
 #include "generated/gen_geometry_utils.h"
 #include "generated/gen_bngl_utils.h"
+
+#include "api/shared_structs.h"
 
 #endif // API_MCELL_H

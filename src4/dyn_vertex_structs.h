@@ -25,21 +25,12 @@
 #define SRC4_DYN_VERTEX_STRUCTS_H_
 
 #include "defines.h"
+#include "../libmcell/api/shared_structs.h"
 
 namespace MCell {
 
 
 class Partition;
-
-struct VertexMoveInfo {
-  VertexMoveInfo(const vertex_index_t vertex_index_, const Vec3& translation_vec_)
-    : vertex_index(vertex_index_), translation_vec(translation_vec_) {
-  }
-  // which index to move
-  vertex_index_t vertex_index;
-  // and by how much
-  Vec3 translation_vec;
-};
 
 typedef std::vector<VertexMoveInfo> VertexMoveInfoVector;
 typedef std::map<wall_index_t, VertexMoveInfoVector> WallsWithTheirMovesMap;

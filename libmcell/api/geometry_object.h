@@ -40,6 +40,7 @@ public:
     node_type = RegionNodeType::LEAF_GEOMETRY_OBJECT;
     partition_id = PARTITION_ID_INVALID;
     geometry_object_id = GEOMETRY_OBJECT_ID_INVALID;
+    first_vertex_index = VERTEX_INDEX_INVALID;
 
     for (auto& sr: surface_regions) {
       // not using shared pointers here, any attempt so far resulted in bad_weak_ptr exception
@@ -88,6 +89,7 @@ public:
   // simulation engine mapping
   partition_id_t partition_id;
   geometry_object_id_t geometry_object_id;
+  vertex_index_t first_vertex_index; // index of the first vertex created in partition for this object
   std::vector<vertex_index_t> vertex_indices; // vertex_list[i] has vertex index vertex_indices[i]
   std::vector<wall_index_t> wall_indices; // element_connections[i] has wall index wall_indices[i]
 };

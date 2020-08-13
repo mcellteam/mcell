@@ -32,6 +32,7 @@
 #include "molecule.h"
 #include "scheduler.h"
 #include "geometry.h"
+#include "../libmcell/api/shared_structs.h"
 
 namespace Json {
 class Value;
@@ -820,12 +821,19 @@ public:
   // ---------------------------------- dynamic vertices ----------------------------------
   // add information about a change of a specific vertex
   // order of calls is important (at least for now)
+  // legacy implementation for pymcell 3_4
   void add_vertex_move(const vertex_index_t vertex_index, const Vec3& translation_vec) {
-    scheduled_vertex_moves.push_back(VertexMoveInfo(vertex_index, translation_vec));
+    scheduled_vertex_moves.push_back(VertexMoveInfo(id, vertex_index, translation_vec));
   }
 
   // do the actual changes of vertices
-  void apply_vertex_moves();
+  // legacy implementation for pymcell 3_4
+  void apply_vertex_moves() {
+    apply_vertex_moves(scheduled_vertex_moves);
+    scheduled_vertex_moves.clear();
+  }
+
+  void apply_vertex_moves(const std::vector<VertexMoveInfo>& vertex_moves);
 
   void move_waypoint_because_positioned_on_wall(
       const IVec3& waypoint_index, const bool reinitialize = true
@@ -1020,6 +1028,7 @@ private:
 
   // ---------------------------------- dynamic vertices ----------------------------------
 private:
+  // legacy implementation for pymcell 3_4
   std::vector<VertexMoveInfo> scheduled_vertex_moves;
 
   // ---------------------------------- shared simulation configuration -------------------

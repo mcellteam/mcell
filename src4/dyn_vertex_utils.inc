@@ -216,7 +216,7 @@ static void collect_volume_molecules_moved_due_to_moving_wall(
   for (const VertexMoveInfo& info: move_infos) {
     cout << "vertex index: " << info.vertex_index << "\n";
     cout << "original position: " << p.get_geometry_vertex(info.vertex_index) << "\n";
-    cout << "translation: " << info.translation_vec << "\n";
+    cout << "translation: " << info.displacement << "\n";
   }
   cout << "***\n";
 #endif
@@ -240,7 +240,7 @@ static void collect_volume_molecules_moved_due_to_moving_wall(
     for (const VertexMoveInfo& move_info: move_infos) {
       if (move_info.vertex_index == orig_indices[i]) {
         assert(!moved);
-        new_vertex = new_vertex + move_info.translation_vec;
+        new_vertex = new_vertex + move_info.displacement;
         #ifndef NDEBUG
           break;
         #endif

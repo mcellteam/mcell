@@ -782,7 +782,7 @@ MCell::region_index_t MCell4Converter::convert_surface_region(
 
 
 void MCell4Converter::convert_geometry_objects() {
-  MCell::Partition& p = world->get_partition(0); // only partition 0 is supported for now
+  MCell::Partition& p = world->get_partition(PARTITION_ID_INITIAL); // only partition 0 is supported for now
 
   for (std::shared_ptr<API::GeometryObject>& o: model->geometry_objects) {
 
@@ -793,11 +793,13 @@ void MCell4Converter::convert_geometry_objects() {
     o->geometry_object_id = obj.id;
 
     // vertices
+    // remember the "offset" from the first vertex in the target partition
+    o->first_vertex_index = p.get_geometry_vertex_count();
     for (auto& v: o->vertex_list) {
       // add to partition and remember its index
       // must use rcp_length_unit to be identical to mcell4 with mdl
       vertex_index_t vi =
-          p.add_or_find_geometry_vertex(Vec3(v[0], v[1], v[2]) * Vec3(world->config.rcp_length_unit));
+          p.add_geometry_vertex(Vec3(v[0], v[1], v[2]) * Vec3(world->config.rcp_length_unit));
       o->vertex_indices.push_back(vi);
     }
 

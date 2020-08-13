@@ -32,6 +32,7 @@
 #include "api/config.h"
 #include "api/warnings.h"
 #include "api/notifications.h"
+#include "shared_structs.h"
 
 namespace MCell {
 
@@ -64,7 +65,14 @@ public:
   void export_data_model(const std::string& file = STR_UNSET, const bool only_for_visualization = false) override;
 
   std::vector<int> get_molecule_ids(std::shared_ptr<Species> species = nullptr) override;
+
   std::shared_ptr<Molecule> get_molecule(const int id) override;
+
+  void add_vertex_move(
+      std::shared_ptr<GeometryObject> object, const int index, const Vec3& displacement
+  ) override;
+
+  void apply_vertex_moves() override;
 
   void error_if_initialized(const char* what) {
     if (initialized) {
@@ -117,6 +125,8 @@ public:
 private:
   bool initialized;
   World* world;
+
+  std::vector<VertexMoveInfo> vertex_moves;
 };
 
 } // namespace API

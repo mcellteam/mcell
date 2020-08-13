@@ -91,11 +91,12 @@ void Partition::update_walls_per_subpart(const WallsWithTheirMovesMap& walls_wit
 }
 
 
-void Partition::apply_vertex_moves() {
+void Partition::apply_vertex_moves(const std::vector<VertexMoveInfo>& vertex_moves) {
   // 1) create a set of all affected walls with information on how much each wall moves,
   uint_set<vertex_index_t> moved_vertices_set;
   WallsWithTheirMovesMap walls_with_their_moves;
-  for (const VertexMoveInfo& vertex_move_info: scheduled_vertex_moves) {
+  for (const VertexMoveInfo& vertex_move_info: vertex_moves) {
+    assert(vertex_move_info.partition_id == id);
 
     // expecting that there we are not moving a single vertex twice
     if (moved_vertices_set.count(vertex_move_info.vertex_index) != 0) {
@@ -147,7 +148,7 @@ void Partition::apply_vertex_moves() {
   update_walls_per_subpart(walls_with_their_moves, false);
 
   // 4) then we move the vertices and update relevant walls
-  Geometry::update_moved_walls(*this, scheduled_vertex_moves, walls_with_their_moves);
+  Geometry::update_moved_walls(*this, vertex_moves, walls_with_their_moves);
 
   // 5) update subpartition info for the walls
   update_walls_per_subpart(walls_with_their_moves, true);
@@ -179,8 +180,6 @@ void Partition::apply_vertex_moves() {
     // finally fix positions of the surface molecules
     DynVertexUtil::move_surface_molecule_to_closest_wall_point(*this, move_info);
   }
-
-  scheduled_vertex_moves.clear();
 }
 
 void Partition::dump() {

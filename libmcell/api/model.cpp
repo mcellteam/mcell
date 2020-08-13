@@ -116,26 +116,10 @@ void Model::end_simulation(const bool print_final_report) {
 }
 
 
-std::string Model::to_str(const std::string ind) const {
-  std::stringstream ss;
-  ss << "Model" << ": " <<
-      "\n" << ind + "  " <<
-      //"config=" << "(" << ((config != nullptr) ? config->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      //"warnings=" << "(" << ((warnings != nullptr) ? warnings->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      //"notifications=" << "(" << ((notifications != nullptr) ? notifications->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
-      "elementary_molecule_types=" << vec_ptr_to_str(elementary_molecule_types, ind + "  ") << ", " << "\n" << ind + "  " <<
-      "species=" << vec_ptr_to_str(species, ind + "  ") << ", " << "\n" << ind + "  " <<
-      "surface_classes=" << vec_ptr_to_str(surface_classes, ind + "  ") << ", " << "\n" << ind + "  " <<
-      "reaction_rules=" << vec_ptr_to_str(reaction_rules, ind + "  ") << ", " << "\n" << ind + "  " <<
-      "release_sites=" << vec_ptr_to_str(release_sites, ind + "  ") << ", " << "\n" << ind + "  " <<
-      "geometry_objects=" << vec_ptr_to_str(geometry_objects, ind + "  ");
-  return ss.str();
-}
-
-
 void Model::dump_internal_state() {
   world->dump();
 }
+
 
 void Model::export_data_model(const std::string& file, const bool only_for_visualization) {
   if (is_set(file)) {
@@ -211,6 +195,59 @@ std::shared_ptr<API::Molecule> Model::get_molecule(const int id) {
   res->set_initialized();
 
   return res;
+}
+
+
+void Model::add_vertex_move(
+    std::shared_ptr<GeometryObject> object, const int index, const Vec3& displacement
+) {
+  // currently, it is not expected that the user will have access to the scheduled vertex moves
+  if (object->geometry_object_id == GEOMETRY_OBJECT_ID_INVALID) {
+    throw RuntimeError("Geometry object " + object->name + " is not present in model (or model was not initialized).");
+  }
+
+  if (index < 0 || index >= (int)object->vertex_list.size()) {
+    throw RuntimeError(
+        "Vertex index " + to_string(index) + " is out of range for " + NAME_VERTEX_LIST + " of " + object->name + ".");
+  }
+
+  // later we can use the object id to determine the partition
+  release_assert(
+      object->first_vertex_index + index <
+      world->get_partition(PARTITION_ID_INITIAL).get_geometry_vertex_count()
+  );
+
+  vertex_moves.push_back(
+      VertexMoveInfo(
+          PARTITION_ID_INITIAL,
+          object->first_vertex_index + index,
+          displacement * Vec3(world->config.rcp_length_unit) // convert units
+      )
+  );
+}
+
+
+void Model::apply_vertex_moves() {
+  // run the actual vertex update
+  world->get_partition(PARTITION_ID_INITIAL).apply_vertex_moves(vertex_moves);
+  vertex_moves.clear();
+}
+
+
+std::string Model::to_str(const std::string ind) const {
+  std::stringstream ss;
+  ss << "Model" << ": " <<
+      "\n" << ind + "  " <<
+      //"config=" << "(" << ((config != nullptr) ? config->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      //"warnings=" << "(" << ((warnings != nullptr) ? warnings->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      //"notifications=" << "(" << ((notifications != nullptr) ? notifications->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "elementary_molecule_types=" << vec_ptr_to_str(elementary_molecule_types, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "species=" << vec_ptr_to_str(species, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "surface_classes=" << vec_ptr_to_str(surface_classes, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "reaction_rules=" << vec_ptr_to_str(reaction_rules, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "release_sites=" << vec_ptr_to_str(release_sites, ind + "  ") << ", " << "\n" << ind + "  " <<
+      "geometry_objects=" << vec_ptr_to_str(geometry_objects, ind + "  ");
+  return ss.str();
 }
 
 
