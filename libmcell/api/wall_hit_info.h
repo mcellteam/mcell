@@ -20,49 +20,23 @@
  *
 ******************************************************************************/
 
-#ifndef LIBMCELL_API_BASE_INTROSPECTION_CLASS_H_
-#define LIBMCELL_API_BASE_INTROSPECTION_CLASS_H_
+#ifndef API_WALL_HIT_INFO_H
+#define API_WALL_HIT_INFO_H
 
-#include "common.h"
-#include "base_data_class.h"
+#include "generated/gen_wall_hit_info.h"
+#include "api/common.h"
 
 namespace MCell {
-
-class World;
-
 namespace API {
 
-
-// base class for all classes that hold the model input data
-class BaseIntrospectionClass: public BaseDataClass {
+class WallHitInfo: public GenWallHitInfo {
 public:
-  BaseIntrospectionClass()
-    : world(nullptr) {
-    name = INTROSPECTED_OBJECT;
+  void dump() {
+    std::cout << to_str();
   }
-  virtual ~BaseIntrospectionClass() {
-  }
-
-  void check_initialization() const {
-    if (!initialized || world == nullptr) {
-      throw RuntimeError(
-          "Object of class " + class_name + " was not correctly initialized. "
-          "Introspection objects cannot be created independently. they must always be retrieved through "
-          "methods of the " + NAME_CLASS_MODEL + " class."
-      );
-    }
-  }
-
-  void set_all_attributes_as_default_or_unset() {
-    BaseDataClass::set_all_attributes_as_default_or_unset();
-    world = nullptr;
-  }
-
-  // internal World pointer
-  World* world;
 };
 
 } // namespace API
 } // namespace MCell
 
-#endif /* LIBMCELL_API_BASE_INTROSPECTION_CLASS_H_ */
+#endif // API_WALL_HIT_INFO_H

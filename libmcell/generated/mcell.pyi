@@ -2,63 +2,65 @@ from typing import List
 from enum import Enum
 
 # "forward" declarations to make the type hints valid
-class VizOutput():
-    pass
-class ElementaryMoleculeInstance():
-    pass
-class InstantiationData():
-    pass
-class ReactionRule():
-    pass
-class Warnings():
-    pass
-class Count():
-    pass
-class ComplexInstance():
-    pass
-class ElementaryMoleculeType():
-    pass
-class Observables():
-    pass
-class bngl_utils():
-    pass
-class Region():
+class Model():
     pass
 class geometry_utils():
     pass
-class Subsystem():
+class Notifications():
     pass
-class ReleaseSite():
+class CountTerm():
     pass
-class MoleculeReleaseInfo():
+class bngl_utils():
+    pass
+class ReactionRule():
+    pass
+class ElementaryMoleculeType():
     pass
 class SurfaceRegion():
     pass
-class Config():
+class SurfaceClass():
     pass
-class Model():
+class Warnings():
     pass
-class GeometryObject():
+class Subsystem():
     pass
-class ReleasePattern():
+class ComponentInstance():
+    pass
+class ElementaryMoleculeInstance():
+    pass
+class ReleaseSite():
     pass
 class SurfaceProperty():
     pass
 class ComponentType():
     pass
-class ComponentInstance():
+class MoleculeReleaseInfo():
     pass
-class Notifications():
+class GeometryObject():
     pass
-class InitialSurfaceRelease():
+class Count():
     pass
-class Species():
+class WallHitInfo():
     pass
 class Molecule():
     pass
-class CountTerm():
+class InitialSurfaceRelease():
     pass
-class SurfaceClass():
+class Config():
+    pass
+class VizOutput():
+    pass
+class Species():
+    pass
+class ComplexInstance():
+    pass
+class Region():
+    pass
+class Observables():
+    pass
+class ReleasePattern():
+    pass
+class InstantiationData():
     pass
 
 class Vec3():
@@ -129,461 +131,6 @@ ALL_SURFACE_MOLECULES = 'ALL_SURFACE_MOLECULES'
 MOLECULE_ID_INVALID = -1
 NUMBER_OF_TRAINS_UNLIMITED = -1
 TIME_INFINITY = 1e140
-
-
-class VizOutput():
-    def __init__(
-            self,
-            filename_prefix : str,
-            species_list : List[Species] = None,
-            all_species : bool = False,
-            mode : VizMode = VizMode.ASCII,
-            every_n_timesteps : int = 1
-        ):
-        self.filename_prefix = filename_prefix
-        self.species_list = species_list
-        self.all_species = all_species
-        self.mode = mode
-        self.every_n_timesteps = every_n_timesteps
-
-
-class ElementaryMoleculeInstance():
-    def __init__(
-            self,
-            elementary_molecule_type : ElementaryMoleculeType,
-            components : List[ComponentInstance] = None
-        ):
-        self.elementary_molecule_type = elementary_molecule_type
-        self.components = components
-
-
-    def to_bngl_str(
-            self,
-        ) -> 'str':
-        pass
-
-class InstantiationData():
-    def __init__(
-            self,
-            release_sites : List[ReleaseSite] = None,
-            geometry_objects : List[GeometryObject] = None
-        ):
-        self.release_sites = release_sites
-        self.geometry_objects = geometry_objects
-
-
-    def add_release_site(
-            self,
-            s : ReleaseSite
-        ) -> None:
-        pass
-
-    def find_release_site(
-            self,
-            name : str
-        ) -> 'ReleaseSite':
-        pass
-
-    def add_geometry_object(
-            self,
-            o : GeometryObject
-        ) -> None:
-        pass
-
-    def find_geometry_object(
-            self,
-            name : str
-        ) -> 'GeometryObject':
-        pass
-
-    def load_bngl_seed_species(
-            self,
-            file_name : str,
-            subsystem : Subsystem,
-            default_release_region : Region = None
-        ) -> None:
-        pass
-
-class ReactionRule():
-    def __init__(
-            self,
-            name : str = None,
-            reactants : List[ComplexInstance] = None,
-            products : List[ComplexInstance] = None,
-            fwd_rate : float = None,
-            rev_name : str = None,
-            rev_rate : float = None,
-            variable_rate : List[List[float]] = None
-        ):
-        self.name = name
-        self.reactants = reactants
-        self.products = products
-        self.fwd_rate = fwd_rate
-        self.rev_name = rev_name
-        self.rev_rate = rev_rate
-        self.variable_rate = variable_rate
-
-
-class Warnings():
-    def __init__(
-            self,
-            molecule_collision_report : WarningLevel = WarningLevel.WARNING,
-            degenerate_polygons : WarningLevel = WarningLevel.WARNING,
-            negative_diffusion_constant : WarningLevel = WarningLevel.WARNING,
-            missing_surface_orientation : WarningLevel = WarningLevel.ERROR,
-            negative_reaction_rate : WarningLevel = WarningLevel.WARNING,
-            useless_volume_orientation : WarningLevel = WarningLevel.WARNING,
-            high_reaction_probability : WarningLevel = WarningLevel.IGNORE,
-            lifetime_too_short : WarningLevel = WarningLevel.WARNING,
-            lifetime_threshold : float = 50,
-            missed_reactions : WarningLevel = WarningLevel.WARNING,
-            missed_reactions_threshold : float = 0.00100000004749745
-        ):
-        self.molecule_collision_report = molecule_collision_report
-        self.degenerate_polygons = degenerate_polygons
-        self.negative_diffusion_constant = negative_diffusion_constant
-        self.missing_surface_orientation = missing_surface_orientation
-        self.negative_reaction_rate = negative_reaction_rate
-        self.useless_volume_orientation = useless_volume_orientation
-        self.high_reaction_probability = high_reaction_probability
-        self.lifetime_too_short = lifetime_too_short
-        self.lifetime_threshold = lifetime_threshold
-        self.missed_reactions = missed_reactions
-        self.missed_reactions_threshold = missed_reactions_threshold
-
-
-class Count():
-    def __init__(
-            self,
-            filename : str,
-            count_expression : CountTerm = None,
-            multiplier : float = 1,
-            every_n_timesteps : int = 1,
-            species : Species = None,
-            reaction_rule : ReactionRule = None,
-            region : Region = None,
-            orientation : Orientation = Orientation.NOT_SET,
-            node_type : ExprNodeType = ExprNodeType.LEAF,
-            left_node : CountTerm = None,
-            right_node : CountTerm = None
-        ):
-        self.filename = filename
-        self.count_expression = count_expression
-        self.multiplier = multiplier
-        self.every_n_timesteps = every_n_timesteps
-        self.species = species
-        self.reaction_rule = reaction_rule
-        self.region = region
-        self.orientation = orientation
-        self.node_type = node_type
-        self.left_node = left_node
-        self.right_node = right_node
-
-
-    def __add__(
-            self,
-            op2 : CountTerm
-        ) -> 'CountTerm':
-        pass
-
-    def __sub__(
-            self,
-            op2 : CountTerm
-        ) -> 'CountTerm':
-        pass
-
-class ComplexInstance():
-    def __init__(
-            self,
-            elementary_molecule_instances : List[ElementaryMoleculeInstance] = None,
-            orientation : Orientation = Orientation.NONE
-        ):
-        self.elementary_molecule_instances = elementary_molecule_instances
-        self.orientation = orientation
-
-
-    def to_bngl_str(
-            self,
-        ) -> 'str':
-        pass
-
-class ElementaryMoleculeType():
-    def __init__(
-            self,
-            name : str,
-            components : List[ComponentType] = None,
-            diffusion_constant_2d : float = None,
-            diffusion_constant_3d : float = None
-        ):
-        self.name = name
-        self.components = components
-        self.diffusion_constant_2d = diffusion_constant_2d
-        self.diffusion_constant_3d = diffusion_constant_3d
-
-
-    def inst(
-            self,
-            components : List[ComponentInstance] = None
-        ) -> 'ElementaryMoleculeInstance':
-        pass
-
-class Observables():
-    def __init__(
-            self,
-            viz_outputs : List[VizOutput] = None,
-            counts : List[Count] = None
-        ):
-        self.viz_outputs = viz_outputs
-        self.counts = counts
-
-
-    def add_viz_output(
-            self,
-            viz_output : VizOutput
-        ) -> None:
-        pass
-
-    def add_count(
-            self,
-            count : Count
-        ) -> None:
-        pass
-
-class bngl_utils():
-    def __init__(
-            self,
-        ):
-        pass
-
-    def load_bngl_parameters(
-            self,
-            file_name : str
-        ) -> 'Dict[str, float]':
-        pass
-
-class Region():
-    def __init__(
-            self,
-            node_type : RegionNodeType = RegionNodeType.UNSET,
-            left_node : 'Region' = None,
-            right_node : 'Region' = None
-        ):
-        self.node_type = node_type
-        self.left_node = left_node
-        self.right_node = right_node
-
-
-    def __add__(
-            self,
-            other : 'Region'
-        ) -> 'Region':
-        pass
-
-    def __sub__(
-            self,
-            other : 'Region'
-        ) -> 'Region':
-        pass
-
-    def __mul__(
-            self,
-            other : 'Region'
-        ) -> 'Region':
-        pass
-
-class geometry_utils():
-    def __init__(
-            self,
-        ):
-        pass
-
-    def create_box(
-            self,
-            name : str,
-            edge_length : float
-        ) -> 'GeometryObject':
-        pass
-
-class Subsystem():
-    def __init__(
-            self,
-            species : List[Species] = None,
-            reaction_rules : List[ReactionRule] = None,
-            surface_classes : List[SurfaceClass] = None,
-            elementary_molecule_types : List[ElementaryMoleculeType] = None
-        ):
-        self.species = species
-        self.reaction_rules = reaction_rules
-        self.surface_classes = surface_classes
-        self.elementary_molecule_types = elementary_molecule_types
-
-
-    def add_species(
-            self,
-            s : Species
-        ) -> None:
-        pass
-
-    def find_species(
-            self,
-            name : str
-        ) -> 'Species':
-        pass
-
-    def add_reaction_rule(
-            self,
-            r : ReactionRule
-        ) -> None:
-        pass
-
-    def find_reaction_rule(
-            self,
-            name : str
-        ) -> 'ReactionRule':
-        pass
-
-    def add_surface_class(
-            self,
-            sc : SurfaceClass
-        ) -> None:
-        pass
-
-    def find_surface_class(
-            self,
-            name : str
-        ) -> 'SurfaceClass':
-        pass
-
-    def add_elementary_molecule_type(
-            self,
-            mt : ElementaryMoleculeType
-        ) -> None:
-        pass
-
-    def find_elementary_molecule_type(
-            self,
-            name : str
-        ) -> 'ElementaryMoleculeType':
-        pass
-
-    def load_bngl_molecule_types_and_reaction_rules(
-            self,
-            file_name : str
-        ) -> None:
-        pass
-
-class ReleaseSite():
-    def __init__(
-            self,
-            name : str,
-            species : Species = None,
-            complex_instance : ComplexInstance = None,
-            orientation : Orientation = Orientation.NONE,
-            molecule_list : List[MoleculeReleaseInfo] = None,
-            release_time : float = 0,
-            release_pattern : ReleasePattern = None,
-            shape : Shape = Shape.UNSET,
-            region : Region = None,
-            location : Vec3 = None,
-            site_diameter : float = 0,
-            site_radius : float = None,
-            number_to_release : int = None,
-            density : float = None,
-            concentration : float = None,
-            release_probability : float = None
-        ):
-        self.name = name
-        self.species = species
-        self.complex_instance = complex_instance
-        self.orientation = orientation
-        self.molecule_list = molecule_list
-        self.release_time = release_time
-        self.release_pattern = release_pattern
-        self.shape = shape
-        self.region = region
-        self.location = location
-        self.site_diameter = site_diameter
-        self.site_radius = site_radius
-        self.number_to_release = number_to_release
-        self.density = density
-        self.concentration = concentration
-        self.release_probability = release_probability
-
-
-class MoleculeReleaseInfo():
-    def __init__(
-            self,
-            species : Species,
-            location : List[float],
-            orientation : Orientation = Orientation.NONE
-        ):
-        self.species = species
-        self.location = location
-        self.orientation = orientation
-
-
-class SurfaceRegion():
-    def __init__(
-            self,
-            name : str,
-            wall_indices : List[int],
-            surface_class : SurfaceClass = None,
-            initial_surface_releases : List[InitialSurfaceRelease] = None,
-            node_type : RegionNodeType = RegionNodeType.UNSET,
-            left_node : Region = None,
-            right_node : Region = None
-        ):
-        self.name = name
-        self.wall_indices = wall_indices
-        self.surface_class = surface_class
-        self.initial_surface_releases = initial_surface_releases
-        self.node_type = node_type
-        self.left_node = left_node
-        self.right_node = right_node
-
-
-    def __add__(
-            self,
-            other : Region
-        ) -> 'Region':
-        pass
-
-    def __sub__(
-            self,
-            other : Region
-        ) -> 'Region':
-        pass
-
-    def __mul__(
-            self,
-            other : Region
-        ) -> 'Region':
-        pass
-
-class Config():
-    def __init__(
-            self,
-            seed : int = 1,
-            time_step : float = 1e-6,
-            surface_grid_density : float = 10000,
-            interaction_radius : float = None,
-            vacancy_search_distance : float = 10,
-            center_molecules_on_grid : bool = False,
-            initial_partition_origin : List[float] = None,
-            partition_dimension : float = 10,
-            subpartition_dimension : float = 0.5,
-            total_iterations_hint : int = 1000000
-        ):
-        self.seed = seed
-        self.time_step = time_step
-        self.surface_grid_density = surface_grid_density
-        self.interaction_radius = interaction_radius
-        self.vacancy_search_distance = vacancy_search_distance
-        self.center_molecules_on_grid = center_molecules_on_grid
-        self.initial_partition_origin = initial_partition_origin
-        self.partition_dimension = partition_dimension
-        self.subpartition_dimension = subpartition_dimension
-        self.total_iterations_hint = total_iterations_hint
 
 
 class Model():
@@ -686,6 +233,15 @@ class Model():
         ) -> None:
         pass
 
+    def register_wall_hit_callback(
+            self,
+            function : std::function<void(std::shared_ptr<WallHitInfo>, void)>,
+            context : py::object = None,
+            object : GeometryObject = None,
+            species : Species = None
+        ) -> None:
+        pass
+
     def add_species(
             self,
             s : Species
@@ -784,6 +340,386 @@ class Model():
         ) -> None:
         pass
 
+class geometry_utils():
+    def __init__(
+            self,
+        ):
+        pass
+
+    def create_box(
+            self,
+            name : str,
+            edge_length : float
+        ) -> 'GeometryObject':
+        pass
+
+class Notifications():
+    def __init__(
+            self,
+            probability_report : bool = True,
+            diffusion_constant_report : Notification = Notification.BRIEF,
+            final_summary : bool = True,
+            iteration_report : bool = True,
+            varying_probability_report : bool = True,
+            progress_report : bool = True,
+            release_event_report : bool = True,
+            molecule_collision_report : bool = True
+        ):
+        self.probability_report = probability_report
+        self.diffusion_constant_report = diffusion_constant_report
+        self.final_summary = final_summary
+        self.iteration_report = iteration_report
+        self.varying_probability_report = varying_probability_report
+        self.progress_report = progress_report
+        self.release_event_report = release_event_report
+        self.molecule_collision_report = molecule_collision_report
+
+
+class CountTerm():
+    def __init__(
+            self,
+            species : Species = None,
+            reaction_rule : ReactionRule = None,
+            region : Region = None,
+            orientation : Orientation = Orientation.NOT_SET,
+            node_type : ExprNodeType = ExprNodeType.LEAF,
+            left_node : 'CountTerm' = None,
+            right_node : 'CountTerm' = None
+        ):
+        self.species = species
+        self.reaction_rule = reaction_rule
+        self.region = region
+        self.orientation = orientation
+        self.node_type = node_type
+        self.left_node = left_node
+        self.right_node = right_node
+
+
+    def __add__(
+            self,
+            op2 : 'CountTerm'
+        ) -> 'CountTerm':
+        pass
+
+    def __sub__(
+            self,
+            op2 : 'CountTerm'
+        ) -> 'CountTerm':
+        pass
+
+class bngl_utils():
+    def __init__(
+            self,
+        ):
+        pass
+
+    def load_bngl_parameters(
+            self,
+            file_name : str
+        ) -> 'Dict[str, float]':
+        pass
+
+class ReactionRule():
+    def __init__(
+            self,
+            name : str = None,
+            reactants : List[ComplexInstance] = None,
+            products : List[ComplexInstance] = None,
+            fwd_rate : float = None,
+            rev_name : str = None,
+            rev_rate : float = None,
+            variable_rate : List[List[float]] = None
+        ):
+        self.name = name
+        self.reactants = reactants
+        self.products = products
+        self.fwd_rate = fwd_rate
+        self.rev_name = rev_name
+        self.rev_rate = rev_rate
+        self.variable_rate = variable_rate
+
+
+class ElementaryMoleculeType():
+    def __init__(
+            self,
+            name : str,
+            components : List[ComponentType] = None,
+            diffusion_constant_2d : float = None,
+            diffusion_constant_3d : float = None
+        ):
+        self.name = name
+        self.components = components
+        self.diffusion_constant_2d = diffusion_constant_2d
+        self.diffusion_constant_3d = diffusion_constant_3d
+
+
+    def inst(
+            self,
+            components : List[ComponentInstance] = None
+        ) -> 'ElementaryMoleculeInstance':
+        pass
+
+class SurfaceRegion():
+    def __init__(
+            self,
+            name : str,
+            wall_indices : List[int],
+            surface_class : SurfaceClass = None,
+            initial_surface_releases : List[InitialSurfaceRelease] = None,
+            node_type : RegionNodeType = RegionNodeType.UNSET,
+            left_node : Region = None,
+            right_node : Region = None
+        ):
+        self.name = name
+        self.wall_indices = wall_indices
+        self.surface_class = surface_class
+        self.initial_surface_releases = initial_surface_releases
+        self.node_type = node_type
+        self.left_node = left_node
+        self.right_node = right_node
+
+
+    def __add__(
+            self,
+            other : Region
+        ) -> 'Region':
+        pass
+
+    def __sub__(
+            self,
+            other : Region
+        ) -> 'Region':
+        pass
+
+    def __mul__(
+            self,
+            other : Region
+        ) -> 'Region':
+        pass
+
+class SurfaceClass():
+    def __init__(
+            self,
+            name : str,
+            properties : List[SurfaceProperty] = None,
+            type : SurfacePropertyType = SurfacePropertyType.UNSET,
+            affected_species : Species = None,
+            orientation : Orientation = Orientation.NOT_SET
+        ):
+        self.name = name
+        self.properties = properties
+        self.type = type
+        self.affected_species = affected_species
+        self.orientation = orientation
+
+
+class Warnings():
+    def __init__(
+            self,
+            molecule_collision_report : WarningLevel = WarningLevel.WARNING,
+            degenerate_polygons : WarningLevel = WarningLevel.WARNING,
+            negative_diffusion_constant : WarningLevel = WarningLevel.WARNING,
+            missing_surface_orientation : WarningLevel = WarningLevel.ERROR,
+            negative_reaction_rate : WarningLevel = WarningLevel.WARNING,
+            useless_volume_orientation : WarningLevel = WarningLevel.WARNING,
+            high_reaction_probability : WarningLevel = WarningLevel.IGNORE,
+            lifetime_too_short : WarningLevel = WarningLevel.WARNING,
+            lifetime_threshold : float = 50,
+            missed_reactions : WarningLevel = WarningLevel.WARNING,
+            missed_reactions_threshold : float = 0.00100000004749745
+        ):
+        self.molecule_collision_report = molecule_collision_report
+        self.degenerate_polygons = degenerate_polygons
+        self.negative_diffusion_constant = negative_diffusion_constant
+        self.missing_surface_orientation = missing_surface_orientation
+        self.negative_reaction_rate = negative_reaction_rate
+        self.useless_volume_orientation = useless_volume_orientation
+        self.high_reaction_probability = high_reaction_probability
+        self.lifetime_too_short = lifetime_too_short
+        self.lifetime_threshold = lifetime_threshold
+        self.missed_reactions = missed_reactions
+        self.missed_reactions_threshold = missed_reactions_threshold
+
+
+class Subsystem():
+    def __init__(
+            self,
+            species : List[Species] = None,
+            reaction_rules : List[ReactionRule] = None,
+            surface_classes : List[SurfaceClass] = None,
+            elementary_molecule_types : List[ElementaryMoleculeType] = None
+        ):
+        self.species = species
+        self.reaction_rules = reaction_rules
+        self.surface_classes = surface_classes
+        self.elementary_molecule_types = elementary_molecule_types
+
+
+    def add_species(
+            self,
+            s : Species
+        ) -> None:
+        pass
+
+    def find_species(
+            self,
+            name : str
+        ) -> 'Species':
+        pass
+
+    def add_reaction_rule(
+            self,
+            r : ReactionRule
+        ) -> None:
+        pass
+
+    def find_reaction_rule(
+            self,
+            name : str
+        ) -> 'ReactionRule':
+        pass
+
+    def add_surface_class(
+            self,
+            sc : SurfaceClass
+        ) -> None:
+        pass
+
+    def find_surface_class(
+            self,
+            name : str
+        ) -> 'SurfaceClass':
+        pass
+
+    def add_elementary_molecule_type(
+            self,
+            mt : ElementaryMoleculeType
+        ) -> None:
+        pass
+
+    def find_elementary_molecule_type(
+            self,
+            name : str
+        ) -> 'ElementaryMoleculeType':
+        pass
+
+    def load_bngl_molecule_types_and_reaction_rules(
+            self,
+            file_name : str
+        ) -> None:
+        pass
+
+class ComponentInstance():
+    def __init__(
+            self,
+            component_type : ComponentType,
+            state : str = STATE_UNSET,
+            bond : int = BOND_UNBOUND
+        ):
+        self.component_type = component_type
+        self.state = state
+        self.bond = bond
+
+
+    def to_bngl_str(
+            self,
+        ) -> 'str':
+        pass
+
+class ElementaryMoleculeInstance():
+    def __init__(
+            self,
+            elementary_molecule_type : ElementaryMoleculeType,
+            components : List[ComponentInstance] = None
+        ):
+        self.elementary_molecule_type = elementary_molecule_type
+        self.components = components
+
+
+    def to_bngl_str(
+            self,
+        ) -> 'str':
+        pass
+
+class ReleaseSite():
+    def __init__(
+            self,
+            name : str,
+            species : Species = None,
+            complex_instance : ComplexInstance = None,
+            orientation : Orientation = Orientation.NONE,
+            molecule_list : List[MoleculeReleaseInfo] = None,
+            release_time : float = 0,
+            release_pattern : ReleasePattern = None,
+            shape : Shape = Shape.UNSET,
+            region : Region = None,
+            location : Vec3 = None,
+            site_diameter : float = 0,
+            site_radius : float = None,
+            number_to_release : int = None,
+            density : float = None,
+            concentration : float = None,
+            release_probability : float = None
+        ):
+        self.name = name
+        self.species = species
+        self.complex_instance = complex_instance
+        self.orientation = orientation
+        self.molecule_list = molecule_list
+        self.release_time = release_time
+        self.release_pattern = release_pattern
+        self.shape = shape
+        self.region = region
+        self.location = location
+        self.site_diameter = site_diameter
+        self.site_radius = site_radius
+        self.number_to_release = number_to_release
+        self.density = density
+        self.concentration = concentration
+        self.release_probability = release_probability
+
+
+class SurfaceProperty():
+    def __init__(
+            self,
+            type : SurfacePropertyType = SurfacePropertyType.UNSET,
+            affected_species : Species = None,
+            orientation : Orientation = Orientation.NOT_SET
+        ):
+        self.type = type
+        self.affected_species = affected_species
+        self.orientation = orientation
+
+
+class ComponentType():
+    def __init__(
+            self,
+            name : str,
+            states : List[str] = None
+        ):
+        self.name = name
+        self.states = states
+
+
+    def inst(
+            self,
+            state : str = STATE_UNSET,
+            bond : int = BOND_UNBOUND
+        ) -> 'ComponentInstance':
+        pass
+
+class MoleculeReleaseInfo():
+    def __init__(
+            self,
+            species : Species,
+            location : List[float],
+            orientation : Orientation = Orientation.NONE
+        ):
+        self.species = species
+        self.location = location
+        self.orientation = orientation
+
+
 class GeometryObject():
     def __init__(
             self,
@@ -826,89 +762,84 @@ class GeometryObject():
         ) -> 'Region':
         pass
 
-class ReleasePattern():
+class Count():
     def __init__(
             self,
-            name : str = None,
-            release_interval : float = TIME_INFINITY,
-            train_duration : float = TIME_INFINITY,
-            train_interval : float = TIME_INFINITY,
-            number_of_trains : int = 1
+            filename : str,
+            count_expression : CountTerm = None,
+            multiplier : float = 1,
+            every_n_timesteps : int = 1,
+            species : Species = None,
+            reaction_rule : ReactionRule = None,
+            region : Region = None,
+            orientation : Orientation = Orientation.NOT_SET,
+            node_type : ExprNodeType = ExprNodeType.LEAF,
+            left_node : CountTerm = None,
+            right_node : CountTerm = None
         ):
-        self.name = name
-        self.release_interval = release_interval
-        self.train_duration = train_duration
-        self.train_interval = train_interval
-        self.number_of_trains = number_of_trains
+        self.filename = filename
+        self.count_expression = count_expression
+        self.multiplier = multiplier
+        self.every_n_timesteps = every_n_timesteps
+        self.species = species
+        self.reaction_rule = reaction_rule
+        self.region = region
+        self.orientation = orientation
+        self.node_type = node_type
+        self.left_node = left_node
+        self.right_node = right_node
 
 
-class SurfaceProperty():
+    def __add__(
+            self,
+            op2 : CountTerm
+        ) -> 'CountTerm':
+        pass
+
+    def __sub__(
+            self,
+            op2 : CountTerm
+        ) -> 'CountTerm':
+        pass
+
+class WallHitInfo():
     def __init__(
             self,
-            type : SurfacePropertyType = SurfacePropertyType.UNSET,
-            affected_species : Species = None,
+            molecule_id : int,
+            geometry_object_id : int,
+            wall_id : int,
+            time : float,
+            pos : Vec3,
+            time_before_hit : float,
+            pos_before_hit : Vec3
+        ):
+        self.molecule_id = molecule_id
+        self.geometry_object_id = geometry_object_id
+        self.wall_id = wall_id
+        self.time = time
+        self.pos = pos
+        self.time_before_hit = time_before_hit
+        self.pos_before_hit = pos_before_hit
+
+
+class Molecule():
+    def __init__(
+            self,
+            id : int = MOLECULE_ID_INVALID,
+            species : Species = None,
+            pos3d : Vec3 = None,
             orientation : Orientation = Orientation.NOT_SET
         ):
-        self.type = type
-        self.affected_species = affected_species
+        self.id = id
+        self.species = species
+        self.pos3d = pos3d
         self.orientation = orientation
 
 
-class ComponentType():
-    def __init__(
+    def remove(
             self,
-            name : str,
-            states : List[str] = None
-        ):
-        self.name = name
-        self.states = states
-
-
-    def inst(
-            self,
-            state : str = STATE_UNSET,
-            bond : int = BOND_UNBOUND
-        ) -> 'ComponentInstance':
+        ) -> None:
         pass
-
-class ComponentInstance():
-    def __init__(
-            self,
-            component_type : ComponentType,
-            state : str = STATE_UNSET,
-            bond : int = BOND_UNBOUND
-        ):
-        self.component_type = component_type
-        self.state = state
-        self.bond = bond
-
-
-    def to_bngl_str(
-            self,
-        ) -> 'str':
-        pass
-
-class Notifications():
-    def __init__(
-            self,
-            probability_report : bool = True,
-            diffusion_constant_report : Notification = Notification.BRIEF,
-            final_summary : bool = True,
-            iteration_report : bool = True,
-            varying_probability_report : bool = True,
-            progress_report : bool = True,
-            release_event_report : bool = True,
-            molecule_collision_report : bool = True
-        ):
-        self.probability_report = probability_report
-        self.diffusion_constant_report = diffusion_constant_report
-        self.final_summary = final_summary
-        self.iteration_report = iteration_report
-        self.varying_probability_report = varying_probability_report
-        self.progress_report = progress_report
-        self.release_event_report = release_event_report
-        self.molecule_collision_report = molecule_collision_report
-
 
 class InitialSurfaceRelease():
     def __init__(
@@ -922,6 +853,48 @@ class InitialSurfaceRelease():
         self.orientation = orientation
         self.number_to_release = number_to_release
         self.density = density
+
+
+class Config():
+    def __init__(
+            self,
+            seed : int = 1,
+            time_step : float = 1e-6,
+            surface_grid_density : float = 10000,
+            interaction_radius : float = None,
+            vacancy_search_distance : float = 10,
+            center_molecules_on_grid : bool = False,
+            initial_partition_origin : List[float] = None,
+            partition_dimension : float = 10,
+            subpartition_dimension : float = 0.5,
+            total_iterations_hint : int = 1000000
+        ):
+        self.seed = seed
+        self.time_step = time_step
+        self.surface_grid_density = surface_grid_density
+        self.interaction_radius = interaction_radius
+        self.vacancy_search_distance = vacancy_search_distance
+        self.center_molecules_on_grid = center_molecules_on_grid
+        self.initial_partition_origin = initial_partition_origin
+        self.partition_dimension = partition_dimension
+        self.subpartition_dimension = subpartition_dimension
+        self.total_iterations_hint = total_iterations_hint
+
+
+class VizOutput():
+    def __init__(
+            self,
+            filename_prefix : str,
+            species_list : List[Species] = None,
+            all_species : bool = False,
+            mode : VizMode = VizMode.ASCII,
+            every_n_timesteps : int = 1
+        ):
+        self.filename_prefix = filename_prefix
+        self.species_list = species_list
+        self.all_species = all_species
+        self.mode = mode
+        self.every_n_timesteps = every_n_timesteps
 
 
 class Species():
@@ -953,40 +926,28 @@ class Species():
         ) -> 'str':
         pass
 
-class Molecule():
+class ComplexInstance():
     def __init__(
             self,
-            id : int = MOLECULE_ID_INVALID,
-            species : Species = None,
-            pos3d : Vec3 = None,
-            orientation : Orientation = Orientation.NOT_SET
+            elementary_molecule_instances : List[ElementaryMoleculeInstance] = None,
+            orientation : Orientation = Orientation.NONE
         ):
-        self.id = id
-        self.species = species
-        self.pos3d = pos3d
+        self.elementary_molecule_instances = elementary_molecule_instances
         self.orientation = orientation
 
 
-    def remove(
+    def to_bngl_str(
             self,
-        ) -> None:
+        ) -> 'str':
         pass
 
-class CountTerm():
+class Region():
     def __init__(
             self,
-            species : Species = None,
-            reaction_rule : ReactionRule = None,
-            region : Region = None,
-            orientation : Orientation = Orientation.NOT_SET,
-            node_type : ExprNodeType = ExprNodeType.LEAF,
-            left_node : 'CountTerm' = None,
-            right_node : 'CountTerm' = None
+            node_type : RegionNodeType = RegionNodeType.UNSET,
+            left_node : 'Region' = None,
+            right_node : 'Region' = None
         ):
-        self.species = species
-        self.reaction_rule = reaction_rule
-        self.region = region
-        self.orientation = orientation
         self.node_type = node_type
         self.left_node = left_node
         self.right_node = right_node
@@ -994,31 +955,101 @@ class CountTerm():
 
     def __add__(
             self,
-            op2 : 'CountTerm'
-        ) -> 'CountTerm':
+            other : 'Region'
+        ) -> 'Region':
         pass
 
     def __sub__(
             self,
-            op2 : 'CountTerm'
-        ) -> 'CountTerm':
+            other : 'Region'
+        ) -> 'Region':
         pass
 
-class SurfaceClass():
+    def __mul__(
+            self,
+            other : 'Region'
+        ) -> 'Region':
+        pass
+
+class Observables():
     def __init__(
             self,
-            name : str,
-            properties : List[SurfaceProperty] = None,
-            type : SurfacePropertyType = SurfacePropertyType.UNSET,
-            affected_species : Species = None,
-            orientation : Orientation = Orientation.NOT_SET
+            viz_outputs : List[VizOutput] = None,
+            counts : List[Count] = None
+        ):
+        self.viz_outputs = viz_outputs
+        self.counts = counts
+
+
+    def add_viz_output(
+            self,
+            viz_output : VizOutput
+        ) -> None:
+        pass
+
+    def add_count(
+            self,
+            count : Count
+        ) -> None:
+        pass
+
+class ReleasePattern():
+    def __init__(
+            self,
+            name : str = None,
+            release_interval : float = TIME_INFINITY,
+            train_duration : float = TIME_INFINITY,
+            train_interval : float = TIME_INFINITY,
+            number_of_trains : int = 1
         ):
         self.name = name
-        self.properties = properties
-        self.type = type
-        self.affected_species = affected_species
-        self.orientation = orientation
+        self.release_interval = release_interval
+        self.train_duration = train_duration
+        self.train_interval = train_interval
+        self.number_of_trains = number_of_trains
 
+
+class InstantiationData():
+    def __init__(
+            self,
+            release_sites : List[ReleaseSite] = None,
+            geometry_objects : List[GeometryObject] = None
+        ):
+        self.release_sites = release_sites
+        self.geometry_objects = geometry_objects
+
+
+    def add_release_site(
+            self,
+            s : ReleaseSite
+        ) -> None:
+        pass
+
+    def find_release_site(
+            self,
+            name : str
+        ) -> 'ReleaseSite':
+        pass
+
+    def add_geometry_object(
+            self,
+            o : GeometryObject
+        ) -> None:
+        pass
+
+    def find_geometry_object(
+            self,
+            name : str
+        ) -> 'GeometryObject':
+        pass
+
+    def load_bngl_seed_species(
+            self,
+            file_name : str,
+            subsystem : Subsystem,
+            default_release_region : Region = None
+        ) -> None:
+        pass
 
 AllMolecules = Species('ALL_MOLECULES')
 AllVolumeMolecules = Species('ALL_VOLUME_MOLECULES')

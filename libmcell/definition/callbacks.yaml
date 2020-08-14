@@ -1,0 +1,32 @@
+# this file defines structures passed back through callbacks
+
+WallHitInfo:
+   items:
+   - name: molecule_id
+     type: int
+   - name: geometry_object_id
+     type: int
+   - name: wall_id
+     type: int
+     doc: | 
+        Not completely sure how to deal with geometry objects introspection
+        on the API side, whether we should have a 'global' view on all walls and 
+        vertices or we should somehow keep hierarchy object - wall - vertex
+   
+   - name: time
+     type: float
+     doc: Time of the hit 
+   - name: pos
+     type: Vec3
+     doc: Position of the hit
+     
+   - name: time_before_hit
+     type: float
+     doc: |
+        Time when the molecule started to diffuse towards the hit wall. 
+        It is either the start of the molecule's diffusion or 
+        if a wall was hit later then the time of last wall hit.  
+   - name: pos_before_hit
+     type: Vec3
+     doc: Position of the molecule at time_before_hit
+      

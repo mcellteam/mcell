@@ -70,6 +70,8 @@ Model:
         This makes the loading ofthemodel by CellBlender faster and also allows to avoid potential 
         compatibility issues. 
 
+  # --- introspection ---
+
   # TODO: can we make some faster interface? however, we do not want to be bound to 
   # the internal implementation and we must abstract away the partitions      
   - name: get_molecule_ids
@@ -88,6 +90,8 @@ Model:
     params: 
     - name: id
       type: int
+  
+  # --- dynamic geometry ---
       
   - name: add_vertex_move
     doc: Adds a displacement for given object's vertex, only stored until apply_vertex_moves is called
@@ -104,6 +108,37 @@ Model:
       
   - name: apply_vertex_moves
     doc: Applies all the vertex moves specified with add_vertex_move call  
+  
+  # --- callbacks ---
+  
+  - name: register_wall_hit_callback
+    doc: There can be currently only a single wall hit callback registered.
+    params:
+    - name: function
+      type: std::function<void(std::shared_ptr<WallHitInfo>, void*)>
+      doc: | 
+         Callback function to be called. 
+         It must have two arguments WallHitInfo and context.
+      internal: Use a more abstract format to define function type 
+
+    - name: context
+      type: py::object*
+      default: unset
+      doc: | 
+         Context passed to the callback function, the callback function can store
+         information to this object.
+     
+    - name: object
+      type: GeometryObject*
+      default: unset
+      doc: Only hits of this object will be reported, any object hit is reported when not set.
+      internal: Extend this to Region later
+      
+    - name: species
+      type: Species*
+      default: unset
+      doc: Only hits of molecules of this species will be reported, any species hit is reported when not set.
+      
   
 #  - name: load_bngl
 #    doc: | 

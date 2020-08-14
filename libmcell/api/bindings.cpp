@@ -53,6 +53,7 @@
 #include "generated/gen_region.h"
 
 #include "generated/gen_molecule.h"
+#include "generated/gen_wall_hit_info.h"
 
 #include "generated/gen_geometry_utils.h"
 
@@ -152,6 +153,8 @@ PYBIND11_MODULE(mcell, m) {
   define_pybinding_Model(m);
 
   define_pybinding_Molecule(m);
+
+  define_pybinding_WallHitInfo(m);
 
   // constants may reference existing types, must be "bound" later
   define_pybinding_constants(m);

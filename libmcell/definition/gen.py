@@ -41,6 +41,7 @@ ALL_INPUT_FILES = [
     'instantiation.yaml',
     'observables.yaml',
     'simulation_setup.yaml',
+    'callbacks.yaml',
     'model.yaml',
     'introspection.yaml',
     'submodules.yaml'
@@ -98,7 +99,7 @@ KEY_INHERITED = 'inherited' # used only internally, not in input YAML
 VALUE_CLASS = 'class'
 VALUE_SUBMODULE = 'submodule'
 
-
+YAML_TYPE_PY_OBJECT_PTR = 'py::object*'
 YAML_TYPE_FLOAT = 'float'
 YAML_TYPE_STR = 'str'
 YAML_TYPE_INT = 'int'
@@ -111,6 +112,7 @@ YAML_TYPE_LIST = 'List'
 YAML_TYPE_DICT = 'Dict'
 YAML_TYPE_SPECIES = 'Species'
 YAML_TYPE_ORIENTATION = 'Orientation'
+YAML_TYPE_FUNCTION = 'std::function'
 
 PYBIND_TYPE_OBJECT = 'object'
 PY_CAST = 'py::cast'
@@ -241,6 +243,9 @@ def is_yaml_list_type(t):
 def is_yaml_dict_type(t):
     return t.startswith(YAML_TYPE_DICT)
 
+def is_yaml_function_type(t):
+    return t.startswith(YAML_TYPE_FUNCTION)
+
 # rename inner to underlying?
 def get_inner_list_type(t):
     if is_yaml_list_type(t):
@@ -259,17 +264,39 @@ def get_inner_dict_value_type(t):
         return t.replace('[', ',').replace(']', ',').split(',')[2].strip()
     else:
         return t
+    
+def get_inner_function_type(t):
+    # callbacks pass back only one shared_ptr argument 
+    if is_yaml_function_type(t):
+        return t.split('<')[2].split('>')[0].strip()
+    else:
+        return t    
+
+def get_first_inner_type(t):
+    if is_yaml_list_type(t):
+        return get_inner_list_type(t)
+    elif is_yaml_dict_type(t):
+        return get_inner_dict_key_type(t)
+    elif is_yaml_function_type(t):
+        return get_inner_function_type(t)
+    else: 
+        return t    
 
 def is_base_yaml_type(t):
     return \
         t == YAML_TYPE_FLOAT or t == YAML_TYPE_STR or t == YAML_TYPE_INT or t == YAML_TYPE_LONG or \
         t == YAML_TYPE_BOOL or t == YAML_TYPE_VEC2 or t == YAML_TYPE_VEC3 or t == YAML_TYPE_IVEC3 or \
+        t == YAML_TYPE_PY_OBJECT_PTR or \
+        (is_yaml_function_type(t) and is_base_yaml_type(get_inner_function_type(t))) or \
         (is_yaml_list_type(t) and is_base_yaml_type(get_inner_list_type(t))) or \
         (is_yaml_dict_type(t) and is_base_yaml_type(get_inner_dict_key_type(t)) and is_base_yaml_type(get_inner_dict_value_type(t)))
 
 
 def is_yaml_ptr_type(t):
-    return t[-1] == '*'
+    if t == YAML_TYPE_PY_OBJECT_PTR:
+        return False
+    else:
+        return t[-1] == '*'
 
 
 def yaml_type_to_cpp_type(t):
@@ -350,7 +377,9 @@ def is_cpp_ref_type(cpp_type):
             cpp_type in CPP_NONREFERENCE_TYPES or \
             is_cpp_ptr_type(cpp_type) or \
             cpp_type.startswith(CPP_VECTOR_TYPE) or \
-            cpp_type in g_enums
+            cpp_type in g_enums or \
+            is_yaml_function_type(cpp_type) or \
+            cpp_type == YAML_TYPE_PY_OBJECT_PTR
     
     return not not_reference
     
@@ -587,7 +616,7 @@ def write_method_signature(f, method):
             assert KEY_NAME in p
             assert KEY_TYPE in p
             t = get_type_as_ref_param(p)
-            const_spec = 'const ' if not is_yaml_ptr_type(p[KEY_TYPE]) else ''
+            const_spec = 'const ' if not is_yaml_ptr_type(p[KEY_TYPE]) and p[KEY_TYPE] != YAML_TYPE_PY_OBJECT_PTR else ''
             f.write(const_spec + t + ' ' + p[KEY_NAME])
             if KEY_DEFAULT in p:
                 f.write(' = ' + get_default_or_unset_value(p))
@@ -720,7 +749,7 @@ def get_all_used_compound_types_no_decorations(class_def):
     cleaned_up_types = set()
     for t in types:
         # mus be set otherwise we get duplicates
-        cleaned_up_types.add(remove_ptr_mark( get_inner_list_type( remove_ptr_mark(t) ) ))
+        cleaned_up_types.add(remove_ptr_mark( get_first_inner_type( remove_ptr_mark(t) ) ))
     sorted_types_no_enums = [ t for t in cleaned_up_types if t not in g_enums ]
     sorted_types_no_enums.sort()
     return sorted_types_no_enums
@@ -731,7 +760,7 @@ def write_required_includes(f, class_def):
     inner_types = set()
     for t in types:
         # mus be set otherwise we get duplicates
-        inner_types.add( get_inner_list_type(t) )
+        inner_types.add( get_first_inner_type(t) )
 
     types_no_ptrs = [ t for t in inner_types if not is_yaml_ptr_type(t) ] 
     sorted_types_no_enums = [ t for t in types_no_ptrs if t not in g_enums ]
@@ -867,7 +896,7 @@ def write_to_str_implementation(f, class_name, items, based_on_base_superclass):
         starting_nl = '"' if last_print_nl else '"\\n" << ind + "  " << "'
        
         if is_yaml_list_type(type):
-            underlying_type = get_inner_list_type(type)
+            underlying_type = get_first_inner_type(type)
             if is_yaml_ptr_type(underlying_type):
                 f.write('      ' + starting_nl + name + '=" << ' + VEC_PTR_TO_STR + '(' + name + ', ind + "  ")')
                 print_nl = True

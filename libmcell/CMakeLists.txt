@@ -69,6 +69,8 @@ set(SOURCE_FILES
     generated/gen_model.cpp
     
     generated/gen_molecule.cpp
+    
+    generated/gen_wall_hit_info.cpp
 
     generated/gen_constants.cpp
 
