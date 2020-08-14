@@ -281,11 +281,8 @@ static void tiny_diffuse_3D(
   collision_vector_t collisions;
 
   // NOTE: can be optimized by ignoring molecule collisions
-  // TODO: use partition's aux RNG (will change results)
-  rng_state ignored_rng;
-  rng_init(&ignored_rng, 0);
   ray_trace_vol(
-        p, ignored_rng,
+        p, p.aux_rng,
         vm.id, species.can_vol_react(),
         previous_reflected_wall,
         ignored_displacement,
