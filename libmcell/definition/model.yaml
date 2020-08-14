@@ -53,7 +53,7 @@ Model:
   - name: export_data_model
     doc: | 
       If file is not set, then uses the first VizOutput to determine the target directory 
-      and creates name using the cutrrent iteration. Fails if argument file is not set and there is no VizOutput.
+      and creates name using the current iteration. Fails if argument file is not set and there is no VizOutput.
       Must be called after initialization.
       Always exports the current state, i.e. with the current . 
       Events (ReleaseSites and VizOutputs) with scheduled time other than zero cannot be imported correectly yet.  
@@ -61,15 +61,17 @@ Model:
     - name: file
       type: str
       default: unset
-
-    - name: only_for_visualization
-      type: bool
-      default: false
-      doc: |
-        The created data model will contain only information required for visualization in CellBlender.
-        This makes the loading ofthemodel by CellBlender faster and also allows to avoid potential 
-        compatibility issues. 
-
+        
+  - name: export_viz_data_model
+    doc: Same as export_data_model, only the created data model will contain only information required for visualization
+     in CellBlender. This makes the loading ofthemodel by CellBlender faster and also allows to avoid potential
+     compatibility issues. 
+    params: 
+    - name: file
+      type: str
+      default: unset
+     
+  
   # --- introspection ---
 
   # TODO: can we make some faster interface? however, we do not want to be bound to 

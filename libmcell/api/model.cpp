@@ -121,7 +121,7 @@ void Model::dump_internal_state() {
 }
 
 
-void Model::export_data_model(const std::string& file, const bool only_for_visualization) {
+void Model::export_data_model_viz_or_full(const std::string& file, const bool only_for_visualization) {
   if (is_set(file)) {
     world->export_data_model(file, only_for_visualization);
   }
@@ -143,7 +143,6 @@ void Model::export_data_model(const std::string& file, const bool only_for_visua
 
     world->export_data_model_to_dir(viz_outputs[0]->filename_prefix);
   }
-
 }
 
 
