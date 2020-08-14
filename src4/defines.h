@@ -455,18 +455,6 @@ static inline float_t ceil_to_multiple(const float_t val, float_t multiple) {
 }
 
 static inline Vec3 ceil_to_multiple(const Vec3& val, float_t multiple) {
-  /*assert(val.x >= 0 && val.y >=0 && val.z >= 0);
-  Vec3 res = floor_to_multiple(val, multiple);
-  // increment by multiple if value was floored
-  if (!cmp_eq(val.x, res.x)) {
-    res.x += multiple;
-  }
-  if (!cmp_eq(val.y, res.y)) {
-    res.y += multiple;
-  }
-  if (!cmp_eq(val.z, res.z)) {
-    res.z += multiple;
-  }*/
   Vec3 res;
   res.x = ceil_to_multiple(val.x, multiple);
   res.y = ceil_to_multiple(val.y, multiple);

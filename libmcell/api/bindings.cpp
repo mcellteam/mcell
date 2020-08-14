@@ -72,6 +72,7 @@
 namespace MCell {
 namespace API {
 
+
 void define_pybinding_Vec3(py::module& m) {
   py::class_<MCell::Vec3>(m, "Vec3")
       .def(
@@ -85,10 +86,14 @@ void define_pybinding_Vec3(py::module& m) {
           py::init<const float_t, const float_t, const float_t>(),
           py::arg("x"), py::arg("y"), py::arg("z")
       )
-      /*.def(
-          py::init<const std::vector<float_t>>(),
-          py::arg("xyz")
-      )*/
+      .def("__add__", [](const Vec3& a, const Vec3& b) { return Vec3(a + b); } )
+      .def("__sub__", [](const Vec3& a, const Vec3& b) { return Vec3(a - b); } )
+      .def("__mul__", [](const Vec3& a, const Vec3& b) { return Vec3(a * b); } )
+      .def("__truediv__", [](const Vec3& a, const Vec3& b) { return Vec3(a / b); } )
+      .def("__eq__",  [](const Vec3& a, const Vec3& b) { return a == b; } )
+      .def_readwrite("x", &Vec3::x)
+      .def_readwrite("y", &Vec3::y)
+      .def_readwrite("z", &Vec3::z)
   ;
 }
 
@@ -105,10 +110,18 @@ void define_pybinding_IVec3(py::module& m) {
           py::init<const int, const int, const int>(),
           py::arg("x"), py::arg("y"), py::arg("z")
       )
-      /*.def(
-          py::init<const std::vector<int>>(),
-          py::arg("xyz")
-      )*/
+      .def(
+          py::init<const float_t, const float_t, const float_t>(),
+          py::arg("x"), py::arg("y"), py::arg("z")
+      )
+      .def("__add__", [](const IVec3& a, const IVec3& b) { return IVec3(a + b); } )
+      .def("__sub__", [](const IVec3& a, const IVec3& b) { return IVec3(a - b); } )
+      .def("__mul__", [](const IVec3& a, const IVec3& b) { return IVec3(a * b); } )
+      .def("__truediv__", [](const IVec3& a, const IVec3& b) { return IVec3(a / b); } )
+      .def("__eq__",  [](const IVec3& a, const IVec3& b) { return a == b; } )
+      .def_readwrite("x", &IVec3::x)
+      .def_readwrite("y", &IVec3::y)
+      .def_readwrite("z", &IVec3::z)
   ;
 }
 
