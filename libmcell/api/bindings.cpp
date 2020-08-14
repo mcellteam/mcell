@@ -110,7 +110,12 @@ void define_pybinding_IVec3(py::module& m) {
           py::init<const int, const int, const int>(),
           py::arg("x"), py::arg("y"), py::arg("z")
       )
-      .def(
+      // FIXME: enabling these operator breaks debug build for unknown reason,
+      // release is build ok, one of tests to reproduce:
+      // mdl_data_model_pymcell4/tests/mdl/0051_largest_partition_size
+      // reenable parts of testing in mcell_tests/tests/pymcell4_positive/0050_vec_operators
+      // once fixed
+      /*.def(
           py::init<const float_t, const float_t, const float_t>(),
           py::arg("x"), py::arg("y"), py::arg("z")
       )
@@ -119,6 +124,7 @@ void define_pybinding_IVec3(py::module& m) {
       .def("__mul__", [](const IVec3& a, const IVec3& b) { return IVec3(a * b); } )
       .def("__truediv__", [](const IVec3& a, const IVec3& b) { return IVec3(a / b); } )
       .def("__eq__",  [](const IVec3& a, const IVec3& b) { return a == b; } )
+      */
       .def_readwrite("x", &IVec3::x)
       .def_readwrite("y", &IVec3::y)
       .def_readwrite("z", &IVec3::z)

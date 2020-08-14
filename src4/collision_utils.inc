@@ -914,7 +914,7 @@ static bool collide_wall_test(
     const Vec3& pos,
     const Vec3& move
 ) {
-  rng_state unused_rng_state;
+  rng_state unused_rng_state; // not initialized
   float_t ignored_collision_time;
   Vec3 ignored_collision_pos;
 
@@ -937,6 +937,7 @@ static bool collide_wall_test(
       face.exists_in_partition(), w_with_vertices
   );
 #ifndef NDEBUG
+  // update_move for collide_wall is false, therefore it cannot
   assert(orig_randcnt == unused_rng_state.randcnt && "collide_wall_test should not trigger usage of rng");
 #endif
 
