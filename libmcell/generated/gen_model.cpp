@@ -85,7 +85,7 @@ py::class_<Model> define_pybinding_Model(py::module& m) {
       .def("get_molecule", &Model::get_molecule, py::arg("id"))
       .def("add_vertex_move", &Model::add_vertex_move, py::arg("object"), py::arg("index"), py::arg("displacement"))
       .def("apply_vertex_moves", &Model::apply_vertex_moves)
-      .def("register_wall_hit_callback", &Model::register_wall_hit_callback, py::arg("function"), py::arg("context") = nullptr, py::arg("object") = nullptr, py::arg("species") = nullptr)
+      .def("register_wall_hit_callback", &Model::register_wall_hit_callback, py::arg("function"), py::arg("context"), py::arg("object") = nullptr, py::arg("species") = nullptr)
       .def("add_species", &Model::add_species, py::arg("s"))
       .def("find_species", &Model::find_species, py::arg("name"))
       .def("add_reaction_rule", &Model::add_reaction_rule, py::arg("r"))

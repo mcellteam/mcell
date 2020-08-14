@@ -40,7 +40,7 @@ using namespace MCell;
 
 // TODO: where should I put these callbacks?
 
-#include "callback_info.h"
+#include "legacy_callback_info.h"
 %}
 
 // TODO: why does simple import not work?
@@ -119,6 +119,7 @@ struct Vec3 {
   float_t x, y, z; # should be float_t
 };
 
+namespace API {
 struct WallHitInfo {
   molecule_id_t molecule_id;
   geometry_object_id_t geometry_object_id;
@@ -128,6 +129,7 @@ struct WallHitInfo {
   float_t time_before_hit;
   Vec3 pos_before_hit;
 };
+}
 
 
 class SimulationConfig {
@@ -168,7 +170,7 @@ public:
   
   void enable_wall_hit_counting();
   uint get_wall_hit_array_size();
-  const WallHitInfo& get_wall_hit_array_item(uint index);
+  const API::WallHitInfo& get_wall_hit_array_item(uint index);
   void clear_wall_hit_array();
   
   Partition& get_partition(partition_id_t i);

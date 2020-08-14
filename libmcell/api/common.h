@@ -29,8 +29,8 @@
 #include <string>
 #include <memory>
 #include <functional>
-#include "libs/pybind11/include/pybind11/pybind11.h" // make sure we won't include the system header
-#include "libs/pybind11/include/pybind11/functional.h"
+#include "pybind11/include/pybind11/pybind11.h" // make sure we won't include the system header
+#include "pybind11/include/pybind11/functional.h"
 
 namespace py = pybind11;
 #include <vector>

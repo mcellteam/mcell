@@ -3,12 +3,13 @@ cmake_minimum_required(VERSION 3.14)
 project(mcell4)
 
 include_directories(${CMAKE_SOURCE_DIR} 
-    ${CMAKE_CURRENT_SOURCE_DIR}/../src4 
-    ${CMAKE_CURRENT_SOURCE_DIR}/../src 
-    ${CMAKE_CURRENT_SOURCE_DIR}/../include 
-    ${CMAKE_CURRENT_SOURCE_DIR}/../libs  
-    ${CMAKE_CURRENT_SOURCE_DIR}/../libs/sparsehash/src/
-    ${CMAKE_CURRENT_SOURCE_DIR}/../libs/jsoncpp/include/
+    "${CMAKE_CURRENT_SOURCE_DIR}/../src4" 
+    "${CMAKE_CURRENT_SOURCE_DIR}/../src" 
+    "${CMAKE_CURRENT_SOURCE_DIR}/../include" 
+    "${CMAKE_CURRENT_SOURCE_DIR}/../libs"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../libmcell"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../libs/sparsehash/src/"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../libs/jsoncpp/include/"
 )
 
 set(SRC4_SOURCE_FILES
@@ -33,7 +34,7 @@ set(SRC4_SOURCE_FILES
     counted_volumes_util.cpp
     bng_data_to_datamodel_converter.cpp
     
-    callback_info.cpp    
+    legacy_callback_info.cpp    
 )
 
 add_library(${PROJECT_NAME} STATIC

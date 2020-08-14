@@ -99,7 +99,7 @@ KEY_INHERITED = 'inherited' # used only internally, not in input YAML
 VALUE_CLASS = 'class'
 VALUE_SUBMODULE = 'submodule'
 
-YAML_TYPE_PY_OBJECT_PTR = 'py::object*'
+YAML_TYPE_PY_OBJECT = 'py::object'
 YAML_TYPE_FLOAT = 'float'
 YAML_TYPE_STR = 'str'
 YAML_TYPE_INT = 'int'
@@ -286,14 +286,14 @@ def is_base_yaml_type(t):
     return \
         t == YAML_TYPE_FLOAT or t == YAML_TYPE_STR or t == YAML_TYPE_INT or t == YAML_TYPE_LONG or \
         t == YAML_TYPE_BOOL or t == YAML_TYPE_VEC2 or t == YAML_TYPE_VEC3 or t == YAML_TYPE_IVEC3 or \
-        t == YAML_TYPE_PY_OBJECT_PTR or \
+        t == YAML_TYPE_PY_OBJECT or \
         (is_yaml_function_type(t) and is_base_yaml_type(get_inner_function_type(t))) or \
         (is_yaml_list_type(t) and is_base_yaml_type(get_inner_list_type(t))) or \
         (is_yaml_dict_type(t) and is_base_yaml_type(get_inner_dict_key_type(t)) and is_base_yaml_type(get_inner_dict_value_type(t)))
 
 
 def is_yaml_ptr_type(t):
-    if t == YAML_TYPE_PY_OBJECT_PTR:
+    if t == YAML_TYPE_PY_OBJECT:
         return False
     else:
         return t[-1] == '*'
@@ -379,7 +379,7 @@ def is_cpp_ref_type(cpp_type):
             cpp_type.startswith(CPP_VECTOR_TYPE) or \
             cpp_type in g_enums or \
             is_yaml_function_type(cpp_type) or \
-            cpp_type == YAML_TYPE_PY_OBJECT_PTR
+            cpp_type == YAML_TYPE_PY_OBJECT
     
     return not not_reference
     
@@ -616,7 +616,7 @@ def write_method_signature(f, method):
             assert KEY_NAME in p
             assert KEY_TYPE in p
             t = get_type_as_ref_param(p)
-            const_spec = 'const ' if not is_yaml_ptr_type(p[KEY_TYPE]) and p[KEY_TYPE] != YAML_TYPE_PY_OBJECT_PTR else ''
+            const_spec = 'const ' if not is_yaml_ptr_type(p[KEY_TYPE]) and p[KEY_TYPE] != YAML_TYPE_PY_OBJECT else ''
             f.write(const_spec + t + ' ' + p[KEY_NAME])
             if KEY_DEFAULT in p:
                 f.write(' = ' + get_default_or_unset_value(p))

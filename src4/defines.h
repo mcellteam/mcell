@@ -124,6 +124,8 @@ const float_t SCHEDULER_COMPARISON_EPS = 1e-10;
 
 // ---------------------------------- configurable constants----------------------------------
 
+#define ENABLE_LEGACY_CALLBACKS
+
 //#define ENABLE_SORT_MOLS_BY_SUBPART // improves cache performance but produces different result
 const uint SORT_MOLS_BY_SUBPART_PERIODICITY = 20;
 

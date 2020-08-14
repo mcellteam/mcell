@@ -32,7 +32,7 @@
 #include "api/config.h"
 #include "api/warnings.h"
 #include "api/notifications.h"
-#include "shared_structs.h"
+#include "api/shared_structs.h"
 
 namespace MCell {
 
@@ -75,11 +75,11 @@ public:
   void apply_vertex_moves() override;
 
   void register_wall_hit_callback(
-      const std::function<void(std::shared_ptr<WallHitInfo>, void*)> function,
-      py::object* context = nullptr,
+      const std::function<void(std::shared_ptr<WallHitInfo>, py::object)> function,
+      py::object context,
       std::shared_ptr<GeometryObject> object = nullptr,
       std::shared_ptr<Species> species = nullptr
-  ) override {}
+  ) override;
 
   void error_if_initialized(const char* what) {
     if (initialized) {

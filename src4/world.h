@@ -27,6 +27,7 @@
 #include <time.h>
 #include <sys/time.h> // Linux include
 #include <sys/resource.h> // Linux include
+#include <functional>
 
 #include <vector>
 #include <string>
@@ -40,11 +41,14 @@
 #include "partition.h"
 #include "scheduler.h"
 #include "geometry.h"
-#include "callback_info.h"
 #include "count_buffer.h"
 #include "counted_volumes_util.h"
+#include "legacy_callback_info.h"
 
 #include "logging.h"
+
+#include "api/wall_hit_info.h"
+#include "pybind11/include/pybind11/pybind11.h"
 
 namespace Json {
 class Value;
@@ -52,7 +56,10 @@ class Value;
 
 namespace MCell {
 
+typedef std::function<void(std::shared_ptr<API::WallHitInfo>, pybind11::object)> wall_hit_callback_function_t;
+
 class World {
+
 public:
   World();
   ~World();
@@ -154,10 +161,10 @@ public:
   void to_data_model(Json::Value& root, const bool only_for_viz) const;
 
   // -------------- callback registration -------------------------
-  // move into cpp file
+#ifdef ENABLE_LEGACY_CALLBACKS
   void register_wall_hit_callback_internal(wall_hit_callback_func func, void* clientdata_, const char* object_name) {
-    wall_hit_callback = func;
-    wall_hit_callback_clientdata = clientdata_;
+    legacy_wall_hit_callback = func;
+    legacy_wall_hit_callback_clientdata = clientdata_;
 
     std::string log_msg = "Registering a callback for wall hits";
 
@@ -186,30 +193,44 @@ public:
     }
     mcell_log("%s.", log_msg.c_str());
   }
+  wall_hit_callback_func get_legacy_wall_hit_callback() {
+    return legacy_wall_hit_callback;
+  }
+#endif
 
-  wall_hit_callback_func get_wall_hit_callback() {
-    return wall_hit_callback;
+  void register_wall_hit_callback(
+      const wall_hit_callback_function_t func,
+      py::object context,
+      const geometry_object_id_t geometry_object_id,
+      const species_id_t species_id
+  ) {
+    wall_hit_callback_function = func;
+    wall_hit_context = context;
+    wall_hit_object_id = geometry_object_id;
+    wall_hit_species_id = species_id;
   }
 
+
   // ------------- counting ---------------------------------------
+#ifdef ENABLE_LEGACY_CALLBACKS
   // ?? why is it slower???
   void enable_wall_hit_counting(/*argument might contain information on filtering these events*/) {
-    wall_hit_callback = wall_hit_callback_append;
-    wall_hit_callback_clientdata = this;
+    legacy_wall_hit_callback = wall_hit_callback_append;
+    legacy_wall_hit_callback_clientdata = this;
   }
 
   uint get_wall_hit_array_size() const {
     return wall_hits.size();
   }
 
-  const WallHitInfo& get_wall_hit_array_item(uint index) const {
+  const LegacyWallHitInfo& get_wall_hit_array_item(uint index) const {
     return wall_hits[index];
   }
 
   void clear_wall_hit_array() {
     wall_hits.clear();
   }
-
+#endif
   // ---------------------- other ----------------------
   BNG::SpeciesContainer& get_all_species() { return bng_engine.get_all_species(); }
   const BNG::SpeciesContainer& get_all_species() const { return bng_engine.get_all_species(); }
@@ -306,22 +327,29 @@ private:
   uint64_t previous_iteration;
 
 public:
-  // NOTE: only a temporary solution of callbacks for now
 
-  // callbacks
-  wall_hit_callback_func wall_hit_callback;
-  // clientdata hold information on what Python function we should call
-  void* wall_hit_callback_clientdata;
-
+  // new pymcell4 implementation of callbacks
+  wall_hit_callback_function_t wall_hit_callback_function;
+  py::object wall_hit_context;
   geometry_object_id_t wall_hit_object_id;
+  species_id_t wall_hit_species_id;
+
+
+#ifdef ENABLE_LEGACY_CALLBACKS
+  // legacy implementation (to be removed)
+  // callbacks
+  wall_hit_callback_func legacy_wall_hit_callback;
+  // clientdata hold information on what Python function we should call
+  void* legacy_wall_hit_callback_clientdata;
 
 private:
-  static void wall_hit_callback_append(const WallHitInfo& info, void* ctx) {
+  static void wall_hit_callback_append(const LegacyWallHitInfo& info, void* ctx) {
     (static_cast<World*>(ctx))->wall_hits.push_back(info);
   }
 
   // used when enable_wall_hit_counting is called
-  small_vector<WallHitInfo> wall_hits;
+  small_vector<LegacyWallHitInfo> wall_hits;
+#endif
 
 };
 

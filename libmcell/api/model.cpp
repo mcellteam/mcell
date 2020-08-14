@@ -234,6 +234,36 @@ void Model::apply_vertex_moves() {
 }
 
 
+void Model::register_wall_hit_callback(
+    const std::function<void(std::shared_ptr<WallHitInfo>, py::object)> function,
+    py::object context,
+    std::shared_ptr<GeometryObject> object,
+    std::shared_ptr<Species> species
+) {
+  if (!initialized) {
+    throw RuntimeError("Model must be initialized before registering callbacks");
+  }
+
+  geometry_object_id_t geometry_object_id = GEOMETRY_OBJECT_ID_INVALID;
+  if (is_set(object)) {
+    if (object->geometry_object_id == GEOMETRY_OBJECT_ID_INVALID) {
+      throw RuntimeError("Geometry object " + object->name + " is not present in model.");
+    }
+    geometry_object_id = object->geometry_object_id;
+  }
+
+  species_id_t species_id = SPECIES_ID_INVALID;
+  if (is_set(species)) {
+    if (species->species_id == SPECIES_ID_INVALID) {
+      throw RuntimeError("Species object " + object->name + " is not present in model.");
+    }
+    species_id = species->species_id;
+  }
+
+  world->register_wall_hit_callback(function, context, geometry_object_id, species_id);
+}
+
+
 std::string Model::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << "Model" << ": " <<

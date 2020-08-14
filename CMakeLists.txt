@@ -47,7 +47,11 @@ if (CMAKE_BUILD_TYPE STREQUAL "Release")
   SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -no-pie ")
 endif()
 
-set(WARNING_FLAGS "-Wall -Wextra -Wno-unused-parameter -Wno-unused-function -Wno-unused-variable -Wno-ignored-optimization-argument ")
+set(WARNING_FLAGS "-Wall -Wextra -Wno-unused-parameter -Wno-unused-function -Wno-unused-variable ")
+
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+	set(WARNING_FLAGS "${WARNING_FLAGS} -Wno-ignored-optimization-argument")
+endif()
 
 set(INCLUDE_DIRS " -isystem ${CMAKE_SOURCE_DIR}/libs/")
 SET(COMMON_C_CXX_FLAGS "${WARNING_FLAGS} -fPIC -g3 ${OPTIMIZATION_FLAGS} ${INCLUDE_DIRS} -D_GNU_SOURCE=1 ")
@@ -130,7 +134,8 @@ include_directories(
   "${CMAKE_SOURCE_DIR}/../nfsimCInterface/src/"
   "${CMAKE_SOURCE_DIR}/include"
   "${CMAKE_SOURCE_DIR}/libs/sparsehash/src/"
-  
+  "${CMAKE_SOURCE_DIR}/libs"  
+  "${CMAKE_SOURCE_DIR}/libmcell"  
       
    # VTK - should be set by find_package but it does not work somehow...
    "${CMAKE_SOURCE_DIR}/../VTK/Common/DataModel/"

@@ -115,18 +115,18 @@ Model:
     doc: There can be currently only a single wall hit callback registered.
     params:
     - name: function
-      type: std::function<void(std::shared_ptr<WallHitInfo>, void*)>
+      type: std::function<void(std::shared_ptr<WallHitInfo>, py::object)>
       doc: | 
          Callback function to be called. 
          It must have two arguments WallHitInfo and context.
       internal: Use a more abstract format to define function type 
 
     - name: context
-      type: py::object*
-      default: unset
+      type: py::object
       doc: | 
          Context passed to the callback function, the callback function can store
-         information to this object.
+         information to this object. Some context must be always passed, even when 
+         it is a useless python object. 
      
     - name: object
       type: GeometryObject*

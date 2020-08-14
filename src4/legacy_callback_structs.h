@@ -5,8 +5,8 @@
  *      Author: ahusar
  */
 
-#ifndef SRC4_CALLBACK_STRUCTS_H_
-#define SRC4_CALLBACK_STRUCTS_H_
+#ifndef SRC4_LEGACY_CALLBACK_STRUCTS_H_
+#define SRC4_LEGACY_CALLBACK_STRUCTS_H_
 
 #ifndef SWIG
 #include "defines.h"
@@ -14,7 +14,7 @@
 
 namespace MCell {
 
-struct WallHitInfo {
+struct LegacyWallHitInfo {
   molecule_id_t molecule_id;
   geometry_object_id_t geometry_object_id;
   wall_id_t wall_id;
@@ -26,4 +26,4 @@ struct WallHitInfo {
 
 } /* namespace MCell */
 
-#endif /* SRC4_CALLBACK_STRUCTS_H_ */
+#endif /* SRC4_LEGACY_CALLBACK_STRUCTS_H_ */

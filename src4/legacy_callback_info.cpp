@@ -2,14 +2,14 @@
 #include <iostream>
 #include <assert.h>
 
-#include "callback_info.h"
+#include "legacy_callback_info.h"
 
 #ifndef NOSWIG
 #include <Python.h>
 
 using namespace std;
 
-void py_callback_wall_hit(const MCell::WallHitInfo& res, void *clientdata)
+void py_callback_wall_hit(const MCell::LegacyWallHitInfo& res, void *clientdata)
 {
    PyObject *func, *arglist;
    PyObject *result;

@@ -14,7 +14,11 @@
 #include <utility>
 #include <type_traits>
 
-NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+// MCell - replaced with because we were getting compiler warnings
+// 'declared with greater visibility than the type of its field'
+//  for which there was not staightforward fix
+//NAMESPACE_BEGIN(PYBIND11_NAMESPACE)
+namespace pybind11 {
 
 /* A few forward declarations */
 class handle; class object;
