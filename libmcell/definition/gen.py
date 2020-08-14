@@ -1602,7 +1602,7 @@ def generate_pyi_file(data_classes):
         f.write('from enum import Enum\n\n')
         
         f.write('# "forward" declarations to make the type hints valid\n')
-        for key, value in data_classes.items():
+        for key, value in sorted(data_classes.items()):
             if key != KEY_CONSTANTS and key != KEY_ENUMS:
                 f.write('class ' + key + '():\n    pass\n')
         f.write('\n')
@@ -1640,7 +1640,7 @@ def generate_pyi_file(data_classes):
                 f.write(const[KEY_NAME] + ' = ' + str(const[KEY_VALUE]) + '\n')
         f.write('\n\n')
             
-        for key, value in data_classes.items():
+        for key, value in sorted(data_classes.items()):
             if key != KEY_CONSTANTS and key != KEY_ENUMS:
                 generate_pyi_class(f, key, value)
 
