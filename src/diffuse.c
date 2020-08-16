@@ -5250,6 +5250,7 @@ void set_inertness_and_maxtime(
     if (m->flags & ACT_CLAMPED) { /* Pretend we were already moving */
       m->birthday -= 5 * m->get_time_step(m); /* Pretend to be old */
     } else if ((m->flags & MATURE_MOLECULE) == 0) {
+    #ifndef MCELL3_MOLECULE_MOVES_WITH_MAXIMUM_TIMESTEP
       /* Newly created particles that have long time steps gradually increase */
       /* their timestep to the full value */
       if (m->get_time_step(m) > 1.0) {
@@ -5266,6 +5267,9 @@ void set_inertness_and_maxtime(
           m->flags |= MATURE_MOLECULE;
         }
       }
+    #else
+      m->flags |= MATURE_MOLECULE;
+    #endif // MCELL3_MOLECULE_MOVES_WITH_MAXIMUM_TIMESTEP
     }
   }
 }

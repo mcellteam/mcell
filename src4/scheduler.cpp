@@ -167,6 +167,32 @@ const BaseEvent* Calendar::find_next_event_with_type_index(
 }
 
 
+// returns max_time_step if no barrier is scheduled for interval
+// current_time .. current_time+max_time_step
+// if such a barrier exists, returns barrier time - current_time
+float_t Calendar::get_time_up_to_next_barrier(
+    const float_t current_time, const float_t max_time_step) const {
+
+  float_t max_time = current_time + max_time_step;
+
+  // expecting that there are only events that are scheduled
+  // for the future
+  for (const Bucket& bucket: queue) {
+    for (const BaseEvent* event: bucket.events) {
+      if (event->event_time > max_time) {
+        return max_time_step;
+      }
+      else if (event->is_barrier()) {
+        assert(event->event_time >= current_time);
+        return event->event_time - current_time;
+      }
+    }
+  }
+  // there are no more events scheduled right now
+  return max_time_step;
+}
+
+
 void Scheduler::schedule_event(BaseEvent* event) {
   calendar.insert(event);
 }
@@ -182,6 +208,12 @@ EventExecutionInfo Scheduler::handle_next_event() {
   BaseEvent* event = calendar.pop_next();
   assert(event != NULL && "Empty event queue - at least end simulation event should be present");
   float_t event_time = event->event_time;
+
+  if (event->may_be_blocked_by_barrier_and_needs_set_time_step()) {
+    float_t max_time_step = calendar.get_time_up_to_next_barrier(
+        event->event_time, event->periodicity_interval);
+    event->set_time_step_for_next_execution(max_time_step);
+  }
 
 #ifdef DEBUG_SCHEDULER
   event->dump("");

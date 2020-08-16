@@ -53,6 +53,13 @@
 // enabling this macro unifies it
 #define MCELL3_REVERSE_INITIAL_SURF_MOL_PLACEMENT_BY_NUM
 
+// in MCell3 the newly created particles that have long time steps gradually increase
+// their timestep to the full value
+// we cannot have individual timesteps for each molecule in MCell4 because there would be no way to
+// parallelize it
+// enabling this macro disables logic in safe_diffusion_step and set_inertness_and_maxtime
+//#define MCELL3_MOLECULE_MOVES_WITH_MAXIMUM_TIMESTEP
+
 #ifndef MCELL3_IDENTICAL
 
 // sort molecules in schedule helper according to ID before a new timestep begins

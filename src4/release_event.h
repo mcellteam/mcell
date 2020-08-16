@@ -165,6 +165,10 @@ public:
   // and on the second call it returns false
   bool update_event_time_for_next_scheduled_time() override;
 
+  // DiffuseReactEvent must execute only up to this event
+  // for MCell3 compatibility but otherwise not sure why this is necessary
+  bool is_barrier() const { return true; }
+
   void dump(const std::string indent) const override;
   void to_data_model(Json::Value& mcell_node) const override;
 

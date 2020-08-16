@@ -86,6 +86,27 @@ public:
     }
   }
 
+  // - events such as VizOutput, Count, or Release are barriers
+  //   to events whose execution spans over a certain time step
+  //   such as DiffuseReactEvent
+  // - is_blocked_by_barrier_and_needs_set_time_step must return false
+  //   when is_barrier returns true
+  virtual bool is_barrier() const { return false; }
+
+  // - some events represent simulation over a time step such as
+  //   DiffuseReactEvent, the maximum timestep for such events
+  //   must be limited so that the barrier event (such as molecule count)
+  //   has data valid for its time
+  // - is_barrier must return false
+  //   when is_blocked_by_barrier_and_needs_set_time_step returns true
+  // - periodicity_interval must not be 0 when this function return true
+  virtual bool may_be_blocked_by_barrier_and_needs_set_time_step() const { return false; }
+
+  // if an event is blocked
+  virtual void set_time_step_for_next_execution(const float_t time_step) {
+    assert(false && "Only overridden variant of this method may be called.");
+  }
+
   // time when this object;s step() method will be callled
   float_t event_time;
 

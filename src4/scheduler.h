@@ -75,6 +75,7 @@ public:
   void dump() const;
   void to_data_model(Json::Value& mcell_node) const;
   const BaseEvent* find_next_event_with_type_index(const event_type_index_t event_type_index) const;
+  float_t get_time_up_to_next_barrier(const float_t current_time, const float_t max_time_step) const;
 private:
   float_t get_first_bucket_start_time() {
     assert(queue.size() != 0);

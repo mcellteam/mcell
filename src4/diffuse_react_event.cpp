@@ -62,8 +62,9 @@ void DiffuseReactEvent::step() {
 
   // for each partition
   for (Partition& p: world->get_partitions()) {
-    // diffuse molecules from volume_molecule_indices_per_time_step that have the current diffusion_time_step
-    uint time_step_index = p.get_molecule_list_index_for_time_step(diffusion_time_step);
+    // diffuse molecules from volume_molecule_indices_per_time_step that have the time step equal to this
+    // event's periodicity interval
+    uint time_step_index = p.get_molecule_list_index_for_time_step(periodicity_interval);
     if (time_step_index != TIME_STEP_INDEX_INVALID) {
       diffuse_molecules(p, p.get_molecule_ids_for_time_step_index(time_step_index));
     }
@@ -98,7 +99,7 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const std::vector<molecu
     }
     else {
       // released during this iteration but not at the beginning, postpone its diffusion
-      assert(release_delay > 0 && release_delay < diffusion_time_step);
+      assert(release_delay > 0 && release_delay < current_time_step);
       delayed_release_diffusions.push_back(
           DiffuseOrUnimolRxnAction(
               DiffuseOrUnimolRxnAction::Type::DIFFUSE,
@@ -122,7 +123,7 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const std::vector<molecu
   // actions created by the diffusion of all these molecules are handled later
   for (uint i = 0; i < delayed_release_diffusions.size(); i++) {
     const DiffuseOrUnimolRxnAction& action = delayed_release_diffusions[i];
-    assert(action.scheduled_time >= event_time && action.scheduled_time <= event_time + diffusion_time_step);
+    assert(action.scheduled_time >= event_time && action.scheduled_time <= event_time + current_time_step);
     assert(action.type == DiffuseOrUnimolRxnAction::Type::DIFFUSE);
 
     Molecule& m = p.get_m(action.id);
@@ -154,7 +155,7 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const std::vector<molecu
     m.release_delay = 0; // reset release_delay to specify that the delay was handled
 #endif
 
-    assert(action.scheduled_time >= event_time && action.scheduled_time <= event_time + diffusion_time_step);
+    assert(action.scheduled_time >= event_time && action.scheduled_time <= event_time + current_time_step);
 
     if (action.type == DiffuseOrUnimolRxnAction::Type::DIFFUSE) {
       diffuse_single_molecule(
@@ -192,7 +193,7 @@ void DiffuseReactEvent::diffuse_single_molecule(
     const float_t diffusion_start_time, // time for which was this action scheduled
     WallTileIndexPair wall_tile_pair_where_created_this_iteration // set only for newly created molecules
 ) {
-  assert(diffusion_start_time < event_time + diffusion_time_step);
+  assert(diffusion_start_time < event_time + current_time_step);
 
   Molecule& m = p.get_m(m_id);
 
@@ -223,7 +224,7 @@ void DiffuseReactEvent::diffuse_single_molecule(
 
   // schedule unimol action if it is supposed to be executed in this timestep
   assert(unimol_rx_time == TIME_INVALID || unimol_rx_time >= event_time);
-  if (unimol_rx_time != TIME_INVALID && m.unimol_rx != nullptr && unimol_rx_time < event_time + diffusion_time_step) {
+  if (unimol_rx_time != TIME_INVALID && m.unimol_rx != nullptr && unimol_rx_time < event_time + current_time_step) {
 
     assert(!m.has_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN)
         && "This unimol rxn is still to be scheduled, unimol_rx_time only specifies the reschedule time.");
@@ -235,7 +236,7 @@ void DiffuseReactEvent::diffuse_single_molecule(
 
 #ifdef DEBUG_DIFFUSION
   const BNG::Species& debug_species = p.get_all_species().get(m.species_id);
-  float_t event_time_end = event_time + diffusion_time_step;
+  float_t event_time_end = event_time + current_time_step;
   DUMP_CONDITION4(
 #ifdef DUMP_NONDIFFUSING_VMS
     const char* title =
@@ -253,7 +254,7 @@ void DiffuseReactEvent::diffuse_single_molecule(
 #endif
 
   // max_time is the time for which we should simulate the diffusion
-  float_t max_time = event_time + diffusion_time_step - diffusion_start_time;
+  float_t max_time = event_time + current_time_step - diffusion_start_time;
   if (unimol_rx_time != TIME_INVALID && unimol_rx_time < diffusion_start_time + max_time) {
     assert(unimol_rx_time >= diffusion_start_time);
     max_time = unimol_rx_time - diffusion_start_time;
@@ -1122,7 +1123,7 @@ inline void DiffuseReactEvent::diffuse_surf_molecule(
     // NOTE: this condition looks a bit weird, some explanation would be useful
     if ((diffusible || can_surf_surf_react) &&
         ((!diffusible || changed_wall) &&
-          new_m_ref.unimol_rx_time >= event_time + diffusion_time_step)) {
+          new_m_ref.unimol_rx_time >= event_time + current_time_step)) {
       new_m_ref.unimol_rx_time = TIME_INVALID;
       new_m_ref.set_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN);
     }
@@ -1513,7 +1514,7 @@ bool DiffuseReactEvent::react_unimol_single_molecule(
   }
 
   assert(!m.has_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN));
-  assert(scheduled_time >= event_time && scheduled_time <= event_time + diffusion_time_step);
+  assert(scheduled_time >= event_time && scheduled_time <= event_time + current_time_step);
 
   if (m.has_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RXN_ON_NEXT_RXN_RATE_UPDATE)) {
     // this time event does not mean to execute the unimol action, but instead to
@@ -2285,7 +2286,7 @@ void DiffuseReactEvent::dump(const std::string ind) const {
   cout << ind << "Diffuse-react event:\n";
   std::string ind2 = ind + "  ";
   BaseEvent::dump(ind2);
-  cout << ind2 << "diffusion_time_step: \t\t" << diffusion_time_step << " [float_t] \t\t\n";
+  cout << ind2 << "diffusion_time_step: \t\t" << current_time_step << " [float_t] \t\t\n";
 }
 
 

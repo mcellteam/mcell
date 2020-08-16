@@ -143,21 +143,42 @@ public:
  */
 class DiffuseReactEvent : public BaseEvent {
 public:
-  DiffuseReactEvent(World* world_, const float_t diffusion_time_step_) :
+  DiffuseReactEvent(World* world_, const float_t diffusion_time_step) :
     BaseEvent(EVENT_TYPE_INDEX_DIFFUSE_REACT),
-    world(world_),
-    diffusion_time_step(diffusion_time_step_) {
+    world(world_), current_time_step(FLT_INVALID) {
 
     // repeat this event each time step
+    // periodicity_interval is the max time step for this event
     periodicity_interval = diffusion_time_step;
   }
+
   void step() override;
   void dump(const std::string ind = "") const override;
+
+  bool update_event_time_for_next_scheduled_time() override {
+    assert(current_time_step != FLT_INVALID);
+    // the next time to schedule
+    event_time = event_time + current_time_step;
+    return true;
+  }
+
+  bool may_be_blocked_by_barrier_and_needs_set_time_step() const override {
+    // DiffuseReactEvent must execute only up to a barrier such as CountEvent
+    return true;
+  }
+
+  void set_time_step_for_next_execution(const float_t time_step) override {
+    // scheduler says to this event for how long it can execute
+    // either the maximum time step (periodicity_interval) or time up to the
+    // first barrier
+    release_assert(time_step > 0 && "Diffusion must advance even if a little bit");
+    current_time_step = time_step;
+  }
 
   World* world;
 
   // this event diffuses all molecules that have this diffusion time_step
-  float_t diffusion_time_step;
+  float_t current_time_step;
 
 private:
   // molecules newly created in reactions
