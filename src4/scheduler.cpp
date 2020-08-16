@@ -78,6 +78,13 @@ void Bucket::dump() const {
 
 // insert a new item with time event->event_time, create bucket if needed
 void Calendar::insert(BaseEvent* event) {
+  // align time to multiple of one if the value is close to it
+  // required for example for custom time step where 0.1 * 10 must be equal to 1
+  float_t rounded_time = round_f(event->event_time);
+  if (cmp_eq(round_f(event->event_time), event->event_time, SCHEDULER_COMPARISON_EPS)) {
+    event->event_time = rounded_time;
+  }
+
   float_t bucket_start_time = event_time_to_bucket_start_time(event->event_time);
   if (queue.empty()) {
     // no items yet - simply create new bucket and insert our event there

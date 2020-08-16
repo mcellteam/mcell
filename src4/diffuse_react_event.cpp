@@ -58,7 +58,6 @@ using namespace BNG;
 namespace MCell {
 
 void DiffuseReactEvent::step() {
-  assert(event_time == world->get_current_iteration() && "In a normal case, event time should correspond to the iteration");
   assert(world->get_partitions().size() == 1 && "Must extend cache to handle multiple partitions");
 
   // for each partition
