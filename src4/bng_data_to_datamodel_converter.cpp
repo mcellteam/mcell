@@ -174,13 +174,25 @@ void BngDataToDatamodelConverter::convert_single_species(const BNG::Species& s, 
     species_node[KEY_EXPORT_VIZ] = viz->species_ids_to_visualize.count(s.id) == 1;
   }
 
-  species_node[KEY_CUSTOM_SPACE_STEP] = "";
+  if (s.custom_space_step != 0) {
+    species_node[KEY_CUSTOM_SPACE_STEP] = DMUtil::f_to_string(s.custom_space_step);
+  }
+  else {
+    species_node[KEY_CUSTOM_SPACE_STEP] = "";
+  }
+
+  if (s.custom_time_step != 0) {
+    species_node[KEY_CUSTOM_TIME_STEP] = DMUtil::f_to_string(s.custom_time_step);
+  }
+  else {
+    species_node[KEY_CUSTOM_TIME_STEP] = "";
+  }
+
   species_node[KEY_MAXIMUM_STEP_LENGTH] = "";
   species_node[KEY_TARGET_ONLY] = s.cant_initiate();
   species_node[KEY_DIFFUSION_CONSTANT] = DMUtil::f_to_string(s.D);
   species_node[KEY_SPATIAL_STRUCTURE] = "None";
   species_node[KEY_MOL_NAME] = s.name;
-  species_node[KEY_CUSTOM_TIME_STEP] = "";
 }
 
 

@@ -853,6 +853,12 @@ bool MCell3WorldConverter::convert_species(volume* s) {
     new_species.D = spec->D;
     new_species.space_step = spec->space_step;
     new_species.time_step = spec->time_step;
+    if (spec->custom_time_step_from_mdl < 0) {
+      new_species.custom_space_step = -spec->custom_time_step_from_mdl;
+    }
+    else if (spec->custom_time_step_from_mdl > 0) {
+      new_species.custom_time_step = spec->custom_time_step_from_mdl;
+    }
 
     // remove some flags for check that are known to work in all cases
     uint flags_check = spec->flags & ~REGION_PRESENT;
@@ -921,6 +927,13 @@ bool MCell3WorldConverter::convert_species(volume* s) {
     // define a molecule type with no components
     MolType mol_type;
     mol_type.name = new_species.name; // name of the mol type is the same as for our species
+    mol_type.D = spec->D;
+    if (spec->custom_time_step_from_mdl < 0) {
+      mol_type.custom_space_step = -spec->custom_time_step_from_mdl;
+    }
+    else if (spec->custom_time_step_from_mdl > 0) {
+      mol_type.custom_time_step = spec->custom_time_step_from_mdl;
+    }
 
     if ((spec->flags & ON_GRID) == 0 && (spec->flags & IS_SURFACE) == 0) {  //FIXME: ALL_SURF_MOLS have wrong flag
       mol_type.set_is_vol();

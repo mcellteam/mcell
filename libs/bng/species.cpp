@@ -138,6 +138,50 @@ void Species::update_flags_based_on_rxns(
 
 
 // based on assemble_mol_species
+/**************************************************************************
+assemble_mol_species:
+   Helper function to assemble a molecule species from its component pieces.
+
+   NOTE: A couple of comments regarding the unit conversions below:
+   Internally, mcell works with with the per species length
+   normalization factor
+
+      new_spec->space_step = sqrt(4*D*t), D = diffusion constant (1)
+
+   If the user supplies a CUSTOM_SPACE_STEP or SPACE_STEP then
+   it is assumed to correspond to the average diffusion step and
+   is hence equivalent to lr_bar in 2 or 3 dimensions for surface and
+   volume molecules, respectively:
+
+   lr_bar_2D = sqrt(pi*D*t)       (2)
+   lr_bar_3D = 2*sqrt(4*D*t/pi)   (3)
+
+   Hence, given a CUSTOM_SPACE_STEP/SPACE_STEP we need to
+   solve eqs (2) and (3) for t and obtain new_spec->space_step
+   via equation (1)
+
+   2D:
+    lr_bar_2D = sqrt(pi*D*t) => t = (lr_bar_2D^2)/(pi*D)
+
+   3D:
+    lr_bar_3D = 2*sqrt(4*D*t/pi) => t = pi*(lr_bar_3D^2)/(16*D)
+
+   The remaining coefficients are:
+
+    - 1.0e8 : needed to convert D from cm^2/s to um^2/s
+    - global_time_unit, length_unit, r_length_unit: mcell
+      internal time/length conversions.
+
+In: state: the simulation state
+    sym_ptr:   symbol for the species
+    D:     diffusion constant
+    is_2d: 1 if the species is a 2D molecule, 0 if 3D
+    custom_time_step: time_step for the molecule (<0.0 for a custom space
+                      step, >0.0 for custom timestep, 0.0 for default
+                      timestep)
+    target_only: 1 if the molecule cannot initiate reactions
+Out: the species, or NULL if an error occurred
+**************************************************************************/
 // time_unit and length_unit are coming from the simulation configuration
 void Species::update_space_and_time_step(const BNGConfig& config) {
   // Immobile (boring)
@@ -199,10 +243,21 @@ void Species::update_space_and_time_step(const BNGConfig& config) {
 void Species::update_diffusion_constant(const BNGData& data, const BNGConfig& config) {
   if (mol_instances.size() == 1) {
     // nothing to compute if we have just one molecule instance
-    D = data.get_molecule_type(mol_instances[0].mol_type_id).D;
+    const MolType& mt = data.get_molecule_type(mol_instances[0].mol_type_id);
+    D = mt.D;
     assert(D != FLT_INVALID);
+    custom_space_step = mt.custom_space_step;
+    custom_time_step = mt.custom_time_step;
   }
   else {
+    // check for custom steps that are not supported yet for complexes
+    for (const MolInstance& mi: mol_instances) {
+      const MolType& mt = data.get_molecule_type(mi.mol_type_id);
+      release_assert(mt.custom_space_step == 0 && mt.custom_time_step == 0 &&
+          "Custom time and space steps are not yet supported for complexes having more than one elementary molecule"
+      );
+    }
+
     // based on NFSim DerivedDiffusion::getDiffusionValue
     // For large complex aggregates (1 um) diffusing on 2D surface:
     //D_2D = KB*T*LOG((eta_PM*h/(Rc*(eta_EC+eta_CP)/2))-gamma)/(4*PI*eta_PM*h) (Saffman Delbruck)

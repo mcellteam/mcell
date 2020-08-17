@@ -25,6 +25,7 @@ public:
     : CplxInstance(&data),
       id(SPECIES_ID_INVALID), D(FLT_INVALID),
       // MCell-specific
+      custom_time_step(0), custom_space_step(0),
       space_step(FLT_INVALID), time_step(TIME_INVALID),
       color_set(false), color_r(1), color_g(0), color_b(0), scale(1),
       rxn_flags_were_updated(false)
@@ -37,6 +38,7 @@ public:
     : CplxInstance(&data),
       id(SPECIES_ID_INVALID), D(FLT_INVALID),
       // MCell-specific
+      custom_time_step(0), custom_space_step(0),
       space_step(FLT_INVALID), time_step(TIME_INVALID),
       color_set(false), color_r(1), color_g(0), color_b(0), scale(1),
       rxn_flags_were_updated(false)
@@ -64,7 +66,13 @@ public:
 
   float_t D; // diffusion constant, entered by user in MCell3 mode, computed in MCell4 BNG model
 
+  // when the user supplied a custom step, the attribute
+  // is set to non-zero value, max one of them can be set to a non-zero value
+  float_t custom_time_step;
+  float_t custom_space_step;
+
   // ----------- MCell-specific -----------
+
   float_t space_step;
   float_t time_step; // in standard time
 

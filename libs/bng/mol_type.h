@@ -38,7 +38,7 @@ public:
 class MolType: public BaseSpeciesCplxMolFlag {
 public:
   MolType()
-    : D(FLT_INVALID) {
+    : D(FLT_INVALID), custom_time_step(0), custom_space_step(0) {
   }
 
   std::string name;
@@ -46,10 +46,15 @@ public:
 
   float_t D; // diffusion constant
 
+  // when the user supplied a custom step, the attribute
+  // is set to non-zero value, max one of them can be set to a non-zero value
+  float_t custom_time_step;
+  float_t custom_space_step;
+
   bool operator ==(const MolType& mt2) const {
     // ordering of components in a molecule is important
     // two component types must have the same id, this is ensured in find_or_add_component_type
-    // diffusion constant is ignored
+    // diffusion constant and custom time/space steps are ignored
     return name == mt2.name && component_type_ids == mt2.component_type_ids;
   }
 

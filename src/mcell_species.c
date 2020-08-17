@@ -225,6 +225,7 @@ struct species *assemble_mol_species(MCELL_STATE *state,
 
   new_spec->D = species->D;
   new_spec->time_step = species->custom_time_step;
+  new_spec->custom_time_step_from_mdl = species->custom_time_step;
 
   if (species->target_only) {
     new_spec->flags |= CANT_INITIATE;

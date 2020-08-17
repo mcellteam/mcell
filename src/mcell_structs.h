@@ -629,6 +629,10 @@ struct species {
   struct name_orient *absorb_mols; // names of the mols that ABSORB at surface
   struct name_orient *clamp_conc_mols; /* names of mols that CLAMP_CONC at
                                           surface */
+
+  // mcell4 - we need to store information on whether the user set custom time or space step
+  // 0 - not set, < 0 - custom space step, > 0 custom time step
+  double custom_time_step_from_mdl;
 };
 
 /* All pathways leading away from a given intermediate */
