@@ -28,12 +28,15 @@ from collections import Counter
 MAIN_MDL_FILE = 'Scene.main.mdl' 
 
 # TODO: find automatically, allow to override
-MCELL_EXECUTABLE = '/nadata/cnl/home/ahusar/src4/mcell_tools/work/build_mcell/mcell'
+MCELL_EXECUTABLE = '/home/ahusar/src4_display/mcell/build/release/mcell'
 
+g_extra_arg = ''
 
 def run_mcell(seed):
     cmd = [MCELL_EXECUTABLE, '-seed', str(seed), MAIN_MDL_FILE] 
-    ec = utils.run(cmd, fout_name='mcell.out')
+    if g_extra_arg:
+        cmd.append(g_extra_arg)
+    ec = utils.run(cmd, fout_name='mcell_' + str(seed) + '.out')
     if ec != 0:
         print("Fatal error, run with seed " + str(seed) + "failed.")
         sys.exit(1)
@@ -72,7 +75,7 @@ def get_molecule_counts_for_multiple_runs(seeds):
 
     for s in seeds:
         # TODO: find the last .ascii file automatically
-        curr_counts = get_molecule_counts_from_ascii_file('viz_data/seed_' + str(s).zfill(5) + '/Scene.ascii.50.dat')
+        curr_counts = get_molecule_counts_from_ascii_file('viz_data/seed_' + str(s).zfill(5) + '/Scene.ascii.1000.dat')
         
         # add values with common key
         counts = Counter(counts) + Counter(curr_counts) 
@@ -93,8 +96,12 @@ def generate_seeds(count):
 def main():
     
     nr_runs = 1
-    if len(sys.argv) == 2:
+    if len(sys.argv) >= 2:
         nr_runs = int(sys.argv[1]) 
+
+    if len(sys.argv) >= 3:
+        global g_extra_arg 
+        g_extra_arg = sys.argv[2] 
     
     seeds = generate_seeds(nr_runs)
     res = get_molecule_counts_for_multiple_runs(seeds)
