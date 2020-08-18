@@ -344,6 +344,13 @@ BNG::mol_type_id_t MCell4Converter::convert_elementary_molecule_type(API::Elemen
     else {
       throw RuntimeError(S("Diffusion constant for ") + NAME_CLASS_ELEMENTARY_MOLECULE_TYPE + " was not set.");
     }
+
+    if (is_set(api_mt.custom_time_step)) {
+      bng_mt.custom_time_step = api_mt.custom_time_step;
+    }
+    else if (is_set(api_mt.custom_space_step)) {
+      bng_mt.custom_space_step = api_mt.custom_space_step;
+    }
   }
 
   // components
@@ -377,6 +384,13 @@ void MCell4Converter::convert_species() {
     BNG::Species new_species(world->bng_engine.get_data());
     new_species.name = s->name;
 
+    if (is_set(s->custom_time_step)) {
+      new_species.custom_time_step = s->custom_time_step;
+    }
+    else if (is_set(s->custom_space_step)) {
+      new_species.custom_space_step = s->custom_space_step;
+    }
+
     bool is_vol = false;
     if (is_set(s->diffusion_constant_3d)) {
       is_vol = true;
@@ -397,8 +411,7 @@ void MCell4Converter::convert_species() {
       new_species.space_step = 0;
       new_species.time_step = 0;
     }
-    else
-    {
+    else {
       throw ValueError("Neither diffusion_constant_2d nor diffusion_constant_3d was set.");
     }
 	

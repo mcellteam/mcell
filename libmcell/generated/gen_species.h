@@ -39,6 +39,8 @@ class ElementaryMoleculeInstance;
         const std::string& name_, \
         const float_t diffusion_constant_2d_ = FLT_UNSET, \
         const float_t diffusion_constant_3d_ = FLT_UNSET, \
+        const float_t custom_time_step_ = FLT_UNSET, \
+        const float_t custom_space_step_ = FLT_UNSET, \
         const bool target_only_ = false, \
         const std::vector<std::shared_ptr<ElementaryMoleculeInstance>> elementary_molecule_instances_ = std::vector<std::shared_ptr<ElementaryMoleculeInstance>>(), \
         const Orientation orientation_ = Orientation::NONE \
@@ -47,6 +49,8 @@ class ElementaryMoleculeInstance;
       name = name_; \
       diffusion_constant_2d = diffusion_constant_2d_; \
       diffusion_constant_3d = diffusion_constant_3d_; \
+      custom_time_step = custom_time_step_; \
+      custom_space_step = custom_space_step_; \
       target_only = target_only_; \
       elementary_molecule_instances = elementary_molecule_instances_; \
       orientation = orientation_; \
@@ -92,6 +96,30 @@ public:
   }
   virtual float_t get_diffusion_constant_3d() const {
     return diffusion_constant_3d;
+  }
+
+  float_t custom_time_step;
+  virtual void set_custom_time_step(const float_t new_custom_time_step_) {
+    if (initialized) {
+      throw RuntimeError("Value 'custom_time_step' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
+    custom_time_step = new_custom_time_step_;
+  }
+  virtual float_t get_custom_time_step() const {
+    return custom_time_step;
+  }
+
+  float_t custom_space_step;
+  virtual void set_custom_space_step(const float_t new_custom_space_step_) {
+    if (initialized) {
+      throw RuntimeError("Value 'custom_space_step' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
+    custom_space_step = new_custom_space_step_;
+  }
+  virtual float_t get_custom_space_step() const {
+    return custom_space_step;
   }
 
   bool target_only;

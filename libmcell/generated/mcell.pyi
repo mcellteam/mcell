@@ -301,12 +301,16 @@ class ElementaryMoleculeType():
             name : str,
             components : List[ComponentType] = None,
             diffusion_constant_2d : float = None,
-            diffusion_constant_3d : float = None
+            diffusion_constant_3d : float = None,
+            custom_time_step : float = None,
+            custom_space_step : float = None
         ):
         self.name = name
         self.components = components
         self.diffusion_constant_2d = diffusion_constant_2d
         self.diffusion_constant_3d = diffusion_constant_3d
+        self.custom_time_step = custom_time_step
+        self.custom_space_step = custom_space_step
 
 
     def inst(
@@ -810,6 +814,8 @@ class Species():
             name : str,
             diffusion_constant_2d : float = None,
             diffusion_constant_3d : float = None,
+            custom_time_step : float = None,
+            custom_space_step : float = None,
             target_only : bool = False,
             elementary_molecule_instances : List[ElementaryMoleculeInstance] = None,
             orientation : Orientation = Orientation.NONE
@@ -817,6 +823,8 @@ class Species():
         self.name = name
         self.diffusion_constant_2d = diffusion_constant_2d
         self.diffusion_constant_3d = diffusion_constant_3d
+        self.custom_time_step = custom_time_step
+        self.custom_space_step = custom_space_step
         self.target_only = target_only
         self.elementary_molecule_instances = elementary_molecule_instances
         self.orientation = orientation

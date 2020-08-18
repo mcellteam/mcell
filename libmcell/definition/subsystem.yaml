@@ -63,12 +63,22 @@ ElementaryMoleculeType:
   - name: diffusion_constant_2d
     type: float
     default: unset
-    doc: This molecule is constrained to a surface and diffuses with  diffusion constant D.
+    doc: This molecule is constrained to a surface and diffuses with diffusion constant D.
       
   - name: diffusion_constant_3d
     type: float
-    default: unset # the value is optional and might need to be checked with a more complex check
+    default: unset 
     doc: This molecule diffuses in space with diffusion constant D. D can be zero, in which case the molecule doesn’t move. The units of D are cm 2 /s.
+
+  - name: custom_time_step
+    type: float
+    default: unset 
+    doc: This molecule should take timesteps of length t (in seconds). Use either this or custom_time_step.
+
+  - name: custom_space_step
+    type: float
+    default: unset 
+    doc: This molecule should take steps of average length L (in microns). Use either this or custom_time_step.
       
   methods:
   - name: inst
@@ -122,13 +132,23 @@ Species:
   - name: diffusion_constant_2d
     type: float
     default: unset
-    doc: This molecule is constrained to a surface and diffuses with  diffusion constant D.
+    doc: This molecule is constrained to a surface and diffuses with diffusion constant D.
       
   - name: diffusion_constant_3d
     type: float
     default: unset # the value is optional and might need to be checked with a more complex check
     doc: This molecule diffuses in space with diffusion constant D. D can be zero, in which case the molecule doesn’t move. The units of D are cm 2 /s.
         
+  - name: custom_time_step
+    type: float
+    default: unset 
+    doc: This molecule should take timesteps of length t (in seconds). Use either this or custom_time_step.
+
+  - name: custom_space_step
+    type: float
+    default: unset 
+    doc: This molecule should take steps of average length L (in microns). Use either this or custom_time_step.
+            
   - name: target_only
     type: bool
     default: False

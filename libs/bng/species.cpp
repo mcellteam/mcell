@@ -190,37 +190,31 @@ void Species::update_space_and_time_step(const BNGConfig& config) {
     time_step = 1.0;
   }
   // Custom timestep or spacestep
-  // not supported yet
-  /*else if (new_spec->time_step != 0.0) {
-    // Hack--negative value means custom space step
-    if (new_spec->time_step < 0) {
-      double lr_bar = -new_spec->time_step;
-      if (species->is_2d) {
-        new_spec->time_step =
-            lr_bar * lr_bar / (MY_PI * 1.0e8 * new_spec->D * global_time_unit);
-      } else {
-        new_spec->time_step =
-            lr_bar * lr_bar * MY_PI /
-            (16.0 * 1.0e8 * new_spec->D * global_time_unit);
-      }
-      new_spec->space_step =
-          sqrt(4.0 * 1.0e8 * new_spec->D * new_spec->time_step *
-               global_time_unit) *
-          state->r_length_unit;
+  else if (custom_space_step > 0) {
+    float_t lr_bar = custom_space_step;
+    assert(!has_flag_no_finalized_check(SPECIES_CPLX_MOL_FLAG_REACTIVE_SURFACE));
+    if (has_flag_no_finalized_check(SPECIES_CPLX_MOL_FLAG_SURF)) {
+      time_step =
+          lr_bar * lr_bar / (BNG_PI * 1.0e8 * D * config.time_unit);
     }
     else {
-      new_spec->space_step =
-          sqrt(4.0 * 1.0e8 * new_spec->D * new_spec->time_step) *
-          state->r_length_unit;
-      new_spec->time_step /= global_time_unit;
+      time_step =
+          lr_bar * lr_bar * BNG_PI / (16.0 * 1.0e8 * D * config.time_unit);
     }
-  }*/
+    space_step =
+        sqrt_f(4.0 * 1.0e8 * D * time_step * config.time_unit) * config.rcp_length_unit;
+  }
+  else if (custom_time_step > 0) {
+    space_step =
+        sqrt_f(4.0 * 1.0e8 * D * custom_time_step) * config.rcp_length_unit;
+    time_step = custom_time_step / config.time_unit;
+  }
   // Global timestep (this is the typical case)
   else /*if (!distinguishable(state->space_step, 0, EPS_C))*/ {
-    space_step = sqrt_f(4.0 * 1.0e8 * D * config.time_unit) / config.length_unit;
+    space_step = sqrt_f(4.0 * 1.0e8 * D * config.time_unit) * config.rcp_length_unit;
     time_step = 1.0;
   }
-  /*// Global spacestep
+  /*// Global spacestep - not supported yet
   else {
     double space_step = state->space_step * state->length_unit;
     if (species->is_2d) {

@@ -43,7 +43,9 @@ bool GenElementaryMoleculeType::__eq__(const GenElementaryMoleculeType& other) c
     name == other.name &&
     vec_ptr_eq(components, other.components) &&
     diffusion_constant_2d == other.diffusion_constant_2d &&
-    diffusion_constant_3d == other.diffusion_constant_3d;
+    diffusion_constant_3d == other.diffusion_constant_3d &&
+    custom_time_step == other.custom_time_step &&
+    custom_space_step == other.custom_space_step;
 }
 
 void GenElementaryMoleculeType::set_initialized() {
@@ -57,6 +59,8 @@ void GenElementaryMoleculeType::set_all_attributes_as_default_or_unset() {
   components = std::vector<std::shared_ptr<ComponentType>>();
   diffusion_constant_2d = FLT_UNSET;
   diffusion_constant_3d = FLT_UNSET;
+  custom_time_step = FLT_UNSET;
+  custom_space_step = FLT_UNSET;
 }
 
 std::string GenElementaryMoleculeType::to_str(const std::string ind) const {
@@ -65,7 +69,9 @@ std::string GenElementaryMoleculeType::to_str(const std::string ind) const {
       "name=" << name << ", " <<
       "\n" << ind + "  " << "components=" << vec_ptr_to_str(components, ind + "  ") << ", " << "\n" << ind + "  " <<
       "diffusion_constant_2d=" << diffusion_constant_2d << ", " <<
-      "diffusion_constant_3d=" << diffusion_constant_3d;
+      "diffusion_constant_3d=" << diffusion_constant_3d << ", " <<
+      "custom_time_step=" << custom_time_step << ", " <<
+      "custom_space_step=" << custom_space_step;
   return ss.str();
 }
 
@@ -76,12 +82,16 @@ py::class_<ElementaryMoleculeType> define_pybinding_ElementaryMoleculeType(py::m
             const std::string&,
             const std::vector<std::shared_ptr<ComponentType>>,
             const float_t,
+            const float_t,
+            const float_t,
             const float_t
           >(),
           py::arg("name"),
           py::arg("components") = std::vector<std::shared_ptr<ComponentType>>(),
           py::arg("diffusion_constant_2d") = FLT_UNSET,
-          py::arg("diffusion_constant_3d") = FLT_UNSET
+          py::arg("diffusion_constant_3d") = FLT_UNSET,
+          py::arg("custom_time_step") = FLT_UNSET,
+          py::arg("custom_space_step") = FLT_UNSET
       )
       .def("check_semantics", &ElementaryMoleculeType::check_semantics)
       .def("__str__", &ElementaryMoleculeType::to_str, py::arg("ind") = std::string(""))
@@ -91,6 +101,8 @@ py::class_<ElementaryMoleculeType> define_pybinding_ElementaryMoleculeType(py::m
       .def_property("components", &ElementaryMoleculeType::get_components, &ElementaryMoleculeType::set_components)
       .def_property("diffusion_constant_2d", &ElementaryMoleculeType::get_diffusion_constant_2d, &ElementaryMoleculeType::set_diffusion_constant_2d)
       .def_property("diffusion_constant_3d", &ElementaryMoleculeType::get_diffusion_constant_3d, &ElementaryMoleculeType::set_diffusion_constant_3d)
+      .def_property("custom_time_step", &ElementaryMoleculeType::get_custom_time_step, &ElementaryMoleculeType::set_custom_time_step)
+      .def_property("custom_space_step", &ElementaryMoleculeType::get_custom_space_step, &ElementaryMoleculeType::set_custom_space_step)
     ;
 }
 

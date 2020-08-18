@@ -80,6 +80,11 @@ public:
         throw ValueError("Field diffusion_constant_3d must not be set for simple species.");
       }
     }
+
+    if (get_num_set(custom_time_step, custom_space_step) > 1) {
+      throw ValueError(S("Only one of ") + NAME_CUSTOM_TIME_STEP + " or " + NAME_CUSTOM_SPACE_STEP +
+          " may be set at the same time.");
+    }
   }
 
   ComplexInstance inst(const Orientation orientation) override {

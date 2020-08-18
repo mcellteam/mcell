@@ -42,6 +42,8 @@ bool GenSpecies::__eq__(const GenSpecies& other) const {
     name == other.name &&
     diffusion_constant_2d == other.diffusion_constant_2d &&
     diffusion_constant_3d == other.diffusion_constant_3d &&
+    custom_time_step == other.custom_time_step &&
+    custom_space_step == other.custom_space_step &&
     target_only == other.target_only &&
     vec_ptr_eq(elementary_molecule_instances, other.elementary_molecule_instances) &&
     orientation == other.orientation;
@@ -57,6 +59,8 @@ void GenSpecies::set_all_attributes_as_default_or_unset() {
   name = STR_UNSET;
   diffusion_constant_2d = FLT_UNSET;
   diffusion_constant_3d = FLT_UNSET;
+  custom_time_step = FLT_UNSET;
+  custom_space_step = FLT_UNSET;
   target_only = false;
   elementary_molecule_instances = std::vector<std::shared_ptr<ElementaryMoleculeInstance>>();
   orientation = Orientation::NONE;
@@ -68,6 +72,8 @@ std::string GenSpecies::to_str(const std::string ind) const {
       "name=" << name << ", " <<
       "diffusion_constant_2d=" << diffusion_constant_2d << ", " <<
       "diffusion_constant_3d=" << diffusion_constant_3d << ", " <<
+      "custom_time_step=" << custom_time_step << ", " <<
+      "custom_space_step=" << custom_space_step << ", " <<
       "target_only=" << target_only << ", " <<
       "\n" << ind + "  " << "elementary_molecule_instances=" << vec_ptr_to_str(elementary_molecule_instances, ind + "  ") << ", " << "\n" << ind + "  " <<
       "orientation=" << orientation;
@@ -81,6 +87,8 @@ py::class_<Species> define_pybinding_Species(py::module& m) {
             const std::string&,
             const float_t,
             const float_t,
+            const float_t,
+            const float_t,
             const bool,
             const std::vector<std::shared_ptr<ElementaryMoleculeInstance>>,
             const Orientation
@@ -88,6 +96,8 @@ py::class_<Species> define_pybinding_Species(py::module& m) {
           py::arg("name"),
           py::arg("diffusion_constant_2d") = FLT_UNSET,
           py::arg("diffusion_constant_3d") = FLT_UNSET,
+          py::arg("custom_time_step") = FLT_UNSET,
+          py::arg("custom_space_step") = FLT_UNSET,
           py::arg("target_only") = false,
           py::arg("elementary_molecule_instances") = std::vector<std::shared_ptr<ElementaryMoleculeInstance>>(),
           py::arg("orientation") = Orientation::NONE
@@ -99,6 +109,8 @@ py::class_<Species> define_pybinding_Species(py::module& m) {
       .def_property("name", &Species::get_name, &Species::set_name)
       .def_property("diffusion_constant_2d", &Species::get_diffusion_constant_2d, &Species::set_diffusion_constant_2d)
       .def_property("diffusion_constant_3d", &Species::get_diffusion_constant_3d, &Species::set_diffusion_constant_3d)
+      .def_property("custom_time_step", &Species::get_custom_time_step, &Species::set_custom_time_step)
+      .def_property("custom_space_step", &Species::get_custom_space_step, &Species::set_custom_space_step)
       .def_property("target_only", &Species::get_target_only, &Species::set_target_only)
     ;
 }

@@ -78,6 +78,13 @@ public:
     return (flags & flag) != 0;
   }
 
+  // flag retrieval for circumstances when the flags were not finalized
+  // but we know that it is ok to ask, should be used only when necessary
+  virtual bool has_flag_no_finalized_check(uint flag) const {
+    assert(__builtin_popcount(flag) == 1);
+    return (flags & flag) != 0;
+  }
+
   void set_flag(uint flag, bool value = true) {
     assert(__builtin_popcount(flag) == 1);
     if (value) {
