@@ -504,12 +504,27 @@ void SemanticAnalyzer::convert_complex_pattern(const small_vector<const ASTMolec
   pattern.finalize();
 }
 
+static bool is_thrash_or_null(const string& name) {
+  // same check as in nfsim
+  return (name == "Null" || name == "NULL" || name=="null" ||
+      name == "Trash" || name == "trash" || name=="TRASH");
+}
 
 // take one side of a reaction rule and create pattern for rule matching
 void SemanticAnalyzer::convert_cplx_inst_or_rxn_rule_side(
     const ASTListNode* rule_side,
     const bool convert_single_cplx_inst,
     CplxInstanceVector& patterns) {
+
+  // check for NULL or TRASH reaction outputs
+  // TODO: better semantic checks are needed
+  if (rule_side->items.size() == 1) {
+    const ASTBaseNode* n = rule_side->items[0];
+    const ASTMoleculeNode* m = to_molecule_node(n);
+    if (is_thrash_or_null(m->name)) {
+      return; //
+    }
+  }
 
   // we need to check each molecule type from each complex
   small_vector<const ASTMoleculeNode*> current_complex_nodes;
