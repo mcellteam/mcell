@@ -40,7 +40,15 @@ public:
     return first == b.first && second == b.second;
   }
   bool operator < (const UnorderedPair& b) const {
-    return first < b.first && second < b.second;
+    if (first < b.first) {
+      return true;
+    }
+    else if (first == b.first) {
+      return second < b.second;
+    }
+    else {
+      return false;
+    }
   }
 
   vertex_descriptor_t first;
