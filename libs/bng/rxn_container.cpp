@@ -219,11 +219,72 @@ void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t n
 }
 
 
-// this method belongs to the rxn class because reactions can have multiple
+// returns true if the required reaction products were in cache
+bool RxnContainer::get_cached_rxn_products(
+    const RxnRule* rxn,
+    const species_id_t reactant_a_species_id,
+    const species_id_t reactant_b_species_id,
+    std::vector<species_id_t>& res) {
+
+  if (rxn->is_unimol()) {
+    auto species_map_it = unimol_rxn_cached_product_species.find(rxn->id);
+    if (species_map_it == unimol_rxn_cached_product_species.end()) {
+      return false;
+    }
+    auto products_it = species_map_it->second.find(reactant_a_species_id);
+    if (products_it == species_map_it->second.end()) {
+      return false;
+    }
+
+    // found
+    res = products_it->second;
+    return true;
+  }
+  else {
+    assert(rxn->is_bimol());
+
+    auto species1_map_it = bimol_rxn_cached_product_species.find(rxn->id);
+    if (species1_map_it == bimol_rxn_cached_product_species.end()) {
+      return false;
+    }
+    auto species2_map_it = species1_map_it->second.find(reactant_a_species_id);
+    if (species2_map_it == species1_map_it->second.end()) {
+      return false;
+    }
+    auto products_it = species2_map_it->second.find(reactant_b_species_id);
+    if (products_it == species2_map_it->second.end()) {
+      return false;
+    }
+
+    // found
+    res = products_it->second;
+    return true;
+  }
+}
+
+
+void RxnContainer::store_rxn_products_to_cache(
+    const RxnRule* rxn,
+    const species_id_t reactant_a_species_id,
+    const species_id_t reactant_b_species_id,
+    const std::vector<species_id_t>& res) {
+
+  if (rxn->is_unimol()) {
+    unimol_rxn_cached_product_species[rxn->id][reactant_a_species_id] = res;
+  }
+  else {
+    assert(rxn->is_bimol());
+    bimol_rxn_cached_product_species[rxn->id][reactant_a_species_id][reactant_b_species_id] = res;
+  }
+}
+
+
+// this method belongs to the rxn container because reactions can have multiple
 // species that it can be applied to, so caching of product species ids
 // must be done here
 // result must be computed on the fly because its computation may involve definition
-// of new species and we must define a reaction class for them only when needed
+// of new species and we must define species only when needed
+// NOTE: should't this also with caching rather belong to a reaction class?
 void RxnContainer::get_rxn_product_species_ids(
     const RxnRule* rxn,
     const species_id_t reactant_a_species_id,
@@ -236,9 +297,10 @@ void RxnContainer::get_rxn_product_species_ids(
   );
 
   // check if we did not compute this before
-  auto cached_it = cached_product_species.find(rxn->id);
-  if (cached_it != cached_product_species.end()) {
-    res = cached_it->second;
+  // we must take the specific reactants into account
+  bool found = get_cached_rxn_products(rxn, reactant_a_species_id, reactant_b_species_id, res);
+  if (found) {
+    return;
   }
 
   res.clear();
@@ -300,7 +362,7 @@ void RxnContainer::get_rxn_product_species_ids(
   }
 
   // cache the result
-  cached_product_species[rxn->id] = res;
+  store_rxn_products_to_cache(rxn, reactant_a_species_id, reactant_b_species_id, res);
 }
 
 

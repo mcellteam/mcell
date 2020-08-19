@@ -199,6 +199,20 @@ private:
   void create_unimol_rxn_classes_for_new_species(const species_id_t id);
   void create_bimol_rxn_classes_for_new_species(const species_id_t id);
 
+  bool get_cached_rxn_products(
+      const RxnRule* rxn,
+      const species_id_t reactant_a_species_id,
+      const species_id_t reactant_b_species_id,
+      std::vector<species_id_t>& res
+  );
+
+  void store_rxn_products_to_cache(
+      const RxnRule* rxn,
+      const species_id_t reactant_a_species_id,
+      const species_id_t reactant_b_species_id,
+      const std::vector<species_id_t>& res
+  );
+
 private:
   // owns reaction classes
   // allocated in get_or_create_empty_bimol_rxn_class, deleted in destructor
@@ -219,7 +233,17 @@ private:
 
   BimolRxnClassesMap bimol_rxn_class_map;
 
-  std::map<rxn_rule_id_t, std::vector<species_id_t>> cached_product_species;
+  // caches for reaction products
+  std::map<rxn_rule_id_t, // bimol rule id
+    std::map<species_id_t, // first reactant
+      std::map<species_id_t, // second reactant
+        std::vector<species_id_t> // precomputed products
+        >>> bimol_rxn_cached_product_species;
+
+  std::map<rxn_rule_id_t, // unimol rule id
+    std::map<species_id_t, // unimol first reactant
+      std::vector<species_id_t> // precomputed products
+      >> unimol_rxn_cached_product_species;
 
 public:
   // TODO: make private
