@@ -64,6 +64,20 @@ void RxnRule::create_patterns_graph() {
 
 
 void RxnRule::create_products_graph() {
+  // mark each of the original product complexes with the index of the product
+  // we have our own copies and it is easier to mark the source graphs before merging
+  for (size_t i = 0; i < products.size(); i++) {
+    Graph& graph = products[i].get_graph();
+    VertexNameMap index = boost::get(boost::vertex_name, graph);
+    typedef boost::graph_traits<Graph>::vertex_iterator vertex_iter;
+    std::pair<vertex_iter, vertex_iter> it;
+    for (it = boost::vertices(graph); it.first != it.second; ++it.first) {
+      vertex_descriptor_t desc = *it.first;
+      Node& node = index[desc];
+      node.product_index = i;
+    }
+  }
+
   // create graph from products
   if (products.size() > 0) {
     products_graph = products[0].get_graph();
@@ -491,13 +505,13 @@ static void add_new_products(
   for (mol_it = boost::vertices(products_graph); mol_it.first != mol_it.second; ++mol_it.first) {
     vertex_descriptor_t prod_desc = *mol_it.first;
     auto prod_pat_it = product_pattern_mapping.find(prod_desc);
-    const Node& mol_node = products_index[prod_desc];
+    const Node& prod_mol_node = products_index[prod_desc];
 
     // if we are dealing with a molecule and there is no mapping to reactant pattern graph
-    if (mol_node.is_mol && prod_pat_it == product_pattern_mapping.end()) {
+    if (prod_mol_node.is_mol && prod_pat_it == product_pattern_mapping.end()) {
       // create a new molecule instance in the reactants_graph
       // (the node points to a MolInst owned by products of this rxn)
-      vertex_descriptor_t new_reac_desc = boost::add_vertex(mol_node, reactants_graph);
+      vertex_descriptor_t new_reac_desc = boost::add_vertex(prod_mol_node, reactants_graph);
       product_reactant_mapping[prod_desc] = new_reac_desc;
 
       // for each component of the molecule in product graph
@@ -540,7 +554,8 @@ static void add_new_products(
   }
 }
 
-
+// manipulate the reactants_graph according to how
+// products should look like
 static void apply_rxn_on_reactants_graph(
     Graph& reactants_graph,
     const VertexMapping& pattern_reactant_mapping,
@@ -567,23 +582,28 @@ static void apply_rxn_on_reactants_graph(
   //     new molecule instance
   for (auto prod_pat_it: product_pattern_mapping) {
     vertex_descriptor_t prod_desc = prod_pat_it.first;
-    const Node& prod_comp = products_index[prod_pat_it.first];
-    if (!prod_comp.is_mol) {
-      // product->pattern
-      vertex_descriptor_t pat_desc = prod_pat_it.second;
+    const Node& prod_node = products_index[prod_pat_it.first];
+    // product->pattern
+    vertex_descriptor_t pat_desc = prod_pat_it.second;
 
-      //   find component corresponding to reactant pattern in reactants_graph
-      //     this mapping must exist because we matched the pattern graph to reactants graph
-      auto pat_reac_it = pattern_reactant_mapping.find(pat_desc);
-      assert(pat_reac_it != pattern_reactant_mapping.end() && "Mapping should exist?");
+    // find component corresponding to reactant pattern in reactants_graph
+    //   this mapping must exist because we matched the pattern graph to reactants graph
+    auto pat_reac_it = pattern_reactant_mapping.find(pat_desc);
+    assert(pat_reac_it != pattern_reactant_mapping.end() && "Mapping should exist?");
 
-      vertex_descriptor_t reac_desc = pat_reac_it->second;
+    vertex_descriptor_t reac_desc = pat_reac_it->second;
 
-      //   manipulate state and or bond
-      Node& reac_comp = reactants_index[reac_desc];
-      assert(!reac_comp.is_mol);
-      const ComponentInstance& prod_ci = *prod_comp.component;
-      ComponentInstance& reac_ci = *reac_comp.component;
+    // manipulate state and or bond
+    Node& reac_node = reactants_index[reac_desc];
+
+    // set product index marker
+    assert(prod_node.product_index != INDEX_INVALID);
+    reac_node.product_index = prod_node.product_index;
+
+    if (!prod_node.is_mol) {
+      assert(!reac_node.is_mol);
+      const ComponentInstance& prod_ci = *prod_node.component;
+      ComponentInstance& reac_ci = *reac_node.component;
 
       // update state
       if (prod_ci.state_is_set() && prod_ci.state_id != reac_ci.state_id) {
@@ -710,8 +730,11 @@ static bool convert_graph_component_to_product_cplx_inst(
     Graph& graph,
     const vector<int>& graph_components,
     const int graph_component_index,
-    CplxInstance& cplx
+    CplxInstance& cplx,
+    uint& product_index
 ) {
+  product_index = INDEX_INVALID;
+
   VertexNameMap index = boost::get(boost::vertex_name, graph);
 
   map<UnorderedPair, int> bonds;
@@ -727,6 +750,13 @@ static bool convert_graph_component_to_product_cplx_inst(
     }
 
     const Node& mol = index[mol_desc];
+
+    // check molecule whether it has a marker that says which product it was
+    // we need to maintain the ordering of products
+    if (mol.product_index != INDEX_INVALID) {
+      assert(product_index == INDEX_INVALID || product_index == mol.product_index);
+      product_index = mol.product_index;
+    }
 
     if (!mol.used_in_rxn_product) {
       // this is a consumed reactant
@@ -793,22 +823,29 @@ static void create_products_from_reactants_graph(
   // which will contain numbers giving the component number assigned to each vertex
   // the resulting vector is indexed by vertex_descriptor
   vector<int> graph_components(boost::num_vertices(reactants_graph));
-  int num_components = boost::connected_components(
+  int num_graph_components = boost::connected_components(
       reactants_graph,
       boost::make_iterator_property_map(
           graph_components.begin(), boost::get(boost::vertex_index, reactants_graph), graph_components[0]
       )
   );
 
-  for (int i = 0; i < num_components; i++) {
+  for (int i = 0; i < num_graph_components; i++) {
     CplxInstance product_cplx(bng_data);
 
     // some reactants may have been removed
+    uint product_index;
     bool is_rxn_product =
-        convert_graph_component_to_product_cplx_inst(reactants_graph, graph_components, i, product_cplx);
+        convert_graph_component_to_product_cplx_inst(reactants_graph, graph_components, i, product_cplx, product_index);
 
     if (is_rxn_product) {
-      created_products.push_back(product_cplx);
+      assert(product_index != INDEX_INVALID);
+
+      // products must be ordered by their position in rxn products
+      if (product_index >= created_products.size()) {
+        created_products.resize(product_index + 1, CplxInstance(bng_data));
+      }
+      created_products[product_index] = product_cplx;
     }
   }
 }
@@ -895,6 +932,9 @@ void RxnRule::create_products_for_complex_rxn(
 
 
 bool RxnRule::is_cplx_reactant_on_both_sides_of_rxn(const uint index) const {
+#ifdef MCELL4_DO_NOT_REUSE_REACTANT
+  return false;
+#endif
   assert(is_finalized());
   for (const CplxIndexPair& cplx_index_pair: simple_cplx_mapping) {
     if (index == cplx_index_pair.reactant_index) {
@@ -906,6 +946,9 @@ bool RxnRule::is_cplx_reactant_on_both_sides_of_rxn(const uint index) const {
 
 
 bool RxnRule::is_cplx_product_on_both_sides_of_rxn(const uint index) const {
+#ifdef MCELL4_DO_NOT_REUSE_REACTANT
+  return false;
+#endif
   assert(is_finalized());
   for (const CplxIndexPair& cplx_index_pair: simple_cplx_mapping) {
     if (index == cplx_index_pair.product_index) {
@@ -1183,6 +1226,29 @@ bool RxnRule::check_reactants_products_mapping(std::ostream& out) {
 
 
 void RxnRule::move_products_that_are_also_reactants_to_be_the_first_products() {
+#ifdef MCELL4_SORT_RXN_PRODUCTS_BY_NAME
+  // this is a behavior of NFsim that products seem to be sorted by name,
+  // let's assume by the first molecule of each complex
+  // for now let's sort max 2 products
+  if (products.size() == 2) {
+
+    const string& name0 = products[0].to_str(*bng_data, false); // we do not care whether this is a surf or vol rxn
+    const string& name1 = products[1].to_str(*bng_data, false);
+
+    if (name0 > name1) {
+      CplxInstance tmp = products[0];
+      products[0] = products[1];
+      products[1] = tmp;
+    }
+
+    // then we need to recompute the products_graph
+    create_products_graph();
+
+    // update mapping
+    compute_reactants_products_mapping();
+  }
+  return;
+#endif
 
   // for each reactant (from the end since we want the products to be ordered in the same way)
   for (int pi = products.size() - 1; pi > 0; pi--) {

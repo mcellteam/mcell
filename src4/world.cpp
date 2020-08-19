@@ -164,9 +164,15 @@ void World::init_counted_volumes() {
 
 void World::init_simulation() {
 
+  // TODO: check these messages in testsuite
 #ifdef MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID
-  // TODO: check this message in testsuite
   mcell_log("!!! WARNING: Event sorting according to time and id was enabled for debugging, testing won't pass.");
+#endif
+#ifdef MCELL4_DO_NOT_REUSE_REACTANT
+  mcell_log("!!! WARNING: Reactant reuse is disabled, testing won't pass.");
+#endif
+#ifdef MCELL4_SORT_RXN_PRODUCTS_BY_NAME
+  mcell_log("!!! WARNING: Standard product sorting is disabled, testing won't pass.");
 #endif
 
   if (DUMP4_PRECISION != DUMP4_PRECISION_DEFAULT) {

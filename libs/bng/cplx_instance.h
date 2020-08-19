@@ -73,6 +73,11 @@ public:
     return graph;
   }
 
+  Graph& get_graph() {
+    assert(is_finalized());
+    return graph;
+  }
+
   bool is_simple() const {
     return has_flag(SPECIES_CPLX_FLAG_ONE_MOL_NO_COMPONENTS);
   }
@@ -137,7 +142,7 @@ public:
         matches_fully(other);
   }
 
-  std::string to_str(const BNGData& bng_data, bool in_reaction = false) const;
+  std::string to_str(const BNGData& bng_data, bool in_surf_reaction = false) const;
   void dump(const bool for_diff = false, const std::string ind = "") const;
 
 private:

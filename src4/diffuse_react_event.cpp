@@ -1882,8 +1882,8 @@ int DiffuseReactEvent::outcome_products_random(
       collision.is_wall_collision()
   );
 
-#ifdef DEBUG_RXNS
-  DUMP_CONDITION4(
+//#ifdef DEBUG_RXNS
+//  DUMP_CONDITION4(
     collision.dump(p, "Processing reaction:", p.stats.get_current_iteration(), time);
     cout << p.get_all_species().get(p.get_m(collision.diffused_molecule_id).species_id).name;
     if (collision.is_mol_mol_reaction()) {
@@ -1897,8 +1897,8 @@ int DiffuseReactEvent::outcome_products_random(
     else {
       cout << "rxn_class is nullptr\n";
     }
-  );
-#endif
+//  );
+//#endif
 
   Molecule* reacA = &p.get_m(collision.diffused_molecule_id);
   assert(reacA->is_vol() || reacA->is_surf());

@@ -22,15 +22,15 @@ class BNGData;
 
 struct Node {
   Node()
-    : is_mol(true), mol(nullptr), component(nullptr), used_in_rxn_product(true) {
+    : is_mol(true), mol(nullptr), component(nullptr), used_in_rxn_product(true), product_index(INDEX_INVALID) {
   }
 
   Node(MolInstance* mol_)
-    : is_mol(true), mol(mol_), component(nullptr), used_in_rxn_product(true) {
+    : is_mol(true), mol(mol_), component(nullptr), used_in_rxn_product(true), product_index(INDEX_INVALID) {
   }
 
   Node(ComponentInstance* component_)
-    : is_mol(false), mol(nullptr), component(component_), used_in_rxn_product(true) {
+    : is_mol(false), mol(nullptr), component(component_), used_in_rxn_product(true), product_index(INDEX_INVALID) {
   }
 
   bool compare(const Node& n2) const {
@@ -103,6 +103,8 @@ struct Node {
 
   // for reaction handling, default is true
   bool used_in_rxn_product;
+  // also for reactions - specifies index of the reaction product
+  uint product_index;
 };
 
 std::ostream & operator<<(std::ostream &out, const Node& n);

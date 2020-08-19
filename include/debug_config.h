@@ -62,6 +62,16 @@
 
 #ifndef MCELL3_IDENTICAL
 
+// MCell3R always creates new products when there is the same species
+// on the reactants and products side (unlike in normal MCell)
+// this switch is for validation of MCell4 BNG against MCell3R
+// One can detect this automatically or with an option, but both seemed as ugly solution
+// testsuite for mcell4 won't pass
+//#define MCELL4_DO_NOT_REUSE_REACTANT
+
+// MCell3R seems to sort reaction products by name
+//#define MCELL4_SORT_RXN_PRODUCTS_BY_NAME
+
 // sort molecules in schedule helper according to ID before a new timestep begins
 // testsuite for mcell4 won't pass
 //#define MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID
