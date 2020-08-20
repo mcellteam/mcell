@@ -74,7 +74,7 @@ int parse_single_cplx_instance_string(
   // run bison parser
   int res = bnglparse();
 
-  delete input;
+  delete [] input;
 
   if (res != 0) {
     // parse error, do not continue

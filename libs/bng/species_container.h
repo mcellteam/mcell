@@ -53,7 +53,7 @@ public:
 
   species_id_t add(const Species& new_species) {
 
-  #ifndef DEBUG
+  #ifndef NDEBUG
     assert(find_full_match(new_species) == SPECIES_ID_INVALID && "Species must not exist");
     // we also don't want species with the same name
     for (const Species& s: species) {
