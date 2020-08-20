@@ -24,11 +24,12 @@ int parse_bngl_file(const std::string& file_name, BNGData& bng_data);
 
 // parses input BNGL complex instance string and performs
 // semantic analysis
+// returns number of errors encountered while parsing
 // bng_data are not cleared and one can continue with adding
 // complexes gradually
 // prints errors and warnings directly to the error output
 // resulting complex is stored into the res_cplx
-int parse_single_cplx_instance_file(
+int parse_single_cplx_instance_string(
     const std::string& cplx_instance_string, BNGData& bng_data,
     CplxInstance& res_cplx
 );

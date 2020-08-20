@@ -34,7 +34,9 @@ public:
 
   // create species from a complex instance
   // id is not set and name is determined automatically
-  Species(const CplxInstance& cplx_inst, const BNGData& data, const BNGConfig& config)
+  Species(
+      const CplxInstance& cplx_inst, const BNGData& data, const BNGConfig& config,
+      const bool do_update_diffusion_constant = true)
     : CplxInstance(&data),
       id(SPECIES_ID_INVALID), D(FLT_INVALID),
       // MCell-specific
@@ -48,13 +50,15 @@ public:
     // the only finalize method, but showing that we are finalizing
     // just the CplxInstance part of the Species
     CplxInstance::finalize();
-    update_diffusion_constant(data, config);
+    if (do_update_diffusion_constant) {
+      update_diffusion_constant(data, config);
+    }
     set_flag(BNG::SPECIES_FLAG_CAN_DIFFUSE, D != 0);
     finalize();
     name = cplx_inst.to_str(data);
   }
 
-
+  // TODO: why is this called from the Species ctor, can we remove it?
   void finalize() {
     CplxInstance::finalize();
     set_flag(BNG::SPECIES_FLAG_CAN_DIFFUSE, D != 0);

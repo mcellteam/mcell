@@ -51,10 +51,9 @@ int parse_bngl_file(const std::string& file_name, BNGData& bng_data) {
   return errors;
 }
 
-
 // bng_data are not cleared and one can continue with adding
 // complexes gradually
-int parse_single_cplx_instance(
+int parse_single_cplx_instance_string(
     const std::string& cplx_instance_string, BNGData& bng_data,
     CplxInstance& res_cplx
 ) {
@@ -65,7 +64,7 @@ int parse_single_cplx_instance(
 
   // form input for parser, the @CPLX switches it to mode where it parses a single string
   char* input = new char[cplx_instance_string.size() + 32];
-  strcat(input, "@CPLX ");
+  strcpy(input, "@CPLX ");
   strcat(input, cplx_instance_string.c_str());
 
   bngl_scan_string(input);

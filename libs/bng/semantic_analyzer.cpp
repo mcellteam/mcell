@@ -162,7 +162,10 @@ state_id_t SemanticAnalyzer::convert_state_name(const ASTStrNode* s) {
 }
 
 
-component_type_id_t SemanticAnalyzer::convert_component_type(const ASTComponentNode* c) {
+component_type_id_t SemanticAnalyzer::convert_component_type(
+    const ASTComponentNode* c,
+    const bool allow_components_to_have_bonds
+) {
 
   ComponentType ct;
   ct.name = c->name;
@@ -174,7 +177,7 @@ component_type_id_t SemanticAnalyzer::convert_component_type(const ASTComponentN
   }
 
   // bond - ignored, only error is printed
-  if (c->bond->str != "") {
+  if (!allow_components_to_have_bonds && c->bond->str != "") {
     errs_loc(c) <<
         "Definition of a component in the molecule types section must not have a bond, "
         "error for '!" << c->bond->str << "'.\n"; // test N0100
@@ -185,14 +188,18 @@ component_type_id_t SemanticAnalyzer::convert_component_type(const ASTComponentN
 }
 
 
-MolType SemanticAnalyzer::convert_molecule_type(const ASTMoleculeNode* n, bool allow_same_component_different_state) {
+MolType SemanticAnalyzer::convert_molecule_type(
+    const ASTMoleculeNode* n,
+    const bool allow_same_component_different_state,
+    const bool allow_components_to_have_bonds
+) {
   MolType mt;
   mt.name = n->name;
 
   for (const ASTBaseNode* c: n->components->items) {
     // component types must not have bonds
     component_type_id_t component_type_id =
-        convert_component_type(to_component_node(c));
+        convert_component_type(to_component_node(c), allow_components_to_have_bonds);
     mt.component_type_ids.push_back(component_type_id);
   }
 
@@ -729,6 +736,59 @@ bool SemanticAnalyzer::check_and_convert_parsed_file(ParserContext* ctx_, BNGDat
 }
 
 
+// analyze AST for a single complex and extend molecule type definitions by what it contains
+void SemanticAnalyzer::extend_molecule_type_definitions(const ASTListNode* cplx_node) {
+  vector<const ASTMoleculeNode*> molecule_nodes;
+  collect_molecule_types_molecule_list(cplx_node, molecule_nodes);
+
+  for (const ASTMoleculeNode* mol: molecule_nodes) {
+    // was this molecule type already defined?
+    mol_type_id_t mt_id = bng_data->find_molecule_type_id(mol->name);
+    if (mt_id == MOL_TYPE_ID_INVALID) {
+      // no, simply add as a new one
+      MolType mt = convert_molecule_type(mol, false, true);
+      bng_data->find_or_add_molecule_type(mt);
+    }
+    else {
+      // yes - extend existing components definitions
+      MolType& mt = bng_data->get_molecule_type(mt_id);
+
+      // for each component of the new cplx
+      for (const ASTBaseNode* c: mol->components->items) {
+
+        const ASTComponentNode* comp_node = to_component_node(c);
+
+        // find whether a component with the same name is already present
+        // and extend its allowed states
+        ComponentType* ct = nullptr;
+        for (component_type_id_t existing_ct_id: mt.component_type_ids) {
+          // we must limit ourselves to the components already defined for this molecule
+          ComponentType* ct_existing = &bng_data->get_component_type(existing_ct_id);
+          if (comp_node->name == ct_existing->name) {
+            ct = ct_existing;
+            break;
+          }
+        }
+        if (ct != nullptr) {
+          // found existing component, extend its allowed states
+          for (const ASTBaseNode* state: comp_node->states->items) {
+            state_id_t state_id = convert_state_name(to_str_node(state));
+            ct->allowed_state_ids.insert(state_id);
+          }
+        }
+        else {
+          // there is no such component, this is an error for now
+          errs_loc(c) <<
+              "Molecule type " + mt.name + " was previously defined without component " + comp_node->name +
+              ", this is not allowed. All molecule type occurrences must use all components.\n";
+          ctx->inc_error_count();
+        }
+      }
+    }
+  }
+}
+
+
 // returns true if conversion and semantic checks passed,
 // resulting complex inst is stored into res
 bool SemanticAnalyzer::check_and_convert_single_cplx_instance(
@@ -739,15 +799,20 @@ bool SemanticAnalyzer::check_and_convert_single_cplx_instance(
   ctx = ctx_;
   bng_data = res_bng;
 
-  CplxInstanceVector cplx_vec;
-  convert_cplx_inst_or_rxn_rule_side(ctx->single_cplx_instance, true, cplx_vec);
-  assert(cplx_vec.size() == 1);
-  res = cplx_vec[0];
-
+  // define molecule types first
+  extend_molecule_type_definitions(ctx->single_cplx_instance);
   if (ctx->get_error_count() != 0) {
     return false;
   }
 
+  CplxInstanceVector cplx_vec;
+  convert_cplx_inst_or_rxn_rule_side(ctx->single_cplx_instance, true, cplx_vec);
+  if (ctx->get_error_count() != 0) {
+    return false;
+  }
+
+  assert(cplx_vec.size() == 1);
+  res = cplx_vec[0];
   return true;
 }
 

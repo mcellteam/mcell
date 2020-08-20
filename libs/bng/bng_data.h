@@ -85,6 +85,10 @@ public:
     return component_types[id];
   }
 
+  ComponentType& get_component_type(const component_type_id_t id) {
+    assert(id < component_types.size());
+    return component_types[id];
+  }
 
   // -------- molecule types --------
 
@@ -94,6 +98,11 @@ public:
   mol_type_id_t find_molecule_type_id(const std::string& name) const;
 
   const MolType& get_molecule_type(const mol_type_id_t id) const {
+    assert(id < molecule_types.size());
+    return molecule_types[id];
+  }
+
+  MolType& get_molecule_type(const mol_type_id_t id) {
     assert(id < molecule_types.size());
     return molecule_types[id];
   }

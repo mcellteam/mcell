@@ -1,18 +1,20 @@
 cmake_minimum_required(VERSION 2.8.4)
 
-project(data_model_to_pymcell)
+project(bng_analyzer)
 
 include_directories(
     "${CMAKE_SOURCE_DIR}"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../../libs/bng"
-    "${CMAKE_SOURCE_DIR}/libs"  
+    "${CMAKE_CURRENT_SOURCE_DIR}/../../libs/"
+	"${CMAKE_CURRENT_SOURCE_DIR}/../../libs/sparsehash/src/"
 )
 
 
 add_definitions(-std=c++17)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -Wall -isystem ${CMAKE_SOURCE_DIR}/libs/ -isystem ${CMAKE_SOURCE_DIR}/libs/sparsehash/src")
 
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../libs/bng ${CMAKE_CURRENT_BINARY_DIR}/libs/bng)
+if (NOT TARGET bng)
+	add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../libs/bng ${CMAKE_CURRENT_BINARY_DIR}/libs/bng)
+endif()
 
 set(SOURCE_FILES
     bng_analyzer.cpp

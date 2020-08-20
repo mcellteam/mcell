@@ -31,10 +31,14 @@ private:
   void convert_parameters();
 
   state_id_t convert_state_name(const ASTStrNode* s);
-  component_type_id_t convert_component_type(const ASTComponentNode* c);
+  component_type_id_t convert_component_type(
+      const ASTComponentNode* c,
+      const bool allow_components_to_have_bonds = false
+  );
   MolType convert_molecule_type(
       const ASTMoleculeNode* n,
-      const bool allow_same_component_different_state = false
+      const bool allow_same_component_different_state = false,
+      const bool allow_components_to_have_bonds = false
   );
   void convert_and_store_molecule_types();
 
@@ -61,6 +65,8 @@ private:
   void convert_and_store_rxn_rules();
 
   void convert_seed_species();
+
+  void extend_molecule_type_definitions(const ASTListNode* cplx_node);
 
   // local copies so that we don't have to pass everything
   // as arguments

@@ -52,7 +52,7 @@ I ([0-9]+)
 "species"       { LOC(); return TOK_SPECIES; }
 "observables"   { LOC(); return TOK_OBSERVABLES; }
 
-"^\@CPLX" 		{ LOC(); return TOK_SINGLE_CPLX; }
+"@CPLX" 		{ LOC(); return TOK_SINGLE_CPLX; }
 
     /* numbers and identifiers */
 
