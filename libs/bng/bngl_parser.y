@@ -414,7 +414,7 @@ action_call_list:
 ;
 
 action_call:
-      TOK_ID '(' action_arg_list_maybe_empty ')'
+      TOK_ID '(' action_arg_list_maybe_empty ')' maybe_semicolon
 
 action_arg_list_maybe_empty:
       '{' action_arg_list '}'
@@ -429,6 +429,11 @@ action_arg_list:
 action_arg:
       TOK_ID TOK_ARG_ASSIGN expr_or_str
 ;
+ 
+maybe_semicolon:
+	   ';'
+	 | /* empty */
+	 ;
  
 expr_or_str:
       expr 

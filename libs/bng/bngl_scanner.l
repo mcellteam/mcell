@@ -36,7 +36,7 @@ I ([0-9]+)
 [ \t]+          ; /* whitespaces are ignored, not sure if this is correct */ 
 "\n"            { /*bngllineno++;*/ }
 "\r"            ; /* Windows end line character is ignored */
-
+"\\"			; /* Ignoring backslash used to cancel newline for now */
 
     /* keywords */
      
@@ -66,7 +66,7 @@ I ([0-9]+)
 "<->"           { LOC(); return TOK_ARROW_BIDIR; }
 "=>"            { LOC(); return TOK_ARG_ASSIGN; }
 
-[\~\,\!\?\.\(\)\/\+\-\*\^\{\}\"\=]  { LOC(); return bngltext[0];}
+[\~\,\!\?\.\(\)\/\+\-\*\^\{\}\"\=\;]  { LOC(); return bngltext[0];}
 
 .               { LOC(); errs() << "Unexpected character '" << bngltext[0] << "'.\n"; return bngltext[0]; }
 %%
