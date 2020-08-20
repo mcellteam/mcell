@@ -682,7 +682,7 @@ void SemanticAnalyzer::convert_seed_species() {
 }
 
 // returns true if conversion and semantic checks passed
-bool SemanticAnalyzer::check_and_convert(ParserContext* ctx_, BNGData* res_bng) {
+bool SemanticAnalyzer::check_and_convert_parsed_file(ParserContext* ctx_, BNGData* res_bng) {
   assert(ctx_ != nullptr);
   assert(res_bng != nullptr);
 
@@ -721,6 +721,29 @@ bool SemanticAnalyzer::check_and_convert(ParserContext* ctx_, BNGData* res_bng) 
   }
 
   convert_seed_species();
+  if (ctx->get_error_count() != 0) {
+    return false;
+  }
+
+  return true;
+}
+
+
+// returns true if conversion and semantic checks passed,
+// resulting complex inst is stored into res
+bool SemanticAnalyzer::check_and_convert_single_cplx_instance(
+    ParserContext* ctx_, BNGData* res_bng, CplxInstance& res) {
+  assert(ctx_ != nullptr);
+  assert(res_bng != nullptr);
+
+  ctx = ctx_;
+  bng_data = res_bng;
+
+  CplxInstanceVector cplx_vec;
+  convert_cplx_inst_or_rxn_rule_side(ctx->single_cplx_instance, true, cplx_vec);
+  assert(cplx_vec.size() == 1);
+  res = cplx_vec[0];
+
   if (ctx->get_error_count() != 0) {
     return false;
   }

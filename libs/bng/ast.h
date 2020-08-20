@@ -381,7 +381,7 @@ private:
 class ParserContext {
 public:
   ParserContext()
-    : errors(0), current_file(nullptr) {
+    : single_cplx_instance(nullptr), errors(0), current_file(nullptr) {
   }
 
   // frees all owned nodes
@@ -452,6 +452,11 @@ public:
   ASTListNode rxn_rules;
 
   ASTListNode seed_species;
+
+  // single_cplx_instance is set for mode when the parse parses a
+  // single complex string with parse_cplx_instance_file(),
+  // no need to delete it because deletion is handled by vector 'all_nodes'
+  ASTListNode* single_cplx_instance;
 
   // ------------- other parsing utilities -----------------
 

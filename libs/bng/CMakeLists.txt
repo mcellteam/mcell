@@ -2,7 +2,14 @@ cmake_minimum_required(VERSION 2.8.4)
 
 project(bng)
 
-include_directories(${CMAKE_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/.. ${CMAKE_CURRENT_BINARY_DIR}/deps/)
+include_directories(
+	"${CMAKE_SOURCE_DIR}"
+	"${CMAKE_CURRENT_SOURCE_DIR}/.."
+	"${CMAKE_CURRENT_SOURCE_DIR}/../../include"
+	"${CMAKE_CURRENT_BINARY_DIR}/deps/"
+	"${CMAKE_CURRENT_SOURCE_DIR}/../sparsehash/src/"
+)
+
 add_definitions(-std=c++17)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -isystem ${CMAKE_SOURCE_DIR}/libs/ -isystem ${CMAKE_SOURCE_DIR}/libs/sparsehash/src")
 
@@ -39,7 +46,9 @@ BISON_TARGET(bngl_parser ${CMAKE_CURRENT_SOURCE_DIR}/bngl_parser.y
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/bngl_scanner.l ${CMAKE_CURRENT_BINARY_DIR}/deps/bngl_scanner.l COPYONLY)
 
 FLEX_TARGET(bngl_scanner ${CMAKE_CURRENT_SOURCE_DIR}/bngl_scanner.l
-  ${CMAKE_CURRENT_BINARY_DIR}/deps/bngl_scanner.cpp)
+  ${CMAKE_CURRENT_BINARY_DIR}/deps/bngl_scanner.cpp
+  COMPILE_FLAGS "--header-file=${CMAKE_CURRENT_BINARY_DIR}/deps/bngl_scanner.hpp"
+)
 
 
 # TODO: add bngl_scanner.l|y dependencies

@@ -19,7 +19,10 @@ namespace BNG {
 class SemanticAnalyzer {
 public:
   // modifies context e.g. by resolving expressions
-  bool check_and_convert(ParserContext* ctx_, BNGData* res_bng);
+  bool check_and_convert_parsed_file(ParserContext* ctx_, BNGData* res_bng);
+
+  bool check_and_convert_single_cplx_instance(
+      ParserContext* ctx_, BNGData* res_bng, CplxInstance& res);
 
 private:
   ASTExprNode* evaluate_to_dbl(ASTExprNode* root, std::set<std::string> used_ids={});

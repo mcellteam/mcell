@@ -17,7 +17,6 @@
 /* %option debug */
 
 /* Eliminate unused symbols to eliminate compiler warnings */
-%option nounput
 %option noyywrap
 
 %option yylineno
@@ -51,7 +50,9 @@ I ([0-9]+)
 "rules"         { LOC(); return TOK_RULES; }
 "seed"          { LOC(); return TOK_SEED; }
 "species"       { LOC(); return TOK_SPECIES; }
-"observables"       { LOC(); return TOK_OBSERVABLES; }
+"observables"   { LOC(); return TOK_OBSERVABLES; }
+
+"^\@CPLX" 		{ LOC(); return TOK_SINGLE_CPLX; }
 
     /* numbers and identifiers */
 

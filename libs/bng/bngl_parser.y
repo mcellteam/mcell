@@ -100,6 +100,9 @@ namespace BNG {
 %token TOK_SPECIES "species"
 %token TOK_OBSERVABLES "observables"
 
+// special token to swithc parser to mode where it parses a single complex instance
+%token TOK_SINGLE_CPLX "@CPLX"
+
 %token <str> TOK_ID "identifier"
 %token <dbl> TOK_DBL "floating point constant"
 %token <llong> TOK_LLONG "integer constant"
@@ -132,17 +135,25 @@ namespace BNG {
 %left UNARYPLUS UNARYMINUS
 %left '^'   
 
-%start start
-
 %%
 
 // TODO: error recovery 
-
-start: 
+// this start symbol is for the whole BNGL file
+start_bngl: 
+    // whole file without begin model .. end model markers
       section_list action_call_list_maybe_empty
+      
+    // whole file with begin model .. end model markers
     | TOK_BEGIN TOK_MODEL section_list TOK_END TOK_MODEL action_call_list_maybe_empty
-    | /* empty - end of file */
+    
+    // single complex to be parsed, prefixed by a unique string 
+    | TOK_SINGLE_CPLX cplx_instance {
+    	g_ctx->single_cplx_instance = $2;
+    }
+    // empty file
+    | 
 ;
+
 
 section_list:
       section_list section

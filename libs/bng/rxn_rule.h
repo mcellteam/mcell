@@ -101,8 +101,9 @@ private:
 
 public:
   RxnRule(const BNGData* bng_data_)
-    : id(RXN_RULE_ID_INVALID), type(RxnType::Invalid), mol_instances_are_fully_maintained(false),
+    : id(RXN_RULE_ID_INVALID), type(RxnType::Invalid),
       base_rate_constant(FLT_INVALID), rate_constant_multiplier(1),
+      mol_instances_are_fully_maintained(false),
       num_surf_products(UINT_INVALID), next_variable_rate_index(0),
       bng_data(bng_data_)
       {
@@ -269,7 +270,7 @@ public:
 
   // returns false when there are no variable rates or we already processed all scheduled times
   bool may_update_rxn_rate() const {
-    return next_variable_rate_index < (int)base_variable_rates.size();
+    return next_variable_rate_index < base_variable_rates.size();
   }
 
   // returns true if rate was updated
