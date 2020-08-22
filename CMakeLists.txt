@@ -41,6 +41,8 @@ if (CMAKE_BUILD_TYPE STREQUAL "Release")
   # when -march=native or -march=haswell is enabled, there is some error in MCell3 wall 
   # overlap detection, can be checked with mcell_tests_private/benchmarks/mdl/B4110_neuropil_no_custom_timestep 
   # seems to be related to AVX2, maybe gcc issue
+  # changing to sandybridge gives 2-6% in performance (in executed instructions), however 
+  # MCell does not work afterwards on machines such as Mac Mini 2018 with Intel i5 
   SET(OPTIMIZATION_FLAGS " -O3 -g -march=core2 -finline-limit=10000 ")
   
   # must not be used for pymcell (at least for now)
