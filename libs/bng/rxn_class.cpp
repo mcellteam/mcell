@@ -61,14 +61,9 @@ bool RxnClass::is_simple() const {
 }
 
 
-// TODO: move back to header
 RxnRule* RxnClass::get_rxn_for_pathway(const rxn_class_pathway_index_t pathway_index) {
-  //assert(pathway_index >= 0 && pathway_index < (int)pathways.size());
-  assert(pathway_index >= 0 && pathway_index < (int)rxn_rule_ids.size());
-  //TODO: for now returing directly rxn
-  assert(pathways.size() == rxn_rule_ids.size() && "Temporary");
-  return all_rxns.get(rxn_rule_ids[pathway_index]);
-  //return all_rxns.get(pathways[pathway_index].rxn_rule_id);
+  assert(pathway_index >= 0 && pathway_index < (int)pathways.size());
+  return all_rxns.get(pathways[pathway_index].rxn_rule_id);
 }
 
 
@@ -322,7 +317,10 @@ void RxnClass::update_rxn_pathways() {
 
   pathways.clear();
 
-  // 1) define pathways
+  // 1) compute binding probability factor
+  float_t pb_factor = compute_pb_factor();
+
+  // 2) define pathways
   for (rxn_rule_id_t id: rxn_rule_ids) {
     const RxnRule* rxn = all_rxns.get(id);
     rxn->define_rxn_pathways_for_specific_reactants(
@@ -330,33 +328,19 @@ void RxnClass::update_rxn_pathways() {
         bng_config,
         specific_reactants[0],
         (is_bimol() ? specific_reactants[1] : SPECIES_ID_INVALID),
+        pb_factor,
         pathways
     );
   }
   assert(!pathways.empty());
 
-  // 2) compute binding probability factor
-  float_t pb_factor = compute_pb_factor();
-
-  // 3) set and scale_rxn_probabilities
-  // TODO LATER: info and warning printouts
-  for (RxnClassPathway& pw: pathways) {
-    const RxnRule* rxn = all_rxns.get(pw.rxn_rule_id);
-    if (cmp_eq(rxn->get_rate_constant(), FLT_GIGANTIC)) {
-      // special surface reactions are not scaled because their pb_factor is 0
-      pw.pathway_prob = rxn->get_rate_constant();
-    }
-    else {
-      pw.pathway_prob = rxn->get_rate_constant() * pb_factor;
-    }
-  }
-
-  // 4) compute cumulative properties
+  // 3) compute cumulative properties
   pathways[0].cum_prob = pathways[0].pathway_prob;
   for (uint i = 1; i < pathways.size(); i++) {
     pathways[i].cum_prob = pathways[i].pathway_prob + pathways[i-1].cum_prob;
   }
 
+  // 4) set remaining values for this rxn class
   // NOTE: when can be the max_fixed_p and min_noreaction_p probabilities different?
   if (!pathways.empty()) {
     max_fixed_p = pathways.back().cum_prob;

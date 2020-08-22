@@ -2287,7 +2287,7 @@ void DiffuseReactEvent::dump(const std::string ind) const {
   cout << ind << "Diffuse-react event:\n";
   std::string ind2 = ind + "  ";
   BaseEvent::dump(ind2);
-  cout << ind2 << "diffusion_time_step: \t\t" << current_time_step << " [float_t] \t\t\n";
+  cout << ind2 << "current_time_step: \t\t" << current_time_step << " [float_t] (may be unset initally)\t\t\n";
 }
 
 

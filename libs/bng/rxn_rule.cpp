@@ -67,6 +67,7 @@ void RxnRule::define_rxn_pathways_for_specific_reactants(
     const BNGConfig& bng_config,
     const species_id_t reactant_a_species_id,
     const species_id_t reactant_b_species_id,
+    const float_t pb_factor,
     RxnClassPathwayVector& pathways
 ) const {
 
@@ -83,7 +84,16 @@ void RxnRule::define_rxn_pathways_for_specific_reactants(
       }
       product_species.push_back(species_id);
     }
-    pathways.push_back(RxnClassPathway(id, product_species));
+
+    float_t prob;
+    if (cmp_eq(get_rate_constant(), FLT_GIGANTIC)) {
+      // special surface reactions are not scaled
+      prob = get_rate_constant();
+    }
+    else {
+      prob = get_rate_constant() * pb_factor;
+    }
+    pathways.push_back(RxnClassPathway(id, prob, product_species));
   }
   else {
     // TODO LATER: we also need to maintain the IDs of the elementary molecules
@@ -112,21 +122,57 @@ void RxnRule::define_rxn_pathways_for_specific_reactants(
     // we might get multiple matches on reactant(s), the numbers
     // of matches multiplied give us the total number of variants
     // a single random number then is used to choose a single variant
-    // TODO: there might be multiple sets of products
-    vector<CplxInstance> products;
+    vector<vector<CplxInstance>> product_sets;
     create_products_for_complex_rxn(
         reactants,
-        products
+        product_sets
     );
 
-    // define the products as species
-    std::vector<species_id_t> product_species;
-    for (const CplxInstance& product: products) {
-      species_id_t species_id = all_species.find_or_add(Species(product, *bng_data, bng_config));
-      assert(species_id != SPECIES_ID_INVALID);
-      product_species.push_back(species_id);
+    for (const auto& product_cplxs: product_sets) {
+      // define the products as species
+      std::vector<species_id_t> product_species;
+      for (const CplxInstance& product: product_cplxs) {
+        species_id_t species_id = all_species.find_or_add(Species(product, *bng_data, bng_config));
+        assert(species_id != SPECIES_ID_INVALID);
+        product_species.push_back(species_id);
+      }
+
+      assert(pb_factor != 0);
+      assert(!cmp_eq(get_rate_constant(), FLT_GIGANTIC));
+
+      float_t prob = get_rate_constant() * pb_factor;
+
+      // TODO: this rate modifications needs to be coded according to
+      // BNG bionetgen/bng2/Perl2/RxnRule.pm - related variable multScale
+
+      // for complex bimol reactions where both reactants are the same,
+      // we get two product sets, for example A(a) + A(a), but the
+      // probability must be half of that
+      if (is_bimol() && reactant_a_species_id == reactant_b_species_id) {
+        prob /= 2.0;
+      }
+
+      // for unimol rxns, we must divide the prob. by the number of
+      // non-symmetric rule matches
+      if (is_unimol()) {
+        // simple case for now
+        Species& species = all_species.get(reactant_a_species_id);
+        if (species.mol_instances.size() <= 1) {
+          // nothing to do here
+        }
+        else if (species.mol_instances.size() == 2) {
+          if (species.mol_instances[0] == species.mol_instances[1]) {
+            // there definitely a symmetry here and we got 2x more product sets than needed
+            prob /= 2.0;
+          }
+        }
+        else {
+          release_assert(false && "TODO");
+        }
+      }
+
+      pathways.push_back(RxnClassPathway(id, prob, product_species));
     }
-    pathways.push_back(RxnClassPathway(id, product_species));
   }
 }
 
@@ -928,7 +974,7 @@ static void create_products_from_reactants_graph(
 
 void RxnRule::create_products_for_complex_rxn(
     const vector<const CplxInstance*>& input_reactants,
-    vector<CplxInstance>& created_products
+    vector<vector<CplxInstance>>& created_product_sets
 ) const {
   // the result of this function is cached in rxnclass
   assert(input_reactants.size() == reactants.size());
@@ -966,44 +1012,46 @@ void RxnRule::create_products_for_complex_rxn(
   );
   assert(pattern_reactant_mappings.size() != 0 &&
       "Did not find a match of patterns onto reaction.");
-  if (pattern_reactant_mappings.size() > 1) {
-    // are the reactants identical?
-    if (is_unimol() || !input_reactants_copy[0].matches_fully(input_reactants_copy[1])) {
-      assert(false && "We do not support multiple matches yet.");
+
+  release_assert(pattern_reactant_mappings.size() < MAX_PRODUCT_SETS_PER_RXN
+      && "Encountered a huge number of potential product sets for a single reaction");
+
+  // now, for each of the mappings, compute what different products we might get
+  for (const VertexMapping& mapping: pattern_reactant_mappings) {
+
+  #ifdef DEBUG_CPLX_MATCHING
+    cout << "Products:\n";
+    dump_graph(products_graph);
+  #endif
+    Graph reactants_graph_copy = reactants_graph;
+
+    // manipulate nodes using information about products
+    apply_rxn_on_reactants_graph(
+        reactants_graph_copy,
+        mapping,
+        patterns_graph,
+        products_to_patterns_mapping,
+        products_graph
+    );
+
+  #ifdef DEBUG_CPLX_MATCHING
+    cout << "\nReactants after applying rxn:\n";
+    dump_graph(reactants_graph_copy);
+  #endif
+
+    // and finally create products, each disconnected graph in the result is a
+    // separate complex instance
+    created_product_sets.push_back(vector<CplxInstance>());
+    create_products_from_reactants_graph(bng_data, reactants_graph_copy, created_product_sets.back());
+
+  #ifdef DEBUG_CPLX_MATCHING
+    cout << "Resulting products:\n";
+    for (auto& c: created_product_sets.back()) {
+      c.dump(false);
+      cout << "\n";
     }
+  #endif
   }
-
-#ifdef DEBUG_CPLX_MATCHING
-  cout << "Products:\n";
-  dump_graph(products_graph);
-#endif
-
-  // manipulate nodes using information about products
-  apply_rxn_on_reactants_graph(
-      reactants_graph,
-      pattern_reactant_mappings[0],
-      patterns_graph,
-      products_to_patterns_mapping,
-      products_graph
-  );
-
-#ifdef DEBUG_CPLX_MATCHING
-  cout << "\nReactants after applying rxn:\n";
-  dump_graph(products_graph);
-#endif
-
-  // and finally create products, each disconnected graph in the result is a
-  // separate complex instance
-  create_products_from_reactants_graph(bng_data, reactants_graph, created_products);
-
-#ifdef DEBUG_CPLX_MATCHING
-  cout << "Resulting products:\n";
-  for (auto& c: created_products) {
-    c.dump(false);
-    cout << "\n";
-  }
-#endif
-
 }
 
 

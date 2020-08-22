@@ -33,20 +33,23 @@ class RxnClassPathway {
 public:
   RxnClassPathway(
       const rxn_rule_id_t rxn_rule_id_,
+      const float_t pathway_prob_,
       const std::vector<species_id_t> product_species_
-  ) : rxn_rule_id(rxn_rule_id_), product_species(product_species_),
-      pathway_prob(FLT_INVALID), cum_prob(FLT_INVALID) {
+  ) : rxn_rule_id(rxn_rule_id_),
+      pathway_prob(pathway_prob_),
+      product_species(product_species_),
+      cum_prob(FLT_INVALID) {
   }
 
   // ID of rxn rule from which this pathway was created
   rxn_rule_id_t rxn_rule_id;
 
-  // specific variant of products for this pathway
-  std::vector<species_id_t> product_species;
-
   // probability for this specific pathway to be selected when
   // reactants interact (or when an unimol rxn is executed)
   float_t pathway_prob;
+
+  // specific variant of products for this pathway
+  std::vector<species_id_t> product_species;
 
   // cumulative probability - set when used in rxn class
   float_t cum_prob;
@@ -133,18 +136,22 @@ public:
 
   void finalize();
 
+private:
   // BNGL style reaction handling is implemented in this method
   void create_products_for_complex_rxn(
       const std::vector<const CplxInstance*>& input_reactants,
-      std::vector<CplxInstance>& created_products
+      std::vector<std::vector<CplxInstance>>& created_products
   ) const;
 
-  // method used when RxnClass is being created
+public:
+  // - method used when RxnClass is being created
+  // - defines new species when needed and might invalidate Species references
   void define_rxn_pathways_for_specific_reactants(
       SpeciesContainer& all_species,
       const BNGConfig& bng_config,
       const species_id_t reactant_a_species_id,
       const species_id_t reactant_b_species_id,
+      const float_t pb_factor,
       RxnClassPathwayVector& pathways
   ) const;
 

@@ -24,6 +24,11 @@ using BNGCommon::pow_f;
 using BNGCommon::floor_f;
 using BNGCommon::round_f;
 
+// arbitrary limit that is checked when we are computing all the product sets for
+// a given reaction rule, only to show to the user that something is probably wrong
+// (and we cannot deal with huge numbers yet, although the 1024 is still ok)
+const uint MAX_PRODUCT_SETS_PER_RXN = 1024;
+
 const char* const MCELL_REDEFINE_PREFIX = "MCELL_REDEFINE_";
 
 typedef uint state_id_t;
