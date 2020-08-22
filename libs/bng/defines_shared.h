@@ -196,12 +196,12 @@ const orientation_t ORIENTATION_NONE = 0;
 const orientation_t ORIENTATION_UP = 1;
 const orientation_t ORIENTATION_NOT_SET = 2;
 
-// index of reaction in a reaction class
-typedef int rxn_index_t;
+// index of reaction with products in a reaction class
+typedef int rxn_class_pathway_index_t;
 // TODO: originally RX_NO_RX, fix all cases in MCell
-const rxn_index_t RNX_INDEX_LEAST_VALID_RXN = 0;
-const rxn_index_t RNX_INDEX_NO_RXN = -2;
-const rxn_index_t RNX_INDEX_INVALID = -11; // just some ad-hoc value, MCell3 might be using -1
+const rxn_class_pathway_index_t PATHWAY_INDEX_LEAST_VALID = 0;
+const rxn_class_pathway_index_t PATHWAY_INDEX_NO_RXN = -2;
+const rxn_class_pathway_index_t PATHWAY_INDEX_INVALID = -11; // just some ad-hoc value, MCell3 might be using -1
 
 // index of a reaction classes in an array of reaction classes
 typedef int rxn_class_index_t;

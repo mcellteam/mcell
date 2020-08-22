@@ -1155,7 +1155,7 @@ MCell::MolOrRxnCountTerm MCell4Converter::convert_count_term_leaf_and_init_count
     res.rxn_rule_id = ct->reaction_rule->fwd_rxn_rule_id;
 
     // is this a surface rxn? -> at least one of the reactants is a surface mol
-    BNG::RxnRule* rxn = world->get_all_rxns().get_rxn_rule(res.rxn_rule_id);
+    BNG::RxnRule* rxn = world->get_all_rxns().get(res.rxn_rule_id);
 
     if (is_set(ct->region)) {
       if (!rxn->is_surf_rxn()) {

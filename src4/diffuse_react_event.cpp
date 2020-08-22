@@ -957,26 +957,26 @@ inline WallRxnResult DiffuseReactEvent::collide_and_react_with_walls(
   // TODO: we can just call test_many_intersect...
   // TODO: use rxn_class_index_t and rxn_index_t also in other places
   rxn_class_index_t rxn_class_index = RNX_CLASS_INDEX_INVALID;
-  rxn_index_t rxn_index;
+  rxn_class_pathway_index_t pathway_index;
 
   float_t current_time = elapsed_molecule_time + t_steps * collision.time;
 
   if (matching_rxn_classes.size() == 1) {
     rxn_class_index = 0;
-    rxn_index = RxUtil::test_intersect(matching_rxn_classes[0], r_rate_factor, current_time, world->rng);
+    pathway_index = RxUtil::test_intersect(matching_rxn_classes[0], r_rate_factor, current_time, world->rng);
   } else {
-    rxn_index = RxUtil::test_many_intersect(
+    pathway_index = RxUtil::test_many_intersect(
         matching_rxn_classes, r_rate_factor, current_time, rxn_class_index, world->rng);
   }
 
 
-  if (rxn_class_index != RNX_CLASS_INDEX_INVALID && rxn_index >= RNX_INDEX_LEAST_VALID_RXN) {
+  if (rxn_class_index != RNX_CLASS_INDEX_INVALID && pathway_index >= PATHWAY_INDEX_LEAST_VALID) {
     BNG::RxnClass* rxn_class = matching_rxn_classes[rxn_class_index];
 
     assert(collision.type == CollisionType::WALL_FRONT || collision.type == CollisionType::WALL_BACK);
 
     int j = outcome_intersect(
-        p, rxn_class, rxn_index, collision, current_time);
+        p, rxn_class, pathway_index, collision, current_time);
 
     if (j == RX_FLIP) {
       return WallRxnResult::Transparent;
@@ -1231,7 +1231,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
     return true;
   }
 
-  rxn_index_t selected_reaction_index;
+  rxn_class_pathway_index_t selected_pathway_index;
   Collision collision;
 
   float_t collision_time = diffusion_start_time;
@@ -1243,7 +1243,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
   int rxn_class_index;
   if (num_matching_rxn_classes == 1) {
     // figure out what should happen
-    selected_reaction_index = RxUtil::test_bimolecular(
+    selected_pathway_index = RxUtil::test_bimolecular(
         matching_rxn_classes[0], world->rng,
         sm, p.get_m(reactant_molecule_ids[0]),
         correction_factors[0], local_prob_factor, collision_time);
@@ -1256,11 +1256,11 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
     rxn_class_index =
         RxUtil::test_many_bimolecular(
             matching_rxn_classes, correction_factors, local_prob_factor,
-            world->rng, all_neighbors_flag, collision_time, selected_reaction_index);
-    selected_reaction_index = 0; // TODO_PATHWAYS: use value from test_many_bimolecular
+            world->rng, all_neighbors_flag, collision_time, selected_pathway_index);
+    selected_pathway_index = 0; // TODO_PATHWAYS: use value from test_many_bimolecular
   }
 
-  if (rxn_class_index == RX_NO_RX || selected_reaction_index < RX_LEAST_VALID_PATHWAY) {
+  if (rxn_class_index == PATHWAY_INDEX_NO_RXN || selected_pathway_index < PATHWAY_INDEX_LEAST_VALID) {
     return true; /* No reaction */
   }
 
@@ -1273,7 +1273,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
 
   /* run the reaction */
   int outcome_bimol_result = outcome_bimolecular(
-      p, collision, selected_reaction_index, collision_time
+      p, collision, selected_pathway_index, collision_time
   );
 
   return outcome_bimol_result != RX_DESTROY;
@@ -1526,8 +1526,8 @@ bool DiffuseReactEvent::react_unimol_single_molecule(
     return true;
   }
   else {
-    rxn_index_t ri = RxUtil::which_unimolecular(unimol_rxn_class, world->rng);
-    return outcome_unimolecular(p, m, scheduled_time, unimol_rxn_class, ri);
+    rxn_class_pathway_index_t pi = RxUtil::which_unimolecular(unimol_rxn_class, world->rng);
+    return outcome_unimolecular(p, m, scheduled_time, unimol_rxn_class, pi);
   }
 }
 
@@ -1619,7 +1619,7 @@ outcome_intersect:
 int DiffuseReactEvent::outcome_intersect(
     Partition& p,
     RxnClass* rxn_class,
-    const rxn_index_t rxn_index,
+    const rxn_class_pathway_index_t pathway_index,
     Collision& collision, // rxn_class can be set
     const float_t time
 ) {
@@ -1661,7 +1661,7 @@ int DiffuseReactEvent::outcome_intersect(
   else {
     // might return RX_BLOCKED
     collision.rxn_class = rxn_class;
-    result = outcome_products_random(p, collision, time, rxn_index, keep_reacA, keep_reacB);
+    result = outcome_products_random(p, collision, time, pathway_index, keep_reacA, keep_reacB);
     assert(keep_reacB && "We are keeping the surface");
   }
 
@@ -1873,7 +1873,7 @@ int DiffuseReactEvent::outcome_products_random(
     Partition& p,
     const Collision& collision,
     const float_t time,
-    const rxn_index_t rxn_index,
+    const rxn_class_pathway_index_t pathway_index,
     bool& keep_reacA,
     bool& keep_reacB
 ) {
@@ -1890,7 +1890,7 @@ int DiffuseReactEvent::outcome_products_random(
       cout << " + " <<
           p.get_all_species().get(p.get_m(collision.colliding_molecule_id).species_id).name;
     }
-    cout << "\nreaction_index: " << rxn_index << "\n";
+    cout << "\nreaction_index: " << pathway_index << "\n";
     if (collision.rxn_class != nullptr) {
       collision.rxn_class->dump();
     }
@@ -1911,7 +1911,7 @@ int DiffuseReactEvent::outcome_products_random(
   // TODO: unify rx vs rxn
   RxnClass* rxn_class = collision.rxn_class;
   assert(rxn_class != nullptr);
-  const RxnRule* rx = rxn_class->get_rxn(rxn_index);
+  const RxnRule* rx = rxn_class->get_rxn_for_pathway(pathway_index);
 
   assert(rx->reactants.size() == 1 || rx->reactants.size() == 2);
 
@@ -2225,7 +2225,7 @@ bool DiffuseReactEvent::outcome_unimolecular(
     Molecule& m,
     const float_t scheduled_time,
     RxnClass* rxn_class,
-    const rxn_index_t rxn_index
+    const rxn_class_pathway_index_t pathway_index
 ) {
   molecule_id_t id = m.id;
 
@@ -2250,12 +2250,12 @@ bool DiffuseReactEvent::outcome_unimolecular(
   bool ignoredA, ignoredB;
   // creates new molecule(s) as output of the unimolecular reaction
   // !! might invalidate references (we might reorder defuncting and outcome call later)
-  int outcome_res = outcome_products_random(p, collision, scheduled_time, rxn_index, ignoredA, ignoredB);
+  int outcome_res = outcome_products_random(p, collision, scheduled_time, pathway_index, ignoredA, ignoredB);
   assert(outcome_res == RX_A_OK);
 
   Molecule& m_new_ref = p.get_m(id);
 
-  const RxnRule* unimol_rx = rxn_class->get_rxn(rxn_index);
+  const RxnRule* unimol_rx = rxn_class->get_rxn_for_pathway(pathway_index);
 
   // and defunct this molecule if it was not kept
   assert(unimol_rx->reactants.size() == 1);

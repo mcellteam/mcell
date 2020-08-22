@@ -508,7 +508,7 @@ static int test_many_bimolecular(
     rng_state& rng,
     const bool all_neighbors_flag,
     const float_t current_time,
-    rxn_index_t& chosen_reaction_index
+    rxn_class_pathway_index_t& chosen_pathway_index
 ) {
   assert(rxn_classes.size() == scaling.size());
   uint n = rxn_classes.size();
@@ -603,7 +603,7 @@ static int test_many_bimolecular(
     m = binary_search_double(my_rxn->cum_probs, p, M, 1);
   }
 
-  chosen_reaction_index = m;
+  chosen_pathway_index = m;
 
   return rx_index;
 }
@@ -620,7 +620,7 @@ test_intersect
         update counters assuming the reaction will take place.
 *************************************************************************/
 // TODO LATER: see if it can be merged with test_bimolecular
-static rxn_index_t test_intersect(
+static rxn_class_pathway_index_t test_intersect(
     BNG::RxnClass* rxn_class,
     const float_t scaling,
     const float_t current_time,
@@ -646,14 +646,14 @@ static rxn_index_t test_intersect(
     p = rng_dbl(&rng) * scaling;
 
     if (p > max_prob) {
-      return RNX_INDEX_NO_RXN;
+      return PATHWAY_INDEX_NO_RXN;
     }
   }
 
   int M = rxn_class->get_num_reactions() - 1;
 
   if (p > rxn_class->cum_probs[M]) {
-    return RNX_INDEX_NO_RXN;
+    return PATHWAY_INDEX_NO_RXN;
   }
 
   float_t match = rng_dbl(&rng);
@@ -675,7 +675,7 @@ test_many_intersect:
         update counters assuming the reaction will take place.
 *************************************************************************/
 // TODO LATER: see if it can be merged with test_many bimolecular
-static rxn_index_t test_many_intersect(
+static rxn_class_pathway_index_t test_many_intersect(
     BNG::RxnClassesVector& rxn_classes,
     const float_t scaling,
     const float_t current_time,
@@ -731,10 +731,10 @@ static rxn_index_t test_many_intersect(
   p = p * scaling;
 
   /* Now pick the pathway within that reaction */
-  rxn_index_t rxn_index =
+  rxn_class_pathway_index_t pathway_index =
       binary_search_double(my_rxn_class->cum_probs, p, my_rxn_class->get_num_reactions() - 1, 1);
 
-  return rxn_index;
+  return pathway_index;
 }
 
 
@@ -801,7 +801,7 @@ which_unimolecular:
   In: the reaction we're testing
   Out: int containing which unimolecular reaction occurs (one must occur)
 *************************************************************************/
-static rxn_index_t which_unimolecular(const BNG::RxnClass *rxn_class, rng_state& rng) {
+static rxn_class_pathway_index_t which_unimolecular(const BNG::RxnClass *rxn_class, rng_state& rng) {
   assert(rxn_class != nullptr);
   if (rxn_class->get_num_reactions() == 1) {
     return 0;

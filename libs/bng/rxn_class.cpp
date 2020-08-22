@@ -9,6 +9,7 @@
 #include <cmath>
 
 #include "bng/rxn_class.h"
+#include "bng/rxn_container.h"
 #include "bng/species_container.h"
 #include "debug_config.h"
 
@@ -42,6 +43,71 @@ float_t RxnClass::get_reactant_diffusion(const uint reactant_index) const {
 }
 
 
+// this assert cannot be in the header file
+void RxnClass::debug_check_bimol_vol_rxn_flag() const {
+  assert(!rxn_rule_ids.empty() &&
+      all_rxns.get(rxn_rule_ids[0])->is_bimol_vol_rxn() == bimol_vol_rxn_flag);
+}
+
+
+bool RxnClass::is_simple() const {
+  for (rxn_rule_id_t id: rxn_rule_ids) {
+    const RxnRule* rxn = all_rxns.get(id);
+    if (!rxn->is_simple()) {
+      return false;
+    }
+  }
+  return true;
+}
+
+
+// TODO: move back to header
+RxnRule* RxnClass::get_rxn_for_pathway(const rxn_class_pathway_index_t pathway_index) {
+  //assert(pathway_index >= 0 && pathway_index < (int)pathways.size());
+  assert(pathway_index >= 0 && pathway_index < (int)rxn_rule_ids.size());
+  //TODO: for now returing directly rxn
+  return all_rxns.get(rxn_rule_ids[pathway_index]);
+  //return all_rxns.get(pathways[pathway_index].rxn_rule_id);
+}
+
+
+orientation_t RxnClass::get_reactant_orientation(uint reactant_index) const {
+  assert(!rxn_rule_ids.empty());
+  // all reactants for this class are the same
+  const RxnRule* first_rxn = all_rxns.get(rxn_rule_ids[0]);
+  assert(reactant_index < first_rxn->reactants.size());
+  return first_rxn->reactants[reactant_index].get_orientation();
+}
+
+
+void RxnClass::update_rxn_rates_if_needed(const float_t current_time) {
+  // check if any of the reactions needs update
+  for (rxn_rule_id_t id: rxn_rule_ids) {
+    RxnRule* rxn = all_rxns.get(id);
+    if (rxn->may_update_rxn_rate()) {
+      update_variable_rxn_rates(current_time);
+      break;
+    }
+  }
+}
+
+
+// this function expects that update_rxn_rates_if_needed was called
+// already for the current time
+float_t RxnClass::get_next_time_of_rxn_rate_update() const {
+  float_t min = TIME_FOREVER;
+  for (rxn_rule_id_t id: rxn_rule_ids) {
+    const RxnRule* rxn = all_rxns.get(id);
+
+    float_t t = rxn->get_next_time_of_rxn_rate_update();
+    if (t < min) {
+      min = t;
+    }
+  }
+  return min;
+}
+
+
 // function for computing the probability factor (pb_factor) used to
 // convert reaction rate constants into probabilities
 float_t RxnClass::compute_pb_factor() const {
@@ -51,18 +117,18 @@ float_t RxnClass::compute_pb_factor() const {
   // checking that all reactions in the same rxn class have the same orientation,
   // this is used later
   if (is_bimol()) {
-    orientation_t orient0 = rxn_rules[0]->reactants[0].get_orientation();
-    orientation_t orient1 = rxn_rules[0]->reactants[1].get_orientation();
+    orientation_t orient0 = all_rxns.get(rxn_rule_ids[0])->reactants[0].get_orientation();
+    orientation_t orient1 = all_rxns.get(rxn_rule_ids[0])->reactants[1].get_orientation();
     for (uint i = 0; i < get_num_reactions(); i++) {
-      assert(orient0 == rxn_rules[i]->reactants[0].get_orientation());
-      assert(orient1 == rxn_rules[i]->reactants[1].get_orientation());
+      assert(orient0 == all_rxns.get(rxn_rule_ids[i])->reactants[0].get_orientation());
+      assert(orient1 == all_rxns.get(rxn_rule_ids[i])->reactants[1].get_orientation());
     }
   }
   else {
     // orientation does not make much sense for unimol rxns, but let's check it as well
-    orientation_t orient0 = rxn_rules[0]->reactants[0].get_orientation();
+    orientation_t orient0 = all_rxns.get(rxn_rule_ids[0])->reactants[0].get_orientation();
     for (uint i = 0; i < get_num_reactions(); i++) {
-      assert(orient0 == rxn_rules[i]->reactants[0].get_orientation());
+      assert(orient0 == all_rxns.get(rxn_rule_ids[0])->reactants[0].get_orientation());
     }
   }
 #endif
@@ -160,8 +226,8 @@ float_t RxnClass::compute_pb_factor() const {
 
       // reactant_species are general, the do not have orientation
       // assuming that all reactions in the same rxn class have the same orientation
-      orientation_t orient0 = rxn_rules[0]->reactants[0].get_orientation();
-      orientation_t orient1 = rxn_rules[0]->reactants[1].get_orientation();
+      orientation_t orient0 = get_reactant_orientation(0);
+      orientation_t orient1 = get_reactant_orientation(1);
 
       // double pb factor if both use orientation (both orientations are not zero)
       // TODO: search elsewhere in the code for explanation, the first condition
@@ -213,7 +279,7 @@ float_t RxnClass::compute_pb_factor() const {
 
 
 // based on mcell3's implementation init_reactions
-void RxnClass::compute_initial_rxn_rates() {
+void RxnClass::update_rxn_pathways() {
 
 #ifdef ORDER_RXNS_IN_RXN_CLASS_BY_NAME
   sort(rxn_rules.begin(), rxn_rules.end(),
@@ -227,18 +293,18 @@ void RxnClass::compute_initial_rxn_rates() {
 
   // TODO LATER: check_reaction_for_duplicate_pathways
 
-  cum_probs.resize(rxn_rules.size());
+  cum_probs.resize(rxn_rule_ids.size());
 
   // initialize rates
-  for (uint i = 0; i < rxn_rules.size(); i++) {
-    cum_probs[i] = rxn_rules[i]->get_rate_constant();
+  for (uint i = 0; i < rxn_rule_ids.size(); i++) {
+    cum_probs[i] = all_rxns.get(rxn_rule_ids[i])->get_rate_constant();
   }
 
   float_t pb_factor = compute_pb_factor();
 
   // scale_rxn_probabilities
   // TODO LATER: info and warning printouts
-  for (uint i = 0; i < rxn_rules.size(); i++) {
+  for (uint i = 0; i < rxn_rule_ids.size(); i++) {
     if (fabs(cum_probs[i] - FLT_GIGANTIC) < EPS) {
       // special surface reactions are not scaled because their pb_factor is 0
       continue;
@@ -248,12 +314,12 @@ void RxnClass::compute_initial_rxn_rates() {
   }
 
   // init_reactions - compute cumulative properties
-  for (uint i = 1; i < rxn_rules.size(); i++) {
+  for (uint i = 1; i < rxn_rule_ids.size(); i++) {
     cum_probs[i] += cum_probs[i - 1];
   }
 
   // NOTE: when can be these probabilities different?
-  if (!rxn_rules.empty()) {
+  if (!rxn_rule_ids.empty()) {
     max_fixed_p = cum_probs.back();
     min_noreaction_p = max_fixed_p;
   }
@@ -264,15 +330,16 @@ void RxnClass::compute_initial_rxn_rates() {
 
   // set class' rxn type
   type = RxnType::Invalid;
-  for (uint i = 0; i < rxn_rules.size(); i++) {
-    assert(rxn_rules[i]->type != RxnType::Invalid && "Type for individual rxns must be set");
+  for (uint i = 0; i < rxn_rule_ids.size(); i++) {
+    const RxnRule* rxn = all_rxns.get(rxn_rule_ids[i]);
+    assert(rxn->type != RxnType::Invalid && "Type for individual rxns must be set");
 
     if (type == RxnType::Invalid) {
-      type = rxn_rules[i]->type;
+      type = rxn->type;
     }
     else {
       // type must be the same as before
-      assert(type == rxn_rules[i]->type);
+      assert(type == rxn->type);
     }
   }
 }
@@ -282,13 +349,14 @@ void RxnClass::update_variable_rxn_rates(const float_t current_time) {
   bool any_changed = false;
   vector<bool> specific_rxn_changed;
 
-  for (RxnRule* rxn: rxn_rules) {
+  for (rxn_rule_id_t id: rxn_rule_ids) {
+    RxnRule* rxn = all_rxns.get(id);
     bool current_changed = rxn->update_variable_rxn_rate(current_time, this);
     specific_rxn_changed.push_back(current_changed);
     any_changed |= current_changed;
   }
   if (any_changed) {
-    compute_initial_rxn_rates();
+    update_rxn_pathways();
   }
 
   // report
@@ -296,7 +364,7 @@ void RxnClass::update_variable_rxn_rates(const float_t current_time) {
     if (specific_rxn_changed[i]) {
       float_t prob = (i == 0) ? cum_probs[0] : cum_probs[i] - cum_probs[i - 1];
       notifys() <<
-          "Probability " << prob << " set for " << rxn_rules[i]->to_str() <<
+          "Probability " << prob << " set for " << all_rxns.get(rxn_rule_ids[i])->to_str() <<
           " at time " << current_time << ".\n";
     }
   }
@@ -325,7 +393,7 @@ void RxnClass::dump(const std::string ind) const {
     cout << "\n";
   }
 
-  if (rxn_rules.empty()) {
+  if (rxn_rule_ids.empty()) {
     return;
   }
 
@@ -337,7 +405,8 @@ void RxnClass::dump(const std::string ind) const {
   }
   cout << "\n";
 
-  for (const RxnRule* rxn: rxn_rules) {
+  for (rxn_rule_id_t id: rxn_rule_ids) {
+    RxnRule* rxn = all_rxns.get(id);
     rxn->dump(false, ind);
     cout << "\n";
   }

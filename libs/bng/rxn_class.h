@@ -12,12 +12,35 @@
 #include <iostream>
 
 #include "bng/bng_defines.h"
-
 #include "bng/rxn_rule.h"
 
 namespace BNG {
 
+class RxnContainer;
 class SpeciesContainer;
+
+/**
+ * Used to hold information on the probability and products for a given reaction rule.
+ * One rxn rule can possibly have more different products,
+ * e.g. when applying rule A(b~0) -> A(b~1) on reactant A(a~0,b~0).A(a~1,b~0),
+ * the result can be either A(a~0,b~1).A(a~1,b~0) or A(a~0,b~0).A(a~1,b~1).
+ * So for each of the possible products, one RxnPathway is created in a RxnClass.
+ */
+class RxnClassPathway {
+public:
+  // ID of rxn rule from which this pathway was created
+  rxn_rule_id_t rxn_rule_id;
+
+  // cumulative probability
+  float_t cum_prob;
+
+  // probability for this specific pathway to be selected when
+  // reactants interact (or when an unimol rxn is executed)
+  float_t pathway_prob;
+
+  // specific variant of products for this pathway
+  std::vector<species_id_t> product_species;
+};
 
 /**
  * Reaction class contains all applicable reactions for a pair of reactants.
@@ -33,9 +56,11 @@ public:
   std::vector<species_id_t> specific_reactants;
 
 private:
-  // reactions are owned by RxnContainer
-  // order in this vector is important
-  std::vector<RxnRule*> rxn_rules;
+  // reactions are owned by RxnContainer, order in this vector is important
+  std::vector<rxn_rule_id_t> rxn_rule_ids;
+
+  // initialized in ...?
+  std::vector<RxnClassPathway> pathways;
 
 public:
   // Standard reaction or special such as Reflect, Transparent or Absorb
@@ -56,10 +81,10 @@ public:
 
 public:
   RxnClass(
-      const SpeciesContainer& all_species_, const BNGConfig& bng_config_,
+      RxnContainer& all_rxns_, const SpeciesContainer& all_species_, const BNGConfig& bng_config_,
       const species_id_t reactant_id1, const species_id_t reactant_id2 = SPECIES_ID_INVALID)
     : type(RxnType::Invalid), max_fixed_p(FLT_INVALID), min_noreaction_p(FLT_INVALID),
-      all_species(all_species_), bng_config(bng_config_), bimol_vol_rxn_flag(false)
+      all_rxns(all_rxns_), all_species(all_species_), bng_config(bng_config_), bimol_vol_rxn_flag(false)
     {
     assert(reactant_id1 != SPECIES_ID_INVALID);
     specific_reactants.push_back(reactant_id1);
@@ -69,27 +94,21 @@ public:
   }
 
   uint get_num_reactions() const {
-    return rxn_rules.size();
+    return rxn_rule_ids.size();
   }
 
-  RxnRule* get_rxn(const rxn_index_t rxn_index) {
-    assert(rxn_index >= 0 && rxn_index < (int)rxn_rules.size());
-    return rxn_rules[rxn_index];
-  }
+  RxnRule* get_rxn_for_pathway(const rxn_class_pathway_index_t pathway_index);
 
-  const std::vector<RxnRule*>& get_rxns() const {
+  /*const std::vector<RxnRule*>& get_rxns() const {
     return rxn_rules;
-  }
+  }*/
 
-  orientation_t get_reactant_orientation(uint reactant_index) const {
-    assert(!rxn_rules.empty());
-    assert(reactant_index < rxn_rules[0]->reactants.size());
-    return rxn_rules[0]->reactants[reactant_index].get_orientation();
-  }
+  orientation_t get_reactant_orientation(uint reactant_index) const;
 
-  void add_rxn_rule(RxnRule* r) {
+  // does not do pathways update
+  void add_rxn_rule_no_update(RxnRule* r) {
 
-    if (rxn_rules.empty()) {
+    if (rxn_rule_ids.empty()) {
       bimol_vol_rxn_flag = r->is_bimol_vol_rxn();
     }
     else {
@@ -98,44 +117,28 @@ public:
 
     // check that the rule was not added already,
     // for now simple pointer comparison
-    for (const RxnRule* rxn: rxn_rules) {
-      if (r == rxn) {
+    for (rxn_rule_id_t id: rxn_rule_ids) {
+      if (r->id == id) {
         // reaction is already present
         return;
       }
     }
 
-    rxn_rules.push_back(r);
+    rxn_rule_ids.push_back(r->id);
 
     // remember bidirectional mapping for rxn rate updates
     r->add_rxn_class_where_used(this);
-
-    compute_initial_rxn_rates();
   }
 
-  void update_rxn_rates_if_needed(const float_t current_time) {
-    // check if any of the reactions needs update
-    for (const RxnRule* rxn: rxn_rules) {
-      if (rxn->may_update_rxn_rate()) {
-        update_variable_rxn_rates(current_time);
-        break;
-      }
-    }
-  }
+  // must be called after all rxn rules were added to this reaction
+  // class called automatically from update_rxn_rates_if_needed
+  void update_rxn_pathways();
+
+  void update_rxn_rates_if_needed(const float_t current_time);
 
   // this function expects that update_rxn_rates_if_needed was called
   // already for the current time
-  float_t get_next_time_of_rxn_rate_update() const {
-    float_t min = TIME_FOREVER;
-    for (const RxnRule* rxn: rxn_rules) {
-
-      float_t t = rxn->get_next_time_of_rxn_rate_update();
-      if (t < min) {
-        min = t;
-      }
-    }
-    return min;
-  }
+  float_t get_next_time_of_rxn_rate_update() const;
 
   bool is_standard() const {
     return type == RxnType::Standard;
@@ -159,8 +162,9 @@ public:
   }
 
   bool is_bimol_vol_rxn_class() const {
-    assert(!rxn_rules.empty() &&
-        rxn_rules[0]->is_bimol_vol_rxn() == bimol_vol_rxn_flag);
+    #ifndef NDEBUG
+      debug_check_bimol_vol_rxn_flag();
+    #endif
     return bimol_vol_rxn_flag;
   }
 
@@ -168,15 +172,8 @@ public:
     return type == RxnType::AbsorbRegionBorder;
   }
 
-  bool is_simple() const {
-    // mostly for debug purposes
-    for (auto rxn: rxn_rules) {
-      if (!rxn->is_simple()) {
-        return false;
-      }
-    }
-    return true;
-  }
+  // mostly for debug purposes
+  bool is_simple() const;
 
   species_id_t get_second_species_id(species_id_t reactant_id) const {
     assert(is_bimol());
@@ -193,9 +190,9 @@ public:
   void dump(const std::string ind = "") const;
 
 private:
-  void compute_initial_rxn_rates();
-
   void update_variable_rxn_rates(const float_t current_time);
+
+  void debug_check_bimol_vol_rxn_flag() const;
 
   // ----------- MCell-specific -----------
   float_t get_reactant_diffusion(const uint reactant_index) const;
@@ -206,6 +203,7 @@ private:
   // ^^^^^^^^^^ MCell-specific ^^^^^^^^^^
 
   // owned by BNGEngine
+  RxnContainer& all_rxns;
   const SpeciesContainer& all_species;
 
   // owned by the simulation engine

@@ -276,7 +276,7 @@ private:
   int outcome_intersect(
       Partition& p,
       BNG::RxnClass* rxn_class,
-      const rxn_index_t rxn_index,
+      const rxn_class_pathway_index_t pathway_index,
       Collision& collision,
       const float_t time
   );
@@ -287,14 +287,14 @@ private:
       Molecule& vm,
       const float_t scheduled_time,
       BNG::RxnClass* rxn_class,
-      const rxn_index_t rxn_index
+      const rxn_class_pathway_index_t pathway_index
   );
 
   int outcome_products_random(
       Partition& p,
       const Collision& collision,
       const float_t remaining_time_step,
-      const rxn_index_t reaction_index,
+      const rxn_class_pathway_index_t pathway_index,
       bool& keep_reacA,
       bool& keep_reacB
   );

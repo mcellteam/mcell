@@ -170,12 +170,12 @@ public:
     return nullptr;
   }
 
-  const RxnRule* get_rxn_rule(const rxn_rule_id_t rxn_rule_id) const {
+  const RxnRule* get(const rxn_rule_id_t rxn_rule_id) const {
     assert(rxn_rule_id < rxn_rules.size());
     return rxn_rules[rxn_rule_id];
   }
 
-  RxnRule* get_rxn_rule(const rxn_rule_id_t rxn_rule_id) {
+  RxnRule* get(const rxn_rule_id_t rxn_rule_id) {
     assert(rxn_rule_id < rxn_rules.size());
     return rxn_rules[rxn_rule_id];
   }

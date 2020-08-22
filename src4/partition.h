@@ -910,7 +910,7 @@ public:
 
     // counted_volume_index may be invalid when we are counting reactions in the whole world
     assert(counted_volume_index != COUNTED_VOLUME_INDEX_INVALID ||
-        !get_all_rxns().get_rxn_rule(rxn_id)->is_counted_in_volume_regions()
+        !get_all_rxns().get(rxn_id)->is_counted_in_volume_regions()
     );
 
     auto& map_for_rxn = rxn_counts_per_counted_volume[rxn_id];

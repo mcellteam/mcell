@@ -91,7 +91,7 @@ std::string MolOrRxnCountTerm::to_data_model_string(const World* world, bool pri
     case CountType::RxnCountInWorld:
     case CountType::RxnCountInVolumeRegion:
     case CountType::RxnCountOnSurfaceRegion: {
-        string rxn_name = world->get_all_rxns().get_rxn_rule(rxn_rule_id)->name;
+        string rxn_name = world->get_all_rxns().get(rxn_rule_id)->name;
         CONVERSION_CHECK(rxn_name != "", "Counted reaction has no name");
         res << rxn_name;
       }
