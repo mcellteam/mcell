@@ -32,10 +32,12 @@ public:
   // and if there are multiple species that match, multiple rxn classes are created
   std::vector<species_id_t> specific_reactants;
 
+private:
   // reactions are owned by RxnContainer
   // order in this vector is important
-  std::vector<RxnRule*> reactions;
+  std::vector<RxnRule*> rxn_rules;
 
+public:
   // Standard reaction or special such as Reflect, Transparent or Absorb
   RxnType type;
 
@@ -67,27 +69,27 @@ public:
   }
 
   uint get_num_reactions() const {
-    return reactions.size();
+    return rxn_rules.size();
   }
 
   RxnRule* get_rxn(const rxn_index_t rxn_index) {
-    assert(rxn_index >= 0 && rxn_index < (int)reactions.size());
-    return reactions[rxn_index];
+    assert(rxn_index >= 0 && rxn_index < (int)rxn_rules.size());
+    return rxn_rules[rxn_index];
   }
 
   const std::vector<RxnRule*>& get_rxns() const {
-    return reactions;
+    return rxn_rules;
   }
 
   orientation_t get_reactant_orientation(uint reactant_index) const {
-    assert(!reactions.empty());
-    assert(reactant_index < reactions[0]->reactants.size());
-    return reactions[0]->reactants[reactant_index].get_orientation();
+    assert(!rxn_rules.empty());
+    assert(reactant_index < rxn_rules[0]->reactants.size());
+    return rxn_rules[0]->reactants[reactant_index].get_orientation();
   }
 
   void add_rxn_rule(RxnRule* r) {
 
-    if (reactions.empty()) {
+    if (rxn_rules.empty()) {
       bimol_vol_rxn_flag = r->is_bimol_vol_rxn();
     }
     else {
@@ -96,14 +98,14 @@ public:
 
     // check that the rule was not added already,
     // for now simple pointer comparison
-    for (const RxnRule* rxn: reactions) {
+    for (const RxnRule* rxn: rxn_rules) {
       if (r == rxn) {
         // reaction is already present
         return;
       }
     }
 
-    reactions.push_back(r);
+    rxn_rules.push_back(r);
 
     // remember bidirectional mapping for rxn rate updates
     r->add_rxn_class_where_used(this);
@@ -113,7 +115,7 @@ public:
 
   void update_rxn_rates_if_needed(const float_t current_time) {
     // check if any of the reactions needs update
-    for (const RxnRule* rxn: reactions) {
+    for (const RxnRule* rxn: rxn_rules) {
       if (rxn->may_update_rxn_rate()) {
         update_variable_rxn_rates(current_time);
         break;
@@ -125,7 +127,7 @@ public:
   // already for the current time
   float_t get_next_time_of_rxn_rate_update() const {
     float_t min = TIME_FOREVER;
-    for (const RxnRule* rxn: reactions) {
+    for (const RxnRule* rxn: rxn_rules) {
 
       float_t t = rxn->get_next_time_of_rxn_rate_update();
       if (t < min) {
@@ -157,8 +159,8 @@ public:
   }
 
   bool is_bimol_vol_rxn_class() const {
-    assert(!reactions.empty() &&
-        reactions[0]->is_bimol_vol_rxn() == bimol_vol_rxn_flag);
+    assert(!rxn_rules.empty() &&
+        rxn_rules[0]->is_bimol_vol_rxn() == bimol_vol_rxn_flag);
     return bimol_vol_rxn_flag;
   }
 
@@ -168,7 +170,7 @@ public:
 
   bool is_simple() const {
     // mostly for debug purposes
-    for (auto rxn: reactions) {
+    for (auto rxn: rxn_rules) {
       if (!rxn->is_simple()) {
         return false;
       }

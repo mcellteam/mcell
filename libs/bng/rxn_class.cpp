@@ -51,18 +51,18 @@ float_t RxnClass::compute_pb_factor() const {
   // checking that all reactions in the same rxn class have the same orientation,
   // this is used later
   if (is_bimol()) {
-    orientation_t orient0 = reactions[0]->reactants[0].get_orientation();
-    orientation_t orient1 = reactions[0]->reactants[1].get_orientation();
+    orientation_t orient0 = rxn_rules[0]->reactants[0].get_orientation();
+    orientation_t orient1 = rxn_rules[0]->reactants[1].get_orientation();
     for (uint i = 0; i < get_num_reactions(); i++) {
-      assert(orient0 == reactions[i]->reactants[0].get_orientation());
-      assert(orient1 == reactions[i]->reactants[1].get_orientation());
+      assert(orient0 == rxn_rules[i]->reactants[0].get_orientation());
+      assert(orient1 == rxn_rules[i]->reactants[1].get_orientation());
     }
   }
   else {
     // orientation does not make much sense for unimol rxns, but let's check it as well
-    orientation_t orient0 = reactions[0]->reactants[0].get_orientation();
+    orientation_t orient0 = rxn_rules[0]->reactants[0].get_orientation();
     for (uint i = 0; i < get_num_reactions(); i++) {
-      assert(orient0 == reactions[i]->reactants[0].get_orientation());
+      assert(orient0 == rxn_rules[i]->reactants[0].get_orientation());
     }
   }
 #endif
@@ -160,8 +160,8 @@ float_t RxnClass::compute_pb_factor() const {
 
       // reactant_species are general, the do not have orientation
       // assuming that all reactions in the same rxn class have the same orientation
-      orientation_t orient0 = reactions[0]->reactants[0].get_orientation();
-      orientation_t orient1 = reactions[0]->reactants[1].get_orientation();
+      orientation_t orient0 = rxn_rules[0]->reactants[0].get_orientation();
+      orientation_t orient1 = rxn_rules[0]->reactants[1].get_orientation();
 
       // double pb factor if both use orientation (both orientations are not zero)
       // TODO: search elsewhere in the code for explanation, the first condition
@@ -216,7 +216,7 @@ float_t RxnClass::compute_pb_factor() const {
 void RxnClass::compute_initial_rxn_rates() {
 
 #ifdef ORDER_RXNS_IN_RXN_CLASS_BY_NAME
-  sort(reactions.begin(), reactions.end(),
+  sort(rxn_rules.begin(), rxn_rules.end(),
       [](const RxnRule* a, const RxnRule* b) -> bool {
           return a->name < b->name;
       }
@@ -227,18 +227,18 @@ void RxnClass::compute_initial_rxn_rates() {
 
   // TODO LATER: check_reaction_for_duplicate_pathways
 
-  cum_probs.resize(reactions.size());
+  cum_probs.resize(rxn_rules.size());
 
   // initialize rates
-  for (uint i = 0; i < reactions.size(); i++) {
-    cum_probs[i] = reactions[i]->get_rate_constant();
+  for (uint i = 0; i < rxn_rules.size(); i++) {
+    cum_probs[i] = rxn_rules[i]->get_rate_constant();
   }
 
   float_t pb_factor = compute_pb_factor();
 
   // scale_rxn_probabilities
   // TODO LATER: info and warning printouts
-  for (uint i = 0; i < reactions.size(); i++) {
+  for (uint i = 0; i < rxn_rules.size(); i++) {
     if (fabs(cum_probs[i] - FLT_GIGANTIC) < EPS) {
       // special surface reactions are not scaled because their pb_factor is 0
       continue;
@@ -248,12 +248,12 @@ void RxnClass::compute_initial_rxn_rates() {
   }
 
   // init_reactions - compute cumulative properties
-  for (uint i = 1; i < reactions.size(); i++) {
+  for (uint i = 1; i < rxn_rules.size(); i++) {
     cum_probs[i] += cum_probs[i - 1];
   }
 
   // NOTE: when can be these probabilities different?
-  if (!reactions.empty()) {
+  if (!rxn_rules.empty()) {
     max_fixed_p = cum_probs.back();
     min_noreaction_p = max_fixed_p;
   }
@@ -264,15 +264,15 @@ void RxnClass::compute_initial_rxn_rates() {
 
   // set class' rxn type
   type = RxnType::Invalid;
-  for (uint i = 0; i < reactions.size(); i++) {
-    assert(reactions[i]->type != RxnType::Invalid && "Type for individual rxns must be set");
+  for (uint i = 0; i < rxn_rules.size(); i++) {
+    assert(rxn_rules[i]->type != RxnType::Invalid && "Type for individual rxns must be set");
 
     if (type == RxnType::Invalid) {
-      type = reactions[i]->type;
+      type = rxn_rules[i]->type;
     }
     else {
       // type must be the same as before
-      assert(type == reactions[i]->type);
+      assert(type == rxn_rules[i]->type);
     }
   }
 }
@@ -282,7 +282,7 @@ void RxnClass::update_variable_rxn_rates(const float_t current_time) {
   bool any_changed = false;
   vector<bool> specific_rxn_changed;
 
-  for (RxnRule* rxn: reactions) {
+  for (RxnRule* rxn: rxn_rules) {
     bool current_changed = rxn->update_variable_rxn_rate(current_time, this);
     specific_rxn_changed.push_back(current_changed);
     any_changed |= current_changed;
@@ -296,7 +296,7 @@ void RxnClass::update_variable_rxn_rates(const float_t current_time) {
     if (specific_rxn_changed[i]) {
       float_t prob = (i == 0) ? cum_probs[0] : cum_probs[i] - cum_probs[i - 1];
       notifys() <<
-          "Probability " << prob << " set for " << reactions[i]->to_str() <<
+          "Probability " << prob << " set for " << rxn_rules[i]->to_str() <<
           " at time " << current_time << ".\n";
     }
   }
@@ -325,7 +325,7 @@ void RxnClass::dump(const std::string ind) const {
     cout << "\n";
   }
 
-  if (reactions.empty()) {
+  if (rxn_rules.empty()) {
     return;
   }
 
@@ -337,7 +337,7 @@ void RxnClass::dump(const std::string ind) const {
   }
   cout << "\n";
 
-  for (const RxnRule* rxn: reactions) {
+  for (const RxnRule* rxn: rxn_rules) {
     rxn->dump(false, ind);
     cout << "\n";
   }

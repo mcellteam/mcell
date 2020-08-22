@@ -124,7 +124,7 @@ public:
       return matches_simple(other, ignore_orientation);
     }
     else if (is_simple() != other.is_simple()) {
-      // cannot be identical when
+      // cannot be identical when one is simple and the other not
       return false;
     }
     return (!ignore_orientation || (orientation == other.orientation)) &&
