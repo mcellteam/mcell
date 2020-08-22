@@ -61,6 +61,75 @@ static void merge_graphs(Graph& srcdst, const Graph& src) {
 }
 
 
+// appends found pathways into the pathways array
+void RxnRule::define_rxn_pathways_for_specific_reactants(
+    SpeciesContainer& all_species,
+    const BNGConfig& bng_config,
+    const species_id_t reactant_a_species_id,
+    const species_id_t reactant_b_species_id,
+    RxnClassPathwayVector& pathways
+) const {
+
+  if (is_simple()) {
+    std::vector<species_id_t> product_species;
+    for (const CplxInstance& product: products) {
+      // simple product is deterministic
+      // simple species are defined mcell3 mode but in BNG mode they
+      // may not have been created (they are based on molecule types)
+      species_id_t species_id = all_species.find_full_match(product);
+      if (species_id == SPECIES_ID_INVALID) {
+        species_id = all_species.add(Species(product, *bng_data, bng_config));
+        assert(species_id != SPECIES_ID_INVALID);
+      }
+      product_species.push_back(species_id);
+    }
+    pathways.push_back(RxnClassPathway(id, product_species));
+  }
+  else {
+    // TODO LATER: we also need to maintain the IDs of the elementary molecules
+    // but such a thing is not supported at all yet
+    //
+    // when the rule modifies an elementary molecule, but there is multiple
+    // elementary molecules that match the reaction pattern such as in:
+    // complex A(a,b~X).A(a,b~Y) and rule A(a) -> A(a!1).B(b!1).
+    // there the rule can be applied to one of the distinct elementary molecules
+    //
+    // also having identical components inside of an elementary molecule
+    // may lead to nondeterminism:
+    // complex A(a,a~X) and rule A(a) -> A(a~Y),
+    // there the rule can be applied to one of the distinct components
+
+    // for now, we support reaction with a single outcome
+    // and since we will depend on the input (once we will be maintaining IDs
+    // of the elementary molecules), we do this computation on the fly
+    vector<const CplxInstance*> reactants;
+    // downcast, CplxInstance is sufficient for product computation
+    reactants.push_back(dynamic_cast<const CplxInstance*>(&all_species.get(reactant_a_species_id)));
+    if (is_bimol()) {
+      reactants.push_back(dynamic_cast<const CplxInstance*>(&all_species.get(reactant_b_species_id)));
+    }
+
+    // we might get multiple matches on reactant(s), the numbers
+    // of matches multiplied give us the total number of variants
+    // a single random number then is used to choose a single variant
+    // TODO: there might be multiple sets of products
+    vector<CplxInstance> products;
+    create_products_for_complex_rxn(
+        reactants,
+        products
+    );
+
+    // define the products as species
+    std::vector<species_id_t> product_species;
+    for (const CplxInstance& product: products) {
+      species_id_t species_id = all_species.find_or_add(Species(product, *bng_data, bng_config));
+      assert(species_id != SPECIES_ID_INVALID);
+      product_species.push_back(species_id);
+    }
+    pathways.push_back(RxnClassPathway(id, product_species));
+  }
+}
+
 void RxnRule::create_patterns_graph() {
   patterns_graph.clear();
   // create graph for reactant patterns
@@ -121,8 +190,6 @@ void RxnRule::finalize() {
   create_patterns_graph();
   create_products_graph();
   compute_reactants_products_mapping();
-
-  compute_rate_constant_multiplier();
 
   // for MCell3 compatibility, updates mapping when needed
   move_products_that_are_also_reactants_to_be_the_first_products();
@@ -858,6 +925,7 @@ static void create_products_from_reactants_graph(
   }
 }
 
+
 void RxnRule::create_products_for_complex_rxn(
     const vector<const CplxInstance*>& input_reactants,
     vector<CplxInstance>& created_products
@@ -1083,57 +1151,6 @@ void RxnRule::compute_reactants_products_mapping() {
       num_pat_molecule_instances == num_prod_molecule_instances &&
       num_prod_molecule_instances == num_mapped_molecule_instances;
 }
-
-
-void RxnRule::compute_rate_constant_multiplier() {
-  assert(!patterns_graph.m_vertices.empty() && "Graphs must be initialized");
-
-  // prepare a graph with Complexes based on molecule types of reactants
-  Graph reactants_graph;
-  // graph references objects in complexes, the cplx instances must exist
-  // when the graph is used and must not be moved (the array must have the right size)
-  vector<CplxInstance> reactants_full(reactants.size(), CplxInstance(bng_data));
-  for (size_t i = 0; i < reactants.size(); i++) {
-    reactants_full[i] = reactants[i];
-    CplxInstance& cplx = reactants_full[i];
-
-    // need to modify pattern so that all components are present
-    for (MolInstance& mi: cplx.mol_instances) {
-      // the new components will have any type specification
-      mi.insert_missing_components_as_any_state_pattern(*bng_data);
-    }
-
-    // update graph
-    cplx.create_graph();
-    merge_graphs(reactants_graph, cplx.get_graph());
-  }
-
-#if 1
-  cout << "Pattern:\n";
-  dump_graph(patterns_graph);
-
-  cout << "Reactants:\n";
-  dump_graph(reactants_graph);
-#endif
-
-  VertexMappingVector pattern_reactant_mappings;
-  get_subgraph_isomorphism_mappings(
-      patterns_graph, // pattern
-      reactants_graph, // computed base reactant
-      false, // do not stop with first match
-      pattern_reactant_mappings
-  );
-  assert(pattern_reactant_mappings.size() >= 1 && "Reactants were created from pattern, it must therefore match");
-
-  // are the reactants identical?
-  if (!is_unimol() && reactants[0].matches_fully(reactants[1])) {
-    rate_constant_multiplier = pattern_reactant_mappings.size() / 2;
-  }
-  else {
-    rate_constant_multiplier = pattern_reactant_mappings.size();
-  }
-}
-
 
 
 bool RxnRule::check_components_mapping(
@@ -1496,7 +1513,6 @@ void RxnRule::dump(const bool for_diff, const std::string ind) const {
     cout << "\n";
 
     cout << ind << "base_rate_constant: " << base_rate_constant << "\n";
-    cout << ind << "rate_constant_multiplier: " << rate_constant_multiplier << "\n";
     cout << ind << "variable_rates.size: " << base_variable_rates.size() << "\n";
 
     if (!base_variable_rates.empty()) {

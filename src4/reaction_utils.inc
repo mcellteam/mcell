@@ -190,9 +190,9 @@ static void find_volume_mol_reactions_with_surf_classes(
   assert(reacA.is_vol());
 
   // for all reactions applicable to reacA and and wall
-  BNG::SpeciesRxnClassesMap* species_rxns = p.get_all_rxns().get_bimol_rxns_for_reactant(reacA.species_id);
-  BNG::SpeciesRxnClassesMap* all_molecules_rxns = p.get_all_rxns().get_bimol_rxns_for_reactant(p.get_all_species().get_all_molecules_species_id());
-  BNG::SpeciesRxnClassesMap* all_vol_rxns = p.get_all_rxns().get_bimol_rxns_for_reactant(p.get_all_species().get_all_volume_molecules_species_id());
+  const BNG::SpeciesRxnClassesMap* species_rxns = p.get_all_rxns().get_bimol_rxns_for_reactant(reacA.species_id);
+  const BNG::SpeciesRxnClassesMap* all_molecules_rxns = p.get_all_rxns().get_bimol_rxns_for_reactant(p.get_all_species().get_all_molecules_species_id());
+  const BNG::SpeciesRxnClassesMap* all_vol_rxns = p.get_all_rxns().get_bimol_rxns_for_reactant(p.get_all_species().get_all_volume_molecules_species_id());
 
   if (species_rxns == nullptr && all_molecules_rxns == nullptr && all_vol_rxns == nullptr) {
     // no reactions at all for reacA
@@ -352,7 +352,6 @@ static void trigger_intersect(
 }
 
 
-
 /*************************************************************************
 binary_search_double
 
@@ -394,9 +393,9 @@ test_bimolecular
       local probability factor (positive only for the reaction between two
         surface molecules, otherwise equal to zero)
       reaction partners
-  Out: RX_NO_RX if no reaction occurs
+  Out: PATHWAY_INDEX_NO_RXN if no reaction occurs
        int containing which reaction pathway to take if one does occur
-  Note: If this reaction does not return RX_NO_RX, then we update
+  Note: If this reaction does not return PATHWAY_INDEX_NO_RXN, then we update
         counters appropriately assuming that the reaction does take place.
 *************************************************************************/
 static int test_bimolecular(
@@ -426,7 +425,7 @@ static int test_bimolecular(
     p = rng_dbl(&rng) * scaling;
 
     if (p >= min_noreaction_p) {
-      return RX_NO_RX;
+      return PATHWAY_INDEX_NO_RXN;
     }
     // continue below
   }
@@ -455,7 +454,7 @@ static int test_bimolecular(
       p = rng_dbl(&rng) * scaling;
 
       if (p >= max_p)
-        return RX_NO_RX;
+        return PATHWAY_INDEX_NO_RXN;
     }
   }
 
@@ -466,12 +465,11 @@ static int test_bimolecular(
   );
 #endif
 
-  int M = rxn_class->get_num_reactions() - 1;
   if (local_prob_factor > 0) {
-    return binary_search_double(rxn_class->cum_probs, p, M, local_prob_factor);
+    return rxn_class->get_pathway_index_for_probability(p, local_prob_factor);
   }
   else {
-    return binary_search_double(rxn_class->cum_probs, p, M, 1);
+    return rxn_class->get_pathway_index_for_probability(p, 1);
   }
 }
 
@@ -487,10 +485,10 @@ test_many_bimolecular:
       placeholder for the chosen pathway in the reaction (works as return
           value)
       a flag to indicate if
-  Out: RX_NO_RX if no reaction occurs
+  Out: PATHWAY_INDEX_NO_RXN if no reaction occurs
        index in the reaction array corresponding to which reaction occurs
           if one does occur
-  Note: If this reaction does not return RX_NO_RX, then we update
+  Note: If this reaction does not return PATHWAY_INDEX_NO_RXN, then we update
         counters appropriately assuming that the reaction does take place.
   Note: this uses only one call to get a random double, so you can't
         effectively sample events that happen less than 10^-9 of the
@@ -521,7 +519,7 @@ static int test_many_bimolecular(
   std::vector<float_t> cum_rxn_class_probs; // rxn in mcell3
   cum_rxn_class_probs.resize(2 * n, 0.0);
 
-  int m, M;
+  int m;
   float_t p, f;
 
   if (all_neighbors_flag && local_prob_factor <= 0) {
@@ -579,15 +577,16 @@ static int test_many_bimolecular(
   }
   else {
     p = rng_dbl(&rng);
-    if (p > cum_rxn_class_probs[n - 1])
-      return RX_NO_RX;
+    if (p > cum_rxn_class_probs[n - 1]) {
+      return PATHWAY_INDEX_NO_RXN;
+    }
   }
 
   /* Pick the reaction class that happens */
   int rx_index = binary_search_double(cum_rxn_class_probs, p, cum_rxn_class_probs.size() - 1, 1);
   assert(rx_index >= 0);
 
-  const BNG::RxnClass* my_rxn = rxn_classes[rx_index];
+  const BNG::RxnClass* selected_rxn_class = rxn_classes[rx_index];
   if (rx_index > 0) {
     p = (p - cum_rxn_class_probs[rx_index - 1]);
   }
@@ -595,12 +594,11 @@ static int test_many_bimolecular(
 
   /* Now pick the pathway within that reaction */
   // NOTE: might optimize if there is just one rxn
-  M = my_rxn->get_num_reactions() - 1;
   if (all_neighbors_flag && local_prob_factor > 0) {
-    m = binary_search_double(my_rxn->cum_probs, p, M, local_prob_factor);
+    m = selected_rxn_class->get_pathway_index_for_probability(p, local_prob_factor);
   }
   else {
-    m = binary_search_double(my_rxn->cum_probs, p, M, 1);
+    m = selected_rxn_class->get_pathway_index_for_probability(p, 1);
   }
 
   chosen_pathway_index = m;
@@ -614,9 +612,9 @@ test_intersect
   In: the reaction we're testing
       a probability multiplier depending on how many timesteps we've
         moved at once (1.0 means one timestep)
-  Out: RX_NO_RX if no reaction occurs (assume reflection)
+  Out: PATHWAY_INDEX_NO_RXN if no reaction occurs (assume reflection)
        int containing which reaction occurs if one does occur
-  Note: If not RX_NO_RX, and not the trasparency shortcut, then we
+  Note: If not PATHWAY_INDEX_NO_RXN, and not the trasparency shortcut, then we
         update counters assuming the reaction will take place.
 *************************************************************************/
 // TODO LATER: see if it can be merged with test_bimolecular
@@ -632,8 +630,7 @@ static rxn_class_pathway_index_t test_intersect(
 
   rxn_class->update_rxn_rates_if_needed(current_time);
 
-  float_t max_prob = rxn_class->cum_probs.back();
-  assert(max_prob == rxn_class->max_fixed_p);
+  float_t max_prob = rxn_class->max_fixed_p;
 
   if (max_prob > scaling) {
     /*if (scaling <= 0.0)
@@ -650,16 +647,14 @@ static rxn_class_pathway_index_t test_intersect(
     }
   }
 
-  int M = rxn_class->get_num_reactions() - 1;
-
-  if (p > rxn_class->cum_probs[M]) {
+  if (p > rxn_class->max_fixed_p) {
     return PATHWAY_INDEX_NO_RXN;
   }
 
   float_t match = rng_dbl(&rng);
-  match = match * rxn_class->cum_probs[M];
+  match = match * rxn_class->max_fixed_p;
 
-  return binary_search_double(rxn_class->cum_probs, match, M, 1);
+  return rxn_class->get_pathway_index_for_probability(match, 1);
 }
 
 /*************************************************************************
@@ -669,9 +664,9 @@ test_many_intersect:
         moved at once (1.0 means one timestep)
       the number of elements in the array of reactions
       placeholder for the chosen pathway in the reaction (return value)
-  Out: RX_NO_RX if no reaction occurs (assume reflection)
+  Out: PATHWAY_INDEX_NO_RXN if no reaction occurs (assume reflection)
        index in the reaction array if reaction does occur
-  Note: If not RX_NO_RX, and not the trasparency shortcut, then we
+  Note: If not PATHWAY_INDEX_NO_RXN, and not the trasparency shortcut, then we
         update counters assuming the reaction will take place.
 *************************************************************************/
 // TODO LATER: see if it can be merged with test_many bimolecular
@@ -679,7 +674,7 @@ static rxn_class_pathway_index_t test_many_intersect(
     BNG::RxnClassesVector& rxn_classes,
     const float_t scaling,
     const float_t current_time,
-    rxn_class_index_t& chosen_rxn_class_index,
+    rxn_class_index_t& selected_rxn_class_index,
     rng_state& rng) {
 
   for (BNG::RxnClass* cls: rxn_classes) {
@@ -689,7 +684,7 @@ static rxn_class_pathway_index_t test_many_intersect(
   uint num_classes = rxn_classes.size();
 
   if (num_classes == 1) {
-    chosen_rxn_class_index = 0;
+    selected_rxn_class_index = 0;
     return test_intersect(rxn_classes[0], scaling, current_time, rng);
   }
 
@@ -715,26 +710,23 @@ static rxn_class_pathway_index_t test_many_intersect(
   } else {
     p = rng_dbl(&rng);
     if (p > rxn_probs[num_classes - 1]) {
-      chosen_rxn_class_index = RNX_CLASS_INDEX_INVALID;
-      return RX_NO_RX;
+      selected_rxn_class_index = RNX_CLASS_INDEX_INVALID;
+      return PATHWAY_INDEX_NO_RXN;
     }
   }
 
   /* Pick the reaction that happens */
-  chosen_rxn_class_index = binary_search_double(rxn_probs, p, num_classes - 1, 1);
+  selected_rxn_class_index = binary_search_double(rxn_probs, p, num_classes - 1, 1);
 
-  const BNG::RxnClass *my_rxn_class = rxn_classes[chosen_rxn_class_index];
+  const BNG::RxnClass *selected_rxn_class = rxn_classes[selected_rxn_class_index];
 
-  if (chosen_rxn_class_index > 0) {
-    p = (p - rxn_probs[chosen_rxn_class_index - 1]);
+  if (selected_rxn_class_index > 0) {
+    p = (p - rxn_probs[selected_rxn_class_index - 1]);
   }
   p = p * scaling;
 
   /* Now pick the pathway within that reaction */
-  rxn_class_pathway_index_t pathway_index =
-      binary_search_double(my_rxn_class->cum_probs, p, my_rxn_class->get_num_reactions() - 1, 1);
-
-  return pathway_index;
+  return selected_rxn_class->get_pathway_index_for_probability(p, 1);
 }
 
 
@@ -807,10 +799,9 @@ static rxn_class_pathway_index_t which_unimolecular(const BNG::RxnClass *rxn_cla
     return 0;
   }
 
-  int max = rxn_class->get_num_reactions() - 1;
   float_t match = rng_dbl(&rng);
-  match = match * rxn_class->cum_probs[max];
-  return binary_search_double(rxn_class->cum_probs, match, max, 1);
+  match = match * rxn_class->max_fixed_p;
+  return rxn_class->get_pathway_index_for_probability(match, 1);
 }
 
 } // namespace RxUtil

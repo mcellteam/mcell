@@ -315,8 +315,9 @@ public:
   }
 
 
-  // the reactant_subpart_index is index where the molecule was originally created,
-  // it might have moved to subpart_index in the meantime
+  // - the reactant_subpart_index is index where the molecule was originally created,
+  //   it might have moved to subpart_index in the meantime
+  // - might invalidate Species references
   void change_vol_reactants_map_from_orig_to_current(Molecule& vm, bool adding, bool removing) {
     assert(vm.is_vol() && "This function is applicable only to volume mols and ignored for surface mols");
     assert(vm.v.subpart_index != SUBPART_INDEX_INVALID);
@@ -328,8 +329,8 @@ public:
       return;
     }
 
-    // and these are indices of possible reactants with our reactant_species_id
-    // NOTE: this must be fast, bng engine must have this map/vector already ready
+    // and these are indices of possible reactants with our reactant_species_id,
+    // this might trigger creation of a new rxn class if the species were not seen before
     // TODO: we can optimize this by taking just volume reactants into account
     //       - simply reject if the second reactant is surf mol
     const BNG::SpeciesRxnClassesMap* reactions_map = get_all_rxns().get_bimol_rxns_for_reactant(vm.species_id);
@@ -480,10 +481,13 @@ public:
     // and add this molecule to a map that tells which species can react with it
     new_vm.v.subpart_index = get_subpart_index(vm_copy.v.pos);
     new_vm.v.reactant_subpart_index = new_vm.v.subpart_index;
+    // might invalidate species references
     change_vol_reactants_map_from_orig_to_current(new_vm, true, false);
 
+    // we must refresh the species reference
+    BNG::Species& sp_new_ref = get_all_species().get(vm_copy.species_id);
     // compute counted volume id for a new molecule, may define a new counted volume
-    if (sp.needs_counted_colume() && new_vm.v.counted_volume_index == COUNTED_VOLUME_INDEX_INVALID) {
+    if (sp_new_ref.needs_counted_colume() && new_vm.v.counted_volume_index == COUNTED_VOLUME_INDEX_INVALID) {
       new_vm.v.counted_volume_index = compute_counted_volume_using_waypoints(new_vm.v.pos);
     }
 

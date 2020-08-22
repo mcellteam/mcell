@@ -75,6 +75,7 @@ public:
     return new_r->id;
   }
 
+  // - might invalidate Species reference
   RxnClass* get_unimol_rxn_class(const species_id_t id) {
     auto it = unimol_rxn_class_map.find(id);
 
@@ -97,11 +98,11 @@ public:
     }
   }
 
-  // simply looks up a reaction between 'a' and 'b',
-  // this reaction must exist, asserts if not,
-  // does not take species superclasses such as ALL_MOLECULES into account
-  // order of species ids does not matter
-  // get_bimol_rxn_class
+  // - simply looks up a reaction between 'a' and 'b',
+  // - this reaction must exist, asserts if not,
+  // - does not take species superclasses such as ALL_MOLECULES into account
+  // - order of species ids does not matter
+  // - might invalidate Species reference
   RxnClass* get_bimol_rxn_class(const species_id_t id1, const species_id_t id2) {
     // species must exist
     assert(all_species.is_valid_id(id1));
@@ -127,8 +128,10 @@ public:
     }
   }
 
-  // returns null if there is no reaction for this species?
-  // no -> when there is no entry in the map, this meanbs that reactants were not determined yet
+  // - returns null if there is no reaction for this species
+  // - when there is no entry in the map, this means that reactions for this reactant
+  //   were not determined yet and updates creates new rxn classes
+  // - might invalidate Species reference
   BNG::SpeciesRxnClassesMap* get_bimol_rxns_for_reactant(const species_id_t id) {
 
     auto it = bimol_rxn_class_map.find(id);
@@ -152,13 +155,6 @@ public:
       return nullptr;
     }
   }
-
-  void get_rxn_product_species_ids(
-      const RxnRule* rxn,
-      const species_id_t reactant_a_species_id,
-      const species_id_t reactant_b_species_id, // set to SPECIES_ID_INVALID for unimol rxns
-      std::vector<species_id_t>& res
-  );
 
   // returns nullptr if reaction rule was not found
   RxnRule* find_rxn_rule_by_name(const std::string& name) {
@@ -199,20 +195,6 @@ private:
   void create_unimol_rxn_classes_for_new_species(const species_id_t id);
   void create_bimol_rxn_classes_for_new_species(const species_id_t id);
 
-  bool get_cached_rxn_products(
-      const RxnRule* rxn,
-      const species_id_t reactant_a_species_id,
-      const species_id_t reactant_b_species_id,
-      std::vector<species_id_t>& res
-  );
-
-  void store_rxn_products_to_cache(
-      const RxnRule* rxn,
-      const species_id_t reactant_a_species_id,
-      const species_id_t reactant_b_species_id,
-      const std::vector<species_id_t>& res
-  );
-
 private:
   // owns reaction classes
   // allocated in get_or_create_empty_bimol_rxn_class, deleted in destructor
@@ -232,18 +214,6 @@ private:
   UnimolRxnClassesMap unimol_rxn_class_map;
 
   BimolRxnClassesMap bimol_rxn_class_map;
-
-  // caches for reaction products
-  std::map<rxn_rule_id_t, // bimol rule id
-    std::map<species_id_t, // first reactant
-      std::map<species_id_t, // second reactant
-        std::vector<species_id_t> // precomputed products
-        >>> bimol_rxn_cached_product_species;
-
-  std::map<rxn_rule_id_t, // unimol rule id
-    std::map<species_id_t, // unimol first reactant
-      std::vector<species_id_t> // precomputed products
-      >> unimol_rxn_cached_product_species;
 
 public:
   // TODO: make private

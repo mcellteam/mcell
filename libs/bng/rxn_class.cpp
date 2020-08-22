@@ -66,6 +66,7 @@ RxnRule* RxnClass::get_rxn_for_pathway(const rxn_class_pathway_index_t pathway_i
   //assert(pathway_index >= 0 && pathway_index < (int)pathways.size());
   assert(pathway_index >= 0 && pathway_index < (int)rxn_rule_ids.size());
   //TODO: for now returing directly rxn
+  assert(pathways.size() == rxn_rule_ids.size() && "Temporary");
   return all_rxns.get(rxn_rule_ids[pathway_index]);
   //return all_rxns.get(pathways[pathway_index].rxn_rule_id);
 }
@@ -105,6 +106,31 @@ float_t RxnClass::get_next_time_of_rxn_rate_update() const {
     }
   }
   return min;
+}
+
+// based on MCell3's binary_search_double
+rxn_class_pathway_index_t RxnClass::get_pathway_index_for_probability(
+    const float_t prob, const float_t local_prob_factor) const {
+  assert(!pathways.empty());
+  int min_idx = 0;
+  int max_idx = pathways.size() - 1;
+
+  while (max_idx - min_idx > 1) {
+    int mid_idx = (max_idx + min_idx) / 2;
+    if (prob > (pathways[min_idx].cum_prob * local_prob_factor)) {
+      min_idx = mid_idx;
+    }
+    else {
+      max_idx = mid_idx;
+    }
+  }
+
+  if (prob > pathways[min_idx].cum_prob * local_prob_factor) {
+    return max_idx;
+  }
+  else {
+    return min_idx;
+  }
 }
 
 
@@ -279,7 +305,10 @@ float_t RxnClass::compute_pb_factor() const {
 
 
 // based on mcell3's implementation init_reactions
+// but added support for cases where one reaction rule can have multiple sets of products
 void RxnClass::update_rxn_pathways() {
+
+  assert(!specific_reactants.empty());
 
 #ifdef ORDER_RXNS_IN_RXN_CLASS_BY_NAME
   sort(rxn_rules.begin(), rxn_rules.end(),
@@ -289,38 +318,48 @@ void RxnClass::update_rxn_pathways() {
   );
 #endif
 
-  // alphabetize? - order of reactants
+  // TODO LATER: check_reaction_for_duplicate_pathways?
 
-  // TODO LATER: check_reaction_for_duplicate_pathways
+  pathways.clear();
 
-  cum_probs.resize(rxn_rule_ids.size());
-
-  // initialize rates
-  for (uint i = 0; i < rxn_rule_ids.size(); i++) {
-    cum_probs[i] = all_rxns.get(rxn_rule_ids[i])->get_rate_constant();
+  // 1) define pathways
+  for (rxn_rule_id_t id: rxn_rule_ids) {
+    const RxnRule* rxn = all_rxns.get(id);
+    rxn->define_rxn_pathways_for_specific_reactants(
+        all_species,
+        bng_config,
+        specific_reactants[0],
+        (is_bimol() ? specific_reactants[1] : SPECIES_ID_INVALID),
+        pathways
+    );
   }
+  assert(!pathways.empty());
 
+  // 2) compute binding probability factor
   float_t pb_factor = compute_pb_factor();
 
-  // scale_rxn_probabilities
+  // 3) set and scale_rxn_probabilities
   // TODO LATER: info and warning printouts
-  for (uint i = 0; i < rxn_rule_ids.size(); i++) {
-    if (fabs(cum_probs[i] - FLT_GIGANTIC) < EPS) {
+  for (RxnClassPathway& pw: pathways) {
+    const RxnRule* rxn = all_rxns.get(pw.rxn_rule_id);
+    if (cmp_eq(rxn->get_rate_constant(), FLT_GIGANTIC)) {
       // special surface reactions are not scaled because their pb_factor is 0
-      continue;
+      pw.pathway_prob = rxn->get_rate_constant();
     }
-    float_t rate = pb_factor * cum_probs[i];
-    cum_probs[i] = rate;
+    else {
+      pw.pathway_prob = rxn->get_rate_constant() * pb_factor;
+    }
   }
 
-  // init_reactions - compute cumulative properties
-  for (uint i = 1; i < rxn_rule_ids.size(); i++) {
-    cum_probs[i] += cum_probs[i - 1];
+  // 4) compute cumulative properties
+  pathways[0].cum_prob = pathways[0].pathway_prob;
+  for (uint i = 1; i < pathways.size(); i++) {
+    pathways[i].cum_prob = pathways[i].pathway_prob + pathways[i-1].cum_prob;
   }
 
-  // NOTE: when can be these probabilities different?
-  if (!rxn_rule_ids.empty()) {
-    max_fixed_p = cum_probs.back();
+  // NOTE: when can be the max_fixed_p and min_noreaction_p probabilities different?
+  if (!pathways.empty()) {
+    max_fixed_p = pathways.back().cum_prob;
     min_noreaction_p = max_fixed_p;
   }
   else {
@@ -330,8 +369,8 @@ void RxnClass::update_rxn_pathways() {
 
   // set class' rxn type
   type = RxnType::Invalid;
-  for (uint i = 0; i < rxn_rule_ids.size(); i++) {
-    const RxnRule* rxn = all_rxns.get(rxn_rule_ids[i]);
+  for (rxn_rule_id_t id: rxn_rule_ids) {
+    const RxnRule* rxn = all_rxns.get(id);
     assert(rxn->type != RxnType::Invalid && "Type for individual rxns must be set");
 
     if (type == RxnType::Invalid) {
@@ -347,26 +386,36 @@ void RxnClass::update_rxn_pathways() {
 
 void RxnClass::update_variable_rxn_rates(const float_t current_time) {
   bool any_changed = false;
-  vector<bool> specific_rxn_changed;
+  vector<rxn_rule_id_t> changed_rxn_rules;
 
   for (rxn_rule_id_t id: rxn_rule_ids) {
     RxnRule* rxn = all_rxns.get(id);
     bool current_changed = rxn->update_variable_rxn_rate(current_time, this);
-    specific_rxn_changed.push_back(current_changed);
-    any_changed |= current_changed;
+    if (current_changed) {
+      changed_rxn_rules.push_back(id);
+      any_changed = true;
+    }
   }
   if (any_changed) {
     update_rxn_pathways();
   }
 
   // report
-  for (size_t i = 0; i < specific_rxn_changed.size(); i++) {
-    if (specific_rxn_changed[i]) {
-      float_t prob = (i == 0) ? cum_probs[0] : cum_probs[i] - cum_probs[i - 1];
-      notifys() <<
-          "Probability " << prob << " set for " << all_rxns.get(rxn_rule_ids[i])->to_str() <<
-          " at time " << current_time << ".\n";
+  for (rxn_rule_id_t changed_id: changed_rxn_rules) {
+    // find the first corresponding pathway
+    rxn_class_pathway_index_t first_pw_changed = PATHWAY_INDEX_INVALID;
+    for (size_t pwi = 0; pwi < pathways.size(); pwi++) {
+      if (pathways[pwi].rxn_rule_id == changed_id) {
+        first_pw_changed = pwi;
+        break;
+      }
     }
+    release_assert(first_pw_changed != PATHWAY_INDEX_INVALID);
+
+    float_t prob = pathways[first_pw_changed].pathway_prob;
+    notifys() <<
+        "Probability " << prob << " set for " << all_rxns.get(changed_id)->to_str() <<
+        " at time " << current_time << ".\n";
   }
 }
 
@@ -400,14 +449,18 @@ void RxnClass::dump(const std::string ind) const {
   cout << ind << "max_fixed_p: \t\t" << max_fixed_p << " [float_t] \t\t\n";
   cout << ind << "min_noreaction_p: \t\t" << min_noreaction_p << " [float_t] \t\t\n";
   cout << ind << "cum_probs: ";
-  for (float_t p: cum_probs) {
-    cout << p << ", ";
+  for (const RxnClassPathway& pw: pathways) {
+    cout << pw.cum_prob << ", ";
   }
   cout << "\n";
 
-  for (rxn_rule_id_t id: rxn_rule_ids) {
-    RxnRule* rxn = all_rxns.get(id);
+  for (const RxnClassPathway& pw: pathways) {
+    RxnRule* rxn = all_rxns.get(pw.rxn_rule_id);
     rxn->dump(false, ind);
+    cout << ", product ids: ";
+    for (species_id_t sid: pw.product_species) {
+      cout << sid << ", ";
+    }
     cout << "\n";
   }
 }

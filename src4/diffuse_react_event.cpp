@@ -1908,40 +1908,39 @@ int DiffuseReactEvent::outcome_products_random(
   Molecule* reacB = nullptr;
   keep_reacB = false; // one product is the same as reacB
 
-  // TODO: unify rx vs rxn
   RxnClass* rxn_class = collision.rxn_class;
   assert(rxn_class != nullptr);
-  const RxnRule* rx = rxn_class->get_rxn_for_pathway(pathway_index);
+  const RxnRule* rxn = rxn_class->get_rxn_for_pathway(pathway_index);
 
-  assert(rx->reactants.size() == 1 || rx->reactants.size() == 2);
+  assert(rxn->reactants.size() == 1 || rxn->reactants.size() == 2);
 
   if (collision.is_wall_collision()) {
     keep_reacB = true;
     #ifndef NDEBUG
       // check that the second reactant is a reactive surface
-      assert(rx->reactants[1].is_simple());
-      BNG::mol_type_id_t mol_type_id = rx->reactants[1].get_simple_species_mol_type_id();
+      assert(rxn->reactants[1].is_simple());
+      BNG::mol_type_id_t mol_type_id = rxn->reactants[1].get_simple_species_mol_type_id();
       const BNG::MolType& mt = p.bng_engine.get_data().get_molecule_type(mol_type_id);
       assert(mt.is_reactive_surface());
     #endif
   }
 
-  assert(rx != nullptr);
+  assert(rxn != nullptr);
 
 #ifdef DEBUG_CPLX_MATCHING
   cout << "Reaction to be executed:\n";
-  rx->dump(false); cout << "\n";
-  rx->dump(true); cout << "\n";
+  rxn->dump(false); cout << "\n";
+  rxn->dump(true); cout << "\n";
 #endif
 
   // count this reaction if needed
-  if (rx->is_counted()) {
-    assert(rx->id !=  BNG::RXN_RULE_ID_INVALID);
+  if (rxn->is_counted()) {
+    assert(rxn->id !=  BNG::RXN_RULE_ID_INVALID);
     if (reacA->is_vol()) {
-      p.inc_rxn_in_volume_occured_count(rx->id, reacA->v.counted_volume_index);
+      p.inc_rxn_in_volume_occured_count(rxn->id, reacA->v.counted_volume_index);
     }
     else if (reacA->is_surf()) {
-      p.inc_rxn_on_surface_occured_count(rx->id, reacA->s.wall_index);
+      p.inc_rxn_on_surface_occured_count(rxn->id, reacA->s.wall_index);
     }
   }
 
@@ -1950,7 +1949,7 @@ int DiffuseReactEvent::outcome_products_random(
   bool reactants_swapped = false;
 
   // the second reactant might be a surface
-  uint num_mol_reactants = collision.is_wall_collision() ? 1 : rx->reactants.size();
+  uint num_mol_reactants = collision.is_wall_collision() ? 1 : rxn->reactants.size();
 
   if (num_mol_reactants == 2) {
     reacB = &p.get_m(collision.colliding_molecule_id);
@@ -1964,21 +1963,21 @@ int DiffuseReactEvent::outcome_products_random(
 
     /* Ensure that reacA and reacB are sorted in the same order as the rxn players. */
     /* Needed to maintain the same behavior as in mcell3 */
-    if (!p.bng_engine.matches_ignore_orientation(rx->reactants[0], reacA->species_id)) {
+    if (!p.bng_engine.matches_ignore_orientation(rxn->reactants[0], reacA->species_id)) {
       Molecule* tmp_mol = reacA;
       reacA = reacB;
       reacB = tmp_mol;
       reactants_swapped = true;
     }
-    assert(p.bng_engine.matches_ignore_orientation(rx->reactants[1], reacB->species_id));
+    assert(p.bng_engine.matches_ignore_orientation(rxn->reactants[1], reacB->species_id));
 
-    keep_reacB = rx->is_cplx_reactant_on_both_sides_of_rxn(1);
+    keep_reacB = rxn->is_cplx_reactant_on_both_sides_of_rxn(1);
   }
   else {
     surf_reac = reacA->is_surf() ? reacA : nullptr;
   }
-  assert(p.bng_engine.matches_ignore_orientation(rx->reactants[0], reacA->species_id));
-  keep_reacA = rx->is_cplx_reactant_on_both_sides_of_rxn(0);
+  assert(p.bng_engine.matches_ignore_orientation(rxn->reactants[0], reacA->species_id));
+  keep_reacA = rxn->is_cplx_reactant_on_both_sides_of_rxn(0);
 
   bool is_orientable = reacA->is_surf() || (reacB != nullptr && reacB->is_surf());
 
@@ -1998,10 +1997,10 @@ int DiffuseReactEvent::outcome_products_random(
 
   /* If the reaction involves a surface, make sure there is room for each product. */
   small_vector<GridPos> assigned_surf_product_positions; // this array contains information on where to place the surface products
-  assigned_surf_product_positions.resize(rx->products.size());
+  assigned_surf_product_positions.resize(rxn->products.size());
   if (is_orientable) {
     int res = find_surf_product_positions(
-        p, reacA, keep_reacA, reacB, keep_reacB, surf_reac, rx,
+        p, reacA, keep_reacA, reacB, keep_reacB, surf_reac, rxn,
         assigned_surf_product_positions);
     if (res == RX_BLOCKED) {
       return RX_BLOCKED;
@@ -2033,8 +2032,8 @@ int DiffuseReactEvent::outcome_products_random(
   // need to determine orientations before the products are created because mcell3 does this earlier as well
   vector<orientation_t> product_orientations;
   if (is_orientable) {
-    for (uint product_index = 0; product_index < rx->products.size(); product_index++) {
-      const BNG::CplxInstance& product = rx->products[product_index];
+    for (uint product_index = 0; product_index < rxn->products.size(); product_index++) {
+      const BNG::CplxInstance& product = rxn->products[product_index];
       if (product.get_orientation() == ORIENTATION_NONE) {
         product_orientations.push_back( (rng_uint(&world->rng) & 1) ? ORIENTATION_UP : ORIENTATION_DOWN);
       }
@@ -2045,31 +2044,32 @@ int DiffuseReactEvent::outcome_products_random(
   }
   else {
     // no surface reactant, all products will have orientataion none
-    product_orientations.resize(rx->products.size(), ORIENTATION_NONE);
+    product_orientations.resize(rxn->products.size(), ORIENTATION_NONE);
   }
 
-  vector<species_id_t> product_species_ids;
+  const vector<species_id_t>& product_species_ids = collision.rxn_class->get_rxn_products_for_pathway(pathway_index);
   // get all products that the reaction creates
+  /*collision.rxn_class->get
   p.get_all_rxns().get_rxn_product_species_ids(
-      rx, reacA->species_id, (reacB != nullptr) ? reacB->species_id : SPECIES_ID_INVALID,
+      rxn, reacA->species_id, (reacB != nullptr) ? reacB->species_id : SPECIES_ID_INVALID,
       product_species_ids
-  );
-  release_assert(product_species_ids.size() == rx->products.size());
+  );*/
+  release_assert(product_species_ids.size() == rxn->products.size());
 
 
-  for (uint product_index = 0; product_index < rx->products.size(); product_index++) {
-    const BNG::CplxInstance& product = rx->products[product_index];
+  for (uint product_index = 0; product_index < rxn->products.size(); product_index++) {
+    const BNG::CplxInstance& product = rxn->products[product_index];
     orientation_t product_orientation = product_orientations[product_index];
 
     // do not create anything new when the reactant is kept -
     // for bimol reactions - the diffusion simply continues
     // for unimol reactions - the unimol action action starts diffusion for the remaining timestep
-    if (rx->is_cplx_product_on_both_sides_of_rxn(product_index)) {
+    if (rxn->is_cplx_product_on_both_sides_of_rxn(product_index)) {
       uint reactant_index;
-      bool ok = rx->get_assigned_simple_cplx_reactant_for_product(product_index, reactant_index);
+      bool ok = rxn->get_assigned_simple_cplx_reactant_for_product(product_index, reactant_index);
       assert(reactant_index == 0 || reactant_index == 1);
 
-      if (rx->reactants[reactant_index].get_orientation() != product_orientation) {
+      if (rxn->reactants[reactant_index].get_orientation() != product_orientation) {
         // initiator volume molecule passes through wall?
         // any surf mol -> set new orient
 
@@ -2112,7 +2112,7 @@ int DiffuseReactEvent::outcome_products_random(
 
       Molecule vm_initialization(MOLECULE_ID_INVALID, product_species_id, collision.pos);
 
-      // adding molecule might invalidate references of already existing molecules
+      // adding molecule might invalidate references of already existing molecules and also of species
       Molecule& new_vm = p.add_volume_molecule(vm_initialization);
 
       // id and position is used to schedule a diffusion action
@@ -2121,7 +2121,8 @@ int DiffuseReactEvent::outcome_products_random(
         where_is_vm_created = surf_reac_wall_tile;
       }
 
-      new_vm.flags = IN_VOLUME | (species.can_diffuse() ? ACT_DIFFUSE : 0);
+      const BNG::Species& species_new_ref = p.get_all_species().get(product_species_id);
+      new_vm.flags = IN_VOLUME | (species_new_ref.can_diffuse() ? ACT_DIFFUSE : 0);
       new_vm.set_flag(MOLECULE_FLAG_VOL);
       new_vm.set_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN);
 

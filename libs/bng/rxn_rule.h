@@ -21,6 +21,40 @@ class BNGData;
 class SpeciesContainer;
 class RxnClass;
 
+
+/**
+ * Used to hold information on the probability and products for a given reaction rule.
+ * One rxn rule can possibly have more different products,
+ * e.g. when applying rule A(b~0) -> A(b~1) on reactant A(a~0,b~0).A(a~1,b~0),
+ * the result can be either A(a~0,b~1).A(a~1,b~0) or A(a~0,b~0).A(a~1,b~1).
+ * So for each of the possible products, one RxnPathway is created in a RxnClass.
+ */
+class RxnClassPathway {
+public:
+  RxnClassPathway(
+      const rxn_rule_id_t rxn_rule_id_,
+      const std::vector<species_id_t> product_species_
+  ) : rxn_rule_id(rxn_rule_id_), product_species(product_species_),
+      pathway_prob(FLT_INVALID), cum_prob(FLT_INVALID) {
+  }
+
+  // ID of rxn rule from which this pathway was created
+  rxn_rule_id_t rxn_rule_id;
+
+  // specific variant of products for this pathway
+  std::vector<species_id_t> product_species;
+
+  // probability for this specific pathway to be selected when
+  // reactants interact (or when an unimol rxn is executed)
+  float_t pathway_prob;
+
+  // cumulative probability - set when used in rxn class
+  float_t cum_prob;
+};
+
+typedef std::vector<RxnClassPathway> RxnClassPathwayVector;
+
+
 struct CplxIndexPair {
   CplxIndexPair(const uint reactant_index_, const uint product_index_)
     : reactant_index(reactant_index_), product_index(product_index_) {
@@ -67,18 +101,6 @@ public:
   // base rate constant for this reaction as obtained from the BNGL or other input
   float_t base_rate_constant;
 
-  // rate constant multiplier that must be used to
-  // adjusted to the multiplicity of the reaction,
-  // examples:
-  // unimolecular reaction X(p~0) -> X(p~1) on molecule type X(p~0~1,p~0~1)
-  // has multiplier of 2 because it can be applied to either one of the components
-  // bimolecular reaction ?? TODO - example
-
-  // on the other hand, bimolecular reaction X(a) + Y -> X(a!1) applied on complex X(a,b!1).X(a,b!1)
-  // has multiplier of 1 because the reactant is not known until the actual reaction occurs
-  //
-  float_t rate_constant_multiplier;
-
   small_vector<RxnRateInfo> base_variable_rates;
 
   // set to true if it was possible to do a mapping between reactants and products
@@ -102,7 +124,7 @@ private:
 public:
   RxnRule(const BNGData* bng_data_)
     : id(RXN_RULE_ID_INVALID), type(RxnType::Invalid),
-      base_rate_constant(FLT_INVALID), rate_constant_multiplier(1),
+      base_rate_constant(FLT_INVALID),
       mol_instances_are_fully_maintained(false),
       num_surf_products(UINT_INVALID), next_variable_rate_index(0),
       bng_data(bng_data_)
@@ -117,8 +139,17 @@ public:
       std::vector<CplxInstance>& created_products
   ) const;
 
+  // method used when RxnClass is being created
+  void define_rxn_pathways_for_specific_reactants(
+      SpeciesContainer& all_species,
+      const BNGConfig& bng_config,
+      const species_id_t reactant_a_species_id,
+      const species_id_t reactant_b_species_id,
+      RxnClassPathwayVector& pathways
+  ) const;
+
   float_t get_rate_constant() const {
-    return base_rate_constant * rate_constant_multiplier;
+    return base_rate_constant;
   }
 
   const CplxInstance& get_cplx_reactant(const uint index) const {
@@ -300,8 +331,6 @@ private:
   // checks if it is possible to create a mapping from reactants to products and
   // sets members molecule_instances_are_maintained and mapping
   void compute_reactants_products_mapping();
-
-  void compute_rate_constant_multiplier();
 
   bool check_components_mapping(
       const MolInstance& first_mi,

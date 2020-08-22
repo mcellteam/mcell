@@ -20,29 +20,6 @@ class RxnContainer;
 class SpeciesContainer;
 
 /**
- * Used to hold information on the probability and products for a given reaction rule.
- * One rxn rule can possibly have more different products,
- * e.g. when applying rule A(b~0) -> A(b~1) on reactant A(a~0,b~0).A(a~1,b~0),
- * the result can be either A(a~0,b~1).A(a~1,b~0) or A(a~0,b~0).A(a~1,b~1).
- * So for each of the possible products, one RxnPathway is created in a RxnClass.
- */
-class RxnClassPathway {
-public:
-  // ID of rxn rule from which this pathway was created
-  rxn_rule_id_t rxn_rule_id;
-
-  // cumulative probability
-  float_t cum_prob;
-
-  // probability for this specific pathway to be selected when
-  // reactants interact (or when an unimol rxn is executed)
-  float_t pathway_prob;
-
-  // specific variant of products for this pathway
-  std::vector<species_id_t> product_species;
-};
-
-/**
  * Reaction class contains all applicable reactions for a pair of reactants.
  *
  * Reaction classes are created on-the-fly by RxnContainer.
@@ -59,29 +36,27 @@ private:
   // reactions are owned by RxnContainer, order in this vector is important
   std::vector<rxn_rule_id_t> rxn_rule_ids;
 
-  // initialized in ...?
-  std::vector<RxnClassPathway> pathways;
-
 public:
   // Standard reaction or special such as Reflect, Transparent or Absorb
   RxnType type;
 
-  // ----------- MCell-specific -----------
-  // Maximum 'p' for region of p-space for all non-cooperative pathways
+  // Maximum probability for region of p-space for all non-cooperative pathways
   float_t max_fixed_p;
 
-  // Minimum 'p' for region of p-space which is always in the non-reacting "pathway". (note that
+  // Minimum probability for region of p-space which is always in the non-reacting "pathway". (note that
   // cooperativity may mean that some values of p less than this still do not produce a reaction)
+  // NOTE: currently always the same as max_fixed_p
   float_t min_noreaction_p;
 
-  // Cumulative probabilities for specific reactions, based on all reactions of the class
-  // has same size as reactions
-  std::vector<float_t> cum_probs;
-  // ^^^^^^^^^^ MCell-specific ^^^^^^^^^^
+  // - information on products for specific reactions, based on all reactions of the class,
+  // - the size of this vector is >= than the number of rxn rules in this class because
+  //   each rxn rule can have multiple product sets 
+  // - contains cummulative probabilities
+  RxnClassPathwayVector pathways;
 
 public:
   RxnClass(
-      RxnContainer& all_rxns_, const SpeciesContainer& all_species_, const BNGConfig& bng_config_,
+      RxnContainer& all_rxns_, SpeciesContainer& all_species_, const BNGConfig& bng_config_,
       const species_id_t reactant_id1, const species_id_t reactant_id2 = SPECIES_ID_INVALID)
     : type(RxnType::Invalid), max_fixed_p(FLT_INVALID), min_noreaction_p(FLT_INVALID),
       all_rxns(all_rxns_), all_species(all_species_), bng_config(bng_config_), bimol_vol_rxn_flag(false)
@@ -99,9 +74,12 @@ public:
 
   RxnRule* get_rxn_for_pathway(const rxn_class_pathway_index_t pathway_index);
 
-  /*const std::vector<RxnRule*>& get_rxns() const {
-    return rxn_rules;
-  }*/
+  const std::vector<species_id_t>& get_rxn_products_for_pathway(const rxn_class_pathway_index_t pathway_index) const {
+    assert(pathway_index < pathways.size());
+    return pathways[pathway_index].product_species;
+  }
+
+  rxn_class_pathway_index_t get_pathway_index_for_probability(const float_t prob, const float_t local_prob_factor) const;
 
   orientation_t get_reactant_orientation(uint reactant_index) const;
 
@@ -204,7 +182,7 @@ private:
 
   // owned by BNGEngine
   RxnContainer& all_rxns;
-  const SpeciesContainer& all_species;
+  SpeciesContainer& all_species;
 
   // owned by the simulation engine
   const BNGConfig& bng_config;
