@@ -51,27 +51,7 @@ public:
     return res;
   }
 
-  species_id_t add(const Species& new_species) {
-
-  #ifndef NDEBUG
-    assert(find_full_match(new_species) == SPECIES_ID_INVALID && "Species must not exist");
-    // we also don't want species with the same name
-    for (const Species& s: species) {
-      assert(s.name != new_species.name && "Adding species with identical name");
-    }
-  #endif
-
-    species_id_t res = next_species_id;
-    next_species_id++;
-    species.push_back(new_species);
-    species.back().id = res;
-
-    if (bng_config.debug_reactions) {
-      std::cout << "BNG: Defined new species " << new_species.name << " with id " << res << "\n";
-    }
-
-    return res;
-  }
+  species_id_t add(const Species& new_species);
 
   // searches for identical species
   // returns SPECIES_ID_INVALID if not found

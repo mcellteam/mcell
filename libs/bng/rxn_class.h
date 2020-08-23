@@ -163,8 +163,9 @@ public:
     }
   }
 
-  static void dump_array(const std::vector<RxnClass>& vec);
+  std::string to_str(const std::string ind = "") const;
 
+  static void dump_array(const std::vector<RxnClass>& vec);
   void dump(const std::string ind = "") const;
 
 private:

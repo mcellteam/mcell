@@ -295,7 +295,6 @@ public:
   Scheduler scheduler;
 
   uint64_t total_iterations; // number of iterations to simulate - move to Sim config
-  uint seed_seq; // initial seed passed to mcell as argument
 
   rng_state rng; // single state for the random number generator
 

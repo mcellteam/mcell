@@ -57,7 +57,6 @@ static double tosecs(timeval& t) {
 World::World()
   : bng_engine(config),
     total_iterations(0),
-    seed_seq(0),
     next_wall_id(0),
     next_region_id(0),
     next_geometry_object_id(0),
@@ -186,7 +185,6 @@ void World::init_simulation() {
     exit(1);
   }
 
-  // TODO: what do I need for initialization?
   config.init();
   stats.reset();
 
@@ -678,7 +676,7 @@ void World::export_data_layout() const {
   Json::Value seed;
   seed.append(VALUE_SEED);
   Json::Value seed_value;
-  seed_value.append(to_string(seed_seq));
+  seed_value.append(to_string(config.initial_seed));
   seed.append(seed_value);
   data_layout.append(seed);
 

@@ -4,8 +4,11 @@
  *  Created on: Mar 26, 2020
  *      Author: ahusar
  */
+#include <iostream>
 
 #include "bng/bng_engine.h"
+
+using namespace std;
 
 namespace BNG {
 

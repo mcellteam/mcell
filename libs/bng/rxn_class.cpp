@@ -6,6 +6,7 @@
  */
 
 #include <iostream>
+#include <fstream>
 #include <cmath>
 
 #include "bng/rxn_class.h"
@@ -365,6 +366,16 @@ void RxnClass::update_rxn_pathways() {
       assert(type == rxn->type);
     }
   }
+
+  if (bng_config.reporting) {
+    ofstream of;
+    of.open(bng_config.get_rxn_report_file_name(), fstream::out | fstream::app);
+    // not printing warning when file count not be opened
+    if (of.is_open()) {
+      of << to_str() << "\n\n";
+      of.close();
+    }
+  }
 }
 
 
@@ -404,6 +415,44 @@ void RxnClass::update_variable_rxn_rates(const float_t current_time) {
 }
 
 
+std::string RxnClass::to_str(const std::string ind) const {
+  stringstream out;
+  assert(specific_reactants.size() == 1 || specific_reactants.size() == 2);
+  out << ind << "species_matching_reactants: " <<
+      all_species.get(specific_reactants[0]).name << " (" << specific_reactants[0] << ")";
+
+  if (specific_reactants.size() == 2) {
+    out << " + " << all_species.get(specific_reactants[1]).name << " (" << specific_reactants[1] << ")\n";
+  }
+  else {
+    out << "\n";
+  }
+
+  if (rxn_rule_ids.empty()) {
+    return out.str();
+  }
+
+  out << ind << "max_fixed_p: \t\t" << max_fixed_p << " [float_t] \t\t\n";
+  out << ind << "min_noreaction_p: \t\t" << min_noreaction_p << " [float_t] \t\t\n";
+  out << ind << "cum_probs: ";
+  for (const RxnClassPathway& pw: pathways) {
+    out << pw.cum_prob << ", ";
+  }
+  out << "\n";
+
+  for (const RxnClassPathway& pw: pathways) {
+    RxnRule* rxn = all_rxns.get(pw.rxn_rule_id);
+    out << rxn->to_str(false);
+    out << ", product ids: ";
+    for (species_id_t sid: pw.product_species) {
+      out << sid << ", ";
+    }
+    out << "\n";
+  }
+  return out.str();
+}
+
+
 void RxnClass::dump_array(const vector<RxnClass>& vec) {
   cout << "Reaction class array: " << (vec.empty() ? "EMPTY" : "") << "\n";
 
@@ -415,38 +464,7 @@ void RxnClass::dump_array(const vector<RxnClass>& vec) {
 
 
 void RxnClass::dump(const std::string ind) const {
-  assert(specific_reactants.size() == 1 || specific_reactants.size() == 2);
-  cout << ind << "species_matching_reactants: " <<
-      all_species.get(specific_reactants[0]).name << " (" << specific_reactants[0] << ")";
-
-  if (specific_reactants.size() == 2) {
-    cout << " + " << all_species.get(specific_reactants[1]).name << " (" << specific_reactants[1] << ")\n";
-  }
-  else {
-    cout << "\n";
-  }
-
-  if (rxn_rule_ids.empty()) {
-    return;
-  }
-
-  cout << ind << "max_fixed_p: \t\t" << max_fixed_p << " [float_t] \t\t\n";
-  cout << ind << "min_noreaction_p: \t\t" << min_noreaction_p << " [float_t] \t\t\n";
-  cout << ind << "cum_probs: ";
-  for (const RxnClassPathway& pw: pathways) {
-    cout << pw.cum_prob << ", ";
-  }
-  cout << "\n";
-
-  for (const RxnClassPathway& pw: pathways) {
-    RxnRule* rxn = all_rxns.get(pw.rxn_rule_id);
-    rxn->dump(false, ind);
-    cout << ", product ids: ";
-    for (species_id_t sid: pw.product_species) {
-      cout << sid << ", ";
-    }
-    cout << "\n";
-  }
+  cout << to_str(ind);
 }
 
 } /* namespace BNG */

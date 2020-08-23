@@ -55,6 +55,9 @@ const mol_type_id_t MOL_TYPE_ID_INVALID = ID_INVALID;
 typedef uint rxn_rule_id_t;
 const rxn_rule_id_t RXN_RULE_ID_INVALID = ID_INVALID;
 
+const char* const RXN_REPORT_PREFIX = "rxn_report_";
+const char* const SPECIES_REPORT_PREFIX = "species_report_";
+const char* const REPORT_EXT = ".txt";
 }
 
 #endif // __BNG_DEFINES_H__

@@ -53,19 +53,23 @@ class BNGConfig {
 public:
   BNGConfig()
     : mcell(BNG_MCELL),
-
+      initial_seed(1),
       time_unit(0),
       length_unit(0),
       rcp_length_unit(0),
       grid_density(0),
       rx_radius_3d(0),
 
+      // TODO: add option to disable this
+      reporting(true),
       debug_reactions(false)
   {
   }
 
   // configuration
   bool mcell;
+
+  uint initial_seed;
 
   // MCell
   BNGCommon::float_t time_unit;
@@ -74,6 +78,9 @@ public:
   BNGCommon::float_t grid_density;
   BNGCommon::float_t rx_radius_3d;
 
+  // generate report files during simulation
+  bool reporting;
+
   // debug
   bool debug_reactions;
 
@@ -81,9 +88,15 @@ public:
 
   void init() {
     rcp_length_unit = 1/length_unit;
+    initialize_report_files();
   }
 
+  std::string get_rxn_report_file_name() const;
+  std::string get_species_report_file_name() const;
+
   void dump() const;
+private:
+  void initialize_report_files();
 };
 
 } // namespace BNG

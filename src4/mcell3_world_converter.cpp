@@ -209,7 +209,7 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
   world->config.grid_density = s->grid_density;
   world->config.rx_radius_3d = s->rx_radius_3d;
   world->config.vacancy_search_dist2 = s->vacancy_search_dist2; // unit was already recomputed
-  world->seed_seq = s->seed_seq;
+  world->config.initial_seed = s->seed_seq;
   world->rng = *s->rng;
 
   float_t sp_len;

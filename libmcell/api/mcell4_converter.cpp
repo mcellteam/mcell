@@ -198,8 +198,8 @@ void MCell4Converter::convert_simulation_setup() {
 
   world->config.randomize_smol_pos = !config.center_molecules_on_grid;
 
-  world->seed_seq = config.seed;
-  rng_init(&world->rng, world->seed_seq);
+  world->config.initial_seed = config.seed;
+  rng_init(&world->rng, world->config.initial_seed);
 
 
   Vec3 llf, urb;
