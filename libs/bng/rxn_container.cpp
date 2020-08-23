@@ -155,7 +155,10 @@ RxnClass* RxnContainer::get_or_create_empty_bimol_rxn_class(const species_id_t i
 }
 
 
-// puts pointers to all corresponding classes to the res_classes_map
+// - puts pointers to all corresponding classes to the res_classes_map
+// - for bimol rxns, does not reuse already defined rxn class, e.g. when A + B was already created,
+//   rxn class for B + A will be created (NOTE: might improve if needed but so far the only issue
+//   are reports and printouts
 void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t new_id) {
 
   // find all reactions for species id
