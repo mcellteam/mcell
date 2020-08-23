@@ -964,18 +964,10 @@ void RxnRule::create_products_for_complex_rxn(
   assert(input_reactants.size() == reactants.size());
   assert(input_reactants.size() == 1 || input_reactants.size() == 2);
 
-  // we need to make a copy of the reactants since they
-  // reference a constant cplx instance based on species
-  // and we will be modifying them
-  vector<CplxInstance> input_reactants_copy;
-  for (const CplxInstance* ci: input_reactants) {
-    input_reactants_copy.push_back(*ci);
-  }
-
   // merge input reactant graphs
-  Graph reactants_graph = input_reactants_copy[0].get_graph();
+  Graph reactants_graph = input_reactants[0]->get_graph();
   if (input_reactants.size() == 2) {
-    merge_graphs(reactants_graph, input_reactants_copy[1].get_graph());
+    merge_graphs(reactants_graph, input_reactants[1]->get_graph());
   }
 
   // compute mapping reactant pattern -> reactant
@@ -1007,7 +999,16 @@ void RxnRule::create_products_for_complex_rxn(
     cout << "Products:\n";
     dump_graph(products_graph);
   #endif
-    Graph reactants_graph_copy = reactants_graph;
+
+    // we need to make a copy of the reactants because we will be modifying them
+    vector<CplxInstance> input_reactants_copy;
+    for (const CplxInstance* ci: input_reactants) {
+      input_reactants_copy.push_back(*ci);
+    }
+    Graph reactants_graph_copy = input_reactants_copy[0].get_graph();
+    if (input_reactants_copy.size() == 2) {
+      merge_graphs(reactants_graph_copy, input_reactants_copy[1].get_graph());
+    }
 
     // manipulate nodes using information about products
     apply_rxn_on_reactants_graph(
