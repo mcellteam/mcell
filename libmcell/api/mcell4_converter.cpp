@@ -310,11 +310,10 @@ void MCell4Converter::convert_simulation_setup() {
   world->config.num_subpartitions_per_partition =
       round_f(world->config.partition_edge_length / sp_len);
 
-
   // this option in MCell3 was removed in MCell4
   world->config.use_expanded_list = true;
 
-  // compute other constants
+  // compute other constants and initialize reporting (if enabled)
   world->config.init();
 }
 

@@ -1461,9 +1461,11 @@ bool RxnRule::update_variable_rxn_rate(const float_t current_time, const RxnClas
 }
 
 
-std::string RxnRule::to_str(const bool with_rate_constant) const {
+std::string RxnRule::to_str(const bool with_rate_constant, const bool with_name) const {
   stringstream ss;
-  ss << name << ": ";
+  if (with_name) {
+    ss << name << ": ";
+  }
 
   ss << complex_instance_vector_to_str(reactants);
   ss << " -> ";
@@ -1472,6 +1474,8 @@ std::string RxnRule::to_str(const bool with_rate_constant) const {
   if (with_rate_constant) {
     ss << " " << base_rate_constant;
   }
+
+  ss << " (pat on pat mappings: " << num_patterns_onto_patterns_mapping << ")";
 
   return ss.str();
 }

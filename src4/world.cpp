@@ -185,7 +185,6 @@ void World::init_simulation() {
     exit(1);
   }
 
-  config.init();
   stats.reset();
 
   init_fpu();

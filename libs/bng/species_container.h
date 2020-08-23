@@ -31,6 +31,11 @@ public:
   }
 
 
+  const BNGData& get_bng_data() const {
+    return bng_data;
+  }
+
+
   species_id_t find_or_add(const Species& new_species) {
     assert(new_species.is_finalized());
 
@@ -95,10 +100,6 @@ public:
       return nullptr;
     }
   }
-
-  //species_id_t find_species_id(const CplxInstance& inst);
-
-  //species_id_t find_or_add_species(const CplxInstance& inst);
 
   Species& get(const species_id_t id) {
     assert(id < species.size());

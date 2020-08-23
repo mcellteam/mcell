@@ -39,6 +39,21 @@ species_id_t SpeciesContainer::add(const Species& new_species) {
   return res;
 }
 
+/*
+void SpeciesContainer::report_known_species() const {
+  if (bng_config.reporting) {
+    ofstream of;
+    of.open(bng_config.get_species_report_file_name(), fstream::out | fstream::app);
+    // not printing warning when file count not be opened
+    if (of.is_open()) {
+      for (const Species& s: species) {
+        of << s.id << ": " << s.to_str(bng_data) << "\n";
+      }
+      of.close();
+    }
+  }
+}*/
+
 void SpeciesContainer::dump() const {
   Species::dump_array(bng_data, species);
 }

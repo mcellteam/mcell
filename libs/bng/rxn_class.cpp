@@ -418,7 +418,7 @@ void RxnClass::update_variable_rxn_rates(const float_t current_time) {
 std::string RxnClass::to_str(const std::string ind) const {
   stringstream out;
   assert(specific_reactants.size() == 1 || specific_reactants.size() == 2);
-  out << ind << "species_matching_reactants: " <<
+  out << ind << "rxn class for reactants: \n    " <<
       all_species.get(specific_reactants[0]).name << " (" << specific_reactants[0] << ")";
 
   if (specific_reactants.size() == 2) {
@@ -429,26 +429,33 @@ std::string RxnClass::to_str(const std::string ind) const {
   }
 
   if (rxn_rule_ids.empty()) {
+    out << "  no pathways\n";
     return out.str();
   }
 
-  out << ind << "max_fixed_p: \t\t" << max_fixed_p << " [float_t] \t\t\n";
-  out << ind << "min_noreaction_p: \t\t" << min_noreaction_p << " [float_t] \t\t\n";
-  out << ind << "cum_probs: ";
-  for (const RxnClassPathway& pw: pathways) {
-    out << pw.cum_prob << ", ";
-  }
-  out << "\n";
-
-  for (const RxnClassPathway& pw: pathways) {
+  for (size_t i = 0; i < pathways.size(); i++) {
+    out << i << ": ";
+    const RxnClassPathway& pw = pathways[i];
     RxnRule* rxn = all_rxns.get(pw.rxn_rule_id);
-    out << rxn->to_str(false);
-    out << ", product ids: ";
-    for (species_id_t sid: pw.product_species) {
-      out << sid << ", ";
+
+    out << "products based on rule " << rxn->to_str(false, false) << "\n    ";
+    for (size_t k = 0; k < pw.product_species.size(); k++) {
+      species_id_t sid = pw.product_species[k];
+      out << all_species.get(sid).to_str(all_species.get_bng_data()) << " (" << sid << ") ";
+      if (k != pw.product_species.size() - 1) {
+        out << " + ";
+      }
     }
     out << "\n";
   }
+
+  out << ind << "cum_probs: ";
+  for (const RxnClassPathway& pw: pathways) {
+      out << pw.cum_prob << ", ";
+  }
+
+  out << ind << "max_fixed_p: " << max_fixed_p << ", min_noreaction_p: " << min_noreaction_p << "\n";
+
   return out.str();
 }
 

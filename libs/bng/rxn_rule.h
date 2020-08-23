@@ -130,6 +130,7 @@ public:
       base_rate_constant(FLT_INVALID),
       mol_instances_are_fully_maintained(false),
       num_surf_products(UINT_INVALID), next_variable_rate_index(0),
+      num_patterns_onto_patterns_mapping(UINT_INVALID),
       bng_data(bng_data_)
       {
   }
@@ -324,7 +325,7 @@ public:
     }
   }
 
-  std::string to_str(const bool with_rate_constant = true) const;
+  std::string to_str(const bool with_rate_constant = true, const bool with_name = true) const;
   std::string reactants_to_str() const;
   std::string products_to_str() const;
   void dump(const bool for_diff = false, const std::string ind = "") const;
