@@ -7,6 +7,7 @@
 
 #include <iostream>
 #include <sstream>
+#include <vector>
 
 
 #include "bng/graph.h" // must be included before boost
@@ -140,36 +141,9 @@ void RxnRule::define_rxn_pathways_for_specific_reactants(
       assert(pb_factor != 0);
       assert(!cmp_eq(get_rate_constant(), FLT_GIGANTIC));
 
-      float_t prob = get_rate_constant() * pb_factor;
-
-      // TODO: this rate modifications needs to be coded according to
-      // BNG bionetgen/bng2/Perl2/RxnRule.pm - related variable multScale
-
-      // for complex bimol reactions where both reactants are the same,
-      // we get two product sets, for example A(a) + A(a), but the
-      // probability must be half of that
-      if (is_bimol() && reactant_a_species_id == reactant_b_species_id) {
-        prob /= 2.0;
-      }
-
-      // for unimol rxns, we must divide the prob. by the number of
-      // non-symmetric rule matches
-      if (is_unimol()) {
-        // simple case for now
-        Species& species = all_species.get(reactant_a_species_id);
-        if (species.mol_instances.size() <= 1) {
-          // nothing to do here
-        }
-        else if (species.mol_instances.size() == 2) {
-          if (species.mol_instances[0] == species.mol_instances[1]) {
-            // there definitely a symmetry here and we got 2x more product sets than needed
-            prob /= 2.0;
-          }
-        }
-        else {
-          release_assert(false && "TODO");
-        }
-      }
+      // the probability is divided by the number of mapping of pattern onto pattern
+      // because so many more product sets we will get
+      float_t prob = get_rate_constant() * pb_factor / num_patterns_onto_patterns_mapping;
 
       pathways.push_back(RxnClassPathway(id, prob, product_species));
     }
@@ -183,6 +157,16 @@ void RxnRule::create_patterns_graph() {
   if (reactants.size() == 2) {
     merge_graphs(patterns_graph, reactants[1].get_graph());
   }
+
+  VertexMappingVector pat_to_pat_mappings;
+  get_subgraph_isomorphism_mappings(
+      patterns_graph,
+      patterns_graph,
+      false,
+      pat_to_pat_mappings
+  );
+
+  num_patterns_onto_patterns_mapping = pat_to_pat_mappings.size();
 }
 
 

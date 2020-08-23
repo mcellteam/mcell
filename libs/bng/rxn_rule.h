@@ -364,6 +364,10 @@ private:
   mutable Graph products_graph;
   VertexMapping products_to_patterns_mapping;
 
+  // number of how many times can be patterns matched on itself,
+  // computed in create_patterns_graph, used to compute rxn rates
+  uint num_patterns_onto_patterns_mapping;
+
   // information for MCell3 reactions,
   // maps simple complexes from their pattern to the product
   // ignores complex complexes
