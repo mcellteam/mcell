@@ -28,8 +28,7 @@ public:
       custom_time_step(0), custom_space_step(0),
       space_step(FLT_INVALID), time_step(TIME_INVALID),
       color_set(false), color_r(1), color_g(0), color_b(0), scale(1),
-      rxn_flags_were_updated(false)
-    {
+      rxn_flags_were_updated(false) {
   }
 
   // create species from a complex instance
@@ -43,8 +42,7 @@ public:
       custom_time_step(0), custom_space_step(0),
       space_step(FLT_INVALID), time_step(TIME_INVALID),
       color_set(false), color_r(1), color_g(0), color_b(0), scale(1),
-      rxn_flags_were_updated(false)
-  {
+      rxn_flags_were_updated(false) {
 
     mol_instances = cplx_inst.mol_instances;
     // the only finalize method, but showing that we are finalizing
@@ -62,6 +60,12 @@ public:
   void finalize() {
     CplxInstance::finalize();
     set_flag(BNG::SPECIES_FLAG_CAN_DIFFUSE, D != 0);
+  }
+
+  void canonicalize(const BNGData& bng_data) {
+    CplxInstance::canonicalize();
+    finalize();
+    name = to_str(bng_data);
   }
 
   species_id_t id;

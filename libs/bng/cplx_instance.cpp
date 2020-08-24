@@ -155,6 +155,49 @@ bool CplxInstance::matches_complex_fully_ignore_orientation(const CplxInstance& 
 }
 
 
+static bool canonical_mol_instance_less(const MolInstance& mi1, const MolInstance& mi2) {
+  // 1) id
+  if (mi1.mol_type_id != mi2.mol_type_id) {
+    return mi1.mol_type_id < mi2.mol_type_id;
+  }
+
+  // no let's go component by component, the canonicalization is used currently only
+  // for species that have full set of components
+  uint num_bonds1 = 0;
+  uint num_bonds2 = 0;
+  assert(mi1.component_instances.size() == mi2.component_instances.size());
+  for (size_t i = 0; i < mi1.component_instances.size(); i++) {
+    const ComponentInstance& ci1 = mi1.component_instances[i];
+    const ComponentInstance& ci2 = mi2.component_instances[i];
+    assert(ci1.component_type_id == ci2.component_type_id);
+
+    // 2) state
+    if (ci1.state_id != ci2.state_id) {
+      return ci1.state_id < ci2.state_id;
+    }
+
+    if (ci1.bond_has_numeric_value()) {
+      num_bonds1++;
+    }
+    if (ci2.bond_has_numeric_value()) {
+      num_bonds2++;
+    }
+  }
+
+  // TODO: the bonds count comparison does not give fully canonical variant,
+  // should be improved but it is ok like this for now
+  return num_bonds1 < num_bonds2;
+}
+
+void CplxInstance::canonicalize() {
+
+  sort(mol_instances.begin(), mol_instances.end(), canonical_mol_instance_less);
+
+  // need to rebuild graph
+  finalize();
+}
+
+
 std::string CplxInstance::to_str(const BNGData& bng_data, bool in_surf_reaction) const {
   stringstream ss;
   for (size_t i = 0; i < mol_instances.size(); i++) {

@@ -17,13 +17,16 @@ species_id_t SpeciesContainer::add(const Species& new_species) {
   }
 #endif
 
+  Species species_copy = new_species;
+  species_copy.canonicalize(bng_data);
+
   species_id_t res = next_species_id;
   next_species_id++;
-  species.push_back(new_species);
+  species.push_back(species_copy);
   species.back().id = res;
 
   if (bng_config.debug_reactions) {
-    std::cout << "BNG: Defined new species " << new_species.name << " with id " << res << "\n";
+    std::cout << "BNG: Defined new species " << species_copy.name << " with id " << res << "\n";
   }
 
   if (bng_config.reporting) {
@@ -31,7 +34,7 @@ species_id_t SpeciesContainer::add(const Species& new_species) {
     of.open(bng_config.get_species_report_file_name(), fstream::out | fstream::app);
     // not printing warning when file count not be opened
     if (of.is_open()) {
-      of << res << ": " << new_species.to_str(bng_data) << "\n";
+      of << res << ": " << species_copy.to_str(bng_data) << "\n";
       of.close();
     }
   }
