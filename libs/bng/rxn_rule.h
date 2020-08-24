@@ -333,6 +333,7 @@ public:
 private:
   void create_patterns_graph();
   void create_products_graph();
+  void compute_num_patterns_onto_patterns_mapping();
 
   void move_products_that_are_also_reactants_to_be_the_first_products();
 

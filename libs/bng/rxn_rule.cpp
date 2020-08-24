@@ -157,16 +157,6 @@ void RxnRule::create_patterns_graph() {
   if (reactants.size() == 2) {
     merge_graphs(patterns_graph, reactants[1].get_graph());
   }
-
-  VertexMappingVector pat_to_pat_mappings;
-  get_subgraph_isomorphism_mappings(
-      patterns_graph,
-      patterns_graph,
-      false,
-      pat_to_pat_mappings
-  );
-
-  num_patterns_onto_patterns_mapping = pat_to_pat_mappings.size();
 }
 
 
@@ -195,6 +185,63 @@ void RxnRule::create_products_graph() {
 }
 
 
+void RxnRule::compute_num_patterns_onto_patterns_mapping() {
+  assert(boost::num_vertices(patterns_graph) != 0 &&
+      "Patterns graph must have been initialized");
+
+  if (is_unimol() && products.size() == 1) {
+    // single reactant and single product ->
+    // we are changing states
+    VertexMappingVector pat_to_pat_mappings;
+    get_subgraph_isomorphism_mappings(
+        patterns_graph,
+        patterns_graph,
+        false,
+        pat_to_pat_mappings
+    );
+    num_patterns_onto_patterns_mapping = pat_to_pat_mappings.size();
+  }
+  else {
+    // multiple reactants or multiple products ->
+    // we are creating bonds
+
+    // prepare graph from reactants, only they will have all
+    // components present
+    CplxInstanceVector full_reactants;
+    for (const CplxInstance& reac: reactants) {
+
+      // make a copy
+      CplxInstance full_reac = reac;
+
+      // add missing components
+      for (MolInstance& mi: full_reac.mol_instances) {
+        mi.insert_missing_components_as_any_state_pattern(*bng_data);
+      }
+      // reinitialize
+      full_reac.finalize();
+      full_reactants.push_back(full_reac);
+    }
+
+    Graph full_patterns_graph;
+    // create graph for reactant patterns
+    full_patterns_graph = full_reactants[0].get_graph();
+    if (full_reactants.size() == 2) {
+      merge_graphs(full_patterns_graph, full_reactants[1].get_graph());
+    }
+
+    VertexMappingVector pat_to_pat_mappings;
+    get_subgraph_isomorphism_mappings(
+        patterns_graph,
+        full_patterns_graph,
+        false,
+        pat_to_pat_mappings
+    );
+
+    num_patterns_onto_patterns_mapping = pat_to_pat_mappings.size();
+  }
+}
+
+
 void RxnRule::finalize() {
   bool simple = true;
 
@@ -219,6 +266,7 @@ void RxnRule::finalize() {
 
   create_patterns_graph();
   create_products_graph();
+  compute_num_patterns_onto_patterns_mapping();
   compute_reactants_products_mapping();
 
   // for MCell3 compatibility, updates mapping when needed
