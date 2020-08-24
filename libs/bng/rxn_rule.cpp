@@ -1451,10 +1451,10 @@ bool RxnRule::species_is_both_bimol_reactants(const species_id_t id, const Speci
     return false;
   }
 
-  // then the reactants must be identical (this can be precomputed)
-  bool res = reactants[0].matches_pattern(reactants[1], true);
-  assert(res == reactants[1].matches_pattern(reactants[0], true) && "Pattern identity must be bijective");
-  return res;
+  const CplxInstance& inst = all_species.get_as_cplx_instance(id);
+  return
+      inst.matches_pattern(reactants[0], true) &&
+      inst.matches_pattern(reactants[1], true);
 }
 
 
