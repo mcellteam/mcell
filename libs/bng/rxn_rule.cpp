@@ -1019,14 +1019,6 @@ void RxnRule::create_products_for_complex_rxn(
   }
 
   // compute mapping reactant pattern -> reactant
-#ifdef DEBUG_CPLX_MATCHING
-  cout << "Pattern:\n";
-  dump_graph(patterns_graph);
-
-  cout << "Reactants:\n";
-  dump_graph(reactants_graph);
-#endif
-
   VertexMappingVector pattern_reactant_mappings;
   get_subgraph_isomorphism_mappings(
       patterns_graph, // pattern
@@ -1524,7 +1516,10 @@ std::string RxnRule::to_str(const bool with_rate_constant, const bool with_name)
     ss << " " << base_rate_constant;
   }
 
-  ss << " (pat on pat mappings: " << num_patterns_onto_patterns_mapping << ")";
+  ss << " (";
+  ss << "id: " << id << ", ";
+  ss << "pat on pat mappings: " << num_patterns_onto_patterns_mapping;
+  ss << ")";
 
   return ss.str();
 }

@@ -161,6 +161,14 @@ void get_subgraph_isomorphism_mappings(Graph& pattern, Graph& cplx, const bool o
 
   res.clear();
 
+#ifdef DEBUG_CPLX_MATCHING
+  cout << "\nPattern:\n";
+  dump_graph(pattern);
+
+  cout << "Cplx:\n";
+  dump_graph(cplx);
+#endif
+
   // setting result to store the resulting mappings
   CallBackToCollectMapping callback(pattern, cplx,  only_first_match, res);
 

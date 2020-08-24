@@ -438,7 +438,7 @@ std::string RxnClass::to_str(const std::string ind) const {
     const RxnClassPathway& pw = pathways[i];
     RxnRule* rxn = all_rxns.get(pw.rxn_rule_id);
 
-    out << "products based on rule " << rxn->to_str(true, false) << "\n    ";
+    out << "products based on rule " << rxn->to_str(true, false) << "(id=" << rxn->id << ")\n    ";
     for (size_t k = 0; k < pw.product_species.size(); k++) {
       species_id_t sid = pw.product_species[k];
       out << all_species.get(sid).to_str(all_species.get_bng_data()) << " (" << sid << ") ";
