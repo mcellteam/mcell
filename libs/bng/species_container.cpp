@@ -1,5 +1,6 @@
 #include <iostream>
 #include <fstream>
+#include <iomanip>
 
 #include "bng/species_container.h"
 
@@ -34,7 +35,8 @@ species_id_t SpeciesContainer::add(const Species& new_species) {
     of.open(bng_config.get_species_report_file_name(), fstream::out | fstream::app);
     // not printing warning when file count not be opened
     if (of.is_open()) {
-      of << res << ": " << species_copy.to_str(bng_data) << "\n";
+      of << res << ": " << species_copy.to_str(bng_data) <<
+          ", D=" << std::setprecision(17) << species_copy.D << "\n";
       of.close();
     }
   }
