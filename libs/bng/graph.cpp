@@ -234,6 +234,10 @@ void dump_graph(const Graph& g_const, const BNGData* bng_data, const std::string
             cout << connected_comp_desc << ", ";
           }
         }
+
+        if (comp.modified_ordering_index != INDEX_INVALID) {
+          cout << "mod_ord: " << comp.modified_ordering_index;
+        }
         cout << "\n";
       }
     }

@@ -130,7 +130,6 @@ public:
       base_rate_constant(FLT_INVALID),
       mol_instances_are_fully_maintained(false),
       num_surf_products(UINT_INVALID), next_variable_rate_index(0),
-      num_patterns_onto_patterns_mapping(UINT_INVALID),
       bng_data(bng_data_)
       {
   }
@@ -333,7 +332,6 @@ public:
 private:
   void create_patterns_graph();
   void create_products_graph();
-  void compute_num_patterns_onto_patterns_mapping();
 
   void move_products_that_are_also_reactants_to_be_the_first_products();
 
@@ -365,10 +363,6 @@ private:
   mutable Graph patterns_graph; // graphs based on reactants
   mutable Graph products_graph;
   VertexMapping products_to_patterns_mapping;
-
-  // number of how many times can be patterns matched on itself,
-  // computed in create_patterns_graph, used to compute rxn rates
-  uint num_patterns_onto_patterns_mapping;
 
   // information for MCell3 reactions,
   // maps simple complexes from their pattern to the product

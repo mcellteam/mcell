@@ -22,21 +22,30 @@ class BNGData;
 
 struct Node {
   Node()
-    : is_mol(true), mol(nullptr), component(nullptr), used_in_rxn_product(true), product_index(INDEX_INVALID) {
+    : is_mol(true), mol(nullptr), component(nullptr), used_in_rxn_product(true),
+      product_index(INDEX_INVALID), ordering_index(INDEX_INVALID), modified_ordering_index(ordering_index) {
   }
 
   Node(MolInstance* mol_)
-    : is_mol(true), mol(mol_), component(nullptr), used_in_rxn_product(true), product_index(INDEX_INVALID) {
+    : is_mol(true), mol(mol_), component(nullptr), used_in_rxn_product(true),
+      product_index(INDEX_INVALID), ordering_index(INDEX_INVALID), modified_ordering_index(INDEX_INVALID) {
   }
 
   Node(ComponentInstance* component_)
-    : is_mol(false), mol(nullptr), component(component_), used_in_rxn_product(true), product_index(INDEX_INVALID) {
+    : is_mol(false), mol(nullptr), component(component_), used_in_rxn_product(true),
+      product_index(INDEX_INVALID), ordering_index(INDEX_INVALID), modified_ordering_index(INDEX_INVALID) {
   }
 
   bool compare(const Node& n2) const {
     const Node& n1 = *this;
 
-    if (n1.is_mol != n2.is_mol) {
+    if (n1.modified_ordering_index != n2.modified_ordering_index) {
+      // extra ordering needed to get unique products,
+      // modified_ordering_index is set to INDEX_INVALID by default and
+      // set toa different value only when needed
+      return false;
+    }
+    else if (n1.is_mol != n2.is_mol) {
       return false;
     }
     else if (n1.is_mol) {
@@ -104,7 +113,14 @@ struct Node {
   // for reaction handling, default is true
   bool used_in_rxn_product;
   // also for reactions - specifies index of the reaction product
+  // needed to match patterns onto resulting products
   uint product_index;
+
+  // auxiliary ordering markers, used when determining whether two product sets are identical
+  // ordering_index is set to all components and when a reactant changes by 
+  // a rule application, its value is copied to the modified_ordering_index
+  uint ordering_index;
+  uint modified_ordering_index;
 };
 
 std::ostream & operator<<(std::ostream &out, const Node& n);
@@ -128,7 +144,11 @@ typedef Graph::edge_descriptor edge_descriptor_t;
 typedef boost::graph_traits<Graph>::vertex_iterator vertex_iter_t; // TODO: use this typedef wherever needed
 
 // finds all subgraph isomorphism mappings of pattern graph on cplx graph
-void get_subgraph_isomorphism_mappings(Graph& pattern, Graph& cplx, const bool only_first_match, VertexMappingVector& res);
+void get_subgraph_isomorphism_mappings(
+    Graph& pattern, Graph& cplx,
+    const bool only_first_match,
+    VertexMappingVector& res
+);
 
 void dump_graph(const Graph& g_const, const BNGData* bng_data = nullptr, const std::string ind = "");
 void dump_graph_mapping(const VertexMapping& mapping);

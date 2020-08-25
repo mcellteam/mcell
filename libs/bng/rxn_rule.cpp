@@ -143,7 +143,7 @@ void RxnRule::define_rxn_pathways_for_specific_reactants(
 
       // the probability is divided by the number of mapping of pattern onto pattern
       // because so many more product sets we will get
-      float_t prob = get_rate_constant() * pb_factor / num_patterns_onto_patterns_mapping;
+      float_t prob = get_rate_constant() * pb_factor;
 
       pathways.push_back(RxnClassPathway(id, prob, product_species));
     }
@@ -185,63 +185,6 @@ void RxnRule::create_products_graph() {
 }
 
 
-void RxnRule::compute_num_patterns_onto_patterns_mapping() {
-  assert(boost::num_vertices(patterns_graph) != 0 &&
-      "Patterns graph must have been initialized");
-
-  if (is_unimol() && products.size() == 1) {
-    // single reactant and single product ->
-    // we are changing states
-    VertexMappingVector pat_to_pat_mappings;
-    get_subgraph_isomorphism_mappings(
-        patterns_graph,
-        patterns_graph,
-        false,
-        pat_to_pat_mappings
-    );
-    num_patterns_onto_patterns_mapping = pat_to_pat_mappings.size();
-  }
-  else {
-    // multiple reactants or multiple products ->
-    // we are creating bonds
-
-    // prepare graph from reactants, only they will have all
-    // components present
-    CplxInstanceVector full_reactants;
-    for (const CplxInstance& reac: reactants) {
-
-      // make a copy
-      CplxInstance full_reac = reac;
-
-      // add missing components
-      for (MolInstance& mi: full_reac.mol_instances) {
-        mi.insert_missing_components_as_any_state_pattern(*bng_data);
-      }
-      // reinitialize
-      full_reac.finalize();
-      full_reactants.push_back(full_reac);
-    }
-
-    Graph full_patterns_graph;
-    // create graph for reactant patterns
-    full_patterns_graph = full_reactants[0].get_graph();
-    if (full_reactants.size() == 2) {
-      merge_graphs(full_patterns_graph, full_reactants[1].get_graph());
-    }
-
-    VertexMappingVector pat_to_pat_mappings;
-    get_subgraph_isomorphism_mappings(
-        patterns_graph,
-        full_patterns_graph,
-        false,
-        pat_to_pat_mappings
-    );
-
-    num_patterns_onto_patterns_mapping = pat_to_pat_mappings.size();
-  }
-}
-
-
 void RxnRule::finalize() {
   bool simple = true;
 
@@ -266,7 +209,6 @@ void RxnRule::finalize() {
 
   create_patterns_graph();
   create_products_graph();
-  compute_num_patterns_onto_patterns_mapping();
   compute_reactants_products_mapping();
 
   // for MCell3 compatibility, updates mapping when needed
@@ -742,7 +684,7 @@ static void apply_rxn_on_reactants_graph(
     // find component corresponding to reactant pattern in reactants_graph
     //   this mapping must exist because we matched the pattern graph to reactants graph
     auto pat_reac_it = pattern_reactant_mapping.find(pat_desc);
-    assert(pat_reac_it != pattern_reactant_mapping.end() && "Mapping should exist?");
+    assert(pat_reac_it != pattern_reactant_mapping.end() && "Mapping must exist");
 
     vertex_descriptor_t reac_desc = pat_reac_it->second;
 
@@ -761,6 +703,7 @@ static void apply_rxn_on_reactants_graph(
       // update state
       if (prod_ci.state_is_set() && prod_ci.state_id != reac_ci.state_id) {
         reac_ci.state_id = prod_ci.state_id;
+        reac_node.modified_ordering_index = reac_node.ordering_index;
       }
 
       // and bond,
@@ -777,6 +720,7 @@ static void apply_rxn_on_reactants_graph(
                 reac_desc,
                 get_bond_target(reactants_graph, reac_desc)
             ));
+            reac_node.modified_ordering_index = reac_node.ordering_index;
           }
           // new: !1
           else if (prod_ci.bond_has_numeric_value()) {
@@ -804,6 +748,8 @@ static void apply_rxn_on_reactants_graph(
             if (target_reac_desc != TARGET_NOT_FOUND) {
               bonds_to_add.insert(UnorderedPair(reac_desc, target_reac_desc));
             }
+
+            reac_node.modified_ordering_index = reac_node.ordering_index;
           }
           // new: !+
           else if (prod_ci.bond_value == BOND_VALUE_BOUND){
@@ -821,14 +767,17 @@ static void apply_rxn_on_reactants_graph(
                 reac_desc,
                 get_bond_target(reactants_graph, reac_desc)
             ));
+
+            reac_node.modified_ordering_index = reac_node.ordering_index;
           }
           // new: !2
           else if (prod_ci.bond_has_numeric_value()) {
             assert(prod_ci.bond_value != reac_ci.bond_value);
             // remove original one
+            vertex_descriptor_t orig_target_desc = get_bond_target(reactants_graph, reac_desc);
             bonds_to_remove.insert(UnorderedPair(
                 reac_desc,
-                get_bond_target(reactants_graph, reac_desc)
+                orig_target_desc
             ));
 
             // and create a new one
@@ -843,6 +792,11 @@ static void apply_rxn_on_reactants_graph(
             // it will be added to the reactants graph later
             if (target_reac_desc != TARGET_NOT_FOUND) {
               bonds_to_add.insert(UnorderedPair(reac_desc, target_reac_desc));
+            }
+
+            // a change occurs only when the target is different
+            if (orig_target_desc != target_reac_desc) {
+              reac_node.modified_ordering_index = reac_node.ordering_index;
             }
           }
           // new: !+
@@ -1004,6 +958,44 @@ static void create_products_from_reactants_graph(
 }
 
 
+// goes through all nodes of the graph and sets a unique index to each of them
+static void set_ordering_indices(Graph& g) {
+  uint ordering_index = 0;
+  VertexNameMap index = boost::get(boost::vertex_name, g);
+  typedef boost::graph_traits<Graph>::vertex_iterator vertex_iter;
+  pair<vertex_iter, vertex_iter> it;
+  for (it = boost::vertices(g); it.first != it.second; ++it.first) {
+    Graph::vertex_descriptor desc = *it.first;
+    Node& n = index[desc];
+    n.ordering_index = ordering_index;
+    ordering_index++;
+  }
+}
+
+
+static bool is_graph_unique_wrt_modified_ordering(
+    Graph& new_graph, vector<Graph>& distinct_product_graphs) {
+
+  for (Graph& g: distinct_product_graphs) {
+    VertexMappingVector mappings;
+    get_subgraph_isomorphism_mappings(
+        g, // existing graph
+        new_graph,
+        true, // stop with first match
+        mappings
+    );
+
+    if (!mappings.empty()) {
+      // already present in distinct_product_graphs
+      return false;
+    }
+  }
+
+  // not found
+  return true;
+}
+
+
 void RxnRule::create_products_for_complex_rxn(
     const vector<const CplxInstance*>& input_reactants,
     vector<vector<CplxInstance>>& created_product_sets
@@ -1032,6 +1024,10 @@ void RxnRule::create_products_for_complex_rxn(
   release_assert(pattern_reactant_mappings.size() < MAX_PRODUCT_SETS_PER_RXN
       && "Encountered a huge number of potential product sets for a single reaction");
 
+
+  vector<vector<CplxInstance>> input_reactants_copies;
+  vector<Graph> distinct_product_graphs;
+
   // now, for each of the mappings, compute what different products we might get
   for (const VertexMapping& mapping: pattern_reactant_mappings) {
 
@@ -1041,7 +1037,9 @@ void RxnRule::create_products_for_complex_rxn(
   #endif
 
     // we need to make a copy of the reactants because we will be modifying them
-    vector<CplxInstance> input_reactants_copy;
+    // a new graph will have its ordering indices cleared
+    input_reactants_copies.push_back(vector<CplxInstance>());
+    vector<CplxInstance>& input_reactants_copy = input_reactants_copies.back();
     for (const CplxInstance* ci: input_reactants) {
       input_reactants_copy.push_back(*ci);
     }
@@ -1049,6 +1047,8 @@ void RxnRule::create_products_for_complex_rxn(
     if (input_reactants_copy.size() == 2) {
       merge_graphs(reactants_graph_copy, input_reactants_copy[1].get_graph());
     }
+
+    set_ordering_indices(reactants_graph_copy);
 
     // manipulate nodes using information about products
     apply_rxn_on_reactants_graph(
@@ -1064,10 +1064,16 @@ void RxnRule::create_products_for_complex_rxn(
     dump_graph(reactants_graph_copy);
   #endif
 
+    if (is_graph_unique_wrt_modified_ordering(reactants_graph_copy, distinct_product_graphs)) {
+      distinct_product_graphs.push_back(reactants_graph_copy);
+    }
+  }
+
+  for (Graph& product_graph: distinct_product_graphs) {
     // and finally create products, each disconnected graph in the result is a
     // separate complex instance
     created_product_sets.push_back(vector<CplxInstance>());
-    create_products_from_reactants_graph(bng_data, reactants_graph_copy, created_product_sets.back());
+    create_products_from_reactants_graph(bng_data, product_graph, created_product_sets.back());
 
   #ifdef DEBUG_CPLX_MATCHING
     cout << "Resulting products:\n";
@@ -1517,8 +1523,7 @@ std::string RxnRule::to_str(const bool with_rate_constant, const bool with_name)
   }
 
   ss << " (";
-  ss << "id: " << id << ", ";
-  ss << "pat on pat mappings: " << num_patterns_onto_patterns_mapping;
+  ss << "id: " << id;
   ss << ")";
 
   return ss.str();
