@@ -847,7 +847,7 @@ static void apply_rxn_on_reactants_graph(
           }
           // new: !+
           else if (prod_ci.bond_value == BOND_VALUE_BOUND){
-            assert(false && "Cannot change bond from !1 to !+");
+            // ignored - product has '+' and for the reactant, there is already some bond set
           }
           else {
             assert(false);
