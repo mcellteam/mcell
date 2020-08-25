@@ -38,6 +38,7 @@ struct Node {
 
 
 // used in set to represent edges
+// copied from rxn_rule.xpp
 class UnorderedPair {
 public:
   UnorderedPair(const int a, const int b) : first(std::min(a,b)), second(std::max(a,b)) {
@@ -46,7 +47,15 @@ public:
     return first == b.first && second == b.second;
   }
   bool operator < (const UnorderedPair& b) const {
-    return first < b.first && second < b.second;
+    if (first < b.first) {
+      return true;
+    }
+    else if (first == b.first) {
+      return second < b.second;
+    }
+    else {
+      return false;
+    }
   }
 
   int first;
