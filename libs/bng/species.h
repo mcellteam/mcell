@@ -24,7 +24,6 @@ public:
   Species(const BNGData& data)
     : CplxInstance(&data),
       id(SPECIES_ID_INVALID), D(FLT_INVALID),
-      // MCell-specific
       custom_time_step(0), custom_space_step(0),
       space_step(FLT_INVALID), time_step(TIME_INVALID),
       color_set(false), color_r(1), color_g(0), color_b(0), scale(1),
@@ -38,7 +37,6 @@ public:
       const bool do_update_diffusion_constant = true)
     : CplxInstance(&data),
       id(SPECIES_ID_INVALID), D(FLT_INVALID),
-      // MCell-specific
       custom_time_step(0), custom_space_step(0),
       space_step(FLT_INVALID), time_step(TIME_INVALID),
       color_set(false), color_r(1), color_g(0), color_b(0), scale(1),
@@ -56,6 +54,16 @@ public:
     name = cplx_inst.to_str(data);
   }
 
+  // we need explicit copy ctor to call CplxInstance's copy ctor
+  Species(const Species& other)
+    : CplxInstance(other),
+      id(other.id), name(other.name), D(other.D),
+      custom_time_step(other.custom_time_step), custom_space_step(other.custom_space_step),
+      space_step(other.space_step), time_step(other.time_step),
+      color_set(other.color_set), color_r(other.color_r), color_g(other.color_g), color_b(other.color_b), scale(other.scale),
+      rxn_flags_were_updated(other.rxn_flags_were_updated) {
+  }
+
   // TODO: why is this called from the Species ctor, can we remove it?
   void finalize() {
     CplxInstance::finalize();
@@ -63,8 +71,7 @@ public:
   }
 
   void canonicalize(const BNGData& bng_data) {
-    CplxInstance::canonicalize();
-    finalize();
+    CplxInstance::canonicalize(); // calls also CplxInstance::finalize
     name = to_str(bng_data);
   }
 
