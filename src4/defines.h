@@ -325,6 +325,7 @@ struct IVec3: public glm_ivec3_t {
   IVec3(const int xyz) { x = xyz; y = xyz; z = xyz; }
   IVec3(const std::vector<int>& xyz) { assert(xyz.size() == 3); x = xyz[0]; y = xyz[1]; z = xyz[2]; }
   IVec3(const vector3& v3) { x = v3.x; y = v3.y; z = v3.z; }
+  IVec3& operator=(const IVec3& other) = default;
 
   // arbitrary ordering in order to use IVec3 as keys in sets and maps
   bool operator < (const IVec3& other) const {
@@ -362,6 +363,7 @@ struct Vec3: public glm_vec3_t {
   Vec3(const float_t x_, const float_t y_, const float_t z_) { x = x_; y = y_; z = z_; }
   Vec3(const float_t xyz) { x = xyz; y = xyz; z = xyz; }
   Vec3(const std::vector<float_t>& xyz) { assert(xyz.size() == 3); x = xyz[0]; y = xyz[1]; z = xyz[2]; }
+  Vec3& operator=(const Vec3& other) = default;
 
   bool is_valid() const { return !(x == POS_INVALID || y == POS_INVALID || z == POS_INVALID); }
 
@@ -378,6 +380,7 @@ struct Vec2: public glm_vec2_t {
   Vec2(const float_t x_, const float_t y_) { x = x_; y = y_; }
   Vec2(const float_t xy) { x = xy; y = xy; }
   Vec2(const std::vector<float_t>& xy) { assert(xy.size() == 2); x = xy[0]; y = xy[1]; }
+  Vec2& operator=(const Vec2& other) = default;
 
   bool is_valid() const { return !(x == POS_INVALID || y == POS_INVALID); }
 

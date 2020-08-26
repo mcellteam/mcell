@@ -4425,7 +4425,7 @@ int collide_and_react_with_surf_mol(struct volume* world, struct collision* smas
     find_neighbor_tiles(world, sm, sm->grid, sm->grid_index, 0, 1,
       &tile_nbr_head, &list_length);
     if (tile_nbr_head != NULL) {
-      const int num_nbrs = (const int)list_length;
+      const int num_nbrs = (int)list_length;
       double local_prob_factor; /*local probability factor for the
                                    reaction */
       int max_size = num_nbrs * MAX_MATCHING_RXNS;

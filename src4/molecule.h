@@ -121,10 +121,7 @@ public:
     s.grid_tile_index = TILE_INDEX_INVALID;
   }
 
-  // assuming that this function has no virtual methods and has only POD types
-  void operator = (const Molecule& m) {
-    memcpy(this, &m, sizeof(Molecule));
-  }
+  Molecule& operator= (const Molecule& other) = default;
 
   // data is ordered to avoid alignment holes (for 64-bit floats)
   molecule_id_t id; // unique molecule id (for now it is unique per partition but should be world-wide unique)
