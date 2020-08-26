@@ -14,16 +14,16 @@ static const std::string IND2 = "  ";
 static const std::string IND4 = "    ";
 
 // ------------------------------- ASTBaseNode ------------------------
-void ASTBaseNode::dump(const std::string ind) {
+void ASTBaseNode::dump(const std::string ind) const {
   if (has_loc) {
-    // not printig file names because they are the same for now
+    // not printing file names because they are the same for now
     cout << ind << "line: " << line << "\n";
   }
 }
 
 
 // ------------------------------- ASTExprNode ------------------------
-void ASTExprNode::dump(const std::string ind) {
+void ASTExprNode::dump(const std::string ind) const {
   cout << ind;
   switch (expr_type) {
     case ExprType::Id:
@@ -45,14 +45,14 @@ void ASTExprNode::dump(const std::string ind) {
 
 
 // ------------------------------- ASTStrNode ------------------------
-void ASTStrNode::dump(const std::string ind) {
+void ASTStrNode::dump(const std::string ind) const {
   cout << ind << "str: '" << str << "'";
   ASTBaseNode::dump(ind);
 }
 
 
 // ------------------------------- ASTStrNode ------------------------
-void ASTSeparatorNode::dump(const std::string ind) {
+void ASTSeparatorNode::dump(const std::string ind) const {
   string s;
   switch (separator_type) {
     case SeparatorType::Dot:
@@ -71,7 +71,7 @@ void ASTSeparatorNode::dump(const std::string ind) {
 
 
 // ------------------------------- ASTListNode ------------------------
-void ASTListNode::dump(const std::string ind) {
+void ASTListNode::dump(const std::string ind) const {
   if (items.empty()) {
     cout << ind << "(empty)\n";
   }
@@ -88,7 +88,7 @@ void ASTListNode::dump(const std::string ind) {
 
 
 // ------------------------------- ASTComponentNode ------------------------
-void ASTComponentNode::dump(const std::string ind) {
+void ASTComponentNode::dump(const std::string ind) const {
   cout << ind << "component: name='" << name << "'\n";
   cout << ind << "  states:\n";
   assert(states != nullptr);
@@ -102,7 +102,7 @@ void ASTComponentNode::dump(const std::string ind) {
 
 
 // ------------------------------- ASTMoleculeNode ------------------------
-void ASTMoleculeNode::dump(const std::string ind) {
+void ASTMoleculeNode::dump(const std::string ind) const {
   cout << ind << "molecule: name='" << name << "'\n";
   cout << ind << "  components:\n";
   assert(components != nullptr);
@@ -112,7 +112,7 @@ void ASTMoleculeNode::dump(const std::string ind) {
 
 
 // ------------------------------- ASTMoleculeNode ------------------------
-void ASTRxnRuleNode::dump(const std::string ind) {
+void ASTRxnRuleNode::dump(const std::string ind) const {
   cout << ind << "reaction rule: name='" << name << "', reversible: " << (reversible?"true":"false") << "\n";
   cout << ind << "  reactants:\n";
   assert(reactants != nullptr);
@@ -128,7 +128,7 @@ void ASTRxnRuleNode::dump(const std::string ind) {
 
 
 // ------------------------------- ASTSeedSpeciesNode ------------------------
-void ASTSeedSpeciesNode::dump(const std::string ind) {
+void ASTSeedSpeciesNode::dump(const std::string ind) const {
   cout << ind << "seed species item:\n";
   cout << ind << "  complex_inst:\n";
   assert(cplx_instance != nullptr);
@@ -136,6 +136,20 @@ void ASTSeedSpeciesNode::dump(const std::string ind) {
   cout << ind << "  count:\n";
   assert(count != nullptr);
   count->dump(ind + IND4);
+  ASTBaseNode::dump(ind);
+}
+
+
+// ------------------------------- ASTSeedSpeciesNode ------------------------
+void ASTObservableNode::dump(const std::string ind) const {
+  cout << ind << "observable item:\n";
+  cout << ind << "  type:" << type << "\n";
+  cout << ind << "  name:" << name << "\n";
+  cout << ind << "  cplx_instances:\n";
+  for (ASTBaseNode* n: cplx_instances->items) {
+    const ASTListNode* l = to_list_node(n);
+    l->dump(ind + IND4);
+  }
   ASTBaseNode::dump(ind);
 }
 
@@ -360,6 +374,23 @@ ASTSeedSpeciesNode* ParserContext::new_seed_species_node(
   assert(cplx_instance->items[0]->has_loc);
   BNGLLTYPE loc;
   loc.first_line = cplx_instance->items[0]->line;
+  n->set_loc(current_file, loc);
+
+  remember_node(n);
+  return n;
+}
+
+
+ASTObservableNode* ParserContext::new_observable_node(
+    const std::string& type,
+    const std::string& name,
+    ASTListNode* cplx_instances,
+    const BNGLLTYPE& loc
+) {
+  ASTObservableNode* n = new ASTObservableNode();
+  n->type = type;
+  n->name = name;
+  n->cplx_instances = cplx_instances;
   n->set_loc(current_file, loc);
 
   remember_node(n);

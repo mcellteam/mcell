@@ -28,6 +28,26 @@ public:
   float_t count; // count of molecules to be released, TODO: what about concentrations?
 };
 
+
+enum class ObservableType {
+  Invalid,
+  Species,
+  Molecules
+};
+
+
+class Observable {
+public:
+  Observable(const BNGData* bng_data)
+    : type(ObservableType::Invalid) {
+  }
+
+  ObservableType type;
+  std::string name;
+  std::vector<CplxInstance> patterns;
+};
+
+
 /**
  * Data shared among all instances of BNGEngines
  * Usually constant, initialized when BNGL is parsed
@@ -54,8 +74,12 @@ private:
   std::map<std::string, float_t> parameters;
 
   // contents of the seed species section
-  // not used during simulation in MCell but can be converted to other representations
+  // not used directly but can be converted to other representations
   std::vector<SeedSpecies> seed_species;
+
+  // contents of the observables section
+  // not used directly but can be converted to other representations
+  std::vector<Observable> observables;
 
 public:
   void clear();
@@ -128,6 +152,16 @@ public:
 
   const std::vector<SeedSpecies>& get_seed_species() const {
     return seed_species;
+  }
+
+  // -------- observables --------
+
+  void add_observable(const Observable& o) {
+    observables.push_back(o);
+  }
+
+  const std::vector<Observable>& get_add_observables() const {
+    return observables;
   }
 
   // -------- parameters --------

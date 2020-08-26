@@ -127,6 +127,7 @@ namespace BNG {
 %type <list_node> rates
 %type <boolean> rxn_rule_direction
 %type <list_node> cplx_instance
+%type <list_node> cplx_instance_list
 
 // operator associativities and precendences
 // unary minus has really lower precendence than power 
@@ -360,7 +361,6 @@ seed_species_list:
 
 seed_species_item:
     cplx_instance expr {
-    
        BNG::ASTSeedSpeciesNode* n = g_ctx->new_seed_species_node($1, $2); 
        g_ctx->add_seed_species(n);
     }
@@ -380,7 +380,6 @@ cplx_instance:
       
       
 // ---------------- observables ---------------------
-// ignored for now
       
 observables_list_maybe_empty:
       observables_list
@@ -393,12 +392,19 @@ observables_list:
 ;
       
 observables_item:
-      TOK_ID TOK_ID cplx_instance_list
+      TOK_ID TOK_ID cplx_instance_list {
+        BNG::ASTObservableNode* n = g_ctx->new_observable_node($1, $2, $3, @1); 
+        g_ctx->add_observable(n);
+      }
 ;
 
 cplx_instance_list:
-      cplx_instance_list ',' cplx_instance
-    | cplx_instance
+      cplx_instance_list ',' cplx_instance {
+        $1->append($3);
+      }
+    | cplx_instance {
+    	$$ = g_ctx->new_list_node()->append($1);
+      }
       
 // ---------------- action calls ------------------
 // ignored

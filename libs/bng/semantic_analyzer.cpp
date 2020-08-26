@@ -22,6 +22,9 @@ namespace BNG {
 const char* const DIR_FORWARD = "forward";
 const char* const DIR_REVERSE = "reverse";
 
+const char* const OBSERVABLE_MOLECULES = "Molecules";
+const char* const OBSERVABLE_SPECIES = "Species";
+
 // returns new node, owned by ctx if any new nodes were created
 // called recursively, the set used_ids is copied intentionally every call
 ASTExprNode* SemanticAnalyzer::evaluate_to_dbl(ASTExprNode* root, set<string> used_ids) {
@@ -687,6 +690,42 @@ void SemanticAnalyzer::convert_seed_species() {
     bng_data->add_seed_species(ss);
   }
 }
+
+
+void SemanticAnalyzer::convert_observables() {
+  for (const ASTBaseNode* n: ctx->observables.items) {
+    const ASTObservableNode* o_node = to_observable_node(n);
+
+    Observable o(bng_data);
+
+    if (o_node->type == OBSERVABLE_MOLECULES) {
+      o.type = ObservableType::Molecules;
+    }
+    else if (o_node->type == OBSERVABLE_SPECIES) {
+      o.type = ObservableType::Species;
+    }
+    else {
+      errs_loc(o_node) <<
+          "Invalid observable type '" << o_node->type << "', the allowed values are" <<
+          OBSERVABLE_MOLECULES << " or " << OBSERVABLE_SPECIES << ".\n"; // TODO test
+      ctx->inc_error_count();
+      continue;
+    }
+
+    o.name = o_node->name;
+
+    for (const ASTBaseNode* base_pat: o_node->cplx_instances->items) {
+      const ASTListNode* cplx_pat = to_list_node(base_pat);
+      CplxInstanceVector cplx_vec;
+      convert_cplx_inst_or_rxn_rule_side(cplx_pat, true, cplx_vec);
+      assert(cplx_vec.size() == 1);
+      o.patterns.push_back(cplx_vec[0]);
+    }
+
+    bng_data->add_observable(o);
+  }
+}
+
 
 // returns true if conversion and semantic checks passed
 bool SemanticAnalyzer::check_and_convert_parsed_file(ParserContext* ctx_, BNGData* res_bng) {

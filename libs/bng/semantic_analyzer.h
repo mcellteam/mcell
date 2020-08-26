@@ -65,6 +65,7 @@ private:
   void convert_and_store_rxn_rules();
 
   void convert_seed_species();
+  void convert_observables();
 
   void extend_molecule_type_definitions(const ASTListNode* cplx_node);
 

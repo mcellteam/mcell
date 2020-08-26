@@ -40,6 +40,7 @@ enum class NodeType {
   Component,
   RxnRule,
   SeedSpecies,
+  Observable,
   Str,
   Separator
 };
@@ -79,7 +80,7 @@ public:
     : node_type(NodeType::Invalid), has_loc(false), line(0), file(nullptr) {
   }
   virtual ~ASTBaseNode() {}
-  virtual void dump(const std::string ind);
+  virtual void dump(const std::string ind) const;
 
   void set_loc(const char* file_, const BNGLLTYPE& loc) {
     file = file_;
@@ -101,6 +102,10 @@ public:
     return node_type == NodeType::Str;
   }
 
+  bool is_list() const {
+    return node_type == NodeType::List;
+  }
+
   bool is_molecule() const {
     return node_type == NodeType::Molecule;
   }
@@ -115,6 +120,10 @@ public:
 
   bool is_seed_species() const {
     return node_type == NodeType::SeedSpecies;
+  }
+
+  bool is_observable() const {
+    return node_type == NodeType::Observable;
   }
 
   bool is_separator() const {
@@ -135,7 +144,7 @@ public:
       left(nullptr), right(nullptr), dbl(0), llong(0) {
     node_type = NodeType::Expr;
   }
-  void dump(const std::string ind) override;
+  void dump(const std::string ind) const override;
 
   ExprType expr_type;
 
@@ -237,7 +246,7 @@ public:
   ASTStrNode() {
     node_type = NodeType::Str;
   }
-  void dump(const std::string ind) override;
+  void dump(const std::string ind) const override;
 
   std::string str;
 };
@@ -261,7 +270,7 @@ public:
     return separator_type == SeparatorType::Plus;
   }
 
-  void dump(const std::string ind) override;
+  void dump(const std::string ind) const override;
 
   char to_char() const {
     assert(separator_type != SeparatorType::Invalid);
@@ -275,7 +284,7 @@ public:
 class ASTListNode: public ASTBaseNode {
 public:
   ASTListNode() {}
-  void dump(const std::string ind) override;
+  void dump(const std::string ind) const override;
 
   ASTListNode* append(ASTBaseNode* n) {
     assert(n != nullptr);
@@ -297,7 +306,7 @@ public:
     : states(nullptr), bond(nullptr) {
     node_type = NodeType::Component;
   }
-  void dump(const std::string ind) override;
+  void dump(const std::string ind) const override;
 
   std::string name;
   ASTListNode* states;
@@ -316,7 +325,7 @@ public:
     : components(nullptr) {
     node_type = NodeType::Molecule;
   }
-  void dump(const std::string ind) override;
+  void dump(const std::string ind) const override;
 
   std::string name;
   ASTListNode* components;
@@ -329,7 +338,7 @@ public:
     : reactants(nullptr), reversible(false), products(nullptr), rates(nullptr) {
     node_type = NodeType::RxnRule;
   }
-  void dump(const std::string ind) override;
+  void dump(const std::string ind) const override;
 
   std::string generate_name() const;
 
@@ -347,10 +356,25 @@ public:
     : cplx_instance(nullptr), count(nullptr) {
     node_type = NodeType::SeedSpecies;
   }
-  void dump(const std::string ind) override;
+  void dump(const std::string ind) const override;
 
   ASTListNode* cplx_instance;
   ASTExprNode* count;
+};
+
+
+class ASTObservableNode: public ASTBaseNode {
+public:
+  ASTObservableNode()
+    : cplx_instances(nullptr) {
+    node_type = NodeType::Observable;
+  }
+  void dump(const std::string ind) const override;
+
+  std::string type;
+  std::string name;
+  // list of complexes that are represented by ASTListNode as well
+  ASTListNode* cplx_instances;
 };
 
 
@@ -434,6 +458,13 @@ public:
       ASTExprNode* count
   );
 
+  ASTObservableNode* new_observable_node(
+      const std::string& type,
+      const std::string& name,
+      ASTListNode* cplx_instances,
+      const BNGLLTYPE& loc // location may be used to report wrong observable type
+  );
+
   void add_rxn_rule(ASTRxnRuleNode* n) {
     assert(n != nullptr);
     rxn_rules.append(n);
@@ -444,6 +475,11 @@ public:
     seed_species.append(n);
   }
 
+  void add_observable(ASTObservableNode* n) {
+    assert(n != nullptr);
+    observables.append(n);
+  }
+
   // contains parameters from parameters sections
   // molecules from molecule types sections
   // and rules from reaction rules sections
@@ -452,6 +488,8 @@ public:
   ASTListNode rxn_rules;
 
   ASTListNode seed_species;
+
+  ASTListNode observables;
 
   // single_cplx_instance is set for mode when the parse parses a
   // single complex string with parse_cplx_instance_file(),
@@ -529,6 +567,12 @@ static inline const ASTStrNode* to_str_node(const ASTBaseNode* n) {
   return dynamic_cast<const ASTStrNode*>(n);
 }
 
+static inline const ASTListNode* to_list_node(const ASTBaseNode* n) {
+  assert(n != nullptr);
+  assert(n->is_list());
+  return dynamic_cast<const ASTListNode*>(n);
+}
+
 static inline ASTMoleculeNode* to_molecule_node(ASTBaseNode* n) {
   assert(n != nullptr);
   assert(n->is_molecule());
@@ -564,6 +608,14 @@ static inline const ASTSeedSpeciesNode* to_seed_species_node(const ASTBaseNode* 
   assert(n->is_seed_species());
   return dynamic_cast<const ASTSeedSpeciesNode*>(n);
 }
+
+
+static inline const ASTObservableNode* to_observable_node(const ASTBaseNode* n) {
+  assert(n != nullptr);
+  assert(n->is_observable());
+  return dynamic_cast<const ASTObservableNode*>(n);
+}
+
 
 static inline const ASTSeparatorNode* to_separator(const ASTBaseNode* n) {
   assert(n != nullptr);
