@@ -84,11 +84,11 @@ private:
   void convert_surface_classes();
 
   BNG::component_type_id_t convert_component_type(API::ComponentType& api_ct);
-  BNG::mol_type_id_t convert_elementary_molecule_type(API::ElementaryMoleculeType& mt, const bool in_rxn = false);
+  BNG::mol_type_id_t convert_elementary_molecule_type(API::ElementaryMoleculeType& mt, const bool in_rxn_or_observables = false);
 
   BNG::ComponentInstance convert_component_instance(API::ComponentInstance& api_ci);
-  BNG::MolInstance convert_molecule_instance(API::ElementaryMoleculeInstance& mi, const bool in_rxn = false);
-  BNG::CplxInstance convert_complex_instance(API::ComplexInstance& inst, const bool in_rxn = false);
+  BNG::MolInstance convert_molecule_instance(API::ElementaryMoleculeInstance& mi, const bool in_rxn_or_observables = false);
+  BNG::CplxInstance convert_complex_instance(API::ComplexInstance& inst, const bool in_rxn_or_observables = false);
 
   void convert_rxns();
   void init_rxn_related_flags();

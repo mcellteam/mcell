@@ -24,6 +24,7 @@
 #include "libs/pybind11/include/pybind11/stl.h"
 #include "gen_count_term.h"
 #include "../api/count_term.h"
+#include "../api/complex_instance.h"
 #include "../api/count_term.h"
 #include "../api/reaction_rule.h"
 #include "../api/region.h"
@@ -45,6 +46,28 @@ bool GenCountTerm::__eq__(const GenCountTerm& other) const {
           false
         ) :
         ( (other.species != nullptr) ?
+          false :
+          true
+        )
+     )  &&
+    (
+      (species_pattern != nullptr) ?
+        ( (other.species_pattern != nullptr) ?
+          (species_pattern->__eq__(*other.species_pattern)) : 
+          false
+        ) :
+        ( (other.species_pattern != nullptr) ?
+          false :
+          true
+        )
+     )  &&
+    (
+      (molecules_pattern != nullptr) ?
+        ( (other.molecules_pattern != nullptr) ?
+          (molecules_pattern->__eq__(*other.molecules_pattern)) : 
+          false
+        ) :
+        ( (other.molecules_pattern != nullptr) ?
           false :
           true
         )
@@ -101,6 +124,12 @@ void GenCountTerm::set_initialized() {
   if (is_set(species)) {
     species->set_initialized();
   }
+  if (is_set(species_pattern)) {
+    species_pattern->set_initialized();
+  }
+  if (is_set(molecules_pattern)) {
+    molecules_pattern->set_initialized();
+  }
   if (is_set(reaction_rule)) {
     reaction_rule->set_initialized();
   }
@@ -119,6 +148,8 @@ void GenCountTerm::set_initialized() {
 void GenCountTerm::set_all_attributes_as_default_or_unset() {
   class_name = "CountTerm";
   species = nullptr;
+  species_pattern = nullptr;
+  molecules_pattern = nullptr;
   reaction_rule = nullptr;
   region = nullptr;
   orientation = Orientation::NOT_SET;
@@ -131,6 +162,8 @@ std::string GenCountTerm::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
       "\n" << ind + "  " << "species=" << "(" << ((species != nullptr) ? species->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "species_pattern=" << "(" << ((species_pattern != nullptr) ? species_pattern->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "molecules_pattern=" << "(" << ((molecules_pattern != nullptr) ? molecules_pattern->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "reaction_rule=" << "(" << ((reaction_rule != nullptr) ? reaction_rule->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "region=" << "(" << ((region != nullptr) ? region->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "orientation=" << orientation << ", " <<
@@ -145,6 +178,8 @@ py::class_<CountTerm> define_pybinding_CountTerm(py::module& m) {
       .def(
           py::init<
             std::shared_ptr<Species>,
+            std::shared_ptr<ComplexInstance>,
+            std::shared_ptr<ComplexInstance>,
             std::shared_ptr<ReactionRule>,
             std::shared_ptr<Region>,
             const Orientation,
@@ -153,6 +188,8 @@ py::class_<CountTerm> define_pybinding_CountTerm(py::module& m) {
             std::shared_ptr<CountTerm>
           >(),
           py::arg("species") = nullptr,
+          py::arg("species_pattern") = nullptr,
+          py::arg("molecules_pattern") = nullptr,
           py::arg("reaction_rule") = nullptr,
           py::arg("region") = nullptr,
           py::arg("orientation") = Orientation::NOT_SET,
@@ -166,6 +203,8 @@ py::class_<CountTerm> define_pybinding_CountTerm(py::module& m) {
       .def("__sub__", &CountTerm::__sub__, py::arg("op2"))
       .def("dump", &CountTerm::dump)
       .def_property("species", &CountTerm::get_species, &CountTerm::set_species)
+      .def_property("species_pattern", &CountTerm::get_species_pattern, &CountTerm::set_species_pattern)
+      .def_property("molecules_pattern", &CountTerm::get_molecules_pattern, &CountTerm::set_molecules_pattern)
       .def_property("reaction_rule", &CountTerm::get_reaction_rule, &CountTerm::set_reaction_rule)
       .def_property("region", &CountTerm::get_region, &CountTerm::set_region)
       .def_property("orientation", &CountTerm::get_orientation, &CountTerm::set_orientation)

@@ -1765,6 +1765,7 @@ bool MCell3WorldConverter::convert_mol_or_rxn_count_events(volume* s) {
           CHECK_PROPERTY(req->count_target != 0);
           string species_name = get_sym_name(req->count_target);
 
+          term.species_pattern_type = SpeciesPatternType::SpeciesId;
           term.species_id = world->get_all_species().find_by_name(species_name);
           CHECK_PROPERTY(term.species_id != SPECIES_ID_INVALID);
 

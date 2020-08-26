@@ -35,6 +35,14 @@ class Partition;
 class Molecule;
 class World;
 
+enum class SpeciesPatternType {
+  Invalid,
+  SpeciesId,
+  SpeciesPattern,
+  MoleculesPattern
+};
+
+
 enum class CountType {
   Invalid,
   EnclosedInWorld,
@@ -52,7 +60,9 @@ public:
     : type(CountType::Invalid),
       sign_in_expression(0),
       orientation(ORIENTATION_NOT_SET),
+      species_pattern_type(SpeciesPatternType::Invalid),
       species_id(SPECIES_ID_INVALID),
+      species_molecules_pattern(nullptr),
       rxn_rule_id(BNG::RXN_RULE_ID_INVALID),
       geometry_object_id(GEOMETRY_OBJECT_ID_INVALID),
       region_id(REGION_ID_INVALID)
@@ -83,7 +93,13 @@ public:
 
   // valid when type is EnclosedInWorld, EnclosedInObject or PresentOnSurfaceRegion
   orientation_t orientation;
+
+
+  SpeciesPatternType species_pattern_type;
+  // valid when species_pattern_type is SpeciesId
   species_id_t species_id;
+  // valid when species_pattern_type is SpeciesPattern or MoleculesPattern
+  BNG::CplxInstance species_molecules_pattern;
 
   // valid when type is RxnCountInWorld, RxnCountInObject or RxnOnSurfaceRegion
   BNG::rxn_rule_id_t rxn_rule_id;

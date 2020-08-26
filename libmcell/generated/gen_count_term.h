@@ -29,6 +29,7 @@
 namespace MCell {
 namespace API {
 
+class ComplexInstance;
 class CountTerm;
 class ReactionRule;
 class Region;
@@ -37,6 +38,8 @@ class Species;
 #define COUNT_TERM_CTOR() \
     CountTerm( \
         std::shared_ptr<Species> species_ = nullptr, \
+        std::shared_ptr<ComplexInstance> species_pattern_ = nullptr, \
+        std::shared_ptr<ComplexInstance> molecules_pattern_ = nullptr, \
         std::shared_ptr<ReactionRule> reaction_rule_ = nullptr, \
         std::shared_ptr<Region> region_ = nullptr, \
         const Orientation orientation_ = Orientation::NOT_SET, \
@@ -46,6 +49,8 @@ class Species;
     ) { \
       class_name = "CountTerm"; \
       species = species_; \
+      species_pattern = species_pattern_; \
+      molecules_pattern = molecules_pattern_; \
       reaction_rule = reaction_rule_; \
       region = region_; \
       orientation = orientation_; \
@@ -77,6 +82,30 @@ public:
   }
   virtual std::shared_ptr<Species> get_species() const {
     return species;
+  }
+
+  std::shared_ptr<ComplexInstance> species_pattern;
+  virtual void set_species_pattern(std::shared_ptr<ComplexInstance> new_species_pattern_) {
+    if (initialized) {
+      throw RuntimeError("Value 'species_pattern' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
+    species_pattern = new_species_pattern_;
+  }
+  virtual std::shared_ptr<ComplexInstance> get_species_pattern() const {
+    return species_pattern;
+  }
+
+  std::shared_ptr<ComplexInstance> molecules_pattern;
+  virtual void set_molecules_pattern(std::shared_ptr<ComplexInstance> new_molecules_pattern_) {
+    if (initialized) {
+      throw RuntimeError("Value 'molecules_pattern' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
+    molecules_pattern = new_molecules_pattern_;
+  }
+  virtual std::shared_ptr<ComplexInstance> get_molecules_pattern() const {
+    return molecules_pattern;
   }
 
   std::shared_ptr<ReactionRule> reaction_rule;

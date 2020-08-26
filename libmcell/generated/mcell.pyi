@@ -216,6 +216,8 @@ class Count():
             multiplier : float = 1,
             every_n_timesteps : int = 1,
             species : Species = None,
+            species_pattern : ComplexInstance = None,
+            molecules_pattern : ComplexInstance = None,
             reaction_rule : ReactionRule = None,
             region : Region = None,
             orientation : Orientation = Orientation.NOT_SET,
@@ -228,6 +230,8 @@ class Count():
         self.multiplier = multiplier
         self.every_n_timesteps = every_n_timesteps
         self.species = species
+        self.species_pattern = species_pattern
+        self.molecules_pattern = molecules_pattern
         self.reaction_rule = reaction_rule
         self.region = region
         self.orientation = orientation
@@ -252,6 +256,8 @@ class CountTerm():
     def __init__(
             self,
             species : Species = None,
+            species_pattern : ComplexInstance = None,
+            molecules_pattern : ComplexInstance = None,
             reaction_rule : ReactionRule = None,
             region : Region = None,
             orientation : Orientation = Orientation.NOT_SET,
@@ -260,6 +266,8 @@ class CountTerm():
             right_node : 'CountTerm' = None
         ):
         self.species = species
+        self.species_pattern = species_pattern
+        self.molecules_pattern = molecules_pattern
         self.reaction_rule = reaction_rule
         self.region = region
         self.orientation = orientation

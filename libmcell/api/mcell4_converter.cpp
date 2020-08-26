@@ -318,7 +318,8 @@ void MCell4Converter::convert_simulation_setup() {
 }
 
 
-BNG::mol_type_id_t MCell4Converter::convert_elementary_molecule_type(API::ElementaryMoleculeType& api_mt, const bool in_rxn) {
+BNG::mol_type_id_t MCell4Converter::convert_elementary_molecule_type(
+    API::ElementaryMoleculeType& api_mt, const bool in_rxn_or_observables) {
   if (api_mt.mol_type_id != BNG::MOL_TYPE_ID_INVALID) {
     // already converted
     return api_mt.mol_type_id;
@@ -331,7 +332,7 @@ BNG::mol_type_id_t MCell4Converter::convert_elementary_molecule_type(API::Elemen
 
   bng_mt.name = api_mt.name;
 
-  if (!in_rxn) {
+  if (!in_rxn_or_observables) {
     if (is_set(api_mt.diffusion_constant_2d)) {
       bng_mt.set_is_surf();
       bng_mt.D = api_mt.diffusion_constant_2d;
@@ -579,10 +580,10 @@ BNG::ComponentInstance MCell4Converter::convert_component_instance(API::Componen
 }
 
 
-BNG::MolInstance MCell4Converter::convert_molecule_instance(API::ElementaryMoleculeInstance& mi, const bool in_rxn) {
+BNG::MolInstance MCell4Converter::convert_molecule_instance(API::ElementaryMoleculeInstance& mi, const bool in_rxn_or_observables) {
   BNG::MolInstance res;
 
-  res.mol_type_id = convert_elementary_molecule_type(*mi.elementary_molecule_type, in_rxn);
+  res.mol_type_id = convert_elementary_molecule_type(*mi.elementary_molecule_type, in_rxn_or_observables);
 
   for (std::shared_ptr<API::ComponentInstance>& api_ci: mi.components) {
     res.component_instances.push_back(convert_component_instance(*api_ci));
@@ -595,12 +596,12 @@ BNG::MolInstance MCell4Converter::convert_molecule_instance(API::ElementaryMolec
 }
 
 
-BNG::CplxInstance MCell4Converter::convert_complex_instance(API::ComplexInstance& inst, const bool in_rxn) {
+BNG::CplxInstance MCell4Converter::convert_complex_instance(API::ComplexInstance& inst, const bool in_rxn_or_observables) {
   // create a temporary cplx instance that we will use for search
   BNG::CplxInstance cplx_inst(&world->bng_engine.get_data());
 
   for (std::shared_ptr<API::ElementaryMoleculeInstance>& m: inst.elementary_molecule_instances) {
-    BNG::MolInstance mi = convert_molecule_instance(*m, in_rxn);
+    BNG::MolInstance mi = convert_molecule_instance(*m, in_rxn_or_observables);
 
     cplx_inst.mol_instances.push_back(mi);
   }
@@ -608,7 +609,7 @@ BNG::CplxInstance MCell4Converter::convert_complex_instance(API::ComplexInstance
   cplx_inst.set_orientation(orient);
   cplx_inst.finalize();
 
-  if (!in_rxn) {
+  if (!in_rxn_or_observables) {
     // we need to find or add existing species that we match
     species_id_t species_id = world->get_all_species().find_full_match(cplx_inst);
 
@@ -1102,9 +1103,21 @@ MCell::MolOrRxnCountTerm MCell4Converter::convert_count_term_leaf_and_init_count
   }
 
   // what
-  if (is_set(ct->species)) {
+  if (is_set(ct->species) || is_set(ct->species_pattern) || is_set(ct->molecules_pattern)) {
 
-    res.species_id = ct->species->species_id;
+    if (is_set(ct->species)) {
+      res.species_pattern_type = SpeciesPatternType::SpeciesId;
+      res.species_id = ct->species->species_id;
+    }
+    else if (is_set(ct->species_pattern)) {
+      res.species_pattern_type = SpeciesPatternType::SpeciesPattern;
+      res.species_molecules_pattern = convert_complex_instance(*ct->species_pattern, true);
+    }
+    else {
+      res.species_pattern_type = SpeciesPatternType::MoleculesPattern;
+      res.species_molecules_pattern = convert_complex_instance(*ct->molecules_pattern, true);
+    }
+
     BNG::Species& sp = world->get_all_species().get(res.species_id);
 
     res.orientation = convert_orientation(ct->orientation);

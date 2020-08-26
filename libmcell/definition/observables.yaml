@@ -30,11 +30,29 @@ CountTerm:
   - name: species
     type: Species*
     default: unset
+    doc: Count the number of molecules of given species.
+    
+  - name: species_pattern
+    type: ComplexInstance*
+    default: unset
+    doc: |
+      Count the number of molecules that match the given complex instance pattern.
+      Counts each molecule exactly once. 
+    
+  - name: molecules_pattern
+    type: ComplexInstance*
+    default: unset
+    doc: |
+     Count the number of matches of the given pattern on molecules.
+     The observable will count a molecule every time it matches the pattern.
+     When the pattern is symmetric, e.g. as in A(a!1).A(a!1) then a 
+     molecule A(a!1).A(a!1,b!2).B(a!2) will be counted twice because the 
+     pattern may match in two different ways. 
     
   - name: reaction_rule
     type: ReactionRule*
     default: unset
-    
+        
   - name: region
     type: Region*
     default: unset

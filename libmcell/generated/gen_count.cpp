@@ -24,6 +24,7 @@
 #include "libs/pybind11/include/pybind11/stl.h"
 #include "gen_count.h"
 #include "../api/count.h"
+#include "../api/complex_instance.h"
 #include "../api/count_term.h"
 #include "../api/reaction_rule.h"
 #include "../api/region.h"
@@ -62,6 +63,28 @@ bool GenCount::__eq__(const GenCount& other) const {
           false
         ) :
         ( (other.species != nullptr) ?
+          false :
+          true
+        )
+     )  &&
+    (
+      (species_pattern != nullptr) ?
+        ( (other.species_pattern != nullptr) ?
+          (species_pattern->__eq__(*other.species_pattern)) : 
+          false
+        ) :
+        ( (other.species_pattern != nullptr) ?
+          false :
+          true
+        )
+     )  &&
+    (
+      (molecules_pattern != nullptr) ?
+        ( (other.molecules_pattern != nullptr) ?
+          (molecules_pattern->__eq__(*other.molecules_pattern)) : 
+          false
+        ) :
+        ( (other.molecules_pattern != nullptr) ?
           false :
           true
         )
@@ -121,6 +144,12 @@ void GenCount::set_initialized() {
   if (is_set(species)) {
     species->set_initialized();
   }
+  if (is_set(species_pattern)) {
+    species_pattern->set_initialized();
+  }
+  if (is_set(molecules_pattern)) {
+    molecules_pattern->set_initialized();
+  }
   if (is_set(reaction_rule)) {
     reaction_rule->set_initialized();
   }
@@ -143,6 +172,8 @@ void GenCount::set_all_attributes_as_default_or_unset() {
   multiplier = 1;
   every_n_timesteps = 1;
   species = nullptr;
+  species_pattern = nullptr;
+  molecules_pattern = nullptr;
   reaction_rule = nullptr;
   region = nullptr;
   orientation = Orientation::NOT_SET;
@@ -159,6 +190,8 @@ std::string GenCount::to_str(const std::string ind) const {
       "multiplier=" << multiplier << ", " <<
       "every_n_timesteps=" << every_n_timesteps << ", " <<
       "\n" << ind + "  " << "species=" << "(" << ((species != nullptr) ? species->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "species_pattern=" << "(" << ((species_pattern != nullptr) ? species_pattern->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
+      "molecules_pattern=" << "(" << ((molecules_pattern != nullptr) ? molecules_pattern->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "reaction_rule=" << "(" << ((reaction_rule != nullptr) ? reaction_rule->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "region=" << "(" << ((region != nullptr) ? region->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "orientation=" << orientation << ", " <<
@@ -177,6 +210,8 @@ py::class_<Count> define_pybinding_Count(py::module& m) {
             const float_t,
             const int,
             std::shared_ptr<Species>,
+            std::shared_ptr<ComplexInstance>,
+            std::shared_ptr<ComplexInstance>,
             std::shared_ptr<ReactionRule>,
             std::shared_ptr<Region>,
             const Orientation,
@@ -189,6 +224,8 @@ py::class_<Count> define_pybinding_Count(py::module& m) {
           py::arg("multiplier") = 1,
           py::arg("every_n_timesteps") = 1,
           py::arg("species") = nullptr,
+          py::arg("species_pattern") = nullptr,
+          py::arg("molecules_pattern") = nullptr,
           py::arg("reaction_rule") = nullptr,
           py::arg("region") = nullptr,
           py::arg("orientation") = Orientation::NOT_SET,
