@@ -154,7 +154,10 @@ def process_observables(observables):
     ostr.write('begin observables\n')
     for observable in observables:
         if 'patterns' in observable.keys() and 'outputfile' in observable.keys():
-            tmpObservable = '\tMolecules '
+            if observable['outputfile'].endswith('_Species.dat'):
+                tmpObservable = '\tSpecies ' # extension, not supported by the CellBlender plotting
+            else:
+                tmpObservable = '\tMolecules ' # this is the default 
             tmpObservable += '{0} '.format(observable['outputfile'].split('/')[-1].split('.')[0])
             patternList = []
             for pattern in observable['patterns']:
