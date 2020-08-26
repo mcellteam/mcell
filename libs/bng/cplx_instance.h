@@ -163,6 +163,9 @@ private:
   bool matches_complex_pattern_ignore_orientation(const CplxInstance& pattern) const;
   bool matches_complex_fully_ignore_orientation(const CplxInstance& pattern) const;
 
+  void sort_components_and_mols();
+  void renumber_bonds();
+
   // boost's graph isomorphism does not cope with constant graphs
   // TODO: not sure of the internal representation really changes, might have
   // impact on parallel execution

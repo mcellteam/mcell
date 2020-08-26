@@ -234,20 +234,56 @@ static bool canonical_mol_instance_less(const MolInstance& mi1, const MolInstanc
         return bonds1[i] < bonds2[i];
       }
     }
-    return false; // same for out purposes
+    return false; // same for our purposes
   }
 }
 
 
-void CplxInstance::canonicalize() {
-
+void CplxInstance::sort_components_and_mols() {
   // we need to sort components first
   for (MolInstance& mi: mol_instances) {
     CanonicalComponentComparator cmp(bng_data->get_molecule_type(mi.mol_type_id));
     sort(mi.component_instances.begin(), mi.component_instances.end(), cmp);
   }
 
+  // then molecules
   sort(mol_instances.begin(), mol_instances.end(), canonical_mol_instance_less);
+}
+
+
+void CplxInstance::renumber_bonds() {
+  map<bond_value_t, bond_value_t> new_bond_values;
+
+  for (MolInstance& mi: mol_instances) {
+    for (ComponentInstance& ci: mi.component_instances) {
+      if (ci.bond_has_numeric_value()) {
+        auto it = new_bond_values.find(ci.bond_value);
+        if (it == new_bond_values.end()) {
+          // new bond value, numbering from 1
+          bond_value_t new_value = new_bond_values.size() + 1;
+          new_bond_values[ci.bond_value] = new_value;
+          ci.bond_value = new_value;
+        }
+        else {
+          // we have already seen this bond value, use the new value
+          ci.bond_value = it->second;
+        }
+      }
+    }
+  }
+}
+
+
+void CplxInstance::canonicalize() {
+
+  // first sorting to put molecules to their places
+  sort_components_and_mols();
+
+  // make sure that bonds indices increase from the left
+  renumber_bonds();
+
+  // sort again after renumbering
+  sort_components_and_mols();
 
   // need to rebuild graph
   finalize();
