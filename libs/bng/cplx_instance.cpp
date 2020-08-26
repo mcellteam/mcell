@@ -155,6 +155,45 @@ bool CplxInstance::matches_complex_fully_ignore_orientation(const CplxInstance& 
 }
 
 
+class CanonicalComponentComparator {
+public:
+  CanonicalComponentComparator(const MolType& mt_)
+    : mt(mt_) {
+  }
+
+  bool operator()(const ComponentInstance& ci1, const ComponentInstance& ci2) {
+    // we must maintain the order of components if they have the same name
+    if (ci1.component_type_id != ci2.component_type_id) {
+      // different components - the ordering is given by the order in the molecule
+      uint ci1_index = INDEX_INVALID;
+      uint ci2_index = INDEX_INVALID;
+      for (size_t i = 0; i < mt.component_type_ids.size(); i++) {
+        if (ci1_index == INDEX_INVALID && ci1.component_type_id == mt.component_type_ids[i]) {
+          ci1_index = 0;
+        }
+        if (ci2_index == INDEX_INVALID && ci2.component_type_id == mt.component_type_ids[i]) {
+          ci2_index = 0;
+        }
+      }
+      assert(ci1_index != INDEX_INVALID && ci2_index != INDEX_INVALID);
+
+      return ci1_index < ci2_index;
+    }
+
+    // 2) bond
+    if (ci1.bond_value != ci2.bond_value) {
+      return ci1.bond_value < ci2.bond_value;
+    }
+
+    // 3) state
+    return ci1.state_id < ci2.state_id;
+  }
+
+private:
+  const MolType& mt;
+};
+
+
 static bool canonical_mol_instance_less(const MolInstance& mi1, const MolInstance& mi2) {
   // 1) id
   if (mi1.mol_type_id != mi2.mol_type_id) {
@@ -163,8 +202,8 @@ static bool canonical_mol_instance_less(const MolInstance& mi1, const MolInstanc
 
   // no let's go component by component, the canonicalization is used currently only
   // for species that have full set of components
-  uint num_bonds1 = 0;
-  uint num_bonds2 = 0;
+  vector<uint> bonds1;
+  vector<uint> bonds2;
   assert(mi1.component_instances.size() == mi2.component_instances.size());
   for (size_t i = 0; i < mi1.component_instances.size(); i++) {
     const ComponentInstance& ci1 = mi1.component_instances[i];
@@ -177,19 +216,36 @@ static bool canonical_mol_instance_less(const MolInstance& mi1, const MolInstanc
     }
 
     if (ci1.bond_has_numeric_value()) {
-      num_bonds1++;
+      bonds1.push_back(ci1.bond_value);
     }
     if (ci2.bond_has_numeric_value()) {
-      num_bonds2++;
+      bonds2.push_back(ci2.bond_value);
     }
   }
 
-  // TODO: the bonds count comparison does not give fully canonical variant,
+  // NOTE: the bonds comparison does not probably give fully canonical variant,
   // should be improved but it is ok like this for now
-  return num_bonds1 < num_bonds2;
+  if (bonds1.size() != bonds2.size()) {
+    return bonds1.size() < bonds2.size();
+  }
+  else {
+    for (size_t i = 0; i < bonds1.size(); i++) {
+      if (bonds1[i] != bonds2[i]) {
+        return bonds1[i] < bonds2[i];
+      }
+    }
+    return false; // same for out purposes
+  }
 }
 
+
 void CplxInstance::canonicalize() {
+
+  // we need to sort components first
+  for (MolInstance& mi: mol_instances) {
+    CanonicalComponentComparator cmp(bng_data->get_molecule_type(mi.mol_type_id));
+    sort(mi.component_instances.begin(), mi.component_instances.end(), cmp);
+  }
 
   sort(mol_instances.begin(), mol_instances.end(), canonical_mol_instance_less);
 
