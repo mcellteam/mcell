@@ -46,12 +46,12 @@ void Subsystem::dump() const {
 }
 
 
-void Subsystem::load_bngl_molecule_types_and_reaction_rules(const std::string& file_name) {
+void Subsystem::load_bngl_molecule_types_and_reaction_rules(const std::string& filename) {
   BNG::BNGData bng_data;
 
-  int num_errors = BNG::parse_bngl_file(file_name, bng_data);
+  int num_errors = BNG::parse_bngl_file(filename, bng_data);
   if (num_errors != 0) {
-    throw RuntimeError("Could not parse BNGL file " + file_name + ".");
+    throw RuntimeError("Could not parse BNGL file " + filename + ".");
   }
 
   // now convert everything we parsed into the API classes so that the user can
@@ -130,11 +130,11 @@ void Subsystem::convert_reaction_rule(const BNG::BNGData& bng_data, const BNG::R
   res_rr->fwd_rate = bng_rr.base_rate_constant;
 
   for (const BNG::CplxInstance& inst: bng_rr.reactants) {
-    res_rr->reactants.push_back(convert_reaction_rule_substance(shared_from_this(), bng_data, inst));
+    res_rr->reactants.push_back(convert_cplx_instance(shared_from_this(), bng_data, inst));
   }
 
   for (const BNG::CplxInstance& inst: bng_rr.products) {
-    res_rr->products.push_back(convert_reaction_rule_substance(shared_from_this(), bng_data, inst));
+    res_rr->products.push_back(convert_cplx_instance(shared_from_this(), bng_data, inst));
   }
 
   append_to_vec(reaction_rules, res_rr);
@@ -160,7 +160,7 @@ static int convert_bond_value(const BNG::bond_value_t bng_bond_value) {
 }
 
 
-shared_ptr<API::ComplexInstance> Subsystem::convert_reaction_rule_substance(
+shared_ptr<API::ComplexInstance> Subsystem::convert_cplx_instance(
     shared_ptr<API::Subsystem> subsystem,
     const BNG::BNGData& bng_data,
     const BNG::CplxInstance& bng_inst) {

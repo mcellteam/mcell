@@ -30,15 +30,15 @@ namespace MCell {
 namespace API {
 
 void GenVizOutput::check_semantics() const {
-  if (!is_set(filename_prefix)) {
-    throw ValueError("Parameter 'filename_prefix' must be set.");
+  if (!is_set(output_files_prefix)) {
+    throw ValueError("Parameter 'output_files_prefix' must be set.");
   }
 }
 
 bool GenVizOutput::__eq__(const GenVizOutput& other) const {
   return
     name == other.name &&
-    filename_prefix == other.filename_prefix &&
+    output_files_prefix == other.output_files_prefix &&
     vec_ptr_eq(species_list, other.species_list) &&
     all_species == other.all_species &&
     mode == other.mode &&
@@ -52,7 +52,7 @@ void GenVizOutput::set_initialized() {
 
 void GenVizOutput::set_all_attributes_as_default_or_unset() {
   class_name = "VizOutput";
-  filename_prefix = STR_UNSET;
+  output_files_prefix = STR_UNSET;
   species_list = std::vector<std::shared_ptr<Species>>();
   all_species = false;
   mode = VizMode::ASCII;
@@ -62,7 +62,7 @@ void GenVizOutput::set_all_attributes_as_default_or_unset() {
 std::string GenVizOutput::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
-      "filename_prefix=" << filename_prefix << ", " <<
+      "output_files_prefix=" << output_files_prefix << ", " <<
       "\n" << ind + "  " << "species_list=" << vec_ptr_to_str(species_list, ind + "  ") << ", " << "\n" << ind + "  " <<
       "all_species=" << all_species << ", " <<
       "mode=" << mode << ", " <<
@@ -80,7 +80,7 @@ py::class_<VizOutput> define_pybinding_VizOutput(py::module& m) {
             const VizMode,
             const int
           >(),
-          py::arg("filename_prefix"),
+          py::arg("output_files_prefix"),
           py::arg("species_list") = std::vector<std::shared_ptr<Species>>(),
           py::arg("all_species") = false,
           py::arg("mode") = VizMode::ASCII,
@@ -89,7 +89,7 @@ py::class_<VizOutput> define_pybinding_VizOutput(py::module& m) {
       .def("check_semantics", &VizOutput::check_semantics)
       .def("__str__", &VizOutput::to_str, py::arg("ind") = std::string(""))
       .def("dump", &VizOutput::dump)
-      .def_property("filename_prefix", &VizOutput::get_filename_prefix, &VizOutput::set_filename_prefix)
+      .def_property("output_files_prefix", &VizOutput::get_output_files_prefix, &VizOutput::set_output_files_prefix)
       .def_property("species_list", &VizOutput::get_species_list, &VizOutput::set_species_list)
       .def_property("all_species", &VizOutput::get_all_species, &VizOutput::set_all_species)
       .def_property("mode", &VizOutput::get_mode, &VizOutput::set_mode)

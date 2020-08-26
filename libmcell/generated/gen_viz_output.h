@@ -33,14 +33,14 @@ class Species;
 
 #define VIZ_OUTPUT_CTOR() \
     VizOutput( \
-        const std::string& filename_prefix_, \
+        const std::string& output_files_prefix_, \
         const std::vector<std::shared_ptr<Species>> species_list_ = std::vector<std::shared_ptr<Species>>(), \
         const bool all_species_ = false, \
         const VizMode mode_ = VizMode::ASCII, \
         const int every_n_timesteps_ = 1 \
     ) { \
       class_name = "VizOutput"; \
-      filename_prefix = filename_prefix_; \
+      output_files_prefix = output_files_prefix_; \
       species_list = species_list_; \
       all_species = all_species_; \
       mode = mode_; \
@@ -60,16 +60,16 @@ public:
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---
-  std::string filename_prefix;
-  virtual void set_filename_prefix(const std::string& new_filename_prefix_) {
+  std::string output_files_prefix;
+  virtual void set_output_files_prefix(const std::string& new_output_files_prefix_) {
     if (initialized) {
-      throw RuntimeError("Value 'filename_prefix' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'output_files_prefix' of object with name " + name + " (class " + class_name + ")"
                          "cannot be set after model was initialized.");
     }
-    filename_prefix = new_filename_prefix_;
+    output_files_prefix = new_output_files_prefix_;
   }
-  virtual const std::string& get_filename_prefix() const {
-    return filename_prefix;
+  virtual const std::string& get_output_files_prefix() const {
+    return output_files_prefix;
   }
 
   std::vector<std::shared_ptr<Species>> species_list;

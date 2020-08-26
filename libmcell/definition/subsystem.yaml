@@ -317,6 +317,6 @@ Subsystem:
       Parameter values are evaluated and the result value 
       is directly used.  
     params:
-    - name: file_name
+    - name: filename
       type: str      
       

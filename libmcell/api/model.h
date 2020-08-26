@@ -63,10 +63,10 @@ public:
   void dump_internal_state() override;
 
   void export_data_model(const std::string& file = STR_UNSET) override {
-    export_data_model_viz_or_full(file, false);
+    export_data_model_viz_or_full(file, false, NAME_EXPORT_DATA_MODEL);
   }
   void export_viz_data_model(const std::string& file = STR_UNSET) override {
-    export_data_model_viz_or_full(file, true);
+    export_data_model_viz_or_full(file, true, NAME_EXPORT_VIZ_DATA_MODEL);
   }
 
   std::vector<int> get_molecule_ids(std::shared_ptr<Species> species = nullptr) override;
@@ -135,7 +135,11 @@ public:
   void dump() const;
 
 private:
-  void export_data_model_viz_or_full(const std::string& file, const bool only_for_visualization);
+  void export_data_model_viz_or_full(
+      const std::string& file,
+      const bool only_for_visualization,
+      const char* method_name
+  );
 
   bool initialized;
   World* world;

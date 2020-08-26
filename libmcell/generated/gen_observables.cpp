@@ -25,6 +25,7 @@
 #include "gen_observables.h"
 #include "../api/observables.h"
 #include "../api/count.h"
+#include "../api/subsystem.h"
 #include "../api/viz_output.h"
 
 namespace MCell {
@@ -47,6 +48,7 @@ py::class_<Observables> define_pybinding_Observables(py::module& m) {
       .def("__str__", &Observables::to_str, py::arg("ind") = std::string(""))
       .def("add_viz_output", &Observables::add_viz_output, py::arg("viz_output"))
       .def("add_count", &Observables::add_count, py::arg("count"))
+      .def("load_bngl_observables", &Observables::load_bngl_observables, py::arg("filename"), py::arg("subsystem"), py::arg("output_files_prefix"))
       .def("dump", &Observables::dump)
       .def_property("viz_outputs", &Observables::get_viz_outputs, &Observables::set_viz_outputs)
       .def_property("counts", &Observables::get_counts, &Observables::set_counts)

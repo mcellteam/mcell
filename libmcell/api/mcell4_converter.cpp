@@ -1283,7 +1283,7 @@ void MCell4Converter::convert_viz_output_events() {
     viz_event->event_time = 0.0;
     viz_event->periodicity_interval = v->every_n_timesteps;
     viz_event->viz_mode = convert_viz_mode(v->mode);
-    viz_event->file_prefix_name = v->filename_prefix;
+    viz_event->file_prefix_name = v->output_files_prefix;
 
     if (is_set(v->species_list)) {
       for (std::shared_ptr<API::Species>& s: v->species_list) {

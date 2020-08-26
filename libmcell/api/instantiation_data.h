@@ -60,7 +60,7 @@ public:
   }
 
   void load_bngl_seed_species(
-      const std::string& file_name,
+      const std::string& filename,
       std::shared_ptr<Subsystem> subsystem,
       std::shared_ptr<Region> default_release_region = nullptr) override;
 

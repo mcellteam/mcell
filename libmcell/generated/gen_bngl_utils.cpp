@@ -29,7 +29,7 @@ namespace API {
 
 void define_pybinding_bngl_utils(py::module& m) {
   m.def_submodule("bngl_utils")
-      .def("load_bngl_parameters", &bngl_utils::load_bngl_parameters, py::arg("file_name"))
+      .def("load_bngl_parameters", &bngl_utils::load_bngl_parameters, py::arg("filename"))
     ;
 }
 

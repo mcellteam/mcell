@@ -160,7 +160,7 @@ public:
     observables.push_back(o);
   }
 
-  const std::vector<Observable>& get_add_observables() const {
+  const std::vector<Observable>& get_observables() const {
     return observables;
   }
 

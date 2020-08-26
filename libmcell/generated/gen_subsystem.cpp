@@ -57,7 +57,7 @@ py::class_<Subsystem> define_pybinding_Subsystem(py::module& m) {
       .def("find_surface_class", &Subsystem::find_surface_class, py::arg("name"))
       .def("add_elementary_molecule_type", &Subsystem::add_elementary_molecule_type, py::arg("mt"))
       .def("find_elementary_molecule_type", &Subsystem::find_elementary_molecule_type, py::arg("name"))
-      .def("load_bngl_molecule_types_and_reaction_rules", &Subsystem::load_bngl_molecule_types_and_reaction_rules, py::arg("file_name"))
+      .def("load_bngl_molecule_types_and_reaction_rules", &Subsystem::load_bngl_molecule_types_and_reaction_rules, py::arg("filename"))
       .def("dump", &Subsystem::dump)
       .def_property("species", &Subsystem::get_species, &Subsystem::set_species)
       .def_property("reaction_rules", &Subsystem::get_reaction_rules, &Subsystem::set_reaction_rules)

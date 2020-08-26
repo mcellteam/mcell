@@ -231,7 +231,7 @@ InstantiationData:
       the argument default_region must be set and the molecules are released into or onto the 
       default_region. 
     params:
-    - name: file_name
+    - name: filename
       type: str  
     - name: subsystem
       type: Subsystem*

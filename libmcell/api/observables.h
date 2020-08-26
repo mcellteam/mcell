@@ -29,6 +29,11 @@
 #include "api/viz_output.h"
 #include "api/count.h"
 
+namespace BNG {
+class Observable;
+class BNGData;
+}
+
 namespace MCell {
 namespace API {
 
@@ -43,8 +48,32 @@ public:
     append_to_vec(counts, count, true);
   };
 
+  // throws error if viz_output is not present or if its output_files_prefix is not set
+  // uses argument method_name for this error report
+  std::string get_first_viz_output_files_prefix(const char* method_name);
+
+  void load_bngl_observables(
+      const std::string& filename,
+      std::shared_ptr<Subsystem> subsystem,
+      const std::string& output_files_prefix
+  ) override;
+
   // added manually
-  void dump() const {}
+  void dump() const;
+
+private:
+  void convert_bng_data_to_observables_data(
+      const BNG::BNGData& bng_data,
+      const std::string& output_files_prefix,
+      std::shared_ptr<Subsystem> subsystem
+  );
+
+  void convert_observable(
+      const BNG::Observable& o,
+      const BNG::BNGData& bng_data,
+      const std::string& output_files_prefix,
+      std::shared_ptr<Subsystem> subsystem
+  );
 };
 
 } // namespace API

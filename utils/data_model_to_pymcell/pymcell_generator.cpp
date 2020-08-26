@@ -1053,7 +1053,7 @@ vector<string> PymcellGenerator::generate_viz_outputs(ofstream& out) {
 
   // mode is ascii by default, this information is not in datamodel (AFAIK)
   gen_param_enum(out, NAME_MODE, NAME_ENUM_VIZ_MODE, NAME_EV_ASCII, true);
-  gen_param(out, NAME_FILENAME_PREFIX, DEFAULT_VIZ_OUTPUT_FILENAME_PREFIX, true);
+  gen_param(out, NAME_OUTPUT_FILES_PREFIX, DEFAULT_VIZ_OUTPUT_FILENAME_PREFIX, true);
 
   // species_list
 

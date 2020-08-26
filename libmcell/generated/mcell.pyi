@@ -419,7 +419,7 @@ class InstantiationData():
 
     def load_bngl_seed_species(
             self,
-            file_name : str,
+            filename : str,
             subsystem : Subsystem,
             default_release_region : Region = None
         ) -> None:
@@ -589,7 +589,7 @@ class Model():
 
     def load_bngl_molecule_types_and_reaction_rules(
             self,
-            file_name : str
+            filename : str
         ) -> None:
         pass
 
@@ -619,7 +619,7 @@ class Model():
 
     def load_bngl_seed_species(
             self,
-            file_name : str,
+            filename : str,
             subsystem : Subsystem,
             default_release_region : Region = None
         ) -> None:
@@ -634,6 +634,14 @@ class Model():
     def add_count(
             self,
             count : Count
+        ) -> None:
+        pass
+
+    def load_bngl_observables(
+            self,
+            filename : str,
+            subsystem : Subsystem,
+            output_files_prefix : str
         ) -> None:
         pass
 
@@ -709,6 +717,14 @@ class Observables():
     def add_count(
             self,
             count : Count
+        ) -> None:
+        pass
+
+    def load_bngl_observables(
+            self,
+            filename : str,
+            subsystem : Subsystem,
+            output_files_prefix : str
         ) -> None:
         pass
 
@@ -913,7 +929,7 @@ class Subsystem():
 
     def load_bngl_molecule_types_and_reaction_rules(
             self,
-            file_name : str
+            filename : str
         ) -> None:
         pass
 
@@ -986,13 +1002,13 @@ class SurfaceRegion():
 class VizOutput():
     def __init__(
             self,
-            filename_prefix : str,
+            output_files_prefix : str,
             species_list : List[Species] = None,
             all_species : bool = False,
             mode : VizMode = VizMode.ASCII,
             every_n_timesteps : int = 1
         ):
-        self.filename_prefix = filename_prefix
+        self.output_files_prefix = output_files_prefix
         self.species_list = species_list
         self.all_species = all_species
         self.mode = mode
@@ -1055,7 +1071,7 @@ class bngl_utils():
 
     def load_bngl_parameters(
             self,
-            file_name : str
+            filename : str
         ) -> 'Dict[str, float]':
         pass
 

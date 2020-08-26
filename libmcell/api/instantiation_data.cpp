@@ -41,15 +41,15 @@ void InstantiationData::dump() const {
 
 
 void InstantiationData::load_bngl_seed_species(
-    const std::string& file_name,
+    const std::string& filename,
     std::shared_ptr<Subsystem> subsystem,
     std::shared_ptr<Region> default_release_region) {
 
   BNG::BNGData bng_data;
 
-  int num_errors = BNG::parse_bngl_file(file_name, bng_data);
+  int num_errors = BNG::parse_bngl_file(filename, bng_data);
   if (num_errors != 0) {
-    throw RuntimeError("Could not parse BNGL file " + file_name + ".");
+    throw RuntimeError("Could not parse BNGL file " + filename + ".");
   }
 
   // now convert everything we parsed into the API classes so that the user can
@@ -83,7 +83,7 @@ void InstantiationData::convert_single_seed_species_to_release_site(
 
   // we need to create API representation for the cplx instance we got
   rel_site->complex_instance =
-      Subsystem::convert_reaction_rule_substance(subsystem, bng_data, bng_ss.cplx_instance);
+      Subsystem::convert_cplx_instance(subsystem, bng_data, bng_ss.cplx_instance);
 
   rel_site->name =
       "Release of " + rel_site->complex_instance->to_bngl_str() +

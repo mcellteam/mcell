@@ -121,27 +121,16 @@ void Model::dump_internal_state() {
 }
 
 
-void Model::export_data_model_viz_or_full(const std::string& file, const bool only_for_visualization) {
+void Model::export_data_model_viz_or_full(
+    const std::string& file,
+    const bool only_for_visualization,
+    const char* method_name) {
+
   if (is_set(file)) {
     world->export_data_model(file, only_for_visualization);
   }
   else {
-    // use the first viz_output
-    if (viz_outputs.empty()) {
-      throw ValueError(
-          S("Method ") + NAME_EXPORT_DATA_MODEL + " of " + NAME_CLASS_MODEL + " requires a file argument when there are no instances of " +
-          NAME_CLASS_VIZ_OUTPUT + " present."
-      );
-    }
-
-    if (!is_set(viz_outputs[0]->filename_prefix)) {
-      throw ValueError(
-          S("Method ") + NAME_EXPORT_DATA_MODEL + " of " + NAME_CLASS_MODEL + ": the first VizOutput instance does not have its " +
-          NAME_FILENAME_PREFIX + " set."
-      );
-    }
-
-    world->export_data_model_to_dir(viz_outputs[0]->filename_prefix);
+    world->export_data_model_to_dir(get_first_viz_output_files_prefix(method_name));
   }
 }
 

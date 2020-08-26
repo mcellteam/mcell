@@ -28,6 +28,7 @@ set(SOURCE_FILES
     
     api/subsystem.cpp
     api/instantiation_data.cpp
+    api/observables.cpp
     api/model.cpp
     
     api/geometry_utils.cpp

@@ -35,6 +35,7 @@
 namespace BNG {
 class MolType;
 class RxnRule;
+class CplxInstance;
 }
 
 namespace MCell {
@@ -78,13 +79,13 @@ public:
   }
 
 
-  void load_bngl_molecule_types_and_reaction_rules(const std::string& file_name) override;
+  void load_bngl_molecule_types_and_reaction_rules(const std::string& filename) override;
 
   // added manually
   void dump() const;
 
   // auxiliary method used also from InstantiationData
-  static std::shared_ptr<API::ComplexInstance> convert_reaction_rule_substance(
+  static std::shared_ptr<API::ComplexInstance> convert_cplx_instance(
       std::shared_ptr<API::Subsystem> subsystem,
       const BNG::BNGData& bng_data,
       const BNG::CplxInstance& bng_inst);
