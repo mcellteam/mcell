@@ -33,6 +33,25 @@ using namespace std;
 
 namespace MCell {
 
+bool MolOrRxnCountTerm::matches_molecule(
+    const Molecule& m,
+    const species_id_t all_mol_id, const species_id_t all_vol_id, const species_id_t all_surf_id) const {
+  assert(is_mol_count());
+  if (species_pattern_type == SpeciesPatternType::SpeciesId) {
+    assert(species_id != SPECIES_ID_INVALID);
+    return
+        species_id == m.species_id ||
+        species_id == all_mol_id ||
+       (species_id == all_vol_id && m.is_vol()) ||
+       (species_id == all_surf_id && m.is_surf());
+  }
+  else {
+    assert(!species_molecules_pattern.mol_instances.empty());
+    return species_ids_matching_pattern_cache.count(m.species_id) != 0;
+  }
+}
+
+
 void MolOrRxnCountTerm::dump(const std::string ind) const {
 
   cout << ind << "type: ";
@@ -65,7 +84,29 @@ void MolOrRxnCountTerm::dump(const std::string ind) const {
 
   cout << ind << "sign_in_expression: " << sign_in_expression << " [int]\n";
   cout << ind << "orientation: " << orientation << " [orientation_t]\n";
+
+  cout << ind << "type: ";
+  switch(species_pattern_type) {
+    case SpeciesPatternType::Invalid:
+      cout << "Invalid";
+      break;
+    case SpeciesPatternType::SpeciesId:
+      cout << "SpeciesId";
+      break;
+    case SpeciesPatternType::SpeciesPattern:
+      cout << "SpeciesPattern";
+      break;
+    case SpeciesPatternType::MoleculesPattern:
+      cout << "MoleculesPattern";
+      break;
+
+    default:
+      assert(false);
+  }
+  cout << "\n";
+
   cout << ind << "species_id: " << species_id << " [species_id_t]\n";
+  cout << ind << "species_molecules_pattern: " << "(cannot be dumped yet)" << " [CplxInstance]\n";
   cout << ind << "rxn_rule_id: " << rxn_rule_id << " [rxn_rule_id_t]\n";
   cout << ind << "geometry_object_id: " << geometry_object_id << " [geometry_object_id_t]\n";
 }
@@ -296,27 +337,21 @@ void MolOrRxnCountEvent::step() {
         continue;
       }
 
-      // TODO: add fast filtering - these flags were removed
-      /*const BNG::Species& species = world->get_all_species().get(m.species_id);
-      if (!species.has_count_enclosed_flag() && !species.has_count_contents_flag()) {
+      // check whether we are counting these species at all
+      const CountSpeciesInfo& species_info = get_or_compute_count_species_info(m.species_id);
+      if (species_info.type != CountSpeciesInfoType::Counted) {
+        assert(species_info.type == CountSpeciesInfoType::NotCounted);
         continue;
-      }*/
+      }
 
       // for each counting info
       for (uint i = 0; i < mol_count_items.size(); i++) {
         const MolOrRxnCountItem& item = mol_count_items[i];
 
         for (const MolOrRxnCountTerm& term: item.terms) {
-          assert(!term.is_mol_count() || term.species_id != SPECIES_ID_INVALID);
 
           // does the current molecule match?
-          if (term.is_mol_count() &&
-              ( term.species_id == m.species_id ||
-                term.species_id == all_mol_id ||
-               (term.species_id == all_vol_id && m.is_vol()) ||
-               (term.species_id == all_surf_id && m.is_surf())
-              )
-          ) {
+          if (term.is_mol_count() && term.matches_molecule(m, all_mol_id, all_vol_id, all_surf_id)) {
 
             if (term.type == CountType::EnclosedInWorld) {
               // count the molecule
@@ -438,10 +473,10 @@ void MolOrRxnCountEvent::compute_count_species_info(const species_id_t species_i
   info.type = CountSpeciesInfoType::NotCounted;
 
   // for each counting info
-  for (const MolOrRxnCountItem& count_item: mol_count_items) {
+  for (MolOrRxnCountItem& count_item: mol_count_items) {
 
     // and each term
-    for (const MolOrRxnCountTerm& term: count_item.terms) {
+    for (MolOrRxnCountTerm& term: count_item.terms) {
       if (term.is_rxn_count()) {
         // reactions are analyzed in separately in Species::update_rxn_and_custom_flags
         // to determine whether species should have SPECIES_FLAG_NEEDS_COUNTED_VOLUME flag
@@ -462,6 +497,8 @@ void MolOrRxnCountEvent::compute_count_species_info(const species_id_t species_i
         const BNG::Species& species = world->get_all_species().get(species_id);
         uint num_matches = species.get_pattern_num_matches(term.species_molecules_pattern);
         if (num_matches > 0) {
+          // we must also remember that this species id matches the term's pattern
+          term.species_ids_matching_pattern_cache.insert_unique(species_id);
           matches = true;
           if (term.species_pattern_type == SpeciesPatternType::MoleculesPattern) {
             info.multiplicity = num_matches;

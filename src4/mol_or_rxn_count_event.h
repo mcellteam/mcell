@@ -73,10 +73,10 @@ public:
      {
   }
 
-  void dump(const std::string ind = "") const;
-  std::string to_data_model_string(const World* world, bool print_positive_sign) const;
-
-  CountType type;
+  bool matches_molecule(
+      const Molecule& m,
+      const species_id_t all_mol_id, const species_id_t all_vol_id, const species_id_t all_surf_id
+  ) const;
 
   bool is_mol_count() const {
     return type == CountType::EnclosedInWorld || type == CountType::EnclosedInVolumeRegion ||
@@ -87,6 +87,12 @@ public:
     return type == CountType::RxnCountInWorld || type == CountType::RxnCountInVolumeRegion ||
         type == CountType::RxnCountOnSurfaceRegion;
   }
+
+  void dump(const std::string ind = "") const;
+  std::string to_data_model_string(const World* world, bool print_positive_sign) const;
+
+
+  CountType type;
 
   // if sign_in_expression == +1 -> add to the total count
   // if sign_in_expression == -1 -> subtract from the total count
@@ -104,6 +110,8 @@ public:
   species_id_t species_id;
   // valid when species_pattern_type is SpeciesPattern or MoleculesPattern
   BNG::CplxInstance species_molecules_pattern;
+  // set in compute_count_species_info based on species_molecules_pattern
+  uint_set<species_id_t> species_ids_matching_pattern_cache;
 
   // valid when type is RxnCountInWorld, RxnCountInObject or RxnOnSurfaceRegion
   BNG::rxn_rule_id_t rxn_rule_id;
