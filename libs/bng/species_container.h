@@ -166,7 +166,7 @@ public:
 
   void recompute_species_flags(RxnContainer& all_rxns) {
     for (Species& sp: species) {
-      sp.update_flags_based_on_rxns(*this, all_rxns, true);
+      sp.update_flags_based_on_rxns(*this, all_rxns);
     }
   }
 

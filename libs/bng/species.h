@@ -94,7 +94,8 @@ public:
   // sets SPECIES_FLAG_CAN_VOLVOL, SPECIES_FLAG_CAN_VOLSURF, SPECIES_FLAG_CAN_VOLWALL,
   // SPECIES_FLAG_CAN_SURFSURF, and/or SPECIES_FLAG_CAN_REGION_BORDER
   // flags according to reactions in the system
-  void update_flags_based_on_rxns(const SpeciesContainer& all_species, RxnContainer& all_rxns, const bool force_update = false);
+  bool are_flags_based_on_rxns_uptodate() const { return rxn_flags_were_updated; }
+  void update_flags_based_on_rxns(const SpeciesContainer& all_species, RxnContainer& all_rxns);
 
   // true if can interact with edge of an border
   bool can_interact_with_border() const {

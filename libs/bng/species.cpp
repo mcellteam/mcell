@@ -41,11 +41,7 @@ namespace BNG {
 // SPECIES_FLAG_CAN_SURFSURF, and/or SPECIES_FLAG_CAN_REGION_BORDER
 // flags according to reactions in the system
 void Species::update_flags_based_on_rxns(
-    const SpeciesContainer& all_species, RxnContainer& all_rxns, const bool force_update) {
-
-  if (!force_update && rxn_flags_were_updated) {
-    return;
-  }
+    const SpeciesContainer& all_species, RxnContainer& all_rxns) {
 
   assert(id != SPECIES_ID_INVALID);
 #ifndef NDEBUG
