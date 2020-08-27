@@ -1,0 +1,41 @@
+# FAIL
+# OUTPUT: error: Molecule type with name 'B' was not defined.
+
+# BNGL does not care, but I think this should be an error
+
+begin model
+begin parameters
+	ITERATIONS  50
+	VACANCY_SEARCH_DISTANCE  10
+    MCELL_DIFFUSION_CONSTANT_3D_A 1e-3
+    MCELL_DIFFUSION_CONSTANT_3D_B 1e-3
+
+    MCELL_NO_COMPARTMENT_SIZE 1
+    NA_um3 6.022e8
+    VOL_RXN 1
+    MCELL_REDEFINE_VOL_RXN NA_um3
+    
+    k1on 1 * VOL_RXN
+    k1off 0.11  * 10000
+
+    
+end parameters
+
+begin species
+    A(a!1,a!2,a).A(a!1,a,a).A(a!2,a,a)  100
+end species
+
+begin reaction rules
+    A(a!1,a!2,a).A(a!1,a,a).A(a!2,a,a) <-> A(a!1,a,a).A(a!1,a,a) + A(a,a,a) k1off, k1on
+end reaction rules
+
+begin observables
+    Species Ba B(a)
+end observables
+end model
+
+generate_network({overwrite=>1})
+simulate({method=>"ode",t_end=>1e-3,n_steps=>1000})
+
+
+

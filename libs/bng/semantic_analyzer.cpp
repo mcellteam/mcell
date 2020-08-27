@@ -476,6 +476,9 @@ void SemanticAnalyzer::convert_complex_pattern(const small_vector<const ASTMolec
   for (const ASTMoleculeNode* m: complex_nodes) {
     // molecule ids are based on their name
     pattern.mol_instances.push_back( convert_molecule_pattern(m) );
+    if (ctx->get_error_count() != 0) {
+      return;
+    }
   }
 
   // semantic checks on bonds validity
@@ -718,6 +721,9 @@ void SemanticAnalyzer::convert_observables() {
       const ASTListNode* cplx_pat = to_list_node(base_pat);
       CplxInstanceVector cplx_vec;
       convert_cplx_inst_or_rxn_rule_side(cplx_pat, true, cplx_vec);
+      if (ctx->get_error_count() != 0) {
+        return;
+      }
       assert(cplx_vec.size() == 1);
       o.patterns.push_back(cplx_vec[0]);
     }
