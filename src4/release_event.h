@@ -133,6 +133,8 @@ public:
     location(FLT_INVALID),
     diameter(FLT_INVALID),
     region_expr_root(nullptr),
+    region_llf(FLT_INVALID),
+    region_urb(FLT_INVALID),
     // the default values for release pattern are such that there is
     // just one release
     delay(0),
