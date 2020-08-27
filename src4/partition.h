@@ -467,8 +467,8 @@ public:
   Molecule& add_volume_molecule(const Molecule& vm_copy) {
     // make sure that the rxn for this species flags are up-to-date
     BNG::Species& sp = get_all_species().get(vm_copy.species_id);
-    if (!sp.are_flags_based_on_rxns_uptodate()) {
-      sp.update_flags_based_on_rxns(get_all_species(), get_all_rxns());
+    if (!sp.are_rxn_and_custom_flags_uptodate()) {
+      sp.update_rxn_and_custom_flags(get_all_species(), get_all_rxns());
     }
 
     if (known_vol_species.count(vm_copy.species_id) == 0) {
@@ -500,8 +500,8 @@ public:
   Molecule& add_surface_molecule(const Molecule& sm_copy) {
     // make sure that the rxn for this species flags are up-to-date
     BNG::Species& sp = get_all_species().get(sm_copy.species_id);
-    if (!sp.are_flags_based_on_rxns_uptodate()) {
-      sp.update_flags_based_on_rxns(get_all_species(), get_all_rxns());
+    if (!sp.are_rxn_and_custom_flags_uptodate()) {
+      sp.update_rxn_and_custom_flags(get_all_species(), get_all_rxns());
     }
 
     Molecule& new_sm = add_molecule(sm_copy, false);

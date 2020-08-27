@@ -95,9 +95,18 @@ public:
     }
   }
 
+  void add_flags(uint flags_to_set) {
+    flags = flags | flags_to_set;
+  }
+
   void clear_flag(uint flag) {
     assert(__builtin_popcount(flag) == 1);
     flags = flags & ~flag;
+  }
+
+  // flags is a mask of flags to be cleared
+  void clear_flags(uint flags_to_clear) {
+    flags = flags & ~flags_to_clear;
   }
 
   void set_finalized() {
@@ -149,6 +158,28 @@ public:
 
   std::string to_str() const;
 };
+
+
+class Species;
+/**
+ * Some flags need to be set according to data and code outside of
+ * this BNG library. To allow the code separation, the user may define
+ * a derived class and pass it wherever needed.
+ * Currently it is used in Species::update_rxn_and_custom_flags.
+ */
+class BaseCustomFlagAnalyzer {
+public:
+  virtual ~BaseCustomFlagAnalyzer() {
+  }
+
+  // returns a mask of all custom flags for species,
+  // used to clear any pre-existing flag values
+  virtual uint get_custom_species_flags_mask() const = 0;
+
+  // returns a mask of all custom flags for species that should be set
+  virtual uint get_custom_species_flags_to_set(const Species& species) const = 0;
+};
+
 
 } // namespace BNG
 

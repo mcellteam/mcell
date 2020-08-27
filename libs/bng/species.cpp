@@ -40,8 +40,9 @@ namespace BNG {
 // sets SPECIES_FLAG_CAN_VOLVOL, SPECIES_FLAG_CAN_VOLSURF, SPECIES_FLAG_CAN_VOLWALL,
 // SPECIES_FLAG_CAN_SURFSURF, and/or SPECIES_FLAG_CAN_REGION_BORDER
 // flags according to reactions in the system
-void Species::update_flags_based_on_rxns(
-    const SpeciesContainer& all_species, RxnContainer& all_rxns) {
+void Species::update_rxn_and_custom_flags(
+    const SpeciesContainer& all_species, RxnContainer& all_rxns,
+    const BaseCustomFlagAnalyzer* flag_analyzer) {
 
   assert(id != SPECIES_ID_INVALID);
 #ifndef NDEBUG
@@ -127,6 +128,14 @@ void Species::update_flags_based_on_rxns(
         set_flag(SPECIES_FLAG_CAN_REGION_BORDER);
       }
     }
+  }
+
+  // finally set any custom flags
+  if (flag_analyzer != nullptr) {
+    uint mask_to_clear = flag_analyzer->get_custom_species_flags_mask();
+    clear_flags(mask_to_clear);
+    uint mask_to_set = flag_analyzer->get_custom_species_flags_to_set(*this);
+    add_flags(mask_to_set);
   }
 
   rxn_flags_were_updated = true;

@@ -164,9 +164,12 @@ public:
         id == all_surface_molecules_species_id;
   }
 
-  void recompute_species_flags(RxnContainer& all_rxns) {
+  // flag_analyzer is a customizable class that provides interface
+  // that the flags update method may query to set other flags unrelated to
+  // the BNG engine itself
+  void recompute_species_flags(RxnContainer& all_rxns, BaseCustomFlagAnalyzer* flag_analyzer = nullptr) {
     for (Species& sp: species) {
-      sp.update_flags_based_on_rxns(*this, all_rxns);
+      sp.update_rxn_and_custom_flags(*this, all_rxns, flag_analyzer);
     }
   }
 
