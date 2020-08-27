@@ -108,7 +108,8 @@ void Observables::convert_observable(
     throw RuntimeError("BNGL observables with multiple patterns are not supported yet, error for " + o.name + ".");
   }
 
-  shared_ptr<API::Count> count = make_shared<Count>(output_files_prefix + o.name + ".dat");
+  shared_ptr<API::Count> count = make_shared<Count>();
+  count->filename = output_files_prefix + o.name + ".dat";
 
   std::shared_ptr<API::ComplexInstance> pattern =
       Subsystem::convert_cplx_instance(subsystem, bng_data, o.patterns[0]);

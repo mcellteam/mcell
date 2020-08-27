@@ -771,6 +771,11 @@ bool SemanticAnalyzer::check_and_convert_parsed_file(ParserContext* ctx_, BNGDat
     return false;
   }
 
+  convert_observables();
+  if (ctx->get_error_count() != 0) {
+    return false;
+  }
+
   return true;
 }
 

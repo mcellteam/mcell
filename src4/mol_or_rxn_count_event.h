@@ -73,7 +73,7 @@ public:
      {
   }
 
-  bool matches_molecule(
+  uint get_num_molecule_matches(
       const Molecule& m,
       const species_id_t all_mol_id, const species_id_t all_vol_id, const species_id_t all_surf_id
   ) const;
@@ -106,12 +106,17 @@ public:
 
 
   SpeciesPatternType species_pattern_type;
+
   // valid when species_pattern_type is SpeciesId
   species_id_t species_id;
+
   // valid when species_pattern_type is SpeciesPattern or MoleculesPattern
   BNG::CplxInstance species_molecules_pattern;
+
   // set in compute_count_species_info based on species_molecules_pattern
-  uint_set<species_id_t> species_ids_matching_pattern_cache;
+  // presence is tested when species_pattern_type is SpeciesPattern
+  // the value is used when species_pattern_type is MoleculesPattern
+  std::map<species_id_t, uint> species_ids_matching_pattern_w_multiplier_cache;
 
   // valid when type is RxnCountInWorld, RxnCountInObject or RxnOnSurfaceRegion
   BNG::rxn_rule_id_t rxn_rule_id;
@@ -158,12 +163,10 @@ enum class CountSpeciesInfoType {
 struct CountSpeciesInfo {
   CountSpeciesInfo()
     : type(CountSpeciesInfoType::NotSeen),
-      multiplicity(UINT_INVALID),
       needs_counted_volume(false) {
   }
 
   CountSpeciesInfoType type;
-  uint multiplicity; // set only when the species are matched with MoleculesPattern
   bool needs_counted_volume;
 };
 

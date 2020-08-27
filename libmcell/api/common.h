@@ -122,6 +122,16 @@ uint get_num_set(const T1& v1, const T2& v2, const T3& v3, const T4& v4) {
 }
 
 
+template<typename T1, typename T2, typename T3, typename T4, typename T5>
+uint get_num_set(const T1& v1, const T2& v2, const T3& v3, const T4& v4, const T5& v5) {
+  int res = get_num_set(v1, v2, v3, v4);
+  if (is_set(v5)) {
+    res++;
+  }
+  return res;
+}
+
+
 // NOTE: for some reason a definition in defines.h is not found, although it works fine for Vec3
 static inline std::ostream & operator<<(std::ostream &out, const IVec3& a) {
   out << "(" << a.x << ", " << a.y << ", " << a.z << ")";

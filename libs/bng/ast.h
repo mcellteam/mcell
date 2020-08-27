@@ -283,7 +283,9 @@ public:
 
 class ASTListNode: public ASTBaseNode {
 public:
-  ASTListNode() {}
+  ASTListNode() {
+    node_type = NodeType::List;
+  }
   void dump(const std::string ind) const override;
 
   ASTListNode* append(ASTBaseNode* n) {

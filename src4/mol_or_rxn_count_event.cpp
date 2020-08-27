@@ -33,21 +33,39 @@ using namespace std;
 
 namespace MCell {
 
-bool MolOrRxnCountTerm::matches_molecule(
+uint MolOrRxnCountTerm::get_num_molecule_matches(
     const Molecule& m,
     const species_id_t all_mol_id, const species_id_t all_vol_id, const species_id_t all_surf_id) const {
   assert(is_mol_count());
   if (species_pattern_type == SpeciesPatternType::SpeciesId) {
     assert(species_id != SPECIES_ID_INVALID);
-    return
+    if (
         species_id == m.species_id ||
         species_id == all_mol_id ||
        (species_id == all_vol_id && m.is_vol()) ||
-       (species_id == all_surf_id && m.is_surf());
+       (species_id == all_surf_id && m.is_surf())
+    ) {
+      return 1;
+    }
+    else {
+      return 0;
+    }
   }
   else {
     assert(!species_molecules_pattern.mol_instances.empty());
-    return species_ids_matching_pattern_cache.count(m.species_id) != 0;
+    auto it = species_ids_matching_pattern_w_multiplier_cache.find(m.species_id);
+    if (it == species_ids_matching_pattern_w_multiplier_cache.end()) {
+      return 0;
+    }
+    else if (species_pattern_type == SpeciesPatternType::SpeciesPattern) {
+      // each molecule is counted only once
+      return 1;
+    }
+    else {
+      assert(species_pattern_type == SpeciesPatternType::MoleculesPattern);
+      assert(it->second >= 1);
+      return it->second;
+    }
   }
 }
 
@@ -106,7 +124,7 @@ void MolOrRxnCountTerm::dump(const std::string ind) const {
   cout << "\n";
 
   cout << ind << "species_id: " << species_id << " [species_id_t]\n";
-  cout << ind << "species_molecules_pattern: " << "(cannot be dumped yet)" << " [CplxInstance]\n";
+  cout << ind << "species_molecules_pattern: " << "(not dumped yet)" << " [CplxInstance]\n";
   cout << ind << "rxn_rule_id: " << rxn_rule_id << " [rxn_rule_id_t]\n";
   cout << ind << "geometry_object_id: " << geometry_object_id << " [geometry_object_id_t]\n";
 }
@@ -351,11 +369,17 @@ void MolOrRxnCountEvent::step() {
         for (const MolOrRxnCountTerm& term: item.terms) {
 
           // does the current molecule match?
-          if (term.is_mol_count() && term.matches_molecule(m, all_mol_id, all_vol_id, all_surf_id)) {
+          if (term.is_mol_count()) {
+
+            // num_matches may be > 1 when molecules pattern is used for matching
+            uint num_matches = term.get_num_molecule_matches(m, all_mol_id, all_vol_id, all_surf_id);
+            if (num_matches == 0) {
+              continue;
+            }
 
             if (term.type == CountType::EnclosedInWorld) {
               // count the molecule
-              count_items[i].inc_or_dec(term.sign_in_expression);
+              count_items[i].inc_or_dec(term.sign_in_expression, num_matches);
             }
             else if (m.is_vol() && term.type == CountType::EnclosedInVolumeRegion) {
               assert(term.geometry_object_id != GEOMETRY_OBJECT_ID_INVALID);
@@ -364,14 +388,14 @@ void MolOrRxnCountEvent::step() {
               const CountedVolume& enclosing_volumes = p.get_counted_volume(m.v.counted_volume_index);
               if (enclosing_volumes.contained_in_objects.count(term.geometry_object_id)) {
 
-                count_items[i].inc_or_dec(term.sign_in_expression);
+                count_items[i].inc_or_dec(term.sign_in_expression, num_matches);
               }
             }
             else if (m.is_surf() && term.type == CountType::PresentOnSurfaceRegion) {
               assert(term.region_id != REGION_ID_INVALID);
 
               if (wall_is_part_of_region(p, m.s.wall_index, term.region_id)) {
-                count_items[i].inc_or_dec(term.sign_in_expression);
+                count_items[i].inc_or_dec(term.sign_in_expression, num_matches);
               }
             }
           }
@@ -498,11 +522,8 @@ void MolOrRxnCountEvent::compute_count_species_info(const species_id_t species_i
         uint num_matches = species.get_pattern_num_matches(term.species_molecules_pattern);
         if (num_matches > 0) {
           // we must also remember that this species id matches the term's pattern
-          term.species_ids_matching_pattern_cache.insert_unique(species_id);
+          term.species_ids_matching_pattern_w_multiplier_cache[species_id] = num_matches;
           matches = true;
-          if (term.species_pattern_type == SpeciesPatternType::MoleculesPattern) {
-            info.multiplicity = num_matches;
-          }
         }
       }
 
