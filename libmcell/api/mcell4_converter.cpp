@@ -1102,7 +1102,7 @@ MCell::MolOrRxnCountTerm MCell4Converter::convert_count_term_leaf_and_init_count
   // what
   if (is_set(ct->species) || is_set(ct->species_pattern) || is_set(ct->molecules_pattern)) {
 
-    bool is_vol;
+    bool is_vol = true; // set to silence compiler warning
     string name;
 
     if (is_set(ct->species)) {
