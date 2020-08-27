@@ -141,6 +141,14 @@ bool CplxInstance::matches_complex_pattern_ignore_orientation(const CplxInstance
 }
 
 
+uint CplxInstance::get_pattern_num_matches(const CplxInstance& pattern) const {
+  assert(is_finalized() && pattern.is_finalized());
+  VertexMappingVector mappings;
+  get_subgraph_isomorphism_mappings(pattern.graph, graph, false, mappings);
+  return mappings.size();
+}
+
+
 bool CplxInstance::matches_complex_fully_ignore_orientation(const CplxInstance& pattern) const {
   if (graph.m_vertices.size() != pattern.graph.m_vertices.size()) {
     // we need full match

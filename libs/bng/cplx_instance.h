@@ -111,6 +111,10 @@ public:
     }
   }
 
+  // returns how many times a pattern matches this cplx instance,
+   // used for counting of molecule pattern type observables
+  uint get_pattern_num_matches(const CplxInstance& pattern) const;
+
   // returns true if this complex is equivalent
   bool matches_fully(const CplxInstance& other, const bool ignore_orientation = false) const {
 #ifdef DEBUG_CPLX_MATCHING_EXTRA_COMPARE

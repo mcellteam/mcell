@@ -42,7 +42,7 @@ const event_type_index_t EVENT_TYPE_INDEX_INVALID = -1;
 const event_type_index_t EVENT_TYPE_INDEX_PERIODIC_CALL = 0;
 const event_type_index_t EVENT_TYPE_INDEX_RELEASE = 200;
 // first counting and visualization output is done after release
-const event_type_index_t EVENT_TYPE_INDEX_MOL_COUNT = 290;
+const event_type_index_t EVENT_TYPE_INDEX_MOL_OR_RXN_COUNT = 290;
 // viz_output is special in the way that simulation is terminated herein the last iteration
 const event_type_index_t EVENT_TYPE_INDEX_VIZ_OUTPUT = 300;
 const event_type_index_t EVENT_TYPE_INDEX_SORT_MOLS_BY_SUBPART = 490;

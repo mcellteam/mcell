@@ -44,6 +44,7 @@
 #include "count_buffer.h"
 #include "counted_volumes_util.h"
 #include "legacy_callback_info.h"
+#include "species_flags_analyzer.h"
 
 #include "logging.h"
 
@@ -115,7 +116,7 @@ public:
   partition_id_t add_partition(const Vec3& partition_llf) {
     assert(config.partition_edge_length != 0);
     assert(get_partition_index(partition_llf) == PARTITION_ID_INVALID && "Partition must not exist");
-    partitions.push_back(Partition(partitions.size(), partition_llf, config, bng_engine, stats));
+    partitions.push_back(Partition(partitions.size(), partition_llf, config, bng_engine, stats, species_flags_analyzer));
     return partitions.size() - 1;
   }
 
@@ -275,6 +276,9 @@ public:
   static uint64_t determine_output_frequency(uint64_t iterations);
 
 private:
+  // called in init_simulation
+  void recompute_species_flags();
+
   void init_fpu();
   void init_counted_volumes();
 
@@ -291,6 +295,8 @@ public:
   BNG::BNGEngine bng_engine;
 
   SimulationStats stats;
+
+  SpeciesFlagsAnalyzer species_flags_analyzer;
 
   Scheduler scheduler;
 

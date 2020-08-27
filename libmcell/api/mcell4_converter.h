@@ -45,7 +45,7 @@ class GeometryObject;
 class RegionExprNode;
 class ReleaseEvent;
 class MolOrRxnCountTerm;
-class MolOrRxnCountInfo;
+class MolOrRxnCountItem;
 
 namespace API {
 
@@ -126,7 +126,7 @@ private:
   void convert_count_terms_recursively(
       const std::shared_ptr<API::CountTerm> ct,
       const int sign,
-      MCell::MolOrRxnCountInfo& info
+      MCell::MolOrRxnCountItem& info
   );
   void convert_mol_or_rxn_count_events_and_init_counting_flags();
   void init_species_counting_flags();

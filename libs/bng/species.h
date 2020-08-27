@@ -100,7 +100,7 @@ public:
 
   void update_rxn_and_custom_flags(
       const SpeciesContainer& all_species, RxnContainer& all_rxns,
-      const BaseCustomFlagAnalyzer* flag_analyzer = nullptr
+      const BaseCustomFlagsAnalyzer* flags_analyzer = nullptr
   );
 
   // true if can interact with edge of an border

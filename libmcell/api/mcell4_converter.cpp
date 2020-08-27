@@ -702,9 +702,6 @@ void MCell4Converter::init_rxn_related_flags() {
   species_id_t all_surface_molecules_species_id = all_species.get_all_surface_molecules_species_id();
 
   all_rxns.update_all_mols_flags();
-
-  // needed to update counting flags
-  world->get_all_species().recompute_species_flags(world->get_all_rxns());
 }
 
 
@@ -1131,9 +1128,6 @@ MCell::MolOrRxnCountTerm MCell4Converter::convert_count_term_leaf_and_init_count
         res.type = MCell::CountType::EnclosedInVolumeRegion;
         res.geometry_object_id = obj_id;
 
-        // set species flag
-        sp.set_flag(BNG::SPECIES_FLAG_NEEDS_COUNTED_VOLUME);
-
         // and also mark the object that we are counting molecules inside
         world->get_geometry_object(res.geometry_object_id).is_counted_volume = true;
       }
@@ -1212,7 +1206,7 @@ MCell::MolOrRxnCountTerm MCell4Converter::convert_count_term_leaf_and_init_count
 void MCell4Converter::convert_count_terms_recursively(
     const std::shared_ptr<API::CountTerm> ct,
     const int sign,
-    MCell::MolOrRxnCountInfo& info
+    MCell::MolOrRxnCountItem& info
 ) {
   assert(is_set(ct));
 
@@ -1251,7 +1245,7 @@ void MCell4Converter::convert_mol_or_rxn_count_events_and_init_counting_flags() 
     count_buffer_id_t buffer_id =
         world->create_count_buffer(c->filename, API::DEFAULT_COUNT_BUFFER_SIZE);
 
-    MCell::MolOrRxnCountInfo info(buffer_id);
+    MCell::MolOrRxnCountItem info(buffer_id);
 
     // process count terms
     if (is_set(c->count_expression)) {
@@ -1265,7 +1259,7 @@ void MCell4Converter::convert_mol_or_rxn_count_events_and_init_counting_flags() 
 
     // having multiple MolOrRxnCountInfo per MolOrRxnCountEvent
     // was useful for MCell3 conversion, however for pymcell4 each count is a separate event
-    count_event->add_mol_count_info(info);
+    count_event->add_mol_count_item(info);
     world->scheduler.schedule_event(count_event);
   }
 }

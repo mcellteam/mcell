@@ -42,7 +42,7 @@ namespace BNG {
 // flags according to reactions in the system
 void Species::update_rxn_and_custom_flags(
     const SpeciesContainer& all_species, RxnContainer& all_rxns,
-    const BaseCustomFlagAnalyzer* flag_analyzer) {
+    const BaseCustomFlagsAnalyzer* flags_analyzer) {
 
   assert(id != SPECIES_ID_INVALID);
 #ifndef NDEBUG
@@ -57,9 +57,14 @@ void Species::update_rxn_and_custom_flags(
   set_flag(SPECIES_FLAG_CAN_VOLWALL, false);
   set_flag(SPECIES_FLAG_CAN_SURFSURF, false);
   set_flag(SPECIES_FLAG_CAN_REGION_BORDER, false);
-  // flag SPECIES_FLAG_NEEDS_COUNTED_VOLUME - must not be cleared because
-  // it might have been set when processing observables,
-  // here we are dealing only with flags related to reactions
+
+  // set any custom flags (only SPECIES_FLAG_NEEDS_COUNTED_VOLUME is set currently)
+  if (flags_analyzer != nullptr) {
+    uint mask_to_clear = flags_analyzer->get_custom_species_flags_mask();
+    clear_flags(mask_to_clear);
+    uint mask_to_set = flags_analyzer->get_custom_species_flags_to_set(*this);
+    add_flags(mask_to_set);
+  }
 
   if (is_vol() && all_vol_mols_can_react_with_surface) {
     set_flag(SPECIES_FLAG_CAN_VOLWALL);
@@ -128,14 +133,6 @@ void Species::update_rxn_and_custom_flags(
         set_flag(SPECIES_FLAG_CAN_REGION_BORDER);
       }
     }
-  }
-
-  // finally set any custom flags
-  if (flag_analyzer != nullptr) {
-    uint mask_to_clear = flag_analyzer->get_custom_species_flags_mask();
-    clear_flags(mask_to_clear);
-    uint mask_to_set = flag_analyzer->get_custom_species_flags_to_set(*this);
-    add_flags(mask_to_set);
   }
 
   rxn_flags_were_updated = true;

@@ -32,6 +32,7 @@
 #include "molecule.h"
 #include "scheduler.h"
 #include "geometry.h"
+#include "species_flags_analyzer.h"
 #include "../libmcell/api/shared_structs.h"
 
 namespace Json {
@@ -120,14 +121,16 @@ public:
       const Vec3& origin_corner_,
       const SimulationConfig& config_,
       BNG::BNGEngine& bng_engine_,
-      SimulationStats& stats_
+      SimulationStats& stats_,
+      SpeciesFlagsAnalyzer& species_flags_analyzer_
   )
     : origin_corner(origin_corner_),
       next_molecule_id(0),
       id(id_),
       config(config_),
       bng_engine(bng_engine_),
-      stats(stats_) {
+      stats(stats_),
+      species_flags_analyzer(species_flags_analyzer_) {
 
     opposite_corner = origin_corner + config.partition_edge_length;
 
@@ -468,7 +471,7 @@ public:
     // make sure that the rxn for this species flags are up-to-date
     BNG::Species& sp = get_all_species().get(vm_copy.species_id);
     if (!sp.are_rxn_and_custom_flags_uptodate()) {
-      sp.update_rxn_and_custom_flags(get_all_species(), get_all_rxns());
+      sp.update_rxn_and_custom_flags(get_all_species(), get_all_rxns(), &species_flags_analyzer);
     }
 
     if (known_vol_species.count(vm_copy.species_id) == 0) {
@@ -501,7 +504,7 @@ public:
     // make sure that the rxn for this species flags are up-to-date
     BNG::Species& sp = get_all_species().get(sm_copy.species_id);
     if (!sp.are_rxn_and_custom_flags_uptodate()) {
-      sp.update_rxn_and_custom_flags(get_all_species(), get_all_rxns());
+      sp.update_rxn_and_custom_flags(get_all_species(), get_all_rxns(), &species_flags_analyzer);
     }
 
     Molecule& new_sm = add_molecule(sm_copy, false);
@@ -1052,6 +1055,7 @@ public:
   const SimulationConfig& config;
   BNG::BNGEngine& bng_engine;
   SimulationStats& stats;
+  SpeciesFlagsAnalyzer& species_flags_analyzer;
 };
 
 typedef std::vector<Partition> PartitionVector;

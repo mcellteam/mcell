@@ -29,6 +29,10 @@
 #include "base_event.h"
 #include "count_buffer.h"
 
+namespace BNG {
+class SpeciesContainer;
+}
+
 namespace MCell {
 
 class Partition;
@@ -112,9 +116,9 @@ public:
 };
 
 
-class MolOrRxnCountInfo {
+class MolOrRxnCountItem {
 public:
-  MolOrRxnCountInfo(const count_buffer_id_t buffer_id_)
+  MolOrRxnCountItem(const count_buffer_id_t buffer_id_)
     : buffer_id(buffer_id_), multiplier(1) {
     assert(buffer_id != COUNT_BUFFER_ID_INVALID);
   }
@@ -134,13 +138,34 @@ public:
 };
 
 
+enum class CountSpeciesInfoType {
+  NotSeen,
+  Counted,
+  NotCounted
+};
+
+/**
+ * Structure used in caching of information on whether the coutn event counts given species.
+ */
+struct CountSpeciesInfo {
+  CountSpeciesInfo()
+    : type(CountSpeciesInfoType::NotSeen),
+      multiplicity(UINT_INVALID),
+      needs_counted_volume(false) {
+  }
+
+  CountSpeciesInfoType type;
+  uint multiplicity; // set only when the species are matched with MoleculesPattern
+  bool needs_counted_volume;
+};
+
 /**
  * Dumps counts of molecules.
  */
 class MolOrRxnCountEvent: public BaseEvent {
 public:
   MolOrRxnCountEvent(World* world_)
-    : BaseEvent(EVENT_TYPE_INDEX_MOL_COUNT),
+    : BaseEvent(EVENT_TYPE_INDEX_MOL_OR_RXN_COUNT),
       world(world_) {
   }
   virtual ~MolOrRxnCountEvent() {}
@@ -153,13 +178,28 @@ public:
   void dump(const std::string ind = "") const override;
   void to_data_model(Json::Value& mcell_node) const override;
 
-  void add_mol_count_info(const MolOrRxnCountInfo& info) {
-    mol_count_infos.push_back(info);
+  void add_mol_count_item(const MolOrRxnCountItem& item) {
+    mol_count_items.push_back(item);
   }
 
-  std::vector<MolOrRxnCountInfo> mol_count_infos;
+  // returns true if this count event count these specific species
+  // and whether the species are counted in volume regions so that they
+  // need the Molecule's attribute counted_volume to be maintained
+  // is cached
+  bool species_needs_counted_volume(const species_id_t species_id) {
+    return get_or_compute_count_species_info(species_id).needs_counted_volume;
+  }
+
+  std::vector<MolOrRxnCountItem> mol_count_items;
 
   World* world;
+
+private:
+  const CountSpeciesInfo& get_or_compute_count_species_info(const species_id_t species_id);
+  void compute_count_species_info(const species_id_t species_id);
+
+  // index to this array is species_id
+  std::vector<CountSpeciesInfo> count_species_info;
 };
 
 } // namespace mcell

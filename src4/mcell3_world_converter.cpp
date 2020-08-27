@@ -136,9 +136,6 @@ bool MCell3WorldConverter::convert(volume* s) {
   CHECK(convert_viz_output_events(s));
   CHECK(convert_mol_or_rxn_count_events(s));
 
-  // additional flags
-  world->get_all_species().recompute_species_flags(world->get_all_rxns()); // counting flags must be updated
-
   return true;
 }
 
@@ -1681,7 +1678,7 @@ bool MCell3WorldConverter::convert_mol_or_rxn_count_events(volume* s) {
       float_t multiplier = 1;
       CHECK(find_output_requests_terms_recursively(s, column_head->expr, +1, true, requests_with_sign, multiplier));
 
-      MolOrRxnCountInfo info(buffer_id);
+      MolOrRxnCountItem info(buffer_id);
       info.multiplier = multiplier;
 
       for (pair<const output_request*, int>& req_w_sign: requests_with_sign) {
@@ -1768,13 +1765,6 @@ bool MCell3WorldConverter::convert_mol_or_rxn_count_events(volume* s) {
           term.species_pattern_type = SpeciesPatternType::SpeciesId;
           term.species_id = world->get_all_species().find_by_name(species_name);
           CHECK_PROPERTY(term.species_id != SPECIES_ID_INVALID);
-
-          // set a flag that these species are to be counted
-          BNG::Species& species = world->get_all_species().get(term.species_id);
-
-          if (term.type == CountType::EnclosedInVolumeRegion) {
-            species.set_flag(BNG::SPECIES_FLAG_NEEDS_COUNTED_VOLUME);
-          }
         }
         else {
           // set that the reaction must be counted
@@ -1804,7 +1794,7 @@ bool MCell3WorldConverter::convert_mol_or_rxn_count_events(volume* s) {
 
         info.terms.push_back(term);
       }
-      event->add_mol_count_info(info);
+      event->add_mol_count_item(info);
     }
 
     world->scheduler.schedule_event(event);

@@ -167,9 +167,9 @@ class Species;
  * a derived class and pass it wherever needed.
  * Currently it is used in Species::update_rxn_and_custom_flags.
  */
-class BaseCustomFlagAnalyzer {
+class BaseCustomFlagsAnalyzer {
 public:
-  virtual ~BaseCustomFlagAnalyzer() {
+  virtual ~BaseCustomFlagsAnalyzer() {
   }
 
   // returns a mask of all custom flags for species,

@@ -137,6 +137,8 @@ public:
   float_t length_unit;
 };
 
+class SpeciesFlagsAnalyzer {
+};
 
 class Partition {
 public:
@@ -146,7 +148,8 @@ public:
       const Vec3 origin_,
       const SimulationConfig& config_,
       BNG::BNGEngine& bng_engine_,
-      SimulationStats& stats_
+      SimulationStats& stats_,
+      SpeciesFlagsAnalyzer& species_flags_analyzer_
   );
   
   int get_geometry_vertex_count();
