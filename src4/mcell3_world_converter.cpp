@@ -871,7 +871,7 @@ bool MCell3WorldConverter::convert_species(volume* s) {
         || flags_check == SPECIES_CPLX_MOL_FLAG_SURF
         || flags_check == SPECIES_CPLX_MOL_FLAG_REACTIVE_SURFACE
 
-        || flags_check == (SPECIES_FLAG_COUNT_ENCLOSED | COUNT_CONTENTS)
+        || flags_check == (COUNT_ENCLOSED | COUNT_CONTENTS)
 
         || flags_check == SPECIES_FLAG_CAN_VOLVOL
         || flags_check == SPECIES_FLAG_CAN_VOLWALL
@@ -891,7 +891,7 @@ bool MCell3WorldConverter::convert_species(volume* s) {
         || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_VOLVOL | COUNT_CONTENTS)
         || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_SURFSURF | COUNT_CONTENTS)
         || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_SURFSURF | SPECIES_FLAG_CAN_VOLWALL | COUNT_CONTENTS)
-        || flags_check == (SPECIES_FLAG_CAN_VOLWALL | SPECIES_FLAG_COUNT_ENCLOSED | COUNT_CONTENTS)
+        || flags_check == (SPECIES_FLAG_CAN_VOLWALL | COUNT_ENCLOSED | COUNT_CONTENTS)
         || flags_check == (SPECIES_CPLX_MOL_FLAG_SURF | SPECIES_FLAG_CAN_SURFSURF | CAN_SURFWALL | SPECIES_FLAG_CAN_REGION_BORDER)
       )) {
       mcell_log("Unsupported species flag for species %s: %s\n", new_species.name.c_str(), get_species_flags_string(spec->flags).c_str());
@@ -1771,7 +1771,6 @@ bool MCell3WorldConverter::convert_mol_or_rxn_count_events(volume* s) {
 
           // set a flag that these species are to be counted
           BNG::Species& species = world->get_all_species().get(term.species_id);
-          species.set_flag(BNG::SPECIES_FLAG_COUNT_ENCLOSED);
 
           if (term.type == CountType::EnclosedInVolumeRegion) {
             species.set_flag(BNG::SPECIES_FLAG_NEEDS_COUNTED_VOLUME);

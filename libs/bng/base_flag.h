@@ -33,10 +33,10 @@ enum species_cplx_mol_rxn_flag_t {
   // surf regions - CONTENTS
 
   // COUNT_CONTENTS is set if you're counting numbers of molecules in/on regions
-  SPECIES_FLAG_COUNT_CONTENTS =  0x1000,
+  //SPECIES_FLAG_COUNT_CONTENTS =  0x1000, - not needed
 
   // COUNT_ENCLOSED set if you count what happens inside closed region
-  SPECIES_FLAG_COUNT_ENCLOSED = 0x8000, // this species is marked to be counted inside of a volume
+  //SPECIES_FLAG_COUNT_ENCLOSED = 0x8000, - not needed // this species is marked to be counted inside of a volume
 
   SPECIES_FLAG_NEEDS_COUNTED_VOLUME = 0x10000, // CAN_VOLSURFSURF in MCell3
 

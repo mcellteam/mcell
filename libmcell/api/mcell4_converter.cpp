@@ -1132,9 +1132,6 @@ MCell::MolOrRxnCountTerm MCell4Converter::convert_count_term_leaf_and_init_count
         res.geometry_object_id = obj_id;
 
         // set species flag
-        sp.set_flag(BNG::SPECIES_FLAG_COUNT_ENCLOSED);
-        sp.set_flag(BNG::SPECIES_FLAG_COUNT_CONTENTS);
-
         sp.set_flag(BNG::SPECIES_FLAG_NEEDS_COUNTED_VOLUME);
 
         // and also mark the object that we are counting molecules inside
@@ -1151,14 +1148,12 @@ MCell::MolOrRxnCountTerm MCell4Converter::convert_count_term_leaf_and_init_count
 
         res.type = MCell::CountType::PresentOnSurfaceRegion;
         res.region_id = reg_id;
-        sp.set_flag(BNG::SPECIES_FLAG_COUNT_CONTENTS);
 
         // these are only surface regions and there is no need to set that they are counted
       }
     }
     else {
       res.type = MCell::CountType::EnclosedInWorld;
-      sp.set_flag(BNG::SPECIES_FLAG_COUNT_ENCLOSED);
     }
   }
   else if (is_set(ct->reaction_rule))

@@ -86,7 +86,19 @@ std::string MolOrRxnCountTerm::to_data_model_string(const World* world, bool pri
     case CountType::EnclosedInWorld:
     case CountType::EnclosedInVolumeRegion:
     case CountType::PresentOnSurfaceRegion:
-      res << world->get_all_species().get(species_id).name;
+      switch (species_pattern_type) {
+        case SpeciesPatternType::SpeciesId:
+          res << world->get_all_species().get(species_id).name;
+          break;
+        case SpeciesPatternType::SpeciesPattern:
+          res << species_molecules_pattern.to_str(world->bng_engine.get_data()) << "/*Species*/";
+          break;
+        case SpeciesPatternType::MoleculesPattern:
+          res << species_molecules_pattern.to_str(world->bng_engine.get_data()) << "/*Molecules*/";
+          break;
+        default:
+          assert(false);
+      }
       break;
     case CountType::RxnCountInWorld:
     case CountType::RxnCountInVolumeRegion:
@@ -284,10 +296,11 @@ void MolOrRxnCountEvent::step() {
         continue;
       }
 
-      const BNG::Species& species = world->get_all_species().get(m.species_id);
+      // TODO: add fast filtering - these flags were removed
+      /*const BNG::Species& species = world->get_all_species().get(m.species_id);
       if (!species.has_count_enclosed_flag() && !species.has_count_contents_flag()) {
         continue;
-      }
+      }*/
 
       // for each counting info
       for (uint i = 0; i < mol_count_infos.size(); i++) {

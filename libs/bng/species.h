@@ -96,14 +96,6 @@ public:
   // flags according to reactions in the system
   void update_flags_based_on_rxns(const SpeciesContainer& all_species, RxnContainer& all_rxns, const bool force_update = false);
 
-  bool has_count_contents_flag() const {
-    return has_flag(SPECIES_FLAG_COUNT_CONTENTS);
-  }
-
-  bool has_count_enclosed_flag() const {
-    return has_flag(SPECIES_FLAG_COUNT_ENCLOSED);
-  }
-
   // true if can interact with edge of an border
   bool can_interact_with_border() const {
     return has_flag(SPECIES_FLAG_CAN_REGION_BORDER);
