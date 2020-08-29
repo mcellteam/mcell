@@ -130,11 +130,11 @@ void Subsystem::convert_reaction_rule(const BNG::BNGData& bng_data, const BNG::R
   res_rr->fwd_rate = bng_rr.base_rate_constant;
 
   for (const BNG::CplxInstance& inst: bng_rr.reactants) {
-    res_rr->reactants.push_back(convert_cplx_instance(shared_from_this(), bng_data, inst));
+    res_rr->reactants.push_back(convert_cplx_instance(bng_data, inst));
   }
 
   for (const BNG::CplxInstance& inst: bng_rr.products) {
-    res_rr->products.push_back(convert_cplx_instance(shared_from_this(), bng_data, inst));
+    res_rr->products.push_back(convert_cplx_instance(bng_data, inst));
   }
 
   append_to_vec(reaction_rules, res_rr);
@@ -161,7 +161,6 @@ static int convert_bond_value(const BNG::bond_value_t bng_bond_value) {
 
 
 shared_ptr<API::ComplexInstance> Subsystem::convert_cplx_instance(
-    shared_ptr<API::Subsystem> subsystem,
     const BNG::BNGData& bng_data,
     const BNG::CplxInstance& bng_inst) {
 
@@ -172,7 +171,7 @@ shared_ptr<API::ComplexInstance> Subsystem::convert_cplx_instance(
 
     // find molecule type and create an instance
     const string& mt_name = bng_data.get_molecule_type(bmg_mi.mol_type_id).name;
-    std::shared_ptr<ElementaryMoleculeType> api_emt = subsystem->find_elementary_molecule_type(mt_name);
+    std::shared_ptr<ElementaryMoleculeType> api_emt = find_elementary_molecule_type(mt_name);
     assert(is_set(api_emt));
 
     // prepare a vector of component instances with their bonds set

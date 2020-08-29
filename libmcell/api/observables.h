@@ -61,18 +61,19 @@ public:
   // added manually
   void dump() const;
 
-private:
+protected:
   void convert_bng_data_to_observables_data(
       const BNG::BNGData& bng_data,
-      const std::string& output_files_prefix,
-      std::shared_ptr<Subsystem> subsystem
+      Subsystem& subsystem,
+      const std::string& output_files_prefix
   );
 
+private:
   void convert_observable(
       const BNG::Observable& o,
       const BNG::BNGData& bng_data,
-      const std::string& output_files_prefix,
-      std::shared_ptr<Subsystem> subsystem
+      Subsystem& subsystem,
+      const std::string& output_files_prefix
   );
 };
 

@@ -67,16 +67,17 @@ public:
   // added manually
   void dump() const;
 
-private:
+protected:
   void convert_bng_data_to_instantiation_data(
       const BNG::BNGData& bng_data,
-      std::shared_ptr<Subsystem> subsystem,
+      Subsystem& subsystem,
       std::shared_ptr<Region> default_release_region);
 
+private:
   void convert_single_seed_species_to_release_site(
       const BNG::BNGData& bng_data,
       const BNG::SeedSpecies& bng_ss,
-      std::shared_ptr<Subsystem> subsystem,
+      Subsystem& subsystem,
       std::shared_ptr<Region> default_release_region);
 };
 

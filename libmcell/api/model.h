@@ -86,6 +86,13 @@ public:
       std::shared_ptr<Species> species = nullptr
   ) override;
 
+
+  void load_bngl(
+      const std::string& filename,
+      const std::string& observables_files_prefix,
+      std::shared_ptr<Region> default_release_region = nullptr
+  ) override;
+
   void error_if_initialized(const char* what) {
     if (initialized) {
       throw(S("It is not possible to add ") + what + " once a model was initialized.");

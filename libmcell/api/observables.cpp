@@ -83,17 +83,17 @@ void Observables::load_bngl_observables(
 
   // now convert everything we parsed into the API classes so that the user can
   // inspect or manipulate it if needed
-  convert_bng_data_to_observables_data(bng_data, output_files_prefix, subsystem);
+  convert_bng_data_to_observables_data(bng_data, *subsystem, output_files_prefix);
 }
 
 
 void Observables::convert_bng_data_to_observables_data(
     const BNG::BNGData& bng_data,
-    const std::string& output_files_prefix,
-    std::shared_ptr<Subsystem> subsystem) {
+    Subsystem& subsystem,
+    const std::string& output_files_prefix) {
 
   for (const Observable& o: bng_data.get_observables()) {
-    convert_observable(o, bng_data, output_files_prefix, subsystem);
+    convert_observable(o, bng_data, subsystem, output_files_prefix);
   }
 }
 
@@ -101,8 +101,8 @@ void Observables::convert_bng_data_to_observables_data(
 void Observables::convert_observable(
     const BNG::Observable& o,
     const BNG::BNGData& bng_data,
-    const std::string& output_files_prefix,
-    std::shared_ptr<Subsystem> subsystem) {
+    Subsystem& subsystem,
+    const std::string& output_files_prefix) {
 
   if (o.patterns.size() != 1) {
     throw RuntimeError("BNGL observables with multiple patterns are not supported yet, error for " + o.name + ".");
@@ -112,7 +112,7 @@ void Observables::convert_observable(
   count->filename = output_files_prefix + o.name + ".dat";
 
   std::shared_ptr<API::ComplexInstance> pattern =
-      Subsystem::convert_cplx_instance(subsystem, bng_data, o.patterns[0]);
+      subsystem.convert_cplx_instance(bng_data, o.patterns[0]);
 
   if (o.type == ObservableType::Molecules) {
     count->molecules_pattern = pattern;

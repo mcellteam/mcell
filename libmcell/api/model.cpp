@@ -252,6 +252,29 @@ void Model::register_wall_hit_callback(
 }
 
 
+void Model::load_bngl(
+    const std::string& filename,
+    const std::string& observables_files_prefix,
+    std::shared_ptr<Region> default_release_region) {
+
+  BNG::BNGData bng_data;
+
+  int num_errors = BNG::parse_bngl_file(filename, bng_data);
+  if (num_errors != 0) {
+    throw RuntimeError("Could not parse BNGL file " + filename + ".");
+  }
+
+  // now convert everything we parsed into the API classes so that the user can
+  // inspect or manipulate it if needed
+  convert_bng_data_to_subsystem_data(bng_data);
+
+  // needs subsystem data created in the last step
+  convert_bng_data_to_instantiation_data(bng_data, *this, default_release_region);
+
+  convert_bng_data_to_observables_data(bng_data, *this, observables_files_prefix);
+}
+
+
 std::string Model::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << "Model" << ": " <<

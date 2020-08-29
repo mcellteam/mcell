@@ -142,17 +142,21 @@ Model:
       doc: Only hits of molecules of this species will be reported, any species hit is reported when not set.
       
   
-#  - name: load_bngl
-#    doc: | 
-#      Loads sections: molecule types, reaction rules, seed species, and observables from a BNGL file
-#      and creates objects in the current model according to it.
-#      All elementary molecule types used in the seed species section must be defined in subsystem.
-#      If an item in the seed species section does not have its compartment set,
-#      the argument default_region must be set and the molecules are released into or onto the 
-#      default_region. 
-#    params:
-#    - name: filename
-#      type: str  
-#    - name: default_release_region
-#      type: Region*
-#      default: unset
+  - name: load_bngl
+    doc: | 
+      Loads sections: molecule types, reaction rules, seed species, and observables from a BNGL file
+      and creates objects in the current model according to it.
+      All elementary molecule types used in the seed species section must be defined in subsystem.
+      If an item in the seed species section does not have its compartment set,
+      the argument default_region must be set and the molecules are released into or onto the 
+      default_region. 
+    params:
+    - name: filename
+      type: str  
+    - name: observables_files_prefix
+      type: str   
+      doc: Prefix to be used for created files with observable values.      
+    - name: default_release_region
+      type: Region*
+      default: unset
+      

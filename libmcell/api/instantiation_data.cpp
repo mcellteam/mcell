@@ -54,13 +54,13 @@ void InstantiationData::load_bngl_seed_species(
 
   // now convert everything we parsed into the API classes so that the user can
   // inspect or manipulate it if needed
-  convert_bng_data_to_instantiation_data(bng_data, subsystem, default_release_region);
+  convert_bng_data_to_instantiation_data(bng_data, *subsystem, default_release_region);
 }
 
 
 void InstantiationData::convert_bng_data_to_instantiation_data(
     const BNG::BNGData& bng_data,
-    std::shared_ptr<Subsystem> subsystem,
+    Subsystem& subsystem,
     std::shared_ptr<Region> default_release_region) {
 
   for (const BNG::SeedSpecies& bng_ss: bng_data.get_seed_species()) {
@@ -71,7 +71,7 @@ void InstantiationData::convert_bng_data_to_instantiation_data(
 void InstantiationData::convert_single_seed_species_to_release_site(
     const BNG::BNGData& bng_data,
     const BNG::SeedSpecies& bng_ss,
-    std::shared_ptr<Subsystem> subsystem,
+    Subsystem& subsystem,
     std::shared_ptr<Region> default_release_region) {
 
   if (!is_set(default_release_region)) {
@@ -83,7 +83,7 @@ void InstantiationData::convert_single_seed_species_to_release_site(
 
   // we need to create API representation for the cplx instance we got
   rel_site->complex_instance =
-      Subsystem::convert_cplx_instance(subsystem, bng_data, bng_ss.cplx_instance);
+      subsystem.convert_cplx_instance(bng_data, bng_ss.cplx_instance);
 
   rel_site->name =
       "Release of " + rel_site->complex_instance->to_bngl_str() +

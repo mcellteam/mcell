@@ -85,13 +85,14 @@ public:
   void dump() const;
 
   // auxiliary method used also from InstantiationData
-  static std::shared_ptr<API::ComplexInstance> convert_cplx_instance(
-      std::shared_ptr<API::Subsystem> subsystem,
+  std::shared_ptr<API::ComplexInstance> convert_cplx_instance(
       const BNG::BNGData& bng_data,
       const BNG::CplxInstance& bng_inst);
 
-private:
+protected:
   void convert_bng_data_to_subsystem_data(const BNG::BNGData& bng_data);
+
+private:
   void convert_molecule_type(const BNG::BNGData& bng_data, const BNG::MolType& bng_mt);
   void convert_reaction_rule(const BNG::BNGData& bng_data, const BNG::RxnRule& bng_rr);
 };

@@ -539,6 +539,14 @@ class Model():
         ) -> None:
         pass
 
+    def load_bngl(
+            self,
+            filename : str,
+            observables_files_prefix : str,
+            default_release_region : Region = None
+        ) -> None:
+        pass
+
     def add_species(
             self,
             s : Species
