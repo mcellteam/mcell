@@ -1,2 +1,11 @@
 Downloaded on August 29, 2020 from http://pallini.di.uniroma1.it/nauty27r1.tar.gz 
 version 2.7 (r1)
+
+Unmodified sources commited as 
+commit f43b94f91c52ede7c4b7631b615f9698ded27ee9
+  
+
+Changes against the original version:
+nautyex5.c - partial memory leak cleanup 
+nautoex7.c - full memory leak cleanup
+test/test.cpp - new simple example

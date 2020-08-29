@@ -126,5 +126,20 @@ main(int argc, char *argv[])
             break;
     }
 
+
+
+    SG_FREE( sg1 );
+    SG_FREE( cg1 );
+    SG_FREE( sg2 );
+    SG_FREE( cg2 );
+
+    free(lab1);
+    free(lab2);
+    free(ptn);
+    free(orbits);
+    free(map);
+
+    nausparse_freedyn();
+
     exit(0);
 }
