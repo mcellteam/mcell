@@ -1,0 +1,2 @@
+Downloaded on August 29, 2020 from http://pallini.di.uniroma1.it/nauty27r1.tar.gz 
+version 2.7 (r1)
