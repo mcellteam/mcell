@@ -464,7 +464,7 @@ main(int argc, char *argv[])
     ovalid = FALSE;
     gvalid = gvalid_sg = FALSE;  /* at most one valid */
     cvalid = cvalid_sg = FALSE;  /* at most one valid */
-    sgorg = labelorg = oldorg = 0;
+    sgorg = g_labelorg = oldorg = 0;
     sgn = 0;
     multiplicity = 1;
     mintime = 0.0;
@@ -621,7 +621,7 @@ main(int argc, char *argv[])
 
         case '$': 
 	    while (*ap == '=' || *ap == ' ') ++ap;
-            arg_int(&ap,&labelorg,"$");
+            arg_int(&ap,&g_labelorg,"$");
             minus = FALSE;
             break;
 
@@ -1017,7 +1017,7 @@ main(int argc, char *argv[])
 		    savedlab[i] = lab[i];
 		    savedptn[i] = ptn[i];
 		}
-                sgorg = labelorg;
+                sgorg = g_labelorg;
             }
             else if (cvalid_sg)
 	    {
@@ -1032,7 +1032,7 @@ main(int argc, char *argv[])
 		    savedlab[i] = lab[i];
 		    savedptn[i] = ptn[i];
 		}
-                sgorg = labelorg;
+                sgorg = g_labelorg;
 	    }
             else
 	    {
@@ -1077,7 +1077,7 @@ main(int argc, char *argv[])
                                     "h and h' are identical.\n");
                             if (d == '#')
                                 putmapping(outfile,savedlab,sgorg,
-                                       lab,labelorg,options_linelength,n);
+                                       lab,g_labelorg,options_linelength,n);
                         }
                     }
                 }
@@ -1832,7 +1832,7 @@ main(int argc, char *argv[])
 	    if (d != 'F')
 	    {
 	        i = getint_sl(INFILE);
-	        i -= labelorg;
+	        i -= g_labelorg;
 	        if (i < 0 || i >= n)
 		{
 		    fprintf(ERRFILE,"F argument must be 0..n-1\n");
@@ -1901,13 +1901,13 @@ main(int argc, char *argv[])
             minus = FALSE;
             if (gvalid)
             {
-                fprintf(outfile,"n=%d $=%d g\n",n,labelorg);
+                fprintf(outfile,"n=%d $=%d g\n",n,g_labelorg);
                 putgraph(outfile,g,options_linelength,m,n);
                 fprintf(outfile,"$$\n");
             }
             else if (gvalid_sg)
             {
-                fprintf(outfile,"n=%d $=%d g\n",n,labelorg);
+                fprintf(outfile,"n=%d $=%d g\n",n,g_labelorg);
                 putgraph_sg(outfile,&g_sg,options_linelength);
                 fprintf(outfile,"$$\n");
             }
@@ -2278,11 +2278,11 @@ main(int argc, char *argv[])
 
         case '$':   /* set label origin */
             if ((d = getc(INFILE)) == '$')
-                labelorg = oldorg;
+                g_labelorg = oldorg;
             else
             {
                 ungetc(d,INFILE);
-                oldorg = labelorg;
+                oldorg = g_labelorg;
                 i = getint_sl(INFILE);
                 if (i < 0)
 		{
@@ -2290,7 +2290,7 @@ main(int argc, char *argv[])
 		    FLUSHANDPROMPT;
 		}
                 else
-                    labelorg = i;
+                    g_labelorg = i;
             }
             break;
 
@@ -2299,7 +2299,7 @@ main(int argc, char *argv[])
 	    fprintf(outfile,"Mode=%s ",
 		(mode==DENSE_MODE?"dense":
 		 mode==SPARSE_MODE?"sparse":"Traces"));
-            fprintf(outfile,"m=%d n=%d labelorg=%d",m,n,labelorg);
+            fprintf(outfile,"m=%d n=%d labelorg=%d",m,n,g_labelorg);
             if (!gvalid && !gvalid_sg)
                 fprintf(outfile," g=undef");
             else if (gvalid)
@@ -2360,7 +2360,7 @@ main(int argc, char *argv[])
 		    (mode==DENSE_MODE?"dense":
 		     mode==SPARSE_MODE?"sparse":"Traces"));
                 fprintf(PROMPTFILE,"n=%d depth=%d labelorg=%d\n",
-                     n,curfile,labelorg);
+                     n,curfile,g_labelorg);
 	    }
             break;
 
@@ -2505,7 +2505,7 @@ userautom(int count, int *perm, int *orbits,
 {
     fprintf(outfile,
          "**userautomproc:  count=%d stabvertex=%d numorbits=%d\n",
-         count,stabvertex+labelorg,numorbits);
+         count,stabvertex+g_labelorg,numorbits);
     PUTORBITS(outfile,orbits,options_linelength,n);
 }
 
@@ -2522,7 +2522,7 @@ userlevel(int *lab, int *ptn, int level, int *orbits, statsblk *stats,
 {
     fprintf(outfile,
         "**userlevelproc:  level=%d tv=%d index=%d tcellsize=%d cc=%d\n",
-        level,tv+labelorg,index,tcellsize,cc);
+        level,tv+g_labelorg,index,tcellsize,cc);
     fprintf(outfile,"    nodes=%lu cells=%d orbits=%d generators=%d\n",
         stats->numnodes,numcells,stats->numorbits,stats->numgenerators);
 }

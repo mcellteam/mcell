@@ -365,14 +365,14 @@ W->do_it = V->do_it; }
 
 #define PRINTCHAR(c) fprintf(outfile, "%s", c);
 
-#define PRINTCAND(V, Lev) PRINTCHAR(" ") for (tmp=1; tmp<=Lev; tmp++) {fprintf(outfile, tv->digstring, V->lab[Spine[tmp].tgtpos]+labelorg);}
+#define PRINTCAND(V, Lev) PRINTCHAR(" ") for (tmp=1; tmp<=Lev; tmp++) {fprintf(outfile, tv->digstring, V->lab[Spine[tmp].tgtpos]+g_labelorg);}
 
-#define PRINTCANDF(V, Lev) { NEXTLINE for (tmp=1; tmp<=Lev; tmp++) {fprintf(outfile, "F%di", V->lab[Spine[tmp].tgtpos]+labelorg);} NEXTLINE }
+#define PRINTCANDF(V, Lev) { NEXTLINE for (tmp=1; tmp<=Lev; tmp++) {fprintf(outfile, "F%di", V->lab[Spine[tmp].tgtpos]+g_labelorg);} NEXTLINE }
 
 #define PRINTCANDBIG(V, Lev) { PRINTCHAR(" ") \
-for (tmp=1; tmp<=5; tmp++) {fprintf(outfile, tv->digstring, V->lab[Spine[tmp].tgtpos]+labelorg);} \
+for (tmp=1; tmp<=5; tmp++) {fprintf(outfile, tv->digstring, V->lab[Spine[tmp].tgtpos]+g_labelorg);} \
 fprintf(outfile, "... "); \
-for (tmp=Lev-4; tmp<=Lev; tmp++) {fprintf(outfile, tv->digstring, V->lab[Spine[tmp].tgtpos]+labelorg);} }
+for (tmp=Lev-4; tmp<=Lev; tmp++) {fprintf(outfile, tv->digstring, V->lab[Spine[tmp].tgtpos]+g_labelorg);} }
 
 #define LINE(K, c) { PRINTCHAR(c) for (tmp=1; tmp<=K; tmp++) {fprintf(outfile, c);} }
 
@@ -582,7 +582,7 @@ fprintf(outfile, "{%x, %x} ", Cand->code, Cand->singcode); \
 #define PRINT_EXPPATHSTEP(Cand, Boo) { \
 if (tv->options->verbosity >= 2) { \
 if ((tv->tolevel_tl-tv->tolevel < 6) || !has_nexttcell) { \
-fprintf(outfile, "%d ", tv->indiv_vtx+labelorg); \
+fprintf(outfile, "%d ", tv->indiv_vtx+g_labelorg); \
 if (Boo) { \
 if (tv->options->verbosity >= 2) fprintf(outfile, "{%d:%x} ", tv->tcellexpath, Cand->code); \
 } \
@@ -616,15 +616,15 @@ PRINT_RETURN \
 } }
 
 #define PRINT_NOTMIN_VERB(Verb) { if (tv->options->verbosity >= Verb) { \
-fprintf(outfile, " is NOT minimal in orbits (1, %d) [%d]; ", gom_level, CurrCand->lab[Spine[gom_level+1].tgtpos]+labelorg); \
-fprintf(outfile, "at lev %d, orb[%d] = %d.\n", gom_level+1, CurrCand->lab[Spine[gom_level+1].tgtpos]+labelorg, tv->currorbit[CurrCand->lab[Spine[gom_level+1].tgtpos]]+labelorg); } }
+fprintf(outfile, " is NOT minimal in orbits (1, %d) [%d]; ", gom_level, CurrCand->lab[Spine[gom_level+1].tgtpos]+g_labelorg); \
+fprintf(outfile, "at lev %d, orb[%d] = %d.\n", gom_level+1, CurrCand->lab[Spine[gom_level+1].tgtpos]+g_labelorg, tv->currorbit[CurrCand->lab[Spine[gom_level+1].tgtpos]]+g_labelorg); } }
 
 #define PRINT_SKIPPED_VERB(Verb) { if (tv->options->verbosity >= Verb) \
 fprintf(outfile, " skipped (0) (orbit[%d] = %d)\n", \
-NextCand->vertex+labelorg, tv->currorbit[NextCand->vertex]+labelorg); }
+NextCand->vertex+g_labelorg, tv->currorbit[NextCand->vertex]+g_labelorg); }
 
 #define PRINT_REFINE_VERB(Verb,where) { if (tv->options->verbosity >= Verb) \
-fprintf(outfile, " REFINE(%c) (orbit[%d] = %d)\n",where, NextCand->vertex+labelorg, tv->currorbit[NextCand->vertex]+labelorg); }
+fprintf(outfile, " REFINE(%c) (orbit[%d] = %d)\n",where, NextCand->vertex+g_labelorg, tv->currorbit[NextCand->vertex]+g_labelorg); }
 
 #define PRINT_INDIV_VERB(Verb,Lev) { if (tv->options->verbosity >= Verb) { \
 if (Lev < 12) { \
@@ -634,7 +634,7 @@ else { \
 PRINTCANDBIG(CurrCand, tv->fromlevel) \
 } \
 fprintf(outfile, "| "); \
-fprintf(outfile, tv->digstring, NextCand->vertex+labelorg); \
+fprintf(outfile, tv->digstring, NextCand->vertex+g_labelorg); \
 } }
 
 #define PRINT_INDEX(V,Verb,where) if (tv->options->verbosity >= Verb) \
@@ -688,8 +688,9 @@ fprintf(outfile,"\033[0;32m%s\033[0m ",V); \
 if (R) fprintf(outfile,"\n"); }
 
 /* data decls. for CPUTIME */
-#ifdef  CPUDEFS
+#if defined(CPUDEFS) && !defined(CPUDEFS_INST)
 CPUDEFS
+#define CPUDEFS_INST
 #endif
 
 #if !MAXN
@@ -857,12 +858,12 @@ Traces(sparsegraph *g_arg, int *lab, int *ptn,
     
     Allocate_Traces_Structures(n);
     
-    struct TracesVars *tv = malloc(sizeof(struct TracesVars));
+    struct TracesVars *tv = (struct TracesVars *)malloc(sizeof(struct TracesVars));
     if (tv == NULL) {
         fprintf(ERRFILE, "\nError, memory not allocated.\n");
         exit(1);
     }
-    struct TracesInfo *ti = malloc(sizeof(struct TracesInfo));
+    struct TracesInfo *ti = (struct TracesInfo *)malloc(sizeof(struct TracesInfo));
     if (ti == NULL) {
         fprintf(ERRFILE, "\nError, memory not allocated.\n");
         exit(1);
@@ -1031,7 +1032,7 @@ Traces(sparsegraph *g_arg, int *lab, int *ptn,
     }
     
     memset(NghCounts,0,n*sizeof(int));
-    if (tv->options->verbosity == 7) PrintPartition(CurrCand->lab,CurrPart->cls,n,labelorg,1323);
+    if (tv->options->verbosity == 7) PrintPartition(CurrCand->lab,CurrPart->cls,n,g_labelorg,1323);
     
     /* Check for deg 1 vertices */
     ti->deg_one = Check_degree_one(g_arg, CurrCand, CurrPart, n);
@@ -4604,7 +4605,7 @@ void refine_tr(sparsegraph *sg, int *lab, int *ptn, int *numcells, int *code, Tr
     
     tv->graph = &redgraph;
     if (tv->options->weighted) {
-        tv->graph->w = malloc(tv->graph->wlen*sizeof(int));
+        tv->graph->w = (sg_weight*)malloc(tv->graph->wlen*sizeof(int));
         if (tv->graph->w == NULL) {
             fprintf(ERRFILE, "\nError, memory not allocated.\n");
             exit(1);
@@ -5423,17 +5424,17 @@ struct Candidate *NewCandidate(int n, Candidate **GarbList, int Mrk) {
         *GarbList = (*GarbList)->next;
     }
     else {
-        Cand = malloc(sizeof(*Cand));
+        Cand =(Candidate*)malloc(sizeof(*Cand));
         if (Cand == NULL) {
             fprintf(ERRFILE, "\nError, memory not allocated.\n");
             exit(1);
         }
-        Cand->lab = malloc(n*sizeof(*Cand->lab));
+        Cand->lab = (int*)malloc(n*sizeof(*Cand->lab));
         if (Cand->lab == NULL) {
             fprintf(ERRFILE, "\nError, memory not allocated.\n");
             exit(1);
         }
-        Cand->invlab = malloc(n*sizeof(*Cand->invlab));
+        Cand->invlab = (int*)malloc(n*sizeof(*Cand->invlab));
         if (Cand->invlab == NULL) {
             fprintf(ERRFILE, "\nError, memory not allocated.\n");
             exit(1);
@@ -7124,7 +7125,7 @@ int CompStage2(Partition *CurrPart, Partition *NextPart, Candidate *CurrCand, Ca
                         NextCand->singcode = MASHCOMM(NextCand->singcode, CurrCand->lab[tv->tcell+1]);
                     }
                     else {
-                        NextCand->singcode = MASHCOMM(NextCand->singcode, CurrCand->lab[k]+labelorg);
+                        NextCand->singcode = MASHCOMM(NextCand->singcode, CurrCand->lab[k]+g_labelorg);
                     }
                     
                     Individualize(NextPart, NextCand, CurrCand->lab[k], tv->tcell, CurrPart->cells, SpineTL->tgtpos);
@@ -8894,17 +8895,17 @@ void orbjoin_sp_perm(int *orbits, int *map, int *list, int n, int *numorbs) {
 struct Partition *NewPartition(int n) {
     struct Partition *P;
     
-    P = malloc(sizeof(*(P)));
+    P = (struct Partition *)malloc(sizeof(*(P)));
     if (P == NULL) {
         fprintf(ERRFILE, "\nError, memory not allocated.\n");
         exit(1);
     }
-    P->cls = malloc(n*sizeof(int));
+    P->cls = (int*)malloc(n*sizeof(int));
     if (P->cls == NULL) {
         fprintf(ERRFILE, "\nError, memory not allocated.\n");
         exit(1);
     }
-    P->inv = malloc(n*sizeof(int));
+    P->inv = (int*)malloc(n*sizeof(int));
     if (P->inv == NULL) {
         fprintf(ERRFILE, "\nError, memory not allocated.\n");
         exit(1);
@@ -8917,7 +8918,7 @@ struct Partition *NewPartition(int n) {
 void NewPartSpine(int Lev, int n) {
     
     if (Lev > 3) {
-        Spine[Lev].part = malloc(sizeof(*(Spine[Lev].part)));
+        Spine[Lev].part = (struct Partition *)malloc(sizeof(*(Spine[Lev].part)));
         if (Spine[Lev].part == NULL) {
             fprintf(ERRFILE, "\nError, memory not allocated.\n");
             exit(1);
@@ -9236,7 +9237,7 @@ void PrintWeightedGraph1(sparsegraph *g_arg, int n, char msg[30]) {
     for (i=0; i<n; i++) {
         ngh1 = g_arg->e+g_arg->v[i];
         wgh1 = g_arg->w+g_arg->v[i];
-        printf("%2d: ",i+labelorg);
+        printf("%2d: ",i+g_labelorg);
         for (j=0; j<g_arg->d[i]; j++) {
             printf("%2d ",ngh1[j]);
             printf("(%d) ",wgh1[j]);
@@ -9253,9 +9254,9 @@ void PrintWeightedGraph2(int n, char msg[30]) {
     printf("%s\n",msg);
     for (i=0; i<n; i++) {
         ngh1 = TheGraph[i].e;
-        printf("%2d: ",i+labelorg);
+        printf("%2d: ",i+g_labelorg);
         for (j=0; j<TheGraph[i].d; j++) {
-            printf("%2d ",ngh1[j]+labelorg);
+            printf("%2d ",ngh1[j]+g_labelorg);
         }
         printf(";\n");
     }
@@ -9271,7 +9272,7 @@ void PrintBlissGraph(int n) {
         ngh1 = TheGraph[i].e;
         for (j=0; j<TheGraph[i].d; j++) {
             if (i < ngh1[j]) {
-                fprintf(outfile, "e %d %d\n",i+labelorg,ngh1[j]+labelorg);
+                fprintf(outfile, "e %d %d\n",i+g_labelorg,ngh1[j]+g_labelorg);
             }
         }
     }
@@ -9290,7 +9291,7 @@ void putgraphplus_sg(FILE *f, sparsegraph *sg, int linelength)
     
     for (i = 0; i < n; ++i)
     {
-        fprintf(f,"%3d : ",i+labelorg);
+        fprintf(f,"%3d : ",i+g_labelorg);
         curlen = 7;
         
         for (j = v[i]; j < v[i]+d[i]; ++j)
@@ -9310,7 +9311,7 @@ void putgraphplus_sg(FILE *f, sparsegraph *sg, int linelength)
                 }
             }
             
-            slen = itos(e[j]+labelorg,s);
+            slen = itos(e[j]+g_labelorg,s);
             if (linelength > 0 && curlen + slen + 1 > linelength)
             {
                 putstring(f,"\n  ");
@@ -9397,7 +9398,7 @@ searchtrie *searchtrie_make(Candidate *CurrCand, Candidate *NextCand, int n, str
     searchtrie *st;
     if (tv->strienext == n) {
         tv->strienext = 0;
-        tv->strielist->next = malloc(sizeof(struct trielist));
+        tv->strielist->next = (struct trielist*)malloc(sizeof(struct trielist));
         if (tv->strielist->next == NULL) {
             fprintf(ERRFILE, "\nError, memory not allocated.\n");
             exit(1);
@@ -9405,7 +9406,7 @@ searchtrie *searchtrie_make(Candidate *CurrCand, Candidate *NextCand, int n, str
         tv->strielist->next->prev = tv->strielist;
         tv->strielist = tv->strielist->next;
         tv->strielist->next = NULL;
-        tv->strielist->triearray = malloc(n*sizeof(searchtrie));
+        tv->strielist->triearray = (struct searchtrie*)malloc(n*sizeof(searchtrie));
         if (tv->strielist->triearray == NULL) {
             fprintf(ERRFILE, "\nError, memory not allocated.\n");
             exit(1);
@@ -9441,13 +9442,13 @@ searchtrie *searchtrie_make(Candidate *CurrCand, Candidate *NextCand, int n, str
 
 trielist *searchtrie_new(int n, struct TracesVars *tv) {
     
-    tv->strielist = malloc(sizeof(struct trielist));
+    tv->strielist = (struct trielist*)malloc(sizeof(struct trielist));
     if (tv->strielist == NULL) {
         fprintf(ERRFILE, "\nError, memory not allocated.\n");
         exit(1);
     }
     tv->strielist->prev = tv->strielist->next = NULL;
-    tv->strielist->triearray = malloc(n*sizeof(searchtrie));
+    tv->strielist->triearray = (struct searchtrie*)malloc(n*sizeof(searchtrie));
     if (tv->strielist->triearray == NULL) {
         fprintf(ERRFILE, "\nError, memory not allocated.\n");
         exit(1);
@@ -10043,7 +10044,7 @@ struct trie *trie_make(trie *t, int value, int n, struct TracesVars* tv) {
     if (tv->trienext == n) {
         tv->trienext = 0;
         tv->triepos++;
-        TrieArray[tv->triepos] = malloc(n*sizeof(trie));
+        TrieArray[tv->triepos] = (struct trie*)malloc(n*sizeof(trie));
         if (TrieArray[tv->triepos] == NULL) {
             fprintf(ERRFILE, "\nError, memory not allocated.\n");
             exit(1);
@@ -10087,7 +10088,7 @@ struct trie *trie_make(trie *t, int value, int n, struct TracesVars* tv) {
 
 struct trie *trie_new(int n, struct TracesVars* tv) {
     
-    TrieArray[0] = malloc(n*sizeof(trie));
+    TrieArray[0] = (struct trie*)malloc(n*sizeof(trie));
     if (TrieArray[0] == NULL) {
         fprintf(ERRFILE, "\nError, memory not allocated.\n");
         exit(1);
@@ -10153,7 +10154,7 @@ int VerifyPerm(int *perm, int n,int where) {
     for (i=0; i<n; i++) {
         if ((perm[i] >= n) || (Markers[perm[i]])) {
             fprintf(stderr,"wrong permutation @ %d\n",where);
-            PrintVect(perm,0,i+1,labelorg);
+            PrintVect(perm,0,i+1,g_labelorg);
         }
         Markers[perm[i]] = TRUE;
     }

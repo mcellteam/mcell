@@ -4,7 +4,7 @@
 #include "../nauty/gtools.h"
 
 #ifdef __cplusplus
-extern "C" {
+//extern "C" {
 #endif
 
 extern void gtog6string(graph*,char**,int,int);
@@ -16,5 +16,5 @@ extern void sgtod6string(sparsegraph*,char**);
 extern void gtois6string(graph*,graph*,char**,int,int);
 
 #ifdef __cplusplus
-}
+//}
 #endif

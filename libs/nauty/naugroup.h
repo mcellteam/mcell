@@ -34,7 +34,7 @@ typedef struct group_struct
 } grouprec;
 
 #ifdef __cplusplus
-extern "C" {
+//extern "C" {
 #endif
 
 extern void freepermrec(permrec*, int);
@@ -51,5 +51,5 @@ extern int allgroup3(grouprec*,void(*)(int*,int,int*,void*),void*);
 extern void freegroup(grouprec*);
 
 #ifdef __cplusplus
-}
+//}
 #endif

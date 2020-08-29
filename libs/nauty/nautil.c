@@ -90,7 +90,7 @@ DYNALLSTAT(int,workperm,workperm_sz);
 static TLS_ATTR int workperm[MAXN];
 #endif
 
-int labelorg = 0;   /* no TLS_ATTR on purpose */
+int g_labelorg = 0;   /* no TLS_ATTR on purpose */
 volatile int nauty_kill_request = 0;   /* no TLS_ATTR on purpose */
 
 /* aproto: header new_nauty_protos.h */
@@ -320,7 +320,7 @@ writeperm(FILE *f, int *perm, boolean cartesian, int linelength, int n)
     {
         for (i = 0; i < n; ++i)
         {
-            intlen = itos(perm[i]+labelorg,s);
+            intlen = itos(perm[i]+g_labelorg,s);
             CONDNL(intlen+1);
             PUTC(' ',f);
             putstring(f,s);
@@ -337,7 +337,7 @@ writeperm(FILE *f, int *perm, boolean cartesian, int linelength, int n)
             if (workperm[i] == 0 && perm[i] != i)
             {
                 l = i;
-                intlen = itos(l+labelorg,s);
+                intlen = itos(l+g_labelorg,s);
                 if (curlen > 3) CONDNL(2*intlen+4);
                 PUTC('(',f);
                 do
@@ -349,7 +349,7 @@ writeperm(FILE *f, int *perm, boolean cartesian, int linelength, int n)
                     workperm[k] = 1;
                     if (l != i)
                     {
-                        intlen = itos(l+labelorg,s);
+                        intlen = itos(l+g_labelorg,s);
                         CONDNL(intlen+2);
                         PUTC(' ',f);
                     }

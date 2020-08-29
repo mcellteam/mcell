@@ -53,7 +53,7 @@
 
 static FILE *infile,*outfile;
 static unsigned long nin;
-extern int labelorg;
+extern int g_labelorg;
 
 /*****************************************************************************
 *  putsetx(f,set1,curlenp,linelength,m,compress,start)   writes the set      *
@@ -88,11 +88,11 @@ putsetx(FILE *f, set *set1, int *curlenp, int linelength, int m,
             if (j2 == j1+1)
                 j2 = j1;
         }
-        slen = itos(j1 + labelorg,s);
+        slen = itos(j1 + g_labelorg,s);
         if (j2 >= j1 + 2)
         {
             s[slen] = ':';
-            slen += 1 + itos(j2 + labelorg,&s[slen+1]);
+            slen += 1 + itos(j2 + g_labelorg,&s[slen+1]);
         }
 
         if (*curlenp + slen + 1 >= linelength && linelength > 0)
@@ -133,7 +133,7 @@ putgraphx(FILE *f, graph *g, int linelength, boolean triang, int m, int n)
 
     for (i = 0, pg = g; i < n; ++i, pg += m)
     {
-        fprintf(f,"%3d : ",i + labelorg);
+        fprintf(f,"%3d : ",i + g_labelorg);
         curlen = 7;
         putsetx(f,pg,&curlen,linelength,m,FALSE,triang ? i-1 : -1);
         fprintf(f,";\n");
@@ -177,10 +177,10 @@ putedges(FILE *f, graph *g, boolean ptn, int linelength,
                 fprintf(f,"  ");
                 curlen += 2;
             }
-            curlen += itos(i+labelorg,s);
+            curlen += itos(i+g_labelorg,s);
             fprintf(f,"%s",s);
             fprintf(f," ");
-            curlen += 1 + itos(j+labelorg,s);
+            curlen += 1 + itos(j+g_labelorg,s);
             fprintf(f,"%s",s);
         }
     }
@@ -316,7 +316,7 @@ putdotty(FILE *f, graph *g, unsigned long id, char *extras, int m, int n)
     {
         for (j = nextelement(pg,m,i); j >= 0; j = nextelement(pg,m,j))
 	{
-            fprintf(f,"%d--%d;\n",labelorg+i,labelorg+j);
+            fprintf(f,"%d--%d;\n",g_labelorg+i,g_labelorg+j);
 	}
     }
 
@@ -535,7 +535,7 @@ main(int argc, char *argv[])
     bswitch = Gswitch = yswitch = Yswitch = Hswitch = FALSE;
     infilename = outfilename = NULL;
     linelength = LINELEN;
-    labelorg = 0;
+    g_labelorg = 0;
 
     argnum = 0;
     badargs = FALSE;
@@ -568,7 +568,7 @@ main(int argc, char *argv[])
                 else SWBOOLEAN('y',yswitch)
                 else SWRANGE('p',":-",pswitch,pval1,pval2,"listg -p")
                 else SWINT('l',lswitch,linelength,"listg -l")
-                else SWINT('o',oswitch,labelorg,"listg -o")
+                else SWINT('o',oswitch,g_labelorg,"listg -o")
 		else if (sw == 'Y')
 		{
 		    Yswitch = TRUE;
@@ -589,7 +589,7 @@ main(int argc, char *argv[])
 
     if (Yswitch) yswitch = TRUE;
 
-    if (labelorg < 0) gt_abort(">E listg: negative origin forbidden.\n");
+    if (g_labelorg < 0) gt_abort(">E listg: negative origin forbidden.\n");
 
     if ((aswitch!=0) + (Aswitch!=0) + (eswitch!=0) + (Mswitch!=0) +
         (Wswitch!=0) + (sswitch!=0) + (dswitch!=0) + (cswitch!=0) +
@@ -661,7 +661,7 @@ main(int argc, char *argv[])
             {
                 fprintf(outfile,"\n!Graph %lu.\n",pval1+nin-1);
                 fprintf(outfile,"n=%d $=%d %sg\n",
-                                n,labelorg,(digraph?"d":""));
+                                n,g_labelorg,(digraph?"d":""));
             }
             putgraphx(outfile,g,linelength,tswitch,m,n);
             if (!qswitch) fprintf(outfile,"$$\n");

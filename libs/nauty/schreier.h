@@ -33,7 +33,7 @@ typedef struct schreierlevel
   /* Default number of Schreier failures before giving up. */
 
 #ifdef __cplusplus
-extern "C" {
+//extern "C" {
 #endif
 
 /* See separate file schreier.txt for a description of usage. */
@@ -62,7 +62,7 @@ extern void grouporder(int *fix, int nfix,  schreier *gp, permnode **gens,
 extern void schreier_check(int wordsize, int m, int n, int version);
 
 #ifdef __cplusplus
-}
+//}
 #endif
 
 #endif  /* _SCHREIER_H_ */

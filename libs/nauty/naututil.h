@@ -124,7 +124,7 @@ used, it is necessary to check they are correct.
    been included if they exist. */
 
 #ifdef __cplusplus
-extern "C" {
+//extern "C" {
 #endif
 
 extern void complement(graph*,int,int);
@@ -187,7 +187,7 @@ extern int subpartition(int*,int*,int,int*,int);
 extern void unitptn(int*,int*,int*,int);
 
 #ifdef __cplusplus
-}
+//}
 #endif
 
 #define MAXREG 8    /* Used to limit ranreg_sg() degree */
@@ -267,6 +267,7 @@ extern void unitptn(int*,int*,int*,int);
 #define CPUTIME 0.0
 #endif
 
+#define NAUTY_CPU_DEFINED
 #endif /*NAUTY_CPU_DEFINED*/
 
 /*************************************************************************/

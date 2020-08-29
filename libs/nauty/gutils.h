@@ -1,7 +1,7 @@
 /* gutils.h - procedure declarations for gutil1.c and gutil2.c */
 
 #ifdef __cplusplus
-extern "C" {
+//extern "C" {
 #endif
 
 extern void degstats(graph*,int,int,
@@ -46,5 +46,5 @@ extern boolean stronglyconnected(graph*,int,int);
 /* extern int diameter_sg(sparsegraph*,int*,int*); */
 
 #ifdef __cplusplus
-}
+//}
 #endif

@@ -55,7 +55,7 @@ static const int fuzz2[] = {006532,070236,035523,062437};
 
 /* aproto: header new_nauty_protos.h */
 
-dispatchvec dispatch_sparse =
+dispatchvec g_dispatch_sparse =
   {isautom_sg,testcanlab_sg,updatecan_sg,refine_sg,refine_sg,cheapautom_sg,
    targetcell_sg,nausparse_freedyn,nausparse_check,init_sg,NULL};
 
@@ -1338,7 +1338,7 @@ put_sg(FILE *f, sparsegraph *sg, boolean digraph, int linelength)
         vi = v[i];
         di = d[i];
         if (di == 0) continue;
-        slen = itos(i+labelorg,s);
+        slen = itos(i+g_labelorg,s);
         putstring(f,s);
         putstring(f," :");
         curlen = slen + 2;
@@ -1346,7 +1346,7 @@ put_sg(FILE *f, sparsegraph *sg, boolean digraph, int linelength)
         for (j = 0; j < di; ++j)
         {
             if (!digraph && e[vi+j] < i) continue;
-            slen = itos(e[vi+j]+labelorg,s);
+            slen = itos(e[vi+j]+g_labelorg,s);
             if (linelength && curlen + slen + 1 >= linelength)
             {
                 putstring(f,"\n ");
@@ -1669,7 +1669,7 @@ sparsenauty(sparsegraph *g, int *lab, int *ptn, int *orbits,
 {
     int m,n;
 
-    if (options->dispatch != &dispatch_sparse)
+    if (options->dispatch != &g_dispatch_sparse)
     {
         fprintf(ERRFILE,"Error: sparsenauty() needs standard options block\n");
         exit(1);

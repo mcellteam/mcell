@@ -13,7 +13,7 @@
 */
 
 #ifdef __cplusplus
-extern "C" {
+//extern "C" {
 #endif
 
 extern long *ran_arr_ptr;
@@ -22,7 +22,7 @@ void ran_init(long seed);
 void ran_array(long *aa, int n);
 
 #ifdef __cplusplus
-}
+//}
 #endif
 
 #define MAXRAN (0x3fffffffL)    /* Values are 0..MAXRAN */

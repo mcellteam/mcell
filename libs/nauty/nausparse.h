@@ -78,16 +78,16 @@ typedef struct
 
 #define DEFAULTOPTIONS_SPARSEGRAPH(options) optionblk options = \
  {0,FALSE,FALSE,FALSE,TRUE,FALSE,CONSOLWIDTH, \
-  NULL,NULL,NULL,NULL,NULL,NULL,NULL,100,0,1,0,&dispatch_sparse,FALSE,NULL}
+  NULL,NULL,NULL,NULL,NULL,NULL,NULL,100,0,1,0,&g_dispatch_sparse,FALSE,NULL}
 #define DEFAULTOPTIONS_SPARSEDIGRAPH(options) optionblk options = \
  {0,TRUE,FALSE,FALSE,TRUE,FALSE,CONSOLWIDTH, \
-  NULL,NULL,NULL,NULL,NULL,NULL,adjacencies_sg,100,0,999,0,&dispatch_sparse,FALSE,NULL}
+  NULL,NULL,NULL,NULL,NULL,NULL,adjacencies_sg,100,0,999,0,&g_dispatch_sparse,FALSE,NULL}
 
 #ifdef __cplusplus
-extern "C" {
+//extern "C" {
 #endif
 
-extern dispatchvec dispatch_sparse;
+extern dispatchvec g_dispatch_sparse;
 
 extern int targetcell_sg(graph*,int*,int*,int,int,boolean,int,int,int);
 extern boolean cheapautom_sg(int*,int,boolean,int);
@@ -124,7 +124,7 @@ extern void
    distances_sg(graph*,int*,int*,int,int,int,int*,int,boolean,int,int);
 
 #ifdef __cplusplus
-}
+//}
 #endif
 
 #endif

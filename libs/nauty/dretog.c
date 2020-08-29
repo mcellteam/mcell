@@ -94,7 +94,7 @@ main(int argc, char *argv[])
 	if ((sswitch!=0) + (gswitch!=0) + (zswitch!=0) > 1) 
             gt_abort(">E dretog: -s, -z and -g are incompatible\n");
 
-	if (labelorg < 0) gt_abort(">E dretog: negative origin forbidden\n");
+	if (g_labelorg < 0) gt_abort(">E dretog: negative origin forbidden\n");
 
 	if (badargs || argnum > 2)
 	{
@@ -144,7 +144,7 @@ main(int argc, char *argv[])
 
      /* perform scanning required */
 
-	labelorg = initorg;
+	g_labelorg = initorg;
 	nin = 0;
         digraph = FALSE;
 
@@ -175,13 +175,13 @@ main(int argc, char *argv[])
 	    else if (s[0] == '$')
 	    {
 		if ((s[0] = (char)getc(infile)) == '$')
-		    labelorg = initorg;
+		    g_labelorg = initorg;
 		else
 		{
 		    if (s[0] != '=') ungetc(s[0],infile);
-		    if (fscanf(infile,"%d",&labelorg) != 1)
+		    if (fscanf(infile,"%d",&g_labelorg) != 1)
                         gt_abort(">E dretog: invalid $=# command\n");
-                    if (labelorg < 0)
+                    if (g_labelorg < 0)
                         gt_abort(">E dretog: must have labelorg >= 0\n");
 		}
             }

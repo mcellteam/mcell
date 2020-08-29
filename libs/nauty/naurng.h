@@ -15,14 +15,14 @@
 #include "../nauty/nauty.h"
 
 #ifdef __cplusplus
-extern "C" {
+//extern "C" {
 #endif
 
 extern void ran_init(long seed);
 extern long ran_nextran(void);
 
 #ifdef __cplusplus
-}
+//}
 #endif
 
 #define MAXRAN (0x3fffffffL)    /* Values are 0..MAXRAN */

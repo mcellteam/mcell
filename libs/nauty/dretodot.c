@@ -55,7 +55,7 @@ fprintf(drefile, "f = "); \
 putptn(drefile,lab,ptn,0,0,n); }}
 
 
-extern int labelorg;
+extern int g_labelorg;
 
 /**************************************************************************/
 typedef struct NodeShape {
@@ -334,7 +334,7 @@ main(int argc, char *argv[])
 	    }
 	}
     
-	if (labelorg < 0) gt_abort(">E dretodot: negative origin forbidden\n");
+	if (g_labelorg < 0) gt_abort(">E dretodot: negative origin forbidden\n");
     
 	if (badargs || argnum > 3)
 	{
@@ -365,7 +365,7 @@ main(int argc, char *argv[])
 	    gt_abort(NULL);
 	}
 
-	labelorg = initorg;
+	g_labelorg = initorg;
 	nin = 0;
     
 	while (fscanf(infile, "%1s", s) == 1)
@@ -393,13 +393,13 @@ main(int argc, char *argv[])
 	    else if (s[0] == '$')
 	    {
             if ((s[0] = getc(infile)) == '$')
-                labelorg = initorg;
+                g_labelorg = initorg;
             else
             {
                 if (s[0] != '=') ungetc(s[0], infile);
-                if (fscanf(infile, "%d", &labelorg) != 1)
+                if (fscanf(infile, "%d", &g_labelorg) != 1)
                     gt_abort(">E dretodot: invalid $=# command\n");
-                if (labelorg < 0)
+                if (g_labelorg < 0)
                     gt_abort(">E dretodot: must have labelorg >= 0\n");
             }
         }
@@ -472,7 +472,7 @@ main(int argc, char *argv[])
     }
     
     if (fswitch) {
-        indivtx -= labelorg;
+        indivtx -= g_labelorg;
         refine_tr(&g,lab,ptn,&numcells,&refcode,&traces_opts);
         cell = 0;
         for (i=0; i<n; i++) {
@@ -547,11 +547,11 @@ main(int argc, char *argv[])
         StInd = 0;
         listend = liststart;
         while (listend) {
-            if (listend->vtx-labelorg < 0 || listend->vtx-labelorg >= n) {
+            if (listend->vtx-g_labelorg < 0 || listend->vtx-g_labelorg >= n) {
                 fprintf(stderr, ">W dretodot: invalid vertex %d\n", listend->vtx);
             } else {
-                DistStack[StInd++] = listend->vtx-labelorg;
-                CurrVertices[listend->vtx-labelorg] = 1;
+                DistStack[StInd++] = listend->vtx-g_labelorg;
+                CurrVertices[listend->vtx-g_labelorg] = 1;
             }
             listend = listend->next;
         }
@@ -679,17 +679,17 @@ main(int argc, char *argv[])
         numCol = ptn[invlab[vtx]];
         if (fsize == 13.0) {
             if (NShape[numCol].labcol == 0)
-                fprintf(outfile, "%6d [fontcolor=\"white\", fillcolor=\"#%s\"]\n", vtx + labelorg,
+                fprintf(outfile, "%6d [fontcolor=\"white\", fillcolor=\"#%s\"]\n", vtx + g_labelorg,
                         NShape[numCol].color);
             else
-                fprintf(outfile, "%6d [fillcolor=\"#%s\"]\n", vtx + labelorg,
+                fprintf(outfile, "%6d [fillcolor=\"#%s\"]\n", vtx + g_labelorg,
                         NShape[numCol].color);
         } else {
             if (NShape[numCol].labcol == 0)
-                fprintf(outfile, "%6d [fontsize=\"%.2f\", fontcolor=\"white\", fillcolor=\"#%s\"]\n", vtx + labelorg,
+                fprintf(outfile, "%6d [fontsize=\"%.2f\", fontcolor=\"white\", fillcolor=\"#%s\"]\n", vtx + g_labelorg,
                         fsize, NShape[numCol].color);
             else
-                fprintf(outfile, "%6d [fontsize=\"%.2f\", fillcolor=\"#%s\"]\n", vtx + labelorg,
+                fprintf(outfile, "%6d [fontsize=\"%.2f\", fillcolor=\"#%s\"]\n", vtx + g_labelorg,
                         fsize, NShape[numCol].color);
         }
     }
@@ -700,7 +700,7 @@ main(int argc, char *argv[])
         for (i=0; i<n; i++) {
             if (CurrVertices[i] != 1) {
                 fsize = ComputeFontsize(i) * (double)nodescale * 1.666;
-                fprintf(outfile, "%6d\n", i+labelorg);
+                fprintf(outfile, "%6d\n", i+g_labelorg);
             }
         }
     }
@@ -716,7 +716,7 @@ main(int argc, char *argv[])
             for (j1 = g.v[vtx]; j1 < g.v[vtx] + g.d[vtx]; ++j1) {
                 if (CurrVertices[vtx] != 1 || CurrVertices[g.e[j1]] != 1) {
                     if (g.e[j1] > vtx)
-                        fprintf(outfile, "%d -- %d;\n", vtx + labelorg, g.e[j1] + labelorg);
+                        fprintf(outfile, "%d -- %d;\n", vtx + g_labelorg, g.e[j1] + g_labelorg);
                 }
             }
         }
@@ -728,7 +728,7 @@ main(int argc, char *argv[])
 		for (j1 = g.v[vtx]; j1 < g.v[vtx] + g.d[vtx]; ++j1) {
             if (CurrVertices[g.e[j1]] == 1) {
                 if (g.e[j1] > vtx)
-                    fprintf(outfile, "%d -- %d;\n", vtx + labelorg, g.e[j1] + labelorg);
+                    fprintf(outfile, "%d -- %d;\n", vtx + g_labelorg, g.e[j1] + g_labelorg);
             }
         }
     }
@@ -737,9 +737,9 @@ main(int argc, char *argv[])
         RnkIndDist = RnkInd;
     }
     if (RnkIndDist>1) {
-        fprintf(outfile, "%d ", DistStack[0] + labelorg);
+        fprintf(outfile, "%d ", DistStack[0] + g_labelorg);
         for (i=1; i<RnkIndDist; i++) {
-            fprintf(outfile, "-- %d ", DistStack[Ranks[i]] + labelorg);
+            fprintf(outfile, "-- %d ", DistStack[Ranks[i]] + g_labelorg);
         }
         fprintf(outfile, "[style=\"invis\"];\n");
     }

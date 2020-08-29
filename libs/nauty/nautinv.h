@@ -13,7 +13,7 @@
 #include "../nauty/nauty.h"              /* which includes stdio.h */
 
 #ifdef __cplusplus
-extern "C" {
+//extern "C" {
 #endif
 
 extern void adjacencies(graph*,int*,int*,int,int,int,int*,int,boolean,int,int);
@@ -38,5 +38,5 @@ extern void setnbhd(graph*,int,int,set*,set*);
 extern void triples(graph*,int*,int*,int,int,int,int*,int,boolean,int,int);
 extern void twopaths(graph*,int*,int*,int,int,int,int*,int,boolean,int,int);
 #ifdef __cplusplus
-}
+//}
 #endif

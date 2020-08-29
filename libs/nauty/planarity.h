@@ -228,7 +228,7 @@ typedef struct graph_sparse_rep {
 } t_graph_sparse_rep;
 
 #ifdef __cplusplus
-extern "C" {
+//extern "C" {
 #endif
 /*
  * embed_graph_protos.h
@@ -451,7 +451,7 @@ extern void sparseg_adjl_get_face_edges (int, t_adjl_sparse_rep *, int, t_embed_
 /* aproto: endfile */
 
 #ifdef __cplusplus
-}
+//}
 #endif
 
 #endif  /* _PLANARITY_H_ */

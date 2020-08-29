@@ -404,11 +404,11 @@ putset(FILE *f, set *set1, int *curlenp, int linelength,
             while (nextelement(set1,m,j2) == j2 + 1) ++j2;
             if (j2 == j1+1) j2 = j1;
         }
-        slen = itos(j1+labelorg,s);
+        slen = itos(j1+g_labelorg,s);
         if (j2 >= j1 + 2)
         {
             s[slen] = ':';
-            slen += 1 + itos(j2+labelorg,&s[slen+1]);
+            slen += 1 + itos(j2+g_labelorg,&s[slen+1]);
         }
 
         if (linelength > 0 && *curlenp + slen + 1 >= linelength)
@@ -451,11 +451,11 @@ putset_firstbold(FILE *f, set *set1, int *curlenp, int linelength,
             while (nextelement(set1,m,j2) == j2 + 1) ++j2;
             if (j2 == j1+1) j2 = j1;
         }
-        slen1 = slen = itos(j1+labelorg,s);
+        slen1 = slen = itos(j1+g_labelorg,s);
         if (j2 >= j1 + 2)
         {
             s[slen] = ':';
-            slen += 1 + itos(j2+labelorg,&s[slen+1]);
+            slen += 1 + itos(j2+g_labelorg,&s[slen+1]);
         }
 	c = s[slen1];
 
@@ -527,13 +527,13 @@ readgraph(FILE *f, graph *g, boolean digraph, boolean prompt,
         {
             ungetc(c,f);
             readinteger(f,&w);
-            w -= labelorg;
+            w -= g_labelorg;
             if (neg)
             {
                 neg = FALSE;
                 if (w < 0 || w >= n || (!digraph && w == v))
                     fprintf(ERRFILE,"illegal edge (%d,%d) ignored\n\n",
-                            v+labelorg,w+labelorg);
+                            v+g_labelorg,w+g_labelorg);
                 else
                 {
                     DELELEMENT(gv,w);
@@ -547,7 +547,7 @@ readgraph(FILE *f, graph *g, boolean digraph, boolean prompt,
                     if (w < 0 || w >= n)
                         fprintf(ERRFILE,
                                 "illegal vertex number %d ignored\n\n",
-                                w+labelorg);
+                                w+g_labelorg);
                     else
                     {
                         v = w;
@@ -558,7 +558,7 @@ readgraph(FILE *f, graph *g, boolean digraph, boolean prompt,
                     ungetc(c,f);
                     if (w < 0 || w >= n || (!digraph && w == v))
                         fprintf(ERRFILE,"illegal edge (%d,%d) ignored\n\n",
-                                v+labelorg,w+labelorg);
+                                v+g_labelorg,w+g_labelorg);
                     else
                     {
                         ADDELEMENT(gv,w);
@@ -577,14 +577,14 @@ readgraph(FILE *f, graph *g, boolean digraph, boolean prompt,
                 break;
             case '?':
                 neg = FALSE;
-                fprintf(PROMPTFILE,"%2d : ",v+labelorg);
+                fprintf(PROMPTFILE,"%2d : ",v+g_labelorg);
                 curlen = 5;
                 putset(PROMPTFILE,gv,&curlen,linelength,M,FALSE);
                 fprintf(PROMPTFILE,";\n");
                 break;
             case '\n':
                 neg = FALSE;
-                if (prompt) fprintf(PROMPTFILE,"%2d : ",v+labelorg);
+                if (prompt) fprintf(PROMPTFILE,"%2d : ",v+g_labelorg);
                 break;
             case EOF:
             case '.':
@@ -725,13 +725,13 @@ readgraph_sg(FILE *f, sparsegraph *sg, boolean digraph, boolean prompt,
         {
             ungetc(c,f);
             readinteger(f,&ww);
-            ww -= labelorg;
+            ww -= g_labelorg;
             if (neg)
             {
                 neg = FALSE;
                 if (ww < 0 || ww >= n || (!digraph && ww == vv))
                     fprintf(ERRFILE,"illegal edge (%d,%d) ignored\n\n",
-                            vv+labelorg,ww+labelorg);
+                            vv+g_labelorg,ww+g_labelorg);
                 else
                 {
                     if (iec == ECHUNKSIZE)
@@ -760,7 +760,7 @@ readgraph_sg(FILE *f, sparsegraph *sg, boolean digraph, boolean prompt,
                     if (ww < 0 || ww >= n)
                         fprintf(ERRFILE,
                                 "illegal vertex number %d ignored\n\n",
-                                ww+labelorg);
+                                ww+g_labelorg);
                     else
                         vv = ww;
                 }
@@ -769,7 +769,7 @@ readgraph_sg(FILE *f, sparsegraph *sg, boolean digraph, boolean prompt,
                     ungetc(c,f);
                     if (ww < 0 || ww >= n || (!digraph && ww == vv))
                         fprintf(ERRFILE,"illegal edge (%d,%d) ignored\n\n",
-                                vv+labelorg,ww+labelorg);
+                                vv+g_labelorg,ww+g_labelorg);
                     else
                     {
                         if (iec == ECHUNKSIZE)
@@ -805,7 +805,7 @@ readgraph_sg(FILE *f, sparsegraph *sg, boolean digraph, boolean prompt,
                 break;
             case '\n':
                 neg = FALSE;
-                if (prompt) fprintf(PROMPTFILE,"%2d : ",vv+labelorg);
+                if (prompt) fprintf(PROMPTFILE,"%2d : ",vv+g_labelorg);
                 break;
             case EOF:
             case '.':
@@ -954,13 +954,13 @@ readgraph_swg(FILE *f, sparsegraph *sg, boolean digraph, boolean prompt,
         {
             ungetc(c,f);
             readinteger(f,&ww);
-            ww -= labelorg;
+            ww -= g_labelorg;
             if (neg)
             {
                 neg = FALSE;
                 if (ww < 0 || ww >= n || (!digraph && ww == vv))
                     fprintf(ERRFILE,"illegal edge (%d,%d) ignored\n\n",
-                            vv+labelorg,ww+labelorg);
+                            vv+g_labelorg,ww+g_labelorg);
                 else
                 {
                     if (iec == ECHUNKSIZE)
@@ -992,7 +992,7 @@ readgraph_swg(FILE *f, sparsegraph *sg, boolean digraph, boolean prompt,
                     if (ww < 0 || ww >= n)
                         fprintf(ERRFILE,
                                 "illegal vertex number %d ignored\n\n",
-                                ww+labelorg);
+                                ww+g_labelorg);
                     else
                         vv = ww;
                 }
@@ -1001,7 +1001,7 @@ readgraph_swg(FILE *f, sparsegraph *sg, boolean digraph, boolean prompt,
                     ungetc(c,f);
                     if (ww < 0 || ww >= n || (!digraph && ww == vv))
                         fprintf(ERRFILE,"illegal edge (%d,%d) ignored\n\n",
-                                vv+labelorg,ww+labelorg);
+                                vv+g_labelorg,ww+g_labelorg);
                     else
                     {
                         if (iec == ECHUNKSIZE)
@@ -1040,7 +1040,7 @@ readgraph_swg(FILE *f, sparsegraph *sg, boolean digraph, boolean prompt,
                 break;
             case '\n':
                 neg = FALSE;
-                if (prompt) fprintf(PROMPTFILE,"%2d : ",vv+labelorg);
+                if (prompt) fprintf(PROMPTFILE,"%2d : ",vv+g_labelorg);
                 break;
             case EOF:
             case '.':
@@ -1189,7 +1189,7 @@ putgraph(FILE *f, graph *g, int linelength, int m, int n)
 
     for (i = 0, pg = g; i < n; ++i, pg += M)
     {
-        fprintf(f,"%3d : ",i+labelorg);
+        fprintf(f,"%3d : ",i+g_labelorg);
         curlen = 7;
         putset(f,pg,&curlen,linelength,M,FALSE);
         fprintf(f,";\n");
@@ -1220,7 +1220,7 @@ putgraph_sg(FILE *f, sparsegraph *sg, int linelength)
 
     for (i = 0; i < n; ++i)
     {
-        fprintf(f,"%3d : ",i+labelorg);
+        fprintf(f,"%3d : ",i+g_labelorg);
         curlen = 7;
 
         for (j = v[i]; j < v[i]+d[i]; ++j)
@@ -1239,10 +1239,10 @@ putgraph_sg(FILE *f, sparsegraph *sg, int linelength)
 		    slen = 2 + itos(wt[j],s+1);
 		    s[slen-1] = ' ';
 		}
-                slen += itos(e[j]+labelorg,s+slen);
+                slen += itos(e[j]+g_labelorg,s+slen);
             }
             else
-                slen = itos(e[j]+labelorg,s);
+                slen = itos(e[j]+g_labelorg,s);
 
             if (linelength > 0 && curlen + slen + 1 > linelength)
             {
@@ -1486,14 +1486,14 @@ putquotient(FILE *f, graph *g, int *lab, int *ptn, int level,
         for (i = cell1; i <= cell2; ++i) ADDELEMENT(workset,lab[i]);
         v = workperm[ic];
         csize = cell2 - cell1 + 1;
-        if (v + labelorg < 10)
+        if (v + g_labelorg < 10)
         {
             s[0] = ' ';
             curlen = 1;
         }
         else
             curlen = 0;
-        curlen += itos(v+labelorg,&s[curlen]);
+        curlen += itos(v+g_labelorg,&s[curlen]);
         s[curlen++] = '[';
         curlen += itos(csize,&s[curlen]);
         fprintf(f,"%s",s);
@@ -1591,14 +1591,14 @@ putquotient_sg(FILE *f, sparsegraph *g, int *lab, int *ptn,
         for (i = cell1; i <= cell2; ++i) ADDELEMENT(workset,lab[i]);
         v = workperm[ic];
         csize = cell2 - cell1 + 1;
-        if (v + labelorg < 10)
+        if (v + g_labelorg < 10)
         {
             s[0] = ' ';
             curlen = 1;
         }
         else
             curlen = 0;
-        curlen += itos(v+labelorg,&s[curlen]);
+        curlen += itos(v+g_labelorg,&s[curlen]);
         s[curlen++] = '[';
         curlen += itos(csize,&s[curlen]);
         fprintf(f,"%s",s);
@@ -1765,13 +1765,13 @@ readptn(FILE *f, int *lab, int *ptn, int *numcells, boolean prompt, int n)
     {
         ungetc(c,f);
         readinteger(f,&v1);
-        v1 -= labelorg;
+        v1 -= g_labelorg;
         if (v1 >= 0 && v1 < n)
             fixit(lab,ptn,numcells,v1,n);
         else
         {
             fprintf(ERRFILE,"vertex out of range (%d), fixing nothing\n\n",
-                    v1+labelorg);
+                    v1+g_labelorg);
             unitptn(lab,ptn,numcells,n);
         }
         return;
@@ -1795,7 +1795,7 @@ readptn(FILE *f, int *lab, int *ptn, int *numcells, boolean prompt, int n)
         {
             ungetc(c,f);
             readinteger(f,&v1);
-            v1 -= labelorg;
+            v1 -= g_labelorg;
             GETNWC(c,f);
             if (c == ':')
                 if (!readinteger(f,&v2))
@@ -1804,7 +1804,7 @@ readptn(FILE *f, int *lab, int *ptn, int *numcells, boolean prompt, int n)
                     v2 = v1;
                 }
                 else
-                    v2 -= labelorg;
+                    v2 -= g_labelorg;
             else
             {
                 ungetc(c,f);
@@ -1814,7 +1814,7 @@ readptn(FILE *f, int *lab, int *ptn, int *numcells, boolean prompt, int n)
             {
                 if (v1 < 0 || v1 >= n || ISELEMENT(workset,v1))
                     fprintf(ERRFILE,"illegal or repeated number : %d\n\n",
-                            v1+labelorg);
+                            v1+g_labelorg);
                 else
                 {
                     ADDELEMENT(workset,v1);
@@ -2173,7 +2173,7 @@ readvperm(FILE *f, int *perm, boolean prompt, int n, int *nv)
         {
             ungetc(c,f);
             readinteger(f,&v1);
-            v1 -= labelorg;
+            v1 -= g_labelorg;
             GETNWC(c,f);
             if (c == ':')
                 if (!readinteger(f,&v2))
@@ -2182,7 +2182,7 @@ readvperm(FILE *f, int *perm, boolean prompt, int n, int *nv)
                     v2 = v1;
                 }
                 else
-                    v2 -= labelorg;
+                    v2 -= g_labelorg;
             else
             {
                 ungetc(c,f);
@@ -2194,11 +2194,11 @@ readvperm(FILE *f, int *perm, boolean prompt, int n, int *nv)
                 if (v1 < v2)
                     fprintf(ERRFILE,
                       "illegal range in permutation : %d:%d\n\n",
-                      v1+labelorg,v2+labelorg);
+                      v1+g_labelorg,v2+g_labelorg);
                 else
                     fprintf(ERRFILE,
                       "illegal number in permutation : %d\n\n",
-                      v1+labelorg);
+                      v1+g_labelorg);
             }
             else
             for (; v1 <= v2; ++v1)
@@ -2211,7 +2211,7 @@ readvperm(FILE *f, int *perm, boolean prompt, int n, int *nv)
                 else
                     fprintf(ERRFILE,
                       "repeated number in permutation : %d\n\n",
-                      v1+labelorg);
+                      v1+g_labelorg);
             }
         }
         else
@@ -2921,11 +2921,11 @@ putsequence(FILE *f, int *x, int linelength, int n)
         xval = x[v1];
 
         for (v2 = v1; v2 < n - 1 && x[v2+1] == xval; ++v2) {}
-        j = itos(v1+labelorg,s);
+        j = itos(v1+g_labelorg,s);
         if (v2 > v1)
         {
             s[j++] = '-';
-            j += itos(v2+labelorg,&s[j]);
+            j += itos(v2+g_labelorg,&s[j]);
         }
         s[j++] = ':';
         j += itos(xval,&s[j]);

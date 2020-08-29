@@ -21,7 +21,7 @@
 #include "../nauty/nauty.h"           /* which includes stdio.h */
 
 #ifdef __cplusplus
-extern "C" {
+//extern "C" {
 #endif
 
 extern int component(graph*,int,set*,int,int);
@@ -30,5 +30,5 @@ extern long ptncode(graph*,int*,int*,int,int,int);
 extern void nautaux_freedyn(void);
 extern void nautaux_check(int,int,int,int);
 #ifdef __cplusplus
-}
+//}
 #endif
