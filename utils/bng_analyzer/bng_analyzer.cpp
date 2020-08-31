@@ -39,12 +39,13 @@ using namespace std;
 static const option long_options[] = {
     { "help", 0, 0, 'h' },
     { "version", 0, 0, 'v' },
+    { "output", 1, 0, 'o' },
     { nullptr, 0, 0, 0 }
 };
 
 
 void print_usage(const char* argv0) {
-  cout << "TODO\n";
+  cout << "INPUT_FILE [-o OUTPUT_FILE]\n";
 }
 
 
@@ -61,15 +62,17 @@ const int ARG_PARSE_OK = -1;
 // ARG_PARSE_ERROR to end with exit code 1,
 int process_args(
     const int argc, char* argv[],
-    string& input_file
+    string& input_file,
+    string& output_file
 ) {
   input_file = "";
+  output_file = "";
 
   assert(argc > 0);
   while (1) {
 
     // get the next argument
-    int c = getopt_long_only(argc, argv, "hvgo:", long_options, nullptr);
+    int c = getopt_long_only(argc, argv, "hvo:", long_options, nullptr);
     if (c == -1)
       break;
 
@@ -80,6 +83,9 @@ int process_args(
       case 'v':
         print_version(argv[0]);
         return ARG_PARSE_QUIT;
+      case 'o':
+        output_file = optarg;
+        break;
     }
   }
 
@@ -102,8 +108,9 @@ int process_args(
 int main(const int argc, char* argv[]) {
 
   string input_file;
+  string output_file;
 
-  int arg_process_res = process_args(argc, argv, input_file);
+  int arg_process_res = process_args(argc, argv, input_file, output_file);
   if (arg_process_res != ARG_PARSE_OK) {
     return arg_process_res;
   }
@@ -114,6 +121,6 @@ int main(const int argc, char* argv[]) {
     cerr << "There was an error while reading " << input_file << ".\n";
     return 1;
   }
-  nfsim_unifier.print_unified_species();
-  return 0;
+  ok = nfsim_unifier.print_unified_species(output_file);
+  return ok ? 0 : 1;
 }
