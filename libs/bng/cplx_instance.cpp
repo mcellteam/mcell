@@ -209,72 +209,91 @@ private:
 };
 
 
-static bool canonical_mol_instance_less(const MolInstance& mi1, const MolInstance& mi2) {
-  // 1) id
-  if (mi1.mol_type_id != mi2.mol_type_id) {
-    return mi1.mol_type_id < mi2.mol_type_id;
+class CanonicalMolComparator {
+public:
+  CanonicalMolComparator(const BNGData& bng_data_)
+    : bng_data(bng_data_) {
   }
 
-  // no let's go component by component, the canonicalization is used currently only
-  // for species that have full set of components
-  vector<uint> bonds1;
-  vector<uint> bonds2;
-  assert(mi1.component_instances.size() == mi2.component_instances.size());
-  for (size_t i = 0; i < mi1.component_instances.size(); i++) {
-    const ComponentInstance& ci1 = mi1.component_instances[i];
-    const ComponentInstance& ci2 = mi2.component_instances[i];
-    assert(ci1.component_type_id == ci2.component_type_id);
-
-    // 2) state
-    if (ci1.state_id != ci2.state_id) {
-      return ci1.state_id < ci2.state_id;
+  bool operator() (const MolInstance& mi1, const MolInstance& mi2) {
+    // 1) id
+    if (mi1.mol_type_id != mi2.mol_type_id) {
+      // sort by name - we cannot depend on the order in which
+      // molecule types were defined because we can get them from different sources
+      const MolType& mt1 = bng_data.get_molecule_type(mi1.mol_type_id);
+      const MolType& mt2 = bng_data.get_molecule_type(mi2.mol_type_id);
+      return mt1.name < mt2.name;
     }
 
-    if (ci1.bond_has_numeric_value()) {
-      bonds1.push_back(ci1.bond_value);
-    }
-    if (ci2.bond_has_numeric_value()) {
-      bonds2.push_back(ci2.bond_value);
-    }
-  }
+    // no let's go component by component, the canonicalization is used currently only
+    // for species that have full set of components
+    vector<uint> bonds1;
+    vector<uint> bonds2;
+    assert(mi1.component_instances.size() == mi2.component_instances.size());
+    for (size_t i = 0; i < mi1.component_instances.size(); i++) {
+      const ComponentInstance& ci1 = mi1.component_instances[i];
+      const ComponentInstance& ci2 = mi2.component_instances[i];
+      assert(ci1.component_type_id == ci2.component_type_id);
 
-  // NOTE: the bonds comparison does not probably give fully canonical variant,
-  // should be improved but it is ok like this for now
-  if (bonds1.size() != bonds2.size()) {
-    return bonds1.size() < bonds2.size();
-  }
-  else {
-    uint bonds_sum1 = 0;
-    uint bonds_sum2 = 0;
-    // count sum of the bond values
-    for (size_t i = 0; i < bonds1.size(); i++) {
-      bonds_sum1 += bonds1[i];
-      bonds_sum2 += bonds2[i];
-    }
-    if (bonds_sum1 < bonds_sum2) {
-      return true;
-    }
+      // 2) state
+      if (ci1.state_id != ci2.state_id) {
+        return ci1.state_id < ci2.state_id;
+      }
 
-    for (size_t i = 0; i < bonds1.size(); i++) {
-      if (bonds1[i] != bonds2[i]) {
-        return bonds1[i] < bonds2[i];
+      if (ci1.bond_has_numeric_value()) {
+        bonds1.push_back(ci1.bond_value);
+      }
+      if (ci2.bond_has_numeric_value()) {
+        bonds2.push_back(ci2.bond_value);
       }
     }
-    return false; // same for our purposes
+
+    // NOTE: the bonds comparison does not probably give fully canonical variant,
+    // should be improved but it is ok like this for now
+    if (bonds1.size() != bonds2.size()) {
+      return bonds1.size() < bonds2.size();
+    }
+    else {
+      uint bonds_sum1 = 0;
+      uint bonds_sum2 = 0;
+      // count sum of the bond values
+      for (size_t i = 0; i < bonds1.size(); i++) {
+        bonds_sum1 += bonds1[i];
+        bonds_sum2 += bonds2[i];
+      }
+      if (bonds_sum1 < bonds_sum2) {
+        return true;
+      }
+
+      for (size_t i = 0; i < bonds1.size(); i++) {
+        if (bonds1[i] != bonds2[i]) {
+          return bonds1[i] < bonds2[i];
+        }
+      }
+      return false; // same for our purposes
+    }
+
   }
-}
+
+private:
+  const BNGData& bng_data;
+};
+
 
 
 void CplxInstance::sort_components_and_mols() {
   // we need to sort components first
   for (MolInstance& mi: mol_instances) {
-    CanonicalComponentComparator cmp(bng_data->get_molecule_type(mi.mol_type_id));
-    sort(mi.component_instances.begin(), mi.component_instances.end(), cmp);
+    CanonicalComponentComparator comp_cmp(bng_data->get_molecule_type(mi.mol_type_id));
+    sort(mi.component_instances.begin(), mi.component_instances.end(), comp_cmp);
   }
 
+  CanonicalMolComparator mol_cmp(*bng_data);
+
   // then molecules
-  sort(mol_instances.begin(), mol_instances.end(), canonical_mol_instance_less);
+  sort(mol_instances.begin(), mol_instances.end(), mol_cmp);
 }
+
 #endif // #ifndef NAUTY_CANONICALIZATION
 
 void CplxInstance::renumber_bonds() {
