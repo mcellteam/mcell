@@ -161,6 +161,8 @@ void RxnRule::create_patterns_graph() {
 
 
 void RxnRule::create_products_graph() {
+  products_graph.clear();
+
   // mark each of the original product complexes with the index of the product
   // we have our own copies and it is easier to mark the source graphs before merging
   for (size_t i = 0; i < products.size(); i++) {
@@ -191,13 +193,13 @@ void RxnRule::finalize() {
   // finalize all reactants and products
   for (CplxInstance& ci: reactants) {
     ci.finalize();
-    simple &= ci.is_simple();
+    simple = simple && ci.is_simple();
   }
 
   num_surf_products = 0;
   for (CplxInstance& ci: products) {
     ci.finalize();
-    simple &= ci.is_simple();
+    simple = simple && ci.is_simple();
     if (ci.is_surf()) {
       num_surf_products++;
     }
