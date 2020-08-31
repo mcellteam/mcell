@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 2.8.4)
 
 project(bng)
 
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../nauty ${CMAKE_CURRENT_BINARY_DIR}/nauty)
+
 include_directories(
 	"${CMAKE_SOURCE_DIR}"
 	"${CMAKE_CURRENT_SOURCE_DIR}/.."
@@ -53,7 +55,7 @@ FLEX_TARGET(bngl_scanner ${CMAKE_CURRENT_SOURCE_DIR}/bngl_scanner.l
 
 # TODO: add bngl_scanner.l|y dependencies
   
-ADD_FLEX_BISON_DEPENDENCY(bngl_scanner bngl_parser bngl_l)
+ADD_FLEX_BISON_DEPENDENCY(bngl_scanner bngl_parser bngl_l nauty)
 
 set(ALL_SOURCES
     ${SOURCE_FILES}
@@ -62,8 +64,14 @@ set(ALL_SOURCES
 )
 
 add_library(${PROJECT_NAME} ${ALL_SOURCES})
+target_link_libraries(${PROJECT_NAME}
+	PRIVATE nauty
+)
 
 add_executable(test_${PROJECT_NAME}
     ${ALL_SOURCES}
 	test.cpp # only for development
+)
+target_link_libraries(test_${PROJECT_NAME}
+	nauty
 )

@@ -64,6 +64,9 @@ public:
       rxn_flags_were_updated(other.rxn_flags_were_updated) {
   }
 
+  // TODO: maybe an assignment operator is needed, e.g. in the CplxInstance case, the copy ctor was not
+  // called all the time (not sure why...) and assignment operator was needed to fix an issue
+
   // TODO: why is this called from the Species ctor, can we remove it?
   void finalize() {
     CplxInstance::finalize();
