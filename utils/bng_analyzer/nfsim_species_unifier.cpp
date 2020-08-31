@@ -84,9 +84,9 @@ bool NFSimSpeciesUnifier::read_species_file(const std::string& input_file) {
     );
 
     // convert count
-    int count;
+    double count;
     try {
-      count = stoi(count_string);
+      count = stod(count_string);
     }
     catch (const std::invalid_argument& ia) {
       cerr << "Could not convert count '" << count_string << "' on line " << linenr << ".\n";
