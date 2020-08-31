@@ -283,8 +283,8 @@ int adjust_rates_nfsim(struct volume *state, struct rxn *rx, bool is_surface) {
 
     // if (!rx->rates || !rx->rates[i]) {
     rate = pb_factor * rx->cum_probs[i];
-    mcell_log("!!%s %.10e %.10e", rx->external_reaction_data[i].reaction_name,
-              rx->cum_probs[i], rate);
+    //mcell_log("!!%s %.10e %.10e", rx->external_reaction_data[i].reaction_name,
+    //          rx->cum_probs[i], rate);
     //} else
     //  rate = 0.0;
     rx->cum_probs[i] = rate;
@@ -400,11 +400,11 @@ int initializeNFSimReaction(struct volume *state, struct rxn *r,
   }
 
   // adjust reaction probabilities
-  if (reacB != NULL)
+  /*if (reacB != NULL)
     mcell_log("++++ %s %s", reacA->graph_data->graph_pattern,
               reacB->graph_data->graph_pattern);
   else
-    mcell_log("---- %s ", reacA->graph_data->graph_pattern);
+    mcell_log("---- %s ", reacA->graph_data->graph_pattern);*/
   adjust_rates_nfsim(state, r, orientation_flag1 & orientation_flag2);
 
   // calculate cummulative probabilities
