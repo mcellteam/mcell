@@ -17,7 +17,14 @@
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/vf2_sub_graph_iso.hpp>
 
+#include "nauty/nauty.h"
+#include "nauty/nausparse.h"
+
 #include "debug_config.h"
+
+#define DEBUG_CANONICALIZATION
+
+//#define NAUTY_CANONICALIZATION
 
 using namespace boost;
 
@@ -162,7 +169,7 @@ bool CplxInstance::matches_complex_fully_ignore_orientation(const CplxInstance& 
   return mappings.size() == 1 && mappings[0].size() == graph.m_vertices.size();
 }
 
-
+#ifndef NAUTY_CANONICALIZATION
 class CanonicalComponentComparator {
 public:
   CanonicalComponentComparator(const MolType& mt_)
@@ -237,6 +244,17 @@ static bool canonical_mol_instance_less(const MolInstance& mi1, const MolInstanc
     return bonds1.size() < bonds2.size();
   }
   else {
+    uint bonds_sum1 = 0;
+    uint bonds_sum2 = 0;
+    // count sum of the bond values
+    for (size_t i = 0; i < bonds1.size(); i++) {
+      bonds_sum1 += bonds1[i];
+      bonds_sum2 += bonds2[i];
+    }
+    if (bonds_sum1 < bonds_sum2) {
+      return true;
+    }
+
     for (size_t i = 0; i < bonds1.size(); i++) {
       if (bonds1[i] != bonds2[i]) {
         return bonds1[i] < bonds2[i];
@@ -257,7 +275,7 @@ void CplxInstance::sort_components_and_mols() {
   // then molecules
   sort(mol_instances.begin(), mol_instances.end(), canonical_mol_instance_less);
 }
-
+#endif // #ifndef NAUTY_CANONICALIZATION
 
 void CplxInstance::renumber_bonds() {
   map<bond_value_t, bond_value_t> new_bond_values;
@@ -281,7 +299,7 @@ void CplxInstance::renumber_bonds() {
   }
 }
 
-
+#ifndef NAUTY_CANONICALIZATION
 void CplxInstance::canonicalize() {
 
   // first sorting to put molecules to their places
@@ -296,7 +314,239 @@ void CplxInstance::canonicalize() {
   // need to rebuild graph
   finalize();
 }
+#endif
 
+#ifdef NAUTY_CANONICALIZATION
+// does not seem to work ...
+// even the usage in nfsim seems to be wrong?
+// TODO: split into multiple functions
+// https://computationalcombinatorics.wordpress.com/2012/09/20/canonical-labelings-with-nauty/
+void CplxInstance::canonicalize() {
+  if (mol_instances.size() == 1) {
+    // no need to sort anything because we have just one molecule
+    // and components are already sorted
+    return;
+  }
+
+  // we use nauty/traces to construct a canonical version of the graph
+  // we are using only the base BNG API, not the boost graphs to stay independent
+
+  // 1) construct mapping vertex - index -> molecule or component
+  //    and also store information on bonds and other details
+  vector<Node> nodes;
+  // map bond index -> vertex indices
+  map<bond_value_t, vector<int>> bond_index_to_components;
+  // mapping to know to which molecule a component belongs
+  map<int, int> component_to_mol_index;
+  // indexed by index, pair is (molecule index, component index) in this cplx
+  // second value is -1 if the index represents a molecule
+  vector<pair<int, int>> index_to_mol_and_component_index;
+  int index = 0;
+  for (int m_index = 0; m_index < (int)mol_instances.size(); m_index++) {
+    MolInstance& mi = mol_instances[m_index];
+    nodes.push_back(Node(&mi));
+    int mol_index = index;
+    index_to_mol_and_component_index.push_back(make_pair(m_index, -1));
+    index++;
+
+    for (int c_index = 0; c_index < (int)mi.component_instances.size(); c_index++) {
+      ComponentInstance& ci = mi.component_instances[c_index];
+      nodes.push_back(Node(&ci));
+      component_to_mol_index[index] = mol_index;
+      index_to_mol_and_component_index.push_back(make_pair(m_index, c_index));
+      if (ci.bond_has_numeric_value()) {
+        bond_index_to_components[ci.bond_value].push_back(index);
+      }
+      index++;
+    }
+  }
+
+  // 2) create nauty graph representation
+  vector<size_t> v_edge_indices;
+  vector<int> d_out_degrees;
+  vector<int> e_neighbors;
+  map<string, vector<int>> color_classes;
+
+  for (int index = 0; index < (int)nodes.size(); index++) {
+    const Node& n = nodes[index];
+
+    // the index for this node for neighbors simply starts where the last ended
+    v_edge_indices.push_back(e_neighbors.size());
+
+    // neighbors
+    int num_neighbors = 0;
+    if (n.is_mol) {
+      // for a molecule - neighbors are all edges - the indices directly follow ours
+      for (int i = 0; i < (int)n.mol->component_instances.size(); i++) {
+        e_neighbors.push_back(index + i + 1); // need +1 because the first component is the next one
+        num_neighbors++;
+      }
+
+      // also remember color
+      // use name instead of id so that we are not dependent on the order of declatation in the BNG file
+      color_classes["M:" + bng_data->get_molecule_type(n.mol->mol_type_id).name].push_back(index);
+    }
+    else {
+      // index of the component's molecule
+      assert(component_to_mol_index.count(index) != 0);
+      e_neighbors.push_back(component_to_mol_index[index]);
+      num_neighbors++;
+
+      // index of the second component, if connected
+      if (n.component->bond_has_numeric_value()) {
+        assert(bond_index_to_components.count(n.component->bond_value) != 0);
+        vector<int>& bonds = bond_index_to_components[n.component->bond_value];
+        assert(bonds.size() == 2);
+        int second_index = -1;
+        if (bonds[0] == index) {
+          second_index = bonds[1];
+        }
+        else if (bonds[1] == index) {
+          second_index = bonds[0];
+        }
+        else {
+          assert(false);
+        }
+        e_neighbors.push_back(second_index);
+        num_neighbors++;
+      }
+
+      // also remember color
+      color_classes["C:" + bng_data->get_component_type(n.component->component_type_id).name].push_back(index);
+    }
+
+    d_out_degrees.push_back(num_neighbors);
+  }
+
+  // define coloring, nauty has a weird way of assigning colors to nodes:
+  // libs/nauty/nug27.pdf, p. 18:
+  // if ptn[i] = 0, then a cell (colour class) ends at position i.
+  // so let's say I have these data:
+  //   lab: 2 3 5 6 1 0 4 7 8 all vertices in some order
+  //   ptn: 0 0 1 1 1 0 1 1 0 cells end where the zeros are (non-zero value specifies continuation)
+  // it defines these classes
+  //   [{2}, {3}, {0, 1, 5, 6}, {4, 7, 8}].
+
+  vector<int> labels; // vertex indices
+  vector<int> permutations; // ptn in nauty
+
+  // labels.push_back(index); // index of vertices in the colors array
+  for (auto it_color: color_classes) {
+    vector<int>& indices = it_color.second;
+    for (size_t i = 0; i < indices.size(); i++) {
+      labels.push_back(indices[i]);
+      // 1 - there are more, 0 - last of this class
+      if (i != indices.size() - 1) {
+        permutations.push_back(1);
+      }
+      else {
+        permutations.push_back(0);
+      }
+    }
+  }
+
+  // setup sparse graph representation
+  SG_DECL(sg1);
+  int num_verts = v_edge_indices.size();
+  sg1.nde = e_neighbors.size();
+  sg1.nv = num_verts;
+  sg1.d = d_out_degrees.data();
+  sg1.dlen = d_out_degrees.size();
+  sg1.v = v_edge_indices.data();
+  sg1.vlen = num_verts;
+  sg1.e = e_neighbors.data();
+  sg1.elen = e_neighbors.size();
+
+  // 3) get canonical mapping
+  SG_DECL(cg1);
+  DEFAULTOPTIONS_SPARSEGRAPH(options);
+  statsblk stats;
+  //DEFAULTOPTIONS_TRACES(options);
+  options.getcanon = TRUE;
+  options.defaultptn = FALSE;
+  // SIMPLE GRAPH:
+  options.digraph = FALSE;
+  //TracesStats stats;
+
+  int* orbits = new int[num_verts]; // unused but must be allocated
+
+  // - do the actual canonicalization, labels define how to reorder molecules and components
+  //   using function Traces instead of sparsenauty or nauty because it does not leave so much
+  //   unfreed memory
+  // - WARNING: Threads function may not be thread safe, nauty uses many globals
+  // - overwites contents of labels
+  //Traces(&sg1, labels.data(), colors.data(), orbits, &options, &stats, &cg1);
+#ifdef DEBUG_CANONICALIZATION
+  dump_container(labels, "labels before");
+  dump_container(permutations, "permutations before");
+#endif
+
+  sparsenauty(&sg1, labels.data(), permutations.data(), orbits, &options, &stats, &cg1);
+  //nauty((graph*)&sg1, labels.data(), colors.data(), orbits, &options, &stats, (graph*)&cg1);
+
+#ifdef DEBUG_CANONICALIZATION
+  dump_container(labels, "labels after");
+  dump_container(permutations, "permutations after");
+#endif
+
+  SG_FREE( cg1 );
+  delete [] orbits;
+  nausparse_freedyn(); // frees allocated thread local storage memory
+
+  // 4) create molecules and components in this complex from scratch
+  // the numeric bonds are still ok
+
+  // reverse the labels mapping
+  map<int, int> rev_labels;
+  for (size_t i = 0; i < labels.size(); i++) {
+    assert(rev_labels.count(labels[i]) == 0);
+    rev_labels[labels[i]] = i;
+  }
+
+  MolInstanceVector new_mol_instances(mol_instances.size());
+  map<int, int> old_to_new_mol_index;
+  // now go by the ordered reverse mapping and create mols
+  int new_mol_index = 0;
+  for (auto it_new_orig: rev_labels) {
+    // is this node a molecule?
+    pair<int, int> orig_mci = index_to_mol_and_component_index[it_new_orig.second];
+    if (orig_mci.second == -1) {
+      // copy everything except for components, they will be added later
+      new_mol_instances[new_mol_index] = mol_instances[orig_mci.first];
+      //new_mol_instances[new_mol_index].component_instances.clear();
+      old_to_new_mol_index[orig_mci.first] = new_mol_index;
+      new_mol_index++;
+    }
+  }
+
+  // once we have mols, add also the components
+  for (auto it_new_orig: rev_labels) {
+    // is this node a component?
+    pair<int, int> orig_mci = index_to_mol_and_component_index[it_new_orig.second];
+    if (orig_mci.second != -1) {
+      int new_mol_index = old_to_new_mol_index[it_new_orig.second];
+      // copy components
+      new_mol_instances[new_mol_index].component_instances.push_back(
+          mol_instances[orig_mci.first].component_instances[orig_mci.second]
+      );
+    }
+  }
+
+  // and overwrite
+  mol_instances = new_mol_instances;
+
+  // 5) reorder components in molecules back to their prescribed form
+  for (MolInstance& mi: mol_instances) {
+    mi.finalize_flags_and_sort_components(*bng_data);
+  }
+
+  // 6) renumber bonds
+  renumber_bonds();
+
+  // 7) update the boost graph representation
+  finalize();
+}
+#endif
 
 std::string CplxInstance::to_str(const BNGData& bng_data, bool in_surf_reaction) const {
   stringstream ss;
