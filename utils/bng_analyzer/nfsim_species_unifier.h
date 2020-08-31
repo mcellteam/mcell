@@ -36,7 +36,7 @@ public:
     : bng_engine(bng_config) {
   }
   bool read_species_file(const std::string& input_file);
-  void print_unified_species();
+  bool print_unified_species(const std::string& out_file = "");
 
   std::map<species_id_t, double> counts_per_unique_species;
   BNG::BNGConfig bng_config;

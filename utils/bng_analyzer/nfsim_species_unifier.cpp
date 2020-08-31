@@ -108,11 +108,31 @@ bool NFSimSpeciesUnifier::read_species_file(const std::string& input_file) {
 }
 
 
-void NFSimSpeciesUnifier::print_unified_species() {
+// out_file may be an empty string, in this case the output is printed to
+bool NFSimSpeciesUnifier::print_unified_species(const std::string& out_file) {
+  ostream* out;
+  ofstream ofile;
+  if (out_file != "") {
+    ofile.open(out_file, ofstream::out);
+    if (!ofile.is_open()) {
+      cerr << "Could not open output file " << out_file << ".\n";
+      return false;
+    }
+    out = &ofile;
+  }
+  else {
+    out = &cout;
+  }
+
   for (auto it: counts_per_unique_species) {
     BNG::Species& s = bng_engine.get_all_species().get(it.first);
-    cout << s.to_str(bng_engine.get_data()) << " " << it.second << "\n";
+    *out << s.to_str(bng_engine.get_data()) << " " << it.second << "\n";
   }
+
+  if (out_file != "") {
+    ofile.close();
+  }
+  return true;
 }
 
 } // namespace MCell
