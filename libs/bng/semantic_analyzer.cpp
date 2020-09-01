@@ -515,15 +515,6 @@ void SemanticAnalyzer::convert_complex_pattern(const small_vector<const ASTMolec
       ctx->inc_error_count();
       return;
     }
-
-    // it is used in different molecules of a complex
-    if (it.second[0] == it.second[1]) {
-      assert(complex_nodes.size() > 0);
-      errs_loc(complex_nodes[0]) <<
-          "Bond with numerical value '" << it.first << "' must bind different molecules of a complex pattern of a rule.\n"; // test N0208
-      ctx->inc_error_count();
-      return;
-    }
   }
 
   pattern.finalize();
