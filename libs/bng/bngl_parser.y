@@ -74,7 +74,7 @@ namespace BNG {
 // end reaction rules
 //
 %glr-parser
-%expect 2
+%expect 3
 
 %union {
   const char* str;
@@ -99,6 +99,7 @@ namespace BNG {
 %token TOK_SEED "seed"
 %token TOK_SPECIES "species"
 %token TOK_OBSERVABLES "observables"
+%token TOK_ACTIONS "actions"
 
 // special token to swithc parser to mode where it parses a single complex instance
 %token TOK_SINGLE_CPLX "@CPLX"
@@ -139,28 +140,29 @@ namespace BNG {
 %%
 
 // TODO: error recovery 
-// this start symbol is for the whole BNGL file
-start_bngl: 
-    // whole file without begin model .. end model markers
-      section_list action_call_list_maybe_empty
+start_bngl:
+      model_sections action_section  // default mode to parse BNGL file
       
-    // whole file with begin model .. end model markers
-    | TOK_BEGIN TOK_MODEL section_list TOK_END TOK_MODEL action_call_list_maybe_empty
-    
-    // single complex to be parsed, prefixed by a unique string 
-    | TOK_SINGLE_CPLX cplx_instance {
+    | TOK_SINGLE_CPLX cplx_instance {  // single complex to be parsed, prefixed by a unique string
     	g_ctx->single_cplx_instance = $2;
     }
     // empty file
     | 
 ;
 
+model_sections:
+	  section_list 
+	| TOK_BEGIN TOK_MODEL section_list TOK_END TOK_MODEL
 
 section_list:
       section_list section
     | section
 ;
-      
+ 
+action_section:
+      action_call_list_maybe_empty
+    | TOK_BEGIN TOK_ACTIONS action_call_list_maybe_empty TOK_END TOK_ACTIONS
+     
 section:
       TOK_BEGIN TOK_PARAMETERS parameter_list_maybe_empty TOK_END TOK_PARAMETERS
     | TOK_BEGIN TOK_MOLECULE TOK_TYPES molecule_list_maybe_empty TOK_END TOK_MOLECULE TOK_TYPES {
