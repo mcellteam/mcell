@@ -17,14 +17,14 @@
 #include <boost/graph/adjacency_list.hpp>
 #include <boost/graph/vf2_sub_graph_iso.hpp>
 
-#include "nauty/nauty.h"
+#include "nauty/traces.h"
 #include "nauty/nausparse.h"
 
 #include "debug_config.h"
 
-#define DEBUG_CANONICALIZATION
+//#define DEBUG_CANONICALIZATION
 
-//#define NAUTY_CANONICALIZATION
+#define NAUTY_CANONICALIZATION
 
 using namespace boost;
 
@@ -169,7 +169,6 @@ bool CplxInstance::matches_complex_fully_ignore_orientation(const CplxInstance& 
   return mappings.size() == 1 && mappings[0].size() == graph.m_vertices.size();
 }
 
-#ifndef NAUTY_CANONICALIZATION
 class CanonicalComponentComparator {
 public:
   CanonicalComponentComparator(const MolType& mt_)
@@ -208,6 +207,7 @@ private:
   const MolType& mt;
 };
 
+#ifndef NAUTY_CANONICALIZATION
 
 class CanonicalMolComparator {
 public:
@@ -430,8 +430,12 @@ void CplxInstance::canonicalize() {
         num_neighbors++;
       }
 
-      // also remember color
-      color_classes["C:" + bng_data->get_component_type(n.component->component_type_id).name].push_back(index);
+      // also remember 'color', we need to distinguish states as well
+      string component_label = "C:" + bng_data->get_component_type(n.component->component_type_id).name;
+      if (n.component->state_is_set()) {
+        component_label += "~" + bng_data->get_state_name(n.component->state_id);
+      }
+      color_classes[component_label].push_back(index);
     }
 
     d_out_degrees.push_back(num_neighbors);
@@ -448,6 +452,10 @@ void CplxInstance::canonicalize() {
 
   vector<int> labels; // vertex indices
   vector<int> permutations; // ptn in nauty
+
+#ifdef DEBUG_CANONICALIZATION
+  cout << "Before " << to_str(*bng_data) << "\n";
+#endif
 
   // labels.push_back(index); // index of vertices in the colors array
   for (auto it_color: color_classes) {
@@ -478,14 +486,13 @@ void CplxInstance::canonicalize() {
 
   // 3) get canonical mapping
   SG_DECL(cg1);
-  DEFAULTOPTIONS_SPARSEGRAPH(options);
-  statsblk stats;
-  //DEFAULTOPTIONS_TRACES(options);
+  //DEFAULTOPTIONS_SPARSEGRAPH(options);
+  //statsblk stats;
+  DEFAULTOPTIONS_TRACES(options);
   options.getcanon = TRUE;
   options.defaultptn = FALSE;
-  // SIMPLE GRAPH:
   options.digraph = FALSE;
-  //TracesStats stats;
+  TracesStats stats;
 
   int* orbits = new int[num_verts]; // unused but must be allocated
 
@@ -493,15 +500,13 @@ void CplxInstance::canonicalize() {
   //   using function Traces instead of sparsenauty or nauty because it does not leave so much
   //   unfreed memory
   // - WARNING: Threads function may not be thread safe, nauty uses many globals
-  // - overwites contents of labels
-  //Traces(&sg1, labels.data(), colors.data(), orbits, &options, &stats, &cg1);
+  // - overwrites contents of labels and permutations
 #ifdef DEBUG_CANONICALIZATION
   dump_container(labels, "labels before");
   dump_container(permutations, "permutations before");
 #endif
 
-  sparsenauty(&sg1, labels.data(), permutations.data(), orbits, &options, &stats, &cg1);
-  //nauty((graph*)&sg1, labels.data(), colors.data(), orbits, &options, &stats, (graph*)&cg1);
+  Traces(&sg1, labels.data(), permutations.data(), orbits, &options, &stats, &cg1);
 
 #ifdef DEBUG_CANONICALIZATION
   dump_container(labels, "labels after");
@@ -515,35 +520,29 @@ void CplxInstance::canonicalize() {
   // 4) create molecules and components in this complex from scratch
   // the numeric bonds are still ok
 
-  // reverse the labels mapping
-  map<int, int> rev_labels;
-  for (size_t i = 0; i < labels.size(); i++) {
-    assert(rev_labels.count(labels[i]) == 0);
-    rev_labels[labels[i]] = i;
-  }
-
   MolInstanceVector new_mol_instances(mol_instances.size());
   map<int, int> old_to_new_mol_index;
   // now go by the ordered reverse mapping and create mols
   int new_mol_index = 0;
-  for (auto it_new_orig: rev_labels) {
+  for (int index: labels) {
     // is this node a molecule?
-    pair<int, int> orig_mci = index_to_mol_and_component_index[it_new_orig.second];
+    pair<int, int> orig_mci = index_to_mol_and_component_index[index];
     if (orig_mci.second == -1) {
-      // copy everything except for components, they will be added later
+      // copy everything and clear components, they will be added later
       new_mol_instances[new_mol_index] = mol_instances[orig_mci.first];
-      //new_mol_instances[new_mol_index].component_instances.clear();
+      new_mol_instances[new_mol_index].component_instances.clear();
       old_to_new_mol_index[orig_mci.first] = new_mol_index;
       new_mol_index++;
     }
   }
 
   // once we have mols, add also the components
-  for (auto it_new_orig: rev_labels) {
+  for (int index: labels) {
     // is this node a component?
-    pair<int, int> orig_mci = index_to_mol_and_component_index[it_new_orig.second];
+    pair<int, int> orig_mci = index_to_mol_and_component_index[index];
     if (orig_mci.second != -1) {
-      int new_mol_index = old_to_new_mol_index[it_new_orig.second];
+      int new_mol_index = old_to_new_mol_index[orig_mci.first];
+      assert(new_mol_index < (int)new_mol_instances.size());
       // copy components
       new_mol_instances[new_mol_index].component_instances.push_back(
           mol_instances[orig_mci.first].component_instances[orig_mci.second]
@@ -554,16 +553,27 @@ void CplxInstance::canonicalize() {
   // and overwrite
   mol_instances = new_mol_instances;
 
-  // 5) reorder components in molecules back to their prescribed form
-  for (MolInstance& mi: mol_instances) {
-    mi.finalize_flags_and_sort_components(*bng_data);
-  }
-
-  // 6) renumber bonds
+  // 5) renumber bonds so that they follow the new molecule ordering
   renumber_bonds();
 
-  // 7) update the boost graph representation
+  // 6) sort components in molecules back to their prescribed form
+  // and in a way that the bond index is increasing
+  for (MolInstance& mi: mol_instances) {
+    // we need to sort components first
+    CanonicalComponentComparator comp_cmp(bng_data->get_molecule_type(mi.mol_type_id));
+    sort(mi.component_instances.begin(), mi.component_instances.end(), comp_cmp);
+  }
+
+  // 7) and renumber bonds again
+  renumber_bonds();
+
+  // 8) update the boost graph representation
   finalize();
+
+#ifdef DEBUG_CANONICALIZATION
+  cout << "After " << to_str(*bng_data) << "\n";
+#endif
+
 }
 #endif
 
