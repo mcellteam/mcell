@@ -1322,7 +1322,7 @@ bool RxnRule::check_reactants_products_mapping(std::ostream& out) {
 
 
 void RxnRule::move_products_that_are_also_reactants_to_be_the_first_products() {
-#ifdef MCELL4_SORT_RXN_PRODUCTS_BY_NAME
+#if defined(MCELL4_SORT_RXN_PRODUCTS_BY_NAME) || defined(MCELL4_SORT_RXN_PRODUCTS_BY_LENGTH_DESC)
   // this is a behavior of NFsim that products seem to be sorted by name,
   // let's assume by the first molecule of each complex
   // for now let's sort max 2 products
@@ -1331,7 +1331,11 @@ void RxnRule::move_products_that_are_also_reactants_to_be_the_first_products() {
     const string& name0 = products[0].to_str(*bng_data, false); // we do not care whether this is a surf or vol rxn
     const string& name1 = products[1].to_str(*bng_data, false);
 
+#if defined(MCELL4_SORT_RXN_PRODUCTS_BY_NAME)
     if (name0 > name1) {
+#elif defined(MCELL4_SORT_RXN_PRODUCTS_BY_LENGTH_DESC)
+    if (name0.size() < name1.size()) {
+#endif
       CplxInstance tmp = products[0];
       products[0] = products[1];
       products[1] = tmp;

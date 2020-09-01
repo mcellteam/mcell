@@ -1120,7 +1120,14 @@ int outcome_unimolecular(struct volume *world, struct rxn *rx, int path,
 
     //NFSim calculation
     if(reac->properties->flags & EXTERNAL_SPECIES){
+#if 0 // just to dump the whole rxn, fails later for some reason..
+      // populate all pathways
+      for (int path = 0; path < rx->n_pathways; path++) {
+        outcome_nfsim(world, rx, path, reac, NULL, t);
+      }
+#else
       outcome_nfsim(world, rx, path, reac, NULL, t);
+#endif
     }
     result = outcome_products_random(world, NULL, NULL, t, rx, path, reac,
                                        NULL, 0, 0);

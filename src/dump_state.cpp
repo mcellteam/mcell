@@ -1010,10 +1010,37 @@ void dump_rxn_for_diff(rxn* rx) {
   }
   cout << "\n";
 
-  pathway* current_pathway = rx->pathway_head;
-  for (int i = 0; i < rx->n_pathways && current_pathway != nullptr; i++) {
-    dump_rxn_pathway_for_diff(current_pathway);
-    current_pathway = current_pathway->next;
+  if (rx->product_graph_data == NULL) {
+    pathway* current_pathway = rx->pathway_head;
+    for (int i = 0; i < rx->n_pathways && current_pathway != nullptr; i++) {
+      dump_rxn_pathway_for_diff(current_pathway);
+      current_pathway = current_pathway->next;
+    }
+  }
+  else {
+    cout << "BNG pathways:\n";
+    for (int path = 0; path < rx->n_pathways; path++) {
+      cout << "  " << path << ": ";
+      /* index of the first player for the pathway */
+      int const i0 = rx->product_idx[path];
+      /* index of the first player for the next pathway */
+      int const iN = rx->product_idx[path + 1];
+      int const n_players = iN - i0;
+      if (n_players == 0) {
+        // this pathway was not set...
+        cout << "not set\n";
+        continue;
+      }
+      for (int n_product = rx->n_reactants; n_product < n_players; ++n_product) {
+        struct graph_data* g_data = rx->product_graph_data[path][n_product - rx->n_reactants];
+        cout << graph_pattern_to_bngl(g_data->graph_pattern);
+        if (n_product != n_players - 1) {
+          cout << " + ";
+        }
+      }
+      cout << "\n";
+    }
+
   }
 }
 

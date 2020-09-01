@@ -62,19 +62,27 @@
 
 #ifndef MCELL3_IDENTICAL
 
+// ---- MCell4 macros to match MCell3R ----
+
 // MCell3R always creates new products when there is the same species
 // on the reactants and products side (unlike in normal MCell)
 // this switch is for validation of MCell4 BNG against MCell3R
 // One can detect this automatically or with an option, but both seemed as ugly solution
 // testsuite for mcell4 won't pass
-//#define MCELL4_DO_NOT_REUSE_REACTANT
+#define MCELL4_DO_NOT_REUSE_REACTANT
 
 // MCell3R seems to sort reaction products by name
 //#define MCELL4_SORT_RXN_PRODUCTS_BY_NAME
+#define MCELL4_SORT_RXN_PRODUCTS_BY_LENGTH_DESC
+
+// tentative sorting of reactions in a rxn class to match MCell3R
+#define MCELL4_REVERSED_RXNS_IN_RXN_CLASS
 
 // sort molecules in schedule helper according to ID before a new timestep begins
 // testsuite for mcell4 won't pass
 //#define MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID
+
+// ^^^^ MCell4 macros to match MCell3R ^^^^
 
 // enable several things that make comparison with mcell4 easier
 #define MCELL3_ONLY_ONE_MEMPART
@@ -124,12 +132,12 @@
 //#define DEBUG_EXTRA_CHECKS
 
 //#define DUMP_ALWAYS
-#define DUMP_NEVER
+//#define DUMP_NEVER
 
 #if (!defined(NDEBUG) || defined(DUMP_ALWAYS)) && !defined(DUMP_NEVER)
 
-#define FROM_ITERATION 0
-#define TO_ITERATION 10
+#define FROM_ITERATION 13
+#define TO_ITERATION 15
 
 #define DUMP_NONDIFFUSING_VMS
 
@@ -139,7 +147,7 @@
 //#define NODEBUG_WALL_COLLISIONS
 #endif
 
-//#define DEBUG_RXNS
+#define DEBUG_RXNS
 
 //#define DEBUG_RNG_CALLS // cannot be conditioned by iterations
 
