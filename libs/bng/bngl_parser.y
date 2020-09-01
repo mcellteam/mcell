@@ -74,7 +74,7 @@ namespace BNG {
 // end reaction rules
 //
 %glr-parser
-%expect 3
+%expect 2
 
 %union {
   const char* str;
@@ -122,7 +122,7 @@ namespace BNG {
 %type <molecule_node> molecule
 %type <list_node> molecule_list_maybe_empty
 %type <list_node> molecule_list
-%type <list_node> rxn_rule_side_maybe_empty
+%type <list_node> rxn_rule_side_or_zero
 %type <list_node> rxn_rule_side
 %type <list_node> rates
 %type <boolean> rxn_rule_direction
@@ -298,17 +298,23 @@ rxn_rule_list:
 ;
 
 rxn_rule:
-      rxn_rule_side rxn_rule_direction rxn_rule_side_maybe_empty rates {
+      rxn_rule_side rxn_rule_direction rxn_rule_side_or_zero rates {
          
         BNG::ASTRxnRuleNode* n = g_ctx->new_rxn_rule_node($1, $2, $3, $4);
         g_ctx->add_rxn_rule(n);
       }
 ;
 
-rxn_rule_side_maybe_empty:
+rxn_rule_side_or_zero:
       rxn_rule_side
-    | /* empty */ {
-        $$ = g_ctx->new_list_node();
+    | TOK_LLONG {
+        if ($1 != 0) {
+          bnglerror("Unexpected constant on the right-hand side of a reaction, only '0' is accepted.");
+        }
+        // 0 is the same as molecule name Null and Thrash, we will create a complex with a single molecule 
+        $$ = g_ctx->new_list_node()->append(
+        	g_ctx->new_molecule_node("Null", g_ctx->new_list_node(), @1)
+       	);
       }
 ;
 

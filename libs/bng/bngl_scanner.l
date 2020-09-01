@@ -56,7 +56,7 @@ I ([0-9]+)
 
     /* numbers and identifiers */
 
-{R}             { LOC(); bngllval.dbl = BNG::convert_to_dbl(bngltext); return TOK_DBL; }
+{R}             { LOC(); bngllval.dbl = BNG::convert_to_dbl(bngltext); return TOK_DBL; } /* must contain decimal point */
 {I}             { LOC(); bngllval.llong = BNG::convert_dec_to_llong(bngltext); return TOK_LLONG; }
 {ID}            { LOC(); bngllval.str = g_ctx->insert_to_string_pool(yytext); return TOK_ID; }
                         

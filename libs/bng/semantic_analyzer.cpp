@@ -25,6 +25,14 @@ const char* const DIR_REVERSE = "reverse";
 const char* const OBSERVABLE_MOLECULES = "Molecules";
 const char* const OBSERVABLE_SPECIES = "Species";
 
+
+static bool is_thrash_or_null(const string& name) {
+  // same check as in nfsim
+  return (name == "Null" || name == "NULL" || name=="null" ||
+      name == "Trash" || name == "trash" || name=="TRASH");
+}
+
+
 // returns new node, owned by ctx if any new nodes were created
 // called recursively, the set used_ids is copied intentionally every call
 ASTExprNode* SemanticAnalyzer::evaluate_to_dbl(ASTExprNode* root, set<string> used_ids) {
@@ -341,6 +349,10 @@ void SemanticAnalyzer::collect_and_store_implicit_molecule_types() {
     MolType new_mt;
     new_mt.name = same_name_it.first;
 
+    if (is_thrash_or_null(new_mt.name)) {
+      continue;
+    }
+
     for (auto comp_info_it: max_component_count_per_all_mts) {
       ComponentType new_ct;
       new_ct.name = comp_info_it.first;
@@ -517,11 +529,6 @@ void SemanticAnalyzer::convert_complex_pattern(const small_vector<const ASTMolec
   pattern.finalize();
 }
 
-static bool is_thrash_or_null(const string& name) {
-  // same check as in nfsim
-  return (name == "Null" || name == "NULL" || name=="null" ||
-      name == "Trash" || name == "trash" || name=="TRASH");
-}
 
 // take one side of a reaction rule and create pattern for rule matching
 void SemanticAnalyzer::convert_cplx_inst_or_rxn_rule_side(

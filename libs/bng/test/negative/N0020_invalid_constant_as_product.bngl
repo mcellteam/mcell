@@ -1,0 +1,12 @@
+# FAIL
+# OUTPUT: error: Unexpected constant on the right-hand side of a reaction, only '0' is accepted
+
+begin molecule types
+   A()
+   B()
+   C()
+end molecule types
+
+begin reaction rules
+  A() + B() <-> 5 0.1, 1
+end reaction rules
