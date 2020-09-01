@@ -113,7 +113,7 @@ rxn_class_pathway_index_t RxnClass::get_pathway_index_for_probability(
 
   while (max_idx - min_idx > 1) {
     int mid_idx = (max_idx + min_idx) / 2;
-    if (prob > (pathways[min_idx].cum_prob * local_prob_factor)) {
+    if (prob > (pathways[mid_idx].cum_prob * local_prob_factor)) {
       min_idx = mid_idx;
     }
     else {
@@ -335,6 +335,15 @@ void RxnClass::update_rxn_pathways() {
   }
   assert(!pathways.empty());
 
+#ifdef MCELL4_REVERSED_RXNS_IN_RXN_CLASS
+  // reverse pathways
+  RxnClassPathwayVector rev_pathways;
+  for (int i = pathways.size() - 1; i >= 0; i--) {
+    rev_pathways.push_back(pathways[i]);
+  }
+  pathways = rev_pathways;
+#endif
+
   // 3) compute cumulative properties
   pathways[0].cum_prob = pathways[0].pathway_prob;
   for (uint i = 1; i < pathways.size(); i++) {
@@ -438,7 +447,7 @@ std::string RxnClass::to_str(const std::string ind) const {
     const RxnClassPathway& pw = pathways[i];
     RxnRule* rxn = all_rxns.get(pw.rxn_rule_id);
 
-    out << "products based on rule " << rxn->to_str(true, false) << "(id=" << rxn->id << ")\n    ";
+    out << "products based on rule " << rxn->to_str(true, false) << "\n    ";
     for (size_t k = 0; k < pw.product_species.size(); k++) {
       species_id_t sid = pw.product_species[k];
       out << all_species.get(sid).to_str(all_species.get_bng_data()) << " (" << sid << ") ";
