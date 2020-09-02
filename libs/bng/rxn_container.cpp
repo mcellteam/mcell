@@ -161,6 +161,7 @@ RxnClass* RxnContainer::get_or_create_empty_bimol_rxn_class(const species_id_t i
 // - for bimol rxns, does not reuse already defined rxn class, e.g. when A + B was already created,
 //   rxn class for B + A will be created (NOTE: might improve if needed but so far the only issue
 //   are reports and printouts
+// - called only from get_bimol_rxns_for_reactant
 void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t new_id, const bool for_all_known_species) {
 
   // find all reactions for species id
@@ -197,6 +198,17 @@ void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t n
       }*/
       species_id_t second_id = species.id;
 
+      // don't we have a rxn class for this pair of special already?
+      // (only created in different order, e.g. in A + B and now we are checking for B + A)
+      auto it_class_map = bimol_rxn_class_map.find(second_id);
+      if (it_class_map != bimol_rxn_class_map.end()) {
+        auto it_rxn_class = it_class_map->second.find(new_id);
+        if (it_rxn_class != it_class_map->second.end()) {
+          // nothing to do here, this rxn class is already correctly mapped in rxn class map
+          continue;
+        }
+      }
+
       small_vector<RxnRule*> applicable_rxns;
 
       for (RxnRule* matching_rxn: rxns_for_new_species) {
@@ -232,8 +244,6 @@ void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t n
       }
     } // for rxns_for_new_species
   }
-
-  species_processed_for_bimol_rxn_classes.insert(new_id);
 }
 
 
