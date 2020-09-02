@@ -474,7 +474,7 @@ private:
     if (!sp.is_instantiated()) {
       sp.set_is_instantiated();
       // update rxn classes for this new species, may create new species and
-      // invalidate
+      // invalidate Species reference
       get_all_rxns().get_bimol_rxns_for_reactant(sp.id);
     }
   }
@@ -482,13 +482,7 @@ private:
 public:
   // any molecule flags are set by caller after the molecule is created by this method
   Molecule& add_volume_molecule(const Molecule& vm_copy) {
-    //check_and_update_new_species(vm_copy);
-    // make sure that the rxn for this species flags are up-to-date
-    BNG::Species& sp = get_all_species().get(vm_copy.species_id);
-    sp.set_is_instantiated();
-    if (!sp.are_rxn_and_custom_flags_uptodate()) {
-      sp.update_rxn_and_custom_flags(get_all_species(), get_all_rxns(), &species_flags_analyzer);
-    }
+    check_and_update_new_species(vm_copy);
 
     // TODO: use Species::is_instantiated instead of the known_vol_species
     if (known_vol_species.count(vm_copy.species_id) == 0) {
@@ -518,18 +512,7 @@ public:
 
 
   Molecule& add_surface_molecule(const Molecule& sm_copy) {
-    //check_and_update_new_species(sm_copy);
-    // make sure that the rxn for this species flags are up-to-date
-    BNG::Species& sp = get_all_species().get(sm_copy.species_id);
-    if (!sp.are_rxn_and_custom_flags_uptodate()) {
-      sp.update_rxn_and_custom_flags(get_all_species(), get_all_rxns(), &species_flags_analyzer);
-    }
-    if (!sp.is_instantiated()) {
-      // update rxn classes for this new species, may create new species
-      get_all_rxns().get_bimol_rxns_for_reactant(sm_copy.species_id);
-      // we need to get a new Species reference here
-      get_all_species().get(sm_copy.species_id).set_is_instantiated();
-    }
+    check_and_update_new_species(sm_copy);
 
     Molecule& new_sm = add_molecule(sm_copy, false);
     return new_sm;
