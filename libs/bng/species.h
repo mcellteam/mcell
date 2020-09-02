@@ -182,9 +182,9 @@ public:
     // by the complex and depends on ordering of molecules and components
     return
         CplxInstance::matches_fully(s2) &&
-        D == s2.D &&
-        space_step == s2.space_step &&
-        time_step == s2.time_step;
+        cmp_eq(D, s2.D) &&
+        cmp_eq(space_step, s2.space_step) &&
+        cmp_eq(time_step, s2.time_step);
   }
 
   bool cplx_matches_fully_ignore_orientation_and_flags(const CplxInstance& cplx_inst) const {
