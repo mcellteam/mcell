@@ -91,7 +91,6 @@ private:
   BNG::CplxInstance convert_complex_instance(API::ComplexInstance& inst, const bool in_rxn_or_observables = false);
 
   void convert_rxns();
-  void init_rxn_related_flags();
 
   MCell::wall_index_t convert_wall_and_add_to_geom_object(
       const API::GeometryObject& src_obj, const uint side,

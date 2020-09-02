@@ -132,7 +132,7 @@ public:
   // - when there is no entry in the map, this means that reactions for this reactant
   //   were not determined yet and updates creates new rxn classes
   // - might invalidate Species reference
-  BNG::SpeciesRxnClassesMap* get_bimol_rxns_for_reactant(const species_id_t id) {
+  BNG::SpeciesRxnClassesMap* get_bimol_rxns_for_reactant(const species_id_t id, const bool for_all_known_species = false) {
 
     auto it = bimol_rxn_class_map.find(id);
 
@@ -142,7 +142,7 @@ public:
     // reaction A + B with species A also creates reaction class for B (although not a full one
     // since only reactions of B with A were considered (not B + C or or similar)
     if (species_processed_for_bimol_rxn_classes.count(id) == 0) {
-      create_bimol_rxn_classes_for_new_species(id);
+      create_bimol_rxn_classes_for_new_species(id, for_all_known_species);
 
       it = bimol_rxn_class_map.find(id);
     }
@@ -193,7 +193,7 @@ private:
   RxnClass* get_or_create_empty_bimol_rxn_class(const species_id_t id1, const species_id_t id2);
 
   void create_unimol_rxn_classes_for_new_species(const species_id_t id);
-  void create_bimol_rxn_classes_for_new_species(const species_id_t id);
+  void create_bimol_rxn_classes_for_new_species(const species_id_t id, const bool for_all_known_species);
 
 private:
   // owns reaction classes

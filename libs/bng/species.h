@@ -106,6 +106,14 @@ public:
       const BaseCustomFlagsAnalyzer* flags_analyzer = nullptr
   );
 
+  void set_is_instantiated() {
+    set_flag(SPECIES_FLAG_IS_INSTANTIATED);
+  }
+
+  bool is_instantiated() const {
+    return has_flag(SPECIES_FLAG_IS_INSTANTIATED);
+  }
+
   // true if can interact with edge of an border
   bool can_interact_with_border() const {
     return has_flag(SPECIES_FLAG_CAN_REGION_BORDER);

@@ -471,6 +471,7 @@ public:
     // make sure that the rxn for this species flags are up-to-date
     BNG::Species& sp = get_all_species().get(vm_copy.species_id);
     if (!sp.are_rxn_and_custom_flags_uptodate()) {
+      sp.set_is_instantiated();
       sp.update_rxn_and_custom_flags(get_all_species(), get_all_rxns(), &species_flags_analyzer);
     }
 
@@ -504,6 +505,7 @@ public:
     // make sure that the rxn for this species flags are up-to-date
     BNG::Species& sp = get_all_species().get(sm_copy.species_id);
     if (!sp.are_rxn_and_custom_flags_uptodate()) {
+      sp.set_is_instantiated();
       sp.update_rxn_and_custom_flags(get_all_species(), get_all_rxns(), &species_flags_analyzer);
     }
 

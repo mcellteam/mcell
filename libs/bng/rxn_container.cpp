@@ -36,7 +36,9 @@ void RxnContainer::update_all_mols_flags() {
     BNG::Species& sp = all_species.get(species_id);
 
     // get reactions, this also creates all reaction classes for the species that we are processing
-    BNG::SpeciesRxnClassesMap* rxn_classes = get_bimol_rxns_for_reactant(sp.id);
+    // we are getting reactions for all known species because these flags must be initialized
+    // before we have any instance of these species
+    BNG::SpeciesRxnClassesMap* rxn_classes = get_bimol_rxns_for_reactant(sp.id, true);
     if (rxn_classes == nullptr) {
       continue;
     }
@@ -49,7 +51,7 @@ void RxnContainer::update_all_mols_flags() {
       const BNG::Species& sp2 = all_species.get(rxn_class->get_second_species_id(sp.id));
 
       // we can use is_vol/is_surf for ALL_VOLUME_MOLECULES and ALL_SURFACE_MOLECULES
-      // but not for all_volume molecules because there is no
+      // but not for all_volume molecules because there is no single flag that we can query
       if (sp.is_vol() || sp.id == all_mols_id) {
         if (sp2.is_reactive_surface()) {
           sp.set_flag(BNG::SPECIES_FLAG_CAN_VOLWALL);
@@ -159,7 +161,7 @@ RxnClass* RxnContainer::get_or_create_empty_bimol_rxn_class(const species_id_t i
 // - for bimol rxns, does not reuse already defined rxn class, e.g. when A + B was already created,
 //   rxn class for B + A will be created (NOTE: might improve if needed but so far the only issue
 //   are reports and printouts
-void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t new_id) {
+void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t new_id, const bool for_all_known_species) {
 
   // find all reactions for species id
   small_vector<RxnRule*> rxns_for_new_species;
@@ -187,7 +189,13 @@ void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t n
     // the rxn class will be updated once a molecule of the new species (not handled here) will be created
     size_t num_species = all_species.get_species_vector().size();
     for (size_t i = 0; i < num_species; i++) {
-      species_id_t second_id = all_species.get(i).id;
+      const Species& species = all_species.get(i);
+      // TODO
+      /*if (!for_all_known_species && !species.is_instantiated()) {
+        // we do not care about molecules that do not exist yet
+        continue;
+      }*/
+      species_id_t second_id = species.id;
 
       small_vector<RxnRule*> applicable_rxns;
 

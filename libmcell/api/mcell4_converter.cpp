@@ -124,9 +124,8 @@ void MCell4Converter::convert(Model* model_, World* world_) {
 
   convert_viz_output_events();
 
-  // must be called after release events define species because they don't have to be
-  // defined, also after count events were defined
-  init_rxn_related_flags();
+  // update flags that tell whether we have reactions for all volume/surface species
+  world->get_all_rxns().update_all_mols_flags();
 
   add_ctrl_c_termination_event();
 
@@ -690,18 +689,6 @@ void MCell4Converter::convert_rxns() {
       r->rev_rxn_rule_id = world->get_all_rxns().add_finalized_no_update(rxn_rev);
     }
   }
-}
-
-
-void MCell4Converter::init_rxn_related_flags() {
-  BNG::SpeciesContainer& all_species = world->get_all_species();
-  BNG::RxnContainer& all_rxns = world->get_all_rxns();
-
-  species_id_t all_molecules_species_id = all_species.get_all_molecules_species_id();
-  species_id_t all_volume_molecules_species_id = all_species.get_all_volume_molecules_species_id();
-  species_id_t all_surface_molecules_species_id = all_species.get_all_surface_molecules_species_id();
-
-  all_rxns.update_all_mols_flags();
 }
 
 
