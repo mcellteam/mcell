@@ -142,7 +142,7 @@ public:
     // reaction A + B with species A also creates reaction class for B (although not a full one
     // since only reactions of B with A were considered (not B + C or or similar)
     // ??? comment may not be up to date anymore
-
+    /// TODO add   it != bimol_rxn_class_map.end() &&
     if (species_processed_for_bimol_rxn_classes.count(id) == 0) {
       create_bimol_rxn_classes_for_new_species(id, for_all_known_species);
       species_processed_for_bimol_rxn_classes.insert(id);

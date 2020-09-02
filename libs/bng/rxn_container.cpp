@@ -191,12 +191,14 @@ void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t n
     size_t num_species = all_species.get_species_vector().size();
     for (size_t i = 0; i < num_species; i++) {
       const Species& species = all_species.get(i);
-      // TODO
-      /*if (!for_all_known_species && !species.is_instantiated()) {
-        // we do not care about molecules that do not exist yet
-        continue;
-      }*/
       species_id_t second_id = species.id;
+      // TODO
+      if (!for_all_known_species &&
+          !species.is_instantiated() &&
+          !all_species.is_species_superclass(second_id)) {
+        // we do not care about molecules that do not exist yet, however we must process superclasses
+        continue;
+      }
 
       // don't we have a rxn class for this pair of special already?
       // (only created in different order, e.g. in A + B and now we are checking for B + A)

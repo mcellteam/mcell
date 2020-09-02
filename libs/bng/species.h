@@ -49,7 +49,7 @@ public:
     if (do_update_diffusion_constant) {
       update_diffusion_constant(data, config);
     }
-    set_flag(BNG::SPECIES_FLAG_CAN_DIFFUSE, D != 0);
+    set_flag(BNG::SPECIES_FLAG_CAN_DIFFUSE, D != 0); // TODO: can this be removed when we set it in finalize?
     finalize();
     name = cplx_inst.to_str(data);
   }
@@ -71,6 +71,10 @@ public:
   void finalize() {
     CplxInstance::finalize();
     set_flag(BNG::SPECIES_FLAG_CAN_DIFFUSE, D != 0);
+    if (is_reactive_surface()) {
+      // surfaces are always assumed to be instantiated
+      set_flag(BNG::SPECIES_FLAG_IS_INSTANTIATED);
+    }
   }
 
   void canonicalize(const BNGData& bng_data) {
