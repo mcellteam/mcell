@@ -110,9 +110,7 @@ void RxnRule::define_rxn_pathways_for_specific_reactants(
     // complex A(a,a~X) and rule A(a) -> A(a~Y),
     // there the rule can be applied to one of the distinct components
 
-    // for now, we support reaction with a single outcome
-    // and since we will depend on the input (once we will be maintaining IDs
-    // of the elementary molecules), we do this computation on the fly
+    // prepare set of reactants
     vector<const CplxInstance*> reactants;
     // downcast, CplxInstance is sufficient for product computation
     reactants.push_back(dynamic_cast<const CplxInstance*>(&all_species.get(reactant_a_species_id)));
@@ -123,16 +121,18 @@ void RxnRule::define_rxn_pathways_for_specific_reactants(
     // we might get multiple matches on reactant(s), the numbers
     // of matches multiplied give us the total number of variants
     // a single random number then is used to choose a single variant
-    vector<vector<CplxInstance>> product_sets;
+    ProductSetsVector product_sets;
     create_products_for_complex_rxn(
         reactants,
         product_sets
     );
 
-    for (const auto& product_cplxs: product_sets) {
+    for (const IndexProductMap& product_cplxs: product_sets) {
       // define the products as species
       std::vector<species_id_t> product_species;
-      for (const CplxInstance& product: product_cplxs) {
+      // iterating over map sorted by product indices
+      for (const auto it_index_product: product_cplxs) {
+        const CplxInstance& product = it_index_product.second;
         species_id_t species_id = all_species.find_or_add(Species(product, *bng_data, bng_config));
         assert(species_id != SPECIES_ID_INVALID);
         product_species.push_back(species_id);
@@ -838,9 +838,9 @@ static bool convert_graph_component_to_product_cplx_inst(
     const vector<int>& graph_components,
     const int graph_component_index,
     CplxInstance& cplx,
-    uint& product_index
+    std::set<uint>& product_indices
 ) {
-  product_index = INDEX_INVALID;
+  product_indices.clear();
 
   VertexNameMap index = boost::get(boost::vertex_name, graph);
 
@@ -858,11 +858,10 @@ static bool convert_graph_component_to_product_cplx_inst(
 
     const Node& mol = index[mol_desc];
 
-    // check molecule whether it has a marker that says which product it was
+    // check molecule whether it has a marker that says which product it was,
     // we need to maintain the ordering of products
     if (mol.product_index != INDEX_INVALID) {
-      assert(product_index == INDEX_INVALID || product_index == mol.product_index);
-      product_index = mol.product_index;
+      product_indices.insert(mol.product_index);
     }
 
     if (!mol.used_in_rxn_product) {
@@ -922,7 +921,7 @@ static bool convert_graph_component_to_product_cplx_inst(
 static void create_products_from_reactants_graph(
     const BNGData* bng_data,
     Graph& reactants_graph,
-    vector<CplxInstance>& created_products
+    IndexProductMap& created_products
 ) {
   created_products.clear();
 
@@ -940,19 +939,24 @@ static void create_products_from_reactants_graph(
   for (int i = 0; i < num_graph_components; i++) {
     CplxInstance product_cplx(bng_data);
 
-    // some reactants may have been removed
-    uint product_index;
+    // some reactants may have been removed,
+    // also, products still may be connected even though thet are disconnected on the right-hand side of the
+    // rule - e.g. when rule
+    // A(b!1).B(a!1) -> A(b) + B(a)
+    // is applied on
+    // A(b!1,c!2).B(a!1,c!3).C(a!2,B!3) - a single complex is a result
+    std::set<uint> product_indices;
     bool is_rxn_product =
-        convert_graph_component_to_product_cplx_inst(reactants_graph, graph_components, i, product_cplx, product_index);
+        convert_graph_component_to_product_cplx_inst(
+            reactants_graph, graph_components, i, product_cplx, product_indices);
 
     if (is_rxn_product) {
-      assert(product_index != INDEX_INVALID);
+      assert(!product_indices.empty());
 
-      // products must be ordered by their position in rxn products
-      if (product_index >= created_products.size()) {
-        created_products.resize(product_index + 1, CplxInstance(bng_data));
-      }
-      created_products[product_index] = product_cplx;
+      // std::set is guaranteed to be sorted
+      uint smallest_product_index = *product_indices.begin();
+      // remember product with its index
+      created_products.insert(make_pair(smallest_product_index, product_cplx));
     }
   }
 }
@@ -997,8 +1001,8 @@ static bool is_graph_unique_wrt_modified_ordering(
 
 
 void RxnRule::create_products_for_complex_rxn(
-    const vector<const CplxInstance*>& input_reactants,
-    vector<vector<CplxInstance>>& created_product_sets
+    const std::vector<const CplxInstance*>& input_reactants,
+    ProductSetsVector& created_product_sets
 ) const {
   // the result of this function is cached in rxnclass
   assert(input_reactants.size() == reactants.size());
@@ -1072,13 +1076,13 @@ void RxnRule::create_products_for_complex_rxn(
   for (Graph& product_graph: distinct_product_graphs) {
     // and finally create products, each disconnected graph in the result is a
     // separate complex instance
-    created_product_sets.push_back(vector<CplxInstance>());
+    created_product_sets.push_back(IndexProductMap());
     create_products_from_reactants_graph(bng_data, product_graph, created_product_sets.back());
 
   #ifdef DEBUG_CPLX_MATCHING
     cout << "Resulting products:\n";
     for (auto& c: created_product_sets.back()) {
-      c.dump(false);
+      c.second.dump(false);
       cout << "\n";
     }
   #endif

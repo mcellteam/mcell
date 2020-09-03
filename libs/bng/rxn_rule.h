@@ -86,6 +86,9 @@ enum class RxnType {
 };
 
 
+typedef std::map<uint, CplxInstance> IndexProductMap;
+typedef std::vector<std::map<uint, CplxInstance>> ProductSetsVector; // TODO: naming may be a bit confusing
+
 // BNG reaction rule
 // rules are only unidirectional,
 // if there is a reversible reaction in BNGL definition,
@@ -140,7 +143,7 @@ private:
   // BNGL style reaction handling is implemented in this method
   void create_products_for_complex_rxn(
       const std::vector<const CplxInstance*>& input_reactants,
-      std::vector<std::vector<CplxInstance>>& created_products
+      ProductSetsVector& created_product_sets
   ) const;
 
 public:
