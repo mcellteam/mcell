@@ -448,10 +448,10 @@ std::string RxnClass::to_str(const std::string ind) const {
     RxnRule* rxn = all_rxns.get(pw.rxn_rule_id);
 
     out << "products based on rule " << rxn->to_str(true, false) << "\n    ";
-    for (size_t k = 0; k < pw.product_species.size(); k++) {
-      species_id_t sid = pw.product_species[k];
+    for (size_t k = 0; k < pw.product_species_w_indices.size(); k++) {
+      species_id_t sid = pw.product_species_w_indices[k].product_species_id;
       out << all_species.get(sid).to_str(all_species.get_bng_data()) << " (" << sid << ") ";
-      if (k != pw.product_species.size() - 1) {
+      if (k != pw.product_species_w_indices.size() - 1) {
         out << " + ";
       }
     }

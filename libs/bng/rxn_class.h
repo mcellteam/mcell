@@ -74,9 +74,9 @@ public:
 
   RxnRule* get_rxn_for_pathway(const rxn_class_pathway_index_t pathway_index);
 
-  const std::vector<species_id_t>& get_rxn_products_for_pathway(const rxn_class_pathway_index_t pathway_index) const {
+  const RxnProductsVector& get_rxn_products_for_pathway(const rxn_class_pathway_index_t pathway_index) const {
     assert(pathway_index < pathways.size());
-    return pathways[pathway_index].product_species;
+    return pathways[pathway_index].product_species_w_indices;
   }
 
   rxn_class_pathway_index_t get_pathway_index_for_probability(const float_t prob, const float_t local_prob_factor) const;

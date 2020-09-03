@@ -62,6 +62,17 @@ static void merge_graphs(Graph& srcdst, const Graph& src) {
 }
 
 
+static bool less_product_cplxs_by_rxn_rule_index(
+    const ProductCplxWIndices& a1, const ProductCplxWIndices& a2
+) {
+  assert(!a1.rule_product_indices.empty() && !a2.rule_product_indices.empty());
+
+  // each product description has a set of rxn product indices,
+  // sort by the smallest of them
+  return *a1.rule_product_indices.begin() < *a2.rule_product_indices.begin();
+}
+
+
 // appends found pathways into the pathways array
 void RxnRule::define_rxn_pathways_for_specific_reactants(
     SpeciesContainer& all_species,
@@ -73,8 +84,10 @@ void RxnRule::define_rxn_pathways_for_specific_reactants(
 ) const {
 
   if (is_simple()) {
-    std::vector<species_id_t> product_species;
-    for (const CplxInstance& product: products) {
+    RxnProductsVector product_species;
+    for (size_t i = 0; i < products.size(); i++) {
+      const CplxInstance& product = products[i];
+
       // simple product is deterministic
       // simple species are defined mcell3 mode but in BNG mode they
       // may not have been created (they are based on molecule types)
@@ -83,7 +96,7 @@ void RxnRule::define_rxn_pathways_for_specific_reactants(
         species_id = all_species.add(Species(product, *bng_data, bng_config));
         assert(species_id != SPECIES_ID_INVALID);
       }
-      product_species.push_back(species_id);
+      product_species.push_back(ProductSpeciesWIndices(species_id, i));
     }
 
     float_t prob;
@@ -127,15 +140,22 @@ void RxnRule::define_rxn_pathways_for_specific_reactants(
         product_sets
     );
 
-    for (const IndexProductMap& product_cplxs: product_sets) {
+    for (ProductCplxWIndicesVector& product_cplxs: product_sets) {
       // define the products as species
-      std::vector<species_id_t> product_species;
+      RxnProductsVector product_species;
+
+
+      // sort products by the rxn rule product indices
+      sort(product_cplxs.begin(), product_cplxs.end(), less_product_cplxs_by_rxn_rule_index);
+
       // iterating over map sorted by product indices
-      for (const auto it_index_product: product_cplxs) {
-        const CplxInstance& product = it_index_product.second;
-        species_id_t species_id = all_species.find_or_add(Species(product, *bng_data, bng_config));
+      for (const ProductCplxWIndices& product_w_indices: product_cplxs) {
+        // need to transform cplx into species id
+        species_id_t species_id = all_species.find_or_add(
+            Species(product_w_indices.product_cplx, *bng_data, bng_config)
+        );
         assert(species_id != SPECIES_ID_INVALID);
-        product_species.push_back(species_id);
+        product_species.push_back(ProductSpeciesWIndices(species_id, product_w_indices.rule_product_indices));
       }
 
       assert(pb_factor != 0);
@@ -921,7 +941,7 @@ static bool convert_graph_component_to_product_cplx_inst(
 static void create_products_from_reactants_graph(
     const BNGData* bng_data,
     Graph& reactants_graph,
-    IndexProductMap& created_products
+    ProductCplxWIndicesVector& created_products
 ) {
   created_products.clear();
 
@@ -953,10 +973,8 @@ static void create_products_from_reactants_graph(
     if (is_rxn_product) {
       assert(!product_indices.empty());
 
-      // std::set is guaranteed to be sorted
-      uint smallest_product_index = *product_indices.begin();
-      // remember product with its index
-      created_products.insert(make_pair(smallest_product_index, product_cplx));
+      // remember product with its indices
+      created_products.push_back(ProductCplxWIndices(product_cplx, product_indices));
     }
   }
 }
@@ -1076,7 +1094,7 @@ void RxnRule::create_products_for_complex_rxn(
   for (Graph& product_graph: distinct_product_graphs) {
     // and finally create products, each disconnected graph in the result is a
     // separate complex instance
-    created_product_sets.push_back(IndexProductMap());
+    created_product_sets.push_back(ProductCplxWIndicesVector());
     create_products_from_reactants_graph(bng_data, product_graph, created_product_sets.back());
 
   #ifdef DEBUG_CPLX_MATCHING

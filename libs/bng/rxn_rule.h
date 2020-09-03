@@ -21,6 +21,67 @@ class BNGData;
 class SpeciesContainer;
 class RxnClass;
 
+/**
+ * Used to hold information on a single product and
+ * what reaction rule product indices were used to create it.
+ * Usually a single product corresponds to one product on the right-hand side of the
+ * reaction rule, but in cases such as when a single bond is broken and the complex
+ * remains as a whole, one resulting product corresponds to multiple
+ * products of the rxn rule.
+ */
+class ProductSpeciesWIndices {
+public:
+  ProductSpeciesWIndices()
+    : product_species_id(SPECIES_ID_INVALID) {
+  }
+
+  // usual case - one product per rxn rule product
+  ProductSpeciesWIndices(
+      const species_id_t product_species_id_,
+      const uint product_index)
+    : product_species_id(product_species_id_) {
+    rule_product_indices.insert(product_index);
+  }
+
+  // general case
+  ProductSpeciesWIndices(
+      const species_id_t product_species_id_,
+      const std::set<uint>& rule_product_indices_)
+    : product_species_id(product_species_id_),
+      rule_product_indices(rule_product_indices_) {
+  }
+
+  species_id_t product_species_id;
+  // must use container with guaranteed order
+  std::set<uint> rule_product_indices;
+};
+
+typedef std::vector<ProductSpeciesWIndices> RxnProductsVector;
+
+/**
+ * Similar as ProductSpeciesWIndices, only uses cplx inst instead of species id.
+ */
+class ProductCplxWIndices {
+public:
+  ProductCplxWIndices(
+      const CplxInstance& product_cplx_,
+      const std::set<uint>& rule_product_indices_)
+    : product_cplx(product_cplx_),
+      rule_product_indices(rule_product_indices_) {
+  }
+
+  CplxInstance product_cplx;
+  // must use container with guaranteed order
+  std::set<uint> rule_product_indices;
+};
+
+typedef std::vector<ProductCplxWIndices> ProductCplxWIndicesVector;
+
+// - first dimension are individual products that a rxn rule can produce
+// - second dimension are individual products
+typedef std::vector<std::vector<ProductCplxWIndices>> ProductSetsVector;
+
+
 
 /**
  * Used to hold information on the probability and products for a given reaction rule.
@@ -34,10 +95,10 @@ public:
   RxnClassPathway(
       const rxn_rule_id_t rxn_rule_id_,
       const float_t pathway_prob_,
-      const std::vector<species_id_t> product_species_
+      const RxnProductsVector& product_species_w_indices_
   ) : rxn_rule_id(rxn_rule_id_),
       pathway_prob(pathway_prob_),
-      product_species(product_species_),
+      product_species_w_indices(product_species_w_indices_),
       cum_prob(FLT_INVALID) {
   }
 
@@ -49,7 +110,7 @@ public:
   float_t pathway_prob;
 
   // specific variant of products for this pathway
-  std::vector<species_id_t> product_species;
+  RxnProductsVector product_species_w_indices;
 
   // cumulative probability - set when used in rxn class
   float_t cum_prob;
@@ -85,9 +146,6 @@ enum class RxnType {
   AbsorbRegionBorder
 };
 
-
-typedef std::map<uint, CplxInstance> IndexProductMap;
-typedef std::vector<std::map<uint, CplxInstance>> ProductSetsVector; // TODO: naming may be a bit confusing
 
 // BNG reaction rule
 // rules are only unidirectional,

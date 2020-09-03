@@ -1843,7 +1843,6 @@ int DiffuseReactEvent::find_surf_product_positions(
 static void update_vol_mol_after_rxn_with_surf_mol(
     Partition& p,
     const Molecule* surf_reac,
-    const BNG::CplxInstance& product,
     const orientation_t product_orientation,
     const Collision& collision,
     Molecule& vm
@@ -2047,26 +2046,40 @@ int DiffuseReactEvent::outcome_products_random(
     product_orientations.resize(rxn->products.size(), ORIENTATION_NONE);
   }
 
-  const vector<species_id_t>& product_species_ids = collision.rxn_class->get_rxn_products_for_pathway(pathway_index);
-  // get all products that the reaction creates
-  /*collision.rxn_class->get
-  p.get_all_rxns().get_rxn_product_species_ids(
-      rxn, reacA->species_id, (reacB != nullptr) ? reacB->species_id : SPECIES_ID_INVALID,
-      product_species_ids
-  );*/
-  release_assert(product_species_ids.size() == rxn->products.size());
 
+  const RxnProductsVector& actual_products = collision.rxn_class->get_rxn_products_for_pathway(pathway_index);
+  release_assert(actual_products.size() <= rxn->products.size()); // some rxn products may be still connected
 
-  for (uint product_index = 0; product_index < rxn->products.size(); product_index++) {
-    const BNG::CplxInstance& product = rxn->products[product_index];
-    orientation_t product_orientation = product_orientations[product_index];
+  for (uint product_index = 0; product_index < actual_products.size(); product_index++) {
+    const ProductSpeciesWIndices& actual_product = actual_products[product_index];
+
+    // first we must check whether we are mapping a single product on
+    assert(!actual_product.rule_product_indices.empty());
+    bool actual_prod_is_single_rxn_prod = actual_product.rule_product_indices.size() == 1;
+    release_assert(!actual_prod_is_single_rxn_prod || *actual_product.rule_product_indices.begin() == product_index);
+
+    // valid only if actual_prod_is_single_rxn_prod
+    uint single_rxn_product_index = product_index;
+
+    orientation_t product_orientation = ORIENTATION_NOT_SET;
+    for (uint rule_product_index: actual_product.rule_product_indices) {
+      const BNG::CplxInstance& rule_product = rxn->products[rule_product_index];
+      release_assert(
+          (product_orientation == ORIENTATION_NOT_SET ||
+           product_orientation == product_orientations[rule_product_index]) &&
+          "If a single actual product corresponds to multiple rxn products (such as in case of bond breakage), "
+          "orientations of all rxn products must be the same"
+      );
+      product_orientation = product_orientations[rule_product_index];
+    }
+    release_assert(product_orientation != ORIENTATION_NOT_SET);
 
     // do not create anything new when the reactant is kept -
     // for bimol reactions - the diffusion simply continues
     // for unimol reactions - the unimol action action starts diffusion for the remaining timestep
-    if (rxn->is_cplx_product_on_both_sides_of_rxn(product_index)) {
+    if (actual_prod_is_single_rxn_prod && rxn->is_cplx_product_on_both_sides_of_rxn(single_rxn_product_index)) {
       uint reactant_index;
-      bool ok = rxn->get_assigned_simple_cplx_reactant_for_product(product_index, reactant_index);
+      bool ok = rxn->get_assigned_simple_cplx_reactant_for_product(single_rxn_product_index, reactant_index);
       assert(reactant_index == 0 || reactant_index == 1);
 
       if (rxn->reactants[reactant_index].get_orientation() != product_orientation) {
@@ -2077,7 +2090,7 @@ int DiffuseReactEvent::outcome_products_random(
         // reacA  matches reactant with index 0, reacB matches reactant with index 1
         Molecule* reactant = ((reactant_index == 0) ? reacA : reacB);
         assert(reactant != nullptr);
-        assert(p.bng_engine.matches_ignore_orientation(product, reactant->species_id));
+        assert(p.bng_engine.matches_ignore_orientation(rxn->products[single_rxn_product_index], reactant->species_id));
 
         if (reactant->is_vol()) {
           Molecule* initiator = (!reactants_swapped) ? reacA : reacB;
@@ -2097,7 +2110,7 @@ int DiffuseReactEvent::outcome_products_random(
       continue;
     }
 
-    species_id_t product_species_id = product_species_ids[product_index];
+    species_id_t product_species_id = actual_products[product_index].product_species_id;
     const BNG::Species& species = p.get_all_species().get(product_species_id);
 
     molecule_id_t new_m_id;
@@ -2133,7 +2146,7 @@ int DiffuseReactEvent::outcome_products_random(
       );
       if (is_orientable) {
         update_vol_mol_after_rxn_with_surf_mol(
-            p, surf_reac, product, product_orientation, collision, new_vm
+            p, surf_reac, product_orientation, collision, new_vm
         );
       }
 
