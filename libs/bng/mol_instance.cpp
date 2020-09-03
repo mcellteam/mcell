@@ -6,6 +6,7 @@
  */
 #include <iostream>
 #include <sstream>
+#include <algorithm>
 
 #include "bng/ast.h"
 #include "bng/bng_engine.h"
@@ -15,6 +16,56 @@
 using namespace std;
 
 namespace BNG {
+
+class CanonicalComponentComparator {
+public:
+  // need to pass bng data for state names
+  // and also molecule type because we do not know to which mol type the components belong
+  CanonicalComponentComparator(const BNGData& bng_data_, const MolType& mt_)
+    : bng_data(bng_data_), mt(mt_) {
+  }
+
+  bool operator()(const ComponentInstance& ci1, const ComponentInstance& ci2) {
+    // we must maintain the order of components if they have the same name
+    if (ci1.component_type_id != ci2.component_type_id) {
+      // different components - the ordering is given by the order in the molecule
+      uint ci1_index = INDEX_INVALID;
+      uint ci2_index = INDEX_INVALID;
+
+      for (size_t i = 0; i < mt.component_type_ids.size(); i++) {
+        if (ci1_index == INDEX_INVALID && ci1.component_type_id == mt.component_type_ids[i]) {
+          ci1_index = 0;
+        }
+        if (ci2_index == INDEX_INVALID && ci2.component_type_id == mt.component_type_ids[i]) {
+          ci2_index = 0;
+        }
+      }
+      assert(ci1_index != INDEX_INVALID && ci2_index != INDEX_INVALID);
+
+      return ci1_index < ci2_index;
+    }
+
+    // 2) bond
+    if (ci1.bond_value != ci2.bond_value) {
+      return ci1.bond_value < ci2.bond_value;
+    }
+
+    // 3) state name
+    if (ci1.state_is_set() && ci2.state_is_set()) {
+      const string& sn1 = bng_data.get_state_name(ci1.state_id);
+      const string& sn2 = bng_data.get_state_name(ci2.state_id);
+      return sn1 < sn2;
+    }
+    else {
+      return ci1.state_id < ci2.state_id;
+    }
+  }
+
+private:
+  const BNGData& bng_data;
+  const MolType& mt;
+};
+
 
 // ------------- ComponentInstance -------------
 std::string ComponentInstance::to_str(const BNGData& bng_data) const {
@@ -51,6 +102,14 @@ void ComponentInstance::dump(const BNGData& bng_data, const string& ind) const {
 
 // ------------- MoleculeInstance -------------
 
+void MolInstance::canonicalize(const BNGData& bng_data) {
+  // we need to sort components first
+  CanonicalComponentComparator comp_cmp(bng_data, bng_data.get_molecule_type(mol_type_id));
+  sort(component_instances.begin(), component_instances.end(), comp_cmp);
+}
+
+
+// TODO: component sorting overlaps with MolType::canonicalize
 void MolInstance::finalize_flags_and_sort_components(const BNGData& bng_data) {
 
   const MolType& mt = bng_data.get_molecule_type(mol_type_id);

@@ -96,6 +96,8 @@ public:
     : mol_type_id(MOL_TYPE_ID_INVALID) {
   }
 
+  void canonicalize(const BNGData& bng_data);
+
   void finalize_flags_and_sort_components(const BNGData& bng_data);
 
   void insert_missing_components_as_any_state_pattern(const BNGData& bng_data);
