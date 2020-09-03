@@ -70,10 +70,10 @@ public:
   // TODO: why is this called from the Species ctor, can we remove it?
   void finalize() {
     CplxInstance::finalize();
-    set_flag(BNG::SPECIES_FLAG_CAN_DIFFUSE, D != 0);
+    set_flag(SPECIES_FLAG_CAN_DIFFUSE, D != 0);
     if (is_reactive_surface()) {
       // surfaces are always assumed to be instantiated
-      set_flag(BNG::SPECIES_FLAG_IS_INSTANTIATED);
+      set_flag(SPECIES_FLAG_IS_INSTANTIATED);
     }
   }
 

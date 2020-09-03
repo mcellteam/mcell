@@ -46,14 +46,22 @@ public:
     new_species.dump(bng_data);
 #endif
     // check that this species does not exist already
-    res = find(new_species);
-
-    // add if not found
-    if (res == SPECIES_ID_INVALID) {
-      res = add(new_species);
+    if (!new_species.is_canonical()) {
+      new_species.canonicalize(bng_data);
     }
 
-    return res;
+    assert(new_species.name != "");
+    auto it = canonical_species_map.find(new_species.name);
+
+    if (it == canonical_species_map.end()) {
+      // add if not found
+      res = add(new_species);
+      return res;
+    }
+    else {
+      // return id if found
+      return it->second;
+    }
   }
 
   species_id_t add(const Species& new_species);
@@ -62,6 +70,7 @@ public:
   // returns SPECIES_ID_INVALID if not found
   species_id_t find(const Species& species_to_find) {
     // simple equality comparison for now, some hashing will be needed
+    // TODO: use canonical_species_map
     for (const Species& s: species) {
       if (species_to_find.matches_fully_ignore_name_id_and_flags(s)) {
         return s.id;
@@ -82,6 +91,7 @@ public:
 
 
   species_id_t find_by_name(const std::string& name) {
+    // TODO: use canonical_species_map
     for (const Species& s: species) {
       if (s.name == name) {
         return s.id;
@@ -183,6 +193,7 @@ private:
   species_id_t next_species_id;
 
   SpeciesVector species;
+  std::map<std::string, species_id_t> canonical_species_map;
 
   // ids of species superclasses, SPECIES_ID_INVALID if not set
   // it might seem that this should belong into SpeciesInfo but this class needs this information

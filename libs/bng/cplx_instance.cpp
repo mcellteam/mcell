@@ -171,8 +171,10 @@ bool CplxInstance::matches_complex_fully_ignore_orientation(const CplxInstance& 
 
 class CanonicalComponentComparator {
 public:
-  CanonicalComponentComparator(const MolType& mt_)
-    : mt(mt_) {
+  // need to pass bng data for state names
+  // and also molecule type because we do not know to which mol type the components belong
+  CanonicalComponentComparator(const BNGData& bng_data_, const MolType& mt_)
+    : bng_data(bng_data_), mt(mt_) {
   }
 
   bool operator()(const ComponentInstance& ci1, const ComponentInstance& ci2) {
@@ -181,6 +183,7 @@ public:
       // different components - the ordering is given by the order in the molecule
       uint ci1_index = INDEX_INVALID;
       uint ci2_index = INDEX_INVALID;
+
       for (size_t i = 0; i < mt.component_type_ids.size(); i++) {
         if (ci1_index == INDEX_INVALID && ci1.component_type_id == mt.component_type_ids[i]) {
           ci1_index = 0;
@@ -199,11 +202,19 @@ public:
       return ci1.bond_value < ci2.bond_value;
     }
 
-    // 3) state
-    return ci1.state_id < ci2.state_id;
+    // 3) state name
+    if (ci1.state_is_set() && ci2.state_is_set()) {
+      const string& sn1 = bng_data.get_state_name(ci1.state_id);
+      const string& sn2 = bng_data.get_state_name(ci2.state_id);
+      return sn1 < sn2;
+    }
+    else {
+      return ci1.state_id < ci2.state_id;
+    }
   }
 
 private:
+  const BNGData& bng_data;
   const MolType& mt;
 };
 
@@ -342,8 +353,15 @@ void CplxInstance::canonicalize() {
 // https://computationalcombinatorics.wordpress.com/2012/09/20/canonical-labelings-with-nauty/
 void CplxInstance::canonicalize() {
   if (mol_instances.size() == 1) {
-    // no need to sort anything because we have just one molecule
-    // and components are already sorted
+    // sort components in molecules back to their prescribed form
+    // and in a way that the state name is ascending (wee have no bonds here)
+    for (MolInstance& mi: mol_instances) {
+      // we need to sort components first
+      CanonicalComponentComparator comp_cmp(*bng_data, bng_data->get_molecule_type(mi.mol_type_id));
+      sort(mi.component_instances.begin(), mi.component_instances.end(), comp_cmp);
+    }
+
+    set_flag(SPECIES_CPLX_FLAG_IS_CANONICAL);
     return;
   }
 
@@ -560,7 +578,7 @@ void CplxInstance::canonicalize() {
   // and in a way that the bond index is increasing
   for (MolInstance& mi: mol_instances) {
     // we need to sort components first
-    CanonicalComponentComparator comp_cmp(bng_data->get_molecule_type(mi.mol_type_id));
+    CanonicalComponentComparator comp_cmp(*bng_data, bng_data->get_molecule_type(mi.mol_type_id));
     sort(mi.component_instances.begin(), mi.component_instances.end(), comp_cmp);
   }
 
@@ -569,6 +587,8 @@ void CplxInstance::canonicalize() {
 
   // 8) update the boost graph representation
   finalize();
+
+  set_flag(SPECIES_CPLX_FLAG_IS_CANONICAL);
 
 #ifdef DEBUG_CANONICALIZATION
   cout << "After " << to_str(*bng_data) << "\n";

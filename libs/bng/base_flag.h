@@ -19,6 +19,9 @@ enum species_cplx_mol_rxn_flag_t {
   // simple species
   SPECIES_CPLX_FLAG_ONE_MOL_NO_COMPONENTS = 0x04,
 
+  // species or complex has canonical representation
+  SPECIES_CPLX_FLAG_IS_CANONICAL = 0x08,
+
   SPECIES_FLAG_CAN_VOLVOL = 0x10, // can vol vol react? (unused for now)
   SPECIES_FLAG_CAN_VOLSURF = 0x20, // can vol-surf react
   SPECIES_FLAG_CAN_VOLWALL = 0x40, // can vol-surface react

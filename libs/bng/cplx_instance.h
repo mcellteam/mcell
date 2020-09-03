@@ -88,6 +88,10 @@ public:
     return has_flag(SPECIES_CPLX_FLAG_ONE_MOL_NO_COMPONENTS);
   }
 
+  bool is_canonical() const {
+    return has_flag(SPECIES_CPLX_FLAG_IS_CANONICAL);
+  }
+
   mol_type_id_t get_simple_species_mol_type_id() const {
     assert(is_simple());
     return mol_instances[0].mol_type_id;

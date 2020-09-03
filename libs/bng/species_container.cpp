@@ -10,6 +10,11 @@ namespace BNG {
 
 species_id_t SpeciesContainer::add(const Species& new_species) {
 
+  Species species_copy = new_species;
+  if (!species_copy.is_canonical()) {
+    species_copy.canonicalize(bng_data);
+  }
+
 #ifndef NDEBUG
   assert(find_full_match(new_species) == SPECIES_ID_INVALID && "Species must not exist");
   // we also don't want species with the same name
@@ -18,13 +23,16 @@ species_id_t SpeciesContainer::add(const Species& new_species) {
   }
 #endif
 
-  Species species_copy = new_species;
-  species_copy.canonicalize(bng_data);
-
   species_id_t res = next_species_id;
   next_species_id++;
+
+  // add to the species vector
   species.push_back(species_copy);
   species.back().id = res;
+
+  // and also store canonical name for fast search
+  assert(species_copy.is_canonical());
+  canonical_species_map[species_copy.name] = res;
 
   if (bng_config.debug_reactions) {
     std::cout << "BNG: Defined new species " << species_copy.name << " with id " << res << "\n";
