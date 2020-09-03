@@ -83,6 +83,7 @@ KEY_TYPE = 'type'
 KEY_VALUE = 'value'
 KEY_VALUES = 'values'
 KEY_DEFAULT = 'default'
+KEY_DOC = 'doc'
 
 KEY_SUPERCLASS = 'superclass'
 KEY_SUPERCLASSES = 'superclasses'
@@ -183,6 +184,7 @@ GEN_CONSTANTS_H = 'gen_constants.h'
 GEN_CONSTANTS_CPP = 'gen_constants.cpp'
 
 MCELL_PYI = 'mcell.pyi'
+CLASSES_RST = 'classes.rst'
 
 GEN_NAMES_H = 'gen_names.h'
 NAME_PREFIX = 'NAME_'
@@ -1648,6 +1650,95 @@ def generate_pyi_file(data_classes):
         f.write(species_def)
         
         
+def indent(text, indent):
+    return text.replace('\n', '\n' + indent)
+            
+
+def generate_class_documentation(f, class_name, class_def):
+    f.write(class_name + '\n' + '='*len(class_name) + '\n\n')
+    
+    if KEY_DOC in class_def:
+        f.write(class_def[KEY_DOC] + '\n\n')
+        
+    if KEY_ITEMS in class_def:
+        f.write('Attributes\n' + '*'*len('Attributes') + '\n')
+        num_items = len(class_def[KEY_ITEMS])
+        for item in class_def[KEY_ITEMS]:
+            t = yaml_type_to_py_type(item[KEY_TYPE])
+            f.write('* | **' + item[KEY_NAME] + '**: ' + t)
+            
+            if KEY_DEFAULT in item:
+                f.write(' = ' + get_default_or_unset_value_py(item))
+            f.write('\n')
+            
+            if KEY_DOC in item:
+                f.write('  | ' + indent(item[KEY_DOC], '  | ') + '\n')
+            f.write('\n')
+        
+    if KEY_METHODS in class_def:
+        f.write('\nMethods\n' + '*'*len('nMethods') + '\n')
+        for method in class_def[KEY_METHODS]:
+            method_name = method[KEY_NAME]
+            
+            f.write('* | **' + method[KEY_NAME] + '**\n')
+
+            if KEY_DOC in method:
+                f.write('  | ' + indent(method[KEY_DOC], '  | ') + '\n\n')
+
+            if KEY_RETURN_TYPE in method:
+                f.write('   * return type: ' + yaml_type_to_py_type(method[KEY_RETURN_TYPE]) + '\n')
+            
+            if KEY_PARAMS in method:
+                num_params = len(method[KEY_PARAMS])
+                for param in method[KEY_PARAMS]:
+                    t = yaml_type_to_py_type(param[KEY_TYPE])
+                    f.write('   * | ' + param[KEY_NAME] + ': ' + t)
+                    if KEY_DEFAULT in param:
+                        f.write(' = ' + get_default_or_unset_value_py(param))
+                        if KEY_DOC in method:
+                            f.write('     | ' + indent(method[KEY_DOC], '     | ') + '\n\n')
+            
+            f.write('\n')
+        f.write('\n')
+    
+        
+def generate_documentation(data_classes):
+    with open(os.path.join(TARGET_DIRECTORY, CLASSES_RST), 'w') as f:
+        
+        f.write(
+            '**************************\n'
+            'MCell 4 Python API Classes\n'
+            '**************************\n'
+        )
+                    
+        for key, value in sorted(data_classes.items()):
+            if key != KEY_CONSTANTS and key != KEY_ENUMS:
+                generate_class_documentation(f, key, value)
+
+
+    """        
+    # generate enums first, then constants
+    enums = data_classes[KEY_ENUMS]
+    for enum in enums:
+        f.write('class ' + enum[KEY_NAME] + '(Enum):\n')
+        for enum_item in enum[KEY_VALUES]:
+            f.write('    ' + enum_item[KEY_NAME] + ' = ' + str(enum_item[KEY_VALUE]) + '\n')
+        f.write('\n')
+    f.write('\n\n')
+    
+    constants = data_classes[KEY_CONSTANTS]
+    for const in constants:
+        if const[KEY_TYPE] == YAML_TYPE_SPECIES:
+            # Species constants are a bit special
+            ctor_param = get_underscored(const[KEY_VALUE]).upper()
+            species_def += const[KEY_NAME] + ' = ' + YAML_TYPE_SPECIES + '(\'' + ctor_param + '\')\n'
+        elif const[KEY_TYPE] == YAML_TYPE_STR:
+            f.write(const[KEY_NAME] + ' = \'' + str(const[KEY_VALUE]) + '\'\n')
+        else:
+            f.write(const[KEY_NAME] + ' = ' + str(const[KEY_VALUE]) + '\n')
+    f.write('\n\n')
+    """
+        
 def load_and_generate_data_classes():
     # create work directory
     work_dir = os.path.join('..', 'work')
@@ -1674,6 +1765,7 @@ def load_and_generate_data_classes():
     generate_data_classes(data_classes)
     generate_names_header(data_classes)
     generate_pyi_file(data_classes)
+    generate_documentation(data_classes)
 
 if __name__ == '__main__':
     if len(sys.argv) == 2 and sys.argv[1] == '-v':

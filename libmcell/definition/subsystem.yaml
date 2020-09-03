@@ -32,6 +32,10 @@ ComponentType:
       
 ComponentInstance:
   superclass: BaseDataClass
+  doc: | 
+     Instance of a component belonging to a molecule instance.
+     A component instance may have its state set.
+     It is also used to connect molecule instance in a complex instance.
   items:
   - name: component_type
     type: ComponentType*
@@ -107,14 +111,17 @@ ElementaryMoleculeInstance:
     
 ComplexInstance:    
   superclass: BaseDataClass
+  doc: This class represents a complex molecule composed of molecule instances.
   items:
   - name: elementary_molecule_instances
     type: List[ElementaryMoleculeInstance*]
     default: empty
+    doc: Individual molecule instances contained in the complex.
 
   - name: orientation
     type: Orientation 
     default: Orientation.NONE
+    doc: Specifies orientation of a surface molecule, always Orientation.NONE for volume molecules.
     
   methods:
   - name: to_bngl_str
