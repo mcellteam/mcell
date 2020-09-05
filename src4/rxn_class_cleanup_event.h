@@ -27,7 +27,10 @@
 
 namespace MCell {
 
-class RxnClassCleanupEvent {
+class World;
+
+class RxnClassCleanupEvent: public BaseEvent {
+public:
   RxnClassCleanupEvent(World* world_)
     : BaseEvent(EVENT_TYPE_INDEX_RXN_CLASS_CLEANUP),
       world(world_) {

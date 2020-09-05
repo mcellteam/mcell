@@ -111,15 +111,23 @@ public:
   );
 
   uint get_num_instantiations() const {
-    return num_instantiations;
+    if (is_reactive_surface()) {
+      // we are not counting reactive surfaces
+      return 1;
+    }
+    else {
+      return num_instantiations;
+    }
   }
 
   void inc_num_instantiations() {
+    assert(!is_reactive_surface());
     num_instantiations++;
-    set_flag(SPECIES_FLAG_WAS_INSTANTIATED);
+    set_was_instantiated(true);
   }
 
   void dec_num_instantiations() {
+    assert(!is_reactive_surface());
     assert(num_instantiations > 0);
     num_instantiations--;
     // does not reset flag SPECIES_FLAG_WAS_INSTANTIATED because this flag also means that
@@ -128,8 +136,23 @@ public:
     // TODO: improve explanation
   }
 
+  void set_was_instantiated(const bool value) {
+    assert(!is_reactive_surface() && "Reactive surfaces are automatically considered to be instantiated");
+    if (value) {
+      set_flag(SPECIES_FLAG_WAS_INSTANTIATED);
+    }
+    else {
+      clear_flag(SPECIES_FLAG_WAS_INSTANTIATED);
+    }
+  }
+
   bool was_instantiated() const {
-    return has_flag(SPECIES_FLAG_WAS_INSTANTIATED);
+    if (is_reactive_surface()) {
+      return true;
+    }
+    else {
+      return has_flag(SPECIES_FLAG_WAS_INSTANTIATED);
+    }
   }
 
   // true if can interact with edge of an border

@@ -32,6 +32,7 @@
 #include "world.h"
 #include "viz_output_event.h"
 #include "defragmentation_event.h"
+#include "rxn_class_cleanup_event.h"
 #include "sort_mols_by_subpart_event.h"
 #include "release_event.h"
 #include "datamodel_defines.h"
@@ -208,9 +209,15 @@ void World::init_simulation() {
   assert(partitions.size() == 1 && "Initial partition must have been created, only 1 is allowed for now");
 
   // create defragmentation events
+  RxnClassCleanupEvent* rxn_class_cleanup_event = new RxnClassCleanupEvent(this);
+  rxn_class_cleanup_event->event_time = RXN_CLASS_CLEANUP_PERIODICITY;
+  rxn_class_cleanup_event->periodicity_interval = RXN_CLASS_CLEANUP_PERIODICITY;
+  scheduler.schedule_event(rxn_class_cleanup_event);
+
+  // create rxn class cleanup events
   DefragmentationEvent* defragmentation_event = new DefragmentationEvent(this);
-  defragmentation_event->event_time = DEFRAGMENTATION_PERIODICITY;
-  defragmentation_event->periodicity_interval = DEFRAGMENTATION_PERIODICITY;
+  defragmentation_event->event_time = RXN_CLASS_CLEANUP_PERIODICITY;
+  defragmentation_event->periodicity_interval = RXN_CLASS_CLEANUP_PERIODICITY;
   scheduler.schedule_event(defragmentation_event);
 
   // create subpart sorting events

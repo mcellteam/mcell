@@ -146,15 +146,28 @@ public:
   SpeciesVector& get_species_vector() {
     return species;
   }
-
+private:
+  void initalize_superspecies(species_id_t id) {
+    Species& sp = get(id);
+    sp.set_was_instantiated(true);
+    if (sp.get_num_instantiations() == 0) {
+      // we want to keep the number of instanctiations of superspecies
+      sp.inc_num_instantiations();
+    }
+  }
+public:
   void set_all_molecules_species_id(species_id_t id) {
+    // superspecies are always considered to be instantiated
     all_molecules_species_id = id;
+    initalize_superspecies(id);
   }
   void set_all_volume_molecules_species_id(species_id_t id) {
     all_volume_molecules_species_id = id;
+    initalize_superspecies(id);
   }
   void set_all_surface_molecules_species_id(species_id_t id) {
     all_surface_molecules_species_id = id;
+    initalize_superspecies(id);
   }
 
   species_id_t get_all_molecules_species_id() const {

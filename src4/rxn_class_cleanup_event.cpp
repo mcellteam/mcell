@@ -20,8 +20,41 @@
  *
 ******************************************************************************/
 
+#include <iostream>
+
 #include "rxn_class_cleanup_event.h"
 
+#include "world.h"
+
+using namespace std;
+
 namespace MCell {
+
+
+void RxnClassCleanupEvent::dump(const string ind) const {
+  cout << ind << "Rxn class cleanup event:\n";
+  string ind2 = ind + "  ";
+  BaseEvent::dump(ind2);
+}
+
+
+void RxnClassCleanupEvent::step() {
+  /*
+  // for all species
+  for (BNG::Species& sp: world->get_all_species().get_species_vector()) {
+    if (sp.get_num_instantiations() == 0) {
+      // there are no instances, we can efficiently remove all rxn classes for this species
+
+      // remove rxn classes
+      world->get_all_rxns().remove_unimol_rxn_class(sp.id);
+      world->get_all_rxns().remove_bimol_rxn_classes(sp.id);
+
+      // and clear flag that this species was instantiated
+      sp.set_was_instantiated(false);
+    }
+  }
+  */
+}
+
 
 } /* namespace MCell */

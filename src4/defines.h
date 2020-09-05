@@ -130,6 +130,9 @@ const float_t SCHEDULER_COMPARISON_EPS = 1e-10;
 const uint SORT_MOLS_BY_SUBPART_PERIODICITY = 20;
 
 const uint DEFRAGMENTATION_PERIODICITY = 100;
+
+const uint RXN_CLASS_CLEANUP_PERIODICITY = 1;
+
 const float_t PARTITION_EDGE_LENGTH_DEFAULT_UM = 10; // large for now because we have just one partition
 const float_t PARTITION_EDGE_EXTRA_MARGIN_UM = 0.01;
 const float_t SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT = 1;

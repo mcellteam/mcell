@@ -29,6 +29,7 @@ set(SRC4_SOURCE_FILES
     viz_output_event.cpp
     defragmentation_event.cpp
     sort_mols_by_subpart_event.cpp
+    rxn_class_cleanup_event.cpp
     geometry.cpp
     species_flags_analyzer.cpp
     world.cpp

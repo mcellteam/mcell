@@ -193,6 +193,7 @@ void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t n
       const Species& species = all_species.get(i);
       species_id_t second_id = species.id;
 
+      // TODO: simplify condition - is_species_superclass check does not have to be there
       if (!for_all_known_species &&
           !species.was_instantiated()  &&
           !(new_id == second_id) && // we would miss A+A type reactions
@@ -246,6 +247,69 @@ void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t n
         }
       }
     } // for rxns_for_new_species
+  }
+}
+
+
+void RxnContainer::remove_unimol_rxn_class(const species_id_t id) {
+  if (species_processed_for_unimol_rxn_classes.count(id) != 0) {
+    // forget that we processed this species
+    species_processed_for_unimol_rxn_classes.erase(id);
+
+    // and remove the rxn class if there is any
+    auto it_rxn_class = unimol_rxn_class_map.find(id);
+    if (it_rxn_class != unimol_rxn_class_map.end()) {
+      delete it_rxn_class->second;
+      unimol_rxn_class_map.erase(it_rxn_class);
+    }
+  }
+  else {
+    assert(unimol_rxn_class_map.count(id) == 0 &&
+        "There must be no rxn classes for unprocessed species");
+  }
+}
+
+
+void RxnContainer::remove_bimol_rxn_classes(const species_id_t id) {
+  if (species_processed_for_bimol_rxn_classes.count(id) != 0) {
+    // forget that we processed this species
+    species_processed_for_bimol_rxn_classes.erase(id);
+
+    // remove the rxn classes and their mappings for second
+    // reactants
+
+    auto it_class_map = bimol_rxn_class_map.find(id);
+    if (it_class_map != bimol_rxn_class_map.end()) {
+
+      std::vector<species_id_t> reacting_species;
+
+      // delete all rxn classes for this species and remember
+      // with which species it can react
+      for (auto it_rxn_class: it_class_map->second) {
+        reacting_species.push_back(it_rxn_class.first);
+        delete it_rxn_class.second;
+      }
+      bimol_rxn_class_map.erase(it_class_map);
+
+      // ok, we removed all A + X mappings and also the rxn classes,
+      // we must also remove mappings X + A
+      for (species_id_t reac: reacting_species) {
+        if (reac == id) {
+          continue;
+        }
+        auto it_reac_class_map = bimol_rxn_class_map.find(reac);
+        assert(it_reac_class_map != bimol_rxn_class_map.end() &&
+            "Reactant must be present in the rxn classes map");
+
+        auto it_reac_rxn_class = it_reac_class_map->second.find(id);
+        assert(it_reac_rxn_class != it_reac_class_map->second.end() && "Reverse mapping must exist");
+        it_reac_class_map->second.erase(it_reac_rxn_class);
+      }
+    }
+  }
+  else {
+    assert(bimol_rxn_class_map.count(id) == 0 &&
+        "There must be no rxn class maps for unprocessed species");
   }
 }
 

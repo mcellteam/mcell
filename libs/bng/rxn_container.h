@@ -98,6 +98,9 @@ public:
     }
   }
 
+  // frees up memory taken up by the species' rxn class that is no longer needed
+  void remove_unimol_rxn_class(const species_id_t id);
+
   // - simply looks up a reaction between 'a' and 'b',
   // - this reaction must exist, asserts if not,
   // - does not take species superclasses such as ALL_MOLECULES into account
@@ -159,6 +162,9 @@ public:
       return nullptr;
     }
   }
+
+  // frees up memory taken up by the species' rxn classes that is no longer needed
+  void remove_bimol_rxn_classes(const species_id_t id);
 
   // returns nullptr if reaction rule was not found
   RxnRule* find_rxn_rule_by_name(const std::string& name) {
