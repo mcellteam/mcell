@@ -208,17 +208,17 @@ void World::init_simulation() {
       "subpartition size is " << config.subpartition_edge_length * config.length_unit << " microns.\n";
   assert(partitions.size() == 1 && "Initial partition must have been created, only 1 is allowed for now");
 
-  // create defragmentation events
-  RxnClassCleanupEvent* rxn_class_cleanup_event = new RxnClassCleanupEvent(this);
-  rxn_class_cleanup_event->event_time = RXN_CLASS_CLEANUP_PERIODICITY;
-  rxn_class_cleanup_event->periodicity_interval = RXN_CLASS_CLEANUP_PERIODICITY;
-  scheduler.schedule_event(rxn_class_cleanup_event);
-
   // create rxn class cleanup events
   DefragmentationEvent* defragmentation_event = new DefragmentationEvent(this);
-  defragmentation_event->event_time = RXN_CLASS_CLEANUP_PERIODICITY;
-  defragmentation_event->periodicity_interval = RXN_CLASS_CLEANUP_PERIODICITY;
+  defragmentation_event->event_time = DEFRAGMENTATION_PERIODICITY;
+  defragmentation_event->periodicity_interval = DEFRAGMENTATION_PERIODICITY;
   scheduler.schedule_event(defragmentation_event);
+
+  // create defragmentation events
+  /*RxnClassCleanupEvent* rxn_class_cleanup_event = new RxnClassCleanupEvent(this);
+  rxn_class_cleanup_event->event_time = RXN_CLASS_CLEANUP_PERIODICITY;
+  rxn_class_cleanup_event->periodicity_interval = RXN_CLASS_CLEANUP_PERIODICITY;
+  scheduler.schedule_event(rxn_class_cleanup_event);*/
 
   // create subpart sorting events
 #ifdef ENABLE_SORT_MOLS_BY_SUBPART
