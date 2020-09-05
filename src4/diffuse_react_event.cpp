@@ -1960,14 +1960,20 @@ int DiffuseReactEvent::outcome_products_random(
       surf_reac = reacB;
     }
 
-    /* Ensure that reacA and reacB are sorted in the same order as the rxn players. */
-    /* Needed to maintain the same behavior as in mcell3 */
-    if (!p.bng_engine.matches_ignore_orientation(rxn->reactants[0], reacA->species_id)) {
+    // Ensure that reacA and reacB are sorted in the same order as the rxn players.
+    // Needed to maintain the same behavior as in mcell3
+    // With BNG, a pattern can match both of the reactants so we must check both
+    // Rules are usually short so this should be rather cheap
+    if (!p.bng_engine.matches_ignore_orientation(rxn->reactants[0], reacA->species_id) ||
+        !p.bng_engine.matches_ignore_orientation(rxn->reactants[1], reacB->species_id)
+    ) {
       Molecule* tmp_mol = reacA;
       reacA = reacB;
       reacB = tmp_mol;
       reactants_swapped = true;
     }
+    // both reactants must match
+    assert(p.bng_engine.matches_ignore_orientation(rxn->reactants[0], reacA->species_id));
     assert(p.bng_engine.matches_ignore_orientation(rxn->reactants[1], reacB->species_id));
 
     keep_reacB = rxn->is_cplx_reactant_on_both_sides_of_rxn(1);

@@ -1100,7 +1100,7 @@ void RxnRule::create_products_for_complex_rxn(
   #ifdef DEBUG_CPLX_MATCHING
     cout << "Resulting products:\n";
     for (auto& c: created_product_sets.back()) {
-      c.second.dump(false);
+      c.product_cplx.dump(false);
       cout << "\n";
     }
   #endif
