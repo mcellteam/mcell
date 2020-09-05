@@ -61,7 +61,7 @@ public:
       custom_time_step(other.custom_time_step), custom_space_step(other.custom_space_step),
       space_step(other.space_step), time_step(other.time_step),
       color_set(other.color_set), color_r(other.color_r), color_g(other.color_g), color_b(other.color_b), scale(other.scale),
-      rxn_flags_were_updated(other.rxn_flags_were_updated), num_instantiations(0) {
+      rxn_flags_were_updated(other.rxn_flags_were_updated), num_instantiations(other.num_instantiations) {
   }
 
   // TODO: maybe an assignment operator is needed, e.g. in the CplxInstance case, the copy ctor was not
