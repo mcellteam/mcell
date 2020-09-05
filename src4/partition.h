@@ -465,24 +465,25 @@ private:
     return new_m;
   }
 
-  void check_and_update_new_species(const Molecule& m) {
+  void update_species_for_new_molecule(const Molecule& m) {
     // make sure that the rxn for this species flags are up-to-date
     BNG::Species& sp = get_all_species().get(m.species_id);
     if (!sp.are_rxn_and_custom_flags_uptodate()) {
       sp.update_rxn_and_custom_flags(get_all_species(), get_all_rxns(), &species_flags_analyzer);
     }
-    if (!sp.is_instantiated()) {
-      sp.set_is_instantiated();
+    if (!sp.was_instantiated()) {
       // update rxn classes for this new species, may create new species and
       // invalidate Species reference
       get_all_rxns().get_bimol_rxns_for_reactant(sp.id);
     }
+    // we must get a new reference
+    get_all_species().get(m.species_id).inc_num_instantiations();
   }
 
 public:
   // any molecule flags are set by caller after the molecule is created by this method
   Molecule& add_volume_molecule(const Molecule& vm_copy) {
-    check_and_update_new_species(vm_copy);
+    update_species_for_new_molecule(vm_copy);
 
     // TODO: use Species::is_instantiated instead of the known_vol_species
     if (known_vol_species.count(vm_copy.species_id) == 0) {
@@ -512,7 +513,7 @@ public:
 
 
   Molecule& add_surface_molecule(const Molecule& sm_copy) {
-    check_and_update_new_species(sm_copy);
+    update_species_for_new_molecule(sm_copy);
 
     Molecule& new_sm = add_molecule(sm_copy, false);
     return new_sm;
@@ -522,6 +523,9 @@ public:
   void set_molecule_as_defunct(Molecule& m) {
     // set that this molecule does not exist anymore
     m.set_is_defunct();
+
+    BNG::Species& sp = get_all_species().get(m.species_id);
+    sp.dec_num_instantiations();
 
     if (m.is_vol()) {
       change_vol_reactants_map_from_orig_to_current(m, false, true);

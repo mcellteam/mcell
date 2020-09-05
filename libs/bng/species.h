@@ -27,7 +27,7 @@ public:
       custom_time_step(0), custom_space_step(0),
       space_step(FLT_INVALID), time_step(TIME_INVALID),
       color_set(false), color_r(1), color_g(0), color_b(0), scale(1),
-      rxn_flags_were_updated(false) {
+      rxn_flags_were_updated(false), num_instantiations(0) {
   }
 
   // create species from a complex instance
@@ -40,7 +40,7 @@ public:
       custom_time_step(0), custom_space_step(0),
       space_step(FLT_INVALID), time_step(TIME_INVALID),
       color_set(false), color_r(1), color_g(0), color_b(0), scale(1),
-      rxn_flags_were_updated(false) {
+      rxn_flags_were_updated(false), num_instantiations(0) {
 
     mol_instances = cplx_inst.mol_instances;
     // the only finalize method, but showing that we are finalizing
@@ -61,7 +61,7 @@ public:
       custom_time_step(other.custom_time_step), custom_space_step(other.custom_space_step),
       space_step(other.space_step), time_step(other.time_step),
       color_set(other.color_set), color_r(other.color_r), color_g(other.color_g), color_b(other.color_b), scale(other.scale),
-      rxn_flags_were_updated(other.rxn_flags_were_updated) {
+      rxn_flags_were_updated(other.rxn_flags_were_updated), num_instantiations(0) {
   }
 
   // TODO: maybe an assignment operator is needed, e.g. in the CplxInstance case, the copy ctor was not
@@ -73,7 +73,7 @@ public:
     set_flag(SPECIES_FLAG_CAN_DIFFUSE, D != 0);
     if (is_reactive_surface()) {
       // surfaces are always assumed to be instantiated
-      set_flag(SPECIES_FLAG_IS_INSTANTIATED);
+      set_flag(SPECIES_FLAG_WAS_INSTANTIATED);
     }
   }
 
@@ -110,12 +110,26 @@ public:
       const BaseCustomFlagsAnalyzer* flags_analyzer = nullptr
   );
 
-  void set_is_instantiated() {
-    set_flag(SPECIES_FLAG_IS_INSTANTIATED);
+  uint get_num_instantiations() const {
+    return num_instantiations;
   }
 
-  bool is_instantiated() const {
-    return has_flag(SPECIES_FLAG_IS_INSTANTIATED);
+  void inc_num_instantiations() {
+    num_instantiations++;
+    set_flag(SPECIES_FLAG_WAS_INSTANTIATED);
+  }
+
+  void dec_num_instantiations() {
+    assert(num_instantiations > 0);
+    num_instantiations--;
+    // does not reset flag SPECIES_FLAG_WAS_INSTANTIATED because this flag also means that
+    // species with which this species can react in a bimol rxn
+    // have classes with these species in their rxn
+    // TODO: improve explanation
+  }
+
+  bool was_instantiated() const {
+    return has_flag(SPECIES_FLAG_WAS_INSTANTIATED);
   }
 
   // true if can interact with edge of an border
@@ -219,6 +233,8 @@ public:
 private:
   // rxn flags are updated when a molecule of this species is added to world
   bool rxn_flags_were_updated;
+
+  uint num_instantiations;
 };
 
 } // namespace BNG
