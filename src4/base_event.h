@@ -45,6 +45,7 @@ const event_type_index_t EVENT_TYPE_INDEX_RELEASE = 200;
 const event_type_index_t EVENT_TYPE_INDEX_MOL_OR_RXN_COUNT = 290;
 // viz_output is special in the way that simulation is terminated herein the last iteration
 const event_type_index_t EVENT_TYPE_INDEX_VIZ_OUTPUT = 300;
+const event_type_index_t EVENT_TYPE_INDEX_RXN_CLASS_CLEANUP = 480;
 const event_type_index_t EVENT_TYPE_INDEX_SORT_MOLS_BY_SUBPART = 490;
 const event_type_index_t EVENT_TYPE_INDEX_DIFFUSE_REACT = 500;  // this event spans the whole time step
 const event_type_index_t EVENT_TYPE_INDEX_DEFRAGMENTATION = 900;

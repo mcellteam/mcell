@@ -1,8 +1,7 @@
 /******************************************************************************
  *
- * Copyright (C) 2019 by
- * The Salk Institute for Biological Studies and
- * Pittsburgh Supercomputing Center, Carnegie Mellon University
+ * Copyright (C) 2020 by
+ * The Salk Institute for Biological Studies
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
