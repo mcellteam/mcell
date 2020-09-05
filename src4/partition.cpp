@@ -330,6 +330,18 @@ counted_volume_index_t Partition::find_or_add_counted_volume(const CountedVolume
   }
 }
 
+
+void Partition::remove_from_known_vol_species(const species_id_t species_id) {
+  assert(known_vol_species.count(species_id) != 0);
+  known_vol_species.erase(species_id);
+
+  for (SpeciesReactantsMap& reac_map: volume_molecule_reactants_per_subpart) {
+    reac_map.clear_set(species_id);
+  }
+}
+
+
+
 void Partition::to_data_model(Json::Value& mcell) const {
 
   Json::Value& geometrical_objects = mcell[KEY_GEOMETRICAL_OBJECTS];

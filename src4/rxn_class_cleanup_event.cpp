@@ -39,21 +39,28 @@ void RxnClassCleanupEvent::dump(const string ind) const {
 
 
 void RxnClassCleanupEvent::step() {
-  /*
+
   // for all species
   for (BNG::Species& sp: world->get_all_species().get_species_vector()) {
-    if (sp.get_num_instantiations() == 0) {
+    if (sp.get_num_instantiations() == 0 && sp.was_instantiated()) {
       // there are no instances, we can efficiently remove all rxn classes for this species
 
       // remove rxn classes
       world->get_all_rxns().remove_unimol_rxn_class(sp.id);
       world->get_all_rxns().remove_bimol_rxn_classes(sp.id);
 
-      // and clear flag that this species was instantiated
+      // clear flag telling that this species was instantiated
       sp.set_was_instantiated(false);
+
+      // and also tell partitions that this species is not known anymore
+      // TODO: can this may be done through the was_instantiated flag?
+      if (sp.is_vol()) {
+        for (Partition& p: world->get_partitions()) {
+          p.remove_from_known_vol_species(sp.id);
+        }
+      }
     }
   }
-  */
 }
 
 

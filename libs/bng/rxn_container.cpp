@@ -81,8 +81,8 @@ RxnClass* RxnContainer::get_or_create_empty_unimol_rxn_class(const species_id_t 
     return it->second;
   }
   else {
-    rxn_classes.push_back(new RxnClass(*this, all_species, bng_config, id));
-    RxnClass* new_rxn_class = rxn_classes.back();
+    RxnClass* new_rxn_class = new RxnClass(*this, all_species, bng_config, id);
+    rxn_classes.insert(new_rxn_class);
     unimol_rxn_class_map[id] = new_rxn_class;
     return new_rxn_class;
   }
@@ -146,8 +146,8 @@ RxnClass* RxnContainer::get_or_create_empty_bimol_rxn_class(const species_id_t i
   }
   else {
     // create a new one
-    rxn_classes.push_back(new RxnClass(*this, all_species, bng_config, id1, id2));
-    RxnClass* new_rxn_class = rxn_classes.back();
+    RxnClass* new_rxn_class = new RxnClass(*this, all_species, bng_config, id1, id2);
+    rxn_classes.insert(new_rxn_class);
 
     // insert it into maps
     it_map1->second[id2] = new_rxn_class;
@@ -251,6 +251,16 @@ void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t n
 }
 
 
+void RxnContainer::delete_rxn_class(RxnClass* rxn_class) {
+  // remove the pointer from the rxn classes container so that they are not deleted
+  // when RxnContainer destructor is called
+  assert(rxn_classes.count(rxn_class) != 0);
+  rxn_classes.erase(rxn_class);
+
+  delete rxn_class;
+}
+
+
 void RxnContainer::remove_unimol_rxn_class(const species_id_t id) {
   if (species_processed_for_unimol_rxn_classes.count(id) != 0) {
     // forget that we processed this species
@@ -259,7 +269,9 @@ void RxnContainer::remove_unimol_rxn_class(const species_id_t id) {
     // and remove the rxn class if there is any
     auto it_rxn_class = unimol_rxn_class_map.find(id);
     if (it_rxn_class != unimol_rxn_class_map.end()) {
-      delete it_rxn_class->second;
+
+      delete_rxn_class(it_rxn_class->second);
+
       unimol_rxn_class_map.erase(it_rxn_class);
     }
   }
@@ -287,7 +299,7 @@ void RxnContainer::remove_bimol_rxn_classes(const species_id_t id) {
       // with which species it can react
       for (auto it_rxn_class: it_class_map->second) {
         reacting_species.push_back(it_rxn_class.first);
-        delete it_rxn_class.second;
+        delete_rxn_class(it_rxn_class.second);
       }
       bimol_rxn_class_map.erase(it_class_map);
 

@@ -99,6 +99,12 @@ public:
     }
   }
 
+  void clear_set(const species_id_t key) {
+    if (key < this->size()) {
+      (*this)[key].clear();
+    }
+  }
+
 private:
   uint_set<molecule_id_t> empty_set;
 };
@@ -970,6 +976,7 @@ public:
     return rxn_counts_per_wall_volume[rxn_rule_id];
   }
 
+  void remove_from_known_vol_species(const species_id_t species_id);
   void dump();
   void to_data_model(Json::Value& mcell) const;
 
