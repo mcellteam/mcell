@@ -31,6 +31,7 @@
 
 #include "world.h"
 #include "viz_output_event.h"
+#include "simulation_end_check_event.h"
 #include "defragmentation_event.h"
 #include "rxn_class_cleanup_event.h"
 #include "sort_mols_by_subpart_event.h"
@@ -208,17 +209,23 @@ void World::init_simulation() {
       "subpartition size is " << config.subpartition_edge_length * config.length_unit << " microns.\n";
   assert(partitions.size() == 1 && "Initial partition must have been created, only 1 is allowed for now");
 
-  // create rxn class cleanup events
+  // create events that are used to check whether simulation should end
+  SimulationEndCheckEvent* sim_end_check_event = new SimulationEndCheckEvent();
+  sim_end_check_event->event_time = 0;
+  sim_end_check_event->periodicity_interval = 1; // these markers are inserted into every time step
+  scheduler.schedule_event(sim_end_check_event);
+
+  // create defragmentation events
   DefragmentationEvent* defragmentation_event = new DefragmentationEvent(this);
   defragmentation_event->event_time = DEFRAGMENTATION_PERIODICITY;
   defragmentation_event->periodicity_interval = DEFRAGMENTATION_PERIODICITY;
   scheduler.schedule_event(defragmentation_event);
 
-  // create defragmentation events
-  /*RxnClassCleanupEvent* rxn_class_cleanup_event = new RxnClassCleanupEvent(this);
+  // create rxn class cleanup events
+  RxnClassCleanupEvent* rxn_class_cleanup_event = new RxnClassCleanupEvent(this);
   rxn_class_cleanup_event->event_time = RXN_CLASS_CLEANUP_PERIODICITY;
   rxn_class_cleanup_event->periodicity_interval = RXN_CLASS_CLEANUP_PERIODICITY;
-  scheduler.schedule_event(rxn_class_cleanup_event);*/
+  scheduler.schedule_event(rxn_class_cleanup_event);
 
   // create subpart sorting events
 #ifdef ENABLE_SORT_MOLS_BY_SUBPART
@@ -305,10 +312,11 @@ void World::run_n_iterations(const uint64_t num_iterations, const uint64_t outpu
     cout << "After it: " << current_iteration << ", time: " << time << "\n";
 #endif
 
-    // also terminate if this was the last iteration and the event was viz output
+    // also terminate if this was the last iteration and we hit an event that represents a check for the
+    // end of the simulation
     if (terminate_last_iteration_after_viz_output &&
        current_iteration == this_run_first_iteration + num_iterations - 1 &&
-       event_info.type_index >= EVENT_TYPE_INDEX_VIZ_OUTPUT
+       event_info.type_index == EVENT_TYPE_INDEX_SIMULATION_END_CHECK
     ) {
       break;
     }
