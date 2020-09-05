@@ -192,9 +192,10 @@ void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t n
     for (size_t i = 0; i < num_species; i++) {
       const Species& species = all_species.get(i);
       species_id_t second_id = species.id;
-      // TODO
+
       if (!for_all_known_species &&
-          !species.was_instantiated() &&
+          !species.was_instantiated()  &&
+          !(new_id == second_id) && // we would miss A+A type reactions
           !all_species.is_species_superclass(second_id)) {
         // we do not care about molecules that do not exist yet, however we must process superclasses
         continue;
