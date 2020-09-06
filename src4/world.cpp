@@ -222,10 +222,12 @@ void World::init_simulation() {
   scheduler.schedule_event(defragmentation_event);
 
   // create rxn class cleanup events
+#ifdef ENABLE_RXN_CLASS_CLEANUP
   RxnClassCleanupEvent* rxn_class_cleanup_event = new RxnClassCleanupEvent(this);
   rxn_class_cleanup_event->event_time = RXN_CLASS_CLEANUP_PERIODICITY;
   rxn_class_cleanup_event->periodicity_interval = RXN_CLASS_CLEANUP_PERIODICITY;
   scheduler.schedule_event(rxn_class_cleanup_event);
+#endif
 
   // create subpart sorting events
 #ifdef ENABLE_SORT_MOLS_BY_SUBPART
