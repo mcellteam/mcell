@@ -24,7 +24,8 @@ void BNGConfig::dump() const {
   cout << "  length_unit: \t\t" << length_unit << " [float_t] \t\t\n";
   cout << "  grid_density: \t\t" << grid_density << " [float_t] \t\t\n";
   cout << "  rx_radius_3d: \t\t" << rx_radius_3d << " [float_t] \t\t\n";
-  cout << "  debug_reactions: \t\t" << debug_reactions << " [bool] \t\t\n";
+  cout << "  rxn_and_species_report: \t\t" << rxn_and_species_report << " [bool] \t\t\n";
+  cout << "  bng_verbosity_level: \t\t" << bng_verbosity_level << " [bool] \t\t\n";
 
   notifications.dump();
 }
@@ -53,7 +54,7 @@ static const std::string current_date_time() {
 
 
 void BNGConfig::initialize_report_files() {
-  if (reporting) {
+  if (rxn_and_species_report) {
 
     ofstream of_rxn;
     of_rxn.open(get_rxn_report_file_name(), fstream::out);

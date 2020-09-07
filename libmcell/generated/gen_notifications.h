@@ -31,6 +31,8 @@ namespace API {
 
 #define NOTIFICATIONS_CTOR() \
     Notifications( \
+        const int bng_verbosity_level_ = 0, \
+        const bool rxn_and_species_report_ = true, \
         const bool probability_report_ = true, \
         const Notification diffusion_constant_report_ = Notification::BRIEF, \
         const bool final_summary_ = true, \
@@ -41,6 +43,8 @@ namespace API {
         const bool molecule_collision_report_ = true \
     ) { \
       class_name = "Notifications"; \
+      bng_verbosity_level = bng_verbosity_level_; \
+      rxn_and_species_report = rxn_and_species_report_; \
       probability_report = probability_report_; \
       diffusion_constant_report = diffusion_constant_report_; \
       final_summary = final_summary_; \
@@ -64,6 +68,30 @@ public:
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---
+  int bng_verbosity_level;
+  virtual void set_bng_verbosity_level(const int new_bng_verbosity_level_) {
+    if (initialized) {
+      throw RuntimeError("Value 'bng_verbosity_level' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
+    bng_verbosity_level = new_bng_verbosity_level_;
+  }
+  virtual int get_bng_verbosity_level() const {
+    return bng_verbosity_level;
+  }
+
+  bool rxn_and_species_report;
+  virtual void set_rxn_and_species_report(const bool new_rxn_and_species_report_) {
+    if (initialized) {
+      throw RuntimeError("Value 'rxn_and_species_report' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
+    rxn_and_species_report = new_rxn_and_species_report_;
+  }
+  virtual bool get_rxn_and_species_report() const {
+    return rxn_and_species_report;
+  }
+
   bool probability_report;
   virtual void set_probability_report(const bool new_probability_report_) {
     if (initialized) {

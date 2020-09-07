@@ -687,6 +687,8 @@ class MoleculeReleaseInfo():
 class Notifications():
     def __init__(
             self,
+            bng_verbosity_level : int = 0,
+            rxn_and_species_report : bool = True,
             probability_report : bool = True,
             diffusion_constant_report : Notification = Notification.BRIEF,
             final_summary : bool = True,
@@ -696,6 +698,8 @@ class Notifications():
             release_event_report : bool = True,
             molecule_collision_report : bool = True
         ):
+        self.bng_verbosity_level = bng_verbosity_level
+        self.rxn_and_species_report = rxn_and_species_report
         self.probability_report = probability_report
         self.diffusion_constant_report = diffusion_constant_report
         self.final_summary = final_summary

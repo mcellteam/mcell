@@ -60,6 +60,10 @@ public:
 
   ~RxnContainer();
 
+  uint get_num_rxn_classes() const {
+    return rxn_classes.size();
+  }
+
   // must be called once all reactions were added or were updated
   void update_all_mols_flags();
 

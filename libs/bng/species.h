@@ -51,7 +51,7 @@ public:
     }
     set_flag(BNG::SPECIES_FLAG_CAN_DIFFUSE, D != 0); // TODO: can this be removed when we set it in finalize?
     finalize();
-    name = cplx_inst.to_str(data);
+    name = cplx_inst.to_str();
   }
 
   // we need explicit copy ctor to call CplxInstance's copy ctor
@@ -77,9 +77,9 @@ public:
     }
   }
 
-  void canonicalize(const BNGData& bng_data) {
+  void canonicalize() {
     CplxInstance::canonicalize(); // calls also CplxInstance::finalize
-    name = to_str(bng_data);
+    name = to_str();
   }
 
   species_id_t id;

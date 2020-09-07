@@ -172,6 +172,12 @@ void MCell4Converter::get_geometry_bounding_box(Vec3& llf, Vec3& urb) {
 
 
 void MCell4Converter::convert_simulation_setup() {
+  // notifications and reports
+  const API::Notifications& notifications = model->notifications;
+  world->config.bng_verbosity_level = notifications.bng_verbosity_level;
+  world->config.rxn_and_species_report = notifications.rxn_and_species_report;
+
+  // config
   const API::Config& config = model->config;
 
   world->total_iterations = config.total_iterations_hint;
@@ -1112,7 +1118,7 @@ MCell::MolOrRxnCountTerm MCell4Converter::convert_count_term_leaf_and_init_count
 
     if (!is_set(ct->species)) {
       is_vol = res.species_molecules_pattern.is_vol();
-      name = res.species_molecules_pattern.to_str(world->bng_engine.get_data());
+      name = res.species_molecules_pattern.to_str();
     }
 
 

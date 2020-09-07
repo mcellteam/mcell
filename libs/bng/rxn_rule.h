@@ -200,6 +200,7 @@ public:
 private:
   // BNGL style reaction handling is implemented in this method
   void create_products_for_complex_rxn(
+      const BNGConfig& bng_config,
       const std::vector<const CplxInstance*>& input_reactants,
       ProductSetsVector& created_product_sets
   ) const;

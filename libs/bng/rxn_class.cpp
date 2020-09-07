@@ -376,7 +376,7 @@ void RxnClass::update_rxn_pathways() {
     }
   }
 
-  if (bng_config.reporting) {
+  if (bng_config.rxn_and_species_report) {
     ofstream of;
     of.open(bng_config.get_rxn_report_file_name(), fstream::out | fstream::app);
     // not printing warning when file count not be opened
@@ -450,7 +450,7 @@ std::string RxnClass::to_str(const std::string ind) const {
     out << "products based on rule " << rxn->to_str(true, false) << "\n    ";
     for (size_t k = 0; k < pw.product_species_w_indices.size(); k++) {
       species_id_t sid = pw.product_species_w_indices[k].product_species_id;
-      out << all_species.get(sid).to_str(all_species.get_bng_data()) << " (" << sid << ") ";
+      out << all_species.get(sid).to_str() << " (" << sid << ") ";
       if (k != pw.product_species_w_indices.size() - 1) {
         out << " + ";
       }

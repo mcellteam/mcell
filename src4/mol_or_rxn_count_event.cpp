@@ -150,10 +150,10 @@ std::string MolOrRxnCountTerm::to_data_model_string(const World* world, bool pri
           res << world->get_all_species().get(species_id).name;
           break;
         case SpeciesPatternType::SpeciesPattern:
-          res << species_molecules_pattern.to_str(world->bng_engine.get_data()) << "/*Species*/";
+          res << species_molecules_pattern.to_str() << "/*Species*/";
           break;
         case SpeciesPatternType::MoleculesPattern:
-          res << species_molecules_pattern.to_str(world->bng_engine.get_data()) << "/*Molecules*/";
+          res << species_molecules_pattern.to_str() << "/*Molecules*/";
           break;
         default:
           assert(false);

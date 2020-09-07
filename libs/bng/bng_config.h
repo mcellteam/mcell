@@ -59,11 +59,8 @@ public:
       rcp_length_unit(0),
       grid_density(0),
       rx_radius_3d(0),
-
-      // TODO: add option to disable this
-      reporting(true),
-      debug_reactions(false)
-  {
+      rxn_and_species_report(true),
+      bng_verbosity_level(0) {
   }
 
   // configuration
@@ -79,10 +76,10 @@ public:
   BNGCommon::float_t rx_radius_3d;
 
   // generate report files during simulation
-  bool reporting;
+  bool rxn_and_species_report;
 
-  // debug
-  bool debug_reactions;
+  // print additional information during simulation
+  int bng_verbosity_level;
 
   BNGNotifications notifications;
 

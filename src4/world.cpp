@@ -304,6 +304,8 @@ void World::run_n_iterations(const uint64_t num_iterations, const uint64_t outpu
         }
         previous_progress_report_time = current_progress_report_time;
 
+        cout << " " << bng_engine.get_stats_report();
+
         cout << "\n";
       }
 

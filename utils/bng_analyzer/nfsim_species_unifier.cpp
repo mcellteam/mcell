@@ -126,7 +126,7 @@ bool NFSimSpeciesUnifier::print_unified_species(const std::string& out_file) {
 
   for (auto it: counts_per_unique_species) {
     BNG::Species& s = bng_engine.get_all_species().get(it.first);
-    *out << s.to_str(bng_engine.get_data()) << " " << it.second << "\n";
+    *out << s.to_str() << " " << it.second << "\n";
   }
 
   if (out_file != "") {

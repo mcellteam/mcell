@@ -436,10 +436,10 @@ void CplxInstance::canonicalize() {
 }
 
 
-std::string CplxInstance::to_str(const BNGData& bng_data, bool in_surf_reaction) const {
+std::string CplxInstance::to_str(bool in_surf_reaction) const {
   stringstream ss;
   for (size_t i = 0; i < mol_instances.size(); i++) {
-    ss << mol_instances[i].to_str(bng_data);
+    ss << mol_instances[i].to_str(*bng_data);
 
     if (i != mol_instances.size() - 1) {
       ss << ".";
@@ -460,7 +460,7 @@ std::string CplxInstance::to_str(const BNGData& bng_data, bool in_surf_reaction)
 
 void CplxInstance::dump(const bool for_diff, const std::string ind) const {
   if (!for_diff) {
-    cout << ind << to_str(*bng_data);
+    cout << ind << to_str();
   }
   else {
     cout << ind << "orientation: " << orientation << "\n";

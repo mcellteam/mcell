@@ -136,6 +136,7 @@ void RxnRule::define_rxn_pathways_for_specific_reactants(
     // a single random number then is used to choose a single variant
     ProductSetsVector product_sets;
     create_products_for_complex_rxn(
+        bng_config,
         reactants,
         product_sets
     );
@@ -1019,12 +1020,21 @@ static bool is_graph_unique_wrt_modified_ordering(
 
 
 void RxnRule::create_products_for_complex_rxn(
+    const BNGConfig& bng_config,
     const std::vector<const CplxInstance*>& input_reactants,
     ProductSetsVector& created_product_sets
 ) const {
   // the result of this function is cached in rxnclass
   assert(input_reactants.size() == reactants.size());
   assert(input_reactants.size() == 1 || input_reactants.size() == 2);
+
+  if (bng_config.bng_verbosity_level >= 1) {
+    cout << "Creating products for complex rxn " << name <<
+        " for reactant(s) " << input_reactants[0]->to_str();
+    if (input_reactants.size() == 2) {
+      cout << " + " << input_reactants[1]->to_str() << "\n";
+    }
+  }
 
   // merge input reactant graphs
   Graph reactants_graph = input_reactants[0]->get_graph();
@@ -1046,6 +1056,10 @@ void RxnRule::create_products_for_complex_rxn(
   release_assert(pattern_reactant_mappings.size() < MAX_PRODUCT_SETS_PER_RXN
       && "Encountered a huge number of potential product sets for a single reaction");
 
+  if (bng_config.bng_verbosity_level >= 1) {
+    cout << "  - found " << pattern_reactant_mappings.size() << " potential products";
+    cout.flush();
+  }
 
   vector<vector<CplxInstance>> input_reactants_copies;
   vector<Graph> distinct_product_graphs;
@@ -1089,6 +1103,10 @@ void RxnRule::create_products_for_complex_rxn(
     if (is_graph_unique_wrt_modified_ordering(reactants_graph_copy, distinct_product_graphs)) {
       distinct_product_graphs.push_back(reactants_graph_copy);
     }
+  }
+
+  if (bng_config.bng_verbosity_level >= 1) {
+    cout << ", of it " << distinct_product_graphs.size() << " unique products\n";
   }
 
   for (Graph& product_graph: distinct_product_graphs) {
@@ -1559,7 +1577,7 @@ std::string RxnRule::to_str(const bool with_rate_constant, const bool with_name)
 std::string RxnRule::complex_instance_vector_to_str(const CplxInstanceVector& complexes) const {
   stringstream ss;
   for (size_t i = 0; i < complexes.size(); i++) {
-    ss << complexes[i].to_str(*bng_data, is_surf_rxn());
+    ss << complexes[i].to_str(is_surf_rxn());
 
     if (i != complexes.size() - 1) {
       ss << " + ";

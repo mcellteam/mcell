@@ -45,6 +45,8 @@ public:
       {
   }
 
+  std::string get_stats_report() const;
+
   bool matches_ignore_orientation(
       const CplxInstance& cplx_pattern,
       const species_id_t species_id

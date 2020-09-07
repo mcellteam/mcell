@@ -160,7 +160,7 @@ public:
   // the same ordering
   void canonicalize();
 
-  std::string to_str(const BNGData& bng_data, bool in_surf_reaction = false) const;
+  std::string to_str(bool in_surf_reaction = false) const;
   void dump(const bool for_diff = false, const std::string ind = "") const;
 
 private:
