@@ -26,7 +26,10 @@ species_id_t SpeciesContainer::add(const Species& new_species) {
   species_id_t res = next_species_id;
   next_species_id++;
 
-  // add to the species vector
+  // add to the id->index mapping and also to the species vector
+  species_id_to_index_mapping.push_back(species.size());
+  assert(species_id_to_index_mapping.size() == next_species_id);
+
   species.push_back(species_copy);
   species.back().id = res;
 

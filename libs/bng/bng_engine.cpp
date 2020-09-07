@@ -23,6 +23,8 @@ string BNGEngine::get_stats_report() const {
     }
   }
 
+
+
   res << "[" <<
       "active species " << num_active_species <<
       ", total species " << all_species.get_species_vector().size() <<

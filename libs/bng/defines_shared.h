@@ -182,9 +182,12 @@ const molecule_id_t MOLECULE_ID_INVALID = ID_INVALID;
 
 // unique species id,
 // every distinct species that exists
-// TODO: move to bng
+// TODO: move to bng?
 typedef uint species_id_t;
 const species_id_t SPECIES_ID_INVALID = ID_INVALID;
+
+typedef uint species_index_t;
+const species_index_t SPECIES_INDEX_INVALID = ID_INVALID;
 
 // unique pattern id
 typedef uint pattern_id_t;

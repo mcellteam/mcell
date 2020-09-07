@@ -112,21 +112,24 @@ public:
   }
 
   Species& get(const species_id_t id) {
-    assert(id < species.size());
-    // TODO LATER: we will need some mapping, the species vector will need to be
-    // 'defragmented' time from time because we cannot hold all possible species
-    // in memory
+    assert(id < species_id_to_index_mapping.size());
+    species_index_t index = species_id_to_index_mapping[id];
+    assert(index < species.size());
     return species[id];
   }
 
   const Species& get(const species_id_t id) const {
-    assert(id < species.size());
+    assert(id < species_id_to_index_mapping.size());
+    species_index_t index = species_id_to_index_mapping[id];
+    assert(index < species.size());
     return species[id];
   }
 
   // for debugging
   bool is_valid_id(const species_id_t id) const {
-    return id < species.size();
+    return
+        id < species_id_to_index_mapping.size() &&
+        species_id_to_index_mapping[id] < species.size();
   }
 
   const CplxInstance& get_as_cplx_instance(const species_id_t id) const {
@@ -204,6 +207,9 @@ public:
 
 private:
   species_id_t next_species_id;
+
+  // contains mapping of molecule ids to indices to the molecules array
+  std::vector<species_index_t> species_id_to_index_mapping;
 
   SpeciesVector species;
   std::map<std::string, species_id_t> canonical_species_map;
