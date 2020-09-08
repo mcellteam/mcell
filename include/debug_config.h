@@ -78,6 +78,9 @@
 // tentative sorting of reactions in a rxn class to match MCell3R
 #define MCELL4_REVERSED_RXNS_IN_RXN_CLASS
 
+// sorting of pathways
+//#define MCELL4_DO_NOT_SORT_PATHWAYS
+
 // sort molecules in schedule helper according to ID before a new timestep begins
 // testsuite for mcell4 won't pass
 //#define MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID

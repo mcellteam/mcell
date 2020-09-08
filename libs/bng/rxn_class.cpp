@@ -300,6 +300,34 @@ float_t RxnClass::compute_pb_factor() const {
 }
 
 
+class RxnPathwayComparator {
+public:
+  RxnPathwayComparator(const SpeciesContainer& all_species_)
+    : all_species(all_species_) {
+  }
+
+  bool operator()(const RxnClassPathway& pw1, const RxnClassPathway& pw2) {
+    // create string representation of products and sort them according to it
+    // not very efficient but its impact should be negligible
+    string prods1;
+    string prods2;
+    make_products_representation(pw1, prods1);
+    make_products_representation(pw2, prods2);
+    return prods1 < prods2;
+  }
+
+private:
+  void make_products_representation(const RxnClassPathway& pw, string& res) {
+    res = "";
+    for (const ProductSpeciesWIndices& prod: pw.product_species_w_indices) {
+      res += all_species.get(prod.product_species_id).name + "_";
+    }
+  }
+
+  const SpeciesContainer& all_species;
+};
+
+
 // based on mcell3's implementation init_reactions
 // but added support for cases where one reaction rule can have multiple sets of products
 void RxnClass::update_rxn_pathways() {
@@ -313,8 +341,6 @@ void RxnClass::update_rxn_pathways() {
       }
   );
 #endif
-
-  // TODO LATER: check_reaction_for_duplicate_pathways?
 
   pathways.clear();
 
@@ -334,6 +360,14 @@ void RxnClass::update_rxn_pathways() {
     );
   }
   assert(!pathways.empty());
+
+#ifndef MCELL4_DO_NOT_SORT_PATHWAYS
+  // and sort them, due to rxn class removals in cleanup events, in different runs can the
+  // pathways be sorted differently, we must maintain the order
+  // may provide different result than MCell3
+  RxnPathwayComparator pathway_cmp(all_species);
+  sort(pathways.begin(), pathways.end(), pathway_cmp);
+#endif
 
 #ifdef MCELL4_REVERSED_RXNS_IN_RXN_CLASS
   // reverse pathways
