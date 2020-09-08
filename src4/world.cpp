@@ -84,10 +84,6 @@ World::World()
   // although the same thing is called in init_simulation, not reseting it causes weird valdrind reports on
   // uninitialized variable
   reset_rusage(&sim_start_time);
-
-#ifdef DEBUG_RXNS
-  config.debug_reactions = true;
-#endif
 }
 
 
