@@ -125,19 +125,23 @@ public:
   }
 
   Species& get(const species_id_t id) {
+    assert(id != SPECIES_ID_INVALID);
     assert(id < species_id_to_index_mapping.size());
     species_index_t index = species_id_to_index_mapping[id];
+    assert(index != SPECIES_INDEX_INVALID);
     assert(index < species.size());
-    Species& res = species[id];
+    Species& res = species[index];
     assert(!res.is_defunct());
     return res;
   }
 
   const Species& get(const species_id_t id) const {
+    assert(id != SPECIES_ID_INVALID);
     assert(id < species_id_to_index_mapping.size());
     species_index_t index = species_id_to_index_mapping[id];
+    assert(index != SPECIES_INDEX_INVALID);
     assert(index < species.size());
-    const Species& res = species[id];
+    const Species& res = species[index];
     assert(!res.is_defunct());
     return res;
   }

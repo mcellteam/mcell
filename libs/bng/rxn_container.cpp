@@ -206,9 +206,10 @@ void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t n
     // on the other hand, polymerizing reactions might cause infinite looping therefore
     // we will limit ourselves to the species that currently exist,
     // the rxn class will be updated once a molecule of the new species (not handled here) will be created
-    size_t num_species = all_species.get_species_vector().size();
-    for (size_t i = 0; i < num_species; i++) {
-      const Species& species = all_species.get(i);
+    species_index_t num_species = all_species.get_species_vector().size();
+    for (species_index_t i = 0; i < num_species; i++) {
+      // reading directly from the species array, not using id
+      const Species& species = all_species.get_species_vector()[i];
       species_id_t second_id = species.id;
 
       // TODO: simplify condition - is_species_superclass check does not have to be there
