@@ -17,7 +17,7 @@ class Species;
 class SpeciesContainer;
 class RxnContainer;
 
-typedef small_vector<Species> SpeciesVector;
+typedef std::vector<Species> SpeciesVector;
 
 class Species: public CplxInstance {
 public:
@@ -116,6 +116,7 @@ public:
       return 1;
     }
     else {
+      // superspecies have their num_instantiations set to 1
       return num_instantiations;
     }
   }
@@ -134,6 +135,24 @@ public:
     // species with which this species can react in a bimol rxn
     // have classes with these species in their rxn
     // TODO: improve explanation
+  }
+
+  // do not call this directly, should be called only from
+  // SpeciesContainer::remove
+  void set_is_defunct() {
+    set_flag(SPECIES_FLAG_IS_DEFUNCT);
+  }
+
+  bool is_defunct() const {
+    return has_flag(SPECIES_FLAG_IS_DEFUNCT);
+  }
+
+  void set_is_removable() {
+    set_flag(SPECIES_FLAG_IS_REMOVABLE);
+  }
+
+  bool is_removable() const {
+    return has_flag(SPECIES_FLAG_IS_REMOVABLE);
   }
 
   void set_was_instantiated(const bool value) {

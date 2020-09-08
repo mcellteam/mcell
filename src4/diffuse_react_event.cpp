@@ -165,7 +165,7 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const std::vector<molecu
       );
     }
     else {
-      bool diffuse_right_away = react_unimol_single_molecule(p, action.id, action.scheduled_time, action.unimol_rx);
+      bool diffuse_right_away = react_unimol_single_molecule(p, action.id, action.scheduled_time);
 
       // get a fresh action reference - unimol reaction could have added some items into the array
       const DiffuseOrUnimolRxnAction& new_ref_action = new_diffuse_or_unimol_react_actions[i];
@@ -214,7 +214,6 @@ void DiffuseReactEvent::diffuse_single_molecule(
   // we might need to change the reaction rate right now
   if (m.has_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RXN_ON_NEXT_RXN_RATE_UPDATE) && cmp_eq(m.unimol_rx_time, diffusion_start_time)) {
     assert(m.unimol_rx_time != TIME_INVALID);
-    assert(m.unimol_rx != nullptr);
 
     m.clear_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RXN_ON_NEXT_RXN_RATE_UPDATE);
     pick_unimol_rxn_class_and_set_rxn_time(p, diffusion_start_time, m);
@@ -224,13 +223,13 @@ void DiffuseReactEvent::diffuse_single_molecule(
 
   // schedule unimol action if it is supposed to be executed in this timestep
   assert(unimol_rx_time == TIME_INVALID || unimol_rx_time >= event_time);
-  if (unimol_rx_time != TIME_INVALID && m.unimol_rx != nullptr && unimol_rx_time < event_time + current_time_step) {
+  if (unimol_rx_time != TIME_INVALID && unimol_rx_time < event_time + current_time_step) {
 
     assert(!m.has_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN)
         && "This unimol rxn is still to be scheduled, unimol_rx_time only specifies the reschedule time.");
 
     DiffuseOrUnimolRxnAction unimol_react_action(
-        DiffuseOrUnimolRxnAction::Type::UNIMOL_REACT, m.id, unimol_rx_time, m.unimol_rx);
+        DiffuseOrUnimolRxnAction::Type::UNIMOL_REACT, m.id, unimol_rx_time);
     new_diffuse_or_unimol_react_actions.push_back(unimol_react_action);
   }
 
@@ -730,9 +729,6 @@ bool DiffuseReactEvent::collide_and_react_with_vol_mol(
     return 0; /* Reaction blocked by a wall */
   }
 
-
-  // TODO: unify usage to rxn and rxn class pointers,
-  //       they might not be set in Collision struct, so pointers are the only way
   RxnClass* rxn_class = collision.rxn_class;
   assert(rxn_class != nullptr);
 
@@ -1485,7 +1481,6 @@ void DiffuseReactEvent::pick_unimol_rxn_class_and_set_rxn_time(
   // we need to store the end time to the molecule because oit is needed in diffusion to
   // figure out whether we should do the whole time step
   m.unimol_rx_time = scheduled_time;
-  m.unimol_rx = rxn_class;
 }
 
 
@@ -1495,12 +1490,9 @@ void DiffuseReactEvent::pick_unimol_rxn_class_and_set_rxn_time(
 bool DiffuseReactEvent::react_unimol_single_molecule(
     Partition& p,
     const molecule_id_t m_id,
-    const float_t scheduled_time,
-    RxnClass* unimol_rxn_class
+    const float_t scheduled_time
 ) {
   // the unimolecular reaction class was already selected
-  assert(unimol_rxn_class != nullptr);
-
   Molecule& m = p.get_m(m_id);
 
   if (m.is_defunct()) {
@@ -1526,6 +1518,9 @@ bool DiffuseReactEvent::react_unimol_single_molecule(
     return true;
   }
   else {
+    RxnClass* unimol_rxn_class = world->get_all_rxns().get_unimol_rxn_class(m.species_id);
+    assert(unimol_rxn_class != nullptr && unimol_rxn_class->get_num_reactions() >= 1);
+    unimol_rxn_class->update_rxn_rates_if_needed(scheduled_time);
     rxn_class_pathway_index_t pi = RxUtil::which_unimolecular(unimol_rxn_class, world->rng);
     return outcome_unimolecular(p, m, scheduled_time, unimol_rxn_class, pi);
   }

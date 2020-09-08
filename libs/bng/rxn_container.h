@@ -60,6 +60,9 @@ public:
 
   ~RxnContainer();
 
+  // completely resets the rxn container, keeps only rxn rules
+  void reset_caches();
+
   uint get_num_rxn_classes() const {
     return rxn_classes.size();
   }

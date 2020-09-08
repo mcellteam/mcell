@@ -368,6 +368,10 @@ public:
     rxn_classes_where_used.insert(rxn_class);
   }
 
+  void reset_rxn_classes_where_used() {
+    rxn_classes_where_used.clear();
+  }
+
   // returns false when there are no variable rates or we already processed all scheduled times
   bool may_update_rxn_rate() const {
     return next_variable_rate_index < base_variable_rates.size();

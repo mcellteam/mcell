@@ -94,7 +94,6 @@ public:
       id(id_),
       scheduled_time(scheduled_time_),
       type(type_),
-      unimol_rx(nullptr),
       where_created_this_iteration(where_created_this_iteration_) {
 
     assert(scheduled_time >= 0.0);
@@ -106,16 +105,13 @@ public:
   DiffuseOrUnimolRxnAction(
       const DiffuseOrUnimolRxnAction::Type type_,
       const molecule_id_t id_,
-      const float_t scheduled_time_,
-      BNG::RxnClass* unimol_rx_)
+      const float_t scheduled_time_)
     :
       id(id_),
       scheduled_time(scheduled_time_),
-      type(type_),
-      unimol_rx(unimol_rx_) {
+      type(type_) {
     assert(scheduled_time >= 0.0);
     assert(type == Type::UNIMOL_REACT);
-    assert(unimol_rx != nullptr);
   }
 
   // defined because of usage in calendar_t
@@ -126,9 +122,6 @@ public:
   molecule_id_t id;
   float_t scheduled_time; // this is the scheduled time
   Type type;
-
-  // when type is UNIMOL_REACT
-  BNG::RxnClass* unimol_rx;
 
   // when type is DIFFUSE
   // used to avoid rebinding for surf+vol->surf+vol reactions
@@ -308,8 +301,7 @@ private:
   bool react_unimol_single_molecule(
       Partition& p,
       const molecule_id_t vm_id,
-      const float_t scheduled_time,
-      BNG::RxnClass* unimol_rx
+      const float_t scheduled_time
   );
 };
 

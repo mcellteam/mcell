@@ -21,6 +21,24 @@ RxnContainer::~RxnContainer() {
 }
 
 
+void RxnContainer::reset_caches() {
+  for (RxnClass* rc: rxn_classes) {
+    delete rc;
+  }
+  rxn_classes.clear();
+
+  species_processed_for_bimol_rxn_classes.clear();
+  species_processed_for_unimol_rxn_classes.clear();
+  unimol_rxn_class_map.clear();
+  bimol_rxn_class_map.clear();
+
+  // we must also erase all references to rxns classes from rxn rules
+  for (RxnRule* rxn: rxn_rules) {
+    rxn->reset_rxn_classes_where_used();
+  }
+}
+
+
 void RxnContainer::update_all_mols_flags() {
 
   species_id_t all_mols_id = all_species.get_all_molecules_species_id();

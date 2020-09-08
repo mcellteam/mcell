@@ -134,6 +134,9 @@ const uint DEFRAGMENTATION_PERIODICITY = 100;
 //#define ENABLE_RXN_CLASS_CLEANUP // disabled due to bug in mcell_tests_private/tests/bngl/3210_syngap_full_it_1000
 const uint RXN_CLASS_CLEANUP_PERIODICITY = 100;
 
+//#define ENABLE_SPECIES_CLEANUP
+const uint SPECIES_CLEANUP_PERIODICITY = 1;
+
 const float_t PARTITION_EDGE_LENGTH_DEFAULT_UM = 10; // large for now because we have just one partition
 const float_t PARTITION_EDGE_EXTRA_MARGIN_UM = 0.01;
 const float_t SUBPARTITIONS_PER_PARTITION_DIMENSION_DEFAULT = 1;

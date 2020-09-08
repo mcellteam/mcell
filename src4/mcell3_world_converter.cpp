@@ -896,8 +896,11 @@ bool MCell3WorldConverter::convert_species(volume* s) {
     }
 
     // simply copy all the flags from mcell3 except for a few one that we really don't need
-    // TODO: copy only those that are supported
+    // FIXME: copy only those that are supported
+    // probably just clear it and keep it on the new detection
     uint cleaned_flags = spec->flags & ~REGION_PRESENT;
+    cleaned_flags = cleaned_flags & ~COUNT_CONTENTS;
+    cleaned_flags = cleaned_flags & ~COUNT_ENCLOSED;
     new_species.set_flags(cleaned_flags);
 
     CHECK_PROPERTY(spec->n_deceased == 0);

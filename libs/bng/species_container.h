@@ -36,7 +36,7 @@ public:
   }
 
 
-  species_id_t find_or_add(const Species& new_species) {
+  species_id_t find_or_add(const Species& new_species, const bool removable = false) {
     assert(new_species.is_finalized());
 
     species_id_t res = SPECIES_ID_INVALID;
@@ -55,7 +55,7 @@ public:
 
     if (it == canonical_species_map.end()) {
       // add if not found
-      res = add(new_species);
+      res = add(new_species, removable);
       return res;
     }
     else {
@@ -64,7 +64,20 @@ public:
     }
   }
 
-  species_id_t add(const Species& new_species);
+  species_id_t add(const Species& new_species, const bool removable = false);
+
+  void remove(const species_id_t id);
+
+  /*bool species_exist(const species_id_t id) const {
+    assert(id < species_id_to_index_mapping.size());
+    species_index_t index = species_id_to_index_mapping[id];
+    if (index == SPECIES_INDEX_INVALID) {
+      // removed
+      return false;
+    }
+    assert(index < species.size());
+    return !species[id].is_defunct();
+  }*/
 
   // searches for identical species
   // returns SPECIES_ID_INVALID if not found
@@ -115,14 +128,18 @@ public:
     assert(id < species_id_to_index_mapping.size());
     species_index_t index = species_id_to_index_mapping[id];
     assert(index < species.size());
-    return species[id];
+    Species& res = species[id];
+    assert(!res.is_defunct());
+    return res;
   }
 
   const Species& get(const species_id_t id) const {
     assert(id < species_id_to_index_mapping.size());
     species_index_t index = species_id_to_index_mapping[id];
     assert(index < species.size());
-    return species[id];
+    const Species& res = species[id];
+    assert(!res.is_defunct());
+    return res;
   }
 
   // for debugging
@@ -154,7 +171,7 @@ private:
     Species& sp = get(id);
     sp.set_was_instantiated(true);
     if (sp.get_num_instantiations() == 0) {
-      // we want to keep the number of instanctiations of superspecies
+      // we want to keep the superspecies as instantiated
       sp.inc_num_instantiations();
     }
   }
@@ -198,6 +215,9 @@ public:
       sp.update_rxn_and_custom_flags(*this, all_rxns, flags_analyzer);
     }
   }
+
+  // cleans-up the species vector by removing all species that are set as defunct
+  void defragment();
 
   void dump() const;
 

@@ -93,6 +93,7 @@ void RxnRule::define_rxn_pathways_for_specific_reactants(
       // may not have been created (they are based on molecule types)
       species_id_t species_id = all_species.find_full_match(product);
       if (species_id == SPECIES_ID_INVALID) {
+        // no need to make simple species removable
         species_id = all_species.add(Species(product, *bng_data, bng_config));
         assert(species_id != SPECIES_ID_INVALID);
       }
@@ -151,9 +152,9 @@ void RxnRule::define_rxn_pathways_for_specific_reactants(
 
       // iterating over map sorted by product indices
       for (const ProductCplxWIndices& product_w_indices: product_cplxs) {
-        // need to transform cplx into species id
+        // need to transform cplx into species id, the possibly new species will be removable
         species_id_t species_id = all_species.find_or_add(
-            Species(product_w_indices.product_cplx, *bng_data, bng_config)
+            Species(product_w_indices.product_cplx, *bng_data, bng_config), true
         );
         assert(species_id != SPECIES_ID_INVALID);
         product_species.push_back(ProductSpeciesWIndices(species_id, product_w_indices.rule_product_indices));

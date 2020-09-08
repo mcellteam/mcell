@@ -30,16 +30,11 @@ enum species_cplx_mol_rxn_flag_t {
   SPECIES_FLAG_CANT_INITIATE = 0x400, // this molecule may not trigger a reaction with another molecule
   SPECIES_FLAG_CAN_DIFFUSE = 0x800, // value used as COUNT_TRIGGER in MCell3
   
-  // TODO: unify COUNT_CONTENTS and COUNT_ENCLOSED with reaction flags (mcell3 converter copies mcell3 flags)
-  // world - ENCLOSED
-  // vol regions - ENCLOSED+CONTENTS
-  // surf regions - CONTENTS
+  SPECIES_FLAG_IS_DEFUNCT = 0x1000, // these species were removed
 
-  // COUNT_CONTENTS is set if you're counting numbers of molecules in/on regions
-  //SPECIES_FLAG_COUNT_CONTENTS =  0x1000, - not needed
-
-  // COUNT_ENCLOSED set if you count what happens inside closed region
-  //SPECIES_FLAG_COUNT_ENCLOSED = 0x8000, - not needed // this species is marked to be counted inside of a volume
+  // these species were created on runtime and therefore nothing references them and if so, then
+  // the code that references them must be able to handle their deletion
+  SPECIES_FLAG_IS_REMOVABLE = 0x2000,
 
   SPECIES_FLAG_NEEDS_COUNTED_VOLUME = 0x10000, // CAN_VOLSURFSURF in MCell3
 
