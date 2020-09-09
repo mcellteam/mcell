@@ -53,6 +53,7 @@ enum species_cplx_mol_rxn_flag_t {
   RXN_FLAG_COUNTED_IN_VOLUME_REGIONS = 0x2000000,
   RXN_FLAG_COUNTED_ON_SURFACE_REGIONS = 0x4000000,
   RXN_FLAG_SIMPLE = 0x8000000, // reactants and products are only simple complexes
+  RXN_FLAG_MAY_PRODUCE_MUTLIPLE_IDENTICAL_PRODUCTS = 0x10000000
 };
 
 

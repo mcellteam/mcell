@@ -58,6 +58,16 @@ public:
     return name == mt2.name && component_type_ids == mt2.component_type_ids;
   }
 
+  uint get_component_uses_count(const component_type_id_t counted_ct_id) const {
+    uint res = 0;
+    for (component_type_id_t ct_id: component_type_ids) {
+      if (counted_ct_id == ct_id) {
+        res++;
+      }
+    }
+    return res;
+  }
+
   void dump(const BNGData& bng_data) const;
 };
 

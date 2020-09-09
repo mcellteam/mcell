@@ -145,7 +145,8 @@ typedef boost::graph_traits<Graph>::vertex_iterator vertex_iter_t; // TODO: use 
 
 // finds all subgraph isomorphism mappings of pattern graph on cplx graph
 void get_subgraph_isomorphism_mappings(
-    Graph& pattern, Graph& cplx,
+    Graph& pattern,
+    Graph& cplx,
     const bool only_first_match,
     VertexMappingVector& res
 );

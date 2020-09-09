@@ -157,7 +157,11 @@ PropertyMapMoleculeTypeMatching make_property_map_molecule_type_matching(
 
 // TODO LATER: can we make the arguments constant?
 // using mutable graph now
-void get_subgraph_isomorphism_mappings(Graph& pattern, Graph& cplx, const bool only_first_match, VertexMappingVector& res) {
+void get_subgraph_isomorphism_mappings(
+    Graph& pattern,
+    Graph& cplx,
+    const bool only_first_match,
+    VertexMappingVector& res) {
 
   res.clear();
 

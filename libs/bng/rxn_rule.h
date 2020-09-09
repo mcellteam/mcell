@@ -418,6 +418,9 @@ private:
       std::ostream& out
   );
 
+  bool may_modify_more_than_one_identical_component() const;
+  bool matching_may_produce_multiple_identical_results() const;
+
   std::string complex_instance_vector_to_str(const CplxInstanceVector& complexes) const;
   void dump_complex_instance_vector(
       const CplxInstanceVector& complexes,

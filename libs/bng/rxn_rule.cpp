@@ -236,7 +236,53 @@ void RxnRule::finalize() {
   // for MCell3 compatibility, updates mapping when needed
   move_products_that_are_also_reactants_to_be_the_first_products();
 
+  // set flag that tells us whether we have to do equivalence checks
+  // when constructing sets of possible products
+  if (matching_may_produce_multiple_identical_results()) {
+    set_flag(RXN_FLAG_MAY_PRODUCE_MUTLIPLE_IDENTICAL_PRODUCTS);
+  }
+
   set_finalized();
+}
+
+
+bool RxnRule::matching_may_produce_multiple_identical_results() const {
+
+  // are there multiple matches of the patterns graph onto itself?
+  VertexMappingVector mappings;
+  get_subgraph_isomorphism_mappings(
+      patterns_graph,
+      patterns_graph,
+      false, // do not stop with first match
+      mappings
+  );
+  assert(mappings.size() >= 1);
+  if (mappings.size() > 1) {
+    return true;
+  }
+
+  // now check whether we can match multiple components in the same molecule
+  return may_modify_more_than_one_identical_component();
+}
+
+
+bool RxnRule::may_modify_more_than_one_identical_component() const {
+
+  for (const CplxInstance& reactant: reactants) {
+    for (const MolInstance& mi: reactant.mol_instances) {
+      const MolType& mt = bng_data->get_molecule_type(mi.mol_type_id);
+
+      // for each component of the pattern
+      for (const ComponentInstance& ci: mi.component_instances) {
+        // how many times is this component type used in the molecule type template
+        if (mt.get_component_uses_count(ci.component_type_id) > 1) {
+          return true;
+        }
+      }
+    }
+  }
+
+  return false;
 }
 
 
@@ -1064,6 +1110,9 @@ void RxnRule::create_products_for_complex_rxn(
 
   vector<vector<CplxInstance>> input_reactants_copies;
   vector<Graph> distinct_product_graphs;
+#ifndef NDEBUG
+  vector<Graph> debug_distinct_product_graphs;
+#endif
 
   // now, for each of the mappings, compute what different products we might get
   for (const VertexMapping& mapping: pattern_reactant_mappings) {
@@ -1101,10 +1150,33 @@ void RxnRule::create_products_for_complex_rxn(
     dump_graph(reactants_graph_copy);
   #endif
 
-    if (is_graph_unique_wrt_modified_ordering(reactants_graph_copy, distinct_product_graphs)) {
+    if (has_flag(RXN_FLAG_MAY_PRODUCE_MUTLIPLE_IDENTICAL_PRODUCTS)) {
+      // we must verify that we don't have this product yet,
+      // this is quite time expensive
+      // TODO: some optimization is needed
+      if (is_graph_unique_wrt_modified_ordering(reactants_graph_copy, distinct_product_graphs)) {
+        distinct_product_graphs.push_back(reactants_graph_copy);
+      }
+    }
+    else {
+      // each match is a unique product because the patterns are not symmetrical and
+      // there are no multiple components of the same name
       distinct_product_graphs.push_back(reactants_graph_copy);
+
+    #ifndef NDEBUG
+      // the assumption above should be ok but to be sure let's check it
+      if (is_graph_unique_wrt_modified_ordering(reactants_graph_copy, debug_distinct_product_graphs)) {
+        debug_distinct_product_graphs.push_back(reactants_graph_copy);
+      }
+    #endif
     }
   }
+
+#ifndef NDEBUG
+  if (!has_flag(RXN_FLAG_MAY_PRODUCE_MUTLIPLE_IDENTICAL_PRODUCTS)) {
+    assert(distinct_product_graphs.size() == debug_distinct_product_graphs.size());
+  }
+#endif
 
   if (bng_config.bng_verbosity_level >= 1) {
     cout << ", of it " << distinct_product_graphs.size() << " unique products\n";
