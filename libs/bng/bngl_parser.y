@@ -441,8 +441,24 @@ action_arg_list:
 ;
 
 action_arg:
-      TOK_ID TOK_ARG_ASSIGN expr_or_str
+      id_incl_keywords TOK_ARG_ASSIGN expr_or_str
 ;
+
+id_incl_keywords:
+	  TOK_ID
+	| TOK_BEGIN
+	| TOK_END
+	| TOK_MODEL
+	| TOK_PARAMETERS
+	| TOK_MOLECULE
+	| TOK_TYPES
+	| TOK_REACTION
+	| TOK_RULES
+	| TOK_SEED
+	| TOK_SPECIES
+	| TOK_OBSERVABLES
+	| TOK_ACTIONS
+	;
  
 maybe_semicolon:
 	   ';'
