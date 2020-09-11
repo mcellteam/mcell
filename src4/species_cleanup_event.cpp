@@ -22,6 +22,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <sstream>
 
 #include "species_cleanup_event.h"
 
@@ -57,13 +58,9 @@ void SpeciesCleanupEvent::step() {
       }
 
       if (world->config.rxn_and_species_report) {
-        ofstream of;
-        of.open(world->config.get_species_report_file_name(), fstream::out | fstream::app);
-        // not printing warning when file count not be opened
-        if (of.is_open()) {
-          of << sp.id << ": " << sp.to_str() << " - removed\n";
-          of.close();
-        }
+        stringstream ss;
+        ss << sp.id << ": " << sp.to_str() << " - removed\n";
+        BNG::append_to_report(world->config.get_species_report_file_name(), ss.str());
       }
 
       // disable this species

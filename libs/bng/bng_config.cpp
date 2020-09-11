@@ -1,6 +1,8 @@
 
 #include <iostream>
 #include <fstream>
+#include <sstream>
+#include <iomanip>
 #include <stdio.h>
 #include <time.h>
 
@@ -31,13 +33,24 @@ void BNGConfig::dump() const {
 }
 
 
+std::string BNGConfig::seed_as_str() const {
+  stringstream ss;
+  ss << std::setw(5) << std::setfill('0') << initial_seed;
+  return ss.str();
+}
+
 std::string BNGConfig::get_rxn_report_file_name() const {
-  return RXN_REPORT_PREFIX + to_string(initial_seed) + REPORT_EXT;
+  return RXN_REPORT_PREFIX + seed_as_str() + REPORT_EXT;
 }
 
 
 std::string BNGConfig::get_species_report_file_name() const {
-  return SPECIES_REPORT_PREFIX + to_string(initial_seed) + REPORT_EXT;
+  return SPECIES_REPORT_PREFIX + seed_as_str() + REPORT_EXT;
+}
+
+
+std::string BNGConfig::get_warnings_report_file_name() const {
+  return WARNINGS_REPORT_PREFIX + seed_as_str() + REPORT_EXT;
 }
 
 
@@ -53,30 +66,36 @@ static const std::string current_date_time() {
 }
 
 
-void BNGConfig::initialize_report_files() {
-  if (rxn_and_species_report) {
-
-    ofstream of_rxn;
-    of_rxn.open(get_rxn_report_file_name(), fstream::out);
-    if (of_rxn.is_open()) {
-      of_rxn << "RXN report, " << current_date_time() << "\n\n";
-      of_rxn.close();
-    }
-    else {
-      cout << "Could not open file " << get_rxn_report_file_name() << " for report generation, ignored.\n";
-    }
-
-    ofstream of_species;
-    of_species.open(get_species_report_file_name(), fstream::out);
-    if (of_species.is_open()) {
-      of_species << "Species report, " << current_date_time() << "\n\n";
-      of_species.close();
-    }
-    else {
-      cout << "Could not open file " << get_species_report_file_name() << " for report generation, ignored.\n";
-    }
+static void initialize_file(const std::string& fname, const char* report_name) {
+  ofstream of;
+  of.open(fname, fstream::out);
+  if (of.is_open()) {
+    of << report_name << " report, " << current_date_time() << "\n\n";
+    of.close();
+  }
+  else {
+    cout << "Could not open file " << fname << " for report generation, ignored.\n";
   }
 }
 
+
+void BNGConfig::initialize_report_files() {
+  initialize_file(get_warnings_report_file_name(), "Warnings");
+  if (rxn_and_species_report) {
+    initialize_file(get_rxn_report_file_name(), "RXN");
+    initialize_file(get_species_report_file_name(), "Species");
+  }
+}
+
+
+void append_to_report(const std::string& report_fname, const std::string& msg) {
+  ofstream of;
+  of.open(report_fname, fstream::out | fstream::app);
+  // not printing warning when file count not be opened
+  if (of.is_open()) {
+    of << msg;
+    of.close();
+  }
+}
 
 } // namespace BNG

@@ -47,14 +47,11 @@ species_id_t SpeciesContainer::add(const Species& new_species, const bool remova
   }
 
   if (bng_config.rxn_and_species_report) {
-    ofstream of;
-    of.open(bng_config.get_species_report_file_name(), fstream::out | fstream::app);
-    // not printing warning when file count not be opened
-    if (of.is_open()) {
-      of << res << ": " << species_copy.to_str() <<
-          ", D=" << std::setprecision(17) << species_copy.D << "\n";
-      of.close();
-    }
+    stringstream ss;
+    ss <<
+        res << ": " << species_copy.to_str() <<
+        ", D=" << std::setprecision(17) << species_copy.D << "\n";
+    append_to_report(bng_config.get_species_report_file_name(), ss.str());
   }
 
   return res;

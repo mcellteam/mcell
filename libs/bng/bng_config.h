@@ -37,6 +37,8 @@
 
 namespace BNG {
 
+// TODO: merge BNG notifications with BNGConfig?
+// reports are already there
 class BNGNotifications {
 public:
   BNGNotifications()
@@ -90,11 +92,16 @@ public:
 
   std::string get_rxn_report_file_name() const;
   std::string get_species_report_file_name() const;
+  std::string get_warnings_report_file_name() const;
 
   void dump() const;
 private:
+  std::string BNGConfig::seed_as_str() const;
   void initialize_report_files();
 };
+
+void append_to_report(const std::string& report_fname, const std::string& msg);
+
 
 } // namespace BNG
 

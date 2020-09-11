@@ -57,6 +57,7 @@ const rxn_rule_id_t RXN_RULE_ID_INVALID = ID_INVALID;
 
 const char* const RXN_REPORT_PREFIX = "rxn_report_";
 const char* const SPECIES_REPORT_PREFIX = "species_report_";
+const char* const WARNINGS_REPORT_PREFIX = "warnings_report_";
 const char* const REPORT_EXT = ".txt";
 }
 

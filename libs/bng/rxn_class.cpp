@@ -7,6 +7,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <sstream>
 #include <cmath>
 
 #include "bng/rxn_class.h"
@@ -411,13 +412,14 @@ void RxnClass::update_rxn_pathways() {
   }
 
   if (bng_config.rxn_and_species_report) {
-    ofstream of;
-    of.open(bng_config.get_rxn_report_file_name(), fstream::out | fstream::app);
-    // not printing warning when file count not be opened
-    if (of.is_open()) {
-      of << to_str() << "\n\n";
-      of.close();
-    }
+    append_to_report(bng_config.get_rxn_report_file_name(), to_str() + "\n\n");
+  }
+
+  if (max_fixed_p > 1.0) {
+    stringstream ss;
+    ss << "Warning: total probability of reaction is > 1 (" << max_fixed_p << ")";
+    cout << ss.str() << ", for reactant(s) " << reactants_to_str() << ".\n";
+    append_to_report(bng_config.get_warnings_report_file_name(), ss.str() + "\n" + to_str());
   }
 }
 
@@ -458,18 +460,20 @@ void RxnClass::update_variable_rxn_rates(const float_t current_time) {
 }
 
 
+std::string RxnClass::reactants_to_str() const {
+  stringstream ss;
+  ss << all_species.get(specific_reactants[0]).name << " (" << specific_reactants[0] << ")";
+  if (specific_reactants.size() == 2) {
+    ss << " + " << all_species.get(specific_reactants[1]).name << " (" << specific_reactants[1] << ")";
+  }
+  return ss.str();
+}
+
+
 std::string RxnClass::to_str(const std::string ind) const {
   stringstream out;
   assert(specific_reactants.size() == 1 || specific_reactants.size() == 2);
-  out << ind << "rxn class for reactants: \n    " <<
-      all_species.get(specific_reactants[0]).name << " (" << specific_reactants[0] << ")";
-
-  if (specific_reactants.size() == 2) {
-    out << " + " << all_species.get(specific_reactants[1]).name << " (" << specific_reactants[1] << ")\n";
-  }
-  else {
-    out << "\n";
-  }
+  out << ind << "rxn class for reactants: \n    " << reactants_to_str() << "\n";
 
   if (rxn_rule_ids.empty()) {
     out << "  no pathways\n";
