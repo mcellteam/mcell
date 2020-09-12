@@ -135,7 +135,7 @@ const uint DEFRAGMENTATION_PERIODICITY = 100;
 const uint RXN_CLASS_CLEANUP_PERIODICITY = 100;
 
 #define ENABLE_SPECIES_CLEANUP
-const uint SPECIES_CLEANUP_PERIODICITY = 5000;
+const uint SPECIES_CLEANUP_PERIODICITY = 2000;
 
 const float_t PARTITION_EDGE_LENGTH_DEFAULT_UM = 10; // large for now because we have just one partition
 const float_t PARTITION_EDGE_EXTRA_MARGIN_UM = 0.01;
