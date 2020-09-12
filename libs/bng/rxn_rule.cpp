@@ -62,6 +62,18 @@ static void merge_graphs(Graph& srcdst, const Graph& src) {
 }
 
 
+static void set_graph_reactant_pattern_indices(Graph& g, const uint index_to_set) {
+  VertexNameMap graph_index = boost::get(boost::vertex_name, g);
+  typedef boost::graph_traits<Graph>::vertex_iterator vertex_iter; // TODO: get rid of these typedefs
+  std::pair<vertex_iter, vertex_iter> it;
+  for (it = boost::vertices(g); it.first != it.second; ++it.first) {
+    vertex_descriptor_t desc = *it.first;
+    Node& node = graph_index[desc];
+    node.reactant_pattern_index = index_to_set;
+  }
+}
+
+
 static bool less_product_cplxs_by_rxn_rule_index(
     const ProductCplxWIndices& a1, const ProductCplxWIndices& a2
 ) {
@@ -178,14 +190,7 @@ void RxnRule::create_patterns_graph() {
   // applying this rule
   for (size_t i = 0; i < reactants.size(); i++) {
     Graph& graph = reactants[i].get_graph();
-    VertexNameMap index = boost::get(boost::vertex_name, graph);
-    typedef boost::graph_traits<Graph>::vertex_iterator vertex_iter;
-    std::pair<vertex_iter, vertex_iter> it;
-    for (it = boost::vertices(graph); it.first != it.second; ++it.first) {
-      vertex_descriptor_t desc = *it.first;
-      Node& node = index[desc];
-      node.reactant_pattern_index = i;
-    }
+    set_graph_reactant_pattern_indices(graph, i);
   }
 
   patterns_graph.clear();
@@ -266,14 +271,7 @@ bool RxnRule::matching_may_produce_multiple_identical_results() const {
   Graph patterns_graph_no_indices = patterns_graph;
 
   // we must not have pattern indices when checking for symmetry
-  VertexNameMap index = boost::get(boost::vertex_name, patterns_graph_no_indices);
-  typedef boost::graph_traits<Graph>::vertex_iterator vertex_iter;
-  std::pair<vertex_iter, vertex_iter> it;
-  for (it = boost::vertices(patterns_graph_no_indices); it.first != it.second; ++it.first) {
-    vertex_descriptor_t desc = *it.first;
-    Node& node = index[desc];
-    node.reactant_pattern_index = INDEX_INVALID;
-  }
+  set_graph_reactant_pattern_indices(patterns_graph_no_indices, INDEX_INVALID);
 
   // are there multiple matches of the patterns graph onto itself?
   VertexMappingVector mappings;
@@ -1114,14 +1112,26 @@ void RxnRule::create_products_for_complex_rxn(
 
   if (is_bimol()) {
     // figure out which reactant pattern matches which input reactant
-    //get_reactant_index()
+    int reac0_index;
+    int reac1_index;
+    get_bimol_reactant_indices(
+        *input_reactants[0], *input_reactants[1],
+        reac0_index, reac1_index
+    );
+    release_assert(reac0_index != -1 && reac1_index != -1 && reac0_index != reac1_index);
 
+    // and mark graph coming from each reactant so that during matching it is clear that
+    // we did not match one input reactant with both patterns
     reactants_graph = input_reactants[0]->get_graph();
-    merge_graphs(reactants_graph, input_reactants[1]->get_graph());
+    set_graph_reactant_pattern_indices(reactants_graph, reac0_index);
+
+    Graph reac1_graph = input_reactants[1]->get_graph();
+    set_graph_reactant_pattern_indices(reac1_graph, reac1_index);
+    merge_graphs(reactants_graph, reac1_graph);
   }
   else {
-    // no need to mark pattern and reactant for unimol rxns
     reactants_graph = input_reactants[0]->get_graph();
+    set_graph_reactant_pattern_indices(reactants_graph, 0); // only one reactant
   }
 
   // compute mapping reactant pattern -> reactant
@@ -1527,6 +1537,8 @@ void RxnRule::move_products_that_are_also_reactants_to_be_the_first_products() {
 // returns -1 if the species cannot be a reactant
 // returns 0 if this is an unimol rxn or it is the first reactant of a bimol reaction
 // returns 1 if this is the second reactant of a bimol reaction
+// FIXME: may return 0 for both bimol reactants, check all places where this may be important
+//   preferably remove this function
 int RxnRule::get_reactant_index(const CplxInstance& inst, const SpeciesContainer& all_species) {
   for (size_t i = 0; i < reactants.size(); i++) {
     const CplxInstance& reactant = reactants[i];
@@ -1535,6 +1547,77 @@ int RxnRule::get_reactant_index(const CplxInstance& inst, const SpeciesContainer
     }
   }
   return -1;
+}
+
+
+// returns one of the possible mappings using which
+// patterns can be matched onto a reactant
+// returns -1 if the species cannot be a reactant
+// returns 0 if this is an unimol rxn or it is the first reactant of a bimol reaction
+// returns 1 if this is the second reactant of a bimol reaction
+void RxnRule::get_bimol_reactant_indices(
+    const CplxInstance& reac0,
+    const CplxInstance& reac1,
+    int& reac0_index,
+    int& reac1_index) const {
+  assert(is_bimol());
+
+  // checking whether the
+  // this doesn't mean that one of the
+
+  bool match_0_0 = reac0.matches_pattern(reactants[0], true);
+  bool match_1_1 = reac1.matches_pattern(reactants[1], true);
+
+  if (match_0_0 && match_1_1) {
+    // same order matches
+    reac0_index = 0;
+    reac1_index = 1;
+    return;
+  }
+
+  bool match_0_1 = reac0.matches_pattern(reactants[1], true);
+  bool match_1_0 = reac1.matches_pattern(reactants[0], true);
+  if (match_0_1 && match_1_0) {
+    // switched order matches
+    reac0_index = 1;
+    reac1_index = 0;
+    return;
+  }
+
+  if (!(match_0_0 || match_0_1)) {
+    // reac0 does not match
+    reac0_index = -1;
+    if (match_1_0) {
+      reac1_index = 0;
+      return;
+    }
+    else if (match_1_1) {
+      reac1_index = 1;
+      return;
+    }
+    else {
+      reac1_index = -1;
+      return;
+    }
+  }
+
+  if (!(match_1_1 || match_1_0)) {
+    // reac1 does not match
+    reac1_index = -1;
+    if (match_0_0) {
+      reac0_index = 0;
+      return;
+    }
+    else if (match_0_1) {
+      reac0_index = 1;
+      return;
+    }
+    else {
+      reac0_index = -1;
+      return;
+    }
+  }
+  release_assert(false && "Unreachable");
 }
 
 

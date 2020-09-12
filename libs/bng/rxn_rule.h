@@ -320,6 +320,12 @@ public:
   // returns reactant index, -1 if inst cannot be a reactant
   int get_reactant_index(const CplxInstance& inst, const SpeciesContainer& all_species);
 
+  void get_bimol_reactant_indices(
+      const CplxInstance& reac0,
+      const CplxInstance& reac1,
+      int& reac0_index,
+      int& reac1_index) const;
+
   // returns true if species 'id' matches one of the reactants
   bool species_can_be_reactant(const species_id_t id, const SpeciesContainer& all_species);
 
