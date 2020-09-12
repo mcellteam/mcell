@@ -119,6 +119,10 @@ public:
 typedef std::vector<RxnClassPathway> RxnClassPathwayVector;
 
 
+/*class UnresolvedRxnClassPathway {
+
+};*/
+
 struct CplxIndexPair {
   CplxIndexPair(const uint reactant_index_, const uint product_index_)
     : reactant_index(reactant_index_), product_index(product_index_) {
@@ -200,9 +204,11 @@ public:
 private:
   // BNGL style reaction handling is implemented in this method
   void create_products_for_complex_rxn(
+      SpeciesContainer& all_species,
       const BNGConfig& bng_config,
-      const std::vector<const CplxInstance*>& input_reactants,
-      ProductSetsVector& created_product_sets
+      const std::vector<species_id_t>& reactant_species,
+      const float_t pb_factor,
+      RxnClassPathwayVector& pathways
   ) const;
 
 public:

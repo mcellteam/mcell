@@ -29,6 +29,10 @@ using BNGCommon::round_f;
 // (and we cannot deal with huge numbers yet, although the 1024 is still ok)
 const uint MAX_PRODUCT_SETS_PER_RXN = 1024;
 
+// if the count of products after applying a single rxn is greater ahan this value
+// and we know the count of the product, do not compute the products immediatelly
+const uint MAX_IMMEDIATELLY_COMPUTED_PRODUCT_SETS_PER_RXN = 8;
+
 const char* const MCELL_REDEFINE_PREFIX = "MCELL_REDEFINE_";
 
 typedef uint state_id_t;

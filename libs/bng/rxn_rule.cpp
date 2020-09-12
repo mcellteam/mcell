@@ -137,11 +137,10 @@ void RxnRule::define_rxn_pathways_for_specific_reactants(
     // there the rule can be applied to one of the distinct components
 
     // prepare set of reactants
-    vector<const CplxInstance*> reactants;
-    // downcast, CplxInstance is sufficient for product computation
-    reactants.push_back(dynamic_cast<const CplxInstance*>(&all_species.get(reactant_a_species_id)));
+    vector<species_id_t> reactant_species;
+    reactant_species.push_back(reactant_a_species_id);
     if (is_bimol()) {
-      reactants.push_back(dynamic_cast<const CplxInstance*>(&all_species.get(reactant_b_species_id)));
+      reactant_species.push_back(reactant_b_species_id);
     }
 
     // we might get multiple matches on reactant(s), the numbers
@@ -149,38 +148,13 @@ void RxnRule::define_rxn_pathways_for_specific_reactants(
     // a single random number then is used to choose a single variant
     ProductSetsVector product_sets;
     create_products_for_complex_rxn(
+        all_species,
         bng_config,
-        reactants,
-        product_sets
+        reactant_species,
+        pb_factor,
+        pathways
     );
 
-    for (ProductCplxWIndicesVector& product_cplxs: product_sets) {
-      // define the products as species
-      RxnProductsVector product_species;
-
-
-      // sort products by the rxn rule product indices
-      sort(product_cplxs.begin(), product_cplxs.end(), less_product_cplxs_by_rxn_rule_index);
-
-      // iterating over map sorted by product indices
-      for (const ProductCplxWIndices& product_w_indices: product_cplxs) {
-        // need to transform cplx into species id, the possibly new species will be removable
-        species_id_t species_id = all_species.find_or_add(
-            Species(product_w_indices.product_cplx, *bng_data, bng_config), true
-        );
-        assert(species_id != SPECIES_ID_INVALID);
-        product_species.push_back(ProductSpeciesWIndices(species_id, product_w_indices.rule_product_indices));
-      }
-
-      assert(pb_factor != 0);
-      assert(!cmp_eq(get_rate_constant(), FLT_GIGANTIC));
-
-      // the probability is divided by the number of mapping of pattern onto pattern
-      // because so many more product sets we will get
-      float_t prob = get_rate_constant() * pb_factor;
-
-      pathways.push_back(RxnClassPathway(id, prob, product_species));
-    }
   }
 }
 
@@ -1092,13 +1066,23 @@ static bool is_graph_unique_wrt_modified_ordering(
 
 
 void RxnRule::create_products_for_complex_rxn(
+    SpeciesContainer& all_species,
     const BNGConfig& bng_config,
-    const std::vector<const CplxInstance*>& input_reactants,
-    ProductSetsVector& created_product_sets
+    const std::vector<species_id_t>& reactant_species,
+    const float_t pb_factor,
+    RxnClassPathwayVector& pathways
 ) const {
+
   // the result of this function is cached in rxnclass
-  assert(input_reactants.size() == reactants.size());
-  assert(input_reactants.size() == 1 || input_reactants.size() == 2);
+  assert(reactant_species.size() == reactants.size());
+  assert(reactant_species.size() == 1 || reactant_species.size() == 2);
+
+  vector<const CplxInstance*> input_reactants;
+  // downcast, CplxInstance is sufficient for product computation
+  input_reactants.push_back(dynamic_cast<const CplxInstance*>(&all_species.get(reactant_species[0])));
+  if (is_bimol()) {
+    input_reactants.push_back(dynamic_cast<const CplxInstance*>(&all_species.get(reactant_species[1])));
+  }
 
   if (bng_config.bng_verbosity_level >= 1) {
     cout << "Creating products for complex rxn " << name <<
@@ -1188,6 +1172,15 @@ void RxnRule::create_products_for_complex_rxn(
     cout.flush();
   }
 
+  // decide whether only cache the possible products
+  /*if (pattern_reactant_mappings.size() > MAX_IMMEDIATELLY_COMPUTED_PRODUCT_SETS_PER_RXN &&
+      !has_flag(RXN_FLAG_MAY_PRODUCE_MUTLIPLE_IDENTICAL_PRODUCTS)) {
+    for (const VertexMapping& mapping: pattern_reactant_mappings) {
+      created_product_sets.push_back(ProductCplxWIndicesVector());
+      create_products_from_reactants_graph(bng_data, product_graph, created_product_sets.back());
+    }
+  }*/
+
   vector<vector<CplxInstance>> input_reactants_copies;
   vector<Graph> distinct_product_graphs;
 #ifndef NDEBUG
@@ -1196,6 +1189,7 @@ void RxnRule::create_products_for_complex_rxn(
 
   // now, for each of the mappings, compute what different products we might get
   for (const VertexMapping& mapping: pattern_reactant_mappings) {
+
 
   #ifdef DEBUG_CPLX_MATCHING
     cout << "Products:\n";
@@ -1262,9 +1256,11 @@ void RxnRule::create_products_for_complex_rxn(
     cout << ", of it " << distinct_product_graphs.size() << " unique products\n";
   }
 
+  ProductSetsVector created_product_sets;
   for (Graph& product_graph: distinct_product_graphs) {
     // and finally create products, each disconnected graph in the result is a
     // separate complex instance
+
     created_product_sets.push_back(ProductCplxWIndicesVector());
     create_products_from_reactants_graph(bng_data, product_graph, created_product_sets.back());
 
@@ -1275,6 +1271,35 @@ void RxnRule::create_products_for_complex_rxn(
       cout << "\n";
     }
   #endif
+
+  }
+
+  // and convert resulting complexes to species
+  for (ProductCplxWIndicesVector& product_cplxs: created_product_sets) {
+    // define the products as species
+    RxnProductsVector product_species;
+
+    // sort products by the rxn rule product indices (if applicable)
+    sort(product_cplxs.begin(), product_cplxs.end(), less_product_cplxs_by_rxn_rule_index);
+
+    // iterating over map sorted by product indices
+    for (const ProductCplxWIndices& product_w_indices: product_cplxs) {
+      // need to transform cplx into species id, the possibly new species will be removable
+      species_id_t species_id = all_species.find_or_add(
+          Species(product_w_indices.product_cplx, *bng_data, bng_config), true
+      );
+      assert(species_id != SPECIES_ID_INVALID);
+      product_species.push_back(ProductSpeciesWIndices(species_id, product_w_indices.rule_product_indices));
+    }
+
+    assert(pb_factor != 0);
+    assert(!cmp_eq(get_rate_constant(), FLT_GIGANTIC));
+
+    // the probability is divided by the number of mapping of pattern onto pattern
+    // because so many more product sets we will get
+    float_t prob = get_rate_constant() * pb_factor;
+
+    pathways.push_back(RxnClassPathway(id, prob, product_species));
   }
 }
 
