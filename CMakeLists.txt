@@ -106,15 +106,19 @@ if (ENABLE_GPERFTOOLS)
   # build and install gperftools, for now it is done manually
   # usign script build_gperftools.sh
   # then to run profiling 
-  # export CPUPROFILE=./prof.out 
-  # mcell
+  # CPUPROFILE=./prof.out mcell
   # pprof --text <app> ./prof.out # text output
   # pprof --gv <app> ./prof.out # graphical output, requires gv installed
   # (http://euccas.github.io/blog/20170827/cpu-profiling-tools-on-linux.html)
-  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DWITHGPERFTOOLS -I${CMAKE_CURRENT_BINARY_DIR}/libs/")
-  SET(CMAKE_LD_GPERF_FLAGS "-L${CMAKE_CURRENT_BINARY_DIR}/libs/install_gperftools/lib/ -L${CMAKE_CURRENT_SOURCE_DIR}/build/install_gperftools/lib/ -lprofiler")
+  # pybind11 ignores CMAKE_SHARED_LINKER_FLAGS so we must put the -L args to CXX flags as well 
+  SET(CMAKE_INCLUDE_GPERF_FLAGS "-L${CMAKE_CURRENT_BINARY_DIR}/libs/install_gperftools/lib/ -L${CMAKE_CURRENT_SOURCE_DIR}/build/install_gperftools/lib/")
+  SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DWITHGPERFTOOLS -I${CMAKE_CURRENT_BINARY_DIR}/libs/ ${CMAKE_INCLUDE_GPERF_FLAGS}")
+  SET(CMAKE_LD_GPERF_FLAGS "${CMAKE_INCLUDE_GPERF_FLAGS} -lprofiler")
   SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${CMAKE_LD_GPERF_FLAGS}")
   SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${CMAKE_LD_GPERF_FLAGS}")
+  SET(GPERFTOOLS_LIB "profiler")
+else()
+  SET(GPERFTOOLS_LIB "")
 endif()
 	
 if (ENABLE_SANITIZER)
@@ -368,7 +372,7 @@ configure_file(${MCELL_RULES_DIR}/write_mdl.py ${CMAKE_CURRENT_BINARY_DIR}/write
 # copy tools for MDLr to MDL
 file(COPY ${CMAKE_SOURCE_DIR}/../bionetgen/bng2/ DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/bng2/)
 
-pybind11_add_module(pymcell4 MODULE  
+pybind11_add_module(mcell4_so MODULE  
     # few files from mcell3 that are used
     # TODO: get rid of all deps except for the random generator
     src/logging.c
@@ -384,15 +388,15 @@ pybind11_add_module(pymcell4 MODULE
     libmcell/api/exports.cpp
 )
 
-add_dependencies(pymcell4 libmcell mcell4 bng jsoncpp_lib)
-target_link_libraries(pymcell4 
+add_dependencies(mcell4_so libmcell mcell4 bng jsoncpp_lib)
+target_link_libraries(mcell4_so 
     PUBLIC libmcell
-    PRIVATE mcell4 bng jsoncpp_lib ${VTK_LIBRARIES}
+    PRIVATE mcell4 bng jsoncpp_lib ${VTK_LIBRARIES} ${GPERFTOOLS_LIB}
 )
-set_property(TARGET pymcell4 PROPERTY POSITION_INDEPENDENT_CODE ON)
-set_target_properties(pymcell4 PROPERTIES PREFIX "")
-set_target_properties(pymcell4 PROPERTIES OUTPUT_NAME "mcell")
-set_target_properties(pymcell4 PROPERTIES SUFFIX ".so") # must be .so on MacOS as well, TODO fix for Wßindows
+set_property(TARGET mcell4_so PROPERTY POSITION_INDEPENDENT_CODE ON)
+set_target_properties(mcell4_so PROPERTIES PREFIX "")
+set_target_properties(mcell4_so PROPERTIES OUTPUT_NAME "mcell")
+set_target_properties(mcell4_so PROPERTIES SUFFIX ".so") # must be .so on MacOS as well, TODO fix for Windows
 
 # build executable
 add_executable(mcell
