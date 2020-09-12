@@ -172,7 +172,22 @@ void RxnRule::define_rxn_pathways_for_specific_reactants(
   }
 }
 
+
 void RxnRule::create_patterns_graph() {
+  // mark nodes of reactants - we must be able to distinguish them when
+  // applying this rule
+  for (size_t i = 0; i < reactants.size(); i++) {
+    Graph& graph = reactants[i].get_graph();
+    VertexNameMap index = boost::get(boost::vertex_name, graph);
+    typedef boost::graph_traits<Graph>::vertex_iterator vertex_iter;
+    std::pair<vertex_iter, vertex_iter> it;
+    for (it = boost::vertices(graph); it.first != it.second; ++it.first) {
+      vertex_descriptor_t desc = *it.first;
+      Node& node = index[desc];
+      node.reactant_pattern_index = i;
+    }
+  }
+
   patterns_graph.clear();
   // create graph for reactant patterns
   patterns_graph = reactants[0].get_graph();
@@ -248,11 +263,23 @@ void RxnRule::finalize() {
 
 bool RxnRule::matching_may_produce_multiple_identical_results() const {
 
+  Graph patterns_graph_no_indices = patterns_graph;
+
+  // we must not have pattern indices when checking for symmetry
+  VertexNameMap index = boost::get(boost::vertex_name, patterns_graph_no_indices);
+  typedef boost::graph_traits<Graph>::vertex_iterator vertex_iter;
+  std::pair<vertex_iter, vertex_iter> it;
+  for (it = boost::vertices(patterns_graph_no_indices); it.first != it.second; ++it.first) {
+    vertex_descriptor_t desc = *it.first;
+    Node& node = index[desc];
+    node.reactant_pattern_index = INDEX_INVALID;
+  }
+
   // are there multiple matches of the patterns graph onto itself?
   VertexMappingVector mappings;
   get_subgraph_isomorphism_mappings(
-      patterns_graph,
-      patterns_graph,
+      patterns_graph_no_indices,
+      patterns_graph_no_indices,
       false, // do not stop with first match
       mappings
   );
@@ -1083,10 +1110,18 @@ void RxnRule::create_products_for_complex_rxn(
     }
   }
 
-  // merge input reactant graphs
-  Graph reactants_graph = input_reactants[0]->get_graph();
-  if (input_reactants.size() == 2) {
+  Graph reactants_graph;
+
+  if (is_bimol()) {
+    // figure out which reactant pattern matches which input reactant
+    //get_reactant_index()
+
+    reactants_graph = input_reactants[0]->get_graph();
     merge_graphs(reactants_graph, input_reactants[1]->get_graph());
+  }
+  else {
+    // no need to mark pattern and reactant for unimol rxns
+    reactants_graph = input_reactants[0]->get_graph();
   }
 
   // compute mapping reactant pattern -> reactant

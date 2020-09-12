@@ -23,23 +23,33 @@ class BNGData;
 struct Node {
   Node()
     : is_mol(true), mol(nullptr), component(nullptr), used_in_rxn_product(true),
-      product_index(INDEX_INVALID), ordering_index(INDEX_INVALID), modified_ordering_index(ordering_index) {
+      product_index(INDEX_INVALID), reactant_pattern_index(INDEX_INVALID),
+      ordering_index(INDEX_INVALID), modified_ordering_index(ordering_index) {
   }
 
   Node(MolInstance* mol_)
     : is_mol(true), mol(mol_), component(nullptr), used_in_rxn_product(true),
-      product_index(INDEX_INVALID), ordering_index(INDEX_INVALID), modified_ordering_index(INDEX_INVALID) {
+      product_index(INDEX_INVALID), reactant_pattern_index(INDEX_INVALID),
+      ordering_index(INDEX_INVALID), modified_ordering_index(INDEX_INVALID) {
   }
 
   Node(ComponentInstance* component_)
     : is_mol(false), mol(nullptr), component(component_), used_in_rxn_product(true),
-      product_index(INDEX_INVALID), ordering_index(INDEX_INVALID), modified_ordering_index(INDEX_INVALID) {
+      product_index(INDEX_INVALID), reactant_pattern_index(INDEX_INVALID),
+      ordering_index(INDEX_INVALID), modified_ordering_index(INDEX_INVALID) {
   }
 
   bool compare(const Node& n2) const {
     const Node& n1 = *this;
 
-    if (n1.modified_ordering_index != n2.modified_ordering_index) {
+    if (n1.reactant_pattern_index != INDEX_INVALID &&
+        n2.reactant_pattern_index != INDEX_INVALID &&
+        n1.reactant_pattern_index != n2.reactant_pattern_index) {
+      // in bimol rxns, we must check that the pattern matched the correct reactant
+      // checked only when both are set
+      return false;
+    }
+    else if (n1.modified_ordering_index != n2.modified_ordering_index) {
       // extra ordering needed to get unique products,
       // modified_ordering_index is set to INDEX_INVALID by default and
       // set toa different value only when needed
@@ -115,6 +125,10 @@ struct Node {
   // also for reactions - specifies index of the reaction product
   // needed to match patterns onto resulting products
   uint product_index;
+
+  // used when creating product sets - in bimol rxns one reactant pattern must match
+  // exactly one reactant, not both
+  uint reactant_pattern_index;
 
   // auxiliary ordering markers, used when determining whether two product sets are identical
   // ordering_index is set to all components and when a reactant changes by 
