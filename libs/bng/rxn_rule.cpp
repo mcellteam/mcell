@@ -1109,25 +1109,41 @@ void RxnRule::create_products_for_complex_rxn(
   }
 
   Graph reactants_graph;
+  bool use_symmetric_reactants_graph = false;
+  Graph symmetric_reactants_graph; // needed for cases when both patterns can be matched onto both reactants
 
   if (is_bimol()) {
     // figure out which reactant pattern matches which input reactant
-    int reac0_index;
-    int reac1_index;
+    vector<pair<uint, uint>> reac_indices;
     get_bimol_reactant_indices(
         *input_reactants[0], *input_reactants[1],
-        reac0_index, reac1_index
+        reac_indices
     );
-    release_assert(reac0_index != -1 && reac1_index != -1 && reac0_index != reac1_index);
+    release_assert(reac_indices.size() == 1 || reac_indices.size() == 2);
+    release_assert(reac_indices[0].first != reac_indices[0].second);
 
     // and mark graph coming from each reactant so that during matching it is clear that
     // we did not match one input reactant with both patterns
     reactants_graph = input_reactants[0]->get_graph();
-    set_graph_reactant_pattern_indices(reactants_graph, reac0_index);
+    set_graph_reactant_pattern_indices(reactants_graph, reac_indices[0].first);
 
     Graph reac1_graph = input_reactants[1]->get_graph();
-    set_graph_reactant_pattern_indices(reac1_graph, reac1_index);
+    set_graph_reactant_pattern_indices(reac1_graph, reac_indices[0].second);
     merge_graphs(reactants_graph, reac1_graph);
+
+    if (reac_indices.size() == 2) {
+      // if both patterns match both reactants, we must also evaluate the symmetric variant
+      use_symmetric_reactants_graph = true;
+
+      release_assert(reac_indices[1].first != reac_indices[1].second);
+
+      symmetric_reactants_graph = input_reactants[0]->get_graph();
+      set_graph_reactant_pattern_indices(symmetric_reactants_graph, reac_indices[1].first);
+
+      Graph symmetric_reac1_graph = input_reactants[1]->get_graph();
+      set_graph_reactant_pattern_indices(symmetric_reac1_graph, reac_indices[1].second);
+      merge_graphs(symmetric_reactants_graph, symmetric_reac1_graph);
+    }
   }
   else {
     reactants_graph = input_reactants[0]->get_graph();
@@ -1142,6 +1158,25 @@ void RxnRule::create_products_for_complex_rxn(
       false, // do not stop with first match
       pattern_reactant_mappings
   );
+
+  if (use_symmetric_reactants_graph) {
+    // we need to evaluate case when both patterns match both reactants
+    VertexMappingVector symmetric_pattern_reactant_mappings;
+    get_subgraph_isomorphism_mappings(
+        patterns_graph, // pattern
+        symmetric_reactants_graph, // actual reactant
+        false, // do not stop with first match
+        symmetric_pattern_reactant_mappings
+    );
+    pattern_reactant_mappings.insert(
+        pattern_reactant_mappings.end(),
+        symmetric_pattern_reactant_mappings.begin(),
+        symmetric_pattern_reactant_mappings.end()
+    );
+  }
+
+  // and append mappings for cases when patterns match both reactants
+
   assert(pattern_reactant_mappings.size() != 0 &&
       "Did not find a match of patterns onto reaction.");
 
@@ -1550,74 +1585,27 @@ int RxnRule::get_reactant_index(const CplxInstance& inst, const SpeciesContainer
 }
 
 
-// returns one of the possible mappings using which
-// patterns can be matched onto a reactant
-// returns -1 if the species cannot be a reactant
-// returns 0 if this is an unimol rxn or it is the first reactant of a bimol reaction
-// returns 1 if this is the second reactant of a bimol reaction
+// returns the possible mappings using which patterns can be matched onto a reactant
 void RxnRule::get_bimol_reactant_indices(
     const CplxInstance& reac0,
     const CplxInstance& reac1,
-    int& reac0_index,
-    int& reac1_index) const {
+    std::vector<std::pair<uint, uint>>& reac_indices) const {
   assert(is_bimol());
 
-  // checking whether the
-  // this doesn't mean that one of the
+  bool m00 = reac0.matches_pattern(reactants[0], true);
+  bool m01 = reac0.matches_pattern(reactants[1], true);
+  bool m10 = reac1.matches_pattern(reactants[0], true);
+  bool m11 = reac1.matches_pattern(reactants[1], true);
 
-  bool match_0_0 = reac0.matches_pattern(reactants[0], true);
-  bool match_1_1 = reac1.matches_pattern(reactants[1], true);
-
-  if (match_0_0 && match_1_1) {
-    // same order matches
-    reac0_index = 0;
-    reac1_index = 1;
-    return;
+  if (m00 && m11) {
+    // order fits
+    reac_indices.push_back(make_pair(0u, 1u));
   }
 
-  bool match_0_1 = reac0.matches_pattern(reactants[1], true);
-  bool match_1_0 = reac1.matches_pattern(reactants[0], true);
-  if (match_0_1 && match_1_0) {
-    // switched order matches
-    reac0_index = 1;
-    reac1_index = 0;
-    return;
+  if (m01 && m10) {
+    // order is switched (may be true even if order fits)
+    reac_indices.push_back(make_pair(1u, 0u));
   }
-
-  if (!(match_0_0 || match_0_1)) {
-    // reac0 does not match
-    reac0_index = -1;
-    if (match_1_0) {
-      reac1_index = 0;
-      return;
-    }
-    else if (match_1_1) {
-      reac1_index = 1;
-      return;
-    }
-    else {
-      reac1_index = -1;
-      return;
-    }
-  }
-
-  if (!(match_1_1 || match_1_0)) {
-    // reac1 does not match
-    reac1_index = -1;
-    if (match_0_0) {
-      reac0_index = 0;
-      return;
-    }
-    else if (match_0_1) {
-      reac0_index = 1;
-      return;
-    }
-    else {
-      reac0_index = -1;
-      return;
-    }
-  }
-  release_assert(false && "Unreachable");
 }
 
 
