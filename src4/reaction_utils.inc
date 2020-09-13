@@ -414,17 +414,17 @@ static int test_bimolecular(
 
   /* rescale probabilities for the case of the reaction
      between two surface molecules */
-  float_t min_noreaction_p = rxn_class->min_noreaction_p; // local_prob_factor == 0
+  float_t max_fixed_p = rxn_class->max_fixed_p; // local_prob_factor == 0
   if (local_prob_factor != 0) {
-    min_noreaction_p = rxn_class->min_noreaction_p * local_prob_factor;
+    max_fixed_p = rxn_class->max_fixed_p * local_prob_factor;
   }
 
   float_t p;
-  if (min_noreaction_p < scaling) {
+  if (max_fixed_p < scaling) {
     /* Instead of scaling rx->cum_probs array we scale random probability */
     p = rng_dbl(&rng) * scaling;
 
-    if (p >= min_noreaction_p) {
+    if (p >= max_fixed_p) {
       return PATHWAY_INDEX_NO_RXN;
     }
     // continue below
@@ -460,8 +460,8 @@ static int test_bimolecular(
 
 #ifdef DEBUG_REACTION_PROBABILITIES
   mcell_log(
-      "test_bimolecular: p = %.8f, scaling = %.8f, min_noreaction_p = %.8f, local_prob_factor = %.8f",
-      p, scaling, min_noreaction_p, local_prob_factor
+      "test_bimolecular: p = %.8f, scaling = %.8f, max_fixed_p = %.8f, local_prob_factor = %.8f",
+      p, scaling, max_fixed_p, local_prob_factor
   );
 #endif
 

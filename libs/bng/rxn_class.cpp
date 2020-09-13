@@ -396,11 +396,9 @@ void RxnClass::update_rxn_pathways() {
   // NOTE: when can be the max_fixed_p and min_noreaction_p probabilities different?
   if (!pathways.empty()) {
     max_fixed_p = pathways.back().cum_prob;
-    min_noreaction_p = max_fixed_p;
   }
   else {
     max_fixed_p = 1.0;
-    min_noreaction_p = 1.0;
   }
 
   // set class' rxn type
@@ -508,7 +506,7 @@ std::string RxnClass::to_str(const std::string ind) const {
       out << pw.cum_prob << ", ";
   }
 
-  out << ind << "max_fixed_p: " << max_fixed_p << ", min_noreaction_p: " << min_noreaction_p << "\n";
+  out << ind << "max_fixed_p: " << max_fixed_p << "\n";
 
   return out.str();
 }

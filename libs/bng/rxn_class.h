@@ -43,11 +43,6 @@ public:
   // Maximum probability for region of p-space for all non-cooperative pathways
   float_t max_fixed_p;
 
-  // Minimum probability for region of p-space which is always in the non-reacting "pathway". (note that
-  // cooperativity may mean that some values of p less than this still do not produce a reaction)
-  // NOTE: currently always the same as max_fixed_p
-  float_t min_noreaction_p;
-
   // - information on products for specific reactions, based on all reactions of the class,
   // - the size of this vector is >= than the number of rxn rules in this class because
   //   each rxn rule can have multiple product sets 
@@ -58,7 +53,7 @@ public:
   RxnClass(
       RxnContainer& all_rxns_, SpeciesContainer& all_species_, const BNGConfig& bng_config_,
       const species_id_t reactant_id1, const species_id_t reactant_id2 = SPECIES_ID_INVALID)
-    : type(RxnType::Invalid), max_fixed_p(FLT_INVALID), min_noreaction_p(FLT_INVALID),
+    : type(RxnType::Invalid), max_fixed_p(FLT_INVALID),
       all_rxns(all_rxns_), all_species(all_species_), bng_config(bng_config_), bimol_vol_rxn_flag(false)
     {
     assert(reactant_id1 != SPECIES_ID_INVALID);
