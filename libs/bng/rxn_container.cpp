@@ -127,7 +127,7 @@ void RxnContainer::create_unimol_rxn_classes_for_new_species(const species_id_t 
       //    this also automatically updates the reaction class
       rxn_class->add_rxn_rule_no_update(matching_rxn);
     }
-    rxn_class->update_rxn_pathways();
+    // TODO: init rxn class pathways for debug
 
     if (bng_config.bng_verbosity_level >= 2) {
       cout << "BNG: Created a new unimolecular reaction class:\n";
@@ -256,7 +256,7 @@ void RxnContainer::create_bimol_rxn_classes_for_new_species(const species_id_t n
         for (RxnRule* rxn: applicable_rxns) {
           rxn_class->add_rxn_rule_no_update(rxn);
         }
-        rxn_class->update_rxn_pathways();
+        // TODO: init rxn class pathways for debug
 
         if (bng_config.bng_verbosity_level >= 2) {
           cout <<

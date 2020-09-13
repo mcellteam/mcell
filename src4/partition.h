@@ -214,6 +214,9 @@ public:
     return res;
   }
 
+  const BNG::Species& get_species(const species_id_t species_id) const {
+    return get_all_species().get(species_id);
+  }
 
   bool in_this_partition(const Vec3& pos) const {
     return glm::all(glm::greaterThanEqual(pos, origin_corner))

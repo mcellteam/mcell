@@ -64,6 +64,7 @@ bool RxnClass::is_simple() const {
 
 
 RxnRule* RxnClass::get_rxn_for_pathway(const rxn_class_pathway_index_t pathway_index) {
+  assert(pathways_and_rates_initialized && "Must have been initialized when specific pathways is queried");
   assert(pathway_index >= 0 && pathway_index < (int)pathways.size());
   return all_rxns.get(pathways[pathway_index].rxn_rule_id);
 }
@@ -107,6 +108,7 @@ float_t RxnClass::get_next_time_of_rxn_rate_update() const {
 
 
 void RxnClass::define_rxn_pathway_using_mapping(const rxn_class_pathway_index_t pathway_index) {
+  assert(pathways_and_rates_initialized);
   const RxnRule* rxn = all_rxns.get(pathways[pathway_index].rxn_rule_id);
   rxn->define_rxn_pathway_using_mapping(all_species, bng_config, specific_reactants, pathways[pathway_index]);
 }
@@ -114,7 +116,9 @@ void RxnClass::define_rxn_pathway_using_mapping(const rxn_class_pathway_index_t 
 
 // based on MCell3's binary_search_double
 rxn_class_pathway_index_t RxnClass::get_pathway_index_for_probability(
-    const float_t prob, const float_t local_prob_factor) const {
+    const float_t prob, const float_t local_prob_factor) {
+  assert(pathways_and_rates_initialized && "Must have been initialized when specific pathways is queried");
+
   assert(!pathways.empty());
   int min_idx = 0;
   int max_idx = pathways.size() - 1;
@@ -336,9 +340,47 @@ private:
 };
 
 
+// does not do pathways update
+void RxnClass::add_rxn_rule_no_update(RxnRule* r) {
+
+  if (rxn_rule_ids.empty()) {
+    bimol_vol_rxn_flag = r->is_bimol_vol_rxn();
+  }
+  else {
+    assert(bimol_vol_rxn_flag == r->is_bimol_vol_rxn());
+  }
+
+  // check that the rule was not added already,
+  // for now simple pointer comparison
+  for (rxn_rule_id_t id: rxn_rule_ids) {
+    if (r->id == id) {
+      // reaction is already present
+      return;
+    }
+  }
+
+  rxn_rule_ids.push_back(r->id);
+
+  // remember bidirectional mapping for rxn rate updates
+  r->add_rxn_class_where_used(this);
+
+  // and also set rxn class type
+  const RxnRule* rxn = all_rxns.get(r->id);
+  if (type == RxnType::Invalid) {
+    type = rxn->type;
+  }
+  else {
+    assert(type == rxn->type);
+  }
+  assert(type != RxnType::Invalid);
+}
+
 // based on mcell3's implementation init_reactions
 // but added support for cases where one reaction rule can have multiple sets of products
-void RxnClass::update_rxn_pathways() {
+void RxnClass::init_rxn_pathways_and_rates(const bool force_update) {
+  if (!force_update && pathways_and_rates_initialized) {
+    return;
+  }
 
   assert(!specific_reactants.empty());
 
@@ -401,21 +443,6 @@ void RxnClass::update_rxn_pathways() {
     max_fixed_p = 1.0;
   }
 
-  // set class' rxn type
-  type = RxnType::Invalid;
-  for (rxn_rule_id_t id: rxn_rule_ids) {
-    const RxnRule* rxn = all_rxns.get(id);
-    assert(rxn->type != RxnType::Invalid && "Type for individual rxns must be set");
-
-    if (type == RxnType::Invalid) {
-      type = rxn->type;
-    }
-    else {
-      // type must be the same as before
-      assert(type == rxn->type);
-    }
-  }
-
   if (bng_config.rxn_and_species_report) {
     append_to_report(bng_config.get_rxn_report_file_name(), to_str() + "\n\n");
   }
@@ -426,6 +453,8 @@ void RxnClass::update_rxn_pathways() {
     cout << ss.str() << ", for reactant(s) " << reactants_to_str() << ".\n";
     append_to_report(bng_config.get_warnings_report_file_name(), ss.str() + "\n" + to_str());
   }
+
+  pathways_and_rates_initialized = true;
 }
 
 
@@ -441,8 +470,8 @@ void RxnClass::update_variable_rxn_rates(const float_t current_time) {
       any_changed = true;
     }
   }
-  if (any_changed) {
-    update_rxn_pathways();
+  if (!pathways_and_rates_initialized || any_changed) {
+    init_rxn_pathways_and_rates(true);
   }
 
   // report
@@ -479,6 +508,10 @@ std::string RxnClass::to_str(const std::string ind) const {
   stringstream out;
   assert(specific_reactants.size() == 1 || specific_reactants.size() == 2);
   out << ind << "rxn class for reactants: \n    " << reactants_to_str() << "\n";
+
+  if (!pathways_and_rates_initialized) {
+    out << "  pathways were not initialized\n";
+  }
 
   if (rxn_rule_ids.empty()) {
     out << "  no pathways\n";

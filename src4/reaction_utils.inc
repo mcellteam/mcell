@@ -586,7 +586,7 @@ static int test_many_bimolecular(
   int rx_index = binary_search_double(cum_rxn_class_probs, p, cum_rxn_class_probs.size() - 1, 1);
   assert(rx_index >= 0);
 
-  const BNG::RxnClass* selected_rxn_class = rxn_classes[rx_index];
+  BNG::RxnClass* selected_rxn_class = rxn_classes[rx_index];
   if (rx_index > 0) {
     p = (p - cum_rxn_class_probs[rx_index - 1]);
   }
@@ -718,7 +718,7 @@ static rxn_class_pathway_index_t test_many_intersect(
   /* Pick the reaction that happens */
   selected_rxn_class_index = binary_search_double(rxn_probs, p, num_classes - 1, 1);
 
-  const BNG::RxnClass *selected_rxn_class = rxn_classes[selected_rxn_class_index];
+  BNG::RxnClass *selected_rxn_class = rxn_classes[selected_rxn_class_index];
 
   if (selected_rxn_class_index > 0) {
     p = (p - rxn_probs[selected_rxn_class_index - 1]);

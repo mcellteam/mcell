@@ -463,7 +463,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
 #endif
 
         // check possible reaction with surface molecules
-        if (species.has_flag(SPECIES_FLAG_CAN_VOLSURF) && colliding_wall.has_initialized_grid()) {
+        if (p.get_species(vm_new_ref.species_id).has_flag(SPECIES_FLAG_CAN_VOLSURF) && colliding_wall.has_initialized_grid()) {
           int collide_res = collide_and_react_with_surf_mol(
               p, collision, t_steps,
               r_rate_factor,
@@ -486,7 +486,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
         }
 
         // check possible reaction with walls
-        if (species.has_flag(SPECIES_FLAG_CAN_VOLWALL)) {
+        if (p.get_species(vm_new_ref.species_id).has_flag(SPECIES_FLAG_CAN_VOLWALL)) {
           WallRxnResult collide_res = collide_and_react_with_walls(p, collision, r_rate_factor, elapsed_molecule_time, t_steps);
 
           if (collide_res == WallRxnResult::Transparent) {

@@ -83,13 +83,23 @@ public:
     return rxn_rule_ids.size();
   }
 
-  RxnRule* get_rxn_for_pathway(const rxn_class_pathway_index_t pathway_index);
-
+  // first query for the max probability or for rxn rate update usually causes
+  // rxn pathways to be initialized
   float_t get_max_fixed_p() {
+    if (!pathways_and_rates_initialized) {
+      init_rxn_pathways_and_rates();
+    }
     return max_fixed_p;
   }
 
+  void update_rxn_rates_if_needed(const float_t current_time);
+
+
+  RxnRule* get_rxn_for_pathway(const rxn_class_pathway_index_t pathway_index);
+
   const RxnProductsVector& get_rxn_products_for_pathway(const rxn_class_pathway_index_t pathway_index) {
+    assert(pathways_and_rates_initialized && "Must have been initialized when specific pathways is queried");
+
     assert(pathway_index < pathways.size());
 
     if (pathways[pathway_index].products_are_defined) {
@@ -101,40 +111,13 @@ public:
     }
   }
 
-  rxn_class_pathway_index_t get_pathway_index_for_probability(const float_t prob, const float_t local_prob_factor) const;
+  rxn_class_pathway_index_t get_pathway_index_for_probability(
+      const float_t prob, const float_t local_prob_factor);
 
   orientation_t get_reactant_orientation(uint reactant_index) const;
 
   // does not do pathways update
-  void add_rxn_rule_no_update(RxnRule* r) {
-
-    if (rxn_rule_ids.empty()) {
-      bimol_vol_rxn_flag = r->is_bimol_vol_rxn();
-    }
-    else {
-      assert(bimol_vol_rxn_flag == r->is_bimol_vol_rxn());
-    }
-
-    // check that the rule was not added already,
-    // for now simple pointer comparison
-    for (rxn_rule_id_t id: rxn_rule_ids) {
-      if (r->id == id) {
-        // reaction is already present
-        return;
-      }
-    }
-
-    rxn_rule_ids.push_back(r->id);
-
-    // remember bidirectional mapping for rxn rate updates
-    r->add_rxn_class_where_used(this);
-  }
-
-  // must be called after all rxn rules were added to this reaction
-  // class called automatically from update_rxn_rates_if_needed
-  void update_rxn_pathways();
-
-  void update_rxn_rates_if_needed(const float_t current_time);
+  void add_rxn_rule_no_update(RxnRule* r);
 
   // this function expects that update_rxn_rates_if_needed was called
   // already for the current time
@@ -191,6 +174,13 @@ public:
   void dump(const std::string ind = "") const;
 
 private:
+
+  // initializes pathways, called automatically once rates of
+  // products of this rxn class are needed, called on-demand
+  // because computing even initial pathways without specific product species
+  // for complex (and long) reactants may be costly)
+  void init_rxn_pathways_and_rates(const bool force_update = false);
+
   void define_rxn_pathway_using_mapping(const rxn_class_pathway_index_t pathway_index);
 
   void update_variable_rxn_rates(const float_t current_time);
