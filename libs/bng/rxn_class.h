@@ -26,35 +26,51 @@ class SpeciesContainer;
  */
 class RxnClass {
 public:
+  // Standard reaction or special such as Reflect, Transparent or Absorb
+  RxnType type;
+
   // keeping just IDs, with IDs unlike with pointers we are able to check that the species was 'discarded'
   // the rxn class was created specifically for a single or a pair of reactants, therefore
   // the species id is is a specific instance of a complex that matches our pattern
   // and if there are multiple species that match, multiple rxn classes are created
   std::vector<species_id_t> specific_reactants;
 
+  // - information on products for specific reactions, based on all reactions of the class,
+  // - the size of this vector is >= than the number of rxn rules in this class because
+  //   each rxn rule can have multiple product sets
+  // - contains cummulative probabilities
+  // - WARNING: do not access directly, only through get_rxn_products_for_pathway (TODO: make friend with RxnRule?),
+  //     because the product definitions may not be initialized
+  RxnClassPathwayVector pathways;
+
 private:
   // reactions are owned by RxnContainer, order in this vector is important
   std::vector<rxn_rule_id_t> rxn_rule_ids;
 
-public:
-  // Standard reaction or special such as Reflect, Transparent or Absorb
-  RxnType type;
-
-  // Maximum probability for region of p-space for all non-cooperative pathways
+  // Maximum probability for region of p-space for all non-cooperative pathways,
+  // valid when pathways_and_rates_initialized is true
   float_t max_fixed_p;
 
-  // - information on products for specific reactions, based on all reactions of the class,
-  // - the size of this vector is >= than the number of rxn rules in this class because
-  //   each rxn rule can have multiple product sets 
-  // - contains cummulative probabilities
-  RxnClassPathwayVector pathways;
+  // owned by BNGEngine
+  RxnContainer& all_rxns;
+  SpeciesContainer& all_species;
+
+  // owned by the simulation engine
+  const BNGConfig& bng_config;
+
+  // flag for optimized testing of this rxn class
+  bool bimol_vol_rxn_flag;
+
+  // flag for initialization of pathways on-demand
+  bool pathways_and_rates_initialized;
 
 public:
   RxnClass(
       RxnContainer& all_rxns_, SpeciesContainer& all_species_, const BNGConfig& bng_config_,
       const species_id_t reactant_id1, const species_id_t reactant_id2 = SPECIES_ID_INVALID)
     : type(RxnType::Invalid), max_fixed_p(FLT_INVALID),
-      all_rxns(all_rxns_), all_species(all_species_), bng_config(bng_config_), bimol_vol_rxn_flag(false)
+      all_rxns(all_rxns_), all_species(all_species_), bng_config(bng_config_),
+      bimol_vol_rxn_flag(false), pathways_and_rates_initialized(false)
     {
     assert(reactant_id1 != SPECIES_ID_INVALID);
     specific_reactants.push_back(reactant_id1);
@@ -69,6 +85,10 @@ public:
 
   RxnRule* get_rxn_for_pathway(const rxn_class_pathway_index_t pathway_index);
 
+  float_t get_max_fixed_p() {
+    return max_fixed_p;
+  }
+
   const RxnProductsVector& get_rxn_products_for_pathway(const rxn_class_pathway_index_t pathway_index) {
     assert(pathway_index < pathways.size());
 
@@ -80,10 +100,7 @@ public:
       return pathways[pathway_index].product_species_w_indices;
     }
   }
-private:
-  void define_rxn_pathway_using_mapping(const rxn_class_pathway_index_t pathway_index);
 
-public:
   rxn_class_pathway_index_t get_pathway_index_for_probability(const float_t prob, const float_t local_prob_factor) const;
 
   orientation_t get_reactant_orientation(uint reactant_index) const;
@@ -174,29 +191,19 @@ public:
   void dump(const std::string ind = "") const;
 
 private:
+  void define_rxn_pathway_using_mapping(const rxn_class_pathway_index_t pathway_index);
+
   void update_variable_rxn_rates(const float_t current_time);
 
   void debug_check_bimol_vol_rxn_flag() const;
 
   std::string RxnClass::reactants_to_str() const;
 
-  // ----------- MCell-specific -----------
   float_t get_reactant_diffusion(const uint reactant_index) const;
   float_t get_reactant_space_step(const uint reactant_index) const;
   float_t get_reactant_time_step(const uint reactant_index) const;
 
   float_t compute_pb_factor() const;
-  // ^^^^^^^^^^ MCell-specific ^^^^^^^^^^
-
-  // owned by BNGEngine
-  RxnContainer& all_rxns;
-  SpeciesContainer& all_species;
-
-  // owned by the simulation engine
-  const BNGConfig& bng_config;
-
-  // flag for optimized testing of this rxn class
-  bool bimol_vol_rxn_flag;
 };
 
 

@@ -414,9 +414,9 @@ static int test_bimolecular(
 
   /* rescale probabilities for the case of the reaction
      between two surface molecules */
-  float_t max_fixed_p = rxn_class->max_fixed_p; // local_prob_factor == 0
+  float_t max_fixed_p = rxn_class->get_max_fixed_p(); // local_prob_factor == 0
   if (local_prob_factor != 0) {
-    max_fixed_p = rxn_class->max_fixed_p * local_prob_factor;
+    max_fixed_p = rxn_class->get_max_fixed_p() * local_prob_factor;
   }
 
   float_t p;
@@ -430,7 +430,7 @@ static int test_bimolecular(
     // continue below
   }
   else {
-    float max_p = rxn_class->max_fixed_p; //rx.cum_probs[rx->n_pathways - 1]; // TODO_PATHWAYS
+    float max_p = rxn_class->get_max_fixed_p(); //rx.cum_probs[rx->n_pathways - 1]; // TODO_PATHWAYS
     if (local_prob_factor > 0) {
       max_p *= local_prob_factor;
     }
@@ -542,18 +542,18 @@ static int test_many_bimolecular(
   /* Note: lots of division here, if we're CPU-bound,could invert the
      definition of scaling_coefficients */
   if (all_neighbors_flag && local_prob_factor > 0) {
-    cum_rxn_class_probs[0] = (rxn_classes[0]->max_fixed_p) * local_prob_factor / scaling[0];
+    cum_rxn_class_probs[0] = (rxn_classes[0]->get_max_fixed_p()) * local_prob_factor / scaling[0];
   }
   else {
-    cum_rxn_class_probs[0] = rxn_classes[0]->max_fixed_p / scaling[0];
+    cum_rxn_class_probs[0] = rxn_classes[0]->get_max_fixed_p() / scaling[0];
   }
 
   for (uint i = 1; i < n; i++) {
     if (all_neighbors_flag && local_prob_factor > 0) {
-      cum_rxn_class_probs[i] = cum_rxn_class_probs[i - 1] + (rxn_classes[i]->max_fixed_p) * local_prob_factor / scaling[i];
+      cum_rxn_class_probs[i] = cum_rxn_class_probs[i - 1] + (rxn_classes[i]->get_max_fixed_p()) * local_prob_factor / scaling[i];
     }
     else {
-      cum_rxn_class_probs[i] = cum_rxn_class_probs[i - 1] + rxn_classes[i]->max_fixed_p / scaling[i];
+      cum_rxn_class_probs[i] = cum_rxn_class_probs[i - 1] + rxn_classes[i]->get_max_fixed_p() / scaling[i];
     }
   }
 
@@ -630,7 +630,7 @@ static rxn_class_pathway_index_t test_intersect(
 
   rxn_class->update_rxn_rates_if_needed(current_time);
 
-  float_t max_prob = rxn_class->max_fixed_p;
+  float_t max_prob = rxn_class->get_max_fixed_p();
 
   if (max_prob > scaling) {
     /*if (scaling <= 0.0)
@@ -647,12 +647,12 @@ static rxn_class_pathway_index_t test_intersect(
     }
   }
 
-  if (p > rxn_class->max_fixed_p) {
+  if (p > rxn_class->get_max_fixed_p()) {
     return PATHWAY_INDEX_NO_RXN;
   }
 
   float_t match = rng_dbl(&rng);
-  match = match * rxn_class->max_fixed_p;
+  match = match * rxn_class->get_max_fixed_p();
 
   return rxn_class->get_pathway_index_for_probability(match, 1);
 }
@@ -692,9 +692,9 @@ static rxn_class_pathway_index_t test_many_intersect(
   std::vector<float_t> rxn_probs;
   rxn_probs.resize(num_classes);
 
-  rxn_probs[0] = rxn_classes[0]->max_fixed_p / scaling;
+  rxn_probs[0] = rxn_classes[0]->get_max_fixed_p() / scaling;
   for (uint i = 1; i < num_classes; i++) {
-    rxn_probs[i] = rxn_probs[i - 1] + rxn_classes[i]->max_fixed_p / scaling;
+    rxn_probs[i] = rxn_probs[i - 1] + rxn_classes[i]->get_max_fixed_p() / scaling;
   }
 
   double p;
@@ -747,9 +747,9 @@ static BNG::RxnClass* pick_unimol_rxn_class(
 
 
 // based on timeof_unimolecular
-static float_t time_of_unimol(const BNG::RxnClass* rxn_class, rng_state& rng) {
-  double k_tot = rxn_class->max_fixed_p;
-  double p = rng_dbl(&rng);
+static float_t time_of_unimol(BNG::RxnClass* rxn_class, rng_state& rng) {
+  float_t k_tot = rxn_class->get_max_fixed_p();
+  float_t p = rng_dbl(&rng);
 
   if ((k_tot <= 0) || (!distinguishable_f(p, 0, EPS))) {
     return TIME_FOREVER;
@@ -762,7 +762,7 @@ static float_t time_of_unimol(const BNG::RxnClass* rxn_class, rng_state& rng) {
 static float_t compute_unimol_lifetime(
     const Partition& p,
     rng_state& rng,
-    const BNG::RxnClass* rx,
+    BNG::RxnClass* rx,
     const float_t current_time,
     Molecule& m
 ) {
@@ -793,14 +793,14 @@ which_unimolecular:
   In: the reaction we're testing
   Out: int containing which unimolecular reaction occurs (one must occur)
 *************************************************************************/
-static rxn_class_pathway_index_t which_unimolecular(const BNG::RxnClass *rxn_class, rng_state& rng) {
+static rxn_class_pathway_index_t which_unimolecular(BNG::RxnClass *rxn_class, rng_state& rng) {
   assert(rxn_class != nullptr);
   if (rxn_class->get_num_reactions() == 1) {
     return 0;
   }
 
   float_t match = rng_dbl(&rng);
-  match = match * rxn_class->max_fixed_p;
+  match = match * rxn_class->get_max_fixed_p();
   return rxn_class->get_pathway_index_for_probability(match, 1);
 }
 
