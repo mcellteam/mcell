@@ -1077,6 +1077,8 @@ void RxnRule::create_products_for_complex_rxn(
   assert(reactant_species.size() == reactants.size());
   assert(reactant_species.size() == 1 || reactant_species.size() == 2);
 
+  // input reactants are always created from canonicalized species therefore the next time we recreate
+  // them they will be the same
   vector<const CplxInstance*> input_reactants;
   // downcast, CplxInstance is sufficient for product computation
   input_reactants.push_back(dynamic_cast<const CplxInstance*>(&all_species.get(reactant_species[0])));
@@ -1159,6 +1161,8 @@ void RxnRule::create_products_for_complex_rxn(
     );
   }
 
+  // TODO: sort the mappings somehow?
+
   // and append mappings for cases when patterns match both reactants
 
   assert(pattern_reactant_mappings.size() != 0 &&
@@ -1173,13 +1177,25 @@ void RxnRule::create_products_for_complex_rxn(
   }
 
   // decide whether only cache the possible products
-  /*if (pattern_reactant_mappings.size() > MAX_IMMEDIATELLY_COMPUTED_PRODUCT_SETS_PER_RXN &&
+  if (pattern_reactant_mappings.size() > MAX_IMMEDIATELLY_COMPUTED_PRODUCT_SETS_PER_RXN &&
       !has_flag(RXN_FLAG_MAY_PRODUCE_MUTLIPLE_IDENTICAL_PRODUCTS)) {
+
     for (const VertexMapping& mapping: pattern_reactant_mappings) {
-      created_product_sets.push_back(ProductCplxWIndicesVector());
-      create_products_from_reactants_graph(bng_data, product_graph, created_product_sets.back());
+      // define the products as species
+      RxnProductsVector product_species;
+
+      // we cannot sort the products because we do not know what they are
+      // FIXME: we should unify this... - changing MAX_IMMEDIATELLY_COMPUTED_PRODUCT_SETS_PER_RXN
+      // may change results
+
+      // the probability is divided by the number of mapping of pattern onto pattern
+      // because so many more product sets we will get
+      float_t prob = get_rate_constant() * pb_factor;
+
+      pathways.push_back(RxnClassPathway(id, prob, mapping));
     }
-  }*/
+    return;
+  }
 
   vector<vector<CplxInstance>> input_reactants_copies;
   vector<Graph> distinct_product_graphs;
@@ -1301,6 +1317,66 @@ void RxnRule::create_products_for_complex_rxn(
 
     pathways.push_back(RxnClassPathway(id, prob, product_species));
   }
+}
+
+
+// TODO: very similar code as in the function above, must be unified
+void RxnRule::define_rxn_pathway_using_mapping(
+  SpeciesContainer& all_species,
+  const BNGConfig& bng_config,
+  const std::vector<species_id_t>& reactant_species,
+  RxnClassPathway& pathway
+) const {
+  assert(!pathway.products_are_defined);
+  assert(!pathway.rule_mapping_onto_reactants.empty());
+
+  // we need to make a copy of the reactants because we will be modifying them
+  // a new graph will have its ordering indices cleared
+  vector<CplxInstance> input_reactants_copy;
+  for (species_id_t sid: reactant_species) {
+    input_reactants_copy.push_back(all_species.get(sid));
+  }
+
+  // and create a graph from them
+  // because we creating it from canonical species, we know for sure that this is the same
+  // graph as was used when mapping was computed
+  Graph reactants_graph = input_reactants_copy[0].get_graph();
+  if (input_reactants_copy.size() == 2) {
+    merge_graphs(reactants_graph, input_reactants_copy[1].get_graph());
+  }
+
+  set_ordering_indices(reactants_graph);
+
+  // manipulate nodes using information about products and the precomputed mapping
+  apply_rxn_on_reactants_graph(
+      reactants_graph,
+      pathway.rule_mapping_onto_reactants,
+      patterns_graph,
+      products_to_patterns_mapping,
+      products_graph
+  );
+
+  // convert graph with products into cplx instances
+  ProductCplxWIndicesVector product_cplxs;
+  create_products_from_reactants_graph(bng_data, reactants_graph, product_cplxs);
+
+  // sort products by the rxn rule product indices (if applicable)
+  sort(product_cplxs.begin(), product_cplxs.end(), less_product_cplxs_by_rxn_rule_index);
+
+  // and cplx instances into species
+  for (const ProductCplxWIndices& product_w_indices: product_cplxs) {
+    // need to transform cplx into species id, the possibly new species will be removable
+    species_id_t species_id = all_species.find_or_add(
+        Species(product_w_indices.product_cplx, *bng_data, bng_config), true
+    );
+    assert(species_id != SPECIES_ID_INVALID);
+    pathway.product_species_w_indices.push_back(
+        ProductSpeciesWIndices(species_id, product_w_indices.rule_product_indices)
+    );
+  }
+
+  pathway.rule_mapping_onto_reactants.clear();
+  pathway.products_are_defined = true;
 }
 
 

@@ -74,11 +74,21 @@ public:
 
   RxnRule* get_rxn_for_pathway(const rxn_class_pathway_index_t pathway_index);
 
-  const RxnProductsVector& get_rxn_products_for_pathway(const rxn_class_pathway_index_t pathway_index) const {
+  const RxnProductsVector& get_rxn_products_for_pathway(const rxn_class_pathway_index_t pathway_index) {
     assert(pathway_index < pathways.size());
-    return pathways[pathway_index].product_species_w_indices;
-  }
 
+    if (pathways[pathway_index].products_are_defined) {
+      return pathways[pathway_index].product_species_w_indices;
+    }
+    else {
+      define_rxn_pathway_using_mapping(pathway_index);
+      return pathways[pathway_index].product_species_w_indices;
+    }
+  }
+private:
+  void define_rxn_pathway_using_mapping(const rxn_class_pathway_index_t pathway_index);
+
+public:
   rxn_class_pathway_index_t get_pathway_index_for_probability(const float_t prob, const float_t local_prob_factor) const;
 
   orientation_t get_reactant_orientation(uint reactant_index) const;

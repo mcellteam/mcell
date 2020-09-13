@@ -27,7 +27,7 @@ using BNGCommon::round_f;
 // arbitrary limit that is checked when we are computing all the product sets for
 // a given reaction rule, only to show to the user that something is probably wrong
 // (and we cannot deal with huge numbers yet, although the 1024 is still ok)
-const uint MAX_PRODUCT_SETS_PER_RXN = 1024;
+const uint MAX_PRODUCT_SETS_PER_RXN = 1024*1024;
 
 // if the count of products after applying a single rxn is greater ahan this value
 // and we know the count of the product, do not compute the products immediatelly

@@ -82,7 +82,7 @@ typedef std::vector<ProductCplxWIndices> ProductCplxWIndicesVector;
 typedef std::vector<std::vector<ProductCplxWIndices>> ProductSetsVector;
 
 
-
+// TODO: some of these classes rather belong to rxn_class.h
 /**
  * Used to hold information on the probability and products for a given reaction rule.
  * One rxn rule can possibly have more different products,
@@ -99,7 +99,19 @@ public:
   ) : rxn_rule_id(rxn_rule_id_),
       pathway_prob(pathway_prob_),
       product_species_w_indices(product_species_w_indices_),
-      cum_prob(FLT_INVALID) {
+      cum_prob(FLT_INVALID),
+      products_are_defined(true) {
+  }
+
+  RxnClassPathway(
+      const rxn_rule_id_t rxn_rule_id_,
+      const float_t pathway_prob_,
+      const VertexMapping& rule_mapping_onto_reactants_
+  ) : rxn_rule_id(rxn_rule_id_),
+      pathway_prob(pathway_prob_),
+      rule_mapping_onto_reactants(rule_mapping_onto_reactants_),
+      cum_prob(FLT_INVALID),
+      products_are_defined(false) {
   }
 
   // ID of rxn rule from which this pathway was created
@@ -109,11 +121,19 @@ public:
   // reactants interact (or when an unimol rxn is executed)
   float_t pathway_prob;
 
-  // specific variant of products for this pathway
+  // specific variant of products for this pathway,
+  // valid when products_are_defined is true
   RxnProductsVector product_species_w_indices;
+
+  // we did not compute products, only assigned which pattern to reactant
+  // mapping is associated with this pathway, needs to be computed once needed
+  // valid when products_are_defined is false
+  VertexMapping rule_mapping_onto_reactants;
 
   // cumulative probability - set when used in rxn class
   float_t cum_prob;
+
+  bool products_are_defined;
 };
 
 typedef std::vector<RxnClassPathway> RxnClassPathwayVector;
@@ -214,6 +234,7 @@ private:
 public:
   // - method used when RxnClass is being created
   // - defines new species when needed and might invalidate Species references
+  // TODO: pass reactants as vector
   void define_rxn_pathways_for_specific_reactants(
       SpeciesContainer& all_species,
       const BNGConfig& bng_config,
@@ -221,6 +242,14 @@ public:
       const species_id_t reactant_b_species_id,
       const float_t pb_factor,
       RxnClassPathwayVector& pathways
+  ) const;
+
+
+  void define_rxn_pathway_using_mapping(
+    SpeciesContainer& all_species,
+    const BNGConfig& bng_config,
+    const std::vector<species_id_t>& reactant_species,
+    RxnClassPathway& pathway
   ) const;
 
   float_t get_rate_constant() const {

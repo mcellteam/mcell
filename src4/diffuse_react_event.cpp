@@ -2054,7 +2054,7 @@ int DiffuseReactEvent::outcome_products_random(
   for (uint product_index = 0; product_index < actual_products.size(); product_index++) {
     const ProductSpeciesWIndices& actual_product = actual_products[product_index];
 
-    // first we must check whether we are mapping a single product on
+    // first we must check whether we are mapping a single product onto multiple complexes from the right-had side of the rule
     assert(!actual_product.rule_product_indices.empty());
     bool actual_prod_is_single_rxn_prod = actual_product.rule_product_indices.size() == 1;
     release_assert(!actual_prod_is_single_rxn_prod || *actual_product.rule_product_indices.begin() == product_index);

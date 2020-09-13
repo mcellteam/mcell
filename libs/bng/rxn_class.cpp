@@ -105,6 +105,13 @@ float_t RxnClass::get_next_time_of_rxn_rate_update() const {
   return min;
 }
 
+
+void RxnClass::define_rxn_pathway_using_mapping(const rxn_class_pathway_index_t pathway_index) {
+  const RxnRule* rxn = all_rxns.get(pathways[pathway_index].rxn_rule_id);
+  rxn->define_rxn_pathway_using_mapping(all_species, bng_config, specific_reactants, pathways[pathway_index]);
+}
+
+
 // based on MCell3's binary_search_double
 rxn_class_pathway_index_t RxnClass::get_pathway_index_for_probability(
     const float_t prob, const float_t local_prob_factor) const {
