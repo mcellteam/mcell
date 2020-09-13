@@ -64,7 +64,10 @@ bool RxnClass::is_simple() const {
 
 
 RxnRule* RxnClass::get_rxn_for_pathway(const rxn_class_pathway_index_t pathway_index) {
-  assert(pathways_and_rates_initialized && "Must have been initialized when specific pathways is queried");
+  if (!pathways_and_rates_initialized) {
+    // when a rxn class has only 1 rxn rule, the total prob may not be queried before
+    init_rxn_pathways_and_rates();
+  }
   assert(pathway_index >= 0 && pathway_index < (int)pathways.size());
   return all_rxns.get(pathways[pathway_index].rxn_rule_id);
 }
@@ -108,7 +111,7 @@ float_t RxnClass::get_next_time_of_rxn_rate_update() const {
 
 
 void RxnClass::define_rxn_pathway_using_mapping(const rxn_class_pathway_index_t pathway_index) {
-  assert(pathways_and_rates_initialized);
+  release_assert(pathways_and_rates_initialized);
   const RxnRule* rxn = all_rxns.get(pathways[pathway_index].rxn_rule_id);
   rxn->define_rxn_pathway_using_mapping(all_species, bng_config, specific_reactants, pathways[pathway_index]);
 }
@@ -117,7 +120,10 @@ void RxnClass::define_rxn_pathway_using_mapping(const rxn_class_pathway_index_t 
 // based on MCell3's binary_search_double
 rxn_class_pathway_index_t RxnClass::get_pathway_index_for_probability(
     const float_t prob, const float_t local_prob_factor) {
-  assert(pathways_and_rates_initialized && "Must have been initialized when specific pathways is queried");
+  if (!pathways_and_rates_initialized) {
+    // when a rxn class has only 1 rxn rule, the total prob may not be queried before
+    init_rxn_pathways_and_rates();
+  }
 
   assert(!pathways.empty());
   int min_idx = 0;

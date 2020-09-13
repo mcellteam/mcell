@@ -98,7 +98,7 @@ public:
   RxnRule* get_rxn_for_pathway(const rxn_class_pathway_index_t pathway_index);
 
   const RxnProductsVector& get_rxn_products_for_pathway(const rxn_class_pathway_index_t pathway_index) {
-    assert(pathways_and_rates_initialized && "Must have been initialized when specific pathways is queried");
+    release_assert(pathways_and_rates_initialized && "Must have been initialized when specific pathways is queried");
 
     assert(pathway_index < pathways.size());
 
