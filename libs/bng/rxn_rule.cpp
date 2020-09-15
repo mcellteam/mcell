@@ -1301,9 +1301,8 @@ void RxnRule::create_products_for_complex_rxn(
     // iterating over map sorted by product indices
     for (const ProductCplxWIndices& product_w_indices: product_cplxs) {
       // need to transform cplx into species id, the possibly new species will be removable
-      species_id_t species_id = all_species.find_or_add(
-          Species(product_w_indices.product_cplx, *bng_data, bng_config), true
-      );
+      Species new_species = Species(product_w_indices.product_cplx, *bng_data, bng_config);
+      species_id_t species_id = all_species.find_or_add(new_species, true);
       assert(species_id != SPECIES_ID_INVALID);
       product_species.push_back(ProductSpeciesWIndices(species_id, product_w_indices.rule_product_indices));
     }
@@ -1366,9 +1365,8 @@ void RxnRule::define_rxn_pathway_using_mapping(
   // and cplx instances into species
   for (const ProductCplxWIndices& product_w_indices: product_cplxs) {
     // need to transform cplx into species id, the possibly new species will be removable
-    species_id_t species_id = all_species.find_or_add(
-        Species(product_w_indices.product_cplx, *bng_data, bng_config), true
-    );
+    Species new_species = Species(product_w_indices.product_cplx, *bng_data, bng_config);
+    species_id_t species_id = all_species.find_or_add(new_species, true);
     assert(species_id != SPECIES_ID_INVALID);
     pathway.product_species_w_indices.push_back(
         ProductSpeciesWIndices(species_id, product_w_indices.rule_product_indices)

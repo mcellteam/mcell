@@ -622,9 +622,8 @@ BNG::CplxInstance MCell4Converter::convert_complex_instance(API::ComplexInstance
       // FIXME: can we have just one method to compare the cplx and create
       // species if needed?
       // cplx inst should clearly identify the species...
-      species_id = world->get_all_species().find_or_add(
-        BNG::Species(cplx_inst, world->bng_engine.get_data(), world->bng_engine.get_config())
-      );
+      BNG::Species new_species = BNG::Species(cplx_inst, world->bng_engine.get_data(), world->bng_engine.get_config());
+      species_id = world->get_all_species().find_or_add(new_species);
     }
     assert(species_id != SPECIES_ID_INVALID);
     return world->bng_engine.create_cplx_instance_for_species(species_id, orient);

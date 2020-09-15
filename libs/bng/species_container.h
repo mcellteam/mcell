@@ -36,7 +36,7 @@ public:
   }
 
 
-  species_id_t find_or_add(const Species& new_species, const bool removable = false) {
+  species_id_t find_or_add(Species& new_species, const bool removable = false) {
     assert(new_species.is_finalized());
 
     species_id_t res = SPECIES_ID_INVALID;
@@ -45,11 +45,11 @@ public:
     std::cout << "Looking for new species:\n";
     new_species.dump(bng_data);
 #endif
+
     // check that this species does not exist already
     if (!new_species.is_canonical()) {
       new_species.canonicalize();
     }
-
     assert(new_species.name != "");
     auto it = canonical_species_map.find(new_species.name);
 

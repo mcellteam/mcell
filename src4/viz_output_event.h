@@ -49,7 +49,7 @@ public:
   void to_data_model(Json::Value& mcell_node) const override;
 
   // DiffuseReactEvent must execute only up to this event
-  bool is_barrier() const { return true; }
+  bool is_barrier() const override { return true; }
 
   bool should_visualize_all_species() const;
 

@@ -187,7 +187,7 @@ private:
 
   void debug_check_bimol_vol_rxn_flag() const;
 
-  std::string RxnClass::reactants_to_str() const;
+  std::string reactants_to_str() const;
 
   float_t get_reactant_diffusion(const uint reactant_index) const;
   float_t get_reactant_space_step(const uint reactant_index) const;

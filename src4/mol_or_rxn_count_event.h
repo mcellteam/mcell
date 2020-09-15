@@ -184,7 +184,7 @@ public:
   void step() override;
 
   // DiffuseReactEvent must execute only up to this event
-  bool is_barrier() const { return true; }
+  bool is_barrier() const override { return true; }
 
   void dump(const std::string ind = "") const override;
   void to_data_model(Json::Value& mcell_node) const override;

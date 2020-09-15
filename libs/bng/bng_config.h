@@ -96,7 +96,7 @@ public:
 
   void dump() const;
 private:
-  std::string BNGConfig::seed_as_str() const;
+  std::string seed_as_str() const;
   void initialize_report_files();
 };
 
