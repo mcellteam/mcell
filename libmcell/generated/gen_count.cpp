@@ -34,15 +34,15 @@ namespace MCell {
 namespace API {
 
 void GenCount::check_semantics() const {
-  if (!is_set(filename)) {
-    throw ValueError("Parameter 'filename' must be set.");
+  if (!is_set(file_name)) {
+    throw ValueError("Parameter 'file_name' must be set.");
   }
 }
 
 bool GenCount::__eq__(const GenCount& other) const {
   return
     name == other.name &&
-    filename == other.filename &&
+    file_name == other.file_name &&
     (
       (count_expression != nullptr) ?
         ( (other.count_expression != nullptr) ?
@@ -167,7 +167,7 @@ void GenCount::set_initialized() {
 
 void GenCount::set_all_attributes_as_default_or_unset() {
   class_name = "Count";
-  filename = STR_UNSET;
+  file_name = STR_UNSET;
   count_expression = nullptr;
   multiplier = 1;
   every_n_timesteps = 1;
@@ -185,7 +185,7 @@ void GenCount::set_all_attributes_as_default_or_unset() {
 std::string GenCount::to_str(const std::string ind) const {
   std::stringstream ss;
   ss << get_object_name() << ": " <<
-      "filename=" << filename << ", " <<
+      "file_name=" << file_name << ", " <<
       "\n" << ind + "  " << "count_expression=" << "(" << ((count_expression != nullptr) ? count_expression->to_str(ind + "  ") : "null" ) << ")" << ", " << "\n" << ind + "  " <<
       "multiplier=" << multiplier << ", " <<
       "every_n_timesteps=" << every_n_timesteps << ", " <<
@@ -219,7 +219,7 @@ py::class_<Count> define_pybinding_Count(py::module& m) {
             std::shared_ptr<CountTerm>,
             std::shared_ptr<CountTerm>
           >(),
-          py::arg("filename"),
+          py::arg("file_name"),
           py::arg("count_expression") = nullptr,
           py::arg("multiplier") = 1,
           py::arg("every_n_timesteps") = 1,
@@ -236,7 +236,7 @@ py::class_<Count> define_pybinding_Count(py::module& m) {
       .def("check_semantics", &Count::check_semantics)
       .def("__str__", &Count::to_str, py::arg("ind") = std::string(""))
       .def("dump", &Count::dump)
-      .def_property("filename", &Count::get_filename, &Count::set_filename)
+      .def_property("file_name", &Count::get_file_name, &Count::set_file_name)
       .def_property("count_expression", &Count::get_count_expression, &Count::set_count_expression)
       .def_property("multiplier", &Count::get_multiplier, &Count::set_multiplier)
       .def_property("every_n_timesteps", &Count::get_every_n_timesteps, &Count::set_every_n_timesteps)

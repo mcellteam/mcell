@@ -33,13 +33,13 @@ namespace API {
 
 namespace bngl_utils {
 
-std::map<std::string, float_t> load_bngl_parameters(const std::string& filename) {
+std::map<std::string, float_t> load_bngl_parameters(const std::string& file_name) {
 
   BNG::BNGData bng_data;
 
-  int num_errors = BNG::parse_bngl_file(filename, bng_data);
+  int num_errors = BNG::parse_bngl_file(file_name, bng_data);
   if (num_errors != 0) {
-    throw RuntimeError("Could not parse BNGL file " + filename + ".");
+    throw RuntimeError("Could not parse BNGL file " + file_name + ".");
   }
 
   return bng_data.get_parameters();

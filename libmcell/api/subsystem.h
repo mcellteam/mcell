@@ -79,7 +79,7 @@ public:
   }
 
 
-  void load_bngl_molecule_types_and_reaction_rules(const std::string& filename) override;
+  void load_bngl_molecule_types_and_reaction_rules(const std::string& file_name) override;
 
   // added manually
   void dump() const;

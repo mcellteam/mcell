@@ -95,7 +95,7 @@ public:
   virtual void add_vertex_move(std::shared_ptr<GeometryObject> object, const int index, const Vec3& displacement) = 0;
   virtual void apply_vertex_moves() = 0;
   virtual void register_wall_hit_callback(const std::function<void(std::shared_ptr<WallHitInfo>, py::object)> function, py::object context, std::shared_ptr<GeometryObject> object = nullptr, std::shared_ptr<Species> species = nullptr) = 0;
-  virtual void load_bngl(const std::string& filename, const std::string& observables_files_prefix, std::shared_ptr<Region> default_release_region = nullptr) = 0;
+  virtual void load_bngl(const std::string& file_name, const std::string& observables_files_prefix, std::shared_ptr<Region> default_release_region = nullptr) = 0;
 }; // GenModel
 
 class Model;

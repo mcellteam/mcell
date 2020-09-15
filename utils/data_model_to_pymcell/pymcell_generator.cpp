@@ -1402,7 +1402,7 @@ vector<string> PymcellGenerator::generate_counts(ofstream& out) {
       }
     }
 
-    gen_param(out, NAME_FILENAME,
+    gen_param(out, NAME_FILE_NAME,
         DEFAULT_RXN_OUTPUT_FILENAME_PREFIX + mdl_file_prefix + ".dat", multiplier_str != "" || rxn_step != "");
 
     if (multiplier_str != "") {

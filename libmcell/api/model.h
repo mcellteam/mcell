@@ -88,7 +88,7 @@ public:
 
 
   void load_bngl(
-      const std::string& filename,
+      const std::string& file_name,
       const std::string& observables_files_prefix,
       std::shared_ptr<Region> default_release_region = nullptr
   ) override;

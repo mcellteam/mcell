@@ -64,15 +64,15 @@ std::string Observables::get_first_viz_output_files_prefix(const char* method_na
 
 
 void Observables::load_bngl_observables(
-    const std::string& filename,
+    const std::string& file_name,
     std::shared_ptr<Subsystem> subsystem,
     const std::string& output_files_prefix
 ) {
   BNG::BNGData bng_data;
 
-  int num_errors = BNG::parse_bngl_file(filename, bng_data);
+  int num_errors = BNG::parse_bngl_file(file_name, bng_data);
   if (num_errors != 0) {
-    throw RuntimeError("Could not parse BNGL file " + filename + ".");
+    throw RuntimeError("Could not parse BNGL file " + file_name + ".");
   }
 
   if (!is_set(output_files_prefix)) {
@@ -109,7 +109,7 @@ void Observables::convert_observable(
   }
 
   shared_ptr<API::Count> count = make_shared<Count>();
-  count->filename = output_files_prefix + o.name + ".dat";
+  count->file_name = output_files_prefix + o.name + ".dat";
 
   std::shared_ptr<API::ComplexInstance> pattern =
       subsystem.convert_cplx_instance(bng_data, o.patterns[0]);

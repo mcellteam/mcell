@@ -46,12 +46,12 @@ void Subsystem::dump() const {
 }
 
 
-void Subsystem::load_bngl_molecule_types_and_reaction_rules(const std::string& filename) {
+void Subsystem::load_bngl_molecule_types_and_reaction_rules(const std::string& file_name) {
   BNG::BNGData bng_data;
 
-  int num_errors = BNG::parse_bngl_file(filename, bng_data);
+  int num_errors = BNG::parse_bngl_file(file_name, bng_data);
   if (num_errors != 0) {
-    throw RuntimeError("Could not parse BNGL file " + filename + ".");
+    throw RuntimeError("Could not parse BNGL file " + file_name + ".");
   }
 
   // now convert everything we parsed into the API classes so that the user can

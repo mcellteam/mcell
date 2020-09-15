@@ -151,7 +151,7 @@ Model:
       the argument default_region must be set and the molecules are released into or onto the 
       default_region. 
     params:
-    - name: filename
+    - name: file_name
       type: str  
     - name: observables_files_prefix
       type: str   

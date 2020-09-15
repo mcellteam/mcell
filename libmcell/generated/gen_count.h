@@ -38,7 +38,7 @@ class Species;
 
 #define COUNT_CTOR() \
     Count( \
-        const std::string& filename_, \
+        const std::string& file_name_, \
         std::shared_ptr<CountTerm> count_expression_ = nullptr, \
         const float_t multiplier_ = 1, \
         const int every_n_timesteps_ = 1, \
@@ -53,7 +53,7 @@ class Species;
         std::shared_ptr<CountTerm> right_node_ = nullptr \
     )  : GenCount(species_,species_pattern_,molecules_pattern_,reaction_rule_,region_,orientation_,node_type_,left_node_,right_node_) { \
       class_name = "Count"; \
-      filename = filename_; \
+      file_name = file_name_; \
       count_expression = count_expression_; \
       multiplier = multiplier_; \
       every_n_timesteps = every_n_timesteps_; \
@@ -93,16 +93,16 @@ public:
   std::string to_str(const std::string ind="") const override;
 
   // --- attributes ---
-  std::string filename;
-  virtual void set_filename(const std::string& new_filename_) {
+  std::string file_name;
+  virtual void set_file_name(const std::string& new_file_name_) {
     if (initialized) {
-      throw RuntimeError("Value 'filename' of object with name " + name + " (class " + class_name + ")"
+      throw RuntimeError("Value 'file_name' of object with name " + name + " (class " + class_name + ")"
                          "cannot be set after model was initialized.");
     }
-    filename = new_filename_;
+    file_name = new_file_name_;
   }
-  virtual const std::string& get_filename() const {
-    return filename;
+  virtual const std::string& get_file_name() const {
+    return file_name;
   }
 
   std::shared_ptr<CountTerm> count_expression;

@@ -211,7 +211,7 @@ class Config():
 class Count():
     def __init__(
             self,
-            filename : str,
+            file_name : str,
             count_expression : CountTerm = None,
             multiplier : float = 1,
             every_n_timesteps : int = 1,
@@ -225,7 +225,7 @@ class Count():
             left_node : CountTerm = None,
             right_node : CountTerm = None
         ):
-        self.filename = filename
+        self.file_name = file_name
         self.count_expression = count_expression
         self.multiplier = multiplier
         self.every_n_timesteps = every_n_timesteps
@@ -419,7 +419,7 @@ class InstantiationData():
 
     def load_bngl_seed_species(
             self,
-            filename : str,
+            file_name : str,
             subsystem : Subsystem,
             default_release_region : Region = None
         ) -> None:
@@ -541,7 +541,7 @@ class Model():
 
     def load_bngl(
             self,
-            filename : str,
+            file_name : str,
             observables_files_prefix : str,
             default_release_region : Region = None
         ) -> None:
@@ -597,7 +597,7 @@ class Model():
 
     def load_bngl_molecule_types_and_reaction_rules(
             self,
-            filename : str
+            file_name : str
         ) -> None:
         pass
 
@@ -627,7 +627,7 @@ class Model():
 
     def load_bngl_seed_species(
             self,
-            filename : str,
+            file_name : str,
             subsystem : Subsystem,
             default_release_region : Region = None
         ) -> None:
@@ -647,7 +647,7 @@ class Model():
 
     def load_bngl_observables(
             self,
-            filename : str,
+            file_name : str,
             subsystem : Subsystem,
             output_files_prefix : str
         ) -> None:
@@ -734,7 +734,7 @@ class Observables():
 
     def load_bngl_observables(
             self,
-            filename : str,
+            file_name : str,
             subsystem : Subsystem,
             output_files_prefix : str
         ) -> None:
@@ -941,7 +941,7 @@ class Subsystem():
 
     def load_bngl_molecule_types_and_reaction_rules(
             self,
-            filename : str
+            file_name : str
         ) -> None:
         pass
 
@@ -1083,7 +1083,7 @@ class bngl_utils():
 
     def load_bngl_parameters(
             self,
-            filename : str
+            file_name : str
         ) -> 'Dict[str, float]':
         pass
 

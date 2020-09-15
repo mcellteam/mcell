@@ -97,7 +97,7 @@ CountTerm:
 Count:
   superclass: CountTerm
   items:
-  - name: filename
+  - name: file_name
     type: str
     
   - name: count_expression 
@@ -149,7 +149,7 @@ Observables:
       Loads section observables from a BNGL file and creates Count objects according to it.
       All elementary molecule types used in the seed species section must be defined in subsystem.
     params:
-    - name: filename
+    - name: file_name
       type: str   
       doc: BNGL file name.
            

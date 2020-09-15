@@ -1247,7 +1247,7 @@ void MCell4Converter::convert_mol_or_rxn_count_events_and_init_counting_flags() 
 
     // create buffer
     count_buffer_id_t buffer_id =
-        world->create_count_buffer(c->filename, API::DEFAULT_COUNT_BUFFER_SIZE);
+        world->create_count_buffer(c->file_name, API::DEFAULT_COUNT_BUFFER_SIZE);
 
     MCell::MolOrRxnCountItem info(buffer_id);
 

@@ -53,7 +53,7 @@ public:
   std::string get_first_viz_output_files_prefix(const char* method_name);
 
   void load_bngl_observables(
-      const std::string& filename,
+      const std::string& file_name,
       std::shared_ptr<Subsystem> subsystem,
       const std::string& output_files_prefix
   ) override;
