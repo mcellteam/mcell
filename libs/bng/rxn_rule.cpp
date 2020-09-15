@@ -1076,8 +1076,9 @@ static bool less_pattern_reactant_mappings(
       return it1.second < it2->second;
     }
   }
-  release_assert(false && "Got identical mapping");
-  return false;
+  // identical mapping is ok, 
+  // some std::sort implementations compare the same elements
+  return false; 
 }
 
 
@@ -1205,13 +1206,12 @@ void RxnRule::create_products_for_complex_rxn(
     cout.flush();
   }
 
+  // sort the mappings to make sure we get identical results everywhere
+  sort_mappings(pattern_reactant_mappings);
+
   // decide whether only cache the possible products
   if (pattern_reactant_mappings.size() > MAX_IMMEDIATELLY_COMPUTED_PRODUCT_SETS_PER_RXN &&
       !has_flag(RXN_FLAG_MAY_PRODUCE_MUTLIPLE_IDENTICAL_PRODUCTS)) {
-
-    // sort the mappings to make sure we get identical results everywhere
-    // for the non-cached variant, the pathways are sorted by names of products
-    sort_mappings(pattern_reactant_mappings);
 
     for (const VertexMapping& mapping: pattern_reactant_mappings) {
       // define the products as species

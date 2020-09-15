@@ -317,7 +317,7 @@ float_t RxnClass::compute_pb_factor() const {
   return pb_factor;
 }
 
-
+/*
 class RxnPathwayComparator {
 public:
   RxnPathwayComparator(const SpeciesContainer& all_species_)
@@ -327,6 +327,8 @@ public:
   bool operator()(const RxnClassPathway& pw1, const RxnClassPathway& pw2) {
     // create string representation of products and sort them according to it
     // not very efficient but its impact should be negligible
+    assert(pw1.products_are_defined && pw2.products_are_defined &&
+        "We must not sort pathways when products are not defined");
     string prods1;
     string prods2;
     make_products_representation(pw1, prods1);
@@ -344,7 +346,7 @@ private:
 
   const SpeciesContainer& all_species;
 };
-
+*/
 
 // does not do pathways update
 void RxnClass::add_rxn_rule_no_update(RxnRule* r) {
@@ -404,7 +406,10 @@ void RxnClass::init_rxn_pathways_and_rates(const bool force_update) {
   float_t pb_factor = compute_pb_factor();
 
   // 2) define pathways
+  // sort rules by ID to make sure we get identical results all the time
+  sort(rxn_rule_ids.begin(), rxn_rule_ids.end());
   for (rxn_rule_id_t id: rxn_rule_ids) {
+
     const RxnRule* rxn = all_rxns.get(id);
     rxn->define_rxn_pathways_for_specific_reactants(
         all_species,
@@ -417,13 +422,13 @@ void RxnClass::init_rxn_pathways_and_rates(const bool force_update) {
   }
   assert(!pathways.empty());
 
-#ifndef MCELL4_DO_NOT_SORT_PATHWAYS
+/*#ifndef MCELL4_DO_NOT_SORT_PATHWAYS
   // and sort them, due to rxn class removals in cleanup events, in different runs can the
   // pathways be sorted differently, we must maintain the order
   // may provide different result than MCell3
   RxnPathwayComparator pathway_cmp(all_species);
   sort(pathways.begin(), pathways.end(), pathway_cmp);
-#endif
+#endif*/
 
 #ifdef MCELL4_REVERSED_RXNS_IN_RXN_CLASS
   // reverse pathways
