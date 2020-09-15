@@ -276,7 +276,6 @@ set(SOURCE_FILES
 
     src/bng_util.cpp
     src/dump_state.cpp
-    src/mdl2datamodel.cpp
     src/c_vector.cpp
 )
 

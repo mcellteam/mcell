@@ -1408,9 +1408,6 @@ struct volume {
 
   struct pointer_hash *species_mesh_transp; 
 
-
-  int mdl2datamodel;
-
   // mcell4 -specific items
   int use_mcell4;
   int dump_mcell3;

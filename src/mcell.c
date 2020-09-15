@@ -32,7 +32,6 @@
 #include "init.h"
 
 #include "dump_state.h"
-#include "mdl2datamodel.h"
 
 #define CHECKED_CALL_EXIT(function, error_message)                             \
   {                                                                            \
@@ -96,11 +95,6 @@ int main(int argc, char **argv) {
 
   CHECKED_CALL_EXIT(mcell_init_output(state),
                     "An error occured during setting up of output.");
-
-  if (state->mdl2datamodel) {
-    bool ok = convert_to_datamodel(state, "datamodel.json");
-    return ok ? 0 : 1;
-  }
 
   if (state->dump_mcell3) {
     dump_volume(state, "initial", DUMP_EVERYTHING);
