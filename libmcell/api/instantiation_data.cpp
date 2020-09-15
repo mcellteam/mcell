@@ -43,11 +43,12 @@ void InstantiationData::dump() const {
 void InstantiationData::load_bngl_seed_species(
     const std::string& file_name,
     std::shared_ptr<Subsystem> subsystem,
-    std::shared_ptr<Region> default_release_region) {
+    std::shared_ptr<Region> default_release_region,
+    const std::map<std::string, float_t>& parameter_overrides) {
 
   BNG::BNGData bng_data;
 
-  int num_errors = BNG::parse_bngl_file(file_name, bng_data);
+  int num_errors = BNG::parse_bngl_file(file_name, bng_data, parameter_overrides);
   if (num_errors != 0) {
     throw RuntimeError("Could not parse BNGL file " + file_name + ".");
   }

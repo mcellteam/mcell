@@ -421,7 +421,8 @@ class InstantiationData():
             self,
             file_name : str,
             subsystem : Subsystem,
-            default_release_region : Region = None
+            default_release_region : Region = None,
+            parameter_overrides : Dict[str, float] = None
         ) -> None:
         pass
 
@@ -543,7 +544,8 @@ class Model():
             self,
             file_name : str,
             observables_files_prefix : str,
-            default_release_region : Region = None
+            default_release_region : Region = None,
+            parameter_overrides : Dict[str, float] = None
         ) -> None:
         pass
 
@@ -597,7 +599,8 @@ class Model():
 
     def load_bngl_molecule_types_and_reaction_rules(
             self,
-            file_name : str
+            file_name : str,
+            parameter_overrides : Dict[str, float] = None
         ) -> None:
         pass
 
@@ -629,7 +632,8 @@ class Model():
             self,
             file_name : str,
             subsystem : Subsystem,
-            default_release_region : Region = None
+            default_release_region : Region = None,
+            parameter_overrides : Dict[str, float] = None
         ) -> None:
         pass
 
@@ -649,7 +653,8 @@ class Model():
             self,
             file_name : str,
             subsystem : Subsystem,
-            output_files_prefix : str
+            output_files_prefix : str,
+            parameter_overrides : Dict[str, float] = None
         ) -> None:
         pass
 
@@ -736,7 +741,8 @@ class Observables():
             self,
             file_name : str,
             subsystem : Subsystem,
-            output_files_prefix : str
+            output_files_prefix : str,
+            parameter_overrides : Dict[str, float] = None
         ) -> None:
         pass
 
@@ -941,7 +947,8 @@ class Subsystem():
 
     def load_bngl_molecule_types_and_reaction_rules(
             self,
-            file_name : str
+            file_name : str,
+            parameter_overrides : Dict[str, float] = None
         ) -> None:
         pass
 
@@ -1083,7 +1090,8 @@ class bngl_utils():
 
     def load_bngl_parameters(
             self,
-            file_name : str
+            file_name : str,
+            parameter_overrides : Dict[str, float] = None
         ) -> 'Dict[str, float]':
         pass
 

@@ -394,6 +394,10 @@ public:
     return table;
   }
 
+  IdToNodeMap& get_as_map() {
+    return table;
+  }
+
   void dump();
 private:
   // we do not hold constant pointers because one for instance might
@@ -418,6 +422,7 @@ public:
   ASTExprNode* new_id_node(const std::string& id, const BNGLLTYPE& loc);
   ASTExprNode* new_dbl_node(const double val, const BNGLLTYPE& loc);
   ASTExprNode* new_dbl_node(const double val, const ASTBaseNode* loc);
+  ASTExprNode* new_dbl_node(const double val);
   ASTExprNode* new_llong_node(const long long val, const BNGLLTYPE& loc);
 
   ASTExprNode* new_expr_node(

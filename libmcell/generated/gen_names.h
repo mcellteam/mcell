@@ -168,6 +168,7 @@ const char* const NAME_OP2 = "op2";
 const char* const NAME_ORIENTATION = "orientation";
 const char* const NAME_OTHER = "other";
 const char* const NAME_OUTPUT_FILES_PREFIX = "output_files_prefix";
+const char* const NAME_PARAMETER_OVERRIDES = "parameter_overrides";
 const char* const NAME_PARTITION_DIMENSION = "partition_dimension";
 const char* const NAME_POS = "pos";
 const char* const NAME_POS3D = "pos3d";

@@ -327,3 +327,7 @@ Subsystem:
     - name: file_name
       type: str      
       
+    - name: parameter_overrides
+      type: Dict[str, float]
+      default: empty
+      

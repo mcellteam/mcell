@@ -30,7 +30,7 @@ namespace API {
 
 namespace bngl_utils {
 
-std::map<std::string, float_t> load_bngl_parameters(const std::string& file_name);
+std::map<std::string, float_t> load_bngl_parameters(const std::string& file_name, const std::map<std::string, float_t>& parameter_overrides = std::map<std::string, float_t>());
 
 } // namespace bngl_utils
 

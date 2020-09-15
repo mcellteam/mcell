@@ -66,11 +66,11 @@ std::string Observables::get_first_viz_output_files_prefix(const char* method_na
 void Observables::load_bngl_observables(
     const std::string& file_name,
     std::shared_ptr<Subsystem> subsystem,
-    const std::string& output_files_prefix
-) {
+    const std::string& output_files_prefix,
+    const std::map<std::string, float_t>& parameter_overrides) {
   BNG::BNGData bng_data;
 
-  int num_errors = BNG::parse_bngl_file(file_name, bng_data);
+  int num_errors = BNG::parse_bngl_file(file_name, bng_data, parameter_overrides);
   if (num_errors != 0) {
     throw RuntimeError("Could not parse BNGL file " + file_name + ".");
   }

@@ -439,6 +439,8 @@ def get_default_or_unset_value(attr):
         return UNSET_VALUE_ORIENTATION
     elif is_yaml_list_type(t):
         return yaml_type_to_cpp_type(t) + '()'
+    elif is_yaml_dict_type(t):
+        return yaml_type_to_cpp_type(t) + '()'
     else:
         return UNSET_VALUE_PTR
 

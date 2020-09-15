@@ -57,7 +57,7 @@ public:
   // --- methods ---
   virtual void add_viz_output(std::shared_ptr<VizOutput> viz_output) = 0;
   virtual void add_count(std::shared_ptr<Count> count) = 0;
-  virtual void load_bngl_observables(const std::string& file_name, std::shared_ptr<Subsystem> subsystem, const std::string& output_files_prefix) = 0;
+  virtual void load_bngl_observables(const std::string& file_name, std::shared_ptr<Subsystem> subsystem, const std::string& output_files_prefix, const std::map<std::string, float_t>& parameter_overrides = std::map<std::string, float_t>()) = 0;
 }; // GenObservables
 
 class Observables;

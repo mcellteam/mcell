@@ -20,6 +20,12 @@ bngl_utils:
   methods:
   - name: load_bngl_parameters
     return_type: Dict[str, float]
+    
     params:
     - name: file_name
       type: str
+
+    - name: parameter_overrides
+      type: Dict[str, float]
+      default: empty
+      

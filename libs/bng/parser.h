@@ -9,6 +9,9 @@
 #define LIBS_BNG_PARSER_H_
 
 #include <string>
+#include <map>
+
+#include "bng_defines.h"
 
 namespace BNG {
 
@@ -19,7 +22,11 @@ class CplxInstance;
 // returns number of errors encountered while parsing
 // prints errors and warnings directly to the error output
 // !! function is not reentrant
-int parse_bngl_file(const std::string& file_name, BNGData& bng_data);
+int parse_bngl_file(
+    const std::string& file_name,
+    BNGData& bng_data,
+    const std::map<std::string, float_t>& parameter_overrides = std::map<std::string, float_t>()
+);
 
 
 // parses input BNGL complex instance string and performs

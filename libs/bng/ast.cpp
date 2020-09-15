@@ -241,6 +241,14 @@ ASTExprNode* ParserContext::new_dbl_node(const double val, const ASTBaseNode* lo
 }
 
 
+ASTExprNode* ParserContext::new_dbl_node(const double val) {
+  ASTExprNode* n = new ASTExprNode;
+  n->set_dbl(val);
+  n->has_loc = false;
+  remember_node(n);
+  return n;
+}
+
 ASTExprNode* ParserContext::new_llong_node(const long long val, const BNGLLTYPE& loc) {
   ASTExprNode* n = new ASTExprNode;
   n->set_llong(val);

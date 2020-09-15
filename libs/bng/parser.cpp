@@ -17,7 +17,11 @@ extern FILE *bnglin;
 
 namespace BNG {
 
-int parse_bngl_file(const std::string& file_name, BNGData& bng_data) {
+int parse_bngl_file(
+    const std::string& file_name,
+    BNGData& bng_data,
+    const std::map<std::string, float_t>& parameter_overrides) {
+
   bng_data.clear();
 
   create_parser_context();
@@ -40,7 +44,7 @@ int parse_bngl_file(const std::string& file_name, BNGData& bng_data) {
   }
 
   BNG::SemanticAnalyzer sema;
-  sema.check_and_convert_parsed_file(ctx, &bng_data);
+  sema.check_and_convert_parsed_file(ctx, &bng_data, parameter_overrides);
 
   ctx->print_error_report();
 

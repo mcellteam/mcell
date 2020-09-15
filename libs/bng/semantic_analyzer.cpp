@@ -154,14 +154,46 @@ void SemanticAnalyzer::resolve_rxn_rates() {
 
 
 // the following conversions do not use the bng_data.parameters map
-void SemanticAnalyzer::convert_parameters() {
+// if a parameter is in the map parameter_overrides, the supplied value is used instead
+void SemanticAnalyzer::convert_and_evaluate_parameters(
+    const std::map<std::string, float_t>& parameter_overrides) {
+
+  // first go trough all parameter overrides and either change definition or add
+  // this parameter to the symbol table
+  ASTSymbolTable::IdToNodeMap& symtab_map = ctx->symtab.get_as_map();
+  for (auto it_override: parameter_overrides) {
+    // is defined?
+    auto it_found_sym = symtab_map.find(it_override.first);
+    if (it_found_sym != symtab_map.end()) {
+      // and it is a symbol
+      if (it_found_sym->second->is_expr()) {
+        // override its value
+        it_found_sym->second = ctx->new_dbl_node(it_override.second);
+      }
+      else {
+        errs() <<
+            "Cannot override symbol " << it_override.first << " that is not a parameter.\n";
+        ctx->inc_error_count();
+      }
+    }
+    else {
+      // define as a new symbol
+      ctx->symtab.insert(
+          it_override.first,
+          ctx->new_dbl_node(it_override.second),
+          ctx
+      );
+    }
+  }
+
   // every symbol that maps directly into a value is a parameter
-  for (auto it: ctx->symtab.get_as_map()) {
-    if (it.second->is_expr()) {
-      ASTExprNode* orig_expr = to_expr_node(it.second);
+  // evaluate them and store
+  for (auto it_sym: ctx->symtab.get_as_map()) {
+    if (it_sym.second->is_expr()) {
+      ASTExprNode* orig_expr = to_expr_node(it_sym.second);
       ASTExprNode* new_expr = evaluate_to_dbl(orig_expr);
 
-      bng_data->add_parameter(it.first, new_expr->get_dbl());
+      bng_data->add_parameter(it_sym.first, new_expr->get_dbl());
     }
   }
 }
@@ -732,7 +764,11 @@ void SemanticAnalyzer::convert_observables() {
 
 
 // returns true if conversion and semantic checks passed
-bool SemanticAnalyzer::check_and_convert_parsed_file(ParserContext* ctx_, BNGData* res_bng) {
+bool SemanticAnalyzer::check_and_convert_parsed_file(
+    ParserContext* ctx_,
+    BNGData* res_bng,
+    const std::map<std::string, float_t>& parameter_overrides) {
+
   assert(ctx_ != nullptr);
   assert(res_bng != nullptr);
 
@@ -740,7 +776,7 @@ bool SemanticAnalyzer::check_and_convert_parsed_file(ParserContext* ctx_, BNGDat
   bng_data = res_bng;
 
   // the following conversions do not use the bng_data.parameters map
-  convert_parameters();
+  convert_and_evaluate_parameters(parameter_overrides);
 
   // first compute all reaction rates
   resolve_rxn_rates();

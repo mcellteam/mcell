@@ -90,7 +90,8 @@ public:
   void load_bngl(
       const std::string& file_name,
       const std::string& observables_files_prefix,
-      std::shared_ptr<Region> default_release_region = nullptr
+      std::shared_ptr<Region> default_release_region = nullptr,
+      const std::map<std::string, float_t>& parameter_overrides = std::map<std::string, float_t>()
   ) override;
 
   void error_if_initialized(const char* what) {
