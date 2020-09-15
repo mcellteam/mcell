@@ -1065,6 +1065,37 @@ static bool is_graph_unique_wrt_modified_ordering(
 }
 
 
+static bool less_pattern_reactant_mappings(
+    const VertexMapping& m1, const VertexMapping& m2
+) {
+  for (auto it1: m1) {
+    auto it2 = m2.find(it1.first);
+    release_assert(it2 != m2.end() && "All patern nodes must be mapped");
+
+    if (it1.second != it2->second) {
+      return it1.second < it2->second;
+    }
+  }
+  release_assert(false && "Got identical mapping");
+  return false;
+}
+
+
+static void sort_mappings(VertexMappingVector& mappings) {
+  // used to get different results on Linux and MacOS,
+  // need to sort the mappings in some way,
+  // there should not be many elements in each of those mappings,
+  // so the comparison is not very efficient,
+  // NOTE: maybe we will need to optimize this
+
+  std::sort(
+      mappings.begin(),
+      mappings.end(),
+      less_pattern_reactant_mappings
+  );
+}
+
+
 void RxnRule::create_products_for_complex_rxn(
     SpeciesContainer& all_species,
     const BNGConfig& bng_config,
@@ -1161,8 +1192,6 @@ void RxnRule::create_products_for_complex_rxn(
     );
   }
 
-  // TODO: sort the mappings somehow?
-
   // and append mappings for cases when patterns match both reactants
 
   assert(pattern_reactant_mappings.size() != 0 &&
@@ -1179,6 +1208,10 @@ void RxnRule::create_products_for_complex_rxn(
   // decide whether only cache the possible products
   if (pattern_reactant_mappings.size() > MAX_IMMEDIATELLY_COMPUTED_PRODUCT_SETS_PER_RXN &&
       !has_flag(RXN_FLAG_MAY_PRODUCE_MUTLIPLE_IDENTICAL_PRODUCTS)) {
+
+    // sort the mappings to make sure we get identical results everywhere
+    // for the non-cached variant, the pathways are sorted by names of products
+    sort_mappings(pattern_reactant_mappings);
 
     for (const VertexMapping& mapping: pattern_reactant_mappings) {
       // define the products as species
