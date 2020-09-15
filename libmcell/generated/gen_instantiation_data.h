@@ -60,7 +60,7 @@ public:
   virtual std::shared_ptr<ReleaseSite> find_release_site(const std::string& name) = 0;
   virtual void add_geometry_object(std::shared_ptr<GeometryObject> o) = 0;
   virtual std::shared_ptr<GeometryObject> find_geometry_object(const std::string& name) = 0;
-  virtual void load_bngl_seed_species(const std::string& filename, std::shared_ptr<Subsystem> subsystem, std::shared_ptr<Region> default_release_region = nullptr) = 0;
+  virtual void load_bngl_seed_species(const std::string& file_name, std::shared_ptr<Subsystem> subsystem, std::shared_ptr<Region> default_release_region = nullptr) = 0;
 }; // GenInstantiationData
 
 class InstantiationData;
