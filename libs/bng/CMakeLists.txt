@@ -73,5 +73,5 @@ add_executable(test_${PROJECT_NAME}
 	test.cpp # only for development
 )
 target_link_libraries(test_${PROJECT_NAME}
-	nauty
+	PUBLIC nauty
 )

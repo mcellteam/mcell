@@ -391,7 +391,7 @@ pybind11_add_module(mcell4_so MODULE
 add_dependencies(mcell4_so libmcell mcell4 bng jsoncpp_lib)
 target_link_libraries(mcell4_so 
     PUBLIC libmcell
-    PRIVATE mcell4 bng jsoncpp_lib ${VTK_LIBRARIES} ${GPERFTOOLS_LIB}
+    PRIVATE mcell4 bng jsoncpp_lib nauty ${VTK_LIBRARIES} ${GPERFTOOLS_LIB}
 )
 set_property(TARGET mcell4_so PROPERTY POSITION_INDEPENDENT_CODE ON)
 set_target_properties(mcell4_so PROPERTIES PREFIX "")
@@ -409,11 +409,11 @@ add_executable(mcell
 
 TARGET_COMPILE_DEFINITIONS(mcell PRIVATE NOSWIG=1)
 add_dependencies(mcell version_h mcell4)  
-target_link_libraries(mcell mcell4 bng nfsim_c_static NFsim_static jsoncpp_lib ${VTK_LIBRARIES})
+target_link_libraries(mcell mcell4 bng nfsim_c_static NFsim_static jsoncpp_lib nauty ${VTK_LIBRARIES})
 
 if (PYMCELL AND NOT WIN32 AND NOT CYGWIN)
     add_dependencies(pymcell mcell4 version_h bng nfsim_c NFsim jsoncpp_lib)
-    target_link_libraries(pymcell mcell4 ${VTK_LIBRARIES})
+    target_link_libraries(pymcell mcell4 nauty ${VTK_LIBRARIES})
     set_target_properties(pymcell PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/python)	
 endif()
 
