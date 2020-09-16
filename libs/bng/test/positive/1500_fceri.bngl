@@ -1,0 +1,125 @@
+# OK
+
+# this model uses components that have the same name (a)
+# but different allowed states:
+#  Syk(a~Y~pY,l~Y~pY,tSH2)
+#  Rec(a,b~Y~pY,g~Y~pY)
+
+begin model
+begin parameters
+  # Conversion factors
+  NA_um3 6.022e8
+  vol_rxn  1 #
+  surf_rxn 1 # Tag used for unit conversion in CellBlender import
+  # Geometric factors
+  rxn_layer_t  0.01
+  vol_EC  39 # Should figure out what concentration of ligand this corresponds to
+  vol_PM  0.6*rxn_layer_t # Area*thickness
+  vol_CP  1  # about 1/500 full cell volume
+  # Initial counts
+  Lig_tot  1000 #6000    # Default: 6.0e3
+  Rec_tot   400    # Default: 4.0e2
+  Syk_tot   400    # Default: 4e2
+  Lyn_tot   280    # Default 2.8e2
+  # Rate constants
+  kp1  vol_rxn*1e5/NA_um3 # 1/M 1/s conversion to -> um^3/s #volume reaction
+  km1  0.00 #reverse binding is zero so binding is irreversible
+  kp2  surf_rxn*1e5/NA_um3 # 1/M 1/s -> um^3/s (conversion to um^2/s happens upon division by V_PM
+  km2  0.00
+  kpL  surf_rxn*1e7/NA_um3 #lim tyrosine kinase
+  kmL  20
+  kpLs surf_rxn*1e7/NA_um3 #another mode by which kinase associates with ligand receptor
+  kmLs  0.12
+  pLb  30
+  pLbs  100
+  pLg  1
+  pLgs 3
+  kpS  vol_rxn*1e7/NA_um3
+  kmS  0.13
+  pLS  30
+  pLSs  100
+  pSS  100
+  pSSs  200
+  dc  0.1
+  dm  0.1
+   # MCELL parameters
+  MCELL_REDEFINE_vol_rxn  NA_um3 #takes from microcubed to molar per second since this is what mcell likes
+  #MCELL_REDEFINE_surf_rxn 1/rxn_layer_t
+  MCELL_TIME_STEP 1e-4
+  MCELL_ITERATIONS 100 #10/MCELL_TIME_STEP
+  MCELL_VACANCY_SEARCH_DISTANCE  10
+  MCELL_DEFAULT_DIFFUSION_CONSTANT_2D  1.7e-7
+  MCELL_DEFAULT_DIFFUSION_CONSTANT_3D  8.51e-7
+  MCELL_DIFFUSION_CONSTANT_2D_Lyn  1.7e-7
+  MCELL_DIFFUSION_CONSTANT_2D_Rec  1.7e-7
+  MCELL_DIFFUSION_CONSTANT_3D_Lig  8.51e-7
+  MCELL_DIFFUSION_CONSTANT_3D_Syk  8.51e-7
+  
+  MCELL_NO_COMPARTMENT_SIZE 1/8    
+      
+end parameters
+begin molecule types
+  Lig(l,l)
+  Lyn(SH2,U)
+  Syk(a~Y~pY,l~Y~pY,tSH2)
+  Rec(a,b~Y~pY,g~Y~pY)
+end molecule types
+
+begin compartments
+
+  #EC 3 vol_EC
+  PM 2 vol_PM EC
+  CP 3 vol_CP PM
+
+end compartments
+
+begin seed species
+#   @EC:Lig(l,l)  Lig_tot # release sites, basically
+   Lig(l,l)@EC  Lig_tot # release sites, basically
+   @PM:Lyn(SH2,U)  Lyn_tot
+   @CP:Syk(a~Y,l~Y,tSH2)  Syk_tot
+   @PM:Rec(a,b~Y,g~Y)  Rec_tot
+end seed species
+begin observables
+  Molecules LigRecMon Lig(l!1,l).Rec(a!1)                                      # Should be: "COUNT[Rec(a!1).Lig(l!1,l), WORLD]"
+  Molecules LigRecDim Lig(l!1,l!2).Rec(a!1).Rec(a!2)                           # Should be: "COUNT[Rec(a!1).Lig(l!1,l!2).Rec(a!2), WORLD]"
+  Molecules LynFree Lyn(SH2,U)                                              # Should be: "COUNT[Lyn(U,SH2), WORLD]"
+  Molecules RecRecLigLynUg Rec(a!1,b).Lig(l!1,l!2).Rec(a!2,b!3).Lyn(SH2,U!3)  # Should be: "COUNT[Lig(l!1,l!2).Lyn(U!3,SH2).Rec(a!2,b!3).Rec(a!1,b), WORLD]"
+  Molecules RecPbeta Rec(b~pY!?)  #question means bound or not bound, i.e. regardless if bound to something esle, bind.                                          # Should be: "COUNT[Rec(b~pY!?), WORLD]"
+  Molecules RecPgamma Rec(g~pY), Rec(g~pY!+) #plus means there has to be at least one bond                               # Should be: "COUNT[Rec(g~pY),WORLD] + COUNT[Rec(g~pY!+), WORLD]"
+  Molecules RecSyk Syk(tSH2!1).Rec(g~pY!1)                                  # Should be: "COUNT[Rec(g~pY!1).Syk(tSH2!1), WORLD]"
+  Molecules RecSykPS Syk(a~pY,tSH2!1).Rec(g~pY!1)                           # Should be: "COUNT[Rec(g~pY!1).Syk(tSH2!1,a~pY), WORLD]"
+end observables
+#begin functions
+#  RboundTot() LigRecMon + LigRecDim
+  #count number of bound molecules #useful to know fraction of, for example phosphrylated molecs overall
+#end functions
+begin reaction rules
+  Rec(a) + Lig(l,l) <-> Lig(l,l!1).Rec(a!1) kp1,km1 #free ligand binding to receptor
+  Rec(a) + Lig(l,l!1).Rec(a!1) <-> Rec(a!2).Lig(l!2,l!1).Rec(a!1) kp2,km2 # surface reaction/cross linking reaction, reaction on m binds to ligand molecule which
+  Rec(b~Y) + Lyn(SH2,U) <-> Lyn(SH2,U!1).Rec(b~Y!1) kpL,kmL
+#  Rec(a!1,b~Y).Lig(l!1,l!2).Rec(a!2,b~Y!3).Lyn(SH2,U!3) -> Rec(a!1,b~pY).Lig(l!1,l!2).Rec(a!2,b~Y!3).Lyn(SH2,U!3) pLb
+#  Rec(a!1,g~Y).Lig(l!1,l!2).Rec(a!2,b~Y!3).Lyn(SH2,U!3) -> Rec(a!1,g~pY).Lig(l!1,l!2).Rec(a!2,b~Y!3).Lyn(SH2,U!3) pLg
+#  Rec(b~pY) + Lyn(SH2,U) <-> Lyn(SH2!1,U).Rec(b~pY!1) kpLs,kmLs
+#  Rec(a!1,b~Y).Lig(l!1,l!2).Rec(a!2,b~pY!3).Lyn(SH2!3,U) -> Rec(a!1,b~pY).Lig(l!1,l!2).Rec(a!2,b~pY!3).Lyn(SH2!3,U) pLbs
+#  Rec(a!1,g~Y).Lig(l!1,l!2).Rec(a!2,b~pY!3).Lyn(SH2!3,U) -> Rec(a!1,g~pY).Lig(l!1,l!2).Rec(a!2,b~pY!3).Lyn(SH2!3,U) pLgs
+#  Rec(g~pY) + Syk(tSH2) <-> Syk(tSH2!1).Rec(g~pY!1) kpS,kmS
+#  Rec(a!1,g~pY!4).Lig(l!1,l!2).Rec(a!2,b~Y!3).Lyn(SH2,U!3).Syk(l~Y,tSH2!4) -> Rec(a!1,g~pY!4).Lig(l!1,l!2).Rec(a!2,b~Y!3).Lyn(SH2,U!3).Syk(l~pY,tSH2!4) pLS
+#  Rec(a!1,g~pY!4).Lig(l!1,l!2).Rec(a!2,b~pY!3).Lyn(SH2!3,U).Syk(l~Y,tSH2!4) -> Rec(a!1,g~pY!4).Lig(l!1,l!2).Rec(a!2,b~pY!3).Lyn(SH2!3,U).Syk(l~pY,tSH2!4) pLSs
+#  Rec(a!1,g~pY!4).Lig(l!1,l!2).Rec(a!2,g~pY!3).Syk(a~Y,tSH2!3).Syk(a~Y,tSH2!4) -> Rec(a!1,g~pY!4).Lig(l!1,l!2).Rec(a!2,g~pY!3).Syk(a~Y,tSH2!3).Syk(a~pY,tSH2!4) pSS
+#  Rec(a!1,g~pY!4).Lig(l!1,l!2).Rec(a!2,g~pY!3).Syk(a~pY,tSH2!3).Syk(a~Y,tSH2!4) -> Rec(a!1,g~pY!4).Lig(l!1,l!2).Rec(a!2,g~pY!3).Syk(a~pY,tSH2!3).Syk(a~pY,tSH2!4) pSSs
+#  Rec(b~pY) -> Rec(b~Y) dm
+#  Rec(g~pY) -> Rec(g~Y) dm
+#  Syk(l~pY,tSH2!+) -> Syk(l~Y,tSH2!+) dm
+#  Syk(a~pY,tSH2!+) -> Syk(a~Y,tSH2!+) dm
+#  Syk(l~pY,tSH2) -> Syk(l~Y,tSH2) dc
+#  Syk(a~pY,tSH2) -> Syk(a~Y,tSH2) dc
+end reaction rules
+end model
+
+# Equilibration step
+setConcentration("@EC:Lig(l,l)",0)
+simulate({method=>"ode",suffix=>"equil",t_end=>600,n_steps=>100,print_functions=>1})
+# Add ligand and simulate
+setConcentration("@EC:Lig(l,l)","Lig_tot")
+simulate({method=>"ode",t_end=>600,n_steps=>100,print_functions=>1})

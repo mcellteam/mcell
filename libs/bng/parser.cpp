@@ -66,9 +66,9 @@ int parse_single_cplx_instance_string(
   ParserContext* ctx = get_parser_context();
 
 
-  // form input for parser, the @CPLX switches it to mode where it parses a single string
+  // form input for parser, the !CPLX switches it to a mode where it parses a single string
   char* input = new char[cplx_instance_string.size() + 32];
-  strcpy(input, "@CPLX ");
+  strcpy(input, "!CPLX ");
   strcat(input, cplx_instance_string.c_str());
 
   bngl_scan_string(input);

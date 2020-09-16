@@ -74,7 +74,7 @@ namespace BNG {
 // end reaction rules
 //
 %glr-parser
-%expect 3
+%expect 4
 
 %union {
   const char* str;
@@ -94,6 +94,7 @@ namespace BNG {
 %token TOK_PARAMETERS "parameters"
 %token TOK_MOLECULE "molecule"
 %token TOK_TYPES "types"
+%token TOK_COMPARTMENTS "compartments"
 %token TOK_REACTION "reaction"
 %token TOK_RULES "rules"
 %token TOK_SEED "seed"
@@ -101,12 +102,13 @@ namespace BNG {
 %token TOK_OBSERVABLES "observables"
 %token TOK_ACTIONS "actions"
 
-// special token to swithc parser to mode where it parses a single complex instance
-%token TOK_SINGLE_CPLX "@CPLX"
+// special token to switch parser to mode where it parses a single complex instance
+%token TOK_SINGLE_CPLX "!CPLX"
 
 %token <str> TOK_ID "identifier"
 %token <dbl> TOK_DBL "floating point constant"
 %token <llong> TOK_LLONG "integer constant"
+%token <str> TOK_STR "string literal"
 
 %token TOK_ARROW_RIGHT "->"
 %token TOK_ARROW_BIDIR "<->"
@@ -168,6 +170,7 @@ section:
     | TOK_BEGIN TOK_MOLECULE TOK_TYPES molecule_list_maybe_empty TOK_END TOK_MOLECULE TOK_TYPES {
         g_ctx->symtab.insert_molecule_declarations($4, g_ctx);
       }
+    | TOK_BEGIN TOK_COMPARTMENTS compartment_list_maybe_empty TOK_END TOK_COMPARTMENTS    
     | TOK_BEGIN TOK_REACTION TOK_RULES rxn_rule_list_maybe_empty TOK_END TOK_REACTION TOK_RULES 
     | TOK_BEGIN TOK_SEED TOK_SPECIES seed_species_list_maybe_empty TOK_END TOK_SEED TOK_SPECIES
     | TOK_BEGIN TOK_SPECIES seed_species_list_maybe_empty TOK_END TOK_SPECIES
@@ -288,6 +291,22 @@ bond_maybe_empty:
     }
 ;
     
+// ---------------- compartments -------------------    
+compartment_list_maybe_empty:
+	  compartment_list
+    | /* empty */ 
+;
+    
+compartment_list:
+      compartment_list compartment_decl
+	| compartment_decl
+;
+
+compartment_decl:
+      TOK_ID TOK_LLONG expr TOK_ID
+    | TOK_ID TOK_LLONG expr 
+;    
+	    
 // ---------------- rxn_rules ------------------- 
 rxn_rule_list_maybe_empty:
       rxn_rule_list
@@ -368,10 +387,24 @@ seed_species_list:
 ;
 
 seed_species_item:
-    cplx_instance expr {
-       BNG::ASTSeedSpeciesNode* n = g_ctx->new_seed_species_node($1, $2); 
+    compartment_prefix cplx_instance compartment_suffix expr {
+       BNG::ASTSeedSpeciesNode* n = g_ctx->new_seed_species_node($2, $4); 
        g_ctx->add_seed_species(n);
     }
+;
+
+compartment_prefix:
+      compartment ':'    
+    | /* empty */
+;    
+
+compartment_suffix:
+      compartment    
+    | /* empty */
+;    
+
+compartment:
+      '@' TOK_ID
 ;
 
 // similar to rxn_rule_side only contains one complex instance
@@ -428,10 +461,11 @@ action_call_list:
 ;
 
 action_call:
-      TOK_ID '(' action_arg_list_maybe_empty ')' maybe_semicolon
+      TOK_ID '(' arg_list_maybe_empty ')' maybe_semicolon
 
-action_arg_list_maybe_empty:
+arg_list_maybe_empty:
       '{' action_arg_list '}'
+    | function_arg_list
     | /* empty */
 ;
 
@@ -444,6 +478,15 @@ action_arg:
       id_incl_keywords TOK_ARG_ASSIGN expr_or_str
 ;
 
+function_arg_list:
+      function_arg_list ',' function_arg
+    | function_arg
+;
+
+function_arg:
+      expr_or_str
+;
+
 id_incl_keywords:
 	  TOK_ID
 	| TOK_BEGIN
@@ -452,6 +495,7 @@ id_incl_keywords:
 	| TOK_PARAMETERS
 	| TOK_MOLECULE
 	| TOK_TYPES
+	| TOK_COMPARTMENTS
 	| TOK_REACTION
 	| TOK_RULES
 	| TOK_SEED
@@ -467,7 +511,7 @@ maybe_semicolon:
  
 expr_or_str:
       expr 
-    | '"' TOK_ID '"'  // for now just id, we will need full string parsing in scanner      
+    | TOK_STR      
 ;
       
 // ---------------- expressions --------------------- 

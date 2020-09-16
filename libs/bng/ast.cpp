@@ -36,7 +36,7 @@ void ASTExprNode::dump(const std::string ind) const {
       cout << "Llong: " << llong;
       break;
     default:
-      assert(false);
+      cout << "expression";
   }
 
   cout << "\n";

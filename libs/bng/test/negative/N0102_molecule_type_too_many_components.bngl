@@ -1,0 +1,11 @@
+# FAIL
+# OUTPUT: error: Molecule type's 'A' component 'a' is used too many times.
+
+
+begin molecule types
+   A(a~P, a~P)
+end molecule types
+
+begin seed species
+   A(a~P, a~P, a~P) 1
+end seed species

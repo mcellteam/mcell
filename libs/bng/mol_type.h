@@ -19,6 +19,8 @@ class BNGData;
 
 class ComponentType {
 public:
+  // name of the component itself is not sufficient to uniquely identify it,
+  // it must be always searched with its molecule type in context
   std::string name;
   uint_set<state_id_t> allowed_state_ids;
 

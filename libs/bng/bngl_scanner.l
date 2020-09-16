@@ -45,6 +45,7 @@ I ([0-9]+)
 "model"         { LOC(); return TOK_MODEL; }
 "parameters"    { LOC(); return TOK_PARAMETERS; }
 "molecule"      { LOC(); return TOK_MOLECULE; }
+"compartments"  { LOC(); return TOK_COMPARTMENTS; }
 "types"         { LOC(); return TOK_TYPES; }
 "reaction"      { LOC(); return TOK_REACTION; }
 "rules"         { LOC(); return TOK_RULES; }
@@ -53,13 +54,14 @@ I ([0-9]+)
 "observables"   { LOC(); return TOK_OBSERVABLES; }
 "actions"       { LOC(); return TOK_ACTIONS; }
 
-"@CPLX" 		{ LOC(); return TOK_SINGLE_CPLX; }
+"!CPLX" 		{ LOC(); return TOK_SINGLE_CPLX; }
 
     /* numbers and identifiers */
 
 {R}             { LOC(); bngllval.dbl = BNG::convert_to_dbl(bngltext); return TOK_DBL; } /* must contain decimal point */
 {I}             { LOC(); bngllval.llong = BNG::convert_dec_to_llong(bngltext); return TOK_LLONG; }
 {ID}            { LOC(); bngllval.str = g_ctx->insert_to_string_pool(yytext); return TOK_ID; }
+\"([^\\\"]|\\.)*\" { LOC(); bngllval.str = g_ctx->insert_to_string_pool(yytext); return TOK_STR; } 
                         
     /* other characters */
     
@@ -67,7 +69,7 @@ I ([0-9]+)
 "<->"           { LOC(); return TOK_ARROW_BIDIR; }
 "=>"            { LOC(); return TOK_ARG_ASSIGN; }
 
-[\~\,\!\?\.\(\)\/\+\-\*\^\{\}\"\=\;]  { LOC(); return bngltext[0];}
+[\~\,\!\?\.\(\)\/\+\-\*\^\{\}\"\=\;\@\:]  { LOC(); return bngltext[0];}
 
 .               { LOC(); errs() << "Unexpected character '" << bngltext[0] << "'.\n"; return bngltext[0]; }
 %%
