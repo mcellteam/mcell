@@ -303,8 +303,16 @@ compartment_list:
 ;
 
 compartment_decl:
-      TOK_ID TOK_LLONG expr TOK_ID
-    | TOK_ID TOK_LLONG expr 
+      TOK_ID TOK_LLONG expr TOK_ID {
+        g_ctx->add_compartment(
+            g_ctx->new_compartment_node($1, $2, $3, $4, @1)
+        );
+    }
+    | TOK_ID TOK_LLONG expr {
+        g_ctx->add_compartment(
+            g_ctx->new_compartment_node($1, $2, $3, "", @1)
+        );
+    }
 ;    
 	    
 // ---------------- rxn_rules ------------------- 

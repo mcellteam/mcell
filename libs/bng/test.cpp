@@ -56,8 +56,9 @@ int parse_bngl(char const *name, const bool dump_ast, const bool dump_bng_data) 
 
 int main(int argc, const char* argv[]) {
 
-  if (argc != 2 && argc != 3) {
-    cerr << "Expected input file as argument, second optional arg enables AST dump\n";
+  if ((argc == 2 && strcmp(argv[1], "-h") == 0) || (argc != 2 && argc != 3)) {
+    cerr << "Expected input file as argument, second optional arg (-a or -b) enables AST or BNG dump\n";
+    return 1;
   }
 
   bool dump_ast = false;

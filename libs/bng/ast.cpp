@@ -112,6 +112,18 @@ void ASTMoleculeNode::dump(const std::string ind) const {
 
 
 // ------------------------------- ASTMoleculeNode ------------------------
+void ASTCompartmentNode::dump(const std::string ind) const {
+  cout << ind <<
+      "compartment: name='" << name <<
+      "', dimensions " << dimensions <<
+      ", volume (expression, not evaluated)"
+      ", parent: '" << parent_name << "'\n";
+
+  ASTBaseNode::dump(ind);
+}
+
+
+// ------------------------------- ASTMoleculeNode ------------------------
 void ASTRxnRuleNode::dump(const std::string ind) const {
   cout << ind << "reaction rule: name='" << name << "', reversible: " << (reversible?"true":"false") << "\n";
   cout << ind << "  reactants:\n";
@@ -343,6 +355,24 @@ ASTMoleculeNode* ParserContext::new_molecule_node(
 }
 
 
+ASTCompartmentNode* ParserContext::new_compartment_node(
+    const std::string& name,
+    const int dimensions,
+    ASTExprNode* volume,
+    const std::string parent_name,
+    const BNGLLTYPE& loc
+) {
+  ASTCompartmentNode* n = new ASTCompartmentNode();
+  n->name = name;
+  n->dimensions = dimensions;
+  n->volume = volume;
+  n->parent_name = parent_name;
+  n->set_loc(current_file, loc);
+  remember_node(n);
+  return n;
+}
+
+
 ASTRxnRuleNode* ParserContext::new_rxn_rule_node(
     ASTListNode* reactants,
     const bool reversible,
@@ -422,10 +452,14 @@ void ParserContext::internal_error(const ASTBaseNode* loc, const std::string msg
 void ParserContext::dump() {
   cout << "-- ASTContext dump --\n";
   symtab.dump();
+  cout << "compartments:\n";
+  compartments.dump(IND2);
   cout << "reaction rules:\n";
   rxn_rules.dump(IND2);
   cout << "seed species:\n";
   seed_species.dump(IND2);
+  cout << "observables:\n";
+  observables.dump(IND2);
 }
 
 

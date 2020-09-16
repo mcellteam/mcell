@@ -36,8 +36,9 @@ enum class NodeType {
   Invalid,
   Expr,
   List,
-  Molecule,
   Component,
+  Molecule,
+  Compartment,
   RxnRule,
   SeedSpecies,
   Observable,
@@ -106,12 +107,16 @@ public:
     return node_type == NodeType::List;
   }
 
+  bool is_component() const {
+    return node_type == NodeType::Component;
+  }
+
   bool is_molecule() const {
     return node_type == NodeType::Molecule;
   }
 
-  bool is_component() const {
-    return node_type == NodeType::Component;
+  bool is_compartment() const {
+    return node_type == NodeType::Compartment;
   }
 
   bool is_rxn_rule() const {
@@ -334,6 +339,22 @@ public:
 };
 
 
+// declaration of a compartment, it is referenced by its name in complexes
+class ASTCompartmentNode: public ASTBaseNode {
+public:
+  ASTCompartmentNode()
+    : dimensions(0), volume(nullptr)  {
+    node_type = NodeType::Compartment;
+  }
+  void dump(const std::string ind) const override;
+
+  std::string name;
+  int dimensions; // expression that must evaluate to a constant 2 or 3
+  ASTExprNode* volume;
+  std::string parent_name; // parent name may be "" - this specifies a top level compartment
+};
+
+
 class ASTRxnRuleNode: public ASTBaseNode {
 public:
   ASTRxnRuleNode()
@@ -453,6 +474,14 @@ public:
       const BNGLLTYPE& loc
   );
 
+  ASTCompartmentNode* new_compartment_node(
+      const std::string& name,
+      const int dimensions,
+      ASTExprNode* volume,
+      const std::string parent_name, // may be ""
+      const BNGLLTYPE& loc
+  );
+
   ASTRxnRuleNode* new_rxn_rule_node(
       ASTListNode* reactants,
       const bool reversible,
@@ -471,6 +500,11 @@ public:
       ASTListNode* cplx_instances,
       const BNGLLTYPE& loc // location may be used to report wrong observable type
   );
+
+  void add_compartment(ASTCompartmentNode* n) {
+    assert(n != nullptr);
+    compartments.append(n);
+  }
 
   void add_rxn_rule(ASTRxnRuleNode* n) {
     assert(n != nullptr);
@@ -491,6 +525,8 @@ public:
   // molecules from molecule types sections
   // and rules from reaction rules sections
   ASTSymbolTable symtab;
+
+  ASTListNode compartments;
 
   ASTListNode rxn_rules;
 
@@ -586,16 +622,22 @@ static inline ASTMoleculeNode* to_molecule_node(ASTBaseNode* n) {
   return dynamic_cast<ASTMoleculeNode*>(n);
 }
 
+static inline const ASTComponentNode* to_component_node(const ASTBaseNode* n) {
+  assert(n != nullptr);
+  assert(n->is_component());
+  return dynamic_cast<const ASTComponentNode*>(n);
+}
+
 static inline const ASTMoleculeNode* to_molecule_node(const ASTBaseNode* n) {
   assert(n != nullptr);
   assert(n->is_molecule());
   return dynamic_cast<const ASTMoleculeNode*>(n);
 }
 
-static inline const ASTComponentNode* to_component_node(const ASTBaseNode* n) {
+static inline const ASTCompartmentNode* to_compartment_node(const ASTBaseNode* n) {
   assert(n != nullptr);
-  assert(n->is_component());
-  return dynamic_cast<const ASTComponentNode*>(n);
+  assert(n->is_compartment());
+  return dynamic_cast<const ASTCompartmentNode*>(n);
 }
 
 static inline ASTRxnRuleNode* to_rxn_rule_node(ASTBaseNode* n) {
