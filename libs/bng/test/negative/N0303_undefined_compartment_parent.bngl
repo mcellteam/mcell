@@ -1,0 +1,8 @@
+# FAIL
+# OUTPUT: error: Compartment's 'B' parent 'C' was not defined.
+
+
+begin compartments
+   A 2 1 B
+   B 2 1 C
+end compartments

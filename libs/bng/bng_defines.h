@@ -55,6 +55,9 @@ const bond_value_t BOND_VALUE_ANY = UINT32_MAX - 3; // for '?' in patterns such 
 typedef uint mol_type_id_t;
 const mol_type_id_t MOL_TYPE_ID_INVALID = ID_INVALID;
 
+typedef uint compartment_id_t;
+const compartment_id_t COMPARTMENT_ID_INVALID = ID_INVALID;
+
 // rxn rules are always global and presumed to be constant
 typedef uint rxn_rule_id_t;
 const rxn_rule_id_t RXN_RULE_ID_INVALID = ID_INVALID;

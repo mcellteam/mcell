@@ -1,0 +1,8 @@
+# FAIL
+# OUTPUT: error: Compartment 'A' was already defined.
+
+
+begin compartments
+   A 2 1
+   A 2 1
+end compartments

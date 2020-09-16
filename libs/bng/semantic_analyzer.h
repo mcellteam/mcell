@@ -47,6 +47,8 @@ private:
   );
   void convert_and_store_molecule_types();
 
+  void convert_and_store_compartments();
+
   void merge_molecule_type_definition(MolType& dstsrc, const MolType& src);
   void collect_molecule_types_molecule_list(
       const ASTListNode* molecule_list,

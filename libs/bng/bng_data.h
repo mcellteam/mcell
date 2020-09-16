@@ -38,13 +38,25 @@ enum class ObservableType {
 
 class Observable {
 public:
-  Observable(const BNGData* bng_data)
+  Observable()
     : type(ObservableType::Invalid) {
   }
 
   ObservableType type;
   std::string name;
   std::vector<CplxInstance> patterns;
+};
+
+
+class Compartment {
+public:
+  Compartment()
+    : is_3d(true), volume(FLT_INVALID) {
+  }
+  std::string name;
+  bool is_3d; // 2d if this member is false
+  float_t volume;
+  std::string parent_name;
 };
 
 
@@ -63,6 +75,9 @@ private:
 
   // indexed with molecule_type_id_t
   std::vector<MolType> molecule_types;
+
+  // indexed with compartment_id_t
+  std::vector<Compartment> compartments;
 
   // indexed with rxn_rule_id_t
   // rxn rules are then in rxn container, this is a temporary placeholder
@@ -136,6 +151,16 @@ public:
     return molecule_types;
   }
 
+  // -------- compartments --------
+  // asserts if compartment with the same name already exists
+  compartment_id_t add_compartment(const Compartment& c);
+
+  // returns COMPARTMENT_ID_INVALID if compartment with this name was not found
+  compartment_id_t find_compartment_id(const std::string& name) const;
+
+  const std::vector<Compartment>& get_compartments() const {
+    return compartments;
+  }
   // -------- reaction rules --------
 
   rxn_rule_id_t find_or_add_rxn_rule(const RxnRule& rr);

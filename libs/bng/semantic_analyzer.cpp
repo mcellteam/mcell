@@ -290,6 +290,64 @@ void SemanticAnalyzer::convert_and_store_molecule_types() {
 }
 
 
+void SemanticAnalyzer::convert_and_store_compartments() {
+  for (size_t i = 0; i < ctx->compartments.items.size(); i++) {
+    const ASTCompartmentNode* n = to_compartment_node(ctx->compartments.items[i]);
+    Compartment c;
+
+    // name
+    if (bng_data->find_compartment_id(n->name) != COMPARTMENT_ID_INVALID) {
+      errs_loc(n) <<
+          "Compartment '" << n->name << "' was already defined.\n"; // test N0302
+      ctx->inc_error_count();
+      continue;
+    }
+    c.name = n->name;
+
+    // dimensions
+    if (n->dimensions != 2 && n->dimensions != 3) {
+      errs_loc(n) <<
+          "Compartment '" << n->name << "' has invalid dimension of value " << n->dimensions <<
+          ", the only values allowed are 2 or 3.\n"; // test N0300
+      ctx->inc_error_count();
+      continue;
+    }
+    c.is_3d = n->dimensions == 3;
+
+    // volume
+    ASTExprNode* evaluated_volume = evaluate_to_dbl(n->volume);
+    float_t volume = evaluated_volume->get_dbl();
+    if (volume <= 0) {
+      errs_loc(n) <<
+          "Compartment '" << n->name << "' has negative volume " << volume << ".\n"; // test N0301
+      ctx->inc_error_count();
+      continue;
+    }
+    c.volume = volume;
+
+    // parent_name
+    c.parent_name = n->name;
+
+    bng_data->add_compartment(c);
+  }
+
+  if (ctx->get_error_count()) {
+    return;
+  }
+
+  // check that all parents were defined
+  for (size_t i = 0; i < ctx->compartments.items.size(); i++) {
+    const ASTCompartmentNode* n = to_compartment_node(ctx->compartments.items[i]);
+    if (n->parent_name != "" && bng_data->find_compartment_id(n->parent_name) == COMPARTMENT_ID_INVALID) {
+      errs_loc(n) <<
+          "Compartment's '" << n->name << "' parent '" << n->parent_name << "' was not defined.\n"; // test N0303
+      ctx->inc_error_count();
+      continue;
+    }
+  }
+}
+
+
 void SemanticAnalyzer::collect_molecule_types_molecule_list(
     const ASTListNode* molecule_list,
     vector<const ASTMoleculeNode*>& molecule_nodes
@@ -732,7 +790,7 @@ void SemanticAnalyzer::convert_observables() {
   for (const ASTBaseNode* n: ctx->observables.items) {
     const ASTObservableNode* o_node = to_observable_node(n);
 
-    Observable o(bng_data);
+    Observable o;
 
     if (o_node->type == OBSERVABLE_MOLECULES) {
       o.type = ObservableType::Molecules;
@@ -791,6 +849,11 @@ bool SemanticAnalyzer::check_and_convert_parsed_file(
   // the single purpose of molecule types is to be able to check
   // that reaction rules and also new releases adhere to the molecule type template
   convert_and_store_molecule_types();
+  if (ctx->get_error_count() != 0) {
+    return false;
+  }
+
+  convert_and_store_compartments();
   if (ctx->get_error_count() != 0) {
     return false;
   }

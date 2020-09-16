@@ -1,0 +1,7 @@
+# FAIL
+# OUTPUT: error: Compartment 'A' has invalid dimension of value 4, the only values allowed are 2 or 3.
+
+
+begin compartments
+   A 4 1
+end compartments

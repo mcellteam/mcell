@@ -67,7 +67,7 @@ end molecule types
 
 begin compartments
 
-  #EC 3 vol_EC
+  EC 3 vol_EC
   PM 2 vol_PM EC
   CP 3 vol_CP PM
 

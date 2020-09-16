@@ -1,0 +1,7 @@
+# FAIL
+# OUTPUT: error: Compartment 'A' has negative volume -1.
+
+
+begin compartments
+   A 3 -1
+end compartments

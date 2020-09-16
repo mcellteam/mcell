@@ -99,6 +99,26 @@ mol_type_id_t BNGData::find_molecule_type_id(const std::string& name) const {
 }
 
 
+// asserts if compartment with the same name already exists
+compartment_id_t BNGData::add_compartment(const Compartment& c) {
+  assert(find_compartment_id(c.name) == COMPARTMENT_ID_INVALID);
+  compartment_id_t res = compartments.size();
+  compartments.push_back(c);
+  return res;
+}
+
+
+// returns COMPARTMENT_ID_INVALID if compartment with this name was not found
+compartment_id_t BNGData::find_compartment_id(const std::string& name) const {
+  for (compartment_id_t i = 0; i < compartments.size(); i++) {
+    if (compartments[i].name == name) {
+      return i;
+    }
+  }
+  return COMPARTMENT_ID_INVALID;
+}
+
+
 rxn_rule_id_t BNGData::find_or_add_rxn_rule(const RxnRule& rr) {
   // TODO LATER: check that if there is a reaction with the same
   //       reactants and products that the reaction rate is the same
