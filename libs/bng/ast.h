@@ -288,7 +288,8 @@ public:
 
 class ASTListNode: public ASTBaseNode {
 public:
-  ASTListNode() {
+  ASTListNode()
+    : compartment_for_cplx_instance(nullptr) {
     node_type = NodeType::List;
   }
   void dump(const std::string ind) const override;
@@ -304,6 +305,10 @@ public:
   }
 
   std::vector<ASTBaseNode*> items;
+
+  // list node is also used for complexes and we need to put a complexes
+  // compartment somewhere
+  ASTStrNode* compartment_for_cplx_instance;
 };
 
 
@@ -329,13 +334,14 @@ public:
 class ASTMoleculeNode: public ASTBaseNode {
 public:
   ASTMoleculeNode()
-    : components(nullptr) {
+    : components(nullptr), compartment(nullptr) {
     node_type = NodeType::Molecule;
   }
   void dump(const std::string ind) const override;
 
   std::string name;
   ASTListNode* components;
+  ASTStrNode* compartment; // nullptr when compartment is not set
 };
 
 
@@ -471,6 +477,7 @@ public:
   ASTMoleculeNode* new_molecule_node(
       const std::string& name,
       ASTListNode* components,
+      ASTStrNode* compartment,
       const BNGLLTYPE& loc
   );
 

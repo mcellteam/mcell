@@ -123,6 +123,7 @@ namespace BNG {
 %type <list_node> component_list_maybe_empty
 %type <list_node> component_list
 %type <molecule_node> molecule
+%type <str_node> molecule_compartment
 %type <list_node> molecule_list_maybe_empty
 %type <list_node> molecule_list
 %type <list_node> rxn_rule_side_or_zero
@@ -131,6 +132,8 @@ namespace BNG {
 %type <boolean> rxn_rule_direction
 %type <list_node> cplx_instance
 %type <list_node> cplx_instance_list
+%type <list_node> cplx_instance_w_compartment
+%type <str_node> cplx_compartment
 
 // operator associativities and precendences
 // unary minus has really lower precendence than power 
@@ -218,12 +221,21 @@ molecule_list:
 
 // fully general specification, might contain information on bonds, checked later in semantic checks 
 molecule:
-      TOK_ID '(' component_list_maybe_empty ')' {
-        $$ = g_ctx->new_molecule_node($1, $3, @1);    
+      TOK_ID '(' component_list_maybe_empty ')' molecule_compartment {
+        $$ = g_ctx->new_molecule_node($1, $3, $5, @1);    
       }
-    | TOK_ID {
+    | TOK_ID molecule_compartment {
         // no components neither parentheses
-        $$ = g_ctx->new_molecule_node($1, g_ctx->new_list_node(), @1);    
+        $$ = g_ctx->new_molecule_node($1, g_ctx->new_list_node(), $2, @1);    
+      }
+;
+
+molecule_compartment:
+      '@' TOK_ID {
+        $$ = g_ctx->new_str_node($2, @2);
+      }
+    | /* empty */ {
+        $$ = nullptr;
       }
 ;
 
@@ -342,7 +354,7 @@ rxn_rule_side_or_zero:
         }
         // 0 is the same as molecule name Null and Thrash, we will create a complex with a single molecule 
         $$ = g_ctx->new_list_node()->append(
-        	g_ctx->new_molecule_node("Null", g_ctx->new_list_node(), @1)
+        	g_ctx->new_molecule_node("Null", g_ctx->new_list_node(), nullptr, @1)
        	);
       }
 ;
@@ -395,27 +407,30 @@ seed_species_list:
 ;
 
 seed_species_item:
-    compartment_prefix cplx_instance compartment_suffix expr {
-       BNG::ASTSeedSpeciesNode* n = g_ctx->new_seed_species_node($2, $4); 
-       g_ctx->add_seed_species(n);
-    }
+      cplx_instance_w_compartment expr {
+
+        BNG::ASTSeedSpeciesNode* n = g_ctx->new_seed_species_node($1, $2); 
+        g_ctx->add_seed_species(n);
+      }
 ;
 
-compartment_prefix:
-      compartment ':'    
-    | /* empty */
-;    
-
-compartment_suffix:
-      compartment    
-    | /* empty */
-;    
-
-compartment:
-      '@' TOK_ID
-;
 
 // similar to rxn_rule_side only contains one complex instance
+cplx_instance_w_compartment: 
+      cplx_compartment cplx_instance {
+        $2->compartment_for_cplx_instance = $1;
+        $$ = $2;
+      }
+
+cplx_compartment:
+      '@' TOK_ID ':' {
+        $$ = g_ctx->new_str_node($2, @2);
+      }
+    | /* empty */ {
+        $$ = nullptr;
+      }
+;
+
 cplx_instance:
       cplx_instance '.' molecule {
         $1->append(g_ctx->new_separator_node(BNG::SeparatorType::Dot, @2));
@@ -426,7 +441,6 @@ cplx_instance:
         $$ = g_ctx->new_list_node()->append($1);
       }
 ;
-      
       
 // ---------------- observables ---------------------
       

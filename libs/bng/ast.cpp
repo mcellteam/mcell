@@ -72,6 +72,10 @@ void ASTSeparatorNode::dump(const std::string ind) const {
 
 // ------------------------------- ASTListNode ------------------------
 void ASTListNode::dump(const std::string ind) const {
+  if (compartment_for_cplx_instance != nullptr) {
+    cout << ind << "  compartment_for_cplx_instance:\n";
+    compartment_for_cplx_instance->dump(ind + IND4);
+  }
   if (items.empty()) {
     cout << ind << "(empty)\n";
   }
@@ -107,6 +111,10 @@ void ASTMoleculeNode::dump(const std::string ind) const {
   cout << ind << "  components:\n";
   assert(components != nullptr);
   components->dump(ind + IND4);
+  if (compartment != nullptr) {
+    cout << ind << "  compartment:\n";
+    compartment->dump(ind + IND4);
+  }
   ASTBaseNode::dump(ind);
 }
 
@@ -344,11 +352,13 @@ ASTComponentNode* ParserContext::new_component_node(
 ASTMoleculeNode* ParserContext::new_molecule_node(
     const std::string& name,
     ASTListNode* component_list,
+    ASTStrNode* compartment,
     const BNGLLTYPE& loc
 ) {
   ASTMoleculeNode* n = new ASTMoleculeNode();
   n->name = name;
   n->components = component_list;
+  n->compartment = compartment;
   n->set_loc(current_file, loc);
   remember_node(n);
   return n;
