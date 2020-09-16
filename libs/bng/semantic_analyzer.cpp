@@ -282,6 +282,12 @@ void SemanticAnalyzer::convert_and_store_molecule_types() {
     if (it.second->is_molecule()) {
       const ASTMoleculeNode* n = to_molecule_node(it.second);
 
+      if (n->has_compartment()) {
+        errs_loc(n) <<
+            "Compartments cannot be used in 'molecule types' section, error for molecule '" << n->name << "'.\n"; // test N0302
+        ctx->inc_error_count();
+        continue;
+      }
       MolType mt = convert_molecule_type(n);
 
       bng_data->find_or_add_molecule_type(mt);
@@ -573,9 +579,20 @@ MolInstance SemanticAnalyzer::convert_molecule_pattern(const ASTMoleculeNode* m)
 
 
 // for a pattern it is ok to not to list all components
-void SemanticAnalyzer::convert_complex_pattern(const small_vector<const ASTMoleculeNode*>& complex_nodes, CplxInstance& pattern) {
+void SemanticAnalyzer::convert_complex_pattern(
+    const small_vector<const ASTMoleculeNode*>& complex_nodes,
+    CplxInstance& pattern,
+    const bool allow_compartments
+) {
 
   for (const ASTMoleculeNode* m: complex_nodes) {
+    if (!allow_compartments && m->has_compartment()) {
+      errs_loc(m) <<
+          "Compartments are currently supported only in the seed species section.\n";
+      ctx->inc_error_count();
+      return;
+    }
+
     // molecule ids are based on their name
     pattern.mol_instances.push_back( convert_molecule_pattern(m) );
     if (ctx->get_error_count() != 0) {
@@ -615,10 +632,17 @@ void SemanticAnalyzer::convert_complex_pattern(const small_vector<const ASTMolec
 void SemanticAnalyzer::convert_cplx_inst_or_rxn_rule_side(
     const ASTListNode* rule_side,
     const bool convert_single_cplx_inst,
-    CplxInstanceVector& patterns) {
+    CplxInstanceVector& patterns,
+    const bool allow_compartments) {
+
+  if (!allow_compartments && rule_side->compartment_for_cplx_instance != nullptr) {
+    errs_loc(rule_side) <<
+        "Compartments are currently supported only in the seed species section.\n";
+    ctx->inc_error_count();
+    return;
+  }
 
   // check for NULL or TRASH reaction outputs
-  // TODO: better semantic checks are needed
   if (rule_side->items.size() == 1) {
     const ASTBaseNode* n = rule_side->items[0];
     const ASTMoleculeNode* m = to_molecule_node(n);
@@ -653,7 +677,7 @@ void SemanticAnalyzer::convert_cplx_inst_or_rxn_rule_side(
         }
 
         CplxInstance pattern(bng_data);
-        convert_complex_pattern(current_complex_nodes, pattern);
+        convert_complex_pattern(current_complex_nodes, pattern, allow_compartments);
         patterns.push_back(pattern);
 
         // start a new complex pattern
@@ -672,7 +696,7 @@ void SemanticAnalyzer::convert_cplx_inst_or_rxn_rule_side(
   assert(current_complex_nodes.empty() == rule_side->items.empty() && "Last set can be empty only if the patterns are empty");
   if (!current_complex_nodes.empty()) {
     CplxInstance pattern(bng_data);
-    convert_complex_pattern(current_complex_nodes, pattern);
+    convert_complex_pattern(current_complex_nodes, pattern, allow_compartments);
     if (ctx->get_error_count() != 0) {
       return;
     }
@@ -763,6 +787,37 @@ void SemanticAnalyzer::convert_and_store_rxn_rules() {
 }
 
 
+string SemanticAnalyzer::get_compartment_name(const ASTListNode* cplx_instance) {
+  string res = "";
+
+  if (cplx_instance->compartment_for_cplx_instance != nullptr) {
+    res = cplx_instance->compartment_for_cplx_instance->str;
+  }
+
+  // check also each molecule
+  for (size_t i = 0; i < cplx_instance->items.size(); i++) {
+    const ASTBaseNode* n = cplx_instance->items[i];
+    if (n->is_separator()) {
+      continue;
+    }
+    const ASTMoleculeNode* mol_node = to_molecule_node(n);
+    if (mol_node->compartment != nullptr) {
+
+      string new_name = mol_node->compartment->str;
+      if (res != "" && new_name != res) {
+        errs_loc(n) <<
+            "Compartment mismatch, complex instance cannot be in two different compartments '" <<
+            res << "' and '" << new_name << "'.\n"; // test N0307
+        ctx->inc_error_count();
+        return "";
+      }
+      res = new_name;
+    }
+  }
+  return res;
+}
+
+
 void SemanticAnalyzer::convert_seed_species() {
   for (const ASTBaseNode* n: ctx->seed_species.items) {
     const ASTSeedSpeciesNode* ss_node = to_seed_species_node(n);
@@ -770,12 +825,26 @@ void SemanticAnalyzer::convert_seed_species() {
     SeedSpecies ss(bng_data);
 
     CplxInstanceVector cplx_vec;
-    convert_cplx_inst_or_rxn_rule_side(ss_node->cplx_instance, true, cplx_vec);
+    convert_cplx_inst_or_rxn_rule_side(ss_node->cplx_instance, true, cplx_vec, true);
     if (ctx->get_error_count() != 0) {
       return;
     }
     assert(cplx_vec.size() == 1);
     ss.cplx_instance = cplx_vec[0];
+
+    // determine compartment
+    string compartment_name = get_compartment_name(ss_node->cplx_instance);
+    if (compartment_name != "") {
+      compartment_id_t cid =
+          bng_data->find_compartment_id(compartment_name);
+      if (cid == COMPARTMENT_ID_INVALID) {
+          errs_loc(n) <<
+              "Compartment '" << compartment_name << "' used in seed species was not defined.\n"; // tests N0305, N0306
+          ctx->inc_error_count();
+          continue;
+      }
+      ss.compartment_id = cid;
+    }
 
     ASTExprNode* orig_expr = to_expr_node(ss_node->count);
     ASTExprNode* new_expr = evaluate_to_dbl(orig_expr);

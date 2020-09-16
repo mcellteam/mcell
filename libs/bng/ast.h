@@ -339,6 +339,10 @@ public:
   }
   void dump(const std::string ind) const override;
 
+  bool has_compartment() const {
+    return compartment != nullptr;
+  }
+
   std::string name;
   ASTListNode* components;
   ASTStrNode* compartment; // nullptr when compartment is not set

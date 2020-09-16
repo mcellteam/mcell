@@ -21,11 +21,13 @@ class SeedSpecies {
 public:
   SeedSpecies(const BNGData* bng_data)
     : cplx_instance(bng_data),
-      count(0) {
+      count(0),
+      compartment_id(COMPARTMENT_ID_INVALID) {
   }
 
   CplxInstance cplx_instance;
-  float_t count; // count of molecules to be released, TODO: what about concentrations?
+  float_t count; // count of molecules to be released (exact value from the BNGL file)
+  compartment_id_t compartment_id; // compartment where molecules should be released
 };
 
 
