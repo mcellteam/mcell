@@ -426,10 +426,8 @@ MolInstance SemanticAnalyzer::convert_molecule_pattern(const ASTMoleculeNode* m)
   // make a multiset of components type ids so that we can check that
   // out molecule instance does not use wrong or too many components
   multiset<component_type_id_t> remaining_component_ids;
-  set<component_type_id_t> allowed_component_ids;
   for (component_type_id_t component_type_id: mt.component_type_ids) {
     remaining_component_ids.insert(component_type_id);
-    allowed_component_ids.insert(component_type_id);
   }
 
 
@@ -440,25 +438,27 @@ MolInstance SemanticAnalyzer::convert_molecule_pattern(const ASTMoleculeNode* m)
     // component_instances
     const ASTComponentNode* component = to_component_node(m->components->items[i]);
 
-    component_type_id_t component_type_id = bng_data->find_component_type_id(component->name);
+    // search in
+    component_type_id_t component_type_id =
+        bng_data->find_component_type_id(mt, component->name);
 
-    // can we use this component?
-    if (remaining_component_ids.count(component_type_id) == 0) {
-
-      // is it allowed at all?
-      if (allowed_component_ids.count(component_type_id) == 0) {
-        errs_loc(m) <<
-            "Molecule type '" << mt.name << "' does not declare component '" << component->name << "'.\n"; // test N0201
-      }
-      else {
-        errs_loc(m) <<
-            "Molecule type's '" << mt.name << "' component '" << component->name << "' is used too many times.\n";
-      }
+    if (component_type_id == COMPONENT_TYPE_ID_INVALID) {
+      errs_loc(m) <<
+          "Molecule type '" << mt.name << "' does not declare component '" << component->name << "'.\n"; // test N0201
       ctx->inc_error_count();
       return mi;
     }
 
-    // add this new component
+    // didn't we use the component too many times?
+    if (remaining_component_ids.count(component_type_id) == 0) {
+      errs_loc(m) <<
+          "Molecule type's '" << mt.name << "' component '" << component->name << "' is used too many times.\n"; // test N0102
+      ctx->inc_error_count();
+      return mi;
+    }
+    remaining_component_ids.erase(remaining_component_ids.find(component_type_id));
+
+    // add this component to our instance
     mi.component_instances.push_back(ComponentInstance(component_type_id));
 
     // state
@@ -565,7 +565,7 @@ void SemanticAnalyzer::convert_cplx_inst_or_rxn_rule_side(
     const ASTBaseNode* n = rule_side->items[0];
     const ASTMoleculeNode* m = to_molecule_node(n);
     if (is_thrash_or_null(m->name)) {
-      return; //
+      return;
     }
   }
 
@@ -713,6 +713,9 @@ void SemanticAnalyzer::convert_seed_species() {
 
     CplxInstanceVector cplx_vec;
     convert_cplx_inst_or_rxn_rule_side(ss_node->cplx_instance, true, cplx_vec);
+    if (ctx->get_error_count() != 0) {
+      return;
+    }
     assert(cplx_vec.size() == 1);
     ss.cplx_instance = cplx_vec[0];
 

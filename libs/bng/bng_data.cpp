@@ -60,10 +60,10 @@ component_type_id_t BNGData::find_or_add_component_type(const ComponentType& ct)
 }
 
 
-component_type_id_t BNGData::find_component_type_id(const std::string& name) const {
-  for (component_type_id_t i = 0; i < component_types.size(); i++) {
-    if (component_types[i].name == name) {
-      return i;
+component_type_id_t BNGData::find_component_type_id(const MolType& mt, const std::string& name) const {
+  for (component_type_id_t ct_id: mt.component_type_ids) {
+    if (component_types[ct_id].name == name) {
+      return ct_id;
     }
   }
   return COMPONENT_TYPE_ID_INVALID;
