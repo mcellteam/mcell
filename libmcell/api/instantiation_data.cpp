@@ -27,6 +27,8 @@
 #include "api/subsystem.h"
 #include "api/complex_instance.h"
 
+#include "generated/gen_geometry_utils.h"
+
 using namespace std;
 
 namespace MCell {
@@ -64,10 +66,24 @@ void InstantiationData::convert_bng_data_to_instantiation_data(
     Subsystem& subsystem,
     std::shared_ptr<Region> default_release_region) {
 
+  for (const BNG::Compartment& bng_comp: bng_data.get_compartments()) {
+    convert_compartment_to_box(bng_data, bng_comp);
+  }
+
   for (const BNG::SeedSpecies& bng_ss: bng_data.get_seed_species()) {
     convert_single_seed_species_to_release_site(bng_data, bng_ss, subsystem, default_release_region);
   }
 }
+
+
+void InstantiationData::convert_compartment_to_box(
+    const BNG::BNGData& bng_data,
+    const BNG::Compartment& bng_comp) {
+  float_t side = pow_f(bng_comp.volume, 1.0/3.0);
+  std::shared_ptr<GeometryObject> box = geometry_utils::create_box(bng_comp.name, side);
+  geometry_objects.push_back(box);
+}
+
 
 void InstantiationData::convert_single_seed_species_to_release_site(
     const BNG::BNGData& bng_data,
@@ -75,10 +91,6 @@ void InstantiationData::convert_single_seed_species_to_release_site(
     Subsystem& subsystem,
     std::shared_ptr<Region> default_release_region) {
 
-  if (!is_set(default_release_region)) {
-    throw ValueError(S("Parameter ") + NAME_DEFAULT_RELEASE_REGION +
-        " must be currently always set because compartments are not supported yet.");
-  }
 
   auto rel_site = make_shared<API::ReleaseSite>();
 
@@ -86,11 +98,24 @@ void InstantiationData::convert_single_seed_species_to_release_site(
   rel_site->complex_instance =
       subsystem.convert_cplx_instance(bng_data, bng_ss.cplx_instance);
 
+  if (bng_ss.compartment_id != BNG::COMPARTMENT_ID_INVALID) {
+    string compartment_name = bng_data.get_compartment(bng_ss.compartment_id).name;
+    rel_site->region = find_geometry_object(compartment_name);
+  }
+  else {
+    if (!is_set(default_release_region)) {
+      throw ValueError(S("Seed species specification for complex instance ") +
+          rel_site->complex_instance->name + " does not have a compartment and neither " +
+          NAME_DEFAULT_RELEASE_REGION + " was set, don't know where to release.\n"
+      );
+    }
+
+    rel_site->region = default_release_region;
+  }
+
   rel_site->name =
       "Release of " + rel_site->complex_instance->to_bngl_str() +
-      " at " + default_release_region->name;
-
-  rel_site->region = default_release_region;
+      " at " + rel_site->region->name;
 
   uint truncated_count = BNG::floor_f(bng_ss.count);
   if (bng_ss.count != truncated_count) {

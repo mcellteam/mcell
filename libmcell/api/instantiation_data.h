@@ -32,6 +32,7 @@
 namespace BNG {
 class BNGData;
 class SeedSpecies;
+class Compartment;
 }
 
 namespace MCell {
@@ -81,6 +82,11 @@ private:
       const BNG::SeedSpecies& bng_ss,
       Subsystem& subsystem,
       std::shared_ptr<Region> default_release_region);
+
+  void convert_compartment_to_box(
+      const BNG::BNGData& bng_data,
+      const BNG::Compartment& bng_comp
+  );
 };
 
 } // namespace API

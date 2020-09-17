@@ -160,6 +160,11 @@ public:
   // returns COMPARTMENT_ID_INVALID if compartment with this name was not found
   compartment_id_t find_compartment_id(const std::string& name) const;
 
+  const Compartment& get_compartment(const compartment_id_t id) const {
+    assert(id < compartments.size());
+    return compartments[id];
+  }
+
   const std::vector<Compartment>& get_compartments() const {
     return compartments;
   }
