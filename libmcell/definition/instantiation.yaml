@@ -240,6 +240,20 @@ InstantiationData:
     - name: default_release_region
       type: Region*
       default: unset
+      doc: Used for seed species that have no compartments specified
+
+#     - name: release_compartments
+#       type: Dict[str, Region]
+#       default: empty
+#       doc: | 
+#          When an empty dictionary is passed as this argument, compartments are created
+#          automatically from the compartments definition.
+#          When specified, compartments are not created automatically and when the seed species 
+#          section is converted, this mapping sets the correspondence between the BNGL compartment
+#          name and a GeometryObject name. All compartments used in the seed species section must be 
+#          mapped to an existing geometry object. 
+#          A 3D compartments must map onto a GeometryObject and represents the contents of this object.
+#          A 2D compartments must map onto a SurfaceRegion or GeometryObject.  
       
     - name: parameter_overrides
       type: Dict[str, float]

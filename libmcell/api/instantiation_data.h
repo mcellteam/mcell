@@ -43,6 +43,8 @@ class Subsystem;
 class InstantiationData: public GenInstantiationData {
 public:
 
+  typedef std::map<std::string, std::shared_ptr<Region>> CompartmentRegionMap;
+
   // from generated template
   void add_release_site(std::shared_ptr<ReleaseSite> s) override {
     append_to_vec(release_sites, s);
@@ -77,16 +79,16 @@ protected:
       std::shared_ptr<Region> default_release_region);
 
 private:
+  void convert_compartments(
+      const BNG::BNGData& bng_data,
+      CompartmentRegionMap& compartment_region_map);
+
   void convert_single_seed_species_to_release_site(
       const BNG::BNGData& bng_data,
       const BNG::SeedSpecies& bng_ss,
       Subsystem& subsystem,
-      std::shared_ptr<Region> default_release_region);
-
-  void convert_compartment_to_box(
-      const BNG::BNGData& bng_data,
-      const BNG::Compartment& bng_comp
-  );
+      std::shared_ptr<Region> default_release_region,
+      const CompartmentRegionMap& compartment_region_map);
 };
 
 } // namespace API

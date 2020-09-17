@@ -66,22 +66,64 @@ void InstantiationData::convert_bng_data_to_instantiation_data(
     Subsystem& subsystem,
     std::shared_ptr<Region> default_release_region) {
 
-  for (const BNG::Compartment& bng_comp: bng_data.get_compartments()) {
-    convert_compartment_to_box(bng_data, bng_comp);
-  }
+  CompartmentRegionMap compartment_region_map;
+  convert_compartments(bng_data, compartment_region_map);
 
   for (const BNG::SeedSpecies& bng_ss: bng_data.get_seed_species()) {
-    convert_single_seed_species_to_release_site(bng_data, bng_ss, subsystem, default_release_region);
+    convert_single_seed_species_to_release_site(
+        bng_data, bng_ss, subsystem, default_release_region, compartment_region_map);
   }
 }
 
 
-void InstantiationData::convert_compartment_to_box(
+void InstantiationData::convert_compartments(
     const BNG::BNGData& bng_data,
-    const BNG::Compartment& bng_comp) {
-  float_t side = pow_f(bng_comp.volume, 1.0/3.0);
-  std::shared_ptr<GeometryObject> box = geometry_utils::create_box(bng_comp.name, side);
-  geometry_objects.push_back(box);
+    CompartmentRegionMap& compartment_region_map) {
+
+  // check that each parent has a single child and that
+  // the lowest level child is 3d, its parent must be 2d,
+  // its 3d, etc.
+  // we need to find the one that is no parent to any compartment
+  // map<parent, child>
+  map<string, string> hierarchy;
+  for (const BNG::Compartment& c: bng_data.get_compartments()) {
+    if (c.parent_name != "") {
+      // check that parent has up to 1 child
+      if (hierarchy.count(c.parent_name) != 0) {
+        throw RuntimeError(
+            "Single compartment may have max one child, error for parent compartment " + c.parent_name + ".");
+      }
+      // check that 2d/3d changes
+      const BNG::Compartment& parent =
+          bng_data.get_compartment(bng_data.find_compartment_id(c.parent_name));
+      if (c.is_3d == parent.is_3d) {
+        // NOTE: this check should be rather in BNG lib
+        throw RuntimeError(
+            "Parent compartment " + parent.name +
+            " must be of different dimensionality than its child " + c.name + ".");
+      }
+
+      hierarchy[c.parent_name] = c.name;
+    }
+  }
+
+
+  // create objects
+  for (const BNG::Compartment& bng_comp: bng_data.get_compartments()) {
+    if (bng_comp.is_3d) {
+      float_t side = pow_f(bng_comp.volume, 1.0/3.0);
+      std::shared_ptr<GeometryObject> box = geometry_utils::create_box(bng_comp.name, side);
+      geometry_objects.push_back(box);
+
+      // 3d compartment corresponds to the created box
+      compartment_region_map[bng_comp.name] = box;
+
+      // the same goes for its 2d parent
+      if (bng_comp.parent_name != "") {
+        compartment_region_map[bng_comp.parent_name] = box;
+      }
+    }
+  }
 }
 
 
@@ -89,8 +131,8 @@ void InstantiationData::convert_single_seed_species_to_release_site(
     const BNG::BNGData& bng_data,
     const BNG::SeedSpecies& bng_ss,
     Subsystem& subsystem,
-    std::shared_ptr<Region> default_release_region) {
-
+    std::shared_ptr<Region> default_release_region,
+    const CompartmentRegionMap& compartment_region_map) {
 
   auto rel_site = make_shared<API::ReleaseSite>();
 
@@ -99,8 +141,9 @@ void InstantiationData::convert_single_seed_species_to_release_site(
       subsystem.convert_cplx_instance(bng_data, bng_ss.cplx_instance);
 
   if (bng_ss.compartment_id != BNG::COMPARTMENT_ID_INVALID) {
-    string compartment_name = bng_data.get_compartment(bng_ss.compartment_id).name;
-    rel_site->region = find_geometry_object(compartment_name);
+    auto it = compartment_region_map.find(bng_data.get_compartment(bng_ss.compartment_id).name);
+    assert(it != compartment_region_map.end());
+    rel_site->region = it->second;
   }
   else {
     if (!is_set(default_release_region)) {

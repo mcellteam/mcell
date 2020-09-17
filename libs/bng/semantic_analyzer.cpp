@@ -332,7 +332,7 @@ void SemanticAnalyzer::convert_and_store_compartments() {
     c.volume = volume;
 
     // parent_name
-    c.parent_name = n->name;
+    c.parent_name = n->parent_name;
 
     bng_data->add_compartment(c);
   }
