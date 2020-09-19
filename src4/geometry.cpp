@@ -655,14 +655,12 @@ bool Region::initialize_region_waypoint(
           p, waypoint.pos, previous_waypoint.pos,
           *this, must_redo_test
       );
-      if (must_redo_test) {
-        // updates values referenced by waypoint
-        // the redo can be also due to the previous waypoint, so we
-        // will check whether the waypoint is contained without the previous waypoint
-        p.move_waypoint_because_positioned_on_wall(current_waypoint_index);
-      }
+      release_assert(!must_redo_test && 
+      	"We cannot easily solve redo here (cannot move waypoints after initialization), "
+        "it should have been fixed in Partition::initialize_waypoint");
+
       // ok, test passed safely
-      else if ((num_crossed % 2 == 0 && previous_waypoint_present_in_region) ||
+      if ((num_crossed % 2 == 0 && previous_waypoint_present_in_region) ||
           (num_crossed % 2 == 1 && !previous_waypoint_present_in_region)) {
 
         // still in the same region

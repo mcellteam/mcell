@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2019 by
+ * Copyright (C) 2019-2020 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -208,7 +208,15 @@ void Partition::dump() {
 void Partition::move_waypoint_because_positioned_on_wall(
     const IVec3& waypoint_index, const bool reinitialize) {
   Waypoint& waypoint = get_waypoint(waypoint_index);
-  waypoint.pos = waypoint.pos + Vec3(SQRT_EPS);
+  // rng_dbl when used in Vec3 ctor causes compiler to print warnings
+  // that a constant is subtracted from uint
+  float_t r1 = rng_dbl(&aux_rng);
+  float_t r2 = rng_dbl(&aux_rng);
+  float_t r3 = rng_dbl(&aux_rng);
+
+  Vec3 random_displacement = Vec3(SQRT_EPS * r1, SQRT_EPS * r2, SQRT_EPS * r3);
+
+  waypoint.pos = waypoint.pos + random_displacement;
   if (reinitialize) {
     initialize_waypoint(waypoint_index, false, IVec3(0), true);
   }
@@ -233,6 +241,39 @@ void Partition::initialize_waypoint(
     ;
   }
 
+  // make sure that the waypoint is not on any wall, this is required for correct function
+  // of regions as well
+  float_t dist2;
+  do {
+    wall_index_t wall_index_ignored;
+    Vec2 wall_pos2d_ignored;
+    dist2 = WallUtil::find_closest_wall_any_object(
+        *this, waypoint.pos, SQRT_EPS, false, wall_index_ignored, wall_pos2d_ignored);
+    if (dist2 < EPS) {
+       move_waypoint_because_positioned_on_wall(waypoint_index, false);
+    }
+  } while (dist2 < EPS);
+
+
+  // another required check is that there must not be an edge between the current and
+  // previous waypoint, this is required for initialization of regions
+  if (use_previous_waypoint) {
+    bool redo;
+    Vec3& previous_waypoint_pos = get_waypoint(previous_waypoint_index).pos;
+    do {
+      map<geometry_object_index_t, uint> num_crossed_walls_per_object;
+
+      CollisionUtil::get_num_crossed_walls_per_object(
+          *this, waypoint.pos, previous_waypoint_pos, false, // all walls
+          num_crossed_walls_per_object, redo
+      );
+
+      if (redo) {
+         move_waypoint_because_positioned_on_wall(waypoint_index, false);
+      }
+    } while (redo);
+  }
+
   // it makes sense to compute counted_volume_index if there are any
   // counted objects
   if (config.has_intersecting_counted_objects) {
@@ -243,7 +284,7 @@ void Partition::initialize_waypoint(
 
       bool must_redo_test = false;
       CollisionUtil::get_num_crossed_walls_per_object(
-          *this, waypoint.pos, previous_waypoint.pos,
+          *this, waypoint.pos, previous_waypoint.pos, true, // only counted objects
           num_crossed_walls_per_object, must_redo_test
       );
       if (must_redo_test) {

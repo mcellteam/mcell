@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2006-2017 by
+ * Copyright (C) 2006-2017,2019-2020 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -43,6 +43,7 @@
 
 #include "reaction_utils.inc"
 #include "geometry_utils.inc"
+#include "collision_utils.inc"
 
 namespace MCell {
 
@@ -651,7 +652,7 @@ static bool walls_belong_to_at_least_one_different_restricted_region(
 
 
 
-// returns the closest distance
+// returns square of the closest distance
 // wall must belong to the same object and region
 static float_t find_closest_wall(
     Partition& p,
@@ -701,8 +702,7 @@ static float_t find_closest_wall(
 }
 
 
-// returns the closest distance
-//
+// returns square of the closest distance
 static float_t find_closest_wall_any_object(
     Partition& p,
     const Vec3& pos,
@@ -716,23 +716,38 @@ static float_t find_closest_wall_any_object(
   float_t best_d2 = FLT_GIGANTIC;
   best_wall_pos2d = Vec2(0);
 
-  for (Wall& w: p.get_walls()) {
+  // find which subpartitions we need to check
+  float_t search_d = sqrt_f(search_d2);
+  IVec3 subpart_indices;
+  p.get_subpart_3d_indices(pos, subpart_indices);
+  SubpartIndicesSet crossed_subpart_indices;
+  crossed_subpart_indices.insert(p.get_subpart_index_from_3d_indices(subpart_indices));
+  CollisionUtil::collect_neighboring_subparts(
+      p, pos, subpart_indices, search_d, p.config.subpartition_edge_length,
+      crossed_subpart_indices
+  );
 
-    if (!w.has_initialized_grid()) {
-      w.initialize_grid(p);
-    }
+  for (subpart_index_t subpart_index: crossed_subpart_indices) {
+    const WallsInSubpart& walls_in_subpart = p.get_subpart_wall_indices(subpart_index);
+    for (wall_index_t wi: walls_in_subpart) {
+      Wall& w = p.get_wall(wi);
 
-    if (must_have_at_least_one_tile && w.grid.num_tiles == 0) {
-      continue;
-    }
+      if (must_have_at_least_one_tile && !w.has_initialized_grid()) {
+        w.initialize_grid(p);
+      }
 
-    Vec2 wall_pos2d;
-    float_t d2 = GeometryUtil::closest_interior_point(p, pos, w, wall_pos2d);
+      if (must_have_at_least_one_tile && w.grid.num_tiles == 0) {
+        continue;
+      }
 
-    if (d2 <= best_d2 && d2 <= search_d2) { // the <= is to emulate behavior of mcell3 that goes through the walls in opposite order
-      best_d2 = d2;
-      best_wall_index = w.index;
-      best_wall_pos2d = wall_pos2d;
+      Vec2 wall_pos2d;
+      float_t d2 = GeometryUtil::closest_interior_point(p, pos, w, wall_pos2d);
+
+      if (d2 <= best_d2 && d2 <= search_d2) { // the <= is to emulate behavior of mcell3 that goes through the walls in opposite order
+        best_d2 = d2;
+        best_wall_index = w.index;
+        best_wall_pos2d = wall_pos2d;
+      }
     }
   }
 

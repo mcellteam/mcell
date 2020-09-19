@@ -1,4 +1,7 @@
 
+#ifndef SRC4_COLLISION_UTILS_LEGACY_INC_
+#define SRC4_COLLISION_UTILS_LEGACY_INC_
+
 #include <vector>
 
 #include "logging.h"
@@ -110,7 +113,7 @@ static void collect_neighboring_subparts(
 
 // collect subpartition indices that we are crossing and that are within radius
 // of vm that moves by displacement
-static inline void __attribute__((always_inline)) collect_crossed_subparts(
+static inline void __attribute__((always_inline)) collect_crossed_subparts_legacy(
   const Partition& p,
   const Molecule& vm, // molecule that we are diffusing
   const Vec3& displacement,
@@ -308,3 +311,5 @@ static inline void __attribute__((always_inline)) collect_crossed_subparts(
 
 } // namespace CollisionUtil
 } // namespace MCell
+
+#endif // SRC4_COLLISION_UTILS_LEGACY_INC_

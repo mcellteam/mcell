@@ -1,6 +1,6 @@
 /******************************************************************************
  *
- * Copyright (C) 2019 by
+ * Copyright (C) 2019,2020 by
  * The Salk Institute for Biological Studies and
  * Pittsburgh Supercomputing Center, Carnegie Mellon University
  *
@@ -47,10 +47,7 @@
 
 using namespace std;
 
-#ifdef COLLECT_SUBPARTS_LEGACY
 #include "collision_utils_legacy.inc"
-#endif
-
 
 namespace MCell {
 
@@ -348,7 +345,6 @@ static inline void compute_inputs_for_raycast_with_endpoints(
 }
 
 
-#ifndef COLLECT_SUBPARTS_LEGACY
 static inline void collect_crossed_subparts(
   const Partition& p,
   const Molecule& vm, // molecule that we are diffusing
@@ -481,8 +477,6 @@ static inline void collect_crossed_subparts(
     crossed_subparts_for_molecules.insert(index);
   }
 }
-
-#endif // COLLECT_SUBPARTS_LEGACY
 
 // ---------------------------------- molecule collisions ----------------------------------
 
@@ -1386,6 +1380,7 @@ static uint get_num_crossed_region_walls(
 
 static void get_num_crossed_walls_per_object(
     const Partition& p, const Vec3& pos, const Vec3& dst,
+    const bool only_counted_objects,
     map<geometry_object_index_t, uint>& num_crossed_walls_per_object,
     bool& must_redo_test
 ) {
@@ -1410,7 +1405,7 @@ static void get_num_crossed_walls_per_object(
 
       // do we count only counted objects and is this a counted oblect?
       const Wall& w = p.get_wall(wall_index);
-      if (!p.get_geometry_object(w.object_index).is_counted_volume) {
+      if (only_counted_objects && !p.get_geometry_object(w.object_index).is_counted_volume) {
         continue;
       }
 
@@ -1510,7 +1505,7 @@ static counted_volume_index_t compute_counted_volume_for_pos(
   dst.y += p.config.subpartition_edge_length / 21;
 
   bool must_redo_test;
-  get_num_crossed_walls_per_object(p, pos, dst, num_crossed_walls_per_object, must_redo_test);
+  get_num_crossed_walls_per_object(p, pos, dst, true, num_crossed_walls_per_object, must_redo_test);
   release_assert(!must_redo_test);
 
   // finally construct the set of object indices that encompass the position
