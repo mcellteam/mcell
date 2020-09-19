@@ -749,6 +749,12 @@ static BNG::RxnClass* pick_unimol_rxn_class(
 // based on timeof_unimolecular
 static float_t time_of_unimol(BNG::RxnClass* rxn_class, rng_state& rng) {
   float_t k_tot = rxn_class->get_max_fixed_p();
+#ifdef MCELL4_NO_RNG_FOR_UNIMOL_RXN_P_0
+  if (k_tot <= 0) {
+    // not calling random generator when p is 0 - for bompatibility with MCell3R
+    return TIME_FOREVER;
+  }
+#endif  
   float_t p = rng_dbl(&rng);
 
   if ((k_tot <= 0) || (!distinguishable_f(p, 0, EPS))) {

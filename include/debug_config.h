@@ -78,6 +78,12 @@
 // tentative sorting of reactions in a rxn class to match MCell3R
 #define MCELL4_REVERSED_RXNS_IN_RXN_CLASS
 
+// do not call random generator when probability of an unimol rxn is 0
+// required for compatibility with MCell3R that ignores such reactions, 
+// however MCell3 call rng even if the prob is 0
+// testsuite for mcell4 won't pass
+#define MCELL4_NO_RNG_FOR_UNIMOL_RXN_P_0
+
 // sort molecules in schedule helper according to ID before a new timestep begins
 // testsuite for mcell4 won't pass
 //#define MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID
@@ -134,8 +140,8 @@
 
 #if (!defined(NDEBUG) || defined(DUMP_ALWAYS)) && !defined(DUMP_NEVER)
 
-#define FROM_ITERATION 13
-#define TO_ITERATION 15
+#define FROM_ITERATION 0
+#define TO_ITERATION 1
 
 #define DUMP_NONDIFFUSING_VMS
 
