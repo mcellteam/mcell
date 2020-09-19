@@ -87,10 +87,15 @@ public:
   // added manually
   void dump() const;
 
-  // auxiliary method used also from InstantiationData
+  // auxiliary methods used also from InstantiationData
   std::shared_ptr<API::ComplexInstance> convert_cplx_instance(
       const BNG::BNGData& bng_data,
       const BNG::CplxInstance& bng_inst);
+
+  std::shared_ptr<API::ComplexInstance> convert_cplx_instance_w_orientation(
+      const BNG::BNGData& bng_data,
+      const BNG::CplxInstance& bng_inst,
+      const Orientation orientation);
 
 protected:
   void convert_bng_data_to_subsystem_data(const BNG::BNGData& bng_data);

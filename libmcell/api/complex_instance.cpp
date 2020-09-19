@@ -22,11 +22,23 @@
 
 #include "api/complex_instance.h"
 #include "api/elementary_molecule_instance.h"
+#include "api/elementary_molecule_type.h"
 
 using namespace std;
 
 namespace MCell {
 namespace API {
+
+
+bool ComplexInstance::is_surf() const {
+  for (auto em: elementary_molecule_instances) {
+    if (is_set(em->elementary_molecule_type->diffusion_constant_2d)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 
 std::string ComplexInstance::to_bngl_str() {
   std::string res;

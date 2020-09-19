@@ -34,6 +34,12 @@ public:
   COMPLEX_INSTANCE_CTOR()
 
   std::string to_bngl_str() override;
+
+  // complex instances can be only either surf or vol, there is no other option
+  bool is_vol() const {
+    return !is_surf();
+  }
+  bool is_surf() const;
 };
 
 } // namespace API

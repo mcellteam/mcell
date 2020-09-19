@@ -133,11 +133,13 @@ void Subsystem::convert_reaction_rule(const BNG::BNGData& bng_data, const BNG::R
   res_rr->fwd_rate = bng_rr.base_rate_constant;
 
   for (const BNG::CplxInstance& inst: bng_rr.reactants) {
-    res_rr->reactants.push_back(convert_cplx_instance(bng_data, inst));
+    res_rr->reactants.push_back(
+        convert_cplx_instance_w_orientation(bng_data, inst, Orientation::ANY));
   }
 
   for (const BNG::CplxInstance& inst: bng_rr.products) {
-    res_rr->products.push_back(convert_cplx_instance(bng_data, inst));
+    res_rr->products.push_back(
+        convert_cplx_instance_w_orientation(bng_data, inst, Orientation::ANY));
   }
 
   append_to_vec(reaction_rules, res_rr);
@@ -163,7 +165,8 @@ static int convert_bond_value(const BNG::bond_value_t bng_bond_value) {
 }
 
 
-shared_ptr<API::ComplexInstance> Subsystem::convert_cplx_instance(
+
+std::shared_ptr<API::ComplexInstance> Subsystem::convert_cplx_instance(
     const BNG::BNGData& bng_data,
     const BNG::CplxInstance& bng_inst) {
 
@@ -202,6 +205,23 @@ shared_ptr<API::ComplexInstance> Subsystem::convert_cplx_instance(
   return res_cplx_inst;
 }
 
+
+// sets orientation if the resulting cplx is a surface cplx
+std::shared_ptr<API::ComplexInstance> Subsystem::convert_cplx_instance_w_orientation(
+    const BNG::BNGData& bng_data,
+    const BNG::CplxInstance& bng_inst,
+    const Orientation orientation) {
+  shared_ptr<API::ComplexInstance> res =
+      Subsystem::convert_cplx_instance(bng_data, bng_inst);
+
+  // only after conversion we can know whether a molecule is of surface volume type,
+  // it is determined from the diffusion constants set with MCELL_DIFFUSION_CONSTANT_*
+  if (res->is_surf()) {
+    res->orientation = orientation;
+  }
+
+  return res;
+}
 
 
 } // namespace API

@@ -1653,8 +1653,8 @@ void RxnRule::move_products_that_are_also_reactants_to_be_the_first_products() {
   // for now let's sort max 2 products
   if (products.size() == 2) {
 
-    const string& name0 = products[0].to_str(*bng_data, false); // we do not care whether this is a surf or vol rxn
-    const string& name1 = products[1].to_str(*bng_data, false);
+    const string& name0 = products[0].to_str(false); // we do not care whether this is a surf or vol rxn
+    const string& name1 = products[1].to_str(false);
 
 #if defined(MCELL4_SORT_RXN_PRODUCTS_BY_NAME)
     if (name0 > name1) {

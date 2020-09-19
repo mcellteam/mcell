@@ -140,6 +140,11 @@ void InstantiationData::convert_single_seed_species_to_release_site(
   rel_site->complex_instance =
       subsystem.convert_cplx_instance(bng_data, bng_ss.cplx_instance);
 
+  if (rel_site->complex_instance->is_surf()) {
+    // the default orientation of released molecules is 'up'
+    rel_site->orientation = Orientation::UP;
+  }
+
   if (bng_ss.compartment_id != BNG::COMPARTMENT_ID_INVALID) {
     auto it = compartment_region_map.find(bng_data.get_compartment(bng_ss.compartment_id).name);
     assert(it != compartment_region_map.end());

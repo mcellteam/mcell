@@ -149,6 +149,33 @@ RegionExprNode* ReleaseEvent::create_new_region_expr_node_op(
   return res;
 }
 
+#define CASE_TO_STR(name) case name: return #name
+
+static const char* release_shape_to_str(const ReleaseShape s) {
+  switch (s) {
+    CASE_TO_STR(ReleaseShape::UNDEFINED);
+    CASE_TO_STR(ReleaseShape::SPHERICAL);
+    CASE_TO_STR(ReleaseShape::SPHERICAL_SHELL);
+    CASE_TO_STR(ReleaseShape::REGION);
+    CASE_TO_STR(ReleaseShape::LIST);
+    CASE_TO_STR(ReleaseShape::INITIAL_SURF_REGION);
+    default: return "invalid_release_shape";
+  }
+}
+
+
+static const char* release_number_method_to_str(const ReleaseNumberMethod m) {
+  switch (m) {
+    CASE_TO_STR(ReleaseNumberMethod::Invalid);
+    CASE_TO_STR(ReleaseNumberMethod::ConstNum);
+    CASE_TO_STR(ReleaseNumberMethod::GaussNum);
+    CASE_TO_STR(ReleaseNumberMethod::VolNum);
+    CASE_TO_STR(ReleaseNumberMethod::ConcentrationNum);
+    CASE_TO_STR(ReleaseNumberMethod::DensityNum);
+    default: return "invalid_release_number_method";
+  }
+}
+
 
 void ReleaseEvent::dump(const string ind) const {
   cout << "Release event:\n";
@@ -156,12 +183,12 @@ void ReleaseEvent::dump(const string ind) const {
   BaseEvent::dump(ind2);
   cout << ind2 << "name: \t\t" << release_site_name << " [string]\n";
   cout << ind2 << "species_id: \t\t" << species_id << " [species_id_t]\n";
-  cout << ind2 << "actual_release_time: \t\t" << location << " [float_t]\n";
-  cout << ind2 << "release_number_method: \t\t" << (int)release_number_method << " [ReleaseNumberMethod]\n";
+  cout << ind2 << "actual_release_time: \t\t" << actual_release_time << " [float_t]\n";
+  cout << ind2 << "release_number_method: \t\t" << release_number_method_to_str(release_number_method) << " [ReleaseNumberMethod]\n";
   cout << ind2 << "release_number: \t\t" << release_number << " [uint]\n";
   cout << ind2 << "concentration: \t\t" << concentration << " [float_t]\n";
   cout << ind2 << "orientation: \t\t" << orientation << " [float_t]\n";
-  cout << ind2 << "release_shape: \t\t" << (int)release_shape << " [ReleaseShape]\n";
+  cout << ind2 << "release_shape: \t\t" << release_shape_to_str(release_shape) << " [ReleaseShape]\n";
   cout << ind2 << "location: \t\t" << location << " [Vec3]\n";
   cout << ind2 << "diameter: \t\t" << diameter << " [Vec3]\n";
 
