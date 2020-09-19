@@ -140,13 +140,29 @@ void InstantiationData::convert_single_seed_species_to_release_site(
   rel_site->complex_instance =
       subsystem.convert_cplx_instance(bng_data, bng_ss.cplx_instance);
 
-  if (rel_site->complex_instance->is_surf()) {
+  bool surf_release = rel_site->complex_instance->is_surf();
+  if (surf_release) {
     // the default orientation of released molecules is 'up'
     rel_site->orientation = Orientation::UP;
   }
 
   if (bng_ss.compartment_id != BNG::COMPARTMENT_ID_INVALID) {
-    auto it = compartment_region_map.find(bng_data.get_compartment(bng_ss.compartment_id).name);
+    const BNG::Compartment& c = bng_data.get_compartment(bng_ss.compartment_id);
+    // check that dimensionality of compartment matches the released molecule
+    if (surf_release && c.is_3d) {
+      throw ValueError(S("Seed species specification for complex instance ") +
+          rel_site->complex_instance->name + ": cannot release surface molecules " +
+          "into a 3d compartment " + c.name + ".\n"
+      );
+    }
+    else if (!surf_release && !c.is_3d) {
+      throw ValueError(S("Seed species specification for complex instance ") +
+          rel_site->complex_instance->name + ": cannot release volume molecules " +
+          "onto a 2d compartment " + c.name + ".\n"
+      );
+    }
+
+    auto it = compartment_region_map.find(c.name);
     assert(it != compartment_region_map.end());
     rel_site->region = it->second;
   }
