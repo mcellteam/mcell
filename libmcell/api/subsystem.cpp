@@ -133,13 +133,15 @@ void Subsystem::convert_reaction_rule(const BNG::BNGData& bng_data, const BNG::R
   res_rr->fwd_rate = bng_rr.base_rate_constant;
 
   for (const BNG::CplxInstance& inst: bng_rr.reactants) {
+    // MCell3R accepts reactants with any orientation
     res_rr->reactants.push_back(
         convert_cplx_instance_w_orientation(bng_data, inst, Orientation::ANY));
   }
 
   for (const BNG::CplxInstance& inst: bng_rr.products) {
+    // MCell3R always creates products with the orientation up
     res_rr->products.push_back(
-        convert_cplx_instance_w_orientation(bng_data, inst, Orientation::ANY));
+        convert_cplx_instance_w_orientation(bng_data, inst, Orientation::UP));
   }
 
   append_to_vec(reaction_rules, res_rr);
