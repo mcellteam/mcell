@@ -177,6 +177,17 @@ enum class RxnType {
 // two RxnRules are created
 class RxnRule: public BaseFlag {
 public:
+  RxnRule(const BNGData* bng_data_)
+    : id(RXN_RULE_ID_INVALID), type(RxnType::Invalid),
+      base_rate_constant(FLT_INVALID),
+      mol_instances_are_fully_maintained(false),
+      next_variable_rate_index(0),
+      bng_data(bng_data_)
+      {
+  }
+
+  void finalize();
+
   std::string name;
   rxn_rule_id_t id;
 
@@ -199,8 +210,6 @@ public:
   uint_set<species_id_t> species_not_applicable_as_reactants;
 
 private:
-  uint num_surf_products;
-
   // variable reaction rate constants, sorted by time
   // index is initialized to 0
   uint next_variable_rate_index;
@@ -208,18 +217,6 @@ private:
   // maintain information on where this reaction was used in order to
   // update all classes if this reaction's rate constant changes
   std::set<RxnClass*> rxn_classes_where_used;
-
-public:
-  RxnRule(const BNGData* bng_data_)
-    : id(RXN_RULE_ID_INVALID), type(RxnType::Invalid),
-      base_rate_constant(FLT_INVALID),
-      mol_instances_are_fully_maintained(false),
-      num_surf_products(UINT_INVALID), next_variable_rate_index(0),
-      bng_data(bng_data_)
-      {
-  }
-
-  void finalize();
 
 private:
   // BNGL style reaction handling is implemented in this method
@@ -283,22 +280,12 @@ public:
   // used in semantic check
   bool check_reactants_products_mapping(std::ostream& out);
 
-
   void append_reactant(const CplxInstance& inst) {
     reactants.push_back(inst);
   }
 
   void append_product(const CplxInstance& inst) {
     products.push_back(inst);
-  }
-
-  uint get_num_surf_products() const { // we don't have probably the information that is needed
-    assert(is_finalized());
-    return num_surf_products;
-  }
-
-  uint get_num_players() const {
-    return reactants.size() + products.size();
   }
 
   bool is_unimol() const {

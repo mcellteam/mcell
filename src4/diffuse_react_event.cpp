@@ -1689,10 +1689,17 @@ int DiffuseReactEvent::find_surf_product_positions(
     const Molecule* reacA, const bool keep_reacA,
     const Molecule* reacB, const bool keep_reacB,
     const Molecule* surf_reac,
-    const RxnRule* rxn,
+    const RxnProductsVector& actual_products,
     small_vector<GridPos>& assigned_surf_product_positions) {
 
-  uint needed_surface_positions = rxn->get_num_surf_products(/*p.bng_engine.all_species*/);
+  uint needed_surface_positions = 0;
+  for (const ProductSpeciesWIndices& prod: actual_products) {
+    if (p.get_all_species().get(prod.product_species_id).is_surf()) {
+      needed_surface_positions++;
+    }
+  }
+
+  uint num_reactants = (reacB == nullptr) ? 1 : 2;
 
   small_vector<GridPos> recycled_surf_prod_positions; // this array contains information on where to place the surface products
   uint initiator_recycled_index = INDEX_INVALID;
@@ -1753,7 +1760,7 @@ int DiffuseReactEvent::find_surf_product_positions(
   }
 
   // random assignment of positions
-  uint num_tiles_to_recycle = min(rxn->products.size(), recycled_surf_prod_positions.size());
+  uint num_tiles_to_recycle = min(actual_products.size(), recycled_surf_prod_positions.size());
   if (num_tiles_to_recycle == 1 && recycled_surf_prod_positions.size() >= 1) {
     // NOTE: this code is overly complex and can be simplified
     if (initiator_recycled_index == INDEX_INVALID) {
@@ -1766,24 +1773,23 @@ int DiffuseReactEvent::find_surf_product_positions(
   }
   else if (num_tiles_to_recycle > 1) {
     uint next_available_index = 0;
-    uint n_players = rxn->get_num_players();
-    uint n_reactants = rxn->reactants.size();
+    uint num_players = actual_products.size() + num_reactants;
 
     // assign recycled positions to products
     while (next_available_index < num_tiles_to_recycle) {
       // we must have the same number of random calls as in mcell3...
-      uint rnd_num = rng_uint(&world->rng) % n_players;
+      uint rnd_num = rng_uint(&world->rng) % num_players;
 
       // continue until we got an index of a product
-      if (rnd_num < n_reactants) {
+      if (rnd_num < num_reactants) {
         continue;
       }
 
-      uint product_index = rnd_num - n_reactants;
-      assert(product_index < rxn->products.size());
+      uint product_index = rnd_num - num_reactants;
+      assert(product_index < actual_products.size());
 
       // we care only about surface molecules
-      if (rxn->products[product_index].is_vol()) {
+      if (p.get_all_species().get(actual_products[product_index].product_species_id).is_vol()) {
         continue;
       }
 
@@ -1801,9 +1807,8 @@ int DiffuseReactEvent::find_surf_product_positions(
     small_vector<bool> used_vacant_tiles;
     used_vacant_tiles.resize(vacant_neighbor_tiles.size(), false);
 
-    uint n_products = rxn->products.size();
     uint num_vacant_tiles = vacant_neighbor_tiles.size();
-    for (uint product_index = 0; product_index < n_products; product_index++) {
+    for (uint product_index = 0; product_index < actual_products.size(); product_index++) {
 
       if (assigned_surf_product_positions[product_index].initialized) {
         continue;
@@ -1995,12 +2000,15 @@ int DiffuseReactEvent::outcome_products_random(
     surf_reac_wall_tile.tile_index = surf_reac->s.grid_tile_index;
   }
 
+  const RxnProductsVector& actual_products = collision.rxn_class->get_rxn_products_for_pathway(pathway_index);
+  release_assert(actual_products.size() <= rxn->products.size()); // some rxn products may be still connected
+
   /* If the reaction involves a surface, make sure there is room for each product. */
   small_vector<GridPos> assigned_surf_product_positions; // this array contains information on where to place the surface products
-  assigned_surf_product_positions.resize(rxn->products.size());
+  assigned_surf_product_positions.resize(actual_products.size());
   if (is_orientable) {
     int res = find_surf_product_positions(
-        p, reacA, keep_reacA, reacB, keep_reacB, surf_reac, rxn,
+        p, reacA, keep_reacA, reacB, keep_reacB, surf_reac, actual_products,
         assigned_surf_product_positions);
     if (res == RX_BLOCKED) {
       return RX_BLOCKED;
@@ -2046,10 +2054,6 @@ int DiffuseReactEvent::outcome_products_random(
     // no surface reactant, all products will have orientataion none
     product_orientations.resize(rxn->products.size(), ORIENTATION_NONE);
   }
-
-
-  const RxnProductsVector& actual_products = collision.rxn_class->get_rxn_products_for_pathway(pathway_index);
-  release_assert(actual_products.size() <= rxn->products.size()); // some rxn products may be still connected
 
   for (uint product_index = 0; product_index < actual_products.size(); product_index++) {
     const ProductSpeciesWIndices& actual_product = actual_products[product_index];
@@ -2162,9 +2166,10 @@ int DiffuseReactEvent::outcome_products_random(
       // see release_event_t::place_single_molecule_onto_grid, merge somehow
 
       // get info on where to place the product and increment the counter
+      assert(current_surf_product_position_index < assigned_surf_product_positions.size());
       const GridPos& new_grid_pos = assigned_surf_product_positions[current_surf_product_position_index];
-      current_surf_product_position_index++;
       assert(new_grid_pos.initialized);
+      current_surf_product_position_index++;
 
       Vec2 pos;
       if (new_grid_pos.pos_is_set) {

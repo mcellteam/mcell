@@ -255,7 +255,7 @@ private:
       const Molecule* reacA, const bool keep_reacA,
       const Molecule* reacB, const bool keep_reacB,
       const Molecule* surf_reac,
-      const BNG::RxnRule* rxn,
+      const BNG::RxnProductsVector& actual_products,
       small_vector<GridPos>& assigned_surf_product_positions
   );
 

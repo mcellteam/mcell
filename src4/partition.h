@@ -896,6 +896,7 @@ private:
 
 public:
   // ---------------------------------- other ----------------------------------
+  // TODO: add get_species method
   BNG::SpeciesContainer& get_all_species() { return bng_engine.get_all_species(); }
   const BNG::SpeciesContainer& get_all_species() const { return bng_engine.get_all_species(); }
 

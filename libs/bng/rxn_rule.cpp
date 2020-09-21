@@ -210,13 +210,9 @@ void RxnRule::finalize() {
     simple = simple && ci.is_simple();
   }
 
-  num_surf_products = 0;
   for (CplxInstance& ci: products) {
     ci.finalize();
     simple = simple && ci.is_simple();
-    if (ci.is_surf()) {
-      num_surf_products++;
-    }
   }
 
   if (simple) {
