@@ -1692,13 +1692,18 @@ int DiffuseReactEvent::find_surf_product_positions(
     const RxnProductsVector& actual_products,
     small_vector<GridPos>& assigned_surf_product_positions) {
 
+  assigned_surf_product_positions.clear();
+  assigned_surf_product_positions.resize(actual_products.size());
+
   uint needed_surface_positions = 0;
   for (const ProductSpeciesWIndices& prod: actual_products) {
     if (p.get_all_species().get(prod.product_species_id).is_surf()) {
       needed_surface_positions++;
     }
   }
+  uint num_surface_products = needed_surface_positions;
 
+  assert(reacA != nullptr);
   uint num_reactants = (reacB == nullptr) ? 1 : 2;
 
   small_vector<GridPos> recycled_surf_prod_positions; // this array contains information on where to place the surface products
@@ -2005,7 +2010,6 @@ int DiffuseReactEvent::outcome_products_random(
 
   /* If the reaction involves a surface, make sure there is room for each product. */
   small_vector<GridPos> assigned_surf_product_positions; // this array contains information on where to place the surface products
-  assigned_surf_product_positions.resize(actual_products.size());
   if (is_orientable) {
     int res = find_surf_product_positions(
         p, reacA, keep_reacA, reacB, keep_reacB, surf_reac, actual_products,
