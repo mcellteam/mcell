@@ -76,6 +76,31 @@ void InstantiationData::convert_bng_data_to_instantiation_data(
 }
 
 
+static string get_direct_3d_child_compartment_name(
+    const BNG::BNGData& bng_data, const map<string, string>& hierarchy, const string& parent_name) {
+
+  assert(bng_data.find_compartment(parent_name) != nullptr &&
+      bng_data.find_compartment(parent_name)->is_3d);
+
+
+  auto it_child_2d = hierarchy.find(parent_name);
+  if (it_child_2d == hierarchy.end()) {
+    // no child
+    return "";
+  }
+
+  auto it_child2_3d = hierarchy.find(it_child_2d->second);
+  if (it_child2_3d == hierarchy.end()) {
+    // NOTE: this check should be rather in BNG lib
+    throw RuntimeError(
+        "2D compartment '" + it_child_2d->second + "' does not have a child compartment, "
+        "it is not possible to determine its area.");
+  }
+
+  return it_child2_3d->second;
+}
+
+
 void InstantiationData::convert_compartments(
     const BNG::BNGData& bng_data,
     CompartmentRegionMap& compartment_region_map) {
@@ -91,16 +116,16 @@ void InstantiationData::convert_compartments(
       // check that parent has up to 1 child
       if (hierarchy.count(c.parent_name) != 0) {
         throw RuntimeError(
-            "Single compartment may have max one child, error for parent compartment " + c.parent_name + ".");
+            "Single compartment may have currently max one child, error for parent compartment '" + c.parent_name + "'.");
       }
       // check that 2d/3d changes
-      const BNG::Compartment& parent =
-          bng_data.get_compartment(bng_data.find_compartment_id(c.parent_name));
-      if (c.is_3d == parent.is_3d) {
+      const BNG::Compartment* parent = bng_data.find_compartment(c.parent_name);
+      release_assert(parent != nullptr);
+      if (c.is_3d == parent->is_3d) {
         // NOTE: this check should be rather in BNG lib
         throw RuntimeError(
-            "Parent compartment " + parent.name +
-            " must be of different dimensionality than its child " + c.name + ".");
+            "Parent compartment " + parent->name +
+            " must be of different dimensionality than its child '" + c.name + "'.");
       }
 
       hierarchy[c.parent_name] = c.name;
@@ -108,20 +133,42 @@ void InstantiationData::convert_compartments(
   }
 
 
-  // create objects
+  // whole regions for volume releases, will need to subtract the immediate child
+  CompartmentRegionMap full_3d_release_regions;
+
+  // create objects and assign 2d release regions
   for (const BNG::Compartment& bng_comp: bng_data.get_compartments()) {
     if (bng_comp.is_3d) {
       float_t side = pow_f(bng_comp.volume, 1.0/3.0);
-      std::shared_ptr<GeometryObject> box = geometry_utils::create_box(bng_comp.name, side);
+      shared_ptr<GeometryObject> box = geometry_utils::create_box(bng_comp.name, side);
       geometry_objects.push_back(box);
 
-      // 3d compartment corresponds to the created box
-      compartment_region_map[bng_comp.name] = box;
-
-      // the same goes for its 2d parent
+      // set this regions as release for its 2d parent
       if (bng_comp.parent_name != "") {
         compartment_region_map[bng_comp.parent_name] = box;
       }
+
+      full_3d_release_regions[bng_comp.name] = box;
+    }
+  }
+
+  // and 3d release regions
+  for (const BNG::Compartment& bng_comp: bng_data.get_compartments()) {
+    if (bng_comp.is_3d) {
+      string child_name = get_direct_3d_child_compartment_name(bng_data, hierarchy, bng_comp.name);
+      if (child_name == "") {
+        // no child, we can release in the whole region
+        compartment_region_map[bng_comp.name] = full_3d_release_regions[bng_comp.name];
+      }
+      else {
+        assert(full_3d_release_regions.count(child_name) != 0);
+        // create and set new region created by subtracting 3d child from its 3d parent
+        compartment_region_map[bng_comp.name] =
+            full_3d_release_regions[bng_comp.name]->__sub__(
+                full_3d_release_regions[child_name]
+            );
+      }
+
     }
   }
 }

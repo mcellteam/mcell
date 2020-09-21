@@ -119,6 +119,17 @@ compartment_id_t BNGData::find_compartment_id(const std::string& name) const {
 }
 
 
+const Compartment* BNGData::find_compartment(const std::string& name) const {
+  compartment_id_t id = find_compartment_id(name);
+  if (id == COMPARTMENT_ID_INVALID) {
+    return nullptr;
+  }
+  else {
+    return &get_compartment(id);
+  }
+}
+
+
 rxn_rule_id_t BNGData::find_or_add_rxn_rule(const RxnRule& rr) {
   // TODO LATER: check that if there is a reaction with the same
   //       reactants and products that the reaction rate is the same
