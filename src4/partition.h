@@ -871,6 +871,9 @@ public:
       const IVec3& waypoint_index, const bool reinitialize = true
   );
 
+  // returns true if any of the walls overlap
+  bool check_for_overlapped_walls(const Vec3& rand_vec) const;
+
 private:
   void update_walls_per_subpart(
       const WallsWithTheirMovesMap& walls_with_their_moves, const bool insert

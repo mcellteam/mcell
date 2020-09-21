@@ -33,6 +33,7 @@
 #include "dyn_vertex_utils.inc"
 #include "collision_utils.inc"
 #include "wall_utils.inc"
+#include "wall_overlap.h"
 
 using namespace std;
 
@@ -340,6 +341,64 @@ void Partition::initialize_all_waypoints() {
       use_previous_waypoint = false;
     }
   }
+}
+
+
+bool Partition::check_for_overlapped_walls(const Vec3& rand_vec) const {
+
+  typedef pair<wall_index_t, float_t> WallDprodPair;
+  vector<WallDprodPair> wall_indices_w_dprod;
+  for (const Wall& w: walls) {
+    float_t d_prod = dot(rand_vec, w.normal);
+
+    /* we want to place walls with opposite normals into
+       neighboring positions in the sorted list */
+    if (d_prod < 0) {
+      d_prod = -d_prod;
+    }
+
+    wall_indices_w_dprod.push_back(make_pair(w.index, d_prod));
+  }
+
+  // sort according to dprod
+  sort(wall_indices_w_dprod.begin(), wall_indices_w_dprod.end(),
+      [](const WallDprodPair& a, const WallDprodPair& b) -> bool {
+          return a.second < b.second;
+      }
+  );
+
+
+  for (size_t i = 0; i < wall_indices_w_dprod.size(); i++) {
+    WallDprodPair& wd = wall_indices_w_dprod[i];
+    const Wall& w1 = get_wall(wd.first);
+
+    size_t next_index = i + 1;
+    while (next_index < wall_indices_w_dprod.size() &&
+        (!distinguishable_f(wd.second, wall_indices_w_dprod[next_index].second, EPS))) {
+
+      /* there may be several walls with the same (or mirror) oriented normals */
+      const Wall& w2 = get_wall(wall_indices_w_dprod[next_index].first);
+
+      if (WallOverlap::are_coplanar(*this, w1, w2, MESH_DISTINCTIVE_EPS) &&
+           (WallOverlap::are_coincident(*this, w1, w2, MESH_DISTINCTIVE_EPS) ||
+            WallOverlap::coplanar_walls_overlap(*this, w1, w2))
+      ) {
+
+        const string& obj1_name = get_geometry_object(w1.object_id).name;
+        const string& obj2_name = get_geometry_object(w2.object_id).name;
+
+        mcell_log(
+            "Error: walls are overlapped: wall side %d from '%s' and wall "
+            "side %d from '%s'.",
+            w1.side, obj1_name.c_str(), w2.side, obj2_name.c_str()
+        );
+        return false;
+      }
+
+      next_index++;
+    }
+  }
+  return true;
 }
 
 

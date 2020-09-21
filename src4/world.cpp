@@ -421,6 +421,23 @@ void World::dump() {
 }
 
 
+bool World::check_for_overlapped_walls() {
+  /* pick up a random vector */
+  Vec3 rand_vec;
+  rand_vec.x = rng_dbl(&rng);
+  rand_vec.y = rng_dbl(&rng);
+  rand_vec.z = rng_dbl(&rng);
+
+  for (const Partition& p: partitions) {
+    bool ok = p.check_for_overlapped_walls(rand_vec);
+    if (!ok) {
+      return false;
+    }
+  }
+  return true;
+}
+
+
 void World::export_data_model_to_dir(const std::string& prefix, const bool only_for_viz) const {
   // prefix should be the same directory that is used for viz_output,
   // e.g. ./viz_data/seed_0001/Scene

@@ -122,6 +122,8 @@ using BNGCommon::round_f;
 
 const float_t SCHEDULER_COMPARISON_EPS = 1e-10;
 
+const float_t MESH_DISTINCTIVE_EPS = EPS;
+
 // ---------------------------------- configurable constants----------------------------------
 
 #define ENABLE_LEGACY_CALLBACKS
@@ -822,6 +824,7 @@ public:
                             interactions */
   bool randomize_smol_pos; /* If set, always place surface molecule at random
                              location instead of center of grid */
+  bool check_overlapped_walls; /* Check geometry for overlapped walls? */
 
   // initialized in World::init_counted_volumes
   // also tells whether waypoints in a partition were initialized

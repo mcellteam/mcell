@@ -40,7 +40,8 @@ namespace API {
         const std::vector<float_t> initial_partition_origin_ = std::vector<float_t>(), \
         const float_t partition_dimension_ = 10, \
         const float_t subpartition_dimension_ = 0.5, \
-        const long total_iterations_hint_ = 1000000 \
+        const long total_iterations_hint_ = 1000000, \
+        const bool check_overlapped_walls_ = true \
     ) { \
       class_name = "Config"; \
       seed = seed_; \
@@ -53,6 +54,7 @@ namespace API {
       partition_dimension = partition_dimension_; \
       subpartition_dimension = subpartition_dimension_; \
       total_iterations_hint = total_iterations_hint_; \
+      check_overlapped_walls = check_overlapped_walls_; \
       postprocess_in_ctor();\
       check_semantics();\
     }
@@ -186,6 +188,18 @@ public:
   }
   virtual long get_total_iterations_hint() const {
     return total_iterations_hint;
+  }
+
+  bool check_overlapped_walls;
+  virtual void set_check_overlapped_walls(const bool new_check_overlapped_walls_) {
+    if (initialized) {
+      throw RuntimeError("Value 'check_overlapped_walls' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
+    check_overlapped_walls = new_check_overlapped_walls_;
+  }
+  virtual bool get_check_overlapped_walls() const {
+    return check_overlapped_walls;
   }
 
   // --- methods ---

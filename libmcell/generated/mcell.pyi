@@ -194,7 +194,8 @@ class Config():
             initial_partition_origin : List[float] = None,
             partition_dimension : float = 10,
             subpartition_dimension : float = 0.5,
-            total_iterations_hint : int = 1000000
+            total_iterations_hint : int = 1000000,
+            check_overlapped_walls : bool = True
         ):
         self.seed = seed
         self.time_step = time_step
@@ -206,6 +207,7 @@ class Config():
         self.partition_dimension = partition_dimension
         self.subpartition_dimension = subpartition_dimension
         self.total_iterations_hint = total_iterations_hint
+        self.check_overlapped_walls = check_overlapped_walls
 
 
 class Count():

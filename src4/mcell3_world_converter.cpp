@@ -331,6 +331,8 @@ bool MCell3WorldConverter::convert_simulation_setup(volume* s) {
   );
 
   world->config.use_expanded_list = s->use_expanded_list;
+  // check is done in MCell3 initialization code
+  world->config.check_overlapped_walls = false;
 
 	// compute other constants
   world->config.init();

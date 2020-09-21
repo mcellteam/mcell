@@ -708,9 +708,6 @@ void update_moved_walls(
     const WallsWithTheirMovesMap& walls_with_their_moves
 );
 
-
-int check_for_overlapped_walls(World* world);
-
 } // namespace Geometry
 
 } // namespace MCell

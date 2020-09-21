@@ -109,7 +109,12 @@ void MCell4Converter::convert(Model* model_, World* world_) {
   convert_geometry_objects();
 
   // uses random generator state
-  Geometry::check_for_overlapped_walls(world);
+  if (world->config.check_overlapped_walls) {
+    bool ok = world->check_for_overlapped_walls();
+    if (!ok) {
+      throw ValueError("Walls in geometry overlap, more details were printed in previous message.");
+    }
+  }
 
   // we need to schedule the initial release for surfaces before the other releases
   world->create_initial_surface_region_release_event();
@@ -202,6 +207,8 @@ void MCell4Converter::convert_simulation_setup() {
   world->config.vacancy_search_dist2 = vacancy_search_dist * vacancy_search_dist; // and take square
 
   world->config.randomize_smol_pos = !config.center_molecules_on_grid;
+
+  world->config.check_overlapped_walls = config.check_overlapped_walls;
 
   world->config.initial_seed = config.seed;
   rng_init(&world->rng, world->config.initial_seed);

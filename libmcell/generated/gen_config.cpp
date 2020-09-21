@@ -43,7 +43,8 @@ bool GenConfig::__eq__(const GenConfig& other) const {
     initial_partition_origin == other.initial_partition_origin &&
     partition_dimension == other.partition_dimension &&
     subpartition_dimension == other.subpartition_dimension &&
-    total_iterations_hint == other.total_iterations_hint;
+    total_iterations_hint == other.total_iterations_hint &&
+    check_overlapped_walls == other.check_overlapped_walls;
 }
 
 void GenConfig::set_initialized() {
@@ -62,6 +63,7 @@ void GenConfig::set_all_attributes_as_default_or_unset() {
   partition_dimension = 10;
   subpartition_dimension = 0.5;
   total_iterations_hint = 1000000;
+  check_overlapped_walls = true;
 }
 
 std::string GenConfig::to_str(const std::string ind) const {
@@ -76,7 +78,8 @@ std::string GenConfig::to_str(const std::string ind) const {
       "initial_partition_origin=" << vec_nonptr_to_str(initial_partition_origin, ind + "  ") << ", " <<
       "partition_dimension=" << partition_dimension << ", " <<
       "subpartition_dimension=" << subpartition_dimension << ", " <<
-      "total_iterations_hint=" << total_iterations_hint;
+      "total_iterations_hint=" << total_iterations_hint << ", " <<
+      "check_overlapped_walls=" << check_overlapped_walls;
   return ss.str();
 }
 
@@ -93,7 +96,8 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
             const std::vector<float_t>,
             const float_t,
             const float_t,
-            const long
+            const long,
+            const bool
           >(),
           py::arg("seed") = 1,
           py::arg("time_step") = 1e-6,
@@ -104,7 +108,8 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
           py::arg("initial_partition_origin") = std::vector<float_t>(),
           py::arg("partition_dimension") = 10,
           py::arg("subpartition_dimension") = 0.5,
-          py::arg("total_iterations_hint") = 1000000
+          py::arg("total_iterations_hint") = 1000000,
+          py::arg("check_overlapped_walls") = true
       )
       .def("check_semantics", &Config::check_semantics)
       .def("__str__", &Config::to_str, py::arg("ind") = std::string(""))
@@ -119,6 +124,7 @@ py::class_<Config> define_pybinding_Config(py::module& m) {
       .def_property("partition_dimension", &Config::get_partition_dimension, &Config::set_partition_dimension)
       .def_property("subpartition_dimension", &Config::get_subpartition_dimension, &Config::set_subpartition_dimension)
       .def_property("total_iterations_hint", &Config::get_total_iterations_hint, &Config::set_total_iterations_hint)
+      .def_property("check_overlapped_walls", &Config::get_check_overlapped_walls, &Config::set_check_overlapped_walls)
     ;
 }
 

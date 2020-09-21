@@ -275,6 +275,8 @@ public:
 
   static uint64_t determine_output_frequency(uint64_t iterations);
 
+  bool check_for_overlapped_walls();
+
 private:
   // called in init_simulation
   void recompute_species_flags();
