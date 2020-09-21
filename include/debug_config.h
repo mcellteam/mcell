@@ -39,6 +39,9 @@
 
 // when enabled, mcell3 produces identical result to the mcell master branch
 #define MCELL3_IDENTICAL
+#define MCELL4_IDENTICAL
+
+#define MCELL3_SORTED_VIZ_OUTPUT
 
 // define when comparin mcell4 and pymcell4 outputs
 //#define PYMCELL4_TESTING
@@ -63,7 +66,7 @@
 #ifndef MCELL3_IDENTICAL
 
 // ---- MCell4 macros to match MCell3R ----
-
+#ifndef MCELL4_IDENTICAL
 // MCell3R always creates new products when there is the same species
 // on the reactants and products side (unlike in normal MCell)
 // this switch is for validation of MCell4 BNG against MCell3R
@@ -87,6 +90,7 @@
 // sort molecules in schedule helper according to ID before a new timestep begins
 // testsuite for mcell4 won't pass
 //#define MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID
+#endif
 
 // ^^^^ MCell4 macros to match MCell3R ^^^^
 
@@ -136,12 +140,12 @@
 //#define DEBUG_EXTRA_CHECKS
 
 //#define DUMP_ALWAYS
-#define DUMP_NEVER
+//#define DUMP_NEVER
 
 #if (!defined(NDEBUG) || defined(DUMP_ALWAYS)) && !defined(DUMP_NEVER)
 
 #define FROM_ITERATION 0
-#define TO_ITERATION 1
+#define TO_ITERATION 10
 
 #define DUMP_NONDIFFUSING_VMS
 

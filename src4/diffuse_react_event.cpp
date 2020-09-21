@@ -1766,7 +1766,7 @@ int DiffuseReactEvent::find_surf_product_positions(
 
   // random assignment of positions
   uint num_tiles_to_recycle = min(actual_products.size(), recycled_surf_prod_positions.size());
-  if (num_tiles_to_recycle == 1 && recycled_surf_prod_positions.size() >= 1) {
+  if (num_surface_products == 1 && num_tiles_to_recycle == 1 && recycled_surf_prod_positions.size() >= 1) {
     // NOTE: this code is overly complex and can be simplified
     if (initiator_recycled_index == INDEX_INVALID) {
       assert(recycled_surf_prod_positions.size() == 1);
@@ -1776,7 +1776,7 @@ int DiffuseReactEvent::find_surf_product_positions(
       assigned_surf_product_positions[0] = recycled_surf_prod_positions[initiator_recycled_index];
     }
   }
-  else if (num_tiles_to_recycle > 1) {
+  else {
     uint next_available_index = 0;
     uint num_players = actual_products.size() + num_reactants;
 
@@ -1822,7 +1822,7 @@ int DiffuseReactEvent::find_surf_product_positions(
       uint num_attempts = 0;
       bool found = false;
       while (!found && num_attempts < SURFACE_DIFFUSION_RETRIES) {
-
+        assert(num_vacant_tiles != 0);
         uint rnd_num = rng_uint(&world->rng) % num_vacant_tiles;
 
         if (!used_vacant_tiles[rnd_num]) {
