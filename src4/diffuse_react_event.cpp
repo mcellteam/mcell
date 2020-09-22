@@ -1693,7 +1693,6 @@ int DiffuseReactEvent::find_surf_product_positions(
     small_vector<GridPos>& assigned_surf_product_positions) {
 
   assigned_surf_product_positions.clear();
-  assigned_surf_product_positions.resize(actual_products.size());
 
   uint needed_surface_positions = 0;
   for (const ProductSpeciesWIndices& prod: actual_products) {
@@ -1736,6 +1735,11 @@ int DiffuseReactEvent::find_surf_product_positions(
     }
   }
 
+  if (needed_surface_positions == 0) {
+    return 0;
+  }
+  assigned_surf_product_positions.resize(actual_products.size());
+
   // do we need more tiles?
   TileNeighborVector vacant_neighbor_tiles;
   if (needed_surface_positions > recycled_surf_prod_positions.size()) {
@@ -1766,8 +1770,7 @@ int DiffuseReactEvent::find_surf_product_positions(
 
   // random assignment of positions
   uint num_tiles_to_recycle = min(actual_products.size(), recycled_surf_prod_positions.size());
-  if (num_surface_products == 1 && num_tiles_to_recycle == 1 && recycled_surf_prod_positions.size() >= 1) {
-    // NOTE: this code is overly complex and can be simplified
+  if (needed_surface_positions == 1 && num_tiles_to_recycle == 1 && recycled_surf_prod_positions.size() >= 1) {
     if (initiator_recycled_index == INDEX_INVALID) {
       assert(recycled_surf_prod_positions.size() == 1);
       assigned_surf_product_positions[0] = recycled_surf_prod_positions[0];
