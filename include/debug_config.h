@@ -41,8 +41,6 @@
 #define MCELL3_IDENTICAL
 #define MCELL4_IDENTICAL
 
-#define MCELL3_SORTED_VIZ_OUTPUT
-
 // define when comparin mcell4 and pymcell4 outputs
 //#define PYMCELL4_TESTING
 
