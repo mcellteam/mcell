@@ -61,6 +61,8 @@
 // enabling this macro disables logic in safe_diffusion_step and set_inertness_and_maxtime
 //#define MCELL3_MOLECULE_MOVES_WITH_MAXIMUM_TIMESTEP
 
+//#define MCELL3_NO_COMPARMTENT_IN_PRINTOUTS
+
 #ifndef MCELL3_IDENTICAL
 
 // ---- MCell4 macros to match MCell3R ----
@@ -138,7 +140,7 @@
 //#define DEBUG_EXTRA_CHECKS
 
 //#define DUMP_ALWAYS
-//#define DUMP_NEVER
+#define DUMP_NEVER
 
 #if (!defined(NDEBUG) || defined(DUMP_ALWAYS)) && !defined(DUMP_NEVER)
 

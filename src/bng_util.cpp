@@ -21,6 +21,7 @@
 ******************************************************************************/
 
 #include "bng_util.h"
+#include "debug_config.h"
 
 #include <vector>
 #include <cassert>
@@ -200,9 +201,11 @@ static std::string nodes_to_bngl(const vector<Node>& nodes) {
         res += ")";
       }
 
+#ifndef MCELL3_NO_COMPARMTENT_IN_PRINTOUTS
       if (mol.compartment != "") {
         res += "@" + mol.compartment;
       }
+#endif
 
       // expecting that all the molecules are at the end
       if (mol_index + 1 != nodes.size()) {
