@@ -1692,10 +1692,13 @@ int DiffuseReactEvent::find_surf_product_positions(
     const Molecule* surf_reac,
     const RxnProductsVector& actual_products,
     GridPosVector& assigned_surf_product_positions,
-    uint& num_surface_products
+    uint& num_surface_products,
+    bool& surf_pos_reacA_is_used
 ) {
 
   assigned_surf_product_positions.clear();
+
+  surf_pos_reacA_is_used = keep_reacA;
 
   uint needed_surface_positions = 0;
   for (const ProductSpeciesWIndices& prod: actual_products) {
@@ -1782,6 +1785,7 @@ int DiffuseReactEvent::find_surf_product_positions(
       assigned_surf_product_positions[0] = recycled_surf_prod_positions[initiator_recycled_index];
     }
     assigned_surf_product_positions[0].set_reac_type(GridPosType::REACA_UV);
+    surf_pos_reacA_is_used = true;
   }
   else {
     uint next_available_index = 0;
@@ -1814,6 +1818,7 @@ int DiffuseReactEvent::find_surf_product_positions(
       assigned_surf_product_positions[product_index] = recycled_surf_prod_positions[next_available_index];
       if (assigned_surf_product_positions[product_index].has_same_wall_and_grid(*reacA)) {
         assigned_surf_product_positions[product_index].set_reac_type(GridPosType::REACA_UV);
+        surf_pos_reacA_is_used = true;
       }
       else if (assigned_surf_product_positions[product_index].has_same_wall_and_grid(*reacB)) {
         assigned_surf_product_positions[product_index].set_reac_type(GridPosType::REACB_UV);
@@ -2031,10 +2036,11 @@ int DiffuseReactEvent::outcome_products_random(
   /* If the reaction involves a surface, make sure there is room for each product. */
   GridPosVector assigned_surf_product_positions; // this array contains information on where to place the surface products
   uint num_surface_products;
+  bool surf_pos_reacA_is_used;
   if (is_orientable) {
     int res = find_surf_product_positions(
         p, reacA, keep_reacA, reacB, keep_reacB, surf_reac, actual_products,
-        assigned_surf_product_positions, num_surface_products);
+        assigned_surf_product_positions, num_surface_products, surf_pos_reacA_is_used);
     if (res == RX_BLOCKED) {
       return RX_BLOCKED;
     }
@@ -2217,7 +2223,7 @@ int DiffuseReactEvent::outcome_products_random(
           pos = new_grid_pos.pos;
           break;
         case GridPosType::RANDOM:
-          if (rxn->is_unimol() && !keep_reacA && (num_surface_products == 2)) {
+          if (rxn->is_unimol() && !surf_pos_reacA_is_used && (num_surface_products == 2)) {
             const GridPos* second_prod_grid_pos =
                 GridPos::get_second_surf_product_pos(assigned_surf_product_positions, current_surf_product_position_index);
             assert(second_prod_grid_pos != nullptr);
