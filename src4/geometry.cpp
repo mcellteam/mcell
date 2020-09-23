@@ -888,6 +888,9 @@ void Grid::initialize(const Partition& p, const Wall& w) {
 
   vert0.u = dot(vert0_tmp, w.unit_u);
   vert0.v = dot(vert0_tmp, w.unit_v);
+
+  assert(w.index != WALL_INDEX_INVALID);
+  wall_index = w.index;
 }
 
 

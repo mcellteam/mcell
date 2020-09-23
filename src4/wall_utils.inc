@@ -41,6 +41,8 @@
 #include "geometry.h"
 #include "debug_config.h"
 
+#include "geometry_utils.h"
+
 #include "reaction_utils.inc"
 #include "geometry_utils.inc"
 #include "collision_utils.inc"

@@ -32,6 +32,7 @@ set(SRC4_SOURCE_FILES
     rxn_class_cleanup_event.cpp
     species_cleanup_event.cpp
     wall_overlap.cpp
+    grid_position.cpp
     geometry.cpp
     species_flags_analyzer.cpp
     world.cpp

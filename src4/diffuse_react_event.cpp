@@ -39,6 +39,7 @@
 #include "world.h"
 #include "partition.h"
 #include "geometry.h"
+#include "grid_position.h"
 #include "debug_config.h"
 #include "debug.h"
 
@@ -1690,7 +1691,9 @@ int DiffuseReactEvent::find_surf_product_positions(
     const Molecule* reacB, const bool keep_reacB,
     const Molecule* surf_reac,
     const RxnProductsVector& actual_products,
-    small_vector<GridPos>& assigned_surf_product_positions) {
+    GridPosVector& assigned_surf_product_positions,
+    uint& num_surface_products
+) {
 
   assigned_surf_product_positions.clear();
 
@@ -1700,7 +1703,7 @@ int DiffuseReactEvent::find_surf_product_positions(
       needed_surface_positions++;
     }
   }
-  uint num_surface_products = needed_surface_positions;
+  num_surface_products = needed_surface_positions;
 
   assert(reacA != nullptr);
   uint num_reactants = (reacB == nullptr) ? 1 : 2;
@@ -1778,6 +1781,7 @@ int DiffuseReactEvent::find_surf_product_positions(
     else {
       assigned_surf_product_positions[0] = recycled_surf_prod_positions[initiator_recycled_index];
     }
+    assigned_surf_product_positions[0].set_reac_type(GridPosType::REACA_UV);
   }
   else {
     uint next_available_index = 0;
@@ -1802,12 +1806,21 @@ int DiffuseReactEvent::find_surf_product_positions(
       }
 
       // skip products that we already set
-      if (assigned_surf_product_positions[product_index].initialized) {
+      if (assigned_surf_product_positions[product_index].is_assigned()) {
         continue;
       }
 
       // set position for product with product_index
       assigned_surf_product_positions[product_index] = recycled_surf_prod_positions[next_available_index];
+      if (assigned_surf_product_positions[product_index].has_same_wall_and_grid(*reacA)) {
+        assigned_surf_product_positions[product_index].set_reac_type(GridPosType::REACA_UV);
+      }
+      else if (assigned_surf_product_positions[product_index].has_same_wall_and_grid(*reacB)) {
+        assigned_surf_product_positions[product_index].set_reac_type(GridPosType::REACB_UV);
+      }
+      else {
+        assert(false);
+      }
       next_available_index++;
     }
 
@@ -1818,7 +1831,7 @@ int DiffuseReactEvent::find_surf_product_positions(
     uint num_vacant_tiles = vacant_neighbor_tiles.size();
     for (uint product_index = 0; product_index < actual_products.size(); product_index++) {
 
-      if (assigned_surf_product_positions[product_index].initialized) {
+      if (assigned_surf_product_positions[product_index].is_assigned()) {
         continue;
       }
 
@@ -1831,9 +1844,13 @@ int DiffuseReactEvent::find_surf_product_positions(
         if (!used_vacant_tiles[rnd_num]) {
           WallTileIndexPair grid_tile_index_pair = vacant_neighbor_tiles[rnd_num];
           assigned_surf_product_positions[product_index] = GridPos::make_without_pos(p, grid_tile_index_pair);
+          assigned_surf_product_positions[product_index].set_reac_type(GridPosType::RANDOM);
           used_vacant_tiles[rnd_num] = true;
           found = true;
         }
+
+        // TODO: in MCell3
+        /* make sure we can get to the tile given the surface regions defined in the model */
 
         num_attempts++;
       }
@@ -2012,11 +2029,12 @@ int DiffuseReactEvent::outcome_products_random(
   release_assert(actual_products.size() <= rxn->products.size()); // some rxn products may be still connected
 
   /* If the reaction involves a surface, make sure there is room for each product. */
-  small_vector<GridPos> assigned_surf_product_positions; // this array contains information on where to place the surface products
+  GridPosVector assigned_surf_product_positions; // this array contains information on where to place the surface products
+  uint num_surface_products;
   if (is_orientable) {
     int res = find_surf_product_positions(
         p, reacA, keep_reacA, reacB, keep_reacB, surf_reac, actual_products,
-        assigned_surf_product_positions);
+        assigned_surf_product_positions, num_surface_products);
     if (res == RX_BLOCKED) {
       return RX_BLOCKED;
     }
@@ -2175,17 +2193,44 @@ int DiffuseReactEvent::outcome_products_random(
       // get info on where to place the product and increment the counter
       assert(current_surf_product_position_index < assigned_surf_product_positions.size());
       const GridPos& new_grid_pos = assigned_surf_product_positions[current_surf_product_position_index];
-      assert(new_grid_pos.initialized);
-      current_surf_product_position_index++;
+      assert(new_grid_pos.is_assigned());
 
       Vec2 pos;
-      if (new_grid_pos.pos_is_set) {
-        pos = new_grid_pos.pos;
-      }
-      else {
-        // NOTE: there might be some optimization for this in mcell3
-        const Wall& wall = p.get_wall(new_grid_pos.wall_index);
-        pos = GridUtil::grid2uv_random(wall, new_grid_pos.tile_index, world->rng);
+      switch (new_grid_pos.type) {
+        case GridPosType::REACA_UV:
+          if (rxn->is_unimol() && (num_surface_products == 2) && (surf_reac != NULL)) {
+            // there must be a single position with random setting for the second surface product,
+            // find and use it
+            const GridPos* second_prod_grid_pos =
+                GridPos::get_second_surf_product_pos(assigned_surf_product_positions, current_surf_product_position_index);
+            assert(second_prod_grid_pos != nullptr);
+
+            pos = GridPosition::find_closest_position(p, new_grid_pos, *second_prod_grid_pos);
+          }
+          else {
+            assert(new_grid_pos.pos_is_set);
+            pos = new_grid_pos.pos;
+          }
+          break;
+        case GridPosType::REACB_UV:
+          assert(new_grid_pos.pos_is_set);
+          pos = new_grid_pos.pos;
+          break;
+        case GridPosType::RANDOM:
+          if (rxn->is_unimol() && !keep_reacA && (num_surface_products == 2)) {
+            const GridPos* second_prod_grid_pos =
+                GridPos::get_second_surf_product_pos(assigned_surf_product_positions, current_surf_product_position_index);
+            assert(second_prod_grid_pos != nullptr);
+
+            pos = GridPosition::find_closest_position(p, new_grid_pos, *second_prod_grid_pos);
+          }
+          else {
+            const Wall& wall = p.get_wall(new_grid_pos.wall_index);
+            pos = GridUtil::grid2uv_random(wall, new_grid_pos.tile_index, world->rng);
+          }
+          break;
+        default:
+          release_assert(false);
       }
 
       // create our new molecule
@@ -2212,6 +2257,8 @@ int DiffuseReactEvent::outcome_products_random(
           new_sm.dump(p, "", "  created sm:", world->get_current_iteration(), scheduled_time);
         );
       #endif
+
+      current_surf_product_position_index++;
     }
 
     // In this time step, we will simply simulate all results of reactions regardless on the diffusion time step of the

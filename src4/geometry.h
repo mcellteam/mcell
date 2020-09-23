@@ -392,6 +392,8 @@ public:
 
   void initialize(const Partition& p, const Wall& w);
 
+  wall_index_t wall_index;
+
   uint num_tiles_along_axis; // Number of slots along each axis (originally n)
   uint num_tiles; // Number of tiles in effector grid (triangle: grid_size^2, rectangle: 2*grid_size^2) (originally n_tiles)
 
@@ -637,12 +639,25 @@ public:
 };
 
 
+enum class GridPosType {
+  NOT_INITIALIZED,
+  NOT_ASSIGNED, // already holds information on position but not used by product
+  REACA_UV,
+  REACB_UV,
+  //USE_REACB_UV,
+  //USE_UV_LOC, ??
+  RANDOM
+};
+
+class GridPos;
+typedef std::vector<GridPos> GridPosVector;
+
 // auxiliary class used to hold information on
-// grid position for reactions
+// grid position for reactions in DiffuseReactEvent::find_surf_product_positions
 class GridPos {
 public:
   GridPos()
-    : initialized(false),
+    : type(GridPosType::NOT_INITIALIZED),
       wall_index(WALL_INDEX_INVALID), tile_index(TILE_INDEX_INVALID),
       pos_is_set(false), pos(POS_INVALID) {
   }
@@ -652,7 +667,7 @@ public:
     assert(sm.s.pos.is_valid());
     GridPos res;
 
-    res.initialized = true;
+    res.type = GridPosType::NOT_ASSIGNED;
     res.wall_index = sm.s.wall_index;
     res.tile_index = sm.s.grid_tile_index;
     res.pos = sm.s.pos;
@@ -664,17 +679,52 @@ public:
     assert(wall_tile_index_pair.tile_index != TILE_INDEX_INVALID);
     GridPos res;
 
-    res.initialized = true;
+    res.type = GridPosType::NOT_ASSIGNED;
     res.wall_index = wall_tile_index_pair.wall_index;
     res.tile_index = wall_tile_index_pair.tile_index;
     res.pos_is_set = false;
     return res;
   }
 
-  bool initialized; // was this info initialized
+  // returns null if not found, asserts in debug mode if there are multiple options
+  static const GridPos* get_second_surf_product_pos(const GridPosVector& vec, const uint first_index) {
+    const GridPos* res = nullptr;
+    for (uint i = 0; i < vec.size(); i++) {
+      if (i != first_index && vec[i].is_assigned()) {
+        assert(res == nullptr);
+        res = &vec[i];
+      }
+    }
+    return res;
+  }
+
+  bool is_initialized() const {
+    return type != GridPosType::NOT_INITIALIZED;
+  }
+
+  bool is_assigned() const {
+    return is_initialized() && type != GridPosType::NOT_ASSIGNED;
+  }
+
+  void set_reac_type(const GridPosType t) {
+    assert(is_initialized() && !is_assigned());
+    // TODO: check for allowed value of t
+    type = t;
+  }
+
+  bool has_same_wall_and_grid(const Molecule& m) const {
+    assert(m.is_surf());
+    return m.s.wall_index == wall_index && m.s.grid_tile_index == tile_index;
+  }
+
+  bool has_same_wall_and_grid(const GridPos& gp) const {
+    return gp.wall_index == wall_index && gp.tile_index == tile_index;
+  }
+
+  GridPosType type; // was this info initialized
   wall_index_t wall_index;  /* wall where the tile is on */
   tile_index_t tile_index;  /* index on that tile */
-  bool pos_is_set;
+  bool pos_is_set; // TODO: remove - covered by type
   Vec2 pos;
 };
 

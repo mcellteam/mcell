@@ -256,7 +256,8 @@ private:
       const Molecule* reacB, const bool keep_reacB,
       const Molecule* surf_reac,
       const BNG::RxnProductsVector& actual_products,
-      small_vector<GridPos>& assigned_surf_product_positions
+      GridPosVector& assigned_surf_product_positions,
+      uint& num_surface_products
   );
 
   int outcome_bimolecular(
