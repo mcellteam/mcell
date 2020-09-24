@@ -616,7 +616,7 @@ void ReleaseEvent::release_onto_regions(uint computed_release_number) {
       molecule_id_t sm_id =
           GridUtil::place_single_molecule_onto_grid(
               p, world->rng, wall, tile_index, false, Vec2(),
-              species_id, orientation, get_release_delay_time()
+              species_id, orientation, event_time, get_release_delay_time()
           );
 
       #ifdef DEBUG_RELEASES
@@ -730,7 +730,7 @@ void ReleaseEvent::release_inside_regions(uint& computed_release_number) {
 
     // TODO_LATER: location can be close to a partition boundary, we might need to release to a different partition
     Molecule& new_vm = p.add_volume_molecule(
-        Molecule(MOLECULE_ID_INVALID, species_id, pos), get_release_delay_time()
+        Molecule(MOLECULE_ID_INVALID, species_id, pos, event_time), get_release_delay_time()
     );
     new_vm.flags = IN_VOLUME | ACT_DIFFUSE;
     new_vm.set_flag(MOLECULE_FLAG_VOL);
@@ -788,7 +788,7 @@ void ReleaseEvent::release_ellipsoid_or_rectcuboid(uint computed_release_number)
 
     // TODO_LATER: location can be close to a partition boundary, we might need to release to a different partition
     Molecule& new_vm = p.add_volume_molecule(
-        Molecule(MOLECULE_ID_INVALID, species_id, molecule_location), get_release_delay_time()
+        Molecule(MOLECULE_ID_INVALID, species_id, molecule_location, event_time), get_release_delay_time()
     );
     new_vm.flags = IN_VOLUME | ACT_DIFFUSE;
     new_vm.set_flag(MOLECULE_FLAG_VOL);
@@ -809,7 +809,7 @@ void ReleaseEvent::release_list() {
 
     if (species.is_vol()) {
       Molecule& new_vm = p.add_volume_molecule(
-          Molecule(MOLECULE_ID_INVALID, info.species_id, info.pos), get_release_delay_time()
+          Molecule(MOLECULE_ID_INVALID, info.species_id, info.pos, event_time), get_release_delay_time()
       );
       new_vm.flags = IN_VOLUME | ACT_DIFFUSE; // TODO: not sure if these flags are used in MCell4
       new_vm.set_flag(MOLECULE_FLAG_VOL);
@@ -832,8 +832,8 @@ void ReleaseEvent::release_list() {
       float_t diam = diameter.x;
       assert(diam != FLT_INVALID);
       molecule_id_t sm_id = GridUtil::place_surface_molecule_to_closest_pos(
-          p, world->rng, info.pos, info.species_id, orient,
-          diameter.x, get_release_delay_time()
+          p, world->rng, info.pos, info.species_id, orient, diameter.x,
+          event_time, get_release_delay_time()
       );
 
       if (sm_id != MOLECULE_ID_INVALID) {
@@ -899,7 +899,7 @@ void ReleaseEvent::init_surf_mols_by_number(Partition& p, const Region& reg, con
       if (w.grid.get_molecule_on_tile(wip.tile_index) == MOLECULE_ID_INVALID) {
         GridUtil::place_single_molecule_onto_grid(
             p, world->rng, w, wip.tile_index, false, Vec2(),
-            info.species_id, info.orientation, get_release_delay_time()
+            info.species_id, info.orientation, event_time, get_release_delay_time()
         );
         break;
       }
@@ -974,7 +974,7 @@ void ReleaseEvent::init_surf_mols_by_density(
     GridUtil::place_single_molecule_onto_grid(
         p, world->rng, w, ti, false, Vec2(),
         prob_info_pairs[index].second.species_id, prob_info_pairs[index].second.orientation,
-        get_release_delay_time()
+        event_time, get_release_delay_time()
     );
 
     auto it = num_released_per_species.find(species_id);

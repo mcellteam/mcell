@@ -72,6 +72,8 @@ enum molecule_flag_t {
   MOLECULE_FLAG_SURF = 1 << 0, // originally TYPE_SURF
   MOLECULE_FLAG_VOL = 1 << 1, // originally TYPE_VOL
 
+  MOLECULE_FLAG_MATURE = 1 << 13, // originally MATURE_MOLECULE
+
   MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN = 1 << 16,
   MOLECULE_FLAG_RESCHEDULE_UNIMOL_RXN_ON_NEXT_RXN_RATE_UPDATE = 1 << 17,
 
@@ -87,7 +89,8 @@ class Molecule {
 public:
   Molecule()
     : id(MOLECULE_ID_INVALID), species_id(SPECIES_ID_INVALID), flags(0),
-      diffusion_time(TIME_INVALID), unimol_rx_time(TIME_FOREVER) {
+      diffusion_time(TIME_INVALID), unimol_rx_time(TIME_FOREVER),
+      birthday(TIME_INVALID) {
   }
 
   Molecule(const Molecule& m) {
@@ -97,10 +100,11 @@ public:
   // volume molecule
   Molecule(
       const molecule_id_t id_, const species_id_t species_id_,
-      const Vec3& pos_
+      const Vec3& pos_, const float_t birthday_
     )
     : id(id_), species_id(species_id_), flags(MOLECULE_FLAG_VOL),
-      diffusion_time(TIME_INVALID), unimol_rx_time(TIME_INVALID) {
+      diffusion_time(TIME_INVALID), unimol_rx_time(TIME_INVALID),
+      birthday(birthday_) {
     v.pos = pos_;
     v.subpart_index = SUBPART_INDEX_INVALID;
     v.reactant_subpart_index = SUBPART_INDEX_INVALID;
@@ -110,10 +114,11 @@ public:
   // surface molecule
   Molecule(
       const molecule_id_t id_, const species_id_t species_id_,
-      const Vec2& pos2d
+      const Vec2& pos2d, const float_t birthday_
     )
     : id(id_), species_id(species_id_), flags(MOLECULE_FLAG_SURF),
-      diffusion_time(TIME_INVALID), unimol_rx_time(TIME_INVALID) {
+      diffusion_time(TIME_INVALID), unimol_rx_time(TIME_INVALID),
+      birthday(birthday_) {
     s.pos = pos2d;
     s.orientation = ORIENTATION_NONE;
     s.wall_index = WALL_INDEX_INVALID;
@@ -138,6 +143,12 @@ public:
   // time assigned for unimol rxn, TIME_INVALID if time has not been set or mo.ecule has not unimol rxn,
   // TIME_FOREVER if the probability of an existing unimol rxn is 0
   float_t unimol_rx_time;
+
+  // - time when the molecule was released or created
+  // - used when determining whether this molecule is mature
+  // - release delay time is not added to the birthday time, a newly released molecule
+  //   with release delay will have its birthday at the beginning of the iteration
+  float_t birthday;
 
   // update assignment operator when modifying this
   union {

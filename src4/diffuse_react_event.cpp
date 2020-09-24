@@ -89,23 +89,27 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const MoleculeIdsVector&
   // we need to strictly follow the ordering in mcell3, therefore steps 2) and 3) do not use the time
   // for which they were scheduled but rather simply the order in which these "microevents" were created
 
-  std::vector<DiffuseAction> delayed_release_diffusions;
+  std::vector<DiffuseAction> delayed_diffusions;
 
   // 1) first diffuse already existing molecules
   uint existing_mols_count = molecule_ids.size();
   for (uint i = 0; i < existing_mols_count; i++) {
     molecule_id_t id = molecule_ids[i];
-    float_t release_delay =  p.get_m(id).diffusion_time - event_time;
 
-    if (cmp_eq(release_delay, 0.0)) { // NOTE: this can be optimized
+    // here we compute both release delay and also partially sort molecules to be diffused
+    // so that molecules not scheduled for he beginning of the event are diffused later
+    // (but according to their id, not time)
+    float_t diffusion_delay =  p.get_m(id).diffusion_time - event_time;
+
+    if (cmp_eq(diffusion_delay, 0.0)) { // NOTE: this can be optimized
       // existing molecules or created at the beginning of this timestep
       // - simulate whole time step for this molecule
       diffuse_single_molecule(p, id, WallTileIndexPair());
     }
     else {
       // released during this iteration but not at the beginning, postpone its diffusion
-      assert(release_delay > 0 && release_delay < time_up_to_next_barrier);
-      delayed_release_diffusions.push_back(DiffuseAction(id));
+      assert(diffusion_delay > 0 && diffusion_delay < time_up_to_next_barrier);
+      delayed_diffusions.push_back(DiffuseAction(id));
     }
   }
 
@@ -114,15 +118,15 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const MoleculeIdsVector&
   // merge the two arrays with actions
   new_diffuse_actions.insert(
       new_diffuse_actions.begin(),
-      delayed_release_diffusions.begin(), delayed_release_diffusions.end()
+      delayed_diffusions.begin(), delayed_diffusions.end()
   );
-  delayed_release_diffusions.clear();
+  delayed_diffusions.clear();
 #endif
 
   // 2) mcell3 first handles diffusions of existing molecules, then the delayed diffusions
   // actions created by the diffusion of all these molecules are handled later
-  for (uint i = 0; i < delayed_release_diffusions.size(); i++) {
-    const DiffuseAction& action = delayed_release_diffusions[i];
+  for (uint i = 0; i < delayed_diffusions.size(); i++) {
+    const DiffuseAction& action = delayed_diffusions[i];
 
     Molecule& m = p.get_m(action.id);
     diffuse_single_molecule(
@@ -168,6 +172,7 @@ void DiffuseReactEvent::diffuse_single_molecule(
   Molecule& m_initial = p.get_m(m_id);
   float_t diffusion_start_time = m_initial.diffusion_time;
   assert(diffusion_start_time >= event_time && diffusion_start_time <= event_time + time_up_to_next_barrier);
+  assert(m_initial.birthday != TIME_INVALID && m_initial.birthday <= diffusion_start_time);
 
   if (m_initial.is_defunct()) {
     return;
@@ -2161,7 +2166,7 @@ int DiffuseReactEvent::outcome_products_random(
     if (species.is_vol()) {
       // create and place a volume molecule
 
-      Molecule vm_initialization(MOLECULE_ID_INVALID, product_species_id, collision.pos);
+      Molecule vm_initialization(MOLECULE_ID_INVALID, product_species_id, collision.pos, time);
 
       // adding molecule might invalidate references of already existing molecules and also of species
       Molecule& new_vm = p.add_volume_molecule(vm_initialization);
@@ -2242,7 +2247,7 @@ int DiffuseReactEvent::outcome_products_random(
       }
 
       // create our new molecule
-      Molecule sm(MOLECULE_ID_INVALID, product_species_id, pos);
+      Molecule sm(MOLECULE_ID_INVALID, product_species_id, pos, time);
 
       // might invalidate references of already existing molecules
       Molecule& new_sm = p.add_surface_molecule(sm);

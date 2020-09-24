@@ -2075,6 +2075,7 @@ static molecule_id_t place_single_molecule_onto_grid(
     const Vec2& pos_on_wall_override_value,
     const species_id_t species_id,
     const orientation_t orientation,
+    const float_t current_time,
     const float_t release_delay_time
 
 ) {
@@ -2095,7 +2096,7 @@ static molecule_id_t place_single_molecule_onto_grid(
   }
 
   Molecule& new_sm = p.add_surface_molecule(
-      Molecule(MOLECULE_ID_INVALID, species_id, pos_on_wall),
+      Molecule(MOLECULE_ID_INVALID, species_id, pos_on_wall, current_time),
       release_delay_time
   );
 
@@ -2105,7 +2106,7 @@ static molecule_id_t place_single_molecule_onto_grid(
   new_sm.s.grid_tile_index = tile_index;
   wall.grid.set_molecule_tile(tile_index, new_sm.id);
 
-  new_sm.flags = ACT_DIFFUSE | IN_SURFACE;
+  new_sm.flags = ACT_DIFFUSE | IN_SURFACE; // TODO: is ACT_DIFFUSE and IN_SURFACE used somewere?
   new_sm.set_flag(MOLECULE_FLAG_SURF);
   new_sm.set_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN);
 
@@ -2135,6 +2136,7 @@ static molecule_id_t place_surface_molecule_to_closest_pos(
     const species_id_t species_id,
     const orientation_t orientation,
     const float_t search_diam,
+    const float_t current_time,
     const float_t release_delay_time
 ) {
   int grid_index = 0;
@@ -2195,7 +2197,8 @@ static molecule_id_t place_surface_molecule_to_closest_pos(
 
   Wall& found_w = p.get_wall(found_wall_index);
   return place_single_molecule_onto_grid(
-      p, rng, found_w, found_tile_index, true, best_wall_pos2d, species_id, orientation, release_delay_time);
+      p, rng, found_w, found_tile_index, true, best_wall_pos2d,
+      species_id, orientation, current_time, release_delay_time);
 }
 
 
