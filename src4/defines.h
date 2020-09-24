@@ -559,7 +559,6 @@ static inline float_t len2_squared(const Vec2& v1) {
   return v1.u * v1.u + v1.v * v1.v;
 }
 
-// FIXME: use places where to use this function
 static inline float_t len2(const Vec2& v1) {
   return sqrt_f(len2_squared(v1));
 }
@@ -572,7 +571,6 @@ static inline float_t len3_squared(const Vec3& v1) {
   return v1.x * v1.x + v1.y * v1.y + v1.z * v1.z;
 }
 
-// FIXME: use places where to use this function
 static inline float_t len3(const Vec3& v1) {
   return sqrt_f(len3_squared(v1));
 }

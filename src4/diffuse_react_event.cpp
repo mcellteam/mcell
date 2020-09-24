@@ -27,6 +27,7 @@
 #include <sstream>
 #include <algorithm>
 #include <boost/container/flat_set.hpp>
+#include <rxn_utils.inc>
 
 //extern "C" {
 #include "rng.h"
@@ -46,7 +47,6 @@
 // include implementations of utility functions
 #include "geometry_utils.h"
 #include "geometry_utils.inc"
-#include "reaction_utils.inc"
 #include "collision_utils.inc"
 #include "exact_disk_utils.inc"
 #include "diffusion_utils.inc"
@@ -256,7 +256,7 @@ void DiffuseReactEvent::diffuse_single_molecule(
 
 // ---------------------------------- volume diffusion ----------------------------------
 
-void sort_collisions_by_time(collision_vector_t& molecule_collisions) {
+void sort_collisions_by_time(CollisionsVector& molecule_collisions) {
   sort( molecule_collisions.begin(), molecule_collisions.end(),
       [ ]( const auto& lhs, const auto& rhs )
       {
@@ -335,7 +335,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
   Vec3 remaining_displacement = displacement;
 
   RayTraceState state;
-  collision_vector_t molecule_collisions;
+  CollisionsVector molecule_collisions;
   bool was_defunct = false;
   wall_index_t last_hit_wall_index = WALL_INDEX_INVALID;
 
@@ -510,7 +510,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
 
   } while (unlikely(state != RayTraceState::FINISHED && !was_defunct));
 
-  if (!was_defunct) { // FIXME: unify - we are changing the partition, but not the wall here - probably move to diffuse diffuse_vol_molecule
+  if (!was_defunct) {
     // need to get a new reference
     Molecule& m_new_ref = p.get_m(vm_id);
 
@@ -554,7 +554,7 @@ RayTraceState ray_trace_vol(
     const bool can_vol_react,
     const wall_index_t last_hit_wall_index, // is WALL_INDEX_INVALID when our molecule did not reflect from anything this diffusion step yet
     Vec3& remaining_displacement, // in/out - recomputed if there was a reflection
-    collision_vector_t& collisions // both mol mol and wall collisions
+    CollisionsVector& collisions // both mol mol and wall collisions
     ) {
   Molecule& vm = p.get_m(vm_id);
   p.stats.inc_ray_voxel_tests();
@@ -717,7 +717,7 @@ bool DiffuseReactEvent::collide_and_react_with_vol_mol(
   //  rx->prob_t is always NULL in out case update_probs(world, rx, m->t);
   // returns which reaction pathway to take
   float_t scaling = factor * r_rate_factor;
-  int i = RxUtil::test_bimolecular(
+  int i = RxnUtil::test_bimolecular(
       rxn_class, world->rng, colliding_molecule, diffused_molecule, scaling, 0, absolute_collision_time);
 
   if (i < RX_LEAST_VALID_PATHWAY) {
@@ -789,7 +789,7 @@ int DiffuseReactEvent::collide_and_react_with_surf_mol(
   }
 
   RxnClassesVector matching_rxn_classes;
-  RxUtil::trigger_bimolecular(
+  RxnUtil::trigger_bimolecular(
     p.bng_engine,
     diffused_molecule, colliding_molecule,
     collision_orientation, colliding_molecule.s.orientation,
@@ -815,7 +815,7 @@ int DiffuseReactEvent::collide_and_react_with_surf_mol(
 
   int selected_rx_pathway;
   if (matching_rxn_classes.size() == 1) {
-    selected_rx_pathway = RxUtil::test_bimolecular(
+    selected_rx_pathway = RxnUtil::test_bimolecular(
         matching_rxn_classes[0], world->rng,
         diffused_molecule, colliding_molecule,
         scaling_coefs[0], 0, collision_time);
@@ -906,7 +906,7 @@ inline WallRxnResult DiffuseReactEvent::collide_and_react_with_walls(
   Wall& wall = p.get_wall(collision.colliding_wall_index);
 
   RxnClassesVector matching_rxn_classes;
-  RxUtil::trigger_intersect(p, diffused_molecule, wall, matching_rxn_classes);
+  RxnUtil::trigger_intersect(p, diffused_molecule, wall, matching_rxn_classes);
   if (matching_rxn_classes.empty() ||
       (matching_rxn_classes.size() == 1 && matching_rxn_classes[0]->type == BNG::RxnType::Reflect)) {
     return WallRxnResult::Reflect;
@@ -939,9 +939,9 @@ inline WallRxnResult DiffuseReactEvent::collide_and_react_with_walls(
 
   if (matching_rxn_classes.size() == 1) {
     rxn_class_index = 0;
-    pathway_index = RxUtil::test_intersect(matching_rxn_classes[0], r_rate_factor, current_time, world->rng);
+    pathway_index = RxnUtil::test_intersect(matching_rxn_classes[0], r_rate_factor, current_time, world->rng);
   } else {
-    pathway_index = RxUtil::test_many_intersect(
+    pathway_index = RxnUtil::test_many_intersect(
         matching_rxn_classes, r_rate_factor, current_time, rxn_class_index, world->rng);
   }
 
@@ -1185,7 +1185,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
 
     // returns value >=1 if there can be a reaction
     size_t orig_num_rxsn = matching_rxn_classes.size();
-    RxUtil::trigger_bimolecular_orientation_from_mols(
+    RxnUtil::trigger_bimolecular_orientation_from_mols(
         p.bng_engine,
         sm, nsm,
         matching_rxn_classes
@@ -1219,7 +1219,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
   int rxn_class_index;
   if (num_matching_rxn_classes == 1) {
     // figure out what should happen
-    selected_pathway_index = RxUtil::test_bimolecular(
+    selected_pathway_index = RxnUtil::test_bimolecular(
         matching_rxn_classes[0], world->rng,
         sm, p.get_m(reactant_molecule_ids[0]),
         correction_factors[0], local_prob_factor, collision_time);
@@ -1230,7 +1230,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
   else {
     bool all_neighbors_flag = true;
     rxn_class_index =
-        RxUtil::test_many_bimolecular(
+        RxnUtil::test_many_bimolecular(
             matching_rxn_classes, correction_factors, local_prob_factor,
             world->rng, all_neighbors_flag, collision_time, selected_pathway_index);
     selected_pathway_index = 0; // TODO_PATHWAYS: use value from test_many_bimolecular
@@ -1449,12 +1449,12 @@ void DiffuseReactEvent::pick_unimol_rxn_class_and_set_rxn_time(
 ) {
   assert(current_time >= 0);
 
-  RxnClass* rxn_class = RxUtil::pick_unimol_rxn_class(world, m.species_id, current_time);
+  RxnClass* rxn_class = RxnUtil::pick_unimol_rxn_class(world, m.species_id, current_time);
   if (rxn_class == nullptr) {
     return;
   }
 
-  float_t time_from_now = RxUtil::compute_unimol_lifetime(p, world->rng, rxn_class, current_time, m);
+  float_t time_from_now = RxnUtil::compute_unimol_lifetime(p, world->rng, rxn_class, current_time, m);
 
   float_t scheduled_time = current_time + time_from_now;
 
@@ -1498,7 +1498,7 @@ bool DiffuseReactEvent::react_unimol_single_molecule(
 
     unimol_rxn_class->update_rxn_rates_if_needed(scheduled_time);
 
-    rxn_class_pathway_index_t pi = RxUtil::which_unimolecular(unimol_rxn_class, world->rng);
+    rxn_class_pathway_index_t pi = RxnUtil::which_unimolecular(unimol_rxn_class, world->rng);
 
     return outcome_unimolecular(p, m, scheduled_time, unimol_rxn_class, pi);
   }
@@ -1513,7 +1513,7 @@ int DiffuseReactEvent::outcome_bimolecular(
     Partition& p,
     const Collision& collision,
     const int path,
-    const float_t time // FIXME: compute time here?
+    const float_t time
 ) {
 #ifdef DEBUG_TIMING
   DUMP_CONDITION4(

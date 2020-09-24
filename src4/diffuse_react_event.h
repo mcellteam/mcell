@@ -167,11 +167,10 @@ private:
   );
 
   // ---------------------------------- volume molecules ----------------------------------
-  // FIXME: unify argument names
   void diffuse_vol_molecule(
       Partition& p,
       const molecule_id_t vm_id,
-      const float_t remaining_time_step,
+      const float_t max_time,
       const float_t diffusion_start_time,
       WallTileIndexPair& where_created_this_iteration
   );
@@ -210,8 +209,8 @@ private:
   void diffuse_surf_molecule(
       Partition& p,
       const molecule_id_t sm_id,
-      const float_t current_time,
-      const float_t remaining_time_step
+      const float_t max_time,
+      const float_t diffusion_start_time
   );
 
   wall_index_t ray_trace_surf(
@@ -287,7 +286,6 @@ private:
 };
 
 
-//FIXME: move to some utility namespace
 RayTraceState ray_trace_vol(
     Partition& p,
     rng_state& rng,
@@ -295,11 +293,10 @@ RayTraceState ray_trace_vol(
     const bool can_vol_react,
     const wall_index_t previous_reflected_wall, // is WALL_INDEX_INVALID when our molecule did not replect from anything this iddfusion step yet
     Vec3& remaining_displacement, // in/out - recomputed if there was a reflection
-    collision_vector_t& molecule_collisions // possible reactions in this part of way marching, ordered by time
+    CollisionsVector& molecule_collisions // possible reactions in this part of way marching, ordered by time
 );
 
-void sort_collisions_by_time(collision_vector_t& molecule_collisions);
-
+void sort_collisions_by_time(CollisionsVector& molecule_collisions);
 
 } // namespace mcell
 

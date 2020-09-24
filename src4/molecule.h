@@ -196,7 +196,7 @@ public:
   bool is_defunct() const {
     // TODO LATER: molecules with release_delay > 0 were actually not released yet,
     // but is seems that mcell3 does not care, so let's keep it like this for now
-    return (flags & MOLECULE_FLAG_DEFUNCT) != 0; // FIXME: use has_flag
+    return has_flag(MOLECULE_FLAG_DEFUNCT) != 0;
   }
 
   void set_is_defunct() {

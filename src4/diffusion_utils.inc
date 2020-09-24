@@ -38,8 +38,8 @@
 #include "debug_config.h"
 
 #include "grid_utils.inc"
+#include "rxn_utils.inc"
 #include "wall_utils.inc"
-#include "reaction_utils.inc"
 
 using namespace std;
 
@@ -278,7 +278,7 @@ static void tiny_diffuse_3D(
   const BNG::Species& species = p.get_all_species().get(vm.species_id);
   Vec3 ignored_displacement = displacement;
   subpart_index_t new_subpart_index;
-  collision_vector_t collisions;
+  CollisionsVector collisions;
 
   // NOTE: can be optimized by ignoring molecule collisions
   ray_trace_vol(
@@ -317,7 +317,7 @@ static void reflect_absorb_check_wall(
     bool& absorb_now
 ) {
   BNG::RxnClassesVector matching_rxns;
-  RxUtil::trigger_intersect(
+  RxnUtil::trigger_intersect(
       p, sm, wall,
       matching_rxns
   );

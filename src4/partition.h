@@ -217,20 +217,19 @@ public:
   }
 
   void get_subpart_3d_indices(const Vec3& pos, IVec3& res) const {
-    // FIXME: make two variants ofhtis function - with and without release check
+    // FIXME: make two variants of this function - with and without release check?
     assert(in_this_partition(pos) &&
         "Requested position is outside of a partition, usually a molecule diffused there. Please enlarge the partition size.");
     Vec3 relative_position = pos - origin_corner;
     res = relative_position * config.subpartition_edge_length_rcp;
   }
 
-  // FIXME: use subpart_index_t, rename to subpart
-  // TODO: consider using bitfields, this recomputation can be slow
   subpart_index_t get_subpart_index_from_3d_indices(const IVec3& indices) const {
     // example: dim: 5x5x5,  (1, 2, 3) -> 1 + 2*5 + 3*5*5 = 86
     assert(indices.x < (int)config.num_subpartitions_per_partition);
     assert(indices.y < (int)config.num_subpartitions_per_partition);
     assert(indices.z < (int)config.num_subpartitions_per_partition);
+    // this recomputation can be slow when done often, but we need subpart indices to be continuous
     return
         indices.x +
         indices.y * config.num_subpartitions_per_partition +

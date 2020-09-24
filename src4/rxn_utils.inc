@@ -30,8 +30,8 @@
  * new_diffuse_or_unimol_react_actions action queue stay in the diffuse_react_event_t
  * class.
  */
-#ifndef SRC4_REACTION_UTILS_INC_
-#define SRC4_REACTION_UTILS_INC_
+#ifndef SRC4_RXN_UTILS_INC_
+#define SRC4_RXN_UTILS_INC_
 
 #include "bng/bng.h"
 
@@ -45,9 +45,7 @@
 using namespace std;
 
 namespace MCell {
-
-// FIXME: rename to RxnUtil
-namespace RxUtil {
+namespace RxnUtil {
 
 // ---------------------------------- bimolecular reactions ----------------------------------
 
@@ -814,4 +812,4 @@ static rxn_class_pathway_index_t which_unimolecular(BNG::RxnClass *rxn_class, rn
 
 } // namespace MCell
 
-#endif // SRC4_REACTION_UTILS_INC_
+#endif // SRC4_RXN_UTILS_INC_

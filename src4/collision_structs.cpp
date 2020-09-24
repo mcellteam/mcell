@@ -119,7 +119,7 @@ string Collision::to_string(const Partition& p) const {
 }
 
 
-void Collision::dump_array(Partition& p, const collision_vector_t& vec) {
+void Collision::dump_array(Partition& p, const CollisionsVector& vec) {
   // printed in reverse - same as
   for (size_t i = 0; i < vec.size(); i++) {
     #ifdef NODEBUG_WALL_COLLISIONS

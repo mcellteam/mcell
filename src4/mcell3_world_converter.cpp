@@ -1253,7 +1253,7 @@ RegionExprNode* MCell3WorldConverter::create_release_region_terms_recursively(
   }
 }
 
-// FIXME: thiscould use a cleanup and maybe redesign
+
 bool MCell3WorldConverter::convert_release_events(volume* s) {
 
 

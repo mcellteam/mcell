@@ -374,7 +374,7 @@ static void get_grid_neighbors_single_grid_and_index(
   else {
     molecule_id_t mid = grid.get_molecule_on_tile(tile_index);
 
-    // FIXME: this seems to be the same in all calls
+    // NOTE: this seems to be the same in all calls
     Vec3 loc3d;
     if (mid != MOLECULE_ID_INVALID) {
       const Molecule& sm = p.get_m(mid);

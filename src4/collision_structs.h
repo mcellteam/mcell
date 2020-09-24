@@ -57,10 +57,10 @@ class Partition;
 
 // TODO: use only dense hash map/set and boost vector where possible
 #ifndef INDEXER_WA
-typedef boost::container::small_vector<Collision, 16> collision_vector_t;
+typedef boost::container::small_vector<Collision, 16> CollisionsVector;
 
 #else
-typedef std::vector<Collision> collision_vector_t; // FIXME: shoudl be UpperCase
+typedef std::vector<Collision> CollisionsVector;
 #endif
 
 /**
@@ -209,7 +209,6 @@ public:
   void dump(Partition& p, const std::string ind) const;
 
   // for comparison with mcell3
-  // FIXME: args are almost the same as for the variant above
   void dump(
       const Partition& p,
       const std::string extra_comment,
@@ -218,7 +217,7 @@ public:
   ) const;
 
   std::string to_string(const Partition& p) const;
-  static void dump_array(Partition& p, const collision_vector_t& vec);
+  static void dump_array(Partition& p, const CollisionsVector& vec);
 };
 
 } /* namespace MCell */

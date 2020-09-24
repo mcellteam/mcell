@@ -245,7 +245,6 @@ static void raycast_with_endpoints(
     SubpartIndicesSet& crossed_subparts_for_molecules
 )
 {
-  // FIXME: used lower case, these are not really contants...
   const float_t cell_side = p.config.subpartition_edge_length;
   const float_t cell_size_rcp = p.config.subpartition_edge_length_rcp;
 
@@ -544,7 +543,7 @@ static void collide_mol_loop_body(
     const molecule_id_t colliding_vm_id,
     const Vec3& remaining_displacement,
     const float_t radius,
-    collision_vector_t& molecule_collisions
+    CollisionsVector& molecule_collisions
 ) {
 
   Molecule& colliding_vm = p.get_m(colliding_vm_id);

@@ -43,9 +43,9 @@
 
 #include "geometry_utils.h"
 
-#include "reaction_utils.inc"
 #include "geometry_utils.inc"
 #include "collision_utils.inc"
+#include "rxn_utils.inc"
 
 namespace MCell {
 
@@ -542,7 +542,7 @@ static void find_restricted_regions_by_wall(
 
   // get all possible molecule-surface reactions
   BNG::RxnClassesVector matching_rxn_classes;
-  RxUtil::trigger_intersect(p, sm, this_wall, matching_rxn_classes);
+  RxnUtil::trigger_intersect(p, sm, this_wall, matching_rxn_classes);
 
   // collect species that can react
   uint_set<species_id_t> restricted_surf_classes;

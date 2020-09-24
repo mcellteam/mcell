@@ -190,7 +190,6 @@ void VizOutputEvent::output_cellblender_molecules() {
   // sort all molecules by species
   uint species_count = world->get_all_species().get_count();
 
-  // FIXME: rather change to partition and molecule indices
   typedef pair<const Partition*, const Molecule*> partition_molecule_ptr_pair_t;
   vector< vector<partition_molecule_ptr_pair_t> > volume_molecules_by_species;
   volume_molecules_by_species.resize(species_count);
