@@ -537,7 +537,6 @@ expr_or_str:
 ;
       
 // ---------------- expressions --------------------- 
-// TODO: expressions are just IDs and constants for now
 expr:
       TOK_ID                        { $$ = g_ctx->new_id_node($1, @1); } 
     | TOK_DBL                       { $$ = g_ctx->new_dbl_node($1, @1); } 

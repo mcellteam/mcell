@@ -79,8 +79,22 @@ static void initialize_file(const std::string& fname, const char* report_name) {
 }
 
 
+static void remove_file(const std::string& fname, const char* report_name) {
+  ofstream of;
+  of.open(fname, fstream::in);
+  if (of.is_open()) {
+    // file exists
+    of.close();
+    int res = remove(fname.c_str());
+    if (res != 0){
+      cout << "Could not remove file " << fname << " for report generation, ignored.\n";
+    }
+  }
+}
+
+
 void BNGConfig::initialize_report_files() {
-  initialize_file(get_warnings_report_file_name(), "Warnings");
+  remove_file(get_warnings_report_file_name(), "Warnings");
   if (rxn_and_species_report) {
     initialize_file(get_rxn_report_file_name(), "RXN");
     initialize_file(get_species_report_file_name(), "Species");
