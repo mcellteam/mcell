@@ -407,7 +407,7 @@ private:
   // internal methods that sets molecule's id and
   // adds it to all relevant structures
 
-  Molecule& add_molecule(const Molecule& vm_copy, const bool is_vol) {
+  Molecule& add_molecule(const Molecule& vm_copy, const bool is_vol, const float_t release_delay_time) {
     const BNG::Species& species = get_all_species().get(vm_copy.species_id);
     assert((is_vol && species.is_vol()) || (!is_vol && species.is_surf()));
 
@@ -435,7 +435,7 @@ private:
     // for releases - it will be diffused this iteration
     // for new reaction products - it will be diffused next iteration because the DiffuseaAndReactEvent handles
     // the current iteration
-    new_m.diffusion_time = stats.get_current_iteration();
+    new_m.diffusion_time = stats.get_current_iteration() + release_delay_time;
 
     return new_m;
   }
@@ -457,7 +457,7 @@ private:
 
 public:
   // any molecule flags are set by caller after the molecule is created by this method
-  Molecule& add_volume_molecule(const Molecule& vm_copy) {
+  Molecule& add_volume_molecule(const Molecule& vm_copy, const float_t release_delay_time = 0) {
     update_species_for_new_molecule(vm_copy);
 
     // TODO: use Species::is_instantiated instead of the known_vol_species
@@ -468,7 +468,7 @@ public:
     }
 
     // molecule must be added after the update because it was not fully set up
-    Molecule& new_vm = add_molecule(vm_copy, true);
+    Molecule& new_vm = add_molecule(vm_copy, true, release_delay_time);
 
     // and add this molecule to a map that tells which species can react with it
     new_vm.v.subpart_index = get_subpart_index(vm_copy.v.pos);
@@ -487,10 +487,10 @@ public:
   }
 
 
-  Molecule& add_surface_molecule(const Molecule& sm_copy) {
+  Molecule& add_surface_molecule(const Molecule& sm_copy, const float_t release_delay_time = 0) {
     update_species_for_new_molecule(sm_copy);
 
-    Molecule& new_sm = add_molecule(sm_copy, false);
+    Molecule& new_sm = add_molecule(sm_copy, false, release_delay_time);
     return new_sm;
   }
 

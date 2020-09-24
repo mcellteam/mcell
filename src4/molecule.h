@@ -87,7 +87,7 @@ class Molecule {
 public:
   Molecule()
     : id(MOLECULE_ID_INVALID), species_id(SPECIES_ID_INVALID), flags(0),
-      release_delay(TIME_INVALID), unimol_rx_time(TIME_FOREVER) {
+      diffusion_time(TIME_INVALID), unimol_rx_time(TIME_FOREVER) {
   }
 
   Molecule(const Molecule& m) {
@@ -97,10 +97,9 @@ public:
   // volume molecule
   Molecule(
       const molecule_id_t id_, const species_id_t species_id_,
-      const Vec3& pos_, const float_t release_delay_=0
+      const Vec3& pos_
     )
     : id(id_), species_id(species_id_), flags(MOLECULE_FLAG_VOL),
-      release_delay(release_delay_),
       diffusion_time(TIME_INVALID), unimol_rx_time(TIME_INVALID) {
     v.pos = pos_;
     v.subpart_index = SUBPART_INDEX_INVALID;
@@ -111,13 +110,11 @@ public:
   // surface molecule
   Molecule(
       const molecule_id_t id_, const species_id_t species_id_,
-      const Vec2& pos2d, const float_t release_delay_=0
+      const Vec2& pos2d
     )
     : id(id_), species_id(species_id_), flags(MOLECULE_FLAG_SURF),
-      release_delay(release_delay_),
       diffusion_time(TIME_INVALID), unimol_rx_time(TIME_INVALID) {
     s.pos = pos2d;
-    //s.subpart_index = SUBPART_INDEX_INVALID;
     s.orientation = ORIENTATION_NONE;
     s.wall_index = WALL_INDEX_INVALID;
     s.grid_tile_index = TILE_INDEX_INVALID;
@@ -133,12 +130,6 @@ public:
   molecule_id_t id; // unique molecule id (for now it is unique per partition but should be world-wide unique)
   species_id_t species_id;
   uint flags;
-
-  // set when the molecule was released this iteration and the actual release time was delayed compared to the
-  // release event time
-  // is 0 when the molecule was released in a previous iteration or was released this iteration
-  // and diffusion can start right away
-  float_t release_delay; // TODO: replace with diffusion_time
 
   // time for which it was scheduled, based on this value Partition creates 'ready list'
   // for DiffuseAndReactEvent

@@ -730,7 +730,7 @@ void ReleaseEvent::release_inside_regions(uint& computed_release_number) {
 
     // TODO_LATER: location can be close to a partition boundary, we might need to release to a different partition
     Molecule& new_vm = p.add_volume_molecule(
-        Molecule(MOLECULE_ID_INVALID, species_id, pos, get_release_delay_time())
+        Molecule(MOLECULE_ID_INVALID, species_id, pos), get_release_delay_time()
     );
     new_vm.flags = IN_VOLUME | ACT_DIFFUSE;
     new_vm.set_flag(MOLECULE_FLAG_VOL);
@@ -788,7 +788,7 @@ void ReleaseEvent::release_ellipsoid_or_rectcuboid(uint computed_release_number)
 
     // TODO_LATER: location can be close to a partition boundary, we might need to release to a different partition
     Molecule& new_vm = p.add_volume_molecule(
-        Molecule(MOLECULE_ID_INVALID, species_id, molecule_location, get_release_delay_time())
+        Molecule(MOLECULE_ID_INVALID, species_id, molecule_location), get_release_delay_time()
     );
     new_vm.flags = IN_VOLUME | ACT_DIFFUSE;
     new_vm.set_flag(MOLECULE_FLAG_VOL);
@@ -809,7 +809,7 @@ void ReleaseEvent::release_list() {
 
     if (species.is_vol()) {
       Molecule& new_vm = p.add_volume_molecule(
-          Molecule(MOLECULE_ID_INVALID, info.species_id, info.pos, get_release_delay_time())
+          Molecule(MOLECULE_ID_INVALID, info.species_id, info.pos), get_release_delay_time()
       );
       new_vm.flags = IN_VOLUME | ACT_DIFFUSE; // TODO: not sure if these flags are used in MCell4
       new_vm.set_flag(MOLECULE_FLAG_VOL);

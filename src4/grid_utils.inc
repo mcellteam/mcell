@@ -2095,7 +2095,8 @@ static molecule_id_t place_single_molecule_onto_grid(
   }
 
   Molecule& new_sm = p.add_surface_molecule(
-      Molecule(MOLECULE_ID_INVALID, species_id, pos_on_wall, release_delay_time)
+      Molecule(MOLECULE_ID_INVALID, species_id, pos_on_wall),
+      release_delay_time
   );
 
   new_sm.s.wall_index = wall.index;

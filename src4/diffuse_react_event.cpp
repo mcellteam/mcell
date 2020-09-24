@@ -88,9 +88,9 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const MoleculeIdsVector&
   uint existing_mols_count = molecule_ids.size();
   for (uint i = 0; i < existing_mols_count; i++) {
     molecule_id_t id = molecule_ids[i];
-    float_t release_delay =  p.get_m(id).release_delay; // TODO replace with scheduled_time_for_diffusion? - I am already sorting this by the time (partially)
+    float_t release_delay =  p.get_m(id).diffusion_time - event_time;
 
-    if (release_delay == 0.0) {
+    if (cmp_eq(release_delay, 0.0)) { // NOTE: this can be optimized
       // existing molecules or created at the beginning of this timestep
       // - simulate whole time step for this molecule
       diffuse_single_molecule(p, id, WallTileIndexPair());
@@ -98,7 +98,6 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const MoleculeIdsVector&
     else {
       // released during this iteration but not at the beginning, postpone its diffusion
       assert(release_delay > 0 && release_delay < current_time_step);
-      p.get_m(id).diffusion_time = event_time + release_delay;
       delayed_release_diffusions.push_back(DiffuseAction(id));
     }
   }
@@ -119,7 +118,6 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const MoleculeIdsVector&
     const DiffuseAction& action = delayed_release_diffusions[i];
 
     Molecule& m = p.get_m(action.id);
-    m.release_delay = 0; // reset release_delay to specify that the delay was handled
     diffuse_single_molecule(
         p, action.id,
         action.where_created_this_iteration
@@ -143,7 +141,6 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const MoleculeIdsVector&
 
 #ifdef MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID
     Molecule& m = p.get_m(action.id);
-    m.release_delay = 0; // reset release_delay to specify that the delay was handled
 #endif
 
     diffuse_single_molecule(
