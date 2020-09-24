@@ -70,7 +70,7 @@ void DiffuseReactEvent::step() {
 }
 
 #ifdef MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID
-static bool less_time_and_id(const DiffuseOrUnimolRxnAction& a1, const DiffuseOrUnimolRxnAction& a2) {
+static bool less_time_and_id(const DiffuseAction& a1, const DiffuseAction& a2) {
   // WARNING: this comparison is a bit 'shaky' - the constant 100*EPS_C there... (same in sched_util.c)
   return (a1.scheduled_time  + 100*EPS_C < a2.scheduled_time) ||
       (fabs(a1.scheduled_time - a2.scheduled_time) < 100*EPS_C && a1.id < a2.id);
@@ -82,7 +82,7 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const MoleculeIdsVector&
   // we need to strictly follow the ordering in mcell3, therefore steps 2) and 3) do not use the time
   // for which they were scheduled but rather simply the order in which these "microevents" were created
 
-  std::vector<DiffuseOrUnimolRxnAction> delayed_release_diffusions;
+  std::vector<DiffuseAction> delayed_release_diffusions;
 
   // 1) first diffuse already existing molecules
   uint existing_mols_count = molecule_ids.size();
@@ -99,20 +99,15 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const MoleculeIdsVector&
       // released during this iteration but not at the beginning, postpone its diffusion
       assert(release_delay > 0 && release_delay < current_time_step);
       p.get_m(id).diffusion_time = event_time + release_delay;
-      delayed_release_diffusions.push_back(
-          DiffuseOrUnimolRxnAction(
-              DiffuseOrUnimolRxnAction::Type::DIFFUSE,
-              id, event_time + release_delay,
-              WallTileIndexPair() /* invalid wall, only used to avoid rebinding */
-      ));
+      delayed_release_diffusions.push_back(DiffuseAction(id));
     }
   }
 
 
 #ifdef MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID
   // merge the two arrays with actions
-  new_diffuse_or_unimol_react_actions.insert(
-      new_diffuse_or_unimol_react_actions.begin(),
+  new_diffuse_actions.insert(
+      new_diffuse_actions.begin(),
       delayed_release_diffusions.begin(), delayed_release_diffusions.end()
   );
   delayed_release_diffusions.clear();
@@ -121,9 +116,7 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const MoleculeIdsVector&
   // 2) mcell3 first handles diffusions of existing molecules, then the delayed diffusions
   // actions created by the diffusion of all these molecules are handled later
   for (uint i = 0; i < delayed_release_diffusions.size(); i++) {
-    const DiffuseOrUnimolRxnAction& action = delayed_release_diffusions[i];
-    assert(action.scheduled_time >= event_time && action.scheduled_time <= event_time + current_time_step);
-    assert(action.type == DiffuseOrUnimolRxnAction::Type::DIFFUSE);
+    const DiffuseAction& action = delayed_release_diffusions[i];
 
     Molecule& m = p.get_m(action.id);
     m.release_delay = 0; // reset release_delay to specify that the delay was handled
@@ -138,22 +131,20 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const MoleculeIdsVector&
   // need to call .size() each iteration because the size can increase,
   // again, we are using it as a queue and we do not follow the time when
   // they were created
-  for (uint i = 0; i < new_diffuse_or_unimol_react_actions.size(); i++) {
+  for (uint i = 0; i < new_diffuse_actions.size(); i++) {
 
 #ifdef MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID
     // sort by time and id, index is still fine because we cannot schedule anything
     // to the past
-    sort(new_diffuse_or_unimol_react_actions.begin(), new_diffuse_or_unimol_react_actions.end(), less_time_and_id);
+    sort(new_diffuse_actions.begin(), new_diffuse_actions.end(), less_time_and_id);
 #endif
 
-    DiffuseOrUnimolRxnAction& action = new_diffuse_or_unimol_react_actions[i];
+    DiffuseAction& action = new_diffuse_actions[i];
 
 #ifdef MCELL3_4_ALWAYS_SORT_MOLS_BY_TIME_AND_ID
     Molecule& m = p.get_m(action.id);
     m.release_delay = 0; // reset release_delay to specify that the delay was handled
 #endif
-
-    assert(action.scheduled_time >= event_time && action.scheduled_time <= event_time + current_time_step);
 
     diffuse_single_molecule(
         p, action.id,
@@ -161,7 +152,7 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const MoleculeIdsVector&
     );
   }
 
-  new_diffuse_or_unimol_react_actions.clear();
+  new_diffuse_actions.clear();
 }
 
 
@@ -259,11 +250,9 @@ void DiffuseReactEvent::diffuse_single_molecule(
           cmp_lt(m_for_sched_update.unimol_rx_time, p.stats.get_current_iteration() + 1, EPS)
         ) ||
         cmp_lt(m_for_sched_update.diffusion_time, p.stats.get_current_iteration() + 1, EPS)) {
-      // reschedule for this event
-      // TODO: time and position should not be needed
-      DiffuseOrUnimolRxnAction diffuse_action(
-          DiffuseOrUnimolRxnAction::Type::DIFFUSE, m_for_sched_update.id, m_for_sched_update.diffusion_time, WallTileIndexPair());
-      new_diffuse_or_unimol_react_actions.push_back(diffuse_action);
+      // reschedule molecule for this iteration because we did not use up all its time
+      DiffuseAction diffuse_action(m_for_sched_update.id);
+      new_diffuse_actions.push_back(diffuse_action);
     }
   }
 }
@@ -2258,12 +2247,8 @@ int DiffuseReactEvent::outcome_products_random(
 
     // schedule new product to be diffused this iteration
     p.get_m(new_m_id).diffusion_time = time;
-    new_diffuse_or_unimol_react_actions.push_back(
-        DiffuseOrUnimolRxnAction(
-            DiffuseOrUnimolRxnAction::Type::DIFFUSE,
-            new_m_id, time,
-            where_is_vm_created
-    ));
+    new_diffuse_actions.push_back(
+        DiffuseAction(new_m_id, where_is_vm_created));
 
 
     // refresh reacA and reacB pointers, we are added new molecules in this loop and they point to that vector

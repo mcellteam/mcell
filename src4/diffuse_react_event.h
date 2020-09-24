@@ -77,53 +77,30 @@ typedef small_vector<wall_index_t> wall_indices_t;
  *
  * Used in diffuse_react _event_t and in partition_t.
  */
-class DiffuseOrUnimolRxnAction {
+class DiffuseAction {
 public:
-  enum class Type {
-    DIFFUSE,
-    UNIMOL_REACT
-  };
-
-  // DIFFUSE action
-  DiffuseOrUnimolRxnAction(
-      const DiffuseOrUnimolRxnAction::Type type_,
+  // position where this mol was created is
+  // used to avoid rebinding for surf+vol->surf+vol reactions
+  DiffuseAction(
       const molecule_id_t id_,
-      const float_t scheduled_time_,
       const WallTileIndexPair& where_created_this_iteration_)
     :
       id(id_),
-      scheduled_time(scheduled_time_),
-      type(type_),
       where_created_this_iteration(where_created_this_iteration_) {
-
-    assert(scheduled_time >= 0.0);
-    assert(type == Type::DIFFUSE);
-    // position where the molecule was created may be invalid when it was not a result of surface reaction
   }
 
-  // UNIMOL_REACT action
-  DiffuseOrUnimolRxnAction(
-      const DiffuseOrUnimolRxnAction::Type type_,
-      const molecule_id_t id_,
-      const float_t scheduled_time_)
-    :
-      id(id_),
-      scheduled_time(scheduled_time_),
-      type(type_) {
-    assert(scheduled_time >= 0.0);
-    assert(type == Type::UNIMOL_REACT);
+  // position where the molecule was created may be unset when it was not a result of surface reaction
+  DiffuseAction(const molecule_id_t id_)
+    : id(id_) {
   }
 
   // defined because of usage in calendar_t
-  const DiffuseOrUnimolRxnAction& operator->() const {
+  const DiffuseAction& operator->() const { // TODO: remove
      return *this;
   }
 
   molecule_id_t id;
-  float_t scheduled_time; // this is the scheduled time
-  Type type;
 
-  // when type is DIFFUSE
   // used to avoid rebinding for surf+vol->surf+vol reactions
   WallTileIndexPair where_created_this_iteration;
 };
@@ -171,15 +148,15 @@ public:
   World* world;
 
   // this event diffuses all molecules that have this diffusion time_step
-  float_t current_time_step; // TODO: this is always 0
+  float_t current_time_step; // TODO: remove
 
 private:
   // auxiliary array used to store result from Partition::get_molecules_ready_for_diffusion
   // using the same array every iteration in order not to reallocate it every iteration
   MoleculeIdsVector molecules_ready_array;
 
-  // molecules newly created in reactions
-  std::vector<DiffuseOrUnimolRxnAction> new_diffuse_or_unimol_react_actions;
+  // internal event's schedule of molecules newly created in reactions that must be diffused
+  std::vector<DiffuseAction> new_diffuse_actions;
 
   void diffuse_molecules(Partition& p, const MoleculeIdsVector& indices);
 
