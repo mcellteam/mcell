@@ -58,6 +58,11 @@ using namespace BNG;
 
 namespace MCell {
 
+float_t DiffuseReactEvent::get_max_time_up_to_next_barrier() const {
+  return world->get_all_species().get_max_time_step();
+}
+
+
 void DiffuseReactEvent::step() {
   assert(world->get_partitions().size() == 1 && "Must extend cache to handle multiple partitions");
   assert(cmp_eq(event_time, world->stats.get_current_iteration()) && 

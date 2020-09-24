@@ -141,6 +141,8 @@ public:
     return true;
   }
 
+  float_t get_max_time_up_to_next_barrier() const override;
+
   void set_barrier_time_for_next_execution(const float_t time_up_to_next_barrier_) override {
     // scheduler says to this event for how long it can execute
     // either the maximum time step (periodicity_interval) or time up to the

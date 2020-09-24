@@ -111,12 +111,21 @@ public:
   // - periodicity_interval must not be 0 when this function return true
   virtual bool may_be_blocked_by_barrier_and_needs_set_time_step() const { return false; }
 
+  // maximum search time for a barrier, i.e. we do not care whether
+  // there is a barrier after the time interval returned by this method
+  virtual float_t get_max_time_up_to_next_barrier() const {
+    // the subclass must return true in may_be_blocked_by_barrier_and_needs_set_time_step
+    assert(false && "Only overridden variant of this method may be called.");
+    return 0;
+  }
+
   // if an event is blocked
   virtual void set_barrier_time_for_next_execution(const float_t time_step) {
+    // the subclass must return true in may_be_blocked_by_barrier_and_needs_set_time_step
     assert(false && "Only overridden variant of this method may be called.");
   }
 
-  // time when this object;s step() method will be callled
+  // time when this object's step() method will be called
   float_t event_time;
 
   // once this event is executed, schedule next one after this interval

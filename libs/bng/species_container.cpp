@@ -42,6 +42,11 @@ species_id_t SpeciesContainer::add(const Species& new_species, const bool remova
     species.back().set_is_removable();
   }
 
+  // update maximal time step if needed
+  if (max_time_step < species_copy.time_step) {
+    max_time_step = species_copy.time_step;
+  }
+
   if (bng_config.bng_verbosity_level >= 2) {
     std::cout << "BNG: Defined new species " << species_copy.name << " with id " << res << "\n";
   }

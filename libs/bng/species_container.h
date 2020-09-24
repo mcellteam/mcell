@@ -27,7 +27,8 @@ public:
       next_species_id(0),
       all_molecules_species_id(SPECIES_ID_INVALID),
       all_volume_molecules_species_id(SPECIES_ID_INVALID),
-      all_surface_molecules_species_id(SPECIES_ID_INVALID) {
+      all_surface_molecules_species_id(SPECIES_ID_INVALID),
+      max_time_step(1.0) {
   }
 
 
@@ -220,6 +221,10 @@ public:
     }
   }
 
+  float_t get_max_time_step() const {
+    return max_time_step;
+  }
+
   // cleans-up the species vector by removing all species that are set as defunct
   void defragment();
 
@@ -243,6 +248,10 @@ private:
   species_id_t all_molecules_species_id;
   species_id_t all_volume_molecules_species_id;
   species_id_t all_surface_molecules_species_id;
+
+  // maximal time step of any species contained in this species container,
+  // this is be useful e.g. when looking for barriers in simulation
+  float_t max_time_step;
 };
 
 } // namespace BNG
