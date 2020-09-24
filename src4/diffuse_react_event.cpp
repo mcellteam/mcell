@@ -60,6 +60,8 @@ namespace MCell {
 
 void DiffuseReactEvent::step() {
   assert(world->get_partitions().size() == 1 && "Must extend cache to handle multiple partitions");
+  assert(cmp_eq(event_time, world->stats.get_current_iteration()) && 
+  	"DiffuseReactEvent is expected to be run exactly at iteration starts");
 
   // for each partition
   for (Partition& p: world->get_partitions()) {
@@ -216,9 +218,11 @@ void DiffuseReactEvent::diffuse_single_molecule(
 
   // max_time is the time for which we should simulate the diffusion
   const Species& species = p.get_species(m.species_id);
-  float_t max_time = event_time + species.time_step - diffusion_start_time;
-  if (max_time > time_up_to_next_barrier) {
-    max_time = time_up_to_next_barrier;
+  float_t time_from_event_start = diffusion_start_time - event_time;
+
+  float_t max_time = species.time_step;
+  if (time_from_event_start + max_time > time_up_to_next_barrier) {
+    max_time = time_up_to_next_barrier - time_from_event_start;
   }
   if (unimol_rx_time != TIME_INVALID &&
       unimol_rx_time < diffusion_start_time + max_time) {
@@ -244,15 +248,30 @@ void DiffuseReactEvent::diffuse_single_molecule(
   Molecule& m_for_sched_update = p.get_m(m_id);
   if (!m_for_sched_update.is_defunct()) {
     m_for_sched_update.diffusion_time += max_time;
-    float_t diffusion_end_time = p.stats.get_current_iteration() + 1;
+    float_t event_end_time = p.stats.get_current_iteration() + 1;
+    // - for MCell3 compatibility purposes, we must not keep any unimol rxn for the next iteration
+    //   so we use precise comparison here
+    // - on the other hand, we do not want to simulate diffusion for a tiny amount of time,
+    //   so we use tolerance when checking whether we should keep diffusion itself for
+    //   the next time, the error accumulation can be quite big, therefore we are using SQRT_EPS
     if (
         ( m_for_sched_update.unimol_rx_time != TIME_INVALID &&
-          cmp_lt(m_for_sched_update.unimol_rx_time, p.stats.get_current_iteration() + 1, EPS)
+            m_for_sched_update.unimol_rx_time < event_end_time
         ) ||
-        cmp_lt(m_for_sched_update.diffusion_time, p.stats.get_current_iteration() + 1, EPS)) {
+        cmp_lt(m_for_sched_update.diffusion_time, event_end_time, SQRT_EPS)
+    ) {
       // reschedule molecule for this iteration because we did not use up all its time
       DiffuseAction diffuse_action(m_for_sched_update.id);
       new_diffuse_actions.push_back(diffuse_action);
+    }
+    else {
+      // round diffusion_time to a whole number if it is close to it,
+      // this did not give any error for the test that were available when this
+      // code was implemented
+      float_t rounded_dt = round_f(m_for_sched_update.diffusion_time);
+      if (cmp_eq(m_for_sched_update.diffusion_time, rounded_dt, SQRT_EPS)) {
+        m_for_sched_update.diffusion_time = rounded_dt;
+      }
     }
   }
 }
