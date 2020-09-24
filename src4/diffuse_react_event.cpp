@@ -63,12 +63,9 @@ void DiffuseReactEvent::step() {
 
   // for each partition
   for (Partition& p: world->get_partitions()) {
-    // diffuse molecules from volume_molecule_indices_per_time_step that have the time step equal to this
-    // event's periodicity interval
-    uint time_step_index = p.get_molecule_list_index_for_time_step(periodicity_interval);
-    if (time_step_index != TIME_STEP_INDEX_INVALID) {
-      diffuse_molecules(p, p.get_molecule_ids_for_time_step_index(time_step_index));
-    }
+    // diffuse molecules that are scheduled for this iteration
+    p.get_molecules_ready_for_diffusion(molecules_ready_array);
+    diffuse_molecules(p, molecules_ready_array);
   }
 }
 
@@ -80,7 +77,7 @@ static bool less_time_and_id(const DiffuseOrUnimolRxnAction& a1, const DiffuseOr
 }
 #endif
 
-void DiffuseReactEvent::diffuse_molecules(Partition& p, const std::vector<molecule_id_t>& molecule_ids) {
+void DiffuseReactEvent::diffuse_molecules(Partition& p, const MoleculeIdsVector& molecule_ids) {
 
   // we need to strictly follow the ordering in mcell3, therefore steps 2) and 3) do not use the time
   // for which they were scheduled but rather simply the order in which these "microevents" were created
@@ -91,16 +88,17 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const std::vector<molecu
   uint existing_mols_count = molecule_ids.size();
   for (uint i = 0; i < existing_mols_count; i++) {
     molecule_id_t id = molecule_ids[i];
-    float_t release_delay =  p.get_m(id).release_delay;
+    float_t release_delay =  p.get_m(id).release_delay; // TODO replace with scheduled_time_for_diffusion? - I am already sorting this by the time (partially)
 
     if (release_delay == 0.0) {
       // existing molecules or created at the beginning of this timestep
-      // - simulate whole time step
-      diffuse_single_molecule(p, id, event_time, WallTileIndexPair());
+      // - simulate whole time step for this molecule
+      diffuse_single_molecule(p, id, WallTileIndexPair());
     }
     else {
       // released during this iteration but not at the beginning, postpone its diffusion
       assert(release_delay > 0 && release_delay < current_time_step);
+      p.get_m(id).diffusion_time = event_time + release_delay;
       delayed_release_diffusions.push_back(
           DiffuseOrUnimolRxnAction(
               DiffuseOrUnimolRxnAction::Type::DIFFUSE,
@@ -131,7 +129,6 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const std::vector<molecu
     m.release_delay = 0; // reset release_delay to specify that the delay was handled
     diffuse_single_molecule(
         p, action.id,
-        action.scheduled_time,
         action.where_created_this_iteration
     );
   }
@@ -158,30 +155,10 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const std::vector<molecu
 
     assert(action.scheduled_time >= event_time && action.scheduled_time <= event_time + current_time_step);
 
-    if (action.type == DiffuseOrUnimolRxnAction::Type::DIFFUSE) {
-      diffuse_single_molecule(
-          p, action.id,
-          action.scheduled_time,
-          action.where_created_this_iteration // making a copy of this pair
-      );
-    }
-    else {
-      bool diffuse_right_away = react_unimol_single_molecule(p, action.id, action.scheduled_time);
-
-      // get a fresh action reference - unimol reaction could have added some items into the array
-      const DiffuseOrUnimolRxnAction& new_ref_action = new_diffuse_or_unimol_react_actions[i];
-      if (diffuse_right_away) {
-        // if the molecule survived (e.g. in rxn like A -> A + B), then
-        // diffuse it right away
-        // (another option is to put it into the new_diffuse_or_unimol_react_actions
-        //  but MCell3 diffuses them right away)
-        diffuse_single_molecule(
-            p, new_ref_action.id,
-            new_ref_action.scheduled_time,
-            new_ref_action.where_created_this_iteration // making a copy of this pair
-        );
-      }
-    }
+    diffuse_single_molecule(
+        p, action.id,
+        action.where_created_this_iteration // making a copy of this pair
+    );
   }
 
   new_diffuse_or_unimol_react_actions.clear();
@@ -191,17 +168,26 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const std::vector<molecu
 void DiffuseReactEvent::diffuse_single_molecule(
     Partition& p,
     const molecule_id_t m_id,
-    const float_t diffusion_start_time, // time for which was this action scheduled
     WallTileIndexPair wall_tile_pair_where_created_this_iteration // set only for newly created molecules
 ) {
-  assert(diffusion_start_time < event_time + current_time_step);
+  Molecule& m_initial = p.get_m(m_id);
+  float_t diffusion_start_time = m_initial.diffusion_time;
+  assert(diffusion_start_time >= event_time && diffusion_start_time <= event_time + current_time_step);
 
-  Molecule& m = p.get_m(m_id);
-
-  if (m.is_defunct()) {
+  if (m_initial.is_defunct()) {
     return;
   }
 
+  if (m_initial.unimol_rx_time == diffusion_start_time) {
+    // call to this diffuse_single_molecule was scheduled for time of an unimol rxn
+    // may invalidate molecule references
+    bool molecule_survived = react_unimol_single_molecule(p, m_id);
+    if (!molecule_survived) {
+      return;
+    }
+  }
+
+  Molecule& m = p.get_m(m_id);
   // if the molecule is a "newbie", its unimolecular reaction was not yet scheduled,
   assert(
       !(m.has_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN) && m.has_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RXN_ON_NEXT_RXN_RATE_UPDATE)) &&
@@ -221,18 +207,6 @@ void DiffuseReactEvent::diffuse_single_molecule(
   }
 
   float_t unimol_rx_time = m.unimol_rx_time; // copy to avoid unnecessary loads
-
-  // schedule unimol action if it is supposed to be executed in this timestep
-  assert(unimol_rx_time == TIME_INVALID || unimol_rx_time >= event_time);
-  if (unimol_rx_time != TIME_INVALID && unimol_rx_time < event_time + current_time_step) {
-
-    assert(!m.has_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN)
-        && "This unimol rxn is still to be scheduled, unimol_rx_time only specifies the reschedule time.");
-
-    DiffuseOrUnimolRxnAction unimol_react_action(
-        DiffuseOrUnimolRxnAction::Type::UNIMOL_REACT, m.id, unimol_rx_time);
-    new_diffuse_or_unimol_react_actions.push_back(unimol_react_action);
-  }
 
 #ifdef DEBUG_DIFFUSION
   const BNG::Species& debug_species = p.get_all_species().get(m.species_id);
@@ -255,7 +229,8 @@ void DiffuseReactEvent::diffuse_single_molecule(
 
   // max_time is the time for which we should simulate the diffusion
   float_t max_time = event_time + current_time_step - diffusion_start_time;
-  if (unimol_rx_time != TIME_INVALID && unimol_rx_time < diffusion_start_time + max_time) {
+  if (unimol_rx_time != TIME_INVALID &&
+      unimol_rx_time < diffusion_start_time + max_time) {
     assert(unimol_rx_time >= diffusion_start_time);
     max_time = unimol_rx_time - diffusion_start_time;
   }
@@ -272,6 +247,24 @@ void DiffuseReactEvent::diffuse_single_molecule(
     diffuse_surf_molecule(
         p, m_id, max_time, diffusion_start_time
     );
+  }
+
+  // update time for which the molecule should be scheduled next
+  Molecule& m_for_sched_update = p.get_m(m_id);
+  if (!m_for_sched_update.is_defunct()) {
+    m_for_sched_update.diffusion_time += max_time;
+    float_t diffusion_end_time = p.stats.get_current_iteration() + 1;
+    if (
+        ( m_for_sched_update.unimol_rx_time != TIME_INVALID &&
+          cmp_lt(m_for_sched_update.unimol_rx_time, p.stats.get_current_iteration() + 1, EPS)
+        ) ||
+        cmp_lt(m_for_sched_update.diffusion_time, p.stats.get_current_iteration() + 1, EPS)) {
+      // reschedule for this event
+      // TODO: time and position should not be needed
+      DiffuseOrUnimolRxnAction diffuse_action(
+          DiffuseOrUnimolRxnAction::Type::DIFFUSE, m_for_sched_update.id, m_for_sched_update.diffusion_time, WallTileIndexPair());
+      new_diffuse_or_unimol_react_actions.push_back(diffuse_action);
+    }
   }
 }
 
@@ -1490,8 +1483,7 @@ void DiffuseReactEvent::pick_unimol_rxn_class_and_set_rxn_time(
 // returns true if molecule should be diffused right away (needed for mcell3 compatibility)
 bool DiffuseReactEvent::react_unimol_single_molecule(
     Partition& p,
-    const molecule_id_t m_id,
-    const float_t scheduled_time
+    const molecule_id_t m_id
 ) {
   // the unimolecular reaction class was already selected
   Molecule& m = p.get_m(m_id);
@@ -1500,11 +1492,7 @@ bool DiffuseReactEvent::react_unimol_single_molecule(
     return false;
   }
 
-  // unimolecular reactions for surface molecules can be rescheduled,
-  // ignore this action in this case
-  if (scheduled_time != m.unimol_rx_time) {
-    return true;
-  }
+  float_t scheduled_time = m.unimol_rx_time;
 
   assert(!m.has_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN));
   assert(scheduled_time >= event_time && scheduled_time <= event_time + current_time_step);
@@ -1521,8 +1509,11 @@ bool DiffuseReactEvent::react_unimol_single_molecule(
   else {
     RxnClass* unimol_rxn_class = world->get_all_rxns().get_unimol_rxn_class(m.species_id);
     assert(unimol_rxn_class != nullptr && unimol_rxn_class->get_num_reactions() >= 1);
+
     unimol_rxn_class->update_rxn_rates_if_needed(scheduled_time);
+
     rxn_class_pathway_index_t pi = RxUtil::which_unimolecular(unimol_rxn_class, world->rng);
+
     return outcome_unimolecular(p, m, scheduled_time, unimol_rxn_class, pi);
   }
 }
@@ -2154,8 +2145,6 @@ int DiffuseReactEvent::outcome_products_random(
     // set only for new vol mols when one of the reactants is surf, invalid by default
     WallTileIndexPair where_is_vm_created;
 
-    float_t scheduled_time = time;
-
     if (species.is_vol()) {
       // create and place a volume molecule
 
@@ -2189,7 +2178,7 @@ int DiffuseReactEvent::outcome_products_random(
 
     #ifdef DEBUG_RXNS
       DUMP_CONDITION4(
-        new_vm.dump(p, "", "  created vm:", world->get_current_iteration(), scheduled_time);
+        new_vm.dump(p, "", "  created vm:", world->get_current_iteration(), time);
       );
     #endif
     }
@@ -2260,22 +2249,19 @@ int DiffuseReactEvent::outcome_products_random(
 
       #ifdef DEBUG_RXNS
         DUMP_CONDITION4(
-          new_sm.dump(p, "", "  created sm:", world->get_current_iteration(), scheduled_time);
+          new_sm.dump(p, "", "  created sm:", world->get_current_iteration(), time);
         );
       #endif
 
       current_surf_product_position_index++;
     }
 
-    // In this time step, we will simply simulate all results of reactions regardless on the diffusion time step of the
-    // particular product
-    // We always create diffuse events, unimol react events are created right before diffusion of that molecule
-    // to keep MCell3 compatibility, diffusion of molecule that survived its unimol reaction must
-    // be executed right away and this is handled i nDiffuseReactEvent::diffuse_molecules
+    // schedule new product to be diffused this iteration
+    p.get_m(new_m_id).diffusion_time = time;
     new_diffuse_or_unimol_react_actions.push_back(
         DiffuseOrUnimolRxnAction(
             DiffuseOrUnimolRxnAction::Type::DIFFUSE,
-            new_m_id, scheduled_time,
+            new_m_id, time,
             where_is_vm_created
     ));
 

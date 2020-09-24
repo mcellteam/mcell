@@ -193,6 +193,18 @@ public:
   }
 
 
+  void get_molecules_ready_for_diffusion(MoleculeIdsVector& ready_vector) const {
+    // select all molecules that are scheduled for this iteration and are not defunct
+    ready_vector.clear();
+    float_t time_it_end = stats.get_current_iteration() + 1;
+    for (const Molecule& m: molecules) {
+      // new products may have been scheduled for the previous iteration
+      if (!m.is_defunct() && cmp_lt(m.diffusion_time, time_it_end, EPS)) {
+        ready_vector.push_back(m.id);
+      }
+    }
+  }
+
   uint32_t get_molecule_list_index_for_time_step(const float_t time_step) {
     for (uint32_t i = 0; i < molecules_data_per_time_step_array.size(); i++) {
       if (molecules_data_per_time_step_array[i].time_step == time_step) {
@@ -469,7 +481,11 @@ private:
     Molecule& new_m = molecules.back();
     new_m.id = molecule_id;
 
-    add_molecule_to_diffusion_list(new_m, time_step_index);
+    // set to diffuse this or the next iteration,
+    // for releases - it will be diffused this iteration
+    // for new reaction products - it will be diffused next iteration because the DiffuseaAndReactEvent handles
+    // the current iteration
+    new_m.diffusion_time = stats.get_current_iteration();
 
     return new_m;
   }
@@ -1064,7 +1080,6 @@ private:
   std::vector< std::vector< std::vector< Waypoint > > > waypoints;
 
   // ---------------------------------- dynamic vertices ----------------------------------
-private:
   // legacy implementation for pymcell 3_4
   std::vector<VertexMoveInfo> scheduled_vertex_moves;
 

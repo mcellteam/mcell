@@ -171,18 +171,22 @@ public:
   World* world;
 
   // this event diffuses all molecules that have this diffusion time_step
-  float_t current_time_step;
+  float_t current_time_step; // TODO: this is always 0
 
 private:
+  // auxiliary array used to store result from Partition::get_molecules_ready_for_diffusion
+  // using the same array every iteration in order not to reallocate it every iteration
+  MoleculeIdsVector molecules_ready_array;
+
   // molecules newly created in reactions
   std::vector<DiffuseOrUnimolRxnAction> new_diffuse_or_unimol_react_actions;
 
-  void diffuse_molecules(Partition& p, const std::vector< molecule_id_t >& indices);
+  void diffuse_molecules(Partition& p, const MoleculeIdsVector& indices);
 
   void diffuse_single_molecule(
       Partition& p,
       const molecule_id_t vm_id,
-      const float_t diffusion_start_time,
+      //const float_t diffusion_start_time,
       WallTileIndexPair where_created_this_iteration
   );
 
@@ -302,8 +306,7 @@ private:
 
   bool react_unimol_single_molecule(
       Partition& p,
-      const molecule_id_t vm_id,
-      const float_t scheduled_time
+      const molecule_id_t vm_id
   );
 };
 

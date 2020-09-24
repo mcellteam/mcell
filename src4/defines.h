@@ -167,6 +167,8 @@ const uint INDEX_INVALID2 = UINT32_MAX - 2; // second general invalid index, mig
 typedef uint molecule_id_t;
 const molecule_id_t MOLECULE_ID_INVALID = ID_INVALID;
 
+typedef std::vector<molecule_id_t> MoleculeIdsVector;
+
 // molecule index is index into partition's molecules array, indices and ids are
 // identical until the first defragmentation that shuffles molecules in the molecules array
 typedef uint molecule_index_t;

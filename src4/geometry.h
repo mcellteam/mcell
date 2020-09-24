@@ -464,7 +464,7 @@ private:
   // value is MOLECULE_ID_INVALID when the tile is not occupied
   // indexed by type tile_index_t
   // Every initialized grid has at least one item in this array
-  std::vector<molecule_id_t> molecules_per_tile;
+  MoleculeIdsVector molecules_per_tile;
 };
 
 

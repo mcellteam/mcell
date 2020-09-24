@@ -100,7 +100,8 @@ public:
       const Vec3& pos_, const float_t release_delay_=0
     )
     : id(id_), species_id(species_id_), flags(MOLECULE_FLAG_VOL),
-      release_delay(release_delay_), unimol_rx_time(TIME_INVALID) {
+      release_delay(release_delay_),
+      diffusion_time(TIME_INVALID), unimol_rx_time(TIME_INVALID) {
     v.pos = pos_;
     v.subpart_index = SUBPART_INDEX_INVALID;
     v.reactant_subpart_index = SUBPART_INDEX_INVALID;
@@ -113,7 +114,8 @@ public:
       const Vec2& pos2d, const float_t release_delay_=0
     )
     : id(id_), species_id(species_id_), flags(MOLECULE_FLAG_SURF),
-      release_delay(release_delay_), unimol_rx_time(TIME_INVALID) {
+      release_delay(release_delay_),
+      diffusion_time(TIME_INVALID), unimol_rx_time(TIME_INVALID) {
     s.pos = pos2d;
     //s.subpart_index = SUBPART_INDEX_INVALID;
     s.orientation = ORIENTATION_NONE;
@@ -136,8 +138,14 @@ public:
   // release event time
   // is 0 when the molecule was released in a previous iteration or was released this iteration
   // and diffusion can start right away
-  float_t release_delay;
+  float_t release_delay; // TODO: replace with diffusion_time
 
+  // time for which it was scheduled, based on this value Partition creates 'ready list'
+  // for DiffuseAndReactEvent
+  float_t diffusion_time;
+
+  // time assigned for unimol rxn, TIME_INVALID if time has not been set or mo.ecule has not unimol rxn,
+  // TIME_FOREVER if the probability of an existing unimol rxn is 0
   float_t unimol_rx_time;
 
   // update assignment operator when modifying this
