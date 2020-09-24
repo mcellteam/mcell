@@ -32,7 +32,6 @@
 #include "partition.h"
 #include "collision_structs.h"
 
-#define TEST 1
 
 namespace MCell {
 
@@ -40,6 +39,8 @@ class World;
 class Partition;
 class Molecule;
 
+// we are executing diffusion every iteration, do not change this constant
+const float_t DIFFUSE_REACT_EVENT_PERIODICITY = 1.0;
 
 enum class RayTraceState {
   // TODO: use UpperCase
@@ -118,7 +119,7 @@ public:
     world(world_), time_up_to_next_barrier(FLT_INVALID) {
 
     // repeat this event each iteration
-    periodicity_interval = 1.0;
+    periodicity_interval = DIFFUSE_REACT_EVENT_PERIODICITY;
   }
 
   void step() override;
@@ -165,6 +166,8 @@ private:
 
   // internal event's schedule of molecules newly created in reactions that must be diffused
   std::vector<DiffuseAction> new_diffuse_actions;
+
+  float_t get_max_time(Partition& p, const molecule_id_t m_id);
 
   void diffuse_molecules(Partition& p, const MoleculeIdsVector& indices);
 

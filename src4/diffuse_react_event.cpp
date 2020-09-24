@@ -164,6 +164,47 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const MoleculeIdsVector&
 }
 
 
+float_t DiffuseReactEvent::get_max_time(Partition& p, const molecule_id_t m_id) {
+  Molecule& m = p.get_m(m_id);
+  const Species& species = p.get_species(m.species_id);
+
+  float_t diffusion_time = m.diffusion_time;
+  float_t unimol_rx_time = m.unimol_rx_time;
+  float_t time_from_event_start = m.diffusion_time - event_time;
+
+  float_t max_time = species.time_step;
+
+  // clamp to barrier time
+  if (time_from_event_start + max_time > time_up_to_next_barrier) {
+    max_time = time_up_to_next_barrier - time_from_event_start;
+  }
+
+  // clamp to unimol_rx time
+  if (unimol_rx_time != TIME_INVALID &&
+      unimol_rx_time < diffusion_time + max_time) {
+    assert(unimol_rx_time >= diffusion_time);
+    max_time = unimol_rx_time - diffusion_time;
+  }
+
+  /*if (!m.has_flag(MOLECULE_FLAG_MATURE) && max_time > DIFFUSE_REACT_EVENT_PERIODICITY) {
+    // - newly created particles that have long time steps gradually increase
+    //   their timestep to the full value,
+    // - this behavior is here due to unbinding events so that the molecule
+    //   does not diffuse so far when in reality it could re-bind
+    float_t age_dependent_max_time = 1.0 + 0.2 * (diffusion_time - m.birthday);
+    if (max_time > age_dependent_max_time) {
+      max_time = age_dependent_max_time;
+    }
+    if (age_dependent_max_time > species.time_step) {
+      // we are alive for long enough, no need to increase the time_step gradually anymore
+      m.set_flag(MOLECULE_FLAG_MATURE);
+    }
+  }*/
+
+  return max_time;
+}
+
+
 void DiffuseReactEvent::diffuse_single_molecule(
     Partition& p,
     const molecule_id_t m_id,
@@ -227,6 +268,7 @@ void DiffuseReactEvent::diffuse_single_molecule(
 #endif
 
   // max_time is the time for which we should simulate the diffusion
+  //float_t max_time = get_max_time(p, m_id);
   const Species& species = p.get_species(m.species_id);
   float_t time_from_event_start = diffusion_start_time - event_time;
 
@@ -239,7 +281,7 @@ void DiffuseReactEvent::diffuse_single_molecule(
     assert(unimol_rx_time >= diffusion_start_time);
     max_time = unimol_rx_time - diffusion_start_time;
   }
-
+  
   if (m.is_vol()) {
     diffuse_vol_molecule(
         p, m_id,

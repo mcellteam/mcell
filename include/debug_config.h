@@ -105,7 +105,7 @@
 #define MCELL3_SORTED_MOLS_ON_RUN_TIMESTEP
 #endif
 
-#define MCELL3_NEXT_BARRIER_IS_THE_NEXT_TIMESTEP // do not diffuse more than until the end of the timestep
+//#define MCELL3_NEXT_BARRIER_IS_THE_NEXT_TIMESTEP // do not diffuse more than until the end of the timestep
 
 // messes up original ordering when all releases are planned for 0, not sure why yet
 // use only really when needed
