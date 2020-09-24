@@ -112,7 +112,7 @@ public:
   virtual bool may_be_blocked_by_barrier_and_needs_set_time_step() const { return false; }
 
   // if an event is blocked
-  virtual void set_time_step_for_next_execution(const float_t time_step) {
+  virtual void set_barrier_time_for_next_execution(const float_t time_step) {
     assert(false && "Only overridden variant of this method may be called.");
   }
 

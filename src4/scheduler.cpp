@@ -228,7 +228,7 @@ EventExecutionInfo Scheduler::handle_next_event() {
   if (event->may_be_blocked_by_barrier_and_needs_set_time_step()) {
     float_t max_time_step = calendar.get_time_up_to_next_barrier(
         event->event_time, event->periodicity_interval);
-    event->set_time_step_for_next_execution(max_time_step);
+    event->set_barrier_time_for_next_execution(max_time_step);
   }
 
 #ifdef DEBUG_SCHEDULER

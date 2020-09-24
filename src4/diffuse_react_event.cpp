@@ -97,7 +97,7 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const MoleculeIdsVector&
     }
     else {
       // released during this iteration but not at the beginning, postpone its diffusion
-      assert(release_delay > 0 && release_delay < current_time_step);
+      assert(release_delay > 0 && release_delay < time_up_to_next_barrier);
       delayed_release_diffusions.push_back(DiffuseAction(id));
     }
   }
@@ -160,7 +160,7 @@ void DiffuseReactEvent::diffuse_single_molecule(
 ) {
   Molecule& m_initial = p.get_m(m_id);
   float_t diffusion_start_time = m_initial.diffusion_time;
-  assert(diffusion_start_time >= event_time && diffusion_start_time <= event_time + current_time_step);
+  assert(diffusion_start_time >= event_time && diffusion_start_time <= event_time + time_up_to_next_barrier);
 
   if (m_initial.is_defunct()) {
     return;
@@ -198,7 +198,6 @@ void DiffuseReactEvent::diffuse_single_molecule(
 
 #ifdef DEBUG_DIFFUSION
   const BNG::Species& debug_species = p.get_all_species().get(m.species_id);
-  float_t event_time_end = event_time + current_time_step;
   DUMP_CONDITION4(
 #ifdef DUMP_NONDIFFUSING_VMS
     const char* title =
@@ -216,7 +215,11 @@ void DiffuseReactEvent::diffuse_single_molecule(
 #endif
 
   // max_time is the time for which we should simulate the diffusion
-  float_t max_time = event_time + current_time_step - diffusion_start_time;
+  const Species& species = p.get_species(m.species_id);
+  float_t max_time = event_time + species.time_step - diffusion_start_time;
+  if (max_time > time_up_to_next_barrier) {
+    max_time = time_up_to_next_barrier;
+  }
   if (unimol_rx_time != TIME_INVALID &&
       unimol_rx_time < diffusion_start_time + max_time) {
     assert(unimol_rx_time >= diffusion_start_time);
@@ -522,7 +525,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
       DUMP_CONDITION4(
         // the subtraction of diffusion_time_step doesn't make much sense but is needed to make the dump the same as in mcell3
         // need to check it further
-          m_new_ref.dump(p, "", "- Final vm position:", world->get_current_iteration(), /*event_time_end*/ 0);
+          m_new_ref.dump(p, "", "- Final vm position:", world->get_current_iteration(), 0);
       );
 #endif
 
@@ -1099,7 +1102,7 @@ inline void DiffuseReactEvent::diffuse_surf_molecule(
     // NOTE: this condition looks a bit weird, some explanation would be useful
     if ((diffusible || can_surf_surf_react) &&
         ((!diffusible || changed_wall) &&
-          new_m_ref.unimol_rx_time >= event_time + current_time_step)) {
+          new_m_ref.unimol_rx_time >= event_time + time_up_to_next_barrier)) { // ?? is usage or barrier_time_from_event_time correct?
       new_m_ref.unimol_rx_time = TIME_INVALID;
       new_m_ref.set_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN);
     }
@@ -1162,7 +1165,7 @@ bool DiffuseReactEvent::react_2D_all_neighbors(
     DUMP_CONDITION4(
       // the subtraction of diffusion_time_step doesn't make much sense but is needed to make the dump the same as in mcell3
       // need to check it further
-      nsm.dump(p, "", "  checking in react_2D_all_neighbors: ", world->get_current_iteration(), 0.0/*event_time_end - time_up_to_event_end - diffusion_time_step*//*time ???*/);
+      nsm.dump(p, "", "  checking in react_2D_all_neighbors: ", world->get_current_iteration(), 0.0);
     );
 #endif
 
@@ -1481,7 +1484,7 @@ bool DiffuseReactEvent::react_unimol_single_molecule(
   float_t scheduled_time = m.unimol_rx_time;
 
   assert(!m.has_flag(MOLECULE_FLAG_SCHEDULE_UNIMOL_RXN));
-  assert(scheduled_time >= event_time && scheduled_time <= event_time + current_time_step);
+  assert(scheduled_time >= event_time && scheduled_time <= event_time + time_up_to_next_barrier);
 
   if (m.has_flag(MOLECULE_FLAG_RESCHEDULE_UNIMOL_RXN_ON_NEXT_RXN_RATE_UPDATE)) {
     // this time event does not mean to execute the unimol action, but instead to
@@ -2334,7 +2337,7 @@ void DiffuseReactEvent::dump(const std::string ind) const {
   cout << ind << "Diffuse-react event:\n";
   std::string ind2 = ind + "  ";
   BaseEvent::dump(ind2);
-  cout << ind2 << "current_time_step: \t\t" << current_time_step << " [float_t] (may be unset initally)\t\t\n";
+  cout << ind2 << "barrier_time_from_event_time: \t\t" << time_up_to_next_barrier << " [float_t] (may be unset initally)\t\t\n";
 }
 
 

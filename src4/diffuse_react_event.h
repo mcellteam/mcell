@@ -115,19 +115,24 @@ class DiffuseReactEvent : public BaseEvent {
 public:
   DiffuseReactEvent(World* world_) :
     BaseEvent(EVENT_TYPE_INDEX_DIFFUSE_REACT),
-    world(world_), current_time_step(FLT_INVALID) {
+    world(world_), time_up_to_next_barrier(FLT_INVALID) {
 
     // repeat this event each iteration
-    periodicity_interval = 1;
+    periodicity_interval = 1.0;
   }
 
   void step() override;
   void dump(const std::string ind = "") const override;
 
   bool update_event_time_for_next_scheduled_time() override {
-    assert(current_time_step != FLT_INVALID);
+    assert(time_up_to_next_barrier != FLT_INVALID);
     // the next time to schedule
-    event_time = event_time + current_time_step;
+    if (time_up_to_next_barrier < periodicity_interval) {
+      event_time = event_time + time_up_to_next_barrier;
+    }
+    else {
+      event_time = event_time + periodicity_interval;
+    }
     return true;
   }
 
@@ -136,18 +141,18 @@ public:
     return true;
   }
 
-  void set_time_step_for_next_execution(const float_t time_step) override {
+  void set_barrier_time_for_next_execution(const float_t time_up_to_next_barrier_) override {
     // scheduler says to this event for how long it can execute
     // either the maximum time step (periodicity_interval) or time up to the
     // first barrier
-    release_assert(time_step > 0 && "Diffusion must advance even if a little bit");
-    current_time_step = time_step;
+    release_assert(time_up_to_next_barrier_ > 0 && "Diffusion must advance even if a little bit");
+    time_up_to_next_barrier = time_up_to_next_barrier_;
   }
 
   World* world;
 
   // this event diffuses all molecules that have this diffusion time_step
-  float_t current_time_step; // TODO: related to custom time step, think this through
+  float_t time_up_to_next_barrier;
 
 private:
   // auxiliary array used to store result from Partition::get_molecules_ready_for_diffusion
