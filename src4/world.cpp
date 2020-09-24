@@ -117,26 +117,6 @@ uint64_t World::determine_output_frequency(uint64_t iterations) {
 }
 
 
-void World::create_diffusion_events() {
-  assert(get_all_species().get_count() != 0 && "There must be at least 1 species");
-
-  set<float_t> time_steps_set;
-  for (auto &species : get_all_species().get_species_vector() ) {
-    time_steps_set.insert(species.time_step);
-  }
-
-  for (float_t time_step : time_steps_set) {
-    if (time_step == 0) {
-      // ignore this species
-      continue;
-    }
-    DiffuseReactEvent* event = new DiffuseReactEvent(this, time_step);
-    event->event_time = TIME_SIMULATION_START;
-    scheduler.schedule_event(event);
-  }
-}
-
-
 void World::create_initial_surface_region_release_event() {
   ReleaseEvent* rel_event = new ReleaseEvent(this);
   rel_event->event_time = 0;
@@ -205,6 +185,12 @@ void World::init_simulation() {
       "Partition contains " <<  config.num_subpartitions_per_partition << "^3 subpartitions, " <<
       "subpartition size is " << config.subpartition_edge_length * config.length_unit << " microns.\n";
   assert(partitions.size() == 1 && "Initial partition must have been created, only 1 is allowed for now");
+
+  // create event that diffuses molecules
+  DiffuseReactEvent* event = new DiffuseReactEvent(this);
+  event->event_time = TIME_SIMULATION_START;
+  scheduler.schedule_event(event);
+
 
   // create events that are used to check whether simulation should end
   SimulationEndCheckEvent* sim_end_check_event = new SimulationEndCheckEvent();

@@ -121,10 +121,6 @@ void MCell4Converter::convert(Model* model_, World* world_) {
 
   convert_release_events();
 
-  // diffusion events must be created after reactions and release events
-  // since they may define the initial species in when BNGL reactions are used
-  world->create_diffusion_events();
-
   convert_mol_or_rxn_count_events_and_init_counting_flags();
 
   convert_viz_output_events();

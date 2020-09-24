@@ -1,8 +1,7 @@
 /******************************************************************************
  *
- * Copyright (C) 2019 by
- * The Salk Institute for Biological Studies and
- * Pittsburgh Supercomputing Center, Carnegie Mellon University
+ * Copyright (C) 2019,2020 by
+ * The Salk Institute for Biological Studies
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -192,7 +191,6 @@ public:
     return res;
   }
 
-
   void get_molecules_ready_for_diffusion(MoleculeIdsVector& ready_vector) const {
     // select all molecules that are scheduled for this iteration and are not defunct
     ready_vector.clear();
@@ -205,27 +203,6 @@ public:
     }
   }
 
-  uint32_t get_molecule_list_index_for_time_step(const float_t time_step) {
-    for (uint32_t i = 0; i < molecules_data_per_time_step_array.size(); i++) {
-      if (molecules_data_per_time_step_array[i].time_step == time_step) {
-        return i;
-      }
-    }
-    return TIME_STEP_INDEX_INVALID;
-  }
-
-
-  uint32_t get_or_add_molecule_list_index_for_time_step(const float_t time_step) {
-    uint32_t res;
-    res = get_molecule_list_index_for_time_step(time_step);
-    if (res == TIME_STEP_INDEX_INVALID) {
-      molecules_data_per_time_step_array.push_back(
-        TimeStepMoleculesData(time_step, std::vector<molecule_id_t>()));
-      res = molecules_data_per_time_step_array.size() - 1;
-    }
-    return res;
-  }
-
   const BNG::Species& get_species(const species_id_t species_id) const {
     return get_all_species().get(species_id);
   }
@@ -235,11 +212,9 @@ public:
       && glm::all(glm::lessThan(pos, opposite_corner));
   }
 
-
   bool is_subpart_index_in_range(const int index) const {
     return index >= 0 && index < (int)config.num_subpartitions_per_partition;
   }
-
 
   void get_subpart_3d_indices(const Vec3& pos, IVec3& res) const {
     // FIXME: make two variants ofhtis function - with and without release check
@@ -432,34 +407,9 @@ private:
   // internal methods that sets molecule's id and
   // adds it to all relevant structures
 
-  void add_molecule_to_diffusion_list(const Molecule& m, const uint32_t time_step_index) {
-
-
-		/*
-		 this can possibly help with performance in some cases, but so far it had negligible effect 
-    const BNG::Species& species = get_all_species().get(m.species_id);
-    if (
-        species.is_vol() &&
-        !species.can_diffuse() &&
-        !species.has_unimol_rxn()
-    ) {
-      // no need to handle diffusion of vol species that cannot diffuse and have no unimol rxns
-      return;
-    }
-    */
-
-    // and its index to the list sorted by time step
-    // this is an array that changes only when molecule leaves this partition or is defunct
-    assert(time_step_index <= molecules_data_per_time_step_array.size());
-    molecules_data_per_time_step_array[time_step_index].molecule_ids.push_back(m.id);
-  }
-
-
   Molecule& add_molecule(const Molecule& vm_copy, const bool is_vol) {
-
     const BNG::Species& species = get_all_species().get(vm_copy.species_id);
     assert((is_vol && species.is_vol()) || (!is_vol && species.is_surf()));
-    uint32_t time_step_index = get_or_add_molecule_list_index_for_time_step(species.time_step);
 
     // TODO: molecule IDs must be assigned by World
     molecule_id_t molecule_id = next_molecule_id;
@@ -564,35 +514,7 @@ public:
   }
 
 
-  // ---------------------------------- typedefs and internal structs ----------------------------------
-
-  // this structure contains all data associated with a given diffusion time step.
-  class TimeStepMoleculesData {
-  public:
-    // usually initialized with empty molecule_ids_ array
-    TimeStepMoleculesData(float_t time_step_, const std::vector< molecule_id_t > molecule_ids_)
-      : time_step(time_step_), molecule_ids(molecule_ids_) {
-    }
-
-		// diffusion time step value 
-    float_t time_step;
-    // molecule ids with this diffusion time step 
-    std::vector<molecule_id_t> molecule_ids;
-  };
-
   // ---------------------------------- molecule getters ----------------------------------
-
-  // usually used as constant
-  std::vector< TimeStepMoleculesData >& get_molecule_data_per_time_step_array() {
-    return molecules_data_per_time_step_array;
-  }
-
-
-  const std::vector<molecule_id_t>& get_molecule_ids_for_time_step_index(uint32_t time_step_index) {
-    assert(time_step_index < molecules_data_per_time_step_array.size());
-    return molecules_data_per_time_step_array[time_step_index].molecule_ids;
-  }
-
 
   const Vec3& get_origin_corner() const {
     return origin_corner;
@@ -1033,9 +955,6 @@ private:
   // id of the next molecule to be created
   // TODO_LATER: move to World
   molecule_id_t next_molecule_id;
-
-  // indexed by diffusion time step index
-  std::vector<TimeStepMoleculesData> molecules_data_per_time_step_array;
 
   // indexed with subpartition index, only for vol-vol reactions
   std::vector<SpeciesReactantsMap> volume_molecule_reactants_per_subpart;

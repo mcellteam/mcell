@@ -48,45 +48,7 @@ void DefragmentationEvent::step() {
       continue;
     }
 
-    // first remove all defunct molecules from mols_per_time_step
-    vector<Partition::TimeStepMoleculesData>& mols_per_time_step = p.get_molecule_data_per_time_step_array();
-    for (Partition::TimeStepMoleculesData& timestep_mol_ids: mols_per_time_step) {
-      size_t ids_removed = 0;
-
-      vector<molecule_id_t>& molecule_ids = timestep_mol_ids.molecule_ids;
-
-      typedef vector<molecule_id_t>::iterator id_it_t;
-      id_it_t id_it_end = molecule_ids.end();
-
-      // find first defunct molecule
-      id_it_t id_it_first_defunct =  find_if(molecule_ids.begin(), id_it_end, [&p](const molecule_id_t id) -> bool { return p.get_m(id).is_defunct(); });
-      id_it_t id_it_copy_destination = id_it_first_defunct;
-
-      while (id_it_first_defunct != id_it_end) {
-        // then find the next one that is not defunct (might be it_end)
-        id_it_t id_it_next_funct = find_if(id_it_first_defunct, id_it_end, [&p](const molecule_id_t id) -> bool { return !p.get_m(id).is_defunct(); });
-
-        // then again, find following defunct molecule
-        id_it_t id_it_second_defunct = find_if(id_it_next_funct, id_it_end, [&p](const molecule_id_t id) -> bool { return p.get_m(id).is_defunct(); });
-
-        // move data: from, to, into position
-        std::copy(id_it_next_funct, id_it_second_defunct, id_it_copy_destination);
-
-        ids_removed += id_it_next_funct - id_it_first_defunct;
-
-        // and also move destination pointer
-        id_it_copy_destination += id_it_second_defunct - id_it_next_funct;
-
-        id_it_first_defunct = id_it_second_defunct;
-      }
-
-      // remove everything after it_copy_destination
-      if (ids_removed != 0) {
-        molecule_ids.resize(molecule_ids.size() - ids_removed);
-      }
-    }
-
-    // then follow with the molecules array
+    // remove defunct molecules in the molecules array
     vector<molecule_index_t>& molecule_id_to_index_mapping = p.get_molecule_id_to_index_mapping();
 
 #ifdef DEBUG_DEFRAGMENTATION

@@ -113,13 +113,12 @@ public:
  */
 class DiffuseReactEvent : public BaseEvent {
 public:
-  DiffuseReactEvent(World* world_, const float_t diffusion_time_step) :
+  DiffuseReactEvent(World* world_) :
     BaseEvent(EVENT_TYPE_INDEX_DIFFUSE_REACT),
     world(world_), current_time_step(FLT_INVALID) {
 
-    // repeat this event each time step
-    // periodicity_interval is the max time step for this event
-    periodicity_interval = diffusion_time_step;
+    // repeat this event each iteration
+    periodicity_interval = 1;
   }
 
   void step() override;
@@ -148,7 +147,7 @@ public:
   World* world;
 
   // this event diffuses all molecules that have this diffusion time_step
-  float_t current_time_step; // TODO: remove
+  float_t current_time_step; // TODO: related to custom time step, think this through
 
 private:
   // auxiliary array used to store result from Partition::get_molecules_ready_for_diffusion

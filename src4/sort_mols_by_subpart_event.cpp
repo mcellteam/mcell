@@ -95,15 +95,6 @@ void SortMolsBySubpartEvent::step() {
       }
     }
 
-    // this can be optimized if we would take just volume mols into account
-    vector<Partition::TimeStepMoleculesData>& mols_per_time_step = p.get_molecule_data_per_time_step_array();
-
-    for (Partition::TimeStepMoleculesData& time_step_data: mols_per_time_step) {
-      vector<molecule_id_t>& molecule_ids = time_step_data.molecule_ids;
-
-      sort(molecule_ids.begin(), molecule_ids.end(), SubpartComparatorForId(mempart_indices));
-    }
-
     // also sort molecules in the molecules array
     sort(molecules.begin(), molecules.end(), SubpartComparatorForMol(mempart_indices));
 

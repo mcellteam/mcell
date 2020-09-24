@@ -115,7 +115,6 @@ bool MCell3WorldConverter::convert(volume* s) {
   CHECK(convert_simulation_setup(s));
 
   CHECK(convert_species(s));
-  world->create_diffusion_events(); // cannot fail
   world->create_initial_surface_region_release_event(); // cannot fail
   CHECK(convert_rxns(s));
 

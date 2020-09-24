@@ -77,7 +77,6 @@ public:
   );
 
   // used by converters
-  void create_diffusion_events();
   void create_initial_surface_region_release_event();
 
   // -------------- diverse getters -----------------------------
