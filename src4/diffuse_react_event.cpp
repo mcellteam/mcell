@@ -59,7 +59,9 @@ using namespace BNG;
 namespace MCell {
 
 float_t DiffuseReactEvent::get_max_time_up_to_next_barrier() const {
-  return world->get_all_species().get_max_time_step();
+  // no molecules can diffuse for longer than max time step and
+  // their diffusion can be started in time 0..1 of an iteration
+  return world->get_all_species().get_max_time_step() + DIFFUSE_REACT_EVENT_PERIODICITY;
 }
 
 
@@ -186,7 +188,7 @@ inline float_t DiffuseReactEvent::get_max_time(Partition& p, const molecule_id_t
     max_time = unimol_rx_time - diffusion_time;
   }
 
-  /*if (!m.has_flag(MOLECULE_FLAG_MATURE) && max_time > DIFFUSE_REACT_EVENT_PERIODICITY) {
+  if (!m.has_flag(MOLECULE_FLAG_MATURE) && max_time > DIFFUSE_REACT_EVENT_PERIODICITY) {
     // - newly created particles that have long time steps gradually increase
     //   their timestep to the full value,
     // - this behavior is here due to unbinding events so that the molecule
@@ -199,7 +201,7 @@ inline float_t DiffuseReactEvent::get_max_time(Partition& p, const molecule_id_t
       // we are alive for long enough, no need to increase the time_step gradually anymore
       m.set_flag(MOLECULE_FLAG_MATURE);
     }
-  }*/
+  }
 
   return max_time;
 }
