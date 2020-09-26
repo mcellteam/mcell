@@ -164,7 +164,7 @@ void DiffuseReactEvent::diffuse_molecules(Partition& p, const MoleculeIdsVector&
 }
 
 
-float_t DiffuseReactEvent::get_max_time(Partition& p, const molecule_id_t m_id) {
+inline float_t DiffuseReactEvent::get_max_time(Partition& p, const molecule_id_t m_id) {
   Molecule& m = p.get_m(m_id);
   const Species& species = p.get_species(m.species_id);
 
@@ -268,19 +268,7 @@ void DiffuseReactEvent::diffuse_single_molecule(
 #endif
 
   // max_time is the time for which we should simulate the diffusion
-  //float_t max_time = get_max_time(p, m_id);
-  const Species& species = p.get_species(m.species_id);
-  float_t time_from_event_start = diffusion_start_time - event_time;
-
-  float_t max_time = species.time_step;
-  if (time_from_event_start + max_time > time_up_to_next_barrier) {
-    max_time = time_up_to_next_barrier - time_from_event_start;
-  }
-  if (unimol_rx_time != TIME_INVALID &&
-      unimol_rx_time < diffusion_start_time + max_time) {
-    assert(unimol_rx_time >= diffusion_start_time);
-    max_time = unimol_rx_time - diffusion_start_time;
-  }
+  float_t max_time = get_max_time(p, m_id);
   
   if (m.is_vol()) {
     diffuse_vol_molecule(
