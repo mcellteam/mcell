@@ -198,7 +198,7 @@ static void compute_vol_displacement(
     const Partition& p,
     const BNG::Species& sp,
     const Molecule& vm,
-    float_t& max_time,
+    const float_t max_time,
     rng_state& rng,
     Vec3& displacement,
     float_t& rate_factor, float_t& r_rate_factor, float_t& steps, float_t& t_steps
@@ -212,6 +212,10 @@ static void compute_vol_displacement(
   if (max_time > MULTISTEP_WORTHWHILE) {
     // does not work correctly yet, clamping by max_time is done differently in MCell3
     steps = get_safe_diffusion_step(p, sp, vm);
+    
+    // need to update max_time somehow, e.g.
+	//  max_time = t_steps;?
+    
   }
   else {
     steps = 1.0;
@@ -239,8 +243,6 @@ static void compute_vol_displacement(
     pick_vol_displacement(sp, rate_factor * sp.get_space_step(), rng, displacement);
   }
 
-  // need update max_time
-  max_time *= steps;
 }
 
 // ---------------------------------- surface mol diffusion ----------------------------------
