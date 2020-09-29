@@ -422,6 +422,14 @@ static inline float_t log_f(const float_t x) {
 #endif
 }
 
+static inline float_t exp_f(const float_t x) {
+#if FLOAT_T_BYTES == 8
+  return exp(x);
+#else
+  return expf(x);
+#endif
+}
+
 static inline float_t ceil_f(const float_t x) {
 #if FLOAT_T_BYTES == 8
   return ceil(x);
@@ -573,6 +581,10 @@ static inline float_t len3_squared(const Vec3& v1) {
 
 static inline float_t len3(const Vec3& v1) {
   return sqrt_f(len3_squared(v1));
+}
+
+static inline float_t distance3_squared(const Vec3& v1, const Vec3& v2) {
+  return len3(v1 - v2);
 }
 
 static inline float_t distance3(const Vec3& v1, const Vec3& v2) {
@@ -798,58 +810,6 @@ private:
   uint64_t diffuse_3d_calls;
 };
 
-/*
- * Constant data set in initialization useful for all classes, single object is owned by world
- */
-// TODO: cleanup all unnecessary argument passing, e.g. in diffuse_react_event.cpp
-class SimulationConfig: public BNG::BNGConfig {
-public:
-  // TODO: add ctor
-
-  // configuration
-
-  float_t vacancy_search_dist2; /* Square of distance to search for free grid
-                                  location to place surface product */
-
-  Vec3 partition0_llf;
-
-  float_t partition_edge_length; // TODO: rename to side
-  uint num_subpartitions_per_partition;
-  uint num_subpartitions_per_partition_squared;
-  float_t subpartition_edge_length; // == partition_edge_length / subpartitions_per_partition_dimension
-  float_t subpartition_edge_length_rcp; // == 1/subpartition_edge_length
-
-  // other options
-  bool use_expanded_list; /* If set, check neighboring subvolumes for mol-mol
-                            interactions */
-  bool randomize_smol_pos; /* If set, always place surface molecule at random
-                             location instead of center of grid */
-  bool check_overlapped_walls; /* Check geometry for overlapped walls? */
-
-  // initialized in World::init_counted_volumes
-  // also tells whether waypoints in a partition were initialized
-  bool has_intersecting_counted_objects;
-
-
-  void init() {
-    BNGConfig::init();
-    init_subpartition_edge_length();
-  }
-
-  void dump();
-
-private:
-  void init_subpartition_edge_length() {
-    // probably not needed anymore
-    //assert(num_subpartitions_per_partition % 2 == 0
-    //    && "Implementation of raycast_with_endpoints requires that central subparts are aligned with the axes and not shifted");
-    release_assert(partition_edge_length > 0);
-    subpartition_edge_length = partition_edge_length / (float_t)num_subpartitions_per_partition;
-    subpartition_edge_length_rcp = 1.0/subpartition_edge_length;
-    num_subpartitions_per_partition_squared = powu(num_subpartitions_per_partition, 2);
-  }
-
-};
 } // namespace mcell
 
 #endif // SRC4_DEFINES_H_

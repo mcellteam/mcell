@@ -28,6 +28,8 @@
  */
 #include <vector>
 
+#include "bng/bng.h"
+
 #include "logging.h"
 
 #include "diffuse_react_event.h"
@@ -35,6 +37,7 @@
 #include "world.h"
 #include "partition.h"
 #include "geometry.h"
+#include "simulation_config.h"
 #include "debug_config.h"
 
 #include "grid_utils.inc"
@@ -47,11 +50,14 @@ namespace MCell {
 
 namespace DiffusionUtil {
 
+const float_t MULTISTEP_WORTHWHILE = 1.0;
+const float_t MULTISTEP_PERCENTILE = 0.99;
+const float_t MULTISTEP_FRACTION = 0.9;
 
 // ---------------------------------- volume mol diffusion ----------------------------------
 
 // get displacement based on scale (related to diffusion constant) and gauss random number
-static void pick_vol_displacement(const BNG::Species& sp, const float_t scale, rng_state& rng, Vec3& displacement) {
+static inline void pick_vol_displacement(const BNG::Species& sp, const float_t scale, rng_state& rng, Vec3& displacement) {
 
   assert(sp.can_diffuse());
   displacement.x = scale * rng_gauss(&rng) * .70710678118654752440;
@@ -60,17 +66,157 @@ static void pick_vol_displacement(const BNG::Species& sp, const float_t scale, r
 }
 
 
-// determine how far will our diffused molecule move
-static void compute_vol_displacement(
+
+/****************************************************************************
+safe_diffusion_step:
+  In: vm: molecule that is moving
+      shead: linked list of potential collisions with molecules from the
+      radial_subdivisions:
+      r_step:
+      x_fineparts:
+      y_fineparts:
+      z_fineparts:
+  Out: The estimated number of diffusion steps this molecule can take before
+       something interesting might happen to it, or 1.0 if something might
+       happen within one timestep.
+  Note: Each molecule uses its own timestep.  Only molecules that the moving
+        molecule can react with directly are counted (secondary reaction
+        products are ignored, so might be skipped).  "Might happen" is to
+        the 99% confidence level (i.e. the distance you'd have to go before
+        1% of the molecules will have gotten far enough to have a chance of
+        reacting, although those 1% will probably not go in the right
+        direction).  This doesn't take into account the diffusion of other
+        target molecules, so it may introduce errors for clouds of molecules
+        diffusing into each other from a distance.
+        *FIXME*: Add a flag to make this be very conservative or to turn
+        this off entirely, aside from the TIME_STEP_MAX= directive.
+****************************************************************************/
+static inline float_t get_safe_diffusion_step(
+    const Partition& p,
     const BNG::Species& sp,
-    const float_t max_time,
+    const Molecule& vm
+) {
+  assert(vm.is_vol());
+
+  float_t d2;
+  float_t d2_nearmax;
+  float_t d2min = FLT_GIGANTIC;
+  float_t steps;
+
+  d2_nearmax = sp.space_step * p.config.radial_3d_step[(int)(p.config.num_radial_subdivisions * MULTISTEP_PERCENTILE)];
+  d2_nearmax *= d2_nearmax;
+
+  if (sp.has_flag(BNG::SPECIES_FLAG_CAN_VOLVOL) && !sp.has_flag(BNG::SPECIES_FLAG_CANT_INITIATE) ) {
+
+    // get the closest distance to any molecule that can react
+    const uint_set<molecule_id_t>& sp_reactants = p.get_volume_molecule_reactants(vm.v.subpart_index, vm.species_id);
+    for (molecule_id_t subpart_vm_id: sp_reactants) {
+      const Molecule& subpart_vm = p.get_m(subpart_vm_id);
+      assert(subpart_vm.is_vol());
+
+      float_t md2 = distance3_squared(vm.v.pos, subpart_vm.v.pos);
+
+      if (md2 < d2min) {
+        d2min = md2;
+      }
+    }
+  }
+
+  // get the closest distance to a wall in this subpart
+  const WallsInSubpart& wall_ids = p.get_subpart_wall_indices(vm.v.subpart_index);
+  for (wall_index_t wi: wall_ids) {
+    const Wall& w = p.get_wall(wi);
+
+    float_t wd2 = dot(w.normal, vm.v.pos) - w.distance_to_origin;
+    wd2 *= wd2;
+    if (wd2 < d2min)
+      d2min = wd2;
+  }
+
+#ifndef MCELL3_IGNORE_SUBPARTS_IN_SAFE_DIFF_STEP
+  float_t subpart_side_length = p.config.subpartition_edge_length;
+  IVec3 subpart_indices;
+  p.get_subpart_3d_indices_from_index(vm.v.subpart_index, subpart_indices);
+  Vec3 llf_subpart_boundary = Vec3(subpart_indices) * Vec3(subpart_side_length);
+  const Vec3& pos = vm.v.pos;
+
+  float_t d2;
+  d2 = (pos.x - llf_subpart_boundary.x);
+  d2 *= d2;
+  if (d2 < d2min) {
+    d2min = d2;
+  }
+
+  d2 = (llf_subpart_boundary.x + subpart_side_length - pos.x);
+  d2 *= d2;
+  if (d2 < d2min) {
+    d2min = d2;
+  }
+
+  d2 = (pos.y - llf_subpart_boundary.y);
+  d2 *= d2;
+  if (d2 < d2min) {
+    d2min = d2;
+  }
+
+  d2 = (llf_subpart_boundary.y + subpart_side_length - pos.y);
+  d2 *= d2;
+  if (d2 < d2min) {
+    d2min = d2;
+  }
+
+  d2 = (pos.z - llf_subpart_boundary.z);
+  d2 *= d2;
+  if (d2 < d2min) {
+    d2min = d2;
+  }
+
+  d2 = (llf_subpart_boundary.z + subpart_side_length - pos.z);
+  d2 *= d2;
+  if (d2 < d2min) {
+    d2min = d2;
+  }
+#endif
+
+  if (d2min < d2_nearmax) {
+    steps = 1.0;
+  }
+  else {
+    float_t steps_sq = d2min / d2_nearmax;
+    if (steps_sq < MULTISTEP_WORTHWHILE * MULTISTEP_WORTHWHILE)
+      steps = 1.0;
+    else
+      steps = sqrt_f(steps_sq);
+  }
+
+  return steps;
+}
+
+
+// - determine how far will our diffused molecule move
+// - called compute_displacement in MCell3
+static void compute_vol_displacement(
+    const Partition& p,
+    const BNG::Species& sp,
+    const Molecule& vm,
+    float_t& max_time,
     rng_state& rng,
     Vec3& displacement,
     float_t& rate_factor, float_t& r_rate_factor, float_t& steps, float_t& t_steps
 ) {
   assert(max_time != 0);
+  assert(vm.is_vol());
 
   // assert(!m.has_flag(ACT_CLAMPED) && "Not implemented yet");
+
+  if (max_time > MULTISTEP_WORTHWHILE) {
+    steps = get_safe_diffusion_step(p, sp, vm);
+    // need to update max_time
+    max_time *= steps;
+  }
+  else {
+    steps = 1.0;
+  }
 
   t_steps = steps * sp.get_time_step();
   if (t_steps > max_time) {

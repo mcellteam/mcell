@@ -30,6 +30,7 @@
 
 #include "defines.h"
 #include "molecule.h"
+#include "simulation_config.h"
 #include "dyn_vertex_structs.h"
 
 namespace Json {

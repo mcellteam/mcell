@@ -182,7 +182,7 @@ private:
   void diffuse_vol_molecule(
       Partition& p,
       const molecule_id_t vm_id,
-      const float_t max_time,
+      float_t& max_time,
       const float_t diffusion_start_time,
       WallTileIndexPair& where_created_this_iteration
   );

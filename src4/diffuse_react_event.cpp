@@ -348,7 +348,7 @@ void sort_collisions_by_time(CollisionsVector& molecule_collisions) {
 void DiffuseReactEvent::diffuse_vol_molecule(
     Partition& p,
     const molecule_id_t vm_id,
-    const float_t max_time,
+    float_t& max_time, // can be increased
     const float_t diffusion_start_time,
     WallTileIndexPair& wall_tile_pair_where_created_this_iteration
 ) {
@@ -369,7 +369,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
   float_t rate_factor = 1.0;
   float_t r_rate_factor = 1.0;
   DiffusionUtil::compute_vol_displacement(
-      species, max_time, world->rng,
+      p, species, vm, max_time, world->rng,
       displacement, rate_factor, r_rate_factor, steps, t_steps
   );
 

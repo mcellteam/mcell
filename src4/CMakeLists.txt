@@ -36,6 +36,7 @@ set(SRC4_SOURCE_FILES
     geometry.cpp
     species_flags_analyzer.cpp
     world.cpp
+    simulation_config.cpp
     counted_volumes_util.cpp
     bng_data_to_datamodel_converter.cpp
     

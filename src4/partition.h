@@ -31,6 +31,7 @@
 #include "molecule.h"
 #include "scheduler.h"
 #include "geometry.h"
+#include "simulation_config.h"
 #include "species_flags_analyzer.h"
 #include "../libmcell/api/shared_structs.h"
 
@@ -88,7 +89,7 @@ public:
     return (*this)[key].count(id) != 0;
   }
 
-  const uint_set<molecule_id_t>& get_contained_set(const species_id_t key) {
+  const uint_set<molecule_id_t>& get_contained_set(const species_id_t key) const {
     if (key >= this->size()) {
       // not present, simply return an empty set
       return empty_set;
@@ -523,7 +524,7 @@ public:
     return opposite_corner;
   }
 
-  const uint_set<molecule_id_t>& get_volume_molecule_reactants(subpart_index_t subpart_index, species_id_t species_id) {
+  const uint_set<molecule_id_t>& get_volume_molecule_reactants(subpart_index_t subpart_index, species_id_t species_id) const {
     assert(subpart_index < volume_molecule_reactants_per_subpart.size());
     return volume_molecule_reactants_per_subpart[subpart_index].get_contained_set(species_id);
   }
