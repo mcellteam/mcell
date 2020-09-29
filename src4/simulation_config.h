@@ -48,7 +48,7 @@ public:
   float_t subpartition_edge_length; // == partition_edge_length / subpartitions_per_partition_dimension
   float_t subpartition_edge_length_rcp; // == 1/subpartition_edge_length
 
-  const uint num_radial_subdivisions = 1024; /* Size of 3D step length lookup tables, not configurable by user yet */
+  uint num_radial_subdivisions = 1024; /* Size of 3D step length lookup tables, not configurable by user yet */
   std::vector<float_t> radial_3d_step; /* Lookup table of 3D diffusion step lengths */
 
   // other options
@@ -66,6 +66,7 @@ public:
   void init() {
     BNGConfig::init();
     init_subpartition_edge_length();
+    init_radial_3d_step();
   }
 
   void dump();

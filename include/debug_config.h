@@ -41,6 +41,11 @@
 #define MCELL3_IDENTICAL
 #define MCELL4_IDENTICAL
 
+//#define MCELL3_SORTED_MOLS_ON_RUN_TIMESTEP
+//#define MCELL3_SORTED_VIZ_OUTPUT
+
+//#define MCELL3_IGNORE_SUBPARTS_IN_SAFE_DIFF_STEP
+
 // define when comparin mcell4 and pymcell4 outputs
 //#define PYMCELL4_TESTING
 
@@ -53,6 +58,9 @@
 // number placements are in reverse order, but density placements are in correct order,
 // enabling this macro unifies it
 #define MCELL3_REVERSE_INITIAL_SURF_MOL_PLACEMENT_BY_NUM
+
+//#define MCELL3_4_IGNORE_SUBPARTS_IN_SAFE_DIFF_STEP
+
 
 // in MCell3 the newly created particles that have long time steps gradually increase
 // their timestep to the full value

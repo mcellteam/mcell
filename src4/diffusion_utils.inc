@@ -98,7 +98,6 @@ static inline float_t get_safe_diffusion_step(
 ) {
   assert(vm.is_vol());
 
-  float_t d2;
   float_t d2_nearmax;
   float_t d2min = FLT_GIGANTIC;
   float_t steps;
@@ -207,16 +206,19 @@ static void compute_vol_displacement(
   assert(max_time != 0);
   assert(vm.is_vol());
 
-  // assert(!m.has_flag(ACT_CLAMPED) && "Not implemented yet");
+  //assert(!m.has_flag(ACT_CLAMPED) && "Not implemented yet");
 
+#ifdef ENABLE_SAFE_DIFFUSION_STEP
   if (max_time > MULTISTEP_WORTHWHILE) {
+    // does not work correctly yet, clamping by max_time is done differently in MCell3
     steps = get_safe_diffusion_step(p, sp, vm);
-    // need to update max_time
-    max_time *= steps;
   }
   else {
     steps = 1.0;
   }
+#else
+  steps = 1.0;
+#endif
 
   t_steps = steps * sp.get_time_step();
   if (t_steps > max_time) {
@@ -236,6 +238,9 @@ static void compute_vol_displacement(
     r_rate_factor = 1.0 / rate_factor;
     pick_vol_displacement(sp, rate_factor * sp.get_space_step(), rng, displacement);
   }
+
+  // need update max_time
+  max_time *= steps;
 }
 
 // ---------------------------------- surface mol diffusion ----------------------------------
