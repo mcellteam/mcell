@@ -2923,7 +2923,7 @@ int init_surf_mols_by_number(struct volume *world, struct geom_object *objp,
           sm_dat_vec.insert(sm_dat_vec.begin(), smdp);
         }
       #else
-        vector<sm_dat*> sm_dat_vec;
+        std::vector<sm_dat*> sm_dat_vec;
         for (struct sm_dat *smdp = rp->sm_dat_head; smdp != NULL; smdp = smdp->next) {
           sm_dat_vec.push_back(smdp);
         }
