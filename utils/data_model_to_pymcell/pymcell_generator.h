@@ -36,7 +36,8 @@ public:
   bool generate(
       const std::string& input_file,
       const std::string& output_file_prefix_,
-      const bool debug_mode_
+      const bool debug_mode_,
+      const bool bin_viz
   );
 
 private:
@@ -76,7 +77,7 @@ private:
   void generate_instantiation(const std::vector<std::string>& geometry_objects);
 
   std::vector<std::string> get_species_to_visualize();
-  std::vector<std::string> generate_viz_outputs(std::ofstream& out);
+  std::vector<std::string> generate_viz_outputs(std::ofstream& out, const bool bin_viz);
 
   void process_single_count_term(
       const std::string& mdl_string,
@@ -85,7 +86,7 @@ private:
   std::string generate_count_terms_for_expression(std::ofstream& out, const std::string& mdl_string);
   std::vector<std::string> generate_counts(std::ofstream& out);
 
-  void generate_observables();
+  void generate_observables(const bool bin_viz);
 
   void generate_config(std::ofstream& out);
   void generate_model(const bool print_failed_marker);

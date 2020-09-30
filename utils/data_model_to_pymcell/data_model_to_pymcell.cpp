@@ -39,6 +39,7 @@ static const option long_options[] = {
     { "help", 0, 0, 'h' },
     { "version", 0, 0, 'v' },
     { "debug", 0, 0, 'g' },
+    { "bin_viz", 0, 0, 'b' },
     { "output_file_prefix", 1, 0, 'o'},
     { nullptr, 0, 0, 0 }
 };
@@ -64,11 +65,13 @@ int process_args(
     const int argc, char* argv[],
     string& input_file,
     string& output_files_prefix,
-    bool& debug_mode
+    bool& debug_mode,
+    bool& bin_viz
 ) {
   input_file = "";
   output_files_prefix = "";
   debug_mode = false;
+  bin_viz = false;
 
   assert(argc > 0);
   while (1) {
@@ -87,6 +90,9 @@ int process_args(
         return ARG_PARSE_QUIT;
       case 'g':
         debug_mode = true;
+        break;
+      case 'b':
+        bin_viz = true;
         break;
       case 'o':
         output_files_prefix = optarg;
@@ -115,14 +121,15 @@ int main(const int argc, char* argv[]) {
   string input_file;
   string output_files_prefix;
   bool debug_mode;
+  bool bin_viz;
 
-  int arg_process_res = process_args(argc, argv, input_file, output_files_prefix, debug_mode);
+  int arg_process_res = process_args(argc, argv, input_file, output_files_prefix, debug_mode, bin_viz);
   if (arg_process_res != ARG_PARSE_OK) {
     return arg_process_res;
   }
 
   MCell::PymcellGenerator converter;
-  bool ok = converter.generate(input_file, output_files_prefix, debug_mode);
+  bool ok = converter.generate(input_file, output_files_prefix, debug_mode, bin_viz);
 
   if (!ok) {
     cerr << "There was an error while converting " << input_file << " to pymcell code.\n";

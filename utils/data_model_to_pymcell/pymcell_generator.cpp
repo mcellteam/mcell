@@ -99,7 +99,8 @@ void PymcellGenerator::reset() {
 bool PymcellGenerator::generate(
     const string& input_file,
     const string& output_files_prefix_,
-    const bool debug_mode_
+    const bool debug_mode_,
+    const bool bin_viz
 ) {
   reset();
 
@@ -127,7 +128,7 @@ bool PymcellGenerator::generate(
   std::vector<std::string> geometry_names;
   CHECK(geometry_names = generate_geometry(), failed);
   CHECK(generate_instantiation(geometry_names), failed);
-  CHECK(generate_observables(), failed);
+  CHECK(generate_observables(bin_viz), failed);
   CHECK(generate_model(failed), failed);
 
   return !failed;
@@ -1036,7 +1037,7 @@ vector<string> PymcellGenerator::get_species_to_visualize() {
 }
 
 
-vector<string> PymcellGenerator::generate_viz_outputs(ofstream& out) {
+vector<string> PymcellGenerator::generate_viz_outputs(ofstream& out, const bool bin_viz) {
   vector<string> viz_output_names;
 
   if (!mcell.isMember(KEY_VIZ_OUTPUT)) {
@@ -1054,8 +1055,9 @@ vector<string> PymcellGenerator::generate_viz_outputs(ofstream& out) {
 
   gen_ctor_call(out, name, NAME_CLASS_VIZ_OUTPUT);
 
-  // mode is ascii by default, this information is not in datamodel (AFAIK)
-  gen_param_enum(out, NAME_MODE, NAME_ENUM_VIZ_MODE, NAME_EV_ASCII, true);
+  // mode is ascii by default, this information is not in datamodel
+  const char* mode = (bin_viz) ? NAME_EV_CELLBLENDER : NAME_EV_ASCII;
+  gen_param_enum(out, NAME_MODE, NAME_ENUM_VIZ_MODE, mode, true);
   gen_param(out, NAME_OUTPUT_FILES_PREFIX, DEFAULT_VIZ_OUTPUT_FILENAME_PREFIX, true);
 
   // species_list
@@ -1423,7 +1425,7 @@ vector<string> PymcellGenerator::generate_counts(ofstream& out) {
 }
 
 
-void PymcellGenerator::generate_observables() {
+void PymcellGenerator::generate_observables(const bool bin_viz) {
 
   ofstream out;
   open_and_check_file(OBSERVABLES, out);
@@ -1437,7 +1439,7 @@ void PymcellGenerator::generate_observables() {
   out << "\n";
   out << make_section_comment(OBSERVABLES);
 
-  vector<string> viz_outputs = generate_viz_outputs(out);
+  vector<string> viz_outputs = generate_viz_outputs(out, bin_viz);
 
   vector<string> counts = generate_counts(out);
 
