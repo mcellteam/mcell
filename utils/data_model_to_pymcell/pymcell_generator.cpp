@@ -194,6 +194,9 @@ vector<string> PymcellGenerator::generate_species(ofstream& out) {
   vector<string> species_names;
 
   // there must be at least one species
+  if (!mcell.isMember(KEY_DEFINE_MOLECULES)) {
+    return species_names;
+  }
   Value& define_molecules = get_node(mcell, KEY_DEFINE_MOLECULES);
   check_version(KEY_DEFINE_MOLECULES, define_molecules, VER_DM_2014_10_24_1638);
 
@@ -1464,13 +1467,6 @@ static float_t get_largest_abs_value(const Vec3& v) {
     max = fabs_f(v.z);
   }
   return max;
-}
-
-
-static float_t get_largest_distance_from_center(const Vec3& llf, const Vec3& urb) {
-  float_t max1 = get_largest_abs_value(llf);
-  float_t max2 = get_largest_abs_value(urb);
-  return max1 > max2 ? max1 : max2;
 }
 
 

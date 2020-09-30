@@ -63,11 +63,11 @@ typedef invalid_argument ConversionError;
 #define CHECK_PROPERTY(cond) \
   do { \
     if(!(cond)) { \
-      throw ConversionError(S("Expected '") + #cond + "' is false. (" + __FUNCTION__ + " - " + __FILE__ + ":" + to_string(__LINE__) + ")"); \
+      throw ConversionError(S("Error: Expected '") + #cond + "' is false. (" + __FUNCTION__ + " - " + __FILE__ + ":" + to_string(__LINE__) + ")"); \
     } \
   } while (0)
 
-#define ERROR(msg) throw ConversionError(msg)
+#define ERROR(msg) throw ConversionError(S("Error:") + msg)
 
 
 // auxiliary method to simply convert to std::string for when concatenating string
@@ -79,7 +79,7 @@ static string S(const char* s) {
 // throws exception when the member is member is there
 static Value& get_node(const string parent_name, Value& parent, const string name) {
   if (!parent.isMember(name)) {
-    throw ConversionError("Node '" + parent_name + "' does not contain expected node '" + name + "'.");
+    throw ConversionError("Error: Node '" + parent_name + "' does not contain expected node '" + name + "'.");
   }
   return parent[name];
 }
