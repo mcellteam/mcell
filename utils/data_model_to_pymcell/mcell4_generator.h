@@ -20,38 +20,44 @@
  *
 ******************************************************************************/
 
-#ifndef SRC4_PYMCELLCONVERTER_H_
-#define SRC4_PYMCELLCONVERTER_H_
+#ifndef SRC4_MCELL4_GENERATOR_H_
+#define SRC4_MCELL4_GENERATOR_H_
 
 #include <string>
 #include <fstream>
 
 #include "json/json.h"
 
+#include "bng_generator.h"
+#include "python_generator.h"
+
 // use a different namespace?
 namespace MCell {
 
-class PymcellGenerator {
+class MCell4Generator {
 public:
   bool generate(
       const std::string& input_file,
-      const std::string& output_file_prefix_,
+      const std::string& output_files_prefix_,
+      const bool bng_mode_,
       const bool debug_mode_,
-      const bool bin_viz
+      const bool cellblender_viz
   );
 
 private:
   void reset();
 
-  std::string get_filename(const std::string file_suffix);
+  std::string get_filename(const std::string file_suffix, const char* ext);
   std::string get_module_name(const std::string file_suffix);
   std::string make_import(const std::string file_suffix);
 
-  void open_and_check_file(const std::string file_suffix, std::ofstream& out, const bool for_append = false);
+  void open_and_check_file(
+      const std::string file_suffix, std::ofstream& out,
+      const bool for_append = false,
+      const bool bngl = false);
 
   void check_scripting();
 
-  void generate_single_parameter(std::ofstream& out, Json::Value& parameter);
   void generate_parameters();
 
   std::vector<std::string> generate_species(std::ofstream& out);
@@ -77,7 +83,7 @@ private:
   void generate_instantiation(const std::vector<std::string>& geometry_objects);
 
   std::vector<std::string> get_species_to_visualize();
-  std::vector<std::string> generate_viz_outputs(std::ofstream& out, const bool bin_viz);
+  std::vector<std::string> generate_viz_outputs(std::ofstream& out, const bool cellblender_viz);
 
   void process_single_count_term(
       const std::string& mdl_string,
@@ -86,13 +92,19 @@ private:
   std::string generate_count_terms_for_expression(std::ofstream& out, const std::string& mdl_string);
   std::vector<std::string> generate_counts(std::ofstream& out);
 
-  void generate_observables(const bool bin_viz);
+  void generate_observables(const bool cellblender_viz);
 
   void generate_config(std::ofstream& out);
   void generate_model(const bool print_failed_marker);
 
+private:
+  BNGGenerator* bng_gen;
+  std::ofstream bng_out;
+
+  PythonGenerator* python_gen;
 
   std::string output_files_prefix;
+  bool bng_mode;
   bool debug_mode;
 
   // parameters, subsystem, and instantiation are always generated
@@ -112,4 +124,4 @@ private:
 
 } /* namespace MCell */
 
-#endif /* SRC4_PYMCELLCONVERTER_H_ */
+#endif /* SRC4_MCELL4_GENERATOR_H_ */

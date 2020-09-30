@@ -16,6 +16,7 @@ const char* const OBSERVABLES = "observables";
 const char* const MODEL = "model";
 
 const char* const PY_EXT = ".py";
+const char* const BNGL_EXT = ".bngl";
 
 const char* const IMPORT = "import";
 

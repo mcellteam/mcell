@@ -32,6 +32,7 @@
 #include <iostream>
 #include <string>
 #include <cassert>
+#include <regex>
 
 #include "libmcell/generated/gen_names.h"
 #include "include/datamodel_defines.h"
@@ -157,7 +158,7 @@ static void check_version(const string node_name, Json::Value& node, const char*
 
 
 // replaces '.' with '_' and does potentially other conversions
-string make_id(const string& s) {
+static string make_id(const string& s) {
   string res = s;
   // do not do changes if the ID starts with 'm.' -> constant from
   // the mcell module ID that cannot have dots that we need to replace in it anyway
@@ -168,7 +169,7 @@ string make_id(const string& s) {
 }
 
 // name might be empty
-void gen_ctor_call(ofstream& out, string name, string class_name, bool has_params = true) {
+static void gen_ctor_call(ostream& out, string name, string class_name, bool has_params = true) {
   if (name != "") {
     out << make_id(name) << " = " << MDOT << class_name;
   }
@@ -184,62 +185,62 @@ void gen_ctor_call(ofstream& out, string name, string class_name, bool has_param
 }
 
 
-void gen_method_call(ofstream& out, string obj, string method, string param = "") {
+static void gen_method_call(ostream& out, string obj, string method, string param = "") {
   out << obj << "." << method << "(" << param << ")\n";
 }
 
 
 template<typename T>
-void gen_param(ofstream& out, string name, T value, bool comma) {
+static void gen_param(ostream& out, string name, T value, bool comma) {
   out << IND << name << " = " << value << (comma?",":"") << "\n";
 }
 
 
 template<>
-void gen_param(ofstream& out, string name, Json::Value& value, bool comma) {
+void gen_param(ostream& out, string name, Json::Value& value, bool comma) {
   out << IND << name << " = '" << value.asString() << "'" << (comma?",":"") << "\n";
 }
 
 
 template<>
-void gen_param(ofstream& out, string name, string value, bool comma) {
+void gen_param(ostream& out, string name, string value, bool comma) {
   out << IND << name << " = '" << value << "'" << (comma?",":"") << "\n";
 }
 
 
 template<>
-void gen_param(ofstream& out, string name, const char* const value, bool comma) {
+void gen_param(ostream& out, string name, const char* const value, bool comma) {
   out << IND << name << " = '" << value << "'" << (comma?",":"") << "\n";
 }
 
 
 template<>
-void gen_param(ofstream& out, string name, int value, bool comma) {
+void gen_param(ostream& out, string name, int value, bool comma) {
   out << IND << name << " = " << value << (comma?",":"") << "\n";
 }
 
 
 template<>
-void gen_param(ofstream& out, string name, double value, bool comma) {
+void gen_param(ostream& out, string name, double value, bool comma) {
   out << IND << name << " = " << value << (comma?",":"") << "\n";
 }
 
 template<>
-void gen_param(ofstream& out, string name, bool value, bool comma) {
+void gen_param(ostream& out, string name, bool value, bool comma) {
   out << IND << name << " = " << (value ? "True" : "False") << (comma?",":"") << "\n";
 }
 
-void gen_param_id(ofstream& out, string name, string id, bool comma) {
+static void gen_param_id(ostream& out, string name, string id, bool comma) {
   out << IND << name << " = " << make_id(id) << (comma?",":"") << "\n";
 }
 
 
-void gen_param_id(ofstream& out, string name, Json::Value& id, bool comma) {
+static void gen_param_id(ostream& out, string name, Json::Value& id, bool comma) {
   out << IND << name << " = " << make_id(id.asString()) << (comma?",":"") << "\n";
 }
 
 
-void gen_param_expr(ofstream& out, string name, const string& value, bool comma) {
+static void gen_param_expr(ostream& out, string name, const string& value, bool comma) {
   string python_expr;
   // replace operator ^ with operator **
   python_expr = regex_replace(value, regex("\\^"), "**");
@@ -247,16 +248,16 @@ void gen_param_expr(ofstream& out, string name, const string& value, bool comma)
 }
 
 // this should be used when printing out floating point values (doubles)
-void gen_param_expr(ofstream& out, string name, Json::Value& value, bool comma) {
+static void gen_param_expr(ostream& out, string name, Json::Value& value, bool comma) {
   gen_param_expr(out, name, value.asString(), comma);
 }
 
 
-void gen_param_enum(ofstream& out, string name, string enum_name, string enum_value, bool comma) {
+static void gen_param_enum(ostream& out, string name, string enum_name, string enum_value, bool comma) {
   out << IND << name << " = " << make_enum_value(enum_name, enum_value) << (comma?",":"") << "\n";
 }
 
-void gen_param_list(ofstream& out, string name, const vector<string>& values, bool comma) {
+static void gen_param_list(ostream& out, string name, const vector<string>& values, bool comma) {
   out << IND << name << " = [";
   for (size_t i = 0; i < values.size(); i++) {
     out << values[i];
@@ -266,7 +267,7 @@ void gen_param_list(ofstream& out, string name, const vector<string>& values, bo
   out << "]" << (comma?",":"") << "\n";
 }
 
-void gen_param_vec3(ofstream& out, string name, Json::Value& x, Json::Value& y, Json::Value& z, bool comma) {
+static void gen_param_vec3(ostream& out, string name, Json::Value& x, Json::Value& y, Json::Value& z, bool comma) {
   out << IND <<
       name << " = " << MDOT << VEC3 <<
       "(" << x.asString() << ", " << y.asString() << ", " << z.asString() << ")" << (comma?",":"") << "\n";
@@ -274,36 +275,36 @@ void gen_param_vec3(ofstream& out, string name, Json::Value& x, Json::Value& y, 
 
 
 template<typename T>
-void gen_assign(ofstream& out, string obj_name, string field_name1, string field_name2, T value) {
+static void gen_assign(ostream& out, string obj_name, string field_name1, string field_name2, T value) {
   out << obj_name << "." << field_name1 << "." << field_name2 << " = " << value << "\n";
 }
 
 
 // for some reason the template above casts double to int..
 template<>
-void gen_assign(ofstream& out, string obj_name, string field_name1, string field_name2, double value) {
+void gen_assign(ostream& out, string obj_name, string field_name1, string field_name2, double value) {
   out << obj_name << "." << field_name1 << "." << field_name2 << " = " << value << "\n";
 }
 
 
 template<>
-void gen_assign(ofstream& out, string obj_name, string field_name1, string field_name2, float value) {
+void gen_assign(ostream& out, string obj_name, string field_name1, string field_name2, float value) {
   out << obj_name << "." << field_name1 << "." << field_name2 << " = " << value << "\n";
 }
 
 
 template<>
-void gen_assign(ofstream& out, string obj_name, string field_name1, string field_name2, bool value) {
+void gen_assign(ostream& out, string obj_name, string field_name1, string field_name2, bool value) {
   out << obj_name << "." << field_name1 << "." << field_name2 << " = " << (value ? "True" : "False") << "\n";
 }
 
 
-void gen_assign_vec3(ofstream& out, string obj_name, string field_name1, string field_name2, double x, double y, double z) {
+static void gen_assign_vec3(ostream& out, string obj_name, string field_name1, string field_name2, double x, double y, double z) {
   out << obj_name << "." << field_name1 << "." << field_name2 << " = [" << x << ", " << y << ", " << z  << "]\n";
 }
 
 
-void gen_assign_vec3(ofstream& out, string obj_name, string field_name1, string field_name2, float x, float y, float z) {
+static void gen_assign_vec3(ostream& out, string obj_name, string field_name1, string field_name2, float x, float y, float z) {
   out << obj_name << "." << field_name1 << "." << field_name2 << " = [" << x << ", " << y << ", " << z  << "]\n";
 }
 
@@ -330,7 +331,7 @@ static string convert_orientation(const string s, const bool return_any_orientat
 }
 
 
-static void gen_rxn_substance_inst(ofstream& out, Json::Value& substances_node) {
+static void gen_rxn_substance_inst(ostream& out, Json::Value& substances_node) {
   string str = substances_node.asString();
 
   // special case for rxns without products
@@ -477,7 +478,7 @@ static void gen_rxn_substance_inst(ofstream& out, Json::Value& substances_node) 
 }
 
 
-bool convert_reaction_name(const string& json_name, string& res_name) {
+static bool convert_reaction_name(const string& json_name, string& res_name) {
   res_name = json_name;
   replace(res_name.begin(), res_name.end(), ' ', '_');
   replace(res_name.begin(), res_name.end(), '.', '_');
@@ -508,7 +509,7 @@ static bool ends_with(std::string const & value, std::string const & ending)
 }
 
 
-string trim(const string& str)
+static string trim(const string& str)
 {
     size_t first = str.find_first_not_of(' ');
     if (string::npos == first)

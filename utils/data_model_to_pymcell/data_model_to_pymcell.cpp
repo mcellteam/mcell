@@ -20,8 +20,8 @@
  *
 ******************************************************************************/
 
-#include "pymcell_generator.h"
 #include <getopt.h>
+#include <utils/data_model_to_pymcell/mcell4_generator.h>
 #include <iostream>
 #include <cassert>
 #include <string>
@@ -39,7 +39,8 @@ static const option long_options[] = {
     { "help", 0, 0, 'h' },
     { "version", 0, 0, 'v' },
     { "debug", 0, 0, 'g' },
-    { "bin_viz", 0, 0, 'b' },
+    { "cellblender_viz", 0, 0, 'c' },
+    { "bng", 0, 0, 'b' },
     { "output_file_prefix", 1, 0, 'o'},
     { nullptr, 0, 0, 0 }
 };
@@ -66,12 +67,14 @@ int process_args(
     string& input_file,
     string& output_files_prefix,
     bool& debug_mode,
-    bool& bin_viz
+    bool& cellblender_viz,
+    bool& bng_mode
 ) {
   input_file = "";
   output_files_prefix = "";
   debug_mode = false;
-  bin_viz = false;
+  cellblender_viz = false;
+  bng_mode = false;
 
   assert(argc > 0);
   while (1) {
@@ -91,8 +94,11 @@ int process_args(
       case 'g':
         debug_mode = true;
         break;
+      case 'c':
+        cellblender_viz = true;
+        break;
       case 'b':
-        bin_viz = true;
+        bng_mode = true;
         break;
       case 'o':
         output_files_prefix = optarg;
@@ -120,16 +126,17 @@ int main(const int argc, char* argv[]) {
 
   string input_file;
   string output_files_prefix;
+  bool bng_mode;
   bool debug_mode;
-  bool bin_viz;
+  bool cellblender_viz;
 
-  int arg_process_res = process_args(argc, argv, input_file, output_files_prefix, debug_mode, bin_viz);
+  int arg_process_res = process_args(argc, argv, input_file, output_files_prefix, bng_mode, debug_mode, cellblender_viz);
   if (arg_process_res != ARG_PARSE_OK) {
     return arg_process_res;
   }
 
-  MCell::PymcellGenerator converter;
-  bool ok = converter.generate(input_file, output_files_prefix, debug_mode, bin_viz);
+  MCell::MCell4Generator converter;
+  bool ok = converter.generate(input_file, output_files_prefix, bng_mode, debug_mode, cellblender_viz);
 
   if (!ok) {
     cerr << "There was an error while converting " << input_file << " to pymcell code.\n";

@@ -13,7 +13,9 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${CMAKE_SOURCE_DIR}/libs/ -isys
 
 set(SOURCE_FILES
     data_model_to_pymcell.cpp
-	pymcell_generator.cpp
+	mcell4_generator.cpp
+	python_generator.cpp
+	bng_generator.cpp
 )
 
 set(ALL_SOURCES

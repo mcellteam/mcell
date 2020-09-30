@@ -20,12 +20,10 @@
  *
 ******************************************************************************/
 
-#include <regex>
 #include <algorithm>
 
-#include "pymcell_generator.h"
-
 #include "generator_utils.h"
+#include "mcell4_generator.h"
 
 using namespace std;
 using namespace MCell::API;
@@ -35,17 +33,17 @@ namespace MCell {
 using Json::Value;
 
 
-string PymcellGenerator::get_filename(const string file_suffix) {
+string MCell4Generator::get_filename(const string file_suffix, const char* ext) {
   if (output_files_prefix == "" || output_files_prefix.back() == '/' || output_files_prefix.back() == '\\') {
-    return output_files_prefix + file_suffix + PY_EXT;
+    return output_files_prefix + file_suffix + ext;
   }
   else {
-    return output_files_prefix + "_" + file_suffix + PY_EXT;
+    return output_files_prefix + "_" + file_suffix + ext;
   }
 }
 
 
-string PymcellGenerator::get_module_name(const string file_suffix) {
+string MCell4Generator::get_module_name(const string file_suffix) {
   if (output_files_prefix == "" || output_files_prefix.back() == '/' || output_files_prefix.back() == '\\') {
     return file_suffix;
   }
@@ -61,13 +59,17 @@ string PymcellGenerator::get_module_name(const string file_suffix) {
 }
 
 
-string PymcellGenerator::make_import(const string file_suffix) {
+string MCell4Generator::make_import(const string file_suffix) {
   return "from " + get_module_name(file_suffix) + " import *\n";
 }
 
 
-void PymcellGenerator::open_and_check_file(const string file_suffix, ofstream& out, const bool for_append) {
-  string file_name = get_filename(file_suffix);
+void MCell4Generator::open_and_check_file(
+    const string file_suffix, ofstream& out,
+    const bool for_append, const bool bngl) {
+
+  string file_name = get_filename(file_suffix, (bngl) ? BNGL_EXT : PY_EXT);
+
   if (for_append) {
     cout << "Appending to " + file_name + ".\n";
     out.open(file_name, ios::app);
@@ -83,7 +85,7 @@ void PymcellGenerator::open_and_check_file(const string file_suffix, ofstream& o
 }
 
 
-void PymcellGenerator::reset() {
+void MCell4Generator::reset() {
   geometry_generated = false;
   observables_generated = false;
   unnamed_rxn_counter = 0;
@@ -96,16 +98,18 @@ void PymcellGenerator::reset() {
 
 // the aim is to generate as much of output as possible,
 // therefore we are using exceptions
-bool PymcellGenerator::generate(
+bool MCell4Generator::generate(
     const string& input_file,
     const string& output_files_prefix_,
+    const bool bng_mode_,
     const bool debug_mode_,
-    const bool bin_viz
+    const bool cellblender_viz
 ) {
   reset();
 
   bool failed = false;
   output_files_prefix = output_files_prefix_;
+  bng_mode = bng_mode_;
   debug_mode = debug_mode_;
 
   // load json file
@@ -121,6 +125,13 @@ bool PymcellGenerator::generate(
 
   mcell = get_node(KEY_ROOT, root, KEY_MCELL);
 
+  // create generators
+  if (bng_mode) {
+    open_and_check_file(MODEL, bng_out, false, true);
+    bng_gen = new BNGGenerator(bng_out, mcell);
+  }
+  python_gen = new PythonGenerator(mcell);
+
   CHECK(check_scripting(), failed);
 
   CHECK(generate_parameters(), failed);
@@ -128,13 +139,22 @@ bool PymcellGenerator::generate(
   std::vector<std::string> geometry_names;
   CHECK(geometry_names = generate_geometry(), failed);
   CHECK(generate_instantiation(geometry_names), failed);
-  CHECK(generate_observables(bin_viz), failed);
+  CHECK(generate_observables(cellblender_viz), failed);
   CHECK(generate_model(failed), failed);
+
+  // delete generators
+  if (bng_mode) {
+    delete bng_gen;
+    bng_gen = nullptr;
+    bng_out.close();
+  }
+  delete python_gen;
+  python_gen = nullptr;
 
   return !failed;
 }
 
-void PymcellGenerator::check_scripting() {
+void MCell4Generator::check_scripting() {
   if (mcell.isMember(KEY_SCRIPTING)) {
     Value& scripting = get_node(mcell, KEY_SCRIPTING);
     if (scripting.isMember(KEY_SCRIPTING_LIST)) {
@@ -150,32 +170,19 @@ void PymcellGenerator::check_scripting() {
 }
 
 
-void PymcellGenerator::generate_single_parameter(ofstream& out, Value& parameter) {
-  out << "# " << parameter[KEY_PAR_DESCRIPTION].asString() << "\n";
-  out << parameter[KEY_PAR_NAME].asString() << " = " << parameter[KEY_PAR_EXPRESSION].asString();
-  string units = parameter[KEY_PAR_UNITS].asString();
-  if (units != "") {
-    out << " # units: " << units;
-  }
-  out << "\n\n";
-}
-
-
-void PymcellGenerator::generate_parameters() {
+void MCell4Generator::generate_parameters() {
   ofstream out;
   open_and_check_file(PARAMETERS, out);
 
   out << make_section_comment("model parameters");
 
   if (mcell.isMember(KEY_PARAMETER_SYSTEM)) {
-    Value& parameter_system = get_node(mcell, KEY_PARAMETER_SYSTEM);
-      if (parameter_system.isMember(KEY_MODEL_PARAMETERS)) {
-      Value& parameter_list = get_node(parameter_system, KEY_MODEL_PARAMETERS);
-      for (Value::ArrayIndex i = 0; i < parameter_list.size(); i++) {
-        generate_single_parameter(out, parameter_list[i]);
-      }
+    if (bng_mode) {
+      bng_gen->generate_parameters(out);
     }
-    out << "\n";
+    else {
+      python_gen->generate_parameters(out);
+    }
   }
 
   out << make_section_comment("simulation setup");
@@ -203,7 +210,7 @@ void PymcellGenerator::generate_parameters() {
 }
 
 
-vector<string> PymcellGenerator::generate_species(ofstream& out) {
+vector<string> MCell4Generator::generate_species(ofstream& out) {
   vector<string> species_names;
 
   // there must be at least one species
@@ -257,7 +264,7 @@ vector<string> PymcellGenerator::generate_species(ofstream& out) {
 }
 
 
-void PymcellGenerator::get_surface_class_property_info(
+void MCell4Generator::get_surface_class_property_info(
     Value& property,
     string& name, string& type_name, string& affected_mols, string& orientation
 ) {
@@ -305,7 +312,7 @@ void PymcellGenerator::get_surface_class_property_info(
 }
 
 
-vector<string> PymcellGenerator::generate_surface_classes(ofstream& out) {
+vector<string> MCell4Generator::generate_surface_classes(ofstream& out) {
   vector<string> sc_names;
 
   if (!mcell.isMember(KEY_DEFINE_SURFACE_CLASSES)) {
@@ -367,7 +374,7 @@ vector<string> PymcellGenerator::generate_surface_classes(ofstream& out) {
 }
 
 
-void PymcellGenerator::generate_variable_rate(const std::string& rate_array_name, Json::Value& variable_rate_text) {
+void MCell4Generator::generate_variable_rate(const std::string& rate_array_name, Json::Value& variable_rate_text) {
   // append to the parameters file
   ofstream out;
   open_and_check_file(PARAMETERS, out, true);
@@ -418,7 +425,7 @@ void PymcellGenerator::generate_variable_rate(const std::string& rate_array_name
 }
 
 
-vector<string> PymcellGenerator::generate_reaction_rules(ofstream& out) {
+vector<string> MCell4Generator::generate_reaction_rules(ofstream& out) {
   vector<string> rxn_names;
 
   if (!mcell.isMember(KEY_DEFINE_REACTIONS)) {
@@ -489,7 +496,7 @@ vector<string> PymcellGenerator::generate_reaction_rules(ofstream& out) {
 }
 
 
-void PymcellGenerator::generate_subsystem() {
+void MCell4Generator::generate_subsystem() {
   ofstream out;
   open_and_check_file(SUBSYSTEM, out);
 
@@ -517,7 +524,7 @@ void PymcellGenerator::generate_subsystem() {
 }
 
 
-string PymcellGenerator::generate_single_geometry_object(
+string MCell4Generator::generate_single_geometry_object(
     ofstream& out, const int index, Value& object) {
 
   string parent_name = S(KEY_OBJECT_LIST) + "[" + to_string(index) + "]";
@@ -612,7 +619,7 @@ string PymcellGenerator::generate_single_geometry_object(
 }
 
 
-vector<string> PymcellGenerator::generate_geometry() {
+vector<string> MCell4Generator::generate_geometry() {
 
   vector<string> geometry_objects;
 
@@ -666,7 +673,7 @@ static void error_release_pattern(const string& name) {
 }
 
 
-void PymcellGenerator::generate_release_pattern(ofstream& out, const string& name, string& delay_string) {
+void MCell4Generator::generate_release_pattern(ofstream& out, const string& name, string& delay_string) {
 
   if (!mcell.isMember(KEY_DEFINE_RELEASE_PATTERNS)) {
     error_release_pattern(name);
@@ -699,7 +706,7 @@ void PymcellGenerator::generate_release_pattern(ofstream& out, const string& nam
 }
 
 
-bool PymcellGenerator::is_volume_species(const string& species_name) {
+bool MCell4Generator::is_volume_species(const string& species_name) {
   // there must be at least one species
   Value& define_molecules = get_node(mcell, KEY_DEFINE_MOLECULES);
   check_version(KEY_DEFINE_MOLECULES, define_molecules, VER_DM_2014_10_24_1638);
@@ -784,7 +791,7 @@ string generate_single_molecule_release_info_array(
 }
 
 
-vector<string> PymcellGenerator::generate_release_sites(ofstream& out) {
+vector<string> MCell4Generator::generate_release_sites(ofstream& out) {
   vector<string> release_site_names;
 
   if (!mcell.isMember(KEY_RELEASE_SITES)) {
@@ -917,7 +924,7 @@ vector<string> PymcellGenerator::generate_release_sites(ofstream& out) {
 }
 
 
-void PymcellGenerator::generate_surface_classes_assignment(ofstream& out) {
+void MCell4Generator::generate_surface_classes_assignment(ofstream& out) {
   if (!mcell.isMember(KEY_MODIFY_SURFACE_REGIONS)) {
     return;
   }
@@ -995,7 +1002,7 @@ void PymcellGenerator::generate_surface_classes_assignment(ofstream& out) {
 }
 
 
-void PymcellGenerator::generate_instantiation(const vector<string>& geometry_objects) {
+void MCell4Generator::generate_instantiation(const vector<string>& geometry_objects) {
 
   ofstream out;
   open_and_check_file(INSTANTIATION, out);
@@ -1029,7 +1036,7 @@ void PymcellGenerator::generate_instantiation(const vector<string>& geometry_obj
 }
 
 
-vector<string> PymcellGenerator::get_species_to_visualize() {
+vector<string> MCell4Generator::get_species_to_visualize() {
   vector<string> res;
 
   Value& define_molecules = get_node(mcell, KEY_DEFINE_MOLECULES);
@@ -1049,7 +1056,7 @@ vector<string> PymcellGenerator::get_species_to_visualize() {
 }
 
 
-vector<string> PymcellGenerator::generate_viz_outputs(ofstream& out, const bool bin_viz) {
+vector<string> MCell4Generator::generate_viz_outputs(ofstream& out, const bool cellblender_viz) {
   vector<string> viz_output_names;
 
   if (!mcell.isMember(KEY_VIZ_OUTPUT)) {
@@ -1068,7 +1075,7 @@ vector<string> PymcellGenerator::generate_viz_outputs(ofstream& out, const bool 
   gen_ctor_call(out, name, NAME_CLASS_VIZ_OUTPUT);
 
   // mode is ascii by default, this information is not in datamodel
-  const char* mode = (bin_viz) ? NAME_EV_CELLBLENDER : NAME_EV_ASCII;
+  const char* mode = (cellblender_viz) ? NAME_EV_CELLBLENDER : NAME_EV_ASCII;
   gen_param_enum(out, NAME_MODE, NAME_ENUM_VIZ_MODE, mode, true);
   gen_param(out, NAME_OUTPUT_FILES_PREFIX, DEFAULT_VIZ_OUTPUT_FILENAME_PREFIX, true);
 
@@ -1144,7 +1151,7 @@ static string create_count_name(string what_to_count, string where_to_count) {
 }
 
 
-void PymcellGenerator::process_single_count_term(
+void MCell4Generator::process_single_count_term(
     const string& mdl_string,
     bool& rxn_not_mol, string& what_to_count, string& where_to_count, string& orientation) {
 
@@ -1234,7 +1241,7 @@ static string get_count_multiplier(const string& mdl_string) {
 
 // stores multiplier value into the multiplier argument as a string
 // if present, the expected form is mult*(<counts>)
-string PymcellGenerator::generate_count_terms_for_expression(
+string MCell4Generator::generate_count_terms_for_expression(
     ofstream& out, const string& mdl_string) {
   string res_expr;
 
@@ -1300,7 +1307,7 @@ string PymcellGenerator::generate_count_terms_for_expression(
 }
 
 
-vector<string> PymcellGenerator::generate_counts(ofstream& out) {
+vector<string> MCell4Generator::generate_counts(ofstream& out) {
   vector<string> counts;
 
   if (!mcell.isMember(KEY_REACTION_DATA_OUTPUT)) {
@@ -1437,7 +1444,7 @@ vector<string> PymcellGenerator::generate_counts(ofstream& out) {
 }
 
 
-void PymcellGenerator::generate_observables(const bool bin_viz) {
+void MCell4Generator::generate_observables(const bool cellblender_viz) {
 
   ofstream out;
   open_and_check_file(OBSERVABLES, out);
@@ -1451,7 +1458,7 @@ void PymcellGenerator::generate_observables(const bool bin_viz) {
   out << "\n";
   out << make_section_comment(OBSERVABLES);
 
-  vector<string> viz_outputs = generate_viz_outputs(out, bin_viz);
+  vector<string> viz_outputs = generate_viz_outputs(out, cellblender_viz);
 
   vector<string> counts = generate_counts(out);
 
@@ -1484,7 +1491,7 @@ static float_t get_largest_abs_value(const Vec3& v) {
 }
 
 
-void PymcellGenerator::generate_config(ofstream& out) {
+void MCell4Generator::generate_config(ofstream& out) {
   out << make_section_comment("configuration");
 
   // using values from generated parameters.py
@@ -1561,7 +1568,7 @@ void PymcellGenerator::generate_config(ofstream& out) {
 }
 
 
-void PymcellGenerator::generate_model(const bool print_failed_marker) {
+void MCell4Generator::generate_model(const bool print_failed_marker) {
   ofstream out;
   open_and_check_file(MODEL, out);
 
