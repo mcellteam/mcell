@@ -180,12 +180,24 @@ void PymcellGenerator::generate_parameters() {
 
   out << make_section_comment("simulation setup");
 
-  out << PARAM_SEED << " = 1\n";
   out << PARAM_ITERATIONS << " = " << mcell[KEY_INITIALIZATION][KEY_ITERATIONS].asString() << "\n";
   out << PARAM_TIME_STEP << " = " << mcell[KEY_INITIALIZATION][KEY_TIME_STEP].asString() << "\n";
   out << PARAM_DUMP << " = " << (debug_mode ? "True" : "False") << "\n";
   out << PARAM_EXPORT_DATA_MODEL << " = " << "True\n";
   out << "\n";
+
+  out <<
+      "# do not use the variable " PARAM_SEED " directly,\n"
+      "# Python on import creates copies that do not reflect the current value\n"
+      PARAM_SEED << " = 1\n"
+      "\n"
+      "def " FUNCTION_UPDATE_SEED "(new_value):\n"
+      "    global " PARAM_SEED "\n"
+      "    " PARAM_SEED " = new_value\n"
+      "\n"
+      "def " FUNCTION_GET_SEED "():\n"
+      "    return " PARAM_SEED "\n"
+      "\n";
 
   out.close();
 }
@@ -1477,7 +1489,7 @@ void PymcellGenerator::generate_config(ofstream& out) {
 
   // using values from generated parameters.py
   gen_assign(out, MODEL, NAME_CONFIG, NAME_TIME_STEP, PARAM_TIME_STEP);
-  gen_assign(out, MODEL, NAME_CONFIG, NAME_SEED, PARAM_SEED);
+  gen_assign(out, MODEL, NAME_CONFIG, NAME_SEED, S(FUNCTION_GET_SEED) + "()");
   gen_assign(out, MODEL, NAME_CONFIG, NAME_TOTAL_ITERATIONS_HINT, PARAM_ITERATIONS);
   out << "\n";
 
@@ -1571,8 +1583,8 @@ void PymcellGenerator::generate_model(const bool print_failed_marker) {
   out <<
       "\n"
       "if len(sys.argv) == 3 and sys.argv[1] == '-seed\':\n"
-      "    # overwrite value SEED defined in module " + get_module_name(PARAMETERS) + "\n"
-      "    SEED = int(sys.argv[2])\n\n";
+      "    # overwrite value of seed defined in module " + get_module_name(PARAMETERS) + "\n"
+      "    " FUNCTION_UPDATE_SEED "(int(sys.argv[2]))\n\n";
 
   out << IMPORT << " " << get_module_name(SUBSYSTEM) << "\n";
   out << IMPORT << " " << get_module_name(INSTANTIATION) << "\n";

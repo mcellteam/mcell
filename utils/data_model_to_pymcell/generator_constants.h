@@ -28,7 +28,9 @@ const char* const BLOCK_END1 = "# ^^^^ ";
 const char* const BLOCK_END2 = " ^^^^\n\n";
 const char* const CTOR_END = ")\n\n";
 
-const char* const PARAM_SEED = "SEED";
+#define PARAM_SEED "SEED_MODULE_LOCAL"
+#define FUNCTION_GET_SEED "get_seed"
+#define FUNCTION_UPDATE_SEED "update_seed"
 const char* const PARAM_ITERATIONS = "ITERATIONS";
 const char* const PARAM_TIME_STEP = "TIME_STEP";
 const char* const PARAM_DUMP = "DUMP";
@@ -44,8 +46,8 @@ const char* const MOLECULE_LIST_PREFIX = "molecule_list_";
 
 
 const char* const VIZ_OUTPUT_NAME = "viz_output";
-const char* const DEFAULT_VIZ_OUTPUT_FILENAME_PREFIX = "./" VALUE_VIZ_DATA "/seed_' + str(SEED).zfill(5) + '/Scene";
-const char* const DEFAULT_RXN_OUTPUT_FILENAME_PREFIX = "./" VALUE_REACT_DATA "/seed_' + str(SEED).zfill(5) + '/";
+const char* const DEFAULT_VIZ_OUTPUT_FILENAME_PREFIX = "./" VALUE_VIZ_DATA "/seed_' + str(" FUNCTION_GET_SEED "()).zfill(5) + '/Scene";
+const char* const DEFAULT_RXN_OUTPUT_FILENAME_PREFIX = "./" VALUE_REACT_DATA "/seed_' + str(" FUNCTION_GET_SEED "()).zfill(5) + '/";
 
 const char* const INTERPRETER = "#!/usr/bin/env python3\n\n";
 
