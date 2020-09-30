@@ -235,13 +235,6 @@ void World::init_simulation() {
   reset_rusage(&sim_start_time);
   getrusage(RUSAGE_SELF, &sim_start_time);
 
-  if (!config.use_expanded_list) {
-    cout <<
-        "Warning: configuration 'use_expanded_list' (ACCURATE_3D_REACTIONS) set to false is compatible "
-        "with MCell3 only in simple cases and usually MCell4 produces different results. "
-        "Search for potential reactions is always based on reaction radius, not on the subpartition size.\n";
-  }
-
   // iteration counter to report progress
   previous_iteration = 0;
 
@@ -298,6 +291,7 @@ void World::run_n_iterations(const uint64_t num_iterations, const uint64_t outpu
         cout << " " << bng_engine.get_stats_report();
 
         cout << "\n";
+        cout.flush(); // flush is required so that CellBlender can display progress
       }
 
       previous_iteration = current_iteration;

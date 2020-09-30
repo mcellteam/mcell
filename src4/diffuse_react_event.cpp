@@ -593,8 +593,10 @@ void DiffuseReactEvent::diffuse_vol_molecule(
       // are we still in the same partition or do we need to move?
       bool move_to_another_partition = !p.in_this_partition(m_new_ref.v.pos);
       if (move_to_another_partition) {
-        release_assert(false &&
-            "Error: Crossing partitions when molecules diffuse is not supported yet. Please enlarge the partition size.\n"
+        Vec3 pos_um = m_new_ref.v.pos * p.config.length_unit;
+        mcell_error(
+            "Crossing partitions when molecules diffuse is not supported yet. Please enlarge the partition size. "
+            "Diffused molecule reached position (%f, %f, %f).", pos_um.x, pos_um.y, pos_um.z
         );
       }
 
