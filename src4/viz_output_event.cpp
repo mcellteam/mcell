@@ -190,8 +190,8 @@ void VizOutputEvent::output_cellblender_molecules() {
   // sort all molecules by species
   uint species_count = world->get_all_species().get_count();
 
-  typedef pair<const Partition*, const Molecule*> partition_molecule_ptr_pair_t;
-  vector< vector<partition_molecule_ptr_pair_t> > volume_molecules_by_species;
+  typedef pair<const Partition*, const Molecule*> PartitionMoleculePair;
+  vector< vector<PartitionMoleculePair> > volume_molecules_by_species;
   volume_molecules_by_species.resize(species_count);
 
   for (Partition& p: world->get_partitions()) {
@@ -202,7 +202,7 @@ void VizOutputEvent::output_cellblender_molecules() {
       if (!visualize_all_species && species_ids_to_visualize.count(m.species_id) == 0) {
         continue;
       }
-      volume_molecules_by_species[m.species_id].push_back(partition_molecule_ptr_pair_t(&p, &m));
+      volume_molecules_by_species[m.species_id].push_back(PartitionMoleculePair(&p, &m));
     }
   }
 
@@ -214,7 +214,7 @@ void VizOutputEvent::output_cellblender_molecules() {
   /* Write all the molecules whether EXTERNAL_SPECIES or not (for now) */
   for (species_id_t species_idx = 0; species_idx < world->get_all_species().get_count(); species_idx++) {
     // count of molecules for this species
-    vector<partition_molecule_ptr_pair_t>& species_molecules = volume_molecules_by_species[species_idx];
+    vector<PartitionMoleculePair>& species_molecules = volume_molecules_by_species[species_idx];
     if (species_molecules.empty()) {
       continue;
     }
@@ -223,7 +223,7 @@ void VizOutputEvent::output_cellblender_molecules() {
     const BNG::Species& species = world->get_all_species().get(species_idx);
     string mol_name = species.name;
     byte name_len = mol_name.length();
-     fwrite(&name_len, sizeof(byte), 1, custom_file);
+    fwrite(&name_len, sizeof(byte), 1, custom_file);
     fwrite(mol_name.c_str(), sizeof(char), name_len, custom_file);
 
      /* Write species type: */
@@ -231,36 +231,43 @@ void VizOutputEvent::output_cellblender_molecules() {
     if (species.is_surf()) {
       species_type = 1;
     }
-    fwrite(&species_type, sizeof(species_type), 1, custom_file);
+    fwrite(&species_type, sizeof(byte), 1, custom_file);
 
     /* write number of x,y,z floats for mol positions to follow: */
     uint n_floats = 3 * species_molecules.size();
-    fwrite(&n_floats, sizeof(n_floats), 1, custom_file);
+    fwrite(&n_floats, sizeof(uint), 1, custom_file);
 
-     /* Write positions of volume and surface molecules: */
-     for (const partition_molecule_ptr_pair_t& partition_molecule_ptr_pair :species_molecules) {
+    /* Write positions of volume and surface molecules: */
+    std::vector<Vec3> norms;
+    for (const PartitionMoleculePair& partition_molecule_ptr_pair :species_molecules) {
+      Vec3 where;
+      Vec3 norm;
+      compute_where_and_norm(
+          *partition_molecule_ptr_pair.first, *partition_molecule_ptr_pair.second,
+          where, norm
+      );
 
-       assert(partition_molecule_ptr_pair.second->is_vol() && "TODO - dump norm for surface molecules");
+      // the values are always stored as double
+      glm::fvec3 fwhere = where;
+      assert(sizeof(fwhere.x) == sizeof(float));
 
-       Vec3 where;
-       Vec3 norm;
-       compute_where_and_norm(
-           *partition_molecule_ptr_pair.first, *partition_molecule_ptr_pair.second,
-           where, norm
-       );
+      fwrite(&fwhere.x, sizeof(float), 1, custom_file);
+      fwrite(&fwhere.y, sizeof(float), 1, custom_file);
+      fwrite(&fwhere.z, sizeof(float), 1, custom_file);
 
-       // the values are always stored as double
-       glm::dvec3 dwhere = where;
-       assert(sizeof(dwhere.x) == sizeof(double));
+      if (species.is_surf()) {
+        norms.push_back(norm);
+      }
+    }
 
-       fwrite(&dwhere.x, sizeof(double), 1, custom_file);
-       fwrite(&dwhere.y, sizeof(double), 1, custom_file);
-       fwrite(&dwhere.z, sizeof(double), 1, custom_file);
-
-       // TODO: store norm
-     }
-
-   }
+    // store norm - presence of this information is determined by species_type
+    for (const Vec3& norm :norms) {
+      glm::fvec3 fnorm = norm;
+      fwrite(&fnorm.x, sizeof(float), 1, custom_file);
+      fwrite(&fnorm.y, sizeof(float), 1, custom_file);
+      fwrite(&fnorm.z, sizeof(float), 1, custom_file);
+    }
+  }
 
   fclose(custom_file);
 }
