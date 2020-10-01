@@ -44,8 +44,6 @@
 //#define MCELL3_SORTED_MOLS_ON_RUN_TIMESTEP
 //#define MCELL3_SORTED_VIZ_OUTPUT
 
-//#define MCELL3_IGNORE_SUBPARTS_IN_SAFE_DIFF_STEP
-
 // define when comparin mcell4 and pymcell4 outputs
 //#define PYMCELL4_TESTING
 
@@ -59,7 +57,7 @@
 // enabling this macro unifies it
 #define MCELL3_REVERSE_INITIAL_SURF_MOL_PLACEMENT_BY_NUM
 
-//#define MCELL3_4_IGNORE_SUBPARTS_IN_SAFE_DIFF_STEP
+//#define MCELL3_4_SAFE_DIFF_STEP_RETURNS_CONSTANT
 
 
 // in MCell3 the newly created particles that have long time steps gradually increase
@@ -152,8 +150,11 @@
 
 #if (!defined(NDEBUG) || defined(DUMP_ALWAYS)) && !defined(DUMP_NEVER)
 
+#define MCELL3_SORTED_MOLS_ON_RUN_TIMESTEP
+#define MCELL3_SORTED_VIZ_OUTPUT
+
 #define FROM_ITERATION 0
-#define TO_ITERATION 10
+#define TO_ITERATION 100
 
 #define DUMP_NONDIFFUSING_VMS
 

@@ -381,6 +381,7 @@ void DiffuseReactEvent::diffuse_vol_molecule(
   DUMP_CONDITION4(
       if (species.can_diffuse()) {
         displacement.dump("  displacement:", "");
+        cout << "t_steps: " << t_steps << "\n";
       }
   );
 #endif

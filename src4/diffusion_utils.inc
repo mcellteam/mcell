@@ -53,7 +53,7 @@ namespace MCell {
 
 namespace DiffusionUtil {
 
-const float_t MULTISTEP_WORTHWHILE = 1.0;
+const float_t MULTISTEP_WORTHWHILE = 2.0;
 const float_t MULTISTEP_PERCENTILE = 0.99;
 const float_t MULTISTEP_FRACTION = 0.9;
 
@@ -135,7 +135,6 @@ static inline float_t get_safe_diffusion_step(
       d2min = wd2;
   }
 
-#ifndef MCELL3_4_IGNORE_SUBPARTS_IN_SAFE_DIFF_STEP
   float_t subpart_side_length = p.config.subpartition_edge_length;
   IVec3 subpart_indices;
   p.get_subpart_3d_indices_from_index(vm.v.subpart_index, subpart_indices);
@@ -178,13 +177,10 @@ static inline float_t get_safe_diffusion_step(
   if (d2 < d2min) {
     d2min = d2;
   }
-#else
-  // set some value
-  if (d2 < 100) {
-    d2min = 100;
-  }
-#endif
 
+#ifdef MCELL3_4_SAFE_DIFF_STEP_RETURNS_CONSTANT
+  return 1.5;
+#else
   if (d2min < d2_nearmax) {
     steps = 1.0;
   }
@@ -195,8 +191,8 @@ static inline float_t get_safe_diffusion_step(
     else
       steps = sqrt_f(steps_sq);
   }
-
   return steps;
+#endif
 }
 
 

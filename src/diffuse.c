@@ -2341,7 +2341,6 @@ double safe_diffusion_step(struct volume_molecule *vm, struct collision *shead,
       d2min = d2;
   }
 
-#ifndef MCELL3_4_IGNORE_SUBPARTS_IN_SAFE_DIFF_STEP
   d2 = (vm->pos.x - x_fineparts[sv->llf.x]);
   d2 *= d2;
   if (d2 < d2min)
@@ -2371,13 +2370,10 @@ double safe_diffusion_step(struct volume_molecule *vm, struct collision *shead,
   d2 *= d2;
   if (d2 < d2min)
     d2min = d2;
-#else
-  // set some value
-  if (d2 < 100) {
-    d2min = 100;
-  }
-#endif
 
+#ifdef MCELL3_4_SAFE_DIFF_STEP_RETURNS_CONSTANT
+  return 1.5;
+#else
   if (d2min < d2_nearmax)
     steps = 1.0;
   else {
@@ -2387,8 +2383,8 @@ double safe_diffusion_step(struct volume_molecule *vm, struct collision *shead,
     else
       steps = sqrt(steps_sq);
   }
-
   return steps;
+#endif
 }
 
 /****************************************************************************
@@ -3073,6 +3069,7 @@ pretend_to_call_diffuse_3D: ; /* Label to allow fake recursion */
   DUMP_CONDITION3(
 		if (!displacement_printed) {
 			dump_vector3(displacement, "  displacement:");
+            std::cout << "t_steps: " << t_steps << "\n";
 			displacement_printed = true;
 		}
   );
