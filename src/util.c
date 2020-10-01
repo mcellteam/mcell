@@ -898,7 +898,16 @@ int make_parent_dir(char const *path) {
   char *last_slash = strrchr(pathtmp, '/');
   if (last_slash) {
     *last_slash = '\0';
-    if (mkdirs(pathtmp)) {
+    uint num_attemts = 0;
+    int res;
+    // multiple runs may collide when creating the directories,
+    // trying it multiple times
+    while ((res = mkdirs(pathtmp)) == 1 && num_attemts < 3) {
+      mcell_log("Could not create directory %s, trying again after 1s.\n", pathtmp);
+      num_attemts++;
+      sleep(1);
+    }
+    if (res != 0) {
       free(pathtmp);
       return 1;
     }
