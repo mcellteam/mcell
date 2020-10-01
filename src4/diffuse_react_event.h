@@ -42,6 +42,11 @@ class Molecule;
 // we are executing diffusion every iteration, do not change this constant
 const float_t DIFFUSE_REACT_EVENT_PERIODICITY = 1.0;
 
+// this is an arbitrary value but let's say that we do now want to
+// simulate more than 100 iterations at once, this is used in scheduler
+// to find the next barrier
+const float_t DIFFUSION_TIME_UPPER_LIMIT = 100.0;
+
 enum class RayTraceState {
   // TODO: use UpperCase
   UNDEFINED,
@@ -142,7 +147,9 @@ public:
     return true;
   }
 
-  float_t get_max_time_up_to_next_barrier() const override;
+  float_t get_max_time_up_to_next_barrier() const override {
+    return DIFFUSION_TIME_UPPER_LIMIT;
+  }
 
   void set_barrier_time_for_next_execution(const float_t time_up_to_next_barrier_) override {
     // scheduler says to this event for how long it can execute
@@ -182,7 +189,7 @@ private:
   void diffuse_vol_molecule(
       Partition& p,
       const molecule_id_t vm_id,
-      const float_t max_time,
+      float_t& max_time,
       const float_t diffusion_start_time,
       WallTileIndexPair& where_created_this_iteration
   );
@@ -221,7 +228,7 @@ private:
   void diffuse_surf_molecule(
       Partition& p,
       const molecule_id_t sm_id,
-      const float_t max_time,
+      float_t& max_time,
       const float_t diffusion_start_time
   );
 

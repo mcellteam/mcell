@@ -2341,7 +2341,7 @@ double safe_diffusion_step(struct volume_molecule *vm, struct collision *shead,
       d2min = d2;
   }
 
-#ifndef MCELL3_IGNORE_SUBPARTS_IN_SAFE_DIFF_STEP
+#ifndef MCELL3_4_IGNORE_SUBPARTS_IN_SAFE_DIFF_STEP
   d2 = (vm->pos.x - x_fineparts[sv->llf.x]);
   d2 *= d2;
   if (d2 < d2min)
@@ -2371,6 +2371,11 @@ double safe_diffusion_step(struct volume_molecule *vm, struct collision *shead,
   d2 *= d2;
   if (d2 < d2min)
     d2min = d2;
+#else
+  // set some value
+  if (d2 < 100) {
+    d2min = 100;
+  }
 #endif
 
   if (d2min < d2_nearmax)

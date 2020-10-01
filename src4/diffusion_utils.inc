@@ -46,6 +46,9 @@
 
 using namespace std;
 
+// TODO: allow to enable/disable this from API, may make performance worse
+#define ENABLE_SAFE_DIFFUSION_STEP
+
 namespace MCell {
 
 namespace DiffusionUtil {
@@ -132,11 +135,11 @@ static inline float_t get_safe_diffusion_step(
       d2min = wd2;
   }
 
-#ifndef MCELL3_IGNORE_SUBPARTS_IN_SAFE_DIFF_STEP
+#ifndef MCELL3_4_IGNORE_SUBPARTS_IN_SAFE_DIFF_STEP
   float_t subpart_side_length = p.config.subpartition_edge_length;
   IVec3 subpart_indices;
   p.get_subpart_3d_indices_from_index(vm.v.subpart_index, subpart_indices);
-  Vec3 llf_subpart_boundary = Vec3(subpart_indices) * Vec3(subpart_side_length);
+  Vec3 llf_subpart_boundary = p.config.partition0_llf + Vec3(subpart_indices) * Vec3(subpart_side_length);
   const Vec3& pos = vm.v.pos;
 
   float_t d2;
@@ -175,6 +178,11 @@ static inline float_t get_safe_diffusion_step(
   if (d2 < d2min) {
     d2min = d2;
   }
+#else
+  // set some value
+  if (d2 < 100) {
+    d2min = 100;
+  }
 #endif
 
   if (d2min < d2_nearmax) {
@@ -198,10 +206,14 @@ static void compute_vol_displacement(
     const Partition& p,
     const BNG::Species& sp,
     const Molecule& vm,
-    const float_t max_time,
+    float_t& max_time, // gets updated to t_steps
     rng_state& rng,
     Vec3& displacement,
-    float_t& rate_factor, float_t& r_rate_factor, float_t& steps, float_t& t_steps
+    float_t& rate_factor,
+    float_t&
+    r_rate_factor,
+    float_t& steps, // number of steps
+    float_t& t_steps // time of steps
 ) {
   assert(max_time != 0);
   assert(vm.is_vol());
@@ -212,10 +224,6 @@ static void compute_vol_displacement(
   if (max_time > MULTISTEP_WORTHWHILE) {
     // does not work correctly yet, clamping by max_time is done differently in MCell3
     steps = get_safe_diffusion_step(p, sp, vm);
-    
-    // need to update max_time somehow, e.g.
-	//  max_time = t_steps;?
-    
   }
   else {
     steps = 1.0;
@@ -225,6 +233,7 @@ static void compute_vol_displacement(
 #endif
 
   t_steps = steps * sp.get_time_step();
+  // clamp to max_time
   if (t_steps > max_time) {
     t_steps = max_time;
     steps = max_time / sp.get_time_step();
@@ -243,6 +252,10 @@ static void compute_vol_displacement(
     pick_vol_displacement(sp, rate_factor * sp.get_space_step(), rng, displacement);
   }
 
+  // update max_time
+  max_time = t_steps;
+
+  p.stats.inc_diffusion_cummtime(steps);
 }
 
 // ---------------------------------- surface mol diffusion ----------------------------------

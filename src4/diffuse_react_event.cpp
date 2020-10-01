@@ -58,13 +58,6 @@ using namespace BNG;
 
 namespace MCell {
 
-float_t DiffuseReactEvent::get_max_time_up_to_next_barrier() const {
-  // no molecules can diffuse for longer than max time step and
-  // their diffusion can be started in time 0..1 of an iteration
-  return world->get_all_species().get_max_time_step() + DIFFUSE_REACT_EVENT_PERIODICITY;
-}
-
-
 void DiffuseReactEvent::step() {
   assert(world->get_partitions().size() == 1 && "Must extend cache to handle multiple partitions");
   assert(cmp_eq(event_time, world->stats.get_current_iteration()) && 
@@ -174,12 +167,12 @@ inline float_t DiffuseReactEvent::get_max_time(Partition& p, const molecule_id_t
   float_t unimol_rx_time = m.unimol_rx_time;
   float_t time_from_event_start = m.diffusion_time - event_time;
 
-  float_t max_time = species.time_step;
-
   // clamp to barrier time
-  if (time_from_event_start + max_time > time_up_to_next_barrier) {
+  float_t max_time = time_up_to_next_barrier - time_from_event_start;
+
+  /*if (time_from_event_start + max_time > time_up_to_next_barrier) {
     max_time = time_up_to_next_barrier - time_from_event_start;
-  }
+  }*/
 
   // clamp to unimol_rx time
   if (unimol_rx_time != TIME_INVALID &&
@@ -188,7 +181,8 @@ inline float_t DiffuseReactEvent::get_max_time(Partition& p, const molecule_id_t
     max_time = unimol_rx_time - diffusion_time;
   }
 
-  if (!m.has_flag(MOLECULE_FLAG_MATURE) && max_time > DIFFUSE_REACT_EVENT_PERIODICITY) {
+  if (!m.has_flag(MOLECULE_FLAG_MATURE) &&
+      species.time_step > DIFFUSE_REACT_EVENT_PERIODICITY) {
     // - newly created particles that have long time steps gradually increase
     //   their timestep to the full value,
     // - this behavior is here due to unbinding events so that the molecule
@@ -348,7 +342,7 @@ void sort_collisions_by_time(CollisionsVector& molecule_collisions) {
 void DiffuseReactEvent::diffuse_vol_molecule(
     Partition& p,
     const molecule_id_t vm_id,
-    const float_t max_time,
+    float_t& max_time,
     const float_t diffusion_start_time,
     WallTileIndexPair& wall_tile_pair_where_created_this_iteration
 ) {
@@ -1044,7 +1038,7 @@ inline WallRxnResult DiffuseReactEvent::collide_and_react_with_walls(
 inline void DiffuseReactEvent::diffuse_surf_molecule(
     Partition& p,
     const molecule_id_t sm_id,
-    const float_t max_time,
+    float_t& max_time,
     const float_t diffusion_start_time
 ) {
   Molecule& sm = p.get_m(sm_id);
@@ -1171,6 +1165,11 @@ inline void DiffuseReactEvent::diffuse_surf_molecule(
     }
   }
 
+  // update max_time - for how long the molecule diffused
+  max_time = t_steps;
+
+  // and log stats
+  p.stats.inc_diffusion_cummtime(steps);
 }
 
 
