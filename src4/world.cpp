@@ -238,6 +238,15 @@ void World::init_simulation() {
   // iteration counter to report progress
   previous_iteration = 0;
 
+  if (!config.use_expanded_list) {
+    cout <<
+        "Warning: configuration 'use_expanded_list' (ACCURATE_3D_REACTIONS) set to false is compatible "
+        "with MCell3 only in simple cases without volume reactions and usually MCell4 produces different results. "
+        "Search for potential reactions in MCell3 is always based on reaction radius, "
+        "the solution in MCell3 can be highly imprecise because it considers subvolume/subpartition boundaries "
+        "when computing reaction probability factor in exact-disk.\n";
+  }
+
   simulation_initialized = true;
 }
 
