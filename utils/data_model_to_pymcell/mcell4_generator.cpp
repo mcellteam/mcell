@@ -213,51 +213,24 @@ void MCell4Generator::generate_parameters() {
 vector<string> MCell4Generator::generate_species(ofstream& out) {
   vector<string> species_names;
 
-  // there must be at least one species
+  // skip if there are no species
   if (!mcell.isMember(KEY_DEFINE_MOLECULES)) {
     return species_names;
   }
-  Value& define_molecules = get_node(mcell, KEY_DEFINE_MOLECULES);
-  check_version(KEY_DEFINE_MOLECULES, define_molecules, VER_DM_2014_10_24_1638);
 
-  Value& molecule_list = get_node(define_molecules, KEY_MOLECULE_LIST);
-  for (Value::ArrayIndex i = 0; i < molecule_list.size(); i++) {
-    Value& molecule_list_item = molecule_list[i];
-    check_version(KEY_MOLECULE_LIST, molecule_list_item, VER_DM_2018_10_16_1632);
+  if (bng_mode) {
+    // molecule types are optional but they allow for better BNGL semantic checks
 
-    string name = make_id(molecule_list_item[KEY_MOL_NAME].asString());
-
-    species_names.push_back(name);
-    gen_ctor_call(out, name, NAME_CLASS_SPECIES);
-    gen_param(out, NAME_NAME, molecule_list_item[KEY_MOL_NAME].asString(), true); // using original name
-
-    bool has_target_only = molecule_list_item[KEY_TARGET_ONLY].asBool();
-    bool has_custom_time_step = molecule_list_item[KEY_CUSTOM_TIME_STEP].asString() != "";
-    bool has_custom_space_step = molecule_list_item[KEY_CUSTOM_SPACE_STEP].asString() != "";
-    bool has_extra_args = has_target_only || has_custom_time_step || has_custom_space_step;
-
-    string mol_type = molecule_list_item[KEY_MOL_TYPE].asString();
-    CHECK_PROPERTY(mol_type == VALUE_MOL_TYPE_2D || mol_type == VALUE_MOL_TYPE_3D);
-    if (mol_type == VALUE_MOL_TYPE_3D) {
-      gen_param_expr(out, NAME_DIFFUSION_CONSTANT_3D, molecule_list_item[KEY_DIFFUSION_CONSTANT], has_extra_args);
-    }
-    else {
-      gen_param_expr(out, NAME_DIFFUSION_CONSTANT_2D, molecule_list_item[KEY_DIFFUSION_CONSTANT], has_extra_args);
-    }
-
-    release_assert(!(has_custom_time_step && has_custom_space_step) && "Only one of custom time or space step may be set");
-    if (has_custom_time_step) {
-      gen_param_expr(out, NAME_CUSTOM_TIME_STEP, molecule_list_item[KEY_CUSTOM_TIME_STEP], has_target_only);
-    }
-    else if (has_custom_space_step) {
-      gen_param_expr(out, NAME_CUSTOM_SPACE_STEP, molecule_list_item[KEY_CUSTOM_SPACE_STEP], has_target_only);
-    }
-
-    if (has_target_only) {
-      gen_param(out, NAME_TARGET_ONLY, has_target_only, false);
-    }
-
-    out << CTOR_END;
+    // - we also need to generate code that sets diffusion constant,
+    //   custom time/space step and other parameters to molecule types,
+    // - it must be executed after bngl file is loaded, so we should not be putting it into
+    //   subsystem, the new file can be called bngl_molecule_types_info.py
+    // - all this extra information should be put preferably into the BNGL file
+    //   but for now we would like it to be BNGL compatible and parsing comments or MCELL_ parameters is not really nice
+    assert(false && "TODO");
+  }
+  else {
+    python_gen->generate_species(out, species_names);
   }
 
   return species_names;

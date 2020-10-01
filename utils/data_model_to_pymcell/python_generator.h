@@ -20,9 +20,11 @@
  *
 ******************************************************************************/
 
-
 #ifndef UTILS_DATA_MODEL_TO_PYMCELL_PYTHON_GENERATOR_H_
 #define UTILS_DATA_MODEL_TO_PYMCELL_PYTHON_GENERATOR_H_
+
+#include <string>
+#include <vector>
 
 namespace MCell {
 
@@ -33,9 +35,11 @@ public:
   }
 
   void generate_parameters(std::ostream& out);
+  void generate_species(std::ostream& out, std::vector<std::string>& species_names);
 
 private:
   void generate_single_parameter(std::ostream& out, Json::Value& parameter);
+  std::string generate_single_species(std::ostream& out, Json::Value& molecule_list_item);
 
 private:
   Json::Value& mcell;
