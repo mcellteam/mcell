@@ -66,9 +66,9 @@ int process_args(
     const int argc, char* argv[],
     string& input_file,
     string& output_files_prefix,
+    bool& bng_mode,
     bool& debug_mode,
-    bool& cellblender_viz,
-    bool& bng_mode
+    bool& cellblender_viz
 ) {
   input_file = "";
   output_files_prefix = "";

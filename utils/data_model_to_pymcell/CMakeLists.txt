@@ -15,7 +15,7 @@ set(SOURCE_FILES
     data_model_to_pymcell.cpp
 	mcell4_generator.cpp
 	python_generator.cpp
-	bng_generator.cpp
+	bngl_generator.cpp
 )
 
 set(ALL_SOURCES

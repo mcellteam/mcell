@@ -128,7 +128,7 @@ bool MCell4Generator::generate(
   // create generators
   if (bng_mode) {
     open_and_check_file(MODEL, bng_out, false, true);
-    bng_gen = new BNGGenerator(bng_out, mcell);
+    bng_gen = new BNGLGenerator(bng_out, mcell, get_filename(MODEL, BNGL_EXT));
   }
   python_gen = new PythonGenerator(mcell);
 
@@ -1476,21 +1476,6 @@ void MCell4Generator::generate_observables(const bool cellblender_viz) {
 }
 
 
-static float_t get_largest_abs_value(const Vec3& v) {
-  float_t max = 0;
-  if (fabs_f(v.x) > max) {
-    max = fabs_f(v.x);
-  }
-  if (fabs_f(v.y) > max) {
-    max = fabs_f(v.y);
-  }
-  if (fabs_f(v.z) > max) {
-    max = fabs_f(v.z);
-  }
-  return max;
-}
-
-
 void MCell4Generator::generate_config(ofstream& out) {
   out << make_section_comment("configuration");
 
@@ -1499,6 +1484,10 @@ void MCell4Generator::generate_config(ofstream& out) {
   gen_assign(out, MODEL, NAME_CONFIG, NAME_SEED, S(FUNCTION_GET_SEED) + "()");
   gen_assign(out, MODEL, NAME_CONFIG, NAME_TOTAL_ITERATIONS_HINT, PARAM_ITERATIONS);
   out << "\n";
+
+  if (!mcell.isMember(KEY_INITIALIZATION)) {
+    ERROR(S("Data model does not contain key ") + KEY_INITIALIZATION + ".");
+  }
 
   Value& initialization = mcell[KEY_INITIALIZATION];
   Value& partitions = initialization[KEY_PARTITIONS];

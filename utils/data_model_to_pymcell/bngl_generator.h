@@ -20,8 +20,8 @@
  *
 ******************************************************************************/
 
-#ifndef UTILS_DATA_MODEL_TO_PYMCELL_BNG_GENERATOR_H_
-#define UTILS_DATA_MODEL_TO_PYMCELL_BNG_GENERATOR_H_
+#ifndef UTILS_DATA_MODEL_TO_PYMCELL_BNGL_GENERATOR_H_
+#define UTILS_DATA_MODEL_TO_PYMCELL_BNGL_GENERATOR_H_
 
 #include <string>
 #include <iostream>
@@ -30,19 +30,23 @@
 
 namespace MCell {
 
-class BNGGenerator {
+class BNGLGenerator {
 public:
-  BNGGenerator(std::ostream& bng_out_, Json::Value& mcell_)
-    : bng_out(bng_out_), mcell(mcell_) {
+  BNGLGenerator(std::ostream& bng_out_, Json::Value& mcell_, const std::string& bngl_filename_)
+    : bng_out(bng_out_), mcell(mcell_), bngl_filename(bngl_filename_) {
   }
 
   void generate_parameters(std::ostream& python_out);
 
 private:
+  void generate_single_bngl_parameter(Json::Value& parameter);
+  void generate_single_python_parameter(std::ostream& python_out, Json::Value& parameter);
+
   std::ostream& bng_out;
   Json::Value& mcell;
+  const std::string& bngl_filename;
 };
 
 } /* namespace MCell */
 
-#endif /* UTILS_DATA_MODEL_TO_PYMCELL_BNG_GENERATOR_H_ */
+#endif /* UTILS_DATA_MODEL_TO_PYMCELL_BNGL_GENERATOR_H_ */

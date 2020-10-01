@@ -26,9 +26,9 @@
 #include <string>
 #include <fstream>
 
+#include "bngl_generator.h"
 #include "json/json.h"
 
-#include "bng_generator.h"
 #include "python_generator.h"
 
 // use a different namespace?
@@ -98,7 +98,7 @@ private:
   void generate_model(const bool print_failed_marker);
 
 private:
-  BNGGenerator* bng_gen;
+  BNGLGenerator* bng_gen;
   std::ofstream bng_out;
 
   PythonGenerator* python_gen;
