@@ -769,6 +769,11 @@ public:
     diffuse_3d_calls++;
   }
 
+  void inc_diffusion_cummtime(const float_t steps) {
+    diffusion_number++;
+    diffusion_cummtime += steps; // this is a bit weird, steps are not time
+  }
+
   void dump();
 
   const uint64_t& get_current_iteration() const {
@@ -790,6 +795,8 @@ public:
     num_waypoints_used = 0;
     recomputations_of_counted_volume = 0;
     diffuse_3d_calls = 0;
+    diffusion_number = 0;
+    diffusion_cummtime = 0.0;
   }
 
 private:
@@ -808,6 +815,9 @@ private:
   uint64_t recomputations_of_counted_volume;
 
   uint64_t diffuse_3d_calls;
+
+  uint64_t diffusion_number;
+  float_t diffusion_cummtime;
 };
 
 } // namespace mcell

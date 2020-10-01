@@ -69,6 +69,12 @@ void SimulationStats::dump() {
   cout << "Total number of usages of waypoints for counted volumes: " << num_waypoints_used << "\n";
   cout << "Total number of counted volume recomputations: " << recomputations_of_counted_volume << "\n";
   cout << "Total number of diffuse 3d calls: " << diffuse_3d_calls << "\n";
+  cout << "Average diffusion jump was: " <<
+      diffusion_cummtime / (float_t)diffusion_number << " timesteps " <<
+      " (" << diffusion_cummtime << "/" << diffusion_number << ")\n";
+
+  uint64_t diffusion_number;
+  float_t diffusion_cummtime;
 }
 
 } // namespace mcell

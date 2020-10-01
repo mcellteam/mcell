@@ -751,8 +751,10 @@ mcell_print_final_statistics(MCELL_STATE *world) {
                   ((world->current_iterations - world->start_iterations) * world->time_unit));
 
     if (world->diffusion_number > 0)
-      mcell_log("Average diffusion jump was %.2f timesteps\n",
-                world->diffusion_cumtime / (double)world->diffusion_number);
+      mcell_log("Average diffusion jump was %.2f timesteps (%.2f/%lld)\n",
+                world->diffusion_cumtime / (double)world->diffusion_number,
+                world->diffusion_cumtime, world->diffusion_number
+      );
     mcell_log("Total number of random number use: %lld", rng_uses(world->rng));
     mcell_log("Total number of ray-subvolume intersection tests: %lld",
               world->ray_voxel_tests);
