@@ -1,7 +1,16 @@
 #!/usr/bin/env python3
 
-import mcell as m
 import sys
+import os
+
+MCELL_DIR = os.environ.get('MCELL_DIR', '')
+if MCELL_DIR:
+    sys.path.append(os.path.join(MCELL_DIR, 'lib'))
+else:
+    print("Error: variable MCELL_DIR that is used to find the mcell library was not set.")
+    sys.exit(1)
+    
+import mcell as m
 
 C = m.ComponentType('C', ['0', '1', '2'])
 N = m.ComponentType('N', ['0', '1', '2'])
@@ -20,7 +29,7 @@ print(C_inst)
 
 # diffusion constant here or with the complex?
 # maybe here as well for automatic 
-CaM = m.MoleculeType('CaM', [C, N], diffusion_constant_3d = 1e-6)
+CaM = m.ElementaryMoleculeType('CaM', [C, N], diffusion_constant_3d = 1e-6)
 
 print("** MoleculeType:")
 print(CaM)
@@ -39,7 +48,7 @@ print(cplx_inst)
 
 # TODO: can I somehow reorder arguments so that molecule_types is second?
 # we will probably see according to other examples
-CaMC0N1_species = m.Species('CaM(C~0,N~1)', molecule_instances = [ CaM.inst([C.inst(0), N.inst(1)]) ] )
+CaMC0N1_species = m.Species('CaM(C~0,N~1)', elementary_molecule_instances = [ CaM.inst([C.inst(0), N.inst(1)]) ] )
 
 print("** Species:")
 print(CaMC0N1_species)
@@ -52,7 +61,7 @@ Y286 = m.ComponentType('Y286', ['0','P'])
 S306 = m.ComponentType('S306', ['0','P'])
 cam = m.ComponentType('cam')
 
-CaMKII = m.MoleculeType(
+CaMKII = m.ElementaryMoleculeType(
     'CaMKII', 
     [d, r, l, Y286, S306],    
     diffusion_constant_3d = 1e-6
@@ -65,6 +74,7 @@ k_offCaMKII = 60 #1/s
 
 rxn_rule = m.ReactionRule(
     name = "sixth rxn",
+    rev_name = "sixth rxn rev",
     reactants=[
         m.ComplexInstance( 
             [ CaMKII.inst( [ l.inst(), r.inst(), Y286.inst('0'), cam.inst(bond=m.BOND_BOUND) ] ) ] 

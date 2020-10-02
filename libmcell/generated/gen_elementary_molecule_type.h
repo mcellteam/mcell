@@ -40,7 +40,8 @@ class ElementaryMoleculeInstance;
         const float_t diffusion_constant_2d_ = FLT_UNSET, \
         const float_t diffusion_constant_3d_ = FLT_UNSET, \
         const float_t custom_time_step_ = FLT_UNSET, \
-        const float_t custom_space_step_ = FLT_UNSET \
+        const float_t custom_space_step_ = FLT_UNSET, \
+        const bool target_only_ = false \
     ) { \
       class_name = "ElementaryMoleculeType"; \
       name = name_; \
@@ -49,6 +50,7 @@ class ElementaryMoleculeInstance;
       diffusion_constant_3d = diffusion_constant_3d_; \
       custom_time_step = custom_time_step_; \
       custom_space_step = custom_space_step_; \
+      target_only = target_only_; \
       postprocess_in_ctor();\
       check_semantics();\
     }
@@ -122,6 +124,18 @@ public:
   }
   virtual float_t get_custom_space_step() const {
     return custom_space_step;
+  }
+
+  bool target_only;
+  virtual void set_target_only(const bool new_target_only_) {
+    if (initialized) {
+      throw RuntimeError("Value 'target_only' of object with name " + name + " (class " + class_name + ")"
+                         "cannot be set after model was initialized.");
+    }
+    target_only = new_target_only_;
+  }
+  virtual bool get_target_only() const {
+    return target_only;
   }
 
   // --- methods ---

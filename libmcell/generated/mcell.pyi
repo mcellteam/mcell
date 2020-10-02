@@ -313,7 +313,8 @@ class ElementaryMoleculeType():
             diffusion_constant_2d : float = None,
             diffusion_constant_3d : float = None,
             custom_time_step : float = None,
-            custom_space_step : float = None
+            custom_space_step : float = None,
+            target_only : bool = False
         ):
         self.name = name
         self.components = components
@@ -321,6 +322,7 @@ class ElementaryMoleculeType():
         self.diffusion_constant_3d = diffusion_constant_3d
         self.custom_time_step = custom_time_step
         self.custom_space_step = custom_space_step
+        self.target_only = target_only
 
 
     def inst(

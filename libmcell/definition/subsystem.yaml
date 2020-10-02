@@ -55,6 +55,10 @@ ComponentInstance:
       
       
 ElementaryMoleculeType:
+  todo: | 
+        How can we share members such as diff const between this class and Species?
+        custom_time_step, custom_space_step and target_only are currently supported 
+        only when used in Species
   superclass: BaseDataClass
   items:
   - name: name
@@ -83,6 +87,16 @@ ElementaryMoleculeType:
     type: float
     default: unset 
     doc: This molecule should take steps of average length L (in microns). Use either this or custom_time_step.
+      
+  - name: target_only
+    type: bool
+    default: False
+    doc: |
+      This molecule will not initiate reactions when it runs into other molecules. This
+      setting can speed up simulations when applied to a molecule at high concentrations 
+      that reacts with a molecule at low concentrations (it is more efficient for
+      the low-concentration molecule to trigger the reactions). This directive does
+      not affect unimolecular reactions.      
       
   methods:
   - name: inst
@@ -169,7 +183,10 @@ Species:
   methods:
   - name: inst
     return_type: ComplexInstance
-    doc: Only for simple species (single molecule instance, no components)
+    internal: Where is this used and why the limitation?
+    doc: | 
+       Creates a ComplexInstance of this Species. Can be currently used only for simple species, i.e. those that
+       have a single molecule instance and no components.
     params:
     - name: orientation
       type: Orientation 

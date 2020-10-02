@@ -42,6 +42,7 @@ MoleculeReleaseInfo:
   items:
   - name: species
     type: Species*
+    TODO: this should be ComplexInstance*
     doc: | 
       The species of the molecule that will be released.
 

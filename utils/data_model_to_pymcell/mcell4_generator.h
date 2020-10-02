@@ -60,7 +60,7 @@ private:
 
   void generate_parameters();
 
-  std::vector<std::string> generate_species(std::ofstream& out);
+  void generate_species_and_mol_types(std::ofstream& out, std::vector<SpeciesOrMolType>& species_and_mt_info);
 
   void get_surface_class_property_info(
       Json::Value& property,
@@ -114,7 +114,7 @@ private:
   uint unnamed_rxn_counter;
   uint unnamed_surf_class_counter;
 
-  std::vector<std::string> all_species_names;
+  std::vector<SpeciesOrMolType> all_species_and_mol_type_names;
   std::vector<std::string> all_reaction_rules_names;
   std::vector<std::string> all_count_term_names;
 

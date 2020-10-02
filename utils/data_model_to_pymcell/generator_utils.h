@@ -70,7 +70,6 @@ typedef invalid_argument ConversionError;
 
 #define ERROR(msg) throw ConversionError(S("Error:") + msg)
 
-
 // auxiliary method to simply convert to std::string for when concatenating string
 static string S(const char* s) {
   return string(s);
@@ -257,10 +256,12 @@ static void gen_param_enum(ostream& out, string name, string enum_name, string e
   out << IND << name << " = " << make_enum_value(enum_name, enum_value) << (comma?",":"") << "\n";
 }
 
-static void gen_param_list(ostream& out, string name, const vector<string>& values, bool comma) {
+static void gen_param_list(ostream& out, string name, const vector<string>& values, bool comma, bool as_strings = false) {
+  string q = (as_strings) ? "'" : "";
+
   out << IND << name << " = [";
   for (size_t i = 0; i < values.size(); i++) {
-    out << values[i];
+    out << q << values[i] << q;
     gen_comma(out, i , values);
   }
 

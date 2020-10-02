@@ -90,7 +90,7 @@ void MCell4Generator::reset() {
   observables_generated = false;
   unnamed_rxn_counter = 0;
   unnamed_surf_class_counter = 0;
-  all_species_names.clear();
+  all_species_and_mol_type_names.clear();
   all_reaction_rules_names.clear();
   all_count_term_names.clear();
 }
@@ -210,12 +210,12 @@ void MCell4Generator::generate_parameters() {
 }
 
 
-vector<string> MCell4Generator::generate_species(ofstream& out) {
-  vector<string> species_names;
+void MCell4Generator::generate_species_and_mol_types(
+    ofstream& out, vector<SpeciesOrMolType>& species_and_mt_info) {
 
-  // skip if there are no species
+  // skip if there are no species/mol types
   if (!mcell.isMember(KEY_DEFINE_MOLECULES)) {
-    return species_names;
+    return;
   }
 
   if (bng_mode) {
@@ -230,10 +230,8 @@ vector<string> MCell4Generator::generate_species(ofstream& out) {
     assert(false && "TODO");
   }
   else {
-    python_gen->generate_species(out, species_names);
+    python_gen->generate_species_and_mol_types(out, species_and_mt_info);
   }
-
-  return species_names;
 }
 
 
@@ -478,13 +476,18 @@ void MCell4Generator::generate_subsystem() {
   out << "\n";
   out << make_section_comment(SUBSYSTEM);
 
-  all_species_names = generate_species(out);
+  generate_species_and_mol_types(out, all_species_and_mol_type_names);
   vector<string> surface_class_names = generate_surface_classes(out);
   all_reaction_rules_names = generate_reaction_rules(out);
 
   gen_ctor_call(out, SUBSYSTEM, NAME_CLASS_SUBSYSTEM, false);
-  for (string& s: all_species_names) {
-    gen_method_call(out, SUBSYSTEM, NAME_ADD_SPECIES, s);
+  for (SpeciesOrMolType& info: all_species_and_mol_type_names) {
+    if (info.is_species) {
+      gen_method_call(out, SUBSYSTEM, NAME_ADD_SPECIES, info.name);
+    }
+    else {
+      gen_method_call(out, SUBSYSTEM, NAME_ADD_ELEMENTARY_MOLECULE_TYPE, info.name);
+    }
   }
   for (string& sc: surface_class_names) {
     gen_method_call(out, SUBSYSTEM, NAME_ADD_SURFACE_CLASS, sc);
@@ -1162,7 +1165,8 @@ void MCell4Generator::process_single_count_term(
     what_to_count = what_to_count.substr(0, what_to_count.size() - 1);
   }
 
-  if (find(all_species_names.begin(), all_species_names.end(), what_to_count) != all_species_names.end()) {
+  if (find(all_species_and_mol_type_names.begin(), all_species_and_mol_type_names.end(), SpeciesOrMolType(what_to_count, true))
+      != all_species_and_mol_type_names.end()) {
     rxn_not_mol = false;
   }
   else if (find(all_reaction_rules_names.begin(), all_reaction_rules_names.end(), what_to_count) != all_reaction_rules_names.end()) {

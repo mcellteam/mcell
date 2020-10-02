@@ -28,6 +28,25 @@
 
 namespace MCell {
 
+// auxiliary struct used when generating species or molecule types
+struct SpeciesOrMolType {
+  SpeciesOrMolType(const std::string& name_, const bool is_species_)
+    : name(name_), is_species(is_species_) {
+  }
+
+  SpeciesOrMolType(const SpeciesOrMolType& other)
+    : name(other.name), is_species(other.is_species) {
+  }
+
+  bool operator == (const SpeciesOrMolType& other) const {
+    return name == other.name && is_species == other.is_species;
+  }
+
+  std::string name;
+  bool is_species;
+};
+
+
 class PythonGenerator {
 public:
   PythonGenerator(Json::Value& mcell_)
@@ -35,11 +54,20 @@ public:
   }
 
   void generate_parameters(std::ostream& out);
-  void generate_species(std::ostream& out, std::vector<std::string>& species_names);
+  void generate_species_and_mol_types(std::ostream& out, std::vector<SpeciesOrMolType>& species_and_mt_info);
 
 private:
   void generate_single_parameter(std::ostream& out, Json::Value& parameter);
-  std::string generate_single_species(std::ostream& out, Json::Value& molecule_list_item);
+
+  std::string generate_component_type(
+      std::ostream& out, Json::Value& bngl_component_item, const std::string& mol_type_name);
+
+  std::string generate_single_species_or_mol_type(
+      std::ostream& out, Json::Value& molecule_list_item,
+      const bool generate_species, const std::vector<std::string>& component_names = std::vector<std::string>());
+
+  SpeciesOrMolType generate_single_species_or_mol_type_w_components(
+      std::ostream& out, Json::Value& molecule_list_item);
 
 private:
   Json::Value& mcell;

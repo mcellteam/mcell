@@ -53,18 +53,41 @@ void PythonGenerator::generate_parameters(std::ostream& out) {
 }
 
 
-std::string PythonGenerator::generate_single_species(std::ostream& out, Json::Value& molecule_list_item) {
+std::string PythonGenerator::generate_component_type(
+    std::ostream& out, Json::Value& bngl_component_item, const std::string& mol_type_name) {
+
+  string name = mol_type_name + '_' + make_id(bngl_component_item[KEY_CNAME].asString());
+  gen_ctor_call(out, name, NAME_CLASS_COMPONENT_TYPE);
+
+  vector<string> state_names;
+  if (bngl_component_item.isMember(KEY_CSTATES)) {
+    Value& cstates = bngl_component_item[KEY_CSTATES];
+    for (Value::ArrayIndex i = 0; i < cstates.size(); i++) {
+      state_names.push_back(cstates[i].asString());
+    }
+  }
+  gen_param_list(out, NAME_STATES, state_names, false, true);
+  out << CTOR_END;
+
+  return name;
+}
+
+
+std::string PythonGenerator::generate_single_species_or_mol_type(
+    std::ostream& out, Json::Value& molecule_list_item,
+    const bool generate_species, const std::vector<string>& component_names) {
+
+  assert(generate_species == component_names.empty());
 
   string name = make_id(molecule_list_item[KEY_MOL_NAME].asString());
 
-  // TODO
-  // Components
+  gen_ctor_call(out, name, (generate_species) ? NAME_CLASS_SPECIES : NAME_CLASS_ELEMENTARY_MOLECULE_TYPE);
 
-  // Molecule Types
-
-  // Species
-  gen_ctor_call(out, name, NAME_CLASS_SPECIES);
   gen_param(out, NAME_NAME, molecule_list_item[KEY_MOL_NAME].asString(), true); // using original name
+
+  if (!generate_species) {
+    gen_param_list(out, NAME_COMPONENTS, component_names, true);
+  }
 
   bool has_target_only = molecule_list_item[KEY_TARGET_ONLY].asBool();
   bool has_custom_time_step = molecule_list_item[KEY_CUSTOM_TIME_STEP].asString() != "";
@@ -98,7 +121,47 @@ std::string PythonGenerator::generate_single_species(std::ostream& out, Json::Va
 }
 
 
-void PythonGenerator::generate_species(std::ostream& out, std::vector<std::string>& species_names) {
+SpeciesOrMolType PythonGenerator::generate_single_species_or_mol_type_w_components(
+    std::ostream& out, Json::Value& molecule_list_item) {
+
+  bool has_components = false;
+  if (molecule_list_item.isMember(KEY_BNGL_COMPONENT_LIST) && molecule_list_item[KEY_BNGL_COMPONENT_LIST].size() > 0) {
+    has_components = true;
+  }
+
+  // molecules in CellBlender represent either Species if they are a simple ComplexInstance or ElementaryMoleculeTypes
+
+  // two different generation modes - when components are present then
+  // we generate ElementaryMoleculeType, Species are a specific instantiation,
+  // otherwise Species without components can be defined directly in the MCell3 species style
+  if (has_components) {
+    vector<string> component_names;
+
+    string component_prefix = make_id(molecule_list_item[KEY_MOL_NAME].asString());
+
+    // Components
+    Value& bngl_component_list = get_node(molecule_list_item, KEY_BNGL_COMPONENT_LIST);
+    for (Value::ArrayIndex i = 0; i < bngl_component_list.size(); i++) {
+      string component_name = generate_component_type(out, bngl_component_list[i], component_prefix);
+      component_names.push_back(component_name);
+    }
+
+    // Molecule Type
+    string name = generate_single_species_or_mol_type(out, molecule_list_item, false, component_names);
+    assert(name == component_prefix);
+
+    return SpeciesOrMolType(name, false);
+  }
+  else {
+    string name = generate_single_species_or_mol_type(out, molecule_list_item, true);
+
+    return SpeciesOrMolType(name, true);
+  }
+}
+
+
+void PythonGenerator::generate_species_and_mol_types(
+    std::ostream& out, std::vector<SpeciesOrMolType>& species_and_mt_info) {
 
   Value& define_molecules = get_node(mcell, KEY_DEFINE_MOLECULES);
   check_version(KEY_DEFINE_MOLECULES, define_molecules, VER_DM_2014_10_24_1638);
@@ -108,8 +171,8 @@ void PythonGenerator::generate_species(std::ostream& out, std::vector<std::strin
     Value& molecule_list_item = molecule_list[i];
     check_version(KEY_MOLECULE_LIST, molecule_list_item, VER_DM_2018_10_16_1632);
 
-    string name = generate_single_species(out, molecule_list_item);
-    species_names.push_back(name);
+    SpeciesOrMolType info = generate_single_species_or_mol_type_w_components(out, molecule_list_item);
+    species_and_mt_info.push_back(info);
   }
 }
 
