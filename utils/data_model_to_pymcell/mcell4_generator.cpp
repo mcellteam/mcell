@@ -93,6 +93,8 @@ void MCell4Generator::reset() {
   all_species_and_mol_type_names.clear();
   all_reaction_rules_names.clear();
   all_count_term_names.clear();
+  bng_gen = nullptr;
+  python_gen = nullptr;
 }
 
 
@@ -227,7 +229,15 @@ void MCell4Generator::generate_species_and_mol_types(
     //   subsystem, the new file can be called bngl_molecule_types_info.py
     // - all this extra information should be put preferably into the BNGL file
     //   but for now we would like it to be BNGL compatible and parsing comments or MCELL_ parameters is not really nice
-    assert(false && "TODO");
+    ofstream mt_info_out;
+    open_and_check_file(BNGL_MOLECULE_TYPES_INFO, mt_info_out);
+    mt_info_out << MCELL_IMPORT;
+    mt_info_out << make_import(PARAMETERS);
+    mt_info_out << "\n";
+
+    bng_gen->generate_mol_types(mt_info_out);
+
+    mt_info_out.close();
   }
   else {
     python_gen->generate_species_and_mol_types(out, species_and_mt_info);

@@ -37,10 +37,14 @@ public:
   }
 
   void generate_parameters(std::ostream& python_out);
+  void generate_mol_types(std::ostream& python_out);
 
 private:
   void generate_single_bngl_parameter(Json::Value& parameter);
   void generate_single_python_parameter(std::ostream& python_out, Json::Value& parameter);
+
+  void generate_bngl_mol_type(Json::Value& molecule_list_item);
+  void generate_python_mol_type_info(std::ostream& python_out, Json::Value& molecule_list_item);
 
   std::ostream& bng_out;
   Json::Value& mcell;

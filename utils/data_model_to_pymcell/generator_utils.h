@@ -276,6 +276,18 @@ static void gen_param_vec3(ostream& out, string name, Json::Value& x, Json::Valu
 
 
 template<typename T>
+static void gen_assign(ostream& out, string obj_name, string field_name1, T value) {
+  out << obj_name << "." << field_name1 << " = " << value << "\n";
+}
+
+
+template<>
+void gen_assign(ostream& out, string obj_name, string field_name1, bool value) {
+  out << obj_name << "." << field_name1 << "." << " = " << (value ? "True" : "False") << "\n";
+}
+
+
+template<typename T>
 static void gen_assign(ostream& out, string obj_name, string field_name1, string field_name2, T value) {
   out << obj_name << "." << field_name1 << "." << field_name2 << " = " << value << "\n";
 }

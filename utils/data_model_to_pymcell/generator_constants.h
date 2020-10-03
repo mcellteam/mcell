@@ -10,6 +10,7 @@ const int FLOAT_OUT_PRECISION = 15; // this is the precision that is used by mdl
 
 const char* const PARAMETERS = "parameters";
 const char* const SUBSYSTEM = "subsystem";
+const char* const BNGL_MOLECULE_TYPES_INFO = "bngl_molecule_types_info";
 const char* const GEOMETRY = "geometry";
 const char* const INSTANTIATION = "instantiation";
 const char* const OBSERVABLES = "observables";
@@ -23,6 +24,7 @@ const char* const IMPORT = "import";
 const char* const MDOT = "m.";
 
 const char* const IND = "    ";
+const char* const IND4 = "    "; // this indent must be 4 chars because it is used as indentation in Python
 const char* const BLOCK_BEGIN1 = "# ---- ";
 const char* const BLOCK_BEGIN2 = " ----\n";
 const char* const BLOCK_END1 = "# ^^^^ ";

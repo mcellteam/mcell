@@ -103,7 +103,7 @@ std::string PythonGenerator::generate_single_species_or_mol_type(
     gen_param_expr(out, NAME_DIFFUSION_CONSTANT_2D, molecule_list_item[KEY_DIFFUSION_CONSTANT], has_extra_args);
   }
 
-  release_assert(!(has_custom_time_step && has_custom_space_step) && "Only one of custom time or space step may be set");
+  CHECK_PROPERTY(!(has_custom_time_step && has_custom_space_step) && "Only one of custom time or space step may be set");
   if (has_custom_time_step) {
     gen_param_expr(out, NAME_CUSTOM_TIME_STEP, molecule_list_item[KEY_CUSTOM_TIME_STEP], has_target_only);
   }
@@ -112,7 +112,7 @@ std::string PythonGenerator::generate_single_species_or_mol_type(
   }
 
   if (has_target_only) {
-    gen_param(out, NAME_TARGET_ONLY, has_target_only, false);
+    gen_param(out, NAME_TARGET_ONLY, true, false);
   }
 
   out << CTOR_END;
