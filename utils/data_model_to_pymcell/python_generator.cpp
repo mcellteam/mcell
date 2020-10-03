@@ -20,6 +20,8 @@
  *
 ******************************************************************************/
 
+#include <fstream>
+
 #include "generator_utils.h"
 #include "python_generator.h"
 
@@ -228,8 +230,6 @@ void PythonGenerator::get_surface_class_property_info(
 void PythonGenerator::generate_surface_classes(
     std::ostream& out, std::vector<std::string>& sc_names) {
 
-  sc_names.clear();
-
   if (!mcell.isMember(KEY_DEFINE_SURFACE_CLASSES)) {
     return;
   }
@@ -282,6 +282,122 @@ void PythonGenerator::generate_surface_classes(
         gen_param_id(out, NAME_ORIENTATION, orientation_name, false);
       }
     }
+    out << CTOR_END;
+  }
+}
+
+
+void PythonGenerator::generate_variable_rate(const std::string& rate_array_name, Json::Value& variable_rate_text) {
+  // append to the parameters file
+  ofstream out;
+  open_and_check_file_w_prefix(output_files_prefix, PARAMETERS, out, true);
+
+  out << "\n" << make_section_comment("variable rate");
+  out << rate_array_name << " = [\n";
+
+  string vr = variable_rate_text.asString();
+  size_t pos = 0;
+  bool print_comma = false;
+  while (pos < vr.size()) {
+
+    size_t tab = vr.find('\t', pos + 1);
+    size_t space = vr.find(' ', pos + 1);
+    if (tab == string::npos || space < tab) {
+      tab = space;
+    }
+
+    size_t nl = vr.find('\n', pos + 1);
+    if (nl == string::npos) {
+      nl = vr.size();
+    }
+    if (tab > nl || tab == pos || nl == pos) {
+      ERROR("Malformed variable_rate_text in datamodel.");
+    }
+    if (tab == string::npos) {
+      break; // end of input
+    }
+
+    string time = vr.substr(pos, tab - pos);
+    string rate = vr.substr(tab + 1, nl - (tab + 1));
+    time = trim(time);
+    rate = trim(rate);
+
+    if (print_comma) {
+      out << ",\n";
+    }
+    print_comma = true;
+
+    out << "  [" << time << ", " << rate << "]";
+
+    pos = nl;
+    pos++;
+  }
+  out << "\n] # " << rate_array_name << "\n\n";
+
+  out.close();
+}
+
+
+void PythonGenerator::generate_reaction_rules(
+    ostream& out, const bool all_rxns, const std::vector<size_t>& selected_rxns,
+    std::vector<std::string>& rxn_names) {
+  Value& define_reactions = get_node(mcell, KEY_DEFINE_REACTIONS);
+  check_version(KEY_DEFINE_REACTIONS, define_reactions, VER_DM_2014_10_24_1638);
+
+  Value& reaction_list = get_node(define_reactions, KEY_REACTION_LIST);
+  for (Value::ArrayIndex i = 0; i < reaction_list.size(); i++) {
+    Value& reaction_list_item = reaction_list[i];
+    check_version(KEY_MOLECULE_LIST, reaction_list_item, VER_DM_2018_01_11_1330);
+
+    string name = reaction_list_item[KEY_RXN_NAME].asString();
+    if (name == "") {
+      bool ok = convert_reaction_name(reaction_list_item[KEY_NAME].asString(), name);
+
+      if (!ok) {
+        name = UNNAMED_REACTION_RULE_PREFIX + to_string(unnamed_rxn_counter);
+        unnamed_rxn_counter++;
+      }
+    }
+    rxn_names.push_back(name);
+    gen_ctor_call(out, name, NAME_CLASS_REACTION_RULE);
+    gen_param(out, NAME_NAME, name, true);
+
+    // single line for now
+    out << IND << NAME_REACTANTS << " = ";
+    gen_rxn_substance_inst(out, reaction_list_item[KEY_REACTANTS]);
+    out << ",\n";
+
+    out << IND << NAME_PRODUCTS << " = ";
+    gen_rxn_substance_inst(out, reaction_list_item[KEY_PRODUCTS]);
+    out << ",\n";
+
+    if (reaction_list_item[KEY_VARIABLE_RATE_SWITCH].asBool()) {
+      // variable rates
+      CHECK_PROPERTY(reaction_list_item[KEY_VARIABLE_RATE_VALID].asBool() && "variable_rate_switch must be equal to variable_rate_valid");
+      string rate_array_name = reaction_list_item[KEY_VARIABLE_RATE].asString();
+      size_t dot = rate_array_name.rfind('.');
+      if (dot != string::npos) {
+        // remove file extension
+        rate_array_name = rate_array_name.substr(0, dot);
+      }
+      // and remove possibly other dots in the name
+      rate_array_name = make_id(rate_array_name);
+      generate_variable_rate(rate_array_name, reaction_list_item[KEY_VARIABLE_RATE_TEXT]);
+      gen_param_id(out, NAME_VARIABLE_RATE, rate_array_name, false); // module parameters is imported as *
+    }
+    else {
+      // fwd or rev rates
+      string rxn_type = reaction_list_item[KEY_RXN_TYPE].asString();
+      CHECK_PROPERTY(rxn_type == VALUE_IRREVERSIBLE || rxn_type == VALUE_REVERSIBLE);
+      bool is_reversible = rxn_type == VALUE_REVERSIBLE;
+
+      gen_param_expr(out, NAME_FWD_RATE, reaction_list_item[KEY_FWD_RATE], is_reversible);
+      if (is_reversible) {
+        gen_param(out, NAME_REV_NAME, name + REV_RXN_SUFFIX, true);
+        gen_param_expr(out, NAME_REV_RATE, reaction_list_item[KEY_BKWD_RATE], false);
+      }
+    }
+
     out << CTOR_END;
   }
 }
@@ -380,6 +496,8 @@ string PythonGenerator::generate_single_geometry_object(
 
   return name;
 }
+
+
 
 
 void PythonGenerator::generate_geometry(std::ostream& out, std::vector<std::string>& geometry_objects) {

@@ -47,7 +47,6 @@ public:
 private:
   void reset();
 
-  std::string get_filename(const std::string file_suffix, const char* ext);
   std::string get_module_name(const std::string file_suffix);
   std::string make_import(const std::string file_suffix);
 
@@ -105,8 +104,6 @@ private:
   // parameters, subsystem, and instantiation are always generated
   bool geometry_generated;
   bool observables_generated;
-
-  uint unnamed_rxn_counter;
 
   std::vector<SpeciesOrMolType> all_species_and_mol_type_names;
   std::vector<std::string> all_reaction_rules_names;

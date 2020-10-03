@@ -76,6 +76,12 @@ static string S(const char* s) {
 }
 
 
+std::string get_filename(const std::string& output_files_prefix, const std::string file_suffix, const char* ext);
+
+void open_and_check_file_w_prefix(
+    const std::string& output_files_prefix, const std::string file_suffix, std::ofstream& out,
+    const bool for_append = false, const bool bngl = false);
+
 // throws exception when the member is member is there
 static Value& get_node(const string parent_name, Value& parent, const string name) {
   if (!parent.isMember(name)) {

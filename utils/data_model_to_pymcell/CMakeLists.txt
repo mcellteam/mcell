@@ -16,6 +16,7 @@ set(SOURCE_FILES
 	mcell4_generator.cpp
 	python_generator.cpp
 	bngl_generator.cpp
+	generator_utils.cpp
 )
 
 set(ALL_SOURCES

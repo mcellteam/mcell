@@ -33,16 +33,6 @@ namespace MCell {
 using Json::Value;
 
 
-string MCell4Generator::get_filename(const string file_suffix, const char* ext) {
-  if (output_files_prefix == "" || output_files_prefix.back() == '/' || output_files_prefix.back() == '\\') {
-    return output_files_prefix + file_suffix + ext;
-  }
-  else {
-    return output_files_prefix + "_" + file_suffix + ext;
-  }
-}
-
-
 string MCell4Generator::get_module_name(const string file_suffix) {
   if (output_files_prefix == "" || output_files_prefix.back() == '/' || output_files_prefix.back() == '\\') {
     return file_suffix;
@@ -68,27 +58,13 @@ void MCell4Generator::open_and_check_file(
     const string file_suffix, ofstream& out,
     const bool for_append, const bool bngl) {
 
-  string file_name = get_filename(file_suffix, (bngl) ? BNGL_EXT : PY_EXT);
-
-  if (for_append) {
-    cout << "Appending to " + file_name + ".\n";
-    out.open(file_name, ios::app);
-  }
-  else {
-    cout << "Generating file " + file_name + ".\n";
-    out.open(file_name);
-  }
-  out.precision(FLOAT_OUT_PRECISION);
-  if (!out.is_open()) {
-    throw ConversionError("Could not open file '" + file_name + "' for writing.");
-  }
+  open_and_check_file_w_prefix(output_files_prefix, file_suffix, out, for_append, bngl);
 }
 
 
 void MCell4Generator::reset() {
   geometry_generated = false;
   observables_generated = false;
-  unnamed_rxn_counter = 0;
   all_species_and_mol_type_names.clear();
   all_reaction_rules_names.clear();
   all_count_term_names.clear();
@@ -129,9 +105,10 @@ bool MCell4Generator::generate(
   // create generators
   if (bng_mode) {
     open_and_check_file(MODEL, bng_out, false, true);
-    bng_gen = new BNGLGenerator(bng_out, mcell, get_filename(MODEL, BNGL_EXT));
+    bng_gen = new BNGLGenerator(
+        bng_out, mcell, get_filename(output_files_prefix, MODEL, BNGL_EXT));
   }
-  python_gen = new PythonGenerator(mcell);
+  python_gen = new PythonGenerator(mcell, output_files_prefix);
 
   CHECK(check_scripting(), failed);
 
@@ -244,57 +221,6 @@ void MCell4Generator::generate_species_and_mol_types(
 }
 
 
-void MCell4Generator::generate_variable_rate(const std::string& rate_array_name, Json::Value& variable_rate_text) {
-  // append to the parameters file
-  ofstream out;
-  open_and_check_file(PARAMETERS, out, true);
-
-  out << "\n" << make_section_comment("variable rate");
-  out << rate_array_name << " = [\n";
-
-  string vr = variable_rate_text.asString();
-  size_t pos = 0;
-  bool print_comma = false;
-  while (pos < vr.size()) {
-
-    size_t tab = vr.find('\t', pos + 1);
-    size_t space = vr.find(' ', pos + 1);
-    if (tab == string::npos || space < tab) {
-      tab = space;
-    }
-
-    size_t nl = vr.find('\n', pos + 1);
-    if (nl == string::npos) {
-      nl = vr.size();
-    }
-    if (tab > nl || tab == pos || nl == pos) {
-      ERROR("Malformed variable_rate_text in datamodel.");
-    }
-    if (tab == string::npos) {
-      break; // end of input
-    }
-
-    string time = vr.substr(pos, tab - pos);
-    string rate = vr.substr(tab + 1, nl - (tab + 1));
-    time = trim(time);
-    rate = trim(rate);
-
-    if (print_comma) {
-      out << ",\n";
-    }
-    print_comma = true;
-
-    out << "  [" << time << ", " << rate << "]";
-
-    pos = nl;
-    pos++;
-  }
-  out << "\n] # " << rate_array_name << "\n\n";
-
-  out.close();
-}
-
-
 vector<string> MCell4Generator::generate_reaction_rules(ofstream& out) {
   vector<string> rxn_names;
 
@@ -302,64 +228,11 @@ vector<string> MCell4Generator::generate_reaction_rules(ofstream& out) {
     return rxn_names;
   }
 
-  Value& define_reactions = get_node(mcell, KEY_DEFINE_REACTIONS);
-  check_version(KEY_DEFINE_REACTIONS, define_reactions, VER_DM_2014_10_24_1638);
-
-  Value& reaction_list = get_node(define_reactions, KEY_REACTION_LIST);
-  for (Value::ArrayIndex i = 0; i < reaction_list.size(); i++) {
-    Value& reaction_list_item = reaction_list[i];
-    check_version(KEY_MOLECULE_LIST, reaction_list_item, VER_DM_2018_01_11_1330);
-
-    string name = reaction_list_item[KEY_RXN_NAME].asString();
-    if (name == "") {
-      bool ok = convert_reaction_name(reaction_list_item[KEY_NAME].asString(), name);
-
-      if (!ok) {
-        name = UNNAMED_REACTION_RULE_PREFIX + to_string(unnamed_rxn_counter);
-        unnamed_rxn_counter++;
-      }
-    }
-    rxn_names.push_back(name);
-    gen_ctor_call(out, name, NAME_CLASS_REACTION_RULE);
-    gen_param(out, NAME_NAME, name, true);
-
-    // single line for now
-    out << IND << NAME_REACTANTS << " = ";
-    gen_rxn_substance_inst(out, reaction_list_item[KEY_REACTANTS]);
-    out << ",\n";
-
-    out << IND << NAME_PRODUCTS << " = ";
-    gen_rxn_substance_inst(out, reaction_list_item[KEY_PRODUCTS]);
-    out << ",\n";
-
-    if (reaction_list_item[KEY_VARIABLE_RATE_SWITCH].asBool()) {
-      // variable rates
-      CHECK_PROPERTY(reaction_list_item[KEY_VARIABLE_RATE_VALID].asBool() && "variable_rate_switch must be equal to variable_rate_valid");
-      string rate_array_name = reaction_list_item[KEY_VARIABLE_RATE].asString();
-      size_t dot = rate_array_name.rfind('.');
-      if (dot != string::npos) {
-        // remove file extension
-        rate_array_name = rate_array_name.substr(0, dot);
-      }
-      // and remove possibly other dots in the name
-      rate_array_name = make_id(rate_array_name);
-      generate_variable_rate(rate_array_name, reaction_list_item[KEY_VARIABLE_RATE_TEXT]);
-      gen_param_id(out, NAME_VARIABLE_RATE, rate_array_name, false); // module parameters is imported as *
-    }
-    else {
-      // fwd or rev rates
-      string rxn_type = reaction_list_item[KEY_RXN_TYPE].asString();
-      CHECK_PROPERTY(rxn_type == VALUE_IRREVERSIBLE || rxn_type == VALUE_REVERSIBLE);
-      bool is_reversible = rxn_type == VALUE_REVERSIBLE;
-
-      gen_param_expr(out, NAME_FWD_RATE, reaction_list_item[KEY_FWD_RATE], is_reversible);
-      if (is_reversible) {
-        gen_param(out, NAME_REV_NAME, name + REV_RXN_SUFFIX, true);
-        gen_param_expr(out, NAME_REV_RATE, reaction_list_item[KEY_BKWD_RATE], false);
-      }
-    }
-
-    out << CTOR_END;
+  if (bng_mode) {
+    assert(false);
+  }
+  else {
+    python_gen->generate_reaction_rules(out, true, vector<size_t>(), rxn_names);
   }
 
   return rxn_names;
