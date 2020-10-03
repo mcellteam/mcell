@@ -62,11 +62,6 @@ private:
 
   void generate_species_and_mol_types(std::ofstream& out, std::vector<SpeciesOrMolType>& species_and_mt_info);
 
-  void get_surface_class_property_info(
-      Json::Value& property,
-      std::string& name, std::string& type_name, std::string& affected_mols, std::string& orientation);
-  std::vector<std::string> generate_surface_classes(std::ofstream& out);
-
   void generate_variable_rate(const std::string& rate_array_name, Json::Value& variable_rate_text);
   std::vector<std::string> generate_reaction_rules(std::ofstream& out);
 
@@ -112,7 +107,6 @@ private:
   bool observables_generated;
 
   uint unnamed_rxn_counter;
-  uint unnamed_surf_class_counter;
 
   std::vector<SpeciesOrMolType> all_species_and_mol_type_names;
   std::vector<std::string> all_reaction_rules_names;

@@ -50,11 +50,14 @@ struct SpeciesOrMolType {
 class PythonGenerator {
 public:
   PythonGenerator(Json::Value& mcell_)
-    : mcell(mcell_) {
+    : mcell(mcell_), unnamed_surf_class_counter(0) {
   }
 
   void generate_parameters(std::ostream& out);
+
   void generate_species_and_mol_types(std::ostream& out, std::vector<SpeciesOrMolType>& species_and_mt_info);
+  void generate_surface_classes(std::ostream& out, std::vector<std::string>& sc_names);
+
   void generate_geometry(std::ostream& out, std::vector<std::string>& geometry_objects);
 
 
@@ -71,12 +74,20 @@ private:
   SpeciesOrMolType generate_single_species_or_mol_type_w_components(
       std::ostream& out, Json::Value& molecule_list_item);
 
+
+  void get_surface_class_property_info(
+      Json::Value& property,
+      std::string& name, std::string& type_name, std::string& affected_mols, std::string& orientation);
+
+
   std::string generate_single_geometry_object(
       std::ostream& out, const int index, Json::Value& object);
 
 
 private:
   Json::Value& mcell;
+
+  uint unnamed_surf_class_counter;
 };
 
 } /* namespace MCell */

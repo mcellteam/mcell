@@ -89,7 +89,6 @@ void MCell4Generator::reset() {
   geometry_generated = false;
   observables_generated = false;
   unnamed_rxn_counter = 0;
-  unnamed_surf_class_counter = 0;
   all_species_and_mol_type_names.clear();
   all_reaction_rules_names.clear();
   all_count_term_names.clear();
@@ -245,116 +244,6 @@ void MCell4Generator::generate_species_and_mol_types(
 }
 
 
-void MCell4Generator::get_surface_class_property_info(
-    Value& property,
-    string& name, string& type_name, string& affected_mols, string& orientation
-) {
-  check_version(KEY_SURFACE_CLASS_PROP_LIST, property, VER_DM_2015_11_08_1756);
-  CHECK_PROPERTY(property[KEY_CLAMP_VALUE] = "0");
-
-  affected_mols = property[KEY_AFFECTED_MOLS].asString();
-  if (affected_mols == ALL_MOLECULES) {
-    affected_mols = S(MDOT) + NAME_CV_AllMolecules;
-  }
-  else if (affected_mols == ALL_VOLUME_MOLECULES) {
-    affected_mols = S(MDOT) + NAME_CV_AllVolumeMolecules;
-  }
-  else if (affected_mols == ALL_SURFACE_MOLECULES) {
-    affected_mols = S(MDOT) + NAME_CV_AllSurfaceMolecules;
-  }
-  else if (affected_mols == VALUE_SINGLE) {
-    affected_mols = property[KEY_MOLECULE].asString();
-  }
-
-  orientation = convert_orientation(property[KEY_SURF_CLASS_ORIENT].asString());
-
-  string surf_class_type = property[KEY_SURF_CLASS_TYPE].asString();
-  if (surf_class_type == VALUE_TRANSPARENT) {
-    type_name = NAME_EV_TRANSPARENT;
-  }
-  else if (surf_class_type == VALUE_REFLECTIVE) {
-    type_name = NAME_EV_REFLECTIVE;
-  }
-  else if (surf_class_type == VALUE_ABSORPTIVE) {
-    type_name = NAME_EV_ABSORPTIVE;
-  }
-  else {
-    ERROR(S("Invalid ") + KEY_SURF_CLASS_TYPE + " " + surf_class_type + ".");
-  }
-
-  name = make_id(property[KEY_NAME].asString());
-  if (name == "") {
-    string tn_lower = type_name;
-    transform(tn_lower.begin(), tn_lower.end(), tn_lower.begin(), ::tolower);
-    // to be sure that there is no conflict, let's put a number at the end
-    name = SURFACE_CLASS_PREFIX + tn_lower + "_" + affected_mols + to_string(unnamed_surf_class_counter);
-    unnamed_surf_class_counter++;
-  }
-}
-
-
-vector<string> MCell4Generator::generate_surface_classes(ofstream& out) {
-  vector<string> sc_names;
-
-  if (!mcell.isMember(KEY_DEFINE_SURFACE_CLASSES)) {
-    return sc_names;
-  }
-
-  Value& define_surface_classes = get_node(mcell, KEY_DEFINE_SURFACE_CLASSES);
-  check_version(KEY_DEFINE_SURFACE_CLASSES, define_surface_classes, VER_DM_2014_10_24_1638);
-  Value& surface_class_list = get_node(define_surface_classes, KEY_SURFACE_CLASS_LIST);
-
-  for (Value::ArrayIndex i = 0; i < surface_class_list.size(); i++) {
-    Value& surface_class_list_item = surface_class_list[i];
-
-    Value& surface_class_prop_list = get_node(surface_class_list_item, KEY_SURFACE_CLASS_PROP_LIST);
-
-    vector<string> sc_prop_names;
-    if (surface_class_prop_list.size() > 1) {
-      for (Value::ArrayIndex i = 0; i < surface_class_prop_list.size(); i++) {
-        Value& surface_class_prop_item = surface_class_prop_list[i];
-
-        string name, type_name, affected_mols, orientation_name;
-        get_surface_class_property_info(surface_class_prop_item, name, type_name, affected_mols, orientation_name);
-
-        sc_prop_names.push_back(name);
-        gen_ctor_call(out, name, NAME_CLASS_SURFACE_PROPERTY, true);
-        gen_param_enum(out, NAME_TYPE, NAME_ENUM_SURFACE_PROPERTY_TYPE, type_name, true);
-        gen_param_id(out, NAME_AFFECTED_SPECIES, affected_mols, orientation_name != "");
-        if (orientation_name != "") {
-          gen_param_id(out, NAME_ORIENTATION, orientation_name, false);
-        }
-        out << CTOR_END;
-      }
-    }
-
-    string name = make_id(surface_class_list_item[KEY_NAME].asString());
-    sc_names.push_back(name);
-    gen_ctor_call(out, name, NAME_CLASS_SURFACE_CLASS, true);
-    gen_param(out, NAME_NAME, name, true);
-
-    if (!sc_prop_names.empty()) {
-      // use a list of properties
-      gen_param_list(out, NAME_PROPERTIES, sc_prop_names, false);
-    }
-    else {
-      // simplified setup, directly set members
-      string name, type_name, affected_mols, orientation_name;
-      get_surface_class_property_info(surface_class_prop_list[0], name, type_name, affected_mols, orientation_name);
-
-      gen_param_enum(out, NAME_TYPE, NAME_ENUM_SURFACE_PROPERTY_TYPE, type_name, true);
-      gen_param_id(out, NAME_AFFECTED_SPECIES, affected_mols, orientation_name != "");
-      if (orientation_name != "") {
-        gen_param_id(out, NAME_ORIENTATION, orientation_name, false);
-      }
-    }
-    out << CTOR_END;
-  }
-
-  return sc_names;
-}
-
-
 void MCell4Generator::generate_variable_rate(const std::string& rate_array_name, Json::Value& variable_rate_text) {
   // append to the parameters file
   ofstream out;
@@ -487,7 +376,10 @@ void MCell4Generator::generate_subsystem() {
   out << make_section_comment(SUBSYSTEM);
 
   generate_species_and_mol_types(out, all_species_and_mol_type_names);
-  vector<string> surface_class_names = generate_surface_classes(out);
+
+  vector<string> surface_class_names;
+  python_gen->generate_surface_classes(out, surface_class_names);
+
   all_reaction_rules_names = generate_reaction_rules(out);
 
   gen_ctor_call(out, SUBSYSTEM, NAME_CLASS_SUBSYSTEM, false);
