@@ -57,4 +57,21 @@ void open_and_check_file_w_prefix(
   }
 }
 
+
+std::string get_module_name_w_prefix(const std::string& output_files_prefix, const std::string file_suffix) {
+
+  if (output_files_prefix == "" || output_files_prefix.back() == '/' || output_files_prefix.back() == '\\') {
+    return file_suffix;
+  }
+  else {
+    size_t pos = output_files_prefix.find_last_of("/\\");
+    if (pos == string::npos) {
+      return output_files_prefix + "_" + file_suffix;
+    }
+    else {
+      return output_files_prefix.substr(pos) +  "_" + file_suffix;
+    }
+  }
+}
+
 } // namespace MCell

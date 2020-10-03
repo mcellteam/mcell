@@ -398,7 +398,7 @@ std::string PythonGenerator::generate_single_reaction_rule(std::ostream& out, Js
 
 
 void PythonGenerator::generate_reaction_rules(
-    ostream& out, std::vector<std::string>& rxn_names) {
+    ostream& out, std::vector<IdLoc>& rxn_names) {
 
   Value& define_reactions = get_node(mcell, KEY_DEFINE_REACTIONS);
   check_version(KEY_DEFINE_REACTIONS, define_reactions, VER_DM_2014_10_24_1638);
@@ -407,7 +407,7 @@ void PythonGenerator::generate_reaction_rules(
   for (Value::ArrayIndex i = 0; i < reaction_list.size(); i++) {
     Value& reaction_list_item = reaction_list[i];
     string name = generate_single_reaction_rule(out, reaction_list_item);
-    rxn_names.push_back(name);
+    rxn_names.push_back(IdLoc(name, true));
   }
 }
 

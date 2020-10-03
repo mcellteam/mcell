@@ -34,18 +34,7 @@ using Json::Value;
 
 
 string MCell4Generator::get_module_name(const string file_suffix) {
-  if (output_files_prefix == "" || output_files_prefix.back() == '/' || output_files_prefix.back() == '\\') {
-    return file_suffix;
-  }
-  else {
-    size_t pos = output_files_prefix.find_last_of("/\\");
-    if (pos == string::npos) {
-      return output_files_prefix + "_" + file_suffix;
-    }
-    else {
-      return output_files_prefix.substr(pos) +  "_" + file_suffix;
-    }
-  }
+  return get_module_name_w_prefix(output_files_prefix, file_suffix);
 }
 
 
@@ -63,10 +52,12 @@ void MCell4Generator::open_and_check_file(
 
 
 void MCell4Generator::reset() {
+  unnamed_rxn_counter = 0;
   geometry_generated = false;
   observables_generated = false;
   all_species_and_mol_type_names.clear();
   all_reaction_rules_names.clear();
+  bngl_reaction_rules_used_in_observables.clear();
   all_count_term_names.clear();
   bng_gen = nullptr;
   python_gen = nullptr;
@@ -106,9 +97,10 @@ bool MCell4Generator::generate(
   if (bng_mode) {
     open_and_check_file(MODEL, bng_out, false, true);
     bng_gen = new BNGLGenerator(
-        bng_out, mcell, get_filename(output_files_prefix, MODEL, BNGL_EXT));
+        get_filename(output_files_prefix, MODEL, BNGL_EXT), bng_out,
+        mcell, output_files_prefix, unnamed_rxn_counter);
   }
-  python_gen = new PythonGenerator(mcell, output_files_prefix);
+  python_gen = new PythonGenerator(mcell, output_files_prefix, unnamed_rxn_counter);
 
   CHECK(check_scripting(), failed);
 
@@ -255,11 +247,29 @@ static bool rxn_has_variable_rate(Value& reaction_list_item) {
 }
 
 
-vector<string> MCell4Generator::generate_reaction_rules(ofstream& out) {
-  vector<string> rxn_names;
+// returns true if the rxn name might be referenced by counts
+static bool is_rxn_used_in_observables(Value& mcell, const string& rxn_name) {
+  Value& reaction_data_output = get_node(mcell, KEY_REACTION_DATA_OUTPUT);
+  Value& reaction_output_list = get_node(reaction_data_output, KEY_REACTION_OUTPUT_LIST);
+  for (Value::ArrayIndex i = 0; i < reaction_output_list.size(); i++) {
+    Value& reaction_output_item = reaction_output_list[i];
+    string count_mdl_string = reaction_output_item[KEY_MDL_STRING].asString();
+    string count_rxn_name = reaction_output_item[KEY_REACTION_NAME].asString();
+    string string_to_check = count_mdl_string + " " +count_rxn_name;
+
+    if (string_to_check.find(rxn_name) != string::npos) {
+      return true;
+    }
+  }
+  return false;
+}
+
+
+vector<IdLoc> MCell4Generator::generate_reaction_rules(ofstream& out) {
+  vector<IdLoc> rxn_names_w_loc;
 
   if (!mcell.isMember(KEY_DEFINE_REACTIONS)) {
-    return rxn_names;
+    return rxn_names_w_loc;
   }
 
   if (bng_mode) {
@@ -279,22 +289,28 @@ vector<string> MCell4Generator::generate_reaction_rules(ofstream& out) {
       check_version(KEY_MOLECULE_LIST, reaction_list_item, VER_DM_2018_01_11_1330);
 
       if (!rxn_uses_mcell_orientation(reaction_list_item) && !rxn_has_variable_rate(reaction_list_item)) {
-        // no need to remember BNG rxn name because it is added to subsystem when BNGL file is loaded
-        bng_gen->generate_single_reaction_rule(reaction_list_item);
+
+        bool used_in_observables = is_rxn_used_in_observables(mcell, reaction_list_item[KEY_RXN_NAME].asString());
+        string name = bng_gen->generate_single_reaction_rule(reaction_list_item, used_in_observables);
+        rxn_names_w_loc.push_back(IdLoc(name, false));
+        bngl_reaction_rules_used_in_observables.push_back(name);
       }
       else {
+        bng_gen->add_comment(
+            S(IND) + "reaction " + reaction_list_item[KEY_MOL_NAME].asString() +
+            " was generated as Python code because it contains features not supported by BNGL");
         string name = python_gen->generate_single_reaction_rule(out, reaction_list_item);
-        rxn_names.push_back(name);
+        rxn_names_w_loc.push_back(IdLoc(name, true));
       }
     }
 
     bng_gen->close_reaction_rules_section();
   }
   else {
-    python_gen->generate_reaction_rules(out, rxn_names);
+    python_gen->generate_reaction_rules(out, rxn_names_w_loc);
   }
 
-  return rxn_names;
+  return rxn_names_w_loc;
 }
 
 
@@ -326,8 +342,10 @@ void MCell4Generator::generate_subsystem() {
   for (string& sc: surface_class_names) {
     gen_method_call(out, SUBSYSTEM, NAME_ADD_SURFACE_CLASS, sc);
   }
-  for (string& r: all_reaction_rules_names) {
-    gen_method_call(out, SUBSYSTEM, NAME_ADD_REACTION_RULE, r);
+  for (IdLoc& r_loc: all_reaction_rules_names) {
+    if (r_loc.in_python) {
+      gen_method_call(out, SUBSYSTEM, NAME_ADD_REACTION_RULE, r_loc.name);
+    }
   }
 
   out.close();
@@ -901,11 +919,11 @@ void MCell4Generator::process_single_count_term(
     what_to_count = what_to_count.substr(0, what_to_count.size() - 1);
   }
 
-  if (find(all_species_and_mol_type_names.begin(), all_species_and_mol_type_names.end(), SpeciesOrMolType(what_to_count, true))
+  if (find(all_species_and_mol_type_names.begin(), all_species_and_mol_type_names.end(), SpeciesOrMolType(what_to_count))
       != all_species_and_mol_type_names.end()) {
     rxn_not_mol = false;
   }
-  else if (find(all_reaction_rules_names.begin(), all_reaction_rules_names.end(), what_to_count) != all_reaction_rules_names.end()) {
+  else if (find(all_reaction_rules_names.begin(), all_reaction_rules_names.end(), IdLoc(what_to_count)) != all_reaction_rules_names.end()) {
     rxn_not_mol = true;
   }
   else {

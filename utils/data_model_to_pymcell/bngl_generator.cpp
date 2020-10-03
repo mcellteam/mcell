@@ -162,14 +162,28 @@ void BNGLGenerator::generate_mol_types(std::ostream& python_out) {
 }
 
 
-void BNGLGenerator::generate_single_reaction_rule(Json::Value& reaction_list_item) {
+std::string BNGLGenerator::generate_single_reaction_rule(Json::Value& reaction_list_item, const bool generate_name) {
   string rxn_type = reaction_list_item[KEY_RXN_TYPE].asString();
   CHECK_PROPERTY(rxn_type == VALUE_IRREVERSIBLE || rxn_type == VALUE_REVERSIBLE);
   bool is_reversible = rxn_type == VALUE_REVERSIBLE;
 
-  // TODO: generate rxn names somehow
+  // generate name only when needed
+  string name = reaction_list_item[KEY_RXN_NAME].asString();
+  if (name == "") {
+    bool ok = convert_reaction_name(reaction_list_item[KEY_NAME].asString(), name);
 
-  bng_out << IND <<
+    if (!ok) {
+      name = UNNAMED_REACTION_RULE_PREFIX + to_string(unnamed_rxn_counter);
+      unnamed_rxn_counter++;
+    }
+  }
+
+  bng_out << IND;
+  if (generate_name) {
+    // printing out name all the time would make the BNGL file hard to read
+    bng_out << name << ": ";
+  }
+  bng_out <<
       reaction_list_item[KEY_REACTANTS].asString() << " " <<
       ((is_reversible) ? "<->" : "->") << " " <<
       reaction_list_item[KEY_PRODUCTS].asString() << " " <<
@@ -179,6 +193,17 @@ void BNGLGenerator::generate_single_reaction_rule(Json::Value& reaction_list_ite
     bng_out << ", " << reaction_list_item[KEY_BKWD_RATE].asString();
   }
   bng_out << "\n";
+
+  return name;
 }
+
+
+void BNGLGenerator::generate_python_decl_bngl_rxn_rule(std::ostream& python_out, const std::string& name) {
+  python_out << "# declaration of rxn rule defined in BNGL and used here in Python\n";
+  python_out <<
+    name << " == " << get_module_name_w_prefix(output_files_prefix, SUBSYSTEM) << "." <<
+    NAME_FIND_REACTION_RULE << "('" << name << "')\n";
+}
+
 
 } /* namespace MCell */

@@ -25,11 +25,11 @@
 
 #include <string>
 #include <fstream>
-
-#include "bngl_generator.h"
 #include "json/json.h"
 
+#include "generator_structs.h"
 #include "python_generator.h"
+#include "bngl_generator.h"
 
 // use a different namespace?
 namespace MCell {
@@ -62,7 +62,7 @@ private:
   void generate_species_and_mol_types(std::ofstream& out, std::vector<SpeciesOrMolType>& species_and_mt_info);
 
   void generate_variable_rate(const std::string& rate_array_name, Json::Value& variable_rate_text);
-  std::vector<std::string> generate_reaction_rules(std::ofstream& out);
+  std::vector<IdLoc> generate_reaction_rules(std::ofstream& out);
 
   void generate_subsystem();
 
@@ -97,6 +97,8 @@ private:
 
   PythonGenerator* python_gen;
 
+  uint unnamed_rxn_counter;
+
   std::string output_files_prefix;
   bool bng_mode;
   bool debug_mode;
@@ -105,8 +107,10 @@ private:
   bool geometry_generated;
   bool observables_generated;
 
+
   std::vector<SpeciesOrMolType> all_species_and_mol_type_names;
-  std::vector<std::string> all_reaction_rules_names;
+  std::vector<IdLoc> all_reaction_rules_names;
+  std::vector<std::string> bngl_reaction_rules_used_in_observables;
   std::vector<std::string> all_count_term_names;
 
   // mcell node of the loaded JSON file

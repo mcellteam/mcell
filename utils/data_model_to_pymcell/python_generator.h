@@ -27,33 +27,17 @@
 #include <string>
 #include <vector>
 
+#include "generator_structs.h"
+
 namespace MCell {
-
-// auxiliary struct used when generating species or molecule types
-struct SpeciesOrMolType {
-  SpeciesOrMolType(const std::string& name_, const bool is_species_)
-    : name(name_), is_species(is_species_) {
-  }
-
-  SpeciesOrMolType(const SpeciesOrMolType& other)
-    : name(other.name), is_species(other.is_species) {
-  }
-
-  bool operator == (const SpeciesOrMolType& other) const {
-    return name == other.name && is_species == other.is_species;
-  }
-
-  std::string name;
-  bool is_species;
-};
 
 
 class PythonGenerator {
 public:
-  PythonGenerator(Json::Value& mcell_, const std::string& output_files_prefix_)
+  PythonGenerator(Json::Value& mcell_, const std::string& output_files_prefix_, uint unnamed_rxn_counter_)
     : mcell(mcell_),
       output_files_prefix(output_files_prefix_),
-      unnamed_surf_class_counter(0), unnamed_rxn_counter(0) {
+      unnamed_surf_class_counter(0), unnamed_rxn_counter(unnamed_rxn_counter_) {
   }
 
   void generate_parameters(std::ostream& out);
@@ -63,7 +47,7 @@ public:
 
   // the parameters file must be closed because we might append some code to it
   std::string generate_single_reaction_rule(std::ostream& out, Json::Value& reaction_list_item);
-  void generate_reaction_rules(std::ostream& out, std::vector<std::string>& rxn_names);
+  void generate_reaction_rules(std::ostream& out, std::vector<IdLoc>& rxn_names);
 
   void generate_geometry(std::ostream& out, std::vector<std::string>& geometry_objects);
 
@@ -98,7 +82,7 @@ private:
   const std::string& output_files_prefix;
 
   uint unnamed_surf_class_counter;
-  uint unnamed_rxn_counter;
+  uint& unnamed_rxn_counter; // owned by MCell4Generator
 };
 
 } /* namespace MCell */

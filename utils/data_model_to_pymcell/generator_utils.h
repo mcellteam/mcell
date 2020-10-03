@@ -82,6 +82,8 @@ void open_and_check_file_w_prefix(
     const std::string& output_files_prefix, const std::string file_suffix, std::ofstream& out,
     const bool for_append = false, const bool bngl = false);
 
+std::string get_module_name_w_prefix(const std::string& output_files_prefix, const std::string file_suffix);
+
 // throws exception when the member is member is there
 static Value& get_node(const string parent_name, Value& parent, const string name) {
   if (!parent.isMember(name)) {
@@ -503,6 +505,7 @@ static bool convert_reaction_name(const string& json_name, string& res_name) {
   replace(res_name.begin(), res_name.end(), '.', '_');
   replace(res_name.begin(), res_name.end(), ')', '_');
   replace(res_name.begin(), res_name.end(), '(', '_');
+  replace(res_name.begin(), res_name.end(), '!', '_');
 
   res_name = regex_replace(res_name, regex("<->"), "to");
   res_name = regex_replace(res_name, regex("->"), "to");

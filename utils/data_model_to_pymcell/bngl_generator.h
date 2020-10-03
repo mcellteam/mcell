@@ -32,21 +32,25 @@ namespace MCell {
 
 class BNGLGenerator {
 public:
-  BNGLGenerator(std::ostream& bng_out_, Json::Value& mcell_, const std::string& bngl_filename_)
-    : bng_out(bng_out_), mcell(mcell_), bngl_filename(bngl_filename_) {
+  BNGLGenerator(
+      const std::string& bngl_filename_,
+      std::ostream& bng_out_,
+      Json::Value& mcell_,
+      const std::string& output_files_prefix_,
+      uint unnamed_rxn_counter_)
+    : bngl_filename(bngl_filename_), bng_out(bng_out_),
+      mcell(mcell_), output_files_prefix(output_files_prefix_), unnamed_rxn_counter(unnamed_rxn_counter_) {
   }
 
   void generate_parameters(std::ostream& python_out);
   void generate_mol_types(std::ostream& python_out);
 
-  void open_reaction_rules_section() {
-    bng_out << "begin reaction rules\n";
-  }
-  void generate_single_reaction_rule(Json::Value& reaction_list_item);
-  void close_reaction_rules_section() {
-    bng_out << "end reaction rules\n";
-  }
+  void open_reaction_rules_section() { bng_out << "begin reaction rules\n"; }
+  std::string generate_single_reaction_rule(Json::Value& reaction_list_item, const bool generate_name);
+  void close_reaction_rules_section() { bng_out << "end reaction rules\n"; }
+  void generate_python_decl_bngl_rxn_rule(std::ostream& python_out, const std::string& name);
 
+  void add_comment(const std::string& text) { bng_out << "# " << text << "\n"; }
 
 private:
   void generate_single_bngl_parameter(Json::Value& parameter);
@@ -55,9 +59,11 @@ private:
   void generate_bngl_mol_type(Json::Value& molecule_list_item);
   void generate_python_mol_type_info(std::ostream& python_out, Json::Value& molecule_list_item);
 
+  const std::string& bngl_filename;
   std::ostream& bng_out;
   Json::Value& mcell;
-  const std::string& bngl_filename;
+  const std::string& output_files_prefix;
+  uint& unnamed_rxn_counter; // owned by MCell4Generator
 };
 
 } /* namespace MCell */
