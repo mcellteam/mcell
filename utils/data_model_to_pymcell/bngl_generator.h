@@ -39,6 +39,15 @@ public:
   void generate_parameters(std::ostream& python_out);
   void generate_mol_types(std::ostream& python_out);
 
+  void open_reaction_rules_section() {
+    bng_out << "begin reaction rules\n";
+  }
+  void generate_single_reaction_rule(Json::Value& reaction_list_item);
+  void close_reaction_rules_section() {
+    bng_out << "end reaction rules\n";
+  }
+
+
 private:
   void generate_single_bngl_parameter(Json::Value& parameter);
   void generate_single_python_parameter(std::ostream& python_out, Json::Value& parameter);

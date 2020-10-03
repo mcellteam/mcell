@@ -62,9 +62,8 @@ public:
   void generate_surface_classes(std::ostream& out, std::vector<std::string>& sc_names);
 
   // the parameters file must be closed because we might append some code to it
-  void generate_reaction_rules(
-      std::ostream& out, const bool all_rxns, const std::vector<size_t>& selected_rxns,
-      std::vector<std::string>& rxn_names);
+  std::string generate_single_reaction_rule(std::ostream& out, Json::Value& reaction_list_item);
+  void generate_reaction_rules(std::ostream& out, std::vector<std::string>& rxn_names);
 
   void generate_geometry(std::ostream& out, std::vector<std::string>& geometry_objects);
 

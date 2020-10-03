@@ -27,6 +27,7 @@ using namespace std;
 
 namespace MCell {
 
+using Json::Value;
 using namespace API;
 
 void BNGLGenerator::generate_single_bngl_parameter(Value& parameter) {
@@ -158,6 +159,26 @@ void BNGLGenerator::generate_mol_types(std::ostream& python_out) {
 
   python_out << "\n";
   bng_out << "end molecule types\n\n";
+}
+
+
+void BNGLGenerator::generate_single_reaction_rule(Json::Value& reaction_list_item) {
+  string rxn_type = reaction_list_item[KEY_RXN_TYPE].asString();
+  CHECK_PROPERTY(rxn_type == VALUE_IRREVERSIBLE || rxn_type == VALUE_REVERSIBLE);
+  bool is_reversible = rxn_type == VALUE_REVERSIBLE;
+
+  // TODO: generate rxn names somehow
+
+  bng_out << IND <<
+      reaction_list_item[KEY_REACTANTS].asString() << " " <<
+      ((is_reversible) ? "<->" : "->") << " " <<
+      reaction_list_item[KEY_PRODUCTS].asString() << " " <<
+      reaction_list_item[KEY_FWD_RATE].asString();
+
+  if (is_reversible) {
+    bng_out << ", " << reaction_list_item[KEY_BKWD_RATE].asString();
+  }
+  bng_out << "\n";
 }
 
 } /* namespace MCell */

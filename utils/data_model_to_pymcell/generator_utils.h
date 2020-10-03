@@ -68,7 +68,7 @@ typedef invalid_argument ConversionError;
     } \
   } while (0)
 
-#define ERROR(msg) throw ConversionError(S("Error:") + msg)
+#define ERROR(msg) throw ConversionError(S("Error: ") + msg + " (function " + __FUNCTION__ + ")")
 
 // auxiliary method to simply convert to std::string for when concatenating string
 static string S(const char* s) {

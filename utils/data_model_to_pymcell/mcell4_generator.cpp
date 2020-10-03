@@ -221,6 +221,40 @@ void MCell4Generator::generate_species_and_mol_types(
 }
 
 
+static bool rxn_uses_mcell_orientation(Value& reaction_list_item) {
+  string substances =
+      reaction_list_item[KEY_REACTANTS].asString() + " " +
+      reaction_list_item[KEY_PRODUCTS].asString();
+
+  // looking for ',; outside of parentheses
+  bool in_paren = false;
+  size_t i = 0;
+  while (i < substances.size()) {
+    char c = substances[i];
+    if (c == '(') {
+      CHECK_PROPERTY(!in_paren && "Malformed reaction definition - embedded parentheses");
+      in_paren = true;
+    }
+    else if (c == ')') {
+      CHECK_PROPERTY(in_paren && "Malformed reaction definition - unexpected closing parenthesis");
+      in_paren = false;
+    }
+    else if (!in_paren && (c == ',' || c == '\'' || c == ';')) {
+      return true;
+    }
+
+    i++;
+  }
+
+  return false;
+}
+
+
+static bool rxn_has_variable_rate(Value& reaction_list_item) {
+  return reaction_list_item[KEY_VARIABLE_RATE_SWITCH].asBool();
+}
+
+
 vector<string> MCell4Generator::generate_reaction_rules(ofstream& out) {
   vector<string> rxn_names;
 
@@ -229,10 +263,35 @@ vector<string> MCell4Generator::generate_reaction_rules(ofstream& out) {
   }
 
   if (bng_mode) {
-    assert(false);
+    // put into BNG all rxn rules that,
+    // 1) don't use MCell orientation or
+    // 2) variable rxn rates
+    // rest goes into python
+
+    Value& define_reactions = get_node(mcell, KEY_DEFINE_REACTIONS);
+    check_version(KEY_DEFINE_REACTIONS, define_reactions, VER_DM_2014_10_24_1638);
+
+    bng_gen->open_reaction_rules_section();
+
+    Value& reaction_list = get_node(define_reactions, KEY_REACTION_LIST);
+    for (Value::ArrayIndex i = 0; i < reaction_list.size(); i++) {
+      Value& reaction_list_item = reaction_list[i];
+      check_version(KEY_MOLECULE_LIST, reaction_list_item, VER_DM_2018_01_11_1330);
+
+      if (!rxn_uses_mcell_orientation(reaction_list_item) && !rxn_has_variable_rate(reaction_list_item)) {
+        // no need to remember BNG rxn name because it is added to subsystem when BNGL file is loaded
+        bng_gen->generate_single_reaction_rule(reaction_list_item);
+      }
+      else {
+        string name = python_gen->generate_single_reaction_rule(out, reaction_list_item);
+        rxn_names.push_back(name);
+      }
+    }
+
+    bng_gen->close_reaction_rules_section();
   }
   else {
-    python_gen->generate_reaction_rules(out, true, vector<size_t>(), rxn_names);
+    python_gen->generate_reaction_rules(out, rxn_names);
   }
 
   return rxn_names;
