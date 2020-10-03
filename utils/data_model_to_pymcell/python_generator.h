@@ -55,6 +55,8 @@ public:
 
   void generate_parameters(std::ostream& out);
   void generate_species_and_mol_types(std::ostream& out, std::vector<SpeciesOrMolType>& species_and_mt_info);
+  void generate_geometry(std::ostream& out, std::vector<std::string>& geometry_objects);
+
 
 private:
   void generate_single_parameter(std::ostream& out, Json::Value& parameter);
@@ -68,6 +70,10 @@ private:
 
   SpeciesOrMolType generate_single_species_or_mol_type_w_components(
       std::ostream& out, Json::Value& molecule_list_item);
+
+  std::string generate_single_geometry_object(
+      std::ostream& out, const int index, Json::Value& object);
+
 
 private:
   Json::Value& mcell;

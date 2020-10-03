@@ -510,101 +510,6 @@ void MCell4Generator::generate_subsystem() {
 }
 
 
-string MCell4Generator::generate_single_geometry_object(
-    ofstream& out, const int index, Value& object) {
-
-  string parent_name = S(KEY_OBJECT_LIST) + "[" + to_string(index) + "]";
-
-  string name = make_id(get_node(parent_name, object, KEY_NAME).asString());
-  Value& vertex_list = get_node(parent_name, object, KEY_VERTEX_LIST);
-  Value& element_connections = get_node(parent_name, object, KEY_ELEMENT_CONNECTIONS);
-  // TODO: material_names
-
-  out << make_start_block_comment(name);
-
-  // vertex_list
-  string id_vertex_list = name + "_" + NAME_VERTEX_LIST;
-  out << id_vertex_list << " = [\n";
-  for (Value::ArrayIndex i = 0; i < vertex_list.size(); i++) {
-    out << IND << "[";
-    Value& vertex = vertex_list[i];
-    for (Value::ArrayIndex k = 0; k < vertex.size(); k++) {
-      out << vertex[k].asDouble();
-      gen_comma(out, k, vertex);
-    }
-    out << "]";
-    gen_comma(out, i, vertex_list);
-    out << "\n";
-  }
-  out << "] # " << id_vertex_list << "\n\n";
-
-  // element_connections
-  string id_element_connections = name + "_" + NAME_ELEMENT_CONNECTIONS;
-  out << id_element_connections << " = [\n";
-  for (Value::ArrayIndex i = 0; i < element_connections.size(); i++) {
-    out << IND << "[";
-    Value& element = element_connections[i];
-    for (Value::ArrayIndex k = 0; k < element.size(); k++) {
-      out << element[k].asInt();
-      gen_comma(out, k, element);
-    }
-    out << "]";
-    gen_comma(out, i, element_connections);
-    out << "\n";
-  }
-  out << "] # " << id_element_connections << "\n\n";
-
-  // surface areas
-  vector<string> sr_global_names;
-  if (object.isMember(KEY_DEFINE_SURFACE_REGIONS)) {
-    Value& define_surface_regions = object[KEY_DEFINE_SURFACE_REGIONS];
-    for (Value::ArrayIndex i = 0; i < define_surface_regions.size(); i++) {
-
-      string sr_name = make_id(get_node(
-          KEY_DEFINE_SURFACE_REGIONS, define_surface_regions[i], KEY_NAME).asString());
-      Value& include_elements = get_node(
-          KEY_DEFINE_SURFACE_REGIONS, define_surface_regions[i], KEY_INCLUDE_ELEMENTS);
-
-      string sr_global_name = name + "_" + sr_name;
-      string sr_element_connections_name = sr_global_name + "_" + NAME_WALL_INDICES;
-      out << sr_element_connections_name << " = [";
-      for (Value::ArrayIndex k = 0; k < include_elements.size(); k++) {
-
-        if (k % 16 == 0) {
-          out << "\n" << IND;
-        }
-        out << include_elements[k].asInt();
-        gen_comma(out, k, include_elements);
-      }
-      out << "\n] #" << sr_element_connections_name << "\n\n";
-
-      out << sr_global_name << " = " << MDOT << NAME_CLASS_SURFACE_REGION << "(\n";
-      out << IND << NAME_NAME << " = '" << sr_name << "',\n";
-      out << IND << NAME_WALL_INDICES << " = " << sr_element_connections_name << "\n";
-      out << CTOR_END;
-
-      sr_global_names.push_back(sr_global_name);
-    }
-  }
-
-  // object creation itself
-  out << name << " = " << MDOT << NAME_CLASS_GEOMETRY_OBJECT << "(\n";
-  gen_param(out, NAME_NAME, name, true);
-  gen_param_id(out, NAME_VERTEX_LIST, id_vertex_list, true);
-  gen_param_id(out, NAME_ELEMENT_CONNECTIONS, id_element_connections, true);
-  out << IND << NAME_SURFACE_REGIONS << " = [";
-  for (size_t i = 0; i < sr_global_names.size(); i++) {
-    out << sr_global_names[i];
-    print_comma(out, i, sr_global_names);
-  }
-  out << "]\n)\n";
-
-  out << make_end_block_comment(name);
-
-  return name;
-}
-
-
 vector<string> MCell4Generator::generate_geometry() {
 
   vector<string> geometry_objects;
@@ -624,12 +529,9 @@ vector<string> MCell4Generator::generate_geometry() {
 
   out << MCELL_IMPORT;
 
-  Value& object_list = get_node(geometrical_objects, KEY_OBJECT_LIST);
-  for (Value::ArrayIndex i = 0; i < object_list.size(); i++) {
-    Value& object = object_list[i];
-    string name = generate_single_geometry_object(out, i, object);
-    geometry_objects.push_back(name);
-  }
+  python_gen->generate_geometry(out, geometry_objects);
+
+  // NOTE: we can generate BNGL compartments from geometry here
 
   out.close();
   geometry_generated = true;
